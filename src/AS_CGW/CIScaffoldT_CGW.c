@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.12 2006-10-31 22:22:25 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.13 2006-11-06 22:53:42 brianwalenz Exp $";
 
 #undef DEBUG
 #undef DEBUG_INSERT
@@ -1238,6 +1238,93 @@ int IsScaffoldInternallyConnectedCheck(ScaffoldGraphT *sgraph,
   return numComponents;
 }
 
+
+void
+killScaffoldIfOnlySurrogate(CDS_CID_t scaffoldID) {
+  CIScaffoldT     *scaffold  = GetGraphNode(ScaffoldGraph->ScaffoldGraph, scaffoldID);
+  ContigT         *contig    = NULL;
+  ChunkInstanceT  *chunk     = NULL;
+  ChunkInstanceT  *basechunk = NULL;
+
+  if (scaffold->flags.bits.isDead)
+    return;
+
+  if (scaffold->info.Scaffold.numElements > 1)
+    return;
+
+  contig = GetGraphNode(ScaffoldGraph->ContigGraph, scaffold->info.Scaffold.AEndCI);
+
+  if (contig->info.Contig.numCI == 1) {
+    chunk = GetGraphNode(ScaffoldGraph->CIGraph, contig->info.Contig.AEndCI);
+
+    if (chunk->flags.bits.isStoneSurrogate) {
+      basechunk = GetGraphNode(ScaffoldGraph->CIGraph, chunk->info.CI.baseID);
+
+      fprintf(stderr, "WARNING!  scaffold %d contians just a surrogate (contig=%d chunk=%d base=%d)!\n",
+              scaffold->id,
+              contig->id,
+              chunk->id,
+              basechunk->id);
+          
+      //  See ya!
+
+      //  Clean up the base unitig
+      //
+      if (basechunk->info.CI.numInstances == 1) {
+        basechunk->flags.bits.isChaff = FALSE;
+        if (basechunk->info.CI.numFragments == 1)
+          basechunk->flags.bits.isChaff = TRUE;
+        basechunk->info.CI.instances.in_line.instance1 = -1;
+        basechunk->info.CI.instances.in_line.instance2 = -1;
+        basechunk->info.CI.numInstances = 0;
+      } else if (basechunk->info.CI.numInstances == 2) {
+        if (basechunk->info.CI.instances.in_line.instance1 == chunk->id)
+          basechunk->info.CI.instances.in_line.instance1 = basechunk->info.CI.instances.in_line.instance2;
+        basechunk->info.CI.instances.in_line.instance2 = -1;
+        basechunk->info.CI.numInstances = 1;
+      } else if (basechunk->info.CI.numInstances == 3) {
+        CDS_CID_t  a = *GetCDS_CID_t(basechunk->info.CI.instances.va, 0);
+        CDS_CID_t  b = *GetCDS_CID_t(basechunk->info.CI.instances.va, 1);
+        CDS_CID_t  c = *GetCDS_CID_t(basechunk->info.CI.instances.va, 2);
+
+        if (a == chunk->id)
+          a = c;
+        if (b == chunk->id)
+          b = c;
+
+        DeleteVA_CDS_CID_t(basechunk->info.CI.instances.va);
+        basechunk->info.CI.instances.in_line.instance1 = a;
+        basechunk->info.CI.instances.in_line.instance2 = b;
+        basechunk->info.CI.numInstances = 2;
+      } else {
+        //  Find which one is this chunk, move the last one over it.
+        int  index = 0;
+
+        for (index=0; index<basechunk->info.CI.numInstances; index++)
+          if (*GetCDS_CID_t(basechunk->info.CI.instances.va, index) == chunk->id)
+            SetCDS_CID_t(basechunk->info.CI.instances.va,
+                         index,
+                         GetCDS_CID_t(basechunk->info.CI.instances.va, basechunk->info.CI.numInstances-1));
+        basechunk->info.CI.numInstances--;
+      }
+
+      //  Kill the unitig, contig, scaffold edges and scaffold.
+      DeleteGraphNode(ScaffoldGraph->CIGraph, chunk);
+      DeleteGraphNode(ScaffoldGraph->ContigGraph, contig);
+
+      DeleteScaffoldEdgesForScaffold(ScaffoldGraph, scaffold);
+
+      scaffold->flags.bits.isDead         = TRUE; 
+      scaffold->info.Scaffold.AEndCI      = NULLINDEX;
+      scaffold->info.Scaffold.BEndCI      = NULLINDEX;
+      scaffold->info.Scaffold.numElements = 0;
+      scaffold->bpLength.mean             = 0.0;
+      scaffold->bpLength.variance         = 0.0;
+    }
+  }
+}
+
+
 /***********************************************************************/
 int32 CheckScaffoldConnectivityAndSplit(ScaffoldGraphT *graph, CDS_CID_t scaffoldID, int32 edgeTypes, int verbose){
   CIScaffoldT  *scaffold      = GetCIScaffoldT(graph->CIScaffolds, scaffoldID);
@@ -1325,6 +1412,10 @@ int32 CheckScaffoldConnectivityAndSplit(ScaffoldGraphT *graph, CDS_CID_t scaffol
       assert((GetGraphNode(graph->ScaffoldGraph, newScaffoldID))->info.Scaffold.numElements > 0);
 
       fprintf(stderr, "Splitting "F_CID" into scaffold "F_CID"\n", scaffoldID, newScaffoldID);
+
+      //  Make sure that our new scaffold contains more than just a single surrogate.
+      //
+      killScaffoldIfOnlySurrogate(newScaffoldID);
 
 #ifdef DEBUG_SPLIT
       fprintf(stderr,"... post split ...");
@@ -1477,10 +1568,7 @@ void CheckCIScaffoldTs(ScaffoldGraphT *sgraph){
     assert(!scaffold->flags.bits.isDead);
     CheckCIScaffoldT(sgraph, scaffold);
   }
-
 }
-
-
 
 
 void CheckCIScaffoldTLengths(ScaffoldGraphT *sgraph){
@@ -1494,7 +1582,6 @@ void CheckCIScaffoldTLengths(ScaffoldGraphT *sgraph){
     assert(!scaffold->flags.bits.isDead);
     CheckCIScaffoldTLength(sgraph, scaffold);
   }
-
 }
 
 
