@@ -25,7 +25,7 @@
  Assumptions: There is no UID 0
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.20 2006-10-08 08:47:40 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.21 2006-11-06 23:01:10 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_ReadStruct.h"
@@ -768,7 +768,7 @@ static SnapConConMesg* convert_ICM_to_CCO(IntConConMesg* icmMesg, int32 real)
       di = GetCDS_UID_t(IUMmap,icmMesg->unitigs[i].ident);
       if ((di == NULL) || (*di == 0)) {
 	sprintf(errorreport,"Reference before definition for unitig ID %d",
-		icmMesg->pieces[i].ident);
+		icmMesg->unitigs[i].ident);
 	error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
       }
       ccoMesg->unitigs[i].eident = *di;
