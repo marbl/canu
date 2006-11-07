@@ -64,8 +64,7 @@ sub terminate ($) {
             my $fakeUIDs  = getGlobal("fakeUIDs");
 
             my $cmd;
-            $cmd  = "cd $wrk/9-terminator && ";
-            $cmd .= "cat $cgwDir/$asm.cgw ";
+            $cmd  = "cat $cgwDir/$asm.cgw ";
             $cmd .= " $wrk/8-consensus/$asm.cns_contigs.*[0-9] ";
             $cmd .= " $cgwDir/$asm.cgw_scaffolds | ";
             $cmd .= "$bin/terminator -P -s $fakeUIDs " if ($fakeUIDs != 0);
@@ -77,7 +76,7 @@ sub terminate ($) {
             $cmd .= " -m $wrk/9-terminator/$asm.map ";
             $cmd .= " > $wrk/9-terminator/terminator.err 2>&1 ";
 
-            if (runCommand($cmd)) {
+            if (runCommand("$wrk/9-terminator", $cmd)) {
                 rename "$wrk/9-terminator/$asm.asm", "$wrk/9-terminator/$asm.asm.FAILED";
                 rename "$wrk/9-terminator/$asm.map", "$wrk/9-terminator/$asm.map.FAILED";
                 die "Failed.\n";
@@ -88,9 +87,11 @@ sub terminate ($) {
 
         if (! -e "$wrk/9-terminator/$asm.scaffold.fasta") {
             my $cmd;
-            $cmd  = "cd $wrk/9-terminator && ";
-            $cmd .= "$bin/asmProcessScaffolds_TER -q -d -f $wrk/9-terminator/$asm.scaffold.fasta < $wrk/9-terminator/$asm.asm";
-            if (runCommand($cmd)) {
+            $cmd  = "$bin/asmProcessScaffolds_TER -q -d ";
+            $cmd .= "-f $wrk/9-terminator/$asm.scaffold.fasta ";
+            $cmd .= "< $wrk/9-terminator/$asm.asm";
+
+            if (runCommand("$wrk/9-terminator", $cmd)) {
                 rename "$wrk/9-terminator/$asm.scaffold.fasta", "$wrk/9-terminator/$asm.scaffold.fasta.FAILED";
                 die "Failed.\n";
             }
@@ -104,15 +105,14 @@ sub terminate ($) {
             my $lastckp = findLastCheckpoint("$wrk/7-CGW");
 
             my $cmd;
-            $cmd  = "cd $wrk/9-terminator && ";
-            $cmd .= "$bin/dumpSingletons ";
+            $cmd  = "$bin/dumpSingletons ";
             $cmd .= " -f $wrk/$asm.frgStore ";
             $cmd .= " -g $wrk/$asm.gkpStore ";
             $cmd .= " -c $cgwDir/$asm -n $lastckp -S ";
             $cmd .= "> $wrk/9-terminator/$asm.singleton.fasta ";
             $cmd .= "2> $wrk/9-terminator/dumpSingletons.err ";
 
-            if (runCommand($cmd)) {
+            if (runCommand("$wrk/9-terminator", $cmd)) {
                 print STDERR "Failed.\n";
                 rename "$wrk/9-terminator/$asm.singleton.fasta", "$wrk/9-terminator/$asm.singleton.fasta.FAILED";
             }
@@ -137,9 +137,8 @@ sub terminate ($) {
         #
         if (! -e "$wrk/9-terminator/$asm.posmap.frgscf") {
             my $cmd;
-            $cmd  = "cd $wrk/9-terminator && ";
-            $cmd .= "$perl $bin/buildFragContigPosMap.pl $asm.posmap < $wrk/9-terminator/$asm.asm";
-            if (runCommand($cmd)) {
+            $cmd = "$perl $bin/buildFragContigPosMap.pl $asm.posmap < $wrk/9-terminator/$asm.asm";
+            if (runCommand("$wrk/9-terminator", $cmd)) {
                 rename "$wrk/9-terminator/$asm.posmap.frgscf", "$wrk/9-terminator/$asm.posmap.frgscf.FAILED";
                 die "buildFragContigMap failed.\n";
             }
@@ -169,9 +168,8 @@ sub terminate ($) {
             #}
 
             my $cmd;
-            $cmd  = "cd $wrk/9-terminator && ";
-            $cmd .= "$perl $bin/caqc.pl $wrk/9-terminator/$asm.asm";
-            if (runCommand($cmd)) {
+            $cmd = "$perl $bin/caqc.pl $wrk/9-terminator/$asm.asm";
+            if (runCommand("$wrk/9-terminator", $cmd)) {
                 rename "$wrk/9-terminator/$asm.qc", "$wrk/9-terminator/$asm.qc.FAILED";
                 die "Failed.\n";
             }

@@ -35,8 +35,7 @@ sub meryl {
             my $merylMemory = getGlobal("merylMemory");
 
             my $cmd;
-            $cmd  = "cd $wrk/0-preoverlap && ";
-            $cmd .= "$bin/dumpFragStoreAsFasta -frg $wrk/$asm.frgStore | ";
+            $cmd  = "$bin/dumpFragStoreAsFasta -frg $wrk/$asm.frgStore | ";
             $cmd .= "$bin/meryl ";
             $cmd .= "  -B -C -v -m $merSize -memory $merylMemory ";
             $cmd .= "  -s - ";
@@ -44,13 +43,12 @@ sub meryl {
             $cmd .= "> $wrk/0-preoverlap/meryl.out ";
             $cmd .= "2>&1";
 
-            if (runCommand($cmd)) {
+            if (runCommand("$wrk/0-preoverlap", $cmd)) {
                 die "Failed.\n";
             }
 
-            $cmd  = "cd $wrk/0-preoverlap && ";
-            $cmd .= "$bin/meryl -Dt -n $merylOvlThreshold -s $wrk/0-preoverlap/$asm-ms$merSize > $wrk/0-preoverlap/$asm.nmers.fasta ";
-            if (runCommand($cmd)) {
+            $cmd = "$bin/meryl -Dt -n $merylOvlThreshold -s $wrk/0-preoverlap/$asm-ms$merSize > $wrk/0-preoverlap/$asm.nmers.fasta ";
+            if (runCommand("$wrk/0-preoverlap", $cmd)) {
                 rename "$wrk/$asm.nmers.fasta", "$wrk/$asm.nmers.fasta.FAILED";
                 die "Failed.\n";
             }
@@ -58,10 +56,9 @@ sub meryl {
 
         if ((! -e "$wrk/0-overlaptrim-overlap/$asm.nmers.fasta") && (getGlobal("doOverlapTrimming") != 0)) {
             my $cmd;
-            $cmd  = "cd $wrk/0-overlaptrim-overlap && ";
-            $cmd .= "$bin/meryl -Dt -n $merylObtThreshold -s $wrk/0-preoverlap/$asm-ms$merSize > $wrk/0-overlaptrim-overlap/$asm.nmers.fasta ";
+            $cmd = "$bin/meryl -Dt -n $merylObtThreshold -s $wrk/0-preoverlap/$asm-ms$merSize > $wrk/0-overlaptrim-overlap/$asm.nmers.fasta ";
             
-            if (runCommand($cmd)) {
+            if (runCommand("$wrk/0-overlaptrim-overlap", $cmd)) {
                 rename "$wrk/$asm.nmers.fasta", "$wrk/$asm.nmers.fasta.FAILED";
                 die "Failed.\n";
             }
@@ -80,13 +77,12 @@ sub meryl {
             $merylOvlThreshold /= $merylSkip;
 
             my $cmd;
-            $cmd  = "cd $wrk/0-preoverlap && ";
-            $cmd .= "$bin/meryl -m $merSize -s $wrk/$asm.frgStore -n $merylOvlThreshold -K $merylSkip ";
+            $cmd  = "$bin/meryl -m $merSize -s $wrk/$asm.frgStore -n $merylOvlThreshold -K $merylSkip ";
             $cmd .= "-o $wrk/0-preoverlap/$asm.nmers.fasta";
             $cmd .= "> $wrk/0-preoverlap/meryl.out ";
             $cmd .= "2>&1";
 
-            if (runCommand($cmd)) {
+            if (runCommand("$wrk/0-preoverlap", $cmd)) {
                 rename "$wrk/$asm.nmers.fasta", "$wrk/$asm.nmers.fasta.FAILED";
                 die "Failed.\n";
             }

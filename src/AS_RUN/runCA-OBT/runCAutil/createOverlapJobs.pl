@@ -232,7 +232,7 @@ sub createOverlapJobs {
         my $failures = 0;
         for (my $i=1; $i<=$jobs; $i++) {
             my $out = substr("0000" . $i, -4);
-            if (runCommand("$wrk/$outDir/overlap.sh $i > $wrk/$outDir/$out.out 2>&1")) {
+            if (runCommand("$wrk/$outDir", "$wrk/$outDir/overlap.sh $i > $wrk/$outDir/$out.out 2>&1")) {
                 $failures++;
             }
         }

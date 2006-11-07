@@ -6,7 +6,8 @@ sub createOverlapStore {
     goto alldone if (-d "$wrk/$asm.ovlStore");
 
     if (! -e "$wrk/1-overlapper/all-overlaps.ovllist") {
-        if (runCommand("find $wrk/1-overlapper/ -name \\*ovl -or -name \\*ovl.bz2 -print > $wrk/1-overlapper/all-overlaps.ovllist")) {
+        if (runCommand("$wrk/1-overlapper",
+                       "find $wrk/1-overlapper/ -name \\*ovl -or -name \\*ovl.bz2 -print > $wrk/1-overlapper/all-overlaps.ovllist")) {
             rename "$wrk/1-overlapper/all-overlaps.ovllist", "$wrk/1-overlapper/all-overlaps.ovllist.FAILED";
             die "Failed to generate a list of all the overlap files.\n";
         }
@@ -22,7 +23,7 @@ sub createOverlapStore {
     $cmd .= "-L $wrk/1-overlapper/all-overlaps.ovllist ";
     $cmd .= "> $wrk/1-overlapper/grow-olap-store.out ";
     $cmd .= "2> $wrk/1-overlapper/grow-olap-store.err ";
-    if (runCommand($cmd)) {
+    if (runCommand("$wrk", $cmd)) {
         rename "$wrk/$asm.ovlStore", "$wrk/$asm.ovlStore.FAILED";
         die "Failed to grow the overlap store.\n";
     }

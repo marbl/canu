@@ -35,7 +35,7 @@ sub overlapTrim {
         $cmd .= " -frg $wrk/$asm.frgStore ";
         $cmd .= " > $wrk/0-overlaptrim/initialTrim.err 2>&1";
 
-        if (runCommand($cmd)) {
+        if (runCommand("$wrk/0-overlaptrim", $cmd)) {
             rename "$wrk/0-overlaptrim/$asm.initialTrimLog", "$wrk/0-overlaptrim/$asm.initialTrimLog.failed";
             die "Failed.\n";
         }
@@ -59,21 +59,20 @@ sub overlapTrim {
         #  Sort the overlaps -- this also duplicates each overlap so that
         #  all overlaps for a fragment A are localized.
 
-        if (runCommand("find $wrk/0-overlaptrim-overlap -follow -name \\*ovb -print > $wrk/0-overlaptrim/all-overlaps-trim.ovllist")) {
-            print STDERR "Failed to generate a list of all the overlap files.\n";
-            exit(1);
+        if (runCommand("$wrk/0-overlaptrim",
+                       "find $wrk/0-overlaptrim-overlap -follow -name \\*ovb -print > $wrk/0-overlaptrim/all-overlaps-trim.ovllist")) {
+            die "Failed to generate a list of all the overlap files.\n";
         }
 
         my $cmd;
-        $cmd  = "cd $wrk && ";
-        $cmd .= "$bin/sort-overlaps";
+        $cmd  = "$bin/sort-overlaps";
         $cmd .= " -memory " . getGlobal('ovlSortMemory') . " ";
         $cmd .= " -maxiid $numFrags ";
         $cmd .= " -L $wrk/0-overlaptrim/all-overlaps-trim.ovllist";
         $cmd .= " > $wrk/0-overlaptrim/$asm.ovl.sorted";
         $cmd .= " 2> $wrk/0-overlaptrim/$asm.ovl.sorted.err";
 
-        if (runCommand($cmd)) {
+        if (runCommand("$wrk/0-overlaptrim", $cmd)) {
             unlink "$wrk/0-overlaptrim/$asm.ovl.sorted";
             die "Failed to sort.\n";
         }
@@ -85,7 +84,8 @@ sub overlapTrim {
     if ((! -e "$wrk/0-overlaptrim/$asm.ovl.consolidated") &&
         (! -e "$wrk/0-overlaptrim/$asm.ovl.consolidated.bz2")) {
 
-        if (runCommand("$bin/consolidate < $wrk/0-overlaptrim/$asm.ovl.sorted > $wrk/0-overlaptrim/$asm.ovl.consolidated")) {
+        if (runCommand("$wrk/0-overlaptrim",
+                       "$bin/consolidate < $wrk/0-overlaptrim/$asm.ovl.sorted > $wrk/0-overlaptrim/$asm.ovl.consolidated")) {
           unlink "$wrk/0-overlaptrim/$asm.ovl.consolidated";
           die "Failed to consolidate.\n";
         }
@@ -109,7 +109,7 @@ sub overlapTrim {
         $cmd .= "-ovl $wrk/0-overlaptrim/$asm.ovl.consolidated";
         $cmd .= "> $wrk/0-overlaptrim/$asm.ovl.consolidated.err 2>&1";
 
-        if (runCommand($cmd)) {
+        if (runCommand("$wrk/0-overlaptrim", $cmd)) {
             unlink "$wrk/0-overlaptrim/$asm.mergeLog";
             unlink "$wrk/0-overlaptrim/$asm.mergeLog.stats";
             die "Failed to merge trimming.\n";
@@ -207,7 +207,7 @@ sub overlapTrim {
         $cmd .= " -report  $wrk/0-overlaptrim/$asm.chimera.report ";
         $cmd .= " < $wrk/0-overlaptrim/$asm.ovl.sorted ";
         $cmd .= " 2> $wrk/0-overlaptrim/$asm.chimera.err ";
-        if (runCommand($cmd)) {
+        if (runCommand("$wrk/0-overlaptrim", $cmd)) {
             rename "$wrk/0-overlaptrim/$asm.chimera.report", "$wrk/0-overlaptrim/$asm.chimera.report.FAILED";
             die "Failed.\n";
         }
@@ -222,7 +222,7 @@ sub overlapTrim {
         $cmd .= " -f $wrk/$asm.frgStore ";
         $cmd .= " -g $wrk/$asm.gkpStore ";
         $cmd .= " > $wrk/0-overlaptrim/$asm.deletelinks.out 2>&1";
-        if (runCommand($cmd)) {
+        if (runCommand("$wrk/0-overlaptrim", $cmd)) {
             rename "$wrk/0-overlaptrim/$asm.deletelinks.out", "$wrk/0-overlaptrim/$asm.deletelinks.out.FAILED";
             die "Failed.\n";
         }

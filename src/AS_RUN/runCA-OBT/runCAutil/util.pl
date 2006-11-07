@@ -96,7 +96,7 @@ sub setGlobal ($$) {
     $global{$var} = $val;
 }
 
-sub setDefaults {
+sub setDefaults () {
     $global{"binRoot"}                     = undef;
     $global{"cnsPartitions"}               = 128;
     $global{"cnsMinFrags"}                 = 75000;
@@ -168,7 +168,7 @@ sub setDefaults {
     $global{"globalErrorRate"}             = 6;
 }
 
-sub setParameters {
+sub setParameters ($@) {
     my $specFile = shift @_;
     my @specOpts = @_;
 
@@ -218,7 +218,7 @@ sub setParameters {
 }
 
 
-sub printHelp {
+sub printHelp () {
     if (getGlobal("help")) {
         foreach my $k (sort keys %global) {
             if (defined(getGlobal($k))) {
@@ -232,7 +232,7 @@ sub printHelp {
 }
 
 
-sub checkDirectories {
+sub checkDirectories () {
 
     #  Check that we were supplied a work directory, and that it
     #  exists, or we can create it.
@@ -268,7 +268,7 @@ sub checkDirectories {
 
 sub findLastCheckpoint ($) {
     my $dir     = shift @_;
-    my $lastckp;
+    my $lastckp = 0;
 
     $dir = "$wrk/$dir" if (! -d $dir);
 
@@ -427,13 +427,13 @@ sub submitScript ($) {
 
 #  Create an empty file.  Much faster than system("touch ...").
 #
-sub touch {
+sub touch ($) {
     open(F, "> $_[0]") or die "Failed to touch '$_[0]'\n";
     close(F);
 }
 
 
-sub pleaseExecute {
+sub pleaseExecute ($) {
     my $file = shift @_;
 
     print STDERR "Please execute:\n";
@@ -445,16 +445,18 @@ sub pleaseExecute {
 
 #  Utility to run a command and check the exit status, report time used.
 #
-sub runCommand {
+sub runCommand ($$) {
+    my $dir = shift @_;
     my $cmd = shift @_;
 
     my $t = localtime();
     my $d = time();
     print STDERR "----------------------------------------START $t\n$cmd\n";
+    #print STDERR "dir='$dir'\n";
+    #print STDERR "cmd='$cmd'\n";
 
     my $execwrap = getGlobal("executionWrapper");
-
-    my $rc = 0xffff & system("$execwrap $cmd");
+    my $rc = 0xffff & system("cd $dir && $execwrap $cmd");
 
     $t = localtime();
     print STDERR "----------------------------------------END $t (", time() - $d, " seconds)\n";
@@ -474,20 +476,22 @@ sub runCommand {
         }
     }
 
-    my $error = "ERROR: $cmd\n        failed with ";
+    my $error = "ERROR: $cmd\nERROR: Command failed with ";
 
     if ($rc == 0xff00) {
         $error .= "$!\n";
-    } elsif ($rc > 0x80) {
-        $rc >>= 8;
-        $error .= "exit status $rc\n";
     } else {
         if ($rc & 0x80) {
-            $rc &= ~0x80;
             $error .= "coredump from ";
         }
+    
+        if ($rc > 0x80) {
+            $rc >>= 8;
+        }
+        $rc &= 127;
+
         if (defined($signame[$rc])) {
-            $error .= "signal $signame[$rc]\n";
+            $error .= "signal $signame[$rc] ($rc)\n";
         } else {
             $error .= "signal $rc\n";
         }

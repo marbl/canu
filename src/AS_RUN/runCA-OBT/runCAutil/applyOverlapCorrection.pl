@@ -41,7 +41,7 @@ sub applyOverlapCorrection {
             $cmd .= "-L $wrk/3-ovlcorr/cat-erates.eratelist ";
             $cmd .= "-o $wrk/3-ovlcorr/$asm.erates ";
             $cmd .= "> $wrk/3-ovlcorr/cat-erates.err 2>&1";
-            if (runCommand($cmd)) {
+            if (runCommand("$wrk/3-ovlcorr", $cmd)) {
                 rename "$wrk/3-ovlcorr/$asm.erates", "$wrk/3-ovlcorr/$asm.erates.FAILED";
                 die "Failed to concatenate the overlap erate corrections.\n";
             }
@@ -52,7 +52,7 @@ sub applyOverlapCorrection {
         $cmd .= "$wrk/$asm.ovlStore ";
         $cmd .= "$wrk/3-ovlcorr/$asm.erates";
         $cmd .= "> $wrk/3-ovlcorr/update-erates.err 2>&1";
-        if (runCommand($cmd)) {
+        if (runCommand("$wrk/3-ovlcorr", $cmd)) {
             die "Failed to apply the overlap corrections.\n";
         }
 

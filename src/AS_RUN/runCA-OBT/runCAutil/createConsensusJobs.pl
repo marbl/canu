@@ -22,11 +22,10 @@ sub createPostScaffolderConsensusJobs ($) {
 
     if (! -e "$wrk/8-consensus/partitionSDB.success") {
         my $cmd;
-        $cmd  = "cd $wrk/8-consensus && ";
-        $cmd .= "$bin/PartitionSDB -all -seqstore $cgwDir/$asm.SeqStore -version $lastckpt -fragsper $partitionSize -input $cgwDir/$asm.cgw_contigs ";
+        $cmd  = "$bin/PartitionSDB -all -seqstore $cgwDir/$asm.SeqStore -version $lastckpt -fragsper $partitionSize -input $cgwDir/$asm.cgw_contigs ";
         $cmd .= "> $wrk/8-consensus/partitionSDB.err 2>&1";
 
-        die "Failed.\n" if (runCommand($cmd));
+        die "Failed.\n" if (runCommand("$wrk/8-consensus", $cmd));
         touch("$wrk/8-consensus/partitionSDB.success");
     }
 
@@ -39,11 +38,10 @@ sub createPostScaffolderConsensusJobs ($) {
 
     if (! -e "$wrk/8-consensus/partitionFragStore.success") {
         my $cmd;
-        $cmd  = "cd $wrk/8-consensus && ";
-        $cmd .= "$bin/partitionFragStore $wrk/8-consensus/FragPartition.txt $wrk/$asm.frgStore $wrk/$asm.frgStore_cns2part ";
+        $cmd  = "$bin/partitionFragStore $wrk/8-consensus/FragPartition.txt $wrk/$asm.frgStore $wrk/$asm.frgStore_cns2part ";
         $cmd .= "> $wrk/8-consensus/partitionFragStore.out 2>&1";
 
-        die "Failed.\n" if (runCommand($cmd));
+        die "Failed.\n" if (runCommand("$wrk/8-consensus", $cmd));
         touch("$wrk/8-consensus/partitionFragStore.success");
     }
 

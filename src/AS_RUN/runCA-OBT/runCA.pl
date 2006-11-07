@@ -1,18 +1,5 @@
-#!/usr/bin/perl
 
-use strict;
-use Config;  #  for @signame
-use FindBin;
 
-use vars qw($bin $gin $wrk $asm);
-
-use vars qw($numFrags);
-
-#  Set some not reasonable defaults.
-$wrk = undef;
-$asm = "asm";
-
-my %global;
 my $specFile = undef;
 my @specOpts;
 my @fragFiles;
@@ -25,7 +12,6 @@ my $scaffoldDir;
 setDefaults();
 
 #  Stash the original options, quoted, for later use.
-my $commandLineOptions;
 foreach my $a (@ARGV) {
     $commandLineOptions .= " \"$a\" ";
 }

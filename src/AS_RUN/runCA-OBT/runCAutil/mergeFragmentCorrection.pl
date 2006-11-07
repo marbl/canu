@@ -40,7 +40,7 @@ sub mergeFragmentCorrection {
         $cmd .= "-L $wrk/2-frgcorr/cat-corrects.corrlist ";
         $cmd .= "-o $wrk/2-frgcorr/$asm.corr ";
         $cmd .= "> $wrk/2-frgcorr/cat-corrects.err 2>&1";
-        if (runCommand($cmd)) {
+        if (runCommand("$wrk/2-frgcorr", $cmd)) {
             rename "$wrk/2-frgcorr/$asm.corr", "$wrk/2-frgcorr/$asm.corr.FAILED";
             die "Failed to concatenate the fragment corrections.\n";
         }

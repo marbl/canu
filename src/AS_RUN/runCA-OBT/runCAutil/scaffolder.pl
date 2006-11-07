@@ -11,14 +11,17 @@ sub CGW ($$$$$) {
 
     return($thisDir) if (-e "$wrk/$thisDir/cgw.success");
 
-    my $lastckp = findLastCheckpoint($lastDir)  if (defined($lastDir));
-    my $ckp     = "-y -R $lastckp -N $logickp"  if (defined($lastckp) && defined($logickp));
+    my $lastckp = 0;
+    my $ckp     = "";
+
+    $lastckp = findLastCheckpoint($lastDir)  if (defined($lastDir));
+    $ckp     = "-y -R $lastckp -N $logickp"  if (defined($lastckp) && defined($logickp));
 
     #  If there is a timing file here, assume we are restarting.  Not
     #  all restarts are possible, but we try hard to make it so.
     #
     if (-e "$wrk/$thisDir/$asm.timing") {
-        undef $ckp;
+        $ckp = "";
 
         open(F, "< $wrk/$thisDir/$asm.timing");
         while (<F>) {
@@ -46,15 +49,14 @@ sub CGW ($$$$$) {
     system("ln -s ../$lastDir/$asm.ckp.$lastckp $wrk/$thisDir/$asm.ckp.$lastckp") if (defined($lastDir));
 
     my $cmd;
-    $cmd  = "cd $wrk/$thisDir && ";
-    $cmd .= "$bin/cgw $ckp -c -j 1 -k 5 -r 5 -s $stoneLevel -w 0 -T -P ";
+    $cmd  = "$bin/cgw $ckp -c -j 1 -k 5 -r 5 -s $stoneLevel -w 0 -T -P ";
     $cmd .= " -M " if (($stoneLevel == 0) && (getGlobal("delayInterleavedMerging") == 1));
     $cmd .= " -f $wrk/$asm.frgStore ";
     $cmd .= " -g $wrk/$asm.gkpStore ";
     $cmd .= " -o $wrk/$thisDir/$asm ";
     $cmd .= " $wrk/$thisDir/$asm.cgi ";
     $cmd .= " > $wrk/$thisDir/cgw.out 2>&1";
-    if (runCommand($cmd)) {
+    if (runCommand("$wrk/$thisDir", $cmd)) {
         print STDERR "Failed.\n";
         exit(1);
     }
@@ -105,8 +107,7 @@ sub eCR ($$) {
             $lastckp = findLastCheckpoint($thisDir);
 
             my $cmd;
-            $cmd  = "cd $wrk/$thisDir && ";
-            $cmd .= "$bin/extendClearRanges ";
+            $cmd  = "$bin/extendClearRanges ";
             $cmd .= " -B ";
             $cmd .= " -b $curScaffold -e $endScaffold ";
             $cmd .= " -f $wrk/$asm.frgStore ";
@@ -120,7 +121,7 @@ sub eCR ($$) {
             print F "$cmd\n";
             close(F);
 
-            if (runCommand($cmd)) {
+            if (runCommand("$wrk/$thisDir", $cmd)) {
                 print STDERR "Failed.\n";
                 print STDERR "fragStore restored:    db.frg -> db.frg.during.$thisDir-scaffold.$curScaffold.FAILED\n";
                 print STDERR "                       db.frg.before-$thisDir-scaffold.$curScaffold -> db.frg\n";
@@ -168,7 +169,7 @@ sub updateDistanceRecords ($) {
     $terminateFakeUID = "987654312198765" . (4320 + $lastckp + $terminateFakeUID) if ($terminateFakeUID > 0);
 
     my $cmd;
-    $cmd  = "cd $distupdate && $bin/dumpDistanceEstimates ";
+    $cmd  = "$bin/dumpDistanceEstimates ";
     $cmd .= "    -u "                    if ($terminateFakeUID == 0);
     $cmd .= "    -s $terminateFakeUID "  if ($terminateFakeUID  > 0);
     $cmd .= "    $uidServer "            if (defined($uidServer));
@@ -178,18 +179,16 @@ sub updateDistanceRecords ($) {
     $cmd .= " -n $lastckp ";
     $cmd .= " > $distupdate/update.dst ";
     $cmd .= " 2> $distupdate/dumpDistanceEstimates.err ";
-    if (runCommand($cmd)) {
+    if (runCommand("$distupdate", $cmd)) {
         rename "$distupdate/update.dst", "$distupdate/update.dst.FAILED";
-        print STDERR "dumpDistanceEstimates Failed.\n";
-        exit(1);
+        die "dumpDistanceEstimates Failed.\n";
     }
 
-    $cmd  = "cd $distupdate && $bin/gatekeeper ";
+    $cmd  = "$bin/gatekeeper ";
     $cmd .= " -X -Q -C -P -a $wrk/$asm.gkpStore $distupdate/update.dst ";
     $cmd .= " > $distupdate/gatekeeper.err 2>&1";
-    if (runCommand($cmd)) {
-        print STDERR "Gatekeeper Failed.\n";
-        exit(1);
+    if (runCommand("$distupdate", $cmd)) {
+        die "Gatekeeper Failed.\n";
     }
 
     touch("$distupdate/distupdate.success");
@@ -210,17 +209,15 @@ sub resolveSurrogates ($$) {
     system("ln -s ../$asm.SeqStore              $wrk/$thisDir/$asm.SeqStore")      if (! -e "$wrk/$thisDir/$asm.SeqStore");
 
     my $cmd;
-    $cmd  = "cd $wrk/$thisDir && ";
-    $cmd .= "$bin/resolveSurrogates ";
+    $cmd  = "$bin/resolveSurrogates ";
     $cmd .= " -f $wrk/$asm.frgStore ";
     $cmd .= " -g $wrk/$asm.gkpStore ";
     $cmd .= " -c $asm ";
     $cmd .= " -n $lastckp ";
     $cmd .= " -S 0.666 ";
     $cmd .= " > $wrk/$thisDir/resolveSurrogates.err 2>&1";
-    if (runCommand($cmd)) {
-        print STDERR "Failed.\n";
-        exit(1);
+    if (runCommand("$wrk/$thisDir", $cmd)) {
+        die "Failed.\n";
     }
 
     touch("$wrk/$thisDir/resolveSurrogates.success");

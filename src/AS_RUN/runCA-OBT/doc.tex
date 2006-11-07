@@ -270,10 +270,20 @@ Pass this string to modules that access the UID server (currently,
 This is undefined by default.
 \\
 
-processStats={\it string} &
-If defined, this shall be a command used to report run-time statistics
-on processes, {\it e.g.}, {\tt /usr/bin/time}.  This is undefined by
-default.
+executionWrapper={\it string} &
+If defined, this program is used to execute the components of the
+assembler.  The program should behave similarily to {\it e.g.}, {\tt
+/usr/bin/time}.  It should take no options, treat the first command
+line argument as the executable to run, and pass all remaining
+arguments to that executable..  This is undefined by default.
+
+An unfortunate quirk:  Some commands are implemented as a pipeline, 
+e.g., ``cat file1 file2 | dosomething''.  The wrapper is executed
+using perl's system() function:
+
+system(``cd somewhere && wrapper cat file1 file2 | dosomething'').
+
+This means that the wrapper only ``sees'' ``cat file1 file2''.
 \\
 
 scratch={\it string} &

@@ -7,17 +7,20 @@ sub createPostUnitiggerConsensusJobs(@) {
 
         #  Then, build a partition information file, and do the partitioning.
         #
+        open(G, "> $wrk/5-consensus/$asm.partFile") or die;
         foreach my $f (@cgbFiles) {
             if ($f =~ m/^.*(\d\d\d).cgb$/) {
-                if (runCommand("grep mid: $f | sed 's/mid:/$1 /' >> $wrk/5-consensus/$asm.partFile")) {
-                    rename "$wrk/5-consensus/$asm.partFile", "$wrk/5-consensus/$asm.partFile.FAILED";
-                    die "Failed to grep mid: from CGB output in $f.\n";
+                my $part = $1;
+                open(F, "grep ^mid: $f |") or die;
+                while (<F>) {
+                    print G "$part $1\n" if (m/^mid:(\d+)$/);                        
                 }
+                close(F);
             } else {
                 die "CGB file didn't match ###.cgb!\n";
             }
         }
-        close(F);
+        close(G);
 
         my $cmd;
         $cmd  = "$bin/partitionFragStore ";
@@ -25,7 +28,7 @@ sub createPostUnitiggerConsensusJobs(@) {
         $cmd .= "$wrk/$asm.frgStore ";
         $cmd .= "$wrk/$asm.frgStore_cns1part ";
         $cmd .= "> $wrk/5-consensus/partitionfragstore.err 2>&1";
-        if (runCommand($cmd)) {
+        if (runCommand("$wrk/5-consensus", $cmd)) {
             rename "$wrk/5-consensus/$asm.partFile", "$wrk/5-consensus/$asm.partFile.FAILED";
             die "Failed to partition the fragStore.\n";
         }
@@ -175,12 +178,15 @@ sub postUnitiggerConsensus (@) {
     #  Consolidate all the output
     #
 
+    open(G, "> $wrk/5-consensus/$asm.cgi") or die;
     foreach my $fid (@cgbIndices) {
-        if (runCommand("cat $wrk/5-consensus/${asm}_$fid.cgi >> $wrk/5-consensus/$asm.cgi")) {
-            rename "$wrk/5-consensus/$asm.cgi", "$wrk/5-consensus/$asm.cgi.FAILED";
-            die "cat failed?\n";
+        open(F, "< $wrk/5-consensus/${asm}_$fid.cgi") or die;
+        while (<F>) {
+            print G $_;
         }
+        close(F);
     }
+    close(G);
 
     touch ("$wrk/5-consensus/consensus.success");
 

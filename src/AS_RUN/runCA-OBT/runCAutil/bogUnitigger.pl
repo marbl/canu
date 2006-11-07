@@ -38,8 +38,6 @@ sub bogUnitigger {
 
     if (! -e "$wrk/4-unitigger/unitigger.success") {
 
-        my $pwd = $ENV{'PWD'}; 
-        chdir "$wrk/4-unitigger" || die "Can't chdir to $wrk/4-unitigger";
         my $cmd;
         $cmd  = "$bin/buildUnitigs ";
         $cmd .= " $wrk/$asm.ovlStore ";
@@ -52,7 +50,7 @@ sub bogUnitigger {
         $cmd .= " > unitigger.out ";
         $cmd .= " 2> unitigger.err ";
 
-        if (runCommand($cmd)) {
+        if (runCommand("$wrk/4-unitigger", $cmd)) {
             print STDERR "Failed to unitig.\n";
             exit(1);
         }
@@ -62,7 +60,6 @@ sub bogUnitigger {
         unlink "$asm.cgb";
 
         touch('unitigger.success');
-        chdir $pwd;
     }
 }
 

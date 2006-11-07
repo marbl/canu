@@ -27,24 +27,17 @@ sub unitigger (@) {
             $cmd .= " > $wrk/4-unitigger/$asm.ofg ";
             $cmd .= " 2> $wrk/4-unitigger/$asm.ofg.err";
 
-            if (runCommand($cmd)) {
+            if (runCommand("$wrk/4-unitigger", $cmd)) {
                 rename "$wrk/4-unitigger/$asm.ofg", "$wrk/4-unitigger/$asm.ofg.FAILED";
                 die "Failed.\n";
             }
         }
 
         if (! -e "$wrk/4-unitigger/$asm.ofgList") {
-            if (runCommand("ls -1 $wrk/4-unitigger/*.ofg > $wrk/4-unitigger/$asm.ofgList")) {
-                print STDERR "Failed to find the ofg's.\n";
-                rename "$wrk/4-unitigger/$asm.ofgList", "$wrk/4-unitigger/$asm.ofgList.FAILED";
-                exit(1);
-            }
+            open(G, "> $wrk/4-unitigger/$asm.ofgList") or die;
+            print G "$wrk/4-unitigger/$asm.ofg\n";
+            close(G);
         }
-
-
-        my $cmd;
-        $cmd  = "cd $wrk/4-unitigger && ";
-        $cmd .= "$bin/unitigger ";
 
         my $l = getGlobal("utgGenomeSize");
         my $m = getGlobal("utgEdges");
@@ -54,22 +47,21 @@ sub unitigger (@) {
         my $B = int($numFrags / getGlobal("cnsPartitions"));
         $B = getGlobal("cnsMinFrags") if ($B < getGlobal("cnsMinFrags"));
 
+        my $cmd;
+        $cmd  = "$bin/unitigger ";
         $cmd .= " -B $B ";
-
         $cmd .= " -l $l " if defined($l);
         $cmd .= " -m $m " if defined($m);
         $cmd .= " -n $n " if defined($n);
-
         $cmd .= " -c -P -A 1 -d 1 -x 1 -z 10 -j 5 -U $u -e $e ";
         $cmd .= " -F $wrk/$asm.frgStore ";
         $cmd .= " -f ";
         $cmd .= " -o $wrk/4-unitigger/$asm.fgbStore ";
         $cmd .= " -L $wrk/4-unitigger/$asm.ofgList ";
         $cmd .= " -I $wrk/$asm.ovlStore ";
-        $cmd .= " > $wrk/4-unitigger/unitigger.out ";
-        $cmd .= " 2> $wrk/4-unitigger/unitigger.err ";
+        $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";
 
-        if (runCommand($cmd)) {
+        if (runCommand("$wrk/4-unitigger", $cmd)) {
             print STDERR "Failed to unitig.\n";
             exit(1);
         }
