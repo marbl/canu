@@ -216,7 +216,7 @@ sub resolveSurrogates ($$) {
     $cmd .= " -g $wrk/$asm.gkpStore ";
     $cmd .= " -c $asm ";
     $cmd .= " -n $lastckp ";
-    $cmd .= " -1 ";
+    $cmd .= " -S 0.666 ";
     $cmd .= " > $wrk/$thisDir/resolveSurrogates.err 2>&1";
     if (runCommand($cmd)) {
         print STDERR "Failed.\n";
@@ -244,7 +244,7 @@ sub scaffolder ($) {
     #  check if we should update.
     #
     if ((getGlobal("updateDistanceType") eq "pre") && (getGlobal("doUpdateDistanceRecords"))) {
-        updateDistanceRecords(CGW("7-CGW-distances", undef, $cgiFile, $stoneLevel, undef));
+        updateDistanceRecords(CGW("6-clonesize", undef, $cgiFile, $stoneLevel, undef));
     }
 
 
