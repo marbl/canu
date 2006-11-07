@@ -19,7 +19,6 @@ sub createOverlapJobs {
     my $ovlRefBlockSize   = getGlobal("ovlRefBlockSize");
     my $ovlMemory         = getGlobal("ovlMemory");
     my $scratch           = getGlobal("scratch");
-    my $pstats            = getGlobal("processStats");
 
     if (!defined($isTrim)) {
         die "createOverlapJobs()-- I need to know if I'm trimming or assembling!\n";
@@ -91,7 +90,6 @@ sub createOverlapJobs {
     print F "  exit\n";
     print F "fi\n";
     print F "\n";
-    print F "$pstats \\\n" if (defined($pstats));
     print F "$gin/overlap -P $ovlOpt -M $ovlMemory -t $ovlThreads \\\n";
     print F "  \$opt \\\n";
     print F "  -k $wrk/0-preoverlap/$asm.nmers.fasta \\\n"          if ($isTrim ne "trim");

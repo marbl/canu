@@ -2,7 +2,6 @@ use strict;
 
 sub createPostUnitiggerConsensusJobs(@) {
     my @cgbFiles  = @_;
-    my $pstats    = getGlobal("processStats");
 
     if (! -e "$wrk/5-consensus/$asm.partFile") {
 
@@ -86,7 +85,6 @@ sub createPostUnitiggerConsensusJobs(@) {
     #print F "  $wrk/4-unitigger/${asm}_\$jobp.cgb \\\n";
     print F " \\> $wrk/5-consensus/${asm}_\$jobp.err 2\\>\\&1\n";
     print F "\n";
-    print F "$pstats \\\n" if (defined($pstats));
     print F "$gin/consensus \\\n";
     print F "  -P -m -U \\\n";
     print F "  -S \$jobp \\\n";

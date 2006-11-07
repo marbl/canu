@@ -137,7 +137,7 @@ sub setDefaults {
     $global{"ovlStoreMemory"}              = 1024;
     $global{"ovlThreads"}                  = 2;
     $global{"ovlOnGrid"}                   = 1;
-    $global{"processStats"}                = undef;
+    $global{"executionWrapper"}            = undef;
     $global{"scratch"}                     = "/scratch";
     $global{"scriptOnGrid"}                = 0;
 
@@ -329,7 +329,7 @@ sub backupFragStore ($) {
         print STDERR "Found a backup for $backupName!  Restoring!\n";
 
         unlink "$wrk/$asm.frgStore/db.frg";
-        if (runCommand("cp -p $wrk/$asm.frgStore/db.frg.$backupName $wrk/$asm.frgStore/db.frg")) {
+        if (system("cp -p $wrk/$asm.frgStore/db.frg.$backupName $wrk/$asm.frgStore/db.frg")) {
             unlink "$wrk/$asm.frgStore/db.frg";
             die "Failed to restore frgStore from backup.\n";
         }
@@ -338,7 +338,7 @@ sub backupFragStore ($) {
 
         print STDERR "Backing up the frgStore to $backupName.\n";
 
-        if (runCommand("cp -p $wrk/$asm.frgStore/db.frg $wrk/$asm.frgStore/db.frg.$backupName")) {
+        if (system("cp -p $wrk/$asm.frgStore/db.frg $wrk/$asm.frgStore/db.frg.$backupName")) {
             unlink "$wrk/$asm.frgStore/db.frg.$backupName";
             die "Failed to backup frgStore.\n";
         }
@@ -452,7 +452,9 @@ sub runCommand {
     my $d = time();
     print STDERR "----------------------------------------START $t\n$cmd\n";
 
-    my $rc = 0xffff & system($cmd);
+    my $execwrap = getGlobal("executionWrapper");
+
+    my $rc = 0xffff & system("$execwrap $cmd");
 
     $t = localtime();
     print STDERR "----------------------------------------END $t (", time() - $d, " seconds)\n";

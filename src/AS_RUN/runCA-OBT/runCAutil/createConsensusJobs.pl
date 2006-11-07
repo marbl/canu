@@ -6,7 +6,6 @@ use strict;
 
 sub createPostScaffolderConsensusJobs ($) {
     my $cgwDir   = shift @_;
-    my $pstats   = getGlobal("processStats");
 
     return if (-e "$wrk/8-consensus/jobsCreated.success");
 
@@ -98,7 +97,6 @@ sub createPostScaffolderConsensusJobs ($) {
     print F "  $cgwDir/$asm.cgw_contigs.\$jobp \\\n";
     print F " \\> $wrk/8-consensus/$asm.cns_contigs.\$jobp.err 2\\>\\&1\n";
     print F "\n";
-    print F "$pstats \\\n" if (defined($pstats));
     print F "$gin/consensus \\\n";
     print F "  -P \\\n";
     print F "  -s $cgwDir/$asm.SeqStore \\\n";
