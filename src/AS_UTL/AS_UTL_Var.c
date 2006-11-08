@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.14 2006-11-06 22:42:51 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.15 2006-11-08 16:28:07 brianwalenz Exp $";
 /********************************************************************/
 /* Variable Length C Array Package 
  * 
@@ -30,8 +30,8 @@ static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.14 2006-11-06 22:42:51 brianwalenz 
  * It defines a basic set of operations, and provides a set of
  * macros that expand to support typesafe manipulation of the
  * arrays.
- * Revision: $Revision: 1.14 $
- * Date:     $Date: 2006-11-06 22:42:51 $
+ * Revision: $Revision: 1.15 $
+ * Date:     $Date: 2006-11-08 16:28:07 $
  * CMM, 1999/03/29:  Ported to large arrays on the Digital systems by declaring
  * array sizes using size_t, rather than unit32.
  *
@@ -178,7 +178,7 @@ int MakeRoom_VA
   }
 
   if (mem == NULL) {
-    fprintf(stderr, "AS_UTL_Var::MakeRoom_VA()-- Likely out of memory.  Tried to expand from %d bytes to %d bytes.\n",
+    fprintf(stderr, "AS_UTL_Var::MakeRoom_VA()-- Likely out of memory.  Tried to expand from "F_SIZE_T" bytes to "F_SIZE_T" bytes.\n",
             oldSize, newSize);
   }
   assert(mem != NULL);
@@ -194,7 +194,7 @@ int MakeRoom_VA
 
 #ifdef ALWAYS_MOVE_VA_ON_MAKEROOM
   if (oldSize > 0)
-    fprintf(stderr, "* MakeRoom_VA reallocated '%s' from %d bytes to %d bytes.\n", va->typeofElement, oldSize, newSize);
+    fprintf(stderr, "* MakeRoom_VA reallocated '%s' from "F_SIZE_T" bytes to "F_SIZE_T" bytes.\n", va->typeofElement, oldSize, newSize);
 #endif
 
   return TRUE;
