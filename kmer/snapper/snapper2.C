@@ -424,7 +424,8 @@ main(int argc, char **argv) {
   //
   pthread_attr_t   threadAttr;
   u32bit           threadIDX = 0;
-  pthread_t        threadID[MAX_THREADS + 4];
+  pthread_t        threadTID[MAX_THREADS + 4];
+  u32bit           threadPID[MAX_THREADS + 4];
 
   pthread_mutex_init(&inputTailMutex, NULL);
 
@@ -438,8 +439,8 @@ main(int argc, char **argv) {
   //
 #ifdef __alpha
   fprintf(stderr, "Deadlock detection enabled!\n");
-  pthread_create(threadID + threadIDX++, &threadAttr, deadlockDetector, 0L);
-  pthread_create(threadID + threadIDX++, &threadAttr, deadlockChecker, 0L);
+  pthread_create(threadTID + threadIDX++, &threadAttr, deadlockDetector, 0L);
+  pthread_create(threadTID + threadIDX++, &threadAttr, deadlockChecker, 0L);
 #endif
 
 
@@ -457,14 +458,16 @@ main(int argc, char **argv) {
   //
   //  Start the loader thread
   //
-  pthread_create(threadID + threadIDX++, &threadAttr, loaderThread, 0L);
+  pthread_create(threadTID + threadIDX++, &threadAttr, loaderThread, 0L);
 
 
   //
   //  Start the search threads
   //
-  for (u64bit i=0; i<config._numSearchThreads; i++)
-    pthread_create(threadID + threadIDX++, &threadAttr, searchThread, (void *)i);
+  for (u64bit i=0; i<config._numSearchThreads; i++) {
+    threadPID[i] = i;
+    pthread_create(threadTID + threadIDX++, &threadAttr, searchThread, (void *)(threadPID + i));
+  }
 
 
   //

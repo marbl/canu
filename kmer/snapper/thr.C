@@ -11,7 +11,7 @@ searchThread(void *U) {
   u32bit               blockedI = 0;
   u32bit               blockedO = 0;
 
-  searcherState       *state    = new searcherState((u64bit)U);
+  searcherState       *state    = new searcherState(*(u32bit *)U);
 
   //fprintf(stderr, "Hello!  I'm a searchThread (number "u64bitFMT")!\n", state->threadID);
 
