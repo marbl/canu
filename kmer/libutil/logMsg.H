@@ -46,7 +46,7 @@ public:
   //
   //  It warns if you overwrote memory.
   //
-  void     add(char *fmt, ...) {
+  void     add(char const *fmt, ...) {
     va_list   ap;
 
     resize(1024);
@@ -70,7 +70,7 @@ public:
 
   //  Dump the message to a file, taking care of errors.
   //
-  void     write(int file, char *name=0L) {
+  void     write(int file, char const *name=0L) {
     errno = 0;
     ::write(file, _log, sizeof(char) * _logLen);
     if (errno) {
@@ -81,7 +81,7 @@ public:
     }
   };
 
-  void     fwrite(FILE *file, char *name=0L) {
+  void     fwrite(FILE *file, char const *name=0L) {
     errno = 0;
     ::fwrite(_log, sizeof(char), _logLen, file);
     if (errno) {
