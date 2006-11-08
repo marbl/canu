@@ -1,0 +1,14 @@
+#!/usr/bin/perl
+
+use strict;
+use Config;  #  for @signame
+use FindBin;
+
+use vars qw($bin $gin $wrk $asm);
+use vars qw($numFrags);
+use vars qw(%global);
+use vars qw($commandLineOptions);
+
+#  Set some not reasonable defaults.
+$wrk = undef;
+$asm = "asm";
