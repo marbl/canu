@@ -11,6 +11,9 @@
 #  ms      -- fixed at 28
 #  mk      -- pick one of 19 different mer skips
 #  ig      -- pick one of 14 different mer thresholds
+#
+#  input sequences are assumed to be in the workdirectory below, and all
+#  output ends up there.
 
 workd=/project/huref0/assembly/chr14
 
