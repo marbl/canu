@@ -26,28 +26,23 @@
 #define AHIT_DISCARDED       0x00000008
 
 
-struct aHitSeed {
-  u32bit  _qPos;  //  position in the query
-  u32bit  _gPos;  //  position in the genome
+struct diagonalLine {
+  u64bit     _uniq  : 10;  //  uniqueness score for the mer here
+  u64bit     _qsPos : 22;  //  position in the query, 0 to 4M
+  u64bit     _dsPos : 32;  //  position in the genome, 0 to 4G
 };
 
 
 struct aHit {
-  u32bit      _status;
-  u32bit      _qsIdx;
-  u32bit      _dsIdx;
-  u32bit      _dsLo;
-  u32bit      _dsHi;
-  u32bit      _covered;
-  u32bit      _matched;
-  u32bit      _numMers;
-  merList    *_ML;
-};
-
-
-struct diagonalLine {
-  u32bit   _qsPos;
-  u32bit   _dsPos;
+  u32bit     _status;
+  u32bit     _qsIdx;
+  u32bit     _dsIdx;
+  u32bit     _dsLo;
+  u32bit     _dsHi;
+  u32bit     _covered;
+  u32bit     _matched;
+  u32bit     _numMers;
+  merList   *_ML;
 };
 
 

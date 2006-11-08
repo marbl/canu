@@ -7,11 +7,16 @@
 #include "sim4.H"
 
 
-//  If you really, really, really want to know the exact number
-//  of bases left in the query, use the interval list.  Otherwise,
-//  it's faster to guess.
+//  If you really, really, really want to know the exact number of
+//  bases left in the query, use the interval list.  Otherwise, it's
+//  faster to guess.
 //
-//#define USEEXACTSIZE
+#undef USEEXACTSIZE
+
+//  Attempt to use an auto-filtering method.  It keeps filtering until
+//  recent polishes begin to fail too much.
+//
+#undef AUTOFILTER
 
 
 //  A meta-option.  Enable all the good stuff.  Or not, I guess.
@@ -86,7 +91,6 @@ public:
 #endif
 
   //  This guy is owned by the main thread.  It's here for convenience.
-  //
 
   searcherState(u64bit U) {
     threadID    = U;

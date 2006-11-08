@@ -53,6 +53,38 @@ configureFilter(double L,
 
 
 
+#ifdef AUTOFILTER
+
+int
+aHitAutoFilterSort(const void *a, const void *b) {
+  const aHit  *A = (const aHit *)a;
+  const aHit  *B = (const aHit *)b;
+
+  //  If either was discarded, we don't care the order,
+  //  just throw them at the end of the array
+  //
+  if ((A->_status & AHIT_DISCARDED) ||
+      (B->_status & AHIT_DISCARDED)) {
+    if      (A->_status & AHIT_DISCARDED)
+      return(1);
+    else if (B->_status & AHIT_DISCARDED)
+      return(-1);
+    return(0);
+  }
+
+  //  Otherwise, snapper filters simply on coverage.
+  //
+  if      (A->_covered > B->_covered)
+    return(-1);
+  else if (A->_covered < B->_covered)
+    return(1);
+  return(0);
+}
+
+#endif
+
+
+
 u32bit
 doFilter(searcherState       *state,
          aHit               *&theHits,
@@ -62,22 +94,36 @@ doFilter(searcherState       *state,
   if (theHitsLen == 0)
     return(0);
 
+#ifdef AUTOFILTER
+
+  //  Auto filter -- keep polishing until a running average of
+  //  polishes falls below some threshold.
+  //
+  qsort(theHits, theHitsLen, sizeof(aHit), aHitAutoFilterSort);
+
+  for (u32bit i=0; i < theHitsLen; i++)
+    theHits[i]._status |= AHIT_POLISHABLE;
+
+  return(theHitsLen);
+
+#else
+
   u32bit numF = 0;
   u32bit cutL = configureFilter(config._Lo,
                                 config._Hi,
                                 config._Va, theHits, theHitsLen);
 
-  for (u32bit i=0; i < theHitsLen; i++) {
+  //  If the coverage of the hit is more than the minimum, mark the
+  //  hit as polishable.  Unless the hit was discarded.
 
-    //  If the coverage of the hit is more than the minimum, mark the
-    //  hit as polishable.  Unless the hit was discarded.
-    //
+  for (u32bit i=0; i < theHitsLen; i++) {
     if (!(theHits[i]._status & AHIT_DISCARDED) &&
         (theHits[i]._covered >= cutL)) {
-      numF++;
       theHits[i]._status |= AHIT_POLISHABLE;
+      numF++;
     }
   }
 
   return(numF);
+#endif
 }

@@ -189,26 +189,37 @@ main(int argc, char **argv) {
   numberOfQueries  = qsFASTA->getNumberOfSequences();
 
 
-  //  We can save some time and warn of short sequences before the
-  //  table is built.
+  //  We can save some time and warn of too short and too long
+  //  sequences before the table is built.
   //
-  u32bit  numShortQueries = 0;
-  u32bit  numLongQueries  = 0;
-  for (u32bit i=0; i<numberOfQueries; i++) {
-    if (qsFASTA->sequenceLength(i) <= config._discardExonLength)
-      numShortQueries++;
-    else
-      numLongQueries++;
-  }
-  if (numShortQueries > 0) {
-    fprintf(stderr, "WARNING:\n");
-    fprintf(stderr, "WARNING:  Found "u32bitFMT" queries shorter than minimum reportable size (-discardexonlength = "u32bitFMT")\n",
-            numShortQueries, config._discardExonLength);
-    fprintf(stderr, "WARNING:\n");
-  }
-  if (numLongQueries == 0) {
-    fprintf(stderr, "ERROR:  Found no queries longer than minimum reportable size.\n");
-    exit(1);
+  {
+    u32bit  numTooShortQueries = 0;
+    u32bit  numTooLongQueries  = 0;
+    u32bit  numOKQueries         = 0;
+    for (u32bit i=0; i<numberOfQueries; i++) {
+      if      (qsFASTA->sequenceLength(i) <= config._discardExonLength)
+        numTooShortQueries++;
+      else if (qsFASTA->sequenceLength(i) >= (u64bitONE << 22))
+        numTooLongQueries++;
+      else
+        numOKQueries++;
+    }
+    if (numTooShortQueries > 0) {
+      fprintf(stderr, "WARNING:\n");
+      fprintf(stderr, "WARNING:  Found "u32bitFMT" queries shorter than minimum reportable size (-discardexonlength = "u32bitFMT")\n",
+              numTooShortQueries, config._discardExonLength);
+      fprintf(stderr, "WARNING:\n");
+    }
+    if (numTooLongQueries > 0) {
+      fprintf(stderr, "WARNING:\n");
+      fprintf(stderr, "WARNING:  Found "u32bitFMT" queries longer than maximum size ("u32bitFMT")\n",
+              numTooLongQueries, u64bitONE << 22);
+      fprintf(stderr, "WARNING:\n");
+    }
+    if (numOKQueries == 0) {
+      fprintf(stderr, "ERROR:  Found no queries in acceptable size range!\n");
+      exit(1);
+    }
   }
 
 
