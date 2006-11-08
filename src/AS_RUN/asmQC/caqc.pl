@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# $Id: caqc.pl,v 1.13 2006-10-28 22:19:11 brianwalenz Exp $
+# $Id: caqc.pl,v 1.14 2006-11-08 02:08:09 brianwalenz Exp $
 #
 # This program reads a Celera .asm file and produces aggregate information
 # about the assembly
@@ -20,7 +20,7 @@ use File::Basename;
 use Statistics::Descriptive;
 use File::Copy;
 
-my $MY_VERSION = "caqc Version 2.11 (Build " . (qw/$Revision: 1.13 $/ )[1] . ")";
+my $MY_VERSION = "caqc Version 2.11 (Build " . (qw/$Revision: 1.14 $/ )[1] . ")";
 
 # Constants
 my $MINQUAL   = 20;
@@ -1118,7 +1118,7 @@ MAIN:
   for ( my $ss = 0 ; $ss <= $#sortScaff && $ss < $topCount ; $ss++ ) {
     my $scf = $sortScaff[$ss];
     $top5scaff .=
-        "$ss$d$scafcontig{$scf}$s$scaflen{$scf}$s$adjscaflen{$scf}"
+        "$ss$d$scafcontig{$scf}$s$scaflen{$scf}$s$adjscaflen{$scf}$s"
       . sprintf( '%.2f', $scaflen{$scf} * 1.0 / $scafcontig{$scf} )
       . $s
       . sprintf(
