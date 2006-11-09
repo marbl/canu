@@ -21,10 +21,7 @@ while (scalar(@ARGV)) {
 
     if      ($arg =~ m/^-d/) {
         $wrk = shift @ARGV;
-        if ($wrk !~ m!^/!) {
-            $wrk = "$ENV{'PWD'}/$wrk";
-            print STDERR "WARNING:  Constructing full path to work directory: $wrk\n";
-        }
+        $wrk = "$ENV{'PWD'}/$wrk" if ($wrk !~ m!^/!);
     } elsif ($arg =~ m/^-p/) {
         $asm = shift @ARGV;
     } elsif ($arg =~ m/^-s/) {
@@ -32,19 +29,20 @@ while (scalar(@ARGV)) {
     } elsif ($arg =~ m/^-h/) {
         setGlobal("help", 1);
     } elsif (($arg =~ /\.frg$|frg\.gz$|frg\.bz2$/) && (-e $arg)) {
+        $arg = "$ENV{'PWD'}/$arg" if ($arg !~ m!^/!);
         push @fragFiles, $arg;
     } elsif (($arg =~ /\.cgb$/) && (-e $arg)) {
         $isContinuation = 1;
-        $arg  = "$ENV{'PWD'}/$arg" if ($arg !~ m/^\//);
+        $arg = "$ENV{'PWD'}/$arg" if ($arg !~ m!^/!);
         push @cgbFiles, $arg;
     } elsif (($arg =~ /\.cgi$/) && (-e $arg)) {
         $isContinuation = 1;
-        $cgiFile        = $arg;
-        $cgiFile        = "$ENV{'PWD'}/$cgiFile" if ($cgiFile !~ m/^\//);
+        $cgiFile = $arg;
+        $cgiFile = "$ENV{'PWD'}/$cgiFile" if ($cgiFile !~ m!^/!);
     } elsif (-d $arg) {
         $isContinuation = 1;
         $scaffoldDir  = $arg;
-        $scaffoldDir  = "$ENV{'PWD'}/$scaffoldDir" if ($scaffoldDir !~ m/^\//);
+        $scaffoldDir  = "$ENV{'PWD'}/$scaffoldDir" if ($scaffoldDir !~ m!^/!);
     } elsif ($arg =~ m/=/) {
         push @specOpts, $arg;
     } else {
