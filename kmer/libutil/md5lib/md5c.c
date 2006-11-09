@@ -22,6 +22,8 @@
   documentation and/or software.
 */
 
+#include <string.h>
+
 #include "global.h"
 #include "md5.h"
 
