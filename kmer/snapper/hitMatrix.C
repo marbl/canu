@@ -95,28 +95,28 @@ hitMatrix::addMatch(u32bit         qsLo,
 inline
 int
 compareLines(diagonalLine *A, diagonalLine *B, u32bit qsLen) {
-  u32bit a = qsLen - A->_qsPos - 1 + A->_dsPos;
-  u32bit b = qsLen - B->_qsPos - 1 + B->_dsPos;
+  u32bit a = qsLen - A->val.qPos - 1 + A->val.dPos;
+  u32bit b = qsLen - B->val.qPos - 1 + B->val.dPos;
 
   return(((a  < b)) ||
-         ((a == b) && (A->_qsPos < B->_qsPos)));
+         ((a == b) && (A->val.qPos < B->val.qPos)));
 }
 
 inline
 int
 compareLines(u32bit l, u32bit q, diagonalLine *B, u32bit qsLen) {
-  u32bit b = qsLen - B->_qsPos - 1 + B->_dsPos;
+  u32bit b = qsLen - B->val.qPos - 1 + B->val.dPos;
 
   return(((l  < b)) ||
-         ((l == b) && (q < B->_qsPos)));
+         ((l == b) && (q < B->val.qPos)));
 }
 
 inline
 void
 adjustHeap(diagonalLine *L, s32bit p, s32bit n, u32bit qsLen) {
-  u32bit  q = L[p]._qsPos;
-  u32bit  d = L[p]._dsPos;
-  u32bit  l = qsLen - q - 1 + d;
+  u64bit  v = L[p].all;
+  u32bit  q = L[p].val.qPos;
+  u32bit  l = qsLen - q - 1 + L[p].val.dPos;
   s32bit  c = (p << 1) + 1;  //  let c be the left child of p
 
   while (c < n) {
@@ -133,8 +133,7 @@ adjustHeap(diagonalLine *L, s32bit p, s32bit n, u32bit qsLen) {
 
     //  Else, swap the parent and the child
     //
-    L[p]._qsPos      = L[c]._qsPos;
-    L[p]._dsPos      = L[c]._dsPos;
+    L[p].all = L[c].all;
 
     //  Move down the tree
     //
@@ -142,8 +141,7 @@ adjustHeap(diagonalLine *L, s32bit p, s32bit n, u32bit qsLen) {
     c = (p << 1) + 1;
   }
 
-  L[p]._qsPos      = q;
-  L[p]._dsPos      = d;
+  L[p].all = v;
 }
 
 
@@ -187,12 +185,12 @@ hitMatrix::filter(char      direction,
     //  Move the currentSeq until the firstHit is below it.
     //
     while ((currentSeq < config._useList.numberOfSequences()) &&
-           (config._useList.startOf(currentSeq) <= _hits[firstHit]._dsPos)) {
+           (config._useList.startOf(currentSeq) <= _hits[firstHit].val.dPos)) {
 #ifdef DEBUG_HIT_DECODE_DETAILED
       fprintf(stderr, "currentSeq: "u32bitFMT" length "u64bitFMT" hit "u32bitFMT"\n",
               currentSeq,
               config._useList.startOf(currentSeq),
-              _hits[firstHit]._dsPos);
+              _hits[firstHit].val.dPos);
 #endif
       currentSeq++;
     }
@@ -207,7 +205,7 @@ hitMatrix::filter(char      direction,
     if (currentSeq < config._useList.numberOfSequences()) {
       lastHit = firstHit + 1;
       while ((lastHit < _hitsLen) &&
-             (_hits[lastHit]._dsPos < config._useList.startOf(currentSeq)))
+             (_hits[lastHit].val.dPos < config._useList.startOf(currentSeq)))
         lastHit++;
     } else {
       lastHit = _hitsLen;
@@ -224,7 +222,7 @@ hitMatrix::filter(char      direction,
     //  Adjust the hits to be relative to the start of this sequence
     //
     for (u32bit i=firstHit; i<lastHit; i++)
-      _hits[i]._dsPos -= config._useList.startOf(currentSeq);
+      _hits[i].val.dPos -= config._useList.startOf(currentSeq);
 
     //  Sort them, if needed.
     //
@@ -246,14 +244,9 @@ hitMatrix::filter(char      direction,
       //  at the end of the tree
       //
       for (u32bit i=lastHit - firstHit - 1; i>0; i--) {
-        u32bit  q  = hitsToSort[i]._qsPos;
-        u32bit  d  = hitsToSort[i]._dsPos;
-
-        hitsToSort[i]._qsPos      = hitsToSort[0]._qsPos;
-        hitsToSort[i]._dsPos      = hitsToSort[0]._dsPos;
-
-        hitsToSort[0]._qsPos      = q;
-        hitsToSort[0]._dsPos      = d;
+        u64bit v            = hitsToSort[i].all;
+        hitsToSort[i].all   = hitsToSort[0].all;
+        hitsToSort[0].all   = v;
       
         adjustHeap(hitsToSort, 0, i, _qsLen);
       }
@@ -261,29 +254,29 @@ hitMatrix::filter(char      direction,
 
     //  Filter them
     //
-    u32bit  frstDiagonal = _qsLen - _hits[firstHit]._qsPos - 1 + _hits[firstHit]._dsPos;
+    u32bit  frstDiagonal = _qsLen - _hits[firstHit].val.qPos - 1 + _hits[firstHit].val.dPos;
     u32bit  lastDiagonal = frstDiagonal;
-    u32bit  qsLow        = _hits[firstHit]._qsPos;
-    u32bit  qsHigh       = _hits[firstHit]._qsPos;
-    u32bit  dsLow        = _hits[firstHit]._dsPos;
-    u32bit  dsHigh       = _hits[firstHit]._dsPos;
+    u32bit  qsLow        = _hits[firstHit].val.qPos;
+    u32bit  qsHigh       = _hits[firstHit].val.qPos;
+    u32bit  dsLow        = _hits[firstHit].val.dPos;
+    u32bit  dsHigh       = _hits[firstHit].val.dPos;
 
     merCovering   *IL = new merCovering(config._merSize);
     merList       *ML = new merList();
 
     for (u32bit i=firstHit; i<lastHit; i++) {
-      u32bit thisDiagonalID = _qsLen - _hits[i]._qsPos - 1 + _hits[i]._dsPos;
+      u32bit thisDiagonalID = _qsLen - _hits[i].val.qPos - 1 + _hits[i].val.dPos;
 
       //  Unconditionally extend if the diagonal difference is small.
       //
       if (lastDiagonal + config._maxDiagonal >= thisDiagonalID) {
         lastDiagonal = thisDiagonalID;
-        if (qsLow  > _hits[i]._qsPos)   qsLow  = _hits[i]._qsPos;
-        if (qsHigh < _hits[i]._qsPos)   qsHigh = _hits[i]._qsPos;
-        if (dsLow  > _hits[i]._dsPos)   dsLow  = _hits[i]._dsPos;
-        if (dsHigh < _hits[i]._dsPos)   dsHigh = _hits[i]._dsPos;
-        IL->addMer(_hits[i]._qsPos);
-        ML->addMer(_hits[i]._qsPos, _hits[i]._dsPos);
+        if (qsLow  > _hits[i].val.qPos)   qsLow  = _hits[i].val.qPos;
+        if (qsHigh < _hits[i].val.qPos)   qsHigh = _hits[i].val.qPos;
+        if (dsLow  > _hits[i].val.dPos)   dsLow  = _hits[i].val.dPos;
+        if (dsHigh < _hits[i].val.dPos)   dsHigh = _hits[i].val.dPos;
+        IL->addMer(_hits[i].val.qPos);
+        ML->addMer(_hits[i].val.qPos, _hits[i].val.dPos);
         continue;
       }
 
@@ -308,13 +301,13 @@ hitMatrix::filter(char      direction,
 
       frstDiagonal = thisDiagonalID;
       lastDiagonal = thisDiagonalID;
-      qsLow        = _hits[i]._qsPos;
-      qsHigh       = _hits[i]._qsPos;
-      dsLow        = _hits[i]._dsPos;
-      dsHigh       = _hits[i]._dsPos;
+      qsLow        = _hits[i].val.qPos;
+      qsHigh       = _hits[i].val.qPos;
+      dsLow        = _hits[i].val.dPos;
+      dsHigh       = _hits[i].val.dPos;
 
-      IL->addMer(_hits[i]._qsPos);
-      ML->addMer(_hits[i]._qsPos, _hits[i]._dsPos);
+      IL->addMer(_hits[i].val.qPos);
+      ML->addMer(_hits[i].val.qPos, _hits[i].val.dPos);
     }
 
     //  Save the final cluster?

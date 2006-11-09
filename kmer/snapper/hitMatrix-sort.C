@@ -6,26 +6,25 @@
 inline
 void
 adjustHeap_dsPos(diagonalLine *L, u32bit p, u32bit n) {
-  u32bit  q = L[p]._qsPos;
-  u32bit  d = L[p]._dsPos;
+  u64bit  v = L[p].all;
+  u64bit  d = L[p].val.dPos;
   u32bit  c = (p << 1) + 1;  //  let c be the left child of p
 
   while (c < n) {
 
     //  Find the larger of the two children
     //
-    if ((c+1 < n) && (L[c]._dsPos < L[c+1]._dsPos))
+    if ((c+1 < n) && (L[c].val.dPos < L[c+1].val.dPos))
       c++;
 
     //  Does the node in question fit here?
     //
-    if (d >= L[c]._dsPos)
+    if (d >= L[c].val.dPos)
       break;
 
     //  Else, swap the parent and the child
     //
-    L[p]._qsPos      = L[c]._qsPos;
-    L[p]._dsPos      = L[c]._dsPos;
+    L[p].all = L[c].all;
 
     //  Move down the tree
     //
@@ -33,8 +32,7 @@ adjustHeap_dsPos(diagonalLine *L, u32bit p, u32bit n) {
     c = (p << 1) + 1;
   }
 
-  L[p]._qsPos      = q;
-  L[p]._dsPos      = d;
+  L[p].all = v;
 }
 
 void
@@ -50,14 +48,9 @@ hitMatrix::sort_dsPos(void) {
     //  Interchange the new maximum with the element at the end of the tree
     //
     for (u32bit i=_hitsLen-1; i>0; i--) {
-      u32bit  q  = _hits[i]._qsPos;
-      u32bit  d  = _hits[i]._dsPos;
-
-      _hits[i]._qsPos      = _hits[0]._qsPos;
-      _hits[i]._dsPos      = _hits[0]._dsPos;
-
-      _hits[0]._qsPos      = q;
-      _hits[0]._dsPos      = d;
+      u64bit v       = _hits[i].all;
+      _hits[i].all   = _hits[0].all;
+      _hits[0].all   = v;
       
       adjustHeap_dsPos(_hits, 0, i);
     }

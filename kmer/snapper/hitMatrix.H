@@ -27,9 +27,14 @@
 
 
 struct diagonalLine {
-  u64bit     _uniq  : 10;  //  uniqueness score for the mer here
-  u64bit     _qsPos : 22;  //  position in the query, 0 to 4M
-  u64bit     _dsPos : 32;  //  position in the genome, 0 to 4G
+  union {
+    u64bit  all;
+    struct {
+      u64bit     uniq : 10;  //  uniqueness score for the mer here
+      u64bit     qPos : 22;  //  position in the query, 0 to 4M
+      u64bit     dPos : 32;  //  position in the genome, 0 to 4G
+    } val;
+  };
 };
 
 
@@ -153,19 +158,19 @@ hitMatrix::addHits(u32bit  qi,
       exit(1);
     }
 
-    for (u32bit z=_hitsLen; z--; ) {
-      h[z]._qsPos      = _hits[z]._qsPos;
-      h[z]._dsPos      = _hits[z]._dsPos;
-    }
-          
+    memcpy(h, _hits, sizeof(u64bit) * _hitsLen);
     delete [] _hits;
-
     _hits = h;
   }
 
+  u64bit  uniq = _hitsLen;
+  if (uniq > 0x000003ff)
+    uniq = 0x000003ff;
+
   for (u64bit i=0; i<cn; i++) {
-    _hits[_hitsLen]._qsPos      = (u32bit)(qi);
-    _hits[_hitsLen]._dsPos      = (u32bit)(ps[i]);
+    _hits[_hitsLen].val.uniq = uniq;
+    _hits[_hitsLen].val.qPos = qi;
+    _hits[_hitsLen].val.dPos = ps[i];
     _hitsLen++;
   }
 }
