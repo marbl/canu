@@ -22,12 +22,7 @@ Good luck!
 ----------
 2)  Build
 
-Most of the tools here use pthreads.  You must enable pthread support
-by setting the environment variable WITH_THREADS to 1.
-        bash:   export WITH_THREADS=1
-        tcsh:   setenv WITH_THREADS 1
-
-Then build everything
+Most of the tools here use pthreads.
 
 % gmake
 

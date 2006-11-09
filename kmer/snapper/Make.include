@@ -22,12 +22,7 @@ src      := $/snapper2.C \
             $/snapper2.H
 
 $/.CXX_SRCS := $(filter %.C,${src})
-ifdef WITH_THREADS
- $/.CXX_EXES := $/snapper2
-else
- $/.CXX_EXES :=
- $(warning $/snapper2 requires threads: enable WITH_THREADS to build it.)
-endif
+$/.CXX_EXES := $/snapper2
 
 $/.CLEAN     :=$/*.o
 $/.REAL-CLEAN:=$/buildinfo-*

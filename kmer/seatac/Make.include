@@ -20,11 +20,7 @@ src      := $/seatac.C \
             $/statObj.H
 
 $/.CXX_SRCS  := $(filter %.C,${src})
-ifdef WITH_THREADS
- $/.CXX_EXES  := $/seatac $/heavychains
-else
- $(warning $/seatac requires threads: enable WITH_THREADS to build.)
-endif
+$/.CXX_EXES  := $/seatac $/heavychains
 
 $/.CXX_SHLIBS  := $/filter-nop.so $/filter-heavychains.so
 

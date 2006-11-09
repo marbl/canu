@@ -16,12 +16,6 @@ src     := $/args.C \
            $/unaryOp.C
 src_C   := $(filter %.C,${src})
 
-ifdef WITH_THREADS
- CXXFLAGS+=-DENABLE_THREADS
-else
- $(warning Use WITH_THREADS to build $/meryl with multithreading support.)
-endif
-
 $/.CXX_SRCS   := ${src_C} $/merle.C $/asmMerQC.C $/mapMers.C $/m.C
 $/.CXX_EXES   := $/meryl  $/merle   $/asmMerQC   $/mapMers   $/m
 $/.CLEAN      := $/*.o

@@ -7,9 +7,7 @@
 #include "meryl.H"
 #include "libmeryl.H"
 
-#ifdef ENABLE_THREADS
 void runThreaded(merylArgs *args);
-#endif
 
 //  Define this to remove temporary files.  You probably want it
 //  defined.
@@ -227,7 +225,6 @@ prepareBatch(merylArgs *args) {
   if (fatalError)
     exit(1);
 
-#ifdef ENABLE_THREADS
   if (args->numThreads > 0) {
     //  If we were given no segment or memory limit, but threads, we
     //  really want to create n segments.
@@ -244,7 +241,6 @@ prepareBatch(merylArgs *args) {
       args->memoryLimit /= args->numThreads;
     }
   }
-#endif
 
   //  Everybody needs to dump the mers to a merStreamFile.  The only
   //  one that doesn't is "sequential, no memory limit", but
@@ -732,7 +728,6 @@ build(merylArgs *args) {
     doMerge = true;
   } else {
 
-#ifdef ENABLE_THREADS
     if (args->numThreads > 1)
 
       //  Run, using threads.  There is a lot of baloney needed, so it's
@@ -740,7 +735,6 @@ build(merylArgs *args) {
       //
       runThreaded(args);
     else
-#endif
       //  No special options given, do all the work here and now
       //
       for (u64bit s=0; s<args->segmentLimit; s++)

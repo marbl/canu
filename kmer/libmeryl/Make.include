@@ -3,12 +3,6 @@
 LIBUTL/     :=$(call MakePath,$/../libutil/)
 LIBBIO/     :=$(call MakePath,$/../libbio/)
 
-ifdef WITH_THREADS
- CXXFLAGS+=-DENABLE_THREADS
-else
- $(warning Use WITH_THREADS to build $/meryl with multithreading support.)
-endif
-
 $/.CXX_SRCS   := $/libmeryl.C
 $/.CXX_LIBS   := $/libmeryl.a
 $/.CLEAN      := $/*.o

@@ -1,5 +1,3 @@
-#ifdef ENABLE_THREADS
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -94,5 +92,3 @@ runThreaded(merylArgs *args) {
 
   delete [] segmentDone;
 }
-
-#endif  //  ENABLE_THREADS

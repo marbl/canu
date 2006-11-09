@@ -120,15 +120,9 @@ const char *usagestring =
 "     Multi-threaded operation is possible, at additional memory expense, as\n"
 "     is segmented operation, at additional I/O expense.\n"
 "\n"
-#ifdef ENABLE_THREADS
 "     Threaded operation: Split the counting in to n almost-equally sized\n"
 "     pieces.  This uses an extra h MB (from -P) per thread.\n"
 "        -threads n    (use n threads to build)\n"
-#else
-"     Threaded operation is not supported in this build.  Compile with\n"
-"     WITH_THREADS if using the IR build system, or with ENABLE_THREADS\n"
-"     if building by hand.\n"
-#endif
 "\n"
 "     Segmented, sequential operation: Split the counting into pieces that\n"
 "     will fit into no more than m MB of memory, or into n equal sized pieces.\n"
@@ -254,9 +248,7 @@ merylArgs::merylArgs(int argc, char **argv) {
 
   memoryLimit        = 0;
   segmentLimit       = 0;
-#ifdef ENABLE_THREADS
   numThreads         = 0;
-#endif
   configBatch        = false;
   countBatch         = false;
   mergeBatch         = false;
@@ -470,11 +462,9 @@ merylArgs::merylArgs(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-segments") == 0) {
       arg++;
       segmentLimit = strtou64bit(argv[arg], 0L);
-#ifdef ENABLE_THREADS
     } else if (strcmp(argv[arg], "-threads") == 0) {
       arg++;
       numThreads   = strtou32bit(argv[arg], 0L);
-#endif
     } else if (strcmp(argv[arg], "-configbatch") == 0) {
       personality = 'B';
       configBatch = true;
@@ -506,7 +496,6 @@ merylArgs::merylArgs(int argc, char **argv) {
     }
   }
 
-#ifdef ENABLE_THREADS
   //  Using threads is only useful if we are not a batch.
   //
   if ((numThreads > 0) && (configBatch || countBatch || mergeBatch)) {
@@ -518,7 +507,6 @@ merylArgs::merylArgs(int argc, char **argv) {
       fprintf(stderr, "WARNING: -threads has no effect with -mergebatch, disabled.\n");
     numThreads = 0;
   }
-#endif
 
   //  SGE is not useful unless we are in batch mode.
   //

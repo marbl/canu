@@ -29,13 +29,11 @@ other_C  := $/hitConverter.C \
             $/filtertest.C \
             $/hitReader.C
 
-$/.CXX_SRCS  :=${src_C} ${other_C} $/hitMatrix.C
-ifdef WITH_THREADS
- $/.CXX_EXES := $/seagen $/hitConverter $/filterEST $/filterMRNA $/filterNULL $/filtertest $/sortHits $/filterESTsimple
-else
- $/.CXX_EXES := $/hitConverter $/filterEST $/filterMRNA $/filterNULL $/filtertest $/sortHits
- $(warning $/seagen require threads: enable WITH_THREADS to build them.)
-endif
+$/.CXX_SRCS := ${src_C} ${other_C} $/hitMatrix.C
+$/.CXX_EXES := $/seagen \
+               $/hitConverter \
+               $/filterEST $/filterMRNA $/filterNULL $/filtertest \
+               $/sortHits $/filterESTsimple
 
 $/.CLEAN     :=$/*.o
 $/.REAL-CLEAN:=$/buildinfo-*
