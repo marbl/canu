@@ -107,13 +107,18 @@ sub createOverlapJobs {
         print F "rm -f $scratch/$asm.\$bat-\$job.\$jid.ovb \\\n";
         print F "&& \\\n";
         print F "rm -f $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
-    } else {
+    } elsif (getGlobal("useGrid") && getGlobal("ovlOnGrid")) {
         print F "bzip2 -9v $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
         print F "&& \\\n";
         print F "cp -p $scratch/$asm.\$bat-\$job.\$jid.ovl.bz2 \\\n";
         print F "      $wrk/$outDir/\$bat/\$job.ovl.bz2 \\\n";
         print F "&& \\\n";
         print F "rm -f $scratch/$asm.\$bat-\$job.\$jid.ovl.bz2 \\\n";
+    } else {
+        print F "cp -p $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
+        print F "      $wrk/$outDir/\$bat/\$job.ovl \\\n";
+        print F "&& \\\n";
+        print F "rm -f $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
     }
 
     print F "&& \\\n";
