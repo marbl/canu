@@ -168,6 +168,16 @@ sub setDefaults () {
     $global{"globalErrorRate"}             = 6;
 }
 
+sub makeAbsolute ($) {
+    my $var = shift @_;
+    my $val = getGlobal($var);
+    if (defined($val) && ($val !~ m!^/!)) {
+        $val = "$ENV{'PWD'}/$val";
+        setGlobal($var, $val);
+        $commandLineOptions .= " \"$var=$val\" ";
+    }
+}
+
 sub setParameters ($@) {
     my $specFile = shift @_;
     my @specOpts = @_;
@@ -201,6 +211,11 @@ sub setParameters ($@) {
             print STDERR "WARNING!  Misformed specOption '$s'\n";
         }
     }
+
+    #  Fiddle with filenames to make them absolute paths.
+    #
+    makeAbsolute("immutableFrags");
+    makeAbsolute("vectorIntersect");
 
     #  If we have been given a configuration in the spec file, use that instead.
     #
