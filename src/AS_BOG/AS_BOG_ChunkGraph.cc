@@ -33,11 +33,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_ChunkGraph.cc,v 1.8 2006-11-02 19:44:30 eliv Exp $
- * $Revision: 1.8 $
+ * $Id: AS_BOG_ChunkGraph.cc,v 1.9 2006-11-10 20:00:45 eliv Exp $
+ * $Revision: 1.9 $
 */
 
-static char AS_BOG_CHUNK_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_ChunkGraph.cc,v 1.8 2006-11-02 19:44:30 eliv Exp $";
+static char AS_BOG_CHUNK_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_ChunkGraph.cc,v 1.9 2006-11-10 20:00:45 eliv Exp $";
 
 //  System include files
 
@@ -56,6 +56,7 @@ namespace AS_BOG{
 
 	ChunkGraph::ChunkGraph(void){
 		_chunkable_array=NULL;
+		_edgePathLen=NULL;
 		_chunk_lengths=NULL;
 		_max_fragments=0;
 	}
@@ -63,6 +64,9 @@ namespace AS_BOG{
 	//////////////////////////////////////////////////////////////////////////////
 	
 	ChunkGraph::~ChunkGraph(void){
+		if(_edgePathLen != NULL){
+			delete[] _edgePathLen;
+		}
 		if(_chunkable_array != NULL){
 			delete[] _chunkable_array;
 		}
@@ -110,12 +114,18 @@ namespace AS_BOG{
 	//////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////
 
-	void ChunkGraph::build(BestOverlapGraph *bovlg){
+	void ChunkGraph::build(BestOverlapGraph *inBovlg){
 		// This will go through all the nodes in the bovlg and
 		//   produce the ChunkGraph
+        bovlg = inBovlg;
 
 		// Initialize the chunk graph if necessary
 		iuid num_frags=bovlg->getNumFragments();
+		if(_edgePathLen != NULL){
+			delete[] _edgePathLen;
+		}
+		_edgePathLen = new iuid[(num_frags+1)*2];
+        memset(_edgePathLen, 0, sizeof(iuid)*(num_frags+1)*2);
 		if(_chunkable_array != NULL){
 			delete[] _chunkable_array;
 		}
@@ -133,12 +143,12 @@ namespace AS_BOG{
 			// Grab 5' end, and check for chunkability
 			BestEdgeOverlap *fp_beo=
 				bovlg->getBestEdgeOverlap(frag_id, FIVE_PRIME);
-			bool fp_chunkability=isChunkable(frag_id, FIVE_PRIME, bovlg);
+			bool fp_chunkability=isChunkable(frag_id, FIVE_PRIME);
 			
 			// Grab 3' end, and check for chunkability
 			BestEdgeOverlap *tp_beo=
 				bovlg->getBestEdgeOverlap(frag_id, THREE_PRIME);
-			bool tp_chunkability=isChunkable(frag_id, THREE_PRIME, bovlg);
+			bool tp_chunkability=isChunkable(frag_id, THREE_PRIME);
 
 			// Save chunkability
 			setChunking(frag_id, 
@@ -147,9 +157,11 @@ namespace AS_BOG{
 			);
 		}
 		for(frag_id=1; frag_id<=num_frags; frag_id++){
-            short fpCnt,tpCnt;
-            fpCnt = countChunkWidth(frag_id, FIVE_PRIME, bovlg);
-            tpCnt = countChunkWidth(frag_id, THREE_PRIME, bovlg);
+            iuid fpCnt,tpCnt;
+//            fpCnt = countChunkWidth(frag_id, FIVE_PRIME);
+            fpCnt  = countFullWidth( frag_id, FIVE_PRIME);
+////            tpCnt = countChunkWidth(frag_id, THREE_PRIME);
+            tpCnt  = countFullWidth( frag_id, THREE_PRIME);
             
             _chunk_lengths[frag_id-1].fragId = frag_id;
             _chunk_lengths[frag_id-1].cnt    = min(fpCnt,tpCnt);
@@ -165,35 +177,97 @@ namespace AS_BOG{
                 _chunk_lengths[1].fragId, _chunk_lengths[1].cnt
                );
                 //_chunk_lengths[1].fragId, _chunk_lengths[1].cnt);
+        delete[] _edgePathLen;
+        _edgePathLen = NULL;
 	}
 
-    short ChunkGraph::countChunkWidth(iuid frag, fragment_end_type end,
-            BestOverlapGraph *bovlg) {
+    short ChunkGraph::countChunkWidth(iuid frag, fragment_end_type end) {
         short cnt = 0;
-        BestEdgeOverlap *edge;
         std::set<iuid> seen;
-        seen.insert(frag);
-        if (end == FIVE_PRIME) {
-            edge = bovlg->getBestEdgeOverlap(frag, FIVE_PRIME);
-            frag = _chunkable_array[frag].five_prime;
-        } else {
-            edge = bovlg->getBestEdgeOverlap(frag, THREE_PRIME);
-            frag = _chunkable_array[frag].three_prime;
-        }
+        FragmentEnd anEnd( frag, end);
         while (cnt < FRAG_WALK_NUM && frag != NULL_FRAG_ID &&
                 seen.find(frag) == seen.end())
         {
             cnt++;
             seen.insert(frag);
-            if (edge->bend == FIVE_PRIME) {
-                edge = bovlg->getBestEdgeOverlap(frag, THREE_PRIME);
-                frag = _chunkable_array[frag].three_prime;
-            } else {
-                edge = bovlg->getBestEdgeOverlap(frag, FIVE_PRIME);
-                frag = _chunkable_array[frag].five_prime;
-            }
+            anEnd = followPath(anEnd);
+            frag = anEnd.id;
         }
         return cnt;
+    }
+    FragmentEnd ChunkGraph::followPath( FragmentEnd anEnd )
+    {
+        iuid frag = anEnd.id;
+        if (anEnd.end == FIVE_PRIME) 
+            frag = _chunkable_array[frag].five_prime ;
+        else 
+            frag = _chunkable_array[frag].three_prime ;
+
+        // advances to the next fragment, opposite end
+        bovlg->followOverlap( &anEnd );
+        assert( frag == NULL_FRAG_ID || frag == anEnd.id ); 
+        anEnd.id = frag;
+        return anEnd;
+    }
+    inline bool operator==(FragmentEnd a, FragmentEnd b) {
+        if (a.id == b.id && a.end == b.end)
+            return true;
+        else
+            return false;
+    }
+    inline bool operator<(FragmentEnd a, FragmentEnd b) {
+        if (a.id != b.id)
+            return a.id < b.id;
+        else
+            return a.end < b.end;
+    }
+    iuid ChunkGraph::countFullWidth(iuid firstFrag, fragment_end_type end)
+    {
+        iuid index = firstFrag * 2 + end;
+        if ( _edgePathLen[index] != 0 )
+            return _edgePathLen[index] != 0;
+        iuid cnt = 0;
+        std::set<FragmentEnd> seen;
+        FragmentEnd fragEnd( firstFrag, end );
+        do {
+            seen.insert(fragEnd);
+            _edgePathLen[index] = ++cnt;
+            FragmentEnd nextEnd;
+            nextEnd = followPath( fragEnd );
+            fragEnd = nextEnd;
+            index = fragEnd.id * 2 + fragEnd.end;
+        }
+        while (fragEnd.id != NULL_FRAG_ID && _edgePathLen[index] == 0);
+        if (fragEnd.id == NULL_FRAG_ID) {
+            return cnt;
+        }
+        // if we end because of a circle, mark points in circle same cnt
+        if (seen.find( fragEnd ) != seen.end()) {
+            iuid circleLen = cnt - _edgePathLen[index];
+            fprintf(stderr,"Circle len %d frag %d end %d\n",
+                    circleLen, fragEnd.id, fragEnd.end);
+            FragmentEnd currEnd = fragEnd;
+            do {
+                seen.erase( currEnd );
+                _edgePathLen[index] = circleLen;
+                bovlg->followOverlap( &currEnd );
+                index = currEnd.id * 2 + currEnd.end;
+            }
+            while (!(fragEnd == currEnd));
+        } else {
+            // we encountered an already counted frag, so use it's length
+            cnt += _edgePathLen[index];
+        }
+        // if the whole thing wasn't a circle we still have a linear path left
+        iuid max = cnt;
+        if (!seen.empty()) {
+            FragmentEnd currEnd(firstFrag, end);
+            do {
+                _edgePathLen[currEnd.id*2+currEnd.end] = cnt--;
+                bovlg->followOverlap( &currEnd );
+            } while (currEnd.id != fragEnd.id);
+        }
+        return max;
     }
     int ChunkGraph::sortChunkLens( const void *a, const void *b) {
         struct _chunk_length *frg1 = (struct _chunk_length*)a;
@@ -223,8 +297,7 @@ namespace AS_BOG{
 	//////////////////////////////////////////////////////////////////////////////
 
 	bool ChunkGraph::isChunkable(
-		iuid frag_a_id, fragment_end_type which_end, 
-		BestOverlapGraph *bovlg){
+		iuid frag_a_id, fragment_end_type which_end ) {
 		// Given an edge (based on fragment ID and end), determines by looking at
 		//   what the edge overlaps, whether the overlap is unambiguous.
 
@@ -257,8 +330,7 @@ namespace AS_BOG{
 
 	}
 	bool PromiscuousChunkGraph::isChunkable(
-		iuid frag_a_id, fragment_end_type which_end, 
-		BestOverlapGraph *bovlg) {
+		iuid frag_a_id, fragment_end_type which_end) { 
 
 		// Translate from fragment id to best overlap
 		BestEdgeOverlap *a_beo=bovlg->getBestEdgeOverlap(frag_a_id, which_end);
@@ -324,7 +396,7 @@ namespace AS_BOG{
 
 	//////////////////////////////////////////////////////////////////////////////
 
-	void ChunkGraph::checkInDegree(BestOverlapGraph *bovlg){
+	void ChunkGraph::checkInDegree(){
 		
 		int *fivep_indegree_arr;
 		int *threep_indegree_arr;

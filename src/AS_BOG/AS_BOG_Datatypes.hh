@@ -33,8 +33,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_Datatypes.hh,v 1.10 2006-11-02 19:44:30 eliv Exp $
- * $Revision: 1.10 $
+ * $Id: AS_BOG_Datatypes.hh,v 1.11 2006-11-10 20:00:45 eliv Exp $
+ * $Revision: 1.11 $
 */
 
 #ifndef INCLUDE_AS_BOG_DATATYPES
@@ -100,6 +100,9 @@ namespace AS_BOG{
     struct FragmentEnd {
         iuid id;
         fragment_end_type end;
+
+        FragmentEnd::FragmentEnd(iuid id=0, fragment_end_type end=FIVE_PRIME) :
+            id(id), end(end) {}
     };
 
 } //AS_BOG namespace

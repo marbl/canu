@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.33 2006-11-03 20:19:01 eliv Exp $
- * $Revision: 1.33 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.34 2006-11-10 20:00:45 eliv Exp $
+ * $Revision: 1.34 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.33 2006-11-03 20:19:01 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.34 2006-11-10 20:00:45 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -730,9 +730,7 @@ namespace AS_BOG{
                         else if (inTig->getLength() > 2500) {
                             fprintf(stderr, "  Break tig %5d at frag %7d because tig %5d has len %d\n",
                                     tig->id-1, dtFrag, inTig->id-1, inTig->getLength());
-                            FragmentEnd breakPoint;
-                            breakPoint.id = dtFrag;
-                            breakPoint.end = bestEdge->bend;
+                            FragmentEnd breakPoint(dtFrag,bestEdge->bend);
                             breaks.push( breakPoint );
                         }
                     }

@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.30 2006-09-14 15:43:28 eliv Exp $
- * $Revision: 1.30 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.31 2006-11-10 20:00:45 eliv Exp $
+ * $Revision: 1.31 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.30 2006-09-14 15:43:28 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.31 2006-11-10 20:00:45 eliv Exp $";
 
 //  System include files
 #include<iostream>
@@ -133,6 +133,14 @@ namespace AS_BOG{
         else if(which_end == THREE_PRIME){
             return(&_best_overlaps[frag_id].three_prime);
         }
+    }
+    BestEdgeOverlap *BestOverlapGraph::getBestEdgeOverlap(FragmentEnd* end) {
+        return getBestEdgeOverlap(end->id,end->end);
+    }
+    void BestOverlapGraph::followOverlap(FragmentEnd* end) {
+        BestEdgeOverlap* edge = getBestEdgeOverlap(end);
+        end->id = edge->frag_b_id;
+        end->end = edge->bend == FIVE_PRIME ? THREE_PRIME : FIVE_PRIME;
     }
 
     //  Given an overlap, determines which record (iuid and end) and sets the newScore.

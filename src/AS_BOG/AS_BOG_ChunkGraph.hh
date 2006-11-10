@@ -36,14 +36,14 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_ChunkGraph.hh,v 1.6 2006-10-18 17:31:46 eliv Exp $
- * $Revision: 1.6 $
+ * $Id: AS_BOG_ChunkGraph.hh,v 1.7 2006-11-10 20:00:45 eliv Exp $
+ * $Revision: 1.7 $
 */
 
 #ifndef INCLUDE_AS_BOG_CHUNKGRAPH
 #define INCLUDE_AS_BOG_CHUNKGRAPH
 
-static char AS_BOG_CHUNK_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_ChunkGraph.hh,v 1.6 2006-10-18 17:31:46 eliv Exp $";
+static char AS_BOG_CHUNK_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_ChunkGraph.hh,v 1.7 2006-11-10 20:00:45 eliv Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -67,15 +67,9 @@ namespace AS_BOG{
 		void build(BestOverlapGraph *bovlg);		
 
 		// Chunkability rule
-		bool isChunkable(iuid frag_id, fragment_end_type whichEnd);
+        bool isChunkable( BestEdgeOverlap *beo );
 
-	        bool isChunkable(
-			BestEdgeOverlap *beo,
-			BestOverlapGraph *bovlg);
-
-	    virtual bool isChunkable(
-			iuid frag_a_id, fragment_end_type which_end,
-			BestOverlapGraph *bovlg);
+	    virtual bool isChunkable( iuid frag_a_id, fragment_end_type which_end);
 
 		// Returns IUID of 5' or 3' end of specified frag_id
 		//  Since there should only be one out/incoming connection
@@ -95,9 +89,15 @@ namespace AS_BOG{
 
 		friend std::ostream& operator<< (std::ostream& os, ChunkGraph &cg);
 
-		void checkInDegree(BestOverlapGraph *bovlg);
+		void checkInDegree();
 
         iuid ChunkGraph::nextFragByChunkLength();
+
+        // follows the graph path to the next frag end
+        FragmentEnd followPath(FragmentEnd);
+
+        protected:
+		    BestOverlapGraph *bovlg;
 
 	    private:
 
@@ -112,21 +112,20 @@ namespace AS_BOG{
 //            short tpCnt;
         };
 
-        short countChunkWidth(iuid, fragment_end_type, BestOverlapGraph*);
+        short countChunkWidth(iuid, fragment_end_type );
+        iuid countFullWidth(iuid, fragment_end_type );
 
         static int sortChunkLens(const void*,const void*);
 
 		_chunk_unit_struct *_chunkable_array;
+		iuid *_edgePathLen;
 		_chunk_length *_chunk_lengths;
 		iuid _max_fragments;
 
 	};
 
     struct PromiscuousChunkGraph : public ChunkGraph {
-         bool isChunkable(
-            iuid frag_id, fragment_end_type which_end,
-            BestOverlapGraph *);
-
+         bool isChunkable( iuid frag_id, fragment_end_type which_end);
     };
 
 } //AS_BOG namespace
