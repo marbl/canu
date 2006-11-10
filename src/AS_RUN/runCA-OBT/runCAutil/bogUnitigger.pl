@@ -34,9 +34,10 @@ sub partitionCGB($$) {
 
 sub bogUnitigger {
 
-    system("mkdir $wrk/4-unitigger") if (! -e "$wrk/4-unitigger");
+    my $workDir = "$wrk/4-unitigger";
+    mkdir $workDir unless -e $workDir;
 
-    if (! -e "$wrk/4-unitigger/unitigger.success") {
+    if (! -e "$workDir/unitigger.success") {
 
         my $cmd;
         $cmd  = "$bin/buildUnitigs ";
@@ -50,14 +51,17 @@ sub bogUnitigger {
         $cmd .= " > unitigger.out ";
         $cmd .= " 2> unitigger.err ";
 
-        if (runCommand("$wrk/4-unitigger", $cmd)) {
+        if (runCommand($workDir, $cmd)) {
             print STDERR "Failed to unitig.\n";
             exit(1);
         }
 
-        link 'len15.ium',"$asm.cgb";
+        my $prevPwd = $ENV{PWD};
+        chdir $workDir || die "chdir $workDir failed.";
+        link('len15.ium',"$asm.cgb") || die "link to $asm.cgb failed in $ENV{PWD}";
         partitionCGB( "$asm.cgb", 250000 );
         unlink "$asm.cgb";
+        chdir $prevPwd;
 
         touch('unitigger.success');
     }
