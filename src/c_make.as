@@ -69,7 +69,7 @@ ifeq ($(OSTYPE), Linux)
     ARCH_LDFLAGS  += -march=i686
   endif
   ifeq ($(MACHINETYPE), x86_64)
-    ARCH_CFLAGS   += -m64 -mcmodel=medium -DX86_GCC_LINUX
+    ARCH_CFLAGS   += -m64 -DX86_GCC_LINUX
 
     #  JCVI's opteron has 32-bit libraries in /usr/lib and /usr/X11R6/lib,
     #  so we reset ARCH_LIB to the appropriate things.
