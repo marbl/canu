@@ -36,14 +36,14 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_ChunkGraph.hh,v 1.7 2006-11-10 20:00:45 eliv Exp $
- * $Revision: 1.7 $
+ * $Id: AS_BOG_ChunkGraph.hh,v 1.8 2006-11-13 20:58:53 eliv Exp $
+ * $Revision: 1.8 $
 */
 
 #ifndef INCLUDE_AS_BOG_CHUNKGRAPH
 #define INCLUDE_AS_BOG_CHUNKGRAPH
 
-static char AS_BOG_CHUNK_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_ChunkGraph.hh,v 1.7 2006-11-10 20:00:45 eliv Exp $";
+static char AS_BOG_CHUNK_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_ChunkGraph.hh,v 1.8 2006-11-13 20:58:53 eliv Exp $";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_BestOverlapGraph.hh"
@@ -91,7 +91,7 @@ namespace AS_BOG{
 
 		void checkInDegree();
 
-        iuid ChunkGraph::nextFragByChunkLength();
+        iuid nextFragByChunkLength();
 
         // follows the graph path to the next frag end
         FragmentEnd followPath(FragmentEnd);
