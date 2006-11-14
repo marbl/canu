@@ -34,7 +34,7 @@
  **********************************************************************/
 
 
-static char fileID[] = "$Id: SubgraphREZ.c,v 1.6 2006-11-14 17:52:18 eliv Exp $";
+static char fileID[] = "$Id: SubgraphREZ.c,v 1.7 2006-11-14 19:58:23 eliv Exp $";
 
 
 #include <stdio.h>
@@ -927,8 +927,8 @@ void Print_Subgraph_Cam(chunk_subgraph * f,
   //
   assert(lchunk != NULL);
   assert(rchunk != NULL);
-  low = min(min(lchunk->aEndCoord, lchunk->bEndCoord),
-			min(rchunk->aEndCoord, rchunk->bEndCoord));
+  low = MIN(MIN(lchunk->aEndCoord, lchunk->bEndCoord),
+			MIN(rchunk->aEndCoord, rchunk->bEndCoord));
   high = MAX(MAX(lchunk->aEndCoord, lchunk->bEndCoord),
 			 MAX(rchunk->aEndCoord, rchunk->bEndCoord));
   
@@ -1120,8 +1120,8 @@ void Print_Subgraph_Calc_Cam(chunk_subgraph * f,
   assert(lchunk != NULL);
   assert(rchunk != NULL);
 
-  low = min( min(lchunk->offsetAEnd.mean, lchunk->offsetBEnd.mean),
-			 min(rchunk->offsetAEnd.mean, rchunk->offsetBEnd.mean));
+  low = MIN( MIN(lchunk->offsetAEnd.mean, lchunk->offsetBEnd.mean),
+			 MIN(rchunk->offsetAEnd.mean, rchunk->offsetBEnd.mean));
   //
   // open the cam file
   //

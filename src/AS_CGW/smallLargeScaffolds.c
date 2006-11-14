@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: smallLargeScaffolds.c,v 1.7 2006-11-14 17:52:16 eliv Exp $";
+static char CM_ID[] = "$Id: smallLargeScaffolds.c,v 1.8 2006-11-14 19:58:21 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -92,7 +92,7 @@ void InterleaveScaffolds(CIScaffoldT * scaffold,
         (scaffold->bpLength.mean + 3 *
          sqrt((double) scaffold->bpLength.variance)));
   interval.end =
-    min(otherScaffold->bpLength.mean + 3 *
+    MIN(otherScaffold->bpLength.mean + 3 *
         sqrt((double) otherScaffold->bpLength.variance),
         -sEdge->distance.mean + 3 *
         sqrt((double) sEdge->distance.variance));
@@ -343,9 +343,9 @@ int main(int argc, char *argv[])
                             sEdge->distance.mean - SLOP <
                             distanceRange.end)
                       {
-                        distanceRange.bgn = min(distanceRange.bgn, sEdge->distance.mean);
+                        distanceRange.bgn = MIN(distanceRange.bgn, sEdge->distance.mean);
                         distanceRange.end = MAX(distanceRange.end, sEdge->distance.mean);
-                        sigmaRange.bgn = min(sigmaRange.bgn,
+                        sigmaRange.bgn = MIN(sigmaRange.bgn,
                                              sEdge->distance.mean -
                                              3 * sqrt((double) sEdge->distance.variance));
                         sigmaRange.end = MAX(sigmaRange.end,

@@ -772,7 +772,7 @@ void PrintFragmentLine( FILE * fp, char * seq, CDS_COORD_t length,
   else
     fprintf( fp, "%5" F_COORDP ": ", bgn );
 
-  for( i = bgn; i < min( bgn + BASES_PER_LINE, end ); i++ )
+  for( i = bgn; i < MIN( bgn + BASES_PER_LINE, end ); i++ )
   {
     fprintf( fp, "%c", seq[i] );
   }
@@ -1356,7 +1356,7 @@ typedef CheckGlobals * CheckGlobalsp;
 void InitializeGlobals( CheckGlobalsp globals, char * program_name )
 {
   globals->program_name = program_name;
-  globals->version = "$Revision: 1.9 $";
+  globals->version = "$Revision: 1.10 $";
   globals->chims_file = NULL;
   globals->craps_file = NULL;
   globals->cgb_file = NULL;

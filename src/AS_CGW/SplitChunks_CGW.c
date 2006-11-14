@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.9 2006-11-14 17:52:15 eliv Exp $";
+static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.10 2006-11-14 19:58:21 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -119,14 +119,14 @@ void PrintPositions(ScaffoldGraphT * graph, MultiAlignT * ma, int isUnitig)
                                     info->fragIndex);
 
       fprintf(stdout, F_IID ": (" F_COORD "," F_COORD ")\t",
-              imp->ident, min(imp->position.bgn, imp->position.end), MAX(imp->position.bgn, imp->position.end));
+              imp->ident, MIN(imp->position.bgn, imp->position.end), MAX(imp->position.bgn, imp->position.end));
       if(isUnitig)
         fprintf(stdout, "(%f,%f)\t",
-                min(frag->offset5p.mean, frag->offset3p.mean),
+                MIN(frag->offset5p.mean, frag->offset3p.mean),
                 MAX(frag->offset5p.mean, frag->offset3p.mean));
       else
         fprintf(stdout, "(%f,%f)\t",
-                min(frag->contigOffset5p.mean, frag->contigOffset3p.mean),
+                MIN(frag->contigOffset5p.mean, frag->contigOffset3p.mean),
                 MAX(frag->contigOffset5p.mean, frag->contigOffset3p.mean));
       if(imp->contained)
         fprintf(stdout, F_IID "\n", imp->contained);
@@ -174,9 +174,9 @@ static int CreateReadCoverageMap(ScaffoldGraphT * graph,
 
           // if unitig is forward vs. reverse, add to correct fragment location
           minPos = (isUnitig) ?
-            (min(frag->offset5p.mean,
+            (MIN(frag->offset5p.mean,
                  frag->offset3p.mean) + READ_TRIM_BASES) :
-            (min(frag->contigOffset5p.mean,
+            (MIN(frag->contigOffset5p.mean,
                  frag->contigOffset3p.mean) + READ_TRIM_BASES);
           maxPos = (isUnitig) ?
             (MAX(frag->offset5p.mean,
@@ -202,8 +202,8 @@ static int AddLinkToMaps(ScaffoldGraphT * graph,
 {
   DistT * dist = GetDistT(graph->Dists, distID);
   CDS_COORD_t minPos = (isUnitig) ?
-    (min(frag->offset5p.mean, mfrag->offset5p.mean)) :
-    (min(frag->contigOffset5p.mean, mfrag->contigOffset5p.mean));
+    (MIN(frag->offset5p.mean, mfrag->offset5p.mean)) :
+    (MIN(frag->contigOffset5p.mean, mfrag->contigOffset5p.mean));
   CDS_COORD_t maxPos = (isUnitig) ?
     (MAX(frag->offset5p.mean, mfrag->offset5p.mean)) :
     (MAX(frag->contigOffset5p.mean, mfrag->contigOffset5p.mean));
@@ -238,12 +238,12 @@ static int AddLinkToMaps(ScaffoldGraphT * graph,
                       // note that maxPos < length
                       IncrementMapInterval(bcc,
                                            minPos,
-                                           min(minPos + dist->mean +
+                                           MIN(minPos + dist->mean +
                                                CGW_CUTOFF * dist->stddev,
                                                maxPos));
                       IncrementMapInterval(bcc,
                                            maxPos,
-                                           min(maxPos + dist->mean +
+                                           MIN(maxPos + dist->mean +
                                                CGW_CUTOFF * dist->stddev,
                                                length - 1));
                     }
@@ -303,12 +303,12 @@ static int AddLinkToMaps(ScaffoldGraphT * graph,
                       */
                       IncrementMapInterval(bcc,
                                            minPos,
-                                           min(minPos +
+                                           MIN(minPos +
                                                dist->mean + CGW_CUTOFF * dist->stddev,
                                                maxPos));
                       IncrementMapInterval(bcc,
                                            maxPos,
-                                           min(length - 1,
+                                           MIN(length - 1,
                                                maxPos +
                                                dist->mean + CGW_CUTOFF * dist->stddev));
                     }
@@ -340,7 +340,7 @@ static int AddLinkToMaps(ScaffoldGraphT * graph,
                   */
                   IncrementMapInterval(bcc,
                                        minPos,
-                                       min(maxPos,
+                                       MIN(maxPos,
                                            minPos +
                                            dist->mean + CGW_CUTOFF * dist->stddev));
                   IncrementMapInterval(bcc,
@@ -643,8 +643,8 @@ static void FreeIUMStruct(IUMStruct * is)
 */
 static int positionCompare(const IntMultiPos * a, const IntMultiPos * b)
 {
-  return min(a->position.bgn, a->position.end) -
-    min(b->position.bgn, b->position.end);
+  return MIN(a->position.bgn, a->position.end) -
+    MIN(b->position.bgn, b->position.end);
 }
 
 
@@ -681,10 +681,10 @@ static int AddIMPToIUMStruct(IUMStruct * is, IntMultiPos * imp)
   
   // update the min & max
 #ifdef USE_UNGAPPED_POSITION
-  //  is->minPos = min(frag->offset5p.mean,frag->offset3p.mean); /* 3/22/05 ALH: this looks wrong! */
-  is->minPos = min(is->minPos,min(frag->offset5p.mean,frag->offset3p.mean));
+  //  is->minPos = MIN(frag->offset5p.mean,frag->offset3p.mean); /* 3/22/05 ALH: this looks wrong! */
+  is->minPos = MIN(is->minPos,MIN(frag->offset5p.mean,frag->offset3p.mean));
 #else
-  is->minPos = min(is->minPos,min(imp->position.bgn, imp->position.end));
+  is->minPos = MIN(is->minPos,MIN(imp->position.bgn, imp->position.end));
 #endif
 
   is->ium.num_frags++;
@@ -706,7 +706,7 @@ float EstimateGlobalFragmentArrivalRate(ChunkInstanceT * ci,
       IntMultiPos * imp = GetIntMultiPos(ma->f_list, i);
       if (AS_FA_RANDOM(imp->type)) 
         {
-          rho = MAX(rho, min(imp->position.bgn, imp->position.end));
+          rho = MAX(rho, MIN(imp->position.bgn, imp->position.end));
           numRF++;
         }
     }
@@ -855,10 +855,10 @@ void AdjustContainedOrder(IntMultiPos * impList, int numIMPs)
           // move up to behind something it should overlap
           for(index2 = index - 1;
               index2 >= 0 &&
-                (min(impList[index2].position.bgn, impList[index2].position.end) >
-                 min(imp.position.bgn, imp.position.end) ||
+                (MIN(impList[index2].position.bgn, impList[index2].position.end) >
+                 MIN(imp.position.bgn, imp.position.end) ||
                  MAX(impList[index2].position.bgn, impList[index2].position.end) <
-                 min(imp.position.bgn, imp.position.end));
+                 MIN(imp.position.bgn, imp.position.end));
               index2--)
             {
               impList[index2 + 1] = impList[index2];
@@ -1096,8 +1096,8 @@ static int SplitChunkByIntervals(ScaffoldGraphT * graph,
                                     info->fragIndex);
       CDS_COORD_t minPos =
         ((isUnitig) ?
-         min(frag->offset5p.mean, frag->offset3p.mean) :
-         min(frag->contigOffset5p.mean, frag->contigOffset3p.mean));
+         MIN(frag->offset5p.mean, frag->offset3p.mean) :
+         MIN(frag->contigOffset5p.mean, frag->contigOffset3p.mean));
       CDS_COORD_t maxPos =
         ((isUnitig) ?
          MAX(frag->offset5p.mean, frag->offset3p.mean) :
@@ -1288,7 +1288,7 @@ int SplitInputUnitigs(ScaffoldGraphT * graph)
   for(i = 0; i < GetNumDistTs(graph->Dists); i++)
     {
       DistT * dptr = GetDistT(graph->Dists,i);
-      minLength = min(minLength,dptr->mean + CGW_CUTOFF * dptr->stddev);
+      minLength = MIN(minLength,dptr->mean + CGW_CUTOFF * dptr->stddev);
     }
 
 #ifdef DEBUG
@@ -1554,7 +1554,7 @@ void ProcessLinkForChimeraDetection(ScaffoldGraphT * graph,
         {
           // update
           celp->numEdges++;
-          celp->leftCoord = min(celp->leftCoord,
+          celp->leftCoord = MIN(celp->leftCoord,
                                 frag->contigOffset3p.mean);
           celp->rightCoord = MAX(celp->rightCoord,
                                  frag->contigOffset3p.mean);

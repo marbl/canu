@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_cga.c,v 1.8 2006-11-14 17:52:14 eliv Exp $";
+= "$Id: AS_CGB_cga.c,v 1.9 2006-11-14 19:58:20 eliv Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_cga.c
@@ -769,7 +769,7 @@ static void annotate_the_chunks_with_coordinate_info
       chunkinfo[ichunk].btip = btip;
 
       if( (ivote_repeat_essential == 0) &&
-	  ((min(atip,btip) != lowest_genome_coordinate) ||
+	  ((MIN(atip,btip) != lowest_genome_coordinate) ||
 	   (MAX(atip,btip) != highest_genome_coordinate))) {
 	fprintf(stderr,"CGA simulator coordinate problem with ichunk=" F_IID "\n",ichunk);
 	fprintf(stderr,"    atip=" BPFORMAT ",btip=" BPFORMAT "\n", atip, btip);
@@ -3300,8 +3300,8 @@ void chunk_graph_analysis
 	  assert(bp_length > 0);
 	  assert(a_branch_point >= 0);
 	  assert(b_branch_point >= 0);
-	  a_branch_point = min(a_branch_point,bp_length);
-	  b_branch_point = min(b_branch_point,bp_length);
+	  a_branch_point = MIN(a_branch_point,bp_length);
+	  b_branch_point = MIN(b_branch_point,bp_length);
 	  pos_left_end  = gen_low_coord;
 	  pos_right_end = pos_left_end + bp_length;
 

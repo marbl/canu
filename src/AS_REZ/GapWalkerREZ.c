@@ -39,7 +39,7 @@
  **********************************************************************/
 
 
-static char fileID[] = "$Id: GapWalkerREZ.c,v 1.6 2006-11-14 17:52:17 eliv Exp $";
+static char fileID[] = "$Id: GapWalkerREZ.c,v 1.7 2006-11-14 19:58:22 eliv Exp $";
 
 
 #include <stdio.h>
@@ -655,8 +655,8 @@ LengthT Compute_Gap_Length(ChunkInstanceT * lchunk,
   assert(lchunk != NULL);
   assert(rchunk != NULL);
   assert(lchunk->scaffoldID == lchunk->scaffoldID);
-  if (min(lchunk->offsetAEnd.mean, lchunk->offsetBEnd.mean) >
-      min(rchunk->offsetAEnd.mean, rchunk->offsetBEnd.mean)) { 
+  if (MIN(lchunk->offsetAEnd.mean, lchunk->offsetBEnd.mean) >
+      MIN(rchunk->offsetAEnd.mean, rchunk->offsetBEnd.mean)) { 
     fprintf(stderr,
 	    "                       Warning: chunks %d and %d are out of order (scaffold %d)\n",
 	    lchunk->id,
@@ -714,7 +714,7 @@ LengthT Compute_Gap_Length(ChunkInstanceT * lchunk,
 	    fprintf(gwlogfp,"\nLeftmost Unitig %d with position (%d,%d)\n",pos->ident,pos->position.bgn,pos->position.end);
 	    fprintf(gwlogfp,"\nLast 1000 bps of consensus and quality of the A end of lchunk %d\n",lchunk->id);
 	    interval.bgn = 0;
-	    interval.end = min(ullength,1000);
+	    interval.end = MIN(ullength,1000);
 	    GetMultiAlignUngappedConsensusFromInterval(lma,interval,consensus,quality);
 	    fprintf(gwlogfp,"Consensus \n%s\n",Getchar(consensus,0));
 	    fprintf(gwlogfp,"Quality   \n%s\n",Getchar(quality,0));
@@ -733,7 +733,7 @@ LengthT Compute_Gap_Length(ChunkInstanceT * lchunk,
 	    fprintf(gwlogfp,"\nLast 1000 bps of consensus and quality of the A end of lchunk %d\n",lchunk->id);   
 	    fprintf(gwlogfp,"\nLast 1000 bps of consensus and quality of the A end of rchunk %d\n",rchunk->id);
 	    interval.bgn = 0;
-	    interval.end = min(urlength,1000);
+	    interval.end = MIN(urlength,1000);
 	    GetMultiAlignUngappedConsensusFromInterval(rma,interval,consensus,quality);
 	    fprintf(gwlogfp,"Consensus \n%s\n",Getchar(consensus,0));
 	    fprintf(gwlogfp,"Quality   \n%s\n",Getchar(quality,0));
@@ -978,8 +978,8 @@ chunk_subgraph * Intra_Scaffold_Gap_Walker(chunk_subgraph * full,
     
     assert(lchunk != NULL);
     assert(rchunk != NULL);
-    low = min(min(lchunk->aEndCoord, lchunk->bEndCoord),
-	      min(rchunk->aEndCoord, rchunk->bEndCoord));
+    low = MIN(MIN(lchunk->aEndCoord, lchunk->bEndCoord),
+	      MIN(rchunk->aEndCoord, rchunk->bEndCoord));
     high = MAX(MAX(lchunk->aEndCoord, lchunk->bEndCoord),
 	       MAX(rchunk->aEndCoord, rchunk->bEndCoord));
     uu = 0;
@@ -1097,8 +1097,8 @@ chunk_subgraph * Intra_Scaffold_Gap_Walker(chunk_subgraph * full,
     
     assert(lchunk != NULL);
     assert(rchunk != NULL);
-    low = min(min(lchunk->aEndCoord, lchunk->bEndCoord),
-	      min(rchunk->aEndCoord, rchunk->bEndCoord));
+    low = MIN(MIN(lchunk->aEndCoord, lchunk->bEndCoord),
+	      MIN(rchunk->aEndCoord, rchunk->bEndCoord));
     high = MAX(MAX(lchunk->aEndCoord, lchunk->bEndCoord),
 	       MAX(rchunk->aEndCoord, rchunk->bEndCoord));
     for (i = 0; i < f0->size; i++) {
@@ -1862,8 +1862,8 @@ void Compute_Tentative_Position(chunk_subgraph * s,
 
 	delta.variance = MAX(s->table[u]->A_end.variance,s->table[u]->B_end.variance)+
 	                 ComputeFudgeVariance(edge->distance.mean)-
-	                 min(v_chunk->offsetAEnd.variance,v_chunk->offsetBEnd.variance);
-	/* delta.variance = gap_start.variance + ComputeFudgeVariance(new_gap_length.mean) - min(v_chunk->offsetAEnd.variance,v_chunk->offsetBEnd.variance);
+	                 MIN(v_chunk->offsetAEnd.variance,v_chunk->offsetBEnd.variance);
+	/* delta.variance = gap_start.variance + ComputeFudgeVariance(new_gap_length.mean) - MIN(v_chunk->offsetAEnd.variance,v_chunk->offsetBEnd.variance);
 	 */
 # if DEBUG_GAP_WALKER > 0
 	{
@@ -3066,7 +3066,7 @@ int Find_Greedy_Path(chunk_subgraph * subgraph,
 	//
 	// adjust the sign
 	//
-	if (min(from->aEndCoord, from->bEndCoord) > min(to->aEndCoord, to->bEndCoord))
+	if (MIN(from->aEndCoord, from->bEndCoord) > MIN(to->aEndCoord, to->bEndCoord))
 	  d = -d;
 	
 	//
@@ -3500,7 +3500,7 @@ int Annotate_Edges_For_Consistent_Path(chunk_subgraph * s, chunk_subgraph * ref)
 	  //
 	  // adjust the sign
 	  //
-	  if (min(from->aEndCoord, from->bEndCoord) > min(to->aEndCoord, to->bEndCoord))
+	  if (MIN(from->aEndCoord, from->bEndCoord) > MIN(to->aEndCoord, to->bEndCoord))
 	    d = -d;
 	  
 	  //

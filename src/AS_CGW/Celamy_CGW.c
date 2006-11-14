@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* All of the CGW celamy stuff is here */
-static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.7 2006-11-14 17:52:14 eliv Exp $";
+static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.8 2006-11-14 19:58:21 eliv Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -671,7 +671,7 @@ void draw_frags_in_contig_for_CelamyScaffold(FILE *fout, ContigT *ctg, int globa
     char *leftEndOvls, *rightEndOvls; // do not free these -- we don't own them
     frag = &f_list[i];
     t_rightcoord = MAX(frag->position.bgn,frag->position.end);
-    t_leftcoord =  min(frag->position.bgn,frag->position.end);
+    t_leftcoord =  MIN(frag->position.bgn,frag->position.end);
     if(globallyReversed){
       ci_leftcoord = AEndCoord - t_rightcoord;
       ci_rightcoord = AEndCoord - t_leftcoord;
@@ -766,8 +766,8 @@ void CelamyScaffold(FILE *fout, CIScaffoldT *scaffold,
   InitCIScaffoldTIterator(ScaffoldGraph, scaffold, TRUE, FALSE, &CIs);
 
   while(NULL != (CI = NextCIScaffoldTIterator(&CIs))){
-    scaffoldMin = min(scaffoldMin, CI->offsetAEnd.mean);
-    scaffoldMin = min(scaffoldMin, CI->offsetBEnd.mean);
+    scaffoldMin = MIN(scaffoldMin, CI->offsetAEnd.mean);
+    scaffoldMin = MIN(scaffoldMin, CI->offsetBEnd.mean);
   }
 
   InitCIScaffoldTIterator(ScaffoldGraph, scaffold, TRUE, FALSE, &CIs);
@@ -793,16 +793,16 @@ void CelamyScaffold(FILE *fout, CIScaffoldT *scaffold,
 
     if(scaffoldReversed){
       CIaCoord = scaffoldBEndCoord - scaffoldMin + (int64)scaffold->bpLength.mean - (int64)MAX(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
-      CIbCoord = scaffoldBEndCoord - scaffoldMin + (int64)scaffold->bpLength.mean - (int64)min(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
+      CIbCoord = scaffoldBEndCoord - scaffoldMin + (int64)scaffold->bpLength.mean - (int64)MIN(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
     }else{
-      CIaCoord = scaffoldAEndCoord - scaffoldMin + (int64)min(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
+      CIaCoord = scaffoldAEndCoord - scaffoldMin + (int64)MIN(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
       CIbCoord = scaffoldAEndCoord - scaffoldMin + (int64)MAX(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
     }
 
-    contigMin = min(CIaCoord, CIbCoord); // seems like CIaCoord <= CIbCoord
+    contigMin = MIN(CIaCoord, CIbCoord); // seems like CIaCoord <= CIbCoord
     contigMax = MAX(CIaCoord, CIbCoord); // should be invariant?
 
-    if(contigMin < min(scaffoldAEndCoord,scaffoldBEndCoord) ||
+    if(contigMin < MIN(scaffoldAEndCoord,scaffoldBEndCoord) ||
        contigMax > MAX(scaffoldAEndCoord,scaffoldBEndCoord)){
       fprintf(stderr,"* Contig " F_CID " in scaffold " F_CID " has drawing offsets [" F_S64 "," F_S64 "] outside of scaffold length [" F_S64 "," F_S64 "]\n",
               CI->id, scaffold->id,
@@ -855,9 +855,9 @@ void CelamyScaffold(FILE *fout, CIScaffoldT *scaffold,
 #endif
       if(scaffoldReversed ^ contigReversed){
         ciACoord = contigMax - MAX((int64)ci->offsetAEnd.mean, (int64)ci->offsetBEnd.mean);
-        ciBCoord = contigMax - min((int64)ci->offsetAEnd.mean, (int64)ci->offsetBEnd.mean);
+        ciBCoord = contigMax - MIN((int64)ci->offsetAEnd.mean, (int64)ci->offsetBEnd.mean);
       }else{
-        ciACoord = contigMin + min((int64)ci->offsetAEnd.mean, (int64)ci->offsetBEnd.mean);
+        ciACoord = contigMin + MIN((int64)ci->offsetAEnd.mean, (int64)ci->offsetBEnd.mean);
         ciBCoord = contigMin + MAX((int64)ci->offsetAEnd.mean, (int64)ci->offsetBEnd.mean);
 
       }
@@ -1019,16 +1019,16 @@ void CelamyCIScaffolds(char *name, ScaffoldGraphT *graph){
 	if(outputCalculatedOffsets){
 	  if(scaffoldReversed){
 	    CIaCoord = scaffold->bEndCoord + (CDS_COORD_t)scaffold->bpLength.mean - (CDS_COORD_t)MAX(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
-	    CIbCoord = scaffold->bEndCoord + (CDS_COORD_t)scaffold->bpLength.mean - (CDS_COORD_t)min(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
+	    CIbCoord = scaffold->bEndCoord + (CDS_COORD_t)scaffold->bpLength.mean - (CDS_COORD_t)MIN(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
 	  }else{
-	    CIaCoord = scaffold->aEndCoord + (CDS_COORD_t)min(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
+	    CIaCoord = scaffold->aEndCoord + (CDS_COORD_t)MIN(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
 	    CIbCoord = scaffold->aEndCoord + (CDS_COORD_t)MAX(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
 	  }
 	}else{
-          CIaCoord = min(CI->aEndCoord,CI->bEndCoord);
+          CIaCoord = MIN(CI->aEndCoord,CI->bEndCoord);
           CIbCoord = MAX(CI->aEndCoord,CI->bEndCoord);
 	}
-	contigMin = min(CIaCoord, CIbCoord);
+	contigMin = MIN(CIaCoord, CIbCoord);
 	contigMax = MAX(CIaCoord, CIbCoord);
 
 	if(contigMin == contigMax){
@@ -1060,14 +1060,14 @@ void CelamyCIScaffolds(char *name, ScaffoldGraphT *graph){
 	  if(outputCalculatedOffsets){
             if(scaffoldReversed^contigReversed){
               ciACoord = contigMax - MAX((CDS_COORD_t)ci->offsetAEnd.mean, (CDS_COORD_t)ci->offsetBEnd.mean);
-              ciBCoord = contigMax - min((CDS_COORD_t)ci->offsetAEnd.mean, (CDS_COORD_t)ci->offsetBEnd.mean);
+              ciBCoord = contigMax - MIN((CDS_COORD_t)ci->offsetAEnd.mean, (CDS_COORD_t)ci->offsetBEnd.mean);
             }else{
-              ciACoord = contigMin + min((CDS_COORD_t)ci->offsetAEnd.mean, (CDS_COORD_t)ci->offsetBEnd.mean);
+              ciACoord = contigMin + MIN((CDS_COORD_t)ci->offsetAEnd.mean, (CDS_COORD_t)ci->offsetBEnd.mean);
               ciBCoord = contigMin + MAX((CDS_COORD_t)ci->offsetAEnd.mean, (CDS_COORD_t)ci->offsetBEnd.mean);
 
             }
 	  }else{
-	    ciACoord = min(ci->aEndCoord, ci->bEndCoord);
+	    ciACoord = MIN(ci->aEndCoord, ci->bEndCoord);
 	    ciBCoord = MAX(ci->aEndCoord, ci->bEndCoord);
 	  }
 
@@ -1120,7 +1120,7 @@ void CelamyCIScaffolds(char *name, ScaffoldGraphT *graph){
           if(CI->aEndCoord > 0 && CI->bEndCoord > 0)
             fprintf(fp,F_CID "Ctg" F_CID ": " F_COORD " A0ContigRealColor " F_COORD " R%d # Scaffold " F_CID " Ctg " F_CID "\n",
                     scaffold->id, CI->id,
-                    min(CI->aEndCoord, CI->bEndCoord),
+                    MIN(CI->aEndCoord, CI->bEndCoord),
                     MAX(CI->aEndCoord, CI->bEndCoord),
                     REALCONTIG_ROW,
                     scaffold->id, CI->id);
@@ -1150,7 +1150,7 @@ void CelamyCIScaffolds(char *name, ScaffoldGraphT *graph){
         continue;
 
       fprintf(fp,F_CID "CI: " F_COORD " A%dCGBColor " F_COORD " R%d # Unscaffolded CI " F_CID "\n",
-              CI->id, min(CI->aEndCoord, CI->bEndCoord),
+              CI->id, MIN(CI->aEndCoord, CI->bEndCoord),
               ComputeCIColor(CI, NULL),
               MAX(CI->aEndCoord, CI->bEndCoord),
               ComputeCIRow(CI,NULL),
@@ -1222,13 +1222,13 @@ void MarkMisplacedContigs(void){
 
 	if(scaffoldReversed){
 	  calcAEndOffsetCurr = (CDS_COORD_t)scaffold->bpLength.mean - (CDS_COORD_t)MAX(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
-	  calcBEndOffsetCurr = (CDS_COORD_t)scaffold->bpLength.mean - (CDS_COORD_t)min(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
+	  calcBEndOffsetCurr = (CDS_COORD_t)scaffold->bpLength.mean - (CDS_COORD_t)MIN(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
 	  simAEndOffsetCurr = scaffold->aEndCoord - MAX(CIaCoord, CIbCoord) ;
-	  simBEndOffsetCurr = scaffold->aEndCoord - min(CIaCoord, CIbCoord) ;
+	  simBEndOffsetCurr = scaffold->aEndCoord - MIN(CIaCoord, CIbCoord) ;
 	}else{
-	  calcAEndOffsetCurr =  (CDS_COORD_t)min(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
+	  calcAEndOffsetCurr =  (CDS_COORD_t)MIN(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
 	  calcBEndOffsetCurr = (CDS_COORD_t)MAX(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
-	  simAEndOffsetCurr = min(CIaCoord, CIbCoord) - scaffold->aEndCoord;
+	  simAEndOffsetCurr = MIN(CIaCoord, CIbCoord) - scaffold->aEndCoord;
 	  simBEndOffsetCurr = MAX(CIaCoord, CIbCoord) - scaffold->aEndCoord;
 	}
 

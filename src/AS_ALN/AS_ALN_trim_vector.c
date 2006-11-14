@@ -299,7 +299,7 @@ int DP_Trim_Vector_AS( InternalScreenItemMesg * isn,
       // complement of 3' end of vector into 3' end of sequence
       TrimThreePrimeComplementThreePrime( &vector, &frag,
                                            variation, min_length );
-      ifg->clear_rng.end = min( frag.clear_rng.end, temp_bgn_end );
+      ifg->clear_rng.end = MIN( frag.clear_rng.end, temp_bgn_end );
       break;
     default:
       // unknown vector type - bug out

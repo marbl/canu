@@ -827,7 +827,7 @@ void PrintSurrogateSequenceCoordinates(AssemblyStore * asmStore, FILE * fo)
         getASM_InstanceStore(asmStore->uciStore, utg.cInsIndex, &contigIns);
         assert(contigIns.containerIndex == i);
         
-        start = min(contigIns.pos.bgn, contigIns.pos.end);
+        start = MIN(contigIns.pos.bgn, contigIns.pos.end);
         end = MAX(contigIns.pos.bgn, contigIns.pos.end);
         for(k = start; k < end; k++)
               nonU[k] = 0;
@@ -2350,7 +2350,7 @@ void PrintFastaFragmentCoordinates(AssemblyStore * asmStore, FILE * fo)
 
       if(lastCoord != 0)
       {
-        delta = min(cco.scaffoldPos.bgn, cco.scaffoldPos.end);
+        delta = MIN(cco.scaffoldPos.bgn, cco.scaffoldPos.end);
         delta = delta - lastCoord;
         delta = MAX(20, delta);
         offset += delta;
@@ -3061,7 +3061,7 @@ void PrintATACSurrogates(AssemblyStore * asmStore,
         fprintf(fo, "F su su" F_UID "-%03d . %s " F_UID " " F_COORD " " F_COORD " %d 0\n",
                 utg.uid, j,
                 parent, scf.uid,
-                min(scaffIns.pos.bgn, scaffIns.pos.end),
+                MIN(scaffIns.pos.bgn, scaffIns.pos.end),
                 abs(scaffIns.pos.end - scaffIns.pos.bgn),
                 (scaffIns.pos.bgn < scaffIns.pos.end) ? 1 : -1);
       }

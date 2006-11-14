@@ -550,7 +550,7 @@ flow;
 erflow;   
                 e.g., IEEE standard followers ) */
 	    } else {
-		lemin = min(ngpmin,gpmin);
+		lemin = MIN(ngpmin,gpmin);
 /*            ( A guess; no known machine ) */
 		iwarn = TRUE_;
 	    }
@@ -562,28 +562,28 @@ erflow;
 ;   
                 e.g., CYBER 205 ) */
 	    } else {
-		lemin = min(ngpmin,ngnmin);
+		lemin = MIN(ngpmin,ngnmin);
 /*            ( A guess; no known machine ) */
 		iwarn = TRUE_;
 	    }
 
 	} else if ((i__1 = ngpmin - ngnmin, abs(i__1)) == 1 && gpmin == gnmin)
 		 {
-	    if (gpmin - min(ngpmin,ngnmin) == 3) {
+	    if (gpmin - MIN(ngpmin,ngnmin) == 3) {
 		lemin = MAX(ngpmin,ngnmin) - 1 + lt;
 /*            ( Twos-complement machines with gradual underflo
 w;   
                 no known machine ) */
 	    } else {
-		lemin = min(ngpmin,ngnmin);
+		lemin = MIN(ngpmin,ngnmin);
 /*            ( A guess; no known machine ) */
 		iwarn = TRUE_;
 	    }
 
 	} else {
 /* Computing MIN */
-	    i__1 = min(ngpmin,ngnmin), i__1 = min(i__1,gpmin);
-	    lemin = min(i__1,gnmin);
+	    i__1 = MIN(ngpmin,ngnmin), i__1 = MIN(i__1,gpmin);
+	    lemin = MIN(i__1,gnmin);
 /*         ( A guess; no known machine ) */
 	    iwarn = TRUE_;
 	}

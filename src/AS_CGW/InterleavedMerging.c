@@ -687,12 +687,12 @@ void PopulateScaffoldStuff(ScaffoldStuff * ss,
           if(ce.minCoord <= 0 && ce.maxCoord >= CGW_DP_MINLEN)
             {
               // the interval this contig is in specifies an ahang range
-              ss->bandBeg = min(ss->bandBeg, .5 +
+              ss->bandBeg = MIN(ss->bandBeg, .5 +
                                 thisLeft.mean + MAX(0,
                                                     contig->bpLength.mean -
                                                     ce.maxCoord));
               ss->bandEnd = MAX(ss->bandEnd, .5 +
-                                thisLeft.mean + min(-ce.minCoord,
+                                thisLeft.mean + MIN(-ce.minCoord,
                                                     contig->bpLength.mean -
                                                     CGW_DP_MINLEN));
             }
@@ -709,11 +709,11 @@ void PopulateScaffoldStuff(ScaffoldStuff * ss,
               if(minGapCoord < 0 && maxGapCoord > 0)
                 {
                   // the interval the last gap is in specifies an ahang range
-                  ss->bandBeg = min(ss->bandBeg, .5 +
+                  ss->bandBeg = MIN(ss->bandBeg, .5 +
                                     lastRight.mean + MAX(0,
                                                          gap->gap_length - maxGapCoord));
                   ss->bandEnd = MAX(ss->bandEnd, .5 +
-                                    lastRight.mean + min(-minGapCoord, gap->gap_length));
+                                    lastRight.mean + MIN(-minGapCoord, gap->gap_length));
                 }
             }
         }
@@ -761,7 +761,7 @@ void PopulateScaffoldStuff(ScaffoldStuff * ss,
             sqrt((double) scaffold->bpLength.variance) - thinEdge;
         }
       ss->bandBeg = MAX(ss->bandBeg, -(osLength.mean - CGW_DP_MINLEN));
-      ss->bandEnd = min(ss->bandEnd, scaffold->bpLength.mean - CGW_DP_MINLEN);
+      ss->bandEnd = MIN(ss->bandEnd, scaffold->bpLength.mean - CGW_DP_MINLEN);
     }
   
   // populate Scaffold structure members
@@ -885,7 +885,7 @@ Overlap * LookForChunkOverlapFromContigElements(ContigElement * ceA,
       minOverlap = MAX(CGW_MISSED_OVERLAP,
                        ceA->minCoord + minLengthA -
                        (ceB->maxCoord - minLengthB) + .5);
-      minOverlap = min(minLengthA, min(minLengthB, minOverlap));
+      minOverlap = MIN(minLengthA, MIN(minLengthB, minOverlap));
     
       // max overlap: push ceA far to right up to leftmost right end of ceB
       // this allows for overlaps up to maxLengthA ... IF ceA can be pushed
@@ -894,7 +894,7 @@ Overlap * LookForChunkOverlapFromContigElements(ContigElement * ceA,
       // contains ceA here too, which means that we just want to disallow
       // the case of ceA sticking out to the right.  So, slippage allowing,
       // we allow overlap up to the length of the longer of A or B.
-      maxOverlap = min(MAX(maxLengthA,maxLengthB),ceA->maxCoord-ceB->minCoord+.5);
+      maxOverlap = MIN(MAX(maxLengthA,maxLengthB),ceA->maxCoord-ceB->minCoord+.5);
       maxOverlap = MAX(CGW_MISSED_OVERLAP, maxOverlap);
 
       chunkOverlap = OverlapChunks(ScaffoldGraph->RezGraph,
@@ -955,14 +955,14 @@ Overlap * LookForChunkOverlapFromContigElements(ContigElement * ceA,
       minOverlap = MAX(CGW_MISSED_OVERLAP,
                        ceB->minCoord + minLengthB -
                        (ceA->maxCoord - minLengthA) + .5);
-      minOverlap = min(minLengthA, min(minLengthB, minOverlap));
+      minOverlap = MIN(minLengthA, MIN(minLengthB, minOverlap));
       //max overlap: push ceA far to left up to rightmost left end of ceB
       // this allows for overlaps up to maxLengthA ... IF ceA can
       // be pushed far enough ... but not further because we restrict
       // ourselves to ceA sticking out further to the right than ceB;
       // but again, we actually can allow for containment, so allow
       // max length of A or B
-      maxOverlap = min(MAX(maxLengthA,maxLengthB),ceA->maxCoord-ceB->minCoord+.5);
+      maxOverlap = MIN(MAX(maxLengthA,maxLengthB),ceA->maxCoord-ceB->minCoord+.5);
       maxOverlap = MAX(CGW_MISSED_OVERLAP, maxOverlap);
     
       chunkOverlap = OverlapChunks(ScaffoldGraph->RezGraph,
@@ -1148,8 +1148,8 @@ int PopulateScaffoldAlignmentInterface(CIScaffoldT * scaffoldA,
 
                   sai->segmentList->alow = MAX(0,overlap->begpos);  
                   sai->segmentList->blow = MAX(0,-(overlap->begpos));  
-                  sai->segmentList->ahgh = overlap->length + overlap->begpos + min(0,overlap->endpos);
-                  sai->segmentList->bhgh = overlap->length + min(0,overlap->endpos);
+                  sai->segmentList->ahgh = overlap->length + overlap->begpos + MIN(0,overlap->endpos);
+                  sai->segmentList->bhgh = overlap->length + MIN(0,overlap->endpos);
 
                 }
               else
@@ -1253,7 +1253,7 @@ CDS_COORD_t ComputeAdditionalRightGapExpansion(Scaffold_Tig * contigs1,
                                                int index2)
 {
   return MAX(0, contigs2[index2].length + 2 * MIN_GAP_LENGTH -
-             (min(contigs1[index1+1].lft_end, contigs2[index2+1].lft_end) -
+             (MIN(contigs1[index1+1].lft_end, contigs2[index2+1].lft_end) -
               (contigs1[index1].lft_end + contigs1[index1].length)));
 
 }
@@ -1642,9 +1642,9 @@ void UpdateContigSetInterval(ContigSetInterval * csi,
                              Scaffold_Tig * contigs,
                              int contigIndex)
 {
-  csi->minIndex = min(csi->minIndex, contigIndex);
+  csi->minIndex = MIN(csi->minIndex, contigIndex);
   csi->maxIndex = MAX(csi->maxIndex, contigIndex);
-  csi->minCoord = min(csi->minCoord, contigs[contigIndex].lft_end);
+  csi->minCoord = MIN(csi->minCoord, contigs[contigIndex].lft_end);
   csi->maxCoord = MAX(csi->maxCoord, contigs[contigIndex].lft_end +
                       contigs[contigIndex].length);
 }
@@ -1797,7 +1797,7 @@ int ExamineContigOverlapSets(ScaffoldAlignmentInterface * sai,
       if(cos.a.minCoord != 0 && cos.b.minCoord != 0)
         {
           // adjust cos & contig coordinates so min = 0
-          AdjustContigOverlapSetOffsets(&cos, contigsA, contigsB, -min(cos.a.minCoord, cos.b.minCoord));
+          AdjustContigOverlapSetOffsets(&cos, contigsA, contigsB, -MIN(cos.a.minCoord, cos.b.minCoord));
         }
       // find skipped contigs in this overlap set
       numSkippedA += MarkSkippedContigsInOverlapSet(&cos, contigsA, TRUE);
@@ -1816,7 +1816,7 @@ CDS_COORD_t ComputeLeftMostLeftEnd(Scaffold_Tig * contigs1,
                                    Scaffold_Tig * contigs2,
                                    int index2)
 {
-  return min(contigs1[index1+1].lft_end - gaps1[index1].gap_length,
+  return MIN(contigs1[index1+1].lft_end - gaps1[index1].gap_length,
              contigs2[index2+1].lft_end - MIN_GAP_LENGTH) -
     contigs1[index1].length;
 }
@@ -1919,14 +1919,14 @@ void PlaceContigsLeftOfFirstOverlapSet(COSData * cos,
             {
               // place contigB to the right of contigA
               contigsB[ib].lft_end =
-                min(contigsB[ib+1].lft_end - gapsB[ib].gap_length,
+                MIN(contigsB[ib+1].lft_end - gapsB[ib].gap_length,
                     contigsA[ia+1].lft_end - MIN_GAP_LENGTH) - contigsB[ib].length;
               ib--;
             }
           else
             {
               contigsA[ia].lft_end =
-                min(contigsA[ia+1].lft_end - gapsA[ia].gap_length,
+                MIN(contigsA[ia+1].lft_end - gapsA[ia].gap_length,
                     contigsB[ib+1].lft_end - MIN_GAP_LENGTH) - contigsA[ia].length;
               ia--;
             }

@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.115 2006-11-14 17:52:16 eliv Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.116 2006-11-14 19:58:21 eliv Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -2643,7 +2643,7 @@ GetReadsForVARRecord(Read *reads, int32 *iids, int32 nvr,
         FREE(column_iid_list);
     }
 
-    // Reset qvs of internal gaps to min(qv_first_gap, qv_last_gap); 
+    // Reset qvs of internal gaps to MIN(qv_first_gap, qv_last_gap); 
     // Compute ave_qvs
     for (k=0; k<nvr; k++)
     {
@@ -5640,7 +5640,7 @@ int32 MixedShift(Abacus *abacus, int *mcols, VarRegion  vreg, int lpos, int rpos
       abacus->calls[j] = template[j];
 
     /* Perform left shift */
-    for (j=window_beg;j<=min(window_end, lpos);j++)
+    for (j=window_beg;j<=MIN(window_end, lpos);j++)
     {
         for (k=0; k<vreg.na; k++)
         {

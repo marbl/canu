@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGW_histo.c,v 1.6 2006-11-14 17:52:14 eliv Exp $";
+static char CM_ID[] = "$Id: AS_CGW_histo.c,v 1.7 2006-11-14 19:58:21 eliv Exp $";
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -29,12 +29,12 @@ static char CM_ID[] = "$Id: AS_CGW_histo.c,v 1.6 2006-11-14 17:52:14 eliv Exp $"
 
 #define AGGREGATE_FIELD_VALUE(field,value) \
   a[i].sum_##field += value ;\
-  a[i].min_##field  = min(a[i].min_##field,value);\
+  a[i].min_##field  = MIN(a[i].min_##field,value);\
   a[i].max_##field  = MAX(a[i].max_##field,value);
 
 #define AGGREGATE_FIELD(field) \
   a[i].sum_##field += b->sum_##field ;\
-  a[i].min_##field  = min(a[i].min_##field,b->min_##field);\
+  a[i].min_##field  = MIN(a[i].min_##field,b->min_##field);\
   a[i].max_##field  = MAX(a[i].max_##field,b->max_##field);
 
 void printChunkAggregate(FILE *fout, DataType *aa){

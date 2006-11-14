@@ -33,11 +33,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_ChunkGraph.cc,v 1.9 2006-11-10 20:00:45 eliv Exp $
- * $Revision: 1.9 $
+ * $Id: AS_BOG_ChunkGraph.cc,v 1.10 2006-11-14 19:58:20 eliv Exp $
+ * $Revision: 1.10 $
 */
 
-static char AS_BOG_CHUNK_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_ChunkGraph.cc,v 1.9 2006-11-10 20:00:45 eliv Exp $";
+static char AS_BOG_CHUNK_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_ChunkGraph.cc,v 1.10 2006-11-14 19:58:20 eliv Exp $";
 
 //  System include files
 
@@ -164,7 +164,7 @@ namespace AS_BOG{
             tpCnt  = countFullWidth( frag_id, THREE_PRIME);
             
             _chunk_lengths[frag_id-1].fragId = frag_id;
-            _chunk_lengths[frag_id-1].cnt    = min(fpCnt,tpCnt);
+            _chunk_lengths[frag_id-1].cnt    = MIN(fpCnt,tpCnt);
             //_chunk_lengths[frag_id-1].tpCnt    = tpCnt;
             ////_chunk_lengths[frag_id-1].fpCnt    = fpCnt;
 		}

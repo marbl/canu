@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: eCR.c,v 1.9 2006-11-14 17:52:16 eliv Exp $";
+static const char CM_ID[] = "$Id: eCR.c,v 1.10 2006-11-14 19:58:21 eliv Exp $";
 
 #include "eCR.h"
 
@@ -681,23 +681,23 @@ main(int argc, char **argv) {
               if (CONTIG_BASES < 2000) {
 
                 // these checks Granger suggested
-                if (ahang + currLength + bhang - 1000 > min(CONTIG_BASES, (int) lcontig->bpLength.mean) +
-                    min(CONTIG_BASES, (int) rcontig->bpLength.mean)) {
+                if (ahang + currLength + bhang - 1000 > MIN(CONTIG_BASES, (int) lcontig->bpLength.mean) +
+                    MIN(CONTIG_BASES, (int) rcontig->bpLength.mean)) {
                   fprintf(stderr, "at gapNumber %d, ahang + currLength + bhang - 1000 = %d\n",
                           gapNumber, ahang + currLength + bhang - 1000);
                   fprintf(stderr, "at gapNumber %d, back(A) + back(B) = %d\n",
-                          gapNumber, min(CONTIG_BASES, (int) lcontig->bpLength.mean) +
-                          min(CONTIG_BASES, (int) rcontig->bpLength.mean));
+                          gapNumber, MIN(CONTIG_BASES, (int) lcontig->bpLength.mean) +
+                          MIN(CONTIG_BASES, (int) rcontig->bpLength.mean));
                   keepGap = FALSE;
                 }
 				
-                if (ahang + currLength + bhang + 700 < min(CONTIG_BASES, (int) lcontig->bpLength.mean) +
-                    min(CONTIG_BASES, (int) rcontig->bpLength.mean)) {
+                if (ahang + currLength + bhang + 700 < MIN(CONTIG_BASES, (int) lcontig->bpLength.mean) +
+                    MIN(CONTIG_BASES, (int) rcontig->bpLength.mean)) {
                   fprintf(stderr, "at gapNumber %d, ahang + currLength + bhang + 500 = %d\n",
                           gapNumber, ahang + currLength + bhang + 500);
                   fprintf(stderr, "at gapNumber %d, back(A) + back(B) = %d\n",
-                          gapNumber, min(CONTIG_BASES, (int) lcontig->bpLength.mean) +
-                          min(CONTIG_BASES, (int) rcontig->bpLength.mean));
+                          gapNumber, MIN(CONTIG_BASES, (int) lcontig->bpLength.mean) +
+                          MIN(CONTIG_BASES, (int) rcontig->bpLength.mean));
                   keepGap = FALSE;
                 }
               }
@@ -2015,8 +2015,8 @@ rightShiftIUM(IntMultiPos *f_list, int numFrags, int extendedFragIid) {
     // look for a candidate frag
     i = currPos + numShifted + 1;
     while (i < numFrags) {
-      if ((min(f_list[i].position.bgn, f_list[i].position.end) < 
-           min(f_list[currPos + numShifted].position.bgn, f_list[currPos + numShifted].position.end)) &&
+      if ((MIN(f_list[i].position.bgn, f_list[i].position.end) < 
+           MIN(f_list[currPos + numShifted].position.bgn, f_list[currPos + numShifted].position.end)) &&
           f_list[i].contained == FALSE) {
         fragToMovePos = i;
         shiftedFrag = TRUE;

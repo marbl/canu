@@ -281,8 +281,8 @@
 			temp = X(j);
 /* Computing MIN */
 			i__3 = *n, i__4 = j + *k;
-			i__2 = min(i__3,i__4);
-			for (i = j + 1; i <= min(*n,j+*k); ++i) {
+			i__2 = MIN(i__3,i__4);
+			for (i = j + 1; i <= MIN(*n,j+*k); ++i) {
 			    X(i) -= temp * A(l+i,j);
 /* L50: */
 			}
@@ -303,8 +303,8 @@
 			temp = X(jx);
 /* Computing MIN */
 			i__3 = *n, i__4 = j + *k;
-			i__2 = min(i__3,i__4);
-			for (i = j + 1; i <= min(*n,j+*k); ++i) {
+			i__2 = MIN(i__3,i__4);
+			for (i = j + 1; i <= MIN(*n,j+*k); ++i) {
 			    X(ix) -= temp * A(l+i,j);
 			    ix += *incx;
 /* L70: */
@@ -373,7 +373,7 @@
 /* Computing MIN */
 		    i__1 = *n, i__3 = j + *k;
 		    i__4 = j + 1;
-		    for (i = min(*n,j+*k); i >= j+1; --i) {
+		    for (i = MIN(*n,j+*k); i >= j+1; --i) {
 			temp -= A(l+i,j) * X(i);
 /* L130: */
 		    }
@@ -393,7 +393,7 @@
 /* Computing MIN */
 		    i__4 = *n, i__1 = j + *k;
 		    i__3 = j + 1;
-		    for (i = min(*n,j+*k); i >= j+1; --i) {
+		    for (i = MIN(*n,j+*k); i >= j+1; --i) {
 			temp -= A(l+i,j) * X(ix);
 			ix -= *incx;
 /* L150: */

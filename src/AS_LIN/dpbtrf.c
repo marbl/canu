@@ -43,7 +43,7 @@
             as follows:   
             if UPLO = 'U', AB(kd+1+i-j,j) = A(i,j) for MAX(1,j-kd)<=i<=j; 
   
-            if UPLO = 'L', AB(1+i-j,j)    = A(i,j) for j<=i<=min(n,j+kd). 
+            if UPLO = 'L', AB(1+i-j,j)    = A(i,j) for j<=i<=MIN(n,j+kd). 
   
 
             On exit, if INFO = 0, the triangular factor U or L from the   
@@ -163,7 +163,7 @@
   
        exceed the limit set by the size of the local array WORK. */
 
-    nb = min(nb,32);
+    nb = MIN(nb,32);
 
     if (nb <= 1 || nb > *kd) {
 
@@ -202,7 +202,7 @@ d
 	    for (i = 1; nb < 0 ? i >= *n : i <= *n; i += nb) {
 /* Computing MIN */
 		i__3 = nb, i__4 = *n - i + 1;
-		ib = min(i__3,i__4);
+		ib = MIN(i__3,i__4);
 
 /*              Factorize the diagonal block */
 
@@ -237,10 +237,10 @@ angle of A13
 
    Computing MIN */
 		    i__3 = *kd - ib, i__4 = *n - i - ib + 1;
-		    i2 = min(i__3,i__4);
+		    i2 = MIN(i__3,i__4);
 /* Computing MIN */
 		    i__3 = ib, i__4 = *n - i - *kd + 1;
-		    i3 = min(i__3,i__4);
+		    i3 = MIN(i__3,i__4);
 
 		    if (i2 > 0) {
 
@@ -346,7 +346,7 @@ d
 	    for (i = 1; nb < 0 ? i >= *n : i <= *n; i += nb) {
 /* Computing MIN */
 		i__3 = nb, i__4 = *n - i + 1;
-		ib = min(i__3,i__4);
+		ib = MIN(i__3,i__4);
 
 /*              Factorize the diagonal block */
 
@@ -380,10 +380,10 @@ angle of A31
 
    Computing MIN */
 		    i__3 = *kd - ib, i__4 = *n - i - ib + 1;
-		    i2 = min(i__3,i__4);
+		    i2 = MIN(i__3,i__4);
 /* Computing MIN */
 		    i__3 = ib, i__4 = *n - i - *kd + 1;
-		    i3 = min(i__3,i__4);
+		    i3 = MIN(i__3,i__4);
 
 		    if (i2 > 0) {
 
@@ -409,8 +409,8 @@ nto the work array. */
 
 			i__3 = ib;
 			for (jj = 1; jj <= ib; ++jj) {
-			    i__4 = min(jj,i3);
-			    for (ii = 1; ii <= min(jj,i3); ++ii) {
+			    i__4 = MIN(jj,i3);
+			    for (ii = 1; ii <= MIN(jj,i3); ++ii) {
 				WORK(ii + jj * 33 - 34) = AB(*kd+1-jj+ii,jj+i-1);
 /* L100: */
 			    }
@@ -445,8 +445,8 @@ ack into place. */
 
 			i__3 = ib;
 			for (jj = 1; jj <= ib; ++jj) {
-			    i__4 = min(jj,i3);
-			    for (ii = 1; ii <= min(jj,i3); ++ii) {
+			    i__4 = MIN(jj,i3);
+			    for (ii = 1; ii <= MIN(jj,i3); ++ii) {
 				AB(*kd+1-jj+ii,jj+i-1)
 					 = WORK(ii + jj * 33 - 34);
 /* L120: */

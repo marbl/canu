@@ -80,10 +80,6 @@
 #endif
 
 
-#ifndef min
-#define min(a,b) (a<b?a:b)
-#endif
-
 int kmerlen=KMERLEN;
 int minmatch=MINMATCH;
 int maxerror=MAXERROR;
@@ -1288,7 +1284,7 @@ static void Align_Recursion(char *A, int Alen, char *B, int Blen,
 
 
   ltrp = htrp = *b;
-  ltrp.top = min(b->top,hend->bbpos) - MAXIGAP;
+  ltrp.top = MIN(b->top,hend->bbpos) - MAXIGAP;
 
 
   htrp.bot = MAX(b->bot,hend->bepos) + MAXIGAP;

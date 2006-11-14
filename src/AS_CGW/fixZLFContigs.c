@@ -301,7 +301,7 @@ void ReplaceOldScaffoldWithNew(CIScaffoldT * oldScaffold,
 static int positionCompare(const IEPish * a, const IEPish * b)
 {
   return
-    (int)(min(a->aEnd.mean, a->bEnd.mean) - min(b->aEnd.mean, b->bEnd.mean));
+    (int)(MIN(a->aEnd.mean, a->bEnd.mean) - MIN(b->aEnd.mean, b->bEnd.mean));
 }
 
 
@@ -730,7 +730,7 @@ int ShiftContigsInScaffoldToMin0(CIScaffoldT * scaffold)
   InitCIScaffoldTIterator(ScaffoldGraph, scaffold, TRUE, FALSE, &CIsTemp);
   while((contig = NextCIScaffoldTIterator(&CIsTemp)) != NULL)
     {
-      minOffset = min(minOffset, min(contig->offsetAEnd.mean,
+      minOffset = MIN(minOffset, MIN(contig->offsetAEnd.mean,
                                      contig->offsetBEnd.mean));
     }
   if(minOffset != 0)

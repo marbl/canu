@@ -34,7 +34,7 @@
 *
 *************************************************/
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.16 2006-11-14 17:52:17 eliv Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.17 2006-11-14 19:58:22 eliv Exp $";
 
 
 #include <stdio.h>
@@ -8425,7 +8425,7 @@ static void UnJigglePositions(void)
                         scaffold->info.Scaffold.AEndCI);
 
       // work on scaffolds where cis are off
-      if(min(ci->offsetAEnd.mean, ci->offsetBEnd.mean) != 0.0)
+      if(MIN(ci->offsetAEnd.mean, ci->offsetBEnd.mean) != 0.0)
       {
         LengthT delta;
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.7 2006-11-14 17:52:14 eliv Exp $";
+static char CM_ID[] = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.8 2006-11-14 19:58:21 eliv Exp $";
 
 
 #include <stdio.h>
@@ -1126,9 +1126,9 @@ void PrintScaffoldConnectivity(ScaffoldGraphT * graph,
           else
             {
               // update existing link
-              link->minOffset = min(offsetA.mean, link->minOffset);
+              link->minOffset = MIN(offsetA.mean, link->minOffset);
               link->maxOffset = MAX(offsetA.mean, link->minOffset);
-              link->minOffsetScaffoldB = min(offsetB.mean, link->minOffsetScaffoldB);
+              link->minOffsetScaffoldB = MIN(offsetB.mean, link->minOffsetScaffoldB);
               link->maxOffsetScaffoldB = MAX(offsetB.mean, link->minOffsetScaffoldB);
               link->weight++;
               if(link->orient != myEdge.orient)

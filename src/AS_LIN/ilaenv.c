@@ -50,7 +50,7 @@ integer ilaenv_(integer *ispec, char *name, char *opts, integer *n1, integer *
   
             = 6: the crossover point for the SVD (when reducing an m by n 
   
-                 matrix to bidiagonal form, if MAX(m,n)/min(m,n) exceeds 
+                 matrix to bidiagonal form, if MAX(m,n)/MIN(m,n) exceeds 
   
                  this value, a QR factorization is used first to reduce   
                  the matrix to a triangular form.)   
@@ -531,7 +531,7 @@ L600:
 
 /*     ISPEC = 6:  crossover point for SVD (used by xGELSS and xGESVD) */
 
-    ret_val = (integer) ((real) min(*n1,*n2) * 1.6f);
+    ret_val = (integer) ((real) MIN(*n1,*n2) * 1.6f);
     return ret_val;
 
 L700:

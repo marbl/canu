@@ -30,7 +30,7 @@
 
 **********************************************************************/
 
-static char CM_ID[] = "$Id: ConsistencyChecksREZ.c,v 1.5 2006-02-03 16:25:42 mcschatz Exp $";
+static char CM_ID[] = "$Id: ConsistencyChecksREZ.c,v 1.6 2006-11-14 19:58:22 eliv Exp $";
 
 
 /* ---------------------------------------------------- */
@@ -1124,7 +1124,7 @@ static bool left_of(const Gap_Chunk_t *cT1,
      less than the minimum coordinate of the second.
   */
 
-  if(min(cT1->start.mean,cT1->end.mean) < min(cT2->start.mean,cT2->end.mean) )
+  if(MIN(cT1->start.mean,cT1->end.mean) < MIN(cT2->start.mean,cT2->end.mean) )
     return TRUE;
   else
     return FALSE;

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_fgb.c,v 1.7 2006-11-14 17:52:14 eliv Exp $";
+= "$Id: AS_CGB_fgb.c,v 1.8 2006-11-14 19:58:21 eliv Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_fgb.c
@@ -379,7 +379,7 @@ static void setup_segments
     assert( iavx < nfrag );
     //assert( ibvx < nfrag );
 
-    min_frag_vid = min(min_frag_vid,iavx);
+    min_frag_vid = MIN(min_frag_vid,iavx);
     max_frag_vid = MAX(max_frag_vid,iavx);
     set_seglen_vertex(frags,iavx,iasx,iseglen);
   }}
@@ -427,7 +427,7 @@ static void setup_segments
       assert( iavx == last_avx+1);
       set_segstart_vertex(frags,iavx,iasx,iedge);
       (*nfrag_used)++;
-      (*min_ifrag) = min((*min_ifrag),iavx);
+      (*min_ifrag) = MIN((*min_ifrag),iavx);
       (*max_ifrag) = MAX((*max_ifrag),iavx);
       last_bvx = FRAGMENT_NOT_VISITED;
       nnode = 0;
@@ -918,8 +918,8 @@ void graph_locality_diagnostic
         {
           int i0 = (NBINS * iv0) / nfrag;
           int i1 = (NBINS * iv1) / nfrag;
-          i0 = min(i0,NBINS);
-          i1 = min(i1,NBINS);
+          i0 = MIN(i0,NBINS);
+          i1 = MIN(i1,NBINS);
           if( is_a_dvt_simple(ahg,bhg) ) { 
             twod[i0][i1] ++;
           } else {
@@ -1193,7 +1193,7 @@ static void histogram_clear( QuickHistogram * histogram )
   {
     int ibin;
     int min_bin = MAX(histogram->min_bin,0);
-    int max_bin = min(histogram->max_bin,histogram->allocated_number_of_bins-1);
+    int max_bin = MIN(histogram->max_bin,histogram->allocated_number_of_bins-1);
     /* Clear the used part of the histogram. */
     for(ibin=min_bin; ibin <= max_bin; ibin++) {
       histogram->bins[ibin] = 0;

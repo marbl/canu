@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.14 2006-11-14 17:52:15 eliv Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.15 2006-11-14 19:58:21 eliv Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -768,7 +768,7 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
       for(cfr = 0; cfr < ium_mesg->num_frags; cfr++){
 	IntMultiPos *cfr_mesg = ium_mesg->f_list + cfr;
 	CDS_COORD_t end = MAX( cfr_mesg->position.end, cfr_mesg->position.bgn);
-	CDS_COORD_t beg = min( cfr_mesg->position.end, cfr_mesg->position.bgn);
+	CDS_COORD_t beg = MIN( cfr_mesg->position.end, cfr_mesg->position.bgn);
 	    
 	if(minOffset > beg){
 	  minOffset = beg;

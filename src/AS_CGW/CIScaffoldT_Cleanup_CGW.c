@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.17 2006-11-14 17:52:14 eliv Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.18 2006-11-14 19:58:21 eliv Exp $";
 
 #undef DEBUG_CHECKFORCTGS
 #undef DEBUG_DETAILED
@@ -260,7 +260,7 @@ void  PropagateContainmentOverlapsToNewContig(ContigT *newContig,
 
         {
           CDS_COORD_t delta =
-            (CDS_COORD_t) min((3 * sqrt(newEdge->distance.variance)), 50);
+            (CDS_COORD_t) MIN((3 * sqrt(newEdge->distance.variance)), 50);
 
           ChunkOverlapCheckT olap =
             OverlapChunks(ScaffoldGraph->RezGraph,
@@ -308,8 +308,8 @@ static int CompareIntElementPosByBgnPos(const void * c1, const void * c2)
   IntElementPos * i1 = (IntElementPos *) c1;
   IntElementPos * i2 = (IntElementPos *) c2;
 
-  return(min(i1->position.bgn, i1->position.end) -
-         min(i2->position.bgn, i2->position.end));
+  return(MIN(i1->position.bgn, i1->position.end) -
+         MIN(i2->position.bgn, i2->position.end));
 }
 
 // Sort routine to order edges that are not yet inserted in graph
@@ -448,7 +448,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
             maxDistance = (newContig->bpLength.mean - posEnd + overlap);
             distance1.mean = -maxDistance;
             orient2 = BA_BA;
-            distance2.mean = -(posEnd - overlap + min(otherContig->bpLength.mean, maxDistance));
+            distance2.mean = -(posEnd - overlap + MIN(otherContig->bpLength.mean, maxDistance));
             break;
           case BA_BA:
             //  A-------------------------newcontig-----------------------------------------B
@@ -461,7 +461,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
             maxDistance = posBgn + overlap;
             distance1.mean = -maxDistance;
             orient2 = AB_AB;
-            distance2.mean = -(newContig->bpLength.mean - posBgn + min(otherContig->bpLength.mean,maxDistance) - overlap);
+            distance2.mean = -(newContig->bpLength.mean - posBgn + MIN(otherContig->bpLength.mean,maxDistance) - overlap);
             break;
           case AB_BA:
             //  A-------------------------newcontig-----------------------------------------B
@@ -474,7 +474,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
             maxDistance = (newContig->bpLength.mean - posEnd + overlap);
             distance1.mean = -maxDistance;
             orient2 = BA_AB;
-            distance2.mean = -(posEnd + min(maxDistance,otherContig->bpLength.mean) - overlap);
+            distance2.mean = -(posEnd + MIN(maxDistance,otherContig->bpLength.mean) - overlap);
             break;
           case BA_AB:
             //  A-------------------------newcontig-----------------------------------------B
@@ -487,7 +487,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
             maxDistance = (posBgn + overlap);
             distance1.mean = -maxDistance;
             orient2 = AB_BA;
-            distance2.mean = -(newContig->bpLength.mean - posBgn + min(maxDistance,otherContig->bpLength.mean) - overlap);
+            distance2.mean = -(newContig->bpLength.mean - posBgn + MIN(maxDistance,otherContig->bpLength.mean) - overlap);
             break;
           default:
             assert(0);
@@ -517,7 +517,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
             //    
             orient1 = AB_AB;
             maxDistance = (posEnd + overlap);
-            distance1.mean = -(newContig->bpLength.mean - posEnd + min(maxDistance,otherContig->bpLength.mean) - overlap);
+            distance1.mean = -(newContig->bpLength.mean - posEnd + MIN(maxDistance,otherContig->bpLength.mean) - overlap);
             orient2 = BA_BA;
             distance2.mean = -maxDistance;
             break;
@@ -532,7 +532,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
             maxDistance = (newContig->bpLength.mean - posBgn + overlap);
             distance1.mean = -maxDistance;
             orient2 = BA_AB;
-            distance2.mean = -(posBgn + min(maxDistance,otherContig->bpLength.mean) - overlap);
+            distance2.mean = -(posBgn + MIN(maxDistance,otherContig->bpLength.mean) - overlap);
             break;
           case AB_AB:
             //  A-------------------------newcontig-----------------------------------------B
@@ -545,7 +545,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
             orient1 = BA_AB;
             distance1.mean = -maxDistance;
             orient2 = AB_BA;
-            distance2.mean = -(newContig->bpLength.mean - posEnd + min(maxDistance,otherContig->bpLength.mean) - overlap);
+            distance2.mean = -(newContig->bpLength.mean - posEnd + MIN(maxDistance,otherContig->bpLength.mean) - overlap);
             break;
           default:
             assert(0);
@@ -560,7 +560,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
 	  {
 	    EdgeCGW_T *newEdge;
 	    CDS_CID_t eid;
-	    int32  isContainment = (min(-distance1.mean,-distance2.mean) > otherContig->bpLength.mean);
+	    int32  isContainment = (MIN(-distance1.mean,-distance2.mean) > otherContig->bpLength.mean);
 
             CDS_CID_t edgeID = 
               GetVAIndex_EdgeCGW_T(ScaffoldGraph->RezGraph->edges, edge);
@@ -769,7 +769,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
 	CDS_CID_t neid;
 	EdgeCGW_T *e = GetGraphEdge(ScaffoldGraph->RezGraph, eid);
 	ChunkOverlapCheckT olap;
-	CDS_COORD_t delta = min((3 * sqrt(e->distance.variance)), 50);
+	CDS_COORD_t delta = MIN((3 * sqrt(e->distance.variance)), 50);
 	CDS_CID_t idA, idB;
 	ChunkOrientationType orient;
 	if(verbose) {
@@ -1003,7 +1003,7 @@ void PropagateExtremalOverlapsToNewContig(CDS_CID_t contigID, int contigEnd, Con
       }
 
       {
-        CDS_COORD_t delta = min((3 * sqrt(newEdge->distance.variance)), 50);
+        CDS_COORD_t delta = MIN((3 * sqrt(newEdge->distance.variance)), 50);
 
         ChunkOverlapCheckT olap =
           OverlapChunks(ScaffoldGraph->RezGraph,
@@ -1072,7 +1072,7 @@ void PropagateOverlapsToNewContig(ContigT *contig,
   // Get a baseline for contig offsets
   for(i = 0; i < GetNumIntElementPoss(ContigPositions); i++){
     IntElementPos *pos = GetIntElementPos(ContigPositions,i);
-    CDS_COORD_t minPos = min(pos->position.bgn, pos->position.end);
+    CDS_COORD_t minPos = MIN(pos->position.bgn, pos->position.end);
     if(contigBase > minPos)
       contigBase = minPos;
   }
@@ -1799,7 +1799,7 @@ int CheckForContigs(ScaffoldGraphT *sgraph,
 #ifdef DEBUG_CHECKFORCTGS
         fprintf(stderr," no overlap!\n");
 #endif
-        if(maxPos < min(contig->offsetAEnd.mean, contig->offsetBEnd.mean)){
+        if(maxPos < MIN(contig->offsetAEnd.mean, contig->offsetBEnd.mean)){
 #ifdef DEBUG_CHECKFORCTGS
           fprintf(stderr," done checking for contigs that overlap!\n");
 #endif
@@ -1983,7 +1983,7 @@ void DumpMultiAlignT(FILE * fp, ScaffoldGraphT * graph,
     fprintf(fp, "pos:(" F_COORD "," F_COORD ") delta:%d\n",
             iup->position.bgn, iup->position.end,
             iup->delta_length);
-    minPos = min(minPos, min(iup->position.bgn, iup->position.end));
+    minPos = MIN(minPos, MIN(iup->position.bgn, iup->position.end));
     maxPos = MAX(maxPos, MAX(iup->position.bgn, iup->position.end));
   }
   fprintf(fp, "minPos = " F_COORD ", maxPos = " F_COORD "\n", minPos, maxPos);
@@ -2037,7 +2037,7 @@ void DumpMultiAlignT(FILE * fp, ScaffoldGraphT * graph,
       }
     fprintf(fp, " utg:" F_CID ", pos:(" F_COORD "," F_COORD ")\n", frag->cid,
             mp_i->position.bgn, mp_i->position.end);
-    minPos = min(minPos, min(mp_i->position.bgn, mp_i->position.end));
+    minPos = MIN(minPos, MIN(mp_i->position.bgn, mp_i->position.end));
     maxPos = MAX(maxPos, MAX(mp_i->position.bgn, mp_i->position.end));
   }
   fprintf(fp, "minPos = " F_COORD ", maxPos = " F_COORD "\n", minPos, maxPos);
@@ -2380,8 +2380,8 @@ void ContigContainment(CIScaffoldT  *scaffold,
 
   ResetVA_IntElementPos(ContigPositions);
 
-  if (min(prevCI->offsetAEnd.mean, prevCI->offsetBEnd.mean) <= 
-      min(thisCI->offsetAEnd.mean, thisCI->offsetBEnd.mean)) {
+  if (MIN(prevCI->offsetAEnd.mean, prevCI->offsetBEnd.mean) <= 
+      MIN(thisCI->offsetAEnd.mean, thisCI->offsetBEnd.mean)) {
     fprintf(stderr, "leftContig is prevCI\n");
     leftContig = prevCI;
     rightContig = thisCI;

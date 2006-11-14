@@ -611,7 +611,7 @@ Local_Overlap *Find_Local_Overlap(int Alen, int Blen, int comp, int nextbest,
 
             Trace[i].value  = best;
             Trace[i].source = srce;
-	    Trace[i].colsAligned = (int)((1.-err)*(double)(min(ae-ab,be-bb)+1));
+	    Trace[i].colsAligned = (int)((1.-err)*(double)(MIN(ae-ab,be-bb)+1));
             if (srce >= 0){
               Trace[i].start = Trace[srce].start;
 	      Trace[i].colsAligned += Trace[srce].colsAligned;

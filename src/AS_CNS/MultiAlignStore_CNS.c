@@ -25,7 +25,7 @@
    Assumptions:  libAS_UTL.a
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.21 2006-11-14 17:52:16 eliv Exp $";
+static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.22 2006-11-14 19:58:21 eliv Exp $";
 
 
 #include <assert.h>
@@ -131,8 +131,8 @@ CompareUnitigPos (const void *c1, const void *c2)
   IntUnitigPos *u1 = (IntUnitigPos *)c1;
   IntUnitigPos *u2 = (IntUnitigPos *)c2;
   int diff;
-  int32 bgn1 = min(u1->position.bgn, u1->position.end);
-  int32 bgn2 = min(u2->position.bgn, u2->position.end);
+  int32 bgn1 = MIN(u1->position.bgn, u1->position.end);
+  int32 bgn2 = MIN(u2->position.bgn, u2->position.end);
   int32 end1, end2;
 
   diff = bgn1 - bgn2;

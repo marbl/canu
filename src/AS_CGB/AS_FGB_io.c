@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_FGB_io.c,v 1.9 2006-11-14 17:52:14 eliv Exp $";
+= "$Id: AS_FGB_io.c,v 1.10 2006-11-14 19:58:21 eliv Exp $";
 /* *******************************************************************
  *
  * Module: AS_FGB_io.c
@@ -149,7 +149,7 @@ static void add_OFGMesg_to_graph
       (*Pmin_frag_iid) = iid;
       (*Pmax_frag_iid) = iid;
     } else {
-      (*Pmin_frag_iid) = min((*Pmin_frag_iid),iid);
+      (*Pmin_frag_iid) = MIN((*Pmin_frag_iid),iid);
       (*Pmax_frag_iid) = MAX((*Pmax_frag_iid),iid);
     }
     
@@ -1549,14 +1549,14 @@ void input_messages_from_a_file
   if(nfrag_old > 0){
     const IntFragment_ID iid = get_iid_fragment(frags,0);
     (*max_frag_iid) = MAX((*max_frag_iid),iid);
-    (*min_frag_iid) = min((*min_frag_iid),iid);
+    (*min_frag_iid) = MIN((*min_frag_iid),iid);
   }
   if(nfrag_old > 1) {
     IntFragment_ID vid = 0;
     for(vid=1;vid<nfrag_old;vid++) {
       const IntFragment_ID iid = get_iid_fragment(frags,vid);
       (*max_frag_iid) = MAX((*max_frag_iid),iid);
-      (*min_frag_iid) = min((*min_frag_iid),iid);
+      (*min_frag_iid) = MIN((*min_frag_iid),iid);
     }
   }
   assert((*min_frag_iid) <= (*max_frag_iid));

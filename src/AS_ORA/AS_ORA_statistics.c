@@ -20,7 +20,7 @@
  *************************************************************************/
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/AS_ORA_statistics.c,v $
-$Revision: 1.5 $
+$Revision: 1.6 $
 **********************************************************************/
 
 
@@ -278,7 +278,7 @@ void AddToStats( OverlapStatisticsp stats,
   d3 = abs( t_oop->a_hang + f_oop->b_hang ) +
     abs( t_oop->b_hang + f_oop->a_hang );
 
-  if( d1 < min( d2, d3 ) )
+  if( d1 < MIN( d2, d3 ) )
   {
     ahgd = abs( t_oop->a_hang - f_oop->a_hang );
     bhgd = abs( t_oop->b_hang - f_oop->b_hang );

@@ -298,7 +298,7 @@ int isDeadEnd(int frg, int offAEnd, double erate, int useCorrected, int skipCont
     // exclude containing overlaps
     if( skipContaining && olap.a_hang < 0 && olap.b_hang > 0)continue;
 
-    if(frglen-MAX(0,olap.a_hang)+min(0,olap.b_hang) < minlen)continue;
+    if(frglen-MAX(0,olap.a_hang)+MIN(0,olap.b_hang) < minlen)continue;
 
     // if it's off the correct end ...
     if( (offAEnd ? (olap . a_hang < 0) : (olap.b_hang > 0))){
@@ -416,9 +416,9 @@ Long_Olap_Data_t better_olap(Long_Olap_Data_t a, Long_Olap_Data_t b, int startin
       {  double upperA,errorsA;
       double upperB,errorsB;
       // compute length of overlap
-      // overlap = frglen - MAX(0,ahang) + min(0,bhang)
-      int  olenA = frglen - MAX(0,a.a_hang) + min(0,a.b_hang);
-      int  olenB = frglen - MAX(0,b.a_hang) + min(0,b.b_hang);
+      // overlap = frglen - MAX(0,ahang) + MIN(0,bhang)
+      int  olenA = frglen - MAX(0,a.a_hang) + MIN(0,a.b_hang);
+      int  olenB = frglen - MAX(0,b.a_hang) + MIN(0,b.b_hang);
 
       if(useCorrected){
         upperA = get_95pct_upper(olenA, (a.corr_erate+.9)/1000.);
@@ -461,9 +461,9 @@ int lowestErrorSort(const void *A,const void *B){
 
   { // sort by thickness
     int laa = get_clr_len(a->a_iid);
-    int  olenA = laa - MAX(0,a->a_hang) + min(0,a->b_hang);
+    int  olenA = laa - MAX(0,a->a_hang) + MIN(0,a->b_hang);
     int lba = get_clr_len(b->a_iid);
-    int  olenB = lba - MAX(0,b->a_hang) + min(0,b->b_hang);
+    int  olenB = lba - MAX(0,b->a_hang) + MIN(0,b->b_hang);
     if(olenA!=olenB)return olenA-olenB;
   }
 
@@ -504,7 +504,7 @@ int setupolaps(int id, int offAEnd,BestMeasure bestType,double erate,int useCorr
     if( skipContaining && olap.a_hang < 0 && olap.b_hang > 0)continue;
 
     // exclude too-short overlaps
-    if(frglen-MAX(0,olap.a_hang)+min(0,olap.b_hang) < minlen)continue;
+    if(frglen-MAX(0,olap.a_hang)+MIN(0,olap.b_hang) < minlen)continue;
 
     // if it's off the correct end ...
     if( (offAEnd ? (olap . a_hang < 0) : (olap.b_hang > 0))){

@@ -1,5 +1,5 @@
 #
-# $Id: site_name.as,v 1.4 2006-04-29 05:16:26 brianwalenz Exp $
+# $Id: site_name.as,v 1.5 2006-11-14 19:58:20 eliv Exp $
 #
 # Set the name of the site/location where the assembler is buing built.
 #
@@ -17,7 +17,7 @@ ifeq ($(SITE_NAME),)
 
   #  The default site.
   #
-  SITE_NAME=CELERA
+  #  SITE_NAME=CELERA
 
   #  TIGR uses a SOAP server to get UIDs.
   #
@@ -25,7 +25,7 @@ ifeq ($(SITE_NAME),)
 
   #  JCVI uses a web server via curl to get UIDs.
   #
-  #SITE_NAME=JCVI
+  SITE_NAME=JCVI
 
   #  The "LOCAL" site uses a text file in the current directory
   #  to remember what the last UID used is.

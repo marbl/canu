@@ -33,7 +33,7 @@
 
  **********************************************************************/
 
-static char fileID[] = "$Id: BccREZ.c,v 1.5 2006-06-14 19:57:23 brianwalenz Exp $";
+static char fileID[] = "$Id: BccREZ.c,v 1.6 2006-11-14 19:58:22 eliv Exp $";
 
 #include <stdio.h>
 #include <assert.h>
@@ -554,7 +554,7 @@ void DFS_Visit(chunk_subgraph * s,
   //
   // compute the low of this node
   //
-  s->table[this]->low_time = min(min_dfs, lowest_time);
+  s->table[this]->low_time = MIN(min_dfs, lowest_time);
 
   //
   // if this is a root then output all the nodes on the stack
@@ -1069,7 +1069,7 @@ int Scan_Components(chunk_subgraph * s,
 	    //
 	    // adjust the sign
 	    //
-	    if (min(from->aEndCoord, from->bEndCoord) > min(to->aEndCoord, to->bEndCoord))
+	    if (MIN(from->aEndCoord, from->bEndCoord) > MIN(to->aEndCoord, to->bEndCoord))
 	      d = -d;
 
 	    //

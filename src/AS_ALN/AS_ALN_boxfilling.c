@@ -111,7 +111,7 @@ OverlapMesg *BoxFill_AS(InternalFragMesg *a, InternalFragMesg *b,
   static int AuseLen=0, BuseLen=0;
 
 #ifdef ENDHACK
-  int coreseglen=min(MINCORESEG,minlen);
+  int coreseglen=MIN(MINCORESEG,minlen);
 #else
   int coreseglen=minlen;
 #endif
@@ -160,11 +160,11 @@ OverlapMesg *BoxFill_AS(InternalFragMesg *a, InternalFragMesg *b,
   }
   assert(blen>=i);
 
-  for(i=MAX(0,end)+(blen+min(0,end))*STRETCH+BIGPAD;i<alen;i++){
+  for(i=MAX(0,end)+(blen+MIN(0,end))*STRETCH+BIGPAD;i<alen;i++){
     Ausable[i]='N';
   }
 
-  i=-min(0,beg)+(alen-MAX(0,beg))*STRETCH+BIGPAD;
+  i=-MIN(0,beg)+(alen-MAX(0,beg))*STRETCH+BIGPAD;
   assert(i>=0);
 
   for(;i<blen;i++){

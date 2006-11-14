@@ -150,9 +150,9 @@ typedef struct Namelist Namelist;
 
 #define abs(x) ((x) >= 0 ? (x) : -(x))
 #define dabs(x) (doublereal)abs(x)
-#define min(a,b) ((a) <= (b) ? (a) : (b))
+#define MIN(a,b) ((a) <= (b) ? (a) : (b))
 #define MAX(a,b) ((a) >= (b) ? (a) : (b))
-#define dmin(a,b) (doublereal)min(a,b)
+#define dmin(a,b) (doublereal)MIN(a,b)
 #define dmax(a,b) (doublereal)MAX(a,b)
 
 /* procedure parameter types for -A and -C++ */

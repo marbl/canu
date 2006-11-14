@@ -44,7 +44,7 @@
             stored in the j-th column of the array AB as follows:   
             if UPLO ='U', AB(kd+1+i-j,j) = U(i,j) for MAX(1,j-kd)<=i<=j; 
   
-            if UPLO ='L', AB(1+i-j,j)    = L(i,j) for j<=i<=min(n,j+kd). 
+            if UPLO ='L', AB(1+i-j,j)    = L(i,j) for j<=i<=MIN(n,j+kd). 
   
 
     LDAB    (input) INTEGER   

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: testOverlapContigs.c,v 1.8 2006-11-14 17:52:16 eliv Exp $";
+static char CM_ID[] = "$Id: testOverlapContigs.c,v 1.9 2006-11-14 19:58:21 eliv Exp $";
 
 
 /*********************************************************************
@@ -389,8 +389,8 @@ void ContigContainment_test(CIScaffoldT *scaffold,
     }
   ResetVA_IntElementPos(ContigPositions);
 
-  if ( min( prevCI->offsetAEnd.mean, prevCI->offsetBEnd.mean) <= 
-       min( thisCI->offsetAEnd.mean, thisCI->offsetBEnd.mean))
+  if ( MIN( prevCI->offsetAEnd.mean, prevCI->offsetBEnd.mean) <= 
+       MIN( thisCI->offsetAEnd.mean, thisCI->offsetBEnd.mean))
     {
       leftContig = prevCI;
       rightContig = thisCI;

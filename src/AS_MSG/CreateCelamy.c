@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: CreateCelamy.c,v 1.5 2006-11-14 17:52:17 eliv Exp $ */
+/* $Id: CreateCelamy.c,v 1.6 2006-11-14 19:58:22 eliv Exp $ */
 
 //  This program is intended to create a celamy .cam file for the 
 //  object given by UID as the single command line argument.
@@ -296,7 +296,7 @@ int CelamyContig(FILE *cam, SnapConConMesg *contig, int32 *global_coord, int rev
      unitig = &u_list[i];
      copy_number = MarkHash(occurences,unitig->eident);
      t_rightcoord = MAX(unitig->position.bgn,unitig->position.end);
-     t_leftcoord =  min(unitig->position.bgn,unitig->position.end);
+     t_leftcoord =  MIN(unitig->position.bgn,unitig->position.end);
      if(reverse){
 	ci_leftcoord = rightcoord - t_rightcoord;
 	ci_rightcoord = rightcoord - t_leftcoord;
@@ -317,7 +317,7 @@ int CelamyContig(FILE *cam, SnapConConMesg *contig, int32 *global_coord, int rev
      CDS_UID_t fuid;
      frag = &f_list[i];
      t_rightcoord = MAX(frag->position.bgn,frag->position.end);
-     t_leftcoord =  min(frag->position.bgn,frag->position.end);
+     t_leftcoord =  MIN(frag->position.bgn,frag->position.end);
      if(reverse){
 	ci_leftcoord = rightcoord - t_rightcoord;
 	ci_rightcoord = rightcoord - t_leftcoord;

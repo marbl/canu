@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.13 2006-11-14 17:52:15 eliv Exp $";
+static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.14 2006-11-14 19:58:21 eliv Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -632,8 +632,8 @@ void ScaffoldSanity(CIScaffoldT *scaffold, ScaffoldGraphT *graph){
   
   InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
   while(NULL != (CI = NextCIScaffoldTIterator(&CIs))){
-    scratch = min(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
-    scaffoldMinPos = min(scaffoldMinPos, scratch);
+    scratch = MIN(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
+    scaffoldMinPos = MIN(scaffoldMinPos, scratch);
     scratch = MAX(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
     scaffoldMaxPos = MAX(scaffoldMaxPos, scratch);
   }
@@ -710,11 +710,11 @@ void CheckScaffoldOrder(CIScaffoldT *scaffold, ScaffoldGraphT *graph)
 
   CI = GetGraphNode(graph->RezGraph, scaffold->info.Scaffold.AEndCI);
 
-  currentMinPos = min( CI->offsetAEnd.mean, CI->offsetBEnd.mean);
+  currentMinPos = MIN( CI->offsetAEnd.mean, CI->offsetBEnd.mean);
   InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
   while(NULL != (CI = NextCIScaffoldTIterator(&CIs)))
     {
-      if( min( CI->offsetAEnd.mean, CI->offsetBEnd.mean) < currentMinPos)
+      if( MIN( CI->offsetAEnd.mean, CI->offsetBEnd.mean) < currentMinPos)
         {	  
           fprintf( GlobalData->stderrc,
                    "CIs " F_CID " and " F_CID "are out of order\n",
@@ -728,7 +728,7 @@ void CheckScaffoldOrder(CIScaffoldT *scaffold, ScaffoldGraphT *graph)
           DumpCIScaffold(GlobalData->stderrc, graph, scaffold, FALSE);
       
           // allow for a base of rounding error, but fix it
-          if( min( CI->offsetAEnd.mean, CI->offsetBEnd.mean) - currentMinPos < 1.0)
+          if( MIN( CI->offsetAEnd.mean, CI->offsetBEnd.mean) - currentMinPos < 1.0)
             {
               CI->offsetAEnd.mean += 1.0;
               CI->offsetBEnd.mean += 1.0;
@@ -739,7 +739,7 @@ void CheckScaffoldOrder(CIScaffoldT *scaffold, ScaffoldGraphT *graph)
           else
             assert(0);
         }
-      currentMinPos = min( CI->offsetAEnd.mean, CI->offsetBEnd.mean);
+      currentMinPos = MIN( CI->offsetAEnd.mean, CI->offsetBEnd.mean);
       prevCI = CI;
     }
 }

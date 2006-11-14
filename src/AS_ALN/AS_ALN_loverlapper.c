@@ -732,11 +732,11 @@ fprintf(stdout,"Warning: deleting contained piece of local_overlap: a projection
     /* put gaps before the portion of bseq in the gap; for the first
        piece, this means before position 0 */
     if(i==0||lastgood<0){
-//      bbeg=1-min(ahang,0);
-      bbeg=1-min(ahang,0);
+//      bbeg=1-MIN(ahang,0);
+      bbeg=1-MIN(ahang,0);
     } else {
       assert(lastgood<O->num_pieces);
-      bbeg=O->chain[lastgood].piece.bepos /*-min(ahang,0)*/;
+      bbeg=O->chain[lastgood].piece.bepos /*-MIN(ahang,0)*/;
     }
 
 
@@ -826,7 +826,7 @@ fprintf(stdout,"Warning: deleting contained piece of local_overlap: a projection
     /* set bbeg to beginning of aligned segment for piece */
 
     abeg=O->chain[i].piece.abpos ;
-    bbeg=O->chain[i].piece.bbpos /* -min(ahang,0) ??*/;
+    bbeg=O->chain[i].piece.bbpos /* -MIN(ahang,0) ??*/;
 
 
     /* set lengths of segments */
@@ -1102,7 +1102,7 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
   static int AuseLen=0, BuseLen=0;
 
 #ifdef ENDHACK
-  int coreseglen=min(MINCORESEG,minlen);
+  int coreseglen=MIN(MINCORESEG,minlen);
 #else
   int coreseglen=minlen;
 #endif
@@ -1168,11 +1168,11 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
   }
   assert(blen>=i);
 
-  for(i=MAX(0,end)+(blen+min(0,end))*STRETCH+BIGPAD;i<alen;i++){
+  for(i=MAX(0,end)+(blen+MIN(0,end))*STRETCH+BIGPAD;i<alen;i++){
     Ausable[i]='N';
   }
 
-  i=-min(0,beg)+(alen-MAX(0,beg))*STRETCH+BIGPAD;
+  i=-MIN(0,beg)+(alen-MAX(0,beg))*STRETCH+BIGPAD;
   assert(i>=0);
 
   for(;i<blen;i++){
@@ -1355,22 +1355,22 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
     } else {  //  asymmetricEnds == 0
 
 
-      if(min(O->chain[0].agap,
+      if(MIN(O->chain[0].agap,
 	     O->chain[0].bgap)>MaxBegGap){
 #if DEBUG_LOCALOVL > 0 
 	fprintf(stdout,"Overlap rejected because: begin gap too big %d\n",
-		min(O->chain[0].agap,
+		MIN(O->chain[0].agap,
 		    O->chain[0].bgap));
 #endif
 	forcenext=1;
 	goto next_overlap;
       }
       
-      if(min(O->chain[O->num_pieces].agap,
+      if(MIN(O->chain[O->num_pieces].agap,
 	     O->chain[O->num_pieces].bgap)>MaxEndGap){
 #if DEBUG_LOCALOVL > 0 
 	fprintf(stdout,"Overlap rejected because: end gap too big %d\n",
-		min(O->chain[O->num_pieces].agap,
+		MIN(O->chain[O->num_pieces].agap,
 		    O->chain[O->num_pieces].bgap));
 #endif
 	
@@ -1464,16 +1464,16 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
        +abs(O->chain[i].piece.bepos-
 	    O->chain[i].piece.bbpos)
        )/2
-      +min(ENDGAPHACK,O->chain[0].agap);
+      +MIN(ENDGAPHACK,O->chain[0].agap);
     int endseglen = 1+
       (O->chain[last].piece.aepos-
        O->chain[last].piece.abpos
        +abs(O->chain[last].piece.bepos-
 	    O->chain[last].piece.bbpos)
        )/2
-      +min(ENDGAPHACK,O->chain[last+1].agap);
-    if(last==0)begseglen+=min(ENDGAPHACK,O->chain[1].agap);
-    if(last==0)endseglen+=min(ENDGAPHACK,O->chain[0].agap);
+      +MIN(ENDGAPHACK,O->chain[last+1].agap);
+    if(last==0)begseglen+=MIN(ENDGAPHACK,O->chain[1].agap);
+    if(last==0)endseglen+=MIN(ENDGAPHACK,O->chain[0].agap);
 
     /* if even allowing some slop at ends we can't find a big enough segment, 
        quit! */
@@ -1794,22 +1794,22 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
     } else {  //  asymmetricEnds == 0
 
 
-      if(min(O->chain[0].agap+MAX(O->begpos,0),
+      if(MIN(O->chain[0].agap+MAX(O->begpos,0),
 	     O->chain[0].bgap+MAX(-O->begpos,0))>MaxBegGap){
 #if DEBUG_LOCALOVL > 0 
 	fprintf(stdout,"Overlap rejected because: begin gap too big %d\n",
-		min(O->chain[0].agap,
+		MIN(O->chain[0].agap,
 		    O->chain[0].bgap));
 #endif
 	forcenext=1;
 	goto next_overlap;
       }
       
-      if(min(O->chain[O->num_pieces].agap+MAX(-O->endpos,0),
+      if(MIN(O->chain[O->num_pieces].agap+MAX(-O->endpos,0),
 	     O->chain[O->num_pieces].bgap+MAX(O->endpos,0))>MaxEndGap){
 #if DEBUG_LOCALOVL > 0 
 	fprintf(stdout,"Overlap rejected because: end gap too big %d\n",
-		min(O->chain[O->num_pieces].agap,
+		MIN(O->chain[O->num_pieces].agap,
 		    O->chain[O->num_pieces].bgap));
 #endif
 	

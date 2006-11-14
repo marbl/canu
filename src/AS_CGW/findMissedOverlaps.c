@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: findMissedOverlaps.c,v 1.7 2006-11-14 17:52:16 eliv Exp $";
+static char CM_ID[] = "$Id: findMissedOverlaps.c,v 1.8 2006-11-14 19:58:21 eliv Exp $";
 
 
 /*********************************************************************/
@@ -167,11 +167,11 @@ int evalGap( CDS_CID_t sid,
   opposite   = 0;
 
   // mean is mean gap length: negative implies overlap
-  beg        = min(lLen,lLen+mean-NUM_STDDEV_CUTOFF*stddev);
-  end        = min(lLen,lLen+mean+NUM_STDDEV_CUTOFF*stddev);
+  beg        = MIN(lLen,lLen+mean-NUM_STDDEV_CUTOFF*stddev);
+  end        = MIN(lLen,lLen+mean+NUM_STDDEV_CUTOFF*stddev);
 
   widebeg = MAX(-rLen,beg-10000);
-  wideend = min(lLen,end+10000);
+  wideend = MIN(lLen,end+10000);
 
 
   fprintf(stdout,"testing .... Scaf " F_CID " Gap " F_CID " ^ " F_CID " %d [%d,%d]  band " F_COORD " " F_COORD " wideband " F_COORD " " F_COORD,

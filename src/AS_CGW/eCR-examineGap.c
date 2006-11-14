@@ -246,7 +246,7 @@ examineGap(ContigT *lcontig, int lFragIid, ContigT *rcontig, int rFragIid,
   }
 
   // grab the last CONTIG_BASES bases of the lcontig consensus sequence
-  lcontigBasesUsed = min(CONTIG_BASES - lFragContigOverlapLength, 
+  lcontigBasesUsed = MIN(CONTIG_BASES - lFragContigOverlapLength, 
                          (int) lcontig->bpLength.mean - lFragContigOverlapLength);
   // lcontigBasesUsed = 100.0;  // temp hack, but it is sometimes better to do 100 than 1000.  why???
   
@@ -314,7 +314,7 @@ examineGap(ContigT *lcontig, int lFragIid, ContigT *rcontig, int rFragIid,
   
   // grab the first CONTIG_BASES bases of the rcontig consensus sequence
   // the rcontig consensus has been flipped if necessary
-  rcontigBasesUsed = min(CONTIG_BASES - rFragContigOverlapLength, 
+  rcontigBasesUsed = MIN(CONTIG_BASES - rFragContigOverlapLength, 
                          (int) rcontig->bpLength.mean - rFragContigOverlapLength);
   for (i = 0; i < rcontigBasesUsed; i++)
     rcompBuffer[ rclr_bgn + i ] = rSequence[ i + rFragContigOverlapLength ]; //Aaron ad rFragContigOverlapLength

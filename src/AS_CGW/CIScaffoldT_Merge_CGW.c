@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.21 2006-11-14 17:52:14 eliv Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.22 2006-11-14 19:58:21 eliv Exp $";
 
 #undef ORIG_MERGE_EDGE_INVERT
 #define MINSATISFIED_CUTOFF 0.985
@@ -112,7 +112,7 @@ void PrintEdgesBetweenScaffolds(ScaffoldGraphT * graph,
   ChunkInstanceT * scaffold;
   SEdgeTIterator SEdges;
   SEdgeT * sEdge;
-  CDS_CID_t minID = min(sid1, sid2);
+  CDS_CID_t minID = MIN(sid1, sid2);
   CDS_CID_t maxID = MAX(sid1, sid2);
   
   scaffold = GetCIScaffoldT(graph->CIScaffolds, minID);
@@ -2131,7 +2131,7 @@ ChunkInstanceT * GetTrueBEndCI(ScaffoldGraphT * graph, CIScaffoldT * scaffold)
       if(MAX(returnContig->offsetAEnd.mean, returnContig->offsetBEnd.mean) <
          MAX(myContig->offsetAEnd.mean, myContig->offsetBEnd.mean))
         returnContig = myContig;
-      else if(min(returnContig->offsetAEnd.mean, returnContig->offsetBEnd.mean) >
+      else if(MIN(returnContig->offsetAEnd.mean, returnContig->offsetBEnd.mean) >
               MAX(myContig->offsetAEnd.mean, myContig->offsetBEnd.mean))
         break;
     }
@@ -2212,11 +2212,11 @@ void TranslateScaffoldOverlapToContigOverlap(CIScaffoldT *scaffoldA, CIScaffoldT
   nextNodeB = GetGraphNode(ScaffoldGraph->ContigGraph, (BGapTowardAEnd?(*endNodeB)->AEndNext:(*endNodeB)->BEndNext));
   if(nextNodeA){
     if(AGapTowardAEnd){
-      *extremalGapSizeA = min((*endNodeA)->offsetAEnd.mean, (*endNodeA)->offsetBEnd.mean) -
+      *extremalGapSizeA = MIN((*endNodeA)->offsetAEnd.mean, (*endNodeA)->offsetBEnd.mean) -
         MAX(nextNodeA->offsetAEnd.mean, nextNodeA->offsetBEnd.mean);
     }else{
       *extremalGapSizeA = 
-        min(nextNodeA->offsetAEnd.mean, nextNodeA->offsetBEnd.mean)-
+        MIN(nextNodeA->offsetAEnd.mean, nextNodeA->offsetBEnd.mean)-
         MAX((*endNodeA)->offsetAEnd.mean, (*endNodeA)->offsetBEnd.mean);
     }
   }else{
@@ -2224,11 +2224,11 @@ void TranslateScaffoldOverlapToContigOverlap(CIScaffoldT *scaffoldA, CIScaffoldT
   }
   if(nextNodeB){
     if(BGapTowardAEnd){
-      *extremalGapSizeB = min((*endNodeB)->offsetAEnd.mean, (*endNodeB)->offsetBEnd.mean) -
+      *extremalGapSizeB = MIN((*endNodeB)->offsetAEnd.mean, (*endNodeB)->offsetBEnd.mean) -
         MAX(nextNodeB->offsetAEnd.mean, nextNodeB->offsetBEnd.mean);
     }else{
       *extremalGapSizeB = 
-        min(nextNodeB->offsetAEnd.mean, nextNodeB->offsetBEnd.mean)-
+        MIN(nextNodeB->offsetAEnd.mean, nextNodeB->offsetBEnd.mean)-
         MAX((*endNodeB)->offsetAEnd.mean, (*endNodeB)->offsetBEnd.mean);
     }
   }else{
@@ -3408,7 +3408,7 @@ void SaveBadScaffoldMergeEdge(SEdgeT * edge,
   else
     {
       // update
-      lookup->minOverlap = min(lookup->minOverlap, -edge->distance.mean - delta);
+      lookup->minOverlap = MIN(lookup->minOverlap, -edge->distance.mean - delta);
       lookup->maxOverlap = MAX(lookup->maxOverlap, -edge->distance.mean + delta);
     }
 }
@@ -3454,7 +3454,7 @@ int LooseAbuttingCheck(SEdgeT * curEdge,
 
   edgeMinScaffoldLengthRatio = 
     -curEdge->distance.mean /
-    min(scaffoldA->bpLength.mean, scaffoldB->bpLength.mean);
+    MIN(scaffoldA->bpLength.mean, scaffoldB->bpLength.mean);
   
 #ifdef DEBUG1
   fprintf(GlobalData->stderrc, "Performing loose abutting check:\n");
@@ -3683,7 +3683,7 @@ void ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
   // is at least 20% of the size of the implied gap.  So, for a 50k gap, we need a 10k
   // scaffold.  For a 10k gap, we need a 2k scaffold, etc.
   length_to_dist = 1.0;
-  min_scaffold_length = min(scaffoldA->bpLength.mean,
+  min_scaffold_length = MIN(scaffoldA->bpLength.mean,
                             scaffoldB->bpLength.mean);
   if(curEdge->distance.mean > 0){
     length_to_dist = ( min_scaffold_length / curEdge->distance.mean);

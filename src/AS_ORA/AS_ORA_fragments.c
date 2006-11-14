@@ -20,7 +20,7 @@
  *************************************************************************/
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/AS_ORA_fragments.c,v $
-$Revision: 1.5 $
+$Revision: 1.6 $
 **********************************************************************/
 #define DEBUG_ORA
 /*********************************************************************/
@@ -464,7 +464,7 @@ void SortFragmentsByInterval( FragmentArrayp fragments )
 uint32 GetOverlapInterval( FragmentObjectp a, FragmentObjectp b )
 {
   // NOTE: this assumes a->begin < b->begin
-  return( (uint32) min( (int64) a->end - (int64) b->begin,
+  return( (uint32) MIN( (int64) a->end - (int64) b->begin,
                         (int64) b->end - (int64) b->begin ) );
 }
 
@@ -560,7 +560,7 @@ int UpdateFragmentSetRepeats( FragmentArrayp fragments, uint32 f_index )
 */
 int IsCriticalOverlap( FragmentArrayp fragments, uint32 adi, uint32 bdi )
 {
-  uint32 min_pi = min( fragments->data[adi].ptr_index,
+  uint32 min_pi = MIN( fragments->data[adi].ptr_index,
                        fragments->data[bdi].ptr_index );
   uint32 max_pi = MAX( fragments->data[adi].ptr_index,
                        fragments->data[bdi].ptr_index );

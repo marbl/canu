@@ -256,8 +256,8 @@ typedef struct {
                       theres is a b.p. between the apnt'th and (apnt+1)'st
                       symbol of A and the bpnt'th and (bpnt+1)'st symbo of B.
                       To within first order the length of the matching part of
-                      the overlap is min(apnt,bpnt) and the length of the
-                      non-matching part is min(|A|-apnt,|B|-bpnt).         */
+                      the overlap is MIN(apnt,bpnt) and the length of the
+                      non-matching part is MIN(|A|-apnt,|B|-bpnt).         */
   float ascent;    /* The ratio the score of the matching part of the overlap
                       to its length.  If the two sequences match at (1-e)%
                       then this ratio should be about BP_RATIO - e where

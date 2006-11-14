@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_traversal.c,v 1.4 2005-03-22 19:48:31 jason_miller Exp $";
+= "$Id: AS_CGB_traversal.c,v 1.5 2006-11-14 19:58:21 eliv Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_traversal.c
@@ -313,7 +313,7 @@ static void as_bfs
       fprintf(fout,"as_bfs: fragment %d\n",iv0,ie0,ne0);
 #endif
 #ifdef MAX_ADJACENCY_FOLLOWED
-      ne0 = min(ne0,MAX_ADJACENCY_FOLLOWED);
+      ne0 = MIN(ne0,MAX_ADJACENCY_FOLLOWED);
 #endif      
       /* Perform a Breadth First Search on the remaining edges. */
       for(ie1=ie0; ie1 < ie0+ne0; ie1++) {

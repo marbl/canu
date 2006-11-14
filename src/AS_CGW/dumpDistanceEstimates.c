@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.13 2006-11-14 17:52:15 eliv Exp $";
+static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.14 2006-11-14 19:58:21 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -662,7 +662,7 @@ dde_stats(int         operateOnNodes,
       for(j = 0; j < numSamples ; j++, samplep++) {
         CDS_COORD_t sample = *samplep;
         int32 binNum = ((float)sample - (float)dist->min)/dist->bsize;
-        binNum = min(binNum, dist->bnum -1);
+        binNum = MIN(binNum, dist->bnum -1);
         binNum = MAX(binNum,0); // sample can be negative
         dist->histogram[binNum]++;
       }

@@ -23,7 +23,7 @@
   -o /work/assembly/rbolanos/IBM_PORT_CDS/ibm_migration_work_dir/cds/AS/obj/GraphCGW_T.o GraphCGW_T.c
 */
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.22 2006-11-14 17:52:15 eliv Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.23 2006-11-14 19:58:21 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1555,7 +1555,7 @@ CDS_CID_t AddGraphEdge(GraphCGW_T *graph,
     int bogus = (fragA->flags.bits.hasFalseMate ||  fragB->flags.bits.hasFalseMate);
 #ifdef DEBUG_CIEDGES
     CDS_COORD_t distance = MAX(fragA->aEndCoord, fragB->aEndCoord) -
-      min(fragA->aEndCoord, fragB->aEndCoord);
+      MIN(fragA->aEndCoord, fragB->aEndCoord);
 #endif
     
     ciedge->flags.bits.isBogus = bogus;
@@ -2156,7 +2156,7 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
   for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++){
     IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
     CDS_COORD_t end = MAX( mp->position.end, mp->position.bgn);
-    CDS_COORD_t beg = min( mp->position.end, mp->position.bgn);
+    CDS_COORD_t beg = MIN( mp->position.end, mp->position.bgn);
 
     if(minOffset > beg){
       minOffset = beg;
@@ -4926,7 +4926,7 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
         {
           CDS_COORD_t sample = *samplep;
           int32 binNum = ((float)sample - (float)dist->min)/dist->bsize;
-          binNum = min(binNum, dist->bnum -1);
+          binNum = MIN(binNum, dist->bnum -1);
           binNum = MAX(binNum,0); // sample can be negative
           dist->histogram[binNum]++;
         }	  
@@ -5074,7 +5074,7 @@ int32 GetGappedMultipleCoverageInterval(GraphCGW_T *graph,
   int found = FALSE;
   
   if(end == A_END){
-    interval->end = range.end = min(500,length);
+    interval->end = range.end = MIN(500,length);
     interval->bgn = range.bgn = 0;
   }else{
     interval->bgn = range.bgn = MAX(0, length - 500);
@@ -5154,7 +5154,7 @@ void   DumpNodeEndUngappedToFasta(FILE *fastaFile,
   SeqInterval interval;
   if(nodeEnd == A_END){
     interval.bgn = 0;
-    interval.end = min(500, length);
+    interval.end = MIN(500, length);
   }else{
     interval.bgn = MAX(0,length - 500);
     interval.end = length;

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.8 2006-11-14 17:52:14 eliv Exp $";
+static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.9 2006-11-14 19:58:21 eliv Exp $";
 
 #include "AS_global.h"
 #include <assert.h>
@@ -601,7 +601,7 @@ void CollectChunkOverlap(GraphCGW_T *graph,
           maxOverlap > olap->maxOverlap)){
 	olap->computed = FALSE; // Recompute
 	olap->hasBayesianQuality = FALSE;
-	olap->minOverlap = min(minOverlap, olap->minOverlap);
+	olap->minOverlap = MIN(minOverlap, olap->minOverlap);
 	olap->maxOverlap = MAX(maxOverlap, olap->maxOverlap);
       }
 
@@ -627,7 +627,7 @@ void CollectChunkOverlap(GraphCGW_T *graph,
 	}
 
       }
-      olap->minOverlap = min(minOverlap, olap->minOverlap);
+      olap->minOverlap = MIN(minOverlap, olap->minOverlap);
       olap->maxOverlap = MAX(maxOverlap, olap->maxOverlap);
     }
 #ifdef DEBUG_CHUNKOVERLAP
@@ -1366,7 +1366,7 @@ OverlapMesg *ComputeCanonicalOverlapWithTrace(GraphCGW_T *graph,
 	    if( (beg == minBeg) && (end == maxEnd) )
 	      goOn = FALSE;
 	    beg = MAX(minBeg,beg-BEGENDSLOP);
-	    end = min(maxEnd,end+BEGENDSLOP);
+	    end = MIN(maxEnd,end+BEGENDSLOP);
 	  }
 	
       }
@@ -1935,7 +1935,7 @@ void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
                 int inSection = FALSE;
                 CDS_CID_t smaller, bigger;
 		  
-                smaller = min( olap->spec.cidA, olap->spec.cidB);
+                smaller = MIN( olap->spec.cidA, olap->spec.cidB);
                 bigger = MAX( olap->spec.cidA, olap->spec.cidB);
 		  
                 inSection = (smaller < sectionOuterMax && smaller >= sectionOuterMin) &&
@@ -2195,14 +2195,14 @@ BranchPointResult OverlapChunksWithBPDetection(GraphCGW_T *graph,
   /* Output fasta records for single coverage portion of contig */
   if(endA == A_END){
     singleCoverageA.bgn = 0;
-    singleCoverageA.end = min(500, lengthA);
+    singleCoverageA.end = MIN(500, lengthA);
   }else{
     singleCoverageA.bgn = MAX(0,lengthA - 500);
     singleCoverageA.end = lengthA;
   }
   if(endB == A_END){
     singleCoverageB.bgn = 0;
-    singleCoverageB.end = min(500, lengthB);
+    singleCoverageB.end = MIN(500, lengthB);
   }else{
     singleCoverageB.bgn = MAX(0,lengthB - 500);
     singleCoverageB.end = lengthB;

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: celagram.c,v 1.4 2005-03-22 19:49:31 jason_miller Exp $ */
+/* $Id: celagram.c,v 1.5 2006-11-14 19:58:23 eliv Exp $ */
 
 #include <stdio.h>
 #include <math.h>
@@ -162,7 +162,7 @@ HistoPacket *ReadHistogram(FILE *file, char **title, int column)
       { fprintf(stderr,"File is empty !\n");
       exit (1);
       }
-    buffer[min(MAX_TITLE_LENGTH,strlen(buffer)-1)] = '\0';
+    buffer[MIN(MAX_TITLE_LENGTH,strlen(buffer)-1)] = '\0';
     if (strlen(buffer) > MAX_TITLE_LENGTH+1)
       { fprintf(stderr,
                 "Title %s is too long (" F_SIZE_T " > %d chars)\n",

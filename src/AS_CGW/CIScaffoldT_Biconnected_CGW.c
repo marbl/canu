@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Biconnected_CGW.c,v 1.6 2006-10-08 08:47:39 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Biconnected_CGW.c,v 1.7 2006-11-14 19:58:21 eliv Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -227,9 +227,9 @@ static void bcc_dfs(ScaffoldGraphT *sgraph,
 #endif
       
       bcc_dfs(sgraph, contigs, otherContig,  dfsnum, lowpt, father,stack, count1, count2, numBridges);
-      lowpt[contigNum] = min(lowpt[contigNum], lowpt[otherNum]);
+      lowpt[contigNum] = MIN(lowpt[contigNum], lowpt[otherNum]);
     }else{
-      lowpt[contigNum] = min(lowpt[contigNum], dfsnum[otherNum]);
+      lowpt[contigNum] = MIN(lowpt[contigNum], dfsnum[otherNum]);
     }
 #ifdef DEBUG
     fprintf(stderr,"lowpt[contigNum] = %d\n",lowpt[contigNum]);

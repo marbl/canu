@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.11 2006-11-14 17:52:15 eliv Exp $";
+static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.12 2006-11-14 19:58:21 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -94,10 +94,10 @@ int DoSimpleScaffoldChecks(FILE * fp,
       ci != NULL;
       ciCount++, ci = NextCIScaffoldTIterator(&ciIterator))
     {
-      float32 minCoord = min(ci->offsetAEnd.mean, ci->offsetBEnd.mean);
+      float32 minCoord = MIN(ci->offsetAEnd.mean, ci->offsetBEnd.mean);
       float32 maxCoord = MAX(ci->offsetAEnd.mean, ci->offsetBEnd.mean);
       float32 minVariance =
-        min(ci->offsetAEnd.variance,
+        MIN(ci->offsetAEnd.variance,
             ci->offsetBEnd.variance);
       float32 maxVariance =
         MAX(ci->offsetAEnd.variance,
@@ -921,7 +921,7 @@ int InitializeInstrumenterBookkeeping(ScaffoldGraphT * graph,
               break;
             */
         }
-      numFrags = MAX(3, min(numFrags, GetNumCIFragTs(graph->CIFrags)));
+      numFrags = MAX(3, MIN(numFrags, GetNumCIFragTs(graph->CIFrags)));
       numWithExternalMates = numFrags / 3;
     }
 
@@ -1763,7 +1763,7 @@ void NarrowBreakpointInterval(InstrumenterBreakpoint * destBP,
                               InstrumenterBreakpoint * sourceBP)
 {
   destBP->end1 = MAX(destBP->end1, sourceBP->end1);
-  destBP->end2 = min(destBP->end2, sourceBP->end2);
+  destBP->end2 = MIN(destBP->end2, sourceBP->end2);
 }
 
 
@@ -1909,9 +1909,9 @@ int DetectBreakpointType(ScaffoldGraphT * graph,
 #endif
                   /*
                     bp1.end1 = MAX(bp1.end1, bgn);
-                    bp1.end2 = min(bp1.end2, end);
+                    bp1.end2 = MIN(bp1.end2, end);
                     bp2.end1 = MAX(bp2.end1, bgn);
-                    bp2.end2 = min(bp2.end2, end);
+                    bp2.end2 = MIN(bp2.end2, end);
                   */
                   AppendBreakpointSet(bps, &bp1, &bp2,
                                       ((problem == INST_BP_INNIE ||
@@ -1936,9 +1936,9 @@ int DetectBreakpointType(ScaffoldGraphT * graph,
         {
           /*
             bp1.end1 = MAX(bp1.end1, bgn);
-            bp1.end2 = min(bp1.end2, end);
+            bp1.end2 = MIN(bp1.end2, end);
             bp2.end1 = MAX(bp2.end1, bgn);
-            bp2.end2 = min(bp2.end2, end);
+            bp2.end2 = MIN(bp2.end2, end);
           */
           AppendBreakpointSet(bps, &bp1, &bp2,
                               ((problem == INST_BP_INNIE ||
@@ -2030,7 +2030,7 @@ void AddFloat32ToInstrumenterStatistics(InstrumenterStatistics * is,
 {
   is->mean += (*var);
   is->sumOfSquares += (*var) * (*var);
-  is->min = min(is->min, *var);
+  is->min = MIN(is->min, *var);
   is->max = MAX(is->max, *var);
 }
 
@@ -2040,7 +2040,7 @@ void AddCoordToInstrumenterStatistics(InstrumenterStatistics * is,
 {
   is->mean += (*var);
   is->sumOfSquares += (*var) * (*var);
-  is->min = min(is->min, *var);
+  is->min = MIN(is->min, *var);
   is->max = MAX(is->max, *var);
 }
 
@@ -2064,7 +2064,7 @@ void InstrumentFloat32Statistics(VA_TYPE(cds_float32) * va,
       if((*var) < 0.0f)
         {
           is->numNegatives++;
-          is->minNegative = min(is->minNegative, *var);
+          is->minNegative = MIN(is->minNegative, *var);
           if(!separateNegatives)
             AddFloat32ToInstrumenterStatistics(is, var);
         }
@@ -2113,7 +2113,7 @@ void InstrumentCoordStatistics(VA_TYPE(CDS_COORD_t) * va,
       if((*var) < 0.0f)
         {
           is->numNegatives++;
-          is->minNegative = min(is->minNegative, *var);
+          is->minNegative = MIN(is->minNegative, *var);
           if(!separateNegatives)
             AddCoordToInstrumenterStatistics(is, var);
         }
@@ -3159,7 +3159,7 @@ void PrintScaffoldInstrumenter(ScaffoldGraphT * graph,
     {
       fprintf(printTo, "\n%sUnitig summary:\n", prefix);
       PrintUnitigInstrumenter(graph, &(si->contig.unitig),
-                              min(verbose, InstrumenterVerbose4),
+                              MIN(verbose, InstrumenterVerbose4),
                               nextPrefix, printTo);
     }
   
@@ -3167,7 +3167,7 @@ void PrintScaffoldInstrumenter(ScaffoldGraphT * graph,
     {
       fprintf(printTo, "\n%sContig summary:\n", prefix);
       PrintContigInstrumenter(graph, &(si->contig),
-                              min(verbose, InstrumenterVerbose4),
+                              MIN(verbose, InstrumenterVerbose4),
                               nextPrefix, printTo);
     }
   
@@ -4335,7 +4335,7 @@ int GetFragmentPositionInFauxScaffold(HashTable_AS * cpHT,
   if(cp->orient == A_B)
     {
       *fragLeftEnd = cp->offset +
-        min(frag->contigOffset5p.mean, frag->contigOffset3p.mean);
+        MIN(frag->contigOffset5p.mean, frag->contigOffset3p.mean);
       *fragRightEnd = cp->offset +
         MAX(frag->contigOffset5p.mean, frag->contigOffset3p.mean);
       *fragOrientInScaffold =
@@ -4346,7 +4346,7 @@ int GetFragmentPositionInFauxScaffold(HashTable_AS * cpHT,
       *fragLeftEnd = cp->offset + cp->length -
         MAX(frag->contigOffset5p.mean, frag->contigOffset3p.mean);
       *fragRightEnd = cp->offset + cp->length -
-        min(frag->contigOffset5p.mean, frag->contigOffset3p.mean);
+        MIN(frag->contigOffset5p.mean, frag->contigOffset3p.mean);
       *fragOrientInScaffold =
         (frag->contigOffset5p.mean > frag->contigOffset3p.mean) ? 0: 1;
     }
@@ -5126,7 +5126,7 @@ int InstrumentUnitig(ScaffoldGraphT * graph,
   InitializeUnitigInstrumenter(graph, ui);
   
   // get the position, whether or not it's a surrogate
-  ui->leftEnd = min(unitig->offsetAEnd.mean, unitig->offsetBEnd.mean) + 0.5f;
+  ui->leftEnd = MIN(unitig->offsetAEnd.mean, unitig->offsetBEnd.mean) + 0.5f;
   ui->rightEnd = MAX(unitig->offsetAEnd.mean, unitig->offsetBEnd.mean) + 0.5f;
   ui->orientation =
     (unitig->offsetAEnd.mean < unitig->offsetBEnd.mean) ? A_B : B_A;
@@ -5293,7 +5293,7 @@ int InstrumentContig(ScaffoldGraphT * graph,
   InitializeContigInstrumenter(graph, ci);
 
   ci->id = contig->id;
-  ci->leftEnd = min(aEnd, bEnd) + 0.5f;
+  ci->leftEnd = MIN(aEnd, bEnd) + 0.5f;
   ci->rightEnd = MAX(aEnd, bEnd) + 0.5f;
   ci->orientation = (aEnd < bEnd) ? A_B : B_A;
 
@@ -5306,7 +5306,7 @@ int InstrumentContig(ScaffoldGraphT * graph,
   while((unitig = NextContigTIterator(&unitigIterator)) != NULL)
     {
 #ifdef LIST_TERMINAL_TYPES
-      UnitigOffset = min(unitig->offsetAEnd.mean, unitig->offsetBEnd.mean);
+      UnitigOffset = MIN(unitig->offsetAEnd.mean, unitig->offsetBEnd.mean);
 #endif
       InstrumentUnitig(graph, cpHT, st, unitig, aEnd, bEnd, &(ci->reusableUI));
       AddUnitigToContigInstrumenter(graph, ci, &(ci->reusableUI));
@@ -5822,7 +5822,7 @@ int InstrumentIntScaffoldMesg(ScaffoldGraphT * graph,
   # gaps
   # negative
   # non-negative
-  min (non-negative)
+  MIN (non-negative)
   max
   mean (excluding negatives)
   stddev
@@ -5981,7 +5981,7 @@ int FinishMissingMateList(ScaffoldGraphInstrumenter * sgi)
   # gaps, #gaps/scaffold, stats on gap sizes
   # negative
   # non-negative
-  min (non-negative)
+  MIN (non-negative)
   max
   mean (excluding negatives)
   stddev
@@ -6079,7 +6079,7 @@ int InstrumentScaffoldGraph(ScaffoldGraphT * graph,
     smallest = iidSize->length;
     iidSize = GetVA_IID_Size(iidSizes, GetNumVA_IID_Size(iidSizes) - 1);
     largest = MAX(smallest, iidSize->length);
-    smallest = min(smallest, iidSize->length);
+    smallest = MIN(smallest, iidSize->length);
     fprintf(stderr, "Smallest: " F_COORD "bp, Largest: " F_COORD "bp\n", smallest, largest);
   }
   

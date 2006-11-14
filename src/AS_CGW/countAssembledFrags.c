@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: countAssembledFrags.c,v 1.9 2006-11-14 17:52:15 eliv Exp $";
+static char CM_ID[] = "$Id: countAssembledFrags.c,v 1.10 2006-11-14 19:58:21 eliv Exp $";
 
 
 /*********************************************************************
@@ -776,10 +776,10 @@ int	getScaffoldSeparation( CDS_CID_t frag1Iid,
       assert( 0 );
     }
   
-  if ( min( frag1LeftEnd, frag1RightEnd) < min( frag2LeftEnd, frag2RightEnd))          // frag1 left of frag2
-    *fragScaffoldSeparation = min( frag2LeftEnd, frag2RightEnd) - MAX( frag1LeftEnd, frag1RightEnd);
-  else if ( min( frag2LeftEnd, frag2RightEnd) < min( frag1LeftEnd, frag1RightEnd))     // frag2 left of frag1
-    *fragScaffoldSeparation = min( frag1LeftEnd, frag1RightEnd) - MAX( frag2LeftEnd, frag2RightEnd);
+  if ( MIN( frag1LeftEnd, frag1RightEnd) < MIN( frag2LeftEnd, frag2RightEnd))          // frag1 left of frag2
+    *fragScaffoldSeparation = MIN( frag2LeftEnd, frag2RightEnd) - MAX( frag1LeftEnd, frag1RightEnd);
+  else if ( MIN( frag2LeftEnd, frag2RightEnd) < MIN( frag1LeftEnd, frag1RightEnd))     // frag2 left of frag1
+    *fragScaffoldSeparation = MIN( frag1LeftEnd, frag1RightEnd) - MAX( frag2LeftEnd, frag2RightEnd);
   
   return 1;
 }
@@ -1128,7 +1128,7 @@ int computeConsistentRanges( fragDataT *allBACFragsData,
               else  // single frag in range
                 {
                   contigConsistentRanges[ numConsistentRanges ].scaffoldOffsetMin = 
-                    min( allBACFragsDataWithSurrogates[ ifragStart ].scaffoldOffset3p,
+                    MIN( allBACFragsDataWithSurrogates[ ifragStart ].scaffoldOffset3p,
                          allBACFragsDataWithSurrogates[ ifragStart ].scaffoldOffset5p);
                   contigConsistentRanges[ numConsistentRanges ].scaffoldOffsetMax = 
                     MAX( allBACFragsDataWithSurrogates[ ifragStart ].scaffoldOffset3p,

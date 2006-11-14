@@ -1402,7 +1402,7 @@ int Process_Agap_one_accessible_interval(interval curr,COvlps **bestTerm,
 
     if(top<ctgend){
       double from=MAX(top,B->ctgs[i].lft_end);
-      double to=min(bot,ctgend);
+      double to=MIN(bot,ctgend);
       assert(from >= B->ctgs[i].lft_end);
 
       from-=B->ctgs[i].lft_end;
@@ -1443,7 +1443,7 @@ int Process_Agap_one_accessible_interval(interval curr,COvlps **bestTerm,
     {
       double from, to;
       from=MAX(top,ctgend);
-      to=min(bot,ctgend+B->gaps[i].gap_length);
+      to=MIN(bot,ctgend+B->gaps[i].gap_length);
 
       // if there is an interval...
       if(from<to){
@@ -1545,7 +1545,7 @@ int Process_Agap_one_accessible_interval(interval curr,COvlps **bestTerm,
     // if there is an overlap
     if(top<ctgend){
       double from=MAX(top,B->ctgs[i].lft_end);
-      double to=min(bot,ctgend);
+      double to=MIN(bot,ctgend);
       assert(from<=to);
       to-=B->ctgs[i].lft_end;
       from-=B->ctgs[i].lft_end;
@@ -1808,7 +1808,7 @@ int ProjectFromTopEdge(interval_list **thisAlist, COvlps **bestTerm,int whichA,S
 
   // find relevant interval in A-scaffold coordinates:
   low=MAX(bandbeg,A->ctgs[whichA].lft_end+A->ctgs[whichA].length);
-  high=min(bandend,A->ctgs[whichA+1].lft_end);
+  high=MIN(bandend,A->ctgs[whichA+1].lft_end);
 
   // if none, we are done
   if(low>=high){
@@ -2143,8 +2143,8 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
   // Initialize along left edge of first A contig
   if(bandbeg<0){
     interval startupAgap;
-    int top=-min(0,bandend);
-    int bot=-min(0,bandbeg);
+    int top=-MIN(0,bandend);
+    int bot=-MIN(0,bandbeg);
     int beg;
     int end;
     int intoB=0;
@@ -2207,7 +2207,7 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
     { 
       int left,right;
       left = MAX(bandbeg,AF->ctgs[i].lft_end);
-      right = min(bandend,AF->ctgs[i].lft_end+AF->ctgs[i].length);
+      right = MIN(bandend,AF->ctgs[i].lft_end+AF->ctgs[i].length);
       left-=AF->ctgs[i].lft_end;
       right-=AF->ctgs[i].lft_end;
       if(left<=right){

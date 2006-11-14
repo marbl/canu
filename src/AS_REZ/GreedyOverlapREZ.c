@@ -339,7 +339,7 @@ double guess_mutation_prob(char* S1, char* S2, char* Q1, char* Q2, int* cc, int 
 int compute_bayesian_quality(InternalFragMesg* IFG1, InternalFragMesg* IFG2, 
 			     OverlapMesg* olap, int qt, int *length, FILE* fp)
 {
-  int maxlength = 2*min(strlen(IFG1->sequence),strlen(IFG2->sequence))+2;
+  int maxlength = 2*MIN(strlen(IFG1->sequence),strlen(IFG2->sequence))+2;
   {
   char  S1[maxlength];
   char  Q1[maxlength];
@@ -479,7 +479,7 @@ int get_match_region(char* S1, char* Q1, char* S2, char* Q2,
 		     char* seq1, char* seq2, char* q1, char* q2,
 		     int32 ia1, int32 ia2, OverlapMesg*  p)
 {
-  int maxlength = 2*min(strlen(seq1),strlen(seq2))+2;
+  int maxlength = 2*MIN(strlen(seq1),strlen(seq2))+2;
   {
   //  Display the alignment between strings  seq1  and  seq2  indicated
   //  in  (* p) .

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.14 2006-11-14 17:52:14 eliv Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.15 2006-11-14 19:58:21 eliv Exp $";
 
 #undef DEBUG
 #undef DEBUG_INSERT
@@ -466,11 +466,11 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
   }else{
     CIScaffoldTIterator CIs;
     ChunkInstanceT *CI;
-    CDS_COORD_t chunkInstanceMin = (CDS_COORD_t) min(chunkInstance->offsetAEnd.mean,
+    CDS_COORD_t chunkInstanceMin = (CDS_COORD_t) MIN(chunkInstance->offsetAEnd.mean,
                                                      chunkInstance->offsetBEnd.mean);
     InitCIScaffoldTIterator(sgraph, ciScaffold, AEndToBend, FALSE, &CIs);
     while((CI = NextCIScaffoldTIterator(&CIs)) != NULL){
-      CDS_COORD_t CImin = (CDS_COORD_t) min(CI->offsetAEnd.mean,
+      CDS_COORD_t CImin = (CDS_COORD_t) MIN(CI->offsetAEnd.mean,
                                             CI->offsetBEnd.mean);
       if(CImin > chunkInstanceMin) {
 
@@ -590,7 +590,7 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
 
       if(previous && 
 	 MAX(previous->offsetAEnd.variance, previous->offsetBEnd.variance) >
-	 min(chunkInstance->offsetAEnd.variance, chunkInstance->offsetBEnd.variance)){
+	 MIN(chunkInstance->offsetAEnd.variance, chunkInstance->offsetBEnd.variance)){
 	fprintf(stderr,"**** VARIANCES ARE SCREWED UP ****\n");
       }
 
@@ -1848,7 +1848,7 @@ void CheckCIScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
 
       }else{
         // Only update the mean if we are moving along as expected
-        mean = min(chunk->offsetAEnd.mean, chunk->offsetBEnd.mean);
+        mean = MIN(chunk->offsetAEnd.mean, chunk->offsetBEnd.mean);
       }
       numChecked++;
     }
