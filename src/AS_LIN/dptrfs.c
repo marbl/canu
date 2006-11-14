@@ -49,14 +49,14 @@
             The right hand side matrix B.   
 
     LDB     (input) INTEGER   
-            The leading dimension of the array B.  LDB >= max(1,N).   
+            The leading dimension of the array B.  LDB >= MAX(1,N).   
 
     X       (input/output) DOUBLE PRECISION array, dimension (LDX,NRHS)   
             On entry, the solution matrix X, as computed by DPTTRS.   
             On exit, the improved solution matrix X.   
 
     LDX     (input) INTEGER   
-            The leading dimension of the array X.  LDX >= max(1,N).   
+            The leading dimension of the array X.  LDX >= MAX(1,N).   
 
     FERR    (output) DOUBLE PRECISION array, dimension (NRHS)   
             The forward error bound for each solution vector   
@@ -138,9 +138,9 @@
 	*info = -1;
     } else if (*nrhs < 0) {
 	*info = -2;
-    } else if (*ldb < max(1,*n)) {
+    } else if (*ldb < MAX(1,*n)) {
 	*info = -8;
-    } else if (*ldx < max(1,*n)) {
+    } else if (*ldx < MAX(1,*n)) {
 	*info = -10;
     }
     if (*info != 0) {
@@ -215,7 +215,7 @@ L20:
 /*        Compute componentwise relative backward error from formula 
   
 
-          max(i) ( abs(R(i)) / ( abs(A)*abs(X) + abs(B) )(i) )   
+          MAX(i) ( abs(R(i)) / ( abs(A)*abs(X) + abs(B) )(i) )   
 
           where abs(Z) is the componentwise absolute value of the matr
 ix   
@@ -231,12 +231,12 @@ e
 	    if (WORK(i) > safe2) {
 /* Computing MAX */
 		d__2 = s, d__3 = (d__1 = WORK(*n + i), abs(d__1)) / WORK(i);
-		s = max(d__2,d__3);
+		s = MAX(d__2,d__3);
 	    } else {
 /* Computing MAX */
 		d__2 = s, d__3 = ((d__1 = WORK(*n + i), abs(d__1)) + safe1) / 
 			(WORK(i) + safe1);
-		s = max(d__2,d__3);
+		s = MAX(d__2,d__3);
 	    }
 /* L40: */
 	}
@@ -324,7 +324,7 @@ r
 /* L70: */
 	}
 
-/*        Compute norm(inv(A)) = max(x(i)), 1<=i<=n. */
+/*        Compute norm(inv(A)) = MAX(x(i)), 1<=i<=n. */
 
 	ix = idamax_(n, &WORK(1), &c__1);
 	FERR(j) *= (d__1 = WORK(ix), abs(d__1));
@@ -336,7 +336,7 @@ r
 	for (i = 1; i <= *n; ++i) {
 /* Computing MAX */
 	    d__2 = lstres, d__3 = (d__1 = X(i,j), abs(d__1));
-	    lstres = max(d__2,d__3);
+	    lstres = MAX(d__2,d__3);
 /* L80: */
 	}
 	if (lstres != 0.) {

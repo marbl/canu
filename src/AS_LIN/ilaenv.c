@@ -50,7 +50,7 @@ integer ilaenv_(integer *ispec, char *name, char *opts, integer *n1, integer *
   
             = 6: the crossover point for the SVD (when reducing an m by n 
   
-                 matrix to bidiagonal form, if max(m,n)/min(m,n) exceeds 
+                 matrix to bidiagonal form, if MAX(m,n)/min(m,n) exceeds 
   
                  this value, a QR factorization is used first to reduce   
                  the matrix to a triangular form.)   

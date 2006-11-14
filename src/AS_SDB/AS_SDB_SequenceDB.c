@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.8 2006-10-16 03:26:12 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.9 2006-11-14 17:52:18 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -84,7 +84,7 @@ tSequenceDB *CreateSequenceDB(char *path, int initialSize, int force){
  
   sequenceDB->SubStores = CreateVA_PtrT(10);
   AppendPtrT(sequenceDB->SubStores, (const void *)&datafp);
-  size = max(2048,initialSize);
+  size = MAX(2048,initialSize);
   sequenceDB->Unitigs = CreateVA_tMARecord(size);
   sequenceDB->Contigs = CreateVA_tMARecord(size);
   sequenceDB->UnitigStore = CreateMultiAlignStoreT(size);

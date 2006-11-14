@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_iid2cid.c,v 1.5 2005-09-15 15:20:15 eliv Exp $";
+= "$Id: AS_CGB_iid2cid.c,v 1.6 2006-11-14 17:52:14 eliv Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_fom2uom.c
@@ -184,7 +184,7 @@ static void input_mesgs_pp
 	  ungapped_len = gapped_len - sum_of_gaps_left_of[gapped_len];
 	}
 
-	(*Pmax_unitig_cid) = max((*Pmax_unitig_cid),cid);
+	(*Pmax_unitig_cid) = MAX((*Pmax_unitig_cid),cid);
 	SetVA_int32(chunk_length,cid,&ungapped_len);
 	SetVA_uint32(chunk_num_frags,cid,&num_frags);
 
@@ -198,7 +198,7 @@ static void input_mesgs_pp
 	    imp.position.end -= sum_of_gaps_left_of[imp.position.end];
 	  }
 
-	  (*Pmax_frag_iid) = max((*Pmax_frag_iid),iid);
+	  (*Pmax_frag_iid) = MAX((*Pmax_frag_iid),iid);
 	  //fprintf(stderr,"iid=" F_IID " max_frag_iid=" F_IID "\n",iid, (*Pmax_frag_iid));
 	  SetVA_IntMultiPos(imp_from_iid,iid,&imp);
 	  SetVA_IntChunk_ID(cid_from_iid,iid,&cid);

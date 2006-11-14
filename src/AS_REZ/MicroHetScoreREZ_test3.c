@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MicroHetScoreREZ_test3.c,v 1.4 2005-03-22 19:49:25 jason_miller Exp $";
+static char CM_ID[] = "$Id: MicroHetScoreREZ_test3.c,v 1.5 2006-11-14 17:52:18 eliv Exp $";
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -234,11 +234,11 @@ double AS_REZ_expected_savedSteps(int r, double seqErr)
 	    c5=r-c1-c2-c3-c4;
 
 	    /* count the number of steps saved for these conditions */
-	    a=max(c1-1,0);
-	    c=max(c2-1,0);
-	    g=max(c3-1,0);
-	    t=max(c4-1,0);
-	    d=max(c5-1,0);
+	    a=MAX(c1-1,0);
+	    c=MAX(c2-1,0);
+	    g=MAX(c3-1,0);
+	    t=MAX(c4-1,0);
+	    d=MAX(c5-1,0);
 	    saved=a+c+g+t+d-maxfive(a,c,g,t,d);
 
 	    /* saved is the number of steps saved for the condition */

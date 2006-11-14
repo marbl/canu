@@ -288,7 +288,7 @@ int DP_Trim_Vector_AS( InternalScreenItemMesg * isn,
       // complement of 5' end of vector into 5' end of sequence
       TrimFivePrimeComplementFivePrime( &vector, &frag,
                                         variation, min_length );
-      ifg->clear_rng.bgn = max( frag.clear_rng.bgn, temp_bgn_end );
+      ifg->clear_rng.bgn = MAX( frag.clear_rng.bgn, temp_bgn_end );
       break;
     case AS_INSERT_VECTOR:
       // 5' end of vector into 3' end of sequence

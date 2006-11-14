@@ -1553,7 +1553,7 @@ OverlapMesg *AS_ALN_affine_overlap(InternalFragMesg *a, InternalFragMesg *b,
   OverlapMesg *O;
 
   { double my_ld_ratio=.25;
-    O = LD_DP_Compare_AS(a,b,beg,end,opposite,max(MAXDPERATE,erate),thresh,minlen,AS_FIND_AFFINE_ALIGN,where,my_ld_ratio);
+    O = LD_DP_Compare_AS(a,b,beg,end,opposite,MAX(MAXDPERATE,erate),thresh,minlen,AS_FIND_AFFINE_ALIGN,where,my_ld_ratio);
   }
 
   if (O != NULL){

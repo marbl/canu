@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.13 2006-10-03 21:49:53 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.14 2006-11-14 17:52:15 eliv Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -388,7 +388,7 @@ void ProcessUOM(UnitigOverlapMesg *uom_mesg, float transQualityCutoff){
       distance.variance = TANDEM_OVERLAP_VARIANCE;
     }else{
       double rangeVarianceEstimate = (double)(range * range) / (36.0);
-      distance.variance = max(1.0, max(rangeVarianceEstimate, ComputeFudgeVariance(-distance.mean)));
+      distance.variance = MAX(1.0, MAX(rangeVarianceEstimate, ComputeFudgeVariance(-distance.mean)));
     }
     assert(distance.variance > 0.0);
 
@@ -425,14 +425,14 @@ void ProcessUOM(UnitigOverlapMesg *uom_mesg, float transQualityCutoff){
       }
 
       if(aEnd == A_END){
-	chunkA->info.CI.instances.in_line.instance1 = 	max(chunkA->info.CI.instances.in_line.instance1, maxOverlap);
+	chunkA->info.CI.instances.in_line.instance1 = 	MAX(chunkA->info.CI.instances.in_line.instance1, maxOverlap);
       }else{
-	chunkA->info.CI.instances.in_line.instance2 = 	max(chunkA->info.CI.instances.in_line.instance2, maxOverlap);
+	chunkA->info.CI.instances.in_line.instance2 = 	MAX(chunkA->info.CI.instances.in_line.instance2, maxOverlap);
       }
       if(bEnd == A_END){
-	chunkB->info.CI.instances.in_line.instance1 = 	max(chunkB->info.CI.instances.in_line.instance1, maxOverlap);
+	chunkB->info.CI.instances.in_line.instance1 = 	MAX(chunkB->info.CI.instances.in_line.instance1, maxOverlap);
       }else{
-	chunkB->info.CI.instances.in_line.instance2 = 	max(chunkB->info.CI.instances.in_line.instance2, maxOverlap);
+	chunkB->info.CI.instances.in_line.instance2 = 	MAX(chunkB->info.CI.instances.in_line.instance2, maxOverlap);
       }
 
     }
@@ -594,7 +594,7 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
 #endif
   CI.id = ium_mesg->iaccession;
   CI.bpLength.mean = length;
-  CI.bpLength.variance = max(1.0,ComputeFudgeVariance(CI.bpLength.mean));
+  CI.bpLength.variance = MAX(1.0,ComputeFudgeVariance(CI.bpLength.mean));
   CI.edgeHead = NULLINDEX;
   CI.microhetScore = NULLINDEX;
   CI.setID = NULLINDEX;
@@ -767,7 +767,7 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
 	  
       for(cfr = 0; cfr < ium_mesg->num_frags; cfr++){
 	IntMultiPos *cfr_mesg = ium_mesg->f_list + cfr;
-	CDS_COORD_t end = max( cfr_mesg->position.end, cfr_mesg->position.bgn);
+	CDS_COORD_t end = MAX( cfr_mesg->position.end, cfr_mesg->position.bgn);
 	CDS_COORD_t beg = min( cfr_mesg->position.end, cfr_mesg->position.bgn);
 	    
 	if(minOffset > beg){

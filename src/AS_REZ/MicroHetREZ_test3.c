@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MicroHetREZ_test3.c,v 1.4 2005-03-22 19:49:25 jason_miller Exp $";
+static char CM_ID[] = "$Id: MicroHetREZ_test3.c,v 1.5 2006-11-14 17:52:18 eliv Exp $";
 
 #include "MicroHetREZ_test3.h"
 #include "MicroHetScoreREZ_test3.h"
@@ -976,11 +976,11 @@ MPSTAT AS_REZ_MP_score_alignment(Alignment_t *alignment,double erate, int s, int
     D=alignment->countDash[col];
     n=A+C+G+T+D;
     if(n<4)continue; /* No way to save a step with < 4 sequences */
-    a=max(A-1,0);
-    c=max(C-1,0);
-    g=max(G-1,0);
-    t=max(T-1,0);
-    d=max(D-1,0);
+    a=MAX(A-1,0);
+    c=MAX(C-1,0);
+    g=MAX(G-1,0);
+    t=MAX(T-1,0);
+    d=MAX(D-1,0);
     result.Obs+=a+c+g+t+d-maxfive(a,c,g,t,d);
 #define USESNPMODEL
 #ifdef USESNPMODEL

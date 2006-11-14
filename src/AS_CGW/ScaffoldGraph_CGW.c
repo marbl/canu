@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.12 2006-09-25 20:31:53 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.13 2006-11-14 17:52:15 eliv Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -634,8 +634,8 @@ void ScaffoldSanity(CIScaffoldT *scaffold, ScaffoldGraphT *graph){
   while(NULL != (CI = NextCIScaffoldTIterator(&CIs))){
     scratch = min(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
     scaffoldMinPos = min(scaffoldMinPos, scratch);
-    scratch = max(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
-    scaffoldMaxPos = max(scaffoldMaxPos, scratch);
+    scratch = MAX(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
+    scaffoldMaxPos = MAX(scaffoldMaxPos, scratch);
   }
   
   if(scaffold->bpLength.mean < 0 ||scaffold->bpLength.variance < 0 ){

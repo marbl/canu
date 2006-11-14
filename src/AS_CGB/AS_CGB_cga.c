@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_cga.c,v 1.7 2006-09-26 22:21:13 brianwalenz Exp $";
+= "$Id: AS_CGB_cga.c,v 1.8 2006-11-14 17:52:14 eliv Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_cga.c
@@ -770,7 +770,7 @@ static void annotate_the_chunks_with_coordinate_info
 
       if( (ivote_repeat_essential == 0) &&
 	  ((min(atip,btip) != lowest_genome_coordinate) ||
-	   (max(atip,btip) != highest_genome_coordinate))) {
+	   (MAX(atip,btip) != highest_genome_coordinate))) {
 	fprintf(stderr,"CGA simulator coordinate problem with ichunk=" F_IID "\n",ichunk);
 	fprintf(stderr,"    atip=" BPFORMAT ",btip=" BPFORMAT "\n", atip, btip);
 	fprintf(stderr,"    lowest_genome_coordinate=" BPFORMAT ",highest_genome_coordinate=" BPFORMAT "\n",
@@ -3309,7 +3309,7 @@ void chunk_graph_analysis
           {
             // Plot unitigs with sum of overhangs length instead of maximal length.
             BPTYPE slop_a = bp_length - (GetVA_AChunkMesg(thechunks,ichunk)->rho);
-            BPTYPE slop_b = max(slop_a,0);
+            BPTYPE slop_b = MAX(slop_a,0);
             BPTYPE slop_l = slop_b / 2;
             BPTYPE slop_r = slop_b - slop_l;
             

@@ -828,7 +828,7 @@ void PrintSurrogateSequenceCoordinates(AssemblyStore * asmStore, FILE * fo)
         assert(contigIns.containerIndex == i);
         
         start = min(contigIns.pos.bgn, contigIns.pos.end);
-        end = max(contigIns.pos.bgn, contigIns.pos.end);
+        end = MAX(contigIns.pos.bgn, contigIns.pos.end);
         for(k = start; k < end; k++)
               nonU[k] = 0;
       }
@@ -1021,7 +1021,7 @@ int AddSCF2Store(AssemblyStore * asmStore, SnapScaffoldMesg * ssm)
 
     /*
     fprintf(stdout, F_UID " " F_COORD,
-            scf.uid, max(cco.scaffoldPos.bgn, cco.scaffoldPos.end));
+            scf.uid, MAX(cco.scaffoldPos.bgn, cco.scaffoldPos.end));
     */
   }
   return 0;
@@ -2352,7 +2352,7 @@ void PrintFastaFragmentCoordinates(AssemblyStore * asmStore, FILE * fo)
       {
         delta = min(cco.scaffoldPos.bgn, cco.scaffoldPos.end);
         delta = delta - lastCoord;
-        delta = max(20, delta);
+        delta = MAX(20, delta);
         offset += delta;
       }
       

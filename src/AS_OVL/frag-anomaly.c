@@ -38,11 +38,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: frag-anomaly.c,v 1.6 2006-09-26 21:07:45 brianwalenz Exp $
- * $Revision: 1.6 $
+ * $Id: frag-anomaly.c,v 1.7 2006-11-14 17:52:17 eliv Exp $
+ * $Revision: 1.7 $
 */
 
-static char fileID[] = "$Id: frag-anomaly.c,v 1.6 2006-09-26 21:07:45 brianwalenz Exp $";
+static char fileID[] = "$Id: frag-anomaly.c,v 1.7 2006-11-14 17:52:17 eliv Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -266,7 +266,7 @@ int main  (int argc, char * argv [])
                Add_Entry (Frag + a_frag, a_end, orient,
                           Frag [a_frag] . len - ovl_mesg -> ahg, b_frag);
            Add_Entry (Frag + b_frag, b_end, orient,
-                      Frag [b_frag] . len - max (0, ovl_mesg -> bhg), a_frag);
+                      Frag [b_frag] . len - MAX (0, ovl_mesg -> bhg), a_frag);
 
            olap_ct ++;
            if  (show_progress && olap_ct % 10000 == 0)
@@ -531,7 +531,7 @@ printf ("\n olap1 = %d %c %c %d  olap2 = %d %c %c %d",
            sprintf (label_line, "%s %s %s", argv [0], infile_name,
                     argv [optind]);
            AppendAuditLine_AS (adt_mesg, & audit_line, time (0), "frag-anomaly screen",
-                               "$Revision: 1.6 $", label_line);
+                               "$Revision: 1.7 $", label_line);
            write_msg_fn (outfile, gmesg);
            break;
           }

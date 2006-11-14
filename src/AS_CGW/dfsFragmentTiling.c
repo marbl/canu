@@ -190,7 +190,7 @@ int usefulOverlap(  Long_Olap_Data_t olap, int id, int offAEnd, overlapFilters f
   if( filter.skipContaining && olap.a_hang < 0 && olap.b_hang > 0)return 0;
 
   // exclude too-short overlaps
-  if(get_clr_len((uint)id)-max(0,olap.a_hang)+min(0,olap.b_hang) < filter.minlen)return 0;
+  if(get_clr_len((uint)id)-MAX(0,olap.a_hang)+min(0,olap.b_hang) < filter.minlen)return 0;
 
   // if it's off the correct end ...
   if( (offAEnd ? (olap . a_hang < 0) : (olap.b_hang > 0))){
@@ -204,11 +204,11 @@ int extra_height(int id, int offAEnd, Long_Olap_Data_t olap){
   if(offAEnd){
     // the extra is the part the B end of the top fragment sticks out -- which is
     //   > 0 only if the bhang is negative
-    return max(0,-olap.b_hang);
+    return MAX(0,-olap.b_hang);
   }
 
   // otherwise, the extra part is the A end stick out: the ahang
-  return max(0,olap.a_hang);
+  return MAX(0,olap.a_hang);
 }
 
 

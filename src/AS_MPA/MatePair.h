@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: MatePair.h,v 1.6 2005-09-21 20:13:07 catmandew Exp $ */
+/* $Id: MatePair.h,v 1.7 2006-11-14 17:52:17 eliv Exp $ */
 #ifndef MATEPAIR_H
 #define MATEPAIR_H
 
@@ -182,7 +182,7 @@ public:
                        UNIT_TYPE & leftI, UNIT_TYPE & rightI) const
     {
       if(!intersects(left, right)) return false;
-      leftI = max(left, getLeftCoord());
+      leftI = MAX(left, getLeftCoord());
       rightI = min(right, getRightCoord());
       return true;
     }

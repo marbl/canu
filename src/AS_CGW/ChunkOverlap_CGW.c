@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.7 2006-09-21 21:34:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.8 2006-11-14 17:52:14 eliv Exp $";
 
 #include "AS_global.h"
 #include <assert.h>
@@ -534,8 +534,8 @@ void CollectChunkOverlap(GraphCGW_T *graph,
   CDS_COORD_t minOverlap,maxOverlap;
 
   delta = (CDS_COORD_t)(3.0 * deltaOverlap);
-  delta = max(delta, 10);
-  minOverlap = max(meanOverlap - delta, 0);
+  delta = MAX(delta, 10);
+  minOverlap = MAX(meanOverlap - delta, 0);
   maxOverlap = meanOverlap + delta;
   
   //  assert(maxOverlap - minOverlap >= 20);
@@ -602,7 +602,7 @@ void CollectChunkOverlap(GraphCGW_T *graph,
 	olap->computed = FALSE; // Recompute
 	olap->hasBayesianQuality = FALSE;
 	olap->minOverlap = min(minOverlap, olap->minOverlap);
-	olap->maxOverlap = max(maxOverlap, olap->maxOverlap);
+	olap->maxOverlap = MAX(maxOverlap, olap->maxOverlap);
       }
 
 
@@ -628,7 +628,7 @@ void CollectChunkOverlap(GraphCGW_T *graph,
 
       }
       olap->minOverlap = min(minOverlap, olap->minOverlap);
-      olap->maxOverlap = max(maxOverlap, olap->maxOverlap);
+      olap->maxOverlap = MAX(maxOverlap, olap->maxOverlap);
     }
 #ifdef DEBUG_CHUNKOVERLAP
     fprintf(GlobalData->stderrc,"* Finished updating! [" F_COORD "," F_COORD "] %s\n", 
@@ -1019,7 +1019,7 @@ CDS_CID_t InsertComputedOverlapEdge(GraphCGW_T *graph,
   int verbose = FALSE;
 
   overlap.mean   = -olap->overlap;
-  overlap.variance = max(1.0, ComputeFudgeVariance((double)olap->overlap));
+  overlap.variance = MAX(1.0, ComputeFudgeVariance((double)olap->overlap));
   fudge = sqrt(overlap.variance);
 
   isDoveTail = !(olap->AContainsB || olap->BContainsA);
@@ -1365,7 +1365,7 @@ OverlapMesg *ComputeCanonicalOverlapWithTrace(GraphCGW_T *graph,
 	    
 	    if( (beg == minBeg) && (end == maxEnd) )
 	      goOn = FALSE;
-	    beg = max(minBeg,beg-BEGENDSLOP);
+	    beg = MAX(minBeg,beg-BEGENDSLOP);
 	    end = min(maxEnd,end+BEGENDSLOP);
 	  }
 	
@@ -1936,7 +1936,7 @@ void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
                 CDS_CID_t smaller, bigger;
 		  
                 smaller = min( olap->spec.cidA, olap->spec.cidB);
-                bigger = max( olap->spec.cidA, olap->spec.cidB);
+                bigger = MAX( olap->spec.cidA, olap->spec.cidB);
 		  
                 inSection = (smaller < sectionOuterMax && smaller >= sectionOuterMin) &&
                   (bigger < sectionInnerMax && bigger >= sectionInnerMin);
@@ -2197,14 +2197,14 @@ BranchPointResult OverlapChunksWithBPDetection(GraphCGW_T *graph,
     singleCoverageA.bgn = 0;
     singleCoverageA.end = min(500, lengthA);
   }else{
-    singleCoverageA.bgn = max(0,lengthA - 500);
+    singleCoverageA.bgn = MAX(0,lengthA - 500);
     singleCoverageA.end = lengthA;
   }
   if(endB == A_END){
     singleCoverageB.bgn = 0;
     singleCoverageB.end = min(500, lengthB);
   }else{
-    singleCoverageB.bgn = max(0,lengthB - 500);
+    singleCoverageB.bgn = MAX(0,lengthB - 500);
     singleCoverageB.end = lengthB;
   }
   
@@ -2220,7 +2220,7 @@ BranchPointResult OverlapChunksWithBPDetection(GraphCGW_T *graph,
   fflush(NULL);
   olap.overlap = 0;
   olap.minOverlap = minOverlap;
-  olap.maxOverlap = max(multiLengthA, multiLengthB);
+  olap.maxOverlap = MAX(multiLengthA, multiLengthB);
 
   /* Set up the beg,end, opposite arguments for the call to dp_compare */
   switch(olap.spec.orientation){
@@ -2267,7 +2267,7 @@ BranchPointResult OverlapChunksWithBPDetection(GraphCGW_T *graph,
   singleLengthB = singleCoverageB.end - singleCoverageB.bgn;
   olap.overlap = 0;
   olap.minOverlap = minOverlap;
-  olap.maxOverlap = max(singleCoverageA.end - singleCoverageA.bgn, 
+  olap.maxOverlap = MAX(singleCoverageA.end - singleCoverageA.bgn, 
 			singleCoverageB.end - singleCoverageB.bgn);
 
   /* Set up the beg,end, opposite arguments for the call to dp_compare */

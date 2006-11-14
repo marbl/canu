@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.16 2006-09-25 20:31:53 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.17 2006-11-14 17:52:14 eliv Exp $";
 
 #undef DEBUG_CHECKFORCTGS
 #undef DEBUG_DETAILED
@@ -115,7 +115,7 @@ void  PropagateContainmentOverlapsToNewContig(ContigT *newContig,
          (otherContig->id == edge->idB && edge->flags.bits.bContainsA))
         continue;
 
-      distance.variance = max(edge->distance.variance, 10.0);
+      distance.variance = MAX(edge->distance.variance, 10.0);
 
       if(verbose){
         fprintf(GlobalData->stderrc,"* Contain:  pos " F_CID "  flip:%d edgeOrient:%c beg:" F_COORD " end:" F_COORD " newContigLength:%g\n",
@@ -409,7 +409,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
       CDS_COORD_t overlap;
       double maxDistance;
 
-      distance1.variance = max(edge->distance.variance, 10.0);
+      distance1.variance = MAX(edge->distance.variance, 10.0);
       distance2.variance = distance1.variance;
       if(!isOverlapEdge(edge) ||
 	 edge->flags.bits.aContainsB ||
@@ -1984,7 +1984,7 @@ void DumpMultiAlignT(FILE * fp, ScaffoldGraphT * graph,
             iup->position.bgn, iup->position.end,
             iup->delta_length);
     minPos = min(minPos, min(iup->position.bgn, iup->position.end));
-    maxPos = max(maxPos, max(iup->position.bgn, iup->position.end));
+    maxPos = MAX(maxPos, MAX(iup->position.bgn, iup->position.end));
   }
   fprintf(fp, "minPos = " F_COORD ", maxPos = " F_COORD "\n", minPos, maxPos);
   
@@ -2038,7 +2038,7 @@ void DumpMultiAlignT(FILE * fp, ScaffoldGraphT * graph,
     fprintf(fp, " utg:" F_CID ", pos:(" F_COORD "," F_COORD ")\n", frag->cid,
             mp_i->position.bgn, mp_i->position.end);
     minPos = min(minPos, min(mp_i->position.bgn, mp_i->position.end));
-    maxPos = max(maxPos, max(mp_i->position.bgn, mp_i->position.end));
+    maxPos = MAX(maxPos, MAX(mp_i->position.bgn, mp_i->position.end));
   }
   fprintf(fp, "minPos = " F_COORD ", maxPos = " F_COORD "\n", minPos, maxPos);
 }
@@ -2444,7 +2444,7 @@ void ContigContainment(CIScaffoldT  *scaffold,
 	
   // if still no overlap found, try maxing out hangs
   if ((contigOverlap == NULL) && (tryHarder)) {
-    CDS_COORD_t maxLength = max(leftContig->bpLength.mean, rightContig->bpLength.mean);
+    CDS_COORD_t maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
 	  
     fprintf(stderr, "no overlap found between " F_CID " and " F_CID ", retrying with max AHANGSLOP\n",
             leftContig->id, rightContig->id);
@@ -2456,7 +2456,7 @@ void ContigContainment(CIScaffoldT  *scaffold,
   
   // if still no overlap found, try flipping orientation and maxing out hangs
   if ((contigOverlap == NULL) && (tryHarder)) {
-    CDS_COORD_t maxLength = max(leftContig->bpLength.mean, rightContig->bpLength.mean);
+    CDS_COORD_t maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
 
     fprintf(stderr, "no overlap found between " F_CID " and " F_CID ", retrying with flipped orientation and max AHANGSLOP\n",
             leftContig->id, rightContig->id);
@@ -2483,7 +2483,7 @@ void ContigContainment(CIScaffoldT  *scaffold,
   //  - call OverlapContigs with left and right swapped
   //
   if ((contigOverlap == NULL) && (tryHarder)) {
-    CDS_COORD_t maxLength = max(leftContig->bpLength.mean, rightContig->bpLength.mean);
+    CDS_COORD_t maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
 
     fprintf(stderr,"trying to swap contigs ... " F_CID " and " F_CID " with overlapOrientation %c minAhang: " F_COORD ", maxAhang: " F_COORD "\n",
             rightContig->id,leftContig->id,
@@ -2501,7 +2501,7 @@ void ContigContainment(CIScaffoldT  *scaffold,
   }
 
   if ((contigOverlap == NULL) && (tryHarder)) {
-    CDS_COORD_t maxLength = max(leftContig->bpLength.mean, rightContig->bpLength.mean);
+    CDS_COORD_t maxLength = MAX(leftContig->bpLength.mean, rightContig->bpLength.mean);
 
     fprintf(stderr,"trying swapped and inverted contigs ... " F_CID " and " F_CID " with overlapOrientation %c minAhang: " F_COORD ", maxAhang: " F_COORD "\n",
             rightContig->id,leftContig->id,

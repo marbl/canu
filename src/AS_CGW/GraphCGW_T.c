@@ -23,7 +23,7 @@
   -o /work/assembly/rbolanos/IBM_PORT_CDS/ibm_migration_work_dir/cds/AS/obj/GraphCGW_T.o GraphCGW_T.c
 */
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.21 2006-09-21 21:34:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.22 2006-11-14 17:52:15 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -82,8 +82,8 @@ GraphCGW_T *CreateGraphCGW(GraphType type,
 
   InitializeGraph(graph);
   graph->type = type;
-  graph->nodes = CreateVA_NodeCGW_T((size_t) max(1024, numNodes));
-  graph->edges = CreateVA_EdgeCGW_T((size_t) max(1024, numNodes));
+  graph->nodes = CreateVA_NodeCGW_T((size_t) MAX(1024, numNodes));
+  graph->edges = CreateVA_EdgeCGW_T((size_t) MAX(1024, numNodes));
 #ifdef USE_UNITIG_FILE
   graph->chunkFile =   CreateUnitigFile();
   assert(graph->chunkFile);
@@ -1554,7 +1554,7 @@ CDS_CID_t AddGraphEdge(GraphCGW_T *graph,
     int isProbablyBogus = FALSE;
     int bogus = (fragA->flags.bits.hasFalseMate ||  fragB->flags.bits.hasFalseMate);
 #ifdef DEBUG_CIEDGES
-    CDS_COORD_t distance = max(fragA->aEndCoord, fragB->aEndCoord) -
+    CDS_COORD_t distance = MAX(fragA->aEndCoord, fragB->aEndCoord) -
       min(fragA->aEndCoord, fragB->aEndCoord);
 #endif
     
@@ -2155,7 +2155,7 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
   /* Determine extremal fragments so we can label the fragments */
   for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++){
     IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
-    CDS_COORD_t end = max( mp->position.end, mp->position.bgn);
+    CDS_COORD_t end = MAX( mp->position.end, mp->position.bgn);
     CDS_COORD_t beg = min( mp->position.end, mp->position.bgn);
 
     if(minOffset > beg){
@@ -4693,10 +4693,10 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
       lowerSigma = median - matePairs[ (int) ((0.5 - 0.34) * GetNumCDS_COORD_ts( dptr->samples ))].samples;
       upperSigma = - median + matePairs[ (int) ((0.5 + 0.34) * GetNumCDS_COORD_ts( dptr->samples ))].samples;	
     
-      newLower = median - 5 * max (lowerSigma, upperSigma);
+      newLower = median - 5 * MAX (lowerSigma, upperSigma);
       if ( newLower < 0 )
         newLower = 0;
-      newUpper = median + 5 * max (lowerSigma, upperSigma);
+      newUpper = median + 5 * MAX (lowerSigma, upperSigma);
     
       fprintf( stderr, "\nlib " F_CID ", numSamples: %d, orig mean, sig: ( %.2f, %.2f), calc mean, sig: (%.2f, %.2f) median: " F_COORD "\n",
                i, dptr->numSamples, dptr->mean, dptr->stddev, dptr->mu/dptr->numSamples, 
@@ -4927,7 +4927,7 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
           CDS_COORD_t sample = *samplep;
           int32 binNum = ((float)sample - (float)dist->min)/dist->bsize;
           binNum = min(binNum, dist->bnum -1);
-          binNum = max(binNum,0); // sample can be negative
+          binNum = MAX(binNum,0); // sample can be negative
           dist->histogram[binNum]++;
         }	  
     }
@@ -5077,7 +5077,7 @@ int32 GetGappedMultipleCoverageInterval(GraphCGW_T *graph,
     interval->end = range.end = min(500,length);
     interval->bgn = range.bgn = 0;
   }else{
-    interval->bgn = range.bgn = max(0, length - 500);
+    interval->bgn = range.bgn = MAX(0, length - 500);
     interval->end = range.end = length;
   }
   fprintf(GlobalData->stderrc,"Calling GetCoverageInMultiAlignT end %c range [" F_COORD "," F_COORD "] of [0," F_COORD "]\n",
@@ -5156,7 +5156,7 @@ void   DumpNodeEndUngappedToFasta(FILE *fastaFile,
     interval.bgn = 0;
     interval.end = min(500, length);
   }else{
-    interval.bgn = max(0,length - 500);
+    interval.bgn = MAX(0,length - 500);
     interval.end = length;
   }
   sprintf(buffer,

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_FGB_io.c,v 1.8 2006-06-12 19:49:22 brianwalenz Exp $";
+= "$Id: AS_FGB_io.c,v 1.9 2006-11-14 17:52:14 eliv Exp $";
 /* *******************************************************************
  *
  * Module: AS_FGB_io.c
@@ -150,7 +150,7 @@ static void add_OFGMesg_to_graph
       (*Pmax_frag_iid) = iid;
     } else {
       (*Pmin_frag_iid) = min((*Pmin_frag_iid),iid);
-      (*Pmax_frag_iid) = max((*Pmax_frag_iid),iid);
+      (*Pmax_frag_iid) = MAX((*Pmax_frag_iid),iid);
     }
     
     
@@ -855,7 +855,7 @@ static void Convert_OverlapMesg_to_Aedge
     (ovl_mesg->orientation == AS_INNIE) ||
     (ovl_mesg->orientation == AS_OUTTIE);
   
-  //const int iamn = max(0,ovl_mesg->min_offset);
+  //const int iamn = MAX(0,ovl_mesg->min_offset);
   //const int iamx = ovl_mesg->max_offset;
   // This is an approximation.
   //const int ibmn = (ibhg - (iamx-iahg));
@@ -1548,14 +1548,14 @@ void input_messages_from_a_file
 
   if(nfrag_old > 0){
     const IntFragment_ID iid = get_iid_fragment(frags,0);
-    (*max_frag_iid) = max((*max_frag_iid),iid);
+    (*max_frag_iid) = MAX((*max_frag_iid),iid);
     (*min_frag_iid) = min((*min_frag_iid),iid);
   }
   if(nfrag_old > 1) {
     IntFragment_ID vid = 0;
     for(vid=1;vid<nfrag_old;vid++) {
       const IntFragment_ID iid = get_iid_fragment(frags,vid);
-      (*max_frag_iid) = max((*max_frag_iid),iid);
+      (*max_frag_iid) = MAX((*max_frag_iid),iid);
       (*min_frag_iid) = min((*min_frag_iid),iid);
     }
   }

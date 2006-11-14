@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: exploreMates.c,v 1.6 2006-09-21 21:34:01 brianwalenz Exp $";
+static char CM_ID[] = "$Id: exploreMates.c,v 1.7 2006-11-14 17:52:16 eliv Exp $";
 
 
 /*********************************************************************
@@ -149,7 +149,7 @@ void DumpScaffoldGapSizes(CIScaffoldT * scaffold, FILE * fp)
       if(lastID != -1)
         fprintf(fp, F_CID " " F_CID " " F_CID " %.f\n",
                 scaffold->id, lastID, contig->id, thisMin - lastMax);
-      lastMax = max(contig->offsetAEnd.mean, contig->offsetBEnd.mean);
+      lastMax = MAX(contig->offsetAEnd.mean, contig->offsetBEnd.mean);
       lastID = contig->id;
     }
 }

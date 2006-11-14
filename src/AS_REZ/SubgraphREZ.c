@@ -34,7 +34,7 @@
  **********************************************************************/
 
 
-static char fileID[] = "$Id: SubgraphREZ.c,v 1.5 2006-06-14 19:57:23 brianwalenz Exp $";
+static char fileID[] = "$Id: SubgraphREZ.c,v 1.6 2006-11-14 17:52:18 eliv Exp $";
 
 
 #include <stdio.h>
@@ -929,8 +929,8 @@ void Print_Subgraph_Cam(chunk_subgraph * f,
   assert(rchunk != NULL);
   low = min(min(lchunk->aEndCoord, lchunk->bEndCoord),
 			min(rchunk->aEndCoord, rchunk->bEndCoord));
-  high = max(max(lchunk->aEndCoord, lchunk->bEndCoord),
-			 max(rchunk->aEndCoord, rchunk->bEndCoord));
+  high = MAX(MAX(lchunk->aEndCoord, lchunk->bEndCoord),
+			 MAX(rchunk->aEndCoord, rchunk->bEndCoord));
   
   //
   // open the cam file
@@ -1144,7 +1144,7 @@ void Print_Subgraph_Calc_Cam(chunk_subgraph * f,
 
   // show the original gap 
   cid = 2147483647;
-  min = max(lchunk->offsetAEnd.mean, lchunk->offsetBEnd.mean);
+  min = MAX(lchunk->offsetAEnd.mean, lchunk->offsetBEnd.mean);
   color = 6;
   max = min + original_gap->mean;
   strcpy(unique, "gap");
@@ -1165,7 +1165,7 @@ void Print_Subgraph_Calc_Cam(chunk_subgraph * f,
   fprintf(walker_cam_file,
 		  "%d: %d A%d %d # %s %s chunk %d scaff_id %d\n",
 		  cid,
-		  (int) max(0.0, min - 3.0 * sqrt(original_gap->variance)),
+		  (int) MAX(0.0, min - 3.0 * sqrt(original_gap->variance)),
 		  color,
 		  (int) (max + 3.0 * sqrt(original_gap->variance)),
 		  unique,
@@ -1515,7 +1515,7 @@ chunk_subgraph * Subgraph_Union(chunk_subgraph * s1,
   // allocate the subgraph and the table
   //
   s->size = s1->size + s2->size;
-  s->max = max(s1->max, s2->max);
+  s->max = MAX(s1->max, s2->max);
   s->table = (chunk_subgraph_node * *)safe_calloc(s->max,
 												  sizeof(chunk_subgraph_node *));
   s->node = (chunk_subgraph_node *)safe_calloc(s->size,

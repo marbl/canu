@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_heap.c,v 1.4 2005-03-22 19:49:29 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_UTL_heap.c,v 1.5 2006-11-14 17:52:18 eliv Exp $";
 
 /*********************************************************************/
 // headers
@@ -113,7 +113,7 @@ int GrowMinGenericHeap( GenericHeapp heap, uint32 num_items )
 {
   // allocate an array & tack it onto the list of heap arrays
   heap->current->next =
-    AllocateGenericArray( max( heap->first_num_items / HEAP_FACTOR,
+    AllocateGenericArray( MAX( heap->first_num_items / HEAP_FACTOR,
                                num_items ), heap->item_size );
   if( heap->current->next == (GenericArrayp) NULL )
   {

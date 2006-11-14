@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_branchpts.c,v 1.5 2006-09-26 22:21:13 brianwalenz Exp $";
+= "$Id: AS_CGB_branchpts.c,v 1.6 2006-11-14 17:52:14 eliv Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_branchpts.c
@@ -250,7 +250,7 @@ static int gang_join
 
   if( ia == ib ) {
     bgang->min_offset = min(bgang->min_offset,new_offset);
-    bgang->max_offset = max(bgang->max_offset,new_offset);
+    bgang->max_offset = MAX(bgang->max_offset,new_offset);
     return 0;
   }
 
@@ -295,7 +295,7 @@ static int gang_join
       y_max = new_offset + agang->max_offset;
 
       bgang->min_offset = min(bgang->min_offset,y_min);
-      bgang->max_offset = max(bgang->max_offset,y_max);
+      bgang->max_offset = MAX(bgang->max_offset,y_max);
 
       iret = 0;
     } else { /* Merge the two sets */

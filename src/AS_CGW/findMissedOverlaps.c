@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: findMissedOverlaps.c,v 1.6 2006-09-21 21:34:01 brianwalenz Exp $";
+static char CM_ID[] = "$Id: findMissedOverlaps.c,v 1.7 2006-11-14 17:52:16 eliv Exp $";
 
 
 /*********************************************************************/
@@ -170,7 +170,7 @@ int evalGap( CDS_CID_t sid,
   beg        = min(lLen,lLen+mean-NUM_STDDEV_CUTOFF*stddev);
   end        = min(lLen,lLen+mean+NUM_STDDEV_CUTOFF*stddev);
 
-  widebeg = max(-rLen,beg-10000);
+  widebeg = MAX(-rLen,beg-10000);
   wideend = min(lLen,end+10000);
 
 

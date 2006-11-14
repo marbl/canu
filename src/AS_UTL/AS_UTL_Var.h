@@ -102,7 +102,7 @@ static VarArrayType Init_VA
   va.Elements = Elements;
   va.sizeofElement = sizeofElement;
   va.numElements = numElements;
-  va.allocatedElements = max(allocatedElements,numElements);
+  va.allocatedElements = MAX(allocatedElements,numElements);
   strncpy(va.typeofElement,typeofElement,VA_TYPENAMELEN);
   /* Now make sure that the character string is zero terminated. */
   assert(VA_TYPENAMELEN > 0);

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_global.h,v 1.2 2006-10-08 09:00:23 brianwalenz Exp $	 */
+/* 	$Id: AS_global.h,v 1.3 2006-11-14 17:52:13 eliv Exp $	 */
 
 /* This is the global include file that all C files in the AS subsystem should
    include.
@@ -58,9 +58,10 @@
 #ifndef min
   #define min(a,b)		( ((a) < (b)) ? (a) : (b) )
 #endif
-#ifndef max
-  #define max(a,b)		( ((a) > (b)) ? (a) : (b) )
+#ifndef MAX
+  #define MAX(a,b)		( ((a) > (b)) ? (a) : (b) )
 #endif
+
 
 #ifdef __cplusplus
   #include <cstdlib>
@@ -403,15 +404,6 @@ typedef cds_int32  CDS_COORD_t;
 #define ONE_MINUS       (1.0+ZERO_MINUS)            
 #define INT_EQ_DBL(I,D) (fabs((double)(I)-(D)) < 16.0*DBL_EPSILON  )
 #define DBL_EQ_DBL(A,B) (fabs((A)-(B))<16.0*DBL_EPSILON)
-
-// common parameters for calling BPnt_Seq_Comp_AS in AS_CGB & AS_URT
-
-#ifndef max
-# define max(a,b)		( ((a) > (b)) ? (a) : (b) )
-#endif
-#ifndef min
-# define min(a,b)		( ((a) < (b)) ? (a) : (b) )
-#endif
 
 // cgw and cns use NULLINDEX for a NULL index value
 #define NULLINDEX (-1)

@@ -116,9 +116,9 @@
   
              in the calling (sub) program. When  TRANSA = 'N' or 'n' then 
   
-             LDA must be at least  max( 1, m ), otherwise  LDA must be at 
+             LDA must be at least  MAX( 1, m ), otherwise  LDA must be at 
   
-             least  max( 1, k ).   
+             least  MAX( 1, k ).   
              Unchanged on exit.   
 
     B      - DOUBLE PRECISION array of DIMENSION ( LDB, kb ), where kb is 
@@ -138,9 +138,9 @@
   
              in the calling (sub) program. When  TRANSB = 'N' or 'n' then 
   
-             LDB must be at least  max( 1, k ), otherwise  LDB must be at 
+             LDB must be at least  MAX( 1, k ), otherwise  LDB must be at 
   
-             least  max( 1, n ).   
+             least  MAX( 1, n ).   
              Unchanged on exit.   
 
     BETA   - DOUBLE PRECISION.   
@@ -164,7 +164,7 @@
   
              in  the  calling  (sub)  program.   LDC  must  be  at  least 
   
-             max( 1, m ).   
+             MAX( 1, m ).   
              Unchanged on exit.   
 
 
@@ -222,11 +222,11 @@
 	info = 4;
     } else if (*k < 0) {
 	info = 5;
-    } else if (*lda < max(1,nrowa)) {
+    } else if (*lda < MAX(1,nrowa)) {
 	info = 8;
-    } else if (*ldb < max(1,nrowb)) {
+    } else if (*ldb < MAX(1,nrowb)) {
 	info = 10;
-    } else if (*ldc < max(1,*m)) {
+    } else if (*ldc < MAX(1,*m)) {
 	info = 13;
     }
     if (info != 0) {

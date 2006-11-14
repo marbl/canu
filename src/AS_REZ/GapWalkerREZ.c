@@ -39,7 +39,7 @@
  **********************************************************************/
 
 
-static char fileID[] = "$Id: GapWalkerREZ.c,v 1.5 2006-06-14 19:57:23 brianwalenz Exp $";
+static char fileID[] = "$Id: GapWalkerREZ.c,v 1.6 2006-11-14 17:52:17 eliv Exp $";
 
 
 #include <stdio.h>
@@ -186,7 +186,7 @@ float Edge_Quality_GW(CIEdgeT * edge, CDS_CID_t cid) {
   }
 # endif
 
-  return max(0.0, 50.0 - val);
+  return MAX(0.0, 50.0 - val);
 }
 
 
@@ -694,7 +694,7 @@ LengthT Compute_Gap_Length(ChunkInstanceT * lchunk,
 	    pos = GetBendUnitigPos(lma);
 	    fprintf(gwlogfp,"\nRightmost Unitig %d with position (%d,%d)\n",pos->ident,pos->position.bgn,pos->position.end);
 	    fprintf(gwlogfp,"\nLast 1000 bps of consensus and quality of the B end of lchunk %d\n",lchunk->id);
-	    interval.bgn = max(0,ullength - 1000);
+	    interval.bgn = MAX(0,ullength - 1000);
 	    interval.end = ullength;
 	    GetMultiAlignUngappedConsensusFromInterval(lma,interval,consensus,quality);
 	    fprintf(gwlogfp,"Consensus \n%s\n",Getchar(consensus,0));
@@ -750,7 +750,7 @@ LengthT Compute_Gap_Length(ChunkInstanceT * lchunk,
 	    pos = GetBendUnitigPos(rma);
 	    fprintf(gwlogfp,"\nRightmost Unitig %d with position (%d,%d)\n",pos->ident,pos->position.bgn,pos->position.end);
 	    fprintf(gwlogfp,"\nLast 1000 bps of consensus and quality of the B end of rchunk %d\n",rchunk->id);
-	    interval.bgn = max(0,urlength-1000);
+	    interval.bgn = MAX(0,urlength-1000);
 	    interval.end = urlength;
 	    GetMultiAlignUngappedConsensusFromInterval(rma,interval,consensus,quality);
 	    fprintf(gwlogfp,"Consensus \n%s\n",Getchar(consensus,0));
@@ -980,8 +980,8 @@ chunk_subgraph * Intra_Scaffold_Gap_Walker(chunk_subgraph * full,
     assert(rchunk != NULL);
     low = min(min(lchunk->aEndCoord, lchunk->bEndCoord),
 	      min(rchunk->aEndCoord, rchunk->bEndCoord));
-    high = max(max(lchunk->aEndCoord, lchunk->bEndCoord),
-	       max(rchunk->aEndCoord, rchunk->bEndCoord));
+    high = MAX(MAX(lchunk->aEndCoord, lchunk->bEndCoord),
+	       MAX(rchunk->aEndCoord, rchunk->bEndCoord));
     uu = 0;
     ru = 0;
     rr = 0;
@@ -1099,8 +1099,8 @@ chunk_subgraph * Intra_Scaffold_Gap_Walker(chunk_subgraph * full,
     assert(rchunk != NULL);
     low = min(min(lchunk->aEndCoord, lchunk->bEndCoord),
 	      min(rchunk->aEndCoord, rchunk->bEndCoord));
-    high = max(max(lchunk->aEndCoord, lchunk->bEndCoord),
-	       max(rchunk->aEndCoord, rchunk->bEndCoord));
+    high = MAX(MAX(lchunk->aEndCoord, lchunk->bEndCoord),
+	       MAX(rchunk->aEndCoord, rchunk->bEndCoord));
     for (i = 0; i < f0->size; i++) {
       cid = f0->node[i].cid;
       chunk = GetGraphNode(ScaffoldGraph->RezGraph, cid);
@@ -1557,8 +1557,8 @@ void Compute_Tentative_Position(chunk_subgraph * s,
   assert(edge != NULL);
 
   // don't worry about orientation, max is end going into gap
-  gap_start.mean = max(start_chunk->offsetAEnd.mean, start_chunk->offsetBEnd.mean);
-  gap_start.variance = max(start_chunk->offsetAEnd.variance, start_chunk->offsetBEnd.variance);
+  gap_start.mean = MAX(start_chunk->offsetAEnd.mean, start_chunk->offsetBEnd.mean);
+  gap_start.variance = MAX(start_chunk->offsetAEnd.variance, start_chunk->offsetBEnd.variance);
 
 # if DEBUG_GAP_WALKER > 1
   fprintf(stderr, "in Compute_Tentative_Position, start_cid = %d, end_cid = %d\n", start_cid, end_cid);
@@ -1848,7 +1848,7 @@ void Compute_Tentative_Position(chunk_subgraph * s,
 	fprintf(stderr, "NEWGAP, A_END = %f, B_END = %f,  edgedist = %f,\n",s->table[u]->A_end.mean,s->table[u]->B_end.mean,edge->distance.mean);
 #endif
 
-	new_gap_length.mean = max(s->table[u]->A_end.mean + edge->distance.mean - gap_start.mean,
+	new_gap_length.mean = MAX(s->table[u]->A_end.mean + edge->distance.mean - gap_start.mean,
 				  s->table[u]->B_end.mean + edge->distance.mean - gap_start.mean);
 
 	delta.mean = new_gap_length.mean - gap_length.mean;
@@ -1860,7 +1860,7 @@ void Compute_Tentative_Position(chunk_subgraph * s,
 	// figure out what the variance of the destination chunk should be, subtract off current to get the delta
 
 
-	delta.variance = max(s->table[u]->A_end.variance,s->table[u]->B_end.variance)+
+	delta.variance = MAX(s->table[u]->A_end.variance,s->table[u]->B_end.variance)+
 	                 ComputeFudgeVariance(edge->distance.mean)-
 	                 min(v_chunk->offsetAEnd.variance,v_chunk->offsetBEnd.variance);
 	/* delta.variance = gap_start.variance + ComputeFudgeVariance(new_gap_length.mean) - min(v_chunk->offsetAEnd.variance,v_chunk->offsetBEnd.variance);
@@ -2326,11 +2326,11 @@ void Dijkstra(chunk_subgraph * s,
 	// if the new d_neck distance is better, I choose the edge
 	// if they are equal I break the ties with the standard sum of weights
 	//
-	if ((s->table[v]->d_neck > max(s->table[u]->d_neck, q)) ||
-	    ((s->table[v]->d_neck == max(s->table[u]->d_neck, q)) &&
+	if ((s->table[v]->d_neck > MAX(s->table[u]->d_neck, q)) ||
+	    ((s->table[v]->d_neck == MAX(s->table[u]->d_neck, q)) &&
 	     (s->table[v]->d > s->table[u]->d + q))) {
 	  s->table[v]->end = new_end[orient[k]];
-	  s->table[v]->d_neck = max(s->table[u]->d_neck, q);
+	  s->table[v]->d_neck = MAX(s->table[u]->d_neck, q);
 	  s->table[v]->d = s->table[u]->d + q;
 	  s->table[v]->path_parent = u;
 	  s->table[v]->best_edge = edge;
@@ -3387,10 +3387,10 @@ void Compute_Path_Outdegree(chunk_subgraph * s)  {
       Clear_All_Path_Bit(s);
       Clear_All_Visited_Bit(s);
 
-      if (max(a_out, b_out) >= 10) {
+      if (MAX(a_out, b_out) >= 10) {
 	color = 11; 
       } else {
-	color = max(a_out, b_out) + 1;
+	color = MAX(a_out, b_out) + 1;
       }
 #     if CREATE_CAM_FILE > 0
       fprintf(cam,

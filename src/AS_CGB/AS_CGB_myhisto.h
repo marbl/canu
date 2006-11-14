@@ -22,7 +22,7 @@
 #define _AS_CGB_MYHISTO_H_
 
 static char CM_ID_H[] 
-= "$Id: AS_CGB_myhisto.h,v 1.1 2006-03-24 21:38:26 eliv Exp $";
+= "$Id: AS_CGB_myhisto.h,v 1.2 2006-11-14 17:52:14 eliv Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_cga.c
@@ -96,27 +96,27 @@ static void myaggregate
   a[i].nsamples  += b->nsamples;
   a[i].sum_frags += b->sum_frags;
   a[i].min_frags  = min(a[i].min_frags,b->min_frags);
-  a[i].max_frags  = max(a[i].max_frags,b->max_frags);
+  a[i].max_frags  = MAX(a[i].max_frags,b->max_frags);
   // Just the randomly sampled fragments:
   a[i].sum_rs_frags += b->sum_rs_frags;
   a[i].min_rs_frags  = min(a[i].min_rs_frags,b->min_rs_frags);
-  a[i].max_rs_frags  = max(a[i].max_rs_frags,b->max_rs_frags);
+  a[i].max_rs_frags  = MAX(a[i].max_rs_frags,b->max_rs_frags);
   // Just the non-randomly sampled fragments:
   a[i].sum_nr_frags += b->sum_nr_frags;
   a[i].min_nr_frags  = min(a[i].min_nr_frags,b->min_nr_frags);
-  a[i].max_nr_frags  = max(a[i].max_nr_frags,b->max_nr_frags);
+  a[i].max_nr_frags  = MAX(a[i].max_nr_frags,b->max_nr_frags);
   a[i].sum_bp    += b->sum_bp;
   a[i].min_bp     = min(a[i].min_bp,b->min_bp);
-  a[i].max_bp     = max(a[i].max_bp,b->max_bp);
+  a[i].max_bp     = MAX(a[i].max_bp,b->max_bp);
   a[i].sum_rho   += b->sum_rho;
   a[i].min_rho    = min(a[i].min_rho,b->min_rho);
-  a[i].max_rho    = max(a[i].max_rho,b->max_rho);
+  a[i].max_rho    = MAX(a[i].max_rho,b->max_rho);
   a[i].sum_arrival += b->sum_arrival;
   a[i].min_arrival  = min(a[i].min_arrival,b->min_arrival);
-  a[i].max_arrival  = max(a[i].max_arrival,b->max_arrival);
+  a[i].max_arrival  = MAX(a[i].max_arrival,b->max_arrival);
   a[i].sum_discr   += b->sum_discr;
   a[i].min_discr    = min(a[i].min_discr,b->min_discr);
-  a[i].max_discr    = max(a[i].max_discr,b->max_discr);
+  a[i].max_discr    = MAX(a[i].max_discr,b->max_discr);
 }
 static void myprintdata
 (FILE *fout,

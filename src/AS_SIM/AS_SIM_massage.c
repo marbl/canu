@@ -436,9 +436,9 @@ void process(void)
 	    // piece at either end in the range of 0-50 base pairs.
 	    // How much to trim from fragment to make clear range
 	    tmpB = GetRand_AS(MinPrefixUnclear,MaxPrefixUnclear, Uniform);
-	    BTrim =  max(0,tmpB); // Trim from frag prefix
+	    BTrim =  MAX(0,tmpB); // Trim from frag prefix
 	    tmpE= GetRand_AS(MinSuffixUnclear,MaxSuffixUnclear, Uniform); // Trim from frag suffix
-	    ETrim =  max(0,tmpE);
+	    ETrim =  MAX(0,tmpE);
 	    
 	    assert(BTrim >= 0);
 	    assert(ETrim >= 0);

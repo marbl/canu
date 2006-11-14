@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.15 2006-11-08 16:28:07 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.16 2006-11-14 17:52:18 eliv Exp $";
 /********************************************************************/
 /* Variable Length C Array Package 
  * 
@@ -30,8 +30,8 @@ static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.15 2006-11-08 16:28:07 brianwalenz 
  * It defines a basic set of operations, and provides a set of
  * macros that expand to support typesafe manipulation of the
  * arrays.
- * Revision: $Revision: 1.15 $
- * Date:     $Date: 2006-11-08 16:28:07 $
+ * Revision: $Revision: 1.16 $
+ * Date:     $Date: 2006-11-14 17:52:18 $
  * CMM, 1999/03/29:  Ported to large arrays on the Digital systems by declaring
  * array sizes using size_t, rather than unit32.
  *
@@ -128,7 +128,7 @@ int MakeRoom_VA
 #endif
 
   // Minimimum allocation is one element;
-  newSize = max(maxElements, 1)*(va->sizeofElement);
+  newSize = MAX(maxElements, 1)*(va->sizeofElement);
     
   if(pad_to_a_power_of_two) {
     /* Compute a power-of-two allocation size for the va */
@@ -141,7 +141,7 @@ int MakeRoom_VA
         tentativeNewSize = oldSize + (2 << 28);
     
     // If we need to use the end of the block, do it
-    newSize = max(newSize, tentativeNewSize);
+    newSize = MAX(newSize, tentativeNewSize);
   }
 
 #ifdef DEBUG
@@ -664,7 +664,7 @@ void ScatterInPlace_VA
   // This routine has the problem that it assumes that rank[] is a
   // correct permutation!!
   size_t  num        = va->numElements;
-  size_t  mitems     = max(nrange,(va->allocatedElements));
+  size_t  mitems     = MAX(nrange,(va->allocatedElements));
   size_t  size       = va->sizeofElement;
   char   *old_array  = va->Elements;
   char   *new_array  = (char *)safe_calloc(mitems,size);

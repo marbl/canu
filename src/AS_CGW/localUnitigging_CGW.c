@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.12 2006-10-03 21:49:53 brianwalenz Exp $";
+static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.13 2006-11-14 17:52:16 eliv Exp $";
 
 
 /*********************************************************************
@@ -236,7 +236,7 @@ int CheckMetaUnitigPotential(VA_TYPE(ChunkPlacement) *piece_list,
 }
 
 // check whether the meta unitig contains any relevant contigs from original scaffold
-// between anchor and max(anchor, rcontig-1) inclusive, reject
+// between anchor and MAX(anchor, rcontig-1) inclusive, reject
 int MetaUnitigIncludesPiecesFromScaffold(VA_TYPE(ChunkPlacement) *piece_list,
                                          IntUnitigMesg *ium,
                                          int32 endCtgOrder){

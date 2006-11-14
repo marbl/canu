@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: smallLargeScaffolds.c,v 1.6 2006-09-21 21:34:01 brianwalenz Exp $";
+static char CM_ID[] = "$Id: smallLargeScaffolds.c,v 1.7 2006-11-14 17:52:16 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -87,7 +87,7 @@ void InterleaveScaffolds(CIScaffoldT * scaffold,
                                     sai->scaffoldA->bandBeg,
                                     sai->scaffoldA->bandEnd);
   interval.bgn =
-    max(0, (-sEdge->distance.mean - 3 *
+    MAX(0, (-sEdge->distance.mean - 3 *
             sqrt((double) sEdge->distance.variance)) -
         (scaffold->bpLength.mean + 3 *
          sqrt((double) scaffold->bpLength.variance)));
@@ -103,7 +103,7 @@ void InterleaveScaffolds(CIScaffoldT * scaffold,
     {
       CDS_COORD_t temp = interval.bgn;
       interval.bgn =
-        max(0, otherScaffold->bpLength.mean -
+        MAX(0, otherScaffold->bpLength.mean -
             3 * sqrt((double) otherScaffold->bpLength.variance) -
             interval.end);
       interval.end = otherScaffold->bpLength.mean +
@@ -344,11 +344,11 @@ int main(int argc, char *argv[])
                             distanceRange.end)
                       {
                         distanceRange.bgn = min(distanceRange.bgn, sEdge->distance.mean);
-                        distanceRange.end = max(distanceRange.end, sEdge->distance.mean);
+                        distanceRange.end = MAX(distanceRange.end, sEdge->distance.mean);
                         sigmaRange.bgn = min(sigmaRange.bgn,
                                              sEdge->distance.mean -
                                              3 * sqrt((double) sEdge->distance.variance));
-                        sigmaRange.end = max(sigmaRange.end,
+                        sigmaRange.end = MAX(sigmaRange.end,
                                              sEdge->distance.mean +
                                              3 * sqrt((double) sEdge->distance.variance));
                         weight += sEdge->edgesContributing;
@@ -373,7 +373,7 @@ int main(int argc, char *argv[])
                 lastEdge->distance.mean =
                   (distanceRange.bgn + distanceRange.end) / 2;
                 lastEdge->distance.variance =
-                  max(sigmaRange.end - lastEdge->distance.mean,
+                  MAX(sigmaRange.end - lastEdge->distance.mean,
                       lastEdge->distance.mean - sigmaRange.bgn);
                 lastEdge->distance.variance =
                   lastEdge->distance.variance * lastEdge->distance.variance / 9;

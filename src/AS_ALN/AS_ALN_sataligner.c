@@ -128,7 +128,7 @@ SatAlignSetp Initialize_SatAligner_AS( uint32 num_sats,
   for( i = 0; i < num_sats; i++ )
   {
     sat_length = strlen( sats[i] );
-    sat_set->max_sat_length = max( sat_set->max_sat_length, sat_length );
+    sat_set->max_sat_length = MAX( sat_set->max_sat_length, sat_length );
     
     // do forward
     sat_set->sats[sat_set->num_sats].seq = (char *)malloc( sat_length );

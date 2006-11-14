@@ -112,9 +112,9 @@
   
              in  the  calling  (sub)  program.   When  TRANS = 'N' or 'n' 
   
-             then  LDA must be at least  max( 1, n ), otherwise  LDA must 
+             then  LDA must be at least  MAX( 1, n ), otherwise  LDA must 
   
-             be at least  max( 1, k ).   
+             be at least  MAX( 1, k ).   
              Unchanged on exit.   
 
     BETA   - DOUBLE PRECISION.   
@@ -150,7 +150,7 @@
   
              in  the  calling  (sub)  program.   LDC  must  be  at  least 
   
-             max( 1, n ).   
+             MAX( 1, n ).   
              Unchanged on exit.   
 
 
@@ -190,9 +190,9 @@
 	info = 3;
     } else if (*k < 0) {
 	info = 4;
-    } else if (*lda < max(1,nrowa)) {
+    } else if (*lda < MAX(1,nrowa)) {
 	info = 7;
-    } else if (*ldc < max(1,*n)) {
+    } else if (*ldc < MAX(1,*n)) {
 	info = 10;
     }
     if (info != 0) {

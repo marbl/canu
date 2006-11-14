@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: testOverlapContigs.c,v 1.7 2006-10-03 21:49:53 brianwalenz Exp $";
+static char CM_ID[] = "$Id: testOverlapContigs.c,v 1.8 2006-11-14 17:52:16 eliv Exp $";
 
 
 /*********************************************************************
@@ -492,7 +492,7 @@ void ContigContainment_test(CIScaffoldT *scaffold,
           fprintf( stderr, "no overlap found between " F_CID " and " F_CID ", retrying with max AHANGSLOP\n",
                    leftContig->id, rightContig->id);
 	  
-          maxLength = max( leftContig->bpLength.mean, rightContig->bpLength.mean);
+          maxLength = MAX( leftContig->bpLength.mean, rightContig->bpLength.mean);
 	  
           fprintf( stderr, "overlapOrientation: %c, minAhang: " F_COORD ", maxAhang: " F_COORD "\n", 
                    (char) overlapOrientation, -maxLength, maxLength);
@@ -511,7 +511,7 @@ void ContigContainment_test(CIScaffoldT *scaffold,
                    "no overlap found between " F_CID " and " F_CID ", retrying with flipped orientation and max AHANGSLOP\n",
                    leftContig->id, rightContig->id);
 	  
-          maxLength = max( leftContig->bpLength.mean, rightContig->bpLength.mean);
+          maxLength = MAX( leftContig->bpLength.mean, rightContig->bpLength.mean);
 	  
           // try with the reverse orientation
           overlapOrientation =

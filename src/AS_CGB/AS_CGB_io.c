@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_io.c,v 1.7 2006-09-26 22:21:13 brianwalenz Exp $";
+= "$Id: AS_CGB_io.c,v 1.8 2006-11-14 17:52:14 eliv Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_io.c
@@ -113,9 +113,9 @@ void output_the_chunks
   for(chunk_index=0;chunk_index < nchunks; chunk_index++){
     const AChunkMesg * const mychunk = GetVA_AChunkMesg(thechunks,chunk_index);
 
-    max_num_frags_per_chunk = max(max_num_frags_per_chunk,
+    max_num_frags_per_chunk = MAX(max_num_frags_per_chunk,
 				  mychunk->num_frags);
-    max_num_ovlps_per_chunk = max(max_num_ovlps_per_chunk,
+    max_num_ovlps_per_chunk = MAX(max_num_ovlps_per_chunk,
 				  mychunk->a_degree_raw 
 				  + mychunk->b_degree_raw);
   }

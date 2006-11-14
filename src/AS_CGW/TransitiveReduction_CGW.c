@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: TransitiveReduction_CGW.c,v 1.6 2006-09-21 21:34:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: TransitiveReduction_CGW.c,v 1.7 2006-11-14 17:52:15 eliv Exp $";
 
 // This file contains the code for computing the candidate
 // chunks of scaffolds.
@@ -909,7 +909,7 @@ EdgeCGW_T *FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
       minVariance = (CDS_COORD_t) sqrt(inferredVariance);
 
     delta = 3 * minVariance;
-    minOverlap = max(CGW_MISSED_OVERLAP,
+    minOverlap = MAX(CGW_MISSED_OVERLAP,
 		     -(inferredMean + delta));
     maxOverlap = -(inferredMean - delta);
     if(maxOverlap >= CGW_MISSED_OVERLAP){

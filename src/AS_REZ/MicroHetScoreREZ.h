@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
-   CVS_ID:  $Id: MicroHetScoreREZ.h,v 1.4 2005-03-22 19:49:25 jason_miller Exp $
+   CVS_ID:  $Id: MicroHetScoreREZ.h,v 1.5 2006-11-14 17:52:18 eliv Exp $
  *********************************************************************/
 #ifndef MICROHETSCOREREZ_H
 #define MICROHETSCOREREZ_H
@@ -64,7 +64,7 @@ double column_prob_two_fixed(int r, double seqErr);
    of a simple alignment */
 double expected_savedSteps(int r, double seqErr);
 //Define maxfive for use in expected_savedSteps
-#define maxfive(v,w,x,y,z) max(v,max(max(w,x),max(y,z)))
+#define maxfive(v,w,x,y,z) MAX(v,MAX(MAX(w,x),MAX(y,z)))
 
 int no_col_contributing(Alignment_t *a, int t, int s, int e);
 int col_contributing(Alignment_t* a, int col, int thresh);

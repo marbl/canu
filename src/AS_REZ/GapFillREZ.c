@@ -34,7 +34,7 @@
 *
 *************************************************/
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.15 2006-10-16 03:30:14 brianwalenz Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.16 2006-11-14 17:52:17 eliv Exp $";
 
 
 #include <stdio.h>
@@ -7384,7 +7384,7 @@ void  Force_Increasing_Variances_One_Scaffold
        {
         prev_chunk -> offsetAEnd . variance += incr;
         prev_chunk -> offsetBEnd . variance += incr;
-		scaff->bpLength.variance = max( prev_chunk->offsetAEnd.variance, 
+		scaff->bpLength.variance = MAX( prev_chunk->offsetAEnd.variance, 
 										prev_chunk->offsetBEnd.variance);
        }
 

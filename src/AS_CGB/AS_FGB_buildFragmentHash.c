@@ -40,7 +40,7 @@ FragmentHashObject * build_FragmentHash
       for(iv=1;iv<nfrag;iv++) {
         const IntFragment_ID iid = get_iid_fragment(frags,iv);
         /* reset afr_to_avx[] */
-        max_iid = max(max_iid,iid);
+        max_iid = MAX(max_iid,iid);
         min_iid = min(min_iid,iid);
       }
       max_frag_iid = max_iid;
@@ -53,7 +53,7 @@ FragmentHashObject * build_FragmentHash
   fprintf(stderr,"** observed min_frag_iid=" F_IID "\n", min_frag_iid);
   fprintf(stderr,"** observed max_frag_iid=" F_IID "\n", max_frag_iid);
 
-  max_frag_iid = max(as_cgb_max_frag_iid, max_frag_iid);
+  max_frag_iid = MAX(as_cgb_max_frag_iid, max_frag_iid);
   fprintf(stderr,"as_cgb_max_frag_iid=" F_IID " max_frag_iid=" F_IID "\n",
           as_cgb_max_frag_iid, max_frag_iid);
 #if 0

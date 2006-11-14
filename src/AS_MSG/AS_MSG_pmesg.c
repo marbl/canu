@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.22 2006-10-15 06:51:35 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.23 2006-11-14 17:52:17 eliv Exp $";
 
 //  reads old and new AFG message (with and w/o chaff field)
 #define AFG_BACKWARDS_COMPATIBLE
@@ -1439,7 +1439,7 @@ static void *Read_ISF_Mesg(FILE *fin)
 
   GET_FIELD(mesg.iaccession,"acc:" F_IID,"ISF accession");
   GET_FIELD(mesg.num_contig_pairs,"noc:" F_S32,"number of contigs");
-  num = max(1,mesg.num_contig_pairs);
+  num = MAX(1,mesg.num_contig_pairs);
   if (num > 0) {
     indx = MoreSpace(num*sizeof(IntContigPairs),8);
     icp = mesg.contig_pairs = (IntContigPairs *) (MemBuffer + indx);
@@ -2154,7 +2154,7 @@ static void *Read_SCF_Mesg(FILE *fin)
 
   GET_PAIR(mesg.eaccession,mesg.iaccession,IACCS_FORMAT,"accession number");
   GET_FIELD(mesg.num_contig_pairs,"noc:" F_S32,"number of contigs");
-  num = max(mesg.num_contig_pairs, 1);
+  num = MAX(mesg.num_contig_pairs, 1);
   if (num > 0) {
     indx = MoreSpace(num*sizeof(SnapContigPairs),8);
     icp = mesg.contig_pairs = (SnapContigPairs *) (MemBuffer + indx);
@@ -3108,7 +3108,7 @@ static void Write_ICP_Mesg(FILE *fout, IntContigPairs *mesg)
 static void Write_ISF_Mesg(FILE *fout, void *vmesg)
 { IntScaffoldMesg *mesg = (IntScaffoldMesg *) vmesg;
   int		i;
-  int num = max(1, mesg->num_contig_pairs);
+  int num = MAX(1, mesg->num_contig_pairs);
   fprintf(fout,"{ISF\n");
   fprintf(fout,"acc:" F_IID "\n", mesg->iaccession);
   fprintf(fout,"noc:" F_S32 "\n",mesg->num_contig_pairs);
@@ -3407,7 +3407,7 @@ static void Write_CTP_Mesg(FILE *fout, SnapContigPairs *mesg)
 static void Write_SCF_Mesg(FILE *fout, void *vmesg)
 { SnapScaffoldMesg *mesg = (SnapScaffoldMesg *) vmesg;
   int		i;
-  int num = max(1,mesg->num_contig_pairs);
+  int num = MAX(1,mesg->num_contig_pairs);
   fprintf(fout,"{SCF\n");
   fprintf(fout,IACCS_FORMAT "\n",mesg->eaccession,mesg->iaccession);
   fprintf(fout,"noc:" F_S32 "\n",mesg->num_contig_pairs);

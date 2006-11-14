@@ -26,6 +26,7 @@
 #include <string.h>
 
 #include "CA_ALN_local.h"
+#include "AS_ALN_aligners.h"
 
 /* Conditional control of diagnostic and debug print outs */
 
@@ -81,9 +82,6 @@
 
 #ifndef min
 #define min(a,b) (a<b?a:b)
-#endif
-#ifndef max
-#define max(a,b) (a>b?a:b)
 #endif
 
 int kmerlen=KMERLEN;
@@ -1293,7 +1291,7 @@ static void Align_Recursion(char *A, int Alen, char *B, int Blen,
   ltrp.top = min(b->top,hend->bbpos) - MAXIGAP;
 
 
-  htrp.bot = max(b->bot,hend->bepos) + MAXIGAP;
+  htrp.bot = MAX(b->bot,hend->bepos) + MAXIGAP;
 
   if (hend->bepos - hend->bbpos >= MinLen &&
       hend->aepos - hend->abpos >= MinLen   )

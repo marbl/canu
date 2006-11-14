@@ -1133,9 +1133,6 @@ static void Print_Local_Overlap_Piece(FILE *file, char *A, char *B, Local_Segmen
   //    } else {
   //      ovlmsg.orientation = NORMAL;
   //    }
-#ifndef max
-#define max(a,b) (a > b ? a : b)
-#endif
 
   aptr=aseg;
   aptr--;
@@ -1146,7 +1143,7 @@ static void Print_Local_Overlap_Piece(FILE *file, char *A, char *B, Local_Segmen
 		 bptr,
 		 blen,
 		 &spnt,
-		 max(10,blen/50));
+		 MAX(10,blen/50));
 
   PrintAlign(stdout,0,0,aseg,bseg,trace);
 

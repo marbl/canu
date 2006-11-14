@@ -912,7 +912,7 @@ static int Boundary(char *a, int alen, char *b, int blen,
       { WORD P, M, ebit = 0;
         int  row, bval;
 
-        { WORD One; /* Compute list of chars in b[j+1..max(j+WordSize,blen)] */
+        { WORD One; /* Compute list of chars in b[j+1..MAX(j+WordSize,blen)] */
           int i;    /* and non-zero bvect[a] for each one.                   */
 
           row = j + WordSize;
@@ -2140,7 +2140,7 @@ static BranchPointResult *BPDetector(char *a, int alen, char *b, int blen,
     }
 
 #ifdef BP_RATDP
-  printf("max(i,j) = %g(%d,%d)\n",bpmax,imax,jmax);
+  printf("MAX(i,j) = %g(%d,%d)\n",bpmax,imax,jmax);
 #endif
 
   { int plen, slen;

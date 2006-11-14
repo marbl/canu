@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
-   CVS_ID:  $Id: MicroHetREZ_test3.h,v 1.4 2005-03-22 19:49:25 jason_miller Exp $
+   CVS_ID:  $Id: MicroHetREZ_test3.h,v 1.5 2006-11-14 17:52:18 eliv Exp $
  *********************************************************************/
 #ifndef AS_REZ_MICROHETREZ_H
 #define AS_REZ_MICROHETREZ_H
@@ -89,7 +89,7 @@ typedef struct{
 
 
 //AARON'S MODIFICATIONS
-#define maxfive(v,w,x,y,z) max(v,max(max(w,x),max(y,z)))
+#define maxfive(v,w,x,y,z) MAX(v,MAX(MAX(w,x),MAX(y,z)))
 
 typedef struct mpstat {
   int Obs;   /* Number of parsimony-style "steps" which could be saved by

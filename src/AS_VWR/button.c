@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: button.c,v 1.4 2005-03-22 19:49:30 jason_miller Exp $ */
+/* $Id: button.c,v 1.5 2006-11-14 17:52:18 eliv Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1823,7 +1823,7 @@ MT_OBJECT *mt_new_scrollbar(int x, int y, int w, int h, int vert, int vis,
   s->maxim = max;
   if (min > val || wid < 0 || val > max)
     { fprintf(stderr,"Scroll bar being set to impossible values:\n");
-      fprintf(stderr,"  min(%d) <= val(%d) <= max(%d), wid(%d) >= 0 ???\n",
+      fprintf(stderr,"  min(%d) <= val(%d) <= MAX(%d), wid(%d) >= 0 ???\n",
                      min,val,max,wid);
       exit (1);
     }
@@ -1876,7 +1876,7 @@ void mt_set_scrollbar(MT_OBJECT *o, int val, int wid, int min, int max)
     }
   if (min > val || wid < 0 || val > max)
     { fprintf(stderr,"Scroll bar begin set to impossible values:\n");
-      fprintf(stderr,"  min(%d) <= val(%d) <= max(%d), wid(%d) >= 0 ???\n",
+      fprintf(stderr,"  min(%d) <= val(%d) <= MAX(%d), wid(%d) >= 0 ???\n",
                      min,val,max,wid);
     }
   s->value = val;

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_main.c,v 1.4 2005-03-22 19:48:29 jason_miller Exp $";
+= "$Id: AS_CGB_main.c,v 1.5 2006-11-14 17:52:14 eliv Exp $";
 /*********************************************************************
  *
  * Module:  AS_CGB_main.c
@@ -705,7 +705,7 @@ int main_cgb
           // There is no bounds checking here.  This is
           // dangerous. What if the external file has bad data?
           old_bpt_offset = get_bpt_vertex(heapva->frags,vid,suf);
-          bpt_offset = max(bpt_offset,old_bpt_offset);
+          bpt_offset = MAX(bpt_offset,old_bpt_offset);
           set_bpt_vertex(heapva->frags,vid,suf,bpt_offset);
         }
         // STORE_BRANCH_POINTS_AT_FRAGMENT

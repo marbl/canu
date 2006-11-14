@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_histo.c,v 1.4 2005-03-22 19:49:29 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_UTL_histo.c,v 1.5 2006-11-14 17:52:18 eliv Exp $";
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -27,7 +27,7 @@ static char CM_ID[] = "$Id: AS_UTL_histo.c,v 1.4 2005-03-22 19:49:29 jason_mille
 
 #include "AS_UTL_histo.h"
 
-#define max(a,b) (a > b ? a : b)
+#define MAX(a,b) (a > b ? a : b)
 #define min(a,b) (a < b ? a : b)
 #define FALSE 0
 #define DataType void
@@ -193,7 +193,7 @@ void free_histogram(HISTOGRAM *h)
 
 static int bucket_from_score(HISTOGRAM *h, int thescore) {
   int ib;
-  h->max = max(thescore,h->max);
+  h->max = MAX(thescore,h->max);
   h->min = min(thescore,h->min);
   ib = thescore;
   if(h->logarithmic == 0){
@@ -215,7 +215,7 @@ static int bucket_from_score(HISTOGRAM *h, int thescore) {
 #endif
   }
   /* Place a floor and ceiling to the histogram. */
-  ib = max(ib,0);
+  ib = MAX(ib,0);
   ib = min(ib,h->nbucket-1);
   return ib;
 }
@@ -236,7 +236,7 @@ static void fill(HISTOGRAM *h)
   for (is = 1; is < h->cnt; is++) {
     int thescore;
     thescore = h->thescore[is];
-    hgh = max(hgh,thescore);
+    hgh = MAX(hgh,thescore);
     low = min(low,thescore);
   }
   /* hgh and low are the bounds on the sampled data values. */
@@ -266,7 +266,7 @@ static void fill(HISTOGRAM *h)
       h->bucket_max[ib] = thescore;
     } else {
       h->bucket_min[ib] = min(h->bucket_min[ib],thescore);
-      h->bucket_max[ib] = max(h->bucket_max[ib],thescore);
+      h->bucket_max[ib] = MAX(h->bucket_max[ib],thescore);
     }
     if(h->datasize) {
       DataType *data;
@@ -338,7 +338,7 @@ void add_to_histogram(HISTOGRAM *h,int thescore,DataType *data)
       h->bucket_max[ib] = thescore;
     } else {
       h->bucket_min[ib] = min(h->bucket_min[ib],thescore);
-      h->bucket_max[ib] = max(h->bucket_max[ib],thescore);
+      h->bucket_max[ib] = MAX(h->bucket_max[ib],thescore);
     }
     if(h->datasize) {
       if( h->bucket_cnt[ib] == 1) {
@@ -558,14 +558,14 @@ void print_histogram(FILE *fout, HISTOGRAM *h, int rez, int indent)
 
     min_score = h->bucket_min[ib];
     max_score = h->bucket_max[ib];
-    min_score = max(min_score,h->min);
+    min_score = MAX(min_score,h->min);
     max_score = min(max_score,h->max);
     for (j = 0; j < cm; j++) {
       if( (ib+j >= 0) && (ib+j < h->nbucket) )
 	{ 
 	  sum_of_cnt += h->bucket_cnt[ib+j];
 	  min_score = min(min_score,h->bucket_min[ib+j]);
-	  max_score = max(max_score,h->bucket_max[ib+j]);
+	  max_score = MAX(max_score,h->bucket_max[ib+j]);
 	  if(h->datasize) {
 	    DataType *data;
 #ifdef USE_CUSTOM_INDEXING

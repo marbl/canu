@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_fga.c,v 1.5 2005-10-03 17:55:16 eliv Exp $";
+= "$Id: AS_CGB_fga.c,v 1.6 2006-11-14 17:52:14 eliv Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_fga.c
@@ -220,10 +220,10 @@ static void processOneFragSourceString
 	  if((frgbgn > 0) && (frgend < frglen)) {
 	    // The repeat region is contained by the fragment.
 	    pre_brp = min(pre_brp,frgbgn);
-	    pre_end = max(pre_end,frgend);
+	    pre_end = MAX(pre_end,frgend);
 	    pre_let = letter;
 	    pre_ins = instance;
-	    suf_brp = max(suf_brp,frgend);
+	    suf_brp = MAX(suf_brp,frgend);
 	    suf_end = min(suf_end,frgbgn);
 	    suf_let = letter;
 	    suf_ins = instance;
@@ -234,7 +234,7 @@ static void processOneFragSourceString
 	  if(frgend >= frglen - MINIMUM_OFFSET1) { 
 	    // The repeat region is overlaps the fragment-suffix.
 	    pre_brp = min(pre_brp,frgbgn);
-	    pre_end = max(pre_end,frgend);
+	    pre_end = MAX(pre_end,frgend);
 	    pre_let = letter;
 	    pre_ins = instance;
 	    fprintf(f_simbpts,F_IID " %d %d %d\n",
@@ -242,7 +242,7 @@ static void processOneFragSourceString
 	  }
 	  if(frgbgn <= MINIMUM_OFFSET1) {
 	    // The repeat region is overlaps the fragment-suffix.
-	    suf_brp = max(suf_brp,frgend);
+	    suf_brp = MAX(suf_brp,frgend);
 	    suf_end = min(suf_end,frgbgn);
 	    suf_let = letter;
 	    suf_ins = instance;
@@ -296,11 +296,11 @@ int check_overlap_with_simulator
      of a line segment that covers both of the fragments is less than
      the sum of the lengths of both fragments. */
   a_min = min(a_bgn,a_end);
-  a_max = max(a_bgn,a_end);
+  a_max = MAX(a_bgn,a_end);
   b_min = min(b_bgn,b_end);
-  b_max = max(b_bgn,b_end);
+  b_max = MAX(b_bgn,b_end);
   themin = min(a_min,b_min);
-  themax = max(a_max,b_max);
+  themax = MAX(a_max,b_max);
   iactual = ((themax-themin) <= (a_max-a_min)+(b_max-b_min)); 
   /* The two fragments must overlap by at least one bp. But, I allow
      zero overlap as well, so that we can deal with no simulator
@@ -340,11 +340,11 @@ static int check_overlap_with_simulator2
      of a line segment that covers both of the fragments is less than
      the sum of the lengths of both fragments. */
   a_min = min(a_bgn,a_end);
-  a_max = max(a_bgn,a_end);
+  a_max = MAX(a_bgn,a_end);
   b_min = min(b_bgn,b_end);
-  b_max = max(b_bgn,b_end);
+  b_max = MAX(b_bgn,b_end);
   themin = min(a_min,b_min);
-  themax = max(a_max,b_max);
+  themax = MAX(a_max,b_max);
   iactual = ((themax-themin) < (a_max-a_min)+(b_max-b_min)); 
   /* The two fragments must overlap by at least one bp. */
 

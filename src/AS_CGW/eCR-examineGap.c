@@ -459,11 +459,11 @@ examineGap(ContigT *lcontig, int lFragIid, ContigT *rcontig, int rFragIid,
               overlap->length + overlap->endpos - strlen(rcompBufferTrimmed));
 	  
       *lcontigBasesIntact = lcontigBaseStart;
-      *ahang = max (0, overlap->begpos);
+      *ahang = MAX (0, overlap->begpos);
       *olapLengthOut = overlap->length;
-      *bhang = max (0, overlap->endpos);
+      *bhang = MAX (0, overlap->endpos);
       *currDiffs = overlap->diffs;
-      *rcontigBasesIntact = max((int) rcontig->bpLength.mean - CONTIG_BASES, 0);
+      *rcontigBasesIntact = MAX((int) rcontig->bpLength.mean - CONTIG_BASES, 0);
 
       // calculate how many bases would be changed if gap was closed
       // take the whole lcompBuffer, subtract lcontigBasesUsed and lFragContigOverlapLength from ahang

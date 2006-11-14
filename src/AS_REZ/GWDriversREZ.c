@@ -34,7 +34,7 @@
  **********************************************************************/
 
 
-static char fileID[] = "$Id: GWDriversREZ.c,v 1.5 2006-06-14 19:57:23 brianwalenz Exp $";
+static char fileID[] = "$Id: GWDriversREZ.c,v 1.6 2006-11-14 17:52:17 eliv Exp $";
 
 #include <stdio.h>
 #include <assert.h>
@@ -523,7 +523,7 @@ void Intra_Scaffold_Path_Finding( int startWalkFrom, double gapSizeStdDevs, int 
 
 	  numGapsBeforeWalking++;
 	  basesInThisGap = min (rchunkTemp->offsetAEnd.mean, rchunkTemp->offsetBEnd.mean) - 
-		max (lchunkTemp->offsetAEnd.mean, lchunkTemp->offsetBEnd.mean);
+		MAX (lchunkTemp->offsetAEnd.mean, lchunkTemp->offsetBEnd.mean);
 	  if (basesInThisGap > 0)
 		basesInGapsBeforeWalking += basesInThisGap;
 	}	
@@ -572,8 +572,8 @@ void Intra_Scaffold_Path_Finding( int startWalkFrom, double gapSizeStdDevs, int 
 	  // if the rchunk is contained by the lchunk keep going until we are past end of lchunk
 	  // otherwise we end trying to walk a gap up "inside of" rchunk
 	  atScaffoldEnd = FALSE;
-	  while ( max( rchunk->offsetAEnd.mean, rchunk->offsetBEnd.mean) < 
-			  max( lchunk->offsetAEnd.mean, lchunk->offsetBEnd.mean))
+	  while ( MAX( rchunk->offsetAEnd.mean, rchunk->offsetBEnd.mean) < 
+			  MAX( lchunk->offsetAEnd.mean, lchunk->offsetBEnd.mean))
 	  {
 		fprintf( stderr, "skipping contig %d, setting rchunk to %d\n",
 				 rchunk->id, rchunk->BEndNext);
@@ -2085,7 +2085,7 @@ void ComputeGapStatisitics(void)
 	  assert(rchunkTemp != NULL);
 	  
 	  basesInThisGap = min (rchunkTemp->offsetAEnd.mean, rchunkTemp->offsetBEnd.mean) - 
-		max (lchunkTemp->offsetAEnd.mean, lchunkTemp->offsetBEnd.mean);
+		MAX (lchunkTemp->offsetAEnd.mean, lchunkTemp->offsetBEnd.mean);
 	  // don't include "gaps" where contigs overlap
 	  if (basesInThisGap > BASE_CUTOFF)
 	  {
@@ -2096,7 +2096,7 @@ void ComputeGapStatisitics(void)
 	  if (scaffoldContainsBACFrags)
 	  {
 		basesInThisGap = min (rchunkTemp->offsetAEnd.mean, rchunkTemp->offsetBEnd.mean) - 
-		  max (lchunkTemp->offsetAEnd.mean, lchunkTemp->offsetBEnd.mean);
+		  MAX (lchunkTemp->offsetAEnd.mean, lchunkTemp->offsetBEnd.mean);
 		// don't include "gaps" where contigs overlap
 		if (basesInThisGap > BASE_CUTOFF)
 		{

@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.10 2006-09-21 21:34:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.11 2006-11-14 17:52:15 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -95,12 +95,12 @@ int DoSimpleScaffoldChecks(FILE * fp,
       ciCount++, ci = NextCIScaffoldTIterator(&ciIterator))
     {
       float32 minCoord = min(ci->offsetAEnd.mean, ci->offsetBEnd.mean);
-      float32 maxCoord = max(ci->offsetAEnd.mean, ci->offsetBEnd.mean);
+      float32 maxCoord = MAX(ci->offsetAEnd.mean, ci->offsetBEnd.mean);
       float32 minVariance =
         min(ci->offsetAEnd.variance,
             ci->offsetBEnd.variance);
       float32 maxVariance =
-        max(ci->offsetAEnd.variance,
+        MAX(ci->offsetAEnd.variance,
             ci->offsetBEnd.variance);
     
       if(ciCount == 0)
@@ -825,7 +825,7 @@ int InitializeSurrogateTracker(ScaffoldGraphT * graph,
   if(st->surrogateFragHT == NULL)
     {
       // assume 1/10 # of frags?
-      st->numAllocatedLocs = max(50, GetNumCIFragTs(graph->CIFrags) / 100);
+      st->numAllocatedLocs = MAX(50, GetNumCIFragTs(graph->CIFrags) / 100);
       st->surrogateFragHT = CreateHashTable_AS(st->numAllocatedLocs,
                                                InstrumenterHashFn,
                                                InstrumenterFragCompareFn);
@@ -842,7 +842,7 @@ int InitializeSurrogateTracker(ScaffoldGraphT * graph,
   
   if(st->surrogateFragLocs == NULL)
     {
-      st->numAllocatedLocs = max(50, GetNumCIFragTs(graph->CIFrags) / 100);
+      st->numAllocatedLocs = MAX(50, GetNumCIFragTs(graph->CIFrags) / 100);
       st->numUsedLocs = 0;
       st->surrogateFragLocs = safe_calloc(st->numAllocatedLocs,
                                           sizeof(SurrogateFragLocation));
@@ -876,7 +876,7 @@ int InitializeInstrumenterBookkeeping(ScaffoldGraphT * graph,
      bk->wExtMates == NULL ||
      bk->localeHT == NULL)
     {
-      numLocales = max(1, getNumGateKeeperLocales(graph->gkpStore.locStore));
+      numLocales = MAX(1, getNumGateKeeperLocales(graph->gkpStore.locStore));
 
 #define LARGEST_TO_MEAN_RATIO   5.f
     
@@ -897,7 +897,7 @@ int InitializeInstrumenterBookkeeping(ScaffoldGraphT * graph,
             else
               {
                 numFrags = LARGEST_TO_MEAN_RATIO *
-                  (GetNumCIFragTs(graph->CIFrags) / max(1, graph->numContigs));
+                  (GetNumCIFragTs(graph->CIFrags) / MAX(1, graph->numContigs));
               }
             break;
           case InstrumenterScaffoldGraphLevel:
@@ -908,7 +908,7 @@ int InitializeInstrumenterBookkeeping(ScaffoldGraphT * graph,
                         "*** Inititializing scaffold instrumenter bookkeeping, "
                         "but graph has no live scaffolds! ***\n");
                 numFrags = LARGEST_TO_MEAN_RATIO *
-                  (GetNumCIFragTs(graph->CIFrags) / max(1, graph->numContigs));
+                  (GetNumCIFragTs(graph->CIFrags) / MAX(1, graph->numContigs));
               }
             else
               {
@@ -921,7 +921,7 @@ int InitializeInstrumenterBookkeeping(ScaffoldGraphT * graph,
               break;
             */
         }
-      numFrags = max(3, min(numFrags, GetNumCIFragTs(graph->CIFrags)));
+      numFrags = MAX(3, min(numFrags, GetNumCIFragTs(graph->CIFrags)));
       numWithExternalMates = numFrags / 3;
     }
 
@@ -1762,7 +1762,7 @@ int BreakpointsOverlap(InstBreakpointType problem,
 void NarrowBreakpointInterval(InstrumenterBreakpoint * destBP,
                               InstrumenterBreakpoint * sourceBP)
 {
-  destBP->end1 = max(destBP->end1, sourceBP->end1);
+  destBP->end1 = MAX(destBP->end1, sourceBP->end1);
   destBP->end2 = min(destBP->end2, sourceBP->end2);
 }
 
@@ -1908,9 +1908,9 @@ int DetectBreakpointType(ScaffoldGraphT * graph,
                   fprintf(stderr, "Got a keeper!\n");
 #endif
                   /*
-                    bp1.end1 = max(bp1.end1, bgn);
+                    bp1.end1 = MAX(bp1.end1, bgn);
                     bp1.end2 = min(bp1.end2, end);
-                    bp2.end1 = max(bp2.end1, bgn);
+                    bp2.end1 = MAX(bp2.end1, bgn);
                     bp2.end2 = min(bp2.end2, end);
                   */
                   AppendBreakpointSet(bps, &bp1, &bp2,
@@ -1935,9 +1935,9 @@ int DetectBreakpointType(ScaffoldGraphT * graph,
       if(bp1.pairs >= INST_MIN_BREAK_MATES)
         {
           /*
-            bp1.end1 = max(bp1.end1, bgn);
+            bp1.end1 = MAX(bp1.end1, bgn);
             bp1.end2 = min(bp1.end2, end);
-            bp2.end1 = max(bp2.end1, bgn);
+            bp2.end1 = MAX(bp2.end1, bgn);
             bp2.end2 = min(bp2.end2, end);
           */
           AppendBreakpointSet(bps, &bp1, &bp2,
@@ -2031,7 +2031,7 @@ void AddFloat32ToInstrumenterStatistics(InstrumenterStatistics * is,
   is->mean += (*var);
   is->sumOfSquares += (*var) * (*var);
   is->min = min(is->min, *var);
-  is->max = max(is->max, *var);
+  is->max = MAX(is->max, *var);
 }
 
 
@@ -2041,7 +2041,7 @@ void AddCoordToInstrumenterStatistics(InstrumenterStatistics * is,
   is->mean += (*var);
   is->sumOfSquares += (*var) * (*var);
   is->min = min(is->min, *var);
-  is->max = max(is->max, *var);
+  is->max = MAX(is->max, *var);
 }
 
 
@@ -3064,7 +3064,7 @@ void PrintInferredStddevs(VA_TYPE(cds_float32) * stddevs,
               if(*currStddev > *prevStddev)
                 {
                   incRun++;
-                  maxIncRun = max(maxIncRun, incRun);
+                  maxIncRun = MAX(maxIncRun, incRun);
                   if(!increasing)
                     {
                       increasing = 1;
@@ -3074,7 +3074,7 @@ void PrintInferredStddevs(VA_TYPE(cds_float32) * stddevs,
               else
                 {
                   decRun++;
-                  maxDecRun = max(maxDecRun, decRun);
+                  maxDecRun = MAX(maxDecRun, decRun);
                   if(increasing)
                     {
                       increasing = 0;
@@ -3595,7 +3595,7 @@ int AddContigToScaffoldInstrumenter(ScaffoldGraphT * graph,
   AppendVA_cds_float32(si->contigSizes, &size);
 
   // figure out scaffold size
-  si->size = max(si->size, max(ci->leftEnd, ci->rightEnd));
+  si->size = MAX(si->size, MAX(ci->leftEnd, ci->rightEnd));
 
   // add contig data
   AddContigInstrumenters(graph, &(si->contig), ci);
@@ -4337,14 +4337,14 @@ int GetFragmentPositionInFauxScaffold(HashTable_AS * cpHT,
       *fragLeftEnd = cp->offset +
         min(frag->contigOffset5p.mean, frag->contigOffset3p.mean);
       *fragRightEnd = cp->offset +
-        max(frag->contigOffset5p.mean, frag->contigOffset3p.mean);
+        MAX(frag->contigOffset5p.mean, frag->contigOffset3p.mean);
       *fragOrientInScaffold =
         (frag->contigOffset5p.mean < frag->contigOffset3p.mean) ? 0: 1;
     }
   else
     {
       *fragLeftEnd = cp->offset + cp->length -
-        max(frag->contigOffset5p.mean, frag->contigOffset3p.mean);
+        MAX(frag->contigOffset5p.mean, frag->contigOffset3p.mean);
       *fragRightEnd = cp->offset + cp->length -
         min(frag->contigOffset5p.mean, frag->contigOffset3p.mean);
       *fragOrientInScaffold =
@@ -5127,7 +5127,7 @@ int InstrumentUnitig(ScaffoldGraphT * graph,
   
   // get the position, whether or not it's a surrogate
   ui->leftEnd = min(unitig->offsetAEnd.mean, unitig->offsetBEnd.mean) + 0.5f;
-  ui->rightEnd = max(unitig->offsetAEnd.mean, unitig->offsetBEnd.mean) + 0.5f;
+  ui->rightEnd = MAX(unitig->offsetAEnd.mean, unitig->offsetBEnd.mean) + 0.5f;
   ui->orientation =
     (unitig->offsetAEnd.mean < unitig->offsetBEnd.mean) ? A_B : B_A;
   ctgID = unitig->info.CI.contigID;
@@ -5191,25 +5191,25 @@ int InstrumentUnitig(ScaffoldGraphT * graph,
               firstFragIID = imp->ident;
               firstFragType = imp->type;
             }
-          if(lastBP < max(imp->position.bgn, imp->position.end))
+          if(lastBP < MAX(imp->position.bgn, imp->position.end))
             {
               lastFragIID = imp->ident;
               lastFragType = imp->type;
             }
-          lastBP = max(lastBP, max(imp->position.bgn, imp->position.end));
+          lastBP = MAX(lastBP, MAX(imp->position.bgn, imp->position.end));
       
           if(ContigLastBP == 0)
             {
               ContigFirstFragIID = imp->ident;
               ContigFirstFragType = imp->type;
             }
-          if(ContigLastBP < UnitigOffset + max(imp->position.bgn,
+          if(ContigLastBP < UnitigOffset + MAX(imp->position.bgn,
                                                imp->position.end))
             {
               ContigLastFragIID = imp->ident;
               ContigLastFragType = imp->type;
             }
-          ContigLastBP = UnitigOffset + max(imp->position.bgn,
+          ContigLastBP = UnitigOffset + MAX(imp->position.bgn,
                                             imp->position.end);
 #endif
           AddFragmentToUnitigInstrumenter(graph, uma, fi, ui);
@@ -5294,7 +5294,7 @@ int InstrumentContig(ScaffoldGraphT * graph,
 
   ci->id = contig->id;
   ci->leftEnd = min(aEnd, bEnd) + 0.5f;
-  ci->rightEnd = max(aEnd, bEnd) + 0.5f;
+  ci->rightEnd = MAX(aEnd, bEnd) + 0.5f;
   ci->orientation = (aEnd < bEnd) ? A_B : B_A;
 
 #ifdef LIST_TERMINAL_TYPES
@@ -6078,7 +6078,7 @@ int InstrumentScaffoldGraph(ScaffoldGraphT * graph,
     iidSize = GetVA_IID_Size(iidSizes, 0);
     smallest = iidSize->length;
     iidSize = GetVA_IID_Size(iidSizes, GetNumVA_IID_Size(iidSizes) - 1);
-    largest = max(smallest, iidSize->length);
+    largest = MAX(smallest, iidSize->length);
     smallest = min(smallest, iidSize->length);
     fprintf(stderr, "Smallest: " F_COORD "bp, Largest: " F_COORD "bp\n", smallest, largest);
   }
@@ -6774,7 +6774,7 @@ int InstrumentScaffoldPair(ScaffoldGraphT * graph,
       ism.contig_pairs[i].mean = ism.contig_pairs[i+1].mean -
         ism.contig_pairs[i].mean - ci->bpLength.mean;
       ism.contig_pairs[i].stddev =
-        sqrt(max(400., 
+        sqrt(MAX(400., 
                  ism.contig_pairs[i+1].stddev * ism.contig_pairs[i+1].stddev -
                  ism.contig_pairs[i].stddev * ism.contig_pairs[i].stddev -
                  ci->bpLength.variance));

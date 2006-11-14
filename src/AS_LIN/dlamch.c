@@ -557,7 +557,7 @@ erflow;
 
 	} else if (ngpmin == gpmin && ngnmin == gnmin) {
 	    if ((i__1 = ngpmin - ngnmin, abs(i__1)) == 1) {
-		lemin = max(ngpmin,ngnmin);
+		lemin = MAX(ngpmin,ngnmin);
 /*            ( Twos-complement machines, no gradual underflow
 ;   
                 e.g., CYBER 205 ) */
@@ -570,7 +570,7 @@ erflow;
 	} else if ((i__1 = ngpmin - ngnmin, abs(i__1)) == 1 && gpmin == gnmin)
 		 {
 	    if (gpmin - min(ngpmin,ngnmin) == 3) {
-		lemin = max(ngpmin,ngnmin) - 1 + lt;
+		lemin = MAX(ngpmin,ngnmin) - 1 + lt;
 /*            ( Twos-complement machines with gradual underflo
 w;   
                 no known machine ) */

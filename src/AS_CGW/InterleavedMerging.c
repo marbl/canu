@@ -657,7 +657,7 @@ void PopulateScaffoldStuff(ScaffoldStuff * ss,
           Scaffold_Gap gap;
           gap.gap_length = (int) ((thisLeft.mean - lastRight.mean) + 0.5);
           // yes, gap_var is actually used as stddev in Align_Scaffold()
-          gap.gap_var = max(1.,sqrt(fabs((double) thisLeft.variance -
+          gap.gap_var = MAX(1.,sqrt(fabs((double) thisLeft.variance -
                                          lastRight.variance)));
 #ifdef DEBUG1
           fprintf(GlobalData->stderrc, "\tgap %d: (%d,%d)\n",
@@ -688,10 +688,10 @@ void PopulateScaffoldStuff(ScaffoldStuff * ss,
             {
               // the interval this contig is in specifies an ahang range
               ss->bandBeg = min(ss->bandBeg, .5 +
-                                thisLeft.mean + max(0,
+                                thisLeft.mean + MAX(0,
                                                     contig->bpLength.mean -
                                                     ce.maxCoord));
-              ss->bandEnd = max(ss->bandEnd, .5 +
+              ss->bandEnd = MAX(ss->bandEnd, .5 +
                                 thisLeft.mean + min(-ce.minCoord,
                                                     contig->bpLength.mean -
                                                     CGW_DP_MINLEN));
@@ -710,9 +710,9 @@ void PopulateScaffoldStuff(ScaffoldStuff * ss,
                 {
                   // the interval the last gap is in specifies an ahang range
                   ss->bandBeg = min(ss->bandBeg, .5 +
-                                    lastRight.mean + max(0,
+                                    lastRight.mean + MAX(0,
                                                          gap->gap_length - maxGapCoord));
-                  ss->bandEnd = max(ss->bandEnd, .5 +
+                  ss->bandEnd = MAX(ss->bandEnd, .5 +
                                     lastRight.mean + min(-minGapCoord, gap->gap_length));
                 }
             }
@@ -760,7 +760,7 @@ void PopulateScaffoldStuff(ScaffoldStuff * ss,
           ss->bandEnd = scaffold->bpLength.mean + INTERLEAVE_CUTOFF *
             sqrt((double) scaffold->bpLength.variance) - thinEdge;
         }
-      ss->bandBeg = max(ss->bandBeg, -(osLength.mean - CGW_DP_MINLEN));
+      ss->bandBeg = MAX(ss->bandBeg, -(osLength.mean - CGW_DP_MINLEN));
       ss->bandEnd = min(ss->bandEnd, scaffold->bpLength.mean - CGW_DP_MINLEN);
     }
   
@@ -882,7 +882,7 @@ Overlap * LookForChunkOverlapFromContigElements(ContigElement * ceA,
         overlapOrient = (orientB == A_B) ? BA_AB : BA_BA;
     
       // min overlap: push ceA far to left wrt ceB
-      minOverlap = max(CGW_MISSED_OVERLAP,
+      minOverlap = MAX(CGW_MISSED_OVERLAP,
                        ceA->minCoord + minLengthA -
                        (ceB->maxCoord - minLengthB) + .5);
       minOverlap = min(minLengthA, min(minLengthB, minOverlap));
@@ -894,8 +894,8 @@ Overlap * LookForChunkOverlapFromContigElements(ContigElement * ceA,
       // contains ceA here too, which means that we just want to disallow
       // the case of ceA sticking out to the right.  So, slippage allowing,
       // we allow overlap up to the length of the longer of A or B.
-      maxOverlap = min(max(maxLengthA,maxLengthB),ceA->maxCoord-ceB->minCoord+.5);
-      maxOverlap = max(CGW_MISSED_OVERLAP, maxOverlap);
+      maxOverlap = min(MAX(maxLengthA,maxLengthB),ceA->maxCoord-ceB->minCoord+.5);
+      maxOverlap = MAX(CGW_MISSED_OVERLAP, maxOverlap);
 
       chunkOverlap = OverlapChunks(ScaffoldGraph->RezGraph,
                                    ceA->id, ceB->id, overlapOrient,
@@ -952,7 +952,7 @@ Overlap * LookForChunkOverlapFromContigElements(ContigElement * ceA,
         overlapOrient = (orientB == A_B) ? AB_BA : AB_AB;
     
       // min overlap: push ceA far to the right wrt ceB
-      minOverlap = max(CGW_MISSED_OVERLAP,
+      minOverlap = MAX(CGW_MISSED_OVERLAP,
                        ceB->minCoord + minLengthB -
                        (ceA->maxCoord - minLengthA) + .5);
       minOverlap = min(minLengthA, min(minLengthB, minOverlap));
@@ -962,8 +962,8 @@ Overlap * LookForChunkOverlapFromContigElements(ContigElement * ceA,
       // ourselves to ceA sticking out further to the right than ceB;
       // but again, we actually can allow for containment, so allow
       // max length of A or B
-      maxOverlap = min(max(maxLengthA,maxLengthB),ceA->maxCoord-ceB->minCoord+.5);
-      maxOverlap = max(CGW_MISSED_OVERLAP, maxOverlap);
+      maxOverlap = min(MAX(maxLengthA,maxLengthB),ceA->maxCoord-ceB->minCoord+.5);
+      maxOverlap = MAX(CGW_MISSED_OVERLAP, maxOverlap);
     
       chunkOverlap = OverlapChunks(ScaffoldGraph->RezGraph,
                                    ceA->id, ceB->id, overlapOrient,
@@ -1146,8 +1146,8 @@ int PopulateScaffoldAlignmentInterface(CIScaffoldT * scaffoldA,
                   //         ------------  B     blow = -begpos; bhgh = length
                   //
 
-                  sai->segmentList->alow = max(0,overlap->begpos);  
-                  sai->segmentList->blow = max(0,-(overlap->begpos));  
+                  sai->segmentList->alow = MAX(0,overlap->begpos);  
+                  sai->segmentList->blow = MAX(0,-(overlap->begpos));  
                   sai->segmentList->ahgh = overlap->length + overlap->begpos + min(0,overlap->endpos);
                   sai->segmentList->bhgh = overlap->length + min(0,overlap->endpos);
 
@@ -1220,7 +1220,7 @@ CDS_COORD_t ComputeCurrentGapExpansion(Scaffold_Tig * contigs,
                                        Scaffold_Gap * gaps,
                                        int index)
 {
-  return max(0, contigs[index+1].lft_end - gaps[index].gap_length -
+  return MAX(0, contigs[index+1].lft_end - gaps[index].gap_length -
              contigs[index].lft_end - contigs[index].length);
 }
 
@@ -1235,8 +1235,8 @@ CDS_COORD_t ComputeAdditionalLeftGapExpansion(Scaffold_Tig * contigs1,
                                               Scaffold_Tig * contigs2,
                                               int index2)
 {
-  return max(0, contigs2[index2].length + 2 * MIN_GAP_LENGTH -
-             (contigs1[index1].lft_end - max(contigs1[index1-1].lft_end +
+  return MAX(0, contigs2[index2].length + 2 * MIN_GAP_LENGTH -
+             (contigs1[index1].lft_end - MAX(contigs1[index1-1].lft_end +
                                              contigs1[index1-1].length,
                                              contigs2[index2-1].lft_end +
                                              contigs2[index2-1].length)));
@@ -1252,7 +1252,7 @@ CDS_COORD_t ComputeAdditionalRightGapExpansion(Scaffold_Tig * contigs1,
                                                Scaffold_Tig * contigs2,
                                                int index2)
 {
-  return max(0, contigs2[index2].length + 2 * MIN_GAP_LENGTH -
+  return MAX(0, contigs2[index2].length + 2 * MIN_GAP_LENGTH -
              (min(contigs1[index1+1].lft_end, contigs2[index2+1].lft_end) -
               (contigs1[index1].lft_end + contigs1[index1].length)));
 
@@ -1270,7 +1270,7 @@ CDS_COORD_t ComputeLeftGapCompression(Scaffold_Tig * contigs1,
                                       int index2,
                                       CDS_COORD_t gap2Expansion)
 {
-  return max(0, (contigs1[index1-1].lft_end + contigs1[index1-1].length +
+  return MAX(0, (contigs1[index1-1].lft_end + contigs1[index1-1].length +
                  gaps1[index1-1].gap_length) -
              (contigs2[index2].lft_end + gap2Expansion - MIN_GAP_LENGTH -
               contigs1[index1].length));
@@ -1287,7 +1287,7 @@ CDS_COORD_t ComputeRightGapCompression(Scaffold_Tig * contigs1,
                                        int index2,
                                        CDS_COORD_t gap2Expansion)
 {
-  return max(0, (contigs2[index2].lft_end + contigs2[index2].length +
+  return MAX(0, (contigs2[index2].lft_end + contigs2[index2].length +
                  MIN_GAP_LENGTH - gap2Expansion) -
              (contigs1[index1+1].lft_end - gaps1[index1].gap_length -
               contigs1[index1].length));
@@ -1318,7 +1318,7 @@ int AdjustNonOverlappingContigsLeftToRight(Scaffold_Tig * contigsA,
         {
           // tentatively place contigsB[ib]
           contigsB[ib].lft_end =
-            max(contigsB[ib-1].lft_end + contigsB[ib-1].length +
+            MAX(contigsB[ib-1].lft_end + contigsB[ib-1].length +
                 gapsB[ib-1].gap_length,
                 contigsA[ia-1].lft_end + contigsA[ia-1].length + MIN_GAP_LENGTH);
           if(ia > maxIndexA)
@@ -1333,7 +1333,7 @@ int AdjustNonOverlappingContigsLeftToRight(Scaffold_Tig * contigsA,
         {
           // tentatively place contigsA[ia]
           contigsA[ia].lft_end =
-            max(contigsA[ia-1].lft_end + contigsA[ia-1].length +
+            MAX(contigsA[ia-1].lft_end + contigsA[ia-1].length +
                 gapsA[ia-1].gap_length,
                 contigsB[ib-1].lft_end + contigsB[ib-1].length + MIN_GAP_LENGTH);
           if(ib > maxIndexB)
@@ -1400,14 +1400,14 @@ int AdjustNonOverlappingContigsLeftToRight(Scaffold_Tig * contigsA,
             {
               // place contigsB[ib] in gapsA[ia-1]
               contigsB[ib].lft_end =
-                max(contigsA[ia-1].lft_end + contigsA[ia-1].length + MIN_GAP_LENGTH,
+                MAX(contigsA[ia-1].lft_end + contigsA[ia-1].length + MIN_GAP_LENGTH,
                     contigsB[ib-1].lft_end + contigsB[ib-1].length + gapsB[ib-1].gap_length);
               ib++;
             }
           else
             {
               contigsA[ia].lft_end =
-                max(contigsB[ib-1].lft_end + contigsB[ib-1].length + MIN_GAP_LENGTH,
+                MAX(contigsB[ib-1].lft_end + contigsB[ib-1].length + MIN_GAP_LENGTH,
                     contigsA[ia-1].lft_end + contigsA[ia-1].length + gapsA[ia-1].gap_length);
               ia++;
             }
@@ -1532,7 +1532,7 @@ int PlaceContigsInOverlapSet(COSData * cos,
       if(ia == 0)
         offset = 0;
       else if(ib > 0)
-        offset = max(contigsA[ia-1].lft_end + contigsA[ia-1].length +
+        offset = MAX(contigsA[ia-1].lft_end + contigsA[ia-1].length +
                      gapsA[ia-1].gap_length,
                      contigsB[ib-1].lft_end + contigsB[ib-1].length +
                      MIN_GAP_LENGTH);
@@ -1551,7 +1551,7 @@ int PlaceContigsInOverlapSet(COSData * cos,
       if(ib == 0)
         offset = 0;
       else if(ia > 0)
-        offset = max(contigsB[ib-1].lft_end + contigsB[ib-1].length +
+        offset = MAX(contigsB[ib-1].lft_end + contigsB[ib-1].length +
                      gapsB[ib-1].gap_length,
                      contigsA[ia-1].lft_end + contigsA[ia-1].length +
                      MIN_GAP_LENGTH);
@@ -1643,9 +1643,9 @@ void UpdateContigSetInterval(ContigSetInterval * csi,
                              int contigIndex)
 {
   csi->minIndex = min(csi->minIndex, contigIndex);
-  csi->maxIndex = max(csi->maxIndex, contigIndex);
+  csi->maxIndex = MAX(csi->maxIndex, contigIndex);
   csi->minCoord = min(csi->minCoord, contigs[contigIndex].lft_end);
-  csi->maxCoord = max(csi->maxCoord, contigs[contigIndex].lft_end +
+  csi->maxCoord = MAX(csi->maxCoord, contigs[contigIndex].lft_end +
                       contigs[contigIndex].length);
 }
 
@@ -1764,8 +1764,8 @@ int ExamineContigOverlapSets(ScaffoldAlignmentInterface * sai,
               if(contigsB[overlaps[i].b_contig].insert_pnt == NO_OVERLAP_SET)
                 {
                   // new overlap set
-                  contigsA[overlaps[i].a_contig].lft_end = max(0, -overlaps[i].overlap->begpos);
-                  contigsB[overlaps[i].b_contig].lft_end = max(0, overlaps[i].overlap->begpos);
+                  contigsA[overlaps[i].a_contig].lft_end = MAX(0, -overlaps[i].overlap->begpos);
+                  contigsB[overlaps[i].b_contig].lft_end = MAX(0, overlaps[i].overlap->begpos);
                 }
               else
                 {
@@ -2049,7 +2049,7 @@ void AdjustForPureInterleaving(Scaffold_Tig * contigsA,
         {
           // no more A contigs, ib == 0
           contigsB[0].lft_end =
-            max(contigsB[0].lft_end,
+            MAX(contigsB[0].lft_end,
                 contigsA[ia-1].lft_end + contigsA[ia-1].length + MIN_GAP_LENGTH);
           ib++;
           break;
@@ -2058,7 +2058,7 @@ void AdjustForPureInterleaving(Scaffold_Tig * contigsA,
         {
           // no more B contigs, ia == 0
           contigsA[0].lft_end =
-            max(contigsA[0].lft_end,
+            MAX(contigsA[0].lft_end,
                 contigsB[ib-1].lft_end + contigsB[ib-1].length + MIN_GAP_LENGTH);
           ia++;
           break;
@@ -2070,7 +2070,7 @@ void AdjustForPureInterleaving(Scaffold_Tig * contigsA,
         aLeft = contigsA[ia-1].lft_end + contigsA[ia-1].length + gapsA[ia-1].gap_length;
         else */
       if(ib > 0)
-        aLeft = max(aLeft, contigsB[ib-1].lft_end + contigsB[ib-1].length + MIN_GAP_LENGTH);
+        aLeft = MAX(aLeft, contigsB[ib-1].lft_end + contigsB[ib-1].length + MIN_GAP_LENGTH);
 
       bLeft = contigsB[ib].lft_end;
       /*
@@ -2079,22 +2079,22 @@ void AdjustForPureInterleaving(Scaffold_Tig * contigsA,
         else
       */
       if(ia > 0)
-        bLeft = max(bLeft, contigsA[ia-1].lft_end + contigsA[ia-1].length + MIN_GAP_LENGTH);
+        bLeft = MAX(bLeft, contigsA[ia-1].lft_end + contigsA[ia-1].length + MIN_GAP_LENGTH);
                 
       // edge compression for ia - ib
       if(ia == 0)
-        deltaAB = max(0, (aLeft - bLeft - MIN_GAP_LENGTH - 
+        deltaAB = MAX(0, (aLeft - bLeft - MIN_GAP_LENGTH - 
                           contigsA[ia].length) / edgeStddev);
       else
-        deltaAB = max(0, (aLeft -
-                          max(bLeft - MIN_GAP_LENGTH -
+        deltaAB = MAX(0, (aLeft -
+                          MAX(bLeft - MIN_GAP_LENGTH -
                               contigsA[ia].length,
                               contigsA[ia-1].lft_end + contigsA[ia-1].length +
                               MIN_GAP_LENGTH)) / edgeStddev);
 
       // add possible gaps[ia] compression
       if(ia < numContigsA - 1)
-        deltaAB += max(0, (aLeft - contigsA[ia+1].lft_end -
+        deltaAB += MAX(0, (aLeft - contigsA[ia+1].lft_end -
                            gapsA[ia].gap_length -
                            contigsA[ia].length) / gapsA[ia].gap_var);
        
@@ -2102,24 +2102,24 @@ void AdjustForPureInterleaving(Scaffold_Tig * contigsA,
       // add possible gap stretch for ia - ib
       if(ia < numContigsA - 1 &&
       contigsB[ib].lft_end < contigsA[ia+1].lft_end + contigsA[ia+1].length)
-      deltaAB += max(0, (contigsB[ib].length + 2 * MIN_GAP_LENGTH -
+      deltaAB += MAX(0, (contigsB[ib].length + 2 * MIN_GAP_LENGTH -
       gapsA[ia].gap_length) / gapsA[ia].gap_var);
       */
 
       // edge stretch for ib - ia
       if(ib == 0)
-        deltaBA = max(0, (bLeft - aLeft - MIN_GAP_LENGTH - 
+        deltaBA = MAX(0, (bLeft - aLeft - MIN_GAP_LENGTH - 
                           contigsB[ib].length) / edgeStddev);
       else
-        deltaBA = max(0, (bLeft -
-                          max(aLeft - MIN_GAP_LENGTH -
+        deltaBA = MAX(0, (bLeft -
+                          MAX(aLeft - MIN_GAP_LENGTH -
                               contigsB[ib].length,
                               contigsB[ib-1].lft_end + contigsB[ib-1].length +
                               MIN_GAP_LENGTH)) / edgeStddev);
 
       // add possible gapsB[ib] compression
       if(ib < numContigsB - 1)
-        deltaBA += max(0, (bLeft - contigsB[ib+1].lft_end -
+        deltaBA += MAX(0, (bLeft - contigsB[ib+1].lft_end -
                            gapsB[ib].gap_length -
                            contigsB[ib].length) / gapsB[ib].gap_var);
 
@@ -2127,7 +2127,7 @@ void AdjustForPureInterleaving(Scaffold_Tig * contigsA,
       // add possible gap stretch for ib - ia
       if(ib < numContigsB - 1 &&
       contigsA[ia].lft_end < contigsB[ib+1].lft_end + contigsB[ib+1].length)
-      deltaBA += max(0, (contigsA[ia].length + 2 * MIN_GAP_LENGTH -
+      deltaBA += MAX(0, (contigsA[ia].length + 2 * MIN_GAP_LENGTH -
       gapsB[ib].gap_length) / gapsB[ib].gap_var);
       */
 
@@ -2136,7 +2136,7 @@ void AdjustForPureInterleaving(Scaffold_Tig * contigsA,
           if(ib > 0) // ia == 0
             contigsA[ia].lft_end = aLeft;
           /*
-            max(contigsA[ia].lft_end,
+            MAX(contigsA[ia].lft_end,
             contigsB[ib-1].lft_end + contigsB[ib-1].length + MIN_GAP_LENGTH);
           */
           // else ia is already okay relative to contigsA[ia-1]
@@ -2147,7 +2147,7 @@ void AdjustForPureInterleaving(Scaffold_Tig * contigsA,
           if(ia > 0) // ib == 0
             contigsB[ib].lft_end = bLeft;
           /*
-            max(contigsB[ib].lft_end,
+            MAX(contigsB[ib].lft_end,
             contigsA[ia-1].lft_end + contigsA[ia-1].length + MIN_GAP_LENGTH);
           */
           // else ib is already okay relative to contigsB[ib-1]

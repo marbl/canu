@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: ProcessScaffolds_CGW.c,v 1.10 2006-10-08 08:47:39 brianwalenz Exp $ */
+/* $Id: ProcessScaffolds_CGW.c,v 1.11 2006-11-14 17:52:15 eliv Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -329,7 +329,7 @@ int CelamyContig(FILE *out, CDS_IID_t scaffid, CDS_IID_t contigid, int reverse) 
   u_list = GetIntUnitigPos(contig->u_list,0);
   for (i=0;i<num_unitigs;i++) {
     unitig = GetMultiAlignInStore(ustore,u_list[i].ident);
-    t_rightcoord = max(u_list[i].position.bgn,u_list[i].position.end);
+    t_rightcoord = MAX(u_list[i].position.bgn,u_list[i].position.end);
     t_leftcoord =  min(u_list[i].position.bgn,u_list[i].position.end);
     if(reverse){
       ci_leftcoord = rightcoord - t_rightcoord;
@@ -351,7 +351,7 @@ int CelamyContig(FILE *out, CDS_IID_t scaffid, CDS_IID_t contigid, int reverse) 
   for (i=0;i<num_frags;i++) {
     CDS_UID_t fuid;
     frag = &f_list[i];
-    t_rightcoord = max(frag->position.bgn,frag->position.end);
+    t_rightcoord = MAX(frag->position.bgn,frag->position.end);
     t_leftcoord =  min(frag->position.bgn,frag->position.end);
     if(reverse){
       ci_leftcoord = rightcoord - t_rightcoord;
@@ -400,7 +400,7 @@ static void Complement(char *in, CDS_COORD_t len);
 
 
 CDS_COORD_t compute_gap(double gapsize){
-  return (CDS_COORD_t) max(20, gapsize);
+  return (CDS_COORD_t) MAX(20, gapsize);
 }
 
 

@@ -42,7 +42,7 @@
   
             first KD+1 rows of the array.  The j-th column of U or L is   
             stored in the j-th column of the array AB as follows:   
-            if UPLO ='U', AB(kd+1+i-j,j) = U(i,j) for max(1,j-kd)<=i<=j; 
+            if UPLO ='U', AB(kd+1+i-j,j) = U(i,j) for MAX(1,j-kd)<=i<=j; 
   
             if UPLO ='L', AB(1+i-j,j)    = L(i,j) for j<=i<=min(n,j+kd). 
   
@@ -55,7 +55,7 @@
             On exit, the solution matrix X.   
 
     LDB     (input) INTEGER   
-            The leading dimension of the array B.  LDB >= max(1,N).   
+            The leading dimension of the array B.  LDB >= MAX(1,N).   
 
     INFO    (output) INTEGER   
             = 0:  successful exit   
@@ -101,7 +101,7 @@
 	*info = -4;
     } else if (*ldab < *kd + 1) {
 	*info = -6;
-    } else if (*ldb < max(1,*n)) {
+    } else if (*ldb < MAX(1,*n)) {
 	*info = -8;
     }
     if (*info != 0) {

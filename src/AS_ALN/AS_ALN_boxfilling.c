@@ -36,10 +36,6 @@
 
 #define MINUS_ONE 0   /* whether "zero" is one before the string or the start */
 
-#ifndef max
-#define max(a,b) (a>b?a:b)
-#endif      
-
 #define AFFINE_QUALITY   /* overlap diff and length reported in affine terms */
 
 static void safe_suffix(char **Dest,int *DestLen,char *src,int start){
@@ -155,20 +151,20 @@ OverlapMesg *BoxFill_AS(InternalFragMesg *a, InternalFragMesg *b,
   safe_suffix(&Ausable,&AuseLen,aseq+MINUS_ONE,0);
   safe_suffix(&Busable,&BuseLen,bseq+MINUS_ONE,0);
 
-  for(i=0;i<max(0,beg-EXPAND_BAND);i++){
+  for(i=0;i<MAX(0,beg-EXPAND_BAND);i++){
     Ausable[i]='N';
   }
   assert(alen>=i);
-  for(i=0;i<max(0,-end-EXPAND_BAND);i++){
+  for(i=0;i<MAX(0,-end-EXPAND_BAND);i++){
     Busable[i]='N';
   }
   assert(blen>=i);
 
-  for(i=max(0,end)+(blen+min(0,end))*STRETCH+BIGPAD;i<alen;i++){
+  for(i=MAX(0,end)+(blen+min(0,end))*STRETCH+BIGPAD;i<alen;i++){
     Ausable[i]='N';
   }
 
-  i=-min(0,beg)+(alen-max(0,beg))*STRETCH+BIGPAD;
+  i=-min(0,beg)+(alen-MAX(0,beg))*STRETCH+BIGPAD;
   assert(i>=0);
 
   for(;i<blen;i++){

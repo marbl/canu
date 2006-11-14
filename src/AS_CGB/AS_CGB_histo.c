@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_histo.c,v 1.6 2006-10-03 17:02:36 brianwalenz Exp $
+ * $Id: AS_CGB_histo.c,v 1.7 2006-11-14 17:52:14 eliv Exp $
  * Module:  AS_CGB_histo.c
  * Description: A histogramming routine and auxillary functions.
  * Assumptions:
@@ -36,7 +36,7 @@
 #undef DEBUGGING2
 
 /*************************************************************************/
-static char CM_ID[] = "$Id: AS_CGB_histo.c,v 1.6 2006-10-03 17:02:36 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_histo.c,v 1.7 2006-11-14 17:52:14 eliv Exp $";
 /*************************************************************************/
 
 /* Histogram library */
@@ -192,7 +192,7 @@ void free_histogram(Histogram_t *histogram)
 
 static int bucket_from_score(HISTOGRAM *h, int thescore) {
   int ib;
-  h->max = max(thescore,h->max);
+  h->max = MAX(thescore,h->max);
   h->min = min(thescore,h->min);
   ib = thescore;
 
@@ -216,7 +216,7 @@ static int bucket_from_score(HISTOGRAM *h, int thescore) {
   }
 
   /* Place a floor and ceiling to the histogram. */
-  ib = max(ib,0);
+  ib = MAX(ib,0);
   ib = min(ib,h->nbucket-1);
   return ib;
 }
@@ -237,7 +237,7 @@ static void fill(HISTOGRAM *h)
     int is;
     for (is = 1; is < h->cnt; is++) {
       const int thescore = h->thescore[is];
-      hgh = max(hgh,thescore);
+      hgh = MAX(hgh,thescore);
       low = min(low,thescore);
     }
   }
@@ -272,7 +272,7 @@ static void fill(HISTOGRAM *h)
         h->bucket_max[ib] = thescore;
       } else {
         h->bucket_min[ib] = min(h->bucket_min[ib],thescore);
-        h->bucket_max[ib] = max(h->bucket_max[ib],thescore);
+        h->bucket_max[ib] = MAX(h->bucket_max[ib],thescore);
       }
       if(h->extended) {
         HistoDataType *data;
@@ -328,7 +328,7 @@ void add_to_histogram(Histogram_t *histogram, int thescore, HistoDataType *data)
       h->bucket_max[ib] = thescore;
     } else {
       h->bucket_min[ib] = min(h->bucket_min[ib],thescore);
-      h->bucket_max[ib] = max(h->bucket_max[ib],thescore);
+      h->bucket_max[ib] = MAX(h->bucket_max[ib],thescore);
     }
     if(h->extended) {
       if( h->bucket_cnt[ib] == 1) {
@@ -544,7 +544,7 @@ void print_histogram(FILE *fout, Histogram_t *histogram, int rez, int indent)
       int min_score = h->bucket_min[ib];
       int max_score = h->bucket_max[ib];
 
-      min_score = max(min_score,h->min);
+      min_score = MAX(min_score,h->min);
       max_score = min(max_score,h->max);
     
       for (j = 0; j < cm; j++) {
@@ -552,7 +552,7 @@ void print_histogram(FILE *fout, Histogram_t *histogram, int rez, int indent)
           { 
             sum_of_cnt += h->bucket_cnt[ib+j];
             min_score = min(min_score,h->bucket_min[ib+j]);
-            max_score = max(max_score,h->bucket_max[ib+j]);
+            max_score = MAX(max_score,h->bucket_max[ib+j]);
             if(h->extended) {
               HistoDataType *data;
               data = (h->indexdata)(h->bucket_data,ib+j);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_miniunitigger.c,v 1.5 2006-09-26 22:21:13 brianwalenz Exp $
+ * $Id: AS_CGB_miniunitigger.c,v 1.6 2006-11-14 17:52:14 eliv Exp $
  * Module:  AS_CGB_miniunitigger
  * Description: 
  * Assumptions:
@@ -34,7 +34,7 @@
 #include "AS_CGB_miniunitigger.h"
 
 #if 0
-#define max(a,b) (a > b ? a : b)
+#define MAX(a,b) (a > b ? a : b)
 #define min(a,b) (a < b ? a : b)
 #define FALSE 0
 #undef DEBUGGING1
@@ -42,7 +42,7 @@
 #endif
 
 /*************************************************************************/
-static char CM_ID[] = "$Id: AS_CGB_miniunitigger.c,v 1.5 2006-09-26 22:21:13 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_miniunitigger.c,v 1.6 2006-11-14 17:52:14 eliv Exp $";
 /*************************************************************************/
 
 extern int REAPER_VALIDATION;

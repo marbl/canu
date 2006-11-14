@@ -566,21 +566,21 @@ void UpdateChunkLength( IntUnitigMesg * ium )
   ium->length = 0;
   for( i = 0; i < ium->num_frags; i++ )
   {
-    ium->length = max( ium->f_list[i].position.bgn,
-                     max( ium->f_list[i].position.end,
+    ium->length = MAX( ium->f_list[i].position.bgn,
+                     MAX( ium->f_list[i].position.end,
                           ium->length ) );
   }
 
   // make sure the last fragment in the f_list is at the
   // end of the chunk
   // this is needed to compute chunk overlap sizes
-  if( ium->length > max( ium->f_list[ium->num_frags - 1].position.bgn,
+  if( ium->length > MAX( ium->f_list[ium->num_frags - 1].position.bgn,
                          ium->f_list[ium->num_frags - 1].position.end ) )
   {
     // last fragment is not at end of unitig - switch
     IntMultiPos frag1 = ium->f_list[ium->num_frags - 1];
     for( i = ium->num_frags - 1;
-         ium->length > max( ium->f_list[i].position.bgn,
+         ium->length > MAX( ium->f_list[i].position.bgn,
                             ium->f_list[i].position.end );
          i-- );
     ium->f_list[ium->num_frags - 1] = ium->f_list[i];
@@ -1356,7 +1356,7 @@ typedef CheckGlobals * CheckGlobalsp;
 void InitializeGlobals( CheckGlobalsp globals, char * program_name )
 {
   globals->program_name = program_name;
-  globals->version = "$Revision: 1.8 $";
+  globals->version = "$Revision: 1.9 $";
   globals->chims_file = NULL;
   globals->craps_file = NULL;
   globals->cgb_file = NULL;

@@ -89,7 +89,7 @@
              On entry, LDA specifies the first dimension of A as declared 
   
              in the calling (sub) program. LDA must be at least   
-             max( 1, n ).   
+             MAX( 1, n ).   
              Unchanged on exit.   
 
 
@@ -119,7 +119,7 @@
 	info = 2;
     } else if (*incx == 0) {
 	info = 5;
-    } else if (*lda < max(1,*n)) {
+    } else if (*lda < MAX(1,*n)) {
 	info = 7;
     }
     if (info != 0) {

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_fgb.c,v 1.6 2006-09-26 22:21:13 brianwalenz Exp $";
+= "$Id: AS_CGB_fgb.c,v 1.7 2006-11-14 17:52:14 eliv Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_fgb.c
@@ -380,7 +380,7 @@ static void setup_segments
     //assert( ibvx < nfrag );
 
     min_frag_vid = min(min_frag_vid,iavx);
-    max_frag_vid = max(max_frag_vid,iavx);
+    max_frag_vid = MAX(max_frag_vid,iavx);
     set_seglen_vertex(frags,iavx,iasx,iseglen);
   }}
 
@@ -397,7 +397,7 @@ static void setup_segments
       }
       for(isuffix=0;isuffix<2;isuffix++) {
 	/* The number of fragments used in the overlap graph. */
-	max_nnode = max(max_nnode,get_seglen_vertex(frags,ifrag,isuffix));
+	max_nnode = MAX(max_nnode,get_seglen_vertex(frags,ifrag,isuffix));
 	/* The prefix and suffix segments are interleaved. */
 	set_segstart_vertex(frags,ifrag,isuffix,isegstart);
 	isegstart += get_seglen_vertex(frags,ifrag,isuffix);
@@ -428,7 +428,7 @@ static void setup_segments
       set_segstart_vertex(frags,iavx,iasx,iedge);
       (*nfrag_used)++;
       (*min_ifrag) = min((*min_ifrag),iavx);
-      (*max_ifrag) = max((*max_ifrag),iavx);
+      (*max_ifrag) = MAX((*max_ifrag),iavx);
       last_bvx = FRAGMENT_NOT_VISITED;
       nnode = 0;
     }
@@ -436,7 +436,7 @@ static void setup_segments
       nnode++;
       set_seglen_vertex(frags,iavx,iasx,nnode);
     }
-    (*max_nnode) = max((*max_nnode),nnode);
+    (*max_nnode) = MAX((*max_nnode),nnode);
   }
   set_segstart_vertex(frags,(*nfrag_used),nedge,iasx);
 #endif /* USE_A_SCAN */
@@ -676,7 +676,7 @@ static void reorder_edges_bin_and_qsort
   
   if( nedge > 0) { // Sort the edges ......
     const int max_frag_len = 2048;
-    const IntEdge_ID max_nbins = max(max_frag_len,2*nfrag);
+    const IntEdge_ID max_nbins = MAX(max_frag_len,2*nfrag);
     time_t tp1 = 0,tp2;
  
     IntEdge_ID * seglen = NULL;
@@ -1192,7 +1192,7 @@ static void histogram_clear( QuickHistogram * histogram )
   assert(NULL != histogram);
   {
     int ibin;
-    int min_bin = max(histogram->min_bin,0);
+    int min_bin = MAX(histogram->min_bin,0);
     int max_bin = min(histogram->max_bin,histogram->allocated_number_of_bins-1);
     /* Clear the used part of the histogram. */
     for(ibin=min_bin; ibin <= max_bin; ibin++) {

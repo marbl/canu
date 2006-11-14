@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_MSG_bmesg.c,v 1.6 2006-02-13 22:16:31 eliv Exp $";
+static char CM_ID[] = "$Id: AS_MSG_bmesg.c,v 1.7 2006-11-14 17:52:17 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -419,7 +419,7 @@ static void Read_ISF_Mesg(FILE *fin, void *vmesg)
 {
   IntScaffoldMesg *mesg = (IntScaffoldMesg *) vmesg;
   long		indx;
-  int num = max(1, mesg->num_contig_pairs);
+  int num = MAX(1, mesg->num_contig_pairs);
   if ( num > 0) {
     indx = MoreSpace(sizeof(IntContigPairs)*(num),8);
     mesg->contig_pairs = (IntContigPairs *) (MemBuffer + indx);
@@ -662,7 +662,7 @@ static void Read_SCF_Mesg(FILE *fin, void *vmesg)
 {
   SnapScaffoldMesg *mesg = (SnapScaffoldMesg *) vmesg;
   long		indx;
-  int num = max(1, mesg->num_contig_pairs);
+  int num = MAX(1, mesg->num_contig_pairs);
 
   if (num > 0) {
     indx = MoreSpace(sizeof(SnapContigPairs)*(mesg->num_contig_pairs),8);
@@ -963,7 +963,7 @@ static void Write_AFG_Mesg(FILE *fout, void *vmesg)
 static void Write_ISF_Mesg(FILE *fout, void *vmesg)
 {
   IntScaffoldMesg *mesg = (IntScaffoldMesg *) vmesg;
-  int num = max(1, mesg->num_contig_pairs);
+  int num = MAX(1, mesg->num_contig_pairs);
 
   if (num > 0)
     FWRITE(mesg->contig_pairs,sizeof(IntContigPairs),num,
@@ -1192,7 +1192,7 @@ static void Write_SLK_Mesg(FILE *fout, void *vmesg)
 static void Write_SCF_Mesg(FILE *fout, void *vmesg)
 {
   SnapScaffoldMesg *mesg = (SnapScaffoldMesg *) vmesg;
-  int num = max(1, mesg->num_contig_pairs);
+  int num = MAX(1, mesg->num_contig_pairs);
 
   if (num > 1)
     FWRITE(mesg->contig_pairs,sizeof(SnapContigPairs),num,

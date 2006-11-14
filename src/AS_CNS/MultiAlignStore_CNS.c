@@ -25,7 +25,7 @@
    Assumptions:  libAS_UTL.a
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.20 2006-10-09 18:54:29 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.21 2006-11-14 17:52:16 eliv Exp $";
 
 
 #include <assert.h>
@@ -139,8 +139,8 @@ CompareUnitigPos (const void *c1, const void *c2)
   if(diff)
     return diff;
 
-  end1 = max(u1->position.bgn, u1->position.end);
-  end2 = max(u2->position.bgn, u2->position.end);
+  end1 = MAX(u1->position.bgn, u1->position.end);
+  end2 = MAX(u2->position.bgn, u2->position.end);
 
   diff = end2 - end1;
   if(diff)
@@ -359,7 +359,7 @@ GetBendUnitigPos(MultiAlignT *ma)
   for(i = numu -1; i>= 0; i--)
     {
       IntUnitigPos *pos = GetIntUnitigPos(ma->u_list,i);
-      if( max(pos->position.bgn,pos->position.end) == length )
+      if( MAX(pos->position.bgn,pos->position.end) == length )
 	{
 	  result = pos;
 	  found = TRUE;

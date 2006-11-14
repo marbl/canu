@@ -41,7 +41,7 @@
             On exit, the solution matrix X.   
 
     LDB     (input) INTEGER   
-            The leading dimension of the array B.  LDB >= max(1,N).   
+            The leading dimension of the array B.  LDB >= MAX(1,N).   
 
     INFO    (output) INTEGER   
             = 0:  successful exit   
@@ -73,7 +73,7 @@
 	*info = -1;
     } else if (*nrhs < 0) {
 	*info = -2;
-    } else if (*ldb < max(1,*n)) {
+    } else if (*ldb < MAX(1,*n)) {
 	*info = -6;
     }
     if (*info != 0) {

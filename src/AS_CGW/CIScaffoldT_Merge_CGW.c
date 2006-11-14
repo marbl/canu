@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.20 2006-10-13 20:36:01 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.21 2006-11-14 17:52:14 eliv Exp $";
 
 #undef ORIG_MERGE_EDGE_INVERT
 #define MINSATISFIED_CUTOFF 0.985
@@ -113,7 +113,7 @@ void PrintEdgesBetweenScaffolds(ScaffoldGraphT * graph,
   SEdgeTIterator SEdges;
   SEdgeT * sEdge;
   CDS_CID_t minID = min(sid1, sid2);
-  CDS_CID_t maxID = max(sid1, sid2);
+  CDS_CID_t maxID = MAX(sid1, sid2);
   
   scaffold = GetCIScaffoldT(graph->CIScaffolds, minID);
   if(scaffold != NULL && !scaffold->flags.bits.isDead)
@@ -475,9 +475,9 @@ static int CompareSEdgeGaps(const void *c1, const void *c2){
   // both or neither have 2+ weight
   // Use proximity to ideal gap size + stddev to order edges
   return((int) ((fabs(PREFERRED_GAP_SIZE - s1->distance.mean) +
-                 sqrt(max(1.,s1->distance.variance))) -
+                 sqrt(MAX(1.,s1->distance.variance))) -
                 (fabs(PREFERRED_GAP_SIZE - s2->distance.mean) +
-                 sqrt(max(1.,s2->distance.variance)))));
+                 sqrt(MAX(1.,s2->distance.variance)))));
 }
 
 /***************************************************************************/
@@ -534,7 +534,7 @@ static void SetOrderInfoForGap(OrderCIsTmpT *orderAnchor, int32 index,
   if(firstTime){
     orderAnchor[index].gapBeginOffset.variance = anchorGap.variance;
   }else{
-    orderAnchor[index].gapBeginOffset.variance = max(anchorGap.variance,
+    orderAnchor[index].gapBeginOffset.variance = MAX(anchorGap.variance,
                                                      oldMergeGapVariance);
   }
   gapBeginStdDev = sqrt(orderAnchor[index].gapBeginOffset.variance);
@@ -543,7 +543,7 @@ static void SetOrderInfoForGap(OrderCIsTmpT *orderAnchor, int32 index,
   if(endOfMerge){
     gapEndVariance = anchorGap.variance;
   }else{
-    gapEndVariance = max(anchorGap.variance, newMergeGapVariance);
+    gapEndVariance = MAX(anchorGap.variance, newMergeGapVariance);
   }
   gapEndStdDev = sqrt(gapEndVariance);
   ratioStdDev = gapBeginStdDev / (gapBeginStdDev + gapEndStdDev);
@@ -2128,11 +2128,11 @@ ChunkInstanceT * GetTrueBEndCI(ScaffoldGraphT * graph, CIScaffoldT * scaffold)
   InitCIScaffoldTIterator(graph, scaffold, FALSE, FALSE, &contigIterator);
   while((myContig = NextCIScaffoldTIterator(&contigIterator)) != NULL)
     {
-      if(max(returnContig->offsetAEnd.mean, returnContig->offsetBEnd.mean) <
-         max(myContig->offsetAEnd.mean, myContig->offsetBEnd.mean))
+      if(MAX(returnContig->offsetAEnd.mean, returnContig->offsetBEnd.mean) <
+         MAX(myContig->offsetAEnd.mean, myContig->offsetBEnd.mean))
         returnContig = myContig;
       else if(min(returnContig->offsetAEnd.mean, returnContig->offsetBEnd.mean) >
-              max(myContig->offsetAEnd.mean, myContig->offsetBEnd.mean))
+              MAX(myContig->offsetAEnd.mean, myContig->offsetBEnd.mean))
         break;
     }
   return returnContig;
@@ -2213,11 +2213,11 @@ void TranslateScaffoldOverlapToContigOverlap(CIScaffoldT *scaffoldA, CIScaffoldT
   if(nextNodeA){
     if(AGapTowardAEnd){
       *extremalGapSizeA = min((*endNodeA)->offsetAEnd.mean, (*endNodeA)->offsetBEnd.mean) -
-        max(nextNodeA->offsetAEnd.mean, nextNodeA->offsetBEnd.mean);
+        MAX(nextNodeA->offsetAEnd.mean, nextNodeA->offsetBEnd.mean);
     }else{
       *extremalGapSizeA = 
         min(nextNodeA->offsetAEnd.mean, nextNodeA->offsetBEnd.mean)-
-        max((*endNodeA)->offsetAEnd.mean, (*endNodeA)->offsetBEnd.mean);
+        MAX((*endNodeA)->offsetAEnd.mean, (*endNodeA)->offsetBEnd.mean);
     }
   }else{
     *extremalGapSizeA = 1000000.0; // large number, anything will fit
@@ -2225,11 +2225,11 @@ void TranslateScaffoldOverlapToContigOverlap(CIScaffoldT *scaffoldA, CIScaffoldT
   if(nextNodeB){
     if(BGapTowardAEnd){
       *extremalGapSizeB = min((*endNodeB)->offsetAEnd.mean, (*endNodeB)->offsetBEnd.mean) -
-        max(nextNodeB->offsetAEnd.mean, nextNodeB->offsetBEnd.mean);
+        MAX(nextNodeB->offsetAEnd.mean, nextNodeB->offsetBEnd.mean);
     }else{
       *extremalGapSizeB = 
         min(nextNodeB->offsetAEnd.mean, nextNodeB->offsetBEnd.mean)-
-        max((*endNodeB)->offsetAEnd.mean, (*endNodeB)->offsetBEnd.mean);
+        MAX((*endNodeB)->offsetAEnd.mean, (*endNodeB)->offsetBEnd.mean);
     }
   }else{
     *extremalGapSizeB = 1000000.0; // large number, anything will fit
@@ -3409,7 +3409,7 @@ void SaveBadScaffoldMergeEdge(SEdgeT * edge,
     {
       // update
       lookup->minOverlap = min(lookup->minOverlap, -edge->distance.mean - delta);
-      lookup->maxOverlap = max(lookup->maxOverlap, -edge->distance.mean + delta);
+      lookup->maxOverlap = MAX(lookup->maxOverlap, -edge->distance.mean + delta);
     }
 }
 
@@ -3450,7 +3450,7 @@ int LooseAbuttingCheck(SEdgeT * curEdge,
   double edgeMinScaffoldLengthRatio;
 
   stddevsPerWeight = -(curEdge->distance.mean + CGW_MISSED_OVERLAP) /
-    (curEdge->edgesContributing * sqrt(max(0.01,curEdge->distance.variance)));
+    (curEdge->edgesContributing * sqrt(MAX(0.01,curEdge->distance.variance)));
 
   edgeMinScaffoldLengthRatio = 
     -curEdge->distance.mean /
@@ -3890,12 +3890,12 @@ void ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
             if((minSizeScaffoldA > maxGapScaffoldB) &&
                (minSizeScaffoldB > maxGapScaffoldA)){
               SaveEdgeMeanForLater(mergeEdge);
-              mergeEdge->distance.mean = max(- CGW_MISSED_OVERLAP, mergeEdge->distance.mean); 
+              mergeEdge->distance.mean = MAX(- CGW_MISSED_OVERLAP, mergeEdge->distance.mean); 
               fprintf(GlobalData->stderrc,"* Must overlap edge -- can't confirm --abutting..going ahead distance is %g (%g,%g)\n", mergeEdge->distance.mean, minMergeDistance, maxMergeDistance);
               PrintGraphEdge(GlobalData->stderrc, ScaffoldGraph->ScaffoldGraph, "  MustOverlap ", mergeEdge, mergeEdge->idA);
             }else{
               SaveEdgeMeanForLater(mergeEdge);
-              mergeEdge->distance.mean = max(- CGW_MISSED_OVERLAP, mergeEdge->distance.mean); 
+              mergeEdge->distance.mean = MAX(- CGW_MISSED_OVERLAP, mergeEdge->distance.mean); 
               fprintf(GlobalData->stderrc,"* Must overlap edge -- can't confirm, may be containment--abutting..going ahead distance is %g (%g,%g)\n", mergeEdge->distance.mean, minMergeDistance, maxMergeDistance);
               PrintGraphEdge(GlobalData->stderrc, ScaffoldGraph->ScaffoldGraph, "  MustOverlap ", mergeEdge, mergeEdge->idA);
             }
@@ -3906,14 +3906,14 @@ void ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
                ((minSizeScaffoldA > maxGapScaffoldB) &&
                 (minSizeScaffoldB > maxGapScaffoldA)) ){
               SaveEdgeMeanForLater(mergeEdge);
-              mergeEdge->distance.mean = max(- CGW_MISSED_OVERLAP, mergeEdge->distance.mean); 
+              mergeEdge->distance.mean = MAX(- CGW_MISSED_OVERLAP, mergeEdge->distance.mean); 
               if(verbose){
                 fprintf(GlobalData->stderrc,"* May overlap edge -- can't confirm ...going ahead distance is %g (%g,%g)\n", mergeEdge->distance.mean, minMergeDistance, maxMergeDistance);
                 PrintGraphEdge(GlobalData->stderrc, ScaffoldGraph->ScaffoldGraph, "  MayOverlap ", mergeEdge, curEdge->idA);
               }
             }else{
               SaveEdgeMeanForLater(mergeEdge);
-              mergeEdge->distance.mean = max(- CGW_MISSED_OVERLAP, mergeEdge->distance.mean); 
+              mergeEdge->distance.mean = MAX(- CGW_MISSED_OVERLAP, mergeEdge->distance.mean); 
               if(verbose){
                 fprintf(GlobalData->stderrc,"* May overlap edge -- can't confirm --abutting..going ahead distance is %g (%g,%g)\n", mergeEdge->distance.mean, minMergeDistance, maxMergeDistance);
                 PrintGraphEdge(GlobalData->stderrc, ScaffoldGraph->ScaffoldGraph, "  MustOverlap ", mergeEdge, mergeEdge->idA);
@@ -4142,7 +4142,7 @@ void ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
                 {
                   // no overlap edge, but abutting will work
                   SaveEdgeMeanForLater(mergeEdge);
-                  mergeEdge->distance.mean = max(-CGW_MISSED_OVERLAP,
+                  mergeEdge->distance.mean = MAX(-CGW_MISSED_OVERLAP,
                                                  mergeEdge->distance.mean);
                   MarkScaffoldsForMerging(mergeEdge, TRUE);
                 }
@@ -4259,7 +4259,7 @@ void ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
                         {
                           // no overlaps && abutting will work
                           SaveEdgeMeanForLater(mergeEdge);
-                          mergeEdge->distance.mean = max(-CGW_MISSED_OVERLAP, mergeEdge->distance.mean);
+                          mergeEdge->distance.mean = MAX(-CGW_MISSED_OVERLAP, mergeEdge->distance.mean);
                           MarkScaffoldsForMerging(mergeEdge, TRUE);
                         }
                     }
@@ -4277,7 +4277,7 @@ void ExamineSEdgeForUsability(VA_TYPE(PtrT) * sEdges,
                          AbuttingWillWork(mergeEdge, scaffoldA, scaffoldB, iSpec))
                         {
                           SaveEdgeMeanForLater(mergeEdge);
-                          mergeEdge->distance.mean = max(-CGW_MISSED_OVERLAP,
+                          mergeEdge->distance.mean = MAX(-CGW_MISSED_OVERLAP,
                                                          mergeEdge->distance.mean);
                           if(verbose)
                             fprintf(GlobalData->stderrc, "Abutting will work.\n");

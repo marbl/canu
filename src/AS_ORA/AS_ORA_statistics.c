@@ -20,7 +20,7 @@
  *************************************************************************/
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/AS_ORA_statistics.c,v $
-$Revision: 1.4 $
+$Revision: 1.5 $
 **********************************************************************/
 
 
@@ -305,12 +305,12 @@ void AddToStats( OverlapStatisticsp stats,
   
   // collect stats
   // first a_hang
-  stats->max_a_hang_delta = max( ahgd, stats->max_a_hang_delta );
+  stats->max_a_hang_delta = MAX( ahgd, stats->max_a_hang_delta );
   *sum_a_hang_deltas += ahgd;
   *sum_a_hang_deltas2 += ahgd * ahgd;
 
   // now b_hang
-  stats->max_b_hang_delta = max( bhgd, stats->max_b_hang_delta );
+  stats->max_b_hang_delta = MAX( bhgd, stats->max_b_hang_delta );
   *sum_b_hang_deltas += bhgd;
   *sum_b_hang_deltas2 += bhgd * bhgd;
 }
@@ -584,7 +584,7 @@ void PrintStatistics( FragmentArrayp fragments,
   }
   max_fp++;
 
-  max_index = max( max_fn, max_fp );
+  max_index = MAX( max_fn, max_fp );
 
   printf( "\n-- Histogram of overlap sizes:\n" );
   printf( "(False negatives are in celagram file %s)\n", fn_filename );

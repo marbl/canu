@@ -20,7 +20,7 @@
  *************************************************************************/
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/AS_ORA_fragments.c,v $
-$Revision: 1.4 $
+$Revision: 1.5 $
 **********************************************************************/
 #define DEBUG_ORA
 /*********************************************************************/
@@ -483,7 +483,7 @@ uint32 GetMaxOverlap( uint32 curr_max,
                       FragmentObjectp a,
                       FragmentObjectp b )
 {
-  return( max( curr_max, GetOverlapInterval( a, b ) ) );
+  return( MAX( curr_max, GetOverlapInterval( a, b ) ) );
 }
 
 /* Function:
@@ -532,7 +532,7 @@ int UpdateFragmentSetRepeats( FragmentArrayp fragments, uint32 f_index )
     else
     {
       // update the size of the repeat
-      s_repeat->rpt_end = max( s_repeat->rpt_end,
+      s_repeat->rpt_end = MAX( s_repeat->rpt_end,
                                f_repeat->rpt_end - f_repeat->rpt_begin );
       // count repeats only once
       if( o_repeat == NULL || o_repeat->repeat_id != f_repeat->repeat_id )
@@ -562,7 +562,7 @@ int IsCriticalOverlap( FragmentArrayp fragments, uint32 adi, uint32 bdi )
 {
   uint32 min_pi = min( fragments->data[adi].ptr_index,
                        fragments->data[bdi].ptr_index );
-  uint32 max_pi = max( fragments->data[adi].ptr_index,
+  uint32 max_pi = MAX( fragments->data[adi].ptr_index,
                        fragments->data[bdi].ptr_index );
   uint32 i;
   uint32 with_id;
@@ -679,7 +679,7 @@ static int PopulateFragmentObject( FragmentArrayp fragments,
   }
 
   // update the sequence size (for sorting purposes later)
-  fragments->sequence_size = max( fragments->sequence_size,
+  fragments->sequence_size = MAX( fragments->sequence_size,
                                   fragments->data[f_index].end );
 
   return 0;

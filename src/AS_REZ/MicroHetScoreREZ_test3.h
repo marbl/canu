@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
-   CVS_ID:  $Id: MicroHetScoreREZ_test3.h,v 1.4 2005-03-22 19:49:25 jason_miller Exp $
+   CVS_ID:  $Id: MicroHetScoreREZ_test3.h,v 1.5 2006-11-14 17:52:18 eliv Exp $
  *********************************************************************/
 #ifndef AS_REZ_MICROHETSCOREREZ_H
 #define AS_REZ_MICROHETSCOREREZ_H
@@ -47,7 +47,7 @@ void         AS_REZ_free_alignment(Alignment_t *ali);
    of a simple alignment */
 double AS_REZ_expected_savedSteps(int r, double seqErr);
 //Define maxfive for use in expected_savedSteps
-#define maxfive(v,w,x,y,z) max(v,max(max(w,x),max(y,z)))
+#define maxfive(v,w,x,y,z) MAX(v,MAX(MAX(w,x),MAX(y,z)))
 
 double AS_REZ_binomial_prob(int k,int n, double r);
 double AS_REZ_binomial(int c1,int n, double q);

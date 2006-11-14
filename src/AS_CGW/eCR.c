@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: eCR.c,v 1.8 2006-11-06 22:46:17 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: eCR.c,v 1.9 2006-11-14 17:52:16 eliv Exp $";
 
 #include "eCR.h"
 
@@ -767,7 +767,7 @@ main(int argc, char **argv) {
                 // how to adjust the offsets of the contigs further
                 // along the scaffold later
 
-                maxRContigOffset = max(rcontig->offsetAEnd.mean, rcontig->offsetBEnd.mean);
+                maxRContigOffset = MAX(rcontig->offsetAEnd.mean, rcontig->offsetBEnd.mean);
                 nextContigIndex = rcontig->BEndNext;
 				  
                 // alter the unitigs in cgw memory struct land
@@ -1030,7 +1030,7 @@ main(int argc, char **argv) {
                   if (nextContigIndex != NULLINDEX) {
                     LengthT scaffoldDelta;
 					  
-                    scaffoldDelta.mean = max(newContig->offsetAEnd.mean, newContig->offsetBEnd.mean) 
+                    scaffoldDelta.mean = MAX(newContig->offsetAEnd.mean, newContig->offsetBEnd.mean) 
                       - maxRContigOffset;
                     scaffoldDelta.variance = ComputeFudgeVariance(scaffoldDelta.mean);
                     AddDeltaToScaffoldOffsets(ScaffoldGraph, scaff->id, nextContigIndex,
@@ -1522,7 +1522,7 @@ findLastUnitig(ContigT *contig, int *unitigID) {
 #endif
 
     if (unitig->offsetAEnd.mean >= maxContigPos || unitig->offsetBEnd.mean >= maxContigPos) {
-      maxContigPos = max(unitig->offsetAEnd.mean, unitig->offsetBEnd.mean);
+      maxContigPos = MAX(unitig->offsetAEnd.mean, unitig->offsetBEnd.mean);
       *unitigID = unitig->id;
       isSurrogate = unitig->flags.bits.isSurrogate;
     }

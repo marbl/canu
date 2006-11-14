@@ -42,7 +42,7 @@
 
 /*************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_store.c,v 1.5 2005-10-28 20:38:26 brianwalenz Exp $";
+= "$Id: AS_CGB_store.c,v 1.6 2006-11-14 17:52:14 eliv Exp $";
 /*************************************************************************/
 
 void open_fgb_store
@@ -212,11 +212,11 @@ void read_fgb_store
     /* createmode */
 
     const size_t initial_number_of_frags =
-      max(1,new_additional_number_of_frags);
+      MAX(1,new_additional_number_of_frags);
     const size_t initial_number_of_edges =
-      max(1,new_additional_number_of_edges);
+      MAX(1,new_additional_number_of_edges);
     const size_t initial_text_length =
-      max(1,new_additional_amount_of_text);
+      MAX(1,new_additional_amount_of_text);
     
     /* Initialize the fragment and edge data structures. */
     gstate->store_version = 1;

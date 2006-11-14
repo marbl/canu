@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.13 2006-11-06 22:53:42 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.14 2006-11-14 17:52:14 eliv Exp $";
 
 #undef DEBUG
 #undef DEBUG_INSERT
@@ -589,7 +589,7 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
       NodeCGW_T *previous = GetGraphNode(ScaffoldGraph->RezGraph, chunkInstance->AEndNext);
 
       if(previous && 
-	 max(previous->offsetAEnd.variance, previous->offsetBEnd.variance) >
+	 MAX(previous->offsetAEnd.variance, previous->offsetBEnd.variance) >
 	 min(chunkInstance->offsetAEnd.variance, chunkInstance->offsetBEnd.variance)){
 	fprintf(stderr,"**** VARIANCES ARE SCREWED UP ****\n");
       }
@@ -678,8 +678,8 @@ int RemoveCIFromScaffold(ScaffoldGraphT *sgraph, CIScaffoldT *ciScaffold,
 
       SetCIScaffoldTLength(ScaffoldGraph, ciScaffold, TRUE);
 
-      //  ciScaffold->bpLength.mean = max( prevCI->offsetAEnd.mean, prevCI->offsetBEnd.mean);
-      //  ciScaffold->bpLength.variance = max( prevCI->offsetAEnd.variance, prevCI->offsetBEnd.variance);
+      //  ciScaffold->bpLength.mean = MAX( prevCI->offsetAEnd.mean, prevCI->offsetBEnd.mean);
+      //  ciScaffold->bpLength.variance = MAX( prevCI->offsetAEnd.variance, prevCI->offsetBEnd.variance);
 
 	  
 #if 0
@@ -1910,8 +1910,8 @@ void CheckCIScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
 
     if( mean < chunk->offsetAEnd.mean || mean < chunk->offsetBEnd.mean)
       {
-        mean = max(chunk->offsetAEnd.mean, chunk->offsetBEnd.mean);
-        variance = max(chunk->offsetAEnd.variance, chunk->offsetBEnd.variance);
+        mean = MAX(chunk->offsetAEnd.mean, chunk->offsetBEnd.mean);
+        variance = MAX(chunk->offsetAEnd.variance, chunk->offsetBEnd.variance);
       }
   }
   if(cgwError){

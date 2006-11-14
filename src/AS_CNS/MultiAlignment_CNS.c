@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.114 2006-10-29 18:27:26 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.115 2006-11-14 17:52:16 eliv Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -4105,7 +4105,7 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
    bboffset = bfrag->beads;
    last_a_aligned = -1;
    last_b_aligned = -1;
-   apos = max(ahang,0);
+   apos = MAX(ahang,0);
    bpos = 0;
 
    if ( ahang == alen ) { // special case where fragments abutt

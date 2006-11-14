@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_UTL_ID_store.c,v 1.4 2005-03-22 19:49:28 jason_miller Exp $ */
+/* $Id: AS_UTL_ID_store.c,v 1.5 2006-11-14 17:52:18 eliv Exp $ */
 
 /*
   This is a set of utility functions for managing a list of UIDS.
@@ -89,7 +89,7 @@ int AppendToID_Array( ID_Arrayp array, CDS_UID_t id, int sort )
   array->ids[array->num_ids] = id;
   array->num_ids++;
   array->min_id = min( id, array->min_id );
-  array->max_id = max( id, array->max_id );
+  array->max_id = MAX( id, array->max_id );
   if( array->num_ids > 1 && sort != 0 )
     qsort( array->ids, array->num_ids, sizeof( CDS_UID_t ),
            (int (*)(const void *, const void *)) uid_compare );

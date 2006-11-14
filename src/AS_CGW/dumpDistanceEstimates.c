@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.12 2006-10-08 08:47:39 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.13 2006-11-14 17:52:15 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -453,10 +453,10 @@ dde_stats(int         operateOnNodes,
     lowerSigma =   median - matePairs[ (int) ((0.5 - 0.34) * GetNumCDS_COORD_ts( dptr->samples ))].samples;
     upperSigma = - median + matePairs[ (int) ((0.5 + 0.34) * GetNumCDS_COORD_ts( dptr->samples ))].samples;	
 
-    newLower = median - 5 * max (lowerSigma, upperSigma);
+    newLower = median - 5 * MAX (lowerSigma, upperSigma);
     if ( newLower < 0 )
       newLower = 0;
-    newUpper = median + 5 * max (lowerSigma, upperSigma);
+    newUpper = median + 5 * MAX (lowerSigma, upperSigma);
     
 #if 0
     fprintf( stderr, "\nlib " F_CID ", numSamples: %d, orig mean, sig: ( %.2f, %.2f), calc mean, sig: (%.2f, %.2f) median: " F_COORD "\n",
@@ -663,7 +663,7 @@ dde_stats(int         operateOnNodes,
         CDS_COORD_t sample = *samplep;
         int32 binNum = ((float)sample - (float)dist->min)/dist->bsize;
         binNum = min(binNum, dist->bnum -1);
-        binNum = max(binNum,0); // sample can be negative
+        binNum = MAX(binNum,0); // sample can be negative
         dist->histogram[binNum]++;
       }
     }

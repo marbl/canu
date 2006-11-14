@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <AS_ALN_aligners.h>
 
 #ifndef min
   #define min(a,b) ( a<b ? a : b ) 

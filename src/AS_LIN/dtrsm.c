@@ -142,9 +142,9 @@
   
              in the calling (sub) program.  When  SIDE = 'L' or 'l'  then 
   
-             LDA  must be at least  max( 1, m ),  when  SIDE = 'R' or 'r' 
+             LDA  must be at least  MAX( 1, m ),  when  SIDE = 'R' or 'r' 
   
-             then LDA must be at least max( 1, n ).   
+             then LDA must be at least MAX( 1, n ).   
              Unchanged on exit.   
 
     B      - DOUBLE PRECISION array of DIMENSION ( LDB, n ).   
@@ -159,7 +159,7 @@
   
              in  the  calling  (sub)  program.   LDB  must  be  at  least 
   
-             max( 1, m ).   
+             MAX( 1, m ).   
              Unchanged on exit.   
 
 
@@ -206,9 +206,9 @@
 	info = 5;
     } else if (*n < 0) {
 	info = 6;
-    } else if (*lda < max(1,nrowa)) {
+    } else if (*lda < MAX(1,nrowa)) {
 	info = 9;
-    } else if (*ldb < max(1,*m)) {
+    } else if (*ldb < MAX(1,*m)) {
 	info = 11;
     }
     if (info != 0) {

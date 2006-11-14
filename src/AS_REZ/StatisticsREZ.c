@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: StatisticsREZ.c,v 1.4 2005-03-22 19:49:25 jason_miller Exp $	 */
+/* 	$Id: StatisticsREZ.c,v 1.5 2006-11-14 17:52:18 eliv Exp $	 */
 
 /****************************************************************************************
  *  StatisticsRez.c
@@ -164,7 +164,7 @@ void compute_scaffold_statistics(ScaffoldWalkStatisticsT* ws)
 	     ws->urChunks += gapStatp->urChunks;
 	     ws->ruChunks += gapStatp->ruChunks;
 	     ws->rrChunks += gapStatp->rrChunks;
-	     ws->bpsWalked += max(0.0,gapStatp->gapLength.mean);
+	     ws->bpsWalked += MAX(0.0,gapStatp->gapLength.mean);
 	     
 	     if( gapStatp->gapLength.mean > ws->bpsMaxGap )
 	       ws->bpsMaxGap = gapStatp->gapLength.mean;
@@ -194,7 +194,7 @@ void compute_scaffold_statistics(ScaffoldWalkStatisticsT* ws)
 	   }
 	 else // we did not walk it
 	   {
-	     ws->bpsNotWalked += max(gapStatp->gapEstimate.mean,0.0);
+	     ws->bpsNotWalked += MAX(gapStatp->gapEstimate.mean,0.0);
 	     
 	     if( gapStatp->gapEstimate.mean  < 0.0 )
 	       {

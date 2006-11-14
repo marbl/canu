@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIEdgeT_CGW.c,v 1.6 2006-09-21 21:34:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIEdgeT_CGW.c,v 1.7 2006-11-14 17:52:14 eliv Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -334,7 +334,7 @@ int CheckImplicitOverlaps_(GraphCGW_T *graph, CDS_CID_t cid, int end){
         {
           CDS_COORD_t delta = 3 * sqrt(sourceTarget.variance);
           CDS_COORD_t minOverlap =
-            max(-sourceTarget.mean - delta, 0);
+            MAX(-sourceTarget.mean - delta, 0);
           CDS_COORD_t maxOverlap = -sourceTarget.mean + delta;
           ChunkOverlapCheckT olap;
           
