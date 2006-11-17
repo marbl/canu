@@ -80,6 +80,7 @@ sub createPostUnitiggerConsensusJobs(@) {
     print F "\n";
     print F "echo \\\n";
     print F "$gin/consensus \\\n";
+    print F "  -G \\\n";
     print F "  -P -m -U \\\n";
     print F "  -S \$jobp \\\n";
     print F "  -o $wrk/5-consensus/${asm}_\$jobp.cgi \\\n";
@@ -89,6 +90,7 @@ sub createPostUnitiggerConsensusJobs(@) {
     print F " \\> $wrk/5-consensus/${asm}_\$jobp.err 2\\>\\&1\n";
     print F "\n";
     print F "$gin/consensus \\\n";
+    print F "  -G \\\n";
     print F "  -P -m -U \\\n";
     print F "  -S \$jobp \\\n";
     print F "  -o $wrk/5-consensus/${asm}_\$jobp.cgi \\\n";

@@ -14,6 +14,7 @@ sub summarizeConsensusStatistics ($) {
         my $NumFAMismatches               = 0;
         my $NumVARRecords                 = 0;
         my $NumVARStringsWithFlankingGaps = 0;
+        my $NumUnitigRetrySuccess         = 0;
 
         open(F, "ls $dir/$asm*.err |");
         my @files = <F>;
@@ -33,6 +34,7 @@ sub summarizeConsensusStatistics ($) {
                 $NumFAMismatches += $1               if (m/NumFAMismatches\s+=\s+(\d+)/);
                 $NumVARRecords += $1                 if (m/NumVARRecords\s+=\s+(\d+)/);
                 $NumVARStringsWithFlankingGaps += $1 if (m/NumVARStringsWithFlankingGaps\s+=\s+(\d+)/);
+                $NumUnitigRetrySuccess += $1         if (m/NumUnitigRetrySuccess\s+=\s+(\d+)/);
             }
             close(F);
         }
@@ -48,6 +50,7 @@ sub summarizeConsensusStatistics ($) {
         print F "NumFAMismatches=$NumFAMismatches\n"                             if ($NumFAMismatches > 0);
         print F "NumVARRecords=$NumVARRecords\n"                                 if ($NumVARRecords > 0);
         print F "NumVARStringsWithFlankingGaps=$NumVARStringsWithFlankingGaps\n" if ($NumVARStringsWithFlankingGaps > 0);
+        print F "NumUnitigRetrySuccess=$NumUnitigRetrySuccess\n"                 if ($NumUnitigRetrySuccess > 0);
         close(F);
     }
 }

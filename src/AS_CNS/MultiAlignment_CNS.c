@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.116 2006-11-14 19:58:21 eliv Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.117 2006-11-17 22:24:19 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -128,6 +128,7 @@ int NumGapsInContigs;
 int NumAAMismatches; // mismatches b/w consensi of two different alleles
 int NumVARRecords;
 int NumVARStringsWithFlankingGaps;
+int NumUnitigRetrySuccess;
 int contig_id;
 
 //*********************************************************************************
@@ -7647,7 +7648,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
 
         if (cnslog != NULL && printwhat != CNS_QUIET && printwhat != CNS_STATS_ONLY) 
         {
-          fprintf(stderr,"Should print alignment!\n");
+          //fprintf(stderr,"Should print alignment!\n");
           PrintAlignment(cnslog,ma->lid,0,-1,printwhat);
         }
     }

@@ -116,6 +116,7 @@ int64 gaps_in_alignment;
 int terminate_cond;
 int allow_forced_frags;
 int allow_neg_hang;
+int allow_neg_hang_retry;
 VA_TYPE(int32) *bactig_delta_length;
 VA_TYPE(PtrT) *bactig_deltas;
 
