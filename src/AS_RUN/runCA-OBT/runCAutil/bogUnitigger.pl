@@ -63,7 +63,7 @@ sub bogUnitigger {
         unlink "$asm.cgb";
         chdir $prevPwd;
 
-        touch('unitigger.success');
+        touch("$workDir/unitigger.success");
     }
 }
 
