@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.36 2006-11-21 18:56:21 eliv Exp $
- * $Revision: 1.36 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.37 2006-11-21 21:52:37 eliv Exp $
+ * $Revision: 1.37 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.36 2006-11-21 18:56:21 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.37 2006-11-21 21:52:37 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -761,17 +761,19 @@ namespace AS_BOG{
                 breaks.push_back( breakPoint );
 
                 UnitigVector* newUs = breakUnitigAt( tig, breaks );
-                int frgCnt = 0;
-                UnitigsConstIter newIter = newUs->begin();
-                for(;newIter != newUs->end(); newIter++) {
-                    Unitig* tigTmp = *newIter;
-                    frgCnt += tigTmp->dovetail_path_ptr->size();
+                if (!newUs->empty()) {
+                    int frgCnt = 0;
+                    UnitigsConstIter newIter = newUs->begin();
+                    for(;newIter != newUs->end(); newIter++) {
+                        Unitig* tigTmp = *newIter;
+                        frgCnt += tigTmp->dovetail_path_ptr->size();
+                    }
+                    fprintf(stderr,"Num frgs after splits is %d\n",frgCnt);
+                    splits->insert( splits->end(), newUs->begin(), newUs->end());
+                    //                (*unitigs)[ tig->id-1 ] = NULL;
+                    delete *tigIter;
+                    *tigIter = NULL;
                 }
-                fprintf(stderr,"Num frgs after splits is %d\n",frgCnt);
-                splits->insert( splits->end(), newUs->begin(), newUs->end());
-//                (*unitigs)[ tig->id-1 ] = NULL;
-                delete *tigIter;
-                *tigIter = NULL;
                 delete newUs;
             }
         }
@@ -1449,16 +1451,19 @@ namespace AS_BOG{
         UnitigBreakPoint fakeEnd = breaks.back();
         breaks.pop_back();
         FragmentEnds smallBPs, newBPs;
+        bool hadBig = false;
         FragmentEnds::iterator iter = breaks.begin();
         for(; iter != breaks.end(); iter++)
         {
             UnitigBreakPoint nextBP = *iter;
             if (nextBP.inSize > 2500) {
+                hadBig = true;
                 // big one, compare against smalls
                 if (!(nextBP.fragEnd == newBPs.back().fragEnd)) {
                     if (!smallBPs.empty()) {
                         UnitigBreakPoint small = selectSmall( tig, smallBPs, nextBP);
-                        newBPs.push_back( small );
+                        if ( small.fragNumber > 0 )
+                            newBPs.push_back( small );
                         smallBPs.clear();
                     } else {
                         if ( nextBP.fragEnd.end == FIVE_PRIME)
@@ -1486,9 +1491,12 @@ namespace AS_BOG{
                     !(nextBP.fragEnd == smallBPs.back().fragEnd) ) 
                     smallBPs.push_back( nextBP );
         }
-        if (!smallBPs.empty()) {
+        if (!hadBig)
+            assert( newBPs.size() == 0);
+        if (hadBig && !smallBPs.empty()) {
             UnitigBreakPoint small = selectSmall( tig, smallBPs, fakeEnd);
-            newBPs.push_back( small );
+            if ( small.fragNumber > 0 )
+                newBPs.push_back( small );
             smallBPs.clear();
         }
         breaks = newBPs;
@@ -1503,6 +1511,8 @@ namespace AS_BOG{
         filterBreakPoints( tig, breaks );
         fprintf(stderr,"After filter break size is %d\n",breaks.size());
         UnitigVector* splits = new UnitigVector();
+        if (breaks.empty()) 
+            return splits;
         Unitig* newTig = new Unitig();
         newTig->dovetail_path_ptr = new DoveTailPath();
         splits->push_back( newTig );
@@ -1522,7 +1532,7 @@ namespace AS_BOG{
                 breaks.pop_front();
                 nextBP = breaks.front();
             }
-            bool reverse = frg.position.bgn > frg.position.end;
+            bool reverse = isReverse(frg.position);
             if (breakPoint.fragEnd.id == frg.ident) {
                 if (bothEnds) {
                     // create singleton when split at both ends
