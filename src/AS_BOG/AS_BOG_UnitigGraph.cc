@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.34 2006-11-10 20:00:45 eliv Exp $
- * $Revision: 1.34 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.35 2006-11-21 16:17:18 eliv Exp $
+ * $Revision: 1.35 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.34 2006-11-10 20:00:45 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.35 2006-11-21 16:17:18 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -71,6 +71,11 @@ namespace AS_BOG{
 
     static std::map<iuid,int>* containPartialOrder;
     static int maxContainDepth = 0;
+
+    inline bool isReverse( SeqInterval pos ) {
+        return(pos.bgn > pos.end);
+    }
+
 	void UnitigGraph::build(ChunkGraph *cg_ptr, long num_rand_frags, long genome_size){
 
 		iuid num_frags=cg_ptr->getNumFragments();
@@ -84,7 +89,7 @@ namespace AS_BOG{
         memset( inUnitig, 0, (num_frags+1)*sizeof(iuid));
 
 		BestContainmentMap *best_cntr = &(bog_ptr->_best_containments);
-		ContainerMap *cntnrmap_ptr = _build_container_map(best_cntr);
+		_build_container_map(best_cntr);
 
 		// Step through all the fragments 
 		std::cerr << "Building Unitigs from " << num_frags << " fragments.\n"; 
@@ -661,13 +666,17 @@ namespace AS_BOG{
         {
             Unitig* tig = *tigIter;
             FragmentEnds breaks;
+            int fragCount = 1;
             DoveTailNode lastBackbone;
             DoveTailPath::const_iterator dt_itr;
             for( dt_itr  = tig->dovetail_path_ptr->begin();
-                 dt_itr != tig->dovetail_path_ptr->end(); dt_itr++)
+                 dt_itr != tig->dovetail_path_ptr->end(); dt_itr++,fragCount++)
             {
                 DoveTailNode node = *dt_itr;
                 iuid dtFrag = node.ident;
+                if ( cntnrmap_ptr->find( dtFrag ) != cntnrmap_ptr->end()) {
+                    fragCount += (*cntnrmap_ptr)[ dtFrag ].size();
+                }
                 BestEdgeOverlap *bestEdge;
                 if ( dt_itr == tig->dovetail_path_ptr->begin() ||
                     dt_itr+1 == tig->dovetail_path_ptr->end() )
@@ -677,7 +686,7 @@ namespace AS_BOG{
                     if (node.contained)
                         node = lastBackbone;
 
-                    if (node.position.bgn > node.position.end)
+                    if ( isReverse( node.position ) )
                         dtEnd = FIVE_PRIME;
                     if (dt_itr == tig->dovetail_path_ptr->begin()) {
                         dtEnd = dtEnd == FIVE_PRIME ? THREE_PRIME : FIVE_PRIME;
@@ -718,25 +727,38 @@ namespace AS_BOG{
                             dtEnd = fiveP;
                             pos = node.position.bgn;
                         }
-                        fprintf(stderr,"  Unitig %5d frag %7d end %s intersects Unitig %5d frag %7d end %s pos %6d\n",
-                                inUnitig[inFrag]-1, inFrag, inEnd,
-                                tig->id-1, dtFrag, dtEnd, pos );
-
                         Unitig *inTig = (*unitigs)[inUnitig[inFrag]-1];
                         if (inTig == NULL) {
                             fprintf(stderr, "  NullBreak tig %5d at frag %7d\n",
                                     tig->id-1, dtFrag );
                         }
-                        else if (inTig->getLength() > 2500) {
-                            fprintf(stderr, "  Break tig %5d at frag %7d because tig %5d has len %d\n",
-                                    tig->id-1, dtFrag, inTig->id-1, inTig->getLength());
-                            FragmentEnd breakPoint(dtFrag,bestEdge->bend);
-                            breaks.push( breakPoint );
+                        else {
+                            UnitigBreakPoint breakPoint(dtFrag, bestEdge->bend);
+                            breakPoint.position = node.position;
+                            breakPoint.fragNumber = fragCount ;
+                            breakPoint.inSize = inTig->getLength();
+                            breaks.push_back( breakPoint );
                         }
+                        fprintf(stderr,
+                        "  Unitig %5d len %5d frag %7d end %s into Unitig %5d frag %7d end %s pos %6d\n",
+                                inUnitig[inFrag]-1, inTig->getLength(), inFrag, inEnd,
+                                tig->id-1, dtFrag, dtEnd, pos );
                     }
                 }
             }
             if ( !breaks.empty() ) {
+                // create a final fake bp for the last frag so
+                // we have a reference point to the end of the tig for
+                // filtering the breakpoints
+                fragment_end_type lastEnd = THREE_PRIME;
+                if ( isReverse( lastBackbone.position ) )
+                        lastEnd = FIVE_PRIME;
+                UnitigBreakPoint breakPoint(lastBackbone.ident, lastEnd);
+                breakPoint.position   = lastBackbone.position;
+                breakPoint.fragNumber = fragCount;
+                breakPoint.inSize     = std::numeric_limits<int>::max();
+                breaks.push_back( breakPoint );
+
                 UnitigVector* newUs = breakUnitigAt( tig, breaks );
                 int frgCnt = 0;
                 UnitigsConstIter newIter = newUs->begin();
@@ -793,9 +815,9 @@ namespace AS_BOG{
     }
 	//////////////////////////////////////////////////////////////////////////////
 
-	ContainerMap *UnitigGraph::_build_container_map(BestContainmentMap *best_cntr){
-
-		ContainerMap *cmptr=new ContainerMap;
+	void UnitigGraph::_build_container_map(BestContainmentMap *best_cntr)
+    {
+		cntnrmap_ptr = new ContainerMap;
 		int containees=0;
 
 		BestContainmentMap::const_iterator bstcnmap_itr;
@@ -805,15 +827,13 @@ namespace AS_BOG{
 			iuid ctnee_id     = bstcnmap_itr->first;
 			iuid container_id = bstcnmap_itr->second.container;
 
-			(*cmptr)[container_id].push_back(ctnee_id);
+			(*cntnrmap_ptr)[container_id].push_back(ctnee_id);
 			containees++;
 		}
 		
 		std::cerr << "BestContainments Inverted into ContainerMap." << std::endl;
 		std::cerr << "Num containees: " << containees << std::endl;
-		std::cerr << "Num containers: " << cmptr->size() << std::endl;
-		
-		return(cmptr);
+		std::cerr << "Num containers: " << cntnrmap_ptr->size() << std::endl;
 	}
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -1208,8 +1228,8 @@ namespace AS_BOG{
 	//////////////////////////////////////////////////////////////////////////////
     //Recursively place all contains under this one into the FragmentPositionMap
 
-    void Unitig::placeContains( const ContainerMap* cntnrp, BestContainmentMap *bestCtn,
-                                const iuid container, const SeqInterval intvl, const int level)
+    void Unitig::placeContains(const ContainerMap* cntnrp, BestContainmentMap *bestCtn,
+                             const iuid container, const SeqInterval intvl, const int level)
     {
         if (cntnrp->size() == 0)
             return;
@@ -1349,37 +1369,164 @@ namespace AS_BOG{
 
 	}
 	//////////////////////////////////////////////////////////////////////////////
+    int lastBPCoord   = 0;
+    int lastBPFragNum = 0;
+    UnitigBreakPoint UnitigGraph::selectSmall(const Unitig *tig,
+           const FragmentEnds &smalls, const UnitigBreakPoint& big)
+    {
+        double difference = 0.0;
+        UnitigBreakPoint selection;
+        int rFrgs =  big.fragNumber; 
+        bool bRev = isReverse( big.position);
+        iuid bid =  big.fragEnd.id;
+        int right,bContain;
+        bContain = 0;
+        if ( big.fragEnd.end == FIVE_PRIME) right = big.position.bgn;
+        else                                right = big.position.end;
 
+        if ( cntnrmap_ptr->find( bid ) != cntnrmap_ptr->end() )
+            bContain = (*cntnrmap_ptr)[ bid ].size();
+
+        if ( (bRev && big.fragEnd == THREE_PRIME) ||
+            ( !bRev && big.fragEnd == FIVE_PRIME) ) 
+        {
+            rFrgs -= 1 + bContain;
+        }
+        FragmentEnds::const_iterator sIter = smalls.begin();
+        for(; sIter != smalls.end(); sIter++) {
+            UnitigBreakPoint small = *sIter;
+            if (small.fragEnd == big.fragEnd)
+                continue; 
+
+            bool rev  = isReverse(small.position);
+            int sContain = 0;
+            int lFrgs = small.fragNumber;
+            iuid sid = small.fragEnd.id;
+
+            // use middle of frag instead of end, to get some overlap
+            double bp = (small.position.end + small.position.bgn) / 2.0;
+
+//            if (small.fragEnd.end == FIVE_PRIME) bp = small.position.bgn;
+//            else                                 bp = small.position.end;
+
+            if ( cntnrmap_ptr->find( sid ) != cntnrmap_ptr->end() )
+                sContain = (*cntnrmap_ptr)[ sid ].size();
+
+            if ( (rev && small.fragEnd == THREE_PRIME) ||
+                (!rev && small.fragEnd == FIVE_PRIME ) ) 
+            // left side of the frag in the unitig, don't count it
+            {
+                lFrgs -= 1 + sContain;
+            }
+            if (rFrgs - lFrgs == 1)
+                continue;
+            double lRate = (lFrgs - lastBPFragNum) / (bp - lastBPCoord); 
+            double rRate = (rFrgs - lFrgs) / (right - bp);
+            fprintf(stderr,
+              "Break frg %7d b %4d l %4d pos b %5d e %5.0f lRate %.4f\n",
+              sid, lastBPFragNum, lFrgs, lastBPCoord, bp, lRate );
+            double ratio = lRate > rRate ? lRate / rRate : rRate / lRate;
+            fprintf(stderr,
+              "Break diff %4d r %4d pos %5d rRate %.4f ratio %.2f to frag %7d\n",
+               rFrgs - lFrgs, rFrgs, right, rRate, ratio, bid ); 
+
+            double diff = fabs( lRate - rRate);
+            if (ratio > 1.8 && diff > difference) {
+                fprintf(stderr,"Select frg %d for break on arrival rate diff %.4f\n",
+                        sid, diff);
+                difference = diff;
+                selection = small;
+            }
+        }
+        lastBPCoord   = right;
+        lastBPFragNum = rFrgs;
+        return selection;
+    }
+
+    void UnitigGraph::filterBreakPoints(Unitig *tig, FragmentEnds &breaks)
+    {
+        UnitigBreakPoint fakeEnd = breaks.back();
+        breaks.pop_back();
+        FragmentEnds smallBPs, newBPs;
+        FragmentEnds::iterator iter = breaks.begin();
+        for(; iter != breaks.end(); iter++)
+        {
+            UnitigBreakPoint nextBP = *iter;
+            if (nextBP.inSize > 2500) {
+                // big one, compare against smalls
+                if (!(nextBP.fragEnd == newBPs.back().fragEnd)) {
+                    if (!smallBPs.empty()) {
+                        UnitigBreakPoint small = selectSmall( tig, smallBPs, nextBP);
+                        newBPs.push_back( small );
+                        smallBPs.clear();
+                    } else {
+                        if ( nextBP.fragEnd.end == FIVE_PRIME)
+                            lastBPCoord = nextBP.position.bgn;
+                        else
+                            lastBPCoord = nextBP.position.end;
+
+                        iuid bid = nextBP.fragEnd.id;
+                        int bContain = 0;
+                        if ( cntnrmap_ptr->find( bid ) != cntnrmap_ptr->end() )
+                            bContain = (*cntnrmap_ptr)[ bid ].size();
+
+                        lastBPFragNum = nextBP.fragNumber;
+                        bool bRev = isReverse( nextBP.position );
+                        if ( (bRev && nextBP.fragEnd == THREE_PRIME) ||
+                           ( !bRev && nextBP.fragEnd == FIVE_PRIME) ) 
+                        {
+                            lastBPFragNum -= 1 + bContain;
+                        }
+                    }
+                    newBPs.push_back( nextBP );
+                }
+            } else 
+                if (!(nextBP.fragEnd == newBPs.back().fragEnd) &&
+                    !(nextBP.fragEnd == smallBPs.back().fragEnd) ) 
+                    smallBPs.push_back( nextBP );
+        }
+        if (!smallBPs.empty()) {
+            UnitigBreakPoint small = selectSmall( tig, smallBPs, fakeEnd);
+            newBPs.push_back( small );
+            smallBPs.clear();
+        }
+        breaks = newBPs;
+    }
     UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig, FragmentEnds &breaks)
     {
         if (breaks.empty())
             return NULL;
         fprintf(stderr,"Before break size is %d, unitig %d\n",breaks.size(),tig->dovetail_path_ptr->size());
+        lastBPCoord = 0;
+        lastBPFragNum = 0;
+        filterBreakPoints( tig, breaks );
+        fprintf(stderr,"After filter break size is %d\n",breaks.size());
         UnitigVector* splits = new UnitigVector();
         Unitig* newTig = new Unitig();
         newTig->dovetail_path_ptr = new DoveTailPath();
         splits->push_back( newTig );
         DoveTailIter dtIter = tig->dovetail_path_ptr->begin();
-        FragmentEnd breakPoint = breaks.front();
-        breaks.pop();
+        UnitigBreakPoint breakPoint = breaks.front();
+        breaks.pop_front();
         int frgCnt = 0;
         int offset = 0;
         for( ; dtIter != tig->dovetail_path_ptr->end(); dtIter++) {
             frgCnt++;
             DoveTailNode frg = *dtIter;
-            FragmentEnd nextBP = breaks.front();
+            UnitigBreakPoint nextBP = breaks.front();
             bool bothEnds = false;
-            while ( !breaks.empty() && nextBP.id == breakPoint.id ) {
-                if (nextBP.end != breakPoint.end)
+            while ( !breaks.empty() && nextBP.fragEnd.id == breakPoint.fragEnd.id ) {
+                if (nextBP.fragEnd.end != breakPoint.fragEnd.end)
                     bothEnds = true;
-                breaks.pop();
+                breaks.pop_front();
                 nextBP = breaks.front();
             }
             bool reverse = frg.position.bgn > frg.position.end;
-            if (breakPoint.id == frg.ident) {
+            if (breakPoint.fragEnd.id == frg.ident) {
                 if (bothEnds) {
                     // create singleton when split at both ends
-                    fprintf(stderr,"  Breaking tig %d at both ends of %d num %d\n",tig->id-1,breakPoint.id,frgCnt);
+                    fprintf(stderr,"  Breaking tig %d at both ends of %d num %d\n",
+                            tig->id-1, breakPoint.fragEnd.id, breakPoint.fragNumber);
                     newTig->shiftCoordinates( offset );
                     newTig = new Unitig();
                     newTig->dovetail_path_ptr = new DoveTailPath();
@@ -1390,11 +1537,12 @@ namespace AS_BOG{
                     newTig = new Unitig();
                     newTig->dovetail_path_ptr = new DoveTailPath();
                 }
-                else if (breakPoint.end ==  FIVE_PRIME && !reverse ||
-                         breakPoint.end == THREE_PRIME && reverse)
+                else if (breakPoint.fragEnd.end ==  FIVE_PRIME && !reverse ||
+                        breakPoint.fragEnd.end == THREE_PRIME && reverse)
                 {
                     // break at end, frg starts new tig
-                    fprintf(stderr,"  Breaking tig %d before %d num %d\n",tig->id-1,breakPoint.id,frgCnt);
+                    fprintf(stderr,"  Breaking tig %d before %d num %d\n",
+                            tig->id-1, breakPoint.fragEnd.id, breakPoint.fragNumber);
                     newTig->shiftCoordinates( offset );
                     newTig = new Unitig();
                     newTig->dovetail_path_ptr = new DoveTailPath();
@@ -1403,10 +1551,11 @@ namespace AS_BOG{
                             offset,frg.ident,frg.position.bgn,frg.position.end);
                     newTig->dovetail_path_ptr->push_back( frg );
                 }
-                else if (breakPoint.end ==  FIVE_PRIME && reverse ||
-                         breakPoint.end == THREE_PRIME && !reverse )
+                else if (breakPoint.fragEnd.end ==  FIVE_PRIME && reverse ||
+                        breakPoint.fragEnd.end == THREE_PRIME && !reverse )
                 {
-                    fprintf(stderr,"  Breaking tig %d after %d num %d\n",tig->id-1,breakPoint.id,frgCnt);
+                    fprintf(stderr,"  Breaking tig %d after %d num %d\n",
+                            tig->id-1, breakPoint.fragEnd.id, breakPoint.fragNumber);
                     newTig->dovetail_path_ptr->push_back( frg );
                     newTig->shiftCoordinates( offset );
                     newTig = new Unitig();
@@ -1418,12 +1567,12 @@ namespace AS_BOG{
                 }
                 splits->push_back( newTig );
                 if (breaks.empty()) {
-                    breakPoint.id = 0;
+                    breakPoint.fragEnd.id = 0;
                     continue;
                 }
                 else {
                     breakPoint = breaks.front();
-                    breaks.pop();
+                    breaks.pop_front();
                 }
             } else {
                 if (newTig->dovetail_path_ptr->empty()) {
@@ -1439,36 +1588,36 @@ namespace AS_BOG{
         return splits;
     }
 
-	//////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
 
-	void Unitig::freeIUM_Mesg(IntUnitigMesg *ium_ptr){
-		delete ium_ptr;
-	}
+    void Unitig::freeIUM_Mesg(IntUnitigMesg *ium_ptr){
+        delete ium_ptr;
+    }
 
-	//////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
 
-	int IntMultiPosCmp(const void *a, const void *b){
-		IntMultiPos *impa=(IntMultiPos*)a;
-		IntMultiPos *impb=(IntMultiPos*)b;
+    int IntMultiPosCmp(const void *a, const void *b){
+        IntMultiPos *impa=(IntMultiPos*)a;
+        IntMultiPos *impb=(IntMultiPos*)b;
         long aleft,aright,bleft,bright;
-		if (impa->position.bgn < impa->position.end) {
-			aleft  = impa->position.bgn;
+        if (impa->position.bgn < impa->position.end) {
+            aleft  = impa->position.bgn;
             aright = impa->position.end;
         } else {
-			aright = impa->position.bgn;
+            aright = impa->position.bgn;
             aleft  = impa->position.end;
         }
-		if (impb->position.bgn < impb->position.end) {
-			bleft  = impb->position.bgn;
+        if (impb->position.bgn < impb->position.end) {
+            bleft  = impb->position.bgn;
             bright = impb->position.end;
         } else {
-			bright = impb->position.bgn;
+            bright = impb->position.bgn;
             bleft  = impb->position.end;
         }
-		if(aleft!=bleft)
+        if(aleft!=bleft)
         {
-			return(aleft - bleft);
-		}
+            return(aleft - bleft);
+        }
         else if (aright != bright)
         {
             if (impa->contained==0 && impb->contained!=0)
@@ -1481,56 +1630,56 @@ namespace AS_BOG{
                 return(aright - bright);
         }
         else {
-			if(impa->contained == impb->ident)
+            if(impa->contained == impb->ident)
                 return(1);
-			if(impb->contained == impa->ident)
+            if(impb->contained == impa->ident)
                 return(-1);
-			if(impa->contained!=0 && impb->contained!=0)
+            if(impa->contained!=0 && impb->contained!=0)
                 return((*containPartialOrder)[impa->ident] - (*containPartialOrder)[impb->ident]);
-			if(impa->contained!=0)
-				return(1);
-			if(impb->contained!=0)
-				return(-1);
-			return(0);
-		}
-	}
-	//////////////////////////////////////////////////////////////////////////////
+            if(impa->contained!=0)
+                return(1);
+            if(impb->contained!=0)
+                return(-1);
+            return(0);
+        }
+    }
+    //////////////////////////////////////////////////////////////////////////////
     void Unitig::sort() {
         qsort( &(dovetail_path_ptr->front()), getNumFrags(),
                 sizeof(IntMultiPos), &IntMultiPosCmp );
     }
-	//////////////////////////////////////////////////////////////////////////////
-	IntUnitigMesg *Unitig::getIUM_Mesg(){
-		
-		IntUnitigMesg *ium_mesg_ptr=new IntUnitigMesg;
-		IntMultiPos *imp_msg_arr   = &(dovetail_path_ptr->front());
+    //////////////////////////////////////////////////////////////////////////////
+    IntUnitigMesg *Unitig::getIUM_Mesg(){
 
-		//void qsort(void *base, size_t nmemb, size_t size,
-                //  int(*compar)(const void *, const void *));
-		// Sort by 5' end of fragment position
-		//qsort(imp_msg_arr, getNumFrags(), sizeof(IntMultiPos), &IntMultiPosCmp);
+        IntUnitigMesg *ium_mesg_ptr=new IntUnitigMesg;
+        IntMultiPos *imp_msg_arr   = &(dovetail_path_ptr->front());
 
-		// Populate the IUM message with unitig info
-		#ifdef AS_ENABLE_SOURCE
-		/*char*/		ium_mesg_ptr->source=AS_BOG_UNITIG_GRAPH_CC_CM_ID;
-		#endif
-		/*float32*/		ium_mesg_ptr->coverage_stat=getCovStat();
-		/*UnitigStatus*/	ium_mesg_ptr->status=AS_UNASSIGNED;
-		/*CDS_COORD_t*/		ium_mesg_ptr->a_branch_point=0;
-		/*CDS_COORD_t*/		ium_mesg_ptr->b_branch_point=0;
-		/*CDS_COORD_t*/		ium_mesg_ptr->length=getLength();
-		/*char* */		ium_mesg_ptr->consensus="";
-		/*char* */		ium_mesg_ptr->quality="";
-		/*int32*/		ium_mesg_ptr->forced=0;
-		/*int32*/		ium_mesg_ptr->num_frags=getNumFrags();
-		/*IntMultiPos* */	ium_mesg_ptr->f_list=imp_msg_arr;
-		/*int32*/		ium_mesg_ptr->num_vars=0;
-		/*IntMultiVar* */	ium_mesg_ptr->v_list=NULL;
+        //void qsort(void *base, size_t nmemb, size_t size,
+        //  int(*compar)(const void *, const void *));
+        // Sort by 5' end of fragment position
+        //qsort(imp_msg_arr, getNumFrags(), sizeof(IntMultiPos), &IntMultiPosCmp);
 
-		return(ium_mesg_ptr);
-	}
+        // Populate the IUM message with unitig info
+#ifdef AS_ENABLE_SOURCE
+        /*char*/		ium_mesg_ptr->source=AS_BOG_UNITIG_GRAPH_CC_CM_ID;
+#endif
+        /*float32*/		ium_mesg_ptr->coverage_stat=getCovStat();
+        /*UnitigStatus*/	ium_mesg_ptr->status=AS_UNASSIGNED;
+        /*CDS_COORD_t*/		ium_mesg_ptr->a_branch_point=0;
+        /*CDS_COORD_t*/		ium_mesg_ptr->b_branch_point=0;
+        /*CDS_COORD_t*/		ium_mesg_ptr->length=getLength();
+        /*char* */		ium_mesg_ptr->consensus="";
+        /*char* */		ium_mesg_ptr->quality="";
+        /*int32*/		ium_mesg_ptr->forced=0;
+        /*int32*/		ium_mesg_ptr->num_frags=getNumFrags();
+        /*IntMultiPos* */	ium_mesg_ptr->f_list=imp_msg_arr;
+        /*int32*/		ium_mesg_ptr->num_vars=0;
+        /*IntMultiVar* */	ium_mesg_ptr->v_list=NULL;
 
-	//////////////////////////////////////////////////////////////////////////////
+        return(ium_mesg_ptr);
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
 
 	void UnitigGraph::writeIUMtoFile(char *filename){
 		

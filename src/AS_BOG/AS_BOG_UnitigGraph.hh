@@ -34,18 +34,18 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.21 2006-11-02 19:44:30 eliv Exp $
- * $Revision: 1.21 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.22 2006-11-21 16:17:18 eliv Exp $
+ * $Revision: 1.22 $
 */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.21 2006-11-02 19:44:30 eliv Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.22 2006-11-21 16:17:18 eliv Exp $";
 
 #include <vector>
-#include <queue>
+#include <list>
 #include <map>
 #include <set>
 #include <iostream>
@@ -65,7 +65,6 @@ namespace AS_BOG{
 	typedef iuid containee_id;
 	typedef iuid fragment_id;
 	typedef std::vector<fragment_id> FragmentList;
-	typedef std::queue<FragmentEnd> FragmentEnds;
 	typedef std::map<iuid, FragmentList> FragmentEdgeList;
 
 	///////////////////////////////////////////////////////////////////////
@@ -83,6 +82,20 @@ namespace AS_BOG{
 	typedef std::map<fragment_id, SeqInterval> FragmentPositionMap;
 	std::ostream& operator<< (std::ostream& os, FragmentPositionMap *fpm_ptr);
 
+    struct UnitigBreakPoint {
+        int fragNumber;       // the number of the fragment in the unitig
+        int inSize;           // the size of the incoming unitig
+        SeqInterval position; // coordinates in unitig
+        FragmentEnd fragEnd;  // frag id and which end to break on 
+
+        UnitigBreakPoint(iuid id=0, fragment_end_type end=FIVE_PRIME) :
+            fragEnd(id, end), fragNumber(0), inSize(0)
+        {
+            position.bgn = position.end = 0;
+        }
+    };
+	typedef std::list<UnitigBreakPoint> FragmentEnds;
+
 	///////////////////////////////////////////////////////////////////////
 
 	struct Unitig{
@@ -94,8 +107,7 @@ namespace AS_BOG{
         void sort();
 
 		// Compute unitig based on given dovetails and containments
-		void recomputeFragmentPositions(ContainerMap*, BestContainmentMap*,
-                                      BestOverlapGraph*);
+		void recomputeFragmentPositions(ContainerMap *,BestContainmentMap*, BestOverlapGraph*);
 		void computeFragmentPositions(BestOverlapGraph*);
 
         void shiftCoordinates(int);
@@ -123,7 +135,7 @@ namespace AS_BOG{
         DoveTailPath *dovetail_path_ptr;
 
 		private:
-            void placeContains( const ContainerMap*, BestContainmentMap*,
+            void placeContains( const ContainerMap *, BestContainmentMap*,
                             const iuid , const SeqInterval, const int level );
 
 			// Do not access these private variables directly, they may not be
@@ -181,6 +193,12 @@ namespace AS_BOG{
         void breakUnitigs();
         void printUnitigBreaks();
 
+        void filterBreakPoints( Unitig *, FragmentEnds &);
+
+        UnitigBreakPoint selectSmall(const Unitig *,
+                                     const FragmentEnds &,
+                                     const UnitigBreakPoint &);
+
         UnitigVector* breakUnitigAt( Unitig *, FragmentEnds &);
 
 		///////////////////////////////////////////////////////////////
@@ -207,7 +225,7 @@ namespace AS_BOG{
                 int offset);
 
 			// Inverts the containment map to key by container, instead of containee
-			ContainerMap *_build_container_map(BestContainmentMap*);
+			void _build_container_map(BestContainmentMap*);
 
 			// Build containee list
 			ContainerMap *_extract_containees(DoveTailPath *dtp_ptr, 
@@ -226,6 +244,7 @@ namespace AS_BOG{
 
             BestOverlapGraph *bog_ptr;
             FragmentEdgeList *unitigIntersect;
+			ContainerMap *cntnrmap_ptr;
 	};
 		
 	///////////////////////////////////////////////////////////////////////
