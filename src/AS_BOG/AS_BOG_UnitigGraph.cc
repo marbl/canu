@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.37 2006-11-21 21:52:37 eliv Exp $
- * $Revision: 1.37 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.38 2006-11-21 22:02:25 eliv Exp $
+ * $Revision: 1.38 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.37 2006-11-21 21:52:37 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.38 2006-11-21 22:02:25 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -1398,7 +1398,7 @@ namespace AS_BOG{
         FragmentEnds::const_iterator sIter = smalls.begin();
         for(; sIter != smalls.end(); sIter++) {
             UnitigBreakPoint small = *sIter;
-            if (small.fragEnd == big.fragEnd)
+            if (small.fragEnd.id == big.fragEnd.id)
                 continue; 
 
             bool rev  = isReverse(small.position);
