@@ -33,11 +33,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_ChunkGraph.cc,v 1.10 2006-11-14 19:58:20 eliv Exp $
- * $Revision: 1.10 $
+ * $Id: AS_BOG_ChunkGraph.cc,v 1.11 2006-11-21 16:14:53 eliv Exp $
+ * $Revision: 1.11 $
 */
 
-static char AS_BOG_CHUNK_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_ChunkGraph.cc,v 1.10 2006-11-14 19:58:20 eliv Exp $";
+static char AS_BOG_CHUNK_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_ChunkGraph.cc,v 1.11 2006-11-21 16:14:53 eliv Exp $";
 
 //  System include files
 
@@ -165,18 +165,13 @@ namespace AS_BOG{
             
             _chunk_lengths[frag_id-1].fragId = frag_id;
             _chunk_lengths[frag_id-1].cnt    = MIN(fpCnt,tpCnt);
-            //_chunk_lengths[frag_id-1].tpCnt    = tpCnt;
-            ////_chunk_lengths[frag_id-1].fpCnt    = fpCnt;
 		}
         qsort( _chunk_lengths, num_frags, sizeof(_chunk_length), &ChunkGraph::sortChunkLens);
-        //fprintf(stderr,"Top chunkLength frgs %d cnt 5' %d 3' %d and %d cnt 5' %d 3' %d\n",
         fprintf(stderr,"Top chunkLength frgs %d cnt %d and %d cnt %d\n",
-//                _chunk_lengths[0].fragId, _chunk_lengths[0].fpCnt, _chunk_lengths[0].tpCnt,
-////                _chunk_lengths[1].fragId, _chunk_lengths[1].fpCnt, _chunk_lengths[1].tpCnt
                 _chunk_lengths[0].fragId, _chunk_lengths[0].cnt,
                 _chunk_lengths[1].fragId, _chunk_lengths[1].cnt
                );
-                //_chunk_lengths[1].fragId, _chunk_lengths[1].cnt);
+
         delete[] _edgePathLen;
         _edgePathLen = NULL;
 	}
@@ -208,18 +203,6 @@ namespace AS_BOG{
         assert( frag == NULL_FRAG_ID || frag == anEnd.id ); 
         anEnd.id = frag;
         return anEnd;
-    }
-    inline bool operator==(FragmentEnd a, FragmentEnd b) {
-        if (a.id == b.id && a.end == b.end)
-            return true;
-        else
-            return false;
-    }
-    inline bool operator<(FragmentEnd a, FragmentEnd b) {
-        if (a.id != b.id)
-            return a.id < b.id;
-        else
-            return a.end < b.end;
     }
     iuid ChunkGraph::countFullWidth(iuid firstFrag, fragment_end_type end)
     {

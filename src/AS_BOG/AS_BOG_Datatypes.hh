@@ -33,8 +33,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_Datatypes.hh,v 1.12 2006-11-13 20:58:53 eliv Exp $
- * $Revision: 1.12 $
+ * $Id: AS_BOG_Datatypes.hh,v 1.13 2006-11-21 16:14:53 eliv Exp $
+ * $Revision: 1.13 $
 */
 
 #ifndef INCLUDE_AS_BOG_DATATYPES
@@ -103,8 +103,20 @@ namespace AS_BOG{
 
         FragmentEnd(iuid id=0, fragment_end_type end=FIVE_PRIME) :
             id(id), end(end) {}
-    };
 
+    };
+    inline bool operator==(FragmentEnd a, FragmentEnd b) {
+        if (a.id == b.id && a.end == b.end)
+            return true;
+        else
+            return false;
+    };
+    inline bool operator<(FragmentEnd a, FragmentEnd b) {
+        if (a.id != b.id)
+            return a.id < b.id;
+        else
+            return a.end < b.end;
+    };
 } //AS_BOG namespace
 
 
