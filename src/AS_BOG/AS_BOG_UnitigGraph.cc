@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.35 2006-11-21 16:17:18 eliv Exp $
- * $Revision: 1.35 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.36 2006-11-21 18:56:21 eliv Exp $
+ * $Revision: 1.36 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.35 2006-11-21 16:17:18 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.36 2006-11-21 18:56:21 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -151,6 +151,7 @@ namespace AS_BOG{
                     utg->reverseComplement();
                     utgFrg = utg->dovetail_path_ptr;
                     utgFrg->insert( utgFrg->end(), tpPath->begin(),tpPath->end() );
+                    delete tpPath;
                 }
 
                 utg->id = unitig_id++;
@@ -763,14 +764,14 @@ namespace AS_BOG{
                 int frgCnt = 0;
                 UnitigsConstIter newIter = newUs->begin();
                 for(;newIter != newUs->end(); newIter++) {
-                    Unitig* tig = *newIter;
-                    frgCnt += tig->dovetail_path_ptr->size();
+                    Unitig* tigTmp = *newIter;
+                    frgCnt += tigTmp->dovetail_path_ptr->size();
                 }
                 fprintf(stderr,"Num frgs after splits is %d\n",frgCnt);
                 splits->insert( splits->end(), newUs->begin(), newUs->end());
 //                (*unitigs)[ tig->id-1 ] = NULL;
+                delete *tigIter;
                 *tigIter = NULL;
-//                delete tig;
                 delete newUs;
             }
         }
