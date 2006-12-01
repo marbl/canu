@@ -49,6 +49,8 @@ deleteLinksForFrag(CDS_IID_t fragIID) {
                                          &gkpLinks))
     return;
 
+  fprintf(stdout, "delete all links to frag iid " F_IID "\n", fragIID);
+  
   while(NextGateKeeperLinkRecordIterator(&gkpLinks, &gkpLink)) {
     if (gkpLink.type == AS_MATE) {
       GateKeeperLinkRecord     newLink;
@@ -68,17 +70,25 @@ deleteLinksForFrag(CDS_IID_t fragIID) {
         fprintf(stdout, "can't find link of type %c for iids "F_UID" and "F_UID"\n",
                 newLink.type, gkpLink.frag1, gkpLink.frag2);
       } else {
-        getGateKeeperFragmentStore(gkpStore.frgStore, gkpLink.frag2, &gkFrag2);
+        // idew 2006-12-01
+        // fragIID may be gkpLink.frag1 or gkpLink.frag2
+        // gkFrag1 may be data for gkpLink.frag1 or gkpLink.frag2
+        // need to make it so gkFrag2 holds data for non-fragIID frag
+        getGateKeeperFragmentStore(gkpStore.frgStore,
+             (gkpLink.frag2 == fragIID ? gkpLink.frag1 : gkpLink.frag2),
+                                   &gkFrag2);
 
         fprintf(stdout, "delete link %d of type %c for iids "F_UID" and "F_UID"\n",
                 deleteLink, newLink.type, gkpLink.frag1, gkpLink.frag2);
 
+        // idew 2006-12-01
+        // see above comment
         unlinkLink_GKP(gkpStore.lnkStore,
                        gkpStore.frgStore,
                        gkpLink.frag1,
                        gkpLink.frag2,
-                       &gkFrag1,
-                       &gkFrag2,
+                       (gkpLink.frag1 == fragIID ? &gkFrag1 : &gkFrag2),
+                       (gkpLink.frag1 == fragIID ? &gkFrag2 : &gkFrag1),
                        &newLink,
                        deleteLink);
 
