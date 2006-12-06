@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.38 2006-11-21 22:02:25 eliv Exp $
- * $Revision: 1.38 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.39 2006-12-06 20:16:03 eliv Exp $
+ * $Revision: 1.39 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.38 2006-11-21 22:02:25 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.39 2006-12-06 20:16:03 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -741,8 +741,8 @@ namespace AS_BOG{
                             breaks.push_back( breakPoint );
                         }
                         fprintf(stderr,
-                        "  Unitig %5d len %5d frag %7d end %s into Unitig %5d frag %7d end %s pos %6d\n",
-                                inUnitig[inFrag]-1, inTig->getLength(), inFrag, inEnd,
+                        "  Utig %4d frgs %5d len %4d frag %6d end %s into Utig %4d frag %6d end %s pos %6d\n",
+                                inUnitig[inFrag]-1, inTig->getNumFrags(),inTig->getLength(), inFrag, inEnd,
                                 tig->id-1, dtFrag, dtEnd, pos );
                     }
                 }
@@ -1456,7 +1456,8 @@ namespace AS_BOG{
         for(; iter != breaks.end(); iter++)
         {
             UnitigBreakPoint nextBP = *iter;
-            if (nextBP.inSize > 2500) {
+            //if (nextBP.inSize > 2500) {
+            if (tig->getNumFrags() > 2) {
                 hadBig = true;
                 // big one, compare against smalls
                 if (!(nextBP.fragEnd == newBPs.back().fragEnd)) {
