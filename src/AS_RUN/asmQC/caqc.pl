@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# $Id: caqc.pl,v 1.14 2006-11-08 02:08:09 brianwalenz Exp $
+# $Id: caqc.pl,v 1.15 2006-12-06 20:57:39 moweis Exp $
 #
 # This program reads a Celera .asm file and produces aggregate information
 # about the assembly
@@ -20,7 +20,7 @@ use File::Basename;
 use Statistics::Descriptive;
 use File::Copy;
 
-my $MY_VERSION = "caqc Version 2.11 (Build " . (qw/$Revision: 1.14 $/ )[1] . ")";
+my $MY_VERSION = "caqc Version 2.11 (Build " . (qw/$Revision: 1.15 $/ )[1] . ")";
 
 # Constants
 my $MINQUAL   = 20;
@@ -866,7 +866,7 @@ MAIN:
   $Results{MaxDegenContig}           = 0;
   $Results{DegenPercentBases}        = 0.0;
   $Results{TotalReads}               = 0;
-  $Results{AvgClearRange}            = $totalCLRReadLengthASM / $totalSeqs;
+  $Results{AvgClearRange}            = ($totalSeqs > 0) ? $totalCLRReadLengthASM / $totalSeqs : 0;
   $Results{ReadsInContigs}           = 0;
   $Results{BigContigReads}           = 0;
   $Results{SmallContigReads}         = 0;
