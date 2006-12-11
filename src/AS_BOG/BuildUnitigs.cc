@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.12 2006-11-02 19:44:30 eliv Exp $
- * $Revision: 1.12 $
+ * $Id: BuildUnitigs.cc,v 1.13 2006-12-11 18:06:03 eliv Exp $
+ * $Revision: 1.13 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.12 2006-11-02 19:44:30 eliv Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.13 2006-12-11 18:06:03 eliv Exp $";
 
 //  System include files
 
@@ -107,9 +107,15 @@ int  main (int argc, char * argv [])
    // Initialize our three different types of Best Overlap Graphs
    //AS_BOG::ErateScore erScore;
    //AS_BOG::LongestEdge lenScore;
-   bogRunner.push_back( new AS_BOG::LongestHighIdent(2.5));
-   bogRunner.push_back( new AS_BOG::LongestHighIdent(1.5));
-   bogRunner.push_back( new AS_BOG::LongestHighIdent(1.0));
+   double scr1 = 2.5;
+   double scr2 = 1.5;
+   double scr3 = 1.0;
+   int iscr1 = static_cast<int>(scr1 * 10);
+   int iscr2 = static_cast<int>(scr2 * 10);
+   int iscr3 = static_cast<int>(scr3 * 10);
+   bogRunner.push_back( new AS_BOG::LongestHighIdent(scr1));
+   bogRunner.push_back( new AS_BOG::LongestHighIdent(scr2));
+   bogRunner.push_back( new AS_BOG::LongestHighIdent(scr3));
 
    bogRunner.processOverlapStream(my_store, my_stream, FRG_Store_Path);
 
@@ -129,20 +135,24 @@ int  main (int argc, char * argv [])
 	//std::cerr << er_cg << std::endl;
 	AS_BOG::UnitigGraph utg(bogRunner.metrics[i]);
 	std::cerr << "Building Unitigs.\n" << std::endl;
-	utg.build(cg, cg->getNumFragments(), genome_size=0);
+	utg.build(cg, cg->getNumFragments(), genome_size);
 
 	std::cerr << "Reporting.\n" << std::endl;
 	//std::cout<< utg << endl;
+    char fileStr[16];
 	switch(i){
 		case 0:
-		utg.writeIUMtoFile("len25.ium");
+        sprintf( fileStr, "len%d.ium",iscr1);
+		utg.writeIUMtoFile(fileStr);
 		break;
 		case 1:
-		utg.writeIUMtoFile("len15.ium");
+        sprintf( fileStr, "len%d.ium",iscr2);
+		utg.writeIUMtoFile(fileStr);
         outputHistograms( &utg );
 		break;
 		case 2:
-		utg.writeIUMtoFile("len10.ium");
+        sprintf( fileStr, "len%d.ium",iscr3);
+		utg.writeIUMtoFile(fileStr);
 		break;
 	}
 	std::cerr << "///////////////////////////////////////////////////////////\n" << std::endl;
