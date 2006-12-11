@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_fragStore.c,v 1.10 2006-10-08 08:47:40 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_fragStore.c,v 1.11 2006-12-11 18:11:18 eliv Exp $";
 
 /*************************************************************************
  Module:  AS_PER_fragStore
@@ -1297,7 +1297,9 @@ int appendFragStorePartition(FragStoreHandle store, ReadStructp rs, int32 partit
   fprintf(stderr,"* Appending source field of length " F_VLS " screenLength = %u\n",
 	  length, screenMatchLength);
 #endif
+#ifdef GENERIC_STORE_USE_LONG_STRINGS
   assert(length <= VLSTRING_MAX_SIZE);
+#endif
   appendVLRecordStore(myStore->sourceStore[partition]   , fr->source, length);
 
   /*** NOTE: encodeBuffer is NOT a null terminated string.  Therefore
@@ -1378,7 +1380,9 @@ int appendFragStore(FragStoreHandle store, ReadStructp rs){
   }else{
     length = sourceLength + screenMatchLength;
   }
+#ifdef GENERIC_STORE_USE_LONG_STRINGS
   assert(length <= VLSTRING_MAX_SIZE);
+#endif
 
 #if 0
   fprintf(stderr,"* Appending source field of length " F_VLS " screenLength = %u\n",
