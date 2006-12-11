@@ -22,6 +22,7 @@
 #include <stdio.h> 
 #include <assert.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "AS_global.h" 
 #include "strings.h"
