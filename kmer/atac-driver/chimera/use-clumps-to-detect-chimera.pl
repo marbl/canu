@@ -127,7 +127,7 @@ foreach (@ATAC) {
 
 #  We could provide a raw dump of this data, but we'd like
 #  to first denoise it.  A very simple denoser works - just
-#  don't report anything with one hit.
+#  don't report anything with one match.
 
 open(F, "| sort -k3,3");
 foreach my $s (keys %counts) {
@@ -136,4 +136,3 @@ foreach my $s (keys %counts) {
     }
 }
 close(F);
-
