@@ -6,11 +6,11 @@
 class merList {
 public:
   merList() {
-    _ptrsMax = 256;
+    _ptrsMax = 8;
     _ptrsLen = 0;
     _ptrs    = new coord * [_ptrsMax];
 
-    _mersWid = 14;
+    _mersWid = 12;
     _mersMax = u32bitMASK(_mersWid);
     _mersLen = 0;
     _ptrs[0] = new coord [_mersMax+1];
