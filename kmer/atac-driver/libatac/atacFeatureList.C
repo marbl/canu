@@ -24,109 +24,32 @@
 #include "atac.H"
 
 
-atacFeatureList::atacFeatureList(char *filename, char *type, bool saveLine) {
-
-  _label[0]    = 0;
-  _file[0]     = 0;
-  _seq         = 0L;
-
+atacFeatureList::atacFeatureList() {
   _featuresLen = 0;
-  _featuresMax = 0;
-  _features    = 0L;
-
-  if (filename == 0L)
-    return;
-
-  FILE *inFile = stdin;
-  if ((filename != 0L) && (strcmp(filename, "-") != 0)) {
-    errno = 0;
-    inFile = fopen(filename, "r");
-    if (errno)
-      fprintf(stderr, "atacFeatureList::atacFeatureList()-- failed to load %s: %s\n", filename, strerror(errno)), exit(1);
-  }
-
-  //  Read the preamble, look for our data sources.  This leaves us with
-  //  the first match in the inLine, and fills in file1 and file2.
-  //
-  char    inLine[1024];
-  readHeader(inLine, inFile, _file, 0L, 0L);
-
-  //  Open some FastAWrappers for each of the files -- we use these
-  //  only to get the length of the sequence.
-  //
-  if (_file && _file[0]) { 
-    _seq = new FastAWrapper(_file);
-    _seq->openIndex();
-  }
-
-  _featuresLen = 0;
-  _featuresMax = 32 * 1048576;
+  _featuresMax = 256;
   _features    = new atacFeature [_featuresMax];
-
-  while (!feof(inFile)) {
-    if (inLine[0] == 'F') {
-      splitToWords  S(inLine);
-
-      //  Save the name/label
-      if (_label[0] == 0)
-        decodeAtacName(S[4], _label);
-
-      u32bit  iid=0, pos=0, len=0;
-
-      decodeFeature(S, iid, pos, len);
-
-      bool  featureOK = true;
-      if (_seq) {
-        if ((pos) > _seq->sequenceLength(iid) || (pos + len) > _seq->sequenceLength(iid)) {
-          chomp(inLine);
-          fprintf(stderr, "Feature longer than sequence (by "u32bitFMT"bp): seqLen="u32bitFMTW(8)" %s\n",
-                  pos + len - _seq->sequenceLength(iid),
-                  _seq->sequenceLength(iid), inLine);
-          featureOK = false;
-        }
-
-        if (iid >= _seq->getNumberOfSequences()) {
-          chomp(inLine);
-          fprintf(stderr, "Feature references invalid sequence iid: %s\n", inLine);
-          featureOK = false;
-        }
-      }
-
-      if (featureOK) {
-
-        //  Add it to our list of matches
-        //
-        if (_featuresLen > _featuresMax) {
-          fprintf(stderr, "SORRY!  I don't feel like reallocating matches.  Increase\n");
-          fprintf(stderr, "the preallocated size in %s\n", __FILE__);
-          exit(1);
-        }
-
-        strncpy(_features[_featuresLen].featureuid,  S[2], 16);
-        strncpy(_features[_featuresLen].parentuid, S[3], 16);
-
-        _features[_featuresLen].featureuid[15]  = 0;
-        _features[_featuresLen].parentuid[15] = 0;
-
-        _features[_featuresLen].featureiid = _featuresLen;
-
-        _features[_featuresLen].type[0] = S[1][0];
-        _features[_featuresLen].type[1] = S[1][1];
-        if (S[1][1])
-          _features[_featuresLen].type[2] = S[1][2];
-        _features[_featuresLen].type[3] = 0;
-
-        _features[_featuresLen].iid = iid;
-        _features[_featuresLen].pos = pos;
-        _features[_featuresLen].len = len;
-
-        _featuresLen++;
-      }
-    }
-
-    fgets(inLine, 1024, inFile);
-  }
 }
+
+atacFeatureList::~atacFeatureList() {
+  delete [] _features;
+}
+
+void
+atacFeatureList::add(atacFeature &m) {
+
+  if (_featuresLen >= _featuresMax) {
+    _featuresMax <<= 2;
+    atacFeature  *A = new atacFeature [_featuresMax];
+    memcpy(A, _features, sizeof(atacFeature) * _featuresLen);
+    delete [] _features;
+    _features = A;
+  }
+
+  memcpy(&_features[_featuresLen], &m, sizeof(atacFeature));
+
+  _features[_featuresLen].featureiid = _featuresLen++;
+}
+
 
 
 static

@@ -24,6 +24,7 @@
 #include "atac.H"
 
 #define ANNOTATE
+#define EXTRAMATCHES
 
 //  Generates a histogram of the exact match block sizes
 //  Counts to global number of mismatches
@@ -67,188 +68,129 @@ main(int argc, char *argv[]) {
     arg++;
   }
 
-  char  inLine[1024] = {0};
-  char  file1[1024]  = {0};
-  char  file2[1024]  = {0};
-
-  u32bit   globalSequence = 0;
+  u32bit   globalSequence   = 0;
   u32bit   globalMismatches = 0;
-  u32bit   blockMatches = 0;
-  u32bit  *blockHistogram = new u32bit [8 * 1024 * 1024];
+  u32bit   blockMatches     = 0;
+  u32bit  *blockHistogram   = new u32bit [8 * 1024 * 1024];
 
   for (u32bit x=0; x<8*1024*1024; x++)
     blockHistogram[x] = 0;
 
-  //  Read the preamble, look for our data sources.  This leaves us with
-  //  the first match in the inLine, and fills in file1 and file2.
-  //
-#ifdef ANNOTATE
-  readHeader(inLine, stdin, file1, file2, stdout);
-#else
-  readHeader(inLine, stdin, file1, file2, 0L);
-#endif
+  atacFile       AF("-");
+  atacMatchList &ML = *AF.matches();
 
-  //  Open some FastACache's for each of the files
-  //
-  FastACache  *C1 = new FastACache(file1, 1, false, false);
-  FastACache  *C2 = new FastACache(file2, 1, false, false);
+  FastACache  *C1 = new FastACache(AF.assemblyFileA(), 1, false, false);
+  FastACache  *C2 = new FastACache(AF.assemblyFileA(), 1, false, false);
 
-  //  While not end-of-file, read the matches.  If we get something
-  //  that isn't a match, just silently emit it.
-  //
-  //  Need to exclude RUNS
-  //
-  while (!feof(stdin)) {
-    if ((inLine[0] == 'M') && (inLine[2] == 'u')) {
-      splitToWords  W(inLine);
+  for (u32bit mi=0; mi<ML.numberOfMatches(); mi++) {
+    atacMatch *m = ML.getMatch(mi);
 
-      //  Parse out the sequence iid from the atac iid
-      //
-      u32bit  iid1=0, pos1=0, len1=0, ori1=0;
-      u32bit  iid2=0, pos2=0, len2=0, ori2=0;
+    FastASequenceInCore  *S1 = C1->getSequence(m->iid1);
+    FastASequenceInCore  *S2 = C2->getSequence(m->iid2);
 
-      decodeMatch(W, iid1, pos1, len1, ori1, iid2, pos2, len2, ori2);
-#if 0
-      fprintf(stderr, u32bitFMT" "u32bitFMT" "u32bitFMT"--"u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
-              iid1, pos1, len1, iid2, pos2, len2);
-#endif
+    FastAAccessor A1(S1, false);
+    FastAAccessor A2(S2, (m->fwd1 != m->fwd2));
 
-      //  Grab those sequences from the cache
-      //
-      FastASequenceInCore  *S1 = C1->getSequence(iid1);
-      FastASequenceInCore  *S2 = C2->getSequence(iid2);
+    A1.setRange(m->pos1, m->len1);
+    A2.setRange(m->pos2, m->len2);
 
-      FastAAccessor A1(S1, false);
-      FastAAccessor A2(S2, (ori1 != ori2));
+    u32bit localMismatches = 0;
 
-      A1.setRange(pos1, len1);
-      A2.setRange(pos2, len2);
+#ifdef EXTRAMATCHES
+    u32bit extraMatchesL = 0;
+    u32bit extraMatchesR = 0;
 
-      u32bit localMismatches = 0;
+    //  Check for matches on either side of the region.
 
-#ifdef EXTRA_MATCHES
-      u32bit extraMatchesL = 0;
-      u32bit extraMatchesR = 0;
-
-      //  Check for matches on either side of the region.
-
-      A1.setPosition(pos1);
-      A2.setPosition(pos2);
+    A1.setPosition(m->pos1);
+    A2.setPosition(m->pos2);
+    --A1;
+    --A2;
+    while (A1.isValid() &&
+           A2.isValid() &&
+           validSymbol[(int)*A1] &&
+           validSymbol[(int)*A2] &&
+           IUPACidentity[(int)*A1][(int)*A2]) {
+      extraMatchesL++;
       --A1;
       --A2;
-      while (A1.isValid() &&
-             A2.isValid() &&
-             validSymbol[*A1] &&
-             validSymbol[*A2] &&
-             IUPACidentity[*A1][*A2]) {
-        extraMatchesL++;
-        --A1;
-        --A2;
-      }
-
-      A1.setPosition(pos1+len1-1);
-      A2.setPosition(pos2+len2-1);
-      ++A1;
-      ++A2;
-      while (A1.isValid() &&
-             A2.isValid() &&
-             validSymbol[*A1] &&
-             validSymbol[*A2] &&
-             IUPACidentity[*A1][*A2]) {
-        extraMatchesR++;
-        ++A1;
-        ++A2;
-      }
-
-      //  WARN if we found extra identities
-
-#if 0
-      if (extraMatchesL + extraMatchesR > 0) {
-        A1.setPosition(pos1);
-        A2.setPosition(pos2);
-
-        chomp(inLine);
-        fprintf(stderr, "WARNING: found "u32bitFMT" extra matches to the left and "u32bitFMT" extra matches to the right in %s\n",
-                extraMatchesL, extraMatchesR, inLine);
-
-#if 0
-        for (u32bit ii=0; ii<len1; ii++, ++A1)
-          fprintf(stdout, "%c", *A1);
-        fprintf(stdout, "\n");
-
-        for (u32bit ii=0; ii<len1; ii++, ++A2)
-          fprintf(stdout, "%c", *A2);
-        fprintf(stdout, "\n");
-#endif
-      }
-#endif
-
-#endif  //  EXTRA_MATCHES
-
-
-      A1.setPosition(pos1);
-      A2.setPosition(pos2);
-      for (u32bit ii=0; ii<len1; ii++, ++A1, ++A2) {
-
-        //
-        //  do stuff here
-        //
-
-        ////////////////////////////////////////
-        //
-        //  Count global matches / mismatches
-        //
-        globalSequence++;
-        if (!(validSymbol[*A1] &&
-              validSymbol[*A2] &&
-              IUPACidentity[*A1][*A2])) {
-          globalMismatches++;
-          localMismatches++;
-        }
-
-        ////////////////////////////////////////
-        //
-        //  Histogram of exact match block lengths
-        //
-        if (validSymbol[*A1] &&
-            validSymbol[*A2] &&
-            IUPACidentity[*A1][*A2]) {
-          blockMatches++;
-        } else {
-          updateExactBlockHistogram(blockHistogram, blockMatches);
-          blockMatches = 0;
-        }
-      }
-
-      ////////////////////////////////////////
-      //
-      //  Finish off stuff
-      //
-      updateExactBlockHistogram(blockHistogram, blockMatches);
-      blockMatches = 0;
-
-#ifdef ANNOTATE
-      chomp(inLine);
-      fputs(inLine, stdout);
-#ifdef EXTRA_MATCHES
-      fprintf(stdout, " > /extramatches="u32bitFMT","u32bitFMT" /mismatches="u32bitFMT"\n",
-              extraMatchesL, extraMatchesR, localMismatches);
-#else
-      fprintf(stdout, " > /mismatches="u32bitFMT" /identity=%.3f\n",
-              localMismatches, 100.0 * (1.0 - (double)localMismatches / (double)len1));
-#endif
-
-    } else {
-      fputs(inLine, stdout);
-#endif
     }
 
-    fgets(inLine, 1024, stdin);
+    A1.setPosition(m->pos1 + m->len1 - 1);
+    A2.setPosition(m->pos2 + m->len2 - 1);
+    ++A1;
+    ++A2;
+    while (A1.isValid() &&
+           A2.isValid() &&
+           validSymbol[(int)*A1] &&
+           validSymbol[(int)*A2] &&
+           IUPACidentity[(int)*A1][(int)*A2]) {
+      extraMatchesR++;
+      ++A1;
+      ++A2;
+    }
+
+    //  WARN if we found extra identities
+
+#if 0
+    if (extraMatchesL + extraMatchesR > 0) {
+      A1.setPosition(m->pos1);
+      A2.setPosition(m->pos2);
+
+      chomp(inLine);
+      fprintf(stderr, "WARNING: found "u32bitFMT" extra matches to the left and "u32bitFMT" extra matches to the right in %s\n",
+              extraMatchesL, extraMatchesR, inLine);
+
+#if 0
+      for (u32bit ii=0; ii<m->len1; ii++, ++A1)
+        fprintf(stdout, "%c", *A1);
+      fprintf(stdout, "\n");
+
+      for (u32bit ii=0; ii<m->len1; ii++, ++A2)
+        fprintf(stdout, "%c", *A2);
+      fprintf(stdout, "\n");
+#endif
+    }
+#endif
+
+#endif  //  EXTRAMATCHES
+
+
+    A1.setPosition(m->pos1);
+    A2.setPosition(m->pos2);
+    for (u32bit ii=0; ii<m->len1; ii++, ++A1, ++A2) {
+
+      //  Count global matches / mismatches
+      //
+      globalSequence++;
+      if (!(validSymbol[(int)*A1] &&
+            validSymbol[(int)*A2] &&
+            IUPACidentity[(int)*A1][(int)*A2])) {
+        globalMismatches++;
+        localMismatches++;
+      }
+
+      //  Histogram of exact match block lengths
+      //
+      if (validSymbol[(int)*A1] &&
+          validSymbol[(int)*A2] &&
+          IUPACidentity[(int)*A1][(int)*A2]) {
+        blockMatches++;
+      } else {
+        updateExactBlockHistogram(blockHistogram, blockMatches);
+        blockMatches = 0;
+      }
+    }
+
+    //  Finish off stuff
+    //
+    updateExactBlockHistogram(blockHistogram, blockMatches);
+    blockMatches = 0;
+
+    //  If annotate, emit a new record.
   }
 
 
-  ////////////////////////////////////////
-  //
   //  Report stuff
   //
   fprintf(stderr, "globalSequence   = "u32bitFMT"\n", globalSequence);

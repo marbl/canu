@@ -1,5 +1,5 @@
 // This file is part of A2Amapper.
-// Copyright (c) 2005, 2006 J. Craig Venter Institute
+// Copyright (c) 2005 J. Craig Venter Institute
 // Author: Brian Walenz
 // 
 // This program is free software; you can redistribute it and/or modify
@@ -16,36 +16,34 @@
 // License along with this program; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
+#ifndef ATAC_MATCHLIST_H
+#define ATAC_MATCHLIST_H
+
+#include <string>
+#include <map>
+using namespace std;
 
 #include "bio++.H"
-#include "atac.H"
 
 
-atacMatchList::atacMatchList() {
-  _matchesLen = 0;
-  _matchesMax = 256;
-  _matches    = new atacMatch [_matchesMax];
-}
+class atacMatchList {
+public:
+  atacMatchList();
+  ~atacMatchList();
 
-atacMatchList::~atacMatchList() {
-  delete [] _matches;
-}
+  void           add(atacMatch &m);
+  //void           delete();
 
-void
-atacMatchList::add(atacMatch &m) {
+  u32bit         numMatches(void)      { return(_matchesLen);  };
+  u32bit         numberOfMatches(void) { return(_matchesLen);  };
 
-  if (_matchesLen >= _matchesMax) {
-    _matchesMax <<= 2;
-    atacMatch  *A = new atacMatch [_matchesMax];
-    memcpy(A, _matches, sizeof(atacMatch) * _matchesLen);
-    delete [] _matches;
-    _matches = A;
-  }
+  atacMatch     *getMatch(u32bit i)    { return(_matches + i); };
+  atacMatch     *operator[](u32bit i)  { return(_matches + i); };
 
-  memcpy(&_matches[_matchesLen], &m, sizeof(atacMatch));
+private:
+  u32bit        _matchesLen;
+  u32bit        _matchesMax;
+  atacMatch    *_matches;
+};
 
-  _matches[_matchesLen].matchiid = _matchesLen++;
-}
+#endif  //  ATAC_MATCHLIST_H

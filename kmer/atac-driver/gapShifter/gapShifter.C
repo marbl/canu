@@ -326,7 +326,8 @@ getSequenceEnd(char *str, u32bit pos, u32bit len, FastAAccessor &it) {
 
 
 u32bit
-shiftGap(atacMatchList &ML,
+shiftGap(atacFile &AF,
+         atacMatchList &ML,
          atacMatch *ma, atacMatch *mb,
          atacMatchOrder &MOB,
          FastACache *C1, FastACache *C2,
@@ -507,11 +508,11 @@ shiftGap(atacMatchList &ML,
       //
       fprintf(logFile, "%s\t%s\t%s:"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t->\t"u32bitFMT"\t"u32bitFMT"\t",
               ma->matchuid, mb->matchuid,
-              ML.labelA(), ma->iid1,
+              AF.labelA(), ma->iid1,
               macopy.pos1 + macopy.len1, ma->pos1 + ma->len1,
               mbcopy.pos1, mb->pos1);
       fprintf(logFile, "%s:"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t->\t"u32bitFMT"\t"u32bitFMT"\n",
-              ML.labelB(), ma->iid2,
+              AF.labelB(), ma->iid2,
               macopy.pos2 + macopy.len2, ma->pos2 + ma->len2,
               mbcopy.pos2, mb->pos2);
     } else {
@@ -520,11 +521,11 @@ shiftGap(atacMatchList &ML,
       //
       fprintf(logFile, "%s\t%s\t%s:"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t->\t"u32bitFMT"\t"u32bitFMT"\t",
               ma->matchuid, mb->matchuid,
-              ML.labelA(), ma->iid1,
+              AF.labelA(), ma->iid1,
               macopy.pos1 + macopy.len1, ma->pos1 + ma->len1,
               mbcopy.pos1, mb->pos1);
       fprintf(logFile, "%s:"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t->\t"u32bitFMT"\t"u32bitFMT"\n",
-              ML.labelB(), ma->iid2,
+              AF.labelB(), ma->iid2,
               mbcopy.pos2 + mbcopy.len2, mb->pos2 + mb->len2,
               macopy.pos2, ma->pos2);
     }
@@ -678,9 +679,10 @@ main(int argc, char *argv[]) {
     exit(1);
   }
 
-  atacMatchList  ML("-", 'm', stdout);
-  atacMatchOrder MOA(ML);
-  atacMatchOrder MOB(ML);
+  atacFile        AF("-");
+  atacMatchList  &ML = *AF.matches();
+  atacMatchOrder  MOA(ML);
+  atacMatchOrder  MOB(ML);
 
   MOA.sortA();
   MOB.sortB();
@@ -688,8 +690,8 @@ main(int argc, char *argv[]) {
   //  second to last == loadAll
   //  last           == report loading
   //
-  FastACache  *C1 = new FastACache(ML.assemblyFileA(),    2, false, false);
-  FastACache  *C2 = new FastACache(ML.assemblyFileB(), 1024, false, false);
+  FastACache  *C1 = new FastACache(AF.assemblyFileA(),    2, false, false);
+  FastACache  *C2 = new FastACache(AF.assemblyFileB(), 1024, false, false);
 
   bool    shiftRight   = true;
   u32bit  gapLimit     = 5;
@@ -737,7 +739,7 @@ main(int argc, char *argv[]) {
       u32bit gapsShifted = 0;
       for (u32bit i=1; i<ML.numMatches(); i++) {
 
-        if (shiftGap(ML, MOA[i-1], MOA[i], MOB, C1, C2, gapLimit, shiftRight)) {
+        if (shiftGap(AF, ML, MOA[i-1], MOA[i], MOB, C1, C2, gapLimit, shiftRight)) {
           gapsShifted++;
           //fprintf(stderr, "shifted "u32bitFMT" out of "u32bitFMT" (%6.2f%%)\r", gapsShifted, i, (double)gapsShifted / (double)i * 100.0);
           //fflush(stderr);
@@ -776,8 +778,8 @@ main(int argc, char *argv[]) {
     if ((ma->len1 > 0) && (ma->len2 > 0))
       fprintf(stdout, "M u %s %s %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1  %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" %d\n",
               ma->matchuid, ma->parentuid,
-              ML.labelA(), ma->iid1, ma->pos1, ma->len1,
-              ML.labelB(), ma->iid2, ma->pos2, ma->len2, ma->fwd2 ? 1 : -1);
+              AF.labelA(), ma->iid1, ma->pos1, ma->len1,
+              AF.labelB(), ma->iid2, ma->pos2, ma->len2, ma->fwd2 ? 1 : -1);
   }
 
   return(0);

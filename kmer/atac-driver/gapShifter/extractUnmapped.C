@@ -24,6 +24,13 @@
 #include "atac.H"
 
 
+
+//
+//  Tested to work on ../../atac/B36LCvsHUREF6A/B36LCvsHUREF6A.gapsFixed.atac
+//
+
+
+
 //  Reads a set of matches and outputs two sequence files containing sequence that
 //  is not matched.
 
@@ -42,11 +49,11 @@ writeGaplessSequence(FILE                *output,
   //  Skip any N's starting where we are currently
   //
   while ((beg < end) &&
-         (toUpper[s[beg]] == 'N'))
+         (toUpper[(int)s[beg]] == 'N'))
     beg++;
 
   while ((beg < end) &&
-         (toUpper[s[end-1]] == 'N'))
+         (toUpper[(int)s[end-1]] == 'N'))
     end--;
 
   if (beg >= end)
@@ -57,12 +64,12 @@ writeGaplessSequence(FILE                *output,
   //
   for (u32bit x=0; ((x < extend) &&
                     (beg > 0) &&
-                    (toUpper[s[beg-1]] != 'N')); x++)
+                    (toUpper[(int)s[beg-1]] != 'N')); x++)
     beg--;
 
   for (u32bit x=0; ((x < extend) &&
                     (end < S->sequenceLength()) &&
-                    (toUpper[s[end]] != 'N')); x++)
+                    (toUpper[(int)s[end]] != 'N')); x++)
     end++;
 
   //  Just make sure we're still in bounds!
@@ -76,7 +83,7 @@ writeGaplessSequence(FILE                *output,
     //  Skip any N's starting where we are currently
     //
     while ((beg < end) &&
-           (toUpper[s[beg]] == 'N'))
+           (toUpper[(int)s[beg]] == 'N'))
       beg++;
         
     //  Move our current up to here
@@ -90,28 +97,17 @@ writeGaplessSequence(FILE                *output,
       //  Move cur up to the next N
       //
       while ((cur < end) &&
-             (toUpper[s[cur]] != 'N'))
+             (toUpper[(int)s[cur]] != 'N'))
         cur++;
 
       //  And output whatever this block is
       //
-      char  *lmuid = "none";
-      char  *lpuid = "none";
-      char  *rmuid = "none";
-      char  *rpuid = "none";
-
-      if (l) {
-        lmuid = l->matchuid;
-        lpuid = l->parentuid;
-      }
-      if (r) {
-        rmuid = r->matchuid;
-        rpuid = r->parentuid;
-      }
-
       fprintf(output, "%s extracted from iid "u32bitFMT" pos "u32bitFMT" "u32bitFMT" between match %s(%s) and %s(%s)\n",
               S->header(), S->getIID(), beg, cur,
-              lmuid, lpuid, rmuid, rpuid);
+              (l) ? l->matchuid  : "none",
+              (l) ? l->parentuid : "none",
+              (r) ? r->matchuid  : "none",
+              (r) ? r->parentuid : "none");
 
       fwrite(S->sequence() + beg, sizeof(char), cur-beg, output);
       fprintf(output, "\n");
@@ -132,8 +128,8 @@ writeGaplessSequence(FILE                *output,
 static
 int
 sort1_(const void *a, const void *b) {
-  const atacMatch *A = *(const atacMatch **)a;
-  const atacMatch *B = *(const atacMatch **)b;
+  const atacMatch *A = *(const atacMatch * const *)a;
+  const atacMatch *B = *(const atacMatch * const *)b;
 
   if (A->iid1 < B->iid1)  return(-1);
   if (A->iid1 > B->iid1)  return(1);
@@ -153,8 +149,8 @@ sort1_(const void *a, const void *b) {
 static
 int
 sort2_(const void *a, const void *b) {
-  const atacMatch *A = *(const atacMatch **)a;
-  const atacMatch *B = *(const atacMatch **)b;
+  const atacMatch *A = *(const atacMatch * const *)a;
+  const atacMatch *B = *(const atacMatch * const *)b;
 
   if (A->iid2 < B->iid2)  return(-1);
   if (A->iid2 > B->iid2)  return(1);
@@ -227,9 +223,11 @@ private:
 void
 extractUnmapped(FastACache *A, FastACache *B,
                 FILE *Aoutput, FILE *Boutput,
-                u32bit extend, atacMatchList &ML) {
-  u32bit   numSeqsA = ML.fastaA()->getNumberOfSequences();
-  u32bit   numSeqsB = ML.fastaB()->getNumberOfSequences();
+                u32bit extend,
+                atacFile &AF,
+                atacMatchList &ML) {
+  u32bit   numSeqsA = AF.fastaA()->getNumberOfSequences();
+  u32bit   numSeqsB = AF.fastaB()->getNumberOfSequences();
 
   extractMatchList  *coveredA = new extractMatchList [numSeqsA];
   extractMatchList  *coveredB = new extractMatchList [numSeqsB];
@@ -260,7 +258,7 @@ extractUnmapped(FastACache *A, FastACache *B,
       writeGaplessSequence(Aoutput,
                            S,
                            0,
-                           ML.fastaA()->sequenceLength(seq),
+                           AF.fastaA()->sequenceLength(seq),
                            extend,
                            0L, 0L);
     } else {
@@ -289,7 +287,7 @@ extractUnmapped(FastACache *A, FastACache *B,
         writeGaplessSequence(Aoutput,
                              S,
                              coveredA[seq][last]->pos1 + coveredA[seq][last]->len1,
-                             ML.fastaA()->sequenceLength(seq),
+                             AF.fastaA()->sequenceLength(seq),
                            extend,
                              coveredA[seq][0], 0L);
       }
@@ -307,9 +305,6 @@ extractUnmapped(FastACache *A, FastACache *B,
   for (u32bit seq=0; seq<numSeqsB; seq++) {
     coveredB[seq].sort2();
 
-    //ML.fastaB()->find(seq);
-    //FastASequenceInCore  *S = ML.fastaB()->getSequence();
-
     FastASequenceInCore *S = B->getSequence(seq);
 
     if (coveredB[seq].len() == 0) {
@@ -318,7 +313,7 @@ extractUnmapped(FastACache *A, FastACache *B,
       writeGaplessSequence(Boutput,
                            S,
                            0,
-                           ML.fastaB()->sequenceLength(seq),
+                           AF.fastaB()->sequenceLength(seq),
                            extend,
                            0L, 0L);
     } else {
@@ -347,7 +342,7 @@ extractUnmapped(FastACache *A, FastACache *B,
         writeGaplessSequence(Boutput,
                              S,
                              coveredB[seq][last]->pos2 + coveredB[seq][last]->len2,
-                             ML.fastaB()->sequenceLength(seq),
+                             AF.fastaB()->sequenceLength(seq),
                            extend,
                              coveredB[seq][0], 0L);
       }
@@ -368,7 +363,8 @@ extractUnmapped(FastACache *A, FastACache *B,
 void
 extractUnmappedRuns(FastACache *A, FastACache *B,
                     FILE *ARoutput, FILE *BRoutput,
-                    u32bit extend, atacMatchList &ML) {
+                    u32bit extend,
+                    atacMatchList &ML) {
   FastASequenceInCore  *S1 = 0L;
   FastASequenceInCore  *S2 = 0L;
 
@@ -515,13 +511,14 @@ main(int argc, char *argv[]) {
   if (matchesFile == 0L)
     usage(argv[0]), exit(1);
 
-  atacMatchList  ML(matchesFile, 'm');
+  atacFile       AF(matchesFile);
+  atacMatchList &ML = *AF.matches();
 
   //  Build caches for both sequences, then modify that sequence to
   //  mask out tandem repeats.
   //
-  FastACache  *A = new FastACache(ML.assemblyFileA(), 0, true, true);
-  FastACache  *B = new FastACache(ML.assemblyFileB(), 0, true, true);
+  FastACache  *A = new FastACache(AF.assemblyFileA(), 0, true, true);
+  FastACache  *B = new FastACache(AF.assemblyFileB(), 0, true, true);
 
   if (trFile) {
     errno =0;
@@ -573,7 +570,7 @@ main(int argc, char *argv[]) {
       }
 
       for (u32bit i=0; i<len; i++) {
-        if (toUpper[s[i]] != 'N')
+        if (toUpper[(int)s[i]] != 'N')
           stats[statidx]++;
         s[i] = 'N';
       }
@@ -585,7 +582,7 @@ main(int argc, char *argv[]) {
 
 
   if (Aoutput && Boutput) {
-    extractUnmapped(A, B, Aoutput, Boutput, extend, ML);
+    extractUnmapped(A, B, Aoutput, Boutput, extend, AF, ML);
     fclose(Aoutput);
     fclose(Boutput);
   }

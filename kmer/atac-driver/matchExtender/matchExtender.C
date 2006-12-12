@@ -37,25 +37,11 @@ u32bit  maxNbrSep    = 100;   // -P /matchExtenderMaxNbrSep
 u32bit  maxNbrPathMM = 5;     // -D /matchExtenderMaxNbrPathMM
 
 
-bool
-trim_to_pct(vector<match_s *>& matches, u32bit midx, double pct);
-
-
-void
-extend_match_backward(vector<match_s *>& matches,
-                      u32bit midx,
-		      u32bit min_start_pos);
-
-bool
-can_reach_nearby_match(match_s *src, match_s *dest);
-
-bool
-extend_match_forward(vector<match_s *>& matches, u32bit midx, match_s *target);
-
-u32bit
-extend_matches_on_diagonal(vector<match_s *>& matches, u32bit diag_start);
-
-
+bool   trim_to_pct(vector<match_s *>& matches, u32bit midx, double pct);
+void   extend_match_backward(vector<match_s *>& matches, u32bit midx, u32bit min_start_pos);
+bool   can_reach_nearby_match(match_s *src, match_s *dest);
+bool   extend_match_forward(vector<match_s *>& matches, u32bit midx, match_s *target);
+u32bit extend_matches_on_diagonal(vector<match_s *>& matches, u32bit diag_start);
 
 
 class MatchCompare {
@@ -67,79 +53,50 @@ public:
 
 
 
-
-
 //  Read matches until the iid differs.  Leave the next match in inLine.
 //
 void
-readMatches(char *inLine,
-            FastACache  *C1,
-            FastACache  *C2,
+readMatches(atacMatchList     &AL,
+            u32bit            &firstMatch,
+            FastACache        *C1,
+            FastACache        *C2,
             vector<match_s *> &fwdMatches,
             vector<match_s *> &revMatches) {
 
-  FastASequenceInCore *S1 = 0L;
-  FastASequenceInCore *S2 = 0L;
-  u32bit thisiid1 = ~u32bitZERO;
-  u32bit thisiid2 = ~u32bitZERO;
-  bool   cont;
+  fwdMatches.clear();
+  revMatches.clear();
 
-  do {
-    //chomp(inLine); fprintf(stderr, "inline=%s\n", inLine);
+  if (firstMatch >= AL.numberOfMatches())
+    return;
 
-    u32bit  iid1=0, pos1=0, len1=0, ori1=0;
-    u32bit  iid2=0, pos2=0, len2=0, ori2=0;
+  u32bit               iid1 = AL.getMatch(firstMatch)->iid1;
+  u32bit               iid2 = AL.getMatch(firstMatch)->iid2;
 
-    cont = false;
+  FastASequenceInCore *seq1 = C1->getSequence(iid1);
+  FastASequenceInCore *seq2 = C2->getSequence(iid2);
 
-    splitToWords *C = new splitToWords(inLine);
+  while (firstMatch < AL.numberOfMatches()) {
+    atacMatch  *m = AL.getMatch(firstMatch++);
 
-    if (((*C)[0][0] == 'M') && ((*C)[1][0] == 'x')) {
-      decodeMatch(*C,
-                  iid1, pos1, len1, ori1,
-                  iid2, pos2, len2, ori2);
-
-      //  If this is the first time through this loop (this call
-      //  anyway) remember the first iid's we see.
-      //
-      if ((thisiid1 == ~u32bitZERO) && (thisiid2 == ~u32bitZERO)) {
-        thisiid1 = iid1;
-        thisiid2 = iid2;
-        S1       = C1->getSequence(iid1);
-        S2       = C2->getSequence(iid2);
-      }
-
-      //  If the iid's are the same as the first time, keep going, and
-      //  add the match to the list.
-      //
-      if ((thisiid1 == iid1) && (thisiid2 == iid2)) {
-        cont = true;
-
-        if (ori1 == ori2)
-          fwdMatches.push_back(new match_s((*C)[2],
-                                           S1, (*C)[4], iid1, pos1, len1, ori1,
-                                           S2, (*C)[8], iid2, pos2, len2, ori2));
-        else
-          revMatches.push_back(new match_s((*C)[2],
-                                           S1, (*C)[4], iid1, pos1, len1, ori1,
-                                           S2, (*C)[8], iid2, pos2, len2, ori2));
-      }
+    if ((m->iid1 == iid1) && (m->iid2 == iid2)) {
+      if (m->fwd1 == m->fwd2)
+        fwdMatches.push_back(new match_s(m->matchuid,
+                                         seq1, m->iid1, m->pos1, m->len1, m->fwd1,
+                                         seq2, m->iid2, m->pos2, m->len2, m->fwd2));
+      else
+        revMatches.push_back(new match_s(m->matchuid,
+                                         seq1, m->iid1, m->pos1, m->len1, m->fwd1,
+                                         seq2, m->iid2, m->pos2, m->len2, m->fwd2));
+    } else {
+      break;
     }
+  }
 
-    delete C;
+  if (fwdMatches.size() > 0)
+    sort(fwdMatches.begin(), fwdMatches.end(), MatchCompare());
 
-    //  Read the next match, if we keep going.  If we are supposed to
-    //  stop, we remember inLine for the next call -- it holds the
-    //  next match we want!
-    //
-    if (cont)
-      fgets(inLine, 1024, stdin);
-
-  } while (!feof(stdin) && cont);
-
-
-  fprintf(stderr, " with %8d fwd and %8d rev matches\r", (int)fwdMatches.size(), (int)revMatches.size());
-  fflush(stderr);
+  if (revMatches.size() > 0)
+    sort(revMatches.begin(), revMatches.end(), MatchCompare());
 }
 
 
@@ -173,94 +130,66 @@ main(int argc, char *argv[]) {
 
   if (fail) {
     fprintf(stderr, "usage: %s [options] < matches.atac > matches.atac\n", argv[0]);
-    fprintf(stderr, "  -e <int>     matchExtenderMinEndRunLen, 10\n");
-    fprintf(stderr, "  -b <int>     matchExtenderMaxMMBlock, 3\n");
-    fprintf(stderr, "  -s <int>     matchExtenderMinBlockSep, 20\n");
-    fprintf(stderr, "  -i <float>   matchExtenderMinIdentity, 0.95\n");
-    fprintf(stderr, "  -p <int>     matchExtenderMaxNbrSep, 100\n");
-    fprintf(stderr, "  -d <int>     matchExtenderMaxNbrPathMM, 5\n");
+    fprintf(stderr, "  -e <int>     matchExtenderMinEndRunLen,  10\n");
+    fprintf(stderr, "  -b <int>     matchExtenderMaxMMBlock,     3\n");
+    fprintf(stderr, "  -s <int>     matchExtenderMinBlockSep,   20\n");
+    fprintf(stderr, "  -i <float>   matchExtenderMinIdentity,    0.95\n");
+    fprintf(stderr, "  -p <int>     matchExtenderMaxNbrSep,    100\n");
+    fprintf(stderr, "  -d <int>     matchExtenderMaxNbrPathMM,   5\n");
     exit(1);
   }
 
-  //  Read the preamble, look for our data sources.  This leaves us with
-  //  the first match in the inLine, and fills in file1 and file2.
-  //
-  char                *inLine = new char [1024];
-  char                *file1  = new char [1024];
-  char                *file2  = new char [1024];
-  map<string,string>  *params = new map<string,string>;
+  atacFile        AF("-");
+  atacMatchList  &AM = *AF.matches();
 
-  readHeader(inLine, stdin, file1, file2, stdout, params);
-
-  //  XXX: Grab some parameters from params.  Honestly, it would have
-  //  been so much easier to just embed this in the scripts and pass
-  //  command line arguments.  So we did.
-
-  //  cachesize, loadall, report
-  //
-  FastACache  *C1 = new FastACache(file1, 1, true,  false);
-  FastACache  *C2 = new FastACache(file2, 1, false, false);
+  FastACache  *C1 = new FastACache(AF.assemblyFileA(), 1, true,  false);
+  FastACache  *C2 = new FastACache(AF.assemblyFileB(), 1, false, false);
 
   vector<match_s *>  fwdMatches;
   vector<match_s *>  revMatches;
 
-  while (!feof(stdin)) {
-    readMatches(inLine, C1, C2, fwdMatches, revMatches);
+  u32bit       firstMatch = 0;
 
-    if (fwdMatches.size() > 0)
-      sort(fwdMatches.begin(), fwdMatches.end(), MatchCompare());
-    if (revMatches.size() > 0)
-      sort(revMatches.begin(), revMatches.end(), MatchCompare());
+  while (firstMatch < AM.numberOfMatches()) {
+    readMatches(AM, firstMatch, C1, C2, fwdMatches, revMatches);
 
     u32bit diag_start = 0;
     while (diag_start < fwdMatches.size()) {
-#if 0
-      fprintf(stderr, "fwd: M u %s . %s %d %d 1 %s %d %d 1\n",
-              fwdMatches[diag_start]->_matchId,
-              fwdMatches[diag_start]->_id1, fwdMatches[diag_start]->_acc1->getRangeBegin(), fwdMatches[diag_start]->_acc1->getRangeLength(),
-              fwdMatches[diag_start]->_id2, fwdMatches[diag_start]->_acc2->getRangeBegin(), fwdMatches[diag_start]->_acc2->getRangeLength());
-#endif
+      //fprintf(stderr, "fwd: M u %s . %s %d %d 1 %s %d %d 1\n",
+      //        fwdMatches[diag_start]->_matchId,
+      //        fwdMatches[diag_start]->_id1, fwdMatches[diag_start]->_acc1->getRangeBegin(), fwdMatches[diag_start]->_acc1->getRangeLength(),
+      //        fwdMatches[diag_start]->_id2, fwdMatches[diag_start]->_acc2->getRangeBegin(), fwdMatches[diag_start]->_acc2->getRangeLength());
       diag_start = extend_matches_on_diagonal(fwdMatches, diag_start);
     }
 
     diag_start = 0;
     while (diag_start < revMatches.size()) {
-#if 0
-      fprintf(stderr, "rev: M u %s . %s %d %d 1 %s %d %d 1\n",
-              revMatches[diag_start]->_matchId,
-              revMatches[diag_start]->_id1, revMatches[diag_start]->_acc1->getRangeBegin(), revMatches[diag_start]->_acc1->getRangeLength(),
-              revMatches[diag_start]->_id2, revMatches[diag_start]->_acc2->getRangeBegin(), revMatches[diag_start]->_acc2->getRangeLength());
-#endif
+      //fprintf(stderr, "rev: M u %s . %s %d %d 1 %s %d %d 1\n",
+      //        revMatches[diag_start]->_matchId,
+      //        revMatches[diag_start]->_id1, revMatches[diag_start]->_acc1->getRangeBegin(), revMatches[diag_start]->_acc1->getRangeLength(),
+      //        revMatches[diag_start]->_id2, revMatches[diag_start]->_acc2->getRangeBegin(), revMatches[diag_start]->_acc2->getRangeLength());
       diag_start = extend_matches_on_diagonal(revMatches, diag_start);
     }
 
-    fflush(stdout);
-    fflush(stderr);
 
     //  Dump and destroy all the matches
     //
     for (u32bit i=0; i<fwdMatches.size(); i++) {
       if (!fwdMatches[i]->isDeleted())
-        fprintf(stdout, "M u %s . %s "u32bitFMT" "u32bitFMT" 1 %s "u32bitFMT" "u32bitFMT" 1\n",
+        fprintf(stdout, "M u %s:"u32bitFMT" . %s "u32bitFMT" "u32bitFMT" 1 %s "u32bitFMT" "u32bitFMT" 1\n",
                 fwdMatches[i]->_matchId,
-                fwdMatches[i]->_id1, fwdMatches[i]->_acc1->getRangeBegin(), fwdMatches[i]->_acc1->getRangeLength(),
-                fwdMatches[i]->_id2, fwdMatches[i]->_acc2->getRangeBegin(), fwdMatches[i]->_acc2->getRangeLength());
+                AF.labelA(), fwdMatches[i]->_iid1, fwdMatches[i]->_acc1->getRangeBegin(), fwdMatches[i]->_acc1->getRangeLength(),
+                AF.labelB(), fwdMatches[i]->_iid2, fwdMatches[i]->_acc2->getRangeBegin(), fwdMatches[i]->_acc2->getRangeLength());
       delete fwdMatches[i];
     }
 
     for (u32bit i=0; i<revMatches.size(); i++) {
       if (!revMatches[i]->isDeleted())
-        fprintf(stdout, "M u %s . %s "u32bitFMT" "u32bitFMT" 1 %s "u32bitFMT" "u32bitFMT" -1\n",
+        fprintf(stdout, "M u %s:"u32bitFMT" . %s "u32bitFMT" "u32bitFMT" 1 %s "u32bitFMT" "u32bitFMT" -1\n",
                 revMatches[i]->_matchId,
-                revMatches[i]->_id1, revMatches[i]->_acc1->getRangeBegin(), revMatches[i]->_acc1->getRangeLength(),
-                revMatches[i]->_id2, revMatches[i]->_acc2->getRangeBegin(), revMatches[i]->_acc2->getRangeLength());
+                AF.labelA(), revMatches[i]->_iid1, revMatches[i]->_acc1->getRangeBegin(), revMatches[i]->_acc1->getRangeLength(),
+                AF.labelB(), revMatches[i]->_iid2, revMatches[i]->_acc2->getRangeBegin(), revMatches[i]->_acc2->getRangeLength());
       delete revMatches[i];
     }
-
-    fflush(stdout);
-    fflush(stderr);
-
-    fwdMatches.clear();
-    revMatches.clear();
   }
 }

@@ -63,9 +63,14 @@ main(int argc, char **argv) {
   if (logFile == 0L)
     usage(argv[0]), exit(1);
 
-  atacMatchList    ML(matchesFile, 'm');
+  atacFile         AF(matchesFile);
+  atacMatchList   &ML = *AF.matches();
   atacMatchOrder   MO(ML);
-  atacFeatureList  FL(featureFile);
+
+
+  //  XXXX extrabroken!
+#warning BROKEN
+  atacFeatureList  FL;
 
   //  Project features from A to B.
   MO.sortA();
@@ -127,8 +132,8 @@ main(int argc, char **argv) {
         fprintf(stdout, "M u Aprojected"u32bitFMT" %s.%s %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1 %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" %d\n",
                 pid,
                 f->featureuid, m->matchuid,
-                ML.labelA(), f->iid, f->pos, f->len,
-                ML.labelB(), m->iid2, beg, f->len, (m->fwd2) ? 1 : -1);
+                AF.labelA(), f->iid, f->pos, f->len,
+                AF.labelB(), m->iid2, beg, f->len, (m->fwd2) ? 1 : -1);
       pid++;
       fid++;
       continue;
@@ -141,8 +146,8 @@ main(int argc, char **argv) {
         fprintf(stdout, "M u Bprojected"u32bitFMT" %s.%s %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1 %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" %d\n",
                 pid,
                 f->featureuid, m->matchuid,
-                ML.labelA(), m->iid1, m->pos1, m->len1,
-                ML.labelB(), m->iid2, m->pos2, m->len2, (m->fwd2) ? 1 : -1);
+                AF.labelA(), m->iid1, m->pos1, m->len1,
+                AF.labelB(), m->iid2, m->pos2, m->len2, (m->fwd2) ? 1 : -1);
       pid++;
       fid++;
       continue;
@@ -166,8 +171,8 @@ main(int argc, char **argv) {
         fprintf(stdout, "M u Cprojected"u32bitFMT" %s.%s %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1 %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" %d\n",
                 pid,
                 f->featureuid, m->matchuid,
-                ML.labelA(), f->iid, m->pos1, len,
-                ML.labelB(), m->iid2, beg, len, (m->fwd2) ? 1 : -1);
+                AF.labelA(), f->iid, m->pos1, len,
+                AF.labelB(), m->iid2, beg, len, (m->fwd2) ? 1 : -1);
       pid++;
       fid++;
       continue;
@@ -187,8 +192,8 @@ main(int argc, char **argv) {
         fprintf(stdout, "M u Dprojected"u32bitFMT" %s.%s %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1 %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" %d\n",
                 pid,
                 f->featureuid, m->matchuid,
-                ML.labelA(), f->iid, f->pos, len,
-                ML.labelB(), m->iid2, beg, len, (m->fwd2) ? 1 : -1);
+                AF.labelA(), f->iid, f->pos, len,
+                AF.labelB(), m->iid2, beg, len, (m->fwd2) ? 1 : -1);
       pid++;
       fid++;
       continue;

@@ -55,9 +55,10 @@ main(int argc, char *argv[]) {
   if (matchesFile == 0L)
     usage(argv[0]), exit(1);
 
-  atacMatchList  ML(matchesFile, 'm');
-  FastACache     Acache(ML.assemblyFileA(), 0, true, false);
-  FastACache     Bcache(ML.assemblyFileB(), 0, true, false);
+  atacFile       AF(matchesFile);
+  atacMatchList &ML = *AF.matches();
+  FastACache     Acache(AF.assemblyFileA(), 0, true, false);
+  FastACache     Bcache(AF.assemblyFileB(), 0, true, false);
 
   for (u32bit i=0; i<ML.numMatches(); i++) {
     atacMatch            *m = ML.getMatch(i);
@@ -69,12 +70,12 @@ main(int argc, char *argv[]) {
 
     if (m->fwd2) {
       for (u32bit p=0; p<m->len1; p++) {
-        if (toUpper[a[p]] == toUpper[b[p]])
+        if (toUpper[(int)a[p]] == toUpper[(int)b[p]])
           identities++;
       }
     } else {
       for (u32bit p=0, q=m->len2-1; p<m->len1; p++, q--) {
-        if (toUpper[a[p]] == toUpper[complementSymbol[b[q]]])
+        if (toUpper[(int)a[p]] == toUpper[complementSymbol[(int)b[q]]])
           identities++;
       }
     }
@@ -84,7 +85,7 @@ main(int argc, char *argv[]) {
     if (myIdentity < identityLimit) {
       fprintf(stderr, "match "u32bitFMT" is only %6.2f%% identity:  ",
               i, 100.0 * identities / m->len1);
-      m->print(stderr, ML.labelA(), ML.labelB());
+      m->print(stderr, AF.labelA(), AF.labelB());
       if (m->len1 < 200) {
         char   tmp[1000];
 

@@ -30,8 +30,8 @@
 
 int
 main(int argc, char *argv[]) {
-  atacMatchList   ML("-", 'm', stdout);
-  atacMatchOrder  MO(ML);
+  atacFile        AF("-");
+  atacMatchOrder  MO(*AF.matches());
   atacMatch      *l = 0L;
   atacMatch      *r = 0L;
 
@@ -51,21 +51,21 @@ main(int argc, char *argv[]) {
         (strcmp(l->parentuid, r->parentuid) == 0)) {
 
       fprintf(stderr, "MERGE:\n");
-      l->print(stderr, ML.labelA(), ML.labelB());
-      r->print(stderr, ML.labelA(), ML.labelB());
+      l->print(stderr, AF.labelA(), AF.labelB());
+      r->print(stderr, AF.labelA(), AF.labelB());
 
       l->len1 += r->len1;
       l->len2 += r->len2;
 
-      l->print(stderr, ML.labelA(), ML.labelB());
+      l->print(stderr, AF.labelA(), AF.labelB());
     } else {
-      l->print(stdout, ML.labelA(), ML.labelB());
+      l->print(stdout, AF.labelA(), AF.labelB());
       l = 0L;
     }
   }
 
   if (l)
-    l->print(stdout, ML.labelA(), ML.labelB());
+    l->print(stdout, AF.labelA(), AF.labelB());
 
   return(0);
 }

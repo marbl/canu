@@ -57,7 +57,8 @@ main(int argc, char *argv[]) {
   if (logFile == 0L)
     usage(argv[0]), exit(1);
 
-  atacMatchList  ML(matchesFile, 'm', stdout);
+  atacFile       AF(matchesFile);
+  atacMatchList &ML = *AF.matches();
   atacMatchOrder MO(ML);
 
   //  Sort by either axis.
@@ -69,8 +70,8 @@ main(int argc, char *argv[]) {
   //  We could use the FastACache, but with only a handful of gaps, we
   //  just let the OS cache stuff.
 
-  FastACache           *C1 = new FastACache(ML.assemblyFileA(),    2, false, false);
-  FastACache           *C2 = new FastACache(ML.assemblyFileB(), 1024, false, false);
+  FastACache           *C1 = new FastACache(AF.assemblyFileA(),    2, false, false);
+  FastACache           *C2 = new FastACache(AF.assemblyFileB(), 1024, false, false);
 
   FastASequenceInCore  *S1 = 0L;
   FastASequenceInCore  *S2 = 0L;
@@ -115,11 +116,11 @@ main(int argc, char *argv[]) {
               u32bit  n1 = 0;
               u32bit  n2 = 0;
               for (u32bit p=0; p<gap1; p++) {
-                if (toUpper[s1[p]] == toUpper[s2[p]])
+                if (toUpper[(int)s1[p]] == toUpper[(int)s2[p]])
                   identities++;
-                if (toUpper[s1[p]] == 'N')
+                if (toUpper[(int)s1[p]] == 'N')
                   n1++;
-                if (toUpper[s2[p]] == 'N')
+                if (toUpper[(int)s2[p]] == 'N')
                   n2++;
               }
 
@@ -135,8 +136,8 @@ main(int argc, char *argv[]) {
                 //
                 if (strcmp(l->parentuid, r->parentuid) != 0) {
                   fprintf(logFile, "HEY!  F gap of size "u32bitFMT" not in a run?\n", gap1);
-                  l->print(logFile, ML.labelA(), ML.labelB());
-                  r->print(logFile, ML.labelA(), ML.labelB());
+                  l->print(logFile, AF.labelA(), AF.labelB());
+                  r->print(logFile, AF.labelA(), AF.labelB());
                 } else {
                   fgaps++;
 
@@ -144,8 +145,8 @@ main(int argc, char *argv[]) {
                   
                   //fprintf(logFile, "potential f gap of size L "u32bitFMTW(4)" (n1="u32bitFMTW(4)" n2="u32bitFMTW(4)" ident="u32bitFMTW(4)"/"u32bitFMTW(4)")!\n",
                   //        gap1, n1, n2, identities, gap1);
-                  //l->print(logFile, ML.labelA(), ML.labelB());
-                  //r->print(logFile, ML.labelA(), ML.labelB());
+                  //l->print(logFile, AF.labelA(), AF.labelB());
+                  //r->print(logFile, AF.labelA(), AF.labelB());
                 }
               }
             }
@@ -174,11 +175,11 @@ main(int argc, char *argv[]) {
               u32bit  n1 = 0;
               u32bit  n2 = 0;
               for (u32bit p=0, q=gap1-1; p<gap1; p++, q--) {
-                if (toUpper[s1[p]] == toUpper[complementSymbol[s2[q]]])
+                if (toUpper[(int)s1[p]] == toUpper[complementSymbol[(int)s2[q]]])
                   identities++;
-                if (toUpper[s1[p]] == 'N')
+                if (toUpper[(int)s1[p]] == 'N')
                   n1++;
-                if (toUpper[s2[q]] == 'N')
+                if (toUpper[(int)s2[q]] == 'N')
                   n2++;
               }
 
@@ -197,8 +198,8 @@ main(int argc, char *argv[]) {
                 //
                 if (strcmp(l->parentuid, r->parentuid) != 0) {
                   fprintf(logFile, "HEY!  R gap of size "u32bitFMT" not in a run?\n", gap1);
-                  l->print(logFile, ML.labelA(), ML.labelB());
-                  r->print(logFile, ML.labelA(), ML.labelB());
+                  l->print(logFile, AF.labelA(), AF.labelB());
+                  r->print(logFile, AF.labelA(), AF.labelB());
                 } else {
                   rgaps++;
 
@@ -206,8 +207,8 @@ main(int argc, char *argv[]) {
 
                   //fprintf(logFile, "potential r gap of size L "u32bitFMTW(4)" (n1="u32bitFMTW(4)" n2="u32bitFMTW(4)" ident="u32bitFMTW(4)"/"u32bitFMTW(4)")!\n",
                   //        gap1, n1, n2, identities, gap1);
-                  //l->print(logFile, ML.labelA(), ML.labelB());
-                  //r->print(logFile, ML.labelA(), ML.labelB());
+                  //l->print(logFile, AF.labelA(), AF.labelB());
+                  //r->print(logFile, AF.labelA(), AF.labelB());
                 }
               }
 
@@ -219,12 +220,12 @@ main(int argc, char *argv[]) {
 
       if (joinMatches) {
         fprintf(logFile, "CLOSE "u32bitFMT"----------------------------------------\n", gap1);
-        l->print(logFile, ML.labelA(), ML.labelB());
-        r->print(logFile, ML.labelA(), ML.labelB());
+        l->print(logFile, AF.labelA(), AF.labelB());
+        r->print(logFile, AF.labelA(), AF.labelB());
 
         MO.mergeMatches(l, r, mergeuid);
 
-        l->print(logFile, ML.labelA(), ML.labelB());
+        l->print(logFile, AF.labelA(), AF.labelB());
 
         mergeuid++;
         i--;
@@ -278,8 +279,6 @@ main(int argc, char *argv[]) {
             fprintf(logFile, "sort is forward broken.\n");
           }
         }  //  was a forward match
-
-
       }
     }
   }
@@ -289,7 +288,7 @@ main(int argc, char *argv[]) {
   //  Write the new output to stdout.
   //
   for (u32bit i=0; i<MO.numMatches(); i++)
-    MO[i]->print(stdout, ML.labelA(), ML.labelB());
+    MO[i]->print(stdout, AF.labelA(), AF.labelB());
 
   return(0);
 }

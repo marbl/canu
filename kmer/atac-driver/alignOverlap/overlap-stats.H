@@ -53,7 +53,7 @@ public:
     return(sum);
   };
 
-  void writeHistogram(char *prefix, char *label) {
+  void writeHistogram(char const *prefix, char const *label) {
     char filename[1024];
     sprintf(filename, "%s.%s", prefix, label);
     errno = 0;
@@ -81,7 +81,7 @@ public:
   histogram  same;
   histogram  inconsistent;
 
-  void writeHistogram(char *prefix) {
+  void writeHistogram(char const *prefix) {
     unmapped.writeHistogram(prefix, "unmapped");
     map1unique.writeHistogram(prefix, "map1unique");
     map2unique.writeHistogram(prefix, "map2unique");

@@ -26,9 +26,12 @@ main(int argc, char **argv) {
     fprintf(stderr, "usage: %s <matches-1> <matches-2> <out-prefix>\n", argv[0]);
     exit(1);
   }
+  atacFile       *AF1 = new atacFile(argv[1]);
+  atacFile       *AF2 = new atacFile(argv[2]);
 
-  atacMatchList  *M1 = new atacMatchList(argv[1]);
-  atacMatchList  *M2 = new atacMatchList(argv[2]);
+  atacMatchList  *M1 = AF1->matches();
+  atacMatchList  *M2 = AF2->matches();
+
   char           *OP = argv[3];
 
 
@@ -53,10 +56,10 @@ main(int argc, char **argv) {
   //  Initialize the tree of spans by inserting a single span for each
   //  sequence in the file.
   //
-  for (u32bit i=0; i<M1->fastaA()->getNumberOfSequences(); i++)
-    S1->addNewSpan(i, M1->fastaA()->sequenceLength(i));
-  for (u32bit i=0; i<M1->fastaB()->getNumberOfSequences(); i++)
-    S2->addNewSpan(i, M1->fastaB()->sequenceLength(i));
+  for (u32bit i=0; i<AF1->fastaA()->getNumberOfSequences(); i++)
+    S1->addNewSpan(i, AF1->fastaA()->sequenceLength(i));
+  for (u32bit i=0; i<AF1->fastaB()->getNumberOfSequences(); i++)
+    S2->addNewSpan(i, AF1->fastaB()->sequenceLength(i));
 
   //  Add every match to the spanTrees.
 

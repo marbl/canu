@@ -59,37 +59,29 @@ main(int argc, char *argv[]) {
   if (matchesFile == 0L)
     usage(argv[0]), exit(1);
 
-  atacMatchList  ML(matchesFile, 'm', stdout);
-  FastACache     Acache(ML.assemblyFileA(), 32, false, false);
-  FastACache     Bcache(ML.assemblyFileB(), 32, false, false);
+  atacFile       AF(matchesFile);
+  atacMatchList &ML = *AF.matches();
+  FastACache     Acache(AF.assemblyFileA(), 32, false, false);
+  FastACache     Bcache(AF.assemblyFileB(), 32, false, false);
 
   for (u32bit i=0; i<ML.numMatches(); i++) {
     atacMatch            *m = ML.getMatch(i);
 
     u32bit identities = 0;
 
-    char   *a = Acache.getSequence(m->iid1)->sequence() + m->pos1;
-    char   *b = Bcache.getSequence(m->iid2)->sequence() + m->pos2;
-    u32bit  p, q;
+    //char   *a = Acache.getSequence(m->iid1)->sequence() + m->pos1;
+    //char   *b = Bcache.getSequence(m->iid2)->sequence() + m->pos2;
+    //u32bit  p, q;
 
-    if (0) {
-      char tmp[1024];
-      memcpy(tmp, a, m->len1);
-      a[m->len1] = 0;
-      fprintf(stderr, "A: %s\n", tmp);
-
-      memcpy(tmp, b, m->len1);
-      tmp[m->len1] = 0;
-      fprintf(stderr, "B: %s\n", tmp);
-    }
 
     //  Trim the match
     //
     if (m->fwd2) {
-      a = Acache.getSequence(m->iid1)->sequence() + m->pos1;
-      b = Bcache.getSequence(m->iid2)->sequence() + m->pos2;
-      p = 0;
-      while ((m->len1 > 0) && (toUpper[a[p]] != toUpper[b[p]])) {
+      char   *a = Acache.getSequence(m->iid1)->sequence() + m->pos1;
+      char   *b = Bcache.getSequence(m->iid2)->sequence() + m->pos2;
+      u32bit  p = 0;
+
+      while ((m->len1 > 0) && (toUpper[(int)a[p]] != toUpper[(int)b[p]])) {
         m->pos1++;
         m->pos2++;
         m->len1--;
@@ -100,19 +92,19 @@ main(int argc, char *argv[]) {
       a = Acache.getSequence(m->iid1)->sequence() + m->pos1;
       b = Bcache.getSequence(m->iid2)->sequence() + m->pos2;
       p = m->len1-1;
-      while ((m->len1 > 0) && (toUpper[a[p]] != toUpper[b[p]])) {
+      while ((m->len1 > 0) && (toUpper[(int)a[p]] != toUpper[(int)b[p]])) {
         m->len1--;
         m->len2--;
         p--;
       }
 
     } else {
+      char   *a = Acache.getSequence(m->iid1)->sequence() + m->pos1;
+      char   *b = Bcache.getSequence(m->iid2)->sequence() + m->pos2;
+      u32bit  p = 0;
+      u32bit  q = m->len2 - 1;
 
-      a = Acache.getSequence(m->iid1)->sequence() + m->pos1;
-      b = Bcache.getSequence(m->iid2)->sequence() + m->pos2;
-      p = 0;
-      q = m->len2 - 1;
-      while ((m->len1 > 0) && (toUpper[a[p]] != complementSymbol[toUpper[b[q]]])) {
+      while ((m->len1 > 0) && (toUpper[(int)a[p]] != complementSymbol[toUpper[(int)b[q]]])) {
         m->pos1++;
         m->len1--;
         m->len2--;
@@ -124,7 +116,7 @@ main(int argc, char *argv[]) {
       b = Bcache.getSequence(m->iid2)->sequence() + m->pos2;
       p = m->len1 - 1;
       q = 0;
-      while ((m->len1 > 0) && (toUpper[a[p]] != complementSymbol[toUpper[b[q]]])) {
+      while ((m->len1 > 0) && (toUpper[(int)a[p]] != complementSymbol[toUpper[(int)b[q]]])) {
         m->len1--;
         m->pos2++;
         m->len2--;
@@ -134,17 +126,17 @@ main(int argc, char *argv[]) {
     }
 
     if (m->len1 > 0) {
-      a = Acache.getSequence(m->iid1)->sequence() + m->pos1;
-      b = Bcache.getSequence(m->iid2)->sequence() + m->pos2;
+      char *a = Acache.getSequence(m->iid1)->sequence() + m->pos1;
+      char *b = Bcache.getSequence(m->iid2)->sequence() + m->pos2;
 
       if (m->fwd2) {
         for (u32bit p=0; p<m->len1; p++) {
-          if (toUpper[a[p]] == toUpper[b[p]])
+          if (toUpper[(int)a[p]] == toUpper[(int)b[p]])
             identities++;
         }
       } else {
         for (u32bit p=0, q=m->len2-1; p<m->len1; p++, q--) {
-          if (toUpper[a[p]] == toUpper[complementSymbol[b[q]]])
+          if (toUpper[(int)a[p]] == toUpper[complementSymbol[(int)b[q]]])
             identities++;
         }
       }
@@ -152,11 +144,11 @@ main(int argc, char *argv[]) {
       double   myIdentity = (double)identities / m->len1;
 
       if ((myIdentity > discardThreshold) && (m->len1 > discardLength)) {
-        m->print(stdout, ML.labelA(), ML.labelB());
+        m->print(stdout, AF.labelA(), AF.labelB());
       } else {
         fprintf(stderr, "match "u32bitFMT" is only %6.2f%% identity and "u32bitFMT" long:  ",
                 i, 100.0 * identities / m->len1, m->len1);
-        m->print(stderr, ML.labelA(), ML.labelB());
+        m->print(stderr, AF.labelA(), AF.labelB());
         if (m->len1 < 200) {
           char   tmp[1000];
 

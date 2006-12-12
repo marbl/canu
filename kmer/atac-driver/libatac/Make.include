@@ -3,10 +3,23 @@
 LIBUTL/     :=$(call MakePath,$/../../libutil/)
 LIBBIO/     :=$(call MakePath,$/../../libbio/)
 
-$/.CXX_SRCS := $/decodeMatch.C $/readHeader.C $/matchList.C $/featureList.C
+$/.CXX_HDRS := $/atac.H \
+               $/atacFeature.H \
+               $/atacFeatureList.H \
+               $/atacMatch.H \
+               $/atacMatchList.H \
+               $/atacMatchOrder.H
+
+$/.CXX_SRCS := $/atacFeature.C \
+               $/atacFeatureList.C \
+               $/atacFile.C \
+               $/atacMatch.C \
+               $/atacMatchList.C \
+               $/atacMatchOrder.C
+
 $/.CXX_LIBS := $/libatac.a
 
-$/.CLEAN :=$/*.o $/*~ $/core
+$/.CLEAN :=$/*.o $/*~
 
 $/libatac.a: ${$/.CXX_SRCS:.C=.o}
 

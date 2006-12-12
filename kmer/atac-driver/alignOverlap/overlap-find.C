@@ -87,7 +87,7 @@ findExtended(annoList *AL, u32bit ALlen) {
       return(*this);
     };
 
-    void print(char *msg) {
+    void print(char const *msg) {
       fprintf(stderr, "%s:  "u32bitFMT" len:"u32bitFMT"\n", msg, count, len);
     };
   };

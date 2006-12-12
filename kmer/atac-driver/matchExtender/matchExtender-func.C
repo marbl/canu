@@ -51,9 +51,9 @@ extern u32bit  maxNbrPathMM;
 //
 bool
 isIdentity(char c1, char c2) {
-  return(validSymbol[c1] &&
-         validSymbol[c2] &&
-         IUPACidentity[c1][c2]);
+  return(validSymbol[(int)c1] &&
+         validSymbol[(int)c2] &&
+         IUPACidentity[(int)c1][(int)c2]);
 }
 
 
@@ -435,7 +435,7 @@ extend_matches_on_diagonal(vector<match_s *>& matches, u32bit diag_start) {
 
     prev_end = m->pos1() + m->len();
 
-    if ((m->pos1() > m->s1()->sequenceLength()) || (m->pos2() > m->s2()->sequenceLength()))
+    if ((m->pos1() > m->seq1()->sequenceLength()) || (m->pos2() > m->seq2()->sequenceLength()))
       m->dump(stderr, "NEGATIVE after back extend!\n", true), abort();
   }
 
@@ -535,7 +535,7 @@ extend_matches_on_diagonal(vector<match_s *>& matches, u32bit diag_start) {
 #endif
 
 #ifdef DEBUG_EXTEND
-    if ((m->pos1() > m->s1()->sequenceLength()) || (m->pos2() > m->s2()->sequenceLength()))
+    if ((m->pos1() > m->seq1()->sequenceLength()) || (m->pos2() > m->seq2()->sequenceLength()))
       m->dump(stderr, "NEGATIVE after forward extend!", true), abort();
 
     fprintf(stderr, "\n==============\n\n");

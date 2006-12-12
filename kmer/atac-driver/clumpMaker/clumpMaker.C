@@ -143,39 +143,40 @@ score_all_hits(tClumpHit *hits,
   // furthest back still accessible ...
   u32bit furthest_back=0;
   
-  // tmp variabile to avoid computing twice for tests then assignments
-  s32bit tmpscore;
+  for(u32bit i=0; i<num_hits; i++) {
 
-  for(u32bit i=0;i<num_hits;i++){
-    if(i==0||hits[i].qryCh != hits[i-1].qryCh){
-      bestEnd=bestEndThis; // best of previous query unit
-      bestEndThis=i-1;
+    if ((i==0) || (hits[i].qryCh != hits[i-1].qryCh)) {
+      bestEnd       = bestEndThis; // best of previous query unit
+      bestEndThis   = i-1;
       bestScoreThis = -clumpcost;
     }
 
     // find best way of using this as start of a new clump
-    if(bestEndThis>=0&&bestScoreThis>=0){ // start new clump that is not the first for this reference unit
+    if ((bestEndThis >= 0) &&
+        (bestScoreThis >= 0)) {
+      // start new clump that is not the first for this reference unit
       hits[i].scoreStart = hits[i].qryEnd - hits[i].qryBeg + bestScoreThis - clumpcost;
       hits[i].bestStart  = bestEndThis;
-    }else{ // clump would be first (to be used) for this reference unit
+    } else {
+      // clump would be first (to be used) for this reference unit
       hits[i].scoreStart = hits[i].qryEnd - hits[i].qryBeg - clumpcost;
       hits[i].bestStart  = bestEnd;
     }
 
     // find best way of extending a clump, if any
     if (furthest_back < i) {
-      s32bit cutoff=hits[i].qryBeg-maxjump;
+      s32bit cutoff = hits[i].qryBeg - maxjump;
 
-      while(hits[furthest_back].qryCh != hits[i].qryCh || hits[furthest_back].qryEnd < cutoff){
+      while ((hits[furthest_back].qryCh != hits[i].qryCh) ||
+             (hits[furthest_back].qryEnd < cutoff))
 	furthest_back++;
-      }
     }
 
     s32bit extendScore = -clumpcost;
     s32bit extendprev  = -1;
-    for(u32bit j=furthest_back; j<i; j++){
-      if(chainable(hits+j, hits+i, maxjump)){
-	tmpscore = hits[j].get_bestScore() + hits[i].qryEnd - hits[i].qryBeg;
+    for (u32bit j=furthest_back; j<i; j++) {
+      if (chainable(hits+j, hits+i, maxjump)) {
+	s32bit tmpscore = hits[j].get_bestScore() + hits[i].qryEnd - hits[i].qryBeg;
 	if(extendScore < tmpscore){
 	  extendScore=tmpscore;
 	  extendprev=j;
@@ -186,10 +187,10 @@ score_all_hits(tClumpHit *hits,
     hits[i].bestExtend  = extendprev;
 
     //figure out whether this is a new best ...
-    tmpscore = hits[i].get_bestScore();
-    if(tmpscore > bestScoreThis){
+    s32bit tmpscore = hits[i].get_bestScore();
+    if (tmpscore > bestScoreThis) {
       bestScoreThis = tmpscore;
-      bestEndThis = i;
+      bestEndThis   = i;
     }
   }
 
@@ -213,8 +214,7 @@ matchesInInput(char *filename) {
   fgets(inLine, 1024, inFile);
 
   while (!feof(inFile)) {
-    if ((inLine[0] == 'M') &&
-        ((inLine[2] == 'u') || (inLine[2] == 'g')))
+    if ((inLine[0] == 'M') && (inLine[2] == 'r'))
       iid++;
     fgets(inLine, 1024, inFile);
   }
@@ -227,35 +227,21 @@ matchesInInput(char *filename) {
 
 tClumpHit*
 readMatches(char *filename, u32bit hitsLen, bool seq1IsRef) {
-  u32bit             iid = 0;
-  char               inLine[1024];
+  u32bit             iid  = 0;
+  tClumpHit         *hits = new tClumpHit [hitsLen];
 
-  tClumpHit         *hits    = new tClumpHit [hitsLen];
+  atacFileStream  AF(filename);
+  atacMatch      *m = AF.nextMatch('u');
 
-  errno = 0;
-  FILE *inFile = fopen(filename, "r");
-  if (errno)
-    fprintf(stderr, "Couldn't open '%s': %s\n", filename, strerror(errno)), exit(1);
+  while (m) {
+    hits[iid].set(iid,
+                  m->iid1, m->pos1, m->len1, m->fwd1,
+                  m->iid2, m->pos2, m->len2, m->fwd2,
+                  seq1IsRef);
+    iid++;
 
-  fgets(inLine, 1024, inFile);
-
-  while (!feof(inFile)) {
-    if ((inLine[0] == 'M') &&
-        ((inLine[2] == 'u') || (inLine[2] == 'g'))) {
-      splitToWords  S(inLine);
-
-      u32bit  sid1=0, pos1=0, len1=0, fwd1=0;
-      u32bit  sid2=0, pos2=0, len2=0, fwd2=0;
-      decodeMatch(S, sid1, pos1, len1, fwd1, sid2, pos2, len2, fwd2);
-
-      hits[iid].set(iid, sid1, pos1, len1, fwd1, sid2, pos2, len2, fwd2, seq1IsRef);
-
-      iid++;
-    }
-    fgets(inLine, 1024, inFile);
+    m = AF.nextMatch('u');
   }
-
-  fclose(inFile);
 
   return(hits);
 }
@@ -324,7 +310,7 @@ main(int argc, char **argv) {
   //  Mark the clumps
   //
   fprintf(stderr, "        mark clumps\n");
-  s32bit clump = 0;
+  u32bit clump = 0;
 
   while(bestEnd >= 0) {
     hits[bestEnd].clump = clump;
@@ -342,69 +328,90 @@ main(int argc, char **argv) {
   fprintf(stderr, "        sort the matches\n");
   qsort(hits, hitsLen, sizeof(tClumpHit), clumpHitCompareIID);
 
+
+  //  For each clump, find the min/max extent in both sequences.  We
+  //  use this to output the clump match record.
+  //
+  s32bit *clumpLoA = new s32bit [clump];
+  s32bit *clumpHiA = new s32bit [clump];
+  s32bit *clumpLoB = new s32bit [clump];
+  s32bit *clumpHiB = new s32bit [clump];
+  bool   *clumpOut = new bool   [clump];
+  for (u32bit xx=0; xx<clump; xx++) {
+    clumpLoA[xx] = 1000000000;
+    clumpHiA[xx] = 0;
+    clumpLoB[xx] = 1000000000;
+    clumpHiB[xx] = 0;
+    clumpOut[xx] = false;
+  }
+  for (u32bit xx=0; xx<hitsLen; xx++) {
+    if (hits[xx].clump >= 0) {
+      s32bit  c = hits[xx].clump;
+      if (hits[xx].refBeg < clumpLoA[c])   clumpLoA[c] = hits[xx].refBeg;
+      if (hits[xx].refEnd > clumpHiA[c])   clumpHiA[c] = hits[xx].refEnd;
+
+      if (hits[xx].qryBeg < clumpLoB[c])   clumpLoB[c] = hits[xx].qryBeg;
+      if (hits[xx].qryEnd < clumpHiB[c])   clumpHiB[c] = hits[xx].qryEnd;
+    }
+  }
+
   //  Dump the clumps
   //
 
   fprintf(stderr, "Pass 3: output matches with clumps\n");
-  {
-    errno = 0;
-    FILE *inFile = fopen(filename, "r");
-    if (errno)
-      fprintf(stderr, "Couldn't open '%s': %s\n", filename, strerror(errno)), exit(1);
 
-    //  Read the preamble, look for our data sources.  This leaves us with
-    //  the first match in the inLine, and fills in file1 and file2.
-    //
-    u32bit    iid = 0;
-    char      inLine[1024];
-    readHeader(inLine, inFile, 0L, 0L, 0L);
 
-    while (!feof(inFile)) {
-      if (inLine[0] == 'M') {
-        chomp(inLine);
-        splitToWords  S(inLine);
+  atacFileStream  AF(filename);
+  atacMatch      *m = AF.nextMatch('u');
+  u32bit          xx = 0;
 
-        if ((S[1][0] == 'u') || (S[1][0] == 'g')) {
+  while (m) {
 
-          //  Make sure the iid agrees.
-          if (iid != hits[iid].iid) {
-            fprintf(stderr, "Augh!  Merge failure!  Not in sync!\n");
-            fprintf(stderr, "inLine = '%s'\n", inLine);
-            fprintf(stderr, "iid = "u32bitFMT", hits[iid].iid = "u32bitFMT"\n",
-                    iid, hits[iid].iid);
-            exit(1);
-          }
-
-          //  We don't really need to decode the match, but we might
-          //  as well check that we output the correct clump.
-          //
-#if 0
-          u32bit  iid1=0, pos1=0, len1=0, fwd1=0;
-          u32bit  iid2=0, pos2=0, len2=0, fwd2=0;
-          decodeMatch(S, iid1, pos1, len1, fwd1, iid2, pos2, len2, fwd2);
-
-          if (((hits[iid].rCh != iid1) && (hits[iid].qCh != iid1)) ||
-              ((hits[iid].rCh != iid1) && (hits[iid].qCh != iid1))) {
-            fprintf(stderr, "Augh!  Merge failure!  Not in sync!\n");
-            fprintf(stderr, "inLine = '%s'\n", inLine);
-            fprintf(stderr, "hits["s32bitFMT"] = r: "u32bitFMT" "s32bitFMT" "s32bitFMT" q: "u32bitFMT" "s32bitFMT" "s32bitFMT"\n",
-                    hits[iid].iid,
-                    hits[iid].rCh, hits[iid].rBeg, hits[iid].rEnd,
-                    hits[iid].qCh, hits[iid].qBeg, hits[iid].qEnd);
-            exit(1);
-          }
-#endif
-
-          fprintf(stdout, "%s # "s32bitFMT"\n", inLine, hits[iid].clump);
-
-          iid++;
-        } else {
-          fprintf(stdout, "%s\n", inLine);
-        }
-      }
-      fgets(inLine, 1024, inFile);
+    //  Make sure the iid agrees.
+    if (xx != hits[xx].iid) {
+      fprintf(stderr, "Augh!  Merge failure!  Not in sync!\n");
+      fprintf(stderr, "xx = "u32bitFMT", hits[xx].iid = "u32bitFMT"\n", xx, hits[xx].iid);
+      exit(1);
     }
+
+    //  XXX This block was originally disabled!
+    if (((hits[xx].refCh != m->iid1) && (hits[xx].qryCh != m->iid1)) ||
+        ((hits[xx].refCh != m->iid1) && (hits[xx].qryCh != m->iid1))) {
+      fprintf(stderr, "Augh!  Merge failure!  Not in sync!\n");
+      fprintf(stderr, "hits["s32bitFMT"] = r: "u32bitFMT" "s32bitFMT" "s32bitFMT" q: "u32bitFMT" "s32bitFMT" "s32bitFMT"\n",
+              hits[xx].iid,
+              hits[xx].refCh, hits[xx].refBeg, hits[xx].refEnd,
+              hits[xx].qryCh, hits[xx].qryBeg, hits[xx].qryEnd);
+      exit(1);
+    }
+
+    if (clumpOut[hits[xx].clump] == false) {
+      atacMatch  C;
+      sprintf(C.matchuid,  "clump"s32bitFMTW(06), hits[xx].clump);
+      sprintf(C.parentuid, ".");
+      C.matchiid = 0;
+      C.type[0] = 'c';
+      C.type[1] = 0;
+      C.iid1 = m->iid1;
+      C.pos1 = clumpLoA[hits[xx].clump];
+      C.len1 = clumpHiA[hits[xx].clump] - clumpLoA[hits[xx].clump];
+      C.fwd1 = m->fwd1;
+      C.iid2 = m->iid2;
+      C.pos2 = clumpLoB[hits[xx].clump];
+      C.len2 = clumpHiB[hits[xx].clump] - clumpLoB[hits[xx].clump];
+      C.fwd2 = m->fwd2;
+
+      C.print(stdout, AF.labelA(), AF.labelB());
+
+      clumpOut[hits[xx].clump] = true;
+    }
+
+    sprintf(m->parentuid, "clump"s32bitFMTW(06), hits[xx].clump);
+    m->print(stdout, AF.labelA(), AF.labelB());
+
+    xx++;
+    m = AF.nextMatch('u');
   }
-  
+
   return(0);
 }
