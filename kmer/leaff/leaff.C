@@ -96,6 +96,11 @@ const char *usage =
 "                    Example: -F some.fasta --partition parts 130mbp\n"
 "                             -F some.fasta --partition parts 16\n"
 "\n"
+"       --segment prefix n\n"
+"                    Splits the sequences into n files, prefix-###.fasta.\n"
+"                    Sequences are not reordered; the first n sequences are in\n"
+"                    the first file, the next n in the second file, etc.\n"
+"\n"
 "       --checksum a.fasta\n"
 "                    One of three actions:\n"
 "                    1) If no fastaidx file exists, this is equivalent to\n"
@@ -920,7 +925,7 @@ computeGCcontent(char *name) {
 struct partition_s {
   u32bit  length;
   u32bit  index;
-  u32bit  used;
+  u32bit  partition;
 };
 
 int
@@ -939,9 +944,9 @@ partition_s *loadPartition(void) {
   partition_s  *p = new partition_s [n];
 
   for (u32bit i=0; i<n; i++) {
-    p[i].length = fasta->sequenceLength(i);
-    p[i].index  = i;
-    p[i].used   = 0;
+    p[i].length    = fasta->sequenceLength(i);
+    p[i].index     = i;
+    p[i].partition = 0;
   }
 
   qsort(p, n, sizeof(partition_s), partition_s_compare);
@@ -956,7 +961,7 @@ outputPartition(char *prefix, partition_s *p, u32bit openP, u32bit n) {
   //  Check that everything has been partitioned
   //
   for (u32bit i=0; i<n; i++)
-    if (p[i].used == 0)
+    if (p[i].partition == 0)
       fprintf(stderr, "ERROR: Failed to partition "u32bitFMT"\n", i);
 
   if (prefix) {
@@ -972,7 +977,7 @@ outputPartition(char *prefix, partition_s *p, u32bit openP, u32bit n) {
         fprintf(stderr, "Couldn't open '%s' for write: %s\n", filename, strerror(errno));
 
       for (u32bit i=0; i<n; i++)
-        if (p[i].used == o) {
+        if (p[i].partition == o) {
           fasta->find(p[i].index);
           FastASequenceInCore *S = fasta->getSequence();
           fprintf(file, "%s\n", S->header());
@@ -997,11 +1002,11 @@ outputPartition(char *prefix, partition_s *p, u32bit openP, u32bit n) {
     for (u32bit o=1; o<=openP; o++) {
       u32bit  sizeP = 0;
       for (u32bit i=0; i<n; i++)
-        if (p[i].used == o)
+        if (p[i].partition == o)
           sizeP += p[i].length;
       fprintf(stdout, u32bitFMT"]("u32bitFMT")", o, sizeP);
       for (u32bit i=0; i<n; i++)
-        if (p[i].used == o)
+        if (p[i].partition == o)
           fprintf(stdout, " "u32bitFMT"("u32bitFMT")", p[i].index, p[i].length);
       fprintf(stdout, "\n");
     }
@@ -1024,7 +1029,7 @@ partitionBySize(char *prefix, u64bit partitionSize) {
   //
   for (u32bit i=0; i<n; i++) {
     if (p[i].length > partitionSize) {
-      p[i].used = openP++;
+      p[i].partition = openP++;
       seqsP--;
     }
   }
@@ -1035,9 +1040,9 @@ partitionBySize(char *prefix, u64bit partitionSize) {
   //
   while (seqsP > 0) {
     for (u32bit i=0; i<n; i++) {
-      if ((p[i].used == 0) &&
+      if ((p[i].partition == 0) &&
           (p[i].length + sizeP < partitionSize)) {
-        p[i].used = openP;
+        p[i].partition = openP;
         sizeP += p[i].length;
         seqsP--;
       }
@@ -1080,13 +1085,29 @@ partitionByBucket(char *prefix, u64bit partitionSize) {
     //  add the next largest sequence to the open partition
     //
     s[openP] += p[nextS].length;
-    p[nextS].used = openP+1;
+    p[nextS].partition = openP+1;
   }
 
   outputPartition(prefix, p, (u32bit)partitionSize, n);
   delete [] p;
 }
 
+
+void
+partitionBySegment(char *prefix, u64bit numSegments) {
+  u32bit        n = fasta->getNumberOfSequences();
+  partition_s  *p = new partition_s [n];
+  u32bit        numSeqPerPart = (u32bit)ceil(n / (double)numSegments);
+
+  for (u32bit i=0; i<n; i++) {
+    p[i].length    = fasta->sequenceLength(i);
+    p[i].index     = i;
+    p[i].partition = i / numSeqPerPart + 1;
+  }
+
+  outputPartition(prefix, p, numSegments, n);
+  delete [] p;
+}
 
 
 
@@ -1199,6 +1220,11 @@ processArray(int argc, char **argv) {
           fprintf(stderr, "Unknown or zero partition size '%s'\n", argv[arg]), exit(1);
         partitionByBucket(prefix, ps);
       }
+    } else if (strncmp(argv[arg], "--segment", 3) == 0) {
+      failIfNoSource();
+      failIfNotRandomAccess();
+      partitionBySegment(argv[arg+1], strtou32bit(argv[arg+2], 0L));
+      arg += 2;
     } else if (strncmp(argv[arg], "--checksum", 4) == 0) {
       arg++;
       checksum(argv[arg]);
