@@ -23,7 +23,7 @@
   -o /work/assembly/rbolanos/IBM_PORT_CDS/ibm_migration_work_dir/cds/AS/obj/GraphCGW_T.o GraphCGW_T.c
 */
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.23 2006-11-14 19:58:21 eliv Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.24 2006-12-12 06:42:59 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3055,9 +3055,11 @@ void  BuildGraphEdgesFromMultiAlign(GraphCGW_T *graph, NodeCGW_T *node,
       } else if(node->flags.bits.isCI){
         frag->flags.bits.hasInternalOnlyCILinks = TRUE;
         frag->flags.bits.hasInternalOnlyContigLinks = TRUE;
-      }
-      else
+      } else {
+        fprintf(GlobalData->stderrc,"* Marking frag " F_CID " as internal only -- NOT isContig or isCI??\n", fragID);
+        PrintFragment(frag, fragID, GlobalData->stderrc);
         assert(0);
+      }
     }else{
       if(node->flags.bits.isContig){
         if(frag->flags.bits.hasInternalOnlyContigLinks){
