@@ -106,8 +106,8 @@ sub overlapTrim {
         $cmd .= "-immutable $im " if (defined($im));
         $cmd .= "-log $wrk/0-overlaptrim/$asm.mergeLog ";
         $cmd .= "-frg $wrk/$asm.frgStore ";
-        $cmd .= "-ovl $wrk/0-overlaptrim/$asm.ovl.consolidated";
-        $cmd .= "> $wrk/0-overlaptrim/$asm.ovl.consolidated.err 2>&1";
+        $cmd .= "-ovl $wrk/0-overlaptrim/$asm.ovl.consolidated ";
+        $cmd .= "> $wrk/0-overlaptrim/$asm.merge.err 2>&1";
 
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
             unlink "$wrk/0-overlaptrim/$asm.mergeLog";
