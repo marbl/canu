@@ -1103,7 +1103,6 @@ Local_Segment *Find_Local_Segments(char const * const A, int const Alen,
                                    int const Action,
                                    int const MinLen, double const MaxDiff, int * const Seglen) {
   static int   DagMax = -1;
-  static int   AseqLen = -1;
   static int   BseqLen = -1;
 
   int              numhit;

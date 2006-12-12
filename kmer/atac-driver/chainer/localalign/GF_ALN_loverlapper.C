@@ -156,8 +156,6 @@ int *AS_Local_Trace(Local_Overlap *O, const char *aseq, const char *bseq){
      need to handle the gap at the beginning and
      (for all but the final piece) the associated aligned segment */
   for(i=0;i<=O->num_pieces;i++){
-    int alen=0;
-    int blen=0;
 
     /* if conditions indicate the segment was deleted in previous loop,
        skip! */
@@ -483,8 +481,8 @@ int *AS_Local_Trace(Local_Overlap *O, const char *aseq, const char *bseq){
 
     /* set lengths of segments */
   
-    alen=O->chain[i].piece.aepos-abeg; /* check +1?? */
-    blen=O->chain[i].piece.bepos-bbeg; /* check +1?? */
+    int alen=O->chain[i].piece.aepos-abeg; /* check +1?? */
+    int blen=O->chain[i].piece.bepos-bbeg; /* check +1?? */
 
     /* create strings for just the parts of the sequences in the
        aligned segment */
@@ -518,8 +516,8 @@ int *AS_Local_Trace(Local_Overlap *O, const char *aseq, const char *bseq){
       aseg[alen] = 0;
       bseg[blen] = 0;
 
-      if ((strlen(bseg) != blen) ||
-          (strlen(aseg) != alen)) {
+      if (((int)strlen(bseg) != blen) ||
+          ((int)strlen(aseg) != alen)) {
         fprintf(stderr,"EXCEPTION strlen(aseg)=%d alen=%d abeg=%d\n", strlen(aseg), alen, abeg);
         fprintf(stderr,"EXCEPTION strlen(bseg)=%d blen=%d bbeg=%d\n", strlen(bseg), blen, bbeg);
 
