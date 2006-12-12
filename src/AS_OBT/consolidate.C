@@ -191,14 +191,16 @@ main(int argc, char **argv) {
   bool  beVerbose = false;
 
   int arg=1;
+  int err=0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-v") == 0) {
+    if (strcmp(argv[arg], "-v") == 0)
       beVerbose = true;
-    } else {
-      fprintf(stderr, "usage: %s [-v] < overlap-trim-results\n", argv[0]);
-      exit(1);
-    }
+    else
+      err++;
+    arg++;
   }
+  if (isatty(fileno(stdin)) || err)
+    fprintf(stderr, "usage: %s [-v] < asm.ovl.sorted > asm.ovl.consolidated\n", argv[0]), exit(1);
 
   u32bit   idAlast     = 0;
   u32bit   numOverlaps = 0;
