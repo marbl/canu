@@ -40,7 +40,9 @@
 # You can enable a debugging build, disabling all optimizations, by
 # setting this to 1.
 #
+ifneq "$(origin BUILDDEBUG)" "environment"
 BUILDDEBUG  = 0
+endif
 
 OSTYPE      = $(shell echo `uname`)
 MACHINETYPE = $(shell echo `uname -m`)
