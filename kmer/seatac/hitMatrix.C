@@ -294,7 +294,7 @@ hitMatrix::processMatrix(char direction, filterObj *FO) {
         //  Save the match.  cut-n-paste with below.
         //
 
-        ILlength = IL.sumLengths();
+        ILlength = IL.sumOfLengths();
         IL.clear();
 
         if (ILlength >= config._minLength) {
@@ -334,7 +334,7 @@ hitMatrix::processMatrix(char direction, filterObj *FO) {
 
     //  Save the final cluster?  (cut-n-paste from above)
     //
-    ILlength = IL.sumLengths();
+    ILlength = IL.sumOfLengths();
     IL.clear();
 
     if (ILlength >= config._minLength) {
