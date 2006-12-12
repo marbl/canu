@@ -123,16 +123,9 @@ main(int argc, char **argv) {
   //  completely on disk.  Better implementation would use a buffer.
   //
 
-#ifdef RESTART
-  overlapBatches = 10;
-#endif
-
   FILE       **dumpFiles    = new FILE * [overlapBatches];
   u32bit      *dumpFilesLen = new u32bit [overlapBatches];
 
-
-  //  XXXXXXXX  SKIP THIS FOR A RESTART OF MACAQUE
-#ifndef RESTART
 
   for (u32bit i=0; i<overlapBatches; i++) {
     char name[1024];
@@ -198,8 +191,6 @@ main(int argc, char **argv) {
     fclose(dumpFiles[i]);
   }
 
-#endif  //  ifndef RESTART
-
   //
   //  Read each bucket, sort it, and dump it to the output
   //
@@ -209,10 +200,6 @@ main(int argc, char **argv) {
   for (u32bit i=0; i<overlapBatches; i++) {
     char name[1024];
     sprintf(name, "%s/sort-overlap.dump."u32bitFMTW(03), tmpPath, i);
-
-#ifdef RESTART
-    dumpFilesLen[i] = sizeOfFile(name) / sizeof(overlap_t);
-#endif
 
     overlap_t *overlapsort = new overlap_t [dumpFilesLen[i]];
 
