@@ -43,14 +43,15 @@ public:
   //      do something with the positions
   //    }
   //
-  bool        get(u64bit   mer,
-                  u64bit*& posn,
-                  u64bit&  posnMax,
-                  u64bit&  posnLen);
-
-  //  True/False on existence of mer.
+  //  exists() returns T/F if mer exists or not
+  //  count() returns the number of times that mer is present
   //
+  bool        get(u64bit      mer,
+                  u64bit*&    posn,
+                  u64bit&     posnMax,
+                  u64bit&     posnLen);
   bool        exists(u64bit   mer);
+  u64bit      count(u64bit    mer);
 
   //  Save or load a built table
   //
