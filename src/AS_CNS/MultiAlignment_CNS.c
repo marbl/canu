@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.117 2006-11-17 22:24:19 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.118 2006-12-12 06:44:29 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -35,17 +35,14 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.117 2006-11-17 22:24:19 bri
   #define CMPFNC "Affine_Overlap_AS_forCNS"
   #include "AS_ALN_forcns.h"
   #define HANDLE_OVERLAP_INITIAL_GAPS
-  #define ALTERNATE_OVERLAPPER
 #elif defined(USE_LOCAL_OVERLAP)
  // #define COMPARE_FUNC Local_Overlap_AS_forCNS
   #define CMPFNC "Local_Overlap_AS_forCNS"
   #include "AS_ALN_forcns.h"
   #define HANDLE_OVERLAP_INITIAL_GAPS
-  #define ALTERNATE_OVERLAPPER
 #else
   //#define COMPARE_FUNC DP_Compare
   #define CMPFNC "DP_Compare(nonaffine)"
-  #undef ALTERNATE_OVERLAPPER
 #endif
 
 #undef  TEST_IMP2ARRAY
