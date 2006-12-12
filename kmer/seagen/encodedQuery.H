@@ -65,7 +65,7 @@ encodedQuery::bpCovered(bool doCompute) {
         IL->addMer(qi);
     }
 
-    bp = IL->sumLengths();
+    bp = IL->sumOfLengths();
     delete IL;
   }
 

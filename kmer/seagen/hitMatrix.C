@@ -505,7 +505,7 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
 
       //  Save the current cluster and start a new one?
       //
-      u32bit qCov = IL->sumLengths();
+      u32bit qCov = IL->sumOfLengths();
       if ((qCov >= minLengthMultiple) ||
           ((lastDiagonal - frstDiagonal < 25) && (qCov >= minLengthSingle))) {
 #if TRACE
@@ -546,7 +546,7 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
 
     //  Save the final cluster?
     //
-    u32bit qCov = IL->sumLengths();
+    u32bit qCov = IL->sumOfLengths();
     if ((qCov >= minLengthMultiple) ||
         ((lastDiagonal - frstDiagonal < 21) && (qCov >= minLengthSingle))) {
       addMatch(qsLow,
@@ -575,7 +575,7 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
       dsLow      = _matches->_dsLo;
       dsHigh     = _matches->_dsHi;
       IL         = _matches->_IL;
-      ML         = IL->sumLengths();
+      ML         = IL->sumOfLengths();
 
       n = _matches;
       _matches = _matches->_next;
@@ -599,7 +599,7 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
         //  Combine the two merCoverings
         //
         IL->merge(_matches->_IL);
-        ML += _matches->_IL->sumLengths();
+        ML += _matches->_IL->sumOfLengths();
 
         //  The start of the new match might be after the start of the
         //  merged region.  (Only rarely is it before)
@@ -632,7 +632,7 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
         a._dsIdx     = config._useList.IIDOf(currentSeq);
         a._dsLo      = dsLow;
         a._dsHi      = dsHigh;
-        a._covered   = IL->sumLengths();
+        a._covered   = IL->sumOfLengths();
         a._matched   = ML;
         a._numMers   = _qsMers;
 
@@ -643,7 +643,7 @@ hitMatrix::filter(encodedQuery *query, bool isReverse) {
         sprintf(line, "-%c -e "u32bitFMT" -D "u64bitFMT" "u32bitFMT" "u32bitFMT" -M "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
                 isReverse ? 'r' : 'f', _qsIdx,
                 config._useList.IIDOf(currentSeq),
-                dsLow, dsHigh, IL->sumLengths(), ML, _qsMers);
+                dsLow, dsHigh, IL->sumOfLengths(), ML, _qsMers);
 
         query->addOutput(line, 0);
       }
