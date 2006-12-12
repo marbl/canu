@@ -63,7 +63,7 @@ public:
     _pieces    = 0;
   };
 
-  u32bit        sumLengths(void) {
+  u32bit        sumOfLengths(void) {
     u32bit s=0;
 
     for (interval *i=_intervals; i; i = i->_next)
@@ -201,8 +201,11 @@ public:
 
   //  Incorporates the intervals in B into our list.
   //
-  void         merge(merCovering *I) {
+  void         merge(merCovering *I = 0L) {
     interval *A, *B, *N, *L;
+
+    if (I == 0L)
+      return;
 
     A = _intervals;
     B = I->_intervals;
