@@ -13,11 +13,6 @@
 //
 #undef USEEXACTSIZE
 
-//  Attempt to use an auto-filtering method.  It keeps filtering until
-//  recent polishes begin to fail too much.
-//
-#undef AUTOFILTER
-
 
 //  A meta-option.  Enable all the good stuff.  Or not, I guess.
 //

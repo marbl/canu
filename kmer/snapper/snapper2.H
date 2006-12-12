@@ -100,6 +100,12 @@ public:
   u32bit           _minMatchIdentity;
   u32bit           _minMatchCoverage;
 
+  //  Filtering of hits
+  bool             _afEnabled;
+  double           _afThreshold;
+  u32bit           _afLength;
+  u32bit           _afInit;
+
   //  Filtering and/or cleanup of matches
   u32bit           _discardExonLength;
   u32bit           _discardExonQuality;

@@ -14,16 +14,18 @@
 //  _status
 //  & 0x00000001 -- direction, forward if set, otherwise reverse
 //    0x00000002 -- not filtered, if set, polish the hit
-//    0x00000004 -- match verified via polishng
-//    0x00000008 -- match discarded via hit refinement
+//    0x00000004 -- not filtered, if set, polish the hit because it has something unique-ish
+//    0x00000008 -- match verified via polishng
+//    0x00000010 -- match discarded via hit refinement
 //    0x0000fff8 -- unused
 //    0x00ff0000 -- percent idendity of match
 //    0xff000000 -- percent coverage of match
 //
 #define AHIT_DIRECTION_MASK  0x00000001
 #define AHIT_POLISHABLE      0x00000002
-#define AHIT_VERIFIED        0x00000004
-#define AHIT_DISCARDED       0x00000008
+#define AHIT_HAS_UNIQUE      0x00000004
+#define AHIT_VERIFIED        0x00000008
+#define AHIT_DISCARDED       0x00000010
 
 
 struct diagonalLine {
@@ -53,6 +55,7 @@ struct aHit {
 
 class trapMatch {
 public:
+  u32bit         _unique;
   u32bit         _qsLo;
   u32bit         _qsHi;
   u32bit         _dsLo;
@@ -63,12 +66,14 @@ public:
 
   trapMatch     *_next;
 
-  trapMatch(u32bit         qsLo,
+  trapMatch(u32bit         isunique,
+            u32bit         qsLo,
             u32bit         qsHi,
             u32bit         dsLo,
             u32bit         dsHi,
             merCovering   *IL,
             merList       *ML) {
+    _unique     = isunique;
     _qsLo       = qsLo;
     _qsHi       = qsHi;
     _dsLo       = dsLo;
@@ -89,7 +94,8 @@ public:
 
   void    addHits(u32bit  qi,
                   u64bit *ps,
-                  u64bit  cn);
+                  u64bit  cn,
+                  u64bit  ad=0);
 
   void    sort_diagonal(void);
   void    sort_dsPos(void);
@@ -130,7 +136,8 @@ private:
   //
   trapMatch                    *_matches;
 
-  void addMatch(u32bit         qsLo,
+  void addMatch(u32bit         isunique,
+                u32bit         qsLo,
                 u32bit         qsHi,
                 u32bit         dsLo,
                 u32bit         dsHi,
@@ -144,7 +151,8 @@ inline
 void
 hitMatrix::addHits(u32bit  qi,
                    u64bit *ps,
-                   u64bit  cn) {
+                   u64bit  cn,
+                   u64bit  ad) {
 
   if ((_hitsLen + cn) >= _hitsMax) {
     _hitsMax = _hitsMax + _hitsMax + (u32bit)cn;
@@ -163,7 +171,9 @@ hitMatrix::addHits(u32bit  qi,
     _hits = h;
   }
 
-  u64bit  uniq = _hitsLen;
+  u64bit  uniq = cn;
+  if (ad > 0)
+    uniq = ad;
   if (uniq > 0x000003ff)
     uniq = 0x000003ff;
 

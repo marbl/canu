@@ -13,24 +13,16 @@ doPolish(searcherState       *state,
   u32bit   outMax    = 2 * 1024 * theHitsLen;
   char    *out       = 0L;
 
-
-#ifdef AUTOFILTER
-  double   afThreshold = 0.05;
-  u64bit   afLength    = 40;
-  u32bit   afInit      = 5;
-
+  //  For the autofilter
   u64bit   successes    = u64bitZERO;
-  u64bit   successMask  = u64bitMASK(afLength);
+  u64bit   successMask  = u64bitMASK(config._afLength);
   u32bit   attempts     = 0;
-#endif
-
 
   if (theHitsLen == 0) {
     out    = new char [8];
     out[0] = 0;
     return(out);
   }
-
 
   try {
     out = new char [outMax];
@@ -42,7 +34,6 @@ doPolish(searcherState       *state,
   out[0] = 0;
 
   for (u32bit h=0; h<theHitsLen; h++) {
-
 
     //  If the hit was discarded, move along.
     //
@@ -65,29 +56,33 @@ doPolish(searcherState       *state,
     //  If the hit was filtered out, move along.
     //
     if ((config._doValidation == false) &&
-        ((theHits[h]._status & AHIT_POLISHABLE) == 0))
+        ((theHits[h]._status & AHIT_POLISHABLE) == 0) &&
+        ((theHits[h]._status & AHIT_HAS_UNIQUE) == 0))
       continue;
 
 
-#ifdef AUTOFILTER
     //  If our recent success rate is pretty terrible, continue.
     //
-    if (attempts > afInit) {
-      double  rat = countNumberOfSetBits64(successes) / (double)((attempts < afLength) ? attempts : afLength);
+    if (config._afEnabled) {
+
+      if (attempts > config._afInit) {
+        double  rat = countNumberOfSetBits64(successes) / (double)((attempts < config._afLength) ? attempts : config._afLength);
 
 #if 0
-      fprintf(stderr, "autofilter: hit "u32bitFMT" out of "u32bitFMT" (attempts="u32bitFMT") with rate %f\n",
-              h, theHitsLen, attempts, rat);
+        fprintf(stderr, "autofilter: hit "u32bitFMT" out of "u32bitFMT" (attempts="u32bitFMT") with rate %f\n",
+                h, theHitsLen, attempts, rat);
 #endif
 
-      if (rat < afThreshold) {
-        h = theHitsLen;
-        continue;
+        //  If we've hit the end of the good polishes, give up.  But
+        //  still do all the stuff with unique mers in them.
+        //
+        if (((theHits[h]._status & AHIT_HAS_UNIQUE) == 0) &&
+            (rat < config._afThreshold))
+          continue;
       }
-    }
 
-    attempts++;
-#endif
+      attempts++;
+    }
 
 
 
@@ -343,7 +338,6 @@ doPolish(searcherState       *state,
     theHits[h]._status |= pi << 16;
     theHits[h]._status |= pc << 24;
 
-#ifdef AUTOFILTER
     successes <<= 1;
     if ((pi  >= config._minMatchIdentity) &&
         (pc >= config._minMatchCoverage)) {
@@ -354,7 +348,6 @@ doPolish(searcherState       *state,
       successes |= u64bitZERO;
     }
     successes  &= successMask;
-#endif
 
     delete l4;
     delete S4;

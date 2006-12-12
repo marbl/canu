@@ -45,6 +45,11 @@ configuration::configuration(void) {
   _minMatchIdentity     = 98;
   _minMatchCoverage     = 96;
 
+  _afEnabled            = false;
+  _afThreshold          = 0.25;
+  _afLength             = 64;
+  _afInit               = 5;
+
   _discardExonLength    = 64;
   _discardExonQuality   = 90;
   _splitMatches         = true;
@@ -158,7 +163,6 @@ configuration::usage(char *name) {
 void
 configuration::read(int argc, char **argv) {
   int arg = 1;
-
   while (arg < argc) {
     if        (strcmp(argv[arg], "-mersize") == 0) {
       arg++;
@@ -248,6 +252,23 @@ configuration::read(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-minmatchcoverage") == 0) {
       arg++;
       _minMatchCoverage = strtou32bit(argv[arg], 0L);
+
+    } else if (strcmp(argv[arg], "-af") == 0) {
+      _afEnabled   = true;
+    } else if (strcmp(argv[arg], "-afthreshold") == 0) {
+      arg++;
+      _afThreshold = atof(argv[arg]);
+      _afEnabled   = true;
+    } else if (strcmp(argv[arg], "-aflength") == 0) {
+      arg++;
+      _afLength    = strtou32bit(argv[arg], 0L);
+      _afEnabled   = true;
+    } else if (strcmp(argv[arg], "-afinit") == 0) {
+      arg++;
+      _afInit      = strtou32bit(argv[arg], 0L);
+      _afEnabled   = true;
+
+
     } else if (strcmp(argv[arg], "-discardexonlength") == 0) {
       arg++;
       _discardExonLength = strtou32bit(argv[arg], 0L);
@@ -289,6 +310,7 @@ configuration::read(int argc, char **argv) {
       exit(1);
     } else {
       fprintf(stderr, "Unknown option '%s'\n", argv[arg]);
+      exit(1);
     }
     arg++;
   }
@@ -311,6 +333,16 @@ configuration::read(int argc, char **argv) {
     fprintf(stderr, "ERROR:  Mers are not adjacent; make sure merskip <= mersize.\n");
     exit(-1);
   }
+
+  if ((_afThreshold < 0) || (_afThreshold > 1.0)) {
+    fprintf(stderr, "ERROR: Invalid afThreshold %f, should be 0.0 <= t <= 1.0\n", _afThreshold);
+    exit(1);
+  }
+  if (64 < _afLength) {
+    fprintf(stderr, "ERROR: Invalid afLength "u32bitFMT", should be < 64.\n", _afLength);
+    exit(1);
+  }
+
 
   //  Fail if no query sequences
   //

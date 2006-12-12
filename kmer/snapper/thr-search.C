@@ -36,14 +36,16 @@ doSearch(searcherState       *state,
         query->setSkip(qi);
 
 #ifdef USEEXACTSIZE
-  merCovering   *IL = new merCovering(config._merSize);
+  intervalList   *IL = new intervalList(config._merSize);
 
   for (u32bit qi=0; qi<query->numberOfMers(); qi++) {
     if (query->getSkip(qi) == false)
-      IL->addMer(qi);
+      IL->add(qi, config._merSize);
   }
 
-  qMers = IL->sumLengths();
+  IL->merge();
+
+  qMers = IL->sumOfLengths();
   delete IL;
 #else
   qMers = query->numberOfValidMers();
@@ -82,10 +84,8 @@ doSearch(searcherState       *state,
     if ((query->getSkip(qi) == false) &&
         (positions->get(query->getMer(qi), state->posn, state->posnMax, state->posnLen))) {
 #ifdef SAVE_HITS_TO_FILES
-      {
-        for (u32bit x=0; x<state->posnLen; x++)
-          fprintf(state->hitsDump, u32bitFMT" "u64bitFMT"\n", qi, state->posn[x]);
-      }
+      for (u32bit x=0; x<state->posnLen; x++)
+        fprintf(state->hitsDump, u32bitFMT" "u64bitFMT"\n", qi, state->posn[x]);
 #endif
       matrix->addHits(qi, state->posn, state->posnLen);
     }
@@ -107,20 +107,17 @@ doSearch(searcherState       *state,
 
 
 #ifdef SAVE_HITS_TO_FILES
-  {
-    fclose(state->hitsDump);
+  fclose(state->hitsDump);
 
-    char  filename[1024];
-    if (rc)
-      sprintf(filename, "hitsDump-%08d-r.2.refine", (int)seq->getIID());
-    else
-      sprintf(filename, "hitsDump-%08d-f.2.refine", (int)seq->getIID());
-    errno = 0;
-    state->hitsDump = fopen(filename, "w");
-    if (errno) {
-      fprintf(stderr, "Failed to open '%s' for hitsDump!\n", filename);
-    }
-  }
+  char  filename[1024];
+  if (rc)
+    sprintf(filename, "hitsDump-%08d-r.2.refine", (int)seq->getIID());
+  else
+    sprintf(filename, "hitsDump-%08d-f.2.refine", (int)seq->getIID());
+  errno = 0;
+  state->hitsDump = fopen(filename, "w");
+  if (errno)
+    fprintf(stderr, "Failed to open '%s' for hitsDump!\n", filename);
 #endif
 
 
@@ -134,6 +131,11 @@ doSearch(searcherState       *state,
   //
   for (u32bit h=theHitsLen; h--; ) {
 
+    //  The first test eliminates hits that were not generated for the
+    //  complementarity used in this search (e.g., the first search
+    //  does rc=forward, adds some hits, the second search does
+    //  rc=reverse, and we should skip all the rc=forward hits.
+    //  
     if (((theHits[h]._status & AHIT_DIRECTION_MASK) == !rc) && 
         (theHits[h]._matched > 2 * theHits[h]._numMers)) {
 
@@ -214,22 +216,25 @@ doSearch(searcherState       *state,
         if ((query->getSkip(qi) == false) &&
             (PS->get(query->getMer(qi), state->posn, state->posnMax, state->posnLen))) {
           if (state->posnLen < countLimit) {
-            for (u32bit x=0; x<state->posnLen; x++)
+            for (u32bit x=0; x<state->posnLen; x++) {
               state->posn[x] += GENlo + config._useList.startOf(theHits[h]._dsIdx);
-
 #ifdef SAVE_HITS_TO_FILES
-            {
-              for (u32bit x=0; x<state->posnLen; x++)
-                fprintf(state->hitsDump, u32bitFMT" "u64bitFMT"\n", qi, state->posn[x]);
-            }
+              fprintf(state->hitsDump, u32bitFMT" "u64bitFMT"\n", qi, state->posn[x]);
 #endif
-            HM->addHits(qi, state->posn, state->posnLen);
+            }
+
+            //  The kmer counts for these mers are relative to the
+            //  sub-regions, not the global, so we want to disable any
+            //  filtering by kmer counts.  We could add a flag to the filter
+            //  to stop this, or we can reset the counts here to large
+            //  values.  Or we could simply reset the counts to the global
+            //  value.
+            //
+            HM->addHits(qi, state->posn, state->posnLen, positions->count(query->getMer(qi)));
           }
         }
       }
 
-      ///////////////////////////////////////
-      //
       //  Chain the hits
       //
       HM->filter(rc ? 'r' : 'f', 0.01, 0, theHits, theHitsLen, theHitsMax);
