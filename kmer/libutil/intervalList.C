@@ -5,11 +5,11 @@
 #include "util++.H"
 
 
-intervalList::intervalList() {
+intervalList::intervalList(u32bit initialSize) {
   _isSorted = true;
   _isMerged = true;
   _listLen  = 0;
-  _listMax  = 16;
+  _listMax  = initialSize;
   _list     = new _intervalPair [_listMax];
 }
 
@@ -260,6 +260,18 @@ intervalList::overlapping(intervalNumber    rangelo,
   return(intervalsLen);
 }
 
+
+void
+intervalList::merge(intervalList *IL) {
+  //bool  isSorted = _isSorted;
+  //bool  isMerged = _isMerged;
+
+  for (u32bit i=0; i<IL->_listLen; i++)
+    add(IL->_list[i].lo, IL->_list[i].hi - IL->_list[i].lo);
+
+  //if (isSorted)  sort();
+  //if (isMerged)  merge();
+}
 
 
 void

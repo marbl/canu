@@ -21,7 +21,7 @@ struct _intervalDepth {
 
 class intervalList {
 public:
-  intervalList();
+  intervalList(u32bit initialSize=32);
   ~intervalList();
 
   intervalList &operator=(intervalList &src);
@@ -61,6 +61,7 @@ public:
     return(len);
   };
 
+
   //  Populates an array with the intervals that are within the
   //  supplied interval.  Return
   //
@@ -69,6 +70,10 @@ public:
                           u32bit          *&intervals,
                           u32bit           &intervalsLen,
                           u32bit           &intervalsMax);
+
+  //  Adds all the intervals in IL to this list
+  //
+  void        merge(intervalList *IL);
 
   //  Populates this intervalList with the intersection of A and B.
   //  This intervalList is not cleared prior to adding new intervals.
