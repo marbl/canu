@@ -1,10 +1,10 @@
 # -*- makefile -*-
 
-LIBUTL/       :=$/libutl/
 LIBBIO/       :=$/libbio/
-LIBMERYL/     :=$/libmeryl/
 LIBKMER/      :=$/libkmer/
+LIBMERYL/     :=$/libmeryl/
 LIBSIM4/      :=$/libsim4/
+LIBUTL/       :=$/libutl/
 
 
 # Bah!  Order is important here.  It would be nice to get things to
@@ -27,9 +27,6 @@ $(eval $(call Include,$/seatac/))
 $(eval $(call Include,$/sim4dbutils/))
 $(eval $(call Include,$/sim4db/))
 $(eval $(call Include,$/snapper/))
-
-$(eval $(call Include,$/mst/))
-$(eval $(call Include,$/bigmeroverlaps/))
 
 $(eval $(call Include,${LIBSIM4/}))
 $(eval $(call Include,${LIBKMER/}))
