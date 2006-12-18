@@ -3,11 +3,11 @@
 #include <errno.h>
 #include <string.h>
 #include <ctype.h>
-
 #include "fasta-simple.h"
 
 
-fastaReader    *FastAopen(char *filename) {
+fastaReader*
+FastAopen(char *filename) {
   fastaReader *r;
 
   errno = 0;
@@ -29,15 +29,16 @@ fastaReader    *FastAopen(char *filename) {
 }
 
 
-fastaSequence  *FastAget(fastaReader *r) {
+fastaSequence*
+FastAget(fastaReader *r) {
   fastaSequence *fs;
   char           ch;
 
-  u32bit         hLen = 0;
-  u32bit         hMax = 128;
+  int            hLen = 0;
+  int            hMax = 128;
   char          *h    = (char *)malloc(sizeof(char) * (hMax + 1));
-  u32bit         sLen = 0;
-  u32bit         sMax = 16 * 1024 * 1024;
+  int            sLen = 0;
+  int            sMax = 16 * 1024 * 1024;
   char          *s    = (char *)malloc(sizeof(char) * (sMax + 1));
 
   //  Return end if we are at the end of the file
@@ -115,7 +116,8 @@ fastaSequence  *FastAget(fastaReader *r) {
 }
 
 
-void            FastAfree(fastaSequence *f) {
+void
+FastAfree(fastaSequence *f) {
   if (f) {
     free(f->header);
     free(f->seq);
@@ -124,8 +126,8 @@ void            FastAfree(fastaSequence *f) {
 }
 
 
-void            FastAclose(fastaReader *r) {
+void
+FastAclose(fastaReader *r) {
   fclose(r->fileptr);
   free(r);
 }
-

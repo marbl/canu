@@ -1,12 +1,25 @@
 #ifndef FASTA_SIMPLE_H
 #define FASTA_SIMPLE_H
 
+//  A very simple C-callable multi-fasta file reader.  No random
+//  access or other fancy features, just a simple sequence-by-sequence
+//  reader.
 //
-//  A very simple C based fasta reader.  No random access, just open a file,
-//  get sequence, get sequence, get sequence, close file.
+//  Example usage:
+//
+//  fastaReader   *r = FastAopen("file.fasta");
+//  fastaSequence *s = FastAget(r);
+//
+//  while (s) {
+//    fprintf(stdout, "%s\n%s\n", s->header, s->seq);
+//    FastAfree(s);
+//    s = FastAget(r);
+//  }
+//
+//  FastAclose(r);
 //
 
-#include "libbritypes.h"
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -14,9 +27,9 @@ extern "C" {
 
 typedef struct {
   char     *header;
-  u32bit    headerLen;
+  int       headerLen;
   char     *seq;
-  u32bit    seqLen;
+  int       seqLen;
 } fastaSequence;
 
 
