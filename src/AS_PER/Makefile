@@ -47,7 +47,7 @@ AS_PER_TEST_OBJS = $(AS_PER_TEST_SOURCES:.c=.o)
 
 OBJECTS = $(AS_PER_OBJS) $(AS_PER_TEST_OBJS)
 
-LIBRARIES = libAS_PER.a 
+LIBRARIES = libAS_PER.a libCA.a
 
 PROGS = testFragStore dumpFragStore testLoad FragStoreStats \
 	dumpFragDB PopulateFragStore partitionFragStore \
@@ -84,13 +84,15 @@ install: all
 
 objects: $(AS_PER_OBJS)
 
+libAS_PER.a: $(AS_PER_OBJS)
+
+libCA.a: $(AS_PER_OBJS)
 
 # Test for Frag Store
 # Should have additional tests for generic stores
 testFragStore: $(AS_PER_OBJS) testFragStore.o libAS_UTL.a 
 
 #stressFragStore: $(AS_PER_OBJS) stressFragStore.o AS_PER_fragDB.o libAS_UTL.a  $(OCISHAREDLIBS) 
-
 
 testLoad: $(AS_PER_OBJS) testLoad.o libAS_UTL.a 
 
@@ -117,5 +119,3 @@ partitionFragStore: $(AS_PER_OBJS) partitionFragStore.o libAS_UTL.a
 testFrgStoreSizes: $(AS_PER_OBJS) testFrgStoreSizes.o libAS_UTL.a
 
 resetFrgStoreToCNSClr: $(AS_PER_OBJS) resetFrgStoreToCNSClr.o libAS_UTL.a
-
-libAS_PER.a: $(AS_PER_OBJS)

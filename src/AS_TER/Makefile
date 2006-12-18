@@ -158,4 +158,3 @@ terminator:              $(TERM_OBJS)    libCA.a
 asmProcessScaffolds_TER: $(PRCSCF_OBJS)  libCA.a
 asmOutputContigsFasta:   $(CTGOUT_OBJS)  libCA.a
 asm2bac:                 $(ASM2BAC_OBJS) libCA.a
-

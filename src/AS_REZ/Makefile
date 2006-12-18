@@ -93,7 +93,7 @@ SCRIPTS=get-repchunk print-ali extract-uoms.pl extract-lsf-uoms.pl concat-uoms.p
 OBJECTS = $(SOURCES:.c=.o) 
 LIBOBJECTS = $(LIBSOURCES:.c=.o) 
 
-LIBRARIES = libAS_REZ.a
+LIBRARIES = libAS_REZ.a libCA.a
 
 # PROGS = batchify chunk_analyze getrep pc screen-degrees screen-olaps st st2 mh
 #PROGS = batchify chunk_analyze screen-degrees screen-olaps  microhet-simulator  greedy-overlap microhet length-adaption extract-quality-uoms
@@ -111,6 +111,10 @@ install: $(SCRIPTS)
 
 
 all: $(OBJECTS) $(LIBRARIES) $(PROGS) install
+
+libAS_REZ.a: $(LIBOBJECTS) 
+
+libCA.a: $(LIBOBJECTS)
 
 batchify:  batchify.o libAS_MSG.a libAS_UTL.a
 
@@ -142,8 +146,6 @@ microhet-simulator : MicroHetInterfaceREZ.o MicroHetSimulatorREZ.o MicroHetREZ.o
 microhet-pairsim : MicroHetInterfaceREZ.o MicroHetPairSimREZ.o MicroHetREZ.o MicroHetPartitionsREZ.o MicroHetScoreREZ.o  libCA.a
 
 check-distributions: CheckDistributionREZ.o PartitionsREZ.o ScoreREZ.o UtilsREZ.o libAS_MSG.a libAS_SDB.a libAS_UTL.a
-
-libAS_REZ.a: $(LIBOBJECTS) 
 
 microhet-clean :
 	rm  MicroHet*.o ${LOCAL_OBJ}/MicroHet*.o

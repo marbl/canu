@@ -21,9 +21,6 @@
 #
 ###########################################################################
 #
-#VERBOSE=1
-
-# Makefile for celamy viewer
 
 COMMON_SOURCES = wpack.c button.c
 COMMON_OBJECTS = $(COMMON_SOURCES:.c=.o)

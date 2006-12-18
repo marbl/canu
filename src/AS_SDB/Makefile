@@ -59,7 +59,7 @@ SOURCES = $(LIB_SOURCES) \
           PartitionSequenceDB2.c
 OBJECTS = $(SOURCES:.c=.o)
 
-LIBRARIES = libAS_SDB.a
+LIBRARIES = libAS_SDB.a libCA.a
 
 PROGS = SDButil \
         PartitionSDB \
@@ -72,6 +72,8 @@ include $(LOCAL_WORK)/src/c_make.as
 all: $(OBJECTS) $(LIBRARIES) $(PROGS)
 
 libAS_SDB.a: $(LIB_OBJECTS)
+
+libCA.a: $(LIB_OBJECTS)
 
 SDButil:                      SDButil.o                       libCA.a
 PartitionSDB:                 PartitionSDB.o                  libCA.a

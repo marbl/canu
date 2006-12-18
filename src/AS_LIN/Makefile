@@ -32,7 +32,7 @@ LIB_SOURCES = dpbtrf.c dpbtrs.c daxpy.c dgemm.c dgemv.c dlamch.c dpbtf2.c \
 
 LIB_OBJECTS = $(LIB_SOURCES:.c=.o)
 
-LIBRARIES = libAS_LIN.a
+LIBRARIES = libAS_LIN.a libCA.a
 
 AS_LIN_SRCS = dpbtrf.c dpbtrs.c daxpy.c dgemm.c dgemv.c dlamch.c dpbtf2.c \
               dpotf2.c dptrfs.c dpttrs.c dsyr.c dsyrk.c dtbsv.c dtrsm.c \
@@ -55,3 +55,5 @@ install: all
 	echo "Nothing to be done for AS_LIN"
 
 libAS_LIN.a: $(LIB_OBJECTS)
+
+libCA.a: $(LIB_OBJECTS)

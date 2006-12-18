@@ -66,7 +66,7 @@ SOURCES = $(LIB_SOURCES) \
           miniunitigger_test.c
 OBJECTS = $(SOURCES:.c=.o)
 
-LIBRARIES = libAS_CGB.a
+LIBRARIES = libAS_CGB.a libCA.a
 
 PROGS = unitigger \
         AS_CGB_fom2uom \
@@ -89,6 +89,8 @@ all: $(OBJECTS) $(LIBRARIES) $(PROGS) install
 
 libAS_CGB.a: $(LIB_OBJECTS)
 
+libCA.a: $(LIB_OBJECTS)
+
 make_OFG_from_FragStore: make_OFG_from_FragStore.o libAS_PER.a libAS_UTL.a 
 
 miniunitigger_test: miniunitigger_test.o $(LIB_OBJECTS) libCA.a
@@ -107,7 +109,3 @@ regression:
 	@echo "NO REGRESSION"
 tester:
 	@echo "NO TESTER"
-
-
-
-

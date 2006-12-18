@@ -102,7 +102,8 @@ CGW_OBJECTS = $(CGW_SOURCES:.c=.o)
 OBJECTS = $(CGW_OBJECTS) 
 CGW_LIB_OBJECTS = $(CGW_LIB_SOURCES:.c=.o)
 
-LIBRARIES = libAS_CGW.a
+LIBRARIES = libAS_CGW.a libCA.a
+ALL_LIBRARIES = libCA.a
 
 PROGS = cgw extendClearRanges CheckILK Checkpoint process_scaffolds loadcgw \
         ScaffoldMap testSplitChunks instrumentCheckpoint \
@@ -119,7 +120,9 @@ include $(LOCAL_WORK)/src/c_make.as
 
 all: $(OBJECTS) $(LIBRARIES) $(PROGS)
 
-ALL_LIBRARIES = libCA.a
+libAS_CGW.a: $(CGW_LIB_OBJECTS)
+
+libCA.a: $(CGW_LIB_OBJECTS)
 
 cgw: AS_CGW_main.o $(ALL_LIBRARIES)
 
@@ -192,5 +195,3 @@ frgs2clones: frgs2clones.o $(ALL_LIBRARIES)
 dumpDistanceEstimates: dumpDistanceEstimates.o $(ALL_LIBRARIES) 
 
 resolveSurrogates: resolveSurrogates.o $(ALL_LIBRARIES)
-
-libAS_CGW.a: $(CGW_LIB_OBJECTS)

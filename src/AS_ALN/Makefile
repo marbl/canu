@@ -65,7 +65,7 @@ SOURCES = $(TEST1_SOURCES) $(TEST2_SOURCES)\
           $(LIB_SOURCES) $(RC_SOURCES) 
 OBJECTS = $(SOURCES:.c=.o)
 
-LIBRARIES = libAS_ALN.a
+LIBRARIES = libAS_ALN.a libCA.a
 
 PROGS = AS_ALN_testdriver1 AS_ALN_testdriver2 AS_ALN_testdriver4\
 	AS_ALN_testdriver5 AS_ALN_testsat AS_ALN_test_vt AS_ALN_revcompl\
@@ -79,6 +79,8 @@ default: all
 all: $(OBJECTS) $(LIBRARIES) $(PROGS)
 
 libAS_ALN.a: $(LIB_OBJECTS)
+
+libCA.a: $(LIB_OBJECTS)
 
 AS_ALN_testdriver1: $(TEST1_OBJECTS) $(LIBRARIES) libCA.a
 

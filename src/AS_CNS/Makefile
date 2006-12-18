@@ -23,7 +23,7 @@
 
 LIB_SOURCES = MultiAlignment_CNS.c MultiAlignStore_CNS.c Array_CNS.c
 LIB_OBJECTS = $(LIB_SOURCES:.c=.o)
-LIBRARIES = libAS_CNS.a
+LIBRARIES = libAS_CNS.a libCA.a
 LOCAL_WORK = $(shell cd ../..; pwd)
 
 
@@ -61,6 +61,8 @@ install: all
 	echo "Nothing to be done for AS_CNS"
 
 libAS_CNS.a: $(LIB_OBJECTS)
+
+libCA.a: $(LIB_OBJECTS)
 
 LIBS =  libCA.a
 

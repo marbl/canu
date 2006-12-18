@@ -64,7 +64,7 @@ SOURCES = $(AS_OVL_CA_SRCS) $(AS_OVL_SRCS) $(AS_OVL_CMN_SRCS) $(CORRECT_SRCS) \
 OBJECTS = $(AS_OVL_CA_OBJS) $(AS_OVL_OBJS) $(AS_OVL_CMN_OBJS) $(CORRECT_OBJS) \
   $(SCREEN_OBJS) $(SCRIPT_OBJS) $(TOOL_OBJS) $(OLAPSTORE_OBJS) $(CXX_OBJECTS)
 
-LIBRARIES = libAS_OVL.a
+LIBRARIES = libAS_OVL.a libCA.a
 
 AS_LIBRARIES = libCA.a
 SYS_LIBRARIES = 
@@ -106,35 +106,21 @@ ifeq ($(OSTYPE), OSF1)
 endif
 
 ifeq ($(OSTYPE), FreeBSD)
-  #LDFLAGS  += -pthread
-  #CFLAGS   += -pthread
-  #CPPFLAGS += -pthread
 endif
 
 ifeq ($(OSTYPE), Darwin)
 endif
 
 
-#ifeq ($(OSTYPE), aix)
-#  PTHREADS_LIBS=libc_r.so /usr/lib/libpthread.so
-#  PTHREADS_LIBS=libc_r.a /usr/lib/libpthread.a
-#endif
-
-#ifeq ($(OSTYPE), Darwin)
-#  PTHREADS_LIBS=libc_r.so /usr/lib/libpthread.dylib
-#  PTHREADS_LIBS=libc_r.a /usr/lib/libpthread.dylib
-#endif
-
-#ifeq ($(OSTYPE), OSF1)
-#  PTHREADS_LIBS=-lpthread
-#  PTHREADS_LIBS=/usr/lib/libpthread.so
-#endif
-
 all:    $(OBJECTS) $(LIBRARIES) $(PROGS) install
 
 install: $(SCRIPTS)
 	@chmod ugo+x $(SCRIPTS)
 	@cp -f $(SCRIPTS) $(LOCAL_BIN)
+
+libAS_OVL.a: $(LIBOBJECTS) AS_OVL_delcher.o
+
+libCA.a: $(LIBOBJECTS) AS_OVL_delcher.o
 
 auto-screen:  AutoScreenOVL.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
 
@@ -176,8 +162,6 @@ isn2frg:  isn2frgOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
 
 lastfraginstore:  LastFragInStoreOVL.o  $(AS_LIBRARIES) $(SYS_LIBRARIES)
 
-libAS_OVL.a: $(LIBOBJECTS) AS_OVL_delcher.o
-
 make-newbactigovl-script:  NewBactigScriptOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
 
 make-newfragovl-script:  NewFragScriptOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
@@ -215,6 +199,3 @@ overlap_ca: $(AS_OVL_CA_OBJS) $(AS_OVL_CMN_OBJS) $(AS_LIBRARIES) $(SYS_LIBRARIES
 #	../AS_MSG/AS_MSG_pmesg.o ../AS_UTL/AS_UTL_Hash.o $(LOADLIBES)
 #
 #
-
-
-
