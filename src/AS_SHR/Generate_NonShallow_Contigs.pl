@@ -22,7 +22,7 @@
 #
 ##########################################################################
 
-# $Id: Generate_NonShallow_Contigs.pl,v 1.2 2006-01-11 20:58:00 eliv Exp $
+# $Id: Generate_NonShallow_Contigs.pl,v 1.3 2006-12-18 20:59:41 eliv Exp $
 
 use strict;
 use Getopt::Std;
@@ -31,9 +31,9 @@ use Annotation::UID;
 use vars qw($opt_a $opt_f $opt_s);
 
 my $MIN_COVERAGE=1;
-
 #  Should be 2 if there are "fake" reads in ace file
 
+my $MIN_READS=4;
 my $MIN_CONTIG_SIZE=600;
 
 getopts("a:f:s:");
@@ -181,7 +181,7 @@ for($contig_idx=0; $contig_idx<$num_contigs; $contig_idx++){
 		$avg_cov=$cov_sum/$sub_seq_len;
 		#print "$avg_cov\n";
 
-		if($sub_seq_len>=$MIN_CONTIG_SIZE){
+		if($num_reads > $MIN_READS && $sub_seq_len>=$MIN_CONTIG_SIZE){
 			# Extract contig sequence
 			my $sub_contig_seq=substr(
 				$consensus_sequence,
