@@ -14,8 +14,6 @@
  * into proprietary software; there is no requirement for such software to
  * contain a copyright notice related to this source.
  *
- * $Id$
- * $Name$
  */
 
 #define NDEBUG
@@ -26,10 +24,6 @@
 #include <assert.h>
 #define DICT_IMPLEMENTATION
 #include "dict.h"
-
-#ifdef KAZLIB_RCSID
-static const char rcsid[] = "$Id$";
-#endif
 
 //  bpw 20050309 define this to use a qsort(3) compatible sort function,
 //  requiring two dereferences to get the data instead of one.

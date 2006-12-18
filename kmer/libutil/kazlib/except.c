@@ -13,8 +13,7 @@
  * This source code may be translated into executable form and incorporated
  * into proprietary software; there is no requirement for such software to
  * contain a copyright notice related to this source.
- * $Id$
- * $Name$
+ *
  */
 
 #include <assert.h>
@@ -25,10 +24,6 @@
 #include "except.h"
 
 #define XCEPT_BUFFER_SIZE	1024
-
-#ifdef KAZLIB_RCSID
-static const char rcsid[] = "$Id$";
-#endif
 
 #define group except_group
 #define code except_code

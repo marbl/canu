@@ -3,8 +3,6 @@
 //  BSD and Tru64 don't work if this isn't defined.
 //
 
-//  $Id$
-
 #if defined(__bsd) || defined(__alpha)
 
 #ifndef _POSIX_C_SOURCE

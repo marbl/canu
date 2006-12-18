@@ -288,6 +288,3 @@ New in 1.5
        the data structure is empty. [Rationale: it is undesirable to switch to
        a different allocator when there are nodes in the dictionary; it might
        lead to the error of freeing a node with an incorrect allocator.]
-
-$Id$
-$Name$

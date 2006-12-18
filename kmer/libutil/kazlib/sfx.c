@@ -17,8 +17,6 @@
  * into proprietary software; there is no requirement for such software to
  * contain a copyright notice related to this source.
  *
- * $Id$
- * $Name$
  */
 
 #include <ctype.h>
@@ -30,10 +28,6 @@
 #include "hash.h"
 #ifdef KAZLIB_POSIX_THREADS
 #include <pthread.h>
-#endif
-
-#ifdef KAZLIB_RCSID
-static const char rcsid[] = "$Id$";
 #endif
 
 /*

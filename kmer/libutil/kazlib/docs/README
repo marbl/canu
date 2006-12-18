@@ -64,6 +64,3 @@ making it possible to determine the ``bill of materials'' that went into an
 executable build. I have now wrapped the declarations of these rcsid[] arrays
 so they are conditional on KAZLIB_RCSID being defined. For many users, these
 are just a waste of space.
-
-$Id$
-$Name$

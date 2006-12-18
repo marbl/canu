@@ -3,14 +3,6 @@
 #include <stdlib.h>
 #include "aHit.H"
 
-//  $Id$
-
-#ifdef TRUE64BIT
-char const *hitStr = "%u hits.\r";
-#else
-char const *hitStr = "%lu hits.\r";
-#endif
-
 void
 bin2asc(FILE *I, FILE *O) {
   u32bit  i = 0;
@@ -25,13 +17,13 @@ bin2asc(FILE *I, FILE *O) {
       ahit_printASCII(&a, O);
 
       if ((++i & 0xffff) == 0) {
-        fprintf(stderr, hitStr, i);
+        fprintf(stderr, u32bitFMT" hits.\r", i);
         fflush(stderr);
       }
     }
   }
 
-  fprintf(stderr, hitStr, i);
+  fprintf(stderr, u32bitFMT" hits.\r", i);
   fprintf(stderr, "\n");
 }
 
@@ -52,13 +44,13 @@ asc2bin(FILE *I, FILE *O) {
       ahit_writeBinary(&a, O);
 
       if ((++i & 0xffff) == 0) {
-        fprintf(stderr, hitStr, i);
+        fprintf(stderr, u32bitFMT" hits.\r", i);
         fflush(stderr);
       }
     }
   }
 
-  fprintf(stderr, hitStr, i);
+  fprintf(stderr, u32bitFMT" hits.\r", i);
   fprintf(stderr, "\n");
 }
 

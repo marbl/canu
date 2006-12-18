@@ -14,8 +14,6 @@
  * into proprietary software; there is no requirement for such software to
  * contain a copyright notice related to this source.
  *
- * $Id$
- * $Name$
  */
 
 
@@ -42,10 +40,6 @@
 #define list_last_priv(L)	((L)->nilnode.prev)
 #define lnode_next(N)		((N)->next)
 #define lnode_prev(N)		((N)->prev)
-
-#ifdef KAZLIB_RCSID
-static const char rcsid[] = "$Id$";
-#endif
 
 /*
  * Initialize a list object supplied by the client such that it becomes a valid

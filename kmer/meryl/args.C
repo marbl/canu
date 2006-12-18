@@ -333,7 +333,7 @@ merylArgs::merylArgs(int argc, char **argv) {
       buildinfo_libutil(stderr);
       exit(1);
     } else if (strncmp(argv[arg], "-V", 2) == 0) {
-      fprintf(stdout, "meryl the Mighty Mer Counter version $Id$\n");
+      fprintf(stdout, "meryl the Mighty Mer Counter version (no version)\n");
       exit(0);
     } else if (strcmp(argv[arg], "-m") == 0) {
       arg++;

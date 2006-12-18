@@ -14,8 +14,6 @@
  * into proprietary software; there is no requirement for such software to
  * contain a copyright notice related to this source.
  *
- * $Id$
- * $Name$
  */
 
 #include <stdlib.h>
@@ -24,10 +22,6 @@
 #include <string.h>
 #define HASH_IMPLEMENTATION
 #include "hash.h"
-
-#ifdef KAZLIB_RCSID
-static const char rcsid[] = "$Id$";
-#endif
 
 #define INIT_BITS	6
 #define INIT_SIZE	(1UL << (INIT_BITS))	/* must be power of two		*/

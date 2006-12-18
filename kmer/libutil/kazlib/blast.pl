@@ -13,9 +13,6 @@
 # The purpose of using the prime modulus number is to generate a repeatable
 # sequence of unique keys that is (possibly) not in sorted order.
 #
-# $Id$
-# $Name$
-#
 
 # $modulus = 200003;
 # $factor_i = 100;
