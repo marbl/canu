@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_global.h,v 1.4 2006-11-14 19:58:20 eliv Exp $	 */
+/* 	$Id: AS_global.h,v 1.5 2006-12-18 19:55:46 brianwalenz Exp $	 */
 
 /* This is the global include file that all C files in the AS subsystem should
    include.
@@ -161,14 +161,15 @@ typedef double float64;
   #define F_PID_TP    "d"
 
   #if defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS == 32)
-    // off_t is 32-bin
+    // off_t is 32-bit
+    #error I don't support 32-bit off_t.
     #define F_OFF_T   "%ld"
     #define F_OFF_TP   "ld"
-  #else
-    // off_t is 64-bit
-    #define F_OFF_T   "%lld"
-    #define F_OFF_TP   "lld"
   #endif
+
+  // off_t is 64-bit
+  #define F_OFF_T   "%lld"
+  #define F_OFF_TP   "lld"
 
   #define STR_TO_UID     strtoull
   #define STR_TO_UINT64  strtoull
@@ -178,21 +179,8 @@ typedef double float64;
   #define FILEOFFSET_MASK   0x0000ffffffffffffULL
   #define LOCALE_OFFSET            10000000000ULL  // 10^10 > 2^32
 
-  #ifdef _LARGEFILE_SOURCE
-    // ftello & fseeko available & preferable
-    #define CDS_FTELL ftello
-    #define CDS_FSEEK fseeko
-  #else
-    #ifdef _LARGEFILE64_SOURCE
-      // ftello64 & fseeko64 available & needed?
-      #define CDS_FTELL ftello64
-      #define CDS_FSEEK fseeko64
-    #else
-      // use standard ftell & fseek
-      #define CDS_FTELL ftell
-      #define CDS_FSEEK fseek
-    #endif
-  #endif
+  #define CDS_FTELL ftello
+  #define CDS_FSEEK fseeko
 
   //========== SIMULATOR-specific
   // Fix initial creation time & uid in celsim to support regression testing 
