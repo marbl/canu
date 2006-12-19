@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_global.h,v 1.5 2006-12-18 19:55:46 brianwalenz Exp $	 */
+/* 	$Id: AS_global.h,v 1.6 2006-12-19 01:37:43 brianwalenz Exp $	 */
 
 /* This is the global include file that all C files in the AS subsystem should
    include.
@@ -162,7 +162,7 @@ typedef double float64;
 
   #if defined(_FILE_OFFSET_BITS) && (_FILE_OFFSET_BITS == 32)
     // off_t is 32-bit
-    #error I don't support 32-bit off_t.
+    #error I do not support 32-bit off_t.
     #define F_OFF_T   "%ld"
     #define F_OFF_TP   "ld"
   #endif
