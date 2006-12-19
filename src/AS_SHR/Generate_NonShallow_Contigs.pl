@@ -22,7 +22,7 @@
 #
 ##########################################################################
 
-# $Id: Generate_NonShallow_Contigs.pl,v 1.3 2006-12-18 20:59:41 eliv Exp $
+# $Id: Generate_NonShallow_Contigs.pl,v 1.4 2006-12-19 21:32:50 eliv Exp $
 
 use strict;
 use Getopt::Std;
@@ -88,11 +88,17 @@ my $uidServ = new Annotation::UID( $uidBatchSize, $uidNamespace);
 my $contig_idx;
 for($contig_idx=0; $contig_idx<$num_contigs; $contig_idx++){
 
-	my %read_length_hash;
 	my %read_position_hash;
 
 	my ($contig_id, $num_consensus_bases, $num_reads, $num_segments, $complementation, $consensus_sequence)=
 		read_CO($fh);
+
+	my @coverage_array;
+	my $i;
+	# Initialize Coverage Array
+	for($i=0; $i<$num_consensus_bases; $i++){
+		$coverage_array[$i]=0;
+	}
 
 	#print STDOUT "$contig_id: num_reads: $num_reads \n$consensus_sequence\n";
 
@@ -101,7 +107,7 @@ for($contig_idx=0; $contig_idx<$num_contigs; $contig_idx++){
 	my $read_idx;
 	for($read_idx=0; $read_idx<$num_reads; $read_idx++){
 		my ($read_id, $complementation, $consensus_start_pos)=read_AF($fh);
-		$read_position_hash{$read_id}=$consensus_start_pos-1; #convert to space based
+		$read_position_hash{$read_id}=$consensus_start_pos;
 	}
 
 	my ($base_line_start, $base_line_end, $base_line_read_id)=read_BS($fh);
@@ -109,35 +115,28 @@ for($contig_idx=0; $contig_idx<$num_contigs; $contig_idx++){
 	for($read_idx=0; $read_idx<$num_reads; $read_idx++){
 		my ($read_id, $num_padded_bases, $num_read_info_items, $num_read_tags, $read_sequence)=
 			read_RD($fh);
-		$read_length_hash{$read_id}=$num_padded_bases;
-
 		my ($qual_start, $qual_end, $align_start, $align_end)=read_QA($fh);
+		my $startPos = $read_position_hash{$read_id};
+
+        my ($begin,$end);
+        if ( $startPos == 0 ) {
+            $begin = $align_start;
+            $end   = $align_end;
+        } elsif ( $startPos < 0 ) {
+            $begin = $align_start + $startPos - 1 ;
+            $end   = $align_end   + $startPos - 1;
+        } else {
+            $begin = $align_start - $startPos + 1;
+            $end   = $align_end   - $startPos + 1;
+        }
+		#print STDOUT "$read_id: $begin-$end\n";
+		for($i=$begin; $i<$end; $i++){
+			$coverage_array[$i]++;
+		}
 		my ($null)=read_DS($fh);
 	}
 
 	#######################################################################	
-
-
-	my @coverage_array;
-	my $i;
-
-	# Initialize Coverage Array
-	for($i=0; $i<$num_consensus_bases; $i++){
-		$coverage_array[$i]=0;
-	}
-
-	# Record coverage
-	foreach my $read_id(keys %read_position_hash){
-
-		my $begin=$read_position_hash{$read_id};
-		my $end=$begin+$read_length_hash{$read_id};
-
-		#print STDOUT "$read_id: $begin-$end\n";
-
-		for($i=$begin; $i<$end; $i++){
-			$coverage_array[$i]++;
-		}
-	}
 
 	my $in_deep_enough=0;
 	my @sub_contig_begin_arr;
