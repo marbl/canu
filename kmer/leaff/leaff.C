@@ -632,7 +632,7 @@ printIDsFromFile(char *name) {
 
 md5_s *
 computeMD5ForEachSequence(FastAWrapper *F) {
-  u32bit   numSeqs = fasta->getNumberOfSequences();
+  u32bit   numSeqs = F->getNumberOfSequences();
   md5_s   *result  = new md5_s [numSeqs];
 
   F->find((u32bit)0);
