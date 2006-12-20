@@ -22,7 +22,7 @@
 #
 ##########################################################################
 
-# $Id: Generate_NonShallow_Contigs.pl,v 1.4 2006-12-19 21:32:50 eliv Exp $
+# $Id: Generate_NonShallow_Contigs.pl,v 1.5 2006-12-20 14:58:15 eliv Exp $
 
 use strict;
 use Getopt::Std;
@@ -118,17 +118,8 @@ for($contig_idx=0; $contig_idx<$num_contigs; $contig_idx++){
 		my ($qual_start, $qual_end, $align_start, $align_end)=read_QA($fh);
 		my $startPos = $read_position_hash{$read_id};
 
-        my ($begin,$end);
-        if ( $startPos == 0 ) {
-            $begin = $align_start;
-            $end   = $align_end;
-        } elsif ( $startPos < 0 ) {
-            $begin = $align_start + $startPos - 1 ;
-            $end   = $align_end   + $startPos - 1;
-        } else {
-            $begin = $align_start - $startPos + 1;
-            $end   = $align_end   - $startPos + 1;
-        }
+        my $begin = $align_start + $startPos - 1;
+        my $end   = $align_end   + $startPos - 1;
 		#print STDOUT "$read_id: $begin-$end\n";
 		for($i=$begin; $i<$end; $i++){
 			$coverage_array[$i]++;
