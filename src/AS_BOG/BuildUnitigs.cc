@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.13 2006-12-11 18:06:03 eliv Exp $
- * $Revision: 1.13 $
+ * $Id: BuildUnitigs.cc,v 1.14 2006-12-21 21:43:24 eliv Exp $
+ * $Revision: 1.14 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.13 2006-12-11 18:06:03 eliv Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.14 2006-12-21 21:43:24 eliv Exp $";
 
 //  System include files
 
@@ -141,20 +141,12 @@ int  main (int argc, char * argv [])
 	//std::cout<< utg << endl;
     char fileStr[16];
 	switch(i){
-		case 0:
-        sprintf( fileStr, "len%d.ium",iscr1);
-		utg.writeIUMtoFile(fileStr);
-		break;
-		case 1:
-        sprintf( fileStr, "len%d.ium",iscr2);
-		utg.writeIUMtoFile(fileStr);
-        outputHistograms( &utg );
-		break;
-		case 2:
-        sprintf( fileStr, "len%d.ium",iscr3);
-		utg.writeIUMtoFile(fileStr);
-		break;
+		case 0: sprintf( fileStr, "len%d.ium",iscr1); break;
+		case 1: sprintf( fileStr, "len%d.ium",iscr2); break;
+		case 2: sprintf( fileStr, "len%d.ium",iscr3); break;
 	}
+    utg.writeIUMtoFile(fileStr);
+    outputHistograms( &utg );
 	std::cerr << "///////////////////////////////////////////////////////////\n" << std::endl;
 
     delete bogRunner.metrics[i];
@@ -203,7 +195,7 @@ void outputHistograms(AS_BOG::UnitigGraph *utg) {
         int numFrags = u->getNumFrags();
         zork.sum_frags = zork.min_frags = zork.max_frags = numFrags;
 
-        int bases = u->getSumFragLength();
+        int bases = u->getLength();
         zork.sum_bp = zork.min_bp = zork.max_bp = bases;
 
         int rho = static_cast<int>(u->getAvgRho());
