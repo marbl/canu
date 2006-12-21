@@ -36,7 +36,11 @@ sub createFragmentCorrectionJobs {
     print F "frgEnd=`printf %08d \$frgEnd`\n";
     print F "\n";
     print F "if [ ! -e $wrk/2-frgcorr/$asm-\$frgBeg-\$frgEnd.success ] ; then\n";
-    print F "  $gin/correct-frags \\\n";
+    if (getGlobal('frgCorrOnGrid')) {
+        print F "  $gin/correct-frags \\\n";
+    } else {
+        print F "  $bin/correct-frags \\\n";
+    }
     print F "    -S $wrk/$asm.ovlStore \\\n";
     print F "    -o $scratch/$asm-\$frgBeg-\$frgEnd.frgcorr \\\n";
     print F "    $wrk/$asm.frgStore \\\n";
