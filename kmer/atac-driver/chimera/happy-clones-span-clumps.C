@@ -254,6 +254,8 @@ main(int argc, char **argv) {
   char                 ina[1024];
   char                 inb[1024];
 
+  speedCounter         S("%9.0f clones (%6.1f clones/sec)\r", 1, 4096, true);
+
   errno = 0;
   inf = fopen(happyFile, "r");
   if (errno)
@@ -282,30 +284,33 @@ main(int argc, char **argv) {
                                  atoi(B[9]));
 
     if (cla == ~u32bitZERO) {
-      fprintf(stdout, "%s spans clump in scaffold "u32bitFMT"\n", ina, scfa);
+      fprintf(stdout, "%s spans clump in scaffold %s,"u32bitFMT"\n", ina, A[7], scfa);
       cla = 0;
     }
     if (clb == ~u32bitZERO) {
-      fprintf(stdout, "%s spans clump in scaffold "u32bitFMT" \n", inb, scfb);
+      fprintf(stdout, "%s spans clump in scaffold %s,"u32bitFMT" \n", inb, B[7], scfb);
       clb = 0;
     }
 
     if ((cla != 0) &&
         (clb != 0) &&
         (cla != clb)) {
-      fprintf(stdout, "scaffold "u32bitFMT" clump "u32bitFMT" "u32bitFMT" confirmed by %s\n",
-              scfa,
+      fprintf(stdout, "scaffold %s,"u32bitFMT" clump "u32bitFMT" "u32bitFMT" confirmed by %s\n",
+              A[7], scfa,
               (cla < clb) ? cla : clb,
               (cla < clb) ? clb : cla,
               A[2]);
-    } else {
     }
+
+    S.tick();
 
     fgets(ina, 1024, inf);  chomp(ina);
     fgets(inb, 1024, inf);  chomp(inb);
   }
 
   fclose(inf);
+
+  S.finish();
 
   delete ct;
 }
