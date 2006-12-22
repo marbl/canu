@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.12 2006-11-14 19:58:21 eliv Exp $";
+static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.13 2006-12-22 19:52:06 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,7 +55,7 @@ CDS_COORD_t UnitigOffset;
 //#define INSTRUMENT_CUTOFF         3.0
 #define INSTRUMENT_CUTOFF         CGW_CUTOFF
 
-#define INTERVAL(a)  ((a)->mu + INSTRUMENT_CUTOFF * (a)->sigma)
+#define INTERVAL(a)  ((a)->mean + INSTRUMENT_CUTOFF * (a)->stddev)
 
 
 // should we print mate info for all clones or only long ones?
@@ -2463,7 +2463,7 @@ void PrintMateDetailAndDist(MateDetail * md,
           md->fragChunkIID, md->mateChunkIID,
           md->fragIID, md->fragOffset5p,
           md->mateIID, md->mateOffset5p,
-          md->type, dptr->mu, dptr->sigma);
+          md->type, dptr->mean, dptr->stddev);
 }
 
 
@@ -2508,14 +2508,14 @@ void PrintExternalMateDetailAndDist(MateDetail * md,
 	    md->fragChunkIID, md->mateChunkIID,
 	    md->fragIID, md->fragOffset5p,
 	    md->mateIID, md->mateOffset5p,
-	    md->type, dptr->mu, dptr->sigma);
+	    md->type, dptr->mean, dptr->stddev);
   } else {
     int fragLeftEnd,fragRightEnd,fragOri;
     int32 mateChunk,mateScf,mateCtg;
     assert(PRINTCELAMY==printtype);
 
     {
-      if(! USE_ALL_MATES && ! (USE_LONG_MATES && dptr->mu>15000))return;
+      if(! USE_ALL_MATES && ! (USE_LONG_MATES && dptr->mean>15000))return;
     }
 
     if(md->fragOffset5p<md->fragOffset3p){
@@ -2561,7 +2561,7 @@ void PrintExternalMateDetailAndDist(MateDetail * md,
 		md->fragIID,fragLeftEnd,
 		fragOri==A_B ? "A7CMColor" : "A8CMColor" ,
 		fragRightEnd,md->fragIID,fragOri==A_B?"A_B":"B_A",
-		dptr->mu,dptr->sigma,
+		dptr->mean,dptr->stddev,
 		unitig->id,
 		unitig->info.CI.numInstances,
 		locs);
@@ -2572,7 +2572,7 @@ void PrintExternalMateDetailAndDist(MateDetail * md,
 		md->fragIID,fragLeftEnd,
 		fragOri==A_B ? "A7CMColor" : "A8CMColor" ,
 		fragRightEnd,md->fragIID,fragOri==A_B?"A_B":"B_A",
-		dptr->mu,dptr->sigma,
+		dptr->mean,dptr->stddev,
 		mateChunk,mateCtg,mateScf);
       }
     }
@@ -4299,7 +4299,7 @@ void CheckMateLinkStatus(unsigned int innieMates,
     {
       cds_float32 dist = fabs(mate5p - frag5p);
 
-      if(dist > dptr->mu - INSTRUMENT_CUTOFF * dptr->sigma)
+      if(dist > dptr->mean - INSTRUMENT_CUTOFF * dptr->stddev)
         {
           if(dist < INTERVAL(dptr))
             *distStatus = DISTANCE_OKAY_INSTR;
@@ -4536,7 +4536,7 @@ void PrintScaffoldMateDetail(HashTable_AS * cpHT,
       fprintf(stderr,"tried to get dst %d but failed\n",tmpfrg->dist);
     }
     assert(dst!=NULL);
-    if(! USE_ALL_MATES && ! (USE_LONG_MATES && dst->mu>15000))return;
+    if(! USE_ALL_MATES && ! (USE_LONG_MATES && dst->mean>15000))return;
   }
 
   if(LookupInHashTable_AS(cpHT,&(tmpfrg->contigID),sizeof(cds_int32))==NULL){
