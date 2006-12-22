@@ -1,0 +1,15 @@
+# -*- makefile -*-
+
+LIBUTL/     :=$(call MakePath,$/../../libutil/)
+LIBBIO/     :=$(call MakePath,$/../../libbio/)
+LIBATAC/    :=$(call MakePath,$/../libatac/)
+
+$/.CXX_EXES := $/happy-clones-span-clumps
+$/.CXX_SRCS := $/happy-clones-span-clumps.C
+
+$/.CLEAN :=$/*.o $/*~ $/core
+
+$/happy-clones-span-clumps: $/happy-clones-span-clumps.o \
+                            ${LIBATAC/}libatac.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+
+$(eval $/%.d $/%.o:   CXXFLAGS+=-I${LIBATAC/} -I${LIBBIO/} -I${LIBUTL/})
