@@ -19,9 +19,16 @@ class atacClumpCoordTreeScaffold {
 public:
   atacClumpCoordTreeScaffold() {
     clumpsLen = 0;
-    clumpsMax = 8;
+    clumpsMax = 64;
     clumpID   = new u32bit [clumpsMax];
     clumps    = new intervalList * [clumpsMax];
+    clumpmin  = new u32bit [clumpsMax];
+    clumpmax  = new u32bit [clumpsMax];
+
+    clumpconfirm = new u32bit [clumpsMax * clumpsMax];
+
+    for (u32bit i=0; i<clumpsMax * clumpsMax; i++)
+      clumpconfirm[i] = 0;
 
     intervalsLen = 0;
     intervalsMax = 0;
@@ -33,6 +40,9 @@ public:
       delete clumps[i];
     delete [] clumpID;
     delete [] clumps;
+    delete [] clumpmin;
+    delete [] clumpmax;
+    delete [] clumpconfirm;
     delete [] intervals;
   };
 
@@ -51,6 +61,10 @@ public:
     for (u32bit i=0; i<clumpsLen; i++) {
       if (clumpID[i] == (u32bit)clumpid) {
         clumps[i]->add(begin, length);
+        if (clumpmin[i] > begin)
+          clumpmin[i] = begin;
+        if (clumpmax[i] < begin + length)
+          clumpmax[i] = begin + length;
         return;
       }
     }
@@ -65,6 +79,8 @@ public:
     clumpID[clumpsLen] = clumpid;
     clumps[clumpsLen]  = new intervalList;
     clumps[clumpsLen]->add(begin, length);
+    clumpmin[clumpsLen] = begin;
+    clumpmax[clumpsLen] = begin + length;
     clumpsLen++;
   };
 
@@ -73,12 +89,25 @@ public:
     u32bit  clumpid = 0;
     u32bit  numhits = 0;
 
-    //  We can make this much quicker if we remember the extent of each interval list.
-
+    //  We can make this much quicker if we remember the extent of
+    //  each interval list.
+    //
+    //  We want to allow partial matches, so check that the end is
+    //  above the min, and the begin is before the max.
+    //
+    //         b-------e               b-----e
+    //                 -------clump------
+    //
     for (u32bit i=0; i<clumpsLen; i++) {
-      if (clumps[i]->overlapping(begin, end, intervals, intervalsLen, intervalsMax) > 0) {
-        clumpid = clumpID[i];
-        numhits++;
+      if ((clumpmin[i] <= end) && (begin <= clumpmax[i])) {
+        if (clumps[i]->overlapping(begin, end, intervals, intervalsLen, intervalsMax) > 0) {
+          clumpid = clumpID[i];
+          numhits++;
+        }
+      } else {
+        //  If you really want to check....
+        //if (clumps[i]->overlapping(begin, end, intervals, intervalsLen, intervalsMax) > 0)
+        //  fprintf(stderr, "WARNING: Found overlapping clump outside extent!\n");
       }
     }
 
@@ -92,10 +121,59 @@ public:
   };
 
 
+  void    sortClumps(void) {
+    u32bit         ciid;
+    intervalList  *cptr;
+    u32bit         cmin;
+    u32bit         cmax;
+
+    u32bit         i = 0;
+    u32bit         j = 0;
+
+    //  an insertion sort
+
+    for (i=clumpsLen; i--; ) {
+      ciid = clumpID[i];
+      cptr = clumps[i];
+      cmin = clumpmin[i];
+      cmax = clumpmax[i];
+
+      for (j=i+1; (j < clumpsLen) && (cmin > clumpmin[j]); j++) {
+        clumpID[j-1]  = clumpID[j];
+        clumps[j-1]   = clumps[j];
+        clumpmin[j-1] = clumpmin[j];
+        clumpmax[j-1] = clumpmax[j];
+      }
+
+      clumpID[j-1]  = ciid;
+      clumps[j-1]   = cptr;
+      clumpmin[j-1] = cmin;
+      clumpmax[j-1] = cmax;
+    }
+  };
+
+
+  void    confirm(u32bit ca, u32bit cb) {
+    u32bit  caidx = 0;
+    u32bit  cbidx = 0;
+    for (u32bit i=0; i<clumpsLen; i++) {
+      if (ca == clumpID[i])
+        caidx = i;
+      if (cb == clumpID[i])
+        cbidx = i;
+    }
+    clumpconfirm[caidx * clumpsMax + cbidx]++;
+  };
+
+
   u32bit           clumpsLen;
   u32bit           clumpsMax;
   u32bit          *clumpID;
   intervalList   **clumps;
+  u32bit          *clumpmin;
+  u32bit          *clumpmax;
+
+  u32bit          *clumpconfirm;
 
   u32bit           intervalsLen;
   u32bit           intervalsMax;
@@ -118,6 +196,7 @@ public:
     delete [] scaffolds;
   };
 
+
   void    addMatch(u32bit scaffoldid, s32bit clumpid, u32bit begin, u32bit length) {
     if (scaffoldid >= scaffoldsMax) {
       fprintf(stderr, "ERROR: increase scaffoldsMax "u32bitFMT"\n", scaffoldid);
@@ -129,12 +208,84 @@ public:
 
     scaffolds[scaffoldid]->addMatch(clumpid, begin, length);
   };
-  
+
+
+  void    removeSingleClumpScaffolds(void) {
+    u32bit deleted = 0;
+    u32bit remain = 0;
+
+
+    for (u32bit i=0; i<scaffoldsMax; i++) {
+      if ((scaffolds[i]) && (scaffolds[i]->clumpsLen < 2)) {
+        delete scaffolds[i];
+        scaffolds[i] = 0L;
+        deleted++;
+      }
+      if (scaffolds[i]) {
+        scaffolds[i]->sortClumps();
+        remain++;
+      }
+    }
+    fprintf(stderr, "Deleted "u32bitFMT" scaffolds with less than 2 clumps.\n", deleted);
+    fprintf(stderr, "Remain  "u32bitFMT" scaffolds with more than 2 clumps.\n", remain);
+  };
+
+
+  void    showMultipleClumpScaffolds(void) {
+
+    for (u32bit i=0; i<scaffoldsMax; i++) {
+      if ((scaffolds[i]) && (scaffolds[i]->clumpsLen >= 2)) {
+
+        fprintf(stdout, "\n");
+
+        for (u32bit j=0; j<scaffolds[i]->clumpsLen; j++) {
+          bool  overlap = false;
+
+          if ((j+1 < scaffolds[i]->clumpsLen) &&
+              (scaffolds[i]->clumpmax[j] > scaffolds[i]->clumpmin[j+1]))
+            overlap = true;
+
+          fprintf(stdout, "scaffold "u32bitFMT" clump "u32bitFMT" begin "u32bitFMT" end "u32bitFMT"\n",
+                  i,
+                  scaffolds[i]->clumpID[j],
+                  scaffolds[i]->clumpmin[j],
+                  scaffolds[i]->clumpmax[j]);
+
+          if (overlap)
+            fprintf(stdout, "scaffold "u32bitFMT" clump "u32bitFMT" and clump "u32bitFMT" OVERLAP\n",
+                    i,
+                    scaffolds[i]->clumpID[j],
+                    scaffolds[i]->clumpID[j+1]);
+
+          for (u32bit b=0; b<scaffolds[i]->clumpsLen; b++) {
+            u32bit cc = j * scaffolds[i]->clumpsMax + b;
+            if (scaffolds[i]->clumpconfirm[cc]) {
+              fprintf(stdout, "scaffold "u32bitFMT" clump "u32bitFMT" and "u32bitFMT" confirmed by "u32bitFMT" clones.\n",
+                      i,
+                      scaffolds[i]->clumpID[j],
+                      scaffolds[i]->clumpID[b],
+                      scaffolds[i]->clumpconfirm[cc]);
+              
+            }
+          }
+        }
+      }
+    }
+  };
+
+
   u32bit  getClumpID(u32bit scaffoldid, u32bit begin, u32bit end) {
     if (scaffolds[scaffoldid])
       return(scaffolds[scaffoldid]->getClumpID(begin, end));
     return(0);
   };
+
+  void    confirmClump(u32bit scaffoldid, u32bit ca, u32bit cb) {
+    if (scaffolds[scaffoldid]) {
+      scaffolds[scaffoldid]->confirm(ca, cb);
+    }
+  };
+
   
   u32bit                       scaffoldsMax;
   atacClumpCoordTreeScaffold **scaffolds;
@@ -220,12 +371,17 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if (err) {
-    fprintf(stderr, "usage: %s ...\n", argv[0]);
-    exit(1);
-  }
+  if (clumpFile == 0L)
+    fprintf(stderr, "No -clumps supplied!\n"), err++;
+  if (happyFile == 0L)
+    fprintf(stderr, "No -happy clones supplied!\n"), err++;
+  if (err)
+    fprintf(stderr, "usage: %s ...\n", argv[0]), exit(1);
 
   atacClumpCoordTree *ct = buildCoordTree(clumpFile);
+
+  ct->removeSingleClumpScaffolds();
+  ct->showMultipleClumpScaffolds();
 
   ////////////////////////////////////////
   //
@@ -234,7 +390,13 @@ main(int argc, char **argv) {
   map<u64bit,u32bit>  UIDtoIID;
 
   {
-    FILE *F = fopen("/home/work/chimera/HUREF6A.info", "r");
+    char *uidmapName = "/project/huref6/assembly/fasta/HUREF6A.info";
+
+    errno = 0;
+    FILE *F = fopen(uidmapName, "r");
+    if (errno)
+      fprintf(stderr, "Failed to open '%s': %s\n", uidmapName, strerror(errno)), exit(1);
+
     char  L[1024];
 
     fgets(L, 1024, F);
@@ -295,6 +457,10 @@ main(int argc, char **argv) {
     if ((cla != 0) &&
         (clb != 0) &&
         (cla != clb)) {
+      ct->confirmClump(scfa,
+                       (cla < clb) ? cla : clb,
+                       (cla < clb) ? clb : cla);
+
       fprintf(stdout, "scaffold %s,"u32bitFMT" clump "u32bitFMT" "u32bitFMT" confirmed by %s\n",
               A[7], scfa,
               (cla < clb) ? cla : clb,
@@ -311,6 +477,8 @@ main(int argc, char **argv) {
   fclose(inf);
 
   S.finish();
+
+  ct->showMultipleClumpScaffolds();
 
   delete ct;
 }
