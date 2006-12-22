@@ -245,11 +245,19 @@ atacFileBase::readHeader(char *inLine, FILE *in) {
   //  Open some FastAWrappers for each of the files
   //
   if (_fileA && _fileA[0]) {
-    _seqA = new FastAWrapper(_fileA);
-    _seqA->openIndex();
+    if (fileExists(_fileA)) {
+      _seqA = new FastAWrapper(_fileA);
+      _seqA->openIndex();
+    } else {
+      fprintf(stderr, "atacFile::readHeader()-- can't find '%s', no sequence read.\n", _fileA);
+    }
   }
   if (_fileB && _fileB[0]) {
-    _seqB = new FastAWrapper(_fileB);
-    _seqB->openIndex();
+    if (fileExists(_fileA)) {
+      _seqB = new FastAWrapper(_fileB);
+      _seqB->openIndex();
+    } else {
+      fprintf(stderr, "atacFile::readHeader()-- can't find '%s', no sequence read.\n", _fileB);
+    }
   }
 }
