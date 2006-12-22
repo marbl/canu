@@ -214,7 +214,7 @@ matchesInInput(char *filename) {
   fgets(inLine, 1024, inFile);
 
   while (!feof(inFile)) {
-    if ((inLine[0] == 'M') && (inLine[2] == 'r'))
+    if ((inLine[0] == 'M') && (inLine[2] == 'u'))
       iid++;
     fgets(inLine, 1024, inFile);
   }
@@ -385,7 +385,8 @@ main(int argc, char **argv) {
       exit(1);
     }
 
-    if (clumpOut[hits[xx].clump] == false) {
+    if ((hits[xx].clump >= 0) &&
+        (clumpOut[hits[xx].clump] == false)) {
       atacMatch  C;
       sprintf(C.matchuid,  "clump"s32bitFMTW(06), hits[xx].clump);
       sprintf(C.parentuid, ".");
@@ -406,7 +407,10 @@ main(int argc, char **argv) {
       clumpOut[hits[xx].clump] = true;
     }
 
-    sprintf(m->parentuid, "clump"s32bitFMTW(06), hits[xx].clump);
+    if (hits[xx].clump >= 0)
+      sprintf(m->parentuid, "clump"s32bitFMTW(06), hits[xx].clump);
+    else
+      sprintf(m->parentuid, ".");
     m->print(stdout, AF.labelA(), AF.labelB());
 
     xx++;
