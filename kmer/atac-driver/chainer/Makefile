@@ -5,12 +5,7 @@
 # subdirectories.  As a result, you'll need to tweak the CCFLAGS a
 # bit, probably.
 
-CC      = g++
-CCFLAGS = -fpic -g -Wall -fmessage-length=0 -I/usr/local/include/python2.3
-CCFLAGS = -fPIC -g -Wall -fmessage-length=0 -I/home/bwalenz/linux64/include/python2.4
-CCFLAGS = -fpic -g -Wall -fmessage-length=0 -I/home/bwalenz/linux/include/python2.4
-CCFLAGS = -fpic -g -Wall                    -I/usr/local/include/python2.3
-CCFLAGS = -fpic -g -Wall                    -I/usr/local/include/python2.4
+include ../../Make.compilers
 
 SOURCE  = localalign/GF_ALN_dpaligner.cc \
           localalign/GF_ALN_local.cc \
@@ -56,4 +51,4 @@ halignmodule.so: halign/halignmodule.o halign/halign.o
 	$(CC) -shared -o $@ $^
 
 %.o: %.cc
-	$(CC) $(CCFLAGS) -o $@ -c $<
+	$(CC) -fpic $(CFLAGS_COMPILE) $(CFLAGS_PYTHON) -o $@ -c $<

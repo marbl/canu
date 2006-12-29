@@ -20,6 +20,7 @@ if [ ! -e Makefile ] ; then
   fi
 fi
 
+
 #  If no target, try to figure out one based on uname.  This defaults to
 #  the optimized target below.  If it works well, we can always use this
 #  mechanism, and extend with "debug" or "profile" (e.g., "./configure.sh debug")
@@ -61,6 +62,32 @@ if [ "x$target" = "x" ] ; then
       ;;
   esac
 fi
+
+
+
+#  Look for the python headers.  We don't need the libraries.  This is
+#  used by atac-driver/chainer only.
+#
+python=`which python`
+python=`dirname $python`
+python=`dirname $python`
+if [ -e $python/include/python2.3/Python.h ]
+then
+  CFLAGS_PYTHON="-I$python/include/python2.3"
+elif [ -e $python/include/python2.4/Python.h ]
+then
+  CFLAGS_PYTHON="-I$python/include/python2.4"
+elif [ -e /usr/local/include/python2.3/Python.h ]
+then
+  CFLAGS_PYTHON="-I/usr/local/include/python2.3"
+elif [ -e /usr/local/include/python2.4/Python.h ]
+then
+  CFLAGS_PYTHON="-I/usr/local/include/python2.4"
+else
+  echo "Can't find python."
+  exit 1
+fi
+
 
 
 case $target in
@@ -460,6 +487,7 @@ CCDEP		  := gcc -MM -MG
 CXXDEP	          := g++ -MM -MG
 CLIBS             += -lm -lbz2
 CXXLIBS           += -lm -lbz2
+CFLAGS_PYTHON     := $CFLAGS_PYTHON
 EOF
 
 cat Make.compilers
