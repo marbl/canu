@@ -427,7 +427,7 @@ for i in $(SUBDIRS);\
   do \
     if [ -d $$i ]; then \
       echo "############################## $$i ##############################"  ;\
-      $(MAKE) --no-print-directory -C $$i $(TGT) ;\
+        $(MAKE) -j 4 --no-print-directory -C $$i $(TGT) ;\
     fi; \
   done;
 endef
