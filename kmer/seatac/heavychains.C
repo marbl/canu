@@ -55,11 +55,11 @@ void StrandPair::addHit(char   direction,
                         u32bit filled) {
   Match tmp;
 
-  tmp.xlo   = xlo;
-  tmp.ylo   = ylo;
+  tmp.xlo = xlo;
+  tmp.ylo = ylo;
 
-  tmp.xhi   = xlo + xln;
-  tmp.yhi   = ylo + yln;
+  tmp.xhi = xlo + xln;
+  tmp.yhi = ylo + yln;
 
   // Use the match lengths to initialize the self scores.
   tmp.selfS = xln;
@@ -89,6 +89,7 @@ void StrandPair::addHit(char   direction,
 // new strand pair: begin processing data for the strand pair
 //
 void StrandPair::process(void) {
+  int swapi;
 
   if (Plen > 0) {
     if (beVerbose > 0)
@@ -103,15 +104,13 @@ void StrandPair::process(void) {
 	fprintf(stderr,"HeavyChains: arranging process quadrant %d\n", quadrant);
 
       if ((quadrant == 0) || (quadrant == 2)) {
-        for(unsigned i=0; i < Plen; ++i) {
-          int swapi;
+        for (int i=0; i<Plen; ++i) {
           swapi    = -P[i].xlo;
           P[i].xlo = -P[i].xhi;
           P[i].xhi = swapi;
         }
       } else {
-        for(unsigned i=0; i < Plen; ++i) {
-          int swapi;
+        for (int i=0; i<Plen; ++i) {
           swapi    = -P[i].ylo;
           P[i].ylo = -P[i].yhi;
           P[i].yhi = swapi;
@@ -120,17 +119,17 @@ void StrandPair::process(void) {
 
       if (beVerbose > 1)
 	fprintf(stderr,"HeavyChains: scoring quadrant\n");
-	  
+
       dp->treeScore();
-	  
+
       if (beVerbose>1)
 	fprintf(stderr,"HeavyChains: recording scores\n");
 
       switch(quadrant) {
-        case 0: for(unsigned i=0; i < Plen; ++i) P[i].nwS = P[i].S; break;
-        case 1: for(unsigned i=0; i < Plen; ++i) P[i].swS = P[i].S; break;
-        case 2: for(unsigned i=0; i < Plen; ++i) P[i].seS = P[i].S; break;
-        case 3: for(unsigned i=0; i < Plen; ++i) P[i].neS = P[i].S; break;
+        case 0: for (int i=0; i < Plen; ++i) P[i].nwS = P[i].S; break;
+        case 1: for (int i=0; i < Plen; ++i) P[i].swS = P[i].S; break;
+        case 2: for (int i=0; i < Plen; ++i) P[i].seS = P[i].S; break;
+        case 3: for (int i=0; i < Plen; ++i) P[i].neS = P[i].S; break;
       }
 	  
       if (beVerbose > 1)
@@ -147,13 +146,12 @@ void StrandPair::process(void) {
 u64bit
 StrandPair::print(FILE   *outF,
                   u64bit  matchid) {
-  double inc, dec;
 
-  for(unsigned i=0; i < Plen; ++i) {
+  for (int i=0; i<Plen; ++i) {
 
     // symmetrize the forward and backward scores
-    inc = P[i].neS + P[i].swS - P[i].selfS; // forward complement orientations
-    dec = P[i].seS + P[i].nwS - P[i].selfS; // reverse complement orientations
+    double inc = P[i].neS + P[i].swS - P[i].selfS; // forward complement orientations
+    double dec = P[i].seS + P[i].nwS - P[i].selfS; // reverse complement orientations
 
     // Each score already contains the self score 
       
@@ -168,15 +166,13 @@ StrandPair::print(FILE   *outF,
                 iid2, P[i].ylo, P[i].yhi);
 
       errno = 0;
-      fprintf(outF, "M x H"u64bitFMT" . %s:"u32bitFMT" %d %d %d %s:"u32bitFMT" %d %d %d %d > /hf=%.1f /hr=%.1f\n",
+      fprintf(outF, "M x H"u64bitFMT" . %s:"u32bitFMT" %d %d %d %s:"u32bitFMT" %d %d %d > /hf=%.1f /hr=%.1f\n",
               matchid,
               assemblyId1, iid1, P[i].xlo, len1, 1,
               assemblyId2, iid2, P[i].ylo, len2, (P[i].ori == 'f'? 1 : -1),
               inc, dec);
-      if (errno) {
-        fprintf(stderr, "StrandPair::print()-- write failed:\n%d: %s\n",
-                errno, strerror(errno));
-      }
+      if (errno)
+        fprintf(stderr, "StrandPair::print()-- write failed: %s\n", strerror(errno));
 
       sumlen1    += len1;
       sumlen2    += len2;
