@@ -47,7 +47,7 @@ private:
   };
 
   void       flushDirty(void);
-  void       seekReadOnly(u64bit bitpos);
+  void       seekBzip2(u64bit bitpos);
   void       seekNormal(u64bit bitpos);
 
   int       _file;
@@ -67,7 +67,8 @@ private:
   bool      _inCore;
   bool      _bfrDirty;
   bool      _forceFirstLoad;
-  bool      _readOnly;
+  bool      _isReadOnly;
+  bool      _isBzip2;
 
   //  For collecting statistics on our usage
   //

@@ -7,23 +7,14 @@
 #include <string.h>
 #include <fcntl.h>
 
-//
 //  N.B. any read() / write() pair (either order) must have a seek (or
 //  a fflush) in between.
-//
 
 bitPackedFile::bitPackedFile(char const *name, u64bit offset) {
 
-  //  Try to open the original name -- we don't support compressed
-  //  files for rewrite.  We just fail with a can't open message.
-  //
-  //  To get read/write and create we have to use open(2), as mode
-  //  "r+" of fopen(3) will not create.
-  //
-  errno = 0;
-  _file = open(name,
-               O_RDWR | O_CREAT | O_LARGEFILE,
-               S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+  _file = 0;
+  _name = new char [strlen(name) + 1];
+  strcpy(_name, name);
 
 #ifdef WITH_BZIP2
   _bzFILE = 0L;
@@ -39,7 +30,8 @@ bitPackedFile::bitPackedFile(char const *name, u64bit offset) {
   _inCore         = false;
   _bfrDirty       = false;
   _forceFirstLoad = false;
-  _readOnly       = false;
+  _isReadOnly     = false;
+  _isBzip2        = false;
 
   stat_seekInside   = u64bitZERO;
   stat_seekOutside  = u64bitZERO;
@@ -48,6 +40,32 @@ bitPackedFile::bitPackedFile(char const *name, u64bit offset) {
   file_offset        = 0;
   endianess_offset   = 0;
   endianess_flipped  = false;
+
+
+  //  Try to open the original name -- we don't support compressed
+  //  files for rewrite.  We just fail with a can't open message.
+  //
+  //  To get read/write and create we have to use open(2), as mode
+  //  "r+" of fopen(3) will not create.
+  //
+  if (fileExists(_name)) {
+    errno = 0;
+    _file = open(_name,
+                 O_RDONLY | O_LARGEFILE,
+                 S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+    if (errno)
+      fprintf(stderr, "bitPackedFile::bitPackedFile()-- failed to open '%s': %s\n",
+              _name, strerror(errno)), exit(1);
+    _isReadOnly = true;
+  } else {
+    errno = 0;
+    _file = open(_name,
+                 O_RDWR | O_CREAT | O_LARGEFILE,
+                 S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+    if (errno)
+      fprintf(stderr, "bitPackedFile::bitPackedFile()-- failed to open '%s': %s\n",
+              _name, strerror(errno)), exit(1);
+  }
 
   //  Move to the correct position in the file.
   //
@@ -82,7 +100,7 @@ bitPackedFile::bitPackedFile(char const *name, u64bit offset) {
     write(_file, &at, sizeof(u64bit));
     write(_file, &bt, sizeof(u64bit));
     if (errno)
-      fprintf(stderr, "bitPackedFile::bitPackedFile()-- '%s' failed to write the header: %s\n", name, strerror(errno)), exit(1);
+      fprintf(stderr, "bitPackedFile::bitPackedFile()-- '%s' failed to write the header: %s\n", _name, strerror(errno)), exit(1);
 
     return;
   }
@@ -93,16 +111,16 @@ bitPackedFile::bitPackedFile(char const *name, u64bit offset) {
     //  Looks like a bzip2 file!
 
     errno = 0;
-    _bzFILE = fopen(name, "r");
+    _bzFILE = fopen(_name, "r");
     if (errno) {
-      fprintf(stderr, "bitPackedFile::bitPackedFile()-- failed to open bzip2 file '%s'\n", name);
+      fprintf(stderr, "bitPackedFile::bitPackedFile()-- failed to open bzip2 file '%s'\n", _name);
       exit(1);
     }
 
     _bzerr = 0;
     _bzfile = BZ2_bzReadOpen(&_bzerr, _bzFILE, 0, 0, 0L, 0);
     if ((_bzfile == 0L) || (_bzerr != BZ_OK)) {
-      fprintf(stderr, "bitPackedFile::bitPackedFile()-- failed to init bzip2 file '%s'\n", name);
+      fprintf(stderr, "bitPackedFile::bitPackedFile()-- failed to init bzip2 file '%s'\n", _name);
       exit(1);
     }
 
@@ -112,9 +130,10 @@ bitPackedFile::bitPackedFile(char const *name, u64bit offset) {
 
     //  XXX  should check bzerr!
 
-    _readOnly = true;
+    _isReadOnly  = true;
+    _isBzip2 = true;
 #else
-    fprintf(stderr, "bitPackedFile::bitPackedFile()-- '%s' looks like a bzip2 file, but bzip2 support not available!\n", name);
+    fprintf(stderr, "bitPackedFile::bitPackedFile()-- '%s' looks like a bzip2 file, but bzip2 support not available!\n", _name);
     exit(1);
 #endif
   }
@@ -128,11 +147,11 @@ bitPackedFile::bitPackedFile(char const *name, u64bit offset) {
     } else if ((at == u64bitSwap(ac)) && (bt == u64bitSwap(bc))) {
       endianess_flipped = true;
     } else {
-      fprintf(stderr, "bitPackedFile::bitPackedFile()-- '%s' looked like a bitPackedFile, but failed the endianess check, not opened.\n", name);
+      fprintf(stderr, "bitPackedFile::bitPackedFile()-- '%s' looked like a bitPackedFile, but failed the endianess check, not opened.\n", _name);
       exit(1);
     }
   } else {
-    fprintf(stderr, "bitPackedFile::bitPackedFile()-- '%s' doesn't appear to be a bitPackedFile, not opened.\n", name);
+    fprintf(stderr, "bitPackedFile::bitPackedFile()-- '%s' doesn't appear to be a bitPackedFile, not opened.\n", _name);
     fprintf(stderr, "bitPackedFile::bitPackedFile()-- found ");
     for (u32bit i=0; i<16; i++)
       fprintf(stderr, "%c", isascii(c[i]) ? c[i] : '.');
@@ -148,6 +167,7 @@ bitPackedFile::bitPackedFile(char const *name, u64bit offset) {
 bitPackedFile::~bitPackedFile() {
   flushDirty();
   delete [] _bfr;
+  delete [] _name;
   close(_file);
 
 #ifdef WITH_BZIP2
@@ -169,8 +189,8 @@ bitPackedFile::flushDirty(void) {
   if (_bfrDirty == false)
     return;
 
-  if (_readOnly) {
-    fprintf(stderr, "bitPackedFile::bitPackedFile()-- ERROR!  Is readonly, but is dirty!\n");
+  if (_isReadOnly) {
+    fprintf(stderr, "bitPackedFile::bitPackedFile()-- '%s' is readonly, but is dirty!\n", _name);
     exit(1);
   }
 
@@ -179,7 +199,8 @@ bitPackedFile::flushDirty(void) {
   errno = 0;
   lseek(_file, _pos * sizeof(u64bit) + endianess_offset, SEEK_SET);
   if (errno) {
-    fprintf(stderr, "bitPackedFile::seek() failed: %s\n", strerror(errno));
+    fprintf(stderr, "bitPackedFile::seek()-- '%s' failed: %s\n",
+            _name, strerror(errno));
     exit(1);
   }
 
@@ -200,7 +221,8 @@ bitPackedFile::flushDirty(void) {
   errno = 0;
   write(_file, _bfr, sizeof(u64bit) * _bfrmax);
   if (errno) {
-    fprintf(stderr, "bitPackedFile::write() failed: %s\n", strerror(errno));
+    fprintf(stderr, "bitPackedFile::write()-- '%s' failed: %s\n",
+            _name, strerror(errno));
     exit(1);
   }
 
@@ -216,7 +238,7 @@ bitPackedFile::flushDirty(void) {
 
 
 void
-bitPackedFile::seekReadOnly(u64bit bitpos) {
+bitPackedFile::seekBzip2(u64bit bitpos) {
 
 #ifdef WITH_BZIP2
   //  All we can do here is check that bitpos is
@@ -228,7 +250,7 @@ bitPackedFile::seekReadOnly(u64bit bitpos) {
   if (_pos + _bfrmax < newpos) {
     //  nope, not in the buffer -- we could probably handle this by just reading and
     //  discarding from the file until we get to the correct bitpos.
-    fprintf(stderr, "ERROR:  bitPackedFile not contiguous!\n");
+    fprintf(stderr, "bitPackedFile::seekBzip2()-- '%s' seek was not contiguous!\n", _name);
     exit(1);
   }
 
@@ -258,18 +280,18 @@ bitPackedFile::seekReadOnly(u64bit bitpos) {
     _bzerr = 0;
     wordsread = BZ2_bzRead(&_bzerr, _bzfile, _bfr + lastlen, sizeof(u64bit) * (_bfrmax - lastlen));
     if (_bzerr == BZ_STREAM_END) {
-      fprintf(stderr, "bitPackedFile::seekReadOnly bzip2 file ended.\n");
+      //fprintf(stderr, "bitPackedFile::seekBzip2() file ended.\n");
       BZ2_bzReadClose(&_bzerr, _bzfile);
       fclose(_bzFILE);
       _bzfile = 0L;
       _bzFILE = 0L;
     } else if (_bzerr != BZ_OK) {
-      fprintf(stderr, "bitPackedFile::seekReadOnly bzip2 read failed.\n");
+      fprintf(stderr, "bitPackedFile::seekBzip2() '%s' read failed.\n", _name);
       exit(1);
     }
   }
 
-  fprintf(stderr, "Filled buffer with %d words!\n", wordsread);
+  //fprintf(stderr, "Filled buffer with %d words!\n", wordsread);
 
   //  Adjust to make wordsread be the index of the last word we actually read.
   //
@@ -287,6 +309,7 @@ bitPackedFile::seekReadOnly(u64bit bitpos) {
   while (wordsread < _bfrmax)
     _bfr[wordsread++] = u64bitZERO;
 #else
+  fprintf(stderr, "bitPackedFile::bitPackedFile()-- '%s'\n", _name);
   fprintf(stderr, "bitPackedFile::bitPackedFile()-- bzip2 support not present, but still tried to read it??\n");
   exit(1);
 #endif
@@ -298,7 +321,8 @@ void
 bitPackedFile::seekNormal(u64bit bitpos) {
 
   if (_inCore) {
-    fprintf(stderr, "bitPackedFile::bitPackedFile()-- file is in core, but still needed to seek??\n");
+    fprintf(stderr, "bitPackedFile::bitPackedFile()-- '%s' is in core, but still needed to seek??\n",
+            _name);
     exit(1);
   }
 
@@ -330,16 +354,19 @@ bitPackedFile::seekNormal(u64bit bitpos) {
   errno = 0;
   lseek(_file, _pos * 8 + endianess_offset, SEEK_SET);
   if (errno) {
-    fprintf(stderr, "bitPackedFile::seek() pos="u64bitFMT" failed: %s\n",
+    fprintf(stderr, "bitPackedFile::seekNormal() '%s' seek to pos="u64bitFMT" failed: %s\n",
+            _name,
             _pos * 8 + endianess_offset, strerror(errno));
-    abort();
     exit(1);
   }
 
   errno = 0;
   size_t wordsread = read(_file, _bfr, sizeof(u64bit) * _bfrmax);
   if (errno) {
-    fprintf(stderr, "bitPackedFile::seekNormal read failed: %s\n", strerror(errno));
+    fprintf(stderr, "bitPackedFile::seekNormal() '%s' read of "u64bitFMT" bytes failed': %s\n",
+            _name,
+            sizeof(u64bit) * _bfrmax,
+            strerror(errno));
     exit(1);
   }
 
@@ -380,7 +407,8 @@ bitPackedFile::seek(u64bit bitpos) {
   }
 
   if (_inCore) {
-    fprintf(stderr, "bitPackedFile::bitPackedFile()-- file is in core, but still needed to seek??\n");
+    fprintf(stderr, "bitPackedFile::seek()-- file '%s' is in core, but still needed to seek??\n",
+            _name);
     exit(1);
   }
 
@@ -388,8 +416,8 @@ bitPackedFile::seek(u64bit bitpos) {
 
   flushDirty();
 
-  if (_readOnly)
-    seekReadOnly(bitpos);
+  if (_isBzip2)
+    seekBzip2(bitpos);
   else
     seekNormal(bitpos);
 
