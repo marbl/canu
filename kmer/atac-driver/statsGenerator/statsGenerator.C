@@ -755,27 +755,13 @@ main(int argc, char **argv) {
   atacMatchList     &matches = *AF.matches();
   atacMatchList     &runs    = *AF.runs();
 
-#if 0
-  atacFileStream     tr1(trFile1);
-  atacFileStream     tr2(trFile2);
-
-  atacFeature       *f;
-  while ((f = tr1.nextFeature("tr")) != 0L) {
-    f->print(stdout, "TEST");
-  }
-  exit(0);
-#endif
-
-
   //  We end up using sequences a lot here, so just bite it and load them in a cache.
   //
   FastACache  *A = new FastACache(AF.assemblyFileA(), 0, true, true);
   FastACache  *B = new FastACache(AF.assemblyFileB(), 0, true, true);
 
-#if 0
   fprintf(stdout, "\nSEQUENCE\n");
   totalLength(AF, A, B);
-#endif
 
   if (trFile1 && trFile2) {
     atacFileStream     tr1(trFile1);
