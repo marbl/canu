@@ -61,38 +61,49 @@ my $meryl             = "$BINdir/meryl";
 my $existDB           = "$BINdir/existDB";
 my $seatac            = "$BINdir/seatac";
 my $chainer           = "$BINdir/AtacDriver.py";
+my $correctgaps       = "$BINdir/correctGaps";
+my $statsgenerator    = "$BINdir/statsGenerator";
 
-die "Can't run $leaff\n"        if (! -x $leaff);
-die "Can't run $meryl\n"        if (! -x $meryl);
-die "Can't run $existDB\n"      if (! -x $existDB);
-die "Can't run $seatac\n"       if (! -x $seatac);
-die "Can't find $chainer\n"     if (! -e $chainer);
-die "Can't find $filtername\n"  if (! -e $filtername);
+die "Can't run $leaff\n"           if (! -x $leaff);
+die "Can't run $meryl\n"           if (! -x $meryl);
+die "Can't run $existDB\n"         if (! -x $existDB);
+die "Can't run $seatac\n"          if (! -x $seatac);
+die "Can't find $chainer\n"        if (! -e $chainer);
+die "Can't find $filtername\n"     if (! -e $filtername);
+die "Can't run $correctgaps\n"     if (! -x $correctgaps);
+die "Can't run $statsgenerator\n"  if (! -x $statsgenerator);
 
 
+#  Main begins here!
+#
+#  We used to use a long descriptive name for the matches, which
+#  encoded some parameters, but since we never really change those
+#  parameters, we stop encoding.
+#
+#  It used to be "${id1}vs${id2}.k$mersize.u$merlimit.f$minfill.g$maxgap"
 
 parseArgs();
 findSources();
 
 my $mercount1 = countMers($id1, $mersize, $merlimit);
 my $mercount2 = countMers($id2, $mersize, $merlimit);
-
-my $matches   = "${id1}vs${id2}.k$mersize.u$merlimit.f$minfill.g$maxgap";
+my $matches   = "${id1}vs${id2}";
 
 buildMask();
 
 my @segmentIDs = findHits();
 
-sortMatches(@segmentIDs);
-extendMatches();
+extendMatches(@segmentIDs);
 
 makeChains();
+closeGaps();
 makeClumps();
+generateStatistics();
 
 print STDERR "\n";
 print STDERR "Finished!  Output is:\n";
-print STDERR "  $ATACdir/$matches.atac\n";
-print STDERR "  $ATACdir/$matches.atac.clumps5000\n";
+print STDERR "  matches and runs -- $ATACdir/$matches.atac\n";
+print STDERR "  clumps           -- $ATACdir/$matches.*clump*.atac\n";
 
 
 #  Subroutines below!
@@ -541,24 +552,27 @@ sub findHits {
 
 
 
-sub sortMatches (@) {
+sub extendMatches (@) {
     my @segmentIDs = @_;
 
-    return if (-e "$ATACdir/$matches.matches.sorted");
+    return if (-e "$ATACdir/$matches.matches.extended");
 
-    my $mfiles;
-
-    #  Check that each search finished, and build a list of all the match files.
+    #  Check that each search finished.
     #
     foreach my $segmentID (@segmentIDs) {
-        if (-e "$ATACdir/$matches-segment-$segmentID.matches") {
-            $mfiles .= "$ATACdir/$matches-segment-$segmentID.matches ";
-        } else {
+        if (! -e "$ATACdir/$matches-segment-$segmentID.matches") {
             die "$ATACdir/$matches-segment-$segmentID.matches failed to complete.\n";
         }
     }
 
-    open(ATACFILE, "> $ATACdir/$matches.matches.sorted");
+    if ($crossSpecies) {
+        $matchExtenderOpts = "-e 4 -b 5 -s 5 -i 0.70 -p 100 -d 25";
+    }
+
+    #  Bad job control handling here!
+
+    open(ATACFILE, "| $BINdir/matchExtender $matchExtenderOpts > $ATACdir/$matches.matches.extended");
+
     print ATACFILE "!format atac 1.0\n";
     print ATACFILE  "#\n";
     print ATACFILE  "# Legend:\n";
@@ -611,69 +625,42 @@ sub sortMatches (@) {
         print ATACFILE "/matchExtenderMaxNbrPathMM=25\n";
         print ATACFILE "/globalMatchMinSize=20\n";
         print ATACFILE "/fillIntraRunGapsErate=0.30\n";
-
-        $matchExtenderOpts = "-e 4 -b 5 -s 5 -i 0.70 -p 100 -d 25";
     }
 
-    #print ATACFILE "/matchesFile=$ATACdir/$matches.matches.sorted.bz2\n";
+    #  Copy all the matches to the matchExtender.  We take the liberty
+    #  of making new match uids for these, since seatac can't make
+    #  unique ids if it is run in multiple passes.
+    #
+    my $uid = "000000000";
+    my $comma = $,;  $, = " ";
+    my $slash = $\;  $\ = "\n";
+    foreach my $segmentID (@segmentIDs) {
+        open(MATCHES, "< $ATACdir/$matches-segment-$segmentID.matches") or die "Failed to open '$ATACdir/$matches-segment-$segmentID.matches'\n";
+        while (<MATCHES>) {
+            if (m/^M/) {
+                my @v = split '\s+', $_;
+                $v[2] = "m$uid";
+                undef $v[12];
+                undef $v[13];
+                undef $v[14];
+                undef $v[15];
+                print ATACFILE @v;
+                $uid++;
+            }
+        }
+        close(MATCHES);
+    }
+
+    $, = $comma;
+    $\ = $slash;
 
     close(ATACFILE);
-
-
-
-    #  The original sort used keys seq1, seq2, pos1, pos2.  The next
-    #  consumer of this data, matchextender certainly benefits from
-    #  the first two keys, and probably needs the last two....nope, it
-    #  does an internal sort given all matches for a pair of
-    #  sequences.
-
-    my $tmpdir;
-    $tmpdir = "$ATACdir";
-    $tmpdir = "/scratch" if (-d "/scratch");
-
-    #  Kill LANG, gnu grep sucks if this is set.
-    delete $ENV{'LANG'};
-
-    #  Sort the first index
-    #
-    #print STDERR "Sorting by the FIRST axis.\n";
-    #if (runCommand("cat $mfiles | grep -- \^M\  | sort -y -T $tmpdir -k 5,5 -k 9,9 >> $ATACdir/$matches.matches.sorted")) {
-    #    die "Failed to sort $ATACdir!\n";
-    #}
-
-    #  Sort the second index, useful if that one is chromosome.
-    #
-    print STDERR "Sorting by the SECOND axis.\n";
-    if (runCommand("cat $mfiles | grep -- '^M ' | sort -y -T $tmpdir -k 9,9 -k 5,5 >> $ATACdir/$matches.matches.sorted")) {
-        die "Failed to sort $ATACdir!\n";
-    }
-}
-
-
-
-
-
-sub extendMatches {
-
-    return if (-e "$ATACdir/$matches.matches.sorted.extended");
-
-    my $cmd;
-    $cmd  = "$BINdir/matchExtender $matchExtenderOpts ";
-    $cmd .= "< $ATACdir/$matches.matches.sorted ";
-    $cmd .= "> $ATACdir/$matches.matches.sorted.extended ";
-
-    if (runCommand($cmd)) {
-        rename("$ATACdir/$matches.matches.sorted.extended",
-               "$ATACdir/$matches.matches.sorted.extended.FAILED");
-        die "matchExtender failed.\n";
-    }
 }
 
 
 
 sub makeChains {
-
-    return if (-e "$ATACdir/$matches.atac");
+    return if (-e "$ATACdir/$matches.matches.extended.chained.atac");
 
     if (!defined($ENV{"TMPDIR"})) {
         print STDERR "WARNING:  TMPDIR not set, defaulting to '$ATACdir'.\n";
@@ -684,40 +671,96 @@ sub makeChains {
     #
     $ENV{'PYTHONPATH'} = "$LIBdir";
 
-    if (runCommand("python $chainer $ATACdir/$matches.matches.sorted.extended")) {
+    if (runCommand("python $chainer $ATACdir/$matches.matches.extended")) {
         print STDERR "PYTHONPATH=$ENV{'PYTHONPATH'}\n";
         die "Chainer failed.\n";
     }
 
-    if (! -e "$ATACdir/$matches.atac") {
-        system("ln -s $ATACdir/$matches.matches.sorted.extended.ckpLast $ATACdir/$matches.atac");
-    }
 }
 
 
 
-
-
-#  OK, no, really finish with clumps.
-#
-sub makeClumps {
-
-    return if (-e "$ATACdir/$matches.atac.clumps5000");
+sub closeGaps {
+    return if (-e "$ATACdir/$matches.atac");
 
     my $cmd;
-    $cmd  = "cd $ATACdir && ";
-    $cmd .= "grep ^M $ATACdir/$matches.atac | ";
-    $cmd .= "cut -d' ' -f 1-12 | ";
-    $cmd .= "sort -k5,5 -k6n ";
-    $cmd .= "> $ATACdir/$matches.atac.sorted && ";
-    $cmd .= "$BINdir/clumpMaker -c 5000 -2 -S -f $ATACdir/$matches.atac.sorted ";
-    $cmd .= "> $ATACdir/$matches.atac.clumps5000";
+    $cmd  = "$correctgaps ";
+    $cmd .= " -m $ATACdir/$matches.matches.extended.chained.atac ";
+    $cmd .= " -l $ATACdir/$matches.matches.extended.chained.gapsclosed.log";
+    $cmd .= " > $ATACdir/$matches.matches.extended.chained.gapsclosed.atac";
 
     if (runCommand($cmd)) {
-        rename("$ATACdir/$matches.atac.clumps5000", "$ATACdir/$matches.atac.clumps5000.FAILED");
-        die "Failed to make clumps!\n";
+        rename "$ATACdir/$matches.matches.extended.chained.gapsclosed.atac", "$ATACdir/$matches.matches.extended.chained.gapsclosed.FAILED";
+        die "Failed to close gaps!\n";
+    }
+
+    if (! -e "$ATACdir/$matches.atac") {
+        system("ln -s $ATACdir/$matches.matches.extended.chained.gapsclosed.atac $ATACdir/$matches.atac");
     }
 }
+
+
+
+sub makeClumps {
+    my $cmd;
+    my $ref;
+    my $rid;
+    my $clumpCost = 5000;
+
+    $ref = 1;
+    $rid = $id1;
+    if (! -e "$ATACdir/$matches.ref=$rid.clumpCost=$clumpCost.atac") {
+        $cmd  = "cd $ATACdir ";
+        $cmd .= "&& ";
+        $cmd .= "$BINdir/clumpMaker ";
+        $cmd .= " -c $clumpCost ";
+        $cmd .= " -$ref ";
+        $cmd .= " -f $ATACdir/$matches.atac ";
+        $cmd .= "> $ATACdir/$matches.ref=$rid.clumpCost=$clumpCost.atac";
+        if (runCommand($cmd)) {
+            rename "$ATACdir/$matches.ref=$rid.clumpCost=$clumpCost.atac", "$ATACdir/$matches.ref=$rid.clumpCost=$clumpCost.atac.FAILED";
+            die "Failed to make clumps!\n";
+        }
+    }
+
+    $ref = 2;
+    $rid = $id2;
+    if (! -e "$ATACdir/$matches.ref=$rid.clumpCost=$clumpCost.atac") {
+        $cmd  = "cd $ATACdir ";
+        $cmd .= "&& ";
+        $cmd .= "$BINdir/clumpMaker ";
+        $cmd .= " -c $clumpCost ";
+        $cmd .= " -$ref ";
+        $cmd .= " -f $ATACdir/$matches.atac ";
+        $cmd .= "> $ATACdir/$matches.ref=$rid.clumpCost=$clumpCost.atac";
+        if (runCommand($cmd)) {
+            rename "$ATACdir/$matches.ref=$rid.clumpCost=$clumpCost.atac", "$ATACdir/$matches.ref=$rid.clumpCost=$clumpCost.atac";
+            die "Failed to make clumps!\n";
+        }
+    }
+}
+
+
+
+sub generateStatistics {
+    return if (-e "$ATACdir/stats/$matches.stats");
+
+    system("mkdir $ATACdir/stats") if (! -d "$ATACdir/stats");
+
+    my $cmd;
+    $cmd  = "$statsgenerator ";
+    $cmd .= "-a $ATACdir/$matches.atac ";
+    $cmd .= "-p $ATACdir/stats/$matches ";
+    $cmd .= "-g A ";
+    $cmd .= "> $ATACdir/stats/$matches.stats";
+    if (runCommand($cmd)) {
+        rename "$ATACdir/stats/$matches.stats", "$ATACdir/stats/$matches.stats.FAILED";
+        die "Failed to ganerate statistics.\n";
+    }
+}
+
+
+
 
 
 

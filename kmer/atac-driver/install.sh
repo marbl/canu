@@ -17,7 +17,7 @@ mkdir -p $installdir/lib
 #  Install binaries
 #
 binaries="../leaff/leaff ../meryl/meryl ../libkmer/existDB ../seatac/seatac"
-binaries="$binaries briatac.pl matchExtender/matchExtender clumpMaker/clumpMaker"
+binaries="$binaries atac.pl matchExtender/matchExtender clumpMaker/clumpMaker gapShifter/correctGaps statsGenerator/statsGenerator"
 
 for i in $binaries ; do
   #echo $i
@@ -38,8 +38,8 @@ cp -fp chainer/python/*py                     $installdir/lib
 cp -fp chainer/python/AtacDriver.py           $installdir/bin
 
 
-#  Make sure briatac.pl runs.
-perl $installdir/bin/briatac.pl -justtestingifitworks || echo "WARNING:  briatac.pl failed to install."
+#  Make sure atac.pl runs.
+perl $installdir/bin/atac.pl -justtestingifitworks || echo "WARNING:  atac.pl failed to install."
 
 #  Make sure the chainer runs.
 #
