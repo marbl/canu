@@ -76,9 +76,10 @@ readMatches(atacMatchOrder    &AL,
   FastASequenceInCore *seq2 = C2->getSequence(iid2);
 
   while (firstMatch < AL.numberOfMatches()) {
-    atacMatch  *m = AL.getMatch(firstMatch++);
+    atacMatch  *m = AL.getMatch(firstMatch);
 
     if ((m->iid1 == iid1) && (m->iid2 == iid2)) {
+      firstMatch++;
       if (m->fwd1 == m->fwd2)
         fwdMatches.push_back(new match_s(m->matchuid,
                                          seq1, m->iid1, m->pos1, m->len1, m->fwd1,
