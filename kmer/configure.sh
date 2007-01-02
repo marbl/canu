@@ -69,6 +69,10 @@ fi
 #  used by atac-driver/chainer only.
 #
 python=`which python`
+if [ x$python = x ] ; then
+  echo "You don't seem to have python installed; no 'python' in your path."
+  exit 1
+fi
 python=`dirname $python`
 python=`dirname $python`
 if [ -e $python/include/python2.3/Python.h ]
