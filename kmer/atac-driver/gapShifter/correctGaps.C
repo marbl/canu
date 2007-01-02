@@ -233,12 +233,13 @@ main(int argc, char *argv[]) {
     }
 
     fprintf(logFile, "At gapSize="u32bitFMT" closed "u32bitFMT" f-gaps and "u32bitFMT" r-gaps.\n", gapsize, fgaps, rgaps);
+
+    if (fgaps + rgaps == 0)
+      iter = 10;
   }
 
 
-
 #if 0
-
   //  This analyzes an atac mapping, looking for a signature that indicates a bad
   //  alignment.  If we have an alignment of:
   //      XXXXXXaC-YYYYYY
@@ -285,11 +286,16 @@ main(int argc, char *argv[]) {
 #endif
 
 
-  //  Write the new output to stdout.
+  //  Write the new output to stdout -- we preserve runs here, but
+  //  discard everything else.
   //
   AF.writeHeader(stdout);
+
   for (u32bit i=0; i<MO.numMatches(); i++)
     MO[i]->print(stdout, AF.labelA(), AF.labelB());
+
+  for (u32bit i=0; i<AF.runs()->numberOfMatches(); i++)
+    AF.runs()->getMatch(i)->print(stdout, AF.labelA(), AF.labelB());
 
   return(0);
 }
