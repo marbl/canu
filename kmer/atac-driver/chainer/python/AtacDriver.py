@@ -572,6 +572,7 @@ def main(runName):
 
     # Many 2*rawMatchMerSize-1 matches are due to isolated single
     # nucleotide mutations in otherwise perfect repeats.
+
     if(not obj.globals.has_key('globalMatchMinSize')):
         obj.globals['globalMatchMinSize'] = 2*int(obj.globals['rawMatchMerSize'])
     if(not obj.globals.has_key('globalPerfectRunMinLen')):
@@ -586,11 +587,10 @@ def main(runName):
 
     t1 = time.time()
     print >>STDERR, "Ran in %d seconds." % (t1-t0)
-    t0=t1
 
-    obj.checkpoint(runName+".ckpLast")
-    t1 = time.time()
-    print >>STDERR, "Wrote checkpoint in %d seconds." % (t1-t0)
+    obj.checkpoint(runName + ".chained.atac")
+
+
 
 if __name__ == '__main__':
     if (len(sys.argv) == 1):
