@@ -15,9 +15,7 @@ LIBUTL/       :=$/libutl/
 #
 # So, this list is backwards.
 
-#  For reasons unknown, this will not work from here.
-#$(eval $(call Include,$/ESTmapper/))
-
+$(eval $(call Include,$/ESTmapper/))
 $(eval $(call Include,$/atac-driver/))
 
 $(eval $(call Include,$/leaff/))
