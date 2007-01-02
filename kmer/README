@@ -1,45 +1,45 @@
 
-This is a collection of codes written/supported by Brian Walenz
-(Informatics Research).  All codes are intertwined, hence the grouping
-under BRI/ instead of ESTmapper/ and emma/ and meryl/ and etc.
-
-----------------------------------------
-
 How to build:
-
-If you haven't already, you need to check out cds/IR/build.
-Documentation for the build system is in cds/IR/build/doc.
 
 ----------
 1)  Create machine dependent configuration files.
 
 % sh configure.sh
 
-If it reports that your architecture is unsupported, you'll have to
-port.  Supplying 'debug' as an argument will build debug versions.
-Good luck!
+Supplying 'debug' as an argument will build debuggable executables.
+
+If configure.sh reports that your architecture is unsupported, you'll
+have to port...or force it to use, say, linux with "configure.sh
+linux".
+
+If configure.sh reports that python cannot be found, you likely need
+to install python, version 2.3 or 2.4.  If you have pyhton installed
+in an unusual location, edit the script.
 
 ----------
 2)  Build
-
-Most of the tools here use pthreads.
 
 % gmake
 
 If this crashes or returns
         gmake: *** No rule to make target `.all', needed by `all'.  Stop.
-then you unfortunately need to update your gmake.  Instructions for
-doing this are in cds/IR/build/patches/README
+then you unfortunately need to update your gmake to version 3.81, or
+you can patch version 3.80 using the directions in
+build/patches/README
 
 ----------
 3)  Install things, other build targets
 
-A 'make install' will copy all the executables into a 'bin' directory
-in cds/IR/BRI/bin.
+A 'make install' will copy all the executables into an architecture
+specific 'bin' directory, for example, into freebsd/bin or linux/bin.
+ESTmapper and ATAC/A2Amapper are NOT installed by this process.
 
-To install ESTmapper, 'cd ESTmapper && make -f ../Makefile'.
-ESTmapper is now installed in cds/IR/BRI/ESTmapper, and you can copy
-it wherever.
+To install ESTmapper, 'cd ESTmapper && sh install.sh location'.  This
+will copy the ESTmapper binaries to 'location/bin' and 'location/lib'.
+
+To install ATAC/A2Amapper, 'cd atac-driver && sh install.sh location'.
+This will copy the ATAC/A2Amapper binaries to 'location/bin' and
+'location/lib'.
 
 ----------
 4)  Other build targets
@@ -50,6 +50,5 @@ A 'make real-clean' will remove all traces of a build, leaving you
 with only a few files more than a freshly checked out copy.
 
 
-
 bpw
-Thu Aug 12 14:01:34 EDT 2004
+Tue Jan  2 17:12:32 EST 2007
