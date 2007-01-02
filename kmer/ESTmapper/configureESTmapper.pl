@@ -69,6 +69,8 @@ while (scalar(@ARGV)) {
         $sge   = shift @ARGV;
     } elsif ($arg eq "-local") {
         $local = 1;
+    } elsif ($arg eq "-justtestingifitworks") {
+        exit(0);
     } else {
         die "ERROR: unknown arg '$arg'\n";
     }

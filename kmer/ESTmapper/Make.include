@@ -5,32 +5,6 @@ LIBBIO/     :=$(call MakePath,$/../libbio/)
 LIBKMER/    :=$(call MakePath,$/../libkmer/)
 LIBSIM4/    :=$(call MakePath,$/../libsim4/)
 
-LEAFF/      :=$(call MakePath,$/../leaff/)
-SEAGEN/     :=$(call MakePath,$/../seagen/)
-SIM4DB/     :=$(call MakePath,$/../sim4db/)
-SIM4UTIL/   :=$(call MakePath,$/../sim4dbutils/)
-SCRIPTS/    :=$(call MakePath,$/../scripts/)
-
-CP=cp -p
-RM=rm -f
-
-EXECS :=  $/leaff \
-          $/sim4th \
-          $/seagen \
-          $/filterEST \
-          $/filterMRNA \
-          $/filterNULL \
-          $/sortHits \
-          $/cleanPolishes \
-          $/sortPolishes \
-          $/filterPolishes \
-          $/pickBestPolish \
-          $/parseSNP \
-          $/positionDB \
-          $/terminate \
-          $/util/scheduler.pm \
-          $/util/fasta.pm
-
 $(eval $/%.d $/%.o: CXXFLAGS+=-I${LIBKMER/} -I${LIBBIO/} -I${LIBSIM4/} -I${LIBUTL/})
 
 $/.CXX_SRCS  := $/mergeCounts.C $/mersInMerStreamFile.C $/terminate.C
@@ -38,84 +12,9 @@ $/.CXX_EXES  := $/mergeCounts   $/mersInMerStreamFile   $/terminate
 
 $/mergeCounts:         $/mergeCounts.o
 $/mersInMerStreamFile: $/mersInMerStreamFile.o ${LIBKMER/}libkmer.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
-$/terminate:           $/terminate.o ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a ${LIBSIM4/}libsim4.a
+$/terminate:           $/terminate.o           ${LIBSIM4/}libsim4.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
 $/.CLEAN      := $/*.o
-$/.REAL-CLEAN := mergeCounts mersInMerStreamFile terminate ${EXECS}
+$/.REAL-CLEAN := $/mergeCounts $/mersInMerStreamFile $/terminate
 
-all:  $/mergeCounts $/terminate ${EXECS}
-
-$/util/scheduler.pm: ${SCRIPTS/}scheduler.pm
-	$(RM) $/util/scheduler.pm
-	$(CP) ${SCRIPTS/}scheduler.pm $/util/scheduler.pm
-	chmod 444 $/util/scheduler.pm
-
-$/util/fasta.pm: ${SCRIPTS/}fasta.pm
-	$(RM) $/util/fasta.pm
-	$(CP) ${SCRIPTS/}fasta.pm $/util/fasta.pm
-	chmod 444 $/util/fasta.pm
-
-$/leaff: ${LEAFF/}leaff
-	$(RM) $/leaff
-	$(CP) ${LEAFF/}leaff $/leaff
-	chmod 555 $/leaff
-
-$/sim4th: ${SIM4DB/}sim4th
-	$(RM) $/sim4th
-	$(CP) ${SIM4DB/}sim4th $/sim4th
-	chmod 555 $/sim4th
-
-$/seagen: ${SEAGEN/}seagen
-	$(RM) $/seagen
-	$(CP) ${SEAGEN/}seagen $/seagen
-	chmod 555 $/seagen
-
-$/filterEST: ${SEAGEN/}filterEST
-	$(RM) $/filterEST
-	$(CP) ${SEAGEN/}filterEST $/filterEST
-	chmod 555 $/filterEST
-
-$/filterMRNA: ${SEAGEN/}filterMRNA
-	$(RM) $/filterMRNA
-	$(CP) ${SEAGEN/}filterMRNA $/filterMRNA
-	chmod 555 $/filterMRNA
-
-$/filterNULL: ${SEAGEN/}filterNULL
-	$(RM) $/filterNULL
-	$(CP) ${SEAGEN/}filterNULL $/filterNULL
-	chmod 555 $/filterNULL
-
-$/sortHits: ${SEAGEN/}sortHits
-	$(RM) $/sortHits
-	$(CP) ${SEAGEN/}sortHits $/sortHits
-	chmod 555 $/sortHits
-
-$/cleanPolishes: ${SIM4UTIL/}cleanPolishes
-	$(RM) $/cleanPolishes
-	$(CP) ${SIM4UTIL/}cleanPolishes $/cleanPolishes
-	chmod 555 $/cleanPolishes
-
-$/sortPolishes: ${SIM4UTIL/}sortPolishes
-	$(RM) $/sortPolishes
-	$(CP) ${SIM4UTIL/}sortPolishes $/sortPolishes
-	chmod 555 $/sortPolishes
-
-$/parseSNP: ${SIM4UTIL/}parseSNP
-	$(RM) $/parseSNP
-	$(CP) ${SIM4UTIL/}parseSNP $/parseSNP
-	chmod 555 $/parseSNP
-
-$/filterPolishes: ${SIM4UTIL/}filterPolishes
-	$(RM) $/filterPolishes
-	$(CP) ${SIM4UTIL/}filterPolishes $/filterPolishes
-	chmod 555 $/filterPolishes
-
-$/pickBestPolish: ${SIM4UTIL/}pickBestPolish
-	$(RM) $/pickBestPolish
-	$(CP) ${SIM4UTIL/}pickBestPolish $/pickBestPolish
-	chmod 555 $/pickBestPolish
-
-$/positionDB: ${LIBKMER/}positionDB
-	$(RM) $/positionDB
-	$(CP) ${LIBKMER/}positionDB $/positionDB
-	chmod 555 $/positionDB
+all:  $/mergeCounts $/mersInMerStreamFile $/terminate

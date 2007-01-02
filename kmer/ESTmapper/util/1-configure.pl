@@ -145,6 +145,13 @@ sub parseArgs (@) {
             $args{'savetemporary'} = 1;
         }
 
+        #
+        #  Are we installed correctly?
+        #
+        elsif   ($arg =~ m/-justtestingifitworks/) {
+            exit(0);
+        }
+
         else {
             die "ESTmapper/configure-- unknown option '$arg'\n";
         }
