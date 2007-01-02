@@ -7,14 +7,14 @@
 
 include ../../Make.compilers
 
-SOURCE  = localalign/GF_ALN_dpaligner.cc \
-          localalign/GF_ALN_local.cc \
-          localalign/GF_ALN_overlap.cc \
-          localalign/GF_ALN_loverlapper.cc \
-          localalign/GF_ALN_pieceOlap.cc \
-          localalign/localAlignerInterfacemodule.cc \
-          halign/halign.cc \
-          halign/halignmodule.cc
+SOURCE  = localalign/GF_ALN_dpaligner.C \
+          localalign/GF_ALN_local.C \
+          localalign/GF_ALN_overlap.C \
+          localalign/GF_ALN_loverlapper.C \
+          localalign/GF_ALN_pieceOlap.C \
+          localalign/localAlignerInterfacemodule.C \
+          halign/halign.C \
+          halign/halignmodule.C
 
 PY_EXES = python/AtacDriver.py \
           python/AtacFile.py \
@@ -50,5 +50,5 @@ localAlignerInterfacemodule.so:   localalign/GF_ALN_dpaligner.o \
 halignmodule.so: halign/halignmodule.o halign/halign.o
 	$(CC) -shared -o $@ $^
 
-%.o: %.cc
+%.o: %.C
 	$(CC) -fpic $(CFLAGS_COMPILE) $(CFLAGS_PYTHON) -o $@ -c $<

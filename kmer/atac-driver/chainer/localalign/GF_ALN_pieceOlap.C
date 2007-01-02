@@ -21,7 +21,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "GF_ALN_local.h"
+#include "GF_ALN_local.H"
 
 
 typedef struct {

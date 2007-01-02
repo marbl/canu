@@ -24,7 +24,7 @@
 #include <assert.h>
 #include <stdlib.h>
 
-#include "halign.h"
+#include "halign.H"
 
 #define min(x,y)      ((x)<=(y) ? (x):(y))
 #define max(x,y)      ((x)>=(y) ? (x):(y))

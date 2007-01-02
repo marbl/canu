@@ -23,7 +23,7 @@
 
 #include <Python.h>
 
-#include "GF_ALN_local.h"
+#include "GF_ALN_local.H"
 
 static Local_Overlap *desc = NULL;
 
@@ -38,7 +38,7 @@ syntenicSegments(char const * const Aseq, int const Astart, int const Astop,
   desc = NULL; // In case an early exit happens!
 
   //  Key data types ("Local_Segment" and "Local_Overlap") are defined
-  //  in "CA_ALN_local.h"
+  //  in "CA_ALN_local.H"
 
   assert(Astop >= Astart);
   assert(Bstop >= Bstart);

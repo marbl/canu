@@ -33,7 +33,7 @@
 #include <math.h>
 #include <assert.h>
 
-#include "GF_ALN_local.h"
+#include "GF_ALN_local.H"
 
 /* O(kn) identity-based alignment algorithm.  Find alignment between
    a and b (of lengths alen and blen), that begins at finishing

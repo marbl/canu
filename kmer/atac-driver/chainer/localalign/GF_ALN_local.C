@@ -22,7 +22,7 @@
 #include <math.h>
 #include <string.h>
 #include <assert.h>
-#include "GF_ALN_local.h"
+#include "GF_ALN_local.H"
 
 // Note, KMERLEN 5, MINMATCH 20, MAXERROR 2, KTHRESH 6 is reasonable
 // for performing fragment against fragment comparisons; it permits

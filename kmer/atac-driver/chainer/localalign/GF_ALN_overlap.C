@@ -22,7 +22,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "GF_ALN_local.h"
+#include "GF_ALN_local.H"
 
 #define  max(x,y)        ((x<y) ? (y):(x))
 #define  min(x,y)        ((x>y) ? (y):(x))
