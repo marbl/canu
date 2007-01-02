@@ -88,7 +88,7 @@ elif [ -e /usr/local/include/python2.4/Python.h ]
 then
   CFLAGS_PYTHON="-I/usr/local/include/python2.4"
 else
-  echo "Can't find python."
+  echo "Can't find python include file 'Python.h' -- is python installed?."
   exit 1
 fi
 
