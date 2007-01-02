@@ -24,28 +24,29 @@
 
 class tClumpHit {
 public:
-  void set(u32bit matchiid,
-           u32bit sid1, u32bit pos1, u32bit len1, u32bit fwd1,
-           u32bit sid2, u32bit pos2, u32bit len2, u32bit fwd2, bool seq1IsRef) {
-    iid          = matchiid;
+
+  void set(atacMatch *m, bool seq1IsRef) {
+
+    match    = *m;
+    matchIID =  m->matchiid;
 
     if (seq1IsRef) {
-      refCh        = sid1;
-      qryCh        = sid2;
-      refBeg       = pos1;
-      refEnd       = pos1 + len1;
-      qryBeg       = pos2;
-      qryEnd       = pos2 + len2;
+      refIID       = m->iid1;
+      refBeg       = m->pos1;
+      refEnd       = m->pos1 + m->len1;
+      qryIID       = m->iid2;
+      qryBeg       = m->pos2;
+      qryEnd       = m->pos2 + m->len2;
     } else {
-      refCh        = sid2;
-      qryCh        = sid1;
-      refBeg       = pos2;
-      refEnd       = pos2 + len2;
-      qryBeg       = pos1;
-      qryEnd       = pos1 + len1;
+      refIID       = m->iid2;
+      refBeg       = m->pos2;
+      refEnd       = m->pos2 + m->len2;
+      qryIID       = m->iid1;
+      qryBeg       = m->pos1;
+      qryEnd       = m->pos1 + m->len1;
     }
 
-    ori          = fwd2 ? 1 : -1;
+    ori          = m->fwd2 ? 1 : -1;
 
     bestStart    = -1;
     bestExtend   = -1;
@@ -58,20 +59,25 @@ public:
     return(max(scoreStart, scoreExtend));
   };
 
-  u32bit   iid;
-  s32bit   ori;
-  u32bit   refCh;
-  u32bit   qryCh;
-  s32bit   refBeg;
-  s32bit   refEnd;
-  s32bit   qryBeg;
-  s32bit   qryEnd;
+  atacMatch  match;
 
-  s32bit   scoreStart;
-  s32bit   bestStart;
-  s32bit   scoreExtend;
-  s32bit   bestExtend;
-  s32bit   clump;
+  u32bit     matchIID;
+
+  u32bit     refIID;
+  s32bit     refBeg;
+  s32bit     refEnd;
+
+  u32bit     qryIID;
+  s32bit     qryBeg;
+  s32bit     qryEnd;
+
+  s32bit     ori;
+
+  s32bit     scoreStart;
+  s32bit     bestStart;
+  s32bit     scoreExtend;
+  s32bit     bestExtend;
+  s32bit     clump;
 };
 
 
@@ -81,19 +87,19 @@ clumpHitCompareQry(const void *A, const void *B) {
   const tClumpHit *a = (const tClumpHit *)A;
   const tClumpHit *b = (const tClumpHit *)B;
 
-  if (a->qryCh  > b->qryCh)    return(1);
-  if (a->qryCh  < b->qryCh)    return(-1);
-  if (a->qryBeg > b->qryBeg)   return(1);
-  if (a->qryBeg < b->qryBeg)   return(-1);
-  if (a->qryEnd > b->qryEnd)   return(1);
-  if (a->qryEnd < b->qryEnd)   return(-1);
+  if (a->qryIID  > b->qryIID)   return(1);
+  if (a->qryIID  < b->qryIID)   return(-1);
+  if (a->qryBeg  > b->qryBeg)   return(1);
+  if (a->qryBeg  < b->qryBeg)   return(-1);
+  if (a->qryEnd  > b->qryEnd)   return(1);
+  if (a->qryEnd  < b->qryEnd)   return(-1);
 
-  if (a->refCh  > b->refCh)    return(1);
-  if (a->refCh  < b->refCh)    return(-1);
-  if (a->refBeg > b->refBeg)   return(1);
-  if (a->refBeg < b->refBeg)   return(-1);
-  if (a->refEnd > b->refEnd)   return(1);
-  if (a->refEnd < b->refEnd)   return(-1);
+  if (a->refIID  > b->refIID)   return(1);
+  if (a->refIID  < b->refIID)   return(-1);
+  if (a->refBeg  > b->refBeg)   return(1);
+  if (a->refBeg  < b->refBeg)   return(-1);
+  if (a->refEnd  > b->refEnd)   return(1);
+  if (a->refEnd  < b->refEnd)   return(-1);
 
   return(0);
 }
@@ -103,8 +109,8 @@ clumpHitCompareIID(const void *A, const void *B) {
   const tClumpHit *a = (const tClumpHit *)A;
   const tClumpHit *b = (const tClumpHit *)B;
 
-  if (a->iid  > b->iid)    return(1);
-  if (a->iid  < b->iid)    return(-1);
+  if (a->matchIID > b->matchIID)    return(1);
+  if (a->matchIID < b->matchIID)    return(-1);
   return(0);
 }
 
@@ -119,7 +125,7 @@ chainable(tClumpHit *a, tClumpHit *b, s32bit maxjump) {
   //    hits are too far apart on reference axis
   //    hits are "out of order" (we're sorted by the qry)
   //
-  return(!((a->refCh != b->refCh) || (a->qryCh != b->qryCh) ||
+  return(!((a->refIID != b->refIID) || (a->qryIID != b->qryIID) ||
            (a->ori != b->ori) ||
            (b->qryBeg - a->qryEnd > maxjump) || 
            (a->ori * (b->refBeg - a->refEnd) > maxjump) ||
@@ -136,6 +142,7 @@ score_all_hits(tClumpHit *hits,
   // location of best score so far (to which we point whenever starting a new clump)
   s32bit bestEnd = -1;
 
+
   // best scores so far internal to a reference unit (scaffold, chromosome, etc)
   s32bit bestEndThis   = -1;
   s32bit bestScoreThis = -clumpcost;
@@ -145,7 +152,7 @@ score_all_hits(tClumpHit *hits,
   
   for(u32bit i=0; i<num_hits; i++) {
 
-    if ((i==0) || (hits[i].qryCh != hits[i-1].qryCh)) {
+    if ((i==0) || (hits[i].qryIID != hits[i-1].qryIID)) {
       bestEnd       = bestEndThis; // best of previous query unit
       bestEndThis   = i-1;
       bestScoreThis = -clumpcost;
@@ -167,7 +174,7 @@ score_all_hits(tClumpHit *hits,
     if (furthest_back < i) {
       s32bit cutoff = hits[i].qryBeg - maxjump;
 
-      while ((hits[furthest_back].qryCh != hits[i].qryCh) ||
+      while ((hits[furthest_back].qryIID != hits[i].qryIID) ||
              (hits[furthest_back].qryEnd < cutoff))
 	furthest_back++;
     }
@@ -201,51 +208,6 @@ score_all_hits(tClumpHit *hits,
 
 
 
-u32bit
-matchesInInput(char *filename) {
-  errno = 0;
-  FILE *inFile = fopen(filename, "r");
-  if (errno)
-    fprintf(stderr, "Couldn't open '%s': %s\n", filename, strerror(errno)), exit(1);
-
-  u32bit    iid = 0;
-  char      inLine[1024];
-
-  fgets(inLine, 1024, inFile);
-
-  while (!feof(inFile)) {
-    if ((inLine[0] == 'M') && (inLine[2] == 'u'))
-      iid++;
-    fgets(inLine, 1024, inFile);
-  }
-
-  fclose(inFile);
-
-  return(iid);
-}
-
-
-tClumpHit*
-readMatches(char *filename, u32bit hitsLen, bool seq1IsRef) {
-  u32bit             iid  = 0;
-  tClumpHit         *hits = new tClumpHit [hitsLen];
-
-  atacFileStream  AF(filename);
-  atacMatch      *m = AF.nextMatch('u');
-
-  while (m) {
-    hits[iid].set(iid,
-                  m->iid1, m->pos1, m->len1, m->fwd1,
-                  m->iid2, m->pos2, m->len2, m->fwd2,
-                  seq1IsRef);
-    iid++;
-
-    m = AF.nextMatch('u');
-  }
-
-  return(hits);
-}
-
 
 
 
@@ -253,7 +215,7 @@ int
 main(int argc, char **argv) {
   s32bit   clumpcost    = 50000;
   s32bit   maxjump      = 200000;
-  bool     refisone     = false;
+  bool     seq1IsRef    = false;
   char    *filename     = 0L;
   bool     isSorted     = false;
 
@@ -264,9 +226,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-j") == 0) {
       maxjump = atoi(argv[++arg]);
     } else if (strcmp(argv[arg], "-1") == 0) {
-      refisone = true;
+      seq1IsRef = true;
     } else if (strcmp(argv[arg], "-2") == 0) {
-      refisone = false;
+      seq1IsRef = false;
     } else if (strcmp(argv[arg], "-f") == 0) {
       filename = argv[++arg];
     } else if (strcmp(argv[arg], "-S") == 0) {
@@ -289,19 +251,25 @@ main(int argc, char **argv) {
   }
 
 
-  fprintf(stderr, "Pass 1: count the number of matches in the input.\n");
-  u32bit             hitsLen = matchesInInput(filename);
-  fprintf(stderr, "        found "u32bitFMT" hits\n", hitsLen);
 
-  fprintf(stderr, "Pass 2: load the matches\n");
-  tClumpHit         *hits    = readMatches(filename, hitsLen, refisone);
 
-  if (isSorted == false) {
-    fprintf(stderr, "        sort the matches\n");
-    qsort(hits, hitsLen, sizeof(tClumpHit), clumpHitCompareQry);
-  }
+  fprintf(stderr, "1 load the matches\n");
 
-  fprintf(stderr, "        score the matches\n");
+  atacFile    *AF      = new atacFile(filename);
+  u32bit       hitsLen = AF->matches()->numberOfMatches();
+  tClumpHit   *hits    = new tClumpHit [hitsLen];
+  
+  for (u32bit i=0; i<hitsLen; i++)
+    hits[i].set(AF->matches()->getMatch(i), seq1IsRef);
+
+
+
+  fprintf(stderr, "2 sort the matches\n");
+  qsort(hits, hitsLen, sizeof(tClumpHit), clumpHitCompareQry);
+
+
+
+  fprintf(stderr, "3 score the matches\n");
   s32bit bestEnd = score_all_hits(hits,
                                   clumpcost,
                                   maxjump,
@@ -309,7 +277,7 @@ main(int argc, char **argv) {
 
   //  Mark the clumps
   //
-  fprintf(stderr, "        mark clumps\n");
+  fprintf(stderr, "4 mark clumps\n");
   u32bit clump = 0;
 
   while(bestEnd >= 0) {
@@ -325,96 +293,92 @@ main(int argc, char **argv) {
 
   //  Sort the hits by iid, then merge into the output
   //
-  fprintf(stderr, "        sort the matches\n");
+  fprintf(stderr, "5 sort the matches\n");
   qsort(hits, hitsLen, sizeof(tClumpHit), clumpHitCompareIID);
 
 
   //  For each clump, find the min/max extent in both sequences.  We
   //  use this to output the clump match record.
   //
-  s32bit *clumpLoA = new s32bit [clump];
-  s32bit *clumpHiA = new s32bit [clump];
-  s32bit *clumpLoB = new s32bit [clump];
-  s32bit *clumpHiB = new s32bit [clump];
-  bool   *clumpOut = new bool   [clump];
+  s32bit *clumpLoRef = new s32bit [clump];
+  s32bit *clumpHiRef = new s32bit [clump];
+  s32bit *clumpLoQry = new s32bit [clump];
+  s32bit *clumpHiQry = new s32bit [clump];
+  bool   *clumpOut   = new bool   [clump];
+
   for (u32bit xx=0; xx<clump; xx++) {
-    clumpLoA[xx] = 1000000000;
-    clumpHiA[xx] = 0;
-    clumpLoB[xx] = 1000000000;
-    clumpHiB[xx] = 0;
+    clumpLoRef[xx] = 1000000000;
+    clumpHiRef[xx] = 0;
+    clumpLoQry[xx] = 1000000000;
+    clumpHiQry[xx] = 0;
     clumpOut[xx] = false;
   }
-  for (u32bit xx=0; xx<hitsLen; xx++) {
-    if (hits[xx].clump >= 0) {
-      s32bit  c = hits[xx].clump;
-      if (hits[xx].refBeg < clumpLoA[c])   clumpLoA[c] = hits[xx].refBeg;
-      if (hits[xx].refEnd > clumpHiA[c])   clumpHiA[c] = hits[xx].refEnd;
 
-      if (hits[xx].qryBeg < clumpLoB[c])   clumpLoB[c] = hits[xx].qryBeg;
-      if (hits[xx].qryEnd < clumpHiB[c])   clumpHiB[c] = hits[xx].qryEnd;
+  for (u32bit xx=0; xx<hitsLen; xx++) {
+    s32bit  cc = hits[xx].clump;
+    if (cc >= 0) {
+      if (hits[xx].refBeg < clumpLoRef[cc])   clumpLoRef[cc] = hits[xx].refBeg;
+      if (hits[xx].refEnd > clumpHiRef[cc])   clumpHiRef[cc] = hits[xx].refEnd;
+
+      if (hits[xx].qryBeg < clumpLoQry[cc])   clumpLoQry[cc] = hits[xx].qryBeg;
+      if (hits[xx].qryEnd > clumpHiQry[cc])   clumpHiQry[cc] = hits[xx].qryEnd;
     }
   }
 
   //  Dump the clumps
   //
 
-  fprintf(stderr, "Pass 3: output matches with clumps\n");
+  fprintf(stderr, "6 output matches with clumps\n");
 
+  AF->writeHeader(stdout);
 
-  atacFileStream  AF(filename);
-  atacMatch      *m = AF.nextMatch('u');
-  u32bit          xx = 0;
+  for (u32bit mm=0; mm<hitsLen; mm++) {
+    s32bit cc = hits[mm].clump;
 
-  while (m) {
-
-    //  Make sure the iid agrees.
-    if (xx != hits[xx].iid) {
-      fprintf(stderr, "Augh!  Merge failure!  Not in sync!\n");
-      fprintf(stderr, "xx = "u32bitFMT", hits[xx].iid = "u32bitFMT"\n", xx, hits[xx].iid);
-      exit(1);
-    }
-
-    //  XXX This block was originally disabled!
-    if (((hits[xx].refCh != m->iid1) && (hits[xx].qryCh != m->iid1)) ||
-        ((hits[xx].refCh != m->iid1) && (hits[xx].qryCh != m->iid1))) {
-      fprintf(stderr, "Augh!  Merge failure!  Not in sync!\n");
-      fprintf(stderr, "hits["s32bitFMT"] = r: "u32bitFMT" "s32bitFMT" "s32bitFMT" q: "u32bitFMT" "s32bitFMT" "s32bitFMT"\n",
-              hits[xx].iid,
-              hits[xx].refCh, hits[xx].refBeg, hits[xx].refEnd,
-              hits[xx].qryCh, hits[xx].qryBeg, hits[xx].qryEnd);
-      exit(1);
-    }
-
-    if ((hits[xx].clump >= 0) &&
-        (clumpOut[hits[xx].clump] == false)) {
+    if ((cc >= 0) &&
+        (clumpOut[cc] == false)) {
       atacMatch  C;
-      sprintf(C.matchuid,  "clump"s32bitFMTW(06), hits[xx].clump);
+      sprintf(C.matchuid,  "clump"s32bitFMTW(06), cc);
       sprintf(C.parentuid, ".");
       C.matchiid = 0;
       C.type[0] = 'c';
       C.type[1] = 0;
-      C.iid1 = m->iid1;
-      C.pos1 = clumpLoA[hits[xx].clump];
-      C.len1 = clumpHiA[hits[xx].clump] - clumpLoA[hits[xx].clump];
-      C.fwd1 = m->fwd1;
-      C.iid2 = m->iid2;
-      C.pos2 = clumpLoB[hits[xx].clump];
-      C.len2 = clumpHiB[hits[xx].clump] - clumpLoB[hits[xx].clump];
-      C.fwd2 = m->fwd2;
 
-      C.print(stdout, AF.labelA(), AF.labelB());
+      C.iid1 = hits[mm].match.iid1;
+      C.iid2 = hits[mm].match.iid2;
 
-      clumpOut[hits[xx].clump] = true;
+      //  Set the position and length based on the correct reference
+      //  -- in particular, since we get the IID and orientation from
+      //  the copy of the match we don't need to listen to the
+      //  seq1IsRef flag for those.
+
+      if (seq1IsRef) {
+        C.pos1 = clumpLoRef[cc];
+        C.len1 = clumpHiRef[cc] - clumpLoRef[cc];
+        C.pos2 = clumpLoQry[cc];
+        C.len2 = clumpHiQry[cc] - clumpLoQry[cc];
+      } else {
+        C.pos1 = clumpLoQry[cc];
+        C.len1 = clumpHiQry[cc] - clumpLoQry[cc];
+        C.pos2 = clumpLoRef[cc];
+        C.len2 = clumpHiRef[cc] - clumpLoRef[cc];
+      }
+
+      C.fwd1 = hits[mm].match.fwd1;
+      C.fwd2 = hits[mm].match.fwd2;
+
+      C.print(stdout, AF->labelA(), AF->labelB());
+
+      clumpOut[cc] = true;
     }
 
-    if (hits[xx].clump >= 0)
-      sprintf(m->parentuid, "clump"s32bitFMTW(06), hits[xx].clump);
-    else
-      sprintf(m->parentuid, ".");
-    m->print(stdout, AF.labelA(), AF.labelB());
 
-    xx++;
-    m = AF.nextMatch('u');
+    if (cc >= 0)
+      sprintf(hits[mm].match.parentuid, "clump"s32bitFMTW(06), cc);
+    else
+      sprintf(hits[mm].match.parentuid, ".");
+
+    hits[mm].match.print(stdout, AF->labelA(), AF->labelB());
   }
 
   return(0);
