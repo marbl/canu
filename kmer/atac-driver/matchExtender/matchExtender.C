@@ -56,7 +56,7 @@ public:
 //  Read matches until the iid differs.  Leave the next match in inLine.
 //
 void
-readMatches(atacMatchList     &AL,
+readMatches(atacMatchOrder    &AL,
             u32bit            &firstMatch,
             FastACache        *C1,
             FastACache        *C2,
@@ -140,7 +140,15 @@ main(int argc, char *argv[]) {
   }
 
   atacFile        AF("-");
-  atacMatchList  &AM = *AF.matches();
+  atacMatchOrder  AO(AF.matches());
+
+  AF.writeHeader(stdout);
+
+  //  We could probably optimize and pick the axis with the fewer
+  //  sequences to sort on, but well, no we can't.  Diagonal always
+  //  sorts axis1 first.
+  //
+  AO.sortDiagonal();
 
   FastACache  *C1 = new FastACache(AF.assemblyFileA(), 1, true,  false);
   FastACache  *C2 = new FastACache(AF.assemblyFileB(), 1, false, false);
@@ -150,8 +158,8 @@ main(int argc, char *argv[]) {
 
   u32bit       firstMatch = 0;
 
-  while (firstMatch < AM.numberOfMatches()) {
-    readMatches(AM, firstMatch, C1, C2, fwdMatches, revMatches);
+  while (firstMatch < AO.numberOfMatches()) {
+    readMatches(AO, firstMatch, C1, C2, fwdMatches, revMatches);
 
     u32bit diag_start = 0;
     while (diag_start < fwdMatches.size()) {
@@ -176,7 +184,7 @@ main(int argc, char *argv[]) {
     //
     for (u32bit i=0; i<fwdMatches.size(); i++) {
       if (!fwdMatches[i]->isDeleted())
-        fprintf(stdout, "M u %s:"u32bitFMT" . %s "u32bitFMT" "u32bitFMT" 1 %s "u32bitFMT" "u32bitFMT" 1\n",
+        fprintf(stdout, "M u %s . %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1 %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1\n",
                 fwdMatches[i]->_matchId,
                 AF.labelA(), fwdMatches[i]->_iid1, fwdMatches[i]->_acc1->getRangeBegin(), fwdMatches[i]->_acc1->getRangeLength(),
                 AF.labelB(), fwdMatches[i]->_iid2, fwdMatches[i]->_acc2->getRangeBegin(), fwdMatches[i]->_acc2->getRangeLength());
@@ -185,7 +193,7 @@ main(int argc, char *argv[]) {
 
     for (u32bit i=0; i<revMatches.size(); i++) {
       if (!revMatches[i]->isDeleted())
-        fprintf(stdout, "M u %s:"u32bitFMT" . %s "u32bitFMT" "u32bitFMT" 1 %s "u32bitFMT" "u32bitFMT" -1\n",
+        fprintf(stdout, "M u %s . %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" 1 %s:"u32bitFMT" "u32bitFMT" "u32bitFMT" -1\n",
                 revMatches[i]->_matchId,
                 AF.labelA(), revMatches[i]->_iid1, revMatches[i]->_acc1->getRangeBegin(), revMatches[i]->_acc1->getRangeLength(),
                 AF.labelB(), revMatches[i]->_iid2, revMatches[i]->_acc2->getRangeBegin(), revMatches[i]->_acc2->getRangeLength());
