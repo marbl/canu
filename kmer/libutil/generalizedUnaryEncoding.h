@@ -33,9 +33,9 @@
 //  encoded number, then read that many bits to get the value.
 //
 
-static const u64bit start = 3;
-static const u64bit step  = 2;
-static const u64bit stop  = ~u64bitZERO;
+static const u64bit _genunary_start = 3;
+static const u64bit _genunary_step  = 2;
+//static const u64bit _genunary_stop  = ~u64bitZERO;
 
 
 inline
@@ -45,7 +45,7 @@ setGeneralizedUnaryEncodedNumber(u64bit *ptr,
                                  u64bit *siz,
                                  u64bit  val) {
   u64bit m = u64bitZERO;
-  u64bit w = start;
+  u64bit w = _genunary_start;
   u64bit n = u64bitONE << w;
 
   //  Search for the prefix m, given our number 'val'.
@@ -57,7 +57,7 @@ setGeneralizedUnaryEncodedNumber(u64bit *ptr,
 
   while (n <= val) {
     val -= n;
-    w   += step;
+    w   += _genunary_step;
     n    = u64bitONE << w;
     m++;
 #ifdef DEBUG_GENERALIZEDUNARYENCODING
@@ -92,7 +92,7 @@ getGeneralizedUnaryEncodedNumber(u64bit *ptr,
   //  Comments in the encoder apply here too.
 
   m    = getUnaryEncodedNumber(ptr, pos, siz);
-  w    = start + m * step;
+  w    = _genunary_start + m * _genunary_step;
   val  = getDecodedValue(ptr, pos + *siz, w);
   *siz = m + 1 + w;
 
@@ -103,7 +103,7 @@ getGeneralizedUnaryEncodedNumber(u64bit *ptr,
   //  Add in the implcitly stored pieces of the number
   //
   while (m--) {
-    w -= step;
+    w -= _genunary_step;
     val += u64bitONE << w;
   }
 
