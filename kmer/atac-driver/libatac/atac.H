@@ -49,6 +49,8 @@ public:
 
 protected:
   void  readHeader(char *inLine, FILE *in);
+public:
+  void  writeHeader(FILE *out);
 
 private:
   char               _fileA[1024];  //  The name of our genome files
@@ -57,7 +59,7 @@ private:
   char               _labelA[256];  //  The label of each of the sequences
   char               _labelB[256];
 
-  //map<string,string> _params;
+  map<string,string> _params;
 
   FastAWrapper      *_seqA;
   FastAWrapper      *_seqB;
@@ -75,6 +77,9 @@ public:
 private:
   FILE        *_inFile;
   char         _inLine[1024];
+
+  u32bit       _theMatchIID;
+  u32bit       _theFeatureIID;
 
   atacMatch    _theMatch;
   atacFeature  _theFeature;

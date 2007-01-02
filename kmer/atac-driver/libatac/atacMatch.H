@@ -28,6 +28,12 @@ using namespace std;
 class atacMatch {
 public:
   atacMatch() {
+    matchuid[0] = 0;
+    parentuid[0] = 0;
+    matchiid = 0;
+    type[0] = 0;
+    iid1 = pos1 = len1 = fwd1 = 0;
+    iid2 = pos2 = len2 = fwd2 = 0;
   };
   atacMatch(char *line);
   atacMatch(char *muid,

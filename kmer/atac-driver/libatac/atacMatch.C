@@ -103,6 +103,8 @@ atacMatch::decode(char *line) {
   matchuid[15]  = 0;
   parentuid[15] = 0;
 
+  matchiid = 0;
+
   type[0] = 0;
   type[1] = 0;
   type[2] = 0;

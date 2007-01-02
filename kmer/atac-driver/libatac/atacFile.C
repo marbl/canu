@@ -40,6 +40,9 @@ atacFileStream::atacFileStream(char const *filename) {
 
   _inFile = stdin;
 
+  _theMatchIID   = 0;
+  _theFeatureIID = 0;
+
   if ((filename != 0L) && (strcmp(filename, "-") != 0)) {
     errno = 0;
     _inFile = fopen(filename, "r");
@@ -65,8 +68,10 @@ atacFileStream::nextMatch(char type) {
   while (!feof(_inFile)) {
     if (_inLine[0] == 'M') {
       _theMatch.decode(_inLine);
-      if (_theMatch.type[0] == type)
+      if (_theMatch.type[0] == type) {
+        _theMatch.matchiid = _theMatchIID++;
         return(&_theMatch);
+      }
     }
 
     fgets(_inLine, 1024, _inFile);
@@ -94,8 +99,10 @@ atacFileStream::nextFeature(char type[4]) {
       if (((_theFeature.type[0] == 0) || (type[0] == 0) || (_theFeature.type[0] == type[0])) &&
           ((_theFeature.type[1] == 0) || (type[1] == 0) || (_theFeature.type[1] == type[1])) &&
           ((_theFeature.type[2] == 0) || (type[2] == 0) || (_theFeature.type[2] == type[2])) &&
-          ((_theFeature.type[3] == 0) || (type[3] == 0) || (_theFeature.type[3] == type[3])))
+          ((_theFeature.type[3] == 0) || (type[3] == 0) || (_theFeature.type[3] == type[3]))) {
+        _theFeature.featureiid = _theFeatureIID++;
         return(&_theFeature);
+      }
     }
 
     fgets(_inLine, 1024, _inFile);
@@ -135,13 +142,16 @@ atacFile::atacFile(char const *filename) {
           atacMatch m(inLine);
 
           if (m.sanity(fastaA(), fastaB(), inLine)) {
-            if        (m.type[0] == 'u') {
+            if        ((m.type[0] == 'u') ||
+                       (m.type[0] == 'x')) {
               _matches.add(m);
             } else if (m.type[0] == 'r') {
               _runs.add(m);
             } else if (m.type[0] == 'c') {
               _clumps.add(m);
             } else {
+              chomp(inLine);
+              fprintf(stderr, "atacFile::atacFile()-- Unknown match record type '%c' -- '%s'.\n", m.type[0], inLine);
             }
           }
         }
@@ -149,11 +159,15 @@ atacFile::atacFile(char const *filename) {
 
       case 'F':
         {
+          chomp(inLine);
+          fprintf(stderr, "atacFile::atacFile()-- Unknown feature record -- '%s'.\n", inLine);
         }
         break;
 
       default:
         {
+          chomp(inLine);
+          fprintf(stderr, "atacFile::atacFile()-- Unknown record -- '%s'.\n", inLine);
         }
         break;
     }
@@ -211,11 +225,9 @@ atacFileBase::readHeader(char *inLine, FILE *in) {
 
       //fprintf(stderr, "key='%s' val='%s'\n", key, val);
 
-#if 0
       string K = key;
       string V = val;
       _params[K] = V;
-#endif
 
       //  Save ones we use
 
@@ -260,4 +272,37 @@ atacFileBase::readHeader(char *inLine, FILE *in) {
       fprintf(stderr, "atacFile::readHeader()-- can't find '%s', no sequence read.\n", _fileB);
     }
   }
+}
+
+
+
+void
+atacFileBase::writeHeader(FILE *out) {
+
+  if (out == 0L)
+    out = stdout;
+
+  fprintf(out, "!format atac 1.0\n");
+  fprintf(out, "#\n");
+  fprintf(out, "# Legend:\n");
+  fprintf(out, "#\n");
+  fprintf(out, "# Field 0: the row class\n");
+  fprintf(out, "# Field 1: the match type u=ungapped, x=exact, ....\n");
+  fprintf(out, "# Field 2: the match instance index\n");
+  fprintf(out, "# Field 3: the parent index\n");
+  fprintf(out, "# Field 4: the FASTA sequence id in the first assembly\n");
+  fprintf(out, "# Field 5: the offset from the start of the sequence for the match\n");
+  fprintf(out, "# Field 6: the length of the match in the first assembly\n");
+  fprintf(out, "# Field 7: the orientation of the match sequence in the first assembly.\n");
+  fprintf(out, "# Field 8: the FASTA sequence id for the second assembly\n");
+  fprintf(out, "# Field 9: the offset from the start of the sequence for the match\n");
+  fprintf(out, "# Field 10: the length of the match in the second assembly\n");
+  fprintf(out, "# Field 11: the orientation of the match sequence in the second assembly.\n");
+  fprintf(out, "#\n");
+
+  map<string,string>::iterator  it;
+  for (it=_params.begin(); it != _params.end(); it++) {
+    fprintf(out, "/%s=%s\n", it->first.c_str(), it->second.c_str());
+  }
+  
 }
