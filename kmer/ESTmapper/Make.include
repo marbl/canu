@@ -30,7 +30,6 @@ EXECS :=  $/leaff \
           $/terminate \
           $/util/scheduler.pm \
           $/util/fasta.pm
-          
 
 $(eval $/%.d $/%.o: CXXFLAGS+=-I${LIBKMER/} -I${LIBBIO/} -I${LIBSIM4/} -I${LIBUTL/})
 
@@ -120,7 +119,3 @@ $/positionDB: ${LIBKMER/}positionDB
 	$(RM) $/positionDB
 	$(CP) ${LIBKMER/}positionDB $/positionDB
 	chmod 555 $/positionDB
-
-
-
-
