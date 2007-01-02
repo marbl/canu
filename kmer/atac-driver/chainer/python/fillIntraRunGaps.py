@@ -302,8 +302,9 @@ def mainLoop( inpfile, outfile, xIdx, yIdx, maxgap, erate):
             newRight = MatchRecord.MatchRecord(line)
             if( newRight.subtype == 'u' ):
                 right = newRight
-                if( countLines % 10000 == 0):
-                    sys.stderr.write("countLines=%d\n" % countLines)
+
+                #if( countLines % 10000 == 0):
+                #    sys.stderr.write("countLines=%d\n" % countLines)
 
                 (inter_run_gap_count,)     =  analyzeGap( xIdx, yIdx, left,right, outfile, maxgap, erate, margin)
 
@@ -315,12 +316,8 @@ def mainLoop( inpfile, outfile, xIdx, yIdx, maxgap, erate):
                 left = right
         # end if
     # end for
-    
-    sys.stderr.write(
-        "countLines %d inter_run_gap_count %d \n" % (countLines,inter_run_gap_count_total)
-        )
 
-
+    sys.stderr.write("countLines %d inter_run_gap_count %d \n" % (countLines,inter_run_gap_count_total))
 # end def
 
 import AtacFile

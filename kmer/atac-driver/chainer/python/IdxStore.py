@@ -107,11 +107,8 @@ class IdxStore:
     self.iid2seq_offset = []
 
     filename = prefix + ".idxStore"
-    sys.stderr.write( "Openning index file %s for reading\n" % filename);
     idxstore = file(filename, "r");
-    # assert(fp != NULL);
 
-    # print dir(self)
     the_iid=0;
     while 1:
       line = idxstore.readline();
@@ -131,15 +128,8 @@ class IdxStore:
       self.iid2seq_offset.append(seq_offset)
       the_iid += 1;
 
-    #close(idxstore);
-    sys.stderr.write("Read index idxStore\n");
-    # print self.uid2iid
-
     filename = prefix
-    message = "Openning sequence file %s for reading.\n" % filename
-    sys.stderr.write(message)
     self.seqstore = file(filename, "r");
-    # assert(seqstore != NULL);
     return
   
 

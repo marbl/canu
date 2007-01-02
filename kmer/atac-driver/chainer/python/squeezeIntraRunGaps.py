@@ -455,8 +455,9 @@ def mainLoop( inpfile, outfile, xIdx, yIdx):
         if(line[0] == 'M'):
             right = MatchRecord.MatchRecord(line)
 
-            if( countLines % 10000 == 0):
-                sys.stderr.write("countLines=%d\n" % countLines)
+            #if( countLines % 10000 == 0):
+            #    sys.stderr.write("countLines=%d\n" % countLines)
+
             (inter_run_gap_count,squeezed,x_len,y_len,x_notACGT,y_notACGT) \
               = analyzeGap(xIdx,yIdx,left,right, outfile, maxgap, margin)
             inter_run_gap_count_total += inter_run_gap_count
