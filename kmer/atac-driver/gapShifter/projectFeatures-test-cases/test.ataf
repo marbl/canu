@@ -1,0 +1,23 @@
+! format atac 1.0
+F tr test01 . A:0 0 50
+
+#  Test containment
+F tr test02 . A:0 100 200
+F tr test03 . A:0 100 150
+F tr test04 . A:0 150 100
+F tr test05 . A:0 250 150
+
+#  Test before
+F tr test06 . A:0 50 40
+F tr test07 . A:0 50 50
+F tr test08 . A:0 50 150
+F tr test09 . A:0 50 250
+
+#  Test after
+F tr test10 . A:0 100 250
+F tr test11 . A:0 290 50
+F tr test12 . A:0 300 50
+F tr test13 . A:0 310 50
+
+#  Match contained in feature
+F tr test14 . A:0 50 400
