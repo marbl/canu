@@ -7,6 +7,10 @@
 
 //  Reads stdin, writes stdout.  Uses threads.
 
+int  blockSize  = 8192;
+int  readBuf    = 64;
+int  writBuf    = 64;
+
 typedef struct {
   int     frameNumber;
   int     dataLen;
@@ -17,17 +21,14 @@ typedef struct {
   int     globalFrameNumber;
 } tcatGlobal_s;
 
-
-#define BLOCKSIZE 8192
-
 void*
 tcatReader(void *G) {
   tcatGlobal_s  *g = (tcatGlobal_s *)G;
   tcat_s        *s = new tcat_s;
 
   s->frameNumber = g->globalFrameNumber++;
-  s->data        = new char [BLOCKSIZE];
-  s->dataLen     = safeRead(STDIN_FILENO, s->data, "tcatReader", sizeof(char) * BLOCKSIZE);
+  s->data        = new char [blockSize];
+  s->dataLen     = safeRead(STDIN_FILENO, s->data, "tcatReader", sizeof(char) * blockSize);
 
   if (s->dataLen == 0) {
     delete [] s->data;
@@ -62,8 +63,29 @@ int
 main(int argc, char **argv) {
   sweatShop   *ss = new sweatShop(tcatReader, tcatWorker, tcatWriter);
 
-  ss->loaderQueueSize(64 * 1024 * 1024 / BLOCKSIZE);
-  ss->writerQueueSize(64 * 1024 * 1024 / BLOCKSIZE);
+  int arg = 1;
+  int err = 0;
+  while (arg < argc) {
+    if        (strcmp(argv[arg], "-r") == 0) {
+      readBuf = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-w") == 0) {
+      writBuf = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-b") == 0) {
+      blockSize = atoi(argv[++arg]);
+    } else {
+      fprintf(stderr, "unknown option '%s'\n", argv[arg]);
+      err++;
+    }
+    arg++;
+  }
+
+  if (err) {
+    fprintf(stderr, "usage: %s [-b blockSizeBytes] [-r readBufferSizeMB] [-w writeBufferSizeMB]\n", argv[0]);
+    exit(1);
+  }
+
+  ss->loaderQueueSize(readBuf * 1024 * 1024 / blockSize);
+  ss->writerQueueSize(writBuf * 1024 * 1024 / blockSize);
 
   tcatGlobal_s  *G = new tcatGlobal_s;
   G->globalFrameNumber = 0;
