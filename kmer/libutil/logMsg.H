@@ -31,7 +31,7 @@ public:
   //
   void     resize(u32bit moreSpace) {
     if (_logLen + moreSpace >= _logMax) {
-      _logMax += _logMax + moreSpace;
+      _logMax += _logMax + moreSpace + 1;
       char *ll = new char [_logMax];
       memcpy(ll, _log, sizeof(char) * _logLen);
       delete [] _log;
@@ -40,7 +40,7 @@ public:
   };
 
 
-  //  Add a message to the log, assume the message is less than 1024
+  //  Add a message to the log, assume the message is less than 8192
   //  bytes.  Would be nice to parse the fmt string (and any args) but
   //  that's a lot of work (and already done if you have vsnprintf.
   //
@@ -49,7 +49,7 @@ public:
   void     add(char const *fmt, ...) {
     va_list   ap;
 
-    resize(1024);
+    resize(8192);
 
     va_start(ap, fmt);
 
