@@ -287,6 +287,7 @@ main(int argc, char *argv[]) {
 
   //  Write the new output to stdout.
   //
+  AF.writeHeader(stdout);
   for (u32bit i=0; i<MO.numMatches(); i++)
     MO[i]->print(stdout, AF.labelA(), AF.labelB());
 
