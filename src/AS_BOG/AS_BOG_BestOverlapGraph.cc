@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.31 2006-11-10 20:00:45 eliv Exp $
- * $Revision: 1.31 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.32 2007-01-05 20:43:21 eliv Exp $
+ * $Revision: 1.32 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.31 2006-11-10 20:00:45 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.32 2007-01-05 20:43:21 eliv Exp $";
 
 //  System include files
 #include<iostream>
@@ -174,8 +174,8 @@ namespace AS_BOG{
         newBest.b_hang =  olap.b_hang;
         _best_containments[ olap.b_iid ] = newBest;
     }
-    bool BestOverlapGraph::isContained(const iuid fragIID) {
-        std::map<iuid,BestContainment>::iterator i =
+    inline bool BestOverlapGraph::isContained(const iuid fragIID) {
+        std::map<iuid,BestContainment>::const_iterator i =
                                 _best_containments.find( fragIID ); 
         if ( i != _best_containments.end() ) 
             return true;
@@ -423,6 +423,9 @@ namespace AS_BOG{
         // A contains B
         if ( olap.a_hang >= 0 && olap.b_hang <= 0 ) {
              //handle a contains b
+             // in the case of no hang, make the lower frag the container
+             if (olap.a_hang == 0 && olap.b_hang == 0 && olap.a_iid > olap.b_iid)
+                 return;
 
              short alignLen = olapLength( olap );
              uint16 afrgLen = fragLen( olap.a_iid );
