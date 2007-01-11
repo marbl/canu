@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# $Id: caqc.pl,v 1.15 2006-12-06 20:57:39 moweis Exp $
+# $Id: caqc.pl,v 1.16 2007-01-11 21:46:45 eliv Exp $
 #
 # This program reads a Celera .asm file and produces aggregate information
 # about the assembly
@@ -20,7 +20,7 @@ use File::Basename;
 use Statistics::Descriptive;
 use File::Copy;
 
-my $MY_VERSION = "caqc Version 2.11 (Build " . (qw/$Revision: 1.15 $/ )[1] . ")";
+my $MY_VERSION = "caqc Version 2.11 (Build " . (qw/$Revision: 1.16 $/ )[1] . ")";
 
 # Constants
 my $MINQUAL   = 20;
@@ -373,6 +373,21 @@ sub calcNStats($$$$$) {
   }
 }
 
+my %bad_mates = ();
+sub trackBadMates($$$$$){
+    my ($type,$uid,$size,$mid,$sfs) = @_;
+    my $orient = '+';
+    my ($l, $r) = split ',',$$sfs{'pos'};
+    if ( $l > $r ) {
+        ($l, $r) = ($r,$l);
+        $orient = '-';
+    }
+    my $status = $bad_mates{$mid}[0];
+    if (@{$bad_mates{$mid}} > 1) {
+        $status = $bad_mates{$mid}[4];
+    }
+    $bad_mates{ $mid } = ["$type:$uid",$size,$l,$r,$orient,$status];
+}
 
 MAIN:
 {
@@ -559,7 +574,6 @@ MAIN:
       foreach my $rec (@$recs) {
         my ( $sid, $sfs, $srecs ) = parseCARecord( $rec );
         if ( $sid eq 'MPS' ) {
-          #my ($l, $r) = $$sfs{'pos'};
           my $mid  = $$sfs{'mid'};
           my $rlen = $readLen{$mid};    #abs($r - $l);
           $readlens{$contig_euid} += $rlen;
@@ -567,7 +581,10 @@ MAIN:
             $numPlacedSurrogateFrags++;
             $lenPlacedSurrogateFrags += $rlen;
           }
-            } elsif ($sid eq 'UPS') {
+          if ( exists $bad_mates{ $mid } ) {
+              trackBadMates( 'CCO',$contig_euid, $contiglen, $mid, $sfs );
+          }
+        } elsif ($sid eq 'UPS') {
           my $typ = $$sfs{'typ'};
           if ( $typ eq 'S' ) {
             my ( $ub, $ue ) = split ',', $$sfs{'pos'};
@@ -596,17 +613,21 @@ MAIN:
       { 
       	
         $nunitigs++;
-        $utgs->add_data( $$fields{'len'} );
+        my $utgLen = $$fields{'len'};
+        $utgs->add_data( $utgLen );
         $utgSeqs += $$fields{'nfr'};
-        $utglens{ getCAId( $$fields{'acc'} ) } = $$fields{'len'};
-        $utglensTotal += $$fields{'len'};
+        $utglens{ getCAId( $$fields{'acc'} ) } = $utgLen;
+        $utglensTotal += $utgLen;
         for ( my $rd = 0 ; $rd <= $#$recs ; $rd++ ) {
           my ( $sid, $sfs, $srecs ) = parseCARecord( $$recs[$rd] );
           if ( $sid eq 'MPS' ) {
-            #my ($l, $r) = $$sfs{'pos'};
-	    my $mid = $$sfs{'mid'};
-            $surrReadLen += $readLen{ $$sfs{'mid'} };    #abs($r - $l);
-	    $utgFrags{$mid} = 1;
+              my $mid = $$sfs{'mid'};
+              $surrReadLen += $readLen{ $mid };
+              $utgFrags{$mid} = 1;
+              if ( exists $bad_mates{ $mid } ) {
+                  my ($uuid , $uiid) = getBothCAIds( $$fields{'acc'} );      
+                  trackBadMates('UTG',$uuid, $utgLen, $mid, $sfs);
+              }
           }
         }
       }
@@ -688,6 +709,7 @@ MAIN:
       $totalSeqs++;
 
       my $mstField = $$fields{'mst'};
+      $bad_mates{$frag_id} = [$mstField];
       if ( $mstField eq 'A' ) {
         $Results{ReadsWithChaffMate}++;
       }
@@ -705,6 +727,7 @@ MAIN:
       }
       elsif ( $mstField eq 'G' ) {
         $Results{ReadsWithGoodMate}++;
+        delete $bad_mates{$frag_id};
       }
       elsif ( $mstField eq 'H' ) {
         $Results{ReadsWithBothChaffMate}++;
@@ -714,6 +737,7 @@ MAIN:
       }
       elsif ( $mstField eq 'N' ) {
         $Results{ReadsWithNoMate}++;
+        delete $bad_mates{$frag_id};
       }
       elsif ( $mstField eq 'O' ) {
         $Results{ReadsWithOuttieMate}++;
@@ -1474,7 +1498,23 @@ MAIN:
      my $len_list       = join( ',', @sorted_len_arr );
      $fm->print("hist=$len_list\n");
      $fm->close() or die("Could not close $prefix.qc.metrics ($!)");
+
   }
+  my $badMateFile = 'badMateFragmentIDs.txt';
+  # sort on UID of UTG, or CCO, then begin position, then end
+  # UTGs should only be unplaced surrogates
+  open(BADMATES,"| sort -k2.5,2 -k4,4n -k5,5n > $badMateFile") ||
+      die "Couldn't write to $badMateFile.";
+  local $\ = "\n";
+  local $, = "\t";
+  while( my ($badId,$coord) = each %bad_mates) {
+      if ($coord) {
+          print BADMATES $badId,@$coord;
+      } else {
+          print BADMATES $badId,'Chaff';
+      }
+  }
+  close BADMATES;
   
   exit(0);
 }
