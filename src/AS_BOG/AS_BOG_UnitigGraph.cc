@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.39 2006-12-06 20:16:03 eliv Exp $
- * $Revision: 1.39 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.40 2007-01-11 19:39:04 eliv Exp $
+ * $Revision: 1.40 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.39 2006-12-06 20:16:03 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.40 2007-01-11 19:39:04 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -738,6 +738,7 @@ namespace AS_BOG{
                             breakPoint.position = node.position;
                             breakPoint.fragNumber = fragCount ;
                             breakPoint.inSize = inTig->getLength();
+                            breakPoint.inFrags = inTig->getNumFrags();
                             breaks.push_back( breakPoint );
                         }
                         fprintf(stderr,
@@ -1129,8 +1130,8 @@ namespace AS_BOG{
         //simple version
         if (dovetail_path_ptr->empty()) {
         } else {
-        fprintf(stderr,"shift unitig by %d 1st frg %d\n",
-                offset,dovetail_path_ptr->front().ident);
+//        fprintf(stderr,"shift unitig by %d 1st frg %d\n",
+//                offset,dovetail_path_ptr->front().ident);
         }
         DoveTailIter iter = dovetail_path_ptr->begin();
         for(; iter != dovetail_path_ptr->end(); iter++) {
@@ -1430,7 +1431,7 @@ namespace AS_BOG{
               sid, lastBPFragNum, lFrgs, lastBPCoord, bp, lRate );
             double ratio = lRate > rRate ? lRate / rRate : rRate / lRate;
             fprintf(stderr,
-              "Break diff %4d r %4d pos %5d rRate %.4f ratio %.2f to frag %7d\n",
+              "     diff %4d r %4d pos %5d rRate %.4f ratio %.2f to frag %7d\n",
                rFrgs - lFrgs, rFrgs, right, rRate, ratio, bid ); 
 
             double diff = fabs( lRate - rRate);
@@ -1456,8 +1457,8 @@ namespace AS_BOG{
         for(; iter != breaks.end(); iter++)
         {
             UnitigBreakPoint nextBP = *iter;
-            //if (nextBP.inSize > 2500) {
-            if (tig->getNumFrags() > 2) {
+            //if (nextBP.inSize > 2500) 
+            if (nextBP.inFrags > 1 && nextBP.inSize > 500) {
                 hadBig = true;
                 // big one, compare against smalls
                 if (!(nextBP.fragEnd == newBPs.back().fragEnd)) {
@@ -1553,20 +1554,20 @@ namespace AS_BOG{
                         breakPoint.fragEnd.end == THREE_PRIME && reverse)
                 {
                     // break at end, frg starts new tig
-                    fprintf(stderr,"  Breaking tig %d before %d num %d\n",
+                    fprintf(stderr,"  Break tig %d before %d num %d\n",
                             tig->id-1, breakPoint.fragEnd.id, breakPoint.fragNumber);
                     newTig->shiftCoordinates( offset );
                     newTig = new Unitig();
                     newTig->dovetail_path_ptr = new DoveTailPath();
                     offset = reverse ? -frg.position.end : -frg.position.bgn;
-                    fprintf(stderr,"Offset is %d for frg %d %d,%d\n",
+                    fprintf(stderr,"Offset is %d for frg %d %d,%d ",
                             offset,frg.ident,frg.position.bgn,frg.position.end);
                     newTig->dovetail_path_ptr->push_back( frg );
                 }
                 else if (breakPoint.fragEnd.end ==  FIVE_PRIME && reverse ||
                         breakPoint.fragEnd.end == THREE_PRIME && !reverse )
                 {
-                    fprintf(stderr,"  Breaking tig %d after %d num %d\n",
+                    fprintf(stderr,"  Break tig %d after %d num %d\n",
                             tig->id-1, breakPoint.fragEnd.id, breakPoint.fragNumber);
                     newTig->dovetail_path_ptr->push_back( frg );
                     newTig->shiftCoordinates( offset );
@@ -1589,7 +1590,7 @@ namespace AS_BOG{
             } else {
                 if (newTig->dovetail_path_ptr->empty()) {
                     offset = reverse ? -frg.position.end : -frg.position.bgn;
-                    fprintf(stderr,"Offset is %d for frg %d %d,%d\n",
+                    fprintf(stderr,"Offset is %d for frg %d %d,%d ",
                             offset,frg.ident,frg.position.bgn,frg.position.end);
                 }
                 newTig->dovetail_path_ptr->push_back( frg );

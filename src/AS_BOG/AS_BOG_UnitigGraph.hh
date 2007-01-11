@@ -34,15 +34,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.22 2006-11-21 16:17:18 eliv Exp $
- * $Revision: 1.22 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.23 2007-01-11 19:39:04 eliv Exp $
+ * $Revision: 1.23 $
 */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.22 2006-11-21 16:17:18 eliv Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.23 2007-01-11 19:39:04 eliv Exp $";
 
 #include <vector>
 #include <list>
@@ -85,11 +85,12 @@ namespace AS_BOG{
     struct UnitigBreakPoint {
         int fragNumber;       // the number of the fragment in the unitig
         int inSize;           // the size of the incoming unitig
+        int inFrags;          // the number of fragments in incoming unitig
         SeqInterval position; // coordinates in unitig
         FragmentEnd fragEnd;  // frag id and which end to break on 
 
         UnitigBreakPoint(iuid id=0, fragment_end_type end=FIVE_PRIME) :
-            fragEnd(id, end), fragNumber(0), inSize(0)
+            fragEnd(id, end), fragNumber(0), inSize(0), inFrags(0)
         {
             position.bgn = position.end = 0;
         }
