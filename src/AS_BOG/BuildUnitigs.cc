@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.14 2006-12-21 21:43:24 eliv Exp $
- * $Revision: 1.14 $
+ * $Id: BuildUnitigs.cc,v 1.15 2007-01-18 22:32:42 eliv Exp $
+ * $Revision: 1.15 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.14 2006-12-21 21:43:24 eliv Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.15 2007-01-18 22:32:42 eliv Exp $";
 
 //  System include files
 
@@ -141,9 +141,15 @@ int  main (int argc, char * argv [])
 	//std::cout<< utg << endl;
     char fileStr[16];
 	switch(i){
-		case 0: sprintf( fileStr, "len%d.ium",iscr1); break;
-		case 1: sprintf( fileStr, "len%d.ium",iscr2); break;
-		case 2: sprintf( fileStr, "len%d.ium",iscr3); break;
+		case 0: sprintf( fileStr, "len%d.ium",iscr1);
+		        fprintf(stderr, "Made unitigs at %.1f%% mismatch rate\n",scr1);
+                break;
+		case 1: sprintf( fileStr, "len%d.ium",iscr2);
+		        fprintf(stderr, "Made unitigs at %.1f%% mismatch rate\n",scr2);
+                break;
+		case 2: sprintf( fileStr, "len%d.ium",iscr3);
+		        fprintf(stderr, "Made unitigs at %.1f%% mismatch rate\n",scr3);
+                break;
 	}
     utg.writeIUMtoFile(fileStr);
     outputHistograms( &utg );
