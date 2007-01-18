@@ -23,7 +23,7 @@
   -o /work/assembly/rbolanos/IBM_PORT_CDS/ibm_migration_work_dir/cds/AS/obj/GraphCGW_T.o GraphCGW_T.c
 */
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.24 2006-12-12 06:42:59 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.25 2007-01-18 20:30:59 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3980,27 +3980,6 @@ void ComputeMatePairDetailedStatus() {
           if ( node->type == RESOLVEDREPEATCHUNK_CGW)
             numInResRep++;
 
-          if( fragContig->scaffoldID == NULLINDEX ) {
-            assert( node->type != DISCRIMINATORUNIQUECHUNK_CGW );
-            if (mateContig->scaffoldID == NULLINDEX) {
-              if (mate->flags.bits.mateDetail != BOTH_DEGEN_MATE) {
-                mate->flags.bits.mateDetail  = BOTH_DEGEN_MATE;
-                frag->flags.bits.mateDetail  = BOTH_DEGEN_MATE;
-                numBothDegen+=2;
-              }
-            } else {
-              numDegen+=2;
-              mate->flags.bits.mateDetail = DEGEN_MATE;
-              frag->flags.bits.mateDetail = DEGEN_MATE;
-            }
-            continue;
-          }
-
-          if(mateContig->scaffoldID == NULLINDEX) {
-            numSkipDegen++;
-            continue;
-          }
-
           if ( node->type != DISCRIMINATORUNIQUECHUNK_CGW ) {
             if (node->info.CI.numInstances == 0) {
               numZero++;
@@ -4083,6 +4062,27 @@ void ComputeMatePairDetailedStatus() {
               frag->flags.bits.mateDetail = DIFF_SCAFF_MATE;
               continue;
             }
+
+          if( fragContig->scaffoldID == NULLINDEX ) {
+            assert( node->type != DISCRIMINATORUNIQUECHUNK_CGW );
+            if (mateContig->scaffoldID == NULLINDEX) {
+              if (mate->flags.bits.mateDetail != BOTH_DEGEN_MATE) {
+                mate->flags.bits.mateDetail  = BOTH_DEGEN_MATE;
+                frag->flags.bits.mateDetail  = BOTH_DEGEN_MATE;
+                numBothDegen+=2;
+              }
+            } else {
+              numDegen+=2;
+              mate->flags.bits.mateDetail = DEGEN_MATE;
+              frag->flags.bits.mateDetail = DEGEN_MATE;
+            }
+            continue;
+          }
+          if(mateContig->scaffoldID == NULLINDEX) {
+            numSkipDegen++;
+            continue;
+          }
+
           CDS_COORD_t fragLeftEnd, fragRightEnd;
           CDS_COORD_t mateLeftEnd, mateRightEnd;
           int mateScaffoldOrientation, fragScaffoldOrientation;

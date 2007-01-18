@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.29 2006-11-03 20:13:26 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.30 2007-01-18 20:30:58 eliv Exp $";
 
 
 static const char *usage = 
@@ -1229,8 +1229,6 @@ int main(int argc, char *argv[]){
                                            "contig_final");
     }
 
-  ComputeMatePairDetailedStatus();
-  
   fprintf(GlobalData->stderrc,"* Output cam files *\n");
   GenerateCIGraph_U_Stats();
   GenerateLinkStats(ScaffoldGraph->CIGraph,"final",0);
@@ -1265,6 +1263,8 @@ int main(int argc, char *argv[]){
 
     MarkContigEdges();
     OutputMateDists(ScaffoldGraph);
+    ComputeMatePairDetailedStatus();
+
     OutputFrags(ScaffoldGraph);
 
     // We always have multiAlignments for Unitigs
