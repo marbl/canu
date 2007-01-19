@@ -1,6 +1,16 @@
 #!/usr/bin/env ruby
 
-dump = IO.popen("dumpGatekeeper *.gkpStore 2>/dev/null | grep 'Link ('")
+gkpStore = (ARGV[0] || '*.gkpStore')
+bin = ''
+if ARGV[1]
+    bin = ARGV[1]
+    bin +='/' unless bin[-1] == '/'
+end
+
+cmd = %Q[#{bin}dumpGatekeeper #{gkpStore} 2>/dev/null | grep 'Link (']
+dump = IO.popen(cmd)
+raise "popen failure: #{cmd}" if dump.eof
+
 re = /^\tLink \((\d+),(\d+)\) dist:(\d+) /
 ranges = {}
 dump.each_line do |line|
