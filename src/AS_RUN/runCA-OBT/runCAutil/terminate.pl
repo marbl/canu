@@ -171,6 +171,11 @@ sub terminate ($) {
             #}
 
             my $cmd;
+            $cmd = "$bin/mateLinkIIDRanges.rb $wrk/$asm.gkpStore $bin > mateLinkIIDRanges.txt";
+            if (runCommand("$wrk/9-terminator", $cmd)) {
+                die "Failed.\n";
+            }
+
             $cmd = "$perl $bin/caqc.pl $wrk/9-terminator/$asm.asm";
             if (runCommand("$wrk/9-terminator", $cmd)) {
                 rename "$wrk/9-terminator/$asm.qc", "$wrk/9-terminator/$asm.qc.FAILED";

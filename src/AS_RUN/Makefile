@@ -47,7 +47,8 @@ SCRIPTS = runCA-OBT.pl \
 	  testVersionOnPlatform.sh \
 	  apply_assembler \
 	  glen_est_truncadjusted.pl \
-      caqc.pl
+      caqc.pl \
+      mateLinkIIDRanges.rb
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -77,6 +78,10 @@ RUNCAOBTUTIL = runCA-OBT/runCAutil/applyOverlapCorrection.pl \
 runCA-OBT.pl: runCA-OBT/runCA.pl.head runCA-OBT/runCAutil/util.pl runCA-OBT/runCA.pl $(RUNCAOBTUTIL) runCA-OBT/runCAutil/scheduler.pm
 	@cat runCA-OBT/runCA.pl.head runCA-OBT/runCAutil/util.pl $(RUNCAOBTUTIL) runCA-OBT/runCA.pl runCA-OBT/runCAutil/scheduler.pm > $(LOCAL_BIN)/runCA-OBT.pl
 	@chmod 775 $(LOCAL_BIN)/runCA-OBT.pl
+
+mateLinkIIDRanges.rb: asmQC/mateLinkIIDRanges.rb
+	@cp $< $(LOCAL_BIN)/$@
+	@chmod 775 $(LOCAL_BIN)/$@
 
 caqc.pl: asmQC/caqc.pl
 	@cp $< $(LOCAL_BIN)/$@
