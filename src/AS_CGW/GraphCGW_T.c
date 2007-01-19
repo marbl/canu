@@ -23,7 +23,7 @@
   -o /work/assembly/rbolanos/IBM_PORT_CDS/ibm_migration_work_dir/cds/AS/obj/GraphCGW_T.o GraphCGW_T.c
 */
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.25 2007-01-18 20:30:59 eliv Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.26 2007-01-19 15:59:21 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -4054,14 +4054,6 @@ void ComputeMatePairDetailedStatus() {
             numInUnresolv++;
           if ( fragContig->scaffoldID == NULLINDEX )
             numInNullScaf++;
-          else if ( fragContig->scaffoldID != mateContig->scaffoldID )
-            // we want them to be in the same scaffold
-            {
-              numDiffScaf++;
-              mate->flags.bits.mateDetail = DIFF_SCAFF_MATE;
-              frag->flags.bits.mateDetail = DIFF_SCAFF_MATE;
-              continue;
-            }
 
           if( fragContig->scaffoldID == NULLINDEX ) {
             assert( node->type != DISCRIMINATORUNIQUECHUNK_CGW );
@@ -4081,6 +4073,14 @@ void ComputeMatePairDetailedStatus() {
           if(mateContig->scaffoldID == NULLINDEX) {
             numSkipDegen++;
             continue;
+          }
+          if ( fragContig->scaffoldID != mateContig->scaffoldID )
+            // we want them to be in the same scaffold
+          {
+              numDiffScaf++;
+              mate->flags.bits.mateDetail = DIFF_SCAFF_MATE;
+              frag->flags.bits.mateDetail = DIFF_SCAFF_MATE;
+              continue;
           }
 
           CDS_COORD_t fragLeftEnd, fragRightEnd;
