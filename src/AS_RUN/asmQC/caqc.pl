@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# $Id: caqc.pl,v 1.16 2007-01-11 21:46:45 eliv Exp $
+# $Id: caqc.pl,v 1.17 2007-01-19 21:18:33 eliv Exp $
 #
 # This program reads a Celera .asm file and produces aggregate information
 # about the assembly
@@ -20,7 +20,7 @@ use File::Basename;
 use Statistics::Descriptive;
 use File::Copy;
 
-my $MY_VERSION = "caqc Version 2.11 (Build " . (qw/$Revision: 1.16 $/ )[1] . ")";
+my $MY_VERSION = "caqc Version 2.11 (Build " . (qw/$Revision: 1.17 $/ )[1] . ")";
 
 # Constants
 my $MINQUAL   = 20;
@@ -374,6 +374,7 @@ sub calcNStats($$$$$) {
 }
 
 my %bad_mates = ();
+my @MDI_Rec = ();
 sub trackBadMates($$$$$){
     my ($type,$uid,$size,$mid,$sfs) = @_;
     my $orient = '+';
@@ -383,10 +384,33 @@ sub trackBadMates($$$$$){
         $orient = '-';
     }
     my $status = $bad_mates{$mid}[0];
-    if (@{$bad_mates{$mid}} > 1) {
-        $status = $bad_mates{$mid}[4];
+    my $libIID = $bad_mates{$mid}[1];
+    my $mateExtent;
+    if (@{$bad_mates{$mid}} > 2) {
+        $status = $bad_mates{$mid}[-2];
+        $mateExtent = $bad_mates{$mid}[-1];
+    } else {
+        my $stddev = $MDI_Rec[$libIID]{std};
+        my $mean   = $MDI_Rec[$libIID]{mea};
+        if (!$stddev) {
+            print STDERR "undef stddev for lib $libIID, frag $mid\n";
+        }
+        # calculate max range withing 5 stddevs of mean
+        if ($orient eq '+') {
+            $mateExtent = int($l + $mean + 5 * $stddev); 
+        } else {
+            $mateExtent = int($r - $mean - 5 * $stddev); 
+        }
     }
-    $bad_mates{ $mid } = ["$type:$uid",$size,$l,$r,$orient,$status];
+    $bad_mates{ $mid } = ["$type:$uid",$size,$l,$r,$orient,$status,$mateExtent];
+}
+my @LibIIDRange = ();
+sub getLibIID($) {
+    my ($frgIID) = @_;
+    # ranges should be ordered, so first end > fragIID should give correct lib
+    for(my $i=1; $i < @LibIIDRange; $i++) {
+        return $i if $frgIID <= $LibIIDRange[ $i ];
+    }
 }
 
 MAIN:
@@ -441,6 +465,18 @@ MAIN:
       } else {
           $infile = $ARGV[0];
       }
+  }
+  my $mateLinkRangeFile = 'mateLinkIIDRanges.txt';
+  if (-s $mateLinkRangeFile) {
+      open(MLRF,"<$mateLinkRangeFile") || die "Read of $mateLinkRangeFile failed.";
+      # Lines look like: Distance 1 has IID range 1 to 5675
+      # as created from mateLinkIIDRanges.rb
+      while(<MLRF>) {
+          chop;
+          my (undef,$libNum,undef,undef,undef,$b,undef,$e) = split;
+          $LibIIDRange[ $libNum ] = $e;
+      }
+      close MLRF;
   }
 
   #If input is just the prefix i.e. "gbaf" it will append the ".asm",
@@ -700,8 +736,8 @@ MAIN:
 
     elsif ( $type eq 'AFG' ) {
       my ( $type, $fields, $recs ) = parseCARecord($record);
-      my $frag_id   = getCAId( $$fields{'acc'} );
-      my $clrs = getCAId( $$fields{'clr'} );
+      my ($frag_id,$fragIID)  = getBothCAIds( $$fields{'acc'} );
+      my $clrs = $$fields{'clr'};
       my ( $clrl, $clrr ) = split /,/, $clrs;
       my $length = $clrr - $clrl;
       $totalCLRReadLengthASM += $length;
@@ -709,7 +745,7 @@ MAIN:
       $totalSeqs++;
 
       my $mstField = $$fields{'mst'};
-      $bad_mates{$frag_id} = [$mstField];
+      $bad_mates{$frag_id} = [$mstField, getLibIID($fragIID)];
       if ( $mstField eq 'A' ) {
         $Results{ReadsWithChaffMate}++;
       }
@@ -763,35 +799,36 @@ MAIN:
 
     elsif ( $type eq 'MDI' ) {
       my ( $type, $fields, $recs ) = parseCARecord($record);
-      my $ref  = getCAId( $$fields{'ref'} );
-      my $id   = $ref;
-      my $mea  = getCAId( $$fields{'mea'} );
-      my $std  = getCAId( $$fields{'std'} );
-      my $min  = getCAId( $$fields{'min'} );
-      my $max  = getCAId( $$fields{'max'} );
-      my $buc  = getCAId( $$fields{'buc'} );
-      my $hist = getCAId( $$fields{'his'} );
+      my ($id , $iid) = getBothCAIds( $$fields{'ref'} );      
+      my $mea  = $$fields{'mea'};
+      my $std  = $$fields{'std'};
+      my $min  = $$fields{'min'};
+      my $max  = $$fields{'max'};
+      my $buc  = $$fields{'buc'};
+      my $hist = $$fields{'his'};
       $hist =~ s/\s*$//g;
       $hist =~ s/\n/,/g;
+
+      $MDI_Rec[ $iid ] = { 'mea' => $mea, 'std' => $std };
       
       if ( $metrics ) {    
-	my $lib_id = undef;
+          my $lib_id = undef;
 
-	if ( defined $cats{$id} ) {
-          $lib_id = $cats{$id};
-	}
-	elsif ( !-e ($catmapfile) ) {
-          $lib_id = $id;
-	}
+          if ( defined $cats{$id} ) {
+              $lib_id = $cats{$id};
+          }
+          elsif ( !-e ($catmapfile) ) {
+              $lib_id = $id;
+          }
 
-	if ( defined $lib_id ) {
-          $libs_final{$lib_id}->{'mea'}  = $mea;
-          $libs_final{$lib_id}->{'std'}  = $std;
-          $libs_final{$lib_id}->{'min'}  = $min;
-          $libs_final{$lib_id}->{'max'}  = $max;
-          $libs_final{$lib_id}->{'buc'}  = $buc;
-          $libs_final{$lib_id}->{'hist'} = $hist;
-	}
+          if ( defined $lib_id ) {
+              $libs_final{$lib_id}->{'mea'}  = $mea;
+              $libs_final{$lib_id}->{'std'}  = $std;
+              $libs_final{$lib_id}->{'min'}  = $min;
+              $libs_final{$lib_id}->{'max'}  = $max;
+              $libs_final{$lib_id}->{'buc'}  = $buc;
+              $libs_final{$lib_id}->{'hist'} = $hist;
+          }
       }
     }
   }    # while $record
