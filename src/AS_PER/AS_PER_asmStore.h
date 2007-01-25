@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_PER_asmStore.h,v 1.4 2005-03-22 19:49:20 jason_miller Exp $	 */
+/* 	$Id: AS_PER_asmStore.h,v 1.5 2007-01-25 09:02:12 brianwalenz Exp $	 */
 #ifndef AS_PER_ASMSTORE_H
 #define AS_PER_ASMSTORE_H
 /*************************************************************************
@@ -60,14 +60,6 @@
 
 typedef int32     ASM_BucketRecord;
 typedef CDS_IID_t ASM_IIDRecord;
-
-#ifdef NEVER
-typedef struct
-{
-  uint32  memberIndex;
-  uint32  next;
-} ASM_MemberRecord;
-#endif
 
 typedef struct
 {

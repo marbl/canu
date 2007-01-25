@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_MSG_bmesg.c,v 1.7 2006-11-14 17:52:17 eliv Exp $";
+static char CM_ID[] = "$Id: AS_MSG_bmesg.c,v 1.8 2007-01-25 09:02:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -746,20 +746,6 @@ static void Read_IBI_Mesg(FILE *fin, void *vmesg)
   assert(0);
 }
 
-static void Read_PLA_Mesg(FILE *fin, void *vmesg)
-{
-  PlateMesg *mesg = (PlateMesg *) vmesg;
-  int indx;
-
-  if((mesg->action == AS_ADD ||
-      mesg->action == AS_REDEFINE) &&
-     mesg->num_wells > 0){
-    indx = MoreSpace(sizeof(WellMesg) * mesg->num_wells, 8);
-    mesg->well_list = (WellMesg *)(MemBuffer + indx);
-    FREAD(mesg->well_list,sizeof(WellMesg),mesg->num_wells,  fin);
-  }
-}
-
 static void Read_IRP_Mesg(FILE *fin, void *vmesg)
 {
   InternalRepeatItemMesg *mesg = (InternalRepeatItemMesg *) vmesg;
@@ -768,19 +754,6 @@ static void Read_IRP_Mesg(FILE *fin, void *vmesg)
   mesg->which = MemBuffer + (long) (mesg->which);
 }
 
-
-static void Read_BUG_Mesg(FILE *fin, void *vmesg)
-{
-  fprintf(stderr, "Error: Cannot read BUG messages in binary mode.\n");
-  assert(0);
-}
-
-static void Read_LIB_Mesg(FILE *fin, void *vmesg)
-{
-  LibDonorMesg *mesg = (LibDonorMesg *) vmesg;
-  mesg->source = (char *) GetString(fin);
-  mesg->source = MemBuffer + (long) (mesg->source);
-}
 
 static void Read_EOF_Mesg(FILE *fin, void *vmesg)
 {
@@ -1255,33 +1228,11 @@ static void Write_IBI_Mesg(FILE *fout, void *vmesg)
   assert(0);
 }
 
-static void Write_PLA_Mesg(FILE *fout, void *vmesg)
-{
-  PlateMesg *mesg = (PlateMesg *) vmesg;
-  if((mesg->action == AS_ADD ||
-      mesg->action == AS_REDEFINE) &&
-     mesg->num_wells > 0)
-    FWRITE(mesg->well_list,sizeof(WellMesg),mesg->num_wells,fout);
-}
-
 static void Write_IRP_Mesg(FILE *fout, void *vmesg)
 {
   InternalRepeatItemMesg *mesg = (InternalRepeatItemMesg *) vmesg;
   PutString(fout,mesg->which);
 }
-
-static void Write_LIB_Mesg(FILE *fout, void *vmesg)
-{
-  LibDonorMesg *mesg = (LibDonorMesg *) vmesg;
-  PutString(fout,mesg->source);
-}
-
-static void Write_BUG_Mesg(FILE *fout, void *vmesg)
-{
-  fprintf(stderr, "Error: cannot write BUG messages in binary mode.\n");
-  assert(0);
-}
-
 
 static void Write_EOF_Mesg(FILE *fout, void *vmesg)
 {
@@ -1342,8 +1293,8 @@ static callrecord CallTable[] = {
   {Read_IBC_Mesg, Write_IBC_Mesg, sizeof(InternalBacMesg) },
   {Read_BIN_Mesg, Write_BIN_Mesg, sizeof(BinMesg) },
   {Read_IBI_Mesg, Write_IBI_Mesg, sizeof(InternalBinMesg) },
-  {Read_PLA_Mesg, Write_PLA_Mesg, sizeof(PlateMesg) },
-  {NULL, NULL, sizeof(LinkPlateMesg) },
+  {NULL, NULL, 0l },
+  {NULL, NULL, 0l },
   {NULL, NULL, 0l },
   {NULL, NULL, 0l },
   {Read_IRP_Mesg, Write_IRP_Mesg, sizeof(InternalRepeatItemMesg) },
@@ -1357,9 +1308,9 @@ static callrecord CallTable[] = {
   { NULL,          NULL,           sizeof(FragOverlapMesg) },
   #endif
   { Read_OFR_Mesg, Write_OFR_Mesg, sizeof(OFRMesg) },
-  { Read_BUG_Mesg, Write_BUG_Mesg, sizeof(BugMesg) },
-  { Read_LIB_Mesg, Write_LIB_Mesg, sizeof(LibDonorMesg) },
-  { NULL,          NULL,           0l },
+  {NULL, NULL, 0l },
+  {NULL, NULL, 0l },
+  {NULL, NULL, 0l },
   { Read_EOF_Mesg, Write_EOF_Mesg, sizeof(EndOfFileMesg) }
 };
 

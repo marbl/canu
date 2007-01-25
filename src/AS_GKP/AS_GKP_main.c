@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.8 2006-05-18 18:30:31 vrainish Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.9 2007-01-25 09:02:12 brianwalenz Exp $";
 
 /*************************************************
 * Module:  AS_GKP_main.c
@@ -65,11 +65,6 @@ static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.8 2006-05-18 18:30:31 vrainish Exp
 *                  One record per RPT record.
 *           gkp.seq A GateKeeperSequenceStore.  An array of GateKeeperSequenceRecords (see AS_PER_GkpStore.h)
 *                  One record per SEQ record.
-*           gkp.pla A GateKeeperPlateStore.  An array of GateKeeperPlateRecords (see AS_PER_GkpStore.h)
-*                  One record per PLA record.
-*           gkp.wel A GateKeeperWellStore.  An array of GateKeeperWellRecords (see AS_PER_GkpStore.h)
-*                  One record per WEL record.  These are NOT indexed, just collected.  They unltimatedly
-*                  will be associated with all of the Celera reads.
 
 *       gatekeeper processes the input file, reporting errors and warnings.  Any message that causes
 *       an error warning is output to stderr, along with the associated warning/error messages.
@@ -89,10 +84,6 @@ static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.8 2006-05-18 18:30:31 vrainish Exp
 //#define DEBUG 1
 //#define DEBUGIO 1
 
-/******************************************************************************/
-/* AS_GKP_main
- *    Main for gatekeeper.
-*/
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1045,7 +1036,7 @@ int ReadFile(int check_qvs,
 
 	Writer((assembler == AS_ASSEMBLER_OVERLAY?Ignfp:Outfp),pmesg);
         /*
-	fprintf(stderr,"# GateKeeper $Revision: 1.8 $\n");
+	fprintf(stderr,"# GateKeeper $Revision: 1.9 $\n");
 	ErrorWriter(Msgfp,pmesg);
         */
         free(params);
@@ -1082,69 +1073,6 @@ int ReadFile(int check_qvs,
       }
       break;
 
-    case MESG_LIB:
-      {
-	LibDonorMesg *lib_mesg = (LibDonorMesg *) pmesg->m;
-
-#ifdef DEBUGIO
-	fprintf(Msgfp,"Read LIB message with accession " F_UID "\n", 
-		lib_mesg->elibrary);
-#endif
-
-	if(GATEKEEPER_SUCCESS == 
-	   Check_LibDonorMesg(lib_mesg, currentBatchID, currentTime, assembler, strict, verbose)){
-          // nothing
-	}else{
-	  fprintf(Msgfp,"# Line %d of input\n", GetProtoLineNum_AS());
-	   ErrorWriter(Msgfp,pmesg);      
-	  if(incrementErrors(1, Msgfp) == GATEKEEPER_FAILURE){
-	    return GATEKEEPER_FAILURE;
-	  }
-	}
-      }
-      break;
-    case MESG_PLA:
-      {
-	PlateMesg *pla_mesg = (PlateMesg *) pmesg->m;
-
-#ifdef DEBUGIO
-	fprintf(Msgfp,"Read PLA message with accession " F_UID "\n",
-                pla_mesg->eaccession );
-#endif
-
-	if(GATEKEEPER_SUCCESS == 
-	   Check_PlateMesg(pla_mesg, currentBatchID, currentTime, assembler, strict, verbose)){
-          // nothing
-	}else{
-	  fprintf(Msgfp,"# Line %d of input\n", GetProtoLineNum_AS());
-	   ErrorWriter(Msgfp,pmesg);      
-	  if(incrementErrors(1, Msgfp) == GATEKEEPER_FAILURE){
-	    return GATEKEEPER_FAILURE;
-	  }
-	}
-      }
-      break;
-    case MESG_LKP:
-      {
-        LinkPlateMesg * lkp_mesg = (LinkPlateMesg *) pmesg->m;
-        
-#ifdef DEBUGIO
-	fprintf(Msgfp,"Read LKP message with forward accession " F_UID ", reverse accession " F_UID "\n",
-                lkp_mesg->eplate_for, lkp_mesg->eplate_rev );
-#endif
-
-	if(GATEKEEPER_SUCCESS == 
-	   Check_LinkPlateMesg(lkp_mesg, currentBatchID, currentTime, assembler, strict, verbose)){
-          // nothing
-	}else{
-	  fprintf(Msgfp,"# Line %d of input\n", GetProtoLineNum_AS());
-	   ErrorWriter(Msgfp,pmesg);      
-	  if(incrementErrors(1, Msgfp) == GATEKEEPER_FAILURE){
-	    return GATEKEEPER_FAILURE;
-	  }
-	}
-      }
-      break;
     default:
       fprintf(Msgfp,"# ERROR: Read Message with type %s line %d...skipping\n", MessageTypeName[imesgtype],
 	      GetProtoLineNum_AS());
@@ -1171,21 +1099,14 @@ int ReadFile(int check_qvs,
 void printGKPError(FILE *fout, GKPErrorType type){
 
   switch(type){
-  default:
-#if 1
-    fprintf(stderr,"#### printGKPError: error type %d\n", (int)type);
-#endif
-    break;
+    case GKPError_Invalid:
+      fprintf(stderr,"# printGKPError: Invalid error type %d\n", (int)type);
+      break;
 
-  case GKPError_Invalid:
-  fprintf(stderr,"# printGKPError: Invalid error type %d\n", (int)type);
-  break;
+    case GKPError_FirstMessageBAT:
+      fprintf(fout,"# GKP Error %d: First message MUST be BAT\n",(int)type);
+      break;
 
- case GKPError_FirstMessageBAT:
-    fprintf(fout,"# GKP Error %d: First message MUST be BAT\n",(int)type);
-    break;
-
-    break;
   case GKPError_BadUniqueBAT:
     fprintf(fout,"# GKP Error %d: UID of batch definition was previously seen\n",(int)type);
     break;
@@ -1210,18 +1131,10 @@ void printGKPError(FILE *fout, GKPErrorType type){
   case GKPError_BadUniqueSCN:
     fprintf(fout,"# GKP Error %d: UID of Screen definition was previously seen\n",(int)type);
     break;
-  case GKPError_BadUniqueWEL:
-    fprintf(fout,"# GKP Error %d: UID of Well definition was previously seen\n",(int)type);
-    break;
-  case GKPError_BadUniquePLA:
-    fprintf(fout,"# GKP Error %d: UID of Plate definition was previously seen\n",(int)type);
-    break;
 
-    
   case GKPError_MissingFRG:
     fprintf(fout,"# GKP Error %d: Fragment not previously defined\n",(int)type);
     break;
-
   case GKPError_MissingDST:
     fprintf(fout,"# GKP Error %d: Distance not previously defined\n",(int)type);
     break;
@@ -1233,9 +1146,6 @@ void printGKPError(FILE *fout, GKPErrorType type){
     break;
   case GKPError_MissingSEQ:
     fprintf(fout,"# GKP Error %d: Sequence not previously defined\n",(int)type);
-    break;
-  case GKPError_MissingPLA:
-    fprintf(fout,"# GKP Error %d: Plate not previously defined\n",(int)type);
     break;
   case GKPError_MissingRPT:
     fprintf(fout,"# GKP Error %d: Repeat not previously defined\n",(int)type);
@@ -1253,7 +1163,6 @@ void printGKPError(FILE *fout, GKPErrorType type){
   case GKPError_DeleteLNK:
     fprintf(fout,"# GKP Error %d: Can't delete LNK\n",(int)type);
     break;
-
 
   case GKPError_Time:
     fprintf(fout,"# GKP Error %d: Invalid creation time\n",(int)type);
@@ -1347,6 +1256,11 @@ void printGKPError(FILE *fout, GKPErrorType type){
     fprintf(fout,"# GKP Error %d: Overlay Assembler Requires that a Bactig and its\n",(int)type);
     fprintf(fout,"#               associated fragment must appear in the same batch\n");
     break;
+
+  default:
+    fprintf(stderr,"#### printGKPError: error type %d\n", (int)type);
+    break;
+
     }
 }
 

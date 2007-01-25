@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_PER_gkpStore.h,v 1.9 2006-08-24 13:34:13 ahalpern Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.10 2007-01-25 09:02:12 brianwalenz Exp $	 */
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
 /*************************************************************************
@@ -73,8 +73,6 @@ typedef struct{
   int32 num_s_Distances; // shadowed for redefintions
   int32 numScreens;
   int32 numRepeats;
-  int32 numPlates;
-  int32 numWells;
   int32 numLinks;
 #ifdef __i386__
   uint32 pad386;
@@ -175,70 +173,6 @@ typedef struct{
   int32 padTo8byteWord;
 }GateKeeperScreenRecord;
 
-// NEW as of 12/2000
-// One for each Plate
-typedef struct{
-  Plate_ID UID;
-
-  uint deleted:1;
-  uint redefined:1;
-  uint spare:14;
-  uint numWells:16;
-  CDS_IID_t prevInstanceID;
-
-  CDS_IID_t prevID;
-  uint16 birthBatch;
-  uint16 deathBatch;
-
-  CDS_IID_t firstWell;
-  CDS_IID_t mate;  // plate with complentary sequencing reaction
-}GateKeeperSequencePlateRecord;
-
-// One for each well
-typedef struct{
-  CDS_IID_t ifrag;
-  uint deleted:1;
-  uint spare:15;
-  uint ewell:16;    // 'external' well number on plate
-
-  CDS_IID_t ilib;
-  int32 padTo8byteWord;
-}GateKeeperWellRecord;
-
-// One for each frag
-typedef struct{
-  //Fragment_ID is same as for corresponding IID in fragmentStore
-  CDS_IID_t iplate;
-  uint deleted:1;
-  uint set:1;   // initialized to zero when upgraded or fragment is allocated
-  uint iwell:30;
-
-  CDS_IID_t ilib;
-  int32 padTo8byteWord;
-}GateKeeperAuxFragRecord;
-
-// One for each donor association
-typedef struct{
-  uint deleted:1;
-  uint spare:31;
-  int32 padTo8byteWord;
-
-  Donor_ID UID;
-}GateKeeperDonorRecord;
-
-// One for each Library (same UIDs/IIDs as distances)
-typedef struct{
-  //Library_ID is same as Distance_ID for same IID/index
-  uint    deleted:1;  // needed but not used - DistanceStore manages this
-  uint    set:1;  // initialized to zero when upgraded or distance is allocated
-  uint    idonor:30;
-  int32 padTo8byteWord;
-
-  char    source[256];
-}GateKeeperLibDonorRecord;
-
-//***** End New Stuff
-
 
 #define AS_GKP_UNKNOWN 0
 #define AS_GKP_INNIE 1
@@ -338,7 +272,7 @@ static int32 getNum ## type ## s(type ## Store store){\
 
 
 
-#define NUM_GKP_FILES 18
+#define NUM_GKP_FILES 12
 
 // 1. for gkp.bat
 INDEXSTORE_DEF(GateKeeperBatch)
@@ -372,23 +306,7 @@ INDEXSTORE_DEF_EXTEND(GateKeeperScreen)
 // 11. for gkp.rpt
 INDEXSTORE_DEF(GateKeeperRepeat)
 
-// 12. for gkp.aux
-INDEXSTORE_DEF(GateKeeperAuxFrag)
-
-// 13. for gkp.don
-INDEXSTORE_DEF(GateKeeperDonor)
-
-// 14. for gkp.lib
-INDEXSTORE_DEF(GateKeeperLibDonor)
-
-// 15 & 16 for gkp.sqp (plates) & gkp.s_sqp (plate redefinitions)
-INDEXSTORE_DEF(GateKeeperSequencePlate)
-INDEXSTORE_DEF_EXTEND(GateKeeperSequencePlate)
-
-// 17. for gkp.wel
-INDEXSTORE_DEF(GateKeeperWell)
-
-// 18. is gkp.phash
+// 12. is gkp.phash
 
 
 /***********************************************************************************
@@ -509,39 +427,32 @@ int linkLink_GKP(GateKeeperLinkStore gkplStore,
 
 
 /* GateKeeperStore */
-typedef struct{
-   char storePath[FILENAME_MAX];
+typedef struct {
+  char storePath[FILENAME_MAX];
 
-   PHashTable_AS  *hashTable;
-   GateKeeperBatchStore batStore;
-   GateKeeperFragmentStore frgStore;
-   GateKeeperLinkStore lnkStore;
-   GateKeeperLocaleStore locStore;
+  PHashTable_AS  *hashTable;
+  GateKeeperBatchStore batStore;
+  GateKeeperFragmentStore frgStore;
+  GateKeeperLinkStore lnkStore;
+  GateKeeperLocaleStore locStore;
   GateKeeperLocaleStore s_locStore; // Store for Locales that have been redefined
-   GateKeeperSequenceStore seqStore;
+  GateKeeperSequenceStore seqStore;
   GateKeeperDistanceStore dstStore;    
   GateKeeperDistanceStore s_dstStore;    // Store for Distances that have been redefined
-   GateKeeperBactigStore btgStore;
-   GateKeeperScreenStore scnStore;
-   GateKeeperRepeatStore rptStore;
-   GateKeeperAuxFragStore auxStore;
-   GateKeeperDonorStore donStore;
-   GateKeeperLibDonorStore libStore;
-   GateKeeperSequencePlateStore sqpStore;
-   GateKeeperSequencePlateStore s_sqpStore;
-   GateKeeperWellStore welStore;
-}GateKeeperStore;
+  GateKeeperBactigStore btgStore;
+  GateKeeperScreenStore scnStore;
+  GateKeeperRepeatStore rptStore;
+} GateKeeperStore;
 
-int CreateGateKeeperStore(GateKeeperStore *gkpStore);
-int OpenGateKeeperStore(GateKeeperStore *gkpStore);
-int OpenReadOnlyGateKeeperStore(GateKeeperStore *gkpStore);
-int CopyGateKeeperStoreFiles(GateKeeperStore *gkpStore, char *path);
-int RemoveGateKeeperStoreFiles(GateKeeperStore *gkpStore);
-int TestOpenGateKeeperStore(GateKeeperStore *gkpStore);
-int TestOpenReadOnlyGateKeeperStore(GateKeeperStore *gkpStore);
+int  CreateGateKeeperStore(GateKeeperStore *gkpStore);
+int  OpenGateKeeperStore(GateKeeperStore *gkpStore);
+int  OpenReadOnlyGateKeeperStore(GateKeeperStore *gkpStore);
+int  CopyGateKeeperStoreFiles(GateKeeperStore *gkpStore, char *path);
+int  RemoveGateKeeperStoreFiles(GateKeeperStore *gkpStore);
+int  TestOpenGateKeeperStore(GateKeeperStore *gkpStore);
+int  TestOpenReadOnlyGateKeeperStore(GateKeeperStore *gkpStore);
 void InitGateKeeperStore(GateKeeperStore *gkpStore, const char *path);
 void CloseGateKeeperStore(GateKeeperStore *gkpStore);
-int UpgradeGateKeeperStore(GateKeeperStore *gkpStore);
-
+int  UpgradeGateKeeperStore(GateKeeperStore *gkpStore);
 
 #endif

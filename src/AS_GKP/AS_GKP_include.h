@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_GKP_include.h,v 1.7 2006-10-08 08:47:39 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.8 2007-01-25 09:02:12 brianwalenz Exp $ */
 
 /*************************************************
 * Module:  AS_GKP_include.h
@@ -52,8 +52,6 @@
 #define GATEKEEPER_MAX_ERROR_RATE 0.025 
 #define GATEKEEPER_QV_WINDOW_WIDTH 50
 #define GATEKEEPER_QV_WINDOW_THRESH 0.03
-
-#define GATEKEEPER_MAX_WELL_NUMBER  384
 
 #define AS_ASSEMBLER_GRANDE  ((int)'A')
 #define AS_ASSEMBLER_OVERLAY ((int)'O')
@@ -271,102 +269,6 @@ int Check_BacMesg(BacMesg *bac_mesg,
 		  int strict,
 		  int verbose);
 
-/******************************************************************************
- * Function: Check_WellMesg
- * Description:
- * Checks on add:
- * Checks on delete:
- * Inputs:
- *
- * I/O
- * Return Value:
- *     GATEKEEPER_SUCCESS if success. 
- *     GATEKEEPER_WARNING if success but warning
- *     GATEKEEPER_FAILURE if failure
- *****************************************************************************/
-/*
-int Check_WellMesg(WellMesg *wel_mesg,
-		  InternalWellMesg *iwe_mesg,
-		  CDS_CID_t batchID,
-		  time_t currentTime,
-		  int assembler,
-		  int strict,
-		  int verbose);
-*/
-
-/******************************************************************************
- * Function: Check_SeqPlateMesg
- * Inputs:
- * I/O
- * Return Value:
- *     GATEKEEPER_SUCCESS if success. 
- *     GATEKEEPER_WARNING if success but warning
- *     GATEKEEPER_FAILURE if failure
-******************************************************************************/
-/*
-int Check_SeqPlateMesg(SeqPlateMesg *sqp_mesg,
-		       InternalSeqPlateMesg *isq_mesg,
-		       CDS_CID_t batchID,
-		       time_t currentTime,
-		       int assembler,
-		       int strict,
-		       int verbose);
-*/
-/******************************************************************************
- * Function: Check_PlateMesg
- * Inputs:
- * I/O
- * Return Value:
- *     GATEKEEPER_SUCCESS if success. 
- *     GATEKEEPER_WARNING if success but warning
- *     GATEKEEPER_FAILURE if failure
- *****************************************************************************/
-int Check_PlateMesg(PlateMesg *pla_mesg,
-                    CDS_CID_t batchID,
-                    time_t currentTime,
-                    int assembler,
-                    int strict,
-                    int verbose);
-
-/******************************************************************************
- * Function: Check_LinkPlateMesg
- * Description:
- * Checks on add:
- * Checks on delete:
- * Inputs:
- *
- * I/O
- * Return Value:
- *     GATEKEEPER_SUCCESS if success. 
- *     GATEKEEPER_WARNING if success but warning
- *     GATEKEEPER_FAILURE if failure
-******************************************************************************/
-int Check_LinkPlateMesg(LinkPlateMesg *lkp_mesg,
-                        CDS_CID_t batchID,
-                        time_t currentTime,
-                        int assembler,
-                        int strict,
-                        int verbose);
-
-/******************************************************************************
- * Function: Check_LibDonorMesg
- * Description:
- * Checks on add:
- * Checks on delete:
- * Inputs:
- *
- * I/O
- * Return Value:
- *     GATEKEEPER_SUCCESS if success. 
- *     GATEKEEPER_WARNING if success but warning
- *     GATEKEEPER_FAILURE if failure
-******************************************************************************/
-int Check_LibDonorMesg(LibDonorMesg *lib_mesg,  
-                       CDS_CID_t currentBatchID,
-                       time_t currentTime,
-                       int assembler,
-                       int strict,
-                       int verbose);
 
 /***********************************************************************************
  * Function: Check_BatchMesg
@@ -467,8 +369,6 @@ typedef enum GKPErrorType_tag{
   GKPError_BadUniqueSEQ,
   GKPError_BadUniqueRPT,
   GKPError_BadUniqueSCN,
-  GKPError_BadUniqueWEL,
-  GKPError_BadUniquePLA,
 
   GKPError_MissingFRG=200,
   GKPError_MissingDST,
@@ -476,7 +376,6 @@ typedef enum GKPErrorType_tag{
   GKPError_MissingBTG,
   GKPError_MissingSEQ,
   GKPError_MissingRPT,
-  GKPError_MissingPLA,
 
   GKPError_DeleteFRG=300,
   GKPError_DeleteDST,
@@ -522,7 +421,6 @@ typedef enum GKPErrorType_tag{
 
   GKPError_RPTLength = 1000,
 
-  GKPError_WellNumberOutOfRange = 1100,
   GKPError_MAX
   
 }GKPErrorType;

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.7 2006-08-24 13:34:13 ahalpern Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.8 2007-01-25 09:02:12 brianwalenz Exp $";
 
 /*************************************************************************
  Module:  AS_PER_gkpfrgStore
@@ -38,8 +38,8 @@ static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.7 2006-08-24 13:34:13 ahalpern
  *************************************************************************/
 
 /* RCS Info
- * $Id: AS_PER_gkpStore.c,v 1.7 2006-08-24 13:34:13 ahalpern Exp $
- * $Revision: 1.7 $
+ * $Id: AS_PER_gkpStore.c,v 1.8 2007-01-25 09:02:12 brianwalenz Exp $
+ * $Revision: 1.8 $
  *
  */
 #include <assert.h>
@@ -370,12 +370,6 @@ void InitGateKeeperStore(GateKeeperStore *gkpStore, const char *path){
   gkpStore->locStore = (GateKeeperLocaleStore)0;
   gkpStore->s_locStore = (GateKeeperLocaleStore)0;
   gkpStore->seqStore = (GateKeeperSequenceStore)0;
-  gkpStore->auxStore = (GateKeeperAuxFragStore)0;
-  gkpStore->donStore = (GateKeeperDonorStore)0;
-  gkpStore->libStore = (GateKeeperLibDonorStore)0;
-  gkpStore->sqpStore = (GateKeeperSequencePlateStore)0;
-  gkpStore->s_sqpStore = (GateKeeperSequencePlateStore)0;
-  gkpStore->welStore = (GateKeeperWellStore)0;
 }
 
 int TestOpenGateKeeperStoreCommon(GateKeeperStore *gkpStore,const char *mode){
@@ -471,53 +465,6 @@ int TestOpenGateKeeperStoreCommon(GateKeeperStore *gkpStore,const char *mode){
 	fileCount++;
 	fclose(fp);
       }
-
-      // old but upgradable files
-      sprintf(name,"%s/gkp.sqp", gkpStore->storePath);
-        
-      fp = fopen(name,mode);
-      if(fp){
-        fileCount++;
-        fclose(fp);
-      }
-      sprintf(name,"%s/gkp.wel", gkpStore->storePath);
-      
-      fp = fopen(name,mode);
-      if(fp){
-        fileCount++;
-        fclose(fp);
-      }
-        
-      // Upgrade files
-      {
-        sprintf(name,"%s/gkp.aux", gkpStore->storePath);
-        fp = fopen(name,mode);
-        if(fp){
-          upgrade_count++;
-          fclose(fp);
-        }
-        
-        sprintf(name,"%s/gkp.don", gkpStore->storePath);
-        fp = fopen(name,mode);
-        if(fp){
-          upgrade_count++;
-          fclose(fp);
-        }
-        
-        sprintf(name,"%s/gkp.lib", gkpStore->storePath);
-        fp = fopen(name,mode);
-        if(fp){
-          upgrade_count++;
-          fclose(fp);
-        }
-
-        sprintf(name,"%s/gkp.s_sqp", gkpStore->storePath);
-        fp = fopen(name,mode);
-        if(fp){
-          upgrade_count++;
-          fclose(fp);
-        }
-      }
       
       sprintf(name,"%s/gkp.phash", gkpStore->storePath);
 
@@ -547,7 +494,6 @@ int TestOpenGateKeeperStoreCommon(GateKeeperStore *gkpStore,const char *mode){
   return exists;
 
 }
-
 
 int TestOpenGateKeeperStore(GateKeeperStore *gkpStore){
   return TestOpenGateKeeperStoreCommon(gkpStore,"r+");
@@ -584,52 +530,9 @@ int RemoveGateKeeperStoreFiles(GateKeeperStore *gkpStore){
   if(system(buffer) != 0) assert(0);
   sprintf(buffer,"rm -f %s/gkp.rpt", gkpStore->storePath);
   if(system(buffer) != 0) assert(0);
-  sprintf(buffer,"rm -f %s/gkp.sqp", gkpStore->storePath);
-  if(system(buffer) != 0) assert(0);
-  sprintf(buffer,"rm -f %s/gkp.wel", gkpStore->storePath);
-  if(system(buffer) != 0) assert(0);
   sprintf(buffer,"rm -f %s/gkp.phash", gkpStore->storePath);
   if(system(buffer) != 0) assert(0);
-  
-  // for upgrade files that may not be present
-  {
-    FILE * fp_test;
-    int upgrade_count = 0;
-    
-    sprintf( buffer, "%s/gkp.aux", gkpStore->storePath );
-    if( (fp_test = fopen( buffer, "r" )) )
-    {
-      fclose( fp_test );
-      sprintf(buffer,"rm -f %s/gkp.aux", gkpStore->storePath);
-      if(system(buffer) != 0) assert(0);
-      upgrade_count++;
-    }
-    sprintf( buffer, "%s/gkp.don", gkpStore->storePath );
-    if( (fp_test = fopen( buffer, "r" )) )
-    {
-      fclose( fp_test );
-      sprintf(buffer,"rm -f %s/gkp.don", gkpStore->storePath);
-      if(system(buffer) != 0) assert(0);
-      upgrade_count++;
-    }
-    sprintf( buffer, "%s/gkp.lib", gkpStore->storePath );
-    if( (fp_test = fopen( buffer, "r" )) )
-    {
-      fclose( fp_test );
-      sprintf(buffer,"rm -f %s/gkp.lib", gkpStore->storePath);
-      if(system(buffer) != 0) assert(0);
-      upgrade_count++;
-    }
-    sprintf( buffer, "%s/gkp.s_sqp", gkpStore->storePath );
-    if( (fp_test = fopen( buffer, "r" )) )
-    {
-      fclose( fp_test );
-      sprintf(buffer,"rm -f %s/gkp.s_sqp", gkpStore->storePath);
-      if(system(buffer) != 0) assert(0);
-      upgrade_count++;
-    }
-  }
-  
+
   return 0;
 }
 
@@ -660,57 +563,8 @@ int CopyGateKeeperStoreFiles(GateKeeperStore *gkpStore, char *path){
   if(system(buffer) != 0) assert(0);
   sprintf(buffer,"cp %s/gkp.rpt %s", gkpStore->storePath, path);
   if(system(buffer) != 0) assert(0);
-  sprintf(buffer,"cp %s/gkp.sqp %s", gkpStore->storePath, path);
-  if(system(buffer) != 0) assert(0);
-  sprintf(buffer,"cp %s/gkp.wel %s", gkpStore->storePath, path);
-  if(system(buffer) != 0) assert(0);
   sprintf(buffer,"cp %s/gkp.phash %s", gkpStore->storePath, path);
   if(system(buffer) != 0) assert(0);
-
-  // new upgrade files to check
-  {
-    FILE * fp_test;
-    int upgrade_count = 0;
-    
-    sprintf(buffer,"%s/gkp.aux", gkpStore->storePath);
-    if( (fp_test = fopen( buffer, "r" )) )
-    {
-      fclose( fp_test );
-      upgrade_count++;
-      sprintf(buffer,"cp %s/gkp.aux %s", gkpStore->storePath, path);
-      if(system(buffer) != 0) assert(0);
-    }
-    sprintf(buffer,"%s/gkp.don", gkpStore->storePath);
-    if( (fp_test = fopen( buffer, "r" )) )
-    {
-      fclose( fp_test );
-      upgrade_count++;
-      sprintf(buffer,"cp %s/gkp.don %s", gkpStore->storePath, path);
-      if(system(buffer) != 0) assert(0);
-    }
-    sprintf(buffer,"%s/gkp.lib", gkpStore->storePath);
-    if( (fp_test = fopen( buffer, "r" )) )
-    {
-      fclose( fp_test );
-      upgrade_count++;
-      sprintf(buffer,"cp %s/gkp.lib %s", gkpStore->storePath, path);
-      if(system(buffer) != 0) assert(0);
-    }
-    sprintf(buffer,"%s/gkp.s_sqp", gkpStore->storePath);
-    if( (fp_test = fopen( buffer, "r" )) )
-    {
-      fclose( fp_test );
-      upgrade_count++;
-      sprintf(buffer,"cp %s/gkp.s_sqp %s", gkpStore->storePath, path);
-      if(system(buffer) != 0) assert(0);
-    }
-    assert( upgrade_count == 0 || upgrade_count == 4 );
-
-    // WARNING: upgrade original store, even if it was opened read only
-    if( upgrade_count != 4 ){
-      fprintf(stderr,"**** Warning: Upgraded store files not present...\n");
-    }
-  }
   
   return(0);
 }
@@ -744,10 +598,6 @@ int OpenGateKeeperStoreCommon(GateKeeperStore *gkpStore, char *mode){
      gkpStore->scnStore = openGateKeeperScreenStore(name,mode); 
      sprintf(name,"%s/gkp.rpt", gkpStore->storePath);
      gkpStore->rptStore = openGateKeeperRepeatStore(name,mode); 
-     sprintf(name,"%s/gkp.sqp", gkpStore->storePath);
-     gkpStore->sqpStore = openGateKeeperSequencePlateStore(name,mode); 
-     sprintf(name,"%s/gkp.wel", gkpStore->storePath);
-     gkpStore->welStore = openGateKeeperWellStore(name,mode); 
 
      if(NULLSTOREHANDLE == gkpStore->batStore ||
 	NULLSTOREHANDLE == gkpStore->frgStore ||
@@ -757,39 +607,9 @@ int OpenGateKeeperStoreCommon(GateKeeperStore *gkpStore, char *mode){
 	NULLSTOREHANDLE == gkpStore->dstStore ||
 	NULLSTOREHANDLE == gkpStore->btgStore ||
 	NULLSTOREHANDLE == gkpStore->scnStore ||
-	NULLSTOREHANDLE == gkpStore->rptStore ||
-        NULLSTOREHANDLE == gkpStore->sqpStore ||
-        NULLSTOREHANDLE == gkpStore->welStore ){
+	NULLSTOREHANDLE == gkpStore->rptStore) {
        fprintf(stderr,"**** Failure to open Gatekeeper Store ...\n");
        return 1;
-     }
-
-     // new files to open/create
-     sprintf(name,"%s/gkp.aux", gkpStore->storePath);
-     gkpStore->auxStore = openGateKeeperAuxFragStore(name,mode); 
-     sprintf(name,"%s/gkp.don", gkpStore->storePath);
-     gkpStore->donStore = openGateKeeperDonorStore(name,mode); 
-     sprintf(name,"%s/gkp.lib", gkpStore->storePath);
-     gkpStore->libStore = openGateKeeperLibDonorStore(name,mode); 
-     sprintf(name,"%s/gkp.s_sqp", gkpStore->storePath);
-     gkpStore->s_sqpStore = openGateKeeperSequencePlateStore(name,mode); 
-
-     // Possibly upgrade
-     if(NULLSTOREHANDLE == gkpStore->auxStore ||
-	NULLSTOREHANDLE == gkpStore->donStore ||
-	NULLSTOREHANDLE == gkpStore->libStore ||
-        NULLSTOREHANDLE == gkpStore->s_sqpStore){
-       fprintf(stderr,"**** Warning: Couldn't open upgraded stores...\n");
-       if(mode && *mode == 'r' && *(mode + 1) == '\0'){
-         fprintf(stderr,"**** Not upgrading...\n");
-         fprintf(stderr,"**** Auxilliary Fragment, Donor, Lib/Donor, and Plate redefinition stores unavailable.\n");
-       }else{
-         fprintf(stderr,"**** Upgrading!...\n");
-         if(UpgradeGateKeeperStore(gkpStore)){
-           fprintf( stderr, "*** Failure to open GateKeeper Store ...\n");
-           return 1;
-         }
-       }
      }
 
      sprintf(name,"%s/gkp.phash", gkpStore->storePath);
@@ -840,86 +660,11 @@ int CreateGateKeeperStore(GateKeeperStore *gkpStore){
      gkpStore->scnStore = createGateKeeperScreenStore(name,"scn",1); 
      sprintf(name,"%s/gkp.rpt", gkpStore->storePath);
      gkpStore->rptStore = createGateKeeperRepeatStore(name,"rpt",1); 
-     sprintf(name,"%s/gkp.sqp", gkpStore->storePath);
-     gkpStore->sqpStore = createGateKeeperSequencePlateStore(name,"sqp",1); 
-     sprintf(name,"%s/gkp.wel", gkpStore->storePath);
-     gkpStore->welStore = createGateKeeperWellStore(name,"wel",1);
-
-     // new files - for all new gkp stores
-     sprintf(name,"%s/gkp.aux", gkpStore->storePath);
-     gkpStore->auxStore = createGateKeeperAuxFragStore(name,"aux",1); 
-     sprintf(name,"%s/gkp.don", gkpStore->storePath);
-     gkpStore->donStore = createGateKeeperDonorStore(name,"don",1); 
-     sprintf(name,"%s/gkp.lib", gkpStore->storePath);
-     gkpStore->libStore = createGateKeeperLibDonorStore(name,"lib",1); 
-     sprintf(name,"%s/gkp.s_sqp", gkpStore->storePath);
-     gkpStore->s_sqpStore = createGateKeeperSequencePlateStore(name,"sqp",1); 
-     
      sprintf(name,"%s/gkp.phash", gkpStore->storePath);
      gkpStore->hashTable = CreatePHashTable_AS(2048,name);
      return 0;
 }
 
-
-int UpgradeGateKeeperStore(GateKeeperStore *gkpStore){
-  char name[FILENAME_MAX];
-  int i, num_items;
-  GateKeeperAuxFragRecord gkpaux;
-  GateKeeperLibDonorRecord gkplib;
-
-  /* since previous SequencePlateRecord & WellRecords had different element sizes
-     need to delete & regenerate both
-  */
-  sprintf(name,"%s/gkp.sqp", gkpStore->storePath);
-  unlink(name);
-  gkpStore->sqpStore = createGateKeeperSequencePlateStore(name,"sqp",1); 
-  sprintf(name,"%s/gkp.wel", gkpStore->storePath);
-  unlink(name);
-  gkpStore->welStore = createGateKeeperWellStore(name,"wel",1); 
-
-  // create new files
-  sprintf(name,"%s/gkp.aux", gkpStore->storePath);
-  unlink(name);
-  gkpStore->auxStore = createGateKeeperAuxFragStore(name,"aux",1); 
-  sprintf(name,"%s/gkp.don", gkpStore->storePath);
-  unlink(name);
-  gkpStore->donStore = createGateKeeperDonorStore(name,"don",1); 
-  sprintf(name,"%s/gkp.lib", gkpStore->storePath);
-  unlink(name);
-  gkpStore->libStore = createGateKeeperLibDonorStore(name,"lib",1); 
-  sprintf(name,"%s/gkp.s_sqp", gkpStore->storePath);
-  unlink(name);
-  gkpStore->s_sqpStore = createGateKeeperSequencePlateStore(name,"sqp",1); 
-
-  if(NULLSTOREHANDLE == gkpStore->sqpStore ||
-     NULLSTOREHANDLE == gkpStore->welStore ||
-     NULLSTOREHANDLE == gkpStore->auxStore ||
-     NULLSTOREHANDLE == gkpStore->donStore ||
-     NULLSTOREHANDLE == gkpStore->libStore ||
-     NULLSTOREHANDLE == gkpStore->s_sqpStore){
-    fprintf(stderr,"**** Failure to upgrade Gatekeeper Store ...\n");
-    return 1;
-  }
-  // Initialize an auxFragRecord for each of the existing fragments
-  num_items = getNumGateKeeperFragments(gkpStore->frgStore);
-  memset( &gkpaux, 0, sizeof( GateKeeperAuxFragRecord ) );
-  for(i = 0; i < num_items; i++){
-    appendGateKeeperAuxFragStore(gkpStore->auxStore, &gkpaux);
-  }
-
-  /* Initialize a libDonorRecord for each of the existing distances
-     Not all libraries will be associated with a donor. For example,
-     a MUST_JOIN link may reference a library that is
-     used to define distance stats but is not a clone library
-  */
-  num_items = getNumGateKeeperDistances(gkpStore->dstStore);
-  memset( &gkplib, 0, sizeof( GateKeeperLibDonorRecord ) );
-  for(i = 0; i < num_items; i++){
-    appendGateKeeperLibDonorStore(gkpStore->libStore, &gkplib);
-  }
-
-  return 0;
-}
 
 
 void CloseGateKeeperStore(GateKeeperStore *gkpStore){
@@ -947,19 +692,6 @@ void CloseGateKeeperStore(GateKeeperStore *gkpStore){
     closeStore(gkpStore->scnStore); 
   if(gkpStore->rptStore != NULLSTOREHANDLE)
     closeStore(gkpStore->rptStore); 
-  if(gkpStore->sqpStore != NULLSTOREHANDLE)
-    closeStore(gkpStore->sqpStore); 
-  if(gkpStore->s_sqpStore != NULLSTOREHANDLE)
-    closeStore(gkpStore->s_sqpStore); 
-  if(gkpStore->welStore != NULLSTOREHANDLE)
-    closeStore(gkpStore->welStore); 
-  if(gkpStore->donStore != NULLSTOREHANDLE)
-    closeStore(gkpStore->donStore); 
-  if(gkpStore->libStore != NULLSTOREHANDLE)
-    closeStore(gkpStore->libStore); 
-  if(gkpStore->auxStore != NULLSTOREHANDLE)
-    closeStore(gkpStore->auxStore); 
-
   if(gkpStore->hashTable != NULL)
     ClosePHashTable_AS(gkpStore->hashTable);
 }

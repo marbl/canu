@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.8 2006-08-25 15:35:58 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.9 2007-01-25 09:02:12 brianwalenz Exp $";
 
 //#define DEBUG_GKP 1
 //#define DEBUG_GKP_VERBOSE 1
@@ -311,14 +311,6 @@ int Check_FragMesg(FragMesg *frg_mesg,
 	  break;
 
       }
-
-      /* Add a spot for the fragment in the auxFragStore,
-         to keep consistent IIDs/indices */
-      {
-        GateKeeperAuxFragRecord gkpaux;
-        memset(&gkpaux, 0, sizeof(GateKeeperAuxFragRecord));
-        appendGateKeeperAuxFragStore(GkpStore.auxStore, &gkpaux);
-      }
     }
     break;
   case AS_DELETE:
@@ -368,25 +360,6 @@ int Check_FragMesg(FragMesg *frg_mesg,
 	assert(0);
       }
 
-      /* To keep consistent, delete the fragment in the auxFragStore
-         and delete the well, if there is one. This deviates from standard
-         policy. If a well was associated with a fragment, there 'should'
-         be a plate redefinition message before a fragment deletion message.
-      */
-      {
-        GateKeeperAuxFragRecord gkpaux;
-
-        /* first, get the auxFrag record to see if it is
-           associated with a well
-        */
-        getGateKeeperAuxFragStore(GkpStore.auxStore, value.IID, &gkpaux);
-        deleteGateKeeperAuxFragStore(GkpStore.auxStore, value.IID);
-
-        /* delete the well, if there is one */
-        if(gkpaux.iwell > 0){
-          deleteGateKeeperWellStore(GkpStore.welStore, gkpaux.iwell);
-        }
-      }
     }
     break;
     

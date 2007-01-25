@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.23 2006-11-14 17:52:17 eliv Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.24 2007-01-25 09:02:12 brianwalenz Exp $";
 
 //  reads old and new AFG message (with and w/o chaff field)
 #define AFG_BACKWARDS_COMPATIBLE
@@ -1639,98 +1639,6 @@ static void *Read_IAF_Mesg(FILE *fin)
 }
 
 
-static void Read_BSP_Mesg(FILE *fin, long idx)
-{
-  BugSplitPos *mesg = (BugSplitPos *) (MemBuffer + idx);
-  GET_FIELD(mesg->position, POS1_FORMAT, "split position");
-  GET_FIELD(mesg->bactig_eaccession, "btg: " F_UID, "bactig eaccession");
-  GET_EOM;
-}
-
-
-static void *Read_BUG_Mesg(FILE *fin)
-{
-  static BugMesg mesg;
-  long sidx;
-  int i;
-  char ch;
-  
-  GET_TYPE(ch,TYP1_FORMAT "[CRAS]", "bug type");
-  mesg.type = (BugMesgType) ch;
-  sidx = GetText("src:", fin, FALSE);
-  mesg.source = MemBuffer + sidx;
-
-  switch (mesg.type) {
-  case 'C':
-    GET_FIELD(mesg.bac_eaccession, "bac:" F_UID, "BAC id");
-    GET_FIELD(mesg.seq_eaccession, "seq:" F_UID, "sequence id");
-    break;
-
-  case 'R':
-    GET_FIELD(mesg.bac_eaccession, "bac:" F_UID, "BAC id");
-    GET_FIELD(mesg.seq_eaccession, "seq:" F_UID, "sequence id");
-    GET_FIELD(mesg.bactig_eaccession, "btg:" F_UID, "bactig id");
-    break;
-
-  case 'A':
-    GET_FIELD(mesg.src_bac_eaccession, "sbc:" F_UID, "source BAC id");
-    GET_FIELD(mesg.src_seq_eaccession, "ssq:" F_UID, "source sequence id");
-    GET_FIELD(mesg.dst_bac_eaccession, "dbc:" F_UID, "destination BAC id");
-    GET_FIELD(mesg.dst_seq_eaccession, "dsq:" F_UID, "destination sequence id");
-    GET_FIELD(mesg.bactig_eaccession, "btg:" F_UID, "bactig id");
-    break;
-
-  case 'S':
-    GET_FIELD(mesg.src_bac_eaccession, "sbc:" F_UID, "source BAC id");
-    GET_FIELD(mesg.src_seq_eaccession, "ssq:" F_UID, "source sequence id");
-    GET_FIELD(mesg.bactig_eaccession, "btg:" F_UID, "bactig id");
-    GET_FIELD(mesg.num_pos, "nps:" F_S32, "num. split positions");
-    GET_FIELD(mesg.new_bactig_eaccession, "nbt:" F_UID, "bactig id");
-
-    assert(mesg.num_pos > 0);
-    sidx = MoreSpace(mesg.num_pos * sizeof(BugSplitPos), 8);
-    mesg.split_array = (BugSplitPos *) (MemBuffer + sidx);
-    for (i = 0; i < mesg.num_pos; ++i) {
-      if (strncmp(GetLine(fin,TRUE), "{BSP", 4) != 0)
-	MgenError("Expecting BSP record");
-      Read_BSP_Mesg(fin, sidx);
-      sidx += sizeof(BugSplitPos);
-    }
-
-    break;
-
-  case 'G':
-    GET_FIELD(mesg.old_frag_eaccession, "old:" F_UID, "old fragment id");
-    GET_FIELD(mesg.new_frag_eaccession, "new:" F_UID, "new fragment id");
-    GET_PAIR(mesg.clear_rng.bgn, mesg.clear_rng.end,
-             CLR_FORMAT, "clear range");
-  }
-  GET_EOM;
-  
-  return ((void *) &mesg);
-}
-
-
-static void *Read_LIB_Mesg(FILE *fin)
-{
-  static LibDonorMesg mesg;
-  int sidx;
-  char ch;
-
-  GET_TYPE(ch,ACT1_FORMAT "[AD]","action");
-  mesg.action = (ActionType) ch;
-  GET_FIELD(mesg.eaccession, EACC_FORMAT, "library id");
-  if(mesg.action == AS_ADD){
-    GET_FIELD(mesg.donor, "don:" F_UID, "donor id");
-    sidx = GetText("src:", fin, FALSE);
-    mesg.source = MemBuffer + sidx;
-  }
-  GET_EOM;
-
-  return ((void *) &mesg);
-}
-
-
 static void *Read_EOF_Mesg(FILE *fin)
 {
   static EndOfFileMesg mesg;
@@ -2363,60 +2271,6 @@ static void *Read_IBI_Mesg(FILE *fin){
   GET_FIELD(mesg.entry_time,ETM_FORMAT,"time field");
   srcIndex = GetText("src:",fin,FALSE);
   mesg.source = (char *)MemBuffer + srcIndex;
-  GET_EOM;
-  return ((void *) (&mesg));
-}
-
-
-static void *Read_PLA_Mesg(FILE *fin){
-  static PlateMesg mesg;
-  WellMesg * curr;
-  int offset;
-  int i;
-  char ch;
-
-  GET_TYPE(ch,ACT1_FORMAT "[ADR]","action");
-  mesg.action = (ActionType) ch;
-  GET_FIELD(mesg.eaccession, EACC_FORMAT, "plate id");
-  mesg.num_wells = 0;
-  mesg.well_list = NULL;
-  if(mesg.action == AS_ADD ||
-     mesg.action == AS_REDEFINE){
-    {
-      // note: num_wells is int16
-      int tempVar;
-      GET_FIELD(tempVar,"nwe:%d","num wells");
-      mesg.num_wells = (int16) tempVar;
-    }
-    offset = MoreSpace(sizeof(WellMesg) * mesg.num_wells,8);
-    mesg.well_list = (WellMesg *)(MemBuffer + offset);
-    for(i = 0, curr = mesg.well_list; i < mesg.num_wells; i++,curr++){
-      if(strncmp(GetLine(fin,TRUE), "{WEL",4) != 0)
-        MgenError("Expecting WEL record");
-      GET_FIELD(curr->efrag,"frg:" F_UID ,"frag id");
-      {
-        // note: ewell member is uint16
-        uint tempVar;
-        GET_FIELD(tempVar,"wel:%u","well id");
-        curr->ewell = (uint16) tempVar;
-      }
-      GET_FIELD(curr->elibrary,"lib:" F_UID ,"library id");
-      GET_EOM;
-    }
-  }
-  GET_EOM;
-  return ((void *) (&mesg));
-}
-
-
-static void *Read_LKP_Mesg(FILE *fin){
-  static LinkPlateMesg mesg;
-  char ch;
-  
-  GET_TYPE(ch,ACT1_FORMAT "[AD]","action");
-  mesg.action = (ActionType) ch;
-  GET_FIELD(mesg.eplate_for,"for:" F_UID , "forward plate id");
-  GET_FIELD(mesg.eplate_rev,"rev:" F_UID , "forward plate id");
   GET_EOM;
   return ((void *) (&mesg));
 }
@@ -3548,36 +3402,6 @@ static void Write_IBI_Mesg(FILE *fout, void *vmesg){
   fprintf(fout,"}\n");
 }
 
-static void Write_PLA_Mesg(FILE *fout, void *vmesg){
-  PlateMesg *mesg = (PlateMesg *)vmesg;
-  WellMesg * curr;
-  int i;
-  
-  fprintf(fout,"{PLA\n");
-  fprintf(fout,ACT_FORMAT "\n", mesg->action);
-  fprintf(fout,EACC_FORMAT "\n", mesg->eaccession);
-  if(mesg->action == AS_ADD ||
-     mesg->action == AS_REDEFINE){
-    fprintf(fout,"nwe:" F_S16 "\n", mesg->num_wells);
-    AssertPtr(mesg->well_list);
-    for(i = 0, curr = mesg->well_list; i < mesg->num_wells; i++,curr++){
-      AssertPtr(curr);
-      // note: ewell member is uint16
-      fprintf(fout,"{WEL\nfrg:" F_UID "\nwel:" F_U16 "\nlib:" F_UID "\n}\n",
-              curr->efrag, curr->ewell, curr->elibrary);
-    }
-  }
-  fprintf(fout,"}\n");
-}
-
-static void Write_LKP_Mesg(FILE *fout, void *vmesg){
-  LinkPlateMesg *mesg = (LinkPlateMesg *) vmesg;
-  fprintf(fout,"{LKP\n");
-  fprintf(fout,ACT_FORMAT "\n", mesg->action);
-  fprintf(fout,"for:" F_UID "\n", mesg->eplate_for);
-  fprintf(fout,"rev:" F_UID "\n", mesg->eplate_rev);
-  fprintf(fout,"}\n");
-}
 
 static void Write_IRP_Mesg(FILE *fout, void *vmesg){
  InternalRepeatItemMesg *mesg = (InternalRepeatItemMesg *) vmesg;
@@ -3587,79 +3411,6 @@ static void Write_IRP_Mesg(FILE *fout, void *vmesg){
   fprintf(fout,"wch:%s\n",mesg->which);
   fprintf(fout,"len:" F_COORD "\n",mesg->length);
   fprintf(fout,"}\n");
-}
-
-
-static void Write_BSP_Mesg(FILE *fout, BugSplitPos *mesg)
-{
-  fprintf(fout, "{BSP\n");
-  fprintf(fout, POS1_FORMAT "\n", mesg->position);
-  fprintf(fout, "btg:" F_UID "\n", mesg->bactig_eaccession);
-  fprintf(fout, "}\n");
-}
-
-
-static void Write_BUG_Mesg(FILE *fout, void *vmesg)
-{
-  BugMesg *mesg = (BugMesg *) vmesg;
-  int i;
-
-  fprintf(fout, "{BUG\n");
-  fprintf(fout, TYP_FORMAT "\n",(char)  mesg->type);
-  PutText(fout, "src:", mesg->source, FALSE);
-  switch (mesg->type) {
-  case 'C':
-    fprintf(fout, "bac:" F_UID "\n", mesg->bac_eaccession);
-    fprintf(fout, "seq:" F_UID "\n", mesg->seq_eaccession);
-    break;
-
-  case 'R':
-    fprintf(fout, "bac:" F_UID "\n", mesg->bac_eaccession);
-    fprintf(fout, "seq:" F_UID "\n", mesg->seq_eaccession);
-    fprintf(fout, "btg:" F_UID "\n", mesg->bactig_eaccession);
-    break;
-
-  case 'A':
-    fprintf(fout, "sbc:" F_UID "\n", mesg->src_bac_eaccession);
-    fprintf(fout, "ssq:" F_UID "\n", mesg->src_seq_eaccession);
-    fprintf(fout, "dbc:" F_UID "\n", mesg->dst_bac_eaccession);
-    fprintf(fout, "dsq:" F_UID "\n", mesg->dst_seq_eaccession);
-    fprintf(fout, "btg:" F_UID "\n", mesg->bactig_eaccession);
-    break;
-
-  case 'S':
-    fprintf(fout, "sbc:" F_UID "\n", mesg->src_bac_eaccession);
-    fprintf(fout, "ssq:" F_UID "\n", mesg->src_seq_eaccession);
-    fprintf(fout, "btg:" F_UID "\n", mesg->bactig_eaccession);
-    fprintf(fout, "nps:" F_S32 "\n", mesg->num_pos);
-    fprintf(fout, "nbt:" F_UID "\n", mesg->new_bactig_eaccession);
-    for (i = 0; i < mesg->num_pos; ++i)
-      Write_BSP_Mesg(fout, &(mesg->split_array[i]));
-    break;
-
-  case 'G':
-    fprintf(fout, "old:" F_UID "\n", mesg->old_frag_eaccession);
-    fprintf(fout, "new:" F_UID "\n", mesg->new_frag_eaccession);
-    fprintf(fout, CLR_FORMAT "\n",
-            mesg->clear_rng.bgn, mesg->clear_rng.end);
-  }
-
-  fprintf(fout, "}\n");
-}
-
-
-static void Write_LIB_Mesg(FILE *fout, void *vmesg)
-{
-  LibDonorMesg *mesg = (LibDonorMesg *) vmesg;
-
-  fprintf(fout, "{LIB\n");
-  fprintf(fout, ACT_FORMAT "\n", mesg->action);
-  fprintf(fout, EACC_FORMAT "\n", mesg->eaccession);
-  if(mesg->action == AS_ADD){
-    fprintf(fout, "don:" F_UID "\n", mesg->donor);
-    PutText(fout, "src:", mesg->source, FALSE);
-  }
-  fprintf(fout, "}\n");
 }
 
 
@@ -3874,15 +3625,6 @@ static void Clear_ICM_Mesg(void *vmesg, int typ)
   free(mesg->v_list);           
 }
 
-#if 0
-static void Clear_PCM_Mesg(void *vmesg, int typ)
-{
-  PreContigMesg *mesg = (PreContigMesg *) vmesg;
-
-  free(mesg->f_list);
-  free(mesg->unitigs);
-}
-#endif
 
 
 /******************** EXTERNAL ENTRY POINTS ***************************/
@@ -3898,7 +3640,7 @@ typedef struct {
 } callrecord;
 
 static const callrecord CallTable[] = {
-  {"", NULL, NULL, NULL, 0},
+  {"", NULL, NULL, NULL, 0l},
   {"{ADT", Read_ADT_Mesg, Write_ADT_Mesg, Clear_ADT_Mesg,   sizeof(AuditMesg) },
   {"{FRG", Read_FRG_Mesg, Write_FRG_Mesg, Clear_FRG_Mesg,   sizeof(FragMesg)  },
   {"{IFG", Read_IFG_Mesg, Write_IFG_Mesg, Clear_FRG_Mesg,   sizeof(InternalFragMesg) },
@@ -3934,10 +3676,10 @@ static const callrecord CallTable[] = {
   {"{IBC", Read_IBC_Mesg, Write_IBC_Mesg, NULL,  	  sizeof(InternalBacMesg) },
   {"{BIN", Read_BIN_Mesg, Write_BIN_Mesg, NULL, 	  sizeof(BinMesg) },
   {"{IBI", Read_IBI_Mesg, Write_IBI_Mesg, NULL,  	  sizeof(InternalBinMesg) },
-  {"{PLA", Read_PLA_Mesg, Write_PLA_Mesg, NULL,  	  sizeof(PlateMesg) },
-  {"{LKP", Read_LKP_Mesg, Write_LKP_Mesg, NULL,  	  sizeof(LinkPlateMesg) },
-  {"{SP0", NULL, NULL, NULL,  	  0l },
-  {"{SP1", NULL, NULL, NULL, 	  0l },
+  {"", NULL, NULL, NULL, 0l },
+  {"", NULL, NULL, NULL, 0l },
+  {"", NULL, NULL, NULL, 0l },
+  {"", NULL, NULL, NULL, 0l },
   {"{IRP", Read_IRP_Mesg, Write_IRP_Mesg, NULL, 	  sizeof(InternalRepeatItemMesg) },
   {"{IDS", Read_IDS_Mesg, Write_IDS_Mesg, NULL,  	  sizeof(IntDegenerateScaffoldMesg) },
   {"{DSC", Read_DSC_Mesg, Write_DSC_Mesg, NULL,  	  sizeof(SnapDegenerateScaffoldMesg) },
@@ -3945,9 +3687,9 @@ static const callrecord CallTable[] = {
   {"{ISL", Read_ISL_Mesg, Write_ISL_Mesg, NULL,  	  sizeof(InternalScaffoldLinkMesg) },
   {"{FOM", Read_FOM_Mesg, Write_FOM_Mesg, NULL,           sizeof(FragOverlapMesg) },
   {"{OFR", Read_OFR_Mesg, Write_OFR_Mesg, Clear_FRG_Mesg, sizeof(OFRMesg) },
-  {"{BUG", Read_BUG_Mesg, Write_BUG_Mesg, NULL,           sizeof(BugMesg) },
-  {"{LIB", Read_LIB_Mesg, Write_LIB_Mesg, NULL,           sizeof(LibDonorMesg) },
-  {"{SP2", NULL, NULL, NULL,      0l },
+  {"", NULL, NULL, NULL, 0l },
+  {"", NULL, NULL, NULL, 0l },
+  {"", NULL, NULL, NULL, 0l },
   {"{EOF", Read_EOF_Mesg, Write_EOF_Mesg, NULL,           sizeof(EndOfFileMesg) }
 };
 

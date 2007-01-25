@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: dumpGatekeeper.c,v 1.7 2006-09-25 19:28:53 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpGatekeeper.c,v 1.8 2007-01-25 09:02:12 brianwalenz Exp $";
 
 /* Dump the gatekeeper stores for debug */
 
@@ -59,8 +59,8 @@ main(int argc, char * argv []) {
    GateKeeperStore gkpStore;
 
    summary = quiet = 0;
-   /**************** Process Command Line Arguments *********************/
-   { /* Parse the argument list using "man 3 getopt". */ 
+
+   {
      int ch,errflg=0;
      optarg = NULL;
      while (!errflg && ((ch = getopt(argc, argv, "sqF:")) != EOF))
@@ -80,23 +80,15 @@ main(int argc, char * argv []) {
 	 errflg++;
        }
 
-     
-     if(argc - optind != 1 )
-       {
-	 fprintf (stdout, "USAGE:  dumpGatekeeper [-qs] <gatekeeperStorePath>\n");
-	 exit (EXIT_FAILURE);
-       }
+     if(argc - optind != 1 ) {
+       fprintf (stdout, "USAGE:  dumpGatekeeper [-qs] <gatekeeperStorePath>\n");
+       exit (EXIT_FAILURE);
+     }
 
      gatekeeperStorePath = argv[optind++];
-
-     /* End of command line parsing */
    }
    
 
-
-   /**************** Open or Create Files *********************/
-   fprintf(stdout,"* GatekeeperStorePath is %s\n",
-	   gatekeeperStorePath);
 
    InitGateKeeperStore(&gkpStore, gatekeeperStorePath);
    OpenReadOnlyGateKeeperStore(&gkpStore);
@@ -131,8 +123,6 @@ main(int argc, char * argv []) {
        fprintf(stdout,"\t Num Links " F_S32 "\n", gkpb.numLinks);
        fprintf(stdout,"\t Num Sequences " F_S32 "\n", gkpb.numSequences);
        fprintf(stdout,"\t Num Screens " F_S32 "\n", gkpb.numScreens);
-       fprintf(stdout,"\t Num Plates " F_S32 "\n", gkpb.numPlates);
-       fprintf(stdout,"\t Num Wells " F_S32 "\n", gkpb.numWells);
      }
      gkpb.numFragments = getNumGateKeeperFragments(gkpStore.frgStore);
      gkpb.numLocales = getNumGateKeeperLocales(gkpStore.locStore);
@@ -142,8 +132,6 @@ main(int argc, char * argv []) {
      gkpb.num_s_Distances = getNumGateKeeperDistances(gkpStore.s_dstStore);
      gkpb.numScreens = getNumGateKeeperScreens(gkpStore.scnStore);
      gkpb.numRepeats = getNumGateKeeperRepeats(gkpStore.rptStore);
-     gkpb.numPlates = getNumGateKeeperSequencePlates(gkpStore.sqpStore);
-     gkpb.numWells = getNumGateKeeperWells(gkpStore.welStore);
      gkpb.numLinks = getNumGateKeeperLinks(gkpStore.lnkStore);
      gkpb.numSequences = getNumGateKeeperSequences(gkpStore.seqStore);
      fprintf(stdout,"* Final Stats\n");
@@ -156,10 +144,6 @@ main(int argc, char * argv []) {
      fprintf(stdout,"\t Num Links " F_S32 "\n", gkpb.numLinks);
      fprintf(stdout,"\t Num Sequences " F_S32 "\n", gkpb.numSequences);
      fprintf(stdout,"\t Num Screens " F_S32 "\n", gkpb.numScreens);
-     fprintf(stdout,"\t Num Plates " F_S32 "\n", gkpb.numPlates);
-     fprintf(stdout,"\t Num Wells " F_S32 "\n", gkpb.numWells);
-     
-     
    }
 
    if(summary)
@@ -169,7 +153,6 @@ main(int argc, char * argv []) {
    if(fragID == -1)
    {
      GateKeeperDistanceRecord gkpd;
-     GateKeeperLibDonorRecord gkpldr;
      StoreStat stat;
      StoreStat shadow_stat;
      int64 i;
@@ -185,18 +168,10 @@ main(int argc, char * argv []) {
      
      for(i = 1; i <= stat.lastElem; i++){
        getGateKeeperDistanceStore(gkpStore.dstStore,i,&gkpd);
-       getGateKeeperLibDonorStore(gkpStore.libStore,i,&gkpldr);
-       
-       if(!quiet){
+       if (!quiet)
          fprintf(stdout,"* Dist " F_S64 " UID:" F_UID " del:%d red:%d mean:%f std:%f batch(" F_U16 "," F_U16 ") prevID:" F_IID " prevInstanceID: " F_IID "\n",
                  i,gkpd.UID, gkpd.deleted, gkpd.redefined, gkpd.mean, gkpd.stddev,
                  gkpd.birthBatch, gkpd.deathBatch, gkpd.prevID, gkpd.prevInstanceID);
-         if(gkpldr.set){
-           fprintf(stdout,"\t* Donor: %u\n",gkpldr.idonor);
-         }else{
-           fprintf(stdout,"\t* No Donor set\n");
-         }
-       }
      }
 
      if(!quiet)
@@ -386,11 +361,9 @@ main(int argc, char * argv []) {
    }
 
    /**************** DUMP Fragments and Links *************/
-   /**************** Also dump aux Frags ******************/
    {
      StreamHandle frags = openStream(gkpStore.frgStore,NULL,0);
      GateKeeperFragmentRecord gkpf;
-     GateKeeperAuxFragRecord gkpafr;
      StoreStat stat;
      int64 i = 1;
      PHashValue_AS value;
@@ -413,9 +386,7 @@ main(int argc, char * argv []) {
      while(nextStream(frags, &gkpf)){
        GateKeeperLinkRecordIterator iterator;
        GateKeeperLinkRecord link;
-       
-       getGateKeeperAuxFragStore(gkpStore.auxStore, i, &gkpafr);
-       
+
        if(HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore.hashTable, 
                                                     UID_NAMESPACE_AS,
                                                     gkpf.readUID, 
@@ -435,16 +406,6 @@ main(int argc, char * argv []) {
                    gkpf.type,
                    value.refCount, gkpf.numLinks, gkpf.linkHead,
                    gkpf.localeID, gkpf.seqID, gkpf.bactigID, gkpf.birthBatch, gkpf.deathBatch);
-           if(gkpafr.set){
-             if(!gkpafr.deleted)
-               fprintf(stdout,"# *****ERROR******");
-             else
-               fprintf(stdout,"# Deleted Auxiliary Fragment ");
-             fprintf(stdout,"\tplate:" F_IID ", well:%u, lib:" F_IID "\n",
-                     gkpafr.iplate, gkpafr.iwell, gkpafr.ilib);
-           }else{
-             fprintf(stdout,"# No Auxiliary Fragment\n");
-           }
          }
        }else{
          if(!quiet){
@@ -460,16 +421,6 @@ main(int argc, char * argv []) {
                      gkpf.type,
                      value.refCount, gkpf.numLinks, gkpf.linkHead,
                      gkpf.localeID, gkpf.seqID, gkpf.bactigID, gkpf.birthBatch, gkpf.deathBatch);
-           }
-           if(gkpafr.set){
-             if(gkpafr.deleted)
-               fprintf(stdout,"# *****ERROR****** - Deleted Auxiliary Fragment");
-             else
-               fprintf(stdout,"# Auxiliary Fragment ");
-             fprintf(stdout,"\tplate:" F_IID ", well:%u, lib:" F_IID "\n",
-                     gkpafr.iplate, gkpafr.iwell, gkpafr.ilib);
-           }else{
-             fprintf(stdout,"# No Auxiliary Fragment\n");
            }
          }
          if(gkpf.numLinks > 0){
@@ -488,69 +439,5 @@ main(int argc, char * argv []) {
      }
    }
 
-
-   /**************** DUMP Plates *************/
-   if(fragID == -1){
-     StreamHandle frags = openStream(gkpStore.sqpStore,NULL,0);
-     GateKeeperSequencePlateRecord gkpsqp;
-     StoreStat stat;
-     int i = 1;
-     
-     statsStore(gkpStore.sqpStore, &stat);
-     fprintf(stdout,"* Stats for Sequence Plate Store are first:" F_S64 " last :" F_S64 "\n",
-	     stat.firstElem, stat.lastElem);
-     
-     resetStream(frags,STREAM_FROMSTART, STREAM_UNTILEND);
-     
-     if(!quiet)
-       fprintf(stdout,"* Printing Sequence Plates\n");
-     
-     while(nextStream(frags, &gkpsqp)){
-
-       if(!quiet){
-         
-	 fprintf(stdout,"* Plate %d: UID: " F_UID " deleted:%d firstWell:" F_IID " numWells:%u mate:" F_IID "\n",
-                 i, gkpsqp.UID, gkpsqp.deleted,
-                 gkpsqp.firstWell, gkpsqp.numWells, gkpsqp.mate);
-       }
-       
-       if(gkpsqp.numWells > 0){
-         int j;
-         int cnt;
-         
-         fprintf(stdout,"\tWells\n");
-         for(cnt = 0, j = gkpsqp.firstWell; cnt < gkpsqp.numWells; cnt++, j++){
-           GateKeeperWellRecord gkpwel;
-           
-           getGateKeeperWellStore(gkpStore.welStore, j, &gkpwel);
-           if(!quiet)
-             fprintf(stdout,"\t\t well: %u, deleted: %u, frag: " F_IID ", lib: " F_IID "\n",
-                     gkpwel.ewell, gkpwel.deleted, gkpwel.ifrag, gkpwel.ilib);
-         }
-       }
-       i++;
-     }
-   }
-   
-#if 0
-   /**************** Close files   *********************/
-   if(status == GATEKEEPER_SUCCESS){ //  OK to update persistent data and generate output
-     /* Remove temporary files if any */
-     fprintf(stdout,"#  Successful run with %d errors < %d maxerrs ..removing temp backup files\n",
-	     nerrs , maxerrs);
-     sprintf(cmd,"rm -rf %s", tmpFilePath);
-     if(system(cmd) != 0) assert(0);
-   }else{
-     fprintf(stdout,"# Too Many Errors -- removing output and exiting \n");
-     sprintf(cmd,"rm -f %s", Output_File_Name);
-     if(system(cmd) != 0) assert(0);
-     sprintf(cmd,"rm -rf %s", gatekeeperStorePath);
-     if(system(cmd) != 0) assert(0);
-     if(append)
-       rename(tmpFilePath,gatekeeperStorePath);
-   }
-#endif
-   
-   
    exit(status != GATEKEEPER_SUCCESS);
 }

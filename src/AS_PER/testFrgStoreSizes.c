@@ -62,8 +62,6 @@ int main(int argc, char *argv[]){
   printf("GateKeeperSequenceRecord size is %ld\n",sizeof(GateKeeperSequenceRecord));
   printf("GateKeeperDistanceRecord size is %ld\n",sizeof(GateKeeperDistanceRecord));
   printf("GateKeeperLinkRecord size is %ld\n",sizeof(GateKeeperLinkRecord));
-  printf("GateKeeperAuxFragRecord size is %ld\n",sizeof(GateKeeperAuxFragRecord));
-  printf("GateKeeperLibDonorRecord size is %ld\n",sizeof(GateKeeperLibDonorRecord));
   printf("PHashTable_AS size is %ld\n",sizeof(PHashTable_AS));
   printf("tSequenceDB size is %ld\n",sizeof(tSequenceDB));
   printf("tMARrecord size is %ld\n",sizeof(tMARecord));

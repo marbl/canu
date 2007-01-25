@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.24 2006-10-15 08:03:59 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.25 2007-01-25 09:02:12 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -40,8 +40,8 @@ extern int novar;
 /* This supports a backward compatibility mode for DROS data */
 typedef enum{
   AS_DROS_MODE =  (int)'D',
-  AS_HUMAN_MODE = (int)'H'
-}ProtoIOMode;
+    AS_HUMAN_MODE = (int)'H'
+    }ProtoIOMode;
 
 void SetProtoMode_AS(ProtoIOMode mode);
 ProtoIOMode GetProtoMode_AS(void);
@@ -60,46 +60,36 @@ ProtoIOMode GetProtoMode_AS(void);
 #endif
 #define AS_READ_MIN_LEN AS_FRAG_MIN_LEN
 //   #define NEW_UNITIGGER_INTERFACE
+
 #define DEFINE_IDs(type)\
 typedef CDS_UID_t type##_ID;\
 typedef CDS_IID_t Int##type##_ID;
 
-// Traditional UID types
 DEFINE_IDs(Fragment)
-DEFINE_IDs(Locale)
-DEFINE_IDs(Distance)
-DEFINE_IDs(ScreenItem)
-DEFINE_IDs(Chunk)
-DEFINE_IDs(Unitig)
-DEFINE_IDs(Contig)
-DEFINE_IDs(Dist)
-DEFINE_IDs(Scaffold)
+     DEFINE_IDs(Locale)
+     DEFINE_IDs(Distance)
+     DEFINE_IDs(ScreenItem)
+     DEFINE_IDs(Chunk)
+     DEFINE_IDs(Unitig)
+     DEFINE_IDs(Contig)
+     DEFINE_IDs(Dist)
+     DEFINE_IDs(Scaffold)
+     DEFINE_IDs(Repeat)
+     DEFINE_IDs(Batch)
+     DEFINE_IDs(Bactig)
+     DEFINE_IDs(Bac)
+     DEFINE_IDs(Bin)
+     DEFINE_IDs(Sequence)
 
-// New UID types for human
-DEFINE_IDs(Repeat)
-DEFINE_IDs(Batch)
-DEFINE_IDs(Bactig)
-DEFINE_IDs(Bac)
-DEFINE_IDs(Bin)
-DEFINE_IDs(Sequence)
-DEFINE_IDs(Plate)
-DEFINE_IDs(Library)
-DEFINE_IDs(Donor)
-// Special case for Well IDs, since external numbers refer to plate position
-// Internal numbers are internally unique
-typedef uint16 Well_ID;
-typedef uint32 IntWell_ID;
-
-typedef enum {
- AS_ADD    = (int)'A',
- AS_DELETE = (int)'D',
- AS_UPDATE = (int)'U',
- AS_REDEFINE = (int)'R'
-} ActionType;
+     typedef enum {
+       AS_ADD    = (int)'A',
+       AS_DELETE = (int)'D',
+       AS_UPDATE = (int)'U',
+       AS_REDEFINE = (int)'R'
+     } ActionType;
 
 typedef struct { CDS_COORD_t bgn, end; } SeqInterval;
 
-  /* Keep this in sync with recordtypes array */
 
 typedef enum {
   MESG_NONE = 0,
@@ -112,52 +102,49 @@ typedef enum {
   MESG_ILK,
   MESG_DST,
   MESG_IDT,
-  MESG_SCN,// 10
+  MESG_SCN, // 10
   MESG_ISN,
   MESG_RPT,
   MESG_OVL,
   MESG_BRC,
-  MESG_UOM,// 15
+  MESG_UOM, // 15
   MESG_IUM,
   MESG_IUL,
   MESG_ICL,
   MESG_AFG,
-  MESG_ISF,// 20
+  MESG_ISF, // 20
   MESG_IMD,
   MESG_IAF,
   MESG_UTG,
   MESG_ULK,
-  MESG_ICM,// 25
+  MESG_ICM, // 25
   MESG_CCO,
   MESG_CLK,
   MESG_SCF,
   MESG_MDI,
-  // NEW FOR HUMAN
-  MESG_BAT,// 30  
+  MESG_BAT, // 30  
   MESG_IBA,
   MESG_BAC,
   MESG_IBC,
   MESG_BIN,
-  MESG_IBI,// 35
-  MESG_PLA,
-  MESG_LKP,
-  MESG_SP0, // spare 0
-  MESG_SP1, // spare 1
-  MESG_IRP,// 40
+  MESG_IBI, // 35
+  MESG_SP0,
+  MESG_SP1,
+  MESG_SP2,
+  MESG_SP3,
+  MESG_IRP, // 40
   MESG_IDS,
   MESG_DSC,
   MESG_SLK,
   MESG_ISL,
-  MESG_FOM,// 45
+  MESG_FOM, // 45
   MESG_OFR,
-  MESG_BUG,
-  MESG_LIB,
-  MESG_SP2, // spare 2
-  MESG_EOF // 50
+  MESG_SP4,
+  MESG_SP5,
+  MESG_SP6,
+  MESG_EOF  // 50
 } MessageType;
 
-
-/**** NOTE: If you add a message type, update the following!!!!! ****/
 
 #define NUM_OF_REC_TYPES MESG_EOF
 
@@ -177,9 +164,6 @@ static char  *MessageTypeName[NUM_OF_REC_TYPES + 1] = {
   "RPT", 
   "OVL", 
   "BRC",
-  /* "CHK",               */
-  /*  "RTG",     Obsolete */
-  /* "CTG",      Obsolete */
   "UOM",// 15
   "IUM", 
   "IUL", 
@@ -195,17 +179,16 @@ static char  *MessageTypeName[NUM_OF_REC_TYPES + 1] = {
   "CLK",
   "SCF", 
   "MDI",
-  // NEW FOR HUMAN
   "BAT",// 30  
   "IBA",
   "BAC",
   "IBC", 
   "BIN",
   "IBI",// 35
-  "PLA", 
-  "LKP",
-  "SP0", // spare 0
-  "SP1", // spare 1
+  "SP0", 
+  "SP1",
+  "SP2",
+  "SP3",
   "IRP",// 40
   "IDS",
   "DSC",
@@ -213,13 +196,13 @@ static char  *MessageTypeName[NUM_OF_REC_TYPES + 1] = {
   "ISL",
   "FOM", // 45
   "OFR",
-  "BUG",
-  "LIB",
-  "SP2", // spare 2
+  "SP4",
+  "SP5",
+  "SP6",
   "EOF"  // 50
 };
 
-  /*Generic message object handle */
+/*Generic message object handle */
 
 typedef struct { 
   void         *m;          /* A pointer to a message. */
@@ -227,9 +210,8 @@ typedef struct {
   int32        s;          /* The message size in bytes. */
 } GenericMesg;
 
-
-
 /* BAT && IBA record */
+
 typedef struct InternalBatchMesgTag {
   char         *name;
   time_t       created;
@@ -240,7 +222,7 @@ typedef struct InternalBatchMesgTag {
 
 typedef InternalBatchMesg BatchMesg;
 
-  /* ADL record */
+/* ADL record */
 
 typedef struct AuditLineTag {
   struct AuditLineTag  *next;
@@ -250,14 +232,14 @@ typedef struct AuditLineTag {
   char                 *comment;
 } AuditLine;
 
-  /* ADT message */
+/* ADT message */
 
 typedef struct {
   AuditLine *list;
 } AuditMesg;
 
-
 /* BIN message */
+
 typedef struct BinMesgTag{
   ActionType      action;
   Bin_ID          eaccession;
@@ -268,9 +250,7 @@ typedef struct BinMesgTag{
 
 typedef BinMesg InternalBinMesg;
 
-
-
-  /* LKG message */
+/* LKG message */
 
 typedef enum {
   AS_MATE       = (int)'M', // Mate
@@ -300,7 +280,7 @@ typedef struct {
   Distance_ID     distance;
 } LinkMesg;
 
-  /* ILK message */
+/* ILK message */
  
 typedef struct {
   ActionType      action;
@@ -312,7 +292,7 @@ typedef struct {
   IntDist_ID      idistance;
 } InternalLinkMesg;
 
-  /* DST message */
+/* DST message */
 
 typedef struct {
   ActionType   action;
@@ -321,7 +301,7 @@ typedef struct {
   float32      stddev;
 } DistanceMesg;
 
-  /* IDT message */
+/* IDT message */
 
 typedef struct {
   ActionType   action;
@@ -331,7 +311,7 @@ typedef struct {
   IntDist_ID   iaccession;
 } InternalDistMesg;
 
-  /* SCN message */
+/* SCN message */
 
 typedef enum {
   AS_UBIQREP       = (int)'U', 
@@ -359,26 +339,10 @@ typedef struct {
   IntRepeat_ID      irepeat_id;
 } InternalScreenItemMesg;
 
-#if 0
-  /* ISN message */
-
-typedef struct {
-  ActionType 	  action;
-  ScreenType      type;
-  ScreenItem_ID   eaccession;
-  Repeat_ID       repeat_id;
-  int32           relevance;
-  char            *source;
-  char            *sequence;
-  float           variation;
-  CDS_COORD_t  min_length;
-  IntScreen_ID    iaccession;
-} InternalScreenItemMesg;
-#endif
 
 typedef InternalScreenItemMesg ScreenItemMesg;
 
-  /* RPT message */
+/* RPT message */
 
 typedef struct {
   Repeat_ID       erepeat_id;
@@ -409,61 +373,61 @@ typedef enum {
 
 /* Extended Granger's comment to fragment types
 
-  AS_READ    Celera Read
-             This should be a .trusted. randomly generated shotgun read from the entire
-             DNA target sequence . usually a whole genome. Features: randomly sampled, trusted for consensus,
-             can have a mate pair.
+AS_READ    Celera Read
+This should be a .trusted. randomly generated shotgun read from the entire
+DNA target sequence . usually a whole genome. Features: randomly sampled, trusted for consensus,
+can have a mate pair.
 
-  AS_EXTR    External WGS read
-             This should be an .untrusted. randomly generated shotgun read . same as above. Features:
-	     randomly sampled, untrusted for consensus, can have a untrusted mate pair
+AS_EXTR    External WGS read
+This should be an .untrusted. randomly generated shotgun read . same as above. Features:
+randomly sampled, untrusted for consensus, can have a untrusted mate pair
 
-  AS_TRNR    Transposon library read
-             Read was generated from a subclone of the target sequence using transposon .bombing..
-             Features: nonrandom, might include information about subclone, trusted for consensus, can have
-             mate pair but oriented in .outtie. rather .innie..
+AS_TRNR    Transposon library read
+Read was generated from a subclone of the target sequence using transposon .bombing..
+Features: nonrandom, might include information about subclone, trusted for consensus, can have
+mate pair but oriented in .outtie. rather .innie..
 
-  AS_EBAC    End of BAC
-             Read is a BAC end . that is a sequence from one end or the other of a BAC subclone.
-             Assumed to be randomly sampled. Variance is assumed to be high for size of insert so not
-             used in initial scaffolding. Features: random sampling, high variance insert size, trusted for consensus,
-             can have mate pair.
+AS_EBAC    End of BAC
+Read is a BAC end . that is a sequence from one end or the other of a BAC subclone.
+Assumed to be randomly sampled. Variance is assumed to be high for size of insert so not
+used in initial scaffolding. Features: random sampling, high variance insert size, trusted for consensus,
+can have mate pair.
 
-  AS_LBAC    Lightly shotgunned
-             Read is shotgun sampled from a subclone (BAC or otherwise). Features: nonrandom, trusted,
-             can have a mate pair.
+AS_LBAC    Lightly shotgunned
+Read is shotgun sampled from a subclone (BAC or otherwise). Features: nonrandom, trusted,
+can have a mate pair.
 
-  AS_UBAC    Unfinished
-             Read is an .artificial. shredding of an unfinished subclone (unfinished means at least one gap
-             in the sequence . so multiple contigs). Features: nonrandom, untrusted, no mate pair.
+AS_UBAC    Unfinished
+Read is an .artificial. shredding of an unfinished subclone (unfinished means at least one gap
+in the sequence . so multiple contigs). Features: nonrandom, untrusted, no mate pair.
 
-  AS_FBAC    Finished
-             Same as above but subclone is a single contig.
+AS_FBAC    Finished
+Same as above but subclone is a single contig.
 
-  AS_STS     Sts
-             Never used or implemented. The idea is to allow constraints to be input to the assembly
-             based on some sequence or clone tag. For instance, the sequence .ACTGTGTGT.. should be
-             on the same chromosome as .GCGACGAGAT.. no orientation known. This is only a read or
-             fragment in the sense that there is an associated sequence. Features: nonrandom, not to be
-             used for consensus, mate pair relationship is present only by analogy.
+AS_STS     Sts
+Never used or implemented. The idea is to allow constraints to be input to the assembly
+based on some sequence or clone tag. For instance, the sequence .ACTGTGTGT.. should be
+on the same chromosome as .GCGACGAGAT.. no orientation known. This is only a read or
+fragment in the sense that there is an associated sequence. Features: nonrandom, not to be
+used for consensus, mate pair relationship is present only by analogy.
 
-  AS_UNITIG  Unitig
-             This was used for an old flavor of the assembler . no longer used.
+AS_UNITIG  Unitig
+This was used for an old flavor of the assembler . no longer used.
 
-  AS_CONTIG  Contig
-             This was used for an old flavor of the assembler . no longer used.
+AS_CONTIG  Contig
+This was used for an old flavor of the assembler . no longer used.
 
-  AS_BACTIG  BacTig
-             This was used for an old flavor of the assembler . no longer used.
+AS_BACTIG  BacTig
+This was used for an old flavor of the assembler . no longer used.
 
-  AS_FULLBAC Full Bac C = Complete)
-             This was used for an old flavor of the assembler . no longer used.
+AS_FULLBAC Full Bac C = Complete)
+This was used for an old flavor of the assembler . no longer used.
 
-  AS_B_READ  BGLII read (should not be used)
-             This read is sequenced out from an internal spacer sequence added to a clone to
-             replace a section cut out by a restriction enzyme to make the size of the insert stable. Only
-             used once with crappy results . not sure code was fully implemented. Features: nonrandom,
-             trusted, multiple mate pair relationships . outtie, innie, normal, antinormal.
+AS_B_READ  BGLII read (should not be used)
+This read is sequenced out from an internal spacer sequence added to a clone to
+replace a section cut out by a restriction enzyme to make the size of the insert stable. Only
+used once with crappy results . not sure code was fully implemented. Features: nonrandom,
+trusted, multiple mate pair relationships . outtie, innie, normal, antinormal.
 */
 
 /*
@@ -498,11 +462,11 @@ typedef enum {
   AS_OTHER_UNITIG    = (int)'X'  // Unspecified surrogate unitig
 } UnitigType;
 
-  /* ISM & SMA record */
+/* ISM & SMA record */
 
 typedef enum {
- AS_FORWARD   = (int)'F',
- AS_REVERSE = (int)'R'
+  AS_FORWARD   = (int)'F',
+  AS_REVERSE = (int)'R'
 } DirectionType;
 
 typedef struct iScreenMatchTag {
@@ -525,7 +489,7 @@ typedef struct ScreenMatchTag {
   DirectionType          direction;
 } ScreenMatch;
 
-  /* SFG message */
+/* SFG message */
 
 
 typedef struct {
@@ -555,7 +519,7 @@ typedef ScreenedFragMesg FragMesg;
 typedef ScreenedFragMesg InternalFragMesg;
 typedef ScreenedFragMesg OFRMesg;
 
-  /*OVL message*/
+/*OVL message*/
 
 #define AS_LONGEST_DELTA     (126)
 #define AS_LONG_DELTA_CODE  (-127)
@@ -597,7 +561,7 @@ typedef struct {
   signed char      *delta;
 } OverlapMesg;
 
-  /* BRC message */
+/* BRC message */
 
 typedef struct {
   ActionType        action;
@@ -730,9 +694,9 @@ typedef struct {
   IntChunk_ID     	chunk2;
   ChunkOrientationType	orient;
   UnitigOverlapType	overlap_type;
-# ifdef AS_ENABLE_SOURCE
+#ifdef AS_ENABLE_SOURCE
   char			*source;
-# endif
+#endif
   CDS_COORD_t        best_overlap_length;
   CDS_COORD_t        min_overlap_length;
   CDS_COORD_t        max_overlap_length;
@@ -748,9 +712,9 @@ typedef struct {
   IntFragment_ID     	bfrag;
   ChunkOrientationType	orient;
   UnitigOverlapType	overlap_type;
-# ifdef AS_ENABLE_SOURCE
+#ifdef AS_ENABLE_SOURCE
   char			*source;
-# endif
+#endif
   CDS_COORD_t        best_overlap_length;
   CDS_COORD_t        min_overlap_length;
   CDS_COORD_t        max_overlap_length;
@@ -774,7 +738,7 @@ typedef struct {
   char           *source;
 } ChunkMesg;
 
-  /* ICT messages */
+/* ICT messages */
 
 typedef enum {
   AS_KEEP   = (int) 'K',
@@ -884,9 +848,9 @@ typedef struct {
 
 typedef struct {
   IntChunk_ID     iaccession;
-# ifdef AS_ENABLE_SOURCE
+#ifdef AS_ENABLE_SOURCE
   char		  *source;
-# endif
+#endif
   float32         coverage_stat;
   UnitigStatus    status;
   CDS_COORD_t  a_branch_point;
@@ -1086,9 +1050,9 @@ typedef struct {
 typedef struct {
   FragType      type;
   Fragment_ID   eident;
-# ifdef AS_ENABLE_SOURCE
+#ifdef AS_ENABLE_SOURCE
   char		*source;
-# endif
+#endif
   SeqInterval   position;
   int32         delta_length;
   int32         *delta;
@@ -1106,14 +1070,14 @@ typedef struct {
 typedef struct {
   Chunk_ID        eaccession;  // changed in comparison to internal message
   IntChunk_ID     iaccession;
-# ifdef AS_ENABLE_SOURCE
+#ifdef AS_ENABLE_SOURCE
   char		  *source;
-# endif
+#endif
   float32         coverage_stat;
   UnitigStatus    status;
-  CDS_COORD_t  a_branch_point;
-  CDS_COORD_t  b_branch_point;
-  CDS_COORD_t  length;
+  CDS_COORD_t     a_branch_point;
+  CDS_COORD_t     b_branch_point;
+  CDS_COORD_t     length;
   char            *consensus;
   char            *quality;
   int32		  forced;
@@ -1265,69 +1229,6 @@ typedef struct InternalBacMesgTag{
 
 typedef InternalBacMesg BacMesg;
 
-/* LIB */
-typedef struct LibDonorMesgTag {
-  ActionType  action;
-  Library_ID  eaccession;
-  Donor_ID    donor;
-  char        *source;
-} LibDonorMesg;
-
-/* WEL */
-typedef struct WellMesgTag{
-  Fragment_ID  efrag;
-  Well_ID      ewell;  // NOTE this external ID is uint16
-  Library_ID   elibrary;
-}WellMesg;
-
-/* PLA */
-typedef struct PlateMesgTag{
-  ActionType  action;
-  Plate_ID    eaccession;
-  int16       num_wells;
-  WellMesg    *well_list; // array of length num_wells
-}PlateMesg;
-
-/* LKP */
-typedef struct LinkPlateMesgTag{
-  ActionType  action;
-  Plate_ID    eplate_for;
-  Plate_ID    eplate_rev;
-}LinkPlateMesg;
-
-/* BSP */
-typedef struct BugSplitPosTag {
-  CDS_COORD_t  position;
-  Fragment_ID     bactig_eaccession;
-} BugSplitPos;
-
-
-/* BUG */
-typedef enum {
-  AS_CREATE_BAC =       (int) 'C',
-  AS_REMOVE_BACTIG =    (int) 'R',
-  AS_ADD_BACTIG =       (int) 'A',
-  AS_SPLIT_BACTIG =     (int) 'S',
-  AS_CHANGE_CLR_RANGE = (int) 'G'
-} BugMesgType;    
-
-typedef struct BugMesgTag {
-  BugMesgType  type;
-  char         *source;
-  Locale_ID    bac_eaccession;
-  Locale_ID    seq_eaccession;
-  Locale_ID    src_bac_eaccession;
-  Locale_ID    src_seq_eaccession;
-  Locale_ID    dst_bac_eaccession;
-  Locale_ID    dst_seq_eaccession;
-  Locale_ID    bactig_eaccession;
-  Locale_ID    new_bactig_eaccession;
-  Locale_ID    old_frag_eaccession;
-  Locale_ID    new_frag_eaccession;
-  int32        num_pos;
-  BugSplitPos  *split_array;
-  SeqInterval  clear_rng;
-} BugMesg;
 
 /* EOF */
 typedef struct EndOfFileMesgTag {
@@ -1442,30 +1343,30 @@ int WriteBinaryMesg_AS(FILE *fout, GenericMesg *mesg);
 //  IDs, should no longer be in use!
 //
 void Transfer_FRG_to_IFG_AS(FragMesg         *frg_mesg,
-                                   InternalFragMesg *ifg_mesg);
+                            InternalFragMesg *ifg_mesg);
 
 void Transfer_IFG_to_SFG_AS(InternalFragMesg *ifg_mesg,
-                                   ScreenedFragMesg *sfg_mesg);
+                            ScreenedFragMesg *sfg_mesg);
 
 void Transfer_SFG_to_OFG_AS(ScreenedFragMesg *sfg_mesg,
-                                   OFGMesg *ofg_mesg);
+                            OFGMesg *ofg_mesg);
 
 void Transfer_SFG_to_OFR_AS(ScreenedFragMesg *sfg_mesg,
-                                   OFRMesg *ofr_mesg);
+                            OFRMesg *ofr_mesg);
 
 void Transfer_DST_to_IDT_AS(DistanceMesg     *dst_mesg,
-                                   InternalDistMesg *idt_mesg);
+                            InternalDistMesg *idt_mesg);
 
 void Transfer_LKG_to_ILK_AS(LinkMesg         *lkg_mesg,
-                                   InternalLinkMesg *ilk_mesg);
+                            InternalLinkMesg *ilk_mesg);
 
 void Transfer_SCN_to_ISN_AS(ScreenItemMesg         *scn_mesg,
-                                   InternalScreenItemMesg *isn_mesg);
+                            InternalScreenItemMesg *isn_mesg);
 
 void AppendAuditLine_AS(AuditMesg *adt_mesg,
-                               AuditLine *auditLine,
-                               time_t t, char *name,
-                               char *version, char *comment);
+                        AuditLine *auditLine,
+                        time_t t, char *name,
+                        char *version, char *comment);
 
 
 //  Function: GetProtoLineNum_AS
