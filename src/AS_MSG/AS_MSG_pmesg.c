@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.24 2007-01-25 09:02:12 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.25 2007-01-26 18:44:52 brianwalenz Exp $";
 
 //  reads old and new AFG message (with and w/o chaff field)
 #define AFG_BACKWARDS_COMPATIBLE
@@ -2248,32 +2248,6 @@ static void *Read_IBC_Mesg(FILE *fin){
 }
 
 
-static void *Read_BIN_Mesg(FILE *fin){
-  static BinMesg mesg;
-  int srcIndex;
-  char ch;
-  GET_TYPE(ch,ACT_FORMAT,"action");
-  mesg.action = (ActionType) ch;
-  GET_PAIR(mesg.eaccession, mesg.iaccession,IACCS_FORMAT, "accession field pair");
-  GET_FIELD(mesg.entry_time,ETM_FORMAT,"time field");
-  srcIndex = GetText("src:",fin,FALSE);
-  mesg.source = (char *)MemBuffer + srcIndex;
-  GET_EOM;
-  return ((void *) (&mesg));
-}
-static void *Read_IBI_Mesg(FILE *fin){
-  static BinMesg mesg;
-  int srcIndex;
-  char ch;
-  GET_TYPE(ch,ACT_FORMAT,"action");
-  mesg.action = (ActionType) ch;
-  GET_FIELD(mesg.eaccession,EACC_FORMAT,"accession field");
-  GET_FIELD(mesg.entry_time,ETM_FORMAT,"time field");
-  srcIndex = GetText("src:",fin,FALSE);
-  mesg.source = (char *)MemBuffer + srcIndex;
-  GET_EOM;
-  return ((void *) (&mesg));
-}
 
 
 static void *Read_IRP_Mesg(FILE *fin){
@@ -3383,25 +3357,6 @@ static void Write_IBC_Mesg(FILE *fout, void *vmesg){
 }
 
 
-static void Write_BIN_Mesg(FILE *fout, void *vmesg){
-  BinMesg *mesg = (BinMesg *)vmesg;
-  fprintf(fout,"{BIN\n");
-  fprintf(fout,ACT_FORMAT "\n", mesg->action);
-  fprintf(fout,EACC_FORMAT "\n", mesg->eaccession);
-  fprintf(fout,ETM_FORMAT "\n", mesg->entry_time);
-  PutText(fout,"src:",mesg->source,FALSE);
-  fprintf(fout,"}\n");
-}
-static void Write_IBI_Mesg(FILE *fout, void *vmesg){
-  InternalBinMesg *mesg = (InternalBinMesg *)vmesg;
-  fprintf(fout,"{IBI\n");
-  fprintf(fout,ACT_FORMAT "\n", mesg->action);
-  fprintf(fout,IACCS_FORMAT "\n", mesg->eaccession, mesg->iaccession);
-  fprintf(fout,ETM_FORMAT "\n", mesg->entry_time);
-  PutText(fout,"src:",mesg->source,FALSE);
-  fprintf(fout,"}\n");
-}
-
 
 static void Write_IRP_Mesg(FILE *fout, void *vmesg){
  InternalRepeatItemMesg *mesg = (InternalRepeatItemMesg *) vmesg;
@@ -3674,8 +3629,8 @@ static const callrecord CallTable[] = {
   {"{IBA", Read_IBA_Mesg, Write_IBA_Mesg, NULL, 	  sizeof(InternalBatchMesg) },
   {"{BAC", Read_BAC_Mesg, Write_BAC_Mesg, NULL, 	  sizeof(BacMesg) },
   {"{IBC", Read_IBC_Mesg, Write_IBC_Mesg, NULL,  	  sizeof(InternalBacMesg) },
-  {"{BIN", Read_BIN_Mesg, Write_BIN_Mesg, NULL, 	  sizeof(BinMesg) },
-  {"{IBI", Read_IBI_Mesg, Write_IBI_Mesg, NULL,  	  sizeof(InternalBinMesg) },
+  {"", NULL, NULL, NULL, 0l },
+  {"", NULL, NULL, NULL, 0l },
   {"", NULL, NULL, NULL, 0l },
   {"", NULL, NULL, NULL, 0l },
   {"", NULL, NULL, NULL, 0l },

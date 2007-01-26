@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_MSG_bmesg.c,v 1.8 2007-01-25 09:02:12 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_MSG_bmesg.c,v 1.9 2007-01-26 18:44:52 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -734,17 +734,6 @@ static void Read_IBC_Mesg(FILE *fin, void *vmesg)
   indx = GetString(fin);
   mesg->source = (char *)(MemBuffer + indx);
 }
-static void Read_BIN_Mesg(FILE *fin, void *vmesg)
-{
-  // BinMesg *mesg = (BinMesg *) vmesg;
-  assert(0);
-}
-
-static void Read_IBI_Mesg(FILE *fin, void *vmesg)
-{
-  // InternalBinMesg *mesg = (InternalBinMesg *) vmesg;
-  assert(0);
-}
 
 static void Read_IRP_Mesg(FILE *fin, void *vmesg)
 {
@@ -1214,20 +1203,6 @@ static void Write_IBC_Mesg(FILE *fout, void *vmesg)
 
 }
 
-static void Write_BIN_Mesg(FILE *fout, void *vmesg)
-{
-  // BinMesg *mesg = (BinMesg *) vmesg;
-
-  assert(0);
-}
-
-static void Write_IBI_Mesg(FILE *fout, void *vmesg)
-{
-  // InternalBinMesg *mesg = (InternalBinMesg *) vmesg;
-
-  assert(0);
-}
-
 static void Write_IRP_Mesg(FILE *fout, void *vmesg)
 {
   InternalRepeatItemMesg *mesg = (InternalRepeatItemMesg *) vmesg;
@@ -1291,8 +1266,8 @@ static callrecord CallTable[] = {
   {Read_IBA_Mesg, Write_IBA_Mesg, sizeof(InternalBatchMesg) },
   {Read_BAC_Mesg, Write_BAC_Mesg, sizeof(BacMesg) },
   {Read_IBC_Mesg, Write_IBC_Mesg, sizeof(InternalBacMesg) },
-  {Read_BIN_Mesg, Write_BIN_Mesg, sizeof(BinMesg) },
-  {Read_IBI_Mesg, Write_IBI_Mesg, sizeof(InternalBinMesg) },
+  {NULL, NULL, 0l },
+  {NULL, NULL, 0l },
   {NULL, NULL, 0l },
   {NULL, NULL, 0l },
   {NULL, NULL, 0l },

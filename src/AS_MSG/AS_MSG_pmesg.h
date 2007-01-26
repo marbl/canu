@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.25 2007-01-25 09:02:12 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.26 2007-01-26 18:44:52 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -65,28 +65,27 @@ ProtoIOMode GetProtoMode_AS(void);
 typedef CDS_UID_t type##_ID;\
 typedef CDS_IID_t Int##type##_ID;
 
-DEFINE_IDs(Fragment)
-     DEFINE_IDs(Locale)
-     DEFINE_IDs(Distance)
-     DEFINE_IDs(ScreenItem)
-     DEFINE_IDs(Chunk)
-     DEFINE_IDs(Unitig)
-     DEFINE_IDs(Contig)
-     DEFINE_IDs(Dist)
-     DEFINE_IDs(Scaffold)
-     DEFINE_IDs(Repeat)
-     DEFINE_IDs(Batch)
-     DEFINE_IDs(Bactig)
-     DEFINE_IDs(Bac)
-     DEFINE_IDs(Bin)
-     DEFINE_IDs(Sequence)
+DEFINE_IDs(Fragment);
+DEFINE_IDs(Locale);
+DEFINE_IDs(Distance);
+DEFINE_IDs(ScreenItem);
+DEFINE_IDs(Chunk);
+DEFINE_IDs(Unitig);
+DEFINE_IDs(Contig);
+DEFINE_IDs(Dist);
+DEFINE_IDs(Scaffold);
+DEFINE_IDs(Repeat);
+DEFINE_IDs(Batch);
+DEFINE_IDs(Bactig);
+DEFINE_IDs(Bac);
+DEFINE_IDs(Sequence);
 
-     typedef enum {
-       AS_ADD    = (int)'A',
-       AS_DELETE = (int)'D',
-       AS_UPDATE = (int)'U',
-       AS_REDEFINE = (int)'R'
-     } ActionType;
+typedef enum {
+  AS_ADD    = (int)'A',
+  AS_DELETE = (int)'D',
+  AS_UPDATE = (int)'U',
+  AS_REDEFINE = (int)'R'
+} ActionType;
 
 typedef struct { CDS_COORD_t bgn, end; } SeqInterval;
 
@@ -126,7 +125,7 @@ typedef enum {
   MESG_IBA,
   MESG_BAC,
   MESG_IBC,
-  MESG_BIN,
+  MESG_SP7,
   MESG_IBI, // 35
   MESG_SP0,
   MESG_SP1,
@@ -183,7 +182,7 @@ static char  *MessageTypeName[NUM_OF_REC_TYPES + 1] = {
   "IBA",
   "BAC",
   "IBC", 
-  "BIN",
+  "SP7",
   "IBI",// 35
   "SP0", 
   "SP1",
@@ -237,18 +236,6 @@ typedef struct AuditLineTag {
 typedef struct {
   AuditLine *list;
 } AuditMesg;
-
-/* BIN message */
-
-typedef struct BinMesgTag{
-  ActionType      action;
-  Bin_ID          eaccession;
-  time_t          entry_time;
-  char            *source;  
-  IntBin_ID       iaccession;
-}BinMesg;
-
-typedef BinMesg InternalBinMesg;
 
 /* LKG message */
 
