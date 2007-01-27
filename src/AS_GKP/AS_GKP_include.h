@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_GKP_include.h,v 1.8 2007-01-25 09:02:12 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.9 2007-01-27 00:30:10 brianwalenz Exp $ */
 
 /*************************************************
 * Module:  AS_GKP_include.h
@@ -85,29 +85,6 @@ extern char  Ignore_File_Name [FILENAME_MAX];
 extern   char  Error_File_Name [FILENAME_MAX];
 extern   char  Input_File_Name [FILENAME_MAX];
 extern   char  Output_File_Name [FILENAME_MAX];
-
-/***********************************************************************************
- * Function: Check_RepeatItemMesg
- * Description:
- *     Check RepeatItem message for correctness, and if correct, add it to the hashTable
- *
- * Checks:
- *    1) Repeat item has not been previously assigned
- *    2) Repeat length > 0
- * Inputs:
- *     rpt_mesg      *RepeatItemMesg
- *
- * I/O
- *     hashtable     PHashTable_AS
- *     msgFile       FILE * for diagnostic output.
- * Return Value:
- *     GATEKEEPER_SUCCESS if success. 
- *     GATEKEEPER_FAILURE if failue.
- ***********************************************************************************/
-int Check_RepeatItemMesg(RepeatItemMesg *rpt_msg,
-			 InternalRepeatItemMesg *irp_msg,
-			 CDS_CID_t batchID,
-			 int verbose);
 
 
 /***********************************************************************************
@@ -367,7 +344,6 @@ typedef enum GKPErrorType_tag{
   GKPError_BadUniqueBAC,
   GKPError_BadUniqueBTG,
   GKPError_BadUniqueSEQ,
-  GKPError_BadUniqueRPT,
   GKPError_BadUniqueSCN,
 
   GKPError_MissingFRG=200,
@@ -375,7 +351,6 @@ typedef enum GKPErrorType_tag{
   GKPError_MissingBAC,
   GKPError_MissingBTG,
   GKPError_MissingSEQ,
-  GKPError_MissingRPT,
 
   GKPError_DeleteFRG=300,
   GKPError_DeleteDST,
@@ -418,8 +393,6 @@ typedef enum GKPErrorType_tag{
   
   GKPError_SCNVariation=900,
   GKPError_SCNminLength,
-
-  GKPError_RPTLength = 1000,
 
   GKPError_MAX
   

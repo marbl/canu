@@ -25,7 +25,7 @@
  Assumptions: There is no UID 0
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.21 2006-11-06 23:01:10 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.22 2007-01-27 00:30:11 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_ReadStruct.h"
@@ -63,8 +63,6 @@ static VA_TYPE(CDS_UID_t) *FRGmap;
 static VA_TYPE(CDS_UID_t) *BTGmap;
 static VA_TYPE(CDS_UID_t) *DSCmap;
 static VA_TYPE(CDS_UID_t) *DSTmap;
-static VA_TYPE(CDS_UID_t) *SCNmap;
-static VA_TYPE(CDS_UID_t) *RPTmap;
 static VA_TYPE(uint32) *ClearStartMap;
 static VA_TYPE(uint32) *ClearEndMap;
 static VA_TYPE(uint32) *ClearBactigStartMap;
@@ -374,40 +372,6 @@ static CDS_UID_t *fetch_UID_from_distStore(VA_TYPE(CDS_UID_t) *map, CDS_IID_t ii
   }
   return ret;
 }
-
-
-static CDS_UID_t *fetch_UID_from_repeatStore(VA_TYPE(CDS_UID_t) *map, CDS_IID_t iid){
-  CDS_UID_t* ret = fetch_UID(map,iid);
-  // BEWARE. I return NULL in the case the repeat and screen library 
-  // are not submitted (normally in the simulator)
-  if( simulator )
-    return NULL;
-  if( ret != NULL )
-    return ret;
-  else{
-    GateKeeperRepeatRecord gkpr;
-    if( 0 == getGateKeeperRepeatStore(GKPStore.rptStore,iid,&gkpr) ){
-      CDS_UID_t *di;
-      di = GetCDS_UID_t(map,iid);
-      if ((di != NULL) && (*di != 0)) {
-        sprintf(errorreport,"Internal RPT ID %d occurred twice",iid);
-        error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-      }
-      SetCDS_UID_t(map,iid,&gkpr.UID);
-      return GetCDS_UID_t(map,iid);
-    }
-    else{
-      // BEWARE. I return NULL in the case the repeat and screen library 
-      // are not submitted (normally in the simulator)
-      if( simulator )
-	return NULL;
-
-      sprintf(errorreport,"Internal repeat ID %d is not present in the dist store",iid);
-      error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-    }
-  }
-}
-
 
 
 static CDS_UID_t *fetch_UID_from_screenStore(VA_TYPE(CDS_UID_t) *map, CDS_IID_t iid){
@@ -1224,81 +1188,6 @@ static AugFragMesg* convert_IAF_to_AFG(IntAugFragMesg* iafMesg, int32 real)
       afgMesg->clear_rng.end = *sdi;
     }
     
-
-  /* we now walk through the null terminated list of IntScreenMatches */
-  if( iafMesg->type == AS_BACTIG ){
-    size = &dummyZero;
-  }
-  else
-    size = fetch_screenMatches_from_fragStore(SMASizeMap,iafMesg->iaccession);
-
-  if( *size > 0 )
-    {
-      IntScreenMatch *ismMesg;
-      ScreenMatch *smaMesg = NULL;
-      ScreenMatch *last    = NULL;
-      ScreenMatch *first   = NULL;
-    
-      pi = *(IntScreenMatch **)GetPtrT(SMAmap,iafMesg->iaccession);
-      ismMesg = pi;
-      
-      while( ismMesg != NULL )
-	{
-	  smaMesg = (ScreenMatch*) safe_malloc(sizeof(ScreenMatch));
-	  if( first == NULL )
-	    first = smaMesg;
-
-	  smaMesg->where     = ismMesg->where;
-	  smaMesg->relevance = ismMesg->relevance;
-	  smaMesg->portion_of= ismMesg->portion_of;
-	  smaMesg->direction = ismMesg->direction;
-	  /* we look up the external id of the screen item and the repeat item */
-	  di = fetch_UID_from_screenStore(SCNmap,ismMesg->iwhat);
-	  if( di == NULL )
-	    {
-	      sprintf(errorreport,"No Screen match with ID %d in the frag store",ismMesg->iwhat);
-	      error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-	    }	  
-	  // BEWARE. I return NULL in the case the repeat and screen library are not
-	  // submitted (normally in the simulator)
-	  if( simulator ){
-	    if( di == NULL )
-	      smaMesg->what = ismMesg->iwhat;
-	  }
-	  else
-	    smaMesg->what = *di;
-
-	  di = fetch_UID_from_repeatStore(RPTmap,ismMesg->repeat_id);
-	  if( di == NULL )
-	    {
-	      sprintf(errorreport,"No Repeat item with ID %d in the frag store",ismMesg->repeat_id);
-	      error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-	    }
-	  // BEWARE. I return NULL in the case the repeat and screen library are not
-	  // submitted (normally in the simulator)
-
-	  if( simulator ){
-	    if( di == NULL )
-	      smaMesg->repeat_id = ismMesg->repeat_id;
-	  }
-	  else
-	    smaMesg->repeat_id = *di;
-	  
-	  if( last != NULL )
-	    {
-	      last->next = smaMesg;
-	      last = smaMesg;
-	    }
-	  else
-	    last = smaMesg;
-	  
-	  ismMesg = ismMesg->next;
-	}
-      if( smaMesg != NULL )
-	smaMesg->next = NULL;
-      afgMesg->screened = first;    
-    }
-
   return afgMesg;
 }
 
@@ -1456,8 +1345,6 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
   BTGmap = CreateVA_CDS_UID_t(ARRAYSIZE);
   DSCmap = CreateVA_CDS_UID_t(ARRAYSIZE);
   DSTmap = CreateVA_CDS_UID_t(ARRAYSIZE);
-  SCNmap = CreateVA_CDS_UID_t(ARRAYSIZE);
-  RPTmap = CreateVA_CDS_UID_t(ARRAYSIZE);
   ClearStartMap = CreateVA_uint32(ARRAYSIZE);
   ClearEndMap   = CreateVA_uint32(ARRAYSIZE);  
   ClearBactigStartMap = CreateVA_uint32(ARRAYSIZE);
@@ -1718,18 +1605,6 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
     DumpIID2UIDmap(DSTmap,F);
     fclose(F);
 
-    sprintf(N, "%s.screen.iidtouid", mapFileName);
-    F = file_open(N, "w");  
-    fprintf(F,"Screen Item IID2UID map\n");
-    DumpIID2UIDmap(SCNmap,F);
-    fclose(F);
-
-    sprintf(N, "%s.repeatitem.iidtouid", mapFileName);
-    F = file_open(N, "w");  
-    fprintf(F,"Repeat Item IID2UID map\n");
-    DumpIID2UIDmap(RPTmap,F);
-    fclose(F);
-
     sprintf(N, "%s.degeneratecontig.iidtouid", mapFileName);
     F = file_open(N, "w");  
     fprintf(F,"Degenerate Contig IID to Scaffold UID map\n");
@@ -1755,8 +1630,6 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
   DeleteVA_CDS_UID_t(BTGmap);
   DeleteVA_CDS_UID_t(DSCmap);
   DeleteVA_CDS_UID_t(DSTmap);
-  DeleteVA_CDS_UID_t(SCNmap);
-  DeleteVA_CDS_UID_t(RPTmap);
   DeleteVA_uint32(ClearStartMap);
   DeleteVA_uint32(ClearEndMap);
   DeleteVA_uint32(ClearBactigStartMap);
@@ -1907,65 +1780,6 @@ void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpStoreName)
 #endif
      }
     }
-
-    /* reading RPT IID to UID mapping */
-    {
-      GateKeeperRepeatRecord gkpr;
-      StoreStat stat;
-      int i ;
-      statsStore(GKPStore.rptStore, &stat);
-#if DEBUG > 0
-      fprintf(stderr,"* Stats for Repeat Store are first:%lu last :%lu\n",
-	      stat.firstElem, stat.lastElem);
-#endif
-     for(i = stat.firstElem; i <= stat.lastElem; i++){
-       getGateKeeperRepeatStore(GKPStore.rptStore,i,&gkpr);
-#if DEBUG > 1
-       fprintf(stderr,"* Repeat %d UID:%lu which:%s \n",
-	       i, gkpr.UID, gkpr.which);
-#endif
-       di = GetCDS_UID_t(RPTmap,i);
-       if ((di != NULL) && (*di != 0)) {
-	 sprintf(errorreport,"Internal RPT ID %d occurred twice",i);
-	 error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-       }
-       SetCDS_UID_t(RPTmap,i,&gkpr.UID);
-       if(get_start_uid() <= gkpr.UID)
-	 set_start_uid(gkpr.UID+1);
-     }
-    }
-    /* reading SCN IID to UID mapping */
-    {
-      GateKeeperScreenRecord gkps;
-      StoreStat stat;
-      int i ;
-      statsStore(GKPStore.scnStore, &stat);
-#if DEBUG > 0
-      fprintf(stderr,"* Stats for Screen Store are first:%lu last :%lu\n",
-	     stat.firstElem, stat.lastElem);
-#endif
-     for(i = stat.firstElem; i <= stat.lastElem; i++){
-       getGateKeeperScreenStore(GKPStore.scnStore,i,&gkps);
-#if DEBUG > 1
-       fprintf(stderr,"* Screen %d UID:%lu repeatID:%d batch:(%d,%d)\n",
-	       i, gkps.UID, gkps.repeatID, gkps.birthBatch, gkps.deathBatch);
-#endif
-       
-       di = GetCDS_UID_t(SCNmap,i);
-       if ((di != NULL) && (*di != 0)) {
-	 sprintf(errorreport,"Internal SCN ID %d occurred twice",i);
-	 error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-       }
-       SetCDS_UID_t(SCNmap,i,&gkps.UID);
-       if(get_start_uid() <= gkps.UID)
-	 set_start_uid(gkps.UID+1);
-     }
-    } 
-#if DEBUG_UID
-       fprintf(stderr,"SYS_UID_uidStart after reading repeats %lu\n",get_start_uid());
-#endif
- 
-
   }
 
   // from the bactig store we only want to know

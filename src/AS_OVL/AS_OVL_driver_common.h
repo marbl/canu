@@ -26,8 +26,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_driver_common.h,v 1.6 2006-09-26 21:07:45 brianwalenz Exp $
- * $Revision: 1.6 $
+ * $Id: AS_OVL_driver_common.h,v 1.7 2007-01-27 00:30:11 brianwalenz Exp $
+ * $Revision: 1.7 $
 */
 
 
@@ -1063,8 +1063,6 @@ static int  ReadFrags
 
       case MESG_ILK:
       case MESG_ISN:
-      case MESG_RPT:
-      case MESG_IRP :
       case MESG_IBC:
 
 #if DEBUG

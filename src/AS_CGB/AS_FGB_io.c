@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_FGB_io.c,v 1.10 2006-11-14 19:58:21 eliv Exp $";
+= "$Id: AS_FGB_io.c,v 1.11 2007-01-27 00:30:10 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_FGB_io.c
@@ -1453,15 +1453,6 @@ static void input_mesgs_internal
             &novl_degenerate,
             &nedges_delta
             );
-      }
-      break;
-    case MESG_IRP:
-      //case MESG_RPT: 
-      {
-	nrpt++;
-	if(NULL != filk) {
-	  WriteMesg_AS(filk,pmesg);
-	}
       }
       break;
     case MESG_IBC:

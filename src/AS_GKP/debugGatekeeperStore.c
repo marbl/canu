@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: debugGatekeeperStore.c,v 1.5 2007-01-25 09:02:12 brianwalenz Exp $";
+static char CM_ID[] = "$Id: debugGatekeeperStore.c,v 1.6 2007-01-27 00:30:10 brianwalenz Exp $";
 
 /* Dump the gatekeeper stores for debug */
 
@@ -83,7 +83,6 @@ int  main(int argc, char * argv [])
     volatile GateKeeperSequenceRecord seq;
     volatile GateKeeperBactigRecord bactig;
     volatile GateKeeperDistanceRecord dist;
-    volatile GateKeeperRepeatRecord repeat;
     volatile GateKeeperScreenRecord screen;
     volatile GateKeeperLinkRecord link;
     volatile StoreStat stat;

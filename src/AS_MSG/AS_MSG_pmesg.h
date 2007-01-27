@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.26 2007-01-26 18:44:52 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.27 2007-01-27 00:30:11 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -103,7 +103,7 @@ typedef enum {
   MESG_IDT,
   MESG_SCN, // 10
   MESG_ISN,
-  MESG_RPT,
+  MESG_SP1,
   MESG_OVL,
   MESG_BRC,
   MESG_UOM, // 15
@@ -125,22 +125,22 @@ typedef enum {
   MESG_IBA,
   MESG_BAC,
   MESG_IBC,
-  MESG_SP7,
-  MESG_IBI, // 35
-  MESG_SP0,
-  MESG_SP1,
   MESG_SP2,
+  MESG_IBI, // 35
   MESG_SP3,
-  MESG_IRP, // 40
+  MESG_SP4,
+  MESG_SP5,
+  MESG_SP6,
+  MESG_SP7, // 40
   MESG_IDS,
   MESG_DSC,
   MESG_SLK,
   MESG_ISL,
   MESG_FOM, // 45
   MESG_OFR,
-  MESG_SP4,
-  MESG_SP5,
-  MESG_SP6,
+  MESG_SP8,
+  MESG_SP9,
+  MESG_SPa,
   MESG_EOF  // 50
 } MessageType;
 
@@ -160,7 +160,7 @@ static char  *MessageTypeName[NUM_OF_REC_TYPES + 1] = {
   "IDT",
   "SCN", // 10
   "ISN",
-  "RPT", 
+  "SP1", 
   "OVL", 
   "BRC",
   "UOM",// 15
@@ -182,22 +182,22 @@ static char  *MessageTypeName[NUM_OF_REC_TYPES + 1] = {
   "IBA",
   "BAC",
   "IBC", 
-  "SP7",
-  "IBI",// 35
-  "SP0", 
-  "SP1",
   "SP2",
-  "SP3",
-  "IRP",// 40
+  "IBI",// 35
+  "SP3", 
+  "SP4",
+  "SP5",
+  "SP6",
+  "SP7",// 40
   "IDS",
   "DSC",
   "SLK",
   "ISL",
   "FOM", // 45
   "OFR",
-  "SP4",
-  "SP5",
-  "SP6",
+  "SP8",
+  "SP9",
+  "SPa",
   "EOF"  // 50
 };
 
@@ -329,17 +329,6 @@ typedef struct {
 
 typedef InternalScreenItemMesg ScreenItemMesg;
 
-/* RPT message */
-
-typedef struct {
-  Repeat_ID       erepeat_id;
-  char            *which;
-  CDS_COORD_t  length;
-  IntRepeat_ID    irepeat_id;
-} InternalRepeatItemMesg;
-
-
-typedef InternalRepeatItemMesg RepeatItemMesg;
 
 typedef enum {
   AS_READ    = (int)'R',  //Celera Read

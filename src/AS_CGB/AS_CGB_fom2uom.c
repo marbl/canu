@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_fom2uom.c,v 1.6 2006-11-14 17:52:14 eliv Exp $";
+= "$Id: AS_CGB_fom2uom.c,v 1.7 2007-01-27 00:30:09 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_fom2uom.c
@@ -77,7 +77,6 @@ static void input_mesgs_pp
  FILE       *fcgb,
  int        *Pnadt,
  int        *Pnidt, 
- int        *Pnrpt,
  int        *Pnilk,
  int        *Pnium,
  IntFragment_ID *Pnimp,
@@ -93,7 +92,7 @@ static void input_mesgs_pp
 { /* It is assumed that in the overlap records that new fragments
      point to old fragments.  */
   
-  int nadt=0,nidt=0,nrpt=0,nilk=0,nium=0,nimp=0;
+  int nadt=0,nidt=0,nilk=0,nium=0,nimp=0;
   int nuom=0,nuom_dovetail=0,nuom_containment=0;
   GenericMesg *pmesg;
   MesgReader ReadMesg_AS = (MesgReader)InputFileType_AS(fcgi);
@@ -222,12 +221,6 @@ static void input_mesgs_pp
 	// nium, num_frags, nimp, lfrag);
       }
       break;
-    case MESG_RPT: 
-      {
-	nrpt++;
-	WriteMesg_AS(fcgb,pmesg);
-      }
-      break;
     case MESG_FOM: 
       {
 	/* Convert a FOM message into a UOM message. */
@@ -343,11 +336,6 @@ static void input_mesgs_pp
 	WriteMesg_AS(fcgb,pmesg);
       }
       break;
-    case MESG_IRP:
-      {
-	WriteMesg_AS(fcgb,pmesg);
-      }
-      break;
     default:
 	fprintf(stderr,
                 "* Oops: Read Message with type imesgtype = %d\n", imesgtype);
@@ -366,7 +354,6 @@ static void input_mesgs_pp
   *Pnuom = nuom;
   *Pnuom_dovetail = nuom_dovetail;
   *Pnuom_containment = nuom_containment;
-  *Pnrpt = nrpt;
 
   if(NULL != chunk_length) DeleteVA_int32(chunk_length);
   if(NULL != chunk_num_frags) DeleteVA_uint32(chunk_num_frags);
@@ -389,7 +376,6 @@ int main(int argc, char * argv [])
   FILE       *fcgb = stdout;
   int        nadt = 0;
   int        nidt = 0; 
-  int        nrpt = 0;
   int        nilk = 0;
   int        nium = 0;
   IntFragment_ID nimp = 0;
@@ -458,7 +444,6 @@ int main(int argc, char * argv [])
      fcgb,
      &nadt,
      &nidt, 
-     &nrpt,
      &nilk,
      &nium,
      &nimp,
@@ -474,7 +459,6 @@ int main(int argc, char * argv [])
 
   fprintf(stderr,"nadt=%d\n",nadt);
   fprintf(stderr,"nidt=%d\n",nidt);
-  fprintf(stderr,"nrpt=%d\n",nrpt);
   fprintf(stderr,"nilk=%d\n",nilk);
   fprintf(stderr,"nium=%d\n",nium);
   fprintf(stderr,"nuom=" F_IID "\n",nuom);

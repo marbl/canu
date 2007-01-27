@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.25 2007-01-26 18:44:52 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.26 2007-01-27 00:30:11 brianwalenz Exp $";
 
 //  reads old and new AFG message (with and w/o chaff field)
 #define AFG_BACKWARDS_COMPATIBLE
@@ -465,18 +465,6 @@ static void *Read_SCN_Mesg(FILE *fin)
 
 static void *Read_ISN_Mesg(FILE *fin)
 { return Read_Screen_Mesg(fin,0); }
-
-static void *Read_RPT_Mesg(FILE *fin)
-{ static RepeatItemMesg rmesg;
-  int    idx;
-
-  GET_FIELD(rmesg.erepeat_id,ERPT_FORMAT,"repeat id field");
-  idx = GetString("wch:",fin);
-  rmesg.which = MemBuffer + idx;
-  GET_FIELD(rmesg.length,"len:" F_COORD,"length field");
-  GET_EOM;
-  return ((void *) (&rmesg));
-}
 
 // This is tricky, since we are trying to update the fields
 // of a structure that may be realloced.  Store offsets in
@@ -2248,25 +2236,6 @@ static void *Read_IBC_Mesg(FILE *fin){
 }
 
 
-
-
-static void *Read_IRP_Mesg(FILE *fin){
-  static InternalRepeatItemMesg mesg;
-  int    idx;
-
-  GET_PAIR(mesg.erepeat_id, mesg.irepeat_id,IRPTS_FORMAT, "repeat id pair");
-  idx = GetString("wch:",fin);
-  mesg.which = MemBuffer + idx;
-  GET_FIELD(mesg.length,"len:" F_COORD,"length field");
-  
-  GET_EOM;
-  return ((void *) (&mesg));
-}
-
-
-
-
-
 /******************** OUTPUT ROUTINES ***************************/
 
 /*  Routine to output each type of proto-IO message. */
@@ -2293,16 +2262,6 @@ static void Write_DST_Mesg(FILE *fout, void *vmesg)
 
 static void Write_IDT_Mesg(FILE *fout, void *vmesg)
 { Write_Dist_Mesg(fout,vmesg,0); }
-
-static void Write_RPT_Mesg(FILE *fout, void *vmesg)
-{ RepeatItemMesg *mesg = (RepeatItemMesg *) vmesg;
-
-  fprintf(fout,"{RPT\n");
-  fprintf(fout,ERPT_FORMAT "\n",mesg->erepeat_id);
-  fprintf(fout,"wch:%s\n",mesg->which);
-  fprintf(fout,"len:" F_COORD "\n",mesg->length);
-  fprintf(fout,"}\n");
-}
 
 static void Write_Screen_Mesg(FILE *fout, void *vmesg, int external)
 { InternalScreenItemMesg *mesg = (InternalScreenItemMesg *) vmesg;
@@ -3356,19 +3315,6 @@ static void Write_IBC_Mesg(FILE *fout, void *vmesg){
   fprintf(fout,"}\n");
 }
 
-
-
-static void Write_IRP_Mesg(FILE *fout, void *vmesg){
- InternalRepeatItemMesg *mesg = (InternalRepeatItemMesg *) vmesg;
-
-  fprintf(fout,"{IRP\n");
-  fprintf(fout, IRPTS_FORMAT "\n", mesg->erepeat_id,mesg->irepeat_id);
-  fprintf(fout,"wch:%s\n",mesg->which);
-  fprintf(fout,"len:" F_COORD "\n",mesg->length);
-  fprintf(fout,"}\n");
-}
-
-
 static void Write_EOF_Mesg(FILE *fout, void *vmesg)
 {
   EndOfFileMesg *mesg = (EndOfFileMesg *) vmesg;
@@ -3455,9 +3401,6 @@ static void Clear_SCN_Mesg(void *mesg, int typ)
 { free(((ScreenItemMesg *) mesg)->source);
   free(((ScreenItemMesg *) mesg)->sequence);
 }
-
-static void Clear_RPT_Mesg(void *mesg, int typ)
-{ free(((RepeatItemMesg *) mesg)->which); }
 
 static void Clear_ADT_Mesg(void *mesg, int typ)
 { AuditLine *alm, *nxt;
@@ -3607,7 +3550,7 @@ static const callrecord CallTable[] = {
   {"{IDT", Read_IDT_Mesg, Write_IDT_Mesg, NULL,             sizeof(InternalDistMesg) },
   {"{SCN", Read_SCN_Mesg, Write_SCN_Mesg, Clear_SCN_Mesg,   sizeof(ScreenItemMesg) },
   {"{ISN", Read_ISN_Mesg, Write_ISN_Mesg, Clear_SCN_Mesg,   sizeof(InternalScreenItemMesg) },
-  {"{RPT", Read_RPT_Mesg, Write_RPT_Mesg, Clear_RPT_Mesg,   sizeof(RepeatItemMesg) },
+  {"", NULL, NULL, NULL, 0l },
   {"{OVL", Read_OVL_Mesg, Write_OVL_Mesg, Clear_OVL_Mesg,   sizeof(OverlapMesg) },
   {"{BRC", Read_BRC_Mesg, Write_BRC_Mesg, NULL,             sizeof(BranchMesg) },
   {"{UOM", Read_UOM_Mesg, Write_UOM_Mesg, NULL,             sizeof(UnitigOverlapMesg) },
@@ -3618,34 +3561,34 @@ static const callrecord CallTable[] = {
   {"{ISF", Read_ISF_Mesg, Write_ISF_Mesg, Clear_ISF_Mesg,   sizeof(IntScaffoldMesg) },
   {"{IMD", Read_IMD_Mesg, Write_IMD_Mesg, Clear_IMD_Mesg,   sizeof(IntMateDistMesg) },
   {"{IAF", Read_IAF_Mesg, Write_IAF_Mesg, NULL,     	    sizeof(IntAugFragMesg) },
-  {"{UTG", Read_UTG_Mesg, Write_UTG_Mesg, NULL,   	  sizeof(SnapUnitigMesg) },
-  {"{ULK", Read_ULK_Mesg, Write_ULK_Mesg, NULL,  	  sizeof(SnapUnitigLinkMesg) },
-  {"{ICM", Read_ICM_Mesg, Write_ICM_Mesg, NULL,  	  sizeof(IntConConMesg) },
-  {"{CCO", Read_CCO_Mesg, Write_CCO_Mesg, NULL,  	  sizeof(SnapConConMesg) },
-  {"{CLK", Read_CLK_Mesg, Write_CLK_Mesg, NULL, 	  sizeof(SnapContigLinkMesg) },
-  {"{SCF", Read_SCF_Mesg, Write_SCF_Mesg, NULL,  	  sizeof(SnapScaffoldMesg) },
-  {"{MDI", Read_MDI_Mesg, Write_MDI_Mesg, NULL, 	  sizeof(SnapMateDistMesg) },
-  {"{BAT", Read_BAT_Mesg, Write_BAT_Mesg, NULL, 	  sizeof(BatchMesg) },
-  {"{IBA", Read_IBA_Mesg, Write_IBA_Mesg, NULL, 	  sizeof(InternalBatchMesg) },
-  {"{BAC", Read_BAC_Mesg, Write_BAC_Mesg, NULL, 	  sizeof(BacMesg) },
-  {"{IBC", Read_IBC_Mesg, Write_IBC_Mesg, NULL,  	  sizeof(InternalBacMesg) },
+  {"{UTG", Read_UTG_Mesg, Write_UTG_Mesg, NULL,             sizeof(SnapUnitigMesg) },
+  {"{ULK", Read_ULK_Mesg, Write_ULK_Mesg, NULL,  	    sizeof(SnapUnitigLinkMesg) },
+  {"{ICM", Read_ICM_Mesg, Write_ICM_Mesg, NULL,  	    sizeof(IntConConMesg) },
+  {"{CCO", Read_CCO_Mesg, Write_CCO_Mesg, NULL,  	    sizeof(SnapConConMesg) },
+  {"{CLK", Read_CLK_Mesg, Write_CLK_Mesg, NULL, 	    sizeof(SnapContigLinkMesg) },
+  {"{SCF", Read_SCF_Mesg, Write_SCF_Mesg, NULL,  	    sizeof(SnapScaffoldMesg) },
+  {"{MDI", Read_MDI_Mesg, Write_MDI_Mesg, NULL, 	    sizeof(SnapMateDistMesg) },
+  {"{BAT", Read_BAT_Mesg, Write_BAT_Mesg, NULL, 	    sizeof(BatchMesg) },
+  {"{IBA", Read_IBA_Mesg, Write_IBA_Mesg, NULL, 	    sizeof(InternalBatchMesg) },
+  {"{BAC", Read_BAC_Mesg, Write_BAC_Mesg, NULL, 	    sizeof(BacMesg) },
+  {"{IBC", Read_IBC_Mesg, Write_IBC_Mesg, NULL,  	    sizeof(InternalBacMesg) },
   {"", NULL, NULL, NULL, 0l },
   {"", NULL, NULL, NULL, 0l },
   {"", NULL, NULL, NULL, 0l },
   {"", NULL, NULL, NULL, 0l },
   {"", NULL, NULL, NULL, 0l },
   {"", NULL, NULL, NULL, 0l },
-  {"{IRP", Read_IRP_Mesg, Write_IRP_Mesg, NULL, 	  sizeof(InternalRepeatItemMesg) },
-  {"{IDS", Read_IDS_Mesg, Write_IDS_Mesg, NULL,  	  sizeof(IntDegenerateScaffoldMesg) },
-  {"{DSC", Read_DSC_Mesg, Write_DSC_Mesg, NULL,  	  sizeof(SnapDegenerateScaffoldMesg) },
-  {"{SLK", Read_SLK_Mesg, Write_SLK_Mesg, NULL,  	  sizeof(SnapScaffoldLinkMesg) },
-  {"{ISL", Read_ISL_Mesg, Write_ISL_Mesg, NULL,  	  sizeof(InternalScaffoldLinkMesg) },
-  {"{FOM", Read_FOM_Mesg, Write_FOM_Mesg, NULL,           sizeof(FragOverlapMesg) },
-  {"{OFR", Read_OFR_Mesg, Write_OFR_Mesg, Clear_FRG_Mesg, sizeof(OFRMesg) },
+  {"", NULL, NULL, NULL, 0l },
+  {"{IDS", Read_IDS_Mesg, Write_IDS_Mesg, NULL,  	    sizeof(IntDegenerateScaffoldMesg) },
+  {"{DSC", Read_DSC_Mesg, Write_DSC_Mesg, NULL,  	    sizeof(SnapDegenerateScaffoldMesg) },
+  {"{SLK", Read_SLK_Mesg, Write_SLK_Mesg, NULL,  	    sizeof(SnapScaffoldLinkMesg) },
+  {"{ISL", Read_ISL_Mesg, Write_ISL_Mesg, NULL,  	    sizeof(InternalScaffoldLinkMesg) },
+  {"{FOM", Read_FOM_Mesg, Write_FOM_Mesg, NULL,             sizeof(FragOverlapMesg) },
+  {"{OFR", Read_OFR_Mesg, Write_OFR_Mesg, Clear_FRG_Mesg,   sizeof(OFRMesg) },
   {"", NULL, NULL, NULL, 0l },
   {"", NULL, NULL, NULL, 0l },
   {"", NULL, NULL, NULL, 0l },
-  {"{EOF", Read_EOF_Mesg, Write_EOF_Mesg, NULL,           sizeof(EndOfFileMesg) }
+  {"{EOF", Read_EOF_Mesg, Write_EOF_Mesg, NULL,             sizeof(EndOfFileMesg) }
 };
 
 static GenericMesg ReadMesg;

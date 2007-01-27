@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.9 2007-01-25 09:02:12 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.10 2007-01-27 00:30:10 brianwalenz Exp $";
 
 /*************************************************
 * Module:  AS_GKP_main.c
@@ -61,8 +61,6 @@ static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.9 2007-01-25 09:02:12 brianwalenz 
 *                  One record for each redefinition of a DST.
 *           gkp.scn A GateKeeperScreenStore.  An array of GateKeeperScreenRecords (see AS_PER_GkpStore.h)
 *                  One record per SCN record.
-*           gkp.rpt A GateKeeperRepeatStore.  An array of GateKeeperRepeatRecords (see AS_PER_GkpStore.h)
-*                  One record per RPT record.
 *           gkp.seq A GateKeeperSequenceStore.  An array of GateKeeperSequenceRecords (see AS_PER_GkpStore.h)
 *                  One record per SEQ record.
 
@@ -839,35 +837,6 @@ int ReadFile(int check_qvs,
 
       }
       break;
-    case MESG_RPT:
-      {
-	RepeatItemMesg *rpt_mesg = (RepeatItemMesg *)pmesg->m;
-	InternalRepeatItemMesg irp_mesg;
-	int gkp_result;
-
-	gkp_result = Check_RepeatItemMesg(rpt_mesg, &irp_mesg, currentBatchID,  verbose);
-
-	switch(gkp_result){
-	case GATEKEEPER_WARNING:
-	  fprintf(Msgfp,"# Line %d of input\n", GetProtoLineNum_AS());
-	  ErrorWriter(Msgfp,pmesg);      
-	case GATEKEEPER_SUCCESS:
-	  pmesg->t = MESG_IRP;
-          pmesg->m = &irp_mesg;
-	  Writer(Outfp, pmesg);
-	  break;
-	case GATEKEEPER_FAILURE:
-	  fprintf(Msgfp,"# Line %d of input\n", GetProtoLineNum_AS());
-	  ErrorWriter(Msgfp,pmesg);      
-	  if(incrementErrors(1, Msgfp) == GATEKEEPER_FAILURE){
-	    return GATEKEEPER_FAILURE;
-	  }
-	  break;
-	default:
-	  assert(0);
-	}
-      }
-      break;
     case MESG_SCN:
       {
 	ScreenItemMesg *scn_mesg = (ScreenItemMesg *)pmesg->m;
@@ -1036,7 +1005,7 @@ int ReadFile(int check_qvs,
 
 	Writer((assembler == AS_ASSEMBLER_OVERLAY?Ignfp:Outfp),pmesg);
         /*
-	fprintf(stderr,"# GateKeeper $Revision: 1.9 $\n");
+	fprintf(stderr,"# GateKeeper $Revision: 1.10 $\n");
 	ErrorWriter(Msgfp,pmesg);
         */
         free(params);
@@ -1125,9 +1094,6 @@ void printGKPError(FILE *fout, GKPErrorType type){
   case GKPError_BadUniqueSEQ:
     fprintf(fout,"# GKP Error %d: UID of Sequence definition was previously seen\n",(int)type);
     break;
-  case GKPError_BadUniqueRPT:
-    fprintf(fout,"# GKP Error %d: UID of Repeat definition was previously seen\n",(int)type);
-    break;
   case GKPError_BadUniqueSCN:
     fprintf(fout,"# GKP Error %d: UID of Screen definition was previously seen\n",(int)type);
     break;
@@ -1146,9 +1112,6 @@ void printGKPError(FILE *fout, GKPErrorType type){
     break;
   case GKPError_MissingSEQ:
     fprintf(fout,"# GKP Error %d: Sequence not previously defined\n",(int)type);
-    break;
-  case GKPError_MissingRPT:
-    fprintf(fout,"# GKP Error %d: Repeat not previously defined\n",(int)type);
     break;
 
   case GKPError_DeleteFRG:
@@ -1246,10 +1209,6 @@ void printGKPError(FILE *fout, GKPErrorType type){
     break;
   case GKPError_SCNminLength:
     fprintf(fout,"# GKP Error %d: SCN min length out of bounds\n",(int)type);
-    break;
-
-  case GKPError_RPTLength:
-    fprintf(fout,"# GKP Error %d: RPT length out of bounds\n",(int)type);
     break;
 
   case GKPError_IncompleteOAInput:

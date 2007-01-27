@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_PER_gkpStore.h,v 1.10 2007-01-25 09:02:12 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.11 2007-01-27 00:30:11 brianwalenz Exp $	 */
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
 /*************************************************************************
@@ -72,7 +72,6 @@ typedef struct{
   int32 numDistances;
   int32 num_s_Distances; // shadowed for redefintions
   int32 numScreens;
-  int32 numRepeats;
   int32 numLinks;
 #ifdef __i386__
   uint32 pad386;
@@ -148,17 +147,6 @@ typedef struct{
   uint16 birthBatch;         /* This entry is valid */
   uint16 deathBatch;         /* [birthBatch, deatchBatch) */
 }GateKeeperDistanceRecord;
-
-// One for each repeatID
-typedef struct{
-  unsigned int deleted:1;
-  unsigned int spare:31;
-  int32 padTo8byteWord;
-
-  char which[256];
-
-  CDS_UID_t UID;
-}GateKeeperRepeatRecord;
 
 // One for each ScreenItem
 typedef struct{
@@ -272,7 +260,7 @@ static int32 getNum ## type ## s(type ## Store store){\
 
 
 
-#define NUM_GKP_FILES 12
+#define NUM_GKP_FILES 11
 
 // 1. for gkp.bat
 INDEXSTORE_DEF(GateKeeperBatch)
@@ -303,10 +291,7 @@ INDEXSTORE_DEF_EXTEND(GateKeeperDistance)
 INDEXSTORE_DEF(GateKeeperScreen)
 INDEXSTORE_DEF_EXTEND(GateKeeperScreen)
 
-// 11. for gkp.rpt
-INDEXSTORE_DEF(GateKeeperRepeat)
-
-// 12. is gkp.phash
+// 11. is gkp.phash
 
 
 /***********************************************************************************
@@ -441,7 +426,6 @@ typedef struct {
   GateKeeperDistanceStore s_dstStore;    // Store for Distances that have been redefined
   GateKeeperBactigStore btgStore;
   GateKeeperScreenStore scnStore;
-  GateKeeperRepeatStore rptStore;
 } GateKeeperStore;
 
 int  CreateGateKeeperStore(GateKeeperStore *gkpStore);

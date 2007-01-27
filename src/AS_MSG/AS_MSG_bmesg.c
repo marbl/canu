@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_MSG_bmesg.c,v 1.9 2007-01-26 18:44:52 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_MSG_bmesg.c,v 1.10 2007-01-27 00:30:11 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -153,13 +153,6 @@ static void Read_SCN_Mesg(FILE *fin, void *vmesg)
   smesg->sequence = (char *) GetString(fin);
   smesg->source   = MemBuffer + (long) (smesg->source);
   smesg->sequence = MemBuffer + (long) (smesg->sequence);
-}
-
-static void Read_RPT_Mesg(FILE *fin, void *vmesg)
-{ RepeatItemMesg *rmesg = (RepeatItemMesg *) vmesg;
-
-  rmesg->which = (char *) GetString(fin);
-  rmesg->which = MemBuffer + (long) (rmesg->which);
 }
 
 static int Read_ADL_Struct(long last, FILE *fin)
@@ -735,15 +728,6 @@ static void Read_IBC_Mesg(FILE *fin, void *vmesg)
   mesg->source = (char *)(MemBuffer + indx);
 }
 
-static void Read_IRP_Mesg(FILE *fin, void *vmesg)
-{
-  InternalRepeatItemMesg *mesg = (InternalRepeatItemMesg *) vmesg;
-
-  mesg->which = (char *) GetString(fin);
-  mesg->which = MemBuffer + (long) (mesg->which);
-}
-
-
 static void Read_EOF_Mesg(FILE *fin, void *vmesg)
 {
   EndOfFileMesg *mesg = (EndOfFileMesg *) vmesg;
@@ -756,11 +740,6 @@ static void Read_EOF_Mesg(FILE *fin, void *vmesg)
 /******************** OUTPUT ROUTINES ***************************/
 
 /*  Routine to output each type of proto-IO message. */
-
-static void Write_RPT_Mesg(FILE *fout, void *vmesg)
-{ RepeatItemMesg *mesg = (RepeatItemMesg *) vmesg;
-  PutString(fout,mesg->which);
-}
 
 static void Write_SCN_Mesg(FILE *fout, void *vmesg)
 { ScreenItemMesg *mesg = (ScreenItemMesg *) vmesg;
@@ -1195,18 +1174,11 @@ static void Write_BAC_Mesg(FILE *fout, void *vmesg)
 
 static void Write_IBC_Mesg(FILE *fout, void *vmesg)
 {
-
   InternalBacMesg *mesg = (InternalBacMesg *) vmesg;
   if(mesg->num_bactigs > 0)
     FWRITE(mesg->bactig_list,sizeof(InternalBactigMesg),mesg->num_bactigs,  fout);
   PutString(fout,mesg->source);
 
-}
-
-static void Write_IRP_Mesg(FILE *fout, void *vmesg)
-{
-  InternalRepeatItemMesg *mesg = (InternalRepeatItemMesg *) vmesg;
-  PutString(fout,mesg->which);
 }
 
 static void Write_EOF_Mesg(FILE *fout, void *vmesg)
@@ -1240,14 +1212,14 @@ static callrecord CallTable[] = {
   { NULL,          NULL,           sizeof(InternalDistMesg) },
   { Read_SCN_Mesg, Write_SCN_Mesg, sizeof(ScreenItemMesg) },
   { Read_SCN_Mesg, Write_SCN_Mesg, sizeof(InternalScreenItemMesg) },
-  { Read_RPT_Mesg, Write_RPT_Mesg, sizeof(RepeatItemMesg) },
+  { NULL,          NULL,           sizeof(InternalDistMesg) },
   { Read_OVL_Mesg, Write_OVL_Mesg, sizeof(OverlapMesg) },
   { NULL,          NULL,           sizeof(BranchMesg) },
-  #ifdef AS_ENABLE_SOURCE
+#ifdef AS_ENABLE_SOURCE
   { Read_UOM_Mesg, Write_UOM_Mesg, sizeof(UnitigOverlapMesg) },
-  #else
+#else
   { NULL,          NULL,           sizeof(UnitigOverlapMesg) },
-  #endif
+#endif
   { Read_IUM_Mesg, Write_IUM_Mesg, sizeof(IntUnitigMesg) },
   { Read_IUL_Mesg, Write_IUL_Mesg, sizeof(IntUnitigLinkMesg) },
   { Read_ICL_Mesg, Write_ICL_Mesg, sizeof(IntContigLinkMesg) },
@@ -1262,30 +1234,30 @@ static callrecord CallTable[] = {
   { Read_CLK_Mesg, Write_CLK_Mesg, sizeof(SnapContigLinkMesg) },
   { Read_SCF_Mesg, Write_SCF_Mesg, sizeof(SnapScaffoldMesg) },
   { Read_MDI_Mesg, Write_MDI_Mesg, sizeof(SnapMateDistMesg) },
-  {Read_BAT_Mesg, Write_BAT_Mesg, sizeof(BatchMesg) },
-  {Read_IBA_Mesg, Write_IBA_Mesg, sizeof(InternalBatchMesg) },
-  {Read_BAC_Mesg, Write_BAC_Mesg, sizeof(BacMesg) },
-  {Read_IBC_Mesg, Write_IBC_Mesg, sizeof(InternalBacMesg) },
-  {NULL, NULL, 0l },
-  {NULL, NULL, 0l },
-  {NULL, NULL, 0l },
-  {NULL, NULL, 0l },
-  {NULL, NULL, 0l },
-  {NULL, NULL, 0l },
-  {Read_IRP_Mesg, Write_IRP_Mesg, sizeof(InternalRepeatItemMesg) },
-  {NULL,NULL, sizeof(IntDegenerateScaffoldMesg)},
-  {NULL,NULL, sizeof(SnapDegenerateScaffoldMesg)},
-  {Read_SLK_Mesg,Write_SLK_Mesg, sizeof(SnapScaffoldLinkMesg)},
-  {Read_ISL_Mesg,Write_ISL_Mesg, sizeof(InternalScaffoldLinkMesg)},
-  #ifdef AS_ENABLE_SOURCE
+  { Read_BAT_Mesg, Write_BAT_Mesg, sizeof(BatchMesg) },
+  { Read_IBA_Mesg, Write_IBA_Mesg, sizeof(InternalBatchMesg) },
+  { Read_BAC_Mesg, Write_BAC_Mesg, sizeof(BacMesg) },
+  { Read_IBC_Mesg, Write_IBC_Mesg, sizeof(InternalBacMesg) },
+  { NULL, NULL, 0l },
+  { NULL, NULL, 0l },
+  { NULL, NULL, 0l },
+  { NULL, NULL, 0l },
+  { NULL, NULL, 0l },
+  { NULL, NULL, 0l },
+  { NULL, NULL, 0l },
+  { NULL,NULL, sizeof(IntDegenerateScaffoldMesg)},
+  { NULL,NULL, sizeof(SnapDegenerateScaffoldMesg)},
+  { Read_SLK_Mesg,Write_SLK_Mesg, sizeof(SnapScaffoldLinkMesg)},
+  { Read_ISL_Mesg,Write_ISL_Mesg, sizeof(InternalScaffoldLinkMesg)},
+#ifdef AS_ENABLE_SOURCE
   { Read_FOM_Mesg, Write_FOM_Mesg, sizeof(FragOverlapMesg) },
-  #else
+#else
   { NULL,          NULL,           sizeof(FragOverlapMesg) },
-  #endif
+#endif
   { Read_OFR_Mesg, Write_OFR_Mesg, sizeof(OFRMesg) },
-  {NULL, NULL, 0l },
-  {NULL, NULL, 0l },
-  {NULL, NULL, 0l },
+  { NULL, NULL, 0l },
+  { NULL, NULL, 0l },
+  { NULL, NULL, 0l },
   { Read_EOF_Mesg, Write_EOF_Mesg, sizeof(EndOfFileMesg) }
 };
 

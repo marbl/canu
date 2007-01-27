@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: dumpGatekeeper.c,v 1.8 2007-01-25 09:02:12 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpGatekeeper.c,v 1.9 2007-01-27 00:30:10 brianwalenz Exp $";
 
 /* Dump the gatekeeper stores for debug */
 
@@ -131,7 +131,6 @@ main(int argc, char * argv []) {
      gkpb.numDistances = getNumGateKeeperDistances(gkpStore.dstStore);
      gkpb.num_s_Distances = getNumGateKeeperDistances(gkpStore.s_dstStore);
      gkpb.numScreens = getNumGateKeeperScreens(gkpStore.scnStore);
-     gkpb.numRepeats = getNumGateKeeperRepeats(gkpStore.rptStore);
      gkpb.numLinks = getNumGateKeeperLinks(gkpStore.lnkStore);
      gkpb.numSequences = getNumGateKeeperSequences(gkpStore.seqStore);
      fprintf(stdout,"* Final Stats\n");
@@ -193,30 +192,6 @@ main(int argc, char * argv []) {
      }
    }
      
-     /**************** DUMP RPTs   *************/
-   if(fragID == -1)
-   {
-     GateKeeperRepeatRecord gkpr;
-     StoreStat stat;
-     int64 i;
-     statsStore(gkpStore.rptStore, &stat);
-     fprintf(stdout,"* Stats for Repeat Store are first:" F_S64 " last :" F_S64 "\n",
-	     stat.firstElem, stat.lastElem);
-     
-     i = stat.firstElem;
-     
-     if(!quiet)
-       fprintf(stdout,"* Printing Repeats\n");
-     
-     for(i = 1; i <= stat.lastElem; i++){
-       getGateKeeperRepeatStore(gkpStore.rptStore,i,&gkpr);
-       
-       if(!quiet)
-         fprintf(stdout,"* Repeat " F_S64 " UID:" F_UID " which:%s \n",
-                 i, gkpr.UID, gkpr.which);
-     }
-   }
-
 
    /**************** DUMP SCNs   *************/
    if(fragID == -1)

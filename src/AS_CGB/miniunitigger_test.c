@@ -72,7 +72,7 @@ static void input_mesgs_to_VA
   assert(NULL != the_ofg_source);
   assert(NULL != the_ovl_source);
   {
-    int nadt=0,nidt=0,nilk=0,nofg=0,novl=0,nirp=0,nibc=0,niba=0;
+    int nadt=0,nidt=0,nilk=0,nofg=0,novl=0,nibc=0,niba=0;
     GenericMesg *pmesg = NULL;
     MesgReader ReadMesg_AS = (MesgReader)InputFileType_AS(fovl);
     while( EOF != ReadMesg_AS(fovl, &pmesg)) {
@@ -98,9 +98,6 @@ static void input_mesgs_to_VA
         novl++;
         AppendVA_OverlapMesg( the_ovl_messages, (OverlapMesg *) pmesg->m );
         break;
-      case MESG_IRP:
-        nirp++;
-        break;
       case MESG_IBC:
         nibc++;
         break;
@@ -122,10 +119,9 @@ static void input_mesgs_to_VA
             "input_mesgs_to_VA: nilk = %d\n"
             "input_mesgs_to_VA: nofg = %d\n"
             "input_mesgs_to_VA: novl = %d\n"
-            "input_mesgs_to_VA: nirp = %d\n"
             "input_mesgs_to_VA: nibc = %d\n"
             "input_mesgs_to_VA: niba = %d\n"
-            , nadt, nidt, nilk, nofg, novl, nirp, nibc, niba);
+            , nadt, nidt, nilk, nofg, novl, nibc, niba);
     
   }
 }

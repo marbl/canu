@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_GKP_check.c,v 1.7 2007-01-25 09:02:12 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_check.c,v 1.8 2007-01-27 00:30:10 brianwalenz Exp $";
 
 //#define DEBUG_GKP 1
 #define DEBUG_GKP_VERBOSE 1
@@ -271,7 +271,6 @@ int Check_BatchMesg(BatchMesg *bat_mesg,
   gkpbat.numDistances = getNumGateKeeperDistances(GkpStore.dstStore);
   gkpbat.num_s_Distances = getNumGateKeeperDistances(GkpStore.s_dstStore);
   gkpbat.numScreens = getNumGateKeeperScreens(GkpStore.scnStore);
-  gkpbat.numRepeats = getNumGateKeeperRepeats(GkpStore.rptStore);
   gkpbat.numLinks = getNumGateKeeperLinks(GkpStore.lnkStore);
   gkpbat.numSequences = getNumGateKeeperSequences(GkpStore.seqStore);
 
@@ -712,54 +711,6 @@ int Check_LinkMesg(LinkMesg *lkg_mesg,
   return GATEKEEPER_SUCCESS;
 
 }
-
-/***********************************************************************************/
-int Check_RepeatItemMesg(RepeatItemMesg *rpt_mesg,
-			 InternalRepeatItemMesg *irp_mesg,
-			 CDS_CID_t currentBatchID, 
-			 int verbose){
-
-  PHashValue_AS value;
-  GateKeeperRepeatRecord gkprpt;
-
-  memset(&gkprpt, 0, sizeof(gkprpt));
-
-  *irp_mesg = *rpt_mesg;
-
-  if(rpt_mesg->length < 0){
-    fprintf(Msgfp,"# RepeatItemMessage: invalid length " F_COORD "\n",
-            rpt_mesg->length);
-    return GATEKEEPER_FAILURE;
-  }
-  if(HASH_FAILURE != LookupTypeInPHashTable_AS(GkpStore.hashTable, 
-					       UID_NAMESPACE_AS,
-					       rpt_mesg->erepeat_id, 
-					       AS_IID_RPT, 
-					       FALSE,
-					       Msgfp,
-					       &value)){
-
-    fprintf(Msgfp,"# A message with UID " F_UID " already exists!!! Can't add it... \n",
-	    rpt_mesg->erepeat_id);
-    return(GATEKEEPER_FAILURE);
-  }
-  value.type = AS_IID_RPT;
-  InsertInPHashTable_AS(&GkpStore.hashTable, UID_NAMESPACE_AS, rpt_mesg->erepeat_id, &value, FALSE, TRUE);
-  irp_mesg->irepeat_id = value.IID;
-
-  /*
-    fprintf(stderr,"* RPT " F_UID " ==> " F_IID "\n",
-            rpt_mesg->erepeat_id, irp_mesg->irepeat_id);
-  */
-
-  gkprpt.UID = irp_mesg->erepeat_id;
-  gkprpt.deleted = FALSE;
-  strncpy(gkprpt.which,irp_mesg->which,255);
-  appendGateKeeperRepeatStore(GkpStore.rptStore, &gkprpt);
-  return GATEKEEPER_SUCCESS;
-
-}
-
 
 
 
