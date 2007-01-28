@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: Array_CNS.c,v 1.7 2006-10-08 08:47:39 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Array_CNS.c,v 1.8 2007-01-28 21:52:24 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -162,7 +162,6 @@ int IMP2Array(IntMultiPos *all_frags,
   frag.locale_pos.end = 0;
   frag.entry_time = 0;
   frag.source = NULL;
-  frag.screened = NULL;
   null_lane.first=NULL;
   null_lane.last=NULL;
   null_lane.lastcol=-3;

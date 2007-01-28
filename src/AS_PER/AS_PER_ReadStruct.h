@@ -38,9 +38,9 @@
  *************************************************************************/
 
 /* RCS Info
- * $Date: 2005-03-22 19:49:19 $
- * $Id: AS_PER_ReadStruct.h,v 1.4 2005-03-22 19:49:19 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Date: 2007-01-28 21:52:25 $
+ * $Id: AS_PER_ReadStruct.h,v 1.5 2007-01-28 21:52:25 brianwalenz Exp $
+ * $Revision: 1.5 $
  *
  */
 #ifndef AS_PER_READSTRUCT_H
@@ -111,7 +111,6 @@ int setReadIndex_ReadStruct(ReadStructp rs, uint32 readID);
 int setReadType_ReadStruct(ReadStructp rs, FragType r);
 int setSource_ReadStruct(ReadStructp rs, const char *src);
 int setEntryTime_ReadStruct(ReadStructp rs, time_t entryTime);
-int setScreenMatches_ReadStruct(ReadStructp rs, int numMatches, IntScreenMatch *matches );
 int setLocID_ReadStruct(ReadStructp rs, uint64 locID);
 int setLocalePos_ReadStruct(ReadStructp rs, uint32 start, uint32 end);
 
@@ -154,9 +153,6 @@ int getIsDeleted_ReadStruct(ReadStructp rs, uint32 *isDeleted);
 // READSTRUCT_OVL, READSTRUCT_CGW, READSTRUCT_CNS.
 int getClearRegion_ReadStruct(ReadStructp rs, uint32 *start, uint32 *end, uint32 flags);
 
-// Removed by Jason, Oct 2001
-// int getHasModifiedClearRegion_ReadStruct(ReadStructp rs, uint32 *hasModifiedClearRegion);
-
 /*****************************************************************************
  * Function: getSequence_ReadStruct
  * Description:
@@ -171,7 +167,6 @@ int getClearRegion_ReadStruct(ReadStructp rs, uint32 *start, uint32 *end, uint32
  *     Zero if OK
  *     Length of required buffer, if buffer is too short
  ****************************************************************************/
-
 int getSequence_ReadStruct(ReadStructp rs, char *sequence, char *quality, int length);
 
 
@@ -187,34 +182,6 @@ int getSequence_ReadStruct(ReadStructp rs, char *sequence, char *quality, int le
  *     Zero if OK
  ****************************************************************************/
 int getSource_ReadStruct(ReadStructp rs, char *source, int length);
-
-/*****************************************************************************
- * Function: getScreenMatches_ReadStruct
- * Description:
- *     Get the number of screen matches for this fragment.
- * Input
- *         None.
- *
- * Return Value:
- *     Number of screen matches, or 0 if none.
- ****************************************************************************/
-int getNumScreenMatches_ReadStruct(ReadStructp rs);
-
-/*****************************************************************************
- * Function: getScreenMatches_ReadStruct
- * Description:
- *     Get the screen matches data.
- * Input
- *       length             The length of the buffer allocated for matches.
- *                          Must be longer than numScreenMatches * sizeof(IntScreenMatch)
- * Output
- *       matches            An array of IntScreenMatches
- *
- * Return Value:
- *     Zero if OK
- ****************************************************************************/
-int getScreenMatches_ReadStruct(ReadStructp rs, IntScreenMatch *matches, int length);
-
 
 
 /*****************************************************************************

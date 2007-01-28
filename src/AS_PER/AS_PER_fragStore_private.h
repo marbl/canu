@@ -28,9 +28,9 @@
  *************************************************************************/
 
 /* RCS Info
- * $Date: 2005-07-20 19:55:39 $
- * $Id: AS_PER_fragStore_private.h,v 1.5 2005-07-20 19:55:39 eliv Exp $
- * $Revision: 1.5 $
+ * $Date: 2007-01-28 21:52:25 $
+ * $Id: AS_PER_fragStore_private.h,v 1.6 2007-01-28 21:52:25 brianwalenz Exp $
+ * $Revision: 1.6 $
  *
  */
 
@@ -140,8 +140,8 @@ typedef struct {
   uint   deleted:1;
   uint   readType:8;
   uint   hasQuality:1;
-  uint   numScreenMatches:16; /* number of screen matches */
-  uint   hasModifiedClearRegion:1;  // never used as of Oct 2001 - Jason
+  uint   XXnumScreenMatches:16;       //  UNUSED -- number of screen matches
+  uint   XXhasModifiedClearRegion:1;  //  UNUSED -- never used as of Oct 2001 - Jason
   uint   hasOVLClearRegion:1; 
   uint   hasCNSClearRegion:1; 
   uint   hasCGWClearRegion:1; 
@@ -228,8 +228,7 @@ static uint64 SET_FILEID(uint64 X, uint16 fileID){
 #endif
 
 #define MAX_SOURCE_LENGTH 512
-#define MAX_SCREEN_MATCH 2048
-#define MAX_SOURCE_BUFFER_LENGTH ( MAX_SOURCE_LENGTH + MAX_SCREEN_MATCH*sizeof(IntScreenMatch)+sizeof(int32) + sizeof(int64))
+#define MAX_SOURCE_BUFFER_LENGTH (MAX_SOURCE_LENGTH + sizeof(int32) + sizeof(int64))
 
 /* This is the (opaque) data structure that the user's code manipulates */
 /* On the user side, all that is visible is a pointer to this type, which is
@@ -246,7 +245,6 @@ typedef struct {
   char source[MAX_SOURCE_BUFFER_LENGTH];
   char sequence[MAX_SEQUENCE_LENGTH];
   char quality[MAX_SEQUENCE_LENGTH];
-  IntScreenMatch matches[MAX_SCREEN_MATCH];
 }FragRecord;
 
 int getSourceOffset_ReadStruct(ReadStructp rs, int64 *offset);

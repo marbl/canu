@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: dumpGatekeeper.c,v 1.9 2007-01-27 00:30:10 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpGatekeeper.c,v 1.10 2007-01-28 21:52:24 brianwalenz Exp $";
 
 /* Dump the gatekeeper stores for debug */
 
@@ -122,7 +122,6 @@ main(int argc, char * argv []) {
        fprintf(stdout,"\t Num s_Distances " F_S32 "\n", gkpb.num_s_Distances);
        fprintf(stdout,"\t Num Links " F_S32 "\n", gkpb.numLinks);
        fprintf(stdout,"\t Num Sequences " F_S32 "\n", gkpb.numSequences);
-       fprintf(stdout,"\t Num Screens " F_S32 "\n", gkpb.numScreens);
      }
      gkpb.numFragments = getNumGateKeeperFragments(gkpStore.frgStore);
      gkpb.numLocales = getNumGateKeeperLocales(gkpStore.locStore);
@@ -130,7 +129,6 @@ main(int argc, char * argv []) {
      gkpb.numBactigs = getNumGateKeeperBactigs(gkpStore.btgStore);
      gkpb.numDistances = getNumGateKeeperDistances(gkpStore.dstStore);
      gkpb.num_s_Distances = getNumGateKeeperDistances(gkpStore.s_dstStore);
-     gkpb.numScreens = getNumGateKeeperScreens(gkpStore.scnStore);
      gkpb.numLinks = getNumGateKeeperLinks(gkpStore.lnkStore);
      gkpb.numSequences = getNumGateKeeperSequences(gkpStore.seqStore);
      fprintf(stdout,"* Final Stats\n");
@@ -142,7 +140,6 @@ main(int argc, char * argv []) {
      fprintf(stdout,"\t Num s_Distances " F_S32 "\n", gkpb.num_s_Distances);
      fprintf(stdout,"\t Num Links " F_S32 "\n", gkpb.numLinks);
      fprintf(stdout,"\t Num Sequences " F_S32 "\n", gkpb.numSequences);
-     fprintf(stdout,"\t Num Screens " F_S32 "\n", gkpb.numScreens);
    }
 
    if(summary)
@@ -192,31 +189,6 @@ main(int argc, char * argv []) {
      }
    }
      
-
-   /**************** DUMP SCNs   *************/
-   if(fragID == -1)
-   {
-     GateKeeperScreenRecord gkps;
-     StoreStat stat;
-     int64 i;
-     statsStore(gkpStore.scnStore, &stat);
-     fprintf(stdout,"* Stats for Screen Store are first:" F_S64 " last :" F_S64 "\n",
-	     stat.firstElem, stat.lastElem);
-     
-     i = stat.firstElem;
-     
-     if(!quiet)
-       fprintf(stdout,"* Printing Screens\n");
-     
-     for(i = 1; i <= stat.lastElem; i++){
-       getGateKeeperScreenStore(gkpStore.scnStore,i,&gkps);
-       
-       if(!quiet)
-         fprintf(stdout,"* Screen " F_S64 " UID:" F_UID " repeatID: " F_IID " batch:(" F_U16 "," F_U16 ")\n",
-                 i, gkps.UID, gkps.repeatID, gkps.birthBatch, gkps.deathBatch);
-     }
-   }
-
 
    /**************** DUMP BACs and BACtigs *************/
    if(fragID == -1)
@@ -365,7 +337,7 @@ main(int argc, char * argv []) {
        if(HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore.hashTable, 
                                                     UID_NAMESPACE_AS,
                                                     gkpf.readUID, 
-                                                    (gkpf.type == AS_BACTIG?AS_IID_BTG:AS_IID_FRAG), 
+                                                    (gkpf.type == AS_BACTIG?AS_IID_BTG:AS_IID_FRG), 
                                                     FALSE,
                                                     stdout,
                                                     &value)){

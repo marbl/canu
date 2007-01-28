@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.27 2007-01-27 00:30:11 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.28 2007-01-28 21:52:24 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -28,8 +28,6 @@
 
 #include "AS_global.h"
 
-extern int novar;
-
 /* Exported constant definitions; Macro definitions; type definitions */
 
 // Defining the following enables internal source fields for testing
@@ -37,21 +35,13 @@ extern int novar;
 
 /* All externally created accession numbers are 64 bits. */
 
-/* This supports a backward compatibility mode for DROS data */
-typedef enum{
-  AS_DROS_MODE =  (int)'D',
-    AS_HUMAN_MODE = (int)'H'
-    }ProtoIOMode;
-
-void SetProtoMode_AS(ProtoIOMode mode);
-ProtoIOMode GetProtoMode_AS(void);
-
-
 #define AS_BACTIG_MAX_LEN (500000)
 #define AS_BACTIG_MIN_LEN (150)
 
 #define AS_BAC_MAX_LEN (500000)
 #define AS_BAC_MIN_LEN (150)
+
+extern int novar;
 
 #ifdef GENERIC_STORE_USE_LONG_STRINGS
 #define AS_READ_MAX_LEN AS_BACTIG_MAX_LEN
@@ -59,6 +49,7 @@ ProtoIOMode GetProtoMode_AS(void);
 #define AS_READ_MAX_LEN AS_FRAG_MAX_LEN
 #endif
 #define AS_READ_MIN_LEN AS_FRAG_MIN_LEN
+
 //   #define NEW_UNITIGGER_INTERFACE
 
 #define DEFINE_IDs(type)\
@@ -68,13 +59,12 @@ typedef CDS_IID_t Int##type##_ID;
 DEFINE_IDs(Fragment);
 DEFINE_IDs(Locale);
 DEFINE_IDs(Distance);
-DEFINE_IDs(ScreenItem);
 DEFINE_IDs(Chunk);
 DEFINE_IDs(Unitig);
 DEFINE_IDs(Contig);
 DEFINE_IDs(Dist);
 DEFINE_IDs(Scaffold);
-DEFINE_IDs(Repeat);
+//DEFINE_IDs(Repeat);
 DEFINE_IDs(Batch);
 DEFINE_IDs(Bactig);
 DEFINE_IDs(Bac);
@@ -87,7 +77,10 @@ typedef enum {
   AS_REDEFINE = (int)'R'
 } ActionType;
 
-typedef struct { CDS_COORD_t bgn, end; } SeqInterval;
+typedef struct {
+  CDS_COORD_t bgn;
+  CDS_COORD_t end;
+} SeqInterval;
 
 
 typedef enum {
@@ -101,8 +94,8 @@ typedef enum {
   MESG_ILK,
   MESG_DST,
   MESG_IDT,
-  MESG_SCN, // 10
-  MESG_ISN,
+  MESG_SPb, // 10
+  MESG_SPc,
   MESG_SP1,
   MESG_OVL,
   MESG_BRC,
@@ -137,7 +130,7 @@ typedef enum {
   MESG_SLK,
   MESG_ISL,
   MESG_FOM, // 45
-  MESG_OFR,
+  MESG_SPd,
   MESG_SP8,
   MESG_SP9,
   MESG_SPa,
@@ -158,8 +151,8 @@ static char  *MessageTypeName[NUM_OF_REC_TYPES + 1] = {
   "ILK",
   "DST",
   "IDT",
-  "SCN", // 10
-  "ISN",
+  "SPb", // 10
+  "SPc",
   "SP1", 
   "OVL", 
   "BRC",
@@ -194,7 +187,7 @@ static char  *MessageTypeName[NUM_OF_REC_TYPES + 1] = {
   "SLK",
   "ISL",
   "FOM", // 45
-  "OFR",
+  "SPd",
   "SP8",
   "SP9",
   "SPa",
@@ -298,36 +291,6 @@ typedef struct {
   IntDist_ID   iaccession;
 } InternalDistMesg;
 
-/* SCN message */
-
-typedef enum {
-  AS_UBIQREP       = (int)'U', 
-  AS_CONTAMINANT   = (int)'C',
-  AS_NO_SCREENTYPE = (int) 'N'
-} ScreenType;
-
-/* bit-vector values for relevance field */
-#define AS_OVL_HEED_RPT     (1)
-#define AS_URT_IS_VECTOR    (2)
-#define AS_URT_IS_SATELLITE (4)
-#define AS_URT_IS_SIMPLE    (8)
-
-typedef struct {
-  ActionType        action;
-  ScreenType        type;
-  ScreenItem_ID     eaccession;
-  Repeat_ID         erepeat_id;
-  int32             relevance;
-  char              *source;
-  char              *sequence;
-  float             variation;
-  CDS_COORD_t    min_length;
-  IntScreenItem_ID  iaccession;
-  IntRepeat_ID      irepeat_id;
-} InternalScreenItemMesg;
-
-
-typedef InternalScreenItemMesg ScreenItemMesg;
 
 
 typedef enum {
@@ -438,35 +401,8 @@ typedef enum {
   AS_OTHER_UNITIG    = (int)'X'  // Unspecified surrogate unitig
 } UnitigType;
 
-/* ISM & SMA record */
-
-typedef enum {
-  AS_FORWARD   = (int)'F',
-  AS_REVERSE = (int)'R'
-} DirectionType;
-
-typedef struct iScreenMatchTag {
-  struct iScreenMatchTag  *next;
-  SeqInterval             where;
-  CDS_IID_t            iwhat;
-  IntRepeat_ID            repeat_id;
-  int32                   relevance;
-  SeqInterval             portion_of;
-  DirectionType           direction;
-} IntScreenMatch;
-
-typedef struct ScreenMatchTag {
-  struct ScreenMatchTag  *next;
-  SeqInterval            where;
-  CDS_UID_t           what;
-  Repeat_ID              repeat_id;
-  int32                  relevance;
-  SeqInterval            portion_of;
-  DirectionType          direction;
-} ScreenMatch;
 
 /* SFG message */
-
 
 typedef struct {
   ActionType   		action;
@@ -482,18 +418,16 @@ typedef struct {
   char        		*sequence;
   char        		*quality;
   IntFragment_ID   	iaccession;
-  IntScreenMatch	*screened;
   IntLocale_ID          ilocale;
   IntSequence_ID          iseq_id;
   IntBactig_ID          ibactig_id;
 } ScreenedFragMesg;
 
-/* OFG, FRG, IFG, OFR messages */
+/* OFG, FRG, IFG messages */
 
 typedef ScreenedFragMesg OFGMesg;
 typedef ScreenedFragMesg FragMesg;
 typedef ScreenedFragMesg InternalFragMesg;
-typedef ScreenedFragMesg OFRMesg;
 
 /*OVL message*/
 
@@ -720,6 +654,11 @@ typedef enum {
   AS_KEEP   = (int) 'K',
   AS_NOKEEP = (int) 'N'
 } ResolveType;
+
+typedef enum {
+  AS_FORWARD = (int)'F',
+  AS_REVERSE = (int)'R'
+} DirectionType;
 
 typedef struct {
   FragType             type;
@@ -977,7 +916,6 @@ typedef struct {
 typedef struct {
   Fragment_ID     eaccession;
   IntFragment_ID  iaccession;              
-  ScreenMatch	  *screened;
   MateStatType    mate_status;
   int32           chimeric;
   int32           chaff;
@@ -1327,17 +1265,13 @@ void Transfer_IFG_to_SFG_AS(InternalFragMesg *ifg_mesg,
 void Transfer_SFG_to_OFG_AS(ScreenedFragMesg *sfg_mesg,
                             OFGMesg *ofg_mesg);
 
-void Transfer_SFG_to_OFR_AS(ScreenedFragMesg *sfg_mesg,
-                            OFRMesg *ofr_mesg);
-
 void Transfer_DST_to_IDT_AS(DistanceMesg     *dst_mesg,
                             InternalDistMesg *idt_mesg);
 
 void Transfer_LKG_to_ILK_AS(LinkMesg         *lkg_mesg,
                             InternalLinkMesg *ilk_mesg);
 
-void Transfer_SCN_to_ISN_AS(ScreenItemMesg         *scn_mesg,
-                            InternalScreenItemMesg *isn_mesg);
+
 
 void AppendAuditLine_AS(AuditMesg *adt_mesg,
                         AuditLine *auditLine,

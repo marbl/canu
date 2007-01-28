@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: dumpGatekeeperRecords.c,v 1.5 2006-08-29 20:18:55 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpGatekeeperRecords.c,v 1.6 2007-01-28 21:52:24 brianwalenz Exp $";
 
 /* Dump the gatekeeper stores for debug */
 
@@ -55,7 +55,7 @@ int  main(int argc, char * argv [])
   char *gatekeeperStorePath;
   GateKeeperStore gkpStore;
   CDS_UID_t uid;
-  int type = AS_IID_FRAG;
+  int type = AS_IID_FRG;
 
   summary = 0;
   /**************** Process Command Line Arguments *********************/
@@ -65,7 +65,7 @@ int  main(int argc, char * argv [])
     while (!errflg && ((ch = getopt(argc, argv, "bf")) != EOF))
       switch(ch) {
       case 'f':
-	type = AS_IID_FRAG;
+	type = AS_IID_FRG;
 	break;
       case 'b':
 	type = AS_IID_BTG;
@@ -117,7 +117,7 @@ int  main(int argc, char * argv [])
 	CDS_IID_t fragIID;
 	fragIID = value.IID;
      
-	if(type == AS_IID_FRAG){
+	if(type == AS_IID_FRG){
 
 	getGateKeeperFragmentStore(gkpStore.frgStore, fragIID, &gkf);
        fprintf(stderr,"* uid:" F_UID " Fragment " F_IID ": UID:" F_UID " type%c refs: %d links:%d(" F_IID ") lID:" F_IID " sID:" F_IID " bID:" F_IID " batch(%u,%u)  \n",

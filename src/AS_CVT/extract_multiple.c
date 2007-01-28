@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: extract_multiple.c,v 1.4 2005-03-22 19:48:52 jason_miller Exp $";
+static char CM_ID[] = "$Id: extract_multiple.c,v 1.5 2007-01-28 21:52:24 brianwalenz Exp $";
 
 /*
   IMPORTANT NOTE:
@@ -1730,7 +1730,7 @@ int ProcessUIDPairsFile(Globalsp globals, char * filename, int check_bacs)
         LookupTypeInPHashTable_AS( globals->s_set->gkp_store.hashTable, 
                                    UID_NAMESPACE_AS,
                                    frag_uid,
-                                   AS_IID_FRAG, 
+                                   AS_IID_FRG, 
                                    FALSE,
                                    stderr,
                                    &value ) )

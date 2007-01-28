@@ -128,8 +128,6 @@ reapFragStore(int32 begin, int32 end, char *frag_store_name) {
                  "%s.\n"
                  "etm:"F_TIME_T"\n"
                  "clr:"F_U32","F_U32"\n"
-                 "scn:\n"
-                 ".\n"
                  "}\n",
                  uid, iid, read_type, src_text, etm, clr_rng_bgn, clr_rng_end);
           break;
@@ -143,8 +141,6 @@ reapFragStore(int32 begin, int32 end, char *frag_store_name) {
                  "%s.\n"
                  "etm:"F_TIME_T"\n"
                  "clr:"F_U32","F_U32"\n"
-                 "scn:\n"
-                 ".\n"
                  "}\n",
                  uid, iid, read_type, locID, lid, src_text, etm, clr_rng_bgn, clr_rng_end);
           break;
@@ -160,8 +156,6 @@ reapFragStore(int32 begin, int32 end, char *frag_store_name) {
                  "%s.\n"
                  "etm:"F_TIME_T"\n"
                  "clr:"F_U32","F_U32"\n"
-                 "scn:\n"
-                 ".\n"
                  "}\n",
                  uid, iid, read_type, locID, lid,
                  0,0, 0,0, // These are incorrect values.
@@ -180,8 +174,6 @@ reapFragStore(int32 begin, int32 end, char *frag_store_name) {
                  "%s.\n"
                  "etm:"F_TIME_T"\n"
                  "clr:"F_U32","F_U32"\n"
-                 "scn:\n"
-                 ".\n"
                  "}\n",
                  uid, iid, read_type, locID, lid,
                  0,0, 0,0, 0,0,  // These are incorrect values.

@@ -143,8 +143,6 @@ int main(int argc, char *argv[]){
                    "%s.\n"
                    "etm:"F_TIME_T"\n"
                    "clr:0,"F_U32"\n"
-                   "scn:\n"
-                   ".\n"
                    "}\n",
                    uid, iid, read_type, src_text, etm, clr_rng_len );
             break;
@@ -158,8 +156,6 @@ int main(int argc, char *argv[]){
                    "%s.\n"
                    "etm:"F_TIME_T"\n"
                    "clr:0,"F_U32"\n"
-                   "scn:\n"
-                   ".\n"
                    "}\n",
                    uid, iid, read_type,
                    locID, lid,
@@ -177,8 +173,6 @@ int main(int argc, char *argv[]){
                    "%s.\n"
                    "etm:"F_TIME_T"\n"
                    "clr:0,"F_U32"\n"
-                   "scn:\n"
-                   ".\n"
                    "}\n",
                    uid, iid, read_type,
                    locID, lid,
@@ -198,8 +192,6 @@ int main(int argc, char *argv[]){
                    "%s.\n"
                    "etm:"F_TIME_T"\n"
                    "clr:0,"F_U32"\n"
-                   "scn:\n"
-                   ".\n"
                    "}\n",
                    uid, iid, read_type,
                    locID, lid,

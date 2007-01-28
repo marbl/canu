@@ -26,8 +26,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_driver_common.h,v 1.7 2007-01-27 00:30:11 brianwalenz Exp $
- * $Revision: 1.7 $
+ * $Id: AS_OVL_driver_common.h,v 1.8 2007-01-28 21:52:24 brianwalenz Exp $
+ * $Revision: 1.8 $
 */
 
 
@@ -42,13 +42,7 @@
 #include  "AS_OVL_overlap.h"
 #include "AS_UTL_Var.h"
 #include "AS_UTL_version.h"
-/****vvvv*******  Screen Matches ***vvvv******/
 
-VA_DEF(IntScreenMatch)
-
-static VA_TYPE(IntScreenMatch) *ScreenMatches = NULL;
-
-/****^^^^******  Screen Matches ****^^^^******/
 static int64  First_Hash_Frag = -1;
 static int64   Last_Hash_Frag;
 static ReadStructp  myRead;
@@ -72,8 +66,6 @@ static int  Choose_Hi_IID_Sub
     (uint32 List [], int lo, int n);
 void  Cleanup_Work_Area
     (Work_Area_t * wa);
-static void  Extract_Screen_Match_Info
-    (ScreenedFragMesg * sfg_mesg, int numFragsRead);
 static int  ReadFrags
     (int maxFrags, FragStoreHandle store, DistStore distStore, int argc, char **argv);
 
@@ -604,50 +596,6 @@ void  Cleanup_Work_Area
 
 
 
-/******************************************************************************/
-
-void  Coalesce_Screen_Info
-    (Screen_Range_t space [], int lo, int * top)
-
-//  Sort entries in  space [lo .. (* top) - 1]
-//  Then combine overlapping adjacent entries.  Reduce  (* top)
-//  by the number of combined entries.
-
-  {
-   int  i, j, hi;
-
-   hi = (* top - 1);
-
-   if  (hi <= lo)
-       return;
-
-   //  Sort ascending by  bgn  value
-   for  (i = lo;  i < hi;  i ++)
-     for  (j = i + 1;  j <= hi;  j ++)
-       if  (space [i] . bgn > space [j] . bgn)
-           {
-            Screen_Range_t  save = space [i];
-
-            space [i] = space [j];
-            space [j] = save;
-           }
-
-   //  Combine overlapping entries.  Regard as overlapping if gap between
-   //  is too short to allow a k-mer hit
-   for  (i = lo, j = i + 1;  j <= hi;  j ++)
-     {
-      if  (space [j] . bgn >= space [i] . end + WINDOW_SIZE - WINDOW_SCREEN_OLAP)
-          space [++ i] = space [j];
-        else if  (space [j] . end
-                    > space [i] . end)
-          space [i] . end = space [j] . end;
-     }
-
-   (* top) = i + 1;
-
-   return;
-  }
-
 
 
 /******************************************************************************/
@@ -707,101 +655,6 @@ static void *  Choose_And_Process_Stream_Segment
        pthread_exit (ptr);
 
    return  ptr;
-  }
-
-
-
-/*************************************************************************/
-
-static void  Extract_Screen_Match_Info
-    (ScreenedFragMesg * sfg_mesg, int numFragsRead)
-
-//  Extract the screened regions specified in  (* sfg_mesg)  and
-//  save them (with any overlaps combined) in the global  Screen_Space .
-//  Make  Screen_Sub [numFragsRead]  have the offset to the entries.
-
-  {
-   IntScreenMatch  * p;
-   int  match_ct;
-   int  lo = Screen_Blocks_Used;
-
-   if(ScreenMatches == NULL){
-     ScreenMatches = CreateVA_IntScreenMatch(512);
-   }else{
-     ResetIntScreenMatch(ScreenMatches);
-   }
-
-   for  (p = sfg_mesg -> screened;  p != NULL;  p = p -> next)
-     {
-     AppendIntScreenMatch(ScreenMatches, p);
-     if  (p -> relevance & AS_OVL_HEED_RPT)
-         {
-          SeqInterval  s;
-
-          s = p -> where;
-          if  (Screen_Blocks_Used >= Screen_Space_Size)
-              {
-               Screen_Space_Size *= MEMORY_EXPANSION_FACTOR;
-               fprintf (stderr,
-                        "### realloc  Screen_Space  Screen_Space_Size = %d\n",
-                        Screen_Space_Size);
-               Screen_Space = (Screen_Range_t *) safe_realloc
-                                  (Screen_Space,
-                                  Screen_Space_Size * sizeof (Screen_Range_t));
-              }
-          if  (s . bgn < 0)
-              {
-               fprintf
-                   (stderr,
-                    "ERROR:  Screen begin = %d on fragment %d;  reset to 0\n",
-                    s . bgn, sfg_mesg -> iaccession);
-               s . bgn = 0;
-              }
-          Screen_Space [Screen_Blocks_Used] . bgn = s . bgn;
-          if  (s . end > AS_READ_MAX_LEN)
-              {
-               fprintf
-                   (stderr,
-                    "ERROR:  Screen end = %d on fragment %d;  reset\n",
-                    s . end, sfg_mesg -> iaccession);
-               s . end = AS_READ_MAX_LEN;
-              }
-          Screen_Space [Screen_Blocks_Used] . end = s . end;
-          Screen_Space [Screen_Blocks_Used] . last = FALSE;
-          Screen_Blocks_Used ++;
-         }
-     }
-
-   // Make  next  pointers point to entries in  ScreenMatches
-   // Can't do earlier since  ScreenMatches  might be realloc'd.
-
-   match_ct = GetNumIntScreenMatchs (ScreenMatches);
-   if  (match_ct > 0)
-       {
-        IntScreenMatch  * p = GetIntScreenMatch (ScreenMatches, 0);
-        IntScreenMatch  * q;
-        int  i;
-        
-        for  (i = 1;  i < match_ct;  i ++)
-          {
-           q = GetIntScreenMatch (ScreenMatches, i);
-           p -> next = q;
-           p = q;
-          }
-
-        p -> next = NULL;
-       }
-
-   if  (lo == Screen_Blocks_Used)
-       Screen_Sub [numFragsRead - 1] = 0;
-     else
-       {
-        Coalesce_Screen_Info (Screen_Space, lo, & Screen_Blocks_Used);
-        Screen_Sub [numFragsRead - 1] = lo;
-        Screen_Space [Screen_Blocks_Used - 1] . last = TRUE;
-       }
-
-   return;
   }
 
 
@@ -977,12 +830,7 @@ static int  ReadFrags
             }
 
 
-            if  (sfg_mesg -> screened != NULL)
-                Extract_Screen_Match_Info
-                    (sfg_mesg, numFragsRead);
-              else
-                Screen_Sub [numFragsRead - 1] = 0;
-                
+            Screen_Sub [numFragsRead - 1] = 0;
 
             Next_Fragment_Index++;
 
@@ -1004,13 +852,6 @@ static int  ReadFrags
             // changed by Knut Reinert
             // due to gatekeeper changes
             setLocID_ReadStruct(myRead,ofg_mesg.ilocale);
-            if  (sfg_mesg -> screened != NULL)
-            {
-              IntScreenMatch *matches = GetIntScreenMatch(ScreenMatches,0);
-              setScreenMatches_ReadStruct(myRead, GetNumIntScreenMatchs(ScreenMatches), matches);
-            }else{
-              setScreenMatches_ReadStruct(myRead, 0, NULL);
-            }
             total_len += clear_len;
 
             appendFragStore(store, myRead);
@@ -1062,11 +903,10 @@ static int  ReadFrags
         }
 
       case MESG_ILK:
-      case MESG_ISN:
       case MESG_IBC:
 
 #if DEBUG
-	fprintf(stderr,"Read ILK/IJN/ISN/RPT\n");
+	fprintf(stderr,"Read ILK/IJN\n");
 #endif
 
 #if  ! (FOR_CARL_FOSLER || SHOW_SNPS)

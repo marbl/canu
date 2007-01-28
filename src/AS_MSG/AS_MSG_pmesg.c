@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.26 2007-01-27 00:30:11 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.27 2007-01-28 21:52:24 brianwalenz Exp $";
 
 //  reads old and new AFG message (with and w/o chaff field)
 #define AFG_BACKWARDS_COMPATIBLE
@@ -79,7 +79,6 @@ static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.26 2007-01-27 00:30:11 brianwalenz
 #define IFRAG1_FORMAT "fg1:" F_IID
 #define IFRAG2_FORMAT "fg2:" F_IID
 
-
 #define EACC_FORMAT  "acc:" F_UID
 #define EBAC_FORMAT  "bid:" F_UID
 #define EBTG_FORMAT  "btd:" F_UID
@@ -87,7 +86,6 @@ static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.26 2007-01-27 00:30:11 brianwalenz
 #define ELEN_FORMAT  "len:" F_UID
 #define ELOC_FORMAT  "loc:" F_UID
 #define EREF_FORMAT  "ref:" F_UID
-#define ERPT_FORMAT  "rpt:" F_UID
 #define ESEQ_FORMAT  "sid:" F_UID
 
 #define F_UID_IID    "(" F_UID "," F_IID ")"
@@ -99,19 +97,7 @@ static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.26 2007-01-27 00:30:11 brianwalenz
 #define ILENS_FORMAT "len:" F_UID_IID
 #define ILOCS_FORMAT "loc:" F_UID_IID
 #define IREFS_FORMAT "ref:" F_UID_IID
-#define IRPTS_FORMAT "rpt:" F_UID_IID
 #define ISEQS_FORMAT "sid:" F_UID_IID
-
-static ProtoIOMode ProtoMode = AS_HUMAN_MODE;
-
-void SetProtoMode_AS(ProtoIOMode mode){
-  ProtoMode = mode;
-  fprintf(stderr,"* ProtoMode set to %c\n", mode);
-}
-
-ProtoIOMode GetProtoMode_AS(void){
-  return ProtoMode;
-}
 
 #define ZERO 0
 #define MAX_LINE_LEN (128 * 1024)    /* Maximum input line length (checked) */
@@ -421,51 +407,6 @@ static void *Read_DST_Mesg(FILE *fin)
 static void *Read_IDT_Mesg(FILE *fin)
 { return Read_Dist_Mesg(fin,0); }
 
-static void *Read_Screen_Mesg(FILE *fin, int external)
-{ static InternalScreenItemMesg smesg;
-
-  if (external)
-    { char ch;
-      GET_TYPE(ch,ACT_FORMAT,"action");
-      smesg.action = (ActionType) ch;
-      GET_TYPE(ch,TYP_FORMAT,"screen");
-      smesg.type = (ScreenType) ch;
-      GET_FIELD(smesg.eaccession,EACC_FORMAT,"accession field")
-    }
-  else
-    { char ch;
-      GET_TYPE(ch,ACT_FORMAT,"action");
-      smesg.action = (ActionType) ch;
-      GET_TYPE(ch,TYP1_FORMAT "[UC]","screen");
-      smesg.type = (ScreenType) ch;
-      GET_PAIR(smesg.eaccession,smesg.iaccession,
-               IACCS_FORMAT,"accession field pair");
-    }
-  if(external){
-    GET_FIELD(smesg.erepeat_id,ERPT_FORMAT,"repeat field");
-  }else{
-      GET_PAIR(smesg.erepeat_id,smesg.irepeat_id,
-               IRPTS_FORMAT,"repeat id");
-  }    
-  GET_FIELD(smesg.relevance,"rel:" F_S32,"relevance field");
-  smesg.source   = (char *) GetText("src:",fin,FALSE);
-  smesg.sequence = (char *) GetText("seq:",fin,TRUE);
-  GET_FIELD(smesg.min_length,MINC_FORMAT,"min length field");
-  if (!novar)
-     GET_FIELD(smesg.variation,VAR_FORMAT,"variation field");
-  GET_EOM; 
-  // Convert from an index to a pointer.
-  smesg.source   = MemBuffer + ((long) (smesg.source));
-  smesg.sequence = MemBuffer + ((long) (smesg.sequence));
-  return ((void *) (&smesg));
-}
-
-static void *Read_SCN_Mesg(FILE *fin)
-{ return Read_Screen_Mesg(fin,1); }
-
-static void *Read_ISN_Mesg(FILE *fin)
-{ return Read_Screen_Mesg(fin,0); }
-
 // This is tricky, since we are trying to update the fields
 // of a structure that may be realloced.  Store offsets in
 // temps, and stuff them in in one go.
@@ -530,104 +471,12 @@ static void *Read_ADT_Mesg(FILE *fin)
   return (&amesg);
 }
 
-static void Read_ISM_Struct(IntScreenMatch *mesg, FILE *fin)
-{ char ch;
-  GET_PAIR(mesg->where.bgn,mesg->where.end,
-           "whr:" F_COORD "," F_COORD,"where field");
-  GET_FIELD(mesg->iwhat,"wht:" F_IID,"what field");
-  GET_FIELD(mesg->repeat_id,"rpt:" F_IID,"repeat id field");
-  GET_FIELD(mesg->relevance,"rel:" F_S32,"relevance field");
-  GET_PAIR(mesg->portion_of.bgn,mesg->portion_of.end,
-           "pof:" F_COORD "," F_COORD,"portion-of field");
-  GET_TYPE(ch,"dir:%1[FR]","direction");
-  mesg->direction = (DirectionType) ch;
-  GET_EOM;
-}
-
-static void Read_SMA_Struct(ScreenMatch *mesg, FILE *fin)
-{ char ch;
-  GET_PAIR(mesg->where.bgn,mesg->where.end,
-           "whr:" F_COORD "," F_COORD,"where field");
-  GET_FIELD(mesg->what,"wht:" F_UID,"what field");
-  GET_FIELD(mesg->repeat_id,"rpt:" F_UID,"repeat id field");
-  GET_FIELD(mesg->relevance,"rel:" F_S32,"relevance field");
-  GET_PAIR(mesg->portion_of.bgn,mesg->portion_of.end,
-           "pof:" F_COORD "," F_COORD,"portion-of field");
-  GET_TYPE(ch,"dir:%1[FR]","direction");
-  mesg->direction = (DirectionType) ch;
-  GET_EOM;
-}
-
-static void Read_ISM_List(FILE *fin, IntScreenMatch **list)
-{ IntScreenMatch *cptr, *tail;
-  long         last,  crnt;
-
-  /* First build up list (in reverse order) using indices and not pointers */
-
-  if (strncmp(GetLine(fin,TRUE),"scn:",4) != 0)
-    MtagError("scn:");
-  last = crnt = -1;
-  while (strncmp(GetLine(fin,TRUE),"{ISM",4) == 0)
-    { crnt = MoreSpace(sizeof(IntScreenMatch),8);
-      cptr = (IntScreenMatch *) (MemBuffer + crnt);
-      cptr->next = (IntScreenMatch *) last;
-      last = crnt;
-      Read_ISM_Struct(cptr,fin);
-    }
-  if (CurLine[0] != '.')
-    MgenError("Expecting end of ISM list");
-
-  /* Traverse again, reversing list order and converting indices to ptrs. */
-
-  tail = NULL;
-  while (crnt >= 0)
-    { cptr = (IntScreenMatch *) (MemBuffer + crnt);
-      crnt = (long) (cptr->next);
-      cptr->next    = tail;
-      tail = cptr;
-    }
-  *list = tail;
-}
-
-static void Read_SMA_List(FILE *fin, ScreenMatch **list)
-{ ScreenMatch *cptr, *tail;
-  long         last,  crnt;
-
-  /* First build up list (in reverse order) using indices and not pointers */
-
-  if (strncmp(GetLine(fin,TRUE),"scn:",4) != 0)
-    MtagError("scn:");
-  last = crnt = -1;
-  while (strncmp(GetLine(fin,TRUE),"{SMA",4) == 0)
-    { crnt = MoreSpace(sizeof(ScreenMatch),8);
-      cptr = (ScreenMatch *) (MemBuffer + crnt);
-      cptr->next = (ScreenMatch *) last;
-      last = crnt;
-      Read_SMA_Struct(cptr,fin);
-    }
-  if (CurLine[0] != '.')
-    MgenError("Expecting end of SMA list");
-
-  /* Traverse again, reversing list order and converting indices to ptrs. */
-
-  tail = NULL;
-  while (crnt >= 0)
-    { cptr = (ScreenMatch *) (MemBuffer + crnt);
-      crnt = (long) (cptr->next);
-      cptr->next    = tail;
-      tail = cptr;
-    }
-  *list = tail;
-}
-
-
 static void *Read_Frag_Mesg(FILE *fin, int frag_class)
 { // frag_class
   //   FragMesg 0
   //   InternalFragMesg 1
   //   ScreenedFragMesg 2
   //   OFGMesg 3
-  //   OFRMesg 4
   static ScreenedFragMesg fmesg;
   char ch;
   
@@ -670,7 +519,7 @@ static void *Read_Frag_Mesg(FILE *fin, int frag_class)
            fmesg.type == AS_BACTIG ||
            fmesg.type == AS_FULLBAC ){
 
-          if(frag_class == 0 || ProtoMode == AS_DROS_MODE){
+          if(frag_class == 0){
             GET_FIELD(fmesg.elocale, ELOC_FORMAT, "locale field");
           }else{
             GET_PAIR(fmesg.elocale,fmesg.ilocale,
@@ -719,11 +568,6 @@ static void *Read_Frag_Mesg(FILE *fin, int frag_class)
       }
       GET_PAIR(fmesg.clear_rng.bgn,fmesg.clear_rng.end,
                CLR_FORMAT,"clear range field");
-      if (frag_class == 2 || frag_class == 3) {
-        Read_ISM_List(fin,&(fmesg.screened));
-      } else {
-        fmesg.screened = NULL;
-      }
       fmesg.source   = MemBuffer + ((long) (fmesg.source));
       if( frag_class < 3 ) {
 	// Convert from an index to a pointer.
@@ -734,7 +578,6 @@ static void *Read_Frag_Mesg(FILE *fin, int frag_class)
 	fmesg.quality  = NULL;
       }
     } else { // The action is not AS_ADD.
-      fmesg.screened = NULL;
       fmesg.sequence = NULL;
       fmesg.quality  = NULL;
     }
@@ -755,9 +598,6 @@ static void *Read_SFG_Mesg(FILE *fin)
 
 static void *Read_OFG_Mesg(FILE *fin)
 { return Read_Frag_Mesg(fin,3); }
-
-static void *Read_OFR_Mesg(FILE *fin)
-{ return Read_Frag_Mesg(fin,4); }
 
 
 static void *Read_OVL_Mesg(FILE *fin)
@@ -953,67 +793,6 @@ static void Read_LOP_Mesg(FILE *fin, LayoutPos *mesg)
   GET_FIELD(mesg->position,POS1_FORMAT,"position field");
   GET_EOM;
 }
-
-
-
-#if 0
-static void *Read_SUR_Mesg(FILE *fin)
-{ static SurrogateMesg smesg;
-  int i, idx;
-  LayoutPos *lpm;
-
-  GET_FIELD(smesg.iaccession,"acc:" F_IID,"surrogate accession field");
-  GET_FIELD(smesg.length,"len:" F_COORD,"length field");
-  GET_FIELD(smesg.num_reads,"nor:" F_S32,"# of items field");
-
-  idx = MoreSpace(sizeof(ChunkFrag)*smesg.num_reads,8);
-  lpm = (LayoutPos *) (MemBuffer + idx);
-  smesg.reads = lpm;
-  for(i = 0; i < smesg.num_reads; i++)
-    { if(strncmp(GetLine(fin,TRUE),"{LOP",4) != 0)
-        MgenError("Expecting LOP record");
-      Read_LOP_Mesg(fin,lpm++);
-      if (lpm[-1].type == AS_UNITIG)
-        MgenError("Unitig should not occur in a surrogate's list");
-    }
-  GET_EOM;
-  return ((void *) (&smesg));
-}
-static void Read_MLP_Mesg(FILE *fin, MultiPos *mesg, int16* delta)
-{
-  char ch;
-  GET_TYPE(ch,TYP1_FORMAT "[RXEPTFSU]","MultiPos type");
-  mesg->type = (FragType) ch;
-  // uid and fid were formerly external (%lu), now internal (%u)
-  if (mesg->type != AS_UNITIG) {
-    GET_FIELD(mesg->ident,"fid:" F_IID,"frag id field");
-  } else {
-    GET_FIELD(mesg->ident,"uid:" F_IID,"chunk id field");
-  }
-  // KAR: change here from orientation/position to SeqInterval position
-  GET_PAIR(mesg->position.bgn,mesg->position.end,
-           POS2_FORMAT,"position field");
-  GET_FIELD(mesg->delta_length,"dln:" F_S32,"delta length");
-  if (strncmp(GetLine(fin,TRUE),"del:",4) != 0)
-    MgenError("delta tag label");
-  if (mesg->delta_length > 0) {
-    mesg->delta = delta;
-    { int i; int16 n; char *line, *u;
-      for (i=0;i<mesg->delta_length;) {
-       line = GetLine(fin,TRUE);
-       while (1)
-        { n = (int16) strtol(line,&u,10);
-          if (u == line) break;
-          line = u;
-          delta[i++] = n;
-          if (i==mesg->delta_length) break;
-        }
-      }
-    }
-  } else mesg->delta = NULL;
-  GET_EOM;
-}
-#endif
 
 
 
@@ -1377,7 +1156,6 @@ static void *Read_AFG_Mesg(FILE *fin)
   char ch;
   
   GET_PAIR(mesg.eaccession,mesg.iaccession,IACCS_FORMAT,"accession field");
-  Read_SMA_List(fin,&(mesg.screened));
   GET_TYPE(ch,"mst:%1[ZGCLSONHADEURF]","mate status");
   mesg.mate_status = (MateStatType) ch;
   GET_FIELD(mesg.chimeric,"chi:" F_S32,"chimeric flag");
@@ -2263,36 +2041,6 @@ static void Write_DST_Mesg(FILE *fout, void *vmesg)
 static void Write_IDT_Mesg(FILE *fout, void *vmesg)
 { Write_Dist_Mesg(fout,vmesg,0); }
 
-static void Write_Screen_Mesg(FILE *fout, void *vmesg, int external)
-{ InternalScreenItemMesg *mesg = (InternalScreenItemMesg *) vmesg;
-
-  fprintf(fout,"{%s\n",(external?"SCN":"ISN"));
-  fprintf(fout,ACT_FORMAT "\n",mesg->action);
-  fprintf(fout,TYP_FORMAT "\n",(char) mesg->type);
-  if (external){
-    fprintf(fout,EACC_FORMAT "\n",mesg->eaccession);
-    fprintf(fout,"rpt:" F_UID "\n",mesg->erepeat_id);
-  }else{
-    fprintf(fout,IACCS_FORMAT "\n",mesg->eaccession,mesg->iaccession);
-    fprintf(fout,IRPTS_FORMAT "\n",
-            mesg->erepeat_id, mesg->irepeat_id);
-  }
-  
-  fprintf(fout,"rel:" F_S32 "\n",mesg->relevance);
-  PutText(fout,"src:",mesg->source,FALSE);
-  PutText(fout,"seq:",mesg->sequence,TRUE);
-  fprintf(fout,MINC_FORMAT "\n",mesg->min_length);
-  if (!novar)
-     fprintf(fout,VAR_FORMAT "\n",mesg->variation);
-  fprintf(fout,"}\n");
-}
-
-static void Write_SCN_Mesg(FILE *fout, void *vmesg)
-{ Write_Screen_Mesg(fout,vmesg,1); }
-
-static void Write_ISN_Mesg(FILE *fout, void *vmesg)
-{ Write_Screen_Mesg(fout,vmesg,0); }
-
 static void Write_ADL_Struct(FILE *fout, AuditLine *mesg)
 { fprintf(fout,"{ADL\n");
   fprintf(fout,"who:%s\n",mesg->name);
@@ -2315,50 +2063,6 @@ static void Write_ADT_Mesg(FILE *fout, void *vmesg)
     Write_ADL_Struct(fout,a);
   fprintf(fout,".\n");
   fprintf(fout,"}\n");
-}
-
-static void Write_ISM_Struct(FILE *fout, IntScreenMatch *mesg)
-{ fprintf(fout,"{ISM\n");
-  fprintf(fout,"whr:" F_COORD "," F_COORD "\n",
-          mesg->where.bgn,mesg->where.end);
-  fprintf(fout,"wht:" F_IID "\n",mesg->iwhat);
-  fprintf(fout,"rpt:" F_IID "\n",mesg->repeat_id);
-  fprintf(fout,"rel:" F_S32 "\n",mesg->relevance);
-  fprintf(fout,"pof:" F_COORD "," F_COORD "\n",
-          mesg->portion_of.bgn,mesg->portion_of.end);
-  fprintf(fout,"dir:%c\n",mesg->direction);
-  fprintf(fout,"}\n");
-}
-
-static void Write_SMA_Struct(FILE *fout, ScreenMatch *mesg)
-{ fprintf(fout,"{SMA\n");
-  fprintf(fout,"whr:" F_COORD "," F_COORD "\n",
-          mesg->where.bgn,mesg->where.end);
-  fprintf(fout,"wht:" F_UID "\n",mesg->what);
-  fprintf(fout,"rpt:" F_UID "\n",mesg->repeat_id);
-  fprintf(fout,"rel:" F_S32 "\n",mesg->relevance);
-  fprintf(fout,"pof:" F_COORD "," F_COORD "\n",
-          mesg->portion_of.bgn,mesg->portion_of.end);
-  fprintf(fout,"dir:%c\n",mesg->direction);
-  fprintf(fout,"}\n");
-}
-
-static void Write_ISM_List(FILE *fout, IntScreenMatch *list)
-{ fprintf(fout,"scn:\n");
-  while (list != NULL)
-    { Write_ISM_Struct(fout,list);
-      list = list->next;
-    }
-  fprintf(fout,".\n");
-}
-
-static void Write_SMA_List(FILE *fout, ScreenMatch *list)
-{ fprintf(fout,"scn:\n");
-  while (list != NULL)
-    { Write_SMA_Struct(fout,list);
-      list = list->next;
-    }
-  fprintf(fout,".\n");
 }
 
 static void Write_LKG_Mesg(FILE *fout, void *vmesg)
@@ -2395,7 +2099,7 @@ static void Write_ILK_Mesg(FILE *fout, void *vmesg)
 
 static void Write_Frag_Mesg(FILE *fout, void *vmesg, int frag_class)
 { ScreenedFragMesg *mesg = (ScreenedFragMesg *) vmesg;
-  static const char * const header[]  = { "FRG", "IFG", "SFG", "OFG", "OFR" };
+  static const char * const header[]  = { "FRG", "IFG", "SFG", "OFG" };
 
   fprintf(fout,"{%s\n",header[frag_class]);
   fprintf(fout,ACT_FORMAT "\n",mesg->action);
@@ -2458,8 +2162,6 @@ static void Write_Frag_Mesg(FILE *fout, void *vmesg, int frag_class)
     }
     fprintf(fout,CLR_FORMAT "\n",
             mesg->clear_rng.bgn,mesg->clear_rng.end);
-    if (frag_class == 2 || frag_class == 3)
-      Write_ISM_List(fout,mesg->screened);
     }
 
   fprintf(fout,"}\n");
@@ -2476,9 +2178,6 @@ static void Write_SFG_Mesg(FILE *fout, void *vmesg)
 
 static void Write_OFG_Mesg(FILE *fout, void *vmesg)
 { Write_Frag_Mesg(fout,vmesg,3); }
-
-static void Write_OFR_Mesg(FILE *fout, void *vmesg)
-{ Write_Frag_Mesg(fout,vmesg,4); }
 
 
 static void Write_OVL_Mesg(FILE *fout, void *vmesg)
@@ -2870,7 +2569,6 @@ static void Write_AFG_Mesg(FILE *fout, void *vmesg)
   
   fprintf(fout,"{AFG\n");
   fprintf(fout,IACCS_FORMAT "\n",mesg->eaccession,mesg->iaccession);
-  Write_SMA_List(fout,mesg->screened);
   fprintf(fout,"mst:%c\n",mesg->mate_status);
   fprintf(fout,"chi:" F_S32 "\n",mesg->chimeric);
   fprintf(fout,"cha:" F_S32 "\n",mesg->chaff);
@@ -3338,14 +3036,10 @@ void Transfer_FRG_to_IFG_AS(FragMesg *fmg, InternalFragMesg *img)
 { memcpy(img,fmg,sizeof(ScreenedFragMesg)); }
 
 void Transfer_IFG_to_SFG_AS(InternalFragMesg *ifg, ScreenedFragMesg *sfg)
-{ memcpy(sfg,ifg,sizeof(ScreenedFragMesg)); 
-  sfg->screened = NULL;}
+{ memcpy(sfg,ifg,sizeof(ScreenedFragMesg)); }
 
 void Transfer_SFG_to_OFG_AS(ScreenedFragMesg *sfg, OFGMesg *ofg)
 { memcpy(ofg,sfg,sizeof(ScreenedFragMesg)); }
-
-void Transfer_SFG_to_OFR_AS(ScreenedFragMesg *sfg, OFRMesg *ofr)
-{ memcpy(ofr,sfg,sizeof(ScreenedFragMesg)); }
 
 void Transfer_DST_to_IDT_AS(DistanceMesg *dst, InternalDistMesg *idt)
 { idt->action     = dst->action;
@@ -3366,12 +3060,6 @@ void Transfer_LKG_to_ILK_AS(LinkMesg *lkg,
   ilk->link_orient = lkg->link_orient;
 }
 
-
-void Transfer_SCN_to_ISN_AS(ScreenItemMesg *smg, InternalScreenItemMesg *img)
-{ 
-  img->iaccession = 0;
-  *img = *(InternalScreenItemMesg *)smg;
-}
 
 void AppendAuditLine_AS(AuditMesg *adt, AuditLine *adl,
                         time_t t, char *name, char *version, char *comment)
@@ -3397,11 +3085,6 @@ void AppendAuditLine_AS(AuditMesg *adt, AuditLine *adl,
 
 /*  Routines to free the second-level parts of a message.  */
 
-static void Clear_SCN_Mesg(void *mesg, int typ)
-{ free(((ScreenItemMesg *) mesg)->source);
-  free(((ScreenItemMesg *) mesg)->sequence);
-}
-
 static void Clear_ADT_Mesg(void *mesg, int typ)
 { AuditLine *alm, *nxt;
 
@@ -3414,46 +3097,22 @@ static void Clear_ADT_Mesg(void *mesg, int typ)
     }
 }
 
-static void Clear_ISM_Mesg(IntScreenMatch *scm)
-{ IntScreenMatch *nxt;
-
-  while (scm != NULL)
-    { nxt = scm->next;
-      free(scm);
-      scm = nxt;
-    }
-}
-
-static void Clear_SMA_Mesg(ScreenMatch *scm)
-{ ScreenMatch *nxt;
-
-  while (scm != NULL)
-    { nxt = scm->next;
-      free(scm);
-      scm = nxt;
-    }
-}
-
 static void Clear_FRG_Mesg(void *mesg, int typ)
 { FragMesg *fgm = (FragMesg *) mesg;
 
   if (fgm->action == AS_ADD)
     { free(fgm->source);
-      if (!(typ == MESG_OFG || typ == MESG_OFR))
+      if (typ != MESG_OFG)
         { free(fgm->sequence);
           free(fgm->quality);
         }
-#if 0
-      if (typ == MESG_OFG)
-        Clear_ISM_Mesg(((OFGMesg *) mesg)->screened);
-      else if (typ == MESG_SFG)
-#endif        
-      Clear_ISM_Mesg(((ScreenedFragMesg *) mesg)->screened);
     }
 }
 
 static void Clear_OVL_Mesg(void *mesg, int typ)
-{ free(((OverlapMesg *) mesg)->delta); }
+{
+  free(((OverlapMesg *) mesg)->delta);
+}
 
 static void Clear_IUM_Mesg(void *vmesg, int typ)
 { 
@@ -3471,35 +3130,24 @@ static void Clear_IUM_Mesg(void *vmesg, int typ)
 static void Clear_IUL_Mesg(void *vmesg, int typ)
 {
   IntUnitigLinkMesg *mesg = (IntUnitigLinkMesg *) vmesg;
-
   free(mesg->jump_list);
 }
 
 static void Clear_ICL_Mesg(void *vmesg, int typ)
 {
   IntContigLinkMesg *mesg = (IntContigLinkMesg *) vmesg;
-
   free(mesg->jump_list);
-}
-
-static void Clear_AFG_Mesg(void *vmesg, int typ)
-{
-  AugFragMesg *mesg = (AugFragMesg *) vmesg;
-
-  Clear_SMA_Mesg(mesg->screened);
 }
 
 static void Clear_ISF_Mesg(void *vmesg, int typ)
 {
   IntScaffoldMesg *mesg = (IntScaffoldMesg *) vmesg;
-
   free(mesg->contig_pairs);
 }
 
 static void Clear_IMD_Mesg(void *vmesg, int typ)
 {
   IntMateDistMesg *mesg = (IntMateDistMesg *) vmesg;
-
   free (mesg->histogram);
 }
 
@@ -3548,8 +3196,8 @@ static const callrecord CallTable[] = {
   {"{ILK", Read_ILK_Mesg, Write_ILK_Mesg, NULL,             sizeof(InternalLinkMesg) },
   {"{DST", Read_DST_Mesg, Write_DST_Mesg, NULL,             sizeof(DistanceMesg) },
   {"{IDT", Read_IDT_Mesg, Write_IDT_Mesg, NULL,             sizeof(InternalDistMesg) },
-  {"{SCN", Read_SCN_Mesg, Write_SCN_Mesg, Clear_SCN_Mesg,   sizeof(ScreenItemMesg) },
-  {"{ISN", Read_ISN_Mesg, Write_ISN_Mesg, Clear_SCN_Mesg,   sizeof(InternalScreenItemMesg) },
+  {"", NULL, NULL, NULL, 0l },
+  {"", NULL, NULL, NULL, 0l },
   {"", NULL, NULL, NULL, 0l },
   {"{OVL", Read_OVL_Mesg, Write_OVL_Mesg, Clear_OVL_Mesg,   sizeof(OverlapMesg) },
   {"{BRC", Read_BRC_Mesg, Write_BRC_Mesg, NULL,             sizeof(BranchMesg) },
@@ -3557,7 +3205,7 @@ static const callrecord CallTable[] = {
   {"{IUM", Read_IUM_Mesg, Write_IUM_Mesg, Clear_IUM_Mesg,   sizeof(IntUnitigMesg) },
   {"{IUL", Read_IUL_Mesg, Write_IUL_Mesg, Clear_IUL_Mesg,   sizeof(IntUnitigLinkMesg) },
   {"{ICL", Read_ICL_Mesg, Write_ICL_Mesg, Clear_ICL_Mesg,   sizeof(IntContigLinkMesg) },
-  {"{AFG", Read_AFG_Mesg, Write_AFG_Mesg, Clear_AFG_Mesg,   sizeof(AugFragMesg) },
+  {"{AFG", Read_AFG_Mesg, Write_AFG_Mesg, NULL,             sizeof(AugFragMesg) },
   {"{ISF", Read_ISF_Mesg, Write_ISF_Mesg, Clear_ISF_Mesg,   sizeof(IntScaffoldMesg) },
   {"{IMD", Read_IMD_Mesg, Write_IMD_Mesg, Clear_IMD_Mesg,   sizeof(IntMateDistMesg) },
   {"{IAF", Read_IAF_Mesg, Write_IAF_Mesg, NULL,     	    sizeof(IntAugFragMesg) },
@@ -3584,7 +3232,7 @@ static const callrecord CallTable[] = {
   {"{SLK", Read_SLK_Mesg, Write_SLK_Mesg, NULL,  	    sizeof(SnapScaffoldLinkMesg) },
   {"{ISL", Read_ISL_Mesg, Write_ISL_Mesg, NULL,  	    sizeof(InternalScaffoldLinkMesg) },
   {"{FOM", Read_FOM_Mesg, Write_FOM_Mesg, NULL,             sizeof(FragOverlapMesg) },
-  {"{OFR", Read_OFR_Mesg, Write_OFR_Mesg, Clear_FRG_Mesg,   sizeof(OFRMesg) },
+  {"", NULL, NULL, NULL, 0l },
   {"", NULL, NULL, NULL, 0l },
   {"", NULL, NULL, NULL, 0l },
   {"", NULL, NULL, NULL, 0l },

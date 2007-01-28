@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: post_analysis.c,v 1.8 2006-10-08 08:47:39 brianwalenz Exp $ */
+/* $Id: post_analysis.c,v 1.9 2007-01-28 21:52:24 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,7 +46,6 @@ int main(int argc, char *argv[])
 { GenericMesg *pmesg;
  IntScaffoldMesg *isf;
  MesgReader   reader;
- IntScreenMatch *mat;
  IntContigPairs *pairs;
  IntConConMesg *contig;
  IntUnitigMesg *unitig;

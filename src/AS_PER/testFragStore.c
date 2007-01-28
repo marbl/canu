@@ -34,7 +34,6 @@ int main(int argc, char *argv[]){
   FragStoreHandle source, target;
   FragStreamHandle jane;
   ReadStructp myRead;
-  IntScreenMatch match[5];;
 
 
   if(argc  == 2 ){
@@ -54,26 +53,6 @@ int main(int argc, char *argv[]){
     exit(1);
   }
 
-  match[0].next = NULL;
-  match[0].where.bgn = 1;
-  match[0].where.end = 100;
-  match[0].iwhat = 3;
-  match[0].repeat_id = 12;
-  match[0].relevance = 9;
-  match[0].portion_of.bgn = 1;
-  match[0].portion_of.end = 100;
-  match[0].direction = AS_FORWARD;
-  match[0].next = match + 1;
-  match[1].where.bgn = 100;
-  match[1].where.end = 1000;
-  match[1].iwhat = 5;
-  match[1].repeat_id = 12;
-  match[1].relevance = 9;
-  match[1].portion_of.bgn = 10;
-  match[1].portion_of.end = 1000;
-  match[1].direction = AS_REVERSE;
-  match[1].next = NULL;
-
   myRead =  new_ReadStruct();
 
   setAccID_ReadStruct(myRead, 1);
@@ -81,7 +60,6 @@ int main(int argc, char *argv[]){
   setReadType_ReadStruct(myRead, AS_UBAC);
   setSequence_ReadStruct(myRead, "aaccaaccaaccaacc", NULL);
   setSource_ReadStruct(myRead, "Just testing...sucker");
-  setScreenMatches_ReadStruct(myRead, 1, match);
   setEntryTime_ReadStruct(myRead,time(0));
   setClearRegion_ReadStruct(myRead,1,14,READSTRUCT_ORIGINAL);
   setLocalePos_ReadStruct(myRead,99,100);
@@ -95,7 +73,6 @@ int main(int argc, char *argv[]){
   setSource_ReadStruct(myRead, "Go Home");
   setLocalePos_ReadStruct(myRead,100,101);
   setLocID_ReadStruct(myRead,0x0fffffffffffffffLL);
-  setScreenMatches_ReadStruct(myRead, 2, match);
   appendFragStore(source,myRead);
 
   setAccID_ReadStruct(myRead, 3);
@@ -104,7 +81,6 @@ int main(int argc, char *argv[]){
   setSequence_ReadStruct(myRead, "aaccggttaaccggtt", "0000000000000000");
   setSource_ReadStruct(myRead, "Go Home");
   setLocalePos_ReadStruct(myRead,102,103);
-  setScreenMatches_ReadStruct(myRead, 1, &match[1]);
   setLocID_ReadStruct(myRead,0x0ffffffffffffffaLL);
 
   appendFragStore(source,myRead);
@@ -118,8 +94,6 @@ int main(int argc, char *argv[]){
   setClearRegion_ReadStruct(myRead,1,14,READSTRUCT_ORIGINAL);
   setLocalePos_ReadStruct(myRead,99,100);
   setLocID_ReadStruct(myRead,0x0ffffffffffffffeLL);
-  setScreenMatches_ReadStruct(myRead, 2, &match[0]);
-  // ADDED BY JASON - OCT 2001
   setClearRegion_ReadStruct(myRead,10,20,READSTRUCT_OVL);
   setClearRegion_ReadStruct(myRead,20,30,READSTRUCT_CGW); // both get saved
   appendFragStore(source,myRead);
@@ -130,9 +104,7 @@ int main(int argc, char *argv[]){
   setSequence_ReadStruct(myRead, "acgtacgt", "00000000");
   setSource_ReadStruct(myRead, "external read");
   setLocalePos_ReadStruct(myRead,102,103);
-  setScreenMatches_ReadStruct(myRead, 1, &match[1]);
   setLocID_ReadStruct(myRead,0x0ffffffffffffffaLL);
-  // ADDED BY JASON - OCT 2001
   setClearRegion_ReadStruct(myRead,20,30,READSTRUCT_CGW);
   setClearRegion_ReadStruct(myRead,10,20,READSTRUCT_OVL); // ovl overwrites cgw
   appendFragStore(source,myRead);
@@ -143,7 +115,6 @@ int main(int argc, char *argv[]){
   setSequence_ReadStruct(myRead, "acgtacgtggggg", "0000000000000");
   setSource_ReadStruct(myRead, "transposon library read");
   setLocalePos_ReadStruct(myRead,102,103);
-  setScreenMatches_ReadStruct(myRead, 1, &match[0]);
   setLocID_ReadStruct(myRead,0x0ffffffffffffffaLL);
   appendFragStore(source,myRead);
 

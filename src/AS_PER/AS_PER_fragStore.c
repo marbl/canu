@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_fragStore.c,v 1.11 2006-12-11 18:11:18 eliv Exp $";
+static char CM_ID[] = "$Id: AS_PER_fragStore.c,v 1.12 2007-01-28 21:52:25 brianwalenz Exp $";
 
 /*************************************************************************
  Module:  AS_PER_fragStore
@@ -199,7 +199,7 @@ static FragStream  *allocateFragStream(FragStoreHandle sh, void *buffer, int32 b
  ***********************************************************************************/
 void unloadFragRecord(FragStore *myStore, FragRecord *fr, int32 getFlags){
   static char encodeBuffer[MAX_SEQUENCE_LENGTH];
-  uint16 localeLength=0, screenLength;
+  uint16 localeLength=0;
   VLSTRING_SIZE_T actualLength;
 
   /*  looks like checking AS_FA_READ and AS_FA_SHREDDED FT isolated VR */
@@ -226,14 +226,7 @@ void unloadFragRecord(FragStore *myStore, FragRecord *fr, int32 getFlags){
     assert(0);
   }
 
- screenLength = fr->frag.numScreenMatches * sizeof(IntScreenMatch);
-
-#ifdef DEBUG
- fprintf(stderr,"* screenLength = %u localeLength = %u\n",
-	 screenLength, localeLength);
-#endif
   if((getFlags & FRAG_S_SOURCE) ||
-     fr->frag.numScreenMatches > 0 || 
      localeLength != 0){
 
      getVLRecordStore(GET_FILEHANDLE(myStore->sourceStore, fr->frag.sourceOffset), 
@@ -241,10 +234,7 @@ void unloadFragRecord(FragStore *myStore, FragRecord *fr, int32 getFlags){
 		     (VLSTRING_SIZE_T)VLSTRING_MAX_SIZE, 
 		     &actualLength);
     
-#ifdef DEBUG
-    fprintf(stderr,"* Read " F_VLS " chars %c\n", actualLength, fr->source[actualLength - localeLength - screenLength]);
-#endif
-    //    fr->source[actualLength - localeLength - screenLength] = '\0';
+    //    fr->source[actualLength - localeLength] = '\0';
     if(localeLength > 0){
       size_t offset = actualLength - localeLength + 1;
 #ifdef DEBUG
@@ -259,22 +249,6 @@ void unloadFragRecord(FragStore *myStore, FragRecord *fr, int32 getFlags){
 	memcpy(&fr->localePosEnd, fr->source + offset, sizeof(uint32));
       }
     }
-      if(screenLength > 0){
-	size_t offset = actualLength - screenLength - localeLength + 1;
-#ifdef DEBUG
-      fprintf(stderr,"* Reading screenMatches at offset " F_SIZE_T "\n",
-	      offset);
-#endif
-	memcpy(fr->matches, fr->source + offset, fr->frag.numScreenMatches * sizeof(IntScreenMatch));
-	{ // What the hell, link the suckers together
-	  int i;
-	  for(i = 0; i < fr->frag.numScreenMatches - 1; i++){
-	    //fr->matches[i].next = fr->matches + i + 1;
-	    fr->matches[i].next = &(fr->matches[i + 1]);
-	  }
-	  fr->matches[i].next = NULL;
-	}
-      }
   }
   if(getFlags & FRAG_S_SEQUENCE){
     getVLRecordStore(GET_FILEHANDLE(myStore->sequenceStore, fr->frag.sequenceOffset), 
@@ -291,7 +265,7 @@ void unloadFragRecord(FragStore *myStore, FragRecord *fr, int32 getFlags){
  ***********************************************************************************/
 void unloadFragRecordPartition(StoreHandle seqStore, StoreHandle srcStore, FragRecord *fr, int32 getFlags){
   static char encodeBuffer[MAX_SEQUENCE_LENGTH];
-  uint16 localeLength=0, screenLength;
+  uint16 localeLength=0;
   VLSTRING_SIZE_T actualLength;
 
   /* FT isolated VR */
@@ -317,14 +291,7 @@ void unloadFragRecordPartition(StoreHandle seqStore, StoreHandle srcStore, FragR
     assert(0);
   }
 
- screenLength = fr->frag.numScreenMatches * sizeof(IntScreenMatch);
-
-#ifdef DEBUG
- fprintf(stderr,"* screenLength = %u localeLength = %u\n",
-	 screenLength, localeLength);
-#endif
   if((getFlags & FRAG_S_SOURCE) ||
-     fr->frag.numScreenMatches > 0 || 
      localeLength != 0){
 
      getVLRecordStore(srcStore,
@@ -332,10 +299,6 @@ void unloadFragRecordPartition(StoreHandle seqStore, StoreHandle srcStore, FragR
 		     (VLSTRING_SIZE_T)VLSTRING_MAX_SIZE, 
 		     &actualLength);
     
-#ifdef DEBUG
-    fprintf(stderr,"* Read " F_VLS " chars %c\n", actualLength, fr->source[actualLength - localeLength - screenLength]);
-#endif
-    //    fr->source[actualLength - localeLength - screenLength] = '\0';
     if(localeLength > 0){
       size_t offset = actualLength - localeLength + 1;
 #ifdef DEBUG
@@ -350,22 +313,6 @@ void unloadFragRecordPartition(StoreHandle seqStore, StoreHandle srcStore, FragR
 	memcpy(&fr->localePosEnd, fr->source + offset, sizeof(uint32));
       }
     }
-      if(screenLength > 0){
-	size_t offset = actualLength - screenLength - localeLength + 1;
-#ifdef DEBUG
-      fprintf(stderr,"* Reading screenMatches at offset " F_SIZE_T "\n",
-	      offset);
-#endif
-	memcpy(fr->matches, fr->source + offset, fr->frag.numScreenMatches * sizeof(IntScreenMatch));
-	{ // What the hell, link the suckers together
-	  int i;
-	  for(i = 0; i < fr->frag.numScreenMatches - 1; i++){
-	    //fr->matches[i].next = fr->matches + i + 1;
-	    fr->matches[i].next = &(fr->matches[i + 1]);
-	  }
-	  fr->matches[i].next = NULL;
-	}
-      }
   }
   if(getFlags & FRAG_S_SEQUENCE){
     getVLRecordStore(seqStore, 
@@ -1222,7 +1169,7 @@ int appendFragStorePartition(FragStoreHandle store, ReadStructp rs, int32 partit
   FragRecord *fr = (FragRecord *)rs;
   static char encodeBuffer[MAX_SEQUENCE_LENGTH];
   StoreStat stats;
-  uint16 sourceLength, screenMatchLength;
+  uint16 sourceLength;
   VLSTRING_SIZE_T length;
 
   //  fprintf(stderr,"* appendFragStorePartition frag " F_IID " partition:%d\n", fr->frag.readIndex,partition);
@@ -1266,17 +1213,11 @@ int appendFragStorePartition(FragStoreHandle store, ReadStructp rs, int32 partit
   appendIndexStore(myStore->fragStore, (void *)(&fr->frag));  // global index
   appendIndexStore(myStore->partitionStore[partition], (void *)(&fr->frag)); // per partition collection of fixed records
 
-  screenMatchLength = fr->frag.numScreenMatches * sizeof(IntScreenMatch);
   sourceLength = (uint16)strlen(fr->source) + 1;
 
-  /* Tack the screen matches onto the end of the source */
-  if(fr->frag.numScreenMatches > 0){
-    int32  offset = sourceLength + 1;
-    memcpy(fr->source + offset, fr->matches, screenMatchLength);
-  }
   /* Tack the locID and localPos onto the end of the source */
   if(!AS_FA_READ(fr->frag.readType)){ 
-    int32  offset = sourceLength +  screenMatchLength + 1;
+    int32  offset = sourceLength + 1;
     int type = fr->frag.readType;
 
     memcpy(fr->source + offset, &fr->localeID, sizeof(uint64));
@@ -1290,13 +1231,9 @@ int appendFragStorePartition(FragStoreHandle store, ReadStructp rs, int32 partit
     }
     length = offset;
   }else{
-    length = sourceLength + screenMatchLength;
+    length = sourceLength;
   }
 
-#if 0
-  fprintf(stderr,"* Appending source field of length " F_VLS " screenLength = %u\n",
-	  length, screenMatchLength);
-#endif
 #ifdef GENERIC_STORE_USE_LONG_STRINGS
   assert(length <= VLSTRING_MAX_SIZE);
 #endif
@@ -1323,7 +1260,7 @@ int appendFragStore(FragStoreHandle store, ReadStructp rs){
   FragRecord *fr = (FragRecord *)rs;
   static char encodeBuffer[MAX_SEQUENCE_LENGTH];
   StoreStat stats;
-  uint16 sourceLength, screenMatchLength;
+  uint16 sourceLength;
   VLSTRING_SIZE_T length;
 
   assert(myStore->numPartitions == 1);
@@ -1354,17 +1291,11 @@ int appendFragStore(FragStoreHandle store, ReadStructp rs){
 
   appendIndexStore(myStore->fragStore, (void *)(&fr->frag));
 
-  screenMatchLength = fr->frag.numScreenMatches * sizeof(IntScreenMatch);
   sourceLength = (uint16)strlen(fr->source) + 1;
 
-  /* Tack the screen matches onto the end of the source */
-  if(fr->frag.numScreenMatches > 0){
-    int32  offset = sourceLength + 1;
-    memcpy(fr->source + offset, fr->matches, screenMatchLength);
-  }
   /* Tack the locID and localPos onto the end of the source */
   if (!AS_FA_READ(fr->frag.readType)){ 
-    int32  offset = sourceLength +  screenMatchLength + 1;
+    int32  offset = sourceLength + 1;
     int type = fr->frag.readType;
 
     memcpy(fr->source + offset, &fr->localeID, sizeof(uint64));
@@ -1378,16 +1309,12 @@ int appendFragStore(FragStoreHandle store, ReadStructp rs){
     }
     length = offset;
   }else{
-    length = sourceLength + screenMatchLength;
+    length = sourceLength;
   }
 #ifdef GENERIC_STORE_USE_LONG_STRINGS
   assert(length <= VLSTRING_MAX_SIZE);
 #endif
 
-#if 0
-  fprintf(stderr,"* Appending source field of length " F_VLS " screenLength = %u\n",
-	  length, screenMatchLength);
-#endif
   appendVLRecordStore(myStore->sourceStore[0]   , fr->source, length);
 
   /*** NOTE: encodeBuffer is NOT a null terminated string.  Therefore
@@ -1725,7 +1652,7 @@ void loadRecordDelimiter(FILE *outfp){
 void unloadNDumpFragRecord(FragStore *myStore, FragRecord *fr, FILE *outfp){
   char encodeBuffer[MAX_SEQUENCE_LENGTH];
 #ifdef DEBUG
-  uint16 localeLength=0, screenLength;
+  uint16 localeLength=0;
 #endif
   VLSTRING_SIZE_T actualLength;
   uint8 checksum;
@@ -1735,8 +1662,6 @@ void unloadNDumpFragRecord(FragStore *myStore, FragRecord *fr, FILE *outfp){
   fprintf(outfp,"%u",fr->frag.readType);
   dumpFieldDelimiter(outfp);
   fprintf(outfp,"%u",fr->frag.hasQuality);
-  dumpFieldDelimiter(outfp);
-  fprintf(outfp,"%u",fr->frag.numScreenMatches);
   dumpFieldDelimiter(outfp);
   fprintf(outfp,F_VLS, fr->frag.clearRegionStart);
   dumpFieldDelimiter(outfp);
@@ -1752,12 +1677,6 @@ void unloadNDumpFragRecord(FragStore *myStore, FragRecord *fr, FILE *outfp){
 		     (VLSTRING_SIZE_T)VLSTRING_MAX_SIZE, 
 		     &actualLength);
     
-#ifdef DEBUG
-    fprintf(stderr,"* Read " F_VLS " chars %c\n",
-            actualLength,
-            fr->source[actualLength - localeLength - screenLength]);
-#endif
-
     safeWrite(outfp,&actualLength, sizeof(actualLength));
     checksum = checkSumBlob(fr->source, actualLength);
     safeWrite(outfp,&checksum, sizeof(checksum));
@@ -1858,8 +1777,6 @@ int loadDumpFragRecord(FILE *infp, ShortFragRecord *fr, VA_TYPE(char ) *sequence
   fr->readType = scratch;
   fscanf(infp,"%d~~~,~~~",&scratch);
   fr->hasQuality = scratch;
-  fscanf(infp,"%d~~~,~~~",&scratch);
-  fr->numScreenMatches = scratch;
   fscanf(infp,"%d~~~,~~~", &scratch);
   fr->clearRegionStart = scratch;
   if(1 != fscanf(infp,"%d~~~,~~~", &scratch)) assert(0);

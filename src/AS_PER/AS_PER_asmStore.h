@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_PER_asmStore.h,v 1.5 2007-01-25 09:02:12 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_asmStore.h,v 1.6 2007-01-28 21:52:25 brianwalenz Exp $	 */
 #ifndef AS_PER_ASMSTORE_H
 #define AS_PER_ASMSTORE_H
 /*************************************************************************
@@ -50,13 +50,16 @@
 #define ASM_UID_NAMESPACE 'U'
 
 // overload some iid types for assembly store
-#define AS_IID_MDI  AS_IID_DST
-#define AS_IID_AFG  AS_IID_FRAG
-#define AS_IID_UTG  AS_IID_DON
-#define AS_IID_CCO  AS_IID_SCN
-#define AS_IID_DSC  AS_IID_PLA
-#define AS_IID_SCF  AS_IID_BAT
-#define AS_IID_CHR  AS_IID_RPT
+//
+// BPW - why are we overlading and not using a different namespace?
+//
+#define AS_IID_AFG  0
+#define AS_IID_MDI  1
+#define AS_IID_UTG  2
+#define AS_IID_CCO  3
+#define AS_IID_DSC  4
+#define AS_IID_SCF  5
+#define AS_IID_CHR  6
 
 typedef int32     ASM_BucketRecord;
 typedef CDS_IID_t ASM_IIDRecord;

@@ -10,7 +10,7 @@ Genome Length is 10000
 {ADL
 who:GateKeeper
 ctm:938622384
-vsn:$Revision: 1.2 $
+vsn:$Revision: 1.3 $
 com:
 (empty)
 .
@@ -137,25 +137,6 @@ fg2:2
 etm:0
 dst:1
 ori:A
-}
-{RPT
-rpt:1
-wch:ALU333
-len:300
-}
-{ISN
-typ:U
-acc:(3333,1)
-rpt:1
-rel:3
-src:
-Hey guys
-.
-seq:
-accccccccccccccccccccccccccccccccccccccccttttttttttttttttttttttt
-.
-var:0.100000
-min:50
 }
 {IFG
 act:A

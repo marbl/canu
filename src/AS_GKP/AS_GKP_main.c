@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.10 2007-01-27 00:30:10 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.11 2007-01-28 21:52:24 brianwalenz Exp $";
 
 /*************************************************
 * Module:  AS_GKP_main.c
@@ -37,8 +37,8 @@ static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.10 2007-01-27 00:30:10 brianwalenz
 *        -G ignore messages that are intended only for overlay (FULLBacs and BACtigs)
 * 
 *        gatekeeperStorePath   Used to find/create a directory that will house 4 files:
-*           gkp.phash  Symbol table for UID mapping and to keep track of RPT_IDs
-*                  Each UIDand RPT_ID has a reference count.  PHash also keeps track
+*           gkp.phash  Symbol table for UID mapping
+*                  Each UID and has a reference count.  PHash also keeps track
 *                  of IIDs that have been assigned for each class of input.
 *                  See UTL_PHash.[ch] for a more complete description.
 *           gkp.frg A GateKeeperFragmentStore.  An array of GateKeeperFragmentRecords (see AS_PER_GkpStore.h)
@@ -59,8 +59,6 @@ static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.10 2007-01-27 00:30:10 brianwalenz
 *                  One record per DST record.
 *           gkp.s_dst A GateKeeperDistanceStore.  An array of GateKeeperDistanceRecords (see AS_PER_GkpStore.h)
 *                  One record for each redefinition of a DST.
-*           gkp.scn A GateKeeperScreenStore.  An array of GateKeeperScreenRecords (see AS_PER_GkpStore.h)
-*                  One record per SCN record.
 *           gkp.seq A GateKeeperSequenceStore.  An array of GateKeeperSequenceRecords (see AS_PER_GkpStore.h)
 *                  One record per SEQ record.
 
@@ -837,31 +835,6 @@ int ReadFile(int check_qvs,
 
       }
       break;
-    case MESG_SCN:
-      {
-	ScreenItemMesg *scn_mesg = (ScreenItemMesg *)pmesg->m;
-	InternalScreenItemMesg isn_mesg;
-
-#ifdef DEBUGIO
-	fprintf(Msgfp,"Read SCN message with eaccession " F_UID "\n", 
-		scn_mesg->eaccession);
-#endif
-
-	if(GATEKEEPER_SUCCESS == 
-	   Check_ScreenItemMesg(scn_mesg, &isn_mesg, currentBatchID,  verbose)){
-	   pmesg->m = &isn_mesg;
-	   pmesg->t = MESG_ISN;
-	  Writer(Outfp,pmesg);
-	}else{
-	  fprintf(Msgfp,"# Line %d of input\n", GetProtoLineNum_AS());
-	   ErrorWriter(Msgfp,pmesg);      
-	  if(incrementErrors(1, Msgfp) == GATEKEEPER_FAILURE){
-	    return GATEKEEPER_FAILURE;
-	  }
-	}
-      }
-      break;
-
 
     case MESG_DST:
       {
@@ -1005,7 +978,7 @@ int ReadFile(int check_qvs,
 
 	Writer((assembler == AS_ASSEMBLER_OVERLAY?Ignfp:Outfp),pmesg);
         /*
-	fprintf(stderr,"# GateKeeper $Revision: 1.10 $\n");
+	fprintf(stderr,"# GateKeeper $Revision: 1.11 $\n");
 	ErrorWriter(Msgfp,pmesg);
         */
         free(params);
@@ -1093,9 +1066,6 @@ void printGKPError(FILE *fout, GKPErrorType type){
     break;
   case GKPError_BadUniqueSEQ:
     fprintf(fout,"# GKP Error %d: UID of Sequence definition was previously seen\n",(int)type);
-    break;
-  case GKPError_BadUniqueSCN:
-    fprintf(fout,"# GKP Error %d: UID of Screen definition was previously seen\n",(int)type);
     break;
 
   case GKPError_MissingFRG:
@@ -1204,13 +1174,6 @@ void printGKPError(FILE *fout, GKPErrorType type){
     fprintf(fout,"# GKP Error %d: DST mean,stddev must be >0 and mean must be >= 3 * stddev\n",(int)type);
     break;
   
-  case GKPError_SCNVariation:
-    fprintf(fout,"# GKP Error %d: SCN variation out of bounds\n",(int)type);
-    break;
-  case GKPError_SCNminLength:
-    fprintf(fout,"# GKP Error %d: SCN min length out of bounds\n",(int)type);
-    break;
-
   case GKPError_IncompleteOAInput:
     fprintf(fout,"# GKP Error %d: Overlay Assembler Requires that a Bactig and its\n",(int)type);
     fprintf(fout,"#               associated fragment must appear in the same batch\n");

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_MSG_bmesg.c,v 1.10 2007-01-27 00:30:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_MSG_bmesg.c,v 1.11 2007-01-28 21:52:24 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -144,17 +144,6 @@ static void PutString(FILE *fout, char *text)
 
 /******************** INPUT ROUTINES ***************************/
 
-/*  Routine to input each type of proto-IO message. */
-
-static void Read_SCN_Mesg(FILE *fin, void *vmesg)
-{ ScreenItemMesg *smesg = (ScreenItemMesg *) vmesg;
-
-  smesg->source   = (char *) GetString(fin);
-  smesg->sequence = (char *) GetString(fin);
-  smesg->source   = MemBuffer + (long) (smesg->source);
-  smesg->sequence = MemBuffer + (long) (smesg->sequence);
-}
-
 static int Read_ADL_Struct(long last, FILE *fin)
 { 
   AuditLine mesg; // temporary
@@ -206,40 +195,6 @@ static void Read_ADT_Mesg(FILE *fin, void *vmesg)
   amesg->list = tail;
 }
 
-static void Read_ISM_List(FILE *fin, IntScreenMatch **list)
-{ IntScreenMatch *cptr, *tail;
-  long         crnt;
-  int          idx;
-
-  FREAD(&idx,sizeof(idx),1,fin);
-  crnt = MoreSpace(sizeof(IntScreenMatch)*idx,8);
-  cptr = (IntScreenMatch *) (MemBuffer + crnt);
-  FREAD(cptr,sizeof(IntScreenMatch),idx,fin);
-  tail = NULL;
-  while (idx-- > 0)
-    { cptr[idx].next = tail;
-      tail = cptr + idx;
-    }
-  *list = tail;
-}
-
-static void Read_SMA_List(FILE *fin, ScreenMatch **list)
-{ ScreenMatch *cptr, *tail;
-  long         crnt;
-  int          idx;
-
-  FREAD(&idx,sizeof(idx),1,fin);
-  crnt = MoreSpace(sizeof(ScreenMatch)*idx,8);
-  cptr = (ScreenMatch *) (MemBuffer + crnt);
-  FREAD(cptr,sizeof(ScreenMatch),idx,fin);
-  tail = NULL;
-  while (idx-- > 0)
-    { cptr[idx].next = tail;
-      tail = cptr + idx;
-    }
-  *list = tail;
-}
-
 static void Read_Frag_Mesg(FILE *fin, void *vmesg, int frag_class)
 { ScreenedFragMesg *fmesg = (ScreenedFragMesg *) vmesg;
 
@@ -250,8 +205,6 @@ static void Read_Frag_Mesg(FILE *fin, void *vmesg, int frag_class)
           fmesg->sequence = (char *) GetString(fin);
           fmesg->quality  = (char *) GetString(fin);
         }
-      if (frag_class == 1)
-        Read_ISM_List(fin,&(fmesg->screened));
       fmesg->source   = MemBuffer + ((long) (fmesg->source));
       if(frag_class < 2)
         {
@@ -269,9 +222,6 @@ static void Read_SFG_Mesg(FILE *fin, void *vmesg)
 
 static void Read_OFG_Mesg(FILE *fin, void *vmesg)
 { Read_Frag_Mesg(fin,vmesg,2); }
-
-static void Read_OFR_Mesg(FILE *fin, void *vmesg)
-{ Read_Frag_Mesg(fin,vmesg,3); }
 
 static void Read_OVL_Mesg(FILE *fin, void *vmesg)
 { OverlapMesg *omesg = (OverlapMesg *) vmesg;
@@ -404,8 +354,6 @@ static void Read_ISL_Mesg(FILE *fin, void *vmesg)
 static void Read_AFG_Mesg(FILE *fin, void *vmesg)
 {
   AugFragMesg *mesg = (AugFragMesg *) vmesg;
-
-  Read_SMA_List(fin, &(mesg->screened));
 }
 
 static void Read_ISF_Mesg(FILE *fin, void *vmesg)
@@ -739,15 +687,6 @@ static void Read_EOF_Mesg(FILE *fin, void *vmesg)
 
 /******************** OUTPUT ROUTINES ***************************/
 
-/*  Routine to output each type of proto-IO message. */
-
-static void Write_SCN_Mesg(FILE *fout, void *vmesg)
-{ ScreenItemMesg *mesg = (ScreenItemMesg *) vmesg;
-
-  PutString(fout,mesg->source);
-  PutString(fout,mesg->sequence);
-}
-
 static void Write_ADL_Struct(FILE *fout, AuditLine *mesg)
 { FWRITE(mesg,sizeof(AuditLine),1,fout);
   PutString(fout,mesg->name);
@@ -768,30 +707,6 @@ static void Write_ADT_Mesg(FILE *fout, void *vmesg)
     Write_ADL_Struct(fout,a);
 }
 
-static void Write_ISM_List(FILE *fout, IntScreenMatch *list)
-{ IntScreenMatch *a;
-  int          len;
-
-  len = 0;
-  for (a = list; a != NULL; a = a->next)
-    len += 1;
-  FWRITE(&len,sizeof(len),1,fout);
-  for (a = list; a != NULL; a = a->next)
-    FWRITE(a,sizeof(IntScreenMatch),1,fout);
-}
-
-static void Write_SMA_List(FILE *fout, ScreenMatch *list)
-{ ScreenMatch *a;
-  int          len;
-
-  len = 0;
-  for (a = list; a != NULL; a = a->next)
-    len += 1;
-  FWRITE(&len,sizeof(len),1,fout);
-  for (a = list; a != NULL; a = a->next)
-    FWRITE(a,sizeof(ScreenMatch),1,fout);
-}
-
 static void Write_Frag_Mesg(FILE *fout, void *vmesg, int frag_class)
 { ScreenedFragMesg *mesg = (ScreenedFragMesg *) vmesg;
 
@@ -802,8 +717,6 @@ static void Write_Frag_Mesg(FILE *fout, void *vmesg, int frag_class)
           PutString(fout,mesg->sequence);
           PutString(fout,mesg->quality);
         }
-      if (frag_class == 1)
-        Write_ISM_List(fout,mesg->screened);
     }
 }
 
@@ -815,9 +728,6 @@ static void Write_SFG_Mesg(FILE *fout, void *vmesg)
 
 static void Write_OFG_Mesg(FILE *fout, void *vmesg)
 { Write_Frag_Mesg(fout,vmesg,2); }
-
-static void Write_OFR_Mesg(FILE *fout, void *vmesg)
-{ Write_Frag_Mesg(fout,vmesg,3); }
 
 static void Write_OVL_Mesg(FILE *fout, void *vmesg)
 { OverlapMesg *omesg = (OverlapMesg *) vmesg;
@@ -897,8 +807,6 @@ static void Write_ISL_Mesg(FILE *fout, void *vmesg)
 static void Write_AFG_Mesg(FILE *fout, void *vmesg)
 {
   AugFragMesg *mesg = (AugFragMesg *) vmesg;
-
-  Write_SMA_List(fout,mesg->screened);
 }
 
 static void Write_ISF_Mesg(FILE *fout, void *vmesg)
@@ -1209,9 +1117,9 @@ static callrecord CallTable[] = {
   { NULL,          NULL,           sizeof(LinkMesg) },
   { NULL,          NULL,           sizeof(InternalLinkMesg) },
   { NULL,          NULL,           sizeof(DistanceMesg) },
+  { NULL,          NULL,           0l },
+  { NULL,          NULL,           0l },
   { NULL,          NULL,           sizeof(InternalDistMesg) },
-  { Read_SCN_Mesg, Write_SCN_Mesg, sizeof(ScreenItemMesg) },
-  { Read_SCN_Mesg, Write_SCN_Mesg, sizeof(InternalScreenItemMesg) },
   { NULL,          NULL,           sizeof(InternalDistMesg) },
   { Read_OVL_Mesg, Write_OVL_Mesg, sizeof(OverlapMesg) },
   { NULL,          NULL,           sizeof(BranchMesg) },
@@ -1254,7 +1162,7 @@ static callrecord CallTable[] = {
 #else
   { NULL,          NULL,           sizeof(FragOverlapMesg) },
 #endif
-  { Read_OFR_Mesg, Write_OFR_Mesg, sizeof(OFRMesg) },
+  { NULL, NULL, 0l },
   { NULL, NULL, 0l },
   { NULL, NULL, 0l },
   { NULL, NULL, 0l },

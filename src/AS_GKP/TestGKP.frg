@@ -326,47 +326,6 @@ act:D
 acc:2001
 }
 #
-{RPT
-rpt:1
-wch:ALU333
-len:300
-}
-# Try to send the same RPT twice
-{RPT
-rpt:1
-wch:ALU333
-len:300
-}
-#
-{SCN
-typ:U
-acc:3333
-rpt:1
-rel:3
-src:
-Hey guys
-.
-seq: 
-accccccccccccccccccccccccccccccccccccccccttttttttttttttttttttttt
-.
-var:0.1
-min:50
-}
-#
-{SCN
-typ:U
-acc:3333
-rpt:12
-rel:3
-src:
-Hey guys
-.
-seq: 
-accccccccccccccccccccccccccccccccccccccccttttttttttttttttttttttt
-.
-var:0.1
-min:50
-}
 #
 #
 {FRG

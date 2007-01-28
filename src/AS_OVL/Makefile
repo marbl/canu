@@ -44,7 +44,7 @@ LIBOBJECTS = $(LIBSOURCES:.c=.o)
 OLAPSTORE_SRCS = DumpOlapStoreOVL.c ForceEratesOVL.c GrowOlapStoreOVL.c UpdateEratesOVL.c
 OLAPSTORE_OBJS = $(OLAPSTORE_SRCS:.c=.o)
 
-SCREEN_SRCS = screen_analyze.c frag-anomaly.c screen-anomaly.c AutoScreenOVL.c \
+SCREEN_SRCS = frag-anomaly.c AutoScreenOVL.c \
   CombineMUMsOVL.c RemoveDupScreenOVL.c removedups.c
 SCREEN_OBJS = $(SCREEN_SRCS:.c=.o)
 
@@ -52,7 +52,7 @@ SCRIPT_SRCS = CorrectScriptOVL.c MakeScriptOVL.c NewBactigScriptOVL.c NewFragScr
 SCRIPT_OBJS = $(SCRIPT_SRCS:.c=.o)
 
 TOOL_SRCS = get-degrees.c get-subgraph.c get-iidgraph.c get-uid-olaps.c \
-  iid2fastaOVL.c isn2frgOVL.c LastFragInStoreOVL.c \
+  iid2fastaOVL.c LastFragInStoreOVL.c \
   fgbovlhits.c ModifyClearRangeOVL.c rev-olaps.c Hit_Limit_OVL.c
 TOOL_OBJS = $(TOOL_SRCS:.c=.o)
 
@@ -73,12 +73,12 @@ AS_OVL_PROGS = overlap overlap_ca
 CORRECT_PROGS = correct-frags show-corrects correct-olaps delete-olaps filter-olaps \
   cat-corrects cat-erates
 OLAPSTORE_PROGS = dump-olap-store force-erates grow-olap-store update-erates
-SCREEN_PROGS = screen_analyze frag-anomaly screen-anomaly auto-screen combine-mums \
+SCREEN_PROGS = frag-anomaly auto-screen combine-mums \
   remove-dup-screen removedups
 SCRIPT_PROGS = correct-script make-ovl-script make-newbactigovl-script \
   make-newfragovl-script
 TOOL_PROGS = get-degrees get-subgraph get-iidgraph get-uid-olaps iid2fasta \
-  isn2frg lastfraginstore olapcoverage fgbovlhits modify-clear-range \
+  lastfraginstore olapcoverage fgbovlhits modify-clear-range \
   rev-olaps hit-limit
 
 PROGS = $(AS_OVL_PROGS) $(CORRECT_PROGS) $(SCREEN_PROGS) $(SCRIPT_PROGS) \
@@ -158,8 +158,6 @@ hit-limit:  Hit_Limit_OVL.o $(SYS_LIBRARIES)
 
 iid2fasta:  iid2fastaOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
 
-isn2frg:  isn2frgOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
-
 lastfraginstore:  LastFragInStoreOVL.o  $(AS_LIBRARIES) $(SYS_LIBRARIES)
 
 make-newbactigovl-script:  NewBactigScriptOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
@@ -179,10 +177,6 @@ remove-dup-screen:  RemoveDupScreenOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_
 removedups:  removedups.o  AS_OVL_delcher.o libAS_UTL.a
 
 rev-olaps:  rev-olaps.o
-
-screen_analyze:  screen_analyze.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
-
-screen-anomaly:  screen-anomaly.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
 
 show-corrects:  ShowCorrectsOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
 

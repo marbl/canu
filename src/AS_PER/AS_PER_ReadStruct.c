@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_ReadStruct.c,v 1.7 2006-05-18 18:30:31 vrainish Exp $";
+static char CM_ID[] = "$Id: AS_PER_ReadStruct.c,v 1.8 2007-01-28 21:52:25 brianwalenz Exp $";
 /*************************************************************************
  Module:  AS_PER_ReadStruct
  Description:
@@ -81,8 +81,6 @@ void        clear_ReadStruct(ReadStructp r){
  setEntryTime_ReadStruct(FR,0);
  setLocID_ReadStruct(FR, 0);
  setLocalePos_ReadStruct(FR, 0,0);
- setScreenMatches_ReadStruct(FR, 0, NULL);
- // setHasModifiedClearRange(FR,0);  // not used
  FR->frag.deleted=0;
  FR->frag.hasQuality=0;
  FR->frag.hasOVLClearRegion=0;
@@ -165,25 +163,7 @@ int dump_ReadStruct(ReadStructp rs, FILE *fout, int clearRangeOnly){
 #endif
 
   }
-  if(fr->frag.numScreenMatches > 0){
-    IntScreenMatch *m = fr->matches;
-    int i;
-    fprintf(fout,"\tScreen Matches (%d)\n",
-	    fr->frag.numScreenMatches);
-    for(i = 0, m = fr->matches; m != NULL; m = m->next, i++){
-      fprintf(fout,"\t %d (" F_COORD "," F_COORD ") w:" F_IID " r:%d (" F_COORD "," F_COORD ") %c\n",
-	      i, 
-	      m->where.bgn,
-	      m->where.end,
-	      m->iwhat,
-	      m->relevance,
-	      m->portion_of.bgn,
-	      m->portion_of.end,
-	      m->direction);
-    }
-  }
-   return(0);
-
+  return(0);
 }
 
 
@@ -279,26 +259,6 @@ int setSource_ReadStruct(ReadStructp rs, const char *src){
 
   FR->flags |= FRAG_S_SOURCE;
   strcpy(FR->source,src);
-   return(0);
-}
-
-/***************************************************************************/
-int setScreenMatches_ReadStruct(ReadStructp rs, int numScreenMatches, IntScreenMatch *matches){
- 
-  int i;
-  FragRecord *FR = (FragRecord *)rs;
-  IntScreenMatch *in_matches=matches;
-  
-  assert(numScreenMatches < MAX_SCREEN_MATCH);
-  FR->frag.numScreenMatches = numScreenMatches;
-
-  // Chain down the list, don't fix up the next pointer value.  We do this on a get
-  for (i=0;i<numScreenMatches;i++) {
-    AssertPtr(in_matches);
-    FR->matches[i] = *in_matches;
-    in_matches = in_matches->next;
-  }
-
    return(0);
 }
 
@@ -403,43 +363,6 @@ int getSource_ReadStruct(ReadStructp rs, char *src, int length){
     return 0;
   }
   strcpy(src,FR->source);
-  return(0);
-
-}
-
-/***************************************************************************/
-
-int getNumScreenMatches_ReadStruct(ReadStructp rs){
-  FragRecord *FR = (FragRecord *)rs;
-  
-  return(FR->frag.numScreenMatches);
-}
-
-/***************************************************************************/
-
-int getScreenMatches_ReadStruct
-(ReadStructp rs, IntScreenMatch *matches, int length)
-{
-  int i;
-  FragRecord *fr = (FragRecord *)rs;
-  
-  if(fr->frag.numScreenMatches == 0)
-    return 0;
-
-  if(length < fr->frag.numScreenMatches){
-    return fr->frag.numScreenMatches;
-  }
-
-  // Copy the data
-  memcpy((char *)matches, (char *)fr->matches,  fr->frag.numScreenMatches * sizeof(IntScreenMatch));
-
-  // Adjust the next pointers to be meaningful
-  for (i=0;i<fr->frag.numScreenMatches - 1;i++) {
-    matches[i].next = matches + i + 1;
-  }
-  // Last one is NULL
-  matches[fr->frag.numScreenMatches - 1].next = NULL;
-
   return(0);
 
 }

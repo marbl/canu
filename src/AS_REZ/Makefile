@@ -68,7 +68,7 @@ LIN_ALG_LIB = libAS_LIN.a
 #LIN_ALG_LIB = libdxml.so
 #endif
 
-ARTSOURCES = batchify.c chunk_analyze.c screen-degrees.c screen-olaps.c OverlapChunks.c
+ARTSOURCES = batchify.c chunk_analyze.c OverlapChunks.c
 
 #MHETSOURCES =  MicroHetREZ.c MicroHetSimulatorREZ.c CheckDistributionREZ. PartitionsREZ.c ScoreREZ.c MicroHetPartitionsREZ.c MicroHetScoreREZ.c MicroHetIUMREZ.c MicroHetInterfaceREZ.c
 MHETSOURCES =   MicroHetSimulatorREZ.c CheckDistributionREZ. PartitionsREZ.c ScoreREZ.c \
@@ -95,10 +95,7 @@ LIBOBJECTS = $(LIBSOURCES:.c=.o)
 
 LIBRARIES = libAS_REZ.a libCA.a
 
-# PROGS = batchify chunk_analyze getrep pc screen-degrees screen-olaps st st2 mh
-#PROGS = batchify chunk_analyze screen-degrees screen-olaps  microhet-simulator  greedy-overlap microhet length-adaption extract-quality-uoms
-#PROGS = batchify chunk_analyze screen-degrees screen-olaps microhet-simulator microhet microhet-pairsim microhet-test3
-PROGS = batchify chunk_analyze screen-degrees screen-olaps microhet-test3 MicroHetIUMdiffsPrint
+PROGS = batchify chunk_analyze microhet-test3 MicroHetIUMdiffsPrint
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -134,10 +131,6 @@ Output_CGW.o Input_CGW.o TransitiveReduction_CGW.o\
 ChunkOverlap_CGW.o SplitScaffolds_CGW.o
 
 extract-quality-uoms : ExtractQualityREZ.o libCA.a
-
-screen-degrees:  screen-degrees.o libAS_MSG.a libAS_UTL.a
-
-screen-olaps:  screen-olaps.o libAS_MSG.a libAS_UTL.a
 
 microhet : MicroHetIUMREZ.o MicroHetREZ.o MicroHetPartitionsREZ.o MicroHetScoreREZ.o MicroHetInterfaceREZ.o  libCA.a
 

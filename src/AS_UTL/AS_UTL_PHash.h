@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_UTL_PHash.h,v 1.4 2005-03-22 19:49:29 jason_miller Exp $	 */
+/* 	$Id: AS_UTL_PHash.h,v 1.5 2007-01-28 21:52:25 brianwalenz Exp $	 */
 #ifndef AS_UTL_PHASH_H
 #define AS_UTL_PHASH_H
 /*************************************************************************
@@ -41,8 +41,8 @@
  *************************************************************************/
 
 /* RCS Info
- * $Id: AS_UTL_PHash.h,v 1.4 2005-03-22 19:49:29 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: AS_UTL_PHash.h,v 1.5 2007-01-28 21:52:25 brianwalenz Exp $
+ * $Revision: 1.5 $
  *
  */
 
@@ -72,18 +72,16 @@
 
 #define AS_IID_MIN 0
 
-#define AS_IID_RPT 0
-#define AS_IID_FRAG 1
-#define AS_IID_DST 2
-#define AS_IID_SCN 3
-#define AS_IID_LOC 4   // locale == bac ID
-#define AS_IID_SEQ 5   // sequence ID
-#define AS_IID_BTG 6    // bactig
-#define AS_IID_PLA 7
-#define AS_IID_LIB 8
-#define AS_IID_BAT 9   // Batch
-#define AS_IID_DON 10
-#define AS_IID_MAX 10
+#define AS_IID_FRG 0
+#define AS_IID_DST 1
+#define AS_IID_LOC 2   // locale == bac ID
+#define AS_IID_SEQ 3   // sequence ID
+#define AS_IID_BTG 4    // bactig
+#define AS_IID_PLA 5
+#define AS_IID_LIB 6
+#define AS_IID_BAT 7   // Batch
+#define AS_IID_DON 8
+#define AS_IID_MAX 8
 
 extern const char * const String_AS_IID[AS_IID_MAX + 2];
 
@@ -110,8 +108,6 @@ typedef struct {
 /* Values for the PHashNode_AS nameSpace field */
 #define AS_INVALID_NAMESPACE 0
 #define AS_UID_NAMESPACE 1
-//#define AS_REPEATID_NAMESPACE 2
-//#define AS_LOCALEID_NAMESPACE 3
 
 /* PHashNode_AS
  *   This is the basic elements stored in the hash table.
@@ -439,7 +435,7 @@ int LookupInPHashTable_AS(PHashTable_AS *table, char nameSpace, CDS_UID_t key, P
  *     table         * to a PHashTable_AS.  
  *     nameSpace     char                 Keys in different namespaces are orthogonal
  *     key           64-bit key
- *     uint32        type (AS_IID_FRAG, AS_IID_DST, AS_IID_SCN, etc)
+ *     uint32        type (AS_IID_FRG, AS_IID_DST, etc)
  *     int           reportFailure
  *     FILE*         msgFile
  * Input/Outputs

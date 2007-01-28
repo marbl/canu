@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_GKP_check.c,v 1.8 2007-01-27 00:30:10 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_check.c,v 1.9 2007-01-28 21:52:24 brianwalenz Exp $";
 
 //#define DEBUG_GKP 1
 #define DEBUG_GKP_VERBOSE 1
@@ -270,7 +270,6 @@ int Check_BatchMesg(BatchMesg *bat_mesg,
   gkpbat.numBactigs = getNumGateKeeperBactigs(GkpStore.btgStore);
   gkpbat.numDistances = getNumGateKeeperDistances(GkpStore.dstStore);
   gkpbat.num_s_Distances = getNumGateKeeperDistances(GkpStore.s_dstStore);
-  gkpbat.numScreens = getNumGateKeeperScreens(GkpStore.scnStore);
   gkpbat.numLinks = getNumGateKeeperLinks(GkpStore.lnkStore);
   gkpbat.numSequences = getNumGateKeeperSequences(GkpStore.seqStore);
 
@@ -321,7 +320,7 @@ int Check_LinkMesg(LinkMesg *lkg_mesg,
   if(HASH_SUCCESS != LookupTypeInPHashTable_AS(GkpStore.hashTable, 
 					       UID_NAMESPACE_AS,
 					       lkg_mesg->frag1, 
-					       AS_IID_FRAG, 
+					       AS_IID_FRG, 
 					       FALSE,
 					       Msgfp,
 					       &value)){
@@ -339,7 +338,7 @@ int Check_LinkMesg(LinkMesg *lkg_mesg,
   if(HASH_SUCCESS != LookupTypeInPHashTable_AS(GkpStore.hashTable, 
 					       UID_NAMESPACE_AS,
 					       lkg_mesg->frag2, 
-					       AS_IID_FRAG, 
+					       AS_IID_FRG, 
 					       FALSE,
 					       Msgfp,
 					       &value)){
@@ -711,142 +710,6 @@ int Check_LinkMesg(LinkMesg *lkg_mesg,
   return GATEKEEPER_SUCCESS;
 
 }
-
-
-
-/***********************************************************************************/
-
-int Check_ScreenItemMesg(ScreenItemMesg *scn_mesg,  
-			 InternalScreenItemMesg *isn_mesg,  
-			 CDS_CID_t currentBatchID, 
-			 int verbose){
-  PHashValue_AS value;
-  GateKeeperScreenRecord gkpscn;
-  
-  memset(&gkpscn, 0, sizeof(gkpscn));
-  gkpscn.deleted = FALSE;
-  gkpscn.spare = 0;
-  gkpscn.UID = scn_mesg->eaccession;
-  gkpscn.birthBatch = (uint16) currentBatchID;
-  gkpscn.deathBatch = 0;
-
-  Transfer_SCN_to_ISN_AS(scn_mesg, isn_mesg);
-
-  switch(scn_mesg->action){
-  case AS_ADD:
-
-  if(HASH_FAILURE != LookupTypeInPHashTable_AS(GkpStore.hashTable, 
-					       UID_NAMESPACE_AS,
-					       scn_mesg->eaccession, 
-					       AS_IID_SCN, 
-					       FALSE,
-					       Msgfp,
-					       &value)){
-
-    fprintf(Msgfp,"# ScreenItem: A message with UID " F_UID " already exists!!! Can't add it... \n",
-	    scn_mesg->eaccession);
-    return(GATEKEEPER_FAILURE);
-  }
-  isn_mesg->iaccession = value.IID;
-  break;
-
-  case AS_DELETE:
-  case AS_UPDATE:
-  if(HASH_FAILURE != LookupTypeInPHashTable_AS(GkpStore.hashTable, 
-					       UID_NAMESPACE_AS,
-					       scn_mesg->eaccession, 
-					       AS_IID_SCN, 
-					       FALSE,
-					       Msgfp,
-					       &value)){
-
-    fprintf(Msgfp,"# ScreenItem " F_UID " does NOT exist!!! Can't %s it... \n",
-	    scn_mesg->eaccession, (scn_mesg->action == AS_DELETE?"delete":"update"));
-    return(GATEKEEPER_FAILURE);
-  }
-  break;
-
-  default:
-    fprintf(Msgfp,"# ScreenItem " F_UID " has an illegal action\n",
-	    scn_mesg->eaccession);
-    return GATEKEEPER_FAILURE;
-  }
-
-
-  if(scn_mesg->action == AS_DELETE){
-    deleteAndMarkGateKeeperScreenStore(GkpStore.scnStore, value.IID, currentBatchID);
-    DeleteFromPHashTable_AS(GkpStore.hashTable,UID_NAMESPACE_AS, scn_mesg->eaccession);
-    return GATEKEEPER_SUCCESS;
-  }
-
-
-  if(scn_mesg->min_length < GATEKEEPER_SCREENER_MIN_LENGTH){
-    fprintf(Msgfp,"# ScreenItemMessage: invalid min_length " F_COORD "\n", scn_mesg->min_length);
-    return GATEKEEPER_FAILURE;
-  }
-
-  if(scn_mesg->variation > 1.0 ||
-     scn_mesg->variation < 0.0){
-    fprintf(Msgfp,"# Check_ScreenItemMessage: invalid variation %g\n", scn_mesg->variation);
-    return GATEKEEPER_FAILURE;
-  }
-  switch(scn_mesg->type){
-    
-  case AS_UBIQREP:
-    break;
-  case AS_CONTAMINANT:
-    break;
-  default:
-    fprintf(Msgfp,"# Check_ScreenItemMessage: invalid type %c\n", scn_mesg->type);
-    return GATEKEEPER_FAILURE;
-  }
-
-  if(HASH_FAILURE == LookupTypeInPHashTable_AS(GkpStore.hashTable, 
-					       UID_NAMESPACE_AS,
-					       scn_mesg->erepeat_id, 
-					       AS_IID_RPT,
-					       FALSE,
-					       Msgfp,
-					       &value)){
-
-    fprintf(Msgfp,"# ScreenItem references undefined repeat_id " F_UID "!!! Can't add it... \n",
-	    scn_mesg->erepeat_id);
-    return(GATEKEEPER_FAILURE);
-  }
-  isn_mesg->irepeat_id = value.IID;
-  gkpscn.repeatID = value.IID;
-
-  {
-    char *s;
-    int seqLength;
-    if(GATEKEEPER_FAILURE == checkSequence(scn_mesg->sequence, &s, &seqLength)){
-      fprintf(Msgfp,"# ScreenItem: Invalid char %c at position " F_SIZE_T " in sequence\n",
-	      *s, s - scn_mesg->sequence);
-      return GATEKEEPER_FAILURE;
-    }
-  }
-	
-  if(scn_mesg->action == AS_ADD){
-    value.type = AS_IID_SCN;
-    InsertInPHashTable_AS(&GkpStore.hashTable, UID_NAMESPACE_AS, scn_mesg->eaccession, &value, FALSE, TRUE);
-    isn_mesg->iaccession = value.IID;
-    AddRefPHashTable_AS(GkpStore.hashTable, UID_NAMESPACE_AS, scn_mesg->erepeat_id);
-    appendGateKeeperScreenStore(GkpStore.scnStore, &gkpscn);
-    
-    fprintf(stderr,
-            "* Appended scn uid:" F_UID " iid:" F_IID " rptid:" F_IID "\n",
-    	    gkpscn.UID, isn_mesg->iaccession, gkpscn.repeatID);
-    
-  }else{
-    setGateKeeperScreenStore(GkpStore.scnStore,isn_mesg->iaccession,&gkpscn);
-  }
-  return GATEKEEPER_SUCCESS;
-
-}
-
-
-
-
 
 
 

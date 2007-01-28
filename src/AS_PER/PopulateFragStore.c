@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: PopulateFragStore.c,v 1.7 2007-01-27 00:30:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: PopulateFragStore.c,v 1.8 2007-01-28 21:52:25 brianwalenz Exp $";
 
 /*************************************************
 * Module:  PopulateFragStore.c
@@ -484,10 +484,6 @@ int  main(int argc, char * argv [])
  *  Read up to maxFrags, but maybe a little less.
  *
  ************************************************************************************/
-VA_DEF(IntScreenMatch)
-static VA_TYPE(IntScreenMatch) *ScreenMatches = NULL;
-
-
 
 static int  ReadFrags(int maxFrags, 
 		      FragStoreHandle oldFragStore, DistStore oldDistStore, 
@@ -661,22 +657,6 @@ static int  ReadFrags(int maxFrags,
               exit(1);
             }
 
-
-	    /*** Make the screen matches into an array ***/
-            if  (sfg_mesg -> screened != NULL){
-	      IntScreenMatch *p;
-	      if(ScreenMatches == NULL){
-		ScreenMatches = CreateVA_IntScreenMatch(512);
-	      }else{
-		ResetIntScreenMatch(ScreenMatches);
-	      }
-
-	      for  (p = sfg_mesg -> screened;  p != NULL;  p = p -> next)
-		{
-		  AppendIntScreenMatch(ScreenMatches, p);
-		}
-	    }
-
             nextFrag++;
 
             {
@@ -700,13 +680,6 @@ static int  ReadFrags(int maxFrags,
 	      // changed by Knut Reinert
 	      // due to gatekeeper changes
               setLocID_ReadStruct(myRead,ofg_mesg.ilocale);
-              if  (sfg_mesg -> screened != NULL)
-              {
-                IntScreenMatch *matches = GetIntScreenMatch(ScreenMatches,0);
-                setScreenMatches_ReadStruct(myRead, GetNumIntScreenMatchs(ScreenMatches), matches);
-              }else{
-                setScreenMatches_ReadStruct(myRead, 0, NULL);
-              }
               total_len += clear_len;
 
               appendFragStore(newFragStore, myRead);

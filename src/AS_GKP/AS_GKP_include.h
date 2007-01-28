@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_GKP_include.h,v 1.9 2007-01-27 00:30:10 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.10 2007-01-28 21:52:24 brianwalenz Exp $ */
 
 /*************************************************
 * Module:  AS_GKP_include.h
@@ -57,9 +57,8 @@
 #define AS_ASSEMBLER_OVERLAY ((int)'O')
 #define AS_ASSEMBLER_OBT     ((int)'T')
 
-/* The persistent symbol table has 3 name spaces, UIDs,RPDIDs,LOCALEIDs */
+/* The persistent symbol table has 3 name spaces, UIDs,LOCALEIDs */
 #define UID_NAMESPACE_AS 'U'
-#define RPTID_NAMESPACE_AS 'R'
 #define LOCALEID_NAMESPACE_AS 'L'
 
 extern MesgReader Reader;
@@ -154,34 +153,6 @@ int Check_FragMesg(FragMesg *frg_mesg,
 		   int assembler,
 		   int verbose);
 
-
-/***********************************************************************************
- * Function: Check_ScreenItemMesg
- * Description:
- *     Check ScreenItem message for correctness.
- *     Maps UIDs to IIDs.
- * Checks:
- *    1) UID of message hasn't been previously seen
- *    2) If variation in range [0,1]  
- *    3) Type is either UR or Contaminent
- *    4) Repeat ID has been previously defined
- *    5) Sequence is a string on [atcgnACTGN]
- *    6) min_length is >= GATEKEEPER_SCREENER_MIN_LENGTH
- * Inputs:
- *     scn_mesg      *ScreenItemMesg
- *
- * I/O
- *     isn_mesg      *InternalScreenItemMesg -- filled in by this call, valid if return is SUCCESS
- *     hashtable     PHashTable_AS
- *     msgFile       FILE * for diagnostic output.
- * Return Value:
- *     GATEKEEPER_SUCCESS if success. 
- *     GATEKEEPER_FAILURE if failue.
- ***********************************************************************************/
-int Check_ScreenItemMesg(ScreenItemMesg *scn_mesg,  
-		         InternalScreenItemMesg *isn_mesg,  
-			 CDS_CID_t batchID,
-			 int verbose);
 
 /***********************************************************************************
  * Function: Check_LinkMesg
@@ -344,7 +315,6 @@ typedef enum GKPErrorType_tag{
   GKPError_BadUniqueBAC,
   GKPError_BadUniqueBTG,
   GKPError_BadUniqueSEQ,
-  GKPError_BadUniqueSCN,
 
   GKPError_MissingFRG=200,
   GKPError_MissingDST,
@@ -391,9 +361,6 @@ typedef enum GKPErrorType_tag{
 
   GKPError_DSTValues = 800,
   
-  GKPError_SCNVariation=900,
-  GKPError_SCNminLength,
-
   GKPError_MAX
   
 }GKPErrorType;

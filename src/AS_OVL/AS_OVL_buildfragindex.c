@@ -34,7 +34,7 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_buildfragindex.c,v 1.5 2006-09-26 21:07:45 brianwalenz Exp $
+ * $Id: AS_OVL_buildfragindex.c,v 1.6 2007-01-28 21:52:24 brianwalenz Exp $
  */
 
 #include "AS_global.h"
@@ -331,12 +331,6 @@ int  Read_Frag_Mesg
            (* Skip) = TRUE;
            return  TRUE;
           }
-      /* A HACK!! */
-      { 
-	char goop[4096];
-	if(Get_String_Field ("scn", goop, 4096, FALSE) == 0)
-          assert(0);
-      }
       
       if  (Frag -> Clear_Begin < 0
               || Frag -> Clear_End <= Frag -> Clear_Begin

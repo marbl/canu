@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_unitigger.c,v 1.7 2006-10-16 16:49:34 brianwalenz Exp $";
+= "$Id: AS_CGB_unitigger.c,v 1.8 2007-01-28 21:52:24 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_unitigger.c
@@ -82,63 +82,9 @@ static void output_OVL_mesgs
  /* Append Only*/
  FILE *fcgb)
 {
-#if 0
-  const int nsample=500;
-  const int nbucket=500;
-  Histogram_t *ovl_types_histogram =
-    create_histogram(nsample,nbucket,TRUE,FALSE);
-#endif
   
   assert(NULL != frags);
   assert(NULL != edges);
-#if 0
-  // Output the IBA and ADT messages from the batches:
-  if(NULL != filk) {
-    MesgReader ReadMesg_AS = InputFileType_AS(filk);
-    GenericMesg *pmesg = NULL;
-    while(EOF != ReadMesg_AS(filk,&pmesg)) {
-      WriteMesg_AS(fcgb,pmesg);
-    }
-  }
-#endif
-#if 0  
-  // Output the OFG or OFR messages:
-  if(NULL != fcgb) {
-    const IntFragment_ID nfrag = GetNumFragments(frags);
-    IntFragment_ID iv;
-    for(iv=0;iv<nfrag;iv++){
-      OFGMesg ofg_mesg;
-
-      ofg_mesg.action     = (get_del_fragment(frags,iv)
-                             ? AS_DELETE : AS_ADD);
-      ofg_mesg.eaccession = get_uid_fragment(frags,iv);
-      ofg_mesg.iaccession = get_iid_fragment(frags,iv);
-      ofg_mesg.type       = get_typ_fragment(frags,iv);
-      //Locale_ID    		elocale;
-      //SeqInterval  		locale_pos;
-      ofg_mesg.entry_time = 0;
-      ofg_mesg.clear_rng.bgn = 0;
-      ofg_mesg.clear_rng.end = get_length_fragment(frags,iv);
-      ofg_mesg.source = NULL;
-      //char        		*sequence;
-      //char        		*quality;
-      //IntScreenMatch	*screened;
-      ofg_mesg.screened = NULL;
-  
-      {
-	const size_t isrc = get_src_fragment(frags,iv);
-	ofg_mesg.source = Getchar(fragsrc,isrc);
-      }
-      {
-        GenericMesg pmesg;
-        //pmesg.t = MESG_OFG;
-        pmesg.t = MESG_OFR;
-        pmesg.m = &ofg_mesg;
-        WriteMesg_AS(fcgb,&pmesg);
-      }
-    }
-  }
-#endif
   
   // Output the OVL messages:
   if(NULL != fcgb) {

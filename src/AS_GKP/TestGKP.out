@@ -9,7 +9,7 @@ gatekeeperStorePath = TestGKP
 * allocate = 10000
 ***Initializing 4096 buckets for 1024 elements, mask = 0xfff
 ***Initializing 4 count buckets 
-# GateKeeper $Revision: 1.2 $
+# GateKeeper $Revision: 1.3 $
 # Check_DistanceMessage:  Distance 1 DOES NOT exist!!!Can't delete it... bye
 # Line 13 of input
 {DST
@@ -150,28 +150,6 @@ fg2:2002
 {FRG
 act:D
 acc:2001
-}
-# RepeatItem 1 already exists!!! Can't add it... 
-# Line 327 of input
-{RPT
-rpt:1
-wch:ALU333
-len:300
-}
-# ScreenItem references undefined repeat_id 12!!! Can't add it... 
-# Line 355 of input
-{SCN
-typ:U
-acc:3333
-rpt:12
-src:
-Hey guys
-.
-seq:
-accccccccccccccccccccccccccccccccccccccccttttttttttttttttttttttt
-.
-var:0.100000
-min:50
 }
 # Link Message:  Fragment 200000 DOES NOT exist!!!Can't reference it... bye
 # Line 446 of input

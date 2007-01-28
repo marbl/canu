@@ -25,7 +25,7 @@
  Assumptions: There is no UID 0
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.22 2007-01-27 00:30:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.23 2007-01-28 21:52:25 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_ReadStruct.h"
@@ -67,8 +67,6 @@ static VA_TYPE(uint32) *ClearStartMap;
 static VA_TYPE(uint32) *ClearEndMap;
 static VA_TYPE(uint32) *ClearBactigStartMap;
 static VA_TYPE(uint32) *ClearBactigEndMap;
-static VA_TYPE(PtrT)   *SMAmap;
-static VA_TYPE(uint32) *SMASizeMap;
 
 static int PipeIn=FALSE;
 static int PipeOut=FALSE;
@@ -204,16 +202,6 @@ static CDS_UID_t *fetch_UID(VA_TYPE(CDS_UID_t) *map, CDS_IID_t iid){
 }
 
 
-/* this function first looks up the map to see whether we fetched it already from
-   the fragStore. If not the values are retrieved from the store and stored in 
-   the respective maps */
-static uint32 *fetch_screenMatches_from_fragStore(VA_TYPE(uint32) *map, CDS_IID_t iid){
-  uint32 *ret;
-  assert(test_frg_present(iid));
-  ret = fetch_range_with_null(map,iid);
-  return ret;
-}
-
 
 static CDS_UID_t *fetch_UID_from_bactigStore(CDS_IID_t iid){
   if( test_btg_present(iid) ){
@@ -297,23 +285,6 @@ static CDS_UID_t *fetch_UID_from_fragStore(CDS_IID_t iid){
       sprintf(errorreport,"Internal fragment ID %d is not present in the fragment store",iid);
       error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
     }
-    { 
-      IntScreenMatch *matches;
-      ReadStructp input =  new_ReadStruct();
-      /* record the Screen Matches of each fragment */
-      /* first get the number of screen matches and allocate the buffer */
-      uint32 noOfMatches = getScreenMatches_ReadStruct(input,NULL,0);
-      /* record the number of matches. 
-       This is used in the IFG_to_AFG conversion
-       to test whether the list is empty */
-      Setuint32(SMASizeMap,iid,&noOfMatches);
-      if(noOfMatches > 0){
-	matches = (IntScreenMatch*) safe_calloc(noOfMatches,sizeof(IntScreenMatch));
-	getScreenMatches_ReadStruct(input,matches,noOfMatches);
-	SetPtrT(SMAmap,iid,(PtrT)&matches);
-      }
-      delete_ReadStruct(input);
-    }
     {  
       ReadStructp input =  new_ReadStruct();
       if( 0 == getFragStore(FSHandle,iid,FRAG_S_FIXED,input) ){
@@ -374,37 +345,6 @@ static CDS_UID_t *fetch_UID_from_distStore(VA_TYPE(CDS_UID_t) *map, CDS_IID_t ii
 }
 
 
-static CDS_UID_t *fetch_UID_from_screenStore(VA_TYPE(CDS_UID_t) *map, CDS_IID_t iid){
-  CDS_UID_t* ret = fetch_UID(map,iid);
-  // BEWARE. I return NULL in the case the repeat and screen library are not
-  // submitted (normally in the simulator)
-  if( simulator )
-    return NULL;
-  if( ret != NULL )
-    return ret;
-  else{
-    GateKeeperScreenRecord gkps;
-    if( 0 == getGateKeeperScreenStore(GKPStore.scnStore,iid,&gkps) ){
-      CDS_UID_t *di;
-      di = GetCDS_UID_t(map,iid);
-      if ((di != NULL) && (*di != 0)) {
-        sprintf(errorreport,"Internal SCN ID %d occurred twice",iid);
-        error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-      }
-      SetCDS_UID_t(map,iid,&gkps.UID);
-      return GetCDS_UID_t(map,iid);
-    }
-    else{
-      // BEWARE. I return NULL in the case the repeat and screen library are not
-      // submitted (normally in the simulator)
-     if( simulator )
-       return NULL;
-
-      sprintf(errorreport,"Internal SCN ID %d is not present in the dist store",iid);
-      error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-    }
-  }
-}
 
 // This is an inelegant way to achieve large block sizes at VI
 // and small block sizes at TIGR. Later, define an EUID service
@@ -1118,9 +1058,6 @@ static AugFragMesg* convert_IAF_to_AFG(IntAugFragMesg* iafMesg, int32 real)
 	- The internal frgament ID is replaced with the external UID
 	- If the clear range in the IAF was corrected it is taken
 	otherwise it is taken from the ClearStartMap and ClearEndMap
-	- We look up in SMAmap the screen match list for the fragment.
-	Then we walk through it, replacing internal screen item IDs
-	with external screen item IDs.
      */
 {
   CDS_UID_t *di;
@@ -1128,7 +1065,6 @@ static AugFragMesg* convert_IAF_to_AFG(IntAugFragMesg* iafMesg, int32 real)
   uint32 *size;
   uint32 dummyZero=0;
 
-  IntScreenMatch *pi;
   AugFragMesg *afgMesg = (AugFragMesg*) safe_malloc(sizeof(AugFragMesg));
   
   /* Set all toplevel fields */
@@ -1146,7 +1082,6 @@ static AugFragMesg* convert_IAF_to_AFG(IntAugFragMesg* iafMesg, int32 real)
   afgMesg->iaccession = iafMesg->iaccession;
   afgMesg->chimeric    = iafMesg->chimeric;
   afgMesg->mate_status = iafMesg->mate_status;
-  afgMesg->screened = NULL;
   afgMesg->chaff = iafMesg->chaff;
 
   /* check whether the clear range was corrected */
@@ -1265,14 +1200,6 @@ static void free_MDI(SnapMateDistMesg* mdiMesg){
 }
 
 static void free_AFG(AugFragMesg* afgMesg){
-  ScreenMatch *match = afgMesg->screened;
-  ScreenMatch *next  = NULL;
-  while( match != NULL)
-    {
-      next = match->next;
-      TERFREE(match);
-      match = next;
-    }
   TERFREE(afgMesg);
 }
 
@@ -1349,11 +1276,6 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
   ClearEndMap   = CreateVA_uint32(ARRAYSIZE);  
   ClearBactigStartMap = CreateVA_uint32(ARRAYSIZE);
   ClearBactigEndMap   = CreateVA_uint32(ARRAYSIZE);  
-
-  /* allocate a dynamic parray for keeping track of the ISM list
-     of each fragment in the frag store */
-  SMAmap       = CreateVA_PtrT(ARRAYSIZE);
-  SMASizeMap   = CreateVA_uint32(ARRAYSIZE);
 
   /* set the UID start to the number given by uidStart */
   set_start_uid(uidStart);
@@ -1634,8 +1556,6 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
   DeleteVA_uint32(ClearEndMap);
   DeleteVA_uint32(ClearBactigStartMap);
   DeleteVA_uint32(ClearBactigEndMap);
-  DeleteVA_uint32(SMASizeMap);
-  DeleteVA_PtrT(SMAmap);
 }
 
 
@@ -1679,9 +1599,6 @@ void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpStoreName)
     CDS_IID_t iid;
     CDS_UID_t uid;
     uint32 cStart,cEnd;
-    // CDS_UID_t *di;
-    IntScreenMatch *pi;
-    IntScreenMatch *matches;
     uint32         noOfMatches;
     short truedummy  = TRUE;
 
@@ -1717,30 +1634,6 @@ void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpStoreName)
     getClearRegion_ReadStruct(input,&cStart,&cEnd,READSTRUCT_LATEST);
     Setuint32(ClearStartMap,iid,&cStart);
     Setuint32(ClearEndMap,iid,&cEnd);
-
-    /* record the Screen Matches of each fragment */
-    /* first get the number of screen matches and allocate the buffer */
-    noOfMatches = getScreenMatches_ReadStruct(input,NULL,0);
-
-#if DEBUG > 1
-    fprintf(stderr,"Found %u screen matches for fragment %u\n",noOfMatches,iid);
-#endif
-
-    /* record the number of matches. This is used in the IFG_to_AFG conversion
-       to test whether the list is empty */
-    Setuint32(SMASizeMap,iid,&noOfMatches);
-    if(noOfMatches > 0){
-      matches = (IntScreenMatch*) safe_calloc(noOfMatches,sizeof(IntScreenMatch));
-      getScreenMatches_ReadStruct(input,matches,noOfMatches);
-      
-      pi = (IntScreenMatch *)GetPtrT(SMAmap,iid);
-      if( pi != NULL ){
-	sprintf(errorreport,"Two screen match lists for internal ID %d in the frag store",iid);
-	error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-      }
-      SetPtrT(SMAmap,iid,(PtrT)&matches);
-    }
-    
   }
   
 

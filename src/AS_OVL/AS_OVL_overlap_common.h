@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.20 2006-09-26 21:07:45 brianwalenz Exp $
- * $Revision: 1.20 $
+ * $Id: AS_OVL_overlap_common.h,v 1.21 2007-01-28 21:52:24 brianwalenz Exp $
+ * $Revision: 1.21 $
 */
 
 
@@ -421,8 +421,6 @@ FragStore  Frag_Store_Open
     (char * storename, char * mode);
 static void  Get_Range
     (char * s, char ch, int * lo, int * hi);
-static void  Get_Relevant_Screen_Matches
-    (Screen_Info_t * screen);
 static int  Has_Bad_Window
     (char a [], int n, int window_len, int threshold);
 static String_Ref_t  Hash_Find
@@ -1553,8 +1551,6 @@ int  Build_Hash_Index
    memset (Hash_Table, 0, HASH_TABLE_SIZE * sizeof (Hash_Bucket_t));
    memset (Hash_Check_Array, 0, HASH_TABLE_SIZE * sizeof (Check_Vector_t));
 
-   screen . match = (IntScreenMatch *) safe_malloc
-                         (INIT_SCREEN_MATCHES * sizeof (IntScreenMatch));
    screen . range = (Screen_Range_t *) safe_malloc
                          (INIT_SCREEN_MATCHES * sizeof (Screen_Range_t));
    screen . match_len = INIT_SCREEN_MATCHES;
@@ -1630,10 +1626,8 @@ int  Build_Hash_Index
       String_Start [String_Ct] = total_len;
       len = strlen (Sequence_Buffer);
       String_Info [String_Ct] . length = len;
-      String_Info [String_Ct] . left_end_screened
-          = screen . left_end_screened;
-      String_Info [String_Ct] . right_end_screened
-          = screen . right_end_screened;
+      String_Info [String_Ct] . left_end_screened  = screen . left_end_screened;
+      String_Info [String_Ct] . right_end_screened = screen . right_end_screened;
       new_len = total_len + len + 1;
       extra = new_len % (HASH_KMER_SKIP + 1);
       if  (extra > 0)
@@ -1688,7 +1682,6 @@ Align_Ct [String_Ct] = (Align_Entry_t *)
 
    if  (String_Ct == 0)
        {
-        free (screen . match);
         free (screen . range);
         return  0;
        }
@@ -1802,7 +1795,6 @@ fprintf (stderr, "Time to build hash table for %d fragments = %.1f sec\n",
 Start_Time = clock ();
 #endif
 
-   free (screen . match);
    free (screen . range);
 
    return  1;
@@ -2688,44 +2680,6 @@ static void  Get_Range
   }
 
 
-static void  Get_Relevant_Screen_Matches
-    (Screen_Info_t * screen)
-
-//  Move relevant matches in  (* screen)  from  match  array
-//  to  range  array and coalesce the overlapping ones.
-
-  {
-   int  i, j;
-
-#if  0
-fprintf (stderr, "Num matches = %d\n", screen -> num_matches);
-for  (i = 0;  i < screen -> num_matches;  i ++)
-  fprintf (stderr, "  %4d %4d %s\n",
-           screen -> match [i] . where . bgn,
-           screen -> match [i] . where . end,
-           screen -> match [i] . relevance & AS_OVL_HEED_RPT ?
-              "hard" : "soft");
-#endif
-
-   for  (i = j = 0;  i < screen -> num_matches;  i ++)
-     if  (screen -> match [i] . relevance & AS_OVL_HEED_RPT)
-         {
-          screen -> range [j] . bgn = screen -> match [i] . where . bgn;
-          screen -> range [j] . end = screen -> match [i] . where . end;
-          screen -> range [j] . last = FALSE;
-          j ++;
-         }
-
-   Coalesce_Screen_Info (screen -> range, 0, & j);
-
-   screen -> num_matches = j;
-   if  (j > 0)
-       screen -> range [j - 1] . last = TRUE;
-
-   return;
-  }
-
-
 
 
 static String_Ref_t  Hash_Find
@@ -3256,8 +3210,6 @@ void  Initialize_Work_Area
    WA -> status = 0;
    WA -> myRead = new_ReadStruct ();
 
-   WA -> screen_info . match = (IntScreenMatch *) safe_malloc
-                                   (INIT_SCREEN_MATCHES * sizeof (IntScreenMatch));
    WA -> screen_info . range = (Screen_Range_t *) safe_malloc
                                    (INIT_SCREEN_MATCHES * sizeof (Screen_Range_t));
    WA -> screen_info . match_len = INIT_SCREEN_MATCHES;
@@ -5087,8 +5039,6 @@ void  Profile_Hits
    int  status;
    int  kmer_ct, i, j;
 
-   screen . match = (IntScreenMatch *) safe_malloc
-                         (INIT_SCREEN_MATCHES * sizeof (IntScreenMatch));
    screen . range = (Screen_Range_t *) safe_malloc
                          (INIT_SCREEN_MATCHES * sizeof (Screen_Range_t));
    screen . match_len = INIT_SCREEN_MATCHES;
@@ -5450,36 +5400,9 @@ static int  Read_Next_Frag
         for  (i = 0;  i < frag_len;  i ++)
           quality [i] -= QUALITY_BASE_CHAR;
 
-        match_ct = getNumScreenMatches_ReadStruct (myRead);
-        if  (match_ct > screen -> match_len)
-            {
-             screen -> match_len = match_ct;
-             fprintf (stderr,
-                      "### realloc  screen match & range  match_ct = %d\n",
-                      match_ct);
-             screen -> match = (IntScreenMatch *) safe_realloc
-                                   (screen -> match,
-                                    match_ct * sizeof (IntScreenMatch));
-             screen -> range = (Screen_Range_t *) safe_realloc
-                                   (screen -> range,
-                                    match_ct * sizeof (Screen_Range_t));
-            }
-        getScreenMatches_ReadStruct (myRead, screen -> match,
-                                     match_ct);
-
-        if  (Ignore_Screen_Info)
-            screen -> num_matches = 0;
-          else
-            screen -> num_matches = match_ct;
-
-        Get_Relevant_Screen_Matches (screen);
-        screen -> left_end_screened
-            = (screen -> num_matches > 0
-                && screen -> range [0] . bgn < HOPELESS_MATCH);
-        screen -> right_end_screened
-            = (screen -> num_matches > 0
-                && screen -> range [screen -> num_matches - 1] . end
-                     > frag_len - HOPELESS_MATCH);
+        screen -> num_matches        = 0;
+        screen -> left_end_screened  = FALSE;
+        screen -> right_end_screened = FALSE;
 
 #if  USE_SOURCE_FIELD
         getSource_ReadStruct (myRead, frag_source, MAX_SOURCE_LENGTH);

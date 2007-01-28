@@ -20,7 +20,7 @@
  *************************************************************************/
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/AS_ORA_main.c,v $
-$Revision: 1.7 $
+$Revision: 1.8 $
 **********************************************************************/
 
 /**********************************************************************
@@ -1290,7 +1290,7 @@ int GenerateOverlapFile( char * output_ovl_filename,
     // regressor ADL message
     auditLine2.complete = time(0);
     auditLine2.name = "overlap_regressor";
-    auditLine2.version = "$Revision: 1.7 $ $Date: 2006-11-14 19:58:22 $";
+    auditLine2.version = "$Revision: 1.8 $ $Date: 2007-01-28 21:52:24 $";
     auditLine2.comment = "(empty)";
     auditLine2.next = NULL;
 
@@ -1389,7 +1389,6 @@ int GenerateOverlapFile( char * output_ovl_filename,
     outMesg.m = &ofg_mesg;
     outMesg.t = MESG_OFG;
     ofg_mesg.action = AS_ADD;
-    ofg_mesg.screened = (IntScreenMatch *) NULL;
     // write fragments out in begin/end lexicographic order
     for( index = 0; index < fragments->num_items; index++ )
     {

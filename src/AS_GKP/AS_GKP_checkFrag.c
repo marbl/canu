@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.9 2007-01-25 09:02:12 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.10 2007-01-28 21:52:24 brianwalenz Exp $";
 
 //#define DEBUG_GKP 1
 //#define DEBUG_GKP_VERBOSE 1
@@ -121,7 +121,7 @@ int Check_FragMesg(FragMesg *frg_mesg,
 	if(HASH_FAILURE != LookupTypeInPHashTable_AS(GkpStore.hashTable, 
 						     UID_NAMESPACE_AS,
 						     frg_mesg->eaccession, 
-						     AS_IID_FRAG, 
+						     AS_IID_FRG, 
 						     FALSE,
 						     Msgfp,
 						     &value)){
@@ -200,7 +200,7 @@ int Check_FragMesg(FragMesg *frg_mesg,
 
       if(frg_mesg->type != AS_FULLBAC &&
 	 frg_mesg->type != AS_BACTIG){
-	value.type = AS_IID_FRAG;
+	value.type = AS_IID_FRG;
 	InsertInPHashTable_AS(&(GkpStore.hashTable), UID_NAMESPACE_AS, frg_mesg->eaccession, &value, FALSE, TRUE);
 	ifg_mesg->iaccession = value.IID;
       }
@@ -321,7 +321,7 @@ int Check_FragMesg(FragMesg *frg_mesg,
       if(HASH_SUCCESS != LookupTypeInPHashTable_AS(GkpStore.hashTable, 
 						   UID_NAMESPACE_AS,
 						   frg_mesg->eaccession, 
-						   AS_IID_FRAG, 
+						   AS_IID_FRG, 
 						   FALSE,
 						   Msgfp,
 						   &value)){
@@ -371,7 +371,7 @@ int Check_FragMesg(FragMesg *frg_mesg,
       if(HASH_SUCCESS != LookupTypeInPHashTable_AS(GkpStore.hashTable, 
                                                    UID_NAMESPACE_AS,
                                                    frg_mesg->eaccession, 
-                                                   AS_IID_FRAG, 
+                                                   AS_IID_FRG, 
                                                    FALSE,
                                                    Msgfp,
                                                    &value)){

@@ -32,7 +32,7 @@ AS_PER_SOURCES = AS_PER_ReadStruct.c AS_PER_fragStore.c \
 
 AS_PER_TEST_SOURCES = testFragStore.c dumpFragStore.c testLoad.c \
 	FragStoreStats.c binaryDumpFragStore.c loadBinaryDump.c \
-	AS_PER_fragDB.c dumpFragDB.c PopulateFragStore.c \
+	PopulateFragStore.c \
 	partitionFragStore.c dumpFrag.c dumpFragFromPartition.c\
 	testFrgStoreSizes.c test_include.c resetFrgStoreToCNSClr.c \
         dumpFragClearLens.c
@@ -50,9 +50,9 @@ OBJECTS = $(AS_PER_OBJS) $(AS_PER_TEST_OBJS)
 LIBRARIES = libAS_PER.a libCA.a
 
 PROGS = testFragStore dumpFragStore testLoad FragStoreStats \
-	dumpFragDB PopulateFragStore partitionFragStore \
-	dumpFrag dumpFragFromPartition testFrgStoreSizes \
-	resetFrgStoreToCNSClr         dumpFragClearLens
+        PopulateFragStore partitionFragStore \
+        dumpFrag dumpFragFromPartition testFrgStoreSizes \
+        resetFrgStoreToCNSClr dumpFragClearLens
 
 #binaryDumpFragStore loadBinaryDump 
 #stressFragStore 
@@ -92,11 +92,7 @@ libCA.a: $(AS_PER_OBJS)
 # Should have additional tests for generic stores
 testFragStore: $(AS_PER_OBJS) testFragStore.o libAS_UTL.a 
 
-#stressFragStore: $(AS_PER_OBJS) stressFragStore.o AS_PER_fragDB.o libAS_UTL.a  $(OCISHAREDLIBS) 
-
 testLoad: $(AS_PER_OBJS) testLoad.o libAS_UTL.a 
-
-dumpFragDB: $(AS_PER_OBJS) AS_PER_fragDB.o dumpFragDB.o libAS_UTL.a $(OCISHAREDLIBS) 
 
 dumpFragStore: $(AS_PER_OBJS)  dumpFragStore.o libAS_UTL.a 
 

@@ -127,9 +127,6 @@ endif
 TERM_SRCS=AS_TER_terminator.c AS_TER_terminator_funcs.c
 TERM_OBJS=$(TERM_SRCS:.c=.o)
 
-SMA_SRCS = SMAcount.c
-SMA_OBJS=$(SMA_SRCS:.c=.o)
-
 PRCSCF_SRCS=asmProcessScaffolds_TER.c
 PRCSCF_OBJS=$(PRCSCF_SRCS:.c=.o)
 
@@ -139,9 +136,9 @@ CTGOUT_OBJS=$(CTGOUT_SRCS:.c=.o)
 ASM2BAC_SRCS=asm2bac.c
 ASM2BAC_OBJS=$(ASM2BAC_SRCS:.c=.o)
 
-SOURCES = $(TERM_SRCS) $(SMA_SRCS) $(PRCSCF_SRCS) $(CTGOUT_SRCS) $(ASM2BAC_SRCS)
+SOURCES = $(TERM_SRCS) $(PRCSCF_SRCS) $(CTGOUT_SRCS) $(ASM2BAC_SRCS)
 OBJECTS = $(TERM_OBJS)
-PROGS   = terminator count-sma asmProcessScaffolds_TER asmOutputContigsFasta asm2bac
+PROGS   = terminator asmProcessScaffolds_TER asmOutputContigsFasta asm2bac
 
 
 ################### Project Rule Makefile Inclusion ###################
@@ -153,7 +150,6 @@ all: $(OBJECTS) $(LIBRARIES) $(PROGS)
 	@cp -f buildFragContigPosMap.pl $(LOCAL_BIN)
 	@chmod 775 $(LOCAL_BIN)/buildFragContigPosMap.pl
 
-count-sma:               $(SMA_OBJS)     libCA.a
 terminator:              $(TERM_OBJS)    libCA.a
 asmProcessScaffolds_TER: $(PRCSCF_OBJS)  libCA.a
 asmOutputContigsFasta:   $(CTGOUT_OBJS)  libCA.a

@@ -26,8 +26,8 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.10 2006-08-23 13:14:05 ahalpern Exp $
- * $Revision: 1.10 $
+ * $Id: AS_OVL_overlap.h,v 1.11 2007-01-28 21:52:24 brianwalenz Exp $
+ * $Revision: 1.11 $
 */
 
 
@@ -504,7 +504,6 @@ typedef  struct
 
 typedef  struct
   {
-   IntScreenMatch  * match;
    Screen_Range_t  * range;
    int  match_len;                   // Number of entries allocated in  match
    int  num_matches;                 // Number of entries occupied in match

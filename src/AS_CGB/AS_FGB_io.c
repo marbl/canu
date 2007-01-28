@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_FGB_io.c,v 1.11 2007-01-27 00:30:10 brianwalenz Exp $";
+= "$Id: AS_FGB_io.c,v 1.12 2007-01-28 21:52:24 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_FGB_io.c
@@ -1319,7 +1319,6 @@ static void input_mesgs_internal
  FILE           *filk,
  int            *Pnadt,
  int            *Pnidt, 
- int            *Pnrpt,
  int            *Pnilk,
  IntFragment_ID *Pnofg,
  IntEdge_ID     *Pnedges_delta,
@@ -1345,7 +1344,7 @@ static void input_mesgs_internal
   /* It is assumed that in the overlap records that new fragments
     point to old fragments.  */
 
-  int nadt=0,nidt=0,nrpt=0,nilk=0;
+  int nadt=0,nidt=0,nilk=0;
   IntEdge_ID nedges_delta=0,novl_dovetail=0,novl_containment=0,novl_degenerate=0;
   GenericMesg *pmesg;
   MesgReader ReadMesg_AS = (MesgReader)InputFileType_AS(fovl);
@@ -1422,7 +1421,6 @@ static void input_mesgs_internal
 	}
       }
       break;
-    case MESG_OFR:
     case MESG_OFG: 
       {
         add_OFGMesg_to_graph
@@ -1487,7 +1485,6 @@ static void input_mesgs_internal
   *Pnovl_dovetail = novl_dovetail;
   *Pnovl_containment = novl_containment;
   *Pnovl_degenerate = novl_degenerate;
-  *Pnrpt = nrpt;
 }
 
 
@@ -1524,7 +1521,6 @@ void input_messages_from_a_file
   
   int nadt=0;   /* The number of audit messages read. */
   int nidt=0;   /* The number of distance records read. */
-  int nrpt=0;   /* The number of ubiquitous repeat messages. */
   int nilk=0;   /* The number of internal link messages. */
   IntFragment_ID nofg=0;   /* The number of fragment records read. */
   IntEdge_ID novl_dovetail=0,novl_containment=0,novl_degenerate=0; /* The number of overlap records read. */
@@ -1583,7 +1579,7 @@ void input_messages_from_a_file
     (argc,argv,
      WriteMesg_AS,
      fovl,filk,
-     &nadt,&nidt,&nrpt,&nilk,&nofg,&nedge_delta,
+     &nadt,&nidt,&nilk,&nofg,&nedge_delta,
      &novl_dovetail,&novl_containment,&novl_degenerate,
      nbase_in_genome,
      nfrag_old, frags,
@@ -1603,7 +1599,6 @@ void input_messages_from_a_file
   fprintf(stderr,"Input %10d ILK records.\n",nilk);
   fprintf(stderr,"Input %10d OFG records.\n",nofg);
   fprintf(stderr,"Input %10" F_IIDP " OVL records (skipped %10"F_IIDP" degenerate).\n",novl_dovetail+novl_containment, novl_degenerate);
-  fprintf(stderr,"Input %10d RPT records.\n",nrpt);
   fprintf(stderr,"min_frag_iid=" F_IID " max_frag_iid=" F_IID "\n",
 	  (*min_frag_iid),(*max_frag_iid));
 

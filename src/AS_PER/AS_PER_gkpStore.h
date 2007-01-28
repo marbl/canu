@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_PER_gkpStore.h,v 1.11 2007-01-27 00:30:11 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.12 2007-01-28 21:52:25 brianwalenz Exp $	 */
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
 /*************************************************************************
@@ -71,7 +71,6 @@ typedef struct{
   int32 numBactigs;
   int32 numDistances;
   int32 num_s_Distances; // shadowed for redefintions
-  int32 numScreens;
   int32 numLinks;
 #ifdef __i386__
   uint32 pad386;
@@ -148,26 +147,12 @@ typedef struct{
   uint16 deathBatch;         /* [birthBatch, deatchBatch) */
 }GateKeeperDistanceRecord;
 
-// One for each ScreenItem
-typedef struct{
-  unsigned int deleted:1;
-  unsigned int spare:31;
-  CDS_IID_t repeatID;           /* Repeat ID that is referenced */
-
-  CDS_UID_t UID;
-
-  uint16 birthBatch;         /* This entry is valid */
-  uint16 deathBatch;         /* [birthBatch, deatchBatch) */
-  int32 padTo8byteWord;
-}GateKeeperScreenRecord;
-
 
 #define AS_GKP_UNKNOWN 0
 #define AS_GKP_INNIE 1
 #define AS_GKP_OUTTIE 2
 #define AS_GKP_NORMAL 3
 #define AS_GKP_ANTINORMAL 4
-
 
 typedef struct{
   unsigned int deleted:1;
@@ -260,7 +245,7 @@ static int32 getNum ## type ## s(type ## Store store){\
 
 
 
-#define NUM_GKP_FILES 11
+#define NUM_GKP_FILES 10
 
 // 1. for gkp.bat
 INDEXSTORE_DEF(GateKeeperBatch)
@@ -287,11 +272,7 @@ INDEXSTORE_DEF(GateKeeperBactig)
 INDEXSTORE_DEF(GateKeeperDistance)
 INDEXSTORE_DEF_EXTEND(GateKeeperDistance)
 
-// 10. for gkp.scn
-INDEXSTORE_DEF(GateKeeperScreen)
-INDEXSTORE_DEF_EXTEND(GateKeeperScreen)
-
-// 11. is gkp.phash
+// 10. is gkp.phash
 
 
 /***********************************************************************************
@@ -425,7 +406,6 @@ typedef struct {
   GateKeeperDistanceStore dstStore;    
   GateKeeperDistanceStore s_dstStore;    // Store for Distances that have been redefined
   GateKeeperBactigStore btgStore;
-  GateKeeperScreenStore scnStore;
 } GateKeeperStore;
 
 int  CreateGateKeeperStore(GateKeeperStore *gkpStore);

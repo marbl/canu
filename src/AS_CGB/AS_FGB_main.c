@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_FGB_main.c,v 1.5 2005-09-15 15:20:15 eliv Exp $";
+= "$Id: AS_FGB_main.c,v 1.6 2007-01-28 21:52:24 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module:  AS_FGB_main.c
@@ -207,13 +207,6 @@ static void output_mesgs
  /* Append Only*/
  FILE *fcgb)
 {
-#if 0
-  const int nsample=500;
-  const int nbucket=500;
-  Histogram_t 
-    *ovl_types_histogram
-    = create_histogram(nsample,nbucket,TRUE,FALSE);
-#endif
 
   // Output the IBA and ADT messages from the batches:
   if(NULL != filk) {
@@ -224,7 +217,7 @@ static void output_mesgs
     }
   }
 
-  // Output the OFG or OFR messages:
+  // Output the OFG messages:
   {
     const IntFragment_ID nfrag = GetNumFragments(frags);
     IntFragment_ID iv;
@@ -242,10 +235,6 @@ static void output_mesgs
       ofg_mesg.clear_rng.bgn = 0;
       ofg_mesg.clear_rng.end = get_length_fragment(frags,iv);
       ofg_mesg.source = NULL;
-      //char        		*sequence;
-      //char        		*quality;
-      //IntScreenMatch	*screened;
-      ofg_mesg.screened = NULL;
   
       if(fragsrc != NULL) {
 	const size_t isrc = get_src_fragment(frags,iv);
@@ -255,9 +244,9 @@ static void output_mesgs
       }
       
       {
+        assert(0);        //  MESG_OFR was removed, so we now crash
         GenericMesg pmesg;
-        //pmesg.t = MESG_OFG;
-        pmesg.t = MESG_OFR;
+        //pmesg.t = MESG_OFR;
         pmesg.m = &ofg_mesg;
         WriteMesg_AS(fcgb,&pmesg);
       }
@@ -423,7 +412,7 @@ static void process_one_ovl_file
     int ierr;
     
     fprintf(stderr,"Opening input file to read a batch of "
-            "IBA+ADT(+ADL)+BRC+IDT+OFG+OVL+RPT messages.\n");
+            "IBA+ADT(+ADL)+BRC+IDT+OFG+OVL messages.\n");
     if(NULL == (fovl = fopen(Batch_File_Name,"r"))){
       fprintf(stderr,"* Can not open input file %s\n",Batch_File_Name);
       exit(1);
@@ -1115,7 +1104,7 @@ int main_fgb
     }
 
     fprintf(stderr,"Opening dump file to write a batch of "
-	    "ADT+BRC+IDT+OFG+OVL+RPT messages.\n");
+	    "ADT+BRC+IDT+OFG+OVL messages.\n");
 
     if(NULL == (folp = fopen(rg->Dump_File_Name,"w"))){
       fprintf(stderr,"* Can not open output file %s\n",rg->Dump_File_Name);

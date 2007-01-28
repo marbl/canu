@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: extract_component.c,v 1.5 2005-09-15 15:20:16 eliv Exp $";
+static char CM_ID[] = "$Id: extract_component.c,v 1.6 2007-01-28 21:52:24 brianwalenz Exp $";
 
 /*
   IMPORTANT NOTE:
@@ -1003,7 +1003,7 @@ int WriteGrandeReadsAndEBACs( Globalsp globals, HashTablep r_rht )
     if( LookupTypeInPHashTable_AS( this_gkp_store.hashTable,
                                    UID_NAMESPACE_AS,
                                    idsetp1->uid,
-                                   AS_IID_FRAG, 
+                                   AS_IID_FRG, 
                                    FALSE,
                                    stderr,
                                    &value ) != HASH_SUCCESS )

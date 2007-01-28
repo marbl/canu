@@ -127,7 +127,6 @@ int main(int argc, char *argv[]){
       setClearRegion_ReadStruct(myRead,0,0,READSTRUCT_ORIGINAL);
       setLocID_ReadStruct(myRead, 0);
       setLocalePos_ReadStruct(myRead, 0,0);
-      setScreenMatches_ReadStruct(myRead, 0, NULL);
     }
     appendFragStorePartition(target,myRead,bin);  
   }

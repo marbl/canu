@@ -26,8 +26,6 @@
 LOCAL_WORK = $(shell cd ../../; pwd)
 
 LIB_SOURCES = AS_ALN_dpaligner.c AS_ALN_qvaligner.c \
-              AS_ALN_sataligner.c AS_ALN_satfinder.c \
-              AS_ALN_trim_vector.c \
 	      AS_ALN_loverlapper.c AS_ALN_pieceOlap.c AS_ALN_forcns.c \
 	      CA_ALN_local.c CA_ALN_overlap.c CA_ALN_scafcomp.c\
 	      AS_ALN_boxfilling.c
@@ -46,12 +44,6 @@ TEST4_OBJECTS = $(TEST4_SOURCES:.c=.o)
 TEST5_SOURCES = AS_ALN_testdriver5.c
 TEST5_OBJECTS = $(TEST5_SOURCES:.c=.o)
 
-SATTEST_SOURCES = AS_ALN_testsat.c
-SATTEST_OBJECTS = $(SATTEST_SOURCES:.c=.o)
-
-VT_TEST_SOURCES = AS_ALN_test_vt.c
-VT_TEST_OBJECTS = $(VT_TEST_SOURCES:.c=.o)
-
 RC_SOURCES = AS_ALN_revcompl.c
 RC_OBJECTS = $(RC_SOURCES:.c=.o)
 
@@ -60,7 +52,6 @@ BOXFILL_OBJECTS = $(BOXFILL_SOURCES:.c=.o)
 
 SOURCES = $(TEST1_SOURCES) $(TEST2_SOURCES)\
 	  $(TEST4_SOURCES) $(TEST5_SOURCES)\
-          $(SATTEST_SOURCES) $(VT_TEST_SOURCES) \
 	  $(BOXFILL_SOURCES)\
           $(LIB_SOURCES) $(RC_SOURCES) 
 OBJECTS = $(SOURCES:.c=.o)
@@ -68,7 +59,7 @@ OBJECTS = $(SOURCES:.c=.o)
 LIBRARIES = libAS_ALN.a libCA.a
 
 PROGS = AS_ALN_testdriver1 AS_ALN_testdriver2 AS_ALN_testdriver4\
-	AS_ALN_testdriver5 AS_ALN_testsat AS_ALN_test_vt AS_ALN_revcompl\
+	AS_ALN_testdriver5 AS_ALN_revcompl\
 	AS_ALN_boxfiller
 
 include $(LOCAL_WORK)/src/c_make.as
@@ -93,10 +84,6 @@ AS_ALN_testdriver5: $(TEST5_OBJECTS) $(LIBRARIES) libCA.a
 AS_ALN_boxfiller: $(BOXFILL_OBJECTS) $(LIBRARIES) libCA.a
 
 AS_ALN_revcompl:  $(RC_OBJECTS) $(LIBRARIES) libAS_UTL.a
-
-AS_ALN_testsat: $(SATTEST_OBJECTS) $(LIB_OBJECTS) libAS_UTL.a
-
-AS_ALN_test_vt: $(VT_TEST_OBJECTS) $(LIB_OBJECTS) libAS_MSG.a libAS_UTL.a
 
 AS_ALN_tester:
 	time AS_ALN_testdriver1 <dataset1 >out1
