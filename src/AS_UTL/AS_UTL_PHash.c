@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_PHash.c,v 1.5 2006-03-14 18:21:59 mhayton Exp $";
+static char CM_ID[] = "$Id: AS_UTL_PHash.c,v 1.6 2007-01-29 00:32:34 brianwalenz Exp $";
 /*************************************************************************
  Module:  AS_UTL_PHash
  Description:
@@ -54,11 +54,10 @@ static char CM_ID[] = "$Id: AS_UTL_PHash.c,v 1.5 2006-03-14 18:21:59 mhayton Exp
 // to get around Tru64 UNIX v5 problem with memmapping > 500MB files
 const unsigned long __sbrk_override = 1;
 
-const char * const String_AS_IID[] = {
+const char * const String_AS_IID[AS_IID_MAX + 2] = {
   "(Invalid)",
   "Fragment",
   "Distance",
-  "ScreenItem",
   "Locale",
   "Sequence",
   "Bactig",

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_UTL_PHash.h,v 1.5 2007-01-28 21:52:25 brianwalenz Exp $	 */
+/* 	$Id: AS_UTL_PHash.h,v 1.6 2007-01-29 00:32:34 brianwalenz Exp $	 */
 #ifndef AS_UTL_PHASH_H
 #define AS_UTL_PHASH_H
 /*************************************************************************
@@ -41,8 +41,8 @@
  *************************************************************************/
 
 /* RCS Info
- * $Id: AS_UTL_PHash.h,v 1.5 2007-01-28 21:52:25 brianwalenz Exp $
- * $Revision: 1.5 $
+ * $Id: AS_UTL_PHash.h,v 1.6 2007-01-29 00:32:34 brianwalenz Exp $
+ * $Revision: 1.6 $
  *
  */
 
@@ -66,24 +66,23 @@
 #define HASH_FAILURE_ALREADY_EXISTS (HASH_FAILURE - 4)
 
 
-/*** The following defines are for the type of data    
- *** stored in the PHashValue_AS type field
- ***/
-
+//  The following defines are for the type of data stored in the
+//  PHashValue_AS type field
+//
+//  If you change these, update String_AS_IID[] in PHash.c too.
+//
 #define AS_IID_MIN 0
 
-#define AS_IID_FRG 0
-#define AS_IID_DST 1
-#define AS_IID_LOC 2   // locale == bac ID
-#define AS_IID_SEQ 3   // sequence ID
-#define AS_IID_BTG 4    // bactig
-#define AS_IID_PLA 5
-#define AS_IID_LIB 6
-#define AS_IID_BAT 7   // Batch
-#define AS_IID_DON 8
-#define AS_IID_MAX 8
-
-extern const char * const String_AS_IID[AS_IID_MAX + 2];
+#define AS_IID_FRG 1
+#define AS_IID_DST 2
+#define AS_IID_LOC 3   // locale == bac ID
+#define AS_IID_SEQ 4   // sequence ID
+#define AS_IID_BTG 5   // bactig
+#define AS_IID_PLA 6
+#define AS_IID_LIB 7
+#define AS_IID_BAT 8   // Batch
+#define AS_IID_DON 9
+#define AS_IID_MAX 9
 
 
 /* PHashValue_AS is a 64-bit value used to store a 
