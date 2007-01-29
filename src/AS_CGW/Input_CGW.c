@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.16 2007-01-27 00:30:10 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.17 2007-01-29 20:41:01 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -106,9 +106,8 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
   for(i = optind; i < argc; i++){
     fprintf(stderr,"* Opening file %d %s\n", j ++, argv[i]);
     infp = fopen(argv[i],"r");
-    data->reader = (MesgReader)InputFileType_AS(infp);
 
-    while(  (EOF != (data->reader)(infp, &pmesg))){
+    while(  (EOF != ReadProtoMesg_AS(infp, &pmesg))){
 
       switch(pmesg->t){
 
@@ -145,7 +144,7 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
 
         default:
           fprintf(stderr,"* Oops: Read Message with type = %d\n", pmesg->t);
-          (data->writer)(data->cgwfp,pmesg);      // Echo to output
+          WriteProtoMesg_AS(data->cgwfp,pmesg);      // Echo to output
           break;
       }
     
@@ -223,7 +222,7 @@ int ProcessInputADT(Global_CGW *data, FILE *infp, int argc, char **argv){
     strcat(buffer," ");
     assert(strlen(buffer) < (16 * 1024));
   }
-  (data->reader)(infp, &pmesg);  // Read 1 message
+  ReadProtoMesg_AS(infp, &pmesg);  // Read 1 message
 
   switch(pmesg->t){
 
@@ -251,8 +250,7 @@ int ProcessInputADT(Global_CGW *data, FILE *infp, int argc, char **argv){
   }
 
   VersionStampADT(adt_mesg, argc, argv);
-    
-  (data->writer)(data->cgwfp,pmesg);        // Echo to output
+  WriteProtoMesg_AS(data->cgwfp,pmesg);        // Echo to output
 
   return(!finished);
 }

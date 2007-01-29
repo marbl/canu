@@ -29,7 +29,6 @@
 
 int
 main(int argc, char **argv) {
-  MesgReader        reader;
   GenericMesg      *pmesg;
   SnapConConMesg   *contig;
   char              status[265];
@@ -57,9 +56,7 @@ main(int argc, char **argv) {
     exit(1);
   }
   
-  reader = (MesgReader)InputFileType_AS(stdin);
-
-  while (reader(stdin, &pmesg) != EOF) {
+  while (ReadProtoMesg_AS(stdin, &pmesg) != EOF) {
     if (pmesg->t ==MESG_CCO)  {
       contig = pmesg->m;
 

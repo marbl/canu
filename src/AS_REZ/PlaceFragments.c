@@ -2341,7 +2341,6 @@ static int myPrintAlign(FILE *file, int prefix, int suffix,
 int getFragmentSequenceAndQuality(int iid, char *fragSequence, char *fragQuality)
 {
   ScreenedFragMesg fmesg;  
-  MesgWriter   writer;
   static char fseq[1025];
   static char fqual[1025];
   ReadStructp fsread = new_ReadStruct();

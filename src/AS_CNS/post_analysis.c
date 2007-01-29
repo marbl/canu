@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: post_analysis.c,v 1.9 2007-01-28 21:52:24 brianwalenz Exp $ */
+/* $Id: post_analysis.c,v 1.10 2007-01-29 20:41:09 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,7 +45,6 @@ void usage (char *pgmname){
 int main(int argc, char *argv[])
 { GenericMesg *pmesg;
  IntScaffoldMesg *isf;
- MesgReader   reader;
  IntContigPairs *pairs;
  IntConConMesg *contig;
  IntUnitigMesg *unitig;
@@ -115,8 +114,6 @@ int main(int argc, char *argv[])
  pfs = fopen(buffer,"w");
  assert(pfs && pcs );
 
- reader = InputFileType_AS( stdin );
-
    
  if ( !do_all ) {
    char   string[1000];
@@ -147,7 +144,7 @@ int main(int argc, char *argv[])
    fclose( sublist );
  }
 
- while (reader(stdin,&pmesg) != EOF){
+ while (ReadProtoMesg_AS(stdin,&pmesg) != EOF){
    if (pmesg->t ==MESG_ICM)  {
      contig = (IntConConMesg *) pmesg->m;
      if(contig->length < min_len) continue;

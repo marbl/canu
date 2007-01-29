@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_fom2uom.c,v 1.7 2007-01-27 00:30:09 brianwalenz Exp $";
+= "$Id: AS_CGB_fom2uom.c,v 1.8 2007-01-29 20:40:57 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_fom2uom.c
@@ -50,8 +50,6 @@ static char CM_ID[]
 #include "AS_CGB_all.h"
 #include "AS_CGB_histo.h"
 
-//VA_DEF(int32)
-//VA_DEF(IntMultiPos)
 VA_DEF(IntChunk_ID)
 
 /****************************************************************************/
@@ -64,10 +62,6 @@ VA_DEF(IntChunk_ID)
 
 #define CMD_BUFFER_SIZE 1024
 
-/****************************************************************************/
-/* Globals */
-
-MesgWriter WriteMesg_AS, ErrorWriter_AS;
 
 /*************************************************************************/
 
@@ -95,7 +89,6 @@ static void input_mesgs_pp
   int nadt=0,nidt=0,nilk=0,nium=0,nimp=0;
   int nuom=0,nuom_dovetail=0,nuom_containment=0;
   GenericMesg *pmesg;
-  MesgReader ReadMesg_AS = (MesgReader)InputFileType_AS(fcgi);
 
   IntFragment_ID lfrag = 0; // The gloabl LID counter.
   
@@ -114,7 +107,7 @@ static void input_mesgs_pp
   Histogram_t * uom_types_histogram
     = create_histogram(nsample,nbucket,TRUE,FALSE);
 
-  while( EOF != ReadMesg_AS(fcgi, &pmesg)) {
+  while( EOF != ReadProtoMesg_AS(fcgi, &pmesg)) {
     const MessageType imesgtype = pmesg->t;
     
     switch(imesgtype) {
@@ -129,7 +122,7 @@ static void input_mesgs_pp
 #else
 	VersionStampADT(adt_mesg, argc, argv);
 #endif
-	WriteMesg_AS(fcgb,pmesg);
+	WriteProtoMesg_AS(fcgb,pmesg);
       }
       break;
     case MESG_IDT: 
@@ -138,13 +131,13 @@ static void input_mesgs_pp
 	/*  Distance record--skip for now */
 	idt_mesg = (InternalDistMesg  *)(pmesg->m);
 	nidt++;
-	WriteMesg_AS(fcgb,pmesg);
+	WriteProtoMesg_AS(fcgb,pmesg);
       }
       break;
     case MESG_ILK: 
       {
 	nilk++;
-	WriteMesg_AS(fcgb,pmesg);
+	WriteProtoMesg_AS(fcgb,pmesg);
       }
       break;
     case MESG_IUM: 
@@ -211,7 +204,7 @@ static void input_mesgs_pp
 	  lfrag ++;
 	}
 	
-	WriteMesg_AS(fcgb,pmesg);
+	WriteProtoMesg_AS(fcgb,pmesg);
 	// pass through the Unitig message
 	
 	nium ++;
@@ -322,18 +315,18 @@ static void input_mesgs_pp
 	pmesg->t = MESG_UOM;
 	pmesg->m = &cea;
 
-	WriteMesg_AS(fcgb,pmesg);
+	WriteProtoMesg_AS(fcgb,pmesg);
 	nuom++;
       }
       break;
     case MESG_IBC: 
       {
-	WriteMesg_AS(fcgb,pmesg);
+	WriteProtoMesg_AS(fcgb,pmesg);
       }
       break;
     case MESG_IBA: 
       {
-	WriteMesg_AS(fcgb,pmesg);
+	WriteProtoMesg_AS(fcgb,pmesg);
       }
       break;
     default:
@@ -395,8 +388,6 @@ int main(int argc, char * argv [])
   int illegal=FALSE;
 
   //VersionStamp(argc,argv);
-  WriteMesg_AS = (MesgWriter)OutputFileType_AS(AS_BINARY_OUTPUT);
-  ErrorWriter_AS = (MesgWriter)OutputFileType_AS(AS_PROTO_OUTPUT);
   
   /**************** Process Command Line Arguments *********************/
   { /* Parse the argument list using "man 3 getopt". */ 
@@ -407,9 +398,6 @@ int main(int argc, char * argv [])
       switch(ch) {
       case 'A':
 	analysis_flag = TRUE;
-	break;
-      case 'P':
-	WriteMesg_AS = (MesgWriter)OutputFileType_AS(AS_PROTO_OUTPUT);
 	break;
       case 'u':
 	max_unitig_cid = atoi(optarg);
@@ -431,7 +419,6 @@ int main(int argc, char * argv [])
 	       "[-v <maximum fragment IID> ]\n"
 	       "[-e <int>] Specify the maximum number of soft errors.\n"
 	       "[-A] perform a data analysis\n"
-	       "[-P] Specify ASCII output.\n"
 	       " < cgi-file > cgb-file \n",
 	       argv[0]);
       exit (EXIT_FAILURE);

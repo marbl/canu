@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_cga.c,v 1.9 2006-11-14 19:58:20 eliv Exp $";
+= "$Id: AS_CGB_cga.c,v 1.10 2007-01-29 20:40:56 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_cga.c
@@ -54,9 +54,6 @@ static int TIMINGS = TRUE;
 #define DEBUGGING
 #undef DEBUGGING
 
-#define DEBUG_VISUAL
-#undef DEBUG_VISUAL
-
 #ifdef DEBUGGING
 #define ORDERING
 #define DEBUG01
@@ -64,7 +61,6 @@ static int TIMINGS = TRUE;
 #define DEBUG78
 #undef DEBUG14
 #undef DEBUG15
-#define DEBUG16
 #define DEBUG17
 #define DEBUG77
 #undef DEBUG_SHORTCUT
@@ -405,36 +401,13 @@ static void exhale_term_rep
 	sprintf(vs1,"a(\"OBJECT\",\"(" F_IID ":" F_IID ")\"),",
 		iafr,ifrag);
       } else {
-#ifdef NEVER
-	sprintf(vs1,"a(\"OBJECT\",\"[%d,%d] %c %c (" F_IID ":" F_IID ")\"),",
-		(int32)get_genbgn_fraginfo(fraginfo,ifrag),
-		(int32)get_genend_fraginfo(fraginfo,ifrag),
-		get_pre_let_fraginfo(fraginfo,ifrag),
-		get_suf_let_fraginfo(fraginfo,ifrag),
-		iafr,ifrag);
-#else
 #ifdef GENINFO
 	sprintf(vs1,"a(\"OBJECT\",\"[%d,%d] (" F_IID ":" F_IID ")\"),",
 		(int32)get_genbgn_fraginfo(fraginfo,ifrag),
 		(int32)get_genend_fraginfo(fraginfo,ifrag),
 		iafr,ifrag);
 #endif // GENINFO
-#endif
       }
-#ifdef NEVER
-      fprintf(stdout,"[%d,%d] (" F_IID ":" F_IID ") %c,%d,%d,%d %c,%d,%d,%d\n",
-	      (int32)get_genbgn_fraginfo(fraginfo,ifrag),
-	      (int32)get_genend_fraginfo(fraginfo,ifrag),
-	      iafr,ifrag,
-	      get_pre_let_fraginfo(fraginfo,ifrag),
-	      get_pre_ins_fraginfo(fraginfo,ifrag),
-	      get_pre_brp_fraginfo(fraginfo,ifrag),
-	      get_pre_end_fraginfo(fraginfo,ifrag),
-	      get_suf_let_fraginfo(fraginfo,ifrag),
-	      get_suf_ins_fraginfo(fraginfo,ifrag),
-	      get_suf_brp_fraginfo(fraginfo,ifrag),
-	      get_suf_end_fraginfo(fraginfo,ifrag));
-#endif
       
       switch(ilab) {
       case AS_CGB_SOLO_FRAG:
@@ -714,7 +687,6 @@ static void annotate_the_chunks_with_coordinate_info
 	  }
 	  ivote_repeat_essential += invalid;
 #endif // GENINFO
-	  /* Store this information in the CHK message? */
 	}
 	break;
       case AS_CGB_SINGLECONT_FRAG:
@@ -2559,45 +2531,6 @@ static void analyze_the_chunks
 
 #endif /*GENINFO*/
 
-#ifdef NEVER
-    fprintf(fout,"\n\nHistogram of fragment_timesinchunks\n");
-    print_histogram(fout,fragment_timesinchunks_histogram, 0, 1);
-#endif
-
-#ifdef NEVER
-    fprintf(fout,"\n\nHistogram of the degree of the ends of the chunks\n");
-    print_histogram(fout,ndegree_of_chunkends_histogram, 0, 1);
-
-    fprintf(fout,"\n\nHistogram of the degree squared of the ends of the chunks\n");
-    print_histogram(fout,ndegreesq_of_chunkends_histogram, 0, 1);
-
-    fprintf(fout,"\n\nHistogram of the degree of the ends of the "
-	    "discriminator unique chunks\n");
-    print_histogram(fout,ndegree_of_disc_unique_chunkends_histogram, 0, 1);
-
-    fprintf(fout,"\n\nHistogram of the unique-unique degree of the ends of the "
-	    "discriminator unique chunks\n");
-    print_histogram(fout,ndegree_of_disc_unique_to_unique_histogram, 0, 1);
-
-#ifdef GENINFO
-    fprintf(fout,"\n\nHistogram of the degree of the ends of the "
-	    "true unique chunks\n");
-    print_histogram(fout,ndegree_of_gen_unique_chunkends_histogram, 0, 1);
-    fprintf(fout,"\n\nHistogram of the unique-unique degree of the ends of the "
-	    "true unique chunks\n");
-    print_histogram(fout,ndegree_of_true_unique_to_unique_histogram, 0, 1);
-#endif
-#ifdef SIMINFO2
-    {
-      int ii;
-      for(ii=0;ii<=NLETTERS;ii++){
-	fprintf(fout,"\n\nHistogram of the degree of the ends of the chunks\n"
-		" with repeat letter %c\n",(char)(ii+64));
-	print_histogram(fout,ndegree_of_chunkends_by_letter_histogram[ii], 0, 1);
-      }
-    }
-#endif // NEVER
-#endif /*SIMINFO*/
   }
   free_histogram(nfrag_in_chunk_histogram);
   free_histogram(nfrag_essential_in_chunk_histogram);
@@ -2617,22 +2550,6 @@ static void analyze_the_chunks
   free_histogram(true_uniques);
   free_histogram(true_repeats);
 #endif
-#ifdef NEVER
-  free_histogram(ndegree_of_chunkends_histogram);
-  free_histogram(ndegreesq_of_chunkends_histogram);
-  free_histogram(ndegree_of_disc_unique_chunkends_histogram);
-  free_histogram(ndegree_of_disc_unique_to_unique_histogram);
-  free_histogram(ndegree_of_gen_unique_chunkends_histogram);
-  free_histogram(ndegree_of_true_unique_to_unique_histogram);
-#ifdef SIMINFO
-  {
-    int ii;
-    for(ii=0;ii<=NLETTERS;ii++){
-      free_histogram(ndegree_of_chunkends_by_letter_histogram[ii]);
-    }
-  }
-#endif /*SIMINFO*/
-#endif //NEVER
   safe_free(fragment_visited);
   safe_free(fragment_timesinchunks);
   destroy_FragmentHash(afr_to_avx);
@@ -3035,12 +2952,6 @@ void chunk_graph_analysis
 	    get_pre_brp_fraginfo(fraginfo,ifrag) >= BPT_MIN_PREFIX)
 	   // And not contained in the repeat region.
 	   &&(get_pre_brp_fraginfo(fraginfo,ifrag) != 0)
-#ifdef NEVER
-	   &&
-	   (get_pre_end_fraginfo(fraginfo,ifrag) -
-	    get_pre_brp_fraginfo(fraginfo,ifrag) <= 
-	    get_length_fragment(frags,ifrag) - BPT_MIN_SUFFIX) 
-#endif
 	   )
 	  ||
 	  ((isuffix == FALSE)&&
@@ -3048,11 +2959,6 @@ void chunk_graph_analysis
 	    get_suf_end_fraginfo(fraginfo,ifrag) >= BPT_MIN_PREFIX)
 	   // And not contained in the repeat region.
 	   &&(get_suf_brp_fraginfo(fraginfo,ifrag) != gen_frag_bplength)
-#ifdef NEVER
-	   &&(get_suf_brp_fraginfo(fraginfo,ifrag) -
-	      get_suf_end_fraginfo(fraginfo,ifrag) <= 
-	      get_length_fragment(frags,ifrag) - BPT_MIN_SUFFIX)
-#endif
 	   );
 	
 	// Screen against a repeat region wholly contained by the fragment.
@@ -3075,22 +2981,8 @@ void chunk_graph_analysis
 	   // Associated with a medium tandem repeat
 	   &&(!((get_pre_let_fraginfo(fraginfo,ifrag) == 'G') ||
 		(get_suf_let_fraginfo(fraginfo,ifrag) == 'G')))
-#ifdef NEVER
-	    // Inside a ALU repeat
-	   &&(!((get_pre_let_fraginfo(fraginfo,ifrag) == 'B') &&
-		(get_suf_let_fraginfo(fraginfo,ifrag) == 'B')))
-	   // Inside a short tandem repeat
-	   &&(!((get_pre_let_fraginfo(fraginfo,ifrag) == 'E') &&
-		(get_suf_let_fraginfo(fraginfo,ifrag) == 'E')))
-	   // Inside a medium tandem repeat
-	   &&(!((get_pre_let_fraginfo(fraginfo,ifrag) == 'G') &&
-		(get_suf_let_fraginfo(fraginfo,ifrag) == 'G')))
-#endif
 	   ) {
 	  false_positive_brc ++;
-#ifdef DEBUG16
-	  fprintf(fout,"The simulator missed a BRC\n");
-#endif
 	}
 	if(!unitigger_bpt && simulator_bpt) {
 	  false_negative_brc ++;
@@ -3126,12 +3018,6 @@ void chunk_graph_analysis
 	    get_pre_brp_fraginfo(fraginfo,ifrag) >= BPT_MIN_PREFIX)
 	   // And not contained in the repeat region.
 	   &&(get_pre_brp_fraginfo(fraginfo,ifrag) != 0)  
-#ifdef NEVER
-	   &&
-	   (get_pre_end_fraginfo(fraginfo,ifrag) -
-	    get_pre_brp_fraginfo(fraginfo,ifrag) <= 
-	    get_length_fragment(frags,ifrag) - BPT_MIN_SUFFIX) 
-#endif
 	   )
 	  ||
 	  ((isuffix == FALSE)&&
@@ -3139,11 +3025,6 @@ void chunk_graph_analysis
 	    get_suf_end_fraginfo(fraginfo,ifrag) >= BPT_MIN_PREFIX)
 	   // And not contained in the repeat region.
 	   &&(get_suf_brp_fraginfo(fraginfo,ifrag) != gen_frag_bplength)
-#ifdef NEVER
-	   &&(get_suf_brp_fraginfo(fraginfo,ifrag) -
-	      get_suf_end_fraginfo(fraginfo,ifrag) <= 
-	      get_length_fragment(frags,ifrag) - BPT_MIN_SUFFIX)
-#endif
 	   );
 
 	// Screen against a repeat region wholly contained by the fragment.
@@ -3166,22 +3047,8 @@ void chunk_graph_analysis
 	   // Associated with a medium tandem repeat
 	   &&(!((get_pre_let_fraginfo(fraginfo,ifrag) == 'G') ||
 		(get_suf_let_fraginfo(fraginfo,ifrag) == 'G')))
-#ifdef NEVER
-	    // Inside a ALU repeat
-	   &&(!((get_pre_let_fraginfo(fraginfo,ifrag) == 'B') &&
-		(get_suf_let_fraginfo(fraginfo,ifrag) == 'B')))
-	   // Inside a short tandem repeat
-	   &&(!((get_pre_let_fraginfo(fraginfo,ifrag) == 'E') &&
-		(get_suf_let_fraginfo(fraginfo,ifrag) == 'E')))
-	   // Inside a medium tandem repeat
-	   &&(!((get_pre_let_fraginfo(fraginfo,ifrag) == 'G') &&
-		(get_suf_let_fraginfo(fraginfo,ifrag) == 'G')))
-#endif
 	   ) {
 	  false_positive_brc ++;
-#ifdef DEBUG16
-	  fprintf(fout,"The simulator missed a BRC\n");
-#endif
 	}
 	if(!unitigger_bpt && simulator_bpt) {
 	  false_negative_brc ++;

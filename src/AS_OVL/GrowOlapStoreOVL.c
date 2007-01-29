@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: GrowOlapStoreOVL.c,v 1.10 2006-09-26 21:07:45 brianwalenz Exp $
- * $Revision: 1.10 $
+ * $Id: GrowOlapStoreOVL.c,v 1.11 2007-01-29 20:41:17 brianwalenz Exp $
+ * $Revision: 1.11 $
 */
 
-static char CM_ID[] = "$Id: GrowOlapStoreOVL.c,v 1.10 2006-09-26 21:07:45 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GrowOlapStoreOVL.c,v 1.11 2007-01-29 20:41:17 brianwalenz Exp $";
 
 
 //  System include files
@@ -871,7 +871,6 @@ static void  Process_OVL_Files
       char  * filename;
       int     filenamelen;
       int     filenameiscompressed;
-      MesgReader  read_msg_fn;
       MessageType  imesgtype;
       GenericMesg  * pmesg;
       OverlapMesg  * ovl_mesg;
@@ -907,14 +906,13 @@ static void  Process_OVL_Files
         fp = File_Open (filename, "r");
       }
 
-      read_msg_fn = (MesgReader)InputFileType_AS (fp);
 
       now = time (NULL);
       fprintf (stderr, "Starting file \"%s\"\n", filename);
       fprintf (stderr, "  at %s\n", ctime (& now));
 
 
-      while  (EOF != read_msg_fn (fp, & pmesg))
+      while  (EOF != ReadProtoMesg_AS (fp, & pmesg))
         {
          Long_Olap_Data_t  fwd_olap, rev_olap;
 

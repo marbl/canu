@@ -20,7 +20,7 @@
  *************************************************************************/
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/AS_ORA_main.c,v $
-$Revision: 1.8 $
+$Revision: 1.9 $
 **********************************************************************/
 
 /**********************************************************************
@@ -922,7 +922,6 @@ int CompareOverlaps( FragmentArrayp fragments,
   OverlapMesg * osp = NULL;
   uint32        with_id;
   uint32        overlap_size;
-  MesgReader    reader;
 
   if( fp == NULL )
   {
@@ -931,11 +930,6 @@ int CompareOverlaps( FragmentArrayp fragments,
              input_ovl_filename );
     return 1;
   }
-  reader = (MesgReader)InputFileType_AS( fp );
-
-  // since the file was opened before, start at the right place
-  if( reader == ReadBinaryMesg_AS )
-    CDS_FSEEK( fp, (off_t) sizeof( int ), SEEK_SET );
 
   // check that it makes sense to collect statistics
   if( stats->max_overlap <= stats->min_overlap )
@@ -960,7 +954,7 @@ int CompareOverlaps( FragmentArrayp fragments,
   }
 
   // read the found overlaps in one-at-a-time
-  while( reader( fp, &gmesg ) != EOF )
+  while( ReadProtoMesg_AS( fp, &gmesg ) != EOF )
   {
     if( gmesg && gmesg->t == MESG_OVL )
     {
@@ -1290,7 +1284,7 @@ int GenerateOverlapFile( char * output_ovl_filename,
     // regressor ADL message
     auditLine2.complete = time(0);
     auditLine2.name = "overlap_regressor";
-    auditLine2.version = "$Revision: 1.8 $ $Date: 2007-01-28 21:52:24 $";
+    auditLine2.version = "$Revision: 1.9 $ $Date: 2007-01-29 20:41:15 $";
     auditLine2.comment = "(empty)";
     auditLine2.next = NULL;
 
@@ -1298,7 +1292,7 @@ int GenerateOverlapFile( char * output_ovl_filename,
     outMesg.m = &auditMesg;
     outMesg.t = MESG_ADT;
 
-    if( WriteBinaryMesg_AS( fp, &outMesg ) < 0 )
+    if( WriteProtoMesg_AS( fp, &outMesg ) < 0 )
     {
       fprintf( stderr, "Failed to write ADT message.\n" );
       fclose( fp );
@@ -1341,7 +1335,7 @@ int GenerateOverlapFile( char * output_ovl_filename,
       idt_mesg.mean = dist_record.mean;
       idt_mesg.stddev = dist_record.stddev;
       
-      if( WriteBinaryMesg_AS( fp, &outMesg ) < 0 )
+      if( WriteProtoMesg_AS( fp, &outMesg ) < 0 )
       {
         fprintf( stderr, "Failed to write IDT message.\n" );
         closeDistStore( dstore_handle );
@@ -1414,7 +1408,7 @@ int GenerateOverlapFile( char * output_ovl_filename,
         ofg_mesg.sequence = sequence;
         ofg_mesg.quality = quality;
 */
-        if( WriteBinaryMesg_AS( fp, &outMesg ) < 0 )
+        if( WriteProtoMesg_AS( fp, &outMesg ) < 0 )
         {
           fprintf( stderr, "Failed to write OFG message.\n" );
           delete_ReadStruct( read_struct );
@@ -1482,7 +1476,7 @@ int GenerateOverlapFile( char * output_ovl_filename,
         ovl_mesg.min_offset = ovl_mesg.ahg;
         ovl_mesg.max_offset = ovl_mesg.ahg;
         
-        if( WriteBinaryMesg_AS( fp, &outMesg ) < 0 )
+        if( WriteProtoMesg_AS( fp, &outMesg ) < 0 )
         {
           fprintf( stderr, "Failed to write OVL message.\n" );
           fclose( fp );

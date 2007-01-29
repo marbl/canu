@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: dumpGatekeeper.c,v 1.10 2007-01-28 21:52:24 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpGatekeeper.c,v 1.11 2007-01-29 20:41:11 brianwalenz Exp $";
 
 /* Dump the gatekeeper stores for debug */
 
@@ -43,10 +43,6 @@ static char CM_ID[] = "$Id: dumpGatekeeper.c,v 1.10 2007-01-28 21:52:24 brianwal
 
 int  nerrs = 0;   // Number of errors in current run
 int maxerrs = 10; // Number of errors allowed before we punt
-
-static MesgReader reader;
-static MesgWriter writer;
-
 
 int
 main(int argc, char * argv []) {

@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CorrectOlapsOVL.c,v 1.6 2006-09-26 21:07:45 brianwalenz Exp $
- * $Revision: 1.6 $
+ * $Id: CorrectOlapsOVL.c,v 1.7 2007-01-29 20:41:17 brianwalenz Exp $
+ * $Revision: 1.7 $
 */
 
-static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.6 2006-09-26 21:07:45 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.7 2007-01-29 20:41:17 brianwalenz Exp $";
 
 
 //  System include files
@@ -267,9 +267,6 @@ static int  Olaps_From_Store = FALSE;
     // a binary overlap store
 static FILE  * OVL_fp = NULL;
     // File to which OVL messages are written if  -o  option is specified
-static int  P_Option = FALSE;
-    // If true output .ovl file should be proto (ASCII format);
-    // otherwise, binary
 static double  Quality_Threshold = DEFAULT_QUALITY_THRESHOLD;
     // Overlaps better than this error rate will be output
 static int  Total_Alignments_Ct = 0;
@@ -281,10 +278,6 @@ static int  Use_CGB_File = FALSE;
     // files  ium.id  and  unitig.pair 
 static int  Verbose_Level = 0;
     // Determines number of extra outputs
-static MesgWriter  Write_Msg_Fn;
-    // Pointer to function to write OVL messages.
-
-
 
 //  Static Functions
 
@@ -728,7 +721,6 @@ static void  Build_FOM_List
 
   {
    FILE  * fp;
-   MesgReader  read_msg_fn;
    GenericMesg  * gmesg = NULL;
    FragOverlapMesg  * fom = NULL;
    IntUnitigMesg  * ium = NULL;
@@ -750,9 +742,8 @@ static void  Build_FOM_List
      UF [i] = -1;
 
    fp = File_Open (CGB_File_Path, "r");
-   read_msg_fn = (MesgReader)InputFileType_AS (fp);
 
-   while  (read_msg_fn (fp, & gmesg) != EOF)
+   while  (ReadProtoMesg_AS (fp, & gmesg) != EOF)
      {
       if  (gmesg == NULL)
           continue;
@@ -848,9 +839,8 @@ static void  Build_FOM_List
        return;
 
    fp = File_Open (CGB_File2_Path, "r");
-   read_msg_fn = (MesgReader)InputFileType_AS (fp);
 
-   while  (read_msg_fn (fp, & gmesg) != EOF)
+   while  (ReadProtoMesg_AS (fp, & gmesg) != EOF)
      {
       if  (gmesg == NULL)
           continue;
@@ -1770,11 +1760,6 @@ static void  Initialize_Globals
    for  (i = 0;  i <= MAX_FRAG_LEN;  i ++)
      Error_Bound [i] = (int) (i * MAX_ERROR_RATE);
 
-   if  (P_Option)
-       Write_Msg_Fn = (MesgWriter)OutputFileType_AS (AS_PROTO_OUTPUT);
-     else
-       Write_Msg_Fn = (MesgWriter)OutputFileType_AS (AS_BINARY_OUTPUT);
-
    return;
   }
 
@@ -2070,7 +2055,7 @@ static int  Output_OVL
         ovMesg . min_offset = ovMesg . max_offset = ovMesg . ahg;   // kludge for now
         ovMesg . polymorph_ct = 0;
 
-        Write_Msg_Fn (OVL_fp, & outputMesg);
+        WriteProtoMesg_AS (OVL_fp, & outputMesg);
        }
 
 
@@ -2129,25 +2114,6 @@ static void  Parse_Command_Line
 
           fprintf (stderr, "DNA_String len = " F_SIZE_T "\n",
                    strlen (DNA_String));
-#if  0
-{
- int  j, ct;
-
- printf (">DNA_String\n");
- ct = 0;
- for  (j = 0;  DNA_String [j] != '\0';  j ++)
-   {
-    if  (ct == 60)
-        {
-         putchar ('\n');
-         ct = 0;
-        }
-    putchar (DNA_String [j]);
-    ct ++;
-   }
- putchar ('\n');
-}
-#endif
           break;
 
         case  'e' :
@@ -2163,7 +2129,7 @@ static void  Parse_Command_Line
           break;
 
         case  'P' :
-          P_Option = TRUE;
+          fprintf(stderr, "-P is depricated; protoIO is default.\n");
           break;
 
         case  'q' :

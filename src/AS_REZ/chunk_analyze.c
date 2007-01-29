@@ -38,11 +38,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: chunk_analyze.c,v 1.6 2006-02-13 22:16:31 eliv Exp $
- * $Revision: 1.6 $
+ * $Id: chunk_analyze.c,v 1.7 2007-01-29 20:41:22 brianwalenz Exp $
+ * $Revision: 1.7 $
 */
 
-static char fileID[] = "$Id: chunk_analyze.c,v 1.6 2006-02-13 22:16:31 eliv Exp $";
+static char fileID[] = "$Id: chunk_analyze.c,v 1.7 2007-01-29 20:41:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -115,7 +115,6 @@ int main  (int argc, char * argv [])
   {
    FILE  * infile;
    GenericMesg  * gmesg = NULL;
-   MesgReader  read_msg_fn;
    char  buff [BUFF_LEN];
    int  a_end, b_end, chunk_id, fid;
    int  has_r_flag = FALSE;
@@ -146,9 +145,7 @@ int main  (int argc, char * argv [])
    Range = (Range_t *) malloc (Range_Size * sizeof (Range_t));
    assert (Range != NULL);
 
-   read_msg_fn = (MesgReader)InputFileType_AS (infile);
-
-   while  (read_msg_fn (infile, & gmesg) != EOF)
+   while  (ReadProtoMesg_AS (infile, & gmesg) != EOF)
      {
       if  (gmesg && gmesg -> t == MESG_IUM)
           {

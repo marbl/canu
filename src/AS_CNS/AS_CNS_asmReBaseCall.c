@@ -38,7 +38,7 @@
 #include "Globals_CNS.h"
 #include "PublicAPI_CNS.h"
 
-static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.4 2006-10-08 08:47:39 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.5 2007-01-29 20:41:05 brianwalenz Exp $";
 
 static UIDHashTable_AS *utgUID2IID;
 
@@ -294,8 +294,6 @@ help_message(int argc, char *argv[])
 }
 
 int main (int argc, char *argv[]) {
-    MesgReader   reader;
-    MesgWriter   writer;
     char *frgStorePath=NULL;
     char *gkpStorePath=NULL;
 
@@ -326,7 +324,6 @@ int main (int argc, char *argv[]) {
 #endif
 
     int ch,errflg=0,illegal_use=0,help_flag=0,iflags=0;
-    OutputType output=AS_BINARY_OUTPUT;
 
     fprintf(stderr,"Version: %s\n",CM_ID);
     novar = 0;
@@ -465,10 +462,8 @@ int main (int argc, char *argv[]) {
     columnStore = NULL;
     manodeStore = NULL;
 
-    reader =(MesgReader)ReadProtoMesg_AS;
     cnslog = stderr;
     cnsout = stderr;
-    writer = (MesgWriter) WriteProtoMesg_AS;
 
 
     /**************** Prepare Unitig Store ****************************/
@@ -484,11 +479,11 @@ int main (int argc, char *argv[]) {
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.4 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.5 $ processing. Started %s\n",
 	      ctime(&t));
       InitializeAlphTable();
 
-      while ( (reader(stdin,&pmesg) != EOF)){
+      while ( (ReadProtoMesg_AS(stdin,&pmesg) != EOF)){
 
         switch(pmesg->t)
         {
@@ -507,7 +502,7 @@ int main (int argc, char *argv[]) {
 	    free(iunitig->quality);
 	    free(iunitig);
 	    SetMultiAlignInStore(unitigStore,ma->id,ma);
-	    writer(stdout,pmesg); // write out the unitig message
+	    WriteProtoMesg_AS(stdout,pmesg); // write out the unitig message
 	    break;
           }
           case MESG_CCO:
@@ -548,7 +543,7 @@ int main (int argc, char *argv[]) {
 	    free(icontig->pieces);
 	    free(icontig->unitigs);
 	    free(icontig);
-	    writer(stdout,pmesg); // write out the modified contig message
+	    WriteProtoMesg_AS(stdout,pmesg); // write out the modified contig message
 	    break;
 	  }
           case MESG_ADT:
@@ -556,11 +551,11 @@ int main (int argc, char *argv[]) {
 	    AuditMesg *adt_mesg;
 	    adt_mesg = (AuditMesg *)(pmesg->m);
 	    VersionStampADT(adt_mesg,argc,argv);
-	    writer(stdout,pmesg);
+	    WriteProtoMesg_AS(stdout,pmesg);
           }
           break;
           default:
-            writer(stdout,pmesg);
+            WriteProtoMesg_AS(stdout,pmesg);
         }
         fflush(cnsout);
         fflush(cnslog);

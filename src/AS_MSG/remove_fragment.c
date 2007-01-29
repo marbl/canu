@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: remove_fragment.c,v 1.7 2007-01-29 05:48:38 brianwalenz Exp $ */
+/* $Id: remove_fragment.c,v 1.8 2007-01-29 20:41:15 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,8 +39,6 @@ CDS_UID_t a2UID( char * string )
 int main( int argc, char ** argv )
 {
   FILE       * fp_out;
-  MesgReader   reader;
-  MesgWriter   writer;
   GenericMesg      * gen;
   ID_Arrayp  frag_uids;
   ID_Arrayp  frag_uids_found;
@@ -53,8 +51,6 @@ int main( int argc, char ** argv )
              "Usage: %s input_file output_file ((-f list_file) | UID_list))\n", argv[0] );
     return 1;
   }
-
-  reader = (MesgReader)InputFileType_AS(stdin);
 
   // set up frag_uids array
   if( argv[3][0] != '-' )
@@ -113,10 +109,8 @@ int main( int argc, char ** argv )
     fprintf( stderr, "Failed to open file %s for writing.\n", argv[2] );
     return 1;
   }
-  writer =
-    (reader == ReadBinaryMesg_AS) ? WriteBinaryMesg_AS : WriteProtoMesg_AS;
   
-  while( reader(stdin, &gen ) != EOF )
+  while( ReadProtoMesg_AS(stdin, &gen ) != EOF )
   {
     switch( gen->t )
     {
@@ -130,7 +124,7 @@ int main( int argc, char ** argv )
 	    }
 	  else
 	    {
-	      writer( fp_out, gen );
+	      WriteProtoMesg_AS( fp_out, gen );
 	    }
 	}
         break;
@@ -148,7 +142,7 @@ int main( int argc, char ** argv )
 	    }
 	  else
 	    {
-	      writer( fp_out, gen );
+	      WriteProtoMesg_AS( fp_out, gen );
 	    }
 	}
         break;
@@ -159,7 +153,7 @@ int main( int argc, char ** argv )
 	      (FindID_ArrayID( frag_uids_found, lkg->frag1) == -1 &&
 	       FindID_ArrayID( frag_uids_found, lkg->frag2) == -1) )
 	    {
-	      writer( fp_out, gen );
+	      WriteProtoMesg_AS( fp_out, gen );
 	    }
 	  else
 	    {
@@ -174,7 +168,7 @@ int main( int argc, char ** argv )
 	      (FindID_ArrayID( frag_iids, (CDS_UID_t) ilk->ifrag1) == -1 &&
 	       FindID_ArrayID( frag_iids, (CDS_UID_t) ilk->ifrag2) == -1) )
 	    {
-	      writer( fp_out, gen );
+	      WriteProtoMesg_AS( fp_out, gen );
 	    }
 	  else
 	    {
@@ -189,7 +183,7 @@ int main( int argc, char ** argv )
 	      (FindID_ArrayID( frag_iids, (CDS_UID_t) ovl->aifrag) == -1 &&
 	       FindID_ArrayID( frag_iids, (CDS_UID_t) ovl->bifrag) == -1) )
 	    {
-	      writer( fp_out, gen );
+	      WriteProtoMesg_AS( fp_out, gen );
 	    }
 	  else
 	    {
@@ -198,7 +192,7 @@ int main( int argc, char ** argv )
 	}
         break;
       default:
-        writer( fp_out, gen );
+        WriteProtoMesg_AS( fp_out, gen );
         break;
     }
   }

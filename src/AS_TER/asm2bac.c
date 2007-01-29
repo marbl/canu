@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* RCS info
- * $Id: asm2bac.c,v 1.5 2006-10-08 08:47:40 brianwalenz Exp $
+ * $Id: asm2bac.c,v 1.6 2007-01-29 20:41:24 brianwalenz Exp $
  */
 
 #include <stdio.h>
@@ -435,7 +435,6 @@ int main(int argc, char *argv[])
 { GenericMesg *pmesg;
   GenericMesg bmesg;
   BatchMesg batch;
-  MesgReader   reader;
   MultiAlignT *ma;
   char *comment=NULL;
   char nameBuffer[1000];
@@ -503,7 +502,6 @@ int main(int argc, char *argv[])
           }
         }
   }
-  reader = (MesgReader)InputFileType_AS( stdin );
   dummy_consensus = CreateVA_char(500000);
 
   if ( mapFile != NULL ) {
@@ -548,7 +546,7 @@ int main(int argc, char *argv[])
      HandleDir(nameBuffer, batchBuffer);
   }
 
-  while (reader(stdin,&pmesg) != EOF){
+  while (ReadProtoMesg_AS(stdin,&pmesg) != EOF){
     if (pmesg->t ==MESG_IUM)  {
      if (0) {
        IntUnitigMesg  *unitig = (IntUnitigMesg *) pmesg->m;

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_GKP_checkBac.c,v 1.4 2005-03-22 19:48:52 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkBac.c,v 1.5 2007-01-29 20:41:10 brianwalenz Exp $";
 
 //#define DEBUG_GKP 1
 #define DEBUG_GKP_VERBOSE 1
@@ -799,7 +799,7 @@ void outputBactigFragDeletes(GateKeeperLocaleRecord bacRecord){
     getGateKeeperBactigStore(GkpStore.btgStore, i + bacRecord.firstBactig, &btgRecord);
     ifg_mesg.eaccession = btgRecord.UID;
     ifg_mesg.iaccession = i + bacRecord.firstBactig;
-    Writer(Outfp, &pmesg);
+    WriteProtoMesg_AS(Outfp, &pmesg);
   }
 }
 
@@ -815,5 +815,5 @@ void outputBacDelete(CDS_IID_t bacIid, CDS_UID_t bacUid){
   ibc_mesg.ebac_id = bacUid;
   ibc_mesg.ibac_id = bacIid;
 
-  Writer(Ibcfp, &pmesg);
+  WriteProtoMesg_AS(Ibcfp, &pmesg);
 }

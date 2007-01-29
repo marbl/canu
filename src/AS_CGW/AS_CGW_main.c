@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.30 2007-01-18 20:30:58 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.31 2007-01-29 20:41:00 brianwalenz Exp $";
 
 
 static const char *usage = 
@@ -184,13 +184,10 @@ int main(int argc, char *argv[]){
   int performCleanupScaffolds = 1;
   int alignOverlaps = 1; // if true (set to true by -a, false -A) recompute all overlaps supplied by cgb
   int dumpStatsOnRestart = FALSE;
-  OutputType outputFormat = AS_BINARY_OUTPUT;
   int32 restartFromCheckpoint = NULLINDEX;
   int32 restartFromLogicalCheckpoint = NULLINDEX;
   int demoteSingletonScaffolds = TRUE;
   Global_CGW *data;
-  MesgReader reader;
-  MesgWriter writer; 
   FILE *infp = NULL;
   FILE *cgwfp = NULL; /* .cgw file */
   FILE *ctgfp = NULL; /* .cgw_contigs file */
@@ -452,7 +449,7 @@ int main(int argc, char *argv[]){
           fprintf(GlobalData->stderrc,"* Output overlap only  contig edges set to TRUE\n");
           break;
         case 'P':
-          outputFormat = AS_PROTO_OUTPUT;
+          fprintf(stderr, "-P default.\n");
           break;
         case 'R':
           restartFromCheckpoint = atoi(optarg);
@@ -526,8 +523,6 @@ int main(int argc, char *argv[]){
 	strcpy(data->Input_File_Name, argv[optind]);
 	infp = File_Open (data->Input_File_Name, "r", TRUE);     // frg file
 	AssertPtr(infp);
-	data->reader = reader = (MesgReader)InputFileType_AS(infp);
-	data->writer = writer = (MesgWriter)OutputFileType_AS(outputFormat);
 
 	strcpy(data->File_Name_Prefix, outputPath);
 

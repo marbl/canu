@@ -595,7 +595,6 @@ int GetUnitigData( BreakerSetp chims, BreakerSetp craps, char * cgb_filename )
   FILE * fp;
   GenericMesg       * gen;
   IntUnitigMesg     * ium;
-  MesgReader reader;
   int chim_i, crap_i;
 
   if( (fp = fopen( cgb_filename, "r" )) == NULL )
@@ -604,11 +603,10 @@ int GetUnitigData( BreakerSetp chims, BreakerSetp craps, char * cgb_filename )
              cgb_filename );
     return 1;
   }
-  reader = (MesgReader)InputFileType_AS( fp );
 
   chim_i = 0;
   crap_i = 0;
-  while( reader( fp, &gen ) != EOF )
+  while(ReadProtoMesg_AS( fp, &gen ) != EOF )
   {
     switch( gen->t )
     {
@@ -873,7 +871,7 @@ int WriteSequence( FILE * fp, char * seq, int length, int bases_per_line )
 
 // called
 cds_int32 CheckFragmentOverlap( FILE * fp_log, Verbosity verbose,
-                                FILE * fp_ovl, MesgWriter writer,
+                                FILE * fp_ovl,
                                 IntMultiPos * f1,
                                 IntMultiPos * f2,
                                 ChunkOrientationType orient,
@@ -1061,7 +1059,7 @@ cds_int32 CheckFragmentOverlap( FILE * fp_log, Verbosity verbose,
           break;
       }
       if( fp_ovl )
-        writer( fp_ovl, &gen );
+        WriteProtoMesg_AS( fp_ovl, &gen );
 
       return (f1->delta_length + f2->delta_length - ovl->ahg - ovl->bhg) / 2;
     }
@@ -1113,7 +1111,7 @@ cds_int32 CheckFragmentOverlap( FILE * fp_log, Verbosity verbose,
 
 // called
 int CheckBreakerChunkOverlap( FILE * fp_log, Verbosity verbose,
-                              FILE * fp_ovl, MesgWriter writer,
+                              FILE * fp_ovl,
                               Breakerp b, OverlapIndex oi,
                               ChunkIndex ci1, ChunkIndex ci2,
                               FragStoreHandle fs )
@@ -1157,7 +1155,7 @@ int CheckBreakerChunkOverlap( FILE * fp_log, Verbosity verbose,
   
   // look for an overlap
   b->overlaps[oi].best_overlap_length =
-    CheckFragmentOverlap( fp_log, verbose, fp_ovl, writer,
+    CheckFragmentOverlap( fp_log, verbose, fp_ovl,
                           &(b->chunks[ci1].f_list[ci1_frag]),
                           &(b->chunks[ci2].f_list[ci2_frag]),
                           b->overlaps[oi].orient,
@@ -1169,7 +1167,7 @@ int CheckBreakerChunkOverlap( FILE * fp_log, Verbosity verbose,
 // called
 // since not all chunk overlaps were represented by UOMs
 int CheckBreakerOverlaps( FILE * fp_log, Verbosity verbose,
-                          FILE * fp_ovl, MesgWriter writer,
+                          FILE * fp_ovl,
                           Breakerp b, BreakerType type,
                           FragStoreHandle fs )
 {
@@ -1190,7 +1188,7 @@ int CheckBreakerOverlaps( FILE * fp_log, Verbosity verbose,
     fprintf( fp_log, "\n########## s-c overlap #########\n" );
   if( type == Chimera )
     b->suffixes[Chunk_s] = 0;
-  if( CheckBreakerChunkOverlap( fp_log, verbose, NULL, writer,
+  if( CheckBreakerChunkOverlap( fp_log, verbose, NULL,
                                 b, Ovl_sc, Chunk_s, Chunk_c, fs ) )
   {
     fprintf( stderr, "Failed to check breaker overlap\n" );
@@ -1200,7 +1198,7 @@ int CheckBreakerOverlaps( FILE * fp_log, Verbosity verbose,
   // c-d overlap
   if( verbose != Silent )
     fprintf( fp_log, "\n########## c-d overlap #########\n" );
-  if( CheckBreakerChunkOverlap( fp_log, verbose, NULL, writer,
+  if( CheckBreakerChunkOverlap( fp_log, verbose, NULL,
                                 b, Ovl_cd, Chunk_c, Chunk_d, fs ) )
   {
     fprintf( stderr, "Failed to check breaker overlap\n" );
@@ -1214,7 +1212,7 @@ int CheckBreakerOverlaps( FILE * fp_log, Verbosity verbose,
     b->suffixes[Chunk_s] = 1;
   else
     b->suffixes[Chunk_s] = 1 - s_suffix;
-  if( CheckBreakerChunkOverlap( fp_log, verbose, fp_ovl, writer,
+  if( CheckBreakerChunkOverlap( fp_log, verbose, fp_ovl,
                                 b, Ovl_sd, Chunk_s, Chunk_d, fs ) )
   {
     fprintf( stderr, "Failed to check breaker overlap\n" );
@@ -1229,7 +1227,7 @@ int CheckBreakerOverlaps( FILE * fp_log, Verbosity verbose,
     if( verbose != Silent )
       fprintf( fp_log, "\n########## s-b overlap #########\n" );
     b->suffixes[Chunk_s] = 1;
-    if( CheckBreakerChunkOverlap( fp_log, verbose, NULL, writer,
+    if( CheckBreakerChunkOverlap( fp_log, verbose, NULL,
                                   b, Ovl_sb, Chunk_s, Chunk_b, fs ) )
     {
       fprintf( stderr, "Failed to check breaker overlap\n" );
@@ -1239,7 +1237,7 @@ int CheckBreakerOverlaps( FILE * fp_log, Verbosity verbose,
     // a-b overlap
     if( verbose != Silent )
       fprintf( fp_log, "\n########## a-b overlap #########\n" );
-    if( CheckBreakerChunkOverlap( fp_log, verbose, NULL, writer,
+    if( CheckBreakerChunkOverlap( fp_log, verbose, NULL,
                                   b, Ovl_ab, Chunk_a, Chunk_b, fs ) )
     {
       fprintf( stderr, "Failed to check breaker overlap\n" );
@@ -1250,7 +1248,7 @@ int CheckBreakerOverlaps( FILE * fp_log, Verbosity verbose,
     if( verbose != Silent )
       fprintf( fp_log, "\n########## Possible s-a overlap #########\n" );
     b->suffixes[Chunk_s] = 0;
-    if( CheckBreakerChunkOverlap( fp_log, verbose, fp_ovl, writer,
+    if( CheckBreakerChunkOverlap( fp_log, verbose, fp_ovl,
                                   b, Ovl_sa, Chunk_s, Chunk_a, fs ) )
     {
       fprintf( stderr, "Failed to check breaker overlap\n" );
@@ -1264,7 +1262,7 @@ int CheckBreakerOverlaps( FILE * fp_log, Verbosity verbose,
 
 // called
 int ShowAllBreakerOverlaps( FILE * fp_log, Verbosity verbose,
-                            FILE * fp_ovl, MesgWriter writer,
+                            FILE * fp_ovl,
                             BreakerSetp bs, char * frg_store_name )
 {
   FragStoreHandle fstore;
@@ -1283,7 +1281,7 @@ int ShowAllBreakerOverlaps( FILE * fp_log, Verbosity verbose,
   {
     // some UOMs won't have been in input file. If so,
     // reverse engineer the overlaps
-    if( CheckBreakerOverlaps( fp_log, verbose, fp_ovl, writer,
+    if( CheckBreakerOverlaps( fp_log, verbose, fp_ovl,
                               &(bs->breakers[bi]), bs->type, fstore ) )
     {
       fprintf( stderr, "Failed to check breaker overlaps\n" );
@@ -1344,7 +1342,6 @@ typedef struct
   char * ovl_file;
   FILE * fp_ovl;
   Verbosity  verbose;
-  MesgWriter writer;
   BreakerSetp chims;
   BreakerSetp craps;
   int realUID;
@@ -1356,7 +1353,7 @@ typedef CheckGlobals * CheckGlobalsp;
 void InitializeGlobals( CheckGlobalsp globals, char * program_name )
 {
   globals->program_name = program_name;
-  globals->version = "$Revision: 1.10 $";
+  globals->version = "$Revision: 1.11 $";
   globals->chims_file = NULL;
   globals->craps_file = NULL;
   globals->cgb_file = NULL;
@@ -1366,7 +1363,6 @@ void InitializeGlobals( CheckGlobalsp globals, char * program_name )
   globals->ovl_file = NULL;
   globals->fp_ovl = NULL;
   globals->verbose = Silent;
-  globals->writer = WriteBinaryMesg_AS;
   globals->chims = NULL;
   globals->craps = NULL;
   globals->realUID = 0;
@@ -1389,7 +1385,7 @@ void ParseCommandLine( CheckGlobalsp globals, int argc, char ** argv )
            [-o ovl]
            [-P]
   */
-  while( !errflg && ((ch = getopt( argc, argv, "Ph:r:c:s:l:o:v:" )) != EOF) )
+  while( !errflg && ((ch = getopt( argc, argv, "h:r:c:s:l:o:v:" )) != EOF) )
   {
     switch( ch )
     {
@@ -1429,9 +1425,6 @@ void ParseCommandLine( CheckGlobalsp globals, int argc, char ** argv )
         break;
       case 'v':
         globals->verbose = (Verbosity) atoi( optarg );
-        break;
-      case 'P':
-        globals->writer = WriteProtoMesg_AS;
         break;
       default:
         errflg++;
@@ -1495,7 +1488,7 @@ void InitializeOVLFile( CheckGlobalsp globals )
   bat.comment    = globals->cgb_file;
   gen.t = MESG_BAT;
   gen.m = &bat;
-  globals->writer( globals->fp_ovl, &gen );
+  WriteProtoMesg_AS( globals->fp_ovl, &gen );
 
   // ADT messages
   adt.list = NULL;
@@ -1504,7 +1497,7 @@ void InitializeOVLFile( CheckGlobalsp globals )
                       globals->version, NULL );
   gen.t = MESG_ADT;
   gen.m = &adt;
-  globals->writer( globals->fp_ovl, &gen );
+  WriteProtoMesg_AS( globals->fp_ovl, &gen );
 }
 
 
@@ -1557,14 +1550,14 @@ int main( int argc, char ** argv )
   
   if( globals.chims )
     if( ShowAllBreakerOverlaps( globals.fp_log, globals.verbose,
-                                globals.fp_ovl, globals.writer,
+                                globals.fp_ovl,
                                 globals.chims, globals.fstore_path ) )
       fprintf( stderr, "Failed to show chimeric overlaps\n" );
 
   if( globals.craps )
   {
     if( ShowAllBreakerOverlaps( globals.fp_log, globals.verbose,
-                                globals.fp_ovl, globals.writer,
+                                globals.fp_ovl,
                                 globals.craps, globals.fstore_path ) )
       fprintf( stderr, "Failed to show crappy overlaps\n" );
   }

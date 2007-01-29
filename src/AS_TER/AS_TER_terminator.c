@@ -28,7 +28,7 @@ accession numbers.
 
 **********************************************************************/
 
-static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.12 2006-08-16 00:48:25 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.13 2007-01-29 20:41:22 brianwalenz Exp $";
 
 #include  <stdlib.h>
 #include  <stdio.h>
@@ -54,8 +54,6 @@ int main (int argc, char *argv[]) {
   char *gkpStoreName    = NULL;
   char *euidServerNames = NULL;
 
-  OutputType  output = AS_BINARY_OUTPUT;
-
   int32 illegal   = 0;
   int32 realUIDs  = FALSE;
   int32 help      = FALSE;
@@ -73,7 +71,7 @@ int main (int argc, char *argv[]) {
       switch(ch) 
 	{
 	case 'P':
-	  output = AS_PROTO_OUTPUT;
+	  fprintf(stderr, "-P depricated; default.\n");
 	  break;
 	case 'u':	  
 	  realUIDs = TRUE;
@@ -189,7 +187,6 @@ int main (int argc, char *argv[]) {
                     numInputs,
                     outputFileName,
                     mapFileName,
-                    output,
                     realUIDs,
                     quiet,
                     random,

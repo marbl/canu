@@ -63,14 +63,12 @@ static int CompareLinks (const void *c1, const void *c2){
 
 int main(void){
 
-  MesgReader reader = (MesgReader)InputFileType_AS(stdin);
-  MesgWriter writer = (MesgWriter)OutputFileType_AS(AS_PROTO_OUTPUT);
   GenericMesg *pmesg;
   InternalLinkMesg *links;
   CDS_CID_t tmp;
 
   Links = CreateVA_InternalLinkMesg(100);
-  while(  (EOF != (reader)(stdin, &pmesg))){
+  while(  (EOF != ReadProtoMesg_AS(stdin, &pmesg))){
     switch(pmesg->t){
       case MESG_ILK:
         links = pmesg->m;
@@ -99,7 +97,7 @@ int main(void){
     outMesg.t = MESG_ILK;
     for(i = 0; i < GetNumInternalLinkMesgs(Links); i++){
       outMesg.m = GetInternalLinkMesg(Links,i);
-      writer(stdout, &outMesg);
+      WriteProtoMesg_AS(stdout, &outMesg);
     }
   }
   return 0;

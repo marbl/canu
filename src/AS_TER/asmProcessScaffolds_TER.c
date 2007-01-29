@@ -310,7 +310,6 @@ usage(char *name) {
 
 int main(int argc, char *argv[]) {
   GenericMesg *pmesg;
-  MesgReader   reader;
   SnapConConMesg *contig;
   SnapUnitigMesg *unitig;
   MultiAlignT *ma;
@@ -399,9 +398,7 @@ int main(int argc, char *argv[]) {
   quality_sequence  = CreateVA_char(200000);
  
   
-  reader = (MesgReader)InputFileType_AS( stdin );
-
-  while (reader(stdin,&pmesg) != EOF){
+  while (ReadProtoMesg_AS(stdin,&pmesg) != EOF){
     if (pmesg->t ==MESG_UTG)  {
       unitig = pmesg->m;
       InsertInUID2IIDHashTable_AS(uid2iid,unitig->eaccession,unitig->iaccession);

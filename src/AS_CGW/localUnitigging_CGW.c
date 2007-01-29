@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.13 2006-11-14 17:52:16 eliv Exp $";
+static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.14 2007-01-29 20:41:04 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -393,7 +393,6 @@ int main( int argc, char *argv[])
   GlobalData  = data = CreateGlobal_CGW();
   data->stderrc = stderr;
   data->timefp = stderr;
-  data->writer =  (MesgWriter)OutputFileType_AS(AS_PROTO_OUTPUT);
   sprintf(data->Output_File_Name,"localUnitigging.ICMs",outputPath);
   data->cgwfp = File_Open (data->Output_File_Name, "w", TRUE);     // cgw file
 
@@ -1374,7 +1373,7 @@ void OutputMergedMetaUnitig(CDS_CID_t sid,MultiAlignT *ma){
       
   if(icm_mesg.num_unitigs > 1){
     assert(sid != NULLINDEX);
-    (GlobalData->writer)(GlobalData->ctgfp,&pmesg);
+    WriteProtoMesg_AS(GlobalData->ctgfp,&pmesg);
   }else{
     if(sid == NULLINDEX) {// contig is not placed
       GenericMesg		mesg;
@@ -1388,13 +1387,13 @@ void OutputMergedMetaUnitig(CDS_CID_t sid,MultiAlignT *ma){
 	mesg.m = &dsc_mesg;
 	mesg.t = MESG_IDS;
             
-	(GlobalData->writer)(GlobalData->cgwfp,&pmesg); // write the contig
-	(GlobalData->writer)(GlobalData->cgwfp,&mesg);  // write the associated degenerate scaffold
+	WriteProtoMesg_AS(GlobalData->cgwfp,&pmesg); // write the contig
+        WriteProtoMesg_AS(GlobalData->cgwfp,&mesg);  // write the associated degenerate scaffold
       }else{
 	// do nothing. The unitig in this contig appears as a surrogate elsewhere in the assembly
       }
     }else{ // Contig is placed
-      (GlobalData->writer)(GlobalData->cgwfp,&pmesg); // write the contig
+      WriteProtoMesg_AS(GlobalData->cgwfp,&pmesg); // write the contig
     }     
   }
       

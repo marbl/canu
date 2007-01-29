@@ -78,7 +78,7 @@ echo 53 | rebuildscaffolds -f oct01.fStore -s oct01.sStore -V 23 -c oct01.cStore
 
  *********************************************************************/
 
-static char CM_ID[] = "$Id: RebuildScaffolds_CNS.c,v 1.8 2006-10-08 08:47:39 brianwalenz Exp $";
+static char CM_ID[] = "$Id: RebuildScaffolds_CNS.c,v 1.9 2007-01-29 20:41:07 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -146,7 +146,6 @@ int main (int argc, char *argv[]) {
    int SHOW_COORDINATE_MAP=0;
    tSequenceDB *sequenceDB=NULL;
    tSequenceDB *contigStore = NULL;
-   MesgReader   reader;
    GenericMesg *pmesg;
 
    InitializeAlphTable();
@@ -273,8 +272,7 @@ int main (int argc, char *argv[]) {
      if(buildScaffDat){
        ctpStore = CreateVA_IntContigPairs(1000000);
        scaffStore = CreateVA_ScaffoldData(100000);
-       reader = (MesgReader)InputFileType_AS( stdin );
-       while (reader(stdin,&pmesg) != EOF){
+       while (ReadProtoMesg_AS(stdin,&pmesg) != EOF){
 	 if ( pmesg->t == MESG_ISF ) {
 	   ScaffoldData scaffData;
 	   IntScaffoldMesg *scaff = pmesg->m;

@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FilterOlapsOVL.c,v 1.6 2006-09-26 21:07:45 brianwalenz Exp $
- * $Revision: 1.6 $
+ * $Id: FilterOlapsOVL.c,v 1.7 2007-01-29 20:41:17 brianwalenz Exp $
+ * $Revision: 1.7 $
 */
 
-static char CM_ID[] = "$Id: FilterOlapsOVL.c,v 1.6 2006-09-26 21:07:45 brianwalenz Exp $";
+static char CM_ID[] = "$Id: FilterOlapsOVL.c,v 1.7 2007-01-29 20:41:17 brianwalenz Exp $";
 
 
 //  System include files
@@ -101,10 +101,6 @@ static ID_Pair_t  * Unitig_Pair_List = NULL;
     // Sorted list of overlaps to delete
 static char  * Unitig_Pair_Path;
     // Name of file from which list of unitig pairs is read
-static MesgWriter  Write_Msg_Fn;
-    // Pointer to function to write OVL messages.
-
-
 
 //  Static Functions
 
@@ -130,11 +126,8 @@ int  main
 
   {
    FILE  * in_stream, * out_stream;
-   MesgReader  read_msg_fn;
    GenericMesg  * gmesg = NULL;
    OverlapMesg  * olm = NULL;
-
-   Write_Msg_Fn = (MesgWriter)OutputFileType_AS (AS_BINARY_OUTPUT);
 
    Parse_Command_Line  (argc, argv);
 
@@ -143,16 +136,15 @@ int  main
    Read_Unitig_Pairs ();
 
    in_stream = File_Open (Old_OVL_Path, "r");
-   read_msg_fn = (MesgReader)InputFileType_AS (in_stream);
 
    out_stream = File_Open (New_OVL_Path, "w");
 
-   while  (read_msg_fn (in_stream, & gmesg) != EOF)
+   while  (ReadProtoMesg_AS (in_stream, & gmesg) != EOF)
      {
       if  (gmesg != NULL)
           {
            if  (gmesg -> t != MESG_OVL)
-               Write_Msg_Fn (out_stream, gmesg);
+               WriteProtoMesg_AS (out_stream, gmesg);
              else
                {
                 ID_Pair_t  pair;
@@ -163,7 +155,7 @@ int  main
                 b_uni = IUM_List [olm -> bifrag];
 
                 if  (a_uni == b_uni)
-                    Write_Msg_Fn (out_stream, gmesg);
+                    WriteProtoMesg_AS (out_stream, gmesg);
                   else
                     {
                      void  * found;
@@ -181,7 +173,7 @@ int  main
                      found = bsearch (& pair, Unitig_Pair_List, Num_Unitig_Pairs,
                                    sizeof (ID_Pair_t), By_Lo_ID);
                      if  (found != NULL)
-                         Write_Msg_Fn (out_stream, gmesg);
+                         WriteProtoMesg_AS (out_stream, gmesg);
                     }
                }
           }
@@ -309,7 +301,7 @@ static void  Parse_Command_Line
      switch  (ch)
        {
         case  'P' :
-          Write_Msg_Fn = (MesgWriter)OutputFileType_AS (AS_PROTO_OUTPUT);
+          fprintf(stderr, "-P depricated; protoIO is default.\n");
           break;
 
         default :

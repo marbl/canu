@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.28 2007-01-29 05:48:38 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.29 2007-01-29 20:41:13 brianwalenz Exp $";
 
 //  reads old and new AFG message (with and w/o chaff field)
 #define AFG_BACKWARDS_COMPATIBLE
@@ -630,20 +630,6 @@ static void *Read_OVL_Mesg(FILE *fin)
   return ((void *) (&omesg));
 }
 
-static void *Read_BRC_Mesg(FILE *fin)
-{ static BranchMesg bmesg;
-  char ch; 
-  GET_TYPE(ch,ACT1_FORMAT "[ADU]","action");
-  bmesg.action = (ActionType) ch;
-  GET_FIELD(bmesg.ifrag,"frg:" F_IID,"fragment field");
-  GET_FIELD(bmesg.pre_br,"pbr:" F_COORD,"position field");
-  GET_FIELD(bmesg.suf_br,"sbr:" F_COORD,"position field");
-  GET_FIELD(bmesg.pre_end,"pen:" F_COORD,"position field");
-  GET_FIELD(bmesg.suf_end,"sen:" F_COORD,"position field");
-  GET_EOM;
-  return ((void *) (&bmesg));
-}
-
 static void *Read_LKG_Mesg(FILE *fin)
 { static LinkMesg lmesg;
   char ch; 
@@ -683,105 +669,6 @@ static void *Read_ILK_Mesg(FILE *fin)
   GET_EOM;
   return ((void *) (&lmesg));
 }
-
-static void Read_CFR_Mesg(FILE *fin, ChunkFrag *mesg)
-{ char ch;
-  GET_FIELD(mesg->ifrag,"fid:" F_IID,"fragment field");
-  GET_TYPE(ch,TYP1_FORMAT "[RETFS]","type");
-  mesg->type = (FragType) ch;
-  GET_FIELD(mesg->offset3p,"3po:" F_COORD,"3p offset field");
-  GET_FIELD(mesg->offset5p,"5po:" F_COORD,"5p offset field");
-  GET_TYPE(ch,"lab:%1[SABIC]","label");
-  mesg->label = (LabelType) ch;
-  mesg->source = (char *) GetText("src:",fin,FALSE);
-  mesg->source = MemBuffer + ((long) (mesg->source));  
-  GET_EOM;
-}
-
-static void Read_ICO_Mesg(FILE *fin, ChunkOverlap *mesg)
-{ char ch;
-  GET_FIELD(mesg->chunk,"chk:" F_IID,"chunk field");
-  GET_TYPE(ch,ORI1_FORMAT "[AB]","chunk orientation");
-  mesg->orient = (ChunkOrientType) ch;
-  GET_FIELD(mesg->best_overlap_length,"len:" F_COORD,"length field");
-  GET_FIELD(mesg->min_overlap_length,MINC_FORMAT,"min_overlap_length field");
-  GET_FIELD(mesg->max_overlap_length,MAXC_FORMAT,"max_overlap_length field");
-  GET_EOM;
-}
-
-static void *Read_CHK_Mesg(FILE *fin)
-{ static ChunkMesg cmesg;
-  int i, idx;
-  ChunkFrag *cfm;
-  ChunkOverlap *com;
-  char ch;
-  
-  GET_FIELD(cmesg.iaccession,"acc:" F_IID,"chunk accession field");
-  GET_FIELD(cmesg.bp_length,"bps:" F_COORD,"length field");
-  GET_FIELD(cmesg.coverage_stat,"cov:%f","coverage stat. field");
-  GET_TYPE(ch,"abr:%1[RUN]","a-branch");
-  cmesg.a_branch_type = (BranchType) ch;
-  GET_TYPE(ch,"bbr:%1[RUN]","b-branch");
-  cmesg.b_branch_type = (BranchType) ch;
-  GET_FIELD(cmesg.a_branch_point,"abp:" F_COORD,"a branch point field");
-  GET_FIELD(cmesg.b_branch_point,"bbp:" F_COORD,"a branch point field");
-  GET_FIELD(cmesg.num_frags,"nfr:" F_S32,"# of fragments field");
-  GET_FIELD(cmesg.a_degree,"adg:" F_S32,"# of a-overlaps field");
-  GET_FIELD(cmesg.b_degree,"bdg:" F_S32,"# of b-overlaps field");
-  cmesg.source   = (char *) GetText("src:",fin,FALSE);
-
-  idx = MoreSpace(ROUNDUP(sizeof(ChunkFrag)*cmesg.num_frags,8) +
-                  ROUNDUP(sizeof(ChunkOverlap)*cmesg.a_degree,8) +
-                  ROUNDUP(sizeof(ChunkOverlap)*cmesg.b_degree,8),8);
-  cmesg.f_list = (ChunkFrag *) (MemBuffer + idx);
-  cmesg.a_list = (ChunkOverlap *)
-                 (((char *) (cmesg.f_list)) +
-                              ROUNDUP(sizeof(ChunkFrag)*cmesg.num_frags,8)); 
-  cmesg.b_list = cmesg.a_list + cmesg.a_degree; 
-
-  cfm = cmesg.f_list;
-  for(i = 0; i < cmesg.num_frags; i++)
-    { if(strncmp(GetLine(fin,TRUE),"{CFR",4) != 0)
-        MgenError("Expecting CFR record");
-      Read_CFR_Mesg(fin,cfm++);
-    }
-  com = cmesg.a_list;
-  for(i = 0; i < cmesg.a_degree; i++)
-    { if(strncmp(GetLine(fin,TRUE),"{ICO",4) != 0)
-        MgenError("Expecting ICO record");
-      Read_ICO_Mesg(fin,com++);
-    }
-  com = cmesg.b_list;
-  for(i = 0; i < cmesg.b_degree; i++)
-    { if(strncmp(GetLine(fin,TRUE),"{ICO",4) != 0)
-        MgenError("Expecting ICO record");
-      Read_ICO_Mesg(fin,com++);
-    }
-  GET_EOM;
-  cmesg.source   = MemBuffer + ((long) (cmesg.source));
-  return ((void *) (&cmesg));
-}
-
-static void Read_LOP_Mesg(FILE *fin, LayoutPos *mesg)
-{
-  char ch;
-  GET_TYPE(ch,TYP1_FORMAT "[RXEPTFSU]","type");
-  mesg->type = (FragType) ch;
-  if (mesg->type != AS_UNITIG)
-    { GET_FIELD(mesg->ident,"fid:" F_IID,"frag id field");
-      GET_TYPE(ch,"lab:%1[KN]","label");
-      mesg->label = (ResolveType) ch;
-    }
-  else {
-    GET_FIELD(mesg->ident,"uid:" F_IID,"chunk id field");
-  }
-  GET_TYPE(ch,ORI1_FORMAT "[FR]","orientation");
-  mesg->orientation = (DirectionType) ch;
-  GET_FIELD(mesg->position,POS1_FORMAT,"position field");
-  GET_EOM;
-}
-
-
 
 static void *Read_UOM_Mesg(FILE *fin)
 { static UnitigOverlapMesg	mesg;
@@ -1234,19 +1121,6 @@ static void *Read_IMD_Mesg(FILE *fin)
   return ((void *) (&mesg));
 }
 
-static void Read_IEP_Mesg(FILE *fin, IntElementPos *iep)
-{
-  char ch;
-  GET_TYPE(ch,TYP1_FORMAT "[RXTELUFSucBCG]","element pos type");
-  GET_TYPE(ch,TYP1_FORMAT "[RELUFSucBCG]","element pos type");
-  iep->type = (FragType) ch;
-  GET_FIELD(iep->ident,"lid:" F_IID,"element pos id");
-  GET_PAIR(iep->position.bgn,iep->position.end,
-           POS2_FORMAT,"position field");
-  GET_EOM;
-  return;
-}
-
 static void *Read_ICM_Mesg(FILE *fin)
 { static IntConConMesg		mesg;
   long	 cindx, qindx, mpindx, upindx, indx, uindx, vindx, vpindx;
@@ -1286,7 +1160,7 @@ static void *Read_ICM_Mesg(FILE *fin)
   else
     mesg.v_list = NULL;
   }
-// **************************************************
+
   if (mesg.num_pieces > 0)
   {
     mesg.pieces = (IntMultiPos *) (MemBuffer + mpindx);
@@ -1299,7 +1173,7 @@ static void *Read_ICM_Mesg(FILE *fin)
   }  
   else
     mesg.pieces = NULL;
-// **************************************************
+
   if (mesg.num_unitigs > 0) {
     mesg.unitigs = (IntUnitigPos *) (MemBuffer + upindx);
     for (i=0; i < mesg.num_unitigs; ++i) {
@@ -1312,7 +1186,7 @@ static void *Read_ICM_Mesg(FILE *fin)
   else
     mesg.unitigs = NULL;
   GET_EOM;
-// **************************************************
+
   mesg.consensus = MemBuffer + cindx;
   mesg.quality = MemBuffer + qindx;
   if (!novar)
@@ -1328,7 +1202,7 @@ static void *Read_ICM_Mesg(FILE *fin)
        mesg.v_list[i].var_seq = MemBuffer + (long) mesg.v_list[i].var_seq;
      }
   }
-// **************************************************
+
   if (mesg.num_pieces > 0)
     mesg.pieces = (IntMultiPos *) (MemBuffer + mpindx);
   else
@@ -1492,19 +1366,6 @@ static void Read_UPS_Mesg(FILE *fin, long indx)
   } 
   else
     iup->delta = NULL;
-  GET_EOM;
-  return;
-}
-
-
-static void Read_EPS_Mesg(FILE *fin, SnapElementPos *iep)
-{
-  char ch;
-  GET_TYPE(ch,TYP1_FORMAT "[RXETFSUG]","element pos type");
-  iep->type = (FragType) ch;
-  GET_FIELD(iep->eident,"lid:" F_UID,"element pos id");
-  GET_PAIR(iep->position.bgn,iep->position.end,
-           POS2_FORMAT,"position field");
   GET_EOM;
   return;
 }
@@ -2188,142 +2049,6 @@ static void Write_OVL_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"}\n");
 }
 
-static void Write_BRC_Mesg(FILE *fout, void *vmesg)
-{ BranchMesg *mesg = (BranchMesg *) vmesg;
-
-  fprintf(fout,"{BRC\n");
-  fprintf(fout,ACT_FORMAT "\n",mesg->action);
-  fprintf(fout,"frg:" F_IID "\n",mesg->ifrag);
-  fprintf(fout,"pbr:" F_S32 "\n",mesg->pre_br);
-  fprintf(fout,"sbr:" F_S32 "\n",mesg->suf_br);
-  fprintf(fout,"pen:" F_S32 "\n",mesg->pre_end);
-  fprintf(fout,"sen:" F_S32 "\n",mesg->suf_end);
-  fprintf(fout,"}\n");
-}
-
-static void Write_CFR_Mesg(FILE *fout, ChunkFrag *mesg)
-{ fprintf(fout,"{CFR\n");
-  fprintf(fout,"fid:" F_IID "\n",mesg->ifrag);
-  fprintf(fout,TYP_FORMAT "\n",(char) mesg->type);
-  fprintf(fout,"3po:" F_COORD "\n",mesg->offset3p);
-  fprintf(fout,"5po:" F_COORD "\n",mesg->offset5p);
-  fprintf(fout,"lab:%c\n",mesg->label);
-  PutText(fout,"src:",mesg->source,FALSE);
-  fprintf(fout,"}\n");
-}
-
-static void Write_ICO_Mesg(FILE *fout, ChunkOverlap *mesg)
-{ fprintf(fout,"{ICO\n");
-  fprintf(fout,"chk:" F_IID "\n",mesg->chunk);
-  fprintf(fout,ORI_FORMAT "\n",mesg->orient);
-  fprintf(fout,"len:" F_COORD "\n",mesg->best_overlap_length);
-  fprintf(fout,MINC_FORMAT "\n",mesg->min_overlap_length);
-  fprintf(fout,MAXC_FORMAT "\n",mesg->max_overlap_length);
-  fprintf(fout,"}\n");
-}
-
-static void Write_CHK_Mesg(FILE *fout, void *vmesg)
-{ ChunkMesg *mesg = (ChunkMesg *) vmesg;
-  int i;
-  ChunkFrag *cfm;
-  ChunkOverlap *com;
-
-  fprintf(fout,"{CHK\n");
-  fprintf(fout,"acc:" F_IID "\n",mesg->iaccession);
-  fprintf(fout,"bps:" F_COORD "\n",mesg->bp_length);
-  fprintf(fout,"cov:%.3f\n",mesg->coverage_stat);
-  fprintf(fout,"abr:%c\n",mesg->a_branch_type);
-  fprintf(fout,"bbr:%c\n",mesg->b_branch_type);
-  fprintf(fout,"abp:" F_COORD "\n",mesg->a_branch_point);
-  fprintf(fout,"bbp:" F_COORD "\n",mesg->b_branch_point);
-  fprintf(fout,"nfr:" F_S32 "\n",mesg->num_frags);
-  fprintf(fout,"adg:" F_S32 "\n",mesg->a_degree);
-  fprintf(fout,"bdg:" F_S32 "\n",mesg->b_degree);
-  PutText(fout,"src:",mesg->source,FALSE);
-  cfm = mesg->f_list;
-  for(i = 0; i < mesg->num_frags; i++)
-    Write_CFR_Mesg(fout,cfm++);
-  com = mesg->a_list;
-  for(i = 0; i < mesg->a_degree; i++)
-    Write_ICO_Mesg(fout,com++);
-  com = mesg->b_list;
-  for(i = 0; i < mesg->b_degree; i++)
-    Write_ICO_Mesg(fout,com++);
-  fprintf(fout,"}\n");
-}
-
-static void Write_LOP_Mesg(FILE *fout, LayoutPos *mesg)
-{ fprintf(fout,"{LOP\n");
-  fprintf(fout,TYP_FORMAT "\n",(char) mesg->type);
-  if (mesg->type == AS_UNITIG)
-    fprintf(fout,"uid:" F_IID "\n",mesg->ident);
-  else
-    { fprintf(fout,"fid:" F_IID "\n",mesg->ident);
-      fprintf(fout,"lab:%c\n",mesg->label);
-    }
-  fprintf(fout,ORI_FORMAT "\n",mesg->orientation);
-  fprintf(fout,POS1_FORMAT "\n",mesg->position);
-  fprintf(fout,"}\n");
-}
-
-
-
-#if 0
-static void Write_SUR_Mesg(FILE *fout, void *vmesg)
-{ SurrogateMesg *mesg = (SurrogateMesg *) vmesg;
-  int i;
-  LayoutPos *lpm;
-
-  fprintf(fout,"{SUR\n");
-  fprintf(fout,"acc:" F_IID "\n",mesg->iaccession);
-  fprintf(fout,"len:" F_COORD "\n",mesg->length);
-  fprintf(fout,"nor:" F_S32 "\n",mesg->num_reads);
-  lpm = mesg->reads;
-  for (i = 0; i < mesg->num_reads; i++)
-    Write_LOP_Mesg(fout,lpm++);
-  fprintf(fout,"}\n");
-}
-static void Write_MLP_Mesg(FILE *fout, MultiPos *mlp)
-{ int i;
-
-  fprintf(fout,"{MLP\n");
-  fprintf(fout,TYP_FORMAT "\n",(char) mlp->type);
-  // uid and fid were formerly external (%lu), now internal (%u)
-  if (mlp->type == AS_UNITIG) {
-    fprintf(fout,"uid:" F_IID "\n",mlp->ident);
-  } else {
-    fprintf(fout,"fid:" F_IID "\n",mlp->ident);
-  }
-  // KAR: change here from orientation/position to SeqInterval position
-  fprintf(fout,POS2_FORMAT "\n",
-          mlp->position.bgn,mlp->position.end);
-  fprintf(fout,"dln:" F_S32 "\n",mlp->delta_length);
-  fprintf(fout,"del:\n");
-  if (mlp->delta_length > 0 ) {
-    for(i=0;i<mlp->delta_length;i++) {
-      fprintf(fout,F_S32,mlp->delta[i]);
-      if (i%50 == 49) fprintf(fout,"\n");
-      else  fprintf(fout," ");
-    }
-    if (mlp->delta_length%50 != 0) fprintf(fout,"\n");
-  }
-  fprintf(fout,"}\n");
-}
-
-static void Write_UTP_Mesg(FILE *fout, UnitigPos *utp)
-{ 
-
-  fprintf(fout,"{UTP\n");
-  fprintf(fout,"uid:" F_UID "\n",utp->ident);
-  fprintf(fout,POS2_FORMAT "\n",
-          utp->position.bgn,utp->position.end);
-  fprintf(fout,"}\n");
-}
-
-#endif
-
-
-
 static void Write_UOM_Mesg(FILE *fout, void *vmesg)
 { UnitigOverlapMesg *mesg = (UnitigOverlapMesg *) vmesg;
 
@@ -2604,17 +2329,6 @@ static void Write_IMD_Mesg(FILE *fout, void *vmesg)
   return;
 }
 
-static void Write_IEP_Mesg(FILE *fout, IntElementPos *iep)
-{ 
-  fprintf(fout,"{IEP\n");
-  fprintf(fout,TYP_FORMAT "\n",(char) iep->type);
-  fprintf(fout,"lid:" F_IID "\n",iep->ident);
-  fprintf(fout,POS2_FORMAT "\n",
-          iep->position.bgn,iep->position.end);
-  fprintf(fout,"}\n");
-  return;
-}
-
 static void Write_ICM_Mesg(FILE *fout, void *vmesg)
 { IntConConMesg *mesg = (IntConConMesg *) vmesg;
   int		i;
@@ -2707,18 +2421,6 @@ static void Write_MPS_Mesg(FILE *fout, SnapMultiPos *mlp)
     }
     if (mlp->delta_length%20 != 0) fprintf(fout,"\n");
   }
-  fprintf(fout,"}\n");
-  return;
-}
-
-
-static void Write_EPS_Mesg(FILE *fout, SnapElementPos *iep)
-{ 
-  fprintf(fout,"{EPS\n");
-  fprintf(fout,TYP_FORMAT "\n",(char) iep->type);
-  fprintf(fout,"lid:" F_UID "\n",iep->eident);
-  fprintf(fout,POS2_FORMAT "\n",
-          iep->position.bgn,iep->position.end);
   fprintf(fout,"}\n");
   return;
 }
@@ -3180,7 +2882,7 @@ static const callrecord CallTable[] = {
   {"", NULL, NULL, NULL, 0l },
   {"", NULL, NULL, NULL, 0l },
   {"{OVL", Read_OVL_Mesg, Write_OVL_Mesg, Clear_OVL_Mesg,   sizeof(OverlapMesg) },
-  {"{BRC", Read_BRC_Mesg, Write_BRC_Mesg, NULL,             sizeof(BranchMesg) },
+  {"", NULL, NULL, NULL, 0l },
   {"{UOM", Read_UOM_Mesg, Write_UOM_Mesg, NULL,             sizeof(UnitigOverlapMesg) },
   {"{IUM", Read_IUM_Mesg, Write_IUM_Mesg, Clear_IUM_Mesg,   sizeof(IntUnitigMesg) },
   {"{IUL", Read_IUL_Mesg, Write_IUL_Mesg, Clear_IUL_Mesg,   sizeof(IntUnitigLinkMesg) },
@@ -3307,18 +3009,4 @@ void FreeProtoMesg_AS(GenericMesg *pmesg)
     CallTable[pmesg->t].clearer(pmesg->m,pmesg->t);
   free(pmesg->m);
   free(pmesg);
-}
-
-
-// void ResetBinary_AS(void); 
-/* In AS_MSG_bmesg.c. These files should SHARE a single memory
-   allocation mechanism!!!! */
-
-void ResetProto_AS(void){
-   free(MemBuffer);
-   MemBuffer = NULL;   /* Memory allocation buffer for messages */
-   MemMax = -1;
-   MemTop = 0;;   /* Memory ceiling and current top */
-
-  ResetBinary_AS();
 }

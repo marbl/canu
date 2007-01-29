@@ -33,12 +33,12 @@
 *************************************************/
 
 /* RCS info
- * $Id: NewBactigScriptOVL.c,v 1.4 2005-03-22 19:49:19 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: NewBactigScriptOVL.c,v 1.5 2007-01-29 20:41:17 brianwalenz Exp $
+ * $Revision: 1.5 $
 */
 
 static char  CM_ID []
-    = "$Id: NewBactigScriptOVL.c,v 1.4 2005-03-22 19:49:19 jason_miller Exp $";
+    = "$Id: NewBactigScriptOVL.c,v 1.5 2007-01-29 20:41:17 brianwalenz Exp $";
 
 
 /*************************************************************************/
@@ -125,8 +125,6 @@ static char  * LSF_Project_Name = DEFAULT_LSF_PROJECT_NAME;
 /*************************************************************************/
 /* External Global Definitions */
 /*************************************************************************/
-
-MesgReader  Read_Msg_Fn;
 
 
 /*************************************************************************/

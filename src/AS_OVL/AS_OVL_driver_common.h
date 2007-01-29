@@ -26,8 +26,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_driver_common.h,v 1.9 2007-01-29 05:48:39 brianwalenz Exp $
- * $Revision: 1.9 $
+ * $Id: AS_OVL_driver_common.h,v 1.10 2007-01-29 20:41:16 brianwalenz Exp $
+ * $Revision: 1.10 $
 */
 
 
@@ -712,7 +712,7 @@ static int  ReadFrags
   while  ((numFragsRead < maxFrags)
             && HASH_EXPANSION_FACTOR * total_len
                    <= HASH_TABLE_SIZE * ENTRIES_PER_BUCKET
-            && (EOF != Read_Msg_Fn (In_Stream, & pmesg)))
+            && (EOF != ReadProtoMesg_AS (In_Stream, & pmesg)))
     {
     imesgtype = pmesg->t;
     switch(imesgtype){
@@ -785,7 +785,7 @@ static int  ReadFrags
         }
 
 #if  ! (FOR_CARL_FOSLER || SHOW_SNPS)
-       Write_Msg_Fn (Out_Stream,pmesg);
+       WriteProtoMesg_AS (Out_Stream,pmesg);
 #endif
       }
       break;
@@ -854,7 +854,7 @@ static int  ReadFrags
 	  }
 
 #if  ! (FOR_CARL_FOSLER || SHOW_SNPS)
-	Write_Msg_Fn (Out_Stream, pmesg);
+	WriteProtoMesg_AS (Out_Stream, pmesg);
 #endif
 	}
 	break;
@@ -869,7 +869,7 @@ static int  ReadFrags
 	  VersionStampADT(adt_mesg, argc, argv);
 
 #if  ! (FOR_CARL_FOSLER || SHOW_SNPS)
-	Write_Msg_Fn (Out_Stream, pmesg);
+	WriteProtoMesg_AS (Out_Stream, pmesg);
 #endif
 	}
 	break;
@@ -893,7 +893,7 @@ static int  ReadFrags
 #endif
 
 #if  ! (FOR_CARL_FOSLER || SHOW_SNPS)
-	Write_Msg_Fn (Out_Stream, pmesg);
+	WriteProtoMesg_AS (Out_Stream, pmesg);
 #endif
 	break;
 

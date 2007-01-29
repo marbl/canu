@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
-   CVS_ID:  $Id: AS_TER_terminator_funcs.h,v 1.5 2006-08-15 17:12:01 brianwalenz Exp $
+   CVS_ID:  $Id: AS_TER_terminator_funcs.h,v 1.6 2007-01-29 20:41:24 brianwalenz Exp $
  *********************************************************************/
 #ifndef AS_TER_TERMINATOR_FUNCS_H
 #define AS_TER_TERMINATOR_FUNCS_H
@@ -43,7 +43,6 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
 		     char** inputFileList, int32 numInputFiles, 
 		     char* outputFileName,
 		     char* mapFileName,
-		     OutputType output, 
 		     int32 real, int32 quiet,
 		     int32 random, uint64 uidStart,
 		     int argc, char *argv[]);

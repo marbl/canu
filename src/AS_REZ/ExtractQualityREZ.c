@@ -32,7 +32,7 @@
  Assumptions: 
 **********************************************************************/
 
-static char CM_ID[] = "$Id: ExtractQualityREZ.c,v 1.5 2005-09-15 15:20:16 eliv Exp $";
+static char CM_ID[] = "$Id: ExtractQualityREZ.c,v 1.6 2007-01-29 20:41:20 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -89,10 +89,6 @@ int main(int argc, char *argv[])
   FILE        *statOutputR = NULL;
 
   int intQuality = 0;
-  MesgReader   readerFn = NULL;
-  MesgWriter   writerFn = NULL;
-  OutputType   outputType = AS_PROTO_OUTPUT; 
-  // we have to use PROTO I/O. Concatenating binary files doe not work
                                                
   ReadStructp  input;
   float qualityThreshold = 0;
@@ -215,13 +211,10 @@ int main(int argc, char *argv[])
   if( processRest == TRUE)
     fprintf(statOutputR,"Qualities of remaining overlap types\n");
 
-  readerFn  = (MesgReader)InputFileType_AS(fileInput);
-  writerFn  = (MesgWriter)OutputFileType_AS(outputType);
-
   InitTimerT(&timer);
 
   /* read the fragment array */
-  while( readerFn(fileInput,&pmesg) != EOF ) 
+  while( ReadProtoMesg_AS(fileInput,&pmesg) != EOF ) 
     {
       MessageType mesgtype = pmesg->t;
 
@@ -232,8 +225,7 @@ int main(int argc, char *argv[])
 	  IUMcount++;
 	  if( processRest == TRUE)
 	    {
-	      writerFn(fileOutput,pmesg);
-	      fflush(fileOutput);
+	      WriteProtoMesg_AS(fileOutput,pmesg);
 	    }
 	}
       else
@@ -319,14 +311,14 @@ int main(int argc, char *argv[])
 			  overlap_type == AS_BETWEEN_CONTAINED_OVERLAP) /* Y */
 			{
 			  /*if the type is one of the above we keep it anyway */ 
-			  writerFn(fileOutput,pmesg);
+			  WriteProtoMesg_AS(fileOutput,pmesg);
 			  badKept++;
 			}
 		    }
 		  else
 		    {
 		      goodEnough++;
-		      writerFn(fileOutput,pmesg);
+		      WriteProtoMesg_AS(fileOutput,pmesg);
 		    }
 		}
 	    }
@@ -335,8 +327,7 @@ int main(int argc, char *argv[])
 	  {
 	    if( processRest == TRUE)
 	      {
-		writerFn(fileOutput,pmesg);
-		fflush(fileOutput);
+		WriteProtoMesg_AS(fileOutput,pmesg);
 	      }
 	  }
     }

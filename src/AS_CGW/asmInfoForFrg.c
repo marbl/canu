@@ -19,7 +19,7 @@
  *************************************************************************/
 
 
-static char CM_ID[] = "$Id: asmInfoForFrg.c,v 1.7 2006-10-08 08:47:39 brianwalenz Exp $";
+static char CM_ID[] = "$Id: asmInfoForFrg.c,v 1.8 2007-01-29 20:41:01 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -52,8 +52,6 @@ int main( int argc, char *argv[])
   Global_CGW *data;
   char *inputPath;
   char *prefix;
-  MesgReader reader;
-  MesgWriter writer;
   FILE *myerr = stderr; 
   FILE *myout = stdout; 
   char *outputPath = NULL;

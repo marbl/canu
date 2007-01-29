@@ -25,7 +25,7 @@
                  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: ScaffoldUnitigProfile_CNS.c,v 1.5 2006-10-08 08:47:39 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ScaffoldUnitigProfile_CNS.c,v 1.6 2007-01-29 20:41:08 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -191,7 +191,7 @@ int main (int argc, char *argv[]) {
      {
      ctpStore = CreateVA_IntContigPairs(1000000);
      scaffStore = CreateVA_ScaffoldData(100000);
-     reader = InputFileType_AS( stdin );
+     reader = ReadProtoMesg_AS;
      while (reader(stdin,&pmesg) != EOF){
       if ( pmesg->t == MESG_ISF ) {
         ScaffoldData scaffData;

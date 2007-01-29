@@ -20,7 +20,7 @@
  *************************************************************************/
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/nodups.c,v $
-$Revision: 1.5 $
+$Revision: 1.6 $
 **********************************************************************/
 
 /**********************************************************************
@@ -77,8 +77,6 @@ void  Remove_Dups
 int  Frag_Size;
 int  * Frag_Start;
 int  Start_Ct = 0;
-MesgReader  Read_Msg_Fn;
-MesgWriter  Write_Msg_Fn;
 
 
 int main( int argc, char ** argv )
@@ -210,10 +208,7 @@ void  Remove_Dups
     exit (-1);
   }
 
-  Read_Msg_Fn = (MesgReader)InputFileType_AS (infile);
-  Write_Msg_Fn = (MesgWriter)OutputFileType_AS (AS_BINARY_OUTPUT);
-
-  while (Read_Msg_Fn (infile, & gmesg) != EOF)
+  while (ReadProtoMesg_AS (infile, & gmesg) != EOF)
     if  (gmesg)
         {
          if  (gmesg->t == MESG_LKG)   // Strip link messages, too
@@ -245,7 +240,7 @@ void  Remove_Dups
                 else
                   fmesg -> eaccession = next_accession ++;
              }
-         Write_Msg_Fn (outfile, gmesg);
+         WriteProtoMesg_AS (outfile, gmesg);
         }
 
   fclose (infile);

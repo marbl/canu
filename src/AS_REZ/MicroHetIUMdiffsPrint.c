@@ -25,31 +25,16 @@
  Assumptions:
 **********************************************************************/
 
-static char CM_ID[] = "$Id: MicroHetIUMdiffsPrint.c,v 1.5 2006-10-08 08:47:40 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MicroHetIUMdiffsPrint.c,v 1.6 2007-01-29 20:41:21 brianwalenz Exp $";
 
 
-#include <unistd.h> /* man 3 getopt */
+#include <unistd.h>
 #include "MicroHetREZ_test3.h"
-//#include "MicroHetScoreREZ_test3.h"
-//#include "MicroHetPartitionsREZ_test3.h"
 #include "MicroHetInterfaceREZ_test3.h"
 
-//#include "UtilsREZ.h"
-//#include "AS_UTL_skiplist.h"
-//#include "AS_UTL_Var.h"
-
-//#include "PrimitiveVA_MSG.h"
-
 #include <assert.h>
-//#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-//#include <unistd.h> /* man 3 getopt */
-//#include <string.h>
-//#include <time.h>
-//#include <ctype.h>
-//#include <math.h>
-
 
 typedef enum {
   PRINT_DOTS,
@@ -89,7 +74,6 @@ int main (int argc, char *argv[]) {
   GenericMesg   *pmesg;  
   IntUnitigMesg *iunitig;
   MessageType    imesgtype;
-  MesgReader     reader;
   FragStoreHandle storeHandle = 0;
   char           *storeName;
   char           *fileName;
@@ -128,8 +112,7 @@ int main (int argc, char *argv[]) {
   assert(input != NULL);
 
 
-  reader = (MesgReader)InputFileType_AS(input);
-  while( reader(input,&pmesg) != EOF ) 
+  while( ReadProtoMesg_AS(input,&pmesg) != EOF ) 
     {
       CGB_Type type;
       imesgtype = pmesg->t;

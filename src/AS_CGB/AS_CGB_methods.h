@@ -567,27 +567,6 @@ static void set_con_fragment(Tfragment frags[],IntFragment_ID i,int value)
 static void set_spur_fragment(Tfragment frags[],IntFragment_ID i,int value)
 { VAgetaccess(Afragment,frags,i,spur) = value;}
 
-#ifdef NEVER
-/* The BRC info */
-static void set_pre_br_fragment(Tfragment frags[],IntFragment_ID i,int32 value)
-{ VAgetaccess(Afragment,frags,i,pre_br) = (int16)value;}
-static void set_suf_br_fragment(Tfragment frags[],IntFragment_ID i,int32 value)
-{ VAgetaccess(Afragment,frags,i,suf_br) = (int16)value;}
-static void set_pre_end_fragment(Tfragment frags[],IntFragment_ID i,int32 value)
-{ VAgetaccess(Afragment,frags,i,pre_end) = (int16)value;}
-static void set_suf_end_fragment(Tfragment frags[],IntFragment_ID i,int32 value)
-{ VAgetaccess(Afragment,frags,i,suf_end) = (int16)value;}
-/* The BRC info */
-static int32 get_pre_br_fragment(const Tfragment * const frags,IntFragment_ID i)
-{ return (int32) VAgetaccess(Afragment,frags,i,pre_br);}
-static int32 get_suf_br_fragment(const Tfragment * const frags,IntFragment_ID i)
-{ return (int32) VAgetaccess(Afragment,frags,i,suf_br);}
-static int32 get_pre_end_fragment(const Tfragment * const frags,IntFragment_ID i)
-{ return (int32) VAgetaccess(Afragment,frags,i,pre_end);}
-static int32 get_suf_end_fragment(const Tfragment * const frags,IntFragment_ID i)
-{ return (int32) VAgetaccess(Afragment,frags,i,suf_end);}
-#endif // NEVER
-
 
 #pragma inline get_uid_fragment
 #pragma inline get_iid_fragment

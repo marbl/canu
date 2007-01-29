@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.120 2007-01-29 05:48:38 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.121 2007-01-29 20:41:06 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -4484,7 +4484,6 @@ int PrintFrags(FILE *out, int accession, IntMultiPos *all_frags, int num_frags,
          int srclen;
          GenericMesg pmesg;  
          FragMesg fmesg;
-         MesgWriter   writer;
          static char fseq[200001];
          static char fqual[200001];
 
@@ -4494,7 +4493,6 @@ int PrintFrags(FILE *out, int accession, IntMultiPos *all_frags, int num_frags,
 	 }
          fmesg.sequence = fseq;
          fmesg.quality = fqual;
-         writer = WriteProtoMesg_AS;
          for (i=0;i<num_frags;i++) {
            isread = (all_frags[i].type == AS_READ ||
                      all_frags[i].type == AS_B_READ ||
@@ -4543,7 +4541,7 @@ int PrintFrags(FILE *out, int accession, IntMultiPos *all_frags, int num_frags,
            }
            pmesg.t = MESG_IFG;
            pmesg.m = &fmesg;
-           writer(out,&pmesg); // write out the Fragment message
+           WriteProtoMesg_AS(out,&pmesg); // write out the Fragment message
            if (fmesg.source) free(fmesg.source);
         }
         fflush(out);

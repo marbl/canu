@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: link_analysis.c,v 1.6 2006-10-08 08:47:39 brianwalenz Exp $ */
+/* $Id: link_analysis.c,v 1.7 2007-01-29 20:41:08 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,7 +34,6 @@
 int main(int argc, char *argv[])
 { GenericMesg *pmesg;
   IntScaffoldMesg *isf;
-  MesgReader   reader;
   IntScreenMatch *mat;
   IntContigPairs *pairs;
   IntConConMesg *contig;
@@ -68,8 +67,7 @@ int main(int argc, char *argv[])
   FILE *iumfile;
   int in_unitig;
   iumfile = fopen(argv[4],"r");
-  reader = (MesgReader)InputFileType_AS( iumfile );
-  reader(iumfile,&pmesg);
+  ReadProtoMesg_AS(iumfile,&pmesg);
   unitig = pmesg->m;
   tig_iids = AllocateID_Array( unitig->num_frags );
   tig_iids_found = AllocateID_Array( unitig->num_frags );

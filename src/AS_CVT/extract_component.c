@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: extract_component.c,v 1.6 2007-01-28 21:52:24 brianwalenz Exp $";
+static char CM_ID[] = "$Id: extract_component.c,v 1.7 2007-01-29 20:41:10 brianwalenz Exp $";
 
 /*
   IMPORTANT NOTE:
@@ -707,7 +707,6 @@ int GetInputUIDs( Globalsp globals, HashTablep * rht, HashTablep * bht )
   for( fs_i = 0; fs_i < globals->f_set->num_strings; fs_i++ )
   {
     FILE          * fp_in;
-    MesgReader      reader;
     GenericMesg   * genp;
     IntUnitigMesg * ium;
     int             i;
@@ -724,10 +723,9 @@ int GetInputUIDs( Globalsp globals, HashTablep * rht, HashTablep * bht )
       FreeHashTable( *bht );
       return 1;
     }
-    reader = (MesgReader)InputFileType_AS( fp_in );
     
     // iterate through input messages
-    while( reader( fp_in, &genp ) != EOF )
+    while( ReadProtoMesg_AS( fp_in, &genp ) != EOF )
     {
       switch( genp->t )
       {

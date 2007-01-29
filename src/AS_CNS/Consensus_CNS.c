@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.35 2006-11-17 22:24:19 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.36 2007-01-29 20:41:05 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -236,11 +236,11 @@ OutputScores(int NumColumnsInUnitigs,        int NumRunsOfGapsInUnitigReads,
 }
 
 static void
-writeFailure(char *OutputFileName, MesgWriter writer, int std_output, GenericMesg *pmesg) {
+writeFailure(char *OutputFileName, int std_output, GenericMesg *pmesg) {
 
   if (std_output) {
     fprintf(stderr, "------------------------------------------------------------\n");
-    writer(stderr, pmesg);
+    WriteProtoMesg_AS(stderr, pmesg);
     fprintf(stderr, "------------------------------------------------------------\n");
   } else {
     FILE *fout;
@@ -253,10 +253,10 @@ writeFailure(char *OutputFileName, MesgWriter writer, int std_output, GenericMes
     if (errno) {
       fprintf(stderr, "Failed to open '%s' for storing the failed messge: %s\n", fname, strerror(errno));
       fprintf(stderr, "------------------------------------------------------------\n");
-      writer(stderr, pmesg);
+      WriteProtoMesg_AS(stderr, pmesg);
       fprintf(stderr, "------------------------------------------------------------\n");
     } else {
-      writer(fout,pmesg); // pass through the Unitig message and continue
+      WriteProtoMesg_AS(fout,pmesg); // pass through the Unitig message and continue
       fclose(fout);
     }
   }
@@ -266,16 +266,8 @@ writeFailure(char *OutputFileName, MesgWriter writer, int std_output, GenericMes
 
 int main (int argc, char *argv[]) 
 {
-    MesgReader   reader;
-    MesgWriter   writer;
-    int binary_io;
     char InputFileName[FILENAME_MAX];
     char OutputNameBuffer[FILENAME_MAX];
-#if 0
-    char MAStoreFileName[FILENAME_MAX];
-    FILE *umaout;
-    FILE *umain;
-#endif
     char LogNameBuffer[FILENAME_MAX];
     char CamFileName[FILENAME_MAX];
     char BactigStoreFileName[FILENAME_MAX];
@@ -341,7 +333,6 @@ int main (int argc, char *argv[])
     SeqInterval tig_range;
     CNS_PrintKey printwhat=CNS_STATS_ONLY;
     int ch,errflg=0,illegal_use=0,help_flag=0,iflags=0;
-    OutputType output=AS_BINARY_OUTPUT;
     int num_of_threads = 0;
     time_t time_limit = 0, tp1 = 0;
 
@@ -390,7 +381,7 @@ int main (int argc, char *argv[])
           iflags++;
           break;
         case 'P':
-          output = AS_PROTO_OUTPUT;
+          fprintf(stderr, "-P is depricated; protoIO is default.\n");
           iflags++;
           break;
         case 'K':
@@ -707,9 +698,6 @@ int main (int argc, char *argv[])
       } else {
         cgwin = stdin;
       }
-      binary_io = ((MesgReader)InputFileType_AS( cgwin ) == ReadProtoMesg_AS) ? 0 : 1;
-      reader =(MesgReader)((binary_io == 1) ? ReadBinaryMesg_AS : ReadProtoMesg_AS);
-
 
       switch(extract) 
       {
@@ -813,11 +801,6 @@ int main (int argc, char *argv[])
       if ( cnslog == NULL ) { 
         cnslog = stderr;   // write log to stderr
       }
-      if ( output == AS_PROTO_OUTPUT ) {
-        writer = (MesgWriter)WriteProtoMesg_AS;
-      } else {
-        writer = (MesgWriter)((binary_io == 1) ? WriteBinaryMesg_AS : WriteProtoMesg_AS);
-      }
 
       if (process_sublist) 
       {
@@ -902,7 +885,7 @@ int main (int argc, char *argv[])
       VA_TYPE(char) *quality=CreateVA_char(200000);
       time_t t;
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.35 $ processing. Started %s\n",
+      fprintf(stderr,"# Consensus $Revision: 1.36 $ processing. Started %s\n",
         ctime(&t));
       InitializeAlphTable();
       if ( ! align_ium && USE_SDB && extract > -1 ) 
@@ -937,7 +920,7 @@ int main (int argc, char *argv[])
             if (num_contig_failures <= MAX_NUM_CONTIG_FAILURES)
             {
               fprintf(stderr,"MultiAlignContig failed for contig %d\n", ctmp.iaccession);
-              writeFailure(OutputFileName, writer, std_output, pmesg);
+              writeFailure(OutputFileName, std_output, pmesg);
             }
             else
             {
@@ -950,7 +933,7 @@ int main (int argc, char *argv[])
 #endif
 	tmesg.t = MESG_ICM; 
 	tmesg.m = &ctmp; 
-	writer(cnsout,&tmesg); 
+	WriteProtoMesg_AS(cnsout,&tmesg); 
 	fflush(cnsout);
 
         if ( printwhat != CNS_STATS_ONLY && cnslog != NULL )
@@ -984,7 +967,7 @@ int main (int argc, char *argv[])
         exit(0); 
       }
 
-      while ( (reader(cgwin,&pmesg) != EOF)
+      while ( (ReadProtoMesg_AS(cgwin,&pmesg) != EOF)
             ) 
       { 
         switch(pmesg->t)
@@ -1018,7 +1001,7 @@ int main (int argc, char *argv[])
               else if (process_sublist) 
               {
                 // pass through the Unitig message only if extract == -1
-                if (extract == -1) writer(cnsout,pmesg); 
+                if (extract == -1) WriteProtoMesg_AS(cnsout,pmesg); 
                 break;
               }
               if (extract != -1 ) {
@@ -1080,7 +1063,7 @@ int main (int argc, char *argv[])
                   if (num_unitig_failures <= MAX_NUM_UNITIG_FAILURES)
                     { 
                       fprintf(stderr,"MultiAlignUnitig failed for unitig %d\n", iunitig->iaccession);
-                      writeFailure(OutputFileName, writer, std_output, pmesg);
+                      writeFailure(OutputFileName, std_output, pmesg);
                     }
                   else
                     {
@@ -1105,14 +1088,14 @@ int main (int argc, char *argv[])
                  iunitig->iaccession <= tig_range.end) ||
                 (!align_ium && tig_range.bgn == 0)) ) 
             {
-              writer(cnsout,pmesg); // pass through the Unitig message
+              WriteProtoMesg_AS(cnsout,pmesg); // pass through the Unitig message
             } 
             else if (extract == -1 && beyond) 
             {
               if (CNS_HAPLOTYPES == 1) {
                  // RemoveSNPs(iunitig);
               }
-              writer(cnsout,pmesg); // pass through the Unitig message
+              WriteProtoMesg_AS(cnsout,pmesg); // pass through the Unitig message
             } 
             else if (align_ium && (process_sublist || 
                        iunitig->iaccession == extract)) 
@@ -1123,7 +1106,7 @@ int main (int argc, char *argv[])
               if (CNS_HAPLOTYPES == 1) {
            // RemoveSNPs(iunitig);
               }
-              writer(cnsout,pmesg); // pass through the Unitig message and continue
+              WriteProtoMesg_AS(cnsout,pmesg); // pass through the Unitig message and continue
               if (iunitig->iaccession == extract) 
                  exit(0);
             }
@@ -1160,7 +1143,7 @@ int main (int argc, char *argv[])
             else if (process_sublist)
             {
               // pass through the Contig message and continue
-              if (extract == -1) writer(cnsout,pmesg); 
+              if (extract == -1) WriteProtoMesg_AS(cnsout,pmesg); 
               break;
             }
         //qsort(pcontig->unitigs, pcontig->num_unitigs, sizeof(IntUnitigPos),
@@ -1181,7 +1164,7 @@ int main (int argc, char *argv[])
                     if (num_contig_failures <= MAX_NUM_CONTIG_FAILURES)
                     {
                       fprintf(stderr,"MultiAlignContig failed for contig %d\n", pcontig->iaccession);
-                      writeFailure(OutputFileName, writer, std_output, pmesg);
+                      writeFailure(OutputFileName, std_output, pmesg);
                       break;
                     }
                     else
@@ -1207,13 +1190,13 @@ int main (int argc, char *argv[])
                  ( (pcontig->iaccession>=tig_range.bgn) && 
                    (pcontig->iaccession<=tig_range.end))))
             {
-              writer(cnsout,pmesg); // pass through the Contig message
+              WriteProtoMesg_AS(cnsout,pmesg); // pass through the Contig message
             } else if (extract == -1) {
-              writer(cnsout,pmesg);
+              WriteProtoMesg_AS(cnsout,pmesg);
             } else if ( pcontig->iaccession == extract) {
               //camview(cam,pcontig->iaccession,pcontig->pieces,pcontig->num_pieces,pcontig->unitigs,
               //        pcontig->num_unitigs,global_fragStore);
-              writer(cnsout,pmesg);
+              WriteProtoMesg_AS(cnsout,pmesg);
               OutputScores(NumColumnsInUnitigs, NumRunsOfGapsInUnitigReads,
                            NumGapsInUnitigs, NumColumnsInContigs,
                            NumRunsOfGapsInContigReads, NumGapsInContigs,
@@ -1253,11 +1236,11 @@ int main (int argc, char *argv[])
             {
               AuditLine auditLine;
               AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                                 "Consensus", "$Revision: 1.35 $","(empty)");
+                                 "Consensus", "$Revision: 1.36 $","(empty)");
             }
 #endif
               VersionStampADT(adt_mesg,argc,argv);
-              writer(cnsout,pmesg);
+              WriteProtoMesg_AS(cnsout,pmesg);
             }
           }
           break;
@@ -1269,7 +1252,7 @@ int main (int argc, char *argv[])
                 || (align_ium && tig_range.end == unitig_count)
                 || (!align_ium && tig_range.end == contig_count)))
               || (beyond && extract == -1)) {
-            writer(cnsout,pmesg);
+            WriteProtoMesg_AS(cnsout,pmesg);
           }
         }
         fflush(cnsout);
@@ -1277,7 +1260,7 @@ int main (int argc, char *argv[])
       }
 
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.35 $ Finished %s\n",ctime(&t));
+      fprintf(stderr,"# Consensus $Revision: 1.36 $ Finished %s\n",ctime(&t));
       if (printcns) 
       {
         int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 

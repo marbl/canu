@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: Globals_CGW.h,v 1.10 2006-10-11 08:51:39 brianwalenz Exp $	 */
+/* 	$Id: Globals_CGW.h,v 1.11 2007-01-29 20:41:01 brianwalenz Exp $	 */
 #ifndef GLOBALS_CGW_H
 #define GLOBALS_CGW_H
 
@@ -33,8 +33,6 @@
 
 typedef struct Global_CGW_tag {
   int verbose;
-  MesgReader reader;
-  MesgWriter writer;
 
   float transQualityCutoff; // quality cutoff for TransChunkEdges
   uint64 maxSequencedbSize; // maximum size of a sequencedb between checkpoints

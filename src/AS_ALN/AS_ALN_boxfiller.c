@@ -187,7 +187,6 @@ int main(int argc, char *argv[])
   OverlapMesg  *O;
   char qlty1[AS_READ_MAX_LEN+1], qlty2[AS_READ_MAX_LEN+1];
   FILE *OVLFile=NULL;
-  MesgWriter WriteMesg_AS = NULL;
   int abnd, abndFromUser = FALSE;
   int bbnd, bbndFromUser = FALSE;
   int minlen=40;
@@ -204,8 +203,6 @@ int main(int argc, char *argv[])
     fprintf(stderr,"Printing OVLs to %s\n",argv[2]);
     OVLFile=fopen(argv[2],"w");
     assert(OVLFile!=NULL);
-    WriteMesg_AS = OutputFileType_AS(AS_PROTO_OUTPUT);
-    assert(WriteMesg_AS!=NULL);
   }
   if(argc>2)
   {
@@ -264,8 +261,6 @@ int main(int argc, char *argv[])
 					  fprintf(stderr,"Printing OVLs to %s\n", optarg);
 					  OVLFile=fopen( optarg, "w");
 					  assert(OVLFile!=NULL);
-					  WriteMesg_AS = (MesgWriter)OutputFileType_AS(AS_PROTO_OUTPUT);
-					  assert(WriteMesg_AS!=NULL);
 					  break;
 				  case '?':
 					  fprintf( stderr, "Unrecognized option -%c\n", optopt);
@@ -376,7 +371,7 @@ int main(int argc, char *argv[])
 		  GenericMesg pmesg;
 		  pmesg.m=O;
 		  pmesg.t=MESG_OVL;
-		  WriteMesg_AS(OVLFile,&pmesg);
+		  WriteProtoMesg_AS(OVLFile,&pmesg);
 		}
 	      }
 

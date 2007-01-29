@@ -38,11 +38,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: get-subgraph.c,v 1.6 2006-09-26 21:07:45 brianwalenz Exp $
- * $Revision: 1.6 $
+ * $Id: get-subgraph.c,v 1.7 2007-01-29 20:41:19 brianwalenz Exp $
+ * $Revision: 1.7 $
 */
 
-static char fileID[] = "$Id: get-subgraph.c,v 1.6 2006-09-26 21:07:45 brianwalenz Exp $";
+static char fileID[] = "$Id: get-subgraph.c,v 1.7 2007-01-29 20:41:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -82,39 +82,22 @@ int main  (int argc, char * argv [])
    FILE  * ovlfile, * outfile, * fidfile;
    char  * infile_name, * outfile_name;
    GenericMesg  * gmesg = NULL;
-   MesgReader  read_msg_fn;
-   MesgWriter  write_msg_fn;
    GenericMesg  * pmesg;
    AuditLine  audit_line;
    AuditMesg  * new_adt_mesg;
    int32  * hash_table, hash_table_size;
    char  label_line [1000];
-   int  use_binary_output = TRUE;
    int  ch, error_flag, len, i, j;
 
-   optarg = NULL;
-   error_flag = FALSE;
-   while  (! error_flag && ((ch = getopt (argc, argv, "P")) != EOF))
-     switch  (ch)
-       {
-        case  'P':
-          use_binary_output = FALSE;
-          break;
-        case  '?':
-          fprintf (stderr, "Unrecognized option \"-%c\"\n", optopt);
-        default :
-          error_flag ++;
-        }
-
-   if  (optind >= argc)
+   if  (argc != 3)
        {
         fprintf (stderr, 
-                 "USAGE:  %s [-P] <ovl-file> <frag-id-file>\n", 
+                 "USAGE:  %s <ovl-file> <frag-id-file>\n", 
                  argv [0]);
         exit (EXIT_FAILURE);
        }
 
-   infile_name = strdup (argv [optind ++]);
+   infile_name = strdup (argv [1]);
    assert (infile_name != NULL);
    fprintf (stderr, "Input Overlap File = %s\n", infile_name);
    len = strlen (infile_name);
@@ -130,16 +113,10 @@ int main  (int argc, char * argv [])
 
    ovlfile = File_Open (infile_name, "r");
    outfile = File_Open (outfile_name, "w");
-   fidfile = File_Open (argv [optind], "r");
+   fidfile = File_Open (argv [2], "r");
 
    Read_Frag_IDs (fidfile, & hash_table, & hash_table_size);
 fprintf (stderr, "Hash table size = %d\n", hash_table_size);
-
-   read_msg_fn = (MesgReader)InputFileType_AS (ovlfile);
-   if  (use_binary_output)
-       write_msg_fn = (MesgWriter)OutputFileType_AS (AS_BINARY_OUTPUT);
-     else
-       write_msg_fn = (MesgWriter)OutputFileType_AS (AS_PROTO_OUTPUT);
 
    pmesg = (GenericMesg *) safe_malloc (sizeof (GenericMesg));
    pmesg -> t = MESG_ADT;
@@ -148,7 +125,7 @@ fprintf (stderr, "Hash table size = %d\n", hash_table_size);
    new_adt_mesg -> list = & audit_line;
       
 
-   while  (read_msg_fn (ovlfile, & gmesg) != EOF && gmesg != NULL)
+   while  (ReadProtoMesg_AS (ovlfile, & gmesg) != EOF && gmesg != NULL)
      switch  (gmesg -> t)
        {
         case  MESG_ADT :
@@ -156,10 +133,10 @@ fprintf (stderr, "Hash table size = %d\n", hash_table_size);
            AuditMesg  * adt_mesg = gmesg -> m;
 
            sprintf (label_line, "%s %s %s", argv [0], infile_name,
-                    argv [optind]);
+                    argv [2]);
            AppendAuditLine_AS (adt_mesg, & audit_line, time (0), "get-subgraph",
-                               "$Revision: 1.6 $", label_line);
-           write_msg_fn (outfile, gmesg);
+                               "$Revision: 1.7 $", label_line);
+           WriteProtoMesg_AS (outfile, gmesg);
            break;
           }
 
@@ -169,7 +146,7 @@ fprintf (stderr, "Hash table size = %d\n", hash_table_size);
           
            if  (Hash_Find (ilk_mesg -> ifrag1, hash_table, hash_table_size)
                   && Hash_Find (ilk_mesg -> ifrag2, hash_table, hash_table_size))
-               write_msg_fn (outfile, gmesg);
+               WriteProtoMesg_AS (outfile, gmesg);
            break;
           }
 
@@ -179,7 +156,7 @@ fprintf (stderr, "Hash table size = %d\n", hash_table_size);
           
            if  (Hash_Find (ofg_mesg -> iaccession, hash_table,
                            hash_table_size))
-               write_msg_fn (outfile, gmesg);
+               WriteProtoMesg_AS (outfile, gmesg);
            break;
           }
 
@@ -189,12 +166,12 @@ fprintf (stderr, "Hash table size = %d\n", hash_table_size);
 
            if  (Hash_Find (ovl_mesg -> aifrag, hash_table, hash_table_size)
                   && Hash_Find (ovl_mesg -> aifrag, hash_table, hash_table_size))
-               write_msg_fn (outfile, gmesg);
+               WriteProtoMesg_AS (outfile, gmesg);
            break;
           }
 
         default :
-          write_msg_fn (outfile, gmesg);
+          WriteProtoMesg_AS (outfile, gmesg);
        }
 
    fclose (ovlfile);

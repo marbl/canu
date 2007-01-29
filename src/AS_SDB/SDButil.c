@@ -238,12 +238,11 @@ testSDB_ReadInput(tSequenceDB *sequenceDB,
   if (errno)
     fprintf(stderr, "Can't open '%s': %s\n", iumInput, strerror(errno)), exit(1);
   
-  MesgReader     reader = (MesgReader)InputFileType_AS(inputFile);
   int32          totalFrags = 1;
 
   GenericMesg   *pmesg;
 
-  while ((EOF != reader(inputFile, &pmesg))) {
+  while ((EOF != ReadProtoMesg_AS(inputFile, &pmesg))) {
     if (pmesg->t == MESG_IUM) {
       IntUnitigMesg *ium_mesg = (IntUnitigMesg *)pmesg->m;
       MultiAlignT *ma = CreateMultiAlignTFromIUM(ium_mesg, totalFrags, FALSE);

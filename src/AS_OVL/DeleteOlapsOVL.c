@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: DeleteOlapsOVL.c,v 1.6 2006-09-26 21:07:45 brianwalenz Exp $
- * $Revision: 1.6 $
+ * $Id: DeleteOlapsOVL.c,v 1.7 2007-01-29 20:41:17 brianwalenz Exp $
+ * $Revision: 1.7 $
 */
 
-static char CM_ID[] = "$Id: DeleteOlapsOVL.c,v 1.6 2006-09-26 21:07:45 brianwalenz Exp $";
+static char CM_ID[] = "$Id: DeleteOlapsOVL.c,v 1.7 2007-01-29 20:41:17 brianwalenz Exp $";
 
 
 //  System include files
@@ -95,8 +95,6 @@ static int  Num_Deletes;
     // Number of entries in  Delete_List
 static char  * Old_OVL_Path;
     // Name of file from which to read existing OVLs
-static MesgWriter  Write_Msg_Fn;
-    // Pointer to function to write OVL messages.
 
 
 
@@ -122,27 +120,23 @@ int  main
 
   {
    FILE  * in_stream, * out_stream;
-   MesgReader  read_msg_fn;
    GenericMesg  * gmesg = NULL;
    OverlapMesg  * olm = NULL;
-
-   Write_Msg_Fn = (MesgWriter)OutputFileType_AS (AS_BINARY_OUTPUT);
 
    Parse_Command_Line  (argc, argv);
 
    Build_Delete_List ();
 
    in_stream = File_Open (Old_OVL_Path, "r");
-   read_msg_fn = (MesgReader)InputFileType_AS (in_stream);
 
    out_stream = File_Open (New_OVL_Path, "w");
 
-   while  (read_msg_fn (in_stream, & gmesg) != EOF)
+   while  (ReadProtoMesg_AS (in_stream, & gmesg) != EOF)
      {
       if  (gmesg != NULL)
           {
            if  (gmesg -> t != MESG_OVL)
-               Write_Msg_Fn (out_stream, gmesg);
+               WriteProtoMesg_AS (out_stream, gmesg);
              else
                {
                 Frag_Pair_t  pair;
@@ -161,7 +155,7 @@ int  main
 
                 if  (bsearch (& pair, Delete_List, Num_Deletes,
                               sizeof (Frag_Pair_t), By_Lo_IID) == NULL)
-                    Write_Msg_Fn (out_stream, gmesg);
+                    WriteProtoMesg_AS (out_stream, gmesg);
                }
           }
      }
@@ -288,7 +282,7 @@ static void  Parse_Command_Line
      switch  (ch)
        {
         case  'P' :
-          Write_Msg_Fn = (MesgWriter)OutputFileType_AS (AS_PROTO_OUTPUT);
+          fprintf(stderr, "-P is depricated; protoIO is default.\n");
           break;
 
         default :

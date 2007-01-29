@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.11 2007-01-28 21:52:24 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.12 2007-01-29 20:41:11 brianwalenz Exp $";
 
 /*************************************************
 * Module:  AS_GKP_main.c
@@ -105,13 +105,11 @@ int  nerrs = 0;   // Number of errors in current run
 int maxerrs = -1; // Number of errors allowed before we punt
 static void usage(void);
 
-MesgReader Reader;
-MesgWriter Writer, ErrorWriter;
 FILE *Infp, *Outfp, *Msgfp, *Ignfp, *Ibcfp, *Errfp;
 GateKeeperStore GkpStore;
 GateKeeperStore GkpStore_input;
 char *GlobalParamText  = NULL;
-/********************************************/
+
 SequenceBucketArrayT *LinkerDetector_READ;   // Used to collect stats for 1-mers - 8-mers on 5-prime ends of sequence
 SequenceBucketArrayT *Linker3pDetector_READ;   // Used to collect stats for 1-mers - 8-mers on 3-prime ends of sequence
 SequenceBucketArrayT *LinkerDetector_EBAC;   // Used to collect stats for 1-mers - 8-mers on 5-prime ends of sequence
@@ -160,7 +158,6 @@ int  main(int argc, char * argv [])
   char *param_maxerrs = NULL;
   double threshhold = NMER_SIGMA_THRESH;
   char *parameterPath;
-  OutputType output;
   mode_t   mode = S_IRWXU | S_IRWXG | S_IROTH;
   CDS_CID_t currentBatchID = NULLINDEX;
   VA_TYPE(int32) *addedBactigs = NULL;
@@ -182,7 +179,6 @@ int  main(int argc, char * argv [])
   strict = FALSE;
   compatibility = FALSE;
   batchNumFileNames = TRUE;
-  output = AS_BINARY_OUTPUT;
   inputStoreSpecified = outputStoreSpecified = FALSE;
 
 
@@ -312,7 +308,7 @@ int  main(int argc, char * argv [])
 	assembler = AS_ASSEMBLER_OVERLAY;
 	break;
       case 'P':
-	output = AS_PROTO_OUTPUT;
+	fprintf(stderr, "-P depricated; default.\n");
 	break;
       case 'Q':
 	check_qvs = 0;
@@ -365,16 +361,11 @@ int  main(int argc, char * argv [])
 	fprintf(stderr,"Input file is %s suffix is %s\n",argv[optind], suffix);
 	strcpy(Input_File_Name, argv[optind]);
 	Infp = File_Open (Input_File_Name, "r", TRUE);     // frg file
-	Reader = (MesgReader)InputFileType_AS(Infp);
 
 	if(suffix)
 	  *suffix = '\0';
 
 	strcpy(File_Name_Prefix,argv[optind]);
-
-	Writer = (MesgWriter)OutputFileType_AS(output);
-	ErrorWriter = (MesgWriter)OutputFileType_AS(AS_PROTO_OUTPUT);
-
 
 	optind++;
       }
@@ -783,14 +774,14 @@ int ReadFile(int check_qvs,
   /* Read maxFrags fragments from the stream, adding their accession numbers, and
      those of the DST records to their respective hash tables */
 
-  while(  EOF != Reader(Infp, &pmesg)) {
+  while(  EOF != ReadProtoMesg_AS(Infp, &pmesg)) {
 
     messageCount++;
     imesgtype = pmesg->t;
 
     if(messageCount == 1 && imesgtype != MESG_BAT){
       fprintf(Msgfp,"# First message must be {BAT\n");
-      ErrorWriter(Msgfp,pmesg);
+      WriteProtoMesg_AS(Msgfp,pmesg);
       return GATEKEEPER_FAILURE;
     }
 
@@ -807,7 +798,7 @@ int ReadFile(int check_qvs,
 	if(messageCount != 1){
 	  fprintf(Msgfp,"\n\n# Line %d of input (message %d)\n", GetProtoLineNum_AS(), messageCount);
 	  printGKPError(Msgfp, GKPError_FirstMessageBAT);
-	  ErrorWriter(Msgfp,pmesg);
+	  WriteProtoMesg_AS(Msgfp,pmesg);
 	  return GATEKEEPER_FAILURE;
 	}
 
@@ -818,7 +809,7 @@ int ReadFile(int check_qvs,
 	case GATEKEEPER_SUCCESS:
 	  pmesg->t = MESG_IBA;
 	  pmesg->m = &iba_mesg;
-	  Writer((assembler == AS_ASSEMBLER_OVERLAY?Ignfp:Outfp),pmesg);      
+	  WriteProtoMesg_AS((assembler == AS_ASSEMBLER_OVERLAY?Ignfp:Outfp),pmesg);      
 	  currentBatchID = iba_mesg.iaccession;
 	  fprintf(stderr,"Gatekeeper reading batch " F_IID "\n",
 		  iba_mesg.iaccession);
@@ -826,7 +817,7 @@ int ReadFile(int check_qvs,
 	case GATEKEEPER_WARNING:
 	case GATEKEEPER_FAILURE:
 	  fprintf(Msgfp,"# Invalid BAT message at Line %d of input...exiting\n", GetProtoLineNum_AS());
-	  ErrorWriter(Msgfp,pmesg);      
+	  WriteProtoMesg_AS(Msgfp,pmesg);      
 	  return GATEKEEPER_FAILURE;
 	  break;
 	default:
@@ -851,10 +842,10 @@ int ReadFile(int check_qvs,
 	   Check_DistanceMesg(dst_mesg, &idt_mesg, currentBatchID,  verbose)){
 	   pmesg->m = &idt_mesg;
 	   pmesg->t = MESG_IDT;
-	  Writer(Outfp,pmesg);      
+           WriteProtoMesg_AS(Outfp,pmesg);      
 	}else{
 	  fprintf(Msgfp,"# Line %d of input\n", GetProtoLineNum_AS());
-	   ErrorWriter(Msgfp,pmesg);      
+	   WriteProtoMesg_AS(Msgfp,pmesg);      
 	  if(incrementErrors(1, Msgfp) == GATEKEEPER_FAILURE){
 	    return GATEKEEPER_FAILURE;
 	  }
@@ -882,21 +873,21 @@ int ReadFile(int check_qvs,
 	     
 	    if(ifg_mesg.type == AS_BACTIG || ifg_mesg.type == AS_FULLBAC){
 	      bacFragmentsIgnored++;
-	      Writer(Ignfp,pmesg);      
+	      WriteProtoMesg_AS(Ignfp,pmesg);      
 	    }else{
-	      Writer(Outfp,pmesg);      
+	      WriteProtoMesg_AS(Outfp,pmesg);      
 	    }
 	  }else {
 	    if(AS_FA_SHREDDED(ifg_mesg.type)){ 
 	      shreddedFragmentsIgnored++;
-	      Writer(Ignfp,pmesg);      
+	      WriteProtoMesg_AS(Ignfp,pmesg);      
 	    }else{
-	      Writer(Outfp,pmesg);      
+	      WriteProtoMesg_AS(Outfp,pmesg);      
 	    }
 	  }
 	}else{
 	  fprintf(Msgfp,"# Line %d of input\n", GetProtoLineNum_AS());
-	  ErrorWriter(Msgfp,pmesg);      
+	  WriteProtoMesg_AS(Msgfp,pmesg);      
 	  if(incrementErrors(1, Msgfp) == GATEKEEPER_FAILURE){
 	    return GATEKEEPER_FAILURE;
 	  }
@@ -925,18 +916,18 @@ int ReadFile(int check_qvs,
 	switch(gkp_result){
 	case GATEKEEPER_WARNING:
 	  fprintf(Msgfp,"# Line %d of input\n", GetProtoLineNum_AS());
-	  ErrorWriter(Msgfp,pmesg);      
+	  WriteProtoMesg_AS(Msgfp,pmesg);      
 	case GATEKEEPER_SUCCESS:
 #ifdef OLD
 	  /**************************** We DON'T output ILK messages anymore *********************************/
 	  pmesg->m = &ilk_mesg;
 	  pmesg->t = MESG_ILK;
-	  Writer((assembler == AS_ASSEMBLER_OVERLAY?Ignfp:Outfp),pmesg);      
+	  WriteProtoMesg_AS((assembler == AS_ASSEMBLER_OVERLAY?Ignfp:Outfp),pmesg);      
 #endif
 	  break;
 	case GATEKEEPER_FAILURE:
 	  fprintf(Msgfp,"# Line %d of input\n", GetProtoLineNum_AS());
-	  ErrorWriter(Msgfp,pmesg);      
+	  WriteProtoMesg_AS(Msgfp,pmesg);      
 	  if(incrementErrors(1, Msgfp) == GATEKEEPER_FAILURE){
 	    return GATEKEEPER_FAILURE;
 	  }
@@ -976,10 +967,10 @@ int ReadFile(int check_qvs,
 	    argv[0], "",
 	    params);
 
-	Writer((assembler == AS_ASSEMBLER_OVERLAY?Ignfp:Outfp),pmesg);
+	WriteProtoMesg_AS((assembler == AS_ASSEMBLER_OVERLAY?Ignfp:Outfp),pmesg);
         /*
-	fprintf(stderr,"# GateKeeper $Revision: 1.11 $\n");
-	ErrorWriter(Msgfp,pmesg);
+	fprintf(stderr,"# GateKeeper $Revision: 1.12 $\n");
+	WriteProtoMesg_AS(Msgfp,pmesg);
         */
         free(params);
 	
@@ -1001,13 +992,13 @@ int ReadFile(int check_qvs,
 	   pmesg->m = &ibc_mesg;
 	   pmesg->t = MESG_IBC;
 	   if(assembler == AS_ASSEMBLER_OVERLAY){
-	     Writer((bac_mesg->type == AS_EBAC?Ignfp:Ibcfp),pmesg);      
+	     WriteProtoMesg_AS((bac_mesg->type == AS_EBAC?Ignfp:Ibcfp),pmesg);      
 	   }else{
-	     Writer(Outfp,pmesg);      
+	     WriteProtoMesg_AS(Outfp,pmesg);      
 	   }
 	}else{
 	  fprintf(Msgfp,"# Line %d of input\n", GetProtoLineNum_AS());
-	   ErrorWriter(Msgfp,pmesg);      
+	   WriteProtoMesg_AS(Msgfp,pmesg);      
 	  if(incrementErrors(1, Msgfp) == GATEKEEPER_FAILURE){
 	    return GATEKEEPER_FAILURE;
 	  }
@@ -1018,7 +1009,7 @@ int ReadFile(int check_qvs,
     default:
       fprintf(Msgfp,"# ERROR: Read Message with type %s line %d...skipping\n", MessageTypeName[imesgtype],
 	      GetProtoLineNum_AS());
-	  ErrorWriter(Msgfp,pmesg);      
+	  WriteProtoMesg_AS(Msgfp,pmesg);      
 	  if(incrementErrors(1, Msgfp) == GATEKEEPER_FAILURE){
 	    return GATEKEEPER_FAILURE;
 	  }

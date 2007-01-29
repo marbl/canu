@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: PopulateFragStore.c,v 1.9 2007-01-29 05:48:39 brianwalenz Exp $";
+static char CM_ID[] = "$Id: PopulateFragStore.c,v 1.10 2007-01-29 20:41:20 brianwalenz Exp $";
 
 /*************************************************
 * Module:  PopulateFragStore.c
@@ -101,11 +101,6 @@ char  Stats_File_Name [FILENAME_MAX];
 char  File_Name_Prefix [FILENAME_MAX];
 char  Parameter_File_Name [FILENAME_MAX];
 
-/* Functions for reading input and writing output */
-MesgReader Read_Msg_Fn;
-MesgWriter Write_Msg_Fn;
-
-
 
 int  main(int argc, char * argv [])
 
@@ -118,7 +113,6 @@ int  main(int argc, char * argv [])
 
   int verbose = 0;
   int create = 0;
-  OutputType output = AS_BINARY_OUTPUT;
   int append = 0;
   int force = 0;
   int backup = 1;
@@ -175,7 +169,7 @@ int  main(int argc, char * argv [])
 	//errflg = inputStoreSpecified;
 	break;
       case 'P':
-	output = AS_PROTO_OUTPUT;
+	fprintf(stderr, "-P is no longer needed.\n");
 	break;
       case 'p':
 	fprintf(stderr,"* -p %s\n", optarg);
@@ -231,8 +225,6 @@ int  main(int argc, char * argv [])
 
     In_fp = File_Open (Input_File_Name, "r");     // frg file
     AssertPtr(In_fp);
-
-    Read_Msg_Fn = (MesgReader)InputFileType_AS(In_fp);
 
     if(suffix)
       *suffix = '\0';
@@ -405,7 +397,6 @@ int  main(int argc, char * argv [])
   tmpDistStore = createDistStore(NULL,firstDist);
 
 
-  Write_Msg_Fn = (MesgWriter)OutputFileType_AS(output);
   {
     int distRead, fragRead;
 
@@ -531,7 +522,7 @@ static int  ReadFrags(int maxFrags,
   /* Read maxFrags fragments from the stream */
 
   while  ((numFragsRead < maxFrags)    && 
-	  (EOF != Read_Msg_Fn (In_Stream, & pmesg)))
+	  (EOF != ReadProtoMesg_AS (In_Stream, & pmesg)))
     {
     imesgtype = pmesg->t;
     switch(imesgtype){
@@ -607,7 +598,7 @@ static int  ReadFrags(int maxFrags,
           assert(0);
         }
 
-	Write_Msg_Fn (Out_Stream,pmesg);
+	WriteProtoMesg_AS (Out_Stream,pmesg);
       }
       break;
 
@@ -681,7 +672,7 @@ static int  ReadFrags(int maxFrags,
 	  break;
 	  }
 
-	  Write_Msg_Fn (Out_Stream, pmesg);
+	  WriteProtoMesg_AS (Out_Stream, pmesg);
 	}
 	break;
 
@@ -692,7 +683,7 @@ static int  ReadFrags(int maxFrags,
 
 	  VersionStampADT(adt_mesg, argc, argv);
 
-	  Write_Msg_Fn (Out_Stream, pmesg);
+	  WriteProtoMesg_AS (Out_Stream, pmesg);
 	}
 	break;
 
@@ -711,7 +702,7 @@ static int  ReadFrags(int maxFrags,
 	fprintf(stderr,"Read IBC/IBA\n");
 #endif
 
-	Write_Msg_Fn (Out_Stream, pmesg);
+	WriteProtoMesg_AS (Out_Stream, pmesg);
 	break;
 
 
@@ -829,7 +820,7 @@ int File_Exists (const char * Filename){
 
 void usage(void){
   fprintf (stderr,
-           "usage: Populator [-aAcfPX] [-i <inputStore>] [-o <outputStore>]\n"
+           "usage: Populator [-aAcfX] [-i <inputStore>] [-o <outputStore>]\n"
            "                 [-V <ovlfilename>] <inputFile>.<ext>\n"
 	   " Populates a fragment store with the fragments and distance messages in the input file. \n"
 	  " Outputs two files:\n"
@@ -842,7 +833,6 @@ void usage(void){
 	  "  -A    append with no backup (requires -i)\n"
 	  "  -c    create (requires -o)\n"
 	  "  -f    force.  If output exists, nuke it.\n"
-          "  -P    proto output (default is binary)\n"
           "  -V    specifies name of output (.ovl) file\n"
           "  -X    activate expert options.\n");
 }

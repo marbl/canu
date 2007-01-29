@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.29 2007-01-29 05:48:38 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.30 2007-01-29 20:41:13 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -97,7 +97,7 @@ typedef enum {
   MESG_SPc,
   MESG_SP1,
   MESG_OVL,
-  MESG_BRC,
+  MESG_SPf,
   MESG_UOM, // 15
   MESG_IUM,
   MESG_IUL,
@@ -154,7 +154,7 @@ static char  *MessageTypeName[NUM_OF_REC_TYPES + 1] = {
   "SPc",
   "SP1", 
   "OVL", 
-  "BRC",
+  "SPf",
   "UOM",// 15
   "IUM", 
   "IUL", 
@@ -467,14 +467,6 @@ typedef struct {
   signed char      *delta;
 } OverlapMesg;
 
-/* BRC message */
-
-typedef struct {
-  ActionType        action;
-  IntFragment_ID    ifrag;
-  CDS_COORD_t    pre_br, suf_br, pre_end, suf_end;
-} BranchMesg;
-
 
 typedef enum {
   AS_A_END = (int)'A',
@@ -495,32 +487,8 @@ typedef enum {
   AS_NO_BPOINT   = (int) 'N'
 } BranchType;
 
-typedef struct  {
-  IntFragment_ID  ifrag;
-  CDS_COORD_t  offset5p;
-  CDS_COORD_t  offset3p;
-  FragType        type;
-  LabelType       label;
-  char            *source;
-} ChunkFrag;
-
-typedef struct {
-  IntChunk_ID     chunk;
-  ChunkOrientType orient;
-  CDS_COORD_t  best_overlap_length;
-  CDS_COORD_t  min_overlap_length;
-  CDS_COORD_t  max_overlap_length;
-} ChunkOverlap;
 
 /* UOM message */
-
-/*
- * AS_NORMAL		AB_AB
- * AS_ANTINORMAL	BA_BA
- * AS_OUTIE		BA_AB
- * AS_INNIE		AB_BA
- *
- */
 
 // ChunkOrientationType discontinued by Jason 7/01 
 // because code intermingled it with OrientType.
@@ -532,7 +500,9 @@ typedef struct {
 //  AB_BA		= (int) 'I',
 //  XX_XX         = (int) 'U'    // unknown relative orientation
 //} ChunkOrientationType;
+
 #define ChunkOrientationType OrientType
+
 #define AB_AB AS_NORMAL  
 #define BA_BA AS_ANTI  
 #define BA_AB AS_OUTTIE  
@@ -541,11 +511,10 @@ typedef struct {
 
 typedef enum {
   /* The following are CGW overlap output classifications: */
-  AS_NO_OVERLAP	= (int) 'N', // Not used by the unitigger.
-  AS_OVERLAP    = (int) 'O', // A dovetail overlap between unitigs.
+  AS_NO_OVERLAP	    = (int) 'N', // Not used by the unitigger.
+  AS_OVERLAP        = (int) 'O', // A dovetail overlap between unitigs.
   AS_TANDEM_OVERLAP = (int) 'T', // Not used by the unitigger.
-    
-  
+
   /* The following are unitigger overlap output classifications: */
   AS_1_CONTAINS_2_OVERLAP = (int) 'C', 
   AS_2_CONTAINS_1_OVERLAP = (int) 'I',
@@ -621,50 +590,34 @@ typedef struct {
 #ifdef AS_ENABLE_SOURCE
   char			*source;
 #endif
-  CDS_COORD_t        best_overlap_length;
-  CDS_COORD_t        min_overlap_length;
-  CDS_COORD_t        max_overlap_length;
+  CDS_COORD_t           best_overlap_length;
+  CDS_COORD_t           min_overlap_length;
+  CDS_COORD_t           max_overlap_length;
   float32               quality;
 } FragOverlapMesg;
 
 typedef struct {
   IntChunk_ID     iaccession;
-  CDS_COORD_t  bp_length;
+  CDS_COORD_t     bp_length;
   float           coverage_stat;
   BranchType      a_branch_type;
   BranchType      b_branch_type;
-  CDS_COORD_t  a_branch_point;
-  CDS_COORD_t  b_branch_point;
+  CDS_COORD_t     a_branch_point;
+  CDS_COORD_t     b_branch_point;
   int32           num_frags;
   int32           a_degree;
   int32           b_degree;
-  ChunkFrag      *f_list;
-  ChunkOverlap   *a_list;
-  ChunkOverlap   *b_list;
   char           *source;
 } ChunkMesg;
 
-/* ICT messages */
 
-typedef enum {
-  AS_KEEP   = (int) 'K',
-  AS_NOKEEP = (int) 'N'
-} ResolveType;
-
+//  Though DirectionType is not explicitly referenced, AS_FORWARD and
+//  AS_REVERSE are used in the code.
+//
 typedef enum {
   AS_FORWARD = (int)'F',
   AS_REVERSE = (int)'R'
 } DirectionType;
-
-typedef struct {
-  FragType             type;
-  IntFragment_ID       ident;
-  ResolveType          label;
-  DirectionType        orientation;
-  CDS_COORD_t       position;
-} LayoutPos;
-
-
 
 typedef enum {
   AS_UNIQUE =     (int)'U',
@@ -975,7 +928,6 @@ typedef struct {
   SeqInterval  position;
 } SnapElementPos;
 
-
 /* UTG Message */
 typedef struct {
   Chunk_ID        eaccession;  // changed in comparison to internal message
@@ -997,7 +949,6 @@ typedef struct {
   IntMultiVar     *v_list;
 } SnapUnitigMesg;
 
-
 typedef struct {
   Fragment_ID  in1, in2; 
   LinkType     type;
@@ -1018,7 +969,6 @@ typedef struct {
   SnapMate_Pairs       *jump_list; // changed in comparison to internal message
 } SnapUnitigLinkMesg;
 
-
 /* CCO message */
 typedef struct {
   Contig_ID                   eaccession;
@@ -1035,7 +985,6 @@ typedef struct {
   IntMultiVar                *vars;   
   UnitigPos                  *unitigs;// changed in comparison to internal message
 } SnapConConMesg;
-
 
 /* CLK message */
 typedef struct {
@@ -1064,8 +1013,7 @@ typedef struct {
   SnapMate_Pairs	*jump_list;
 } SnapScaffoldLinkMesg;
 
-
-/* SCF and CTP message */
+/* CTP message */
 typedef struct {
   Contig_ID		econtig1; // changed in comparison to internal message
   Contig_ID		econtig2; // changed in comparison to internal message
@@ -1074,6 +1022,7 @@ typedef struct {
   ChunkOrientationType	orient;
 } SnapContigPairs;
 
+/* SCF message */
 typedef struct {
   Scaffold_ID           eaccession;
   IntScaffold_ID        iaccession;
@@ -1081,14 +1030,11 @@ typedef struct {
   SnapContigPairs   	*contig_pairs; // changed in comparison to internal message
 } SnapScaffoldMesg;
 
-
 /* DSC message */
 typedef struct {
   Scaffold_ID      eaccession;
   Contig_ID        econtig;
 } SnapDegenerateScaffoldMesg;
-
-
 
 /* MDI message */
 typedef struct {
@@ -1147,17 +1093,8 @@ typedef struct EndOfFileMesgTag {
   char    *comment;
 } EndOfFileMesg;
 
-typedef enum {
-  AS_BINARY_OUTPUT  = (int) 'B',
-  AS_PROTO_OUTPUT   = (int) 'P'
-} OutputType;
-
 
 //  External Routines
-
-
-typedef int (*MesgReader)(FILE *, GenericMesg **);
-typedef int (*MesgWriter)(FILE *, GenericMesg *);
 
 
 //  Function: DuplicateProtoMesg_AS 
@@ -1187,34 +1124,13 @@ typedef int (*MesgWriter)(FILE *, GenericMesg *);
 //void FreeProtoMesg_AS(GenericMesg *omesg);
 
 
-//  Function: InputFileType_AS
-//
-//  Description: The file cursor for fin must be at the start of the file
-//  when this routine is called.  The routine examines the first byte of
-//  the file and decides whether it is a binary or proto file.  It then
-//  returns a pointer to either ReadProtoMesg_AS or ReadBinaryMesg_AS
-//  accordingly.
-//
-MesgReader InputFileType_AS(FILE *fin);
-
-
-//  Function: OutputFileType_AS
-//  Description: This routine
-//  returns a pointer to either WriteProtoMesg_AS or WriteBinaryMesg_AS
-//  as a function of its input.
-//
-MesgWriter OutputFileType_AS(OutputType type);
-
-
 //  Functions: ReadProtoMesg_AS 
-//             ReadBinaryMesg_AS
 //
 //  Description: Reads the next message from the file "fin" and a
 //  returns the memory location of a generic message.  This memory is
 //  managed by the routine only. This memory location and all of its
 //  variable data will go out of scope or be trashed by the next call
-//  to the routine.  The first routine is for reading proto ASCI input
-//  and the second for reading binary encoded input.
+//  to the routine.
 //  
 //  Return Value: The return value is EOF if an end of file is
 //  encountered occurs, otherwise the return value is zero indicating
@@ -1225,14 +1141,11 @@ MesgWriter OutputFileType_AS(OutputType type);
 //  Input/Outputs: fin - A file openned for text reading. 
 //
 int ReadProtoMesg_AS(FILE *fin, GenericMesg **pmesg);
-int ReadBinaryMesg_AS(FILE *fin, GenericMesg **pmesg);
 
 
 //  Functions:  WriteProtoMesg_AS 
-//              WriteBinaryMesg_AS
 //
-//  Description: Writes a generic message to the file "fout" in either
-//  ASCII or binary mode depending on the routine. 
+//  Description: Writes a generic message to the file "fout"
 //
 //  Return Value: The return value is negative if an error occured.
 //
@@ -1241,7 +1154,6 @@ int ReadBinaryMesg_AS(FILE *fin, GenericMesg **pmesg);
 //  Input/Outputs: fout - A file openned for text writing.
 //
 int WriteProtoMesg_AS(FILE *fout, GenericMesg *mesg);
-int WriteBinaryMesg_AS(FILE *fout, GenericMesg *mesg);
 
 
 //  Function: Transfer_XXX_to_YYY
@@ -1272,8 +1184,6 @@ void AppendAuditLine_AS(AuditMesg *adt_mesg,
                         char *version, char *comment);
 
 
-//  Function: GetProtoLineNum_AS
-//
 //  Description: When reading in proto mode, this function will return
 //  the line number the input is currently on.  This function operates
 //  correctly only when a single input is being read.  The return value
@@ -1283,23 +1193,15 @@ void AppendAuditLine_AS(AuditMesg *adt_mesg,
 int GetProtoLineNum_AS(void);
 
 
-//  GetMessageType:
 //  Returns a number in the range [1, NUM_OF_REC_TYPES -1]
 //  as a function of the first 3 characters of the passed string.
 //
 int GetMessageType(char *string);
 
 
-//  GetMessageName:
 //   Returns a string as a function of message type
 //
 const char  *GetMessageName(int type);
-
-
-//  Free all memory allocated by the Proto IO Package
-//
-void ResetProto_AS(void);
-void ResetBinary_AS(void);
 
 
 #endif  /* AS_MSG_PMESG_INCLUDE */

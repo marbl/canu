@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: null_scaffolder.c,v 1.7 2006-05-24 13:56:29 eliv Exp $ */
+/* $Id: null_scaffolder.c,v 1.8 2007-01-29 20:41:08 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,21 +26,9 @@
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
 
-static void Rewind( FILE * fp, MesgReader reader )
-{
-  if( fp != NULL )
-  {
-    if( reader == ReadProtoMesg_AS )
-      rewind( fp );
-    else
-      CDS_FSEEK( fp, (off_t) sizeof( int ), SEEK_SET );
-  }
-
-}
 
 int main(int argc, char *argv[])
 { GenericMesg *pmesg;
-  MesgReader   reader;
   IntAugFragMesg af_mesg;
   IntConConMesg contig;
   IntUnitigPos iup;
@@ -56,14 +44,13 @@ int main(int argc, char *argv[])
   int in_iums=0;
   int nread;
   if (argc > 1) coverage_threshold = atof(argv[1]);
-  reader = (MesgReader)InputFileType_AS(stdin);
 
   while ( 1 ){
-    nread = reader(stdin,&pmesg);
+    nread = ReadProtoMesg_AS(stdin,&pmesg);
     if (nread == EOF && pass < 3 ) {
        in_iums = 0;
        pass++;
-       Rewind(stdin,reader);
+       rewind(stdin);
     } else if (nread == EOF) {
        break;
     } else if (pmesg->t == MESG_IUM) {
@@ -141,7 +128,7 @@ int main(int argc, char *argv[])
         } else { // beyond the stream of unitigs, rewind and now output the unitigs
           pass++;
           in_iums=0;
-          Rewind(stdin,reader);
+          rewind(stdin);
         }
       }
     }

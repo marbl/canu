@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_cgb.c,v 1.5 2006-09-26 22:21:13 brianwalenz Exp $";
+= "$Id: AS_CGB_cgb.c,v 1.6 2007-01-29 20:40:56 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_cgb.c
@@ -1784,6 +1784,7 @@ void chunk_graph_build_2
 #endif // SKIP_CONSENSUS
 
 #ifdef BRANCHPOINTS
+#error branchpoints defined
   if( ! dont_find_branch_points ) {
     if(TIMINGS) {
       time(&tp1); fprintf(stderr,"Begin find_the_branch_points\n");

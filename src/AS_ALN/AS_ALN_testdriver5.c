@@ -237,7 +237,6 @@ int main(int argc, char *argv[])
   InternalFragMesg  A, B;
   OverlapMesg  *O;
   FILE *OVLFile=NULL;
-  MesgWriter WriteMesg_AS = NULL;
   int abnd = 0, abndFromUser = FALSE;
   int bbnd = 0, bbndFromUser = FALSE;
   int minlen=40;
@@ -293,8 +292,6 @@ int main(int argc, char *argv[])
 	  fprintf(stderr,"Printing OVLs to %s\n", optarg);
 	  OVLFile=fopen( optarg, "w");
 	  assert(OVLFile!=NULL);
-	  WriteMesg_AS = (MesgWriter)OutputFileType_AS(AS_PROTO_OUTPUT);
-	  assert(WriteMesg_AS!=NULL);
 	  break;
 	case '1':
 	  file1=fopen(optarg,"r");
@@ -446,7 +443,7 @@ int main(int argc, char *argv[])
 		GenericMesg pmesg;
 		pmesg.m=O;
 		pmesg.t=MESG_OVL;
-		WriteMesg_AS(OVLFile,&pmesg);
+		WriteProtoMesg_AS(OVLFile,&pmesg);
 	      }
 
             }

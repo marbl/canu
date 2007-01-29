@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_FGB_main.c,v 1.6 2007-01-28 21:52:24 brianwalenz Exp $";
+= "$Id: AS_FGB_main.c,v 1.7 2007-01-29 20:40:59 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module:  AS_FGB_main.c
@@ -198,7 +198,6 @@ static void processing_phase_3
 
 static void output_mesgs
 (/* Input Only*/
- MesgWriter WriteMesg_AS,
  const Tfragment frags[],
  const Tedge     edges[],
  const VA_TYPE(char) fragsrc[],
@@ -210,10 +209,9 @@ static void output_mesgs
 
   // Output the IBA and ADT messages from the batches:
   if(NULL != filk) {
-    MesgReader ReadMesg_AS = (MesgReader)InputFileType_AS(filk);
     GenericMesg *pmesg = NULL;
-    while(EOF != ReadMesg_AS(filk,&pmesg)) {
-      WriteMesg_AS(fcgb,pmesg);
+    while(EOF != ReadProtoMesg_AS(filk,&pmesg)) {
+      WriteProtoMesg_AS(fcgb,pmesg);
     }
   }
 
@@ -248,7 +246,7 @@ static void output_mesgs
         GenericMesg pmesg;
         //pmesg.t = MESG_OFR;
         pmesg.m = &ofg_mesg;
-        WriteMesg_AS(fcgb,&pmesg);
+        WriteProtoMesg_AS(fcgb,&pmesg);
       }
     }
   }
@@ -337,7 +335,7 @@ static void output_mesgs
         GenericMesg   pmesg;
         pmesg.t = MESG_OVL;
         pmesg.m = &ovl_mesg;
-        WriteMesg_AS(fcgb,&pmesg);
+        WriteProtoMesg_AS(fcgb,&pmesg);
       }
     }
   }
@@ -374,7 +372,6 @@ static void dump_next_edge_obj
 static void process_one_ovl_file
 (int        argc, 
  char       *argv[],
- MesgWriter WriteMesg_AS,
  const char Batch_File_Name[],
  const char Output_Graph_Store[],
  TStateGlobals  * gstate,
@@ -412,7 +409,7 @@ static void process_one_ovl_file
     int ierr;
     
     fprintf(stderr,"Opening input file to read a batch of "
-            "IBA+ADT(+ADL)+BRC+IDT+OFG+OVL messages.\n");
+            "IBA+ADT(+ADL)+IDT+OFG+OVL messages.\n");
     if(NULL == (fovl = fopen(Batch_File_Name,"r"))){
       fprintf(stderr,"* Can not open input file %s\n",Batch_File_Name);
       exit(1);
@@ -432,7 +429,6 @@ static void process_one_ovl_file
     
     input_messages_from_a_file
       (argc, argv, // For ADT version stamp.
-       WriteMesg_AS,
        fovl, fiba,
        (heapva->frags), // The internal representation of the fragments.
        (heapva->edges), // The internal representation of the overlaps.
@@ -616,10 +612,6 @@ int main_fgb
   //time_t check_point_interval = 8 * 3600 ;
   //time_t next_check_point_time = tp3+check_point_interval;
 
-  MesgWriter WriteMesg_AS =
-    (MesgWriter)OutputFileType_AS((rg->as_proto_output
-                       ? AS_PROTO_OUTPUT : AS_BINARY_OUTPUT ));
-
   set_compare_edge_function(compare_edge_strong);
   // This is for the blessed overlaps.
 
@@ -715,7 +707,6 @@ int main_fgb
       process_one_ovl_file
         ( argc, 
           argv,
-          WriteMesg_AS,
           Batch_File_Name,
           rg->Output_Graph_Store,
           gstate,
@@ -734,7 +725,6 @@ int main_fgb
         process_one_ovl_file
           ( argc, 
             argv,
-            WriteMesg_AS,
             Batch_File_Name,
             rg->Output_Graph_Store,
             gstate,
@@ -766,7 +756,6 @@ int main_fgb
     process_one_ovl_file
       ( argc, 
         argv,
-        WriteMesg_AS,
         Batch_File_Name,
         rg->Output_Graph_Store,
         gstate,
@@ -805,7 +794,6 @@ int main_fgb
       process_one_ovl_file
         ( argc, 
           argv,
-          WriteMesg_AS,
           Batch_File_Name,
           rg->Output_Graph_Store,
           gstate,
@@ -827,7 +815,6 @@ int main_fgb
     process_one_ovl_file
       ( argc, 
         argv,
-        WriteMesg_AS,
         Batch_File_Name,
         rg->Output_Graph_Store,
         gstate,
@@ -1104,7 +1091,7 @@ int main_fgb
     }
 
     fprintf(stderr,"Opening dump file to write a batch of "
-	    "ADT+BRC+IDT+OFG+OVL messages.\n");
+	    "ADT+IDT+OFG+OVL messages.\n");
 
     if(NULL == (folp = fopen(rg->Dump_File_Name,"w"))){
       fprintf(stderr,"* Can not open output file %s\n",rg->Dump_File_Name);
@@ -1113,7 +1100,6 @@ int main_fgb
 
     output_mesgs
       (/* Input Only*/
-       WriteMesg_AS,
        (heapva->frags), (heapva->edges),
        (heapva->frag_annotations),
        fiba,

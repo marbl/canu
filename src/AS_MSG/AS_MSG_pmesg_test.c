@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg_test.c,v 1.5 2005-09-15 15:20:16 eliv Exp $ */
+/* $Id: AS_MSG_pmesg_test.c,v 1.6 2007-01-29 20:41:13 brianwalenz Exp $ */
 
 #include <assert.h>
 #include <errno.h>
@@ -35,7 +35,6 @@ int main(int argc, char * argv [])
   int illegal = 0;
   int timer_mode = 0;
   int no_output_mode = 0;
-  int binary_output_mode = 0;
   int duplicate_mode = 0;
 
   /**************** Process Command Line Arguments *********************/
@@ -53,9 +52,6 @@ int main(int argc, char * argv [])
       case 'd':
 	duplicate_mode  = 1;
 	break;
-      case 'b':
-	binary_output_mode  = 1;
-	break;
       case '?':
 	fprintf(stderr,"Unrecognized option -%c",optopt);
       default :
@@ -65,12 +61,10 @@ int main(int argc, char * argv [])
       {
 	fprintf (stderr, "USAGE: %s "
 		 "[-t] "
-		 "[-b] "
 		 "[-n] "
 		 "[-d] "
 		 "< InputFileName >OutputFileName \n"
 		 " -t : produce timing information\n"
-		 " -b : produce binary output\n"
 		 " -n : send output to /dev/null\n"
 		 " -d : internally duplicate each message\n" ,
 		 argv[0]);
@@ -81,16 +75,14 @@ int main(int argc, char * argv [])
   {
     /* MessageType  imesgtype; */
     GenericMesg *pmesg = NULL, *wmesg = NULL;
-    MesgReader   reader;
     time_t tp1,tp2;
 
     if(timer_mode) {
       time(&tp1); fprintf(stderr,"Begin timing\n");
     }
 
-    reader = (MesgReader)InputFileType_AS(stdin);
 
-    while (reader(stdin,&pmesg) != EOF)
+    while (ReadProtoMesg_AS(stdin,&pmesg) != EOF)
       {
 	if(duplicate_mode) {
 	#if 0
@@ -102,11 +94,7 @@ int main(int argc, char * argv [])
 	  wmesg = pmesg;
 	}
 	if(! no_output_mode) {
-	  if(binary_output_mode) {
-	    WriteBinaryMesg_AS(stdout,wmesg);
-	  } else {
-	    WriteProtoMesg_AS(stdout,wmesg);
-	  }
+          WriteProtoMesg_AS(stdout,wmesg);
 	}
 	if(duplicate_mode) {
 #ifdef TODELTE

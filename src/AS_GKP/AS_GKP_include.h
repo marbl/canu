@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_GKP_include.h,v 1.10 2007-01-28 21:52:24 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.11 2007-01-29 20:41:10 brianwalenz Exp $ */
 
 /*************************************************
 * Module:  AS_GKP_include.h
@@ -61,8 +61,6 @@
 #define UID_NAMESPACE_AS 'U'
 #define LOCALEID_NAMESPACE_AS 'L'
 
-extern MesgReader Reader;
-extern MesgWriter Writer, ErrorWriter;
 extern FILE *Infp, *Outfp, *Msgfp, *Ignfp, *Ibcfp, *Msgfp;
 extern GateKeeperStore GkpStore;
 extern SequenceBucketArrayT *LinkerDetector_READ;   // Used to collect stats for 1-mers - 8-mers on 5-prime ends of sequence

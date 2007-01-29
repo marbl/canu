@@ -38,11 +38,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: get-iidgraph.c,v 1.8 2007-01-29 05:48:39 brianwalenz Exp $
- * $Revision: 1.8 $
+ * $Id: get-iidgraph.c,v 1.9 2007-01-29 20:41:19 brianwalenz Exp $
+ * $Revision: 1.9 $
 */
 
-static char fileID[] = "$Id: get-iidgraph.c,v 1.8 2007-01-29 05:48:39 brianwalenz Exp $";
+static char fileID[] = "$Id: get-iidgraph.c,v 1.9 2007-01-29 20:41:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -104,39 +104,22 @@ int  main  (int argc, char * argv [])
    FILE  * ovlfile, * outfile, * fidfile, * odd_file, * odd_olap_file;
    char  * infile_name, * outfile_name;
    GenericMesg  * gmesg = NULL;
-   MesgReader  read_msg_fn;
-   MesgWriter  write_msg_fn;
    GenericMesg  * pmesg;
    AuditLine  audit_line;
    AuditMesg  * new_adt_mesg;
    int32  * hash_table, hash_table_size;
    char  label_line [1000];
-   int  use_binary_output = TRUE;
    int  ch, error_flag; 
 
-   optarg = NULL;
-   error_flag = FALSE;
-   while  (! error_flag && ((ch = getopt (argc, argv, "P")) != EOF))
-     switch  (ch)
-       {
-        case  'P':
-          use_binary_output = FALSE;
-          break;
-        case  '?':
-          fprintf (stderr, "Unrecognized option \"-%c\"\n", optopt);
-        default :
-          error_flag ++;
-        }
-
-   if  (optind >= argc)
+   if  (argc != 3)
        {
         fprintf (stderr, 
-                 "USAGE:  %s [-P] <ovl-file> <frag-id-file>\n", 
+                 "USAGE:  %s <ovl-file> <frag-id-file>\n", 
                  argv [0]);
         exit (EXIT_FAILURE);
        }
 
-   infile_name = strdup (argv [optind ++]);
+   infile_name = strdup (argv [1]);
    assert (infile_name != NULL);
    fprintf (stderr, "Input Overlap File = %s\n", infile_name);
    {
@@ -157,16 +140,10 @@ int  main  (int argc, char * argv [])
    
    ovlfile = File_Open (infile_name, "r");
    outfile = File_Open (outfile_name, "w");
-   fidfile = File_Open (argv [optind], "r");
+   fidfile = File_Open (argv[2], "r");
 
    Read_Frag_IDs (fidfile, & hash_table, & hash_table_size);
    fprintf (stderr, "Hash table size = %d\n", hash_table_size);
-
-   read_msg_fn = (MesgReader)InputFileType_AS (ovlfile);
-   if  (use_binary_output)
-       write_msg_fn = (MesgWriter)OutputFileType_AS (AS_BINARY_OUTPUT);
-     else
-       write_msg_fn = (MesgWriter)OutputFileType_AS (AS_PROTO_OUTPUT);
 
    pmesg = (GenericMesg *) safe_malloc (sizeof (GenericMesg));
    pmesg -> t = MESG_ADT;
@@ -177,7 +154,7 @@ int  main  (int argc, char * argv [])
    odd_olap_file = fopen ("oddity.olaps", "w");
    assert (odd_olap_file != NULL);
 
-   while  (read_msg_fn (ovlfile, & gmesg) != EOF && gmesg != NULL)
+   while  (ReadProtoMesg_AS (ovlfile, & gmesg) != EOF && gmesg != NULL)
      switch  (gmesg -> t)
        {
         case  MESG_ADT :
@@ -185,10 +162,10 @@ int  main  (int argc, char * argv [])
            AuditMesg  * adt_mesg = gmesg -> m;
 
            sprintf (label_line, "%s %s %s", argv [0], infile_name,
-                    argv [optind]);
+                    argv [2]);
            AppendAuditLine_AS (adt_mesg, & audit_line, time (0), "get-subgraph",
-                               "$Revision: 1.8 $", label_line);
-           write_msg_fn (outfile, gmesg);
+                               "$Revision: 1.9 $", label_line);
+           WriteProtoMesg_AS (outfile, gmesg);
            break;
           }
 
@@ -207,7 +184,7 @@ int  main  (int argc, char * argv [])
                Insert (ilk_mesg -> ifrag1);
 #endif
            if  (find1 && find2)
-               write_msg_fn (outfile, gmesg);
+               WriteProtoMesg_AS (outfile, gmesg);
            break;
           }
 
@@ -217,7 +194,7 @@ int  main  (int argc, char * argv [])
           
            if  (Hash_Find (ofg_mesg -> iaccession, hash_table,
                            hash_table_size))
-               write_msg_fn (outfile, gmesg);
+               WriteProtoMesg_AS (outfile, gmesg);
            break;
           }
 
@@ -252,12 +229,12 @@ int  main  (int argc, char * argv [])
                          100.0 * ovl_mesg -> quality);
                }
            if  (finda && findb) /* (finda || findb) */
-               write_msg_fn (outfile, gmesg);
+               WriteProtoMesg_AS (outfile, gmesg);
            break;
           }
 
         default :
-          write_msg_fn (outfile, gmesg);
+          WriteProtoMesg_AS (outfile, gmesg);
        }
 
    fclose (odd_olap_file);
@@ -281,7 +258,7 @@ int  main  (int argc, char * argv [])
 
    { 
      int sub = 0;
-     while  (read_msg_fn (ovlfile, & gmesg) != EOF && gmesg != NULL)
+     while  (ReadProtoMesg_AS (ovlfile, & gmesg) != EOF && gmesg != NULL)
        switch  (gmesg -> t)
          {
          case  MESG_OFG :
@@ -292,7 +269,7 @@ int  main  (int argc, char * argv [])
                sub ++;
              if  (ofg_mesg -> iaccession == Extra_List [sub])
                {
-                 write_msg_fn (outfile, gmesg);
+                 WriteProtoMesg_AS (outfile, gmesg);
                }
              
              break;

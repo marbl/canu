@@ -28,9 +28,7 @@
 
 void
 usage(char *name) {
-  fprintf(stderr, "usage: %s [-b|-p] [-x] [-i] [-m message type] [-o outputfile] < <input file>\n", name);
-  fprintf(stderr, "       -b -p   output is binary or protoIO (-p default)\n");
-  fprintf(stderr, "               (input type is auto-detected)\n");
+  fprintf(stderr, "usage: %s [-x] [-i] [-m message type] [-o outputfile] < <input file>\n", name);
   fprintf(stderr, "       -i      include the following messages in the next output\n");
   fprintf(stderr, "       -x      exclude the following messages from the next output\n");
   fprintf(stderr, "       -m      message\n");
@@ -57,7 +55,6 @@ main(int argc, char **argv) {
   off_t          count[NUM_OF_REC_TYPES + 1];
   off_t          size[NUM_OF_REC_TYPES + 1];
   int            i;
-  int            outBinary = 0;
 
   for (i=0; i<=NUM_OF_REC_TYPES; i++) {
     msglist[i] = 0;
@@ -76,10 +73,6 @@ main(int argc, char **argv) {
       inc = 1;
     } else if (strcmp(argv[arg], "-x") == 0) {
       inc = 0;
-    } else if (strcmp(argv[arg], "-b") == 0) {
-      outBinary = 1;
-    } else if (strcmp(argv[arg], "-p") == 0) {
-      outBinary = 0;
     } else if (strcmp(argv[arg], "-o") == 0) {
       errno = 0;
       FILE *F = fopen(argv[++arg], "w");
@@ -147,11 +140,10 @@ main(int argc, char **argv) {
   }
 
   GenericMesg   *pmesg;
-  MesgReader     reader = InputFileType_AS(stdin);
   off_t          currPos = 0;
   off_t          prevPos = 0;
 
-  while (reader(stdin, &pmesg) != EOF) {
+  while (ReadProtoMesg_AS(stdin, &pmesg) != EOF) {
     assert(pmesg->t <= NUM_OF_REC_TYPES);
 
     currPos = CDS_FTELL(stdin);
@@ -161,10 +153,7 @@ main(int argc, char **argv) {
 
       size[pmesg->t] += currPos - prevPos;
 
-      if (outBinary == 1)
-        WriteBinaryMesg_AS(outfile[pmesg->t], pmesg);
-      else
-        WriteProtoMesg_AS(outfile[pmesg->t], pmesg);
+      WriteProtoMesg_AS(outfile[pmesg->t], pmesg);
     }
 
     prevPos = currPos;

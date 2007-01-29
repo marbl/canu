@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_FGB_io.h,v 1.4 2005-03-22 19:48:32 jason_miller Exp $
+ * $Id: AS_FGB_io.h,v 1.5 2007-01-29 20:40:58 brianwalenz Exp $
  *
  * Module: AS_FGB_io.h
  * Description: Header file for the code that reads and writes the 
@@ -58,7 +58,6 @@ void InsertOverlapsIntoGraph
 void input_messages_from_a_file
 (int        argc, 
  char       *argv[],
- MesgWriter WriteMesg_AS,
  FILE       *fovl,
  FILE       *filk,
  Tfragment  frags[],

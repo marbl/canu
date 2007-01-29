@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MicroHetIUMREZ_test3.c,v 1.5 2005-09-15 15:20:16 eliv Exp $";
+static char CM_ID[] = "$Id: MicroHetIUMREZ_test3.c,v 1.6 2007-01-29 20:41:20 brianwalenz Exp $";
 
 
 #include <assert.h>
@@ -57,7 +57,6 @@ int main (int argc, char *argv[]) {
   int numunitig=0;
   IntUnitigMesg *iunitig;
   MessageType    imesgtype;
-  MesgReader     reader;
   FragStoreHandle storeHandle = 0;
   char           *storeName;
   char           *fileName;
@@ -90,8 +89,7 @@ int main (int argc, char *argv[]) {
   assert(input != NULL);
 
 
-  reader = (MesgReader)InputFileType_AS(input);
-  while( reader(input,&pmesg) != EOF ) 
+  while( ReadProtoMesg_AS(input,&pmesg) != EOF ) 
     {
       CGB_Type type;
       imesgtype = pmesg->t;

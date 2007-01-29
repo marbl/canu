@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: batchify.c,v 1.6 2007-01-29 05:48:39 brianwalenz Exp $
- * $Revision: 1.6 $
+ * $Id: batchify.c,v 1.7 2007-01-29 20:41:22 brianwalenz Exp $
+ * $Revision: 1.7 $
 */
 
-static char fileID[] = "$Id: batchify.c,v 1.6 2007-01-29 05:48:39 brianwalenz Exp $";
+static char fileID[] = "$Id: batchify.c,v 1.7 2007-01-29 20:41:22 brianwalenz Exp $";
 
 #define FILE_NAME_FORMAT "b%03d."
 
@@ -69,25 +69,19 @@ int main  (int argc, char * argv [])
    char  * infile_name, * outfile_name;
    char  * p, * file_suffix, * file_tail;
    GenericMesg  * gmesg = NULL;
-   MesgReader  read_msg_fn;
-   MesgWriter  write_msg_fn;
    GenericMesg  * pmesg;
    AuditLine  audit_line;
    AuditMesg  * adt_mesg, * new_adt_mesg;
    char  batch_line [100];
    int64  batch_size = DEFAULT_BATCH_SIZE, frag_ct;
-   int  use_binary_output = TRUE;
    int  batch_num;
    int  ch, error_flag, len, i, j;
 
    optarg = NULL;
    error_flag = FALSE;
-   while  (! error_flag && ((ch = getopt (argc, argv, "Pb:")) != EOF))
+   while  (! error_flag && ((ch = getopt (argc, argv, "b:")) != EOF))
      switch  (ch)
        {
-        case  'P':
-          use_binary_output = FALSE;
-          break;
         case  'b':
           batch_size = STR_TO_INT64(optarg, & p, 10);
           if  (batch_size <= 0 || p == NULL)
@@ -131,12 +125,6 @@ int main  (int argc, char * argv [])
                  infile_name);
         exit (EXIT_FAILURE);
        }
-   read_msg_fn = (MesgReader)InputFileType_AS (infile);
-
-   if  (use_binary_output)
-       write_msg_fn = (MesgWriter)OutputFileType_AS (AS_BINARY_OUTPUT);
-     else
-       write_msg_fn = (MesgWriter)OutputFileType_AS (AS_PROTO_OUTPUT);
 
    frag_ct = batch_num = 0;
    sprintf (file_tail, FILE_NAME_FORMAT, batch_num);
@@ -158,15 +146,15 @@ int main  (int argc, char * argv [])
    new_adt_mesg -> list = & audit_line;
       
 
-   while  (read_msg_fn (infile, & gmesg) != EOF && gmesg != NULL)
+   while  (ReadProtoMesg_AS (infile, & gmesg) != EOF && gmesg != NULL)
      switch  (gmesg -> t)
        {
         case  MESG_ADT :
           adt_mesg = (AuditMesg *) gmesg -> m;
           sprintf (batch_line, "Batch %d", batch_num);
           AppendAuditLine_AS (adt_mesg, & audit_line, time (0), "batchify",
-                              "$Revision: 1.6 $", batch_line);
-          write_msg_fn (outfile, gmesg);
+                              "$Revision: 1.7 $", batch_line);
+          WriteProtoMesg_AS (outfile, gmesg);
           break;
 
         case  MESG_FRG :
@@ -192,15 +180,15 @@ int main  (int argc, char * argv [])
                audit_line . next = NULL;
                audit_line . name = "batchify";
                audit_line . complete = time (0);
-               audit_line . version = "$Revision: 1.6 $";
+               audit_line . version = "$Revision: 1.7 $";
                sprintf (batch_line, "Batch %d", batch_num);
                audit_line . comment = batch_line;
-               write_msg_fn (outfile, pmesg);
+               WriteProtoMesg_AS (outfile, pmesg);
               }
           // fall through
 
         default :
-          write_msg_fn (outfile, gmesg);
+          WriteProtoMesg_AS (outfile, gmesg);
        }
 
    fclose (infile);

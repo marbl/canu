@@ -74,8 +74,7 @@ static void input_mesgs_to_VA
   {
     int nadt=0,nidt=0,nilk=0,nofg=0,novl=0,nibc=0,niba=0;
     GenericMesg *pmesg = NULL;
-    MesgReader ReadMesg_AS = (MesgReader)InputFileType_AS(fovl);
-    while( EOF != ReadMesg_AS(fovl, &pmesg)) {
+    while( EOF != ReadProtoMesg_AS(fovl, &pmesg)) {
       const MessageType imesgtype = pmesg->t;
       
       //printf("input_mesgs_to_VA: pmesg->t = %d\n", imesgtype);
@@ -129,7 +128,6 @@ static void input_mesgs_to_VA
 
 static void output_the_IUM_to_file
 (/* Input Only*/
- MesgWriter                  WriteMesg_AS,
  const VA_TYPE(char)    *    the_imp_source,
  const VA_TYPE(char)    *    the_ium_source,
  VA_TYPE(IntMultiPos)   *    the_imp_messages,
@@ -178,7 +176,7 @@ static void output_the_IUM_to_file
       GenericMesg   pmesg;
       pmesg.t = MESG_IUM;
       pmesg.m = mychunk;
-      WriteMesg_AS(fcgb,&pmesg);
+      WriteProtoMesg_AS(fcgb,&pmesg);
     }
   }
 
@@ -278,13 +276,8 @@ int main(int argc, char * argv [])
     run_MiniUnitigger( muo, &params, &results);
   }
 
-  {
-
-    MesgWriter WriteMesg_AS = (MesgWriter)OutputFileType_AS(AS_PROTO_OUTPUT);
-    
     output_the_IUM_to_file
       (/* Input Only*/
-       WriteMesg_AS,
        the_imp_source,
        the_ium_source,
        the_imp_messages,
@@ -292,7 +285,6 @@ int main(int argc, char * argv [])
        fragment_count_target,
        "deleteme"
        );
-  }
 
   destroyMiniUnitigger( muo);
   exit(status);

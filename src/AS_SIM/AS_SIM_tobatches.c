@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* RCS info
- * $Id: AS_SIM_tobatches.c,v 1.5 2005-09-15 15:20:16 eliv Exp $
+ * $Id: AS_SIM_tobatches.c,v 1.6 2007-01-29 20:41:22 brianwalenz Exp $
  */
 
 
@@ -71,7 +71,6 @@ This executable takes a proto-msg file and chops it into batches
 of about <batch size> in number of records. 
 A batch may be smaller if there is not enough data.
 
--P : Specifies ASCII output. The default is binary.
 -b <batch size>: Specifies the desired batch size.  The default batch
 size is 200,000 records.
 
@@ -109,7 +108,7 @@ The input file must use the protomesg package.
 /* Function prototypes for internal static functions */
 /*************************************************************************/
 /* Utility functions */
-void outputBAT(FILE *fout, int binary_output_mode, char *name,
+void outputBAT(FILE *fout, char *name,
                char *comment, CDS_UID_t eid)
 {
   
@@ -125,13 +124,7 @@ void outputBAT(FILE *fout, int binary_output_mode, char *name,
   outMesg.m = &batchMesg;
   outMesg.t = MESG_BAT;
 
-  if(binary_output_mode) {
-    WriteBinaryMesg_AS(fout,&outMesg);
-  } else {
-    WriteProtoMesg_AS(fout, &outMesg);
-  }
-
-
+  WriteProtoMesg_AS(fout, &outMesg);
 }
 
 /*************************************************************************/
@@ -144,11 +137,9 @@ int main(int argc, char *argv[])
   int ifile,imsg,notdone;
   int batch_size = DEFAULT_BATCH_SIZE;
   char strlabel[100];
-  int binary_output_mode=TRUE;
   /* int32 seconds from sometime in 1970 */
   time_t tp1,tp2;
 
-  MesgReader   reader;
   MessageType    imesgtype;
   GenericMesg   *pmesg;
 
@@ -157,11 +148,8 @@ int main(int argc, char *argv[])
    { /* Parse the argument list using "man 3 getopt". */ 
      int ch,errflg=0,illegal = 0;
      optarg = NULL;
-     while (!errflg && ((ch = getopt(argc, argv, "Pb:")) != EOF))
+     while (!errflg && ((ch = getopt(argc, argv, "b:")) != EOF))
        switch(ch) {
-       case 'P':
-	 binary_output_mode=FALSE;
-	 break;
        case 'b':
 	 batch_size = atoi(optarg);
 	 assert(batch_size>0);
@@ -193,12 +181,11 @@ int main(int argc, char *argv[])
    }
    
   fprintf(stderr,__FILE__ " "  __DATE__ " " __TIME__ "\n");
-  fprintf(stderr,"$Id: AS_SIM_tobatches.c,v 1.5 2005-09-15 15:20:16 eliv Exp $\n");
+  fprintf(stderr,"$Id: AS_SIM_tobatches.c,v 1.6 2007-01-29 20:41:22 brianwalenz Exp $\n");
   fprintf(stderr,"Batch size = %d\n",batch_size);
 
   fin = fopen(File_Name,"r");
   assert(fin != NULL);
-  reader = (MesgReader)InputFileType_AS(fin);
 
   notdone = TRUE;
   fprintf(stderr,"zoot\n");
@@ -213,7 +200,7 @@ int main(int argc, char *argv[])
     if(ifile > 1)
     {
       fprintf(stderr,"* Printing outputBAT\n");
-      outputBAT(fout, binary_output_mode, strlabel, "(created by tobatches)",
+      outputBAT(fout, strlabel, "(created by tobatches)",
 #if 0
 		(1L<<63) - ifile
 #else
@@ -227,7 +214,7 @@ int main(int argc, char *argv[])
     for(imsg=0; (imsg<batch_size); imsg++) {
       if((imsg >= batch_size ) && (okay_to_chop_here)) break;
 
-      notdone = (EOF != reader(fin, &pmesg));
+      notdone = (EOF != ReadProtoMesg_AS(fin, &pmesg));
       //fprintf(stderr,"ifile=%d,imsg=%d\n",ifile,imsg);
       /* if(!notdone)then(okay_to_chop_here) */
       assert(notdone || okay_to_chop_here);
@@ -235,11 +222,7 @@ int main(int argc, char *argv[])
 
       imesgtype = pmesg->t;
       if(imesgtype != EOF) {
-	if(binary_output_mode) {
-	  WriteBinaryMesg_AS(fout,pmesg);
-	} else {
-	  WriteProtoMesg_AS(fout,pmesg);
-	  }
+        WriteProtoMesg_AS(fout,pmesg);
 	fflush(fout);
       }
     }

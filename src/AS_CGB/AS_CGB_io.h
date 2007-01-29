@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_io.h,v 1.4 2005-03-22 19:48:29 jason_miller Exp $
+ * $Id: AS_CGB_io.h,v 1.5 2007-01-29 20:40:58 brianwalenz Exp $
  *
  * Module: AS_CGB_io.h
  * Description: Header file for the code that reads and writes the 
@@ -33,7 +33,6 @@
 
 void output_the_chunks
 (/* Input Only*/
- MesgWriter WriteMesg_AS,
  const Tfragment frags[],
  const Tedge     edges[],
  const VA_TYPE(char) fragsrc[],
@@ -70,7 +69,6 @@ void convert_the_chunks_to_IUM
 
 void output_the_IUM_to_file
 (/* Input Only*/
- MesgWriter                  WriteMesg_AS,
  const VA_TYPE(char)    *    fragsrc,
  const VA_TYPE(char)    *    chunksrc,
  VA_TYPE(IntMultiPos)   *    the_imps,

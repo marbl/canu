@@ -1198,7 +1198,6 @@ AssemblyStore * CreateAssemblyStoreFromASMFile(FILE * fi,
                                                char * gkpStorePath,
                                                char * frgStorePath)
 {
-  MesgReader readerFn = (MesgReader) InputFileType_AS(fi);
   AssemblyStore * asmStore;
   GenericMesg * gen;
   unsigned long mesgCount = 0;
@@ -1215,7 +1214,7 @@ AssemblyStore * CreateAssemblyStoreFromASMFile(FILE * fi,
   }
 
   fprintf(stderr, "Reading .asm file\n");
-  while(readerFn(fi, &gen) != EOF)
+  while(ReadProtoMesg_AS(fi, &gen) != EOF)
   {
 #ifndef DEBUG_ASMDATA
     if(++mesgCount % 10000 == 0)

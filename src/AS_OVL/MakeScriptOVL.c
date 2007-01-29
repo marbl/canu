@@ -28,12 +28,12 @@
 *************************************************/
 
 /* RCS info
- * $Id: MakeScriptOVL.c,v 1.5 2007-01-29 05:48:39 brianwalenz Exp $
- * $Revision: 1.5 $
+ * $Id: MakeScriptOVL.c,v 1.6 2007-01-29 20:41:17 brianwalenz Exp $
+ * $Revision: 1.6 $
 */
 
 static char  CM_ID []
-    = "$Id: MakeScriptOVL.c,v 1.5 2007-01-29 05:48:39 brianwalenz Exp $";
+    = "$Id: MakeScriptOVL.c,v 1.6 2007-01-29 20:41:17 brianwalenz Exp $";
 
 
 /*************************************************************************/
@@ -130,7 +130,6 @@ const char *  DEFAULT_OLAP_CMD = "overlap";
 /* Static Globals */
 /*************************************************************************/
 
-MesgReader  Read_Msg_Fn;
 static char  * Append_Command = BINARY_APPEND_COMMAND;
 static char  * Input_Store_Name = NULL;
 static char  * Output_Store_Name = NULL;
@@ -391,7 +390,7 @@ static int  Count_Frag_Messages
    GenericMesg  * pmesg;
    int  ct = 0;
 
-   while  (Read_Msg_Fn (in_stream, & pmesg) != EOF)
+   while  (ReadProtoMesg_AS (in_stream, & pmesg) != EOF)
      {
       MessageType  imesgtype = pmesg -> t;
 

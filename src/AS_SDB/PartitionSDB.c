@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: PartitionSDB.c,v 1.2 2006-09-27 09:34:02 brianwalenz Exp $";
+static char CM_ID[] = "$Id: PartitionSDB.c,v 1.3 2007-01-29 20:41:22 brianwalenz Exp $";
 
 //  Given a SequenceDB and a partition size, measured in number of
 //  fragments, produce the following:
@@ -143,7 +143,6 @@ main(int argc, char **argv) {
   }
 
   FILE         *inputFile         = openInputFile(inputFileName);
-  MesgReader    reader            = (MesgReader)InputFileType_AS(inputFile);
   FILE         *outputPartition   = openOutputPartition(inputFileName, currentPartition);
   tSequenceDB  *sequenceDB        = OpenSequenceDB(storeName, FALSE, storeVersion);
 
@@ -164,7 +163,7 @@ main(int argc, char **argv) {
   //
   GenericMesg  *pmesg;
 
-  while (reader(inputFile, &pmesg) != EOF) {
+  while (ReadProtoMesg_AS(inputFile, &pmesg) != EOF) {
     if (pmesg->t == MESG_ICM) {
       IntConConMesg *ma = pmesg->m;
       int nunitigs = ma->num_unitigs;

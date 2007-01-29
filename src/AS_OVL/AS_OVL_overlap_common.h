@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.21 2007-01-28 21:52:24 brianwalenz Exp $
- * $Revision: 1.21 $
+ * $Id: AS_OVL_overlap_common.h,v 1.22 2007-01-29 20:41:17 brianwalenz Exp $
+ * $Revision: 1.22 $
 */
 
 
@@ -360,9 +360,6 @@ char  * BACtig_Store_Path = NULL;
 uint32  * IID_List = NULL;
 int  IID_List_Len = 0;
 
-MesgReader  Read_Msg_Fn;
-MesgWriter  Write_Msg_Fn, Error_Write;
-
 pthread_mutex_t  FragStore_Mutex;
 pthread_mutex_t  Write_Proto_Mutex;
 pthread_mutex_t  Log_Msg_Mutex;
@@ -543,7 +540,6 @@ fprintf (stderr, "### Bucket size = " F_SIZE_T " bytes\n", sizeof (Hash_Bucket_t
 fprintf (stderr, "### Read error rate = %.2f%%\n", 100.0 * AS_READ_ERROR_RATE);
 fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE);
    noOverlaps = 0; /* If 1, don't compute/generate overlaps */
-   Write_Msg_Fn = (MesgWriter)OutputFileType_AS (AS_BINARY_OUTPUT);
 
    illegal = 0;
    create = 1;
@@ -706,7 +702,7 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
             assert (Outfile_Name != NULL);
             break;
           case  'P' :
-            Write_Msg_Fn = (MesgWriter)OutputFileType_AS(AS_PROTO_OUTPUT);
+            fprintf(stderr, "-P is depricated; protoIO is default.\n");
             break;
           case  'q' :
             Single_Line_Output = TRUE;
@@ -857,7 +853,6 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
 	       assert(NULL == In_Stream);
                In_Stream = File_Open (File_Name, "r");     // inp file
 	       assert(NULL != In_Stream);
-               Read_Msg_Fn = (MesgReader)InputFileType_AS (In_Stream);
 
                if  (Outfile_Name == NULL)
                    {
@@ -1060,7 +1055,7 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
 	pmesg -> m = adtmesg;
 #if  ! (FOR_CARL_FOSLER || SHOW_SNPS)
         if  (! Doing_Partial_Overlaps && ! Single_Line_Output)
-            Write_Msg_Fn (Out_Stream, pmesg);
+            WriteProtoMesg_AS (Out_Stream, pmesg);
 #endif
 
         free (adtmesg);
@@ -3956,7 +3951,7 @@ if  (ovMesg.min_offset + 3 < ovMesg.ahg)
        Contained_Overlap_Ct ++;
      else
        Dovetail_Overlap_Ct ++;
-   Write_Msg_Fn (Out_Stream, & outputMesg);
+   WriteProtoMesg_AS (Out_Stream, & outputMesg);
 
    if  (Num_PThreads > 1)
        pthread_mutex_unlock (& Write_Proto_Mutex);
@@ -5047,9 +5042,8 @@ void  Profile_Hits
    printf ("\nStart Profile\n");
 
    profile_stream = File_Open ("dan5.inp", "r");     // inp file
-   Read_Msg_Fn = (MesgReader)InputFileType_AS (profile_stream);
 
-   while  (EOF != Read_Msg_Fn (profile_stream, & pmesg))
+   while  (EOF != ReadProtoMesg_AS (profile_stream, & pmesg))
      {
       imesgtype = pmesg -> t;
       switch  (imesgtype)

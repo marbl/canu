@@ -66,7 +66,6 @@ void   srand48();
 static char *ProgName;  /* Program name 'poly' */
 
 static int Uniform = FALSE;
-static int Output = AS_BINARY_OUTPUT;
 static int BacEnds = 0;
 static int UBacs = 0;   
 static int LBacs = 0;   
@@ -628,7 +627,6 @@ int main(int argc, char *argv[]){
 	fullBacs      = 0;   // Mate Links is default
 	bacfile = NULL;
 	qltfile = NULL;
-	Output = AS_BINARY_OUTPUT; // Binary output is default
 	while (!errflg && ((ch = getopt(argc, argv, "UNq:relu:f:sb:c:q")) != EOF)){
 	  switch(ch) {
 
@@ -723,7 +721,7 @@ int main(int argc, char *argv[]){
 		  } 
 		  break;
 		case 'P':
-		  Output = AS_PROTO_OUTPUT;
+		  fprintf(stderr, "-P is depricated; the default now.\n");
 		  break;
 		case '?':
 		  fprintf(stderr,"Unrecognized option -%c",optopt);

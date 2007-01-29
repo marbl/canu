@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: LengthAdaptionREZ.c,v 1.5 2005-09-15 15:20:16 eliv Exp $";
+static char CM_ID[] = "$Id: LengthAdaptionREZ.c,v 1.6 2007-01-29 20:41:20 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -58,7 +58,6 @@ int main(int argc, char *argv[])
   int **false;
 
   int intQuality = 0;
-  MesgReader   readerFn = NULL;
   ReadStructp  input;
   int noOfFrags = 0;
   int count;
@@ -131,10 +130,9 @@ int main(int argc, char *argv[])
 
 
   fileInput = file_open(fileName,"r");  
-  readerFn  = (MesgReader)InputFileType_AS(fileInput);
   
   /* count the number of fragments */
-  while( readerFn(fileInput,&pmesg) != EOF ) 
+  while( ReadProtoMesg_AS(fileInput,&pmesg) != EOF ) 
     {
       MessageType mesgtype = pmesg->t;
       if( mesgtype == MESG_IFG ) 
@@ -149,7 +147,7 @@ int main(int argc, char *argv[])
 
   /* read the fragment array */
   count = 0;
-  while( readerFn(fileInput,&pmesg) != EOF ) 
+  while( ReadProtoMesg_AS(fileInput,&pmesg) != EOF ) 
     {
       MessageType mesgtype = pmesg->t;
       switch(mesgtype){

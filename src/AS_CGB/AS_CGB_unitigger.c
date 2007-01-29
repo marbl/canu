@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_unitigger.c,v 1.8 2007-01-28 21:52:24 brianwalenz Exp $";
+= "$Id: AS_CGB_unitigger.c,v 1.9 2007-01-29 20:40:58 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_unitigger.c
@@ -73,7 +73,6 @@ static int skip_cgb = FALSE;
 
 static void output_OVL_mesgs
 (/* Input Only*/
- MesgWriter WriteMesg_AS,
  const Tfragment frags[],
  const Tedge     edges[],
  const VA_TYPE(char) fragsrc[],
@@ -165,7 +164,7 @@ static void output_OVL_mesgs
             GenericMesg   pmesg;
             pmesg.t = MESG_OVL;
             pmesg.m = &ovl_mesg;
-            WriteMesg_AS(fcgb,&pmesg);
+            WriteProtoMesg_AS(fcgb,&pmesg);
           }
         }
       }
@@ -237,7 +236,6 @@ static int incrementErrors(int num, FILE *msgFile){
 
 static void save_the_chunk_graph
 (
- MesgWriter WriteMesg_AS,
  const char * const Graph_Store_File_Prefix,
  const char * const Graph_Store_File_Name,
  const int analysis_level,
@@ -346,7 +344,7 @@ static void save_the_chunk_graph
         mesg.s = sizeof(AuditMesg);
         adt_mesg.list = NULL;
         VersionStampADT(&adt_mesg, argc, argv);
-        WriteMesg_AS(fcgb,&mesg);
+        WriteProtoMesg_AS(fcgb,&mesg);
       }
       
 #ifdef USE_IBA_FILE
@@ -362,10 +360,9 @@ static void save_the_chunk_graph
         
         if(NULL != fiba) {
           // Output the ADT messages from all the incremental processing.
-          MesgReader ReadMesg_AS = (MesgReader)InputFileType_AS(fiba);
           GenericMesg *pmesg = NULL;
-          while(EOF != ReadMesg_AS(fiba,&pmesg)) {
-            WriteMesg_AS(fcgb,pmesg);
+          while(EOF != ReadProtoMesg_AS(fiba,&pmesg)) {
+            WriteProtoMesg_AS(fcgb,pmesg);
           }
         }
         if(NULL != fiba) { ierr = fclose(fiba); assert(ierr == 0); fiba = NULL;}
@@ -376,7 +373,6 @@ static void save_the_chunk_graph
     
     output_the_chunks
       (/*Input Only*/
-       WriteMesg_AS,
        heapva->frags,
        heapva->edges,
        heapva->frag_annotations,
@@ -1475,18 +1471,12 @@ static void StandardUnitigger
 
       // Checkpoint before Bubble Smoothing
       {
-        MesgWriter WriteMesg_AS = NULL;
-        MesgWriter ErrorWriter_AS = NULL;
         
         // VersionStamp(argc,argv);
-        WriteMesg_AS = OutputFileType_AS((rg->as_proto_output
-                                          ? AS_PROTO_OUTPUT : AS_BINARY_OUTPUT));
-        ErrorWriter_AS = OutputFileType_AS(AS_PROTO_OUTPUT);
         
         if(NULL != rg->Output_Graph_Store_Prefix) {
           save_the_chunk_graph
             (
-             WriteMesg_AS,
              rg->Output_Graph_Store_Prefix,
              rg->Output_Graph_Store,
              rg->analysis_level,
@@ -1589,18 +1579,9 @@ static void StandardUnitigger
 #endif
 
   {
-    MesgWriter WriteMesg_AS = NULL;
-    MesgWriter ErrorWriter_AS = NULL;
-
-    // VersionStamp(argc,argv);
-    WriteMesg_AS = (MesgWriter)OutputFileType_AS((rg->as_proto_output
-                                      ? AS_PROTO_OUTPUT : AS_BINARY_OUTPUT));
-    ErrorWriter_AS = (MesgWriter)OutputFileType_AS(AS_PROTO_OUTPUT);
-    
     if(NULL != rg->Output_Graph_Store_Prefix) {
       save_the_chunk_graph
         (
-         WriteMesg_AS,
          rg->Output_Graph_Store_Prefix,
          rg->Output_Graph_Store,
          rg->analysis_level,
@@ -1695,10 +1676,6 @@ static void StandardUnitigger
       // output latest set of blessed overlap edges.
 
       // VersionStamp(argc,argv);
-      MesgWriter
-        WriteMesg_AS = (MesgWriter)OutputFileType_AS
-        ((rg->as_proto_output
-          ? AS_PROTO_OUTPUT : AS_BINARY_OUTPUT));
       
       FILE *filk = NULL;
       FILE *fcgb = (NULL == rg->blessed_overlaps_output_filename
@@ -1709,7 +1686,6 @@ static void StandardUnitigger
       if(NULL != fcgb) {
         output_OVL_mesgs
           (/* Input Only*/
-           WriteMesg_AS,
            heapva->frags, 
            heapva->edges,
            heapva->frag_annotations,

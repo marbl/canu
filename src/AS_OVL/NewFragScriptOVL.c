@@ -33,12 +33,12 @@
 *************************************************/
 
 /* RCS info
- * $Id: NewFragScriptOVL.c,v 1.4 2005-03-22 19:49:19 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: NewFragScriptOVL.c,v 1.5 2007-01-29 20:41:18 brianwalenz Exp $
+ * $Revision: 1.5 $
 */
 
 static char  CM_ID []
-    = "$Id: NewFragScriptOVL.c,v 1.4 2005-03-22 19:49:19 jason_miller Exp $";
+    = "$Id: NewFragScriptOVL.c,v 1.5 2007-01-29 20:41:18 brianwalenz Exp $";
 
 
 /*************************************************************************/
@@ -127,7 +127,6 @@ static char  * LSF_Project_Name = DEFAULT_LSF_PROJECT_NAME;
 /* External Global Definitions */
 /*************************************************************************/
 
-MesgReader  Read_Msg_Fn;
 
 
 /*************************************************************************/

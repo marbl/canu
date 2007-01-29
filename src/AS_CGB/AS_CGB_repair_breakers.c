@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGB_repair_breakers.c,v 1.6 2006-09-26 22:21:13 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_repair_breakers.c,v 1.7 2007-01-29 20:40:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,7 +43,6 @@ static char CM_ID[] = "$Id: AS_CGB_repair_breakers.c,v 1.6 2006-09-26 22:21:13 b
 /* Globals */
 
 static int TIMINGS = TRUE;
-static MesgWriter WriteMesg_AS = NULL, ErrorWriter_AS = NULL;
 
 #define INITIAL_SIZE 100000
 
@@ -339,7 +338,7 @@ static int ParseCommandLine
         case 'P':
           // -P : Any "protoIO" messages will be in ASCII rather than
           // binary.
-          WriteMesg_AS = (MesgWriter)OutputFileType_AS( AS_PROTO_OUTPUT );
+          fprintf(stderr, "-P depricated; output is always ProtoIO.\n");
           break;
         case 'X':
           // -X : Turn on developer mode.
@@ -1265,7 +1264,7 @@ static int write_overlap_file
     adl.next = NULL;
     adl.name = rg->program_name;
     adl.complete = time(0);
-    adl.version = "$Revision: 1.6 $";
+    adl.version = "$Revision: 1.7 $";
     adl.comment = "";
     adt.list = &adl;
     gen.m = &adt;

@@ -1,3 +1,4 @@
+#ifdef BRANCHPOINTS
 
 /**************************************************************************
  * This file is part of Celera Assembler, a software program that 
@@ -19,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_branchpts.c,v 1.7 2006-11-14 19:58:20 eliv Exp $";
+= "$Id: AS_CGB_branchpts.c,v 1.8 2007-01-29 20:40:56 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_branchpts.c
@@ -1363,25 +1364,5 @@ void find_the_branch_points
 }
 
 
-#ifdef NEVER
-#define MAXGANGS 20
-void main(void) {
-int ngangs = MAXGANGS;
-GangType gangs[MAXGANGS];
 
-gang_initialize(MAXGANGS,gangs);
-
-ngangs -= gang_join(MAXGANGS,gangs, 1,4,15);
-ngangs -= gang_join(MAXGANGS,gangs, 4,5,15);
-ngangs -= gang_join(MAXGANGS,gangs, 2,9,6);
-ngangs -= gang_join(MAXGANGS,gangs, 1,2,5);
-
-ngangs -= gang_join(MAXGANGS,gangs, 1,5,33);
-ngangs -= gang_join(MAXGANGS,gangs, 5,1,-34);
-
-gang_print(gangs);
-gang_clear(MAXGANGS,gangs, 1);
-gang_print(MAXGANGS, gangs);
-
-}
-#endif
+#endif // BRANCHPOINTS

@@ -25,7 +25,7 @@
                  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: RebuildMultiAlign_CNS.c,v 1.6 2006-10-08 08:47:39 brianwalenz Exp $";
+static char CM_ID[] = "$Id: RebuildMultiAlign_CNS.c,v 1.7 2007-01-29 20:41:07 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -81,7 +81,6 @@ int main (int argc, char *argv[]) {
    int SHOW_ALIGNMENT=0;
    tSequenceDB *sequenceDB=NULL;
    tSequenceDB *contigStore = NULL;
-   MesgReader   reader;
    GenericMesg *pmesg;
    int analyze=0;
 
@@ -206,8 +205,7 @@ int main (int argc, char *argv[]) {
      contigStore = OpenSequenceDB(cnsStoreFileName, !analyze , partition_no-2);
    }
    if ( !analyze) { // this block creates the cnsStore
-     reader = (MesgReader)InputFileType_AS( stdin );
-     while (reader(stdin,&pmesg) != EOF){
+     while (ReadProtoMesg_AS(stdin,&pmesg) != EOF){
       if ( pmesg->t == MESG_ICM ) {
 	IntConConMesg *contig=pmesg->m;
 

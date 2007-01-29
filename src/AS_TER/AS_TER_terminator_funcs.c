@@ -25,7 +25,7 @@
  Assumptions: There is no UID 0
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.23 2007-01-28 21:52:25 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.24 2007-01-29 20:41:24 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_ReadStruct.h"
@@ -1218,7 +1218,7 @@ static void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpSto
 
 void output_snapshot(char* fragStoreName, char* bactigStoreName, 
 		     char* gkpStoreName, char** inputFileList, int32 numInputFiles,
-		     char* outputFileName, char* mapFileName, OutputType output, 
+		     char* outputFileName, char* mapFileName,
 		     int32 real, int32 quiet,
 		     int32 random, CDS_UID_t uidStart, 
 		     int argc, char *argv[])
@@ -1226,8 +1226,6 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
   GenericMesg *pmesg       = NULL; 
   FILE        *fileInput   = NULL;
   FILE        *fileOutput  = NULL;
-  MesgReader   readerFn   = NULL;
-  MesgWriter   writerFn   = NULL;
   int32        ifile;
   char        *inputFileName;
   int numIAF = 0;
@@ -1351,19 +1349,11 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
     else
       fileInput = stdin;
 
-    /* detect whether reader is ASCII or binary and set
-       writer to provided parameter */
-    readerFn  = (MesgReader)InputFileType_AS(fileInput);
-    writerFn  = (MesgWriter)OutputFileType_AS(output);
-
 
     /* main loop  */
     fprintf(stderr,"*** Terminator : Reading cgw file %d %s ***\n", ifile, inputFileName);
 
-    while(readerFn(fileInput,&pmesg) != EOF){
-#if DEBUG > 0
-      //    writerFn(stderr,pmesg);    
-#endif
+    while(ReadProtoMesg_AS(fileInput,&pmesg) != EOF){
       switch(pmesg->t){
       case MESG_ADT : {
 	AuditMesg *adt_mesg;
@@ -1371,8 +1361,8 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
 	pmesg->t = MESG_ADT;
       
 	VersionStampADT(adt_mesg,argc,argv);
-	writerFn(fileOutput,pmesg);    
-	writerFn(stderr,pmesg);    
+	WriteProtoMesg_AS(fileOutput,pmesg);    
+	WriteProtoMesg_AS(stderr,pmesg);    
       }
       break; 
       case MESG_IAF :{
@@ -1380,7 +1370,7 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
 	AugFragMesg *afgMesg = convert_IAF_to_AFG(iafMesg,real);
 	pmesg->m = afgMesg;
 	pmesg->t = MESG_AFG;
-	writerFn(fileOutput,pmesg);
+	WriteProtoMesg_AS(fileOutput,pmesg);
 	free_AFG(afgMesg);
 	if((++numIAF % 1000000) == 0){
 	  fprintf(stderr,"* Processed %d frags\n", numIAF);
@@ -1393,7 +1383,7 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
 	SnapUnitigMesg *utgMesg = convert_IUM_to_UTG(iumMesg,real);
 	pmesg->m = utgMesg;
 	pmesg->t = MESG_UTG;
-	writerFn(fileOutput,pmesg);
+	WriteProtoMesg_AS(fileOutput,pmesg);
 	free_UTG(utgMesg);
 	if((++numIUM % 1000000) == 0){
 	  fprintf(stderr,"* Processed %d unitigs\n", numIUM);
@@ -1406,7 +1396,7 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
 	SnapUnitigLinkMesg *ulkMesg = convert_IUL_to_ULK(iulMesg,real);
 	pmesg->m = ulkMesg;
 	pmesg->t = MESG_ULK;
-	writerFn(fileOutput,pmesg);
+	WriteProtoMesg_AS(fileOutput,pmesg);
 	free_ULK(ulkMesg);   
       }
       break;
@@ -1415,7 +1405,7 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
 	SnapConConMesg *ccoMesg = convert_ICM_to_CCO(icmMesg,real);
 	pmesg->m = ccoMesg;
 	pmesg->t = MESG_CCO;
-	writerFn(fileOutput,pmesg);
+	WriteProtoMesg_AS(fileOutput,pmesg);
 	free_CCO(ccoMesg);    
 	if((++numICM % 1000000) == 0){
 	  fprintf(stderr,"* Processed %d contigs\n", numICM);
@@ -1428,7 +1418,7 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
 	SnapContigLinkMesg *clkMesg = convert_ICL_to_CLK(iclMesg,real);
 	pmesg->m = clkMesg;
 	pmesg->t = MESG_CLK;
-	writerFn(fileOutput,pmesg);
+	WriteProtoMesg_AS(fileOutput,pmesg);
 	free_CLK(clkMesg);    
       }
       break;
@@ -1437,7 +1427,7 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
 	SnapScaffoldLinkMesg *slkMesg = convert_ISL_to_SLK(islMesg,real);
 	pmesg->m = slkMesg;
 	pmesg->t = MESG_SLK;
-	writerFn(fileOutput,pmesg);
+	WriteProtoMesg_AS(fileOutput,pmesg);
 	free_SLK(slkMesg);    
       }
       break;
@@ -1446,7 +1436,7 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
 	SnapScaffoldMesg *scfMesg = convert_ISF_to_SCF(isfMesg,real);
 	pmesg->m = scfMesg;
 	pmesg->t = MESG_SCF;
-	writerFn(fileOutput,pmesg);
+	WriteProtoMesg_AS(fileOutput,pmesg);
 	free_SCF(scfMesg);    
       }
       break;
@@ -1455,7 +1445,7 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
 	SnapMateDistMesg *mdiMesg = convert_IMD_to_MDI(imdMesg,real);
 	pmesg->m = mdiMesg;
 	pmesg->t = MESG_MDI;
-	writerFn(fileOutput,pmesg);
+	WriteProtoMesg_AS(fileOutput,pmesg);
 	free_MDI(mdiMesg);    
       }
       break;
@@ -1464,7 +1454,7 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
 	SnapDegenerateScaffoldMesg *dscMesg = convert_IDS_to_DSC(idsMesg,real);
 	pmesg->m = dscMesg;
 	pmesg->t = MESG_DSC;
-	writerFn(fileOutput,pmesg);
+	WriteProtoMesg_AS(fileOutput,pmesg);
 	free_DSC(dscMesg);    
       }
       break;
@@ -1472,7 +1462,7 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
 	{
 #if DEBUG > 0
 	  fprintf(stderr,"Swallowing message of type %d\n",pmesg->t); 
-	  writerFn(stderr,pmesg);
+	  WriteProtoMesg_AS(stderr,pmesg);
 #endif
 	}
       break;

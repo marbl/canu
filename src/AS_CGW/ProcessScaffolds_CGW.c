@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: ProcessScaffolds_CGW.c,v 1.12 2006-11-14 19:58:21 eliv Exp $ */
+/* $Id: ProcessScaffolds_CGW.c,v 1.13 2007-01-29 20:41:01 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -649,7 +649,6 @@ VA_DEF(IntContigLinkMesg);
 
 int main(int argc, char *argv[])
 { GenericMesg *pmesg;
- MesgReader   reader;
  IntConConMesg *contig;
  IntUnitigMesg *unitig;
  IntContigLinkMesg *link;
@@ -777,7 +776,6 @@ int main(int argc, char *argv[])
    }
  }
 
- reader = (MesgReader)InputFileType_AS( stdin );
 #if 0
  sublist_file = argv[1];
  if ( sublist_file[0] == 'A' ) { do_all = 1;}
@@ -816,7 +814,7 @@ int main(int argc, char *argv[])
 #endif
  dummy_consensus = CreateVA_char(200000);
 
- while (reader(stdin,&pmesg) != EOF){
+ while (ReadProtoMesg_AS(stdin,&pmesg) != EOF){
    if (pmesg->t ==MESG_IUM)  {
      unitig = pmesg->m;
      if ( strlen(unitig->consensus) != unitig->length) {

@@ -121,8 +121,6 @@ greedy-overlap : GreedyOverlapMainREZ.o libCA.a
 
 length-adaption : LengthAdaptionREZ.o libCA.a
 
-getrep : GetRepeats.o libAS_MSG.a
-
 overlap-chunks: OverlapChunks.o libCA.a
 
 CGW_OBJECTS =  AS_CGW_dataTypes.o GraphCGW_T.o AS_CGW_histo.o DiagnosticsCGW.o Celamy_CGW.o  ScaffoldGraph_CGW.o CIEdgeT_CGW.o CIScaffoldT_CGW.o SEdgeT_CGW.o\

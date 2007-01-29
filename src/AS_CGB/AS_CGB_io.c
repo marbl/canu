@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_io.c,v 1.8 2006-11-14 17:52:14 eliv Exp $";
+= "$Id: AS_CGB_io.c,v 1.9 2007-01-29 20:40:58 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_io.c
@@ -62,7 +62,6 @@ static char CM_ID[]
 
 void output_the_chunks
 (/* Input Only*/
- MesgWriter WriteMesg_AS,
  const Tfragment frags[],
  const Tedge     edges[],
  const VA_TYPE(char) * const fragsrc,
@@ -76,11 +75,6 @@ void output_the_chunks
  const float global_fragment_arrival_rate,
  const int fragment_count_target,
  const char * const Graph_Store_File_Prefix
-#if 0
- /* Modified */
- VA_TYPE(IntMultiPos)   * the_imps,
- VA_TYPE(IntUnitigMesg) * the_iums
-#endif
  )
 {
   IntFragment_ID max_num_frags_per_chunk=0;
@@ -101,7 +95,7 @@ void output_the_chunks
   FILE *fcgb = NULL;
   int fragment_count = 0;
   int file_count = 0;
-  
+
 #if 0
   ResetToRange_VA(the_imps,0);
   ResetToRange_VA(the_iums,0);
@@ -271,7 +265,7 @@ void output_the_chunks
     
     pmesg.t = MESG_IUM;
     pmesg.m = &achunk;
-    WriteMesg_AS(fcgb,&pmesg);
+    WriteProtoMesg_AS(fcgb,&pmesg);
     //fprintf(fpar,"% 5d % 10" F_IIDP "\n", file_count, iid);
 
   }
@@ -428,25 +422,13 @@ void output_the_chunks
 	    if( overlap_type != IGNORE) {
 	      
 	      { // The following are fragment overlaps.
-#if 0
-		const ChunkOrientationType  orient
-		  = ( ( iasx) && ( ibsx) ? AB_BA : 0)
-		  + ( ( iasx) && (!ibsx) ? AB_AB : 0)
-		  + ( (!iasx) && ( ibsx) ? BA_BA : 0)
-		  + ( (!iasx) && (!ibsx) ? BA_AB : 0);
-#else
 		const ChunkOrientationType  orient
 		  = ( iasx 
 		      ? (ibsx ? AB_BA : AB_AB )
 		      : (ibsx ? BA_BA : BA_AB )
 		      );
-#endif
 		char source[80]= {0};
-#if 0
-		sprintf(source,
-                        ">>(" F_IID ",%d)(" F_IID ",%d) %d",
-                        cavx,casx,cbvx,cbsx,inese);
-#endif
+
 		cea.afrag = get_iid_fragment(frags,iavx);
 		cea.bfrag = get_iid_fragment(frags,ibvx);
 		cea.orient = orient;
@@ -462,12 +444,11 @@ void output_the_chunks
 	      if( NULL != fom_types_histogram ) {
 		add_to_histogram(fom_types_histogram, (int)overlap_type, NULL);
 	      }
-	      
+
 	      pmesg.t = MESG_FOM;
 	      pmesg.m = &cea;
-	      WriteMesg_AS(fcgb,&pmesg);
-	      
-	    }
+	      WriteProtoMesg_AS(fcgb,&pmesg);
+	    } // (overlap_type != IGNORE)
           }
         }
       }
@@ -612,7 +593,6 @@ void convert_the_chunks_to_IUM
 
 void output_the_IUM_to_file
 (/* Input Only*/
- MesgWriter                  WriteMesg_AS,
  const VA_TYPE(char)    *    fragsrc,
  const VA_TYPE(char)    *    chunksrc,
  VA_TYPE(IntMultiPos)   *    the_imps,
@@ -659,7 +639,7 @@ void output_the_IUM_to_file
       GenericMesg   pmesg;
       pmesg.t = MESG_IUM;
       pmesg.m = mychunk;
-      WriteMesg_AS(fcgb,&pmesg);
+      WriteProtoMesg_AS(fcgb,&pmesg);
       //fprintf(fpar,"% 5d % 10" F_IIDP "\n", file_count, iid);
     }
   }

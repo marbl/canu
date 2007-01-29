@@ -38,11 +38,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: frag-anomaly.c,v 1.7 2006-11-14 17:52:17 eliv Exp $
- * $Revision: 1.7 $
+ * $Id: frag-anomaly.c,v 1.8 2007-01-29 20:41:19 brianwalenz Exp $
+ * $Revision: 1.8 $
 */
 
-static char fileID[] = "$Id: frag-anomaly.c,v 1.7 2006-11-14 17:52:17 eliv Exp $";
+static char fileID[] = "$Id: frag-anomaly.c,v 1.8 2007-01-29 20:41:19 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
@@ -104,27 +104,22 @@ int main  (int argc, char * argv [])
    FILE  * ovlfile, * outfile;
    char  * infile_name, * outfile_name;
    GenericMesg  * gmesg = NULL;
-   MesgReader  read_msg_fn;
-   MesgWriter  write_msg_fn;
    GenericMesg  * pmesg;
    AuditLine  audit_line;
    AuditMesg  * new_adt_mesg;
    int  frag_size, max_fragid, reject_ct = 0;
    int64  olaps_kept = 0, olaps_removed = 0, olap_ct = 0;
    char  label_line [1000];
-   int  use_binary_output = TRUE, show_progress = FALSE;
+   int  show_progress = FALSE;
    int  ch, error_flag, len, i, j;
 
    optarg = NULL;
    error_flag = FALSE;
-   while  (! error_flag && ((ch = getopt (argc, argv, "pP")) != EOF))
+   while  (! error_flag && ((ch = getopt (argc, argv, "p")) != EOF))
      switch  (ch)
        {
         case  'p' :
           show_progress = TRUE;
-          break;
-        case  'P' :
-          use_binary_output = FALSE;
           break;
         case  '?' :
           fprintf (stderr, "Unrecognized option \"-%c\"\n", optopt);
@@ -159,13 +154,6 @@ int main  (int argc, char * argv [])
    ovlfile = File_Open (infile_name, "r");
    outfile = File_Open (outfile_name, "w");
 
-   read_msg_fn = (MesgReader)InputFileType_AS (ovlfile);
-   if  (use_binary_output)
-       write_msg_fn = (MesgWriter)OutputFileType_AS (AS_BINARY_OUTPUT);
-     else
-       write_msg_fn = (MesgWriter)OutputFileType_AS (AS_PROTO_OUTPUT);
-
-
    // Get fragment count and allocate array to hold adjacency lists
 
    frag_size = 1000000;
@@ -175,7 +163,7 @@ int main  (int argc, char * argv [])
        fprintf (stderr, "\n");
 
    max_fragid = 0;
-   while  (read_msg_fn (ovlfile, & gmesg) != EOF && gmesg != NULL)
+   while  (ReadProtoMesg_AS (ovlfile, & gmesg) != EOF && gmesg != NULL)
      switch  (gmesg -> t)
        {
         case  MESG_OFG :
@@ -221,7 +209,7 @@ int main  (int argc, char * argv [])
    rewind (ovlfile);
 
    olap_ct = 0;
-   while  (read_msg_fn (ovlfile, & gmesg) != EOF && gmesg != NULL)
+   while  (ReadProtoMesg_AS (ovlfile, & gmesg) != EOF && gmesg != NULL)
      switch  (gmesg -> t)
        {
         case  MESG_OVL :
@@ -521,7 +509,7 @@ printf ("\n olap1 = %d %c %c %d  olap2 = %d %c %c %d",
 
 
    olap_ct = 0;
-   while  (read_msg_fn (ovlfile, & gmesg) != EOF && gmesg != NULL)
+   while  (ReadProtoMesg_AS (ovlfile, & gmesg) != EOF && gmesg != NULL)
      switch  (gmesg -> t)
        {
         case  MESG_ADT :
@@ -531,8 +519,8 @@ printf ("\n olap1 = %d %c %c %d  olap2 = %d %c %c %d",
            sprintf (label_line, "%s %s %s", argv [0], infile_name,
                     argv [optind]);
            AppendAuditLine_AS (adt_mesg, & audit_line, time (0), "frag-anomaly screen",
-                               "$Revision: 1.7 $", label_line);
-           write_msg_fn (outfile, gmesg);
+                               "$Revision: 1.8 $", label_line);
+           WriteProtoMesg_AS (outfile, gmesg);
            break;
           }
 
@@ -543,7 +531,7 @@ printf ("\n olap1 = %d %c %c %d  olap2 = %d %c %c %d",
            if  (! Frag [ovl_mesg -> aifrag] . reject
                   && ! Frag [ovl_mesg -> bifrag] . reject)
                {
-                write_msg_fn (outfile, gmesg);
+                WriteProtoMesg_AS (outfile, gmesg);
                 olaps_kept ++;
                }
              else
@@ -557,7 +545,7 @@ printf ("\n olap1 = %d %c %c %d  olap2 = %d %c %c %d",
           }
 
         default :
-          write_msg_fn (outfile, gmesg);
+          WriteProtoMesg_AS (outfile, gmesg);
        }
 
    if  (show_progress)

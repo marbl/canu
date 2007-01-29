@@ -158,7 +158,6 @@ int main(int argc, char *argv[])
   InternalFragMesg  A, B;
   OverlapMesg  *O;
   FILE *OVLFile=NULL;
-  MesgWriter WriteMesg_AS = NULL;
 
   Seqs = get_sequences(stdin,&K);
 
@@ -166,8 +165,6 @@ int main(int argc, char *argv[])
     fprintf(stderr,"Printing OVLs to %s\n",argv[2]);
     OVLFile=fopen(argv[2],"w");
     assert(OVLFile!=NULL);
-    WriteMesg_AS = (MesgWriter)OutputFileType_AS(AS_PROTO_OUTPUT);
-    assert(WriteMesg_AS!=NULL);
   }
 
 fprintf(stderr,"Read in %d sequences\n",K+1);
@@ -256,7 +253,7 @@ fprintf(stderr,"Read in %d sequences\n",K+1);
 		  GenericMesg pmesg;
 		  pmesg.m=O;
 		  pmesg.t=MESG_OVL;
-		  WriteMesg_AS(OVLFile,&pmesg);
+		  WriteProtoMesg_AS(OVLFile,&pmesg);
 		}
 
 

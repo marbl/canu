@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: ofg2asm.c,v 1.3 2007-01-28 21:52:24 brianwalenz Exp $   */
+/* $Id: ofg2asm.c,v 1.4 2007-01-29 20:41:10 brianwalenz Exp $   */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +31,6 @@ int main(int argc, char ** argv)
   char fnIn[2048];
   FILE * fpOut;
   char fnOut[2048];
-  MesgReader reader;
   GenericMesg * gen;
   OFGMesg * ofg;
   AugFragMesg afg;
@@ -51,7 +50,6 @@ int main(int argc, char ** argv)
     fprintf(stderr, "Failed to open file %s for reading.\n", fnIn);
     return 1;
   }
-  reader = InputFileType_AS(fpIn);
 
   if((fpOut = fopen(fnOut, "w")) == NULL)
   {
@@ -71,7 +69,7 @@ int main(int argc, char ** argv)
   mdi.histogram = NULL;
 
   // do messages
-  while(reader(fpIn, &gen) != EOF)
+  while(ReadProtoMesg_AS(fpIn, &gen) != EOF)
   {
     int skipIt = 0;
     switch(gen->t)

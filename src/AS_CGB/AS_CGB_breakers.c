@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGB_breakers.c,v 1.7 2006-09-26 22:21:13 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_breakers.c,v 1.8 2007-01-29 20:40:56 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -366,7 +366,6 @@ int GetUnitigData( BreakerSetp chims,
   FILE * fp;
   GenericMesg       * gen;
   IntUnitigMesg     * ium;
-  MesgReader reader;
   int chim_i, spur_i;
   int file_i;
   cds_uint32 num_chim_chunks_read = 0;
@@ -391,10 +390,9 @@ int GetUnitigData( BreakerSetp chims,
                cgb_files[file_i] );
       return 1;
     }
-    reader = (MesgReader)InputFileType_AS( fp );
     fprintf( stderr, "Reading cgb file %s\n", cgb_files[file_i] );
     
-    while( reader( fp, &gen ) != EOF )
+    while( ReadProtoMesg_AS( fp, &gen ) != EOF )
     {
       switch( gen->t )
       {

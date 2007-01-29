@@ -58,10 +58,9 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  MesgReader   ReadMesg_AS = (MesgReader)InputFileType_AS(stdin);
   GenericMesg *pmesg;
 
-  while (EOF != ReadMesg_AS(stdin, &pmesg)) {
+  while (EOF != ReadProtoMesg_AS(stdin, &pmesg)) {
     if (pmesg->t == MESG_UTG) {
       SnapUnitigMesg  *utg_mesg  = (SnapUnitigMesg *)pmesg->m;
 

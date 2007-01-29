@@ -26,8 +26,8 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.11 2007-01-28 21:52:24 brianwalenz Exp $
- * $Revision: 1.11 $
+ * $Id: AS_OVL_overlap.h,v 1.12 2007-01-29 20:41:17 brianwalenz Exp $
+ * $Revision: 1.12 $
 */
 
 
@@ -581,8 +581,6 @@ extern char  * BACtig_Store_Path;
 extern char  * Frag_Store_Path;
 extern Input_Stream  In_Stream;
 extern Output_Stream  Out_Stream;
-extern MesgReader  Read_Msg_Fn;
-extern MesgWriter  Write_Msg_Fn, Error_Write;
     //  To handle I/O
 extern uint32  * IID_List;
 extern int  IID_List_Len;

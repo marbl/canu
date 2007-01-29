@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: PartitionSequenceDB1.c,v 1.10 2006-10-03 21:49:53 brianwalenz Exp $";
+static char CM_ID[] = "$Id: PartitionSequenceDB1.c,v 1.11 2007-01-29 20:41:22 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -116,7 +116,6 @@ int main(int argc, char **argv){
 
   VA_TYPE(tPartitionElement) *unitigPartitionElems;
   VA_TYPE(tPartitionElement) *fragPartitionElems;
-  MesgReader reader;
 
   if(argc < 4)
     usage();
@@ -134,8 +133,6 @@ int main(int argc, char **argv){
 
   inputFile = fopen(inputFileName,"r");
   AssertPtr(inputFile);
-
-  reader = (MesgReader)InputFileType_AS(inputFile);
 
   sprintf(outputFileName,"%s.%d", inputFileName,currentPartition);
   outputFile = fopen(outputFileName,"w");
@@ -156,7 +153,7 @@ int main(int argc, char **argv){
 
   if(quanta==0)exit(0);
 
-  while (reader(inputFile,&pmesg) != EOF){
+  while (ReadProtoMesg_AS(inputFile,&pmesg) != EOF){
     int nfrags;
     int nunitigs;
     IntConConMesg *ma;
