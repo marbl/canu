@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# $Id: caqc.pl,v 1.17 2007-01-19 21:18:33 eliv Exp $
+# $Id: caqc.pl,v 1.18 2007-01-29 20:18:19 brianwalenz Exp $
 #
 # This program reads a Celera .asm file and produces aggregate information
 # about the assembly
@@ -20,7 +20,7 @@ use File::Basename;
 use Statistics::Descriptive;
 use File::Copy;
 
-my $MY_VERSION = "caqc Version 2.11 (Build " . (qw/$Revision: 1.17 $/ )[1] . ")";
+my $MY_VERSION = "caqc Version 2.11 (Build " . (qw/$Revision: 1.18 $/ )[1] . ")";
 
 # Constants
 my $MINQUAL   = 20;
@@ -411,6 +411,7 @@ sub getLibIID($) {
     for(my $i=1; $i < @LibIIDRange; $i++) {
         return $i if $frgIID <= $LibIIDRange[ $i ];
     }
+    return -1;
 }
 
 MAIN:
