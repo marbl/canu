@@ -187,9 +187,3 @@ force-erates:  ForceEratesOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES
 overlap: $(AS_OVL_OBJS) $(AS_OVL_CMN_OBJS) $(AS_LIBRARIES) $(SYS_LIBRARIES) $(PTHREADS_LIBS)
 
 overlap_ca: $(AS_OVL_CA_OBJS) $(AS_OVL_CMN_OBJS) $(AS_LIBRARIES) $(SYS_LIBRARIES) $(PTHREADS_LIBS)
-
-#build_hash: AS_OVL_FragHash.o
-#	$(CC) $(LDFLAGS) -o $@ AS_OVL_FragHash.o \
-#	../AS_MSG/AS_MSG_pmesg.o ../AS_UTL/AS_UTL_Hash.o $(LOADLIBES)
-#
-#
