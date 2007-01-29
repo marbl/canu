@@ -4,6 +4,7 @@
 
 using namespace std;
 #include <set>
+#include <cassert>
 
 //  Reads the output of sort-overlap-trim, does the actual trim-point
 //  decision, updates the frgStore.
