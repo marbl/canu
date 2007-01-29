@@ -28,12 +28,12 @@
 *************************************************/
 
 /* RCS info
- * $Id: MakeScriptOVL.c,v 1.4 2005-03-22 19:49:19 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: MakeScriptOVL.c,v 1.5 2007-01-29 05:48:39 brianwalenz Exp $
+ * $Revision: 1.5 $
 */
 
 static char  CM_ID []
-    = "$Id: MakeScriptOVL.c,v 1.4 2005-03-22 19:49:19 jason_miller Exp $";
+    = "$Id: MakeScriptOVL.c,v 1.5 2007-01-29 05:48:39 brianwalenz Exp $";
 
 
 /*************************************************************************/
@@ -402,16 +402,6 @@ static int  Count_Frag_Messages
             InternalFragMesg  * ifg = (InternalFragMesg*) pmesg -> m;
 
             if  (ifg -> action == AS_ADD)
-                ct ++;
- 
-            break;
-           }
-
-         case  MESG_SFG :
-           {
-            ScreenedFragMesg  * sfg = (ScreenedFragMesg*) pmesg -> m;
-
-            if  (sfg -> action == AS_ADD)
                 ct ++;
  
             break;

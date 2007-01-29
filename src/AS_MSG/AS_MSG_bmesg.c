@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_MSG_bmesg.c,v 1.11 2007-01-28 21:52:24 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_MSG_bmesg.c,v 1.12 2007-01-29 05:48:38 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -196,7 +196,7 @@ static void Read_ADT_Mesg(FILE *fin, void *vmesg)
 }
 
 static void Read_Frag_Mesg(FILE *fin, void *vmesg, int frag_class)
-{ ScreenedFragMesg *fmesg = (ScreenedFragMesg *) vmesg;
+{ FragMesg *fmesg = (FragMesg *) vmesg;
 
   if (fmesg->action == AS_ADD)
     { fmesg->source   = (char *) GetString(fin);
@@ -216,9 +216,6 @@ static void Read_Frag_Mesg(FILE *fin, void *vmesg, int frag_class)
 
 static void Read_FRG_Mesg(FILE *fin, void *vmesg)
 { Read_Frag_Mesg(fin,vmesg,0); }
-
-static void Read_SFG_Mesg(FILE *fin, void *vmesg)
-{ Read_Frag_Mesg(fin,vmesg,1); }
 
 static void Read_OFG_Mesg(FILE *fin, void *vmesg)
 { Read_Frag_Mesg(fin,vmesg,2); }
@@ -708,7 +705,7 @@ static void Write_ADT_Mesg(FILE *fout, void *vmesg)
 }
 
 static void Write_Frag_Mesg(FILE *fout, void *vmesg, int frag_class)
-{ ScreenedFragMesg *mesg = (ScreenedFragMesg *) vmesg;
+{ FragMesg *mesg = (FragMesg *) vmesg;
 
   if (mesg->action == AS_ADD)
     { PutString(fout,mesg->source);
@@ -722,9 +719,6 @@ static void Write_Frag_Mesg(FILE *fout, void *vmesg, int frag_class)
 
 static void Write_FRG_Mesg(FILE *fout, void *vmesg)
 { Write_Frag_Mesg(fout,vmesg,0); }
-
-static void Write_SFG_Mesg(FILE *fout, void *vmesg)
-{ Write_Frag_Mesg(fout,vmesg,1); }
 
 static void Write_OFG_Mesg(FILE *fout, void *vmesg)
 { Write_Frag_Mesg(fout,vmesg,2); }
@@ -1112,7 +1106,7 @@ static callrecord CallTable[] = {
   { Read_ADT_Mesg, Write_ADT_Mesg, sizeof(AuditMesg) },
   { Read_FRG_Mesg, Write_FRG_Mesg, sizeof(FragMesg)  },
   { Read_FRG_Mesg, Write_FRG_Mesg, sizeof(InternalFragMesg) },
-  { Read_SFG_Mesg, Write_SFG_Mesg, sizeof(ScreenedFragMesg) },
+  { NULL,          NULL,           sizeof(InternalLinkMesg) },
   { Read_OFG_Mesg, Write_OFG_Mesg, sizeof(OFGMesg) },
   { NULL,          NULL,           sizeof(LinkMesg) },
   { NULL,          NULL,           sizeof(InternalLinkMesg) },

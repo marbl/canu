@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.27 2007-01-28 21:52:24 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.28 2007-01-29 05:48:38 brianwalenz Exp $";
 
 //  reads old and new AFG message (with and w/o chaff field)
 #define AFG_BACKWARDS_COMPATIBLE
@@ -475,10 +475,11 @@ static void *Read_Frag_Mesg(FILE *fin, int frag_class)
 { // frag_class
   //   FragMesg 0
   //   InternalFragMesg 1
-  //   ScreenedFragMesg 2
-  //   OFGMesg 3
-  static ScreenedFragMesg fmesg;
-  char ch;
+  //   OFGMesg 2
+  static FragMesg fmesg;
+  char   ch;
+
+  assert((frag_class == 0) || (frag_class == 1) || (frag_class == 2));
   
   if (frag_class == 0)
     { 
@@ -493,6 +494,10 @@ static void *Read_Frag_Mesg(FILE *fin, int frag_class)
       GET_PAIR(fmesg.eaccession,fmesg.iaccession,
                IACCS_FORMAT,"accession field pair");
     } 
+
+  fmesg.sequence = NULL;
+  fmesg.quality  = NULL;
+
   if (fmesg.action == AS_ADD)
     { 
       if (frag_class == 0){
@@ -503,14 +508,13 @@ static void *Read_Frag_Mesg(FILE *fin, int frag_class)
 	GET_TYPE(ch,TYP1_FORMAT "[RXELTFSUCBWG]","type");
 	fmesg.type = (FragType) ch;
       }
+
     fmesg.elocale = 0;
     fmesg.locale_pos.bgn = 0;
     fmesg.locale_pos.end = 0;
     fmesg.eseq_id = 0;
     fmesg.ebactig_id = 0;
 
-    if(frag_class < 4 )
-      {
         if(fmesg.type == AS_FBAC ||
            fmesg.type == AS_UBAC ||
            fmesg.type == AS_STS  ||
@@ -551,53 +555,36 @@ static void *Read_Frag_Mesg(FILE *fin, int frag_class)
                      POS2_FORMAT, "locale pos pair");
           }
         }
-      }
 
       fmesg.source   = (char *) GetText("src:",fin,FALSE);
-      if( frag_class < 4 ) {
+
         GET_FIELD(fmesg.entry_time,ETM_FORMAT,"time field");
-      } else {
-        fmesg.entry_time = 0;
-      }
-      if( frag_class < 3 ) {
+
+      if( frag_class != 2 ) {
 	fmesg.sequence = (char *) GetText("seq:",fin,TRUE);
 	fmesg.quality  = (char *) GetText("qlt:",fin,TRUE);
-      } else {
-	fmesg.sequence = NULL;
-	fmesg.quality  = NULL;
       }
       GET_PAIR(fmesg.clear_rng.bgn,fmesg.clear_rng.end,
                CLR_FORMAT,"clear range field");
       fmesg.source   = MemBuffer + ((long) (fmesg.source));
-      if( frag_class < 3 ) {
+      if( frag_class != 2 ) {
 	// Convert from an index to a pointer.
 	fmesg.sequence = MemBuffer + ((long) (fmesg.sequence));
 	fmesg.quality  = MemBuffer + ((long) (fmesg.quality));
-      } else {
-	fmesg.sequence = NULL;
-	fmesg.quality  = NULL;
       }
-    } else { // The action is not AS_ADD.
-      fmesg.sequence = NULL;
-      fmesg.quality  = NULL;
-    }
+    }  //  action is AS_ADD
   GET_EOM;
   return ((void *) (&fmesg));
 }
 
 static void *Read_FRG_Mesg(FILE *fin)
 { return Read_Frag_Mesg(fin,0); } 
-// FIX: This is technically incorrect since an FRG record is not subset of 
-// an SFG record. We need to make a typedef ....
 
 static void *Read_IFG_Mesg(FILE *fin)
 { return Read_Frag_Mesg(fin,1); }
 
-static void *Read_SFG_Mesg(FILE *fin)
-{ return Read_Frag_Mesg(fin,2); }
-
 static void *Read_OFG_Mesg(FILE *fin)
-{ return Read_Frag_Mesg(fin,3); }
+{ return Read_Frag_Mesg(fin,2); }
 
 
 static void *Read_OVL_Mesg(FILE *fin)
@@ -2098,8 +2085,10 @@ static void Write_ILK_Mesg(FILE *fout, void *vmesg)
 }
 
 static void Write_Frag_Mesg(FILE *fout, void *vmesg, int frag_class)
-{ ScreenedFragMesg *mesg = (ScreenedFragMesg *) vmesg;
-  static const char * const header[]  = { "FRG", "IFG", "SFG", "OFG" };
+{ FragMesg *mesg = (FragMesg *) vmesg;
+  static const char * const header[]  = { "FRG", "IFG", "OFG" };
+
+  assert((frag_class == 0) || (frag_class == 1) || (frag_class == 2));
 
   fprintf(fout,"{%s\n",header[frag_class]);
   fprintf(fout,ACT_FORMAT "\n",mesg->action);
@@ -2109,8 +2098,7 @@ static void Write_Frag_Mesg(FILE *fout, void *vmesg, int frag_class)
     fprintf(fout,IACCS_FORMAT "\n",mesg->eaccession,mesg->iaccession);
   if (mesg->action == AS_ADD) {
     fprintf(fout,TYP_FORMAT "\n",(char) mesg->type);
-    if( frag_class < 4 )
-      {
+
         if(mesg->type == AS_FBAC ||
            mesg->type == AS_UBAC ||
            mesg->type == AS_STS ||
@@ -2151,12 +2139,10 @@ static void Write_Frag_Mesg(FILE *fout, void *vmesg, int frag_class)
                     mesg->locale_pos.bgn,mesg->locale_pos.end);
           }
         }
-      }
+
     PutText(fout,"src:",mesg->source,FALSE);
-    if( frag_class < 4 ) {
-      fprintf(fout,ETM_FORMAT "\n",mesg->entry_time);
-    }
-    if( frag_class < 3 ) {
+    fprintf(fout,ETM_FORMAT "\n",mesg->entry_time);
+    if( frag_class != 2 ) {
       PutText(fout,"seq:",mesg->sequence,TRUE);
       PutText(fout,"qlt:",mesg->quality,TRUE);
     }
@@ -2173,11 +2159,8 @@ static void Write_FRG_Mesg(FILE *fout, void *vmesg)
 static void Write_IFG_Mesg(FILE *fout, void *vmesg)
 { Write_Frag_Mesg(fout,vmesg,1); }
 
-static void Write_SFG_Mesg(FILE *fout, void *vmesg)
-{ Write_Frag_Mesg(fout,vmesg,2); }
-
 static void Write_OFG_Mesg(FILE *fout, void *vmesg)
-{ Write_Frag_Mesg(fout,vmesg,3); }
+{ Write_Frag_Mesg(fout,vmesg,2); }
 
 
 static void Write_OVL_Mesg(FILE *fout, void *vmesg)
@@ -3029,17 +3012,14 @@ static void Write_EOF_Mesg(FILE *fout, void *vmesg)
 
 /*  Routines to transfer a message type through the phases.  */
 
-/* the next 3 transfer routines exist only for backward compatability */
+/* the next 2 transfer routines exist only for backward compatability */
 /* They are not needed! */
 
 void Transfer_FRG_to_IFG_AS(FragMesg *fmg, InternalFragMesg *img)
-{ memcpy(img,fmg,sizeof(ScreenedFragMesg)); }
+{ memcpy(img,fmg,sizeof(FragMesg)); }
 
-void Transfer_IFG_to_SFG_AS(InternalFragMesg *ifg, ScreenedFragMesg *sfg)
-{ memcpy(sfg,ifg,sizeof(ScreenedFragMesg)); }
-
-void Transfer_SFG_to_OFG_AS(ScreenedFragMesg *sfg, OFGMesg *ofg)
-{ memcpy(ofg,sfg,sizeof(ScreenedFragMesg)); }
+void Transfer_IFG_to_OFG_AS(InternalFragMesg *ifg, OFGMesg *ofg)
+{ memcpy(ofg,ifg,sizeof(FragMesg)); }
 
 void Transfer_DST_to_IDT_AS(DistanceMesg *dst, InternalDistMesg *idt)
 { idt->action     = dst->action;
@@ -3190,7 +3170,7 @@ static const callrecord CallTable[] = {
   {"{ADT", Read_ADT_Mesg, Write_ADT_Mesg, Clear_ADT_Mesg,   sizeof(AuditMesg) },
   {"{FRG", Read_FRG_Mesg, Write_FRG_Mesg, Clear_FRG_Mesg,   sizeof(FragMesg)  },
   {"{IFG", Read_IFG_Mesg, Write_IFG_Mesg, Clear_FRG_Mesg,   sizeof(InternalFragMesg) },
-  {"{SFG", Read_SFG_Mesg, Write_SFG_Mesg, Clear_FRG_Mesg,   sizeof(ScreenedFragMesg) },
+  {"", NULL, NULL, NULL, 0l },
   {"{OFG", Read_OFG_Mesg, Write_OFG_Mesg, Clear_FRG_Mesg,   sizeof(OFGMesg) },
   {"{LKG", Read_LKG_Mesg, Write_LKG_Mesg, NULL,             sizeof(LinkMesg) },
   {"{ILK", Read_ILK_Mesg, Write_ILK_Mesg, NULL,             sizeof(InternalLinkMesg) },

@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.119 2007-01-28 21:52:24 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.120 2007-01-29 05:48:38 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -4483,7 +4483,7 @@ int PrintFrags(FILE *out, int accession, IntMultiPos *all_frags, int num_frags,
          int num_matches;
          int srclen;
          GenericMesg pmesg;  
-         ScreenedFragMesg fmesg;  
+         FragMesg fmesg;
          MesgWriter   writer;
          static char fseq[200001];
          static char fqual[200001];
@@ -4541,7 +4541,7 @@ int PrintFrags(FILE *out, int accession, IntMultiPos *all_frags, int num_frags,
            } else {
              fmesg.source = NULL;
            }
-           pmesg.t = MESG_SFG;
+           pmesg.t = MESG_IFG;
            pmesg.m = &fmesg;
            writer(out,&pmesg); // write out the Fragment message
            if (fmesg.source) free(fmesg.source);

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.28 2007-01-28 21:52:24 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.29 2007-01-29 05:48:38 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -64,16 +64,15 @@ DEFINE_IDs(Unitig);
 DEFINE_IDs(Contig);
 DEFINE_IDs(Dist);
 DEFINE_IDs(Scaffold);
-//DEFINE_IDs(Repeat);
 DEFINE_IDs(Batch);
 DEFINE_IDs(Bactig);
 DEFINE_IDs(Bac);
 DEFINE_IDs(Sequence);
 
 typedef enum {
-  AS_ADD    = (int)'A',
-  AS_DELETE = (int)'D',
-  AS_UPDATE = (int)'U',
+  AS_ADD      = (int)'A',
+  AS_DELETE   = (int)'D',
+  AS_UPDATE   = (int)'U',
   AS_REDEFINE = (int)'R'
 } ActionType;
 
@@ -88,7 +87,7 @@ typedef enum {
   MESG_ADT,
   MESG_FRG,
   MESG_IFG,
-  MESG_SFG,
+  MESG_SPe,
   MESG_OFG, // 5
   MESG_LKG,
   MESG_ILK,
@@ -145,7 +144,7 @@ static char  *MessageTypeName[NUM_OF_REC_TYPES + 1] = {
   "ADT",
   "FRG",
   "IFG",
-  "SFG",
+  "SPe",
   "OFG", // 5
   "LKG",
   "ILK",
@@ -397,12 +396,12 @@ typedef enum {
   AS_ROCK_UNITIG     = (int)'R',  // Rock
   AS_STONE_UNITIG    = (int)'S',  // Stone
   AS_PEBBLE_UNITIG   = (int)'P',  // Pebble
-  AS_SINGLE_UNITIG   = (int)'s', // Singleton Unitig in Unplaced Contig
-  AS_OTHER_UNITIG    = (int)'X'  // Unspecified surrogate unitig
+  AS_SINGLE_UNITIG   = (int)'s',  // Singleton Unitig in Unplaced Contig
+  AS_OTHER_UNITIG    = (int)'X'   // Unspecified surrogate unitig
 } UnitigType;
 
 
-/* SFG message */
+/* Fragment messages, FRG, IFG, OFG */
 
 typedef struct {
   ActionType   		action;
@@ -419,15 +418,12 @@ typedef struct {
   char        		*quality;
   IntFragment_ID   	iaccession;
   IntLocale_ID          ilocale;
-  IntSequence_ID          iseq_id;
+  IntSequence_ID        iseq_id;
   IntBactig_ID          ibactig_id;
-} ScreenedFragMesg;
+} FragMesg;
 
-/* OFG, FRG, IFG messages */
-
-typedef ScreenedFragMesg OFGMesg;
-typedef ScreenedFragMesg FragMesg;
-typedef ScreenedFragMesg InternalFragMesg;
+typedef FragMesg OFGMesg;
+typedef FragMesg InternalFragMesg;
 
 /*OVL message*/
 
@@ -1259,11 +1255,8 @@ int WriteBinaryMesg_AS(FILE *fout, GenericMesg *mesg);
 void Transfer_FRG_to_IFG_AS(FragMesg         *frg_mesg,
                             InternalFragMesg *ifg_mesg);
 
-void Transfer_IFG_to_SFG_AS(InternalFragMesg *ifg_mesg,
-                            ScreenedFragMesg *sfg_mesg);
-
-void Transfer_SFG_to_OFG_AS(ScreenedFragMesg *sfg_mesg,
-                            OFGMesg *ofg_mesg);
+void Transfer_IFG_to_OFG_AS(InternalFragMesg *ifg_mesg,
+                            OFGMesg          *ofg_mesg);
 
 void Transfer_DST_to_IDT_AS(DistanceMesg     *dst_mesg,
                             InternalDistMesg *idt_mesg);

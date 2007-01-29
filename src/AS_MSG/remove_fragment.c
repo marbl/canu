@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: remove_fragment.c,v 1.6 2006-10-15 08:27:40 brianwalenz Exp $ */
+/* $Id: remove_fragment.c,v 1.7 2007-01-29 05:48:38 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -135,7 +135,6 @@ int main( int argc, char ** argv )
 	}
         break;
       case MESG_IFG:
-      case MESG_SFG:
       case MESG_OFG:
 	{
 	  FragMesg * frg = (FragMesg *) gen->m;

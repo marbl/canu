@@ -26,8 +26,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_driver_common.h,v 1.8 2007-01-28 21:52:24 brianwalenz Exp $
- * $Revision: 1.8 $
+ * $Id: AS_OVL_driver_common.h,v 1.9 2007-01-29 05:48:39 brianwalenz Exp $
+ * $Revision: 1.9 $
 */
 
 
@@ -673,7 +673,6 @@ static int  ReadFrags
   MessageType imesgtype;
   GenericMesg   *pmesg;
   InternalDistMesg  *idt_mesg;
-  ScreenedFragMesg *sfg_mesg, hack_sfg_mesg;
   InternalFragMesg *ifg_mesg;
   OFGMesg ofg_mesg;
   int  first_distance, first_hash_frag;
@@ -792,40 +791,29 @@ static int  ReadFrags
       break;
 
     case MESG_IFG:
-      ifg_mesg = (InternalFragMesg*) pmesg->m;
-      Transfer_IFG_to_SFG_AS (ifg_mesg, &hack_sfg_mesg);
-      pmesg->m = &hack_sfg_mesg;
-      pmesg->t = MESG_SFG;
-      /*** FALL THROUGH ***/
-    case MESG_SFG:
-        {
-          /* Put the record where it belongs in the array.
-             This array is indexed by the overlaps. */
-          int  clear_len;
-
-          sfg_mesg = (ScreenedFragMesg*) pmesg->m;
-          Transfer_SFG_to_OFG_AS (sfg_mesg, &ofg_mesg);
-          pmesg->m = &ofg_mesg;
-          pmesg->t = MESG_OFG;
+      {
+        ifg_mesg = (InternalFragMesg*) pmesg->m;
+        Transfer_IFG_to_OFG_AS (ifg_mesg, &ofg_mesg);
+        pmesg->m = &ofg_mesg;
+        pmesg->t = MESG_OFG;
 
 #if DEBUG
         fprintf(stderr,"Read IFG/SFG message %c ( " F_S64 ", %d ) \n",
                 idt_mesg->action,
-                sfg_mesg->eaccession,
-                sfg_mesg->iaccession);
+                ifg_mesg->eaccession,
+                ifg_mesg->iaccession);
 #endif
-          switch(sfg_mesg->action){
+          switch(ifg_mesg->action){
           case AS_ADD:
             numFragsRead++;
-            clear_len = ofg_mesg.clear_rng.end - ofg_mesg.clear_rng.bgn;
 #if DEBUG
             fprintf(stderr,"Read message %c (" F_S64 ", %d) %d\n", 
-                    sfg_mesg->action, sfg_mesg->eaccession,
-                    sfg_mesg->iaccession, Next_Fragment_Index);
+                    ifg_mesg->action, ifg_mesg->eaccession,
+                    ifg_mesg->iaccession, Next_Fragment_Index);
 #endif
-            if(sfg_mesg->iaccession != Next_Fragment_Index){
+            if(ifg_mesg->iaccession != Next_Fragment_Index){
               fprintf(stderr,"*** Fatal Error -- fragment record should have IID %d not %d\n",
-                      Next_Fragment_Index, sfg_mesg->iaccession);
+                      Next_Fragment_Index, ifg_mesg->iaccession);
               exit(1);
             }
 
@@ -838,31 +826,26 @@ static int  ReadFrags
             setAccID_ReadStruct(myRead, ofg_mesg.eaccession);
             setReadIndex_ReadStruct(myRead, ofg_mesg.iaccession);
             setReadType_ReadStruct(myRead, ofg_mesg.type);
-            stripWhiteSpace(Sequence_Buffer, sfg_mesg->sequence, AS_READ_MAX_LEN * 2);
-            stripWhiteSpace(Quality_Buffer, sfg_mesg->quality, AS_READ_MAX_LEN * 2);
+            stripWhiteSpace(Sequence_Buffer, ifg_mesg->sequence, AS_READ_MAX_LEN * 2);
+            stripWhiteSpace(Quality_Buffer, ifg_mesg->quality, AS_READ_MAX_LEN * 2);
             setSequence_ReadStruct(myRead, Sequence_Buffer, Quality_Buffer);
-            setSource_ReadStruct(myRead, sfg_mesg->source);
+            setSource_ReadStruct(myRead, ifg_mesg->source);
             setEntryTime_ReadStruct(myRead, ofg_mesg.entry_time);
 	    // These clear ranges are the original ones, not OVL-modified.
-            setClearRegion_ReadStruct
-                (myRead, ofg_mesg.clear_rng.bgn, ofg_mesg.clear_rng.end,
-		 READSTRUCT_ORIGINAL);  
-            setLocalePos_ReadStruct
-                (myRead,ofg_mesg.locale_pos.bgn, ofg_mesg.locale_pos.end);
-            // changed by Knut Reinert
-            // due to gatekeeper changes
+            setClearRegion_ReadStruct(myRead, ofg_mesg.clear_rng.bgn, ofg_mesg.clear_rng.end, READSTRUCT_ORIGINAL);  
+            setLocalePos_ReadStruct(myRead,ofg_mesg.locale_pos.bgn, ofg_mesg.locale_pos.end);
             setLocID_ReadStruct(myRead,ofg_mesg.ilocale);
-            total_len += clear_len;
+            total_len += ofg_mesg.clear_rng.end - ofg_mesg.clear_rng.bgn;
 
             appendFragStore(store, myRead);
 
           break;
 
         case AS_DELETE:
-          if  (sfg_mesg -> iaccession < first_hash_frag)
-              deleteFragStore (OldFragStore, sfg_mesg -> iaccession);
+          if  (ifg_mesg -> iaccession < first_hash_frag)
+              deleteFragStore (OldFragStore, ifg_mesg -> iaccession);
             else
-              deleteFragStore (store, sfg_mesg -> iaccession);
+              deleteFragStore (store, ifg_mesg -> iaccession);
 	  break;
 
 	default:

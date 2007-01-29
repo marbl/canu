@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: PopulateFragStore.c,v 1.8 2007-01-28 21:52:25 brianwalenz Exp $";
+static char CM_ID[] = "$Id: PopulateFragStore.c,v 1.9 2007-01-29 05:48:39 brianwalenz Exp $";
 
 /*************************************************
 * Module:  PopulateFragStore.c
@@ -42,9 +42,6 @@ static char CM_ID[] = "$Id: PopulateFragStore.c,v 1.8 2007-01-28 21:52:25 brianw
 *       Written:  Mar 2000
 * 
 *************************************************/
-
-/* FOR PRODUCTION -- comment the following */
-#define DEBUG_POPULATE
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -536,8 +533,6 @@ static int  ReadFrags(int maxFrags,
   while  ((numFragsRead < maxFrags)    && 
 	  (EOF != Read_Msg_Fn (In_Stream, & pmesg)))
     {
-     ScreenedFragMesg  hack_sfg_mesg;
-
     imesgtype = pmesg->t;
     switch(imesgtype){
     case MESG_IDT:
@@ -618,42 +613,32 @@ static int  ReadFrags(int maxFrags,
 
     case MESG_IFG:
       {
+
 	InternalFragMesg *ifg_mesg = (InternalFragMesg *) pmesg->m;
-	Transfer_IFG_to_SFG_AS (ifg_mesg, &hack_sfg_mesg);
-	pmesg->m = &hack_sfg_mesg;
-	pmesg->t = MESG_SFG;
-      }
-      /*** FALL THROUGH ***/
-    case MESG_SFG:
-        {
-          /* Put the record where it belongs in the array.
-             This array is indexed by the overlaps. */
-          int  clear_len;
-	  ScreenedFragMesg *sfg_mesg = (ScreenedFragMesg *) pmesg->m;
-	  OFGMesg ofg_mesg;
-          Transfer_SFG_to_OFG_AS (sfg_mesg, &ofg_mesg);
-          pmesg->m = &ofg_mesg;
-          pmesg->t = MESG_OFG;
+
+        OFGMesg ofg_mesg;
+        Transfer_IFG_to_OFG_AS (ifg_mesg, &ofg_mesg);
+        pmesg->m = &ofg_mesg;
+        pmesg->t = MESG_OFG;
 
 #ifdef DEBUG
-        fprintf(stderr,"Read IFG/SFG message %c ( " F_UID ", " F_IID " ) \n",
-                sfg_mesg->action,
-                sfg_mesg->eaccession,
-                sfg_mesg->iaccession);
+        fprintf(stderr,"Read IFG message %c ( " F_UID ", " F_IID " ) \n",
+                ifg_mesg->action,
+                ifg_mesg->eaccession,
+                ifg_mesg->iaccession);
 #endif
-          switch(sfg_mesg->action){
+          switch(ifg_mesg->action){
           case AS_ADD:
             numFragsRead++;
-            clear_len = ofg_mesg.clear_rng.end - ofg_mesg.clear_rng.bgn;
 #ifdef DEBUG
             fprintf(stderr,
                     "Read message %c (" F_UID ", " F_IID ") " F_S64 "\n", 
-                    sfg_mesg->action, sfg_mesg->eaccession,
-                    sfg_mesg->iaccession, nextFrag);
+                    ifg_mesg->action, ifg_mesg->eaccession,
+                    ifg_mesg->iaccession, nextFrag);
 #endif
-            if(sfg_mesg->iaccession != nextFrag){
+            if(ifg_mesg->iaccession != nextFrag){
               fprintf(stderr,"*** Fatal Error -- fragment record should have IID " F_S64 " not " F_IID "\n",
-                      nextFrag, sfg_mesg->iaccession);
+                      nextFrag, ifg_mesg->iaccession);
               exit(1);
             }
 
@@ -667,36 +652,31 @@ static int  ReadFrags(int maxFrags,
               setAccID_ReadStruct(myRead, ofg_mesg.eaccession);
               setReadIndex_ReadStruct(myRead, ofg_mesg.iaccession);
               setReadType_ReadStruct(myRead, ofg_mesg.type);
-              stripWhiteSpace(buffer1, sfg_mesg->sequence, AS_READ_MAX_LEN * 2);
-              stripWhiteSpace(buffer2, sfg_mesg->quality, AS_READ_MAX_LEN * 2);
+              stripWhiteSpace(buffer1, ifg_mesg->sequence, AS_READ_MAX_LEN * 2);
+              stripWhiteSpace(buffer2, ifg_mesg->quality, AS_READ_MAX_LEN * 2);
               setSequence_ReadStruct(myRead, buffer1, buffer2);
-              setSource_ReadStruct(myRead, sfg_mesg->source);
+              setSource_ReadStruct(myRead, ifg_mesg->source);
               setEntryTime_ReadStruct(myRead, ofg_mesg.entry_time);
-              setClearRegion_ReadStruct
-                  (myRead, ofg_mesg.clear_rng.bgn, ofg_mesg.clear_rng.end,
-		   READSTRUCT_ORIGINAL);
-              setLocalePos_ReadStruct
-                  (myRead,ofg_mesg.locale_pos.bgn, ofg_mesg.locale_pos.end);
-	      // changed by Knut Reinert
-	      // due to gatekeeper changes
+              setClearRegion_ReadStruct(myRead, ofg_mesg.clear_rng.bgn, ofg_mesg.clear_rng.end, READSTRUCT_ORIGINAL);
+              setLocalePos_ReadStruct(myRead,ofg_mesg.locale_pos.bgn, ofg_mesg.locale_pos.end);
               setLocID_ReadStruct(myRead,ofg_mesg.ilocale);
-              total_len += clear_len;
+              total_len += ofg_mesg.clear_rng.end - ofg_mesg.clear_rng.bgn;;
 
               appendFragStore(newFragStore, myRead);
             }
           break;
 
         case AS_DELETE:
-          if  (sfg_mesg -> iaccession < firstFrag)
-              deleteFragStore (oldFragStore, sfg_mesg -> iaccession);
+          if  (ifg_mesg -> iaccession < firstFrag)
+              deleteFragStore (oldFragStore, ifg_mesg -> iaccession);
             else
-              deleteFragStore (newFragStore, sfg_mesg -> iaccession);
+              deleteFragStore (newFragStore, ifg_mesg -> iaccession);
 	  break;
 
 	default:
           fprintf (stderr,
                    "ERROR:  Bad action = %d  on frag iid = " F_IID "\n",
-                   (int) sfg_mesg -> action, sfg_mesg -> iaccession);
+                   (int) ifg_mesg -> action, ifg_mesg -> iaccession);
 	  assert(0);
 	  break;
 	  }
@@ -793,35 +773,13 @@ FragStoreHandle  Frag_Store_Open
 
   {
    FragStoreHandle  fp;
-#ifndef DEBUG_POPULATE
-   int  retry;
-#endif
    
    fp = openFragStore (storename, mode);
-#ifndef DEBUG_POPULATE
-   for  (retry = 0;  fp == NULLSTOREHANDLE && retry < 3;  retry ++)
-     {
-      sleep (10);
-      fp = openFragStore (storename, mode);
-     }
-#endif
    if  (fp == NULLSTOREHANDLE)
        {
-#ifndef DEBUG_POPULATE
-        char  buff [1000];
-#endif
-        
         fprintf (stderr, "ERROR %d:  Could not open fragstore  %s \n",
                  errno, storename);
         perror (strerror (errno));
-#ifndef DEBUG_POPULATE
-        sprintf (buff, "mail Randall.Bolanos \n"
-                 "Overlap error %d  store %s\n"
-                 "%s\n%c\n",
-                 errno, storename, strerror (errno), '\04');
-        system (buff);
-        exit (FILE_OPEN_FAILURE);
-#endif
        }
 
    return  fp;
@@ -837,35 +795,13 @@ FILE *  File_Open (const char * Filename, const char * Mode)
 
   {
    FILE  *  fp;
-#ifndef DEBUG_POPULATE
-   int  retry;
-#endif
 
    fp = fopen (Filename, Mode);
-#ifndef DEBUG_POPULATE
-   for  (retry = 0;  fp == NULL && retry < 3;  retry ++)
-     {
-      sleep (10);
-      fp = fopen (Filename, Mode);
-     }
-#endif
    if  (fp == NULL)
        {
-#ifndef DEBUG_POPULATE
-        char  buff [1000];
-#endif
-        
         fprintf (stderr, "ERROR %d:  Could not open file  %s \n",
                  errno, Filename);
         perror (strerror (errno));
-#ifndef DEBUG_POPULATE
-        sprintf (buff, "mail Randall.Bolanos \n"
-                 "Overlap error %d  file %s\n"
-                 "%s\n%c\n",
-                 errno, Filename, strerror (errno), '\04');
-        system (buff);
-        exit (FILE_OPEN_FAILURE);
-#endif
        }
 
    return  fp;
@@ -919,35 +855,13 @@ DistStore  Dist_Store_Open
 
   {
    DistStore  fp;
-#ifndef DEBUG_POPULATE
-   int  retry;
-#endif
 
    fp = openDistStore (storename, mode);
-#ifndef DEBUG_POPULATE
-   for  (retry = 0;  fp == NULLSTOREHANDLE && retry < 3;  retry ++)
-     {
-      sleep (10);
-      fp = openDistStore (storename, mode);
-     }
-#endif
    if  (fp == NULLSTOREHANDLE)
        {
-#ifndef DEBUG_POPULATE
-        char  buff [1000];
-#endif
-        
         fprintf (stderr, "ERROR %d:  Could not open diststore  %s \n",
                  errno, storename);
         perror (strerror (errno));
-#ifndef DEBUG_POPULATE
-        sprintf (buff, "mail Randall.Bolanos \n"
-                 "Overlap error %d  store %s\n"
-                 "%s\n%c\n",
-                 errno, storename, strerror (errno), '\04');
-        system (buff);
-        exit (FILE_OPEN_FAILURE);
-#endif
        }
 
    return  fp;
