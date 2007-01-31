@@ -23,7 +23,7 @@
   -o /work/assembly/rbolanos/IBM_PORT_CDS/ibm_migration_work_dir/cds/AS/obj/GraphCGW_T.o GraphCGW_T.c
 */
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.26 2007-01-19 15:59:21 eliv Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.27 2007-01-31 22:19:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3507,10 +3507,10 @@ CDS_CID_t SplitUnresolvedCI(GraphCGW_T *graph,
     VA_TYPE(CDS_CID_t) *instances = CreateVA_CDS_CID_t(16);
     AppendCDS_CID_t(instances, &node->info.CI.instances.in_line.instance1);
     AppendCDS_CID_t(instances, &node->info.CI.instances.in_line.instance2);
-    AppendCDS_CID_t(instances, &(node->id));
+    AppendCDS_CID_t(instances, &(newNode->id));
     node->info.CI.instances.va = instances;
   }else if(node->info.CI.numInstances > 2){
-    AppendCDS_CID_t(node->info.CI.instances.va, &(node->id));
+    AppendCDS_CID_t(node->info.CI.instances.va, &(newNode->id));
   }    
   node->info.CI.numInstances++;
   

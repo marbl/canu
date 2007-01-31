@@ -27,9 +27,6 @@
 #define EXTERNAL_MATES_ONLY 1
 #define ALL_MATES 0
 
-/*  my_getChunkInstanceID() is a clone of  pushdgetChunkInstanceID() from AS_REZ/PlaceFragments.c */
-int my_getChunkInstanceID(ChunkInstanceT *chunk, int index);
-
 
 void GetRelationBetweenFragsOnChunks(CIFragT *frag,ChunkInstanceT*fragChunk,
 				     CIFragT *mate,ChunkInstanceT*mateChunk,

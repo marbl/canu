@@ -44,38 +44,6 @@
 #include "fragmentPlacement.h"
 
 
-/*  my_getChunkInstanceID() is a clone of  getChunkInstanceID() from AS_REZ/PlaceFragments.c */
-
-int my_getChunkInstanceID(ChunkInstanceT *chunk, int index)
-{
-  if (chunk->info.CI.numInstances == 0)  // chunk is not a surrogate
-    {
-      if (index == 0)  // just return chunk's id
-        return(chunk->id);
-      else
-        return(-1);
-    }
-  else  // chunk is a surrogate
-    {
-      if (chunk->info.CI.numInstances == 1  && index == 0)
-        return( chunk->info.CI.instances.in_line.instance1 );
-      else if (chunk->info.CI.numInstances == 2 && (index == 0 || index == 1))
-	{
-	  if (index == 0)
-            return( chunk->info.CI.instances.in_line.instance1);
-	  else if (index == 1)
-            return( chunk->info.CI.instances.in_line.instance2);
-	}
-      else if (index < chunk->info.CI.numInstances)
-        return( * (int32 *) Getint32(chunk->info.CI.instances.va, index));
-      else
-        return(-1);
-    }
-
-  assert(0); //we should never get here
-  return -1;
-}
-
 
 
 void GetRelationBetweenFragsOnChunks(CIFragT *frag,ChunkInstanceT*fragChunk,

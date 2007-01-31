@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.9 2006-09-21 21:34:01 brianwalenz Exp $";
+static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.10 2007-01-31 22:19:22 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -59,6 +59,41 @@ static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.9 2006-09-21 21:34:01 brianw
 #include "AS_ALN_forcns.h"
 #include "fragmentPlacement.h"
 #include "AS_UTL_Hash.h"
+
+
+int my_getChunkInstanceID(ChunkInstanceT *chunk, int index)
+{
+  if (chunk->info.CI.numInstances == 0)  // chunk is not a surrogate
+    {
+      if (index == 0)  // just return chunk's id
+        return(chunk->id);
+      else
+        return(-1);
+    }
+  else  // chunk is a surrogate
+    {
+      if (chunk->info.CI.numInstances == 1  && index == 0)
+        return( chunk->info.CI.instances.in_line.instance1 );
+      else if (chunk->info.CI.numInstances == 2 && (index == 0 || index == 1))
+	{
+	  if (index == 0)
+            return( chunk->info.CI.instances.in_line.instance1);
+	  else if (index == 1)
+            return( chunk->info.CI.instances.in_line.instance2);
+	}
+      else if (index < chunk->info.CI.numInstances)
+        return( * (int32 *) Getint32(chunk->info.CI.instances.va, index));
+      else
+        return(-1);
+    }
+
+  assert(0); //we should never get here
+  return -1;
+}
+
+
+
+
 
 int main( int argc, char *argv[])
 {
@@ -202,13 +237,16 @@ int main( int argc, char *argv[])
       if (parentChunk->type != UNRESOLVEDCHUNK_CGW) {
         //  ERROR!  We should be this type!
         fprintf(stderr, "HELP!  parentChunk is not UNRESOLVEDCHUNK_CGW\n");
+        assert(0);
       }
       if (candidateChunk->type != RESOLVEDREPEATCHUNK_CGW) {
         //  ERROR!  We should be this type!
         fprintf(stderr, "HELP!  candidateChunk is not RESOLVEDREPEATCHUNK_CGW\n");
+        assert(0);
       }
       if (parentChunk == candidateChunk) {
         fprintf(stderr, "HELP!  parentChunk == candidateChunk ???\n");
+        assert(0);
       }
 
       if ((parentChunk->type    != UNRESOLVEDCHUNK_CGW) ||
