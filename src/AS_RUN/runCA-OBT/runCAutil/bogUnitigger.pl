@@ -43,6 +43,7 @@ sub bogUnitigger {
         $cmd  = "$bin/buildUnitigs ";
         $cmd .= " $wrk/$asm.ovlStore ";
         $cmd .= " $wrk/$asm.frgStore ";
+        $cmd .= " $wrk/$asm.gkpStore ";
 
         my $l = getGlobal("utgGenomeSize");
         $l ||= 0;
