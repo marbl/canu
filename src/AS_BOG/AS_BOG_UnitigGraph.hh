@@ -34,15 +34,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.23 2007-01-11 19:39:04 eliv Exp $
- * $Revision: 1.23 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.24 2007-02-02 21:22:16 eliv Exp $
+ * $Revision: 1.24 $
 */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.23 2007-01-11 19:39:04 eliv Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.24 2007-02-02 21:22:16 eliv Exp $";
 
 #include <vector>
 #include <list>
@@ -72,6 +72,7 @@ namespace AS_BOG{
     typedef IntMultiPos DoveTailNode;
 	typedef std::vector<DoveTailNode> DoveTailPath;
 	typedef DoveTailPath::iterator    DoveTailIter;
+	typedef DoveTailPath::const_iterator      DoveTailConstIter;
 	typedef DoveTailPath::reverse_iterator    DoveTailRIter;
 
 	typedef std::vector<iuid> ContaineeList;	
@@ -81,6 +82,10 @@ namespace AS_BOG{
 
 	typedef std::map<fragment_id, SeqInterval> FragmentPositionMap;
 	std::ostream& operator<< (std::ostream& os, FragmentPositionMap *fpm_ptr);
+
+    inline bool isReverse( SeqInterval pos ) {
+        return(pos.bgn > pos.end);
+    }
 
     struct UnitigBreakPoint {
         int fragNumber;       // the number of the fragment in the unitig
@@ -131,8 +136,15 @@ namespace AS_BOG{
 
 		friend std::ostream& operator<< (std::ostream& os, Unitig& utg);
 
+        iuid id();
+        static iuid getNextId();
+        static void setNextId(iuid);
+
+        void addFrag( DoveTailNode );
+        static iuid fragIn(iuid);
+        static void resetFragUnitigMap(iuid numFrags);
+
 		// Public Member Variables
-		iuid id;
         DoveTailPath *dovetail_path_ptr;
 
 		private:
@@ -147,7 +159,12 @@ namespace AS_BOG{
 			long _numFrags;
 			long _numRandomFrags;
 			float _localArrivalRate;
+            static iuid nextId;
+            iuid _id;
 			static float _globalArrivalRate;
+            // records if that frg has be incorporated into a unitg or not
+            static iuid *_inUnitig;
+
 	};
 
 	///////////////////////////////////////////////////////////////////////
@@ -208,18 +225,15 @@ namespace AS_BOG{
 		// Unitigs are the dove tails and their contained fragments
 		UnitigVector *unitigs;
 
-        // inUnitig records if that frg has be incorporated into a unitg or not
-        iuid *inUnitig;
-
 		// Overlaps are unitig overlaps
 		std::vector<UnitigOverlap*> overlaps;
 
 
 		private:
 			// Given a fragment, it will follow it's overlaps until 
-			//   the end, and return the path that it traversed.
-			DoveTailPath *_extract_dovetail_path(
-				const iuid unitig_id, 
+			//   the end, and add them to the unitig
+			void populateUnitig(
+				Unitig* unitig, 
 				iuid src_frag_id, 
 				fragment_end_type whichEnd,
 				ChunkGraph *cg_ptr,

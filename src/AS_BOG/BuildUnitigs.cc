@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.15 2007-01-18 22:32:42 eliv Exp $
- * $Revision: 1.15 $
+ * $Id: BuildUnitigs.cc,v 1.16 2007-02-02 21:22:16 eliv Exp $
+ * $Revision: 1.16 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.15 2007-01-18 22:32:42 eliv Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.16 2007-02-02 21:22:16 eliv Exp $";
 
 //  System include files
 
@@ -48,6 +48,7 @@ static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.15 2007
 #include "AS_BOG_BestOverlapGraph.hh"
 #include "AS_BOG_ChunkGraph.hh"
 #include "AS_BOG_UnitigGraph.hh"
+#include "AS_BOG_MateChecker.hh"
 
 using std::cout;
 using std::endl;
@@ -76,7 +77,7 @@ int  main (int argc, char * argv [])
 
    fprintf(stderr, "%s\n\n", BUILD_UNITIGS_MAIN_CM_ID);
 
-   if(argc !=4){
+   if(argc !=5){
       fprintf(stderr, "%s: <OVL Store Path> <FRG Store Path> <genome size>\n\n", argv[0]);
       fprintf(stderr, "  If the genome size is set to 0, this will cause the unitigger\n");
       fprintf(stderr, "  to try to estimate the genome size based on the constructed\n");
@@ -88,9 +89,10 @@ int  main (int argc, char * argv [])
    // Get path/names of olap and frg stores from command line
    const char* OVL_Store_Path = argv[1];
    const char* FRG_Store_Path = argv[2];
+   const char* GKP_Store_Path = argv[3];
 
    long genome_size;
-   genome_size=atol(argv[3]);
+   genome_size=atol(argv[4]);
    std::cerr << "Genome Size: " << genome_size << std::endl;
 
    my_store = New_OVL_Store ();
@@ -101,6 +103,8 @@ int  main (int argc, char * argv [])
    last = Last_Frag_In_OVL_Store(my_store);
    Init_OVL_Stream (my_stream, first, last, my_store);
 
+   AS_BOG::MateChecker mateChecker;
+   mateChecker.readStore(GKP_Store_Path);
    // must be before creating the scoring objects, because it sets their size
    AS_BOG::BOG_Runner bogRunner(last);
 
@@ -138,6 +142,7 @@ int  main (int argc, char * argv [])
 	utg.build(cg, cg->getNumFragments(), genome_size);
 
 	std::cerr << "Reporting.\n" << std::endl;
+    mateChecker.checkUnitigGraph(utg);
 	//std::cout<< utg << endl;
     char fileStr[16];
 	switch(i){
@@ -214,7 +219,7 @@ void outputHistograms(AS_BOG::UnitigGraph *utg) {
         float arateF = u->getLocalArrivalRate() * 10000;
         int arate = static_cast<int>(rintf(arateF));
         if (arate < 0) {
-            std::cerr << "Negative Local ArrivalRate " << arateF << " id " << u->id
+            std::cerr << "Negative Local ArrivalRate " << arateF << " id " << u->id()
                 << " arate " << arate << std::endl;
         }
         zork.sum_arrival = zork.min_arrival = zork.max_arrival = arate;
