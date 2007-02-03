@@ -40,7 +40,6 @@ SOURCES = $(AS_ORA_SRCS) $(ORA_MAIN_SRCS) \
           nodups.c \
           make-canonical.c \
           compare-canonical.c \
-          computeGCcontent.c \
           dumpMatePairing.c
 
 OBJECTS = $(SOURCES:.c=.o)
@@ -53,7 +52,6 @@ PROGS = overlap_regressor \
         nodups \
         make-canonical \
         compare-canonical \
-        computeGCcontent \
         dumpMatePairing
 
 # Include for AS project rules
@@ -75,8 +73,6 @@ nodups: $(AS_ORA_OBJS) nodups.o libCA.a
 overlap_regressor: $(AS_ORA_OBJS) $(ORA_MAIN_OBJS) libCA.a
 
 dumpMatePairing : dumpMatePairing.o libCA.a
-
-computeGCcontent : computeGCcontent.o libCA.a
 
 make-canonical: $(AS_ORA_OBJS) make-canonical.o libCA.a
 
