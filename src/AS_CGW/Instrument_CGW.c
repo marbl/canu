@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.13 2006-12-22 19:52:06 eliv Exp $";
+static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.14 2007-02-03 07:06:27 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2155,7 +2155,6 @@ void AddFragDetailsToMateStats(MateStats * ms,
         {
           case AS_READ:
           case AS_TRNR:
-          case AS_B_READ:
             ms->reads++;
             break;
           case AS_EBAC:
@@ -2182,7 +2181,6 @@ void AddMateDetailsToMateStatsSet(MateStats * ms, VA_TYPE(MateDetail) * mda)
         {
           case AS_READ:
           case AS_TRNR:
-          case AS_B_READ:
             ms->reads++;
             break;
           case AS_EBAC:
@@ -2363,9 +2361,6 @@ void PrintFragment(CIFragT * frag, CDS_CID_t index, FILE * printTo)
     {
       case AS_READ:
         fprintf(printTo, "  type: AS_READ; ");
-        break;
-      case AS_B_READ:
-        fprintf(printTo, "  type: AS_B_READ; ");
         break;
       case AS_EXTR:
         fprintf(printTo, "  type: AS_EXTR; ");
@@ -4112,13 +4107,11 @@ int AddFragmentToUnitigInstrumenter(ScaffoldGraphT * graph,
       case AS_EXTR:
       case AS_TRNR:
       case AS_EBAC:
-      case AS_B_READ:
       case AS_LBAC:
         {
           ui->numReads +=
             (frag->type == AS_READ ||
-             frag->type == AS_TRNR ||
-             frag->type == AS_B_READ) ? 1 : 0;
+             frag->type == AS_TRNR) ? 1 : 0;
           ui->numBacEnds += (frag->type == AS_EBAC) ? 1 : 0;
           ui->numExtReads += (frag->type == AS_EXTR) ? 1 : 0;
           ui->numExtFrags += (frag->type == AS_LBAC) ? 1 : 0;

@@ -60,11 +60,9 @@ void Usage(char * prog, char * message)
           "\t\t     U = Unfinished BAC\n"
           "\t\t     F = Finished BAC (incomplete)\n"
           "\t\t     C = Full BAC (complete)\n"
-          "\t\t     S = Sts\n"
           "\t\t     u = Unitig\n"
           "\t\t     c = Contig\n"
           "\t\t     B = BacTig\n"
-          "\t\t     G = BGLII read\n"
           
           "\t-S     scaffold UID for which to dump stretched mates\n"
           "\t\t     multiple UIDs are allowed, and default is all\n"
@@ -143,11 +141,9 @@ int main(int argc, char ** argv)
              optarg[0] != 'U' &&
              optarg[0] != 'F' &&
              optarg[0] != 'C' &&
-             optarg[0] != 'S' &&
              optarg[0] != 'u' &&
              optarg[0] != 'c' &&
-             optarg[0] != 'B' &&
-             optarg[0] != 'G')
+             optarg[0] != 'B')
           {
             sprintf(message, "%s is not a fragment type!", optarg);
             Usage(argv[0], message);

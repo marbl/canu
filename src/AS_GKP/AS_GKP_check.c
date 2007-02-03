@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_GKP_check.c,v 1.9 2007-01-28 21:52:24 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_check.c,v 1.10 2007-02-03 07:06:27 brianwalenz Exp $";
 
 //#define DEBUG_GKP 1
 #define DEBUG_GKP_VERBOSE 1
@@ -464,30 +464,6 @@ int Check_LinkMesg(LinkMesg *lkg_mesg,
 
 	break;
 	}
-	case AS_B_MATE:
-	{
-	/* Check if it has a mate -- if so squawk */
-#ifdef DEBUG_GKP
-	fprintf(Msgfp," Mate\n");
-#endif
-	newLink.type = lkg_mesg->type;
-
-	if(gkFrag1.type == AS_B_READ && gkFrag2.type == AS_B_READ &&
-           (char)lkg_mesg->link_orient != AS_OUTTIE){
-	  fprintf(Msgfp,"# Read BGLII Links must have orientation 'O' for AS_OUTTIE\n");
-	  return GATEKEEPER_FAILURE;
-	}
-	/* First check that both frags are BGLII */
-	if((gkFrag1.type != AS_B_READ || gkFrag2.type != AS_B_READ))
-	{
-	  printGKPError(Msgfp, GKPError_LNKFragtypeMismatch);
-	  fprintf(Msgfp,
-		  "# Fragments " F_UID " (type = %d) and " F_UID " (type = %d) are inconsistent with a BGLII link\n",
-		  gkFrag1.readUID, gkFrag1.type, gkFrag2.readUID, gkFrag2.type);
-	  return GATEKEEPER_FAILURE;
-	 }
-	 break;
-	}
       case AS_BAC_GUIDE:
 #ifdef DEBUG_GKP
 	fprintf(Msgfp," BAC_GUIDE\n");
@@ -538,24 +514,6 @@ int Check_LinkMesg(LinkMesg *lkg_mesg,
 	     
 	}
         // validity of distance UID is checked earlier in this function
-	break;
-
-      case AS_STS_GUIDE:
-#ifdef DEBUG_GKP
-	fprintf(Msgfp," STS Guide\n");
-#endif
-	if(gkFrag1.type != (unsigned int) AS_STS || 
-	   gkFrag2.type != (unsigned int) AS_STS){
-	  printGKPError(Msgfp, GKPError_LNKFragtypeMismatch);
-	  fprintf(Msgfp,
-		  "# Fragments " F_UID " (type = %d) and " F_UID " (type = %d) are inconsistent with an STS Guide link(%d)\n",
-		  gkFrag1.readUID, gkFrag1.type, gkFrag2.readUID, gkFrag2.type, AS_STS);
-	  return GATEKEEPER_FAILURE;
-	}
-	newLink.type = AS_STS_GUIDE;
-	newLink.orientation = AS_GKP_UNKNOWN;
-	newLink.distance = 0;
-
 	break;
 
       case AS_REREAD:
@@ -666,9 +624,7 @@ int Check_LinkMesg(LinkMesg *lkg_mesg,
       newLink.type = (char)lkg_mesg->type;
       switch(lkg_mesg->type){
       case AS_MATE:
-	  case AS_B_MATE:
       case AS_BAC_GUIDE:
-      case AS_STS_GUIDE:
       case AS_MAY_JOIN:
       case AS_MUST_JOIN:
       case AS_REREAD:
@@ -778,9 +734,7 @@ int findLinksInCompatibleWith(GateKeeperLinkStore store,
     case AS_MUST_JOIN:
       switch(link.type){
       case AS_MATE:
-      case AS_B_MATE:
       case AS_BAC_GUIDE:
-      case AS_STS_GUIDE:
 	continue;
 
       case AS_REREAD:
@@ -802,7 +756,6 @@ int findLinksInCompatibleWith(GateKeeperLinkStore store,
       /************* Looking for a Mate ***********/
 	 
     case AS_MATE:
-    case AS_B_MATE:
       switch(link.type){
       case AS_MAY_JOIN:
       case AS_MUST_JOIN:
@@ -814,7 +767,6 @@ int findLinksInCompatibleWith(GateKeeperLinkStore store,
 		frag1IID, frag2IID);
 	break;
       case AS_MATE:
-      case AS_B_MATE:
 	/* Any mate link is a no no */
 	fprintf(Msgfp,"# Found a previous mate link between these two fragments\n");
 	return(iterator.prevLinkRecord);
@@ -826,7 +778,6 @@ int findLinksInCompatibleWith(GateKeeperLinkStore store,
 	fprintf(Msgfp,"# Found a previous reread link between these two fragments\n");
 	return(iterator.prevLinkRecord);
       case AS_BAC_GUIDE:
-      case AS_STS_GUIDE:
 	/* By definition, we should have caught this before */
 	/* Fragments with mates should not have guides */
 	/* ABORT!!! *** INTENTIONAL FALLTHROUGH */
@@ -835,7 +786,6 @@ int findLinksInCompatibleWith(GateKeeperLinkStore store,
 	break;
       }
       /************* Looking for a Guide ***********/
-    case AS_STS_GUIDE:
     case AS_BAC_GUIDE:
       switch(link.type){
       case AS_MAY_JOIN:  /* Ignore */
@@ -844,7 +794,6 @@ int findLinksInCompatibleWith(GateKeeperLinkStore store,
 		(link.type == AS_MAY_JOIN?"MAY":"MUST"),
 		frag1IID, frag2IID);
 	break;
-      case AS_STS_GUIDE:
       case AS_BAC_GUIDE:
       case AS_REREAD:
 	/* Guides with same fragIDs, with different distance/orientation */
@@ -854,7 +803,6 @@ int findLinksInCompatibleWith(GateKeeperLinkStore store,
 	return(iterator.prevLinkRecord);
 
       case AS_MATE:
-      case AS_B_MATE:
 	/* By definition, we should have caught this before */
 	/* Fragments with mates should not have guides */
 	/* ABORT!!! *** INTENTIONAL FALLTHROUGH */
@@ -877,96 +825,4 @@ int findLinksInCompatibleWith(GateKeeperLinkStore store,
     
   }
   return NULL_LINK;
-
-
 }
-
-
-
-
-
-
-/*****************/
-int dumpFrag_GKP(GateKeeperLinkStore gkplStore, 
-		 GateKeeperFragmentStore gkpStore, 
-		 CDS_IID_t frag1IID){
-  GateKeeperFragmentRecord gkFrag1;
-  GateKeeperLinkRecord link;
-  GateKeeperLinkRecordIterator iterator;
-
-  fprintf(stderr,"***** DumpFrag " F_IID " ********\n", frag1IID);
-  getGateKeeperFragmentStore(gkpStore, frag1IID, &gkFrag1);
-  fprintf(stderr,"* IID " F_IID " UID " F_UID " linkHead " F_IID "\n",
-	  frag1IID, gkFrag1.readUID, gkFrag1.linkHead);
-
-  if(gkFrag1.linkHead != 0){
-    fprintf(stderr,"* Has the following links:\n");
-    CreateGateKeeperLinkRecordIterator(gkplStore, gkFrag1.linkHead,
-				       frag1IID, &iterator);
-
-    while(NextGateKeeperLinkRecordIterator(&iterator, &link)){
-      fprintf(stderr,"\t* link " F_IID " (" F_IID "," F_IID ") next = " F_IID " type = %d %s\n",
-	      iterator.prevLinkRecord, link.frag1, link.frag2, iterator.linkRecord,
-	      link.type, (link.deleted?"DELETED":""));
-    }
-  }
-  return TRUE;
-}
-
-
-/* Verify that the link with id linkID is alive and well and
-   on the lists of both of its fragments */
-int verifyLink_GKP(GateKeeperLinkStore gkplStore, 
-		   GateKeeperFragmentStore     gkpStore, 
-		   CDS_IID_t linkID){
-  GateKeeperFragmentRecord gkFrag1, gkFrag2;
-  GateKeeperLinkRecord link;
-  GateKeeperLinkRecord slink;
-  GateKeeperLinkRecordIterator iterator;
-  CDS_IID_t foundLink1 = 0, foundLink2 = 0;
-
-  getGateKeeperLinkStore(gkplStore, linkID, &link);
-
-#ifdef DEBUG_GKP_VERBOSE
-  fprintf(stderr,"* Verify Link " F_IID " (" F_IID "," F_IID ") type %d next (" F_IID "," F_IID ")\n",
-	  linkID, link.frag1, link.frag2, link.type, link.frag1Next, link.frag2Next);
-
-  dumpFrag_GKP( gkplStore, gkpStore, link.frag1);
-  dumpFrag_GKP( gkplStore, gkpStore, link.frag2);
-#endif
-  getGateKeeperFragmentStore(gkpStore, link.frag1, &gkFrag1);
-  getGateKeeperFragmentStore(gkpStore, link.frag2, &gkFrag2);
-
-  if(gkFrag1.linkHead == linkID){
-    foundLink1 = linkID;
-  }else{
-    CreateGateKeeperLinkRecordIterator(gkplStore, gkFrag1.linkHead,
-				       link.frag1, &iterator);
-
-    while(NextGateKeeperLinkRecordIterator(&iterator, &slink)){
-      if(iterator.linkRecord == linkID)
-	foundLink1 = linkID;
-    }
-
-  }
-
-  if(gkFrag2.linkHead == linkID){
-    foundLink2 = linkID;
-  }else{
-    CreateGateKeeperLinkRecordIterator(gkplStore, gkFrag2.linkHead,
-				       link.frag2, &iterator);
-
-    while(NextGateKeeperLinkRecordIterator(&iterator, &slink)){
-      if(iterator.linkRecord == linkID)
-	foundLink2 = linkID;
-    }
-
-  }
-
-  assert(foundLink2 == foundLink1 && foundLink1 == linkID);
-
-  return TRUE;
-}
-
-
-

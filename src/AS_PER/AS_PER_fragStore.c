@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_fragStore.c,v 1.12 2007-01-28 21:52:25 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_fragStore.c,v 1.13 2007-02-03 07:06:28 brianwalenz Exp $";
 
 /*************************************************************************
  Module:  AS_PER_fragStore
@@ -205,12 +205,10 @@ void unloadFragRecord(FragStore *myStore, FragRecord *fr, int32 getFlags){
   /*  looks like checking AS_FA_READ and AS_FA_SHREDDED FT isolated VR */
   switch(fr->frag.readType){
   case AS_READ:
-  case AS_B_READ:
   case AS_EXTR:
   case AS_TRNR:
     localeLength = 0;
     break;
-  case AS_STS:
   case AS_EBAC:
   case AS_LBAC:
   case AS_FULLBAC:
@@ -271,12 +269,10 @@ void unloadFragRecordPartition(StoreHandle seqStore, StoreHandle srcStore, FragR
   /* FT isolated VR */
   switch(fr->frag.readType){
   case AS_READ:
-  case AS_B_READ:
   case AS_EXTR:
   case AS_TRNR:
     localeLength = 0;
     break;
-  case AS_STS:
   case AS_EBAC:
   case AS_LBAC:
   case AS_FULLBAC:

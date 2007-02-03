@@ -25,7 +25,7 @@
    Assumptions:  libAS_UTL.a
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.22 2006-11-14 19:58:21 eliv Exp $";
+static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.23 2007-02-03 07:06:27 brianwalenz Exp $";
 
 
 #include <assert.h>
@@ -1520,7 +1520,6 @@ GetCoverageInMultiAlignT(MultiAlignT *ma, SeqInterval range,
         while ( j<right && j <range.end) {
           if ( includeExternal ||
                ( reads[i].type == AS_READ ) ||
-               ( reads[i].type == AS_B_READ ) ||
                ( reads[i].type == AS_EXTR ) ||
                ( reads[i].type == AS_TRNR ) ){
              cov[j-range.bgn]++; 
@@ -1626,7 +1625,6 @@ int32 ungapped=0;
          fprintf(column_stats,"%d %d %d %d %d %c %d %d %d\n",ma->id,j,1,
               (reads[0].type == AS_BACTIG)?1:0,
               (reads[0].type != AS_READ &&
-               reads[0].type != AS_B_READ &&
                reads[0].type != AS_EXTR &&
                reads[0].type != AS_TRNR &&
                reads[0].type != AS_BACTIG)?1:0, 
@@ -1690,7 +1688,6 @@ int32 ungapped=0;
                }
                readptr++;  column_cov[j]+=1;
                if (reads[i].type != AS_READ &&
-                   reads[i].type != AS_B_READ &&
                    reads[i].type != AS_EXTR &&
                    reads[i].type != AS_TRNR &&
                    reads[i].type != AS_BACTIG) column_bac_cov[j] += 1;
@@ -1705,7 +1702,6 @@ int32 ungapped=0;
                   column_mm[j]+=1;
                   column_cov[j]+=1; //adding this so that intra-fragment gaps count as coverage
                   if (reads[i].type != AS_READ &&
-                      reads[i].type != AS_B_READ &&
                       reads[i].type != AS_EXTR &&
                       reads[i].type != AS_TRNR &&
                       reads[i].type != AS_BACTIG) column_bac_cov[j] += 1;
@@ -1729,7 +1725,6 @@ int32 ungapped=0;
              }
              readptr++;  column_cov[j]+=1;
              if (reads[i].type != AS_READ &&
-                 reads[i].type != AS_B_READ &&
                  reads[i].type != AS_EXTR &&
                  reads[i].type != AS_TRNR &&
                  reads[i].type != AS_BACTIG ) column_bac_cov[j] += 1;
@@ -1781,8 +1776,6 @@ getFragTypeDisplay (FragType fragType)
       // for these perponderant normal reads.
     case AS_READ: dispType  = ' ';  // Celera Read
         break;
-    case AS_B_READ: dispType  = 'G';  // BGLII Read
-        break;
     case AS_EXTR: dispType  = 'X';  //External WGS read
         break;
     case AS_TRNR: dispType  = 'T';  //Transposon library read
@@ -1794,8 +1787,6 @@ getFragTypeDisplay (FragType fragType)
     case AS_UBAC: dispType  = 'U';  //Unfinished
         break;
     case AS_FBAC: dispType  = 'F';  //Finished
-        break;
-    case AS_STS:  dispType  = 'S';  //Sts
         break;
     case AS_UNITIG: dispType= 'u';  //Unitig
         break;

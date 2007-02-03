@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.10 2007-01-28 21:52:24 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.11 2007-02-03 07:06:27 brianwalenz Exp $";
 
 //#define DEBUG_GKP 1
 //#define DEBUG_GKP_VERBOSE 1
@@ -91,9 +91,7 @@ int Check_FragMesg(FragMesg *frg_mesg,
       case AS_EBAC:
       case AS_UBAC:
       case AS_FBAC:
-      case AS_STS:
       case AS_READ:
-      case AS_B_READ:
       case AS_EXTR:
       case AS_TRNR:
 	gkf.type = (char)frg_mesg->type;
@@ -258,7 +256,6 @@ int Check_FragMesg(FragMesg *frg_mesg,
 	}
 	break;
       case AS_READ:
-      case AS_B_READ:
       case AS_EXTR:
       case AS_TRNR:
 	if(check_nmers){
@@ -875,5 +872,4 @@ double checkWindowQuality(FragMesg *frg_mesg, FILE *Msgfp) {
   */
 
   return 0; // zero return indicates passing the QV window test.
-
 }

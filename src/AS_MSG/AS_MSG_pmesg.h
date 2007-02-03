@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.30 2007-01-29 20:41:13 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.31 2007-02-03 07:06:28 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -233,12 +233,10 @@ typedef struct {
 
 typedef enum {
   AS_MATE       = (int)'M', // Mate
-  AS_STS_GUIDE  = (int)'S', // STS
   AS_BAC_GUIDE  = (int)'B', // BAC
   AS_REREAD     = (int)'R', // Reread
   AS_MAY_JOIN   = (int)'Y', // maY
-  AS_MUST_JOIN  = (int)'T',  // musT
-  AS_B_MATE =     (int)'G'   // BGLii mate
+  AS_MUST_JOIN  = (int)'T', // musT
 } LinkType;
 
 typedef enum {
@@ -300,14 +298,13 @@ typedef enum {
   AS_LBAC    = (int)'L',  //Lightly shotgunned
   AS_UBAC    = (int)'U',  //Unfinished
   AS_FBAC    = (int)'F',  //Finished
-  AS_STS     = (int)'S',  //Sts
   AS_UNITIG  = (int)'u',  //Unitig
   AS_CONTIG  = (int)'c',   //Contig
-  AS_BACTIG  = (int) 'B',   // BacTig
+  AS_BACTIG  = (int)'B',   // BacTig
   AS_FULLBAC = (int)'C',   // Full Bac C = Complete)
-  AS_B_READ  = (int)'G' // BGLII read
 } FragType;
 
+FragType AS_MSG_SafeConvert_charToFragType (const char inch, bool strict) ;
 
 /* Extended Granger's comment to fragment types
 
@@ -324,6 +321,9 @@ AS_TRNR    Transposon library read
 Read was generated from a subclone of the target sequence using transposon .bombing..
 Features: nonrandom, might include information about subclone, trusted for consensus, can have
 mate pair but oriented in .outtie. rather .innie..
+
+
+
 
 AS_EBAC    End of BAC
 Read is a BAC end . that is a sequence from one end or the other of a BAC subclone.
@@ -342,13 +342,6 @@ in the sequence . so multiple contigs). Features: nonrandom, untrusted, no mate 
 AS_FBAC    Finished
 Same as above but subclone is a single contig.
 
-AS_STS     Sts
-Never used or implemented. The idea is to allow constraints to be input to the assembly
-based on some sequence or clone tag. For instance, the sequence .ACTGTGTGT.. should be
-on the same chromosome as .GCGACGAGAT.. no orientation known. This is only a read or
-fragment in the sense that there is an associated sequence. Features: nonrandom, not to be
-used for consensus, mate pair relationship is present only by analogy.
-
 AS_UNITIG  Unitig
 This was used for an old flavor of the assembler . no longer used.
 
@@ -361,14 +354,6 @@ This was used for an old flavor of the assembler . no longer used.
 AS_FULLBAC Full Bac C = Complete)
 This was used for an old flavor of the assembler . no longer used.
 
-AS_B_READ  BGLII read (should not be used)
-This read is sequenced out from an internal spacer sequence added to a clone to
-replace a section cut out by a restriction enzyme to make the size of the insert stable. Only
-used once with crappy results . not sure code was fully implemented. Features: nonrandom,
-trusted, multiple mate pair relationships . outtie, innie, normal, antinormal.
-*/
-
-/*
 
 type/attribute table for used types only 
 
@@ -379,16 +364,15 @@ AS_EBAC   	guide		random	trusted			can have mate
 AS_LBAC   				trusted			can have mate 
 AS_UBAC   		shredded 
 AS_FBAC   		shredded 
-AS_STS     
 
 */
 
-#define AS_FA_READ(type) 		((type == AS_READ) || (type == AS_EXTR) || (type == AS_EXTR) || (type == AS_B_READ))
+#define AS_FA_READ(type) 		((type == AS_READ) || (type == AS_EXTR) || (type == AS_EXTR))
 #define AS_FA_RANDOM(type) 		((type == AS_READ) || (type == AS_EXTR) || (type == AS_EBAC))
 #define AS_FA_SHREDDED(type) 		((type == AS_FBAC) || (type == AS_UBAC))
 #define AS_FA_CAN_HAVE_MATE(type) 	((type == AS_READ) || (type == AS_EXTR) || (type == AS_TRNR) || (type == AS_LBAC) || (type == AS_EBAC)) 
 #define AS_FA_GUIDE(type)         	(type == AS_EBAC)
-#define AS_FA_TRUSTED_FOR_CNS(type) 	((type == AS_READ) || (type == AS_TRNR) || (type == AS_EBAC) || (type == AS_LBAC) || (type == AS_B_READ))
+#define AS_FA_TRUSTED_FOR_CNS(type) 	((type == AS_READ) || (type == AS_TRNR) || (type == AS_EBAC) || (type == AS_LBAC))
 #define AS_FA_EXTERNAL_READ(type)	(type == AS_EXTR)
 
 typedef enum {

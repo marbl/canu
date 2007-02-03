@@ -119,7 +119,6 @@ reapFragStore(int32 begin, int32 end, char *frag_store_name) {
         case AS_READ:   // Celera Read
         case AS_EXTR:   // External WGS read
         case AS_TRNR:   // Transposon library read
-        case AS_B_READ: // BGLII read
           printf("{OFG\n"
                  "act:A\n"
                  "acc:("F_UID","F_IID")\n"
@@ -181,7 +180,6 @@ reapFragStore(int32 begin, int32 end, char *frag_store_name) {
           break;
 
         case AS_LBAC: //  Lightly shotgunned BACs
-        case AS_STS:  //  STS
 
           //  The following are never intended to be for Unitigger input.
         case AS_UNITIG:  //Unitig

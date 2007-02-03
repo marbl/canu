@@ -33,7 +33,6 @@
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
 #include "AS_UTL_timer.h"
-#include "AS_MSG_Utility.h"
 #include "GraphCGW_T.h"
 #include "AS_CGW_dataTypes.h"
 #include "ScaffoldGraph_CGW.h"

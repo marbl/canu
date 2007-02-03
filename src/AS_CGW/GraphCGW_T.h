@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: GraphCGW_T.h,v 1.10 2006-09-21 21:34:00 brianwalenz Exp $	 */
+/* 	$Id: GraphCGW_T.h,v 1.11 2007-02-03 07:06:26 brianwalenz Exp $	 */
 
 /**************************************************************************
  *  GraphCGW
@@ -96,7 +96,7 @@ typedef struct {
       unsigned int bContainsA:1;        /* From CGB for multiply contained fragments */
       unsigned int mustOverlap:1;       /* Marked on merged edges when mate-link variance is signficantly less than overlap length */
       unsigned int hasGuide:1;                /* Contains one or more guide edges */
-      unsigned int hasSTSGuide:1;             /* Contains an STS Guide */
+      unsigned int XXXunusedXXX_hasSTSGuide:1;  /* EXTRA, UNUSED, was Contains an STS Guide */
       unsigned int hasMayJoin:1;             /* Contains a may join constraint */
       unsigned int hasMustJoin:1;             /* Contains a must join constraint */
       unsigned int hasTransChunk:1;           /* was a transitively removed edge in cgb */
@@ -858,7 +858,6 @@ static int isSloppyEdge(EdgeCGW_T *edge){
     return 0;
   }
   if(edge->flags.bits.hasGuide || 
-     edge->flags.bits.hasSTSGuide || 
      edge->flags.bits.isSloppy){
     return 1;
   }
@@ -1297,7 +1296,6 @@ CDS_CID_t AddGraphEdge( GraphCGW_T *graph,
                         OrientType orientation,
                         int isInducedByUnknownOrientation,
                         int isGuide,    // Add it to GuideMates and flag it
-                        int isSTSGuide,
                         int isMayJoin,
                         int isMustJoin,
                         int isOverlap,

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: ProcessScaffolds_CGW.c,v 1.13 2007-01-29 20:41:01 brianwalenz Exp $ */
+/* $Id: ProcessScaffolds_CGW.c,v 1.14 2007-02-03 07:06:27 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -275,7 +275,6 @@ static int ComputeFragColor(IntMultiPos *fi) {
       color = 2;
       break;
     case AS_LBAC:
-    case AS_STS :
       color = 3;
       break;
     case AS_UBAC:

@@ -134,7 +134,6 @@ int main(int argc, char *argv[]){
           case AS_READ:    //  Celera Read
           case AS_EXTR:    //  External WGS read
           case AS_TRNR:    //  Transposon library read
-          case AS_B_READ:  //  BGLII read
             printf("{OFG\n"
                    "act:A\n"
                    "acc:("F_UID","F_IID")\n"
@@ -200,7 +199,6 @@ int main(int argc, char *argv[]){
                    src_text, etm, clr_rng_len );
             break;
           case AS_LBAC:    //  Lightly shotgunned BACs
-          case AS_STS:     //  STS
           case AS_UNITIG:  //  Unitig (not for unitigger!)
           case AS_CONTIG:  //  Contig (not for unitigger!)
           case AS_BACTIG:  //  BacTig (not for unitigger!)

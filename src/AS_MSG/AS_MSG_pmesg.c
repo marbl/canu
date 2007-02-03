@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.29 2007-01-29 20:41:13 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.30 2007-02-03 07:06:27 brianwalenz Exp $";
 
 //  reads old and new AFG message (with and w/o chaff field)
 #define AFG_BACKWARDS_COMPATIBLE
@@ -113,6 +113,51 @@ static char *MemBuffer = NULL;      /* Memory allocation buffer for messages */
 static int   MemMax = -1, MemTop;   /* Memory ceiling and current top */
 
 int novar = 0;  /*  Output or not the variation records */
+
+
+
+
+
+////////////////////////////////////////
+//
+//  For lack of a better place, this is here...
+//
+//
+/* ---------------------------------------------------
+ * Convert values of type: char
+ * to the enumerated type: FragType
+ *
+ * This violates the abstraction provided by enumerated types.
+ * But our storage requirements demand this byte-saving step.
+ *
+ * Param 'strict' controls behavior on bad input.
+ * If strict, function dies when input is not valid.
+ * Else, function returns AS_EXTR when input is not valid.
+   ----------------------------------------------------*/
+FragType AS_MSG_SafeConvert_charToFragType (const char input, bool strict) {
+  FragType output = AS_EXTR;
+
+  // The vast majority of data will satisfy the first test.
+
+  if      (input=='R') output=AS_READ;
+  else if (input=='X') output=AS_EXTR;
+  else if (input=='T') output=AS_TRNR;
+  else if (input=='E') output=AS_EBAC;
+  else if (input=='L') output=AS_LBAC;
+  else if (input=='U') output=AS_UBAC;
+  else if (input=='F') output=AS_FBAC;
+  else if (input=='u') output=AS_UNITIG;
+  else if (input=='c') output=AS_CONTIG;
+  else if (input=='B') output=AS_BACTIG;
+  else if (input=='C') output=AS_FULLBAC;
+  else if (strict)     assert(FALSE);
+
+  return output;
+}
+//
+//
+//
+////////////////////////////////////////
 
 
 /* Make sure there is a block of size bytes left in memory buffer starting
@@ -505,7 +550,7 @@ static void *Read_Frag_Mesg(FILE *fin, int frag_class)
 	fmesg.type = (FragType) ch;
         // We want to succeed on all reads, and let the gatekeeper do its stuff
       }else{
-	GET_TYPE(ch,TYP1_FORMAT "[RXELTFSUCBWG]","type");
+	GET_TYPE(ch,TYP1_FORMAT "[RXELTFUCBW]","type");
 	fmesg.type = (FragType) ch;
       }
 
@@ -517,7 +562,6 @@ static void *Read_Frag_Mesg(FILE *fin, int frag_class)
 
         if(fmesg.type == AS_FBAC ||
            fmesg.type == AS_UBAC ||
-           fmesg.type == AS_STS  ||
            fmesg.type == AS_EBAC ||
            fmesg.type == AS_LBAC ||
            fmesg.type == AS_BACTIG ||
@@ -1962,7 +2006,6 @@ static void Write_Frag_Mesg(FILE *fout, void *vmesg, int frag_class)
 
         if(mesg->type == AS_FBAC ||
            mesg->type == AS_UBAC ||
-           mesg->type == AS_STS ||
            mesg->type == AS_BACTIG ||
            mesg->type == AS_FULLBAC ||
            mesg->type == AS_LBAC ||

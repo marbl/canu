@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: SEdgeT_CGW.c,v 1.6 2006-09-21 21:34:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: SEdgeT_CGW.c,v 1.7 2007-02-03 07:06:27 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_SEDGES
@@ -144,7 +144,6 @@ void PrintSEdgeT(FILE *fp, ScaffoldGraphT *graph, char *label, SEdgeT *edge, CDS
   fprintf(fp, "\t\tbContainsA:%d\n", edge->flags.bits.bContainsA);
   fprintf(fp, "\t\tmustOverlap:%d\n", edge->flags.bits.mustOverlap);
   fprintf(fp, "\t\thasGuide:%d\n", edge->flags.bits.hasGuide);
-  fprintf(fp, "\t\thasSTSGuide:%d\n", edge->flags.bits.hasSTSGuide);
   fprintf(fp, "\t\thasMayJoin:%d\n", edge->flags.bits.hasMayJoin);
   fprintf(fp, "\t\thasMustJoin:%d\n", edge->flags.bits.hasMustJoin);
   fprintf(fp, "\t\thasTransChunk:%d\n", edge->flags.bits.hasTransChunk);

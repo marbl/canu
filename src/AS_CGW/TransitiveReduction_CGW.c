@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: TransitiveReduction_CGW.c,v 1.7 2006-11-14 17:52:15 eliv Exp $";
+static char CM_ID[] = "$Id: TransitiveReduction_CGW.c,v 1.8 2007-02-03 07:06:27 brianwalenz Exp $";
 
 // This file contains the code for computing the candidate
 // chunks of scaffolds.
@@ -1418,7 +1418,6 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
                                        inferredEdgeOrient,
                                        FALSE, // not unknown orientation
                                        FALSE, // not a guide
-                                       FALSE, // not isSTSGuide
                                        FALSE, // not isMayJoin
                                        FALSE, // not isMustJoin
                                        isOverlapInferred,
@@ -2735,7 +2734,6 @@ void AddScaffoldInferredEdges(ScaffoldGraphT *graph,  int verbose){
                                          inferredEdgeOrient,
                                          FALSE, // not unknown orientation
                                          FALSE, // not a guide
-                                         FALSE, // not isSTSGuide
                                          FALSE, // not isMayJoin
                                          FALSE, // not isMustJoin
                                          isOverlapInferred,

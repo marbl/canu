@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.10 2007-01-28 21:52:25 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.11 2007-02-03 07:06:28 brianwalenz Exp $";
 
 /*************************************************************************
  Module:  AS_PER_gkpfrgStore
@@ -38,8 +38,8 @@ static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.10 2007-01-28 21:52:25 brianwa
  *************************************************************************/
 
 /* RCS Info
- * $Id: AS_PER_gkpStore.c,v 1.10 2007-01-28 21:52:25 brianwalenz Exp $
- * $Revision: 1.10 $
+ * $Id: AS_PER_gkpStore.c,v 1.11 2007-02-03 07:06:28 brianwalenz Exp $
+ * $Revision: 1.11 $
  *
  */
 #include <assert.h>
@@ -182,6 +182,95 @@ int findLink(GateKeeperLinkStore store,
 }
 
 				
+
+
+
+
+
+/***********************************************************************************/
+#ifdef DEBUG_GKP
+
+void
+dumpFrag_GKP(GateKeeperLinkStore gkplStore, 
+             GateKeeperFragmentStore gkpStore, 
+             CDS_IID_t frag1IID){
+
+  GateKeeperFragmentRecord gkFrag1;
+  GateKeeperLinkRecord link;
+  GateKeeperLinkRecordIterator iterator;
+
+  fprintf(stderr,"***** DumpFrag " F_IID " ********\n", frag1IID);
+  getGateKeeperFragmentStore(gkpStore, frag1IID, &gkFrag1);
+  fprintf(stderr,"* IID " F_IID " UID " F_UID " linkHead " F_IID "\n",
+	  frag1IID, gkFrag1.readUID, gkFrag1.linkHead);
+
+  if(gkFrag1.linkHead != 0){
+    fprintf(stderr,"* Has the following links:\n");
+    CreateGateKeeperLinkRecordIterator(gkplStore, gkFrag1.linkHead,
+				       frag1IID, &iterator);
+
+    while(NextGateKeeperLinkRecordIterator(&iterator, &link)){
+      fprintf(stderr,"\t* link " F_IID " (" F_IID "," F_IID ") next = " F_IID " type = %d %s\n",
+	      iterator.prevLinkRecord, link.frag1, link.frag2, iterator.linkRecord,
+	      link.type, (link.deleted?"DELETED":""));
+    }
+  }
+}
+
+
+/* Verify that the link with id linkID is alive and well and
+   on the lists of both of its fragments */
+void
+verifyLink_GKP(GateKeeperLinkStore gkplStore, 
+               GateKeeperFragmentStore     gkpStore, 
+               CDS_IID_t linkID){
+
+  GateKeeperFragmentRecord gkFrag1, gkFrag2;
+  GateKeeperLinkRecord link;
+  GateKeeperLinkRecord slink;
+  GateKeeperLinkRecordIterator iterator;
+  CDS_IID_t foundLink1 = 0, foundLink2 = 0;
+
+  getGateKeeperLinkStore(gkplStore, linkID, &link);
+
+#ifdef DEBUG_GKP_VERBOSE
+  fprintf(stderr,"* Verify Link " F_IID " (" F_IID "," F_IID ") type %d next (" F_IID "," F_IID ")\n",
+	  linkID, link.frag1, link.frag2, link.type, link.frag1Next, link.frag2Next);
+
+  dumpFrag_GKP( gkplStore, gkpStore, link.frag1);
+  dumpFrag_GKP( gkplStore, gkpStore, link.frag2);
+#endif
+
+  getGateKeeperFragmentStore(gkpStore, link.frag1, &gkFrag1);
+  getGateKeeperFragmentStore(gkpStore, link.frag2, &gkFrag2);
+
+  if(gkFrag1.linkHead == linkID){
+    foundLink1 = linkID;
+  }else{
+    CreateGateKeeperLinkRecordIterator(gkplStore, gkFrag1.linkHead,
+				       link.frag1, &iterator);
+
+    while(NextGateKeeperLinkRecordIterator(&iterator, &slink)){
+      if(iterator.linkRecord == linkID)
+	foundLink1 = linkID;
+    }
+  }
+
+  if(gkFrag2.linkHead == linkID){
+    foundLink2 = linkID;
+  }else{
+    CreateGateKeeperLinkRecordIterator(gkplStore, gkFrag2.linkHead,
+				       link.frag2, &iterator);
+
+    while(NextGateKeeperLinkRecordIterator(&iterator, &slink)){
+      if(iterator.linkRecord == linkID)
+	foundLink2 = linkID;
+    }
+  }
+
+  assert(foundLink2 == foundLink1 && foundLink1 == linkID);
+}
+#endif
 
 
 

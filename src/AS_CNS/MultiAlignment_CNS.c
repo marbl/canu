@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.121 2007-01-29 20:41:06 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.122 2007-02-03 07:06:27 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -168,10 +168,8 @@ int isRead(FragType type){
   case  AS_LBAC   :
   case  AS_UBAC   :
   case  AS_FBAC   :
-  case  AS_STS    :
   case  AS_BACTIG :
   case  AS_FULLBAC:
-  case  AS_B_READ :
     return 1;
   default:
     return 0;
@@ -955,14 +953,12 @@ int32 AppendFragToLocalStore(FragType type, int32 iid, int complement,int32 cont
   case AS_BACTIG:
     getFragStore(global_bactigStore,iid,FRAG_S_ALL,fsread);
   case AS_READ:
-  case AS_B_READ:
   case AS_EXTR:
   case AS_TRNR:
   case AS_EBAC:
   case AS_LBAC:
   case AS_UBAC:
   case AS_FBAC:
-  case AS_STS:
     if ( type != AS_BACTIG ) {
       if ( partitioned ) {
         getFragStorePartition(global_fragStorePartition,iid,FRAG_S_ALL,fsread);
@@ -1820,7 +1816,6 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
             k     = Iid2ReadId(iid, vreg->iids, vreg->nr);
 
             if ((type == AS_READ)   ||
-                (type == AS_B_READ) ||
                 (type == AS_EXTR)   ||
                 (type == AS_TRNR))
             {
@@ -2111,7 +2106,6 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
             qv = (int) ( *Getchar(qualityStore, bead->soffset)-'0');
             type = GetFragment(fragmentStore,bead->frag_index)->type;
             if (type  != AS_READ &&
-                type  != AS_B_READ &&
                 type  != AS_EXTR &&
                 type  != AS_TRNR ) {
                 guide_base_count[BaseToInt(cbase)]++;
@@ -2267,7 +2261,6 @@ GetReadIidsAndNumReads(int cid, VarRegion  *vreg)
         iid  = GetFragment(fragmentStore,bead->frag_index)->iid;
 
         if ((type == AS_READ) ||
-            (type == AS_B_READ) ||
             (type == AS_EXTR) ||
             (type == AS_TRNR))
         {
@@ -2583,7 +2576,6 @@ GetReadsForVARRecord(Read *reads, int32 *iids, int32 nvr,
             iid  = GetFragment(fragmentStore,bead->frag_index)->iid;
 
             if ((type == AS_READ)   ||
-                (type == AS_B_READ) ||
                 (type == AS_EXTR)   ||
                 (type == AS_TRNR))
             {
@@ -4495,7 +4487,6 @@ int PrintFrags(FILE *out, int accession, IntMultiPos *all_frags, int num_frags,
          fmesg.quality = fqual;
          for (i=0;i<num_frags;i++) {
            isread = (all_frags[i].type == AS_READ ||
-                     all_frags[i].type == AS_B_READ ||
                      all_frags[i].type == AS_EXTR ||
                      all_frags[i].type == AS_TRNR)?1:0;
            if (all_frags[i].position.bgn<all_frags[i].position.end) {
@@ -7287,12 +7278,10 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
           case AS_LBAC:
           case AS_UBAC:
           case AS_FBAC:
-          case AS_STS:
           case AS_FULLBAC:
              num_guides++;
              num_reads--;
           case AS_READ:
-          case AS_B_READ:
           case AS_EXTR:
           case AS_TRNR:
           {

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.18 2006-11-14 19:58:21 eliv Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.19 2007-02-03 07:06:26 brianwalenz Exp $";
 
 #undef DEBUG_CHECKFORCTGS
 #undef DEBUG_DETAILED
@@ -2016,9 +2016,6 @@ void DumpMultiAlignT(FILE * fp, ScaffoldGraphT * graph,
         case AS_FBAC:
           fprintf(fp, "AS_FBAC ");
           break;
-        case AS_STS:
-          fprintf(fp, "AS_STS ");
-          break;
         case AS_UNITIG:
           fprintf(fp, "AS_UNITIG ");
           break;
@@ -2030,9 +2027,6 @@ void DumpMultiAlignT(FILE * fp, ScaffoldGraphT * graph,
           break;
         case AS_FULLBAC:
           fprintf(fp, "AS_FULLBAC ");
-          break;
-        case AS_B_READ:
-          fprintf(fp, "AS_B_READ ");
           break;
       }
     fprintf(fp, " utg:" F_CID ", pos:(" F_COORD "," F_COORD ")\n", frag->cid,

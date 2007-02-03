@@ -21,8 +21,6 @@
 #
 ###########################################################################
 #
-#VERBOSE=1
-# gmake Makefile for AS_MSG
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
@@ -32,8 +30,8 @@ SOURCES = AS_MSG_pmesg.c  \
           proto_append.c \
           remove_fragment.c \
           AS_MSG_pmesg_test.c \
-          ExtractMessages.c \
-	  AS_MSG_Utility.c
+          ExtractMessages.c
+
 OBJECTS = $(SOURCES:.c=.o)
 
 PROGS = AS_MSG_pmesg_test \
@@ -51,9 +49,9 @@ install: all
 
 default: clean all regression tester install 
 
-libAS_MSG.a:   AS_MSG_pmesg.o AS_MSG_Utility.o
+libAS_MSG.a:   AS_MSG_pmesg.o
 
-libCA.a:   AS_MSG_pmesg.o AS_MSG_Utility.o
+libCA.a:       AS_MSG_pmesg.o
 
 AS_MSG_pmesg_test: AS_MSG_pmesg_test.o AS_MSG_pmesg.o libAS_UTL.a
 

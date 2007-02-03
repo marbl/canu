@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.9 2006-11-14 19:58:21 eliv Exp $";
+static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.10 2007-02-03 07:06:26 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include <assert.h>
@@ -1058,7 +1058,6 @@ CDS_CID_t InsertComputedOverlapEdge(GraphCGW_T *graph,
                      orient, 
                      FALSE, // inducedByUnknownOrientation
                      FALSE, // isGuide
-                     FALSE, // isSTSGuide
                      FALSE, // isMayJoin
                      FALSE, // isMustJoin
                      isDoveTail,  // isOverlap

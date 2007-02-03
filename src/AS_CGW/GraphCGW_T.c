@@ -23,7 +23,7 @@
   -o /work/assembly/rbolanos/IBM_PORT_CDS/ibm_migration_work_dir/cds/AS/obj/GraphCGW_T.o GraphCGW_T.c
 */
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.27 2007-01-31 22:19:22 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.28 2007-02-03 07:06:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,7 +43,6 @@ static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.27 2007-01-31 22:19:22 brianwalenz 
 #include "AS_PER_SafeIO.h"
 #include "AS_UTL_interval.h"
 #include "MultiAlignment_CNS.h"
-#include "AS_MSG_Utility.h"
 #include "FbacREZ.h"
 #include "UtilsREZ.h"
 
@@ -1410,7 +1409,6 @@ CDS_CID_t AddGraphEdge(GraphCGW_T *graph,
                        OrientType orientation,
                        int isInducedByUnknownOrientation,
                        int isGuide,   
-                       int isSTSGuide,
                        int isMayJoin,
                        int isMustJoin,
                        int isOverlap,
@@ -1502,7 +1500,6 @@ CDS_CID_t AddGraphEdge(GraphCGW_T *graph,
   ciedge->topLevelEdge = ciedgeIndex;
   ciedge->flags.bits.inducedByUnknownOrientation = isInducedByUnknownOrientation;
   ciedge->flags.bits.hasGuide = isGuide;
-  ciedge->flags.bits.hasSTSGuide = isSTSGuide;
   ciedge->flags.bits.hasMayJoin = isMayJoin;
   ciedge->flags.bits.hasMustJoin = isMustJoin;
   ciedge->flags.bits.hasContributingOverlap = isOverlap;
@@ -1534,9 +1531,8 @@ CDS_CID_t AddGraphEdge(GraphCGW_T *graph,
           isRepeatOverlap,
           isExtremalA,
           isExtremalB);
-  fprintf(GlobalData->stderrc,"* ... isIndByUnkOri %d isSTSGuide %d isMayJoin %d isMustJoin %d isAContainsB %d isBContainsA %d isTransChunk %d\n",
+  fprintf(GlobalData->stderrc,"* ... isIndByUnkOri %d isMayJoin %d isMustJoin %d isAContainsB %d isBContainsA %d isTransChunk %d\n",
           isInducedByUnknownOrientation,
-          isSTSGuide,
           isMayJoin,
           isMustJoin,
           isAContainsB,
@@ -2841,7 +2837,6 @@ int CreateGraphEdge(GraphCGW_T *graph,
                ciEdgeOrient,
                inducedByUnknownOrientation,
                type == AS_BAC_GUIDE, // isGuide
-               type == AS_STS_GUIDE, // isSTSGuide
                type == AS_MAY_JOIN,  // isMayJoin
                type == AS_MUST_JOIN,  // isMustJoin
                FALSE,                        // isOverlap
@@ -3099,7 +3094,6 @@ void InsertGuideEdges(GraphCGW_T *graph){
     CIEdgeT *edge = GetGraphEdge(graph, edgeID);
     
     if(edge->flags.bits.hasGuide || 
-       edge->flags.bits.hasSTSGuide ||
        edge->flags.bits.hasMayJoin || 
        edge->flags.bits.hasMustJoin )
       InsertGraphEdge(graph, edgeID ,FALSE);      

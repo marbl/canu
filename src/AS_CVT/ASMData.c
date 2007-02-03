@@ -291,8 +291,7 @@ void PrintFragmentScaffoldCoordinates(AssemblyStore * asmStore,
       while(NextGateKeeperLinkRecordIterator(&iterator, &lkg))
       {
         if(lkg.type == AS_MATE ||
-           lkg.type == AS_BAC_GUIDE ||
-           lkg.type == AS_B_MATE)
+           lkg.type == AS_BAC_GUIDE)
         {
           ASM_MDIRecord mdi;
           ASM_AFGRecord afg2;
@@ -1370,8 +1369,7 @@ void AddContigFragmentsToCloneData(AssemblyStore * asmStore,
       {
         // ignore non-clone type links
         if(lkg.type == AS_MATE ||
-           lkg.type == AS_BAC_GUIDE ||
-           lkg.type == AS_B_MATE)
+           lkg.type == AS_BAC_GUIDE)
         {
           // get the mate record
           iid2 = (lkg.frag1 == iid1) ? lkg.frag2 : lkg.frag1;
@@ -2690,8 +2688,7 @@ void PrintChromosomeElsewheres(AssemblyStore * asmStore,
       while(NextGateKeeperLinkRecordIterator(&iterator, &lkg))
       {
         if(lkg.type == AS_MATE ||
-           lkg.type == AS_BAC_GUIDE ||
-           lkg.type == AS_B_MATE)
+           lkg.type == AS_BAC_GUIDE)
         {
           ASM_MDIRecord mdi;
           ASM_AFGRecord afg2;
@@ -2777,8 +2774,7 @@ void PrintScaffoldElsewheres(AssemblyStore * asmStore,
         {
           // ignore non-clone type links
           if(lkg.type == AS_MATE ||
-             lkg.type == AS_BAC_GUIDE ||
-             lkg.type == AS_B_MATE)
+             lkg.type == AS_BAC_GUIDE)
           {
             // get the mate record
             ASM_IIDRecord iid2;
@@ -2938,8 +2934,7 @@ CloneData * GetChromosomeCloneData(AssemblyStore * asmStore,
       while(NextGateKeeperLinkRecordIterator(&iterator, &lkg))
       {
         if(lkg.type == AS_MATE ||
-           lkg.type == AS_BAC_GUIDE ||
-           lkg.type == AS_B_MATE)
+           lkg.type == AS_BAC_GUIDE)
         {
           ASM_MDIRecord mdi;
           ASM_AFGRecord afg2;

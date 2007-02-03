@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.17 2007-01-29 20:41:01 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.18 2007-02-03 07:06:26 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -558,7 +558,6 @@ void ProcessUOM(UnitigOverlapMesg *uom_mesg, float transQualityCutoff){
                  orient,
                  FALSE, // inducedByUnknownOrient,
                  FALSE, // hasGuide,
-                 FALSE, // hasSTSGuide,
                  FALSE, // hasMayJoin,
                  FALSE, // hasMustJoin,
                  hasContributingOverlap,

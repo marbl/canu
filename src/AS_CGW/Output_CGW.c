@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Output_CGW.c,v 1.15 2007-01-29 20:41:01 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Output_CGW.c,v 1.16 2007-02-03 07:06:27 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -546,8 +546,6 @@ void OutputContigLinks(ScaffoldGraphT *graph, int outputOverlapOnlyContigEdges)
 	}else{
 	  if(edge->flags.bits.hasGuide)
 	    imp.type = AS_BAC_GUIDE;
-	  else if(edge->flags.bits.hasSTSGuide)
-	    imp.type = AS_STS_GUIDE;
 	  else if(edge->flags.bits.hasMayJoin)
 	    imp.type = AS_MAY_JOIN;
 	  else if(edge->flags.bits.hasMustJoin)
@@ -577,8 +575,6 @@ void OutputContigLinks(ScaffoldGraphT *graph, int outputOverlapOnlyContigEdges)
           assert(!isOverlapEdge(redge));
           if(redge->flags.bits.hasGuide)
             imp.type = AS_BAC_GUIDE;
-          else if(redge->flags.bits.hasSTSGuide)
-            imp.type = AS_STS_GUIDE;
           else if(redge->flags.bits.hasMayJoin)
             imp.type = AS_MAY_JOIN;
           else if(redge->flags.bits.hasMustJoin)
@@ -655,8 +651,6 @@ void OutputScaffoldLink(ScaffoldGraphT * graph,
     }
     if(edge->flags.bits.hasGuide)
       imp.type = AS_BAC_GUIDE;
-    else if(edge->flags.bits.hasSTSGuide)
-      imp.type = AS_STS_GUIDE;
     else if(edge->flags.bits.hasMayJoin)
       imp.type = AS_MAY_JOIN;
     else if(edge->flags.bits.hasMustJoin)
@@ -685,8 +679,6 @@ void OutputScaffoldLink(ScaffoldGraphT * graph,
       imp.in2 = frag->iid;
       if(redge->flags.bits.hasGuide)
         imp.type = AS_BAC_GUIDE;
-      else if(redge->flags.bits.hasSTSGuide)
-        imp.type = AS_STS_GUIDE;
       else if(redge->flags.bits.hasMayJoin)
         imp.type = AS_MAY_JOIN;
       else if(redge->flags.bits.hasMustJoin)
@@ -968,8 +960,6 @@ void OutputUnitigLinksFromMultiAligns(void){
         assert(!isOverlapEdge(edge));
         if(edge->flags.bits.hasGuide)
           imp.type = AS_BAC_GUIDE;
-        else if(edge->flags.bits.hasSTSGuide)
-          imp.type = AS_STS_GUIDE;
         else if(edge->flags.bits.hasMayJoin)
           imp.type = AS_MAY_JOIN;
         else if(edge->flags.bits.hasMustJoin)
@@ -998,8 +988,6 @@ void OutputUnitigLinksFromMultiAligns(void){
           assert(!isOverlapEdge(redge));
           if(redge->flags.bits.hasGuide)
             imp.type = AS_BAC_GUIDE;
-          else if(redge->flags.bits.hasSTSGuide)
-            imp.type = AS_STS_GUIDE;
           else if(redge->flags.bits.hasMayJoin)
             imp.type = AS_MAY_JOIN;
           else if(redge->flags.bits.hasMustJoin)
