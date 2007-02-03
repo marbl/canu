@@ -21,8 +21,6 @@
 #
 ###########################################################################
 #
-#VERBOSE=1
-# Makefile for AS_ORA
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
@@ -36,13 +34,27 @@ AS_ORA_OBJS = $(AS_ORA_SRCS:.c=.o)
 ORA_MAIN_SRCS = AS_ORA_main.c  
 ORA_MAIN_OBJS = $(ORA_MAIN_SRCS:.c=.o)
 
-SOURCES = $(AS_ORA_SRCS) $(ORA_MAIN_SRCS)  get-olaps.c get-perfect-olaps.c nodups.c fraguid2iid.c fraguid2iid_byhash.c make-canonical.c compare-canonical.c fragiid2uid.c dump_fragment_as_fasta.c computeGCcontent.c dumpMatePairing.c
+SOURCES = $(AS_ORA_SRCS) $(ORA_MAIN_SRCS) \
+          get-olaps.c \
+          get-perfect-olaps.c \
+          nodups.c \
+          make-canonical.c \
+          compare-canonical.c \
+          computeGCcontent.c \
+          dumpMatePairing.c
 
 OBJECTS = $(SOURCES:.c=.o)
 
 LIBRARIES = 
 
-PROGS = overlap_regressor get-olaps get-perfect-olaps nodups fraguid2iid fraguid2iid_byhash make-canonical compare-canonical fragiid2uid dump_fragment_as_fasta computeGCcontent dumpMatePairing
+PROGS = overlap_regressor \
+        get-olaps \
+        get-perfect-olaps \
+        nodups \
+        make-canonical \
+        compare-canonical \
+        computeGCcontent \
+        dumpMatePairing
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -61,14 +73,6 @@ get-perfect-olaps: $(AS_ORA_OBJS) get-perfect-olaps.o libCA.a
 nodups: $(AS_ORA_OBJS) nodups.o libCA.a
 
 overlap_regressor: $(AS_ORA_OBJS) $(ORA_MAIN_OBJS) libCA.a
-
-fraguid2iid: $(AS_ORA_OBJS) fraguid2iid.o libCA.a
-
-fraguid2iid_byhash: $(AS_ORA_OBJS) fraguid2iid_byhash.o libCA.a
-
-fragiid2uid : fragiid2uid.o libCA.a
-
-dump_fragment_as_fasta : dump_fragment_as_fasta.o libCA.a
 
 dumpMatePairing : dumpMatePairing.o libCA.a
 
