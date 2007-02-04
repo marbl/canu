@@ -90,9 +90,9 @@ ifeq ($(OSTYPE), FreeBSD)
   CXX              = g++
   ARCH_CFLAGS      = -DNEEDXDRUHYPER -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads 
   ifeq ($(BUILDDEBUG), 1)
-    ARCH_CFLAGS   += -g
+    ARCH_CFLAGS   += -g -Wstrict-prototypes
   else
-    ARCH_CFLAGS   += -O3
+    ARCH_CFLAGS   += -O3 -Wstrict-prototypes
   endif
   ARCH_LDFLAGS    += -llthread -llgcc_r
   ARCH_INC         = /usr/local/include /usr/X11R6/include
