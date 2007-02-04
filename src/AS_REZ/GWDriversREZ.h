@@ -250,127 +250,31 @@ TO DO:
 
  **********************************************************************/
 
-/*********************************************************************
-   CVS_ID: $Id: GWDriversREZ.h,v 1.4 2005-03-22 19:49:21 jason_miller Exp $
- *********************************************************************/
 
 #ifndef GWDRIVERS_REZ_H
 #define GWDRIVERS_REZ_H
 
-//
-// constants for testing the GapWalker (to be removed at some point)
-//
-#define WALK_BEGIN_POS     1090000   
-// position for testing
-#define WALK_END_POS       1170000   
-// "
-#define WALK_BEGIN_S_ID          8   
-// left scaffold (to test the walker)
-#define WALK_END_S_ID            6   
-// right scaffold (to test the walker)
-#define WALK_BEGIN_CID          50   
-// begin chunk id
-#define WALK_END_CID            60   
-// end chunk id
-#define ANNOTATE_CONFIRMING_PATH 0   
-// set this to 1 to run the path confirmation on CIedges
-#define CHECK_MULTIPLE_USE       0   
-// set this to 1 to check if chunk happen to be used in multiple paths
-
-#define LOW_BAYESIAN_THRESHOLD  0.3
-#define HIGH_BAYESIAN_THRESHOLD 1.0
 #define SWITCH_THRESHOLD 2000
 
-#define BAC_WALKING_THRESHOLD  0.3
-
-#define CHECKPOINT_DISTANCE 10000000    
-// this is the number of basepairs we have inspected in scaffolds before
-// gapwalking issues another checkpoint
-
-
-typedef  struct
-{
-  int  scaff_id;
-  int  scaff_length;
-}  Scaffold_Size_t;
-
-int Compare_Scaff_Size(const void *e1, const void *e2);
-// 
-//
-// protos
-//
-
-//
 // main Walker function. it calls the appropriate function given the
 // <level> as input.  The debug information are stored in "*.gwlog"
 //
 // The levels > 5 are experimental
-//
-
-//
-// the main biconnected components function
-//
-// it will returns the number of chunks inserted
-// (when the implementation is finished)
-//
-int Biconnected_Components(float (*)(CIEdgeT *, CDS_CID_t));
 
 
-//
-// the main intrascaffold gap walking
-//
-// void Intra_Scaffold_Path_Finding(float (*)(CIEdgeT *, CDS_CID_t), float qt, int startWalkFrom, int bac_walking);
+//  Used in FbacREZ.c too.
 void Intra_Scaffold_Path_Finding( int startWalkFrom,
                                   double gapSizeStdDevs, 
                                   int doSmallContigRemoval,
                                   int trimScaffoldEnds);
 
-//
-// the main interscaffold gap walking
-//
+
 void Inter_Scaffold_Path_Finding(void);
+void Inter_Scaffold_Analysis(void);
 
-void Inter_Scaffold_Analysis();
-
-// a helper function for walking
 void ComputeGapStatisitics(void);
 
-//
-// Compute the Dijkstra's shortest path: a_cid is the source, b_cid is the
-// sink. The subgraph is obtained selecting the chunks in the
-// interval [begin_pos,end_pos]
-// 
-void Test_Walker0(int32, int32, CDS_CID_t, CDS_CID_t,
-		  int (*)(ChunkInstanceT *, chunk_subgraph *, int32, int32),
-		  float (*)(CIEdgeT *, CDS_CID_t));
 
-//
-// Test the gap walker between two scaffold
-//
-// note: Inter_Scaffold_Gap_Walker() is not done yet
-//
-void Test_Walker1(CDS_CID_t, CDS_CID_t,
-		  float (*)(CIEdgeT *, CDS_CID_t));
-
-//
-// Test the walker selecting all the chunks between <begin_pos> and
-// <end_pos> and trying to find a path
-//
-void Test_Walker2(int32, int32, CDS_CID_t, CDS_CID_t, int,
-		  int (*)(ChunkInstanceT *, chunk_subgraph *, int32, int32),
-		  float (*)(CIEdgeT *, CDS_CID_t));
-
-//
-// collect various statistical measures on the chunks,
-// like outdegree, number of unique chunk reachable
-//
-void Test_Walker3(int32, int32,
-		  int (*)(ChunkInstanceT *, chunk_subgraph *, int32, int32),
-		  float (*)(CIEdgeT *, CDS_CID_t));
-
-//
-// Compute coordinates for chunks found walking across gaps 
-void Compute_Tentative_Position(chunk_subgraph *, CDS_CID_t, CDS_CID_t);
 
 // 
 // This function update the scaffolds by filling the appropriate
@@ -379,6 +283,7 @@ void Compute_Tentative_Position(chunk_subgraph *, CDS_CID_t, CDS_CID_t);
 // RebuildSEdges is TRUE then we will rebuild SEdges. if the flag
 // ChiSquare is TRUE then we will compute the ChiSquare test at
 // each scaffold. returns the number of inserted chunks
+
 int Update_Scaffold_Graph
     (ScaffoldGraphT *, Scaffold_Fill_t *, int, int, int,
      int copyAllOverlaps, int, Kind_Of_Fill_t);
@@ -411,6 +316,6 @@ typedef struct ScaffoldEnd
 	  int rightIidTrend;   // tracks whether the locale iids are increasing or decreasing
 } ScaffoldEndT;
 
-CIScaffoldT* CreateNewScaffold();
+CIScaffoldT* CreateNewScaffold(void);
 
 #endif

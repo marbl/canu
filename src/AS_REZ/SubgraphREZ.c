@@ -34,7 +34,7 @@
  **********************************************************************/
 
 
-static char fileID[] = "$Id: SubgraphREZ.c,v 1.7 2006-11-14 19:58:23 eliv Exp $";
+static char fileID[] = "$Id: SubgraphREZ.c,v 1.8 2007-02-04 09:30:47 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -56,7 +56,6 @@ static char fileID[] = "$Id: SubgraphREZ.c,v 1.7 2006-11-14 19:58:23 eliv Exp $"
 #include "UtilsREZ.h"
 #include "CommonREZ.h"
 #include "GapWalkerREZ.h"
-#include "BccREZ.h"
 #include "SubgraphREZ.h"
 #include "FbacREZ.h"
 //

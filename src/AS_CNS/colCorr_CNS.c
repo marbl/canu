@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: colCorr_CNS.c,v 1.6 2007-02-03 13:01:02 brianwalenz Exp $";
+static char CM_ID[] = "$Id: colCorr_CNS.c,v 1.7 2007-02-04 09:30:45 brianwalenz Exp $";
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -27,17 +27,14 @@ static char CM_ID[] = "$Id: colCorr_CNS.c,v 1.6 2007-02-03 13:01:02 brianwalenz 
 #include <assert.h>
 
 #include "AS_global.h"
+#include "AS_UTL_Var.h"
+#include "PrimitiveVA_MSG.h"
 
-#include "MicroHetREZ_test3.h"
-#include "MicroHetInterfaceREZ_test3.h"
+//#include "UtilsREZ.h"
+#include "MicroHetREZ.h"
 
 #include "colCorr_CNS.h"
 #include "Array_CNS.h"
-
-#include "UtilsREZ.h"
-#include "AS_UTL_skiplist.h"
-#include "AS_UTL_Var.h"
-#include "PrimitiveVA_MSG.h"
 
 #undef DEBUG_CORR
 //#define DEBUG_CORR 1

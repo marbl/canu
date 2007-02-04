@@ -34,7 +34,7 @@
  **********************************************************************/
 
 
-static char fileID[] = "$Id: GWDriversREZ.c,v 1.7 2006-11-14 19:58:22 eliv Exp $";
+static char fileID[] = "$Id: GWDriversREZ.c,v 1.8 2007-02-04 09:30:45 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <assert.h>
@@ -60,7 +60,6 @@ static char fileID[] = "$Id: GWDriversREZ.c,v 1.7 2006-11-14 19:58:22 eliv Exp $
 #include "UtilsREZ.h"
 #include "CommonREZ.h"
 #include "GapWalkerREZ.h"
-#include "BccREZ.h"
 #include "SubgraphREZ.h"
 #include "ConsistencyChecksREZ.h"
 #include "GWDriversREZ.h"
@@ -76,12 +75,61 @@ char
 FILE
 * gwlogfp = NULL;
 
-//
-// main Walker functions (called in AS_CGW/AS_CGW_main.c)
-//
 
 
-long BayesianComputations=0;
+
+
+
+
+
+//
+// constants for testing the GapWalker (to be removed at some point)
+//
+#define WALK_BEGIN_POS     1090000   
+// position for testing
+#define WALK_END_POS       1170000   
+// "
+#define WALK_BEGIN_S_ID          8   
+// left scaffold (to test the walker)
+#define WALK_END_S_ID            6   
+// right scaffold (to test the walker)
+#define WALK_BEGIN_CID          50   
+// begin chunk id
+#define WALK_END_CID            60   
+// end chunk id
+#define ANNOTATE_CONFIRMING_PATH 0   
+// set this to 1 to run the path confirmation on CIedges
+#define CHECK_MULTIPLE_USE       0   
+// set this to 1 to check if chunk happen to be used in multiple paths
+
+#define LOW_BAYESIAN_THRESHOLD  0.3
+#define HIGH_BAYESIAN_THRESHOLD 1.0
+
+#define BAC_WALKING_THRESHOLD  0.3
+
+#define CHECKPOINT_DISTANCE 10000000    
+// this is the number of basepairs we have inspected in scaffolds before
+// gapwalking issues another checkpoint
+
+
+typedef  struct
+{
+  int  scaff_id;
+  int  scaff_length;
+}  Scaffold_Size_t;
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 int Walk_Gaps(Global_CGW * data,
@@ -528,17 +576,6 @@ void Intra_Scaffold_Path_Finding( int startWalkFrom, double gapSizeStdDevs, int 
 		basesInGapsBeforeWalking += basesInThisGap;
 	}	
 
-	if (0)
-	  for ( i = 0; i < icnt; i++)
-	  {
-		ChunkInstanceT *chunkTemp;
-		
-		fprintf( stderr, "checking bac consistency for chunk %d\n", chunkArray[i]);
-		chunkTemp = GetGraphNode(ScaffoldGraph->ContigGraph, chunkArray[i]);
-		if (chunkTemp == NULL)
-		  assert(0);
-		isFbacConsistent( chunkTemp );	  
-	  }
 
 #if DEBUG_GAP_WALKER > -1
 	fprintf( stderr, "gap to walk: lchunk: %d, rchunk: %d\n", -1, -1);
@@ -888,27 +925,8 @@ void Inter_Scaffold_Analysis(void)
   int numCommonLocales;
   NodeCGW_T *contig1, *contig2;
   int i, contig1GapEnd, contig2GapEnd;
-#if 0
-  int numScaffolds;
-  int *scaffoldLocalesAEnd, *scaffoldLocalesBEnd;
-  int newScaffoldCount, maxNewScaffolds = 1000;
-#endif
   
   fprintf(stderr,"------------------------------: interscaffold gap walking running\n");
-
-#if 0  
-  findScaffoldLocales( scaffoldLocalesAEnd, scaffoldLocalesBEnd, maxNewScaffolds );
-
-  newScaffoldCount = 0;
-  merging = TRUE;  
-  while (merging && 0)
-  {
-
-	// left off reworking routine here
-
-	numScaffolds = GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph);
-  }
-#endif  
 
 
   for (sid1 = 0; sid1 < GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph); sid1++) 
@@ -1100,7 +1118,7 @@ void Inter_Scaffold_Analysis(void)
   }
 }
 
-#if 1
+
 // Outline for Inter_Scaffold_Walking (2/27/01 MJF)
 // 1. Step through all scaffolds finding locales within 2000bp of end
 // 2. Store this information by BAC, sorted by iid
@@ -1714,289 +1732,8 @@ CIScaffoldT* CreateNewScaffold(void)
   return newScaffold;
 }
 
-#endif
-
-int Biconnected_Components(float (* quality)(CIEdgeT *, CDS_CID_t)) {
-  //
-  // the main biconnected components function
-  //
-  // it will returns the number of chunks inserted
-  // (when the implementation will be finished)
-  //
-  chunk_subgraph
-    * s;
-  bcc_array
-    * b;
-  int
-    inserted;
-
-  fprintf(stderr,
-		  "------------------------------: biconnected components running\n");
-
-  assert(quality != NULL);
-
-  //
-  // start the times
-  //
-  StartTimerT(&GlobalData->BccTimer);
-
-  //
-  // create the subgraph of all the nodes
-  // in the chunk graph
-  //
-  s = Build_Subgraph(NULL, -1, -1, 0, Is_UU, //All_Chunk_Graph_Nodes, 
-		     Is_Not_Bogus_Not_Guide_Not_Pure_Overlap);
-  AssertPtr(s);
-  assert(s->size > 0);
-  
-  //
-  // find the biconnected components
-  //
-  DFS(s,
-	  Is_Not_Bogus_Not_Guide_Has_Weight_2_Or_More);
-  // Is_Not_Bogus_Not_Guide_Not_Pure_Overlap);
-
-  //
-  // compute the bcc_array. The bcc_array is a data structure where you
-  // can index by component and get the chunk id of all the CI that
-  // belong to that component
-  //
-  b = Compute_Bcc_Array(s);
-
-  //
-  // print the biconnected components into a *.bcc.cam file
-  //
-  Print_Cam_BCC(b,s);
-
-  //
-  // scan the biconnected components: prints the bcc on the .gwlog
-  // file, compute the tentative positions (to be done), insert the chunks
-  // in the scaffold (to be done)
-  //
-  inserted = Scan_Components(s, b, quality,
-                             Is_Not_Bogus_Not_Guide_Has_Weight_2_Or_More);
-  //		             Is_Not_Bogus_Not_Guide_Not_Pure_Overlap);
-  //Check_Edge_Distance(s, Is_Not_Bogus_Not_Guide_Has_Weight_2_Or_More);
-
-  fprintf (stderr, 
-		   "             Actually inserted: %7d chunks\n",
-		   inserted);
-
-  //
-  // give the memory back
-  //
-  Free_Subgraph(s);
-
-  fprintf(stderr,
-		  "------------------------------: biconnected components done\n");
-
-  //
-  // start the times
-  //
-  StopTimerT(&GlobalData->BccTimer);
-
-  //
-  // in the future it should return the number of chunks
-  // placed
-  //
-  return 0;
-}
 
 
-
-
-void Test_Walker0(int32 begin_pos,
-                  int32 end_pos,
-                  CDS_CID_t a_cid,
-                  CDS_CID_t b_cid,
-                  int (* filter_nodes)(ChunkInstanceT *, chunk_subgraph *, int32, int32),
-                  float (* quality)(CIEdgeT *, CDS_CID_t)) {
-  //
-  // Compute the shortest path: a_cid is the source, b_cid is the
-  // sink. The subgraph is obtained selecting the chunks in the
-  // interval [begin_pos,end_pos]
-  // 
-  chunk_subgraph
-    * s;
-
-  fprintf(stderr,
-		  "* Test_Walker0 running\n");
-
-  assert(quality != NULL);
-
-  //
-  // create the subgraph
-  //
-  fprintf(stderr,
-		  "* Build Subgraph\n");
-  s = Build_Subgraph(NULL, begin_pos, end_pos, 0, filter_nodes,
-					 Is_Not_Bogus_Not_Guide);
-  assert(s != NULL);
-  
-  //
-  // Find and print the shortest path
-  //
-  fprintf(stderr,
-		  "* Shortest Path\n");
-  Shortest_Path(s, a_cid, b_cid, quality);
-
-  //
-  // give the memory back
-  //
-  Free_Subgraph(s);
-
-  fprintf(stderr,
-		  "* Test_Walker0 done\n");
-}
-
-
-
-void Test_Walker1(CDS_CID_t begin_scaff,
-                  CDS_CID_t end_scaff,
-                  float (* quality)(CIEdgeT *, CDS_CID_t)) {
-  //
-  // Test the gap walker between two scaffold
-  //
-  // note: Inter_Scaffold_Gap_Walker() is not done yet
-  //
-
-  fprintf(stderr,"* Test_Walker1 running\n");
-
-  assert(quality != NULL);
-
-  //
-  // try to walk the gap
-  //
-  if (Inter_Scaffold_Gap_Walker(begin_scaff,
-								end_scaff,
-								quality))
-    fprintf(stderr,
-			"* Found an edge between scaffold %d and scaffold %d\n",
-			begin_scaff,
-			end_scaff);
-
-  fprintf(stderr,
-		  "* Test_Walker 1 done\n");
-}
-
-
-
-void Test_Walker2(int32 begin_pos,
-                  int32 end_pos,
-                  CDS_CID_t begin_cid,
-                  CDS_CID_t end_cid,
-                  int end,
-                  int (* filter_nodes)(ChunkInstanceT *, chunk_subgraph *, int32, int32),
-                  float (* quality)(CIEdgeT *, CDS_CID_t)) {
-  //
-  // Test the walker selecting all the chunks between <begin_pos> and
-  // <end_pos> and trying to find a path
-  //
-  chunk_subgraph
-    * s;
-  LengthT
-    gap = {0.0, 0.0},
-			dist = {0.0, 0.0};
-
-			fprintf(stderr,
-					"* Test_Walker2 running\n");
-
-			assert(quality != NULL);
-
-  //
-  // create the subgraph
-  //
-			fprintf(stderr,
-					"* Build Subgraph\n");
-			s = Build_Subgraph(NULL, begin_pos, end_pos, 0, filter_nodes, Is_Not_Bogus);
-			assert(s != NULL);
-
-			//
-			// initialize the gap and the distance
-			//
-			gap.mean = 1000000000000.0; // should be enough to avoid the pruning due to the distance
-			gap.variance = 0.0;
-			dist.mean = 0;
-			dist.variance = 0.0;
-
-  //
-  // now visit the subgraph <s>
-  //
-			fprintf(stderr,
-					"* Visit\n");
-			Visit_Subgraph(s, begin_cid, end_cid, end, &gap, quality, Stop_At_The_Other_End);
-  
-  //
-  // give the memory back
-  //
-			Free_Subgraph(s);
-
-			fprintf(stderr,
-					"* Test_Walker2 done\n");
-}
-
-
-
-void Test_Walker3(int32 begin_pos,
-                  int32 end_pos,
-                  int (* filter_nodes)(ChunkInstanceT *, chunk_subgraph *, int32, int32),
-                  float (* quality)(CIEdgeT *, CDS_CID_t)) {
-  //
-  // collect various statistical measures
-  //
-  chunk_subgraph
-    * s;
-
-  fprintf(stderr,
-		  "* Test_Walker3 running\n");
-
-  //
-  // create the subgraph
-  //
-  fprintf(stderr,
-		  "* Build Subgraph\n");
-  s = Build_Subgraph(NULL, begin_pos, end_pos, 0, filter_nodes,
-					 Is_Not_Bogus_Not_Guide);
-
-# if 0
-  {
-    //
-    // print the .dot file
-    //
-    FILE *
-      dot_file;
-    char
-      filename[256];
-    
-    sprintf(filename, "%s.dot", GW_Filename_Prefix);
-    dot_file = file_open(filename,"w");
-    assert(dot_file != NULL);
-    Print_Dot_Subgraph(s, dot_file, filename,
-					   Is_Not_Bogus_Not_Guide_Has_Weight_2_Or_More);
-    fclose(dot_file);
-  }
-# endif
-
-  fprintf(stderr,
-		  "* Collecting stats\n");
-
-# if 0
-  Compute_Outdegree(s);
-# endif
-
-# if 0
-  Check_Edge_Distance(s, Is_Not_Guide_Not_Overlap);
-# endif
-
-  Compute_Path_Outdegree(s);
-
-  //
-  // give the memory back
-  //
-  Free_Subgraph(s);
-
-  fprintf(stderr,"* Test_Walker3 done\n");
-}
 
 #define BASE_CUTOFF 50
 

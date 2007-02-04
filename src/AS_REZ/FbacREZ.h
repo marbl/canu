@@ -18,23 +18,6 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/**********************************************************************
-
-        Module:  FbacREZ.h
-
-   Description:  Declaration of common data types for FbacREZ.c
-
-    Programmer:  M. Flanigan
-
-       Written:  May 4, 2000
-
-  Last Revised:  
-
- **********************************************************************/
-
-/*********************************************************************
-   CVS_ID: $Id: FbacREZ.h,v 1.4 2005-03-22 19:49:21 jason_miller Exp $
- *********************************************************************/
 
 #ifndef FBAC_REZ_H
 #define FBAC_REZ_H
@@ -57,20 +40,6 @@ typedef enum {
 
 int contains_fbac(NodeCGW_T* n);
 static int buildLocale;
-
-/* returns   
-   BAC_CONSISTENT,
-   if the node (Chunk instance or Contig) 
-   is correctly covered by bac fragments, 
-   BAC_INCONSISTENT if there is a discrapency
-   NO_BACS if the chunk has no NO_BACS at all */
-BacStatusREZ isFbacConsistent(NodeCGW_T* node);
-
-// returns TRUE if the edge connects two chunks that fullfill
-// is_suitable_fbac_chunk (e.g. is_covered_by_fbac_ or contains_fbac
-// and if the indicated overlap of this edge is consistent
-// with the locpos fields of the chunks
-int edge_is_fbac_consistent(EdgeCGW_T* n);
 
 
 typedef struct fragmentInfo 
@@ -234,7 +203,7 @@ void GetFragmentPositionInScaffoldFromCI(CIFragT *frag,
 
 void localeCam(char *);
 
-void localeSimCam();
+void localeSimCam(void);
 
 void GetContigPositionInScaffold(ChunkInstanceT *contig,
                                  int *left_end, int *right_end, 

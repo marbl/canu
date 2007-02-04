@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.10 2007-02-03 07:06:26 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.11 2007-02-04 09:30:45 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include <assert.h>
@@ -1412,7 +1412,6 @@ OverlapMesg *ComputeCanonicalOverlapWithTrace(GraphCGW_T *graph,
 
 
 
-extern long BayesianComputations;
 
 
 /************************************************************************/
@@ -1511,7 +1510,6 @@ int LookupQualityOverlap(GraphCGW_T *graph,
         // set the quality and the bit in the ChunkOverlapCheckT
         // we do this with and without quality realigning
         compute_bayesian_quality(&IFG1,&IFG2,&omesgBuffer,0,&length,fp);
-        BayesianComputations++;
 
         // Realign it using quality values
         normalQuality = omesgBuffer.quality;

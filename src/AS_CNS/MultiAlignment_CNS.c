@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.122 2007-02-03 07:06:27 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.123 2007-02-04 09:30:45 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -96,20 +96,21 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.122 2007-02-03 07:06:27 bri
 
 #define ZERO 0 // The integer form of NULL.
 
+#include "AS_global.h"
 #include "AS_UTL_Var.h"
-#include "UtilsREZ.h"
 #include "AS_UTL_HashCommon.h"
 #include "AS_UTL_PHash.h"
+#include "AS_UTL_alloc.h"
 #include "AS_MSG_pmesg.h"
 #include "PrimitiveVA_MSG.h"
+
 #include "Globals_CNS.h"
 #include "PublicAPI_CNS.h"
 #include "MultiAlignment_CNS.h"
 #include "dpc_CNS.h"
 #include "Array_CNS.h"
-#include "UtilsREZ.h"
-#include "MicroHetREZ_test3.h"
-#include "AS_UTL_alloc.h"
+
+#include "MicroHetREZ.h"
 
 extern int MaxBegGap;       // [ init value is 200; this could be set to the amount you extend the clear
                             // range of seq b, plus 10 for good measure]

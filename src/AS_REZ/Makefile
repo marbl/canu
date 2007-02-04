@@ -30,39 +30,31 @@ LIN_ALG_LIB = libAS_LIN.a
 #LIN_ALG_LIB = libdxml.so
 #endif
 
-LIBSOURCES = ConsistencyChecksREZ.c \
-             UtilsREZ.c \
-             GapFillREZ.c \
-             UpdateREZ.c \
-             GapWalkerREZ.c \
-             StatisticsREZ.c \
-             BccREZ.c \
+LIBSOURCES = \
+             ConsistencyChecksREZ.c \
+             FbacREZ.c \
              GWDriversREZ.c \
-             SubgraphREZ.c \
-             ConfirmStones.c \
+             GapFillREZ.c \
+             GapWalkerREZ.c \
              GreedyOverlapREZ.c \
-             MicroHetREZ_test3.c \
-             MicroHetScoreREZ_test3.c \
-             MicroHetInterfaceREZ_test3.c \
-             MicroHetPartitionsREZ_test3.c \
-             FbacREZ.c
+             StatisticsREZ.c \
+             SubgraphREZ.c \
+             UpdateREZ.c \
+             UtilsREZ.c \
+             MicroHetREZ.c
 
-SOURCES = MicroHetIUMREZ_test3.c MicroHetIUMdiffsPrint.c batchify.c chunk_analyze.c OverlapChunks.c $(LIBSOURCES)
-
-SCRIPTS = get-repchunk print-ali extract-uoms.pl extract-lsf-uoms.pl concat-uoms.pl
+SOURCES = MicroHetIUM.c batchify.c chunk_analyze.c $(LIBSOURCES)
 
 OBJECTS    = $(SOURCES:.c=.o) 
 LIBOBJECTS = $(LIBSOURCES:.c=.o) 
 
 LIBRARIES  = libAS_REZ.a libCA.a
 
-PROGS = batchify chunk_analyze microhet-test3 MicroHetIUMdiffsPrint
+PROGS = batchify chunk_analyze MicroHetIUM
 
 include $(LOCAL_WORK)/src/c_make.as
 
-install: $(SCRIPTS)
-	@chmod ugo+x $(SCRIPTS)
-	@cp -f $(SCRIPTS) $(LOCAL_BIN)
+install:
 
 all: $(OBJECTS) $(LIBRARIES) $(PROGS) install
 
@@ -71,10 +63,8 @@ libAS_REZ.a: $(LIBOBJECTS)
 libCA.a: $(LIBOBJECTS)
 
 
-batchify:  batchify.o libAS_MSG.a libAS_UTL.a
+batchify:              batchify.o libAS_MSG.a libAS_UTL.a
 
-chunk_analyze:  chunk_analyze.o libAS_MSG.a libAS_UTL.a
+chunk_analyze:         chunk_analyze.o libAS_MSG.a libAS_UTL.a
 
-microhet-test3 : MicroHetIUMREZ_test3.o libCA.a
-
-MicroHetIUMdiffsPrint : MicroHetIUMdiffsPrint.o libCA.a
+MicroHetIUM:           MicroHetIUM.o libCA.a

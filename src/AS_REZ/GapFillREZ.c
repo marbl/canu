@@ -34,7 +34,7 @@
 *
 *************************************************/
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.17 2006-11-14 19:58:22 eliv Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.18 2007-02-04 09:30:45 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -63,10 +63,8 @@ static char fileID[] = "$Id: GapFillREZ.c,v 1.17 2006-11-14 19:58:22 eliv Exp $"
 #include "CommonREZ.h"
 #include "ConsistencyChecksREZ.h"
 #include "GapWalkerREZ.h"
-#include "BccREZ.h"
 #include "SubgraphREZ.h"
 #include "GWDriversREZ.h"
-#include "UpdateREZ.h"
 #include "RepeatRez.h"
 
 // Temporary to show memory allocation

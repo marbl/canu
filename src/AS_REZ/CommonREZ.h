@@ -18,9 +18,6 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/*********************************************************************
-CVS_ID:  $Id: CommonREZ.h,v 1.4 2005-03-22 19:49:21 jason_miller Exp $
- *********************************************************************/
 
 #ifndef COMMONREZ_H
 #define COMMONREZ_H
@@ -28,12 +25,10 @@ CVS_ID:  $Id: CommonREZ.h,v 1.4 2005-03-22 19:49:21 jason_miller Exp $
 #include "DataTypesREZ.h"
 #include "dpc_CNS.h"
 
-
 #define  MAKE_CAM_FILE         0
   // if  1  will create celamy file  rez.cam
 #define  SIMULATED_DATA        CHECK_CELSIM_COORDS
   // if  1  assume celsim coordinates and info are available
-
 
 #define  NUM_COLOURS           14
 
@@ -83,14 +78,6 @@ int IsSurrogate(ChunkInstanceT * chunk);
 
 int  Is_Unique
     (ChunkInstanceT *);
-
-#if  0
-Overlap *  OverlapSequences
-    (char * seq1, char * seq2, ChunkOrientationType orientation, 
-     int min_ahang, int max_ahang, double erate, double thresh, int minlen,
-     CompareOptions what,
-     Overlap *(*COMPARE_FUNC)(COMPARE_ARGS));
-#endif
 
 void  Print_Fill_Info
     (FILE *, Scaffold_Fill_t *);

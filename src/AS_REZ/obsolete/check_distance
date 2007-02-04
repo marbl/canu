@@ -1,0 +1,230 @@
+static void Check_Distance(chunk_subgraph * s,
+			   bcc_array * b,
+			   int32 source,
+			   int32 bcc,
+                           float (* quality)(CIEdgeT *, int32)) {
+  //
+  // compute the shortest distance from all the non-uniques in the
+  // bcc and print it
+  //
+  int
+    cid,
+    id;
+  ChunkInstanceT
+    * from = GetGraphNode(ScaffoldGraph->RezGraph, source),
+    * to;
+  //
+  // build a subgraph on the <bcc> component
+  //
+  chunk_subgraph
+    * bcc_s = Build_Subgraph_Bcc(b, bcc, Is_Not_Bogus);
+
+  assert(from != NULL);
+  assert(bcc_s != NULL);
+
+# if DEBUG_GAP_WALKER > 1
+  fprintf(gwlogfp,
+	  "-> Check_Distance on %d bcc %d\n",source,bcc);
+# endif
+
+  //
+  // run shortest path from <source>
+  // 
+  Dijkstra(bcc_s, source, source, ALL_END, quality);
+
+  //
+  // scan each chunk in the bcc
+  //
+  for (id = 0; id < b[bcc].size; id++) {
+    cid = b[bcc].cid[id];
+    assert(bcc_s->table[cid] != NULL);
+    to = GetGraphNode(ScaffoldGraph->RezGraph, cid);
+#   if DEBUG_GAP_WALKER > 1
+    fprintf(gwlogfp,
+            "shortest distance from %d:[%d,%d] to %d:[%d,%d] is %5.2f, var %5.2f, d %5.2f, d_neck %5.2f\n",
+            source,
+            from->aEndCoord - from->aEndCoord,
+            from->bEndCoord - from->aEndCoord,
+            cid,
+            to->aEndCoord - from->aEndCoord,
+            to->bEndCoord - from->aEndCoord,
+            bcc_s->table[cid]->distance.mean,
+            bcc_s->table[cid]->distance.variance,
+            bcc_s->table[cid]->d,
+            bcc_s->table[cid]->d_neck);
+#   endif
+  }
+
+  //
+  // we don't need the subgraph anymore
+  //
+  Free_Subgraph(bcc_s);
+}
+
+
+
+
+
+Dijkstra(chunk_subgraph * s,
+	      CDS_CID_t source_id,
+	      CDS_CID_t sink_id,
+	      int end,
+	      float (* quality)(CIEdgeT *, CDS_CID_t)) {
+  //
+  // Dijkstra's single source shortest path (see, e.g., CLR page 527)
+  //
+  // The substantial difference is the definition of path lenght that
+  // we assume as the maximum edge cost on the edges of the path
+  // (bottleneck distance); we break ties by using the standard
+  // distance (sum of edges weights on the path)
+  //
+  // NOTE: this version is directional, that is if enters a chunk
+  // from the A end it goes out from the B end and viceversa
+  //
+  // The sink is used only to avoid to pick the trivial path source->sink
+  //
+  int
+    i,
+    k,
+    u = -1,
+    v,
+    id,
+    new_u = -1,
+    num_nodes;
+  double
+    q,
+    min;
+  CIEdgeT
+    * edge;
+  ChunkInstanceT 
+    * v_chunk;
+  assert(s != NULL);
+  assert(quality != NULL);
+
+  //
+  // initialization
+  //
+  for (i = 0; i < s->size; i++) {
+    s->node[i].d = FLT_MAX;
+    s->node[i].d_neck = FLT_MAX;
+    s->node[i].distance.mean = 0.0;
+  }
+  assert(source_id < s->max);
+  assert(s->table[source_id] != NULL);
+  s->table[source_id]->d = 0.0;
+  s->table[source_id]->d_neck = 0.0;
+  s->table[source_id]->end = end;
+  Clear_All_Path_Bit(s);
+
+# if DEBUG_GAP_WALKER > 2
+  fprintf(gwlogfp,"** initialized ok\n");
+# endif
+
+  //
+  // repeat for all the nodes
+  //
+  num_nodes = s->size;
+  while (num_nodes > 0) {
+#   if DEBUG_GAP_WALKER > 2
+    fprintf(gwlogfp, "\nnum_nodes = %d \n",
+	    num_nodes);
+#   endif
+
+    //
+    // find the minimum in the vertices not marked
+    //
+    min = FLT_MAX;
+    //new_u = u;
+    for (i = 0; i < s->size; i++)
+      if ((! s->node[i].path_bit) && (s->node[i].d < min)) {
+	min = s->node[i].d;
+	new_u = s->node[i].cid;
+      }
+
+    //
+    // avoid looping
+    //
+    if (u == new_u)
+      break;
+    u = new_u;
+
+#   if DEBUG_GAP_WALKER > 2
+    fprintf(gwlogfp,"At node u = %d, mindist = %5.2f, end = %d\n",
+	    u,
+	    min,
+	    s->table[u]->end);
+#   endif
+
+    //
+    // mark the node <u>
+    //
+    Set_Path_Bit(s, u);
+    num_nodes--;
+
+    //
+    // scan the adjancency of <u>
+    //
+    for (k = start_index[s->table[u]->end]; k < end_index[s->table[u]->end]; k++)
+      for (id = 0; id < s->table[u]->num_edges[orient[k]]; id++) {
+	//
+	// get the edge
+	//
+	edge = s->table[u]->edge[orient[k]][id];
+	assert(edge != NULL);
+	//
+	// get the other end
+	//
+	if (u == edge->idA)
+	  v = edge->idB;
+	else
+	  v = edge->idA;
+	v_chunk = GetGraphNode(ScaffoldGraph->RezGraph, v);
+	assert(v_chunk != NULL);
+
+	//
+	// if trivial path ... get the next edge
+	// 
+	if ((u == source_id) && (v == sink_id))
+	  continue;
+
+	//
+	// avoid self loops (if any)
+	//
+	if (v == u)
+	  continue;
+	
+#       if DEBUG_GAP_WALKER > 3
+	fprintf(gwlogfp,"edge from %d to %d (quality %5.2f) orientation %s ",
+		u,
+		v,
+		quality(edge,u),
+	        Orientation_As_String(GetEdgeOrientationWRT(edge, u)));
+#       endif
+
+	//
+        // now .... relax the node <v> where the
+	// path length is max edge cost on the edges of the path
+	//
+        assert(s->table[v] != NULL);
+	q = quality(edge, u);
+
+	//
+	// if the new d_neck distance is better, I choose the edge
+	// if they are equal I break the ties with the standard sum of weights
+	//
+	if ((s->table[v]->d_neck > MAX(s->table[u]->d_neck, q)) ||
+	    ((s->table[v]->d_neck == MAX(s->table[u]->d_neck, q)) &&
+	     (s->table[v]->d > s->table[u]->d + q))) {
+	  s->table[v]->end = new_end[orient[k]];
+	  s->table[v]->d_neck = MAX(s->table[u]->d_neck, q);
+	  s->table[v]->d = s->table[u]->d + q;
+	  s->table[v]->path_parent = u;
+	  s->table[v]->best_edge = edge;
+	  s->table[v]->distance.mean = s->table[u]->distance.mean +
+	    edge->distance.mean + v_chunk->bpLength.mean;
+	  s->table[v]->distance.variance = s->table[u]->distance.variance +
+	    edge->distance.variance + v_chunk->bpLength.variance;
+	}
+    }
+  }
+}

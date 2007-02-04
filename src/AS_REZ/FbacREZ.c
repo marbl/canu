@@ -34,7 +34,7 @@
 
  **********************************************************************/
 
-static char fileID[] = "$Id: FbacREZ.c,v 1.9 2006-11-14 19:58:22 eliv Exp $";
+static char fileID[] = "$Id: FbacREZ.c,v 1.10 2007-02-04 09:30:45 brianwalenz Exp $";
 
 #define FBACDEBUG 2
 
@@ -402,141 +402,9 @@ int getLocalesInNode(NodeCGW_T* node, localeInfoT** localeInfo, int end,
   return numLocales;
 }
 
-#if 1
-/* returns   
-   FBAC_CONSISTENT,
-   if the node (Chunk instance or Contig) 
-   is correctly covered by fbac fragments, 
-   FBAC_INCONSISTENT if there is a discrapency
-   NO_FBACS if the chunk has no NO_FBACS at all */
-
-BacStatusREZ isFbacConsistent(NodeCGW_T* node)
-{
-  int i;
-  MultiAlignT *ma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, node->id, 0); 
-  // MultiAlignT *ma = GetMultiAlignInStore(ScaffoldGraph->RezGraph->maStore, node->id);
-  int32 numFrags;
-  BacStatusREZ ret = BAC_CONSISTENT;
-
-  float nodelength = node->bpLength.mean;
-  IntMultiPos *mp;
-  CIFragT *frag;
-  localeInfoT *locales;
-  int numLocales;
-  fragmentInfoT *fragments;
-  
-  if( !contains_fbac(node) )
-    return NO_BACS;
-  
-  // it doen't matter what end we choose, since going to look over whole node
-  numLocales = getLocalesInNode( node, &locales, A_END, UINT_MAX);
-
-  numFrags = GetNumIntMultiPoss(ma->f_list);
-
-  if (numFrags == 1)
-	return BAC_CONSISTENT;
-
-  fragments = (fragmentInfoT *) malloc (sizeof( fragmentInfoT ) * numFrags);
-  
-  for (i = 0; i < numLocales; i++)
-  {
-	int currentLocale;
-	int fragCnt;
-	int contigDiff, localeDiff, iidDiff;
-	int prevFragIid, prevFrag5pContigPos, prevFrag5pLocalePos;
-	int fragsThisLocale;
-	float localeDist, contigDist;  
-	
-	// should we check if all fbacs from a locale have the same orientation?
-	
-	currentLocale = locales->localeNumber;
-	
-#if FBACDEBUG > 0
-	fprintf( stderr, "\n--------------------------------------------------------\n");
-	fprintf( stderr, "Node with ID %d and length %f and numFrags %d and %d locales\n", 
-			 node->id, nodelength, numFrags, numLocales);
-	fprintf( stderr, "Looking for locale %d\n", currentLocale);
-#endif
-
-	/* in this loop we check whether the scaffold positions are consistent with
-	   the locale positions of the fragments */
-
-	fragsThisLocale = 0;
-	for( fragCnt = 0; fragCnt < numFrags; fragCnt++)
-	{
-	  mp   = GetIntMultiPos(ma->f_list, fragCnt);
-	  frag = GetCIFragT(ScaffoldGraph->CIFrags, (int32) mp->sourceInt);
-	  
-	  // fprintf( stderr, "frag->iid: %d, frag->locale: %d\n", frag->iid, frag->locale);
-
-	  if( frag->locale != currentLocale )
-		continue;
-
-	  fragments[ fragsThisLocale ].fragIid = frag->iid;
-	  fragments[ fragsThisLocale ].frag5pContigPos = (int) frag->contigOffset5p.mean;
-	  fragments[ fragsThisLocale ].frag5pLocalePos = frag->localePos.bgn;
-	  fragsThisLocale++;
-	}
-	
-	qsort( fragments, fragsThisLocale, sizeof(fragmentInfoT), &compFragments);
-
-	localeDist = fabs( fragments[fragsThisLocale - 1].frag5pLocalePos - 
-					   fragments[0].frag5pLocalePos) + 550.0;
-	contigDist = fabs( fragments[fragsThisLocale - 1].frag5pContigPos - 
-					   fragments[0].frag5pContigPos) + 550.0;
-	fprintf( stderr, "max frag iid: %d\n", fragments[fragsThisLocale - 1].fragIid);
-	fprintf( stderr, "min frag iid: %d\n", fragments[0].fragIid);
-	fprintf( stderr, "range: %d, numLocaleFrags: %d, difference: %d, locale dist: %f, contig dist: %f, diff: %f\n", 
-			 fragments[fragsThisLocale - 1].fragIid - fragments[0].fragIid + 1, fragsThisLocale, 
-			 fragments[fragsThisLocale - 1].fragIid - fragments[0].fragIid + 1 - fragsThisLocale,
-			 localeDist, contigDist, fabs( localeDist - contigDist));
-	fprintf( stderr, "100 * diff/locale dist: %.2f\n", 100 * fabs( localeDist - contigDist) / localeDist);
-	
-	for( fragCnt = 1; fragCnt < fragsThisLocale; fragCnt++)
-	{
-	  // find out where this frag is w/respect to the previous frag
-	  iidDiff = abs( fragments[ fragCnt - 1 ].fragIid - fragments[ fragCnt ].fragIid );
-	  contigDiff = abs( fragments[ fragCnt - 1 ].frag5pContigPos - fragments[ fragCnt ].frag5pContigPos );
-	  localeDiff = abs( fragments[ fragCnt - 1 ].frag5pLocalePos - fragments[ fragCnt ].frag5pLocalePos );
-	  
-	  //fprintf( stderr, "for frag iid %d, prevFrag5pContigPos %.2f, prevFrag5pLocalePos: %d\n",
-	  //	   frag->iid, prevFrag5pContigPos, prevFrag5pLocalePos);
-	  
-	  if ( (abs( contigDiff - localeDiff) > 30) ||
-		   iidDiff > 1)
-	  {
-		fprintf( stderr, "contig: %d frag iid: %8d 5p contig: %8d 5p locale: %5d\n", node->id,
-				 fragments[ fragCnt - 1 ].fragIid, fragments[ fragCnt - 1 ].frag5pContigPos,
-				 fragments[ fragCnt - 1 ].frag5pLocalePos);
-		fprintf( stderr, "contig: %d frag iid: %8d 5p contig: %8d 5p locale: %5d diffs: %4d %8d %8d %8d\n",
-				 node->id, fragments[ fragCnt ].fragIid, fragments[ fragCnt ].frag5pContigPos,
-				 fragments[ fragCnt ].frag5pLocalePos, iidDiff, contigDiff, localeDiff, abs( contigDiff - localeDiff));
-		//fprintf( stderr, "diffs \t\t%8d \t\t\t%8d \t\t\t%8d \t%5d\n\n",
-		//	 iidDiff, contigDiff, localeDiff, abs( contigDiff - localeDiff));
-	  }
-	  
-	  // now set up for next frag
-	  prevFragIid = frag->iid;
-	  prevFrag5pContigPos = frag->contigOffset5p.mean;
-	  prevFrag5pLocalePos = frag->localePos.bgn;
-	}	
-	locales = locales->next;
-  }
-  return ret;
-}
-
-#endif
+//#include "obsolete/isFbacConsistent"
 
 
-
-/* returns TRUE if the edge connects two chunks that fullfill
-   is_suitable_fbac_chunk (e.g. is_covered_by_fbac or contains_fbac
-   and if the indicated overlap of this edge is consistent
-   with the locpos fields of the chunks */
-int edge_is_fbac_consistent(EdgeCGW_T* e)
-{
-  return TRUE;
-}
 
 int FindCommonLocales( ContigT * lcontig, int lcontigGapEnd, 
                        ContigT * rcontig, int rcontigGapEnd,

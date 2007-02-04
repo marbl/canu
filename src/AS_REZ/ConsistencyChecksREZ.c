@@ -30,7 +30,7 @@
 
 **********************************************************************/
 
-static char CM_ID[] = "$Id: ConsistencyChecksREZ.c,v 1.6 2006-11-14 19:58:22 eliv Exp $";
+static char CM_ID[] = "$Id: ConsistencyChecksREZ.c,v 1.7 2007-02-04 09:30:45 brianwalenz Exp $";
 
 
 /* ---------------------------------------------------- */
@@ -56,7 +56,6 @@ static char CM_ID[] = "$Id: ConsistencyChecksREZ.c,v 1.6 2006-11-14 19:58:22 eli
 #include "CommonREZ.h"
 #include "UtilsREZ.h"
 #include "GapWalkerREZ.h"
-#include "BccREZ.h"
 #include "SubgraphREZ.h"
 #include "GWDriversREZ.h"
 
@@ -76,6 +75,11 @@ extern int  Global_Debug_Flag;
 /* ---------------------------------------------------- */
 /* static function and variable declaration */
 /* ---------------------------------------------------- */
+
+static void combine_two_distrib(LengthT dist1, LengthT dist2, LengthT *cDist);
+
+static OverlapStatusREZ check_overlap(Gap_Chunk_t cidA, Gap_Chunk_t cidB, 
+                                      int addtoCG, ChunkOverlapCheckT *olap);
 
 static void  Canonicalize
     (CIEdgeT * edge, const Gap_Chunk_t * c1, const Gap_Chunk_t * c2);
@@ -717,7 +721,7 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 
 /* ----------------------------------------------*/
 
-void combine_two_distrib(LengthT dist1, LengthT dist2, LengthT *cDist){
+static void combine_two_distrib(LengthT dist1, LengthT dist2, LengthT *cDist){
   // note that we take the stdDev field instead of directly the variance
   // field, as some LengthT structs have it not set.
 
@@ -749,7 +753,7 @@ void combine_two_distrib(LengthT dist1, LengthT dist2, LengthT *cDist){
 
 /* ----------------------------------------------*/
 
-OverlapStatusREZ check_overlap(Gap_Chunk_t cidA, Gap_Chunk_t cidB, 
+static OverlapStatusREZ check_overlap(Gap_Chunk_t cidA, Gap_Chunk_t cidB, 
 			       int addtoCG, ChunkOverlapCheckT *olap){
   /* We pass as arguments the two Gap_Chunk_t structs that contain
      the assumed positions. 

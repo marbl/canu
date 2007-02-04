@@ -1,0 +1,73 @@
+/* this function compresses shredded fragments from the same location into basically
+   a 1x coverage, such that there are no aritfical microhets */
+static void compress_shredded_frags(int c, int r,  FragStoreHandle frag_store, 
+                               tFragStorePartition *pfrag_store,
+			       char **array, int **id_array, int verbose){
+  int i,j,k;
+  CDS_UID_t l1,l2;
+  uint32 b1,b2;
+  uint32 e1,e2;
+  CDS_IID_t iid1,iid2;
+  FragType t1,t2;
+
+  if(locales == NULL){
+    locales = CreateVA_CDS_UID_t(10000);
+    locbeg = CreateVA_uint32(10000);
+    locend = CreateVA_uint32(10000);
+    fragtype = CreateVA_uint32(10000);
+    input = new_ReadStruct();
+  }
+
+  if(verbose > 0)
+    printf("Alignment has %d columns and %d rows\n",c,r);
+
+  if( verbose > 0 )
+    for(i=0; i<c; i++)
+      for(j=0; j<r; j++)
+	printf("first loop (%d,%d) iid1=%d\n",i,j,id_array[j][i]);
+
+
+  for(i=0; i<c; i++){
+    for(j=0; j<r-1; j++){
+      iid1 = id_array[j][i];
+      if( verbose > 0 )
+	printf("loop (%d,%d) iid1=" F_IID "\n",i,j,iid1);
+      if( iid1 != 0 ){ // blank positions have IID 0
+	AS_REZ_get_info(iid1,frag_store,pfrag_store,&l1,&b1,&e1,&t1,locales,fragtype,locbeg,locend,input);
+	if( verbose > 0 )
+	  printf("(id,loc,beg,end,type) = (" F_IID "," F_UID ",%d,%d,%c)\n",
+                 iid1,l1,b1,e1,t1);
+	
+        if(AS_FA_SHREDDED(t1)){ 
+	  for(k=j+1; k<r; k++){ // now eliminate the duplicates
+	    if( verbose > 0 )
+	      printf("pos (%d,%d)\n",i,k);
+	    iid2 = id_array[k][i];
+	    AS_REZ_get_info(iid2,frag_store,pfrag_store,&l2,&b2,&e2,&t2,locales,fragtype,locbeg,locend,input);
+	    if( verbose > 0)
+	      printf("(id2,loc2,beg2,end2,type2) = (" F_IID "," F_UID ",%d,%d,%c)\n",
+                     iid2,l2,b2,e2,t2);
+	    
+	    if( t1 == t2  && l2 == l1 ){
+	      uint32 min2,max1;
+	      if( verbose > 0 )
+		printf("changed position (%d,%d) from %c to blank, types (%c,%c), locales (" F_UID "," F_UID ")\n",
+                       i,k,array[i][k],t1,t2,l1,l2);
+	      min2 = ( b2 < e2 ? b2 : e2);
+	      max1 = ( b1 > e1 ? b1 : e1);
+
+	      if(max1 < min2)
+		;//		 fprintf(stdout,"WARNING begin of frag2 is less than end of second !!\n");
+	      else{
+		id_array[k][i] = 0;
+		array[i][k] = ' ';
+	      }
+	    }
+	  }
+	}
+      }
+    }
+  }
+  
+  // cleanup (none, we made 'em static)
+}

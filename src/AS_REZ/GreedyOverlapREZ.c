@@ -24,8 +24,6 @@
  Assumptions:
 **********************************************************************/
 
-static char CM_ID[] = "$Id";
-
 #include <assert.h>
 #include <string.h>
 #include <math.h>
@@ -37,144 +35,9 @@ static char CM_ID[] = "$Id";
 #include "UtilsREZ.h"
 #include "GreedyOverlapREZ.h"
 
-int* MatchTableREZ    = NULL;
-int* MismatchTableREZ = NULL;
+#define GREEDYDEBUG 0
 
 static FILE* LogFile=NULL;
-
-int prob_match(int qa, int qb)
-{
-  double err1 = 1./pow(10,qa/10.0);
-  double err2 = 1./pow(10,qb/10.0);
-  double prob = 0.0;
-
-  prob += (1.0-err1)*(1.0-err2); 
-  // This is the probability that in both draws no error occured
-  
-  prob += err1*err2/4.0;
-  // This is the probability that the underlying sequence was different
-  // the formula is 4*err1/4*err2/4;
-  
-  return(-SCALE_QV*log10(prob));
-}
-
-
-int prob_mismatch(int qa, int qb)
-{
-  double err1 = pow(10,qa/-10.0);
-  double err2 = pow(10,qb/-10.0);
-  double prob = 0.0;
-
-  prob += 4.0*err1*(1.0-err2)/4.0; 
-  // This is the probability that in the first draw an error occured
-  
-  prob += 4.0*err2*(1.0-err1)/4.0; 
-  // This is the probability that in the second draw an error occured
-    
-  prob += 3.0*err1*err2/4.0;
-  // This is the probability that the underlying sequence was different
-  // for both outcomes. the formula is 4*3*err1/4*err2/4;
-    
-  return(-SCALE_QV*log10(prob));
-}
-
-
-
-/* here we fill a table containing the score of a match given two quality 
-   values and assuming that the two characters are the same. This function does
-   not distinguish between different matches. If this is wished one would 
-   define such a table for each type of match 
-   The function is passed a pointer to a function that returns the 
-   an integer penalty for that match.
-*/
-int *fill_QV_Match_table(int (*nscore)())
-{
-  register int i;
-  register int j;
-
-  int *tbl = (int*) safe_calloc(sizeof(int),3600);
-  for(i=1; i<=60; i++)
-    for(j=1; j<=60; j++)
-      tbl[(i-1)*60+(j-1)] = nscore(i,j);
-  
-  return tbl;
-}
-
-
-		       				
-/* here we fill a table containing the score of a mismatch given two quality 
-   values and assuming that the two characters are different. This function does
-   not distinguish between different mismatches. If this is wished one would 
-   define such a table for each type of mismatch 
-   The function is passed a pointer to a function that returns the 
-   an integer penalty for that mismatch.
-*/
-int *fill_QV_Mismatch_table(int (*nscore)())
-{
-  register int i;
-  register int j;
-
-  int *tbl = (int*) safe_calloc(sizeof(int),3600);
-  for(i=1; i<=60; i++)
-    for(j=1; j<=60; j++)
-      tbl[(i-1)*60+(j-1)] = nscore(i,j);
-
-  return tbl;
-}
-		       				
-
-
-/* this function returns TRUE if there is an overlap between IFG1 and IFG2
-   but the two sequences come from different regions of the genome 
-   It needs simulator coordinates */
-
-int repetitive_overlap_sim(InternalFragMesg* IFG1,InternalFragMesg* IFG2, OverlapMesg* olap)
-{  
-  uint64 start1,end1,start2,end2;
-  uint min1,max1,min2,max2;
-  char dummy[100];
-  char b1,b2;
-
-
-  if( LogFile == NULL )
-    LogFile = stderr;
-
-  sscanf(IFG1->source,"%[^[]%c" F_U64 "," F_U64 "%c",dummy,&b1,&start1,&end1,&b2);
-  sscanf(IFG2->source,"%[^[]%c" F_U64 "," F_U64 "%c",dummy,&b1,&start2,&end2,&b2);
-#if GREEDYDEBUG	> 0
-  fprintf(LogFile,"SIM : " F_U64 "," F_U64 "  :  " F_U64 "," F_U64 "\n",start1,end1,start2,end2);
-#endif
-  
-  if( start1 < end1 )
-    {
-      min1 = start1;
-      max1 = end1;
-    }
-  else
-    {
-      min1 = end1;
-      max1 = start1;
-    }
-
-  if( start2 < end2 )
-    {
-      min2 = start2;
-      max2 = end2;
-    }
-  else
-    {
-      min2 = end2;
-      max2 = start2;
-    }
-
-  if( min1 >= min2 && min1 <= max2)
-    return TRUE;
-  if( min2 >= min1 && min2 <= max1)
-    return TRUE;
-  
-  return FALSE;
-}
-
 
 
 /* this function returns the number of mismatches in the two null terminated
@@ -295,7 +158,6 @@ double guess_mutation_prob(char* S1, char* S2, char* Q1, char* Q2, int* cc, int 
 
   return (double)ct/(double)i;
 }
-
 
 
 

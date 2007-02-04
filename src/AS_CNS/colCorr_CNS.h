@@ -21,6 +21,14 @@
 #ifndef AS_CNS_COLCORR
 #define AS_CNS_COLCORR
 
+#include "AS_global.h"
+#include "AS_UTL_Var.h"
+#include "PrimitiveVA_MSG.h"
+
+#include "MultiAlignStore_CNS.h"
+#include "AS_PER_fragStore.h"
+#include "AS_PER_fragStorePartition.h"
+
 typedef struct{
   int col;
   int corr;

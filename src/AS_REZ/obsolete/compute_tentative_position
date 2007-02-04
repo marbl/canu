@@ -1,0 +1,662 @@
+void Compute_Tentative_Position(chunk_subgraph * s,
+                                CDS_CID_t start_cid, CDS_CID_t end_cid) {
+  /* a simple minded way to compute a tentative position */
+  /* on the chunks */
+  /* */
+  /* write the position in the A_end/B_end fields of the */
+  /* chunk_subgraph */
+  /* */
+  ChunkInstanceT
+    * u_chunk,
+    * v_chunk,
+    * start_chunk, 
+    * end_chunk;
+  int
+    u,
+    v,
+    k,
+    id,
+    next_u;
+  CIEdgeT
+    * edge;
+  LengthT gap_length,  
+    gap_start;
+#if 0
+  int i;
+#endif
+  
+  assert(s != NULL);
+  
+  start_chunk = GetGraphNode(ScaffoldGraph->RezGraph, start_cid);
+  assert(start_chunk != NULL);
+  end_chunk = GetGraphNode(ScaffoldGraph->RezGraph, end_cid);
+  assert(end_chunk != NULL);
+  // gap_length = Compute_Gap_Length(start_chunk, end_chunk, FALSE);
+  gap_length = FindGapLength(start_chunk, end_chunk, FALSE);
+
+  edge = s->table[start_cid]->best_edge;
+  assert(edge != NULL);
+
+  // don't worry about orientation, max is end going into gap
+  gap_start.mean = MAX(start_chunk->offsetAEnd.mean, start_chunk->offsetBEnd.mean);
+  gap_start.variance = MAX(start_chunk->offsetAEnd.variance, start_chunk->offsetBEnd.variance);
+
+# if DEBUG_GAP_WALKER > 1
+  fprintf(stderr, "in Compute_Tentative_Position, start_cid = %d, end_cid = %d\n", start_cid, end_cid);
+  fprintf(stderr, "gap_start.mean = %f\n", gap_start.mean);
+  fprintf(stderr, "gap_start.variance = %f\n", gap_start.variance);
+  fprintf(stderr, "gap_length.mean = %f\n", gap_length.mean);
+  fprintf(stderr, "gap_length.variance = %f\n", gap_length.variance);
+#endif  
+  Clear_All_Done_Bit(s);
+  Set_Done_Bit(s, start_cid);  
+
+  /* we are going to build from below, so start at start_cid  */
+
+#if 0
+  fprintf(stderr, "\ngraph size: %d\n", s->size);
+  for (i = 0; i < s->size; i++) {
+    u = s->node[i].cid;
+    fprintf(stderr, "node[%d]: %d\n", i, u);
+  }
+#endif
+
+  u = start_cid;
+  while (u != end_cid) {
+    float64 u_AMean, u_BMean, u_AVariance, u_BVariance;
+    
+    u_chunk = GetGraphNode(ScaffoldGraph->RezGraph, u);
+    assert(u_chunk != NULL);
+
+# if DEBUG_GAP_WALKER > 0
+    fprintf(stderr, "\n******************Processing node: %d\n", u);
+    for (k = 0; k < NUM_ORIENTATIONS; k++)
+      {
+	fprintf(stderr, "s->table[%d]->num_edges[orient[%d]] = %d\n", u, k, s->table[u]->num_edges[orient[k]]);
+	for (id = 0; id < s->table[u]->num_edges[orient[k]]; id++) {
+	  edge = s->table[u]->edge[orient[k]][id];
+	  fprintf(stderr, "orientation: %d edge: %d to %d\n", k, edge->idA, edge->idB);
+	}
+      }
+#endif
+	
+    /* get the edge */
+    edge = s->table[u]->best_edge;
+    assert(edge != NULL);
+    
+    /* get the other end */
+    if (u == edge->idA)
+      v = edge->idB;
+    else
+      v = edge->idA;
+    next_u = v;
+    
+    v_chunk = GetGraphNode(ScaffoldGraph->RezGraph, v);
+    assert(v_chunk != NULL);
+
+# if DEBUG_GAP_WALKER > 1
+    fprintf(stderr, "u = %d, v = %d\n", u, v);
+    fprintf(stderr, "edge->idA = %d, edge->idB = %d, orient = %s, length = %.1f, variance = %.1f\n",
+	    edge->idA, edge->idB, Orientation_As_String(edge->orient), 
+	    edge->distance.mean, edge->distance.variance); 
+    if (edge->flags.bits.hasContributingOverlap) 
+      fprintf(stderr, "edge->flags.bits.hasContributingOverlap\n"); 
+    if (edge->flags.bits.hasRepeatOverlap) 
+      fprintf(stderr, "edge->flags.bits.hasRepeatOverlap\n"); 
+    if (edge->flags.bits.hasTandemOverlap) 
+      fprintf(stderr, "edge->flags.bits.hasTandemOverlap\n"); 
+#endif	    
+    
+    if ( u_chunk == start_chunk ) { /* get the "real" means and variances */
+      u_AMean = u_chunk->offsetAEnd.mean;
+      u_AVariance = u_chunk->offsetAEnd.variance;
+      u_BMean = u_chunk->offsetBEnd.mean;
+      u_BVariance = u_chunk->offsetBEnd.variance;
+      s->table[u]->A_end.variance = u_AVariance;
+      s->table[u]->B_end.variance = u_BVariance;
+      s->table[u]->A_end.mean = u_AMean;
+      s->table[u]->B_end.mean = u_BMean;
+
+    }
+    else {	/* use the ones we have previously calculated for this chunk */
+      u_AMean = s->table[u]->A_end.mean;
+      u_AVariance = s->table[u]->A_end.variance;
+      u_BMean = s->table[u]->B_end.mean;
+      u_BVariance = s->table[u]->B_end.variance;
+    }
+    
+    /* all the orientations are from idA's point of view */
+    /* k = 0 => AB_AB, k = 1 => AB_BA, k = 2 => BA_AB, k = 3 => BA_BA */
+# if DEBUG_GAP_WALKER > 0
+    if (u == edge->idA) {
+      fprintf(stderr, "uv %d	%d	%d	%f	%f", 
+	      u, v, k, edge->distance.mean, edge->distance.variance); 
+      fprintf(stderr, "	%d	%d\n", 
+	      (s->table[u_chunk->id]->done) ? 1 : 0, (s->table[v_chunk->id]->done) ? 1 : 0);
+    }
+    else {
+      fprintf(stderr, "vu %d	%d	%d	%f	%f", 
+	      v, u, k, edge->distance.mean, edge->distance.variance); 
+      fprintf(stderr, "	%d	%d\n", 
+	      (s->table[v_chunk->id]->done) ? 1 : 0, (s->table[u_chunk->id]->done) ? 1 : 0);
+    }
+#endif	    
+    /* k is computed based on node u's point of view */
+    if (TRUE /*!Is_Unique(v_chunk)*/ ) {
+      if (u == edge->idA) {
+	switch (edge->orient) {
+	case 'N':		/* AB_AB */
+	  if (u_AMean < u_BMean) {
+	    s->table[v]->A_end.mean = u_BMean + edge->distance.mean;  
+	    s->table[v]->B_end.mean =  s->table[v]->A_end.mean + v_chunk->bpLength.mean;
+	  }
+	  else {
+	    s->table[v]->A_end.mean = u_BMean - edge->distance.mean;  
+	    s->table[v]->B_end.mean =  s->table[v]->A_end.mean - v_chunk->bpLength.mean;
+	  }
+	  break;
+	case 'I':		/* AB_BA */
+	  if (u_AMean < u_BMean) {
+	    s->table[v]->B_end.mean = u_BMean + edge->distance.mean;   
+	    s->table[v]->A_end.mean =  s->table[v]->B_end.mean + v_chunk->bpLength.mean;
+	  }
+	  else {
+	    s->table[v]->B_end.mean = u_BMean - edge->distance.mean; 
+	    s->table[v]->A_end.mean =  s->table[v]->B_end.mean - v_chunk->bpLength.mean;
+	  }
+	  break;
+	case 'O':		/* BA_AB */
+	  if (u_AMean < u_BMean) {
+	    s->table[v]->A_end.mean = u_AMean - edge->distance.mean;  
+	    s->table[v]->B_end.mean =  s->table[v]->A_end.mean - v_chunk->bpLength.mean;
+	  }
+	  else {
+	    s->table[v]->A_end.mean = u_AMean + edge->distance.mean;  
+	    s->table[v]->B_end.mean = s->table[v]->A_end.mean + v_chunk->bpLength.mean;
+	  }
+	  break;
+	case 'A':		/* BA_BA */
+	  if (u_AMean < u_BMean) {
+	    s->table[v]->B_end.mean = u_AMean - edge->distance.mean; 
+	    s->table[v]->A_end.mean = s->table[v]->B_end.mean - v_chunk->bpLength.mean;
+	  }
+	  else {
+	    s->table[v]->B_end.mean = u_AMean + edge->distance.mean; 
+	    s->table[v]->A_end.mean = s->table[v]->B_end.mean + v_chunk->bpLength.mean;
+	  }
+	  break;
+        default:
+          assert(0);
+          break;
+	}
+      }
+      else { /* v == edge->idA */
+	switch (edge->orient) {
+	case 'N':		/* AB_AB == v_u */
+	  if (u_AMean < u_BMean) {
+	    s->table[v]->B_end.mean = u_AMean - edge->distance.mean;
+	    s->table[v]->A_end.mean =  s->table[v]->B_end.mean - v_chunk->bpLength.mean;
+	  }
+	  else {
+	    s->table[v]->B_end.mean = u_AMean + edge->distance.mean; 
+	    s->table[v]->A_end.mean =  s->table[v]->B_end.mean + v_chunk->bpLength.mean;
+	  }
+	  break;
+	case 'I':		/* AB_BA */
+	  if (u_AMean < u_BMean) {
+	    s->table[v]->B_end.mean = u_BMean + edge->distance.mean;   
+	    s->table[v]->A_end.mean =  s->table[v]->B_end.mean + v_chunk->bpLength.mean;
+	  }
+	  else {
+	    s->table[v]->B_end.mean = u_BMean - edge->distance.mean;  
+	    s->table[v]->A_end.mean =  s->table[v]->B_end.mean - v_chunk->bpLength.mean;
+	  }
+	  break;
+	case 'O':		/* BA_AB */
+	  if (u_AMean < u_BMean) {
+	    s->table[v]->A_end.mean = u_AMean - edge->distance.mean; 
+	    s->table[v]->B_end.mean =  s->table[v]->A_end.mean - v_chunk->bpLength.mean;
+	  }
+	  else {
+	    s->table[v]->A_end.mean = u_AMean + edge->distance.mean; 
+	    s->table[v]->B_end.mean = s->table[v]->A_end.mean + v_chunk->bpLength.mean;
+	  }
+	  break;
+	case 'A':		/* BA_BA == v_u */
+	  if (u_AMean < u_BMean) {
+	    s->table[v]->A_end.mean = u_BMean + edge->distance.mean;  
+	    s->table[v]->B_end.mean = s->table[v]->A_end.mean + v_chunk->bpLength.mean;
+	  }
+	  else {
+	    s->table[v]->A_end.mean = u_BMean - edge->distance.mean;  
+	    s->table[v]->B_end.mean = s->table[v]->A_end.mean - v_chunk->bpLength.mean;
+	  }
+	  break;
+        default:
+          assert(0);
+          break;
+	}
+      }
+     
+
+      {
+	double edgeVariance = ComputeFudgeVariance(edge->distance.mean); 
+
+	if( s->table[v]->A_end.mean < s->table[v]->B_end.mean )
+	  {
+	    if( s->table[u]->A_end.mean < s->table[u]->B_end.mean )
+	      {
+		/*
+		  u                              v
+		  ------------------>          --------------------->
+
+		*/
+		s->table[v]->A_end.variance = s->table[u]->B_end.variance + edgeVariance;
+		s->table[v]->B_end.variance = s->table[v]->A_end.variance + v_chunk->bpLength.variance;
+	      }
+	    else
+	      {
+		/*
+		  u                              v
+		  <------------------          --------------------->
+
+
+		*/
+		s->table[v]->A_end.variance = s->table[u]->A_end.variance + edgeVariance;
+		s->table[v]->B_end.variance = s->table[v]->A_end.variance + v_chunk->bpLength.variance;
+	      }
+	  }
+	else
+	  {
+	    if( s->table[u]->A_end.mean < s->table[u]->B_end.mean )
+	      {
+		/*
+		  u                              v
+		  ------------------>          <---------------------
+
+		*/
+		s->table[v]->B_end.variance = s->table[u]->B_end.variance + edgeVariance;
+		s->table[v]->A_end.variance = s->table[v]->B_end.variance + v_chunk->bpLength.variance;  
+	      }
+	    else
+	      {
+		/*
+		  u                              v
+		  <-----------------           <---------------------
+
+		*/
+		s->table[v]->B_end.variance = s->table[u]->A_end.variance + edgeVariance;
+		s->table[v]->A_end.variance = s->table[v]->B_end.variance + v_chunk->bpLength.variance;
+	      }
+	  }
+
+      }
+       /*
+       s->table[v]->A_end.variance = gap_start.variance + ComputeFudgeVariance(s->table[v]->A_end.mean - gap_start.mean);
+
+      assert (s->table[v]->A_end.variance > 0);
+
+      s->table[v]->B_end.variance = gap_start.variance + ComputeFudgeVariance(s->table[v]->B_end.mean - gap_start.mean);
+      */
+
+    }
+
+# if DEBUG_GAP_WALKER > 0	 
+    fprintf(stderr, "placing u = %d, s->table[%d]->A_end.mean = %f, variance = %f\n", 
+	    u, u, s->table[u]->A_end.mean, s->table[u]->A_end.variance);
+    fprintf(stderr, "placing u = %d, s->table[%d]->B_end.mean = %f, variance = %f\n", 
+	    u, u, s->table[u]->B_end.mean, s->table[u]->B_end.variance);
+
+    fprintf(stderr, "placing v = %d, s->table[%d]->A_end.mean = %f, variance = %f\n", 
+	    v, v, s->table[v]->A_end.mean, s->table[v]->A_end.variance);
+    fprintf(stderr, "placing v = %d, s->table[%d]->B_end.mean = %f, variance = %f\n", 
+	    v, v, s->table[v]->B_end.mean, s->table[v]->B_end.variance);
+	    
+#endif
+    assert (s->table[v]->B_end.variance > 0);
+
+
+    if (next_u == end_cid)
+      {
+	// figure out where to put end_cid based on walk to this point
+	// it should start at the endpoint of the current u_chunk minus the overlap length of the current edge
+	LengthT new_gap_length, delta;
+# if DEBUG_GAP_WALKER > 0
+	fprintf(stderr, "abcedf, edge->orient = %c, edge->distance.mean = %f, gap_start.mean = %f\n, gap_start.variance = %f\n", 
+		edge->orient, edge->distance.mean, gap_start.mean,gap_start.variance); 
+	
+	
+	fprintf(stderr, "NEWGAP, A_END = %f, B_END = %f,  edgedist = %f,\n",s->table[u]->A_end.mean,s->table[u]->B_end.mean,edge->distance.mean);
+#endif
+
+	new_gap_length.mean = MAX(s->table[u]->A_end.mean + edge->distance.mean - gap_start.mean,
+				  s->table[u]->B_end.mean + edge->distance.mean - gap_start.mean);
+
+	delta.mean = new_gap_length.mean - gap_length.mean;
+	
+# if DEBUG_GAP_WALKER > 0
+	fprintf(stderr, "abcedf, new_gap_length.mean = %f, gap_length.mean = %f\n", 
+		new_gap_length.mean, gap_length.mean);
+#endif 
+	// figure out what the variance of the destination chunk should be, subtract off current to get the delta
+
+
+	delta.variance = MAX(s->table[u]->A_end.variance,s->table[u]->B_end.variance)+
+	                 ComputeFudgeVariance(edge->distance.mean)-
+	                 MIN(v_chunk->offsetAEnd.variance,v_chunk->offsetBEnd.variance);
+	/* delta.variance = gap_start.variance + ComputeFudgeVariance(new_gap_length.mean) - MIN(v_chunk->offsetAEnd.variance,v_chunk->offsetBEnd.variance);
+	 */
+# if DEBUG_GAP_WALKER > 0
+	{
+	  fprintf(stderr, "abcedf, %d->offsetAEnd.mean = %f\n", v, v_chunk->offsetAEnd.mean);
+	  fprintf(stderr, "abcedf, %d->offsetAEnd.variance = %f\n", v, v_chunk->offsetAEnd.variance);
+	  fprintf(stderr, "abcedf, %d->offsetBEnd.mean = %f\n", v, v_chunk->offsetBEnd.mean);
+	  fprintf(stderr, "abcedf, %d->offsetBEnd.variance = %f\n", v, v_chunk->offsetBEnd.variance);
+
+	  fprintf(stderr, "abcedf, delta.mean = %f\n", delta.mean);
+	  fprintf(stderr, "abcedf, delta.variance = %f\n", delta.variance);
+	}
+#endif
+
+	assert(v_chunk->offsetBEnd.variance != 0);
+	assert(v_chunk->offsetAEnd.variance != 0);
+
+	
+	{
+# if DEBUG_GAP_WALKER > 0
+	  // CIScaffoldT *scaffold = GetCIScaffoldT(ScaffoldGraph->CIScaffolds,v_chunk->scaffoldID);
+	  fprintf(stderr, "BEFORE AddDelta %d \n",v_chunk->scaffoldID);
+
+	  /*	  DumpCIScaffold(stderr,ScaffoldGraph,scaffold, FALSE);*/
+	  fprintf(stderr,"**** FORCE variances before AddDelta in from = %d, to = %d  ****\n",start_cid,end_cid );	 
+#endif
+
+	  Force_Increasing_Variances();
+	  AddDeltaToScaffoldOffsets(ScaffoldGraph,
+				    v_chunk->scaffoldID,
+				    v,
+				    1,
+				    0,
+				    delta);
+# if DEBUG_GAP_WALKER > 0
+#if 1
+	  fprintf(stderr, "AFTER AddDelta\n");
+	  fprintf(stderr,"**** FORCE variances after AddDelta in from = %d, to = %d  ****\n",start_cid,end_cid );
+#endif
+#endif
+
+	  Force_Increasing_Variances();
+	  /*  DumpCIScaffold(stderr,ScaffoldGraph,scaffold, FALSE);*/
+	}
+
+# if DEBUG_GAP_WALKER > 0
+	{
+	  fprintf(stderr, "abcedf, %d->offsetAEnd.mean = %f\n", v, v_chunk->offsetAEnd.mean);
+	  fprintf(stderr, "abcedf, %d->offsetAEnd.variance = %f\n", v, v_chunk->offsetAEnd.variance);
+	  fprintf(stderr, "abcedf, %d->offsetBEnd.mean = %f\n", v, v_chunk->offsetBEnd.mean);
+	  fprintf(stderr, "abcedf, %d->offsetBEnd.variance = %f\n", v, v_chunk->offsetBEnd.variance);
+	  fprintf(stderr, "abcedf\n");
+	}
+#endif
+      }
+    u = next_u;
+  }
+}
+
+
+
+
+
+
+int Count_TransChunk_Edges(chunk_subgraph * s)
+{
+  ChunkInstanceT
+    * u_chunk;
+  int
+    i,
+    u,
+    k,
+    id,
+    num_transchunk_edges = 0;
+  CIEdgeT
+    * edge;
+  
+  assert(s != NULL);
+  
+  for (i = 0; i < s->size; i++) {
+    /* grab the next node */
+    u = s->node[i].cid;
+
+    u_chunk = GetGraphNode(ScaffoldGraph->RezGraph, u);
+    assert(u_chunk != NULL);
+
+    /* scan the adjacency of u */
+    for (k = 0; k < NUM_ORIENTATIONS; k++) {
+      for (id = 0; id < s->table[u]->num_edges[orient[k]]; id++) {
+
+	/* get the edge */
+	edge = s->table[u]->edge[orient[k]][id];
+	assert(edge != NULL);
+
+	if (isTransChunkEdge(edge))
+	  num_transchunk_edges++;
+      }
+    }
+  }
+  return num_transchunk_edges;
+}
+	  
+
+
+int Count_Edges(chunk_subgraph * s)
+{
+  ChunkInstanceT
+    * u_chunk;
+  int
+    i,
+    u,
+    k,
+    id,
+    num_edges = 0;
+  CIEdgeT
+    * edge;
+  
+  assert(s != NULL);
+  
+  for (i = 0; i < s->size; i++) {
+    /* grab the next node */
+    u = s->node[i].cid;
+
+    u_chunk = GetGraphNode(ScaffoldGraph->RezGraph, u);
+    assert(u_chunk != NULL);
+
+    /* scan the adjacency of u */
+    for (k = 0; k < NUM_ORIENTATIONS; k++) {
+      for (id = 0; id < s->table[u]->num_edges[orient[k]]; id++) {
+
+	/* get the edge */
+	edge = s->table[u]->edge[orient[k]][id];
+	assert(edge != NULL);
+
+	num_edges++;
+      }
+    }
+  }
+  return num_edges;
+}
+	  
+
+
+void Shortest_Path(chunk_subgraph * s,
+		   CDS_CID_t begin_cid,
+		   CDS_CID_t end_cid,
+		   float (* quality)(CIEdgeT *, CDS_CID_t)) {
+  //
+  // Shortest_Path() finds the shortest paths from <begin_cid> to any
+  // node in <s> by calling Dijkstra() and it prints the informations
+  // into a "*.sp.cam" file
+  //
+# if CREATE_CAM_FILE > 0
+  char
+    * Colour[SP_NUM_COLOURS] = {
+      "CFFFF00 T4 S # start/end",         //  0
+      "CFF0000 T2 S # links",
+      "CFFFFFF T2 S #   0.0_<_d_<__30.0", //  2
+      "CEEEEEE T2 S #  30.0_<_d_<__60.0",
+      "CDDDDDD T2 S #  60.0_<_d_<__90.0", //  4
+      "CCCCCCC T2 S #  90.0_<_d_<_120.0",
+      "CBBBBBB T2 S # 120.0_<_d_<_150.0", //  6
+      "CAAAAAA T2 S # 150.0_<_d_<_180.0",
+      "C999999 T2 S # 180.0_<_d_<_210.0", //  8
+      "C888888 T2 S # 210.0_<_d_<_240.0",
+      "C777777 T2 S # 240.0_<_d_<_270.0", // 10
+      "C666666 T2 S # 270.0_<_d_<_300.0",
+      "C555555 T2 S # 300.0_<_d_<_330.0", // 12
+      "C444444 T2 S # 330.0_<_d_<_360.0",
+      "C333333 T2 S # 360.0_<_d_<_360.0", // 14
+      "C222222 T2 S # 390.0_<_d_<_410.0",
+      "C00AA00 T2 S # d_>_410.0",         // 16
+      "CFFFFFF T4 S #   0.0_<_d_<__30.0__unique",
+      "CEEEEEE T4 S #  30.0_<_d_<__60.0__unique",
+      "CDDDDDD T4 S #  60.0_<_d_<__90.0__unique",
+      "CCCCCCC T4 S #  90.0_<_d_<_120.0__unique",
+      "CBBBBBB T4 S # 120.0_<_d_<_150.0__unique", 
+      "CAAAAAA T4 S # 150.0_<_d_<_180.0__unique",
+      "C999999 T4 S # 180.0_<_d_<_210.0__unique",
+      "C888888 T4 S # 210.0_<_d_<_240.0__unique",
+      "C777777 T4 S # 240.0_<_d_<_270.0__unique",
+      "C666666 T4 S # 270.0_<_d_<_300.0__unique",
+      "C555555 T4 S # 300.0_<_d_<_330.0__unique",
+      "C444444 T4 S # 330.0_<_d_<_360.0__unique",
+      "C333333 T4 S # 360.0_<_d_<_360.0__unique",
+      "C222222 T4 S # 390.0_<_d_<_410.0__unique",
+      "C00AA00 T4 S # d_>_410.0__unique"};
+  CDS_CID_t
+    i,
+    id,
+    a_end,
+    b_end;
+  int
+    colour;
+  FILE
+    * walker_cam_file;
+  char
+    unique[STR_LEN],
+    orient[STR_LEN],
+    filename[STR_LEN];
+# endif
+  ChunkInstanceT  
+    * begin_chunk = GetGraphNode(ScaffoldGraph->RezGraph, begin_cid),
+    * end_chunk = GetGraphNode(ScaffoldGraph->RezGraph, end_cid);
+# if CREATE_CAM_FILE > 0
+  ChunkInstanceT  
+    * chunk;
+#endif
+
+  assert(s != NULL);
+  assert(quality != NULL);
+  assert(begin_chunk != NULL);
+  assert(end_chunk != NULL);
+
+# if CREATE_CAM_FILE > 0
+  //
+  // open the cam file
+  //
+  sprintf(filename, "./cam/%s.%d.%d.sp.cam", GW_Filename_Prefix, begin_cid, end_cid);
+  walker_cam_file = file_open (filename, "w");
+  assert(walker_cam_file != NULL);
+
+  //
+  // output the colours
+  //
+  for (i = 0; i < SP_NUM_COLOURS; i ++)
+    fprintf(walker_cam_file, "%d: %s\n", i, Colour[i]);
+# endif
+
+  //
+  // if the start/end chunk are not in <s>, add them
+  //
+  Add_Node(s, begin_cid, Is_Not_Bogus);
+  Add_Node(s, end_cid, Is_Not_Bogus);
+
+  //
+  // search for the shortest path
+  //
+  Dijkstra(s, begin_cid, end_cid, ALL_END, quality);
+
+# if CREATE_CAM_FILE > 0
+  //
+  // now print all the chunks
+  //
+  for (i = 0; i < s->size; i++) {
+    //
+    // compute the color
+    //
+    if (s->node[i].d >= 410.0)
+      colour = 16;
+    else
+      colour = (int)(s->node[i].d / 30.0) + 2;
+    id = s->node[i].cid;
+    chunk = GetGraphNode(ScaffoldGraph->RezGraph, id);
+    assert(chunk != NULL);
+    if (Is_Unique(chunk)) {
+      strcpy(unique, "unique");
+      colour += 15;
+    } else {
+      strcpy(unique, "not unique");
+    }
+    if ((id == begin_cid) || (id == end_cid))
+      colour = 0;
+    if  (chunk->aEndCoord <= chunk->bEndCoord) {
+      strcpy(orient, "direct");
+      a_end = chunk->aEndCoord;
+      b_end = chunk->bEndCoord;
+    } else {
+      a_end = chunk->bEndCoord;
+      b_end = chunk->aEndCoord;
+      strcpy(orient, "reverse");
+    }
+
+    fprintf(walker_cam_file,
+	    "%d: %d A%d %d # %s %s chunk %d - bn distance from %d %5.2f, sow distance %5.2f, bp distance %5.2f\n",
+	    id,
+	    a_end,
+	    colour,
+	    b_end,
+	    orient,
+	    unique,
+	    id,
+	    begin_cid,
+	    s->node[i].d_neck,
+	    s->node[i].d,
+	    s->node[i].distance.mean);
+  }
+
+  //
+  // and print the best path (backward)
+  //
+  i = end_cid;
+  while (i != begin_cid) {
+    assert(s->table[i] != NULL);
+    if (s->table[i]->best_edge == NULL)
+      break;
+    //if (! isOverlapEdge(s->table[i]->best_edge)) {
+      fprintf (walker_cam_file, "LNK: %d %d A%d # edge quality %5.2f, weight %d, mean %f, var %f\n",
+	       s->table[i]->path_parent,
+	       i,
+	       1,
+	       quality(s->table[i]->best_edge, begin_cid),
+               s->table[i]->best_edge->edgesContributing,
+	       s->table[i]->best_edge->distance.mean,
+	       s->table[i]->best_edge->distance.variance);
+      //}
+    //
+    // follow the parent
+    //
+    i = s->table[i]->path_parent;
+  }
+
+
+  fclose (walker_cam_file);
+# endif
+}

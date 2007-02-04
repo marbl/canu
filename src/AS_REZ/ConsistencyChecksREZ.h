@@ -18,19 +18,10 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/*********************************************************************
-   CVS_ID:  $Id: ConsistencyChecksREZ.h,v 1.4 2005-03-22 19:49:21 jason_miller Exp $
- *********************************************************************/
 #ifndef CONSISTENCY_CHECKS_H
 #define CONSISTENCY_CHECKS_H
 
 #include "DataTypesREZ.h"
-
-// The following defines make it easy to adapt changes
-// in the typing of variance and mean
-
-#define AS_REZ_MEANTYPE int
-#define AS_REZ_VARTYPE  float
 
 // The following define specifies the percentage of bases
 // two 3*stdDev intervals must overlap in order to pass 
@@ -60,15 +51,6 @@
 int check_consistency(Scaffold_Fill_t *, 
 		      int,		      
 		      int);
-
-void combine_two_distrib(LengthT,
-			 LengthT,
-			 LengthT *);
-
-OverlapStatusREZ check_overlap(Gap_Chunk_t,
-			       Gap_Chunk_t, 
-			       int,
-			       ChunkOverlapCheckT *);
 
 int Is_Edge_Consistent(CIEdgeT *,
 		       const Gap_Chunk_t *,
