@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.41 2007-02-02 21:22:16 eliv Exp $
- * $Revision: 1.41 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.42 2007-02-05 16:33:09 eliv Exp $
+ * $Revision: 1.42 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.41 2007-02-02 21:22:16 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.42 2007-02-05 16:33:09 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -92,7 +92,7 @@ namespace AS_BOG{
 
 		iuid num_frags=cg_ptr->getNumFragments();
         Unitig::setNextId( 1 );
-		iuid unitig_id=Unitig::getNextId();
+		iuid unitig_id=0;
 
 		iuid frag_idx;
 		iuid fp_dst_frag_id, tp_dst_frag_id;
@@ -127,6 +127,7 @@ namespace AS_BOG{
 
                 // Allocated a new unitig node
                 Unitig *utg=new Unitig;
+                unitig_id = utg->id();
 
                 populateUnitig( utg,
                                 frag_idx, FIVE_PRIME, cg_ptr, 0);
