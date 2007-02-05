@@ -45,10 +45,10 @@ localAlignerInterfacemodule.so:   localalign/GF_ALN_dpaligner.o \
                                   localalign/GF_ALN_loverlapper.o \
                                   localalign/GF_ALN_pieceOlap.o \
                                   localalign/localAlignerInterfacemodule.o
-	$(CXX) -shared -o $@ $^
+	$(CXX) $(CXXSHARED) -o $@ $^
 
 halignmodule.so: halign/halignmodule.o halign/halign.o
-	$(CXX) -shared -o $@ $^
+	$(CXX) $(CXXSHARED) -o $@ $^
 
 %.o: %.C
 	$(CXX) -fpic $(CFLAGS_COMPILE) $(CFLAGS_PYTHON) -o $@ -c $<

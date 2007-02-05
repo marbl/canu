@@ -93,6 +93,9 @@ then
 elif [ -e /usr/local/include/python2.2/Python.h ]
 then
   CFLAGS_PYTHON="-I/usr/local/include/python2.2"
+elif [ -e /System/Library/Frameworks/Python.framework/Versions/2.3/include/python2.3/Python.h ]
+then
+  CFLAGS_PYTHON="-I/System/Library/Frameworks/Python.framework/Versions/2.3/include/python2.3"
 else
   echo "Can't find python include file 'Python.h' -- is python installed?."
   exit 1
@@ -124,6 +127,7 @@ CXX               := g++
 CXXFLAGS_COMPILE  := \$(FAST) -fmessage-length=0 -D_THREAD_SAFE -Wall
 CXXLDFLAGS        := 
 CXXLIBS           := 
+CXXSHARED         := -Wl,-r -dynamic
 ARFLAGS           := ruvs
 INSTALL/          := darwin/
 EOF
@@ -143,6 +147,7 @@ CXX               := g++
 CXXFLAGS_COMPILE  := -g3 -fmessage-length=0 -D_THREAD_SAFE -Wall
 CXXLDFLAGS        := 
 CXXLIBS           := 
+CXXSHARED         := -dynamiclib
 ARFLAGS           := ruvs
 INSTALL/          := darwin/
 EOF
@@ -163,6 +168,7 @@ CXX               := g++
 CXXFLAGS_COMPILE  := \$(FAST) -fmessage-length=0 -D_THREAD_SAFE -Wall
 CXXLDFLAGS        := -pg
 CXXLIBS           := 
+CXXSHARED         := -dynamiclib
 ARFLAGS           := ruvs
 INSTALL/          := darwin/
 EOF
@@ -184,6 +190,7 @@ CXX               := g++
 CXXFLAGS_COMPILE  := -O3 \$(THREADS) -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL)
+CXXSHARED         := -shared
 ARFLAGS           := ruvs
 INSTALL/          := freebsd/
 EOF
@@ -204,6 +211,7 @@ CXX               := g++
 CXXFLAGS_COMPILE  := -pg -O3 \$(THREADS) -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL)
+CXXSHARED         := -shared
 ARFLAGS           := ruvs
 INSTALL/          := freebsd/
 EOF
@@ -230,6 +238,7 @@ CXXFLAGS_COMPILE  := -g \$(THREADS) -Wall -Wshadow -Wpointer-arith -Wcast-qual \
   -Wcast-align -Wwrite-strings -Wconversion
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL)
+CXXSHARED         := -shared
 ARFLAGS           := ruvs
 INSTALL/          := freebsd/
 EOF
@@ -249,6 +258,7 @@ CXX               := xlC_r
 CXXFLAGS_COMPILE  := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES -q64 -O3 -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict
 CXXLDFLAGS        := 
 CXXLIBS           := 
+CXXSHARED         := -shared
 ARFLAGS           := -X 64 ruv
 INSTALL/          := aix/
 EOF
@@ -268,6 +278,7 @@ CXX               := xlC_r
 CXXFLAGS_COMPILE  := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES -q64 -O3 -pg -qfullpath -qmaxmem=-1 -qarch=auto -qtune=auto -qcache=auto -qstrict
 CXXLDFLAGS        := 
 CXXLIBS           := 
+CXXSHARED         := -shared
 ARFLAGS           := -X 64 ruv
 INSTALL/          := aix/
 EOF
@@ -287,6 +298,7 @@ CXX               := xlC_r
 CXXFLAGS_COMPILE  := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES \$(ccDBUG) -q64 -g -qfullpath
 CXXLDFLAGS        := 
 CXXLIBS           := 
+CXXSHARED         := -shared
 ARFLAGS           := -X 64 ruv
 INSTALL/          := aix/
 EOF
@@ -306,6 +318,7 @@ CXX               := xlC_r
 CXXFLAGS_COMPILE  := -qstaticinline -qthreaded -D_THREAD_SAFE -D_LARGE_FILES \$(ccDBUG) -q64 -g -qfullpath
 CXXLDFLAGS        := \$(ccDBUG)
 CXXLIBS           := 
+CXXSHARED         := -shared
 ARFLAGS           := -X 64 ruv
 INSTALL/          := aix/
 EOF
@@ -326,6 +339,7 @@ CXXFLAGS_COMPILE  := -D_REENTRANT -std -D_XOPEN_SOURCE=500 -D_OSF_SOURCE -pthrea
 CXXDEPFLAGS       := -pthread -D_XOPEN_SOURCE=500
 CXXLDFLAGS        := 
 CXXLIBS           := -lpthread -lrt
+CXXSHARED         := -shared
 ARFLAGS           := ruv
 CXX_TMP_ARCH      := cxx_repository
 INSTALL/          := osf1/
@@ -345,6 +359,7 @@ CXX               := cxx
 CXXFLAGS_COMPILE  := -D_REENTRANT -std -D_XOPEN_SOURCE=500 -D_OSF_SOURCE -pthread -gall -w0 -trapuv
 CXXLDFLAGS        := 
 CXXLIBS           := -lpthread -lrt
+CXXSHARED         := -shared
 ARFLAGS           := ruv
 CXX_TMP_ARCH      := cxx_repository
 INSTALL/          := osf1/
@@ -366,6 +381,7 @@ CXX               := g++
 CXXFLAGS_COMPILE  := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -O3 \$(THREADS) -fmessage-length=0 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL) -ldl
+CXXSHARED         := -shared
 ARFLAGS           := ruvs
 INSTALL/          := linux/
 EOF
@@ -386,6 +402,7 @@ CXX               := g++
 CXXFLAGS_COMPILE  := -m64 -fPIC -D_REENTRANT -O3 \$(THREADS) -fmessage-length=0 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL) -ldl
+CXXSHARED         := -shared
 ARFLAGS           := ruvs
 INSTALL/          := linux64/
 EOF
@@ -406,6 +423,7 @@ CXX               := g++
 CXXFLAGS_COMPILE  := -m64 -fPIC -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -g \$(THREADS) -fmessage-length=0 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL) -ldl
+CXXSHARED         := -shared
 ARFLAGS           := ruvs
 INSTALL/          := linux64/
 EOF
@@ -426,6 +444,7 @@ CXX               := g++
 CXXFLAGS_COMPILE  := -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE -D_REENTRANT -g \$(THREADS) -fmessage-length=0 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL) -ldl
+CXXSHARED         := -shared
 ARFLAGS           := ruvs
 INSTALL/          := linux/
 EOF
@@ -456,6 +475,7 @@ CXX               := g++
 CXXFLAGS_COMPILE  := -D_REENTRANT -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 -O3 -Wall -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer 
 CXXLDFLAGS        := 
 CXXLIBS           := -lpthread -lrt
+CXXSHARED         := -shared
 ARFLAGS           := ruv
 INSTALL/          := solaris/
 EOF
