@@ -301,8 +301,6 @@ atacFileBase::writeHeader(FILE *out) {
   fprintf(out, "#\n");
 
   map<string,string>::iterator  it;
-  for (it=_params.begin(); it != _params.end(); it++) {
+  for (it=_params.begin(); it != _params.end(); it++)
     fprintf(out, "/%s=%s\n", it->first.c_str(), it->second.c_str());
-  }
-  
 }

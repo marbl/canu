@@ -66,6 +66,12 @@ public:
       _diagonal = _seq1->sequenceLength() - _pos1 + _seq2->sequenceLength() - (_pos2 + _len2);
   };
 
+  ~match_s() {
+    delete _acc1;
+    delete _acc2;
+  };
+
+
   //  Compare by diagonal, then by position in the first sequence.
   //
   bool operator<(const match_s& r) const {

@@ -40,7 +40,6 @@ public:
   };
 
   ~afsm() {
-    delete _theFile;
   };
 };
 
@@ -55,10 +54,12 @@ atacFileStreamMerge::atacFileStreamMerge(void) {
 }
 
 atacFileStreamMerge::~atacFileStreamMerge(void) {
+  for (u32bit i=0; i<_filesLen; i++)
+    delete _files[i]._theFile;
   delete [] _files;
 
   //  But wait!  Unless we munge our copies of data, we'll free things
-  //  again...
+  //  again when atacFileBase destructs!
   //
   _seqA = 0L;
   _seqB = 0L;
@@ -82,7 +83,7 @@ atacFileStreamMerge::addFile(char const *filename) {
   if (_filesLen >= _filesMax) {
     _filesMax *= 2;
     afsm *F = new afsm [_filesMax];
-    memcpy(F, _files, sizeof(FILE *) * _filesLen);
+    memcpy(F, _files, sizeof(afsm) * _filesLen);
     delete [] _files;
     _files = F;
   }
@@ -137,15 +138,23 @@ atacFileStreamMerge::nextMatch(char type) {
 
   for (u32bit i=1; i<_filesLen; i++) {
     if (_files[i]._theMatch) {
-      if (theMatch == 0L)
-        theMatch = _files[i]._theMatch;
+      if (theMatch == 0L) {
+        theMatch    = _files[i]._theMatch;
+        theMatchIdx = i;
+      }
 
-      if (_files[i]._theMatch->iid1 <  theMatch->iid1)
-        theMatch = _files[i]._theMatch;
+      if (theMatch) {
+        if (_files[i]._theMatch->iid1 <  theMatch->iid1) {
+          theMatch    = _files[i]._theMatch;
+          theMatchIdx = i;
+        }
 
-      if ((_files[i]._theMatch->iid1 <= theMatch->iid1) &&
-          (_files[i]._theMatch->iid2 <= theMatch->iid2))
-        theMatch = _files[i]._theMatch;
+        if ((_files[i]._theMatch->iid1 <= theMatch->iid1) &&
+            (_files[i]._theMatch->iid2 <= theMatch->iid2)) {
+          theMatch    = _files[i]._theMatch;
+          theMatchIdx = i;
+        }
+      }
     }
   }
 

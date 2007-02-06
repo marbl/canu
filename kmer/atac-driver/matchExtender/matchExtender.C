@@ -63,8 +63,6 @@ readMatches(atacFileStreamMerge  &AF,
             vector<match_s *>     &fwdMatches,
             vector<match_s *>    &revMatches) {
 
-  //static  atacMatch  *m = 0L;
-
   fwdMatches.clear();
   revMatches.clear();
 
@@ -74,7 +72,7 @@ readMatches(atacFileStreamMerge  &AF,
   //  of this routine) we're still null, we're all done.
   //
   if (m == 0L)
-    m = AF.nextMatch('u');
+    m = AF.nextMatch('x');
   if (m == 0L)
     return(false);
 
@@ -99,7 +97,7 @@ readMatches(atacFileStreamMerge  &AF,
       break;
     }
 
-    m = AF.nextMatch('u');
+    m = AF.nextMatch('x');
   }
 
   if (fwdMatches.size() > 0)
@@ -203,5 +201,11 @@ main(int argc, char *argv[]) {
                 AF.labelB(), revMatches[i]->_iid2, revMatches[i]->_acc2->getRangeBegin(), revMatches[i]->_acc2->getRangeLength());
       delete revMatches[i];
     }
+
+    fwdMatches.clear();
+    revMatches.clear();
   }
+
+  delete C1;
+  delete C2;
 }
