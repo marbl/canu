@@ -13,6 +13,7 @@ $/.CXX_HDRS := $/atac.H \
 $/.CXX_SRCS := $/atacFeature.C \
                $/atacFeatureList.C \
                $/atacFile.C \
+               $/atacFileStreamMerge.C \
                $/atacMatch.C \
                $/atacMatchList.C \
                $/atacMatchOrder.C

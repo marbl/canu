@@ -569,10 +569,9 @@ sub extendMatches (@) {
         $matchExtenderOpts = "-e 4 -b 5 -s 5 -i 0.70 -p 100 -d 25";
     }
 
-    #  Bad job control handling here!
-
-    open(ATACFILE, "| $BINdir/matchExtender $matchExtenderOpts > $ATACdir/$matches.matches.extended");
-
+    #  Build the header file.
+    #
+    open(ATACFILE, "> $ATACdir/$matches.header") or die;
     print ATACFILE "!format atac 1.0\n";
     print ATACFILE  "#\n";
     print ATACFILE  "# Legend:\n";
@@ -626,11 +625,30 @@ sub extendMatches (@) {
         print ATACFILE "/globalMatchMinSize=20\n";
         print ATACFILE "/fillIntraRunGapsErate=0.30\n";
     }
+    close(ATACFILE);
+
+
+    #  run matchExtender
+    #
+    my $cmd;
+    $cmd  = "$BINdir/matchExtender $matchExtenderOpts ";
+    $cmd .= "$ATACdir/$matches.header ";
+    foreach my $segmentID (@segmentIDs) {
+        $cmd .= " $ATACdir/$matches-segment-$segmentID.matches";
+    }
+    $cmd .= " > $ATACdir/$matches.matches.extended";
+
+    if (runCommand($cmd)) {
+        rename "$ATACdir/$matches.matches.extended", "$ATACdir/$matches.matches.extended.FAILED";
+        die "Failed.\n";
+    }
+
 
     #  Copy all the matches to the matchExtender.  We take the liberty
     #  of making new match uids for these, since seatac can't make
     #  unique ids if it is run in multiple passes.
     #
+if (0) {
     my $uid = "000000000";
     my $comma = $,;  $, = " ";
     my $slash = $\;  $\ = "\n";
@@ -653,8 +671,7 @@ sub extendMatches (@) {
 
     $, = $comma;
     $\ = $slash;
-
-    close(ATACFILE);
+}
 }
 
 

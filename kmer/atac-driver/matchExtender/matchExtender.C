@@ -55,31 +55,38 @@ public:
 
 //  Read matches until the iid differs.  Leave the next match in inLine.
 //
-void
-readMatches(atacMatchOrder    &AL,
-            u32bit            &firstMatch,
-            FastACache        *C1,
-            FastACache        *C2,
-            vector<match_s *> &fwdMatches,
-            vector<match_s *> &revMatches) {
+bool
+readMatches(atacFileStreamMerge  &AF,
+            atacMatch            *&m,
+            FastACache            *C1,
+            FastACache            *C2,
+            vector<match_s *>     &fwdMatches,
+            vector<match_s *>    &revMatches) {
+
+  //static  atacMatch  *m = 0L;
 
   fwdMatches.clear();
   revMatches.clear();
 
-  if (firstMatch >= AL.numberOfMatches())
-    return;
+  //  If M is null, we're here for the first time, so get the next
+  //  (first) match from the file.  M is also null if we're at the end
+  //  of the file, so if after getting a match (that's done at the end
+  //  of this routine) we're still null, we're all done.
+  //
+  if (m == 0L)
+    m = AF.nextMatch('u');
+  if (m == 0L)
+    return(false);
 
-  u32bit               iid1 = AL.getMatch(firstMatch)->iid1;
-  u32bit               iid2 = AL.getMatch(firstMatch)->iid2;
+  u32bit               iid1 = m->iid1;
+  u32bit               iid2 = m->iid2;
 
   FastASequenceInCore *seq1 = C1->getSequence(iid1);
   FastASequenceInCore *seq2 = C2->getSequence(iid2);
 
-  while (firstMatch < AL.numberOfMatches()) {
-    atacMatch  *m = AL.getMatch(firstMatch);
-
+  while (m) {
     if ((m->iid1 == iid1) && (m->iid2 == iid2)) {
-      firstMatch++;
+
       if (m->fwd1 == m->fwd2)
         fwdMatches.push_back(new match_s(m->matchuid,
                                          seq1, m->iid1, m->pos1, m->len1, m->fwd1,
@@ -91,6 +98,8 @@ readMatches(atacMatchOrder    &AL,
     } else {
       break;
     }
+
+    m = AF.nextMatch('u');
   }
 
   if (fwdMatches.size() > 0)
@@ -98,6 +107,8 @@ readMatches(atacMatchOrder    &AL,
 
   if (revMatches.size() > 0)
     sort(revMatches.begin(), revMatches.end(), MatchCompare());
+
+  return(true);
 }
 
 
@@ -106,6 +117,9 @@ readMatches(atacMatchOrder    &AL,
 int
 main(int argc, char *argv[]) {
   bool    fail = false;
+
+  atacMatch            *m = 0L;
+  atacFileStreamMerge   AF;
 
   int arg=1;
   while (arg < argc) {
@@ -122,15 +136,16 @@ main(int argc, char *argv[]) {
     } else if (strcmp(argv[arg], "-d") == 0) {
       maxNbrPathMM = strtou32bit(argv[++arg], 0L);
     } else {
-      fprintf(stderr, "unknown option %s\n", argv[arg]);
-      fail = true;
+      //fprintf(stderr, "unknown option %s\n", argv[arg]);
+      //fail = true;
+      AF.addFile(argv[arg]);
     }
 
     arg++;
   }
 
   if (fail) {
-    fprintf(stderr, "usage: %s [options] < matches.atac > matches.atac\n", argv[0]);
+    fprintf(stderr, "usage: %s [options] header.atac matches.atac ... > matches.atac\n", argv[0]);
     fprintf(stderr, "  -e <int>     matchExtenderMinEndRunLen,  10\n");
     fprintf(stderr, "  -b <int>     matchExtenderMaxMMBlock,     3\n");
     fprintf(stderr, "  -s <int>     matchExtenderMinBlockSep,   20\n");
@@ -140,16 +155,7 @@ main(int argc, char *argv[]) {
     exit(1);
   }
 
-  atacFile        AF("-");
-  atacMatchOrder  AO(AF.matches());
-
   AF.writeHeader(stdout);
-
-  //  We could probably optimize and pick the axis with the fewer
-  //  sequences to sort on, but well, no we can't.  Diagonal always
-  //  sorts axis1 first.
-  //
-  AO.sortDiagonal();
 
   FastACache  *C1 = new FastACache(AF.assemblyFileA(), 1, true,  false);
   FastACache  *C2 = new FastACache(AF.assemblyFileB(), 1, false, false);
@@ -157,10 +163,7 @@ main(int argc, char *argv[]) {
   vector<match_s *>  fwdMatches;
   vector<match_s *>  revMatches;
 
-  u32bit       firstMatch = 0;
-
-  while (firstMatch < AO.numberOfMatches()) {
-    readMatches(AO, firstMatch, C1, C2, fwdMatches, revMatches);
+  while (readMatches(AF, m, C1, C2, fwdMatches, revMatches)) {
 
     u32bit diag_start = 0;
     while (diag_start < fwdMatches.size()) {

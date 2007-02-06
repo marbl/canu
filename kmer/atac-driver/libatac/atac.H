@@ -52,7 +52,7 @@ protected:
 public:
   void  writeHeader(FILE *out);
 
-private:
+protected:
   char               _fileA[1024];  //  The name of our genome files
   char               _fileB[1024];
 
@@ -83,6 +83,29 @@ private:
 
   atacMatch    _theMatch;
   atacFeature  _theFeature;
+};
+
+
+class afsm;
+class atacFileStreamMerge : public atacFileBase {
+public:
+  atacFileStreamMerge(void);
+  ~atacFileStreamMerge();
+
+  void         addFile(char const *filename);
+
+  atacMatch   *nextMatch(char type);
+  atacFeature *nextFeature(char type[4]);
+
+  void         writeHeader(FILE *out);
+
+private:
+  u32bit       _filesLen;
+  u32bit       _filesMax;
+  afsm        *_files;
+
+  u32bit       _theMatchIID;
+  u32bit       _theFeatureIID;
 };
 
 
