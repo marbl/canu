@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.1 2007-02-02 21:22:15 eliv Exp $
- * $Revision: 1.1 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.2 2007-02-06 15:00:29 eliv Exp $
+ * $Revision: 1.2 $
 */
 
 #include "AS_BOG_MateChecker.hh"
@@ -106,8 +106,9 @@ namespace AS_BOG{
 
     ///////////////////////////////////////////////////////////////////////////
     struct DistanceCompute {
-        double sumDists;
-        int numFrags;
+        double stddev;
+        double mean;
+        int numPairs;
     };
 
     void MateChecker::checkUnitig(Unitig* tig)
@@ -133,7 +134,7 @@ namespace AS_BOG{
                         // already seen it's mate
                         if (isReverse(fragPos)) {
                             // 2nd frag seen is reverse, so good orientation
-                            goodMates[fragId] = fragPos.end - goodMates[fragId];
+                            goodMates[fragId] = fragPos.bgn - goodMates[fragId];
                         } else {
                             // 2nd frag seen is forward, so bad
                             goodMates[fragId] = max;
@@ -161,6 +162,7 @@ namespace AS_BOG{
         fprintf(stderr,"Num with mate in unitig %d\n",numInTig);
         fprintf(stderr,"Num other unitig %d\n",otherUnitig.size());
         std::map<iuid,DistanceCompute> libs;
+        // sum the distances into the mean
         IdMapConstIter goodIter = goodMates.begin();
         for(;goodIter != goodMates.end(); goodIter++)
         {
@@ -171,19 +173,47 @@ namespace AS_BOG{
             iuid distId = getDist( fragId );
             if (libs.find( distId ) == libs.end()) {
                 DistanceCompute d;
-                d.numFrags = 1;
-                d.sumDists = mateDist;
+                d.numPairs = 1;
+                d.mean = mateDist;
+                d.stddev = 0.0;
+                libs[ distId ] = d;
             } else {
-                libs[distId].numFrags++;
-                libs[distId].sumDists+=mateDist;
+                libs[distId].numPairs++;
+                libs[distId].mean+=mateDist;
             }
         }
-        std::map<iuid,DistanceCompute>::const_iterator dcIter = libs.begin();
+        // Calculate the real mean
+        std::map<iuid,DistanceCompute>::iterator dcIter = libs.begin();
         for(; dcIter != libs.end(); dcIter++) {
             iuid lib = dcIter->first;
-            DistanceCompute dc = dcIter->second;
-            fprintf(stderr,"Distance lib %ld has %ld frags with avg dist %.1f\n",
-                    lib, dc.numFrags, dc.sumDists / dc.numFrags );
+            DistanceCompute *dc = &(dcIter->second);
+            dc->mean = dc->mean / dc->numPairs;
+            fprintf(stderr,"Distance lib %ld has %ld pairs with mean dist %.1f\n",
+                    lib, dc->numPairs, dc->mean );
+        }
+        // Sum of (x-mean)^2, not yet full stddev
+        goodIter = goodMates.begin();
+        for(;goodIter != goodMates.end(); goodIter++)
+        {
+            iuid fragId = goodIter->first;
+            iuid mateDist = goodIter->second;
+            if (mateDist == max)
+                continue;
+            iuid distId = getDist( fragId );
+            libs[distId].stddev+=pow((mateDist-libs[distId].mean),2);
+        }
+        // Calculate the real stddev
+        dcIter = libs.begin();
+        for(; dcIter != libs.end(); dcIter++) {
+            iuid lib = dcIter->first;
+            DistanceCompute* dc = &(dcIter->second);
+            // really need to just collect all values and calculate in checkUnitigGraph()
+            if (dc->numPairs == 1)
+                dc->stddev = 0.0;
+            else
+                dc->stddev = sqrt( dc->stddev / (dc->numPairs-1) );
+            fprintf(stderr,"Distance lib %ld has %ld pairs with stddev %.1f\n",
+                    lib, dc->numPairs, dc->stddev );
         }
     }
     void MateChecker::checkUnitigGraph( UnitigGraph& tigGraph )
