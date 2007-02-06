@@ -22,15 +22,14 @@
 #
 ###########################################################################
 #
-# gmake Makefile for AS_OVL
+# gmake Makefile for AS_BOG
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
 TOOL_SRCS = BuildUnitigs.cc FindContainedFrags.cc
 
-HEADERS = AS_BOG_BestOverlapGraph.hh AS_BOG_ChunkGraph.hh AS_BOG_UnitigGraph.hh AS_BOG_MateChecker.hh
-LIB_SOURCES = AS_BOG_BestOverlapGraph.cc AS_BOG_ChunkGraph.cc AS_BOG_UnitigGraph.cc AS_BOG_MateChecker.cc
-#LIB_SOURCES = AS_BOG_BestOverlapGraph.cc
+HEADERS = $(shell ls *.hh | grep -v Datatypes)
+LIB_SOURCES = $(HEADERS:.hh=.cc)
 
 SOURCES = $(LIB_SOURCES) $(TOOL_SRCS)
 

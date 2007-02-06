@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.2 2007-02-06 15:00:29 eliv Exp $
- * $Revision: 1.2 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.3 2007-02-06 16:21:20 eliv Exp $
+ * $Revision: 1.3 $
 */
 
 #include "AS_BOG_MateChecker.hh"
@@ -105,13 +105,8 @@ namespace AS_BOG{
     }
 
     ///////////////////////////////////////////////////////////////////////////
-    struct DistanceCompute {
-        double stddev;
-        double mean;
-        int numPairs;
-    };
 
-    void MateChecker::checkUnitig(Unitig* tig)
+    LibraryStats* MateChecker::checkUnitig(Unitig* tig)
     {
         fprintf(stderr,"Check mates for tig %ld\n",tig->id());
         IdMap goodMates;
@@ -139,19 +134,15 @@ namespace AS_BOG{
                             // 2nd frag seen is forward, so bad
                             goodMates[fragId] = max;
                         }
-                    } else {
-                        // 1st of pair
+                    } else { // 1st of pair
                         if (isReverse(fragPos)) {
                             // 1st reversed, so bad
-                            fprintf(stderr,"Skip bad orient %ld\n",mateId);
                             goodMates[mateId] = max;
                         } else {
                             // 1st forward, so good
-                            fprintf(stderr,"Begin good %ld,%ld at %ld\n",fragId,mateId,fragPos.bgn);
                             goodMates[mateId] = fragPos.bgn;
                         }
                     }
-
                 } else {
                     otherUnitig.push_back( fragId );
                 }
@@ -161,7 +152,7 @@ namespace AS_BOG{
         fprintf(stderr,"Num frags with mate %d\n",numWithMate);
         fprintf(stderr,"Num with mate in unitig %d\n",numInTig);
         fprintf(stderr,"Num other unitig %d\n",otherUnitig.size());
-        std::map<iuid,DistanceCompute> libs;
+        LibraryStats *libs = new LibraryStats();
         // sum the distances into the mean
         IdMapConstIter goodIter = goodMates.begin();
         for(;goodIter != goodMates.end(); goodIter++)
@@ -171,23 +162,25 @@ namespace AS_BOG{
             if (mateDist == max)
                 continue;
             iuid distId = getDist( fragId );
-            if (libs.find( distId ) == libs.end()) {
+            if (libs->find( distId ) == libs->end()) {
                 DistanceCompute d;
-                d.numPairs = 1;
-                d.mean = mateDist;
-                d.stddev = 0.0;
-                libs[ distId ] = d;
+                d.numPairs   = 1;
+                d.sumDists   = mateDist;
+                d.stddev     = 0.0;
+                d.mean       = 0.0;
+                d.sumSquares = 0.0;
+                (*libs)[ distId ] = d;
             } else {
-                libs[distId].numPairs++;
-                libs[distId].mean+=mateDist;
+                (*libs)[distId].numPairs++;
+                (*libs)[distId].sumDists+=mateDist;
             }
         }
-        // Calculate the real mean
-        std::map<iuid,DistanceCompute>::iterator dcIter = libs.begin();
-        for(; dcIter != libs.end(); dcIter++) {
+        // Calculate the real unitig local mean
+        LibraryStats::iterator dcIter = libs->begin();
+        for(; dcIter != libs->end(); dcIter++) {
             iuid lib = dcIter->first;
             DistanceCompute *dc = &(dcIter->second);
-            dc->mean = dc->mean / dc->numPairs;
+            dc->mean = dc->sumDists / dc->numPairs;
             fprintf(stderr,"Distance lib %ld has %ld pairs with mean dist %.1f\n",
                     lib, dc->numPairs, dc->mean );
         }
@@ -200,29 +193,70 @@ namespace AS_BOG{
             if (mateDist == max)
                 continue;
             iuid distId = getDist( fragId );
-            libs[distId].stddev+=pow((mateDist-libs[distId].mean),2);
+            (*libs)[distId].sumSquares+=pow(mateDist-(*libs)[distId].mean,2);
         }
         // Calculate the real stddev
-        dcIter = libs.begin();
-        for(; dcIter != libs.end(); dcIter++) {
+        dcIter = libs->begin();
+        for(; dcIter != libs->end(); dcIter++) {
             iuid lib = dcIter->first;
-            DistanceCompute* dc = &(dcIter->second);
+            DistanceCompute *dc = &(dcIter->second);
             // really need to just collect all values and calculate in checkUnitigGraph()
             if (dc->numPairs == 1)
                 dc->stddev = 0.0;
             else
-                dc->stddev = sqrt( dc->stddev / (dc->numPairs-1) );
+                dc->stddev = sqrt( dc->sumSquares / (dc->numPairs-1) );
             fprintf(stderr,"Distance lib %ld has %ld pairs with stddev %.1f\n",
                     lib, dc->numPairs, dc->stddev );
         }
+        return libs;
     }
+
+    ///////////////////////////////////////////////////////////////////////////
+
     void MateChecker::checkUnitigGraph( UnitigGraph& tigGraph )
     {
+        LibraryStats globalStats;
+        LibraryStats::iterator dcIter;
         UnitigsConstIter tigIter = tigGraph.unitigs->begin();
         for(; tigIter != tigGraph.unitigs->end(); tigIter++)
         {
-            if (*tigIter != NULL )
-                checkUnitig(*tigIter);
+            if (*tigIter == NULL ) 
+                continue;
+            LibraryStats* libs = checkUnitig(*tigIter);
+            dcIter = libs->begin();
+            for(; dcIter != libs->end(); dcIter++) {
+                iuid lib = dcIter->first;
+                DistanceCompute dc = dcIter->second;
+                if (globalStats.find(lib) == globalStats.end() ) {
+                    globalStats[ lib ] = dc;
+                }
+                else {
+                    DistanceCompute *gdc = &(globalStats[ lib ]);
+                    gdc->numPairs   += dc.numPairs;
+                    gdc->sumDists   += dc.sumDists;
+                    gdc->sumSquares += dc.sumSquares;
+                }
+            }
+        }
+        dcIter = globalStats.begin();
+        for(; dcIter != globalStats.end(); dcIter++) {
+            iuid lib = dcIter->first;
+            DistanceCompute *dc = &(dcIter->second);
+            dc->mean = dc->sumDists / dc->numPairs;
+            fprintf(stderr,"Distance lib %ld has global %ld pairs with mean dist %.1f\n",
+                    lib, dc->numPairs, dc->mean );
+        }
+        dcIter = globalStats.begin();
+        for(; dcIter != globalStats.end(); dcIter++)
+        {
+            iuid lib = dcIter->first;
+            DistanceCompute *dc = &(dcIter->second);
+            if (dc->numPairs == 1)
+                dc->stddev = 0.0;
+            else
+                dc->stddev = sqrt( dc->sumSquares / (dc->numPairs-1) );
+            fprintf(stderr,"Distance lib %ld has global %ld pairs with stddev %.1f\n",
+                    lib, dc->numPairs, dc->stddev );
         }
     }
 }

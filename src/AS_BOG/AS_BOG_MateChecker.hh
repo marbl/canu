@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.hh,v 1.1 2007-02-02 21:22:16 eliv Exp $
- * $Revision: 1.1 $
+ * $Id: AS_BOG_MateChecker.hh,v 1.2 2007-02-06 16:21:20 eliv Exp $
+ * $Revision: 1.2 $
 */
 
 #ifndef INCLUDE_AS_BOG_MATECHEKER
@@ -38,6 +38,17 @@ namespace AS_BOG{
     typedef std::map<iuid,iuid> IdMap;
     typedef IdMap::const_iterator IdMapConstIter;
 
+    struct DistanceCompute {
+        double stddev;
+        double mean;
+        double sumSquares;
+        double sumDists;
+        int numPairs;
+    };
+    typedef std::map<iuid,DistanceCompute> LibraryStats;
+
+    ///////////////////////////////////////////////////////////////////////////
+
     struct MateChecker{
         ~MateChecker();
 
@@ -45,7 +56,7 @@ namespace AS_BOG{
         iuid getMate(iuid); // returns the mate iid for the given iid, or zero if none
         iuid getDist(iuid); // returns the dist iid for the given iid, or zero if none
 
-        void checkUnitig( Unitig* ); //Checks size of mates internal to unitig
+        LibraryStats* checkUnitig( Unitig* ); //Checks size of mates internal to unitig
         void checkUnitigGraph( UnitigGraph& );
 
         private:
