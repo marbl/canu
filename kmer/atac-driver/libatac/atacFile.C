@@ -40,15 +40,15 @@ atacFileStream::atacFileStream(char const *filename) {
 
   _inFile = stdin;
 
-  _theMatchIID   = 0;
-  _theFeatureIID = 0;
-
   if ((filename != 0L) && (strcmp(filename, "-") != 0)) {
     errno = 0;
     _inFile = fopen(filename, "r");
     if (errno)
       fprintf(stderr, "atacFileStream::atacFileStream()-- failed to open %s: %s\n", filename, strerror(errno)), exit(1);
   }
+
+  _theMatchIID   = 0;
+  _theFeatureIID = 0;
 
   readHeader(_inLine, _inFile);
 }
@@ -59,37 +59,34 @@ atacFileStream::~atacFileStream() {
 
 atacMatch*
 atacFileStream::nextMatch(char type) {
+  atacMatch *ret = 0L;
 
-  fgets(_inLine, 1024, _inFile);
+  while ((ret == 0L) &&
+         (feof(_inFile) == false)) {
 
-  if (feof(_inFile))
-    return(0L);
-
-  while (!feof(_inFile)) {
     if (_inLine[0] == 'M') {
       _theMatch.decode(_inLine);
+
       if (_theMatch.type[0] == type) {
         _theMatch.matchiid = _theMatchIID++;
-        return(&_theMatch);
+        ret = &_theMatch;
       }
     }
 
     fgets(_inLine, 1024, _inFile);
   }
 
-  return(0L);
+  return(ret);
 }
 
 
 atacFeature*
 atacFileStream::nextFeature(char type[4]) {
+  atacFeature *ret = 0L;
 
-  fgets(_inLine, 1024, _inFile);
+  while ((ret == 0L) &&
+         (feof(_inFile) == false)) {
 
-  if (feof(_inFile))
-    return(0L);
-
-  while (!feof(_inFile)) {
     if (_inLine[0] == 'F') {
       _theFeature.decode(_inLine);
 
@@ -101,14 +98,14 @@ atacFileStream::nextFeature(char type[4]) {
           ((_theFeature.type[2] == 0) || (type[2] == 0) || (_theFeature.type[2] == type[2])) &&
           ((_theFeature.type[3] == 0) || (type[3] == 0) || (_theFeature.type[3] == type[3]))) {
         _theFeature.featureiid = _theFeatureIID++;
-        return(&_theFeature);
+        ret = &_theFeature;
       }
     }
 
     fgets(_inLine, 1024, _inFile);
   }
 
-  return(0L);
+  return(ret);
 }
 
 
@@ -133,7 +130,6 @@ atacFile::atacFile(char const *filename) {
   //  the first match in the inLine, and fills in fileA and fileB.
   //
   readHeader(inLine, inFile);
-
 
   while (!feof(inFile)) {
     switch(inLine[0]) {

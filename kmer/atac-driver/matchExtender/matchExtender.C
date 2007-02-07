@@ -56,12 +56,12 @@ public:
 //  Read matches until the iid differs.  Leave the next match in inLine.
 //
 bool
-readMatches(atacFileStreamMerge  &AF,
+readMatches(atacFileStreamMerge   &AF,
             atacMatch            *&m,
             FastACache            *C1,
             FastACache            *C2,
             vector<match_s *>     &fwdMatches,
-            vector<match_s *>    &revMatches) {
+            vector<match_s *>     &revMatches) {
 
   fwdMatches.clear();
   revMatches.clear();
