@@ -1,0 +1,200 @@
+\documentclass[twoside, twocolumn, 10pt]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{moreverb}
+\usepackage{fancyheadings}
+\usepackage{ulem}
+\usepackage{parskip}
+\usepackage{calc,ifthen,epsfig}
+\sloppy
+
+%  A few float parameters
+%
+\renewcommand{\dbltopfraction}{0.9}
+\renewcommand{\dblfloatpagefraction}{0.9}
+%\renewcommand{\textfraction}{0.05}
+
+
+\begin{document}
+
+%  See page 63-64, LaTeX Companion
+%
+% leftmargin controls the left margin for EVERYTHING in the list!
+%
+\newcommand{\entrylabel}[1]{\mbox{\texttt{#1:}}\hfil}
+\newenvironment{entry}
+  {\begin{list}{}%
+   {\renewcommand{\makelabel}{\entrylabel}%
+    %\setlength{\leftmargin}{1.5in}%
+   }}
+{\end{list}}
+
+% The first parbox width controls the indent on the first text line
+% The makebox width seems to do nothing.
+\newcommand{\Lentrylabel}[1]{%
+  {\parbox[b]{0pt}{\makebox[0pt][l]{\texttt{#1:}}\\}}\hfil\relax}
+\newenvironment{Lentry}
+  {\renewcommand{\entrylabel}{\Lentrylabel}\begin{entry}}
+  {\end{entry}}
+
+\title{ESTmapper documentation}
+\author{
+Liliana Florea\thanks{liliana.florea@celera.com},
+Brian P. Walenz\thanks{brian.walenz@celera.com}}
+
+\maketitle
+
+\pagestyle{fancy}
+
+\rhead[]{}
+\chead[ESTmapper]{ESTmapper}
+\lhead[\today]{\today}
+
+\normalem
+
+\newcommand{\ESTmapper}{{\sc ESTmapper\ }}
+
+\begin{abstract}
+The gory details of the \ESTmapper process is described.
+
+
+
+
+
+
+\subsection{Hash Function Definitions}
+
+In the discussion that follows, let $A$ be an encoded mer, $H$ be the
+hashed value of the mer, and $C$ be the check value.  $A$ is $m$ bits
+wide, $H$ is $h$ bits wide and $C$ is $m-h$ bits wide.
+
+Our hash and check functions must satisfy the following properties:
+\begin{align*}
+f_H &: m \rightarrow h \\
+f_C &: m \rightarrow c \\
+f_R &: h \times c \rightarrow m
+\end{align*}
+such that $f_R(f_H(A), f_C(A)) = A$.
+
+Furthermore, $f_H$ should be a good hash function, {\bf whatever that means}.
+The functions are explained in Section~\ref{sec:hashfcn}.
+
+\subsection{existDB}
+
+The {\tt existDB} will tell us if a mer exists in a sequence.
+
+We can build the structure in Figure~\ref{fig:hashstruct} in five
+steps, using $\theta(2 \cdot 2^h + 2 \cdot n)$ time and no temporary
+space.
+
+\begin{enumerate}
+\item
+Allocate and zero $2^h$ integers for the hash table.
+\item
+Count the size of each bucket: hash each mer, increment the size of
+that bucket.  This can be done using the space for the hash table.
+Also count the number of mers.
+\item
+Allocate $n$ bucket entries, one for each mer.  There is no need to
+initialize these.
+\item
+Make the hash table entry $i$ point to the start of bucket $i$.  Note
+that the hash table entry $i+1$ can be used to find the end of bucket
+$i$.
+\item
+Rehash each mer, inserting the check value into the next available
+bucket entry (use the hash table to keep track of the next available
+entry).  The buckets contain all the mers after this step, and the
+hash table is off by one -- entry $i$ points to the start of bucket
+$i+1$.  If we offset the start of the table, we can fix this in $O(1)$
+time.
+\end{enumerate}
+
+We assume that the input sequence does not contain duplicate mers.  If
+it does, we should remove them from the table.
+
+\subsection{positionDB}
+
+We can extend the {\tt existDB} to store position information by
+storing, in the bucket entry, either the position of the mer (if there
+is exactly one copy) or a pointer to a list of positions.
+
+Unlike the {\tt existDB} we now need to remove duplicate mers from the
+table.
+
+\begin{enumerate}
+\item
+count bucket size - this overcounts the true size; it counts
+duplicates
+\item
+allocate counting buckets - build a list of hashed mers and the position
+that they occur.
+\item
+sort each bucket
+\item
+allocate the final hash table, buckets and position lists
+{\bf XXX} can we reuse the hash table and bucket space??
+\item
+copy the counting buckets into the final structure.  mers that occur
+exactly once have their position stored in the bucket entry.  mers
+that occur more than once have a pointer to the position list
+placed in the bucket entry.
+\end{enumerate}
+
+\subsection{A Good Hash Function}
+\label{sec:hashfcn}
+
+A simple hash function would be to use the highest $h$ bits of the
+encoded mer as the hash, and use the lowest $m-h$ bits of the mer
+as the check.  Unfortunately, this is a very poor hash function ---
+the hash function is strongly correlated with the input mer. {\bf needs more blah blah}
+
+A better hash function would first ``scramble'' the bits in the mer to
+break the correlation between the input and the output.
+
+In the discussion that follows, let $A$ be an encoded mer, $H$ be the
+hashed value of the mer, and $C$ be the collision resolution value.
+$A$ is $m$ bits wide, $H$ is $h$ bits wide and $C$ is $m-h$ bits wide.
+
+We want to find functions 
+$f_H : m \rightarrow h$,
+$f_C : m \rightarrow c$,
+$f_R : h \times c \rightarrow m$
+such that
+\begin{align*}
+f_H(A) =& H \\
+f_C(A) =& C \\
+f_R(H,C) =& A
+\end{align*}
+Furthermore, $f_H$ should be a good hash function.
+
+We specify $f_H$ and $f_C$ by specifying each bit in the output.
+\begin{align*}
+H_i &= A_{i} \oplus A_{i-\frac{m-h}{2}} \oplus A_{i+m-h}, \text{ for } 1 \le i \le h \\
+C_i &= A_{i}, \text{ for } 1 \le i \le m-h
+\end{align*}
+Likewise, $f_R$ can be expressed as
+\begin{align*}
+A_i &= 
+\begin{cases}
+C_i & 1 \le i \le m-h \\
+A_{i-m+h} \oplus A_{i-\frac{m+h}{2}} \oplus H_{i-m+h} & m-h < i \le m
+\end{cases}
+\end{align*}
+In C code
+\begin{verbatim}
+u64bit  fH(u64bit A) {
+  return(((A) ^
+          (A >> (m-h)/2) ^
+          (A >> (m-h))) & MASK(h));
+}
+
+u64bit  fC(u64bit A) {
+  return(A & MASK(m-h));
+}
+\end{verbatim}
+where {\tt u64bit} is a 64-bit unsigned integer type.  The code for
+$f_R$ is non-trivial, and is not needed.
+
+
+\end{document}
+

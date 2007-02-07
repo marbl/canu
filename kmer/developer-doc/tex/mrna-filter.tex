@@ -1,0 +1,164 @@
+\documentclass[twoside]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{moreverb}
+\usepackage{fancyheadings}
+\usepackage{ulem}
+\usepackage{parskip}
+\usepackage{calc,ifthen,epsfig}
+\sloppy
+
+\begin{document}
+
+%  See page 63-64, LaTeX Companion
+%
+% leftmargin controls the left margin for EVERYTHING in the list!
+%
+\newcommand{\entrylabel}[1]{\mbox{\texttt{#1:}}\hfil}
+\newenvironment{entry}
+  {\begin{list}{}%
+   {\renewcommand{\makelabel}{\entrylabel}%
+    %\setlength{\leftmargin}{1.5in}%
+   }}
+{\end{list}}
+
+% The first parbox width controls the indent on the first text line
+% The makebox width seems to do nothing.
+\newcommand{\Lentrylabel}[1]{%
+  {\parbox[b]{0pt}{\makebox[0pt][l]{\texttt{#1:}}\\}}\hfil\relax}
+\newenvironment{Lentry}
+  {\renewcommand{\entrylabel}{\Lentrylabel}\begin{entry}}
+  {\end{entry}}
+
+\title{Filtering mRNA signal}
+\author{Brian P. Walenz}
+\maketitle
+
+\pagestyle{fancy}
+
+\rhead[Brian Walenz]{Brian Walenz}
+\chead[Filtering mRNA signal]{Filtering mRNA signal}
+\lhead[\today]{\today}
+
+\normalem
+
+\begin{abstract}
+Given signals detected by chaining 20-mers, a method is presented for
+deciding which signals potentially contain real matches.
+\end{abstract}
+
+\section{What is a signal}
+
+Signal has three values associated with it.  The amount 'covered', the
+amount 'matched' and the total 'length'.
+%
+The amount covered is the number of
+bases in the mRNA that are contained in least one mer.
+%
+The amount matched is the number of paired bases (for example, position
+$i$ in the cDNA paired with position $j$ in the genomic) covered by a mer.
+%
+The length is the number of mers in the mRNA (roughly equivalent to the
+number of bases in the mRNA that could be covered by a mer, but easier
+to compute).
+
+From these, we can derive two scores, the coverage and the multiplicity.
+The coverage, $\frac{covered}{length}$, represents the fraction of the mRNA
+that we found, while the multiplicity, $\frac{matched}{covered}$, represents
+the amount of the mRNA that we found too many times.
+
+A high multiplicity usually indicates a repeat-containing mRNA.  High
+multiplicity and high coverage can indicate that the mRNA is not cDNA.
+
+\section{Filter}
+
+In order to filter signals, we need to decide, for each mRNA, which
+signals are bad, and which are good (duh!), which means that we'll
+need to look at {\em all} signals for a single mRNA.
+
+For the filter presented below, we need to know the best and worst
+coverage values that occur for any signal associated with a specific
+mRNA.  Once those are known, the signals can be filtered in any order.
+This is important in the case where the signals are detected
+chromosome by chromosome.  Instead of sorting all signals, we can save
+the best and worst coverage for each mRNA.
+
+\begin{figure}
+\begin{center}
+\begin{tabular}{|c|c|c|l|}
+\hline
+Switch & Variable & Default Value & Description \\
+\hline
+\hline
+-l  & $L$   & 0.2 & \text{Signal spread low range} \\
+-h  & $H$   & 0.6 & \text{Signal spread high range} \\
+-v  & $V$   & 0.3 & \text{Pass value} \\
+-m  & $M$   & 0.3 & \text{Signal quality floor} \\
+-mc & $M_c$ & 0.2 & \text{Minimum signal quality} \\
+-ml & $M_l$ & 150 & \text{Minimum signal size} \\
+\hline
+\end{tabular}
+\end{center}
+\caption{Parameters, default values and descriptions}
+\label{table:defvalues}
+\end{figure}
+
+The filter has six parameters, summarized in Table~/ref{table:defvals}.
+
+If the signals for a specific mRNA are all very similar, it is
+probable that the weaker signals are weak only because of a few
+mismatches that break 20-mers.  In this case, we cannot reliably pick
+the signals that are true, and should consider all of them.
+
+On the other hand, if there is a large range in the quality of signals,
+we can safely discard low scoring signals, and still be confident that
+we will find the good stuff.
+
+Therefore, the filter will discard no signals if the range in quality
+values is small, and will gradually discard more, proportional to the
+range.  So that we don't discard too much, we limit the increase in
+filtering to $V$ (0.3).
+\begin{align*}
+h &= bestCoverage - worstCoverage \\
+p &= \begin{cases}
+     0.0 & \text{if $h \le L$} \\
+     V * \frac{h-L}{H-L} & \text{if $L < h < H$} \\
+     V   & \text{if $H \le h$}
+     \end{cases} \\
+c &= min(worstCoverage + p \cdot h, M)
+\end{align*}
+
+\begin{figure}
+\begin{center}
+\epsfig{figure=mRNAfilt.eps, silent=, width=4.5in}
+\end{center}
+\caption{The $p$ curve.}
+\label{fig:pcurve}
+\end{figure}
+
+$p$ is the amount of filtering, ranging from minimum (0.0) to maximum
+($V$, a parameter).
+
+The $c$ value computed above is the filtering threshold.  Signals with
+coverage below $c$ are considered weak, and are discarded.
+
+If the score range is small ($\le L$), then $c$ will be
+$worstCoverage$, and we do no filtering.  If the score range is large
+($\ge H$), then $c$ will be $M$ of the best score.  $c$ is the minimum
+coverage that will be accepted.  It is derived from the range of
+scores, not the number of scores.
+
+Finally, it is possible that {\em all} signals are good.  If we used the
+above filtering we would be discarding the low scoring (but still valid)
+signals.  To overcome this, absolute limits $M_c$ and $M_l$ are enforced.
+
+A signal is saved if both of the following conditions are met:
+\begin{enumerate}
+\item ($c <= coverage$)
+\item ($M_c <= coverage$) or ($M_l <= coveredBases$)
+\end{enumerate}
+
+\section{Results}
+This filter is overly permissive, throwing out only signals that are
+obviously garbage.
+
+\end{document}

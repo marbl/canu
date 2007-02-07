@@ -1,0 +1,358 @@
+\documentclass[twoside, twocolumn, 10pt]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{moreverb}
+\usepackage{fancyheadings}
+\usepackage{ulem}
+\usepackage{parskip}
+\usepackage{calc,ifthen,epsfig}
+\sloppy
+
+%  A few float parameters
+%
+\renewcommand{\dbltopfraction}{0.9}
+\renewcommand{\dblfloatpagefraction}{0.9}
+%\renewcommand{\textfraction}{0.05}
+
+
+\begin{document}
+
+%  See page 63-64, LaTeX Companion
+%
+% leftmargin controls the left margin for EVERYTHING in the list!
+%
+\newcommand{\entrylabel}[1]{\mbox{\texttt{#1:}}\hfil}
+\newenvironment{entry}
+  {\begin{list}{}%
+   {\renewcommand{\makelabel}{\entrylabel}%
+    %\setlength{\leftmargin}{1.5in}%
+   }}
+{\end{list}}
+
+% The first parbox width controls the indent on the first text line
+% The makebox width seems to do nothing.
+\newcommand{\Lentrylabel}[1]{%
+  {\parbox[b]{0pt}{\makebox[0pt][l]{\texttt{#1:}}\\}}\hfil\relax}
+\newenvironment{Lentry}
+  {\renewcommand{\entrylabel}{\Lentrylabel}\begin{entry}}
+  {\end{entry}}
+
+\title{ESTmapper documentation}
+\author{
+Liliana Florea\thanks{liliana.florea@celera.com},
+Brian P. Walenz\thanks{brian.walenz@celera.com}}
+
+\maketitle
+
+\pagestyle{fancy}
+
+\rhead[]{}
+\chead[ESTmapper]{ESTmapper}
+\lhead[\today]{\today}
+
+\normalem
+
+\newcommand{\ESTmapper}{{\sc ESTmapper\ }}
+
+\begin{abstract}
+The gory details of the \ESTmapper process is described.
+
+
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Hit Filtering}
+
+\begin{figure*}
+\begin{center}
+\epsfig{figure=filter.eps, silent=, width=4.5in}
+\end{center}
+\caption{Diagram of the match-building algorithm.  The dotted-box represents
+the extent of the current match.  Lines with arrows define regions of action.
+If the next mer falls in the dark region, the current match is evaluated and
+potentially saved; if the next mer falls into any of the lighter areas,
+the mer is added to the current match, and the current match is extended.
+Note that we have processed all mers in the white region.
+We process hit A next.  As it is in a light region, it is added to the
+match, and the match is extended.  Hit B will break the current match,
+so it is evaluated and saved.  A new match region is formed,
+encompassing only hit B.  Hit C would extend the new match region.}
+\label{fig:hitfiltering}
+\end{figure*}
+
+The goal of filtering is to take a set of mers, and isolate subsets
+that look like cDNA matches.  That is, we want to find a subset of
+hits that form a nearly-idential alignment, but could have large gaps
+in the genomic sequence (introns).
+
+This is done in two passes.  The first pass will detect all
+nearly-identical regions, some of these regions will be grouped into
+exon-intron structures.  The second pass will examine the regions, and
+merge those that are in approximately the same genomic area.
+
+The hits in a region of near identity will all be on nearly the same
+diagonal.  By sorting the hits by the diagonal they are on, we can
+quickly find a subset of hits that form a nearly identical match
+because they will be consecutive in the list.
+
+The first pass is shown in Figure~\ref{fig:hitfiltering}.  In the
+figure, a large dashed-box represents the extent of the current
+matching region, the lines with arrows are various distance thresholds
+and divide the space into three regions (dark, light and white).
+
+The white region contains exactly those hits that we have processed
+thus far.  If the next hit in the list falls into one of the lightly
+shaded regions, it is added to the current match.  If the next hit
+falls into the darkly shaded region, it terminated the current match.
+
+When the current match is terminated, it is evaluated to decide if it
+is a significant match or not.  Two classes of matches are possible:
+single exon or multiple exon (based on the size of the diagonal).  If
+a single exon match contains more than $X$ exact base matches, the
+match region is saved.  If a multiple exon match contains more than
+$Y$ exact base matches, the match region is saved.  Otherwise, the
+match region is discarded, and a new match region is created which
+contains only the current hit.
+
+When a match is saved, we only need to save the coordinates in the
+genomic sequence.  Essentially, we are saying ``There might be some
+piece of the cDNA on this genomic region''.  We extend each side of
+the saved region by an amount proportional to the amount of cDNA that
+was not represented by the match.  {\bf need to explain why}
+
+\subsection{Match Merging}
+
+Because of the extension of matches, some matches might be
+overlapping, or close enough to consider the same match.  The final
+step is to scan the list of matches and merge those that are close.
+
+\subsection{output}
+
+Matches are scored by the number of exact base matches they have.  We
+probably want to normalize this to [0,1] somehow, but should also use
+number of exons, etc., etc.
+
+\section{What is a signal}
+
+Signal has three values associated with it.  The amount 'covered', the
+amount 'matched' and the total 'length'.
+%
+The amount covered is the number of
+bases in the mRNA that are contained in least one mer.
+%
+The amount matched is the number of paired bases (for example, position
+$i$ in the cDNA paired with position $j$ in the genomic) covered by a mer.
+%
+The length is the number of mers in the mRNA (roughly equivalent to the
+number of bases in the mRNA that could be covered by a mer, but easier
+to compute).
+
+From these, we can derive two scores, the coverage and the multiplicity.
+The coverage, $\frac{covered}{length}$, represents the fraction of the mRNA
+that we found, while the multiplicity, $\frac{matched}{covered}$, represents
+the amount of the mRNA that we found too many times.
+
+A high multiplicity usually indicates a repeat-containing mRNA.  High
+multiplicity and high coverage can indicate that the mRNA is not cDNA.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Filtering, first try}
+
+Written around 4 December 2001.
+
+\subsection{Output of the Search}
+
+The search outputs hits.  Each hit is made up of one or more exon-like
+matches.  Each match can represent one or more exons, as long as the
+mers in the match do not show inconsistent overlap.
+
+[Insert three pictures here -- single exon match, multiple exon match,
+inconsistent mers]
+
+Each match is extended by a value determined by the amount of un-matched
+query sequence.
+
+Each match is scored by the number of mers it contains.
+
+Once the list of matches is found, any matches within 5Kb are merged.
+The number of mers in a merged match is the sum of the number of mers
+in its pieces.
+
+The list of merged matches is then output as hits.
+
+Hits are scored by:
+
+(number of mers in the merged matche) / (number or mers in the query)
+
+Number of mers in the query is the number of valid mers -- the
+high-frequency mers and mers containing 'N' are not counted.
+
+A score of 1.0 is perfect; a score less than 1.0 indicates a partial
+match, while a score more than 1.0 indicates a duplicate gene nearby,
+or a large spurious match.
+
+\subsection{Filtering of Hits}
+
+Given all hits for a specific query sequence, we filter them by throwing
+away the lowest scoring ones.  (duh!)
+
+A low-score cutoff if determined with:
+
+  cutoff = cutoffScale * (highestScore - lowestScore) + lowestScore
+
+where cutoffScale is a parameter to decide how aggressive the
+filtering is (1.0 is perfectly aggressive, 0.3 is reasonable).
+
+Then all hits with score < cutoff are discarded.
+
+\subsection{Modifications}
+
+Occasionally, large spurious matches are found (e.g., ???).  The score
+of the spurious match can be significantly better than the score of the
+real match, which will cause the real match to be filtered out.  To
+compensate for this, the value of highestScore in the cutoff computation
+is modified to be
+
+max(lowestScore, min(1.0, highestScore))
+
+\subsection{Discussion}
+
+As the search is done over the whole genome, and all hits are used
+to determine the highestScore and lowestScore blah, blah, blah.
+
+
+if highestScore $<$ 1.0 -- unmatched mers are assumed to be in error,
+either in the query or the genome.  We will never find these mers, so
+we should reduce the aggressiveness of the filter to account for this.
+
+if highestScore $>$ 1.0 -- the best hit is probably bogus, and we still
+want to polish hits down to (about) the same level as if the best hit
+were a perfect hit.  Thus, threshold the highestScore to be a perfect
+hit.
+
+Finally, we need to make the highestScore at least the lowestScore, in
+the extreme case that the worst hit is greater than 1.0.  Ha, ha.  Why
+are you searching for repeats, anyway?
+
+\subsection{Implementation Detail}
+
+A CPU-time limit is imposed when polishing hits for queries that have
+a hit with score greater than 1.5.  This solves the nasty case when we
+get a chunk of genomic as input, and it matches an entire chromosome
+with several hundred exon-like things, and it takes hours to polish.
+
+The more correct thing to do is to abort ANY polish that takes more
+than 60 seconds, not just suspicious looking ones.  Software
+engineering issue.
+
+To do this correctly, we would need to register all memory allocated by
+sim4(), and free it when a timer goes off.  How to actually return from
+the sim4()?  Without longjmp()?
+
+If we use threads, is this easier?  Have the master thread abort the
+slave ({\tt pthread\_cancel})?  Still have the memory deallocation problem.
+({\tt pthread\_cleanup\_push} can do it, if we keep a list of allocations)
+
+\section{Filtering EST signals}
+
+\section{Filtering mRNA signals}
+
+\begin{figure}
+\begin{center}
+\begin{tabular}{|c|c|p{0.3in}|p{1.25in}|}
+\hline
+Switch & Variable & Def. Value & Description \\
+\hline
+\hline
+-l  & $L$   & 0.2 & Signal spread low range \\
+-h  & $H$   & 0.6 & Signal spread high range \\
+-v  & $V$   & 0.3 & Pass value \\
+-m  & $M$   & 0.3 & Signal quality floor \\
+-mc & $M_c$ & 0.2 & Minimum signal quality \\
+-ml & $M_l$ & 150 & Minimum signal size \\
+\hline
+\end{tabular}
+\end{center}
+\caption{Parameters, default values and descriptions}
+\label{table:defvalues}
+\end{figure}
+
+In order to filter signals, we need to decide, for each mRNA, which
+signals are bad, and which are good (duh!), which means that we'll
+need to look at {\em all} signals for a single mRNA.
+
+For the filter presented below, we need to know the best and worst
+coverage values that occur for any signal associated with a specific
+mRNA.  Once those are known, the signals can be filtered in any order.
+This is important in the case where the signals are detected
+chromosome by chromosome.  Instead of sorting all signals, we can save
+the best and worst coverage for each mRNA.
+
+The filter has six parameters, summarized in Table~\ref{table:defvalues}.
+
+If the signals for a specific mRNA are all very similar, it is
+probable that the weaker signals are weak only because of a few
+mismatches that break 20-mers.  In this case, we cannot reliably pick
+the signals that are true, and should consider all of them.
+
+On the other hand, if there is a large range in the quality of signals,
+we can safely discard low scoring signals, and still be confident that
+we will find the good stuff.
+
+Therefore, the filter will discard no signals if the range in quality
+values is small, and will gradually discard more, proportional to the
+range.  So that we don't discard too much, we limit the increase in
+filtering to $V$ (0.3).
+\begin{align*}
+h &= bestCoverage - worstCoverage \\
+p &= \begin{cases}
+     0.0 & \text{if $h \le L$} \\
+     V * \frac{h-L}{H-L} & \text{if $L < h < H$} \\
+     V   & \text{if $H \le h$}
+     \end{cases} \\
+c &= min(worstCoverage + p \cdot h, M)
+\end{align*}
+
+\begin{figure*}
+\begin{center}
+\epsfig{figure=mRNAfilt.eps, silent=, width=4.5in}
+\end{center}
+\caption{The $p$ curve.}
+\label{fig:pcurve}
+\end{figure*}
+
+$p$ is the amount of filtering, ranging from minimum (0.0) to maximum
+($V$, a parameter).
+
+The $c$ value computed above is the filtering threshold.  Signals with
+coverage below $c$ are considered weak, and are discarded.
+
+If the score range is small ($\le L$), then $c$ will be
+$worstCoverage$, and we do no filtering.  If the score range is large
+($\ge H$), then $c$ will be $M$ of the best score.  $c$ is the minimum
+coverage that will be accepted.  It is derived from the range of
+scores, not the number of scores.
+
+Finally, it is possible that {\em all} signals are good.  If we used the
+above filtering we would be discarding the low scoring (but still valid)
+signals.  To overcome this, absolute limits $M_c$ and $M_l$ are enforced.
+
+A signal is saved if both of the following conditions are met:
+\begin{enumerate}
+\item ($c <= coverage$)
+\item ($M_c <= coverage$) or ($M_l <= coveredBases$)
+\end{enumerate}
+
+This filter is overly permissive, throwing out only signals that are
+obviously garbage.
+
+
+\end{document}
+

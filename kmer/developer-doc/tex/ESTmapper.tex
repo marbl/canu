@@ -1,0 +1,1203 @@
+\documentclass[twoside,11pt]{book}
+\usepackage{amsmath,amssymb}
+\usepackage{moreverb}
+\usepackage{fancyheadings}
+\usepackage{ulem}
+\usepackage{parskip}
+\usepackage{calc,ifthen,epsfig}
+\sloppy
+
+%
+%  a mathematican is a machine that transforms coffee into theorems
+%  a software engineer is a machine that transforms sugar and caffiene into software
+%  a manager is a machine that transforms people into power point
+%
+
+\usepackage{longtable}
+
+%  A few float parameters
+%
+\renewcommand{\dbltopfraction}{0.9}
+\renewcommand{\dblfloatpagefraction}{0.9}
+%\renewcommand{\textfraction}{0.05}
+
+
+\begin{document}
+
+
+
+\pagestyle{fancy}
+
+\rhead[]{}
+\chead[ESTmapper]{ESTmapper}
+\lhead[\today]{\today}
+
+
+\newcommand{\ESTmapper}{{\sc ESTmapper}}
+
+\normalem
+
+%\title{ESTmapper documentation\\
+%{\small or, why algorithmists shouldn't write manuals}}
+%\author{
+%Liliana Florea\thanks{liliana.florea@celera.com},
+%Brian P. Walenz\thanks{brian.walenz@celera.com}}
+%
+%\maketitle
+
+\tableofcontents
+%\listoffigures
+%\listoftables
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Introduction}
+\label{chap:intro}
+
+\if false
+The ESTMapper is a software package designed to efficiently map large EST data
+sets to a target genome. For each cDNA (EST or full-length mRNA) sequence
+in the input set, it will determine a set of instances of the EST in the
+target genome in a three-stage process. Stage I, 'signal finding', is an
+efficient similarity search which identifies potential EST-containing regions
+in the reference genome. In Stage II, 'signal filtering', regions containing
+weak signals are removed based on the extent of the cDNA matched and the
+number of regions. Stage III, 'signal polishing' uses an
+enhanced version of Sim4 to produce spliced alignments between the
+query EST sequence and each of the remaining genomic regions.
+\fi
+
+
+\ESTmapper\ is a software package designed to efficiently map large
+cDNA data sets to a target genome.
+%
+A three-stage process is used to locate each cDNA sequence in the
+target genome.
+%
+% For each cDNA (EST or full-length mRNA) sequence
+%in the input set, \ESTmapper\ will locate the cDNA sequence in the
+%target genome in a three-stage process.
+%
+The first stage, {\em signal finding}, is an efficient sequence
+similarity search which identifies regions on the genome which could
+potentially contain the cDNA sequence.
+%potential EST-containing regions
+%in the reference genome.
+%
+The second stage, {\em signal filtering}, discards regions containing
+weak signals based on the extent of the cDNA matched and the number of
+candidate genomic regions.
+%
+The final stage, {\em signal polishing} uses an enhanced version of
+the {\tt Sim4} program to produce spliced alignments between the 
+cDNA sequences and their associated genomic regions.
+
+\section{Features}
+
+\ESTmapper\ offers the following features for high-throughput mapping
+of cDNA sequences to genomic sequences:
+\begin{itemize}
+%[Input]	
+\item Simple input presentation, as multi-fasta files.
+\item Requires no pre-processing of sequences (typical procedures
+include vector and quality trimming, contaminant screening, assigning
+quality values, and repeat masking).
+%[Output]
+\item Output formatted as easy-to-parse flat files.
+\item When converted to XML-feature files, the results can be viewed
+using Celera's Genome Browser, or loaded into a database.
+\item Output filtered into three user-specified quality levels
+corresponding to {\it good, full-length}, {\it good, but short} and
+{\it low quality}.
+%\item Flexible parameters for the quality of reported matches.
+%[USER INTERFACE]
+\item Choice of pre-packaged or fully customizable mapping procedures.
+%[Implementation]
+\item Parallel operation to take advantage of multi-processor environment.
+%[Algorithmics]
+\item The search stage employs a proprietary ultra-fast near-identity
+search program, which uses an efficient k-mer index to quickly
+identify match seeds.
+\item The combined search and filtering stages offer high sensivity at
+relatively low computational cost.
+\item The differential filtering for mRNA and EST sequences takes full
+advantage of their mapping characteristics to reduce the computational
+cost for polishing false positives.
+\item Efficient run-time screening for repetitive elements.
+\item Extensions and improvements to the industry-standard EST-to-genome
+alignment program Sim4:
+\begin{itemize}
+\item detection of multiple occurrences of the query in the genomic sequence
+\item improved input and output mechanisms for high-throughput processing 
+of different sequences
+\item better memory management allows for processing of large sequences
+\end{itemize}
+\item Whole chromosomal sequences can be used --- no segmentation of
+the genomic sequences is necessary.  Consequently, matches are not
+pruned to fit in fixed size intervals, which allows arbitrarily long
+introns.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Installation}
+\label{chap:install}
+
+{\tt bzip2 -dc ESTmapper.tar.bz2 | tar -xf - }
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Software Overview}
+\label{chap:overview}
+
+This chapter provides an overview of the \ESTmapper\ process.
+Understanding the process will assist in operation of \ESTmapper, and
+is necessary for using the advanced modes of operation.
+
+\ESTmapper\ is comprised of five stages.
+
+\begin{tabular}{|c|l|l|}
+\hline
+Stage & Name & Description \\
+\hline
+\hline
+1 & Preparation & Prepare the input files. \\
+2 & Searching   & Locate cDNA signals in the genome. \\
+3 & Filtering   & Remove weak signals. \\
+4 & Polishing   & Resolve signals into spliced alignments. \\
+5 & Output      & Assemble the output and collect statistics. \\
+\hline
+\end{tabular}
+
+The stages are implemented so that they will not recompute a
+previously computed results.  This makes it easy to chain the stages
+together in a pipeline, or to associate specific hardware with a
+stage.  For example, the compute intensive stage 4 can be processed on
+a fast, but expensive computer, while the I/O intensive stage 5 can be
+processed on an inexpensive workstation.
+
+The stages are explained in the sections that follow.
+
+{\bf A CPU-hour is defined as one hour of processing on a one
+processor of a 500MHz Compaq ES40.  Timing is given only to give a
+feeling for the expense of a particular stage.}
+
+\subsection*{Preparation}
+
+{\bf Prepare the input files.}  This stage prepares the input to
+improve the efficiency of later stages.  First, an index is built for
+each sequence file to allow random access to the sequences.  Second,
+the genomic sequences are examined and grouped into approximately
+equally-sized groups to allow the search stage to execute in a specific
+memory footprint.
+
+This stage typically takes only a few minutes, and requires no
+significant resources.
+
+\subsection*{Searching}
+
+{\bf Search the genome for cDNA signals.}  This stage executes the
+search algorithm for each group of sequences determined in the
+previous stage.  The search algorithm uses a fast, but memory
+intensive, data structure to find all common $20$-mers between each
+cDNA sequence and each genomic sequence.  Genomic regions which
+contain words consistent with an exon model are reported as potential
+cDNA containing regions.
+
+Because the search algorithm needs to use large amounts of memory to
+execute efficiently, it is multi-threaded.
+
+By default, this phase requires 4GB of main memory.  For {\tt dbEST}
+size EST input, it will generate 70GB of output, and requires 50 CPU
+hours.  For {\tt RefSeq} size mRNA input, it will generate {\bf XXXGB}
+of output, and requires a few CPU hours.
+
+\subsection*{Filtering}
+
+{\bf Filter the signals.}  The signal filtering stage examines the
+output generated by the search, and discards regions that
+are relatively weak among the candidate regions for the same cDNA sequence.
+
+The ESTMapper implements two different protocols for filtering EST and
+full-length mRNA matches, respectively, taking into the account the
+different characteristics of the two types of sequences. ESTs are
+shorter and less accurate due to sequencing errors and contamination
+with vector sequences, and therefore will generate weaker
+imprints on the genome than full-length mRNAs. They are also more
+likely to contain repeat sequences. Consequently, a more sensitive
+filter should be used. In contrast, full-length mRNA sequences are
+longer and more accurate, and in general have fewer expected occurrences
+on the genome. This makes it easier to differentiate between the false
+positive and true signals, and therefore the filter can be more specific.
+
+All candidate regions produced by the search are scored based on the
+portion of the cDNA match they contain, and the highest scoring of
+these will be selected for polishing. For EST input, at most 100
+regions are selected for each query. If the number of regions exceeds
+this threshold, weak signals are discarded, and the procedure is
+repeated. ESTs with more than 100 candidate regions after the second
+filter are labeled as containing repetitive elements, and for these no
+regions are selected.
+
+For mRNAs, a fixed portion at the top of the scoring range is selected,
+and all regions with scores in this interval are selected in a first phase.
+In addition, all regions containing at least a fraction $p$ of the mRNA
+will be chosen.
+
+As mentioned, for EST input the \ESTmapper\ is able to detect
+repeat-containing cDNA sequences.  {\bf Experiments have confirmed
+indicate that sequences flagged as such are confirmed by RepeatMasker.
+-- do we want to include some evidence?}
+
+This stage requires three CPU hours, and four wall-clock hours to
+process {\tt dbEST} size EST input.  It does not have any significant
+memory requirements, however, it makes heavy use of disk.
+
+It generates 6GB of output.
+
+After this phase completes, the full output of the search is no longer
+needed, and can be removed.
+
+\subsection*{Polishing}
+
+{\bf Polish the filtered signals.}  This stage applies the {\tt Sim4}
+algorithm to each cDNA-genomic region to generate a spliced-alignment.
+The output presents in a condensed form information about the
+boundaries of exons and introns in the two sequences, predicted intron
+orientations, sequence similarity scores for the global and for the
+individual exons' alignments, and other sequence and alignment
+statistics. The complete list is reviewed in
+Section~\ref{subsec:matchformat}.
+
+{\bf NEEDS WORK ON MEMORY USAGE!  How much?  When?}
+
+{\tt dbEST} size EST input requires approximately 600 CPU hours, and
+generates 10GB of output.  When processing large (more than 120Mb) genomic
+sequences, each {\tt Sim4} process can use over 1GB of memory.
+
+{\tt RefSeq} size mRNA inputs can be polished in a few CPU hours.
+
+\subsection*{Output}
+
+{\bf Process the output.}  This stage collects the
+output from the polishing stage, and performs a final quality-based
+filtering of the matches and the cDNA.
+
+Matches are classified as ``good'', ``good, but short'' or
+``low-quality'' based on the two statistics: {\em query-sequence
+identity}, and {\em alignment-sequence identity}.
+
+\begin{tabular}{|p{1.7in}|p{3.0in}|}
+\hline
+query-sequence identity     & the percentage of nucleotides in the cDNA, excluding the polyA(T) tails, exactly matching the genomic sequence \\
+alignment-sequence identity & the percentage of nucleotide matches in the spliced alignment \\
+\hline
+\end{tabular}
+
+The ESTMapper will generate all spliced alignments of matches
+identified in the search stage which have at least $p$ percent
+alignment-sequence identity, and at least $c$ percent query-sequence
+identity.
+
+\begin{tabular}{|p{1.7in}|p{3.0in}|}
+\hline
+good             & believed with high confidence \\
+good, but short  & would be believed with high confidence, except that
+                   only a small piece of the cDNA sequence matched \\
+low-quality      & a match was reported from the polishing stage, but
+                   the percent alignment-sequence identity is low \\
+\hline
+\end{tabular}
+
+Note that it is possible for a cDNA sequence to have matches in any
+number of categories, for example, the true match would be labeled as
+``good'', a partial match would be placed as ``good, but short'', and
+a paralogous match might be placed in ``low-quality''.
+
+cDNA sequences are classified as ``good'', ``good, but short'',
+``low-quality'', ``missing'', or ``zero'', based on the quality of the
+best match for the cDNA, the lack of a match, or the lack of a cDNA
+signal, respectively.
+
+\begin{tabular}{|p{1.7in}|p{3.0in}|}
+\hline
+good             & the best match for these sequences is classified as ``good'' \\
+good, but short  & the best match for these sequences is classified as ``good, but short'' \\
+low-quality      & the best match for these sequences is classified as ``low-quality'' \\
+missing          & signals were detected, but polishing did not generate
+                   any matches.  Had a match been produced, they would have been
+                   ``very low-quality''. \\
+zero             & no signals were detected.  These cDNA sequences are probably not
+                   present on the genome. \\
+\hline
+\end{tabular}
+
+Unlike the classification of matches, each cDNA is classified into exactly one category.
+
+Section~\ref{sec:quality} discusses quality.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Getting Started}
+\label{chap:start}
+
+{\bf
+Example of running an est search, example of an mrna search (using the
+same genomic).  Layout of the directories.
+}
+
+Is the label a useful concept?  Why not just use a full directory for
+each mapping.  Simpler.  The only thing we gain with labels is that we
+skip configuration, which takes minutes anyway.  Where to put the
+config files?  genome partition can go into search, and just leave the
+genome sequence in the same place.
+
+%
+% Liliana suggested to put the example in the distribution, then to
+% refer to the files.  I disagree; you can't read it offline.  We
+% should still provide some sample data for playing around.
+%
+
+\section{Small-scale EST Mapping}
+
+In this section we demonstrate \ESTmapper by mapping a small set of ESTs to a 1Mb genomic region.
+
+%{\tt ESTmapper.pl -mapest /dev5/walenz/FY
+%    /dev5/walenz/ESTs/dbEST\_human\_01.fasta
+%    /dev5/walenz/SCF/FY.fasta}
+
+The \ESTmapper\ command line
+\small
+\begin{verbatim}
+ESTmapper.pl -mapest /dev5/walenz/FY \
+    /dev5/walenz/ESTs/dbEST_human_01.fasta \
+    /dev5/walenz/SCF/FY.fasta
+\end{verbatim}
+\normalsize
+says to map ESTs, creating the directory {\tt /dev5/walenz/FY} for
+work and ouptut files, reading ESTs from {\tt
+/dev5/walenz/ESTs/dbEST\_human\_01.fasta} and genomic sequences from
+{\tt /dev5/walenz/SCF/FY.fasta}.
+
+This particular EST set contains about {\bf 30,000} ESTs.  The
+genomic sequence is a {\bf 1Mb} scaffold.
+
+The screen output from \ESTmapper\ is explained next.
+
+\footnotesize
+\begin{verbatim}
+ESTmapper: Performing a configure.
+ESTmapper/configure-- Use about 3800MB -> 398458880 bases per chunk.
+ESTmapper/configure-- Generating the info for '/dev5/walenz/FY/0-input/genomic.fasta'
+ESTmapper/configure-- WARNING:  This is done in the work directory!
+ESTmapper/configure-- Created group with 590724 bases.
+\end{verbatim}
+\normalsize
+
+\ESTmapper\ is performing its configure phase.  It is grouping genomic sequences
+into groups with no more than 398,458,880 bases, and it estimates that the
+search process will require about 3800MB to compute.
+
+The warning refers to the fact that the index files for the genomic sequences
+do not already exist, and that they will be created and stored in the work
+directory, not with the original file.
+
+\footnotesize
+\begin{verbatim}
+ESTmapper: Performing a search.
+ESTmapper/search-- Local mode requested; 1 processes.
+ESTmapper/search-- search 000
+ESTmapper: searchGENOME required 1.792912 seconds system time.
+ESTmapper: searchGENOME required 40.95784 seconds user time.
+ESTmapper: Search script finished in 19 wall-clock seconds.
+\end{verbatim}
+\normalsize
+
+\ESTmapper\ is performing the search phase.  This input requires only
+one search process.  Time statistics are reported.  The search
+algorithm used about 43 seconds of CPU time, and the entire search
+phase took 19 wall-clock seconds.  The search algorithm is capable of
+using multiple processors, which explains why it used more CPU time
+than wall-clock time.
+
+\footnotesize
+\begin{verbatim}
+ESTmapper: Performing a filter.
+ESTmapper/search-- Merging counts.
+ESTmapper/search-- Writing counts.
+\end{verbatim}
+\normalsize
+
+As each search process outputs the number of signals detected for each
+cDNA sequence, after all search processes finish, these counts are
+merged together, for use in the filtering phase.
+
+\footnotesize
+\begin{verbatim}
+ESTmapper/filter-- Filtering.
+ESTmapper/filterEST-- uniqThresh= 100  reptThresh= 100  qualityThresh=0.20
+ESTmapper/filterEST-- UNIQ:    3996(    9979)  FILT:       0(       0/       0)  REPT:       0(       0/       0)
+ESTmapper/filter-- Sorting.
+\end{verbatim}
+\normalsize
+
+\ESTmapper\ is now filtering the signals.  Filtering is explained in
+detail in Chapter~/ref{chap:filtering}.
+
+\footnotesize
+\begin{verbatim}
+ESTmapper: Performing a polish.
+ESTmapper/polish-- Creating scripts with 500 lines in each.
+ESTmapper/polish-- Created 020 scripts.
+ESTmapper/polish-- Running locally, 4 at a time.
+ESTmapper: sim4db required 188.127737 seconds wall-clock time.
+ESTmapper: sim4db required 18.927568 seconds system time.
+ESTmapper: sim4db required 112.960288 seconds user time.
+ESTmapper: Polish script finished in 50 wall-clock seconds.
+\end{verbatim}
+\normalsize
+
+\ESTmapper\ is performing the {\tt Sim4} polishing of signals.  It
+creates 20 batches, with each batch containing 500 signals to
+process\footnote{Yes, except probably for the last one.}.  The
+polishing is run on the local hardware, using four processors.
+
+Like the search phase, the polishing phase reports statistics on
+the time used.  In this example, the {\tt Sim4} processes needed a
+total of 188 wall clock seconds, and 130 CPU seconds.  The polishing
+stage required 50 wall-clock seconds.
+
+\footnotesize
+\begin{verbatim}
+ESTmapper: Performing an assembleOutput.
+ESTmapper/assembleOutput-- WARNING: 'short' quality levels too low for existing polishing!
+ESTmapper/assembleOutput-- WARNING: Polished at percent query-sequence identity =  45, requested filtration at   0.
+ESTmapper/assembleOutput-- WARNING: Polished at percent align-sequence identity =  85, requested filtration at  95.
+ESTmapper/assembleOutput-- filtering polishes by quality.
+ESTmapper/assembleOutput-- GOOD:  percent query-sequence identity: 50
+ESTmapper/assembleOutput-- GOOD:  percent align-sequence identity: 95
+ESTmapper/assembleOutput-- SHORT: percent query-sequence identity: 0
+ESTmapper/assembleOutput-- SHORT: percent align-sequence identity: 95
+ESTmapper/assembleOutput-- finding 'good' cDNA.
+ESTmapper/assembleOutput-- finding 'good, but short' cDNA.
+ESTmapper/assembleOutput-- finding 'low quality' cDNA.
+ESTmapper/assembleOutput-- finding 'repeat' cDNA.
+ESTmapper/assembleOutput-- finding 'zero hit' cDNA.
+ESTmapper/assembleOutput-- finding 'missing' cDNA.
+ESTmapper/assembleOutput-- counting 'good' matches.
+ESTmapper/assembleOutput-- counting 'good, but short' matches.
+ESTmapper/assembleOutput-- counting 'all the good' matches.
+ESTmapper/assembleOutput-- counting 'low quality' matches.
+ESTmapper/assembleOutput-- counting cDNA.
+ESTmapper: assembleOutput script finished in 52 wall-clock seconds.
+\end{verbatim}
+\normalsize
+
+\ESTmapper\ is processing the output from the polishing, classifying
+matches and cDNA.  We can safely ignore the warning; it is telling us
+that even though we requested filtration down to 0\% query-sequence
+identity, polishes only exist down to 45\%.
+
+\footnotesize
+\begin{verbatim}
+ESTmapper: script finished everything in 122 wall-clock seconds.
+\end{verbatim}
+\normalsize
+
+Finally, the script is completed.  Our mapping finished in a little
+under three minutes.
+
+The contents of the output directory are explained in
+Chapter~\ref{chap:output}, but we'll quickly peek at the
+statistics contained in the {\tt summary} file:
+
+\footnotesize
+\begin{verbatim}
+GOOD:
+cDNA-genomic matches  51 matches (51 different cDNA and 1 genomic)
+Matches per cDNA      1 matches/cDNA
+Matches per genomic   51 matches/genomic
+
+GOOD but SHORT:
+cDNA-genomic matches  None.
+
+ALL THE GOOD:  (both 'GOOD' and 'GOOD but SHORT')
+cDNA-genomic matches  51 matches (51 different cDNA and 1 genomic)
+Matches per cDNA      1 matches/cDNA
+Matches per scaffold  51 matches/genomic
+
+LOW-QUALITY:
+cDNA-genomic matches  2712 matches (564 different cDNA and 1 genomic)
+Matches per cDNA      4.80851063829787 matches/cDNA
+Matches per scaffold  2712 matches/genomic
+
+cDNA COUNTS:
+cDNA:            39182
+cDNA-good:       51
+cDNA-goodshort:  0
+cDNA-lowquality: 563
+cDNA-missing:    3382
+cDNA-zero:       35186
+\end{verbatim}
+\normalsize
+
+This is fully described in Section~\ref{sec:summary}.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Input Files}
+\label{chap:input}
+
+cDNA and genomic sequences are read from two multi-FastA format file.
+
+EST-type and full-length mRNA-type sequences are processed differently,
+therefore the input data should be a priori separated in files by these
+categories.
+
+It is {\em not} necessary to repeat mask the sequences. \ESTmapper's mechanism 
+will be able to identify and separate those sequences that contain highly
+repetitive elements. 
+
+It is {\em not} necessary to fragment the genomic sequences. \ESTmapper\
+can process full-length chromosomal sequences, which allows it to identify 
+maximal cDNA matches even when long introns are present.
+
+It is {\em not} necessary to quality- and vector-trim the EST sequences, but
+doing so will increase the accuracy of the match statistics. In principle, the
+quality thresholds used for validating and classifying the matches include a
+margin of error that could account for the effects of such factors.
+
+\section{High Frequency $k$-Mer Masking}
+
+The search phase in \ESTmapper\ ignores $k$-mers that occur at least
+1000 times in the genomic sequence.
+
+Computing the list of $k$-mers to ignore requires large amounts of
+memory and CPU, and is {\em not} performed by \ESTmapper. Lists
+appropriate for human and mouse are provided as data files.  See the
+{\tt -maskmers} entry in Advanced Usage.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Output Files}
+\label{chap:output}
+
+The work directory contains several files and directories:
+
+\setlongtables
+\begin{longtable}{|l|p{3.4in}|}
+\hline
+File Name & Description \\
+\hline
+\hline
+\endhead
+\hline
+\endfoot
+0-input               & Symbolic links to input files, and any indices and other files needed to later stages. \\
+\hline
+1-search              & The temporary work directory for the search step.  The contents are undocumented. \\
+\hline
+2-filter              & The temporary work directory for the filter step.  The contents are undocumented.\\
+\hline
+3-polish              & The temporary work directory for the polishing step.  The contents are undocumented.\\
+\hline
+cDNA-good.fasta       & These cDNA sequences were successfully mapped.\\
+\hline
+cDNA-goodshort.fasta  & These cDNA sequences were mapped at the correct percent alignment-sequence identity, but below the desired percent query-sequence identity.\\
+\hline
+cDNA-lowquality.fasta & These cDNA sequences were mapped, but at low percent query- and alignment-sequence identities.\\
+\hline
+cDNA-missing.fasta    & These cDNA sequences had at least one signal detected, but the signal(s) were spurious.  The polishing step did not find a match.\\
+\hline
+cDNA-repeat.fasta     & These cDNA sequences were classified as repeat-containing by the filter.\\
+\hline
+cDNA-zero.fasta       & These cDNA sequences had no signals detected.\\
+\hline
+polishes-good         & All the ``good'' polishes.\\
+\hline
+polishes-goodshort    & All the ``good, but short'' polishes.\\
+\hline
+polishes-lowquality   & All the remaining polishes.\\
+\hline
+summary               & A summary of the mapping.\\
+\end{longtable}
+
+\subsection{Summary File}
+\label{sec:summary}
+
+The {\tt summary} file describes the results of the mapping.
+
+\footnotesize
+\begin{verbatim}
+GOOD: 50% composite, 95% identity
+cDNA-genomic matches  4028809 matches (3060666 different cDNA and 5377 genomic)
+Matches per cDNA      1.31631775567801 matches/cDNA
+Matches per genomic   749.267063418263 matches/genomic
+
+GOOD but SHORT: 0% composite, 95% identity
+cDNA-genomic matches  26825 matches (22017 different cDNA and 1614 genomic)
+Matches per cDNA      1.21837670890675 matches/cDNA
+Matches per genomic   16.6201982651797 matches/genomic
+
+ALL THE GOOD:  (both 'GOOD' and 'GOOD but SHORT')
+cDNA-genomic matches  4055634 matches (3071297 different cDNA and 5461 genomic)
+Matches per cDNA      1.32049554308815 matches/cDNA
+Matches per scaffold  742.654092657022 matches/genomic
+
+LOW-QUALITY:
+cDNA-genomic matches  7664890 matches (1263273 different cDNA and 6054 genomic)
+Matches per cDNA      6.06748501709448 matches/cDNA
+Matches per scaffold  1266.08688470433 matches/genomic
+
+cDNA COUNTS:
+cDNA:            3992939
+cDNA-good:       3060666
+cDNA-goodshort:  10631
+cDNA-lowquality: 433295
+cDNA-missing:    440037
+cDNA-zero:       48310
+\end{verbatim}
+\normalsize
+
+cDNA sequences are classified into one of six categories: {\tt good},
+{\tt goodshort}, {\tt lowquality}, {\tt missing}, {\tt repeat}, or
+{\tt zero}.  Each cDNA in the input is in exactly one of the
+categories.
+
+\begin{tabular}{|l|p{4.3in}|}
+\hline
+category   & description \\
+\hline
+\hline
+good       & A match exists that meets both query-sequence identity and alignment-sequence identity requirements. \\
+goodshort  & A match exists that meets both query-sequence identity and alignment-sequence identity requirements, for ``short''. \\
+lowquality & A match exists, but it does not meet at least one quality requirement. \\
+missing    & A signal was detected, but no match was produced. \\
+repeat     & Many signals were detected, and the filter stage declared this cDNA to be repeat-containing. \\
+zero       & No signals were detected for this cDNA. \\
+\hline
+\end{tabular}
+
+Likewise, matches generated by the polishing stage are placed into
+three categories: {\tt good}, {\tt goodshort} or {\tt lowquality}.
+This is done match by match, so it is possible to have matches for a
+specific cDNA sequence in all three categories.
+
+For each category, the {\tt summary} file counts the number of matches
+it contains, the number of distinct cDNA / genomic sequences used by
+those matches, and the matches per cDNA or genomic.
+
+\subsection{Polished Match Format} 
+\label{subsec:matchformat}
+
+The files {\tt polishes-good}, {\tt polishes-goodshort}, and {\tt
+polishes-lowquality} contain the results of the polishing stage. All
+matches are placed in the same file.  Each match starts with the line
+{\tt sim4begin}, and ends with the line {\tt sim4end}.  Matches have
+the following format:
+
+\begin{tabular}{c|l}
+1 & {\tt sim4begin} \\
+2 & {\it cDNAidx}{\tt [}{\it cDNAlen}{\tt -}{\it pA}{\tt -}{\it pT}{\tt ]} {\it GENidx}{\tt [}{\it GENlo}{\tt -}{\it GENhi}{\tt ]} {\tt <}{\it M}{\tt -}{\it N}{\tt -}{\it P}{\tt -}{\it O}{\tt -}{\it S}{\tt >} \\
+3 & {\tt edef=}{\it cDNA defline} \\
+4 & {\tt ddef=}{\it Genomic defline} \\
+5 & {\it cDNAbgn}{\tt -}{\it cDNAend} {\tt (}{\it GENbgn}{\tt -}{\it GENend}{\tt )} {\tt <}{\it M}{\tt -}{\it N}{\tt -}{\it P}{\tt >} {\it intonOrientation} \\
+  & . \\
+  & . \\
+6 & {\it cDNAbgn}{\tt -}{\it cDNAend} {\tt (}{\it GENbgn}{\tt -}{\it GENend}{\tt )} {\tt <}{\it M}{\tt -}{\it N}{\tt -}{\it P}{\tt >} {\it intonOrientation} \\
+7 & {\it cDNAbgn}{\tt -}{\it cDNAend} {\tt (}{\it GENbgn}{\tt -}{\it GENend}{\tt )} {\tt <}{\it M}{\tt -}{\it N}{\tt -}{\it P}{\tt >} \\
+8 & {\it cDNA alignment sequence for exon \#1} \\
+9 & {\it genomic alignment sequence for exon \#1} \\
+  & . \\
+  & . \\
+  & . \\
+  & . \\
+10 & {\it cDNA alignment sequence for exon \#n} \\
+11 & {\it genomic alignment sequence for exon \#n} \\
+12 & {\tt sim4end}
+\end{tabular}
+
+Line 1 begins the match description.
+
+Line 2 contains the match description line.  The fields have the following meanings:
+
+\begin{tabular}{|l|l|}
+\hline
+Field   & Description \\
+\hline
+\hline
+cDNAidx & Internal index of the cDNA sequence used. \\
+cDNAlen & Length of the cDNA sequence. \\
+pA      & Amount of poly-A masking performed. \\
+pT      & Amount of poly-T masking performed. \\
+GENidx  & Internal index of the genomic sequence used. \\
+GENlo   & Beginning position of the genomic region that was polished. \\
+GENhi   & Ending position of the genomic region that was polished. \\
+M       & Number of matching bases in the match. \\
+N       & Number of matching N's in the match. \\
+P       & Percent sequence identity of the match. \\
+O       & Orientation of the match. \\
+S       & Strand this match is predicted to occur on. \\
+\hline
+\end{tabular}
+
+%{\tt M} and {\tt N} are the number of matches, and the number of
+%non-ACGT matches, respectively.  {\tt P} is the percent sequence
+%similarity for this exon.
+
+The {\it match orientation} is {\tt forward} when the cDNA sequence
+aligns to the genomic sequence directly.  It is {\tt complement} when
+the reverse-complement of the cDNA sequence matches the genomic
+sequence.  These are the only two values possible.
+
+The {\it strand prediction} is either {\tt forward}, {\tt
+reverse} or {\tt unknown}.  It is \ESTmapper's best guess which strand
+the cDNA is on, based on the quality of the match and the intron
+signals.
+
+Lines 3 and 4 contain the entire defline for the two sequences.  These lines are
+optional.
+
+Lines 5, 6 and 7 the {\tt Sim4} exon lines.  There will be one line
+for each exon found.  The fields have the following meanings:
+
+\begin{tabular}{|l|l|}
+\hline
+Field   & Description \\
+\hline
+\hline
+cDNAbgn & Beginning of the exon, in the cDNA sequence. \\
+cDNAend & End of the exon, in the cDNA sequence. \\
+GENbgn  & Beginning of the exon, in the genomic sequence. \\
+GENend  & End of the exon, in the genomic sequence. \\
+M       & Number of matching bases in the exon. \\
+N       & Number of matching N's in the exon. \\
+P       & Percent identity of the exon. \\
+intronOrientation & Predicted orientation of the intron. \\
+\hline
+\end{tabular}
+
+Coordinates in the exon are nucleotide-based.  Coordinates in the
+genomic sequence are relative to the {\tt GENlo} value from the match
+description line.  The true location of the exon in the genomic sequence is
+{\tt GENlo + GENbgn} and {\tt GENlo + GENend}.
+
+The {\it intron orientation} is one of {\tt ->}, {\tt <-}, {\tt --},
+or {\tt ==}, representing forward, reverse, ambiquous, and
+internal gap in cDNA, respectively.  All exons, except the last,
+contain the intron orientation field.
+
+When requested, pairwise alignments between the cDNA sequence and the
+genomic sequence within each exon follow the exon level descriptions
+(see Section~\ref{sec:polish}).  In the alignments, dashes ({\tt -})
+are used to represent insertion/deletion.  Lower-case characters
+represent a match, while upper-case characters represent a non-match.
+
+Line 12 closes the match descrption.
+
+\subsection{Examples}
+
+A few examples of match output are shown.  {\bf should explain the
+examples more; picture?}
+
+{\bf Example 1:} A minimal match description.  The deflines and
+alignments are not present.
+
+\footnotesize
+\begin{verbatim}
+sim4begin
+54[484-0-0] 0[0-590724] <477-0-98-forward-forward>
+1-96 (454213-454308) <92-0-94> ->
+97-266 (455410-455579) <170-0-100> ->
+267-377 (458098-458208) <111-0-100> ->
+378-465 (458297-458384) <88-0-100> ->
+466-484 (514282-514297) <16-0-84>
+sim4end
+\end{verbatim}
+\normalsize
+
+{\bf Example 2}: This is the same match as above, but was generated by
+limiting the genomic sequence to the range 430000 through 520000
+
+\footnotesize
+\begin{verbatim}
+sim4begin
+54[484-0-0] 0[430000-520000] <477-0-98-forward-forward>
+1-96 (24213-24308) <92-0-94> ->
+97-266 (25410-25579) <170-0-100> ->
+267-377 (28098-28208) <111-0-100> ->
+378-465 (28297-28384) <88-0-100> ->
+466-484 (84282-84297) <16-0-84>
+sim4end
+\end{verbatim}
+\normalsize
+
+{\bf Example 3:} A full match description.  Deflines have been trimmed
+to fit on the page, and alignment lines are wrapped.
+
+\footnotesize
+\begin{verbatim}
+sim4begin
+618[453-0-26] 482[450000-460000] <425-0-99-complement-forward>
+edef=>CRA|70647962 /altid=gi|6798356 /dataset=dbest /taxon=9606 ...
+ddef=>CRA|GA_x2HTBKM80FY:1..590724 /organism=Homo sapiens ...
+1-71 (4238-4308) <71-0-100> ->
+72-241 (5410-5579) <170-0-100> ->
+242-352 (8098-8208) <110-0-99> ->
+353-427 (8297-8371) <74-0-98>
+tcatgaaacctgggaaggtggtgcttgtcctggctggacgctactccggacgcaaagctgtcatcgtgaag
+tcatgaaacctgggaaggtggtgcttgtcctggctggacgctactccggacgcaaagctgtcatcgtgaag
+aacattgatgatggcacctcagatcgcccctacagccatgctctggtggctggaattgaccgctacccccgcaaa \
+  gtgacagctgccatgggcaagaagaagatcgccaagagatcaaagataaaatcttttgtgaaagtgtataact \
+  acaatcacctaatgcccacaag
+aacattgatgatggcacctcagatcgcccctacagccatgctctggtggctggaattgaccgctacccccgcaaa \
+  gtgacagctgccatgggcaagaagaagatcgccaagagatcaaagataaaatcttttgtgaaagtgtataact \
+  acaatcacctaatgcccacaag
+gtactctgtggatatccccttggacaaaactgtcgtcaataaggatgtcttcaNagatcctgctcttaaacgcaa \
+  ggcccgacgggaggccaaggtcaagtttgaagagag
+gtactctgtggatatccccttggacaaaactgtcgtcaataaggatgtcttcaGagatcctgctcttaaacgcaa \
+  ggcccgacgggaggccaaggtcaagtttgaagagag
+atacaagacaggcaagaacaagtggttcttccagaaactgcggttttagatgctttgttttgaNcattaaaaatt
+atacaagacaggcaagaacaagtggttcttccagaaactgcggttttagatgctttgttttgaTcattaaaaatt
+sim4end
+\end{verbatim}
+\normalsize
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Basic Usage}
+\label{chap:basic}
+
+Using the \ESTmapper\ in automatic mapping mode is the simplest mode of operation.
+
+To map ESTs to a genome:
+
+{\tt ESTmapper.pl -mapest} {\it work-directory} {\it ests.fasta} {\it genomic.fasta}
+
+Options implicit in {\tt -mapest}:
+
+\begin{tabular}{|ll|}
+\hline
+{\tt -directory}      & {\it work-directory} \\
+{\tt -cdna}           & {\it ests.fasta} \\
+{\tt -genomic}        & {\it genomic.fasta} \\
+{\tt -mersize}        & 20 \\
+{\tt -maskmers}       & {\it install-directory}{\tt /data/frequentMers-C4-20.fasta} \\
+{\tt -mincoverage}    & 45 \\
+{\tt -minidentity}    & 85 \\
+{\tt -local}          & 4 \\
+{\tt -good}           & 50 95 \\
+{\tt -goodshort}      & 0 95 \\
+\hline
+\end{tabular}
+
+To map mRNA to a genome:
+
+{\tt ESTmapper.pl -mapmrna} {\it work-directory} {\it mrna.fasta} {\it genomic.fasta}
+
+\begin{tabular}{|ll|}
+\hline
+{\tt -directory}      & {\it work-directory} \\
+{\tt -cdna}           & {\it ests.fasta} \\
+{\tt -genomic}        & {\it genomic.fasta} \\
+{\tt -mersize}        & 20 \\
+{\tt -maskmers}       & {\it install-directory}{\tt /data/frequentMers-C4-20.fasta} \\
+{\tt -mincoverage}    & 45 \\
+{\tt -minidentity}    & 85 \\
+{\tt -relink}         & 1000 \\
+{\tt -abort}          & \\
+{\tt -local}          & 4 \\
+{\tt -good}           & 50 95 \\
+{\tt -goodshort}      & 0 95 \\
+\hline
+\end{tabular}
+
+Be sure that the multi-FastA files are stored on a disk local to the
+machine --- it will work if the sequences are accessed over NFS, but
+performance might suffer.
+
+The automatic mapping modes may be customized by using the options
+listed in Section~\ref{sec:adv}.  For example, {\tt ESTmapper.pl
+-mapest} {\it work-directory} {\it ests.fasta} {\it genomic.fasta}
+{\tt -numcpus 2} {\tt -memory 2000} will {\bf probably -- should test}
+allow the \ESTmapper\ to run on a two processor machine with 2GB of
+RAM.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Advanced Usage}
+\label{sec:adv}
+
+\ESTmapper\ recognizes seven commands, and has one required argument.  The general
+usage is:
+
+{\tt ESTmapper.pl {\it command} -directory} {\it work-directory} [{\it options}]
+
+The seven commands:
+
+\begin{tabular}{ll}
+-configure      &-- prepare the genomic sequences for searching \\
+-searchest      &-- perform signal finding on EST sequences \\
+-searchmrna     &-- perform signal finding on mRNA sequences \\
+-filterest      &-- filter EST signals \\
+-filtermrna     &-- filter mRNA signals \\
+-polish         &-- polish filtered signals \\
+-assembleoutput &-- prepare the output \\
+\end{tabular}
+
+The one required argument:
+
+\begin{tabular}{lp{3.0in}}
+-directory {\it /full/path/to/work/directory} &
+The \ESTmapper\ will use the supplied directory as it's work directory.
+This option must be present for all steps.
+\end{tabular}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{configure}
+\label{sec:configure}
+
+This step creates the work directory, and prepares the genomic sequence
+for mapping.
+
+\begin{tabular}{lp{3.0in}}
+
+-configure &
+Instruct the \ESTmapper\ to perform the {\tt configure} command. \\
+
+-genomic {\it g.fasta} &
+The sequences in {\tt g.fasta} will be used as the genomic sequence.
+The file is a multi-FastA format, and all sequences are used.  There
+are no special requirements for the format of the defline, nor are
+there limits on the length or number of sequences.\\
+
+-memory {\it n} &
+The sequences in {\tt g.fasta} will be partitioned into sets so that
+the search phase will use no more than {\it n} MB of memory per process.
+
+Any sequences in {\tt g.fasta} that are larger than the partition
+size, are placed into a set containing one sequence.  A warning is
+printed for such sequences.
+
+{\bf memory usage computation is not rigorously tested; it works for 4000}
+
+The memory usage is approximately 10 bytes per base of genomic sequence.
+
+\end{tabular}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{searchest and searchmrna}
+\label{sec:search}
+
+This step performs the search.
+
+\begin{tabular}{lp{3.0in}}
+
+-searchest {\it label} &
+Instruct the \ESTmapper\ to perform the {\tt search} stage, using
+parameters appropriate for EST sequences.  The {\tt label} marks this
+run; it is possible to search multiple sets of sequences against the
+same genomic database without multiple {\tt configure} steps.  The
+benefit of this is marginal.
+\\
+-searchmrna {\it label} &
+Instruct the \ESTmapper\ to perform the {\tt search} stage, using
+parameters appropriate for mRNA sequencess.  See {\tt searchest} for
+discussion of {\tt label}.
+\\
+-cdna {\it c.fasta} &
+The sequences in {\tt c.fasta} will be searched.  The file is a
+multi-FastA format, and all sequences are used.  There are no
+special requirements for the format of a defline, nor are there limits
+on the length or number of sequences.
+
+Attempting to map sequences that are not of the specified type (mapping
+mRNA with EST parameters; mapping non-coding genomic sequence with
+{\em any} parameters) is not advised.
+
+The sequences {\em MUST NOT} be repeat masked.
+\\
+-mersize {\it m} &
+Instructs the search to use $m$ for the size of the exact-match
+blocks.  A value of $m=20$ seems to be optimal; larger values use more
+memory, run faster, and are less sensitive.  Smaller values use less
+memory, run slower and result in fewer signals due to spurious
+matches.
+
+Note that in automatic mapping mode, changing the mersize without
+explicitly specifying the maskmers file is an error.
+\\
+-maskmers {\it m.fasta} &
+The sequences in {\tt m.fasta} are used to build a list of mers that
+will be discarded from any matches.  While this is generally
+considered to be a ``Poor Man's RepeatMasker'', the \ESTmapper\
+achieves better performance and sensitivity using this strategy than
+with full-blown repeat masking.
+
+The sequences are usually in the {\tt data} subdirectory of the
+\ESTmapper\ installation.
+
+\end{tabular}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{filterest and filtermrna}
+\label{sec:filter}
+
+This step filters the signals detected in the search phase, discarding
+weak signals and keeping strong signals.
+
+There are no user-tunable parameters at the present time.
+
+\begin{tabular}{lp{3.0in}}
+
+-filterest label &
+Instruct the \ESTmapper\ to perform the {\tt search} stage, using 
+parameters appropriate for EST sequencess.  The {\tt label} must
+be the same as used in the search stage.
+\\
+-filtermrna label &
+Instruct the \ESTmapper\ to perform the {\tt search} stage, using 
+parameters appropriate for mRNA sequencess.  The {\tt label} must
+be the same as used in the search stage.
+
+\end{tabular}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{polish}
+\label{sec:polish}
+
+This stage prepares, and optionally performs, the polishing of the
+signals detected.
+
+\begin{tabular}{lp{3.0in}}
+
+-polish {\it label} &
+Instruct the \ESTmapper\ to perform the {\tt polish} stage.  The {\tt
+label} must be the same as used in the search stage.
+\\
+-mincoverage {\it mc} &
+Polishing is performed so that all results have a {\it percent query-sequence
+identity} of at least {\tt mc}.  See the discussion about quality below.
+\\
+-minidentity {\it mi} &
+Polishing is performed so that all results have an {\it
+percent alignment-sequence identity} of at least {\tt mi}.  See the discussion about quality below.
+\\
+-alwaysprint {\it ap} &
+The polisher will always print at least the top $ap$ matches, no
+matter what their quality.  This can be used to find both full-length
+matches and the top scoring matches for signals without full-length
+matches.  See the discussion about quality below.
+\\
+-relink {\it r} &
+Sets the {\it Sim4} relink weight.  {\bf This is used only for mRNA, and Liliana should probably explain
+what it does.}
+\\
+-batchsize {\it w} &
+Signals are processed in batches of size $w$.  See the discussion about execution below.
+\\
+-numbatches {\it b} &
+Signals are processed in $b$ batches.  See the discussion about execution below.
+\\
+-farm {\it queue} {\it projectname} &
+Runs the polishes on the Celera internal compute farm.  The {\tt projectname}
+should be the resource code to use, e.g. {\tt 00006:MRNA:L}.  See the
+discussion about execution below.
+\\
+-local {\it numprocessors} &
+Runs the polishes on the local machine, using $numprocessors$ concurrent
+processes.  See the discussion about execution below.
+\\
+-runlater &
+The \ESTmapper\ will generate all the script files needed to perform
+the polishing step, but will not perform any computation.
+\\
+-aligns &
+Instruct {\tt Sim4} to also include the alignment lines.  This will
+make your output files VERY large.
+\\
+-abort &
+Instruct {\tt Sim4} to abort polishing any matches with an unusually  large number
+of MSPs.  The aborted matches are saved for later examination. {\bf Need to explain the output format for this!}
+
+\end{tabular}
+
+\subsection{Polishing Quality}
+\label{sec:quality}
+
+In the absence of {\tt -minidentity} and {\tt -mincoverage} and {\tt
+-alwaysprint} only the best match is found for each signal.
+
+The result of specifying exactly one of {\tt -minidentity} and {\tt
+-mincoverage} is undefined.  Always specify both, even if one is $0$.
+
+Specifying {\tt -alwaysprint} without either {\tt -minidentity} and
+{\tt -mincoverage} will print the best $ap$ matches.
+
+The effect of specifying values {\tt -minidentity} and {\tt
+-mincoverage} and {\tt -alwaysprint} is almost the same as asking for
+``the good matches, unless none are found, then only the best''.  This
+overcomes the problem {\bf XXX: what problem?} encountered when attempting to map mRNA
+sequences at very low percent query-sequence identities.  mRNA that have
+excellent full-length matches can also have many inferrior paralogous
+(partial-)matches.  If {\tt -mincoverage 10} is specified, all
+paralogous matches would be output, in addition to the true
+match.  On the otherhand, for mRNA without full-length matches, we
+still want to find partial matches, even if they have a query-sequence
+identity of, say, 20\%.
+
+Polishing for a single signal terminates when any of three conditions is met:
+
+\begin{tabular}{l}
+$coverage < mc$ \\
+$identity < mc$ \\
+$printed > ap$
+\end{tabular}
+
+\subsection{Execution}
+
+The output from the filter step is a large list of signals (4
+million human ESTs produce about 60 million filtered signals).
+To run these efficiently, they are divided into batches.  If {\tt
+-batchsize} is specified, then each batch will contain exactly $w$
+signals (except for the last batch), otherwise, {\tt -numbatches b}
+batches are formed.
+
+It neither of {\tt -batchsize} and {\tt -numbatches} are specified,
+then the signals are divided into 256 or fewer batches.  A batch will
+always contain at least 500 signals.
+
+These batches can be processed on the local hardware ({\tt -local}
+option) or on the Celera internal compute farm ({\tt -farm} option).
+If they are processed locally, then $p$ {\tt Sim4} processes will run
+concurrently (regardless of the number of CPUs actually available ---
+yes, it is possible to do {\tt -local 256}.  It is optimal to run
+exactly one {\tt Sim4} process per available processor.  If they are
+processed on the farm, they are submitted to the specified queue /
+project name.  The \ESTmapper\ will terminate immediately after the
+jobs are submitted; when they have finished, simply rerun the script
+to continue.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{assembleoutput}
+\label{sec:assembleoutput}
+
+This stage collects the output from the polishing stage, and classifies the
+matches into quality groups.
+
+\begin{tabular}{lp{3.0in}}
+
+-assembleoutput {\it label} &
+Instruct the \ESTmapper\ to assemble the output.  The {\tt
+label} must be the same as used in the search stage.
+\\
+-good {\it mi} &
+Labels matches with $mi$ or better percent alignment-sequence identity as ``good''.
+\\
+-short {\it mc} &
+Labels matches with less than $mc$ percent query-sequence identity as ``short''.
+
+\end{tabular}
+
+{\bf Note about the filter values being at least +5 the polish values here....}
+
+\end{document}

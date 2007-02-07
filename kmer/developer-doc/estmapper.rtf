@@ -1,0 +1,201 @@
+{\rtf1\mac\ansicpg10000\cocoartf102
+{\fonttbl\f0\froman\fcharset77 TimesNewRomanMS;}
+{\colortbl;\red255\green255\blue255;\red0\green128\blue0;}
+\vieww15640\viewh18980\viewkind0
+\deftab720
+\pard\pardeftab720\ql\qnatural
+
+\f0\fs24 \cf0 \
+\
+I. What is ESTmapper?\
+\
+ESTmapper is a software package for the high-throughput alignment of large cDNA (EST, mRNA) sequence sets to a large eukaryotic genome of the same species. It can also be used to map relatively short DNA segments, such as sequencing reads or SNP flanking sequences, to the genome.\
+\
+II. How does ESTmapper work?\
+\
+For each cDNA in the input set, ESTmapper detects one or several occurrences of the cDNA in the target genome. ESTmapper uses a three-stage process to locate a cDNA sequence in the genome:\
+Stage 1: Signal finding \'d0 uses an efficient sequence similarity search to identify regions on the genome potentially containing the cDNA (signals);\
+Stage 2: Signal filtering \'d0 discards regions containing weak signals based on the extent of the cDNA matched and the number of candidate regions; \
+Stage 3: Signal polishing \'d0 generates a spliced alignment between the cDNA and each of the genomic regions selected earlier.\
+\
+III. Basic usage \
+\
+ESTmapper must be configured before any mRNA or EST sequences can be mapped to a target genome.  During configuration, the target genome will be analyzed for signal finding.  Once a genome is configured, any number of ESTmapper runs may be performed.  Configuration needs about 10 times the space of your genome **Bri should check this*** and has several options, most of which are only needed for larger genomes.\
+\
+One can configure to fit the compute in a specific memory size (-memory), or to fit the compute on a specific number of processors (-segments).\
+\
+-genome X.fasta\
+\
+The genome ESTmapper will map sequences to is in X.fasta.  This is a required option.\
+\
+-path /path/to/work/directory\
+\
+configureESTmapper will place the configured genome files into "/path/to/work/directory/".  This directory will be created if needed.  This is a required option.  Full path names are strongly suggested.  BRI - do relative paths work?\
+\
+-mersize N\
+\
+ESTmapper will use N-mers as the mer size for signal finding.  The default mersize is 20 bases.\
+\
+-merskip S\
+\
+By default, ESTmapper will perform signal finding using every N-mer in the genome, a skip of S=0.  With a skip of S=1, every other N-mer will be used, and with a skip of S=N-1, only consecutive N-mers will be used.  A smaller skip increases sensitivity and memory/disk space requirements.\
+\
+-memory M\
+\
+Configure the search phase to use no more than M megabytes of memory per process.  This is an extremely useful option if your compute cluster is memory restricted.\
+\
+-segments S\
+\
+Configure the search phase to use no more than S search processes.  Useful if you are impatient, and have exactly S very large computers.\
+\
+-species XX\
+\
+BROKEN!  UNIMPLEMENTED!  ESTmapper DIES because configureESTmapper doesn't find the list of k-mers to ignore!  Bad bri, BAD!\
+\
+-sge "options"\
+\
+If supplied, configuration will be computed on SGE, passing "options" directly to SGE's qsub command.\
+\
+-local\
+\
+By default, the local processor will be used to configure ESTmapper.  In particular, it must have compute and memory resources needed by -memory and -segments.\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+ESTmapper.pl [-mapest|-mapmrna|-mapsnp] \\\
+		/path/to/work/directory \\\
+		/path/to/genomic.fasta \\\
+		/path/to/cDNA.fasta \\\
+		[additional_options]\
+\
+\pard\pardeftab720\ql\qnatural
+\cf0 \ul \ulc0 Additional options: \
+\pard\pardeftab720\ql\qnatural
+\cf0 \ulnone Algorithm:\
+-mersize m - build table of m-mers in the genome    \
+-species s \'d0 use pre-computed library to screen out high-count k-mers in the search stage\
+\
+Partitioning:\
+-memory m \'d0 partition genomic sequences into groups such that each search uses at most  m MB of memory\
+-segments n \'d0 partition the genomic sequences in n segments\
+-hitsortmemory m \'d0 use at most m MB for sorting hits\
+-numbatches b \'d0 group signals (genomic regions) to be processed into b batches\
+\
+Process management:\
+-searchthreads n \'d0 use at most n threads per search process\
+-localsearches n - run n concurrent search processes on the local machine\
+-localpolishes n - run n concurrent spliced alignment processes on the local machine\
+\
+Output:\
+-aligns (-noaligns) \'d0 (do not) report nucleotide-level alignments\
+-minidentity mi \'d0 detect and report only matches with \'b3mi sequence identity\
+-mincoverage mc - detect and report only matches with \'b3mc sequence identity\
+-minlength ml - detect and report only matches with \'b3ml nucleotide matches\
+-alwaysprint ap \'d0 print at least the top ap matches for each cDNA, regardless of quality cutoffs\
+-cleanup I (-nocleanup) \'d0 remove potential spurious introns (\'b3I bp, poor quality of surrounding exons and of the overall alignment)\
+\
+Process:\
+-prebuild dir prefix \'d0 write internal data structures used in the search space in dir/prefix.mersize.###, to be used by subsequent runs\
+-restart dir \'d0 restart a previously interrupted ESTmapper run from the current checkpoint in the dir directory\
+-stats (-nostats) \'d0 report run-time statistics\
+-verbose report progress while filtering\
+\
+IV. Input/Output\
+\
+a. The input consists of two large fasta files, containing the cDNA and the genomic sequences, respectively.\
+\
+b. The output consists of the final alignment and summary files, located in the working directory:\
+\
+dir/polishes-good \'d0 all cDNA-genomic alignments that meet the specified quality criteria\
+dir/polishes-best \'d0 for each EST, only the \'d5best\'d5 genomic alignment among those that meet the specified quality criteria (if multiple alignments with the same \'d4best\'d5 characteristics exist, then all are reported)\
+dir/summary \'d0 summary mapping statistics for the run\
+\
+ESTmapper output format:\
+\
+sim4begin\
+cDNAidx[cDNAlen-pA-pT] GENidx[GENlo-GENhi] <M-N-O-P-S>\
+edef=cDNA defline\
+ddef=Genomic defline\
+cDNAbgn1-cDNA-end1 (GENbgn1-GENend1) <M-N-P> intronOrientation\
+cDNAbgn2-cDNA-end2 (GENbgn2-GENend2) <M-N-P> intronOrientation\
+\'c9\
+cDNAbgnn-cDNA-endn (GENbgnn-GENendn) <M-N-P> intronOrientation\
+cDNA alignment sequence for exon #1\
+genomic alignment sequence for exon #1\
+\'c9\
+cDNA alignment sequence for exon #n\
+genomic alignment sequence for exon #n\
+sim4end\
+\
+where:\
+cDNAidx \'d0 internal index of the cDNA in the input cDNA fasta file (0..#cDNASeqs-1)\
+cDNAlen \'d0 length of the cDNA sequence\
+pA(T) \'d0 length of polyA(T) tail detected and masked\
+GENidx \'d0 internal index of the genomic sequence in the genome fasta file (0..#GenSeqs-1)\
+GENlo \'d0 start position of the genomic region \
+GENhi \'d0 end position of the genomic region\
+M \'d0 number of nucleotide matches in the alignment\
+N \'d0 number of matching N\'d5s in the alignment\
+P \'d0 percent sequence identity of the alignment\
+O \'d0 match orientation (forward: the cDNA sequence aligns to the genomic sequence directly; complement: the reverse complement of the cDNA sequence matches the genomic sequence; this is the equivalent of the \'d4(complement)\'d5 output line in Sim4\
+S \'d0 strand predicted based on the splice signals and alignment quality (forward \'d0 high alignment quality, predicted forward strand; reverse \'d0 high alignment quality, predicted reverse strand; unknown \'d0 low alignment quality or weak splice signals)\
+\
+cDNAbgni \'d0 start position of exon i in the cDNA sequence\
+cDNAendi \'d0 end position of exon i in the cDNA sequence\
+GENbgni \'d0 start position of exon i in the genomic sequence (interval GENlo-GENhi)\
+GENendi \'d0 end position of exon i in the genomic sequence (interval GENlo-GENhi)\
+M \'d0 number of nucleotide matches in the alignment\
+N \'d0 number of matching N\'d5s in the alignment\
+P \'d0 percent sequence identity of the alignment\
+intronOrientation \'d0 -> forward (i.e, GT-AG-like splice signals); <- reverse (i.e., CT-AC-like splice signals); \'d1 ambiguous; == internal gap in the cDNA\
+\
+Exon coordinates are nucleotide based, starting from 1. Coordinates in the genomic sequence are relative to the GENlo value displayed in the match description line. The true location of the exon in the genomic sequence is GENlo+GENbgn and GENlo+GENend. Lastly, genomic coordinates are always in the original sequence; the cDNA coordinates will refer to positions in the reverse complement of the sequence if the match orientation is indicated as \'d4complement\'d5.\
+\
+Alignment sequences: lowercase letters indicate matching nucleotides, - indicate gaps in that sequence, and uppercase letters mark either substitutions or gaps in the other sequence.\
+\
+Example: \'c9 \
+\
+c. ESTmapper creates several intermediate data files located in the designated working directory as follows:\
+\
+Subdirectory:\
+0-input 	symbolic links to input files, other files needed in the later steps\
+1-search	temporary work directory for the search stage\
+2-filter		temporary work directory for the filtering stage\
+3-polish 	temporary work directory for the alignment stage\
+\
+V. Advanced usage:\
+\
+The ESTmapper software consists of five modules performing the following five operations:\
+\
+1.	Preparation\
+Prepares the input files, building an index for each sequence file for fast run-time access. It examines and groups genomic sequences into roughly equal size groups to allow the search step to execute in a specific memory footprint.\
+\
+2.	Searching\
+Builds a table of all 20-mers and their positions in the genome, and scans the input cDNA sequences to quickly identify exact matches between the cDNA and the genome. Groups neighboring matches consistent with an exon model to determine local areas of the genome that potentially contain the cDNA.\
+\
+3.	Filtering\
+For each cDNA, examines the candidate genomic regions and selects a subset of regions that are the most likely to contain the input cDNA sequence. Due to their differences in length and sequence quality, ESTs and mRNAs use different filters, therefore the type of comparison must be specified in the command.\
+\
+4.	Alignment\
+Produces nucleotide-resolution spliced alignments between the cDNA and each of the genomic regions selected, using an optimized version of the Sim4 algorithm. It can detect and align multiple occurrences of the cDNA within a genomic region within certain alignment parameters (see below).\
+\
+5.	Output \
+Collects the output from the alignment step and filters the matches based on two statistics: coverage (percentage of matching nucleotides in the query) and sequence identity (percentage of matching nucleotides in the alignment). By default, only alignments with \'b350% coverage and \'b395% sequence identity are reported.\
+\
+Each module can be invoked separately, provided that its input data files have been created earlier and exist in the designated working directory:\
+\
+\'c9 \
+\
+V. Software and Hardware requirements\
+ESTmapper is written in a combination of Perl and C++, and has been tested and ported to a variety of Linux/Unix platforms, including xxxx. For large tasks, such as mapping 6M EST sequences to the human genome, 2GB RAM and up to 1\cf2 2\cf0  GB disk space to store the final output (9 GB for \'d4polishes-good\'d5, 3 GB for \'d4polishes-best\'d5) are recommended, as well as additional temporary space up to xxx GB for storing intermediate results.\
+\
+The ESTmapper tool was written and designed by Brian Walenz (brian.walenz@sourceforge.net) and Liliana Florea (floreald@sourceforge.net)\
+\
+}

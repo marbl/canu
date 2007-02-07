@@ -1,0 +1,32 @@
+The ESTMapper is a software package designed to efficiently map large EST data
+sets to a target genome. For each cDNA (EST or full-length mRNA) sequence
+in the input set, it will determine a set of instances of the EST in the
+target genome in a three-stage process. Stage I, 'signal finding', is an
+efficient similarity search which identifies potential EST-containing regions
+in the reference genome. In Stage II, 'signal filtering', regions containing
+weak signals are removed based on the extent of the cDNA matched and the
+number of regions. Stage III, 'signal polishing' uses an
+enhanced version of Sim4 to produce spliced alignments between the
+query EST sequence and each of the remaining genomic regions.
+
+Features
+[Input]	
+. Simple interface and input presentation, as multi-fasta files.
+. Requires no pre-processing of sequences (typically, vector and quality trimming, contaminant screening, assigning quality values, repeat masking). 
+
+[Output]
+. Output formatted as flat files, and XML-feature files, which can be viewed using Celera's Genome Browser.
+. Output filtered by quality (the three? files; also, flexible parameters).
+
+[Implementation]
+. Memory and space efficient (e.g., ).
+. Search uses an efficient . Polishing stage improved for efficiency.
+. Parallel operation to take advantage of multi-processor environement the and for better I/O management.  
+
+[Algorithmics]
+. Search - uses a proprietary fast near-identity search program.
+. Search + filtering offer high sensivity at relatively low computational cost.
+. Differential filtering for mRNA and EST sequences takes full advantage of their mapping characteristics to reduce the computational cost for polishing false positives.
+. Efficient screening for repetitive elements.
+. Sim4db - iterative procedure allows detection of multiple occurrences. Improvements for memory efficiency, I/O. 
+. No segmentation of the sequences is necessary (e.g., use whole chromosomes), hence matches are not pruned to fit in fixed size intervals (allows arbitrarily long introns).
