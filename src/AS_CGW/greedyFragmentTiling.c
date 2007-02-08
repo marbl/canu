@@ -692,7 +692,7 @@ void usage(char *pgm){
 
 int uid2iid(uint64 uid){
   PHashValue_AS value;
-  static firstFailure=1;
+  static int firstFailure=1;
   if(HASH_FAILURE == LookupInPHashTable_AS(my_gkp_store.hashTable, 
                                            UID_NAMESPACE_AS,
                                            uid,

@@ -44,7 +44,7 @@ static int  Read_String
 
 
 int  main
-    ()
+    (int argc, char **argv)
 
   {
    String_t  * S = NULL;

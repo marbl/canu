@@ -35,11 +35,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: rev-olaps.c,v 1.4 2005-03-22 19:49:19 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: rev-olaps.c,v 1.5 2007-02-08 02:46:00 brianwalenz Exp $
+ * $Revision: 1.5 $
 */
 
-static char CM_ID[] = "$Id: rev-olaps.c,v 1.4 2005-03-22 19:49:19 jason_miller Exp $";
+static char CM_ID[] = "$Id: rev-olaps.c,v 1.5 2007-02-08 02:46:00 brianwalenz Exp $";
 
 
 //  System include files
@@ -51,7 +51,7 @@ static char CM_ID[] = "$Id: rev-olaps.c,v 1.4 2005-03-22 19:49:19 jason_miller E
 
 
 int  main
-    ()
+    (int argc, char **argv)
 
   {
    long int  a_id, b_id;

@@ -29,6 +29,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <ctype.h>
 #include <AS_ALN_aligners.h>
 
 /* Get_sequence gets the next FASTA formated sequence from input.  It

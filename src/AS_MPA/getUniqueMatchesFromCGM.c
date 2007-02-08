@@ -18,9 +18,10 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: getUniqueMatchesFromCGM.c,v 1.4 2005-03-22 19:48:58 jason_miller Exp $ */
+/* $Id: getUniqueMatchesFromCGM.c,v 1.5 2007-02-08 02:46:00 brianwalenz Exp $ */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define HUMAN
 #ifdef HUMAN

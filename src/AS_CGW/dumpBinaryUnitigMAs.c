@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: dumpBinaryUnitigMAs.c,v 1.8 2006-09-21 21:34:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpBinaryUnitigMAs.c,v 1.9 2007-02-08 02:46:00 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -76,7 +76,7 @@ FILE *  File_Open (const char * Filename, const char * Mode, int exitOnFailure);
 
 ReadStructp myRead;
 
-void FindPattern()
+void FindPattern(void)
 {
   GraphCGW_T *graph = ScaffoldGraph->ContigGraph;
   GraphNodeIterator     nodes;

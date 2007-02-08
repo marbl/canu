@@ -40,6 +40,7 @@
 #endif
 
 #include <stdio.h>
+#include <string.h>
 
 /* Comment out all this code if we are using the GNU C Library, and are not
    actually compiling the library itself.  This code is part of the GNU C
@@ -209,13 +210,11 @@ static char *posixly_correct;
    whose names are inconsistent.  */
 
 #ifndef getenv
-extern char *getenv ();
+extern char *getenv (const char *);
 #endif
 
 static char *
-my_index (str, chr)
-     const char *str;
-     int chr;
+my_index (const char *str, int chr)
 {
   while (*str)
     {

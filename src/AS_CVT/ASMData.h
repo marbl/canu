@@ -167,6 +167,8 @@ CloneData * GetChromosomeCloneData(AssemblyStore * asmStore,
                                    Scaffold_ID containerUID);
 void WriteBinaryCloneData(Scaffold_ID containerUID, CloneData * cd);
 
+void PrintIntraCloneData(Scaffold_ID containerUID, CloneData * cd, FILE * fo);
+
 void PrintATACScaffoldGenomicAxis(AssemblyStore * asmStore,
                                   int32 index,
                                   char * parent,

@@ -40,6 +40,11 @@
 static FILE* LogFile=NULL;
 
 
+int get_match_region(char* S1, char* Q1, char* S2, char* Q2, 
+		     char* seq1, char* seq2, char* q1, char* q2,
+		     int32 ia1, int32 ia2, OverlapMesg*  p);
+
+
 /* this function returns the number of mismatches in the two null terminated
    strings. If the argument wdash is TRUE only substitutions are counted */
 int  get_no_mismatches(char* S1, char* S2, char* Q1, char* Q2, 

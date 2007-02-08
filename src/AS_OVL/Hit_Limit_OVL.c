@@ -33,7 +33,7 @@ static int  Binomial_Hit_Limit
 
 
 int  main
-    ()
+    (int argc, char **argv)
 
   {
    double  genome_len, copies, prob;

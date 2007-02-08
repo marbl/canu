@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FragCorrectOVL.c,v 1.9 2006-09-26 21:07:45 brianwalenz Exp $
- * $Revision: 1.9 $
+ * $Id: FragCorrectOVL.c,v 1.10 2007-02-08 02:46:00 brianwalenz Exp $
+ * $Revision: 1.10 $
 */
 
-static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.9 2006-09-26 21:07:45 brianwalenz Exp $";
+static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.10 2007-02-08 02:46:00 brianwalenz Exp $";
 
 
 //  System include files
@@ -318,7 +318,8 @@ static void  Cast_Vote
 static char  Complement
     (char);
 static void  Compute_Delta
-    ();
+    (int delta [], int * delta_len, int * edit_array [MAX_ERRORS],
+     int e, int d, int row);
 static void  Display_Alignment
     (char * a, int a_len, char * b, int b_len, int delta [], int delta_ct,
      int capitalize_start);
