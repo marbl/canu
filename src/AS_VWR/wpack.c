@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: wpack.c,v 1.4 2005-03-22 19:49:32 jason_miller Exp $ */
+/* $Id: wpack.c,v 1.5 2007-02-08 02:04:57 brianwalenz Exp $ */
 
 #undef DEBUG
 
@@ -59,9 +59,9 @@ typedef struct obj { struct obj   *forw, *back;
                      float         ypf, yof;
                      int           border, outline, hilite;
                      char         *label;
-                     void        (*free_routine)();
-                     void        (*draw_routine)();
-                     void        (*event_routine)();
+                     void        (*free_routine)(struct obj *);
+                     void        (*draw_routine)(struct obj *);
+                     void        (*event_routine)(struct obj *);
                      long          event_data;
                    } MT_OBJECT;
 
@@ -143,7 +143,8 @@ static XtTranslations trans_table;
 static win_ptr winlist;
 
 static window_desc win_get(Widget);
-static void expose(), report();
+static void expose(Widget, XEvent *, String *, Cardinal);
+static void report(Widget, XEvent *, String *, Cardinal);
 static long cvt_updown(unsigned int);
 static int cvt_key(XKeyEvent *);
 static int ReadBitmap(Display *, Drawable, char *, int *,
@@ -415,7 +416,7 @@ static int find_callback(int fd)
    return -1;
 }
 
-static int get_callback_slot()
+static int get_callback_slot(void)
 {
    int i;
    for(i = 0; i < CALLBACKTABLESIZE; i++)
@@ -425,9 +426,7 @@ static int get_callback_slot()
 }
 
 /* The procedure that gets the Xt callbacks and then calls the user proc */
-static void gen_callback_proc(fd, junque, xid)
-int fd, *junque;
-XtInputId xid;
+static void gen_callback_proc(int fd, int *junque, XtInputId xid)
 {
    int i;
    i = find_callback(fd);
@@ -447,9 +446,7 @@ XtInputId xid;
 
 /* Commented out by E. Myers, Jan. 25, '93
 
-void winpack_monitor_fd(fd, user_proc)
-int fd;
-file_callback_proc user_proc;
+void winpack_monitor_fd(int fd, file_callback_proc user_proc)
 {
    int slot;
    if((slot = get_callback_slot()) < 0) {
@@ -465,8 +462,7 @@ file_callback_proc user_proc;
 }
 */
 
-void winpack_unmonitor_fd(fd)
-int fd;
+void winpack_unmonitor_fd(int fd)
 {
    /* Search for the XtInputId */
    int slot;
@@ -480,7 +476,7 @@ int fd;
 
 /*---------------------------------------------*/
 
-void winpack_shutdown()
+void winpack_shutdown(void)
   {
     if (!app) return;
 
@@ -636,11 +632,7 @@ static window_desc win_get(Widget wid)
 
 /*---------------------------------------------*/
 
-static void expose(wid,event,params,n)
-  Widget wid;
-  XEvent *event;
-  String *params;
-  Cardinal *n;
+static void expose(Widget wid, XEvent *event, String *params, Cardinal n)
   {
     int w, h;
     window_desc win;
@@ -653,11 +645,7 @@ static void expose(wid,event,params,n)
 
 /*---------------------------------------------*/
 
-static void report(wid,event,params,n)
-  Widget wid;
-  XEvent *event;
-  String *params;
-  Cardinal *n;
+static void report(Widget wid, XEvent *event, String *params, Cardinal n)
   {
     XMotionEvent *me = (XMotionEvent *) event;
     window_desc win = win_get(wid);
@@ -1710,11 +1698,7 @@ void font_string_size(font,str,w_result,h_result,baseline_result)
     *baseline_result = ((XFontStruct*)font)->descent;
   }
 
-void mt_string_size(str,w_result,h_result,baseline_result)
-  char          *str;
-  int           *w_result;
-  int           *h_result;
-  int           *baseline_result;
+void mt_string_size(char *str, int *w_result, int *h_result, int *baseline_result)
   { font_desc font;
 
     if (!str || !w_result || !h_result || !baseline_result)
@@ -1727,8 +1711,6 @@ void mt_string_size(str,w_result,h_result,baseline_result)
   }
 
 /*---------------------------------------------*/
-
-typedef (*void_fun)();
 
 extern int XDrawImageString(
 #if NeedFunctionPrototypes
@@ -1754,12 +1736,7 @@ extern int XDrawString(
 #endif
 );  
 
-void win_draw_string(win,x,y,str,font,mode)
-  window_desc win;
-  int x,y;
-  char *str;
-  font_desc font;
-  drawing_mode mode;
+void win_draw_string(window_desc win, int x, int y, char *str, font_desc font, drawing_mode mode)
   {
     int n;
 
@@ -2452,9 +2429,7 @@ void mt_draw_rect(MT_OBJECT *o, int xl, int yl, int w, int h)
 
 /*---------------------------------------------*/
 
-void wp_btm_fill(bm,x1,y1,x2,y2,mode)
-  bitmap_desc bm;
-  int x1,y1, x2,y2, mode;
+void wp_btm_fill(bitmap_desc bm, int x1, int y1, int x2, int y2, int mode)
   {
     int t;
 
@@ -2479,9 +2454,7 @@ void wp_btm_fill(bm,x1,y1,x2,y2,mode)
 
 /*---------------------------------------------*/
 
-void win_invert_rect(win,x1,y1,x2,y2)
-  window_desc win;
-  int x1,y1, x2,y2;
+void win_invert_rect(window_desc win, int x1, int y1, int x2, int y2)
   {
     int t;
 

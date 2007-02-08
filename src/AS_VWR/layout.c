@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: layout.c,v 1.5 2006-03-08 20:43:09 eliv Exp $ */
+/* $Id: layout.c,v 1.6 2007-02-08 02:04:56 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1255,7 +1255,7 @@ static int ROWCON_COMPARE(const void *l, const void *r)
   return (*(ln1->beg) - *(ln2->beg));
 }
 
-void LayoutAssembly()
+void LayoutAssembly(void)
 { Rows = 0;
   Links = 0;
   MinPnt = MaxPnt = 0;

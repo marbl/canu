@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: button.c,v 1.6 2006-11-14 19:58:23 eliv Exp $ */
+/* $Id: button.c,v 1.7 2007-02-08 02:04:56 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,9 +67,9 @@ typedef struct obj { struct obj   *forw, *back;
                      int           border, outline, hilite;
                      int           pixlab;
                      char         *label;
-                     void        (*free_routine)();
-                     void        (*draw_routine)();
-                     int         (*event_routine)();
+                     void        (*free_routine)(struct obj *);
+                     void        (*draw_routine)(struct obj *, int);
+                     int         (*event_routine)(struct obj *, long);
                      long          event_data;
                    } MT_OBJECT;
 
@@ -1995,7 +1995,7 @@ void mt_menu_pair(MT_OBJECT *menubutton, MT_OBJECT *menuframe)
   o->frame = fr;
 }
 
-void mt_startup()
+void mt_startup(void)
 { winpack_init();
   greyf = mt_get_color(0xB2,0xB2,0xB2);
   greys = mt_get_color(0x65,0x65,0x65);
@@ -2004,7 +2004,7 @@ void mt_startup()
   init_attributes();
 }
 
-void mt_shutdown()
+void mt_shutdown(void)
 { winpack_shutdown(); }
 
 static MT_OBJECT *find(MT_OBJECT *bw, int x, int y)
@@ -2590,16 +2590,16 @@ static void bp_handler(input_event *ev, window_desc win, void *data)
   }
 }
 
-void mt_event_loop()
+void mt_event_loop(void)
 { winpack_main_loop(); }
 
-long mt_medium_grey()
+long mt_medium_grey(void)
 { return (greyf); }
 
-long mt_dark_grey()
+long mt_dark_grey(void)
 { return (greys); }
 
-long mt_light_grey()
+long mt_light_grey(void)
 { return (greyh); }
 
 MT_OBJECT *mt_parent(MT_OBJECT *o)

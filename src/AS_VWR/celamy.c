@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: celamy.c,v 1.4 2005-03-22 19:49:31 jason_miller Exp $ */
+/* $Id: celamy.c,v 1.5 2007-02-08 02:04:56 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1668,7 +1668,7 @@ error:
   return;
 }
 
-void QueryWrite()
+void QueryWrite(void)
 { FILE *unit;
   query_record *q;
   int namelen, querylen, len;

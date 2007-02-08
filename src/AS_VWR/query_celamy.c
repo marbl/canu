@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: query_celamy.c,v 1.4 2005-03-22 19:49:32 jason_miller Exp $ */
+/* $Id: query_celamy.c,v 1.5 2007-02-08 02:04:56 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -588,11 +588,11 @@ void makemenu(int d, int x, int y)
 
 /* Tool menu routines */
 
-void CreateQueryWin();
-void CreateViewWin();
-void CreateCanvasWin();
+void CreateQueryWin(long);
+void CreateViewWin(long);
+void CreateCanvasWin(long);
 
-typedef void procpt(int);
+typedef void procpt(long);
 
 static char   *ToolLabels[] = { "Query ...", "View ...",
                                 "Canvas ...", "" };
@@ -1668,7 +1668,7 @@ error:
   return;
 }
 
-void QueryWrite()
+void QueryWrite(void)
 { FILE *unit;
   query_record *q;
   int namelen, querylen, len;
@@ -2113,7 +2113,7 @@ int closequery(MT_OBJECT *o, long d)
   return (0);
 }
 
-void CreateQueryWin(int toolno)
+void CreateQueryWin(long toolno)
 { MT_OBJECT *obj;
   int i;
   query_record *qr;
