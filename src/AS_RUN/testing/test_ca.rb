@@ -3,7 +3,7 @@
 ######################################################################
 # test_ca.rb
 # 
-# $Id: test_ca.rb,v 1.2 2007-02-08 22:43:59 catmandew Exp $
+# $Id: test_ca.rb,v 1.3 2007-02-08 22:50:00 catmandew Exp $
 #
 # Terms:
 #   test spec - combination of version, run script, config file, recipe script,
@@ -754,12 +754,17 @@ genomes.values.each do |genome|
     if($? == 0)
       Log.log("Completed qcCompare on #{genome.name} tests", true)
     else
-      Log.log("Completed qcCompare on #{genome.name} tests", true)
+      Log.log("Failed to run qcCompare on #{genome.name} tests", true)
     end
 
     if(num_successful_tampas > 1)
       tampaCompare_command += " >> #{TestDir}/#{genome.name}_results.txt"
       system(tampaCompare_command)
+      if($? == 0)
+        Log.log("Completed tampaCompare on #{genome.name} tests", true)
+      else
+        Log.log("Failed to run tampaCompare on #{genome.name} tests", true)
+      end
     else
       Log.log("TAMPA succeeded on fewer than 2 tests for #{genome.name}.")
       Log.log("No TAMPA comparisons to run.")
