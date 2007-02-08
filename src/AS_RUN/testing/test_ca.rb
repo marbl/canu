@@ -3,7 +3,7 @@
 ######################################################################
 # test_ca.rb
 # 
-# $Id: test_ca.rb,v 1.1 2007-02-08 22:29:00 catmandew Exp $
+# $Id: test_ca.rb,v 1.2 2007-02-08 22:43:59 catmandew Exp $
 #
 # Terms:
 #   test spec - combination of version, run script, config file, recipe script,
@@ -52,7 +52,7 @@ InputFileSuffixes = {:frag => "frg",
   :project => "project",
   :seq_features => "seq.features"}
 
-TampaFileSuffixes = {:intra_breakpoints => "intra.breaktpoints.tampa",
+TampaFileSuffixes = {:intra_breakpoints => "intra.breakpoints.tampa",
   :intra_summary => "intra.summary.tampa",
   :inter_breakpoints => "inter.breakpoints.tampa",
   :inter_summary => "inter.summary.tampa"}
@@ -413,7 +413,7 @@ class AssemblerTest
     # TAMPA has been run. Check that all output files are present
     @status = "TAMPA FINISHED"
     TampaFileSuffixes.values.each do |suffix|
-      if(!File.exists?("#{@aserver_dir}/#{@genome.name}.#{@suffix}"))
+      if(!File.exists?("#{@aserver_dir}/#{@genome.name}.#{suffix}"))
         @status = "TAMPA ERROR"
         break;
       end # check if file is present
