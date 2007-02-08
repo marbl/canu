@@ -110,8 +110,6 @@ int findLastExtendableFrags(ContigT *contig, extendableFrag *extFragsArray);
 int GetNewUnitigMultiAlign(NodeCGW_T *unitig, fragPositions *fragPoss,
                            int extendedFragIid);
 int setCgwClearRange(int fragIid, int frag3pDelta);
-// int getAlteredFragPositions(NodeCGW_T *unitig, fragPositions *fragPoss,
-//                             int alteredFragIid, int extension);
 void getAlteredFragPositions(NodeCGW_T *unitig, fragPositions **fragPoss,
                              int alteredFragIid, int extension);
 void bubbleSortIUMs(IntMultiPos *f_list, int numIMPs);
@@ -126,7 +124,6 @@ void rightShiftIUM(IntMultiPos *f_list, int numFrags, int extendedFragIid);
 void saveFragAndUnitigData(int lFragIid, int rFragIid);
 void restoreFragAndUnitigData(int lFragIid, int rFragIid);
 
-void printGapSizes();
 int writeEcrCheckpoint(int *numGapsInScaffold,
                        int *numGapsClosedInScaffold,
                        int *numSmallGapsInScaffold,

@@ -443,7 +443,7 @@ int main(int argc, char *argv[]) {
 // Stolen from AS_ALN
 static void Complement(char *in, int len)
 { static char WCinvert[256];
- static Firstime = 1;
+ static int Firstime = 1;
 
  if (Firstime)          /* Setup complementation array */
    { 
