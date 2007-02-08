@@ -57,10 +57,10 @@ ifeq ($(OSTYPE), Linux)
   ARCH_CFLAGS = -DANSI_C -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 
   ifeq ($(BUILDDEBUG), 1)
-    ARCH_CFLAGS  += -g
+    ARCH_CFLAGS  += -g -Wimplicit
     ARCH_LDFLAGS  = 
   else
-    ARCH_CFLAGS  += -O2
+    ARCH_CFLAGS  += -O2 -Wimplicit
     ARCH_LDFLAGS  = -Wl,-O1
   endif
 
