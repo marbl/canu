@@ -55,16 +55,14 @@
    char LogFileName[FILENAME_MAX];
 
 //====================================================================
-// Persistent store of the fragment/bactig data (produced upstream)
+// Persistent store of the fragment data (produced upstream)
 
    FragStoreHandle global_fragStore;
    tFragStorePartition *global_fragStorePartition;
    tSequenceDB *sequenceDB;
    tSequenceDBPartition *sequenceDB_part;
    int partitioned;
-   FragStoreHandle global_bactigStore;
    PHashTable_AS *fragmentMap;
-   PHashTable_AS *bactigMap;
 
 //====================================================================
 // Store for the multialignments of Unitigs (referenced by contigging)
@@ -117,8 +115,6 @@ int terminate_cond;
 int allow_forced_frags;
 int allow_neg_hang;
 int allow_neg_hang_retry;
-VA_TYPE(int32) *bactig_delta_length;
-VA_TYPE(PtrT) *bactig_deltas;
 
 
 static void CleanExit(char *mesg, int lineno, int rc) {

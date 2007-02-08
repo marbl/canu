@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_PER_gkpStore.h,v 1.12 2007-01-28 21:52:25 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.13 2007-02-08 06:48:54 brianwalenz Exp $	 */
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
 /*************************************************************************
@@ -65,10 +65,7 @@ typedef struct{
      batch i+1 and batch i.
   */
   int32 numFragments;
-  int32 numLocales;
-  int32 num_s_Locales; // shadowed for redefintions
   int32 numSequences;
-  int32 numBactigs;
   int32 numDistances;
   int32 num_s_Distances; // shadowed for redefintions
   int32 numLinks;
@@ -84,54 +81,17 @@ typedef struct{
   uint   spare:15;
   CDS_IID_t linkHead;           /* Index into Link Table */
   CDS_UID_t readUID;            /* Accession ID of this read */
-  CDS_IID_t localeID;           /* IID of locale */
   CDS_IID_t seqID;              /* IID of seqID */
-  CDS_IID_t bactigID;           /* IID of bactig */
   uint16 birthBatch;         /* This entry is valid */
   uint16 deathBatch;         /* [birthBatch, deatchBatch) */
 }GateKeeperFragmentRecord;
-
-
-// One for each locale (BAC/BIN) encountered
-typedef struct{
-  CDS_UID_t UID;
-  unsigned int  deleted:1;
-  unsigned int  isBac:1; // true for bacs, false for BIN
-  unsigned int  redefined:1;
-  unsigned int   hasSequence:1; /* True if we've seen an FRG with this  */
-  unsigned int  spare:12;
-  int16 type; // current type
-  CDS_IID_t sequenceID; // current seq_id
-  CDS_IID_t prevInstanceID; // Previous definitions are linked by this reference
-  CDS_IID_t prevID;         // If redefined == TRUE, the original ID of this locale
-  // relevant for UBACs only
-  int32 numBactigs;
-  int32 firstBactig;
-  CDS_IID_t lengthID;
-  uint16 birthBatch;         /* This entry is valid */
-  uint16 deathBatch;         /* [birthBatch, deatchBatch) */
-}GateKeeperLocaleRecord;
 
 // One for each Seq encountered
 typedef struct{
   unsigned int deleted:1;
   unsigned int spare:30;
-  CDS_IID_t localeID;  // The id of the bac associated with this seqid
   CDS_UID_t UID;
 }GateKeeperSequenceRecord;
-
-// One for each bactig record
-typedef struct{
-  unsigned int   deleted:1;
-  unsigned int   hasSequence:1; /* True if we've seen an FRG with this */
-  unsigned int   spare:30;
-  CDS_IID_t bacID;         
-  CDS_UID_t UID;
-  CDS_IID_t seqID;
-  CDS_IID_t length;
-}GateKeeperBactigRecord;
-
-
 
 // One for each distance record
 typedef struct{
@@ -140,7 +100,7 @@ typedef struct{
   unsigned int redefined:1;
   unsigned int spare:30;
   CDS_IID_t prevInstanceID; // Previous definitions are linked by this reference
-  CDS_IID_t prevID;         // If redefined == TRUE, the original ID of this locale
+  CDS_IID_t prevID;         // If redefined == TRUE, the original ID of this
   float32 mean;
   float32 stddev;
   uint16 birthBatch;         /* This entry is valid */
@@ -245,7 +205,7 @@ static int32 getNum ## type ## s(type ## Store store){\
 
 
 
-#define NUM_GKP_FILES 10
+#define NUM_GKP_FILES 7
 
 // 1. for gkp.bat
 INDEXSTORE_DEF(GateKeeperBatch)
@@ -258,21 +218,14 @@ INDEXSTORE_DEF_EXTEND(GateKeeperFragment)
 INDEXSTORE_DEF(GateKeeperLink)
 INDEXSTORE_DEF_EXTEND(GateKeeperLink)
 
-// 4 & 5. for gkp.loc (locale definitions) & gkp.s_loc (locale redefinitions)
-INDEXSTORE_DEF(GateKeeperLocale)
-INDEXSTORE_DEF_EXTEND(GateKeeperLocale)
-
-// 6. for gkp.seq
+// 4. for gkp.seq
 INDEXSTORE_DEF(GateKeeperSequence)
 
-// 7. for gkp.btg
-INDEXSTORE_DEF(GateKeeperBactig)
-
-// 8 & 9. for gkp.dst (distance definitions) & gkp.s_dst (distance redefinitions)
+// 5 & 6. for gkp.dst (distance definitions) & gkp.s_dst (distance redefinitions)
 INDEXSTORE_DEF(GateKeeperDistance)
 INDEXSTORE_DEF_EXTEND(GateKeeperDistance)
 
-// 10. is gkp.phash
+// 7. is gkp.phash
 
 
 /***********************************************************************************
@@ -396,16 +349,13 @@ int linkLink_GKP(GateKeeperLinkStore gkplStore,
 typedef struct {
   char storePath[FILENAME_MAX];
 
-  PHashTable_AS  *hashTable;
-  GateKeeperBatchStore batStore;
-  GateKeeperFragmentStore frgStore;
-  GateKeeperLinkStore lnkStore;
-  GateKeeperLocaleStore locStore;
-  GateKeeperLocaleStore s_locStore; // Store for Locales that have been redefined
-  GateKeeperSequenceStore seqStore;
-  GateKeeperDistanceStore dstStore;    
-  GateKeeperDistanceStore s_dstStore;    // Store for Distances that have been redefined
-  GateKeeperBactigStore btgStore;
+  PHashTable_AS           *hashTable;
+  GateKeeperBatchStore     batStore;
+  GateKeeperFragmentStore  frgStore;
+  GateKeeperLinkStore      lnkStore;
+  GateKeeperSequenceStore  seqStore;
+  GateKeeperDistanceStore  dstStore;    
+  GateKeeperDistanceStore  s_dstStore;    // Store for Distances that have been redefined
 } GateKeeperStore;
 
 int  CreateGateKeeperStore(GateKeeperStore *gkpStore);

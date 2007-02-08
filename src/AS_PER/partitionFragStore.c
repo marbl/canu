@@ -125,8 +125,6 @@ int main(int argc, char *argv[]){
       setSource_ReadStruct(myRead, "");
       setEntryTime_ReadStruct(myRead,0);
       setClearRegion_ReadStruct(myRead,0,0,READSTRUCT_ORIGINAL);
-      setLocID_ReadStruct(myRead, 0);
-      setLocalePos_ReadStruct(myRead, 0,0);
     }
     appendFragStorePartition(target,myRead,bin);  
   }

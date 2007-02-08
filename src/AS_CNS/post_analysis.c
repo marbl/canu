@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: post_analysis.c,v 1.10 2007-01-29 20:41:09 brianwalenz Exp $ */
+/* $Id: post_analysis.c,v 1.11 2007-02-08 06:48:52 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,7 +32,7 @@
 #include "AS_UTL_ID_store.h"
 
 void usage (char *pgmname){
-  fprintf(stderr,"USAGE: %s -f <frgStore> -o <outprefix> [-O] [-b <btigStore>] [-m <minlen>] [-l <iidlist>]\n"
+  fprintf(stderr,"USAGE: %s -f <frgStore> -o <outprefix> [-O] [-m <minlen>] [-l <iidlist>]\n"
 	  "\t-o outprefix specifies prefix of output file names\n"
 	  "\t-O instructs to write out protoIO messages of selected IDs\n"
 	  "\t-m instructs to ignore contigs less than minlen columns\n"
@@ -52,14 +52,12 @@ int main(int argc, char *argv[])
  int i;
  int isplaced = 1;
  FragStoreHandle frag_store;
- FragStoreHandle bactig_store;
  FILE *pcs = NULL;
  FILE *pfs = NULL;
  FILE *out = NULL;
  FILE *sublist = NULL;
  char buffer[256];
  char *frgstore_name=NULL;
- char *bactigstore_name=NULL;
  char *sublist_file=NULL;
  char *outputfile_prefix=NULL;
  ID_Arrayp  tig_iids;
@@ -73,9 +71,6 @@ int main(int argc, char *argv[])
  while ( !errflg && 
 	 ( (ch = getopt(argc, argv, "b:f:l:m:o:O")) != EOF)) {
    switch(ch){
-   case 'b':
-     bactigstore_name = optarg;
-     break;
    case 'f':
      frag_store = openFragStore(optarg, "rb");
      break;
@@ -101,10 +96,6 @@ int main(int argc, char *argv[])
  }
  if(errflg || frag_store==NULLSTOREHANDLE){
    usage(argv[0]);
- }
- if(bactigstore_name!=NULL){
-   bactig_store = openFragStore(bactigstore_name,"rb");
-   assert(bactig_store!=NULLSTOREHANDLE);
  }
 
  assert(outputfile_prefix!=NULL);
@@ -153,7 +144,7 @@ int main(int argc, char *argv[])
        ma = CreateMultiAlignTFromICM(contig, contig->iaccession,  0);
         
        if (contig->placed == AS_PLACED) {
-	 CollectStats(ma, frag_store, bactig_store, pcs, pfs,READSTRUCT_LATEST);
+	 CollectStats(ma, frag_store, pcs, pfs,READSTRUCT_LATEST);
        } 
          
        //      PrintMultiAlignT(out,ma,frag_store,0,0);

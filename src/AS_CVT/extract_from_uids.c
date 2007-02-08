@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: extract_from_uids.c,v 1.6 2007-01-28 21:52:24 brianwalenz Exp $";
+static char CM_ID[] = "$Id: extract_from_uids.c,v 1.7 2007-02-08 06:48:52 brianwalenz Exp $";
 
 /*
   IMPORTANT NOTE:
@@ -249,7 +249,6 @@ int PopulateFragment( FragMesg * f, FragStoreHandle fs, CDS_CID_t iid,
                       ReadStructp rs )
 {
   cds_uint32 bgn, end;
-  Locale_ID eilocale;
 
   if( getFragStore( fs, iid, FRAG_S_ALL, rs ) )
   {
@@ -261,15 +260,6 @@ int PopulateFragment( FragMesg * f, FragStoreHandle fs, CDS_CID_t iid,
   f->action = AS_ADD;
   getAccID_ReadStruct( rs, &(f->eaccession) );
   getReadType_ReadStruct( rs, &(f->type) );
-  // NOTE: The locale IID is stored in the fragStore, NOT the UID
-  getLocID_ReadStruct( rs, &eilocale );
-  f->ilocale = (IntLocale_ID) eilocale;
-  // elocale is unavailable
-  // eseq_id is unavailable
-  // ebactig_id is unavailable
-  getLocalePos_ReadStruct( rs, &bgn, &end );
-  f->locale_pos.bgn = bgn;
-  f->locale_pos.end = end;
   getEntryTime_ReadStruct (rs, &(f->entry_time) );
   getClearRegion_ReadStruct( rs, &bgn, &end, READSTRUCT_LATEST );
   f->clear_rng.bgn = bgn;
@@ -277,10 +267,6 @@ int PopulateFragment( FragMesg * f, FragStoreHandle fs, CDS_CID_t iid,
   getSource_ReadStruct( rs, f->source, STRING_LENGTH );
   getSequence_ReadStruct( rs, f->sequence, f->quality, AS_READ_MAX_LEN );
   getReadIndex_ReadStruct( rs, &(f->iaccession) );
-  // f->screened is moot
-  // ilocale is unavailable
-  // iseq_id is unavailable
-  // ibactig_id is unavailable
   
   return 0;
 }
@@ -380,95 +366,6 @@ StoreSetp OpenStores( char * g_gkp_store_name,
 }
 
 
-int ConstructAndWriteUBACMesg( FILE * fp,
-                               StoreSetp ss,
-                               Locale_ID distuid,
-                               Locale_ID esequid,
-                               GateKeeperLocaleRecord gkpl)
-{
-  GenericMesg   gen;
-  BacMesg       bac;
-  int           i;
-  
-  bac.action = AS_ADD;
-  bac.ebac_id = gkpl.UID;
-  bac.eseq_id = esequid;
-  bac.entry_time = time(0);
-  bac.source = " ";
-  bac.elength = distuid;
-
-  if( gkpl.type == AS_FBAC )
-  {
-    bac.type = AS_FBAC;
-    bac.num_bactigs = 0;
-    bac.bactig_list = NULL;
-  }
-  else
-  {
-    bac.type = AS_UBAC;
-    bac.num_bactigs = gkpl.numBactigs;
-    bac.bactig_list = (BactigMesg *) calloc( gkpl.numBactigs,
-                                             sizeof( BactigMesg ) );
-    if( bac.bactig_list == NULL )
-    {
-      fprintf( stderr, "Error: Failed to allocate list of %d bactigs\n",
-               gkpl.numBactigs );
-      return 1;
-    }
-    i = 0;
-    while( i < bac.num_bactigs )
-    {
-      GateKeeperBactigRecord gkpb;
-      
-      if( getGateKeeperBactigStore(ss->g_gkp_store.btgStore,
-                                   gkpl.firstBactig+i,
-                                   &gkpb ) )
-      {
-        fprintf( stderr,
-                 "Error: Failed to access bactig %d in bactigstore!\n",
-                 gkpl.firstBactig+i );
-        return 1;
-      }
-
-      bac.bactig_list[i].eaccession = gkpb.UID;
-      bac.bactig_list[i].length = gkpb.length;
-      i++;
-    }
-  }
-
-  // write BAC
-  gen.t = MESG_BAC;
-  gen.m = &bac;
-  WriteProtoMesg_AS( fp, &gen );
-
-  if( bac.bactig_list )
-    free(bac.bactig_list);
-  return 0;
-}
-
-
-int ConstructAndWriteEBACMesg( FILE * fp,
-                               FragMesg * frag,
-                               cds_uint64 elength )
-{
-  GenericMesg   gen;
-  BacMesg       bac;
-  
-  bac.action = AS_ADD;
-  bac.ebac_id = frag->elocale;
-  bac.type = AS_EBAC;
-  bac.entry_time = frag->entry_time;
-  bac.source = " ";
-  bac.elength = elength;
-  bac.num_bactigs = 0;
-  bac.bactig_list = NULL;
-  
-  // write BAC
-  gen.t = MESG_BAC;
-  gen.m = &bac;
-  WriteProtoMesg_AS( fp, &gen );
-  return 0;
-}
 
 
 int WriteBATADT( Globalsp globals, int internal )
@@ -485,7 +382,7 @@ int WriteBATADT( Globalsp globals, int internal )
   bat.name = globals->program_name;
   bat.created = time(0);
   bat.eaccession = (internal)?globals->batch_int_uid: globals->batch_ext_uid;
-  bat.comment = "Grande dataset from fragment and BAC UIDs";
+  bat.comment = "Grande dataset from fragment UIDs";
   gen.t = MESG_BAT;
   gen.m = &bat;
   WriteProtoMesg_AS( fp, &gen );
@@ -583,43 +480,6 @@ int InitializeOutput( Globalsp globals )
 }
 
 
-Locale_ID GetBACUID( GateKeeperStore gkp_store, IntLocale_ID iid )
-{
-  GateKeeperBactigRecord gkpf;
-  GateKeeperLocaleRecord gkpl;
-  CDS_CID_t bacID;
-  
-  if( getGateKeeperBactigStore( gkp_store.btgStore, iid, &gkpf) )
-  {
-    fprintf( stderr, "Failed to get fragment " F_IID " data from gatekeeperstore\n",
-             iid );
-    return 0;
-  }
-
-  bacID = gkpf.bacID;  
-  if( getGateKeeperLocaleStore( gkp_store.locStore, bacID, &gkpl) )
-  {
-    fprintf( stderr, "Failed to get locale " F_IID " data from gatekeeperstore\n",
-             bacID );
-    return 0;
-  }
-  
-  return gkpl.UID;
-}
-
-Locale_ID GetLocaleUID( GateKeeperStore gkp_store, IntLocale_ID iid )
-{
-  GateKeeperLocaleRecord gkpl;
-  
-  if( getGateKeeperLocaleStore( gkp_store.locStore, iid, &gkpl) )
-  {
-    fprintf( stderr, "Failed to get locale " F_IID " data from gatekeeperstore\n",
-             iid );
-    return 0;
-  }
-  
-  return gkpl.UID;
-}
 
 
 Fragment_ID GetFragmentUID( GateKeeperStore gkp_store,
@@ -675,7 +535,6 @@ int GetInputUIDs( Globalsp globals, HashTablep * rht, HashTablep * bht )
 {
   int    fs_i;
   int    read_count = 0;
-  int    bac_end_count = 0;
   int    bac_count = 0;
   int    missing_count = 0;
   IDSet  idset;
@@ -791,7 +650,6 @@ int GetInputUIDs( Globalsp globals, HashTablep * rht, HashTablep * bht )
             return 1;
           }
 	  read_count += AS_FA_READ(idset.type) ? 1:0; 
-          bac_end_count += (idset.type == AS_EBAC) ? 1 : 0;
         }
       }
     }
@@ -800,8 +658,6 @@ int GetInputUIDs( Globalsp globals, HashTablep * rht, HashTablep * bht )
   
   fprintf( stdout, "%10d     reads referenced in input files\n",
            read_count );
-  fprintf( stdout, "%10d  BAC ends referenced in input files\n",
-           bac_end_count );
   fprintf( stdout, "%10d      BACs referenced in input files\n",
            bac_count );
   fprintf( stdout, "%10d     UIDs not found in gkpStore\n",
@@ -920,7 +776,7 @@ static int LookupGrandeGateKeeperRecords(StoreSetp s_set, Locale_ID bacuid,
 }
 
 
-int WriteGrandeReadsAndEBACs( Globalsp globals, HashTablep r_rht )
+int WriteGrandeReads( Globalsp globals, HashTablep r_rht )
 {
   IDSet         idset2;
   IDSet         ddset1;
@@ -939,9 +795,7 @@ int WriteGrandeReadsAndEBACs( Globalsp globals, HashTablep r_rht )
   GateKeeperLinkRecord link;
   int           write_link;
   int           missing_frags = 0;
-  int           missing_ebac_mates = 0;
   int           recruited_mates = 0;
-  int           recruited_ebac_mates = 0;
   GateKeeperStore this_gkp_store;
   FragStoreHandle this_frg_store;
   FILE          * this_fp;
@@ -968,9 +822,6 @@ int WriteGrandeReadsAndEBACs( Globalsp globals, HashTablep r_rht )
     this_fp = globals->fp_int_out;
 
     // try to get the grande fragment IID in grande
-    // NOTE: one could look up all frags in regional gkpstore, but
-    //       regional labels EBACs as reads. Grande cannot.
-    //       if the fragment is not in grande, use the regional one
     if( LookupTypeInPHashTable_AS( this_gkp_store.hashTable,
                                    UID_NAMESPACE_AS,
                                    idsetp1->uid,
@@ -999,96 +850,8 @@ int WriteGrandeReadsAndEBACs( Globalsp globals, HashTablep r_rht )
       return 1;
     }
 
-    // if it's an EBAC, need a DST & BAC message before FRG
-    if( frag.type == AS_EBAC )
     {
-      this_fp = globals->fp_ext_out;
-
-      // get correct fragment elocale
-      if( (frag.elocale = GetLocaleUID( this_gkp_store,
-                                        frag.ilocale )) == 0 )
-      {
-        fprintf( stderr,
-           "Failed to get BAC UID from IID " F_IID " in grande gatekeeper store\n",
-                 frag.ilocale );
-        FreeHashTable( dht );
-        return 1;
-      }
-
-      // look up mate to find distance iid
-      if( (idset2.iid = FindMate( this_gkp_store,
-                                  idsetp1->iid,
-                                  &link )) == 0 )
-      {
-        fprintf( stderr,
-                 "Failed to find EBAC " F_UID " mate in grande gatekeeper store.\n",
-                 idsetp1->uid );
-        missing_ebac_mates++;
-        continue;
-      }
-
-      if( (idset2.uid = GetFragmentUID( this_gkp_store, idset2.iid )) == 0 )
-      {
-        fprintf( stderr,
-                 "Failed to get fragment IID " F_IID " from grande fragstore.\n",
-                 idset2.iid );
-        FreeHashTable( dht );
-        return 1;
-      }
-      
-      // if mate is not in r_ht, or it is but it's mate_uid == 0, then
-      // need to write distance & bac message upstream
-      // of this first fragment in pair
-      if( (idsetp2 = (IDSetp) LookupInHashTable( r_rht,
-                                                 idset2.uid )) == NULL ||
-          idsetp2->mate_uid == 0 )
-      {
-        // put together distance data
-        ddset1.iid = link.distance;
-        if( (ddset1.uid = GetDistanceUID( this_gkp_store, ddset1.iid )) == 0 )
-        {
-          fprintf( stderr, "Failed to get distance UID from IID " F_IID "\n",
-                   ddset1.iid );
-          FreeHashTable( dht );
-          return 1;
-        }
-        if( (ddsetp1 = (IDSetp) LookupInHashTable( dht,
-                                                   ddset1.uid )) == NULL )
-        {
-          ddsetp1 = &ddset1;
-          // add the distance UID/IID to the g_dht hashtable
-          // first, get the UID
-          if( PopulateDistanceMesg( this_gkp_store, &ddset1, &dist ) )
-          {
-            fprintf( stderr, "Failed to populate dist from IID " F_IID "\n",
-                     ddset1.iid );
-            FreeHashTable( dht );
-            return 1;
-          }
-          
-          // insert the distance iid/uid in hashtable
-          if( InsertInHashTable( dht, ddset1.uid, (char *) &ddset1 ) )
-          {
-            fprintf( stderr, "Failed to insert distance iid in hashtable\n" );
-            return 1;
-          }
-          
-          // write the distance message
-          gen.t = MESG_DST;
-          gen.m = &dist;
-          WriteProtoMesg_AS( globals->fp_int_out, &gen );
-        
-        }
-        // write ebac message
-        ConstructAndWriteEBACMesg( globals->fp_ext_out, &frag, ddsetp1->uid );
-      }
-      gen.t = MESG_FRG;
-      gen.m = &frag;
-      WriteProtoMesg_AS( globals->fp_ext_out, &gen );
-    }
-    else
-    {
-      // otherwise, just write out the read
+      // just write out the read
       gen.t = MESG_FRG;
       gen.m = &frag;
       WriteProtoMesg_AS( this_fp, &gen );
@@ -1125,13 +888,7 @@ int WriteGrandeReadsAndEBACs( Globalsp globals, HashTablep r_rht )
           gen.t = MESG_FRG;
           gen.m = &frag;
           if( this_fp == globals->fp_int_out )
-          {
             recruited_mates++;
-          }
-          else
-          {
-            recruited_ebac_mates++;
-          }
           WriteProtoMesg_AS( this_fp, &gen );
           
           idsetp2 = &idset2;
@@ -1212,9 +969,6 @@ int WriteGrandeReadsAndEBACs( Globalsp globals, HashTablep r_rht )
   FreeHashTable( dht );
   fprintf( stdout, "%10d reads missing from grande gatekeeper store.\n",
            missing_frags );
-  fprintf( stdout, "%10d EBAC mates missing from grande gatekeeper store.\n",
-           missing_ebac_mates );
-  fprintf( stdout, "%10d EBAC mates recruited.\n", recruited_ebac_mates );
   if( globals->include_mates )
     fprintf( stdout, "%10d read mates recruited.\n", recruited_mates );
   return 0;
@@ -1395,7 +1149,7 @@ int GenerateFRGFile( Globalsp globals )
 
   // write Celera data - DSTs, FRGs, LKGs
   // this includes BAC ends...
-  if( WriteGrandeReadsAndEBACs( globals, r_rht ) )
+  if( WriteGrandeReads( globals, r_rht ) )
   {
     fprintf( stderr, "Failed to write Celera internal data\n" );
     return 1;

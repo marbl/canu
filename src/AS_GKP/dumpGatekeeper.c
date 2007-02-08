@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: dumpGatekeeper.c,v 1.11 2007-01-29 20:41:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpGatekeeper.c,v 1.12 2007-02-08 06:48:52 brianwalenz Exp $";
 
 /* Dump the gatekeeper stores for debug */
 
@@ -111,27 +111,18 @@ main(int argc, char * argv []) {
 	       i,gkpb.UID, gkpb.name, gkpb.comment,
                gkpb.created, ctime(&gkpb.created));
        fprintf(stdout,"\t Num Fragments " F_S32 "\n", gkpb.numFragments);
-       fprintf(stdout,"\t Num Locales " F_S32 "\n", gkpb.numLocales);
-       fprintf(stdout,"\t Num s_Locales " F_S32 "\n", gkpb.num_s_Locales);
-       fprintf(stdout,"\t Num Bactigs " F_S32 "\n", gkpb.numBactigs);
        fprintf(stdout,"\t Num Distances " F_S32 "\n", gkpb.numDistances);
        fprintf(stdout,"\t Num s_Distances " F_S32 "\n", gkpb.num_s_Distances);
        fprintf(stdout,"\t Num Links " F_S32 "\n", gkpb.numLinks);
        fprintf(stdout,"\t Num Sequences " F_S32 "\n", gkpb.numSequences);
      }
      gkpb.numFragments = getNumGateKeeperFragments(gkpStore.frgStore);
-     gkpb.numLocales = getNumGateKeeperLocales(gkpStore.locStore);
-     gkpb.num_s_Locales = getNumGateKeeperLocales(gkpStore.s_locStore);
-     gkpb.numBactigs = getNumGateKeeperBactigs(gkpStore.btgStore);
      gkpb.numDistances = getNumGateKeeperDistances(gkpStore.dstStore);
      gkpb.num_s_Distances = getNumGateKeeperDistances(gkpStore.s_dstStore);
      gkpb.numLinks = getNumGateKeeperLinks(gkpStore.lnkStore);
      gkpb.numSequences = getNumGateKeeperSequences(gkpStore.seqStore);
      fprintf(stdout,"* Final Stats\n");
      fprintf(stdout,"\t Num Fragments " F_S32 "\n",gkpb.numFragments );
-     fprintf(stdout,"\t Num Locales " F_S32 "\n", gkpb.numLocales);
-     fprintf(stdout,"\t Num s_Locales " F_S32 "\n", gkpb.num_s_Locales);
-     fprintf(stdout,"\t Num Bactigs " F_S32 "\n", gkpb.numBactigs);
      fprintf(stdout,"\t Num Distances " F_S32 "\n", gkpb.numDistances);
      fprintf(stdout,"\t Num s_Distances " F_S32 "\n", gkpb.num_s_Distances);
      fprintf(stdout,"\t Num Links " F_S32 "\n", gkpb.numLinks);
@@ -186,123 +177,6 @@ main(int argc, char * argv []) {
    }
      
 
-   /**************** DUMP BACs and BACtigs *************/
-   if(fragID == -1)
-   {
-     StreamHandle frags = openStream(gkpStore.locStore,NULL,0);
-     GateKeeperLocaleRecord gkpl;
-     StoreStat stat;
-     int64 i = 1;
-     
-     statsStore(gkpStore.locStore, &stat);
-     fprintf(stdout,"* Stats for Locale Store are first:" F_S64 " last :" F_S64 "\n",
-	     stat.firstElem, stat.lastElem);
-     
-     resetStream(frags,STREAM_FROMSTART, STREAM_UNTILEND);
-     
-     if(!quiet)
-       fprintf(stdout,"* Printing Locales\n");
-     
-     while(nextStream(frags, &gkpl)){
-
-       if(!quiet){
-         
-	 fprintf(stdout,"* Locale " F_S64 ": typ:%c UID: " F_UID " sid:" F_IID " bac:%d len:" F_IID " del:%d red:%d has:%d prev:" F_IID " btgs: " F_S32 " first:" F_S32 " batch(" F_U16 "," F_U16 ") \n",
-                 i,gkpl.type, gkpl.UID, gkpl.sequenceID, 
-                 gkpl.isBac,
-                 gkpl.lengthID,
-                 gkpl.deleted, gkpl.redefined, gkpl.hasSequence, gkpl.prevInstanceID, gkpl.numBactigs, gkpl.firstBactig,
-                 gkpl.birthBatch, gkpl.deathBatch);
-	 if(gkpl.redefined){
-	   fprintf(stdout,"\tREDEFINED: prevID " F_IID "\n", gkpl.prevID);
-	 }
-       }
-       if(gkpl.type == AS_UNFINISHED ||
-          gkpl.type == AS_FINISHED){
-         GateKeeperSequenceRecord gkpseq;
-         getGateKeeperSequenceStore(gkpStore.seqStore, gkpl.sequenceID, &gkpseq);
-         assert(gkpseq.localeID == i);
-         if(!quiet)
-           fprintf(stdout,"\tSequence " F_UID "\n", gkpseq.UID);
-       }
-       if(gkpl.numBactigs > 0){
-         int32 j;
-         int cnt;
-         
-         fprintf(stdout,"\tBactigs\n");
-         for(cnt = 0, j = gkpl.firstBactig; cnt < gkpl.numBactigs; cnt++, j++){
-           GateKeeperBactigRecord gkpbtg;
-           
-           getGateKeeperBactigStore(gkpStore.btgStore, j, &gkpbtg);
-           assert(gkpbtg.bacID == i);
-           assert(gkpbtg.seqID == gkpl.sequenceID);
-           if(!quiet)
-             fprintf(stdout,"\t\t id:" F_S32 " UID:" F_UID " length:" F_IID " del:%d has:%d\n",
-                     j, gkpbtg.UID, gkpbtg.length, gkpbtg.deleted, gkpbtg.hasSequence);
-         }
-         
-       }
-       i++;
-     }
-   }
-
-   
-   if(fragID == -1)
-   {
-     StreamHandle frags = openStream(gkpStore.s_locStore,NULL,0);
-     GateKeeperLocaleRecord gkpl;
-     StoreStat stat;
-     int64 i = 1;
-     
-     statsStore(gkpStore.s_locStore, &stat);
-     fprintf(stdout,"* Stats for Shadow Locale Store are first:" F_S64 " last :" F_S64 "\n",
-	     stat.firstElem, stat.lastElem);
-     
-     resetStream(frags,STREAM_FROMSTART, STREAM_UNTILEND);
-     
-     fprintf(stdout,"* Printing Shadowed Locales\n");
-     
-     while(nextStream(frags, &gkpl)){
-       
-       if(!quiet)
-         fprintf(stdout,"* Locale " F_S64 ": typ:%c UID: " F_UID " sid:" F_IID " bac:%d len:" F_IID " del:%d red:%d has:%d prev:" F_IID " btgs:" F_S32 " first:" F_S32 " batch(" F_U16 "," F_U16 ")\n",
-                 i,gkpl.type, gkpl.UID, gkpl.sequenceID, 
-                 gkpl.isBac,
-                 gkpl.lengthID,
-                 gkpl.deleted, gkpl.redefined, gkpl.hasSequence, gkpl.prevInstanceID, gkpl.numBactigs, gkpl.firstBactig,
-                 gkpl.birthBatch, gkpl.deathBatch);
-       if(gkpl.redefined){
-	 if(!quiet)
-	   fprintf(stdout,"\tREDEFINED: prevID " F_IID "\n", gkpl.prevID);
-       }
-       
-       if(gkpl.type == AS_UNFINISHED ||
-          gkpl.type == AS_FINISHED){
-         GateKeeperSequenceRecord gkpseq;
-         getGateKeeperSequenceStore(gkpStore.seqStore, gkpl.sequenceID, &gkpseq);
-	 if(!quiet)
-	   fprintf(stdout,"\tSequence " F_UID "\n", gkpseq.UID);
-       }
-       if(gkpl.numBactigs > 0){
-         int64 j;
-         int cnt;
-         
-	 if(!quiet)
-	   fprintf(stdout,"\tBactigs\n");
-         for(cnt = 0, j = gkpl.firstBactig; cnt < gkpl.numBactigs; cnt++, j++){
-           GateKeeperBactigRecord gkpbtg;
-           
-           getGateKeeperBactigStore(gkpStore.btgStore, j, &gkpbtg);
-           if(!quiet)
-             fprintf(stdout,"\t\t id:" F_S64 " UID:" F_UID " length:%d del:%d has:%d\n",
-                     j, gkpbtg.UID, gkpbtg.length, gkpbtg.deleted, gkpbtg.hasSequence);
-         }
-         
-       }
-       i++;
-     }
-   }
-
    /**************** DUMP Fragments and Links *************/
    {
      StreamHandle frags = openStream(gkpStore.frgStore,NULL,0);
@@ -333,7 +207,7 @@ main(int argc, char * argv []) {
        if(HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore.hashTable, 
                                                     UID_NAMESPACE_AS,
                                                     gkpf.readUID, 
-                                                    (gkpf.type == AS_BACTIG?AS_IID_BTG:AS_IID_FRG), 
+                                                    AS_IID_FRG,
                                                     FALSE,
                                                     stdout,
                                                     &value)){
@@ -344,26 +218,26 @@ main(int argc, char * argv []) {
            else
              fprintf(stdout,"# Deleted Fragment ");
            
-           fprintf(stdout,F_S64 "(" F_IID "): UID:" F_UID " type:%c refs:%d links:%u(" F_IID ") lID:" F_IID " sID:" F_IID " bID:" F_IID " batch(" F_U16 "," F_U16 ")\n",
+           fprintf(stdout,F_S64 "(" F_IID "): UID:" F_UID " type:%c refs:%d links:%u(" F_IID ") sID:" F_IID " batch(" F_U16 "," F_U16 ")\n",
                    i, value.IID, gkpf.readUID, 
                    gkpf.type,
                    value.refCount, gkpf.numLinks, gkpf.linkHead,
-                   gkpf.localeID, gkpf.seqID, gkpf.bactigID, gkpf.birthBatch, gkpf.deathBatch);
+                   gkpf.seqID, gkpf.birthBatch, gkpf.deathBatch);
          }
        }else{
          if(!quiet){
            if(!gkpf.deleted){
-             fprintf(stdout,"* Fragment " F_S64 ": UID:" F_UID " type:%c refs:%d links:%u(" F_IID ") lID:" F_IID " sID:" F_IID " bID:" F_IID " batch(" F_U16 "," F_U16 ")\n",
+             fprintf(stdout,"* Fragment " F_S64 ": UID:" F_UID " type:%c refs:%d links:%u(" F_IID ") sID:" F_IID " batch(" F_U16 "," F_U16 ")\n",
                      i, gkpf.readUID, 
                      gkpf.type,
                      value.refCount, gkpf.numLinks, gkpf.linkHead,
-                     gkpf.localeID, gkpf.seqID, gkpf.bactigID, gkpf.birthBatch, gkpf.deathBatch);
+                     gkpf.seqID, gkpf.birthBatch, gkpf.deathBatch);
            }else{
-             fprintf(stdout,"* Redefined Fragment " F_S64 " (now " F_IID "): UID:" F_UID " type:%c refs:%d links:%u(" F_IID ") lID:" F_IID " sID:" F_IID " bID:" F_IID " batch(" F_U16 "," F_U16 ")\n",
+             fprintf(stdout,"* Redefined Fragment " F_S64 " (now " F_IID "): UID:" F_UID " type:%c refs:%d links:%u(" F_IID ") sID:" F_IID " batch(" F_U16 "," F_U16 ")\n",
                      i, value.IID, gkpf.readUID, 
                      gkpf.type,
                      value.refCount, gkpf.numLinks, gkpf.linkHead,
-                     gkpf.localeID, gkpf.seqID, gkpf.bactigID, gkpf.birthBatch, gkpf.deathBatch);
+                     gkpf.seqID, gkpf.birthBatch, gkpf.deathBatch);
            }
          }
          if(gkpf.numLinks > 0){

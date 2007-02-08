@@ -21,18 +21,20 @@
 #ifndef OUTPUT_CGW_H
 #define OUTPUT_CGW_H
 
-void MarkContigEdges(void);
-
 void OutputMateDists(ScaffoldGraphT *graph);
 
 void OutputFrags(ScaffoldGraphT *graph);
-void OutputContigsFromMultiAligns(void);
-void OutputUnitigsFromMultiAligns(void);
-void OutputScaffolds(ScaffoldGraphT *graph);
 
-void OutputUnitigLinks(ScaffoldGraphT *graph);
+void MarkContigEdges(void);
+
+void OutputContigsFromMultiAligns(void);
 void OutputContigLinks(ScaffoldGraphT *graph, int outputOverlapOnlyContigEdges);
 void OutputScaffoldLinks(ScaffoldGraphT *graph);
+
+void OutputUnitigsFromMultiAligns(void);
+void OutputUnitigLinksFromMultiAligns(void);
+
+void OutputScaffolds(ScaffoldGraphT *graph);
 
 #endif
 

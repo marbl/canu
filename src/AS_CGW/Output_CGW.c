@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Output_CGW.c,v 1.16 2007-02-03 07:06:27 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Output_CGW.c,v 1.17 2007-02-08 06:48:50 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -284,7 +284,7 @@ void MarkContigEdges(void){
 
 
 /****************************************************************************/
-void OutputContigsFromMultiAligns(){
+void OutputContigsFromMultiAligns(void){
   GenericMesg		pmesg;
   IntConConMesg		icm_mesg;
   IntUnitigPos		*uptr;
@@ -404,7 +404,7 @@ void OutputContigsFromMultiAligns(){
   fflush(NULL);
 }
 
-int SurrogatedSingleUnitigContig( NodeCGW_T* contig)
+static int SurrogatedSingleUnitigContig( NodeCGW_T* contig)
 {
   if(contig->info.Contig.numCI > 1)
     {
@@ -545,7 +545,8 @@ void OutputContigLinks(ScaffoldGraphT *graph, int outputOverlapOnlyContigEdges)
 	  imp.type = 'X';
 	}else{
 	  if(edge->flags.bits.hasGuide)
-	    imp.type = AS_BAC_GUIDE;
+            //imp.type = AS_BAC_GUIDE;
+            assert(0);
 	  else if(edge->flags.bits.hasMayJoin)
 	    imp.type = AS_MAY_JOIN;
 	  else if(edge->flags.bits.hasMustJoin)
@@ -574,7 +575,8 @@ void OutputContigLinks(ScaffoldGraphT *graph, int outputOverlapOnlyContigEdges)
 	  imp.in2 = frag->iid;
           assert(!isOverlapEdge(redge));
           if(redge->flags.bits.hasGuide)
-            imp.type = AS_BAC_GUIDE;
+            //imp.type = AS_BAC_GUIDE;
+            assert(0);
           else if(redge->flags.bits.hasMayJoin)
             imp.type = AS_MAY_JOIN;
           else if(redge->flags.bits.hasMustJoin)
@@ -595,9 +597,9 @@ void OutputContigLinks(ScaffoldGraphT *graph, int outputOverlapOnlyContigEdges)
 }
 
 
-void OutputScaffoldLink(ScaffoldGraphT * graph,
-                        CIScaffoldT * scaffold,
-                        CIEdgeT * edge)
+static void OutputScaffoldLink(ScaffoldGraphT * graph,
+                               CIScaffoldT * scaffold,
+                               CIEdgeT * edge)
 {
   InternalScaffoldLinkMesg slm;
   GenericMesg pmesg;
@@ -650,7 +652,8 @@ void OutputScaffoldLink(ScaffoldGraphT * graph,
       imp.in1 = imp.in2 = 0;
     }
     if(edge->flags.bits.hasGuide)
-      imp.type = AS_BAC_GUIDE;
+      //imp.type = AS_BAC_GUIDE;
+      assert(0);
     else if(edge->flags.bits.hasMayJoin)
       imp.type = AS_MAY_JOIN;
     else if(edge->flags.bits.hasMustJoin)
@@ -678,7 +681,8 @@ void OutputScaffoldLink(ScaffoldGraphT * graph,
       frag->flags.bits.edgeStatus = GetEdgeStatus(edge);
       imp.in2 = frag->iid;
       if(redge->flags.bits.hasGuide)
-        imp.type = AS_BAC_GUIDE;
+        //imp.type = AS_BAC_GUIDE;
+        assert(0);
       else if(redge->flags.bits.hasMayJoin)
         imp.type = AS_MAY_JOIN;
       else if(redge->flags.bits.hasMustJoin)
@@ -695,8 +699,8 @@ void OutputScaffoldLink(ScaffoldGraphT * graph,
 }
 
 
-void OutputScaffoldLinksForScaffold(ScaffoldGraphT * graph,
-                                    CIScaffoldT * scaffold)
+static void OutputScaffoldLinksForScaffold(ScaffoldGraphT * graph,
+                                           CIScaffoldT * scaffold)
 {
   GraphEdgeIterator	edges;
   CIEdgeT		*edge;
@@ -959,7 +963,8 @@ void OutputUnitigLinksFromMultiAligns(void){
         AssertPtr(frag);
         assert(!isOverlapEdge(edge));
         if(edge->flags.bits.hasGuide)
-          imp.type = AS_BAC_GUIDE;
+          //imp.type = AS_BAC_GUIDE;
+          assert(0);
         else if(edge->flags.bits.hasMayJoin)
           imp.type = AS_MAY_JOIN;
         else if(edge->flags.bits.hasMustJoin)
@@ -987,7 +992,8 @@ void OutputUnitigLinksFromMultiAligns(void){
           imp.in2 = frag->iid;
           assert(!isOverlapEdge(redge));
           if(redge->flags.bits.hasGuide)
-            imp.type = AS_BAC_GUIDE;
+            //imp.type = AS_BAC_GUIDE;
+            assert(0);
           else if(redge->flags.bits.hasMayJoin)
             imp.type = AS_MAY_JOIN;
           else if(redge->flags.bits.hasMustJoin)

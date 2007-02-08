@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.31 2007-01-29 20:41:00 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.32 2007-02-08 06:48:49 brianwalenz Exp $";
 
 
 static const char *usage = 
@@ -139,7 +139,6 @@ static const char *usage =
 #include "GreedyOverlapREZ.h"
 #include "CommonREZ.h"
 #include "RepeatRez.h"
-#include "GWDriversREZ.h"
 #include "FbacREZ.h"
 #include "Stats_CGW.h"
 #include "AS_ALN_forcns.h"
@@ -618,7 +617,6 @@ int main(int argc, char *argv[]){
 
     ProcessInput(data, optind, argc, argv);    // Handle the rest of the first file
 
-    LoadLocaleData();
     LoadDistData();
 
     CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_AFTER_READING_INPUT);

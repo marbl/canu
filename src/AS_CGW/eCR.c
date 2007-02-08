@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: eCR.c,v 1.10 2006-11-14 19:58:21 eliv Exp $";
+static const char CM_ID[] = "$Id: eCR.c,v 1.11 2007-02-08 06:48:51 brianwalenz Exp $";
 
 #include "eCR.h"
 
@@ -65,9 +65,6 @@ CheckNewUnitigMultiAlign_AppendFragToLocalStore(FragType type, int32 iid) {
 
   IntMultiPos  *frag;
   IntUnitigPos *unitig;
-
-
-  //  type should be AS_UNITIG
 
   uma     =  LoadMultiAlignTFromSequenceDB(sequenceDB, iid, type == AS_UNITIG);
 
@@ -1285,13 +1282,13 @@ findFirstExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
         frag->locale == -1 &&                     // and is a read
         frag->contigOffset3p.mean < frag->contigOffset5p.mean &&  // and points in the right direction
         frag->cid == firstUnitigID) { // and is in the first unitig
-      char seqbuffer[AS_BACTIG_MAX_LEN+1], qltbuffer[AS_BACTIG_MAX_LEN+1];
+      char seqbuffer[AS_READ_MAX_LEN+1], qltbuffer[AS_READ_MAX_LEN+1];
       unsigned int clr_bgn, clr_end;
       int frag3pExtra, extension;
 	  
       getFragStore(ScaffoldGraph->fragStore, frag->iid, FRAG_S_ALL, fsread);
       getClearRegion_ReadStruct(fsread, &clr_bgn, &clr_end, READSTRUCT_CNS);
-      getSequence_ReadStruct(fsread, seqbuffer, qltbuffer, AS_BACTIG_MAX_LEN);
+      getSequence_ReadStruct(fsread, seqbuffer, qltbuffer, AS_READ_MAX_LEN);
 
 
       //                 <--------------------------------------------------------------------------- contig
@@ -1410,13 +1407,13 @@ findLastExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
         frag->locale == -1 &&                                    // and is a read
         frag->contigOffset5p.mean < frag->contigOffset3p.mean && // and points in the right direction
         frag->cid == lastUnitigID) {                             // and is in the last unitig
-      char seqbuffer[AS_BACTIG_MAX_LEN+1], qltbuffer[AS_BACTIG_MAX_LEN+1];
+      char seqbuffer[AS_READ_MAX_LEN+1], qltbuffer[AS_READ_MAX_LEN+1];
       unsigned int clr_bgn, clr_end;
       int frag3pExtra, extension;
 
       getFragStore(ScaffoldGraph->fragStore, frag->iid, FRAG_S_ALL, fsread);
       getClearRegion_ReadStruct(fsread, &clr_bgn, &clr_end, READSTRUCT_CNS);
-      getSequence_ReadStruct(fsread, seqbuffer, qltbuffer, AS_BACTIG_MAX_LEN);
+      getSequence_ReadStruct(fsread, seqbuffer, qltbuffer, AS_READ_MAX_LEN);
 
       //    contig ----------------------------------------------------------------------------------->
       //                                  5p -------|---------------------------------------------|------------> 3p 

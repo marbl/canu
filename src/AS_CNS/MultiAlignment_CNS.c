@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.123 2007-02-04 09:30:45 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.124 2007-02-08 06:48:51 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -45,7 +45,6 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.123 2007-02-04 09:30:45 bri
   #define CMPFNC "DP_Compare(nonaffine)"
 #endif
 
-#undef  TEST_IMP2ARRAY
 #define ALT_QV_THRESH                      30
 #define IDENT_NAMESPACE                     1
 #define DONT_SHOW_OLAP                      0
@@ -112,6 +111,7 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.123 2007-02-04 09:30:45 bri
 
 #include "MicroHetREZ.h"
 
+
 extern int MaxBegGap;       // [ init value is 200; this could be set to the amount you extend the clear
                             // range of seq b, plus 10 for good measure]
 extern int MaxEndGap;       // [ init value is 200; this could be set to the amount you extend the
@@ -165,12 +165,6 @@ int isRead(FragType type){
   case  AS_READ   :
   case  AS_EXTR   :
   case  AS_TRNR   :
-  case  AS_EBAC   :
-  case  AS_LBAC   :
-  case  AS_UBAC   :
-  case  AS_FBAC   :
-  case  AS_BACTIG :
-  case  AS_FULLBAC:
     return 1;
   default:
     return 0;
@@ -932,8 +926,8 @@ int SetGappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) {
 
 int32 AppendFragToLocalStore(FragType type, int32 iid, int complement,int32 contained, char *source,
       UnitigType utype, MultiAlignStoreT *multialignStore) {
-  char seqbuffer[AS_BACTIG_MAX_LEN+1];
-  char qltbuffer[AS_BACTIG_MAX_LEN+1];
+  char seqbuffer[AS_READ_MAX_LEN+1];
+  char qltbuffer[AS_READ_MAX_LEN+1];
   char *sequence = NULL,*quality = NULL;
   static VA_TYPE(char) *ungappedSequence=NULL,*ungappedQuality=NULL;
   Fragment fragment;
@@ -951,34 +945,18 @@ int32 AppendFragToLocalStore(FragType type, int32 iid, int complement,int32 cont
     ResetVA_char(ungappedQuality);
   }
   switch (type) {
-  case AS_BACTIG:
-    getFragStore(global_bactigStore,iid,FRAG_S_ALL,fsread);
   case AS_READ:
   case AS_EXTR:
   case AS_TRNR:
-  case AS_EBAC:
-  case AS_LBAC:
-  case AS_UBAC:
-  case AS_FBAC:
-    if ( type != AS_BACTIG ) {
-      if ( partitioned ) {
-        getFragStorePartition(global_fragStorePartition,iid,FRAG_S_ALL,fsread);
-      } else {
-        getFragStore(global_fragStore,iid,FRAG_S_ALL,fsread);
-      }
+    if ( partitioned ) {
+      getFragStorePartition(global_fragStorePartition,iid,FRAG_S_ALL,fsread);
+    } else {
+      getFragStore(global_fragStore,iid,FRAG_S_ALL,fsread);
     }
     getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end, READSTRUCT_LATEST);
-    getSequence_ReadStruct(fsread, seqbuffer, qltbuffer, AS_BACTIG_MAX_LEN);
+    getSequence_ReadStruct(fsread, seqbuffer, qltbuffer, AS_READ_MAX_LEN);
     getAccID_ReadStruct(fsread, &fragment.uid);
     getReadType_ReadStruct(fsread, &fragment.type);
-    //srclen = 0;  
-    //srclen = getSource_ReadStruct(fsread, NULL, srclen);
-    //if (srclen > 0) {
-    //  fragment.source = (char *) safe_malloc(srclen*sizeof(char));
-    //   getSource_ReadStruct(fsread, fragment.source, srclen);
-    //} else {
-    //   fragment.source = NULL;
-    //}
     fragment.source = source;
     seqbuffer[clr_end] = '\0';
     qltbuffer[clr_end] = '\0';
@@ -987,7 +965,6 @@ int32 AppendFragToLocalStore(FragType type, int32 iid, int complement,int32 cont
     fragment.length = (int32) (clr_end - clr_bgn);
     fragment.n_components = 0;  // no component frags or unitigs
     fragment.components = -1;
-    fragment.bactig = -1;
     break;
   case AS_UNITIG:
   case AS_CONTIG:
@@ -1070,7 +1047,6 @@ int32 AppendFragToLocalStore(FragType type, int32 iid, int complement,int32 cont
          assert(0);
       } 
 
-      fragment.bactig = -1;
       componentPtr = GetCNS_AlignedContigElement
           (fragment_positions,fragment.components);
 
@@ -1080,8 +1056,6 @@ int32 AppendFragToLocalStore(FragType type, int32 iid, int complement,int32 cont
             break;
         if (componentPtr[bi].idx.fragment.frgType == AS_UNITIG) 
             break;
-        if ( componentPtr[bi].idx.fragment.frgType == AS_BACTIG )
-            fragment.bactig = componentPtr[bi].idx.fragment.frgIdent;
       }
     } else {
       fragment.n_components = 0;
@@ -3367,7 +3341,7 @@ int InvertTrace(int alen, int blen, Overlap *O) {
 int * UnpackTrace(int ahang, signed char *rdelta) {
   int32 apos, bpos, idel, i, count, rdel;
   int32 delta_pos=0;
-  static int32 delta[AS_BACTIG_MAX_LEN];
+  static int32 delta[AS_READ_MAX_LEN];
   
   apos = ahang;
   bpos=0;
@@ -4470,7 +4444,7 @@ int GetMANodePositions(int32 mid, int mesg_n_frags, IntMultiPos *imps, int mesg_
 }
 
 int PrintFrags(FILE *out, int accession, IntMultiPos *all_frags, int num_frags, 
-                          FragStoreHandle frag_store, FragStoreHandle bactig_store) {
+                          FragStoreHandle frag_store) {
          int i,lefti,righti;
          int isread,isforward;
          int num_matches;
@@ -4499,22 +4473,12 @@ int PrintFrags(FILE *out, int accession, IntMultiPos *all_frags, int num_frags,
               lefti = all_frags[i].position.end;
               isforward = 0;
            }
-           if ( all_frags[i].type == AS_BACTIG ) {
-             getFragStore(bactig_store, all_frags[i].ident,FRAG_S_ALL,fsread);
+           if ( partitioned ) {
+             getFragStorePartition(global_fragStorePartition,all_frags[i].ident,FRAG_S_ALL,fsread);
            } else {
-             if ( partitioned ) {
-               getFragStorePartition(global_fragStorePartition,all_frags[i].ident,FRAG_S_ALL,fsread);
-             } else {
-               getFragStore(global_fragStore,all_frags[i].ident,FRAG_S_ALL,fsread);
-             }
-             //getFragStore(frag_store, all_frags[i].ident,FRAG_S_ALL,fsread);
+             getFragStore(global_fragStore,all_frags[i].ident,FRAG_S_ALL,fsread);
            }
            getSequence_ReadStruct(fsread, fmesg.sequence, fmesg.quality, 200000);
-           getLocID_ReadStruct(fsread, &fmesg.elocale);
-
-           getLocalePos_ReadStruct (fsread, (uint32 *)&fmesg.locale_pos.bgn, 
-                                            (uint32 *)&fmesg.locale_pos.end);
-
            getClearRegion_ReadStruct (fsread,(uint32 *)&fmesg.clear_rng.bgn,
 	                                     (uint32 *)&fmesg.clear_rng.end, READSTRUCT_LATEST);
 
@@ -7268,27 +7232,17 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     }
     ResetStores(num_frags,num_columns);
          fragmentMap = CreatePHashTable_AS(2*(num_frags),NULL);
-         bactigMap = CreatePHashTable_AS(2*(num_frags),NULL);
 
     for (i=0;i<num_frags;i++) {
       complement = (positions[i].position.bgn<positions[i].position.end)?0:1;
       switch (positions[i].type) 
       {
-          case AS_BACTIG:
-          case AS_EBAC:
-          case AS_LBAC:
-          case AS_UBAC:
-          case AS_FBAC:
-          case AS_FULLBAC:
-             num_guides++;
-             num_reads--;
           case AS_READ:
           case AS_EXTR:
           case AS_TRNR:
           {
-             PHashTable_AS 
-                 *thash=(positions[i].type == AS_BACTIG )?bactigMap:fragmentMap;
-             PHashValue_AS value;
+             PHashTable_AS *thash=fragmentMap;
+             PHashValue_AS  value;
              int hash_rc;
      
              num_reads++;
@@ -7319,7 +7273,6 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
                fprintf(stderr, "Failed to determine the type of fragment %d in unitig %d\n",
                    i, unitig->iaccession);
                ClosePHashTable_AS(fragmentMap);
-               ClosePHashTable_AS(bactigMap);
                DeleteMANode(ma->lid);
                return EXIT_FAILURE;
            }
@@ -7402,7 +7355,6 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
                "none of fragments a (i=%d, id=%d) and b (i=%d, id=%d) is pre-aligned\n",
                i, positions[i].ident, align_to, positions[align_to].ident);
            ClosePHashTable_AS(fragmentMap);
-           ClosePHashTable_AS(bactigMap);
            DeleteMANode(ma->lid);
            return EXIT_FAILURE;        
        }
@@ -7553,14 +7505,12 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
            }
          }
 
-         PrintFrags(cnslog,0,&positions[i],1,global_fragStore, 
-             global_bactigStore);
+         PrintFrags(cnslog,0,&positions[i],1,global_fragStore);
          if ( allow_forced_frags ) {
             frag_forced = 1;
             unitig_forced = 1;
          } else {
              ClosePHashTable_AS(fragmentMap);
-             ClosePHashTable_AS(bactigMap);
              DeleteMANode(ma->lid);
              return EXIT_FAILURE;
              //CleanExit("",__LINE__,1);
@@ -7579,7 +7529,6 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
                "no fragment pointed to uncontained fragment %d.\n",
                positions[i].ident);
            ClosePHashTable_AS(fragmentMap);
-           ClosePHashTable_AS(bactigMap);
            DeleteMANode(ma->lid);
            return EXIT_FAILURE;         
        }
@@ -7646,21 +7595,19 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
         char srcadd[32];
         int addlen;
         double prob_value=0;
-        //rc = IMP2Array(unitig->f_list, unitig->num_frags, unitig->length, global_fragStore, global_fragStorePartition,
-        //                 global_bactigStore,
-        //                 &depth, &multia, &id_array,0);
 
         rc = MANode2Array(ma, &depth, &multia, &id_array,0);
-#ifdef TEST_IMP2ARRAY
-        prob_value = 0;
-#else
         if ( rc ) {
-          prob_value = AS_REZ_MP_MicroHet_prob(multia,id_array,global_fragStore,
-              global_fragStorePartition, unitig->length,depth);
+          prob_value = AS_REZ_MP_MicroHet_prob(multia,
+                                               id_array,
+                                               global_fragStore,
+                                               global_fragStorePartition,
+                                               unitig->length,
+                                               depth);
         } else {
           prob_value = 0;
         }
-#endif
+
         addlen = sprintf(srcadd,"\nmhp:%e",prob_value); 
         if ( unitig->source != NULL ) {
           memcpy(&SRCBUFFER[0],unitig->source,strlen(unitig->source)+1);
@@ -7682,7 +7629,6 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     }
 
     ClosePHashTable_AS(fragmentMap);
-    ClosePHashTable_AS(bactigMap);
     DeleteMANode(ma->lid);
     return EXIT_SUCCESS;
 }
@@ -7735,7 +7681,6 @@ int32 PlaceFragments(int32 fid, Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
        
    */
    int n_frags,i,ahang,ovl,fcomplement,bcomplement;
-   int aligned_bactig = 0,bactig_id = 0, multi_bactig =0;
    int32 blid,afid = NULLINDEX;
    OverlapType otype;
    static VA_TYPE(int32) *trace = NULL;
@@ -7767,10 +7712,7 @@ int32 PlaceFragments(int32 fid, Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
      int align_failure=0;
      int containFound=0;
 
-     PHashTable_AS *thash =  
-          ( bfrag->idx.fragment.frgType == AS_BACTIG) ? 
-          bactigMap : fragmentMap;
-
+     PHashTable_AS *thash = fragmentMap;
      PHashValue_AS value;
 
      int lookup_rc = LookupInPHashTable_AS
@@ -7806,69 +7748,30 @@ int32 PlaceFragments(int32 fid, Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
         InsertInPHashTable_AS(&thash,IDENT_NAMESPACE, (uint64) tfrag->iid, &value, FALSE, FALSE); 
      }
 
-      if ( bfrag->idx.fragment.frgType == AS_BACTIG ) 
-      {
-        char *bseq, *n;
-        Fragment *bactig=GetFragment(fragmentStore,blid);
-        IntMultiPos *bimp;
-        bseq = Getchar(sequenceStore,bactig->sequence);
-        n = strchr(bseq,(int)'N');
-        bimp = GetIntMultiPos(ma->f_list,i);
-        // set the store here
-        SetVA_int32(bactig_delta_length,blid,
-		    (const int32 *) &(bimp->delta_length));
-        SetVA_PtrT(bactig_deltas,
-		   blid,
-		   (const void *) &bimp->delta);
-        if ( aligned_bactig ) { 
-          multi_bactig = 1;
-          aligned_bactig = 0;
-          bactig_id = 0;
-        }
-     }
-
-     if ( bfrag->idx.fragment.frgContained > 0 )
-     {
-        PHashTable_AS *thash =  bactigMap;
+     if ( bfrag->idx.fragment.frgContained > 0 ) {
         PHashValue_AS value;
 
-	int lookup_rc = LookupInPHashTable_AS
-	    (thash, 
-             IDENT_NAMESPACE, 
-             (uint64) bfrag->idx.fragment.frgContained, 
-             &value);
-
-        if (lookup_rc != HASH_SUCCESS ) {
-          thash = fragmentMap;
-
-            lookup_rc = LookupInPHashTable_AS
-	      (thash, 
-	       IDENT_NAMESPACE, 
-	       (uint64) bfrag->idx.fragment.frgContained, 
-	       &value);
-
-	  if (lookup_rc != HASH_SUCCESS) 
-          {
-	      fprintf(stderr,
-		      "Could not find containing fragment %d in local store\n",
-		      bfrag->idx.fragment.frgContained);
+        if (HASH_SUCCESS != LookupInPHashTable_AS(fragmentMap, 
+                                                  IDENT_NAMESPACE, 
+                                                  (uint64) bfrag->idx.fragment.frgContained, 
+                                                  &value)) {
+          fprintf(stderr,
+                  "Could not find containing fragment %d in local store\n",
+                  bfrag->idx.fragment.frgContained);
 
 #define ALLOW_MISSING_CONTAINER_TO_HANDLE_SURROGATE_RESOLUTION
 #ifndef ALLOW_MISSING_CONTAINER_TO_HANDLE_SURROGATE_RESOLUTION
-              return EXIT_FAILURE;
+          return EXIT_FAILURE;
 #else
-	      fprintf(stderr,
-		      "This might be due to surrogate resolution???\n");
+          fprintf(stderr,
+                  "This might be due to surrogate resolution???\n");
 #endif
-          } else {
-	    containFound=1;
-            afid = fid;
-          }
         } else {
-	  containFound=1;
-          afid = value.IID; 
+          containFound=1;
+          afid = fid;
         }
      }
+
      if(!containFound){ // either not contained or container not found
       // afrag = GetFragment(fragmentStore,blid-1); 
       // if ( afrag->type == AS_UNITIG ) {
@@ -7934,13 +7837,6 @@ int32 PlaceFragments(int32 fid, Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
    }
      if ( ! align_failure ) {
        ApplyAlignment(afrag->lid,0,blid,ahang,Getint32(trace,0));
-
-       if ( bfrag->idx.fragment.frgType == AS_BACTIG ) 
-       {
-         aligned_bactig=1;
-         bactig_id = blid;
-         afrag->bactig = blid;
-       }
      }
    }
    //DeleteVA_int32(trace);
@@ -7993,9 +7889,8 @@ int MultiAlignContig(IntConConMesg *contig,
     //  Setint32(fragment_indices,contig->pieces[i].ident,&placed);
     // }
      fragmentMap = CreatePHashTable_AS(2*(num_frags+num_unitigs),NULL);
-     bactigMap = CreatePHashTable_AS(2*(num_frags+num_unitigs),NULL);
      for (i=0;i<num_frags;i++) {
-       PHashTable_AS *thash=(contig->pieces[i].type == AS_BACTIG )?bactigMap:fragmentMap;
+       PHashTable_AS *thash = fragmentMap;
        PHashValue_AS value;
        PHashValue_AS ovalue;
        value.IID = contig->pieces[i].ident;
@@ -8325,7 +8220,6 @@ int MultiAlignContig(IntConConMesg *contig,
 
      DeleteMANode(ma->lid);
      ClosePHashTable_AS(fragmentMap);
-     ClosePHashTable_AS(bactigMap);
   }
 
   free(offsets);
@@ -9321,7 +9215,6 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
 	  bgn = (bgn<end)?left:right;
 	  end = (tmp<end)?right:left;
 
-	  //      if (compci->idx.fragment.frgType == AS_UNITIG ) {
 	  if (compci->frg_or_utg==CNS_ELEMENT_IS_UNITIG) {
 	    iup = GetIntUnitigPos(cma->u_list,iunitig);
 	    iup->position.bgn = bgn;
@@ -9408,13 +9301,13 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
 
 int32 AppendArtificialFragToLocalStore(FragType type, int32 iid, int complement,int32 contained,
       UnitigType utype, char *seq, char *qlt, int len) {
-  static char seqbuffer[AS_BACTIG_MAX_LEN+1];
-  static char qltbuffer[AS_BACTIG_MAX_LEN+1];
+  static char seqbuffer[AS_READ_MAX_LEN+1];
+  static char qltbuffer[AS_READ_MAX_LEN+1];
   char *sequence=seqbuffer,*quality=qltbuffer;
   int i;
   Fragment fragment;
   
-  if ( len > AS_BACTIG_MAX_LEN ) {
+  if ( len > AS_READ_MAX_LEN ) {
       CleanExit("AppendArtificialFragToLocalStore: input too long for buffer",__LINE__,1);
   }
   for (i=0;i<len;i++) {
@@ -9428,7 +9321,6 @@ int32 AppendArtificialFragToLocalStore(FragType type, int32 iid, int complement,
   fragment.length = len;
   fragment.n_components = 0;  // no component frags or unitigs
   fragment.components = -1;
-  fragment.bactig = -1;
   if (complement) {
     SequenceComplement(sequence, quality);
   }

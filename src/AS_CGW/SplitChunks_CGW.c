@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.10 2006-11-14 19:58:21 eliv Exp $";
+static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.11 2007-02-08 06:48:50 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -967,7 +967,6 @@ static int StoreIUMStruct(ScaffoldGraphT * graph,
                                                FALSE);
     CDS_COORD_t length = GetMultiAlignUngappedLength(ma);
     ChunkInstanceT * ci;
-    int hasFbacFrags = 0;
     
     // need to point fragments to their new unitig/contig
     for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++)
@@ -978,7 +977,6 @@ static int StoreIUMStruct(ScaffoldGraphT * graph,
         CIFragT   * frag = GetCIFragT(graph->CIFrags,
                                       info->fragIndex);
 
-        hasFbacFrags = (frag->type == AS_FBAC) ? 1 : hasFbacFrags;
 #ifdef AS_ENABLE_SOURCE
         imp->sourceInt = info->fragIndex;
 #endif
@@ -1001,11 +999,7 @@ static int StoreIUMStruct(ScaffoldGraphT * graph,
                       is->ium.iaccession);
     ci->flags.bits.cgbType = cgbType;
     ci->aEndCoord = ci->bEndCoord = 0;
-    ci->flags.bits.includesFinishedBacFragments = hasFbacFrags;
-    /*
-      if(is->ium.num_frags < 2)
-      ci->flags.bits.isChaff = TRUE;
-    */
+    ci->flags.bits.includesFinishedBacFragments = 0;
 
     UpdateNodeFragments((isUnitig ? graph->CIGraph : graph->ContigGraph),
                         is->ium.iaccession,

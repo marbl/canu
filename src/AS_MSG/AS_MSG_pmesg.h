@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.31 2007-02-03 07:06:28 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.32 2007-02-08 06:48:53 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -35,29 +35,18 @@
 
 /* All externally created accession numbers are 64 bits. */
 
-#define AS_BACTIG_MAX_LEN (500000)
-#define AS_BACTIG_MIN_LEN (150)
-
-#define AS_BAC_MAX_LEN (500000)
-#define AS_BAC_MIN_LEN (150)
-
-extern int novar;
-
-#ifdef GENERIC_STORE_USE_LONG_STRINGS
-#define AS_READ_MAX_LEN AS_BACTIG_MAX_LEN
-#else
 #define AS_READ_MAX_LEN AS_FRAG_MAX_LEN
-#endif
 #define AS_READ_MIN_LEN AS_FRAG_MIN_LEN
 
 //   #define NEW_UNITIGGER_INTERFACE
+
+extern int novar;
 
 #define DEFINE_IDs(type)\
 typedef CDS_UID_t type##_ID;\
 typedef CDS_IID_t Int##type##_ID;
 
 DEFINE_IDs(Fragment);
-DEFINE_IDs(Locale);
 DEFINE_IDs(Distance);
 DEFINE_IDs(Chunk);
 DEFINE_IDs(Unitig);
@@ -65,8 +54,6 @@ DEFINE_IDs(Contig);
 DEFINE_IDs(Dist);
 DEFINE_IDs(Scaffold);
 DEFINE_IDs(Batch);
-DEFINE_IDs(Bactig);
-DEFINE_IDs(Bac);
 DEFINE_IDs(Sequence);
 
 typedef enum {
@@ -233,7 +220,6 @@ typedef struct {
 
 typedef enum {
   AS_MATE       = (int)'M', // Mate
-  AS_BAC_GUIDE  = (int)'B', // BAC
   AS_REREAD     = (int)'R', // Reread
   AS_MAY_JOIN   = (int)'Y', // maY
   AS_MUST_JOIN  = (int)'T', // musT
@@ -291,17 +277,16 @@ typedef struct {
 
 
 typedef enum {
-  AS_READ    = (int)'R',  //Celera Read
-  AS_EXTR    = (int)'X',  //External WGS read
-  AS_TRNR    = (int)'T',  //Transposon library read
-  AS_EBAC    = (int)'E',  //End of BAC
-  AS_LBAC    = (int)'L',  //Lightly shotgunned
-  AS_UBAC    = (int)'U',  //Unfinished
-  AS_FBAC    = (int)'F',  //Finished
-  AS_UNITIG  = (int)'u',  //Unitig
-  AS_CONTIG  = (int)'c',   //Contig
-  AS_BACTIG  = (int)'B',   // BacTig
-  AS_FULLBAC = (int)'C',   // Full Bac C = Complete)
+  AS_READ    = (int)'R',  //  Celera Read
+  AS_EXTR    = (int)'X',  //  External WGS read
+  AS_TRNR    = (int)'T',  //  Transposon library read
+
+  //  These aren't FragTypes exactly, but are used in CGW/eCR/CNS like
+  //  they are.  Someone should figure out what they exactly are, and
+  //  fix this.
+  //
+  AS_UNITIG  = (int)'U',  //  Assembled unitig
+  AS_CONTIG  = (int)'C'   //  Assembled contig
 } FragType;
 
 FragType AS_MSG_SafeConvert_charToFragType (const char inch, bool strict) ;
@@ -322,58 +307,21 @@ Read was generated from a subclone of the target sequence using transposon .bomb
 Features: nonrandom, might include information about subclone, trusted for consensus, can have
 mate pair but oriented in .outtie. rather .innie..
 
-
-
-
-AS_EBAC    End of BAC
-Read is a BAC end . that is a sequence from one end or the other of a BAC subclone.
-Assumed to be randomly sampled. Variance is assumed to be high for size of insert so not
-used in initial scaffolding. Features: random sampling, high variance insert size, trusted for consensus,
-can have mate pair.
-
-AS_LBAC    Lightly shotgunned
-Read is shotgun sampled from a subclone (BAC or otherwise). Features: nonrandom, trusted,
-can have a mate pair.
-
-AS_UBAC    Unfinished
-Read is an .artificial. shredding of an unfinished subclone (unfinished means at least one gap
-in the sequence . so multiple contigs). Features: nonrandom, untrusted, no mate pair.
-
-AS_FBAC    Finished
-Same as above but subclone is a single contig.
-
-AS_UNITIG  Unitig
-This was used for an old flavor of the assembler . no longer used.
-
-AS_CONTIG  Contig
-This was used for an old flavor of the assembler . no longer used.
-
-AS_BACTIG  BacTig
-This was used for an old flavor of the assembler . no longer used.
-
-AS_FULLBAC Full Bac C = Complete)
-This was used for an old flavor of the assembler . no longer used.
-
-
 type/attribute table for used types only 
 
 AS_READ	read			random	trusted			can have mate 
 AS_EXTR	read			random		external read	can have mate 
 AS_TRNR	read				trusted			can have mate 
-AS_EBAC   	guide		random	trusted			can have mate 
-AS_LBAC   				trusted			can have mate 
-AS_UBAC   		shredded 
-AS_FBAC   		shredded 
 
 */
 
-#define AS_FA_READ(type) 		((type == AS_READ) || (type == AS_EXTR) || (type == AS_EXTR))
-#define AS_FA_RANDOM(type) 		((type == AS_READ) || (type == AS_EXTR) || (type == AS_EBAC))
-#define AS_FA_SHREDDED(type) 		((type == AS_FBAC) || (type == AS_UBAC))
-#define AS_FA_CAN_HAVE_MATE(type) 	((type == AS_READ) || (type == AS_EXTR) || (type == AS_TRNR) || (type == AS_LBAC) || (type == AS_EBAC)) 
-#define AS_FA_GUIDE(type)         	(type == AS_EBAC)
-#define AS_FA_TRUSTED_FOR_CNS(type) 	((type == AS_READ) || (type == AS_TRNR) || (type == AS_EBAC) || (type == AS_LBAC))
-#define AS_FA_EXTERNAL_READ(type)	(type == AS_EXTR)
+#define AS_FA_READ(type) 		((type == AS_READ) || (type == AS_EXTR))
+#define AS_FA_RANDOM(type) 		((type == AS_READ) || (type == AS_EXTR))
+#define AS_FA_SHREDDED(type) 		(0)
+#define AS_FA_CAN_HAVE_MATE(type) 	((type == AS_READ) || (type == AS_EXTR) || (type == AS_TRNR))
+#define AS_FA_GUIDE(type)         	(0)
+#define AS_FA_TRUSTED_FOR_CNS(type) 	((type == AS_READ) || (type == AS_TRNR))
+#define AS_FA_EXTERNAL_READ(type)	((type == AS_EXTR))
 
 typedef enum {
   AS_UNIQUE_UNITIG   = (int)'U',  // U-Unique
@@ -391,19 +339,14 @@ typedef struct {
   ActionType   		action;
   Fragment_ID  		eaccession;
   FragType     		type;
-  Locale_ID    		elocale;
   Sequence_ID  		eseq_id;
-  Bactig_ID  		ebactig_id;
-  SeqInterval  		locale_pos;
   time_t       		entry_time;
   SeqInterval  		clear_rng;
   char        		*source;
   char        		*sequence;
   char        		*quality;
   IntFragment_ID   	iaccession;
-  IntLocale_ID          ilocale;
   IntSequence_ID        iseq_id;
-  IntBactig_ID          ibactig_id;
 } FragMesg;
 
 typedef FragMesg OFGMesg;
@@ -442,11 +385,11 @@ typedef enum {
 
 typedef struct {
   IntFragment_ID   aifrag, bifrag;
-  CDS_COORD_t   ahg,bhg;
+  CDS_COORD_t      ahg,bhg;
   OrientType       orientation;
   OverlapType      overlap_type;
   float32          quality;
-  CDS_COORD_t   min_offset, max_offset;
+  CDS_COORD_t      min_offset, max_offset;
   int32            polymorph_ct;
   signed char      *delta;
 } OverlapMesg;
@@ -556,9 +499,9 @@ typedef struct {
 #ifdef AS_ENABLE_SOURCE
   char			*source;
 #endif
-  CDS_COORD_t        best_overlap_length;
-  CDS_COORD_t        min_overlap_length;
-  CDS_COORD_t        max_overlap_length;
+  CDS_COORD_t           best_overlap_length;
+  CDS_COORD_t           min_overlap_length;
+  CDS_COORD_t           max_overlap_length;
   float32               quality;
 } UnitigOverlapMesg;
 
@@ -608,7 +551,7 @@ typedef enum {
   AS_CHIMER =     (int)'C',
   AS_NOTREZ =     (int)'N',
   AS_SEP =        (int)'S',
-  AS_UNASSIGNED = (int) 'X'
+  AS_UNASSIGNED = (int)'X'
 } UnitigStatus;
 
 /* This will eventually be Replaced by IntMultiPos */
@@ -671,7 +614,7 @@ typedef struct {
   int32         wordPad;
   int32        *delta;
 #ifdef i386
-  int32 ptrPad;
+  int32         ptrPad;
 #endif
 } IntUnitigPos;
 
@@ -701,9 +644,9 @@ typedef struct {
 #endif
   float32         coverage_stat;
   UnitigStatus    status;
-  CDS_COORD_t  a_branch_point;
-  CDS_COORD_t  b_branch_point;
-  CDS_COORD_t  length;
+  CDS_COORD_t     a_branch_point;
+  CDS_COORD_t     b_branch_point;
+  CDS_COORD_t     length;
   char            *consensus;
   char            *quality;
   int32		  forced;
@@ -720,7 +663,7 @@ typedef struct {
   UnitigStatus    status;
   int32           num_occurences;
   Contig_ID       *occurences;
-  CDS_COORD_t  length;
+  CDS_COORD_t     length;
   char            *consensus;
   char            *quality;
   int32           num_reads;
@@ -732,8 +675,8 @@ typedef struct {
 
 
 typedef enum {
-  AS_PLACED	= (int) 'P',
-  AS_UNPLACED   = (int) 'U'
+  AS_PLACED	= (int)'P',
+  AS_UNPLACED   = (int)'U'
 } ContigPlacementStatusType;
 
 /* ICM */
@@ -741,7 +684,7 @@ typedef enum {
 typedef struct {
   IntContig_ID               iaccession;
   ContigPlacementStatusType  placed;
-  CDS_COORD_t             length;
+  CDS_COORD_t                length;
   char                       *consensus;
   char                       *quality;
   int32		             forced;
@@ -1034,42 +977,6 @@ typedef struct {
 
 
 
-/* BTG & IBT subrecord */
-typedef struct InternalBactigMesgTag{
-  Bactig_ID       eaccession;
-  CDS_COORD_t  length;
-  IntBactig_ID    iaccession;
-}InternalBactigMesg;
-
-typedef InternalBactigMesg BactigMesg;
-
-typedef enum {
-  AS_ENDS            = (int)'E',  //End of BAC
-  AS_LIGHT_SHOTGUN   = (int)'L',  //Lightly shotgunned
-  AS_UNFINISHED      = (int)'U',  //Unfinished
-  AS_FINISHED        = (int)'F'   //Finished
-} BACType;
-
-
-/* BAC && IBC record */
-typedef struct InternalBacMesgTag{
-  ActionType          action;
-  Bac_ID              ebac_id;
-  Sequence_ID         eseq_id;
-  BACType             type;
-  time_t              entry_time;
-  int16               num_bactigs;
-  InternalBactigMesg  *bactig_list;  // array of length num_bactigs
-  Distance_ID         elength;
-  char                *source;
-  IntBac_ID           ibac_id;
-  IntSequence_ID      iseq_id;
-  IntDistance_ID      ilength;
-}InternalBacMesg;
-
-typedef InternalBacMesg BacMesg;
-
-
 /* EOF */
 typedef struct EndOfFileMesgTag {
   int32   status;
@@ -1079,33 +986,6 @@ typedef struct EndOfFileMesgTag {
 
 
 //  External Routines
-
-
-//  Function: DuplicateProtoMesg_AS 
-//
-//  Description: Copies the generic message structure including all of
-//  its variable length data. The variable length data must be released
-//  by free_mesg().
-//
-//  Return Value: A pointer to a copy of the generic message that has a
-//  lifetime determined by the client.
-//
-//  Inputs: omesg - A pointer to a generic message.
-//
-//  This function is no longer supported.
-//
-//GenericMesg *DuplicateProtoMesg_AS(GenericMesg *omesg);
-
-
-//  Function: FreeProtoMesg_AS 
-//
-//  Description: Frees the memory for a generic message structure.
-//
-//  Input/Outputs: omesg - A pointer to a generic message.
-//
-//  This function is no longer supported.
-//
-//void FreeProtoMesg_AS(GenericMesg *omesg);
 
 
 //  Functions: ReadProtoMesg_AS 

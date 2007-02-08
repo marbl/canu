@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: GraphCGW_T.h,v 1.11 2007-02-03 07:06:26 brianwalenz Exp $	 */
+/* 	$Id: GraphCGW_T.h,v 1.12 2007-02-08 06:48:50 brianwalenz Exp $	 */
 
 /**************************************************************************
  *  GraphCGW
@@ -1599,9 +1599,7 @@ UnitigOverlapType existsContainmentRelationship(NodeCGW_T *ci,
 #define CONTIG_OPERATIONS   1
 #define SCAFFOLD_OPERATIONS 2
 
-void ComputeMatePairStatistics( int operateOnNodes,
-                                int minSamplesForOverride,
-                                char *instance_label);
+void ComputeMatePairDetailedStatus(void);
 void ComputeMatePairStatisticsRestricted( int operateOnNodes,
                                           int minSamplesForOverride,
                                           char *instance_label);

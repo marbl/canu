@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.11 2007-02-03 07:06:28 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.12 2007-02-08 06:48:54 brianwalenz Exp $";
 
 /*************************************************************************
  Module:  AS_PER_gkpfrgStore
@@ -38,8 +38,8 @@ static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.11 2007-02-03 07:06:28 brianwa
  *************************************************************************/
 
 /* RCS Info
- * $Id: AS_PER_gkpStore.c,v 1.11 2007-02-03 07:06:28 brianwalenz Exp $
- * $Revision: 1.11 $
+ * $Id: AS_PER_gkpStore.c,v 1.12 2007-02-08 06:48:54 brianwalenz Exp $
+ * $Revision: 1.12 $
  *
  */
 #include <assert.h>
@@ -453,9 +453,6 @@ void InitGateKeeperStore(GateKeeperStore *gkpStore, const char *path){
   gkpStore->lnkStore = (GateKeeperLinkStore)0;
   gkpStore->dstStore = (GateKeeperDistanceStore)0;
   gkpStore->s_dstStore = (GateKeeperDistanceStore)0;
-  gkpStore->btgStore = (GateKeeperBactigStore)0;
-  gkpStore->locStore = (GateKeeperLocaleStore)0;
-  gkpStore->s_locStore = (GateKeeperLocaleStore)0;
   gkpStore->seqStore = (GateKeeperSequenceStore)0;
 }
 
@@ -496,28 +493,7 @@ int TestOpenGateKeeperStoreCommon(GateKeeperStore *gkpStore,const char *mode){
 	fileCount++;
 	fclose(fp);
       }
-      sprintf(name,"%s/gkp.loc", gkpStore->storePath);
-      fp = fopen(name,mode);
-
-      if(fp){
-	fileCount++;
-	fclose(fp);
-      }
-      sprintf(name,"%s/gkp.s_loc", gkpStore->storePath);
-      fp = fopen(name,mode);
-
-      if(fp){
-	fileCount++;
-	fclose(fp);
-      }
       sprintf(name,"%s/gkp.seq", gkpStore->storePath);
-      fp = fopen(name,mode);
-
-      if(fp){
-	fileCount++;
-	fclose(fp);
-      }
-      sprintf(name,"%s/gkp.btg", gkpStore->storePath);
       fp = fopen(name,mode);
 
       if(fp){
@@ -587,13 +563,7 @@ int RemoveGateKeeperStoreFiles(GateKeeperStore *gkpStore){
   if(system(buffer) != 0) assert(0);
   sprintf(buffer,"rm -f %s/gkp.lnk", gkpStore->storePath);
   if(system(buffer) != 0) assert(0);
-  sprintf(buffer,"rm -f %s/gkp.loc", gkpStore->storePath);
-  if(system(buffer) != 0) assert(0);
-  sprintf(buffer,"rm -f %s/gkp.s_loc", gkpStore->storePath);
-  if(system(buffer) != 0) assert(0);
   sprintf(buffer,"rm -f %s/gkp.seq", gkpStore->storePath);
-  if(system(buffer) != 0) assert(0);
-  sprintf(buffer,"rm -f %s/gkp.btg", gkpStore->storePath);
   if(system(buffer) != 0) assert(0);
   sprintf(buffer,"rm -f %s/gkp.dst", gkpStore->storePath);
   if(system(buffer) != 0) assert(0);
@@ -622,12 +592,6 @@ int CopyGateKeeperStoreFiles(GateKeeperStore *gkpStore, char *path){
   if(system(buffer) != 0) assert(0);
   sprintf(buffer,"cp %s/gkp.seq %s", gkpStore->storePath, path);
   if(system(buffer) != 0) assert(0);
-  sprintf(buffer,"cp %s/gkp.btg %s", gkpStore->storePath, path);
-  if(system(buffer) != 0) assert(0);
-  sprintf(buffer,"cp %s/gkp.loc %s", gkpStore->storePath, path);
-  if(system(buffer) != 0) assert(0);
-  sprintf(buffer,"cp %s/gkp.s_loc %s", gkpStore->storePath, path);
-  if(system(buffer) != 0) assert(0);
   sprintf(buffer,"cp %s/gkp.phash %s", gkpStore->storePath, path);
   if(system(buffer) != 0) assert(0);
   
@@ -647,26 +611,18 @@ int OpenGateKeeperStoreCommon(GateKeeperStore *gkpStore, char *mode){
      gkpStore->frgStore = openGateKeeperFragmentStore(name,mode); 
      sprintf(name,"%s/gkp.lnk", gkpStore->storePath);
      gkpStore->lnkStore = openGateKeeperLinkStore(name,mode); 
-     sprintf(name,"%s/gkp.loc", gkpStore->storePath);
-     gkpStore->locStore = openGateKeeperLocaleStore(name,mode); 
-     sprintf(name,"%s/gkp.s_loc", gkpStore->storePath);
-     gkpStore->s_locStore = openGateKeeperLocaleStore(name,mode); 
      sprintf(name,"%s/gkp.seq", gkpStore->storePath);
      gkpStore->seqStore = openGateKeeperSequenceStore(name,mode); 
      sprintf(name,"%s/gkp.dst", gkpStore->storePath);
      gkpStore->dstStore = openGateKeeperDistanceStore(name,mode); 
      sprintf(name,"%s/gkp.s_dst", gkpStore->storePath);
      gkpStore->s_dstStore = openGateKeeperDistanceStore(name,mode); 
-     sprintf(name,"%s/gkp.btg", gkpStore->storePath);
-     gkpStore->btgStore = openGateKeeperBactigStore(name,mode); 
 
      if(NULLSTOREHANDLE == gkpStore->batStore ||
 	NULLSTOREHANDLE == gkpStore->frgStore ||
 	NULLSTOREHANDLE == gkpStore->lnkStore ||
-	NULLSTOREHANDLE == gkpStore->locStore ||
 	NULLSTOREHANDLE == gkpStore->seqStore ||
-	NULLSTOREHANDLE == gkpStore->dstStore ||
-	NULLSTOREHANDLE == gkpStore->btgStore) {
+	NULLSTOREHANDLE == gkpStore->dstStore) {
        fprintf(stderr,"**** Failure to open Gatekeeper Store ...\n");
        return 1;
      }
@@ -703,18 +659,12 @@ int CreateGateKeeperStore(GateKeeperStore *gkpStore){
      gkpStore->frgStore = createGateKeeperFragmentStore(name, "frg",1); 
      sprintf(name,"%s/gkp.lnk", gkpStore->storePath);
      gkpStore->lnkStore = createGateKeeperLinkStore(name,"lnk",1); 
-     sprintf(name,"%s/gkp.loc", gkpStore->storePath);
-     gkpStore->locStore = createGateKeeperLocaleStore(name,"loc",1); 
-     sprintf(name,"%s/gkp.s_loc", gkpStore->storePath);
-     gkpStore->s_locStore = createGateKeeperLocaleStore(name,"loc",1); 
      sprintf(name,"%s/gkp.seq", gkpStore->storePath);
      gkpStore->seqStore = createGateKeeperSequenceStore(name,"seq",1); 
      sprintf(name,"%s/gkp.dst", gkpStore->storePath);
      gkpStore->dstStore = createGateKeeperDistanceStore(name,"dst",1); 
      sprintf(name,"%s/gkp.s_dst", gkpStore->storePath);
      gkpStore->s_dstStore = createGateKeeperDistanceStore(name,"dst",1); 
-     sprintf(name,"%s/gkp.btg", gkpStore->storePath);
-     gkpStore->btgStore = createGateKeeperBactigStore(name,"btg",1); 
      sprintf(name,"%s/gkp.phash", gkpStore->storePath);
      gkpStore->hashTable = CreatePHashTable_AS(2048,name);
      return 0;
@@ -731,14 +681,8 @@ void CloseGateKeeperStore(GateKeeperStore *gkpStore){
     closeStore(gkpStore->frgStore); 
   if(gkpStore->lnkStore != NULLSTOREHANDLE)
     closeStore(gkpStore->lnkStore); 
-  if(gkpStore->locStore != NULLSTOREHANDLE)
-    closeStore(gkpStore->locStore); 
-  if(gkpStore->s_locStore != NULLSTOREHANDLE)
-    closeStore(gkpStore->s_locStore); 
   if(gkpStore->seqStore != NULLSTOREHANDLE)
     closeStore(gkpStore->seqStore); 
-  if(gkpStore->btgStore != NULLSTOREHANDLE)
-    closeStore(gkpStore->btgStore); 
   if(gkpStore->dstStore != NULLSTOREHANDLE)
     closeStore(gkpStore->dstStore); 
   if(gkpStore->s_dstStore != NULLSTOREHANDLE)

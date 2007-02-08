@@ -23,7 +23,7 @@
   -o /work/assembly/rbolanos/IBM_PORT_CDS/ibm_migration_work_dir/cds/AS/obj/GraphCGW_T.o GraphCGW_T.c
 */
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.28 2007-02-03 07:06:26 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.29 2007-02-08 06:48:50 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,6 +40,7 @@ static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.28 2007-02-03 07:06:26 brianwalenz 
 #include "ScaffoldGraph_CGW.h"
 #include "GraphCGW_T.h"
 #include "ChunkOverlap_CGW.h"
+#include "Instrument_CGW.h"
 #include "AS_PER_SafeIO.h"
 #include "AS_UTL_interval.h"
 #include "MultiAlignment_CNS.h"
@@ -2457,8 +2458,7 @@ int CreateGraphEdge(GraphCGW_T *graph,
     */
     return TRUE; // there ARE external edges, we just aren't building them
   }
-  if(type == AS_MATE ||
-     type == AS_BAC_GUIDE){
+  if(type == AS_MATE) {
     assert(mfragID == frag->mateOf);
     if(getCIFragMateStatus(frag) == MATE_NONE ){
       fprintf(GlobalData->stderrc,
@@ -2493,13 +2493,6 @@ int CreateGraphEdge(GraphCGW_T *graph,
             fragID, frag->iid);
     return FALSE;
   }
-#ifdef DEBUG_CIEDGES
-  if(frag->type == AS_EBAC)
-    fprintf(GlobalData->stderrc,
-            "* Frag " F_CID " (" F_CID ") in chunk" F_CID " at offset %g +- %g with orient %c\n",
-            fragID, frag->iid, frag->cid,
-            ciOffset.mean, sqrt(ciOffset.variance), ciOrient);
-#endif
   if(!FragOffsetAndOrientation(mfrag,
                                mnode,
                                &mciOffset,
@@ -2511,32 +2504,14 @@ int CreateGraphEdge(GraphCGW_T *graph,
             mfragID, mfrag->iid);
     return FALSE;
   }
-  
-  
-  
-#ifdef DEBUG_CIEDGES
-  if(mfrag->type == AS_EBAC)
-    fprintf(GlobalData->stderrc,
-            "* Frag " F_CID " (" F_CID ") in chunk" F_CID " at offset %g +- %g with orient %c\n",
-            mfragID, mfrag->iid, mfrag->cid,
-            mciOffset.mean, sqrt(mciOffset.variance), mciOrient);
-#endif
-  
-  
+
   /* The following triply nested case statement captures all of the cases that arise from different
      relative alignments of the fragments in the LKG relationship, and their alignment with their 
      respective chunks.
      There is probably a better way to do this, but I think this is the clearest way to codify the relationships,
      complete with 'drawings'
   */
-  
-  if(frag->type == AS_EBAC){
-    if(node->flags.bits.isUnique && mnode->flags.bits.isUnique)
-      stat->totalUUBacPairs++;
-    
-    stat->totalBacPairs++;
-  }
-  
+
   switch(orient){
     
     case AS_GKP_INNIE: /********* AB_BA *******************************/
@@ -2802,15 +2777,7 @@ int CreateGraphEdge(GraphCGW_T *graph,
     default:
       assert(0);
   }
-  
-  
-  
-  
-#ifdef DEBUG_CIEDGES_1
-  if(frag->type == AS_EBAC)
-    fprintf(GlobalData->stderrc,"* Distance record mean %d cioffset %g mciOffset %g\n",
-            (int)dist->mean, ciOffset.mean, mciOffset.mean);
-#endif
+
   distance.mean = (CDS_COORD_t) dist->mean - ciOffset.mean - mciOffset.mean;
   // Since the two offsets and the dist are independent we SUM their variances
   distance.variance = dist->stddev * dist->stddev +
@@ -2836,7 +2803,7 @@ int CreateGraphEdge(GraphCGW_T *graph,
                (int)sqrt(ciOffset.variance + mciOffset.variance), // This is used by collectOverlap as the fudge distance
                ciEdgeOrient,
                inducedByUnknownOrientation,
-               type == AS_BAC_GUIDE, // isGuide
+               FALSE,     // type == AS_BAC_GUIDE, // isGuide
                type == AS_MAY_JOIN,  // isMayJoin
                type == AS_MUST_JOIN,  // isMustJoin
                FALSE,                        // isOverlap
@@ -3809,7 +3776,7 @@ int compareInt (const void * a, const void * b)
 
 
 
-void ComputeMatePairDetailedStatus() {
+void ComputeMatePairDetailedStatus(void) {
 
   GraphCGW_T *graph = ScaffoldGraph->CIGraph;
   GraphNodeIterator nodes;

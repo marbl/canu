@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_cgb.h,v 1.4 2005-03-22 19:48:24 jason_miller Exp $
+ * $Id: AS_CGB_cgb.h,v 1.5 2007-02-08 06:48:49 brianwalenz Exp $
  *
  * Module: AS_CGB_cgb.h
  *
@@ -165,9 +165,9 @@ static int count_the_randomly_sampled_fragments_in_a_chunk
       GetVA_AChunkFrag(chunkfrags,mychunk->f_list+ii)->vid;
     const FragType type = 
       get_typ_fragment(frags,ifrag);
-    if (type == AS_READ || type == AS_EBAC || type == AS_EXTR){
+    if (type == AS_READ || type == AS_EXTR){
       num_of_randomly_sampled_fragments_in_the_chunk ++;
-      // Only AS_READ, AS_EBAC, and AS_EXTR fragments are to be used in Gene
+      // Only AS_READ, and AS_EXTR fragments are to be used in Gene
       // Myers coverage discriminator A-statistic.
     }
   }

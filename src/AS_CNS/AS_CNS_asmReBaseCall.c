@@ -38,17 +38,10 @@
 #include "Globals_CNS.h"
 #include "PublicAPI_CNS.h"
 
-static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.5 2007-01-29 20:41:05 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.6 2007-02-08 06:48:51 brianwalenz Exp $";
 
 static UIDHashTable_AS *utgUID2IID;
 
-
-void re_basecall(MultiAlignT *ma, 
-			VA_TYPE(char) *sequence, VA_TYPE(char) *quality,
-			CNS_Options *options){
-  MultiAlignContig_ReBasecall(ma,sequence,quality,options);
-  return;  // a no-op, so that the wrapper can be tested.
-}
 
 #define DEBUG 0
 
@@ -131,15 +124,11 @@ static IntUnitigMesg* convert_UTG_to_IUM(SnapUnitigMesg* utgMesg)
 #ifdef AS_ENABLE_SOURCE
       iumMesg->f_list[i].sourceInt = atoi(utgMesg->f_list[i].source);
 #endif
-      if( iumMesg->f_list[i].type == AS_BACTIG ){
-	assert(0);
-	exit(-1);
-      }else
-	iid = fraguid2iid(utgMesg->f_list[i].eident);
+      iid = fraguid2iid(utgMesg->f_list[i].eident);
       
       if( iid == 0 ){
 	char dummy[40];
-	fprintf(stderr,"Error: Unknown uid fragment/bactig ID " F_UID " at %s:%d\n",
+	fprintf(stderr,"Error: Unknown uid fragment ID " F_UID " at %s:%d\n",
 		utgMesg->f_list[i].eident,__FILE__,__LINE__);
 	exit(-1);
       }
@@ -209,22 +198,10 @@ static IntConConMesg* convert_CCO_to_ICM(SnapConConMesg* ccoMesg)
       icmMesg->pieces[i].sourceInt = atoi(ccoMesg->pieces[i].source);
 #endif
 
-      if( icmMesg->pieces[i].type == AS_BACTIG ){
-#if DEBUG > 1
-	fprintf(stderr,"Fetching from bactig Store\n");
-#endif
-	assert(0);
-	exit(-1);
-      }
-      else{	
-#if DEBUG > 1
-	fprintf(stderr,"Fetching from frag Store\n");
-#endif
-	iid = fraguid2iid(ccoMesg->pieces[i].eident);
-      }
+      iid = fraguid2iid(ccoMesg->pieces[i].eident);
       if( iid == 0 ){
 	char dummy[40];
-	fprintf(stderr,"Error: Unknown uid fragment/bactig ID " F_UID " at %s:%d\n",
+	fprintf(stderr,"Error: Unknown uid fragment ID " F_UID " at %s:%d\n",
 		ccoMesg->pieces[i].eident,__FILE__,__LINE__);
 	exit(-1);
       }
@@ -479,7 +456,7 @@ int main (int argc, char *argv[]) {
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.5 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.6 $ processing. Started %s\n",
 	      ctime(&t));
       InitializeAlphTable();
 
@@ -512,7 +489,7 @@ int main (int argc, char *argv[]) {
             econtig = (SnapConConMesg *)(pmesg->m);
 	    icontig = convert_CCO_to_ICM(econtig);
 	    ma = CreateMultiAlignTFromICM(icontig,-1,0);
-	    re_basecall(ma,recalled_sequence,recalled_quality,&options);
+	    MultiAlignContig_ReBasecall(ma,recalled_sequence,recalled_quality,&options);
 	    { 
 	      char *ptr;
 

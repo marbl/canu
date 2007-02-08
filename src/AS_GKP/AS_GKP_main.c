@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.12 2007-01-29 20:41:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.13 2007-02-08 06:48:52 brianwalenz Exp $";
 
 /*************************************************
 * Module:  AS_GKP_main.c
@@ -33,8 +33,6 @@ static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.12 2007-01-29 20:41:11 brianwalenz
 *        -a append to the gateKeeperStore (it it doesn't exist, create it )
 *        -f force the creation of a new store 
 *        -e <errorThreshhold> Set the error threshold to the value (default = 1)
-*        -O ignore messages that are intended only for Grande (shredded BACs/Bactigs)
-*        -G ignore messages that are intended only for overlay (FULLBacs and BACtigs)
 * 
 *        gatekeeperStorePath   Used to find/create a directory that will house 4 files:
 *           gkp.phash  Symbol table for UID mapping
@@ -47,12 +45,6 @@ static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.12 2007-01-29 20:41:11 brianwalenz
 *           gkp.lnk A GateKeeperLinkStore.  An array of GateKeeperLinkRecords (see AS_PER_GkpStore.h)
 *                  One record per LKG record, and one per set of Join messages.  This is
 *                  maintained as an array of linked records.
-*           gkp.btg A GateKeeperBacTigStore.  An array of GateKeeperBactigRecords (see AS_PER_GkpStore.h)
-*                  One record per BTG subrecord.
-*           gkp.loc A GateKeeperLocaleStore.  An array of GateKeeperLocaleRecords (see AS_PER_GkpStore.h)
-*                  One record per BAC record.
-*           gkp.s_loc A GateKeeperLocaleStore.  An array of GateKeeperLocaleRecords (see AS_PER_GkpStore.h)
-*                  One record for each redefinition of a BAC.
 *           gkp.bat A GateKeeperBatchStore.  An array of GateKeeperBatchRecords (see AS_PER_GkpStore.h)
 *                  One record per BAT record.
 *           gkp.dst A GateKeeperDistanceStore.  An array of GateKeeperDistanceRecords (see AS_PER_GkpStore.h)
@@ -61,7 +53,7 @@ static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.12 2007-01-29 20:41:11 brianwalenz
 *                  One record for each redefinition of a DST.
 *           gkp.seq A GateKeeperSequenceStore.  An array of GateKeeperSequenceRecords (see AS_PER_GkpStore.h)
 *                  One record per SEQ record.
-
+*
 *       gatekeeper processes the input file, reporting errors and warnings.  Any message that causes
 *       an error warning is output to stderr, along with the associated warning/error messages.
 *       Messages that are ignored due to not being appropriate are sent to <inputFile>.ign
@@ -105,18 +97,16 @@ int  nerrs = 0;   // Number of errors in current run
 int maxerrs = -1; // Number of errors allowed before we punt
 static void usage(void);
 
-FILE *Infp, *Outfp, *Msgfp, *Ignfp, *Ibcfp, *Errfp;
+FILE *Infp, *Outfp, *Msgfp, *Ignfp, *Errfp;
 GateKeeperStore GkpStore;
 GateKeeperStore GkpStore_input;
 char *GlobalParamText  = NULL;
 
 SequenceBucketArrayT *LinkerDetector_READ;   // Used to collect stats for 1-mers - 8-mers on 5-prime ends of sequence
 SequenceBucketArrayT *Linker3pDetector_READ;   // Used to collect stats for 1-mers - 8-mers on 3-prime ends of sequence
-SequenceBucketArrayT *LinkerDetector_EBAC;   // Used to collect stats for 1-mers - 8-mers on 5-prime ends of sequence
 SequenceBucketArrayT *LinkerDetector_LBAC;   // Used to collect stats for 1-mers - 8-mers on 5-prime ends of sequence
 
 SequenceBucketArrayT *SanityDetector_READ;   // Used to collect stats for 1-mers - 8-mers on clr_rng_end -50bp of sequence
-SequenceBucketArrayT *SanityDetector_EBAC;   // Used to collect stats for 1-mers - 8-mers on clr_rng_end -50bp of sequence
 SequenceBucketArrayT *SanityDetector_LBAC;   // Used to collect stats for 1-mers - 8-mers on clr_rng_end -50bp of sequence
 
 SequenceBucketT *SequenceProbabilities; // Used to collect stats on all sequence within clear ranges
@@ -160,9 +150,7 @@ int  main(int argc, char * argv [])
   char *parameterPath;
   mode_t   mode = S_IRWXU | S_IRWXG | S_IROTH;
   CDS_CID_t currentBatchID = NULLINDEX;
-  VA_TYPE(int32) *addedBactigs = NULL;
   VA_TYPE(PtrT) *nmersToCheck = CreateVA_PtrT(100);
-  int matchBAC_DstsInLkgMsgs = 1;
 
   experimental = 0;
   projectName = NULL;
@@ -183,8 +171,6 @@ int  main(int argc, char * argv [])
 
 
 
-
-
   /**************** Process Command Line Arguments *********************/
   { /* Parse the argument list using "man 3 getopt". */ 
     int ch,errflg=0;
@@ -192,9 +178,6 @@ int  main(int argc, char * argv [])
     optind = 1;
     while (!errflg && ((ch = getopt(argc, argv, "bfe:i:o:p:t:n:achCNGsOPQTXvd:l")) != EOF)){
       switch(ch) {
-      case 'l':
-        matchBAC_DstsInLkgMsgs = 0;
-        break;
       case 'a':
 	append = 1;
 	create = 0;
@@ -304,9 +287,6 @@ int  main(int argc, char * argv [])
 	fprintf(stderr,"** n-mer screening disabled\n");
 	check_nmers = 0;
 	break;
-      case 'O':
-	assembler = AS_ASSEMBLER_OVERLAY;
-	break;
       case 'P':
 	fprintf(stderr, "-P depricated; default.\n");
 	break;
@@ -329,7 +309,6 @@ int  main(int argc, char * argv [])
 
     switch (assembler) {
       case AS_ASSEMBLER_GRANDE:  fprintf(stderr, "* Gatekeeper for Assembler Grande\n"); break;
-      case AS_ASSEMBLER_OVERLAY: fprintf(stderr, "* Gatekeeper for Overlay Assembler\n"); break;
       case AS_ASSEMBLER_OBT:     fprintf(stderr, "* Gatekeeper for Assembler Grande with Overlap Based Trimming\n"); break;
     }
 
@@ -550,11 +529,8 @@ int  main(int argc, char * argv [])
 	
 
     }   
+
   /**************** Open Files ***********************/
-  
-  {
-
-
   sprintf(Output_File_Name,"%s.inp",Output_File_Name_Prefix);
 
   fprintf(stderr,"Output file is %s \n",Output_File_Name);
@@ -568,17 +544,8 @@ int  main(int argc, char * argv [])
   fprintf(stderr,"Error file is %s \n",Error_File_Name);
   Errfp = fopen (Error_File_Name, "w");     // ign file
 
-  }
   Msgfp = Errfp;
 
-  if(assembler == AS_ASSEMBLER_OVERLAY){
-    sprintf(Bac_File_Name,"%s.ibc",Output_File_Name_Prefix);
-    fprintf(stderr,"ibc file is %s \n",Bac_File_Name);
-    Ibcfp = fopen(Bac_File_Name, "w");     // .ibc
-  }else{
-    Ibcfp = NULL;
-  }
-    addedBactigs = CreateVA_int32(100);
 
   if(Outfp && Ignfp && Errfp){
     status = GATEKEEPER_SUCCESS;
@@ -599,10 +566,8 @@ int  main(int argc, char * argv [])
     LinkerDetector_READ = CreateSequenceBucketArray(8);
     Linker3pDetector_READ = CreateSequenceBucketArray(8);
     LinkerDetector_LBAC = CreateSequenceBucketArray(8);
-    LinkerDetector_EBAC = CreateSequenceBucketArray(8);
     SanityDetector_READ = CreateSequenceBucketArray(8);
     SanityDetector_LBAC = CreateSequenceBucketArray(8);
-    SanityDetector_EBAC = CreateSequenceBucketArray(8);
 
     sprintf(buffer,"%s_%s", Output_File_Name_Prefix, "5p");
     Linker5pHistogram = CreateSequenceLengthHistogram(8,buffer);
@@ -640,32 +605,17 @@ int  main(int argc, char * argv [])
 
     status = ReadFile(check_qvs,
 		      check_nmers,
-		      addedBactigs,
 		      currentBatchID,
 		      assembler,
 		      strict,
 		      argc, argv,
-		      verbose,
-                      matchBAC_DstsInLkgMsgs);
+		      verbose);
 
 
     if(check_nmers){
       /* now check that the n-mer probablities we've collected are OK */
       CheckNmerProbabilities(Msgfp, threshhold);
     }
-    /* If everything looks OK, check that the input in this batch is self contained
-      with respect to the overlay assembler.  OA expects that a Bactig and its associated
-      fragment are in the same batch */
-    if(status == GATEKEEPER_SUCCESS &&
-       assembler == AS_ASSEMBLER_OVERLAY){
-      int bactigStatus = CheckOverlayInputComplete(addedBactigs, verbose);
-     
-      if(bactigStatus != GATEKEEPER_SUCCESS){
-	status = GATEKEEPER_FAILURE;
-      }
-       
-    }
-
   }
 
    /**************** Close files   *********************/
@@ -755,21 +705,17 @@ int incrementErrors(int num, FILE *msgFile){
  */
 int ReadFile(int check_qvs,
 	     int check_nmers,
-	     VA_TYPE(int32) *addedBactigs,
 	     CDS_CID_t currentBatchID,
-	     int32 assembler, // grande or overlay
+	     int32 assembler,
 	     int32 strict, 
 	     int argc, char **argv,
-	     int32 verbose,
-             int matchBAC_DstsInLkgMsgs){
+	     int32 verbose){
 
 
   MessageType imesgtype;
   GenericMesg   *pmesg;
   time_t currentTime = time(0);
   int messageCount = 0;
-  int shreddedFragmentsIgnored = 0; // For overlay assembler
-  int bacFragmentsIgnored = 0;      // For grande
 
   /* Read maxFrags fragments from the stream, adding their accession numbers, and
      those of the DST records to their respective hash tables */
@@ -809,7 +755,7 @@ int ReadFile(int check_qvs,
 	case GATEKEEPER_SUCCESS:
 	  pmesg->t = MESG_IBA;
 	  pmesg->m = &iba_mesg;
-	  WriteProtoMesg_AS((assembler == AS_ASSEMBLER_OVERLAY?Ignfp:Outfp),pmesg);      
+	  WriteProtoMesg_AS(Outfp,pmesg);      
 	  currentBatchID = iba_mesg.iaccession;
 	  fprintf(stderr,"Gatekeeper reading batch " F_IID "\n",
 		  iba_mesg.iaccession);
@@ -857,6 +803,7 @@ int ReadFile(int check_qvs,
       {
 	/* Put the record where it belongs in the array.
 	   This array is indexed by the overlaps. */
+
 	FragMesg   *frg_mesg = (FragMesg *)pmesg->m;
 	InternalFragMesg ifg_mesg;
 	
@@ -869,22 +816,8 @@ int ReadFile(int check_qvs,
 
 	  pmesg->m = &ifg_mesg;
 	  pmesg->t = MESG_IFG;
-	  if((assembler == AS_ASSEMBLER_GRANDE) || (assembler == AS_ASSEMBLER_OBT)){
-	     
-	    if(ifg_mesg.type == AS_BACTIG || ifg_mesg.type == AS_FULLBAC){
-	      bacFragmentsIgnored++;
-	      WriteProtoMesg_AS(Ignfp,pmesg);      
-	    }else{
-	      WriteProtoMesg_AS(Outfp,pmesg);      
-	    }
-	  }else {
-	    if(AS_FA_SHREDDED(ifg_mesg.type)){ 
-	      shreddedFragmentsIgnored++;
-	      WriteProtoMesg_AS(Ignfp,pmesg);      
-	    }else{
-	      WriteProtoMesg_AS(Outfp,pmesg);      
-	    }
-	  }
+
+          WriteProtoMesg_AS(Outfp,pmesg);      
 	}else{
 	  fprintf(Msgfp,"# Line %d of input\n", GetProtoLineNum_AS());
 	  WriteProtoMesg_AS(Msgfp,pmesg);      
@@ -911,7 +844,7 @@ int ReadFile(int check_qvs,
 		lnk_mesg->frag1, lnk_mesg->frag2);
 #endif
 	gkp_result = 
-	  Check_LinkMesg(lnk_mesg, &ilk_mesg,  currentBatchID, currentTime,  verbose, matchBAC_DstsInLkgMsgs);
+	  Check_LinkMesg(lnk_mesg, &ilk_mesg, currentBatchID, currentTime, verbose);
 
 	switch(gkp_result){
 	case GATEKEEPER_WARNING:
@@ -922,7 +855,7 @@ int ReadFile(int check_qvs,
 	  /**************************** We DON'T output ILK messages anymore *********************************/
 	  pmesg->m = &ilk_mesg;
 	  pmesg->t = MESG_ILK;
-	  WriteProtoMesg_AS((assembler == AS_ASSEMBLER_OVERLAY?Ignfp:Outfp),pmesg);      
+	  WriteProtoMesg_AS(Outfp,pmesg);      
 #endif
 	  break;
 	case GATEKEEPER_FAILURE:
@@ -967,42 +900,10 @@ int ReadFile(int check_qvs,
 	    argv[0], "",
 	    params);
 
-	WriteProtoMesg_AS((assembler == AS_ASSEMBLER_OVERLAY?Ignfp:Outfp),pmesg);
-        /*
-	fprintf(stderr,"# GateKeeper $Revision: 1.12 $\n");
-	WriteProtoMesg_AS(Msgfp,pmesg);
-        */
+	WriteProtoMesg_AS(Outfp,pmesg);
         free(params);
 	
 
-      }
-      break;
-    case MESG_BAC:
-      {
-	BacMesg *bac_mesg = (BacMesg *)(pmesg->m);
-	InternalBacMesg ibc_mesg;
-
-#ifdef DEBUGIO
-	fprintf(Msgfp,"Read BAC message with accession " F_UID "\n", 
-		bac_mesg->ebac_id);
-#endif
-
-	if(GATEKEEPER_SUCCESS == 
-	   Check_BacMesg(bac_mesg, &ibc_mesg, addedBactigs,  currentBatchID, currentTime, assembler, strict, verbose)){
-	   pmesg->m = &ibc_mesg;
-	   pmesg->t = MESG_IBC;
-	   if(assembler == AS_ASSEMBLER_OVERLAY){
-	     WriteProtoMesg_AS((bac_mesg->type == AS_EBAC?Ignfp:Ibcfp),pmesg);      
-	   }else{
-	     WriteProtoMesg_AS(Outfp,pmesg);      
-	   }
-	}else{
-	  fprintf(Msgfp,"# Line %d of input\n", GetProtoLineNum_AS());
-	   WriteProtoMesg_AS(Msgfp,pmesg);      
-	  if(incrementErrors(1, Msgfp) == GATEKEEPER_FAILURE){
-	    return GATEKEEPER_FAILURE;
-	  }
-	}
       }
       break;
 
@@ -1016,11 +917,6 @@ int ReadFile(int check_qvs,
       break;
     }
   }
-
-    if(assembler == AS_ASSEMBLER_OVERLAY)
-      fprintf(stderr,"* Ignored %d shredded BAC Fragments\n", shreddedFragmentsIgnored);
-    else
-      fprintf(stderr,"* Ignored %d BACTIG/BAC Fragments\n", bacFragmentsIgnored);
 
   return(GATEKEEPER_SUCCESS);
 }
@@ -1049,12 +945,6 @@ void printGKPError(FILE *fout, GKPErrorType type){
   case GKPError_BadUniqueDST:
     fprintf(fout,"# GKP Error %d: UID of distance definition was previously seen\n",(int)type);
     break;
-  case GKPError_BadUniqueBAC:
-    fprintf(fout,"# GKP Error %d: UID of BAC definition was previously seen\n",(int)type);
-    break;
-  case GKPError_BadUniqueBTG:
-    fprintf(fout,"# GKP Error %d: UID of Bactig definition was previously seen\n",(int)type);
-    break;
   case GKPError_BadUniqueSEQ:
     fprintf(fout,"# GKP Error %d: UID of Sequence definition was previously seen\n",(int)type);
     break;
@@ -1065,12 +955,6 @@ void printGKPError(FILE *fout, GKPErrorType type){
   case GKPError_MissingDST:
     fprintf(fout,"# GKP Error %d: Distance not previously defined\n",(int)type);
     break;
-  case GKPError_MissingBAC:
-    fprintf(fout,"# GKP Error %d: BAC not previously defined\n",(int)type);
-    break;
-  case GKPError_MissingBTG:
-    fprintf(fout,"# GKP Error %d: Bactig not previously defined\n",(int)type);
-    break;
   case GKPError_MissingSEQ:
     fprintf(fout,"# GKP Error %d: Sequence not previously defined\n",(int)type);
     break;
@@ -1080,9 +964,6 @@ void printGKPError(FILE *fout, GKPErrorType type){
     break;
   case GKPError_DeleteDST:
     fprintf(fout,"# GKP Error %d: Can't delete Distance\n",(int)type);
-    break;
-  case GKPError_DeleteBAC:
-    fprintf(fout,"# GKP Error %d: Can't delete BAC\n",(int)type);
     break;
   case GKPError_DeleteLNK:
     fprintf(fout,"# GKP Error %d: Can't delete LNK\n",(int)type);
@@ -1122,54 +1003,18 @@ void printGKPError(FILE *fout, GKPErrorType type){
     fprintf(fout,"# GKP Error %d: Invalid accession for BAC or Bactig fragment\n",(int)type);
     break;
 
-  case GKPError_FRGBacSeqMismatch:
-    fprintf(fout,"# GKP Error %d: Fragment BacID/SeqID mismatch\n",(int)type);
-    break;
-
   case GKPError_LNKFragtypeMismatch:
     fprintf(fout,"# GKP Error %d: Link fragment type mismatch\n",(int)type);
-    break;
-
-  case GKPError_LNKLocaleMismatch:
-    fprintf(fout,"# GKP Error %d: Link fragment locale mismatch\n",(int)type);
-    break;
-
-  case GKPError_LNKLocaleDistanceMismatch:
-    fprintf(fout,"# GKP Error %d: Link fragment distance mismatch with associated locale\n",(int)type);
     break;
 
   case GKPError_LNKOneLink:
     fprintf(fout,"# GKP Error %d: Violation of unique mate/bacend link per fragment\n",(int)type);
     break;
 
-  case GKPError_BACNumBactigs:
-    fprintf(fout,"# GKP Error %d: Unfinished BAC must have >=1 Bactigs\n",(int)type);
-    break;
-  case GKPError_BACNumBactigsShouldBeZero:
-    fprintf(fout,"# GKP Error %d: BAC of this type should have 0 Bactigs\n",(int)type);
-    break;
-
-  case GKPError_BACRedefinition:
-    fprintf(fout,"# GKP Error %d: Error in BAC redefinition\n",(int)type);
-    break;
-
-  case GKPError_BACWrongTypeForOverlay:
-    fprintf(fout,"# GKP Error %d: Overlay Assembler only accepts BACs of type UNFINISHED\n",(int)type);
-    break;
-
-  case GKPError_FRGWrongTypeForOverlay:
-    fprintf(fout,"# GKP Error %d: Overlay Assembler only accepts BAC FRGs of type BACTIG\n",(int)type);
-    break;
-
   case GKPError_DSTValues:
     fprintf(fout,"# GKP Error %d: DST mean,stddev must be >0 and mean must be >= 3 * stddev\n",(int)type);
     break;
   
-  case GKPError_IncompleteOAInput:
-    fprintf(fout,"# GKP Error %d: Overlay Assembler Requires that a Bactig and its\n",(int)type);
-    fprintf(fout,"#               associated fragment must appear in the same batch\n");
-    break;
-
   default:
     fprintf(stderr,"#### printGKPError: error type %d\n", (int)type);
     break;
@@ -1186,28 +1031,6 @@ void printAllGKPErrors(FILE *fout){
 }
 
 
-/***********************************************************************************/
-/* CheckOverlayInputComplete                                                       */
-/***********************************************************************************/
-int CheckOverlayInputComplete(VA_TYPE(int32) *addedBactigs, int verbose){
-  size_t i;
-  int status = GATEKEEPER_SUCCESS;
-
-  for(i = 0; i < GetNumVA_int32(addedBactigs); i++){
-    GateKeeperBactigRecord gkpbactig;
-    int32 bactigIid = *GetVA_int32(addedBactigs, i);
-
-    getGateKeeperBactigStore(GkpStore.btgStore,bactigIid, &gkpbactig);
-
-    if(gkpbactig.hasSequence == FALSE){
-      status = GATEKEEPER_FAILURE;
-      printGKPError(Msgfp,GKPError_IncompleteOAInput);
-      fprintf(Msgfp,"# Bactig (" F_UID "," F_S32 ") does not have an associated FRG\n",
-	      gkpbactig.UID, bactigIid);
-    }
-  }
-  return status;
-}
 
 
 int32   CheckNmerProbabilities(FILE *fout, double threshhold){
@@ -1221,12 +1044,8 @@ int32   CheckNmerProbabilities(FILE *fout, double threshhold){
 
   CheckSequenceBucketArraySanity(LinkerDetector_READ, SanityDetector_READ, probs, threshhold, fout,"#linker5p READ");
   CheckSequenceBucketArraySanity(Linker3pDetector_READ, SanityDetector_READ, probs, threshhold, fout,"#linker3p READ");
-  //  CheckSequenceBucketArraySanity(LinkerDetector_LBAC, SanityDetector_LBAC, probs, threshhold, fout, "#linker LBAC");
-  //  CheckSequenceBucketArraySanity(LinkerDetector_EBAC, SanityDetector_EBAC, probs, threshhold, fout,"#linker EBAC");
 
   return GATEKEEPER_SUCCESS;
-
-
 }
 
  static void usage(void){
@@ -1247,14 +1066,11 @@ int32   CheckNmerProbabilities(FILE *fout, double threshhold){
 		 "  -s  strict enforcement of -G -O rules\n"
 		 "  -t <float>  threshhold for frequent n-mer check in units of std deviations\n"
 		 "  -G  gatekeeper for assembler Grande (default)\n"
-		 "  -O  gatekeeper for overlay assembler\n"
 		 "  -T  gatekeeper for assembler Grande with Overlap Based Trimming\n"
 		 "  -C  compatiblity mode\n"
 		 "  -N  don't check n-mer frequencies\n"
 		 "  -Q  don't check quality-based data quality\n"
 		 "  -X  enable experimental switches\n"
-                 "  -l  don't check consistency of EBAC link distance UIDs\n\n"
-
 		 );
 	exit (EXIT_FAILURE);
  }

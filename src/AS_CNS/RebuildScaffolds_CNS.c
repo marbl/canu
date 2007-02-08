@@ -78,7 +78,7 @@ echo 53 | rebuildscaffolds -f oct01.fStore -s oct01.sStore -V 23 -c oct01.cStore
 
  *********************************************************************/
 
-static char CM_ID[] = "$Id: RebuildScaffolds_CNS.c,v 1.9 2007-01-29 20:41:07 brianwalenz Exp $";
+static char CM_ID[] = "$Id: RebuildScaffolds_CNS.c,v 1.10 2007-02-08 06:48:52 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -485,7 +485,7 @@ int OutputScaffoldProfile(FILE *profileFile,
 	  if( contigOk ) {
 	    if ( show_ma ) {
 	      PrintMultiAlignT(profileFile,contig,global_fragStore,
-                  (tFragStorePartition*)NULL, (FragStoreHandle)NULLINDEX, 1,
+                  (tFragStorePartition*)NULL, 1,
                   1,READSTRUCT_LATEST);
 	    } else {
 	      if ( show_colcorr ) {
@@ -515,7 +515,7 @@ int OutputScaffoldProfile(FILE *profileFile,
 	     if ( show_ma ) {
 	       fprintf(profileFile,"Scaffold offset %d\n",gapped_length);
 	       PrintMultiAlignT(profileFile,contig,global_fragStore,
-                   (tFragStorePartition*)NULL, (FragStoreHandle)NULLINDEX, 
+                   (tFragStorePartition*)NULL, 
                    1,1,READSTRUCT_LATEST);
 	     } else {
 	       if ( show_colcorr ) {
@@ -589,7 +589,7 @@ int OutputScaffoldProfile(FILE *profileFile,
                if ( show_ma ) {
                   fprintf(profileFile,"Scaffold offset %d\n",gapped_length);
                   PrintMultiAlignT(profileFile,contig,global_fragStore,
-                      (tFragStorePartition*)NULL, (FragStoreHandle)NULLINDEX, 
+                      (tFragStorePartition*)NULL,
                        1,1,READSTRUCT_LATEST);
                } else {
 		 if ( show_colcorr ) {

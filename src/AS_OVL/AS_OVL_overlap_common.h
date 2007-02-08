@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.22 2007-01-29 20:41:17 brianwalenz Exp $
- * $Revision: 1.22 $
+ * $Id: AS_OVL_overlap_common.h,v 1.23 2007-02-08 06:48:53 brianwalenz Exp $
+ * $Revision: 1.23 $
 */
 
 
@@ -1612,10 +1612,6 @@ int  Build_Hash_Index
                }
 
            getReadType_ReadStruct (myRead, Kind_Of_Frag + String_Ct);
-           if  (Contig_Mode)
-               {
-                getLocID_ReadStruct (myRead, Loc_ID + String_Ct);
-               }
           }
 
       String_Start [String_Ct] = total_len;
@@ -4870,12 +4866,10 @@ if  (WA -> String_Olap_Space [i] . Match_List == 0)
            root_num = WA -> String_Olap_Space [i] . String_Num;
            if  ((WA -> curr_frag_type == AS_READ
                        || WA -> curr_frag_type == AS_EXTR
-                       || WA -> curr_frag_type == AS_TRNR
-                       || WA -> curr_frag_type == AS_FBAC)
+                       || WA -> curr_frag_type == AS_TRNR)
                     && (Kind_Of_Frag [root_num] == AS_READ
                             || Kind_Of_Frag [root_num] == AS_EXTR
-                            || Kind_Of_Frag [root_num] == AS_TRNR
-                            || Kind_Of_Frag [root_num] == AS_FBAC))
+                            || Kind_Of_Frag [root_num] == AS_TRNR))
                {
                 WA -> Edit_Match_Limit = Read_Edit_Match_Limit;
                 WA -> Error_Bound = Read_Error_Bound;
@@ -4926,12 +4920,10 @@ if  (WA -> String_Olap_Space [i] . Match_List == 0)
       root_num = WA -> String_Olap_Space [i] . String_Num;
       if  ((WA -> curr_frag_type == AS_READ
                   || WA -> curr_frag_type == AS_EXTR
-                  || WA -> curr_frag_type == AS_TRNR
-                  || WA -> curr_frag_type == AS_FBAC)
+                  || WA -> curr_frag_type == AS_TRNR)
                && (Kind_Of_Frag [root_num] == AS_READ
                        || Kind_Of_Frag [root_num] == AS_EXTR
-                       || Kind_Of_Frag [root_num] == AS_TRNR
-                       || Kind_Of_Frag [root_num] == AS_FBAC))
+                       || Kind_Of_Frag [root_num] == AS_TRNR))
           {
            WA -> Edit_Match_Limit = Read_Edit_Match_Limit;
            WA -> Error_Bound = Read_Error_Bound;
@@ -4965,12 +4957,10 @@ if  (WA -> String_Olap_Space [i] . Match_List == 0)
       root_num = WA -> String_Olap_Space [i] . String_Num;
       if  ((WA -> curr_frag_type == AS_READ
                   || WA -> curr_frag_type == AS_EXTR
-                  || WA -> curr_frag_type == AS_TRNR
-                  || WA -> curr_frag_type == AS_FBAC)
+                  || WA -> curr_frag_type == AS_TRNR)
                && (Kind_Of_Frag [root_num] == AS_READ
                        || Kind_Of_Frag [root_num] == AS_EXTR
-                       || Kind_Of_Frag [root_num] == AS_TRNR
-                       || Kind_Of_Frag [root_num] == AS_FBAC))
+                       || Kind_Of_Frag [root_num] == AS_TRNR))
           {
            WA -> Edit_Match_Limit = Read_Edit_Match_Limit;
            WA -> Error_Bound = Read_Error_Bound;

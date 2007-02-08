@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.11 2007-02-03 07:06:27 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.12 2007-02-08 06:48:52 brianwalenz Exp $";
 
 //#define DEBUG_GKP 1
 //#define DEBUG_GKP_VERBOSE 1
@@ -78,19 +78,12 @@ int Check_FragMesg(FragMesg *frg_mesg,
       char *s;
       
       memset(&gkf, 0, sizeof(gkf));
-      gkf.localeID = gkf.seqID = gkf.bactigID = 0;
       gkf.deleted = FALSE;
       gkf.birthBatch = batchID;
       gkf.deathBatch = 0;
 
       /* Check read types */
       switch((char)frg_mesg->type){
-      case AS_LBAC:
-      case AS_BACTIG:
-      case AS_FULLBAC:
-      case AS_EBAC:
-      case AS_UBAC:
-      case AS_FBAC:
       case AS_READ:
       case AS_EXTR:
       case AS_TRNR:
@@ -113,39 +106,18 @@ int Check_FragMesg(FragMesg *frg_mesg,
       
       /* Make sure we haven't seen this frag record before... if so
 	 it is a fatal error */
-      if(frg_mesg->type != AS_BACTIG &&
-	 frg_mesg->type != AS_FULLBAC){
-	 
-	if(HASH_FAILURE != LookupTypeInPHashTable_AS(GkpStore.hashTable, 
-						     UID_NAMESPACE_AS,
-						     frg_mesg->eaccession, 
-						     AS_IID_FRG, 
-						     FALSE,
-						     Msgfp,
-						     &value)){
+      if(HASH_FAILURE != LookupTypeInPHashTable_AS(GkpStore.hashTable, 
+                                                   UID_NAMESPACE_AS,
+                                                   frg_mesg->eaccession, 
+                                                   AS_IID_FRG, 
+                                                   FALSE,
+                                                   Msgfp,
+                                                   &value)){
 
-	  printGKPError(Msgfp, GKPError_BadUniqueFRG);
-	  fprintf(Msgfp,"# Check_FragMessage:  A message with UID " F_U64 " exists with %d refs %s!!! Can't add it... \n",
-		  frg_mesg->eaccession, value.refCount, (value.deleted?"and was deleted":""));
-	  return(GATEKEEPER_FAILURE);
-	}
-      }else{
-	int lookup = LookupTypeInPHashTable_AS(GkpStore.hashTable, 
-					       UID_NAMESPACE_AS,
-					       frg_mesg->eaccession, 
-					       (frg_mesg->type == AS_BACTIG?AS_IID_BTG:AS_IID_SEQ), 
-					       FALSE,
-					       Msgfp,
-					       &value);
-	if(HASH_SUCCESS != lookup){
-	  printGKPError(Msgfp, GKPError_MissingSEQ);
-	  fprintf(Msgfp,"# Check_FragMessage:  Seq/Bactig " F_U64 " does NOT exist %s!!! Can't reference it... lookup = %d\n",
-		  frg_mesg->eaccession,  (value.deleted?"and was deleted":""), lookup);
-	  return(GATEKEEPER_FAILURE);
-	}
-	
-	ifg_mesg->iaccession = value.IID;
-
+        printGKPError(Msgfp, GKPError_BadUniqueFRG);
+        fprintf(Msgfp,"# Check_FragMessage:  A message with UID " F_U64 " exists with %d refs %s!!! Can't add it... \n",
+                frg_mesg->eaccession, value.refCount, (value.deleted?"and was deleted":""));
+        return(GATEKEEPER_FAILURE);
       }
 
       seqLength = 0;
@@ -169,10 +141,10 @@ int Check_FragMesg(FragMesg *frg_mesg,
       //  fragments with too short of a clear range.
       //
       /* Check lengths and sequence intervals */
-      if(GATEKEEPER_FAILURE == CheckLengthsIntervalsLocales(frg_mesg, ifg_mesg,
-							    seqLength, quaLength,
-							    assembler,
-							    verbose)){
+      if(GATEKEEPER_FAILURE == CheckLengthsIntervals(frg_mesg, ifg_mesg,
+                                                     seqLength, quaLength,
+                                                     assembler,
+                                                     verbose)){
         /*
         fprintf(stderr,"# Check_FragMessage: ID: " F_U64 " lengths and intervals are incompatible\n",
                 frg_mesg->eaccession);
@@ -195,66 +167,18 @@ int Check_FragMesg(FragMesg *frg_mesg,
 	}
       }
 
+      value.type = AS_IID_FRG;
+      InsertInPHashTable_AS(&(GkpStore.hashTable), UID_NAMESPACE_AS, frg_mesg->eaccession, &value, FALSE, TRUE);
+      ifg_mesg->iaccession = value.IID;
 
-      if(frg_mesg->type != AS_FULLBAC &&
-	 frg_mesg->type != AS_BACTIG){
-	value.type = AS_IID_FRG;
-	InsertInPHashTable_AS(&(GkpStore.hashTable), UID_NAMESPACE_AS, frg_mesg->eaccession, &value, FALSE, TRUE);
-	ifg_mesg->iaccession = value.IID;
-      }
-
-	/*********************************************************************
-	 *  Special Handling for FULLBACs for OVERLAY
-	 *
-	 *  If an FBAC is input, we convert it into a UBAC as follows:
-	 *     - allocate a Bactig with UID 0 in the bactig store
-	 *     - set numbactigs to 1 and add a bactig to the list
-	 *     - change the type to UNFINISHED
-	 *  When we see the subsequent FULL_BAC fragment, we convert it
-	 *  to a BACTIG fragment, and number it with the bactig ID.
-	 ********************************************************************/
-	if(frg_mesg->type == AS_FULLBAC && assembler == AS_ASSEMBLER_OVERLAY){
-	  GateKeeperLocaleRecord bacRecord;
-	  getGateKeeperLocaleStore(GkpStore.locStore,ifg_mesg->ilocale , &bacRecord);
-	  gkf.bactigID = bacRecord.firstBactig;
-	  ifg_mesg->ebactig_id = 0;
-	  value.IID = ifg_mesg->ibactig_id = ifg_mesg->iaccession = bacRecord.firstBactig;
-	  ifg_mesg->type = AS_BACTIG;
-	  if(verbose)
-	    fprintf(stderr,"*** Coverting FULLBAC to BACTIG fragment id => " F_U32 "\n", ifg_mesg->iaccession);
-	}
-
-
-
-      gkf.localeID = ifg_mesg->ilocale;
       gkf.seqID = ifg_mesg->iseq_id;
-      gkf.bactigID = ifg_mesg->ibactig_id;
       gkf.readUID = ifg_mesg->eaccession;
       gkf.linkHead = 0;
       gkf.numLinks = 0;
       if(verbose)
-	fprintf(stderr,"* Appending frag " F_U64 " " F_U32 " of type %c lid:" F_U32 " sid:" F_U32 " to store\n",
-		gkf.readUID, value.IID, gkf.type, gkf.localeID, gkf.seqID);
+	fprintf(stderr,"* Appending frag " F_U64 " " F_U32 " of type %c sid:" F_U32 " to store\n",
+		gkf.readUID, value.IID, gkf.type, gkf.seqID);
       switch(ifg_mesg->type){
-      case AS_FULLBAC:
-	{
-	  GateKeeperLocaleRecord gkploc;
-	  getGateKeeperLocaleStore(GkpStore.locStore,ifg_mesg->ilocale, &gkploc);
-	  gkploc.hasSequence = TRUE;
-	  setGateKeeperLocaleStore(GkpStore.locStore,ifg_mesg->ilocale, &gkploc);
-	}
-	break;
-      case AS_BACTIG:
-	{
-	  GateKeeperBactigRecord gkpbtg;
-
-	  if(verbose)
-	    fprintf(stderr,"* Marking bactig " F_U32 " as has Sequence\n", ifg_mesg->ibactig_id);
-	  getGateKeeperBactigStore(GkpStore.btgStore,ifg_mesg->ibactig_id, &gkpbtg);
-	  gkpbtg.hasSequence = TRUE;
-	  setGateKeeperBactigStore(GkpStore.btgStore,ifg_mesg->ibactig_id, &gkpbtg);
-	}
-	break;
       case AS_READ:
       case AS_EXTR:
       case AS_TRNR:
@@ -275,34 +199,8 @@ int Check_FragMesg(FragMesg *frg_mesg,
 	}else{
 	  // fprintf(stderr,"*** No nmer checking\n");
 	}
-	  appendGateKeeperFragmentStore(GkpStore.frgStore, &gkf);
-	  break;
-      case AS_EBAC:
-	// Disable n-mer checking on BAC ends
-#if 0
-	if(check_nmers){
-	  IncrementSequenceBucketArrayPrefix(LinkerDetector_EBAC, ifg_mesg->sequence + ifg_mesg->clear_rng.bgn);
-	  IncrementSequenceBucketArrayPrefix(SanityDetector_EBAC, ifg_mesg->sequence + ifg_mesg->clear_rng.end - 50);
-	  IncrementBucketTotal(SequenceProbabilities, ifg_mesg->sequence + ifg_mesg->clear_rng.bgn, 
-				       ifg_mesg->clear_rng.end - ifg_mesg->clear_rng.bgn);
-	}
-#endif
-	  appendGateKeeperFragmentStore(GkpStore.frgStore, &gkf);
-	  if(assembler == AS_ASSEMBLER_OVERLAY){
-	    ifg_mesg->type = AS_READ;
-	  }
-	  break;
-      case AS_LBAC:
-#if 0
-	if(check_nmers){
-	  IncrementSequenceBucketArrayPrefix(LinkerDetector_LBAC, ifg_mesg->sequence + ifg_mesg->clear_rng.bgn);
-	  IncrementSequenceBucketArrayPrefix(SanityDetector_LBAC, ifg_mesg->sequence + ifg_mesg->clear_rng.end - 50);
-	  IncrementBucketTotal(SequenceProbabilities, ifg_mesg->sequence + ifg_mesg->clear_rng.bgn, 
-				       ifg_mesg->clear_rng.end - ifg_mesg->clear_rng.bgn);
-	}
-#endif
-	  appendGateKeeperFragmentStore(GkpStore.frgStore, &gkf);
-	  break;
+        appendGateKeeperFragmentStore(GkpStore.frgStore, &gkf);
+        break;
       default:
 	  appendGateKeeperFragmentStore(GkpStore.frgStore, &gkf);
 	  break;
@@ -313,7 +211,6 @@ int Check_FragMesg(FragMesg *frg_mesg,
   case AS_DELETE:
     {
       GateKeeperFragmentRecord gkf;
-      GateKeeperLocaleRecord gkl;
 
       if(HASH_SUCCESS != LookupTypeInPHashTable_AS(GkpStore.hashTable, 
 						   UID_NAMESPACE_AS,
@@ -344,10 +241,6 @@ int Check_FragMesg(FragMesg *frg_mesg,
 	fprintf(Msgfp,"# Check_FragMessage:  Fragment has %d remaining links %d references\n", gkf.numLinks, value.refCount);
 	return(GATEKEEPER_FAILURE);
       }      
-      if(gkf.localeID > 0){
-	getGateKeeperLocaleStore(GkpStore.frgStore, gkf.localeID, &gkl);
-	UnRefPHashTable_AS(GkpStore.hashTable, UID_NAMESPACE_AS, gkl.UID);
-      }
       getGateKeeperFragmentStore(GkpStore.frgStore, value.IID, &gkf);
       if(verbose)
 	fprintf(stderr,"* Deleting fragment...refcount = %d\n", value.refCount);
@@ -379,9 +272,9 @@ int Check_FragMesg(FragMesg *frg_mesg,
 
       seqLength = strlen( frg_mesg->sequence );
       quaLength = strlen( frg_mesg->quality );
-      if(GATEKEEPER_FAILURE == CheckLengthsIntervalsLocales(frg_mesg, ifg_mesg,
-                                                            seqLength, quaLength,
-                                                            verbose)){
+      if(GATEKEEPER_FAILURE == CheckLengthsIntervals(frg_mesg, ifg_mesg,
+                                                     seqLength, quaLength,
+                                                     verbose)){
         fprintf(Msgfp,"# Check_FragMessage: ID: " F_U64 " lengths and intervals are incompatible\n",
                 frg_mesg->eaccession);
         return GATEKEEPER_FAILURE;
@@ -401,12 +294,12 @@ int Check_FragMesg(FragMesg *frg_mesg,
 
 /***************************************************************************/
 
-int CheckLengthsIntervalsLocales(FragMesg *frg_mesg,
-				 InternalFragMesg *ifg_mesg,  
-				 int seqLength,
-				 int quaLength,
-				 int assembler,
-				 int verbose)
+int CheckLengthsIntervals(FragMesg *frg_mesg,
+                          InternalFragMesg *ifg_mesg,  
+                          int seqLength,
+                          int quaLength,
+                          int assembler,
+                          int verbose)
 {
   /* Check that sequence and quality lengths
      are the same on all fragments */
@@ -423,30 +316,15 @@ int CheckLengthsIntervalsLocales(FragMesg *frg_mesg,
   {
     int maxlen;
     int minlen;
-    switch(frg_mesg->type){
-    case AS_BACTIG:
-      minlen = AS_BACTIG_MIN_LEN;
-      maxlen = AS_BACTIG_MAX_LEN;
-      break;
-    case AS_FULLBAC:
-      if(assembler == AS_ASSEMBLER_OVERLAY){
-	minlen = AS_BACTIG_MIN_LEN;
-	maxlen = AS_BACTIG_MAX_LEN;
-      }else{
-	minlen = AS_BAC_MIN_LEN;
-	maxlen = AS_BAC_MAX_LEN;
-      }
-      break;
-    default:
-      if (assembler == AS_ASSEMBLER_OBT) {
-        minlen = 0;
-        maxlen = AS_FRAG_MAX_LEN;
-      } else {
-        minlen = AS_FRAG_MIN_LEN;
-        maxlen = AS_FRAG_MAX_LEN;
-      }
-      break;
+
+    if (assembler == AS_ASSEMBLER_OBT) {
+      minlen = 0;
+      maxlen = AS_FRAG_MAX_LEN;
+    } else {
+      minlen = AS_FRAG_MIN_LEN;
+      maxlen = AS_FRAG_MAX_LEN;
     }
+
     /* Check that lengths are legit -- not too long */
     if(seqLength > maxlen){
       printGKPError(Msgfp, GKPError_FRGLength);
@@ -483,243 +361,6 @@ int CheckLengthsIntervalsLocales(FragMesg *frg_mesg,
   
   }
 
-  /* If this is a guide, check that Locale is defined and appropriate.
-     Also check that sequence, and bacid are compatible. */
-
-  if(!AS_FA_READ(frg_mesg->type)) 
-    {
-      PHashValue_AS locValue;
-      GateKeeperLocaleRecord locRecord;
-      int lookupStatus;
-      lookupStatus = LookupTypeInPHashTable_AS(GkpStore.hashTable, 
-					       UID_NAMESPACE_AS,
-					       frg_mesg->elocale,
-					       AS_IID_LOC, 
-					       FALSE,
-					       Msgfp,
-					       &locValue);
-    
-      switch(lookupStatus){
-      case HASH_FAILURE: 
-	printGKPError(Msgfp, GKPError_MissingBAC);
-        fprintf(Msgfp,"# Check_FragMessage: Locale undefined (" F_U64 ")\n",
-                frg_mesg->elocale);
-        return GATEKEEPER_FAILURE;
-        break;
-      case HASH_SUCCESS:
-        ifg_mesg->ilocale = locValue.IID;
-        AddRefPHashTable_AS(GkpStore.hashTable, LOCALEID_NAMESPACE_AS, frg_mesg->elocale);
-#ifdef DEBUG_LOC
-        fprintf(stderr,"* Found loc UID " F_U64 " got iid " F_U32 "\n",
-                frg_mesg->locale, ifg_mesg->ilocale);
-#endif
-        break;
-      case HASH_FAILURE_FOUND_BUT_DELETED:
-	printGKPError(Msgfp, GKPError_MissingBAC);
-        fprintf(Msgfp,"# Check_FragMessage: Locale has been deleted (" F_U64 ")\n",
-                frg_mesg->elocale);
-        return GATEKEEPER_FAILURE;
-        
-        
-      case HASH_FAILURE_FOUND_BUT_WRONG_TYPE:
-        fprintf(Msgfp,"# Check_FragMessage: Invalid locale " F_U64 " has been used for another data type\n",
-                frg_mesg->elocale);
-        return GATEKEEPER_FAILURE;
-        
-      default:
-        assert(0);
-      }
-    
-      getGateKeeperLocaleStore(GkpStore.locStore, ifg_mesg->ilocale, &locRecord);
-      /* Check that type of fragment is appropriate to state of BAC */
-      switch(locRecord.type){
-      case AS_ENDS:
-	if(frg_mesg->type != AS_EBAC){
-	  printGKPError(Msgfp, GKPError_FRGWrongTypeForBAC);
-	  fprintf(Msgfp,"#Check_FragMessage: Only AS_EBAC fragments allowed in an AS_ENDS BAC\n");
-	  return GATEKEEPER_FAILURE;
-	}
-	break;
-      case AS_UNFINISHED:
-	if(frg_mesg->type != AS_UBAC &&
-	   frg_mesg->type != AS_LBAC &&
-	   frg_mesg->type != AS_BACTIG &&
-           frg_mesg->type != AS_EBAC){  // modified by dewim 08/27/01
-	  printGKPError(Msgfp, GKPError_FRGWrongTypeForBAC);
-	  fprintf(Msgfp,"#Check_FragMessage: Only AS_UBAC, AS_LBAC, or AS_BACTIG fragments allowed in an AS_UNFINISHED BAC\n");
-	  return GATEKEEPER_FAILURE;
-	}
-	break;
-      case AS_FINISHED:
-	if(frg_mesg->type != AS_FBAC &&
-	   frg_mesg->type != AS_FULLBAC &&
-           frg_mesg->type != AS_EBAC){  // modified by dewim 08/27/01
-	  printGKPError(Msgfp, GKPError_FRGWrongTypeForBAC);
-	  fprintf(Msgfp,"#Check_FragMessage: Only AS_FBAC, AS_FULLBAC allowed in an AS_FINISHED BAC\n");
-	  return GATEKEEPER_FAILURE;
-	}
-	if(frg_mesg->type == AS_FULLBAC && 
-	   locRecord.hasSequence){
-	  printGKPError(Msgfp, GKPError_FRGBacFragAlreadyDefined);
-	  fprintf(Msgfp,"#Check_FragMessage: FULLBAC fragment already defined for finished BAC " F_U64 "\n",
-		  ifg_mesg->elocale);
-	  return GATEKEEPER_FAILURE;
-	  
-	}
-	break;
-      case AS_LIGHT_SHOTGUN:
-	if(frg_mesg->type != AS_LBAC){
-	  printGKPError(Msgfp, GKPError_FRGWrongTypeForBAC);
-	  fprintf(Msgfp,"#Check_FragMessage: Only AS_LBAC fragments allowed in an AS_UNFINISHED BAC\n");
-	  return GATEKEEPER_FAILURE;
-	}
-	break;
-      default:
-	assert(0);
-      }
-
-      /* Check local_pos */
-      if(frg_mesg->type == AS_UBAC ||
-	 frg_mesg->type == AS_FBAC){
-	if(0 >  frg_mesg->locale_pos.bgn ||
-	   frg_mesg->locale_pos.bgn > frg_mesg->locale_pos.end ){
-	  printGKPError(Msgfp, GKPError_FRGLocalPos);
-	  fprintf(Msgfp,"# Check_FragMessage: Invalid locale_pos (" F_S32 "," F_S32 ")\n",
-		  frg_mesg->locale_pos.bgn, frg_mesg->locale_pos.end);
-	  return GATEKEEPER_FAILURE;
-	}
-      
-	// locale position range must equal clear range
-	if(frg_mesg->clear_rng.end - frg_mesg->clear_rng.bgn !=
-	   frg_mesg->locale_pos.end - frg_mesg->locale_pos.bgn){
-	  printGKPError(Msgfp, GKPError_FRGLocalPos);
-	  fprintf(Msgfp,"# Check_FragMessage: Locale_pos (" F_S32 "," F_S32 ") length is not equal to clear_rng (" F_S32 "," F_S32 ") length\n",
-		  frg_mesg->locale_pos.bgn, frg_mesg->locale_pos.end,
-		  frg_mesg->clear_rng.bgn, frg_mesg->clear_rng.end);
-	  return GATEKEEPER_FAILURE;
-	}
-      }
-
-
-      /* For reads with an associated bactig, check that
-	 the bactig is defined and associated with correct BAC */
-      if(frg_mesg->type == AS_UBAC ||
-	 frg_mesg->type == AS_BACTIG){
-      
-	PHashValue_AS btgValue;
-	GateKeeperBactigRecord btgRecord;
-	int lookupStatus;
-	lookupStatus = LookupTypeInPHashTable_AS(GkpStore.hashTable, 
-						 UID_NAMESPACE_AS,
-						 frg_mesg->ebactig_id,
-						 AS_IID_BTG, 
-						 FALSE,
-						 Msgfp,
-						 &btgValue);
-    
-	switch(lookupStatus){
-	case HASH_FAILURE_FOUND_BUT_DELETED:
-	case HASH_FAILURE: 
-	  printGKPError(Msgfp, GKPError_MissingBTG);
-	  fprintf(Msgfp,"# Check_FragMessage: Bactig undefined (" F_U64 ")\n",
-		  frg_mesg->ebactig_id);
-	  return GATEKEEPER_FAILURE;
-	  break;
-	case HASH_SUCCESS:
-	  ifg_mesg->ibactig_id = btgValue.IID;
-	  getGateKeeperBactigStore(GkpStore.btgStore,btgValue.IID,&btgRecord);
-	  if(btgRecord.bacID != ifg_mesg->ilocale){
-	    printGKPError(Msgfp, GKPError_FRGBactigInWrongBac);
-	    fprintf(Msgfp,"# Check_FragMessage: Bactig " F_U32 " is not in bac " F_U32 " but in " F_U32 "\n",
-		    ifg_mesg->ibactig_id, ifg_mesg->ilocale, btgRecord.bacID);
-	    return GATEKEEPER_FAILURE;
-	  }
-	  if(frg_mesg->type == AS_BACTIG && 
-	     btgRecord.hasSequence){
-	    printGKPError(Msgfp, GKPError_FRGBactigFragAlreadyDefined);
-	    fprintf(Msgfp,"#Check_FragMessage: Bactig fragment already defined for bactig " F_U64 "\n",
-		    frg_mesg->ebactig_id);
-	    return GATEKEEPER_FAILURE;
-	  
-	  }
-	  break;
-        
-	case HASH_FAILURE_FOUND_BUT_WRONG_TYPE:
-	  printGKPError(Msgfp, GKPError_MissingBTG);
-	  fprintf(Msgfp,"# Check_FragMessage: Invalid bactig " F_U64 " has been used for another data type\n",
-		  frg_mesg->ebactig_id);
-	  return GATEKEEPER_FAILURE;
-        
-	default:
-	  assert(0);
-	}
-
-
-      }
-
-      /* For reads with an associated bactig, check that
-	 the bactig is defined and associated with correct BAC */
-      if(frg_mesg->type != AS_EBAC &&
-	 frg_mesg->type != AS_LBAC  ){
-	PHashValue_AS seqValue;
-	GateKeeperSequenceRecord seqRecord;
-	int lookupStatus;
-	lookupStatus = LookupTypeInPHashTable_AS(GkpStore.hashTable, 
-						 UID_NAMESPACE_AS,
-						 frg_mesg->eseq_id,
-						 AS_IID_SEQ, 
-						 FALSE,
-						 Msgfp,
-						 &seqValue);
-    
-	switch(lookupStatus){
-	case HASH_FAILURE_FOUND_BUT_DELETED:
-	case HASH_FAILURE: 
-	  printGKPError(Msgfp, GKPError_MissingSEQ);
-	  fprintf(Msgfp,"# Check_FragMessage: Sequence undefined (" F_U64 ")\n",
-		  frg_mesg->eseq_id);
-	  return GATEKEEPER_FAILURE;
-	  break;
-	case HASH_SUCCESS:
-	  ifg_mesg->iseq_id = seqValue.IID;
-	  getGateKeeperSequenceStore(GkpStore.seqStore,seqValue.IID,&seqRecord);
-	  if(verbose == TRUE){
-	    fprintf(stderr,"* eseq_ID = " F_U64 " seqValue.IID = " F_U32 " seqrecord.localeID = " F_U32 "\n",
-		    frg_mesg->eseq_id,
-		    seqValue.IID, seqRecord.localeID);
-	  }
-	  if(seqRecord.localeID != ifg_mesg->ilocale){
-	    printGKPError(Msgfp, GKPError_FRGBacSeqMismatch);
-	    fprintf(Msgfp,"# Check_FragMessage: Sequence " F_UID
-		    " and bac " F_UID " incorrectly paired ("
-		    F_IID "," F_IID ")\n",
-		    frg_mesg->eseq_id, frg_mesg->elocale,
-                    seqRecord.localeID, ifg_mesg->ilocale);
-	    return GATEKEEPER_FAILURE;
-	  }
-	  break;
-        
-	case HASH_FAILURE_FOUND_BUT_WRONG_TYPE:
-	  printGKPError(Msgfp, GKPError_MissingSEQ);
-	  fprintf(Msgfp,"# Check_FragMessage: Invalid sequence " F_U64
-		  " has been used for another data type\n",
-		  frg_mesg->eseq_id);
-	  return GATEKEEPER_FAILURE;
-        
-	default:
-	  assert(0);
-	}
-
-
-      }
-
-
-    
-    }else{ // This makes READ processing easier later
-      // ifg_mesg->ilocale = 0;
-      frg_mesg->elocale = 0;
-    }
-  
   return GATEKEEPER_SUCCESS;
 }
 

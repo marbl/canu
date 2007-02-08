@@ -117,9 +117,6 @@ GateKeeperStats * CollectGateKeeperStats(GateKeeperStore * gkp_store)
         case AS_TRNR:
           stats->num_trnrs++;
           break;
-        case AS_EBAC:
-          stats->num_bac_ends++;
-          break;
         default:
           break;
       }
@@ -215,15 +212,6 @@ int PopulateFragment( FragMesg * f,
   f->action = AS_ADD;
   getAccID_ReadStruct( rs, &(f->eaccession) );
   getReadType_ReadStruct( rs, &(f->type) );
-  // NOTE: The locale IID is stored in the fragStore, NOT the UID
-  getLocID_ReadStruct( rs, &eilocale );
-  f->ilocale = (IntLocale_ID) eilocale;
-  // elocale is unavailable
-  // eseq_id is unavailable
-  // ebactig_id is unavailable
-  getLocalePos_ReadStruct( rs, &bgn, &end );
-  f->locale_pos.bgn = bgn;
-  f->locale_pos.end = end;
   getEntryTime_ReadStruct (rs, &(f->entry_time) );
   getClearRegion_ReadStruct( rs, &bgn, &end, READSTRUCT_LATEST );
   f->clear_rng.bgn = bgn;
@@ -231,10 +219,6 @@ int PopulateFragment( FragMesg * f,
   getSource_ReadStruct( rs, f->source, STRING_LENGTH );
   getSequence_ReadStruct( rs, f->sequence, f->quality, AS_READ_MAX_LEN );
   getReadIndex_ReadStruct( rs, &(f->iaccession) );
-  // f->screened is moot
-  // ilocale is unavailable
-  // iseq_id is unavailable
-  // ibactig_id is unavailable
   
   return 0;
 }
@@ -279,7 +263,7 @@ int PopulateFile( char * prog_name,
     adl.next = NULL;
     adl.name = prog_name;
     adl.complete = time(0);
-    adl.version = "$Revision: 1.2 $";
+    adl.version = "$Revision: 1.3 $";
     adl.comment = "Contact Ian @x3036 to report problems";
 
     gen.m = &adt;
@@ -368,34 +352,6 @@ int PopulateFile( char * prog_name,
           {
             // write fragment 1
             PopulateFragment(&frg, frg_store, gklr.frag1, rs);
-
-            if(ls->type == AS_EBAC)
-            {
-              GateKeeperLocaleRecord gkloc;
-              BacMesg bac;
-
-              bac.action = AS_ADD;
-              bac.type = AS_EBAC;
-              bac.entry_time = frg.entry_time;
-              bac.source = " ";
-              bac.num_bactigs = 0;
-              bac.bactig_list = NULL;
-              
-              if( getGateKeeperLocaleStore(gkp_store->locStore,
-                                           frg.ilocale, &gkloc))
-              {
-                fprintf( stderr,
-                         "Failed to get locale " F_IID " data from gatekeeperstore\n",
-                         frg.ilocale );
-                return 1;
-              }
-              bac.ebac_id = gkloc.UID;
-              bac.elength = ls->uid;
-
-              gen.m = &bac;
-              gen.t = MESG_BAC;
-              WriteProtoMesg_AS(fp, &gen);
-            }
 
             lkg.frag1 = frg.eaccession;
             gen.m = &frg;

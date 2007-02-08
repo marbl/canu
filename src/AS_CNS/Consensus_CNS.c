@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.36 2007-01-29 20:41:05 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.37 2007-02-08 06:48:51 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -151,7 +151,7 @@ static void
 help_message(int argc, char *argv[])
 {
     fprintf(stderr,"  Usage:\n\n"
-    "  %s [-P] [-v level] [-O BactigStoreDir] [-I] [-a [DLA]] [-X expert_options] FragStoreDir [CGWStream]\n"
+    "  %s [-P] [-v level] [-I] [-a [DLA]] [-X expert_options] FragStoreDir [CGWStream]\n"
     "\n Standard option flags:\n"
     "    -P           Force ASCII .cns output \n"
     "    -v [0-4]     Verbose:  0 = verbose off \n"
@@ -159,7 +159,6 @@ help_message(int argc, char *argv[])
     "                           2 = 'dots'     multi-alignment print in .clg\n"
     "                           3 = like 2, but dots are replaced with whitespace\n"
     "                           4 = like 1, but with unitigs in  multi-alignment print in .clg\n"
-    "    -O BtigStore Overlay Assembler mode: BactigStoreDir argument required\n"
     "    -K           don't split alleles when calling consensus\n"
     "    -N           don't output variation record to .cns file\n"
     "    -w win_size  specify the size of the 'smoothing window' that will be used in consensus calling\n"
@@ -270,7 +269,6 @@ int main (int argc, char *argv[])
     char OutputNameBuffer[FILENAME_MAX];
     char LogNameBuffer[FILENAME_MAX];
     char CamFileName[FILENAME_MAX];
-    char BactigStoreFileName[FILENAME_MAX];
     char SeqStoreFileName[FILENAME_MAX];
     char *sublist_file = NULL;
     FILE *cgwin;
@@ -292,7 +290,6 @@ int main (int argc, char *argv[])
     int extract=-1;
     int continue_at=0;
     int beyond=1;
-    int bactigs=0;
     int process_sublist=0;
     int expert=0;
     int output_override=0;
@@ -412,14 +409,6 @@ int main (int argc, char *argv[])
             fprintf(stderr,"Command line switch %c %d not supported; ignoring...\n",
                     ch,atoi(optarg)); 
           }
-          iflags++;
-          iflags++;
-          break;
-        case 'O':
-          bactigs = 1;
-          terminate_cond = 0;
-          strcpy(BactigStoreFileName, optarg);
-          ALIGNMENT_CONTEXT = AS_OVERLAY;
           iflags++;
           iflags++;
           break;
@@ -666,9 +655,6 @@ int main (int argc, char *argv[])
       }
       global_fragStorePartition = NULL;
     }
-    if (bactigs) {
-      global_bactigStore = openFragStore(BactigStoreFileName, "rb");
-    }
 
     /****************      Initialize reusable stores          ***********/
     sequenceStore = NULL;
@@ -854,16 +840,11 @@ int main (int argc, char *argv[])
     else 
     {
       unitigStore = CreateMultiAlignStoreT(0);
-      if (bactigs ) {
-        bactig_delta_length = 
-            CreateVA_int32(getLastElemFragStore(global_bactigStore));
-        bactig_deltas = CreateVA_PtrT(getLastElemFragStore(global_bactigStore));
-      }
     }
 #if 0 
     /* this may be introduced to save i/o time at contigging stage */
     sprintf(MAStoreFileName,"%s.uma",argv[optind]);
-    if (cgbout == 1 || bactigs) {
+    if (cgbout == 1) {
       unitigStore = CreateMultiAlignStoreT();
     }  else {
       umain = fopen(MAStoreFileName,"r");
@@ -885,7 +866,7 @@ int main (int argc, char *argv[])
       VA_TYPE(char) *quality=CreateVA_char(200000);
       time_t t;
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.36 $ processing. Started %s\n",
+      fprintf(stderr,"# Consensus $Revision: 1.37 $ processing. Started %s\n",
         ctime(&t));
       InitializeAlphTable();
       if ( ! align_ium && USE_SDB && extract > -1 ) 
@@ -940,7 +921,7 @@ int main (int argc, char *argv[])
         {
            MultiAlignT *ma1 = CreateMultiAlignTFromICM(&ctmp,-1,0);
            PrintMultiAlignT(cnslog,ma1,global_fragStore,global_fragStorePartition, 
-                            global_bactigStore, 1,0,READSTRUCT_LATEST);
+                            1, 0, READSTRUCT_LATEST);
            fflush(cnslog);
            DeleteVA_char(ma1->consensus);
            DeleteVA_char(ma1->quality);
@@ -1179,7 +1160,7 @@ int main (int argc, char *argv[])
             {
                 ma = CreateMultiAlignTFromICM(pcontig,-1,0);
                 PrintMultiAlignT(cnslog,ma,global_fragStore,
-                  global_fragStorePartition, global_bactigStore, 1,0,
+                  global_fragStorePartition, 1,0,
                   READSTRUCT_LATEST);
             }
             output_lengths+=GetUngappedSequenceLength(pcontig->consensus);
@@ -1236,7 +1217,7 @@ int main (int argc, char *argv[])
             {
               AuditLine auditLine;
               AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                                 "Consensus", "$Revision: 1.36 $","(empty)");
+                                 "Consensus", "$Revision: 1.37 $","(empty)");
             }
 #endif
               VersionStampADT(adt_mesg,argc,argv);
@@ -1260,7 +1241,7 @@ int main (int argc, char *argv[])
       }
 
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.36 $ Finished %s\n",ctime(&t));
+      fprintf(stderr,"# Consensus $Revision: 1.37 $ Finished %s\n",ctime(&t));
       if (printcns) 
       {
         int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 

@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: Array_CNS.c,v 1.8 2007-01-28 21:52:24 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Array_CNS.c,v 1.9 2007-02-08 06:48:51 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -134,7 +134,6 @@ int IMP2Array(IntMultiPos *all_frags,
 	      int length, 
 	      FragStoreHandle frag_store, 
               tFragStorePartition *pfrag_store,
-              FragStoreHandle bactig_store, 
 	      int *depth, 
 	      char ***array, 
 	      int ***id_array,
@@ -157,9 +156,6 @@ int IMP2Array(IntMultiPos *all_frags,
   lane_depth = ESTDEPTH; 
   Packed = (VA_TYPE(Lane) *) CreateVA_Lane(lane_depth);
   frag.action = AS_ADD;
-  frag.elocale = 0;
-  frag.locale_pos.bgn = 0;
-  frag.locale_pos.end = 0;
   frag.entry_time = 0;
   frag.source = NULL;
   null_lane.first=NULL;
@@ -174,15 +170,10 @@ int IMP2Array(IntMultiPos *all_frags,
   next_lane=0;
   for (i=0;i<num_pieces;i++) {
     new_mlp = createLaneNode(&all_frags[i]); 
-    if ( all_frags[i].type == AS_BACTIG ) {
-      // assuming for now that bactig store is NOT partitioned. Change later if required
-      getFragStore(bactig_store,all_frags[i].ident,FRAG_S_ALL,fsread);
+    if ( frag_store != NULLFRAGSTOREHANDLE ) {
+      getFragStore(frag_store,all_frags[i].ident,FRAG_S_ALL,fsread);
     } else {
-      if ( frag_store != NULLFRAGSTOREHANDLE ) {
-        getFragStore(frag_store,all_frags[i].ident,FRAG_S_ALL,fsread);
-      } else {
-        getFragStorePartition(pfrag_store,all_frags[i].ident,FRAG_S_ALL,fsread);
-      }
+      getFragStorePartition(pfrag_store,all_frags[i].ident,FRAG_S_ALL,fsread);
     }
     getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end,clrrng_flag);
     new_mlp->read_length = getSequence_ReadStruct(fsread, NULL, NULL, 0);
@@ -361,11 +352,10 @@ int IMP2Array(IntMultiPos *all_frags,
 }
 
 int MultiAlignT2Array(MultiAlignT *ma, FragStoreHandle frag_store, tFragStorePartition *pfrag_store,
-                       FragStoreHandle bactig_store,
                       int *depth, char ***multia, int *** id_array,int ***ori_array,uint32 clrrng_flag){
   IntMultiPos *frags=GetIntMultiPos(ma->f_list,0);
   int num_frags=GetNumIntMultiPoss(ma->f_list);
   int length=GetNumchars(ma->consensus);
-  int rc=IMP2Array(frags,num_frags,length,frag_store,pfrag_store,bactig_store, depth,multia,id_array,ori_array,0,clrrng_flag);
+  int rc=IMP2Array(frags,num_frags,length,frag_store,pfrag_store, depth,multia,id_array,ori_array,0,clrrng_flag);
   return rc; 
 }

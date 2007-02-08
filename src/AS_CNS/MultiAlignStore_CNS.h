@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: MultiAlignStore_CNS.h,v 1.6 2006-10-08 08:47:39 brianwalenz Exp $	 */
+/* 	$Id: MultiAlignStore_CNS.h,v 1.7 2007-02-08 06:48:51 brianwalenz Exp $	 */
 #ifndef MULTIALIGNSTORE_H
 #define MULTIALIGNSTORE_H
 
@@ -130,8 +130,13 @@ static int32 GetReferenceCountMultiAlignT(MultiAlignT *ma){
 
 // Clone
 MultiAlignStoreT *CloneMultiAlignStoreT(MultiAlignStoreT *original);
-int PrintMultiAlignT(FILE *out,MultiAlignT *ma,  FragStoreHandle frag_store,tFragStorePartition *pfrag_store,
-                     FragStoreHandle bactig_store,int show_qv, int dots,uint32 clrrng_flag);
+int PrintMultiAlignT(FILE *out,
+                     MultiAlignT *ma,
+                     FragStoreHandle frag_store,
+                     tFragStorePartition *pfrag_store,
+                     int show_qv,
+                     int dots,
+                     uint32 clrrng_flag);
 
 int GetCoverageInMultiAlignT(MultiAlignT *ma, SeqInterval range,
                 VA_TYPE(int) *coverage, int includeExternal);
@@ -140,8 +145,11 @@ int GetCoverageInMultiAlignT(MultiAlignT *ma, SeqInterval range,
 void SetMultiAlignInStore(MultiAlignStoreT *multiAlignStore, int index, MultiAlignT *multiAlign);
 MultiAlignT *GetMultiAlignInStore(MultiAlignStoreT *multiAlignStore,  int index);
 size_t RemoveMultiAlignFromStore(MultiAlignStoreT *mas, int index);
-void CollectStats(MultiAlignT *ma, FragStoreHandle frag_store, 
-       FragStoreHandle bactig_store, FILE *column_stats, FILE *frag_stats,uint32 clrrng_flag);
+void CollectStats(MultiAlignT *ma,
+                  FragStoreHandle frag_store, 
+                  FILE *column_stats,
+                  FILE *frag_stats,
+                  uint32 clrrng_flag);
 
 static int32 GetNumMultiAlignsInStore(MultiAlignStoreT *multiAlignStore){
   return GetNumPtrTs(multiAlignStore->multiAligns);

@@ -26,8 +26,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_driver_common.h,v 1.10 2007-01-29 20:41:16 brianwalenz Exp $
- * $Revision: 1.10 $
+ * $Id: AS_OVL_driver_common.h,v 1.11 2007-02-08 06:48:53 brianwalenz Exp $
+ * $Revision: 1.11 $
 */
 
 
@@ -833,8 +833,6 @@ static int  ReadFrags
             setEntryTime_ReadStruct(myRead, ofg_mesg.entry_time);
 	    // These clear ranges are the original ones, not OVL-modified.
             setClearRegion_ReadStruct(myRead, ofg_mesg.clear_rng.bgn, ofg_mesg.clear_rng.end, READSTRUCT_ORIGINAL);  
-            setLocalePos_ReadStruct(myRead,ofg_mesg.locale_pos.bgn, ofg_mesg.locale_pos.end);
-            setLocID_ReadStruct(myRead,ofg_mesg.ilocale);
             total_len += ofg_mesg.clear_rng.end - ofg_mesg.clear_rng.bgn;
 
             appendFragStore(store, myRead);

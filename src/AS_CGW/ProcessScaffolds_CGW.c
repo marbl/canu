@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: ProcessScaffolds_CGW.c,v 1.14 2007-02-03 07:06:27 brianwalenz Exp $ */
+/* $Id: ProcessScaffolds_CGW.c,v 1.15 2007-02-08 06:48:50 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -104,7 +104,6 @@ static  char  * Colour_String [NUM_COLOURS]
 #define CONTIG_ROW 1
 #define DUNIQUE_ROW 3
 #define PLACED_ROW 3
-#define BACTIG_ROW 14
 #define FRAG_ROW 16
 FILE *fastaFile;
 FILE *fastaDregsFile;
@@ -210,8 +209,6 @@ static void DumpCelamyColors(FILE *file){
             Colors[4]);
     fprintf(file, "1FragColor: %s T1 S # CeleraRead\n",
             Colors[1]);
-    fprintf(file, "2FragColor: %s T1 S # EBAC\n",
-            Colors[12]);
     fprintf(file, "3FragColor: %s T1 S # OtherGuides\n",
             Colors[3]);
     fprintf(file, "4FragColor: %s T1 S # ShreddedBacFrag\n",
@@ -224,14 +221,10 @@ static void DumpCelamyColors(FILE *file){
 static int ComputeCIRow(IntUnitigPos *ci){
   if(ci->type == AS_UNIQUE_UNITIG)
     return DUNIQUE_ROW;
-  //else
   return PLACED_ROW;
 }
 
 static int ComputeFragRow(IntMultiPos *fi){
-  if(fi->type == AS_BACTIG)
-    return BACTIG_ROW;
-  //else
   return FRAG_ROW;
 }
 
@@ -263,23 +256,10 @@ static int ComputeCIColor(IntUnitigPos *ci) {
 static int ComputeFragColor(IntMultiPos *fi) {
   int color;
   switch (fi->type) {
-    case AS_BACTIG:
-      color = 0;
-      break;
     case AS_READ:
     case AS_EXTR:
     case AS_TRNR:
       color = 1;
-      break;
-    case AS_EBAC:
-      color = 2;
-      break;
-    case AS_LBAC:
-      color = 3;
-      break;
-    case AS_UBAC:
-    case AS_FBAC:
-      color = 4;
       break;
     default:
       fprintf(stderr,"Invalid FragType %d\n",fi->type);
@@ -362,32 +342,18 @@ int CelamyContig(FILE *out, CDS_IID_t scaffid, CDS_IID_t contigid, int reverse) 
     coord_start = NULL;
     buffer[0] = '\0';
     if (show_uids) {
-      if (frag->type == AS_BACTIG ) {
-        getFragStore(bactig_store,frag->ident,FRAG_S_FIXED,rsp);
-      } else {
-        getFragStore(frag_store,frag->ident,FRAG_S_FIXED,rsp);
-      }
+      getFragStore(frag_store,frag->ident,FRAG_S_FIXED,rsp);
       getAccID_ReadStruct(rsp, &fuid);
     } else {
       fuid = 0;
     }
-    if ( frag->type == AS_BACTIG ) {
-      fprintf(out,F_IID "CtgBFrag" F_IID ": " F_COORD " A%dFragColor " F_COORD " R%d # Contig " F_IID " Frag " F_IID " (" F_UID ",%c)%s\n",
-              contigid, frag->ident,
-              ci_leftcoord,
-              ComputeFragColor(frag),
-              ci_rightcoord,
-              ComputeFragRow(frag),
-              contigid, frag->ident,fuid,frag->type,buffer);
-    } else {
-      fprintf(out,F_IID "CtgFrag" F_IID ": " F_COORD " A%dFragColor " F_COORD " R%d # Contig " F_IID " Frag " F_IID " (" F_UID ",%c)%s\n",
-              contigid, frag->ident,
-              ci_leftcoord,
-              ComputeFragColor(frag),
-              ci_rightcoord,
-              ComputeFragRow(frag),
-              contigid, frag->ident,fuid,frag->type,buffer);
-    }
+    fprintf(out,F_IID "CtgFrag" F_IID ": " F_COORD " A%dFragColor " F_COORD " R%d # Contig " F_IID " Frag " F_IID " (" F_UID ",%c)%s\n",
+            contigid, frag->ident,
+            ci_leftcoord,
+            ComputeFragColor(frag),
+            ci_rightcoord,
+            ComputeFragRow(frag),
+            contigid, frag->ident,fuid,frag->type,buffer);
   }
   global_coord=rightcoord;
   delete_ReadStruct(rsp);

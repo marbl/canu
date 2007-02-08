@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: PopulateFragStore.c,v 1.10 2007-01-29 20:41:20 brianwalenz Exp $";
+static char CM_ID[] = "$Id: PopulateFragStore.c,v 1.11 2007-02-08 06:48:54 brianwalenz Exp $";
 
 /*************************************************
 * Module:  PopulateFragStore.c
@@ -649,8 +649,6 @@ static int  ReadFrags(int maxFrags,
               setSource_ReadStruct(myRead, ifg_mesg->source);
               setEntryTime_ReadStruct(myRead, ofg_mesg.entry_time);
               setClearRegion_ReadStruct(myRead, ofg_mesg.clear_rng.bgn, ofg_mesg.clear_rng.end, READSTRUCT_ORIGINAL);
-              setLocalePos_ReadStruct(myRead,ofg_mesg.locale_pos.bgn, ofg_mesg.locale_pos.end);
-              setLocID_ReadStruct(myRead,ofg_mesg.ilocale);
               total_len += ofg_mesg.clear_rng.end - ofg_mesg.clear_rng.bgn;;
 
               appendFragStore(newFragStore, myRead);

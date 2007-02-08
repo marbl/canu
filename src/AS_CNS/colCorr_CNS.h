@@ -34,8 +34,8 @@ typedef struct{
   int corr;
 } ColumnCorrelationT;
 
-ColumnCorrelationT *test_correlated_columns(MultiAlignT* ma, 
-					    FragStoreHandle handle,
+ColumnCorrelationT *test_correlated_columns(MultiAlignT         *ma, 
+					    FragStoreHandle      handle,
 					    tFragStorePartition *pfraghandle);
 
 #endif

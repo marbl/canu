@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* All of the CGW celamy stuff is here */
-static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.8 2006-11-14 19:58:21 eliv Exp $";
+static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.9 2007-02-08 06:48:50 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -146,55 +146,12 @@ static void OrderScaffoldsForOutput(CIScaffoldT **scaffoldOrder,
 #define REALCONTIG_ROW 7
 #define UNPLACED_ROW 6
 
-static VA_TYPE(CDS_UID_t) *BactigUIDs = NULL;
-static VA_TYPE(CDS_CID_t) *BactigBacIDs = NULL;
-
 
 static CIFragT * getFragByIID(ScaffoldGraphT * graph,
                               CDS_CID_t iid)
 {
   InfoByIID * info = GetInfoByIID(graph->iidToFragIndex, iid);
   return(GetCIFragT(graph->CIFrags, info->fragIndex));
-}
-
-static void LoadBactigUIDs(void){
-  int numBactigs = getNumGateKeeperBactigs(ScaffoldGraph->gkpStore.btgStore);
-  int i;
-  char tmpfile[1024];
-  FILE *locmap;
-
-  if(BactigUIDs){ // only do this once!
-    return;
-  }
-  fprintf(stderr,"*LoadBactigUIDs for %d bactigs\n", numBactigs);
-  fflush(stderr);
-
-  sprintf(tmpfile,"%s.lmp",GlobalData->File_Name_Prefix); // locale map file
-  locmap = fopen(tmpfile,"w");
-
-
-  BactigUIDs = CreateVA_CDS_UID_t(numBactigs+1);
-  BactigBacIDs = CreateVA_CDS_CID_t(numBactigs+1);
-  for(i = 1; i <= numBactigs; i++){
-    GateKeeperBactigRecord gkpbtg;
-    getGateKeeperBactigStore(ScaffoldGraph->gkpStore.btgStore, i, &gkpbtg);
-    if(gkpbtg.UID){
-      SetVA_CDS_UID_t(BactigUIDs, i, &gkpbtg.UID);
-      SetVA_CDS_CID_t(BactigBacIDs, i, (CDS_CID_t *)&gkpbtg.bacID);
-      fprintf(locmap," %d " F_UID "\n",i,gkpbtg.UID);
-    }else{
-      GateKeeperLocaleRecord gkploc;
-      SetVA_CDS_CID_t(BactigBacIDs, i, (CDS_CID_t *)&gkpbtg.bacID);
-
-      getGateKeeperLocaleStore(ScaffoldGraph->gkpStore.locStore, gkpbtg.bacID, &gkploc);
-      SetVA_CDS_UID_t(BactigUIDs, i, &gkploc.UID);
-      fprintf(locmap," %d " F_UID "\n",i,gkploc.UID);
-    }
-
-  }
-  fprintf(stderr,"*DONE with LoadBactigUIDs for %d bactigs\n", numBactigs);
-  fflush(stderr);
-  fclose(locmap);
 }
 
 
@@ -415,8 +372,6 @@ void OrderScaffoldsForOutput(CIScaffoldT **scaffoldOrder,
   }
 }
 
-static HashTable_AS * BactigSet = NULL;
-
 /* CelamyOrderedScaffolds
    Iterate through the scaffolds and generate celamy output
 */
@@ -428,14 +383,6 @@ void CelamyOrderedScaffolds(FILE *fout,  FILE *fdregs,
   CDS_CID_t i;
 
 
-  if(!BactigSet){
-    BactigSet = CreateHashTable_int32_AS(100);
-  }
-#ifdef ANNOTATED_CELAMY_OUTPUT
-  if(GlobalData->annotateUnitigs){
-    LoadBactigUIDs();
-  }
-#endif
   for(i = 0; i < numScaffolds ;i++){
     CIScaffoldT *scaffold = scaffoldOrder[i];
     if(!scaffold)
@@ -691,11 +638,7 @@ void draw_frags_in_contig_for_CelamyScaffold(FILE *fout, ContigT *ctg, int globa
       sprintf(buffer,"");
     }
     if (show_uids) {
-      if (frag->type == AS_BACTIG ) {
-        getFragStore(bactig_store,frag->ident,FRAG_S_FIXED,rsp);
-      } else {
-        getFragStore(frag_store,frag->ident,FRAG_S_FIXED,rsp);
-      }
+      getFragStore(frag_store,frag->ident,FRAG_S_FIXED,rsp);
       getAccID_ReadStruct(rsp, &fuid);
     } else {
       fuid = 0;
@@ -844,15 +787,6 @@ void CelamyScaffold(FILE *fout, CIScaffoldT *scaffold,
       
 
       num_frags = 0;
-#ifdef ANNOTATED_CELAMY_OUTPUT
-      if(GlobalData->annotateUnitigs){
-        if(ci->flags.bits.includesFinishedBacFragments && !ci->flags.bits.isSurrogate){
-          ci_ma  = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, cid, TRUE);
-          num_frags =GetNumIntMultiPoss(ci_ma->f_list);
-          ResetHashTable_AS(BactigSet);
-        }
-      }
-#endif
       if(scaffoldReversed ^ contigReversed){
         ciACoord = contigMax - MAX((int64)ci->offsetAEnd.mean, (int64)ci->offsetBEnd.mean);
         ciBCoord = contigMax - MIN((int64)ci->offsetAEnd.mean, (int64)ci->offsetBEnd.mean);
@@ -896,27 +830,6 @@ void CelamyScaffold(FILE *fout, CIScaffoldT *scaffold,
 #ifdef ANNOTATED_CELAMY_OUTPUT
       if(GlobalData->annotateUnitigs && num_frags > 0 && ci_ma){
         frag = GetIntMultiPos(ci_ma->f_list,0); 
-        for (fi = 0;fi<num_frags;fi++){
-          switch ( frag[fi].type ) {
-            case AS_UBAC:
-            case AS_FBAC:
-              ci_frag = GetCIFragT(ScaffoldGraph->CIFrags, (CDS_CID_t)frag[fi].sourceInt);
-              if (ci_frag->locale >= 0) {
-                CDS_CID_t *bacID;
-
-                // We've already seen this one
-                if(0 == InsertInHashTable_AS(BactigSet,(void *)(&ci_frag->locale), sizeof(CDS_CID_t), NULL))
-                  continue;
-
-                bacID = GetVA_CDS_CID_t(BactigBacIDs, ci_frag->locale);
-                fprintf(fout,"%cBactig (" F_CID "," F_CID ") ",frag[fi].type,*bacID, ci_frag->locale);
-
-              }
-              break;
-            default:
-              {}
-          }
-        }
         if(ci_ma){ // if we loaded it, unload it...
           UnloadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, cid, TRUE);
         }

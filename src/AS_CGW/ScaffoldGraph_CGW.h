@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ScaffoldGraph_CGW.h,v 1.11 2006-10-16 03:30:14 brianwalenz Exp $	 */
+/* 	$Id: ScaffoldGraph_CGW.h,v 1.12 2007-02-08 06:48:50 brianwalenz Exp $	 */
 /***************************************************************************
  *  ScaffoldGraph
  *  
@@ -580,9 +580,6 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]);
 // Handle ADT only
 int ProcessInputADT(Global_CGW *data, FILE *infp, int argc, char **argv);
 
-// Load locale info from fragStore
-void  LoadLocaleData(void);
-
 // Load dist info from gkpStore
 void  LoadDistData(void);
 
@@ -631,5 +628,8 @@ void DemoteSmallSingletonScaffolds(void);
 
 void PrintSEdgesForScaffold(ScaffoldGraphT * graph,
                             CIScaffoldT * scaffold);
+
+void DeleteScaffoldEdgesForScaffold(ScaffoldGraphT * graph,
+                                    CIScaffoldT * scaffold);
 
 #endif

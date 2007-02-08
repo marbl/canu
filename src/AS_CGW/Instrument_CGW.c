@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.14 2007-02-03 07:06:27 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.15 2007-02-08 06:48:50 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -424,8 +424,6 @@ void FreeInstrumenterBookkeeping(InstrumenterBookkeeping * bk)
         DeleteVA_CDS_CID_t(bk->fragArray);
       if(bk->wExtMates)
         DeleteVA_MateDetail(bk->wExtMates);
-      if(bk->localeHT)
-        DeleteHashTable_AS(bk->localeHT);
     }
 }
 
@@ -645,7 +643,6 @@ int InitializeMateStatusPositionsSet(MateStatusPositionsSet * msps)
 void ResetMateStats(MateStats * ms)
 {
   ms->reads = 0;
-  ms->bacEnds = 0;
   ms->externalReads = 0;
   ms->externalFrags = 0;
 }
@@ -869,14 +866,11 @@ int InitializeInstrumenterBookkeeping(ScaffoldGraphT * graph,
 {
   cds_int32 numFrags = 0;
   cds_int32 numWithExternalMates = 0;
-  cds_int32 numLocales = 0;
 
   if(bk->fragHT == NULL ||
      bk->fragArray == NULL ||
-     bk->wExtMates == NULL ||
-     bk->localeHT == NULL)
+     bk->wExtMates == NULL)
     {
-      numLocales = MAX(1, getNumGateKeeperLocales(graph->gkpStore.locStore));
 
 #define LARGEST_TO_MEAN_RATIO   5.f
     
@@ -970,21 +964,6 @@ int InitializeInstrumenterBookkeeping(ScaffoldGraphT * graph,
       ResetVA_MateDetail(bk->wExtMates);
     }
 
-  if(bk->localeHT == NULL)
-    {
-      bk->localeHT = CreateHashTable_AS(numLocales,
-                                        InstrumenterHashFn,
-                                        InstrumenterIDCompareFn);
-      if(bk->localeHT == NULL)
-        {
-          fprintf(stderr, "Failed to allocate locale hashtable\n");
-          return 1;
-        }
-    }
-  else
-    {
-      ResetHashTable_AS(bk->localeHT);
-    }
   return 0;
 }
 
@@ -996,8 +975,7 @@ int InitializeUnitigInstrumenter(ScaffoldGraphT * graph,
   ui->isSurrogate = 0;
   ui->leftEnd = ui->rightEnd = ui->orientation = 0;
 
-  ui->numReads = ui->numExtReads =
-    ui->numBacEnds = ui->numExtFrags = 0;
+  ui->numReads = ui->numExtReads = ui->numExtFrags = 0;
 
   ui->mates.options = ui->options;
   if(InitializeMateInstrumenter(graph, &(ui->mates)))
@@ -1074,8 +1052,7 @@ int InitializeContigInstrumenter(ScaffoldGraphT * graph,
       ResetVA_cds_float32(ci->surrogateSizes);
     }
   
-  ci->numReads = ci->numExtReads =
-    ci->numBacEnds = ci->numExtFrags = 0;
+  ci->numReads = ci->numExtReads = ci->numExtFrags = 0;
 
   // initialize unitig instrumenters
   ci->reusableUI.options = ci->options;
@@ -2157,9 +2134,6 @@ void AddFragDetailsToMateStats(MateStats * ms,
           case AS_TRNR:
             ms->reads++;
             break;
-          case AS_EBAC:
-            ms->bacEnds++;
-            break;
           case AS_EXTR:
             ms->externalReads++;
             break;
@@ -2182,9 +2156,6 @@ void AddMateDetailsToMateStatsSet(MateStats * ms, VA_TYPE(MateDetail) * mda)
           case AS_READ:
           case AS_TRNR:
             ms->reads++;
-            break;
-          case AS_EBAC:
-            ms->bacEnds++;
             break;
           case AS_EXTR:
             ms->externalReads++;
@@ -2367,18 +2338,6 @@ void PrintFragment(CIFragT * frag, CDS_CID_t index, FILE * printTo)
         break;
       case AS_TRNR:
         fprintf(printTo, "  type: AS_TRNR; ");
-        break;
-      case AS_EBAC:
-        fprintf(printTo, "  type: AS_EBAC; ");
-        break;
-      case AS_LBAC:
-        fprintf(printTo, "  type: AS_LBAC; ");
-        break;
-      case AS_UBAC:
-        fprintf(printTo, "  type: AS_UBAC; ");
-        break;
-      case AS_FBAC:
-        fprintf(printTo, "  type: AS_FBAC; ");
         break;
       default:
         fprintf(printTo, "  type: -other-; ");
@@ -2653,7 +2612,7 @@ void PrintMateComparison(cds_int32 numBefore,
 
 cds_int32 GetMateStatsSum(MateStats * ms)
 {
-  return(ms->reads + ms->bacEnds + ms->externalReads + ms->externalFrags);
+  return(ms->reads + ms->externalReads + ms->externalFrags);
 }
 
 
@@ -2704,22 +2663,6 @@ void PrintMateStatsSet(MateStatsSet * mss,
   /*
     fprintf(printTo, "%s\t%10d %s-%s read mates\n",
     prefix, mss->inter.reads, otherRelation, unit);
-  */
-
-  fprintf(printTo, "%sBAC ends:\n", prefix);
-  fprintf(printTo, "%s\t%10d happy %s-%s mate pairs\n",
-          prefix, mss->happy.bacEnds, relation, unit);
-  fprintf(printTo, "%s\t%10d mis-oriented %s-%s mate pairs\n",
-          prefix, mss->misoriented.bacEnds, relation, unit);
-  fprintf(printTo,
-          "%s\t%10d mis-separated too close %s-%s mate pairs\n",
-          prefix, mss->misseparatedClose.bacEnds, relation, unit);
-  fprintf(printTo,
-          "%s\t%10d mis-separated too far %s-%s mate pairs\n",
-          prefix, mss->misseparatedFar.bacEnds, relation, unit);
-  /*
-    fprintf(printTo, "%s\t%10d %s-%s mates\n",
-    prefix, mss->inter.bacEnds, otherRelation, unit);
   */
 
   fprintf(printTo, "%sExternal reads:\n", prefix);
@@ -2791,7 +2734,6 @@ void PrintMateInstrumenter(MateInstrumenter * mi,
   // print mateless
   fprintf(printTo, "%sMateless:\n", prefix);
   fprintf(printTo, "%s\t%10d reads\n", prefix, mi->mateless.reads);
-  fprintf(printTo, "%s\t%10d BAC ends\n", prefix, mi->mateless.bacEnds);
   fprintf(printTo, "%s\t%10d external reads\n",
           prefix, mi->mateless.externalReads);
   fprintf(printTo, "%s\t%10d external frags\n",
@@ -2805,16 +2747,6 @@ void PrintInstrumenterBookkeeping(InstrumenterBookkeeping * bk,
                                   char * prefix,
                                   FILE * printTo)
 {
-  fprintf(printTo, "%s%d fragments with external mates\n",
-          prefix, (int) GetNumVA_MateDetail(bk->wExtMates));
-  // need to determine number of locales in localeHT
-  fprintf(printTo, "\n%s%d locales\n", prefix, bk->localeHT->numNodes);
-
-  if(printMissingMates)
-    {
-      fprintf(printTo, "%sList of fragments with missing mates:\n", prefix);
-      PrintMateDetailsAndDists(ScaffoldGraph, bk->wExtMates, prefix, printTo);
-    }
 }
 
 
@@ -2893,9 +2825,8 @@ void PrintUnitigInstrumenter(ScaffoldGraphT * graph,
     }
   
   fprintf(printTo,
-          "\n%s%d reads, %d BAC ends, %d external reads, %d external frags\n",
-          prefix, ui->numReads, ui->numBacEnds,
-          ui->numExtReads, ui->numExtFrags);
+          "\n%s%d reads, %d external reads, %d external frags\n",
+          prefix, ui->numReads, ui->numExtReads, ui->numExtFrags);
 
   fprintf(printTo, "\n%sMate summary:\n", prefix);
   PrintMateInstrumenter(&(ui->mates), InstrumenterUnitigLevel,
@@ -2974,9 +2905,8 @@ void PrintContigInstrumenter(ScaffoldGraphT * graph,
   PrintInstrumenterStats(&(ci->surrogateSizeStats), prefix, printTo);
 
   fprintf(printTo,
-          "\n%s%d reads, %d BAC ends, %d external reads, %d external frags\n",
-          prefix, ci->numReads, ci->numBacEnds,
-          ci->numExtReads, ci->numExtFrags);
+          "\n%s%d reads, %d external reads, %d external frags\n",
+          prefix, ci->numReads, ci->numExtReads, ci->numExtFrags);
 
   fprintf(printTo, "\n%sMate summary:\n", prefix);
   PrintMateInstrumenter(&(ci->mates), InstrumenterContigLevel,
@@ -3237,7 +3167,6 @@ void CopyMateStats(MateStats * dest,
                    MateStats * src)
 {
   dest->reads = src->reads;
-  dest->bacEnds = src->bacEnds;
   dest->externalReads = src->externalReads;
   dest->externalFrags = src->externalFrags;
 }
@@ -3440,33 +3369,6 @@ int AddInstrumenterBookkeeping(ScaffoldGraphT * graph,
             }
         }
     }
-
-  {
-    HashTable_Iterator_AS iterator;
-    void * key;
-    void * value;
-    
-    InitializeHashTable_Iterator_AS(src->localeHT, &iterator);
-    while(NextHashTable_Iterator_AS(&iterator, &key, &value) == HASH_SUCCESS)
-      {
-        if(key == NULL || value == NULL)
-          continue;
-        if(! LookupInHashTable_AS(dest->localeHT,
-                                  key,
-                                  sizeof(CDS_CID_t)))
-          {
-            if(InsertInHashTable_AS(dest->localeHT,
-                                    key,
-                                    sizeof(CDS_CID_t),
-                                    value) ==
-               HASH_FAILURE)
-              {
-                fprintf(stderr, "Failed to insert locale into hashtable.\n");
-                return 1;
-              }
-          }
-      }
-  }
   return 0;
 }
 
@@ -3480,7 +3382,6 @@ int AddUnitigInstrumenters(ScaffoldGraphT * graph,
 #endif
   
   dest->numReads += src->numReads;
-  dest->numBacEnds += src->numBacEnds;
   dest->numExtReads += src->numExtReads;
   dest->numExtFrags += src->numExtFrags;
 
@@ -3515,7 +3416,6 @@ int AddUnitigToContigInstrumenter(ScaffoldGraphT * graph,
   }
 
   ci->numReads += ui->numReads;
-  ci->numBacEnds += ui->numBacEnds;
   ci->numExtReads += ui->numExtReads;
   ci->numExtFrags += ui->numExtFrags;
   
@@ -3555,7 +3455,6 @@ int AddContigInstrumenters(ScaffoldGraphT * graph,
     }
 
   dest->numReads += src->numReads;
-  dest->numBacEnds += src->numBacEnds;
   dest->numExtReads += src->numExtReads;
   dest->numExtFrags += src->numExtFrags;
 
@@ -3609,7 +3508,6 @@ int AddContigToScaffoldInstrumenter(ScaffoldGraphT * graph,
 void AddMateStats(MateStats * dest, MateStats * src)
 {
   dest->reads += src->reads;
-  dest->bacEnds += src->bacEnds;
   dest->externalReads += src->externalReads;
   dest->externalFrags += src->externalFrags;
 }
@@ -4106,15 +4004,11 @@ int AddFragmentToUnitigInstrumenter(ScaffoldGraphT * graph,
       case AS_READ:
       case AS_EXTR:
       case AS_TRNR:
-      case AS_EBAC:
-      case AS_LBAC:
         {
           ui->numReads +=
             (frag->type == AS_READ ||
              frag->type == AS_TRNR) ? 1 : 0;
-          ui->numBacEnds += (frag->type == AS_EBAC) ? 1 : 0;
           ui->numExtReads += (frag->type == AS_EXTR) ? 1 : 0;
-          ui->numExtFrags += (frag->type == AS_LBAC) ? 1 : 0;
 
           if(frag->mateOf != NULLINDEX)
             {
@@ -4143,25 +4037,6 @@ int AddFragmentToUnitigInstrumenter(ScaffoldGraphT * graph,
               AppendVA_FragDetail(ui->mates.noMate, &fragDetail);
             }
         }
-        break;
-      case AS_UBAC:
-      case AS_FBAC:
-        // AS_LBAC is handled above, since it can have mates
-        ui->numExtFrags++;
-        if(! LookupInHashTable_AS(ui->bookkeeping.localeHT,
-                                  (void *) &(frag->locale),
-                                  sizeof(CDS_CID_t)))
-          {
-            if(InsertInHashTable_AS(ui->bookkeeping.localeHT,
-                                    (void *) &(frag->locale),
-                                    sizeof(CDS_CID_t),
-                                    (void *) &(frag->locale)) ==
-               HASH_FAILURE)
-              {
-                fprintf(stderr, "Failed to insert locale into hashtable.\n");
-                return 1;
-              }
-          }
         break;
       default:
         fprintf(stderr, "Unknown fragment type %c encountered\n",
@@ -5241,7 +5116,6 @@ int InstrumentUnitig(ScaffoldGraphT * graph,
    count type
    if read or bac end & has mate, add to fragHT.
    if in surrogate, add to surrogateFragHT & surrogateFragLocs
-   if f/l/ubac add locale to localeHT
        
    after all unitigs have been processed,
    

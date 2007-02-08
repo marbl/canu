@@ -290,8 +290,7 @@ void PrintFragmentScaffoldCoordinates(AssemblyStore * asmStore,
                                          i, &iterator);
       while(NextGateKeeperLinkRecordIterator(&iterator, &lkg))
       {
-        if(lkg.type == AS_MATE ||
-           lkg.type == AS_BAC_GUIDE)
+        if(lkg.type == AS_MATE)
         {
           ASM_MDIRecord mdi;
           ASM_AFGRecord afg2;
@@ -1368,8 +1367,7 @@ void AddContigFragmentsToCloneData(AssemblyStore * asmStore,
       while(NextGateKeeperLinkRecordIterator(&iterator, &lkg))
       {
         // ignore non-clone type links
-        if(lkg.type == AS_MATE ||
-           lkg.type == AS_BAC_GUIDE)
+        if(lkg.type == AS_MATE)
         {
           // get the mate record
           iid2 = (lkg.frag1 == iid1) ? lkg.frag2 : lkg.frag1;
@@ -2687,8 +2685,7 @@ void PrintChromosomeElsewheres(AssemblyStore * asmStore,
                                          nextIndex, &iterator);
       while(NextGateKeeperLinkRecordIterator(&iterator, &lkg))
       {
-        if(lkg.type == AS_MATE ||
-           lkg.type == AS_BAC_GUIDE)
+        if(lkg.type == AS_MATE)
         {
           ASM_MDIRecord mdi;
           ASM_AFGRecord afg2;
@@ -2773,8 +2770,7 @@ void PrintScaffoldElsewheres(AssemblyStore * asmStore,
         while(NextGateKeeperLinkRecordIterator(&iterator, &lkg))
         {
           // ignore non-clone type links
-          if(lkg.type == AS_MATE ||
-             lkg.type == AS_BAC_GUIDE)
+          if(lkg.type == AS_MATE)
           {
             // get the mate record
             ASM_IIDRecord iid2;
@@ -2824,73 +2820,6 @@ void PrintScaffoldElsewheres(AssemblyStore * asmStore,
 }
 
 
-void PrintBACFragCloneIntervals(AssemblyStore * asmStore,
-                                MapStore * mapStore,
-                                Scaffold_ID containerUID)
-{
-  ASM_CHRRecord chr;
-  ASM_AFGRecord afg1;
-  ASM_InstanceRecord ins1;
-  PHashValue_AS value;
-  ASM_LKGRecord lkg;
-  GateKeeperLinkRecordIterator iterator;
-  int nextIndex;
-  int chrIndex;
-  char fname[1024];
-  FILE * fp;
-
-  if(HASH_FAILURE == LookupInPHashTable_AS(mapStore->hashTable,
-                                           ASM_UID_NAMESPACE,
-                                           containerUID,
-                                           &value))
-  {
-    fprintf(stderr, "Failed to lookup " F_UID " in hashtable\n", containerUID);
-    assert(0);
-  }
-  chrIndex = value.IID;
-  getASM_CHRStore(mapStore->chrStore, chrIndex, &chr);
-
-  sprintf(fname, "%03d.bfis.txt", chrIndex - 1);
-  fp = fopen(fname, "w");
-  
-  nextIndex = chr.firstFrag;
-  while(nextIndex != 0)
-  {
-    getASM_InstanceStore(mapStore->finStore, nextIndex, &ins1);
-    getASM_AFGStore(asmStore->afgStore, nextIndex, &afg1);
-    assert(ins1.containerIndex == chrIndex);
-    
-    // look up mate
-    if(afg1.numLinks > 0)
-    {
-      CreateGateKeeperLinkRecordIterator(asmStore->lkgStore, afg1.linkHead,
-                                         nextIndex, &iterator);
-      while(NextGateKeeperLinkRecordIterator(&iterator, &lkg))
-      {
-        if(lkg.type == AS_BAC_GUIDE)
-        {
-          ASM_MDIRecord mdi;
-          getASM_MDIStore(asmStore->mdiStore, lkg.distance, &mdi);
-
-          if(ins1.pos.bgn < ins1.pos.end)
-          {
-            fprintf(fp, F_COORD " " F_COORD " " F_UID "\n",
-                    ins1.pos.bgn, (CDS_COORD_t)(mdi.asmMean), afg1.uid);
-          }
-          else
-          {
-            fprintf(fp, F_COORD " " F_COORD " " F_UID "\n",
-                    ins1.pos.bgn - (CDS_COORD_t)(mdi.asmMean),
-                    (CDS_COORD_t)(mdi.asmMean), afg1.uid);
-          }
-          break;
-        }
-      }
-    }
-    nextIndex = ins1.next;
-  }
-  fclose(fp);
-}
 
 CloneData * GetChromosomeCloneData(AssemblyStore * asmStore,
                                    MapStore * mapStore,
@@ -2933,8 +2862,7 @@ CloneData * GetChromosomeCloneData(AssemblyStore * asmStore,
                                          nextIndex, &iterator);
       while(NextGateKeeperLinkRecordIterator(&iterator, &lkg))
       {
-        if(lkg.type == AS_MATE ||
-           lkg.type == AS_BAC_GUIDE)
+        if(lkg.type == AS_MATE)
         {
           ASM_MDIRecord mdi;
           ASM_AFGRecord afg2;

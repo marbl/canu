@@ -25,7 +25,7 @@
                  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: RebuildMultiAlign_CNS.c,v 1.7 2007-01-29 20:41:07 brianwalenz Exp $";
+static char CM_ID[] = "$Id: RebuildMultiAlign_CNS.c,v 1.8 2007-02-08 06:48:52 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -270,7 +270,10 @@ int main (int argc, char *argv[]) {
      }
      //MultiAlignContig_NoCompute(stdout,-1,ma,sequenceDB,unitigData,1);
      if ( SHOW_ALIGNMENT ) {
-       PrintMultiAlignT(stdout,ma,global_fragStore,(tFragStorePartition*)NULL, (FragStoreHandle)NULLINDEX,
+       PrintMultiAlignT(stdout,
+                        ma,
+                        global_fragStore,
+                        (tFragStorePartition*)NULL,
 			1,0,READSTRUCT_LATEST);
      }
     }

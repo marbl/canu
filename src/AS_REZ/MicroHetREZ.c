@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.8 2007-02-04 09:30:46 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.9 2007-02-08 06:48:54 brianwalenz Exp $";
 
 #include <assert.h>
 #include <errno.h>
@@ -56,14 +56,15 @@ static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.8 2007-02-04 09:30:46 brianwalenz 
 
 
 
-
-void AS_REZ_free_marker(Marker_t *m) {
+void
+AS_REZ_free_marker(Marker_t *m) {
   free(m->set);
   free(m);
 }
 
 /* functions to allocate and free a marker of size l */
-Marker_t *AS_REZ_allocate_marker(int l) {
+Marker_t *
+AS_REZ_allocate_marker(int l) {
   int i;
   Marker_t* m = (Marker_t*) safe_malloc(sizeof(Marker_t));
   m->set      = (int*) safe_calloc(sizeof(int),l);
@@ -73,7 +74,9 @@ Marker_t *AS_REZ_allocate_marker(int l) {
   return m;
 }
 
-void AS_REZ_print_marker(Marker_t *m){
+static
+void
+AS_REZ_print_marker(Marker_t *m){
   int i;
   for(i=0; i<m->len; i++)
     printf("|%d|",m->set[i]);
@@ -87,7 +90,9 @@ void AS_REZ_print_marker(Marker_t *m){
 
 
 /* memory allocation and deallocation for Alignment_t */
-Alignment_t *AS_REZ_allocate_alignment(int c, int r) {
+static
+Alignment_t *
+AS_REZ_allocate_alignment(int c, int r) {
   int i;
   Alignment_t *a = (Alignment_t*) safe_malloc(sizeof(Alignment_t));
 
@@ -125,7 +130,8 @@ Alignment_t *AS_REZ_allocate_alignment(int c, int r) {
 }
 
 
-void AS_REZ_free_alignment(Alignment_t* a) {
+void
+AS_REZ_free_alignment(Alignment_t* a) {
   int i;
 
   if(a->ali != NULL){
@@ -151,7 +157,8 @@ void AS_REZ_free_alignment(Alignment_t* a) {
 }
 
 
-void AS_REZ_print_alignment(Alignment_t *a,  int w) {
+void
+AS_REZ_print_alignment(Alignment_t *a,  int w) {
   int i,j,l;
   int c = a->cols;
   int r = a->rows;
@@ -240,8 +247,8 @@ void AS_REZ_print_alignment(Alignment_t *a,  int w) {
 }
 
 
-
-void AS_REZ_count_columns(Alignment_t* a, Marker_t* m)
+void
+AS_REZ_count_columns(Alignment_t* a, Marker_t* m)
 {
   register int i,j;
   for(i=0; i<a->cols; i++)
@@ -258,23 +265,27 @@ void AS_REZ_count_columns(Alignment_t* a, Marker_t* m)
 	  switch(a->ali[i][j])
 	    {
               case 'A' :
+              case 'a' :
                 a->countA[i]++;
                 break;	
               case 'C' :
+              case 'c' :
                 a->countC[i]++;
                 break;
               case 'G' :
+              case 'g' :
                 a->countG[i]++;
                 break;
               case 'T' :
+              case 't' :
                 a->countT[i]++;
                 break;
               case '-' :
                 a->countDash[i]++;
                 break;
               case ' ' :
-                a->countBlank[i]++;
               case 'N' : // NOTE we count Ns as blanks
+              case 'n' : // NOTE we count Ns as blanks
                 a->countBlank[i]++;
                 break;
 	    }	
@@ -283,7 +294,9 @@ void AS_REZ_count_columns(Alignment_t* a, Marker_t* m)
 
 
 
-void AS_REZ_get_info(CDS_IID_t iid,
+static
+void
+AS_REZ_get_info(CDS_IID_t iid,
                      FragStoreHandle frag_store,
                      tFragStorePartition *pfrag_store,
                      CDS_UID_t *locale,
@@ -309,9 +322,17 @@ void AS_REZ_get_info(CDS_IID_t iid,
           assert(0);
       }
       getReadType_ReadStruct(input,type); 
+
+      //  Locale info was removed, so we now just return empty info.
+#ifdef WITH_LOCALE_SUPPORT
       getLocID_ReadStruct(input,locale);
       getLocalePos_ReadStruct(input,beg,end);
-      
+#else
+      *locale = 0;
+      *beg    = 0;
+      *end    = 0;
+#endif
+
       // we store the locales for later lookup
       SetCDS_UID_t(locales,iid,locale);
       Setuint32(locbeg,iid,beg);
@@ -319,8 +340,6 @@ void AS_REZ_get_info(CDS_IID_t iid,
       Setuint32(fragtype,iid,(uint32 *)type);
     }
     else{
-      // We know these entries have been initialized, so we can use them directly
-      // without going through the fetch routines that behave special for uninitialized entries.
       *locale = *GetCDS_UID_t(locales,iid);
       *beg    = *Getuint32(locbeg,iid);	
       *end    = *Getuint32(locend,iid);	
@@ -352,13 +371,13 @@ static  ReadStructp input;
  * it also nulls out all but one position of a multibase gap, to reduce the
  * effect of multibase indel polymorphisms on microhet detection.
  */
-void compress_shreds_and_null_indels(int c,
-                                     int r,
-                                     FragStoreHandle frag_store, 
-                                     tFragStorePartition *pfrag_store,
-                                     char **array,
-                                     int **id_array,
-                                     int verbose){
+void AS_REZ_compress_shreds_and_null_indels(int c,
+                                            int r,
+                                            FragStoreHandle frag_store, 
+                                            tFragStorePartition *pfrag_store,
+                                            char **array,
+                                            int **id_array,
+                                            int verbose){
   int i,j,k;
   CDS_UID_t l1,l2;
   uint32 b1,b2;
@@ -499,10 +518,14 @@ Alignment_t *AS_REZ_convert_array_to_alignment(char **ar, int c, int r){
   for(i=0; i<c; i++)
     for(j=0; j<r; j++)
       {
+#if 0
+        //  This function, used in colCorr_CNS.c, probably sees
+        //  lowercase letters too.
 	assert(ar[2*j][i] == 'A' || ar[2*j][i] == 'C' || 
                ar[2*j][i] == 'G' || ar[2*j][i] == 'T' ||
                ar[2*j][i] == '-' || ar[2*j][i] == ' ' ||
                ar[2*j][i] == 'N');
+#endif
 
 	a->ali[i][j] = ar[2*j][i]; 
 	
@@ -529,7 +552,9 @@ Alignment_t *AS_REZ_convert_array_to_alignment(char **ar, int c, int r){
 
 #define FACLIMIT 160
 
-double AS_REZ_fac(int n) {
+static
+double
+AS_REZ_fac(int n) {
   static double facREZ[FACLIMIT] = { 0.0 };
 
   assert(n < FACLIMIT);
@@ -551,7 +576,9 @@ double AS_REZ_fac(int n) {
    the assumption is, that c1,c2,c3 and c4 have the same probability
    of occuring */
 
-double AS_REZ_fournomial(double seqErr, int c1, int c2, int c3, int c4, int n)
+static
+double
+AS_REZ_fournomial(double seqErr, int c1, int c2, int c3, int c4, int n)
 {
   register int i;
   double q = seqErr/4.0;
@@ -633,7 +660,9 @@ double AS_REZ_fournomial(double seqErr, int c1, int c2, int c3, int c4, int n)
 //global: expected number of save steps (to reuse previously-calculated values)
 double ExpectedSavedSteps[200];
 
-double AS_REZ_expected_savedSteps(int r, double seqErr)
+static
+double
+AS_REZ_expected_savedSteps(int r, double seqErr)
 {
   double Exp = 0.0;
   int c1,c2,c3,c4,c5,a,c,g,t,d,saved;
@@ -671,7 +700,9 @@ double AS_REZ_expected_savedSteps(int r, double seqErr)
 }
 
 
-double AS_REZ_Poisson_prob(int Obs,double Exp){
+static
+double
+AS_REZ_Poisson_prob(int Obs,double Exp){
   int i;
   double complresult=0,complresult2=0,exact;
   int overflow=0;
@@ -723,14 +754,18 @@ double AS_REZ_Poisson_prob(int Obs,double Exp){
     } else {
       return(1-complresult);
     }
-  } else {
-    assert(0); // Sorry, I did not handle this overflow ...
-               // The obvious way to do it would be to 
-               // use the normal approximation to the Poisson.
   }
+
+  // Sorry, I did not handle this overflow ...  The obvious way to do
+  // it would be to use the normal approximation to the Poisson.
+  //
+  assert(0);
+  return(0);
 }
 
-double AS_REZ_Poisson(int Obs,double Exp){
+static
+double
+AS_REZ_Poisson(int Obs,double Exp){
   int i;
   double complresult=0;
   double lambdaterm=1;
@@ -783,7 +818,9 @@ typedef struct mpstat {
 } MPSTAT;
 
 
-MPSTAT AS_REZ_MP_score_alignment(Alignment_t *alignment,double erate, int s, int e){
+static
+MPSTAT
+AS_REZ_MP_score_alignment(Alignment_t *alignment,double erate, int s, int e){
   MPSTAT result;
   int col;
   int a,c,g,t,d,n,A,C,G,T,D,i;
@@ -828,7 +865,9 @@ MPSTAT AS_REZ_MP_score_alignment(Alignment_t *alignment,double erate, int s, int
    If we happen do have quality values, these are used to compute an exspected
    mean sequencing error
 */
-double AS_REZ_guess_seqErr(Alignment_t *a, Marker_t* m, int s, int e)
+static
+double
+AS_REZ_guess_seqErr(Alignment_t *a, Marker_t* m, int s, int e)
 {
   double seqErr = 0.0;
   int i,j,k;
@@ -891,8 +930,9 @@ double AS_REZ_guess_seqErr(Alignment_t *a, Marker_t* m, int s, int e)
 }
 
 
-UnitigStatus_t AS_REZ_test_MPsimple(Alignment_t *ali, double thresh, Marker_t* m, 
-                                    int start, int end,double *pval)
+UnitigStatus_t
+AS_REZ_test_MPsimple(Alignment_t *ali, double thresh, Marker_t* m, 
+                     int start, int end,double *pval)
 {
   int i;
   int ret = UNITIG_IS_SIMPLE;
@@ -921,18 +961,16 @@ UnitigStatus_t AS_REZ_test_MPsimple(Alignment_t *ali, double thresh, Marker_t* m
 
   if( end-start >= MIN_MPTEST_LENGTH_REZ ){
     double heurSeqErr = AS_REZ_guess_seqErr(ali,m,start,end);
-    MPSTAT mpresult;
-    mpresult=AS_REZ_MP_score_alignment(ali,heurSeqErr,start,end);
+    MPSTAT mpresult   = AS_REZ_MP_score_alignment(ali,heurSeqErr,start,end);
 
     //printf("O = %d E = %f pr = %e\n",mpresult.Obs, mpresult.Exp,mpresult.pr);
 
-    if(mpresult.pr<=thresh){
+    if (mpresult.pr <= thresh)
       ret = UNITIG_IS_REPETITIVE;
-    }
-    else {
+    else
       ret = UNITIG_IS_SIMPLE;
-    }
-    *pval=mpresult.pr;
+
+    *pval = mpresult.pr;
   }
 
   return ret;  
@@ -942,43 +980,33 @@ UnitigStatus_t AS_REZ_test_MPsimple(Alignment_t *ali, double thresh, Marker_t* m
 
 
 
-
-
-
-
-
-
-/* AS_REZ_MP_MicroHet_prob 
- *
- * RESULT: The function returns a (double) pvalue (probability) of an
- * input unitig being SIMPLE -- meaning, having mismatches due to
- * randomly distributed sequencing errors.
- *
- * If the returned value is sufficiently small, the unitig should be
- * treated as a likely repeat.
- *
- * A return value of 1.0 may indicate that the unitig was not deep
- * enough for a meaningful test.
- *
- * Some false positives may be induced by polymorphisms; however, the
- * calculation should not be drastically misled by multibase indel
- * polymorphisms.
- *
- * INPUT:
- *
- * bqarray : an array of size [depth*2]*len of bases and quality
- *           values in alternative rows, giving a multialignment
- * idarray : an array of size depth*len giving the fragment iid of
- *           each base in the multialignment
- * handle : the fragStore from which locale information for each
- *          fragment iid will be obtained (-1 (NULLFRAGSTOREHANDLE)
- *          if partitioned store is used)
- * phandle : the partitioned fragStore from which locale information
- *           for each fragment iid will be obtained (NULL if
- *           traditional non-partitioned store is used)
- * len     : number of columns in the multialignment
- * depth   : number of rows in the multialignment
-*/
+// The function returns a (double) pvalue (probability) of an
+// input unitig being SIMPLE -- meaning, having mismatches due to randomly 
+// distributed sequencing errors.
+//
+// If the returned value is sufficiently small, the unitig should be treated
+// as a likely repeat.
+//
+// A return value of 1.0 may indicate that the unitig was not deep enough for
+// a meaningful test.
+//
+// Some false positives may be induced by polymorphisms; however, the 
+// calculation should not be drastically misled by multibase indel 
+// polymorphisms.
+//
+// INPUT:
+//
+// bqarray : an array of size [depth*2]*len of bases and quality values
+//           in alternative rows, giving a multialignment
+// idarray : an array of size depth*len giving the fragment iid of each base
+//           in the multialignment
+// handle  : the fragStore from which locale information for each fragment iid
+//           will be obtained  (-1 (NULLFRAGSTOREHANDLE) if paritioned store is used.)
+// phandle  : the partitioned fragStore from which locale information for each fragment iid
+//           will be obtained (NULL if a traditional unpartitioned store is used);
+// len     : number of columns in the multialignment
+// depth   : number of rows in the multialignment
+//
 double AS_REZ_MP_MicroHet_prob(char **bqarray,int **idarray,FragStoreHandle handle,
                                tFragStorePartition *phandle,int len,int depth){
   double pvalue;
@@ -987,11 +1015,14 @@ double AS_REZ_MP_MicroHet_prob(char **bqarray,int **idarray,FragStoreHandle hand
   double thresh=1e-3; /* reasonable value; doesn't actually do anything
                          here except make AS_REZ_test_MPsimple() happy, 
                          but cf. AS_REZ_is_IUM_MPsimple() */
+
   Alignment_t *ali = AS_REZ_convert_array_to_alignment(bqarray,len,depth);
-  compress_shreds_and_null_indels(len,depth,handle,phandle,ali->ali,idarray,0);
+
+  AS_REZ_compress_shreds_and_null_indels(len,depth,handle,phandle,ali->ali,idarray,0);
+
   if(ali->rows<4){
-    pvalue=1.0;
-    result=UNITIG_IS_SHALLOW;
+    pvalue = 1.0;
+    result = UNITIG_IS_SHALLOW;
   } else {
     m = AS_REZ_allocate_marker(ali->rows);
     AS_REZ_count_columns(ali,m);

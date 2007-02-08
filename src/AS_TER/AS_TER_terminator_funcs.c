@@ -25,7 +25,7 @@
  Assumptions: There is no UID 0
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.24 2007-01-29 20:41:24 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.25 2007-02-08 06:48:54 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_ReadStruct.h"
@@ -452,10 +452,7 @@ static SnapUnitigMesg* convert_IUM_to_UTG(IntUnitigMesg* iumMesg, int32 real)
 #ifdef AS_ENABLE_SOURCE
       utgMesg->f_list[i].source = NULL;
 #endif
-      if( iumMesg->f_list[i].type == AS_BACTIG )
-	di = fetch_UID_from_bactigStore(iumMesg->f_list[i].ident);
-      else
-	di = fetch_UID_from_fragStore(iumMesg->f_list[i].ident);
+      di = fetch_UID_from_fragStore(iumMesg->f_list[i].ident);
       
       if( di == NULL ){
 	sprintf(errorreport,"Reference before definition for fragment/bactig ID %d",
@@ -635,18 +632,7 @@ static SnapConConMesg* convert_ICM_to_CCO(IntConConMesg* icmMesg, int32 real)
       fprintf(stderr,"ICM = %d, no of pieces = %d, piece = %d, piece id = %d \n",icmMesg->iaccession,icmMesg->num_pieces,i,icmMesg->pieces[i].ident);
 #endif
 
-      if( icmMesg->pieces[i].type == AS_BACTIG ){
-#if DEBUG > 1
-	fprintf(stderr,"Fetching from bactig Store\n");
-#endif
-	di = fetch_UID_from_bactigStore(icmMesg->pieces[i].ident);
-      }
-      else{	
-#if DEBUG > 1
-	fprintf(stderr,"Fetching from frag Store\n");
-#endif
-	di = fetch_UID_from_fragStore(icmMesg->pieces[i].ident);
-      }
+      di = fetch_UID_from_fragStore(icmMesg->pieces[i].ident);
       if( di == NULL ){
 	sprintf(errorreport,"Reference before definition for fragment ID %d",
 		icmMesg->pieces[i].ident);
@@ -1067,12 +1053,7 @@ static AugFragMesg* convert_IAF_to_AFG(IntAugFragMesg* iafMesg, int32 real)
 
   AugFragMesg *afgMesg = (AugFragMesg*) safe_malloc(sizeof(AugFragMesg));
   
-  /* Set all toplevel fields */
-  if( iafMesg->type == AS_BACTIG )
-    di = fetch_UID_from_bactigStore(iafMesg->iaccession);
-  else
-    di = fetch_UID_from_fragStore(iafMesg->iaccession);
-
+  di = fetch_UID_from_fragStore(iafMesg->iaccession);
   if( di == NULL ){
     sprintf(errorreport,"No fragment with ID %d in the frag/bactigstore",iafMesg->iaccession);
     error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
@@ -1100,10 +1081,7 @@ static AugFragMesg* convert_IAF_to_AFG(IntAugFragMesg* iafMesg, int32 real)
   }
   else
     {
-      if( iafMesg->type == AS_BACTIG )
-	sdi = fetch_clearRange_from_bactigStore(ClearBactigStartMap,iafMesg->iaccession);
-      else
-	sdi = fetch_clearRange_from_fragStore(ClearStartMap,iafMesg->iaccession);
+      sdi = fetch_clearRange_from_fragStore(ClearStartMap,iafMesg->iaccession);
       if( sdi == NULL )
 	{
 	  sprintf(errorreport,"No SeqInterval associated with ID %d in the frag/bactig store",iafMesg->iaccession);
@@ -1111,10 +1089,7 @@ static AugFragMesg* convert_IAF_to_AFG(IntAugFragMesg* iafMesg, int32 real)
 	}
       afgMesg->clear_rng.bgn = *sdi;
 
-      if( iafMesg->type == AS_BACTIG )
-	sdi = fetch_clearRange_from_bactigStore(ClearBactigEndMap,iafMesg->iaccession);
-      else
-	sdi = fetch_clearRange_from_fragStore(ClearEndMap,iafMesg->iaccession);
+      sdi = fetch_clearRange_from_fragStore(ClearEndMap,iafMesg->iaccession);
       if( sdi == NULL )
 	{
 	  sprintf(errorreport,"No SeqInterval associated with ID %d in the frag store",iafMesg->iaccession);

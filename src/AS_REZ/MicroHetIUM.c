@@ -25,11 +25,8 @@
 #include "AS_global.h"
 #include "GraphCGW_T.h"  //  for CGB_Type
 #include "PrimitiveVA_MSG.h"
-
+#include "Array_CNS.h"
 #include "MicroHetREZ.h"
-
-
-
 
 
 void AS_REZ_print_informatives_alignment(Alignment_t *a,int nfrag)
@@ -539,8 +536,17 @@ double AS_REZ_prob_IUM_MPsimple(IntUnitigMesg* ium, FragStoreHandle handle,tFrag
   char **bqarray;
   int **idarray;
   int **oriarray;
-  IMP2Array(ium->f_list,ium->num_frags,ium->length,
-	    handle,phandle,NULLFRAGSTOREHANDLE,&rows,&bqarray,&idarray,&oriarray,0,READSTRUCT_LATEST);
+  IMP2Array(ium->f_list,
+            ium->num_frags,
+            ium->length,
+	    handle,
+            phandle,
+            &rows,
+            &bqarray,
+            &idarray,
+            &oriarray,
+            0,
+            READSTRUCT_LATEST);
 
   ret = AS_REZ_MP_MicroHet_prob(bqarray,idarray,handle,phandle, ium->length,rows);
   /* free the space that is allocated by IMP2Array */
@@ -578,11 +584,17 @@ Alignment_t* AS_REZ_convert_IUM_to_alignment(IntUnitigMesg* ium,
   int **oriarray;
   Alignment_t *ali;
 
-  IMP2Array(ium->f_list,ium->num_frags,ium->length,
-	    handle,phandle,NULLFRAGSTOREHANDLE,
-            &rows,&bqarray,
-            &idarray,&oriarray,
-            0,READSTRUCT_LATEST);
+  IMP2Array(ium->f_list,
+            ium->num_frags,
+            ium->length,
+	    handle,
+            phandle,
+            &rows,
+            &bqarray,
+            &idarray,
+            &oriarray,
+            0,
+            READSTRUCT_LATEST);
 
   ali = AS_REZ_convert_array_to_alignment(bqarray,ium->length,rows);
 
@@ -590,13 +602,13 @@ Alignment_t* AS_REZ_convert_IUM_to_alignment(IntUnitigMesg* ium,
     //printf("BEFORE COMPRESSION\n");
     //AS_REZ_print_alignment(ali,90);
 
-    compress_shreds_and_null_indels(ium->length,
-                                    rows,
-                                    handle,
-                                    phandle,
-                                    ali->ali,
-                                    idarray,
-                                    0);  //  verbose
+    AS_REZ_compress_shreds_and_null_indels(ium->length,
+                                           rows,
+                                           handle,
+                                           phandle,
+                                           ali->ali,
+                                           idarray,
+                                           0);  //  verbose
 
     //printf("AFTER COMPRESSION\n");
     //AS_REZ_print_alignment(ali,90);

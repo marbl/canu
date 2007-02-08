@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_GKP_include.h,v 1.11 2007-01-29 20:41:10 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.12 2007-02-08 06:48:52 brianwalenz Exp $ */
 
 /*************************************************
 * Module:  AS_GKP_include.h
@@ -54,22 +54,16 @@
 #define GATEKEEPER_QV_WINDOW_THRESH 0.03
 
 #define AS_ASSEMBLER_GRANDE  ((int)'A')
-#define AS_ASSEMBLER_OVERLAY ((int)'O')
 #define AS_ASSEMBLER_OBT     ((int)'T')
 
-/* The persistent symbol table has 3 name spaces, UIDs,LOCALEIDs */
+/* The persistent symbol table has 1 name space, UIDs (it used to have three) */
 #define UID_NAMESPACE_AS 'U'
-#define LOCALEID_NAMESPACE_AS 'L'
 
 extern FILE *Infp, *Outfp, *Msgfp, *Ignfp, *Ibcfp, *Msgfp;
 extern GateKeeperStore GkpStore;
 extern SequenceBucketArrayT *LinkerDetector_READ;   // Used to collect stats for 1-mers - 8-mers on 5-prime ends of sequence
 extern SequenceBucketArrayT *Linker3pDetector_READ;   // Used to collect stats for 1-mers - 8-mers on 3-prime ends of sequence
-extern SequenceBucketArrayT *LinkerDetector_EBAC;   // Used to collect stats for 1-mers - 8-mers on 5-prime ends of sequence
-extern SequenceBucketArrayT *LinkerDetector_LBAC;   // Used to collect stats for 1-mers - 8-mers on 5-prime ends of sequence
 extern SequenceBucketArrayT *SanityDetector_READ;   // Used to collect stats for 1-mers - 8-mers on clr_rng_end -50bp of sequence
-extern SequenceBucketArrayT *SanityDetector_EBAC;   // Used to collect stats for 1-mers - 8-mers on clr_rng_end -50bp of sequence
-extern SequenceBucketArrayT *SanityDetector_LBAC;   // Used to collect stats for 1-mers - 8-mers on clr_rng_end -50bp of sequence
 extern SequenceBucketT *SequenceProbabilities; // Used to collect stats on all sequence within clear ranges
 extern SequenceLengthHistogramT *Linker5pHistogram ;
 extern SequenceLengthHistogramT *Linker3pHistogram ;
@@ -77,7 +71,6 @@ extern SequenceLengthHistogramT *LinkerSanityHistogram;
 
 
 extern char  File_Name_Prefix [FILENAME_MAX];
-extern   char  Bac_File_Name [FILENAME_MAX];
 extern char  Ignore_File_Name [FILENAME_MAX];
 extern   char  Error_File_Name [FILENAME_MAX];
 extern   char  Input_File_Name [FILENAME_MAX];
@@ -186,34 +179,8 @@ int Check_LinkMesg(LinkMesg *lnk_mesg,
  	           InternalLinkMesg *ilk_mesg,  
 		   CDS_CID_t batchID,
   	           time_t currentTime,
-		   int verbose,
-                   int matchBAC_DstsInLkgMsgs);
+		   int verbose);
 
-
-
-
-
-/***********************************************************************************
- * Function: Check_BacMesg
- * Description:
- * Checks on add:
- * Checks on delete:
- * Inputs:
- *
- * I/O
- * Return Value:
- *     GATEKEEPER_SUCCESS if success. 
- *     GATEKEEPER_WARNING if success but warning
- *     GATEKEEPER_FAILURE if failure
- ***********************************************************************************/
-int Check_BacMesg(BacMesg *bac_mesg,
-		  InternalBacMesg *ibc_mesg,
-		  VA_TYPE(int32) *addedBacs,
-		  CDS_CID_t batchID,
-		  time_t currentTime,
-		  int assembler,
-		  int strict,
-		  int verbose);
 
 
 /***********************************************************************************
@@ -264,12 +231,12 @@ int checkQuality(char *input, char **errorChar, int *length);
 double checkOverallQuality(char *input, SeqInterval clearRange);
 double checkWindowQuality(FragMesg *frg_mesg, FILE *msgFile);
 
-int CheckLengthsIntervalsLocales(FragMesg *frg_mesg,
-                                 InternalFragMesg *ifg_mesg,  
-                                 int seqLength,
-                                 int quaLength,
-				 int assembler,
-				 int verbose);
+int CheckLengthsIntervals(FragMesg *frg_mesg,
+                          InternalFragMesg *ifg_mesg,  
+                          int seqLength,
+                          int quaLength,
+                          int assembler,
+                          int verbose);
 
 FILE *  File_Open(const char * Filename, const char * Mode, int exitOnFailure);
 
@@ -284,18 +251,12 @@ FILE *  File_Open(const char * Filename, const char * Mode, int exitOnFailure);
 /***********************************************************************************/
 int ReadFile(int check_qvs,
 	     int check_nmers,
-	     VA_TYPE(int32) *addedBacs,
 	     CDS_CID_t batchID,
 	     int32 assembler,
 	     int32 strict,
 	     int argc, char **argv,
-	     int32 verbose,
-             int matchBAC_DstsInLkgMsgs);
+	     int32 verbose);
 
-/***********************************************************************************/
-/* CheckOverlapInputComplete                                                       */
-/***********************************************************************************/
-int CheckOverlayInputComplete(VA_TYPE(int32) *addedBacs, int verbose);
 
 // Initialization Function
 void InitQualityToFractionError(void);
@@ -310,25 +271,19 @@ typedef enum GKPErrorType_tag{
   GKPError_BadUniqueBAT=100,
   GKPError_BadUniqueFRG,
   GKPError_BadUniqueDST,
-  GKPError_BadUniqueBAC,
-  GKPError_BadUniqueBTG,
   GKPError_BadUniqueSEQ,
 
   GKPError_MissingFRG=200,
   GKPError_MissingDST,
-  GKPError_MissingBAC,
-  GKPError_MissingBTG,
   GKPError_MissingSEQ,
 
   GKPError_DeleteFRG=300,
   GKPError_DeleteDST,
-  GKPError_DeleteBAC,
   GKPError_DeleteLNK,
 
   GKPError_Time=400,
   GKPError_Action,
   GKPError_Scalar,
-  GKPError_IncompleteOAInput,
 
   GKPError_FRGSequence=500,
   GKPError_FRGQuality,
@@ -336,26 +291,12 @@ typedef enum GKPErrorType_tag{
   GKPError_FRGClrRange,
   GKPError_FRGLocalPos,
   GKPError_FRGAccession,
-  GKPError_FRGBacSeqMismatch,
-  GKPError_FRGBacFragAlreadyDefined,
-  GKPError_FRGBactigFragAlreadyDefined,
-  GKPError_FRGBactigInWrongBac,
-  GKPError_FRGWrongTypeForOverlay,
-  GKPError_FRGWrongTypeForBAC,
   GKPError_FRGQualityWindow,
   GKPError_FRGQualityGlobal,
   GKPError_FRGQualityTail,
 
-  GKPError_LNKLocaleMismatch=600,
-  GKPError_LNKLocaleDistanceMismatch,
   GKPError_LNKFragtypeMismatch,
   GKPError_LNKOneLink,
-
-  GKPError_BACNumBactigs = 700,
-  GKPError_BACNumBactigsShouldBeZero,
-  GKPError_BACRedefinition,
-  GKPError_BACWrongTypeForOverlay,
-  GKPError_BACMultiplyDefinedBactig,
 
   GKPError_DSTValues = 800,
   

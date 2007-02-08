@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_ReadStruct.c,v 1.8 2007-01-28 21:52:25 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_ReadStruct.c,v 1.9 2007-02-08 06:48:54 brianwalenz Exp $";
 /*************************************************************************
  Module:  AS_PER_ReadStruct
  Description:
@@ -79,8 +79,6 @@ void        clear_ReadStruct(ReadStructp r){
  setSequence_ReadStruct(FR, NULL, NULL);
  setSource_ReadStruct(FR, "");
  setEntryTime_ReadStruct(FR,0);
- setLocID_ReadStruct(FR, 0);
- setLocalePos_ReadStruct(FR, 0,0);
  FR->frag.deleted=0;
  FR->frag.hasQuality=0;
  FR->frag.hasOVLClearRegion=0;
@@ -121,14 +119,6 @@ int dump_ReadStruct(ReadStructp rs, FILE *fout, int clearRangeOnly){
   int type = fr->frag.readType;
   fprintf(fout,"Dumping FragRecord at 0x%p\n", fr);
   dumpShortFragRecord(&(fr->frag),fout);
-  if(!AS_FA_READ(type)){ 
-    fprintf(fout,"\tlocale : " F_UID " type %c %d\n",
-            fr->localeID, (char)type, type);
-    if(AS_FA_SHREDDED(type)){ 
-    fprintf(fout,"\tlocale_pos : [" F_VLS "," F_VLS "]\n", fr->localePosStart, fr->localePosEnd);
-
-    }
-  }
   if( strlen(fr->sequence) > AS_READ_MAX_LEN )
 	fprintf(fout,"LONG FRAGMENT !!!\n");
   fprintf(fout,"\tsource (solength=" F_SIZE_T ")  : %s\n",
@@ -413,37 +403,6 @@ int setSourceOffset_ReadStruct(ReadStructp rs, int64 offset){
 int setSequenceOffset_ReadStruct(ReadStructp rs, int64 offset){
   FragRecord *FR = (FragRecord *)rs;
   FR->frag.sequenceOffset = offset;
-  return(0);
-}
-
-/***************************************************************************/
-int setLocID_ReadStruct(ReadStructp rs, CDS_UID_t locID){
-  FragRecord *FR = (FragRecord *)rs;
-  
-  FR->localeID = locID;
-  return(0);
-}
-/***************************************************************************/
-  int setLocalePos_ReadStruct(ReadStructp rs, uint32 start, uint32 end){
-  FragRecord *FR = (FragRecord *)rs;
-  FR->localePosStart = start;
-  FR->localePosEnd = end;
-  return(0);
-  }
-/***************************************************************************/
-
-int getLocID_ReadStruct(ReadStructp rs, CDS_UID_t *locID){
-  FragRecord *FR = (FragRecord *)rs;
-
-  *locID = FR->localeID;
-  //  fprintf(stderr,"* Get locID " F_UID "\n", *locID);
-  return(0);
-  }
-/***************************************************************************/
-int getLocalePos_ReadStruct(ReadStructp rs, uint32 *start, uint32 *end){
-  FragRecord *FR = (FragRecord *)rs;
-  *start = FR->localePosStart;
-  *end   = FR->localePosEnd;
   return(0);
 }
 

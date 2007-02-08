@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_main.c,v 1.5 2006-11-14 17:52:14 eliv Exp $";
+= "$Id: AS_CGB_main.c,v 1.6 2007-02-08 06:48:49 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module:  AS_CGB_main.c
@@ -629,11 +629,10 @@ int main_cgb
       for(ifrag=0;ifrag<nfrag;ifrag++) { 
 	const FragType type = get_typ_fragment(heapva->frags,ifrag);
 	if((type != AS_READ) && 
-	   (type != AS_EBAC) &&
            (type != AS_EXTR)) {
           num_of_guides_total++;
         }
-	// Only AS_READ, AS_EBAC, & AS_EXTR fragments are to be used in Gene
+	// Only AS_READ & AS_EXTR fragments are to be used in Gene
 	// Myers coverage statistic.
 
 	set_cid_fragment(heapva->frags,ifrag,ifrag); // While we are here ....

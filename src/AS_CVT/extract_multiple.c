@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: extract_multiple.c,v 1.5 2007-01-28 21:52:24 brianwalenz Exp $";
+static char CM_ID[] = "$Id: extract_multiple.c,v 1.6 2007-02-08 06:48:52 brianwalenz Exp $";
 
 /*
   IMPORTANT NOTE:
@@ -72,8 +72,6 @@ static char CM_ID[] = "$Id: extract_multiple.c,v 1.5 2007-01-28 21:52:24 brianwa
 #define FRAGS_FILE  "frags.lib"
 #define MATES_FILE "mates.lib"
 
-#define MISSING_EBAC_MATE  CDS_UINT32_MAX
-
 
 typedef struct
 {
@@ -108,7 +106,7 @@ typedef struct
   OrientType orient;
 } IIDOrient;
 
-VA_DEF(IIDPair)       // for BAC-component, fragment-component, dist-component
+VA_DEF(IIDPair);
 
 
 typedef struct
@@ -147,7 +145,6 @@ typedef struct
   char           * gkp_store_name;      // grande gkpstore name
   char           * frg_store_name;      // grande fragstore name
   char           * scaffold_filename;   // scaffold UID - frag UID pairs file
-  char           * bac_bland_filename;  // BAC/bland UID - frag UID pairs file
   char           * input_store;         // input store
   char           * output_store;        // output store
   char           * directory;           // directory for output
@@ -158,7 +155,6 @@ typedef struct
   VA_TYPE(Component)    * components;   // component structures
   // the following are component definition dependent
   VA_TYPE(IIDPair)      * dists;        // master list of dists-components
-  VA_TYPE(IIDPair)      * bacs;         // master list of bacs-components
   VA_TYPE(IIDPair)      * frags;        // master list of frags-components
   // The following may be persistent across runs
   IIDOrient             * mates_dists;  // list of frag-mate iids
@@ -238,7 +234,6 @@ int PopulateFragment( FragMesg * f,
                       ReadStructp rs )
 {
   cds_uint32 bgn, end;
-  Locale_ID eilocale;
 
   if( getFragStore( fs, iid, FRAG_S_ALL, rs ) )
   {
@@ -246,19 +241,9 @@ int PopulateFragment( FragMesg * f,
     return 1;
   }
 
-  // populate the FRG message fields
   f->action = AS_ADD;
   getAccID_ReadStruct( rs, &(f->eaccession) );
   getReadType_ReadStruct( rs, &(f->type) );
-  // NOTE: The locale IID is stored in the fragStore, NOT the UID
-  getLocID_ReadStruct( rs, &eilocale );
-  f->ilocale = (IntLocale_ID) eilocale;
-  // elocale is unavailable
-  // eseq_id is unavailable
-  // ebactig_id is unavailable
-  getLocalePos_ReadStruct( rs, &bgn, &end );
-  f->locale_pos.bgn = bgn;
-  f->locale_pos.end = end;
   getEntryTime_ReadStruct (rs, &(f->entry_time) );
   getClearRegion_ReadStruct( rs, &bgn, &end, READSTRUCT_LATEST );
   f->clear_rng.bgn = bgn;
@@ -266,10 +251,6 @@ int PopulateFragment( FragMesg * f,
   getSource_ReadStruct( rs, f->source, STRING_LENGTH );
   getSequence_ReadStruct( rs, f->sequence, f->quality, AS_READ_MAX_LEN );
   getReadIndex_ReadStruct( rs, &(f->iaccession) );
-  // f->screened is moot
-  // ilocale is unavailable
-  // iseq_id is unavailable
-  // ibactig_id is unavailable
   
   return 0;
 }
@@ -325,102 +306,6 @@ StoreSetp OpenStores( char * gkp_store_name,
 }
 
 
-int CreateDistAndUBACMesgs(Globalsp globals,
-                           CDS_IID_t iid,
-                           DistanceMesg * dst,
-                           BacMesg * bac)
-{
-  GateKeeperLocaleRecord   gkpl;
-  GateKeeperSequenceRecord gkps;
-  GateKeeperDistanceRecord gkpd;
-  
-  if( getGateKeeperLocaleStore(globals->s_set->gkp_store.locStore,
-                               iid, &gkpl) )
-  {
-    fprintf( stderr, "Failed to get locale " F_IID " data from gatekeeperstore\n",
-             iid );
-    return 1;
-  }
-  if( getGateKeeperSequenceStore(globals->s_set->gkp_store.seqStore,
-                                 gkpl.sequenceID, &gkps) )
-  {
-     fprintf( stderr,
-              "Failed to get sequence " F_IID " data from gatekeeperstore\n",
-              gkpl.sequenceID );
-     return 1;
-  }
-  if( getGateKeeperDistanceStore(globals->s_set->gkp_store.dstStore,
-                                 gkpl.lengthID, &gkpd) )
-  {
-     fprintf( stderr,
-              "Failed to get distance " F_IID " data from gatekeeperstore\n",
-              gkpl.lengthID );
-     return 1;
-  }
-
-  // put together distance message
-  dst->action = AS_ADD;
-  dst->eaccession = gkpd.UID;
-  dst->mean = gkpd.mean;
-  dst->stddev = gkpd.stddev;
-
-  // put together bac message
-  bac->action = AS_ADD;
-  bac->ebac_id = gkpl.UID;
-  bac->eseq_id = gkps.UID;
-  bac->entry_time = time(0);
-  bac->source = " ";
-  bac->elength = gkpd.UID;
-
-  if( gkpl.type == AS_FBAC )
-  {
-    bac->type = AS_FBAC;
-    bac->num_bactigs = 0;
-    bac->bactig_list = NULL;
-  }
-  else
-  {
-    cds_uint32 i;
-    
-    bac->type = AS_UBAC;
-    bac->num_bactigs = gkpl.numBactigs;
-    bac->bactig_list = (BactigMesg *) calloc( gkpl.numBactigs,
-                                              sizeof( BactigMesg ) );
-    if( bac->bactig_list == NULL )
-    {
-      fprintf( stderr, "Error: Failed to allocate list of %d bactigs\n",
-               gkpl.numBactigs );
-      return 1;
-    }
-    i = 0;
-    while( i < bac->num_bactigs )
-    {
-      GateKeeperBactigRecord gkpb;
-      
-      if( getGateKeeperBactigStore(globals->s_set->gkp_store.btgStore,
-                                   gkpl.firstBactig+i,
-                                   &gkpb ) )
-      {
-        fprintf( stderr,
-                 "Error: Failed to access bactig %d in bactigstore!\n",
-                 gkpl.firstBactig+i );
-        return 1;
-      }
-
-      bac->bactig_list[i].eaccession = gkpb.UID;
-      bac->bactig_list[i].length = gkpb.length;
-      i++;
-    }
-  }
-  return 0;
-}
-
-
-void FreeBACMesgBactigs(BacMesg * bac)
-{
-  if(bac && bac->bactig_list)
-    free(bac->bactig_list);
-}
 
 
 int WriteBATADT( Globalsp globals,
@@ -461,21 +346,6 @@ int WriteBATADT( Globalsp globals,
   return 0;
 }
 
-
-Locale_ID GetLocaleUID( GateKeeperStore gkp_store, IntLocale_ID iid )
-{
-  GateKeeperLocaleRecord gkpl;
-  
-  if( getGateKeeperLocaleStore( gkp_store.locStore, iid, &gkpl) )
-  {
-    fprintf( stderr,
-             "Failed to get locale " F_IID " data from gatekeeperstore\n",
-             iid );
-    return 0;
-  }
-  
-  return gkpl.UID;
-}
 
 
 Fragment_ID GetFragmentUID( GateKeeperStore gkp_store,
@@ -546,39 +416,20 @@ IntFragment_ID FindMate( GateKeeperStore gkp_store,
 
     while( NextGateKeeperLinkRecordIterator( &iterator, link ) )
     {
-      if(link->type == AS_MATE || link->type == AS_BAC_GUIDE)
+      if(link->type == AS_MATE)
         return ((link->frag1 == iid) ? link->frag2 : link->frag1);
     }
-  }
-    
-  // if it's a BAC end with no mate, need to fake things out
-  if(frag.type == AS_EBAC)
-  {
-    GateKeeperLocaleRecord gkplr;
-    getGateKeeperLocaleStore( gkp_store.locStore, frag.localeID, &gkplr );
-    link->distance = gkplr.lengthID;
-    link->orientation = (unsigned int) AS_GKP_INNIE;
-    return MISSING_EBAC_MATE;
   }
   
   return 0;
 }
 
 static int LookupGateKeeperRecords(StoreSetp s_set,
-                                   CDS_IID_t bac_iid,
                                    GateKeeperBatchRecord *gkpb,
                                    GateKeeperBatchRecord *gkpb_next,
-                                   GateKeeperLocaleRecord *gkpl,
                                    GateKeeperDistanceRecord *gkpd,
                                    GateKeeperSequenceRecord *gkps)
 {
-  if( getGateKeeperLocaleStore( (s_set->gkp_store).locStore, bac_iid, gkpl) )
-  {
-    fprintf( stderr,
-             "Failed to get locale " F_IID " data from gatekeeperstore\n",
-             bac_iid );
-    return 1;
-  }
   if( getGateKeeperSequenceStore( (s_set->gkp_store).seqStore, gkpl->sequenceID, gkps) )
   {
      fprintf( stderr,
@@ -619,8 +470,7 @@ void Usage( char * program_name, char * message )
   fprintf( stderr, "\t[-g grande gatekeeper store]\n" );
   fprintf( stderr, "\t[-f grande fragment store]\n" );
   fprintf( stderr, "\t[-s scaffold UID - fragment UID file]\n" );
-  fprintf( stderr, "\t[-b BAC/bland UID - fragment UID file]\n" );
-  fprintf( stderr, "\t[-i UID-UID pair store to use (instead of -s/-b)]\n" );
+  fprintf( stderr, "\t[-i UID-UID pair store to use (instead of -s)]\n" );
   fprintf( stderr, "\t[-o UID-UID pair store to create]\n" );
   fprintf( stderr, "\t[-d output directory]\n" );
   fprintf( stderr, "\t[-c file of component definition filenames]\n" );
@@ -667,11 +517,6 @@ void ProcessCommandLine( Globals * globals, int argc, char ** argv )
         fprintf( stdout, "* Scaffold UID - frag UID filename: %s\n",
                  globals->scaffold_filename );
         break;
-      case 'b':
-        globals->bac_bland_filename = optarg;
-        fprintf( stdout, "* BAC/bland UID - frag UID filename: %s\n",
-                 globals->bac_bland_filename );
-        break;
       case 'i':
         globals->input_store = optarg;
         fprintf( stdout, "* Input recruiter UID - frag UID store: %s\n",
@@ -710,15 +555,15 @@ void ProcessCommandLine( Globals * globals, int argc, char ** argv )
            "Specify a component definitions filename." );
   if( ! globals->input_store )
   {
-    if( ! globals->scaffold_filename && ! globals->bac_bland_filename )
+    if( ! globals->scaffold_filename )
       Usage( globals->program_name,
              "Specify recruiter UID - frag UID filenames or an input store." );
   }
   else
   {
-    if( globals->scaffold_filename || globals->bac_bland_filename )
+    if( globals->scaffold_filename )
       Usage( globals->program_name,
-             "-s & -b are incompatible with -i." );
+             "-s is incompatible with -i." );
   }
 }
 
@@ -745,8 +590,6 @@ void FreeGlobals(Globalsp globals)
       DeleteVA_Component(globals->components);
     if(globals->dists)
       DeleteVA_IIDPair(globals->dists);
-    if(globals->bacs)
-      DeleteVA_IIDPair(globals->bacs);
     if(globals->frags)
       DeleteVA_IIDPair(globals->frags);
     if(globals->mates_dists)
@@ -850,7 +693,6 @@ int AddComponent(Globalsp globals, char * component_filename)
   static VA_TYPE(CDS_UID_t) * uids;
   static VA_TYPE(CDS_IID_t) * frag_iids;
   static VA_TYPE(CDS_IID_t) * dist_iids;
-  static VA_TYPE(CDS_IID_t) * bac_iids;
   FILE * fp;
   Component comp;
   char * temp_char;
@@ -974,23 +816,6 @@ int AddComponent(Globalsp globals, char * component_filename)
   ResetVA_CDS_IID_t(dist_iids);
   // EnableRangeVA_CDS_IID_t(dist_iids, MODERATE_NUMBER);
 
-  // set up/reinitialize reusable BAC iid array
-  if(bac_iids == NULL)
-  {
-#ifdef DEBUG1
-    fprintf(stderr, "Creating array of %d BAC iids\n", MODERATE_NUMBER);
-#endif
-    bac_iids = CreateVA_CDS_IID_t(MODERATE_NUMBER);
-    if(bac_iids == NULL)
-    {
-      fprintf(stderr, "Failed to allocate array of %d iids\n",
-              MODERATE_NUMBER);
-      return 1;
-    }
-  }
-  ResetVA_CDS_IID_t(bac_iids);
-  // EnableRangeVA_CDS_IID_t(bac_iids, MODERATE_NUMBER);
-
   // open the file
   if((fp = fopen(component_filename, "r")) == NULL)
   {
@@ -1015,10 +840,6 @@ int AddComponent(Globalsp globals, char * component_filename)
       continue;
     }
 
-    // if it's a BAC, add its iid
-    if(rec->iid)
-      AppendVA_CDS_IID_t(bac_iids, &(rec->iid));
-
     // add frag iids, mates & distances to temp arrays
     for(i = rec->start; i < rec->start + rec->num; i++)
     {
@@ -1028,10 +849,6 @@ int AddComponent(Globalsp globals, char * component_filename)
       {
         AppendVA_CDS_IID_t(dist_iids,
                             &(globals->mates_dists[*iid].dist));
-        // mate might be missing ebac fragment
-        if(globals->mates_dists[*iid].mate != MISSING_EBAC_MATE)
-          AppendVA_CDS_IID_t(frag_iids,
-                              &(globals->mates_dists[*iid].mate));
       }
     }
   }
@@ -1040,7 +857,6 @@ int AddComponent(Globalsp globals, char * component_filename)
   // append unique iids to the master lists
   AppendToMaster(globals->frags, frag_iids, c_i);
   AppendToMaster(globals->dists, dist_iids, c_i);
-  AppendToMaster(globals->bacs, bac_iids, c_i);
 
   return 0;
 }
@@ -1054,160 +870,7 @@ int compare_iid_pair(const IIDPair * a, const IIDPair * b)
 }
 
 
-int PopulateEBACUIDs(Globalsp globals,
-                     FragMesg * frg,
-                     BacMesg * bac,
-                     CDS_IID_t frg_iid)
-{
-  GateKeeperFragmentRecord gkpfr;
-  GateKeeperLocaleRecord gkplr;
-  GateKeeperDistanceRecord gkpdr;
 
-  if(getGateKeeperFragmentStore(globals->s_set->gkp_store.frgStore,
-                                frg_iid, &gkpfr) )
-  {
-    fprintf( stderr,
-             "Failed to get fragment " F_IID " data from gatekeeperstore\n",
-             frg_iid);
-    return 1;
-  }
-  if(getGateKeeperLocaleStore(globals->s_set->gkp_store.locStore,
-                              gkpfr.localeID, &gkplr) )
-  {
-    fprintf( stderr,
-             "Failed to get locale " F_IID " data from gatekeeperstore\n",
-             gkpfr.localeID);
-    return 1;
-  }
-  frg->elocale = gkplr.UID;
-  bac->ebac_id = gkplr.UID;
-  
-  if( getGateKeeperDistanceStore( globals->s_set->gkp_store.dstStore,
-                                  gkplr.lengthID, &gkpdr) )
-  {
-     fprintf( stderr,
-              "Failed to get distance " F_IID " data from gatekeeperstore\n",
-              gkplr.lengthID );
-     return 1;
-  }
-  bac->elength = gkpdr.UID;
-  return 0;
-}
-
-
-int WriteShreddedBACFrags(Globalsp globals,
-                          CDS_IID_t bac_iid,
-                          CDS_IID_t i1)
-{
-  GateKeeperBatchRecord gkpb,gkpb_next;
-  GateKeeperLocaleRecord gkpl;
-  GateKeeperDistanceRecord gkpd;
-  GateKeeperSequenceRecord gkps;
-  CDS_IID_t i;
-  CDS_IID_t i2;
-  CDS_IID_t begin_frag;
-  int locale_found=0;
-  char     src[STRING_LENGTH];
-  char     seq[AS_READ_MAX_LEN];
-  char     qvs[AS_READ_MAX_LEN];
-  GateKeeperFragmentRecord gkpf;
-  GateKeeperBactigRecord   gkpbt;
-  FragMesg frg;
-  GenericMesg gen;
-  Component  * comp;
-  IIDPair    * iid_pair;
-
-  if( LookupGateKeeperRecords( globals->s_set, bac_iid, 
-                               &gkpb, &gkpb_next, &gkpl, &gkpd, &gkps ) )
-  {
-    fprintf(stderr,
-            "Failed to find UBAC info for " F_IID " in Grande GateKeeperStore\n",
-            bac_iid);
-    return 1;
-  }
-
-  sprintf( src, " " );
-  frg.source = src;
-  frg.sequence = seq;
-  frg.quality = qvs;
-
-  begin_frag = gkpb.numFragments;
-  for(i=begin_frag;
-      !getGateKeeperFragmentStore( globals->s_set->gkp_store.frgStore,
-                                   i,
-                                   &gkpf);
-      i++)
-  {
-    // Get the fragment from the gatekeeper store
-    // check whether frag is in the right locale, and if so, fill in
-    // missing info and write it out to the EXT stream
-    // if not, we're done with this locale, and need to break
-    if( gkpf.localeID == bac_iid )
-    {
-      // here's a keeper 
-      locale_found = 1;
-      
-      // populate the fragment from the fragment store
-      if( PopulateFragment( &frg,
-                            globals->s_set->frg_store,
-                            i,
-                            globals->rs ) )
-      {
-        fprintf( stderr, "Failed to populate grande fragment %u\n", i );
-        return 1;
-      }
-      
-      if( gkpf.bactigID == 0 )
-      {
-        if( frg.type != AS_FBAC )
-        {
-          fprintf( stderr,
-                   "Found fragment " F_UID " with 0 bactig ID.\n",
-                   gkpf.readUID );
-          continue;
-        }
-        else
-        {
-          frg.ebactig_id = 0;
-        }
-      }
-      else
-      {
-        // need to determine which bactig this is
-        getGateKeeperBactigStore( globals->s_set->gkp_store.btgStore,
-                                  gkpf.bactigID,
-                                  &gkpbt );
-        frg.ebactig_id = gkpbt.UID;
-      }
-      
-      frg.elocale = gkpl.UID;
-      frg.eseq_id = gkps.UID;
-
-      // write the fragment to however many output files
-      gen.t = MESG_FRG;
-      gen.m = &frg;
-
-      for( i2 = i1;
-           i2 < GetNumVA_IIDPair(globals->bacs);
-           i2++ )
-      {
-        iid_pair = GetVA_IIDPair(globals->bacs, i2);
-        if(iid_pair->iid1 != bac_iid)
-          break;
-        comp = GetVA_Component(globals->components,
-                               iid_pair->iid2);
-        WriteProtoMesg_AS(comp->external.fp, &gen);
-      }
-    }
-    else
-    {
-      if(locale_found)
-        break;
-    }
-  }
-
-  return 0;
-}
 
 
 int WriteComponents(Globalsp globals)
@@ -1217,14 +880,12 @@ int WriteComponents(Globalsp globals)
   IIDPair * iid_pair;
   GenericMesg  gen;
   DistanceMesg dst;
-  BacMesg      bac;
   FragMesg     frg;
   LinkMesg     lkg;
   char     src[STRING_LENGTH];
   char     seq[AS_READ_MAX_LEN];
   char     qvs[AS_READ_MAX_LEN];
   Component  * comp;
-  int write_bac;
   int write_lkg;
   
 #ifdef DEBUG1
@@ -1238,10 +899,6 @@ int WriteComponents(Globalsp globals)
         (int (*) (const void *, const void *)) compare_iid_pair);
   qsort(globals->dists->Elements,
         GetNumVA_IIDPair(globals->dists),
-        sizeof(IIDPair),
-        (int (*) (const void *, const void *)) compare_iid_pair);
-  qsort(globals->bacs->Elements,
-        GetNumVA_IIDPair(globals->bacs),
         sizeof(IIDPair),
         (int (*) (const void *, const void *)) compare_iid_pair);
 
@@ -1278,41 +935,10 @@ int WriteComponents(Globalsp globals)
   fprintf(stderr, "Finished writing distances\n");
 #endif
 
-  
-#ifdef DEBUG1
-  fprintf(stderr, "Looping over BACs to write\n");
-#endif
-  // BACs
-  bac.bactig_list = NULL;
-  for(last_iid = 0, i = 0; i < GetNumVA_IIDPair(globals->bacs); i++)
-  {
-    iid_pair = GetVA_IIDPair(globals->bacs, i);
-    if(iid_pair->iid1 != last_iid)
-    {
-      FreeBACMesgBactigs(&bac);
-      if(CreateDistAndUBACMesgs(globals, iid_pair->iid1, &dst, &bac))
-      {
-        fprintf(stderr, "Failed to create distance and bac messages\n");
-        return 1;
-      }
-      last_iid = iid_pair->iid1;
-    }
-    comp = GetVA_Component(globals->components, iid_pair->iid2);
-    gen.t = MESG_DST;
-    gen.m = &dst;
-    WriteProtoMesg_AS(comp->external.fp, &gen);
-    gen.t = MESG_BAC;
-    gen.m = &bac;
-    WriteProtoMesg_AS(comp->external.fp, &gen);
-  }
-  FreeBACMesgBactigs(&bac);
-#ifdef DEBUG1
-  fprintf(stderr, "Finished writing BAC messages\n");
-#endif
 
-  // READS & BAC ends
+  // READS
 #ifdef DEBUG1
-  fprintf(stderr, "Looping over reads & bac ends to write\n");
+  fprintf(stderr, "Looping over reads to write\n");
 #endif
   sprintf( src, " " );
   frg.source = src;
@@ -1320,7 +946,6 @@ int WriteComponents(Globalsp globals)
   frg.quality = qvs;
   
   dst.action = AS_ADD;
-  write_bac = 0;
   write_lkg = 0;
   for(last_iid = 0, i = 0; i < GetNumVA_IIDPair(globals->frags); i++)
   {
@@ -1336,32 +961,12 @@ int WriteComponents(Globalsp globals)
                 iid_pair->iid1);
         return 1;
       }
-      write_bac = 0;
-      if(frg.type == AS_EBAC )
-      {
-        if(PopulateEBACUIDs(globals, &frg, &bac, iid_pair->iid1))
-          return 1;
-        if((globals->mates_dists[iid_pair->iid1].mate == 0 ||
-            globals->mates_dists[iid_pair->iid1].mate > iid_pair->iid1))
-        {
-          bac.action = AS_ADD;
-          bac.type = AS_EBAC;
-          bac.entry_time = frg.entry_time;
-          bac.source = " ";
-          bac.num_bactigs = 0;
-          bac.bactig_list = NULL;
-          write_bac = 1;
-        }
-      }
-      
+
       if(globals->mates_dists[iid_pair->iid1].mate != 0 &&
          globals->mates_dists[iid_pair->iid1].mate < iid_pair->iid1)
       {
         lkg.action = AS_ADD;
-        if(frg.type == AS_EBAC)
-          lkg.type = AS_BAC_GUIDE;
-        else
-          lkg.type = AS_MATE;
+        lkg.type = AS_MATE;
         lkg.entry_time = frg.entry_time;
         lkg.link_orient = globals->mates_dists[iid_pair->iid1].orient;
         lkg.frag1 = frg.eaccession;
@@ -1380,60 +985,20 @@ int WriteComponents(Globalsp globals)
     
     // write to the iid2 component
     comp = GetVA_Component(globals->components, iid_pair->iid2);
-    if(write_bac)
-    {
-      gen.t = MESG_BAC;
-      gen.m = &bac;
-      WriteProtoMesg_AS(comp->external.fp, &gen);
-    }
     gen.t = MESG_FRG;
     gen.m = &frg;
-    if(frg.type == AS_EBAC)
+    WriteProtoMesg_AS(comp->internal.fp, &gen);
+    if(write_lkg)
     {
-      WriteProtoMesg_AS(comp->external.fp, &gen);
-      if(write_lkg)
-      {
-        gen.t = MESG_LKG;
-        gen.m = &lkg;
-        WriteProtoMesg_AS(comp->external.fp, &gen);
-      }
-    }
-    else
-    {
+      gen.t = MESG_LKG;
+      gen.m = &lkg;
       WriteProtoMesg_AS(comp->internal.fp, &gen);
-      if(write_lkg)
-      {
-        gen.t = MESG_LKG;
-        gen.m = &lkg;
-        WriteProtoMesg_AS(comp->internal.fp, &gen);
-      }
     }
   }
 #ifdef DEBUG1
-  fprintf(stderr, "Finished writing reads and BAC ends\n");
+  fprintf(stderr, "Finished writing reads\n");
 #endif
 
-#ifdef DEBUG1
-  fprintf(stderr, "Looping over BACs to write shredded frags\n");
-#endif
-  // Shredded BAC fragments
-  for(last_iid = 0, i = 0; i < GetNumVA_IIDPair(globals->bacs); i++)
-  {
-    iid_pair = GetVA_IIDPair(globals->bacs, i);
-    if(iid_pair->iid1 != last_iid)
-    {
-      if(WriteShreddedBACFrags(globals, iid_pair->iid1, i))
-      {
-        fprintf(stderr, "Failed to write shredded BAC frags\n");
-        return 1;
-      }
-      last_iid = iid_pair->iid1;
-    }
-  }  
-#ifdef DEBUG1
-  fprintf(stderr, "Finished writing shredded frags\n");
-#endif
-  
   // close the files
 #ifdef DEBUG1
   fprintf(stderr, "Looping over component files to close\n");
@@ -1462,7 +1027,6 @@ void ResetComponents(Globalsp globals)
 {
   ResetVA_Component(globals->components);
   ResetVA_IIDPair(globals->dists);
-  ResetVA_IIDPair(globals->bacs);
   ResetVA_IIDPair(globals->frags);
 }
 
@@ -1482,10 +1046,8 @@ int GenerateComponentInputs(Globalsp globals)
 
   // create variable arrays
   globals->dists = CreateVA_IIDPair(0);
-  globals->bacs = CreateVA_IIDPair(0);
   globals->frags = CreateVA_IIDPair(0);
   if(globals->dists == NULL ||
-     globals->bacs == NULL ||
      globals->frags == NULL)
   {
     fprintf( stderr, "Failed to create empty variable arrays.\n" );
@@ -1575,12 +1137,10 @@ int SetUpMatesDistsArray(Globalsp globals)
         globals->mates_dists[i].mate = iid;
         globals->mates_dists[i].dist = gkpl.distance;
         globals->mates_dists[i].orient = getLinkOrientation(&gkpl);
-        if(iid != MISSING_EBAC_MATE)
-        {
-          globals->mates_dists[iid].mate = i;
-          globals->mates_dists[iid].dist = gkpl.distance;
-          globals->mates_dists[iid].orient = globals->mates_dists[i].orient;
-        }
+
+        globals->mates_dists[iid].mate = i;
+        globals->mates_dists[iid].dist = gkpl.distance;
+        globals->mates_dists[iid].orient = globals->mates_dists[i].orient;
       }
     }
   }
@@ -1595,8 +1155,7 @@ int SetUpMatesDistsArray(Globalsp globals)
 
 int AddIIDsToRecFrags(Globalsp globals,
                       VA_TYPE(CDS_IID_t) * iids,
-                      CDS_UID_t last_uid,
-                      int check_bacs)
+                      CDS_UID_t last_uid)
 {
   Recruiter     rec;
   int           i;
@@ -1623,29 +1182,9 @@ int AddIIDsToRecFrags(Globalsp globals,
     }
   }
   
-  // add the uid to the hashtable
-  if(check_bacs)
-  {
-    // see if it's a BAC
-    if( HASH_SUCCESS ==
-        LookupTypeInPHashTable_AS( globals->s_set->gkp_store.hashTable,
-                                   UID_NAMESPACE_AS,
-                                   rec.uid,
-                                   AS_IID_LOC,
-                                   FALSE,
-                                   stderr,
-                                   &value ) )
-      rec.iid = value.IID;
-    else
-      rec.iid = 0;
-  }
-  else
-  {
-    rec.iid = 0;
-  }
+  rec.iid = 0;
 
-
-  // insert the scaffold/bac/bland UID into the hashtable
+  // insert the scaffold/bland UID into the hashtable
   if(InsertInHashTable(globals->uid_ht, rec.uid, (char *) &rec))
   {
     fprintf( stderr, "Failed to insert UID into hashtable\n");
@@ -1657,7 +1196,7 @@ int AddIIDsToRecFrags(Globalsp globals,
 }
 
 
-int ProcessUIDPairsFile(Globalsp globals, char * filename, int check_bacs)
+int ProcessUIDPairsFile(Globalsp globals, char * filename)
 {
   FILE * fp;
   char   line[STRING_LENGTH];
@@ -1708,7 +1247,7 @@ int ProcessUIDPairsFile(Globalsp globals, char * filename, int check_bacs)
               last_uid);
 #endif
       
-      if(AddIIDsToRecFrags(globals, iids, last_uid, check_bacs))
+      if(AddIIDsToRecFrags(globals, iids, last_uid))
       {
         fprintf(stderr, "Failed to add IIDs to recruited frags set\n");
         return 1;
@@ -1749,7 +1288,7 @@ int ProcessUIDPairsFile(Globalsp globals, char * filename, int check_bacs)
   fprintf(stderr, "Adding final recruiter " F_UID " frags to master set\n",
           last_uid);
 #endif
-  if(AddIIDsToRecFrags(globals, iids, last_uid, check_bacs))
+  if(AddIIDsToRecFrags(globals, iids, last_uid))
   {
     fprintf(stderr, "Failed to add IIDs to recruited frags set\n");
     return 1;
@@ -1802,13 +1341,6 @@ int ReadUIDPairsFiles(Globalsp globals)
   {
     fprintf(stderr, "Failed to read & process scaffold UID file: %s\n",
             globals->scaffold_filename);
-    return 1;
-  }
-  if(globals->bac_bland_filename != NULL &&
-     ProcessUIDPairsFile(globals, globals->bac_bland_filename, 1))
-  {
-    fprintf(stderr, "Failed to read & process BAC/bland UID file: %s\n",
-            globals->bac_bland_filename);
     return 1;
   }
     
@@ -2067,7 +1599,7 @@ int main( int argc, char ** argv )
   }
 
   // read in the uid pairs
-  if(globals->scaffold_filename || globals->bac_bland_filename)
+  if(globals->scaffold_filename)
   {
     if(ReadUIDPairsFiles(globals))
     {

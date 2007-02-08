@@ -21,13 +21,11 @@
 #
 ###########################################################################
 #
-# gmake Makefile for AS_GKP
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-
-GKPSOURCES = AS_GKP_main.c AS_GKP_check.c AS_GKP_checkFrag.c AS_GKP_checkBac.c
-GKPOBJECTS = AS_GKP_main.o AS_GKP_check.o AS_GKP_checkFrag.o AS_GKP_checkBac.o
+GKPSOURCES = AS_GKP_main.c AS_GKP_check.c AS_GKP_checkFrag.c
+GKPOBJECTS = AS_GKP_main.o AS_GKP_check.o AS_GKP_checkFrag.o
 OTHERSOURCES = dumpGatekeeperRecords.c dumpGatekeeper.c dumpGatekeeperName.c debugGatekeeperStore.c
 OTHEROBJECTS = dumpGatekeeperRecords.o dumpGatekeeper.o dumpGatekeeperName.o debugGatekeeperStore.o
 

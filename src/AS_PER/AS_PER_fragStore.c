@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_fragStore.c,v 1.13 2007-02-03 07:06:28 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_fragStore.c,v 1.14 2007-02-08 06:48:54 brianwalenz Exp $";
 
 /*************************************************************************
  Module:  AS_PER_fragStore
@@ -199,54 +199,23 @@ static FragStream  *allocateFragStream(FragStoreHandle sh, void *buffer, int32 b
  ***********************************************************************************/
 void unloadFragRecord(FragStore *myStore, FragRecord *fr, int32 getFlags){
   static char encodeBuffer[MAX_SEQUENCE_LENGTH];
-  uint16 localeLength=0;
   VLSTRING_SIZE_T actualLength;
 
-  /*  looks like checking AS_FA_READ and AS_FA_SHREDDED FT isolated VR */
   switch(fr->frag.readType){
   case AS_READ:
   case AS_EXTR:
   case AS_TRNR:
-    localeLength = 0;
-    break;
-  case AS_EBAC:
-  case AS_LBAC:
-  case AS_FULLBAC:
-  case AS_BACTIG:
-    localeLength = 1 + sizeof(uint64);
-    break;
-  case AS_UBAC:
-  case AS_FBAC:
-    localeLength = 1 + sizeof(uint64) + 2 * sizeof(uint32);
     break;
   default:
     fprintf(stderr,"fr->frag.readType=%c\n",(char) fr->frag.readType);
     assert(0);
   }
 
-  if((getFlags & FRAG_S_SOURCE) ||
-     localeLength != 0){
-
-     getVLRecordStore(GET_FILEHANDLE(myStore->sourceStore, fr->frag.sourceOffset), 
+  if(getFlags & FRAG_S_SOURCE){  //  also was || locale
+    getVLRecordStore(GET_FILEHANDLE(myStore->sourceStore, fr->frag.sourceOffset), 
 		     GET_FILEOFFSET(fr->frag.sourceOffset), fr->source, 
 		     (VLSTRING_SIZE_T)VLSTRING_MAX_SIZE, 
 		     &actualLength);
-    
-    //    fr->source[actualLength - localeLength] = '\0';
-    if(localeLength > 0){
-      size_t offset = actualLength - localeLength + 1;
-#ifdef DEBUG
-      fprintf(stderr,"* Reading Locale at offset " F_SIZE_T "\n",
-	      offset);
-#endif
-      memcpy(&fr->localeID, fr->source + offset, sizeof(uint64));
-      offset += sizeof(uint64);
-      if(localeLength > sizeof(uint64) + 1){
-	memcpy(&fr->localePosStart, fr->source + offset, sizeof(uint32));
-	offset += sizeof(int32);
-	memcpy(&fr->localePosEnd, fr->source + offset, sizeof(uint32));
-      }
-    }
   }
   if(getFlags & FRAG_S_SEQUENCE){
     getVLRecordStore(GET_FILEHANDLE(myStore->sequenceStore, fr->frag.sequenceOffset), 
@@ -263,7 +232,6 @@ void unloadFragRecord(FragStore *myStore, FragRecord *fr, int32 getFlags){
  ***********************************************************************************/
 void unloadFragRecordPartition(StoreHandle seqStore, StoreHandle srcStore, FragRecord *fr, int32 getFlags){
   static char encodeBuffer[MAX_SEQUENCE_LENGTH];
-  uint16 localeLength=0;
   VLSTRING_SIZE_T actualLength;
 
   /* FT isolated VR */
@@ -271,44 +239,17 @@ void unloadFragRecordPartition(StoreHandle seqStore, StoreHandle srcStore, FragR
   case AS_READ:
   case AS_EXTR:
   case AS_TRNR:
-    localeLength = 0;
-    break;
-  case AS_EBAC:
-  case AS_LBAC:
-  case AS_FULLBAC:
-  case AS_BACTIG:
-    localeLength = 1 + sizeof(uint64);
-    break;
-  case AS_UBAC:
-  case AS_FBAC:
-    localeLength = 1 + sizeof(uint64) + 2 * sizeof(uint32);
     break;
   default:
     assert(0);
   }
 
-  if((getFlags & FRAG_S_SOURCE) ||
-     localeLength != 0){
+  if (getFlags & FRAG_S_SOURCE) {  //  also was locale
 
      getVLRecordStore(srcStore,
 		     GET_FILEOFFSET(fr->frag.sourceOffset), fr->source, 
 		     (VLSTRING_SIZE_T)VLSTRING_MAX_SIZE, 
 		     &actualLength);
-    
-    if(localeLength > 0){
-      size_t offset = actualLength - localeLength + 1;
-#ifdef DEBUG
-      fprintf(stderr,"* Reading Locale at offset " F_SIZE_T "\n",
-	      offset);
-#endif
-      memcpy(&fr->localeID, fr->source + offset, sizeof(uint64));
-      offset += sizeof(uint64);
-      if(localeLength > sizeof(uint64) + 1){
-	memcpy(&fr->localePosStart, fr->source + offset, sizeof(uint32));
-	offset += sizeof(int32);
-	memcpy(&fr->localePosEnd, fr->source + offset, sizeof(uint32));
-      }
-    }
   }
   if(getFlags & FRAG_S_SEQUENCE){
     getVLRecordStore(seqStore, 
@@ -1210,25 +1151,7 @@ int appendFragStorePartition(FragStoreHandle store, ReadStructp rs, int32 partit
   appendIndexStore(myStore->partitionStore[partition], (void *)(&fr->frag)); // per partition collection of fixed records
 
   sourceLength = (uint16)strlen(fr->source) + 1;
-
-  /* Tack the locID and localPos onto the end of the source */
-  if(!AS_FA_READ(fr->frag.readType)){ 
-    int32  offset = sourceLength + 1;
-    int type = fr->frag.readType;
-
-    memcpy(fr->source + offset, &fr->localeID, sizeof(uint64));
-    offset += sizeof(uint64);
-
-    if(AS_FA_SHREDDED(type)){ 
-      memcpy(fr->source + offset, &fr->localePosStart, sizeof(uint32));
-      offset += sizeof(uint32);
-      memcpy(fr->source + offset, &fr->localePosEnd, sizeof(uint32));
-      offset += sizeof(uint32);
-    }
-    length = offset;
-  }else{
-    length = sourceLength;
-  }
+  length = sourceLength;
 
 #ifdef GENERIC_STORE_USE_LONG_STRINGS
   assert(length <= VLSTRING_MAX_SIZE);
@@ -1288,25 +1211,8 @@ int appendFragStore(FragStoreHandle store, ReadStructp rs){
   appendIndexStore(myStore->fragStore, (void *)(&fr->frag));
 
   sourceLength = (uint16)strlen(fr->source) + 1;
+  length = sourceLength;
 
-  /* Tack the locID and localPos onto the end of the source */
-  if (!AS_FA_READ(fr->frag.readType)){ 
-    int32  offset = sourceLength + 1;
-    int type = fr->frag.readType;
-
-    memcpy(fr->source + offset, &fr->localeID, sizeof(uint64));
-    offset += sizeof(uint64);
-
-    if(AS_FA_SHREDDED(type)){ 
-      memcpy(fr->source + offset, &fr->localePosStart, sizeof(uint32));
-      offset += sizeof(uint32);
-      memcpy(fr->source + offset, &fr->localePosEnd, sizeof(uint32));
-      offset += sizeof(uint32);
-    }
-    length = offset;
-  }else{
-    length = sourceLength;
-  }
 #ifdef GENERIC_STORE_USE_LONG_STRINGS
   assert(length <= VLSTRING_MAX_SIZE);
 #endif
@@ -1647,9 +1553,6 @@ void loadRecordDelimiter(FILE *outfp){
  ***********************************************************************************/
 void unloadNDumpFragRecord(FragStore *myStore, FragRecord *fr, FILE *outfp){
   char encodeBuffer[MAX_SEQUENCE_LENGTH];
-#ifdef DEBUG
-  uint16 localeLength=0;
-#endif
   VLSTRING_SIZE_T actualLength;
   uint8 checksum;
 

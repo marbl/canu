@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.30 2007-02-03 07:06:27 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.31 2007-02-08 06:48:53 brianwalenz Exp $";
 
 //  reads old and new AFG message (with and w/o chaff field)
 #define AFG_BACKWARDS_COMPATIBLE
@@ -80,7 +80,6 @@ static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.30 2007-02-03 07:06:27 brianwalenz
 #define IFRAG2_FORMAT "fg2:" F_IID
 
 #define EACC_FORMAT  "acc:" F_UID
-#define EBAC_FORMAT  "bid:" F_UID
 #define EBTG_FORMAT  "btd:" F_UID
 #define EDST_FORMAT  "dst:" F_UID
 #define ELEN_FORMAT  "len:" F_UID
@@ -91,8 +90,6 @@ static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.30 2007-02-03 07:06:27 brianwalenz
 #define F_UID_IID    "(" F_UID "," F_IID ")"
 
 #define IACCS_FORMAT "acc:" F_UID_IID
-#define IBACS_FORMAT "bid:" F_UID_IID
-#define IBTGS_FORMAT "btd:" F_UID_IID
 #define IDST_FORMAT  "dst:" F_IID
 #define ILENS_FORMAT "len:" F_UID_IID
 #define ILOCS_FORMAT "loc:" F_UID_IID
@@ -142,14 +139,6 @@ FragType AS_MSG_SafeConvert_charToFragType (const char input, bool strict) {
   if      (input=='R') output=AS_READ;
   else if (input=='X') output=AS_EXTR;
   else if (input=='T') output=AS_TRNR;
-  else if (input=='E') output=AS_EBAC;
-  else if (input=='L') output=AS_LBAC;
-  else if (input=='U') output=AS_UBAC;
-  else if (input=='F') output=AS_FBAC;
-  else if (input=='u') output=AS_UNITIG;
-  else if (input=='c') output=AS_CONTIG;
-  else if (input=='B') output=AS_BACTIG;
-  else if (input=='C') output=AS_FULLBAC;
   else if (strict)     assert(FALSE);
 
   return output;
@@ -543,80 +532,35 @@ static void *Read_Frag_Mesg(FILE *fin, int frag_class)
   fmesg.sequence = NULL;
   fmesg.quality  = NULL;
 
-  if (fmesg.action == AS_ADD)
-    { 
-      if (frag_class == 0){
-	GET_TYPE(ch,TYP_FORMAT,"type");
-	fmesg.type = (FragType) ch;
-        // We want to succeed on all reads, and let the gatekeeper do its stuff
-      }else{
-	GET_TYPE(ch,TYP1_FORMAT "[RXELTFUCBW]","type");
-	fmesg.type = (FragType) ch;
-      }
+  if (fmesg.action == AS_ADD) { 
+    if (frag_class == 0){
+      GET_TYPE(ch,TYP_FORMAT,"type");
+      fmesg.type = (FragType) ch;
+      // We want to succeed on all reads, and let the gatekeeper do its stuff
+    }else{
+      GET_TYPE(ch,TYP1_FORMAT "[RXELTFUCBW]","type");
+      fmesg.type = (FragType) ch;
+    }
 
-    fmesg.elocale = 0;
-    fmesg.locale_pos.bgn = 0;
-    fmesg.locale_pos.end = 0;
     fmesg.eseq_id = 0;
-    fmesg.ebactig_id = 0;
 
-        if(fmesg.type == AS_FBAC ||
-           fmesg.type == AS_UBAC ||
-           fmesg.type == AS_EBAC ||
-           fmesg.type == AS_LBAC ||
-           fmesg.type == AS_BACTIG ||
-           fmesg.type == AS_FULLBAC ){
+    fmesg.source   = (char *) GetText("src:",fin,FALSE);
 
-          if(frag_class == 0){
-            GET_FIELD(fmesg.elocale, ELOC_FORMAT, "locale field");
-          }else{
-            GET_PAIR(fmesg.elocale,fmesg.ilocale,
-                     ILOCS_FORMAT,"locale field pair");
-          }
+    GET_FIELD(fmesg.entry_time,ETM_FORMAT,"time field");
 
-          if(fmesg.type == AS_FBAC ||
-             fmesg.type == AS_UBAC ||
-             fmesg.type == AS_BACTIG ||
-             fmesg.type == AS_FULLBAC ){
-            if(frag_class == 0){
-              GET_FIELD(fmesg.eseq_id, ESEQ_FORMAT, "seqid field");
-            }else{
-              GET_PAIR(fmesg.eseq_id,fmesg.iseq_id,
-                       ISEQS_FORMAT,"seqid field pair");
-            }
-          }
-          if(fmesg.type == AS_UBAC ||
-             fmesg.type == AS_BACTIG){
-            if(frag_class == 0){
-              GET_FIELD(fmesg.ebactig_id, EBTG_FORMAT, "bactig field");
-            }else{
-              GET_PAIR(fmesg.ebactig_id, fmesg.ibactig_id,IBTGS_FORMAT, "bactig field pair");
-            }
-          }
-
-	  if(AS_FA_SHREDDED(fmesg.type)){ 
-            GET_PAIR(fmesg.locale_pos.bgn,fmesg.locale_pos.end,
-                     POS2_FORMAT, "locale pos pair");
-          }
-        }
-
-      fmesg.source   = (char *) GetText("src:",fin,FALSE);
-
-        GET_FIELD(fmesg.entry_time,ETM_FORMAT,"time field");
-
-      if( frag_class != 2 ) {
-	fmesg.sequence = (char *) GetText("seq:",fin,TRUE);
-	fmesg.quality  = (char *) GetText("qlt:",fin,TRUE);
-      }
-      GET_PAIR(fmesg.clear_rng.bgn,fmesg.clear_rng.end,
-               CLR_FORMAT,"clear range field");
-      fmesg.source   = MemBuffer + ((long) (fmesg.source));
-      if( frag_class != 2 ) {
-	// Convert from an index to a pointer.
-	fmesg.sequence = MemBuffer + ((long) (fmesg.sequence));
-	fmesg.quality  = MemBuffer + ((long) (fmesg.quality));
-      }
-    }  //  action is AS_ADD
+    if( frag_class != 2 ) {
+      fmesg.sequence = (char *) GetText("seq:",fin,TRUE);
+      fmesg.quality  = (char *) GetText("qlt:",fin,TRUE);
+    }
+    GET_PAIR(fmesg.clear_rng.bgn,fmesg.clear_rng.end,
+             CLR_FORMAT,"clear range field");
+    fmesg.source   = MemBuffer + ((long) (fmesg.source));
+    if( frag_class != 2 ) {
+      // Convert from an index to a pointer.
+      fmesg.sequence = MemBuffer + ((long) (fmesg.sequence));
+      fmesg.quality  = MemBuffer + ((long) (fmesg.quality));
+    }
+  }  //  action is AS_ADD
   GET_EOM;
   return ((void *) (&fmesg));
 }
@@ -1815,97 +1759,6 @@ static void *Read_IBA_Mesg(FILE *fin){
   return ((void *) (&mesg));
 }
 
-static void *Read_BAC_Mesg(FILE *fin){
-  static BacMesg mesg;
-  int i;
-  BactigMesg *curr = NULL;
-  int offset;
-  char ch;
-  
-  GET_TYPE(ch,ACT_FORMAT,"action");
-  mesg.action = (ActionType) ch;
-  GET_FIELD(mesg.ebac_id,EBAC_FORMAT,"bac id field")
-    if(mesg.action != AS_DELETE){
-      GET_TYPE(ch,TYP_FORMAT,"type");
-      mesg.type = (BACType) ch;
-      mesg.eseq_id = 0;
-      if(mesg.type == AS_UNFINISHED ||
-	 mesg.type == AS_FINISHED){
-	GET_FIELD(mesg.eseq_id,ESEQ_FORMAT,"seq field")
-	  }
-      GET_FIELD(mesg.entry_time,ETM_FORMAT,"time field");
-      GET_FIELD(mesg.elength,ELEN_FORMAT,"length field")
-	mesg.num_bactigs = 0;
-      mesg.bactig_list = NULL;
-      if(mesg.type == AS_UNFINISHED){
-        {
-          // note: num_bactigs is int16
-          int tempVar;
-          GET_FIELD(tempVar,"btg:%d","numbactigs field");
-          mesg.num_bactigs = (int16) tempVar;
-        }
-        offset = MoreSpace(sizeof(BactigMesg) * mesg.num_bactigs,8);
-	mesg.bactig_list = (BactigMesg *)(MemBuffer + offset);
-	for(i = 0, curr = mesg.bactig_list; i < mesg.num_bactigs; i++,curr++){
-	  if(strncmp(GetLine(fin,TRUE), "{BTG",4) != 0)
-	    MgenError("Expecting BTG record");
-	  GET_FIELD(curr->eaccession,EACC_FORMAT,"bactig id field");
-	  GET_FIELD(curr->length,"len:" F_COORD,"bactig length field");
-	  GET_EOM;
-	}
-      }
-      mesg.source = (char *)MemBuffer + GetText("src:",fin,FALSE);
-    }
-  GET_EOM;
-  return ((void *) (&mesg));
-}
-
-
-static void *Read_IBC_Mesg(FILE *fin){
-  static BacMesg mesg;
-  int i;
-  BactigMesg *curr = NULL;
-  int offset;
-  char ch;
-  
-  GET_TYPE(ch,ACT_FORMAT,"action");
-  mesg.action = (ActionType) ch;
-  GET_PAIR(mesg.ebac_id, mesg.ibac_id,IBACS_FORMAT, "bacid field pair");
-  if(mesg.action != AS_DELETE){
-  GET_TYPE(ch,TYP_FORMAT,"type");
-  mesg.type = (BACType) ch;
-  if(mesg.type == AS_UNFINISHED ||
-     mesg.type == AS_FINISHED){
-    GET_PAIR(mesg.eseq_id, mesg.iseq_id,ISEQS_FORMAT, "seq field pair");
-  }
-  GET_FIELD(mesg.entry_time,ETM_FORMAT,"time field");
-  GET_PAIR(mesg.elength, mesg.ilength,ILENS_FORMAT, "length field pair");
-  mesg.num_bactigs = 0;
-  mesg.bactig_list = NULL;
-  if(mesg.type == AS_UNFINISHED){
-    {
-      // note: num_bactigs is int16
-      int tempVar;
-      GET_FIELD(tempVar,"btg:%d","numbactigs field");
-      mesg.num_bactigs = (int16) tempVar;
-    }
-    offset = MoreSpace(sizeof(BactigMesg) * mesg.num_bactigs,8);
-    mesg.bactig_list = (BactigMesg *)(MemBuffer + offset);
-    for(i = 0, curr = mesg.bactig_list; i < mesg.num_bactigs; i++,curr++){
-      if(strncmp(GetLine(fin,TRUE), "{IBT",4) != 0)
-	MgenError("Expecting IBT record");
-      GET_PAIR(curr->eaccession, curr->iaccession,IACCS_FORMAT, "ibt accession pair");
-      GET_FIELD(curr->length,"len:" F_COORD,"bactig length field");
-      GET_EOM;
-    }
-  }
-  mesg.source = (char *)MemBuffer + GetText("src:",fin,FALSE);
-  }
-  GET_EOM;
-  return ((void *) (&mesg));
-}
-
-
 /******************** OUTPUT ROUTINES ***************************/
 
 /*  Routine to output each type of proto-IO message. */
@@ -1989,8 +1842,8 @@ static void Write_ILK_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"}\n");
 }
 
-static void Write_Frag_Mesg(FILE *fout, void *vmesg, int frag_class)
-{ FragMesg *mesg = (FragMesg *) vmesg;
+static void Write_Frag_Mesg(FILE *fout, void *vmesg, int frag_class) {
+  FragMesg *mesg = (FragMesg *) vmesg;
   static const char * const header[]  = { "FRG", "IFG", "OFG" };
 
   assert((frag_class == 0) || (frag_class == 1) || (frag_class == 2));
@@ -2001,49 +1854,9 @@ static void Write_Frag_Mesg(FILE *fout, void *vmesg, int frag_class)
     fprintf(fout,EACC_FORMAT "\n",mesg->eaccession);
   else
     fprintf(fout,IACCS_FORMAT "\n",mesg->eaccession,mesg->iaccession);
+
   if (mesg->action == AS_ADD) {
     fprintf(fout,TYP_FORMAT "\n",(char) mesg->type);
-
-        if(mesg->type == AS_FBAC ||
-           mesg->type == AS_UBAC ||
-           mesg->type == AS_BACTIG ||
-           mesg->type == AS_FULLBAC ||
-           mesg->type == AS_LBAC ||
-           mesg->type == AS_EBAC){
-          if(frag_class == 0){
-            fprintf(fout,ELOC_FORMAT "\n",mesg->elocale);
-          }else{
-            fprintf(fout,ILOCS_FORMAT "\n",
-                    mesg->elocale,mesg->ilocale);
-          }
-
-          if(mesg->type == AS_FBAC ||
-             mesg->type == AS_UBAC ||
-             mesg->type == AS_BACTIG ||
-             mesg->type == AS_FULLBAC ){
-            if(frag_class == 0){
-              fprintf(fout,ESEQ_FORMAT "\n",mesg->eseq_id);
-            }else{
-              fprintf(fout,ISEQS_FORMAT "\n" ,mesg->eseq_id,mesg->iseq_id);
-            }
-          }      
-
-          if(mesg->type == AS_UBAC ||
-             mesg->type == AS_BACTIG){
-            if(frag_class == 0){
-              fprintf(fout,"btd:" F_UID "\n",mesg->ebactig_id);
-            }else{
-              fprintf(fout,IBTGS_FORMAT "\n",
-                      mesg->ebactig_id,mesg->ibactig_id);
-            }
-		  }
-		   
-	  if(AS_FA_SHREDDED(mesg->type)){ 
-            fprintf(fout,POS2_FORMAT "\n",
-                    mesg->locale_pos.bgn,mesg->locale_pos.end);
-          }
-        }
-
     PutText(fout,"src:",mesg->source,FALSE);
     fprintf(fout,ETM_FORMAT "\n",mesg->entry_time);
     if( frag_class != 2 ) {
@@ -2052,7 +1865,7 @@ static void Write_Frag_Mesg(FILE *fout, void *vmesg, int frag_class)
     }
     fprintf(fout,CLR_FORMAT "\n",
             mesg->clear_rng.bgn,mesg->clear_rng.end);
-    }
+  }
 
   fprintf(fout,"}\n");
 }
@@ -2687,60 +2500,6 @@ static void Write_IBA_Mesg(FILE *fout, void *vmesg){
   fprintf(fout,"}\n");
 }
 
-static void Write_BAC_Mesg(FILE *fout, void *vmesg){
-  BactigMesg *curr = NULL;
-  BacMesg *mesg = (BacMesg *)vmesg;
-  int i;
-  fprintf(fout,"{BAC\n");
-  fprintf(fout,ACT_FORMAT "\n",mesg->action);
-  fprintf(fout,EBAC_FORMAT "\n",mesg->ebac_id);
-  fprintf(fout,TYP_FORMAT "\n", (char) mesg->type);
-  if(mesg->type == AS_UNFINISHED ||
-     mesg->type == AS_FINISHED){
-    fprintf(fout,ESEQ_FORMAT "\n",mesg->eseq_id);
-  }
-
-  fprintf(fout,ETM_FORMAT "\n",mesg->entry_time);
-  fprintf(fout,ELEN_FORMAT "\n",mesg->elength);
-  if(mesg->type == AS_UNFINISHED){
-  fprintf(fout,"btg:" F_S16 "\n", mesg->num_bactigs);
-    for(i = 0, curr = mesg->bactig_list; i < mesg->num_bactigs; i++,curr++){
-      fprintf(fout,"{BTG\n" EACC_FORMAT "\nlen:" F_COORD "\n}\n",
-	      curr->eaccession, curr->length);
-    }
-  }
-  PutText(fout,"src:",mesg->source,FALSE);
-  fprintf(fout,"}\n");
-}
-static void Write_IBC_Mesg(FILE *fout, void *vmesg){
-  InternalBactigMesg *curr = NULL;
-  InternalBacMesg *mesg = (InternalBacMesg *)vmesg;
-  int i;
-  fprintf(fout,"{IBC\n");
-  fprintf(fout,ACT_FORMAT "\n",mesg->action);
-  fprintf(fout,IBACS_FORMAT "\n",mesg->ebac_id, mesg->ibac_id);
-  if(mesg->action != AS_DELETE){
-    fprintf(fout,TYP_FORMAT "\n", (char) mesg->type);
-    if(mesg->type == AS_UNFINISHED ||
-       mesg->type == AS_FINISHED){
-      fprintf(fout,ISEQS_FORMAT "\n",mesg->eseq_id, mesg->iseq_id);
-    }
-    fprintf(fout,ETM_FORMAT "\n",mesg->entry_time);
-    fprintf(fout,ILENS_FORMAT "\n",mesg->elength, mesg->ilength);
-    if(mesg->type == AS_UNFINISHED){
-      fprintf(fout,"btg:" F_S16 "\n", mesg->num_bactigs);
-      AssertPtr(mesg->bactig_list);
-      for(i = 0, curr = mesg->bactig_list; i < mesg->num_bactigs; i++,curr++){
-	AssertPtr(curr);
-	fprintf(fout,"{IBT\n" IACCS_FORMAT "\nlen:" F_COORD "\n}\n",
-		curr->eaccession, curr->iaccession, curr->length);
-      }
-    }
-    PutText(fout,"src:",mesg->source,FALSE);
-  }
-  fprintf(fout,"}\n");
-}
-
 static void Write_EOF_Mesg(FILE *fout, void *vmesg)
 {
   EndOfFileMesg *mesg = (EndOfFileMesg *) vmesg;
@@ -2767,21 +2526,21 @@ void Transfer_IFG_to_OFG_AS(InternalFragMesg *ifg, OFGMesg *ofg)
 { memcpy(ofg,ifg,sizeof(FragMesg)); }
 
 void Transfer_DST_to_IDT_AS(DistanceMesg *dst, InternalDistMesg *idt)
-{ idt->action     = dst->action;
-  idt->eaccession = dst->eaccession;
-  idt->iaccession = 0;
-  idt->mean     = dst->mean;
+{ idt->action      = dst->action;
+  idt->eaccession  = dst->eaccession;
+  idt->iaccession  = 0;
+  idt->mean        = dst->mean;
   idt->stddev      = dst->stddev;
 }
 
 void Transfer_LKG_to_ILK_AS(LinkMesg *lkg, 
 			    InternalLinkMesg *ilk){
-  ilk->action = lkg->action;
-  ilk->type = lkg->type;
-  ilk->ifrag1 = 0;
-  ilk->ifrag2 = 0;
-  ilk->entry_time = lkg->entry_time;
-  ilk->idistance = 0;
+  ilk->action      = lkg->action;
+  ilk->type        = lkg->type;
+  ilk->ifrag1      = 0;
+  ilk->ifrag2      = 0;
+  ilk->entry_time  = lkg->entry_time;
+  ilk->idistance   = 0;
   ilk->link_orient = lkg->link_orient;
 }
 
@@ -2943,8 +2702,8 @@ static const callrecord CallTable[] = {
   {"{MDI", Read_MDI_Mesg, Write_MDI_Mesg, NULL, 	    sizeof(SnapMateDistMesg) },
   {"{BAT", Read_BAT_Mesg, Write_BAT_Mesg, NULL, 	    sizeof(BatchMesg) },
   {"{IBA", Read_IBA_Mesg, Write_IBA_Mesg, NULL, 	    sizeof(InternalBatchMesg) },
-  {"{BAC", Read_BAC_Mesg, Write_BAC_Mesg, NULL, 	    sizeof(BacMesg) },
-  {"{IBC", Read_IBC_Mesg, Write_IBC_Mesg, NULL,  	    sizeof(InternalBacMesg) },
+  {"", NULL, NULL, NULL, 0l },
+  {"", NULL, NULL, NULL, 0l },
   {"", NULL, NULL, NULL, 0l },
   {"", NULL, NULL, NULL, 0l },
   {"", NULL, NULL, NULL, 0l },
@@ -3044,12 +2803,3 @@ int WriteProtoMesg_AS(FILE *fout, GenericMesg *pmesg)
 
 int GetProtoLineNum_AS(void)     /* Current Line Number */
 { return (LineNum); }
-
-void FreeProtoMesg_AS(GenericMesg *pmesg)
-{ if (pmesg == &ReadMesg) return;
-
-  if (CallTable[pmesg->t].clearer != NULL)
-    CallTable[pmesg->t].clearer(pmesg->m,pmesg->t);
-  free(pmesg->m);
-  free(pmesg);
-}

@@ -91,9 +91,9 @@ examineGap(ContigT *lcontig, int lFragIid, ContigT *rcontig, int rFragIid,
 
   CIFragT *lFrag = NULL, *rFrag = NULL;
   static VA_TYPE(char) *ungappedSequence=NULL, *ungappedQuality=NULL;
-  char lFragSeqBuffer[AS_BACTIG_MAX_LEN+1], lqltbuffer[AS_BACTIG_MAX_LEN+1];
-  char rFragSeqBuffer[AS_BACTIG_MAX_LEN+1], rqltbuffer[AS_BACTIG_MAX_LEN+1];
-  char lcompBuffer[AS_BACTIG_MAX_LEN+1], rcompBuffer[AS_BACTIG_MAX_LEN+1];
+  char lFragSeqBuffer[AS_READ_MAX_LEN+1], lqltbuffer[AS_READ_MAX_LEN+1];
+  char rFragSeqBuffer[AS_READ_MAX_LEN+1], rqltbuffer[AS_READ_MAX_LEN+1];
+  char lcompBuffer[AS_READ_MAX_LEN+1],    rcompBuffer[AS_READ_MAX_LEN+1];
   uint lclr_bgn, lclr_end;
   uint rclr_bgn, rclr_end;
   char tmp_char, *lSequence, *rSequence;
@@ -143,13 +143,13 @@ examineGap(ContigT *lcontig, int lFragIid, ContigT *rcontig, int rFragIid,
   if (lFragIid != -1) {
     getFragStore(ScaffoldGraph->fragStore, lFragIid, FRAG_S_ALL, fsread);
     getClearRegion_ReadStruct(fsread, &lclr_bgn, &lclr_end, READSTRUCT_CNS);
-    getSequence_ReadStruct(fsread, lFragSeqBuffer, lqltbuffer, AS_BACTIG_MAX_LEN);
+    getSequence_ReadStruct(fsread, lFragSeqBuffer, lqltbuffer, AS_READ_MAX_LEN);
   }
   
   if (rFragIid != -1) {
     getFragStore(ScaffoldGraph->fragStore, rFragIid, FRAG_S_ALL, fsread);
     getClearRegion_ReadStruct(fsread, &rclr_bgn, &rclr_end, READSTRUCT_CNS);
-    getSequence_ReadStruct(fsread, rFragSeqBuffer, rqltbuffer, AS_BACTIG_MAX_LEN);
+    getSequence_ReadStruct(fsread, rFragSeqBuffer, rqltbuffer, AS_READ_MAX_LEN);
   }
   
   // Get the consensus sequences for both chunks from the Store

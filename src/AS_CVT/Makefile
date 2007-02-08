@@ -25,9 +25,13 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
+DEADSOURCES = extract_component.c \
+          extract_from_uids.c \
+          extract_multiple.c \
+          extract_fraction.c
+
 SOURCES = AS_CVT_hashtable.c AS_CVT_uid_interface.c \
-          extract_component.c make_cns_list.c make_range_file.c \
-          extract_from_uids.c extract_multiple.c extract_fraction.c \
+          make_cns_list.c make_range_file.c \
 	  ASMData.c asm2asmStore.c dumpClones.c \
 	  getMDIDataFromASM.c dumpFragScaffoldCoordinates.c loadAsmStore.c \
 	  dumpContigLengths.c dumpSurrogateFrags.c dumpMultiInstanceFrags.c \
@@ -36,15 +40,18 @@ SOURCES = AS_CVT_hashtable.c AS_CVT_uid_interface.c \
 	  dumpScaffoldLengths.c dumpBadMPs.c buildMapStore.c \
 	  dumpMapStore.c dumpLibs.c dumpMappedMatePairs.c \
 	  dumpMappedMatePairsBinary.c scf2chrSimple.c \
-	  dumpMappedElsewheres.c dumpMappedBACFragIntervals.c \
+	  dumpMappedElsewheres.c \
 	  concatRegions.c dumpElsewheres.c dumpForTampa.c \
           generateReadsFiles.c ofg2asm.c
 OBJECTS = $(SOURCES:.c=.o)
 
 LIBRARIES = 
 
-PROGS = extract_component make_cns_list make_range_file \
-	extract_from_uids extract_multiple extract_fraction \
+DEADPROGS = extract_component \
+	extract_from_uids \
+        extract_multiple \
+        extract_fraction \
+PROGS = make_cns_list make_range_file \
 	asm2asmStore dumpClones \
 	getMDIDataFromASM dumpFragScaffCoords loadAsmStore \
 	dumpContigLengths dumpSurrogateFrags dumpMultiInstanceFrags \
@@ -53,7 +60,7 @@ PROGS = extract_component make_cns_list make_range_file \
 	dumpScaffoldLengths dumpBadMPs buildMapStore \
 	dumpMapStore dumpLibs dumpMappedMatePairs \
 	dumpMappedMatePairsBinary scf2chrSimple \
-	dumpMappedElsewheres dumpMappedBACFragIntervals \
+	dumpMappedElsewheres \
 	concatRegions dumpElsewheres dumpForTampa \
         generateReadsFiles ofg2asm
 
@@ -78,9 +85,6 @@ install: $(PROGS) $(LIBRARIES) $(OBJECTS) $(SCRIPTS)
 scf2chrSimple: scf2chrSimple.o libAS_UTL.a
 
 concatRegions: concatRegions.o
-
-dumpMappedBACFragIntervals: dumpMappedBACFragIntervals.o ASMData.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 ofg2asm: ofg2asm.o \
 	libAS_MSG.a libAS_UTL.a

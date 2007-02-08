@@ -68,58 +68,36 @@ typedef struct{
 
 
 
-
-
-/* AS_REZ_MP_MicroHet_prob() 
-
-   RESULT: The function returns a (double) pvalue (probability) of an
-   input unitig being SIMPLE -- meaning, having mismatches due to randomly 
-   distributed sequencing errors.
-
-   If the returned value is sufficiently small, the unitig should be treated
-   as a likely repeat.
-
-   A return value of 1.0 may indicate that the unitig was not deep enough for
-   a meaningful test.
-
-   Some false positives may be induced by polymorphisms; however, the 
-   calculation should not be drastically misled by multibase indel 
-   polymorphisms.
-
-   INPUT:
-
-   bqarray : an array of size [depth*2]*len of bases and quality values
-             in alternative rows, giving a multialignment
-   idarray : an array of size depth*len giving the fragment iid of each base
-             in the multialignment
-   handle  : the fragStore from which locale information for each fragment iid
-             will be obtained  (-1 (NULLFRAGSTOREHANDLE) if paritioned store is used.)
-   phandle  : the partitioned fragStore from which locale information for each fragment iid
-             will be obtained (NULL if a traditional unpartitioned store is used);
-   len     : number of columns in the multialignment
-   depth   : number of rows in the multialignment
-*/
-
-double AS_REZ_MP_MicroHet_prob(char **bqarray,
-                               int **idarray,
-                               FragStoreHandle handle,
-                               tFragStorePartition *phandle,
-                               int len,
-                               int depth);
+double       AS_REZ_MP_MicroHet_prob(char **bqarray,
+                                     int **idarray,
+                                     FragStoreHandle handle,
+                                     tFragStorePartition *phandle,
+                                     int len,
+                                     int depth);
 
 
 
-//  Used in MicroHetIUM.c, not for general consumption.
+//  Used in MicroHetIUM.c and AS_CNS/colCorr_CNS.c, not for general consumption.
 //
-void compress_shreds_and_null_indels(int c,
-                                     int r,
-                                     FragStoreHandle frag_store, 
-                                     tFragStorePartition *pfrag_store,
-                                     char **array,
-                                     int **id_array,
-                                     int verbose);
-Alignment_t *AS_REZ_convert_array_to_alignment(char **ar, int c, int r);
-Marker_t *AS_REZ_allocate_marker(int l);
+void            AS_REZ_count_columns(Alignment_t* a, Marker_t* m);
+UnitigStatus_t  AS_REZ_test_MPsimple(Alignment_t *ali, double thresh, Marker_t* m, 
+                                     int start, int end,double *pval);
+void            AS_REZ_compress_shreds_and_null_indels(int c,
+                                                       int r,
+                                                       FragStoreHandle frag_store, 
+                                                       tFragStorePartition *pfrag_store,
+                                                       char **array,
+                                                       int **id_array,
+                                                       int verbose);
+Alignment_t    *AS_REZ_convert_array_to_alignment(char **ar, int c, int r);
+
+Marker_t       *AS_REZ_allocate_marker(int l);
+void            AS_REZ_free_marker(Marker_t *m);
+
+void            AS_REZ_print_alignment(Alignment_t *a,  int w);
+void            AS_REZ_free_alignment(Alignment_t* a);
+
+
 
 
 ////////////////////////////////////////////////////////////////////////////////

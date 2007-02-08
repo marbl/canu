@@ -28,9 +28,9 @@
  *************************************************************************/
 
 /* RCS Info
- * $Date: 2007-01-28 21:52:25 $
- * $Id: AS_PER_fragStore_private.h,v 1.6 2007-01-28 21:52:25 brianwalenz Exp $
- * $Revision: 1.6 $
+ * $Date: 2007-02-08 06:48:54 $
+ * $Id: AS_PER_fragStore_private.h,v 1.7 2007-02-08 06:48:54 brianwalenz Exp $
+ * $Revision: 1.7 $
  *
  */
 
@@ -237,10 +237,6 @@ static uint64 SET_FILEID(uint64 X, uint16 fileID){
 typedef struct {
   ShortFragRecord frag;
   uint flags;
-  // These are only used by UBAC and FBAC fragments and stored in the var length source field
-  CDS_UID_t localeID;
-  uint32 localePosStart;
-  uint32 localePosEnd;
   //
   char source[MAX_SOURCE_BUFFER_LENGTH];
   char sequence[MAX_SEQUENCE_LENGTH];

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_cgb.c,v 1.6 2007-01-29 20:40:56 brianwalenz Exp $";
+= "$Id: AS_CGB_cgb.c,v 1.7 2007-02-08 06:48:49 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_cgb.c
@@ -1002,10 +1002,9 @@ static void fill_a_chunk_starting_at
       const FragType type = 
 	get_typ_fragment(frags,ifrag);
       if (type != AS_READ && 
-	  type != AS_EBAC &&
           type != AS_EXTR){
 	num_of_guides_in_chunk++;
-	// Only AS_READ, AS_EBAC, and AS_EXTR fragments are to be used in Gene
+	// Only AS_READ and AS_EXTR fragments are to be used in Gene
 	// Myers coverage discriminator statistic.
       }
     }

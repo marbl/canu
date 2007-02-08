@@ -190,7 +190,6 @@ typedef struct
 typedef struct
 {
   cds_int32 reads;
-  cds_int32 bacEnds;
   cds_int32 externalReads;
   cds_int32 externalFrags;
 } MateStats;
@@ -346,8 +345,6 @@ typedef struct
   // to be populated after populating & looping over fragHT
   VA_TYPE(MateDetail) * wExtMates;
 
-  // bookkeeping for list of locales in entity
-  HashTable_AS * localeHT;
 } InstrumenterBookkeeping;
 
 
@@ -371,7 +368,6 @@ typedef struct
   // simple counts of (some) fragment types
   cds_int32 numReads;
   cds_int32 numExtReads;
-  cds_int32 numBacEnds;
   cds_int32 numExtFrags;
 
   // mate status & positions for each library & no-mates list
@@ -414,7 +410,6 @@ typedef struct
   // simple counts of (some) fragment types
   cds_int32 numReads;
   cds_int32 numExtReads;
-  cds_int32 numBacEnds;
   cds_int32 numExtFrags;
 
   // for instrumenting each unitig

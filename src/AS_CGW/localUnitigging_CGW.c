@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.14 2007-01-29 20:41:04 brianwalenz Exp $";
+static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.15 2007-02-08 06:48:51 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -313,7 +313,7 @@ int MergeMetaUnitigIntoContig(VA_TYPE(ChunkPlacement) *piece_list,
                                    GlobalData->aligner,
                                    NULL);
   fprintf(stderr," Returned from call to MergeMultiAlign\n");
-  PrintMultiAlignT(stderr,newMultiAlign,ScaffoldGraph->fragStore,0,0,0,0,0);
+  PrintMultiAlignT(stderr,newMultiAlign,ScaffoldGraph->fragStore,0,0,0,0);
 
 
   OutputMergedMetaUnitig(sid,newMultiAlign);
@@ -475,8 +475,6 @@ int main( int argc, char *argv[])
 
   ScaffoldGraph = LoadScaffoldGraphFromCheckpoint( data->File_Name_Prefix, ckptNum, TRUE);
   GlobalData->aligner=Local_Overlap_AS_forCNS;
-
-  // localeCam();
 
   originalGaps = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
   closedGap = (int *) safe_malloc( GetNumGraphNodes(ScaffoldGraph->ContigGraph) * sizeof(int));
@@ -942,9 +940,6 @@ static int OverlapPieceList(VA_TYPE(ChunkPlacement) *piece_list, VA_TYPE(OFGMesg
     ofg.quality = NULL;
     ofg.source = NULL;
     ofg.action = AS_ADD;
-    ofg.elocale = 0;
-    ofg.ebactig_id = 0;
-    ofg.ibactig_id = 0;
     ofg.entry_time = currentTime;
     A.quality=NULL;
     B.quality=NULL;
@@ -980,7 +975,7 @@ static int OverlapPieceList(VA_TYPE(ChunkPlacement) *piece_list, VA_TYPE(OFGMesg
           ma = LoadMultiAlignTFromSequenceDB( ScaffoldGraph->sequenceDB, this_chunk, FALSE);
         } else {
           static ReadStructp fsread = NULL;
-          static char frgSeqBuffer[AS_BACTIG_MAX_LEN+1], frgQltbuffer[AS_BACTIG_MAX_LEN+1];
+          static char frgSeqBuffer[AS_READ_MAX_LEN+1], frgQltbuffer[AS_READ_MAX_LEN+1];
           uint clr_bgn, clr_end;
 
           assert(this_type = AS_READ);
@@ -990,7 +985,7 @@ static int OverlapPieceList(VA_TYPE(ChunkPlacement) *piece_list, VA_TYPE(OFGMesg
           // get the read and its sequence
           getFragStore( ScaffoldGraph->fragStore, this_chunk, FRAG_S_ALL, fsread);
           getClearRegion_ReadStruct( fsread, &clr_bgn, &clr_end, READSTRUCT_CNS);
-          getSequence_ReadStruct( fsread, frgSeqBuffer, frgQltbuffer, AS_BACTIG_MAX_LEN);
+          getSequence_ReadStruct( fsread, frgSeqBuffer, frgQltbuffer, AS_READ_MAX_LEN);
           frgSeqBuffer[clr_end]='\0';
 
           // copy its sequence

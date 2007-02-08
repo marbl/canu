@@ -25,7 +25,7 @@
    Assumptions:  libAS_UTL.a
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.23 2007-02-03 07:06:27 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.24 2007-02-08 06:48:51 brianwalenz Exp $";
 
 
 #include <assert.h>
@@ -528,7 +528,6 @@ CreateMultiAlignTFromIUM(IntUnitigMesg *ium, int localID, int sequenceOnly)
       { int32 ui,deltai;
       /* Add a multipos for this Unitig */
 
-      ///unitigPos.type = AS_UNITIG;
       unitigPos.type = AS_OTHER_UNITIG;  // Jason, 7/01.
 
       unitigPos.ident = ium->iaccession;
@@ -1553,9 +1552,11 @@ typedef struct{
 VA_DEF(ErrorStruct)
 
 void 
-CollectStats(MultiAlignT *ma, FragStoreHandle frag_store, 
-  FragStoreHandle bactig_store, FILE *column_stats, 
-  FILE *frag_stats,uint32 clrrng_flag)
+CollectStats(MultiAlignT *ma,
+             FragStoreHandle frag_store, 
+             FILE *column_stats, 
+             FILE *frag_stats,
+             uint32 clrrng_flag)
 {
 /*  
     Need to append to column_stats and frag_stats the following:
@@ -1570,7 +1571,7 @@ CollectStats(MultiAlignT *ma, FragStoreHandle frag_store,
     int32 left;
     int32 right;
     int32 flen;
-int32 ungapped=0;
+    int32 ungapped=0;
     uint clrbgn;
     uint clrend;
     CDS_UID_t accession;
@@ -1580,40 +1581,32 @@ int32 ungapped=0;
     int32 ma_len = GetMultiAlignLength(ma);
     int num_reads = GetNumIntMultiPoss(ma->f_list);
     int *column_cov;
-    int *column_bac_cov;
-    int *column_bactig_cov;
     int *column_mm;
     char column_call;
     int num_errors;
     VA_TYPE(ErrorStruct) *errors; 
     ErrorStruct frag_error;
-    char tmpseq[AS_BACTIG_MAX_LEN+2];
-    char tmpqv[AS_BACTIG_MAX_LEN+2];
-    char seqdata[AS_BACTIG_MAX_LEN+2];
-    char qvdata[AS_BACTIG_MAX_LEN+2];
+    char tmpseq[AS_READ_MAX_LEN+2];
+    char tmpqv[AS_READ_MAX_LEN+2];
+    char seqdata[AS_READ_MAX_LEN+2];
+    char qvdata[AS_READ_MAX_LEN+2];
     ReadStructp rsp = new_ReadStruct();
     
     column_cov = (int *) safe_malloc(ma_len*sizeof(int));
-    column_bac_cov = (int *) safe_malloc(ma_len*sizeof(int));
-    column_bactig_cov = (int *) safe_malloc(ma_len*sizeof(int));
     column_mm = (int *) safe_malloc(ma_len*sizeof(int));
     errors = CreateVA_ErrorStruct(250);
 
-    assert(column_cov && column_bac_cov && column_bac_cov && column_mm);
+    assert(column_cov && column_mm);
 
     // special case for singletons
     if (num_reads == 1) {
-      if (reads[0].type == AS_BACTIG ) {
-       getFragStore(bactig_store,reads[0].ident,FRAG_S_ALL,rsp);
-      } else {
        getFragStore(frag_store,reads[0].ident,FRAG_S_ALL,rsp);
-      }
        getClearRegion_ReadStruct(rsp, &clrbgn,&clrend, clrrng_flag);
        fprintf(frag_stats,F_IID "  " F_UID " %c %d %d\n",
                reads[0].ident,accession,
                reads[0].type,(int) clrbgn,(int) clrend);
       flen = clrend - clrbgn;
-      if(getSequence_ReadStruct(rsp, tmpseq, tmpqv, AS_BACTIG_MAX_LEN+1) != 0)
+      if(getSequence_ReadStruct(rsp, tmpseq, tmpqv, AS_READ_MAX_LEN+1) != 0)
         assert(0);
       // capture only the clear range for analysis
       // reverse complement if necessary:
@@ -1623,11 +1616,10 @@ int32 ungapped=0;
       qvdata[flen] = '\0';
        for (j=0;j<ma_len;j++) {
          fprintf(column_stats,"%d %d %d %d %d %c %d %d %d\n",ma->id,j,1,
-              (reads[0].type == AS_BACTIG)?1:0,
+              0,
               (reads[0].type != AS_READ &&
                reads[0].type != AS_EXTR &&
-               reads[0].type != AS_TRNR &&
-               reads[0].type != AS_BACTIG)?1:0, 
+               reads[0].type != AS_TRNR)?1:0, 
              seqdata[j],qvdata[j] - '0',0,j);
        }
     } else {
@@ -1635,24 +1627,18 @@ int32 ungapped=0;
      // initialize column coverage to zero
      for ( j=0;j<ma_len;j++) {
        column_cov[j]=0;
-       column_bac_cov[j]=0;
-       column_bactig_cov[j]=0;
        column_mm[j]=0;
      }
 
     for(i=0;i<num_reads;i++) {
       left = (reads[i].position.bgn < reads[i].position.end)? reads[i].position.bgn : reads[i].position.end;
       right= (reads[i].position.bgn > reads[i].position.end)?reads[i].position.bgn:reads[i].position.end;
-      if (reads[i].type == AS_BACTIG ) {
-       getFragStore(bactig_store,reads[i].ident,FRAG_S_ALL,rsp);
-      } else {
-        getFragStore(frag_store,reads[i].ident,FRAG_S_ALL,rsp);
-      }
+      getFragStore(frag_store,reads[i].ident,FRAG_S_ALL,rsp);
       getClearRegion_ReadStruct(rsp, &clrbgn,&clrend, clrrng_flag);
       flen = clrend - clrbgn;
-      assert(flen < AS_BACTIG_MAX_LEN);
+      assert(flen < AS_READ_MAX_LEN);
       assert(flen > 0);
-      if(getSequence_ReadStruct(rsp, tmpseq, tmpqv, AS_BACTIG_MAX_LEN+1) != 0)
+      if(getSequence_ReadStruct(rsp, tmpseq, tmpqv, AS_READ_MAX_LEN+1) != 0)
         assert(0);
       // capture only the clear range for analysis
       // reverse complement if necessary:
@@ -1687,11 +1673,6 @@ int32 ungapped=0;
                   column_mm[j]+=1;
                }
                readptr++;  column_cov[j]+=1;
-               if (reads[i].type != AS_READ &&
-                   reads[i].type != AS_EXTR &&
-                   reads[i].type != AS_TRNR &&
-                   reads[i].type != AS_BACTIG) column_bac_cov[j] += 1;
-               if (reads[i].type == AS_BACTIG) column_bactig_cov[j] += 1;
              } else {
                // gap for this fragment in this column
                if ( '-' != column_call ) {
@@ -1701,11 +1682,6 @@ int32 ungapped=0;
                   AppendErrorStruct(errors,&frag_error);
                   column_mm[j]+=1;
                   column_cov[j]+=1; //adding this so that intra-fragment gaps count as coverage
-                  if (reads[i].type != AS_READ &&
-                      reads[i].type != AS_EXTR &&
-                      reads[i].type != AS_TRNR &&
-                      reads[i].type != AS_BACTIG) column_bac_cov[j] += 1;
-                  if (reads[i].type == AS_BACTIG) column_bactig_cov[j] += 1;
                }
                delptr++;
              }
@@ -1724,11 +1700,6 @@ int32 ungapped=0;
                   column_mm[j]+=1;
              }
              readptr++;  column_cov[j]+=1;
-             if (reads[i].type != AS_READ &&
-                 reads[i].type != AS_EXTR &&
-                 reads[i].type != AS_TRNR &&
-                 reads[i].type != AS_BACTIG ) column_bac_cov[j] += 1;
-             if (reads[i].type == AS_BACTIG) column_bactig_cov[j] += 1;
            }
        }
        fprintf(frag_stats,F_IID " " F_UID " %c %d %d",
@@ -1748,16 +1719,17 @@ int32 ungapped=0;
        }
     }
     for (j=0;j<ma_len;j++) {
-      fprintf(column_stats,"%d %d %d %d %d %c %d %d %d\n",ma->id,j,
-         column_cov[j],column_bactig_cov[j],column_bac_cov[j], 
-         *Getchar(ma->consensus,j),(int) *Getchar(ma->quality,j) - '0',column_mm[j],ungapped);
+      fprintf(column_stats,"%d %d %d %c %d %d %d\n",ma->id,j,
+              column_cov[j],
+              *Getchar(ma->consensus,j),
+              (int) *Getchar(ma->quality,j) - '0',
+              column_mm[j],ungapped);
       if (*Getchar(ma->consensus,j) != '-') ungapped++;
     }
     }
     fflush(column_stats);
     fflush(frag_stats);
     free(column_cov);
-    free(column_bac_cov);
     free(column_mm);
     DeleteVA_ErrorStruct(errors);
     delete_ReadStruct(rsp);
@@ -1780,22 +1752,6 @@ getFragTypeDisplay (FragType fragType)
         break;
     case AS_TRNR: dispType  = 'T';  //Transposon library read
         break;
-    case AS_EBAC: dispType  = 'E';  //End of BAC
-        break;
-    case AS_LBAC: dispType  = 'L';  //Lightly shotgunned
-        break;
-    case AS_UBAC: dispType  = 'U';  //Unfinished
-        break;
-    case AS_FBAC: dispType  = 'F';  //Finished
-        break;
-    case AS_UNITIG: dispType= 'u';  //Unitig
-        break;
-    case AS_CONTIG: dispType= 'c';   //Contig
-        break;
-    case AS_BACTIG: dispType= 'B';   // BacTig
-        break;
-    case AS_FULLBAC: dispType='C';   // Full Bac C = Complete
-        break;
     default: dispType = '?';
         break;
     }
@@ -1811,7 +1767,6 @@ PrintMultiAlignT(FILE *out,
 	         MultiAlignT *ma,
 	         FragStoreHandle frag_store, 
 	         tFragStorePartition *pfrag_store,
-                 FragStoreHandle bactig_store, 
 	         int show_qv, 
 	         int dots,
                  uint32 clrrng_flag) 
@@ -1840,8 +1795,7 @@ PrintMultiAlignT(FILE *out,
   }
    
   rc = MultiAlignT2Array(ma, frag_store, pfrag_store,
-                       bactig_store,
-                      &depth, &multia, &idarray,&oriarray,clrrng_flag);
+                         &depth, &multia, &idarray, &oriarray, clrrng_flag);
   if (rc) {
     fprintf(out,"<<< begin Contig %d >>>",ma->id);;
        int ungapped=1;
@@ -1969,7 +1923,6 @@ PrintMultiAlignTSNPs(
 		     MultiAlignT *ma,
 		     FragStoreHandle frag_store, 
 		     tFragStorePartition *pfrag_store,
-                     FragStoreHandle bactig_store, 
 		     int show_qv, 
 		     int dots,uint32 clrrng_flag) 
 {
@@ -1991,8 +1944,7 @@ PrintMultiAlignTSNPs(
   }
    
   rc = MultiAlignT2Array(ma, frag_store, pfrag_store,
-                       bactig_store,
-                      &depth, &multia, &idarray,&oriarray,clrrng_flag);
+                         &depth, &multia, &idarray,&oriarray,clrrng_flag);
   if (rc) {
        BaseCount profile;
        // First, run through all colunms and use the "oriarray" to store whether a column has

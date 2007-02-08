@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: dumpGatekeeperRecords.c,v 1.7 2007-01-29 20:41:12 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpGatekeeperRecords.c,v 1.8 2007-02-08 06:48:53 brianwalenz Exp $";
 
 /* Dump the gatekeeper stores for debug */
 
@@ -59,16 +59,16 @@ int  main(int argc, char * argv []) {
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv, "bf")) != EOF))
       switch(ch) {
-      case 'f':
-	type = AS_IID_FRG;
-	break;
-      case 'b':
-	type = AS_IID_BTG;
-	break;
-      case '?':
-	fprintf(stderr,"Unrecognized option -%c",optopt);
-      default :
-	errflg++;
+        case 'f':
+          type = AS_IID_FRG;
+          break;
+        case 'b':
+          type = AS_IID_BTG;
+          break;
+        case '?':
+          fprintf(stderr,"Unrecognized option -%c",optopt);
+        default :
+          errflg++;
       }
 
      
@@ -113,44 +113,28 @@ int  main(int argc, char * argv []) {
 	fragIID = value.IID;
      
 	if(type == AS_IID_FRG){
-
-	getGateKeeperFragmentStore(gkpStore.frgStore, fragIID, &gkf);
-       fprintf(stderr,"* uid:" F_UID " Fragment " F_IID ": UID:" F_UID " type%c refs: %d links:%d(" F_IID ") lID:" F_IID " sID:" F_IID " bID:" F_IID " batch(%u,%u)  \n",
-	       uid,
-	       fragIID, 
-	       gkf.readUID, 
-	       gkf.type,
-	       value.refCount, gkf.numLinks, gkf.linkHead,
-	       gkf.localeID, gkf.seqID, gkf.bactigID, gkf.birthBatch, gkf.deathBatch);
-       fflush(stderr);
-	if(gkf.numLinks > 0){
-	  CreateGateKeeperLinkRecordIterator(gkpStore.lnkStore, gkf.linkHead,fragIID, &iterator);
-	  while(NextGateKeeperLinkRecordIterator(&iterator, &link)){
-	    CDS_UID_t mateUID;
-	    int reversed = !(link.frag1 == fragIID);
-	    getGateKeeperFragmentStore(gkpStore.frgStore, (reversed?link.frag1:link.frag2), &gkf);
-	    mateUID =  gkf.readUID;
-	    fprintf(stderr,"\tLink (" F_IID "," F_IID ") (" F_UID "," F_UID ") dist: " F_IID " type %d\n",
-		    link.frag1, link.frag2, 
-		    (reversed?mateUID:uid), 
-		    (reversed?uid:mateUID), 
-		    link.distance, link.type);
-	  }
-	}
-	}else{
-	  GateKeeperBactigRecord gkb;
-	getGateKeeperBactigStore(gkpStore.btgStore, fragIID, &gkb);
-       fprintf(stderr,"* uid:" F_UID " Bactig " F_IID ": UID:" F_UID " refs: %d lID:" F_IID " sID:" F_IID " bID:" F_IID "\n",
-	       uid,
-	       fragIID, 
-	       gkb.UID, 
-	       value.refCount,
-	       gkb.bacID, gkb.seqID, fragIID);
-       fflush(stderr);
-
-
-
-
+          getGateKeeperFragmentStore(gkpStore.frgStore, fragIID, &gkf);
+          fprintf(stderr,"* uid:" F_UID " Fragment " F_IID ": UID:" F_UID " type%c refs: %d links:%d(" F_IID ") sID:" F_IID " batch(%u,%u)  \n",
+                  uid,
+                  fragIID, 
+                  gkf.readUID, 
+                  gkf.type,
+                  value.refCount, gkf.numLinks, gkf.linkHead,
+                  gkf.seqID, gkf.birthBatch, gkf.deathBatch);
+          if(gkf.numLinks > 0){
+            CreateGateKeeperLinkRecordIterator(gkpStore.lnkStore, gkf.linkHead,fragIID, &iterator);
+            while(NextGateKeeperLinkRecordIterator(&iterator, &link)){
+              CDS_UID_t mateUID;
+              int reversed = !(link.frag1 == fragIID);
+              getGateKeeperFragmentStore(gkpStore.frgStore, (reversed?link.frag1:link.frag2), &gkf);
+              mateUID =  gkf.readUID;
+              fprintf(stderr,"\tLink (" F_IID "," F_IID ") (" F_UID "," F_UID ") dist: " F_IID " type %d\n",
+                      link.frag1, link.frag2, 
+                      (reversed?mateUID:uid), 
+                      (reversed?uid:mateUID), 
+                      link.distance, link.type);
+            }
+          }
 	}
       }
     }

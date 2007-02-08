@@ -60,10 +60,6 @@ reapFragStore(int32 begin, int32 end, char *frag_store_name) {
     Fragment_ID      uid = 0;
     IntFragment_ID   iid = 0;
     FragType         read_type;
-    Locale_ID        locID = 0;
-    IntLocale_ID     lid = 0;
-    uint32           locale_pos_bgn = 0;
-    uint32           locale_pos_end = 0;
     char             src_text[MAX_SOURCE_LENGTH]= {0};
     int              src_len = MAX_SOURCE_LENGTH;
     time_t           etm = 0;
@@ -80,16 +76,6 @@ reapFragStore(int32 begin, int32 end, char *frag_store_name) {
     iret += getAccID_ReadStruct(myRead, &uid);
     iret += getReadIndex_ReadStruct(myRead, &iid);
     iret += getReadType_ReadStruct(myRead, &read_type);
-    iret += getLocID_ReadStruct(myRead, &locID);
-
-#if 0
-    //  BPW doesn't know why this isn't called.
-    iret += getLocalIndex_ReadStruct(myRead, &lid);
-#else
-    lid = 1;
-#endif      
-
-    iret += getLocalePos_ReadStruct(myRead, &locale_pos_bgn, &locale_pos_end);
     iret += getSource_ReadStruct(myRead, src_text, src_len);
     iret += getEntryTime_ReadStruct(myRead, &etm);
     iret += getClearRegion_ReadStruct(myRead, &clr_rng_bgn, &clr_rng_end, READSTRUCT_LATEST);
@@ -130,62 +116,6 @@ reapFragStore(int32 begin, int32 end, char *frag_store_name) {
                  "}\n",
                  uid, iid, read_type, src_text, etm, clr_rng_bgn, clr_rng_end);
           break;
-        case AS_EBAC: //  End of BAC
-          printf("{OFG\n"
-                 "act:A\n"
-                 "acc:("F_UID","F_IID")\n"
-                 "typ:%c\n"
-                 "loc:("F_UID","F_IID")\n"
-                 "src:\n"
-                 "%s.\n"
-                 "etm:"F_TIME_T"\n"
-                 "clr:"F_U32","F_U32"\n"
-                 "}\n",
-                 uid, iid, read_type, locID, lid, src_text, etm, clr_rng_bgn, clr_rng_end);
-          break;
-        case AS_FBAC: //  Finished
-          printf("{OFG\n"
-                 "act:A\n"
-                 "acc:("F_UID","F_IID")\n"
-                 "typ:%c\n"
-                 "loc:("F_UID","F_IID")\n"
-                 "sid:(%d,%d)\n"
-                 "pos:%d,%d\n"
-                 "src:\n"
-                 "%s.\n"
-                 "etm:"F_TIME_T"\n"
-                 "clr:"F_U32","F_U32"\n"
-                 "}\n",
-                 uid, iid, read_type, locID, lid,
-                 0,0, 0,0, // These are incorrect values.
-                 src_text, etm, clr_rng_bgn, clr_rng_end);
-          break;
-        case AS_UBAC: //  Unfinished BACs
-          printf("{OFG\n"
-                 "act:A\n"
-                 "acc:("F_UID","F_IID")\n"
-                 "typ:%c\n"
-                 "loc:("F_UID","F_IID")\n"
-                 "sid:(%d,%d)\n"
-                 "btd:(%d,%d)\n"
-                 "pos:%d,%d\n"
-                 "src:\n"
-                 "%s.\n"
-                 "etm:"F_TIME_T"\n"
-                 "clr:"F_U32","F_U32"\n"
-                 "}\n",
-                 uid, iid, read_type, locID, lid,
-                 0,0, 0,0, 0,0,  // These are incorrect values.
-                 src_text, etm, clr_rng_bgn, clr_rng_end);
-          break;
-
-        case AS_LBAC: //  Lightly shotgunned BACs
-
-          //  The following are never intended to be for Unitigger input.
-        case AS_UNITIG:  //Unitig
-        case AS_CONTIG:  //Contig
-        case AS_BACTIG:  // BacTig
-        case AS_FULLBAC: // Full Bac C = Complete)
         default:
           fprintf(stderr,"Unsupported fragment type ASCII:%c Decimal:%d\n", read_type, read_type);
           exit(1);

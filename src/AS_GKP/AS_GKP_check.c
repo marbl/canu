@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_GKP_check.c,v 1.10 2007-02-03 07:06:27 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_check.c,v 1.11 2007-02-08 06:48:52 brianwalenz Exp $";
 
 //#define DEBUG_GKP 1
 #define DEBUG_GKP_VERBOSE 1
@@ -265,9 +265,6 @@ int Check_BatchMesg(BatchMesg *bat_mesg,
   strncpy(gkpbat.name, iba_mesg->name, 255);
   strncpy(gkpbat.comment, iba_mesg->comment, 255);
   gkpbat.numFragments = getNumGateKeeperFragments(GkpStore.frgStore);
-  gkpbat.numLocales = getNumGateKeeperLocales(GkpStore.locStore);
-  gkpbat.num_s_Locales = getNumGateKeeperLocales(GkpStore.s_locStore);
-  gkpbat.numBactigs = getNumGateKeeperBactigs(GkpStore.btgStore);
   gkpbat.numDistances = getNumGateKeeperDistances(GkpStore.dstStore);
   gkpbat.num_s_Distances = getNumGateKeeperDistances(GkpStore.s_dstStore);
   gkpbat.numLinks = getNumGateKeeperLinks(GkpStore.lnkStore);
@@ -292,8 +289,7 @@ int Check_LinkMesg(LinkMesg *lkg_mesg,
 		   InternalLinkMesg *ilk_mesg,
 		   CDS_CID_t batchID,
   	           time_t currentTime,
-		   int verbose,
-                   int matchBAC_DstsInLkgMsgs){
+		   int verbose){
 
   CDS_IID_t frag1IID, frag2IID;
   CDS_IID_t distIID;
@@ -452,7 +448,7 @@ int Check_LinkMesg(LinkMesg *lkg_mesg,
 	newLink.orientation = lkg_mesg->link_orient;
 
 
-	/* First check that both frags are READS or UBACs */
+	/* First check that both frags are READS */
         /* This check is that both fragment are of the same type and can have mate.  VR */
         if((gkFrag1.type != gkFrag2.type) || !AS_FA_CAN_HAVE_MATE(gkFrag1.type)) {
 	  printGKPError(Msgfp, GKPError_LNKFragtypeMismatch);
@@ -464,57 +460,6 @@ int Check_LinkMesg(LinkMesg *lkg_mesg,
 
 	break;
 	}
-      case AS_BAC_GUIDE:
-#ifdef DEBUG_GKP
-	fprintf(Msgfp," BAC_GUIDE\n");
-#endif
-
-	newLink.type = AS_BAC_GUIDE;
-	newLink.orientation = AS_GKP_INNIE;
-#if 0
-	/* For now, we simply ignore the orientation on these */
-	if((char)lkg_mesg->link_orient != AS_INNIE){
-	  fprintf(Msgfp,"# BAC_GUIDE Links must have orientation 'I' for AS_INNIE\n");
-	  return GATEKEEPER_FAILURE;
-	}
-#endif
-	/* First check that both frags are READS */
-	if(gkFrag1.type != AS_EBAC || 
-	   gkFrag2.type != AS_EBAC){
-	  printGKPError(Msgfp, GKPError_LNKFragtypeMismatch);
-	  fprintf(Msgfp,
-		  "# Fragments " F_UID " (type = %d) and " F_UID " (type = %d) are inconsistent with a Bac Guide link\n",
-		  gkFrag1.readUID, gkFrag1.type, gkFrag2.readUID, gkFrag2.type);
-	  return GATEKEEPER_FAILURE;
-	}
-	/* Second check that they are from the same locale*/
-	if(gkFrag1.localeID != gkFrag2.localeID ){
-	  printGKPError(Msgfp, GKPError_LNKLocaleMismatch);
-	  fprintf(Msgfp,
-		  "# Fragments " F_UID " (locale = " F_IID ") and " F_UID " (locale = " F_IID ") have locales inconsistent with a Bac Guide link\n",
-		  gkFrag1.readUID, gkFrag1.localeID, gkFrag2.readUID, gkFrag2.localeID);
-	  return GATEKEEPER_FAILURE;
-	}
-	/* Third check that the distance ID specified is the same as the lengthID specified for the BAC */
-        if(matchBAC_DstsInLkgMsgs)
-        {
-	  GateKeeperLocaleRecord gkpl;
-	  memset(&gkpl, 0, sizeof(gkpl));
-	  
-	  getGateKeeperLocaleStore(GkpStore.locStore, gkFrag1.localeID, &gkpl);
-
-	  if(gkpl.lengthID != newLink.distance ||
-	     gkpl.lengthID != newLink.distance ){
-	  printGKPError(Msgfp, GKPError_LNKLocaleDistanceMismatch);
-	  fprintf(Msgfp,
-		  "# Link specifies distance id " F_UID " that is inconsistent with its associated locale " F_UID "\n",
-		 lkg_mesg->distance , gkFrag1.readUID);
-	  return GATEKEEPER_FAILURE;
-	  }
-	     
-	}
-        // validity of distance UID is checked earlier in this function
-	break;
 
       case AS_REREAD:
 #ifdef DEBUG_GKP
@@ -624,7 +569,6 @@ int Check_LinkMesg(LinkMesg *lkg_mesg,
       newLink.type = (char)lkg_mesg->type;
       switch(lkg_mesg->type){
       case AS_MATE:
-      case AS_BAC_GUIDE:
       case AS_MAY_JOIN:
       case AS_MUST_JOIN:
       case AS_REREAD:
@@ -734,7 +678,6 @@ int findLinksInCompatibleWith(GateKeeperLinkStore store,
     case AS_MUST_JOIN:
       switch(link.type){
       case AS_MATE:
-      case AS_BAC_GUIDE:
 	continue;
 
       case AS_REREAD:
@@ -777,40 +720,10 @@ int findLinksInCompatibleWith(GateKeeperLinkStore store,
 	  continue;
 	fprintf(Msgfp,"# Found a previous reread link between these two fragments\n");
 	return(iterator.prevLinkRecord);
-      case AS_BAC_GUIDE:
-	/* By definition, we should have caught this before */
-	/* Fragments with mates should not have guides */
-	/* ABORT!!! *** INTENTIONAL FALLTHROUGH */
       default:
 	assert(0);
 	break;
       }
-      /************* Looking for a Guide ***********/
-    case AS_BAC_GUIDE:
-      switch(link.type){
-      case AS_MAY_JOIN:  /* Ignore */
-      case AS_MUST_JOIN:  /* Ignore */
-	fprintf(Msgfp,"# Warning: a %s join link exists between (" F_IID "," F_IID ")\n",
-		(link.type == AS_MAY_JOIN?"MAY":"MUST"),
-		frag1IID, frag2IID);
-	break;
-      case AS_BAC_GUIDE:
-      case AS_REREAD:
-	/* Guides with same fragIDs, with different distance/orientation */
-	if(link.frag1 != frag1IID && link.frag2 != frag2IID)
-	  continue;
-	fprintf(Msgfp,"# Found a previous link between these two fragments\n");
-	return(iterator.prevLinkRecord);
-
-      case AS_MATE:
-	/* By definition, we should have caught this before */
-	/* Fragments with mates should not have guides */
-	/* ABORT!!! *** INTENTIONAL FALLTHROUGH */
-      default:
-	assert(0);
-	break;
-      }
-      break;
       /************* Looking for a Reread ***********/
     case AS_REREAD:
       if(link.frag1 == frag1IID && link.frag2 == frag2IID){

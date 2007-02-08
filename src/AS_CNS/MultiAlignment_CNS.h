@@ -386,7 +386,8 @@ int GetAlignmentTrace(int32 , int32 , int32 , int32 *, int32 ,
                       VA_TYPE(int32) *, OverlapType *,
                       Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
                       int , int );
-int MultiAlignContig_NoCompute(FILE *, int ,MultiAlignT *,
-    tSequenceDB *, VA_TYPE(UnitigData) *, CNS_Options *opp);
+
+int MultiAlignContig_ReBasecall(MultiAlignT *, VA_TYPE(char) *, VA_TYPE(char) *, CNS_Options *);
+int MultiAlignContig_NoCompute(FILE *, int, MultiAlignT *, tSequenceDB *, VA_TYPE(UnitigData) *, CNS_Options *opp);
 
 #endif

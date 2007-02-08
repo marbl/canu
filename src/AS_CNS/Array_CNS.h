@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
-   CVS_ID:  $Id: Array_CNS.h,v 1.4 2005-03-22 19:48:40 jason_miller Exp $
+   CVS_ID:  $Id: Array_CNS.h,v 1.5 2007-02-08 06:48:51 brianwalenz Exp $
  *********************************************************************/
 #ifndef AS_CNS_ARRAY_INCLUDE
 #define AS_CNS_ARRAY_INCLUDE
@@ -31,11 +31,13 @@
 #include <time.h>
 
 #include "AS_global.h"
-#include "AS_MSG_pmesg.h"
-#include "AS_PER_ReadStruct.h"
-#include "AS_PER_fragStore.h"
-#include "AS_PER_fragStorePartition.h"
-#include "AS_UTL_Var.h"
+//#include "AS_MSG_pmesg.h"
+//#include "AS_PER_ReadStruct.h"
+//#include "AS_PER_fragStore.h"
+//#include "AS_PER_fragStorePartition.h"
+//#include "AS_UTL_Var.h"
+#include "MultiAlignStore_CNS.h"
+
 #define ESTDEPTH 32
 
 int IMP2Array(IntMultiPos *frags, 
@@ -43,7 +45,6 @@ int IMP2Array(IntMultiPos *frags,
 	      int length, 
 	      FragStoreHandle frag_store, 
               tFragStorePartition *pfrag_store,
-              FragStoreHandle bactig_store, 
 	      int *depth, 
 	      char ***multia, 
 	      int ***id_array, 
@@ -53,7 +54,6 @@ int IMP2Array(IntMultiPos *frags,
 int MultiAlignT2Array(MultiAlignT *ma, 
 		      FragStoreHandle frag_store, 
 		      tFragStorePartition *pfrag_store, 
-		      FragStoreHandle bactig_store, 
 		      int *depth, 
 		      char ***multia, 
 		      int ***id_array,

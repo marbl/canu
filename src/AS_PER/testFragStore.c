@@ -55,47 +55,12 @@ int main(int argc, char *argv[]){
 
   myRead =  new_ReadStruct();
 
-  setAccID_ReadStruct(myRead, 1);
-  setReadIndex_ReadStruct(myRead, 1);
-  setReadType_ReadStruct(myRead, AS_UBAC);
-  setSequence_ReadStruct(myRead, "aaccaaccaaccaacc", NULL);
-  setSource_ReadStruct(myRead, "Just testing...sucker");
-  setEntryTime_ReadStruct(myRead,time(0));
-  setClearRegion_ReadStruct(myRead,1,14,READSTRUCT_ORIGINAL);
-  setLocalePos_ReadStruct(myRead,99,100);
-  setLocID_ReadStruct(myRead,0x0ffffffffffffffeLL);
-  appendFragStore(source,myRead);
-
-  setAccID_ReadStruct(myRead, 2);
-  setReadType_ReadStruct(myRead, AS_EBAC);
-  setReadIndex_ReadStruct(myRead, 2);
-  setSequence_ReadStruct(myRead, "aaccggttaaccggtt", "0000000000000000");
-  setSource_ReadStruct(myRead, "Go Home");
-  setLocalePos_ReadStruct(myRead,100,101);
-  setLocID_ReadStruct(myRead,0x0fffffffffffffffLL);
-  appendFragStore(source,myRead);
-
   setAccID_ReadStruct(myRead, 3);
   setReadType_ReadStruct(myRead, AS_READ);
   setReadIndex_ReadStruct(myRead, 3);
   setSequence_ReadStruct(myRead, "aaccggttaaccggtt", "0000000000000000");
   setSource_ReadStruct(myRead, "Go Home");
-  setLocalePos_ReadStruct(myRead,102,103);
-  setLocID_ReadStruct(myRead,0x0ffffffffffffffaLL);
 
-  appendFragStore(source,myRead);
-
-  setAccID_ReadStruct(myRead, 4);
-  setReadIndex_ReadStruct(myRead, 4);
-  setReadType_ReadStruct(myRead, AS_UBAC);
-  setSequence_ReadStruct(myRead, "aaccaaccaaccaacc", NULL);
-  setSource_ReadStruct(myRead, "Just testing...sucker");
-  setEntryTime_ReadStruct(myRead,time(0));
-  setClearRegion_ReadStruct(myRead,1,14,READSTRUCT_ORIGINAL);
-  setLocalePos_ReadStruct(myRead,99,100);
-  setLocID_ReadStruct(myRead,0x0ffffffffffffffeLL);
-  setClearRegion_ReadStruct(myRead,10,20,READSTRUCT_OVL);
-  setClearRegion_ReadStruct(myRead,20,30,READSTRUCT_CGW); // both get saved
   appendFragStore(source,myRead);
 
   setAccID_ReadStruct(myRead, 5);
@@ -103,8 +68,6 @@ int main(int argc, char *argv[]){
   setReadIndex_ReadStruct(myRead, 5);
   setSequence_ReadStruct(myRead, "acgtacgt", "00000000");
   setSource_ReadStruct(myRead, "external read");
-  setLocalePos_ReadStruct(myRead,102,103);
-  setLocID_ReadStruct(myRead,0x0ffffffffffffffaLL);
   setClearRegion_ReadStruct(myRead,20,30,READSTRUCT_CGW);
   setClearRegion_ReadStruct(myRead,10,20,READSTRUCT_OVL); // ovl overwrites cgw
   appendFragStore(source,myRead);
@@ -114,8 +77,6 @@ int main(int argc, char *argv[]){
   setReadIndex_ReadStruct(myRead, 6);
   setSequence_ReadStruct(myRead, "acgtacgtggggg", "0000000000000");
   setSource_ReadStruct(myRead, "transposon library read");
-  setLocalePos_ReadStruct(myRead,102,103);
-  setLocID_ReadStruct(myRead,0x0ffffffffffffffaLL);
   appendFragStore(source,myRead);
 
   commitFragStore(source);

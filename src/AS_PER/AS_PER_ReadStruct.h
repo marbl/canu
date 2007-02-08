@@ -38,9 +38,9 @@
  *************************************************************************/
 
 /* RCS Info
- * $Date: 2007-01-28 21:52:25 $
- * $Id: AS_PER_ReadStruct.h,v 1.5 2007-01-28 21:52:25 brianwalenz Exp $
- * $Revision: 1.5 $
+ * $Date: 2007-02-08 06:48:54 $
+ * $Id: AS_PER_ReadStruct.h,v 1.6 2007-02-08 06:48:54 brianwalenz Exp $
+ * $Revision: 1.6 $
  *
  */
 #ifndef AS_PER_READSTRUCT_H
@@ -111,8 +111,6 @@ int setReadIndex_ReadStruct(ReadStructp rs, uint32 readID);
 int setReadType_ReadStruct(ReadStructp rs, FragType r);
 int setSource_ReadStruct(ReadStructp rs, const char *src);
 int setEntryTime_ReadStruct(ReadStructp rs, time_t entryTime);
-int setLocID_ReadStruct(ReadStructp rs, uint64 locID);
-int setLocalePos_ReadStruct(ReadStructp rs, uint32 start, uint32 end);
 
 // Valid flags are: READSTRUCT_ORIGINAL, 
 // READSTRUCT_OVL, READSTRUCT_CGW, READSTRUCT_CNS.
@@ -145,8 +143,6 @@ int getReadIndex_ReadStruct(ReadStructp rs, uint32 *readIndex);
 int getLocalIndex_ReadStruct(ReadStructp rs, uint32 *localIndex);
 int getReadType_ReadStruct(ReadStructp rs, FragType *r);
 int getEntryTime_ReadStruct(ReadStructp rs, time_t *entryTime);
-int getLocID_ReadStruct(ReadStructp rs, uint64 *locID);
-int getLocalePos_ReadStruct(ReadStructp rs, uint32 *start, uint32 *end);
 int getIsDeleted_ReadStruct(ReadStructp rs, uint32 *isDeleted);
 
 // Valid flags are: READSTRUCT_LATEST, READSTRUCT_ORIGINAL, 
