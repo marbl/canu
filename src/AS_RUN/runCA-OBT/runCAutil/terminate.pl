@@ -173,7 +173,7 @@ sub terminate ($) {
             my $cmd;
             $cmd = "$bin/mateLinkIIDRanges.rb $wrk/$asm.gkpStore $bin > mateLinkIIDRanges.txt";
             if (runCommand("$wrk/9-terminator", $cmd)) {
-                die "Failed.\n";
+                warn "mateLinkIIDRanges failed mate ranges won't be available.\n";
             }
 
             $cmd = "$perl $bin/caqc.pl $wrk/9-terminator/$asm.asm";
