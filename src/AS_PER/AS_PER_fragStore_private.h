@@ -25,12 +25,12 @@
  Description:
      This file contains private declarations for the AS_PER_FragStore module
 
- *************************************************************************/
+*************************************************************************/
 
 /* RCS Info
- * $Date: 2007-02-08 06:48:54 $
- * $Id: AS_PER_fragStore_private.h,v 1.7 2007-02-08 06:48:54 brianwalenz Exp $
- * $Revision: 1.7 $
+ * $Date: 2007-02-09 20:59:56 $
+ * $Id: AS_PER_fragStore_private.h,v 1.8 2007-02-09 20:59:56 brianwalenz Exp $
+ * $Revision: 1.8 $
  *
  */
 
@@ -60,42 +60,26 @@ static uint8 checkSumBlob(char *blob, int length){
     checksum ^= blob[i];
   }
   return checksum;
-
 }
 
 typedef struct{
   StoreHandle fragStore;
-#if 0
-  StoreHandle sequenceStore;
-
-  StoreHandle sourceStore;
-  int spare;
-
-#else
   int numPartitions;     // length of the following two arrays
 
   StoreHandle *sequenceStore;
- #ifdef i386
-  int32 ptrPad1;
- #endif
-
   StoreHandle *sourceStore;
- #ifdef i386
-  int32 ptrPad2;
- #endif
-
   StoreHandle *partitionStore; // a fragStore structure per partition
- #ifdef i386
-  int32 ptrPad3;
- #endif
 
+#ifdef i386
+  int32        ptrPad1;
+  int32        ptrPad2;
+  int32        ptrPad3;
 #endif
 
-  StoreStatus status;
-  int32 stillMorePadding;
+  StoreStatus  status;
+  int32        stillMorePadding;
 
-  //  char storePath[FILENAME_MAX];
-  char storePath[1024];
+  char         storePath[1024];
 }FragStore;
 
 
@@ -105,11 +89,11 @@ typedef struct{
  *   This data structure ties them all together for streaming.
  */
 typedef struct{
-  StoreHandle fragStore;
-  StreamHandle fragStream;
-  StreamHandle sequenceStream;
-  StreamHandle sourceStream;
-  StoreStatus status;
+  StoreHandle   fragStore;
+  StreamHandle  fragStream;
+  StreamHandle  sequenceStream;
+  StreamHandle  sourceStream;
+  StoreStatus   status;
 }FragStream;
 
 
@@ -137,15 +121,15 @@ typedef struct{
 typedef struct {
   // BLANK  LINES SHOW GROUPING INTO 8-byte BLOCKS
 
-  uint   deleted:1;
-  uint   readType:8;
-  uint   hasQuality:1;
-  uint   XXnumScreenMatches:16;       //  UNUSED -- number of screen matches
-  uint   XXhasModifiedClearRegion:1;  //  UNUSED -- never used as of Oct 2001 - Jason
-  uint   hasOVLClearRegion:1; 
-  uint   hasCNSClearRegion:1; 
-  uint   hasCGWClearRegion:1; 
-  uint   spare1:2;
+  uint            deleted:1;
+  uint            readType:8;
+  uint            hasQuality:1;
+  uint            XXnumScreenMatches:16;       //  UNUSED -- number of screen matches
+  uint            XXhasModifiedClearRegion:1;  //  UNUSED -- never used as of Oct 2001 - Jason
+  uint            hasOVLClearRegion:1; 
+  uint            hasCNSClearRegion:1; 
+  uint            hasCGWClearRegion:1; 
+  uint            spare1:2;
   VLSTRING_SIZE_T clearRegionStart;
   VLSTRING_SIZE_T clearRegionEnd;
 
@@ -156,75 +140,59 @@ typedef struct {
 
   VLSTRING_SIZE_T cgwRegionStart; 
   VLSTRING_SIZE_T cgwRegionEnd; 
-  CDS_IID_t readIndex;         /* Internal ID of this read */
+  CDS_IID_t       readIndex;         /* Internal ID of this read */
 
-  CDS_UID_t accID;             /* Accession ID of this read */
+  CDS_UID_t       accID;             /* Accession ID of this read */
 
-  uint64 sequenceOffset;    /* Offset of the sequence/quality data in the seq Store */
+  uint64          sequenceOffset;    /* Offset of the sequence/quality data in the seq Store */
 
-  uint64 sourceOffset;      /* Offset of the source in the source, localePos, and screen Matches */
+  uint64          sourceOffset;      /* Offset of the source in the source, localePos, and screen Matches */
 
 }ShortFragRecord;
 
 
 #define FILEOFFSET_SIZE_FRG (48)
 
-//#define GET_FILEOFFSET(X) (X  & FILEOFFSET_MASK)
-//#define GET_FILEID(X) 
-
 
 static uint64 GET_FILEOFFSET(uint64 X){
   uint64 result = X & FILEOFFSET_MASK;
-  //  fprintf(stderr,"* GET_FILEOFFSET 0x" F_X64 " & 0x" F_X64 " ==> 0x" F_X64 "\n", X, FILEOFFSET_MASK, result);
   return result;
-
 }
 
 static uint16 GET_FILEID(uint64 X){
   uint16 result = (uint16)((X  & FILEID_MASK)>>FILEOFFSET_SIZE_FRG);
-  //  fprintf(stderr,"* Get_FILEID 0x" F_X64 " ==> %d\n",	  X, result);
   return result;
-
 }
 
 static StoreHandle GET_FILEHANDLE(StoreHandle *x, uint64 offset){
   uint8 fileID = GET_FILEID(offset);
   return x[fileID];
-
 }
-
-
 
 static uint64 MERGE_FILEID_OFFSET(uint16 fileID, uint64 offset){
   uint64 fileIDPart = ((uint64)fileID << FILEOFFSET_SIZE_FRG);
   uint64 fileOffsetPart = offset & FILEOFFSET_MASK;
   uint64 result = fileIDPart | fileOffsetPart;
-  //  fprintf(stderr,"* MERGE_FILEID_OFFSET(file:0x%x offset:0x" F_X64 ")  fileIDPart = 0x" F_X64 "   fileOffsetPart = 0x" F_X64 " result = 0x" F_X64 "\n",
-  //	  fileID, offset, fileIDPart, fileOffsetPart, result);
-
   return result;
-
 }
 
 static uint64 SET_FILEOFFSET(uint64 X, uint64 offset){
   uint64 fileIDPart = X & FILEID_MASK;
   uint64 fileOffsetPart = offset & FILEOFFSET_MASK;
-
   return fileIDPart | fileOffsetPart;
 }
 
 static uint64 SET_FILEID(uint64 X, uint16 fileID){
   uint64 fileIDPart = ((uint64)fileID << FILEOFFSET_SIZE_FRG);
   uint64 fileOffsetPart = X & FILEOFFSET_MASK;
-
   return fileIDPart | fileOffsetPart;
 }
 
 
 #if VLSTRING_MAX_SIZE < 64 * 2048
- #define MAX_SEQUENCE_LENGTH (64 * 2048 - 1)
+#define MAX_SEQUENCE_LENGTH (64 * 2048 - 1)
 #else
- #define MAX_SEQUENCE_LENGTH (2048 * 2048 - 1)
+#define MAX_SEQUENCE_LENGTH (2048 * 2048 - 1)
 #endif
 
 #define MAX_SOURCE_LENGTH 512
@@ -237,7 +205,7 @@ static uint64 SET_FILEID(uint64 X, uint16 fileID){
 typedef struct {
   ShortFragRecord frag;
   uint flags;
-  //
+
   char source[MAX_SOURCE_BUFFER_LENGTH];
   char sequence[MAX_SEQUENCE_LENGTH];
   char quality[MAX_SEQUENCE_LENGTH];
@@ -260,10 +228,19 @@ int setSequenceOffset_ReadStruct(ReadStructp rs, int64 offset);
  * Outputs:
  * Return Value:
  *****************************************************************************/
-int loadDumpFragRecord(FILE *infp, ShortFragRecord *fr, VA_TYPE(char ) *sequence, VA_TYPE(char) *source);
-int appendDumpToFragStore(FragStoreHandle store, ShortFragRecord *fr, VA_TYPE(char) *sequence,  VA_TYPE(char) *source);
+int loadDumpFragRecord(FILE *infp,
+                       ShortFragRecord *fr, VA_TYPE(char ) *sequence,
+                       VA_TYPE(char) *source);
 
-void unloadFragRecordPartition(StoreHandle seqStore, StoreHandle srcStore, FragRecord *fr, int32 getFlags);
+int appendDumpToFragStore(FragStoreHandle store,
+                          ShortFragRecord *fr,
+                          VA_TYPE(char) *sequence,
+                          VA_TYPE(char) *source);
+
+void unloadFragRecordPartition(StoreHandle seqStore,
+                               StoreHandle srcStore,
+                               FragRecord *fr,
+                               int32 getFlags);
 
 FragStore *FragStore_myStruct(FragStoreHandle s);
 

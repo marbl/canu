@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_fragStorePartition.c,v 1.4 2005-03-22 19:49:20 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_PER_fragStorePartition.c,v 1.5 2007-02-09 20:59:56 brianwalenz Exp $";
 
 /*************************************************************************
  Module:  AS_PER_fragStorePartition
@@ -29,7 +29,7 @@ static char CM_ID[] = "$Id: AS_PER_fragStorePartition.c,v 1.4 2005-03-22 19:49:2
 
  Document:
 
- *************************************************************************/
+*************************************************************************/
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -84,15 +84,15 @@ int testOpenFragStorePartition(char *fragStorePath, int32 partition){
   }
 
   switch(count){
-  case 4:
-    return 1;
+    case 4:
+      return 1;
 
-  case 0:
-    return 0;
+    case 0:
+      return 0;
 
-  default:
-    //return -1;
-    break;
+    default:
+      //return -1;
+      break;
   }
   return -1;
 }
@@ -197,5 +197,4 @@ int getFragStorePartition(tFragStorePartition *partition, int32 indx, int32 getF
   }
 
   return (0);
-
 }

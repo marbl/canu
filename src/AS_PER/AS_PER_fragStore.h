@@ -43,11 +43,11 @@
 
       FragmentStore.rtf
 
- *************************************************************************/
+*************************************************************************/
 
 /* RCS Info
- * $Id: AS_PER_fragStore.h,v 1.5 2005-07-20 19:55:39 eliv Exp $
- * $Revision: 1.5 $
+ * $Id: AS_PER_fragStore.h,v 1.6 2007-02-09 20:59:56 brianwalenz Exp $
+ * $Revision: 1.6 $
  *
  */
 
@@ -197,7 +197,7 @@ int closeFragStore(FragStoreHandle);
 FragStoreHandle openFragStore
 ( const char *FragStorePath, /* Path to directory */
   const char *rw             /* "r" or "rw" */
-);
+  );
 
 
 /******************************************************************************
@@ -218,7 +218,7 @@ FragStoreHandle copyFragStore
 ( const char *SourceFragStorePath, /* Path to directory */
   const char *TargetFragStorePath,  /* Path to directory */
   int move
-);
+  );
 
 /******************************************************************************
  * Function: testOpenFragStore:
@@ -237,7 +237,7 @@ FragStoreHandle copyFragStore
 int testOpenFragStore
 ( const char *FragStorePath, /* Path to directory */
   const char *rw             /* "r" or "rw" */
-);
+  );
 
 
 
