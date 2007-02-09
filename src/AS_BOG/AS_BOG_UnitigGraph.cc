@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.42 2007-02-05 16:33:09 eliv Exp $
- * $Revision: 1.42 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.43 2007-02-09 22:12:06 eliv Exp $
+ * $Revision: 1.43 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.42 2007-02-05 16:33:09 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.43 2007-02-09 22:12:06 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -1708,6 +1708,8 @@ namespace AS_BOG{
 
 			IntUnitigMesg *ium_mesg_ptr;
 			ium_mesg_ptr=(*utg_itr)->getIUM_Mesg();
+            fprintf(stderr,"Internal tig %ld is %ld in IUM msg.\n",
+                    (*utg_itr)->id(),iumId );
 			ium_mesg_ptr->iaccession=iumId++; //IntChunk_ID
 
 			GenericMesg mesg;

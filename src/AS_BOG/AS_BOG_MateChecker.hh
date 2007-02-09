@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.hh,v 1.2 2007-02-06 16:21:20 eliv Exp $
- * $Revision: 1.2 $
+ * $Id: AS_BOG_MateChecker.hh,v 1.3 2007-02-09 22:12:06 eliv Exp $
+ * $Revision: 1.3 $
 */
 
 #ifndef INCLUDE_AS_BOG_MATECHEKER
@@ -37,6 +37,17 @@ extern "C" {
 namespace AS_BOG{
     typedef std::map<iuid,iuid> IdMap;
     typedef IdMap::const_iterator IdMapConstIter;
+    typedef std::vector<int> DistanceList;
+    typedef DistanceList::const_iterator DistanceListCIter;
+    typedef std::map<iuid,DistanceList> LibraryDistances;
+    typedef LibraryDistances::const_iterator LibDistsConstIter;
+
+    struct MateInfo {
+        iuid mate;
+        iuid lib;
+    };
+    typedef std::map<iuid,MateInfo> MateMap;
+    static const MateInfo NULL_MATE_INFO = {0,0};
 
     struct DistanceCompute {
         double stddev;
@@ -53,17 +64,15 @@ namespace AS_BOG{
         ~MateChecker();
 
         void readStore(const char *);   // reads the gkpStore mate info into memory
-        iuid getMate(iuid); // returns the mate iid for the given iid, or zero if none
-        iuid getDist(iuid); // returns the dist iid for the given iid, or zero if none
+        // returns the mate iid for the given iid, or zero if none
+        MateInfo getMateInfo(iuid);
 
         LibraryStats* checkUnitig( Unitig* ); //Checks size of mates internal to unitig
         void checkUnitigGraph( UnitigGraph& );
 
         private:
-            IdMap mates;
-            IdMap dists; // key is dist num, value is max IID: this
-                         // assumption only works with contiguous IIDs per dist
-
+            MateMap _mates;
+            LibraryDistances _dists; // all distances 
     };
 }
 #endif
