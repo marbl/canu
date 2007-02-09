@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_GKP_check.c,v 1.11 2007-02-08 06:48:52 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_check.c,v 1.12 2007-02-09 21:17:40 brianwalenz Exp $";
 
 //#define DEBUG_GKP 1
 #define DEBUG_GKP_VERBOSE 1
@@ -268,7 +268,6 @@ int Check_BatchMesg(BatchMesg *bat_mesg,
   gkpbat.numDistances = getNumGateKeeperDistances(GkpStore.dstStore);
   gkpbat.num_s_Distances = getNumGateKeeperDistances(GkpStore.s_dstStore);
   gkpbat.numLinks = getNumGateKeeperLinks(GkpStore.lnkStore);
-  gkpbat.numSequences = getNumGateKeeperSequences(GkpStore.seqStore);
 
   if(verbose)
     fprintf(stderr,"* Batch " F_IID "  name:%s  comment:%s\n",

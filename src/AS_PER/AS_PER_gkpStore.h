@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_PER_gkpStore.h,v 1.13 2007-02-08 06:48:54 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.14 2007-02-09 21:17:40 brianwalenz Exp $	 */
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
 /*************************************************************************
@@ -38,10 +38,8 @@
 
  *************************************************************************/
 
-
 #include <sys/types.h>
 #include <time.h>
-
 
 #include "AS_MSG_pmesg.h"
 #include "AS_PER_genericStore.h"
@@ -49,64 +47,50 @@
 
 #define NULL_LINK 0
 
+// The following counts represent the number of records of each type
+// PRIOR to processing this batch.  To get the range of batch i, take
+// the difference between batch i+1 and batch i.
+//
 typedef struct{
-  CDS_UID_t UID;
-  char name[256];
-  time_t created;
+  CDS_UID_t  UID;
+  char           name[256];
+  time_t         created;
 #ifndef __x86_64__ // 8 byte time_t on x86_64, so pad elsewhere
-  uint32 padtime_t;
+  uint32         padtime_t;
 #endif
-  char comment[256];
-  unsigned int deleted:1;
-  unsigned int spare:31;
-  /* The following counts represent the number of
-     records of each type PRIOR to processing this batch.
-     To get the range of batch i, take the difference between
-     batch i+1 and batch i.
-  */
-  int32 numFragments;
-  int32 numSequences;
-  int32 numDistances;
-  int32 num_s_Distances; // shadowed for redefintions
-  int32 numLinks;
-#ifdef __i386__
-  uint32 pad386;
-#endif // Alpha and x86_64 are rounding up to 584, need extra pad on 386
+  char           comment[256];
+  unsigned int   deleted:1;
+  unsigned int   spare:31;
+  int32          numFragments;
+  int32          numDistances;
+  int32          num_s_Distances; // shadowed for redefintions
+  int32          numLinks;
 }GateKeeperBatchRecord;
 
 typedef struct{
   unsigned int   deleted:1;
   unsigned int   type:8;  /* From AS_MSG_pmesg.h FragType */
   unsigned int   numLinks:8; /* Number of LIVE links */
-  uint   spare:15;
-  CDS_IID_t linkHead;           /* Index into Link Table */
-  CDS_UID_t readUID;            /* Accession ID of this read */
-  CDS_IID_t seqID;              /* IID of seqID */
-  uint16 birthBatch;         /* This entry is valid */
-  uint16 deathBatch;         /* [birthBatch, deatchBatch) */
+  uint           spare:15;
+  CDS_IID_t      linkHead;           /* Index into Link Table */
+  CDS_UID_t      readUID;            /* Accession ID of this read */
+  uint16         birthBatch;         /* This entry is valid */
+  uint16         deathBatch;         /* [birthBatch, deatchBatch) */
 }GateKeeperFragmentRecord;
-
-// One for each Seq encountered
-typedef struct{
-  unsigned int deleted:1;
-  unsigned int spare:30;
-  CDS_UID_t UID;
-}GateKeeperSequenceRecord;
 
 // One for each distance record
 typedef struct{
-  CDS_UID_t UID;
-  unsigned int deleted:1;
-  unsigned int redefined:1;
-  unsigned int spare:30;
-  CDS_IID_t prevInstanceID; // Previous definitions are linked by this reference
-  CDS_IID_t prevID;         // If redefined == TRUE, the original ID of this
-  float32 mean;
-  float32 stddev;
-  uint16 birthBatch;         /* This entry is valid */
-  uint16 deathBatch;         /* [birthBatch, deatchBatch) */
+  CDS_UID_t      UID;
+  unsigned int   deleted:1;
+  unsigned int   redefined:1;
+  unsigned int   spare:30;
+  CDS_IID_t      prevInstanceID; // Previous definitions are linked by this reference
+  CDS_IID_t      prevID;         // If redefined == TRUE, the original ID of this
+  float32        mean;
+  float32        stddev;
+  uint16         birthBatch;         /* This entry is valid */
+  uint16         deathBatch;         /* [birthBatch, deatchBatch) */
 }GateKeeperDistanceRecord;
-
 
 #define AS_GKP_UNKNOWN 0
 #define AS_GKP_INNIE 1
@@ -115,21 +99,21 @@ typedef struct{
 #define AS_GKP_ANTINORMAL 4
 
 typedef struct{
-  unsigned int deleted:1;
-  unsigned int type:8;  
-  unsigned int orientation:3;
-  unsigned int spare:23;
-  CDS_IID_t distance;   // iid of distance
+  unsigned int   deleted:1;
+  unsigned int   type:8;  
+  unsigned int   orientation:3;
+  unsigned int   spare:23;
+  CDS_IID_t      distance;   // iid of distance
 
-  CDS_IID_t frag1;      // iid of frag1
-  CDS_IID_t frag2;      // iid of frag2
+  CDS_IID_t      frag1;      // iid of frag1
+  CDS_IID_t      frag2;      // iid of frag2
 
-  CDS_IID_t frag1Next;
-  CDS_IID_t frag2Next;
+  CDS_IID_t      frag1Next;
+  CDS_IID_t      frag2Next;
 
-  uint16 birthBatch;         /* This entry is valid */
-  uint16 deathBatch;         /* [birthBatch, deatchBatch) */
-  uint32 padTo8byteWords;
+  uint16         birthBatch;         /* This entry is valid */
+  uint16         deathBatch;         /* [birthBatch, deatchBatch) */
+  uint32         padTo8byteWords;
 }GateKeeperLinkRecord;
 
 static char getLinkOrientation(GateKeeperLinkRecord *gkpl){
@@ -205,7 +189,7 @@ static int32 getNum ## type ## s(type ## Store store){\
 
 
 
-#define NUM_GKP_FILES 7
+#define NUM_GKP_FILES 6
 
 // 1. for gkp.bat
 INDEXSTORE_DEF(GateKeeperBatch)
@@ -218,14 +202,11 @@ INDEXSTORE_DEF_EXTEND(GateKeeperFragment)
 INDEXSTORE_DEF(GateKeeperLink)
 INDEXSTORE_DEF_EXTEND(GateKeeperLink)
 
-// 4. for gkp.seq
-INDEXSTORE_DEF(GateKeeperSequence)
-
-// 5 & 6. for gkp.dst (distance definitions) & gkp.s_dst (distance redefinitions)
+// 4 & 5. for gkp.dst (distance definitions) & gkp.s_dst (distance redefinitions)
 INDEXSTORE_DEF(GateKeeperDistance)
 INDEXSTORE_DEF_EXTEND(GateKeeperDistance)
 
-// 7. is gkp.phash
+// 6. is gkp.phash
 
 
 /***********************************************************************************
@@ -353,7 +334,6 @@ typedef struct {
   GateKeeperBatchStore     batStore;
   GateKeeperFragmentStore  frgStore;
   GateKeeperLinkStore      lnkStore;
-  GateKeeperSequenceStore  seqStore;
   GateKeeperDistanceStore  dstStore;    
   GateKeeperDistanceStore  s_dstStore;    // Store for Distances that have been redefined
 } GateKeeperStore;

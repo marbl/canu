@@ -34,7 +34,7 @@ AS_PER_TEST_SOURCES = testFragStore.c dumpFragStore.c testLoad.c \
 	FragStoreStats.c binaryDumpFragStore.c loadBinaryDump.c \
 	PopulateFragStore.c \
 	partitionFragStore.c dumpFrag.c dumpFragFromPartition.c\
-	testFrgStoreSizes.c test_include.c resetFrgStoreToCNSClr.c \
+	testFrgStoreSizes.c resetFrgStoreToCNSClr.c \
         dumpFragClearLens.c
 
 #stressFragStore.c 

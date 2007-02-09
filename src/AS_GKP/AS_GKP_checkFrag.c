@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.12 2007-02-08 06:48:52 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.13 2007-02-09 21:17:40 brianwalenz Exp $";
 
 //#define DEBUG_GKP 1
 //#define DEBUG_GKP_VERBOSE 1
@@ -171,13 +171,13 @@ int Check_FragMesg(FragMesg *frg_mesg,
       InsertInPHashTable_AS(&(GkpStore.hashTable), UID_NAMESPACE_AS, frg_mesg->eaccession, &value, FALSE, TRUE);
       ifg_mesg->iaccession = value.IID;
 
-      gkf.seqID = ifg_mesg->iseq_id;
-      gkf.readUID = ifg_mesg->eaccession;
+      gkf.readUID  = ifg_mesg->eaccession;
       gkf.linkHead = 0;
       gkf.numLinks = 0;
       if(verbose)
-	fprintf(stderr,"* Appending frag " F_U64 " " F_U32 " of type %c sid:" F_U32 " to store\n",
-		gkf.readUID, value.IID, gkf.type, gkf.seqID);
+	fprintf(stderr,"* Appending frag " F_U64 " " F_U32 " of type %c to store\n",
+		gkf.readUID, value.IID, gkf.type);
+
       switch(ifg_mesg->type){
       case AS_READ:
       case AS_EXTR:

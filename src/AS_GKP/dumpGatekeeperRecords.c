@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: dumpGatekeeperRecords.c,v 1.8 2007-02-08 06:48:53 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpGatekeeperRecords.c,v 1.9 2007-02-09 21:17:40 brianwalenz Exp $";
 
 /* Dump the gatekeeper stores for debug */
 
@@ -114,13 +114,13 @@ int  main(int argc, char * argv []) {
      
 	if(type == AS_IID_FRG){
           getGateKeeperFragmentStore(gkpStore.frgStore, fragIID, &gkf);
-          fprintf(stderr,"* uid:" F_UID " Fragment " F_IID ": UID:" F_UID " type%c refs: %d links:%d(" F_IID ") sID:" F_IID " batch(%u,%u)  \n",
+          fprintf(stderr,"* uid:" F_UID " Fragment " F_IID ": UID:" F_UID " type%c refs: %d links:%d(" F_IID ") batch(%u,%u)  \n",
                   uid,
                   fragIID, 
                   gkf.readUID, 
                   gkf.type,
                   value.refCount, gkf.numLinks, gkf.linkHead,
-                  gkf.seqID, gkf.birthBatch, gkf.deathBatch);
+                  gkf.birthBatch, gkf.deathBatch);
           if(gkf.numLinks > 0){
             CreateGateKeeperLinkRecordIterator(gkpStore.lnkStore, gkf.linkHead,fragIID, &iterator);
             while(NextGateKeeperLinkRecordIterator(&iterator, &link)){

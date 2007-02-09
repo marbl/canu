@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.13 2007-02-08 06:48:52 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.14 2007-02-09 21:17:40 brianwalenz Exp $";
 
 /*************************************************
 * Module:  AS_GKP_main.c
@@ -39,20 +39,22 @@ static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.13 2007-02-08 06:48:52 brianwalenz
 *                  Each UID and has a reference count.  PHash also keeps track
 *                  of IIDs that have been assigned for each class of input.
 *                  See UTL_PHash.[ch] for a more complete description.
+*
 *           gkp.frg A GateKeeperFragmentStore.  An array of GateKeeperFragmentRecords (see AS_PER_GkpStore.h)
 *                  One record per fragment.  Stores IID->UID map, and links to gkplstore for
 *                  links.
+*
 *           gkp.lnk A GateKeeperLinkStore.  An array of GateKeeperLinkRecords (see AS_PER_GkpStore.h)
 *                  One record per LKG record, and one per set of Join messages.  This is
 *                  maintained as an array of linked records.
+*
 *           gkp.bat A GateKeeperBatchStore.  An array of GateKeeperBatchRecords (see AS_PER_GkpStore.h)
 *                  One record per BAT record.
+*
 *           gkp.dst A GateKeeperDistanceStore.  An array of GateKeeperDistanceRecords (see AS_PER_GkpStore.h)
 *                  One record per DST record.
 *           gkp.s_dst A GateKeeperDistanceStore.  An array of GateKeeperDistanceRecords (see AS_PER_GkpStore.h)
 *                  One record for each redefinition of a DST.
-*           gkp.seq A GateKeeperSequenceStore.  An array of GateKeeperSequenceRecords (see AS_PER_GkpStore.h)
-*                  One record per SEQ record.
 *
 *       gatekeeper processes the input file, reporting errors and warnings.  Any message that causes
 *       an error warning is output to stderr, along with the associated warning/error messages.

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: dumpGatekeeper.c,v 1.12 2007-02-08 06:48:52 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpGatekeeper.c,v 1.13 2007-02-09 21:17:40 brianwalenz Exp $";
 
 /* Dump the gatekeeper stores for debug */
 
@@ -114,19 +114,16 @@ main(int argc, char * argv []) {
        fprintf(stdout,"\t Num Distances " F_S32 "\n", gkpb.numDistances);
        fprintf(stdout,"\t Num s_Distances " F_S32 "\n", gkpb.num_s_Distances);
        fprintf(stdout,"\t Num Links " F_S32 "\n", gkpb.numLinks);
-       fprintf(stdout,"\t Num Sequences " F_S32 "\n", gkpb.numSequences);
      }
      gkpb.numFragments = getNumGateKeeperFragments(gkpStore.frgStore);
      gkpb.numDistances = getNumGateKeeperDistances(gkpStore.dstStore);
      gkpb.num_s_Distances = getNumGateKeeperDistances(gkpStore.s_dstStore);
      gkpb.numLinks = getNumGateKeeperLinks(gkpStore.lnkStore);
-     gkpb.numSequences = getNumGateKeeperSequences(gkpStore.seqStore);
      fprintf(stdout,"* Final Stats\n");
      fprintf(stdout,"\t Num Fragments " F_S32 "\n",gkpb.numFragments );
      fprintf(stdout,"\t Num Distances " F_S32 "\n", gkpb.numDistances);
      fprintf(stdout,"\t Num s_Distances " F_S32 "\n", gkpb.num_s_Distances);
      fprintf(stdout,"\t Num Links " F_S32 "\n", gkpb.numLinks);
-     fprintf(stdout,"\t Num Sequences " F_S32 "\n", gkpb.numSequences);
    }
 
    if(summary)
@@ -218,26 +215,26 @@ main(int argc, char * argv []) {
            else
              fprintf(stdout,"# Deleted Fragment ");
            
-           fprintf(stdout,F_S64 "(" F_IID "): UID:" F_UID " type:%c refs:%d links:%u(" F_IID ") sID:" F_IID " batch(" F_U16 "," F_U16 ")\n",
+           fprintf(stdout,F_S64 "(" F_IID "): UID:" F_UID " type:%c refs:%d links:%u(" F_IID ") batch(" F_U16 "," F_U16 ")\n",
                    i, value.IID, gkpf.readUID, 
                    gkpf.type,
                    value.refCount, gkpf.numLinks, gkpf.linkHead,
-                   gkpf.seqID, gkpf.birthBatch, gkpf.deathBatch);
+                   gkpf.birthBatch, gkpf.deathBatch);
          }
        }else{
          if(!quiet){
            if(!gkpf.deleted){
-             fprintf(stdout,"* Fragment " F_S64 ": UID:" F_UID " type:%c refs:%d links:%u(" F_IID ") sID:" F_IID " batch(" F_U16 "," F_U16 ")\n",
+             fprintf(stdout,"* Fragment " F_S64 ": UID:" F_UID " type:%c refs:%d links:%u(" F_IID ") batch(" F_U16 "," F_U16 ")\n",
                      i, gkpf.readUID, 
                      gkpf.type,
                      value.refCount, gkpf.numLinks, gkpf.linkHead,
-                     gkpf.seqID, gkpf.birthBatch, gkpf.deathBatch);
+                     gkpf.birthBatch, gkpf.deathBatch);
            }else{
-             fprintf(stdout,"* Redefined Fragment " F_S64 " (now " F_IID "): UID:" F_UID " type:%c refs:%d links:%u(" F_IID ") sID:" F_IID " batch(" F_U16 "," F_U16 ")\n",
+             fprintf(stdout,"* Redefined Fragment " F_S64 " (now " F_IID "): UID:" F_UID " type:%c refs:%d links:%u(" F_IID ") batch(" F_U16 "," F_U16 ")\n",
                      i, value.IID, gkpf.readUID, 
                      gkpf.type,
                      value.refCount, gkpf.numLinks, gkpf.linkHead,
-                     gkpf.seqID, gkpf.birthBatch, gkpf.deathBatch);
+                     gkpf.birthBatch, gkpf.deathBatch);
            }
          }
          if(gkpf.numLinks > 0){

@@ -58,7 +58,6 @@ int main(int argc, char *argv[]){
   printf("VLSTRING_SIZE_T size is %ld\n",sizeof(VLSTRING_SIZE_T));
   printf("GateKeeperBatchRecord size is %ld\n",sizeof(GateKeeperBatchRecord));
   printf("GateKeeperFragmentRecord size is %ld\n",sizeof(GateKeeperFragmentRecord));
-  printf("GateKeeperSequenceRecord size is %ld\n",sizeof(GateKeeperSequenceRecord));
   printf("GateKeeperDistanceRecord size is %ld\n",sizeof(GateKeeperDistanceRecord));
   printf("GateKeeperLinkRecord size is %ld\n",sizeof(GateKeeperLinkRecord));
   printf("PHashTable_AS size is %ld\n",sizeof(PHashTable_AS));
