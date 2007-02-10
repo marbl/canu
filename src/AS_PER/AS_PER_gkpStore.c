@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.13 2007-02-09 21:17:40 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.14 2007-02-10 20:24:59 brianwalenz Exp $";
 
 /*************************************************************************
  Module:  AS_PER_gkpfrgStore
@@ -38,8 +38,8 @@ static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.13 2007-02-09 21:17:40 brianwa
  *************************************************************************/
 
 /* RCS Info
- * $Id: AS_PER_gkpStore.c,v 1.13 2007-02-09 21:17:40 brianwalenz Exp $
- * $Revision: 1.13 $
+ * $Id: AS_PER_gkpStore.c,v 1.14 2007-02-10 20:24:59 brianwalenz Exp $
+ * $Revision: 1.14 $
  *
  */
 #include <assert.h>
@@ -562,9 +562,6 @@ int RemoveGateKeeperStoreFiles(GateKeeperStore *gkpStore){
   sprintf(buffer,"rm -f %s/gkp.lnk", gkpStore->storePath);
   if(system(buffer) != 0) assert(0);
 
-  sprintf(buffer,"rm -f %s/gkp.seq", gkpStore->storePath);
-  if(system(buffer) != 0) assert(0);
-
   sprintf(buffer,"rm -f %s/gkp.dst", gkpStore->storePath);
   if(system(buffer) != 0) assert(0);
 
@@ -595,9 +592,6 @@ int CopyGateKeeperStoreFiles(GateKeeperStore *gkpStore, char *path){
   if(system(buffer) != 0) assert(0);
 
   sprintf(buffer,"cp %s/gkp.s_dst %s", gkpStore->storePath, path);
-  if(system(buffer) != 0) assert(0);
-
-  sprintf(buffer,"cp %s/gkp.seq %s", gkpStore->storePath, path);
   if(system(buffer) != 0) assert(0);
 
   sprintf(buffer,"cp %s/gkp.phash %s", gkpStore->storePath, path);
