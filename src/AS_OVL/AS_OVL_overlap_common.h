@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.23 2007-02-08 06:48:53 brianwalenz Exp $
- * $Revision: 1.23 $
+ * $Id: AS_OVL_overlap_common.h,v 1.24 2007-02-11 06:18:18 brianwalenz Exp $
+ * $Revision: 1.24 $
 */
 
 
@@ -78,7 +78,6 @@
 #include  "AS_PER_ReadStruct.h"
 #include  "AS_PER_genericStore.h"
 #include  "AS_PER_fragStore.h"
-#include  "AS_PER_distStore.h"
 #include  "AS_UTL_PHash.h"
 #include  "AS_MSG_pmesg.h"
 #include  "AS_OVL_overlap.h"
@@ -327,7 +326,6 @@ int  Max_Frags_In_Memory_Store = 0;
 
 int  Contig_Mode = FALSE;
 uint32  Last_Hash_Frag_Read;
-int  LSF_Mode = FALSE;
 int  Lo_Hash_Frag = 0;
 int  Hi_Hash_Frag = INT_MAX;
 int  Lo_Old_Frag = 0;
@@ -350,11 +348,9 @@ FILE  * BOL_File = NULL;
 FILE  * Kmer_Skip_File = NULL;
     // File of kmers to be ignored in the hash table
     // Specified by the  -k  option
-Input_Stream  In_Stream = NULL;
 Output_Stream  Out_Stream = NULL;
 FragStore  OldFragStore;
 FragStore  BACtigStore;
-DistStore  OldDistStore;
 char  * Frag_Store_Path;
 char  * BACtig_Store_Path = NULL;
 uint32  * IID_List = NULL;
@@ -399,8 +395,6 @@ static void  Combine_Into_One_Olap
     (Olap_Info_t * olap, int ct, int deleted []);
 static char  Complement
     (char);
-DistStore  Dist_Store_Open
-    (char * storename, char * mode);
 static void  Dump_Screen_Info
     (int frag_id, Screen_Info_t * screen, char dir);
 static Overlap_t  Extend_Alignment
@@ -509,7 +503,7 @@ int  main  (int argc, char * argv [])
    char  File_Name [MAX_NAME_LEN];
    char  * bolfile_name = NULL, * Outfile_Name = NULL;
    char  * iidlist_file_name = NULL;
-   int  illegal, create, append, force, exists;
+   int  illegal;
    char  * p;
    int  noOverlaps;  /* If 1, run but don't compute/generate overlaps */
 
@@ -542,10 +536,6 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
    noOverlaps = 0; /* If 1, don't compute/generate overlaps */
 
    illegal = 0;
-   create = 1;
-   append = 0;
-   force = 0;
-   exists = 0;
 
    { /* Parse the argument list using "man 3 getopt". */ 
      int ch, errflg = 0;
@@ -562,7 +552,7 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
      optarg = NULL;
      while  (! errflg
                && ((ch = getopt_long (argc, argv,
-                                      "ab:cfGh:I:k:K:l:mM:no:Pqr:st:uwz", ovlopts, &optindex)) != EOF))
+                                      "b:cGh:I:k:K:l:mM:no:Pqr:st:uwz", ovlopts, &optindex)) != EOF))
        switch  (ch)
          {
            case 0:
@@ -577,21 +567,12 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
                Max_Hash_Load = atof(optarg);
              }
              break;
-          case  'a' :
-            append = 1;
-            create = 0;
-            force  = 0;
-            break;
           case  'b' :
             bolfile_name = strdup (optarg);
             assert (bolfile_name != NULL);
             break;
           case  'c':
             Contig_Mode = TRUE;
-            break;
-          case  'f' :
-            force  = 1;
-            append = 0;
             break;
           case  'G' :
             Doing_Partial_Overlaps = TRUE;
@@ -600,8 +581,6 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
             break;
           case  'h' :
             Get_Range (optarg, ch, & Lo_Hash_Frag, & Hi_Hash_Frag);
-            LSF_Mode = TRUE;
-            force = create = append = 0;
             break;
           case  'I' :
             iidlist_file_name = strdup (optarg);
@@ -744,14 +723,6 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
             errflg++;
          }
 
-     if(force == 1 && append  == 1)
-       {
-         fprintf (stderr,
-                  "* Illegal combination of command line flags"
-                  "-- they are mutually exclusive\n");
-         illegal = 1;
-       }
-
      if (Max_Hash_Strings == 0) {
        fprintf(stderr, "* No memory model supplied; -M needed!\n");
        illegal = 1;
@@ -763,18 +734,14 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
      }
      
      if  ((illegal == 1)
-          || (argc - optind != 2 && (! LSF_Mode || Contig_Mode))
-          || (argc - optind != 1 && (LSF_Mode && ! Contig_Mode)))
+          || (argc - optind != 2 && Contig_Mode)
+          || (argc - optind != 1 && ! Contig_Mode))
        {
          fprintf (stderr,
                   "USAGE:  %s [options] "
-                  "<FragStorePath> <InputFilename>[.<ext>]\n"
-                  "Opens <InputFilename>.<ext> to read .inp/.urc input\n"
-                  "Creates/updates FragStore in <FragStorePath>\n"
-                  "Writes .ovl output to <InputFilename>.ovl\n"
+                  "<FragStorePath>]\n"
+                  "Uses FragStore in <FragStorePath>\n"
                   "\n"
-                  "-a          append to frag store\n"
-                  "-f          force a new frag store\n"
                   "-G          do partial overlaps\n"
                   "-h <range>  to specify fragments to put in hash table\n"
                   "            Implies LSF mode (no changes to frag store)\n"
@@ -795,7 +762,6 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
                   "            '2GB', '1GB', '256MB'.  (Not for Contig mode)\n"
                   "-n          skip overlaps (only update frag store)\n"
                   "-o          specify output file name\n"
-                  "-P          force ASCII output\n"
                   "-q          make single-line output (same format as -G)\n"
                   "-r <range>  specify old fragments to overlap\n"
                   "-s          ignore screen information with fragments\n"
@@ -816,8 +782,6 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
 
      if  (optind < argc)
          {
-          if  (LSF_Mode)
-              {
                if  (! Contig_Mode)
                    {
                     fprintf (stderr,
@@ -843,42 +807,9 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
                    }
 
                BACtig_Store_Path = argv [optind];
-              }
-            else
-              {
-               char  * suffix;
 
-               suffix = strrchr (argv [optind], (int) '.');
-               strcpy (File_Name, argv [optind]);
-	       assert(NULL == In_Stream);
-               In_Stream = File_Open (File_Name, "r");     // inp file
-	       assert(NULL != In_Stream);
-
-               if  (Outfile_Name == NULL)
-                   {
-                    if  (suffix)
-                        * suffix = '\0';
-                    if  (Contig_Mode)
-                        {
-                         sprintf (File_Name, "%s.bol", argv [optind]);
-			 assert(NULL == BOL_File);
-                         BOL_File = File_Open (File_Name, "w");
-                        }
-                    sprintf (File_Name, "%s.ovl", argv [optind]);
-		    assert(NULL == Out_Stream);
-                    Out_Stream = File_Open (File_Name, "w");     // ovl file
-                   }
-                 else
-		   assert(NULL == Out_Stream);
-                   Out_Stream = File_Open (Outfile_Name, "w");     // ovl file
-              }
 
           optind ++;
-         }
-     else if  (! LSF_Mode)
-         {
-          fprintf (stderr, "ERROR:  No input file name specified\n");
-          exit (EXIT_FAILURE);
          }
      else if  (Outfile_Name == NULL)
          {
@@ -897,8 +828,8 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
    
 #if  SHOW_STATS
  assert(NULL == Stat_File);
- Stat_File = File_Open (STAT_FILE_NAME, "w");
- {
+ Stat_File = File_Open (STAT_FILE_NAME, "w"); 
+{
    int  i;
    fprintf (Stat_File, ">");
    for  (i = 0;  i < argc;  i ++)
@@ -919,7 +850,7 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
 
    Initialize_Globals ();
 
-   if  (LSF_Mode && Contig_Mode)
+   if  (Contig_Mode)
        {
         if  (BACtig_Store_Path == NULL)
             {
@@ -954,96 +885,10 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
             }
        }
 
-   exists = existsFragStore (Frag_Store_Path);
-   if  (exists == 1)
-       {
-        char  buffer [MAX_NAME_LEN];
-
-        sprintf (buffer, "%s/db.dst", Frag_Store_Path);
-        if  (! File_Exists (buffer))
-            exists = -1;
-       }
-
-   if  (force && exists)
-       {
-        char cmd[2048];
-
-        fprintf (stderr, "* Fragment Store %s exists ...nuking\n", Frag_Store_Path);
-        removeFragStore (Frag_Store_Path);
-        sprintf (cmd,"rm %s/db.dst", Frag_Store_Path);
-        if(system(cmd) != 0) assert(0);
-        create = 1;
-        append = 0;
-       }
-   else if  (create && exists)
-       {
-        fprintf (stderr, "\a\aFragment Store %s exists, use  -f  to overwrite\n",
-                 Frag_Store_Path);
-        exit (-1);
-       }
-
-   if  (append)
-       {
-        if  (exists == 0)
-            {
-             fprintf (stderr, "* Directory %s DOES NOT exist ...creating before append\n",
-                      Frag_Store_Path);
-             create = 1;
-             append = 0;
-            }
-        else if  (exists == -1)
-            {
-             fprintf (stderr, "* Directory %s contains some, but not all files, exiting\n",
-                      Frag_Store_Path);
-             exit(1);
-            }
-          else
-            {
-             fprintf (stderr, "* Directory %s DOES  exist ...\n",
-                      Frag_Store_Path);
-             append = 1;
-             create = 0;
-            }
-       }
-
-   if  (append)
-       {
-        char buffer[FILENAME_MAX];
-
-        // fprintf(stderr,"* Appending to fragstore %s\n", Frag_Store_Path);
-        sprintf(buffer,"%s/db.dst", Frag_Store_Path);
-        OldDistStore = Dist_Store_Open (buffer, "r+"); 
-        OldFragStore = Frag_Store_Open (Frag_Store_Path, "r+");
-        // fprintf(stderr,"** Opened store %d for OldFragStore \n", OldFragStore);
-       }
-   else if  (create)
-       {
-        char buffer[FILENAME_MAX];
-
-        // fprintf (stderr, "Frag_Store_Path = %p\n", Frag_Store_Path);
-        //fprintf (stderr, "Frag_Store_Path [0] = %d\n", (int) (Frag_Store_Path [0]));
-        fprintf(stderr,"* Creating fragstore %s\n", Frag_Store_Path);
-        sprintf(buffer,"%s/db.dst", Frag_Store_Path);
-        OldFragStore = createFragStore(Frag_Store_Path, "Just testing", 1);
-        // fprintf(stderr,"** Allocated store %d for OldFragStore \n", OldFragStore);
-        OldDistStore = createDistStore(buffer,1); 
-       }
-   else if  (LSF_Mode)
-       {
-        char  buffer [FILENAME_MAX];
-
-        fprintf (stderr, "* Using fragstore %s\n", Frag_Store_Path);
-        sprintf (buffer, "%s/db.dst", Frag_Store_Path);
-//        OldDistStore = Dist_Store_Open (buffer, "r"); 
-        OldFragStore = Frag_Store_Open (Frag_Store_Path, "r");
-       }
-     else
-       {
-        fprintf (stderr,"** Serious error...bye\n");
-        exit (-1);
-       }
+   fprintf (stderr, "* Using fragstore %s\n", Frag_Store_Path);
+   OldFragStore = Frag_Store_Open (Frag_Store_Path, "r");
    
-   if  (LSF_Mode && ! Contig_Mode)
+   if  (! Contig_Mode)
        {
         GenericMesg   * pmesg = (GenericMesg *) safe_malloc (sizeof (GenericMesg));
         AuditMesg  * adtmesg = (AuditMesg *) safe_malloc (sizeof (AuditMesg));
@@ -1070,7 +915,6 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
 Dump_Screen_Info (0, NULL, 'x');
 #endif
 
-   if(NULL != In_Stream) { fclose (In_Stream); In_Stream = NULL;}
    assert(NULL != Out_Stream);
    fclose (Out_Stream);
    Out_Stream = NULL;
@@ -1554,8 +1398,7 @@ int  Build_Hash_Index
    fprintf (stderr, "### Build_Hash:  first_frag_id = %d  Max_Hash_Strings = %d\n",
         first_frag_id, Max_Hash_Strings);
 
-   if  (LSF_Mode)
-       screen_blocks_used = 1;
+   screen_blocks_used = 1;
 
    Extra_Ref_Ct = 0;
    Hash_Entries = 0;
@@ -1584,8 +1427,6 @@ int  Build_Hash_Index
           }
         else
           {
-           if  (LSF_Mode)
-               {
                 if  (screen . num_matches == 0)
                     Screen_Sub [String_Ct] = 0;
                   else
@@ -1609,7 +1450,6 @@ int  Build_Hash_Index
                      Screen_Sub [String_Ct] = screen_blocks_used;
                      screen_blocks_used = new_size;
                     }
-               }
 
            getReadType_ReadStruct (myRead, Kind_Of_Frag + String_Ct);
           }
@@ -2129,34 +1969,6 @@ static char  Complement
   }
 
 
-
-DistStore  Dist_Store_Open
-    (char * storename, char * mode)
-
-/* Open  storename  in  mode  and return a pointer to its control
-*  block.  If fail, print a message and exit. */
-
-  {
-   DistStore  fp;
-   int  retry;
-
-   fp = openDistStore (storename, mode);
-   for  (retry = 0;  fp == NULLSTOREHANDLE && retry < 3;  retry ++)
-     {
-      sleep (10);
-      fp = openDistStore (storename, mode);
-     }
-   if  (fp == NULLSTOREHANDLE)
-       {
-        fprintf (stderr, "ERROR %d:  Could not open diststore  %s \n",
-                 errno, storename);
-        perror (strerror (errno));
-
-        exit (FILE_OPEN_FAILURE);
-       }
-
-   return  fp;
-  }
 
 
 

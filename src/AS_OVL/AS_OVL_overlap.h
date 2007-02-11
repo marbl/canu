@@ -26,8 +26,8 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.12 2007-01-29 20:41:17 brianwalenz Exp $
- * $Revision: 1.12 $
+ * $Id: AS_OVL_overlap.h,v 1.13 2007-02-11 06:18:18 brianwalenz Exp $
+ * $Revision: 1.13 $
 */
 
 
@@ -550,7 +550,6 @@ extern int  Max_Frags_In_Memory_Store;
 
 extern int  Contig_Mode;
 extern uint32  Last_Hash_Frag_Read;
-extern int  LSF_Mode;
 extern int  Lo_Hash_Frag, Hi_Hash_Frag;
 extern int  Lo_Old_Frag, Hi_Old_Frag;
 extern int  Num_PThreads;
@@ -576,10 +575,8 @@ extern char  Quality_Buffer [];
 
 extern FragStore  OldFragStore;
 extern FragStore  BACtigStore;
-extern DistStore  OldDistStore;
 extern char  * BACtig_Store_Path;
 extern char  * Frag_Store_Path;
-extern Input_Stream  In_Stream;
 extern Output_Stream  Out_Stream;
     //  To handle I/O
 extern uint32  * IID_List;

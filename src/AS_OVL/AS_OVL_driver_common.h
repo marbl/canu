@@ -26,8 +26,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_driver_common.h,v 1.11 2007-02-08 06:48:53 brianwalenz Exp $
- * $Revision: 1.11 $
+ * $Id: AS_OVL_driver_common.h,v 1.12 2007-02-11 06:18:18 brianwalenz Exp $
+ * $Revision: 1.12 $
 */
 
 
@@ -37,7 +37,6 @@
 #include  "AS_PER_ReadStruct.h"
 #include  "AS_PER_genericStore.h"
 #include  "AS_PER_fragStore.h"
-#include  "AS_PER_distStore.h"
 #include  "AS_MSG_pmesg.h"
 #include  "AS_OVL_overlap.h"
 #include "AS_UTL_Var.h"
@@ -67,7 +66,7 @@ static int  Choose_Hi_IID_Sub
 void  Cleanup_Work_Area
     (Work_Area_t * wa);
 static int  ReadFrags
-    (int maxFrags, FragStoreHandle store, DistStore distStore, int argc, char **argv);
+    (int maxFrags);
 
 
 #if 0
@@ -126,8 +125,6 @@ int  OverlapDriver
 
   {
    Frag_Stream  HashFragStream = 0;
-   FragStore  NewFragStore;
-   DistStore  NewDistStore;
    pthread_attr_t  attr;
    pthread_t  * thread_id;
    Frag_Stream  * new_stream_segment;
@@ -152,24 +149,9 @@ fprintf (stderr, "### Using %d pthreads  %d hash bits  %d bucket entries\n",
 //   driver_wa = (Work_Area_t *) safe_malloc (sizeof (Work_Area_t));
    thread_wa = (Work_Area_t *) safe_calloc
                    (Num_PThreads, sizeof (Work_Area_t));
-   if  (Contig_Mode)
-       NewFragStore
-           = createFragStore (NULL, "temp", 1);
-   else if  (! LSF_Mode)
-       {
-        first_new_frag = getLastElemFragStore (OldFragStore) + 1;
-        NewFragStore
-            = createFragStore (NULL, "temp", first_new_frag);
-       }
-   if  (! LSF_Mode)
-       NewDistStore
-           = createDistStore (NULL, getLastElemStore (OldDistStore) + 1);
-   if  (! LSF_Mode)
-       HashFragStream = openFragStream (NewFragStore, NULL, 0);
+
    for  (i = 0;  i < Num_PThreads;  i ++)
      {
-      if  (! LSF_Mode)
-          new_stream_segment [i] = openFragStream (NewFragStore, NULL, 0);
       old_stream_segment [i] = openFragStream (OldFragStore, NULL, 0);
      }
 
@@ -199,19 +181,13 @@ Start_Time = clock ();
        Next_Fragment_Index = 1;
      else
        Next_Fragment_Index = getLastElemFragStore (OldFragStore) + 1;
-   if  (! LSF_Mode)
-       Next_Distance_Index = getLastElemStore (OldDistStore) + 1;
 
 
-//  Call  readFrags  until we've exhausted the input stream.
-//  readFrags  reads from input, and adds the fragments to
-//  NewFragStore .
 
 #if  USE_SOURCE_FIELD
 Source_Log_File = File_Open ("ovl-srcinfo.log", "w");
 #endif
 
-   if  (LSF_Mode)
        {
         int  id;
 
@@ -230,7 +206,7 @@ Source_Log_File = File_Open ("ovl-srcinfo.log", "w");
             Hi_Hash_Frag = id;
        }
 
-   while (ReadFrags (Max_Hash_Strings, NewFragStore, NewDistStore, argc, argv))
+   while (ReadFrags (Max_Hash_Strings))
      {
       int startIndex;
 
@@ -241,8 +217,6 @@ Source_Log_File = File_Open ("ovl-srcinfo.log", "w");
            int  highest_old_frag, lowest_old_frag;
            int  status;
 
-           if  (LSF_Mode)
-               {
                 if  (Contig_Mode)
                     {
                      hash_frag_store
@@ -275,13 +249,6 @@ Source_Log_File = File_Open ("ovl-srcinfo.log", "w");
                 resetFragStream (HashFragStream, First_Hash_Frag,
                                  Last_Hash_Frag);
                 startIndex = First_Hash_Frag;
-               }
-             else
-               {
-                resetFragStream (HashFragStream, STREAM_FROMSTART,
-                                 STREAM_UNTILEND);
-                startIndex = getFirstElemFragStore (NewFragStore);
-               }
 
 
 /* Create the hash table from the HashFragStream */
@@ -303,45 +270,6 @@ break;
            resetFragStream (HashFragStream, STREAM_FROMSTART,
                             STREAM_UNTILEND);
 
-           if  (! LSF_Mode && ! Contig_Mode)
-               {
-                /* Stream HashFragStream by the hash table, to compute overlaps */
-
-                Frag_Segment_Lo = getFirstElemFragStore (NewFragStore);
-                Frag_Segment_Hi = getLastElemFragStore (NewFragStore);
-                curr_frag_store = NewFragStore;
-
-                for  (i = 1;  i < Num_PThreads;  i ++)
-                  {
-                   thread_wa [i] . stream_segment = new_stream_segment [i];
-                   status = pthread_create
-                                (thread_id + i, & attr,
-                                 Choose_And_Process_Stream_Segment,
-                                 thread_wa + i);
-                   if  (status != 0)
-                       {
-                        fprintf (stderr, "pthread_create error at line %d:  %s\n",
-                                 __LINE__, strerror (status));
-                        exit (-3);
-                       }
-                  }
-
-                thread_wa [0] . stream_segment = new_stream_segment [0];
-                Choose_And_Process_Stream_Segment (thread_wa);
-
-                for  (i = 1;  i < Num_PThreads;  i ++)
-                  {
-                   void  * ptr;
-
-                   status = pthread_join  (thread_id [i], & ptr);
-                   if  (status != 0)
-                       {
-                        fprintf (stderr, "pthread_join error at line %d:  %s\n",
-                                 __LINE__, strerror (status));
-                        exit (-3);
-                       }
-                  }
-               }
 
 
            lowest_old_frag = getFirstElemFragStore (OldFragStore);
@@ -350,7 +278,7 @@ break;
                lowest_old_frag = Lo_Old_Frag;
            if  (highest_old_frag > Hi_Old_Frag)
                highest_old_frag = Hi_Old_Frag;
-           if  (LSF_Mode && ! Contig_Mode
+           if  (! Contig_Mode
                   && highest_old_frag > Last_Hash_Frag)
                highest_old_frag = Last_Hash_Frag;
            if  (IID_List != NULL)
@@ -449,35 +377,10 @@ break;
              }
 #endif
                  
-           if  (LSF_Mode)
-               {
-                closeFragStream (HashFragStream);
-                closeFragStore (hash_frag_store);
-               }
+           closeFragStream (HashFragStream);
+           closeFragStore (hash_frag_store);
           }
 
-      if  (! LSF_Mode)
-          {
-           if  (Contig_Mode)
-               last_new_frag = getLastElemFragStore (NewFragStore);
-             else
-               {
-                concatFragStore (OldFragStore, NewFragStore);
-                commitFragStore (OldFragStore);
-                last_new_frag = getLastElemFragStore (OldFragStore);
-
-                /* If we've added dst records, save them persistently */
-
-                if  (getLastElemStore (NewDistStore) > getLastElemStore (OldDistStore))
-                    {
-                     concatStore (OldDistStore, NewDistStore);
-                    }
-                commitStore (OldDistStore);
-                resetDistStore (NewDistStore, getLastElemStore (OldDistStore) + 1);
-               }
-
-           resetFragStore (NewFragStore, last_new_frag + 1);
-          }
 
 #if  SHOW_PROGRESS
 Stop_Time = clock ();
@@ -513,14 +416,6 @@ Profile_Hits ();
    /* Handle the pathological case where we read ONLY distance records */
    /* If we've added dst records, save them persistently */
 
-   if  (! LSF_Mode)
-       {
-        if  (getLastElemStore (NewDistStore) > getLastElemStore (OldDistStore))
-          {
-            concatStore (OldDistStore, NewDistStore);
-          }
-        commitStore (OldDistStore);
-       }
 
 //   Cleanup_Work_Area (driver_wa);
    Cleanup_Work_Area (thread_wa);
@@ -541,12 +436,6 @@ fclose (Source_Log_File);
 #endif
 
    closeFragStream (HashFragStream);
-   if  (! LSF_Mode)
-       {
-        closeDistStore (OldDistStore);
-        closeDistStore (NewDistStore);
-        closeFragStore (NewFragStore);
-       }
 
    fprintf (stderr, "Total fragments read = " F_S64 "\n", Total_Frags_Read);
 
@@ -666,249 +555,32 @@ static void *  Choose_And_Process_Stream_Segment
 
  */
 static int  ReadFrags
-    (int maxFrags, FragStoreHandle store, DistStore distStore, int argc, char **argv)
+    (int maxFrags)
 
   {
-  int numFragsRead = 0;
-  MessageType imesgtype;
-  GenericMesg   *pmesg;
-  InternalDistMesg  *idt_mesg;
-  InternalFragMesg *ifg_mesg;
-  OFGMesg ofg_mesg;
-  int  first_distance, first_hash_frag;
-  int64  total_len = 0;
+    Now = time (NULL);
+    fprintf (stderr, "### Start batch #%d   %s", ++ Batch_Num, ctime (& Now));
 
-  Now = time (NULL);
-  fprintf (stderr, "### Start batch #%d   %s", ++ Batch_Num, ctime (& Now));
+    // In LSF mode there is no input file.  Instead, the hash table is built
+    // from fragments from the fragment store.  In this case, we just
+    // set values of global variables  First_Hash_Frag  and  Last_Hash_Frag
+    // to indicate the range of fragments to get from that store.
 
-  // In LSF mode there is no input file.  Instead, the hash table is built
-  // from fragments from the fragment store.  In this case, we just
-  // set values of global variables  First_Hash_Frag  and  Last_Hash_Frag
-  // to indicate the range of fragments to get from that store.
+    if  (First_Hash_Frag == -1)    // First time through
+      First_Hash_Frag = Lo_Hash_Frag;
+    else
+      First_Hash_Frag = Last_Hash_Frag + 1;
+    
+    if  (First_Hash_Frag > Hi_Hash_Frag)
+      return  FALSE;
 
-  if  (LSF_Mode)
-      {
-       if  (First_Hash_Frag == -1)    // First time through
-           First_Hash_Frag = Lo_Hash_Frag;
-         else
-           First_Hash_Frag = Last_Hash_Frag + 1;
-
-       if  (First_Hash_Frag > Hi_Hash_Frag)
-           return  FALSE;
-
-       {
-	 int64 temp = First_Hash_Frag + maxFrags - 1;
-	 Last_Hash_Frag = ( temp < Hi_Hash_Frag ? temp : Hi_Hash_Frag );
-       }
-       return  TRUE;
-      }
-
-
-  Screen_Blocks_Used = 1;
-  first_distance = Next_Distance_Index;
-  first_hash_frag = Next_Fragment_Index;
-
-  /* Read maxFrags fragments from the stream */
-  while  ((numFragsRead < maxFrags)
-            && HASH_EXPANSION_FACTOR * total_len
-                   <= HASH_TABLE_SIZE * ENTRIES_PER_BUCKET
-            && (EOF != ReadProtoMesg_AS (In_Stream, & pmesg)))
     {
-    imesgtype = pmesg->t;
-    switch(imesgtype){
-    case MESG_IDT:
-      {
-	DistRecord distRecord;
-	idt_mesg = (InternalDistMesg*) pmesg->m;
-#if DEBUG
-	fprintf(stderr,"Read DST message %c ( " F_S64 ", %d ) Next_Distance_Index = %d\n", 
-		idt_mesg->action,
-		idt_mesg->eaccession,
-		idt_mesg->iaccession,
-		Next_Distance_Index);
-#endif
-	distRecord . UID = idt_mesg -> eaccession;
-	distRecord . IID = idt_mesg -> iaccession;
-        distRecord . mean = idt_mesg -> mean;
-        distRecord . stddev = idt_mesg -> stddev;
-        distRecord . deleted = 0;
-        distRecord . spare = 0;
-
-	switch(idt_mesg->action){
-	case AS_ADD:
-	  {
-	    if(distRecord.IID != Next_Distance_Index){
-	      fprintf(stderr,"*** Fatal Error -- distance record should have IID %d not %d\n",
-		      Next_Distance_Index, distRecord.IID);
-	      exit(1);
-	    }
-
-	    Next_Distance_Index++;
-
-	    //	    fprintf(stderr,"* Distance Message (" F_S64 ",%d)\n", 
-	    //    distRecord.UID, distRecord.IID);
-
-	    appendDistStore(distStore, &distRecord);
-	  }
-	  break;
-	case AS_DELETE:
-	  if  (distRecord . IID > Next_Distance_Index)
-              {
-	       fprintf (stderr, "*** Fatal Error -- distance record %d doesn't exist\n",
-		        idt_mesg -> iaccession);
-	       exit (EXIT_FAILURE);
-              }
-          else if  (idt_mesg -> iaccession < first_distance)
-              deleteDistStore (OldDistStore, idt_mesg -> iaccession);
-            else
-              deleteDistStore (distStore, idt_mesg -> iaccession);
-          
-          break;
-
-        case  AS_REDEFINE :
-	  if  (distRecord . IID >= Next_Distance_Index)
-              {
-	       fprintf (stderr,
-                        "*** Fatal Error -- Attempt to redefine distance record %d\n"
-                        "***   which has not yet been seen\n",
-		        idt_mesg -> iaccession);
-	       exit (EXIT_FAILURE);
-              }
-          else if  (idt_mesg -> iaccession < first_distance)
-              setDistStore (OldDistStore, idt_mesg -> iaccession, & distRecord);
-            else
-              setDistStore (distStore, idt_mesg -> iaccession, & distRecord);
-
-          break;
-        default:
-          assert(0);
-        }
-
-#if  ! (FOR_CARL_FOSLER || SHOW_SNPS)
-       WriteProtoMesg_AS (Out_Stream,pmesg);
-#endif
-      }
-      break;
-
-    case MESG_IFG:
-      {
-        ifg_mesg = (InternalFragMesg*) pmesg->m;
-        Transfer_IFG_to_OFG_AS (ifg_mesg, &ofg_mesg);
-        pmesg->m = &ofg_mesg;
-        pmesg->t = MESG_OFG;
-
-#if DEBUG
-        fprintf(stderr,"Read IFG/SFG message %c ( " F_S64 ", %d ) \n",
-                idt_mesg->action,
-                ifg_mesg->eaccession,
-                ifg_mesg->iaccession);
-#endif
-          switch(ifg_mesg->action){
-          case AS_ADD:
-            numFragsRead++;
-#if DEBUG
-            fprintf(stderr,"Read message %c (" F_S64 ", %d) %d\n", 
-                    ifg_mesg->action, ifg_mesg->eaccession,
-                    ifg_mesg->iaccession, Next_Fragment_Index);
-#endif
-            if(ifg_mesg->iaccession != Next_Fragment_Index){
-              fprintf(stderr,"*** Fatal Error -- fragment record should have IID %d not %d\n",
-                      Next_Fragment_Index, ifg_mesg->iaccession);
-              exit(1);
-            }
-
-
-            Screen_Sub [numFragsRead - 1] = 0;
-
-            Next_Fragment_Index++;
-
-            /* Add it to the fragment Store, as well */
-            setAccID_ReadStruct(myRead, ofg_mesg.eaccession);
-            setReadIndex_ReadStruct(myRead, ofg_mesg.iaccession);
-            setReadType_ReadStruct(myRead, ofg_mesg.type);
-            stripWhiteSpace(Sequence_Buffer, ifg_mesg->sequence, AS_READ_MAX_LEN * 2);
-            stripWhiteSpace(Quality_Buffer, ifg_mesg->quality, AS_READ_MAX_LEN * 2);
-            setSequence_ReadStruct(myRead, Sequence_Buffer, Quality_Buffer);
-            setSource_ReadStruct(myRead, ifg_mesg->source);
-            setEntryTime_ReadStruct(myRead, ofg_mesg.entry_time);
-	    // These clear ranges are the original ones, not OVL-modified.
-            setClearRegion_ReadStruct(myRead, ofg_mesg.clear_rng.bgn, ofg_mesg.clear_rng.end, READSTRUCT_ORIGINAL);  
-            total_len += ofg_mesg.clear_rng.end - ofg_mesg.clear_rng.bgn;
-
-            appendFragStore(store, myRead);
-
-          break;
-
-        case AS_DELETE:
-          if  (ifg_mesg -> iaccession < first_hash_frag)
-              deleteFragStore (OldFragStore, ifg_mesg -> iaccession);
-            else
-              deleteFragStore (store, ifg_mesg -> iaccession);
-	  break;
-
-	default:
-	  assert(0);
-	  break;
-	  }
-
-#if  ! (FOR_CARL_FOSLER || SHOW_SNPS)
-	WriteProtoMesg_AS (Out_Stream, pmesg);
-#endif
-	}
-	break;
-
-      case MESG_ADT:
-	{
-	  AuditMesg *adt_mesg;
-
-	  adt_mesg = (AuditMesg*) pmesg->m;
-	  pmesg->t = MESG_ADT;
-
-	  VersionStampADT(adt_mesg, argc, argv);
-
-#if  ! (FOR_CARL_FOSLER || SHOW_SNPS)
-	WriteProtoMesg_AS (Out_Stream, pmesg);
-#endif
-	}
-	break;
-
-      case  MESG_IBA :
-        {
-         InternalBatchMesg  * iba_mesg;
-
-         iba_mesg = (InternalBatchMesg*) pmesg -> m;
-         Batch_Msg_UID = iba_mesg -> eaccession;
-         Batch_Msg_IID = iba_mesg -> iaccession;
-
-         // fall through
-        }
-
-      case MESG_ILK:
-      case MESG_IBC:
-
-#if DEBUG
-	fprintf(stderr,"Read ILK/IJN\n");
-#endif
-
-#if  ! (FOR_CARL_FOSLER || SHOW_SNPS)
-	WriteProtoMesg_AS (Out_Stream, pmesg);
-#endif
-	break;
-
-      default:
-	fprintf(stderr,"* Oops: Read Message with type imesgtype = %d\n", imesgtype);
-	WriteProtoMesg_AS(stderr,pmesg);      
-	
-	exit(1);
-	}
-      }
-
-  fprintf (stderr, "### %d fragments read\n", numFragsRead);
-
-  Total_Frags_Read += numFragsRead;
-
-  return(numFragsRead);
+      int64 temp = First_Hash_Frag + maxFrags - 1;
+      Last_Hash_Frag = ( temp < Hi_Hash_Frag ? temp : Hi_Hash_Frag );
+    }
+    return  TRUE;
 }
+
 
 
 /******************************************************************************/
