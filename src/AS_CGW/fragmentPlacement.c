@@ -348,6 +348,9 @@ void InitCGWMateIterator(CGWMateIterator* mates,CDS_CID_t fragIID, int external_
   if(! mates->getLinksFromStore){
     mates->nextLink = GetCIFragT(ScaffoldGraph->CIFrags,frag->mateOf)->iid;
   } else {
+    assert(0);
+
+#if 0
     GateKeeperLinkRecord GKPLink;
     int rv;
     assert(frag->linkHead != NULLINDEX);
@@ -361,6 +364,7 @@ void InitCGWMateIterator(CGWMateIterator* mates,CDS_CID_t fragIID, int external_
     assert(rv==1);
     mates->nextLink = ( mates->thisFragIID == GKPLink.frag1 ? GKPLink.frag2 : GKPLink.frag1);
     assert(mates->nextLink>NULLINDEX);
+#endif
   }
 
   return;
@@ -405,6 +409,8 @@ int NextCGWMateIterator(CGWMateIterator* mates,CDS_CID_t * linkIID){
     mates->nextLink = NULLINDEX;
 
   } else {
+    assert(0);
+#if 0
     // get the iid of the next link from the gatekeeper ... or set up to fail if no more
     GateKeeperLinkRecord GKPLink;
     int rv = NextGateKeeperLinkRecordIterator(&(mates->GKPLinks),&GKPLink);
@@ -413,6 +419,7 @@ int NextCGWMateIterator(CGWMateIterator* mates,CDS_CID_t * linkIID){
     } else {
       mates->nextLink = ( mates->thisFragIID == GKPLink.frag1 ? GKPLink.frag2 : GKPLink.frag1);
     }
+#endif
   }
 
   if(mates->external_only)

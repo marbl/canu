@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: ProcessScaffolds_CGW.c,v 1.15 2007-02-08 06:48:50 brianwalenz Exp $ */
+/* $Id: ProcessScaffolds_CGW.c,v 1.16 2007-02-12 22:16:55 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,7 +29,6 @@
 #include <assert.h>
 #include "AS_global.h"
 #include "AS_PER_ReadStruct.h"
-#include "AS_PER_fragStore.h"
 #include "AS_PER_genericStore.h"
 #include "AS_UTL_Var.h"
 #include "AS_UTL_ID_store.h"
@@ -126,7 +125,8 @@ VA_TYPE(char) *qtmp=NULL;
 
 
 
-FragStoreHandle frag_store,bactig_store;
+GateKeeperStore *frag_store;
+GateKeeperStore *bactig_store;
 int show_uids;
 
 void CleanExit(int rc) {
@@ -342,7 +342,7 @@ int CelamyContig(FILE *out, CDS_IID_t scaffid, CDS_IID_t contigid, int reverse) 
     coord_start = NULL;
     buffer[0] = '\0';
     if (show_uids) {
-      getFragStore(frag_store,frag->ident,FRAG_S_FIXED,rsp);
+      getFrag(frag_store,frag->ident,rsp,FRAG_S_INF);
       getAccID_ReadStruct(rsp, &fuid);
     } else {
       fuid = 0;
@@ -695,12 +695,12 @@ int main(int argc, char *argv[])
        }
        DumpCelamyColors(celamyFile);
        break;
-     case 'F':  // specify FragStore for use to get fragment UIDs in Celamy file
+     case 'F':  // specify gkpStore for use to get fragment UIDs in Celamy file
        show_uids = 1;
-       frag_store = openFragStore(optarg, "rb");
+       frag_store = openGateKeeperStore(optarg, FALSE);
        break;
      case 'B':  // specify BactigStore for use to get fragment UIDs in Celamy file
-       bactig_store = openFragStore(optarg, "rb");
+       bactig_store = openGateKeeperStore(optarg, FALSE);
        break;
      case 's':
        show_stddev=1; 

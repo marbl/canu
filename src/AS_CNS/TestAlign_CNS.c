@@ -25,7 +25,7 @@
                  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: TestAlign_CNS.c,v 1.7 2006-10-08 08:47:39 brianwalenz Exp $";
+static char CM_ID[] = "$Id: TestAlign_CNS.c,v 1.8 2007-02-12 22:16:56 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -42,7 +42,6 @@ static char CM_ID[] = "$Id: TestAlign_CNS.c,v 1.7 2006-10-08 08:47:39 brianwalen
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_PER_ReadStruct.h"
-#include "AS_PER_fragStore.h"
 #include "AS_PER_genericStore.h"
 #include "AS_UTL_Var.h"
 #include "AS_UTL_ID_store.h"
@@ -158,9 +157,9 @@ int main (int argc, char *argv[]) {
    }
    ResetStores(LINE_MAX,20);
    if ( use_store ) {
-    global_fragStore = openFragStore(frgStoreFileName, "rb");
-    // look up the fragments
-    if (global_fragStore == NULLSTOREHANDLE) return 0;
+     global_fragStore = openGateKeeperStore(frgStoreFileName, FALSE);
+     if (global_fragStore == NULL)
+       return 0;
  
     if ( ! merge ) {
       alid= AppendFragToLocalStore(AS_READ, afragID, 0,0, 0x0, 0, 0x0);

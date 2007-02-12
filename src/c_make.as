@@ -234,26 +234,40 @@ endif
 #
 #  AS_SIM is no longer a supported component.
 #
+#  The order of compilation here is very carefully chosen to be the
+#  same as the order used in running an assembly.  It is extremely
+#  useful if you happen to be making changes to, say, the persistent
+#  stores.  Break the continuation lines after AS_GKP and you'll build
+#  just gatekeeper.
+#
+#  It's also more-or-less telling us link relationships.  CGB doesn't
+#  use REZ or CNS, etc.  It gets hairy at the end; REZ, CNS and CGW are
+#  all dependent on each other.  Everything after TER isn't needed for
+#  an assembly.
 
-SUBDIRS = AS_MSG \
+#CFLAGS += -I/n8/wgs/src/AS_CNS -I/n8/wgs/src/AS_CGW -I/n8/wgs/src/AS_ALN -I/n8/wgs/src/AS_REZ -I/n8/wgs/src/AS_SDB
+
+SUBDIRS = AS_RUN \
           AS_UTL \
+          AS_UID \
+          AS_MSG \
           AS_PER \
-          AS_ALN \
-          AS_OVL \
-          AS_CNS \
-          AS_CGB \
-          AS_ORA \
           AS_GKP \
+          AS_OBT \
+          AS_MER \
+          AS_OVL \
+          AS_ALN \
+          AS_CGB \
           AS_REZ \
+          AS_CNS \
+          AS_SDB \
           AS_LIN \
           AS_CGW \
+          AS_TER
+
+D=\
           AS_VWR \
-          AS_TER \
-          AS_SDB \
           AS_CVT \
-          AS_MER \
           AS_MPA \
-          AS_BOG \
-          AS_OBT \
-          AS_UID \
-          AS_RUN
+          AS_ORA \
+          AS_BOG

@@ -24,34 +24,25 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-GKPSOURCES = AS_GKP_main.c AS_GKP_check.c AS_GKP_checkFrag.c
-GKPOBJECTS = AS_GKP_main.o AS_GKP_check.o AS_GKP_checkFrag.o
-OTHERSOURCES = dumpGatekeeperRecords.c dumpGatekeeper.c dumpGatekeeperName.c debugGatekeeperStore.c
-OTHEROBJECTS = dumpGatekeeperRecords.o dumpGatekeeper.o dumpGatekeeperName.o debugGatekeeperStore.o
+GKPSOURCES = AS_GKP_main.c AS_GKP_checkBatch.c AS_GKP_checkLibrary.c AS_GKP_checkFrag.c AS_GKP_checkLink.c
+GKPOBJECTS = AS_GKP_main.o AS_GKP_checkBatch.o AS_GKP_checkLibrary.o AS_GKP_checkFrag.o AS_GKP_checkLink.o
+
+OTHERSOURCES = dumpGatekeeper.c
+OTHEROBJECTS = dumpGatekeeper.o
 
 SOURCES = $(GKPSOURCES) $(OTHERSOURCES)
 OBJECTS = $(GKPOBJECTS) $(OTHEROBJECTS)
 
 LIBRARIES =
 
-PROGS = gatekeeper dumpGatekeeper dumpGatekeeperRecords dumpGatekeeperName
+PROGS = gatekeeper dumpGatekeeper
 
-OPTIONALPROGS = debugGatekeeperStore
-
-# Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
 
 all:    $(OBJECTS) $(LIBRARIES) $(PROGS)
 
 install: all
-	echo "Nothing to be done for AS_GKP"
 
 gatekeeper: $(GKPOBJECTS) libAS_PER.a libAS_MSG.a libAS_UTL.a
 
 dumpGatekeeper: dumpGatekeeper.o libAS_PER.a libAS_MSG.a libAS_UTL.a
-
-dumpGatekeeperRecords: dumpGatekeeperRecords.o libAS_PER.a libAS_MSG.a libAS_UTL.a
-
-dumpGatekeeperName: dumpGatekeeperName.o libAS_PER.a libAS_MSG.a libAS_UTL.a
-
-debugGatekeeperStore: debugGatekeeperStore.o libAS_PER.a libAS_MSG.a libAS_UTL.a

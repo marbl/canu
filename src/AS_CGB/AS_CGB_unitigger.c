@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_unitigger.c,v 1.9 2007-01-29 20:40:58 brianwalenz Exp $";
+= "$Id: AS_CGB_unitigger.c,v 1.10 2007-02-12 22:16:55 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_unitigger.c
@@ -404,7 +404,7 @@ static void save_the_chunk_graph
 static
 void do_bubble_smoothing
 (
- FragStoreHandle TheFragStore,
+ GateKeeperStore *gkpStore,
  THeapGlobals *heapva,
  float global_arrival_rate,
  char *file_prefix,
@@ -448,7 +448,7 @@ void do_bubble_smoothing
               bubble_overlaps_filename_tmp);
     } else {
       AS_CGB_Bubble_find_and_remove_bubbles
-        ( TheFragStore,
+        ( gkpStore,
           heapva->frags, heapva->edges,
           heapva->thechunks, heapva->chunkfrags, 
           global_arrival_rate,
@@ -1428,72 +1428,14 @@ static void StandardUnitigger
 #endif // REPAIR_BREAKERS
 
   if(rg->bubble_smoothing_flag) {
-    FragStoreHandle TheFragStore = NULLFRAGSTOREHANDLE;
+    GateKeeperStore *gkpStore = NULL;
     const int dont_count_chimeras = rg->dont_count_chimeras;   // Save flag.
     rg->dont_count_chimeras = TRUE;
 
     if( NULL != rg->frag_store ) { 
-      char *theFragStorePath = rg->frag_store;
-      fprintf(stderr, __FILE__ " theFragStorePath = <%s>\n", theFragStorePath);
-#ifndef LOAD_FRAGSTORE_INTO_MEMORY
-      // Open the fragstore, readonly
-      TheFragStore = openFragStore(theFragStorePath,"r");
-#else // LOAD_FRAGSTORE_INTO_MEMORY
-      TheFragStore = loadFragStore(theFragStorePath);
-#endif // LOAD_FRAGSTORE_INTO_MEMORY
-      assert(TheFragStore != NULLFRAGSTOREHANDLE);
+      gkpStore = openGateKeeperStore(rg->frag_store, FALSE);
     }
     
-#if 0
-    {
-      const int iterator=99;
-
-      // Checkpoint before Bubble Smoothing
-      {
-        int ierr;
-        char * checkpoint99 = NULL;
-        checkpoint99 = (char *)safe_malloc(100+2*sizeof(rg->Output_Graph_Store));
-        sprintf(checkpoint99,"cp -r %s %s.99", rg->Output_Graph_Store, rg->Output_Graph_Store);
-        // Using "mv" causes the following error during the final output.
-        // AS_FGB_main.c Jan 16 2002 09:22:37
-        // Creating file to append the new IBA+ADT(+ADL) messages.
-        // ERROR: Trouble copying the IBA+ADT file.
-
-        processing_phase_3
-          ( gstate,
-            heapva,
-            rg->Output_Graph_Store,
-            rg->analysis_level
-            );
-        ierr = system(checkpoint99);
-        free(checkpoint99);
-      }
-
-      // Checkpoint before Bubble Smoothing
-      {
-        
-        // VersionStamp(argc,argv);
-        
-        if(NULL != rg->Output_Graph_Store_Prefix) {
-          save_the_chunk_graph
-            (
-             rg->Output_Graph_Store_Prefix,
-             rg->Output_Graph_Store,
-             rg->analysis_level,
-             rg->bubble_boundaries_filename,
-             rg->output_fom_messages,
-             rg->cgb_unique_cutoff,
-             iterator, // rg->num_cgb_passes,
-             rg->fragment_count_target,
-             argc,
-             argv,
-             gstate,
-             heapva
-             );
-        }
-      }
-    }
-#endif        
 
     ReportHeapUsage_CGB( gstate, heapva, stderr); 
 
@@ -1501,21 +1443,16 @@ static void StandardUnitigger
     /* Do bubble smoothing if enabled. */
     if (rg->bubble_smoothing_flag) {
       do_bubble_smoothing
-        ( TheFragStore,
+        ( gkpStore,
           heapva,
           gstate->global_fragment_arrival_rate, 
           rg->Output_Graph_Store_Prefix,
           &(rg->bubble_overlaps_filename),
           &(rg->bubble_boundaries_filename)
           );
-
-      fprintf(stderr,"close the fragStore\n");
-      
-      if(TheFragStore != NULLFRAGSTOREHANDLE) {
-        int ierr;
-        ierr = closeFragStore(TheFragStore); assert(ierr == 0);
-        TheFragStore = NULLFRAGSTOREHANDLE;
-      }
+   
+      closeGateKeeperStore(gkpStore);
+      gkpStore = NULL;
       
       ReportHeapUsage_CGB( gstate, heapva, stderr); 
 

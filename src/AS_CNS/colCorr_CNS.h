@@ -26,8 +26,6 @@
 #include "PrimitiveVA_MSG.h"
 
 #include "MultiAlignStore_CNS.h"
-#include "AS_PER_fragStore.h"
-#include "AS_PER_fragStorePartition.h"
 
 typedef struct{
   int col;
@@ -35,7 +33,7 @@ typedef struct{
 } ColumnCorrelationT;
 
 ColumnCorrelationT *test_correlated_columns(MultiAlignT         *ma, 
-					    FragStoreHandle      handle,
+					    GateKeeperStore     *handle,
 					    tFragStorePartition *pfraghandle);
 
 #endif

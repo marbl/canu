@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.31 2007-02-08 06:48:53 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.32 2007-02-12 22:16:57 brianwalenz Exp $";
 
 //  reads old and new AFG message (with and w/o chaff field)
 #define AFG_BACKWARDS_COMPATIBLE
@@ -27,7 +27,7 @@ static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.31 2007-02-08 06:48:53 brianwalenz
 //  FreeBSD 6.1 fgets() sporadically replaces \n with \0, which
 //  horribly breaks this reader.  Defined this to replace
 //  fgets() with fgetc().
-#undef FGETS_IS_BROKEN
+//#define FGETS_IS_BROKEN
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -200,8 +200,15 @@ static char *ReadLine(FILE *fin) {
 
 #ifdef FGETS_IS_BROKEN
   int p=0;
+
+  for (p=0; p<MAX_LINE_LEN; p++)
+    CurLine[p] = 0;
+  CurLine[MAX_LINE_LEN-2] = '\n';
+  CurLine[MAX_LINE_LEN-1] = 0;
+
   for (p=0; p<MAX_LINE_LEN-1; p++) {
-    CurLine[p] = fgetc(fin);
+    CurLine[p]   = fgetc(fin);
+    CurLine[p+1] = 0;
     if (CurLine[p] == 0)
       CurLine[p] = '\n';
     if (CurLine[p] == '\n') {
@@ -209,6 +216,17 @@ static char *ReadLine(FILE *fin) {
       break;
     }
   }
+
+  //  Whatever.  We can print the line, or we can iterate it.  If we
+  //  don't, we die.  OK, we can't.  Gotta print.
+  //
+  //CurLine[MAX_LINE_LEN-2] = '\n';
+  //CurLine[MAX_LINE_LEN-1] = 0;
+  //
+  //for (p=0; CurLine[p]; p++)
+  //  ;
+  //fprintf(stdout, "%*s", CurLine);
+
 #else
   if (fgets(CurLine, MAX_LINE_LEN-1, fin) == NULL) {
     fprintf(stderr,"ERROR: AS_MSG_pmesg.c::ReadLine()-- Premature end of input at line %d (%s)\n", LineNum, Mcode);
@@ -270,7 +288,7 @@ static void MfieldError(const char * const mesg)
 
     len = strlen(CurLine)-1;
     if (CurLine[len] == '\n')
-        CurLine[len] = '\0';
+        CurLine[len] = 0;
     fprintf(stderr,"ERROR: %s \"%s\" (%s) at line %d\n",
             mesg,CurLine,Mcode,LineNum);
     exit (1);
@@ -307,7 +325,13 @@ static long GetText(const char * const tag, FILE *fin, const int delnewlines)
       strncpy(MemBuffer+idx,CurLine,len);
   }
   idx = MoreSpace(1,1);
-  MemBuffer[idx] = '\0';
+  MemBuffer[idx] = 0;
+#if 0
+  while ((text != MemBuffer+idx) && isspace(MemBuffer[idx-1])) {
+    idx--;
+    MemBuffer[idx] = 0;
+  }
+#endif
   return (text);
 }
 
@@ -340,7 +364,7 @@ static long GetString(const char * const tag, FILE *fin)
       str = ReadLine(fin);
     }
   idx = MoreSpace(1,1);
-  MemBuffer[idx] = '\0';
+  MemBuffer[idx] = 0;
   return (text);
 }
 
@@ -363,7 +387,7 @@ static void PutText(FILE *fout, const char * const tag,
             fprintf(fout,".\n");
         } else{ 
             if (text[len-1] == '\n')     /* Strip trailing new line if prez. */
-            text[len-1] = '\0';
+            text[len-1] = 0;
             fprintf(fout,"%s\n.\n", text);
         }
     } else{
@@ -2771,7 +2795,7 @@ int ReadProtoMesg_AS(FILE *fin, GenericMesg **pmesg)
 
       len = strlen(CurLine)-1;
       if (CurLine[len] == '\n')
-        CurLine[len] = '\0';
+        CurLine[len] = 0;
       fprintf(stderr,"ERROR: Unrecognized message type (%d > %d) \"%s\" at line %d\n",
 	      t, NUM_OF_REC_TYPES, CurLine,LineNum);
       exit (1);

@@ -55,7 +55,7 @@
 #include "Instrument_CGW.h"
 
 void usage(char *pgm){
-  fprintf (stderr, "USAGE:  %s -f <FragStoreName> -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum>\n",
+  fprintf (stderr, "USAGE:  %s -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum>\n",
            pgm);
 }
 
@@ -63,7 +63,6 @@ int main (int argc , char * argv[] ) {
 
   Global_CGW *data;
   char *prefix;
-  int setFragStore = FALSE;
   int setGatekeeperStore = FALSE;
   int setOvlStore = FALSE;
   int setPrefixName = FALSE;
@@ -91,10 +90,6 @@ int main (int argc , char * argv[] ) {
           strcpy( data->File_Name_Prefix, argv[optind - 1]);
           setPrefixName = TRUE;		  
           break;
-        case 'f':
-          strcpy( data->Frag_Store_Name, argv[optind - 1]);
-          setFragStore = TRUE;
-          break;
         case 'g':
           strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
           setGatekeeperStore = TRUE;
@@ -109,9 +104,9 @@ int main (int argc , char * argv[] ) {
       }
     }
 
-    if((setPrefixName == FALSE) || (setFragStore == 0) || (setGatekeeperStore == 0) ){
-      fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d\n",
-              argc, optind, setFragStore,setGatekeeperStore);
+    if((setPrefixName == FALSE) || (setGatekeeperStore == 0) ){
+      fprintf(stderr,"* argc = %d optind = %d  setGatekeeperStore = %d\n",
+              argc, optind, setGatekeeperStore);
 
       usage(argv[0]);
       exit (-1);

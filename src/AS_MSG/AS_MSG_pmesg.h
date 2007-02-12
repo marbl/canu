@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.32 2007-02-08 06:48:53 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.33 2007-02-12 22:16:57 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -68,116 +68,34 @@ typedef struct {
   CDS_COORD_t end;
 } SeqInterval;
 
-
 typedef enum {
-  MESG_NONE = 0,
-  MESG_ADT,
-  MESG_FRG,
-  MESG_IFG,
-  MESG_SPe,
-  MESG_OFG, // 5
-  MESG_LKG,
-  MESG_ILK,
-  MESG_DST,
-  MESG_IDT,
-  MESG_SPb, // 10
-  MESG_SPc,
-  MESG_SP1,
-  MESG_OVL,
-  MESG_SPf,
-  MESG_UOM, // 15
-  MESG_IUM,
-  MESG_IUL,
-  MESG_ICL,
-  MESG_AFG,
-  MESG_ISF, // 20
-  MESG_IMD,
-  MESG_IAF,
-  MESG_UTG,
-  MESG_ULK,
-  MESG_ICM, // 25
-  MESG_CCO,
-  MESG_CLK,
-  MESG_SCF,
-  MESG_MDI,
-  MESG_BAT, // 30  
-  MESG_IBA,
-  MESG_BAC,
-  MESG_IBC,
-  MESG_SP2,
-  MESG_IBI, // 35
-  MESG_SP3,
-  MESG_SP4,
-  MESG_SP5,
-  MESG_SP6,
-  MESG_SP7, // 40
-  MESG_IDS,
-  MESG_DSC,
-  MESG_SLK,
-  MESG_ISL,
-  MESG_FOM, // 45
-  MESG_SPd,
-  MESG_SP8,
-  MESG_SP9,
-  MESG_SPa,
-  MESG_EOF  // 50
+  MESG_NUL = 0,
+  MESG_ADT, MESG_FRG, MESG_IFG, MESG_SPe, MESG_OFG, // 5
+  MESG_LKG, MESG_ILK, MESG_DST, MESG_IDT, MESG_SPb, // 10
+  MESG_SPc, MESG_SP1, MESG_OVL, MESG_SPf, MESG_UOM, // 15
+  MESG_IUM, MESG_IUL, MESG_ICL, MESG_AFG, MESG_ISF, // 20
+  MESG_IMD, MESG_IAF, MESG_UTG, MESG_ULK, MESG_ICM, // 25
+  MESG_CCO, MESG_CLK, MESG_SCF, MESG_MDI, MESG_BAT, // 30  
+  MESG_IBA, MESG_BAC, MESG_IBC, MESG_SP2, MESG_IBI, // 35
+  MESG_SP3, MESG_SP4, MESG_SP5, MESG_SP6, MESG_SP7, // 40
+  MESG_IDS, MESG_DSC, MESG_SLK, MESG_ISL, MESG_FOM, // 45
+  MESG_SPd, MESG_SP8, MESG_SP9, MESG_SPa, MESG_EOF  // 50
 } MessageType;
-
 
 #define NUM_OF_REC_TYPES MESG_EOF
 
 static char  *MessageTypeName[NUM_OF_REC_TYPES + 1] = {
-  "NONE",
-  "ADT",
-  "FRG",
-  "IFG",
-  "SPe",
-  "OFG", // 5
-  "LKG",
-  "ILK",
-  "DST",
-  "IDT",
-  "SPb", // 10
-  "SPc",
-  "SP1", 
-  "OVL", 
-  "SPf",
-  "UOM",// 15
-  "IUM", 
-  "IUL", 
-  "ICL",
-  "AFG",
-  "ISF",// 20  
-  "IMD", 
-  "IAF", 
-  "UTG", 
-  "ULK",
-  "ICM",// 25 
-  "CCO", 
-  "CLK",
-  "SCF", 
-  "MDI",
-  "BAT",// 30  
-  "IBA",
-  "BAC",
-  "IBC", 
-  "SP2",
-  "IBI",// 35
-  "SP3", 
-  "SP4",
-  "SP5",
-  "SP6",
-  "SP7",// 40
-  "IDS",
-  "DSC",
-  "SLK",
-  "ISL",
-  "FOM", // 45
-  "SPd",
-  "SP8",
-  "SP9",
-  "SPa",
-  "EOF"  // 50
+  "NUL",
+  "ADT", "FRG", "IFG", "SPe", "OFG", // 5
+  "LKG", "ILK", "DST", "IDT", "SPb", // 10
+  "SPc", "SP1", "OVL", "SPf", "UOM",// 15
+  "IUM", "IUL", "ICL", "AFG", "ISF",// 20  
+  "IMD", "IAF", "UTG", "ULK", "ICM",// 25 
+  "CCO", "CLK", "SCF", "MDI", "BAT",// 30  
+  "IBA", "BAC", "IBC", "SP2", "IBI",// 35
+  "SP3", "SP4", "SP5", "SP6", "SP7",// 40
+  "IDS", "DSC", "SLK", "ISL", "FOM", // 45
+  "SPd", "SP8", "SP9", "SPa", "EOF"  // 50
 };
 
 /*Generic message object handle */

@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CombineMUMsOVL.c,v 1.5 2006-09-26 21:07:45 brianwalenz Exp $
- * $Revision: 1.5 $
+ * $Id: CombineMUMsOVL.c,v 1.6 2007-02-12 22:16:57 brianwalenz Exp $
+ * $Revision: 1.6 $
 */
 
-static char CM_ID[] = "$Id: CombineMUMsOVL.c,v 1.5 2006-09-26 21:07:45 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CombineMUMsOVL.c,v 1.6 2007-02-12 22:16:57 brianwalenz Exp $";
 
 
 //  System include files
@@ -61,7 +61,6 @@ static char CM_ID[] = "$Id: CombineMUMsOVL.c,v 1.5 2006-09-26 21:07:45 brianwale
 #include  "AutoScreenOVL.h"
 #include  "AS_PER_ReadStruct.h"
 #include  "AS_PER_genericStore.h"
-#include  "AS_PER_fragStore.h"
 #include  "AS_PER_distStore.h"
 #include  "AS_UTL_PHash.h"
 #include  "AS_MSG_pmesg.h"

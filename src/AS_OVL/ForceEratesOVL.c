@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: ForceEratesOVL.c,v 1.6 2006-09-26 21:07:45 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ForceEratesOVL.c,v 1.7 2007-02-12 22:16:57 brianwalenz Exp $";
 
 
 //  System include files
@@ -40,7 +40,6 @@ static char CM_ID[] = "$Id: ForceEratesOVL.c,v 1.6 2006-09-26 21:07:45 brianwale
 #include  "AS_OVL_delcher.h"
 #include  "AS_PER_ReadStruct.h"
 #include  "AS_PER_genericStore.h"
-#include  "AS_PER_fragStore.h"
 #include  "AS_PER_distStore.h"
 #include  "AS_UTL_PHash.h"
 #include  "AS_MSG_pmesg.h"

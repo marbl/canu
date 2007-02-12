@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: findMissedOverlaps.c,v 1.8 2006-11-14 19:58:21 eliv Exp $";
+static char CM_ID[] = "$Id: findMissedOverlaps.c,v 1.9 2007-02-12 22:16:56 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -449,7 +449,6 @@ int main( int argc, char *argv[])
 {
   Global_CGW *data;
   char *outputPath = NULL;
-  int setFragStore = FALSE;
   int setGatekeeperStore = FALSE;
   int setPrefixName = FALSE;
   int setSingleSid = FALSE;
@@ -489,12 +488,6 @@ int main( int argc, char *argv[])
             dumpSeqs=1;
           }
           break;
-        case 'f':
-          {
-            strcpy( data->Frag_Store_Name, argv[optind - 1]);
-            setFragStore = TRUE;
-          }
-          break;
         case 'g':
           {
             strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
@@ -522,11 +515,11 @@ int main( int argc, char *argv[])
       }
     }
 
-    if((setPrefixName == FALSE) || (setFragStore == 0) || (setGatekeeperStore == 0))
+    if((setPrefixName == FALSE) || (setGatekeeperStore == 0))
       {
-	fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d outputPath = %s\n",
-		argc, optind, setFragStore,setGatekeeperStore, outputPath);
-	fprintf (stderr, "USAGE:  %s [-d] -f <FragStoreName> -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum>\n\t-d option causes contig seqeunces to be dumped\n",argv[0]);
+	fprintf(stderr,"* argc = %d optind = %d setGatekeeperStore = %d outputPath = %s\n",
+		argc, optind,setGatekeeperStore, outputPath);
+	fprintf (stderr, "USAGE:  %s [-d] -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum>\n\t-d option causes contig seqeunces to be dumped\n",argv[0]);
 	exit (EXIT_FAILURE);
       }
   }

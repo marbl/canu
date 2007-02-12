@@ -21,7 +21,7 @@
 #include "AS_MER_stream.h"
 #include <stdlib.h>
 
-merStream::merStream(cds_uint32 merSize, char *fragstore) {
+merStream::merStream(cds_uint32 merSize, char *gkpstore) {
   _theAlloc        = 1024;
   _theSeq          = new char [_theAlloc];
   _theQlt          = new char [_theAlloc];
@@ -38,26 +38,22 @@ merStream::merStream(cds_uint32 merSize, char *fragstore) {
 
   _theRMerShift    = (_merSize << 1) - 2;
 
-  //  Open the fragstore
-  //
-  _fs = openFragStore(fragstore, "r+");
-  if (_fs == NULLSTOREHANDLE) {
-    fprintf(stderr, "ERROR:  couldn't open the fragStore '%s'\n", fragstore);
+  _fs = openGateKeeperStore(gkpstore, FALSE);
+  if (_fs == NULL) {
+    fprintf(stderr, "ERROR:  couldn't open the gatekeeper store '%s'\n", gkpstore);
     exit(1);
   }
-
-  _fsBufferSize = 1024 * 1024;
-  _fsBuffer     = new char [_fsBufferSize];
-
-  _fsh = openFragStream(_fs, _fsBuffer, _fsBufferSize);
   _rs  = new_ReadStruct();
+
+  _iid = 1;
+  _max = getLastElemFragStore(_fs);
 
   _skipNum = 1;
   loadMer(_merSize - 1);
 }
 
 
-merStream::merStream(cds_uint32 merSize, char *fragstore, int skipNum) {
+merStream::merStream(cds_uint32 merSize, char *gkpstore, int skipNum) {
   _theAlloc        = 1024;
   _theSeq          = new char [_theAlloc];
   _theQlt          = new char [_theAlloc];
@@ -74,51 +70,24 @@ merStream::merStream(cds_uint32 merSize, char *fragstore, int skipNum) {
 
   _theRMerShift    = (_merSize << 1) - 2;
 
-  //  Open the fragstore
-  //
-  _fs = openFragStore(fragstore, "r+");
-  if (_fs == NULLSTOREHANDLE) {
-    fprintf(stderr, "ERROR:  couldn't open the fragStore '%s'\n", fragstore);
+  _fs = openGateKeeperStore(gkpstore, FALSE);
+  if (_fs == NULL) {
+    fprintf(stderr, "ERROR:  couldn't open the gatekeeper store '%s'\n", gkpstore);
     exit(1);
   }
-
-  _fsBufferSize = 1024 * 1024;
-  _fsBuffer     = new char [_fsBufferSize];
-
-  _fsh = openFragStream(_fs, _fsBuffer, _fsBufferSize);
   _rs  = new_ReadStruct();
+
+  _iid = 1;
+  _max = getLastElemFragStore(_fs);
 
   _skipNum=skipNum;
   loadMer(_merSize - 1);
-
 }
 
 merStream::~merStream() {
   delete_ReadStruct(_rs);
-
-  closeFragStream(_fsh);
-  delete [] _fsBuffer;
-
-  closeFragStore(_fs);
+  closeGateKeeperStore(_fs);
 
   delete [] _theSeq;
   delete [] _theQlt;
 }
-
-#if 0
-char const *
-merStream::theFMerString(void) {
-  for (cds_uint32 i=0; i<_merSize; i++)
-    _theMerString[_merSize-i-1] = decompressSymbol[(_theFMer >> (2*i)) & 0x03];
-  _theMerString[_merSize] = 0;
-  return(_theMerString);
-}
-
-char const *
-merStream::theRMerString(void) {
-  for (cds_uint32 i=0; i<_merSize; i++)
-    _theMerString[_merSize-i-1] = decompressSymbol[(_theRMer >> (2*i)) & 0x03];
-  _theMerString[_merSize] = 0;
-  return(_theMerString);
-}
-#endif

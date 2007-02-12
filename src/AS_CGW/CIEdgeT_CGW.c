@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIEdgeT_CGW.c,v 1.7 2006-11-14 17:52:14 eliv Exp $";
+static char CM_ID[] = "$Id: CIEdgeT_CGW.c,v 1.8 2007-02-12 22:16:55 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -146,9 +146,8 @@ void PrintChunkInstanceHeader(FILE *stream, ScaffoldGraphT *graph,
     default:
       assert(0);
   }
-  fprintf(stream,"\n* CI " F_CID "  fbac:%d tan:%s(%d) cov:%d len:%d frags:%d interval: [" F_COORD "," F_COORD "]\n",
+  fprintf(stream,"\n* CI " F_CID "  tan:%s(%d) cov:%d len:%d frags:%d interval: [" F_COORD "," F_COORD "]\n",
           chunk->id, 
-          chunk->flags.bits.includesFinishedBacFragments,
           tandem,
           tandems,
           chunk->info.CI.coverageStat,

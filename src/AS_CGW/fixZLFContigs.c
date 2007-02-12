@@ -416,8 +416,8 @@ void UpdateFragLinkFlags(CIFragT * frag,
   
   if(frag->flags.bits.getLinksFromStore)
     {
-      GateKeeperLinkRecordIterator GKPLinks;
-      GateKeeperLinkRecord GKPLink;
+      assert(0);
+#if 0
       int prevSetting;
       int newSetting;
 
@@ -491,6 +491,7 @@ void UpdateFragLinkFlags(CIFragT * frag,
               UpdateFragLinkFlags(mfrag, ci, FALSE);
             }
         }
+#endif
     }
   else
     {
@@ -617,8 +618,8 @@ void CreateNewContigsFromUnitigs(ContigT * oldContig,
                   cds_uint32 preBgn, preEnd;
                   cds_uint32 postBgn, postEnd;
           
-                  getFragStore(ScaffoldGraph->fragStore,
-                               imp->ident, FRAG_S_ALL, fsread);
+                  getFrag(ScaffoldGraph->gkpStore,
+                          imp->ident, fsread, FRAG_S_ALL);
                   getClearRegion_ReadStruct(fsread,
                                             &preBgn, &preEnd,
                                             READSTRUCT_CNS);
@@ -632,7 +633,7 @@ void CreateNewContigsFromUnitigs(ContigT * oldContig,
                               "from %u %u to %u %u\n",
                               imp->ident, postBgn, postEnd, preBgn, preEnd);
                       setClearRegion_ReadStruct(fsread, preBgn, preEnd, READSTRUCT_CGW);
-                      setFragStore(ScaffoldGraph->fragStore, imp->ident, fsread);
+                      setFrag(ScaffoldGraph->gkpStore, imp->ident, fsread);
                     }
                 }
               delete_ReadStruct(fsread);
@@ -668,8 +669,6 @@ void CreateNewContigsFromUnitigs(ContigT * oldContig,
       contig->info.Contig.AEndCI = contig->info.Contig.BEndCI = ci->id;
       contig->info.Contig.numCI = 1;
       contig->flags = oldContig->flags;
-      contig->flags.bits.includesFinishedBacFragments =
-        ci->flags.bits.includesFinishedBacFragments;
     
       // create contig multialign from the unitig's
       DuplicateEntryInSequenceDB(ScaffoldGraph->sequenceDB,

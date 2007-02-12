@@ -19,7 +19,7 @@
  *************************************************************************/
 
 
-static char CM_ID[] = "$Id: asmInfoForFrg.c,v 1.8 2007-01-29 20:41:01 brianwalenz Exp $";
+static char CM_ID[] = "$Id: asmInfoForFrg.c,v 1.9 2007-02-12 22:16:56 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -55,7 +55,6 @@ int main( int argc, char *argv[])
   FILE *myerr = stderr; 
   FILE *myout = stdout; 
   char *outputPath = NULL;
-  int setFragStore = FALSE;
   int setGatekeeperStore = FALSE;
   int setPrefixName = FALSE;
   int setSingleSid = FALSE, singleSid;
@@ -82,10 +81,6 @@ int main( int argc, char *argv[])
           strcpy( data->File_Name_Prefix, argv[optind - 1]);
           setPrefixName = TRUE;		  
           break;
-        case 'f':
-          strcpy( data->Frag_Store_Name, argv[optind - 1]);
-          setFragStore = TRUE;
-          break;
         case 'g':
           strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
           setGatekeeperStore = TRUE;
@@ -100,11 +95,11 @@ int main( int argc, char *argv[])
       }
     }
 
-    if((setPrefixName == FALSE) || (setFragStore == 0) || (setGatekeeperStore == 0))
+    if((setPrefixName == FALSE) || (setGatekeeperStore == 0))
       {
-	fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d outputPath = %s\n",
-		argc, optind, setFragStore,setGatekeeperStore, outputPath);
-	fprintf (stderr, "USAGE:  %s -f <FragStoreName> -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum>\n",argv[0]);
+	fprintf(stderr,"* argc = %d optind = %d setGatekeeperStore = %d outputPath = %s\n",
+		argc, optind,setGatekeeperStore, outputPath);
+	fprintf (stderr, "USAGE:  %s -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum>\n",argv[0]);
 	exit (EXIT_FAILURE);
       }
   }

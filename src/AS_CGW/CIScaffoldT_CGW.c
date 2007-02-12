@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.15 2006-11-14 19:58:21 eliv Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.16 2007-02-12 22:16:55 brianwalenz Exp $";
 
 #undef DEBUG
 #undef DEBUG_INSERT
@@ -100,9 +100,8 @@ void PrintNodeFlagBits(FILE * stream, NodeCGW_T * node)
           "\t\ttandemOverlaps:%d, isCI:%d, isContig:%d, isScaffold:%d\n",
           node->flags.bits.tandemOverlaps, node->flags.bits.isCI,
           node->flags.bits.isContig, node->flags.bits.isScaffold);
-  fprintf(stream, "\t\tisSurrogate:%d, beingContigged:%d, includesFinishedBacFragments:%d\n",
-          node->flags.bits.isSurrogate, node->flags.bits.beingContigged,
-          node->flags.bits.includesFinishedBacFragments);
+  fprintf(stream, "\t\tisSurrogate:%d, beingContigged:%d\n",
+          node->flags.bits.isSurrogate, node->flags.bits.beingContigged);
   fprintf(stream, "\t\twalkedAlready:%d, walkedTooShort:%d, walkedTooLong:%d\n",
           node->flags.bits.walkedAlready, node->flags.bits.walkedTooShort,
           node->flags.bits.walkedTooLong);

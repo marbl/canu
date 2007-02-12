@@ -23,8 +23,7 @@
 #define AS_REZ_MICROHETREZ_H
 
 #include "AS_global.h"
-#include "AS_PER_fragStore.h"
-#include "AS_PER_fragStorePartition.h"
+#include "AS_PER_gkpStore.h"
 
 typedef struct{
   int *part;
@@ -69,8 +68,8 @@ typedef struct{
 
 
 double       AS_REZ_MP_MicroHet_prob(char **bqarray,
-                                     int **idarray,
-                                     FragStoreHandle handle,
+                                     int  **idarray,
+                                     GateKeeperStore  *handle,
                                      tFragStorePartition *phandle,
                                      int len,
                                      int depth);
@@ -84,7 +83,7 @@ UnitigStatus_t  AS_REZ_test_MPsimple(Alignment_t *ali, double thresh, Marker_t* 
                                      int start, int end,double *pval);
 void            AS_REZ_compress_shreds_and_null_indels(int c,
                                                        int r,
-                                                       FragStoreHandle frag_store, 
+                                                       GateKeeperStore *gkpstore, 
                                                        tFragStorePartition *pfrag_store,
                                                        char **array,
                                                        int **id_array,

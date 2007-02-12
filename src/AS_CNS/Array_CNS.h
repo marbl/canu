@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
-   CVS_ID:  $Id: Array_CNS.h,v 1.5 2007-02-08 06:48:51 brianwalenz Exp $
+   CVS_ID:  $Id: Array_CNS.h,v 1.6 2007-02-12 22:16:56 brianwalenz Exp $
  *********************************************************************/
 #ifndef AS_CNS_ARRAY_INCLUDE
 #define AS_CNS_ARRAY_INCLUDE
@@ -33,8 +33,6 @@
 #include "AS_global.h"
 //#include "AS_MSG_pmesg.h"
 //#include "AS_PER_ReadStruct.h"
-//#include "AS_PER_fragStore.h"
-//#include "AS_PER_fragStorePartition.h"
 //#include "AS_UTL_Var.h"
 #include "MultiAlignStore_CNS.h"
 
@@ -43,7 +41,7 @@
 int IMP2Array(IntMultiPos *frags, 
 	      int num_frags, 
 	      int length, 
-	      FragStoreHandle frag_store, 
+	      GateKeeperStore *frag_store, 
               tFragStorePartition *pfrag_store,
 	      int *depth, 
 	      char ***multia, 
@@ -52,7 +50,7 @@ int IMP2Array(IntMultiPos *frags,
 	      int show_cel_status,uint32 clrrng_flag);
 
 int MultiAlignT2Array(MultiAlignT *ma, 
-		      FragStoreHandle frag_store, 
+		      GateKeeperStore *frag_store, 
 		      tFragStorePartition *pfrag_store, 
 		      int *depth, 
 		      char ***multia, 

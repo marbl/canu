@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.15 2007-02-08 06:48:51 brianwalenz Exp $";
+static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.16 2007-02-12 22:16:56 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -308,12 +308,12 @@ int MergeMetaUnitigIntoContig(VA_TYPE(ChunkPlacement) *piece_list,
   }
   // here, we'll call MergeMultiAligns on the meta-unitig.
   newMultiAlign = MergeMultiAligns(ScaffoldGraph->sequenceDB,
-                                   ScaffoldGraph->fragStore,
+                                   ScaffoldGraph->gkpStore,
                                    ContigPositions, FALSE, TRUE,
                                    GlobalData->aligner,
                                    NULL);
   fprintf(stderr," Returned from call to MergeMultiAlign\n");
-  PrintMultiAlignT(stderr,newMultiAlign,ScaffoldGraph->fragStore,0,0,0,0);
+  PrintMultiAlignT(stderr,newMultiAlign,ScaffoldGraph->gkpStore,0,0,0,0);
 
 
   OutputMergedMetaUnitig(sid,newMultiAlign);
@@ -369,7 +369,6 @@ int main( int argc, char *argv[])
 {
   Global_CGW *data;
   char *outputPath = NULL;
-  int setFragStore = FALSE;
   int setGatekeeperStore = FALSE;
   int setPrefixName = FALSE;
   int setSingleSid = FALSE;
@@ -414,12 +413,6 @@ int main( int argc, char *argv[])
           startingGap = atoi(argv[optind - 1]);
           setStartingGap = TRUE;
           break;
-        case 'f':
-          {
-            strcpy( data->Frag_Store_Name, argv[optind - 1]);
-            setFragStore = TRUE;
-          }
-          break;
         case 'g':
           {
             strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
@@ -444,11 +437,11 @@ int main( int argc, char *argv[])
           errflg++;
       }
     }
-    if((setPrefixName == FALSE) || (setFragStore == 0) || (setGatekeeperStore == 0))
+    if((setPrefixName == FALSE) || (setGatekeeperStore == 0))
       {
-	fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d outputPath = %s\n",
-		argc, optind, setFragStore,setGatekeeperStore, outputPath);
-	fprintf (stderr, "USAGE:  loadcgw -f <FragStoreName> -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum>\n");
+	fprintf(stderr,"* argc = %d optind = %d setGatekeeperStore = %d outputPath = %s\n",
+		argc, optind,setGatekeeperStore, outputPath);
+	fprintf (stderr, "USAGE:  loadcgw -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum>\n");
 	exit (EXIT_FAILURE);
       }
   }
@@ -464,7 +457,7 @@ int main( int argc, char *argv[])
   // hack
   {
     char temp_buf[1024];
-    sprintf( temp_buf, "cp %s/db.frg.orig %s/db.frg", GlobalData->Frag_Store_Name, GlobalData->Frag_Store_Name);
+    sprintf( temp_buf, "cp %s/frg.orig %s/frg", GlobalData->Gatekeeper_Store_Name, GlobalData->Gatekeeper_Store_Name);
     system( temp_buf );
 	
     // system( "cp chrom21_dup.frgStore/db.frg.orig chrom21_dup.frgStore/db.frg" );
@@ -983,7 +976,7 @@ static int OverlapPieceList(VA_TYPE(ChunkPlacement) *piece_list, VA_TYPE(OFGMesg
           if ( fsread == NULL ) fsread = new_ReadStruct();
 
           // get the read and its sequence
-          getFragStore( ScaffoldGraph->fragStore, this_chunk, FRAG_S_ALL, fsread);
+          getFrag(ScaffoldGraph->gkpStore, this_chunk, fsread, FRAG_S_ALL);
           getClearRegion_ReadStruct( fsread, &clr_bgn, &clr_end, READSTRUCT_CNS);
           getSequence_ReadStruct( fsread, frgSeqBuffer, frgQltbuffer, AS_READ_MAX_LEN);
           frgSeqBuffer[clr_end]='\0';

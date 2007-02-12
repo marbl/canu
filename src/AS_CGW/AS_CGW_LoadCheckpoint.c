@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGW_LoadCheckpoint.c,v 1.6 2006-09-21 21:34:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGW_LoadCheckpoint.c,v 1.7 2007-02-12 22:16:55 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -75,7 +75,6 @@ FILE *  File_Open (const char * Filename, const char * Mode, int exitOnFailure);
 int main(int argc, char *argv[]){
   Global_CGW *data;
   char *outputPath = NULL;
-  int setFragStore = FALSE;
   int setGatekeeperStore = FALSE;
   int setPrefixName = FALSE;
   int ckptNum = NULLINDEX;
@@ -97,12 +96,6 @@ int main(int argc, char *argv[]){
 
           }
           break;
-        case 'f':
-          {
-            strcpy( data->Frag_Store_Name, argv[optind - 1]);
-            setFragStore = 1;
-          }
-          break;
         case 'g':
           {
             strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
@@ -115,11 +108,11 @@ int main(int argc, char *argv[]){
           errflg++;
       }
     }
-    if((setPrefixName == FALSE) || (setFragStore == 0) || (setGatekeeperStore == 0))
+    if((setPrefixName == FALSE) || (setGatekeeperStore == 0))
       {
-	fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d outputPath = %s\n",
-		argc, optind, setFragStore,setGatekeeperStore, outputPath);
-	fprintf (stderr, "USAGE:  loadcgw -f <FragStoreName> -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum>\n");
+	fprintf(stderr,"* argc = %d optind = %d setGatekeeperStore = %d outputPath = %s\n",
+		argc, optind,setGatekeeperStore, outputPath);
+	fprintf (stderr, "USAGE:  loadcgw -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum>\n");
 	exit (EXIT_FAILURE);
       }
   }

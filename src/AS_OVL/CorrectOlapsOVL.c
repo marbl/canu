@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CorrectOlapsOVL.c,v 1.7 2007-01-29 20:41:17 brianwalenz Exp $
- * $Revision: 1.7 $
+ * $Id: CorrectOlapsOVL.c,v 1.8 2007-02-12 22:16:57 brianwalenz Exp $
+ * $Revision: 1.8 $
 */
 
-static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.7 2007-01-29 20:41:17 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.8 2007-02-12 22:16:57 brianwalenz Exp $";
 
 
 //  System include files
@@ -59,7 +59,6 @@ static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.7 2007-01-29 20:41:17 brianwal
 #include  "AS_OVL_delcher.h"
 #include  "AS_PER_ReadStruct.h"
 #include  "AS_PER_genericStore.h"
-#include  "AS_PER_fragStore.h"
 #include  "AS_PER_distStore.h"
 #include  "AS_UTL_PHash.h"
 #include  "AS_MSG_pmesg.h"
@@ -225,11 +224,11 @@ static Frag_Info_t  * Frag;
 static int32  Frags_Per_File;
     // Maximum number of fragments in each data file of fragment store.
     // This is read from the store
-static FragStoreHandle  Frag_Store;
+static GateKeeperStore  *gkpStore;
     // Internal fragment store where fragments are loaded
-static FragStreamHandle  Frag_Stream;
+static FragStream  *Frag_Stream;
     // Stream to extract fragments from internal store
-static char  * Frag_Store_Path;
+static char  * gkpStore_Path;
     // Name of directory containing fragment store from which to get fragments
 static int  Half_Len = DEFAULT_HALF_LEN;
     // Number of bases on each side of SNP to vote for change
@@ -2173,7 +2172,7 @@ static void  Parse_Command_Line
         exit (EXIT_FAILURE);
        }
 
-   Frag_Store_Path = argv [optind ++];
+   gkpStore_Path = argv [optind ++];
 
    Correct_File_Path = argv [optind ++];
 
@@ -2611,7 +2610,7 @@ static void  Read_Frags
     (void)
 
 //  Open and read fragments with IIDs from  Lo_Frag_IID  to
-//  Hi_Frag_IID  from  Frag_Store_Path  and store them in
+//  Hi_Frag_IID  from  gkpStore_Path  and store them in
 //  global  Frag .
 
   {
@@ -2622,10 +2621,10 @@ static void  Read_Frags
 
    if  (Hi_Frag_IID == INT_MAX)
        {
-        Frag_Store = openFragStore (Frag_Store_Path, "r");
-        assert (Frag_Store != NULLSTOREHANDLE);
-        Hi_Frag_IID = getLastElemFragStore (Frag_Store);
-        closeFragStore (Frag_Store);
+        gkpStore = openGateKeeperStore (gkpStore_Path, FALSE);
+        assert (gkpStore != NULL);
+        Hi_Frag_IID = getLastElemFragStore (gkpStore);
+        closeGateKeeperStore (gkpStore);
        }
 
    Num_Frags = 1 + Hi_Frag_IID - Lo_Frag_IID;
@@ -2633,15 +2632,15 @@ static void  Read_Frags
 
    frag_read = new_ReadStruct ();
 
-   Frag_Store = loadFragStorePartial (Frag_Store_Path,
+   gkpStore = loadFragStorePartial (gkpStore_Path,
                                       Lo_Frag_IID, Hi_Frag_IID);
    
-   Frag_Stream = openFragStream (Frag_Store, NULL, 0);
+   Frag_Stream = openFragStream (gkpStore);
    resetFragStream (Frag_Stream, Lo_Frag_IID, Hi_Frag_IID);
 
-//   for  (i = 0;  nextFragStream (Frag_Stream, frag_read, FRAG_S_SEQUENCE);
+//   for  (i = 0;  nextFragStream (Frag_Stream, frag_read, FRAG_S_SEQ);
    for  (i = 0;  nextFragStream (Frag_Stream, frag_read,
-                                 FRAG_S_SEQUENCE | FRAG_S_SOURCE);
+                                 FRAG_S_SEQ | FRAG_S_SRC);
            i ++)
      {
       char  seq_buff [AS_READ_MAX_LEN + 1];
@@ -2697,7 +2696,7 @@ else
 
    delete_ReadStruct (frag_read);
    closeFragStream (Frag_Stream);
-   closeFragStore (Frag_Store);
+   closeGateKeeperStore (gkpStore);
 
    return;
   }
@@ -2785,7 +2784,7 @@ static void  Read_Olaps
 static void  Redo_Olaps
     (void)
 
-//  Read old fragments in  Frag_Store  and choose the ones that
+//  Read old fragments in  gkpStore  and choose the ones that
 //  have overlaps with fragments in  Frag .  Recompute the
 //  overlaps, using fragment corrections and output the revised error.
 
@@ -2805,8 +2804,8 @@ static void  Redo_Olaps
 
    frag_read = new_ReadStruct ();
 
-   Frag_Store = openFragStore (Frag_Store_Path, "r");
-   Frag_Stream = openFragStream (Frag_Store, NULL, 0);
+   gkpStore = openGateKeeperStore (gkpStore_Path, FALSE);
+   Frag_Stream = openFragStream (gkpStore);
 
    lo_frag = Olap [0] . b_iid;
    hi_frag = Olap [Num_Olaps - 1] . b_iid;
@@ -2816,7 +2815,7 @@ static void  Redo_Olaps
    fp = File_Open (Correct_File_Path, "rb");
 
    next_olap = 0;
-   for  (i = 0;  nextFragStream (Frag_Stream, frag_read, FRAG_S_SEQUENCE)
+   for  (i = 0;  nextFragStream (Frag_Stream, frag_read, FRAG_S_SEQ)
                    && next_olap < Num_Olaps;
            i ++)
      {
@@ -2900,7 +2899,7 @@ static void  Redo_Olaps
 
    delete_ReadStruct (frag_read);
    closeFragStream (Frag_Stream);
-   closeFragStore (Frag_Store);
+   closeGateKeeperStore (gkpStore);
 
    return;
   }
@@ -3264,10 +3263,10 @@ static void  Usage
        "USAGE:  %s [-d <dna-file>] [-o <ovl_file>] [-q <quality>]\n"
        "            [-x <del_file>] [-F OlapFile] [-S OlapStore]\n"
        "            [-c <cgb_file>] [-e <erate_file>\n"
-       "           <FragStore> <CorrectFile> <lo> <hi>\n"
+       "           <gkpStore> <CorrectFile> <lo> <hi>\n"
        "\n"
        "Recalculates overlaps for frags  <lo> .. <hi>  in\n"
-       " <FragStore>  using corrections in  <CorrectFile> \n"
+       " <gkpStore>  using corrections in  <CorrectFile> \n"
        "\n"
        "Options:\n"
        "-c <cgb-file>  specifies CGB file which is used to determine a\n"

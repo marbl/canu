@@ -29,7 +29,7 @@ readLine(FILE *F) {
 
 
 u32bit
-findModeOfFivePrimeMode(FragStoreHandle fs, char *name) {
+findModeOfFivePrimeMode(GateKeeperStore *gkp, char *name) {
   u32bit         mode5;
   u32bit         iid;
   u32bit         histo[2048] = {0};
@@ -52,7 +52,7 @@ findModeOfFivePrimeMode(FragStoreHandle fs, char *name) {
 
     //  Grab the fragment to get the clear range, so we can find the real mode5
     //
-    getFragStore(fs, iid, FRAG_S_ALL, rd);
+    getFrag(gkp, iid, rd, FRAG_S_INF);
     getClearRegion_ReadStruct(rd, &cl, &cr, READSTRUCT_ORIGINAL);
 
     mode5 += cl;
@@ -74,7 +74,6 @@ findModeOfFivePrimeMode(FragStoreHandle fs, char *name) {
 
   return(mode5);
 }
-
 
 
 
@@ -131,13 +130,13 @@ main(int argc, char **argv) {
   //
   //  Open the frgStore, prepare for reading fragments
   //
-  FragStoreHandle fs = openFragStore(frgStore, doModify ? "r+" : "r");
-  if (fs == NULLSTOREHANDLE) {
+  GateKeeperStore *gkp = openGateKeeperStore(frgStore, doModify);
+  if (gkp == NULL) {
     fprintf(stderr, "Failed to open fragStore %s!\n", frgStore);
     exit(1);
   }
-  u32bit   firstElem = getFirstElemFragStore(fs);
-  u32bit   lastElem  = getLastElemFragStore(fs) + 1;
+  u32bit   firstElem = getFirstElemFragStore(gkp);
+  u32bit   lastElem  = getLastElemFragStore(gkp) + 1;
   ReadStructp       rd = new_ReadStruct();
 
 
@@ -167,7 +166,7 @@ main(int argc, char **argv) {
   //
   //  Find the mode of the 5'mode.  Read the whole overlap-trim file, counting the 5'mode
   //
-  u32bit modemode5 = findModeOfFivePrimeMode(fs, ovlFile);
+  u32bit modemode5 = findModeOfFivePrimeMode(gkp, ovlFile);
 
   if (staFile)
     fprintf(staFile, "Mode of the 5'-mode is "u32bitFMT"\n", modemode5);
@@ -191,7 +190,7 @@ main(int argc, char **argv) {
     //
     lid++;
     while (lid < iid) {
-      getFragStore(fs, lid, FRAG_S_ALL, rd);
+      getFrag(gkp, lid, rd, FRAG_S_ALL);
 
       u32bit  qltL0, qltR0, qltL1, qltR1;
 
@@ -217,8 +216,8 @@ main(int argc, char **argv) {
       if (l + OBT_MIN_LENGTH < r) {
         if (doModify) {
           setClearRegion_ReadStruct(rd, l, r, READSTRUCT_OVL);
-          if (setFragStore(fs, lid, rd)) {
-            fprintf(stderr, "setFragStore() failed.\n");
+          if (setFrag(gkp, lid, rd)) {
+            fprintf(stderr, "setFrag() failed.\n");
             exit(1);
           }
         }
@@ -230,7 +229,7 @@ main(int argc, char **argv) {
         //  What?  No intersect...too small?  Delete it!
         //
         if (doModify)
-          deleteFragStore(fs, lid);
+          delFrag(gkp, lid);
 
         if (logFile)
           if (l < r)
@@ -253,7 +252,7 @@ main(int argc, char **argv) {
     u32bit qltL = 0;
     u32bit qltR = 0;
 
-    getFragStore(fs, iid, FRAG_S_ALL, rd);
+    getFrag(gkp, iid, rd, FRAG_S_ALL);
     unsigned int l=0;
     unsigned int r=0;
     getClearRegion_ReadStruct(rd, &l, &r, READSTRUCT_ORIGINAL);
@@ -466,7 +465,7 @@ main(int argc, char **argv) {
                   uid, iid, qltL, qltR, left, right);
 
         if (doModify)
-          deleteFragStore(fs, iid);
+          delFrag(gkp, iid);
       } else {
         stats[20]++;
 
@@ -476,8 +475,8 @@ main(int argc, char **argv) {
 
         if (doModify) {
           setClearRegion_ReadStruct(rd, left, right, READSTRUCT_OVL);
-          if (setFragStore(fs, iid, rd)) {
-            fprintf(stderr, "setFragStore() failed.\n");
+          if (setFrag(gkp, iid, rd)) {
+            fprintf(stderr, "setFrag() failed.\n");
             exit(1);
           }
         }
@@ -489,7 +488,7 @@ main(int argc, char **argv) {
     readLine(O);
   }
 
-  closeFragStore(fs);
+  closeGateKeeperStore(gkp);
   fclose(O);
 
   //  Report statistics

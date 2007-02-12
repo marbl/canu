@@ -21,177 +21,176 @@
 #
 ###########################################################################
 #
-#######################################################################
-
-#     SOURCES = 
-#       Lists all sources compiled by this makefile.
-#
-#     OBJECTS = 
-#       Lists all objects compiled by this makefile (i.e., one-to-one
-#       with SOURCES). OBJECTS can be listed explicitly or can be
-#       specified with the following definition:
-#
-#          OBJECTS = $(SOURCES:.c=.o)
-#
-#     LIBRARIES = 
-#       Lists simple name (in "libx.a" form) of each library that is
-#       built by this makefile.
-#
-#     PROGS = 
-#       Lists each executable created by this makefile.
-#
-#     LOCAL_WORK =
-#       Identifies the <subsystem_level> directory (parent of
-#       the inc, src, lib, obj, and bin subdirectories) with
-#       an absolute path.
-#       For a makefile located in
-#         <subsystem_level>/src/<component_level_1>
-#       the following definition would work:
-#          LOCAL_WORK = $(shell cd ../..; pwd)
 
 LOCAL_WORK = $(shell cd ../../; pwd)
 
-CGW_SOURCES = AS_CGW_LoadCheckpoint.c AS_CGW_main.c AS_CGW_dataTypes.c \
-	GraphCGW_T.c Stats_CGW.c\
-        DiagnosticsCGW.c Celamy_CGW.c \
-	ScaffoldGraph_CGW.c CIEdgeT_CGW.c CIScaffoldT_CGW.c \
-	CIScaffoldT_Merge_CGW.c CIScaffoldT_Cleanup_CGW.c SEdgeT_CGW.c \
-	MergeEdges_CGW.c ContigT_CGW.c LeastSquaresGaps_CGW.c \
-	Output_CGW.c Input_CGW.c TransitiveReduction_CGW.c \
-	ChunkOverlap_CGW.c SplitScaffolds_CGW.c \
-	CIScaffoldT_Biconnected_CGW.c SplitChunks_CGW.c Instrument_CGW.c \
-	eCR.c eCR-examineGap.c eCR-diagnostic.c localUnitigging_CGW.c \
-	AS_CGW_EdgeDiagnostics.c findMissedOverlaps.c dumpCheckpointAsFasta.c \
-	examineFragStore.c InterleavedMerging.c exploreMates.c \
-	fixZLFContigs.c fixECRCheckpoint.c dumpBinaryUnitigMAs.c \
-	assemblyStructure.c exploreGapStructure.c \
-	asmInfoForFrg.c exploreScaffoldEnds.c dumpCloneMiddles.c \
-	whereAreMyOverlaps.c findAnEdge.c dumpSingletons.c combineMates.c \
-	resolveSurrogates.c fragmentPlacement.c ckp_scflen.c frgs2clones.c createFrgDeletes.c \
-        greedyFragmentTiling.c dfsFragmentTiling.c dumpDistanceEstimates.c
+CGW_SOURCES =     AS_CGW_main.c \
+                  eCR.c \
+                  eCR-examineGap.c \
+                  eCR-diagnostic.c \
+                  resolveSurrogates.c \
+                  fragmentPlacement.c \
+                  dumpCloneMiddles.c \
+                  dumpDistanceEstimates.c \
+                  dumpSingletons.c
 
-CGW_LIB_SOURCES = AS_CGW_dataTypes.c GraphCGW_T.c Stats_CGW.c\
-        DiagnosticsCGW.c Celamy_CGW.c \
-	ScaffoldGraph_CGW.c CIEdgeT_CGW.c CIScaffoldT_CGW.c \
-	CIScaffoldT_Merge_CGW.c CIScaffoldT_Cleanup_CGW.c SEdgeT_CGW.c \
-	MergeEdges_CGW.c ContigT_CGW.c LeastSquaresGaps_CGW.c \
-	Output_CGW.c Input_CGW.c TransitiveReduction_CGW.c \
-	ChunkOverlap_CGW.c SplitScaffolds_CGW.c CIScaffoldT_Biconnected_CGW.c \
-	SplitChunks_CGW.c Instrument_CGW.c AS_CGW_EdgeDiagnostics.c \
-	InterleavedMerging.c fixZLFContigs.c fragmentPlacement.c
+#  Not all of these are external, most are probably private to cgw itself.
+CGW_LIB_SOURCES = AS_CGW_dataTypes.c \
+                  AS_CGW_EdgeDiagnostics.c \
+                  CIEdgeT_CGW.c \
+                  CIScaffoldT_Biconnected_CGW.c \
+                  CIScaffoldT_CGW.c \
+                  CIScaffoldT_Cleanup_CGW.c \
+                  CIScaffoldT_Merge_CGW.c \
+                  Celamy_CGW.c \
+                  ChunkOverlap_CGW.c \
+                  ContigT_CGW.c \
+                  DiagnosticsCGW.c \
+                  GraphCGW_T.c \
+                  Input_CGW.c \
+                  Instrument_CGW.c \
+                  InterleavedMerging.c \
+                  LeastSquaresGaps_CGW.c \
+                  MergeEdges_CGW.c \
+                  Output_CGW.c \
+                  SEdgeT_CGW.c \
+                  ScaffoldGraph_CGW.c \
+                  SplitChunks_CGW.c \
+                  SplitScaffolds_CGW.c \
+                  Stats_CGW.c \
+                  TransitiveReduction_CGW.c
 
-TSC_SOURCES = testSplitChunks.c
-TSC_OBJECTS = $(TSC_SOURCES:.c=.o)
+CRUD_SOURCES = \
+                  AS_CGW_LoadCheckpoint.c \
+                  CheckILK.c \
+                  Checkpoint.c \
+                  InstrumentCheckpoint.c \
+                  ProcessScaffolds_CGW.c \
+                  ScaffoldMap.c \
+                  TraceNodes.c \
+                  asmInfoForFrg.c \
+                  assemblyStructure.c \
+                  ckp_scflen.c \
+                  combineMates.c \
+                  createFrgDeletes.c \
+                  dfsFragmentTiling.c \
+                  dumpBinaryUnitigMAs.c \
+                  dumpCheckpointAsFasta.c \
+                  examineFragStore.c \
+                  exploreGapStructure.c \
+                  exploreMates.c \
+                  exploreScaffoldEnds.c \
+                  findAnEdge.c \
+                  findMissedOverlaps.c \
+                  fixECRCheckpoint.c \
+                  fixZLFContigs.c \
+                  frgs2clones.c \
+                  greedyFragmentTiling.c \
+                  localUnitigging_CGW.c \
+                  smallLargeScaffolds.c \
+                  testSplitChunks.c \
+                  whereAreMyOverlaps.c
 
-INST_SOURCES = InstrumentCheckpoint.c
-INST_OBJECTS = $(INST_SOURCES:.c=.o)
-
-TRAC_SOURCES = TraceNodes.c
-TRAC_OBJECTS = $(TRAC_SOURCES:.c=.o)
-
-EXPL_SOURCES = exploreMates.c
-EXPL_OBJECTS = $(EXPL_SOURCES:.c=.o)
-
-#SLS_SOURCES = smallLargeScaffolds.c
-#SLS_OBJECTS = $(SLS_SOURCES:.c=.o)
-
-SOURCES = $(CGW_SOURCES) CheckILK.c Checkpoint.c ProcessScaffolds_CGW.c \
-          ScaffoldMap.c $(RPT_SOURCES) $(TSC_SOURCES) $(INST_SOURCES) \
-	  $(TRAC_SOURCES)
-CGW_OBJECTS = $(CGW_SOURCES:.c=.o) 
-OBJECTS = $(CGW_OBJECTS) 
+SOURCES         = $(CGW_SOURCES) $(CGW_LIB_SOURCES)
+OBJECTS         = $(SOURCES:.c=.o) 
 CGW_LIB_OBJECTS = $(CGW_LIB_SOURCES:.c=.o)
 
-LIBRARIES = libAS_CGW.a libCA.a
-ALL_LIBRARIES = libCA.a
+LIBRARIES     = libAS_CGW.a libCA.a
+LIBS          = libCA.a
 
-PROGS = cgw extendClearRanges CheckILK Checkpoint process_scaffolds loadcgw \
+PROGS = cgw extendClearRanges resolveSurrogates dumpCloneMiddles dumpDistanceEstimates dumpSingletons
+
+CRUD =  CheckILK Checkpoint process_scaffolds loadcgw \
         ScaffoldMap testSplitChunks instrumentCheckpoint \
 	traceNodes findMissedOverlaps localUnitigging_CGW \
 	dumpCheckpointAsFasta examineFragStore exploreMates fixECRCheckpoint \
 	dumpBinaryUnitigMAs assemblyStructure \
 	exploreGapStructure exploreScaffoldEnds asmInfoForFrg \
-	dumpCloneMiddles whereAreMyOverlaps findAnEdge \
-	dumpSingletons combineMates resolveSurrogates ckp_scflen frgs2clones createFrgDeletes \
-	greedyFragmentTiling dfsFragmentTiling dumpDistanceEstimates
+	whereAreMyOverlaps findAnEdge \
+	combineMates ckp_scflen frgs2clones createFrgDeletes \
+	greedyFragmentTiling dfsFragmentTiling
 
-# Include for AS project rules
+
 include $(LOCAL_WORK)/src/c_make.as
 
 all: $(OBJECTS) $(LIBRARIES) $(PROGS)
+
 
 libAS_CGW.a: $(CGW_LIB_OBJECTS)
 
 libCA.a: $(CGW_LIB_OBJECTS)
 
-cgw: AS_CGW_main.o $(ALL_LIBRARIES)
 
-splitutgs: UnitigSplitter.o $(ALL_LIBRARIES)
+cgw: AS_CGW_main.o $(LIBS)
 
-loadcgw: AS_CGW_LoadCheckpoint.o $(ALL_LIBRARIES)
+extendClearRanges: eCR.o eCR-examineGap.o eCR-diagnostic.o $(LIBS)
 
-dumpBinaryUnitigMAs: dumpBinaryUnitigMAs.o $(ALL_LIBRARIES)
+resolveSurrogates: resolveSurrogates.o fragmentPlacement.o $(LIBS)
 
-fixECRCheckpoint: fixECRCheckpoint.o $(ALL_LIBRARIES)
+dumpCloneMiddles: dumpCloneMiddles.o $(LIBS)
 
-exploreMates: exploreMates.o $(ALL_LIBRARIES)
+dumpDistanceEstimates: dumpDistanceEstimates.o $(LIBS) 
 
-extendClearRanges: eCR.o eCR-examineGap.o eCR-diagnostic.o $(ALL_LIBRARIES)
+dumpSingletons: dumpSingletons.o $(LIBS)
 
-dumpCheckpointAsFasta: dumpCheckpointAsFasta.o $(ALL_LIBRARIES)
 
-examineFragStore: examineFragStore.o $(ALL_LIBRARIES)
 
-findMissedOverlaps: findMissedOverlaps.o $(ALL_LIBRARIES)
+splitutgs: UnitigSplitter.o $(LIBS)
 
-localUnitigging_CGW: localUnitigging_CGW.o $(ALL_LIBRARIES)
+loadcgw: AS_CGW_LoadCheckpoint.o $(LIBS)
 
-GetDregsStats: GetDregsStats.o $(ALL_LIBRARIES)
+dumpBinaryUnitigMAs: dumpBinaryUnitigMAs.o $(LIBS)
 
-findFragments: FindFragments.o $(ALL_LIBRARIES)
+fixECRCheckpoint: fixECRCheckpoint.o $(LIBS)
 
-CheckILK: CheckILK.o $(ALL_LIBRARIES)
+exploreMates: exploreMates.o $(LIBS)
 
-Checkpoint: Checkpoint.o $(ALL_LIBRARIES)
+dumpCheckpointAsFasta: dumpCheckpointAsFasta.o $(LIBS)
 
-process_scaffolds: ProcessScaffolds_CGW.o $(ALL_LIBRARIES)
+examineFragStore: examineFragStore.o $(LIBS)
 
-ScaffoldMap: ScaffoldMap.o $(ALL_LIBRARIES)
+findMissedOverlaps: findMissedOverlaps.o $(LIBS)
 
-testSplitChunks: testSplitChunks.o $(ALL_LIBRARIES)
+localUnitigging_CGW: localUnitigging_CGW.o $(LIBS)
 
-instrumentCheckpoint: InstrumentCheckpoint.o $(ALL_LIBRARIES)
+GetDregsStats: GetDregsStats.o $(LIBS)
 
-traceNodes: TraceNodes.o $(ALL_LIBRARIES)
+findFragments: FindFragments.o $(LIBS)
 
-asmInfoForFrg: asmInfoForFrg.o $(ALL_LIBRARIES)
+CheckILK: CheckILK.o $(LIBS)
 
-dumpSingletons: dumpSingletons.o $(ALL_LIBRARIES)
+Checkpoint: Checkpoint.o $(LIBS)
 
-assemblyStructure: assemblyStructure.o $(ALL_LIBRARIES)
+process_scaffolds: ProcessScaffolds_CGW.o $(LIBS)
 
-exploreGapStructure: exploreGapStructure.o $(ALL_LIBRARIES)
+ScaffoldMap: ScaffoldMap.o $(LIBS)
 
-greedyFragmentTiling: greedyFragmentTiling.o $(ALL_LIBRARIES)
+testSplitChunks: testSplitChunks.o $(LIBS)
 
-dfsFragmentTiling: dfsFragmentTiling.o $(ALL_LIBRARIES)
+instrumentCheckpoint: InstrumentCheckpoint.o $(LIBS)
 
-exploreScaffoldEnds: exploreScaffoldEnds.o $(ALL_LIBRARIES)
+traceNodes: TraceNodes.o $(LIBS)
 
-ckp_scflen: ckp_scflen.o $(ALL_LIBRARIES)
+asmInfoForFrg: asmInfoForFrg.o $(LIBS)
 
-dumpCloneMiddles: dumpCloneMiddles.o $(ALL_LIBRARIES)
+assemblyStructure: assemblyStructure.o $(LIBS)
 
-findAnEdge: findAnEdge.o $(ALL_LIBRARIES)
+exploreGapStructure: exploreGapStructure.o $(LIBS)
 
-whereAreMyOverlaps: whereAreMyOverlaps.o $(ALL_LIBRARIES)
+greedyFragmentTiling: greedyFragmentTiling.o $(LIBS)
 
-combineMates: combineMates.o $(ALL_LIBRARIES)
+dfsFragmentTiling: dfsFragmentTiling.o $(LIBS)
 
-createFrgDeletes: createFrgDeletes.o $(ALL_LIBRARIES)
+exploreScaffoldEnds: exploreScaffoldEnds.o $(LIBS)
 
-frgs2clones: frgs2clones.o $(ALL_LIBRARIES)
+ckp_scflen: ckp_scflen.o $(LIBS)
 
-dumpDistanceEstimates: dumpDistanceEstimates.o $(ALL_LIBRARIES) 
+findAnEdge: findAnEdge.o $(LIBS)
 
-resolveSurrogates: resolveSurrogates.o $(ALL_LIBRARIES)
+whereAreMyOverlaps: whereAreMyOverlaps.o $(LIBS)
+
+combineMates: combineMates.o $(LIBS)
+
+createFrgDeletes: createFrgDeletes.o $(LIBS)
+
+frgs2clones: frgs2clones.o $(LIBS)

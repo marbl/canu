@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_FGB_io.c,v 1.13 2007-01-29 20:40:58 brianwalenz Exp $";
+= "$Id: AS_FGB_io.c,v 1.14 2007-02-12 22:16:55 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_FGB_io.c
@@ -228,25 +228,6 @@ static void add_OFGMesg_to_graph
         set_src_fragment(frags,vid,0);
       }
 
-#ifdef SAVE_FRGSRC_IN_VA
-      if(NULL != ofg_mesg->source ) {
-        /* Save the simulator annotations. */
-        size_t nsrc = GetNumVA_char(frag_annotations);
-        size_t nsource = nsrc+strlen(ofg_mesg->source)+1; 
-        // fprintf(fp_frgsrc,"IO: " F_SIZE_T " <%s>\n",nsrc,ofg_mesg->source);
-        /* remember the terminal null character. */
-        EnableRangeVA_char(frag_annotations,nsource);
-        strcpy(Getchar(frag_annotations,nsrc),ofg_mesg->source);
-        set_src_fragment(frags,vid,nsrc);
-
-        // ofg_mesg->source = nsrc;
-        // Replace the C-pointer to absolute address with an index into a VA.
-      } else {
-        set_src_fragment(frags,vid,0);
-        // Zero is a special offset meaning no source field for this
-        // fragment.
-      }
-#endif // SAVE_FRGSRC_IN_VA        
     } else {
       // Demand that it is a duplicate definition!!
       const int duplicate =
@@ -1150,7 +1131,7 @@ void InsertFragmentsIntoGraph
   assert(NULL != Pnofg);
   assert(NULL != Pmin_frag_iid);
   assert(NULL != Pmax_frag_iid);
-  //assert(NULL != frag_annotations);
+
   {
     // Add the fragments of a Variable Length Array into the fragment
     // overlap graph.
@@ -1158,17 +1139,10 @@ void InsertFragmentsIntoGraph
     const IntFragment_ID nfrag_base = GetNumFragments(heapva->frags);
     IntFragment_ID ii;
 
-#if 1
-    fprintf(stderr,"number_of_new_fragments = " F_IID " nfrag_base = " F_IID "\n",
-            number_of_new_fragments, nfrag_base );
-#endif    
-
     for( ii = 0; ii < number_of_new_fragments; ii++ ) {
       OFGMesg * ofg_mesg = GetVA_OFGMesg(the_ofg_messages, ii);
       assert(NULL != ofg_mesg);
-#if 0
-      fprintf(stderr,"  ii = " F_IID "\n", ii );
-#endif    
+
       add_OFGMesg_to_graph
         ( ofg_mesg,
           the_ofg_source,
@@ -1181,11 +1155,7 @@ void InsertFragmentsIntoGraph
           frag_annotations
           );
     }
-#if 0
-    fprintf(stderr,"  ii = " F_IID "\n", ii );
-#endif    
   }
-  // return 0;
 }
 
 void InsertOverlapsIntoGraph
@@ -1352,15 +1322,11 @@ static void input_mesgs_internal
   while( EOF != ReadProtoMesg_AS(fovl, &pmesg)) {
     const MessageType imesgtype = pmesg->t;
 
-    // printf("XXX pmesg->t = %d\n", imesgtype);
     switch(imesgtype) {
     case MESG_ADT: 
       {
 	AuditMesg  *adt_mesg = (AuditMesg  *)(pmesg->m);
 	AuditLine  *adl;
-#if 0
-        AuditLine auditLine;
-#endif
 	/*  Audit Message record-- for now scavenge for genome length */
 	nadt++;
 	if(NULL != filk) {
@@ -1373,29 +1339,8 @@ static void input_mesgs_internal
 	      { 
 		sscanf(  &((adl->comment)[strlen(teststr)]), BPFORMAT,
 			 nbase_in_genome);}
-#if 0
-	    fprintf(stderr,
-		    "AS_FGB_io.c: nbase_in_genome=" BPFORMAT "\n",
-		    (*nbase_in_genome));
-#endif          
 	  }
-#if 1
-#if 0
-	  AppendAuditLine_AS(adt_mesg, &auditLine, time(NULL), "CGB", 
-			     CM_ID, "(empty)");
-#else
 	  VersionStampADT(adt_mesg, argc, argv);
-#endif
-#else
-	  VersionStampADTWithCommentAndVersion
-	    (adt_mesg, argc, argv,
-	     (GlobalParamText != NULL
-	      ? GlobalParamText:""),"(blank)");
-	  AppendAuditLine_AS
-	    (adt_mesg, &auditLine, time(NULL),
-	     argv[0], "",params);
-	  
-#endif        
 	  WriteProtoMesg_AS(filk,pmesg);
 	}
       }
@@ -1523,13 +1468,6 @@ void input_messages_from_a_file
   IntEdge_ID novl_dovetail=0,novl_containment=0,novl_degenerate=0; /* The number of overlap records read. */
   IntEdge_ID nedge_delta=0;   
   
-  time_t tp1,tp2; // int32 seconds from the beginning of 1970.
-
-  if(TIMINGS) { 
-    time(&tp1); fprintf(stderr,"Begin input of OVL file\n");
-    system_top();
-  }
-
   if(nfrag_old > 0){
     const IntFragment_ID iid = get_iid_fragment(frags,0);
     (*max_frag_iid) = MAX((*max_frag_iid),iid);
@@ -1545,33 +1483,6 @@ void input_messages_from_a_file
   }
   assert((*min_frag_iid) <= (*max_frag_iid));
   
-  
-#ifdef DEBUG21
-  {
-    IntFragment_ID iv0;
-    printf("All fragments before input_messages\n");
-    printf("nfrag_old=" F_IID "\n",nfrag_old);
-    for(iv0=0; iv0<nfrag_old; iv0++) {
-      const IntFragment_ID iid = get_iid_fragment(frags,iv0);
-
-      printf("%5" F_IIDP ": iid " F_IID ", src %10" F_SIZE_TP ", "
-	     "prefix %8" F_U32P ", %5" F_S32P ", suffix %8" F_S32P ", %5 "F_S32P " : %5d \n",
-	     iv0,
-	     get_iid_fragment(frags,iv0),
-	     get_src_fragment(frags,iv0),
-	     get_segstart_vertex(frags,iv0,FALSE),
-	     get_seglen_vertex(frags,iv0,FALSE),
-	     get_seglen_frc_vertex(frags,iv0,FALSE),
-	     get_segstart_vertex(frags,iv0,TRUE),
-	     get_seglen_vertex(frags,iv0,TRUE),
-	     get_seglen_frc_vertex(frags,iv0,TRUE),
-	     get_lab_fragment(frags,iv0)
-	     );
-    }
-    printf("min_frag_iid=" F_IID " max_frag_iid=" F_IID "\n",
-	   (*min_frag_iid),(*max_frag_iid));
-  }
-#endif /*DEBUG21*/
   input_mesgs_internal
     (argc,argv,
      fovl,filk,
@@ -1601,45 +1512,11 @@ void input_messages_from_a_file
   fprintf(stderr,"      %10" F_IIDP " OVL dovetail records.\n",novl_dovetail);
   fprintf(stderr,"      %10" F_IIDP " OVL containment records.\n",novl_containment);
 
-  if(TIMINGS) {
-    time(&tp2); 
-    fprintf(stderr,"%10" F_TIME_TP " sec: Finished reading input file\n",
-	    (tp2-tp1));
-    system_top();
-  }
 
-  fprintf(stderr,"nfrag_old=" F_IID ",nofg=" F_IID ",nedge_old=" F_IID ",nedge_delta=" F_IID "\n",
-          nfrag_old,nofg,nedge_old,nedge_delta);
 
   nfrag_new = nfrag_old + nofg;
   assert(nfrag_new == GetNumFragments(frags));
   
-  if(TIMINGS) { 
-    time(&tp1); fprintf(stderr,"Begin input phase check\n");
-    system_top();
-  }
-#ifdef DEBUG_INPUT
-  {
-    FILE *fchk;
-    char strtmp[1024]={0};
-    strcpy(strtmp,File_Prefix);
-    strcat(strtmp,".chk_raw");
-    fprintf(stderr,"Openning %s for chunk info.\n",strtmp);
-    if((fchk = fopen(strtmp,"w")) == NULL)
-      assert(0);
-    fprintf(stderr,"Openned %s for chunk info.\n",strtmp);
-    output_chk_raw(fchk,nidt,nofg,novl,frags,edges);
-    fclose(fchk);
-  }
-#endif /*DEBUG_INPUT*/
-  
-
-  if(TIMINGS) {
-    time(&tp2); 
-    fprintf(stderr,"%10" F_TIME_TP " sec: Finished input phase check\n",(tp2-tp1));
-    system_top();
-  }
-
   nedge_new = nedge_old + nedge_delta;
   assert(nedge_new == GetNumEdges(edges));
 

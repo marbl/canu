@@ -20,7 +20,7 @@
  *************************************************************************/
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/AS_ORA_main.c,v $
-$Revision: 1.9 $
+$Revision: 1.10 $
 **********************************************************************/
 
 /**********************************************************************
@@ -52,7 +52,6 @@ Assumptions: Fragment messages MUST be "truthed" - contain start & stop
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_PER_ReadStruct.h"
-#include "AS_PER_fragStore.h"
 #include "AS_PER_distStore.h"
 #include "AS_ORA_fragments.h"
 #include "AS_ORA_overlaps.h"
@@ -1284,7 +1283,7 @@ int GenerateOverlapFile( char * output_ovl_filename,
     // regressor ADL message
     auditLine2.complete = time(0);
     auditLine2.name = "overlap_regressor";
-    auditLine2.version = "$Revision: 1.9 $ $Date: 2007-01-29 20:41:15 $";
+    auditLine2.version = "$Revision: 1.10 $ $Date: 2007-02-12 22:16:57 $";
     auditLine2.comment = "(empty)";
     auditLine2.next = NULL;
 

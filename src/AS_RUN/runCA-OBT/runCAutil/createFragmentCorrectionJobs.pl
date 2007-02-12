@@ -43,7 +43,7 @@ sub createFragmentCorrectionJobs {
     }
     print F "    -S $wrk/$asm.ovlStore \\\n";
     print F "    -o $scratch/$asm-\$frgBeg-\$frgEnd.frgcorr \\\n";
-    print F "    $wrk/$asm.frgStore \\\n";
+    print F "    $wrk/$asm.gkpStore \\\n";
     print F "    \$frgBeg \$frgEnd \\\n";
     print F "   > $wrk/2-frgcorr/$asm-\$frgBeg-\$frgEnd.err 2>&1 \\\n";
     print F "  &&  \\\n";

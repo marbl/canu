@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
-   CVS_ID:  $Id: AS_TER_terminator_funcs.h,v 1.6 2007-01-29 20:41:24 brianwalenz Exp $
+   CVS_ID:  $Id: AS_TER_terminator_funcs.h,v 1.7 2007-02-12 22:16:59 brianwalenz Exp $
  *********************************************************************/
 #ifndef AS_TER_TERMINATOR_FUNCS_H
 #define AS_TER_TERMINATOR_FUNCS_H
@@ -38,8 +38,7 @@
 // Precondition: filePrefix and fragStoreName are not NULL and do 
 // not point to an empty string.
 // 
-void output_snapshot(char* fragStoreName, char* bactigStoreName,
-		     char* gkpStoreName,
+void output_snapshot(char* fragStoreName,
 		     char** inputFileList, int32 numInputFiles, 
 		     char* outputFileName,
 		     char* mapFileName,

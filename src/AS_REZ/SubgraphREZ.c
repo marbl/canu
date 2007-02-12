@@ -34,7 +34,7 @@
  **********************************************************************/
 
 
-static char fileID[] = "$Id: SubgraphREZ.c,v 1.8 2007-02-04 09:30:47 brianwalenz Exp $";
+static char fileID[] = "$Id: SubgraphREZ.c,v 1.9 2007-02-12 22:16:58 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -448,8 +448,6 @@ int Contains_Locale_Frags_new(ChunkInstanceT * chunk, chunk_subgraph * s, int32 
 	return 1;
   else
 	return 0;
-
-  // return (chunk->flags.bits.includesFinishedBacFragments);
 }
 
 // used to build the graph of nodes from the locale set in buildLocale
@@ -461,8 +459,8 @@ int Contains_Locale_Frags(ChunkInstanceT * chunk, chunk_subgraph * s, int32 a, i
   //
   // return only those nodes that include frags from BACs
   //
-
-  return (chunk->flags.bits.includesFinishedBacFragments);
+  //return (chunk->flags.bits.includesFinishedBacFragments);
+  return(0);
 }
 
 

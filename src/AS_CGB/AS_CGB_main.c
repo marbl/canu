@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_main.c,v 1.6 2007-02-08 06:48:49 brianwalenz Exp $";
+= "$Id: AS_CGB_main.c,v 1.7 2007-02-12 22:16:55 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module:  AS_CGB_main.c
@@ -49,7 +49,7 @@ static char CM_ID[]
  *           transitively inferable overlap removal.
  *        -Y Do not bother to count chimeras
  *
- *       FragStorePath:   Used to find/create a directory that contains the
+ *       gkpStorePath:   Used to find/create a directory that contains the
  *       fragment store 
  *
  *       GraphStorePath:  Used to read/write a fragment graph store.
@@ -84,7 +84,6 @@ static char CM_ID[]
 /****************************************************************************/
 #define DEBUGGING
 #define USE_IBA_FILE
-#undef LOAD_FRAGSTORE_INTO_MEMORY
 #undef SWITCH_CONTAINMENT_DIRECTION_CGB
 #undef NOT_PACKED
 #undef DEBUG_RISM
@@ -517,7 +516,7 @@ int main_cgb
  UnitiggerGlobals * rg
  )
 {
-  FragStoreHandle TheFragStore = NULLFRAGSTOREHANDLE;
+  GateKeeperStore *gkpStore = NULL;
 
   int status = 0; // Main program exit status.
   int ierr = 0;
@@ -540,16 +539,8 @@ int main_cgb
 
   
   if( NULL != rg->frag_store ) { 
-    char *theFragStorePath = rg->frag_store;
-    // Used to squirrel away a clean copy of the store.
-  fprintf(stderr, __FILE__ " theFragStorePath = <%s>\n", theFragStorePath);
-#ifndef LOAD_FRAGSTORE_INTO_MEMORY
-    // Open the fragstore, readonly
-    TheFragStore = openFragStore(theFragStorePath,"r");
-#else // LOAD_FRAGSTORE_INTO_MEMORY
-    TheFragStore = loadFragStore(theFragStorePath);
-#endif // LOAD_FRAGSTORE_INTO_MEMORY
-    assert(TheFragStore != NULLFRAGSTOREHANDLE);
+    gkpStore = openGateKeeperStore(rg->frag_store, FALSE);
+    assert(gkpStore != NULL);
   }
   
   /* The remaining command line arguments are input Assembler
@@ -799,7 +790,7 @@ int main_cgb
 	     rg->dont_find_branch_points,
              rg->cgb_unique_cutoff,
              gstate->global_fragment_arrival_rate,
-             TheFragStore,
+             gkpStore,
              /* Input/Output */
 	     heapva->frags,     /* The internal representation of
 				    the fragment reads. I have one
@@ -904,24 +895,7 @@ int main_cgb
   /**************** Finish Process Input  *********************/
   system_date();
   
-  fprintf(stderr,"close the fragStore\n");
-
-  if(TheFragStore != NULLFRAGSTOREHANDLE) {
-    ierr = closeFragStore(TheFragStore); assert(ierr == 0);
-    TheFragStore = NULLFRAGSTOREHANDLE;
-  }
+  closeGateKeeperStore(gkpStore);
   
   return( status);
 }
-
-#if 0
-int main(int argc, char * argv [])
-{
-  TStateGlobals gstate = {0}
-  THeapGlobals  heapva = {0};
-  UnitiggerGlobals rg  = {0};
-  int status;
-  status = main_cgb( argc, argv, &gstate, &heapva, &rg);
-  exit(status != EXIT_SUCCESS);
-}
-#endif

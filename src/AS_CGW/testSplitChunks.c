@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: testSplitChunks.c,v 1.5 2006-09-21 21:34:01 brianwalenz Exp $";
+static char CM_ID[] = "$Id: testSplitChunks.c,v 1.6 2007-02-12 22:16:56 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,11 +38,11 @@ int main(int argc, char ** argv)
   int32  checkPointNumber = 0;
   ScaffoldGraphT * graph = NULL;
   
-  if( argc != 5 )
+  if( argc != 4 )
     {
       fprintf(stderr,
               "Usage: %s <checkPointName> <checkPointNumber> "
-              "<gkpStoreName> <fragStoreName>\n",
+              "<gkpStoreName>\n",
               argv[0] );
       fprintf(stderr,"\ttests unitig splitting code.\n" );
       return 1;
@@ -53,7 +53,6 @@ int main(int argc, char ** argv)
   strcpy( GlobalData->File_Name_Prefix, argv[1] );
   checkPointNumber = atoi( argv[2] );
   strcpy( GlobalData->Gatekeeper_Store_Name, argv[3] );
-  strcpy( GlobalData->Frag_Store_Name, argv[4] );
 
   graph =
     LoadScaffoldGraphFromCheckpoint( GlobalData->File_Name_Prefix,

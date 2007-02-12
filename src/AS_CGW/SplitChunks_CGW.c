@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.11 2007-02-08 06:48:50 brianwalenz Exp $";
+static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.12 2007-02-12 22:16:56 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -478,6 +478,8 @@ static int CreateCloneCoverageMaps(ScaffoldGraphT * graph,
         {
           if(frag->flags.bits.getLinksFromStore)
             {
+              assert(0);
+#if 0
               // going to the gatekeeper store should be the exception
               GateKeeperLinkRecordIterator gkpli;
               GateKeeperLinkRecord gkpl;
@@ -501,13 +503,14 @@ static int CreateCloneCoverageMaps(ScaffoldGraphT * graph,
                                                        gkpl.frag2 : gkpl.frag1));
                       AddLinkToMaps(graph, gcc, bcc, frag,
                                     GetCIFragT(graph->CIFrags, info->fragIndex),
-                                    ((gkpl.orientation==AS_GKP_INNIE) ?
+                                    ((gkpl.orientation==AS_GKP_ORIENT_INNIE) ?
                                      AS_INNIE : AS_OUTTIE),
                                     (CDS_CID_t) gkpl.distance,
                                     GetMultiAlignLength(ma),
                                     isUnitig);
                     }
                 }
+#endif
             }
           else
             {
@@ -947,7 +950,7 @@ static int StoreIUMStruct(ScaffoldGraphT * graph,
   AdjustContainedOrder(is->ium.f_list, is->ium.num_frags);
   
   if(MultiAlignUnitig(&(is->ium),
-                      ScaffoldGraph->fragStore,
+                      ScaffoldGraph->gkpStore,
                       is->sequence,
                       is->quality,
                       is->deltas,
@@ -999,7 +1002,6 @@ static int StoreIUMStruct(ScaffoldGraphT * graph,
                       is->ium.iaccession);
     ci->flags.bits.cgbType = cgbType;
     ci->aEndCoord = ci->bEndCoord = 0;
-    ci->flags.bits.includesFinishedBacFragments = 0;
 
     UpdateNodeFragments((isUnitig ? graph->CIGraph : graph->ContigGraph),
                         is->ium.iaccession,
@@ -1686,6 +1688,8 @@ VA_TYPE(SplitInterval) * DetectChimericChunksInGraph(ScaffoldGraphT * graph)
             {
               if(frag->flags.bits.getLinksFromStore)
                 {
+                  assert(0);
+#if 0
                   // going to the gatekeeper store should be the exception
                   GateKeeperLinkRecordIterator gkpli;
                   GateKeeperLinkRecord gkpl;
@@ -1705,12 +1709,13 @@ VA_TYPE(SplitInterval) * DetectChimericChunksInGraph(ScaffoldGraphT * graph)
                           ProcessLinkForChimeraDetection(graph, frag, 
                                                          GetCIFragT(graph->CIFrags,
                                                                     info->fragIndex),
-                                                         (gkpl.orientation==AS_GKP_INNIE) ?
+                                                         (gkpl.orientation==AS_GKP_ORIENT_INNIE) ?
                                                          AS_INNIE : AS_OUTTIE,
                                                          (CDS_CID_t) gkpl.distance,
                                                          ci, ma, ht, cels, gcc, bcc);
                         }
                     }
+#endif
                 }
               else
                 {

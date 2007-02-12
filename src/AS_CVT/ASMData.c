@@ -1,4 +1,7 @@
 
+#warning ASMData.c not working.
+
+#if 0
 /**************************************************************************
  * This file is part of Celera Assembler, a software program that 
  * assembles whole-genome shotgun reads into contigs and scaffolds.
@@ -208,7 +211,6 @@ void PrintFragmentScaffoldCoordinates(AssemblyStore * asmStore,
   ASM_InstanceRecord contigIns;
   ASM_InstanceRecord scaffIns;
   ASM_LKGRecord lkg;
-  GateKeeperLinkRecordIterator iterator;
   // int32 numUTGs = getNumASM_UTGs(asmStore->utgStore);
   // int32 numCCOs = getNumASM_CCOs(asmStore->ccoStore);
   // int32 numDSCs = getNumASM_DSCs(asmStore->dscStore);
@@ -3012,3 +3014,4 @@ void InitializeATACFile(AssemblyStore * asmStore,
 #endif
 }
 
+#endif

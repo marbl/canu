@@ -18,15 +18,13 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: MultiAlignStore_CNS.h,v 1.7 2007-02-08 06:48:51 brianwalenz Exp $	 */
+/* 	$Id: MultiAlignStore_CNS.h,v 1.8 2007-02-12 22:16:56 brianwalenz Exp $	 */
 #ifndef MULTIALIGNSTORE_H
 #define MULTIALIGNSTORE_H
 
 #include "AS_MSG_pmesg.h"
 #include "AS_UTL_Var.h"
 #include "AS_PER_ReadStruct.h"
-#include "AS_PER_fragStore.h"
-#include "AS_PER_fragStorePartition.h"
 #include "PrimitiveVA_MSG.h"
 
 
@@ -132,7 +130,7 @@ static int32 GetReferenceCountMultiAlignT(MultiAlignT *ma){
 MultiAlignStoreT *CloneMultiAlignStoreT(MultiAlignStoreT *original);
 int PrintMultiAlignT(FILE *out,
                      MultiAlignT *ma,
-                     FragStoreHandle frag_store,
+                     GateKeeperStore *gkp_store,
                      tFragStorePartition *pfrag_store,
                      int show_qv,
                      int dots,
@@ -146,7 +144,7 @@ void SetMultiAlignInStore(MultiAlignStoreT *multiAlignStore, int index, MultiAli
 MultiAlignT *GetMultiAlignInStore(MultiAlignStoreT *multiAlignStore,  int index);
 size_t RemoveMultiAlignFromStore(MultiAlignStoreT *mas, int index);
 void CollectStats(MultiAlignT *ma,
-                  FragStoreHandle frag_store, 
+                  GateKeeperStore *gkp_store, 
                   FILE *column_stats,
                   FILE *frag_stats,
                   uint32 clrrng_flag);

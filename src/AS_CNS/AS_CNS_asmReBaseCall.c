@@ -19,7 +19,6 @@
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_PER_ReadStruct.h"
-#include "AS_PER_fragStore.h"
 #include "AS_PER_genericStore.h"
 #include "AS_UTL_Var.h"
 #include "UtilsREZ.h"
@@ -38,7 +37,7 @@
 #include "Globals_CNS.h"
 #include "PublicAPI_CNS.h"
 
-static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.6 2007-02-08 06:48:51 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.7 2007-02-12 22:16:56 brianwalenz Exp $";
 
 static UIDHashTable_AS *utgUID2IID;
 
@@ -55,11 +54,10 @@ int   CNS_CALL_PUBLIC = 0;   // Used to direct basecalling to favor public data
 /* conversion routines */
 /***********************/
 
-static  GateKeeperStore my_gkp_store ;
 
 static int fraguid2iid(uint64 uid){
   PHashValue_AS value;
-  if(HASH_FAILURE == LookupInPHashTable_AS(my_gkp_store.hashTable, 
+  if(HASH_FAILURE == LookupInPHashTable_AS(global_fragStore->phs, 
 					       UID_NAMESPACE_AS,
 					       uid,
 					       &value)){
@@ -415,18 +413,13 @@ int main (int argc, char *argv[]) {
     }
 
     /****************          Open Fragment Store             ***********/
-    assert(existsFragStore(frgStorePath) == TRUE);
     if ( in_memory ) {
       global_fragStore = loadFragStore(frgStorePath);
     } else {
-      global_fragStore = openFragStore(frgStorePath, "rb");
+      global_fragStore = openGateKeeperStore(frgStorePath, FALSE);
     }
     global_fragStorePartition = NULL;
-    assert(global_fragStore!=NULLSTOREHANDLE);
-
-    InitGateKeeperStore(&my_gkp_store, gkpStorePath);
-    TestOpenReadOnlyGateKeeperStore(&my_gkp_store);
-    OpenReadOnlyGateKeeperStore(&my_gkp_store);
+    assert(global_fragStore!=NULL);
 
 
     /* initialize a unitig UID-to-IID hash table */
@@ -456,7 +449,7 @@ int main (int argc, char *argv[]) {
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.6 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.7 $ processing. Started %s\n",
 	      ctime(&t));
       InitializeAlphTable();
 
@@ -540,7 +533,6 @@ int main (int argc, char *argv[]) {
     }
 
     DeleteMultiAlignStoreT(unitigStore);
-    closeFragStore(global_fragStore);
-    CloseGateKeeperStore(&my_gkp_store);
+    closeGateKeeperStore(global_fragStore);
     return 0;
 }

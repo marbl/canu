@@ -94,7 +94,6 @@ typedef struct  {
   CDS_CID_t thisFragIID;
   CDS_CID_t nextLink;
   NodeCGW_T *node;
-  GateKeeperLinkRecordIterator GKPLinks;
   uint32 external_only:1;
   uint32 getLinksFromStore:1;
 } CGWMateIterator;

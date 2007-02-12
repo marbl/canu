@@ -78,7 +78,7 @@ echo 53 | rebuildscaffolds -f oct01.fStore -s oct01.sStore -V 23 -c oct01.cStore
 
  *********************************************************************/
 
-static char CM_ID[] = "$Id: RebuildScaffolds_CNS.c,v 1.10 2007-02-08 06:48:52 brianwalenz Exp $";
+static char CM_ID[] = "$Id: RebuildScaffolds_CNS.c,v 1.11 2007-02-12 22:16:56 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -95,7 +95,6 @@ static char CM_ID[] = "$Id: RebuildScaffolds_CNS.c,v 1.10 2007-02-08 06:48:52 br
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_PER_ReadStruct.h"
-#include "AS_PER_fragStore.h"
 #include "AS_PER_genericStore.h"
 #include "AS_UTL_Var.h"
 #include "AS_UTL_ID_store.h"
@@ -123,8 +122,8 @@ void print_keys(void);
 int OutputScaffoldProfile(FILE *,ScaffoldData *,IntContigPairs *, 
     tSequenceDB *, tSequenceDB *, VA_TYPE(UnitigData) *, int, int , int);
 
-int PrintColumnCorrelation(FILE *, MultiAlignT *, FragStoreHandle,
-    tFragStorePartition *, FragStoreHandle , int , int , uint32 , int );
+int PrintColumnCorrelation(FILE *, MultiAlignT *, GateKeeperStore *,
+    tFragStorePartition *, GateKeeperStore *, int , int , uint32 , int );
 
 void OutputCoordinateMap(FILE *,int ,MultiAlignT *,tSequenceDB *,int *,int);
 
@@ -255,8 +254,8 @@ int main (int argc, char *argv[]) {
    }
    ResetStores(LINE_MAX,20);
 
-   global_fragStore = openFragStore(frgStoreFileName, "rb");
-   if (global_fragStore == NULLSTOREHANDLE) return 0;
+   global_fragStore = openGateKeeperStore(frgStoreFileName, FALSE);
+   if (global_fragStore == NULL) return 0;
  
    sequenceDB = OpenSequenceDB(SeqStoreFileName, FALSE, sdb_version);
 
@@ -433,9 +432,9 @@ int main (int argc, char *argv[]) {
 
 int PrintColumnCorrelation(FILE *out,
 			   MultiAlignT *ma,  
-			   FragStoreHandle frag_store,
+			   GateKeeperStore *frag_store,
 			   tFragStorePartition *pfrag_store,
-			   FragStoreHandle bactig_store,
+			   GateKeeperStore *bactig_store,
 			   int show_qv, 
 			   int dots,
 			   uint32 clrrng_flag,
@@ -490,7 +489,7 @@ int OutputScaffoldProfile(FILE *profileFile,
 	    } else {
 	      if ( show_colcorr ) {
 		PrintColumnCorrelation(profileFile,contig,global_fragStore,
-                    (tFragStorePartition*)NULL, (FragStoreHandle)NULLINDEX, 1,
+                    (tFragStorePartition*)NULL, NULL, 1,
                     1,READSTRUCT_LATEST,gapped_length);
 	      } else 
 		if ( show_coordmap) {
@@ -520,7 +519,7 @@ int OutputScaffoldProfile(FILE *profileFile,
 	     } else {
 	       if ( show_colcorr ) {
 		 PrintColumnCorrelation(profileFile,contig,global_fragStore,
-                     (tFragStorePartition*)NULL, (FragStoreHandle)NULLINDEX, 
+                     (tFragStorePartition*)NULL, NULL, 
                       1,1,READSTRUCT_LATEST,gapped_length);
 	       } else {
 		 if ( show_coordmap) {
@@ -594,7 +593,7 @@ int OutputScaffoldProfile(FILE *profileFile,
                } else {
 		 if ( show_colcorr ) {
 		   PrintColumnCorrelation(profileFile,contig,global_fragStore,
-                       (tFragStorePartition*)NULL, (FragStoreHandle)NULLINDEX, 
+                       (tFragStorePartition*)NULL, NULL, 
                        1,1,READSTRUCT_LATEST,gapped_length);
 		 } else {
 		   if ( show_coordmap) {

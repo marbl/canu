@@ -20,7 +20,7 @@
  *************************************************************************/
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/AS_ORA_fragments.c,v $
-$Revision: 1.6 $
+$Revision: 1.7 $
 **********************************************************************/
 #define DEBUG_ORA
 /*********************************************************************/
@@ -35,7 +35,6 @@ $Revision: 1.6 $
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_PER_ReadStruct.h"
-#include "AS_PER_fragStore.h"
 #include "AS_ORA_repeats.h"
 #include "AS_ORA_fragments.h"
 #include "AS_ORA_inlines.h"

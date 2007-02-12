@@ -52,7 +52,6 @@ main(int argc, char **argv) {
   int   dumpScaffold = 1;
   int   ckptNum      = 0;
   char *ckptFileName = 0L;
-  char *frgStoreName = 0L;
   char *gkpStoreName = 0L;
 
   int arg=1;
@@ -70,8 +69,6 @@ main(int argc, char **argv) {
       ckptNum = atoi(argv[++arg]);
     } else if (strcmp(argv[arg], "-c") == 0) {
       ckptFileName = argv[++arg];
-    } else if (strcmp(argv[arg], "-f") == 0) {
-      frgStoreName = argv[++arg];
     } else if (strcmp(argv[arg], "-g") == 0) {
       gkpStoreName = argv[++arg];
     } else {
@@ -81,14 +78,13 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if ((ckptNum == 0) || (ckptFileName == 0L) || (frgStoreName == 0L) || (gkpStoreName == 0L))
+  if ((ckptNum == 0) || (ckptFileName == 0L) || (gkpStoreName == 0L))
     usage(argv[0]);
 
   GlobalData            = CreateGlobal_CGW();
   GlobalData->stderrc   = stderr;
 
   strcpy(GlobalData->File_Name_Prefix,      ckptFileName);
-  strcpy(GlobalData->Frag_Store_Name,       frgStoreName);
   strcpy(GlobalData->Gatekeeper_Store_Name, gkpStoreName);
 
   //  Load the scaffold graph

@@ -22,10 +22,8 @@
 #define MERSTREAM_H
 
 extern "C" {
-#include "AS_PER_ReadStruct.h" 
-#include "AS_PER_fragStore.h" 
-#include "AS_PER_genericStore.h"
-#include "AS_PER_distStore.h"
+#include "AS_PER_gkpStore.h"
+#include "AS_PER_ReadStruct.h"
 }
 
 extern unsigned char   compressSymbol[256];
@@ -36,33 +34,12 @@ extern unsigned char   validCompressedSymbol[256];
 
 class merStream {
 public:
-  merStream(cds_uint32 merSize, char *fragstore);
-  merStream(cds_uint32 merSize, char *fragstore, int skipNum);
+  merStream(cds_uint32 merSize, char *gkpstore);
+  merStream(cds_uint32 merSize, char *gkpstore, int skipNum);
   ~merStream();
 
-  //  Guess the number of mers based on the number of fragments.
-  //
-  cds_uint64       estNumMers(void) {
-    StoreStat  st;
-
-    statsFragStore(_fs, &st);
-    return((st.lastElem - st.firstElem)/ _skipNum * 850 );
-  };
-
-  cds_uint64       theFMer(void)        { return(_theFMer); };
-  cds_uint64       theRMer(void)        { return(_theRMer); };
-
-#if 0
-  char const  *theFMerString(void);
-  char const  *theRMerString(void);
-
-  cds_uint64       thePosition(void) {
-    return(_thePos - _merSize);
-  };
-  cds_uint64       theSequenceNumber(void) {
-    return(0);
-  };
-#endif
+  cds_uint64         theFMer(void)        { return(_theFMer); };
+  cds_uint64         theRMer(void)        { return(_theRMer); };
 
   bool               nextMer(void);
 private:
@@ -74,14 +51,14 @@ private:
     if (_thePos < _endPos)
       return((unsigned char)_theSeq[_thePos++]);
 
-
     //  Otherwise, we need to read another fragment and return an 'N'
     //  to break the merstream.
-    //
 
-
-    if (kNextFragStream(_fsh, _rs, FRAG_S_SEQUENCE, _skipNum) == 0)
+    if (_iid >= _max)
       return(0);
+
+    getFrag(_fs, _iid, _rs, FRAG_S_SEQ);
+    _iid += _skipNum;
 
     getClearRegion_ReadStruct(_rs, &_thePos, &_endPos, READSTRUCT_ORIGINAL);
 
@@ -102,15 +79,15 @@ private:
   };
 
   cds_uint32                _theAlloc;
-  char                 *_theSeq;
-  char                 *_theQlt;
+  char                     *_theSeq;
+  char                     *_theQlt;
   cds_uint32                _theLen;
-  unsigned int                _thePos;
-  unsigned int                _endPos;
+  unsigned int              _thePos;
+  unsigned int              _endPos;
 
-  cds_uint32               _skipNum;
+  cds_uint32                _skipNum;
   cds_uint32                _merSize;
-  cds_int32                _timeUntilValid;
+  cds_int32                 _timeUntilValid;
   cds_uint64                _theMerMask;
 
   cds_uint64                _theFMer;
@@ -118,14 +95,13 @@ private:
 
   cds_uint32                _theRMerShift;
 
-  char                  _theMerString[33];
+  char                      _theMerString[33];
 
-  FragStoreHandle       _fs;
-  FragStreamHandle      _fsh;
-  ReadStructp           _rs;
+  GateKeeperStore      *_fs;
+  ReadStruct           *_rs;
 
-  char                 *_fsBuffer;
-  int                   _fsBufferSize;
+  cds_uint64            _iid;
+  cds_uint64            _max;
 };
 
 

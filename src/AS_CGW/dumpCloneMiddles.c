@@ -88,12 +88,11 @@ dumpCloneMiddle(int sid) {
 
 void
 usage(char *pgm) {
-  fprintf(stderr, "usage: %s -f <frgStore> -g <gkpStore> -o <ovlStore> -c <ckpName> -n <ckpNum> [other options]\n", pgm);
+  fprintf(stderr, "usage: %s -g <gkpStore> -o <ovlStore> -c <ckpName> -n <ckpNum> [other options]\n", pgm);
   fprintf(stderr, "  META OPTION\n");
   fprintf(stderr, "    -p <prefix>          -- attempt to guess all the required options, if your assembly\n");
   fprintf(stderr, "                            follows runCA-OBT naming conventions.\n");
   fprintf(stderr, "  REQUIRED OPTIONS\n");
-  fprintf(stderr, "    -f <FragStoreName>\n");
   fprintf(stderr, "    -g <GatekeeperStoreName>\n");
   fprintf(stderr, "    -o <OVLStoreName>\n");
   fprintf(stderr, "    -c <CkptFileName>\n");
@@ -120,8 +119,6 @@ main(int argc, char **argv) {
   while (arg < argc) {
     if        (strcmp(argv[arg], "-c") == 0) {
       strcpy(GlobalData->File_Name_Prefix, argv[++arg]);
-    } else if (strcmp(argv[arg], "-f") == 0) {
-      strcpy(GlobalData->Frag_Store_Name, argv[++arg]);
     } else if (strcmp(argv[arg], "-g") == 0) {
       strcpy(GlobalData->Gatekeeper_Store_Name, argv[++arg]);
     } else if (strcmp(argv[arg], "-o") == 0) {
@@ -159,12 +156,10 @@ main(int argc, char **argv) {
   }
 
   if ((GlobalData->File_Name_Prefix[0]      == 0) ||
-      (GlobalData->Frag_Store_Name[0]       == 0) ||
       (GlobalData->Gatekeeper_Store_Name[0] == 0) ||
       (GlobalData->OVL_Store_Name[0]        == 0)) {
     fprintf(stderr, "At least one of -c, -f, -g, -o not supplied.\n");
     fprintf(stderr, "'%s'\n", GlobalData->File_Name_Prefix);
-    fprintf(stderr, "'%s'\n", GlobalData->Frag_Store_Name);
     fprintf(stderr, "'%s'\n", GlobalData->Gatekeeper_Store_Name);
     fprintf(stderr, "'%s'\n", GlobalData->OVL_Store_Name);
     err = 1;

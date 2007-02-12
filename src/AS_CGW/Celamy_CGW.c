@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* All of the CGW celamy stuff is here */
-static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.9 2007-02-08 06:48:50 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.10 2007-02-12 22:16:55 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -638,7 +638,7 @@ void draw_frags_in_contig_for_CelamyScaffold(FILE *fout, ContigT *ctg, int globa
       sprintf(buffer,"");
     }
     if (show_uids) {
-      getFragStore(frag_store,frag->ident,FRAG_S_FIXED,rsp);
+      getFrag(frag_store,frag->ident,rsp,FRAG_S_FIXED);
       getAccID_ReadStruct(rsp, &fuid);
     } else {
       fuid = 0;

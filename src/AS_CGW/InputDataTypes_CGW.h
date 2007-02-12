@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: InputDataTypes_CGW.h,v 1.6 2006-09-21 21:34:00 brianwalenz Exp $	 */
+/* 	$Id: InputDataTypes_CGW.h,v 1.7 2007-02-12 22:16:55 brianwalenz Exp $	 */
 /****************************************************************************
  *  InputDataTypes_CGW
  *  
@@ -110,7 +110,7 @@ typedef struct {
   CDS_CID_t linkHead; // Index of link in gatekeeper link store
   union{
     struct {
-      unsigned int hasFalseMate:1;               // has a false mate
+      unsigned int XXXhasFalseMate:1;            // has a false mate (unused)
       unsigned int hasInternalOnlyCILinks:1;     // If all of this fragments links are internal to its CI
       unsigned int hasInternalOnlyContigLinks:1; // If all of this fragment's links are internal to its Contig
       unsigned int getLinksFromStore:1;          // If this fragment has non-mate links, or more than 1 link

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_cgb.c,v 1.7 2007-02-08 06:48:49 brianwalenz Exp $";
+= "$Id: AS_CGB_cgb.c,v 1.8 2007-02-12 22:16:55 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_cgb.c
@@ -1730,7 +1730,7 @@ void chunk_graph_build_2
  const int dont_find_branch_points,
  const float cgb_unique_cutoff,
  const float global_fragment_arrival_rate,
- FragStoreHandle TheFragStore,
+ GateKeeperStore *gkpStore,
  /* Input/Output */
  Tfragment     frags[],     /* The internal representation of
 			       the fragment reads. I have one
@@ -1773,7 +1773,7 @@ void chunk_graph_build_2
     ResetVA_char(chunkquas);
     Make_Chunk_Sequences
       (chunkseqs,chunkquas,
-       frags,afr_to_avx,chunkfrags,thechunks,TheFragStore);
+       frags,afr_to_avx,chunkfrags,thechunks,gkpStore);
     if(TIMINGS) {
       time(&tp2); 
       fprintf(stderr,"%10" F_TIME_TP " sec: Finished making the unitig sequences\n",
@@ -1790,7 +1790,7 @@ void chunk_graph_build_2
     }
     find_the_branch_points
       ( use_consensus, cgb_unique_cutoff, global_fragment_arrival_rate,
-        TheFragStore, frags, edges, chunkfrags, 
+        gkpStore, frags, edges, chunkfrags, 
 	chunkseqs, thechunks, fbpts1);
     if(TIMINGS) {
       time(&tp2); 

@@ -58,7 +58,7 @@
    to take the ABS() of the quality before using it for comparison purposes. */
 void
 AS_CGB_Bubble_find_and_remove_bubbles
-(FragStoreHandle TheFragStore,
+(GateKeeperStore *gkpStore,
  Tfragment *frags, Tedge *edges, 
  TChunkMesg *chunks, TChunkFrag *cfrgs,
  float global_arrival_rate,
@@ -114,7 +114,7 @@ typedef struct BubblePopper * BubblePopper_t;
    Implemented in "AS_CGB_Bubble_Popper.c" */
 BubblePopper_t
 AS_CGB_Bubble_Popper_create
-(FragStoreHandle TheFragStore,
+(GateKeeperStore *gkpStore,
  Tfragment *frags, Tedge *edges, 
  TChunkMesg *chunks, TChunkFrag *cfrgs,
  float global_arrival_rate,

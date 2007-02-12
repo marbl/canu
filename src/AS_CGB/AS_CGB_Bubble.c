@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_Bubble.c,v 1.6 2006-09-26 22:21:13 brianwalenz Exp $";
+= "$Id: AS_CGB_Bubble.c,v 1.7 2007-02-12 22:16:55 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -333,7 +333,7 @@ AS_CGB_Bubble_find_bubbles(Tfragment *frags, Tedge *edges, int sz, int age,
 
 void
 AS_CGB_Bubble_find_and_remove_bubbles
-(FragStoreHandle TheFragStore,
+(GateKeeperStore *gkpStore,
  Tfragment *frags, Tedge *edges, 
  TChunkMesg *chunks, TChunkFrag *cfrgs,
  float gar,
@@ -361,7 +361,7 @@ AS_CGB_Bubble_find_and_remove_bubbles
 #endif
 
   fprintf(BUB_LOG_G, "  * Processing bubbles.\n");
-  BP_init(&bp, &bg, chunks, cfrgs, gar, TheFragStore, fileprefix);
+  BP_init(&bp, &bg, chunks, cfrgs, gar, gkpStore, fileprefix);
   while (NULL != bubs) {
     AS_CGB_Bubble_List_t bptr = NULL;
     int num_ovl = 0;

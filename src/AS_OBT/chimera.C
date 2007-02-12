@@ -7,8 +7,8 @@
 
 extern "C" {
 #include "AS_global.h"
+#include "AS_PER_gkpStore.h"
 #include "AS_PER_ReadStruct.h"
-#include "AS_PER_fragStore.h"
 }
 
 #include "util++.H"
@@ -203,14 +203,14 @@ u32bit   fullCoverage        = 0;
 //  Reads both clear ranges, packs into a 64-bit integer.
 //
 u64bit*
-readClearRanges(char *frgStore) {
+readClearRanges(char *gkpStore) {
 
-  FragStoreHandle fs = openFragStore(frgStore, "r");
-  if (fs == NULLSTOREHANDLE)
-    fprintf(stderr, "Failed to open fragStore %s!\n", frgStore), exit(1);
+  GateKeeperStore *gkp = openGateKeeperStore(gkpStore, FALSE);
+  if (gkp == NULL)
+    fprintf(stderr, "Failed to open gatekeeper store %s!\n", gkpStore), exit(1);
 
-  u32bit            fe = getFirstElemFragStore(fs);
-  u32bit            le  = getLastElemFragStore(fs) + 1;
+  u32bit            fe = getFirstElemFragStore(gkp);
+  u32bit            le  = getLastElemFragStore(gkp) + 1;
   ReadStructp       rd = new_ReadStruct();
   u64bit           *clear = new u64bit [le];
 
@@ -222,7 +222,7 @@ readClearRanges(char *frgStore) {
   for (u32bit iid=fe; iid<le; iid++) {
     unsigned int  origl=0, origr=0, ovlpl=0, ovlpr=0;
 
-    getFragStore(fs, iid, FRAG_S_ALL, rd);
+    getFrag(gkp, iid, rd, FRAG_S_INF);
     getClearRegion_ReadStruct(rd, &origl, &origr, READSTRUCT_ORIGINAL);
     getClearRegion_ReadStruct(rd, &ovlpl, &ovlpr, READSTRUCT_OVL);
 
@@ -238,11 +238,10 @@ readClearRanges(char *frgStore) {
   }
 
   delete_ReadStruct(rd);
-  closeFragStore(fs);
+  closeGateKeeperStore(gkp);
 
   return(clear);
 }
-
 
 
 
@@ -284,7 +283,7 @@ printLogMessage(FILE         *reportFile,
     unsigned int  oldBeg, oldEnd;
     getClearRegion_ReadStruct(rd, &oldBeg, &oldEnd, READSTRUCT_OVL);
 
-    fprintf(reportFile, u64bitFMT","u32bitFMT" %s Trimmed from "u32bitFMT","u32bitFMT" to "u32bitFMT","u32bitFMT".  %s, fragStore %s.\n",
+    fprintf(reportFile, u64bitFMT","u32bitFMT" %s Trimmed from "u32bitFMT","u32bitFMT" to "u32bitFMT","u32bitFMT".  %s, gatekeeper store %s.\n",
             uid, iid,
             type,
             (u32bit)oldBeg, (u32bit)oldEnd,
@@ -305,7 +304,7 @@ printLogMessage(FILE         *reportFile,
 //
 void
 process(u32bit           iid,
-        FragStoreHandle  fs,
+        GateKeeperStore *gkp,
         bool             doUpdate,
         vectorMap       &m,
         overlapList     *overlap,
@@ -645,7 +644,7 @@ process(u32bit           iid,
 #endif
 
     if (getUID) {
-      getFragStore(fs, iid, FRAG_S_ALL, rd);
+      getFrag(gkp, iid, rd, FRAG_S_INF);
       getAccID_ReadStruct(rd, &uid);
     }
 
@@ -678,7 +677,7 @@ process(u32bit           iid,
 #endif
 
           if (doUpdate)
-            deleteFragStore(fs, iid);
+            delFrag(gkp, iid);
         } else {
 #ifdef WITH_REPORT
           printLogMessage(reportFile, rd, uid, iid, intervalBeg, intervalEnd, doUpdate, "SPUR", "Length OK");
@@ -686,8 +685,8 @@ process(u32bit           iid,
 
           if (doUpdate) {
             setClearRegion_ReadStruct(rd, intervalBeg, intervalEnd, READSTRUCT_OVL);
-            if (setFragStore(fs, iid, rd)) {
-              fprintf(stderr, "setFragStore() failed.\n");
+            if (setFrag(gkp, iid, rd)) {
+              fprintf(stderr, "setFrag() failed.\n");
               exit(1);
             }
           }
@@ -704,7 +703,7 @@ process(u32bit           iid,
 #endif
 
         if (doUpdate)
-          deleteFragStore(fs, iid);
+          delFrag(gkp, iid);
       }
 
 #ifdef WITH_FULL_REPORT
@@ -727,7 +726,7 @@ process(u32bit           iid,
 #endif
 
           if (doUpdate)
-            deleteFragStore(fs, iid);
+            delFrag(gkp, iid);
         } else {
 #ifdef WITH_REPORT
           printLogMessage(reportFile, rd, uid, iid, intervalBeg, intervalEnd, doUpdate, "CHIMERA", "Length OK");
@@ -735,8 +734,8 @@ process(u32bit           iid,
 
           if (doUpdate) {
             setClearRegion_ReadStruct(rd, intervalBeg, intervalEnd, READSTRUCT_OVL);
-            if (setFragStore(fs, iid, rd)) {
-              fprintf(stderr, "setFragStore() failed.\n");
+            if (setFrag(gkp, iid, rd)) {
+              fprintf(stderr, "setFrag() failed.\n");
               exit(1);
             }
           }
@@ -752,7 +751,7 @@ process(u32bit           iid,
 #endif
 
         if (doUpdate)
-          deleteFragStore(fs, iid);
+          delFrag(gkp, iid);
       }
 
 #ifdef WITH_REPORT_FULL
@@ -818,7 +817,7 @@ readOverlap(FILE *file, overlap_t &ovl) {
 
 int
 main(int argc, char **argv) {
-  char   *frgStore          = 0L;
+  char   *gkpStore          = 0L;
   bool    doUpdate          = true;  //  set to false for testing
   char   *summaryName       = 0L;
   char   *reportName        = 0L;
@@ -831,7 +830,7 @@ main(int argc, char **argv) {
   int arg=1;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-frg", 2) == 0) {
-      frgStore = argv[++arg];
+      gkpStore = argv[++arg];
     } else if (strncmp(argv[arg], "-immutable", 2) == 0) {
       immutableFileName = argv[++arg];
     } else if (strncmp(argv[arg], "-delete", 2) == 0) {
@@ -846,7 +845,7 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if (frgStore == 0L) {
+  if (gkpStore == 0L) {
     fprintf(stderr, "usage: %s [-1] -f <fragStore> [opts] < overlap-trim-results\n", argv[0]);
     fprintf(stderr, "  -immutable I    don't modify the uids listed in I\n");
     fprintf(stderr, "  -update         do update the frag store\n");
@@ -863,7 +862,7 @@ main(int argc, char **argv) {
   u32bit           leftA, rightA, lenA;
   u32bit           leftB, rightB, lenB;
   double           error;
-  u64bit          *clear = readClearRanges(frgStore);
+  u64bit          *clear = readClearRanges(gkpStore);
   u64bit           maxIID      = 65536;
   overlapList     *overlap = new overlapList;
 
@@ -888,9 +887,9 @@ main(int argc, char **argv) {
       fprintf(stderr, "Failed to open '%s' for writing: %s\n", reportName, strerror(errno)), exit(1);
   }
 
-  FragStoreHandle fs = openFragStore(frgStore, doUpdate ? "r+" : "r");
-  if (fs == NULLSTOREHANDLE)
-    fprintf(stderr, "Failed to open fragStore %s!\n", frgStore), exit(1);
+  GateKeeperStore *gkp = openGateKeeperStore(gkpStore, doUpdate);
+  if (gkp == NULL)
+    fprintf(stderr, "Failed to open gatekeeper store %s!\n", gkpStore), exit(1);
 
 #ifdef SPEEDCOUNTER_H
   speedCounter  *C = new speedCounter("%7.2f Moverlaps -- %5.2f Moverlaps/second\r",
@@ -924,7 +923,7 @@ main(int argc, char **argv) {
     error  = ovl.erate;
 
     if (idA != idAlast) {
-      process(idAlast, fs, doUpdate, m, overlap, olalast, oralast);
+      process(idAlast, gkp, doUpdate, m, overlap, olalast, oralast);
       delete overlap;
       overlap = new overlapList;
     }
@@ -1117,14 +1116,14 @@ main(int argc, char **argv) {
 #endif
   }
 
-  process(idAlast, fs, doUpdate, m, overlap, olalast, oralast);
+  process(idAlast, gkp, doUpdate, m, overlap, olalast, oralast);
   delete overlap;
 
 #ifdef SPEEDCOUNTER_H
   delete C;
 #endif
 
-  closeFragStore(fs);
+  closeGateKeeperStore(gkp);
 
   if (summaryFile) {
     fprintf(summaryFile, "fullCoverage:        "u32bitFMT"\n", fullCoverage);

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.9 2007-02-08 06:48:54 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.10 2007-02-12 22:16:58 brianwalenz Exp $";
 
 #include <assert.h>
 #include <errno.h>
@@ -33,7 +33,6 @@ static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.9 2007-02-08 06:48:54 brianwalenz 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_PER_ReadStruct.h"
-#include "AS_PER_fragStore.h"
 #include "AS_PER_distStore.h"
 
 #include "MicroHetREZ.h"
@@ -297,7 +296,7 @@ AS_REZ_count_columns(Alignment_t* a, Marker_t* m)
 static
 void
 AS_REZ_get_info(CDS_IID_t iid,
-                     FragStoreHandle frag_store,
+                     GateKeeperStore *frag_store,
                      tFragStorePartition *pfrag_store,
                      CDS_UID_t *locale,
                      uint32 *beg, uint32 *end,
@@ -314,14 +313,15 @@ AS_REZ_get_info(CDS_IID_t iid,
       mytype = NULL;
 
     if(!mytype ){ // we have not seen that iid before 
-      if ( frag_store != NULLFRAGSTOREHANDLE ) {
-        if(getFragStore(frag_store,iid,FRAG_S_FIXED,input) != 0)
+      if ( frag_store != NULL ) {
+        if(getFrag(frag_store,iid,input,FRAG_S_INF) != 0)
           assert(0);
       } else {
-        if(getFragStorePartition(pfrag_store,iid,FRAG_S_FIXED,input) != 0)
+        if(getFragStorePartition(pfrag_store,iid,FRAG_S_INF,input) != 0)
           assert(0);
       }
-      getReadType_ReadStruct(input,type); 
+      //getReadType_ReadStruct(input,type); 
+      *type == AS_READ;
 
       //  Locale info was removed, so we now just return empty info.
 #ifdef WITH_LOCALE_SUPPORT
@@ -373,7 +373,7 @@ static  ReadStructp input;
  */
 void AS_REZ_compress_shreds_and_null_indels(int c,
                                             int r,
-                                            FragStoreHandle frag_store, 
+                                            GateKeeperStore *frag_store, 
                                             tFragStorePartition *pfrag_store,
                                             char **array,
                                             int **id_array,
@@ -1000,14 +1000,14 @@ AS_REZ_test_MPsimple(Alignment_t *ali, double thresh, Marker_t* m,
 //           in alternative rows, giving a multialignment
 // idarray : an array of size depth*len giving the fragment iid of each base
 //           in the multialignment
-// handle  : the fragStore from which locale information for each fragment iid
-//           will be obtained  (-1 (NULLFRAGSTOREHANDLE) if paritioned store is used.)
-// phandle  : the partitioned fragStore from which locale information for each fragment iid
+// handle  : the gatekeeper from which locale information for each fragment iid
+//           will be obtained  (NULL if paritioned store is used.)
+// phandle  : the partitioned gatekeeper from which locale information for each fragment iid
 //           will be obtained (NULL if a traditional unpartitioned store is used);
 // len     : number of columns in the multialignment
 // depth   : number of rows in the multialignment
 //
-double AS_REZ_MP_MicroHet_prob(char **bqarray,int **idarray,FragStoreHandle handle,
+double AS_REZ_MP_MicroHet_prob(char **bqarray,int **idarray,GateKeeperStore *handle,
                                tFragStorePartition *phandle,int len,int depth){
   double pvalue;
   UnitigStatus_t result;

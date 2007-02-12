@@ -53,7 +53,7 @@ typedef struct BubblePopper {
   TChunkMesg *chunks;
   TChunkFrag *chunkFrags;
   float globalArrivalRate;
-  FragStoreHandle FragStore;
+  GateKeeperStore *gkpStore;
   
   /* Permanent statistics fields. */
 
@@ -99,7 +99,7 @@ typedef struct BubblePopper {
 void
 BP_init(BubblePopper_t bp, BubGraph_t bg, TChunkMesg chunks[], 
 	TChunkFrag cfrgs[], float global_arrival_rate,
-        FragStoreHandle TheFragStore,
+        GateKeeperStore *gkpStore,
         const char * fileprefix
         );
 

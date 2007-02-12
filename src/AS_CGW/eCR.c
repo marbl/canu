@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: eCR.c,v 1.11 2007-02-08 06:48:51 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: eCR.c,v 1.12 2007-02-12 22:16:56 brianwalenz Exp $";
 
 #include "eCR.h"
 
@@ -177,12 +177,10 @@ main(int argc, char **argv) {
 
   Global_CGW *data;
   char *outputPath = NULL;
-  int setFragStoreName = FALSE;
   int setGatekeeperStore = FALSE;
   int setPrefixName = FALSE;
 
   int ckptNum = NULLINDEX;
-  int backupFrgStore = TRUE;
   int i; // , index;
   int sid, startingGap = 0, setStartingGap = FALSE;
   int numExtendableGaps = 0, numGaps = 0, numGapsClosed = 0, totalBasesInClosedGaps = 0;
@@ -207,20 +205,10 @@ main(int argc, char **argv) {
   int unitigToContigFailures = 0;
   int noOverlapFound = 0;
 
-  int doRevertFirst = FALSE;
-
   // save off whatever the rest of the world has for default values
   // for Local_Overlap_AS_forCNS
   //
   saveDefaultLocalAlignerVariables();
-  
-#if 0
-  //  moved into examinegap
-  // set some variables to control Local_Overlap_AS_forCNS
-  MaxGaps        = 5;
-  MaxInteriorGap = 30;
-  asymmetricEnds = TRUE;
-#endif
 
   GlobalData  = data = CreateGlobal_CGW();
   data->stderrc   = stderr;
@@ -229,7 +217,6 @@ main(int argc, char **argv) {
   //  This is used all over the place, do not remove it!
   //
   fsread = new_ReadStruct();
-
 
 #if 0
 #ifdef X86_GCC_LINUX
@@ -254,11 +241,8 @@ main(int argc, char **argv) {
     int ch,errflg=0;
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,
-				    "Bb:c:C:e:f:g:m:n:Rs:")) != EOF)){
+				    "b:c:C:e:g:n:Rs:")) != EOF)){
       switch(ch) {
-        case 'B':
-          backupFrgStore = FALSE;
-          break;
         case 'c':
           strcpy(data->File_Name_Prefix, argv[optind - 1]);
           setPrefixName = TRUE;		  
@@ -267,25 +251,12 @@ main(int argc, char **argv) {
           startingGap = atoi(argv[optind - 1]);
           setStartingGap = TRUE;
           break;
-        case 'f':
-          strcpy(data->Frag_Store_Name, argv[optind - 1]);
-          setFragStoreName = TRUE;
-          break;
         case 'g':
           strcpy(data->Gatekeeper_Store_Name, argv[optind - 1]);
           setGatekeeperStore = TRUE;
           break;	  
-        case 'm':
-          fprintf(stderr, "option m removed.\n");
-          //MaxInteriorGap = atoi(argv[optind - 1]);
-          //fprintf(stderr, "setting MaxInteriorGap to %d\n", MaxInteriorGap);
-          exit(1);
-          break;
         case 'n':
           ckptNum = atoi(argv[optind - 1]);
-          break;
-        case 'R':
-          doRevertFirst = TRUE;
           break;
         case 'b':
           scaffoldBegin = atoi(argv[optind - 1]);
@@ -304,55 +275,11 @@ main(int argc, char **argv) {
     }
   }
 
-  //  Revert back to the CNS clear range for all frags.  Useful if you
-  //  happen to screw stuff up, but too slow to be enabled by default.
-  //
-  if (doRevertFirst) {
-    int             firstFrag=0, lastFrag=0;
-    int             fragIid=0;
-    unsigned int    cnsBeg=0, cnsEnd=0, cgwBeg=0, cgwEnd=0;
-    int             modified=0;
-    FragStoreHandle fragStore;
-    
-    fprintf(stderr, "Reverting back to the CNS clear range!\n");
-
-    fragStore = openFragStore(data->Frag_Store_Name, "r+");
-
-    firstFrag = getFirstElemFragStore(fragStore);
-    lastFrag  = getLastElemFragStore(fragStore) + 1;
-
-    for (fragIid=firstFrag; fragIid<lastFrag; fragIid++) {
-      getFragStore(fragStore, fragIid, FRAG_S_ALL, fsread);	
-
-      getClearRegion_ReadStruct(fsread, &cnsBeg, &cnsEnd, READSTRUCT_CNS);
-      getClearRegion_ReadStruct(fsread, &cgwBeg, &cgwEnd, READSTRUCT_CGW);
-
-      if ((cnsBeg != cgwBeg) || (cnsEnd != cgwEnd)) {
-        fprintf(stderr, "Fragment %d modified CNS (%d,%d)  CGW (%d,%d).\n",
-                fragIid, cnsBeg, cnsEnd, cgwBeg, cgwEnd);
-        setClearRegion_ReadStruct(fsread, cnsBeg, cnsEnd, READSTRUCT_CGW);
-        setFragStore(fragStore, fragIid, fsread);
-        modified++;
-      }
-    }
-
-    fprintf(stderr, "Reverted %d frags back to the CNS clear range.\n", modified);
-    fprintf(stderr, "Bye.\n");
-
-    closeFragStore(fragStore);
-
-    exit(0);
-  }
-
-
   if ((setPrefixName == FALSE) ||
-      (setFragStoreName == 0) ||
       (setGatekeeperStore == 0)) {
-    fprintf(stderr, "usage: %s [opts] -c ckpName -n ckpNumber -f frgStore -g gkpStore\n", argv[0]);
-    fprintf(stderr, "  -B           DISABLE fragStore backups\n");
+    fprintf(stderr, "usage: %s [opts] -c ckpName -n ckpNumber -g gkpStore\n", argv[0]);
     fprintf(stderr, "  -c ckpName   Use ckpName as the checkpoint name\n");
     fprintf(stderr, "  -C gap#      Start at a specific gap number\n");
-    fprintf(stderr, "  -f frgStore  The fragment store\n");
     fprintf(stderr, "  -g gkpStore  The gatekeeper store\n");
     fprintf(stderr, "  -n ckpNumber The checkpoint to use\n");
     fprintf(stderr, "  -R           Revert the fragment store to the consensus clear range (SLOW!)\n");
@@ -366,42 +293,6 @@ main(int argc, char **argv) {
     fprintf(stderr, "set starting gap to %d\n", startingGap);
 
 
-  // check to see if db.frg.beforeECR exists, and if not, copy db.frg to it
-
-  if (backupFrgStore) {
-    char temp_buf[1024];
-    int sysReturn;
-    FILE *fileExistenceCheck;
-	  
-    sprintf(temp_buf, "%s/db.frg.beforeECR", GlobalData->Frag_Store_Name);
-
-    fileExistenceCheck = fopen(temp_buf, "r");
-    if (fileExistenceCheck == NULL) {
-
-      sprintf(temp_buf, "cp %s/db.frg %s/db.frg.beforeECR", 
-              GlobalData->Frag_Store_Name, GlobalData->Frag_Store_Name);
-      sysReturn = system(temp_buf);
-
-      if (sysReturn != -1)
-        fprintf(stderr, "copied %s/db.frg to %s/db.frg.orig\n",
-                GlobalData->Frag_Store_Name, GlobalData->Frag_Store_Name);
-      else {
-        fprintf(stderr, "error copying %s/db.frg to %s/db.frg.orig\n",
-                GlobalData->Frag_Store_Name, GlobalData->Frag_Store_Name);
-        assert(0);
-      }
-		  
-      sprintf(temp_buf, "chmod 444 %s/db.frg.orig", GlobalData->Frag_Store_Name);
-      sysReturn = system(temp_buf);
-
-      if (sysReturn == -1) {
-        fprintf(stderr, "error doing chmod on %s/db.frg.orig\n", GlobalData->Frag_Store_Name);
-        assert(0);
-      }
-    }
-  }
-
-
 
   //  LoadScaffoldGraphFromCheckpoint wants to CheckCIScaffoldT()
   //  which can RecomputeOffsetsInScaffold(), which can eventually,
@@ -410,13 +301,14 @@ main(int argc, char **argv) {
   GlobalData->aligner=Local_Overlap_AS_forCNS;
   ScaffoldGraph = LoadScaffoldGraphFromCheckpoint(data->File_Name_Prefix, ckptNum, TRUE);
 
-  //  The ScaffoldGraph, by default now, opens the fragstore
+  //  The ScaffoldGraph, by default now, opens the gatekeeper store
   //  read-only.  We reopen it read-write here.
   //
-  closeFragStore(ScaffoldGraph->fragStore);
-  ScaffoldGraph->fragStore = openFragStore(GlobalData->Frag_Store_Name, "r+");
-  if(ScaffoldGraph->fragStore == NULLSTOREHANDLE){
-    fprintf(stderr,"**** Failure to re-open frag store %s ...exiting\n", GlobalData->Frag_Store_Name);
+  closeGateKeeperStore(ScaffoldGraph->gkpStore);
+
+  ScaffoldGraph->gkpStore = openGateKeeperStore(GlobalData->Gatekeeper_Store_Name, TRUE);
+  if(ScaffoldGraph->gkpStore == NULL){
+    fprintf(stderr,"**** Failure to re-open frag store %s ...exiting\n", GlobalData->Gatekeeper_Store_Name);
     exit(1);
   }
 
@@ -807,7 +699,7 @@ main(int argc, char **argv) {
                       extendToLeft = TRUE;
 
                     new_cma = ReplaceEndUnitigInContig(ScaffoldGraph->sequenceDB,
-                                                       ScaffoldGraph->fragStore,
+                                                       ScaffoldGraph->gkpStore,
                                                        lcontig->id, unitig->id, extendToLeft,
                                                        GlobalData->aligner,
                                                        NULL);
@@ -868,7 +760,7 @@ main(int argc, char **argv) {
                       extendToLeft = FALSE;
 
                     new_cma = ReplaceEndUnitigInContig(ScaffoldGraph->sequenceDB,
-                                                       ScaffoldGraph->fragStore,
+                                                       ScaffoldGraph->gkpStore,
                                                        rcontig->id, unitig->id, extendToLeft,
                                                        GlobalData->aligner,
                                                        NULL);
@@ -1114,8 +1006,8 @@ main(int argc, char **argv) {
     }
 
     //  Good place to checkpoint the scaffold graph -- we'd also need
-    //  to checkpoint the fragstore Eventually, we'll just write a log
-    //  of the fragstore changes, and apply that when we're all done.
+    //  to checkpoint the gkpstore Eventually, we'll just write a log
+    //  of the gkpstore changes, and apply that when we're all done.
 
   }
 
@@ -1286,7 +1178,7 @@ findFirstExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
       unsigned int clr_bgn, clr_end;
       int frag3pExtra, extension;
 	  
-      getFragStore(ScaffoldGraph->fragStore, frag->iid, FRAG_S_ALL, fsread);
+      getFrag(ScaffoldGraph->gkpStore, frag->iid, fsread, FRAG_S_SEQ);
       getClearRegion_ReadStruct(fsread, &clr_bgn, &clr_end, READSTRUCT_CNS);
       getSequence_ReadStruct(fsread, seqbuffer, qltbuffer, AS_READ_MAX_LEN);
 
@@ -1411,7 +1303,7 @@ findLastExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
       unsigned int clr_bgn, clr_end;
       int frag3pExtra, extension;
 
-      getFragStore(ScaffoldGraph->fragStore, frag->iid, FRAG_S_ALL, fsread);
+      getFrag(ScaffoldGraph->gkpStore, frag->iid, fsread, FRAG_S_SEQ);
       getClearRegion_ReadStruct(fsread, &clr_bgn, &clr_end, READSTRUCT_CNS);
       getSequence_ReadStruct(fsread, seqbuffer, qltbuffer, AS_READ_MAX_LEN);
 
@@ -1759,7 +1651,7 @@ int GetNewUnitigMultiAlign(NodeCGW_T *unitig, fragPositions *fragPoss, int exten
 
       cnslog = stderr;
       aligned = MultiAlignUnitig(&ium_mesg, 
-                                 ScaffoldGraph->fragStore,
+                                 ScaffoldGraph->gkpStore,
                                  reformed_consensus,
                                  reformed_quality,
                                  reformed_deltas,
@@ -1792,7 +1684,7 @@ int GetNewUnitigMultiAlign(NodeCGW_T *unitig, fragPositions *fragPoss, int exten
       UnloadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ium_mesg.iaccession, TRUE);
       InsertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, ium_mesg.iaccession, TRUE, new_ma, FALSE);
 
-      //PrintMultiAlignT(GlobalData->stderrc, new_ma, ScaffoldGraph->fragStore, 0x0, 0, TRUE, 0, READSTRUCT_LATEST);
+      //PrintMultiAlignT(GlobalData->stderrc, new_ma, ScaffoldGraph->gkpStore, 0x0, 0, TRUE, 0, READSTRUCT_LATEST);
     }
   }
 
@@ -1813,10 +1705,10 @@ extendCgwClearRange(int fragIid, int frag3pDelta) {
     fprintf(stderr, "Warning: frag3pDelta less than zero: %d\n", frag3pDelta);
 
   if (fragIid != -1) {
-    getFragStore(ScaffoldGraph->fragStore, fragIid, FRAG_S_ALL, fsread);	
+    getFrag(ScaffoldGraph->gkpStore, fragIid, fsread, FRAG_S_INF);
     getClearRegion_ReadStruct(fsread, &clr_bgn, &clr_end, READSTRUCT_CNS);
     setClearRegion_ReadStruct(fsread, clr_bgn, clr_end + frag3pDelta, READSTRUCT_CGW);
-    setStatus = setFragStore(ScaffoldGraph->fragStore, fragIid, fsread);
+    setStatus = setFrag(ScaffoldGraph->gkpStore, fragIid, fsread);
 
     fprintf(stderr, "extendCgwClearRange, changed frag %d clr_end from %d to %d\n",
             fragIid, clr_end, clr_end + frag3pDelta);
@@ -1832,10 +1724,10 @@ revertToCnsClearRange(int fragIid) {
   int setStatus = 0;
   
   if (fragIid != -1) {
-    getFragStore(ScaffoldGraph->fragStore, fragIid, FRAG_S_ALL, fsread);	
+    getFrag(ScaffoldGraph->gkpStore, fragIid, fsread, FRAG_S_INF);
     getClearRegion_ReadStruct(fsread, &clr_bgn, &clr_end, READSTRUCT_CNS);
     setClearRegion_ReadStruct(fsread, clr_bgn, clr_end, READSTRUCT_CGW);
-    setStatus = setFragStore(ScaffoldGraph->fragStore, fragIid, fsread);
+    setStatus = setFrag(ScaffoldGraph->gkpStore, fragIid, fsread);
   }
   return (setStatus); 
 }

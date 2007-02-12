@@ -24,25 +24,22 @@
 #include <stdio.h> 
 #include <unistd.h>
 
-//extern "C" {
 #include "AS_global.h" 
 #include "AS_PER_ReadStruct.h" 
-#include "AS_PER_fragStore.h" 
 #include "AS_PER_genericStore.h"
 #include "AS_PER_distStore.h"
-//}
 
 #define MAX_SOURCE_LENGTH  1000
 
 void
-reapFragStore(int32 begin, int32 end, char *frag_store_name) {  
-  FragStoreHandle  source;
-  ReadStructp      myRead;
+reapFragStore(int32 begin, int32 end, char *gkpname) {  
+  GateKeeperStore *source;
+  ReadStruct      *myRead;
   int              ii;
 
-  source = openFragStore(frag_store_name,"r");
-  if (source == NULLSTOREHANDLE) {
-    fprintf(stderr, "Failed to openFragStore(\"%s\")\n", frag_store_name);
+  source = openGateKeeperStore(gkpname, FALSE);
+  if (source == NULL) {
+    fprintf(stderr, "Failed to open gatekeeper store (\"%s\")\n", gkpname);
     exit(1);
   }
 
@@ -59,25 +56,17 @@ reapFragStore(int32 begin, int32 end, char *frag_store_name) {
     uint32           isDeleted = 0;
     Fragment_ID      uid = 0;
     IntFragment_ID   iid = 0;
-    FragType         read_type;
-    char             src_text[MAX_SOURCE_LENGTH]= {0};
-    int              src_len = MAX_SOURCE_LENGTH;
+    FragType         read_type = AS_READ;
     time_t           etm = 0;
     uint32           clr_rng_bgn = 0;
     uint32           clr_rng_end = 0;
     int              iret = 0;
       
-    // Options: FRAG_S_FIXED, FRAG_S_SOURCE, FRAG_S_SEQUENCE, FRAG_S_ALL
-    getFragStore(source, ii, FRAG_S_SOURCE, myRead);
-
-    // dump_ReadStruct(myRead, stdout, FALSE);
+    getFrag(source, ii, myRead, FRAG_S_INF);
 
     iret += getIsDeleted_ReadStruct(myRead, &isDeleted);
     iret += getAccID_ReadStruct(myRead, &uid);
     iret += getReadIndex_ReadStruct(myRead, &iid);
-    iret += getReadType_ReadStruct(myRead, &read_type);
-    iret += getSource_ReadStruct(myRead, src_text, src_len);
-    iret += getEntryTime_ReadStruct(myRead, &etm);
     iret += getClearRegion_ReadStruct(myRead, &clr_rng_bgn, &clr_rng_end, READSTRUCT_LATEST);
 
     //  We don't expect any of these to fail, so lump them all together.
@@ -110,11 +99,11 @@ reapFragStore(int32 begin, int32 end, char *frag_store_name) {
                  "acc:("F_UID","F_IID")\n"
                  "typ:%c\n"
                  "src:\n"
-                 "%s.\n"
+                 ".\n"
                  "etm:"F_TIME_T"\n"
                  "clr:"F_U32","F_U32"\n"
                  "}\n",
-                 uid, iid, read_type, src_text, etm, clr_rng_bgn, clr_rng_end);
+                 uid, iid, read_type, etm, clr_rng_bgn, clr_rng_end);
           break;
         default:
           fprintf(stderr,"Unsupported fragment type ASCII:%c Decimal:%d\n", read_type, read_type);

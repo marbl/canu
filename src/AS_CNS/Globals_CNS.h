@@ -23,7 +23,6 @@
 
 #include "MultiAlignment_CNS.h"
 #include "AS_UTL_Var.h"
-#include "AS_PER_fragStorePartition.h"
 #include "AS_SDB_SequenceDB.h"
 #include "AS_SDB_SequenceDBPartition.h"
 #include <math.h>
@@ -57,7 +56,7 @@
 //====================================================================
 // Persistent store of the fragment data (produced upstream)
 
-   FragStoreHandle global_fragStore;
+   GateKeeperStore *global_fragStore;
    tFragStorePartition *global_fragStorePartition;
    tSequenceDB *sequenceDB;
    tSequenceDBPartition *sequenceDB_part;
@@ -117,7 +116,7 @@ int allow_neg_hang;
 int allow_neg_hang_retry;
 
 
-static void CleanExit(char *mesg, int lineno, int rc) {
+static void CleanExitHelper(char *mesg, int lineno, int rc) {
   char dbgname[FILENAME_MAX];
 
   fprintf(stderr,"%s at line: %d, rc: %d\n",mesg,lineno,rc);
@@ -134,9 +133,9 @@ static void CleanExit(char *mesg, int lineno, int rc) {
     unlink(dbgname);
     rename(LogFileName, dbgname);
   }
-  assert(terminate_cond == 0);
-  exit(terminate_cond);
 }
+
+#define CleanExit(M, L, R) { CleanExitHelper((M), (L), (R)); assert(terminate_cond == 0); exit(terminate_cond); }
 
 
 static float CNS_eff_cov[37] = {

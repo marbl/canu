@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.20 2007-02-08 06:48:50 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.21 2007-02-12 22:16:55 brianwalenz Exp $";
 
 #undef DEBUG_CHECKFORCTGS
 #undef DEBUG_DETAILED
@@ -2034,7 +2034,6 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
   int32 aEndEnd = NO_END, bEndEnd = NO_END;
   CDS_COORD_t minPos = CDS_COORD_MAX;
   CDS_COORD_t maxPos = CDS_COORD_MIN;
-  int32 includesFinishedBacFragments = FALSE;
 
   contig->offsetAEnd = offsetAEnd;
   contig->offsetBEnd = offsetBEnd;
@@ -2052,8 +2051,6 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
 
     ctg->flags.bits.failedToContig = FALSE;
     ctg->flags.bits.beingContigged = TRUE; // flag the contig as being involved in a contigging operation
-
-    includesFinishedBacFragments |= ctg->flags.bits.includesFinishedBacFragments;
 
     if (pos->position.bgn < pos->position.end) {
       if (pos->position.bgn < minPos) {
@@ -2109,7 +2106,7 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
   StartTimerT(&GlobalData->ConsensusTimer);
 
   newMultiAlign = MergeMultiAlignsFast_new(ScaffoldGraph->sequenceDB,
-                                           ScaffoldGraph->fragStore,
+                                           ScaffoldGraph->gkpStore,
                                            ContigPositions,
                                            FALSE,
                                            TRUE,
@@ -2157,7 +2154,6 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
   contig->bpLength.variance = ComputeFudgeVariance(contig->bpLength.mean);
 
   contig->info.Contig.numCI =  GetNumIntUnitigPoss(newMultiAlign->u_list);
-  contig->flags.bits.includesFinishedBacFragments = includesFinishedBacFragments;
 
   {
     NodeCGW_T *extremeA = GetGraphNode(ScaffoldGraph->ContigGraph, aEndID);

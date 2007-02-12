@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: createFrgDeletes.c,v 1.5 2006-10-08 08:47:39 brianwalenz Exp $";
+static char CM_ID[] = "$Id: createFrgDeletes.c,v 1.6 2007-02-12 22:16:56 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -112,9 +112,8 @@ int main( int argc, char *argv[])
 
   }
 
-  InitGateKeeperStore(&gkpStore,GKP_Store_Name);
-  assert(TestOpenGateKeeperStore(&gkpStore) == TRUE);
-  OpenReadOnlyGateKeeperStore(&gkpStore);
+  initGateKeeperStore(&gkpStore,GKP_Store_Name);
+  openReadOnlyGateKeeperStore(&gkpStore);
 
   iidlist = fopen(iidlist_name,"r");
 
@@ -172,26 +171,21 @@ int main( int argc, char *argv[])
     /*************************/
 
     //fprintf(stderr,"Working on frgIID %d\n",fragIID);
-    rv1 = getGateKeeperFragmentStore(gkpStore.frgStore,fragIID,&gkpFrag);
+    rv1 = getGateKeeperFragmentStore(gkpStore.frg,fragIID,&gkpFrag);
 
     assert(rv1==0);
-    fragUID = gkpFrag.readUID;
+    fragUID = gkpFrag.UID;
 
     /*************************/
     // check for an appropriate mate
     /*************************/
 
-    if(gkpFrag.numLinks>0){
-      GateKeeperLinkRecordIterator iterator;
-      GateKeeperLinkRecord link;
-      CreateGateKeeperLinkRecordIterator(gkpStore.lnkStore, gkpFrag.linkHead,fragIID, &iterator);
-      while(NextGateKeeperLinkRecordIterator(&iterator, &link))
-	mateIID = (link.frag1 == fragIID) ? link.frag2 : link.frag1;
-      //      if(mateIID>fragIID){
+    if(gkpFrag.mateIID != 0){
+      mateIID = gkpFrag.mateIID;
       {
-	rv2 = getGateKeeperFragmentStore(gkpStore.frgStore,mateIID,&gkpFrag);
+	rv2 = getGateKeeperFragmentStore(gkpStore.frg,mateIID,&gkpFrag);
 	assert(rv2==0);
-	mateUID = gkpFrag.readUID;
+	mateUID = gkpFrag.UID;
 	printf("{LKG\n");
 	printf("act:D\n");
 	printf("typ:M\n");

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_store.h,v 1.4 2005-03-22 19:48:31 jason_miller Exp $
+ * $Id: AS_CGB_store.h,v 1.5 2007-02-12 22:16:55 brianwalenz Exp $
  *
  * Module: AS_CGB_store.h
  * Description: Header file for the code that reads and writes the 
@@ -175,11 +175,8 @@ typedef struct {
   VA_TYPE(char) *chunkseqs;
   VA_TYPE(char) *chunkquas;
 
-  //#ifdef SAVE_FRGSRC_IN_VA
-  VA_TYPE(char) *frag_annotations; /* The current character string 
-				      handle. */
+  VA_TYPE(char) *frag_annotations;
   VA_TYPE(char) *chunksrcs;
-  //#endif // SAVE_FRGSRC_IN_VA        
 
   //#ifdef MINIUNITIGGER
   VA_TYPE(OFGMesg)     * the_ofg_messages;

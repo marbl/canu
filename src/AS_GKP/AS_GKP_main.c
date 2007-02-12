@@ -18,62 +18,8 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.14 2007-02-09 21:17:40 brianwalenz Exp $";
 
-/*************************************************
-* Module:  AS_GKP_main.c
-* Description:
-*    Gatekeeper main
-* 
-*    Reference: GateKeeper.rtf
-*
-*    Command Line Interface:
-*        gatekeeper [-G] [-O][-af] -e <errorThreshhold> <gateKeeperStorePath> <inputFile>.<ext>
-*
-*        -a append to the gateKeeperStore (it it doesn't exist, create it )
-*        -f force the creation of a new store 
-*        -e <errorThreshhold> Set the error threshold to the value (default = 1)
-* 
-*        gatekeeperStorePath   Used to find/create a directory that will house 4 files:
-*           gkp.phash  Symbol table for UID mapping
-*                  Each UID and has a reference count.  PHash also keeps track
-*                  of IIDs that have been assigned for each class of input.
-*                  See UTL_PHash.[ch] for a more complete description.
-*
-*           gkp.frg A GateKeeperFragmentStore.  An array of GateKeeperFragmentRecords (see AS_PER_GkpStore.h)
-*                  One record per fragment.  Stores IID->UID map, and links to gkplstore for
-*                  links.
-*
-*           gkp.lnk A GateKeeperLinkStore.  An array of GateKeeperLinkRecords (see AS_PER_GkpStore.h)
-*                  One record per LKG record, and one per set of Join messages.  This is
-*                  maintained as an array of linked records.
-*
-*           gkp.bat A GateKeeperBatchStore.  An array of GateKeeperBatchRecords (see AS_PER_GkpStore.h)
-*                  One record per BAT record.
-*
-*           gkp.dst A GateKeeperDistanceStore.  An array of GateKeeperDistanceRecords (see AS_PER_GkpStore.h)
-*                  One record per DST record.
-*           gkp.s_dst A GateKeeperDistanceStore.  An array of GateKeeperDistanceRecords (see AS_PER_GkpStore.h)
-*                  One record for each redefinition of a DST.
-*
-*       gatekeeper processes the input file, reporting errors and warnings.  Any message that causes
-*       an error warning is output to stderr, along with the associated warning/error messages.
-*       Messages that are ignored due to not being appropriate are sent to <inputFile>.ign
-*       If more than <errorThreshhold> errors are detected (default 10), no output is produced.
-*       If less than <errorThreshhold> errors are detected, the output data set will be found
-*       in <inputFile>.inp, <inputFile.ign> and the gateKeeperStore will be updated.
-*
-*       See GateKeeper.rtf or AS_GKP_include.h for descriptions of the checks performed.
-*
-*    Programmer:  S. Kravitz
-*       Written:  Jan 1999
-*       Revised:  Feb 2000
-* 
-*************************************************/
-
-//#define DEBUG 1
-//#define DEBUGIO 1
-
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.15 2007-02-12 22:16:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -93,986 +39,269 @@ static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.14 2007-02-09 21:17:40 brianwalenz
 #include "AS_UTL_version.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_GKP_include.h"
-#include "AS_UTL_param_proc.h"
 
-int  nerrs = 0;   // Number of errors in current run
-int maxerrs = -1; // Number of errors allowed before we punt
-static void usage(void);
+GateKeeperStore *gkpStore;
 
-FILE *Infp, *Outfp, *Msgfp, *Ignfp, *Errfp;
-GateKeeperStore GkpStore;
-GateKeeperStore GkpStore_input;
-char *GlobalParamText  = NULL;
-
-SequenceBucketArrayT *LinkerDetector_READ;   // Used to collect stats for 1-mers - 8-mers on 5-prime ends of sequence
-SequenceBucketArrayT *Linker3pDetector_READ;   // Used to collect stats for 1-mers - 8-mers on 3-prime ends of sequence
-SequenceBucketArrayT *LinkerDetector_LBAC;   // Used to collect stats for 1-mers - 8-mers on 5-prime ends of sequence
-
-SequenceBucketArrayT *SanityDetector_READ;   // Used to collect stats for 1-mers - 8-mers on clr_rng_end -50bp of sequence
-SequenceBucketArrayT *SanityDetector_LBAC;   // Used to collect stats for 1-mers - 8-mers on clr_rng_end -50bp of sequence
-
-SequenceBucketT *SequenceProbabilities; // Used to collect stats on all sequence within clear ranges
-
-
-SequenceLengthHistogramT *Linker5pHistogram = NULL;
-SequenceLengthHistogramT *Linker3pHistogram = NULL;
-SequenceLengthHistogramT *LinkerSanityHistogram= NULL;
-
-
-/********************************************/
-
-  char  Output_File_Name_Prefix [FILENAME_MAX];
-  char  File_Name_Prefix [FILENAME_MAX];
-  char  Bac_File_Name [FILENAME_MAX];
-  char  Input_Store_Name [FILENAME_MAX];
-  char  Output_Store_Name [FILENAME_MAX];
-  char  Ignore_File_Name [FILENAME_MAX];
-  char  Error_File_Name [FILENAME_MAX];
-  char  Input_File_Name [FILENAME_MAX];
-  char  Output_File_Name [FILENAME_MAX];
-  char  Parameter_File_Name [FILENAME_MAX];
-
-#define NMER_SIGMA_THRESH (60.0)
-
-
-int  main(int argc, char * argv [])
-
-{
-  int status = 0;
-  char cmd[FILENAME_MAX * 4];
-  char tmpFilePath[FILENAME_MAX];
-  int strict = FALSE;
-  int  illegal, create, append, force, input_exists, output_exists, check_qvs, verbose, check_nmers,
-    batchNumFileNames, experimental, compatibility, inputStoreSpecified, outputStoreSpecified;
-  int assembler = AS_ASSEMBLER_GRANDE;
-  char *projectName = NULL;
-  char *param_projectName = NULL;
-  char *param_maxerrs = NULL;
-  double threshhold = NMER_SIGMA_THRESH;
-  char *parameterPath;
-  mode_t   mode = S_IRWXU | S_IRWXG | S_IROTH;
-  CDS_CID_t currentBatchID = NULLINDEX;
-  VA_TYPE(PtrT) *nmersToCheck = CreateVA_PtrT(100);
-
-  experimental = 0;
-  projectName = NULL;
-  parameterPath = NULL;
-  verbose = 0;
-  illegal = 0;
-  create = 1;
-  append = 0;
-  force = 0;
-  input_exists = 0;
-  output_exists = 0;
-  check_qvs = 1;
-  check_nmers = 1;
-  strict = FALSE;
-  compatibility = FALSE;
-  batchNumFileNames = TRUE;
-  inputStoreSpecified = outputStoreSpecified = FALSE;
-
-
-
-  /**************** Process Command Line Arguments *********************/
-  { /* Parse the argument list using "man 3 getopt". */ 
-    int ch,errflg=0;
-    optarg = NULL;
-    optind = 1;
-    while (!errflg && ((ch = getopt(argc, argv, "bfe:i:o:p:t:n:achCNGsOPQTXvd:l")) != EOF)){
-      switch(ch) {
-      case 'a':
-	append = 1;
-	create = 0;
-	force  = 0;
-	break;
-      case 'b':
-	batchNumFileNames = TRUE;
-	break;
-      case 'c':
-	create = 1;
-	break;
-      case 'd':
-	fprintf(stderr,"* option -d %s  length = " F_SIZE_T "\n", optarg, strlen(optarg));
-	if(strlen(optarg) != 8 ||
-	   (strspn(optarg,"actg") != 8)){
-	  fprintf(stderr,"* -d option must specify 8-mer from alphabet [actg]*\n");
-	  usage();
-	}
-	fprintf(stderr,"* Appending %s to nmersToCheck " F_SIZE_T "\n",
-		optarg, GetNumVA_PtrT(nmersToCheck));
-
-	{
-	  char *copy = strdup(optarg);
-	  
-	  AppendVA_PtrT(nmersToCheck, (const void *)&copy);
-	}
-	break;
-      case 'e':
-	fprintf(stderr,"* -e option optarg: %s\n", optarg);
-	maxerrs = atoi(optarg);
-	fprintf(stderr,"* maxerrs set to %d\n", maxerrs );
-	break;
-      case 'f':
-	force  = 1;
-	append = 0;
-	nerrs = 0;
-	break;
-
-      case 'h':
-	usage();
-	fprintf(stderr,"The following failures are detected:\n");
-	printAllGKPErrors(stderr);
-	exit(1);
-	break;
-
-      case 'i':
-	create = 0;
-	fprintf(stderr,"* -i %s\n", optarg);
-	strcpy(Input_Store_Name, optarg);
-	inputStoreSpecified = TRUE;
-	break;
-      case 'o':
-	fprintf(stderr,"* -o %s\n", optarg);
-	strcpy(Output_Store_Name, optarg);
-	outputStoreSpecified = TRUE;
-	break;
-      case 'p':
-	{
-	  char *allParams;
-	fprintf(stderr,"* -p %s\n", optarg);
-	strcpy(Parameter_File_Name, optarg);
-
-	/* Load parameters file */
-	loadParams(Parameter_File_Name);
-	getAllParams("gatekeeper", &allParams);
-	if(GlobalParamText){
-	  free(GlobalParamText);
-	}
-	GlobalParamText = (char *)malloc(strlen(allParams)+100);
-	sprintf(GlobalParamText,"Parameters from parameter file are:\n%s\n",
-		allParams);
-	fprintf(stderr,"* Loaded parameters %s\n", allParams);
-	
-	/* Load all command line parameters  from parameters file */
-	param_projectName = getParam("gatekeeper.project_name");
-	if(param_projectName){
-	  fprintf(stderr,"* Read Project Name: %s from parameter file\n",param_projectName);
-	}
-	param_maxerrs = getParam("gatekeeper.maxErrors");
-	if(param_maxerrs){
-	  fprintf(stderr,"* Read maxErrors: %s from parameter file\n",param_maxerrs);
-	}
-
-	}
-	break;
-      case 'n':
-	fprintf(stderr,"* Project name specified <%s> with -n argument.\n", optarg);
-	projectName = optarg;
-	break;
-      case 's':
-	strict = TRUE;
-	break;
-      case 't':
-	threshhold = atof(optarg);
-	fprintf(stderr,"** n-mer screening threshhold set to %f sigma\n", threshhold);
-	break;
-      case 'v':
-	verbose = 1;
-	break;
-      case 'C':
-	compatibility = TRUE;
-	break;
-      case 'G':
-	assembler = AS_ASSEMBLER_GRANDE;
-	break;
-      case 'N':
-	fprintf(stderr,"** n-mer screening disabled\n");
-	check_nmers = 0;
-	break;
-      case 'P':
-	fprintf(stderr, "-P depricated; default.\n");
-	break;
-      case 'Q':
-	check_qvs = 0;
-	break;
-      case 'T':
-        assembler = AS_ASSEMBLER_OBT;
-        break;
-      case 'X':
-        experimental = 1;
-	break;
-      case '?':
-	fprintf(stderr,"Unrecognized option -%c",optopt);
-      default :
-	errflg++;
-	illegal = 1;
-      }
-  }
-
-    switch (assembler) {
-      case AS_ASSEMBLER_GRANDE:  fprintf(stderr, "* Gatekeeper for Assembler Grande\n"); break;
-      case AS_ASSEMBLER_OBT:     fprintf(stderr, "* Gatekeeper for Assembler Grande with Overlap Based Trimming\n"); break;
-    }
-
-    if(force == 1 && append  == 1)
-      {
-	fprintf (stderr,
-		 "* Illegal combination of command line flags"
-		 "-- they are mutually exclusive\n");
-	illegal = 1;
-      }
-     
-    if((illegal == 1) || (argc - optind != (compatibility?2:1) ))
-      {
-	fprintf(stderr,"* argc = %d optind = %d compatibility = %d %s\n",
-		argc, optind, compatibility, argv[optind]);
-	usage();
-      }
-
-    if(compatibility){
-      batchNumFileNames = FALSE;
-      strcpy(Output_Store_Name,argv[optind++]);
-    }
-    if(optind < argc) 
-      {
-	char *suffix;
-
-	suffix = strrchr(argv[optind],(int)'.');
-       
-	fprintf(stderr,"Input file is %s suffix is %s\n",argv[optind], suffix);
-	strcpy(Input_File_Name, argv[optind]);
-	Infp = File_Open (Input_File_Name, "r", TRUE);     // frg file
-
-	if(suffix)
-	  *suffix = '\0';
-
-	strcpy(File_Name_Prefix,argv[optind]);
-
-	optind++;
-      }
-    /* End of command line parsing */
-  }
-   
-
-  if(projectName == NULL &&
-     param_projectName){
-    fprintf(stderr,"* Using project name from param file: %s\n", param_projectName);
-    projectName = param_projectName;
-  }
-  if(maxerrs == -1){
-    if(!param_maxerrs){
-      maxerrs = 1;
-      fprintf(stderr,"* Using default maxerrs: %d\n", maxerrs);
-    }else{
-      maxerrs = atol(param_maxerrs);
-      fprintf(stderr,"* Using maxerrs from param file: %d\n", maxerrs);
-    }
-  }
-
-  
-
-  if(projectName == NULL &&
-     batchNumFileNames == TRUE){
-    fprintf(stderr,"* Project Name must be specified on command line or through parameter file..exiting\n");
-    exit(1);
-  }
-  if(!experimental &&
-     compatibility){
-    fprintf(stderr,"* Compatiblity mode is only valid with -X option..exiting\n");
-    exit(1);
-  }
-     
-
-    if(compatibility){
-      /**************** Open or Create Files *********************/
-      InitGateKeeperStore(&GkpStore, Output_Store_Name);
-      output_exists = TestOpenGateKeeperStore(&GkpStore);
-      strcpy(Output_File_Name_Prefix,File_Name_Prefix);
-
-      if(force && output_exists){
-	fprintf(stderr,"* Gatekeeper Store %s exists ...nuking\n", Output_Store_Name);
-	RemoveGateKeeperStoreFiles(&GkpStore);
-	create = 1;
-	append = 0;
-      }
-
-      if(append){
-	if( output_exists == 0){
-	  fprintf(stderr,"* Directory %s DOES NOT exist ...creating before append\n", Output_Store_Name);
-	  create = 1;
-	  append = 0;
-	}else if(output_exists == -1){
-	  fprintf(stderr,"* Directory %s DOES exist ...but not all files are present...exiting\n", 
-		  Output_Store_Name);
-	  exit(1);
-	}else {
-	  fprintf(stderr,"* Directory %s DOES  exist ...\n", Output_Store_Name);
-	  append = 1;
-	  create = 0;
-	}
-      }
-
-      /* We need to make backup copies of the old stores, and
-      restore them if we hit fatal errors */
-
-      if(append){
-	fprintf(stderr,"* Appending to gateKeeperStore %s\n", Output_Store_Name);
-	sprintf(tmpFilePath,"%s___tmp", Output_Store_Name);
-
-	/* Remove temporary files if any */
-	sprintf(cmd,"rm -rf %s", tmpFilePath);
-        if(system(cmd) != 0) assert(0);
-	mkdir(tmpFilePath, mode);
-	CopyGateKeeperStoreFiles(&GkpStore, tmpFilePath);
-     
-	InitGateKeeperStore(&GkpStore, tmpFilePath);
-	OpenGateKeeperStore(&GkpStore);
-      }else  if(create){
-	char buffer[FILENAME_MAX];
-
-	fprintf(stderr,"* output_exists = %d\n", output_exists);
-	if(output_exists == 0){
-	  if(mkdir(Output_Store_Name, mode)){
-	    sprintf(buffer,"gateKeeper: Failure to create directory %s", Output_Store_Name);
-	    perror(buffer);
-	    exit(1);
-	  }
-	}
-	fprintf (stderr, "Creating NEW Store! Output_Store_Name = %s\n", Output_Store_Name);
-	CreateGateKeeperStore(&GkpStore);
-      }else{
-	fprintf(stderr,"** Serious error...bye\n");
-	exit(1);
-      }
-      currentBatchID = getNumGateKeeperBatchs(GkpStore.batStore);
-
-    }else{
-      /* First check valid store modes */
-      if((inputStoreSpecified && create) ||
-	 (outputStoreSpecified && append) ||
-	 (!outputStoreSpecified && !append) ||
-	 (!inputStoreSpecified && !create) ||
-	 (!inputStoreSpecified && !outputStoreSpecified ) ||
-	 (create && append) ||
-	 (inputStoreSpecified && outputStoreSpecified && !strcmp(Input_Store_Name, Output_Store_Name))){
-	fprintf(stderr,"* Illegal I/O combination create %d append %d input %d output %d\n",
-		create, append, inputStoreSpecified, outputStoreSpecified);
-	exit(1);
-      }
-      /* Open or create input Store */
-      if(create){
-	InitGateKeeperStore(&GkpStore, Output_Store_Name);
-	output_exists = TestOpenGateKeeperStore(&GkpStore);
-
-	if(output_exists){
-	  fprintf(stderr,"* Gatekeeper store %s exists...\n", Output_Store_Name);
-	  if(!force){
-	    fprintf(stderr,"* Output store exists...exiting\n");
-	    exit(1);
-	  }else{
-	    fprintf(stderr,"* Nuking\n");
-	    RemoveGateKeeperStoreFiles(&GkpStore);
-	  }
-	}
-	if(output_exists == 0){
-	  fprintf(stderr,"* Creating directory %s in cwd of %s\n", Output_Store_Name, getcwd(NULL, 256));
-	  mkdir(Output_Store_Name, mode);
-	}
-	CreateGateKeeperStore(&GkpStore);
-      }else if(append){
-	InitGateKeeperStore(&GkpStore_input, Input_Store_Name);
-	strcpy(Output_Store_Name, Input_Store_Name);
-	fprintf(stderr,"* Appending to gateKeeperStore %s\n", Input_Store_Name);
-	sprintf(tmpFilePath,"%s___tmp", Input_Store_Name);
-
-	/* Remove temporary files if any */
-	sprintf(cmd,"rm -rf %s", tmpFilePath);
-        if(system(cmd) != 0) assert(0);
-	fprintf(stderr,"* Creating directory %s in cwd of %s\n", tmpFilePath, getcwd(NULL, 256));
-	mkdir(tmpFilePath, mode);
-	CopyGateKeeperStoreFiles(&GkpStore_input, tmpFilePath);
-	InitGateKeeperStore(&GkpStore, tmpFilePath);
-	OpenGateKeeperStore(&GkpStore);
-
-      }else{ // normal case, reading from input writing to output
-	InitGateKeeperStore(&GkpStore, Output_Store_Name);
-	output_exists = TestOpenGateKeeperStore(&GkpStore);
-
-	if(output_exists){
-	  fprintf(stderr,"* Gatekeeper store %s exists...\n", Output_Store_Name);
-	  if(!force){
-	    fprintf(stderr,"* Output store exists...exiting\n");
-	    exit(1);
-	  }else{
-	    fprintf(stderr,"* Nuking\n");
-	    RemoveGateKeeperStoreFiles(&GkpStore);
-	  }
-	}else{
-
-	  mkdir(Output_Store_Name, mode);
-
-	}
-	fprintf(stderr,"* TestOpen of input: %s\n", Input_Store_Name);
-	InitGateKeeperStore(&GkpStore_input, Input_Store_Name);
-	input_exists = TestOpenGateKeeperStore(&GkpStore_input);
-
-	if(input_exists != 1){
-	  fprintf(stderr,"* Can't open input store...exiting\n");
-	  exit(1);
-	}
-	CopyGateKeeperStoreFiles(&GkpStore_input,Output_Store_Name);
-	OpenGateKeeperStore(&GkpStore);
-
-      }
-      currentBatchID = getNumGateKeeperBatchs(GkpStore.batStore);
-      fprintf(stderr,"* Current batch is " F_CID "\n", currentBatchID);
-      
-      sprintf(Output_File_Name_Prefix,"%s_%05" F_CIDP,projectName,currentBatchID + 1);
-	
-
-    }   
-
-  /**************** Open Files ***********************/
-  sprintf(Output_File_Name,"%s.inp",Output_File_Name_Prefix);
-
-  fprintf(stderr,"Output file is %s \n",Output_File_Name);
-  Outfp = fopen (Output_File_Name, "w");     // inp file
-
-  sprintf(Ignore_File_Name,"%s.ign",Output_File_Name_Prefix);
-  fprintf(stderr,"Ignore file is %s \n",Ignore_File_Name);
-  Ignfp = fopen (Ignore_File_Name, "w");     // ign file
-
-  sprintf(Error_File_Name,"%s.err",Output_File_Name_Prefix);
-  fprintf(stderr,"Error file is %s \n",Error_File_Name);
-  Errfp = fopen (Error_File_Name, "w");     // ign file
-
-  Msgfp = Errfp;
-
-
-  if(Outfp && Ignfp && Errfp){
-    status = GATEKEEPER_SUCCESS;
-  }else{
-    fprintf(stderr,"* Failed to open output files! Exiting...\n");
-    status = GATEKEEPER_FAILURE;
-  }	 
-
-  if(status == GATEKEEPER_SUCCESS){
-    char buffer[2048];
-
-   /**************** Set up Linker Detectors *************
-    * Each class of read-like data has its own detector  *
-    * so that a multitude of data in one class won't     *
-    * mask the problems in a different class             *
-    * These are used in checkFrag                        *
-    ******************************************************/
-    LinkerDetector_READ = CreateSequenceBucketArray(8);
-    Linker3pDetector_READ = CreateSequenceBucketArray(8);
-    LinkerDetector_LBAC = CreateSequenceBucketArray(8);
-    SanityDetector_READ = CreateSequenceBucketArray(8);
-    SanityDetector_LBAC = CreateSequenceBucketArray(8);
-
-    sprintf(buffer,"%s_%s", Output_File_Name_Prefix, "5p");
-    Linker5pHistogram = CreateSequenceLengthHistogram(8,buffer);
-    sprintf(buffer,"%s_%s", Output_File_Name_Prefix, "3p");
-    Linker3pHistogram = CreateSequenceLengthHistogram(8,buffer);
-    sprintf(buffer,"%s_%s", Output_File_Name_Prefix, "Sanity");
-    LinkerSanityHistogram = CreateSequenceLengthHistogram(8,buffer);
-
-
-    {
-      size_t i;
-
-      for(i = 0; i < GetNumVA_PtrT(nmersToCheck); i++){
-	char *nmer = *(char **)GetVA_PtrT(nmersToCheck, i);
-	fprintf(stderr,"* ActivatingSequenceLengthHistogram for nmer %s\n", nmer);
-	ActivateSequenceLengthHistogram(Linker5pHistogram,nmer);
-	ActivateSequenceLengthHistogram(Linker3pHistogram,nmer);
-	ActivateSequenceLengthHistogram(LinkerSanityHistogram,nmer);
-      }
-    }
-
-
-    /**************** CreateTable  *********************/
-
-    InitQualityToFractionError();
-
-
-
-    /* This is used to collect the global probabilities of each
-      base in the input set.  Used as input to check the sanity
-      of the data collected in the bucket arrays */
-    SequenceProbabilities = CreateSequenceBucket(1);
-
-    /**************** Process Input  *********************/
-
-    status = ReadFile(check_qvs,
-		      check_nmers,
-		      currentBatchID,
-		      assembler,
-		      strict,
-		      argc, argv,
-		      verbose);
-
-
-    if(check_nmers){
-      /* now check that the n-mer probablities we've collected are OK */
-      CheckNmerProbabilities(Msgfp, threshhold);
-    }
-  }
-
-   /**************** Close files   *********************/
-   if(status == GATEKEEPER_SUCCESS){ //  OK to update persistent data and generate output
-     /* Remove temporary files if any */
-     fprintf(stderr,"#  Successful run with %d errors < %d maxerrs ..removing temp backup files\n",
-	     nerrs , maxerrs);
-     if(append){
-       CloseGateKeeperStore(&GkpStore);
-       sprintf(cmd,"mv  %s/* %s", tmpFilePath, Output_Store_Name);
-       fprintf(stderr,"* %s\n", cmd);
-       if(system(cmd) != 0) assert(0);
-       sprintf(cmd,"rm -rf %s ", tmpFilePath);
-       fprintf(stderr,"* Removing temp output store: %s\n",cmd);
-       if(system(cmd) != 0) assert(0);
-     }else{
-       CloseGateKeeperStore(&GkpStore);
-     }
-   }else{
-     fprintf(stderr, "# ReadFile() failed - see %s for details\n",
-	     Error_File_Name);
-     fprintf(stderr,"# Too Many Errors -- removing output and exiting "
-	     "output_exists = %d\n", output_exists);
-
-     if (unlink(Output_File_Name) < 0) {
-       fprintf(stderr, "%s:%d - unlink(%s) failed: %s\n",
-	       __FILE__, __LINE__, Output_File_Name,
-	       strerror(errno));
-       exit(1);
-     }
-
-     if (unlink(Ignore_File_Name) < 0) {
-       fprintf(stderr, "%s:%d - unlink(%s) failed: %s\n",
-	       __FILE__, __LINE__, Ignore_File_Name,
-	       strerror(errno));
-       exit(1);
-     }
-
-     if(append){
-       sprintf(cmd,"rm -rf %s ", tmpFilePath);
-       fprintf(stderr,"* Removing temp output store: %s\n",cmd);
-       if(system(cmd) != 0) assert(0);
-     }else{
-       CloseGateKeeperStore(&GkpStore);
-       RemoveGateKeeperStoreFiles(&GkpStore);
-       if ((output_exists == 0)) {
-         fprintf(stderr,"* Removing output store: %s ", Output_Store_Name);
-         if (rmdir(Output_Store_Name) < 0) {
-           fprintf(stderr, "%s:%d - rmdir(%s) failed: %s\n",
-              __FILE__, __LINE__, Output_Store_Name, strerror(errno));
-           exit(1);
-         }
-       }
-     }
-   }
-   fclose (Errfp);
-   fclose (Ignfp);
-   fclose (Infp);
-   fclose (Outfp);
-
-   exit(status != GATEKEEPER_SUCCESS);
-}
-
-
-/******************************************************************************/
-
-
-
-int incrementErrors(int num, FILE *msgFile){
-  //  fprintf(msgFile,"* incrementErrors by %d -- (%d,%d)\n",
-  //  num, nerrs, maxerrs);
-  nerrs += num;
-  if(nerrs >= maxerrs){
-    fprintf(msgFile, "GateKeeper: max allowed errors reached %d > %d...bye\n",
-	    nerrs, maxerrs);
-    return(GATEKEEPER_FAILURE);
-  }
-  //fprintf(stderr,"* incrementErrors returning SUCCESS\n");
-  return(GATEKEEPER_SUCCESS);
-}
-
-/********************************************************************************/
-/********************************************************************************/
-/* function ReadFile:
-   Read the input stream, and invoke the appropriate check routines.
-
- */
-int ReadFile(int check_qvs,
-	     int check_nmers,
-	     CDS_CID_t currentBatchID,
-	     int32 assembler,
-	     int32 strict, 
-	     int argc, char **argv,
-	     int32 verbose){
-
-
-  MessageType imesgtype;
-  GenericMesg   *pmesg;
-  time_t currentTime = time(0);
-  int messageCount = 0;
-
-  /* Read maxFrags fragments from the stream, adding their accession numbers, and
-     those of the DST records to their respective hash tables */
-
-  while(  EOF != ReadProtoMesg_AS(Infp, &pmesg)) {
-
-    messageCount++;
-    imesgtype = pmesg->t;
-
-    if(messageCount == 1 && imesgtype != MESG_BAT){
-      fprintf(Msgfp,"# First message must be {BAT\n");
-      WriteProtoMesg_AS(Msgfp,pmesg);
-      return GATEKEEPER_FAILURE;
-    }
-
-    switch(imesgtype){
-
-    case MESG_BAT:
-      {
-	InternalBatchMesg iba_mesg;
-	BatchMesg *bat_mesg = (BatchMesg *)pmesg->m;
-	int gkp_result;
-
-	
-
-	if(messageCount != 1){
-	  fprintf(Msgfp,"\n\n# Line %d of input (message %d)\n", GetProtoLineNum_AS(), messageCount);
-	  printGKPError(Msgfp, GKPError_FirstMessageBAT);
-	  WriteProtoMesg_AS(Msgfp,pmesg);
-	  return GATEKEEPER_FAILURE;
-	}
-
-	gkp_result = Check_BatchMesg(bat_mesg, &iba_mesg, currentTime, verbose);
-
-	switch(gkp_result){
-
-	case GATEKEEPER_SUCCESS:
-	  pmesg->t = MESG_IBA;
-	  pmesg->m = &iba_mesg;
-	  WriteProtoMesg_AS(Outfp,pmesg);      
-	  currentBatchID = iba_mesg.iaccession;
-	  fprintf(stderr,"Gatekeeper reading batch " F_IID "\n",
-		  iba_mesg.iaccession);
-	  break;
-	case GATEKEEPER_WARNING:
-	case GATEKEEPER_FAILURE:
-	  fprintf(Msgfp,"# Invalid BAT message at Line %d of input...exiting\n", GetProtoLineNum_AS());
-	  WriteProtoMesg_AS(Msgfp,pmesg);      
-	  return GATEKEEPER_FAILURE;
-	  break;
-	default:
-	  assert(0);
-	}
-
-      }
-      break;
-
-    case MESG_DST:
-      {
-	DistanceMesg  *dst_mesg = (DistanceMesg *)pmesg->m;
-	InternalDistMesg idt_mesg;
-
-#ifdef DEBUGIO
-	fprintf(Msgfp,"Read DST message with accession " F_UID " (%d)\n", 
-		dst_mesg->eaccession,
-		dst_mesg->action);
-#endif
-
-	if(GATEKEEPER_SUCCESS == 
-	   Check_DistanceMesg(dst_mesg, &idt_mesg, currentBatchID,  verbose)){
-	   pmesg->m = &idt_mesg;
-	   pmesg->t = MESG_IDT;
-           WriteProtoMesg_AS(Outfp,pmesg);      
-	}else{
-	  fprintf(Msgfp,"# Line %d of input\n", GetProtoLineNum_AS());
-	   WriteProtoMesg_AS(Msgfp,pmesg);      
-	  if(incrementErrors(1, Msgfp) == GATEKEEPER_FAILURE){
-	    return GATEKEEPER_FAILURE;
-	  }
-	}
-      }
-      break;
-
-    case MESG_FRG:
-      {
-	/* Put the record where it belongs in the array.
-	   This array is indexed by the overlaps. */
-
-	FragMesg   *frg_mesg = (FragMesg *)pmesg->m;
-	InternalFragMesg ifg_mesg;
-	
-#ifdef DEBUGIO
-	fprintf(Msgfp,"Read FRG message with accession " F_UID "\n",
-		frg_mesg->eaccession);
-#endif
-	if(GATEKEEPER_SUCCESS == 
-	   Check_FragMesg(frg_mesg, &ifg_mesg, check_nmers, check_qvs, currentBatchID, currentTime, assembler,  verbose)){
-
-	  pmesg->m = &ifg_mesg;
-	  pmesg->t = MESG_IFG;
-
-          WriteProtoMesg_AS(Outfp,pmesg);      
-	}else{
-	  fprintf(Msgfp,"# Line %d of input\n", GetProtoLineNum_AS());
-	  WriteProtoMesg_AS(Msgfp,pmesg);      
-	  if(incrementErrors(1, Msgfp) == GATEKEEPER_FAILURE){
-	    return GATEKEEPER_FAILURE;
-	  }
-	}
-
-      }
-      break;
-
-    case MESG_LKG:
-      {
-	/* Put the record where it belongs in the array.
-	   This array is indexed by the overlaps. */
-	LinkMesg   *lnk_mesg = (LinkMesg *)pmesg->m;
-	InternalLinkMesg ilk_mesg;
-	int gkp_result;
-
-
-#ifdef DEBUGIO
-	fprintf(Msgfp,"Read LNK message with accessions "
-		F_UID " , " F_UID "\n", 
-		lnk_mesg->frag1, lnk_mesg->frag2);
-#endif
-	gkp_result = 
-	  Check_LinkMesg(lnk_mesg, &ilk_mesg, currentBatchID, currentTime, verbose);
-
-	switch(gkp_result){
-	case GATEKEEPER_WARNING:
-	  fprintf(Msgfp,"# Line %d of input\n", GetProtoLineNum_AS());
-	  WriteProtoMesg_AS(Msgfp,pmesg);      
-	case GATEKEEPER_SUCCESS:
-#ifdef OLD
-	  /**************************** We DON'T output ILK messages anymore *********************************/
-	  pmesg->m = &ilk_mesg;
-	  pmesg->t = MESG_ILK;
-	  WriteProtoMesg_AS(Outfp,pmesg);      
-#endif
-	  break;
-	case GATEKEEPER_FAILURE:
-	  fprintf(Msgfp,"# Line %d of input\n", GetProtoLineNum_AS());
-	  WriteProtoMesg_AS(Msgfp,pmesg);      
-	  if(incrementErrors(1, Msgfp) == GATEKEEPER_FAILURE){
-	    return GATEKEEPER_FAILURE;
-	  }
-	  break;
-	}
-      }
-      break;
-
-
-
-
-    case MESG_ADT:
-      {
-	AuditLine auditLine;
-	AuditMesg *adt_mesg;
-        char *params = (char *) malloc(200);
-	char * emptyString = "";
-        sprintf(params,
-         "\nQV_MAX_ERROR: %5.4f\nQV_WINDOW_WIDTH: %3d\nQV_WINDOW_ERROR: %5.4f\n",
-         GATEKEEPER_MAX_ERROR_RATE,
-         GATEKEEPER_QV_WINDOW_WIDTH,
-         GATEKEEPER_QV_WINDOW_THRESH);
-	adt_mesg = (AuditMesg *)(pmesg->m);
-	pmesg->t = MESG_ADT;
-
-	VersionStampADTWithCommentAndVersion(
-	    adt_mesg, 
-            argc, 
-            argv, 
-	    // Next param assumed const -- Jason, 6/01.
-            (GlobalParamText?GlobalParamText:emptyString),
-            "(blank)");
-        AppendAuditLine_AS(
-            adt_mesg, 
-	    &auditLine, 
-	    currentTime, 
-	    argv[0], "",
-	    params);
-
-	WriteProtoMesg_AS(Outfp,pmesg);
-        free(params);
-	
-
-      }
-      break;
-
-    default:
-      fprintf(Msgfp,"# ERROR: Read Message with type %s line %d...skipping\n", MessageTypeName[imesgtype],
-	      GetProtoLineNum_AS());
-	  WriteProtoMesg_AS(Msgfp,pmesg);      
-	  if(incrementErrors(1, Msgfp) == GATEKEEPER_FAILURE){
-	    return GATEKEEPER_FAILURE;
-	  }
-      break;
-    }
-  }
-
-  return(GATEKEEPER_SUCCESS);
-}
-
-
-
-
-/***************************************************************************************/
-void printGKPError(FILE *fout, GKPErrorType type){
+void
+printGKPError(FILE *fout, GKPErrorType type){
 
   switch(type){
-    case GKPError_Invalid:
-      fprintf(stderr,"# printGKPError: Invalid error type %d\n", (int)type);
-      break;
-
     case GKPError_FirstMessageBAT:
       fprintf(fout,"# GKP Error %d: First message MUST be BAT\n",(int)type);
       break;
+    case GKPError_BadUniqueBAT:
+      fprintf(fout,"# GKP Error %d: UID of batch definition was previously seen\n",(int)type);
+      break;
+    case GKPError_BadUniqueFRG:
+      fprintf(fout,"# GKP Error %d: UID of fragment definition was previously seen\n",(int)type);
+      break;
+    case GKPError_BadUniqueLIB:
+      fprintf(fout,"# GKP Error %d: UID of library definition was previously seen\n",(int)type);
+      break;
+    case GKPError_MissingFRG:
+      fprintf(fout,"# GKP Error %d: Fragment not previously defined\n",(int)type);
+      break;
+    case GKPError_MissingLIB:
+      fprintf(fout,"# GKP Error %d: Library not previously defined\n",(int)type);
+      break;
+    case GKPError_DeleteFRG:
+      fprintf(fout,"# GKP Error %d: Can't delete Fragment\n",(int)type);
+      break;
+    case GKPError_DeleteLIB:
+      fprintf(fout,"# GKP Error %d: Can't delete Library\n",(int)type);
+      break;
+    case GKPError_DeleteLNK:
+      fprintf(fout,"# GKP Error %d: Can't delete Link\n",(int)type);
+      break;
+    case GKPError_Time:
+      fprintf(fout,"# GKP Error %d: Invalid creation time\n",(int)type);
+      break;
+    case GKPError_Action:
+      fprintf(fout,"# GKP Error %d: Invalid action\n",(int)type);
+      break;
+    case GKPError_Scalar:
+      fprintf(fout,"# GKP Error %d: Invalid scalar\n",(int)type);
+      break;
+    case GKPError_FRGSequence:
+      fprintf(fout,"# GKP Error %d: Invalid fragment sequence characters\n",(int)type);
+      break;
+    case GKPError_FRGQuality:
+      fprintf(fout,"# GKP Error %d: Invalid fragment quality characters\n",(int)type);
+      break;
+    case GKPError_FRGLength:
+      fprintf(fout,"# GKP Error %d: Invalid fragment length\n",(int)type);
+      break;
+    case GKPError_FRGClrRange:
+      fprintf(fout,"# GKP Error %d: Invalid fragment clear range must be 0<=clr1<clr2<=length\n",(int)type);
+      break;
+    case GKPError_FRGLocalPos:
+      fprintf(fout,"# GKP Error %d: Invalid fragment locale pos\n",(int)type);
+      break;
+    case GKPError_FRGQualityWindow:
+      fprintf(fout,"# GKP Error %d: Bad fragment window quality\n",(int)type);
+      break;
+    case GKPError_FRGQualityGlobal:
+      fprintf(fout,"# GKP Error %d: Bad fragment global quality\n",(int)type);
+      break;
+    case GKPError_FRGQualityTail:
+      fprintf(fout,"# GKP Error %d: Bad fragment tail quality\n",(int)type);
+      break;
+    case GKPError_LNKFragLibMismatch:
+      fprintf(fout,"# GKP Error %d: Link fragment library mismatch\n",(int)type);
+      break;
+    case GKPError_LNKOneLink:
+      fprintf(fout,"# GKP Error %d: Violation of unique mate/bacend link per fragment\n",(int)type);
+      break;
+    case GKPError_DSTValues:
+      fprintf(fout,"# GKP Error %d: DST mean,stddev must be >0 and mean must be >= 3 * stddev\n",(int)type);
+      break;
+    default:
+      fprintf(stderr,"#### printGKPError: error type %d\n", (int)type);
+      break;
+  }
+}
 
-  case GKPError_BadUniqueBAT:
-    fprintf(fout,"# GKP Error %d: UID of batch definition was previously seen\n",(int)type);
-    break;
-  case GKPError_BadUniqueFRG:
-    fprintf(fout,"# GKP Error %d: UID of fragment definition was previously seen\n",(int)type);
-    break;
-  case GKPError_BadUniqueDST:
-    fprintf(fout,"# GKP Error %d: UID of distance definition was previously seen\n",(int)type);
-    break;
-  case GKPError_BadUniqueSEQ:
-    fprintf(fout,"# GKP Error %d: UID of Sequence definition was previously seen\n",(int)type);
-    break;
 
-  case GKPError_MissingFRG:
-    fprintf(fout,"# GKP Error %d: Fragment not previously defined\n",(int)type);
-    break;
-  case GKPError_MissingDST:
-    fprintf(fout,"# GKP Error %d: Distance not previously defined\n",(int)type);
-    break;
-  case GKPError_MissingSEQ:
-    fprintf(fout,"# GKP Error %d: Sequence not previously defined\n",(int)type);
-    break;
 
-  case GKPError_DeleteFRG:
-    fprintf(fout,"# GKP Error %d: Can't delete Fragment\n",(int)type);
-    break;
-  case GKPError_DeleteDST:
-    fprintf(fout,"# GKP Error %d: Can't delete Distance\n",(int)type);
-    break;
-  case GKPError_DeleteLNK:
-    fprintf(fout,"# GKP Error %d: Can't delete LNK\n",(int)type);
-    break;
+static
+void
+usage(char *filename) {
+  fprintf(stderr, "usage: %s [-aiefnopsCGPNQX] <input.frg> <input.frg> ...\n", filename);
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Opens <Input> to read .frg input\n");
+  fprintf(stderr, "Creates GateKeeperFragmentStore in <output_store_name>\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "  -a                     append to existing tore\n");
 
-  case GKPError_Time:
-    fprintf(fout,"# GKP Error %d: Invalid creation time\n",(int)type);
-    break;
+  fprintf(stderr, "  -e <errorThreshhold>   set error threshhold\n");
 
-  case GKPError_Action:
-    fprintf(fout,"# GKP Error %d: Invalid action\n",(int)type);
-    break;
+  fprintf(stderr, "  -h                     print usage\n");
+  fprintf(stderr, "  -H                     print error messages\n");
 
-  case GKPError_Scalar:
-    fprintf(fout,"# GKP Error %d: Invalid scalar\n",(int)type);
-    break;
+  fprintf(stderr, "  -o <gkpStore>\n");
 
-  case GKPError_FRGSequence:
-    fprintf(fout,"# GKP Error %d: Invalid fragment sequence characters\n",(int)type);
-    break;
+  fprintf(stderr, "  -v                     enable verbose mode\n");
 
-  case GKPError_FRGQuality:
-    fprintf(fout,"# GKP Error %d: Invalid fragment quality characters\n",(int)type);
-    break;
-  case GKPError_FRGLength:
-    fprintf(fout,"# GKP Error %d: Invalid fragment length\n",(int)type);
-    break;
-  case GKPError_FRGClrRange:
-    fprintf(fout,"# GKP Error %d: Invalid fragment clear range must be 0<=clr1<clr2<=length\n",(int)type);
-    break;
+  fprintf(stderr, "  -G                     gatekeeper for assembler Grande (default)\n");
+  fprintf(stderr, "  -T                     gatekeeper for assembler Grande with Overlap Based Trimming\n");
 
-  case GKPError_FRGLocalPos:
-    fprintf(fout,"# GKP Error %d: Invalid fragment locale pos\n",(int)type);
-    break;
+  fprintf(stderr, "  -Q                     don't check quality-based data quality\n");
+}
 
-  case GKPError_FRGAccession:
-    fprintf(fout,"# GKP Error %d: Invalid accession for BAC or Bactig fragment\n",(int)type);
-    break;
 
-  case GKPError_LNKFragtypeMismatch:
-    fprintf(fout,"# GKP Error %d: Link fragment type mismatch\n",(int)type);
-    break;
 
-  case GKPError_LNKOneLink:
-    fprintf(fout,"# GKP Error %d: Violation of unique mate/bacend link per fragment\n",(int)type);
-    break;
+int
+main(int argc, char **argv) {
+  int              append          = 0;
+  int              outputExists    = 0;
+  int              verbose         = 0;
+  int              check_qvs       = 1;
+  int              assembler       = AS_ASSEMBLER_GRANDE;
+  CDS_CID_t        currentBatchID  = NULLINDEX;
 
-  case GKPError_DSTValues:
-    fprintf(fout,"# GKP Error %d: DST mean,stddev must be >0 and mean must be >= 3 * stddev\n",(int)type);
-    break;
-  
-  default:
-    fprintf(stderr,"#### printGKPError: error type %d\n", (int)type);
-    break;
+  char            *gkpStoreName    = NULL;
 
+  time_t           currentTime     = time(0);
+
+  int              nerrs           = 0;   // Number of errors in current run
+  int              maxerrs         = 1;   // Number of errors allowed before we punt
+
+  int              firstFileArg    = 0;
+
+  int arg = 1;
+  int err = 0;
+  while (arg < argc) {
+    if        (strcmp(argv[arg], "-a") == 0) {
+      append = 1;
+    } else if (strcmp(argv[arg], "-e") == 0) {
+      maxerrs = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-h") == 0) {
+      err++;
+    } else if (strcmp(argv[arg], "-H") == 0) {
+      int i;
+      fprintf(stderr,"The following failures are detected:\n");
+      for(i=1; i<=MAX_GKPERROR; i++)
+        printGKPError(stderr, (GKPErrorType)i);
+      exit(0);
+    } else if (strcmp(argv[arg], "-o") == 0) {
+      gkpStoreName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-v") == 0) {
+      verbose = 1;
+
+    } else if (strcmp(argv[arg], "-G") == 0) {
+      assembler = AS_ASSEMBLER_GRANDE;
+    } else if (strcmp(argv[arg], "-T") == 0) {
+      assembler = AS_ASSEMBLER_OBT;
+    } else if (strcmp(argv[arg], "-Q") == 0) {
+      check_qvs = 0;
+    } else if (strcmp(argv[arg], "--") == 0) {
+      firstFileArg = arg++;
+      arg = argc;
+    } else if (argv[arg][0] == '-') {
+      fprintf(stderr, "unknown option '%s'\n", argv[arg]);
+      err++;
+    } else {
+      firstFileArg = arg;
+      arg = argc;
     }
+
+    arg++;
+  }
+  if ((err) || (gkpStoreName == NULL) || (firstFileArg == 0)) {
+    usage(argv[0]);
+    exit(1);
+  }
+
+
+  outputExists = testOpenGateKeeperStore(gkpStoreName, FALSE);
+
+  if ((append == 0) && (outputExists == 1)) {
+    fprintf(stderr,"* Gatekeeper Store %s exists and append flag not supplied.  Exit.\n", gkpStoreName);
+    exit(1);
+  }
+  if ((append == 1) && (outputExists == 0)) {
+    //  Silently switch over to create
+    append = 0;
+  }
+  if ((append == 0) && (outputExists == 1)) {
+    fprintf(stderr,"* Gatekeeper Store %s exists, but not told to append.  Exit.\n", gkpStoreName);
+    exit(1);
+  }
+
+  if (append)
+    gkpStore = openGateKeeperStore(gkpStoreName, TRUE);
+  else
+    gkpStore = createGateKeeperStore(gkpStoreName);
+
+  currentBatchID = getNumGateKeeperBatchs(gkpStore->bat);
+
+  for (; firstFileArg < argc; firstFileArg++) {
+    FILE            *inFile       = NULL;
+    GenericMesg     *pmesg        = NULL;
+    int              messageCount = 0;
+
+    errno = 0;
+    inFile = fopen(argv[firstFileArg], "r");
+    if (errno) {
+      fprintf(stderr, "%s: failed to open input '%s': %s\n", argv[0], argv[firstFileArg], strerror(errno));
+      exit(1);
+    }
+
+    while (EOF != ReadProtoMesg_AS(inFile, &pmesg)) {
+      messageCount++;
+
+      if (((messageCount == 1) && (pmesg->t != MESG_BAT)) ||
+          ((messageCount != 1) && (pmesg->t == MESG_BAT))) {
+        printGKPError(stderr, GKPError_FirstMessageBAT);
+        WriteProtoMesg_AS(stderr,pmesg);
+        return GATEKEEPER_FAILURE;
+      }
+
+      if (pmesg->t == MESG_BAT) {
+        if (GATEKEEPER_SUCCESS != Check_BatchMesg((BatchMesg *)pmesg->m, &currentBatchID, currentTime, verbose)) {
+          fprintf(stderr,"# Invalid BAT message at Line %d of input...exiting\n", GetProtoLineNum_AS());
+          WriteProtoMesg_AS(stderr,pmesg);
+          return GATEKEEPER_FAILURE;
+        }
+	
+      } else if (pmesg->t == MESG_DST) {
+        if (GATEKEEPER_SUCCESS != Check_LibraryMesg((DistanceMesg *)pmesg->m, currentBatchID, verbose)){
+          fprintf(stderr,"# Line %d of input\n", GetProtoLineNum_AS());
+          WriteProtoMesg_AS(stderr,pmesg);
+          nerrs++;
+        }
+
+      } else if (pmesg->t == MESG_FRG) {
+        if (GATEKEEPER_SUCCESS != Check_FragMesg((FragMesg *)pmesg->m, check_qvs, currentBatchID, currentTime, assembler, verbose)){
+          fprintf(stderr,"# Line %d of input\n", GetProtoLineNum_AS());
+          WriteProtoMesg_AS(stderr,pmesg);
+          nerrs++;
+        }
+
+      } else if (pmesg->t == MESG_LKG) {
+        if (GATEKEEPER_SUCCESS != Check_LinkMesg((LinkMesg *)pmesg->m, currentBatchID, currentTime, verbose)) {
+          fprintf(stderr,"# Line %d of input\n", GetProtoLineNum_AS());
+          WriteProtoMesg_AS(stderr,pmesg);
+          nerrs++;
+        }
+
+      } else {
+        fprintf(stderr,"# ERROR: Read Message with type %s...skipping!\n", MessageTypeName[pmesg->t]);
+        WriteProtoMesg_AS(stderr,pmesg);
+        nerrs++;
+      }
+
+      if (nerrs >= maxerrs) {
+        fprintf(stderr, "GateKeeper: max allowed errors reached %d > %d...bye\n", nerrs, maxerrs);
+        return(GATEKEEPER_FAILURE);
+      }
+    }
+
+    fclose(inFile);
+  }
+
+  closeGateKeeperStore(gkpStore);
+
+  exit(0);
 }
-
-
-void printAllGKPErrors(FILE *fout){
-  int i;
-  for(i =1; i <= MAX_GKPERROR; i++){
-    printGKPError(stderr, (GKPErrorType)i);
- } 
-}
-
-
-
-
-int32   CheckNmerProbabilities(FILE *fout, double threshhold){
-  float32 *probs;
-
-  ComputeBucketActualRates(SequenceProbabilities);
-  probs = SequenceProbabilities->arate;
-
-  fprintf(stderr,"* Global probabilities  P(a) = %6g P(c) = %6g P(g) = %6g P(t) = %6g\n",
-	  probs[0], probs[1], probs[2], probs[3]);
-
-  CheckSequenceBucketArraySanity(LinkerDetector_READ, SanityDetector_READ, probs, threshhold, fout,"#linker5p READ");
-  CheckSequenceBucketArraySanity(Linker3pDetector_READ, SanityDetector_READ, probs, threshhold, fout,"#linker3p READ");
-
-  return GATEKEEPER_SUCCESS;
-}
-
- static void usage(void){
-	fprintf (stderr, "USAGE:  gatekeeper [-aiefnopsCGPNQX] <Output_Store_Name> <Input>.<ext>\n"
-		 "Opens <Input>.<ext> to read .frg input\n"
-		 "Creates GateKeeperFragmentStore in <Output_Store_Name>\n"
-		 "Writes output to <InputFileName>.inp\n"
-		 "  -a  append to Store\n"
-		 "  -b  batchNumFileNames on\n"
-		 "  -c  create new Store\n"
-		 "  -d <8-mer>  Do clear range length histograms for fragments with the nmer at their 3p,5p,Sanity\n"
-		 "  -e <errorThreshhold>  set error threshhold\n"
-		 "  -f  force new Store\n"
-		 "  -h  print usage and error messages\n"
-		 "  -i  <input store>\n"
-		 "  -n  <projectname>\n"
-		 "  -o  <output store>\n"
-		 "  -s  strict enforcement of -G -O rules\n"
-		 "  -t <float>  threshhold for frequent n-mer check in units of std deviations\n"
-		 "  -G  gatekeeper for assembler Grande (default)\n"
-		 "  -T  gatekeeper for assembler Grande with Overlap Based Trimming\n"
-		 "  -C  compatiblity mode\n"
-		 "  -N  don't check n-mer frequencies\n"
-		 "  -Q  don't check quality-based data quality\n"
-		 "  -X  enable experimental switches\n"
-		 );
-	exit (EXIT_FAILURE);
- }

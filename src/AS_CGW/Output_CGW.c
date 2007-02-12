@@ -18,14 +18,13 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Output_CGW.c,v 1.17 2007-02-08 06:48:50 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Output_CGW.c,v 1.18 2007-02-12 22:16:55 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
 #include "UtilsREZ.h"
-#include "AS_PER_fragStore.h"
 #include "AS_CGW_dataTypes.h"
 #include "ScaffoldGraph_CGW.h"
 #include "ScaffoldGraphIterator_CGW.h"
@@ -152,7 +151,7 @@ void OutputFrags(ScaffoldGraphT *graph){
     af_mesg.chimeric = 0;
 
 #if 0
-    getFragStore( ScaffoldGraph->fragStore, i, FRAG_S_ALL, fsread);
+    getFrag( ScaffoldGraph->gkpStore, i, fsread, FRAG_S_INF);
     getClearRegion_ReadStruct( fsread, &clr_bgn_orig, &clr_end_orig, READSTRUCT_ORIGINAL);
     getClearRegion_ReadStruct( fsread, &clr_bgn_latest, &clr_end_latest, READSTRUCT_LATEST);
 

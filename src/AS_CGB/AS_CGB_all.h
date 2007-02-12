@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- $Id: AS_CGB_all.h,v 1.9 2007-01-29 20:40:56 brianwalenz Exp $
+ $Id: AS_CGB_all.h,v 1.10 2007-02-12 22:16:55 brianwalenz Exp $
  Module: Chunk Graph Builder
  Description: A catch-all include file for the Chunk Graph Builder
  Assumptions:
@@ -28,9 +28,6 @@
 
 #ifndef AS_CGB_ALL_INCLUDE
 #define AS_CGB_ALL_INCLUDE
-
-/* Condition Compilation */
-#undef SAVE_FRGSRC_IN_VA
 
 #undef STORE_BRANCH_POINTS_AT_FRAGMENT
 
@@ -67,7 +64,6 @@
 /* Celera Assembler include files */
 #include "AS_global.h"
 #include "AS_PER_ReadStruct.h"
-#include "AS_PER_fragStore.h"
 #include "AS_UTL_Var.h"
 #include "AS_UTL_param_proc.h"
 

@@ -62,7 +62,6 @@ SOURCES = $(LIB_SOURCES) \
           AS_CGB_iid2cid.c \
           AS_CGB_fom2uom.c \
           check_breakers.c \
-          make_OFG_from_FragStore.c \
           miniunitigger_test.c
 OBJECTS = $(SOURCES:.c=.o)
 
@@ -72,7 +71,6 @@ PROGS = unitigger \
         AS_CGB_fom2uom \
         AS_CGB_iid2cid \
         check_breakers \
-        make_OFG_from_FragStore \
         miniunitigger_test
 
 # Include for AS project rules
@@ -90,8 +88,6 @@ all: $(OBJECTS) $(LIBRARIES) $(PROGS) install
 libAS_CGB.a: $(LIB_OBJECTS)
 
 libCA.a: $(LIB_OBJECTS)
-
-make_OFG_from_FragStore: make_OFG_from_FragStore.o libAS_PER.a libAS_UTL.a 
 
 miniunitigger_test: miniunitigger_test.o $(LIB_OBJECTS) libCA.a
 

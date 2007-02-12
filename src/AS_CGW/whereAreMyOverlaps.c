@@ -120,7 +120,7 @@ void print_olap(Long_Olap_Data_t olap){
 }
 
 void usage(char *pgm){
-  fprintf (stderr, "USAGE:  %s -f <FragStoreName> -g <GatekeeperStoreName> -o <OVLStoreName> -c <CkptFileName> -n <CkpPtNum>\n",
+  fprintf (stderr, "USAGE:  %s -g <GatekeeperStoreName> -o <OVLStoreName> -c <CkptFileName> -n <CkpPtNum>\n",
            pgm);
 }
 
@@ -128,7 +128,6 @@ int main (int argc , char * argv[] ) {
 
   Global_CGW *data;
   char *prefix;
-  int setFragStore = FALSE;
   int setGatekeeperStore = FALSE;
   int setOvlStore = FALSE;
   int setPrefixName = FALSE;
@@ -150,15 +149,11 @@ int main (int argc , char * argv[] ) {
   { /* Parse the argument list using "man 3 getopt". */ 
     int ch,errflg=0;
     optarg = NULL;
-    while (!errflg && ((ch = getopt(argc, argv,"c:f:g:n:1:2:o:")) != EOF)){
+    while (!errflg && ((ch = getopt(argc, argv,"c:g:n:1:2:o:")) != EOF)){
       switch(ch) {
         case 'c':
           strcpy( data->File_Name_Prefix, argv[optind - 1]);
           setPrefixName = TRUE;		  
-          break;
-        case 'f':
-          strcpy( data->Frag_Store_Name, argv[optind - 1]);
-          setFragStore = TRUE;
           break;
         case 'g':
           strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
@@ -178,9 +173,9 @@ int main (int argc , char * argv[] ) {
       }
     }
 
-    if((setPrefixName == FALSE) || (setFragStore == 0) || (setGatekeeperStore == 0) || ( setOvlStore == 0)){
-      fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d\n",
-              argc, optind, setFragStore,setGatekeeperStore);
+    if((setPrefixName == FALSE) || (setGatekeeperStore == 0) || ( setOvlStore == 0)){
+      fprintf(stderr,"* argc = %d optind = %d setGatekeeperStore = %d\n",
+              argc, optind, setGatekeeperStore);
 
       usage(argv[0]);
       exit (-1);

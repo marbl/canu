@@ -18,7 +18,9 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_ReadStruct.c,v 1.9 2007-02-08 06:48:54 brianwalenz Exp $";
+
+static char CM_ID[] = "$Id: AS_PER_ReadStruct.c,v 1.10 2007-02-12 22:16:58 brianwalenz Exp $";
+
 /*************************************************************************
  Module:  AS_PER_ReadStruct
  Description:
@@ -30,7 +32,7 @@ static char CM_ID[] = "$Id: AS_PER_ReadStruct.c,v 1.9 2007-02-08 06:48:54 brianw
  Document:
       FragStore.rtf
 
- *************************************************************************/
+*************************************************************************/
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -38,13 +40,10 @@ static char CM_ID[] = "$Id: AS_PER_ReadStruct.c,v 1.9 2007-02-08 06:48:54 brianw
 #include <sys/types.h>
 #include <string.h>
 #include <time.h>
+
 #include "AS_global.h"
 #include "AS_PER_ReadStruct.h"
-#include "AS_PER_genericStore.h"
-#include "AS_PER_fragStore.h"
-#include "AS_PER_fragStore_private.h"
 
-int  FragStore_Version = FRAGSTORE_VERSION;
 
 //  Enable this to get dumpFragStore, and anything that calls
 //  dump_ReadStruct(), to print quality in the non-internal two-digits
@@ -52,155 +51,106 @@ int  FragStore_Version = FRAGSTORE_VERSION;
 //#define DUMP_QUALITY_AS_NUMBERS
 
 
-/*****************************************************************************/
-
-ReadStructp new_ReadStruct(void){
-  FragRecord *newFR = (FragRecord *)calloc( 1, sizeof(FragRecord));
-  AssertPtr(newFR);
+ReadStruct *new_ReadStruct(void){
+  ReadStruct *newFR = (ReadStruct *)safe_calloc( 1, sizeof(ReadStruct));
   clear_ReadStruct(newFR);
-  return ((ReadStructp) newFR);
-}
-/***************************************************************************/
-void        delete_ReadStruct(ReadStructp r){
-  FragRecord *FR = (FragRecord *)r;
-  free(FR);
+  return(newFR);
 }
 
-/***************************************************************************/
-void        clear_ReadStruct(ReadStructp r){
+void        delete_ReadStruct(ReadStruct *rs){
+  free(rs);
+}
+
+
+void        clear_ReadStruct(ReadStruct *rs){
+  clearGateKeeperFragmentRecord(&rs->gkfr);
+  setClearRegion_ReadStruct(rs, 0, 0, READSTRUCT_ORIGINAL); 
+}
+
+
+
+
+int
+dump_ReadStruct(ReadStruct *rs,
+                FILE *fout,
+                int clearRangeOnly){
+
+  //  XXX  This should just call a gatekeeper function to dump the gatekeeper fragment.
+
 #if 0
- Branch_Info_t  branch_info;
+
+  fprintf(fout,"Dumping ReadStruct at 0x%p\n", fr);
+
+  fprintf(fout, "\tDeleted: %d ReadType:%c hasQLT:%d spare1:%d\n",
+          rs->gkfr.deleted, rs->gkfr.readType, rs->gkfr.hasQLT, rs->gkfr.spare1);
+
+  fprintf(fout, 
+          "\taccID:" F_UID "  readIdx:" F_IID "  ClearRanges(start,stop,modified):\n", 
+          rs->gkfr.accID, rs->gkfr.readIndex);
+  fprintf(fout, "\tOrig(" F_VLS "," F_VLS ") Ovl(" F_VLS "," F_VLS ",%c) Cns(" F_VLS "," F_VLS ",%c) Cgw(" F_VLS "," F_VLS ",%c)\n",
+          rs->gkfr.clrSta, rs->gkfr.clrEnd,
+          rs->gkfr.ovlSta, rs->gkfr.ovlEnd, (rs->gkfr.hasOVLclr)+'0',
+          rs->gkfr.cnsSta, rs->gkfr.cnsEnd, (rs->gkfr.hasCNSclr)+'0',
+          rs->gkfr.cgwSta, rs->gkfr.cgwEnd, (rs->gkfr.hasCGWclr)+'0');
+
+  fprintf(fout, "\tseqFile:%u seqOffset:" F_U64 " srcFile:%u srcOffset:" F_U64 "\n",
+          GET_FILEID(rs->gkfr.sequenceOffset), 
+          GET_FILEOFFSET(rs->gkfr.sequenceOffset), 
+          GET_FILEID(rs->gkfr.sourceOffset), 
+          GET_FILEOFFSET(rs->gkfr.sourceOffset)
+          );
 #endif
 
-  FragRecord *FR = (FragRecord *)r;
- setAccID_ReadStruct(FR, 0);
- setReadIndex_ReadStruct(FR, 0);
- setReadType_ReadStruct(FR, (FragType)0);
- setSequence_ReadStruct(FR, NULL, NULL);
- setSource_ReadStruct(FR, "");
- setEntryTime_ReadStruct(FR,0);
- FR->frag.deleted=0;
- FR->frag.hasQuality=0;
- FR->frag.hasOVLClearRegion=0;
- FR->frag.hasCNSClearRegion=0;
- FR->frag.hasCGWClearRegion=0;
- // Reset ORIGINAL clear range.
- // Assume this resets the other clear ranges too.
- setClearRegion_ReadStruct(FR,0,0,READSTRUCT_ORIGINAL); 
-}
+  if( strlen(rs->seq) > AS_READ_MAX_LEN )
+    fprintf(fout,"LONG FRAGMENT !!!\n");
 
+  fprintf(fout,"\tlength     %d\n", strlen(rs->src));
+  fprintf(fout,"\tsource     %s\n", rs->src);
 
-/***************************************************************************/
-int dumpShortFragRecord(ShortFragRecord *sfr, FILE *fout){
-   fprintf(fout, "\tDeleted: %d ReadType:%c hasQuality:%d spare1:%d\n",
-	   sfr->deleted, sfr->readType, sfr->hasQuality, sfr->spare1);
-
-   fprintf(fout, 
-      "\taccID:" F_UID "  readIdx:" F_IID "  ClearRanges(start,stop,modified):\n", 
-      sfr->accID, sfr->readIndex);
-   fprintf(fout, "\tOrig(" F_VLS "," F_VLS ") Ovl(" F_VLS "," F_VLS ",%c) Cns(" F_VLS "," F_VLS ",%c) Cgw(" F_VLS "," F_VLS ",%c)\n",
-      sfr->clearRegionStart, sfr->clearRegionEnd,
-      sfr->ovlRegionStart, sfr->ovlRegionEnd, (sfr->hasOVLClearRegion)+'0',
-      sfr->cnsRegionStart, sfr->cnsRegionEnd, (sfr->hasCNSClearRegion)+'0',
-      sfr->cgwRegionStart, sfr->cgwRegionEnd, (sfr->hasCGWClearRegion)+'0');
-
-   fprintf(fout, "\tseqFile:%u seqOffset:" F_U64 " srcFile:%u srcOffset:" F_U64 "\n",
-	   GET_FILEID(sfr->sequenceOffset), 
-	   GET_FILEOFFSET(sfr->sequenceOffset), 
-	   GET_FILEID(sfr->sourceOffset), 
-	   GET_FILEOFFSET(sfr->sourceOffset)
-	   );
-   return(0);
-}
-
-/***************************************************************************/
-int dump_ReadStruct(ReadStructp rs, FILE *fout, int clearRangeOnly){
-  FragRecord *fr = (FragRecord *)rs;
-  int type = fr->frag.readType;
-  fprintf(fout,"Dumping FragRecord at 0x%p\n", fr);
-  dumpShortFragRecord(&(fr->frag),fout);
-  if( strlen(fr->sequence) > AS_READ_MAX_LEN )
-	fprintf(fout,"LONG FRAGMENT !!!\n");
-  fprintf(fout,"\tsource (solength=" F_SIZE_T ")  : %s\n",
-          strlen(fr->source),fr->source);
   if(clearRangeOnly){
+    uint32  hold_start;
+    uint32  hold_end;
+    int     length;
 
-    // As of Oct 2001, take advantage of the LATEST clear range modification.
-    uint32 hold_start, hold_end;
-    int length;
     getClearRegion_ReadStruct(rs,&hold_start,&hold_end,READSTRUCT_LATEST);     
-    length = hold_end - hold_start;
-    //int length = fr->frag.clearRegionEnd - fr->frag.clearRegionStart;
 
-    fprintf(fout,"\tsequence (selength=%d) : %*s\n",
-            length, length, fr->sequence + fr->frag.clearRegionStart);
-    fprintf(fout,"\tquality                : %*s\n",
-            length, fr->quality + fr->frag.clearRegionStart);
+    length = hold_end - hold_start;
+
+    fprintf(fout,"\tlength   %d\n", length);
+    fprintf(fout,"\tsequence %*s\n", length, rs->seq + rs->gkfr.clrSta);
+    fprintf(fout,"\tquality  %*s\n", length, rs->qlt  + rs->gkfr.clrSta);
   }else{
-    fprintf(fout,"\tsequence (selength=" F_SIZE_T ") : %s\n",
-            strlen(fr->sequence), fr->sequence);
+    fprintf(fout,"\tlength   %d\n", strlen(rs->seq));
+    fprintf(fout,"\tsequence %s\n", rs->seq);
+    fprintf(fout,"\tquality  %s\n", rs->qlt);
 
 #ifdef DUMP_QUALITY_AS_NUMBERS
     fprintf(fout,"\tquality :");
     {
       char *q;
-      for (q = fr->quality; *q; q++)
+      for (q = rs->qlt; *q; q++)
         fprintf(fout, " %02d", *q - '0');
       fprintf(fout, "\n");
     }
-#else
-    fprintf(fout,"\tquality : %s\n", fr->quality);
 #endif
 
   }
+
   return(0);
 }
 
 
-/***************************************************************************/
-/* Accessors */
-int setAccID_ReadStruct(ReadStructp rs, CDS_UID_t accID){
-  FragRecord *FR = (FragRecord *)rs;
+int setClearRegion_ReadStruct(ReadStruct *rs, 
+                              uint32 start,
+                              uint32 end,
+                              uint32 flags){
 
-  FR->frag.accID = accID;
-   return(0);
-}
-/***************************************************************************/
-int setReadIndex_ReadStruct(ReadStructp rs, CDS_IID_t readIndex){
-  FragRecord *FR = (FragRecord *)rs;
-
-  FR->frag.readIndex = readIndex;
-   return(0);
-}
-
-/***************************************************************************/
-int setReadType_ReadStruct(ReadStructp rs, FragType r){
-  //  int rv=0;
-  FragRecord *FR = (FragRecord *)rs;
-
-  FR->frag.readType = r;
-
-   return(0);
-}
-
-
-/***************************************************************************/
-int setEntryTime_ReadStruct(ReadStructp rs, time_t entryTime){
-   return(0);
-}
-
-
-
-/***************************************************************************/
-int setClearRegion_ReadStruct(ReadStructp rs, 
-                              uint32 start, uint32 end, uint32 flags){
-  FragRecord *FR = (FragRecord *)rs;
   uint32 tempFlag = flags;
 
   // Not valid to set the latest -- which would that be?
   assert (flags!=READSTRUCT_LATEST);
   assert (flags==READSTRUCT_ORIGINAL || flags==READSTRUCT_OVL 
-  || flags==READSTRUCT_CGW || flags==READSTRUCT_CNS); 
+          || flags==READSTRUCT_CGW || flags==READSTRUCT_CNS); 
 
   // An ordering is encoded here as
   // ORIGINAL >> OVL >> CNS >> CGW.
@@ -209,107 +159,55 @@ int setClearRegion_ReadStruct(ReadStructp rs,
   // See corresponding get() function.
 
   if (tempFlag==READSTRUCT_ORIGINAL) {
-    FR->frag.clearRegionStart = start;
-    FR->frag.clearRegionEnd = end;
+    rs->gkfr.clrSta = start;
+    rs->gkfr.clrEnd = end;
     tempFlag = READSTRUCT_OVL; // fall through
   }
   if (tempFlag==READSTRUCT_OVL) {
-    FR->frag.ovlRegionStart = start;
-    FR->frag.ovlRegionEnd = end;
+    rs->gkfr.ovlSta = start;
+    rs->gkfr.ovlEnd = end;
     tempFlag = READSTRUCT_CNS; // fall through
   }
   if (tempFlag==READSTRUCT_CNS) {
-    FR->frag.cnsRegionStart = start;
-    FR->frag.cnsRegionEnd = end;
+    rs->gkfr.cnsSta = start;
+    rs->gkfr.cnsEnd = end;
     tempFlag = READSTRUCT_CGW; // fall through
   }
   if (tempFlag==READSTRUCT_CGW) {
-    FR->frag.cgwRegionStart = start;
-    FR->frag.cgwRegionEnd = end;
+    rs->gkfr.cgwSta = start;
+    rs->gkfr.cgwEnd = end;
   }
 
   // Set flags to indicate the last program to modify values
-    if (flags==READSTRUCT_OVL) {
-      FR->frag.hasOVLClearRegion = 1;
-      FR->frag.hasCNSClearRegion = 0;
-      FR->frag.hasCGWClearRegion = 0;
-    } else if (flags==READSTRUCT_CNS) {
-      FR->frag.hasCNSClearRegion = 1;
-      FR->frag.hasCGWClearRegion = 0;
-    } else if (flags==READSTRUCT_CGW) {
-      FR->frag.hasCGWClearRegion = 1;
-    }
-   return(0);
-}
-
-
-/***************************************************************************/
-int setSource_ReadStruct(ReadStructp rs, const char *src){
-  FragRecord *FR = (FragRecord *)rs;
-
-  FR->flags |= FRAG_S_SOURCE;
-  strcpy(FR->source,src);
-   return(0);
-}
-
-
-/***************************************************************************/
-int setSequence_ReadStruct(ReadStructp rs, char *sequence, char *quality){
-  FragRecord *FR = (FragRecord *)rs;
-  
-  FR->flags |= FRAG_S_SEQUENCE;
-
-  if( !quality || strlen(quality) == 0)
-    FR->frag.hasQuality = 0;
-  else
-    FR->frag.hasQuality = 1;
-
-  strcpy(FR->quality,(quality?quality:""));
-  strcpy(FR->sequence,(sequence?sequence:""));
-
-  return(0);
-
-}
-/***************************************************************************/
-/********** Get ***********/
-
-int getAccID_ReadStruct(ReadStructp rs, CDS_UID_t *accID){
-  FragRecord *FR = (FragRecord *)rs;
-
-  *accID =   FR->frag.accID;
-   return(0);
-
-}
-/**************************************************************************/
-int getReadIndex_ReadStruct(ReadStructp rs, CDS_IID_t *readIndex){
-  FragRecord *FR = (FragRecord *)rs;
-  *readIndex = FR->frag.readIndex;
+  if (flags==READSTRUCT_OVL) {
+    rs->gkfr.hasOVLclr = 1;
+    rs->gkfr.hasCNSclr = 0;
+    rs->gkfr.hasCGWclr = 0;
+  } else if (flags==READSTRUCT_CNS) {
+    rs->gkfr.hasCNSclr = 1;
+    rs->gkfr.hasCGWclr = 0;
+  } else if (flags==READSTRUCT_CGW) {
+    rs->gkfr.hasCGWclr = 1;
+  }
   return(0);
 }
 
-/**************************************************************************/
-int getReadType_ReadStruct(ReadStructp rs, FragType *r){
-  FragRecord *FR = (FragRecord *)rs;
 
-  *r = (FragType) FR->frag.readType;
+
+
+
+int getAccID_ReadStruct(ReadStruct *rs, CDS_UID_t *accID){
+  *accID = rs->gkfr.UID;
   return(0);
-
 }
 
-
-/***************************************************************************/
-int getEntryTime_ReadStruct(ReadStructp rs, time_t *entryTime){
-    *entryTime = 0;
-    return(0);
+int getReadIndex_ReadStruct(ReadStruct *rs, CDS_IID_t *readIndex){
+  *readIndex = rs->gkfr.readIID;
+  return(0);
 }
 
-
-
-
-/****************************************************************************/
-int getClearRegion_ReadStruct(ReadStructp rs, 
+int getClearRegion_ReadStruct(ReadStruct *rs, 
 			      uint32 *start, uint32 *end, uint32 flags){
-  FragRecord *FR = (FragRecord *)rs;
 
   assert (flags==READSTRUCT_LATEST || flags==READSTRUCT_ORIGINAL 
 	  || flags==READSTRUCT_OVL || flags==READSTRUCT_CGW 
@@ -322,93 +220,48 @@ int getClearRegion_ReadStruct(ReadStructp rs,
   // See corresponding set() function.
 
   if (flags==READSTRUCT_LATEST || flags==READSTRUCT_CGW) {
-    *start = FR->frag.cgwRegionStart;
-    *end =   FR->frag.cgwRegionEnd;
+    *start = rs->gkfr.cgwSta;
+    *end   = rs->gkfr.cgwEnd;
   } else if (flags==READSTRUCT_CNS) {
-    *start = FR->frag.cnsRegionStart;
-    *end =   FR->frag.cnsRegionEnd;
+    *start = rs->gkfr.cnsSta;
+    *end   = rs->gkfr.cnsEnd;
   } else if (flags==READSTRUCT_OVL) {
-    *start = FR->frag.ovlRegionStart;
-    *end =   FR->frag.ovlRegionEnd;
+    *start = rs->gkfr.ovlSta;
+    *end   = rs->gkfr.ovlEnd;
   } else { // if (flags==READSTRUCT_ORIGINAL)
-    *start = FR->frag.clearRegionStart;
-    *end =   FR->frag.clearRegionEnd;
+    *start = rs->gkfr.clrSta;
+    *end   = rs->gkfr.clrEnd;
   }
   return(0);
 }
 
-/***************************************************************************/
-int getSource_ReadStruct(ReadStructp rs, char *src, int length){
-  FragRecord *FR = (FragRecord *)rs;
+int getSource_ReadStruct(ReadStruct *rs, char *src, int length){
 
-  if(strlen(FR->source) + 1> length){
-    /* strcpy(src,"");   <- this had undesirable behavior when routine was
-                            used with a src=NULL length=0 call to determine required
-                            buffer space for subsequent call                 */
-    if (src) strcpy(src,"");
-    return (strlen(FR->source) + 1);
+  if (strlen(rs->src) + 1 > length) {
+    if (src)
+      src[0] = 0;
+    return(strlen(rs->src) + 1);
   }
-  if((FR->flags & FRAG_S_SOURCE) == 0){
-    *src = '\0';
-    return 0;
+  strcpy(src, rs->src);
+  return(0);
+}
+
+int getSequence_ReadStruct(ReadStruct *rs,
+                           char *seq,
+                           char *qua,
+                           int   len){
+
+  if(strlen(rs->seq) + 1> len){
+    if (seq)  seq[0] = 0;
+    if (qua)  qua[0] = 0;
+    return (strlen(rs->seq) + 1);
   }
-  strcpy(src,FR->source);
-  return(0);
-
-}
-
-
-/***************************************************************************/
-int getSequence_ReadStruct(ReadStructp rs, char *sequence,
-                           char *quality, int length){
-  FragRecord *FR = (FragRecord *)rs;
-
-  if(strlen(FR->sequence) + 1> length){
-    if (sequence) strcpy(sequence,"");
-    if (quality) strcpy(quality,"");
-    return (strlen(FR->sequence) + 1);
-  }
-  if((FR->flags & FRAG_S_SEQUENCE) == 0){
-    *sequence = '\0';
-    *quality = '\0';
-    return 0;
-  }
-
-  strcpy(quality, FR->quality);
-  strcpy(sequence,FR->sequence);
+  strcpy(seq, rs->seq);
+  strcpy(qua, rs->qlt);
   return(0);
 }
 
-/***************************************************************************/
-int getSourceOffset_ReadStruct(ReadStructp rs, int64 *offset){
-  FragRecord *FR = (FragRecord *)rs;
-  *offset = FR->frag.sourceOffset;
-  return(0);
-}
-
-/***************************************************************************/
-int getSequenceOffset_ReadStruct(ReadStructp rs, int64 *offset){
-  FragRecord *FR = (FragRecord *)rs;
-  *offset = FR->frag.sequenceOffset;
-  return(0);
-}
-/***************************************************************************/
-int setSourceOffset_ReadStruct(ReadStructp rs, int64 offset){
-  FragRecord *FR = (FragRecord *)rs;
-  FR->frag.sourceOffset = offset;
-  return(0);
-}
-
-/***************************************************************************/
-int setSequenceOffset_ReadStruct(ReadStructp rs, int64 offset){
-  FragRecord *FR = (FragRecord *)rs;
-  FR->frag.sequenceOffset = offset;
-  return(0);
-}
-
-/***************************************************************************/
-int getIsDeleted_ReadStruct(ReadStructp rs, uint32 *isDeleted){
-  FragRecord *FR = (FragRecord *)rs;
-  *isDeleted = FR->frag.deleted;
+int getIsDeleted_ReadStruct(ReadStruct *rs, uint32 *isDeleted){
+  *isDeleted = rs->gkfr.deleted;
   return(0);
 }

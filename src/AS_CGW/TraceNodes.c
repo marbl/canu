@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: TraceNodes.c,v 1.5 2006-09-21 21:34:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: TraceNodes.c,v 1.6 2007-02-12 22:16:56 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -422,7 +422,6 @@ int main(int argc, char *argv[])
   GlobalData->stderrc = stderr;
   GlobalData->File_Name_Prefix[0] = '\0';
   GlobalData->Gatekeeper_Store_Name[0] = '\0';
-  GlobalData->Frag_Store_Name[0] = '\0';
   
   // parse the command line
   {
@@ -431,7 +430,6 @@ int main(int argc, char *argv[])
     optarg = NULL;
     /*
       "<-a name>     assembly name prefix\n"
-      "<-f frgStore> frgStore\n"
       "<-g gkpStore> gkpStore\n"
       "<-l #>        latest checkpoint number\n"
       "optional:\n"
@@ -466,9 +464,6 @@ int main(int argc, char *argv[])
           {
             case 'a':
               strcpy(GlobalData->File_Name_Prefix, optarg);
-              break;
-            case 'f':
-              strcpy(GlobalData->Frag_Store_Name, optarg);
               break;
             case 'g':
               strcpy(GlobalData->Gatekeeper_Store_Name, optarg);
@@ -613,8 +608,6 @@ int main(int argc, char *argv[])
     Usage("Please specify an assembly checkpoint name", argv[0]);
   if(strlen(GlobalData->Gatekeeper_Store_Name) == 0)
     Usage("Please specify a gatekeeper store name", argv[0]);
-  if(strlen(GlobalData->Frag_Store_Name) == 0)
-    Usage("Please specify a fragment store name", argv[0]);
 
   // load the checkpoint
   if(go_forward)

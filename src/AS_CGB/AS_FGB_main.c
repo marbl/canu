@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_FGB_main.c,v 1.7 2007-01-29 20:40:59 brianwalenz Exp $";
+= "$Id: AS_FGB_main.c,v 1.8 2007-02-12 22:16:55 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module:  AS_FGB_main.c
@@ -384,52 +384,18 @@ static void process_one_ovl_file
  const int check_point_level
 )
 { // Process the ovl files.
-  time_t tp1 = 0, tp2;
-  
-  char
-    *Batch_File_Prefix=NULL,
-    *Batch_File_Suffix=NULL,
-    Batch_File_Name_Tmp[CMD_BUFFER_SIZE]="";
-  
-  fprintf(stderr,"Batch_File_Name = %s\n",Batch_File_Name);
-  strcpy(Batch_File_Name_Tmp,Batch_File_Name);
-  Batch_File_Prefix = Batch_File_Name_Tmp;
-  Batch_File_Suffix = strrchr(Batch_File_Name_Tmp,'.');
-  if( Batch_File_Suffix != NULL) {
-    *Batch_File_Suffix = '\0'; Batch_File_Suffix++;
-  }
-  fprintf(stderr,"Batch_File_Prefix = %s\n",Batch_File_Prefix);
-  fprintf(stderr,"Batch_File_Suffix = %s\n",Batch_File_Suffix);
   
   if( check_point_level == 0 ) { // Process the ovl file....
-    FILE *fovl = NULL;
-    FILE *fiba = NULL;
-    // FILE *fwrn = stderr;
-    char strtmp[CMD_BUFFER_SIZE-1];
-    int ierr;
-    
-    fprintf(stderr,"Opening input file to read a batch of "
-            "IBA+ADT(+ADL)+IDT+OFG+OVL messages.\n");
-    if(NULL == (fovl = fopen(Batch_File_Name,"r"))){
+
+    FILE *fovl = fopen(Batch_File_Name,"r");
+    if(NULL == fovl){
       fprintf(stderr,"* Can not open input file %s\n",Batch_File_Name);
       exit(1);
-    }
-    if( NULL != Output_Graph_Store ) {
-      sprintf(strtmp,"%s/fgb.iba_tmp",Output_Graph_Store);
-      if(NULL == (fiba = fopen(strtmp,"a"))) {
-        fprintf(stderr,"* Can not open fgb.iba_tmp file: %s\n",strtmp);
-        exit(1);
-      }
-    }
-    
-    if(TIMINGS) {
-      tp1 = time(NULL); fprintf(stderr,"Begin input phase\n");
-      system_date();
     }
     
     input_messages_from_a_file
       (argc, argv, // For ADT version stamp.
-       fovl, fiba,
+       fovl, NULL,
        (heapva->frags), // The internal representation of the fragments.
        (heapva->edges), // The internal representation of the overlaps.
        (heapva->frag_annotations),
@@ -444,16 +410,7 @@ static void process_one_ovl_file
        overlap_error_threshold
        );
     
-    fprintf(stderr,"MAIN: min_frag_iid=" F_IID " max_frag_iid=" F_IID "\n",
-            (gstate->min_frag_iid),(gstate->max_frag_iid));
-    if(TIMINGS) {
-      tp2 = time(NULL); 
-      fprintf(stderr,"%10" F_TIME_TP " sec: Finished input phase\n",
-              (tp2-tp1));
-      system_date();
-    }
-    ierr = fclose(fovl); assert(ierr == 0);
-    if(NULL != fiba) { ierr = fclose(fiba); assert(ierr == 0);}
+    fclose(fovl);
     
   }
 } // Process the ovl files.
@@ -597,77 +554,20 @@ int main_fgb
   int ierr = 0;
 
   time_t tp1 = 0,tp2; 
-  //The time() function returns the time in seconds since the
-  //Epoch. The Epoch is referenced to 00:00:00 CUT (Coordinated
-  //Universal Time) 1 Jan 1970.
 
   /* The Store/Checkpoint */
   FragmentHashObject *afr_to_avx = NULL;
 
-  /* Optional command line parameters */
-
   int did_processing_phase_2 = FALSE;
-
-  //time_t tp3 = time(NULL);
-  //time_t check_point_interval = 8 * 3600 ;
-  //time_t next_check_point_time = tp3+check_point_interval;
 
   set_compare_edge_function(compare_edge_strong);
   // This is for the blessed overlaps.
 
-#ifdef _OPENMP
-  fprintf(stderr,"Compiled by an OpenMP compilant compiler\n");
-# endif
-
-#ifdef DEBUGGING
-  fprintf(stderr,"Compiled " __FILE__ " "  __DATE__ " " __TIME__ "\n");
-  fprintf(stderr,"%s\n",CM_ID);
-#endif
-
-  // VersionStamp(argc,argv);
-  system_date();
-
-#ifdef _OPENMP
-  omp_set_num_threads(rg->num_threads);
-  fprintf(stderr,"The number of threads is %d\n",
-          omp_get_num_threads(rg->num_threads));
-#endif
   
-  if( (NULL != rg->Input_Graph_Store)
-     && (NULL != rg->Output_Graph_Store)
-     && (rg->Input_Graph_Store[0] != '\0') 
-     && (rg->Output_Graph_Store[0] != '\0')
-     ) {
-    char buffer[CMD_BUFFER_SIZE-1];
-    fprintf(stderr,"Creating file to append the new "
-            "IBA+ADT(+ADL) messages.\n");
-    sprintf(buffer,"cp %s/fgb.iba %s/fgb.iba_tmp" ,
-            rg->Input_Graph_Store,rg->Output_Graph_Store);
-    ierr = system(buffer);
-    if(ierr) {
-      fprintf(stderr,
-              "ERROR: Trouble copying the IBA+ADT file.");
-      exit(1);
-    }
-    fprintf(stderr,"chmod u+w append the new "
-            "IBA+ADT(+ADL) messages file.\n");
-    sprintf(buffer,"chmod ug+w %s/fgb.iba_tmp", rg->Output_Graph_Store);
-    ierr = system(buffer);
-    if(ierr) {
-      fprintf(stderr,
-              "ERROR: Trouble chmod ug+w the IBA+ADT file.");
-      exit(1);
-    }
-  }
-
-
   // Re-hash the fragment IID to fragment VID mapping using the
   // fragments in the store.
   assert(afr_to_avx == NULL);
-  afr_to_avx 
-    = build_FragmentHash( 
-			 heapva->frags, 
-			 rg->as_cgb_max_frag_iid );
+  afr_to_avx = build_FragmentHash(heapva->frags, rg->as_cgb_max_frag_iid );
   assert(afr_to_avx != NULL);
 
   // WARNING do we need to rebuild the next_edge_obj here?
@@ -690,24 +590,12 @@ int main_fgb
        );
   }
   
-  if((NULL != rg->ovl_files_list_fname) &&
-     (rg->ovl_files_list_fname[0] != '\0')) {
-    // Process the file that is a list of ovl filenames.
-    char line_buffer[CMD_BUFFER_SIZE] = "";
-    char *Batch_File_Name = NULL;
-    FILE * ovl_files_list = fopen(rg->ovl_files_list_fname,"r");
-    assert(ovl_files_list != NULL);
-    
-    fprintf(stderr,"Process the overlap files in the list file.\n");
-    while(NULL != fgets(line_buffer,CMD_BUFFER_SIZE-1,ovl_files_list)) {
-      //  Read in a line of filenames.
-      Batch_File_Name = strtok(line_buffer," \t\n");
-      // The file name of the input fragments and overlaps in OVL format.
-      //ReportHeapUsage_CGB( gstate, heapva, stderr); 
+
+  if (rg->ovl_files_list_fname != NULL)
       process_one_ovl_file
         ( argc, 
           argv,
-          Batch_File_Name,
+          rg->ovl_files_list_fname,
           rg->Output_Graph_Store,
           gstate,
           heapva,
@@ -718,45 +606,17 @@ int main_fgb
           rg->overlap_error_threshold,
           rg->check_point_level
           );
-      //ReportHeapUsage_CGB( gstate, heapva, stderr); 
-      while(NULL != (Batch_File_Name = strtok(NULL," \t\n"))) {
-        //  Process each filename in a line of filenames.
-        // The file name of the input fragments and overlaps in OVL format.
-        process_one_ovl_file
-          ( argc, 
-            argv,
-            Batch_File_Name,
-            rg->Output_Graph_Store,
-            gstate,
-            heapva,
-            afr_to_avx,
-            rg->dvt_double_sided_threshold_fragment_end_degree,
-            rg->con_double_sided_threshold_fragment_end_degree,
-            rg->intrude_with_non_blessed_overlaps_flag,
-            rg->overlap_error_threshold,
-            rg->check_point_level
-            );
-        //ReportHeapUsage_CGB( gstate, heapva, stderr); 
-      }
-    }
-    fclose(ovl_files_list);
-  }
   
-  //ReportHeapUsage_CGB( gstate, heapva, stderr); 
 
   if(NULL != rg->blessed_overlaps_input_filename){
     // Process the blessed ovl file.
-    char * Batch_File_Name = rg->blessed_overlaps_input_filename;
-    // The file name of the input fragments and overlaps in OVL format.
-    const CGB_ERATE_TYPE overlap_error_threshold = PerMil_to_CGB_ERATE_TYPE(1000);
-    {
-      const IntEdge_ID nedge = GetNumEdges(heapva->edges);
-      assert(0 == nedge);
-    }
+
+    assert(0 == GetNumEdges(heapva->edges));
+
     process_one_ovl_file
       ( argc, 
         argv,
-        Batch_File_Name,
+        rg->blessed_overlaps_input_filename,
         rg->Output_Graph_Store,
         gstate,
         heapva,
@@ -764,7 +624,7 @@ int main_fgb
         rg->dvt_double_sided_threshold_fragment_end_degree,
         rg->con_double_sided_threshold_fragment_end_degree,
         rg->intrude_with_non_blessed_overlaps_flag,
-        overlap_error_threshold,
+        PerMil_to_CGB_ERATE_TYPE(1000),
         rg->check_point_level
         );
     {
@@ -783,39 +643,14 @@ int main_fgb
     // The blessed overlaps are loaded.
   }
   
-  {
-    // Process the ovl filenames on the command line.
-    int curr_ovl_file;
-    for( curr_ovl_file = 0;
-         curr_ovl_file < rg->num_ovl_files; curr_ovl_file++) {
-      char Batch_File_Name[CMD_BUFFER_SIZE-1] = "";
-      // The file name of the input fragments and overlaps in OVL format.
-      strcpy(Batch_File_Name,rg->the_ovl_files[curr_ovl_file]);
-      process_one_ovl_file
-        ( argc, 
-          argv,
-          Batch_File_Name,
-          rg->Output_Graph_Store,
-          gstate,
-          heapva,
-          afr_to_avx,
-          rg->dvt_double_sided_threshold_fragment_end_degree,
-          rg->con_double_sided_threshold_fragment_end_degree,
-          rg->intrude_with_non_blessed_overlaps_flag,
-          rg->overlap_error_threshold,
-          rg->check_point_level
-          );
-    }
-  }
 
   if(NULL != rg->bubble_overlaps_filename){
     // Process the bubble smoothing ovl file.
-    char * Batch_File_Name = rg->bubble_overlaps_filename;
-    // The file name of the input fragments and overlaps in OVL format.
+
     process_one_ovl_file
       ( argc, 
         argv,
-        Batch_File_Name,
+        rg->bubble_overlaps_filename,
         rg->Output_Graph_Store,
         gstate,
         heapva,

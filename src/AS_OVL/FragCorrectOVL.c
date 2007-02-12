@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FragCorrectOVL.c,v 1.10 2007-02-08 02:46:00 brianwalenz Exp $
- * $Revision: 1.10 $
+ * $Id: FragCorrectOVL.c,v 1.11 2007-02-12 22:16:57 brianwalenz Exp $
+ * $Revision: 1.11 $
 */
 
-static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.10 2007-02-08 02:46:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.11 2007-02-12 22:16:57 brianwalenz Exp $";
 
 
 //  System include files
@@ -60,7 +60,6 @@ static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.10 2007-02-08 02:46:00 brianwal
 #include  "AS_OVL_delcher.h"
 #include  "AS_PER_ReadStruct.h"
 #include  "AS_PER_genericStore.h"
-#include  "AS_PER_fragStore.h"
 #include  "AS_PER_distStore.h"
 #include  "AS_UTL_PHash.h"
 #include  "AS_MSG_pmesg.h"
@@ -220,7 +219,7 @@ typedef  struct
    int  thread_id;
    int32  lo_frag, hi_frag;
    int  next_olap;
-   FragStreamHandle  frag_stream;
+   FragStream  *frag_stream;
    ReadStructp  frag_read;
    Frag_List_t  * frag_list;
    char  rev_seq [AS_READ_MAX_LEN + 1];
@@ -262,15 +261,15 @@ static Frag_Info_t  * Frag;
 static Frag_List_t  Frag_List;
     // List of ids and sequences of fragments with overlaps to fragments
     // in  Frag .  Allows simultaneous access by threads.
-static FragStoreHandle  Frag_Store;
+static GateKeeperStore  *gkpStore;
     // Fragment store from which fragments are loaded
-static FragStreamHandle  Frag_Stream;
+static FragStream  *Frag_Stream;
     // Stream to extract fragments from internal store
-static char  * Frag_Store_Path;
+static char  * gkpStore_Path;
     // Name of directory containing fragment store from which to get fragments
 static int32  Hi_Frag_IID;
     // Internal ID of last fragment in frag store to process
-static FragStoreHandle  Internal_Frag_Store;
+static GateKeeperStore  *Internal_gkpStore;
     // Holds partial frag store to be processed simultanously by
     // multiple threads
 static int  Kmer_Len = DEFAULT_KMER_LEN;
@@ -326,7 +325,7 @@ static void  Display_Alignment
 static void  Display_Frags
     (void);
 static void  Extract_Needed_Frags
-    (FragStoreHandle store, int32 lo_frag, int32 hi_frag,
+    (GateKeeperStore *store, int32 lo_frag, int32 hi_frag,
      Frag_List_t * list, int * next_olap);
 static char  Filter
     (char ch);
@@ -382,8 +381,8 @@ int  main
 
    Initialize_Globals ();
 
-   Frag_Store = openFragStore (Frag_Store_Path, "r");
-   assert (Frag_Store != NULLSTOREHANDLE);
+   gkpStore = openGateKeeperStore(gkpStore_Path, FALSE);
+   assert (gkpStore != NULL);
 
    fprintf (stderr, "Starting Read_Frags ()\n");
    Read_Frags ();
@@ -415,7 +414,7 @@ int  main
         fprintf (stderr, "                   Failed overlaps = %d\n", Failed_Olaps);
        }
 
-   closeFragStore (Frag_Store);
+   closeGateKeeperStore (gkpStore);
 
    if  (Verbose_Level > 1)
        {
@@ -1029,7 +1028,7 @@ static void  Display_Frags
 
 
 static void  Extract_Needed_Frags
-    (FragStoreHandle store, int32 lo_frag, int32 hi_frag,
+    (GateKeeperStore *store, int32 lo_frag, int32 hi_frag,
      Frag_List_t * list, int * next_olap)
 
 //  Read fragments  lo_frag .. hi_frag  from  store  and save
@@ -1039,7 +1038,7 @@ static void  Extract_Needed_Frags
   {
 
 #ifdef USE_STREAM_FOR_EXTRACT
-   FragStreamHandle  frag_stream;
+   FragStream  *frag_stream;
    int i;
 #endif
    static ReadStructp  frag_read = NULL;
@@ -1052,7 +1051,7 @@ static void  Extract_Needed_Frags
        frag_read = new_ReadStruct ();
 
 #ifdef USE_STREAM_FOR_EXTRACT
-   frag_stream = openFragStream (store, NULL, 0);
+   frag_stream = openFragStream (store);
    resetFragStream (frag_stream, lo_frag, hi_frag);
 #endif
 
@@ -1063,7 +1062,7 @@ static void  Extract_Needed_Frags
 #ifdef USE_STREAM_FOR_EXTRACT
    for  (i = 0;
            nextFragStream (frag_stream, frag_read,
-               FRAG_S_SEQUENCE) && (* next_olap) < Num_Olaps;
+               FRAG_S_SEQ) && (* next_olap) < Num_Olaps;
            i ++)
 #else
    frag_iid = Olap [(* next_olap)] . b_iid;
@@ -1084,8 +1083,7 @@ static void  Extract_Needed_Frags
       if  (frag_iid < Olap [(* next_olap)] . b_iid)
           continue;
 #else
-      if  (getFragStore (store, frag_iid, FRAG_S_SEQUENCE,
-                         frag_read) != 0)
+      if  (getFrag (store, frag_iid, frag_read, FRAG_S_SEQ) != 0)
           {
            fprintf (stderr, "Failed to read frag %d\n",
                     Olap [(* next_olap)] . b_iid);
@@ -1097,7 +1095,8 @@ static void  Extract_Needed_Frags
       if  (deleted)
           goto  Advance_Next_Olap;
 
-      getReadType_ReadStruct (frag_read, & read_type);
+      //getReadType_ReadStruct (frag_read, & read_type);
+      read_type = AS_READ;
       shredded = (AS_FA_SHREDDED(read_type))? TRUE : FALSE; 
 
       result = getSequence_ReadStruct
@@ -1769,7 +1768,7 @@ static void  Parse_Command_Line
         exit (EXIT_FAILURE);
        }
 
-   Frag_Store_Path = argv [optind ++];
+   gkpStore_Path = argv [optind ++];
 
    Lo_Frag_IID = (int) strtol (argv [optind], & p, 10);
    if  (p == optarg || Lo_Frag_IID < 1)
@@ -2131,7 +2130,7 @@ static void  Read_Frags
     (void)
 
 //  Open and read fragments with IIDs from  Lo_Frag_IID  to
-//  Hi_Frag_IID  from  Frag_Store_Path  and store them in
+//  Hi_Frag_IID  from  gkpStore_Path  and store them in
 //  global  Frag .
 
   {
@@ -2142,7 +2141,7 @@ static void  Read_Frags
    int32  high_store_frag;
    int  i, j;
 
-   high_store_frag = getLastElemFragStore (Frag_Store);
+   high_store_frag = getLastElemFragStore (gkpStore);
    if  (Hi_Frag_IID == INT_MAX)
        Hi_Frag_IID = high_store_frag;
    if  (Hi_Frag_IID > high_store_frag)
@@ -2158,18 +2157,18 @@ static void  Read_Frags
    frag_read = new_ReadStruct ();
 
 #ifdef USE_STORE_DIRECTLY_READ
-  Internal_Frag_Store = openFragStore (Frag_Store_Path, "r");
-  assert (Internal_Frag_Store != NULLSTOREHANDLE);
+  Internal_gkpStore = openGateKeeperStore (gkpStore_Path, FALSE);
+  assert (Internal_gkpStore != NULL);
 #else
-   Internal_Frag_Store
-       = loadFragStorePartial (Frag_Store_Path,
+   Internal_gkpStore
+       = loadFragStorePartial (gkpStore_Path,
                                Lo_Frag_IID, Hi_Frag_IID);
 #endif
    
-   Frag_Stream = openFragStream (Internal_Frag_Store, NULL, 0);
+   Frag_Stream = openFragStream (Internal_gkpStore);
    resetFragStream (Frag_Stream, Lo_Frag_IID, Hi_Frag_IID);
 
-   for  (i = 0;  nextFragStream (Frag_Stream, frag_read, FRAG_S_SEQUENCE);
+   for  (i = 0;  nextFragStream (Frag_Stream, frag_read, FRAG_S_SEQ);
            i ++)
      {
       FragType  read_type;
@@ -2184,7 +2183,8 @@ static void  Read_Frags
            continue;
           }
 
-      getReadType_ReadStruct (frag_read, & read_type);
+      //getReadType_ReadStruct (frag_read, & read_type);
+      read_type = AS_READ;
       Frag [i] . shredded = (AS_FA_SHREDDED(read_type))? TRUE : FALSE; 
 
       result = getSequence_ReadStruct
@@ -2226,7 +2226,7 @@ static void  Read_Frags
 
    delete_ReadStruct (frag_read);
    closeFragStream (Frag_Stream);
-   closeFragStore (Internal_Frag_Store);
+   closeGateKeeperStore (Internal_gkpStore);
 
    return;
   }
@@ -2359,7 +2359,7 @@ static int  Sign
 static void  Stream_Old_Frags
     (void)
 
-//  Read old fragments in  Frag_Store  and choose the ones that
+//  Read old fragments in  gkpStore  and choose the ones that
 //  have overlaps with fragments in  Frag .  Recompute the
 //  overlaps and record the vote information about changes to
 //  make (or not) to fragments in  Frag .
@@ -2378,7 +2378,7 @@ static void  Stream_Old_Frags
    Init_Thread_Work_Area (& wa, 0);
    frag_read = new_ReadStruct ();
 
-   Frag_Stream = openFragStream (Frag_Store, NULL, 0);
+   Frag_Stream = openFragStream (gkpStore);
 
    lo_frag = Olap [0] . b_iid;
    hi_frag = Olap [Num_Olaps - 1] . b_iid;
@@ -2386,7 +2386,7 @@ static void  Stream_Old_Frags
    resetFragStream (Frag_Stream, lo_frag, hi_frag);
    
    next_olap = 0;
-   for  (i = 0;  nextFragStream (Frag_Stream, frag_read, FRAG_S_SEQUENCE)
+   for  (i = 0;  nextFragStream (Frag_Stream, frag_read, FRAG_S_SEQ)
                    && next_olap < Num_Olaps;
            i ++)
      {
@@ -2404,7 +2404,8 @@ static void  Stream_Old_Frags
       if  (deleted)
           continue;
 
-      getReadType_ReadStruct (frag_read, & read_type);
+      //getReadType_ReadStruct (frag_read, & read_type);
+      read_type = AS_READ;
       shredded = (AS_FA_SHREDDED(read_type))? TRUE : FALSE; 
 
       result = getSequence_ReadStruct
@@ -2453,7 +2454,7 @@ static void  Stream_Old_Frags
 void *  Threaded_Process_Stream
     (void * ptr)
 
-//  Process all old fragments in  Internal_Frag_Store .  Only
+//  Process all old fragments in  Internal_gkpStore .  Only
 //  do overlaps/corrections with fragments where
 //    frag_iid % Num_PThreads == thread_id
 
@@ -2521,7 +2522,7 @@ pthread_mutex_unlock (& Print_Mutex);
 static void  Threaded_Stream_Old_Frags
     (void)
 
-//  Read old fragments in  Frag_Store  that have overlaps with
+//  Read old fragments in  gkpStore  that have overlaps with
 //  fragments in  Frag .  Read a batch at a time and process them
 //  with multiple pthreads.  Each thread processes all the old fragments
 //  but only changes entries in  Frag  that correspond to its thread
@@ -2564,22 +2565,22 @@ static void  Threaded_Stream_Old_Frags
    next_olap = 0;
 
 #ifdef USE_STORE_DIRECTLY_STREAM
-  Internal_Frag_Store = openFragStore (Frag_Store_Path, "r");
-  assert (Internal_Frag_Store != NULLSTOREHANDLE);
+  Internal_gkpStore = openGateKeeperStore (gkpStore_Path, FALSE);
+  assert (Internal_gkpStore != NULL);
 #else
-   Internal_Frag_Store
-       = loadFragStorePartial (Frag_Store_Path, lo_frag, hi_frag);
+   Internal_gkpStore
+       = loadFragStorePartial (gkpStore_Path, lo_frag, hi_frag);
 #endif
 
    curr_frag_list = & frag_list_1;
    next_frag_list = & frag_list_2;
    save_olap = next_olap;
 
-   Extract_Needed_Frags (Internal_Frag_Store, lo_frag, hi_frag,
+   Extract_Needed_Frags (Internal_gkpStore, lo_frag, hi_frag,
                          curr_frag_list, & next_olap);
 
 #ifndef USE_STORE_DIRECTLY_STREAM
-   closeFragStore (Internal_Frag_Store);
+   closeGateKeeperStore (Internal_gkpStore);
 #endif
 
    while  (lo_frag <= last_frag)
@@ -2611,17 +2612,17 @@ static void  Threaded_Stream_Old_Frags
                hi_frag = last_frag;
 
 #ifndef USE_STORE_DIRECTLY_STREAM
-           Internal_Frag_Store
-               = loadFragStorePartial (Frag_Store_Path, lo_frag, hi_frag);
+           Internal_gkpStore
+               = loadFragStorePartial (gkpStore_Path, lo_frag, hi_frag);
 #endif
 
            save_olap = next_olap;
 
-           Extract_Needed_Frags (Internal_Frag_Store, lo_frag, hi_frag,
+           Extract_Needed_Frags (Internal_gkpStore, lo_frag, hi_frag,
                                  next_frag_list, & next_olap);
 
 #ifndef USE_STORE_DIRECTLY_STREAM
-           closeFragStore (Internal_Frag_Store);
+           closeGateKeeperStore (Internal_gkpStore);
 #endif
           }
 
@@ -2645,7 +2646,7 @@ static void  Threaded_Stream_Old_Frags
      }
    
 #ifdef USE_STORE_DIRECTLY_STREAM
-   closeFragStore (Internal_Frag_Store);
+   closeGateKeeperStore (Internal_gkpStore);
 #endif
 
    return;

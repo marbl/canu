@@ -41,12 +41,13 @@ main(int argc , char **argv) {
   data->timefp   = stderr;
   data->aligner  = DP_Compare;
 
-  if (argc != 3) {
-    fprintf(stderr, "usage: %s cgw-checkpoint-prefix checkpoint-number\n", argv[0]);
+  if (argc != 4) {
+    fprintf(stderr, "usage: %s gkpStore cgw-checkpoint-prefix checkpoint-number\n", argv[0]);
     exit(1);
   }
 
-  ScaffoldGraph = LoadScaffoldGraphFromCheckpoint(argv[1], atoi(argv[2]), FALSE);
+  strcpy(data->Gatekeeper_Store_Name, argv[1]);
+  ScaffoldGraph = LoadScaffoldGraphFromCheckpoint(argv[2], atoi(argv[3]), FALSE);
   fprintf(stdout, "%d\n", GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph));
 
   exit(0);

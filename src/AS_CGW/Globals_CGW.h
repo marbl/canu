@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: Globals_CGW.h,v 1.11 2007-01-29 20:41:01 brianwalenz Exp $	 */
+/* 	$Id: Globals_CGW.h,v 1.12 2007-02-12 22:16:55 brianwalenz Exp $	 */
 #ifndef GLOBALS_CGW_H
 #define GLOBALS_CGW_H
 
@@ -86,7 +86,6 @@ typedef struct Global_CGW_tag {
   char Input_File_Name[1024];
   char File_Name_Prefix[1024];
   char Output_File_Name[1024];
-  char Frag_Store_Name[1024];
   char Gatekeeper_Store_Name[1024];	  
   char OVL_Store_Name[1024];
 }Global_CGW;

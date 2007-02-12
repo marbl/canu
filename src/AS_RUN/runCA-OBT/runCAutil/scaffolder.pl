@@ -49,9 +49,8 @@ sub CGW ($$$$$) {
     system("ln -s ../$lastDir/$asm.ckp.$lastckp $wrk/$thisDir/$asm.ckp.$lastckp") if (defined($lastDir));
 
     my $cmd;
-    $cmd  = "$bin/cgw $ckp -c -j 1 -k 5 -r 5 -s $stoneLevel -w 0 -T -P ";
+    $cmd  = "$bin/cgw $ckp -c -j 1 -k 5 -r 5 -s $stoneLevel -w 0 -T ";
     $cmd .= " -M " if (($stoneLevel == 0) && (getGlobal("delayInterleavedMerging") == 1));
-    $cmd .= " -f $wrk/$asm.frgStore ";
     $cmd .= " -g $wrk/$asm.gkpStore ";
     $cmd .= " -o $wrk/$thisDir/$asm ";
     $cmd .= " $wrk/$thisDir/$asm.cgi ";
@@ -108,9 +107,7 @@ sub eCR ($$) {
 
             my $cmd;
             $cmd  = "$bin/extendClearRanges ";
-            $cmd .= " -B ";
             $cmd .= " -b $curScaffold -e $endScaffold ";
-            $cmd .= " -f $wrk/$asm.frgStore ";
             $cmd .= " -g $wrk/$asm.gkpStore ";
             $cmd .= " -c $asm ";
             $cmd .= " -n $lastckp ";
@@ -123,10 +120,10 @@ sub eCR ($$) {
 
             if (runCommand("$wrk/$thisDir", $cmd)) {
                 print STDERR "Failed.\n";
-                print STDERR "fragStore restored:    db.frg -> db.frg.during.$thisDir-scaffold.$curScaffold.FAILED\n";
-                print STDERR "                       db.frg.before-$thisDir-scaffold.$curScaffold -> db.frg\n";
-                rename "$wrk/$asm.frgStore/db.frg", "$wrk/$asm.frgStore/db.frg.during.$thisDir-scaffold.$curScaffold.FAILED";
-                rename "$wrk/$asm.frgStore/db.frg.before-$thisDir-scaffold.$curScaffold", "$wrk/$asm.frgStore/db.frg";
+                print STDERR "fragStore restored:    frg -> frg.during.$thisDir-scaffold.$curScaffold.FAILED\n";
+                print STDERR "                       frg.before-$thisDir-scaffold.$curScaffold -> frg\n";
+                rename "$wrk/$asm.gkpStore/frg", "$wrk/$asm.gkpStore/frg.during.$thisDir-scaffold.$curScaffold.FAILED";
+                rename "$wrk/$asm.gkpStore/frg.before-$thisDir-scaffold.$curScaffold", "$wrk/$asm.gkpStore/frg";
                 exit(1);
             }
             touch("$wrk/$thisDir/extendClearRanges-scaffold.$curScaffold.success");
@@ -173,7 +170,6 @@ sub updateDistanceRecords ($) {
     $cmd .= "    -u "                    if ($terminateFakeUID == 0);
     $cmd .= "    -s $terminateFakeUID "  if ($terminateFakeUID  > 0);
     $cmd .= "    $uidServer "            if (defined($uidServer));
-    $cmd .= " -f $wrk/$asm.frgStore ";
     $cmd .= " -g $wrk/$asm.gkpStore ";
     $cmd .= " -p $asm ";
     $cmd .= " -n $lastckp ";
@@ -185,7 +181,7 @@ sub updateDistanceRecords ($) {
     }
 
     $cmd  = "$bin/gatekeeper ";
-    $cmd .= " -X -Q -C -P -a $wrk/$asm.gkpStore $distupdate/update.dst ";
+    $cmd .= " -a -o $wrk/$asm.gkpStore $distupdate/update.dst ";
     $cmd .= " > $distupdate/gatekeeper.err 2>&1";
     if (runCommand("$distupdate", $cmd)) {
         die "Gatekeeper Failed.\n";
@@ -210,7 +206,6 @@ sub resolveSurrogates ($$) {
 
     my $cmd;
     $cmd  = "$bin/resolveSurrogates ";
-    $cmd .= " -f $wrk/$asm.frgStore ";
     $cmd .= " -g $wrk/$asm.gkpStore ";
     $cmd .= " -c $asm ";
     $cmd .= " -n $lastckp ";

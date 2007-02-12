@@ -20,7 +20,7 @@
  *************************************************************************/
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/compare-canonical.c,v $
-$Revision: 1.4 $
+$Revision: 1.5 $
 **********************************************************************/
 
 /**********************************************************************
@@ -48,7 +48,6 @@ Description: Reads two canonical-format overlap files and outputs
 #include  "AS_global.h"
 #include  "AS_MSG_pmesg.h"
 #include  "AS_PER_ReadStruct.h"
-#include  "AS_PER_fragStore.h"
 #include  "AS_PER_distStore.h"
 #include  "AS_ORA_fragments.h"
 #include  "AS_ORA_overlaps.h"

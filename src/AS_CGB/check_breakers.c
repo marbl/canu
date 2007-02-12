@@ -26,7 +26,6 @@
 
 #include "AS_global.h"
 #include "AS_PER_ReadStruct.h"
-#include "AS_PER_fragStore.h"
 #include "AS_ALN_aligners.h"
 
 // commented out until good solution found for UIDs
@@ -726,7 +725,7 @@ int GetUnitigData( BreakerSetp chims, BreakerSetp craps, char * cgb_filename )
 
 
 // called
-int PopulateFragmentSequence( IntMultiPos * f, FragStoreHandle fs )
+int PopulateFragmentSequence( IntMultiPos * f, GateKeeperStore *fs )
 {
   ReadStructp rs;
   char temp_seq[AS_READ_MAX_LEN];
@@ -739,7 +738,7 @@ int PopulateFragmentSequence( IntMultiPos * f, FragStoreHandle fs )
     return 1;
   }
     
-  if( getFragStore( fs, f->ident, FRAG_S_ALL, rs ) )
+  if( getFrag( fs, f->ident, rs, FRAG_S_SEQ ) )
   {
     fprintf( stderr, "Failed to get fragment " F_IID " sequence\n", f->ident );
     return 1;
@@ -875,7 +874,7 @@ cds_int32 CheckFragmentOverlap( FILE * fp_log, Verbosity verbose,
                                 IntMultiPos * f1,
                                 IntMultiPos * f2,
                                 ChunkOrientationType orient,
-                                FragStoreHandle fs )
+                                GateKeeperStore *fs )
 {
   ChunkOrientationType frag_orient = XX_XX;
   
@@ -1114,7 +1113,7 @@ int CheckBreakerChunkOverlap( FILE * fp_log, Verbosity verbose,
                               FILE * fp_ovl,
                               Breakerp b, OverlapIndex oi,
                               ChunkIndex ci1, ChunkIndex ci2,
-                              FragStoreHandle fs )
+                              GateKeeperStore *fs )
 {
   int ci1_frag;
   int ci2_frag;
@@ -1169,7 +1168,7 @@ int CheckBreakerChunkOverlap( FILE * fp_log, Verbosity verbose,
 int CheckBreakerOverlaps( FILE * fp_log, Verbosity verbose,
                           FILE * fp_ovl,
                           Breakerp b, BreakerType type,
-                          FragStoreHandle fs )
+                          GateKeeperStore *fs )
 {
   int s_suffix = b->suffixes[Chunk_s];
   // suffix of s is relevant in different ways for chimeras vs. crappies
@@ -1265,12 +1264,12 @@ int ShowAllBreakerOverlaps( FILE * fp_log, Verbosity verbose,
                             FILE * fp_ovl,
                             BreakerSetp bs, char * frg_store_name )
 {
-  FragStoreHandle fstore;
+  GateKeeperStore *fstore;
   int bi;
 
   // open the fragment store to get sequences in lower functions
-  fstore = openFragStore( frg_store_name, "r" );
-  if( fstore == NULLSTOREHANDLE )
+  fstore = openGateKeeperStore( frg_store_name, FALSE);
+  if( fstore == NULL )
   {
     fprintf( stderr, "Failed to open frag store %s\n", frg_store_name );
     return 1;
@@ -1285,11 +1284,11 @@ int ShowAllBreakerOverlaps( FILE * fp_log, Verbosity verbose,
                               &(bs->breakers[bi]), bs->type, fstore ) )
     {
       fprintf( stderr, "Failed to check breaker overlaps\n" );
-      closeFragStore( fstore );
+      closeGateKeeperStore( fstore );
       return 1;
     }
   }
-  closeFragStore( fstore );
+  closeGateKeeperStore( fstore );
   return 0;
 }
 
@@ -1353,7 +1352,7 @@ typedef CheckGlobals * CheckGlobalsp;
 void InitializeGlobals( CheckGlobalsp globals, char * program_name )
 {
   globals->program_name = program_name;
-  globals->version = "$Revision: 1.11 $";
+  globals->version = "$Revision: 1.12 $";
   globals->chims_file = NULL;
   globals->craps_file = NULL;
   globals->cgb_file = NULL;

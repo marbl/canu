@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.124 2007-02-08 06:48:51 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.125 2007-02-12 22:16:56 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -301,7 +301,7 @@ int IncBaseCount(BaseCount *b, char c) {
     if (c == 'N' || c == 'n' ) i=5;
     b->depth++;
     if( i<0 || i>5 ){
-        CleanExit("IncBaseCount i out of range",__LINE__,1);
+        CleanExit("IncBaseCount i out of range (possibly non ACGTN letter?)",__LINE__,1);
     }
     return b->count[i]++;
 }
@@ -951,12 +951,13 @@ int32 AppendFragToLocalStore(FragType type, int32 iid, int complement,int32 cont
     if ( partitioned ) {
       getFragStorePartition(global_fragStorePartition,iid,FRAG_S_ALL,fsread);
     } else {
-      getFragStore(global_fragStore,iid,FRAG_S_ALL,fsread);
+      getFrag(global_fragStore,iid,fsread,FRAG_S_ALL);
     }
     getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end, READSTRUCT_LATEST);
     getSequence_ReadStruct(fsread, seqbuffer, qltbuffer, AS_READ_MAX_LEN);
     getAccID_ReadStruct(fsread, &fragment.uid);
-    getReadType_ReadStruct(fsread, &fragment.type);
+    //getReadType_ReadStruct(fsread, &fragment.type);
+    fragment.type = AS_READ;
     fragment.source = source;
     seqbuffer[clr_end] = '\0';
     qltbuffer[clr_end] = '\0';
@@ -4444,7 +4445,7 @@ int GetMANodePositions(int32 mid, int mesg_n_frags, IntMultiPos *imps, int mesg_
 }
 
 int PrintFrags(FILE *out, int accession, IntMultiPos *all_frags, int num_frags, 
-                          FragStoreHandle frag_store) {
+                          GateKeeperStore *frag_store) {
          int i,lefti,righti;
          int isread,isforward;
          int num_matches;
@@ -4476,13 +4477,14 @@ int PrintFrags(FILE *out, int accession, IntMultiPos *all_frags, int num_frags,
            if ( partitioned ) {
              getFragStorePartition(global_fragStorePartition,all_frags[i].ident,FRAG_S_ALL,fsread);
            } else {
-             getFragStore(global_fragStore,all_frags[i].ident,FRAG_S_ALL,fsread);
+             getFrag(global_fragStore,all_frags[i].ident,fsread,FRAG_S_ALL);
            }
            getSequence_ReadStruct(fsread, fmesg.sequence, fmesg.quality, 200000);
            getClearRegion_ReadStruct (fsread,(uint32 *)&fmesg.clear_rng.bgn,
 	                                     (uint32 *)&fmesg.clear_rng.end, READSTRUCT_LATEST);
 
-           getEntryTime_ReadStruct(fsread, &fmesg.entry_time);
+           //getEntryTime_ReadStruct(fsread, &fmesg.entry_time);
+           fmesg.entry_time = 0;
            fmesg.iaccession = all_frags[i].ident;
            fmesg.type = all_frags[i].type;
            getAccID_ReadStruct(fsread, &fmesg.eaccession);
@@ -7163,7 +7165,7 @@ GetFragmentIndex(IntFragment_ID ident2, IntMultiPos *positions, int num_frags)
 }
 
 int MultiAlignUnitig(IntUnitigMesg *unitig, 
-                         FragStoreHandle fragStore,
+                         GateKeeperStore *fragStore,
 			 VA_TYPE(char) *sequence,
 			 VA_TYPE(char) *quality, 
 			 VA_TYPE(int32) *deltas, 
@@ -8626,7 +8628,7 @@ int TestFragmentPositions(MultiAlignT *ma) {
 }
 
 MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
-                                    FragStoreHandle frag_store,
+                                    GateKeeperStore *frag_store,
                                     uint32 contig_iid, uint32 unitig_iid, int extendingLeft,
                                     Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
                                     CNS_Options *opp){
@@ -8886,12 +8888,12 @@ fprintf(stderr," element %d at %d,%d\n", ci,bgn,end);
   return cma;
 }
 
-MultiAlignT *MergeMultiAligns( tSequenceDB *, FragStoreHandle , 
+MultiAlignT *MergeMultiAligns( tSequenceDB *, GateKeeperStore *, 
     VA_TYPE(IntMultiPos) *, int , int , 
     Overlap *(*COMPARE_FUNC)(COMPARE_ARGS), CNS_Options *);
 
 MultiAlignT *MergeMultiAlignsFast_new( tSequenceDB *sequenceDBp,
-    FragStoreHandle frag_store, VA_TYPE(IntElementPos) *positions, 
+    GateKeeperStore *frag_store, VA_TYPE(IntElementPos) *positions, 
     int quality, int verbose, Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
     CNS_Options *opp)
 {
@@ -8926,7 +8928,7 @@ MultiAlignT *MergeMultiAlignsFast_new( tSequenceDB *sequenceDBp,
 }
 
 MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
-			       FragStoreHandle frag_store, 
+			       GateKeeperStore *frag_store, 
                                VA_TYPE(IntMultiPos) *positions, 
                                int quality, 
                                int verbose, 

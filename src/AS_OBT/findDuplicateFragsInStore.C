@@ -5,9 +5,9 @@
 
 void
 usage(char *name) {
-  fprintf(stderr, "usage: %s -frg some.frgStore\n", name);
+  fprintf(stderr, "usage: %s -frg some.gkpStore\n", name);
   fprintf(stderr, "\n");
-  fprintf(stderr, "  -frg       Operate on this frgStore\n");
+  fprintf(stderr, "  -frg       Operate on this gkpStore\n");
   fprintf(stderr, "  -log       Report the iid, original trim and new quality trim\n");
 }
 
@@ -36,13 +36,13 @@ fragHashCompare(const void *a, const void *b) {
 
 int
 main(int argc, char **argv) {
-  char   *frgStore   = 0L;
+  char   *gkpStore   = 0L;
   FILE   *logFile    = 0L;
 
   int arg = 1;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-frg", 2) == 0) {
-      frgStore = argv[++arg];
+      gkpStore = argv[++arg];
     } else if (strncmp(argv[arg], "-log", 2) == 0) {
       errno=0;
       logFile = fopen(argv[++arg], "w");
@@ -56,21 +56,21 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if (!frgStore) {
+  if (!gkpStore) {
     usage(argv[0]);
     exit(1);
   }
 
   //  Open the store
   //
-  FragStoreHandle   fs = openFragStore(frgStore, "r");
-  if (fs == NULLSTOREHANDLE) {
-    fprintf(stderr, "Failed to open %s\n", frgStore);
+  GateKeeperStore  *gkp = openGateKeeperStore(gkpStore, FALSE);
+  if (gkp == NULL) {
+    fprintf(stderr, "Failed to open %s\n", gkpStore);
     exit(1);
   }
 
-  u32bit   firstElem = getFirstElemFragStore(fs);
-  u32bit   lastElem  = getLastElemFragStore(fs) + 1;
+  u32bit   firstElem = getFirstElemFragStore(gkp);
+  u32bit   lastElem  = getLastElemFragStore(gkp) + 1;
 
   ReadStructp       rd1 = new_ReadStruct();
   ReadStructp       rd2 = new_ReadStruct();
@@ -89,7 +89,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "Read "u32bitFMT" fragments to build hashes.\n", lastElem - firstElem + 1);
 
   for (u32bit elem=firstElem; elem<lastElem; elem++) {
-    getFragStore(fs, elem, FRAG_S_ALL, rd1);
+    getFrag(gkp, elem, rd1, FRAG_S_ALL);
     if (getSequence_ReadStruct(rd1, seq1, qlt1, seqMax)) {
       fprintf(stderr, "getSequence_ReadStruct() failed.\n");
       exit(1);
@@ -146,13 +146,13 @@ main(int argc, char **argv) {
 
       //  Grab those two fragments, compare sequence and quality directly
 
-      getFragStore(fs, fh[elem-1].iid, FRAG_S_ALL, rd1);
+      getFrag(gkp, fh[elem-1].iid, rd1, FRAG_S_SEQ);
       if (getSequence_ReadStruct(rd1, seq1, qlt1, seqMax)) {
         fprintf(stderr, "getSequence_ReadStruct() failed.\n");
         exit(1);
       }
 
-      getFragStore(fs, fh[elem].iid, FRAG_S_ALL, rd2);
+      getFrag(gkp, fh[elem].iid, rd2, FRAG_S_SEQ);
       if (getSequence_ReadStruct(rd2, seq2, qlt2, seqMax)) {
         fprintf(stderr, "getSequence_ReadStruct() failed.\n");
         exit(1);
@@ -199,7 +199,7 @@ main(int argc, char **argv) {
   }
 
 
-  closeFragStore(fs);
+  closeGateKeeperStore(gkp);
 }
 
 

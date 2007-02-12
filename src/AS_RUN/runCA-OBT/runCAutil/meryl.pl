@@ -35,7 +35,7 @@ sub meryl {
             my $merylMemory = getGlobal("merylMemory");
 
             my $cmd;
-            $cmd  = "$bin/dumpFragStoreAsFasta -frg $wrk/$asm.frgStore | ";
+            $cmd  = "$bin/dumpFragStoreAsFasta -frg $wrk/$asm.gkpStore | ";
             $cmd .= "$bin/meryl ";
             $cmd .= "  -B -C -v -m $merSize -memory $merylMemory ";
             $cmd .= "  -s - ";
@@ -77,7 +77,7 @@ sub meryl {
             $merylOvlThreshold /= $merylSkip;
 
             my $cmd;
-            $cmd  = "$bin/meryl -m $merSize -s $wrk/$asm.frgStore -n $merylOvlThreshold -K $merylSkip ";
+            $cmd  = "$bin/meryl -m $merSize -s $wrk/$asm.gkpStore -n $merylOvlThreshold -K $merylSkip ";
             $cmd .= "-o $wrk/0-preoverlap/$asm.nmers.fasta";
             $cmd .= "> $wrk/0-preoverlap/meryl.out ";
             $cmd .= "2>&1";

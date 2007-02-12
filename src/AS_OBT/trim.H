@@ -8,8 +8,8 @@
 
 extern "C" {
 #include "AS_global.h"
+#include "AS_PER_gkpStore.h"
 #include "AS_PER_ReadStruct.h"
-#include "AS_PER_fragStore.h"
 }
 
 #include "util++.H"

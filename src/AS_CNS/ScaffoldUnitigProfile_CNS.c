@@ -25,7 +25,7 @@
                  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: ScaffoldUnitigProfile_CNS.c,v 1.6 2007-01-29 20:41:08 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ScaffoldUnitigProfile_CNS.c,v 1.7 2007-02-12 22:16:56 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -42,7 +42,6 @@ static char CM_ID[] = "$Id: ScaffoldUnitigProfile_CNS.c,v 1.6 2007-01-29 20:41:0
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_PER_ReadStruct.h"
-#include "AS_PER_fragStore.h"
 #include "AS_PER_genericStore.h"
 #include "AS_UTL_Var.h"
 #include "UtilsREZ.h"
@@ -174,8 +173,8 @@ int main (int argc, char *argv[]) {
    }
    ResetStores(LINE_MAX,20);
 
-   global_fragStore = openFragStore(frgStoreFileName, "rb");
-   if (global_fragStore == NULLSTOREHANDLE) return 0;
+   global_fragStore = openGateKeeperStore(frgStoreFileName, FALSE);
+   if (global_fragStore == NULL) return 0;
  
    sequenceDB = OpenSequenceDB(SeqStoreFileName, FALSE, sdb_version);
 

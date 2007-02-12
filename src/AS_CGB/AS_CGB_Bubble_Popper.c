@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_Bubble_Popper.c,v 1.6 2006-09-26 22:21:13 brianwalenz Exp $";
+= "$Id: AS_CGB_Bubble_Popper.c,v 1.7 2007-02-12 22:16:55 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,7 +35,6 @@ static char CM_ID[]
 #include "AS_CGB_Bubble_PopperMethods.h"
 #include "AS_CGB_Bubble_GraphMethods.h"
 #include "AS_MSG_pmesg.h"
-#include "AS_PER_fragStore.h"
 #include "AS_PER_ReadStruct.h"
 
 #undef AS_CGB_BUBBLE_VERBOSE2
@@ -48,7 +47,7 @@ extern int max_indel_AS_ALN_LOCOLAP_GLOBAL;
 void
 BP_init(BubblePopper_t bp, BubGraph_t bg, TChunkMesg *chunks, 
 	TChunkFrag cfrgs[], float global_arrival_rate,
-        FragStoreHandle TheFragStore,
+        GateKeeperStore *gkpStore,
         const char * fileprefix)
 {
   IntEdge_ID e;
@@ -63,8 +62,7 @@ BP_init(BubblePopper_t bp, BubGraph_t bg, TChunkMesg *chunks,
   bp->chunks = chunks;
   bp->chunkFrags = cfrgs;
   bp->globalArrivalRate = global_arrival_rate;
-  bp->FragStore = TheFragStore;
-  assert( NULLFRAGSTOREHANDLE != bp->FragStore );
+  bp->gkpStore = gkpStore;
   
   bp->rsp = new_ReadStruct();
   bp->vidToBid     = (int *)safe_malloc(sizeof(int) * GetNumFragments(BG_vertices(bg)));
@@ -199,15 +197,13 @@ BP_findOverlap(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2)
   char *src, *dst;
   int where;
 
-  assert( NULLFRAGSTOREHANDLE != bp->FragStore );
-
   /* Setup fake fragment messages. */
   if1 = &(bp->bubMesgs[bid1]);
   if2 = &(bp->bubMesgs[bid2]);
   id1 = get_iid_fragment(BG_vertices(bp->bg), bp->bubFrags[bid1]);
   if (if1->iaccession != id1) {
     if1->iaccession = id1;
-    getFragStore(bp->FragStore, id1, FRAG_S_ALL, bp->rsp);
+    getFrag(bp->gkpStore, id1, bp->rsp, FRAG_S_SEQ);
     getClearRegion_ReadStruct(bp->rsp, (unsigned int *) &(if1->clear_rng.bgn), 
 			      (unsigned int *) &(if1->clear_rng.end),
 			      READSTRUCT_LATEST);
@@ -221,7 +217,7 @@ BP_findOverlap(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2)
   id2 = get_iid_fragment(BG_vertices(bp->bg), bp->bubFrags[bid2]);
   if (if2->iaccession != id2) {
     if2->iaccession = id2;
-    getFragStore(bp->FragStore, id2, FRAG_S_ALL, bp->rsp);
+    getFrag(bp->gkpStore, id2, bp->rsp, FRAG_S_SEQ);
     getClearRegion_ReadStruct(bp->rsp, (unsigned int *) &(if2->clear_rng.bgn), 
 			      (unsigned int *) &(if2->clear_rng.end),
 			      READSTRUCT_LATEST);
@@ -386,7 +382,7 @@ BP_setAdj_VID(BubblePopper_t bp, IntFragment_ID vid1, IntFragment_ID vid2,
 
 BubblePopper_t
 AS_CGB_Bubble_Popper_create
-(FragStoreHandle TheFragStore,
+(GateKeeperStore *gkpStore,
  Tfragment *frags, Tedge *edges, TChunkMesg *chunks,
  TChunkFrag *cfrgs, float gar,
  const char * fileprefix)
@@ -400,7 +396,7 @@ AS_CGB_Bubble_Popper_create
   BG_initialize(bg, frags, edges);
   AS_CGB_Bubble_dfs(bg);
 
-  BP_init(bp, bg, chunks, cfrgs, gar, TheFragStore, fileprefix);
+  BP_init(bp, bg, chunks, cfrgs, gar, gkpStore, fileprefix);
   bp->allocatedByCreate = TRUE;
 
   return bp;

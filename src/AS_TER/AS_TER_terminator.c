@@ -28,7 +28,7 @@ accession numbers.
 
 **********************************************************************/
 
-static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.13 2007-01-29 20:41:22 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.14 2007-02-12 22:16:58 brianwalenz Exp $";
 
 #include  <stdlib.h>
 #include  <stdio.h>
@@ -49,8 +49,6 @@ int main (int argc, char *argv[]) {
   char *inputFileName   = NULL;
   char *outputFileName  = NULL;
   char *mapFileName     = NULL;
-  char *fragStoreName   = NULL;
-  char *bactigStoreName = NULL;
   char *gkpStoreName    = NULL;
   char *euidServerNames = NULL;
 
@@ -67,7 +65,7 @@ int main (int argc, char *argv[]) {
   { /* Parse the argument list using "man 3 getopt". */
     int ch,errflg=FALSE;
     optarg = NULL;
-    while (!errflg && ((ch = getopt(argc, argv, "b:f:g:hi:o:m:rs:uE:NPQ")) != EOF))
+    while (!errflg && ((ch = getopt(argc, argv, "b:g:hi:o:m:rs:uE:NPQ")) != EOF))
       switch(ch) 
 	{
 	case 'P':
@@ -84,14 +82,6 @@ int main (int argc, char *argv[]) {
 	  break;
 	case 's':	  
 	  uidStart = strtoul(optarg,(char**) NULL,10);
-	  break;
-	case 'f':	  
-	  fragStoreName = strdup(optarg);
-	  assert(fragStoreName != NULL);
-	  break;
-	case 'b':	  
-	  bactigStoreName = strdup(optarg);
-	  assert(bactigStoreName != NULL);
 	  break;
 	case 'g':	  
 	  gkpStoreName = strdup(optarg);
@@ -131,9 +121,9 @@ int main (int argc, char *argv[]) {
   
   if((illegal == 1)  || help || (realUIDs != TRUE && uidStart == 0 && random)){
     fprintf (stderr,
-	     "USAGE:  terminator [-P -u -b<bactig_store_directory> -g <gatekeeper_store_directory] <input files>*\n"
+	     "USAGE:  terminator [-P -u -g <gatekeeper_store_directory] <input files>*\n"
 	     "specify zero or more input files at end of command line.  Zero files means read from stdin\n"
-	     "-f <frag_store_directory> [-i <input_file>] -o <output_file> -m <map_file> \n"
+	     "[-i <input_file>] -o <output_file> -m <map_file> \n"
 	     "-s <uid_start> sets dummy UIDs start has to be > 0 (only required for -r)\n"
 	     "-r puts terminator in random access mode\n"
 	     "-P forces ASCII output\n"
@@ -178,11 +168,8 @@ int main (int argc, char *argv[]) {
       inputList = argv + optind;
       numInputs = argc - optind;
     }
-    
 
-    output_snapshot(fragStoreName,
-                    bactigStoreName,
-                    gkpStoreName,
+    output_snapshot(gkpStoreName,
                     inputList,
                     numInputs,
                     outputFileName,

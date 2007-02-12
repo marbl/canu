@@ -306,12 +306,12 @@ sub findNumScaffoldsInCheckpoint ($$) {
     my $dir     = shift @_;
     my $lastckp = shift @_;
 
-    open(F, "cd $wrk/$dir && $bin/getNumScaffolds $asm $lastckp 2> /dev/null |");
+    open(F, "cd $wrk/$dir && $bin/getNumScaffolds ../$asm.gkpStore $asm $lastckp 2> /dev/null |");
     my $numscaf = <F>;  chomp $numscaf;
     close(F);
     $numscaf = int($numscaf);
 
-    die "findNumSCaffoldsInCheckpoint($dir, $lastckp) found no scaffolds?!" if ($numscaf == 0);
+    die "findNumScaffoldsInCheckpoint($dir, $lastckp) found no scaffolds?!" if ($numscaf == 0);
     print STDERR "Found $numscaf scaffolds in $dir checkpoint number $lastckp.\n";
     return($numscaf);
 }
@@ -322,9 +322,9 @@ sub getNumberOfFragsInStore ($$$) {
     my $wrk = shift @_;
     my $asm = shift @_;
 
-    return(0) if (! -e "$wrk/$asm.frgStore/db.frg");
+    return(0) if (! -e "$wrk/$asm.gkpStore/frg");
 
-    open(F, "$bin/lastfraginstore $wrk/$asm.frgStore 2> /dev/null |") or die;
+    open(F, "$bin/lastfraginstore $wrk/$asm.gkpStore 2> /dev/null |") or die;
     $_ = <F>;    chomp $_;
     close(F);
 
@@ -339,23 +339,23 @@ sub backupFragStore ($) {
 
     return if (getGlobal("doBackupFragStore") == 0);
 
-    if (-e "$wrk/$asm.frgStore/db.frg.$backupName") {
+    if (-e "$wrk/$asm.gkpStore/frg.$backupName") {
 
         print STDERR "Found a backup for $backupName!  Restoring!\n";
 
-        unlink "$wrk/$asm.frgStore/db.frg";
-        if (system("cp -p $wrk/$asm.frgStore/db.frg.$backupName $wrk/$asm.frgStore/db.frg")) {
-            unlink "$wrk/$asm.frgStore/db.frg";
-            die "Failed to restore frgStore from backup.\n";
+        unlink "$wrk/$asm.gkpStore/frg";
+        if (system("cp -p $wrk/$asm.gkpStore/frg.$backupName $wrk/$asm.gkpStore/frg")) {
+            unlink "$wrk/$asm.gkpStore/frg";
+            die "Failed to restore gkpStore from backup.\n";
         }
     }
-    if (! -e "$wrk/$asm.frgStore/db.frg.$backupName") {
+    if (! -e "$wrk/$asm.gkpStore/frg.$backupName") {
 
-        print STDERR "Backing up the frgStore to $backupName.\n";
+        print STDERR "Backing up the gkpStore to $backupName.\n";
 
-        if (system("cp -p $wrk/$asm.frgStore/db.frg $wrk/$asm.frgStore/db.frg.$backupName")) {
-            unlink "$wrk/$asm.frgStore/db.frg.$backupName";
-            die "Failed to backup frgStore.\n";
+        if (system("cp -p $wrk/$asm.gkpStore/frg $wrk/$asm.gkpStore/frg.$backupName")) {
+            unlink "$wrk/$asm.gkpStore/frg.$backupName";
+            die "Failed to backup gkpStore.\n";
         }
     }
 }

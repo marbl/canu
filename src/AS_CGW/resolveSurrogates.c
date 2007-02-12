@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.10 2007-01-31 22:19:22 brianwalenz Exp $";
+static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.11 2007-02-12 22:16:56 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -104,18 +104,14 @@ int main( int argc, char *argv[])
   float cutoffToInferSingleCopyStatus=1.0;
   Global_CGW *data;
   char *outputPath = NULL;
-  int setFragStore = FALSE;
   int setGatekeeperStore = FALSE;
   int setPrefixName = FALSE;
   int setSingleSid = FALSE;
   CDS_CID_t singleSid = NULLINDEX;
   int ckptNum = NULLINDEX;
-  ChunkInstanceT
-    * parentChunk;
-  LengthT
-    gap;
-  GraphNodeIterator
-    CIGraphIterator;
+  ChunkInstanceT * parentChunk;
+  LengthT gap;
+  GraphNodeIterator CIGraphIterator;
   VA_TYPE(IntMultiPos) **impLists = NULL;
   int allocedImpLists = 100;
   int i;
@@ -151,12 +147,6 @@ int main( int argc, char *argv[])
             setPrefixName = TRUE;		  
           }
           break;
-        case 'f':
-          {
-            strcpy( data->Frag_Store_Name, argv[optind - 1]);
-            setFragStore = TRUE;
-          }
-          break;
         case 'g':
           {
             strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
@@ -179,11 +169,11 @@ int main( int argc, char *argv[])
       }
     }
 
-    if((setPrefixName == FALSE) || (setFragStore == 0) || (setGatekeeperStore == 0))
+    if((setPrefixName == FALSE) || (setGatekeeperStore == 0))
       {
-	fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d outputPath = %s\n",
-		argc, optind, setFragStore,setGatekeeperStore, outputPath);
-	fprintf (stderr, "USAGE:  %s -f <FragStoreName> -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum> [-1]\n",argv[0]);
+	fprintf(stderr,"* argc = %d optind = %d setGatekeeperStore = %d outputPath = %s\n",
+		argc, optind, setGatekeeperStore, outputPath);
+	fprintf (stderr, "USAGE:  %s -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum> [-1]\n",argv[0]);
 	fprintf (stderr, "\t-1 option causes aggressive placement of fragments in singly-placed surrogates\n");
 	exit (EXIT_FAILURE);
       }

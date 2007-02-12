@@ -18,25 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_PER_gkpStore.h,v 1.14 2007-02-09 21:17:40 brianwalenz Exp $	 */
+
+/* 	$Id: AS_PER_gkpStore.h,v 1.15 2007-02-12 22:16:58 brianwalenz Exp $	 */
+
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
-/*************************************************************************
- Module:  AS_PER_gkpfrgStore
- Description:
-    A thin layer on top of the IndexStore supporing the storage and
- retrieval of records used by the gatekeeper records.
-    The idea is to provide easier to use shortcuts for the common
- operations, and let the other operations be accessed through the
- generic Index Store API.
-
- Assumptions:
-    Nothing special beyond genericStore.rtf
-
- Document:
-      GenericStore.rtf
-
- *************************************************************************/
 
 #include <sys/types.h>
 #include <time.h>
@@ -47,90 +33,156 @@
 
 #define NULL_LINK 0
 
-// The following counts represent the number of records of each type
-// PRIOR to processing this batch.  To get the range of batch i, take
-// the difference between batch i+1 and batch i.
+//  The following counts represent the number of records of each type
+//  PRIOR to processing this batch.  To get the range of batch i, take
+//  the difference between batch i+1 and batch i.
 //
-typedef struct{
-  CDS_UID_t  UID;
+typedef struct {
+  CDS_UID_t      UID;
   char           name[256];
-  time_t         created;
-#ifndef __x86_64__ // 8 byte time_t on x86_64, so pad elsewhere
-  uint32         padtime_t;
-#endif
   char           comment[256];
+  uint64         created;
+
   unsigned int   deleted:1;
   unsigned int   spare:31;
+
   int32          numFragments;
-  int32          numDistances;
-  int32          num_s_Distances; // shadowed for redefintions
-  int32          numLinks;
-}GateKeeperBatchRecord;
+  int32          numLibraries;
+  int32          numLibraries_s;
+} GateKeeperBatchRecord;
 
-typedef struct{
-  unsigned int   deleted:1;
-  unsigned int   type:8;  /* From AS_MSG_pmesg.h FragType */
-  unsigned int   numLinks:8; /* Number of LIVE links */
-  uint           spare:15;
-  CDS_IID_t      linkHead;           /* Index into Link Table */
-  CDS_UID_t      readUID;            /* Accession ID of this read */
-  uint16         birthBatch;         /* This entry is valid */
-  uint16         deathBatch;         /* [birthBatch, deatchBatch) */
-}GateKeeperFragmentRecord;
+#define AS_GKP_ORIENT_UNKNOWN    0x00
+#define AS_GKP_ORIENT_INNIE      0x01
+#define AS_GKP_ORIENT_OUTTIE     0x02
+#define AS_GKP_ORIENT_NORMAL     0x03
+#define AS_GKP_ORIENT_ANTINORMAL 0x04
 
-// One for each distance record
-typedef struct{
+typedef struct {
   CDS_UID_t      UID;
+
+  char           name[256];
+  char           comment[256];
+  uint64         created;
+
   unsigned int   deleted:1;
   unsigned int   redefined:1;
-  unsigned int   spare:30;
-  CDS_IID_t      prevInstanceID; // Previous definitions are linked by this reference
-  CDS_IID_t      prevID;         // If redefined == TRUE, the original ID of this
-  float32        mean;
-  float32        stddev;
-  uint16         birthBatch;         /* This entry is valid */
-  uint16         deathBatch;         /* [birthBatch, deatchBatch) */
-}GateKeeperDistanceRecord;
+  unsigned int   orientation:3;
+  unsigned int   spare:28;
 
-#define AS_GKP_UNKNOWN 0
-#define AS_GKP_INNIE 1
-#define AS_GKP_OUTTIE 2
-#define AS_GKP_NORMAL 3
-#define AS_GKP_ANTINORMAL 4
+  double         mean;
+  double         stddev;
+  
+  unsigned int   numFeatures;
+
+  CDS_IID_t      prevInstanceID;    // Previous definitions are linked by this reference
+  CDS_IID_t      prevID;            // If redefined == TRUE, the original ID of this
+
+  uint16         birthBatch;        // This entry is valid
+  uint16         deathBatch;        // [birthBatch, deatchBatch)
+} GateKeeperLibraryRecord;
+
+
+#define AS_GKP_STATUS_G   0x00
+#define AS_GKP_STATUS_B   0x01
+#define AS_GKP_STATUS_U   0x02
+#define AS_GKP_STATUS_W   0x03
+#define AS_GKP_STATUS_X   0x04
+#define AS_GKP_STATUS_V   0x05
+#define AS_GKP_STATUS_E   0x06
+#define AS_GKP_STATUS_I   0x07
+#define AS_GKP_STATUS_R   0x08
 
 typedef struct{
-  unsigned int   deleted:1;
-  unsigned int   type:8;  
-  unsigned int   orientation:3;
-  unsigned int   spare:23;
-  CDS_IID_t      distance;   // iid of distance
+  CDS_UID_t        UID;
+ 
+  CDS_IID_t        readIID;
+  CDS_IID_t        mateIID;
 
-  CDS_IID_t      frag1;      // iid of frag1
-  CDS_IID_t      frag2;      // iid of frag2
+  CDS_IID_t        libraryIID;
+  CDS_UID_t        plateUID;
+  unsigned int     plateLocation;
 
-  CDS_IID_t      frag1Next;
-  CDS_IID_t      frag2Next;
+  unsigned int     deleted:1;
+  unsigned int     nonrandom:1;
+  unsigned int     status:4;
+  unsigned int     hasQLT:1;
+  unsigned int     hasHPS:1;
+  unsigned int     hasOVLclr:1;
+  unsigned int     hasCNSclr:1;
+  unsigned int     hasCGWclr:1;
 
-  uint16         birthBatch;         /* This entry is valid */
-  uint16         deathBatch;         /* [birthBatch, deatchBatch) */
-  uint32         padTo8byteWords;
-}GateKeeperLinkRecord;
+  unsigned int     orientation:3;  //  copied from library
 
-static char getLinkOrientation(GateKeeperLinkRecord *gkpl){
-  switch(gkpl->orientation){
-  case AS_GKP_UNKNOWN:
-    return '?';
-  case AS_GKP_INNIE:
-    return 'I';
-  case AS_GKP_OUTTIE:
-    return 'O';
-  case AS_GKP_NORMAL:
-    return 'N';
-  case AS_GKP_ANTINORMAL:
-    return 'A';
-  default:
-    return '-';
+  //  If someone ever adds "type" to a read, search for getReadType in
+  //  the source.  You'll need to add type to there too.
+
+  unsigned int     spare:20;
+
+  VLSTRING_SIZE_T  clrSta;
+  VLSTRING_SIZE_T  clrEnd;
+
+  VLSTRING_SIZE_T  ovlSta;
+  VLSTRING_SIZE_T  ovlEnd;
+
+  VLSTRING_SIZE_T  cnsSta;
+  VLSTRING_SIZE_T  cnsEnd;
+
+  VLSTRING_SIZE_T  cgwSta;
+  VLSTRING_SIZE_T  cgwEnd;
+
+  uint64           seqOffset;
+  uint64           qltOffset;
+  uint64           hpsOffset;
+  uint64           srcOffset;
+
+  uint16           birthBatch;         /* This entry is valid */
+  uint16           deathBatch;         /* [birthBatch, deatchBatch) */
+} GateKeeperFragmentRecord;
+
+
+
+#define MAX_SEQ_LENGTH (64 * 2048 - 1)
+#define MAX_HPS_LENGTH (64 * 2048 - 1)
+#define MAX_SRC_LENGTH (512 + sizeof(int32) + sizeof(int64))
+
+#define FRAG_S_INF 0x01
+#define FRAG_S_SEQ 0x02
+#define FRAG_S_QLT 0x04
+#define FRAG_S_HPS 0x08
+#define FRAG_S_SRC 0x10
+#define FRAG_S_ALL 0x1f
+
+typedef struct {
+  GateKeeperFragmentRecord   gkfr;
+  uint                       flags;
+  char                       seq[MAX_SEQ_LENGTH];
+  char                       qlt[MAX_SEQ_LENGTH];
+  char                       hps[MAX_HPS_LENGTH];
+  char                       src[MAX_SRC_LENGTH];
+} ReadStruct;
+
+typedef ReadStruct* ReadStructp;
+
+
+
+
+static char getLinkOrientation(GateKeeperFragmentRecord *gkpf){
+
+  switch (gkpf->orientation){
+    case AS_GKP_ORIENT_UNKNOWN:
+      return '?';
+    case AS_GKP_ORIENT_INNIE:
+      return 'I';
+    case AS_GKP_ORIENT_OUTTIE:
+      return 'O';
+    case AS_GKP_ORIENT_NORMAL:
+      return 'N';
+    case AS_GKP_ORIENT_ANTINORMAL:
+      return 'A';
+    default:
+      return '-';
   }
+
   return '-';
 }
 
@@ -187,166 +239,124 @@ static int32 getNum ## type ## s(type ## Store store){\
   return(stat.lastElem);\
 }
 
+INDEXSTORE_DEF(GateKeeperBatch);
+INDEXSTORE_DEF(GateKeeperFragment);
+INDEXSTORE_DEF_EXTEND(GateKeeperFragment);
+INDEXSTORE_DEF(GateKeeperLibrary);
+INDEXSTORE_DEF_EXTEND(GateKeeperLibrary);
 
+#define NUM_GKP_FILES 10
 
-#define NUM_GKP_FILES 6
-
-// 1. for gkp.bat
-INDEXSTORE_DEF(GateKeeperBatch)
-
-// 2. for gkp.frg
-INDEXSTORE_DEF(GateKeeperFragment)
-INDEXSTORE_DEF_EXTEND(GateKeeperFragment)
-
-// 3. for gkp.lnk
-INDEXSTORE_DEF(GateKeeperLink)
-INDEXSTORE_DEF_EXTEND(GateKeeperLink)
-
-// 4 & 5. for gkp.dst (distance definitions) & gkp.s_dst (distance redefinitions)
-INDEXSTORE_DEF(GateKeeperDistance)
-INDEXSTORE_DEF_EXTEND(GateKeeperDistance)
-
-// 6. is gkp.phash
-
-
-/***********************************************************************************
- * GateKeeperLinkIterator
- * Description:
- *     An iterator for GateKeepLinkRecords.
- *     Starting from a given entry in the gateKeeperLink store, the iterator
- *     supports traversing all of the gatekeeperLinks for a given fragment (followFrag).
- *     It maintains two points, one to the next link and one to the current link.
- *     This is useful for doing deletions from the singly-linked list.
- ***********************************************************************************/
+// 1  is gatekeeper store info
+// 2  is batches
+// 3  is fragments
+// 4  is libraries
+// 5  is shadow libraries
+// 6  is sequence
+// 7  is quality
+// 8  is homopolymer spacing and etc
+// 9  is source
+// 10 is gkp.phash
 
 typedef struct {
-  GateKeeperLinkStore store;
-  CDS_IID_t prevLinkRecord;      /* actually, the current record */
-  CDS_IID_t linkRecord;          /* the next record */
-  CDS_IID_t followFrag;          /* The fragment we're interested in */
-}GateKeeperLinkRecordIterator;
+  uint64    gkpMagic;
+  uint64    gkpVersion;
+} GateKeeperStoreInfo;
 
-/***********************************************************************************
- * Function: CreateGateKeeperLinkRecordIterator
- * Description:
- *     Create an iterator for GateKeeperLinkRecords
- *
- * Inputs:
- *     store      Handle of GateKeeperLink store
- *     startFromLink  The index of the link in the store to start from
- *     followFrag     The id of the fragment whose links we're traversing
- * I/O
- *     iterator      * GateKeeperLinkIterator that we're initializing    
- *
- * Return Value:
- *     Zero if success.
- ***********************************************************************************/
-int CreateGateKeeperLinkRecordIterator(GateKeeperLinkStore store, CDS_IID_t startFromLink, 
-				       CDS_IID_t followFrag, GateKeeperLinkRecordIterator *iterator);
+#define UID_NAMESPACE_AS 'U'
 
-
-/***********************************************************************************
- * Function: CreateGateKeeperLinkRecordFromFragmentIterator
- * Description:
- *     Create an iterator for GateKeeperLinkRecords
- *
- * Inputs:
- *     store      Handle of GateKeeperLink store
- *     followFrag     The id of the fragment whose links we're traversing
- * I/O
- *     iterator      * GateKeeperLinkIterator that we're initializing    
- *
- * Return Value:
- *     Zero if success.
- ***********************************************************************************/
-int CreateGateKeeperLinkRecordFromFragmentIterator(GateKeeperLinkStore store,  CDS_IID_t followFrag, 
-						   GateKeeperLinkRecordIterator *iterator);
-
-/***********************************************************************************
- * Function: NextGateKeeperLinkRecordIterator
- * Description:
- *     Get the next GateKeeperLinkRecord from the store
- *
- * Inputs:
- *     iterator      * GateKeeperLinkIterator that we're initializing    
- * I/O
- *     link          * GateKeeperLinkRecord that we're retrieving
- *
- * Return Value:
- *     Non-Zero if success. Zero if we're done.
- ***********************************************************************************/
-int NextGateKeeperLinkRecordIterator(GateKeeperLinkRecordIterator *iterator, GateKeeperLinkRecord *link);
-
-
-
-/***********************************************************************************
- * Function: findLink
- * Description:
- *     Searches the GateKeeperLinkStore gkplStore from the record with index linkHead
- *     for links that match link.  If found, returns the index of the matching
- *     link.
- ***********************************************************************************/
-int findLink(GateKeeperLinkStore store, 
-	          CDS_IID_t frag,
-		  CDS_IID_t linkHead, 
-		  GateKeeperLinkRecord *searchlink,
-		  GateKeeperLinkRecord *foundlink);
-
-/***********************************************************************************
- * Function: unlinkLink_GKP
- * Description:
- *     Marks the link with index deleteLinkindex as deleted, and unlinks it
- *     it from other links.  This may involve modifying the gkpStore as well
- *     as the gkplStore.
- ***********************************************************************************/
-int unlinkLink_GKP(GateKeeperLinkStore gkplStore, 
-		 GateKeeperFragmentStore     gkpStore, 
-		 CDS_IID_t frag1,
-		 CDS_IID_t frag2,
- 	         GateKeeperFragmentRecord *gkf1, 
-		 GateKeeperFragmentRecord *gkf2,
-		 GateKeeperLinkRecord *newLink,
-		 int deleteLinkIndex);
-
-
-/***********************************************************************************
- * Function: linkLink_GKP
- * Description:
- *     Inserts newLink at an appropriate place in the gkplStore, possibly modifying
- *     gkpStore in the process.
- ***********************************************************************************/
-int linkLink_GKP(GateKeeperLinkStore gkplStore, 
-		 GateKeeperFragmentStore     gkpStore, 
-		 GateKeeperLinkRecord *newLink,
-		 CDS_IID_t frag1,
-		 CDS_IID_t frag2,
- 	         GateKeeperFragmentRecord *gkf1, 
-		 GateKeeperFragmentRecord *gkf2);
-
-
-
-
-/* GateKeeperStore */
 typedef struct {
-  char storePath[FILENAME_MAX];
+  char                     storePath[FILENAME_MAX];
 
-  PHashTable_AS           *hashTable;
-  GateKeeperBatchStore     batStore;
-  GateKeeperFragmentStore  frgStore;
-  GateKeeperLinkStore      lnkStore;
-  GateKeeperDistanceStore  dstStore;    
-  GateKeeperDistanceStore  s_dstStore;    // Store for Distances that have been redefined
+  GateKeeperStoreInfo      gkp;
+
+  GateKeeperBatchStore     bat;
+  GateKeeperFragmentStore  frg;
+  GateKeeperLibraryStore   lib;    
+  GateKeeperLibraryStore   lis;
+
+  StoreHandle              seq;
+  StoreHandle              qlt;
+  StoreHandle              hps;
+
+  StoreHandle              src;
+
+  PHashTable_AS           *phs;
 } GateKeeperStore;
 
-int  CreateGateKeeperStore(GateKeeperStore *gkpStore);
-int  OpenGateKeeperStore(GateKeeperStore *gkpStore);
-int  OpenReadOnlyGateKeeperStore(GateKeeperStore *gkpStore);
-int  CopyGateKeeperStoreFiles(GateKeeperStore *gkpStore, char *path);
-int  RemoveGateKeeperStoreFiles(GateKeeperStore *gkpStore);
-int  TestOpenGateKeeperStore(GateKeeperStore *gkpStore);
-int  TestOpenReadOnlyGateKeeperStore(GateKeeperStore *gkpStore);
-void InitGateKeeperStore(GateKeeperStore *gkpStore, const char *path);
-void CloseGateKeeperStore(GateKeeperStore *gkpStore);
-int  UpgradeGateKeeperStore(GateKeeperStore *gkpStore);
+////////////////////////////////////////////////////////////////////////////////
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+GateKeeperStore *createGateKeeperStore(const char *path);
+int              testOpenGateKeeperStore(const char *path, int writable);
+GateKeeperStore *openGateKeeperStore(const char *path, int writable);
+void             closeGateKeeperStore(GateKeeperStore *gkpStore);
+
+
+void    clearGateKeeperFragmentRecord(GateKeeperFragmentRecord *g);
+void    clearGateKeeperLibraryRecord(GateKeeperLibraryRecord *g);
+
+int     getFrag(GateKeeperStore *gkp, int64 iid, ReadStruct *rs, int32 flags);
+int     setFrag(GateKeeperStore *gkp, int64 iid, ReadStruct *rs);
+int     delFrag(GateKeeperStore *gkp, int64 iid);
+
+#define getFirstElemFragStore(GKP)  getFirstElemStore((GKP)->frg)
+#define getLastElemFragStore(GKP)   getLastElemStore((GKP)->frg)
+
+////////////////////////////////////////////////////////////////////////////////
+
+static
+GateKeeperStore *loadFragStore(const char *path) {
+  return(openGateKeeperStore(path, FALSE));
+}
+
+static
+GateKeeperStore *loadFragStorePartial(const char *path, int64 firstElem, int64 lastElem) {
+  return(openGateKeeperStore(path, FALSE));
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+
+typedef struct {
+  GateKeeperStore   *gkp;
+  StreamHandle       frg;
+  StreamHandle       seq;
+  StreamHandle       qlt;
+  StreamHandle       hps;
+  StreamHandle       src;
+} FragStream;
+
+FragStream      *openFragStream(GateKeeperStore *gkp);
+void             resetFragStream(FragStream *fs, int64 startIndex, int64 endIndex);
+void             closeFragStream(FragStream *fs);
+
+int64            getStartIndexFragStream(FragStream *fs);
+
+int              nextFragStream(FragStream *fs, ReadStruct *rs, int streamFlags);
+
+////////////////////////////////////////////////////////////////////////////////
+
+typedef GateKeeperStore  tFragStorePartition;
+
+static
+tFragStorePartition *openFragStorePartition(char *fragStorePath, int32 partition, int loadData) {
+  return(openGateKeeperStore(fragStorePath, FALSE));
+};
+
+static
+void                 closeFragStorePartition(tFragStorePartition *partition) {
+  closeGateKeeperStore(partition);
+};
+
+static
+int                  getFragStorePartition(tFragStorePartition *partition,
+                                           int32 indx,
+                                           int32 getFlags,
+                                           ReadStruct *rs) {
+  return(getFrag(partition, indx, rs, getFlags));
+};
 
 #endif

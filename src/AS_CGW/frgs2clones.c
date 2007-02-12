@@ -112,14 +112,11 @@ int main( int argc, char *argv[])
   char *inputPath;
   char *prefix;
 
-  int setFragStore = FALSE;
   int setGatekeeperStore = FALSE;
   int fragIID,mateIID;
   Fragment_ID fragUID,mateUID;
-  char Frag_Store_Name[2000];
   char GKP_Store_Name[2000];
-  FragStoreHandle frgStore = 0;
-  GateKeeperStore gkpStore;
+  GateKeeperStore *gkpStore;
   GateKeeperFragmentRecord gkpFrag,gkpMate;
   uint64 uid, mateuid;
   char *seq1,*seq2,*qul1,*qul2,*clear1,*clear2;
@@ -157,10 +154,6 @@ int main( int argc, char *argv[])
         case 'C':
           runConsensus=1;
           break;
-        case 'f':
-          strcpy( Frag_Store_Name, argv[optind - 1]);
-          setFragStore = TRUE;
-          break;
         case 'g':
           strcpy( GKP_Store_Name, argv[optind - 1]);
           setGatekeeperStore = TRUE;
@@ -178,11 +171,11 @@ int main( int argc, char *argv[])
       }
     }
 
-    if((setFragStore == 0) || (setGatekeeperStore == 0) || errflg>0)
+    if((setGatekeeperStore == 0) || errflg>0)
       {
-	fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d\n",
-		argc, optind, setFragStore,setGatekeeperStore);
-	fprintf (stderr, "USAGE:  %s -f <FragStoreName> -g <GatekeeperStoreName> [-U] [-C]\n",argv[0]);
+	fprintf(stderr,"* argc = %d optind = %d setGatekeeperStore = %d\n",
+		argc, optind,setGatekeeperStore);
+	fprintf (stderr, "USAGE:  %s -g <GatekeeperStoreName> [-U] [-C]\n",argv[0]);
 	fprintf (stderr, "\t-U uses real UIDs\n");
 	fprintf (stderr, "\t-C computes a consensus rather than splicing fragment seqs (slower, but better?)\n");
 	exit (EXIT_FAILURE);
@@ -190,12 +183,7 @@ int main( int argc, char *argv[])
 
   }
 
-  assert(existsFragStore(Frag_Store_Name) == TRUE);
-  frgStore = openFragStore(Frag_Store_Name,"r");
-
-  InitGateKeeperStore(&gkpStore,GKP_Store_Name);
-  assert(TestOpenGateKeeperStore(&gkpStore) == TRUE);
-  OpenReadOnlyGateKeeperStore(&gkpStore);
+  gkpStore = openGateKeeperStore(GKP_Store_Name, FALSE);
 
   seq1=(char*)malloc(sizeof(char)*alloclen1);
   qul1=(char*)malloc(sizeof(char)*alloclen1);
@@ -244,7 +232,7 @@ int main( int argc, char *argv[])
   // over all fragments, check for overlap with (previously unseen) mate
   /*************************/
   
-  lastfrg = getLastElemFragStore (frgStore) ;
+  lastfrg = getLastElemFragStore (gkpStore) ;
   for (fragIID = 1; fragIID <= lastfrg; fragIID++){
     int rv1,rv2;
 
@@ -252,13 +240,13 @@ int main( int argc, char *argv[])
     // get the fragment
     /*************************/
 
-    rv1 = getGateKeeperFragmentStore(gkpStore.frgStore,fragIID,&gkpFrag);
+    rv1 = getGateKeeperFragmentStore(gkpStore.frg,fragIID,&gkpFrag);
     if(gkpFrag.deleted)continue;
     assert(rv1==0);
-    fragUID = gkpFrag.readUID;
+    fragUID = gkpFrag.UID;
 
-    if(getFragStore(frgStore,fragIID,FRAG_S_ALL,fsread)!=0){
-      fprintf(stderr,"Couldn't get fragment from frgStore for iid %d\n",fragIID);
+    if(getFrag(gkpStore,fragIID,fsread,FRAG_S_ALL)!=0){
+      fprintf(stderr,"Couldn't get fragment from gkpStore for iid %d\n",fragIID);
       assert(0);
     }
     getClearRegion_ReadStruct(fsread, &clr_bgn1,&clr_end1, READSTRUCT_LATEST);
@@ -277,31 +265,26 @@ int main( int argc, char *argv[])
     // check for an appropriate mate
     /*************************/
 
-    if(gkpFrag.numLinks!=1){
+    if(gkpFrag.mateIID == 0){
 
       // if no mate (or multiple mates), output fragment itself
       printf(">" F_S64 "\n%s\n",fragUID,clear1);
 
     } else { // there are links
-      GateKeeperLinkRecordIterator iterator;
-      GateKeeperLinkRecord link;
-      CreateGateKeeperLinkRecordIterator(gkpStore.lnkStore, gkpFrag.linkHead,fragIID, &iterator);
-      while(NextGateKeeperLinkRecordIterator(&iterator, &link))
-	mateIID = (link.frag1 == fragIID) ? link.frag2 : link.frag1;
+      mateIID = gkpFrag.mateIID;
 
       /*************************/
       // get (clear) sequence of mate
       /*************************/
 
-
-      rv2 = getGateKeeperFragmentStore(gkpStore.frgStore,mateIID,&gkpFrag);
+      rv2 = getGateKeeperFragmentStore(gkpStore.frg,mateIID,&gkpFrag);
       assert(rv2==0);
-      mateUID = gkpFrag.readUID;
+      mateUID = gkpFrag.UID;
 	
       if(mateIID<fragIID&&gkpFrag.deleted!=1)continue;
 
-      if(getFragStore(frgStore,mateIID,FRAG_S_ALL,fsmate)!=0){
-	fprintf(stderr,"Couldn't get fragment from frgStore for iid %d\n",mateIID);
+      if(getFrag(gkpStore,mateIID,fsmate,FRAG_S_ALL)!=0){
+	fprintf(stderr,"Couldn't get fragment from gkpStore for iid %d\n",mateIID);
 	assert(0);
       }
       getClearRegion_ReadStruct(fsmate, &clr_bgn2,&clr_end2, READSTRUCT_LATEST);
@@ -435,7 +418,7 @@ int main( int argc, char *argv[])
 
 	    //      fprintf(stderr,"Doing the multialignment\n");
 
-	    if (MultiAlignUnitig(&ium,frgStore,sequence,quality,deltas,printwhat,do_rez,
+	    if (MultiAlignUnitig(&ium,gkpStore,sequence,quality,deltas,printwhat,do_rez,
                                  COMPARE_FUNC, NULL)==-1 ) {
 	      fprintf(stderr,"MultiAlignUnitig failed for overlap of fragments %d and %d\n",
                       fragIID,mateIID);

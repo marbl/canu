@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: exploreMates.c,v 1.8 2006-11-14 19:58:21 eliv Exp $";
+static char CM_ID[] = "$Id: exploreMates.c,v 1.9 2007-02-12 22:16:56 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -128,7 +128,7 @@ void DumpContigUnitigPositions(FILE * fp)
 void Usage(char * progName)
 {
   fprintf (stderr,
-           "USAGE:  %s -f <FragStoreName> -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum>\n",
+           "USAGE:  %s -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum>\n",
            progName);
   exit (EXIT_FAILURE);
 }
@@ -175,7 +175,6 @@ void DumpAllGapSizes(FILE * fp)
 int main(int argc, char *argv[]){
   Global_CGW *data;
   char *outputPath = NULL;
-  int setFragStore = FALSE;
   int setGatekeeperStore = FALSE;
   int setPrefixName = FALSE;
   int ckptNum = NULLINDEX;
@@ -199,12 +198,6 @@ int main(int argc, char *argv[]){
 
           }
           break;
-        case 'f':
-          {
-            strcpy( data->Frag_Store_Name, argv[optind - 1]);
-            setFragStore = 1;
-          }
-          break;
         case 'g':
           {
             strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
@@ -222,10 +215,10 @@ int main(int argc, char *argv[]){
           errflg++;
       }
     }
-    if((setPrefixName == FALSE) || (setFragStore == 0) || (setGatekeeperStore == 0))
+    if((setPrefixName == FALSE) || (setGatekeeperStore == 0))
       {
-	fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d outputPath = %s\n",
-		argc, optind, setFragStore,setGatekeeperStore, outputPath);
+	fprintf(stderr,"* argc = %d optind = %d setGatekeeperStore = %d outputPath = %s\n",
+		argc, optind, setGatekeeperStore, outputPath);
         Usage(argv[0]);
       }
   }

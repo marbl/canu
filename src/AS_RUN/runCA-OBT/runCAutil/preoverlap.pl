@@ -69,11 +69,11 @@ sub preoverlap {
         }
     }
 
-    if ((! -d "$wrk/$asm.gkpStore") || (! -e "$wrk/$asm.gkpStore/gkp.frg")) {
+    if ((! -d "$wrk/$asm.gkpStore") || (! -e "$wrk/$asm.gkpStore/frg")) {
         my $cmd;
-        $cmd  = "$bin/gatekeeper -X -C -P -e 10000000 ";
-        $cmd .= "-Q -T -N " if (getGlobal("doOverlapTrimming"));
-        $cmd .= "-f $wrk/$asm.gkpStore ";
+        $cmd  = "$bin/gatekeeper -e 10000000 ";
+        $cmd .= "-Q -T " if (getGlobal("doOverlapTrimming"));
+        $cmd .= "-o $wrk/$asm.gkpStore ";
         $cmd .= "$wrk/0-preoverlap/$asm.frg ";
         $cmd .= "> $wrk/0-preoverlap/gatekeeper.out ";
         $cmd .= "2> $wrk/0-preoverlap/gatekeeper.err";
@@ -82,25 +82,6 @@ sub preoverlap {
             print STDERR "Failed.\n";
             rename "$wrk/0-preoverlap/$asm.inp", "$wrk/0-preoverlap/$asm.inp.FAILED";
             rename "$wrk/$asm.gkpStore", "$wrk/$asm.gkpStore.FAILED";
-            exit(1);
-        }
-    }
-
-    ########################################
-
-    if ((! -d "$wrk/$asm.frgStore") || (! -e "$wrk/$asm.frgStore/db.frg")) {
-        my $cmd;
-        $cmd  = "$bin/PopulateFragStore -P -c -f ";
-        $cmd .= "-o $wrk/$asm.frgStore ";
-        $cmd .= "-V $wrk/0-preoverlap/$asm.ofg ";
-        $cmd .= "$wrk/0-preoverlap/$asm.inp";
-        $cmd .= "> $wrk/0-preoverlap/populatefragstore.out ";
-        $cmd .= "2> $wrk/0-preoverlap/populatefragstore.err";
-
-        if (runCommand("$wrk/0-preoverlap", $cmd)) {
-            print STDERR "Failed.\n";
-            rename "$wrk/0-preoverlap/$asm.ofg", "$wrk/0-preoverlap/$asm.ofg.FAILED";
-            rename "$wrk/$asm.frgStore", "$wrk/$asm.frgStore.FAILED";
             exit(1);
         }
     }

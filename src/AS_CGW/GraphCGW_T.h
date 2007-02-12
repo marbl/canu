@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: GraphCGW_T.h,v 1.12 2007-02-08 06:48:50 brianwalenz Exp $	 */
+/* 	$Id: GraphCGW_T.h,v 1.13 2007-02-12 22:16:55 brianwalenz Exp $	 */
 
 /**************************************************************************
  *  GraphCGW
@@ -328,7 +328,7 @@ typedef struct{
 	 time in the Split functions */
       unsigned int isSurrogate:1; 
       unsigned int beingContigged:1;
-      unsigned int includesFinishedBacFragments:1;
+      unsigned int XXXunusedXXXincludesFinishedBacFragments:1;
       /* The following is used by gap walking to see which scaffolds have been walked.
 	 Initialized to zero when a scaffold is created, managed by gw afterward */
       unsigned int walkedAlready:1;

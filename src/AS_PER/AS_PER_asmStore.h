@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_PER_asmStore.h,v 1.6 2007-01-28 21:52:25 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_asmStore.h,v 1.7 2007-02-12 22:16:58 brianwalenz Exp $	 */
 #ifndef AS_PER_ASMSTORE_H
 #define AS_PER_ASMSTORE_H
 /*************************************************************************
@@ -44,7 +44,6 @@
 #include "AS_MSG_pmesg.h"
 #include "AS_PER_genericStore.h"
 #include "AS_PER_gkpStore.h"
-#include "AS_PER_fragStore.h"
 #include "AS_UTL_PHash.h"
 
 #define ASM_UID_NAMESPACE 'U'
@@ -105,7 +104,24 @@ typedef struct
 } ASM_AFGRecord;
 
 
-typedef GateKeeperLinkRecord ASM_LKGRecord;
+//  This is the old GateKeeperLinkRecord.
+typedef struct{
+  unsigned int   deleted:1;
+  unsigned int   type:8;  
+  unsigned int   orientation:3;
+  unsigned int   spare:23;
+  CDS_IID_t      distance;   // iid of distance
+
+  CDS_IID_t      frag1;      // iid of frag1
+  CDS_IID_t      frag2;      // iid of frag2
+
+  CDS_IID_t      frag1Next;
+  CDS_IID_t      frag2Next;
+
+  uint16         birthBatch;         /* This entry is valid */
+  uint16         deathBatch;         /* [birthBatch, deatchBatch) */
+  uint32         padTo8byteWords;
+} ASM_LKGRecord;
 
 typedef struct
 {
@@ -248,7 +264,6 @@ typedef struct
   // ASM_Status status;
   
   GateKeeperStore * gkpStore;
-  FragStoreHandle   frgStore;
   
   ASM_MDIStore     mdiStore;
   ASM_BucketStore  bktStore;

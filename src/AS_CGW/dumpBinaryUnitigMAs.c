@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: dumpBinaryUnitigMAs.c,v 1.9 2007-02-08 02:46:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpBinaryUnitigMAs.c,v 1.10 2007-02-12 22:16:56 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -185,7 +185,7 @@ void DumpUnitigMultiAlignInfo ( CDS_CID_t unitigID )
     {
       IntMultiPos *pos = GetIntMultiPos( uma->f_list, i);
     
-      getFragStore(ScaffoldGraph->fragStore, pos->ident, FRAG_S_ALL, myRead);
+      getFrag(ScaffoldGraph->gkpStore, pos->ident, myRead, FRAG_S_ALL);
       sprintf(fname,"U" F_CID "_%d_F" F_IID ".fa",
               unitigID, i, pos->ident);
       fp = fopen(fname, "w");
@@ -229,7 +229,7 @@ void DumpContigMultiAlignInfo ( CDS_CID_t contigID )
     {
       IntMultiPos *pos = GetIntMultiPos(cma->f_list,i);
     
-      getFragStore(ScaffoldGraph->fragStore, pos->ident, FRAG_S_ALL, myRead);
+      getFrag(ScaffoldGraph->gkpStore, pos->ident, myRead, FRAG_S_ALL);
       sprintf(fname,"C" F_CID "_%d_F" F_IID ".fa",
               contigID, i, pos->ident);
       fp = fopen(fname, "w");
@@ -261,7 +261,6 @@ void DumpContigMultiAlignInfo ( CDS_CID_t contigID )
 int main(int argc, char *argv[]){
   Global_CGW *data;
   char *outputPath = NULL;
-  int setFragStore = FALSE;
   int setGatekeeperStore = FALSE;
   int setPrefixName = FALSE;
   int ckptNum = NULLINDEX;
@@ -288,12 +287,6 @@ int main(int argc, char *argv[]){
 
           }
           break;
-        case 'f':
-          {
-            strcpy( data->Frag_Store_Name, argv[optind - 1]);
-            setFragStore = 1;
-          }
-          break;
         case 'g':
           {
             strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
@@ -315,11 +308,11 @@ int main(int argc, char *argv[]){
           errflg++;
       }
     }
-    if((setPrefixName == FALSE) || (setFragStore == 0) || (setGatekeeperStore == 0) || unitigIDsFile == NULL)
+    if((setPrefixName == FALSE) || (setGatekeeperStore == 0) || unitigIDsFile == NULL)
       {
-	fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d outputPath = %s\n",
-		argc, optind, setFragStore,setGatekeeperStore, outputPath);
-	fprintf (stderr, "USAGE:  loadcgw -f <FragStoreName> -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum>\n");
+	fprintf(stderr,"* argc = %d optind = %d setGatekeeperStore = %d outputPath = %s\n",
+		argc, optind,setGatekeeperStore, outputPath);
+	fprintf (stderr, "USAGE:  loadcgw -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum>\n");
 	exit (EXIT_FAILURE);
       }
   }
@@ -334,7 +327,7 @@ int main(int argc, char *argv[]){
   USE_SDB=1;
   RALPH_INIT = InitializeAlphTable();
   sequenceDB = ScaffoldGraph->sequenceDB;
-  global_fragStore = ScaffoldGraph->fragStore;
+  global_gkpStore = ScaffoldGraph->gkpStore;
 
 
   {

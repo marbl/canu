@@ -24,7 +24,7 @@ doTrim(ReadStructp rd, double minQuality, u32bit &left, u32bit &right) {
     exit(1);
   }
 
-  //  Probably a better way to do this....
+  //  XXX  Probably a better way to do this....
   qltLen = strlen(qltC);
 
   for (u32bit i=0; i<qltLen; i++)

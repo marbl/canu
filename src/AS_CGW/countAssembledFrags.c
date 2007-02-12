@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: countAssembledFrags.c,v 1.11 2007-01-29 20:41:01 brianwalenz Exp $";
+static char CM_ID[] = "$Id: countAssembledFrags.c,v 1.12 2007-02-12 22:16:56 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -172,7 +172,6 @@ int main(int argc, char *argv[])
   FILE *myerr = stderr; 
   FILE *myout = stdout; 
   char *outputPath = NULL;
-  int setFragStore = FALSE;
   int setGatekeeperStore = FALSE;
   int setPrefixName = FALSE;
   int ckptNum = NULLINDEX;
@@ -227,12 +226,6 @@ int main(int argc, char *argv[])
           
           }
           break;
-        case 'f':
-          {
-            strcpy( data->Frag_Store_Name, argv[optind - 1]);
-            setFragStore = 1;
-          }
-          break;
         case 'g':
           {
             strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
@@ -248,11 +241,11 @@ int main(int argc, char *argv[])
           errflg++;
       }
     }
-    if((setPrefixName == FALSE) || (setFragStore == 0) || (setGatekeeperStore == 0))
+    if((setPrefixName == FALSE) || (setGatekeeperStore == 0))
       {
-        fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d outputPath = %s\n",
-                argc, optind, setFragStore,setGatekeeperStore, outputPath);
-        fprintf (stderr, "USAGE:  loadcgw -f <FragStoreName> -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum>\n");
+        fprintf(stderr,"* argc = %d optind = %d setGatekeeperStore = %d outputPath = %s\n",
+                argc, optind,setGatekeeperStore, outputPath);
+        fprintf (stderr, "USAGE:  loadcgw -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum>\n");
         exit (EXIT_FAILURE);
       }
   }

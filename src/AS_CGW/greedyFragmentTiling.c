@@ -51,7 +51,6 @@
 #include "AS_UTL_Var.h"
 #include "AS_UTL_Hash.h"
 #include "OlapStoreOVL.h"
-#include "AS_PER_fragStore.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_PER_ReadStruct.h"
 #include "UtilsREZ.h"
@@ -63,8 +62,7 @@ int StringHashFn_AS(const void *pointerToString, int length);
 
 static OVL_Store_t  * my_store = NULL;
 static OVL_Store_t  * my_second_store = NULL;
-static FragStoreHandle  my_frg_store;
-static  GateKeeperStore my_gkp_store ; // See AS_PER_gkpStore.h
+static  GateKeeperStore *my_gkp_store;
 static ReadStructp fsread;
 static int useCorrectedErate=0;
 static int maxOvlsToConsider=-1;
@@ -95,10 +93,7 @@ void setup_stores(char *OVL_Store_Path, char *Frg_Store_Path, char *Gkp_Store_Pa
   my_second_store = New_OVL_Store ();
   Open_OVL_Store (my_second_store, OVL_Store_Path);
 
-  InitGateKeeperStore(&my_gkp_store, Gkp_Store_Path);
-  OpenReadOnlyGateKeeperStore(&my_gkp_store);
-
-  my_frg_store = openFragStore( Frg_Store_Path, "r");
+  my_gkp_store = openGateKeeperStore( Gkp_Store_Path, FALSE);
 }
 
 void print_olap(Long_Olap_Data_t olap){
@@ -123,7 +118,7 @@ uint64 iid2uid(uint32 iid){
   static uint64 *uid=NULL;
   if(uid==NULL){
     int i;
-    int last = getLastElemFragStore (my_frg_store);
+    int last = getLastElemFragStore (my_gkp_store);
     uid = (uint64 *)safe_malloc(sizeof(uint64)*(last+1));
     for(i=0;i<=last;i++){
       uid[i]=0;
@@ -134,9 +129,9 @@ uint64 iid2uid(uint32 iid){
     return (uid[iid]);
   } else {
     GateKeeperFragmentRecord gkpFrag;
-    if(getGateKeeperFragmentStore(my_gkp_store.frgStore,iid,&gkpFrag)!=0)
+    if(getGateKeeperFragmentStore(my_gkp_store.frg,iid,&gkpFrag)!=0)
       assert(0);
-    uid[iid] = gkpFrag.readUID;
+    uid[iid] = gkpFrag.UID;
   }
   return uid[iid];
 }
@@ -146,7 +141,7 @@ int get_clr_len(uint32 iid){
   static int *len=NULL;
   if(len==NULL){
     int i;
-    int last = getLastElemFragStore (my_frg_store);
+    int last = getLastElemFragStore (my_gkp_store);
     len = (int *)safe_malloc(sizeof(int)*(last+1));
     for(i=0;i<=last;i++){
       len[i]=-1;
@@ -157,7 +152,7 @@ int get_clr_len(uint32 iid){
     return (len[iid]);
   } else {
     uint clr_bgn,clr_end;
-    getFragStore(my_frg_store,iid,FRAG_S_ALL,fsread);
+    getFrag(my_gkp_store,iid,fsread,FRAG_S_INF);
     getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end, READSTRUCT_LATEST);
     len[iid]= clr_end-clr_bgn;
   }
@@ -666,7 +661,7 @@ void setUpRestrictions(int last_stored_frag,char *listfile,int *usabilityArray){
 
 void usage(char *pgm){
   fprintf (stderr, 
-           "USAGE:  %s -f <FragStoreName> -g <GkpStoreName> -o <full_ovlStore> -n <startingFrgNum> [-C] [-e <erate cutoff>] [-E] [-m <minlen>] [-Q] [-D] [-N <maxovls>] [-i <file specifying IIDs to use> | -I <file specifying IIDs to use>] [-R] [-s <uid2sample file> [-S <same-sample bonus> | -T <same-sample-as-seed bonus>]] [-P] [-5 | -3]\n"
+           "USAGE:  %s -g <GkpStoreName> -o <full_ovlStore> -n <startingFrgNum> [-C] [-e <erate cutoff>] [-E] [-m <minlen>] [-Q] [-D] [-N <maxovls>] [-i <file specifying IIDs to use> | -I <file specifying IIDs to use>] [-R] [-s <uid2sample file> [-S <same-sample bonus> | -T <same-sample-as-seed bonus>]] [-P] [-5 | -3]\n"
            "\t-n startingFrgNum = fragment to walk out from\n"
            "\t-e specifies the maximum mismatch rate (as a fraction, i.e. .01 means one percent)\n"
            "\t-B specifies that the overlap with the lowest upper bound on the mismatch rate will be used\n"
@@ -693,7 +688,7 @@ void usage(char *pgm){
 int uid2iid(uint64 uid){
   PHashValue_AS value;
   static int firstFailure=1;
-  if(HASH_FAILURE == LookupInPHashTable_AS(my_gkp_store.hashTable, 
+  if(HASH_FAILURE == LookupInPHashTable_AS(my_gkp_store.phs, 
                                            UID_NAMESPACE_AS,
                                            uid,
                                            &value)){
@@ -743,7 +738,6 @@ int main (int argc , char * argv[] ) {
 
   Global_CGW *data;
   char *prefix;
-  int setFragStore = FALSE;
   int ckptNum = NULLINDEX;
   int i, index;
   char subset_map[1000];
@@ -902,7 +896,7 @@ int main (int argc , char * argv[] ) {
   assert(! (fivePonly&&threePonly) );
 
   setup_stores(full_ovlPath,full_frgPath,full_gkpPath);
-  last_stored_frag = getLastElemFragStore (my_frg_store);
+  last_stored_frag = getLastElemFragStore (my_gkp_store);
 
   if(restrictIDs){
     IIDusability = (int *) safe_malloc(sizeof(int)*(last_stored_frag+1));
@@ -968,7 +962,7 @@ int main (int argc , char * argv[] ) {
 
     // skip deleted fragments
     GateKeeperFragmentRecord gkpFrag;
-    if(getGateKeeperFragmentStore(my_gkp_store.frgStore,seediid,&gkpFrag)!=0)
+    if(getGateKeeperFragmentStore(my_gkp_store.frg,seediid,&gkpFrag)!=0)
       assert(0);
     if(gkpFrag.deleted)continue;
 
@@ -995,7 +989,7 @@ int main (int argc , char * argv[] ) {
     currFrg=seediid;
     seen[currFrg]='\1';
     ahang=0;
-    getFragStore(my_frg_store,currFrg,FRAG_S_ALL,fsread);
+    getFrag(my_gkp_store,currFrg,fsread,FRAG_S_ALL);
 
     getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end, READSTRUCT_LATEST);
     frglen=clr_end-clr_bgn;
@@ -1071,7 +1065,7 @@ int main (int argc , char * argv[] ) {
 
 	}
 	if(!seen[currFrg]){
-	  getFragStore(my_frg_store,currFrg,FRAG_S_ALL,fsread);
+	  getFrag(my_gkp_store,currFrg,fsread,FRAG_S_ALL);
 	  getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end, READSTRUCT_LATEST);
 	  frglen=clr_end-clr_bgn;
 	  numOvls = setupolaps(currFrg, Aend, bestType,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds,&olaps,favorSameSample,favorSameSampleAsSeed);
@@ -1098,7 +1092,7 @@ int main (int argc , char * argv[] ) {
     stillGoing=1;
     Aend=0;
     currFrg=seediid;
-    getFragStore(my_frg_store,currFrg,FRAG_S_ALL,fsread);
+    getFrag(my_gkp_store,currFrg,fsread,FRAG_S_ALL);
     getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end, READSTRUCT_LATEST);
     frglen=clr_end-clr_bgn;
 
@@ -1174,7 +1168,7 @@ int main (int argc , char * argv[] ) {
 	}
 	if(!seen[currFrg]){
 	  seen[currFrg]='\1';
-	  getFragStore(my_frg_store,currFrg,FRAG_S_ALL,fsread);
+	  getFrag(my_gkp_store,currFrg,fsread,FRAG_S_ALL);
 	  getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end, READSTRUCT_LATEST);
 	  frglen=clr_end-clr_bgn;
 	  numOvls = setupolaps(currFrg, Aend, bestType,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds,&olaps,favorSameSample,favorSameSampleAsSeed);

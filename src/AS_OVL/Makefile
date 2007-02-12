@@ -21,7 +21,6 @@
 #
 ###########################################################################
 #
-# gmake Makefile for AS_OVL
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
@@ -34,8 +33,7 @@ AS_OVL_OBJS = $(AS_OVL_SRCS:.c=.o)
 AS_OVL_CMN_SRCS = AS_OVL_delcher.c 
 AS_OVL_CMN_OBJS = $(AS_OVL_CMN_SRCS:.c=.o)
 
-CORRECT_SRCS = FragCorrectOVL.c ShowCorrectsOVL.c CorrectOlapsOVL.c DeleteOlapsOVL.c \
-  FilterOlapsOVL.c CatCorrectsOVL.c CatEratesOVL.c
+CORRECT_SRCS = FragCorrectOVL.c ShowCorrectsOVL.c CorrectOlapsOVL.c DeleteOlapsOVL.c FilterOlapsOVL.c CatCorrectsOVL.c CatEratesOVL.c
 CORRECT_OBJS = $(CORRECT_SRCS:.c=.o)
 
 LIBSOURCES =  OlapStoreOVL.c  MatchListOVL.c
@@ -44,54 +42,33 @@ LIBOBJECTS = $(LIBSOURCES:.c=.o)
 OLAPSTORE_SRCS = DumpOlapStoreOVL.c ForceEratesOVL.c GrowOlapStoreOVL.c UpdateEratesOVL.c
 OLAPSTORE_OBJS = $(OLAPSTORE_SRCS:.c=.o)
 
-SCREEN_SRCS = frag-anomaly.c AutoScreenOVL.c \
-  CombineMUMsOVL.c RemoveDupScreenOVL.c removedups.c
+SCREEN_SRCS = frag-anomaly.c AutoScreenOVL.c CombineMUMsOVL.c RemoveDupScreenOVL.c removedups.c
 SCREEN_OBJS = $(SCREEN_SRCS:.c=.o)
 
-SCRIPT_SRCS = CorrectScriptOVL.c MakeScriptOVL.c NewBactigScriptOVL.c NewFragScriptOVL.c
-SCRIPT_OBJS = $(SCRIPT_SRCS:.c=.o)
-
-TOOL_SRCS = get-degrees.c get-subgraph.c get-iidgraph.c get-uid-olaps.c \
-  iid2fastaOVL.c LastFragInStoreOVL.c \
-  fgbovlhits.c ModifyClearRangeOVL.c rev-olaps.c Hit_Limit_OVL.c
+TOOL_SRCS = get-degrees.c get-subgraph.c get-iidgraph.c get-uid-olaps.c fgbovlhits.c rev-olaps.c Hit_Limit_OVL.c
 TOOL_OBJS = $(TOOL_SRCS:.c=.o)
 
 CXX_SOURCES =  olapcoverage.cc
 CXX_OBJECTSS = $(TOOL_CXX_SRCS:.cc=.o)
 
-SOURCES = $(AS_OVL_CA_SRCS) $(AS_OVL_SRCS) $(AS_OVL_CMN_SRCS) $(CORRECT_SRCS) \
-  $(SCREEN_SRCS) $(SCRIPT_SRCS) $(TOOL_SRCS) $(OLAPSTORE_SRCS) $(LIBSOURCES) $(CXX_SOURCES)
-OBJECTS = $(AS_OVL_CA_OBJS) $(AS_OVL_OBJS) $(AS_OVL_CMN_OBJS) $(CORRECT_OBJS) \
-  $(SCREEN_OBJS) $(SCRIPT_OBJS) $(TOOL_OBJS) $(OLAPSTORE_OBJS) $(CXX_OBJECTS)
+SOURCES = $(AS_OVL_SRCS) $(AS_OVL_CMN_SRCS) $(CORRECT_SRCS) $(OLAPSTORE_SRCS) $(LIBSOURCES) LastFragInStoreOVL.c 
+OBJECTS = $(SOURCES:.cc=.o)
 
+AS_OVL_PROGS    = overlap
+CORRECT_PROGS   = correct-frags show-corrects correct-olaps delete-olaps filter-olaps cat-corrects cat-erates
+OLAPSTORE_PROGS = dump-olap-store force-erates grow-olap-store update-erates
+
+OBSOLETE        = overlap_ca
+SCREEN_PROGS    = frag-anomaly auto-screen combine-mums remove-dup-screen removedups
+TOOL_PROGS      = get-degrees get-subgraph get-iidgraph get-uid-olaps olapcoverage fgbovlhits rev-olaps hit-limit
+
+PROGS     = $(AS_OVL_PROGS) $(OLAPSTORE_PROGS) $(CORRECT_PROGS) lastfraginstore
+SCRIPTS   = 
 LIBRARIES = libAS_OVL.a libCA.a
 
-AS_LIBRARIES = libCA.a
-SYS_LIBRARIES = 
+LIBS = libCA.a
 
-AS_OVL_PROGS = overlap overlap_ca
-CORRECT_PROGS = correct-frags show-corrects correct-olaps delete-olaps filter-olaps \
-  cat-corrects cat-erates
-OLAPSTORE_PROGS = dump-olap-store force-erates grow-olap-store update-erates
-SCREEN_PROGS = frag-anomaly auto-screen combine-mums \
-  remove-dup-screen removedups
-SCRIPT_PROGS = correct-script make-ovl-script make-newbactigovl-script \
-  make-newfragovl-script
-TOOL_PROGS = get-degrees get-subgraph get-iidgraph get-uid-olaps iid2fasta \
-  lastfraginstore olapcoverage fgbovlhits modify-clear-range \
-  rev-olaps hit-limit
-
-PROGS = $(AS_OVL_PROGS) $(CORRECT_PROGS) $(SCREEN_PROGS) $(SCRIPT_PROGS) \
-  $(TOOL_PROGS) $(OLAPSTORE_PROGS)
-
-SCRIPTS = overlap_script.pl make-screen.csh
-
-
-# Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
-
-# (MP) this should take care of intermittent "don't know how to make 
-# libpthread.a" problems 
 
 ifeq ($(OSTYPE), Linux)
   LDFLAGS  += -lpthread
@@ -112,78 +89,64 @@ ifeq ($(OSTYPE), Darwin)
 endif
 
 
-all:    $(OBJECTS) $(LIBRARIES) $(PROGS) install
+all:    $(OBJECTS) $(LIBRARIES) $(PROGS)
 
-install: $(SCRIPTS)
-	@chmod ugo+x $(SCRIPTS)
-	@cp -f $(SCRIPTS) $(LOCAL_BIN)
 
 libAS_OVL.a: $(LIBOBJECTS) AS_OVL_delcher.o
 
 libCA.a: $(LIBOBJECTS) AS_OVL_delcher.o
 
-auto-screen:  AutoScreenOVL.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
 
-cat-corrects:  CatCorrectsOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
+auto-screen:  AutoScreenOVL.o $(LIBS)
 
-cat-erates:  CatEratesOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
+cat-corrects:  CatCorrectsOVL.o AS_OVL_delcher.o $(LIBS)
 
-combine-mums:  CombineMUMsOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
+cat-erates:  CatEratesOVL.o AS_OVL_delcher.o $(LIBS)
 
-correct-frags:  FragCorrectOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES) $(PTHREADS_LIBS)
+combine-mums:  CombineMUMsOVL.o AS_OVL_delcher.o $(LIBS)
 
-correct-olaps:  CorrectOlapsOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
+correct-frags:  FragCorrectOVL.o AS_OVL_delcher.o $(LIBS) $(PTHREADS_LIBS)
 
-correct-script:  CorrectScriptOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
+correct-olaps:  CorrectOlapsOVL.o AS_OVL_delcher.o $(LIBS)
 
-delete-olaps:  DeleteOlapsOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
+delete-olaps:  DeleteOlapsOVL.o AS_OVL_delcher.o $(LIBS)
 
-dump-olap-store:  DumpOlapStoreOVL.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
+dump-olap-store:  DumpOlapStoreOVL.o $(LIBS)
 
-filter-olaps:  FilterOlapsOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
+filter-olaps:  FilterOlapsOVL.o AS_OVL_delcher.o $(LIBS)
 
-frag-anomaly:  frag-anomaly.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
+frag-anomaly:  frag-anomaly.o AS_OVL_delcher.o $(LIBS)
 
-get-degrees:  get-degrees.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
+get-degrees:  get-degrees.o $(LIBS)
 
-get-subgraph:  get-subgraph.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
+get-subgraph:  get-subgraph.o AS_OVL_delcher.o $(LIBS)
 
-get-iidgraph:  get-iidgraph.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
+get-iidgraph:  get-iidgraph.o AS_OVL_delcher.o $(LIBS)
 
-get-uid-olaps:  get-uid-olaps.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
+get-uid-olaps:  get-uid-olaps.o AS_OVL_delcher.o $(LIBS)
 
-grow-olap-store:  GrowOlapStoreOVL.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
+grow-olap-store:  GrowOlapStoreOVL.o $(LIBS)
 
-hit-limit:  Hit_Limit_OVL.o $(SYS_LIBRARIES)
+hit-limit:  Hit_Limit_OVL.o
 
-iid2fasta:  iid2fastaOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
-
-lastfraginstore:  LastFragInStoreOVL.o  $(AS_LIBRARIES) $(SYS_LIBRARIES)
-
-make-newbactigovl-script:  NewBactigScriptOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
-
-make-newfragovl-script:  NewFragScriptOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
-
-make-ovl-script:  MakeScriptOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
-
-modify-clear-range:  ModifyClearRangeOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
+lastfraginstore:  LastFragInStoreOVL.o  $(LIBS)
 
 olapcoverage:  olapcoverage.o
 
 fgbovlhits:  fgbovlhits.o
 
-remove-dup-screen:  RemoveDupScreenOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
+remove-dup-screen:  RemoveDupScreenOVL.o AS_OVL_delcher.o $(LIBS)
 
 removedups:  removedups.o  AS_OVL_delcher.o libAS_UTL.a
 
 rev-olaps:  rev-olaps.o
 
-show-corrects:  ShowCorrectsOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
+show-corrects:  ShowCorrectsOVL.o AS_OVL_delcher.o $(LIBS)
 
-update-erates:  UpdateEratesOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
+update-erates:  UpdateEratesOVL.o AS_OVL_delcher.o $(LIBS)
 
-force-erates:  ForceEratesOVL.o AS_OVL_delcher.o $(AS_LIBRARIES) $(SYS_LIBRARIES)
+force-erates:  ForceEratesOVL.o AS_OVL_delcher.o $(LIBS)
 
-overlap: $(AS_OVL_OBJS) $(AS_OVL_CMN_OBJS) $(AS_LIBRARIES) $(SYS_LIBRARIES) $(PTHREADS_LIBS)
+overlap: $(AS_OVL_OBJS) $(AS_OVL_CMN_OBJS) $(LIBS) $(PTHREADS_LIBS)
 
-overlap_ca: $(AS_OVL_CA_OBJS) $(AS_OVL_CMN_OBJS) $(AS_LIBRARIES) $(SYS_LIBRARIES) $(PTHREADS_LIBS)
+overlap_ca: $(AS_OVL_CA_OBJS) $(AS_OVL_CMN_OBJS) $(LIBS) $(PTHREADS_LIBS)

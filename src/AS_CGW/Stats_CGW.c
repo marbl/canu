@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Stats_CGW.c,v 1.8 2007-02-08 06:48:51 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Stats_CGW.c,v 1.9 2007-02-12 22:16:56 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -179,19 +179,19 @@ void GenerateCIGraphStats(void){
       cnt++;
     }
 
-    if(node->flags.bits.includesFinishedBacFragments){
-      nu_unitigs_no_bac_fragments++;
-      tfrags_nobf += node->info.CI.numFragments;
-    }
+    //if(node->flags.bits.includesFinishedBacFragments){
+    //  nu_unitigs_no_bac_fragments++;
+    //  tfrags_nobf += node->info.CI.numFragments;
+    //}
     if(cnt == 0){
       nu_unitigs_no_links++;
       tfrags_nolinks += node->info.CI.numFragments;
     }
 
-    if(cnt == 0 && node->flags.bits.includesFinishedBacFragments){
-      nu_unitigs_no_links_no_bac_fragments++;
-      tfrags_nobf_nolinks += node->info.CI.numFragments;
-    }
+    //if(cnt == 0 && node->flags.bits.includesFinishedBacFragments){
+    //  nu_unitigs_no_links_no_bac_fragments++;
+    //  tfrags_nobf_nolinks += node->info.CI.numFragments;
+    //}
   }
   fprintf(GlobalData->stderrc,"*@ Graph has %d unitigs of which %d are non-unique\n",
 	  n_unitigs, nu_unitigs);
@@ -781,9 +781,9 @@ void GenerateContigAlignmentStats(char *phase){
     MultiAlignT *ma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ctg->id, graph->type == CI_GRAPH);
     //    MultiAlignT *ma = GetMultiAlignInStore(graph->maStore, ctg->id);
     if (scaffold && (scaffold->type == REAL_SCAFFOLD)) { // contig is placed
-      CollectStats(ma, ScaffoldGraph->fragStore, pcs, pfs,READSTRUCT_LATEST);
+      CollectStats(ma, ScaffoldGraph->gkpStore, pcs, pfs,READSTRUCT_LATEST);
     } else {
-      CollectStats(ma, ScaffoldGraph->fragStore, dcs, dfs,READSTRUCT_LATEST);
+      CollectStats(ma, ScaffoldGraph->gkpStore, dcs, dfs,READSTRUCT_LATEST);
     }
   }
   fclose(pcs);

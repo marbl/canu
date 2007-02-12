@@ -25,16 +25,14 @@
  Assumptions: There is no UID 0
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.25 2007-02-08 06:48:54 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.26 2007-02-12 22:16:58 brianwalenz Exp $";
 
 #include "AS_global.h"
-#include "AS_PER_ReadStruct.h"
-#include "AS_PER_fragStore.h"
-#include "AS_PER_distStore.h"
 #include "AS_PER_gkpStore.h"
+#include "AS_PER_ReadStruct.h"
+
 #include "AS_UTL_Var.h"
 #include "AS_UTL_version.h"
-#include "PrimitiveVA_MSG.h"
 
 #include "AS_TER_terminator_funcs.h"
 
@@ -65,8 +63,6 @@ static VA_TYPE(CDS_UID_t) *DSCmap;
 static VA_TYPE(CDS_UID_t) *DSTmap;
 static VA_TYPE(uint32) *ClearStartMap;
 static VA_TYPE(uint32) *ClearEndMap;
-static VA_TYPE(uint32) *ClearBactigStartMap;
-static VA_TYPE(uint32) *ClearBactigEndMap;
 
 static int PipeIn=FALSE;
 static int PipeOut=FALSE;
@@ -75,8 +71,8 @@ static int PipeOut=FALSE;
 // output_snapshot and use them in read_stores and the various fetch
 // functions
 //
-static FragStoreHandle FSHandle,BSHandle;
-static GateKeeperStore GKPStore;
+static GateKeeperStore *FSHandle;
+static GateKeeperStore *BSHandle;
 
 
 
@@ -203,59 +199,6 @@ static CDS_UID_t *fetch_UID(VA_TYPE(CDS_UID_t) *map, CDS_IID_t iid){
 
 
 
-static CDS_UID_t *fetch_UID_from_bactigStore(CDS_IID_t iid){
-  if( test_btg_present(iid) ){
-    CDS_UID_t* ret = fetch_UID(BTGmap,iid);
-    assert( ret != NULL);
-    return ret;
-  }
-  else{ 
-    short truedummy=TRUE;
-    ReadStructp input;
-    assert( ! test_btg_present(iid) );
-
-#if DEBUG > 1
-    fprintf(stderr,"Setting BTGpresent for iid = %d\n",iid);
-#endif
-    Setshort(BTGpresent,iid,&truedummy);
-    
-    input = new_ReadStruct();
-    if( 0 == getFragStore(BSHandle,iid,FRAG_S_FIXED,input) ){
-      CDS_UID_t uid;
-      CDS_UID_t *di;
-      getAccID_ReadStruct(input,&uid);
-      di = GetCDS_UID_t(BTGmap,iid);
-      if ((di != NULL) && (*di != 0)) {
-        sprintf(errorreport,"Internal fragment ID %d occurred twice (BTGmap)",iid);
-        error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-      }
-#if DEBUG >1
-      fprintf(stderr,"Setting BTGmap for iid = %d\n",iid);
-#endif
-      SetCDS_UID_t(BTGmap,iid,&uid);
-      delete_ReadStruct(input); 
-    }
-    else{
-      sprintf(errorreport,"Internal fragment ID %d is not present in the bactig store",iid);
-      error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-    }
-    input = new_ReadStruct();
-    if( 0 == getFragStore(BSHandle,iid,FRAG_S_FIXED,input) ){
-      uint32 cStart,cEnd;
-      
-      /* get the clear region from the frag store */
-      getClearRegion_ReadStruct(input,&cStart,&cEnd,READSTRUCT_LATEST);
-      Setuint32(ClearBactigStartMap,iid,&cStart);
-      Setuint32(ClearBactigEndMap,iid,&cEnd);
-    }
-    delete_ReadStruct(input); 
-    return GetCDS_UID_t(BTGmap,iid);   
-  }
-}
-
-
-
-
 static CDS_UID_t *fetch_UID_from_fragStore(CDS_IID_t iid){
   if( test_frg_present(iid) ){
     CDS_UID_t* ret = fetch_UID(FRGmap,iid);
@@ -269,7 +212,7 @@ static CDS_UID_t *fetch_UID_from_fragStore(CDS_IID_t iid){
     Setshort(FRGpresent,iid,&truedummy);
     
     input = new_ReadStruct();
-    if( 0 == getFragStore(FSHandle,iid,FRAG_S_FIXED,input) ){
+    if( 0 == getFrag(FSHandle,iid,input,FRAG_S_INF) ){
       CDS_UID_t uid;
       CDS_UID_t *di;
       getAccID_ReadStruct(input,&uid);
@@ -287,7 +230,7 @@ static CDS_UID_t *fetch_UID_from_fragStore(CDS_IID_t iid){
     }
     {  
       ReadStructp input =  new_ReadStruct();
-      if( 0 == getFragStore(FSHandle,iid,FRAG_S_FIXED,input) ){
+      if( 0 == getFrag(FSHandle,iid,input,FRAG_S_INF) ){
 	uint32 cStart,cEnd;
 	
 	/* get the clear region from the frag store */
@@ -311,29 +254,20 @@ static uint32 *fetch_clearRange_from_fragStore(VA_TYPE(uint32) *map, CDS_IID_t i
 }
 
 
-static uint32 *fetch_clearRange_from_bactigStore(VA_TYPE(uint32) *map, CDS_IID_t iid){
-  uint32* ret;
-  assert( test_btg_present(iid) );
-  ret = fetch_range_with_null(map,iid);
-  assert( ret != NULL);
-  return ret;
-}
-
-
 
 static CDS_UID_t *fetch_UID_from_distStore(VA_TYPE(CDS_UID_t) *map, CDS_IID_t iid){
   CDS_UID_t* ret = fetch_UID(map,iid);
   if(ret == NULL)
   {
-    GateKeeperDistanceRecord gkpd;
-    if( 0 == getGateKeeperDistanceStore(GKPStore.dstStore,iid,&gkpd) ){
+    GateKeeperLibraryRecord gkpl;
+    if( 0 == getGateKeeperLibraryStore(FSHandle->lib,iid,&gkpl) ){
       CDS_UID_t *di;
       di = GetCDS_UID_t(map,iid);
       if ((di != NULL) && (*di != 0)) {
         sprintf(errorreport,"Internal DST ID %d occurred twice",iid);
         error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
       }
-      SetCDS_UID_t(map,iid,&gkpd.UID);
+      SetCDS_UID_t(map,iid,&gkpl.UID);
       return GetCDS_UID_t(map,iid);
     }
     else{
@@ -455,7 +389,7 @@ static SnapUnitigMesg* convert_IUM_to_UTG(IntUnitigMesg* iumMesg, int32 real)
       di = fetch_UID_from_fragStore(iumMesg->f_list[i].ident);
       
       if( di == NULL ){
-	sprintf(errorreport,"Reference before definition for fragment/bactig ID %d",
+	sprintf(errorreport,"Reference before definition for fragment ID %d",
 		iumMesg->f_list[i].ident);
 	error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
       }
@@ -531,9 +465,7 @@ static SnapUnitigLinkMesg* convert_IUL_to_ULK(IntUnitigLinkMesg* iulMesg, int32 
 
   for(i=0; i<jumplistLength; i++)
     {
-      /* NEW : nothing should change. 
-	 Potentially we might have some links in between Bactigs? */
-      
+     
       di = fetch_UID_from_fragStore(iulMesg->jump_list[i].in1);
       if( di == NULL )
 	{
@@ -1055,7 +987,7 @@ static AugFragMesg* convert_IAF_to_AFG(IntAugFragMesg* iafMesg, int32 real)
   
   di = fetch_UID_from_fragStore(iafMesg->iaccession);
   if( di == NULL ){
-    sprintf(errorreport,"No fragment with ID %d in the frag/bactigstore",iafMesg->iaccession);
+    sprintf(errorreport,"No fragment with ID %d in the frag store",iafMesg->iaccession);
     error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
   }
 
@@ -1084,7 +1016,7 @@ static AugFragMesg* convert_IAF_to_AFG(IntAugFragMesg* iafMesg, int32 real)
       sdi = fetch_clearRange_from_fragStore(ClearStartMap,iafMesg->iaccession);
       if( sdi == NULL )
 	{
-	  sprintf(errorreport,"No SeqInterval associated with ID %d in the frag/bactig store",iafMesg->iaccession);
+	  sprintf(errorreport,"No SeqInterval associated with ID %d in the frag store",iafMesg->iaccession);
 	  error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
 	}
       afgMesg->clear_rng.bgn = *sdi;
@@ -1184,15 +1116,15 @@ static void free_AFG(AugFragMesg* afgMesg){
 /* read the stores  */
 /********************/
 
-static void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpStoreName);
+static void read_stores(char* fragStoreName);
 
 /************************/
 /* main output routine  */
 /************************/
 
 
-void output_snapshot(char* fragStoreName, char* bactigStoreName, 
-		     char* gkpStoreName, char** inputFileList, int32 numInputFiles,
+void output_snapshot(char* fragStoreName,
+		     char** inputFileList, int32 numInputFiles,
 		     char* outputFileName, char* mapFileName,
 		     int32 real, int32 quiet,
 		     int32 random, CDS_UID_t uidStart, 
@@ -1247,8 +1179,6 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
   DSTmap = CreateVA_CDS_UID_t(ARRAYSIZE);
   ClearStartMap = CreateVA_uint32(ARRAYSIZE);
   ClearEndMap   = CreateVA_uint32(ARRAYSIZE);  
-  ClearBactigStartMap = CreateVA_uint32(ARRAYSIZE);
-  ClearBactigEndMap   = CreateVA_uint32(ARRAYSIZE);  
 
   /* set the UID start to the number given by uidStart */
   set_start_uid(uidStart);
@@ -1256,31 +1186,10 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
   /* set the simulator bool to the value of quiet (-Q flag) */
   simulator = quiet;
 
-  /* if no bactig store is given we are in grande mode */
-  if( bactigStoreName == NULL )
-    fprintf(stderr,"*** Terminator : Assembly Grande ***\n");
-  else
-    fprintf(stderr,"*** Terminator : Overlay Assembly ***\n");
+  FSHandle     = openGateKeeperStore(fragStoreName, FALSE);
 
-  /* if no gatekeeper store is given we assume it to reside in the frag store */
-  if( gkpStoreName == NULL )
-    gkpStoreName = fragStoreName;
-
-  /* Read the The Frag store, the gatekeeper Store 
-     and maybe the Bactig store */  
-  // first initialize the global static variables
-  if( existsFragStore(fragStoreName) == FALSE ){
-    sprintf(errorreport,"Frag Store %s does not exist",fragStoreName);
-    error(errorreport, AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
-  }
-  FSHandle     = openFragStore(fragStoreName,"r");
-  if( bactigStoreName != NULL )
-    BSHandle     = openFragStore(bactigStoreName,"r");
-  InitGateKeeperStore(&GKPStore,gkpStoreName);
-  OpenReadOnlyGateKeeperStore(&GKPStore);
-  
   if( random == FALSE )
-    read_stores(fragStoreName,bactigStoreName,gkpStoreName);
+    read_stores(fragStoreName);
   
 
   if( strcmp(outputFileName,"-") == 0 ){
@@ -1480,12 +1389,6 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
     DumpIID2UIDmap(ISFmap,F);
     fclose(F);
 
-    sprintf(N, "%s.bactig.iidtouid", mapFileName);
-    F = file_open(N, "w");  
-    fprintf(F,"Bactig IID2UID map\n");
-    DumpIID2UIDmap(BTGmap,F);
-    fclose(F);
-
     sprintf(N, "%s.distrib.iidtouid", mapFileName);
     F = file_open(N, "w");  
     fprintf(F,"Distrib IID2UID map\n");
@@ -1500,7 +1403,7 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
   }
 
 
-  closeFragStore(FSHandle);
+  closeGateKeeperStore(FSHandle);
   
 
   fprintf(stderr,"*** Terminator : Successfully generated IID to UID map ***\n");
@@ -1519,8 +1422,6 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
   DeleteVA_CDS_UID_t(DSTmap);
   DeleteVA_uint32(ClearStartMap);
   DeleteVA_uint32(ClearEndMap);
-  DeleteVA_uint32(ClearBactigStartMap);
-  DeleteVA_uint32(ClearBactigEndMap);
 }
 
 
@@ -1528,39 +1429,21 @@ void output_snapshot(char* fragStoreName, char* bactigStoreName,
 
 
 
-/* read information from the fragment, gatekeeper and bactig store */
+/* read information from the fragment, gatekeeper store */
 
 
-void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpStoreName)
+void read_stores(char* fragStoreName)
 {
   ReadStructp  input;
-  //  FragStoreHandle storeHandle = 0;
-  FragStoreHandle streamHandle = 0;
+  FragStream *streamHandle = 0;
   CDS_UID_t *di;
 
   fprintf(stderr,"*** Terminator : Reading Fragment Store ***\n");
 
-  /* Test preconditions */
-  if( fragStoreName == NULL ){
-    sprintf(errorreport,"Argument fragStoreName is NULL");
-    error(errorreport, AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
-  }
-
-  if( strlen(fragStoreName) == 0 ){
-    sprintf(errorreport,"Argument fragStoreName is empty");
-    error(errorreport, AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
-  }
-
-    
-  if( existsFragStore(fragStoreName) == FALSE ){
-    sprintf(errorreport,"Frag Store %s does not exist",fragStoreName);
-    error(errorreport, AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
-  }
-
-  streamHandle = openFragStream(FSHandle,NULL,0);
+  streamHandle = openFragStream(FSHandle);
 
   input =  new_ReadStruct();
-  while( nextFragStream(streamHandle,input,FRAG_S_FIXED) ){
+  while( nextFragStream(streamHandle,input,FRAG_S_INF) ){
     CDS_IID_t iid;
     CDS_UID_t uid;
     uint32 cStart,cEnd;
@@ -1608,20 +1491,20 @@ void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpStoreName)
   {
     /* reading distributions */
     {
-     GateKeeperDistanceRecord gkpd;
+     GateKeeperLibraryRecord gkpl;
      StoreStat stat;
      int i ;
-     statsStore(GKPStore.dstStore, &stat);
+     statsStore(FSHandle->lib, &stat);
 #if DEBUG > 0
      fprintf(stderr,"* Stats for Dist Store are first:%lu last :%lu\n",
 	     stat.firstElem, stat.lastElem);
 #endif
      for(i = stat.firstElem; i <= stat.lastElem; i++){
-       getGateKeeperDistanceStore(GKPStore.dstStore,i,&gkpd);
+       getGateKeeperLibraryStore(FSHandle->lib,i,&gkpl);
 #if DEBUG > 1
        fprintf(stderr,"* Dist %d UID:%lu del:%d red:%d mean:%f std:%f batch(%d,%d) prevID:%d prevInstanceID:%d\n",
-	       i,gkpd.UID, gkpd.deleted, gkpd.redefined, gkpd.mean, gkpd.stddev,
-	       gkpd.birthBatch, gkpd.deathBatch, gkpd.prevID, gkpd.prevInstanceID);
+	       i,gkpl.UID, gkpl.deleted, gkpl.redefined, gkpl.mean, gkpl.stddev,
+	       gkpl.birthBatch, gkpl.deathBatch, gkpl.prevID, gkpl.prevInstanceID);
 #endif
 
        di = GetCDS_UID_t(DSTmap,i);
@@ -1629,61 +1512,14 @@ void read_stores(char* fragStoreName, char* bactigStoreName, char* gkpStoreName)
 	 sprintf(errorreport,"Internal DST ID %d occurred twice",i);
 	 error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
        }
-       SetCDS_UID_t(DSTmap,i,&gkpd.UID);
-       if( get_start_uid() <= gkpd.UID )
-         set_start_uid(gkpd.UID+1);
+       SetCDS_UID_t(DSTmap,i,&gkpl.UID);
+       if( get_start_uid() <= gkpl.UID )
+         set_start_uid(gkpl.UID+1);
 
 #if DEBUG_UID
        fprintf(stderr,"SYS_UID_uidStart after reading distribs %lu\n",get_start_uid());
 #endif
      }
-    }
-  }
-
-  // from the bactig store we only want to know
-  // its uid and the clear range
-  
-  if( bactigStoreName != NULL ){
-    fprintf(stderr,"*** Terminator : Reading Bactig Store ***\n");
-    if( strlen(bactigStoreName) == 0 ){
-      sprintf(errorreport,"Argument bactigStoreName is empty");
-      error(errorreport, AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
-    }
-    
-    if( existsFragStore(bactigStoreName) == FALSE ){
-      sprintf(errorreport,"Bactig Store %s does not exist",fragStoreName);
-      error(errorreport, AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
-    }
-    
-    streamHandle = openFragStream(BSHandle,NULL,0);
-    
-    input = new_ReadStruct();
-    while( nextFragStream(streamHandle,input,FRAG_S_ALL) ){
-      short truedummy  = TRUE;
-      CDS_IID_t iid;
-      CDS_UID_t uid;
-      uint32 cStart,cEnd;
-      // CDS_UID_t *di;
-      
-      /* read the iid and uid pair */
-      getReadIndex_ReadStruct(input,&iid);
-      getAccID_ReadStruct(input,&uid);
-      
-      /* test whether the iid is not already present */
-      if (test_btg_present(iid)) {
-	sprintf(errorreport,"Internal bactig ID %d occurred twice (BTGmap)",iid);
-	error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-      }
-      SetCDS_UID_t(BTGmap,iid,&uid);
-      Setshort(BTGpresent,iid,&truedummy);
-
-      if(get_start_uid() <= uid)
-	set_start_uid(uid+1);
-
-      /* get the clear region from the bactig store */
-      getClearRegion_ReadStruct(input,&cStart,&cEnd,READSTRUCT_LATEST);
-      Setuint32(ClearBactigStartMap,iid,&cStart);
-      Setuint32(ClearBactigEndMap,iid,&cEnd);
     }
   }
 }

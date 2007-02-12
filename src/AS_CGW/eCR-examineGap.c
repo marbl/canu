@@ -141,13 +141,13 @@ examineGap(ContigT *lcontig, int lFragIid, ContigT *rcontig, int rFragIid,
   }
 
   if (lFragIid != -1) {
-    getFragStore(ScaffoldGraph->fragStore, lFragIid, FRAG_S_ALL, fsread);
+    getFrag(ScaffoldGraph->gkpStore, lFragIid, fsread, FRAG_S_SEQ);
     getClearRegion_ReadStruct(fsread, &lclr_bgn, &lclr_end, READSTRUCT_CNS);
     getSequence_ReadStruct(fsread, lFragSeqBuffer, lqltbuffer, AS_READ_MAX_LEN);
   }
   
   if (rFragIid != -1) {
-    getFragStore(ScaffoldGraph->fragStore, rFragIid, FRAG_S_ALL, fsread);
+    getFrag(ScaffoldGraph->gkpStore, rFragIid, fsread, FRAG_S_SEQ);
     getClearRegion_ReadStruct(fsread, &rclr_bgn, &rclr_end, READSTRUCT_CNS);
     getSequence_ReadStruct(fsread, rFragSeqBuffer, rqltbuffer, AS_READ_MAX_LEN);
   }

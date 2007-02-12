@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGW_dataTypes.c,v 1.8 2006-12-12 06:16:59 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGW_dataTypes.c,v 1.9 2007-02-12 22:16:55 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -82,7 +82,6 @@ int SetFileNamePrefix_CGW(Global_CGW *g, char *prefix) {
   int  i = 0;
   int  ckp = -1;
 
-  sprintf(g->Frag_Store_Name,       "%s.frgStore", prefix);
   sprintf(g->Gatekeeper_Store_Name, "%s.gkpStore", prefix);
   sprintf(g->OVL_Store_Name,        "%s.ovlStore", prefix);
   sprintf(g->File_Name_Prefix,      "7-CGW/%s",    prefix);

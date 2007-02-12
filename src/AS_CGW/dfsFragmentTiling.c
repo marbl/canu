@@ -33,9 +33,7 @@
 
 #include "AS_global.h"
 #include "OlapStoreOVL.h"
-#include "AS_PER_fragStore.h"
 #include "AS_PER_ReadStruct.h"
-#include "AS_PER_fragStore.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_PER_ReadStruct.h"
 #include "UtilsREZ.h"
@@ -45,36 +43,30 @@
 #undef GRAPHIC_DEBUG_DFS
 //#define GRAPHIC_DEBUG_DFS 0
 
-static   FragStoreHandle my_frg_store ;
-static  GateKeeperStore my_gkp_store ; // See AS_PER_gkpStore.h
-static  OVL_Store_t *my_ovl_store = NULL; // See OlapStoreOVL.h
+static  GateKeeperStore *my_gkp_store ;
+static  OVL_Store_t *my_ovl_store = NULL;
 static ReadStructp fsread;
 
 
 
-void setup_stores(char *OVL_Store_Path, char *Frg_Store_Path, char *Gkp_Store_Path){
+void setup_stores(char *OVL_Store_Path, char *Gkp_Store_Path){
 
   assert(my_ovl_store==NULL);
 
   assert(OVL_Store_Path!=NULL);
-  assert(Frg_Store_Path!=NULL);
   assert(Gkp_Store_Path!=NULL);
 
   my_ovl_store = New_OVL_Store ();
   Open_OVL_Store (my_ovl_store, OVL_Store_Path);
 
-  InitGateKeeperStore(&my_gkp_store, Gkp_Store_Path);
-  OpenReadOnlyGateKeeperStore(&my_gkp_store);
-
-  my_frg_store = openFragStore( Frg_Store_Path, "r");
-
+  my_gkp_store = openGateKeeperStore( Gkp_Store_Path, "r");
 }
 
 void finished_with_stores(void){
 
   Free_OVL_Store (my_ovl_store);
-  CloseGateKeeperStore(&my_gkp_store);
-  closeFragStore(my_frg_store);
+  closeGateKeeperStore(&my_gkp_store);
+  closeGateKeeperStore(my_gkp_store);
 
 }
 
@@ -95,7 +87,7 @@ uint64 iid2uid(uint32 iid){
   static uint64 *uid=NULL;
   if(uid==NULL){
     int i;
-    int last = getLastElemFragStore (my_frg_store);
+    int last = getLastElemFragStore (my_gkp_store);
     uid = (uint64 *)safe_malloc(sizeof(uint64)*(last+1));
     for(i=0;i<=last;i++){
       uid[i]=0;
@@ -106,9 +98,9 @@ uint64 iid2uid(uint32 iid){
     return (uid[iid]);
   } else {
     GateKeeperFragmentRecord gkpFrag;
-    if(getGateKeeperFragmentStore(my_gkp_store.frgStore,iid,&gkpFrag)!=0)
+    if(getGateKeeperFragmentStore(my_gkp_store.frg,iid,&gkpFrag)!=0)
       assert(0);
-    uid[iid] = gkpFrag.readUID;
+    uid[iid] = gkpFrag.UID;
   }
   return uid[iid];
 }
@@ -118,7 +110,7 @@ int get_clr_len(uint32 iid){
   static int *len=NULL;
   if(len==NULL){
     int i;
-    int last = getLastElemFragStore (my_frg_store);
+    int last = getLastElemFragStore (my_gkp_store);
     len = (int *)safe_malloc(sizeof(int)*(last+1));
     for(i=0;i<=last;i++){
       len[i]=-1;
@@ -129,7 +121,7 @@ int get_clr_len(uint32 iid){
     return (len[iid]);
   } else {
     uint clr_bgn,clr_end;
-    getFragStore(my_frg_store,iid,FRAG_S_ALL,fsread);
+    getFrag(my_gkp_store,iid,fsread,FRAG_S_INF);
     getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end, READSTRUCT_LATEST);
     len[iid]= clr_end-clr_bgn;
   }
@@ -569,7 +561,7 @@ void DFS_longest_chain(dfsGreedyFrg *frgNodes,overlapFilters filter,int starting
 
 void usage(char *pgm){
   fprintf (stderr, 
-           "USAGE:  %s -f <FragStoreName> -g <GkpStoreName> -o <OvlStoreName> [-C] [-e <erate cutoff>] [-E] [-m <minlen>] [-N startingFrg]\n"
+           "USAGE:  %s -g <GkpStoreName> -o <OvlStoreName> [-C] [-e <erate cutoff>] [-E] [-m <minlen>] [-N startingFrg]\n"
            "\t-C specifies to use containing fragments; default is only dovetails\n"
            "\t-e specifies the maximum mismatch rate (as a fraction, i.e. .01 means one percent)\n"
            "\t-E specifies that the corrected error rate rather than the original is to be used\n"
@@ -580,10 +572,8 @@ void usage(char *pgm){
 
 int main (int argc , char * argv[] ) {
 
-  char full_frgPath[1000];
   char full_gkpPath[1000];
   char full_ovlPath[1000];
-  int setFullFrg=0;
   int setFullGkp=0;
   int setFullOvl=0;
   int i;
@@ -615,10 +605,6 @@ int main (int argc , char * argv[] ) {
         case 'E':
           filter.useCorrected=1;
           break;
-        case 'f':
-          strcpy(full_frgPath, argv[optind - 1]);
-          setFullFrg=1;
-          break;
         case 'g':
           strcpy(full_gkpPath, argv[optind - 1]);
           setFullGkp=1;
@@ -640,14 +626,14 @@ int main (int argc , char * argv[] ) {
       }
     }
 
-    if( (setFullFrg == 0) || !setFullOvl || !setFullGkp )
+    if(!setFullOvl || !setFullGkp )
       {
 	usage(argv[0]);
 	exit (-1);
       }
   }
   
-  setup_stores(full_ovlPath,full_frgPath,full_gkpPath);
+  setup_stores(full_ovlPath,full_gkpPath);
   fsread = new_ReadStruct();
 
   // really ought to test store validity

@@ -11,7 +11,7 @@
 
 void
 usage(char *name) {
-  fprintf(stderr, "usage: %s [-q quality] [-v vectorlist] [-i uidlist] [-update] [-replace] [-log logfile] -frg some.frgStore\n", name);
+  fprintf(stderr, "usage: %s [-q quality] [-v vectorlist] [-i uidlist] [-update] [-replace] [-log logfile] -frg some.gkpStore\n", name);
   fprintf(stderr, "\n");
   fprintf(stderr, "  -q quality    Find quality trim points using 'quality' as the base.\n");
   fprintf(stderr, "  -v vector     Intersect the quality trim with a vector trim.\n");
@@ -21,12 +21,13 @@ usage(char *name) {
   fprintf(stderr, "  -replace      Replace non ACGT with random ACGT with low quality (unimplemented).\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "  -log X        Report the iid, original trim and new quality trim\n");
-  fprintf(stderr, "  -frg F        Operate on this frgStore\n");
+  fprintf(stderr, "  -frg F        Operate on this gkpStore\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "  A report of the trimming is printed to stdout:\n");
   fprintf(stderr, "    iid originalBegin originalEnd newBegin newEnd\n");
   fprintf(stderr, "    uid,iid origBegin origEnd qualBegin qualEnd vecBeg vecEnd newBegin newEnd\n");
 }
+
 
 
 int
@@ -36,7 +37,7 @@ main(int argc, char **argv) {
   char   *immutableFileName   = 0L;
   bool    doUpdate            = false;
   bool    doReplace           = false;
-  char   *frgStore            = 0L;
+  char   *gkpStore            = 0L;
   FILE   *logFile             = 0L;
 
   int arg = 1;
@@ -64,7 +65,7 @@ main(int argc, char **argv) {
       if (errno)
         fprintf(stderr, "Failed to open %s for writing the log: %s\n", argv[arg], strerror(errno)), exit(1);
     } else if (strncmp(argv[arg], "-frg", 2) == 0) {
-      frgStore = argv[++arg];
+      gkpStore = argv[++arg];
 
     } else {
       fprintf(stderr, "Invalid option: '%s'\n", argv[arg]);
@@ -74,7 +75,7 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if (!frgStore) {
+  if (!gkpStore) {
     usage(argv[0]);
     exit(1);
   }
@@ -87,14 +88,14 @@ main(int argc, char **argv) {
 
   //  Open the store
   //
-  FragStoreHandle   fs = openFragStore(frgStore, doUpdate ? "r+" : "r");
-  if (fs == NULLSTOREHANDLE) {
-    fprintf(stderr, "Failed to open %s\n", frgStore);
+  GateKeeperStore  *gkp = openGateKeeperStore(gkpStore, doUpdate);
+  if (gkp == NULL) {
+    fprintf(stderr, "Failed to open %s\n", gkpStore);
     exit(1);
   }
 
-  u32bit        firstElem = getFirstElemFragStore(fs);
-  u32bit        lastElem  = getLastElemFragStore(fs) + 1;
+  u32bit        firstElem = getFirstElemFragStore(gkp);
+  u32bit        lastElem  = getLastElemFragStore(gkp) + 1;
 
   ReadStructp   rd = new_ReadStruct();
 
@@ -112,7 +113,7 @@ main(int argc, char **argv) {
   for (u32bit elem=firstElem; elem<lastElem; elem++) {
     u64bit uid = 0;
 
-    getFragStore(fs, elem, FRAG_S_ALL, rd);
+    getFrag(gkp, elem, rd, FRAG_S_ALL);
     getAccID_ReadStruct(rd, &uid);
 
     //  Bail now if we've been told to not modify this read.  We do
@@ -177,15 +178,15 @@ main(int argc, char **argv) {
     if (doUpdate) {
       setClearRegion_ReadStruct(rd, vecL, vecR, READSTRUCT_ORIGINAL);
 
-      if (setFragStore(fs, elem, rd))
-        fprintf(stderr, "setFragStore() failed.\n"), exit(1);
+      if (setFrag(gkp, elem, rd))
+        fprintf(stderr, "setFrag() failed.\n"), exit(1);
 
       if ((vecL + OBT_MIN_LENGTH) > vecR)
-        deleteFragStore(fs, elem);
+        delFrag(gkp, elem);
     }
   }
 
-  closeFragStore(fs);
+  closeGateKeeperStore(gkp);
 
   fprintf(stderr, "Fragments with no vector clear:  "u32bitFMT"\n", stat_notPresent);
   fprintf(stderr, "Fragments with no intersection:  "u32bitFMT"\n", stat_noIntersect);

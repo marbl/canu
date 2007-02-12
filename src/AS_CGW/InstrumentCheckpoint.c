@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: InstrumentCheckpoint.c,v 1.6 2006-09-21 21:34:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: InstrumentCheckpoint.c,v 1.7 2007-02-12 22:16:55 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -276,19 +276,14 @@ int main(int argc, char *argv[])
   graph = LoadScaffoldGraphFromCheckpoint(GlobalData->File_Name_Prefix,
                                           checkPointNumber,
                                           FALSE );
-  if(graph == NULL)
-    {
-      fprintf(stderr, "Failed to load graph from checkpoint!\n");
-      return 1;
-    }
+  if(graph == NULL) {
+    fprintf(stderr, "Failed to load graph from checkpoint!\n");
+    return 1;
+  }
 
-  // open the gatekeeper store
-  InitGateKeeperStore(&(graph->gkpStore), GlobalData->Gatekeeper_Store_Name);
-  OpenReadOnlyGateKeeperStore(&(graph->gkpStore));
-  
   if(!scf_iids && !ctg_iids)
     {
-      /*
+#if 0
         ContigInstrumenter * ci = CreateContigInstrumenter(graph, options);
         ScaffoldInstrumenter * si = CreateScaffoldInstrumenter(graph, options);
         GraphNodeIterator scaffolds;
@@ -320,7 +315,7 @@ int main(int argc, char *argv[])
         }
         DestroyScaffoldInstrumenter(si);
         DestroyContigInstrumenter(ci);
-      */
+#endif
 
       ScaffoldGraphInstrumenter * sgi =
         CreateScaffoldGraphInstrumenter(graph, options);

@@ -26,8 +26,8 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.13 2007-02-11 06:18:18 brianwalenz Exp $
- * $Revision: 1.13 $
+ * $Id: AS_OVL_overlap.h,v 1.14 2007-02-12 22:16:57 brianwalenz Exp $
+ * $Revision: 1.14 $
 */
 
 
@@ -457,8 +457,6 @@
 
 #include <pthread.h>
 
-typedef  FragStreamHandle  Frag_Stream;
-typedef  FragStoreHandle  FragStore;
 typedef  FILE *  Output_Stream;
 typedef  FILE *  Input_Stream;
 
@@ -534,7 +532,7 @@ typedef  struct Work_Area
    int32  A_Olaps_For_Frag, B_Olaps_For_Frag;
             //  Counts the number of overlaps for each fragment.  Cuts off
             //  overlaps above a limit.
-   Frag_Stream  stream_segment;
+   FragStream  *stream_segment;
    Screen_Info_t  screen_info;
    int  status;
    ReadStructp  myRead;
@@ -573,8 +571,8 @@ extern char  Quality_Buffer [];
     //  Used to read fragments and to build hash table which
     //  are done single threaded.
 
-extern FragStore  OldFragStore;
-extern FragStore  BACtigStore;
+extern GateKeeperStore  *OldFragStore;
+extern GateKeeperStore  *BACtigStore;
 extern char  * BACtig_Store_Path;
 extern char  * Frag_Store_Path;
 extern Output_Stream  Out_Stream;
@@ -592,13 +590,13 @@ extern pthread_mutex_t  Log_Msg_Mutex;
 //
 
 int  Build_Hash_Index
-    (FragStreamHandle stream, int32 First_Frag_ID, ReadStructp myRead);
+    (FragStream *stream, int32 First_Frag_ID, ReadStructp myRead);
 void  Coalesce_Screen_Info
     (Screen_Range_t space [], int lo, int * hi);
 void  Copy_Branches_To_Store
-    (Frag_Stream stream, FragStore store, ReadStructp myRead);
+    (FragStream *stream, GateKeeperStore *store, ReadStructp myRead);
 void  Dump_Stored_Branch_Info
-    (Frag_Stream stream, ReadStructp myRead);
+    (FragStream *stream, ReadStructp myRead);
 void  Initialize_Work_Area
     (Work_Area_t *, int);
 int  OVL_Max_int
@@ -612,7 +610,7 @@ void  Output_High_Hit_Frags
 int  OverlapDriver
     (int noOverlaps, int argc, char **argv);
 void  Process_Overlaps
-    (FragStreamHandle stream, Work_Area_t *);
+    (FragStream *stream, Work_Area_t *);
 void  Profile_Hits
     (void);
 int  Sign

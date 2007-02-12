@@ -353,16 +353,16 @@ VA_DEF(ScaffoldData)
 // MergeMultiAlignsFast_new is the original CGW/CNS interface for contigging
  // and is now a wrapper around the more modern MergeMultiAligns which allows
  // "contained" relationships among the input contigs
-MultiAlignT *MergeMultiAlignsFast_new( tSequenceDB *, FragStoreHandle, 
+MultiAlignT *MergeMultiAlignsFast_new( tSequenceDB *, GateKeeperStore *, 
     VA_TYPE(IntElementPos) *, int, int, Overlap *(*)(COMPARE_ARGS),
     CNS_Options *opp);
 
 // MergeMultiAligns 
-MultiAlignT *MergeMultiAligns( tSequenceDB *, FragStoreHandle, 
+MultiAlignT *MergeMultiAligns( tSequenceDB *, GateKeeperStore *, 
       VA_TYPE(IntMultiPos) *, int, int, Overlap *(*)(COMPARE_ARGS), CNS_Options *opp);
 
 
-MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *, FragStoreHandle ,
+MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *, GateKeeperStore * ,
       uint32 , uint32 , int , Overlap *(*)(COMPARE_ARGS), CNS_Options *opp);
 
 void ResetStores(int32 num_frags, int32 num_columns);
@@ -371,7 +371,7 @@ int BaseCall(int32 , int , double *, VarRegion  *, int, char *, int, int,
    CNS_Options *);
 void ShowColumn(int32 cid);
 
-int MultiAlignUnitig(IntUnitigMesg *, FragStoreHandle, VA_TYPE(char) *,
+int MultiAlignUnitig(IntUnitigMesg *, GateKeeperStore *, VA_TYPE(char) *,
     VA_TYPE(char) *, VA_TYPE(int32) *, CNS_PrintKey , int, 
     Overlap *(*COMPARE_FUNC)(COMPARE_ARGS), CNS_Options *opp);
 

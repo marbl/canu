@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: dumpGatekeeper.c,v 1.13 2007-02-09 21:17:40 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpGatekeeper.c,v 1.14 2007-02-12 22:16:57 brianwalenz Exp $";
 
 /* Dump the gatekeeper stores for debug */
 
@@ -41,217 +41,201 @@ static char CM_ID[] = "$Id: dumpGatekeeper.c,v 1.13 2007-02-09 21:17:40 brianwal
 #include "AS_MSG_pmesg.h"
 #include "AS_GKP_include.h"
 
-int  nerrs = 0;   // Number of errors in current run
-int maxerrs = 10; // Number of errors allowed before we punt
-
 int
-main(int argc, char * argv []) {
+main(int argc, char **argv) {
+   GateKeeperStore   *gkpStore;
+   char              *gkpStoreName = NULL;
 
-   int status = 0;
-   int  summary;
-   int  quiet;
-   int fragID = -1;
-   char *gatekeeperStorePath;
-   GateKeeperStore gkpStore;
+   int                dumpBatchInfo    = 0;
+   int                dumpLibraryInfo  = 0;
+   int                dumpFragmentInfo = 0;
 
-   summary = quiet = 0;
+   int                firstFrag = 0;
+   int                lastFrag  = 0;
 
-   {
-     int ch,errflg=0;
-     optarg = NULL;
-     while (!errflg && ((ch = getopt(argc, argv, "sqF:")) != EOF))
-       switch(ch) {
-       case 'F':
-	 fragID = atoi(optarg);
-	 break;
-       case 's':
-	 summary = TRUE;
-	 break;
-       case 'q':
-	 quiet = TRUE;
-	 break;
-       case '?':
-	 fprintf(stdout,"Unrecognized option -%c",optopt);
-       default :
-	 errflg++;
-       }
-
-     if(argc - optind != 1 ) {
-       fprintf (stdout, "USAGE:  dumpGatekeeper [-qs] <gatekeeperStorePath>\n");
-       exit (EXIT_FAILURE);
+   int arg = 1;
+   int err = 0;
+   while (arg < argc) {
+     if        (strcmp(argv[arg], "-b") == 0) {
+       firstFrag        = atoi(argv[++arg]);
+       dumpFragmentInfo = 1;
+     } else if (strcmp(argv[arg], "-e") == 0) {
+       lastFrag         = atoi(argv[++arg]);
+       dumpFragmentInfo = 1;
+     } else if (strcmp(argv[arg], "-F") == 0) {
+       dumpFragmentInfo = 1;
+     } else if (strcmp(argv[arg], "-L") == 0) {
+       dumpLibraryInfo  = 1;
+     } else if (strcmp(argv[arg], "-B") == 0) {
+       dumpBatchInfo    = 1;
+     } else if (strcmp(argv[arg], "-g") == 0) {
+       gkpStoreName = argv[++arg];
+     } else {
+       fprintf(stderr, "unknown option '%s'\n", argv[arg]);
      }
 
-     gatekeeperStorePath = argv[optind++];
+     arg++;
    }
-   
+
+   if ((err) || (gkpStoreName == NULL)) {
+     fprintf(stderr, "usage: %s [-b begin] [-e end] [-B] [-L] [-F] -g gkpStore]\n", argv[0]);
+     fprintf(stderr, "  -b begin   dump frags from iid begin to end\n");
+     fprintf(stderr, "  -e end     dump frags from iid begin to end\n");
+     fprintf(stderr, "  -B         dump batch records\n");
+     fprintf(stderr, "  -L         dump library records\n");
+     fprintf(stderr, "  -F         dump fragment records\n");
+     exit(1);
+   }
+
+   gkpStore = openGateKeeperStore(gkpStoreName, FALSE);
 
 
-   InitGateKeeperStore(&gkpStore, gatekeeperStorePath);
-   OpenReadOnlyGateKeeperStore(&gkpStore);
-
-
-   /**************** DUMP Batches  *************/
-   if(fragID == -1)
-   {
-     GateKeeperBatchRecord gkpb;
+   if (dumpBatchInfo) {
      StoreStat stat;
-     int64 i;
-     statsStore(gkpStore.batStore, &stat);
-     fprintf(stdout,"* Stats for Batch Store are first:" F_S64 " last :" F_S64 "\n",
-	     stat.firstElem, stat.lastElem);
+     int       i;
+
+     statsStore(gkpStore->bat, &stat);
      
-     i = stat.firstElem;
-     
-     fprintf(stdout,"* Printing Batches\n");
-     
-     for(i = 1; i <= stat.lastElem; i++){
-       getGateKeeperBatchStore(gkpStore.batStore,i,&gkpb);
-       
-       fprintf(stdout,"* Batch " F_S64 " UID:" F_UID " name:%s comment:%s created:(" F_TIME_T ") %s \n",
-	       i,gkpb.UID, gkpb.name, gkpb.comment,
-               gkpb.created, ctime(&gkpb.created));
-       fprintf(stdout,"\t Num Fragments " F_S32 "\n", gkpb.numFragments);
-       fprintf(stdout,"\t Num Distances " F_S32 "\n", gkpb.numDistances);
-       fprintf(stdout,"\t Num s_Distances " F_S32 "\n", gkpb.num_s_Distances);
-       fprintf(stdout,"\t Num Links " F_S32 "\n", gkpb.numLinks);
+     for (i=stat.firstElem; i<=stat.lastElem; i++) {
+       GateKeeperBatchRecord gkpb;
+       time_t                createdtime;
+
+       getGateKeeperBatchStore(gkpStore->bat, i, &gkpb);
+
+       createdtime = (time_t)gkpb.created;
+
+       fprintf(stdout, "<batch>\n");
+       fprintf(stdout, "<ident>"F_UID","F_IID"</ident>\n", gkpb.UID, i);
+       fprintf(stdout, "<name>%s</name>\n", gkpb.name);
+       fprintf(stdout, "<created>("F_U64") %s</created>\n", gkpb.created, ctime(&createdtime));
+       if (gkpb.comment[0])
+         fprintf(stdout, "<comment>\n%s\n</comment>\n", gkpb.comment);
+       fprintf(stdout, "<nFrags>"F_S32"</nFrags>\n", gkpb.numFragments);
+       fprintf(stdout, "<nLibs>"F_S32"</nLibs)\n", gkpb.numLibraries);
+       fprintf(stdout, "<nLibsS>"F_S32"</nLibsS>\n", gkpb.numLibraries_s);
+       fprintf(stdout, "</batch>\n");
      }
-     gkpb.numFragments = getNumGateKeeperFragments(gkpStore.frgStore);
-     gkpb.numDistances = getNumGateKeeperDistances(gkpStore.dstStore);
-     gkpb.num_s_Distances = getNumGateKeeperDistances(gkpStore.s_dstStore);
-     gkpb.numLinks = getNumGateKeeperLinks(gkpStore.lnkStore);
-     fprintf(stdout,"* Final Stats\n");
-     fprintf(stdout,"\t Num Fragments " F_S32 "\n",gkpb.numFragments );
-     fprintf(stdout,"\t Num Distances " F_S32 "\n", gkpb.numDistances);
-     fprintf(stdout,"\t Num s_Distances " F_S32 "\n", gkpb.num_s_Distances);
-     fprintf(stdout,"\t Num Links " F_S32 "\n", gkpb.numLinks);
+
+     fprintf(stdout, "<total>\n");
+     fprintf(stdout, "<nFragsTotal>"F_S32"</nFragsTotal>\n", getNumGateKeeperFragments(gkpStore->frg));
+     fprintf(stdout, "<nLibsTotal>"F_S32"</nLibsTotal>\n", getNumGateKeeperLibrarys(gkpStore->lib));
+     fprintf(stdout, "<nLibsSTotal>"F_S32"</nLibsSTotal>\n", getNumGateKeeperLibrarys(gkpStore->lis));
+     fprintf(stdout, "</total>\n");
    }
 
-   if(summary)
-     exit(0);
 
-   /**************** DUMP Dists  *************/
-   if(fragID == -1)
-   {
-     GateKeeperDistanceRecord gkpd;
+
+
+
+   if (dumpLibraryInfo) {
      StoreStat stat;
-     StoreStat shadow_stat;
-     int64 i;
-     int64 j;
-     statsStore(gkpStore.dstStore, &stat);
-     fprintf(stdout,"* Stats for Dist Store are first:" F_S64 " last :" F_S64 "\n",
-	     stat.firstElem, stat.lastElem);
-     
-     i = stat.firstElem;
-     
-     if(!quiet)
-       fprintf(stdout,"* Printing Dists\n");
-     
-     for(i = 1; i <= stat.lastElem; i++){
-       getGateKeeperDistanceStore(gkpStore.dstStore,i,&gkpd);
-       if (!quiet)
-         fprintf(stdout,"* Dist " F_S64 " UID:" F_UID " del:%d red:%d mean:%f std:%f batch(" F_U16 "," F_U16 ") prevID:" F_IID " prevInstanceID: " F_IID "\n",
-                 i,gkpd.UID, gkpd.deleted, gkpd.redefined, gkpd.mean, gkpd.stddev,
-                 gkpd.birthBatch, gkpd.deathBatch, gkpd.prevID, gkpd.prevInstanceID);
+     int       i;
+
+     statsStore(gkpStore->lib, &stat);
+
+     for (i=stat.firstElem; i<=stat.lastElem; i++) {
+       GateKeeperLibraryRecord gkpl;
+       time_t                  createdtime;
+
+       getGateKeeperLibraryStore(gkpStore->lib, i, &gkpl);
+
+       createdtime = (time_t)gkpl.created;
+
+       fprintf(stdout, "<library>\n");
+       fprintf(stdout, "<ident>"F_UID","F_IID"</ident>\n", gkpl.UID, i);
+       fprintf(stdout, "<name>%s</name>\n", gkpl.name);
+       fprintf(stdout, "<created>("F_U64") %s</created>\n", gkpl.created, ctime(&createdtime));
+       if (gkpl.comment[0])
+         fprintf(stdout, "<comment>\n%s\n</comment>\n", gkpl.comment);
+       fprintf(stdout, "<deleted>%d</deleted>\n", gkpl.deleted);
+       fprintf(stdout, "<redefined>%d</redefined>\n", gkpl.redefined);
+       fprintf(stdout, "<orientation>%d</orientation>\n", gkpl.orientation);
+       fprintf(stdout, "<mean>%f</mean>\n", gkpl.mean);
+       fprintf(stdout, "<stddev>%f</stddev>\n", gkpl.stddev);
+       fprintf(stdout, "<numFeatures>%d</numFeatures>\n", gkpl.numFeatures);
+       fprintf(stdout, "<prevInstanceID>"F_IID"</prevInstanceID>\n", gkpl.prevInstanceID);
+       fprintf(stdout, "<prevID>"F_IID"</prevID>\n", gkpl.prevID);
+       fprintf(stdout, "<birthBatch>%d</birthBatch>\n", gkpl.birthBatch);
+       fprintf(stdout, "<deathBatch>%d</deathBatch>\n", gkpl.deathBatch);
+       fprintf(stdout, "</library>\n");
      }
 
-     if(!quiet)
-       fprintf(stdout,"* Printing Shadowed Dists\n");
        
-     statsStore(gkpStore.s_dstStore, &shadow_stat);
-     fprintf(stdout,"* Stats for s_Dist Store are first:" F_S64 " last :" F_S64 "\n",
-             shadow_stat.firstElem, shadow_stat.lastElem);
-       
-     j = shadow_stat.firstElem;
-       
-     for(j = 1; j <= shadow_stat.lastElem; j++){
-       getGateKeeperDistanceStore(gkpStore.s_dstStore,j,&gkpd);
-         
-       if(!quiet)
-         fprintf(stdout,"* Dist " F_S64 " UID:" F_UID " del:%d red:%d mean:%f std:%f batch(" F_U16 "," F_U16 ") prevID: " F_IID " prevInstanceID:" F_IID "\n",
-                 j,gkpd.UID, gkpd.deleted, gkpd.redefined, gkpd.mean, gkpd.stddev,
-                 gkpd.birthBatch, gkpd.deathBatch, gkpd.prevID, gkpd.prevInstanceID);
+     statsStore(gkpStore->lis, &stat);
+
+     for (i=stat.firstElem; i<=stat.lastElem; i++) {
+       GateKeeperLibraryRecord gkpl;
+       time_t                  createdtime;
+
+       getGateKeeperLibraryStore(gkpStore->lis, i, &gkpl);
+
+       createdtime = (time_t)gkpl.created;
+
+       fprintf(stdout, "<shadow_library>\n");
+       fprintf(stdout, "<ident>"F_UID","F_IID"</ident>\n", gkpl.UID, i);
+       fprintf(stdout, "<name>%s</name>\n", gkpl.name);
+       fprintf(stdout, "<created>("F_U64") %s</created>\n", gkpl.created, ctime(&createdtime));
+       if (gkpl.comment[0])
+         fprintf(stdout, "<comment>\n%s\n</comment>\n", gkpl.comment);
+       fprintf(stdout, "<deleted>%d</deleted>\n", gkpl.deleted);
+       fprintf(stdout, "<redefined>%d</redefined>\n", gkpl.redefined);
+       fprintf(stdout, "<orientation>%d</orientation>\n", gkpl.orientation);
+       fprintf(stdout, "<mean>%f</mean>\n", gkpl.mean);
+       fprintf(stdout, "<stddev>%f</stddev>\n", gkpl.stddev);
+       fprintf(stdout, "<numFeatures>%d</numFeatures>\n", gkpl.numFeatures);
+       fprintf(stdout, "<prevInstanceID>"F_IID"</prevInstanceID>\n", gkpl.prevInstanceID);
+       fprintf(stdout, "<prevID>"F_IID"</prevID>\n", gkpl.prevID);
+       fprintf(stdout, "<birthBatch>%d</birthBatch>\n", gkpl.birthBatch);
+       fprintf(stdout, "<deathBatch>%d</deathBatch>\n", gkpl.deathBatch);
+       fprintf(stdout, "</shadow_library>\n");
      }
    }
      
 
-   /**************** DUMP Fragments and Links *************/
-   {
-     StreamHandle frags = openStream(gkpStore.frgStore,NULL,0);
+
+   if (dumpFragmentInfo) {
+     StreamHandle             frags = openStream(gkpStore->frg, NULL, 0);
      GateKeeperFragmentRecord gkpf;
-     StoreStat stat;
-     int64 i = 1;
-     PHashValue_AS value;
-     
-     statsStore(gkpStore.frgStore, &stat);
-     fprintf(stdout,"* Stats are first:" F_S64 " last :" F_S64 "\n",
-	     stat.firstElem, stat.lastElem);
-     
-     if(fragID != -1){
-       resetStream(frags,fragID, fragID + 1);
-       i = fragID;
-       if(!quiet)
-         fprintf(stdout,"* Printing fragments %d-%d\n", fragID, fragID + 1);
-     }else{
-       resetStream(frags,STREAM_FROMSTART, STREAM_UNTILEND);
-       if(!quiet)
-         fprintf(stdout,"* Printing ALL fragments \n");
-     }
-     
-     while(nextStream(frags, &gkpf)){
-       GateKeeperLinkRecordIterator iterator;
-       GateKeeperLinkRecord link;
+     StoreStat                stat;
+     int                      i;
+     PHashValue_AS            value;
 
-       if(HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore.hashTable, 
-                                                    UID_NAMESPACE_AS,
-                                                    gkpf.readUID, 
-                                                    AS_IID_FRG,
-                                                    FALSE,
-                                                    stdout,
-                                                    &value)){
-         
-         if(!quiet){
-           if(!gkpf.deleted)
-             fprintf(stdout,"# *****ERROR******");
-           else
-             fprintf(stdout,"# Deleted Fragment ");
-           
-           fprintf(stdout,F_S64 "(" F_IID "): UID:" F_UID " type:%c refs:%d links:%u(" F_IID ") batch(" F_U16 "," F_U16 ")\n",
-                   i, value.IID, gkpf.readUID, 
-                   gkpf.type,
-                   value.refCount, gkpf.numLinks, gkpf.linkHead,
-                   gkpf.birthBatch, gkpf.deathBatch);
-         }
-       }else{
-         if(!quiet){
-           if(!gkpf.deleted){
-             fprintf(stdout,"* Fragment " F_S64 ": UID:" F_UID " type:%c refs:%d links:%u(" F_IID ") batch(" F_U16 "," F_U16 ")\n",
-                     i, gkpf.readUID, 
-                     gkpf.type,
-                     value.refCount, gkpf.numLinks, gkpf.linkHead,
-                     gkpf.birthBatch, gkpf.deathBatch);
-           }else{
-             fprintf(stdout,"* Redefined Fragment " F_S64 " (now " F_IID "): UID:" F_UID " type:%c refs:%d links:%u(" F_IID ") batch(" F_U16 "," F_U16 ")\n",
-                     i, value.IID, gkpf.readUID, 
-                     gkpf.type,
-                     value.refCount, gkpf.numLinks, gkpf.linkHead,
-                     gkpf.birthBatch, gkpf.deathBatch);
-           }
-         }
-         if(gkpf.numLinks > 0){
-           CreateGateKeeperLinkRecordIterator(gkpStore.lnkStore, gkpf.linkHead,
-                                              i, &iterator);
-           while(NextGateKeeperLinkRecordIterator(&iterator, &link)){
-             if(!quiet)
-               fprintf(stdout,"\tLink (" F_IID "," F_IID ") dist:" F_IID " type:%c ori:%c\n",
-                       link.frag1, link.frag2, link.distance, link.type,
-                       getLinkOrientation( &link ));
-             
-           }
-         }
+     statsStore(gkpStore->frg, &stat);
+
+     if (firstFrag < stat.firstElem)
+       firstFrag = stat.firstElem;
+     if ((lastFrag > stat.lastElem) || (lastFrag == 0))
+       lastFrag = stat.lastElem;
+
+     resetStream(frags, firstFrag, lastFrag);
+     i = firstFrag;
+
+     while (nextStream(frags, &gkpf)) {
+       if (gkpf.deleted) {
+         fprintf(stdout," * Deleted Fragment ("F_UID","F_IID") refs:%d batch("F_U16","F_U16")\n",
+                 gkpf.UID,
+                 i,
+                 value.refCount,
+                 gkpf.birthBatch,
+                 gkpf.deathBatch);
+       } else {
+         fprintf(stdout,"* Fragment ("F_UID","F_IID") refs:%d  batch("F_U16","F_U16")\n",
+                 gkpf.UID, 
+                 i,
+                 value.refCount,
+                 gkpf.birthBatch,
+                 gkpf.deathBatch);
        }
+
+#if 0
+       fprintf(stdout,"\tLink (" F_IID "," F_IID ") dist:" F_IID " type:%c ori:%c\n",
+               link.frag1, link.frag2, link.distance, link.type,
+               getLinkOrientation( &link ));
+#endif
+
        i++;
      }
    }
 
-   exit(status != GATEKEEPER_SUCCESS);
+   exit(0);
 }

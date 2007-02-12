@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ContigT_CGW.c,v 1.7 2006-09-21 21:34:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ContigT_CGW.c,v 1.8 2007-02-12 22:16:55 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_EDGES
@@ -108,10 +108,9 @@ void DumpContig(FILE *stream, ScaffoldGraphT *graph, ContigT *contig, int raw){
   if(raw)
     flags |= GRAPH_EDGE_RAW_ONLY;
 
-  fprintf(stream, "* Contig " F_CID " tan:%s fbac:%d sc:" F_CID " [" F_COORD "," F_COORD "] aoff:%d boff:%d ANext:" F_CID " BNext:" F_CID " bp:[" F_COORD "," F_COORD "] len:%d AEnd:" F_CID " BEnd:" F_CID " numCI:%d\nCIs:\n",
+  fprintf(stream, "* Contig " F_CID " tan:%s sc:" F_CID " [" F_COORD "," F_COORD "] aoff:%d boff:%d ANext:" F_CID " BNext:" F_CID " bp:[" F_COORD "," F_COORD "] len:%d AEnd:" F_CID " BEnd:" F_CID " numCI:%d\nCIs:\n",
           contig->id, 
           tandem,
-          contig->flags.bits.includesFinishedBacFragments,
           contig->scaffoldID,
           contig->aEndCoord,
           contig->bEndCoord,
@@ -224,10 +223,9 @@ void DumpContigInScfContext(FILE *stream, ScaffoldGraphT *graph,
   if(raw)
     flags |= GRAPH_EDGE_RAW_ONLY;
 
-  fprintf(stream, "* Contig " F_CID " tan:%s fbac:%d sc:" F_CID " [" F_COORD "," F_COORD "] aoff:(%d,%e) boff:(%d,%e) ANext:" F_CID " BNext:" F_CID " bp:[" F_COORD "," F_COORD "] len:%d AEnd:" F_CID " BEnd:" F_CID " numCI:%d\nCIs:\n",
+  fprintf(stream, "* Contig " F_CID " tan:%s sc:" F_CID " [" F_COORD "," F_COORD "] aoff:(%d,%e) boff:(%d,%e) ANext:" F_CID " BNext:" F_CID " bp:[" F_COORD "," F_COORD "] len:%d AEnd:" F_CID " BEnd:" F_CID " numCI:%d\nCIs:\n",
           contig->id, 
           tandem,
-          contig->flags.bits.includesFinishedBacFragments,
           contig->scaffoldID,
           contig->aEndCoord,
           contig->bEndCoord,
@@ -732,7 +730,6 @@ void CreateInitialContig(ScaffoldGraphT *graph, CDS_CID_t cid){
   contig.indexInScaffold = NULLINDEX;
   contig.flags.bits.isCI = FALSE;
   contig.flags.bits.isContig = TRUE;
-  contig.flags.bits.includesFinishedBacFragments = CI->flags.bits.includesFinishedBacFragments;
   contig.flags.bits.isChaff = CI->flags.bits.isChaff; // this property is inherited
   if(GlobalData->debugLevel > 0 &&
      contig.flags.bits.isChaff){

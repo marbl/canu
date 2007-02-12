@@ -18,36 +18,22 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.14 2007-02-10 20:24:59 brianwalenz Exp $";
 
-/*************************************************************************
- Module:  AS_PER_gkpfrgStore
- Description:
-    A thin layer on top of the IndexStore supporing the storage and
- retrieval of records used by the gatekeeper records.
-    The idea is to provide easier to use shortcuts for the common
- operations, and let the other operations be accessed through the
- generic Index Store API.
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.15 2007-02-12 22:16:58 brianwalenz Exp $";
 
- Assumptions:
-    Nothing special beyond genericStore.rtf
+//    A thin layer on top of the IndexStore supporing the storage and
+// retrieval of records used by the gatekeeper records.
+//
+//    The idea is to provide easier to use shortcuts for the common
+// operations, and let the other operations be accessed through the
+// generic Index Store API.
 
- Document:
-      GenericStore.rtf
-
- *************************************************************************/
-
-/* RCS Info
- * $Id: AS_PER_gkpStore.c,v 1.14 2007-02-10 20:24:59 brianwalenz Exp $
- * $Revision: 1.14 $
- *
- */
-#include <assert.h>
-#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
+#include <time.h>
 #include <string.h>
-#include <dirent.h>
+#include <errno.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -55,648 +41,513 @@ static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.14 2007-02-10 20:24:59 brianwa
 #include "AS_PER_genericStore.h"
 #include "AS_PER_gkpStore.h"
 
-int CreateGateKeeperLinkRecordIterator(GateKeeperLinkStore store, uint32 startFromLink, 
-				       uint32 followFrag, GateKeeperLinkRecordIterator *iterator){
 
-  assert(startFromLink);
+static
+int
+fileExists(const char *path,
+           int directory,
+           int readwrite) {
+  struct stat  s;
+  int          r;
 
-  if (startFromLink == 0)
-    return(1);
+  errno = 0;
+  r = stat(path, &s);
+  if (errno) {
+    //fprintf(stderr, "Failed to stat() file '%s'; assumed to not exist.\n", path);
+    return(0);
+  }
 
-  iterator->store          = store;
-  iterator->prevLinkRecord = 0;
-  iterator->linkRecord     = startFromLink;
-  iterator->followFrag     = followFrag;
+  if (directory == 1) {
+    if ((readwrite == 0) &&
+        (s.st_mode & S_IFDIR) &&
+        (s.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)) &&
+        (s.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
+      return(1);
+    if ((readwrite == 1) &&
+        (s.st_mode & S_IFDIR) &&
+        (s.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)) &&
+        (s.st_mode & (S_IWUSR | S_IWGRP | S_IWOTH)) &&
+        (s.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
+      return(1);
+    return(0);
+  }
 
-  return(0);
+  if (directory == 0) {
+    if ((readwrite == 0) &&
+        (s.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)))
+      return(1);
+    if ((readwrite == 1) &&
+        (s.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)) &&
+        (s.st_mode & (S_IWUSR | S_IWGRP | S_IWOTH)))
+      return(1);
+    return(0);
+  }
 }
 
-#if 0
-//  UNUSED
-int CreateGateKeeperLinkRecordFromFragmentIterator(GateKeeperLinkStore store, 
-						   uint32 followFrag, GateKeeperLinkRecordIterator *iterator){
-  GateKeeperFragmentRecord gkFrag;
 
-  getGateKeeperFragmentStore(store, followFrag, &gkFrag);
+int
+testOpenGateKeeperStore(const char *path,
+                        int   writable) {
 
- return CreateGateKeeperLinkRecordIterator(store, gkFrag.linkHead, followFrag, iterator);
+  char name[FILENAME_MAX];
+  int  fileCount = 0;
 
+  if (fileExists(path, 1, writable)) {
+    sprintf(name,"%s/gkp", path);
+    fileCount += fileExists(name, 0, writable);
 
+    sprintf(name,"%s/bat", path);
+    fileCount += fileExists(name, 0, writable);
+
+    sprintf(name,"%s/frg", path);
+    fileCount += fileExists(name, 0, writable);
+
+    sprintf(name,"%s/lib", path);
+    fileCount += fileExists(name, 0, writable);
+
+    sprintf(name,"%s/lis", path);
+    fileCount += fileExists(name, 0, writable);
+
+    sprintf(name,"%s/seq", path);
+    fileCount += fileExists(name, 0, writable);
+
+    sprintf(name,"%s/qlt", path);
+    fileCount += fileExists(name, 0, writable);
+
+    sprintf(name,"%s/hps", path);
+    fileCount += fileExists(name, 0, writable);
+
+    sprintf(name,"%s/src", path);
+    fileCount += fileExists(name, 0, writable);
+
+    sprintf(name,"%s/phs", path);
+    fileCount += fileExists(name, 0, writable);
+
+  }
+
+  return(fileCount == NUM_GKP_FILES);
 }
-#endif
 
 
+GateKeeperStore *
+openGateKeeperStore(const char *path,
+                    int   writable) {
 
+  char              name[FILENAME_MAX];
+  FILE             *gkpinfo;
 
-int NextGateKeeperLinkRecordIterator(GateKeeperLinkRecordIterator *iterator, 
-				     GateKeeperLinkRecord *link){
-  int tprev = iterator->prevLinkRecord;
+  GateKeeperStore  *gkpStore = (GateKeeperStore *)safe_calloc(1, sizeof(GateKeeperStore));
 
-  if(iterator->linkRecord == 0){
-#ifdef DEBUG
-    fprintf(stderr,"*** Iterator bailing \n");
-#endif
-    return 0;
+  strcpy(gkpStore->storePath, path);
+
+  gkpStore->phs = 0L;
+  gkpStore->bat = 0;
+  gkpStore->frg = 0;
+  gkpStore->lib = 0;
+  gkpStore->lis = 0;
+
+  gkpStore->seq = 0;
+  gkpStore->qlt = 0;
+  gkpStore->hps = 0;
+  gkpStore->src = 0;
+  
+
+  sprintf(name,"%s/gkp", gkpStore->storePath);
+  errno = 0;
+  gkpinfo = fopen(name, "r");
+  if (errno) {
+    fprintf(stderr, "failed to open gatekeeper store '%s': %s\n", name, strerror(errno));
+    exit(1);
   }
-#ifdef DEBUG
-  fprintf(stderr,"*NextGateKeeperLinkRecord getting linkRecord %ld (%ld)\n", 
-	  iterator->linkRecord, getLastElemStore(iterator->store));
-#endif
 
-  {
-    int ret = getGateKeeperLinkStore(iterator->store, iterator->linkRecord, link);
-    assert(ret == 0);
-  }
-  if(!(iterator->followFrag == link->frag1 || iterator->followFrag == link->frag2)){
+  fread(&gkpStore->gkp, sizeof(GateKeeperStoreInfo), 1, gkpinfo);
+  fclose(gkpinfo);
 
-
-
+  if (gkpStore->gkp.gkpMagic != 1) {
+    fprintf(stderr, "invalid magic!\n");
   }
 
-#ifdef DEBUG
-    fprintf(stderr,"*** Got link (%d,%d) \n", link->frag1, link->frag2);
-#endif
+  if (gkpStore->gkp.gkpVersion != 1) {
+    fprintf(stderr, "invalid version!\n");
+  }
 
-  iterator->prevLinkRecord = iterator->linkRecord;
-  if(iterator->followFrag == link->frag1)
-    iterator->linkRecord = link->frag1Next;
-  else if(iterator->followFrag == link->frag2)
-    iterator->linkRecord = link->frag2Next;
-  else{
-    fprintf(stderr,"* NextGateKeeperLinkRecordIterator Internal error!  iterator->followFrag = %d\n",
-	    iterator->followFrag);
-    fprintf(stderr,"* link is %d  prev = %d frag1 = %d frag2 = %d\n",
-	    iterator->prevLinkRecord, tprev, link->frag1, link->frag2);
+  char  mode[4];
+  if (writable)
+    strcpy(mode, "r+");
+  else
+    strcpy(mode, "r");
+
+  sprintf(name,"%s/bat", gkpStore->storePath);
+  gkpStore->bat   = openGateKeeperBatchStore(name, mode);
+
+  sprintf(name,"%s/frg", gkpStore->storePath);
+  gkpStore->frg   = openGateKeeperFragmentStore(name, mode);
+
+  sprintf(name,"%s/lib", gkpStore->storePath);
+  gkpStore->lib   = openGateKeeperLibraryStore(name, mode);
+
+  sprintf(name,"%s/lis", gkpStore->storePath);
+  gkpStore->lis = openGateKeeperLibraryStore(name, mode);
+
+  sprintf(name,"%s/seq", gkpStore->storePath);
+  gkpStore->seq = openStore(name, mode);
+
+  sprintf(name,"%s/qlt", gkpStore->storePath);
+  gkpStore->qlt = openStore(name, mode);
+
+  sprintf(name,"%s/hps", gkpStore->storePath);
+  gkpStore->hps = openStore(name, mode);
+
+  sprintf(name,"%s/src", gkpStore->storePath);
+  gkpStore->src = openStore(name, mode);
+
+  if ((NULLSTOREHANDLE == gkpStore->bat) ||
+      (NULLSTOREHANDLE == gkpStore->frg) ||
+      (NULLSTOREHANDLE == gkpStore->lib) ||
+      (NULLSTOREHANDLE == gkpStore->lis) ||
+      (NULLSTOREHANDLE == gkpStore->seq) ||
+      (NULLSTOREHANDLE == gkpStore->qlt) ||
+      (NULLSTOREHANDLE == gkpStore->hps) ||
+      (NULLSTOREHANDLE == gkpStore->src)) {
+    fprintf(stderr,"**** Failure to open Gatekeeper Store ...\n");
     assert(0);
   }
 
-  return 1;
+  sprintf(name,"%s/phs", gkpStore->storePath);
 
+  if (mode && mode[0] == 'r' && mode[1] == '\0') {
+    gkpStore->phs = OpenReadOnlyPHashTable_AS(name);
+  } else {
+    gkpStore->phs = OpenPHashTable_AS(name);
+  }
+
+  if (gkpStore->phs == NULL) {
+    fprintf(stderr,"**** Failed to open GateKeeper Persistent HashTable...\n");
+    assert(0);
+  }
+
+  return(gkpStore);
 }
 
 
+GateKeeperStore *
+createGateKeeperStore(const char *path) {
+  char   name[FILENAME_MAX];
+  FILE  *gkpinfo;
 
-/***********************************************************************************/
+  GateKeeperStore  *gkpStore = (GateKeeperStore *)safe_calloc(1, sizeof(GateKeeperStore));
 
-/* Returns link index of link sought */
-int findLink(GateKeeperLinkStore store, 
-             uint32 frag,
-             uint32 linkHead, 
-             GateKeeperLinkRecord *searchlink,
-             GateKeeperLinkRecord *foundlink){
-       
-  uint32 frag1IID     = searchlink->frag1;
-  uint32 frag2IID     = searchlink->frag2;
-  int linktype        = searchlink->type;
-  uint64 distance     = searchlink->distance;
-  int linkOrientation = searchlink->orientation;
-
-  GateKeeperLinkRecordIterator iterator;
-  GateKeeperLinkRecord link;
-
-  if(linkHead == NULL_LINK)
-    return NULL_LINK;
-
-  CreateGateKeeperLinkRecordIterator(store, linkHead,
-                                     frag, &iterator);
-
-  while(NextGateKeeperLinkRecordIterator(&iterator, &link)){
-    if((link.deleted) ||
-       (link.frag1        != frag1IID) ||
-       (link.frag2        != frag2IID) ||
-       (link.type         != linktype) || 
-       ((linkOrientation  != AS_GKP_UNKNOWN) && (link.orientation != linkOrientation)) ||
-       ((distance         != 0)              && (link.distance    != distance))){
-      continue;
-    }
-#ifdef DEBUG_GKP
-    fprintf(stderr,"* Found link (%d,%d) %d\n",
-            frag1IID, frag2IID, link.type);
-#endif
-    if(foundlink)
-      *foundlink = link;
-
-    return iterator.prevLinkRecord;
-  }
-  return NULL_LINK;
-}
-
-				
-
-
-
-
-
-/***********************************************************************************/
-#ifdef DEBUG_GKP
-
-void
-dumpFrag_GKP(GateKeeperLinkStore gkplStore, 
-             GateKeeperFragmentStore gkpStore, 
-             CDS_IID_t frag1IID){
-
-  GateKeeperFragmentRecord gkFrag1;
-  GateKeeperLinkRecord link;
-  GateKeeperLinkRecordIterator iterator;
-
-  fprintf(stderr,"***** DumpFrag " F_IID " ********\n", frag1IID);
-  getGateKeeperFragmentStore(gkpStore, frag1IID, &gkFrag1);
-  fprintf(stderr,"* IID " F_IID " UID " F_UID " linkHead " F_IID "\n",
-	  frag1IID, gkFrag1.readUID, gkFrag1.linkHead);
-
-  if(gkFrag1.linkHead != 0){
-    fprintf(stderr,"* Has the following links:\n");
-    CreateGateKeeperLinkRecordIterator(gkplStore, gkFrag1.linkHead,
-				       frag1IID, &iterator);
-
-    while(NextGateKeeperLinkRecordIterator(&iterator, &link)){
-      fprintf(stderr,"\t* link " F_IID " (" F_IID "," F_IID ") next = " F_IID " type = %d %s\n",
-	      iterator.prevLinkRecord, link.frag1, link.frag2, iterator.linkRecord,
-	      link.type, (link.deleted?"DELETED":""));
-    }
-  }
-}
-
-
-/* Verify that the link with id linkID is alive and well and
-   on the lists of both of its fragments */
-void
-verifyLink_GKP(GateKeeperLinkStore gkplStore, 
-               GateKeeperFragmentStore     gkpStore, 
-               CDS_IID_t linkID){
-
-  GateKeeperFragmentRecord gkFrag1, gkFrag2;
-  GateKeeperLinkRecord link;
-  GateKeeperLinkRecord slink;
-  GateKeeperLinkRecordIterator iterator;
-  CDS_IID_t foundLink1 = 0, foundLink2 = 0;
-
-  getGateKeeperLinkStore(gkplStore, linkID, &link);
-
-#ifdef DEBUG_GKP_VERBOSE
-  fprintf(stderr,"* Verify Link " F_IID " (" F_IID "," F_IID ") type %d next (" F_IID "," F_IID ")\n",
-	  linkID, link.frag1, link.frag2, link.type, link.frag1Next, link.frag2Next);
-
-  dumpFrag_GKP( gkplStore, gkpStore, link.frag1);
-  dumpFrag_GKP( gkplStore, gkpStore, link.frag2);
-#endif
-
-  getGateKeeperFragmentStore(gkpStore, link.frag1, &gkFrag1);
-  getGateKeeperFragmentStore(gkpStore, link.frag2, &gkFrag2);
-
-  if(gkFrag1.linkHead == linkID){
-    foundLink1 = linkID;
-  }else{
-    CreateGateKeeperLinkRecordIterator(gkplStore, gkFrag1.linkHead,
-				       link.frag1, &iterator);
-
-    while(NextGateKeeperLinkRecordIterator(&iterator, &slink)){
-      if(iterator.linkRecord == linkID)
-	foundLink1 = linkID;
-    }
-  }
-
-  if(gkFrag2.linkHead == linkID){
-    foundLink2 = linkID;
-  }else{
-    CreateGateKeeperLinkRecordIterator(gkplStore, gkFrag2.linkHead,
-				       link.frag2, &iterator);
-
-    while(NextGateKeeperLinkRecordIterator(&iterator, &slink)){
-      if(iterator.linkRecord == linkID)
-	foundLink2 = linkID;
-    }
-  }
-
-  assert(foundLink2 == foundLink1 && foundLink1 == linkID);
-}
-#endif
-
-
-
-/***********************************************************************************/
-int unlinkLink_GKP(GateKeeperLinkStore gkplStore, 
-		 GateKeeperFragmentStore     gkpStore, 
-		 uint32 frag1,
-		 uint32 frag2,
- 	         GateKeeperFragmentRecord *gkf1, 
-		 GateKeeperFragmentRecord *gkf2,
-		 GateKeeperLinkRecord *newLink,
-		 int deleteLinkIndex){
-
-  GateKeeperLinkRecord link;
-  int found = 0;
-
-#ifdef DEBUG_GKP
- fprintf(stderr,"* unlink link %d (%d,%d) linkheads (%d)%d and (%d)%d\n",
-	 deleteLinkIndex, newLink->frag1, newLink->frag2, frag1,gkf1->linkHead, frag2, 
-	 gkf2->linkHead);
- verifyLink_GKP(gkplStore, gkpStore, deleteLinkIndex);
-#endif
-
-  if(gkf1->linkHead == deleteLinkIndex){
-#ifdef DEBUG_GKP
-    fprintf(stderr,"* Popped deleteLink %d from linkHead1\n", deleteLinkIndex);
-#endif
-    found = TRUE;
-	   if(frag1 == newLink->frag1){
-	       gkf1->linkHead = newLink->frag1Next;
-	   }else{
-	     assert(frag1 == newLink->frag2);
-	     gkf1->linkHead = newLink->frag2Next;
-	   }
-	gkf1->numLinks--;
-	setGateKeeperFragmentStore(gkpStore,newLink->frag1, gkf1);
-
-  }else{
-       GateKeeperLinkRecordIterator iterator;
-
-       CreateGateKeeperLinkRecordIterator(gkplStore, gkf1->linkHead,
-					  newLink->frag1, &iterator);
-
-       while(NextGateKeeperLinkRecordIterator(&iterator, &link)){
-#ifdef DEBUG_GKP
-	 fprintf(stderr,"* looking at link %d (%d,%d) next is %d\n",
-		 iterator.prevLinkRecord, link.frag1, link.frag2, iterator.linkRecord);
-#endif
-	 if(iterator.linkRecord == deleteLinkIndex){ /* The next fetch gets us the deleteLink*/
-	   found = TRUE;
-	   if(link.frag1 == newLink->frag1){
-	       link.frag1Next = newLink->frag1Next;
-	   }else{
-	     assert(link.frag2 == newLink->frag1);
-	     link.frag2Next = newLink->frag1Next;
-	   }
-	   /* update the link */
-	   setGateKeeperLinkStore(gkplStore, iterator.prevLinkRecord, &link);
-	   break;
-	 }
-       }
-       
-      if(!found){
-	fprintf(stderr,"* Failed to find link %d (%d,%d) starting from frag %d linkhead %d\n",
-		deleteLinkIndex,newLink->frag1, newLink->frag2, newLink->frag1,gkf1->linkHead);
-	assert(0);
-      }else{
-	   gkf1->numLinks--;
-	   setGateKeeperFragmentStore(gkpStore,newLink->frag1, gkf1);
-      }
-  }
-  found = FALSE;
-  if(gkf2->linkHead == deleteLinkIndex){
-#ifdef DEBUG_GKP
-    fprintf(stderr,"* Popped deleteLink %d from linkHead2\n", deleteLinkIndex);
-#endif
-    found = TRUE;
-	   if(frag2 == newLink->frag1){
-	       gkf2->linkHead = newLink->frag1Next;
-	   }else{
-	     assert(frag2 == newLink->frag2);
-	     gkf2->linkHead = newLink->frag2Next;
-	   }
-	gkf2->numLinks--;
-	setGateKeeperFragmentStore(gkpStore,newLink->frag2, gkf2);
-  }else{
-       GateKeeperLinkRecordIterator iterator;
-
-       CreateGateKeeperLinkRecordIterator(gkplStore, gkf2->linkHead,
-					  newLink->frag2, &iterator);
-
-       while(NextGateKeeperLinkRecordIterator(&iterator, &link)){
-#ifdef DEBUG_GKP
-	 fprintf(stderr,"* looking at link %d (%d,%d) next is %d\n",
-		 iterator.prevLinkRecord, link.frag1, link.frag2, iterator.linkRecord);
-#endif
-	 if(iterator.linkRecord == deleteLinkIndex){ /* The next fetch gets us the deleteLink*/
-	   found = TRUE;
-	   if(link.frag1 == newLink->frag2){
-	       link.frag1Next = newLink->frag2Next;
-	   }else{
-	       assert(link.frag2 == newLink->frag2);
-	       link.frag2Next = newLink->frag2Next;
-	   }
-	   /* update the link */
-	   setGateKeeperLinkStore(gkplStore, iterator.prevLinkRecord, &link);
-	   break;
-	 }
-       }
-       
-      if(!found){
-	fprintf(stderr,"* Failed to find link %d (%d,%d) starting from frag %d linkhead %d\n",
-		deleteLinkIndex,newLink->frag1, newLink->frag2, newLink->frag2, gkf2->linkHead);
-	assert(0);
-      }else{
-	gkf2->numLinks--;
-	setGateKeeperFragmentStore(gkpStore,newLink->frag2, gkf2);
-      }
-
-  }
-
-  /* update the link */
-  newLink->frag1Next = 0;
-  newLink->frag2Next = 0;
-  newLink->deleted = 1;
-  setGateKeeperLinkStore(gkplStore, deleteLinkIndex, newLink);
-  return(0);
-
-}
-
-/***********************************************************************************/
-int linkLink_GKP(GateKeeperLinkStore gkplStore, 
-		 GateKeeperFragmentStore     gkpStore, 
-		 GateKeeperLinkRecord *newLink,
-		 uint32 frag1,
-		 uint32 frag2,
- 	         GateKeeperFragmentRecord *gkf1, 
-		 GateKeeperFragmentRecord *gkf2){
-
-  int   newLinkIndex = getLastElemStore(gkplStore) + 1;
-
-
-  /* Insert at head of lists */
-  newLink->frag1Next = newLink->frag2Next = 0;
-  newLink->deleted = 0;
-
-  assert(frag1 == newLink->frag1 &&
-	 frag2 == newLink->frag2);
-
-    newLink->frag1Next = gkf1->linkHead;
-    newLink->frag2Next = gkf2->linkHead;
-    gkf1->linkHead = newLinkIndex;
-    gkf2->linkHead = newLinkIndex;
-    gkf1->numLinks++;
-    gkf2->numLinks++;
-#ifdef DEBUG_GKP
- fprintf(stderr,"* linkLink_GKP newLink %d f1:%d(U%lu) gkf1Head = %d f2:%d(U%lu) gkf2Head = %d\n",
-	 newLinkIndex, newLink->frag1, gkf1->readUID, gkf1->linkHead, newLink->frag2, gkf2->readUID, gkf2->linkHead);
-
-#endif
-
-  /* First, append the new link record to the gkplStore, and remember it's index */
-  setGateKeeperFragmentStore(gkpStore,newLink->frag1, gkf1);
-  setGateKeeperFragmentStore(gkpStore,newLink->frag2, gkf2);
-  appendGateKeeperLinkStore(gkplStore, newLink);
-
-#ifdef DEBUG_GKP
-  verifyLink_GKP(gkplStore, gkpStore, newLinkIndex);
-#endif
-  
-  return(0);
-}
-
-void InitGateKeeperStore(GateKeeperStore *gkpStore, const char *path){
-  AssertPtr(gkpStore);
   strcpy(gkpStore->storePath, path);
-  gkpStore->hashTable = NULL;
-  gkpStore->batStore = (GateKeeperBatchStore)0;
-  gkpStore->frgStore = (GateKeeperFragmentStore)0;
-  gkpStore->lnkStore = (GateKeeperLinkStore)0;
-  gkpStore->dstStore = (GateKeeperDistanceStore)0;
-  gkpStore->s_dstStore = (GateKeeperDistanceStore)0;
+
+  gkpStore->phs = 0L;
+  gkpStore->bat = 0;
+  gkpStore->frg = 0;
+  gkpStore->lib = 0;
+  gkpStore->lis = 0;
+
+  gkpStore->seq = 0;
+  gkpStore->qlt = 0;
+  gkpStore->hps = 0;
+  gkpStore->src = 0;
+
+  errno = 0;
+  mkdir(path, S_IRWXU | S_IRWXG | S_IROTH);
+  if (errno) {
+    fprintf(stderr, "CreateGateKeeperStore(): failed to create directory '%s': %s\n", gkpStore->storePath, strerror(errno));
+    exit(1);
+  }
+
+  gkpStore->gkp.gkpMagic   = 1;
+  gkpStore->gkp.gkpVersion = 1;
+
+  sprintf(name,"%s/gkp", path);
+  errno = 0;
+  gkpinfo = fopen(name, "w");
+  if (errno) {
+    fprintf(stderr, "failed to create gatekeeper store '%s': %s\n", name, strerror(errno));
+    exit(1);
+  }
+
+  fwrite(&gkpStore->gkp, sizeof(GateKeeperStoreInfo), 1, gkpinfo);
+  fclose(gkpinfo);
+
+  sprintf(name,"%s/bat", path);
+  gkpStore->bat = createGateKeeperBatchStore(name, "bat", 1);
+
+  sprintf(name,"%s/frg", path);
+  gkpStore->frg = createGateKeeperFragmentStore(name, "frg", 1);
+
+  sprintf(name,"%s/lib", path);
+  gkpStore->lib = createGateKeeperLibraryStore(name, "lib", 1);
+
+  sprintf(name,"%s/lis", path);
+  gkpStore->lis = createGateKeeperLibraryStore(name, "lib", 1);
+
+  fprintf(stderr, "WARNING!  USING 2048 AS LENGTH FOR VLRecordStore!\n");
+
+  sprintf(name,"%s/seq", path);
+  gkpStore->seq = createVLRecordStore(name, "seq", 2048, 1);
+
+  sprintf(name,"%s/qlt", path);
+  gkpStore->qlt = createVLRecordStore(name, "qlt", 2048, 1);
+
+  sprintf(name,"%s/hps", path);
+  gkpStore->hps = createVLRecordStore(name, "hps", 2048, 1);
+
+  sprintf(name,"%s/src", path);
+  gkpStore->src = createVLRecordStore(name, "src", 2048, 1);
+
+  sprintf(name,"%s/phs", path);
+  gkpStore->phs = CreatePHashTable_AS(2048,name);
+
+  return(gkpStore);
 }
 
-int TestOpenGateKeeperStoreCommon(GateKeeperStore *gkpStore,const char *mode){
-  char name[FILENAME_MAX];
-  int exists = 0;
 
-  DIR *dbDir;
-  FILE *fp;
-  fprintf(stderr,"*** TestOpen %s\n", gkpStore->storePath);
+void
+closeGateKeeperStore(GateKeeperStore *gkpStore) {
 
-  dbDir = opendir(gkpStore->storePath);
+  if(gkpStore->bat != NULLSTOREHANDLE)
+    closeStore(gkpStore->bat);
 
-  if  (dbDir != NULL)
-    {
-      int fileCount = 0;
-      int upgrade_count = 0;
-      fprintf (stderr,
-	       "*** Directory exists %s... \n", gkpStore->storePath);
+  if(gkpStore->frg != NULLSTOREHANDLE)
+    closeStore(gkpStore->frg);
 
-      exists = -1;
-      closedir (dbDir);
+  if(gkpStore->lib != NULLSTOREHANDLE)
+    closeStore(gkpStore->lib);
 
-      sprintf(name,"%s/gkp.bat", gkpStore->storePath);
-      fp = fopen(name,mode);
-      if(fp){
-	fileCount++;
-	fclose(fp);
-      }
+  if(gkpStore->lis != NULLSTOREHANDLE)
+    closeStore(gkpStore->lis);
 
-      sprintf(name,"%s/gkp.frg", gkpStore->storePath);
-      fp = fopen(name,mode);
-      if(fp){
-	fileCount++;
-	fclose(fp);
-      }
+  if(gkpStore->seq != NULLSTOREHANDLE)
+    closeStore(gkpStore->seq);
 
-      sprintf(name,"%s/gkp.lnk", gkpStore->storePath);
-      fp = fopen(name,mode);
-      if(fp){
-	fileCount++;
-	fclose(fp);
-      }
+  if(gkpStore->qlt != NULLSTOREHANDLE)
+    closeStore(gkpStore->qlt);
 
-      sprintf(name,"%s/gkp.dst", gkpStore->storePath);
-      fp = fopen(name,mode);
-      if(fp){
-	fileCount++;
-	fclose(fp);
-      }
+  if(gkpStore->hps != NULLSTOREHANDLE)
+    closeStore(gkpStore->hps);
 
-      sprintf(name,"%s/gkp.s_dst", gkpStore->storePath);
-      fp = fopen(name,mode);
-      if(fp){
-	fileCount++;
-	fclose(fp);
-      }
-      
-      sprintf(name,"%s/gkp.phash", gkpStore->storePath);
+  if(gkpStore->src != NULLSTOREHANDLE)
+    closeStore(gkpStore->src);
 
-      fp = fopen(name,mode);
-      if(fp){
-	fileCount++;
-	fclose(fp);
-      }
+  if(gkpStore->phs != NULL)
+    ClosePHashTable_AS(gkpStore->phs);
 
-      if(fileCount + upgrade_count == NUM_GKP_FILES){
-	fprintf(stderr,"*  All files exist\n");
-	exists = 1;
-      }else{
-        if(fileCount + 4 == NUM_GKP_FILES){
-          fprintf(stderr,"*  Minimum set of files exists\n");
-          fprintf(stderr,"*  Upgrade needed for new files\n");
-          exists = 1;
-        }else{
-          fprintf(stderr,"*  Directory exists -- %d files missing\n",
-                  NUM_GKP_FILES - fileCount);
-        }
-      }	
-    } else {
-      fprintf (stderr,
-	       "*** Directory DOES NOT exist %s... \n", gkpStore->storePath);
-    }
-
-  return exists;
-
+  free(gkpStore);
 }
 
-int TestOpenGateKeeperStore(GateKeeperStore *gkpStore){
-  return TestOpenGateKeeperStoreCommon(gkpStore,"r+");
+
+
+
+
+void clearGateKeeperFragmentRecord(GateKeeperFragmentRecord *g) {
+    g->UID           = 0;
+    g->readIID       = 0;
+    g->mateIID       = 0;
+    g->libraryIID    = 0;
+    g->plateUID      = 0;
+    g->plateLocation = 0;
+
+    g->deleted     = 0;
+    g->nonrandom   = 0;
+    g->status      = 0;
+    g->hasQLT      = 0;
+    g->hasHPS      = 0;
+    g->hasOVLclr   = 0;
+    g->hasCNSclr   = 0;
+    g->hasCGWclr   = 0;
+    g->orientation = 0;
+    g->spare       = 0;
+
+    g->clrSta = 0;
+    g->clrEnd = 0;
+    g->ovlSta = 0;
+    g->ovlEnd = 0;
+    g->cnsSta = 0;
+    g->cnsEnd = 0;
+    g->cgwSta = 0;
+    g->cgwEnd = 0;
+
+    g->seqOffset = 0;
+    g->qltOffset = 0;
+    g->hpsOffset = 0;
+    g->srcOffset = 0;
+
+    g->birthBatch = 0;
+    g->deathBatch = 0;
 }
 
-int TestOpenReadOnlyGateKeeperStore(GateKeeperStore *gkpStore){
-  return TestOpenGateKeeperStoreCommon(gkpStore,"r");
+void clearGateKeeperLibraryRecord(GateKeeperLibraryRecord *g) {
+  g->UID             = 0;
+  g->name[0]         = 0;
+  g->comment[0]      = 0;
+  g->created         = 0;
+  g->deleted         = 0;
+  g->redefined       = 0;
+  g->orientation     = 0;
+  g->spare           = 0;
+  g->mean            = 0.0;
+  g->stddev          = 0.0;
+  g->numFeatures     = 0;
+  g->prevInstanceID  = 0;
+  g->prevID          = 0;
+  g->birthBatch      = 0;
+  g->deathBatch      = 0;
 }
 
-int RemoveGateKeeperStoreFiles(GateKeeperStore *gkpStore){
-  char buffer[FILENAME_MAX];
 
-  fprintf(stderr,"*** Remove %s\n", gkpStore->storePath);
 
-  sprintf(buffer,"rm -f %s/gkp.bat", gkpStore->storePath);
-  if(system(buffer) != 0) assert(0);
 
-  sprintf(buffer,"rm -f %s/gkp.frg", gkpStore->storePath);
-  if(system(buffer) != 0) assert(0);
 
-  sprintf(buffer,"rm -f %s/gkp.lnk", gkpStore->storePath);
-  if(system(buffer) != 0) assert(0);
+////////////////////////////////////////////////////////////////////////////////
 
-  sprintf(buffer,"rm -f %s/gkp.dst", gkpStore->storePath);
-  if(system(buffer) != 0) assert(0);
 
-  sprintf(buffer,"rm -f %s/gkp.s_dst", gkpStore->storePath);
-  if(system(buffer) != 0) assert(0);
 
-  sprintf(buffer,"rm -f %s/gkp.phash", gkpStore->storePath);
-  if(system(buffer) != 0) assert(0);
+static
+void
+getFragData(GateKeeperStore *gkp, ReadStruct *rs, int streamFlags) {
+  VLSTRING_SIZE_T   actualLength = 0;
 
-  return 0;
+  //  XXX likely a better way here!  We want to clear the string --
+  //  set the first byte to zero -- and make sure it's
+  //  zero-terminated.  Better safe....
+
+  memset(rs->seq, 0, 2048);
+  memset(rs->qlt, 0, 2048);
+  memset(rs->hps, 0, 2048);
+  memset(rs->src, 0, 2048);
+
+  if (streamFlags & FRAG_S_SEQ) {
+    getVLRecordStore(gkp->seq,
+                     rs->gkfr.seqOffset,
+                     rs->seq,
+                     VLSTRING_MAX_SIZE,
+                     &actualLength);
+  }
+  if (streamFlags & FRAG_S_QLT) {
+    getVLRecordStore(gkp->qlt,
+                     rs->gkfr.qltOffset,
+                     rs->qlt,
+                     VLSTRING_MAX_SIZE,
+                     &actualLength);
+  }
+  if (streamFlags & FRAG_S_HPS) {
+    getVLRecordStore(gkp->hps,
+                     rs->gkfr.hpsOffset,
+                     rs->hps,
+                     VLSTRING_MAX_SIZE,
+                     &actualLength);
+  }
+  if (streamFlags & FRAG_S_SRC) {
+    getVLRecordStore(gkp->src,
+                     rs->gkfr.srcOffset,
+                     rs->src,
+                     VLSTRING_MAX_SIZE,
+                     &actualLength);
+  }
 }
 
-int CopyGateKeeperStoreFiles(GateKeeperStore *gkpStore, char *path){
-  char buffer[FILENAME_MAX];
 
-  fprintf(stderr,"*** Copy %s//%s == > %s\n", getcwd(NULL,256), gkpStore->storePath, path);
-
-  sprintf(buffer,"cp %s/gkp.bat %s", gkpStore->storePath, path);
-  if(system(buffer) != 0) assert(0);
-
-  sprintf(buffer,"cp %s/gkp.frg %s", gkpStore->storePath, path);
-  if(system(buffer) != 0) assert(0);
-
-  sprintf(buffer,"cp %s/gkp.lnk %s", gkpStore->storePath, path);
-  if(system(buffer) != 0) assert(0);
-
-  sprintf(buffer,"cp %s/gkp.dst %s", gkpStore->storePath, path);
-  if(system(buffer) != 0) assert(0);
-
-  sprintf(buffer,"cp %s/gkp.s_dst %s", gkpStore->storePath, path);
-  if(system(buffer) != 0) assert(0);
-
-  sprintf(buffer,"cp %s/gkp.phash %s", gkpStore->storePath, path);
-  if(system(buffer) != 0) assert(0);
-  
+int     getFrag(GateKeeperStore *gkp, int64 iid, ReadStruct *rs, int32 flags) {
+  getGateKeeperFragmentStore(gkp->frg, iid, &rs->gkfr);
+  getFragData(gkp, rs, flags);
   return(0);
 }
 
-
-
-int OpenGateKeeperStoreCommon(GateKeeperStore *gkpStore, char *mode){
-  char name[FILENAME_MAX];
-
-  fprintf(stderr,"*** Open %s//%s\n", getcwd(NULL,256), gkpStore->storePath);
-
-     sprintf(name,"%s/gkp.bat", gkpStore->storePath);
-     gkpStore->batStore = openGateKeeperBatchStore(name,mode); 
-
-     sprintf(name,"%s/gkp.frg", gkpStore->storePath);
-     gkpStore->frgStore = openGateKeeperFragmentStore(name,mode); 
-
-     sprintf(name,"%s/gkp.lnk", gkpStore->storePath);
-     gkpStore->lnkStore = openGateKeeperLinkStore(name,mode); 
-
-     sprintf(name,"%s/gkp.dst", gkpStore->storePath);
-     gkpStore->dstStore = openGateKeeperDistanceStore(name,mode); 
-
-     sprintf(name,"%s/gkp.s_dst", gkpStore->storePath);
-     gkpStore->s_dstStore = openGateKeeperDistanceStore(name,mode); 
-
-     if(NULLSTOREHANDLE == gkpStore->batStore ||
-	NULLSTOREHANDLE == gkpStore->frgStore ||
-	NULLSTOREHANDLE == gkpStore->lnkStore ||
-	NULLSTOREHANDLE == gkpStore->dstStore) {
-       fprintf(stderr,"**** Failure to open Gatekeeper Store ...\n");
-       return 1;
-     }
-
-     sprintf(name,"%s/gkp.phash", gkpStore->storePath);
-     if(mode && *mode == 'r' && *(mode + 1) == '\0'){
-       gkpStore->hashTable = OpenReadOnlyPHashTable_AS(name);
-     }else{
-       gkpStore->hashTable = OpenPHashTable_AS(name);
-     }
-     if(gkpStore->hashTable == NULL){
-       fprintf(stderr,"**** Failed to open GateKeeper Persistent HashTable...\n");
-       return 1;
-     }
-     return 0;
+int     setFrag(GateKeeperStore *gkp, int64 iid, ReadStruct *rs) {
+  setGateKeeperFragmentStore(gkp->frg, iid, &rs->gkfr);
+  return(0);
 }
 
-int OpenGateKeeperStore(GateKeeperStore *gkpStore){
-  return OpenGateKeeperStoreCommon(gkpStore,"r+");
+int     delFrag(GateKeeperStore *gkp, int64 iid) {
+  GateKeeperFragmentRecord   gkfr;
+  CDS_IID_t                  miid;
 
-}
-int OpenReadOnlyGateKeeperStore(GateKeeperStore *gkpStore){
-  return OpenGateKeeperStoreCommon(gkpStore,"r");
-}
+  //  Delete fragment with iid from the store.  If the fragment has a
+  //  mate, remove the mate relationship from both fragmentss.
 
+  getGateKeeperFragmentStore(gkp->frg, iid, &gkfr);
+  miid = gkfr.mateIID;
+  gkfr.deleted = 1;
+  gkfr.mateIID = 0;
+  setGateKeeperFragmentStore(gkp->frg, iid, &gkfr);
 
-int CreateGateKeeperStore(GateKeeperStore *gkpStore){
-  char name[FILENAME_MAX];
+  if (miid > 0) {
+    UnRefPHashTable_AS(gkp->phs, UID_NAMESPACE_AS, gkfr.UID);
 
-  fprintf(stderr,"*** Create store %s at cwd %s\n", gkpStore->storePath, getcwd(NULL, 256));
-     sprintf(name,"%s/gkp.bat", gkpStore->storePath);
-     gkpStore->batStore = createGateKeeperBatchStore(name, "bat",1); 
+    getGateKeeperFragmentStore(gkp->frg, miid, &gkfr);
+    gkfr.mateIID = 0;
+    setGateKeeperFragmentStore(gkp->frg, miid, &gkfr);
 
-     sprintf(name,"%s/gkp.frg", gkpStore->storePath);
-     gkpStore->frgStore = createGateKeeperFragmentStore(name, "frg",1); 
-
-     sprintf(name,"%s/gkp.lnk", gkpStore->storePath);
-     gkpStore->lnkStore = createGateKeeperLinkStore(name,"lnk",1); 
-
-     sprintf(name,"%s/gkp.dst", gkpStore->storePath);
-     gkpStore->dstStore = createGateKeeperDistanceStore(name,"dst",1); 
-
-     sprintf(name,"%s/gkp.s_dst", gkpStore->storePath);
-     gkpStore->s_dstStore = createGateKeeperDistanceStore(name,"dst",1); 
-
-     sprintf(name,"%s/gkp.phash", gkpStore->storePath);
-     gkpStore->hashTable = CreatePHashTable_AS(2048,name);
-
-     return 0;
+    UnRefPHashTable_AS(gkp->phs, UID_NAMESPACE_AS, gkfr.UID);
+  }
 }
 
 
 
-void CloseGateKeeperStore(GateKeeperStore *gkpStore){
-  fprintf(stderr,"*** Close directory %s\n", gkpStore->storePath);
+////////////////////////////////////////////////////////////////////////////////
 
-  if(gkpStore->batStore != NULLSTOREHANDLE)
-    closeStore(gkpStore->batStore); 
 
-  if(gkpStore->frgStore != NULLSTOREHANDLE)
-    closeStore(gkpStore->frgStore); 
+FragStream      *openFragStream(GateKeeperStore *gkp) {
+  FragStream  *fs = (FragStream *)safe_malloc(sizeof(FragStream));
+  fs->gkp = gkp;
+  fs->frg = openStream(fs->gkp->frg, NULL, 0);
+  fs->seq = openStream(fs->gkp->seq, NULL, 0);
+  fs->qlt = openStream(fs->gkp->qlt, NULL, 0);
+  fs->hps = openStream(fs->gkp->hps, NULL, 0);
+  fs->src = openStream(fs->gkp->src, NULL, 0);
+  return(fs);
+}
 
-  if(gkpStore->lnkStore != NULLSTOREHANDLE)
-    closeStore(gkpStore->lnkStore); 
 
-  if(gkpStore->dstStore != NULLSTOREHANDLE)
-    closeStore(gkpStore->dstStore); 
+void             resetFragStream(FragStream *fs, int64 startIndex, int64 endIndex) {
+  int64  seqOffset, qltOffset, hpsOffset, srcOffset;
 
-  if(gkpStore->s_dstStore != NULLSTOREHANDLE)
-    closeStore(gkpStore->s_dstStore); 
+  if (startIndex == STREAM_FROMSTART) {
+     seqOffset = STREAM_FROMSTART;
+     qltOffset = STREAM_FROMSTART;
+     hpsOffset = STREAM_FROMSTART;
+     srcOffset = STREAM_FROMSTART;
+  } else {
 
-  if(gkpStore->hashTable != NULL)
-    ClosePHashTable_AS(gkpStore->hashTable);
+    //  Read the frag the hard way so we can find the offsets the other
+    //  stores need to use.
+
+    GateKeeperFragmentRecord  gkpf;
+
+    getGateKeeperFragmentStore(fs->gkp->frg, startIndex, &gkpf);
+
+    seqOffset = gkpf.seqOffset;
+    qltOffset = gkpf.qltOffset;
+    hpsOffset = gkpf.hpsOffset;
+    srcOffset = gkpf.srcOffset;
+  }
+
+  resetStream(fs->frg, startIndex, endIndex);
+  resetStream(fs->seq, seqOffset, STREAM_UNTILEND);
+  resetStream(fs->qlt, qltOffset, STREAM_UNTILEND);
+  resetStream(fs->hps, hpsOffset, STREAM_UNTILEND);
+  resetStream(fs->src, srcOffset, STREAM_UNTILEND);
+}
+
+
+void             closeFragStream(FragStream *fs) {
+  closeStream(fs->frg);
+  closeStream(fs->qlt);
+  closeStream(fs->hps);
+  closeStream(fs->src);
+}
+
+
+int64            getStartIndexFragStream(FragStream *fs) {
+  return(getStartIndexStream(fs->frg));
+}
+
+
+int              nextFragStream(FragStream *fs, ReadStruct *rs, int streamFlags) {
+  if (nextStream(fs->frg, &rs->gkfr) == 0)
+    return(0);
+  getFragData(fs->gkp, rs, streamFlags);
+  return(1);
 }

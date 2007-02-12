@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: Array_CNS.c,v 1.9 2007-02-08 06:48:51 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Array_CNS.c,v 1.10 2007-02-12 22:16:56 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -36,7 +36,6 @@ static char CM_ID[] = "$Id: Array_CNS.c,v 1.9 2007-02-08 06:48:51 brianwalenz Ex
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_PER_ReadStruct.h"
-#include "AS_PER_fragStore.h"
 #include "AS_UTL_Var.h"
 #include "UtilsREZ.h"
 #include "PrimitiveVA_MSG.h"
@@ -132,7 +131,7 @@ VA_DEF(Lane)
 int IMP2Array(IntMultiPos *all_frags, 
 	      int num_pieces, 
 	      int length, 
-	      FragStoreHandle frag_store, 
+	      GateKeeperStore *frag_store, 
               tFragStorePartition *pfrag_store,
 	      int *depth, 
 	      char ***array, 
@@ -170,8 +169,8 @@ int IMP2Array(IntMultiPos *all_frags,
   next_lane=0;
   for (i=0;i<num_pieces;i++) {
     new_mlp = createLaneNode(&all_frags[i]); 
-    if ( frag_store != NULLFRAGSTOREHANDLE ) {
-      getFragStore(frag_store,all_frags[i].ident,FRAG_S_ALL,fsread);
+    if ( frag_store != NULL ) {
+      getFrag(frag_store,all_frags[i].ident,fsread,FRAG_S_ALL);
     } else {
       getFragStorePartition(pfrag_store,all_frags[i].ident,FRAG_S_ALL,fsread);
     }
@@ -351,7 +350,7 @@ int IMP2Array(IntMultiPos *all_frags,
   return rc;
 }
 
-int MultiAlignT2Array(MultiAlignT *ma, FragStoreHandle frag_store, tFragStorePartition *pfrag_store,
+int MultiAlignT2Array(MultiAlignT *ma, GateKeeperStore *frag_store, tFragStorePartition *pfrag_store,
                       int *depth, char ***multia, int *** id_array,int ***ori_array,uint32 clrrng_flag){
   IntMultiPos *frags=GetIntMultiPos(ma->f_list,0);
   int num_frags=GetNumIntMultiPoss(ma->f_list);

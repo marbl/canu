@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: fixECRCheckpoint.c,v 1.7 2006-09-21 21:34:01 brianwalenz Exp $";
+static char CM_ID[] = "$Id: fixECRCheckpoint.c,v 1.8 2007-02-12 22:16:56 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -138,7 +138,6 @@ void AppendNewScaffold(VA_TYPE(ZLFScaffold) * zlfScaffolds,
 int main(int argc, char *argv[]){
   Global_CGW *data;
   char *outputPath = NULL;
-  int setFragStore = FALSE;
   int setGatekeeperStore = FALSE;
   int setPrefixName = FALSE;
   int ckptNum = NULLINDEX;
@@ -167,12 +166,6 @@ int main(int argc, char *argv[]){
 
           }
           break;
-        case 'f':
-          {
-            strcpy( data->Frag_Store_Name, argv[optind - 1]);
-            setFragStore = 1;
-          }
-          break;
         case 'g':
           {
             strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
@@ -198,16 +191,15 @@ int main(int argc, char *argv[]){
       }
     }
 
-    if((setPrefixName == FALSE) || (setFragStore == 0) ||
+    if((setPrefixName == FALSE) ||
        (setGatekeeperStore == 0) || unitigIDFile == NULL || maFile == NULL)
       {
 	fprintf(stderr,
-                "* argc = %d optind = %d setFragStore = %d "
+                "* argc = %d optind = %d "
                 "setGatekeeperStore = %d outputPath = %s\n",
-		argc, optind, setFragStore,setGatekeeperStore, outputPath);
+		argc, optind,setGatekeeperStore, outputPath);
 	fprintf (stderr,
                  "USAGE:  loadcgw\n"
-                 "\t-f <FragStoreName>\n"
                  "\t-g <GatekeeperStoreName>\n"
                  "\t-c <CkptFileName>\n"
                  "\t-n <CkpPtNum>\n"
@@ -228,7 +220,7 @@ int main(int argc, char *argv[]){
   USE_SDB=1;
   RALPH_INIT = InitializeAlphTable();
   sequenceDB = ScaffoldGraph->sequenceDB;
-  global_fragStore = ScaffoldGraph->fragStore;
+  global_gkpStore = ScaffoldGraph->gkpStore;
 
   {
     /*

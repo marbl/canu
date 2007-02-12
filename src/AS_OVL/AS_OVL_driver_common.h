@@ -26,8 +26,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_driver_common.h,v 1.12 2007-02-11 06:18:18 brianwalenz Exp $
- * $Revision: 1.12 $
+ * $Id: AS_OVL_driver_common.h,v 1.13 2007-02-12 22:16:57 brianwalenz Exp $
+ * $Revision: 1.13 $
 */
 
 
@@ -36,11 +36,10 @@
 #include  "AS_OVL_delcher.h"
 #include  "AS_PER_ReadStruct.h"
 #include  "AS_PER_genericStore.h"
-#include  "AS_PER_fragStore.h"
 #include  "AS_MSG_pmesg.h"
 #include  "AS_OVL_overlap.h"
-#include "AS_UTL_Var.h"
-#include "AS_UTL_version.h"
+#include  "AS_UTL_Var.h"
+#include  "AS_UTL_version.h"
 
 static int64  First_Hash_Frag = -1;
 static int64   Last_Hash_Frag;
@@ -124,11 +123,11 @@ int  OverlapDriver
 //  (but the fragment store is created).
 
   {
-   Frag_Stream  HashFragStream = 0;
+   FragStream  *HashFragStream = NULL;
    pthread_attr_t  attr;
    pthread_t  * thread_id;
-   Frag_Stream  * new_stream_segment;
-   Frag_Stream  * old_stream_segment;
+   FragStream **new_stream_segment;
+   FragStream **old_stream_segment;
 //   Work_Area_t  * driver_wa;
    Work_Area_t  * thread_wa;
    int64  first_new_frag = -1, last_new_frag = -1;
@@ -142,17 +141,17 @@ fprintf (stderr, "### Using %d pthreads  %d hash bits  %d bucket entries\n",
    thread_id = (pthread_t *) safe_calloc
                    (Num_PThreads, sizeof (pthread_t));
 
-   new_stream_segment = (Frag_Stream *) safe_calloc
-                   (Num_PThreads, sizeof (Frag_Stream));
-   old_stream_segment = (Frag_Stream *) safe_calloc
-                   (Num_PThreads, sizeof (Frag_Stream));
+   new_stream_segment = (FragStream **) safe_calloc
+                   (Num_PThreads, sizeof (FragStream *));
+   old_stream_segment = (FragStream **) safe_calloc
+                   (Num_PThreads, sizeof (FragStream *));
 //   driver_wa = (Work_Area_t *) safe_malloc (sizeof (Work_Area_t));
    thread_wa = (Work_Area_t *) safe_calloc
                    (Num_PThreads, sizeof (Work_Area_t));
 
    for  (i = 0;  i < Num_PThreads;  i ++)
      {
-      old_stream_segment [i] = openFragStream (OldFragStore, NULL, 0);
+      old_stream_segment [i] = openFragStream (OldFragStore);
      }
 
    if  (noOverlaps == 0)
@@ -212,8 +211,8 @@ Source_Log_File = File_Open ("ovl-srcinfo.log", "w");
 
       if  (noOverlaps == 0)
           {
-           FragStore  curr_frag_store;
-           FragStore  hash_frag_store;
+           GateKeeperStore  *curr_frag_store;
+           GateKeeperStore  *hash_frag_store;
            int  highest_old_frag, lowest_old_frag;
            int  status;
 
@@ -245,7 +244,7 @@ Source_Log_File = File_Open ("ovl-srcinfo.log", "w");
                                && Last_Hash_Frag
                                     <= getLastElemFragStore (OldFragStore));
                     }
-                HashFragStream = openFragStream (hash_frag_store, NULL, 0);
+                HashFragStream = openFragStream (hash_frag_store);
                 resetFragStream (HashFragStream, First_Hash_Frag,
                                  Last_Hash_Frag);
                 startIndex = First_Hash_Frag;
@@ -319,7 +318,7 @@ break;
 
               for  (i = 0;  i < Num_PThreads;  i ++)
                 {
-                 old_stream_segment [i] = openFragStream (curr_frag_store, NULL, 0);
+                 old_stream_segment [i] = openFragStream (curr_frag_store);
                  resetFragStream (old_stream_segment [i], Frag_Segment_Lo,
                                   Frag_Segment_Hi);
                 }
@@ -362,7 +361,7 @@ break;
               fprintf (stderr, "### done old fragments   %s", ctime (& Now));
               for  (i = 0;  i < Num_PThreads;  i ++)
                 closeFragStream (old_stream_segment [i]);
-              closeFragStore (curr_frag_store);
+              closeGateKeeperStore (curr_frag_store);
 
               if  (IID_List == NULL)
                   lowest_old_frag += Max_Frags_In_Memory_Store;
@@ -378,7 +377,7 @@ break;
 #endif
                  
            closeFragStream (HashFragStream);
-           closeFragStore (hash_frag_store);
+           closeGateKeeperStore (hash_frag_store);
           }
 
 

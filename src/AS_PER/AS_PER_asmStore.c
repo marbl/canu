@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_asmStore.c,v 1.4 2005-03-22 19:49:20 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_PER_asmStore.c,v 1.5 2007-02-12 22:16:58 brianwalenz Exp $";
 
 /*************************************************************************
  Module:  AS_PER_asmStore
@@ -322,7 +322,6 @@ AssemblyStore * OpenAssemblyStoreCommon(char * path, char *mode)
   }
 
   asmStore->gkpStore = NULL;
-  asmStore->frgStore = NULLSTOREHANDLE;
 
   return asmStore;
 }
@@ -401,19 +400,16 @@ MapStore * OpenReadOnlyMapStore(char * path)
 int OpenGateKeeperStoreAssemblyStore(AssemblyStore * asmStore,
                                      char * gkpStorePath)
 {
-  asmStore->gkpStore = (GateKeeperStore *) malloc(sizeof(GateKeeperStore));
+  asmStore->gkpStore = openGateKeeperStore(gkpStorePath, FALSE);
   assert(asmStore->gkpStore != NULL);
-  
-  InitGateKeeperStore(asmStore->gkpStore, gkpStorePath);
-  return OpenReadOnlyGateKeeperStore(asmStore->gkpStore);
+  return(1);
 }
 
 
 int OpenFragmentStoreAssemblyStore(AssemblyStore * asmStore,
                                    char * frgStorePath)
 {
-  asmStore->frgStore = openFragStore(frgStorePath, "r");
-  return(NULLSTOREHANDLE != asmStore->frgStore);
+  return(1);
 }
 
 
@@ -481,11 +477,6 @@ AssemblyStore * CreateAssemblyStore(char * path,
   else
     asmStore->gkpStore = NULL;
   
-  if(frgStorePath != NULL)
-    OpenFragmentStoreAssemblyStore(asmStore, frgStorePath);
-  else
-    asmStore->frgStore = NULLSTOREHANDLE;
-  
   return asmStore;
 }
 MapStore * CreateMapStore(char * path)
@@ -526,11 +517,9 @@ void CloseAssemblyStore(AssemblyStore *asmStore)
 
   if(asmStore->gkpStore != NULL)
   {
-    CloseGateKeeperStore(asmStore->gkpStore);
+    closeGateKeeperStore(asmStore->gkpStore);
     free(asmStore->gkpStore);
   }
-  if(asmStore->frgStore != NULLSTOREHANDLE)
-    closeFragStore(asmStore->frgStore);
   
   if(asmStore->mdiStore != NULLSTOREHANDLE)
     closeStore(asmStore->mdiStore);

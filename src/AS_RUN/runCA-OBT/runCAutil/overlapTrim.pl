@@ -32,7 +32,7 @@ sub overlapTrim {
         $cmd .= " -vector $vi "    if (defined($vi));
         $cmd .= " -immutable $im " if (defined($im));
         $cmd .= " -log $wrk/0-overlaptrim/$asm.initialTrimLog ";
-        $cmd .= " -frg $wrk/$asm.frgStore ";
+        $cmd .= " -frg $wrk/$asm.gkpStore ";
         $cmd .= " > $wrk/0-overlaptrim/initialTrim.err 2>&1";
 
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
@@ -105,7 +105,7 @@ sub overlapTrim {
         $cmd  = "$bin/merge-trimming ";
         $cmd .= "-immutable $im " if (defined($im));
         $cmd .= "-log $wrk/0-overlaptrim/$asm.mergeLog ";
-        $cmd .= "-frg $wrk/$asm.frgStore ";
+        $cmd .= "-frg $wrk/$asm.gkpStore ";
         $cmd .= "-ovl $wrk/0-overlaptrim/$asm.ovl.consolidated ";
         $cmd .= "> $wrk/0-overlaptrim/$asm.merge.err 2>&1";
 
@@ -201,7 +201,7 @@ sub overlapTrim {
 
         my $cmd;
         $cmd  = "$bin/chimera ";
-        $cmd .= " -frg $wrk/$asm.frgStore ";
+        $cmd .= " -frg $wrk/$asm.gkpStore ";
         $cmd .= " -immutable $im " if (defined($im));
         $cmd .= " -summary $wrk/0-overlaptrim/$asm.chimera.summary ";
         $cmd .= " -report  $wrk/0-overlaptrim/$asm.chimera.report ";
@@ -209,21 +209,6 @@ sub overlapTrim {
         $cmd .= " 2> $wrk/0-overlaptrim/$asm.chimera.err ";
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
             rename "$wrk/0-overlaptrim/$asm.chimera.report", "$wrk/0-overlaptrim/$asm.chimera.report.FAILED";
-            die "Failed.\n";
-        }
-    }
-
-
-    #  Finally, fix up gatekeeper, delete any mate links for fragments that we've deleted.
-    #
-    if (! -e "$wrk/0-overlaptrim/$asm.deletelinks.out") {
-        my $cmd;
-        $cmd  = "$bin/deleteLinks ";
-        $cmd .= " -f $wrk/$asm.frgStore ";
-        $cmd .= " -g $wrk/$asm.gkpStore ";
-        $cmd .= " > $wrk/0-overlaptrim/$asm.deletelinks.out 2>&1";
-        if (runCommand("$wrk/0-overlaptrim", $cmd)) {
-            rename "$wrk/0-overlaptrim/$asm.deletelinks.out", "$wrk/0-overlaptrim/$asm.deletelinks.out.FAILED";
             die "Failed.\n";
         }
     }
@@ -252,7 +237,7 @@ sub updateFragmentFiles (@) {
     my %updatedClearRanges;
     my $acc;
     my $deleted;
-    open(F, "$bin/dumpFragStore $wrk/$asm.frgStore | egrep 'Deleted|accID|Orig' |");
+    open(F, "$bin/dumpFragStore $wrk/$asm.gkpStore | egrep 'Deleted|accID|Orig' |");
     while (<F>) {
         if (m/Deleted:\s*(\d+)\s/) {
             $deleted = $1;

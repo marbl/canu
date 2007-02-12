@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: colCorr_CNS.c,v 1.8 2007-02-08 06:48:52 brianwalenz Exp $";
+static char CM_ID[] = "$Id: colCorr_CNS.c,v 1.9 2007-02-12 22:16:56 brianwalenz Exp $";
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -106,7 +106,7 @@ static void count_columns_copy(Alignment_t* a)
 
 
 
-static Alignment_t* convert_MultiAlignT_to_alignment(MultiAlignT* inAlign, FragStoreHandle handle, tFragStorePartition *pfraghandle, int ***idArray)
+static Alignment_t* convert_MultiAlignT_to_alignment(MultiAlignT* inAlign, GateKeeperStore *handle, tFragStorePartition *pfraghandle, int ***idArray)
 {
   int i;
   int rows;
@@ -372,7 +372,7 @@ static int is_consistent_partition(Alignment_t *a,int prevmm,int thismm, int row
 }
 
 ColumnCorrelationT *test_correlated_columns(MultiAlignT* ma, 
-					    FragStoreHandle handle,
+					    GateKeeperStore *handle,
 					    tFragStorePartition *pfraghandle){
   Alignment_t *ali;
   int i;

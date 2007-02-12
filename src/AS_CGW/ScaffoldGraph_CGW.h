@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ScaffoldGraph_CGW.h,v 1.12 2007-02-08 06:48:50 brianwalenz Exp $	 */
+/* 	$Id: ScaffoldGraph_CGW.h,v 1.13 2007-02-12 22:16:56 brianwalenz Exp $	 */
 /***************************************************************************
  *  ScaffoldGraph
  *  
@@ -130,15 +130,14 @@ typedef struct{
   int32                   numLiveCIs; // Number of currently instantiated CIs, including splits
   int32                   numDiscriminatorUniqueCIs;
   int32                   numLiveScaffolds;
-  ChunkOverlapperT *overlapper;
-  GraphCGW_T *CIGraph;
-  GraphCGW_T *ContigGraph;
-  GraphCGW_T *ScaffoldGraph;
-  GraphCGW_T *RezGraph;  // Graph used by scaffold building and  repeat rez...either a ref to ContigGraph or CIGraph
-  FragStoreHandle fragStore;
-  GateKeeperStore gkpStore; // See AS_PER_gkpStore.h
-  tSequenceDB *sequenceDB; // See AS_SDB_SequenceDB.h
-  OVL_Store_t *frgOvlStore; // See OlapStoreOVL.h
+  ChunkOverlapperT       *overlapper;
+  GraphCGW_T             *CIGraph;
+  GraphCGW_T             *ContigGraph;
+  GraphCGW_T             *ScaffoldGraph;
+  GraphCGW_T             *RezGraph;  // Graph used by scaffold building and  repeat rez...either a ref to ContigGraph or CIGraph
+  GateKeeperStore        *gkpStore;
+  tSequenceDB            *sequenceDB;
+  OVL_Store_t            *frgOvlStore;
 }ScaffoldGraphT;
 
 

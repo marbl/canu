@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.14 2006-11-14 19:58:21 eliv Exp $";
+static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.15 2007-02-12 22:16:56 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -71,12 +71,6 @@ ScaffoldGraphT *LoadScaffoldGraphFromCheckpoint( char *name,
   graph = LoadScaffoldGraphFromStream(inStream);
   fclose(inStream);
 
-#if 0
-  sprintf(buffer,"%s.ckpl",name);
-  fprintf(GlobalData->stderrc,
-          "* Trying to open gatekeeper link store %s\n", buffer);
-  graph->gkplStore = loadStore(buffer);
-#endif
   if(graph->checkPointIteration != (checkPointNum + 1)){
     fprintf(stderr,"**** Loaded checkpoint has checkpoint iteration %d, but we tried to load checkpoint %d...fishy!\n",
 	    graph->checkPointIteration, checkPointNum);
@@ -138,11 +132,6 @@ void CheckpointScaffoldGraph(ScaffoldGraphT *graph, int logicalCheckpoint){
   char buffer[1024];
   FILE *outStream;
   char *name = GlobalData->File_Name_Prefix;
-
-#if 0
-  sprintf(buffer,"%s.ckpl",name);
-  storeStore(graph->gkplStore, buffer);
-#endif
 
   sprintf(buffer,"%s.ckp.%d",name,graph->checkPointIteration++);
 
@@ -243,39 +232,11 @@ ScaffoldGraphT * LoadScaffoldGraphFromStream(FILE *stream){
   ScaffoldGraph = sgraph;
   sgraph->sequenceDB = SequenceDB;
 
-  //  BPW is unsure why we copy names to 'buffer'
-
-  if(strlen(GlobalData->Frag_Store_Name) > 1)
-    {
-      char buffer[256];
-      sprintf(buffer,"%s", GlobalData->Frag_Store_Name);
-      fprintf(GlobalData->stderrc,"* Trying to open %s\n", buffer);
-
-      //  BPW switched to read-only.
-      //  Instead of opening, we could load:
-      //    sgraph->fragStore = loadFragStore( buffer);
-      //
-      sgraph->fragStore = openFragStore( buffer, "r");
-
-      if(sgraph->fragStore == NULLSTOREHANDLE){
-        fprintf(stderr,"**** Failure to open frag store %s ...exiting\n",buffer);
-        exit(1);
-      }else{
-        fprintf(stderr,"*** Succeeded to open frag Store.\n");
-      }
-
-      sprintf(buffer,"%s", GlobalData->Gatekeeper_Store_Name);
-      InitGateKeeperStore(&sgraph->gkpStore, buffer);
-      if(OpenReadOnlyGateKeeperStore(&sgraph->gkpStore)){
-        fprintf(stderr,"*** Failure to open Gatekeeper Store...exiting\n");
-        exit(1);
-      }else{
-        fprintf(stderr,"*** Succeeded to open Gatekeeper Store.\n");
-      }
-    } else {
-      fprintf(stderr,"*** No fragStore to open!\n");
-      sgraph->fragStore = NULLSTOREHANDLE;
-    }
+  sgraph->gkpStore = openGateKeeperStore(GlobalData->Gatekeeper_Store_Name, FALSE);
+  if(sgraph->gkpStore == NULL){
+    fprintf(stderr,"**** Failure to open gatekeeper store %s ...exiting\n", GlobalData->Gatekeeper_Store_Name);
+    exit(1);
+  }
 
   status = safeRead(stream, sgraph->name, 256 * sizeof(char));
   assert(status == FALSE);
@@ -297,45 +258,27 @@ ScaffoldGraphT * LoadScaffoldGraphFromStream(FILE *stream){
   }
 
 
-  //  If we have a fragStore (we always have a gkpStore) update the
-  //  distances here!  Some codes (aka, getNumScaffolds) load a
-  //  checkpoint, but don't bother opening the fragments.  BPW isn't
-  //  sure why we need a fragstore, but it does:
-  //    Program received signal SIGSEGV, Segmentation fault.
-  //    statsStore (s=0, stats=0x7fbfff8e80) at AS_PER_genericStore.c:1222
-  //    1222      *((StoreStat *)stats) = myStore->header;
-  //    (gdb) where
-  //    #0  statsStore (s=0, stats=0x7fbfff8e80) at AS_PER_genericStore.c:1222
-  //    #1  0x0000000000403675 in LoadScaffoldGraphFromStream (stream=0xb18a70) at /bioinfo/assembly/walenz/wgs-assembler/src/AS_PER/AS_PER_gkpStore.h:365
-  //    #2  0x000000000040577c in LoadScaffoldGraphFromCheckpoint (name=0x7fbfffe4f4 "7-1-ECR/x", checkPointNum=8, readWrite=11635312) at ScaffoldGraph_CGW.c:71
-  //    #3  0x00000000004021be in main (argc=3, argv=0x7fbfff9578) at /usr/include/stdlib.h:382
-  //  
-  //  Derived from LoadDistData().  Should be moved to Input_CGW.c,
-  //  probably.
-  //
-  if (sgraph->fragStore != NULLSTOREHANDLE) {
-    int32     numDists = getNumGateKeeperDistances(ScaffoldGraph->gkpStore.dstStore);
-    CDS_CID_t i;
+  int32     numDists = getNumGateKeeperLibrarys(ScaffoldGraph->gkpStore->lib);
+  CDS_CID_t i;
 
-    fprintf(stderr, "Dist RESET!\n");
+  fprintf(stderr, "Dist RESET!\n");
   
-    for(i = 1; i <= numDists; i++){
-      DistT                     *dist;
-      GateKeeperDistanceRecord   gkpd;
+  for(i = 1; i <= numDists; i++){
+    DistT                     *dist;
+    GateKeeperLibraryRecord    gkpl;
 
-      getGateKeeperDistanceStore(ScaffoldGraph->gkpStore.dstStore, i, &gkpd);
+    getGateKeeperLibraryStore(ScaffoldGraph->gkpStore->lib, i, &gkpl);
     
-      if(gkpd.deleted)
-        continue;
+    if(gkpl.deleted)
+      continue;
 
-      dist = GetDistT(sgraph->Dists, i);
+    dist = GetDistT(sgraph->Dists, i);
 
-      dist->mean   = gkpd.mean;
-      dist->stddev = gkpd.stddev;
+    dist->mean   = gkpl.mean;
+    dist->stddev = gkpl.stddev;
 
-      fprintf(stderr, "Dist %2d -- nominal %10.3f %10.3f -- chunk %10.3f %10.3f\n",
-              i, dist->mean, dist->stddev, dist->mu, dist->sigma);
-    }
+    fprintf(stderr, "Dist %2d -- nominal %10.3f %10.3f -- chunk %10.3f %10.3f\n",
+            i, dist->mean, dist->stddev, dist->mu, dist->sigma);
   }
 
 
@@ -355,40 +298,6 @@ ScaffoldGraphT * LoadScaffoldGraphFromStream(FILE *stream){
   sgraph->ContigEdges    = sgraph->ContigGraph->edges;
   sgraph->SEdges         = sgraph->ScaffoldGraph->edges;
   sgraph->overlapper     = sgraph->CIGraph->overlapper;
-
-  //  Disabled, BPW, 2005-12-28.  I can't find a reason why we reload
-  //  the fragStore, especially without destroying the previously
-  //  loaded store.  Now, we just check if we actually needed to
-  //  load.
-#if 1
-  if ((strlen(GlobalData->Frag_Store_Name) > 1) && (sgraph->fragStore == NULLSTOREHANDLE)) {
-    fprintf(stderr, "FAIL!  We didn't load the fragstore the first time, and\n");
-    fprintf(stderr, "BPW disabled the second load attempt.\n");
-    assert(0);
-  }
-#else
-  if(strlen(GlobalData->Frag_Store_Name) > 1)
-    {
-      char buffer[256];
-      sprintf(buffer,"%s", GlobalData->Frag_Store_Name);
-      fprintf(GlobalData->stderrc,"* Trying to open %s\n", buffer);
-      sgraph->fragStore = openFragStore( buffer, "r");
-
-      if(sgraph->fragStore == NULLSTOREHANDLE){
-        fprintf(stderr,"**** Failure to open frag store %s ...exiting\n",buffer);
-        exit(1);
-      }
-
-      sprintf(buffer,"%s", GlobalData->Gatekeeper_Store_Name);
-      InitGateKeeperStore(&sgraph->gkpStore, buffer);
-      if(OpenReadOnlyGateKeeperStore(&sgraph->gkpStore)){
-        fprintf(stderr,"*** Failure to open Gatekeeper Store...exiting\n");
-        exit(1);
-      }
-    }
-  else
-    sgraph->fragStore = NULLSTOREHANDLE;
-#endif
 
 
   status = safeRead(stream, &sgraph->doRezOnContigs, sizeof(int32));
@@ -498,42 +407,25 @@ ScaffoldGraphT *CreateScaffoldGraph(int rezOnContigs, char *name,
   sprintf(buffer,"%s.SeqStore", name);
   sgraph->sequenceDB = CreateSequenceDB(buffer, numNodes, TRUE);
 
-#if 0
-  sgraph->gkplStore = createGateKeeperLinkStore(NULL, "lnk", 1); // in memory
-#endif
   sgraph->SourceFields = CreateVA_char(1024);
 
   sgraph->CIGraph = CreateGraphCGW(CI_GRAPH, numNodes, numEdges);
-  // Get a little space, we'll expand it later
+
   sgraph->ContigGraph = CreateGraphCGW(CONTIG_GRAPH, 1, 1);
   sgraph->ScaffoldGraph = CreateGraphCGW(SCAFFOLD_GRAPH, NULLINDEX, NULLINDEX);
-  {
-    char buffer[256];
-    sprintf(buffer,"%s", GlobalData->Frag_Store_Name);
-#if  0
-    sgraph->fragStore = loadFragStore( buffer);
-#else
-    //  BPW switched to read only
-    sgraph->fragStore = openFragStore( buffer, "r");
-#endif
-    if(sgraph->fragStore == NULLSTOREHANDLE){
-      fprintf(stderr,"**** Failure to open frag store %s ...exiting\n",buffer);
-      exit(1);
-    }else{
-      fprintf(stderr,"*** Succeeded to open frag Store.\n");
-    }
 
-    sprintf(buffer,"%s", GlobalData->Gatekeeper_Store_Name);
-    InitGateKeeperStore(&sgraph->gkpStore, buffer);
-    OpenReadOnlyGateKeeperStore(&sgraph->gkpStore);
-    
-    numFrags = getNumGateKeeperFragments(sgraph->gkpStore.frgStore);
-    numDists = getNumGateKeeperDistances(sgraph->gkpStore.dstStore);
-    sgraph->iidToFragIndex = CreateVA_InfoByIID(numFrags);
-    sgraph->Dists = CreateVA_DistT(numDists);
-    sgraph->CIFrags = CreateVA_CIFragT(numFrags);
-
+  sgraph->gkpStore = openGateKeeperStore(GlobalData->Gatekeeper_Store_Name, FALSE);
+  if(sgraph->gkpStore == NULL){
+    fprintf(stderr,"**** Failure to open gatekeeper store %s ...exiting\n",buffer);
+    exit(1);
   }
+
+  numFrags = getNumGateKeeperFragments(sgraph->gkpStore->frg);
+  numDists = getNumGateKeeperLibrarys(sgraph->gkpStore->lib);
+
+  sgraph->iidToFragIndex = CreateVA_InfoByIID(numFrags);
+  sgraph->Dists = CreateVA_DistT(numDists);
+  sgraph->CIFrags = CreateVA_CIFragT(numFrags);
 
   if(rezOnContigs){
     // switch this after doing CI overlaps
@@ -566,32 +458,25 @@ ScaffoldGraphT *CreateScaffoldGraph(int rezOnContigs, char *name,
 
 /* Destructor */
 void DestroyScaffoldGraph(ScaffoldGraphT *sgraph){
-#if 0
-  closeGateKeeperLinkStore(sgraph->gkplStore);
-#endif
+  int i;
+
   DeleteSequenceDB(sgraph->sequenceDB);
 
   DeleteGraphCGW(sgraph->CIGraph);
   DeleteGraphCGW(sgraph->ContigGraph);
   DeleteGraphCGW(sgraph->ScaffoldGraph);
 
-  if(sgraph->fragStore != NULLSTOREHANDLE)
-    {
-      CloseGateKeeperStore(&(sgraph->gkpStore));
-      closeFragStore(sgraph->fragStore);
-    }
+  closeGateKeeperStore(sgraph->gkpStore);
 
   DeleteVA_CIFragT(sgraph->CIFrags);
   DeleteVA_char(sgraph->SourceFields);
 
-  {
-    int i;
-    for( i = 0; i < GetNumDistTs(sgraph->Dists); i++){
-      DistT *dist = GetDistT(sgraph->Dists,i);
-      if(dist->samples)
-	DeleteVA_CDS_COORD_t(dist->samples);
-    }
+  for( i = 0; i < GetNumDistTs(sgraph->Dists); i++){
+    DistT *dist = GetDistT(sgraph->Dists,i);
+    if(dist->samples)
+      DeleteVA_CDS_COORD_t(dist->samples);
   }
+
   DeleteVA_DistT(sgraph->Dists);
   DeleteVA_InfoByIID(sgraph->iidToFragIndex);
 

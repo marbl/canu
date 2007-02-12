@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpSingletons.c,v 1.12 2006-10-11 17:55:25 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpSingletons.c,v 1.13 2007-02-12 22:16:56 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,17 +54,21 @@ getFragmentClear(int iid,
   static ReadStructp               fs = NULL;
   static GateKeeperFragmentRecord  gs;
 
+#warning someone please rewrite me!
+
+  //  we don't need to get both getFrag() and the gatekeeper frag; they're the same.
+
   if (fs == NULL)
     fs = new_ReadStruct();
 
-  if (getFragStore(ScaffoldGraph->fragStore,
-                   iid,
-                   FRAG_S_ALL, fs) != 0) {
+  if (getFrag(ScaffoldGraph->gkpStore,
+              iid,
+              fs, FRAG_S_ALL) != 0) {
     fprintf(stderr,"Couldn't get fragment from frgStore for iid %d\n", iid);
     assert(0);
   }
 
-  if (getGateKeeperFragmentStore(ScaffoldGraph->gkpStore.frgStore,
+  if (getGateKeeperFragmentStore(ScaffoldGraph->gkpStore->frg,
                                  iid,
                                  &gs) != 0) {
     fprintf(stderr,"Couldn't get fragment from gkpStore for iid %d\n", iid);
@@ -87,7 +91,7 @@ getFragmentClear(int iid,
   if (reversecomplement)
     Complement_Seq(*toprint);
 
-  return(gs.readUID);
+  return(gs.UID);
 }
 
 
@@ -130,7 +134,6 @@ main( int argc, char **argv) {
   GlobalData->timefp  = stderr;
 
   GlobalData->File_Name_Prefix[0] = 0;
-  GlobalData->Frag_Store_Name[0] = 0;
   GlobalData->Gatekeeper_Store_Name[0] = 0;
 
   int err=0;
@@ -140,8 +143,6 @@ main( int argc, char **argv) {
       ckptNum = SetFileNamePrefix_CGW(GlobalData, argv[++arg]);
     } else if (strcmp(argv[arg], "-c") == 0) {
       strcpy(GlobalData->File_Name_Prefix, argv[++arg]);
-    } else if (strcmp(argv[arg], "-f") == 0) {
-      strcpy(GlobalData->Frag_Store_Name, argv[++arg]);
     } else if (strcmp(argv[arg], "-g") == 0) {
       strcpy(GlobalData->Gatekeeper_Store_Name, argv[++arg]);
     } else if (strcmp(argv[arg], "-n") == 0) {
@@ -158,12 +159,10 @@ main( int argc, char **argv) {
   }
 
   if ((GlobalData->File_Name_Prefix[0]      == 0) ||
-      (GlobalData->Frag_Store_Name[0]       == 0) ||
       (GlobalData->Gatekeeper_Store_Name[0] == 0)) {
-    fprintf(stderr, "usage: %s [[-p prefix] | [-c name -f frgstore -g gkpstore -n ckptNum]] [-U] [-S]\n", argv[0]);
+    fprintf(stderr, "usage: %s [[-p prefix] | [-c name -g gkpstore -n ckptNum]] [-U] [-S]\n", argv[0]);
     fprintf(stderr, "  -p      Attempt to locate the last checkpoint in directory 7-CGW.\n");
     fprintf(stderr, "  -c      Look for checkpoints in 'name'\n");
-    fprintf(stderr, "  -f      Path to frgStore\n");
     fprintf(stderr, "  -g      Path to gkpStore\n");
     fprintf(stderr, "  -n      Checkpoint number to load\n");
     fprintf(stderr, "  -U      Use real UIDs for miniscaffolds, otherwise, UIDs start at 1230000\n");

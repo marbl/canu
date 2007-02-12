@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.19 2007-02-08 06:48:50 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.20 2007-02-12 22:16:55 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -747,7 +747,6 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
   CI.flags.bits.smoothSeenAlready = FALSE;
   CI.flags.bits.isCI = TRUE;
   CI.flags.bits.tandemOverlaps = NO_TANDEM_OVERLAP;
-  CI.flags.bits.includesFinishedBacFragments = FALSE;
   CI.flags.bits.isChaff = FALSE;
 
 
@@ -853,10 +852,11 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
 	  }
 	      
 	      
-	}else if(AS_FA_SHREDDED(cfr_mesg->type)){ 
-	  CI.flags.bits.includesFinishedBacFragments = TRUE; 
 	}
-	    
+        //else if(AS_FA_SHREDDED(cfr_mesg->type)){ 
+	//  CI.flags.bits.includesFinishedBacFragments = TRUE; 
+        //}
+
 	cifrag.locale = NULLINDEX;
 	cifrag.localePos.bgn = cifrag.localePos.end = 0;
 	cifrag.mateOf = NULLINDEX;
@@ -870,7 +870,7 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
 	cifrag.flags.bits.getLinksFromStore = TRUE;  // get links from store
 	cifrag.flags.bits.hasInternalOnlyCILinks = FALSE; // set in CreateCIEdge
 	cifrag.flags.bits.hasInternalOnlyContigLinks = FALSE; // set in CreateCIEdge
-	cifrag.flags.bits.hasFalseMate = FALSE;
+	cifrag.flags.bits.XXXhasFalseMate = FALSE;
 	cifrag.flags.bits.edgeStatus = INVALID_EDGE_STATUS;
 	cifrag.flags.bits.isPlaced = FALSE;
 	cifrag.flags.bits.isSingleton = FALSE;
@@ -894,19 +894,11 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
 	}
         cifrag.source = NULLINDEX;
 #endif	    
-	    
+
 	AppendCIFragT(ScaffoldGraph->CIFrags, &cifrag);
-	    
+
+        //fprintf(stderr, "CIFrag: iid=%d mate=%d pointer=%p\n", cifrag.iid, cifrag.mateOf, GetCIFragT(ScaffoldGraph->CIFrags, cifrag.iid));
       }
-#if 0
-      // obsolete
-      /* Terminate the linked list */
-      {
-	CIFragT *last = GetCIFragT(ScaffoldGraph->CIFrags,
-                                   GetNumCIFragTs(ScaffoldGraph->CIFrags) - 1);
-	last->nextCIFrag = NULLINDEX;
-      }
-#endif
     }
 
   // Insert the Chunk Instance
@@ -981,30 +973,31 @@ void ProcessIDT(InternalDistMesg *idt_mesg)
 
 
 void LoadDistData(void){ // Load the distance record info from the gkpStore
-  int32 numDists = getNumGateKeeperDistances(ScaffoldGraph->gkpStore.dstStore);
+  int32 numDists = getNumGateKeeperLibrarys(ScaffoldGraph->gkpStore->lib);
   CDS_CID_t i;
   
   for(i = 1; i <= numDists; i++){
     DistT dist;
-    GateKeeperDistanceRecord gkpd;
-    getGateKeeperDistanceStore(ScaffoldGraph->gkpStore.dstStore, i, &gkpd);
+    GateKeeperLibraryRecord gkpl;
+    getGateKeeperLibraryStore(ScaffoldGraph->gkpStore->lib, i, &gkpl);
     
-    if(gkpd.deleted)
+    if (gkpl.deleted)
       continue;
 
-    dist.mean = gkpd.mean;
-    dist.stddev = gkpd.stddev;
-    dist.mu = dist.sigma = 0.0;
-    dist.min = CDS_COORD_MAX;
-    dist.max = CDS_COORD_MIN;
-    dist.bsize = 0;
-    dist.histogram = NULL;
-    dist.lower = dist.upper = 0;
-    dist.samples = CreateVA_CDS_COORD_t(1024);
+    dist.mean          = gkpl.mean;
+    dist.stddev        = gkpl.stddev;
+    dist.mu            = 0.0;
+    dist.sigma         = 0.0;
+    dist.min           = CDS_COORD_MAX;
+    dist.max           = CDS_COORD_MIN;
+    dist.bsize         = 0;
+    dist.histogram     = NULL;
+    dist.lower         = 0;
+    dist.upper         = 0;
+    dist.samples       = CreateVA_CDS_COORD_t(1024);
     dist.numReferences = dist.numBad = 0;
 
-    if(GlobalData->verbose)
-      fprintf(GlobalData->stderrc,"* Loaded dist " F_CID " (%g +/- %g)\n", i, gkpd.mean, gkpd.stddev);
+    fprintf(GlobalData->stderrc,"* Loaded dist "F_UID","F_CID" (%g +/- %g)\n", gkpl.UID, i, dist.mean, dist.stddev);
 
     SetDistT(ScaffoldGraph->Dists, i, &dist);
   }
@@ -1055,191 +1048,100 @@ void ProcessFrags(void)
   int32 unmatedFrags = 0;
   GateKeeperFragmentRecord gkf;
 
+  //  Do one pass through, reading from the gatekeeper store to fill
+  //  out the cifrag info.
 
-  // Cycle through all of the fragments in iid order
   for(i = 0; i < GetNumInfoByIIDs(ScaffoldGraph->iidToFragIndex); i++){
-    InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex,i);
-    CIFragT *cifrag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
-    if(!info->set)
+    InfoByIID *ciinfo = GetInfoByIID(ScaffoldGraph->iidToFragIndex, i);
+    CIFragT   *cifrag = GetCIFragT(ScaffoldGraph->CIFrags, ciinfo->fragIndex);
+
+    if(!ciinfo->set)
       continue;
 
-    assert(cifrag->iid == i); 
-    getGateKeeperFragmentStore(ScaffoldGraph->gkpStore.frgStore, i, &gkf);
+    assert(cifrag->iid == i);  //  If !set, this fails.
 
-    cifrag->locale = NULLINDEX;
-    cifrag->linkHead = gkf.linkHead;
-    cifrag->numLinks = gkf.numLinks;
+    cifrag->locale   = NULLINDEX;
+    cifrag->linkHead = NULL_LINK;
+    cifrag->numLinks = 0;
+    cifrag->mateOf   = NULLINDEX;
+    cifrag->dist     = NULLINDEX;
+    cifrag->linkType = 0;
 
-#ifdef DEBUG_DETAILED
-    fprintf(stderr,"* Frag " F_CID "  iid:" F_CID " numLinks:%d linkHead:" F_CID "\n",
-	    info->fragIndex, i, cifrag->numLinks, cifrag->linkHead);
-#endif
-    
-    assert((cifrag->linkHead == NULL_LINK && gkf.numLinks == 0) ||
-           (cifrag->linkHead != NULL_LINK && gkf.numLinks > 0));
+    cifrag->flags.bits.innieMate         = FALSE;
+    cifrag->flags.bits.getLinksFromStore = FALSE;
 
-    if(gkf.numLinks == 0){
+    getGateKeeperFragmentStore(ScaffoldGraph->gkpStore->frg, i, &gkf);
+
+    if (gkf.mateIID != 0) {
+      InfoByIID *miinfo = GetInfoByIID(ScaffoldGraph->iidToFragIndex, gkf.mateIID);
+
+      cifrag->linkHead = 1;
+      cifrag->numLinks = 1;
+      cifrag->mateOf   = miinfo->fragIndex;
+      cifrag->dist     = gkf.libraryIID;
+      cifrag->linkType = gkf.orientation;
+      if (gkf.orientation == AS_GKP_ORIENT_INNIE)
+        cifrag->flags.bits.innieMate = TRUE;
+      cifrag->flags.bits.mateStatus = MATE_OK;
+      cifrag->flags.bits.edgeStatus = UNKNOWN_EDGE_STATUS;
+
+      fprintf(stderr, "Frag: iid=%d,index=%d mate=%d,index=%d\n", i, ciinfo->fragIndex, gkf.mateIID, miinfo->fragIndex);
+    }
+
+    if (cifrag->numLinks == 0)
       unmatedFrags++;
-    }else if(gkf.numLinks > 1){
-      cifrag->flags.bits.getLinksFromStore = TRUE;  // get links from store
-    }else{
-      cifrag->flags.bits.getLinksFromStore = FALSE;  // get links from store
-    }
   }
+
   fprintf(stderr,"* Unmated fragments %d\n", unmatedFrags);
-      
-  fprintf(stderr,"* Total IIDs: %d\n",
-          (int) GetNumInfoByIIDs(ScaffoldGraph->iidToFragIndex));
-  fflush(NULL);
+  fprintf(stderr,"* Total IIDs:       %d\n", (int)GetNumInfoByIIDs(ScaffoldGraph->iidToFragIndex));
 
-  // Cycle through all of the fragments in iid order
+  //  Do a second pass to clean up mates.  We don't need to access the
+  //  gatekeeper here, since everything is already populated.  If we
+  //  put this stuff in the first loop, we'll be randomly accessing
+  //  the gatekeeper.
+
   for(i = 0; i < GetNumInfoByIIDs(ScaffoldGraph->iidToFragIndex); i++){
-    InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex,i);
-    CIFragT *cifrag;
-    GateKeeperLinkRecordIterator GKPLinks;
-    GateKeeperLinkRecord GKPLink;
-    CIFragT *mcifrag;
-    CDS_CID_t j;
+    InfoByIID *ciinfo = GetInfoByIID(ScaffoldGraph->iidToFragIndex, i);
+    CIFragT   *cifrag = GetCIFragT(ScaffoldGraph->CIFrags, ciinfo->fragIndex);
+    CIFragT   *mifrag = NULL;
 
-
-    if(!info->set){
-      fprintf(stderr,"* Frag with iid " F_CID " is not set!\n",i);
+    //  this frag not used, or no mate
+    if ((!ciinfo->set) || (cifrag->mateOf == NULLINDEX))
       continue;
+
+    mifrag = GetCIFragT(ScaffoldGraph->CIFrags, cifrag->mateOf);
+
+    if ((mifrag == NULL) || (mifrag->mateOf == NULLINDEX)) {
+      //  We set up links to a dead frag, clean up...
+
+      cifrag->linkHead = NULL_LINK;
+      cifrag->numLinks = 0;
+      cifrag->mateOf   = NULLINDEX;
+      cifrag->dist     = NULLINDEX;
+      cifrag->linkType = 0;
+      cifrag->flags.bits.mateStatus = MATE_NONE;
+      cifrag->flags.bits.edgeStatus = INVALID_EDGE_STATUS;
+
+      mifrag->linkHead = NULL_LINK;
+      mifrag->numLinks = 0;
+      mifrag->mateOf   = NULLINDEX;
+      mifrag->dist     = NULLINDEX;
+      mifrag->linkType = 0;
+      mifrag->flags.bits.mateStatus = MATE_NONE;
+      mifrag->flags.bits.edgeStatus = INVALID_EDGE_STATUS;
+    } else {
+      //  Both guys are alive, and we're mated.  Throw some asserts
+
+      fprintf(stderr, "Fixed mate: iid:%d mid:%d did:%d -- iid:%d mid:%d did:%d\n",
+              cifrag->iid, cifrag->mateOf, cifrag->dist,
+              mifrag->iid, mifrag->mateOf, mifrag->dist);
+
+      assert(cifrag->dist   == mifrag->dist);
+      //assert(cifrag->mateOf == miinfo->fragIndex);
+      assert(mifrag->mateOf == ciinfo->fragIndex);
     }
-    cifrag = GetCIFragT(ScaffoldGraph->CIFrags,info->fragIndex);
-    if(cifrag->linkHead == NULL_LINK){
-      //      fprintf(stderr,"* Frag with iid " F_CID " has NULL LINK!\n",i);
-      continue;
-    }
 
-#ifdef DEBUG_DETAILED
-    fprintf(stderr,"* Frag " F_CID "  iid:" F_CID " numLinks:%d linkHead:" F_CID "\n",
-	    info->fragIndex, i, cifrag->numLinks, cifrag->linkHead);
-#endif
-
-    CreateGateKeeperLinkRecordIterator(ScaffoldGraph->gkpStore.lnkStore, cifrag->linkHead, i, &GKPLinks);
-    while(NextGateKeeperLinkRecordIterator(&GKPLinks, &GKPLink)){
-      if(GKPLink.type != AS_MATE)
-	continue;
-
-#ifdef DEBUG_DETAILED
-      fprintf(stderr,"* Link " F_CID "," F_CID " \n",
-	      GKPLink.frag1, GKPLink.frag2);
-#endif
-      assert((GKPLink.type == (unsigned int)AS_MATE &&
-              (cifrag->type == AS_READ ||
-               cifrag->type == AS_EXTR ||
-               cifrag->type == AS_TRNR)));
-      
-      assert(i == GKPLink.frag1 || i == GKPLink.frag2);
-
-      if(i == GKPLink.frag2){ /* Avoid doing things i,j and j,i */
-	//		  fprintf(stderr,"* Skipping (" F_CID "," F_CID ")\n",
-	//			  GKPLink.frag1, GKPLink.frag2);
-	InfoByIID *info2 = GetInfoByIID(ScaffoldGraph->iidToFragIndex,GKPLink.frag1);
-	if(!info2->set){
-	  // mate is not in assembly...this fragment effectively has no links
-	  fprintf(stderr,"* Fragment with iid " F_CID ", mate of fragment with iid " F_CID " is NOT in assembly\n",
-		  GKPLink.frag1, GKPLink.frag2);
-	  cifrag->linkHead = NULL_LINK;
-	  cifrag->numLinks = 0;
-	}
-	continue;
-      }
-
-
-#define WORRY_ABOUT_DELETED_FRAGS_NOT_INCREMENTAL_RUNS
-#ifndef WORRY_ABOUT_DELETED_FRAGS_NOT_INCREMENTAL_RUNS
-      if(GKPLink.frag2 > GetNumCIFragTs(ScaffoldGraph->CIFrags)){
-	//		  fprintf(stderr,"* Skipping (" F_CID "," F_CID ")\n",
-	//			  GKPLink.frag1, GKPLink.frag2);
-	/* This can happen in an incremental run */
-	continue;
-      }
-#endif
-
-#if 0
-      /* These asserts protect against the case that the input has
-	 an ILK message, but the fragments that are referenced do not
-	 appear in the input set */
-      assert(GetInfoByIID(ScaffoldGraph->iidToFragIndex, GKPLink.frag2)->set);
-      assert(GetInfoByIID(ScaffoldGraph->iidToFragIndex, GKPLink.frag1)->set);
-      j = GetInfoByIID(ScaffoldGraph->iidToFragIndex, GKPLink.frag2)->fragIndex;
-      assert(i == GetInfoByIID(ScaffoldGraph->iidToFragIndex, GKPLink.frag1)->fragIndex);
-#endif
-
-      j = GKPLink.frag2;
-      {
-	InfoByIID *infoj = GetInfoByIID(ScaffoldGraph->iidToFragIndex,j);
-
-        //  BPW has seen one case where infoj was not defined -- it
-        //  was the last frag in the store, and that frag was deleted.
-        //  He suspected that the ScaffoldGraph was truncated, and
-        //  returning NULL instead of an object with 'set' of 0.  He
-        //  didn't check if that was true or not, but, hey, if it's
-        //  not in the ScaffoldGraph, it's still not in the assembly!
-        //
-	if((!infoj) || (!infoj->set)){ // 2nd fragment is not part of assembly input
-	  fprintf(stderr,"* Fragment with iid " F_CID ", mate of fragment with iid " F_CID " is NOT in assembly\n",
-		  GKPLink.frag2, GKPLink.frag1);
-	  continue;
-	}
-
-	mcifrag = GetCIFragT(ScaffoldGraph->CIFrags,infoj->fragIndex);
-#ifdef DEBUG
-	fprintf(stderr,"* cifrag->iid " F_CID " i " F_CID " mcifrag->iid " F_CID " j " F_CID " dist:" F_CID "\n",
-		cifrag->iid,i,mcifrag->iid,j, GKPLink.distance);
-        fprintf(stderr,"* Frag " F_CID " (" F_CID ")'s mate is " F_CID "(" F_CID ")\n",
-                i, GKPLink.frag1, j, GKPLink.frag2);
-#endif
-	cifrag->mateOf = infoj->fragIndex;
-	mcifrag->mateOf = info->fragIndex;
-
-	// If we saved the one and only link in the fragment
-	// record, don't look in the store for it
-	if(mcifrag->numLinks == 1 && mcifrag->mateOf != NULLINDEX)
-	  mcifrag->flags.bits.getLinksFromStore = FALSE;
-	if(cifrag->numLinks == 1 && cifrag->mateOf != NULLINDEX)
-	  cifrag->flags.bits.getLinksFromStore = FALSE;
-
-	mcifrag->dist = cifrag->dist = GKPLink.distance;
-	cifrag->linkType = GKPLink.type;
-	mcifrag->linkType = GKPLink.type;
-
-	// The CIFragT data structure has been optimized for the case that
-	// a fragment has one and only one mate/bac end link.  We need to know
-	// whether the mate is a standard innie, or a funky outtie link.  We
-	// use a flag bit to distinguish.  The main clients of this bit are
-	// in ComputeMatePairStatistics and BuildGraphEdgesFromMultiAlign in GraphCGW_T.c
-	//
-	cifrag->flags.bits.innieMate = FALSE;
-	mcifrag->flags.bits.innieMate = FALSE;
-	// Mates can be either INNIE or OUTTIE
-	if((GKPLink.type == AS_MATE &&
-            GKPLink.orientation == AS_GKP_INNIE)) {
-	  mcifrag->flags.bits.innieMate = TRUE;
-	  cifrag->flags.bits.innieMate = TRUE;
-	}
-	if(cifrag->flags.bits.hasFalseMate ||
-	   mcifrag->flags.bits.hasFalseMate ){
-	  // They must BOTH be false
-	  if (!(cifrag->flags.bits.hasFalseMate ==
-		mcifrag->flags.bits.hasFalseMate  )){
-	    fprintf(stderr,"* Frag " F_CID " and Frag " F_CID " have inconsistent mate status\n",
-		    cifrag->iid, mcifrag->iid);
-	    assert(0);
-	  }
-	  cifrag->flags.bits.mateStatus = mcifrag->flags.bits.mateStatus = MATE_FALSE;
-	  cifrag->flags.bits.edgeStatus = UNKNOWN_EDGE_STATUS;
-	  mcifrag->flags.bits.edgeStatus = UNKNOWN_EDGE_STATUS;
-	}else
-          cifrag->flags.bits.mateStatus = mcifrag->flags.bits.mateStatus = MATE_OK;
-	cifrag->flags.bits.edgeStatus = UNKNOWN_EDGE_STATUS;
-	mcifrag->flags.bits.edgeStatus = UNKNOWN_EDGE_STATUS;
-      }
-
-    }
-  }
+  }  //  for each frag
 
   {
     double numCIFrags = (double) GetNumCIFragTs(ScaffoldGraph->CIFrags);

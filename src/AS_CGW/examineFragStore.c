@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: examineFragStore.c,v 1.6 2006-09-21 21:34:01 brianwalenz Exp $";
+static char CM_ID[] = "$Id: examineFragStore.c,v 1.7 2007-02-12 22:16:56 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -75,7 +75,7 @@ int printClearRanges( int fragIid );
 int debug = 0;
 
 static ReadStructp fsread = NULL;
-FragStoreHandle fragStore;
+GateKeeperStore *gkpStore;
 
 int examineClearRanges( int fragIid )
 {
@@ -86,7 +86,7 @@ int examineClearRanges( int fragIid )
 
   if ( fragIid != -1)
     {
-      getFragStore( fragStore, fragIid, FRAG_S_ALL, fsread);	
+      getFrag( gkpStore, fragIid, fsread, FRAG_S_INF);	
 
       getClearRegion_ReadStruct( fsread, &clr_bgn_orig, &clr_end_orig, READSTRUCT_ORIGINAL);
       getClearRegion_ReadStruct( fsread, &clr_bgn_latest, &clr_end_latest, READSTRUCT_LATEST);
@@ -106,7 +106,7 @@ int printClearRanges( CDS_CID_t fragIid )
 
   if ( fragIid != -1)
     {
-      getFragStore( fragStore, fragIid, FRAG_S_ALL, fsread);	
+      getFrag( gkpStore, fragIid, fsread, FRAG_S_ALL);
 
       getClearRegion_ReadStruct( fsread, &clr_bgn, &clr_end, READSTRUCT_ORIGINAL);
       fprintf( stderr, "printClearRanges, frag %8" F_CIDP " READSTRUCT_ORG clr_bgn: %5" F_U32P ", clr_end %5" F_U32P ", len: %4" F_U32P "\n",
@@ -135,62 +135,34 @@ int printClearRanges( CDS_CID_t fragIid )
 int main( int argc, char *argv[])
 {
   Global_CGW *data;
-  int setFragStoreName = FALSE;
   int ch, errflg=0;
   time_t t1;
   int64 i;
-  char Frag_Store_Name[1024];
   
-  if (0)
-    {
-      GlobalData  = data = CreateGlobal_CGW();
-      data->stderrc = stderr;
-      data->timefp = stderr;
-    }
-  
-  /* Parse the argument list using "man 3 getopt". */ 
-  optarg = NULL;
-  while (!errflg && ((ch = getopt(argc, argv, "c:f:g:n:")) != EOF))
-    {
-      switch(ch) 
-	{
-	  case 'f':
-            {
-              strcpy( Frag_Store_Name, argv[optind - 1]);
-              setFragStoreName = TRUE;
-            }
-            break;
-	  case '?':
-            fprintf(stderr,"Unrecognized option -%c",optopt);
-	  default :
-            errflg++;
-	}
-    }
-  if (setFragStoreName == 0)
-    {
-      fprintf(stderr, "* argc = %d optind = %d setFragStoreName = %d\n",
-              argc, optind, setFragStoreName); // , setGatekeeperStore, setCkptNum, setPrefixName);
-      fprintf (stderr, "USAGE:  %s -f <FragStoreName> \n", argv[0]);
-      exit (EXIT_FAILURE);
-    }
+  if (argc != 2) {
+    fprintf(stderr, "usage: %s gkpStore\n", argv[0]);
+    exit(1);
+  }
+
+  strcpy( Gatekeeper_Store_Name, argv[1]);
 
   t1 = time(0);
   fprintf( stderr, "====> Starting at %s\n", ctime(&t1));
 
-  fragStore = openFragStore( Frag_Store_Name, "r");
-  if ( fragStore == NULLSTOREHANDLE )
+  gkpStore = openGateKeeperStore( Gatekeeper_Store_Name, FALSE);
+  if ( gkpStore == NULLSTOREHANDLE )
     assert(0);
 
   fprintf( stderr, "examining frags from " F_S64 " to " F_S64 "\n",
-           getFirstElemFragStore(fragStore), getLastElemFragStore(fragStore));
+           getFirstElemFragStore(gkpStore), getLastElemFragStore(gkpStore));
   
-  for ( i = getFirstElemFragStore(fragStore); i <= getLastElemFragStore(fragStore); i++)
+  for ( i = getFirstElemFragStore(gkpStore); i <= getLastElemFragStore(gkpStore); i++)
     {
       examineClearRanges( i );
       if ( (i + 1) % 10000 == 0)
         fprintf( stderr, "examined frag " F_S64 "\n", i);
     }
   
-  closeFragStore( fragStore );
+  closeGateKeeperStore( gkpStore );
   return 0;
 }

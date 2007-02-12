@@ -34,7 +34,7 @@
 
  **********************************************************************/
 
-static char fileID[] = "$Id: FbacREZ.c,v 1.10 2007-02-04 09:30:45 brianwalenz Exp $";
+static char fileID[] = "$Id: FbacREZ.c,v 1.11 2007-02-12 22:16:58 brianwalenz Exp $";
 
 #define FBACDEBUG 2
 
@@ -100,7 +100,8 @@ int CheckRchunkContainment( ChunkInsertInfoT *walkedChunks, ChunkInsertInfoT *la
    has the hasFinishedBacFragments bit set */
 int contains_fbac(NodeCGW_T* node)
 {
-  return (node->flags.bits.includesFinishedBacFragments);
+  //return (node->flags.bits.includesFinishedBacFragments);
+  return(0);
 }
 
 int getLocalesInNode(NodeCGW_T* node, localeInfoT** localeInfo, int end, 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_cgb.h,v 1.5 2007-02-08 06:48:49 brianwalenz Exp $
+ * $Id: AS_CGB_cgb.h,v 1.6 2007-02-12 22:16:55 brianwalenz Exp $
  *
  * Module: AS_CGB_cgb.h
  *
@@ -229,7 +229,7 @@ void chunk_graph_build_2
  const float   global_fragment_arrival_rate,
  // This rate is the number of fragments/bp, which in the design space
  // is between zero and one.
- FragStoreHandle TheFragStore,
+ GateKeeperStore *TheFragStore,
  /* Input/Output */
  Tfragment frags[],     /* The internal representation of
 			   the fragment reads. */

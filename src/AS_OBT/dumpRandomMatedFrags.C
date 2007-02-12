@@ -8,27 +8,27 @@
 
 extern "C" {
 #include "AS_global.h"
+#include "AS_PER_gkpStore.h"
 #include "AS_PER_ReadStruct.h"
-#include "AS_PER_fragStore.h"
 }
 
 //  Reads the output of "dumpGatekeeper some.gkpStore | grep Link" on
 //  stdin, creates N fasta files, one for each library, with prefix P
 //  containing about Y pairs of mated fragments.
 //
-//  usage: dumpRandomMatedFrags -f frgStore -p prefix -n pairs
+//  usage: dumpRandomMatedFrags -f gkpStore -p prefix -n pairs
 
 
 int
 main(int argc, char **argv) {
-  char  *frgStore = 0L;
+  char  *gkpStore = 0L;
   char  *prefix   = 0L;
   int    pairs    = 50000;
 
   int arg = 1;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-f") == 0) {
-      frgStore = argv[++arg];
+      gkpStore = argv[++arg];
     } else if (strcmp(argv[arg], "-p") == 0) {
       prefix = argv[++arg];
     } else if (strcmp(argv[arg], "-n") == 0) {
@@ -40,7 +40,7 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if ((frgStore == 0L) || (prefix == 0L)) {
+  if ((gkpStore == 0L) || (prefix == 0L)) {
     fprintf(stderr, "usage: %s -p prefix -n pairs\n", argv[0]);
     exit(1);
   }
@@ -128,9 +128,9 @@ main(int argc, char **argv) {
 
   //  Open the fragStore
   //
-  FragStoreHandle   fs = openFragStore(frgStore, "r");
-  if (fs == NULLSTOREHANDLE) {
-    fprintf(stderr, "Failed to open %s\n", frgStore);
+  GateKeeperStore  *gkp = openGateKeeperStore(gkpStore, FALSE);
+  if (gkp == NULL) {
+    fprintf(stderr, "Failed to open %s\n", gkpStore);
     exit(1);
   }
 
@@ -189,7 +189,7 @@ main(int argc, char **argv) {
       //  don't get printed).
       //
       if (doPrint) {
-        getFragStore(fs, i, FRAG_S_ALL, rd);
+        getFrag(gkp, i, rd, FRAG_S_ALL);
         getClearRegion_ReadStruct(rd, &clrBeg, &clrEnd, READSTRUCT_OVL);
 
         getIsDeleted_ReadStruct(rd, &deleted);

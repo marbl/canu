@@ -25,7 +25,7 @@
    Assumptions:  libAS_UTL.a
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.24 2007-02-08 06:48:51 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.25 2007-02-12 22:16:56 brianwalenz Exp $";
 
 
 #include <assert.h>
@@ -1553,7 +1553,7 @@ VA_DEF(ErrorStruct)
 
 void 
 CollectStats(MultiAlignT *ma,
-             FragStoreHandle frag_store, 
+             GateKeeperStore *frag_store, 
              FILE *column_stats, 
              FILE *frag_stats,
              uint32 clrrng_flag)
@@ -1600,7 +1600,7 @@ CollectStats(MultiAlignT *ma,
 
     // special case for singletons
     if (num_reads == 1) {
-       getFragStore(frag_store,reads[0].ident,FRAG_S_ALL,rsp);
+       getFrag(frag_store,reads[0].ident,rsp,FRAG_S_ALL);
        getClearRegion_ReadStruct(rsp, &clrbgn,&clrend, clrrng_flag);
        fprintf(frag_stats,F_IID "  " F_UID " %c %d %d\n",
                reads[0].ident,accession,
@@ -1633,7 +1633,7 @@ CollectStats(MultiAlignT *ma,
     for(i=0;i<num_reads;i++) {
       left = (reads[i].position.bgn < reads[i].position.end)? reads[i].position.bgn : reads[i].position.end;
       right= (reads[i].position.bgn > reads[i].position.end)?reads[i].position.bgn:reads[i].position.end;
-      getFragStore(frag_store,reads[i].ident,FRAG_S_ALL,rsp);
+      getFrag(frag_store,reads[i].ident,rsp,FRAG_S_ALL);
       getClearRegion_ReadStruct(rsp, &clrbgn,&clrend, clrrng_flag);
       flen = clrend - clrbgn;
       assert(flen < AS_READ_MAX_LEN);
@@ -1765,7 +1765,7 @@ getFragTypeDisplay (FragType fragType)
 int 
 PrintMultiAlignT(FILE *out,
 	         MultiAlignT *ma,
-	         FragStoreHandle frag_store, 
+	         GateKeeperStore *frag_store, 
 	         tFragStorePartition *pfrag_store,
 	         int show_qv, 
 	         int dots,
@@ -1790,7 +1790,7 @@ PrintMultiAlignT(FILE *out,
   if (rsp==NULL) {
      rsp  = new_ReadStruct();
   }
-  if ( frag_store == NULLFRAGSTOREHANDLE ) {
+  if ( frag_store == NULL ) {
    partitioned = 1;
   }
    
@@ -1861,17 +1861,18 @@ PrintMultiAlignT(FILE *out,
              if ( partitioned ) {
                   getFragStorePartition(pfrag_store,
 					row_id,
-					FRAG_S_FIXED,
-					rsp);
+					FRAG_S_INF,
+                                        rsp);
              } else {
-                  getFragStore(frag_store,
+                  getFrag(frag_store,
 			       row_id,
-			       FRAG_S_FIXED,
-			       rsp);
+                               rsp,
+                               FRAG_S_INF);
              }
              frgTypeDisplay = ' ';
              getAccID_ReadStruct(rsp, &uid); 
-             getReadType_ReadStruct(rsp, &frgTypeData);
+             //getReadType_ReadStruct(rsp, &frgTypeData);
+             frgTypeData = AS_READ;
 
 	     frgTypeDisplay = getFragTypeDisplay(frgTypeData);
              ///if ( type == AS_READ) type = ' ';
@@ -1921,7 +1922,7 @@ int
 PrintMultiAlignTSNPs(
 		     FILE *out,
 		     MultiAlignT *ma,
-		     FragStoreHandle frag_store, 
+		     GateKeeperStore *frag_store, 
 		     tFragStorePartition *pfrag_store,
 		     int show_qv, 
 		     int dots,uint32 clrrng_flag) 
@@ -1939,7 +1940,7 @@ PrintMultiAlignTSNPs(
 
   
   length = strlen(consensus);
-  if ( frag_store == NULLFRAGSTOREHANDLE ) {
+  if ( frag_store == NULL ) {
    partitioned = 1;
   }
    

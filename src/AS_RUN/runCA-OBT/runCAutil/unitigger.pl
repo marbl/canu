@@ -21,9 +21,9 @@ sub unitigger (@) {
         #  -M says "start time - mod time" so if that is small, it's newer
         #
         if ((! -e "$wrk/4-unitigger/$asm.ofg") ||
-            (-M "$wrk/$asm.frgStore/db.frg" < -M "$wrk/4-unitigger/$asm.ofg")) {
+            (-M "$wrk/$asm.gkpStore/db.frg" < -M "$wrk/4-unitigger/$asm.ofg")) {
             my $cmd;
-            $cmd  = "$bin/make_OFG_from_FragStore $wrk/$asm.frgStore ";
+            $cmd  = "$bin/dumpFragStoreAsOFG $wrk/$asm.gkpStore ";
             $cmd .= " > $wrk/4-unitigger/$asm.ofg ";
             $cmd .= " 2> $wrk/4-unitigger/$asm.ofg.err";
 
@@ -53,11 +53,11 @@ sub unitigger (@) {
         $cmd .= " -l $l " if defined($l);
         $cmd .= " -m $m " if defined($m);
         $cmd .= " -n $n " if defined($n);
-        $cmd .= " -c -P -A 1 -d 1 -x 1 -z 10 -j 5 -U $u -e $e ";
-        $cmd .= " -F $wrk/$asm.frgStore ";
+        $cmd .= " -c -A 1 -d 1 -x 1 -z 10 -j 5 -U $u -e $e ";
+        $cmd .= " -F $wrk/$asm.gkpStore ";
         $cmd .= " -f ";
         $cmd .= " -o $wrk/4-unitigger/$asm.fgbStore ";
-        $cmd .= " -L $wrk/4-unitigger/$asm.ofgList ";
+        $cmd .= " -L $wrk/4-unitigger/$asm.ofg ";
         $cmd .= " -I $wrk/$asm.ovlStore ";
         $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";
 

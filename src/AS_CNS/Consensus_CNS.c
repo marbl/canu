@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.37 2007-02-08 06:48:51 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.38 2007-02-12 22:16:56 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -51,7 +51,6 @@ static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.37 2007-02-08 06:48:51 bri
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_PER_ReadStruct.h"
-#include "AS_PER_fragStore.h"
 #include "AS_PER_genericStore.h"
 #include "AS_UTL_Var.h"
 #include "UtilsREZ.h"
@@ -151,7 +150,7 @@ static void
 help_message(int argc, char *argv[])
 {
     fprintf(stderr,"  Usage:\n\n"
-    "  %s [-P] [-v level] [-I] [-a [DLA]] [-X expert_options] FragStoreDir [CGWStream]\n"
+    "  %s [-P] [-v level] [-I] [-a [DLA]] [-X expert_options] GateKeeperStoreDir [CGWStream]\n"
     "\n Standard option flags:\n"
     "    -P           Force ASCII .cns output \n"
     "    -v [0-4]     Verbose:  0 = verbose off \n"
@@ -165,8 +164,8 @@ help_message(int argc, char *argv[])
     "                 If two SNPs are located win_size or less bases apart one from another,\n"
     "                 then they will be treated as one block\n"
     "    -T secs      time threshold which, if exceeded, should trigger clean exit.\n"
-    "    -S partition Use fragStorePartition partition\n"
-    "    -m           Load fragStorePartition into memory (default reads from disk)\n"
+    "    -S partition Use gkpStorePartition partition\n"
+    "    -m           Load gkpStorePartition into memory (default reads from disk)\n"
     "    -U           Unitigs ONLY\n"
     "    -I           IUM message alignment, write to .cgi file (instead of .cns)\n"
     "                 (will also process contigs if they exist in the input file\n"
@@ -187,19 +186,19 @@ help_message(int argc, char *argv[])
     "    -X           Allow 'expert' options (following)\n"
     "\n Expert option flags:\n"
     "    -D opt       Enable debugging option 'opt'.  One of 'dumpunitigs', 'verbosemultialign',\n"
-    "                 and 'forceunitigabut'.  (-X not needed).\n"
-    "    -R %%d        Restart from the given ICM/IUM by internal id, appending to output file\n"
+    "                    and 'forceunitigabut'.  (-X not needed).\n"
+    "    -R %%d       Restart from the given ICM/IUM by internal id, appending to output file\n"
     "    -i           Realign IUM messages (while processing .cgw file)\n"
     "    -q string    Override default quality call parameters\n"
     "                    string is colon separated list of the form '%%f:%%d:%%f'\n"
     "                    where first field is estimated sequencing error rate (default: .015)\n"
     "                         second field is number of sequenced haplotypes (default: 1)\n"
     "                          third field is estimated SNP rate (default: 1/1000)\n"
-    "    -e #%%d       Extract only a single ICM/IUM by internal id\n"
+    "    -e #%%d      Extract only a single ICM/IUM by internal id\n"
     "    -e idfile    Extract list of ICM/IUMs by internal ids provided in idfile\n"
     "\n Arguments:\n"
-    "   FragStoreDir      path to previously created Fragment Store\n"
-    "  [InputStream]      previously created .cgw/.cgb file (if not specified, stdin)\n\n"
+    "  GateKeeperStoreDir   path to previously created Fragment Store\n"
+    "  [InputStream]        previously created .cgw/.cgb file (if not specified, stdin)\n\n"
     "\n Output:\n"
     "   Creates a .cns file by default (or appends to .cns if -R is specified)\n"
     "   -I sends output to a .cgi (post-unitigging consensus) file instead.\n"
@@ -639,21 +638,21 @@ int main (int argc, char *argv[])
         exit(1);
     }
 
-    /****************          Open Fragment Store             ***********/
+    /****************          Open Gatekeeper Store             ***********/
+    global_fragStore          = NULL;
+    global_fragStorePartition = NULL;
+
     if ( partitioned ) 
     {
-      global_fragStorePartition = openFragStorePartition(argv[optind++],
-          partition,in_memory);
-      global_fragStore = NULLFRAGSTOREHANDLE;
+      global_fragStorePartition = openFragStorePartition(argv[optind++], partition,in_memory);
     } 
     else 
     {
       if ( in_memory ) {
         global_fragStore = loadFragStore(argv[optind++]);
       } else {
-        global_fragStore = openFragStore(argv[optind++], "rb");
+        global_fragStore = openGateKeeperStore(argv[optind++], FALSE);
       }
-      global_fragStorePartition = NULL;
     }
 
     /****************      Initialize reusable stores          ***********/
@@ -866,7 +865,7 @@ int main (int argc, char *argv[])
       VA_TYPE(char) *quality=CreateVA_char(200000);
       time_t t;
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.37 $ processing. Started %s\n",
+      fprintf(stderr,"# Consensus $Revision: 1.38 $ processing. Started %s\n",
         ctime(&t));
       InitializeAlphTable();
       if ( ! align_ium && USE_SDB && extract > -1 ) 
@@ -1217,7 +1216,7 @@ int main (int argc, char *argv[])
             {
               AuditLine auditLine;
               AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                                 "Consensus", "$Revision: 1.37 $","(empty)");
+                                 "Consensus", "$Revision: 1.38 $","(empty)");
             }
 #endif
               VersionStampADT(adt_mesg,argc,argv);
@@ -1241,7 +1240,7 @@ int main (int argc, char *argv[])
       }
 
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.37 $ Finished %s\n",ctime(&t));
+      fprintf(stderr,"# Consensus $Revision: 1.38 $ Finished %s\n",ctime(&t));
       if (printcns) 
       {
         int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 

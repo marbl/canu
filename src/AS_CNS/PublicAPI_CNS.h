@@ -26,7 +26,7 @@
  *
  **************************************************************/
 /*********************************************************************
- $Id: PublicAPI_CNS.h,v 1.7 2006-08-21 17:41:55 brianwalenz Exp $
+ $Id: PublicAPI_CNS.h,v 1.8 2007-02-12 22:16:56 brianwalenz Exp $
  *********************************************************************/
 
 #ifndef PUBLICAPI_CNS_INCLUDE
@@ -34,7 +34,7 @@
 
 #include "Globals_CNS.h"
 
-int MultiAlignUnitig(IntUnitigMesg *, FragStoreHandle , VA_TYPE(char) *,
+int MultiAlignUnitig(IntUnitigMesg *, GateKeeperStore *, VA_TYPE(char) *,
     VA_TYPE(char) *, VA_TYPE(int32) *, CNS_PrintKey , int, 
     Overlap *(*)(COMPARE_ARGS), CNS_Options *opp);
 

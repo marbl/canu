@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.14 2006-11-14 19:58:21 eliv Exp $";
+static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.15 2007-02-12 22:16:56 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,8 +56,6 @@ static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.14 2006-11-14 19:58:21 e
 
 //  Writes, to stderr, information about the library distances.  Also
 //  creates a stat/ directory with stats.
-
-//  Need to ask gatekeeper for IID -> UID of libraries
 
 //  params for which operations to do
 
@@ -724,17 +722,15 @@ dde_stats(int         operateOnNodes,
 //
 CDS_UID_t*
 buildLibraryIIDmap(char *gkpStoreName) {
-  GateKeeperStore          gkpStore;
-  GateKeeperDistanceRecord gkpd;
+  GateKeeperStore         *gkpStore;
+  GateKeeperLibraryRecord  gkpl;
   StoreStat                stat;
   int64                    i;
   CDS_UID_t               *map;
 
-  InitGateKeeperStore(&gkpStore, gkpStoreName);
-  OpenReadOnlyGateKeeperStore(&gkpStore);
+  gkpStore = openGateKeeperStore(gkpStoreName, FALSE);
 
-
-  statsStore(gkpStore.dstStore, &stat);
+  statsStore(gkpStore->lib, &stat);
   fprintf(stderr,"* Stats for Dist Store are first:" F_S64 " last :" F_S64 "\n",
           stat.firstElem, stat.lastElem);
 
@@ -746,24 +742,23 @@ buildLibraryIIDmap(char *gkpStoreName) {
     map[i] = 0;
 
   for (i=1; i<=stat.lastElem; i++) {
-    getGateKeeperDistanceStore(gkpStore.dstStore, i, &gkpd);
-    map[i] = gkpd.UID;
+    getGateKeeperLibraryStore(gkpStore->lib, i, &gkpl);
+    map[i] = gkpl.UID;
 
     fprintf(stderr,"* Dist " F_S64 " UID:" F_UID " del:%d red:%d mean:%f std:%f batch(" F_U16 "," F_U16 ") prevID:" F_IID " prevInstanceID: " F_IID "\n",
             i,
-            gkpd.UID,
-            gkpd.deleted,
-            gkpd.redefined,
-            gkpd.mean,
-            gkpd.stddev,
-            gkpd.birthBatch,
-            gkpd.deathBatch,
-            gkpd.prevID,
-            gkpd.prevInstanceID);
+            gkpl.UID,
+            gkpl.deleted,
+            gkpl.redefined,
+            gkpl.mean,
+            gkpl.stddev,
+            gkpl.birthBatch,
+            gkpl.deathBatch,
+            gkpl.prevID,
+            gkpl.prevInstanceID);
   }
 
-  //  Cleanup
-  CloseGateKeeperStore(&gkpStore);
+  closeGateKeeperStore(gkpStore);
 
   return(map);
 }
@@ -787,10 +782,7 @@ main( int argc, char **argv) {
   data->timefp    = stderr;
 
   while (arg < argc) {
-    if        (strncmp(argv[arg], "-frg", 2) == 0) {
-      arg++;
-      strcpy(data->Frag_Store_Name, argv[arg]);
-    } else if (strncmp(argv[arg], "-gkp", 2) == 0) {
+    if        (strncmp(argv[arg], "-gkp", 2) == 0) {
       arg++;
       strcpy(data->Gatekeeper_Store_Name, argv[arg]);
     } else if (strncmp(argv[arg], "-prefix", 2) == 0) {
@@ -817,7 +809,7 @@ main( int argc, char **argv) {
   }
 
   if (ckptNum == NULLINDEX) {
-    fprintf(stderr, "usage: %s [opts] -frg frgStore -gkp gkpStore -prefix asmprefix -nckp ckptNum\n", argv[0]);
+    fprintf(stderr, "usage: %s [opts] -gkp gkpStore -prefix asmprefix -nckp ckptNum\n", argv[0]);
     fprintf(stderr, "  -u                 Use real UIDs from the UID server\n");
     fprintf(stderr, "  -s uid             Use the fake UID 'uid', default uid=987654321987654321\n");
     fprintf(stderr, "  -E <server:port>   Use EUID server server:port insteat of tools.tigr.org:8190 (does NOT imply -u)\n");

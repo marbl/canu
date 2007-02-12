@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AutoScreenOVL.c,v 1.5 2006-09-26 21:07:45 brianwalenz Exp $
- * $Revision: 1.5 $
+ * $Id: AutoScreenOVL.c,v 1.6 2007-02-12 22:16:57 brianwalenz Exp $
+ * $Revision: 1.6 $
 */
 
-static char CM_ID[] = "$Id: AutoScreenOVL.c,v 1.5 2006-09-26 21:07:45 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AutoScreenOVL.c,v 1.6 2007-02-12 22:16:57 brianwalenz Exp $";
 
 
 //  System include files
@@ -60,7 +60,6 @@ static char CM_ID[] = "$Id: AutoScreenOVL.c,v 1.5 2006-09-26 21:07:45 brianwalen
 #include  "OlapStoreOVL.h"
 #include  "AS_PER_ReadStruct.h"
 #include  "AS_PER_genericStore.h"
-#include  "AS_PER_fragStore.h"
 #include  "AS_PER_distStore.h"
 #include  "AS_UTL_PHash.h"
 #include  "AS_MSG_pmesg.h"
@@ -226,11 +225,11 @@ static int  Failed_Olaps = 0;
 static Frag_Info_t  * Frag;
     // Sequence and vote information for current range of fragments
     // being corrected
-static FragStoreHandle  Frag_Store;
+static GateKeeperStore  *gkpStore;
     // Internal fragment store where fragments are loaded
-static FragStreamHandle  Frag_Stream;
+static FragStream  *Frag_Stream;
     // Stream to extract fragments from internal store
-static char  * Frag_Store_Path;
+static char  * gkpStore_Path;
     // Name of directory containing fragment store from which to get fragments
 static int  Half_Len = DEFAULT_HALF_LEN;
     // Number of bases on each side of SNP to vote for change
@@ -1680,7 +1679,7 @@ static void  Parse_Command_Line
 
    Degree_Path = argv [optind ++];
 
-   Frag_Store_Path = argv [optind ++];
+   gkpStore_Path = argv [optind ++];
 
    Olap_File_Path = argv [optind ++];
 
@@ -2181,7 +2180,7 @@ static void  Read_Frags
     (void)
 
 //  Open and read fragments with  Frag [] . need_sequence == TRUE
-//  from  Frag_Store_Path  and store their sequence in
+//  from  gkpStore_Path  and store their sequence in
 //  Frag .
 
   {
@@ -2190,9 +2189,9 @@ static void  Read_Frags
    int32  first_iid, last_iid, hi;
    int  iid, j, check_iid;
 
-   Frag_Store = openFragStore (Frag_Store_Path, "r");
-   assert (Frag_Store != NULLSTOREHANDLE);
-   hi = getLastElemFragStore (Frag_Store);
+   gkpStore = openGateKeeperStore (gkpStore_Path, FALSE);
+   assert (gkpStore != NULL);
+   hi = getLastElemFragStore (gkpStore);
    if  (hi < Hi_Frag_IID)
        {
         fprintf (stderr,
@@ -2200,7 +2199,7 @@ static void  Read_Frags
                  Hi_Frag_IID, hi);
         exit (EXIT_FAILURE);
        }
-   closeFragStore (Frag_Store);
+   closeGateKeeperStore (gkpStore);
 
    frag_read = new_ReadStruct ();
 
@@ -2218,7 +2217,7 @@ static void  Read_Frags
         if  (Frag [check_iid] . need_sequence)
             last_iid = check_iid;
 
-      Frag_Store = loadFragStorePartial (Frag_Store_Path,
+      gkpStore = loadFragStorePartial (gkpStore_Path,
                                          first_iid, last_iid);
    
       for  (iid = first_iid;  iid <= last_iid;  iid ++)
@@ -2231,7 +2230,7 @@ static void  Read_Frags
          if  (! Frag [iid] . need_sequence)
              continue;    // skip it, overlap degrees too low
 
-         getFragStore (Frag_Store, iid, FRAG_S_ALL, frag_read);
+         getFrag (gkpStore, iid, frag_read, FRAG_S_ALL);
 
          getIsDeleted_ReadStruct (frag_read, & deleted);
          if  (deleted)
@@ -2271,7 +2270,7 @@ static void  Read_Frags
          Frag [iid] . len = clear_end - clear_start;
         }
 
-      closeFragStore (Frag_Store);
+      closeGateKeeperStore (gkpStore);
 
       for  (first_iid = check_iid;  first_iid <= Hi_Frag_IID;  first_iid ++)
         if  (Frag [first_iid] . need_sequence)

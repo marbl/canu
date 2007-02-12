@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: post_analysis.c,v 1.11 2007-02-08 06:48:52 brianwalenz Exp $ */
+/* $Id: post_analysis.c,v 1.12 2007-02-12 22:16:56 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
  MultiAlignT *ma;
  int i;
  int isplaced = 1;
- FragStoreHandle frag_store;
+ GateKeeperStore *frag_store;
  FILE *pcs = NULL;
  FILE *pfs = NULL;
  FILE *out = NULL;
@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
 	 ( (ch = getopt(argc, argv, "b:f:l:m:o:O")) != EOF)) {
    switch(ch){
    case 'f':
-     frag_store = openFragStore(optarg, "rb");
+     frag_store = openGateKeeperStore(optarg, FALSE);
      break;
    case 'l':
      do_all=0;
@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
      break;
    }
  }
- if(errflg || frag_store==NULLSTOREHANDLE){
+ if(errflg || frag_store==NULL){
    usage(argv[0]);
  }
 

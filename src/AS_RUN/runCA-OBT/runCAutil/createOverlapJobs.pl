@@ -95,7 +95,7 @@ sub createOverlapJobs {
     print F "  -k $wrk/0-preoverlap/$asm.nmers.fasta \\\n"          if ($isTrim ne "trim");
     print F "  -k $wrk/0-overlaptrim-overlap/$asm.nmers.fasta \\\n" if ($isTrim eq "trim");
     print F "  -o $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
-    print F "  $wrk/$asm.frgStore \\\n";
+    print F "  $wrk/$asm.gkpStore \\\n";
     print F "&& \\\n";
 
     if ($isTrim eq "trim") {

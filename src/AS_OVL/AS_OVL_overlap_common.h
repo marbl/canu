@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.24 2007-02-11 06:18:18 brianwalenz Exp $
- * $Revision: 1.24 $
+ * $Id: AS_OVL_overlap_common.h,v 1.25 2007-02-12 22:16:57 brianwalenz Exp $
+ * $Revision: 1.25 $
 */
 
 
@@ -75,9 +75,8 @@
 /*************************************************************************/
 
 #include  "AS_OVL_delcher.h"
+#include  "AS_PER_gkpStore.h"
 #include  "AS_PER_ReadStruct.h"
-#include  "AS_PER_genericStore.h"
-#include  "AS_PER_fragStore.h"
 #include  "AS_UTL_PHash.h"
 #include  "AS_MSG_pmesg.h"
 #include  "AS_OVL_overlap.h"
@@ -349,8 +348,8 @@ FILE  * Kmer_Skip_File = NULL;
     // File of kmers to be ignored in the hash table
     // Specified by the  -k  option
 Output_Stream  Out_Stream = NULL;
-FragStore  OldFragStore;
-FragStore  BACtigStore;
+GateKeeperStore  *OldFragStore;
+GateKeeperStore  *BACtigStore;
 char  * Frag_Store_Path;
 char  * BACtig_Store_Path = NULL;
 uint32  * IID_List = NULL;
@@ -408,8 +407,6 @@ static void  Find_Overlaps
     (char [], int, char [], Int_Frag_ID_t, Direction_t, Work_Area_t *);
 static void  Flip_Screen_Range
     (Screen_Info_t * screen, int len);
-FragStore  Frag_Store_Open
-    (char * storename, char * mode);
 static void  Get_Range
     (char * s, char ch, int * lo, int * hi);
 static int  Has_Bad_Window
@@ -459,7 +456,7 @@ static void  Put_String_In_Hash
     (int i);
 static int  Read_Next_Frag
     (char frag [AS_READ_MAX_LEN + 1], char quality [AS_READ_MAX_LEN + 1],
-     FragStreamHandle stream, ReadStructp, Screen_Info_t *,
+     FragStream *stream, ReadStructp, Screen_Info_t *,
      uint32 * last_frag_read);
 static void  Read_uint32_List
     (char * file_name, uint32 * * list, int * n);
@@ -857,13 +854,13 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
              fprintf (stderr, "ERROR:  No BACtig store specified\n");
              exit (EXIT_FAILURE);
             }
-        if  (! existsFragStore (BACtig_Store_Path))
+        if  (! testOpenGateKeeperStore(BACtig_Store_Path, FALSE))
             {
              fprintf (stderr, "ERROR:  BACtig store \"%s\" does NOT exist\n",
                       BACtig_Store_Path);
              exit (EXIT_FAILURE);
             }
-        BACtigStore = Frag_Store_Open (BACtig_Store_Path, "r");
+        BACtigStore = openGateKeeperStore(BACtig_Store_Path, FALSE);
 
         if  (iidlist_file_name != NULL)
             {
@@ -886,7 +883,8 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
        }
 
    fprintf (stderr, "* Using fragstore %s\n", Frag_Store_Path);
-   OldFragStore = Frag_Store_Open (Frag_Store_Path, "r");
+
+   OldFragStore = openGateKeeperStore(Frag_Store_Path, FALSE);
    
    if  (! Contig_Mode)
        {
@@ -962,7 +960,7 @@ fclose (Stat_File);
    fprintf (stderr, "Rejected by short window = %lld\n", Bad_Short_Window_Ct);
    fprintf (stderr, " Rejected by long window = %lld\n", Bad_Long_Window_Ct);
 
-   closeFragStore (OldFragStore);
+   closeGateKeeperStore (OldFragStore);
 
 #if  SHOW_SNPS
 {
@@ -1352,7 +1350,7 @@ WA -> String_Olap_Space [Sub] . Kmer_Hits ++;
 
 
 int  Build_Hash_Index
-    (FragStreamHandle stream, int32 first_frag_id, ReadStructp myRead)
+    (FragStream *stream, int32 first_frag_id, ReadStructp myRead)
 
 /* Read the next batch of strings from  stream  and create a hash
 *  table index of their  WINDOW_SIZE -mers.  Return  1  if successful;
@@ -1451,7 +1449,8 @@ int  Build_Hash_Index
                      screen_blocks_used = new_size;
                     }
 
-           getReadType_ReadStruct (myRead, Kind_Of_Frag + String_Ct);
+                //getReadType_ReadStruct (myRead, Kind_Of_Frag + String_Ct);
+                Kind_Of_Frag[String_Ct] = AS_READ;
           }
 
       String_Start [String_Ct] = total_len;
@@ -2398,42 +2397,6 @@ static void  Flip_Screen_Range
    return;
   }
 
-
-
-FragStore  Frag_Store_Open
-    (char * storename, char * mode)
-
-/* Open  storename  in  mode  and return a pointer to its control
-*  block.  If fail, print a message and exit. */
-
-  {
-   FragStore  fp;
-   int  retry, max_sleep = 10;
-
-   fp = openFragStore (storename, mode);
-   for  (retry = 0;  fp == NULLSTOREHANDLE && retry < 5;  retry ++)
-     {
-      int  sleep_time;
-
-      sleep_time = 1 + rand () % max_sleep;
-      sleep (sleep_time);
-      max_sleep *= 2;
-
-      fprintf (stderr, "ERROR %d:  Could not open fragstore  %s  Retrying ... \n",
-                 errno, storename);
-      fp = openFragStore (storename, mode);
-     }
-   if  (fp == NULLSTOREHANDLE)
-       {
-        fprintf (stderr, "ERROR %d:  Could not open fragstore  %s \n",
-                 errno, storename);
-        perror (strerror (errno));
-
-        exit (FILE_OPEN_FAILURE);
-       }
-
-   return  fp;
-  }
 
 
 
@@ -4455,7 +4418,7 @@ Align_P = Align_Ct [T_ID - Hash_String_Num_Offset];
 
 
 void  Process_Overlaps
-    (FragStreamHandle stream, Work_Area_t * WA)
+    (FragStream *stream, Work_Area_t * WA)
 
 //  Find and output all overlaps between strings in  stream 
 //  and those in the global hash table.   (* WA)  has the
@@ -4503,7 +4466,8 @@ if  (Curr_String_Num % 10000 == 0)
            continue;
           }
 
-      getReadType_ReadStruct (WA -> myRead, & (WA -> curr_frag_type));
+      //getReadType_ReadStruct (WA -> myRead, & (WA -> curr_frag_type));
+      WA -> curr_frag_type = AS_READ;
       Len = strlen (Frag);
       if  (Len < MIN_OLAP_LEN)
           fprintf (stderr, "Frag %d is too short.  Len = %d\n",
@@ -5113,7 +5077,7 @@ static void  Put_String_In_Hash
 static int  Read_Next_Frag
     (char frag [AS_READ_MAX_LEN + 1], 
      char quality [AS_READ_MAX_LEN + 1], 
-     FragStreamHandle stream,
+     FragStream *stream,
      ReadStructp myRead,
      Screen_Info_t * screen,
      uint32 * last_frag_read)
@@ -5136,9 +5100,9 @@ static int  Read_Next_Frag
        pthread_mutex_lock (& FragStore_Mutex);
 
 #if  USE_SOURCE_FIELD
-   success = nextFragStream (stream, myRead, FRAG_S_SEQUENCE | FRAG_S_SOURCE);
+   success = nextFragStream (stream, myRead, FRAG_S_SEQ | FRAG_S_SRC);
 #else
-   success = nextFragStream (stream, myRead, FRAG_S_SEQUENCE);
+   success = nextFragStream (stream, myRead, FRAG_S_SEQ);
 #endif
    getIsDeleted_ReadStruct (myRead, & deleted);
    if  (! success)

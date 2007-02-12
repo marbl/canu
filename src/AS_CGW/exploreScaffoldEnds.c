@@ -179,7 +179,7 @@ void finished_with_ovlStore(void){
 
 
 void usage(char *pgm){
-  fprintf (stderr, "USAGE:  %s -f <FragStoreName> -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum> -o <full_ovlStore>\n",
+  fprintf (stderr, "USAGE:  %s -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum> -o <full_ovlStore>\n",
 	   pgm);
 }
 
@@ -308,7 +308,7 @@ void explore_ending_of_contig(ContigT *contig, int *frontCnt, int *tailCnt){
   }
    
   {
-    MultiAlignT *newma = MergeMultiAlignsFast_new(ScaffoldGraph->sequenceDB, NULLFRAGSTOREHANDLE, positions, 0, 1, NULL, NULL);
+    MultiAlignT *newma = MergeMultiAlignsFast_new(ScaffoldGraph->sequenceDB, NULL, positions, 0, 1, NULL, NULL);
 
     int nfr = GetNumIntMultiPoss(newma->f_list);
     int len = GetMultiAlignLength(newma);
@@ -516,7 +516,6 @@ int main (int argc , char * argv[] ) {
 
   Global_CGW *data;
   char *prefix;
-  int setFragStore = FALSE;
   int setGatekeeperStore = FALSE;
   int setOvlStore = FALSE;
   int setPrefixName = FALSE;
@@ -544,10 +543,6 @@ int main (int argc , char * argv[] ) {
           strcpy( data->File_Name_Prefix, argv[optind - 1]);
           setPrefixName = TRUE;		  
           break;
-        case 'f':
-          strcpy( data->Frag_Store_Name, argv[optind - 1]);
-          setFragStore = TRUE;
-          break;
         case 'g':
           strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
           setGatekeeperStore = TRUE;
@@ -566,10 +561,10 @@ int main (int argc , char * argv[] ) {
       }
     }
 
-    if((setPrefixName == FALSE) || (setFragStore == 0) || (setGatekeeperStore == 0) || (setOvlStore==0))
+    if((setPrefixName == FALSE) || (setGatekeeperStore == 0) || (setOvlStore==0))
       {
-	fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d\n",
-		argc, optind, setFragStore,setGatekeeperStore);
+	fprintf(stderr,"* argc = %d optind = %d setGatekeeperStore = %d\n",
+		argc, optind, setGatekeeperStore);
 
 	usage(argv[0]);
 	exit (-1);

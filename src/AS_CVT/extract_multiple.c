@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: extract_multiple.c,v 1.6 2007-02-08 06:48:52 brianwalenz Exp $";
+static char CM_ID[] = "$Id: extract_multiple.c,v 1.7 2007-02-12 22:16:57 brianwalenz Exp $";
 
 /*
   IMPORTANT NOTE:
@@ -42,7 +42,6 @@ static char CM_ID[] = "$Id: extract_multiple.c,v 1.6 2007-02-08 06:48:52 brianwa
 // Project header files
 #include "AS_global.h"
 #include "AS_PER_ReadStruct.h"
-#include "AS_PER_fragStore.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_UTL_PHash.h"
 #include "AS_UTL_Var.h"
@@ -262,11 +261,7 @@ void CloseStores( StoreSetp s_set )
 {
   if( s_set )
   {
-    /*
-    CloseGateKeeperStore( &(s_set->gkp_store) );
-    if( s_set->frg_store )
-      closeFragStore( s_set->frg_store );
-    */
+    closeGateKeeperStore( &(s_set->gkp_store) );
     free( s_set );
   }
 }
@@ -288,8 +283,8 @@ StoreSetp OpenStores( char * gkp_store_name,
   // Open grande stores
   {
     // open the regional gatekeeper store
-    InitGateKeeperStore( &(s_set->gkp_store), gkp_store_name );
-    OpenReadOnlyGateKeeperStore( &(s_set->gkp_store) );
+    initGateKeeperStore( &(s_set->gkp_store), gkp_store_name );
+    openReadOnlyGateKeeperStore( &(s_set->gkp_store) );
     
     // open the regional fragment store
     s_set->frg_store = openFragStore( frg_store_name, "r" );

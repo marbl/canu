@@ -18,18 +18,17 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.32 2007-02-08 06:48:49 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.33 2007-02-12 22:16:55 brianwalenz Exp $";
 
 
 static const char *usage = 
-"usage: %s [options] -f <FragStoreName> -g <GatekeeperStoreName> -o <OutputPath> <InputCGB.ext>\n"
+"usage: %s [options] -g <GatekeeperStoreName> -o <OutputPath> <InputCGB.ext>\n"
 "\n"
 "   [-a]           align overlaps  (default)\n"
 "   [-b]           don't ignore UOM between contained     (default)\n"
 "   [-c]           Generate checkpoints\n"
 "   [-d]           DumpGraphs\n"
 "   [-e <thresh>]  Microhet score probability cutoff\n"
-"   [-f]           FragStore path (required)\n"
 "   [-g]           gkp Store path (required)\n"
 "   [-h]           Don't fail on merge alignment failure\n"
 "   [-i <thresh>]  Set max coverage stat for microhet determination of non-uniqueness (default -1)\n"
@@ -198,7 +197,7 @@ int main(int argc, char *argv[]){
   float cgbDefinitelyUniqueCutoff = CGB_UNIQUE_CUTOFF; 
   int maxDegree = 3; // maximum edges to keep for 'nonUnique' nodes
   int maxDegreeUnique = 30; // maximum edges to keep for 'Unique' nodes
-  int setFragStore = 0, setGatekeeperStore = 0;
+  int setGatekeeperStore = 0;
   char *outputPath = NULL;
   int dumpScaffoldSnapshots = 0;
   int checkpointChecker = 1;
@@ -274,17 +273,9 @@ int main(int argc, char *argv[]){
           fprintf(GlobalData->stderrc,"* -C ==> No Cleanup Scaffolds!\n");
           fflush(stderr);
           break;
-        case 'f':
-	  {
-            strcpy( data->Frag_Store_Name, argv[optind - 1]);
-            setFragStore = 1;
-	  }
-          break;
         case 'g':
-	  {
-            strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
-            setGatekeeperStore = 1;
-	  }
+          strcpy( data->Gatekeeper_Store_Name, argv[optind - 1]);
+          setGatekeeperStore = 1;
           break;	  
         case 'h':
           failOn_NoOverlapFound = 0;
@@ -478,9 +469,9 @@ int main(int argc, char *argv[]){
       }
     }
 
-    if ((argc - optind < 1 ) || (setFragStore == 0) || (setGatekeeperStore == 0) || (outputPath == NULL)) {
-      fprintf(GlobalData->stderrc,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d outputPath = %s\n",
-              argc, optind, setFragStore,setGatekeeperStore, outputPath);
+    if ((argc - optind < 1 ) || (setGatekeeperStore == 0) || (outputPath == NULL)) {
+      fprintf(GlobalData->stderrc,"* argc = %d optind = %d setGatekeeperStore = %d outputPath = %s\n",
+              argc, optind,setGatekeeperStore, outputPath);
       fprintf(GlobalData->stderrc, usage, argv[0]);
       exit (EXIT_FAILURE);
     }

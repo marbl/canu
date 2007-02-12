@@ -527,7 +527,7 @@ CGB_Type get_simulator_type(IntUnitigMesg* ium_mesg){
    (mismatches are random errors).
    A return value of 1.0 may indicate that the unitig was not deep enough for meaningful test.
 */
-double AS_REZ_prob_IUM_MPsimple(IntUnitigMesg* ium, FragStoreHandle handle,tFragStorePartition *phandle)
+double AS_REZ_prob_IUM_MPsimple(IntUnitigMesg* ium, GateKeeperStore *handle,tFragStorePartition *phandle)
 {
   int i;
   int rows;
@@ -573,7 +573,7 @@ double AS_REZ_prob_IUM_MPsimple(IntUnitigMesg* ium, FragStoreHandle handle,tFrag
 
 
 Alignment_t* AS_REZ_convert_IUM_to_alignment(IntUnitigMesg* ium,
-                                             FragStoreHandle handle,
+                                             GateKeeperStore *handle,
                                              tFragStorePartition *phandle,
 					     int compress)
 {
@@ -648,7 +648,7 @@ Alignment_t* AS_REZ_convert_IUM_to_alignment(IntUnitigMesg* ium,
    The Alignment_t ali contains the alignment in which the list of segments
    can be inspected in order to find repetitive segments
 */
-UnitigStatus_t AS_REZ_is_IUM_MPsimple(IntUnitigMesg* ium, FragStoreHandle handle,
+UnitigStatus_t AS_REZ_is_IUM_MPsimple(IntUnitigMesg* ium, GateKeeperStore *handle,
                                       tFragStorePartition *phandle,
                                       Alignment_t **ali, double thresh, int variant, 
                                       double *pval)
@@ -704,7 +704,7 @@ main(int argc, char **argv) {
   double  thresh     = 0.0;
   double  cthresh    = 0.0;
 
-  FragStoreHandle  storeHandle;
+  GateKeeperStore *storeHandle;
   FILE            *input;
 
   int arg = 1;
@@ -733,7 +733,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  storeHandle = openFragStore(storeName,"rb");
+  storeHandle = openGateKeeperStore(storeName, FALSE);
   input       = fopen(fileName,"r");
 
 
@@ -752,7 +752,7 @@ main(int argc, char **argv) {
           printf("Length          = %d\n",iunitig->length);	
           printf("Source          = %s\n",iunitig->source);	
 
-          ali = AS_REZ_convert_IUM_to_alignment(iunitig,storeHandle,(tFragStorePartition *)NULL,FALSE);
+          ali = AS_REZ_convert_IUM_to_alignment(iunitig,storeHandle,NULL,FALSE);
 
           switch(printWhat){
             case PRINT_DOTS:
