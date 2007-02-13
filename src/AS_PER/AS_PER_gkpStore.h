@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.15 2007-02-12 22:16:58 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.16 2007-02-13 17:59:34 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -33,14 +33,17 @@
 
 #define NULL_LINK 0
 
+#define AS_PER_NAME_LEN      256
+#define AS_PER_COMMENT_LEN   256
+
 //  The following counts represent the number of records of each type
 //  PRIOR to processing this batch.  To get the range of batch i, take
 //  the difference between batch i+1 and batch i.
 //
 typedef struct {
   CDS_UID_t      UID;
-  char           name[256];
-  char           comment[256];
+  char           name[AS_PER_NAME_LEN];
+  char           comment[AS_PER_COMMENT_LEN];
   uint64         created;
 
   unsigned int   deleted:1;
@@ -60,8 +63,8 @@ typedef struct {
 typedef struct {
   CDS_UID_t      UID;
 
-  char           name[256];
-  char           comment[256];
+  char           name[AS_PER_NAME_LEN];
+  char           comment[AS_PER_COMMENT_LEN];
   uint64         created;
 
   unsigned int   deleted:1;
@@ -141,8 +144,8 @@ typedef struct{
 
 
 
-#define MAX_SEQ_LENGTH (64 * 2048 - 1)
-#define MAX_HPS_LENGTH (64 * 2048 - 1)
+#define MAX_SEQ_LENGTH (AS_READ_MAX_LEN + 1)
+#define MAX_HPS_LENGTH (AS_READ_MAX_LEN + 1)
 #define MAX_SRC_LENGTH (512 + sizeof(int32) + sizeof(int64))
 
 #define FRAG_S_INF 0x01
@@ -295,8 +298,9 @@ GateKeeperStore *openGateKeeperStore(const char *path, int writable);
 void             closeGateKeeperStore(GateKeeperStore *gkpStore);
 
 
-void    clearGateKeeperFragmentRecord(GateKeeperFragmentRecord *g);
+void    clearGateKeeperBatchRecord(GateKeeperBatchRecord *g);
 void    clearGateKeeperLibraryRecord(GateKeeperLibraryRecord *g);
+void    clearGateKeeperFragmentRecord(GateKeeperFragmentRecord *g);
 
 int     getFrag(GateKeeperStore *gkp, int64 iid, ReadStruct *rs, int32 flags);
 int     setFrag(GateKeeperStore *gkp, int64 iid, ReadStruct *rs);

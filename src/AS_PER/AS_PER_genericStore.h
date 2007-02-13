@@ -64,8 +64,8 @@
  *************************************************************************/
 
 /* RCS Info
- * $Id: AS_PER_genericStore.h,v 1.5 2005-07-22 17:52:17 eliv Exp $
- * $Revision: 1.5 $
+ * $Id: AS_PER_genericStore.h,v 1.6 2007-02-13 17:59:34 brianwalenz Exp $
+ * $Revision: 1.6 $
  *
  */
 
@@ -104,8 +104,8 @@ typedef enum { UnAllocatedStore = 0,
 typedef struct{
   unsigned int isDeleted:1;
   unsigned int type:3;
-  unsigned int :28;  // padding field
-  unsigned int :32;  // padding field
+  unsigned int p1:28;  // padding field
+  unsigned int p2:32;  // padding field
   char storeType[8];
   int64 firstElem; /* Initially -1.  If >0, index of first allocated element */
   int64 lastElem;  /* Initially -1.  If >0, index of last allocated element */

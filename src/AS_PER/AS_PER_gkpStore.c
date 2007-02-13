@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.16 2007-02-13 16:11:38 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.17 2007-02-13 17:59:34 brianwalenz Exp $";
 
 //    A thin layer on top of the IndexStore supporing the storage and
 // retrieval of records used by the gatekeeper records.
@@ -340,45 +340,28 @@ closeGateKeeperStore(GateKeeperStore *gkpStore) {
 
 
 
+void clearGateKeeperBatchRecord(GateKeeperBatchRecord *g) {
 
-void clearGateKeeperFragmentRecord(GateKeeperFragmentRecord *g) {
-    g->UID           = 0;
-    g->readIID       = 0;
-    g->mateIID       = 0;
-    g->libraryIID    = 0;
-    g->plateUID      = 0;
-    g->plateLocation = 0;
+  memset(g, 0, sizeof(GateKeeperBatchRecord));
 
-    g->deleted     = 0;
-    g->nonrandom   = 0;
-    g->status      = 0;
-    g->hasQLT      = 0;
-    g->hasHPS      = 0;
-    g->hasOVLclr   = 0;
-    g->hasCNSclr   = 0;
-    g->hasCGWclr   = 0;
-    g->orientation = 0;
-    g->spare       = 0;
+  g->UID            = 0;
+  g->name[0]        = 0;
+  g->comment[0]     = 0;
+  g->created        = 0;
+  g->deleted        = 0;
+  g->spare          = 0;
+  g->numFragments   = 0;
+  g->numLibraries   = 0;
+  g->numLibraries_s = 0;
 
-    g->clrSta = 0;
-    g->clrEnd = 0;
-    g->ovlSta = 0;
-    g->ovlEnd = 0;
-    g->cnsSta = 0;
-    g->cnsEnd = 0;
-    g->cgwSta = 0;
-    g->cgwEnd = 0;
-
-    g->seqOffset = 0;
-    g->qltOffset = 0;
-    g->hpsOffset = 0;
-    g->srcOffset = 0;
-
-    g->birthBatch = 0;
-    g->deathBatch = 0;
+  memset(g->name,    0, AS_PER_NAME_LEN);
+  memset(g->comment, 0, AS_PER_COMMENT_LEN);
 }
 
 void clearGateKeeperLibraryRecord(GateKeeperLibraryRecord *g) {
+
+  memset(g, 0, sizeof(GateKeeperLibraryRecord));
+
   g->UID             = 0;
   g->name[0]         = 0;
   g->comment[0]      = 0;
@@ -394,8 +377,50 @@ void clearGateKeeperLibraryRecord(GateKeeperLibraryRecord *g) {
   g->prevID          = 0;
   g->birthBatch      = 0;
   g->deathBatch      = 0;
+
+  memset(g->name,    0, AS_PER_NAME_LEN);
+  memset(g->comment, 0, AS_PER_COMMENT_LEN);
 }
 
+void clearGateKeeperFragmentRecord(GateKeeperFragmentRecord *g) {
+
+  memset(g, 0, sizeof(GateKeeperFragmentRecord));
+
+  g->UID           = 0;
+  g->readIID       = 0;
+  g->mateIID       = 0;
+  g->libraryIID    = 0;
+  g->plateUID      = 0;
+  g->plateLocation = 0;
+
+  g->deleted     = 0;
+  g->nonrandom   = 0;
+  g->status      = 0;
+  g->hasQLT      = 0;
+  g->hasHPS      = 0;
+  g->hasOVLclr   = 0;
+  g->hasCNSclr   = 0;
+  g->hasCGWclr   = 0;
+  g->orientation = 0;
+  g->spare       = 0;
+
+  g->clrSta = 0;
+  g->clrEnd = 0;
+  g->ovlSta = 0;
+  g->ovlEnd = 0;
+  g->cnsSta = 0;
+  g->cnsEnd = 0;
+  g->cgwSta = 0;
+  g->cgwEnd = 0;
+
+  g->seqOffset = 0;
+  g->qltOffset = 0;
+  g->hpsOffset = 0;
+  g->srcOffset = 0;
+
+  g->birthBatch = 0;
+  g->deathBatch = 0;
+}
 
 
 
@@ -505,10 +530,10 @@ void             resetFragStream(FragStream *fs, int64 startIndex, int64 endInde
   int64  seqOffset, qltOffset, hpsOffset, srcOffset;
 
   if (startIndex == STREAM_FROMSTART) {
-     seqOffset = STREAM_FROMSTART;
-     qltOffset = STREAM_FROMSTART;
-     hpsOffset = STREAM_FROMSTART;
-     srcOffset = STREAM_FROMSTART;
+    seqOffset = STREAM_FROMSTART;
+    qltOffset = STREAM_FROMSTART;
+    hpsOffset = STREAM_FROMSTART;
+    srcOffset = STREAM_FROMSTART;
   } else {
 
     //  Read the frag the hard way so we can find the offsets the other

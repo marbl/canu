@@ -17,6 +17,7 @@ safe_calloc(size_t num, size_t len) {
              num, len, num*len);
      assert(p != NULL);
    }
+   memset(p, 0, len);
    return(p);
 }
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkBatch.c,v 1.1 2007-02-12 22:16:57 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkBatch.c,v 1.2 2007-02-13 17:59:34 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,15 +48,7 @@ int Check_BatchMesg(BatchMesg          *bat_mesg,
   GateKeeperBatchRecord  gkpb;
   PHashValue_AS          value;
 
-  gkpb.UID            = 0;
-  gkpb.name[0]        = 0;
-  gkpb.comment[0]     = 0;
-  gkpb.created        = 0;
-  gkpb.deleted        = 0;
-  gkpb.spare          = 0;
-  gkpb.numFragments   = 0;
-  gkpb.numLibraries   = 0;
-  gkpb.numLibraries_s = 0;
+  clearGateKeeperBatchRecord(&gkpb);
 
   if (HASH_FAILURE != LookupTypeInPHashTable_AS(gkpStore->phs, 
                                                 UID_NAMESPACE_AS,

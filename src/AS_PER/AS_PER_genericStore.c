@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.7 2006-10-17 21:18:06 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.8 2007-02-13 17:59:34 brianwalenz Exp $";
 /*************************************************************************
  Module:  AS_PER_genericStore
  Description:
@@ -52,8 +52,8 @@ static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.7 2006-10-17 21:18:06 bria
  *************************************************************************/
 
 /* RCS Info
- * $Id: AS_PER_genericStore.c,v 1.7 2006-10-17 21:18:06 brianwalenz Exp $
- * $Revision: 1.7 $
+ * $Id: AS_PER_genericStore.c,v 1.8 2007-02-13 17:59:34 brianwalenz Exp $
+ * $Revision: 1.8 $
  *
  */
 
@@ -69,7 +69,7 @@ static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.7 2006-10-17 21:18:06 bria
 
 
 #define INITIAL_ALLOCATION (2048)
-#define WRITING_BUFFER     (1024 * 1024)
+#define WRITING_BUFFER     (16 * 1024)
 
 /* This is the structure maintained in memory for each open Store */
 typedef struct{
@@ -201,25 +201,48 @@ StoreStruct  *allocateStore(void){
 	gMaxNumStores = 16;
       else
 	gMaxNumStores *= 2;
-      gStores = (StoreStruct *)
-	realloc(gStores, gMaxNumStores * sizeof(StoreStruct));
+      gStores = (StoreStruct *) safe_realloc(gStores, gMaxNumStores * sizeof(StoreStruct));
       for  (i = gNumStores;  i < gMaxNumStores;  i ++)
         gStores [i] . status = UnAllocatedStore;
     }
     ss = gStores + gNumStores;
   }
+
+  ss->fp = (FILE *)NULL;
+  ss->FileName[0] = 0;
+  ss->buffer = NULL;
+  ss->allocatedSize = 0;
   ss->status = UnInitializedStore;
-  ss->header.firstElem = ss->header.lastElem = ss->lastCommittedElem = -1;
-  ss->header.version = ss->header.elementSize = -1;
-  ss->header.storeType[0] = '\0';
+  ss->header.firstElem = -1;
+  ss->header.lastElem = -1;
+  ss->lastCommittedElem = -1;
+
+  ss->header.isDeleted = 0;
+  ss->header.type = 0;
+  ss->header.p1 = 0;
+  ss->header.p2 = 0;
+  ss->header.storeType[0] = 0;
+  ss->header.firstElem = -1;
+  ss->header.lastElem = -1;
+  ss->header.version = -1;
+  ss->header.elementSize = -1;
+  ss->header.creationTime = 0;
+  ss->header.lastUpdateTime = 0;
+
+  ss->lastCommittedElem = -1;
   ss->isMemoryStore = 0;
   ss->isDirty = 0;
-  ss->buffer = NULL;
-  ss->fp = (FILE *)NULL;
+
+  memset(ss->FileName, 0, FILENAME_MAX);
+  memset(ss->header.storeType, 0, 8);
 
   gNumStores++;
   return ss;
 }
+
+
+
+
 
 /************************************************************************/
 StreamStruct  *allocateStream(StoreHandle s, void *buffer, int32 bufferSize  ){
@@ -240,7 +263,7 @@ StreamStruct  *allocateStream(StoreHandle s, void *buffer, int32 bufferSize  ){
       else
 	gMaxNumStreams *= 2;
       gStreams = (StreamStruct *)
-	realloc(gStreams, gMaxNumStreams * sizeof(StreamStruct));
+	safe_realloc(gStreams, gMaxNumStreams * sizeof(StreamStruct));
       for  (i = gNumStreams;  i < gMaxNumStreams;  i ++)
         gStreams [i] . status = UnAllocatedStore;
     }
@@ -350,7 +373,7 @@ StoreHandle createIndexStore
     assert(strlen(path) < FILENAME_MAX);
     myStore->fp = fopen(path,"w+b");
     AssertPtr(myStore->fp);
-    myStore->buffer = (char *)safe_malloc(WRITING_BUFFER);
+    myStore->buffer = (char *)safe_calloc(1, WRITING_BUFFER);
     setbuffer(myStore->fp, myStore->buffer, WRITING_BUFFER);
     myStore->isMemoryStore = 0;
     strcpy(myStore->FileName, path);
@@ -359,7 +382,7 @@ StoreHandle createIndexStore
     fprintf(stderr," Creating memory-based index store \n");
 #endif
     myStore->allocatedSize = INITIAL_ALLOCATION * elementSize;
-    myStore->buffer = (char *)safe_malloc(myStore->allocatedSize);
+    myStore->buffer = (char *)safe_calloc(1, myStore->allocatedSize);
     myStore->isMemoryStore = 1;
     myStore->fp = NULL;
     myStore->FileName[0]='\0';
@@ -423,14 +446,14 @@ StoreHandle createStringStore
     strcpy(myStore->FileName, path);
     myStore->fp = fopen(path,"w+b");
     AssertPtr(myStore->fp);
-    myStore->buffer = (char *)safe_malloc(WRITING_BUFFER);
+    myStore->buffer = (char *)safe_calloc(1, WRITING_BUFFER);
     setbuffer(myStore->fp, myStore->buffer, WRITING_BUFFER);
   }else{
 #ifdef DEBUG
     fprintf(stderr," Creating memory-based string store \n");
 #endif
     myStore->allocatedSize = expectedStringSize;
-    myStore->buffer = (char *)safe_malloc(myStore->allocatedSize);
+    myStore->buffer = (char *)safe_calloc(1, myStore->allocatedSize);
     AssertPtr(myStore->buffer);
     myStore->isMemoryStore = 1;
     myStore->fp = NULL;
@@ -566,7 +589,7 @@ int appendIndexStore(StoreHandle s, void *element){
 	myStore->allocatedSize *= 2;
       }
       myStore->buffer = (char *)
-	realloc(myStore->buffer, myStore->allocatedSize);
+	safe_realloc(myStore->buffer, myStore->allocatedSize);
     }
     memcpy(myStore->buffer + offset, 
 	   element, myStore->header.elementSize);
@@ -713,7 +736,7 @@ StoreHandle loadStorePartial
   myStore->allocatedSize = sourceMaxOffset - sourceOffset + 1;
   fprintf(stderr,"* Allocated buffer of size " F_S64 "\n",
           myStore->allocatedSize);
-  myStore->buffer = (char *)safe_malloc(myStore->allocatedSize);
+  myStore->buffer = (char *)safe_calloc(1, myStore->allocatedSize);
   myStore->isMemoryStore = 1;
   myStore->fp = NULL;
   myStore->header.firstElem = first;
@@ -952,7 +975,7 @@ int appendStringStore(StoreHandle s, char *string){
 	myStore->allocatedSize *= 2;
       }
       myStore->buffer = (char *)
-	realloc(myStore->buffer, myStore->allocatedSize);
+	safe_realloc(myStore->buffer, myStore->allocatedSize);
     }
     memcpy(myStore->buffer + offset, string, length + 1);
   }else{
@@ -993,7 +1016,7 @@ int appendVLRecordStore(StoreHandle s, void *vlr, VLSTRING_SIZE_T length){
               s, myStore->allocatedSize);
 #endif
       myStore->buffer = (char *)
-	realloc(myStore->buffer, myStore->allocatedSize);
+	safe_realloc(myStore->buffer, myStore->allocatedSize);
     }
     memcpy(myStore->buffer + offset, &length, sizeof(VLSTRING_SIZE_T));
     if(length > 0)
@@ -1338,7 +1361,7 @@ int  copyStore(StoreStruct *source, int64 sourceOffset, int64 sourceMaxOffset,
 	 target->allocatedSize *= 2;
        }
        target->buffer = (char *) 
-	 realloc(target->buffer, target->allocatedSize);
+	 safe_realloc(target->buffer, target->allocatedSize);
      }
    }
 
