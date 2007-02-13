@@ -51,14 +51,14 @@ TOOL_OBJS = $(TOOL_SRCS:.c=.o)
 CXX_SOURCES =  olapcoverage.cc
 CXX_OBJECTSS = $(TOOL_CXX_SRCS:.cc=.o)
 
-SOURCES = $(AS_OVL_SRCS) $(AS_OVL_CMN_SRCS) $(CORRECT_SRCS) $(OLAPSTORE_SRCS) $(LIBSOURCES) LastFragInStoreOVL.c 
+SOURCES = $(AS_OVL_SRCS) $(AS_OVL_CA_SRCS) $(AS_OVL_CMN_SRCS) $(CORRECT_SRCS) $(OLAPSTORE_SRCS) $(LIBSOURCES) LastFragInStoreOVL.c 
 OBJECTS = $(SOURCES:.cc=.o)
 
-AS_OVL_PROGS    = overlap
+AS_OVL_PROGS    = overlap overlap_ca
 CORRECT_PROGS   = correct-frags show-corrects correct-olaps delete-olaps filter-olaps cat-corrects cat-erates
 OLAPSTORE_PROGS = dump-olap-store force-erates grow-olap-store update-erates
 
-OBSOLETE        = overlap_ca
+OBSOLETE        = 
 SCREEN_PROGS    = frag-anomaly auto-screen combine-mums remove-dup-screen removedups
 TOOL_PROGS      = get-degrees get-subgraph get-iidgraph get-uid-olaps olapcoverage fgbovlhits rev-olaps hit-limit
 

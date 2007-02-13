@@ -26,8 +26,8 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.14 2007-02-12 22:16:57 brianwalenz Exp $
- * $Revision: 1.14 $
+ * $Id: AS_OVL_overlap.h,v 1.15 2007-02-13 22:48:00 adelcher Exp $
+ * $Revision: 1.15 $
 */
 
 
@@ -329,7 +329,7 @@
     //  don't set it below this
 #define  MIN_INTERSECTION        10
     //  Minimum number of bases periodic overlaps must have in common
-#define  MIN_OLAP_LEN            40
+#define  DEFAULT_MIN_OLAP_LEN            40
     //  Minimum length of match region to be worth reporting
 #define  MIN_OLAP_OUTSIDE_SCREEN 30
     //  Minimum number of bases outside of screened regions

@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.25 2007-02-12 22:16:57 brianwalenz Exp $
- * $Revision: 1.25 $
+ * $Id: AS_OVL_overlap_common.h,v 1.26 2007-02-13 22:48:00 adelcher Exp $
+ * $Revision: 1.26 $
 */
 
 
@@ -202,6 +202,9 @@ static Hash_Bucket_t  * Hash_Table;
 static int  Hi_Hit_Limit = DEFAULT_HI_HIT_LIMIT;
     //  Any kmer in the hash table with this many or more references
     //  is not used to initiate overlaps.  Set by  -K  option.
+static int  Ignore_Clear_Range = FALSE;
+    //  If true will use entire read sequence, ignoring the
+    //  clear range values
 static int  Ignore_Screen_Info = FALSE;
     //  If true will ignore screen messages with fragments
 static double  Kmer_Freq_Bound = -1.0;
@@ -214,6 +217,7 @@ static double  Kmer_Prob_Limit = -1.0;
     //  Gotten from  -K  option.
 static uint64  * Loc_ID = NULL;
     //  Locale ID field of each frag in hash table if in  Contig_Mode .
+static int  Min_Olap_Len = DEFAULT_MIN_OLAP_LEN;
 static int64  Multi_Overlap_Ct = 0;
 static String_Ref_t  * Next_Ref = NULL;
 static int  Single_Line_Output = FALSE;
@@ -549,7 +553,8 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
      optarg = NULL;
      while  (! errflg
                && ((ch = getopt_long (argc, argv,
-                                      "b:cGh:I:k:K:l:mM:no:Pqr:st:uwz", ovlopts, &optindex)) != EOF))
+                                      "b:cGh:I:k:K:l:mM:no:Pqr:st:uv:wxz",
+                                      ovlopts, &optindex)) != EOF))
        switch  (ch)
          {
            case 0:
@@ -639,7 +644,33 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
             break;
           case  'M' :
 #ifdef CONTIG_OVERLAPPER_VERSION
-            fprintf (stderr, "M option not allowed for Contig Version--ignored\n");
+            if       (strcmp (optarg, "8GB") == 0) {
+              Hash_Mask_Bits    = 24;
+              Max_Hash_Data_Len = 400000000;
+            } else if (strcmp (optarg, "4GB") == 0) {
+              Hash_Mask_Bits    = 23;
+              Max_Hash_Data_Len = 180000000;
+            } else if (strcmp (optarg, "2GB") == 0) {
+              Hash_Mask_Bits    = 22;
+              Max_Hash_Data_Len = 110000000;  //  Was 75000000
+            } else if (strcmp (optarg, "1GB") == 0) {
+              Hash_Mask_Bits    = 21;
+              Max_Hash_Data_Len = 30000000;
+            } else if (strcmp (optarg, "256MB") == 0) {
+              Hash_Mask_Bits    = 19;
+              Max_Hash_Data_Len = 6000000;
+            }
+            else {
+              fprintf(stderr, "ERROR:  Unknown memory size \"%s\"\n", optarg);
+              fprintf(stderr, "Valid values are '8GB', '4GB', '2GB', '1GB', '256MB'\n");
+              errflg ++;
+            }
+            Max_Hash_Strings  = 3 * Max_Hash_Data_Len / AS_READ_MAX_LEN;
+            if  (Max_Hash_Strings > MAX_STRING_NUM)
+                Max_Hash_Strings = MAX_STRING_NUM;
+            Max_Frags_In_Memory_Store
+                 = OVL_Min_int (2 * Max_Hash_Data_Len / MAX_FRAG_LEN,
+                        MAX_OLD_BATCH_SIZE);
 #else
             if       (strcmp (optarg, "8GB") == 0) {
               Hash_Mask_Bits    = 24;
@@ -666,7 +697,8 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
               fprintf(stderr, "Valid values are '8GB', '4GB', '2GB', '1GB', '256MB'\n");
               errflg ++;
             }
-            Max_Frags_In_Memory_Store = OVL_Min_int (Max_Hash_Strings, MAX_OLD_BATCH_SIZE);
+            Max_Frags_In_Memory_Store = OVL_Min_int (Max_Hash_Strings,
+                 MAX_OLD_BATCH_SIZE);
 #endif
             break;
           case  'n' :
@@ -703,6 +735,9 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
           case  'u' :
             Unique_Olap_Per_Pair = TRUE;
             break;
+          case  'v' :
+            Min_Olap_Len = (int) strtol (optarg, & p, 10);
+            break;
           case  'w' :
             #if ERR_MODEL_IN_AS_GLOBAL_H > 6
 	      Use_Window_Filter = TRUE;
@@ -710,6 +745,9 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
               Use_Window_Filter = FALSE;
 	      fprintf(stderr,"This overlap executable looks for high-error overlaps -- window-filter turned off despite -w flag!\n");
            #endif
+            break;
+          case  'x' :
+            Ignore_Clear_Range = TRUE;
             break;
           case  'z' :
             Use_Hopeless_Check = FALSE;
@@ -739,6 +777,9 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
                   "<FragStorePath>]\n"
                   "Uses FragStore in <FragStorePath>\n"
                   "\n"
+                  "-b <fn>     in contig mode, specify the output file\n"
+                  "-c          contig mode.  Use 2 frag stores.  First is\n"
+                  "            for reads; second is for contigs\n"
                   "-G          do partial overlaps\n"
                   "-h <range>  to specify fragments to put in hash table\n"
                   "            Implies LSF mode (no changes to frag store)\n"
@@ -762,9 +803,12 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
                   "-q          make single-line output (same format as -G)\n"
                   "-r <range>  specify old fragments to overlap\n"
                   "-s          ignore screen information with fragments\n"
-                  "-t          designate number of parallel threads\n"
+                  "-t <n>      use <n> parallel threads\n"
                   "-u          allow only 1 overlap per oriented fragment pair\n"
+                  "-v <n>      only output overlaps of <n> or more bases\n"
                   "-w          filter out overlaps with too many errors in a window\n"
+                  "-x          ignore the clear ranges on reads and use the \n"
+                  "            full sequence\n"
                   "-z          skip the hopeless check\n"
                   "\n"
                   "--hashbits n     Use n bits for the hash mask.\n"
@@ -844,6 +888,7 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
    fprintf (stderr, " Max_Hash_Data_Len = %d\n", Max_Hash_Data_Len);
    fprintf (stderr, "     Max_Hash_Load = %f\n", Max_Hash_Load);
    fprintf (stderr, "       Kmer Length = %d\n", WINDOW_SIZE);
+   fprintf (stderr, "Min Overlap Length = %d\n", Min_Olap_Len);
 
    Initialize_Globals ();
 
@@ -913,8 +958,11 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
 Dump_Screen_Info (0, NULL, 'x');
 #endif
 
-   assert(NULL != Out_Stream);
-   fclose (Out_Stream);
+   if (bolfile_name == NULL)
+     {
+      assert(NULL != Out_Stream);
+      fclose (Out_Stream);
+     }
    Out_Stream = NULL;
    if  (Contig_Mode) {
      assert(NULL != BOL_File);
@@ -3482,15 +3530,15 @@ if  (Contig_Mode)
           stop = olap -> t_lo;
          }
 
-#if  1
+#if  0
      fprintf (BOL_File, "%11" F_U64P " %8d %8d %7d %7d\n",
              Loc_ID [T_ID - Hash_String_Num_Offset], T_ID, S_ID, start, stop);
 #else
 //  Show lengths of fragments, too.  Used to determine which overlaps
 //  are A-end dovetails, B-end dovetails, contained or spanning.
-     fprintf (BOL_File, "%11" F_U64P " %8d %8d %7d %7d %7d %7d\n",
+     fprintf (BOL_File, "%11" F_U64P " %8d %8d  %7d %7d %7d  %7d %7d %7d\n",
              Loc_ID [T_ID - Hash_String_Num_Offset], T_ID, S_ID,
-             start, stop, T_Len, S_Len);
+             start, stop, T_Len, olap -> s_lo, olap -> s_hi + 1, S_Len);
 #endif
 
      Total_Overlaps ++;
@@ -3768,9 +3816,14 @@ static void  Output_Partial_Overlap
    if  (Num_PThreads > 1)
        pthread_mutex_lock (& Write_Proto_Mutex);
    errno = 0;
-   fprintf (Out_Stream, "%7d %7d  %c %4d %4d %4d  %4d %4d %4d  %5.2f\n",
-        s_id, t_id, dir_ch, a, b, s_len, c, d, t_len,
-        100.0 * p -> quality);
+   if  (Contig_Mode)
+       fprintf (BOL_File, "%7d %7d  %c %4d %4d %4d  %6d %6d %6d  %5.2f\n",
+            s_id, t_id, dir_ch, a, b, s_len, c, d, t_len,
+            100.0 * p -> quality);
+     else
+       fprintf (Out_Stream, "%7d %7d  %c %4d %4d %4d  %4d %4d %4d  %5.2f\n",
+            s_id, t_id, dir_ch, a, b, s_len, c, d, t_len,
+            100.0 * p -> quality);
    if (errno) {
      fprintf(stderr, "Write failed: %s\n", strerror(errno));
      //fprintf(stderr, "Unlinking output file.\n");
@@ -4123,8 +4176,8 @@ Is_Duplicate_Olap = FALSE;
 
            if  (Kind_Of_Olap == DOVETAIL || Doing_Partial_Overlaps)
                {
-                if  (1 + S_Hi - S_Lo >= MIN_OLAP_LEN
-                       && 1 + T_Hi - T_Lo >= MIN_OLAP_LEN)
+                if  (1 + S_Hi - S_Lo >= Min_Olap_Len
+                       && 1 + T_Hi - T_Lo >= Min_Olap_Len)
                     {
                      int  scr_sub;
 
@@ -4469,7 +4522,7 @@ if  (Curr_String_Num % 10000 == 0)
       //getReadType_ReadStruct (WA -> myRead, & (WA -> curr_frag_type));
       WA -> curr_frag_type = AS_READ;
       Len = strlen (Frag);
-      if  (Len < MIN_OLAP_LEN)
+      if  (Len < Min_Olap_Len)
           fprintf (stderr, "Frag %d is too short.  Len = %d\n",
                       Curr_String_Num, Len);
         else
@@ -5089,9 +5142,9 @@ static int  Read_Next_Frag
 *  If successful, return  TRUE ; if there is no fragment, return  FALSE . */
 
   {
-   int  i, return_val, success, match_ct;
+   int  return_val, success, match_ct;
    uint32  deleted;
-   size_t  frag_len;
+   size_t  i, frag_len;
 #if  USE_SOURCE_FIELD
    char  frag_source [MAX_SOURCE_LENGTH + 1];
 #endif
@@ -5116,6 +5169,7 @@ static int  Read_Next_Frag
        {
         int  result;
         uint  clear_start, clear_end;
+        size_t  len;
 
         getReadIndex_ReadStruct (myRead, last_frag_read);
         result = getSequence_ReadStruct
@@ -5129,13 +5183,10 @@ static int  Read_Next_Frag
             }
 
         // Make sure that we have a lowercase sequence string
-        {
-         int i;
-         int len = strlen (frag);
+        len = strlen (frag);
 
-         for  (i = 0;  i < len;  i ++)
-           frag [i] = tolower (frag [i]);
-        }
+        for  (i = 0;  i < len;  i ++)
+          frag [i] = tolower (frag [i]);
 
         if  (Doing_Partial_Overlaps)
             result = getClearRegion_ReadStruct
@@ -5149,11 +5200,25 @@ static int  Read_Next_Frag
              exit (EXIT_FAILURE);
             }
 
-        frag_len = clear_end - clear_start;
-        if  (clear_start > 0)
+        if  (Ignore_Clear_Range)
+            frag_len = len;
+          else
             {
-             memmove (frag, frag + clear_start, frag_len);
-             memmove (quality, quality + clear_start, frag_len);
+             frag_len = clear_end - clear_start;
+             if  (clear_start > 0)
+                 {
+                  memmove (frag, frag + clear_start, frag_len);
+                  memmove (quality, quality + clear_start, frag_len);
+                 }
+            }
+        if  (OFFSET_MASK < frag_len)
+            {
+             uint64  acc;
+
+             getAccID_ReadStruct (myRead, & acc);
+             fprintf (stderr, "ERROR:  Read \"%s\" is too long (%lu) for hash table\n",
+                      acc, frag_len);
+             exit (-1);
             }
         frag [frag_len] = '\0';
         quality [frag_len] = '\0';
