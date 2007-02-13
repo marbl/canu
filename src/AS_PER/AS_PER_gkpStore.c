@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.15 2007-02-12 22:16:58 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.16 2007-02-13 16:11:38 brianwalenz Exp $";
 
 //    A thin layer on top of the IndexStore supporing the storage and
 // retrieval of records used by the gatekeeper records.
@@ -409,14 +409,10 @@ void
 getFragData(GateKeeperStore *gkp, ReadStruct *rs, int streamFlags) {
   VLSTRING_SIZE_T   actualLength = 0;
 
-  //  XXX likely a better way here!  We want to clear the string --
-  //  set the first byte to zero -- and make sure it's
-  //  zero-terminated.  Better safe....
-
-  memset(rs->seq, 0, 2048);
-  memset(rs->qlt, 0, 2048);
-  memset(rs->hps, 0, 2048);
-  memset(rs->src, 0, 2048);
+  rs->seq[0] = 0;
+  rs->qlt[0] = 0;
+  rs->hps[0] = 0;
+  rs->src[0] = 0;
 
   if (streamFlags & FRAG_S_SEQ) {
     getVLRecordStore(gkp->seq,
@@ -424,6 +420,7 @@ getFragData(GateKeeperStore *gkp, ReadStruct *rs, int streamFlags) {
                      rs->seq,
                      VLSTRING_MAX_SIZE,
                      &actualLength);
+    rs->seq[actualLength] = 0;
   }
   if (streamFlags & FRAG_S_QLT) {
     getVLRecordStore(gkp->qlt,
@@ -431,6 +428,7 @@ getFragData(GateKeeperStore *gkp, ReadStruct *rs, int streamFlags) {
                      rs->qlt,
                      VLSTRING_MAX_SIZE,
                      &actualLength);
+    rs->qlt[actualLength] = 0;
   }
   if (streamFlags & FRAG_S_HPS) {
     getVLRecordStore(gkp->hps,
@@ -438,6 +436,7 @@ getFragData(GateKeeperStore *gkp, ReadStruct *rs, int streamFlags) {
                      rs->hps,
                      VLSTRING_MAX_SIZE,
                      &actualLength);
+    rs->hps[actualLength] = 0;
   }
   if (streamFlags & FRAG_S_SRC) {
     getVLRecordStore(gkp->src,
@@ -445,6 +444,7 @@ getFragData(GateKeeperStore *gkp, ReadStruct *rs, int streamFlags) {
                      rs->src,
                      VLSTRING_MAX_SIZE,
                      &actualLength);
+    rs->src[actualLength] = 0;
   }
 }
 
