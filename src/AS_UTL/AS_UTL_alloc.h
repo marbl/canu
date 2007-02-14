@@ -44,9 +44,17 @@ void  safe_free2(void *);
 
 #define safe_free(Q) { safe_free2(Q); Q = NULL; }
 
+//  And, thanks, GNU.  strdup() (and, sigh, probably lots others) are
+//  implemented as a macro that calls free(), which then gets expanded
+//  into our bogus function.
+//
+#ifndef X86_GCC_LINUX
+
 #define malloc(X)     use_safe_malloc_instead(X)
 #define calloc(X,Y)   use_safe_calloc_instead(X,Y)
 #define realloc(X,Y)  use_safe_realloc_instead(X,Y)
 #define free(X)       use_safe_free_instead(X)
+
+#endif
 
 #endif // AS_UTL_ALLOC_H
