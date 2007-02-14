@@ -79,12 +79,11 @@ JTC_GUIDWriteMemoryCallback(void *ptr, size_t size, size_t nmemb, void *data)
   register int realsize = size * nmemb;
   struct JTC_GUIDMemoryStruct *mem = (struct JTC_GUIDMemoryStruct *)data;
   
-  mem->memory = (char *)realloc(mem->memory, mem->size + realsize + 1);
-  if (mem->memory) {
-    memcpy(&(mem->memory[mem->size]), ptr, realsize);
-    mem->size += realsize;
-    mem->memory[mem->size] = 0;
-  }
+  mem->memory = (char *)safe_realloc(mem->memory, mem->size + realsize + 1);
+  memcpy(&(mem->memory[mem->size]), ptr, realsize);
+  mem->size += realsize;
+  mem->memory[mem->size] = 0;
+
   return realsize;
 }
 
@@ -129,7 +128,7 @@ CDS_UID_t getGUIDBlock(int guidRequestSize)
 
   if (chunk.size >= JTC_GUID_HTTP_RESPONSE_MAX_SIZE) {
     /* error */
-    free(chunk.memory);
+    safe_free(chunk.memory);
     return 0;
   }
 
@@ -148,7 +147,7 @@ CDS_UID_t getGUIDBlock(int guidRequestSize)
     guidNumLength = guidPositionEnd - guidPositionStart;
     if (guidPositionStart == 0 || guidPositionEnd <= guidPositionStart) {
       /* error */
-      free(chunk.memory);
+      safe_free(chunk.memory);
       return 0;
     }
     memcpy(guidNumResponse, httpResponse + guidPositionStart, guidNumLength);
@@ -158,11 +157,11 @@ CDS_UID_t getGUIDBlock(int guidRequestSize)
     guidStart = STR_TO_UID(guidNumResponse,NULL,10);
   } else {
     /* error */
-    free(chunk.memory);
+    safe_free(chunk.memory);
     return 0;
   }
 
-  free(chunk.memory);
+  safe_free(chunk.memory);
 
 
   return guidStart;
