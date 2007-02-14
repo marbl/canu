@@ -43,11 +43,7 @@ PROGS = AS_MSG_pmesg_test \
 include $(LOCAL_WORK)/src/c_make.as
 
 all: $(OBJECTS) $(LIBRARIES) $(PROGS)
-
-install: all
-	echo "Nothing to be done for AS_MSG"
-
-default: clean all regression tester install 
+	@test -n nop
 
 libAS_MSG.a:   AS_MSG_pmesg.o
 

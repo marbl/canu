@@ -92,6 +92,7 @@ OBJECTS = \
   $(SOURCES:.c=.o)
 
 all: $(LIBRARIES) $(PROGS)
+	@test -n nop
 
 libAS_UID.a: SYS_UIDcommon.o SYS_UIDclient.o SYS_UIDclient_simple.o SYS_UIDerror.o $(SITEOBJS)
 

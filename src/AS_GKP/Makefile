@@ -40,8 +40,7 @@ PROGS = gatekeeper dumpGatekeeper
 include $(LOCAL_WORK)/src/c_make.as
 
 all:    $(OBJECTS) $(LIBRARIES) $(PROGS)
-
-install: all
+	@test -n nop
 
 gatekeeper: $(GKPOBJECTS) libAS_PER.a libAS_MSG.a libAS_UTL.a
 

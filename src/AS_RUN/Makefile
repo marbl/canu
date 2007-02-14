@@ -54,8 +54,7 @@ SCRIPTS = runCA-OBT.pl \
 include $(LOCAL_WORK)/src/c_make.as
 
 all: $(OBJECTS) $(LIBRARIES) $(PROGS) $(SCRIPTS)
-
-install: all
+	@test -n nop
 
 RUNCAOBTUTIL = runCA-OBT/runCAutil/applyOverlapCorrection.pl \
                runCA-OBT/runCAutil/checkOverlap.pl \

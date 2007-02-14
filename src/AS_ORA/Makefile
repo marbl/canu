@@ -63,6 +63,7 @@ CLEANABLE_FILES = *.o *~
 INST_SET= $(PROGS)
 
 all: $(PROGS) $(LIBRARIES) $(OBJECTS)
+	@test -n nop
 
 get-olaps: $(AS_ORA_OBJS) get-olaps.o libCA.a
 
@@ -77,6 +78,3 @@ dumpMatePairing : dumpMatePairing.o libCA.a
 make-canonical: $(AS_ORA_OBJS) make-canonical.o libCA.a
 
 compare-canonical: $(AS_ORA_OBJS) compare-canonical.o libCA.a
-
-install: $(PROGS) $(LIBRARIES) $(OBJECTS)
-	@echo "NO INSTALL"

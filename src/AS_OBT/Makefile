@@ -40,6 +40,7 @@ PROGS   = chimera consolidate initialTrim merge-trimming sort-overlaps \
 SCRIPTS = 
 
 all: $(PROGS) $(SCRIPTS)
+	@test -n nop
 
 initialTrim: initialTrim.o trim.o -lAS_PER -lAS_UTL
 

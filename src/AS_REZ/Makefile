@@ -54,9 +54,8 @@ PROGS = batchify chunk_analyze MicroHetIUM
 
 include $(LOCAL_WORK)/src/c_make.as
 
-install:
-
-all: $(OBJECTS) $(LIBRARIES) $(PROGS) install
+all: $(OBJECTS) $(LIBRARIES) $(PROGS)
+	@test -n nop
 
 libAS_REZ.a: $(LIBOBJECTS) 
 

@@ -83,6 +83,7 @@ OBJECTS = $(SOURCES:.c=.o)
 include $(LOCAL_WORK)/src/c_make.as
 
 all: $(OBJECTS) $(LIBRARIES) $(PROGS) install
+	@test -n nop
 
 install: $(SCRIPTS)
 	@cp -f $(SCRIPTS) $(LOCAL_BIN)

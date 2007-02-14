@@ -80,7 +80,8 @@ CLEANABLE_FILES = *.o *~
 INST_SET= $(PROGS)
 
 all: $(PROGS) $(LIBRARIES) $(OBJECTS) $(SCRIPTS)
-install: $(PROGS) $(LIBRARIES) $(OBJECTS) $(SCRIPTS)
+	@test -n nop
+
 
 scf2chrSimple: scf2chrSimple.o libAS_UTL.a
 

@@ -22,7 +22,7 @@
 ###########################################################################
 #
 # *********************************************************************
-# $Id: Makefile,v 1.5 2006-09-26 21:06:46 brianwalenz Exp $
+# $Id: Makefile,v 1.6 2007-02-14 07:30:19 brianwalenz Exp $
 # Module: AS_MER
 # Description: The merCounter.
 # Assumptions:
@@ -72,5 +72,6 @@ CLEANABLE_FILES = *.o *~
 INST_SET= $(PROGS)
 
 all: $(OBJECTS) $(LIBRARIES) $(PROGS) 
+	@test -n nop
 
 meryl: AS_MER_meryl.o $(AS_MER_GENERAL_OBJECTS) libAS_PER.a libAS_UTL.a 

@@ -50,9 +50,7 @@ OBJECTS = $(AS_LIN_OBJS)
 include $(LOCAL_WORK)/src/c_make.as
 
 all: $(LIB_OBJECTS) $(LIBRARIES)
-
-install: all
-	echo "Nothing to be done for AS_LIN"
+	@test -n nop
 
 libAS_LIN.a: $(LIB_OBJECTS)
 

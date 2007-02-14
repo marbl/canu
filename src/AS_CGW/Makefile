@@ -114,6 +114,7 @@ CRUD =  CheckILK Checkpoint process_scaffolds loadcgw \
 include $(LOCAL_WORK)/src/c_make.as
 
 all: $(OBJECTS) $(LIBRARIES) $(PROGS)
+	@test -n nop
 
 
 libAS_CGW.a: $(CGW_LIB_OBJECTS)

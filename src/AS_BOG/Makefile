@@ -49,6 +49,7 @@ PROGS = $(TOOL_PROGS)
 include $(LOCAL_WORK)/src/c_make.as
 
 all:    $(OBJECTS) $(LIBRARIES) $(PROGS) 
+	@test -n nop
 
 buildUnitigs: BuildUnitigs.o $(LIB_OBJS) $(AS_LIBRARIES) $(SYS_LIBRARIES) 
 

@@ -56,9 +56,7 @@ PROGS = consensus \
 include $(LOCAL_WORK)/src/c_make.as
 
 all: $(LIB_OBJECTS) $(LIBRARIES) $(OBJECTS) $(PROGS)
-
-install: all
-	echo "Nothing to be done for AS_CNS"
+	@test -n nop
 
 libAS_CNS.a: $(LIB_OBJECTS)
 

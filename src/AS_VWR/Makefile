@@ -57,8 +57,8 @@ else
   endif
 endif
 
-default: all
 all: $(OBJECTS) $(PROGS)
+	@test -n nop
 
 celamy: $(CELAMY_OBJECTS) $(COMMON_OBJECTS) libAS_UTL.a
 

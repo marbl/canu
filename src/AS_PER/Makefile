@@ -41,8 +41,7 @@ PROGS =
 include $(LOCAL_WORK)/src/c_make.as
 
 all: $(OBJECTS) $(LIBRARIES) $(PROGS) 
-
-install: all
+	@test -n nop
 
 objects: $(OBJECTS)
 

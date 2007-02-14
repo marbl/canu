@@ -70,6 +70,7 @@ PROGS = SDButil \
 include $(LOCAL_WORK)/src/c_make.as
 
 all: $(OBJECTS) $(LIBRARIES) $(PROGS)
+	@test -n nop
 
 libAS_SDB.a: $(LIB_OBJECTS)
 

@@ -63,11 +63,10 @@ PROGS = AS_ALN_testdriver1 AS_ALN_testdriver2 AS_ALN_testdriver4\
 	AS_ALN_boxfiller
 
 include $(LOCAL_WORK)/src/c_make.as
-#CFLAGS = -g
 
-default: all
 
 all: $(OBJECTS) $(LIBRARIES) $(PROGS)
+	@test -n nop
 
 libAS_ALN.a: $(LIB_OBJECTS)
 

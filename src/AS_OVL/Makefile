@@ -90,6 +90,7 @@ endif
 
 
 all:    $(OBJECTS) $(LIBRARIES) $(PROGS)
+	@test -n nop
 
 
 libAS_OVL.a: $(LIBOBJECTS) AS_OVL_delcher.o
