@@ -100,13 +100,13 @@ libCA.a: SYS_UIDcommon.o SYS_UIDclient.o SYS_UIDclient_simple.o SYS_UIDerror.o $
 
 #libAS_UIDcpp.a: SYS_UIDclient_cpp.o
 
-uidsvrd: SYS_UIDcommon.o SYS_UIDserver.o SYS_UIDerror.o SYS_UIDserver_main.o
+uidsvrd: SYS_UIDcommon.o SYS_UIDserver.o SYS_UIDerror.o SYS_UIDserver_main.o libAS_UTL.a
 
 uid_client_test: SYS_UIDclient_test.o libAS_UID.a libAS_UTL.a
 
-checkEuidService: checkEuidService.o libAS_UID.a
+checkEuidService: checkEuidService.o libAS_UID.a libAS_UTL.a
 
-#uid_client_test_cpp: SYS_UIDclient_cpp.o SYS_UIDclient_test_cpp.o libAS_UID.a
+#uid_client_test_cpp: SYS_UIDclient_cpp.o SYS_UIDclient_test_cpp.o libAS_UID.a libAS_UTL.a
 
 uidclient: SYS_UIDclient_stand_alone.o libAS_UID.a libAS_UTL.a
 
