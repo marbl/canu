@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.8 2007-02-13 17:59:34 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.9 2007-02-14 07:20:13 brianwalenz Exp $";
 /*************************************************************************
  Module:  AS_PER_genericStore
  Description:
@@ -52,8 +52,8 @@ static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.8 2007-02-13 17:59:34 bria
  *************************************************************************/
 
 /* RCS Info
- * $Id: AS_PER_genericStore.c,v 1.8 2007-02-13 17:59:34 brianwalenz Exp $
- * $Revision: 1.8 $
+ * $Id: AS_PER_genericStore.c,v 1.9 2007-02-14 07:20:13 brianwalenz Exp $
+ * $Revision: 1.9 $
  *
  */
 
@@ -525,8 +525,7 @@ int closeStore(StoreHandle s){
 
   if(myStore->isMemoryStore){
     myStore->allocatedSize = 0;
-    free(myStore->buffer);
-    myStore->buffer = NULL;
+    safe_free(myStore->buffer);
   }else{
     if(myStore->isDirty)
     {
@@ -535,8 +534,7 @@ int closeStore(StoreHandle s){
     }
     if(fclose(myStore->fp) != 0)
       assert(0);
-    free(myStore->buffer);
-    myStore->buffer = NULL;
+    safe_free(myStore->buffer);
   }
   myStore->status = UnAllocatedStore;
   return 0;

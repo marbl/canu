@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_Bubble_Popper.c,v 1.7 2007-02-12 22:16:55 brianwalenz Exp $";
+= "$Id: AS_CGB_Bubble_Popper.c,v 1.8 2007-02-14 07:20:05 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -105,7 +105,7 @@ BP_init(BubblePopper_t bp, BubGraph_t bg, TChunkMesg *chunks,
     bp->sdiffFile = fopen(filename, "w");
     if (bp->sdiffFile)
       fprintf(bp->sdiffFile, "Largest Unaligned Block Per Bubble\n");
-    free(filename);
+    safe_free(filename);
   }
 #else
   bp->nfragsFile = bp->nfragspopFile = bp->sdiffFile = NULL;

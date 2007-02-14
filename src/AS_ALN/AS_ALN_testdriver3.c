@@ -31,7 +31,7 @@
 #include "AS_global.h"
 #include "AS_ALN_aligners.h"
 
-//void *ckalloc(int size)	/* Guarded malloc utility */
+//void *safe_malloc(int size)	/* Guarded malloc utility */
 //{ void *new;
 //
 //  new = (void *) malloc(size);

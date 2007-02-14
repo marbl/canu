@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: UpdateEratesOVL.c,v 1.8 2007-02-12 22:16:58 brianwalenz Exp $
- * $Revision: 1.8 $
+ * $Id: UpdateEratesOVL.c,v 1.9 2007-02-14 07:20:13 brianwalenz Exp $
+ * $Revision: 1.9 $
 */
 
-static char CM_ID[] = "$Id: UpdateEratesOVL.c,v 1.8 2007-02-12 22:16:58 brianwalenz Exp $";
+static char CM_ID[] = "$Id: UpdateEratesOVL.c,v 1.9 2007-02-14 07:20:13 brianwalenz Exp $";
 
 
 //  System include files
@@ -120,7 +120,7 @@ int  main
    assert(NULL != erate);
    Set_Corrected_Erate (OVL_Store_Path, header [0], header [1], erate, num);
 
-   free(erate);
+   safe_free(erate);
    fprintf (stderr, "Finished\n");
    
    return  0;
@@ -210,10 +210,8 @@ static void  Set_Corrected_Erate
     int  num_frags, io_buff_ct = 0;
     int  i, j, ct, first, file_index;
 
-    io_buff = (Short_Olap_Data_t *)calloc(IO_BUFF_SIZE, sizeof(Short_Olap_Data_t));
-    if (io_buff == NULL)
-      fprintf(stderr, "Failed to allocate %d io_buff's.\n", IO_BUFF_SIZE), exit(1);
-    
+    io_buff = (Short_Olap_Data_t *)safe_calloc(IO_BUFF_SIZE, sizeof(Short_Olap_Data_t));
+
     assert(NULL != path);
     {
      uint32 header [3];
@@ -345,7 +343,7 @@ static void  Set_Corrected_Erate
           }
    }
 
-   free(olap_offset);
+   safe_free(olap_offset);
 
    if  (ct != num)
        {
@@ -356,7 +354,7 @@ static void  Set_Corrected_Erate
         exit (EXIT_FAILURE);
        }
 
-   free(io_buff);
+   safe_free(io_buff);
 
    return;
   }

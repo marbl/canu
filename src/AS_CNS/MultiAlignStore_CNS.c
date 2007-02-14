@@ -25,7 +25,7 @@
    Assumptions:  libAS_UTL.a
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.25 2007-02-12 22:16:56 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.26 2007-02-14 07:20:09 brianwalenz Exp $";
 
 
 #include <assert.h>
@@ -657,9 +657,9 @@ CreateMultiAlignTFromICM(IntConConMesg *icm, int localID, int sequenceOnly)
          strcpy(tmp.weights, cvr_mesg->weights);
          strcpy(tmp.var_seq, cvr_mesg->var_seq);
          SetIntMultiVar(ma->v_list, cvr, &tmp);
-         FREE(tmp.nr_conf_alleles);
-         FREE(tmp.weights);
-         FREE(tmp.var_seq);
+         safe_free(tmp.nr_conf_alleles);
+         safe_free(tmp.weights);
+         safe_free(tmp.var_seq);
       }
     }
 
@@ -699,7 +699,7 @@ CreateMultiAlignTFromCCO(SnapConConMesg *cco, int localID, int sequenceOnly)
 {
 /* if localID is negative, use NULL source field, else, use source for localID */
   int cfr, cvr, deltai;
-  MultiAlignT *ma = (MultiAlignT *)malloc(sizeof(MultiAlignT));
+  MultiAlignT *ma = (MultiAlignT *)safe_malloc(sizeof(MultiAlignT));
   char *ptr;
   UnitigPos unitigPos;
   long localFragID = localID;
@@ -751,7 +751,7 @@ CreateMultiAlignTFromCCO(SnapConConMesg *cco, int localID, int sequenceOnly)
           int32 src_len;
           if (cfr_mesg->source) {
              src_len =  strlen(cfr_mesg->source);
-             tmp.source = (char *) malloc((src_len+1)*sizeof(char));
+             tmp.source = (char *) safe_malloc((src_len+1)*sizeof(char));
              strcpy(tmp.source,cfr_mesg->source);
 	  } else {
              tmp.source = cfr_mesg->source;
@@ -863,9 +863,9 @@ DeleteMultiAlignT(MultiAlignT *ma)
     if (n_frags > 0) t=GetIntMultiPos(ma->f_list,0);
     if (n_vars > 0) v=GetIntMultiVar(ma->v_list, 0);
     for (i=0;i<n_vars;i++){
-       if (v->nr_conf_alleles) free(v->nr_conf_alleles);
-       if (v->weights) free(v->weights);
-       if (v->var_seq) free(v->var_seq);
+       if (v->nr_conf_alleles) safe_free(v->nr_conf_alleles);
+       if (v->weights) safe_free(v->weights);
+       if (v->var_seq) safe_free(v->var_seq);
        v++;
     }
   }   
@@ -876,7 +876,7 @@ DeleteMultiAlignT(MultiAlignT *ma)
   DeleteVA_int32(ma->delta);
   DeleteVA_IntMultiPos(ma->f_list);
   DeleteVA_IntMultiVar(ma->v_list);
-  free(ma);
+  safe_free(ma);
 }
 
 /********************************************************************************/
@@ -1328,7 +1328,7 @@ DeleteMultiAlignStoreT(MultiAlignStoreT *multiAlignStore)
   }
   
   DeleteVA_PtrT(multiAlignStore->multiAligns);
-  free(multiAlignStore);
+  safe_free(multiAlignStore);
 }
 
 // Persistence
@@ -1534,7 +1534,7 @@ GetCoverageInMultiAlignT(MultiAlignT *ma, SeqInterval range,
        if (cov[j] == 0) rc = 0;
        SetVA_int(covinput, j, &cov[j]);
     }
-    free(cov);
+    safe_free(cov);
     return rc;
 }
 
@@ -1729,8 +1729,8 @@ CollectStats(MultiAlignT *ma,
     }
     fflush(column_stats);
     fflush(frag_stats);
-    free(column_cov);
-    free(column_mm);
+    safe_free(column_cov);
+    safe_free(column_mm);
     DeleteVA_ErrorStruct(errors);
     delete_ReadStruct(rsp);
 }
@@ -1905,15 +1905,15 @@ PrintMultiAlignT(FILE *out,
   }
   if (multia) {
        for (i=0;i<2*depth;i++) {
-         free((char *)multia[i]);
+         safe_free((char *)multia[i]);
        }
-       free(multia);
+       safe_free(multia);
        for (i=0;i<depth;i++) {
-         free((int *)idarray[i]);
-         free((int *)oriarray[i]);
+         safe_free((int *)idarray[i]);
+         safe_free((int *)oriarray[i]);
        }
-       free(idarray);
-       free(oriarray);
+       safe_free(idarray);
+       safe_free(oriarray);
   }
   return 1;
 }
@@ -2056,15 +2056,15 @@ PrintMultiAlignTSNPs(
   }
   if (multia) {
        for (i=0;i<2*depth;i++) {
-         free((char *)multia[i]);
+         safe_free((char *)multia[i]);
        }
-       free(multia);
+       safe_free(multia);
        for (i=0;i<depth;i++) {
-         free((int *)idarray[i]);
-         free((int *)oriarray[i]);
+         safe_free((int *)idarray[i]);
+         safe_free((int *)oriarray[i]);
        }
-       free(idarray);
-       free(oriarray);
+       safe_free(idarray);
+       safe_free(oriarray);
   }
   return 1;
 }

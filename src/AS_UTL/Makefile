@@ -45,7 +45,7 @@ PROGS = testVar \
 LIB_SOURCES = AS_UTL_HashCommon.c AS_UTL_Hash.c AS_UTL_PHash.c \
 	AS_UTL_heap.c AS_UTL_Var.c AS_UTL_rand.c AS_UTL_version.c \
 	AS_UTL_interval.c UnionFind_AS.c AS_UTL_skiplist.c \
-        AS_UTL_ID_store.c AS_UTL_SequenceBucket.c AS_UTL_param_proc.c \
+        AS_UTL_ID_store.c AS_UTL_SequenceBucket.c \
         getopt.c getopt1.c AS_UTL_alloc.c AS_UTL_fileIO.c
 LIB_OBJECTS = $(LIB_SOURCES:.c=.o)
 

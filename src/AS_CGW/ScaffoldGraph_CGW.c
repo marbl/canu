@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.15 2007-02-12 22:16:56 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.16 2007-02-14 07:20:07 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -480,7 +480,7 @@ void DestroyScaffoldGraph(ScaffoldGraphT *sgraph){
   DeleteVA_DistT(sgraph->Dists);
   DeleteVA_InfoByIID(sgraph->iidToFragIndex);
 
-  free(sgraph);
+  safe_free(sgraph);
 }
 
 

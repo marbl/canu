@@ -18,17 +18,9 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_UTL_version.c,v 1.9 2006-10-08 08:47:40 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_UTL_version.c,v 1.10 2007-02-14 07:20:15 brianwalenz Exp $";
 
 #include "AS_UTL_version.h"
-
-#define  SAFE_MALLOC(command_name, the_type, length) \
-  assert(NULL == command_name); \
-  command_name = (the_type *) malloc(length); \
-  assert(NULL != command_name);
-
-#define SAFE_FREE(command_name) \
-  assert(NULL != command_name); free(command_name); command_name = NULL;
 
 #define SAFE_FOPEN( adt_tmp_file, adt_tmp_name, the_mode) \
   assert(NULL == adt_tmp_file); adt_tmp_file = fopen(adt_tmp_name, the_mode); assert(NULL != adt_tmp_file);
@@ -44,13 +36,13 @@ int VersionStamp(int argc, char *argv[]) {
   
   char *command_name = NULL;
 
-  SAFE_MALLOC( command_name, char, strlen(argv[0])+15 );
+  command_name = (char *)safe_malloc(sizeof(char) * (strlen(argv[0])+15));
 
   fprintf(stderr,"\n+++++++++++++++++++++++++ VERSION INFO +++++++++++++++++++++++++\n");
   sprintf(command_name,"ident `which %s`",argv[0]);
   fprintf(stderr,"Version <%s>\n", command_name);
   rc=system(command_name);
-  SAFE_FREE(command_name);
+  safe_free(command_name);
   
   fprintf(stderr,"\nComplete call: %s ",argv[0]);
   for (i=1;i<argc;i++) {
@@ -84,7 +76,7 @@ int VersionStampADTWithCommentAndVersion(AuditMesg *adt_mesg, int argc, char *ar
   fd = mkstemp(adt_tmp_name);
   unlink(adt_tmp_name);
 
-  SAFE_MALLOC(command_name, char, strlen(argv[0])+20+FILENAME_MAX);
+  command_name = (char *)safe_malloc(sizeof(char) * (strlen(argv[0])+20+FILENAME_MAX));
   sprintf(command_name,"ident `which %s` > %s",argv[0],adt_tmp_name);
   //  fprintf(stderr,"* Calling: %s\n", command_name);
   rc=system(command_name);
@@ -104,7 +96,7 @@ int VersionStampADTWithCommentAndVersion(AuditMesg *adt_mesg, int argc, char *ar
   sprintf(command_name,"pwd >> %s",adt_tmp_name);
   //  fprintf(stderr,"* Calling: %s\n", command_name);
   rc = system(command_name);
-  SAFE_FREE(command_name);
+  safe_free(command_name);
   // Now, read back into char *
   {
     int c;
@@ -144,7 +136,7 @@ int VersionStampADTWithCommentAndVersion(AuditMesg *adt_mesg, int argc, char *ar
     len += strlen(startOfInterestingPart);
     
     // fprintf(stderr,"* len = %d\n", len);
-    SAFE_MALLOC(adt_char, char, len+3);
+    adt_char = safe_malloc(sizeof(char) * (len+3));
     sprintf(adt_char,"\n%s\n", comment);
     strcat(adt_char,startOfInterestingPart);
     

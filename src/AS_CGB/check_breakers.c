@@ -164,17 +164,17 @@ void FreeBreakerSet( BreakerSetp bs )
             for( k = 0; k < bs->breakers[i].chunks[j].num_frags; k++ )
             {
               if( bs->breakers[i].chunks[j].f_list[k].delta )
-                free( bs->breakers[i].chunks[j].f_list[k].delta );
+                safe_free( bs->breakers[i].chunks[j].f_list[k].delta );
             }
-            free( bs->breakers[i].chunks[j].f_list );
+            safe_free( bs->breakers[i].chunks[j].f_list );
           }
         }
       }
-      free( bs->breakers );
+      safe_free( bs->breakers );
     }
     if( bs->indexes )
-      free( bs->indexes );
-    free( bs );
+      safe_free( bs->indexes );
+    safe_free( bs );
   }
 }
 
@@ -1352,7 +1352,7 @@ typedef CheckGlobals * CheckGlobalsp;
 void InitializeGlobals( CheckGlobalsp globals, char * program_name )
 {
   globals->program_name = program_name;
-  globals->version = "$Revision: 1.12 $";
+  globals->version = "$Revision: 1.13 $";
   globals->chims_file = NULL;
   globals->craps_file = NULL;
   globals->cgb_file = NULL;

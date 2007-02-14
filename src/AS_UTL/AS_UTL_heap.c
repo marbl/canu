@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_heap.c,v 1.5 2006-11-14 17:52:18 eliv Exp $";
+static char CM_ID[] = "$Id: AS_UTL_heap.c,v 1.6 2007-02-14 07:20:15 brianwalenz Exp $";
 
 /*********************************************************************/
 // headers
@@ -56,13 +56,7 @@ static char CM_ID[] = "$Id: AS_UTL_heap.c,v 1.5 2006-11-14 17:52:18 eliv Exp $";
 */
 GenericHeapp AllocateGenericHeap( uint32 num_items, size_t item_size )
 {
-  GenericHeapp heap = (GenericHeapp) calloc( 1, sizeof( GenericHeap ) );
-
-  if( heap == NULL )
-  {
-    fprintf( stderr, "Failed to allocate generic heap.\n" );
-    return( (GenericHeapp) NULL );
-  }
+  GenericHeapp heap = (GenericHeapp)safe_calloc( 1, sizeof( GenericHeap ) );
   
   // allocate an initial heap array
   heap->first = AllocateGenericArray( num_items, item_size );
@@ -199,7 +193,7 @@ void FreeGenericHeap( GenericHeapp heap )
       FreeGenericArray( temp_array );
       temp_array = heap->first;
     }
-    free( heap );
+    safe_free( heap );
   }
 }
 
@@ -274,12 +268,7 @@ GenericArrayp AllocateGenericArray( uint32 num_items, size_t item_size )
    int32 newSize, logNewSize, num_allocated;
 
   // allocate the generic array object
-  GenericArrayp ret_ptr = (GenericArrayp) malloc( sizeof( GenericArray ) );
-  if( ret_ptr == (GenericArrayp) NULL )
-  {
-    fprintf( stderr, "Failed to allocate generic array structure.\n" );
-    return( (GenericArrayp) NULL );
-  }
+  GenericArrayp ret_ptr = (GenericArrayp)safe_malloc( sizeof( GenericArray ) );
 
   newSize = num_items * item_size;
   logNewSize = (int) ceil(log2(newSize));  /* Find the next power of two that contains newSize */
@@ -287,17 +276,7 @@ GenericArrayp AllocateGenericArray( uint32 num_items, size_t item_size )
   num_allocated = newSize/item_size;
 
   // allocate the generic array itself
-  ret_ptr->array =
-    (GenericObjectp) calloc( num_allocated, item_size );
-  if( ret_ptr->array == NULL )
-  {
-    fprintf( stderr,
-             "Failed to allocate array of %d generic objects of size "
-	     F_SIZE_T ".\n",
-             num_items, item_size );
-    free( ret_ptr );
-    return( (GenericArrayp) NULL );
-  }
+  ret_ptr->array = (GenericObjectp)safe_calloc( num_allocated, item_size );
 
   // set up other array variables
   ret_ptr->num_items = num_allocated;
@@ -322,8 +301,8 @@ void FreeGenericArray( GenericArrayp generics )
   if( generics != NULL )
   {
     if( generics->array != NULL )
-      free( generics->array );
-    free( generics );
+      safe_free( generics->array );
+    safe_free( generics );
   }
 }
 

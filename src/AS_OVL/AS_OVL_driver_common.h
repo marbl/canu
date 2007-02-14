@@ -26,8 +26,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_driver_common.h,v 1.13 2007-02-12 22:16:57 brianwalenz Exp $
- * $Revision: 1.13 $
+ * $Id: AS_OVL_driver_common.h,v 1.14 2007-02-14 07:20:13 brianwalenz Exp $
+ * $Revision: 1.14 $
 */
 
 
@@ -420,11 +420,11 @@ Profile_Hits ();
    Cleanup_Work_Area (thread_wa);
    for  (i = 1;  i < Num_PThreads;  i ++)
      Cleanup_Work_Area (thread_wa + i);
-//   free (driver_wa);
-   free (thread_wa);
-   free (thread_id);
-   free (new_stream_segment);
-   free (old_stream_segment);
+//   safe_free (driver_wa);
+   safe_free (thread_wa);
+   safe_free (thread_id);
+   safe_free (new_stream_segment);
+   safe_free (old_stream_segment);
 
 #if  ANALYZE_HITS
 fclose (High_Hits_File);
@@ -475,8 +475,8 @@ void  Cleanup_Work_Area
 //  Free memory allocated in  (* wa) .
 
   {
-   free (wa -> String_Olap_Space);
-   free (wa -> Match_Node_Space);
+   safe_free (wa -> String_Olap_Space);
+   safe_free (wa -> Match_Node_Space);
    delete_ReadStruct (wa -> myRead);
 
    return;

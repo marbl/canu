@@ -500,10 +500,6 @@ OverlapMesg *BoxFill_AS(InternalFragMesg *a, InternalFragMesg *b,
 			CompareOptions what, int *where);
 
 
-void *ckalloc(size_t size);	/* Guarded malloc utility */
-void *ckrealloc(void* ptr, size_t size);	/* Guarded realloc utility */
-void *ckreallocNullOK(void* ptr, size_t size);	/* Guarded realloc utility,
-						   allowing ptr to be NULL */
 
 void PrintAlign(FILE *file, int prefix, int suffix,
                        char *a, char *b, int *trace);

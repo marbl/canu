@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: eCR.c,v 1.12 2007-02-12 22:16:56 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: eCR.c,v 1.13 2007-02-14 07:20:08 brianwalenz Exp $";
 
 #include "eCR.h"
 
@@ -682,7 +682,7 @@ main(int argc, char **argv) {
 
                   gotNewLeftMA = GetNewUnitigMultiAlign(unitig, fragPoss, lFragIid);
 
-                  free(fragPoss);  // inefficient, let's just do a big array once that get's reused
+                  safe_free(fragPoss);  // inefficient, let's just do a big array once that get's reused
 
                   if (!gotNewLeftMA)
                     unitigMultiAlignFailures++;
@@ -743,7 +743,7 @@ main(int argc, char **argv) {
 
                   gotNewRightMA = GetNewUnitigMultiAlign(unitig, fragPoss, rFragIid);
 
-                  free(fragPoss);  // inefficient, let's just do a big array once that get's reused
+                  safe_free(fragPoss);  // inefficient, let's just do a big array once that get's reused
 
                   if (!gotNewRightMA)
                     unitigMultiAlignFailures++;

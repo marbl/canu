@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: GrowOlapStoreOVL.c,v 1.11 2007-01-29 20:41:17 brianwalenz Exp $
- * $Revision: 1.11 $
+ * $Id: GrowOlapStoreOVL.c,v 1.12 2007-02-14 07:20:13 brianwalenz Exp $
+ * $Revision: 1.12 $
 */
 
-static char CM_ID[] = "$Id: GrowOlapStoreOVL.c,v 1.11 2007-01-29 20:41:17 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GrowOlapStoreOVL.c,v 1.12 2007-02-14 07:20:13 brianwalenz Exp $";
 
 
 //  System include files
@@ -415,7 +415,7 @@ static void  Output_New_Batch
 
    // Now set up for next batch in case there is one
 
-   free (Old_Offset);
+   safe_free (Old_Offset);
    Old_Offset = combined_offset;
    Max_Old_Frag = Highest_Frag;
 
@@ -571,8 +571,8 @@ static void  Parse_Command_Line
            "Using "F_SIZE_T"MB memory to store overlaps.\n",
            (sizeof(Long_Olap_Data_t) + sizeof(Short_Olap_Data_t)) * Max_Olap_Batch / 1048576);
 
-   New_Olap    = (Long_Olap_Data_t *) malloc(sizeof(Long_Olap_Data_t)  * Max_Olap_Batch);
-   Sorted_Olap = (Short_Olap_Data_t *)malloc(sizeof(Short_Olap_Data_t) * Max_Olap_Batch);
+   New_Olap    = (Long_Olap_Data_t *) safe_malloc(sizeof(Long_Olap_Data_t)  * Max_Olap_Batch);
+   Sorted_Olap = (Short_Olap_Data_t *)safe_malloc(sizeof(Short_Olap_Data_t) * Max_Olap_Batch);
 
    if ((New_Olap == NULL) || (Sorted_Olap == NULL)) {
      fprintf(stderr,

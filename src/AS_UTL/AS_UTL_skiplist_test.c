@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_UTL_skiplist_test.c,v 1.4 2005-03-22 19:49:30 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_UTL_skiplist_test.c,v 1.5 2007-02-14 07:20:15 brianwalenz Exp $";
 
 
 #include "AS_UTL_skiplist.h"
@@ -35,14 +35,14 @@ typedef struct{
 
 Complicated* alloc_Complicated(int len)
 {
-  Complicated *c= (Complicated*) malloc(sizeof(Complicated));
-  c->you = (int*) calloc(sizeof(int),len);
+  Complicated *c= (Complicated*)safe_malloc(sizeof(Complicated));
+  c->you = (int*)safe_calloc(sizeof(int),len);
   return c;
 }
 
 void free_Complicated(Complicated* c){
-  free(c->you);
-  free(c);
+  safe_free(c->you);
+  safe_free(c);
 }
 
 SL_DEF(int)
@@ -96,7 +96,7 @@ int main(void){
   printf("result of lookup = %lf\n",it->key);
 
   printf("inserting %lf \n",lu);
-  com = (Complicated*) malloc(sizeof(Complicated));
+  com = (Complicated*)safe_malloc(sizeof(Complicated));
   it = InsertSL_Complicated(lu,com,sl2);
   PrintSL_Complicated(sl2);
   

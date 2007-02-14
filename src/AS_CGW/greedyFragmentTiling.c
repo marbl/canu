@@ -510,9 +510,9 @@ int setupolaps(int id, int offAEnd,BestMeasure bestType,double erate,int useCorr
       if(numOvls>ovlsAlloced){
 	ovlsAlloced+=50;
 	if(olaps==NULL){
-	  olaps=(Long_Olap_Data_t*)ckalloc(sizeof(Long_Olap_Data_t)*ovlsAlloced);
+	  olaps=(Long_Olap_Data_t*)safe_malloc(sizeof(Long_Olap_Data_t)*ovlsAlloced);
 	} else {
-	  olaps=(Long_Olap_Data_t*)ckrealloc(olaps,
+	  olaps=(Long_Olap_Data_t*)safe_realloc(olaps,
 					     sizeof(Long_Olap_Data_t)*ovlsAlloced);
 	}
       }

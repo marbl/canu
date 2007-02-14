@@ -174,7 +174,7 @@ int *Unpack_Alignment_AS(OverlapMesg *align)
   int           apos, bpos;
 
   if(UnpackBuffer==NULL){
-    UnpackBuffer = (int*) ckalloc (sizeof(int)*(2*AS_READ_MAX_LEN+1));
+    UnpackBuffer = (int*) safe_malloc (sizeof(int)*(2*AS_READ_MAX_LEN+1));
     buffalloc=(2*AS_READ_MAX_LEN+1);
   }
 
@@ -199,7 +199,7 @@ int *Unpack_Alignment_AS(OverlapMesg *align)
                 bpos += 1;
 		if(buffused==buffalloc){
 		  buffalloc=buffalloc*2+10;
-		  UnpackBuffer = (int*)ckrealloc(UnpackBuffer,sizeof(int)*buffalloc);
+		  UnpackBuffer = (int*)safe_realloc(UnpackBuffer,sizeof(int)*buffalloc);
 		  spt=UnpackBuffer+buffused;
 		}
 		buffused++;
@@ -211,7 +211,7 @@ int *Unpack_Alignment_AS(OverlapMesg *align)
                 apos += 1;
 		if(buffused==buffalloc){
 		  buffalloc=buffalloc*2+10;
-		  UnpackBuffer = (int*)ckrealloc(UnpackBuffer,sizeof(int)*buffalloc);
+		  UnpackBuffer = (int*)safe_realloc(UnpackBuffer,sizeof(int)*buffalloc);
 		  spt=UnpackBuffer+buffused;
 		}
 		buffused++;
@@ -224,7 +224,7 @@ int *Unpack_Alignment_AS(OverlapMesg *align)
               apos -= (c+1);
 	      if(buffused==buffalloc){
 		buffalloc=buffalloc*2+10;
-		UnpackBuffer = (int*)ckrealloc(UnpackBuffer,sizeof(int)*buffalloc);
+		UnpackBuffer = (int*)safe_realloc(UnpackBuffer,sizeof(int)*buffalloc);
 		spt=UnpackBuffer+buffused;
 	      }
 	      buffused++;
@@ -235,7 +235,7 @@ int *Unpack_Alignment_AS(OverlapMesg *align)
               apos += c;
 	      if(buffused==buffalloc){
 		buffalloc=buffalloc*2+10;
-		UnpackBuffer = (int*)ckrealloc(UnpackBuffer,sizeof(int)*buffalloc);
+		UnpackBuffer = (int*)safe_realloc(UnpackBuffer,sizeof(int)*buffalloc);
 		spt=UnpackBuffer+buffused;
 	      }
 	      buffused++;
@@ -287,7 +287,7 @@ signed char *Pack_Alignment_AS(int *trace, int prefix)
 
   if (size > PackSize)
     { PackSize = (int)(1.4*size) + 1000;
-      PackBuffer = (signed char *) ckrealloc(PackBuffer,PackSize);
+      PackBuffer = (signed char *) safe_realloc(PackBuffer,PackSize);
     }
 
   spt  = PackBuffer;
@@ -531,7 +531,7 @@ static int *AnalyzeAlign(int prefix, int suffix,
   if (mislen < alength+blength)
     { mislen = (int)(2*(alength+blength)) + 4;
       fprintf(stderr,"(Re)allocating %d for mismatch array at %d\n",mislen,__LINE__);
-      mismatch = (int *)ckrealloc(mismatch,mislen*sizeof(int));
+      mismatch = (int *)safe_realloc(mismatch,mislen*sizeof(int));
     } 
   amismatch = mismatch;
   bmismatch = mismatch + alength;
@@ -1601,66 +1601,6 @@ OverlapMesg *AS_ALN_affine_overlap(InternalFragMesg *a, InternalFragMesg *b,
 #endif
   return(NULL);
 
-}
-
-
-#undef DEBUG_MEMALLOC
-
-void *ckalloc(size_t size)	/* Guarded malloc utility */
-{ void *newp;
-  assert(size>0); 
-  newp = (void *) malloc(size);
-  if (newp == NULL)
-    { fprintf(stderr,"Out of memory %s line %d\n",__FILE__,__LINE__);
-      exit (1);
-    }
-
-#ifdef DEBUG_MEMALLOC
-  fprintf(stderr,"\nAllocated %d to %X\n",size,newp);
-#endif
-
-  return (newp);
-}
-
-void *ckrealloc(void* ptr, size_t size)	/* Guarded realloc utility */
-{ 
-  void* newp;
-  //  assert(ptr!=NULL);
-  assert(size>0);
-#ifdef DEBUG_MEMALLOC
-  fprintf(stderr,"\nReallocating %X to size %d\n",ptr,size);
-#endif
-  newp = (void *) realloc(ptr,size);
-  if (newp == NULL)
-    { fprintf(stderr,"Out of memory %s line %d\n",__FILE__,__LINE__);
-      exit (1);
-    }
-
-#ifdef DEBUG_MEMALLOC
-  fprintf(stderr,"\n\tto %X\n",newp);
-#endif
-
-  return(newp);
-}
-
-
-void *ckreallocNullOK(void* ptr, size_t size)	/* Guarded realloc utility */
-{ 
-  void* newp;
-  assert(size>0);
-#ifdef DEBUG_MEMALLOC
-  fprintf(stderr,"\nReallocating (null?) %X to size %d\n",ptr,size);
-#endif
-  newp = (void *) realloc(ptr,size);
-  if (newp == NULL)
-    { fprintf(stderr,"Out of memory %s line %d\n",__FILE__,__LINE__);
-      exit (1);
-    }
-#ifdef DEBUG_MEMALLOC
-  fprintf(stderr,"\n\tto %X\n",newp);
-#endif
-
-  return(newp);
 }
 
 

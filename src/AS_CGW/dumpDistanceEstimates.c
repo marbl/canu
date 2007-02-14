@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.15 2007-02-12 22:16:56 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.16 2007-02-14 07:20:08 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -633,7 +633,7 @@ dde_stats(int         operateOnNodes,
       dptr->bsize = dptr->max-dptr->min;
     }
 
-    free(dptr->histogram);
+    safe_free(dptr->histogram);
     dptr->histogram = (int32 *) safe_malloc(sizeof(int32)*dptr->bnum);
 
     {
@@ -734,9 +734,7 @@ buildLibraryIIDmap(char *gkpStoreName) {
   fprintf(stderr,"* Stats for Dist Store are first:" F_S64 " last :" F_S64 "\n",
           stat.firstElem, stat.lastElem);
 
-  map = (CDS_UID_t *)malloc(sizeof(CDS_UID_t) * (stat.lastElem+1));
-  if (map == NULL)
-    fprintf(stderr, "ERROR: failed to allocate map.\n"), exit(1);
+  map = (CDS_UID_t *)safe_malloc(sizeof(CDS_UID_t) * (stat.lastElem+1));
 
   for (i=0; i<=stat.lastElem; i++)
     map[i] = 0;

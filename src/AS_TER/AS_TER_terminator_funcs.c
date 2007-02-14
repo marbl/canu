@@ -25,7 +25,7 @@
  Assumptions: There is no UID 0
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.26 2007-02-12 22:16:58 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.27 2007-02-14 07:20:14 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
@@ -1042,72 +1042,69 @@ static AugFragMesg* convert_IAF_to_AFG(IntAugFragMesg* iafMesg, int32 real)
 /* free routines */
 /*****************/
 
-#ifndef TERFREE
-#define TERFREE(X) { free(X); (X) = NULL; }
-#endif
 
 static void free_DSC(SnapDegenerateScaffoldMesg* dscMesg){
-  TERFREE(dscMesg);
+  safe_free(dscMesg);
 }
 
 static void free_UTG(SnapUnitigMesg* utgMesg){
   /*** DO NOT FREE DELTA ARRAYS...THESE WERE COPIED BY REFERENCE */
   if( utgMesg->f_list != NULL )
-    TERFREE(utgMesg->f_list);
+    safe_free(utgMesg->f_list);
   if( utgMesg->consensus != NULL )
-    TERFREE(utgMesg->consensus);
+    safe_free(utgMesg->consensus);
   if( utgMesg->quality != NULL )
-    TERFREE(utgMesg->quality);
-  TERFREE(utgMesg);
+    safe_free(utgMesg->quality);
+  safe_free(utgMesg);
 }
 
 static void free_ULK(SnapUnitigLinkMesg* ulkMesg){
   if( ulkMesg->jump_list != NULL )
-    TERFREE(ulkMesg->jump_list);
-  TERFREE(ulkMesg);
+    safe_free(ulkMesg->jump_list);
+  safe_free(ulkMesg);
 }
 
 static void free_CCO(SnapConConMesg* ccoMesg){
   /*** DO NOT FREE DELTA ARRAYS...THESE WERE COPIED BY REFERENCE */
   if( ccoMesg->num_vars > 0)
-    TERFREE(ccoMesg->vars);
+    safe_free(ccoMesg->vars);
   if( ccoMesg->num_pieces > 0)
-    TERFREE(ccoMesg->pieces);
+    safe_free(ccoMesg->pieces);
   if( ccoMesg->num_unitigs > 0)
-    TERFREE(ccoMesg->unitigs);
+    safe_free(ccoMesg->unitigs);
   if( ccoMesg->consensus != NULL )
-    TERFREE(ccoMesg->consensus);
+    safe_free(ccoMesg->consensus);
   if( ccoMesg->quality != NULL )
-    TERFREE(ccoMesg->quality);
-  TERFREE(ccoMesg);
+    safe_free(ccoMesg->quality);
+  safe_free(ccoMesg);
 }
 
 static void free_CLK(SnapContigLinkMesg* clkMesg){
   if( clkMesg->jump_list != NULL )
-    TERFREE(clkMesg->jump_list);
-  TERFREE(clkMesg);
+    safe_free(clkMesg->jump_list);
+  safe_free(clkMesg);
 }
 
 static void free_SLK(SnapScaffoldLinkMesg* slkMesg){
   if( slkMesg->jump_list != NULL )
-    TERFREE(slkMesg->jump_list);
-  TERFREE(slkMesg);
+    safe_free(slkMesg->jump_list);
+  safe_free(slkMesg);
 }
 
 static void free_SCF(SnapScaffoldMesg* scfMesg){
   if( scfMesg->contig_pairs != NULL )
-    TERFREE(scfMesg->contig_pairs);
-  TERFREE(scfMesg);
+    safe_free(scfMesg->contig_pairs);
+  safe_free(scfMesg);
 }
 
 static void free_MDI(SnapMateDistMesg* mdiMesg){
   if( mdiMesg->histogram != NULL )
-    TERFREE(mdiMesg->histogram);
-  TERFREE(mdiMesg);
+    safe_free(mdiMesg->histogram);
+  safe_free(mdiMesg);
 }
 
 static void free_AFG(AugFragMesg* afgMesg){
-  TERFREE(afgMesg);
+  safe_free(afgMesg);
 }
 
 

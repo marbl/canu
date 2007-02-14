@@ -23,7 +23,7 @@
   -o /work/assembly/rbolanos/IBM_PORT_CDS/ibm_migration_work_dir/cds/AS/obj/GraphCGW_T.o GraphCGW_T.c
 */
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.30 2007-02-12 22:16:55 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.31 2007-02-14 07:20:07 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -223,7 +223,7 @@ void DeleteGraphCGW(GraphCGW_T *graph){
     //    fprintf(GlobalData->stderrc,"* Destroying Multi Align Store\n");
     //    DeleteMultiAlignStoreT(graph->maStore);
   }
-  free(graph);
+  safe_free(graph);
 }
 
 /* Diagnostic */
@@ -4815,7 +4815,7 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
       fprintf(GlobalData->stderrc,"* id:%d bnum:%d bsize:%g min:" F_COORD " max:" F_COORD "\n",
               i, dptr->bnum, dptr->bsize, dptr->min, dptr->max);
 #endif
-      free(dptr->histogram);
+      safe_free(dptr->histogram);
       dptr->histogram = (int32 *) safe_malloc(sizeof(int32)*dptr->bnum);
       {
         int	j;

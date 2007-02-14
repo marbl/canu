@@ -31,7 +31,7 @@
 
 **********************************************************************/
 
-static char CM_ID[] = "$Id: UtilsREZ.c,v 1.5 2005-08-24 07:47:15 brianwalenz Exp $";
+static char CM_ID[] = "$Id: UtilsREZ.c,v 1.6 2007-02-14 07:20:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <assert.h>
@@ -206,8 +206,8 @@ void Free_Stack(nodes_stack * s) {
   // do you want the memory back?
   //
   assert(s != NULL);
-  free(s->nodes);
-  free(s);
+  safe_free(s->nodes);
+  safe_free(s);
 }
 
 // ------------

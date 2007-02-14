@@ -22,19 +22,31 @@
 #ifndef AS_UTL_ALLOC_H
 #define AS_UTL_ALLOC_H
 
-//  Memory allocation
+//
+//  The safe_*alloc routines are the same as the normal routines,
+//  except they print a standard message and assert if memory cannot
+//  be allocated.
+//
+//  safe_free is somewhat useless.  It frees the memory, then sets the
+//  pointer to NULL.  It's useless because many times the pointer we
+//  set to NULL is a local copy, e.g.:
+//
+//     void freeSomeStructure(SomeStructure *p) {
+//       safe_free(p->data);
+//       safe_free(p);
+//     }
+//
 
 void *safe_calloc(size_t num, size_t len);
 void *safe_malloc(size_t len);
 void *safe_realloc(void *q, size_t len);
+void  safe_free2(void *);
 
-#define safe_free(Q) { free(Q); Q = NULL; }
+#define safe_free(Q) { safe_free2(Q); Q = NULL; }
 
-#if 0
-#define malloc(X)  ERROR_MALLOC(X)
-#define calloc(X)  ERROR_CALLOC(X)
-#define realloc(X) ERROR_REALLOC(X)
-#define free(X)    ERROR_FREE(X)
-#endif
+#define malloc(X)     use_safe_malloc_instead(X)
+#define calloc(X,Y)   use_safe_calloc_instead(X,Y)
+#define realloc(X,Y)  use_safe_realloc_instead(X,Y)
+#define free(X)       use_safe_free_instead(X)
 
 #endif // AS_UTL_ALLOC_H

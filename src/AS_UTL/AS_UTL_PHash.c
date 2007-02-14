@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_PHash.c,v 1.6 2007-01-29 00:32:34 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_UTL_PHash.c,v 1.7 2007-02-14 07:20:15 brianwalenz Exp $";
 /*************************************************************************
  Module:  AS_UTL_PHash
  Description:
@@ -392,7 +392,7 @@ static PHashTable_AS *ReallocToSize(PHashTable_AS *htable, int newsize){
 
   /* Close the old hashtable and remove it */
   htable->fp = NULL;
-  free(htable->fileName);
+  safe_free(htable->fileName);
   ClosePHashTable_AS(htable);  /* Free the memory associated with the old hashtable */
 
   newTable->isDirty = 1;
@@ -491,8 +491,7 @@ PHashTable_AS *CreatePHashTable_AS(int numItemsToHash, char *pathToHashTable){
     hashsize(logAllocatedSize) * sizeof(PHashNode_AS) +   /* nodes */
     sizeof(PHashTable_AS);                                /* header */
 
-  allocate = (char *)calloc(1, totalHashSize);
-  assert(NULL != allocate);
+  allocate = (char *)safe_calloc(1, totalHashSize);
 
   table = (PHashTable_AS *)allocate;
   table->isDirty = 1; // Never been saved
@@ -583,8 +582,7 @@ static PHashTable_AS *OpenPHashTableCommon_AS(char *pathToHashTable, int32 readW
 	    totalFileSize, totalHashSize);
 #endif
     if(readWrite){
-      allocate = (char *)calloc(1, totalHashSize);
-      assert(NULL != allocate);
+      allocate = (char *)safe_calloc(1, totalHashSize);
 
       CDS_FSEEK(fp,(off_t) 0,SEEK_SET);
       actualRead = fread(allocate, 1, totalFileSize, fp);
@@ -596,7 +594,7 @@ static PHashTable_AS *OpenPHashTableCommon_AS(char *pathToHashTable, int32 readW
       table = (PHashTable_AS *)allocate;
     }else{
 
-      table = (PHashTable_AS *)calloc(1, sizeof(PHashTable_AS));
+      table = (PHashTable_AS *)safe_calloc(1, sizeof(PHashTable_AS));
       table->numBuckets = header.numBuckets;
       table->hashmask = header.hashmask;
       table->numNodesAllocated = header.numNodesAllocated;
@@ -700,7 +698,7 @@ void PrintPHashTableFields_AS(FILE * fp, PHashTable_AS * table)
 void ClosePHashTable_AS(PHashTable_AS *table){
   if(table->fp == NULL){
     //    fprintf(stderr,"* Closing memory-based table\n");
-    free(table);
+    safe_free(table);
   } else{
     size_t totalToWrite;
 
@@ -740,8 +738,8 @@ void ClosePHashTable_AS(PHashTable_AS *table){
 #endif
     }
 
-    free(table->fileName);
-    fflush(NULL);
+    safe_free(table->fileName);
+
     if(!table->isReadWrite)
     {
       PHashTable_AS header;
@@ -757,7 +755,7 @@ void ClosePHashTable_AS(PHashTable_AS *table){
       munmap(allocate, totalFileSize);
     }
     fclose(table->fp);
-    free(table);
+    safe_free(table);
   }
 }
 

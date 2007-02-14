@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.22 2006-11-14 19:58:21 eliv Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.23 2007-02-14 07:20:06 brianwalenz Exp $";
 
 #undef ORIG_MERGE_EDGE_INVERT
 #define MINSATISFIED_CUTOFF 0.985
@@ -996,7 +996,7 @@ int FindScaffoldMerge(ScaffoldGraphT *graph, CIScaffoldT *scaffoldAnchor,
   sortGapsEnd = sortGapsPtr;
   numGapsRated = sortGapsEnd - sortGaps;
   if(numGapsRated == 0){
-    free(sortGaps);
+    safe_free(sortGaps);
     if(verbose){
       fprintf(GlobalData->stderrc, "endNodeMerge did not fit in any of scaffoldAnchor's gaps.\n");
     }
@@ -1367,9 +1367,9 @@ int FindScaffoldMerge(ScaffoldGraphT *graph, CIScaffoldT *scaffoldAnchor,
       }
     }
     
-    free(mergeTargetsA);
-    free(mergeTargetsB);
-    free(simCoordsWhere);
+    safe_free(mergeTargetsA);
+    safe_free(mergeTargetsB);
+    safe_free(simCoordsWhere);
     if(!FoundPathToEndNodeMerge){
       if(verbose){
         fprintf(GlobalData->stderrc, "Did not find a path to the end node.\n");
@@ -1529,7 +1529,7 @@ int FindScaffoldMerge(ScaffoldGraphT *graph, CIScaffoldT *scaffoldAnchor,
                            intervalGapBegin, intervalGapEnd, FALSE,
                            maxMergeGapSize, newMergeGapVariance,
                            lastAnchorOffset, orderAnchor, verbose)){
-        free(sortGaps);
+        safe_free(sortGaps);
         SetOrderInfoForGap(orderAnchor, (sortGapsPtr->nodeA)->indexInScaffold,
                            firstTime, mergeGapVariance, sortGapsPtr->gapSize,
                            newMergeGapVariance, endNodeMergeGapOffsetA,
@@ -1539,7 +1539,7 @@ int FindScaffoldMerge(ScaffoldGraphT *graph, CIScaffoldT *scaffoldAnchor,
       }
     }
   }
-  free(sortGaps);
+  safe_free(sortGaps);
   return(FALSE);
 }
 
@@ -5309,11 +5309,10 @@ void MergeScaffoldsAggressive(ScaffoldGraphT *graph, int logicalcheckpointnumber
   DeleteScaffoldAlignmentInterface(iSpec.sai);
   {
     int32 i;
-    for(i = 0; i < GetNumVA_PtrT(iSpec.MIs); i++)
-      {
-        if(*GetVA_PtrT(iSpec.MIs, i) != NULL)
-          free((MateInstrumenter *) *GetVA_PtrT(iSpec.MIs, i));
-      }
+    for(i = 0; i < GetNumVA_PtrT(iSpec.MIs); i++) {
+      MateInstrumenter *p = *GetVA_PtrT(iSpec.MIs, i);
+      safe_free(p);
+    }
     DeleteVA_PtrT(iSpec.MIs);
   }
   DestroyChunkOverlapper(iSpec.badSEdges);

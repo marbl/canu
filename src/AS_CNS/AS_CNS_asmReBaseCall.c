@@ -37,7 +37,7 @@
 #include "Globals_CNS.h"
 #include "PublicAPI_CNS.h"
 
-static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.7 2007-02-12 22:16:56 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.8 2007-02-14 07:20:09 brianwalenz Exp $";
 
 static UIDHashTable_AS *utgUID2IID;
 
@@ -449,7 +449,7 @@ int main (int argc, char *argv[]) {
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.7 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.8 $ processing. Started %s\n",
 	      ctime(&t));
       InitializeAlphTable();
 
@@ -465,12 +465,12 @@ int main (int argc, char *argv[]) {
 	    iunitig = convert_UTG_to_IUM(eunitig);
 	    ma = CreateMultiAlignTFromIUM(iunitig,-1,0);
 #ifdef AS_ENABLE_SOURCE
-	    free(iunitig->source);
+	    safe_free(iunitig->source);
 #endif
-	    free(iunitig->f_list);
-	    free(iunitig->consensus);
-	    free(iunitig->quality);
-	    free(iunitig);
+	    safe_free(iunitig->f_list);
+	    safe_free(iunitig->consensus);
+	    safe_free(iunitig->quality);
+	    safe_free(iunitig);
 	    SetMultiAlignInStore(unitigStore,ma->id,ma);
 	    WriteProtoMesg_AS(stdout,pmesg); // write out the unitig message
 	    break;
@@ -501,18 +501,18 @@ int main (int argc, char *argv[]) {
 	      int i;
 	      if(icontig->v_list!=NULL){
 		for(i=0;i<icontig->num_vars;i++){
-                  free(icontig->v_list[i].nr_conf_alleles);
-                  free(icontig->v_list[i].weights);
-		  free(icontig->v_list[i].var_seq);
+                  safe_free(icontig->v_list[i].nr_conf_alleles);
+                  safe_free(icontig->v_list[i].weights);
+		  safe_free(icontig->v_list[i].var_seq);
 		}
-		free(icontig->v_list);
+		safe_free(icontig->v_list);
 	      }
 	    }
-	    free(icontig->consensus);
-	    free(icontig->quality);
-	    free(icontig->pieces);
-	    free(icontig->unitigs);
-	    free(icontig);
+	    safe_free(icontig->consensus);
+	    safe_free(icontig->quality);
+	    safe_free(icontig->pieces);
+	    safe_free(icontig->unitigs);
+	    safe_free(icontig);
 	    WriteProtoMesg_AS(stdout,pmesg); // write out the modified contig message
 	    break;
 	  }

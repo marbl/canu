@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.10 2007-02-12 22:16:58 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.11 2007-02-14 07:20:13 brianwalenz Exp $";
 
 #include <assert.h>
 #include <errno.h>
@@ -57,8 +57,8 @@ static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.10 2007-02-12 22:16:58 brianwalenz
 
 void
 AS_REZ_free_marker(Marker_t *m) {
-  free(m->set);
-  free(m);
+  safe_free(m->set);
+  safe_free(m);
 }
 
 /* functions to allocate and free a marker of size l */
@@ -136,23 +136,23 @@ AS_REZ_free_alignment(Alignment_t* a) {
   if(a->ali != NULL){
     for(i=0; i<a->cols; i++){
       assert(a->ali[i] != NULL);  
-      free(a->ali[i]);
+      safe_free(a->ali[i]);
     }
-    free(a->ali);
+    safe_free(a->ali);
 
     for(i=0; i<a->cols; i++){
       assert(a->seqErrArray[i] != NULL);
-      free(a->seqErrArray[i]);
+      safe_free(a->seqErrArray[i]);
     }
-    free(a->seqErrArray);
-    free(a->countA);
-    free(a->countC);
-    free(a->countG);
-    free(a->countT);
-    free(a->countDash);
-    free(a->countBlank);
+    safe_free(a->seqErrArray);
+    safe_free(a->countA);
+    safe_free(a->countC);
+    safe_free(a->countG);
+    safe_free(a->countT);
+    safe_free(a->countDash);
+    safe_free(a->countBlank);
   }
-  free(a);
+  safe_free(a);
 }
 
 

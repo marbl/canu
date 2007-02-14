@@ -34,7 +34,7 @@
 *
 *************************************************/
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.18 2007-02-04 09:30:45 brianwalenz Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.19 2007-02-14 07:20:13 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -2810,8 +2810,8 @@ fprintf (stderr, "     AContainsB = %c  BContainsA = %c\n",
                     else
                       place [i] . keep = FALSE;
                  }
-             free (i_seq);
-             free (j_seq);
+             safe_free (i_seq);
+             safe_free (j_seq);
             }
        }
 
@@ -2822,7 +2822,7 @@ fprintf (stderr, ">>> Rejected chunk %d\n", place [i] . id);
           place [i] . chunk -> keep = FALSE;
          }
 
-   free (place);
+   safe_free (place);
 
    return;
   }
@@ -4780,16 +4780,16 @@ if  (fp != NULL)
                      this_chunk -> keep = FALSE;
 
                  if  (this_sequence != NULL)
-                     free (this_sequence);
+                     safe_free (this_sequence);
                 }
               else
                 this_chunk -> keep = FALSE;
            }
 
          if  (left_scaff_sequence != NULL)
-             free (left_scaff_sequence);
+             safe_free (left_scaff_sequence);
          if  (right_scaff_sequence != NULL)
-             free (right_scaff_sequence);
+             safe_free (right_scaff_sequence);
         }
      }
 
@@ -5062,8 +5062,8 @@ fprintf (stderr, "     adjv = %.1f  minvadj = %.1f\n",
         }
      }
 
-   free (target);
-   free (fill_sub);
+   safe_free (target);
+   safe_free (fill_sub);
 
    return;
   }
@@ -7119,12 +7119,12 @@ void  Free_Fill_Array
       int  j;
 
       for  (j = 0;  j < fill_chunks [scaff_id] . num_gaps;  j ++)
-        free (fill_chunks [scaff_id] . gap [j] . chunk);
+        safe_free (fill_chunks [scaff_id] . gap [j] . chunk);
 
-      free (fill_chunks [scaff_id] . gap);
+      safe_free (fill_chunks [scaff_id] . gap);
      }
 
-   free (fill_chunks);
+   safe_free (fill_chunks);
 
    return;
   }
@@ -7140,9 +7140,9 @@ void  Free_Fill_Array_Scaffold
   int  j;
   
   for  (j = 0;  j < fill_chunks -> num_gaps;  j ++)
-	free (fill_chunks -> gap [j] . chunk);
+	safe_free (fill_chunks -> gap [j] . chunk);
   
-  free (fill_chunks -> gap);
+  safe_free (fill_chunks -> gap);
   
   return;
 }
@@ -7426,15 +7426,15 @@ static void   Free_Global_Arrays
 
    for  (cid = 0;  cid < Num_Chunks;  cid ++)
      if  (Chunk_Info [cid] . annotation != NULL)
-         free (Chunk_Info [cid] . annotation);
+         safe_free (Chunk_Info [cid] . annotation);
 
-   free (Chunk_Info);
-   free (Ref_Data);
-   free (Ref_Index);
+   safe_free (Chunk_Info);
+   safe_free (Ref_Data);
+   safe_free (Ref_Index);
 
-   free (Scaffold_Start);
-   free (Scaffold_End);
-   free (Scaffold_Flipped);
+   safe_free (Scaffold_Start);
+   safe_free (Scaffold_End);
+   safe_free (Scaffold_Flipped);
 
    DeleteVA_Scaff_Join_t (Scaff_Join);
 
@@ -7554,7 +7554,7 @@ PALLOC (len + 1);
          ungapped_seq [ct ++] = * p;
    ungapped_seq [ct] = '\0';
 
-//   free (gapped_seq);
+//   safe_free (gapped_seq);
 
    return  ungapped_seq;
   }
@@ -8161,7 +8161,7 @@ PALLOC (n * sizeof (Scaff_Join_t *));
                    p [i] -> cover_stat,
                    CGB_Type_As_String (chunk -> flags . bits . cgbType));
           if  (Chunk_Info [p [i] -> chunk_id] . annotation != NULL)
-              free (Chunk_Info [p [i] -> chunk_id] . annotation);
+              safe_free (Chunk_Info [p [i] -> chunk_id] . annotation);
           Chunk_Info [p [i] -> chunk_id] . annotation
               = strdup (annotation_string);
 #endif
@@ -8219,7 +8219,7 @@ PALLOC (n * sizeof (Scaff_Join_t *));
 #endif
          }
 
-   free (p);
+   safe_free (p);
 
    return;
   }
@@ -9001,7 +9001,7 @@ if  (SKIP_CONTAINED_STONES && edge_pool [next_edge] . a_hang < 0)
 
       for  (p = 0;  p < ct;  p ++)
         if  (sequence [p] != NULL)
-            free (sequence [p]);
+            safe_free (sequence [p]);
 
 if  (use_all && Use_Partial_Stone_Paths)   // for stones only
 {
@@ -9909,8 +9909,8 @@ PALLOC (Num_Chunks * sizeof (int64));
 
    fprintf (fp, "Coverage by uniques & placed = %ld bases\n", sum);
 
-   free (lo);
-   free (hi);
+   safe_free (lo);
+   safe_free (hi);
 
    return;
   }
@@ -11027,7 +11027,7 @@ if  (olap == NULL)
                             max_left_shift = CGW_MISSED_OVERLAP - implied_olap;
                        }
 
-                   free (scaff_seq);
+                   safe_free (scaff_seq);
                   }
 
               if  (best_chunk -> keep
@@ -11148,7 +11148,7 @@ fprintf (stderr,
          max_gap_expansion);
 #endif
                        }
-                   free (scaff_seq);
+                   safe_free (scaff_seq);
                   }
 
               if  (best_chunk -> keep)
@@ -11183,7 +11183,7 @@ fprintf (stderr,
                         this_gap -> adjustment . mean = gap_adjustment;
                        }
                   }
-              free (rock_seq);
+              safe_free (rock_seq);
              }
         }
       CheckScaffoldGraphCache (ScaffoldGraph);

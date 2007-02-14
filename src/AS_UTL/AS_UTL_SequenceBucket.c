@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_SequenceBucket.c,v 1.4 2005-03-22 19:49:29 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_UTL_SequenceBucket.c,v 1.5 2007-02-14 07:20:15 brianwalenz Exp $";
 /*************************************************************************
  Module:  AS_UTL_SequenceBucket
  Description:
@@ -42,7 +42,7 @@ static char CM_ID[] = "$Id: AS_UTL_SequenceBucket.c,v 1.4 2005-03-22 19:49:29 ja
 
 SequenceBucketT *CreateSequenceBucket(int bucketWidth){
   SequenceBucketT *sequenceBucket = (SequenceBucketT *)
-    calloc(sizeof(SequenceBucketT),1);
+    safe_calloc(sizeof(SequenceBucketT),1);
   int i;
 
   sequenceBucket->bucketWidth = bucketWidth;
@@ -52,11 +52,11 @@ SequenceBucketT *CreateSequenceBucket(int bucketWidth){
 	  bucketWidth, sequenceBucket->numBuckets);
 #endif
   sequenceBucket->buckets = (int32 *)
-    calloc(sequenceBucket->numBuckets, sizeof(int32));
+    safe_calloc(sequenceBucket->numBuckets, sizeof(int32));
   sequenceBucket->trate = (float32 *)
-    malloc(sequenceBucket->numBuckets * sizeof(float32));
+    safe_malloc(sequenceBucket->numBuckets * sizeof(float32));
   sequenceBucket->arate = (float32 *)
-    malloc(sequenceBucket->numBuckets *sizeof(float32));
+    safe_malloc(sequenceBucket->numBuckets *sizeof(float32));
   for(i = 0; i < sequenceBucket->numBuckets; i++){
     sequenceBucket->trate[i] = 0.0;
     sequenceBucket->arate[i] = 0.0;
@@ -65,10 +65,10 @@ SequenceBucketT *CreateSequenceBucket(int bucketWidth){
 }
 void DeleteSequenceBucket(SequenceBucketT *sequenceBucket){
 
-  free(sequenceBucket->buckets);
-  free(sequenceBucket->arate);
-  free(sequenceBucket->trate);
-  free(sequenceBucket);
+  safe_free(sequenceBucket->buckets);
+  safe_free(sequenceBucket->arate);
+  safe_free(sequenceBucket->trate);
+  safe_free(sequenceBucket);
 }
 
 void ComputeBucketString(SequenceBucketT *sequenceBucket, int bucketNum, char *buffer){
@@ -274,12 +274,12 @@ void ComputeBucketTheoreticalRates(SequenceBucketT *sequenceBucket, float32 *sin
 SequenceBucketArrayT *CreateSequenceBucketArray(int32 maxWidth){
   int i;
   SequenceBucketArrayT *sba = (SequenceBucketArrayT *)
-    calloc(sizeof(SequenceBucketArrayT),1);
+    safe_calloc(sizeof(SequenceBucketArrayT),1);
 
   sba->numSamples = 0;
   sba->numSequenceBuckets = maxWidth;
   sba->sequenceBuckets = (SequenceBucketT **)
-    calloc(sizeof(SequenceBucketT *),maxWidth);
+    safe_calloc(sizeof(SequenceBucketT *),maxWidth);
   for(i = 0; i < maxWidth;i++){
     sba->sequenceBuckets[i] = CreateSequenceBucket(i+1);
   }
@@ -294,8 +294,8 @@ void DeleteSequenceBucketArray(SequenceBucketArrayT *sba){
     DeleteSequenceBucket(sba->sequenceBuckets[i]);
   }
 
-  free(sba->sequenceBuckets);
-  free(sba);
+  safe_free(sba->sequenceBuckets);
+  safe_free(sba);
 }
 
 
@@ -368,7 +368,7 @@ void ActivateSequenceLengthHistogram(SequenceLengthHistogramT *sLH, char *sequen
 
 SequenceLengthHistogramT *CreateSequenceLengthHistogram(int bucketWidth, char *name){
   SequenceLengthHistogramT *sequenceLengthHistogram = (SequenceLengthHistogramT *)
-    calloc(sizeof(SequenceLengthHistogramT),1);
+    safe_calloc(sizeof(SequenceLengthHistogramT),1);
 
   strncpy(sequenceLengthHistogram->name, name, 256);
   sequenceLengthHistogram->bucketWidth = bucketWidth;
@@ -378,9 +378,9 @@ SequenceLengthHistogramT *CreateSequenceLengthHistogram(int bucketWidth, char *n
 	  bucketWidth, sequenceBucket->numBuckets);
 #endif
   sequenceLengthHistogram->bucketHistoFiles = (FILE **)
-    calloc(sequenceLengthHistogram->numBuckets, sizeof(FILE *));
+    safe_calloc(sequenceLengthHistogram->numBuckets, sizeof(FILE *));
   sequenceLengthHistogram->bucketFragIDFiles = (FILE **)
-    calloc(sequenceLengthHistogram->numBuckets, sizeof(FILE *));
+    safe_calloc(sequenceLengthHistogram->numBuckets, sizeof(FILE *));
 
   return sequenceLengthHistogram;
 }
@@ -392,7 +392,7 @@ void DeleteSequenceLengthHistogram(SequenceLengthHistogramT *sLH){
     if(sLH->bucketHistoFiles[i])
     fclose(sLH->bucketHistoFiles[i]);
   }
-  free(sLH->bucketHistoFiles);
+  safe_free(sLH->bucketHistoFiles);
 }
 
 void IncrementSequenceLengthHistogram(SequenceLengthHistogramT *sLH, char *seq, int32 clearRangeLength, uint64 fragID){

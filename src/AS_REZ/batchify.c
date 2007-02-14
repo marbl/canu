@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: batchify.c,v 1.7 2007-01-29 20:41:22 brianwalenz Exp $
- * $Revision: 1.7 $
+ * $Id: batchify.c,v 1.8 2007-02-14 07:20:13 brianwalenz Exp $
+ * $Revision: 1.8 $
 */
 
-static char fileID[] = "$Id: batchify.c,v 1.7 2007-01-29 20:41:22 brianwalenz Exp $";
+static char fileID[] = "$Id: batchify.c,v 1.8 2007-02-14 07:20:13 brianwalenz Exp $";
 
 #define FILE_NAME_FORMAT "b%03d."
 
@@ -109,7 +109,7 @@ int main  (int argc, char * argv [])
    assert (infile_name != NULL);
    fprintf (stderr, "Input File_Name = %s\n", infile_name);
    len = strlen (infile_name);
-   outfile_name = (char *) malloc (len + 20);
+   outfile_name = (char *) safe_malloc (len + 20);
    for  (i = len - 1;  i >= 0;  i --)
      if  (infile_name [i] == '.')
          break;
@@ -137,11 +137,9 @@ int main  (int argc, char * argv [])
         exit (EXIT_FAILURE);
        }
 
-   pmesg = (GenericMesg *) malloc (sizeof (GenericMesg));
-   assert (pmesg != NULL);
+   pmesg = (GenericMesg *) safe_malloc (sizeof (GenericMesg));
    pmesg -> t = MESG_ADT;
-   pmesg -> m = (AuditMesg *) malloc (sizeof (AuditMesg));
-   assert (pmesg -> m != NULL);
+   pmesg -> m = (AuditMesg *) safe_malloc (sizeof (AuditMesg));
    new_adt_mesg = (AuditMesg *) pmesg -> m;
    new_adt_mesg -> list = & audit_line;
       
@@ -153,7 +151,7 @@ int main  (int argc, char * argv [])
           adt_mesg = (AuditMesg *) gmesg -> m;
           sprintf (batch_line, "Batch %d", batch_num);
           AppendAuditLine_AS (adt_mesg, & audit_line, time (0), "batchify",
-                              "$Revision: 1.7 $", batch_line);
+                              "$Revision: 1.8 $", batch_line);
           WriteProtoMesg_AS (outfile, gmesg);
           break;
 
@@ -180,7 +178,7 @@ int main  (int argc, char * argv [])
                audit_line . next = NULL;
                audit_line . name = "batchify";
                audit_line . complete = time (0);
-               audit_line . version = "$Revision: 1.7 $";
+               audit_line . version = "$Revision: 1.8 $";
                sprintf (batch_line, "Batch %d", batch_num);
                audit_line . comment = batch_line;
                WriteProtoMesg_AS (outfile, pmesg);

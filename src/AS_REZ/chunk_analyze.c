@@ -38,11 +38,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: chunk_analyze.c,v 1.7 2007-01-29 20:41:22 brianwalenz Exp $
- * $Revision: 1.7 $
+ * $Id: chunk_analyze.c,v 1.8 2007-02-14 07:20:13 brianwalenz Exp $
+ * $Revision: 1.8 $
 */
 
-static char fileID[] = "$Id: chunk_analyze.c,v 1.7 2007-01-29 20:41:22 brianwalenz Exp $";
+static char fileID[] = "$Id: chunk_analyze.c,v 1.8 2007-02-14 07:20:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -142,8 +142,7 @@ int main  (int argc, char * argv [])
 
 
    Range_Size = 10000;
-   Range = (Range_t *) malloc (Range_Size * sizeof (Range_t));
-   assert (Range != NULL);
+   Range = (Range_t *) safe_malloc (Range_Size * sizeof (Range_t));
 
    while  (ReadProtoMesg_AS (infile, & gmesg) != EOF)
      {
@@ -211,8 +210,7 @@ void  Add_Range_Entry    (int fid, int a_end, int b_end)
    if  (Range_Ct >= Range_Size - 1)
        {
         Range_Size *= 2;
-        Range = (Range_t *) realloc (Range, Range_Size * sizeof (Range_t));
-        assert (Range != NULL);
+        Range = (Range_t *) safe_realloc (Range, Range_Size * sizeof (Range_t));
        }
 
    Range [Range_Ct] . id = fid;

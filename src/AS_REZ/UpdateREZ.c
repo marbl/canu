@@ -33,7 +33,7 @@
 
  **********************************************************************/
 
-static char fileID[] = "$Id: UpdateREZ.c,v 1.7 2007-02-04 09:30:47 brianwalenz Exp $";
+static char fileID[] = "$Id: UpdateREZ.c,v 1.8 2007-02-14 07:20:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <assert.h>
@@ -824,6 +824,6 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
 		  "-=> UPDATE ended\n");
 # endif
 
-  free(table);
+  safe_free(table);
   return inserted;
 }

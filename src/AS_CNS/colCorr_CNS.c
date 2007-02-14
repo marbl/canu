@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: colCorr_CNS.c,v 1.9 2007-02-12 22:16:56 brianwalenz Exp $";
+static char CM_ID[] = "$Id: colCorr_CNS.c,v 1.10 2007-02-14 07:20:13 brianwalenz Exp $";
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -152,12 +152,12 @@ static Alignment_t* convert_MultiAlignT_to_alignment(MultiAlignT* inAlign, GateK
 
   /* free the space that is allocated by IMP2Array */
   for(i=0; i<2*rows; i++)
-    free(bqarray[i]);
-  free(bqarray);
+    safe_free(bqarray[i]);
+  safe_free(bqarray);
 
   for(i=0; i<rows; i++)
-    free(oriarray[i]);
-  free(oriarray);
+    safe_free(oriarray[i]);
+  safe_free(oriarray);
 
   count_columns_copy(ali);
 
@@ -382,10 +382,8 @@ ColumnCorrelationT *test_correlated_columns(MultiAlignT* ma,
   static int sizeColCorr=100;
   ColumnCorrelationT * ret;
 
-  if(colcorr==NULL){
+  if(colcorr==NULL)
     colcorr=(ColumnCorrelationT*)safe_malloc(sizeof(ColumnCorrelationT)*sizeColCorr);
-    assert(colcorr!=NULL);
-  }
   
   ali = convert_MultiAlignT_to_alignment(ma,handle,pfraghandle,&idArray);
 
@@ -424,8 +422,7 @@ ColumnCorrelationT *test_correlated_columns(MultiAlignT* ma,
 
 	  if(confirmCols>=sizeColCorr){
 	    sizeColCorr*=2;
-	    colcorr=(ColumnCorrelationT*)realloc(colcorr,sizeof(ColumnCorrelationT)*sizeColCorr);
-	    assert(colcorr!=NULL);
+	    colcorr=(ColumnCorrelationT*)safe_realloc(colcorr,sizeof(ColumnCorrelationT)*sizeColCorr);
 	  }
 
 	}
@@ -440,8 +437,8 @@ ColumnCorrelationT *test_correlated_columns(MultiAlignT* ma,
   }
 
   for(i=0; i<rows; i++)
-    free(idArray[i]);
-  free(idArray);
+    safe_free(idArray[i]);
+  safe_free(idArray);
 
   AS_REZ_free_alignment(ali);
 

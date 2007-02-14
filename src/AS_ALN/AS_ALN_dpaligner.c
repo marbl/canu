@@ -92,8 +92,7 @@ static double BinomialProb(int n, int d, double e)
 				/* Re-allocate */
       max = (int)((float)n*1.2 + 2048);
       //fprintf(stderr,"DP_COMPARE (BinomialProb): reallocing " F_SIZE_T " bytes\n",(max+1)*sizeof(double));
-      newp = (double *) realloc(LogTable,(max+1)*sizeof(double));
-      if (newp == NULL) return (-1.);
+      newp = (double *) safe_realloc(LogTable,(max+1)*sizeof(double));
 
       { int k;			/* Fill in new part */
 
@@ -167,9 +166,8 @@ static int Space_n_Tables(int max, double erate, double thresh)
         max  = ((max + 2048)/WordSize + 1)*WordSize;
 	BinomialProb(2*max,1,.1);
         //fprintf(stderr,"DP_COMPARE (Space_n_Tables): reallocing " F_SIZE_T " bytes\n",(2*max+2)*sizeof(int)+(max+1)*sizeof(float));
-        newd = (int *) realloc(DistThresh,
+        newd = (int *) safe_realloc(DistThresh,
                             (2*max+2)*sizeof(int) + (max+1)*sizeof(float));
-        if (newd == NULL) return (1);
 
         if (!Firstime && LastErate == erate && LastThresh == thresh)
           { int n, d;
@@ -276,8 +274,7 @@ int *AS_ALN_OKNAlign(char *a, int alen, char *b, int blen, int *spnt, int diff)
       max = (int)(1.2*diff) + 50;
       del = (max+5)*(max+1);
       //fprintf(stderr,"DP_COMPARE (AS_ALN_OKNAlign): reallocing " F_SIZE_T " bytes\n",del*sizeof(int)+(max+1)*sizeof(int));
-      newp = (int *) realloc(Wave,del*sizeof(int) + (max+1)*sizeof(int));
-      if (newp == NULL) return (NULL);
+      newp = (int *) safe_realloc(Wave,del*sizeof(int) + (max+1)*sizeof(int));
       Wtop = max-1;
       Wave = newp;
       TraceBuffer = (int *) (Wave + del);
@@ -453,7 +450,7 @@ int *AS_ALN_OKNAffine(char *a, int alen, char *b, int blen,
   if ((blen+1)*(2*bwide+2) >= Amax)
     {
       Amax = (blen+501)*(2*bwide+202);
-      Afarr = (int *) ckrealloc(Afarr,Amax*sizeof(int));
+      Afarr = (int *) safe_realloc(Afarr,Amax*sizeof(int));
 #ifdef AFFINE_DEBUG
       fprintf(stderr,"Affine align allocating %d bytes\n",max*2*sizeof(int));
 #endif
@@ -2398,7 +2395,7 @@ Overlap *Copy_Overlap(Overlap *ovl)
 { int      i, len;
   Overlap *new_ovl;
 
-  new_ovl = (Overlap *) malloc(sizeof(Overlap));
+  new_ovl = (Overlap *) safe_malloc(sizeof(Overlap));
   new_ovl->begpos = ovl->begpos;
   new_ovl->endpos = ovl->endpos;
   new_ovl->diffs  = ovl->diffs;
@@ -2409,7 +2406,7 @@ Overlap *Copy_Overlap(Overlap *ovl)
   while (ovl->trace[len] != 0)
     len += 1;
 
-  new_ovl->trace = (int *) malloc(sizeof(int)*(len+1));
+  new_ovl->trace = (int *) safe_malloc(sizeof(int)*(len+1));
 
   for (i = 0; i <= len; i++)
     new_ovl->trace[i] = ovl->trace[i];

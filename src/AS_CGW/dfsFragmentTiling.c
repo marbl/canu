@@ -318,9 +318,9 @@ void DFS_longest_chain(dfsGreedyFrg *frgNodes,overlapFilters filter,int starting
 	  if(numOvls>ovlsAlloced){
 	    ovlsAlloced+=50;
 	    if(frgNodes[curr].ovls==NULL){
-	      frgNodes[curr].ovls=(Long_Olap_Data_t*)ckalloc(sizeof(Long_Olap_Data_t)*ovlsAlloced);
+	      frgNodes[curr].ovls=(Long_Olap_Data_t*)safe_malloc(sizeof(Long_Olap_Data_t)*ovlsAlloced);
 	    } else {
-	      frgNodes[curr].ovls=(Long_Olap_Data_t*)ckrealloc(frgNodes[curr].ovls,
+	      frgNodes[curr].ovls=(Long_Olap_Data_t*)safe_realloc(frgNodes[curr].ovls,
 							       sizeof(Long_Olap_Data_t)*ovlsAlloced);
 	    }
 	  }
@@ -329,7 +329,7 @@ void DFS_longest_chain(dfsGreedyFrg *frgNodes,overlapFilters filter,int starting
 	  var += olap.orig_erate * olap.orig_erate;
 	}
 	if(numOvls>0){
-	  frgNodes[curr].ovls=(Long_Olap_Data_t*)ckrealloc(frgNodes[curr].ovls,
+	  frgNodes[curr].ovls=(Long_Olap_Data_t*)safe_realloc(frgNodes[curr].ovls,
 							   sizeof(Long_Olap_Data_t)*numOvls);
 	  qsort(frgNodes[curr].ovls,numOvls,sizeof(Long_Olap_Data_t),thickestSort);
 	  mean /= (double) numOvls;

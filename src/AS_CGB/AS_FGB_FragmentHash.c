@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_FGB_FragmentHash.c,v 1.6 2006-09-26 22:21:13 brianwalenz Exp $
+ * $Id: AS_FGB_FragmentHash.c,v 1.7 2007-02-14 07:20:05 brianwalenz Exp $
  *
  * Module:
  * Description:
@@ -97,7 +97,7 @@ int destroy_FragmentHash(FragmentHashObject * _self)
   // Destroy an object. The return value is zero when successful.
   FragmentHashStruct * self = (FragmentHashStruct *) _self ;
   assert(NULL != self->iid_to_vid); 
-  free( self->iid_to_vid ); 
+  safe_free( self->iid_to_vid ); 
   self->iid_to_vid = NULL;
   safe_free(self);
   return 0;

@@ -34,7 +34,7 @@
  **********************************************************************/
 
 
-static char fileID[] = "$Id: SubgraphREZ.c,v 1.9 2007-02-12 22:16:58 brianwalenz Exp $";
+static char fileID[] = "$Id: SubgraphREZ.c,v 1.10 2007-02-14 07:20:13 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -415,10 +415,10 @@ int Contains_Locale_Frags_new(ChunkInstanceT * chunk, chunk_subgraph * s, int32 
 	for (i = 0; i < numLocales - 1; i++)
 	{
 	  localeInfoHead = localeInfo->next;
-	  free(localeInfo);
+	  safe_free(localeInfo);
 	  localeInfo = localeInfoHead;
 	}
-	free (localeInfoHead);  
+	safe_free (localeInfoHead);  
   }  
 
   numLocales = getLocalesInNode(chunk, &localeInfo, B_END, 0);
@@ -438,10 +438,10 @@ int Contains_Locale_Frags_new(ChunkInstanceT * chunk, chunk_subgraph * s, int32 
 	for (i = 0; i < numLocales - 1; i++)
 	{
 	  localeInfoHead = localeInfo->next;
-	  free(localeInfo);
+	  safe_free(localeInfo);
 	  localeInfo = localeInfoHead;
 	}
-	free (localeInfoHead);  
+	safe_free (localeInfoHead);  
   }
 
   if (foundLocale)
@@ -1555,10 +1555,10 @@ void Free_Subgraph (chunk_subgraph * s) {
   for (i = FIRST_CHUNK_ID; i < s->size; i++)
     for (k = 0; k < NUM_ORIENTATIONS; k++)
       if (s->node[i].num_edges[k])
-		free(s->node[i].edge[k]);
-  free(s->node);
-  free(s->table);
-  free(s);
+        safe_free(s->node[i].edge[k]);
+  safe_free(s->node);
+  safe_free(s->table);
+  safe_free(s);
 }
 
 
@@ -1667,9 +1667,9 @@ void Add_Node(chunk_subgraph * s,
   for (i = FIRST_CHUNK_ID; i < old_size; i++)
     for (k = 0; k < NUM_ORIENTATIONS; k++)
       if (old_node[i].num_edges[k])
-		free(old_node[i].edge[k]);
-  free(old_node);
-  free(old_table);
+        safe_free(old_node[i].edge[k]);
+  safe_free(old_node);
+  safe_free(old_table);
 }
 
 
@@ -1693,7 +1693,7 @@ void Delete_Node(chunk_subgraph * s, int32 cid) {
   //
   for (k=0; k < NUM_ORIENTATIONS; k++)
     if (s->table[cid]->edge[k])
-      free(s->table[cid]->edge[k]);
+      safe_free(s->table[cid]->edge[k]);
 
   //
   // remove the entry from the table

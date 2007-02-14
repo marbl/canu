@@ -34,7 +34,7 @@
 
  **********************************************************************/
 
-static char fileID[] = "$Id: FbacREZ.c,v 1.11 2007-02-12 22:16:58 brianwalenz Exp $";
+static char fileID[] = "$Id: FbacREZ.c,v 1.12 2007-02-14 07:20:13 brianwalenz Exp $";
 
 #define FBACDEBUG 2
 
@@ -310,12 +310,7 @@ int getLocalesInNode(NodeCGW_T* node, localeInfoT** localeInfo, int end,
 		
 		if (!seen)
 		{
-		  localeInfoT *newLocale = malloc(sizeof(localeInfoT));
-		  if (newLocale == NULL)
-		  {
-			fprintf(stderr, "could not malloc new localeInfo\n");
-			exit(1);
-		  }
+		  localeInfoT *newLocale = safe_malloc(sizeof(localeInfoT));
 
 		  numLocales++;
 		  
@@ -436,7 +431,7 @@ int FindCommonLocales( ContigT * lcontig, int lcontigGapEnd,
   tmp_size = MIN( numLeftLocales, numRightLocales);
   if  (tmp_size < 1)
       tmp_size = 1;
-  gapInfoArrayTemp = (GapInfoT *) malloc (tmp_size * sizeof( GapInfoT));
+  gapInfoArrayTemp = (GapInfoT *) safe_malloc (tmp_size * sizeof( GapInfoT));
 
   // find locales that are in both lists
   // locales are numbered starting at 1
@@ -486,9 +481,9 @@ int FindCommonLocales( ContigT * lcontig, int lcontigGapEnd,
 	{
 	  localeInfoTemp = localeInfoLcontig;
 	  localeInfoLcontig = localeInfoLcontig->next;
-	  free (localeInfoTemp);
+	  safe_free (localeInfoTemp);
 	}
-	free (localeInfoLcontig);
+	safe_free (localeInfoLcontig);
   }
   
   if (localeInfoRcontig)
@@ -498,9 +493,9 @@ int FindCommonLocales( ContigT * lcontig, int lcontigGapEnd,
 	{
 	  localeInfoTemp = localeInfoRcontig;
 	  localeInfoRcontig = localeInfoRcontig->next;
-	  free (localeInfoTemp);
+	  safe_free (localeInfoTemp);
 	}
-	free (localeInfoRcontig);
+	safe_free (localeInfoRcontig);
   }  
   
 #if DEBUG_GAP_WALKER > -1
@@ -901,7 +896,7 @@ ChunkInsertInfoT* BuildLocaleOverlaps(GapInfoT *gapInfo,
   ifrag = startFragIid;
 
   // first node in walked chunks is lchunk
-  currentWalkedChunk = walkedChunks = (ChunkInsertInfoT *) malloc ( sizeof(ChunkInsertInfoT));
+  currentWalkedChunk = walkedChunks = (ChunkInsertInfoT *) safe_malloc ( sizeof(ChunkInsertInfoT));
   currentWalkedChunk->next = NULL;
   currentWalkedChunk->contigID = lchunk->id;
   currentWalkedChunk->scaffoldID = lchunk->scaffoldID;
@@ -1155,21 +1150,9 @@ ChunkInsertInfoT* BuildLocaleOverlaps(GapInfoT *gapInfo,
 		// save positions of the CIs
 		if (1) // (fragSucc1->contigID != rchunk->id)
 		{
-		  //if (walkedChunks == NULL)
-		  //{
-		  //currentWalkedChunk = walkedChunks = (ChunkInsertInfoT *) malloc ( sizeof(ChunkInsertInfoT));
-		  //}
-		  //else
-		  {
-			ChunkInsertInfoT *newWalkedChunk = (ChunkInsertInfoT *) malloc ( sizeof(ChunkInsertInfoT));
-			if (newWalkedChunk == NULL)
-			{
-			  fprintf( stderr, "malloc of newWalkedChunk failed...\n");
-			  exit(1);
-			}
-			currentWalkedChunk->next = newWalkedChunk;
-			currentWalkedChunk = currentWalkedChunk->next;
-		  }
+                  ChunkInsertInfoT *newWalkedChunk = (ChunkInsertInfoT *) safe_malloc ( sizeof(ChunkInsertInfoT));
+                  currentWalkedChunk->next = newWalkedChunk;
+                  currentWalkedChunk = currentWalkedChunk->next;
 		  currentWalkedChunk->next = NULL;
 		  currentWalkedChunk->contigID = fragSucc1->contigID;
 		  currentWalkedChunk->scaffoldID = lchunk->scaffoldID;
@@ -1277,7 +1260,7 @@ ChunkInsertInfoT* BuildLocaleOverlaps(GapInfoT *gapInfo,
 		  rchunkOverlap->endpos = tempOlap->endpos;   // bhang
 		}  
 	  }	  
-//	  free( tempOlap );     is a local in dpcompare
+//	  safe_free( tempOlap );     is a local in dpcompare
 	}
 	if (setFrag)
 	  ResetFrag( currFrag, currFragOriginalContig, currFragOriginalOffset5p, currFragOriginalOffset3p);
@@ -1309,7 +1292,7 @@ ChunkInsertInfoT* SortWalk( ChunkInsertInfoT* walkedChunks, ChunkInsertInfoT** f
 	oldChunks = oldChunks->next;
   }
 
-  newChunks = (ChunkInsertInfoT *) malloc( numChunks * sizeof( ChunkInsertInfoT ));
+  newChunks = (ChunkInsertInfoT *) safe_malloc( numChunks * sizeof( ChunkInsertInfoT ));
   
   // make a copy of walkedChunks
   oldChunks = walkedChunks;
@@ -2735,7 +2718,7 @@ void UnlinkLocaleOverlaps(int locale)
 		assert(localeGraph->table[next_chunk_cid] != NULL);
 		
 		// add this edge to the list we are gong to unlink
-		uedge = (unlinkedEdgeT *) malloc( sizeof( unlinkedEdgeT ));
+		uedge = (unlinkedEdgeT *) safe_malloc( sizeof( unlinkedEdgeT ));
 		uedge->next = NULL;
 		uedge->edge = e;
 		
@@ -2782,9 +2765,9 @@ void LinkLocaleOverlaps(void)
 	InsertGraphEdge( ScaffoldGraph->RezGraph, edgesUnlinkedList->eid, 0);
 	uedge = edgesUnlinkedList;
 	edgesUnlinkedList = edgesUnlinkedList->next;
-	free(uedge);
+	safe_free(uedge);
   }
-  free(edgesUnlinkedList);
+  safe_free(edgesUnlinkedList);
   edgesUnlinkedList = NULL;
   edgesUnlinkedListHead = NULL;  
 }
@@ -4072,8 +4055,8 @@ void removeSmallContigs( CIScaffoldT *scaff )
 {
   CIScaffoldTIterator CIsTemp;
   int numContigs = scaff->info.Scaffold.numElements;
-  int *allContigs = (int *) malloc( scaff->info.Scaffold.numElements * sizeof(int) );
-  int *removedContigs = (int *) malloc( scaff->info.Scaffold.numElements * sizeof(int) );
+  int *allContigs = (int *) safe_malloc( scaff->info.Scaffold.numElements * sizeof(int) );
+  int *removedContigs = (int *) safe_malloc( scaff->info.Scaffold.numElements * sizeof(int) );
   int icnt = 0;
   ChunkInstanceT *lcontig, *mcontig, *rcontig;
   int numToRemove = 0;
@@ -4149,12 +4132,10 @@ void removeSmallContigs( CIScaffoldT *scaff )
 
 	  if (mcontig->info.Contig.numCI > 1)  // has to become a singleton scaffold
 	  {
-		CIScaffoldT* newScaffold = (CIScaffoldT *) malloc( sizeof (CIScaffoldT));
+		CIScaffoldT* newScaffold = (CIScaffoldT *) safe_malloc( sizeof (CIScaffoldT));
 		int32 newScaffoldID;
 		LengthT NullLength = {0.0, 0.0};
 
-		assert (newScaffold != NULL);
-		
 		if (1)
 		  newScaffold = CreateNewScaffold();
 		else
@@ -4219,11 +4200,9 @@ void trimScaffoldEnds( CIScaffoldT *scaff )
 
 	if (contig->info.Contig.numCI > 1)  // has to become a singleton scaffold
 	{
-	  CIScaffoldT* newScaffold = (CIScaffoldT *) malloc( sizeof (CIScaffoldT));
+	  CIScaffoldT* newScaffold = (CIScaffoldT *) safe_malloc( sizeof (CIScaffoldT));
 	  int32 newScaffoldID;
 	  LengthT NullLength = {0.0, 0.0};
-	  
-	  assert (newScaffold != NULL);
 	  
 	  if (1)
 		newScaffold = CreateNewScaffold();
@@ -4276,11 +4255,9 @@ void trimScaffoldEnds( CIScaffoldT *scaff )
 
 	if (contig->info.Contig.numCI > 1)  // has to become a singleton scaffold
 	{
-	  CIScaffoldT* newScaffold = (CIScaffoldT *) malloc( sizeof (CIScaffoldT));
+	  CIScaffoldT* newScaffold = (CIScaffoldT *) safe_malloc( sizeof (CIScaffoldT));
 	  int32 newScaffoldID;
 	  LengthT NullLength = {0.0, 0.0};
-	  
-	  assert (newScaffold != NULL);
 	  
 	  if (1)
 		newScaffold = CreateNewScaffold();
@@ -4393,8 +4370,7 @@ void walkScaffolds( CIScaffoldT *scaff1,
   else
   {
 	// create & init a new scaffold
-	newScaffold = (CIScaffoldT *) malloc( sizeof (CIScaffoldT));
-	assert (newScaffold != NULL);  
+	newScaffold = (CIScaffoldT *) safe_malloc( sizeof (CIScaffoldT));
 	InitializeScaffold( newScaffold, REAL_SCAFFOLD);
 	newScaffold->info.Scaffold.AEndCI = NULLINDEX;
 	newScaffold->info.Scaffold.BEndCI = NULLINDEX;
@@ -4463,17 +4439,9 @@ void SaveContigInformation( CIScaffoldT *scaffold, ScaffoldInfoT *scaffoldContig
   CIScaffoldTIterator Contigs;
   
   scaffoldContigs->numContigs = numContigs;
-  scaffoldContigs->ContigIDs = (int *) malloc( numContigs * sizeof( int ));
-  scaffoldContigs->AEndPositions = (LengthT *) malloc( numContigs * sizeof( LengthT ));
-  scaffoldContigs->BEndPositions = (LengthT *) malloc( numContigs * sizeof( LengthT ));
-  
-  if ( scaffoldContigs->ContigIDs == NULL || 
-	   scaffoldContigs->AEndPositions == NULL ||
-	   scaffoldContigs->BEndPositions == NULL)
-  {
-	fprintf( stderr, "memory allocation failure in SaveContigInformation!\n");
-	assert(0);
-  }
+  scaffoldContigs->ContigIDs = (int *) safe_malloc( numContigs * sizeof( int ));
+  scaffoldContigs->AEndPositions = (LengthT *) safe_malloc( numContigs * sizeof( LengthT ));
+  scaffoldContigs->BEndPositions = (LengthT *) safe_malloc( numContigs * sizeof( LengthT ));
   
   contigCount = 0;
   InitCIScaffoldTIterator( ScaffoldGraph, scaffold, TRUE, FALSE, &Contigs);
@@ -4505,307 +4473,7 @@ void RestoreContigInformation( CIScaffoldT *scaffold, ScaffoldInfoT *scaffoldCon
 
 void FreeContigInformation( ScaffoldInfoT *scaffoldContigs)
 {
-  free( scaffoldContigs->ContigIDs);
-  free( scaffoldContigs->AEndPositions);
-  free( scaffoldContigs->BEndPositions);  
+  safe_free( scaffoldContigs->ContigIDs);
+  safe_free( scaffoldContigs->AEndPositions);
+  safe_free( scaffoldContigs->BEndPositions);  
 }
-
-
-
-#ifdef DEAD_CODE
-*******************************************************************************
-*******************************************************************************
-*******************************************************************************
-*******************************************************************************
-*******************************************************************************
-
-
-**** int localeCamOrig() 
-**** {
-****   int
-****     color,
-****     k,
-****     o,
-****     id,
-****     i,
-**** 	numFrags,
-**** 	contigNumber;
-****   CIEdgeT
-****     * edge;
-****   int32
-****     low,
-****     high,
-****     min,
-****     max,
-****     a_end,
-****     b_end,
-****     cid,
-****     other_cid;
-****   ChunkInstanceT
-****     * chunk;
-****   char
-****     unique[STR_LEN],
-****     orientation[STR_LEN],
-****     filename[STR_LEN],
-****     * Colour[NUM_COLORS] = {
-****       "CFFFF00 T2 S # contig",
-****       "C0AAAA0 T2 S # non-BAC frag",
-****       "C0000F0 T2 S # locale_1",
-****       "CAAAA00 T2 S # locale_2",
-****       "C00FF00 T2 S # locale_3",
-****       "CFF8000 T2 S # locale_4",
-****       "CA0A0FF T2 S # locale_5",
-****       "CA00A0F T2 S # locale_6",
-****       "CFFA0F0 T2 S # locale_7",
-****       "C00AAAA T1 S # locale_8"};
-****   FILE
-****     * cam_file;
-****   GraphCGW_T 
-**** 	*graph = ScaffoldGraph->RezGraph;
-****   MultiAlignT 
-**** 	*ma;
-****   IntMultiPos 
-**** 	*mp;
-****   CIFragT 
-**** 	*frag;
-****   CIScaffoldTIterator
-**** 	CIs;
-****   CIScaffoldT 
-**** 	*scaff1;
-****   NodeCGW_T 
-**** 	*contig;
-****   GraphNodeIterator
-**** 	ContigGraphIterator;
-**** 
-****   //
-****   // open the cam file
-****   //
-****   sprintf(filename, "./cam/locales.cam");
-****   // sprintf(filename, "./cam/locale.%d.cam", locale);
-****   cam_file = file_open (filename, "w");
-****   assert(cam_file != NULL);
-****   
-****   //
-****   // output the colors
-****   //
-****   for (i = 0; i < NUM_COLORS; i++)
-****     fprintf(cam_file, "%d: %s\n", i, Colour[i]);
-**** 
-****   
-****   
-****   // InitCIScaffoldTIterator(ScaffoldGraph, scaff, TRUE, FALSE, &CIs);
-****   // while(NextCIScaffoldTIterator(&CIs));
-****   
-****   InitGraphNodeIterator(&ContigGraphIterator, ScaffoldGraph->ContigGraph, GRAPH_NODE_DEFAULT);
-****   while (contig = NextGraphNodeIterator(&ContigGraphIterator))
-****   {
-**** 	int offset;
-**** 
-**** 	if (contig->scaffoldID == -1)
-**** 	  continue;
-**** 	
-**** 	ma = GetMultiAlignInStore(graph->maStore, contig->id);
-**** 	numFrags = GetNumIntMultiPoss(ma->f_list);
-**** 	
-**** 	min = MIN( (int) contig->offsetAEnd.mean, (int) contig->offsetBEnd.mean);
-**** 	max = MAX( (int) contig->offsetAEnd.mean, (int) contig->offsetBEnd.mean);
-**** 	
-**** 	fprintf(cam_file,
-**** 			"%d: %d A%d %d # contig: %d, containing scaffold: %d\n",
-**** 			contig->id,
-**** 			min,
-**** 			0,
-**** 			max,
-**** 			contig->id,
-**** 			contig->scaffoldID);
-**** 	
-**** 	if( !contains_fbac(contig))
-**** 	  continue;
-**** 	
-**** 	offset = MIN( (int) contig->offsetAEnd.mean, (int) contig->offsetBEnd.mean);
-**** 	for (i = 0; i < numFrags; i++)
-**** 	{
-**** 	  mp   = GetIntMultiPos(ma->f_list, i);
-**** 	  frag = GetCIFragT(ScaffoldGraph->CIFrags, (int32)mp->source);
-**** 
-**** 
-**** 	  /*
-		**** 	  if (contig->id == 98) 
-		**** 		fprintf( stderr, "%d, %d, contig: %d, frag: %d, frag->locale: %d, celsim coords: %d, %d\n",
-		**** 				 MIN ((int) frag->contigOffset5p.mean, (int) frag->contigOffset3p.mean),
-		**** 				 MAX ((int) frag->contigOffset5p.mean, (int) frag->contigOffset3p.mean),
-		**** 				 contig->id,
-		**** 				 frag->iid,
-		**** 				 frag->locale,
-		**** 				 frag->aEndCoord,
-		**** 				 frag->bEndCoord);
-		**** 	  */
-**** 
-**** 
-**** 	  
-**** 	  if( frag->locale != -1 )
-**** 	  {
-**** 		if (frag->contigOffset5p.mean < frag->contigOffset3p.mean)
-**** 		{
-**** 		  min = offset + frag->contigOffset5p.mean;
-**** 		  max = offset + frag->contigOffset3p.mean;
-**** 		}
-**** 		else
-**** 		{
-**** 		  min = offset + frag->contigOffset3p.mean;
-**** 		  max = offset + frag->contigOffset5p.mean;
-**** 		}
-**** 		
-**** 		fprintf(cam_file,
-**** 				"%d: %d A%d %d # containing contig: %d, celsim coords: %d, %d\n",
-**** 				frag->iid,
-**** 				min,
-**** 				1 + frag->locale,  // color 1 are the non-BAC frags
-**** 				max,
-**** 				frag->contigID,
-**** 				frag->aEndCoord,
-**** 				frag->bEndCoord);
-**** 	  }
-**** 	  else
-**** 	  {
-**** 		int 
-**** 		  contigOrientation,
-**** 		  fragOrientationInContig,
-**** 		  basesFromEnd,
-**** 		  end;
-**** 		
-**** 		if (contig->offsetAEnd.mean < contig->offsetBEnd.mean)
-**** 		  contigOrientation = 0;
-**** 		else
-**** 		  contigOrientation = 1;
-**** 		
-**** 		if (frag->contigOffset5p.mean < frag->contigOffset3p.mean)
-**** 		  fragOrientationInContig = 0;
-**** 		else
-**** 		  fragOrientationInContig = 1;
-**** 
-**** 		// do A end first
-**** 		basesFromEnd = MIN((int) frag->contigOffset5p.mean, (int) frag->contigOffset3p.mean);
-**** 		if ( basesFromEnd < )
-**** 		{
-**** 		  if (contigOrientation == 0)
-**** 		  {
-**** 			if (fragOrientationInContig == 0)
-**** 			{
-**** 			  min = offset + frag->contigOffset5p.mean;
-**** 			  max = offset + frag->contigOffset3p.mean;
-**** 			}
-**** 			else
-**** 			{
-**** 			  min = offset + frag->contigOffset3p.mean;
-**** 			  max = offset + frag->contigOffset5p.mean;
-**** 			}
-**** 		  }
-**** 		  else if (contigOrientation == 1)
-**** 		  {
-**** 			if (fragOrientationInContig == 0)
-**** 			{
-**** 			  min = offset + contig->bpLength.mean - frag->contigOffset3p.mean;
-**** 			  max = offset + contig->bpLength.mean - frag->contigOffset5p.mean;
-**** 			}
-**** 			else
-**** 			{
-**** 			  min = offset + contig->bpLength.mean - frag->contigOffset5p.mean;
-**** 			  max = offset + contig->bpLength.mean - frag->contigOffset3p.mean;
-**** 			}			
-**** 		  }
-**** 		  fprintf(cam_file,
-**** 				  "%d: %d A%d %d # containing contig: %d celsim coords: %d, %d\n",
-**** 				  1000000 + frag->iid,   // the 1000000 prevents collisons in the Celamy namespace
-**** 				  min,
-**** 				  1,
-**** 				  max,
-**** 				  frag->contigID,
-**** 				  frag->aEndCoord,
-**** 				  frag->bEndCoord);
-**** 		}
-**** 
-**** 		// now do B end
-**** 		basesFromEnd = MIN(contig->bpLength.mean - (int) frag->contigOffset5p.mean,
-**** 						   contig->bpLength.mean - (int) frag->contigOffset3p.mean);
-**** 		if ( basesFromEnd < 1000)
-**** 		{
-**** 		  if (contigOrientation == 0)
-**** 		  {
-**** 			if (fragOrientationInContig == 0)
-**** 			{
-**** 			  min = offset + frag->contigOffset5p.mean;
-**** 			  max = offset + frag->contigOffset3p.mean;
-**** 			}
-**** 			else
-**** 			{
-**** 			  min = offset + frag->contigOffset3p.mean;
-**** 			  max = offset + frag->contigOffset5p.mean;
-**** 			}
-**** 		  }
-**** 		  else if (contigOrientation == 1)
-**** 		  {
-**** 			if (fragOrientationInContig == 0)
-**** 			{
-**** 			  min = offset + contig->bpLength.mean - frag->contigOffset3p.mean;
-**** 			  max = offset + contig->bpLength.mean - frag->contigOffset5p.mean;
-**** 			}
-**** 			else
-**** 			{
-**** 			  min = offset + contig->bpLength.mean - frag->contigOffset5p.mean;
-**** 			  max = offset + contig->bpLength.mean - frag->contigOffset3p.mean;
-**** 			}			
-**** 		  }
-**** 		  fprintf(cam_file,
-**** 				  "%d: %d A%d %d # containing contig: %d celsim coords: %d, %d\n",
-**** 				  2000000 + frag->iid,   // the 2000000 prevents collisons in the Celamy namespace
-**** 				  min,
-**** 				  1,
-**** 				  max,
-**** 				  frag->contigID,
-**** 				  frag->aEndCoord,
-**** 				  frag->bEndCoord);
-**** 		}		
-**** 	  }		
-**** 	}
-****   }
-****   fclose (cam_file);
-**** }
-#endif
-
-#ifdef CHECKCODE
-		if (0)
-		{
-		  int end;
-		  
-		  if (*tempOlapOrientation == AB_AB || *tempOlapOrientation == AB_BA)
-			end = B_END;
-		  else
-			end = A_END;
-
-		  {
-			GraphEdgeIterator edges;
-			CIEdgeT *edge;
-			
-			fprintf( stderr, "Edges before insert----------------------------------------------------\n");
-			InitGraphEdgeIterator(ScaffoldGraph->RezGraph, currFrag->contigID, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
-			while( edge = NextGraphEdgeIterator(&edges) )
-			  PrintGraphEdge( stderr, ScaffoldGraph->RezGraph, "relativ from idA ", edge, edge->idA);
-		  }
-		  
-		  fprintf( stderr, "Inserting an overlap between %d and %d, orientation: %c\n", 
-				   currFrag->contigID, fragSucc1->contigID, (char) *tempOlapOrientation);
-		  InsertOverlapInHashTable( tempOlap, currFrag->contigID, fragSucc1->contigID, *tempOlapOrientation);
-		  
-		  {
-			GraphEdgeIterator edges;
-			CIEdgeT *edge;
-			
-			fprintf( stderr, "Edges after insert----------------------------------------------------\n");
-			InitGraphEdgeIterator(ScaffoldGraph->RezGraph, currFrag->contigID, end, ALL_EDGES, GRAPH_EDGE_DEFAULT, &edges);
-			while( edge = NextGraphEdgeIterator(&edges) )
-			PrintGraphEdge( stderr, ScaffoldGraph->RezGraph, "relativ from idA ", edge, edge->idA);
-		  }
-
-#endif
-

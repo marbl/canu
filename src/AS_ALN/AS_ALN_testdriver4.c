@@ -52,7 +52,7 @@ char *get_sequence(FILE *input)
   if (first)
     { first  = 0;
       top    = 2048;
-      seqbuf = (char *) ckalloc(sizeof(char)*top);
+      seqbuf = (char *) safe_malloc(sizeof(char)*top);
       if (fgets(linebuf,LBUFLEN,input) == NULL) return (NULL);
       if (*linebuf != '>')
         { fprintf(stderr,"First line must start with an >-sign\n");
@@ -86,10 +86,10 @@ char *get_sequence(FILE *input)
         { l = strlen(linebuf);
           if (e + l >= top)
             { top = (int) (1.5*(e+l) + 200);
-              newbuf = (char *) ckalloc(sizeof(char)*top);
+              newbuf = (char *) safe_malloc(sizeof(char)*top);
               seqbuf[e] = '\0';
               strcpy(newbuf,seqbuf);
-              free(seqbuf);
+              safe_free(seqbuf);
               seqbuf = newbuf;
             }
           strcpy(seqbuf+e,linebuf);
@@ -100,7 +100,7 @@ char *get_sequence(FILE *input)
     }
   seqbuf[e] = '\0';
 
-  newbuf = (char *) ckalloc(sizeof(char)*(e+1));
+  newbuf = (char *) safe_malloc(sizeof(char)*(e+1));
   strcpy(newbuf,seqbuf);
   
   return (newbuf);
@@ -118,7 +118,7 @@ char **get_sequences(FILE *input, int *nseq)
   char **seqa, **seqn;
 
   max  = 32;
-  seqa = (char **) ckalloc(max*sizeof(char *));
+  seqa = (char **) safe_malloc(max*sizeof(char *));
 
   k = 0;
   while (1)
@@ -127,10 +127,10 @@ char **get_sequences(FILE *input, int *nseq)
           if (seqa[k] == NULL) break;
         }
       if (k < max) break;
-      seqn = (char **) ckalloc(2*max*sizeof(char *));
+      seqn = (char **) safe_malloc(2*max*sizeof(char *));
       for (k = 0; k < max; k++)
         seqn[k] = seqa[k];
-      free(seqa);
+      safe_free(seqa);
       seqa = seqn;
       max *= 2;
     }

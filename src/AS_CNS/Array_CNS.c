@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: Array_CNS.c,v 1.10 2007-02-12 22:16:56 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Array_CNS.c,v 1.11 2007-02-14 07:20:09 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -72,9 +72,9 @@ return t;
 }
 
 int freeLaneNode(LaneNode *node) {
-if ( node->sequence ) free(node->sequence);
-if ( node->quality ) free(node->quality);
-free(node);
+safe_free(node->sequence);
+safe_free(node->quality);
+safe_free(node);
 return 1;
 }
 

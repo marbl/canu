@@ -242,11 +242,8 @@ static VarArrayType *Create_VA(const size_t arraySize,
      thetype: A character string identifying the type.
   */
      
-  VarArrayType * const va = (VarArrayType *)malloc(sizeof(VarArrayType));
-  assert(va != NULL);
-
+  VarArrayType * const va = (VarArrayType *)safe_malloc(sizeof(VarArrayType));
   Initialize_VA( va, arraySize, sizeofElement, thetype);
-
   return va;
 }
 
@@ -266,7 +263,7 @@ static VarArrayType *CreateFromArray_VA
   */
      
   VarArrayType *va;
-  va = (VarArrayType *)malloc(sizeof(VarArrayType));
+  va = (VarArrayType *)safe_malloc(sizeof(VarArrayType));
   InitializeFromArray_VA( va, arraySize, sizeofElement, thetype, data);
   return va;
 }
@@ -274,7 +271,7 @@ static VarArrayType *CreateFromArray_VA
 static VarArrayType *CreateFromFile_VA
 (FILE *fp,const char * const thetype,size_t space_in_elements_for_growth){
   VarArrayType *va;
-  va = (VarArrayType *)malloc(sizeof(VarArrayType));
+  va = (VarArrayType *)safe_malloc(sizeof(VarArrayType));
   InitializeFromFile_VA( fp, va, thetype, space_in_elements_for_growth);
   return va;
 }
@@ -287,7 +284,7 @@ void LoadFromFile_VA (FILE * const fp,
 
 static VarArrayType *Clone_VA(const VarArrayType *va){
   VarArrayType *newva;
-  newva = (VarArrayType *)malloc(sizeof(VarArrayType));
+  newva = (VarArrayType *)safe_malloc(sizeof(VarArrayType));
   InitializeFromArray_VA(newva, va->numElements, va->sizeofElement, va->typeofElement, va->Elements);
   return newva;
 }
@@ -298,16 +295,10 @@ static void ReuseClone_VA(VarArrayType *vato, const VarArrayType *vafrom){
 }
 
 static void Delete_VA(VarArrayType * va) {
-#if 0
-  assert(va != NULL);  // Be intolerant of potential memory leaks...
-#else
-  /* Handle the case of a NULL VA gracefully */
   if(va == NULL)
     return;
-#endif
   Clear_VA((VarArrayType * const)va);
-  free(va);
-  va = NULL;
+  safe_free(va);
 }
 
 
@@ -471,7 +462,7 @@ typedef struct{\
 }Stack_##type;\
 \
 static Stack_##type *CreateStack_##type (int size){\
-  Stack_##type *new = (Stack_##type *)malloc(sizeof(Stack_##type ));\
+  Stack_##type *new = (Stack_##type *)safe_malloc(sizeof(Stack_##type ));\
   new->stack = CreateVA_##type (size);\
   new->top = NULLINDEX; \
   return new;\
@@ -479,7 +470,7 @@ static Stack_##type *CreateStack_##type (int size){\
 \
 static void DeleteStack_##type(Stack_##type *stack){\
   DeleteVA_##type (stack->stack);\
-  free(stack);\
+  safe_free(stack);\
 }\
 static void ResetStack_##type(Stack_##type *stack){\
   ResetVA_##type (stack->stack);\

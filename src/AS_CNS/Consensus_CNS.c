@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.38 2007-02-12 22:16:56 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.39 2007-02-14 07:20:09 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -822,8 +822,7 @@ int main (int argc, char *argv[])
   
         fclose( sublist );
       }
-      if (extract_id) 
-        free(extract_id);
+      safe_free(extract_id);
     }
 
 
@@ -865,7 +864,7 @@ int main (int argc, char *argv[])
       VA_TYPE(char) *quality=CreateVA_char(200000);
       time_t t;
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.38 $ processing. Started %s\n",
+      fprintf(stderr,"# Consensus $Revision: 1.39 $ processing. Started %s\n",
         ctime(&t));
       InitializeAlphTable();
       if ( ! align_ium && USE_SDB && extract > -1 ) 
@@ -1009,7 +1008,7 @@ int main (int argc, char *argv[])
                 sprintf(CamFileName,"%s%s.cns.cam",argv[optind],
                   (extract != -1)?extract_id:"");
                 cam = fopen(CamFileName,"w");         // cam file
-                free(extract_id);
+                safe_free(extract_id);
               }
               if (range && 
                   (iunitig->iaccession < tig_range.bgn || 
@@ -1190,11 +1189,11 @@ int main (int argc, char *argv[])
                 int i;
                 for (i=0; i<pcontig->num_vars; i++)
                 {
-                    free(pcontig->v_list[i].nr_conf_alleles);
-                    free(pcontig->v_list[i].weights);
-                    free(pcontig->v_list[i].var_seq);
+                    safe_free(pcontig->v_list[i].nr_conf_alleles);
+                    safe_free(pcontig->v_list[i].weights);
+                    safe_free(pcontig->v_list[i].var_seq);
                 }
-                free(pcontig->v_list);
+                safe_free(pcontig->v_list);
             }
             pcontig->num_vars = 0;
             fflush(cnsout);
@@ -1216,7 +1215,7 @@ int main (int argc, char *argv[])
             {
               AuditLine auditLine;
               AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                                 "Consensus", "$Revision: 1.38 $","(empty)");
+                                 "Consensus", "$Revision: 1.39 $","(empty)");
             }
 #endif
               VersionStampADT(adt_mesg,argc,argv);
@@ -1240,7 +1239,7 @@ int main (int argc, char *argv[])
       }
 
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.38 $ Finished %s\n",ctime(&t));
+      fprintf(stderr,"# Consensus $Revision: 1.39 $ Finished %s\n",ctime(&t));
       if (printcns) 
       {
         int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 

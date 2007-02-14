@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_histo.c,v 1.8 2006-11-14 19:58:21 eliv Exp $
+ * $Id: AS_CGB_histo.c,v 1.9 2007-02-14 07:20:05 brianwalenz Exp $
  * Module:  AS_CGB_histo.c
  * Description: A histogramming routine and auxillary functions.
  * Assumptions:
@@ -36,7 +36,7 @@
 #undef DEBUGGING2
 
 /*************************************************************************/
-static char CM_ID[] = "$Id: AS_CGB_histo.c,v 1.8 2006-11-14 19:58:21 eliv Exp $";
+static char CM_ID[] = "$Id: AS_CGB_histo.c,v 1.9 2007-02-14 07:20:05 brianwalenz Exp $";
 /*************************************************************************/
 
 /* Histogram library */
@@ -178,16 +178,16 @@ void free_histogram(Histogram_t *histogram)
 { 
   HISTOGRAM *h = (HISTOGRAM *)histogram;
   assert(h != NULL);
-  free(h->thescore);
-  if(NULL != h->temp_data) { free(h->temp_data);}
-  if(NULL != h->scan_data) { free(h->scan_data);}
-  if(NULL != h->aggr_data) { free(h->aggr_data);}
-  free(h->bucket_cnt);
-  free(h->bucket_min);
-  free(h->bucket_max);
-  if(NULL != h->sample_data) { free(h->sample_data);}
-  if(NULL != h->bucket_data) { free(h->bucket_data);}
-  free((char *) h); 
+  safe_free(h->thescore);
+  safe_free(h->temp_data);
+  safe_free(h->scan_data);
+  safe_free(h->aggr_data);
+  safe_free(h->bucket_cnt);
+  safe_free(h->bucket_min);
+  safe_free(h->bucket_max);
+  safe_free(h->sample_data);
+  safe_free(h->bucket_data);
+  safe_free(h); 
 }
 
 static int bucket_from_score(HISTOGRAM *h, int thescore) {

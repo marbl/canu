@@ -34,7 +34,7 @@
  **********************************************************************/
 
 
-static char fileID[] = "$Id: GWDriversREZ.c,v 1.8 2007-02-04 09:30:45 brianwalenz Exp $";
+static char fileID[] = "$Id: GWDriversREZ.c,v 1.9 2007-02-14 07:20:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <assert.h>
@@ -534,7 +534,7 @@ void Intra_Scaffold_Path_Finding( int startWalkFrom, double gapSizeStdDevs, int 
     // in the current scaffold
     // fill_chunks = Scan_Gaps_In_Scaffold (sId);     
 
-    chunkArray = (int *) malloc( scaff->info.Scaffold.numElements * sizeof(int));
+    chunkArray = (int *) safe_malloc( scaff->info.Scaffold.numElements * sizeof(int));
 	
     //
     // print all the gaps of this scaffold
@@ -841,7 +841,7 @@ void Intra_Scaffold_Path_Finding( int startWalkFrom, double gapSizeStdDevs, int 
 		  else if (completeOverlapPath == -9)
 			walksUnsuccessfulFragsDoNotOverlapInLocale++;
 		}
-		free(gapInfoArray);  // this is malloced in FindCommonLocales
+		safe_free(gapInfoArray);  // this is malloced in FindCommonLocales
       }
 	  currentLeftNodeId = currentRightNodeId;
 	}
@@ -1215,11 +1215,11 @@ int Inter_Scaffold_Walking(void)
 		currLocaleInfo = localeInfoContig->next;
 		while (currLocaleInfo != NULL)
 		{
-		  free (localeInfoContig);
+		  safe_free (localeInfoContig);
 		  localeInfoContig = currLocaleInfo;
 		  currLocaleInfo = localeInfoContig->next;
 		}
-		free (localeInfoContig);
+		safe_free (localeInfoContig);
 		
 		for ( i = 0; i < numInserted; i++)
 		{
@@ -1286,11 +1286,11 @@ int Inter_Scaffold_Walking(void)
 		currLocaleInfo = localeInfoContig->next;
 		while (currLocaleInfo != NULL)
 		{
-		  free (localeInfoContig);
+		  safe_free (localeInfoContig);
 		  localeInfoContig = currLocaleInfo;
 		  currLocaleInfo = localeInfoContig->next;
 		}
-		free (localeInfoContig);
+		safe_free (localeInfoContig);
 		
 		for ( i = 0; i < numInserted; i++)
 		{
@@ -1444,11 +1444,8 @@ int Inter_Scaffold_Walking(void)
 
   // now make an array of all scaffold ends we're interested in
   // mark the ones that are to be involved in a walk as indicated by scaffoldEnds
-  AEnds = (int *) calloc( GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph), sizeof(int));
-  AssertPtr (AEnds);
-  
-  BEnds = (int *) calloc( GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph), sizeof(int));
-  AssertPtr (BEnds);
+  AEnds = (int *) safe_calloc( GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph), sizeof(int));
+  BEnds = (int *) safe_calloc( GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph), sizeof(int));
   
   for ( i = 0; i < scaffoldEndCount; i++)
   {
@@ -1714,8 +1711,7 @@ CIScaffoldT* CreateNewScaffold(void)
   LengthT NullLength = {0.0, 0.0};
 
   // create & init a new scaffold
-  newScaffold = (CIScaffoldT *) malloc( sizeof (CIScaffoldT));
-  assert (newScaffold != NULL);  
+  newScaffold = (CIScaffoldT *) safe_malloc( sizeof (CIScaffoldT));
   InitializeScaffold( newScaffold, REAL_SCAFFOLD);
   newScaffold->info.Scaffold.AEndCI = NULLINDEX;
   newScaffold->info.Scaffold.BEndCI = NULLINDEX;

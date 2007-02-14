@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_Hash.c,v 1.5 2005-07-13 14:47:56 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_UTL_Hash.c,v 1.6 2007-02-14 07:20:15 brianwalenz Exp $";
 
 #include <string.h>
 #include <math.h>
@@ -94,11 +94,8 @@ int ReallocHashTable_AS(HashTable_AS *htable){
     htable->numBuckets = oldNumBuckets * 2;
     htable->numNodesAllocated = oldNumNodes *2;
     htable->hashmask = ((htable->hashmask + 1)<<1) - 1;
-    free(htable->buckets);
-    htable->buckets = (HashNode_AS **)malloc
-      (htable->numBuckets * sizeof(HashNode_AS *));
-    //    htable->allocated = (HashNode_AS *)realloc
-    //      (htable->allocated, htable->numNodesAllocated * sizeof(HashNode_AS));
+    safe_free(htable->buckets);
+    htable->buckets = (HashNode_AS **)safe_malloc (htable->numBuckets * sizeof(HashNode_AS *));
 #ifdef DEBUG_HASH
     fprintf(stderr,"***Reallocating %d buckets and %d nodes, mask = 0x%x\n",
 	    htable->numBuckets, htable->numNodesAllocated, htable->hashmask);
@@ -128,7 +125,7 @@ int ReallocHashTable_AS(HashTable_AS *htable){
 
 HashTable_AS *CreateHashTable_AS(int numItemsToHash, 
 				 HashFn_AS hashfn, HashCmpFn_AS cmpfn){
-  HashTable_AS *table= (HashTable_AS *)malloc(sizeof(HashTable_AS));
+  HashTable_AS *table= (HashTable_AS *)safe_malloc(sizeof(HashTable_AS));
 
   table->collisions = 0;
   table->numNodes = 0;
@@ -142,15 +139,10 @@ HashTable_AS *CreateHashTable_AS(int numItemsToHash,
     int i;
     table->numBuckets = hashsize(logsize);
     table->hashmask = hashmask(logsize);
-//  Commenting out this diagnostic. -- KAR
-    //  fprintf(stderr,"***Allocating %d buckets for %d elements, mask = 0x%x\n",
-    //	    table->numBuckets, numItemsToHash, table->hashmask);
 
-    table->buckets = (HashNode_AS **)malloc(table->numBuckets 
-					    * sizeof(HashNode_AS *));
-    for(i = 0; i < table->numBuckets; i++){
+    table->buckets = (HashNode_AS **)safe_malloc(table->numBuckets * sizeof(HashNode_AS *));
+    for(i = 0; i < table->numBuckets; i++)
       table->buckets[i] = NULL;
-    }
   }	
   {
     int logsize = ceil_log2(numItemsToHash);
@@ -176,9 +168,9 @@ void ResetHashTable_AS(HashTable_AS *table){
 }
 
 void DeleteHashTable_AS(HashTable_AS *table){
-  free(table->buckets);
+  safe_free(table->buckets);
   FreeHashNode_ASHeap(table->allocated);
-  free(table);
+  safe_free(table);
 }
 
 
@@ -424,7 +416,7 @@ int NextHashTable_Iterator_AS(HashTable_Iterator_AS *iterator,
  /****** stuff for UID2IID maps: key and value actually in table ******/
  
  UIDHashTable_AS *CreateUIDHashTable_AS(int numItemsToHash){
-   UIDHashTable_AS *table= (UIDHashTable_AS *)malloc(sizeof(UIDHashTable_AS));
+   UIDHashTable_AS *table= (UIDHashTable_AS *)safe_malloc(sizeof(UIDHashTable_AS));
    UIDHashNode_AS *node;
  
    table->collisions = 0;
@@ -439,15 +431,10 @@ int NextHashTable_Iterator_AS(HashTable_Iterator_AS *iterator,
      int i;
      table->numBuckets = hashsize(logsize);
      table->hashmask = hashmask(logsize);
- //  Commenting out this diagnostic. -- KAR
-     //  fprintf(stderr,"***Allocating %d buckets for %d elements, mask = 0x%x\n",
-     //	    table->numBuckets, numItemsToHash, table->hashmask);
  
-     table->buckets = (UIDHashNode_AS **)malloc(table->numBuckets 
- 					    * sizeof(UIDHashNode_AS *));
-     for(i = 0; i < table->numBuckets; i++){
+     table->buckets = (UIDHashNode_AS **)safe_malloc(table->numBuckets * sizeof(UIDHashNode_AS *));
+     for(i = 0; i < table->numBuckets; i++)
        table->buckets[i] = NULL;
-     }
    }	
    {
      int logsize = (int) ceil_log2(numItemsToHash);
@@ -539,11 +526,9 @@ int NextHashTable_Iterator_AS(HashTable_Iterator_AS *iterator,
      htable->numBuckets = oldNumBuckets * 2;
      htable->numNodesAllocated = oldNumNodes *2;
      htable->hashmask = ((htable->hashmask + 1)<<1) - 1;
-     free(htable->buckets);
-     htable->buckets = (UIDHashNode_AS **)malloc
+     safe_free(htable->buckets);
+     htable->buckets = (UIDHashNode_AS **)safe_malloc
        (htable->numBuckets * sizeof(UIDHashNode_AS *));
-     //    htable->allocated = (UIDHashNode_AS *)realloc
-     //      (htable->allocated, htable->numNodesAllocated * sizeof(UIDHashNode_AS));
  #ifdef DEBUG_HASH
      fprintf(stderr,"***Reallocating %d buckets and %d nodes, mask = 0x%x\n",
  	    htable->numBuckets, htable->numNodesAllocated, htable->hashmask);
@@ -722,7 +707,7 @@ int NextHashTable_Iterator_AS(HashTable_Iterator_AS *iterator,
  }
 
 void DeleteUIDHashTable_AS(UIDHashTable_AS *table){
-  free(table->buckets);
+  safe_free(table->buckets);
   FreeHashNode_ASHeap(table->allocated);
-  free(table);
+  safe_free(table);
 }

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.12 2007-02-12 22:16:56 brianwalenz Exp $";
+static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.13 2007-02-14 07:20:07 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -588,7 +588,7 @@ static void ResetIUMStruct(IUMStruct * is)
 #ifdef AS_ENABLE_SOURCE
       /*
         if(is->ium.f_list[i].source)
-        free(is->ium.f_list[i].source);
+        safe_free(is->ium.f_list[i].source);
       */
 #endif
       is->ium.f_list[i].delta_length = 0;
@@ -615,7 +615,7 @@ static void FreeIUMStruct(IUMStruct * is)
         DeleteVA_char(is->quality);
 #ifdef AS_ENABLE_SOURCE
       if(is->ium.source)
-        free(is->ium.source);
+        safe_free(is->ium.source);
 #endif
       if(is->ium.f_list)
         {
@@ -625,13 +625,13 @@ static void FreeIUMStruct(IUMStruct * is)
             for(i = 0; i < is->ium.num_frags; i++)
             {
             if(is->ium.f_list[i].source)
-            free(is->ium.f_list[i].source);
+            safe_free(is->ium.f_list[i].source);
             }
           */
 #endif
-          free(is->ium.f_list);
+          safe_free(is->ium.f_list);
         }
-      free(is);
+      safe_free(is);
     }
 }
 
@@ -832,7 +832,7 @@ void AdjustContainedOrder(IntMultiPos * impList, int numIMPs)
     impList[numContaining + totalMoved + index] = contained[index];
     }
   */
-  free(contained);
+  safe_free(contained);
 
   assert(numContainedLeft == 0);
   

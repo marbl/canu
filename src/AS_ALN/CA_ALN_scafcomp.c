@@ -107,8 +107,8 @@ static Scaffold *Read_Next_Scaffold(FILE *ifile, int first)
         exit (1);
       }
 
-    gaplist = (Scaffold_Gap *) malloc(sizeof(Scaffold_Gap)*numgaps);
-    ctglist = (Scaffold_Tig *) malloc(sizeof(Scaffold_Tig)*(numgaps+1));
+    gaplist = (Scaffold_Gap *) safe_malloc(sizeof(Scaffold_Gap)*numgaps);
+    ctglist = (Scaffold_Tig *) safe_malloc(sizeof(Scaffold_Tig)*(numgaps+1));
 
     locate = eptr;
     for (i = 0; i < numgaps; i++)
@@ -170,7 +170,7 @@ static Scaffold *Read_Next_Scaffold(FILE *ifile, int first)
         exit (1);
       }
 
-    packseq = (char *) malloc(plen+1);
+    packseq = (char *) safe_malloc(plen+1);
 
     gaps = 0;
     p = 0;
@@ -198,7 +198,7 @@ static Scaffold *Read_Next_Scaffold(FILE *ifile, int first)
     ctglist[gaps].length = p - ctglist[gaps].insert_pnt;
   }
 
-  scaf = (Scaffold *) malloc(sizeof(Scaffold));
+  scaf = (Scaffold *) safe_malloc(sizeof(Scaffold));
   scaf->num_gaps = numgaps;
   scaf->gaps = gaplist;
   scaf->ctgs = ctglist;
@@ -223,9 +223,9 @@ Scaffold_List *Read_Multi_Fasta(char *fname)
   first = 1;
   while ((S = Read_Next_Scaffold(ifile,first)) != NULL)
     { if (fing == NULL)
-        list = fing = (Scaffold_List *) malloc(sizeof(Scaffold_List));
+        list = fing = (Scaffold_List *) safe_malloc(sizeof(Scaffold_List));
       else
-        fing = fing->next = (Scaffold_List *) malloc(sizeof(Scaffold_List));
+        fing = fing->next = (Scaffold_List *) safe_malloc(sizeof(Scaffold_List));
       fing->scaffold = S;
       first = 0;
     }
@@ -270,10 +270,10 @@ void Complement_Scaffold(Scaffold *S)
 }
 
 void Free_Scaffold(Scaffold *S)
-{ free(S->gaps);
-  free(S->ctgs);
-  free(S->packed_seq);
-  free(S);
+{ safe_free(S->gaps);
+  safe_free(S->ctgs);
+  safe_free(S->packed_seq);
+  safe_free(S);
 }
 
 static AggregateString *Build_Indexable_String(Scaffold_List *S)
@@ -302,11 +302,7 @@ static AggregateString *Build_Indexable_String(Scaffold_List *S)
     as = sizeof(int);
     as = ( (sizeof(AggregateString) + as - 1) / as ) * as;
     agg = (AggregateString *)
-             malloc(as + 2*ctg*sizeof(int) + len + 1);
-    if (agg == NULL)
-      { fprintf(stderr,"Out of memory (aggregate string)\n");
-        exit (1);
-      }
+             safe_malloc(as + 2*ctg*sizeof(int) + len + 1);
     idx = (int *) (((char *) agg) + as);
     sfn = idx + ctg;
     str = (char *) (sfn + ctg);
@@ -414,8 +410,8 @@ static Local_Pool *Find_All_Locals(Scaffold_List *AS, Scaffold_List *BS)
 
   { int i;
 
-    addr = (Local_Address *) malloc(nseg*sizeof(Local_Address));
-    perm = (int *) malloc(nseg*sizeof(int));
+    addr = (Local_Address *) safe_malloc(nseg*sizeof(Local_Address));
+    perm = (int *) safe_malloc(nseg*sizeof(int));
     for (i = 0; i < nseg; i++)
       { int ac, bc;
 
@@ -466,8 +462,8 @@ static Local_Pool *Find_All_Locals(Scaffold_List *AS, Scaffold_List *BS)
   }
 #endif
 
-  free(acmp);
-  free(bcmp);
+  safe_free(acmp);
+  safe_free(bcmp);
 
   { int a, w;
     Local_Segment t;
@@ -491,7 +487,7 @@ static Local_Pool *Find_All_Locals(Scaffold_List *AS, Scaffold_List *BS)
       }
   }
 
-  free(perm);
+  safe_free(perm);
 
 #ifdef DEBUG_LOCAL
   { int i;
@@ -597,7 +593,7 @@ Segment *Find_All_Overlaps(Scaffold *AF, Scaffold *BF, Local_Pool *pool,
           while (ovl != NULL)
             { Segment *newseg;
 
-              newseg = (Segment *) malloc(sizeof(Segment));
+              newseg = (Segment *) safe_malloc(sizeof(Segment));
               newseg->next     = list;
               newseg->a_contig = i;
               newseg->b_contig = j;
@@ -659,8 +655,8 @@ void Free_Segments_ScafComp(Segment *seglist)
 
   for (s = seglist; s != NULL; s = t)
     { t = s->next;
-      free(s->overlap);
-      free(s);
+      safe_free(s->overlap);
+      safe_free(s);
     }
 }
 
@@ -808,7 +804,7 @@ interval_list *cleanup_ilist(interval_list *list){
   // trace through the list, deleting as we go
   while(list!=NULL){
     link = (fromTail ? list->prev : list->next);
-    free(list);
+    safe_free(list);
     list=link;
   }
   return NULL;
@@ -985,8 +981,7 @@ interval_list *add_to_ilist(interval_list *tail, interval to_add){
     }
   }
 
-  il = (interval_list*) malloc(sizeof(interval_list));
-  assert(il!=NULL);
+  il = (interval_list*) safe_malloc(sizeof(interval_list));
   il->ival.beg=to_add.beg;
   il->ival.end=to_add.end;
   il->ival.traceback=to_add.traceback;
@@ -1949,20 +1944,12 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
 
   if (numsegs > MaxAlign)
     { MaxAlign = (int)(1.3*numsegs + 100);
-      CtgOvls  = (COvlps *) realloc(CtgOvls,sizeof(COvlps)*MaxAlign);
-      if (CtgOvls == NULL)
-        { fprintf(stderr,"Out of memory allocating DP array\n");
-          exit (1);
-        }
+      CtgOvls  = (COvlps *) safe_realloc(CtgOvls,sizeof(COvlps)*MaxAlign);
     }
 
   if (AF->num_gaps + BF->num_gaps + 2 > MaxBucket)
     { MaxBucket = (int)(1.3*(AF->num_gaps + BF->num_gaps + 2) + 100);
-      ABuckets  = (COvlps **) realloc(ABuckets,sizeof(COvlps *)*MaxBucket);
-      if (ABuckets == NULL)
-        { fprintf(stderr,"Out of memory allocating segment sort arrays\n");
-          exit (1);
-        }
+      ABuckets  = (COvlps **) safe_realloc(ABuckets,sizeof(COvlps *)*MaxBucket);
     }
   BBuckets  = ABuckets + (AF->num_gaps+1);
 
@@ -2304,8 +2291,8 @@ Segment *Align_Scaffold(Segment *seglist, int numsegs, int varwin,
     for (s = seglist; s != NULL; s = r)
       { r = s->next;
       if (s->alow >= 0)
-	{ free(s->overlap);
-	free(s);
+	{ safe_free(s->overlap);
+	safe_free(s);
 	}
       else
 	s->alow = - (s->alow+1);
@@ -2819,7 +2806,7 @@ void Free_Scaffold_List(Scaffold_List *SL)
   for (s = SL; s != NULL; s = t)
     { t = s->next;
       Free_Scaffold(s->scaffold);
-      free(s);
+      safe_free(s);
     }
 }
 
@@ -3022,7 +3009,7 @@ Scaffold_Overlap *Analyze_Overlap(Scaffold *AF, Scaffold *BF,
 
     diag = (dmin + dmax) / 2;
 
-    ovl = (Overlap *) malloc(sizeof(Overlap));
+    ovl = (Overlap *) safe_malloc(sizeof(Overlap));
     ovl->begpos = diag;
     ovl->endpos = diag - (AF->length - BF->length);
     ovl->diffs  = totdiff + segdiff;
@@ -3032,7 +3019,7 @@ Scaffold_Overlap *Analyze_Overlap(Scaffold *AF, Scaffold *BF,
     //    ovl->aseq   = ovl->bseq = NULL;
     //    ovl->trace  = NULL;
 
-    sovl = (Scaffold_Overlap *) malloc(sizeof(Scaffold_Overlap));
+    sovl = (Scaffold_Overlap *) safe_malloc(sizeof(Scaffold_Overlap));
     sovl->score   = score;
     sovl->erate   = (1.*ovl->diffs) / ovl->length;
     sovl->ascaf   = AF;

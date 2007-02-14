@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Output_CGW.c,v 1.18 2007-02-12 22:16:55 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Output_CGW.c,v 1.19 2007-02-14 07:20:07 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -82,10 +82,9 @@ void OutputMateDists(ScaffoldGraphT *graph){
     imd.refines = i;
     imd.histogram = dptr->histogram;
     WriteProtoMesg_AS(GlobalData->cgwfp,&pmesg);
-    free(dptr->histogram);
+    safe_free(dptr->histogram);
     dptr->histogram = NULL;
   }
-  fflush(NULL);
 }
 
 
@@ -181,8 +180,6 @@ void OutputFrags(ScaffoldGraphT *graph){
   fprintf(GlobalData->stderrc,"* Saw %d between scaffold mates (unused)\n", cwrongScf);
   fprintf(GlobalData->stderrc,"* Saw %d unknown mates (unused)\n", cunknown);
   fprintf(GlobalData->stderrc,"* Saw %d invalid mates (no mate)\n", cinvalid);
-  fflush(NULL);
-
 }
 
 
@@ -268,14 +265,12 @@ void MarkContigEdges(void){
     }
   }
   fprintf(GlobalData->stderrc,"* Calculating Intra-contig mate link stats *\n");
-  fflush(NULL);
   
   // Now collect mate link stats for mate link 
   
   /* Accumulate Mate Link Statistics */
   
   fprintf(GlobalData->stderrc,"* Mate pair statistics\n");
-  fflush(NULL);
   
   ComputeMatePairStatisticsRestricted( CONTIG_OPERATIONS, CDS_CID_MAX /* minSamplesForOverride */, "MarkContigEdges");
 }
@@ -398,9 +393,8 @@ void OutputContigsFromMultiAligns(void){
       //    UnloadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ctg->id, FALSE);
     }
   }
-  free(icm_mesg.unitigs);
+  safe_free(icm_mesg.unitigs);
   DeleteMultiAlignT(ma);
-  fflush(NULL);
 }
 
 static int SurrogatedSingleUnitigContig( NodeCGW_T* contig)
@@ -591,8 +585,6 @@ void OutputContigLinks(ScaffoldGraphT *graph, int outputOverlapOnlyContigEdges)
       WriteProtoMesg_AS(GlobalData->scffp,&pmesg);
     }	// while (edge . . .
   }	// for (i . . .
-  fflush(NULL);
-
 }
 
 
@@ -731,8 +723,6 @@ void OutputScaffoldLinks(ScaffoldGraphT *graph)
     {
       OutputScaffoldLinksForScaffold(graph, scaffold);
     }
-
-  fflush(NULL);
 }
 
 /********************************************************************************/
@@ -823,8 +813,6 @@ void OutputUnitigsFromMultiAligns(void){
     }
   }	// while NextGraphNode
   DeleteMultiAlignT(ma);
-  fflush(NULL);
-
 }
 
 
@@ -844,7 +832,6 @@ void OutputUnitigLinksFromMultiAligns(void){
     JumpList = CreateVA_IntMate_Pairs(256);
     AssertPtr(JumpList);
   }
-  fflush(NULL);
 
   InitGraphNodeIterator(&nodes, ScaffoldGraph->CIGraph, GRAPH_NODE_DEFAULT);
   while((ci = NextGraphNodeIterator(&nodes)) != NULL){
@@ -1024,7 +1011,6 @@ void OutputUnitigLinksFromMultiAligns(void){
       WriteProtoMesg_AS(GlobalData->cgwfp,&pmesg);  //  write the unitig link
     }
   }
-  fflush(NULL);
 }
 
 
@@ -1124,8 +1110,7 @@ void OutputScaffolds(ScaffoldGraphT *graph)
     }
     WriteProtoMesg_AS(GlobalData->scffp,&pmesg);
   }		// for (sid=0; . . .
-  free(ism.contig_pairs);
-  fflush(NULL);
+  safe_free(ism.contig_pairs);
   return;
 }
 

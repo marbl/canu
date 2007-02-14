@@ -191,7 +191,7 @@ void FillAddressList(const char*    option,
             address_length += strlen(argv[k]);
          if (address_length == 0)
             Usage(argc, argv);
-         *list = (char*)calloc((address_length + 
+         *list = (char*)safe_calloc((address_length + 
 			(j - (i+(interval_offset-1))) + 2), sizeof(char));
 
          // insert addresses

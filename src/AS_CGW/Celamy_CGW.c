@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* All of the CGW celamy stuff is here */
-static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.10 2007-02-12 22:16:55 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.11 2007-02-14 07:20:06 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -324,9 +324,9 @@ void CelamyAssembly(char *name){
   DumpCelamyColors(dregsOut);
   OrderScaffoldsForOutput(scaffoldOrder, scaffoldPositiona, scaffoldPositionb);
   CelamyOrderedScaffolds(camOut, dregsOut, scaffoldOrder, scaffoldPositiona, scaffoldPositionb);
-  free(scaffoldOrder);
-  free(scaffoldPositiona);
-  free(scaffoldPositionb);
+  safe_free(scaffoldOrder);
+  safe_free(scaffoldPositiona);
+  safe_free(scaffoldPositionb);
   fclose(camOut);
   fclose(dregsOut);
 }
@@ -413,10 +413,7 @@ void safelyAppendOvlInfo(char **ovlsString,Long_Olap_Data_t olap, int *lenString
   assert(testsize >0); /* test against other error */
   if(*lenUsed+testsize>*lenString){
     *lenString+=1000;
-    //    fprintf(stderr,"Reallocing ovlsString (pointer x%x) to length %d\n",*ovlsString,*lenString);
-    *ovlsString = (char *) realloc((void*)*ovlsString, (*lenString) * sizeof(char));
-    //    fprintf(stderr," now x%x\n",*ovlsString);
-    assert(*ovlsString!=NULL);
+    *ovlsString = (char *) safe_realloc((void*)*ovlsString, (*lenString) * sizeof(char));
   }
   strcat(*ovlsString,teststring);
   *lenUsed+=testsize-1; /* -1 because snprintf includes the '\0' in its return,
@@ -436,15 +433,13 @@ void compute_overlaps_off_ends(int id, int *offAEnd, int *offBEnd,char **AEstr, 
 
   if(AEndString==NULL){
     lenAstring = 50000;
-    AEndString = (char *) malloc(lenAstring*sizeof(char));
-    assert(AEndString!=NULL);
+    AEndString = (char *) safe_malloc(lenAstring*sizeof(char));
   }
   AEndString[0]='\0';
 
   if(BEndString==NULL){
     lenBstring = 50000;
-    BEndString = (char *) malloc(lenBstring*sizeof(char));
-    assert(BEndString!=NULL);
+    BEndString = (char *) safe_malloc(lenBstring*sizeof(char));
   }
   BEndString[0]='\0';
 

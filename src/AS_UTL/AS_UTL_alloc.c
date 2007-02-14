@@ -1,8 +1,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+
+//  We explicitly do not include AS_UTL_alloc.h here, because it
+//  redefines malloc(), calloc(), realloc() and free() to be errors.
+//  We want everyone to use the safe_*() versions supplied here.
+//
+//#include "AS_UTL_alloc.h"
+
+//  We want to include AS_global.h to get the F_SIZE_T definition, but that
+//  includes AS_UTL_alloc.h, so we pretend we've already included it.
+//
+#define AS_UTL_ALLOC_H
 #include "AS_global.h"
-#include "AS_UTL_alloc.h"
+
 
 // Allocate and return a pointer to an array of  num  elements of
 // len  bytes each.  All are set to 0.  Exit if fai.
@@ -17,7 +28,6 @@ safe_calloc(size_t num, size_t len) {
              num, len, num*len);
      assert(p != NULL);
    }
-   memset(p, 0, len);
    return(p);
 }
 
@@ -61,4 +71,11 @@ safe_realloc(void *q, size_t len) {
   }
   
   return(p);
+}
+
+
+
+void
+safe_free2(void *q) {
+  free(q);
 }

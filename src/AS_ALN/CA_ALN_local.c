@@ -345,7 +345,7 @@ static HitRecord *Find_Hits(char *A, int Alen, char *B, int Blen, int *Hitlen)
 
   if (HitMax < 0)
     { HitMax = 10000;
-      HitList = (HitRecord *) malloc(sizeof(HitRecord)*HitMax);
+      HitList = (HitRecord *) safe_malloc(sizeof(HitRecord)*HitMax);
       if (HitList == NULL)
         OutOfMemory("Hit list");
     }
@@ -393,7 +393,7 @@ static HitRecord *Find_Hits(char *A, int Alen, char *B, int Blen, int *Hitlen)
                         { HitRecord *hp;
                           if (hits >= HitMax)
                             { HitMax = (int)(1.2*hits) + 5000;
-                              HitList = (HitRecord *) realloc(HitList,
+                              HitList = (HitRecord *) safe_realloc(HitList,
                                                 sizeof(HitRecord)*HitMax);
                               if (HitList == NULL)
                                 OutOfMemory("Hit list");
@@ -425,7 +425,7 @@ static HitRecord *Find_Hits(char *A, int Alen, char *B, int Blen, int *Hitlen)
           { HitRecord *hp;
             if (hits >= HitMax)
               { HitMax = (int)(1.2*hits) + 5000;
-                HitList = (HitRecord *)realloc(HitList,sizeof(HitRecord)*HitMax);
+                HitList = (HitRecord *)safe_realloc(HitList,sizeof(HitRecord)*HitMax);
                 if (HitList == NULL)
                   OutOfMemory("Hit list");
               }
@@ -844,7 +844,7 @@ static Trapezoid *Build_Trapezoids(char *A, int Alen, char *B, int Blen,
             }
           else if (! inserted)
             { if (free == NULL)
-                { free = (Trapezoid  *)malloc(sizeof(Trapezoid));
+                { free = (Trapezoid  *)safe_malloc(sizeof(Trapezoid));
                   if (free == NULL)
                     OutOfMemory("Trapezoid scan list");
                   free->next = NULL;
@@ -866,7 +866,7 @@ static Trapezoid *Build_Trapezoids(char *A, int Alen, char *B, int Blen,
         }
       if (! inserted)
         { if (free == NULL)
-            { free = (Trapezoid  *)malloc(sizeof(Trapezoid));
+            { free = (Trapezoid  *)safe_malloc(sizeof(Trapezoid));
               if (free == NULL)
                 OutOfMemory("Trapezoid scan list");
               free->next = NULL;
@@ -925,7 +925,7 @@ static Trapezoid *Build_Trapezoids(char *A, int Alen, char *B, int Blen,
               { if (i-lag >= MAXIGAP)
                   { if (lag - b->bot > 0)
                       { if (free == NULL)
-                          { free = (Trapezoid  *)malloc(sizeof(Trapezoid));
+                          { free = (Trapezoid  *)safe_malloc(sizeof(Trapezoid));
                             if (free == NULL)
                               OutOfMemory("Trapezoid cutter");
                             free->next = NULL;
@@ -978,7 +978,7 @@ static Trapezoid *Build_Trapezoids(char *A, int Alen, char *B, int Blen,
               { if (i-lag >= MAXIGAP)
                   { if (lag > lclip)
                       { if (free == NULL)
-                          { free = (Trapezoid  *)malloc(sizeof(Trapezoid));
+                          { free = (Trapezoid  *)safe_malloc(sizeof(Trapezoid));
                             if (free == NULL)
                               OutOfMemory("Trapezoid cutter");
                             free->next = NULL;
@@ -1341,7 +1341,7 @@ static void Align_Recursion(char *A, int Alen, char *B, int Blen,
         
           if (NumSegs >= SegMax)
             { SegMax = (int)(1.2*NumSegs) + 500;
-              SegSols = (Local_Segment *) realloc(SegSols,
+              SegSols = (Local_Segment *) safe_realloc(SegSols,
                                                   sizeof(Local_Segment)*SegMax);
               if (SegSols == NULL)
                 OutOfMemory("Segment Alignment array");
@@ -1405,14 +1405,14 @@ static Local_Segment *Align_Trapezoids(char *A, int Alen, char *B, int Blen,
   if (Traplen >= TarMax)
     { TarMax = (int)(1.2*Traplen) + 500;
       Tarray = (Trapezoid **)
-               realloc(Tarray,(sizeof(Trapezoid *) + sizeof(int))*TarMax);
+               safe_realloc(Tarray,(sizeof(Trapezoid *) + sizeof(int))*TarMax);
       if (Tarray == NULL)
         OutOfMemory("Trapezoid array");
       Covered = (int *) (Tarray + TarMax);
     }
   if (SegMax < 0)
     { SegMax = 1000;
-      SegSols = (Local_Segment *) malloc(sizeof(Local_Segment)*SegMax);
+      SegSols = (Local_Segment *) safe_malloc(sizeof(Local_Segment)*SegMax);
       if (SegSols == NULL)
         OutOfMemory("Segment Alignment array");
     }
@@ -1539,7 +1539,7 @@ Local_Segment *Find_Local_Segments
 #endif
 
   if(AseqLen<Alen){
-    ArevC = (char*) realloc(ArevC,sizeof(char)*(Alen+1));
+    ArevC = (char*) safe_realloc(ArevC,sizeof(char)*(Alen+1));
     AseqLen=Alen;
     if(ArevC==NULL){OutOfMemory("A sequence reverse complement");}
   }
@@ -1547,7 +1547,7 @@ Local_Segment *Find_Local_Segments
   Complement(ArevC,Alen);
 
   if(BseqLen<Blen){
-    BrevC = (char*) realloc(BrevC,sizeof(char)*(Blen+1));
+    BrevC = (char*) safe_realloc(BrevC,sizeof(char)*(Blen+1));
     BseqLen=Blen;
     if(BrevC==NULL){OutOfMemory("B sequence reverse complement");}
   }
@@ -1566,7 +1566,7 @@ Local_Segment *Find_Local_Segments
           Map['g'] = Map['G'] = 2;
           Map['t'] = Map['T'] = 3;
           Kmask = (1 << (2*kmerlen)) - 1;
-          Table = (int *)malloc(sizeof(int)*(Kmask+2));
+          Table = (int *)safe_malloc(sizeof(int)*(Kmask+2));
           if (Table == NULL)
             OutOfMemory("K-mer index");
         }
@@ -1575,7 +1575,7 @@ Local_Segment *Find_Local_Segments
       else
         DagMax = (int)(1.2*Blen) + 5000;
       DagMax += sizeof(DiagRecord) - (DagMax % sizeof(DiagRecord));
-      Tuples = (int *)realloc(Tuples,sizeof(int)*DagMax +
+      Tuples = (int *)safe_realloc(Tuples,sizeof(int)*DagMax +
                               sizeof(DiagRecord)*(2*DagMax+maxerror+1));
       if (Tuples == NULL)
         OutOfMemory("K-mer index");

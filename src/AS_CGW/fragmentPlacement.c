@@ -193,7 +193,7 @@ void InitCIFragTInChunkIterator(CGWFragIterator* frags,NodeCGW_T *chunk, int inc
     ci = NextContigTIterator(&(frags->subchunks));
     assert(ci != NULL);
     if(frags->subchunkIterator == NULL){
-      frags->subchunkIterator = (CGWFragIterator*) malloc(sizeof(CGWFragIterator));
+      frags->subchunkIterator = (CGWFragIterator*) safe_malloc(sizeof(CGWFragIterator));
       frags->subchunkIterator->ma=NULL;
       frags->subchunkIterator->subchunkIterator=NULL;
     }

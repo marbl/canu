@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.26 2007-02-13 22:48:00 adelcher Exp $
- * $Revision: 1.26 $
+ * $Id: AS_OVL_overlap_common.h,v 1.27 2007-02-14 07:20:13 brianwalenz Exp $
+ * $Revision: 1.27 $
 */
 
 
@@ -861,7 +861,7 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
          {
 	   assert(NULL == Out_Stream);
 	   Out_Stream = File_Open (Outfile_Name, "w");     // ovl file
-	   free (Outfile_Name);
+	   safe_free (Outfile_Name);
          }
 
      /* End of command line parsing */
@@ -946,8 +946,8 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
             WriteProtoMesg_AS (Out_Stream, pmesg);
 #endif
 
-        free (adtmesg);
-        free (pmesg);
+        safe_free (adtmesg);
+        safe_free (pmesg);
        }
 
    /****************************************/
@@ -1560,7 +1560,7 @@ Align_Ct [String_Ct] = (Align_Entry_t *)
 
    if  (String_Ct == 0)
        {
-        free (screen . range);
+         safe_free (screen . range);
         return  0;
        }
 
@@ -1673,7 +1673,7 @@ fprintf (stderr, "Time to build hash table for %d fragments = %.1f sec\n",
 Start_Time = clock ();
 #endif
 
-   free (screen . range);
+   safe_free (screen . range);
 
    return  1;
   }

@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.125 2007-02-12 22:16:56 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.126 2007-02-14 07:20:10 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -2065,7 +2065,7 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
                 *var = - (*var);
             }
         }
-        FREE(column_iid_list);
+        safe_free(column_iid_list);
         return score;
     }
     else if (quality == 0 )
@@ -2203,7 +2203,7 @@ SmoothenVariation(double *var, int len, int window)
     {
         var[i] = y[i];
     }
-    FREE(y);
+    safe_free(y);
 }
 
 static void
@@ -2268,7 +2268,7 @@ GetReadIidsAndNumReads(int cid, VarRegion  *vreg)
             }
         }
     }
-    FREE(column_iid_list);
+    safe_free(column_iid_list);
 }
 
 static void
@@ -2606,7 +2606,7 @@ GetReadsForVARRecord(Read *reads, int32 *iids, int32 nvr,
                 reads[i].qvs[k-beg] = qv;
             }
         }
-        FREE(column_iid_list);
+        safe_free(column_iid_list);
     }
 
     // Reset qvs of internal gaps to MIN(qv_first_gap, qv_last_gap); 
@@ -2702,8 +2702,8 @@ GetDistanceBetweenReads(char *read1, char *read2, int len)
             ungapped_dist++;
     }
     dist = (gapped_dist < ungapped_dist) ? gapped_dist : ungapped_dist;
-    FREE(ugread1);
-    FREE(ugread2);
+    safe_free(ugread1);
+    safe_free(ugread2);
     return dist;
 }
 
@@ -2928,7 +2928,7 @@ PopulateVarRecord(int32 *cids, int32 *nvars, int32 *min_len_vlist,
             }
         }
     }
-    FREE(base);
+    safe_free(base);
 #if DEBUG_ABACUS
     fprintf(stderr, "VARiation= %s\n", (*v_list)[*nvars].var_seq);
 #endif
@@ -3117,10 +3117,10 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
     if ((opp->split_alleles == 0) ||
         (quality <= 0))
     {
-        FREE(vreg.curr_bases);
-        FREE(vreg.iids);
-        FREE(varf);
-        FREE(cids);
+        safe_free(vreg.curr_bases);
+        safe_free(vreg.iids);
+        safe_free(varf);
+        safe_free(cids);
         return 1;
     }
 
@@ -3245,25 +3245,25 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
 
             for (j=0; j<vreg.nr; j++)
             {
-                FREE(vreg.dist_matrix[j]);
-                FREE(vreg.reads[j].bases);
-                FREE(vreg.reads[j].qvs);
-                FREE(vreg.alleles[j].read_ids);
+                safe_free(vreg.dist_matrix[j]);
+                safe_free(vreg.reads[j].bases);
+                safe_free(vreg.reads[j].qvs);
+                safe_free(vreg.alleles[j].read_ids);
             }
-            FREE(vreg.dist_matrix); 
-            FREE(vreg.reads);
-            FREE(vreg.alleles);
+            safe_free(vreg.dist_matrix); 
+            safe_free(vreg.reads);
+            safe_free(vreg.alleles);
             vreg.nr = 0;
         }
     }
-    FREE(vreg.curr_bases);
-    FREE(vreg.iids);
-    FREE(varf);
-    FREE(svarf);
-    FREE(cids);
+    safe_free(vreg.curr_bases);
+    safe_free(vreg.iids);
+    safe_free(varf);
+    safe_free(svarf);
+    safe_free(cids);
     if (get_scores > 0) {
-        FREE(prev_bases);
-        FREE(prev_iids);
+        safe_free(prev_bases);
+        safe_free(prev_iids);
     }
     return 1;
 }
@@ -3294,7 +3294,7 @@ int SeedMAWithFragment(int32 mid, int32 fid, int quality,
       int32 nv=0;
       int make_v_list = 0;
       RefreshMANode(mid, quality, opp, &nv, &vl, make_v_list, 0); 
-      if (vl) free(vl);
+      safe_free(vl);
   }
   return 1;
 }
@@ -4264,7 +4264,7 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
         bpos++;
       }
    }
-   free(aindex);
+   safe_free(aindex);
    bfrag->manode=afrag->manode;
    return last_b_aligned;
 }
@@ -4500,7 +4500,7 @@ int PrintFrags(FILE *out, int accession, IntMultiPos *all_frags, int num_frags,
            pmesg.t = MESG_IFG;
            pmesg.m = &fmesg;
            WriteProtoMesg_AS(out,&pmesg); // write out the Fragment message
-           if (fmesg.source) free(fmesg.source);
+           safe_free(fmesg.source);
         }
         fflush(out);
 	 //	delete_ReadStruct(fsread);
@@ -4701,10 +4701,10 @@ void PrintAlignment(FILE *print, int32 mid, int32 from, int32 to, CNS_PrintKey w
     }
     window_start+=ALNPAGEWIDTH;
   }
-  free(read_it);
-  free(fids);
-  free(types);
-  free(positions);
+  safe_free(read_it);
+  safe_free(fids);
+  safe_free(types);
+  safe_free(positions);
 }
 
 int RemoveNullColumn(int32 nid) {
@@ -4790,11 +4790,11 @@ int32 MergeRefine(int32 mid, IntMultiVar **v_list, int32 *num_vars,
           }
           else
           {
-              free(*v_list);
+              safe_free(*v_list);
              *num_vars = 0;
           }
       }
-      if (vl) free(vl);
+      safe_free(vl);
   }
   return removed;
 }
@@ -5066,9 +5066,9 @@ Abacus *CreateAbacus(int32 mid, int32 from, int32 end)
 }
 
 void DeleteAbacus(Abacus *abacus) {
-    free(abacus->beads);
-    free(abacus->calls);
-    free(abacus);
+    safe_free(abacus->beads);
+    safe_free(abacus->calls);
+    safe_free(abacus);
 }
 
 Abacus *CloneAbacus(Abacus *abacus) {
@@ -5150,7 +5150,7 @@ int32 ScoreAbacus(Abacus *abacus, int *cols)
         }
     }
 
-    free(counts);
+    safe_free(counts);
     return score;       
 }
 
@@ -6656,18 +6656,18 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
                 int j;
                 for (j=0; j<vreg.nr; j++)
                 {
-                    FREE(vreg.alleles[j].read_ids);
-                    FREE(vreg.dist_matrix[j]);
-                    FREE(vreg.reads[j].bases);
-                    FREE(vreg.reads[j].qvs);
+                    safe_free(vreg.alleles[j].read_ids);
+                    safe_free(vreg.dist_matrix[j]);
+                    safe_free(vreg.reads[j].bases);
+                    safe_free(vreg.reads[j].qvs);
                 }
-                FREE(vreg.reads);
-                FREE(vreg.alleles);
-                FREE(vreg.dist_matrix);
+                safe_free(vreg.reads);
+                safe_free(vreg.alleles);
+                safe_free(vreg.dist_matrix);
             }
-            FREE(consensus[0]);
-            FREE(consensus[1]);
-            FREE(consensus);
+            safe_free(consensus[0]);
+            safe_free(consensus[1]);
+            safe_free(consensus);
             return score_reduction;
         }
 
@@ -6689,25 +6689,25 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
                 int j;
                 for (j=0; j<vreg.nr; j++)
                 {
-                    FREE(vreg.alleles[j].read_ids);
-                    FREE(vreg.dist_matrix[j]);
-                    FREE(vreg.reads[j].bases);
-                    FREE(vreg.reads[j].qvs);
+                    safe_free(vreg.alleles[j].read_ids);
+                    safe_free(vreg.dist_matrix[j]);
+                    safe_free(vreg.reads[j].bases);
+                    safe_free(vreg.reads[j].qvs);
                 }
-                FREE(vreg.reads);
-                FREE(vreg.alleles);
-                FREE(vreg.dist_matrix);
+                safe_free(vreg.reads);
+                safe_free(vreg.alleles);
+                safe_free(vreg.dist_matrix);
             }
-            FREE(consensus[0]);
-            FREE(consensus[1]);
-            FREE(consensus);
+            safe_free(consensus[0]);
+            safe_free(consensus[1]);
+            safe_free(consensus);
             for (i=0; i<2; i++)
             {
-                FREE(ugconsensus[i]);
-                FREE(imap[i]);
+                safe_free(ugconsensus[i]);
+                safe_free(imap[i]);
             }
-            FREE(ugconsensus);
-            FREE(imap);
+            safe_free(ugconsensus);
+            safe_free(imap);
             return score_reduction;
         }
 
@@ -6815,30 +6815,30 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
         DeleteAbacus(right_abacus);
         DeleteAbacus(mixed_abacus);
         {
-          FREE(consensus[0]);
-          FREE(consensus[1]);
-          FREE(consensus);
-          FREE(ugconsensus[0]);
-          FREE(ugconsensus[1]);
-          FREE(ugconsensus);
-          FREE(imap[0]);
-          FREE(imap[1]);
-          FREE(imap);
-          FREE(template);
+          safe_free(consensus[0]);
+          safe_free(consensus[1]);
+          safe_free(consensus);
+          safe_free(ugconsensus[0]);
+          safe_free(ugconsensus[1]);
+          safe_free(ugconsensus);
+          safe_free(imap[0]);
+          safe_free(imap[1]);
+          safe_free(imap);
+          safe_free(template);
         }
         if (vreg.nr > 0)
         {
             int j;
             for (j=0; j<vreg.nr; j++)
             {
-                FREE(vreg.alleles[j].read_ids);
-                FREE(vreg.dist_matrix[j]);
-                FREE(vreg.reads[j].bases);
-                FREE(vreg.reads[j].qvs);
+                safe_free(vreg.alleles[j].read_ids);
+                safe_free(vreg.dist_matrix[j]);
+                safe_free(vreg.reads[j].bases);
+                safe_free(vreg.reads[j].qvs);
             }
-            FREE(vreg.reads);
-            FREE(vreg.alleles);
-            FREE(vreg.dist_matrix);
+            safe_free(vreg.reads);
+            safe_free(vreg.alleles);
+            safe_free(vreg.dist_matrix);
         }
     }
     return score_reduction;
@@ -6927,7 +6927,7 @@ int AbacusRefine(MANode *ma, int32 from, int32 to, CNS_RefineLevel level,
       IntMultiVar *vl=NULL;
       int make_v_list = 0;
       RefreshMANode(ma->lid, 1, opp, &nv, &vl, make_v_list, 0);
-      if (vl) free(vl);
+      safe_free(vl);
   }
   refined_length = GetMANodeLength(ma->lid);
   if ( refined_length < orig_length ) 
@@ -7051,8 +7051,8 @@ int MANode2Array(MANode *ma, int *depth, char ***array, int ***id_array,
      }
      *array = multia;
      *id_array = ia;
-     free(rowptr);
-     free(row_assign);
+     safe_free(rowptr);
+     safe_free(row_assign);
      return 1;
 }
 
@@ -7550,8 +7550,8 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
 #endif
     } /* loop through all the unitigs */
 #ifdef NEW_UNITIGGER_INTERFACE
-    FREE(is_pointed);
-    FREE(is_aligned);
+    safe_free(is_pointed);
+    safe_free(is_aligned);
 #endif
 
     unitig->num_vars = 0;
@@ -7560,7 +7560,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
       int32 nv=0;
       RefreshMANode(ma->lid, 0, opp, &nv, &vl, 0, 0);
     }
-    free(offsets);
+    safe_free(offsets);
 
     if ( cnslog != NULL && printwhat == CNS_VERBOSE) 
         PrintAlignment(cnslog,ma->lid,0,-1,printwhat);
@@ -7621,12 +7621,12 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
         }
         if ( rc ) {
           for (i=0;i<depth;i++) {
-            free(multia[2*i]);
-            free(multia[2*i+1]);
-            free(id_array[i]);
+            safe_free(multia[2*i]);
+            safe_free(multia[2*i+1]);
+            safe_free(id_array[i]);
           }
-          free(multia);
-          free(id_array);
+          safe_free(multia);
+          safe_free(id_array);
         }
     }
 
@@ -8072,7 +8072,7 @@ int MultiAlignContig(IntConConMesg *contig,
            fprintf(stderr,"You can force these to abut; see FORCE_UNITIG_ABUT in %s.\n", __FILE__);
 
            if (FORCE_UNITIG_ABUT == 0) {
-             FREE(offsets);
+             safe_free(offsets);
              return EXIT_FAILURE;
            }
 
@@ -8224,7 +8224,7 @@ int MultiAlignContig(IntConConMesg *contig,
      ClosePHashTable_AS(fragmentMap);
   }
 
-  free(offsets);
+  safe_free(offsets);
   return EXIT_SUCCESS; 
 }
 
@@ -8427,7 +8427,7 @@ int MultiAlignContig_NoCompute(FILE *outFile,
            UnitigDataCmp);
        ExamineMANode(outFile, scaffoldID, ma->lid,gatheredUnitigData, num_unitigs,
           opp);
-       free(gatheredUnitigData);
+       safe_free(gatheredUnitigData);
      // Now, must find fragments in regions of overlapping unitigs, and adjust 
      // their alignments as needed
      } 
@@ -8976,7 +8976,7 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
    if (num_contigs == 1) {
       cma = LoadMultiAlignTFromSequenceDB(sequenceDB, cpositions[0].ident, FALSE);
       //      cma = GetMultiAlignInStore(contig_store,cpositions[0].ident); 
-      free(offsets);
+      safe_free(offsets);
       return cma;
    } else {
      for (i=0;i<num_contigs;i++) {
@@ -9055,7 +9055,7 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
                fprintf(stderr, "between contigs %d and %d bailing...", afrag->iid, bfrag->iid);
              }
              DeleteMANode(ma->lid);
-             free(offsets);
+             safe_free(offsets);
              return NULL;
            }
            if ( offsets[alid].end > offsets[blid].end ) { // containment
@@ -9087,7 +9087,7 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
            fprintf(stderr, "MergeMultiAligns failed to find overlap between contigs %d and %d, bailing...\n",
                    afrag->iid, bfrag->iid);
            DeleteMANode(ma->lid);
-           free(offsets);
+           safe_free(offsets);
            return NULL;
        }
        if ( otype == AS_CONTAINMENT ) { 
@@ -9296,7 +9296,7 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
 }
 #endif
   DeleteMANode(ma->lid);
-  free(offsets);
+  safe_free(offsets);
   return cma; 
 }
 /* end of MergeMultiAlign */

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: TransitiveReduction_CGW.c,v 1.8 2007-02-03 07:06:27 brianwalenz Exp $";
+static char CM_ID[] = "$Id: TransitiveReduction_CGW.c,v 1.9 2007-02-14 07:20:07 brianwalenz Exp $";
 
 // This file contains the code for computing the candidate
 // chunks of scaffolds.
@@ -1194,10 +1194,10 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
                   targetCI->smoothExpectedCID, thisCI->id, targetCI->id);
         }
 #ifndef ALLOC_MEMORY_ON_STACK
-        free(branchEdges);
-        free(existingEdges);
-        free(addedInferred);
-        free(branchTargets);
+        safe_free(branchEdges);
+        safe_free(existingEdges);
+        safe_free(addedInferred);
+        safe_free(branchTargets);
 #endif
         return(FALSE);
       }
@@ -1502,10 +1502,10 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
 
       }
 #ifndef ALLOC_MEMORY_ON_STACK
-      free(branchEdges);
-      free(existingEdges);
-      free(addedInferred);
-      free(branchTargets);
+      safe_free(branchEdges);
+      safe_free(existingEdges);
+      safe_free(addedInferred);
+      safe_free(branchTargets);
 #endif
       if(verbose){
         fprintf(GlobalData->stderrc, "RecSub FailedInfer scId:" F_CID "(%d,%d) cId:" F_CID "(%d,%d)\n",
@@ -1578,10 +1578,10 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
           //	targetEdge->flags.bits.isEssential = TRUE;
         }
 #ifndef ALLOC_MEMORY_ON_STACK
-        free(branchEdges);
-        free(existingEdges);
-        free(addedInferred);
-        free(branchTargets);
+        safe_free(branchEdges);
+        safe_free(existingEdges);
+        safe_free(addedInferred);
+        safe_free(branchTargets);
 #endif
         if(verbose){
           fprintf(GlobalData->stderrc, "RecSub Failed scId:" F_CID "(%d,%d) cId:" F_CID "(%d,%d)\n",
@@ -1638,10 +1638,10 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
                   thisCI->numEssentialB);
         }
 #ifndef ALLOC_MEMORY_ON_STACK
-        free(branchEdges);
-        free(existingEdges);
-        free(addedInferred);
-        free(branchTargets);
+        safe_free(branchEdges);
+        safe_free(existingEdges);
+        safe_free(addedInferred);
+        safe_free(branchTargets);
 #endif
         return(TRUE);
       }

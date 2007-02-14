@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.32 2007-02-12 22:16:57 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.33 2007-02-14 07:20:13 brianwalenz Exp $";
 
 //  reads old and new AFG message (with and w/o chaff field)
 #define AFG_BACKWARDS_COMPATIBLE
@@ -2598,10 +2598,10 @@ static void Clear_ADT_Mesg(void *mesg, int typ)
 
   for (alm = ((AuditMesg *) mesg)->list; alm != NULL; alm = nxt)
     { nxt = alm->next;
-      free(alm->name);
-      free(alm->version);
-      free(alm->comment);
-      free(alm);
+      safe_free(alm->name);
+      safe_free(alm->version);
+      safe_free(alm->comment);
+      safe_free(alm);
     }
 }
 
@@ -2609,17 +2609,17 @@ static void Clear_FRG_Mesg(void *mesg, int typ)
 { FragMesg *fgm = (FragMesg *) mesg;
 
   if (fgm->action == AS_ADD)
-    { free(fgm->source);
+    { safe_free(fgm->source);
       if (typ != MESG_OFG)
-        { free(fgm->sequence);
-          free(fgm->quality);
+        { safe_free(fgm->sequence);
+          safe_free(fgm->quality);
         }
     }
 }
 
 static void Clear_OVL_Mesg(void *mesg, int typ)
 {
-  free(((OverlapMesg *) mesg)->delta);
+  safe_free(((OverlapMesg *) mesg)->delta);
 }
 
 static void Clear_IUM_Mesg(void *vmesg, int typ)
@@ -2627,36 +2627,36 @@ static void Clear_IUM_Mesg(void *vmesg, int typ)
   IntUnitigMesg *mesg = (IntUnitigMesg *) vmesg;
   int i;
 
-  free(mesg->consensus);
-  free(mesg->quality);
+  safe_free(mesg->consensus);
+  safe_free(mesg->quality);
   for (i=0; i < mesg->num_frags; i++)
-    free(mesg->f_list[i].delta);
-  free (mesg->f_list);
-//free (mesg->v_list);
+    safe_free(mesg->f_list[i].delta);
+  safe_free(mesg->f_list);
+  //safe_free(mesg->v_list);
 }
 
 static void Clear_IUL_Mesg(void *vmesg, int typ)
 {
   IntUnitigLinkMesg *mesg = (IntUnitigLinkMesg *) vmesg;
-  free(mesg->jump_list);
+  safe_free(mesg->jump_list);
 }
 
 static void Clear_ICL_Mesg(void *vmesg, int typ)
 {
   IntContigLinkMesg *mesg = (IntContigLinkMesg *) vmesg;
-  free(mesg->jump_list);
+  safe_free(mesg->jump_list);
 }
 
 static void Clear_ISF_Mesg(void *vmesg, int typ)
 {
   IntScaffoldMesg *mesg = (IntScaffoldMesg *) vmesg;
-  free(mesg->contig_pairs);
+  safe_free(mesg->contig_pairs);
 }
 
 static void Clear_IMD_Mesg(void *vmesg, int typ)
 {
   IntMateDistMesg *mesg = (IntMateDistMesg *) vmesg;
-  free (mesg->histogram);
+  safe_free(mesg->histogram);
 }
 
 static void Clear_ICM_Mesg(void *vmesg, int typ)
@@ -2664,19 +2664,19 @@ static void Clear_ICM_Mesg(void *vmesg, int typ)
   IntConConMesg *mesg = (IntConConMesg *) vmesg;
   int	i;
 
-  free(mesg->consensus);
-  free(mesg->quality);
+  safe_free(mesg->consensus);
+  safe_free(mesg->quality);
   for (i=0; i < mesg->num_pieces; ++i)
-      free(mesg->pieces[i].delta);
-  free(mesg->pieces);
-  free(mesg->unitigs);
+      safe_free(mesg->pieces[i].delta);
+  safe_free(mesg->pieces);
+  safe_free(mesg->unitigs);
   for (i=0; i < mesg->num_vars; ++i)
   {
-      FREE(mesg->v_list[i].nr_conf_alleles);
-      FREE(mesg->v_list[i].weights); 
-      FREE(mesg->v_list[i].var_seq);
+      safe_free(mesg->v_list[i].nr_conf_alleles);
+      safe_free(mesg->v_list[i].weights); 
+      safe_free(mesg->v_list[i].var_seq);
   }
-  free(mesg->v_list);           
+  safe_free(mesg->v_list);           
 }
 
 

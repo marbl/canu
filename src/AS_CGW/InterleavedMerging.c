@@ -286,7 +286,7 @@ void DeleteScaffoldPools(ScaffoldPools * sp)
         DeleteVA_Scaffold_Gap(sp->gapPool);
       if(sp->tigPool)
         DeleteVA_Scaffold_Tig(sp->tigPool);
-      free(sp);
+      safe_free(sp);
     }
 }
 
@@ -296,7 +296,7 @@ void DeleteScaffoldStuff(ScaffoldStuff * ss)
   if(ss)
     {
       if(ss->scaffold)
-        free(ss->scaffold);
+        safe_free(ss->scaffold);
       if(ss->pools)
         DeleteScaffoldPools(ss->pools);
       if(ss->contigs)
@@ -313,8 +313,8 @@ void DeleteSegmentList(Segment * segmentList)
   for(curr = segmentList; curr != NULL; curr = next)
     {
       next = curr->next;
-      free(curr->overlap);
-      free(curr);
+      safe_free(curr->overlap);
+      safe_free(curr);
     }
 }
 
@@ -326,10 +326,8 @@ Segment* DuplicateSegmentList(Segment * segmentList)
   Local_Overlap * ovl=NULL;
   for(curr = segmentList; curr != NULL; curr = curr->next)
     {
-      Segment *this = (Segment *)malloc(sizeof(Segment));
-      assert(this!=NULL);
-      ovl=(Local_Overlap*)malloc(sizeof(Local_Overlap));
-      assert(ovl!=NULL);
+      Segment *this = (Segment *)safe_malloc(sizeof(Segment));
+      ovl=(Local_Overlap*)safe_malloc(sizeof(Local_Overlap));
       *ovl=*(curr->overlap);
       *this = *curr;
       this->overlap=ovl;
@@ -358,7 +356,7 @@ void DeleteScaffoldAlignmentInterface(ScaffoldAlignmentInterface * sai)
       if(sai->scaffInst)
         DestroyScaffoldInstrumenter(sai->scaffInst);
 
-      free(sai);
+      safe_free(sai);
     }
 }
 
@@ -2326,7 +2324,7 @@ SEdgeT * MakeScaffoldAlignmentAdjustments(CIScaffoldT * scaffoldA,
                                    GetNumVA_COSData(cosData) - 1))->b.maxIndex;
 
       DeleteVA_COSData(cosData);
-      free(overlaps);
+      safe_free(overlaps);
     
       // deal with contigs to the right of the last placed contigs
       AdjustNonOverlappingContigsLeftToRight(contigsA,

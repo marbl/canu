@@ -40,7 +40,6 @@
 #define MIN_SIZE_OF_MANODE 10000
 #define BC_MAX(a,b)  (((a)>(b))?(a):(b))
 #define BC_MIN(a,b)  (((a)<(b))?(a):(b))
-#define FREE(x) if((x)!=NULL) {free((char *)(x));(x)=NULL;}
 #define MIN_ALLOCATED_DEPTH 100
 
 extern int DUMP_UNITIGS_IN_MULTIALIGNCONTIG;

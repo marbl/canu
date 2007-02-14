@@ -39,7 +39,7 @@ static void safe_substr(char **seg,int *segspace,const char *seq,int beg,int end
 
   if(*segspace<end-beg+1){
     *segspace=2*(end-beg)+1;
-    *seg=(char*)ckreallocNullOK(*seg,sizeof(char)*(*segspace));
+    *seg=(char*)safe_realloc(*seg,sizeof(char)*(*segspace));
   }
   /* copy the segments */
   strncpy(*seg,seq+beg,end-beg);
@@ -74,7 +74,7 @@ static int *get_trace(const char *aseq, const char *bseq,Local_Overlap *O,int pi
 
   if(segtrace[which]==NULL){
     tracespace[which]=100;
-    segtrace[which]=(int*)ckalloc(sizeof(int)*tracespace[which]);
+    segtrace[which]=(int*)safe_malloc(sizeof(int)*tracespace[which]);
   }
 
   safe_substr(&aseg,&asegspace,aseq,O->chain[piece].piece.abpos,
@@ -188,7 +188,7 @@ static int *get_trace(const char *aseq, const char *bseq,Local_Overlap *O,int pi
     i++;
     if(i==tracespace[which]){
       tracespace[which]*=2;
-      segtrace[which]=(int*)ckreallocNullOK(segtrace[which],
+      segtrace[which]=(int*)safe_realloc(segtrace[which],
 				      sizeof(int)*tracespace[which]);
     }
   }
@@ -210,7 +210,7 @@ typedef struct {
 static void safe_add_to_seg(char **seg,int pos,char c,int *len){
   if(pos==*len){
     (*len)=(*len)*2;
-    *seg=(char*)ckreallocNullOK(*seg,sizeof(char)*((*len)+1));
+    *seg=(char*)safe_realloc(*seg,sizeof(char)*((*len)+1));
   }
   (*seg)[pos]=c;
 }
@@ -229,8 +229,8 @@ static PAIRALIGN *construct_pair_align(const char *aseq,const char *bseq,Local_O
 
   if(aseg[which]==NULL){
     alen[which]=blen[which]=1000;
-    aseg[which]=(char*)ckalloc((alen[which]+1)*sizeof(char));
-    bseg[which]=(char*)ckalloc((blen[which]+1)*sizeof(char));
+    aseg[which]=(char*)safe_malloc((alen[which]+1)*sizeof(char));
+    bseg[which]=(char*)safe_malloc((blen[which]+1)*sizeof(char));
   }
   starta=offseta=O->chain[piece].piece.abpos;
   startb=offsetb=O->chain[piece].piece.bbpos;

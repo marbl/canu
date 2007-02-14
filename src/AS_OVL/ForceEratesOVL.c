@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: ForceEratesOVL.c,v 1.7 2007-02-12 22:16:57 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ForceEratesOVL.c,v 1.8 2007-02-14 07:20:13 brianwalenz Exp $";
 
 
 //  System include files
@@ -216,7 +216,7 @@ static void  Set_New_Erates
     int  num_frags, io_buff_ct = 0, change_ct = 0;
     int  i, j, ct, first, file_index;
 
-    io_buff = (Short_Olap_Data_t *)calloc(IO_BUFF_SIZE, sizeof(Short_Olap_Data_t));
+    io_buff = (Short_Olap_Data_t *)safe_calloc(IO_BUFF_SIZE, sizeof(Short_Olap_Data_t));
     if (io_buff == NULL)
       fprintf(stderr, "Failed to allocate %d io_buff's.\n", IO_BUFF_SIZE), exit(1);
 
@@ -355,7 +355,7 @@ static void  Set_New_Erates
 
    fprintf (stderr, "%d changes made\n", change_ct);
 
-   free(io_buff);
+   safe_free(io_buff);
 
    return;
   }

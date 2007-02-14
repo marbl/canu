@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.17 2006-11-14 17:52:15 eliv Exp $";
+static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.18 2007-02-14 07:20:07 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -665,19 +665,19 @@ typedef struct {
 } RecomputeData;
 
 void freeRecomputeData(RecomputeData *data){
-  free(data->lengthCIs);
-  free(data->gapConstants);
-  free(data->gapCoefficients);
-  free(data->gapVariance);
-  free(data->cloneGapStart);
-  free(data->cloneGapEnd);
-  free(data->cloneVariance);
-  free(data->cloneMean);
-  free(data->spannedGaps);
-  free(data->gapSize);
-  free(data->gapSizeVariance);
-  free(data->gapsToComputeGaps);
-  free(data->computeGapsToGaps);
+  safe_free(data->lengthCIs);
+  safe_free(data->gapConstants);
+  safe_free(data->gapCoefficients);
+  safe_free(data->gapVariance);
+  safe_free(data->cloneGapStart);
+  safe_free(data->cloneGapEnd);
+  safe_free(data->cloneVariance);
+  safe_free(data->cloneMean);
+  safe_free(data->spannedGaps);
+  safe_free(data->gapSize);
+  safe_free(data->gapSizeVariance);
+  safe_free(data->gapsToComputeGaps);
+  safe_free(data->computeGapsToGaps);
 }
 
 void ReportRecomputeData(RecomputeData *data, FILE *stream){
@@ -773,8 +773,7 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
   }
   data.numCIs = numCIs;
   data.sizeofLengthCIs = numCIs * sizeof(*lengthCIs);
-  data.lengthCIs = lengthCIs = (LengthT *)malloc(data.sizeofLengthCIs);
-  AssertPtr(lengthCIs);
+  data.lengthCIs = lengthCIs = (LengthT *)safe_malloc(data.sizeofLengthCIs);
 
   InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
 
@@ -871,20 +870,20 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
     double *gapEnd, *gapPtr;
 
     data.sizeofCloneGapStart = numClones * sizeof(*cloneGapStart);
-    data.cloneGapStart = cloneGapStart = (int32 *)malloc(data.sizeofCloneGapStart);
-    AssertPtr(cloneGapStart);
+    data.cloneGapStart = cloneGapStart = (int32 *)safe_malloc(data.sizeofCloneGapStart);
+
     data.sizeofCloneGapEnd = numClones * sizeof(*cloneGapEnd);
-    data.cloneGapEnd = cloneGapEnd = (int32 *)malloc(data.sizeofCloneGapEnd);
-    AssertPtr(cloneGapEnd);
+    data.cloneGapEnd = cloneGapEnd = (int32 *)safe_malloc(data.sizeofCloneGapEnd);
+
     data.sizeofGapConstants = numGaps * sizeof(*gapConstants);
-    data.gapConstants = gapConstants = (double *)malloc(data.sizeofGapConstants);
-    AssertPtr(gapConstants);
+    data.gapConstants = gapConstants = (double *)safe_malloc(data.sizeofGapConstants);
+
     for(gapPtr = gapConstants, gapEnd = gapPtr + numGaps; gapPtr < gapEnd; gapPtr++){
       *gapPtr = 0.0;
     }
     data.sizeofGapCoefficients = (maxDiagonals * numGaps) * sizeof(*gapCoefficients);
-    data.gapCoefficients = gapCoefficients = (double *)malloc(data.sizeofGapCoefficients);
-    AssertPtr(gapCoefficients);
+    data.gapCoefficients = gapCoefficients = (double *)safe_malloc(data.sizeofGapCoefficients);
+
     for(gapPtr = gapCoefficients, gapEnd = gapPtr + (maxDiagonals * numGaps);
         gapPtr < gapEnd; gapPtr++){
       *gapPtr = 0.0;
@@ -892,32 +891,32 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
     data.numClones = numClones;
     data.numGaps = numGaps;
     data.sizeofCloneMean = numClones * sizeof(*cloneMean);
-    data.cloneMean = cloneMean = (double *)malloc(data.sizeofCloneMean);
-    AssertPtr(cloneMean);
+    data.cloneMean = cloneMean = (double *)safe_malloc(data.sizeofCloneMean);
+
     data.sizeofCloneVariance = numClones * sizeof(*cloneVariance);
-    data.cloneVariance = cloneVariance = (double *)malloc(data.sizeofCloneVariance);
-    AssertPtr(cloneVariance);
+    data.cloneVariance = cloneVariance = (double *)safe_malloc(data.sizeofCloneVariance);
+
     data.sizeofGapVariance = numGaps * sizeof(*gapVariance);
-    data.gapVariance = gapVariance = (double *)malloc(data.sizeofGapVariance);
-    AssertPtr(gapVariance);
+    data.gapVariance = gapVariance = (double *)safe_malloc(data.sizeofGapVariance);
+
     for(gapPtr = gapVariance, gapEnd = gapPtr + numGaps; gapPtr < gapEnd; gapPtr++){
       *gapPtr = 0.0;
     }
     data.sizeofSpannedGaps = numGaps * sizeof(*spannedGaps);
-    data.spannedGaps = spannedGaps = (double *)malloc(data.sizeofSpannedGaps);
-    AssertPtr(spannedGaps);
+    data.spannedGaps = spannedGaps = (double *)safe_malloc(data.sizeofSpannedGaps);
+
     data.sizeofGapSize = numGaps * sizeof(*gapSize);
-    data.gapSize = gapSize = (double *)malloc(data.sizeofGapSize);
-    AssertPtr(gapSize);
+    data.gapSize = gapSize = (double *)safe_malloc(data.sizeofGapSize);
+
     data.sizeofGapSizeVariance = numGaps * sizeof(*gapSizeVariance);
-    data.gapSizeVariance = gapSizeVariance = (double *)malloc(data.sizeofGapSizeVariance);
-    AssertPtr(gapSizeVariance);
+    data.gapSizeVariance = gapSizeVariance = (double *)safe_malloc(data.sizeofGapSizeVariance);
+
     data.sizeofGapsToComputeGaps = numGaps * sizeof(*gapsToComputeGaps);
-    data.gapsToComputeGaps = gapsToComputeGaps = (int32 *)malloc(data.sizeofGapsToComputeGaps);
-    AssertPtr(gapsToComputeGaps);
+    data.gapsToComputeGaps = gapsToComputeGaps = (int32 *)safe_malloc(data.sizeofGapsToComputeGaps);
+
     data.sizeofComputeGapsToGaps = numGaps * sizeof(*computeGapsToGaps);
-    data.computeGapsToGaps = computeGapsToGaps = (int32 *)malloc(data.sizeofComputeGapsToGaps);
-    AssertPtr(computeGapsToGaps);
+    data.computeGapsToGaps = computeGapsToGaps = (int32 *)safe_malloc(data.sizeofComputeGapsToGaps);
+
     for(numComputeGaps = 0; numComputeGaps < numGaps; numComputeGaps++){
       gapsToComputeGaps[numComputeGaps] =
         computeGapsToGaps[numComputeGaps] = numComputeGaps;
@@ -994,19 +993,16 @@ RecomputeOffsetsStatus RecomputeOffsetsInScaffold(ScaffoldGraphT *graph,
           data.numClones=numClones;
 
           data.sizeofCloneMean = numClones * sizeof(*cloneMean);
-          data.cloneMean = cloneMean = (double *)realloc(cloneMean,data.sizeofCloneMean);
-          AssertPtr(cloneMean);
+          data.cloneMean = cloneMean = (double *)safe_realloc(cloneMean,data.sizeofCloneMean);
+
           data.sizeofCloneVariance = numClones * sizeof(*cloneVariance);
-          data.cloneVariance = cloneVariance = (double *)realloc(cloneVariance,data.sizeofCloneVariance);
-          AssertPtr(cloneVariance);
+          data.cloneVariance = cloneVariance = (double *)safe_realloc(cloneVariance,data.sizeofCloneVariance);
 
           data.sizeofCloneGapStart = numClones * sizeof(*cloneGapStart);
-          data.cloneGapStart = cloneGapStart = (int32 *)realloc(cloneGapStart,data.sizeofCloneGapStart);
-          AssertPtr(cloneGapStart);
+          data.cloneGapStart = cloneGapStart = (int32 *)safe_realloc(cloneGapStart,data.sizeofCloneGapStart);
 
           data.sizeofCloneGapEnd = numClones * sizeof(*cloneGapEnd);
-          data.cloneGapEnd = cloneGapEnd = (int32 *)realloc(cloneGapEnd,data.sizeofCloneGapEnd);
-          AssertPtr(cloneGapEnd);
+          data.cloneGapEnd = cloneGapEnd = (int32 *)safe_realloc(cloneGapEnd,data.sizeofCloneGapEnd);
         }
 
 

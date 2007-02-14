@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.16 2007-02-12 22:16:55 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.17 2007-02-14 07:20:07 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -367,7 +367,7 @@ void FreeMateStatusPositions(MateStatusPositions * msp)
       if(msp->inter)
         DeleteVA_FragDetail(msp->inter);
 
-      free(msp);
+      safe_free(msp);
     }
 }
 
@@ -386,7 +386,7 @@ void DestroyMateStatusPositionsSet(MateStatusPositionsSet * msps)
   if(msps)
     {
       FreeMateStatusPositionsSet(msps);
-      free(msps);
+      safe_free(msps);
     }
 }
 
@@ -409,7 +409,7 @@ void FreeSurrogateTracker(SurrogateTracker * st)
       if(st->surrogateFragHT)
         DeleteHashTable_AS(st->surrogateFragHT);
       if(st->surrogateFragLocs)
-        free(st->surrogateFragLocs);
+        safe_free(st->surrogateFragLocs);
     }
 }
 
@@ -525,7 +525,7 @@ void DestroyMateInstrumenter(MateInstrumenter * mi)
   if(mi)
     {
       FreeMateInstrumenter(mi);
-      free(mi);
+      safe_free(mi);
     }
 }
 
@@ -535,7 +535,7 @@ void DestroyUnitigInstrumenter(UnitigInstrumenter * ui)
   if(ui)
     {
       FreeUnitigInstrumenter(ui);
-      free(ui);
+      safe_free(ui);
     }
 }
 
@@ -545,7 +545,7 @@ void DestroyContigInstrumenter(ContigInstrumenter * ci)
   if(ci)
     {
       FreeContigInstrumenter(ci);
-      free(ci);
+      safe_free(ci);
     }
 }
 
@@ -555,7 +555,7 @@ void DestroyScaffoldInstrumenter(ScaffoldInstrumenter * si)
   if(si)
     {
       FreeScaffoldInstrumenter(si);
-      free(si);
+      safe_free(si);
     }
 }
 
@@ -565,7 +565,7 @@ void DestroyScaffoldGraphInstrumenter(ScaffoldGraphInstrumenter * sgi)
   if(sgi)
     {
       FreeScaffoldGraphInstrumenter(sgi);
-      free(sgi);
+      safe_free(sgi);
     }
 }
 
@@ -574,45 +574,25 @@ void DestroyScaffoldGraphInstrumenter(ScaffoldGraphInstrumenter * sgi)
          Functions for allocating or reseting arrays and
                     other structure members
 ********************************************************************/
-int InitializeFragDetailArray(VA_TYPE(FragDetail) ** fda)
+void InitializeFragDetailArray(VA_TYPE(FragDetail) ** fda)
 {
   if(*fda == NULL)
-    {
-      *fda = CreateVA_FragDetail(1000);
-      if(*fda == NULL)
-        {
-          fprintf(stderr, "Failed to allocate variable array of frag details\n");
-          return 1;
-        }
-    }
+    *fda = CreateVA_FragDetail(1000);
   else
-    {
-      ResetVA_FragDetail(*fda);
-    }
-  return 0;
+    ResetVA_FragDetail(*fda);
 }  
 
 
-int InitializeMateDetailArray(VA_TYPE(MateDetail) ** mda)
+void InitializeMateDetailArray(VA_TYPE(MateDetail) ** mda)
 {
   if(*mda == NULL)
-    {
-      *mda = CreateVA_MateDetail(1000);
-      if(*mda == NULL)
-        {
-          fprintf(stderr, "Failed to allocate variable array of mate details\n");
-          return 1;
-        }
-    }
+    *mda = CreateVA_MateDetail(1000);
   else
-    {
-      ResetVA_MateDetail(*mda);
-    }
-  return 0;
+    ResetVA_MateDetail(*mda);
 }  
 
 
-int InitializeMateStatusPositions(MateStatusPositions * msp)
+void InitializeMateStatusPositions(MateStatusPositions * msp)
 {
   int ori1;
   
@@ -628,15 +608,13 @@ int InitializeMateStatusPositions(MateStatusPositions * msp)
     }
   
   InitializeFragDetailArray(&(msp->inter));
-  return 0;
 }
 
 
-int InitializeMateStatusPositionsSet(MateStatusPositionsSet * msps)
+void InitializeMateStatusPositionsSet(MateStatusPositionsSet * msps)
 {
   InitializeMateStatusPositions(msps->intra);
   InitializeMateStatusPositions(msps->inter);
-  return 0;
 }
 
 
@@ -671,17 +649,8 @@ MateStatusPositions * CreateMateStatusPositions(void)
   MateStatusPositions * msp;
   
   msp = safe_calloc(1, sizeof(MateStatusPositions));
-  if(msp == NULL)
-    {
-      fprintf(stderr, "Failed to allocate array of mate status positions.\n");
-      return NULL;
-    }
 
-  if(InitializeMateStatusPositions(msp))
-    {
-      FreeMateStatusPositions(msp);
-      return NULL;
-    }
+  InitializeMateStatusPositions(msp);
   return msp;
 }
 
@@ -691,11 +660,6 @@ MateStatusPositionsSet * CreateMateStatusPositionsSet(void)
   MateStatusPositionsSet * msps;
 
   msps = safe_calloc(1, sizeof(MateStatusPositionsSet));
-  if(msps == NULL)
-    {
-      fprintf(stderr, "Failed to allocate mate status positions set.\n");
-      return NULL;
-    }
 
   if((msps->intra = CreateMateStatusPositions()) == NULL)
     {
@@ -724,11 +688,7 @@ int InitializeMateInstrumenter(ScaffoldGraphT * graph,
     }
   else
     {
-      if(InitializeMateStatusPositionsSet(mi->mateStatus))
-        {
-          fprintf(stderr, "Failed to initialize mate status positions\n");
-          return 1;
-        }
+      InitializeMateStatusPositionsSet(mi->mateStatus);
     }
 
   ResetMateInstrumenterCounts(mi);
@@ -754,18 +714,13 @@ MateInstrumenter * CreateMateInstrumenter(ScaffoldGraphT * graph,
                                           cds_uint32 options)
 {
   MateInstrumenter * mi = safe_calloc(1, sizeof(MateInstrumenter));
-  if(mi == NULL)
-    {
-      fprintf(stderr, "Failed to allocate MateInstrumenter\n");
-      return NULL;
-    }
   
   mi->options = options;
   
   if(InitializeMateInstrumenter(graph, mi))
     {
       fprintf(stderr, "Failed to initialize MateInstrumenter!\n");
-      free(mi);
+      safe_free(mi);
       return NULL;
     }
   return mi;
@@ -843,11 +798,6 @@ int InitializeSurrogateTracker(ScaffoldGraphT * graph,
       st->numUsedLocs = 0;
       st->surrogateFragLocs = safe_calloc(st->numAllocatedLocs,
                                           sizeof(SurrogateFragLocation));
-      if(st->surrogateFragLocs == NULL)
-        {
-          fprintf(stderr, "Failed to allocate array of surrogate fragment locs\n");
-          return 1;
-        }
     }
   else
     {
@@ -952,12 +902,6 @@ int InitializeInstrumenterBookkeeping(ScaffoldGraphT * graph,
   if(bk->wExtMates == NULL)
     {
       bk->wExtMates = CreateVA_MateDetail(numWithExternalMates);
-      if(bk->wExtMates == NULL)
-        {
-          fprintf(stderr,
-                  "Failed to allocate variable array of external mate frags\n");
-          return 1;
-        }
     }
   else
     {
@@ -998,11 +942,6 @@ int InitializeUnitigInstrumenter(ScaffoldGraphT * graph,
       if(ui->breakpoints == NULL)
         {
           ui->breakpoints = CreateVA_InstrumenterBreakpoint(100);
-          if(ui->breakpoints == NULL)
-            {
-              fprintf(stderr, "Failed to allocate breakpoints variable array.\n");
-              return 1;
-            }
         }
       else
         {
@@ -1026,11 +965,6 @@ int InitializeContigInstrumenter(ScaffoldGraphT * graph,
   if(ci->unitigSizes == NULL)
     {
       ci->unitigSizes = CreateVA_cds_float32(1000);
-      if(ci->unitigSizes == NULL)
-        {
-          fprintf(stderr, "Failed to allocate unitig sizes variable array.\n");
-          return 1;
-        }
     }
   else
     {
@@ -1041,11 +975,6 @@ int InitializeContigInstrumenter(ScaffoldGraphT * graph,
   if(ci->surrogateSizes == NULL)
     {
       ci->surrogateSizes = CreateVA_cds_float32(100);
-      if(ci->surrogateSizes == NULL)
-        {
-          fprintf(stderr, "Failed to allocate surrogate sizes variable array.\n");
-          return 1;
-        }
     }
   else
     {
@@ -1089,11 +1018,6 @@ int InitializeContigInstrumenter(ScaffoldGraphT * graph,
       if(ci->breakpoints == NULL)
         {
           ci->breakpoints = CreateVA_InstrumenterBreakpoint(100);
-          if(ci->breakpoints == NULL)
-            {
-              fprintf(stderr, "Failed to allocate breakpoints variable array.\n");
-              return 1;
-            }
         }
       else
         {
@@ -1117,11 +1041,6 @@ int InitializeScaffoldInstrumenter(ScaffoldGraphT * graph,
   if(si->scaffoldGapSizes == NULL)
     {
       si->scaffoldGapSizes = CreateVA_cds_float32(100);
-      if(si->scaffoldGapSizes == NULL)
-        {
-          fprintf(stderr, "Failed to allocate variable array of gap sizes\n");
-          return 1;
-        }
     }
   else
     {
@@ -1131,12 +1050,6 @@ int InitializeScaffoldInstrumenter(ScaffoldGraphT * graph,
   if(si->inferredEdgeStddevs == NULL)
     {
       si->inferredEdgeStddevs = CreateVA_cds_float32(100);
-      if(si->inferredEdgeStddevs == NULL)
-        {
-          fprintf(stderr,
-                  "Failed to allocate variable array of inferred edge stddevs\n");
-          return 1;
-        }
     }
   else
     {
@@ -1146,11 +1059,6 @@ int InitializeScaffoldInstrumenter(ScaffoldGraphT * graph,
   if(si->contigSizes == NULL)
     {
       si->contigSizes = CreateVA_cds_float32(100);
-      if(si->contigSizes == NULL)
-        {
-          fprintf(stderr, "Failed to allocate variable array of gap sizes\n");
-          return 1;
-        }
     }
   else
     {
@@ -1210,11 +1118,6 @@ int InitializeScaffoldInstrumenter(ScaffoldGraphT * graph,
       if(si->breakpoints == NULL)
         {
           si->breakpoints = CreateVA_InstrumenterBreakpoint(100);
-          if(si->breakpoints == NULL)
-            {
-              fprintf(stderr, "Failed to allocate breakpoints variable array.\n");
-              return 1;
-            }
         }
       else
         {
@@ -1248,11 +1151,7 @@ int InitializeScaffoldInstrumenter(ScaffoldGraphT * graph,
   // NOTE: If this gets resized, cpHT needs to be repopulated
 
   if (si->cpArray == NULL) {
-    if((si->cpArray = CreateVA_ContigPlacement(1000)) == NULL)
-      {
-        fprintf(stderr, "Failed to allocate contig placement variable array.\n");
-        return 1;
-      }
+    si->cpArray = CreateVA_ContigPlacement(1000);
   }
   ResetVA_ContigPlacement(si->cpArray);
 
@@ -1270,51 +1169,6 @@ int InitializeScaffoldInstrumenter(ScaffoldGraphT * graph,
     {
       ResetHashTable_AS(si->anchoredHT);
     }
-
-  /*
-    Don't deal with this here, since it exists outside the
-    use of a scaffold instrumenter in its instrumenting capacity
-    // IntContigPairs for IntScaffoldMesg
-    if((si->icps = CreateVA_IntContigPairs(1000)) == NULL)
-    {
-    fprintf(stderr, "Failed to allocate IntContigPairs variable array.\n");
-    return 1;
-    }
-    else
-    {
-    ResetVA_IntContigPairs(si->icps);
-    }
-  */
-
-  /*
-    if(si->options & INST_OPT_CONTIG_PAIRS)
-    {
-    if(si->contigPairs == NULL)
-    {
-    if((si->contigPairs = CreateVA_InstrumenterContigPair(128)) == NULL)
-    {
-    fprintf(stderr, "Failed to allocate contig pairs array!\n");
-    return 1;
-    }
-    }
-    else
-    {
-    ResetVA_InstrumenterContigPair(si->contigPairs);
-    }
-    if(si->cpIndex == NULL)
-    {
-    if((si->cpIndex = CreateVA_CP_Index(128)) == NULL)
-    {
-    fprintf(stderr, "Failed to allocate contig pair index array!\n");
-    return 1;
-    }
-    }
-    else
-    {
-    ResetVA_CP_Index(si->cpIndex);
-    }
-    }
-  */
   
   return 0;
 }
@@ -1328,11 +1182,6 @@ UnitigInstrumenter * CreateUnitigInstrumenter(ScaffoldGraphT * graph,
 {
   UnitigInstrumenter * ui;
   ui = (UnitigInstrumenter *) safe_calloc(1, sizeof(UnitigInstrumenter));
-  if(ui == NULL)
-    {
-      fprintf(stderr, "Failed to allocate UnitigInstrumenter!\n");
-      return NULL;
-    }
 
   ui->options = options;
   if(ui->options & INST_OPT_INTER_MATES)
@@ -1341,7 +1190,7 @@ UnitigInstrumenter * CreateUnitigInstrumenter(ScaffoldGraphT * graph,
   if(InitializeUnitigInstrumenter(graph, ui))
     {
       fprintf(stderr, "Failed to initialize UnitigInstrumenter!\n");
-      free(ui);
+      safe_free(ui);
       return NULL;
     }
   return ui;
@@ -1353,11 +1202,6 @@ ContigInstrumenter * CreateContigInstrumenter(ScaffoldGraphT * graph,
 {
   ContigInstrumenter * ci;
   ci = (ContigInstrumenter *) safe_calloc(1, sizeof(ContigInstrumenter));
-  if(ci == NULL)
-    {
-      fprintf(stderr, "Failed to allocate ContigInstrumenter!\n");
-      return NULL;
-    }
 
   ci->options = options;
   if(ci->options & INST_OPT_INTER_MATES)
@@ -1366,7 +1210,7 @@ ContigInstrumenter * CreateContigInstrumenter(ScaffoldGraphT * graph,
   if(InitializeContigInstrumenter(graph, ci))
     {
       fprintf(stderr, "Failed to initialize ContigInstrumenter!\n");
-      free(ci);
+      safe_free(ci);
       return NULL;
     }
   return ci;
@@ -1378,17 +1222,12 @@ ScaffoldInstrumenter * CreateScaffoldInstrumenter(ScaffoldGraphT * graph,
 {
   ScaffoldInstrumenter * si;
   si = (ScaffoldInstrumenter *) safe_calloc(1, sizeof(ScaffoldInstrumenter));
-  if(si == NULL)
-    {
-      fprintf(stderr, "Failed to allocate ScaffoldInstrumenter!\n");
-      return NULL;
-    }
 
   si->options = options;
   if(InitializeScaffoldInstrumenter(graph, si))
     {
       fprintf(stderr, "Failed to initialize ScaffoldInstrumenter!\n");
-      free(si);
+      safe_free(si);
       return NULL;
     }
   return si;
@@ -1401,12 +1240,6 @@ int InitializeScaffoldGraphInstrumenter(ScaffoldGraphT * graph,
   if(sgi->singletonScaffoldSizes == NULL)
     {
       sgi->singletonScaffoldSizes = CreateVA_cds_float32(10000);
-      if(sgi->singletonScaffoldSizes == NULL)
-        {
-          fprintf(stderr,
-                  "Failed to allocate variable array of singleton scaffold sizes\n");
-          return 1;
-        }
     }
   else
     {
@@ -1416,12 +1249,6 @@ int InitializeScaffoldGraphInstrumenter(ScaffoldGraphT * graph,
   if(sgi->unitigsPerSingletonScaffold == NULL)
     {
       sgi->unitigsPerSingletonScaffold = CreateVA_cds_int32(10000);
-      if(sgi->unitigsPerSingletonScaffold == NULL)
-        {
-          fprintf(stderr,
-                  "Failed to allocate variable array of unitigs per singleton scaffold\n");
-          return 1;
-        }
     }
   else
     {
@@ -1431,12 +1258,6 @@ int InitializeScaffoldGraphInstrumenter(ScaffoldGraphT * graph,
   if(sgi->degenerateScaffoldSizes == NULL)
     {
       sgi->degenerateScaffoldSizes = CreateVA_cds_float32(10000);
-      if(sgi->degenerateScaffoldSizes == NULL)
-        {
-          fprintf(stderr,
-                  "Failed to allocate variable array of degenerate scaffold sizes\n");
-          return 1;
-        }
     }
   else
     {
@@ -1448,12 +1269,6 @@ int InitializeScaffoldGraphInstrumenter(ScaffoldGraphT * graph,
   if(sgi->scaffoldSizes == NULL)
     {
       sgi->scaffoldSizes = CreateVA_cds_float32(10000);
-      if(sgi->scaffoldSizes == NULL)
-        {
-          fprintf(stderr,
-                  "Failed to allocate variable array of scaffold sizes\n");
-          return 1;
-        }
     }
   else
     {
@@ -1484,17 +1299,12 @@ CreateScaffoldGraphInstrumenter(ScaffoldGraphT * graph, cds_uint32 options)
   ScaffoldGraphInstrumenter * sgi;
   sgi =
     (ScaffoldGraphInstrumenter *)safe_calloc(1, sizeof(ScaffoldGraphInstrumenter));
-  if(sgi == NULL)
-    {
-      fprintf(stderr, "Failed to allocate ScaffoldGraphInstrumenter!\n");
-      return NULL;
-    }
   
   sgi->options = options;
   if(InitializeScaffoldGraphInstrumenter(graph, sgi))
     {
       fprintf(stderr, "Failed to initialize ScaffoldGraphInstrumenter!\n");
-      free(sgi);
+      safe_free(sgi);
       return NULL;
     }
   return sgi;
@@ -2440,7 +2250,7 @@ void safelyAppendInstInfo(char **locs,int32 utgIID, int *lenloc, int *lenUsed){
   assert(testsize >0); /* test against other error */
   if(*lenUsed+testsize>*lenloc){
     *lenloc+=1000;
-    *locs = (char *) realloc(*locs, *lenloc * sizeof(char));
+    *locs = (char *) safe_realloc(*locs, *lenloc * sizeof(char));
   }
   strcat(*locs,teststring);
   *lenUsed+=testsize-1; /* -1 because snprintf includes the '\0' in its return,
@@ -2491,8 +2301,7 @@ void PrintExternalMateDetailAndDist(MateDetail * md,
 	int lenUsed = 0;
 	if(locs==NULL){
 	  lenloc = 1000;
-	  locs = (char *) malloc(lenloc*sizeof(char));
-	  assert(locs!=NULL);
+	  locs = (char *) safe_malloc(lenloc*sizeof(char));
 	}
 	locs[0]='\0';
 	if(numInst<=2){
@@ -5299,7 +5108,7 @@ void FinishIntScaffoldMesg(IntScaffoldMesg * isf,
 void FreeIntScaffoldMesg(IntScaffoldMesg * isf)
 {
   if(isf->contig_pairs)
-    free(isf->contig_pairs);
+    safe_free(isf->contig_pairs);
   isf->num_contig_pairs = 0;
 }
 
@@ -5908,11 +5717,6 @@ int InstrumentScaffoldGraph(ScaffoldGraphT * graph,
   // allocate an array to hold iids & sizes
   iidSizes =
     CreateVA_IID_Size(GetNumVA_NodeCGW_T(graph->ScaffoldGraph->nodes));
-  if(iidSizes == NULL)
-    {
-      fprintf(stderr, "Failed to allocate array of scaffold IIDs & sizes\n");
-      return 1;
-    }
   
   // loop over all scaffolds in the graph
   InitGraphNodeIterator(&scaffolds,
@@ -6089,11 +5893,7 @@ int InstrumentContigEnd(ScaffoldGraphT * graph,
   cds_int32 numContigs = 1;
 
   // allocate a mate instrumenter to populate & return
-  if((mi = CreateMateInstrumenter(graph, si->options)) == NULL)
-    {
-      fprintf(stderr, "Failed to allocate mate instrumenter\n");
-      return 1;
-    }
+  mi = CreateMateInstrumenter(graph, si->options);
 
   // loop over one end's essential edges & instrument each 'scaffold'
   InitGraphEdgeIterator(graph->RezGraph,
@@ -6350,7 +6150,6 @@ int AdjustCIScaffoldLabels(ScaffoldGraphT * graph,
   assert(si != NULL);
   
   scaffoldSeen = (char *) safe_calloc( myNumScaffoldIDs, sizeof(char));
-  assert(scaffoldSeen != NULL);
 
   // loop over all CIs
   InitGraphNodeIterator(&ciIterator,
@@ -6510,7 +6309,7 @@ int AdjustCIScaffoldLabels(ScaffoldGraphT * graph,
         }
     }
   
-  free(scaffoldSeen);
+  safe_free(scaffoldSeen);
   DestroyScaffoldInstrumenter(si);
   *numScaffoldIDs = myNumScaffoldIDs;
   return 0;
@@ -6657,6 +6456,6 @@ int InstrumentScaffoldPair(ScaffoldGraphT * graph,
 
   InstrumentIntScaffoldMesg(graph, si, &ism, verbose, printTo);
   ComputeScaffoldInstrumenterStats(graph, si);
-  free(ism.contig_pairs);
+  safe_free(ism.contig_pairs);
   return 0;
 }

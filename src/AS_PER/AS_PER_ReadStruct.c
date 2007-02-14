@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_ReadStruct.c,v 1.10 2007-02-12 22:16:58 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_ReadStruct.c,v 1.11 2007-02-14 07:20:13 brianwalenz Exp $";
 
 /*************************************************************************
  Module:  AS_PER_ReadStruct
@@ -58,7 +58,7 @@ ReadStruct *new_ReadStruct(void){
 }
 
 void        delete_ReadStruct(ReadStruct *rs){
-  free(rs);
+  safe_free(rs);
 }
 
 

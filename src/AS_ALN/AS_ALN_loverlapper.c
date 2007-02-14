@@ -99,9 +99,9 @@ static void safe_suffix(char **Dest,int *DestLen,char *src,int start){
   if(*DestLen==0||*DestLen<len+1){
     *DestLen=len+1;
     if(*Dest==NULL){
-      *Dest=(char*)ckalloc(sizeof(char)*(*DestLen));
+      *Dest=(char*)safe_malloc(sizeof(char)*(*DestLen));
     } else {
-      *Dest=(char*)ckrealloc(*Dest,sizeof(char)*(*DestLen));
+      *Dest=(char*)safe_realloc(*Dest,sizeof(char)*(*DestLen));
     }
   }
   strcpy(*Dest,src+start);
@@ -121,17 +121,17 @@ static void print_piece(Local_Overlap *O,int piece,char *aseq,char *bseq){
     if(aseglen<alen+1){
       aseglen=2*(alen+1);
       if(aseg==NULL){
-	aseg=(char*)ckalloc(sizeof(char)*aseglen);
+	aseg=(char*)safe_malloc(sizeof(char)*aseglen);
       } else {
-	aseg=(char*)ckrealloc(aseg,sizeof(char)*aseglen);
+	aseg=(char*)safe_realloc(aseg,sizeof(char)*aseglen);
       }
     }
     if(bseglen<blen+1){
       bseglen=2*(blen+1);
       if(bseg==NULL){
-	bseg=(char*)ckalloc(sizeof(char)*bseglen);
+	bseg=(char*)safe_malloc(sizeof(char)*bseglen);
       } else {
-	bseg=(char*)ckrealloc(bseg,sizeof(char)*bseglen);
+	bseg=(char*)safe_realloc(bseg,sizeof(char)*bseglen);
       }
     }
 
@@ -273,9 +273,9 @@ int *AS_Local_Trace(Local_Overlap *O, char *aseq, char *bseq){
   if(allocatedspace<tracespace){
     allocatedspace=2*tracespace;
     if(TraceBuffer==NULL){
-      TraceBuffer=(int*)ckalloc(sizeof(int)*allocatedspace);
+      TraceBuffer=(int*)safe_malloc(sizeof(int)*allocatedspace);
     } else {
-      TraceBuffer=(int*)ckrealloc(TraceBuffer,sizeof(int)*allocatedspace);
+      TraceBuffer=(int*)safe_realloc(TraceBuffer,sizeof(int)*allocatedspace);
     }
   }
   
@@ -843,17 +843,17 @@ fprintf(stdout,"Warning: deleting contained piece of local_overlap: a projection
     if(aseglen<alen+1){
       aseglen=2*(alen+1);
       if(aseg==NULL){
-	aseg=(char*)ckalloc(sizeof(char)*aseglen);
+	aseg=(char*)safe_malloc(sizeof(char)*aseglen);
       } else {
-	aseg=(char*)ckrealloc(aseg,sizeof(char)*aseglen);
+	aseg=(char*)safe_realloc(aseg,sizeof(char)*aseglen);
       }
     }
     if(bseglen<blen+1){
       bseglen=2*(blen+1);
       if(bseg==NULL){
-	bseg=(char*)ckalloc(sizeof(char)*bseglen);
+	bseg=(char*)safe_malloc(sizeof(char)*bseglen);
       } else {
-	bseg=(char*)ckrealloc(bseg,sizeof(char)*bseglen);
+	bseg=(char*)safe_realloc(bseg,sizeof(char)*bseglen);
       }
     }
 
@@ -1261,7 +1261,7 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
 #endif
 
 #endif
-      free(O);
+      safe_free(O);
       forcenext=0;
       //      printf("Looking at lower-scoring overlaps\n");
       O=Find_Local_Overlap(alen,blen,
@@ -1874,14 +1874,14 @@ OverlapMesg *Local_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
   if (opposite){
     Complement_Fragment_AS(b);
   }
-  if(O!=NULL)free(O);
+  safe_free(O);
 
   return (&QVBuffer);
 
 nooverlap:
   if (opposite)
     Complement_Fragment_AS(b);
-  if(O!=NULL)free(O);
+  safe_free(O);
   return ((OverlapMesg*)NULL);
   
 }

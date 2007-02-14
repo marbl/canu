@@ -39,11 +39,8 @@ void AS_REZ_print_informatives_alignment(Alignment_t *a,int nfrag)
   int count[7]; // A C G T Dash N and total
   int *row2frag,lastfrag,infcols,currcol;
     
-  consensus = (char*)malloc (sizeof(char)*(a->cols));
-  assert(consensus!=NULL);
-
-  row2frag = (int*)malloc(sizeof(int)*r);
-  assert(row2frag!=NULL);
+  consensus = (char*)safe_malloc (sizeof(char)*(a->cols));
+  row2frag = (int*)safe_malloc(sizeof(int)*r);
 
   infcols=0;
   for(i=0; i<c; i++)
@@ -122,7 +119,7 @@ void AS_REZ_print_informatives_alignment(Alignment_t *a,int nfrag)
     }
 
 
-  printArray = (char *) malloc(sizeof(char)*(infcols+1)*nfrag);
+  printArray = (char *) safe_malloc(sizeof(char)*(infcols+1)*nfrag);
   assert(printArray!=NULL);
   for(i=0;i<nfrag;i++){
     for(j=0;j<infcols;j++)
@@ -154,9 +151,9 @@ void AS_REZ_print_informatives_alignment(Alignment_t *a,int nfrag)
   for(i=0;i<nfrag;i++)
     printf("%s\t%d\n",printArray+i*(infcols+1),i);
 
-  free(consensus);
-  free(printArray);
-  free(row2frag);
+  safe_free(consensus);
+  safe_free(printArray);
+  safe_free(row2frag);
 }
 
 
@@ -172,11 +169,8 @@ void AS_REZ_print_informative_splits(Alignment_t *a,int nfrag)
   int *row2frag,lastfrag,infcols,currcol;
   int submax,max,k,subct,currct,clades;
     
-  consensus = (char*)malloc (sizeof(char)*(a->cols));
-  assert(consensus!=NULL);
-
-  row2frag = (int*)malloc(sizeof(int)*r);
-  assert(row2frag!=NULL);
+  consensus = (char*)safe_malloc (sizeof(char)*(a->cols));
+  row2frag = (int*)safe_malloc(sizeof(int)*r);
 
   infcols=0;
   for(i=0; i<c; i++)
@@ -254,8 +248,7 @@ void AS_REZ_print_informative_splits(Alignment_t *a,int nfrag)
     }
 
 
-  printArray = (char *) malloc(sizeof(char)*(infcols+1)*nfrag);
-  assert(printArray!=NULL);
+  printArray = (char *) safe_malloc(sizeof(char)*(infcols+1)*nfrag);
   for(i=0;i<nfrag;i++){
     for(j=0;j<infcols;j++)
       (printArray+i*(infcols+1))[j]=' ';
@@ -477,9 +470,9 @@ void AS_REZ_print_informative_splits(Alignment_t *a,int nfrag)
     }
   }
 
-  free(consensus);
-  free(printArray);
-  free(row2frag);
+  safe_free(consensus);
+  safe_free(printArray);
+  safe_free(row2frag);
 }
 
 
@@ -551,16 +544,16 @@ double AS_REZ_prob_IUM_MPsimple(IntUnitigMesg* ium, GateKeeperStore *handle,tFra
   ret = AS_REZ_MP_MicroHet_prob(bqarray,idarray,handle,phandle, ium->length,rows);
   /* free the space that is allocated by IMP2Array */
   for(i=0; i<2*rows; i++)
-    free(bqarray[i]);
-  free(bqarray);
+    safe_free(bqarray[i]);
+  safe_free(bqarray);
 
   for(i=0; i<rows; i++)
-    free(idarray[i]);
-  free(idarray);
+    safe_free(idarray[i]);
+  safe_free(idarray);
 
   for(i=0; i<rows; i++)
-    free(oriarray[i]);
-  free(oriarray);
+    safe_free(oriarray[i]);
+  safe_free(oriarray);
 
   return(ret);
 }
@@ -616,16 +609,16 @@ Alignment_t* AS_REZ_convert_IUM_to_alignment(IntUnitigMesg* ium,
 
   /* free the space that is allocated by IMP2Array */
   for(i=0; i<2*rows; i++)
-    free(bqarray[i]);
-  free(bqarray);
+    safe_free(bqarray[i]);
+  safe_free(bqarray);
 
   for(i=0; i<rows; i++)
-    free(idarray[i]);
-  free(idarray);
+    safe_free(idarray[i]);
+  safe_free(idarray);
 
   for(i=0; i<rows; i++)
-    free(oriarray[i]);
-  free(oriarray);
+    safe_free(oriarray[i]);
+  safe_free(oriarray);
 
   return ali;
 }

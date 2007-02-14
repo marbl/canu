@@ -71,8 +71,8 @@ char *get_sequence(FILE *input, char **seq, char **name )
   if (firstget)
     { firstget  = 0;
       top    = 2048;
-      seqbuf = (char *) ckalloc(sizeof(char)*top);
-      namebuf = (char *) ckalloc(sizeof(char)*top);
+      seqbuf = (char *) safe_malloc(sizeof(char)*top);
+      namebuf = (char *) safe_malloc(sizeof(char)*top);
       if (fgets(linebuf,LBUFLEN,input) == NULL) return (NULL);
       if (*linebuf != '>')
         { fprintf(stderr,"First line must start with an >-sign\n");
@@ -81,7 +81,7 @@ char *get_sequence(FILE *input, char **seq, char **name )
       else
 	{
 	  char *newname;
-	  newname = (char*) ckalloc(2048*sizeof(char));
+	  newname = (char*) safe_malloc(2048*sizeof(char));
 	  if(sscanf(linebuf,">%s",newname)!=1){
 	    if(sscanf(linebuf,"> %s",newname)!=1){
 	      fprintf(stderr,"Abort: Couldn't resolve defline %s\n",linebuf);
@@ -91,7 +91,7 @@ char *get_sequence(FILE *input, char **seq, char **name )
 	    fprintf(stderr,"identifier %s too long -- abort!\n",
 		    newname);
 	  }
-	  newname = (char *)realloc(newname,strlen(newname)+1);
+	  newname = (char *)safe_realloc(newname,strlen(newname)+1);
 	  assert(newname!=NULL);
 	  *name = newname;
 	}   
@@ -102,7 +102,7 @@ char *get_sequence(FILE *input, char **seq, char **name )
       if (!nei) return (NULL); 
       if(*nextname == '>'){
 	char *newname;
-	newname = (char*) ckalloc(2048*sizeof(char));
+	newname = (char*) safe_malloc(2048*sizeof(char));
 	if(sscanf(nextname,">%s",newname)!=1){
 	  if(sscanf(nextname,"> %s",newname)!=1){
 	    fprintf(stderr,"Abort: Couldn't resolve defline %s\n",linebuf);
@@ -112,7 +112,7 @@ char *get_sequence(FILE *input, char **seq, char **name )
 	  fprintf(stderr,"identifier %s too long -- abort!\n",
 		  newname);
 	}
-	newname = (char *)realloc(newname,strlen(newname)+1);
+	newname = (char *)safe_realloc(newname,strlen(newname)+1);
 	assert(newname!=NULL);
 	*name = newname;
       }   
@@ -147,10 +147,10 @@ char *get_sequence(FILE *input, char **seq, char **name )
         { l = strlen(linebuf);
           if (e + l >= top)
             { top = (int) (1.5*(e+l) + 200);
-              newbuf = (char *) ckalloc(sizeof(char)*top);
+              newbuf = (char *) safe_malloc(sizeof(char)*top);
               seqbuf[e] = '\0';
               strcpy(newbuf,seqbuf);
-              free(seqbuf);
+              safe_free(seqbuf);
               seqbuf = newbuf;
             }
           strcpy(seqbuf+e,linebuf);
@@ -161,7 +161,7 @@ char *get_sequence(FILE *input, char **seq, char **name )
     }
   seqbuf[e] = '\0';
 
-  newbuf = (char *) ckalloc(sizeof(char)*(e+1));
+  newbuf = (char *) safe_malloc(sizeof(char)*(e+1));
   strcpy(newbuf,seqbuf);
 
   {
@@ -188,8 +188,8 @@ void get_sequences(FILE *input, int *nseq,char ***seqs,char ***names)
   char **namea, **namen;
 
   max  = 32;
-  seqa = (char **) ckalloc(max*sizeof(char *));
-  namea = (char **) ckalloc(max*sizeof(char *));
+  seqa = (char **) safe_malloc(max*sizeof(char *));
+  namea = (char **) safe_malloc(max*sizeof(char *));
 
   k = 0;
   while (1)
@@ -197,14 +197,14 @@ void get_sequences(FILE *input, int *nseq,char ***seqs,char ***names)
         { if (get_sequence(input,&(seqa[k]),&(namea[k]))== NULL) break;
         }
       if (k < max) break;
-      seqn = (char **) ckalloc(2*max*sizeof(char *));
-      namen = (char **) ckalloc(2*max*sizeof(char *));
+      seqn = (char **) safe_malloc(2*max*sizeof(char *));
+      namen = (char **) safe_malloc(2*max*sizeof(char *));
       for (k = 0; k < max; k++){
         seqn[k] = seqa[k];
         namen[k] = namea[k];
       }
-      free(seqa);
-      free(namea);
+      safe_free(seqa);
+      safe_free(namea);
       seqa = seqn;
       namea = namen;
       max *= 2;
@@ -455,18 +455,18 @@ int main(int argc, char *argv[])
 
   { int i;
   for(i=0;i<K+1;i++){
-    free(Seqs[i]);
-    free(Names[i]);
+    safe_free(Seqs[i]);
+    safe_free(Names[i]);
   }
-  free(Seqs);
-  free(Names);
+  safe_free(Seqs);
+  safe_free(Names);
   if(file2!=NULL){
     for(i=0;i<KB+1;i++){
-      free(SeqsB[i]);
-      free(NamesB[i]);
+      safe_free(SeqsB[i]);
+      safe_free(NamesB[i]);
     }
-    free(SeqsB);
-    free(NamesB);
+    safe_free(SeqsB);
+    safe_free(NamesB);
   }
   }
   return(0);

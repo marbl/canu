@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.8 2006-11-14 19:58:21 eliv Exp $";
+static char CM_ID[] = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.9 2007-02-14 07:20:05 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -391,7 +391,7 @@ void DeleteOrientProcessor(OrientProcessor * op)
         DeleteVA_OrientHolder(op->array);
       if(op->ht)
         DeleteHashTable_AS(op->ht);
-      free(op);
+      safe_free(op);
     }
 }
 
@@ -424,7 +424,7 @@ OrientProcessor * CreateOrientProcessor(void)
   if(!op || !op->array || !op->ht)
     {
       fprintf(stderr, "Failed to create orientation processor!\n");
-      free(op);
+      safe_free(op);
       return NULL;
     }
 
@@ -450,7 +450,7 @@ void DestroyContigOrientChecker(ContigOrientChecker * coc)
     {
       DeleteOrientProcessor(coc->contigs);
       DeleteOrientProcessor(coc->scaffolds);
-      free(coc);
+      safe_free(coc);
     }
 }
 

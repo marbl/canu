@@ -33,7 +33,7 @@
  Assumptions: - All inserted keys are bigger than minf and smaller than pinf   
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_UTL_skiplist.c,v 1.4 2005-03-22 19:49:29 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_UTL_skiplist.c,v 1.5 2007-02-14 07:20:15 brianwalenz Exp $";
 
 
 /* 
@@ -143,16 +143,16 @@ void Free_SL(SkipList *sl)
 	{
 	  if( sl->freeData && it1->down == NULL && it1->value != NULL )
 	    sl->free_value((void*) it1->value);
-	  free(it1);
+	  safe_free(it1);
 	  it1=it2;
 	  it2=it1->succ;
 	}
-      free(it1);
+      safe_free(it1);
       it1=sl->head;
       if(sl->head != NULL)
 	sl->head=sl->head->down;
     }
-  free(sl);
+  safe_free(sl);
 }
 
 
@@ -184,7 +184,7 @@ void Print_SL(SkipList *sl)
 
 SkipList *Create_SL(int fd, SLF free_value)
 {
-  SkipList *sl = (SkipList*) malloc(sizeof(struct sl));
+  SkipList *sl = (SkipList*) safe_malloc(sizeof(struct sl));
 
   sl_item a,b;
   assert( sl != NULL);
@@ -329,8 +329,8 @@ void Delete_SL(keyType key, SkipList *sl)
 	      sl->tail = sl->tail->down;
 	      //    sl->head->succ = sl->tail;
 	      //	      sl->tail->pred = sl->head;
-	      free(sl->tail->up);
-	      free(sl->head->up);
+	      safe_free(sl->tail->up);
+	      safe_free(sl->head->up);
 	      sl->head->up = NULL;
 	      sl->tail->up = NULL;
 	      sl->no_of_levels--;
@@ -339,7 +339,7 @@ void Delete_SL(keyType key, SkipList *sl)
 	  it = a->down; 
  	  if( sl->freeData && a->down == NULL )
 	    sl->free_value( (void*) a->value);
-	  free(a);
+	  safe_free(a);
 	  a = it;
 	}
       sl->no_of_elements--;

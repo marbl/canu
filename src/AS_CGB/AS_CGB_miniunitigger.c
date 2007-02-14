@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_miniunitigger.c,v 1.7 2006-11-14 19:58:21 eliv Exp $
+ * $Id: AS_CGB_miniunitigger.c,v 1.8 2007-02-14 07:20:05 brianwalenz Exp $
  * Module:  AS_CGB_miniunitigger
  * Description: 
  * Assumptions:
@@ -42,7 +42,7 @@
 #endif
 
 /*************************************************************************/
-static char CM_ID[] = "$Id: AS_CGB_miniunitigger.c,v 1.7 2006-11-14 19:58:21 eliv Exp $";
+static char CM_ID[] = "$Id: AS_CGB_miniunitigger.c,v 1.8 2007-02-14 07:20:05 brianwalenz Exp $";
 /*************************************************************************/
 
 extern int REAPER_VALIDATION;
@@ -183,7 +183,7 @@ int destroyMiniUnitigger
     // Free the allocated data.
     close_fgb_store( gstate, heapva );
   }
-  free(self);
+  safe_free(self);
   return error;
 }
 

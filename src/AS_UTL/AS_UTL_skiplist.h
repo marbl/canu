@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
-   CVS_ID:  $Id: AS_UTL_skiplist.h,v 1.4 2005-03-22 19:49:30 jason_miller Exp $
+   CVS_ID:  $Id: AS_UTL_skiplist.h,v 1.5 2007-02-14 07:20:15 brianwalenz Exp $
  *********************************************************************/
 
 /********************************************************************/
@@ -122,7 +122,7 @@ sl_item  Max_SL(SkipList*sl);
 sl_item  Min_SL(SkipList*sl);
 
 /* Macros */
-#define new_item (sl_item) malloc(sizeof(struct element))
+#define new_item (sl_item) safe_malloc(sizeof(struct element))
 
 #define SL_TYPE(Type) SkipList ## Type
 

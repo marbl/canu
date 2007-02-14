@@ -26,8 +26,8 @@
 
 
 /* RCS info
- * $Id: OlapStoreOVL.c,v 1.8 2006-09-26 21:07:45 brianwalenz Exp $
- * $Revision: 1.8 $
+ * $Id: OlapStoreOVL.c,v 1.9 2007-02-14 07:20:13 brianwalenz Exp $
+ * $Revision: 1.9 $
 */
 
 
@@ -52,7 +52,7 @@ void  Free_OVL_Store
 //  Free memory associated with  store
 
   {
-   free (store);
+   safe_free (store);
 
    return;
   }
@@ -68,8 +68,8 @@ void  Free_OVL_Stream
    if  (stream -> fp != NULL)
        fclose (stream -> fp);
    if  (stream -> offset_buff != NULL)
-       free (stream -> offset_buff);
-   free (stream);
+       safe_free (stream -> offset_buff);
+   safe_free (stream);
 
    return;
   }

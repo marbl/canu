@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.11 2007-02-12 22:16:56 brianwalenz Exp $";
+static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.12 2007-02-14 07:20:09 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -119,12 +119,9 @@ int main( int argc, char *argv[])
   int totalNumParentFrags=0;
 
   if(impLists==NULL){
-    impLists = (VA_TYPE(IntMultiPos)**) malloc(allocedImpLists*sizeof(VA_TYPE(IntMultiPos)*));
-    AssertPtr(impLists);
-    for(i=0;i<allocedImpLists;i++){
+    impLists = (VA_TYPE(IntMultiPos)**) safe_malloc(allocedImpLists*sizeof(VA_TYPE(IntMultiPos)*));
+    for(i=0;i<allocedImpLists;i++)
       impLists[i] = CreateVA_IntMultiPos(20);
-      AssertPtr(impLists[i]);
-    }
   }
 
   GlobalData  = data = CreateGlobal_CGW();

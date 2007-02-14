@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.17 2007-02-13 17:59:34 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.18 2007-02-14 07:20:13 brianwalenz Exp $";
 
 //    A thin layer on top of the IndexStore supporing the storage and
 // retrieval of records used by the gatekeeper records.
@@ -334,7 +334,7 @@ closeGateKeeperStore(GateKeeperStore *gkpStore) {
   if(gkpStore->phs != NULL)
     ClosePHashTable_AS(gkpStore->phs);
 
-  free(gkpStore);
+  safe_free(gkpStore);
 }
 
 

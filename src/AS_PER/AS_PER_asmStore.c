@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_asmStore.c,v 1.5 2007-02-12 22:16:58 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_asmStore.c,v 1.6 2007-02-14 07:20:13 brianwalenz Exp $";
 
 /*************************************************************************
  Module:  AS_PER_asmStore
@@ -235,8 +235,7 @@ AssemblyStore * OpenAssemblyStoreCommon(char * path, char *mode)
   char name[FILENAME_MAX];
   AssemblyStore * asmStore;
 
-  asmStore = (AssemblyStore *) calloc(1, sizeof(AssemblyStore));
-  assert(asmStore != NULL);
+  asmStore = (AssemblyStore *) safe_calloc(1, sizeof(AssemblyStore));
   strcpy(asmStore->storePath, path);
 
   fprintf(stderr, "*** Open %s//%s\n", getcwd(NULL,256), asmStore->storePath);
@@ -330,8 +329,7 @@ MapStore * OpenMapStoreCommon(char * path, char *mode)
   char name[FILENAME_MAX];
   MapStore * mapStore;
 
-  mapStore = (MapStore *) calloc(1, sizeof(MapStore));
-  assert(mapStore != NULL);
+  mapStore = (MapStore *) safe_calloc(1, sizeof(MapStore));
   strcpy(mapStore->storePath, path);
 
   fprintf(stderr, "*** Open %s//%s\n", getcwd(NULL,256), mapStore->storePath);
@@ -420,8 +418,7 @@ AssemblyStore * CreateAssemblyStore(char * path,
   AssemblyStore * asmStore;
   char name[FILENAME_MAX];
 
-  asmStore = (AssemblyStore *) calloc(1, sizeof(AssemblyStore));
-  assert(asmStore != NULL);
+  asmStore = (AssemblyStore *) safe_calloc(1, sizeof(AssemblyStore));
   strcpy(asmStore->storePath, path);
 
   fprintf(stderr,"*** Create store %s at cwd %s\n",
@@ -484,8 +481,7 @@ MapStore * CreateMapStore(char * path)
   MapStore * mapStore;
   char name[FILENAME_MAX];
 
-  mapStore = (MapStore *) calloc(1, sizeof(MapStore));
-  assert(mapStore != NULL);
+  mapStore = (MapStore *) safe_calloc(1, sizeof(MapStore));
   strcpy(mapStore->storePath, path);
 
   fprintf(stderr,"*** Create store %s at cwd %s\n",
@@ -515,12 +511,9 @@ void CloseAssemblyStore(AssemblyStore *asmStore)
 {
   fprintf(stderr,"*** Close directory %s\n", asmStore->storePath);
 
-  if(asmStore->gkpStore != NULL)
-  {
-    closeGateKeeperStore(asmStore->gkpStore);
-    free(asmStore->gkpStore);
-  }
-  
+  closeGateKeeperStore(asmStore->gkpStore);
+  asmStore->gkpStore = NULL;
+
   if(asmStore->mdiStore != NULLSTOREHANDLE)
     closeStore(asmStore->mdiStore);
   if(asmStore->bktStore != NULLSTOREHANDLE)

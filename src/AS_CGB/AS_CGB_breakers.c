@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGB_breakers.c,v 1.8 2007-01-29 20:40:56 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_breakers.c,v 1.9 2007-02-14 07:20:05 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,21 +72,21 @@ void FreeBreakerSet( BreakerSetp bs )
             for( k = 0; k < bs->breakers[i].chunks[j].num_frags; k++ )
             {
               if( bs->breakers[i].chunks[j].f_list[k].delta )
-                free( bs->breakers[i].chunks[j].f_list[k].delta );
+                safe_free( bs->breakers[i].chunks[j].f_list[k].delta );
             }
             if( bs->breakers[i].chunks[j].consensus )
-              free( bs->breakers[i].chunks[j].consensus );
+              safe_free( bs->breakers[i].chunks[j].consensus );
             if( bs->breakers[i].chunks[j].quality )
-              free( bs->breakers[i].chunks[j].quality );
-            free( bs->breakers[i].chunks[j].f_list );
+              safe_free( bs->breakers[i].chunks[j].quality );
+            safe_free( bs->breakers[i].chunks[j].f_list );
           }
         }
       }
-      free( bs->breakers );
+      safe_free( bs->breakers );
     }
     if( bs->indexes )
-      free( bs->indexes );
-    free( bs );
+      safe_free( bs->indexes );
+    safe_free( bs );
   }
 }
 

@@ -39,7 +39,7 @@
  **********************************************************************/
 
 
-static char fileID[] = "$Id: GapWalkerREZ.c,v 1.8 2007-02-04 09:30:46 brianwalenz Exp $";
+static char fileID[] = "$Id: GapWalkerREZ.c,v 1.9 2007-02-14 07:20:13 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -2077,7 +2077,7 @@ int Find_Greedy_Path(chunk_subgraph * subgraph,
 	subgraph->table[from_cid]->best_edge = e;
 	
 	assert(eq == eq2); 
-	free(eq);
+	safe_free(eq);
 	
 	return hops;
       }
@@ -2097,7 +2097,7 @@ int Find_Greedy_Path(chunk_subgraph * subgraph,
     travelled_distance.variance -= e->distance.variance;
   }
   assert(eq == eq2);
-  free(eq);
+  safe_free(eq);
   return FALSE;
 }
 

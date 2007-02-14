@@ -43,9 +43,9 @@ static void safe_suffix(char **Dest,int *DestLen,char *src,int start){
   if(*DestLen==0||*DestLen<len+1){
     *DestLen=len+1;
     if(*Dest==NULL){
-      *Dest=(char*)ckalloc(sizeof(char)*(*DestLen));
+      *Dest=(char*)safe_malloc(sizeof(char)*(*DestLen));
     } else {
-      *Dest=(char*)ckrealloc(*Dest,sizeof(char)*(*DestLen));
+      *Dest=(char*)safe_realloc(*Dest,sizeof(char)*(*DestLen));
     }
   }
   strcpy(*Dest,src+start);
@@ -315,14 +315,14 @@ OverlapMesg *BoxFill_AS(InternalFragMesg *a, InternalFragMesg *b,
   if (opposite){
     Complement_Fragment_AS(b);
   }
-  if(O!=NULL)free(O);
+  safe_free(O);
 
   return (&QVBuffer);
 
 nooverlap:
   if (opposite)
     Complement_Fragment_AS(b);
-  if(O!=NULL)free(O);
+  safe_free(O);
   return ((OverlapMesg*)NULL);
   
 }

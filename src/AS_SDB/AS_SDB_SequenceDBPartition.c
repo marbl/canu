@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_SDB_SequenceDBPartition.c,v 1.4 2005-03-22 19:49:26 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_SDB_SequenceDBPartition.c,v 1.5 2007-02-14 07:20:13 brianwalenz Exp $";
 
 /*************************************************************************
  Module:  AS_SDB_SequenceDBPartition
@@ -113,7 +113,7 @@ tSequenceDBPartition *openSequenceDBPartition(char *sequenceDBPath, int32 revisi
   char buffer[FILENAME_MAX];
   tSequenceDBPartition *SequenceDBPartition= NULL;
 
-  SequenceDBPartition = (tSequenceDBPartition *)malloc(sizeof(tSequenceDBPartition));
+  SequenceDBPartition = (tSequenceDBPartition *)safe_malloc(sizeof(tSequenceDBPartition));
   SequenceDBPartition->sequenceDBPath = strdup(sequenceDBPath);
 
   if(1 != testOpenSequenceDBPartition(sequenceDBPath, revision, partition)){
@@ -144,8 +144,8 @@ tSequenceDBPartition *openSequenceDBPartition(char *sequenceDBPath, int32 revisi
 void closeSequenceDBPartition(tSequenceDBPartition *partition){
   fclose(partition->datafp);
   Delete_VA(partition->multiAligns);
-  free(partition->sequenceDBPath);
-  free(partition);
+  safe_free(partition->sequenceDBPath);
+  safe_free(partition);
 }
 
 int isMemberSequenceDBPartition(tSequenceDBPartition *partition, int32 indx){

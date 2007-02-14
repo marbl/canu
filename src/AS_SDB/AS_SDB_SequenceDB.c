@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.9 2006-11-14 17:52:18 eliv Exp $";
+static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.10 2007-02-14 07:20:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -100,7 +100,7 @@ tSequenceDB *CreateSequenceDB(char *path, int initialSize, int force){
 void DeleteSequenceDB(tSequenceDB *db){
   int i;
 
-  free(db->path);
+  safe_free(db->path);
   DeleteMultiAlignStoreT(db->UnitigStore);
   DeleteMultiAlignStoreT(db->ContigStore);
   DeleteVA_tMARecord(db->Unitigs);
@@ -113,7 +113,7 @@ void DeleteSequenceDB(tSequenceDB *db){
   }
   DeleteVA_PtrT(db->SubStores);
 
-  free(db);
+  safe_free(db);
 }
 
   

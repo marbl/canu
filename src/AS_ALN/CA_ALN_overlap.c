@@ -116,7 +116,7 @@ static AVLnode *NIL    = NULL;
 
 static void AVLinit(void)
 { freept  = NULL;
-  NIL     = (AVLnode *) malloc(sizeof(AVLnode));
+  NIL     = (AVLnode *) safe_malloc(sizeof(AVLnode));
   if (NIL == NULL)
     OutOfMemory("Candidate list");
   NIL->LN = NIL->RC = 1;
@@ -138,7 +138,7 @@ static void AVLdec(AVLnode *v)
     { DEC(v->L);
       DEC(v->R);
 #ifdef AVL_USE_HEAP
-      free(freept);
+      safe_free(freept);
 #else
       v->L = freept;
       freept = v;
@@ -154,12 +154,12 @@ static AVLnode *NEW(AVLnode *l, Candidate *x, AVLnode *r)
   int b;
 
 #ifdef AVL_USE_HEAP
-  v = (AVLnode *) malloc(sizeof(AVLnode));
+  v = (AVLnode *) safe_malloc(sizeof(AVLnode));
   if (v == NULL)
     OutOfMemory("Candidate list");
 #else
   if (freept == NULL)
-    { v = (AVLnode *) malloc(sizeof(AVLnode));
+    { v = (AVLnode *) safe_malloc(sizeof(AVLnode));
       if (v == NULL)
         OutOfMemory("Candidate list");
     }
@@ -460,7 +460,7 @@ Local_Overlap *Find_Local_Overlap(int Alen, int Blen, int comp, int nextbest,
   if (NumSegs > MaxTrace)
     { MaxTrace  = (int)(1.3*NumSegs) + 500;
     Trace = (TraceElement *)
-      realloc(Trace,(sizeof(Event)+2*sizeof(TraceElement))*MaxTrace);
+      safe_realloc(Trace,(sizeof(Event)+2*sizeof(TraceElement))*MaxTrace);
     if (Trace == NULL)
       OutOfMemory("Overlap Trace Array");
     EventList = (Event *) (Trace + MaxTrace);
@@ -747,7 +747,7 @@ Gen_Overlap:
 
     /* Allocate result data structures in a single memory block */
 
-    Descriptor = (Local_Overlap *) malloc(sizeof(Local_Overlap) +
+    Descriptor = (Local_Overlap *) safe_malloc(sizeof(Local_Overlap) +
                                           (npiece+1)*sizeof(Local_Chain));
     if (Descriptor == NULL)
       OutOfMemory("Overlap descriptor");
@@ -935,7 +935,7 @@ Gen_Overlap:
 
 
   if (Descriptor->diffs > GapThresh * Descriptor->length)
-    { free(Descriptor);
+    { safe_free(Descriptor);
       goto Gen_Overlap;
     }
 
