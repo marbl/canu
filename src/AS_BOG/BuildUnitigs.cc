@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.17 2007-02-15 19:05:34 brianwalenz Exp $
- * $Revision: 1.17 $
+ * $Id: BuildUnitigs.cc,v 1.18 2007-02-15 20:34:33 eliv Exp $
+ * $Revision: 1.18 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.17 2007-02-15 19:05:34 brianwalenz Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.18 2007-02-15 20:34:33 eliv Exp $";
 
 //  System include files
 
@@ -76,8 +76,8 @@ int  main (int argc, char * argv [])
 
    fprintf(stderr, "%s\n\n", BUILD_UNITIGS_MAIN_CM_ID);
 
-   if(argc !=5){
-      fprintf(stderr, "%s: <OVL Store Path> <FRG Store Path> <genome size>\n\n", argv[0]);
+   if(argc !=4){
+      fprintf(stderr, "%s: <OVL Store Path> <GKP Store Path> <genome size>\n\n", argv[0]);
       fprintf(stderr, "  If the genome size is set to 0, this will cause the unitigger\n");
       fprintf(stderr, "  to try to estimate the genome size based on the constructed\n");
       fprintf(stderr, "  unitig lengths.\n");
@@ -87,11 +87,10 @@ int  main (int argc, char * argv [])
 
    // Get path/names of olap and frg stores from command line
    const char* OVL_Store_Path = argv[1];
-   const char* FRG_Store_Path = argv[2];
-   const char* GKP_Store_Path = argv[3];
+   const char* GKP_Store_Path = argv[2];
 
    long genome_size;
-   genome_size=atol(argv[4]);
+   genome_size=atol(argv[3]);
    std::cerr << "Genome Size: " << genome_size << std::endl;
 
    my_store = New_OVL_Store ();
@@ -120,7 +119,7 @@ int  main (int argc, char * argv [])
    bogRunner.push_back( new AS_BOG::LongestHighIdent(scr2));
    bogRunner.push_back( new AS_BOG::LongestHighIdent(scr3));
 
-   bogRunner.processOverlapStream(my_store, my_stream, FRG_Store_Path);
+   bogRunner.processOverlapStream(my_store, my_stream, GKP_Store_Path);
 
    ////////////////////////////////////////////////////////////////////////////
 
