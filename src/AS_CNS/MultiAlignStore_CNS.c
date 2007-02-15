@@ -25,7 +25,7 @@
    Assumptions:  libAS_UTL.a
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.26 2007-02-14 07:20:09 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.27 2007-02-15 21:42:31 eliv Exp $";
 
 
 #include <assert.h>
@@ -1905,12 +1905,12 @@ PrintMultiAlignT(FILE *out,
   }
   if (multia) {
        for (i=0;i<2*depth;i++) {
-         safe_free((char *)multia[i]);
+         safe_free(multia[i]);
        }
        safe_free(multia);
        for (i=0;i<depth;i++) {
-         safe_free((int *)idarray[i]);
-         safe_free((int *)oriarray[i]);
+         safe_free(idarray[i]);
+         safe_free(oriarray[i]);
        }
        safe_free(idarray);
        safe_free(oriarray);
@@ -2056,12 +2056,12 @@ PrintMultiAlignTSNPs(
   }
   if (multia) {
        for (i=0;i<2*depth;i++) {
-         safe_free((char *)multia[i]);
+         safe_free(multia[i]);
        }
        safe_free(multia);
        for (i=0;i<depth;i++) {
-         safe_free((int *)idarray[i]);
-         safe_free((int *)oriarray[i]);
+         safe_free(idarray[i]);
+         safe_free(oriarray[i]);
        }
        safe_free(idarray);
        safe_free(oriarray);
