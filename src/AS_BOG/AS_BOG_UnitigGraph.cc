@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.43 2007-02-09 22:12:06 eliv Exp $
- * $Revision: 1.43 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.44 2007-02-15 16:53:22 eliv Exp $
+ * $Revision: 1.44 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.43 2007-02-09 22:12:06 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.44 2007-02-15 16:53:22 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -67,6 +67,7 @@ namespace AS_BOG{
 		for(utg_itr=unitigs->begin(); utg_itr!=unitigs->end(); utg_itr++)
             delete *utg_itr;
         delete unitigs;
+        delete unitigIntersect;
     }
 
     // various class static methods and variables
@@ -1457,7 +1458,7 @@ namespace AS_BOG{
             if (nextBP.inFrags > 1 && nextBP.inSize > 500) {
                 hadBig = true;
                 // big one, compare against smalls
-                if (!(nextBP.fragEnd == newBPs.back().fragEnd)) {
+                if (newBPs.empty() || !(nextBP.fragEnd == newBPs.back().fragEnd)) {
                     if (!smallBPs.empty()) {
                         UnitigBreakPoint small = selectSmall( tig, smallBPs, nextBP);
                         if ( small.fragNumber > 0 )
@@ -1485,7 +1486,8 @@ namespace AS_BOG{
                     newBPs.push_back( nextBP );
                 }
             } else 
-                if (!(nextBP.fragEnd == newBPs.back().fragEnd) &&
+                if ( newBPs.empty() ||
+                    !(nextBP.fragEnd == newBPs.back().fragEnd) &&
                     !(nextBP.fragEnd == smallBPs.back().fragEnd) ) 
                     smallBPs.push_back( nextBP );
         }

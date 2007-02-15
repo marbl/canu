@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.4 2007-02-09 22:12:06 eliv Exp $
- * $Revision: 1.4 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.5 2007-02-15 16:53:22 eliv Exp $
+ * $Revision: 1.5 $
 */
 
 #include "AS_BOG_MateChecker.hh"
@@ -107,6 +107,8 @@ namespace AS_BOG{
                     if (goodMates.find( fragId ) != goodMates.end()) {
                         // already seen it's mate
                         if (isReverse(fragPos)) {
+                            if ( goodMates[fragId] == max )
+                                continue;
                             // 2nd frag seen is reverse, so good orientation
                             long mateDist = fragPos.bgn - goodMates[fragId];
                             goodMates[fragId] = mateDist;
@@ -226,6 +228,7 @@ namespace AS_BOG{
                     gdc->sumSquares += dc.sumSquares;
                 }
             }
+            delete libs;
         }
         dcIter = globalStats.begin();
         for(; dcIter != globalStats.end(); dcIter++) {
