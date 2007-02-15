@@ -275,17 +275,15 @@ void InitCGWMateIterator(CGWMateIterator* mates,CDS_CID_t fragIID, int external_
   CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags,
 			     GetInfoByIID( ScaffoldGraph->iidToFragIndex, 
 					   fragIID)->fragIndex);
-  int numLinks = frag->numLinks;
 
   mates->thisFragIID = fragIID;
-
 
   /* set the iterator up to fail next time around ... this will be revised
      if we find evidence of relevant links below */
   mates->nextLink = NULLINDEX;
   
   /* If this fragment has no constraints... continue */
-  if(numLinks == 0){
+  if(frag->flags.bits.hasMate == 0){
     assert(frag->mateOf == NULLINDEX);
     return;
   }
@@ -295,7 +293,7 @@ void InitCGWMateIterator(CGWMateIterator* mates,CDS_CID_t fragIID, int external_
   //  when this happens.
   //
   if (frag->mateOf == NULLINDEX) {
-    if (numLinks > 0)
+    if (frag->flags.bits.hasMate > 0)
       fprintf(stderr, "InitCGWMateIterator()-- WARNING!  Fragment "F_IID" has no mate, but still has a matelink!\n",
               fragIID);
     return;
@@ -339,33 +337,16 @@ void InitCGWMateIterator(CGWMateIterator* mates,CDS_CID_t fragIID, int external_
     mates->node = NULL;
   }
 
-  // at this point, we know there is at least one mate we need to check ...
-  // we will check external_only satisfaction in the iterator itself, so
-  // we just want to set mates->nextLink and, as necessary, the GateKeeper iterator
+  // at this point, we know there is at least one mate we need to
+  // check ...  we will check external_only satisfaction in the
+  // iterator itself, so we just want to set mates->nextLink and, as
+  // necessary, the GateKeeper iterator
 
-  mates->getLinksFromStore = frag->flags.bits.getLinksFromStore;
+  //  The above comment ("at least one mate", "iterator") refers to
+  //  old code where a read could have more than one mate.  Code now
+  //  has at most one mate.
 
-  if(! mates->getLinksFromStore){
-    mates->nextLink = GetCIFragT(ScaffoldGraph->CIFrags,frag->mateOf)->iid;
-  } else {
-    assert(0);
-
-#if 0
-    GateKeeperLinkRecord GKPLink;
-    int rv;
-    assert(frag->linkHead != NULLINDEX);
-
-    // set up the iterator
-    CreateGateKeeperLinkRecordIterator(ScaffoldGraph->gkpStore.lnkStore,
-				       frag->mateOf,
-				       fragIID, &(mates->GKPLinks));
-    // get the iid of the first linked fragment
-    rv = NextGateKeeperLinkRecordIterator(&(mates->GKPLinks), &GKPLink);
-    assert(rv==1);
-    mates->nextLink = ( mates->thisFragIID == GKPLink.frag1 ? GKPLink.frag2 : GKPLink.frag1);
-    assert(mates->nextLink>NULLINDEX);
-#endif
-  }
+  mates->nextLink = GetCIFragT(ScaffoldGraph->CIFrags,frag->mateOf)->iid;
 
   return;
      
@@ -404,23 +385,9 @@ int NextCGWMateIterator(CGWMateIterator* mates,CDS_CID_t * linkIID){
 
   *linkIID = mates->nextLink;
 
-  if(!mates->getLinksFromStore){
-    // there aren't any more mates, so set up to fail next time around ... 
-    mates->nextLink = NULLINDEX;
+  // there aren't any more mates, so set up to fail next time around ... 
+  mates->nextLink = NULLINDEX;
 
-  } else {
-    assert(0);
-#if 0
-    // get the iid of the next link from the gatekeeper ... or set up to fail if no more
-    GateKeeperLinkRecord GKPLink;
-    int rv = NextGateKeeperLinkRecordIterator(&(mates->GKPLinks),&GKPLink);
-    if(rv==FALSE){
-      mates->nextLink = NULLINDEX;
-    } else {
-      mates->nextLink = ( mates->thisFragIID == GKPLink.frag1 ? GKPLink.frag2 : GKPLink.frag1);
-    }
-#endif
-  }
 
   if(mates->external_only)
     isInternal = check_internal(mates->node,*linkIID);
@@ -433,7 +400,6 @@ int NextCGWMateIterator(CGWMateIterator* mates,CDS_CID_t * linkIID){
 
   else 
     return TRUE;
-
 }
 
 

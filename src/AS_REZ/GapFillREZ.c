@@ -34,7 +34,7 @@
 *
 *************************************************/
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.19 2007-02-14 07:20:13 brianwalenz Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.20 2007-02-15 23:55:54 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -10263,7 +10263,7 @@ static void  Print_Frag_Info
                fragID, ident, (char) frag -> type,
                frag -> offset5p . mean, frag -> offset3p . mean);
 
-      if  (frag -> numLinks == 1 && frag -> mateOf != NULLINDEX)
+      if  (frag -> flags . bits . hasMate == 1 && frag -> mateOf != NULLINDEX)
           {
            CIFragT  * mateFrag
                = GetCIFragT (ScaffoldGraph -> CIFrags, frag -> mateOf);
@@ -12529,7 +12529,7 @@ static void  Show_Read_Info
                " %7" F_CIDP " %6.0f %6.0f",
                ident, frag -> offset5p . mean, frag -> offset3p . mean);
 
-      if  (frag -> numLinks == 1 && frag -> mateOf != NULLINDEX)
+      if  (frag -> flags . bits. hasMate == 1 && frag -> mateOf != NULLINDEX)
           {
            CIFragT  * mateFrag
                = GetCIFragT (ScaffoldGraph -> CIFrags, frag -> mateOf);

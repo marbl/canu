@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.17 2007-02-14 07:20:07 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.18 2007-02-15 23:55:54 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2128,12 +2128,9 @@ void PrintFragment(CIFragT * frag, CDS_CID_t index, FILE * printTo)
   fprintf(printTo, "Fragment iid " F_CID ", index " F_CID "\n",
           frag->iid, index);
 
-  if(frag->numLinks > 0){
-    fprintf(printTo, "  index of %s " F_CID "\n",
-            ((frag->numLinks == 1) ? " mate:" : "first of multiple mates:"),
-	    frag->mateOf);
-    fprintf(printTo, "  iid of %s " F_CID "\n",
-            ((frag->numLinks == 1) ? " mate:" : "first of multiple mates:"),
+  if(frag->flags.bits.hasMate){
+    fprintf(printTo, "  index of mate "F_CID"\n", frag->mateOf);
+    fprintf(printTo, "  iid of mate " F_CID "\n",
 	    GetCIFragT(ScaffoldGraph->CIFrags, frag->mateOf)->iid);
   } else {
     fprintf(printTo, "  unmated");

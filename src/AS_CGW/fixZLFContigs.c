@@ -408,93 +408,12 @@ void UpdateFragLinkFlags(CIFragT * frag,
                          int setMatesToo)
 {
   CDS_CID_t fragIndex = GetVAIndex_CIFragT(ScaffoldGraph->CIFrags, frag);
-  if(frag->numLinks == 0)
+  if(frag->flags.bits.hasMate == 0)
     {
       assert(frag->mateOf == NULLINDEX);
       return;
     }
   
-  if(frag->flags.bits.getLinksFromStore)
-    {
-      assert(0);
-#if 0
-      int prevSetting;
-      int newSetting;
-
-      if(node->flags.bits.isContig)
-        {
-          prevSetting = frag->flags.bits.hasInternalOnlyContigLinks;
-          frag->flags.bits.hasInternalOnlyContigLinks = TRUE;
-        }
-      else
-        {
-          prevSetting = frag->flags.bits.hasInternalOnlyCILinks;
-          frag->flags.bits.hasInternalOnlyCILinks = TRUE;
-        }
-      newSetting = TRUE;
-    
-      assert(frag->linkHead != NULLINDEX);
-      CreateGateKeeperLinkRecordIterator(ScaffoldGraph->gkpStore.lnkStore,
-                                         frag->linkHead,
-                                         fragIndex, &GKPLinks);
-      while(NextGateKeeperLinkRecordIterator(&GKPLinks, &GKPLink))
-        {
-          CIFragT * mfrag;
-          CDS_CID_t mfragIndex =
-            (fragIndex == GKPLink.frag1) ? GKPLink.frag2 : GKPLink.frag1;
-      
-          assert(fragIndex == GKPLink.frag1 || fragIndex == GKPLink.frag2 );
-
-          mfrag = GetCIFragT(ScaffoldGraph->CIFrags, mfragIndex);
-          if(node->flags.bits.isContig)
-            {
-              if(frag->contigID != mfrag->contigID)
-                {
-                  frag->flags.bits.hasInternalOnlyContigLinks = FALSE;
-                  newSetting = FALSE;
-                  break;
-                }
-            }
-          else
-            {
-              if(frag->cid != mfrag->cid)
-                {
-                  frag->flags.bits.hasInternalOnlyCILinks = FALSE;
-                  newSetting = FALSE;
-                  break;
-                }
-            }
-        }
-
-      if(prevSetting != newSetting && setMatesToo == TRUE)
-        {
-          // need to examine all mates & possibly reset their flags
-          CreateGateKeeperLinkRecordIterator(ScaffoldGraph->gkpStore.lnkStore,
-                                             frag->linkHead,
-                                             fragIndex, &GKPLinks);
-          while(NextGateKeeperLinkRecordIterator(&GKPLinks, &GKPLink))
-            {
-              CIFragT * mfrag = NULL;
-              int32 mfragIndex =
-                (fragIndex == GKPLink.frag1) ? GKPLink.frag2 : GKPLink.frag1;
-              ChunkInstanceT * ci;
-
-              if(mfragIndex != NULLINDEX)
-                {
-                  mfrag = GetCIFragT(ScaffoldGraph->CIFrags, mfragIndex);
-                }
-        
-              if(node->flags.bits.isContig)
-                ci = GetGraphNode(ScaffoldGraph->ContigGraph, mfrag->contigID);
-              else
-                ci = GetGraphNode(ScaffoldGraph->CIGraph, mfrag->cid);
-              UpdateFragLinkFlags(mfrag, ci, FALSE);
-            }
-        }
-#endif
-    }
-  else
-    {
       CDS_CID_t mfragIndex = frag->mateOf;
       CIFragT * mfrag = NULL;
       int prevSetting;
@@ -543,7 +462,6 @@ void UpdateFragLinkFlags(CIFragT * frag,
 
           UpdateFragLinkFlags(mfrag, ci, FALSE);
         }
-    }
 }
 
 

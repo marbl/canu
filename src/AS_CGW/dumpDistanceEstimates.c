@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.16 2007-02-14 07:20:08 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.17 2007-02-15 23:55:54 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -197,14 +197,12 @@ dde_stats(int         operateOnNodes,
       // This is important for keeping our computation as local as possible.
       // We skip fragments that have external links only, or no links
       //
-      if (frag->numLinks == 0)
+      if (frag->flags.bits.hasMate == 0)
         continue;
 
-
       // the typical case
-      if (frag->numLinks == 1 &&
-          (operateOnNodes == CONTIG_OPERATIONS &&
-           (frag->flags.bits.hasInternalOnlyContigLinks == 0)))
+      if ((operateOnNodes == CONTIG_OPERATIONS) &&
+          (frag->flags.bits.hasInternalOnlyContigLinks == 0))
         continue;
       
       mate = GetCIFragT(ScaffoldGraph->CIFrags,frag->mateOf);

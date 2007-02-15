@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpSingletons.c,v 1.13 2007-02-12 22:16:56 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpSingletons.c,v 1.14 2007-02-15 23:55:54 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -189,15 +189,15 @@ main( int argc, char **argv) {
     CIFragT *mate = NULL;
 
     assert(frag->cid != NULLINDEX);
-    assert((frag->numLinks == 0) || (frag->numLinks == 1));
+    assert((frag->flags.bits.hasMate == 0) || (frag->mateOf != NULLINDEX));
 
     //  Fix for missing mates -- OBT used to not delete mate links, leaving
     //  dangling mates.  Somebody else seems to be doing this too.
     //
-    if (frag->numLinks > 0) {
+    if (frag->flags.bits.hasMate) {
       mate = GetCIFragT(ScaffoldGraph->CIFrags, frag->mateOf);
       if (mate == NULL)
-        frag->numLinks = 0;
+        frag->flags.bits.hasMate = 0;
     }
 
     //  If this fragment is not chaff, we have nothing to do here.

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.13 2007-02-14 07:20:07 brianwalenz Exp $";
+static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.14 2007-02-15 23:55:54 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -474,56 +474,17 @@ static int CreateCloneCoverageMaps(ScaffoldGraphT * graph,
 
       // this is unlike ComputeMatePairStatistics, since we're interested
       // even in pairs that are in different unitigs/contigs
-      if(frag->numLinks > 0)
+      if(frag->flags.bits.hasMate > 0)
         {
-          if(frag->flags.bits.getLinksFromStore)
+          // get lone mate fragment
+          if(frag->mateOf != NULLINDEX && frag->linkType != AS_REREAD)
             {
-              assert(0);
-#if 0
-              // going to the gatekeeper store should be the exception
-              GateKeeperLinkRecordIterator gkpli;
-              GateKeeperLinkRecord gkpl;
-              CDS_CID_t linkHead = frag->linkHead;
-
-              CreateGateKeeperLinkRecordIterator(graph->gkpStore.lnkStore,
-                                                 linkHead,
-                                                 frag->iid,
-                                                 &gkpli);
-              while(NextGateKeeperLinkRecordIterator(&gkpli, &gkpl))
-                {
-                  /* don't double count if clone is good
-                     do process bad clones from each fragment's perspective
-                     but don't cover the same bases twice?
-                     This is handled in AddLinkToMaps
-                  */
-                  if(gkpl.type != AS_REREAD)
-                    {
-                      InfoByIID * info = GetInfoByIID(graph->iidToFragIndex,
-                                                      ((frag->iid == gkpl.frag1) ?
-                                                       gkpl.frag2 : gkpl.frag1));
-                      AddLinkToMaps(graph, gcc, bcc, frag,
-                                    GetCIFragT(graph->CIFrags, info->fragIndex),
-                                    ((gkpl.orientation==AS_GKP_ORIENT_INNIE) ?
-                                     AS_INNIE : AS_OUTTIE),
-                                    (CDS_CID_t) gkpl.distance,
-                                    GetMultiAlignLength(ma),
-                                    isUnitig);
-                    }
-                }
-#endif
-            }
-          else
-            {
-              // get lone mate fragment
-              if(frag->mateOf != NULLINDEX && frag->linkType != AS_REREAD)
-                {
-                  AddLinkToMaps(graph, gcc, bcc, frag,
-                                GetCIFragT(graph->CIFrags, frag->mateOf),
-                                ((frag->flags.bits.innieMate) ? AS_INNIE : AS_OUTTIE),
-                                frag->dist,
-                                GetMultiAlignLength(ma),
-                                isUnitig);
-                }
+              AddLinkToMaps(graph, gcc, bcc, frag,
+                            GetCIFragT(graph->CIFrags, frag->mateOf),
+                            ((frag->flags.bits.innieMate) ? AS_INNIE : AS_OUTTIE),
+                            frag->dist,
+                            GetMultiAlignLength(ma),
+                            isUnitig);
             }
         }
     }
@@ -1684,52 +1645,18 @@ VA_TYPE(SplitInterval) * DetectChimericChunksInGraph(ScaffoldGraphT * graph)
                                         info->fragIndex);
 
           assert(frag->contigID == ci->id);
-          if(frag->numLinks > 0)
+          if(frag->flags.bits.hasMate)
             {
-              if(frag->flags.bits.getLinksFromStore)
+              // get lone mate fragment
+              if(frag->mateOf != NULLINDEX && frag->linkType != AS_REREAD)
                 {
-                  assert(0);
-#if 0
-                  // going to the gatekeeper store should be the exception
-                  GateKeeperLinkRecordIterator gkpli;
-                  GateKeeperLinkRecord gkpl;
-                  CDS_CID_t linkHead = frag->linkHead;
-          
-                  CreateGateKeeperLinkRecordIterator(graph->gkpStore.lnkStore,
-                                                     linkHead,
-                                                     frag->iid,
-                                                     &gkpli);
-                  while(NextGateKeeperLinkRecordIterator(&gkpli, &gkpl))
-                    {
-                      if(gkpl.type != AS_REREAD)
-                        {
-                          InfoByIID * info = GetInfoByIID(graph->iidToFragIndex,
-                                                          ((frag->iid == gkpl.frag1) ?
-                                                           gkpl.frag2 : gkpl.frag1));
-                          ProcessLinkForChimeraDetection(graph, frag, 
-                                                         GetCIFragT(graph->CIFrags,
-                                                                    info->fragIndex),
-                                                         (gkpl.orientation==AS_GKP_ORIENT_INNIE) ?
-                                                         AS_INNIE : AS_OUTTIE,
-                                                         (CDS_CID_t) gkpl.distance,
-                                                         ci, ma, ht, cels, gcc, bcc);
-                        }
-                    }
-#endif
-                }
-              else
-                {
-                  // get lone mate fragment
-                  if(frag->mateOf != NULLINDEX && frag->linkType != AS_REREAD)
-                    {
-                      ProcessLinkForChimeraDetection(graph, frag,
-                                                     GetCIFragT(graph->CIFrags,
-                                                                frag->mateOf),
-                                                     (frag->flags.bits.innieMate) ?
-                                                     AS_INNIE : AS_OUTTIE,
-                                                     frag->dist,
-                                                     ci, ma, ht, cels, gcc, bcc);
-                    }
+                  ProcessLinkForChimeraDetection(graph, frag,
+                                                 GetCIFragT(graph->CIFrags,
+                                                            frag->mateOf),
+                                                 (frag->flags.bits.innieMate) ?
+                                                 AS_INNIE : AS_OUTTIE,
+                                                 frag->dist,
+                                                 ci, ma, ht, cels, gcc, bcc);
                 }
             }
         }

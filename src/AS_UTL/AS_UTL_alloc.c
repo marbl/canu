@@ -45,6 +45,7 @@ safe_malloc(size_t len) {
     fprintf(stderr, "Could not malloc memory ("F_SIZE_T" bytes)\n", len);
     assert(p != NULL);
   }
+  memset(p, 0, len);
 
 #undef TRASH_MEMORY_FIRST
 #ifdef TRASH_MEMORY_FIRST

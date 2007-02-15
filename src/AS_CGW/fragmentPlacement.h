@@ -91,11 +91,10 @@ void CleanupCIFragTInChunkIterator(CGWFragIterator* frags);
 // New iterator for finding the mates of a fragment
 
 typedef struct  {
-  CDS_CID_t thisFragIID;
-  CDS_CID_t nextLink;
+  CDS_CID_t  thisFragIID;
+  CDS_CID_t  nextLink;
   NodeCGW_T *node;
-  uint32 external_only:1;
-  uint32 getLinksFromStore:1;
+  uint32     external_only:1;
 } CGWMateIterator;
 
 // set up iterator

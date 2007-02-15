@@ -18,12 +18,15 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.16 2007-02-12 22:16:55 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.17 2007-02-15 23:55:54 brianwalenz Exp $";
 
 #undef DEBUG
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
 #undef DEBUG_SPLIT
+
+#define DEBUG
+#define DEBUG_INSERT
 
 #include <stdio.h>
 #include <stdlib.h>

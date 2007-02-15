@@ -23,7 +23,7 @@
   -o /work/assembly/rbolanos/IBM_PORT_CDS/ibm_migration_work_dir/cds/AS/obj/GraphCGW_T.o GraphCGW_T.c
 */
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.31 2007-02-14 07:20:07 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.32 2007-02-15 23:55:54 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2843,14 +2843,13 @@ void  BuildGraphEdgesFromMultiAlign(GraphCGW_T *graph, NodeCGW_T *node,
   for(i = 0; i < numFrags; i++){
     IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
     CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, (CDS_CID_t)mp->sourceInt);
-    int numLinks = frag->numLinks;
     int hasExternalLinks = FALSE;
     CDS_CID_t mfragID;
     CDS_CID_t fragID = (CDS_CID_t)mp->sourceInt;
     CIFragT *mfrag;
     
     /* If this fragment has no constraints... continue */
-    if(numLinks == 0){
+    if(frag->flags.bits.hasMate == 0){
       assert(frag->mateOf == NULLINDEX);
       //	  fprintf(GlobalData->stderrc,"* skipping frag " F_CID " (fragID " F_CID ") of CI " F_CID " since it has no links\n",
       //		  frag->iid, fragID, node->id);
@@ -2890,81 +2889,18 @@ void  BuildGraphEdgesFromMultiAlign(GraphCGW_T *graph, NodeCGW_T *node,
 #endif
     }
     
-    if(frag->flags.bits.getLinksFromStore){
-      //  Even before BPW rewrote the stores, this case would have asserted.
-      assert(0);
-#if 0
-      GateKeeperLinkRecordIterator GKPLinks;
-      GateKeeperLinkRecord GKPLink;
-      /* If we have to, get the links from the GateKeeperLink store.  This should
-         be the EXCEPTION to the rule, so we don't care too much how much it costs */
-      
-      CDS_CID_t linkHead = frag->linkHead ; //GetInfoByIID(ScaffoldGraph->iidToFragIndex, frag->iid)->linkHead;
-      assert(linkHead != NULLINDEX);
-      assert(0);
-      CreateGateKeeperLinkRecordIterator(ScaffoldGraph->gkpStore.lnkStore,
-                                         linkHead,
-                                         fragID, &GKPLinks);
-      while(NextGateKeeperLinkRecordIterator(&GKPLinks, &GKPLink))
-        { /* Loop over all constraints on this fragment */
-        
-        
-        
-          assert(fragID == GKPLink.frag1 ||
-                 fragID == GKPLink.frag2 );
-          /* Avoid double counting. This should be the same as cid < mcid, since the fragments
-             are enumerated unitig by unitig */
-          if(fragID != GKPLink.frag1)
-            continue;
-        
-          mfragID = GKPLink.frag2; // GetInfoByIID(ScaffoldGraph->iidToFragIndex, GKPLink.frag2)->fragIndex;
-        
-          mfrag = GetCIFragT(ScaffoldGraph->CIFrags, mfragID);
-        
-          if(mfrag->linkType == AS_MATE)
-            stat->totalMatePairs++;
-        
-        
-          AssertPtr(mfrag);
-          if(mfrag->cid == NULLINDEX){
-            fprintf(GlobalData->stderrc,"* Serious error: mate of frag " F_CID " from chunk " F_CID ", frag " F_CID " has chunk " F_CID "\n",
-                    fragID,
-                    frag->cid, mfragID, NULLINDEX);
-            assert(0);
-          }
-        
-          dist = GetDistT(ScaffoldGraph->Dists, GKPLink.distance);
-          AssertPtr(dist);
-          if(GKPLink.orientation == AS_GKP_ORIENT_UNKNOWN){
-            /* Insert edges with all four orientations of the fragments, since we don't know which one is correct */
-            hasExternalLinks |= CreateGraphEdge(graph,  frag, mfrag, dist, GKPLink.type, AS_GKP_ORIENT_INNIE, TRUE, stat, buildAll);
-            hasExternalLinks |= CreateGraphEdge(graph,  frag, mfrag, dist, GKPLink.type, AS_GKP_ORIENT_OUTTIE, TRUE, stat, buildAll );
-            hasExternalLinks |= CreateGraphEdge(graph,  frag, mfrag, dist, GKPLink.type, AS_GKP_ORIENT_NORMAL, TRUE, stat, buildAll);
-            hasExternalLinks |= CreateGraphEdge(graph,  frag, mfrag, dist, GKPLink.type, AS_GKP_ORIENT_ANTINORMAL, TRUE, stat, buildAll);
-          }else{
-            hasExternalLinks |= CreateGraphEdge(graph,  frag, mfrag, dist, GKPLink.type, GKPLink.orientation, FALSE, stat, buildAll);
-          }
-        
-        }
-#endif
-    }else{
-      /* This is the case we've optimized for */
-      mfragID = frag->mateOf;
-      if(mfragID != NULLINDEX){ // this could happen if there are links, but they are rereads, for example
-        mfrag = GetCIFragT(ScaffoldGraph->CIFrags, mfragID);
-        if(mfrag->linkType == AS_MATE)
-          stat->totalMatePairs++;
-        AssertPtr(mfrag);
-        dist = GetDistT(ScaffoldGraph->Dists, mfrag->dist);
-        assert(dist);
-        hasExternalLinks |= CreateGraphEdge(graph, frag, mfrag, dist, mfrag->linkType, 
-                                            (frag->flags.bits.innieMate?AS_GKP_ORIENT_INNIE:AS_GKP_ORIENT_OUTTIE), 
-                                            FALSE, stat, buildAll);
-      }
-      //else{
-      //		fprintf(GlobalData->stderrc,"* frag " F_CID " has no mate\n",fragID);
-      //      }
+    mfragID = frag->mateOf;
+    if(mfragID != NULLINDEX){ // this could happen if there are links, but they are rereads, for example
+      mfrag = GetCIFragT(ScaffoldGraph->CIFrags, mfragID);
+      if(mfrag->linkType == AS_MATE)
+        stat->totalMatePairs++;
+      dist = GetDistT(ScaffoldGraph->Dists, mfrag->dist);
+      assert(dist);
+      hasExternalLinks |= CreateGraphEdge(graph, frag, mfrag, dist, mfrag->linkType, 
+                                          (frag->flags.bits.innieMate?AS_GKP_ORIENT_INNIE:AS_GKP_ORIENT_OUTTIE), 
+                                          FALSE, stat, buildAll);
     }
+
     // If we didn't insert any links to other nodes, remember this, since we can save time
     // later
     if(!hasExternalLinks){
@@ -3834,7 +3770,7 @@ void ComputeMatePairDetailedStatus(void) {
       
           frag = GetCIFragT(ScaffoldGraph->CIFrags, (CDS_CID_t)mp->sourceInt);
           assert(frag->iid == mp->ident);
-          if (frag->numLinks == 0) {
+          if (frag->flags.bits.hasMate == 0) {
             numNoMate++;
             frag->flags.bits.mateDetail = NO_MATE;
             continue;
@@ -4261,18 +4197,18 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
 
 #if 0
           fprintf(GlobalData->stderrc,"* frag " F_CID " (" F_CID ") mate:" F_CID " numLinks:%d extCI:%d extCon:%d\n",
-                  (CDS_CID_t)mp->source, frag->iid, frag->mateOf, frag->numLinks, 
+                  (CDS_CID_t)mp->source, frag->iid, frag->mateOf, frag->flags.bits.hasMate, 
                   frag->flags.bits.hasInternalOnlyCILinks,
                   frag->flags.bits.hasInternalOnlyContigLinks);
 #endif
           // This is important for keeping our computation as local as possible.
           // We skip fragments that have external links only, or no links
-          if (frag->numLinks == 0) {
+          if (frag->flags.bits.hasMate == 0) {
             numNolink++;
             continue;
           }
 
-          if (frag->numLinks == 1 &&  // the typical case
+          if (frag->flags.bits.hasMate == 1 &&  // the typical case
               (operateOnNodes == CONTIG_OPERATIONS && !frag->flags.bits.hasInternalOnlyContigLinks))
             {
               //     ||    (!operateOnContigs && !frag->flags.bits.hasInternalOnlyCILinks))

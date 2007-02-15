@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.20 2007-02-12 22:16:55 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.21 2007-02-15 23:55:54 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -866,15 +866,13 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
 #ifdef DEBUG_DATA
 	cifrag.source = NULLINDEX;
 #endif
-	cifrag.numLinks = -1; // not set yet
-	cifrag.flags.bits.getLinksFromStore = TRUE;  // get links from store
 	cifrag.flags.bits.hasInternalOnlyCILinks = FALSE; // set in CreateCIEdge
 	cifrag.flags.bits.hasInternalOnlyContigLinks = FALSE; // set in CreateCIEdge
-	cifrag.flags.bits.XXXhasFalseMate = FALSE;
 	cifrag.flags.bits.edgeStatus = INVALID_EDGE_STATUS;
 	cifrag.flags.bits.isPlaced = FALSE;
 	cifrag.flags.bits.isSingleton = FALSE;
 	cifrag.flags.bits.isChaff = FALSE;
+        cifrag.flags.bits.hasMate = FALSE;
 	// These get set in UpdateNodeFragments, called below
 	cifrag.offset3p.mean  =  cifrag.offset5p.mean = 0.0;
 	cifrag.offset3p.variance  =  cifrag.offset5p.variance = 0.0;
@@ -1061,22 +1059,18 @@ void ProcessFrags(void)
     assert(cifrag->iid == i);  //  If !set, this fails.
 
     cifrag->locale   = NULLINDEX;
-    cifrag->linkHead = NULL_LINK;
-    cifrag->numLinks = 0;
     cifrag->mateOf   = NULLINDEX;
     cifrag->dist     = NULLINDEX;
     cifrag->linkType = 0;
 
-    cifrag->flags.bits.innieMate         = FALSE;
-    cifrag->flags.bits.getLinksFromStore = FALSE;
+    cifrag->flags.bits.innieMate = FALSE;
+    cifrag->flags.bits.hasMate   = FALSE;
 
     getGateKeeperFragmentStore(ScaffoldGraph->gkpStore->frg, i, &gkf);
 
     if (gkf.mateIID != 0) {
       InfoByIID *miinfo = GetInfoByIID(ScaffoldGraph->iidToFragIndex, gkf.mateIID);
 
-      cifrag->linkHead = 1;
-      cifrag->numLinks = 1;
       cifrag->mateOf   = miinfo->fragIndex;
       cifrag->dist     = gkf.libraryIID;
       cifrag->linkType = gkf.orientation;
@@ -1084,11 +1078,12 @@ void ProcessFrags(void)
         cifrag->flags.bits.innieMate = TRUE;
       cifrag->flags.bits.mateStatus = MATE_OK;
       cifrag->flags.bits.edgeStatus = UNKNOWN_EDGE_STATUS;
+      cifrag->flags.bits.hasMate    = TRUE;
 
       fprintf(stderr, "Frag: iid=%d,index=%d mate=%d,index=%d\n", i, ciinfo->fragIndex, gkf.mateIID, miinfo->fragIndex);
     }
 
-    if (cifrag->numLinks == 0)
+    if (cifrag->flags.bits.hasMate == 0)
       unmatedFrags++;
   }
 
@@ -1114,21 +1109,19 @@ void ProcessFrags(void)
     if ((mifrag == NULL) || (mifrag->mateOf == NULLINDEX)) {
       //  We set up links to a dead frag, clean up...
 
-      cifrag->linkHead = NULL_LINK;
-      cifrag->numLinks = 0;
       cifrag->mateOf   = NULLINDEX;
       cifrag->dist     = NULLINDEX;
       cifrag->linkType = 0;
       cifrag->flags.bits.mateStatus = MATE_NONE;
       cifrag->flags.bits.edgeStatus = INVALID_EDGE_STATUS;
+      cifrag->flags.bits.hasMate    = TRUE;
 
-      mifrag->linkHead = NULL_LINK;
-      mifrag->numLinks = 0;
       mifrag->mateOf   = NULLINDEX;
       mifrag->dist     = NULLINDEX;
       mifrag->linkType = 0;
       mifrag->flags.bits.mateStatus = MATE_NONE;
       mifrag->flags.bits.edgeStatus = INVALID_EDGE_STATUS;
+      cifrag->flags.bits.hasMate    = TRUE;
     } else {
       //  Both guys are alive, and we're mated.  Throw some asserts
 

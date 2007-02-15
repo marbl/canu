@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: InputDataTypes_CGW.h,v 1.7 2007-02-12 22:16:55 brianwalenz Exp $	 */
+/* 	$Id: InputDataTypes_CGW.h,v 1.8 2007-02-15 23:55:54 brianwalenz Exp $	 */
 /****************************************************************************
  *  InputDataTypes_CGW
  *  
@@ -76,56 +76,45 @@ typedef struct {
   CDS_CID_t iid;                // IID of this fragment, used to reference this frag via iidToFragIndex
   CDS_CID_t mateOf;            // the index of the CIFragT of the mate.  Valid even if numLinks > 1
   CDS_CID_t dist;		// index of the DistT record
-  //  LabelType label;          // From the unitigger
-  //  MateStatusType mateStatus;
-  //  MateStatType outMateStat;	// for output to protoIO
 
   CDS_CID_t cid;                /* id of the unitig containing this fragment */
   CDS_CID_t CIid;                /* id of the chunk instance containing this fragment */
-  LengthT offset5p;         // offset in containing chunk of suffix
-  LengthT offset3p;         // offset in containing chunk of prefix
+  LengthT   offset5p;         // offset in containing chunk of suffix
+  LengthT   offset3p;         // offset in containing chunk of prefix
 
   CDS_CID_t contigID;           /* id of the containing contig */
-  LengthT contigOffset5p;         // offset in containing contig of suffix
-  LengthT contigOffset3p;         // offset in containing contig of prefix
+  LengthT   contigOffset5p;         // offset in containing contig of suffix
+  LengthT   contigOffset3p;         // offset in containing contig of prefix
   
-#if 0
-  /* These are used by the output routines.  They should be eliminated since the
-     values are easily computed from the information already in the CIFragT */
-  int32 ctgloc;		// location (5p end) within contig
-  int32 ctgori;		// orientation within contig, 1 = forward & 0 = reverse
-  // This is probably unneccessary, now that we are storying multiAlignments for 
-  // unitigs and contigs
-  int32 nextCIFrag;         // fragments in a CI are linked together, NULLINDEX terminates
-#endif  
-
 #ifdef DEBUG_DATA     // This is used for debug purposes only
   int32 aEndCoord, bEndCoord;  /***** Simulator Coordinates ****/
   int32 source; // offset into source store
 #endif
+
   char type;
-  char linkType;
   char label;
-  int8 numLinks;
-  CDS_CID_t linkHead; // Index of link in gatekeeper link store
+
+  char linkType;
+
   union{
     struct {
-      unsigned int XXXhasFalseMate:1;            // has a false mate (unused)
       unsigned int hasInternalOnlyCILinks:1;     // If all of this fragments links are internal to its CI
       unsigned int hasInternalOnlyContigLinks:1; // If all of this fragment's links are internal to its Contig
-      unsigned int getLinksFromStore:1;          // If this fragment has non-mate links, or more than 1 link
       unsigned int edgeStatus:7;                 // See edgeStatus field in EdgeCGW_T
       unsigned int isPlaced:1;                   // Fragments is in a contig that is in a scaffold
       signed int mateStatus:8;
       unsigned int isSingleton:1;                // Singleton unitig
       unsigned int isChaff:1;                    // Must be isSingleton, and is not used either directly or indirectly (surrogate) in scaffold
       unsigned int innieMate:1;                  // True for regular mate pairs, false for Outtie pairs
+      unsigned int hasMate:1;                    // True if we have a mate
       MateStatType mateDetail:8;
     }bits;
     int32 all;
   }flags;
 
-  // Used only by Finished BAC Fragments
+  // Used only by Finished BAC Fragments -- this is now dead data, and
+  // should be removed.  It's used heavily in FbacREZ.c though.
+  //
   CDS_CID_t locale;
   SeqInterval localePos;
 
