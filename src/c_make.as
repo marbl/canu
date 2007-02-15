@@ -257,6 +257,7 @@ SUBDIRS = AS_RUN \
           AS_MER \
           AS_OVL \
           AS_ALN \
+          AS_BOG \
           AS_CGB \
           AS_REZ \
           AS_CNS \
@@ -270,4 +271,3 @@ D=\
           AS_CVT \
           AS_MPA \
           AS_ORA \
-          AS_BOG

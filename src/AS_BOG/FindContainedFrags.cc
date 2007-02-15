@@ -31,11 +31,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FindContainedFrags.cc,v 1.23 2006-05-15 19:35:37 eliv Exp $
- * $Revision: 1.23 $
+ * $Id: FindContainedFrags.cc,v 1.24 2007-02-15 19:05:34 brianwalenz Exp $
+ * $Revision: 1.24 $
 */
 
-static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.23 2006-05-15 19:35:37 eliv Exp $";
+static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.24 2007-02-15 19:05:34 brianwalenz Exp $";
 
 //  System include files
 
@@ -57,7 +57,6 @@ using AS_BOG::BestOverlapGraph;
 //  Local include files
 extern "C" {
 #include "OlapStoreOVL.h"
-#include "AS_PER_fragStore.h"
 }
 
 int  main

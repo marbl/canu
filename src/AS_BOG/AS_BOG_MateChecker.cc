@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.5 2007-02-15 16:53:22 eliv Exp $
- * $Revision: 1.5 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.6 2007-02-15 19:05:34 brianwalenz Exp $
+ * $Revision: 1.6 $
 */
 
 #include "AS_BOG_MateChecker.hh"
@@ -30,45 +30,23 @@ namespace AS_BOG{
     }
 
     void MateChecker::readStore(const char* gkpStorePath) {
-        GateKeeperStore gkpStore;
-        InitGateKeeperStore(&gkpStore, gkpStorePath);
-        OpenReadOnlyGateKeeperStore(&gkpStore);
+        GateKeeperStore *gkpStore = openGateKeeperStore(gkpStorePath, FALSE);
 
-        StreamHandle frags = openStream(gkpStore.frgStore,NULL,0);
+        StreamHandle frags = openStream(gkpStore->frg, NULL, 0);
         resetStream(frags, STREAM_FROMSTART, STREAM_UNTILEND);
 
         GateKeeperFragmentRecord gkpf;
         iuid frgIID = 1;
         while(nextStream(frags, &gkpf)){
-            if(gkpf.numLinks == 1){
-                GateKeeperLinkRecordIterator iterator;
-                GateKeeperLinkRecord link;
-                CreateGateKeeperLinkRecordIterator(gkpStore.lnkStore, gkpf.linkHead,
-                                                    frgIID, &iterator);
-                while(NextGateKeeperLinkRecordIterator(&iterator, &link)){
-//                    fprintf(stderr,"Frg %ld link %ld to %ld dist:%ld type:%c ori:%c\n",
-//                    frgIID, link.frag1, link.frag2, link.distance, link.type,
-//                        getLinkOrientation( &link ));
-                    if (frgIID == link.frag1) {
-                        MateInfo mi;
-                        mi.mate = link.frag2;
-                        mi.lib  = link.distance;
-                        _mates[ link.frag1 ] = mi;
-                    } else if (frgIID == link.frag2) {
-                        MateInfo mi;
-                        mi.mate = link.frag1;
-                        mi.lib  = link.distance;
-                        _mates[ link.frag2 ] = mi;
-                    } else
-                        assert(0);
-                }
-            } else if (gkpf.numLinks > 1)
-                assert(0);//Code doesn't handle multiple mates for a single frag
+            MateInfo mi;
+            mi.mate = gkpf.mateIID;
+            mi.lib  = gkpf.libraryIID;
+            _mates[ gkpf.readIID ] = mi;
 
             frgIID++;
         }
-        closeStream(gkpStore.frgStore);
-        CloseGateKeeperStore(&gkpStore);
+        closeStream(frags);
+        closeGateKeeperStore(gkpStore);
     }
 
     ///////////////////////////////////////////////////////////////////////////

@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.16 2007-02-02 21:22:16 eliv Exp $
- * $Revision: 1.16 $
+ * $Id: BuildUnitigs.cc,v 1.17 2007-02-15 19:05:34 brianwalenz Exp $
+ * $Revision: 1.17 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.16 2007-02-02 21:22:16 eliv Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.17 2007-02-15 19:05:34 brianwalenz Exp $";
 
 //  System include files
 
@@ -60,7 +60,6 @@ using AS_BOG::BestOverlapGraph;
 //  Local include files
 extern "C" {
 #include "OlapStoreOVL.h"
-#include "AS_PER_fragStore.h"
 #include "AS_CGB_myhisto.h"
 }
 

@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.32 2007-01-05 20:43:21 eliv Exp $
- * $Revision: 1.32 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.33 2007-02-15 19:05:34 brianwalenz Exp $
+ * $Revision: 1.33 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.32 2007-01-05 20:43:21 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.33 2007-02-15 19:05:34 brianwalenz Exp $";
 
 //  System include files
 #include<iostream>
@@ -52,7 +52,7 @@ static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.32 2007-01-05 2
 //#include "AS_BOG_BestOverlapGraphVisitor.hh"
 
 extern "C" {
-#include "AS_PER_fragStore.h"
+#include "AS_PER_gkpStore.h"
 }
 
 #undef max
@@ -578,8 +578,8 @@ For debugging i386, alpha differences on float conversion
             const char* FRG_Store_Path ) {
 
         // Open Frag store
-        FragStoreHandle fragStoreHandle = openFragStore( FRG_Store_Path, "r");
-        FragStreamHandle fragStream = openFragStream( fragStoreHandle, NULL,0);
+        GateKeeperStore  *gkpStoreHandle = openGateKeeperStore( FRG_Store_Path, FALSE);
+        FragStream       *fragStream = openFragStream( gkpStoreHandle);
         ReadStructp     fsread = new_ReadStruct();
 
         // Allocate and Initialize fragLength array
@@ -587,7 +587,7 @@ For debugging i386, alpha differences on float conversion
         memset( BestOverlapGraph::fragLength, std::numeric_limits<uint16>::max(),
                 sizeof(uint16)*(BestOverlapGraph::lastFrg+1));
         iuid iid = 1;
-        while(nextFragStream( fragStream, fsread, FRAG_S_FIXED)) {
+        while(nextFragStream( fragStream, fsread, FRAG_S_INF)) {
             uint32 clrBgn, clrEnd, isDeleted;
             getIsDeleted_ReadStruct(   fsread, &isDeleted);
             if (isDeleted) {
@@ -598,7 +598,7 @@ For debugging i386, alpha differences on float conversion
         }
         delete_ReadStruct( fsread );
         closeFragStream( fragStream ); 
-        closeFragStore( fragStoreHandle ); 
+        closeGateKeeperStore( gkpStoreHandle ); 
 
         // Go through the overlap stream in two passes:
         // first pass finds the containments
