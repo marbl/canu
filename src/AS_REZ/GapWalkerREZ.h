@@ -31,13 +31,13 @@
  **********************************************************************/
 
 /*********************************************************************
-   CVS_ID: $Id: GapWalkerREZ.h,v 1.4 2005-03-22 19:49:23 jason_miller Exp $
+   CVS_ID: $Id: GapWalkerREZ.h,v 1.5 2007-02-17 21:16:23 brianwalenz Exp $
  ********************************************************************/
 
 #ifndef GAPWALKER_REZ_H
 #define GAPWALKER_REZ_H
 
-#define DEBUG_GAP_WALKER              3 // debugging info (level 1,2,3,4 gives debug info, 0 nothing)
+#define DEBUG_GAP_WALKER              0 // debugging info (level 1,2,3,4 gives debug info, 0 nothing)
 #define CREATE_CAM_FILE               0 // 0 will not produce cam files of various sorts
 //#define USE_EDGE_QUALITY              1 // 1 will use the quality of the edges in the Find_Greedy_Path
 #define DUMP_PATHS_NOT_CROSSED        0 // 1 will create a cam file of the path not crossed

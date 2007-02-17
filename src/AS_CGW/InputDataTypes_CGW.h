@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: InputDataTypes_CGW.h,v 1.8 2007-02-15 23:55:54 brianwalenz Exp $	 */
+/* 	$Id: InputDataTypes_CGW.h,v 1.9 2007-02-17 21:16:22 brianwalenz Exp $	 */
 /****************************************************************************
  *  InputDataTypes_CGW
  *  
@@ -37,7 +37,7 @@ typedef struct {
   float64 variance;
 }LengthT;
 
-#define DEBUG_DATA 1
+//#define DEBUG_DATA 1
 
 // Do the arithmetic and stats on two unordered pairs of LengthTs
 // If resulting variance is negative assert

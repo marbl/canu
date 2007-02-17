@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.21 2007-02-15 23:55:54 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.22 2007-02-17 21:16:22 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -1080,7 +1080,7 @@ void ProcessFrags(void)
       cifrag->flags.bits.edgeStatus = UNKNOWN_EDGE_STATUS;
       cifrag->flags.bits.hasMate    = TRUE;
 
-      fprintf(stderr, "Frag: iid=%d,index=%d mate=%d,index=%d\n", i, ciinfo->fragIndex, gkf.mateIID, miinfo->fragIndex);
+      //fprintf(stderr, "Frag: iid=%d,index=%d mate=%d,index=%d\n", i, ciinfo->fragIndex, gkf.mateIID, miinfo->fragIndex);
     }
 
     if (cifrag->flags.bits.hasMate == 0)
@@ -1124,10 +1124,6 @@ void ProcessFrags(void)
       cifrag->flags.bits.hasMate    = TRUE;
     } else {
       //  Both guys are alive, and we're mated.  Throw some asserts
-
-      fprintf(stderr, "Fixed mate: iid:%d mid:%d did:%d -- iid:%d mid:%d did:%d\n",
-              cifrag->iid, cifrag->mateOf, cifrag->dist,
-              mifrag->iid, mifrag->mateOf, mifrag->dist);
 
       assert(cifrag->dist   == mifrag->dist);
       //assert(cifrag->mateOf == miinfo->fragIndex);

@@ -34,7 +34,7 @@
 
  **********************************************************************/
 
-static char fileID[] = "$Id: FbacREZ.c,v 1.12 2007-02-14 07:20:13 brianwalenz Exp $";
+static char fileID[] = "$Id: FbacREZ.c,v 1.13 2007-02-17 21:16:23 brianwalenz Exp $";
 
 #define FBACDEBUG 2
 
@@ -2393,7 +2393,7 @@ Overlap* OverlapContainingContigs(CIFragT *frag1, CIFragT *frag2, ChunkOrientati
 	}
   }
 
-#if DEBUG_GAP_WALKER > -1		  
+#if DEBUG_GAP_WALKER > 0
   fprintf( stderr, "\ncomputing overlap for contig1: %d (frag %d) [%d, %d] and contig2: %d (frag: %d)  [%d, %d]\n", 
 		   contig1->id, frag1->iid, frag1->aEndCoord, frag1->bEndCoord,
 		   contig2->id, frag2->iid, frag2->aEndCoord, frag2->bEndCoord);
@@ -2821,16 +2821,6 @@ int GetFragInfo (ChunkInstanceT* chunk, int locale, unsigned int* minFragIid, un
 		*maxFragIid = frag->iid;
 	}
 	
-	if (0)
-	{
-	  fprintf(gwlogfp,
-			  "frag->iid %d: containing contig: %d, celsim coords: %d, %d, locale: %d\n",
-			  frag->iid,
-			  frag->contigID,
-			  frag->aEndCoord,
-			  frag->bEndCoord,
-			  frag->locale);
-	}
   }
   return *minFragIid;
 }
@@ -3664,6 +3654,7 @@ void localeCam(char *middleName)
   fclose (cam_file);
 }
 
+#if DEBUG_GAP_WALKER > 0
 void localeSimCam() 
 {
   int
@@ -3780,6 +3771,7 @@ void localeSimCam()
   }
   fclose (cam_file);
 }
+#endif
 
 void GetFragmentPositionInContigFromChunk(CIFragT *frag, int *left_end, int *right_end, 
 										  int *fragmentContigOrientation, 
