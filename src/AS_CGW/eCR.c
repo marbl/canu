@@ -18,26 +18,28 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: eCR.c,v 1.13 2007-02-14 07:20:08 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: eCR.c,v 1.14 2007-02-18 14:04:48 brianwalenz Exp $";
 
 #include "eCR.h"
 
-int                     totalContigsBaseChange = 0;
-ReadStructp             fsread = NULL;
-VA_TYPE(char)          *lContigConsensus = NULL;
-VA_TYPE(char)          *rContigConsensus = NULL;
-VA_TYPE(char)          *lContigQuality = NULL;
-VA_TYPE(char)          *rContigQuality = NULL;
-VA_TYPE(char)          *reformed_consensus = NULL;
-VA_TYPE(char)          *reformed_quality = NULL;
-VA_TYPE(int32)         *reformed_deltas = NULL;
-VA_TYPE(IntElementPos) *ContigPositions = NULL;
-VA_TYPE(IntElementPos) *UnitigPositions = NULL;
+int                      totalContigsBaseChange = 0;
+fragRecord              *fsread = NULL;
+VA_TYPE(char)           *lContigConsensus = NULL;
+VA_TYPE(char)           *rContigConsensus = NULL;
+VA_TYPE(char)           *lContigQuality = NULL;
+VA_TYPE(char)           *rContigQuality = NULL;
+VA_TYPE(char)           *reformed_consensus = NULL;
+VA_TYPE(char)           *reformed_quality = NULL;
+VA_TYPE(int32)          *reformed_deltas = NULL;
+VA_TYPE(IntElementPos)  *ContigPositions = NULL;
+VA_TYPE(IntElementPos)  *UnitigPositions = NULL;
 
-static MultiAlignT *savedLeftUnitigMA = NULL;
-static MultiAlignT *savedRightUnitigMA = NULL;
-static MultiAlignT *savedLeftContigMA = NULL;
-static MultiAlignT *savedRightContigMA = NULL;
+static MultiAlignT      *savedLeftUnitigMA = NULL;
+static MultiAlignT      *savedRightUnitigMA = NULL;
+static MultiAlignT      *savedLeftContigMA = NULL;
+static MultiAlignT      *savedRightContigMA = NULL;
+
+int                      passNumber = 0;
 
 
 
@@ -216,7 +218,7 @@ main(int argc, char **argv) {
 
   //  This is used all over the place, do not remove it!
   //
-  fsread = new_ReadStruct();
+  fsread = new_fragRecord();
 
 #if 0
 #ifdef X86_GCC_LINUX
@@ -1174,14 +1176,14 @@ findFirstExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
         frag->locale == -1 &&                     // and is a read
         frag->contigOffset3p.mean < frag->contigOffset5p.mean &&  // and points in the right direction
         frag->cid == firstUnitigID) { // and is in the first unitig
-      char seqbuffer[AS_READ_MAX_LEN+1], qltbuffer[AS_READ_MAX_LEN+1];
-      unsigned int clr_bgn, clr_end;
+      unsigned int clr_bgn, clr_end, seq_len;
       int frag3pExtra, extension;
 	  
       getFrag(ScaffoldGraph->gkpStore, frag->iid, fsread, FRAG_S_SEQ);
-      getClearRegion_ReadStruct(fsread, &clr_bgn, &clr_end, READSTRUCT_CNS);
-      getSequence_ReadStruct(fsread, seqbuffer, qltbuffer, AS_READ_MAX_LEN);
 
+      clr_bgn = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_ECR2);
+      clr_end = getFragRecordClearRegionEnd  (fsread, AS_READ_CLEAR_ECR2);
+      seq_len = getFragRecordSequenceLength  (fsread);
 
       //                 <--------------------------------------------------------------------------- contig
       // 3p <------------------|---------------------------------------------|----- 5p frag
@@ -1198,11 +1200,11 @@ findFirstExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
       fprintf(stderr, "contig->bpLength.mean: %f\n", contig->bpLength.mean);
       fprintf(stderr, "frag iid: %d, frag->contigOffset5p.mean: %f, frag->contigOffset3p.mean: %f\n",
               frag->iid, frag->contigOffset5p.mean, frag->contigOffset3p.mean);
-      fprintf(stderr, "frag length: " F_SIZE_T ", 3p past clr_end length: " F_SIZE_T "\n", strlen(seqbuffer), 
-              strlen(seqbuffer) - clr_end);
-      fprintf(stderr, "extension: " F_SIZE_T "\n", strlen(seqbuffer) - clr_end - (int) frag->contigOffset3p.mean);
+      fprintf(stderr, "frag length: " F_SIZE_T ", 3p past clr_end length: " F_SIZE_T "\n", seq_len, 
+              seq_len - clr_end);
+      fprintf(stderr, "extension: " F_SIZE_T "\n", seq_len - clr_end - (int) frag->contigOffset3p.mean);
 	  
-      frag3pExtra = strlen(seqbuffer) - clr_end;
+      frag3pExtra = seq_len - clr_end;
       extension = frag3pExtra - frag->contigOffset3p.mean;
 
       // ask Granger what min extension we should accept
@@ -1299,26 +1301,27 @@ findLastExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
         frag->locale == -1 &&                                    // and is a read
         frag->contigOffset5p.mean < frag->contigOffset3p.mean && // and points in the right direction
         frag->cid == lastUnitigID) {                             // and is in the last unitig
-      char seqbuffer[AS_READ_MAX_LEN+1], qltbuffer[AS_READ_MAX_LEN+1];
-      unsigned int clr_bgn, clr_end;
+      unsigned int clr_bgn, clr_end, seq_len;
       int frag3pExtra, extension;
 
       getFrag(ScaffoldGraph->gkpStore, frag->iid, fsread, FRAG_S_SEQ);
-      getClearRegion_ReadStruct(fsread, &clr_bgn, &clr_end, READSTRUCT_CNS);
-      getSequence_ReadStruct(fsread, seqbuffer, qltbuffer, AS_READ_MAX_LEN);
+
+      clr_bgn = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_ECR2);
+      clr_end = getFragRecordClearRegionEnd  (fsread, AS_READ_CLEAR_ECR2);
+      seq_len = getFragRecordSequenceLength  (fsread);
 
       //    contig ----------------------------------------------------------------------------------->
       //                                  5p -------|---------------------------------------------|------------> 3p 
       //                                         clr_bgn                                       clr_end
       //                                                                                               |-------|
       //                                                                                             extension
-      frag3pExtra = strlen(seqbuffer) - clr_end;
+      frag3pExtra = seq_len - clr_end;
       extension = frag3pExtra - (int) (contig->bpLength.mean - frag->contigOffset3p.mean);
 
       fprintf(stderr, "contig->bpLength.mean: %f\n", contig->bpLength.mean);
       fprintf(stderr, "frag iid: %d, frag->contigOffset5p.mean: %f, frag->contigOffset3p.mean: %f\n",
               frag->iid, frag->contigOffset5p.mean, frag->contigOffset3p.mean);
-      fprintf(stderr, "frag length: " F_SIZE_T ", 3p past clr_end length: %d\n", strlen(seqbuffer), frag3pExtra);
+      fprintf(stderr, "frag length: " F_SIZE_T ", 3p past clr_end length: %d\n", seq_len, frag3pExtra);
       fprintf(stderr, "extension: %d\n", extension);
 	  
       if (extension > 30) {
@@ -1683,8 +1686,6 @@ int GetNewUnitigMultiAlign(NodeCGW_T *unitig, fragPositions *fragPoss, int exten
       // This adds a reference only if keepInCache is true...
       UnloadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ium_mesg.iaccession, TRUE);
       InsertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, ium_mesg.iaccession, TRUE, new_ma, FALSE);
-
-      //PrintMultiAlignT(GlobalData->stderrc, new_ma, ScaffoldGraph->gkpStore, 0x0, 0, TRUE, 0, READSTRUCT_LATEST);
     }
   }
 
@@ -1698,7 +1699,7 @@ int GetNewUnitigMultiAlign(NodeCGW_T *unitig, fragPositions *fragPoss, int exten
 
 int
 extendCgwClearRange(int fragIid, int frag3pDelta) {
-  unsigned int clr_bgn, clr_end;
+  unsigned int clr_beg, clr_end;
   int setStatus = 0;
 
   if (frag3pDelta < 0)
@@ -1706,8 +1707,22 @@ extendCgwClearRange(int fragIid, int frag3pDelta) {
 
   if (fragIid != -1) {
     getFrag(ScaffoldGraph->gkpStore, fragIid, fsread, FRAG_S_INF);
-    getClearRegion_ReadStruct(fsread, &clr_bgn, &clr_end, READSTRUCT_CNS);
-    setClearRegion_ReadStruct(fsread, clr_bgn, clr_end + frag3pDelta, READSTRUCT_CGW);
+
+    switch (passNumber) {
+      case 0:
+        clr_beg = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_ECR1 - 1);
+        clr_end = getFragRecordClearRegionEnd  (fsread, AS_READ_CLEAR_ECR1 - 1) + frag3pDelta;
+        setFragRecordClearRegion(fsread, clr_beg, clr_end, AS_READ_CLEAR_ECR1);
+        break;
+      case 1:
+        clr_beg = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_ECR2 - 1);
+        clr_end = getFragRecordClearRegionEnd  (fsread, AS_READ_CLEAR_ECR2 - 1) + frag3pDelta;
+        setFragRecordClearRegion(fsread, clr_beg, clr_end, AS_READ_CLEAR_ECR2);
+        break;
+      default:
+        break;
+    }
+
     setStatus = setFrag(ScaffoldGraph->gkpStore, fragIid, fsread);
 
     fprintf(stderr, "extendCgwClearRange, changed frag %d clr_end from %d to %d\n",
@@ -1720,13 +1735,27 @@ extendCgwClearRange(int fragIid, int frag3pDelta) {
 
 int
 revertToCnsClearRange(int fragIid) {
-  unsigned int clr_bgn, clr_end;
+  unsigned int clr_beg, clr_end;
   int setStatus = 0;
   
   if (fragIid != -1) {
     getFrag(ScaffoldGraph->gkpStore, fragIid, fsread, FRAG_S_INF);
-    getClearRegion_ReadStruct(fsread, &clr_bgn, &clr_end, READSTRUCT_CNS);
-    setClearRegion_ReadStruct(fsread, clr_bgn, clr_end, READSTRUCT_CGW);
+
+    switch (passNumber) {
+      case 0:
+        clr_beg = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_ECR1 - 1);
+        clr_end = getFragRecordClearRegionEnd  (fsread, AS_READ_CLEAR_ECR1 - 1);
+        setFragRecordClearRegion(fsread, clr_beg, clr_end, AS_READ_CLEAR_ECR1);
+        break;
+      case 1:
+        clr_beg = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_ECR2 - 1);
+        clr_end = getFragRecordClearRegionEnd  (fsread, AS_READ_CLEAR_ECR2 - 1);
+        setFragRecordClearRegion(fsread, clr_beg, clr_end, AS_READ_CLEAR_ECR2);
+        break;
+      default:
+        break;
+    }
+
     setStatus = setFrag(ScaffoldGraph->gkpStore, fragIid, fsread);
   }
   return (setStatus); 

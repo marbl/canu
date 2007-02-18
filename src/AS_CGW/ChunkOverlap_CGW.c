@@ -18,21 +18,22 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.11 2007-02-04 09:30:45 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.12 2007-02-18 14:04:48 brianwalenz Exp $";
 
-#include "AS_global.h"
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
+
+#include "AS_global.h"
+#include "AS_UTL_fileIO.h"
 #include "AS_UTL_HashCommon.h"
 #include "AS_UTL_Var.h"
 #include "AS_CGW_dataTypes.h"
 #include "Globals_CGW.h"
 #include "ScaffoldGraph_CGW.h"    // For DeleteCIOverlapEdge
-#include "AS_PER_SafeIO.h"
 #include "AS_ALN_aligners.h"
 #include "ChunkOverlap_CGW.h"
 #include "GreedyOverlapREZ.h"
@@ -145,7 +146,6 @@ void  SaveChunkOverlapperToStream(ChunkOverlapperT *chunkOverlapper, FILE *strea
   HashTable_Iterator_AS iterator;
   void *key, *value;
   int64 numOverlaps = 0;
-  int status;
 
   // Iterate over all hashtable elements, just to count them
 
@@ -155,8 +155,7 @@ void  SaveChunkOverlapperToStream(ChunkOverlapperT *chunkOverlapper, FILE *strea
     numOverlaps++;
   }
 
-  status = safeWrite(stream, &numOverlaps, sizeof(numOverlaps));
-  assert(status == FALSE);
+  AS_UTL_safeWrite(stream, &numOverlaps, "SaveChunkOverlapperToStream", sizeof(numOverlaps));
 
   // Iterate over all hashtable elements, writing
 
@@ -165,8 +164,7 @@ void  SaveChunkOverlapperToStream(ChunkOverlapperT *chunkOverlapper, FILE *strea
   while(NextHashTable_Iterator_AS(&iterator, &key, &value)){
     ChunkOverlapCheckT *olap = (ChunkOverlapCheckT*) value;    
     
-    status = safeWrite(stream, olap, sizeof(ChunkOverlapCheckT));
-    assert(status == FALSE);
+    AS_UTL_safeWrite(stream, olap, "SaveChunkOverlapperToStream", sizeof(ChunkOverlapCheckT));
   }
 }
 /************************************************************************/
@@ -186,7 +184,7 @@ ChunkOverlapperT *  LoadChunkOverlapperFromStream(FILE *stream){
   // open the chunkStore at chunkStorepath
   
 
-  status = safeRead(stream, &numOverlaps, sizeof(numOverlaps));
+  status = AS_UTL_safeRead(stream, &numOverlaps, "LoadChunkOverlapperFromStream", sizeof(numOverlaps));
   assert(status == FALSE);
 
 
@@ -197,7 +195,7 @@ ChunkOverlapperT *  LoadChunkOverlapperFromStream(FILE *stream){
   chunkOverlapper->ChunkOverlaps = AllocateChunkOverlapCheckTHeap(1000);
 
   for(overlap = 0; overlap < numOverlaps; overlap++){
-    status = safeRead(stream, &olap, sizeof(ChunkOverlapCheckT));
+    status = AS_UTL_safeRead(stream, &olap, "LoadChunkOverlapperFromStream", sizeof(ChunkOverlapCheckT));
     assert(status == FALSE);
     assert(olap.errorRate > 0.0);
     InsertChunkOverlap(chunkOverlapper, &olap);

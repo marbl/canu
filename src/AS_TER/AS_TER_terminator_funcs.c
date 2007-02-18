@@ -25,11 +25,10 @@
  Assumptions: There is no UID 0
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.27 2007-02-14 07:20:14 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.28 2007-02-18 14:04:50 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
-#include "AS_PER_ReadStruct.h"
 
 #include "AS_UTL_Var.h"
 #include "AS_UTL_version.h"
@@ -200,48 +199,47 @@ static CDS_UID_t *fetch_UID(VA_TYPE(CDS_UID_t) *map, CDS_IID_t iid){
 
 
 static CDS_UID_t *fetch_UID_from_fragStore(CDS_IID_t iid){
+  short truedummy=TRUE;
+  fragRecord *input;
+
   if( test_frg_present(iid) ){
     CDS_UID_t* ret = fetch_UID(FRGmap,iid);
     assert( ret != NULL);
     return ret;
   }
-  else{ 
-    short truedummy=TRUE;
-    ReadStructp input;
-    assert( ! test_frg_present(iid) );
-    Setshort(FRGpresent,iid,&truedummy);
+
+  assert( ! test_frg_present(iid) );
+  Setshort(FRGpresent,iid,&truedummy);
     
-    input = new_ReadStruct();
-    if( 0 == getFrag(FSHandle,iid,input,FRAG_S_INF) ){
-      CDS_UID_t uid;
-      CDS_UID_t *di;
-      getAccID_ReadStruct(input,&uid);
-      delete_ReadStruct(input);
-      di = GetCDS_UID_t(FRGmap,iid);
-      if ((di != NULL) && (*di != 0)) {
-        sprintf(errorreport,"Internal fragment ID %d occurred twice (FRGmap)",iid);
-        error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-      }
-      SetCDS_UID_t(FRGmap,iid,&uid);
-    }
-    else{
-      sprintf(errorreport,"Internal fragment ID %d is not present in the fragment store",iid);
+  input = new_fragRecord();
+  if( 0 == getFrag(FSHandle,iid,input,FRAG_S_INF) ){
+    CDS_UID_t uid;
+    CDS_UID_t *di;
+    uint32 cStart, cEnd;
+
+    uid = getFragRecordUID(input);
+
+    di = GetCDS_UID_t(FRGmap,iid);
+    if ((di != NULL) && (*di != 0)) {
+      sprintf(errorreport,"Internal fragment ID %d occurred twice (FRGmap)",iid);
       error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
     }
-    {  
-      ReadStructp input =  new_ReadStruct();
-      if( 0 == getFrag(FSHandle,iid,input,FRAG_S_INF) ){
-	uint32 cStart,cEnd;
-	
-	/* get the clear region from the frag store */
-	getClearRegion_ReadStruct(input,&cStart,&cEnd,READSTRUCT_LATEST);
-	Setuint32(ClearStartMap,iid,&cStart);
-	Setuint32(ClearEndMap,iid,&cEnd);
-      }
-      delete_ReadStruct(input); 
-    }
-    return GetCDS_UID_t(FRGmap,iid);   
+
+    SetCDS_UID_t(FRGmap,iid,&uid);
+    
+    cStart = getFragRecordClearRegionBegin(input, AS_READ_CLEAR_CLOSURE);
+    cEnd   = getFragRecordClearRegionEnd  (input, AS_READ_CLEAR_CLOSURE);
+
+    Setuint32(ClearStartMap,iid,&cStart);
+    Setuint32(ClearEndMap,iid,&cEnd);
+  } else {
+    sprintf(errorreport,"Internal fragment ID %d is not present in the fragment store",iid);
+    error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
   }
+
+  del_fragRecord(input); 
+
+  return GetCDS_UID_t(FRGmap,iid);   
 }
   
 
@@ -1431,16 +1429,16 @@ void output_snapshot(char* fragStoreName,
 
 void read_stores(char* fragStoreName)
 {
-  ReadStructp  input;
+  fragRecord *input;
   FragStream *streamHandle = 0;
   CDS_UID_t *di;
 
   fprintf(stderr,"*** Terminator : Reading Fragment Store ***\n");
 
-  streamHandle = openFragStream(FSHandle);
+  streamHandle = openFragStream(FSHandle, FRAG_S_INF);
 
-  input =  new_ReadStruct();
-  while( nextFragStream(streamHandle,input,FRAG_S_INF) ){
+  input =  new_fragRecord();
+  while( nextFragStream(streamHandle,input) ){
     CDS_IID_t iid;
     CDS_UID_t uid;
     uint32 cStart,cEnd;
@@ -1448,8 +1446,8 @@ void read_stores(char* fragStoreName)
     short truedummy  = TRUE;
 
     /* read the iid and uid pair */
-    getReadIndex_ReadStruct(input,&iid);
-    getAccID_ReadStruct(input,&uid);
+    iid = getFragRecordIID(input);
+    uid = getFragRecordUID(input);
 
     if(((iid+1) % 1000000) == 0){
       fprintf(stderr,"* Read frag %d from fragStore\n", iid);
@@ -1476,13 +1474,17 @@ void read_stores(char* fragStoreName)
 #endif
 
     /* get the clear region from the frag store */
-    getClearRegion_ReadStruct(input,&cStart,&cEnd,READSTRUCT_LATEST);
+
+    cStart = getFragRecordClearRegionBegin(input, AS_READ_CLEAR_CLOSURE);
+    cEnd   = getFragRecordClearRegionEnd  (input, AS_READ_CLEAR_CLOSURE);
+
     Setuint32(ClearStartMap,iid,&cStart);
     Setuint32(ClearEndMap,iid,&cEnd);
   }
   
 
   closeFragStream(streamHandle);
+
   /* open the gatekeeper store */
   fprintf(stderr,"*** Terminator : Reading Gatekeeper Store ***\n");
   {

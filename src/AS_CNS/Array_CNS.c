@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: Array_CNS.c,v 1.11 2007-02-14 07:20:09 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Array_CNS.c,v 1.12 2007-02-18 14:04:48 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -35,7 +35,7 @@ static char CM_ID[] = "$Id: Array_CNS.c,v 1.11 2007-02-14 07:20:09 brianwalenz E
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
-#include "AS_PER_ReadStruct.h"
+#include "AS_PER_gkpStore.h"
 #include "AS_UTL_Var.h"
 #include "UtilsREZ.h"
 #include "PrimitiveVA_MSG.h"
@@ -149,9 +149,9 @@ int IMP2Array(IntMultiPos *all_frags,
   int rc;
   char seq[AS_READ_MAX_LEN];
   char qv[AS_READ_MAX_LEN];
-  static ReadStructp fsread=NULL;
+  static fragRecord *fsread=NULL;
   VA_TYPE(Lane) *Packed;
-  if ( fsread == NULL ) fsread = new_ReadStruct();
+  if ( fsread == NULL ) fsread = new_fragRecord();
   lane_depth = ESTDEPTH; 
   Packed = (VA_TYPE(Lane) *) CreateVA_Lane(lane_depth);
   frag.action = AS_ADD;
@@ -174,10 +174,13 @@ int IMP2Array(IntMultiPos *all_frags,
     } else {
       getFragStorePartition(pfrag_store,all_frags[i].ident,FRAG_S_ALL,fsread);
     }
-    getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end,clrrng_flag);
-    new_mlp->read_length = getSequence_ReadStruct(fsread, NULL, NULL, 0);
-    getSequence_ReadStruct(fsread, seq, qv, new_mlp->read_length+1);
-    getAccID_ReadStruct(fsread, &frag.eaccession);
+    clr_bgn = getFragRecordClearRegionBegin(fsread, clrrng_flag);
+    clr_end = getFragRecordClearRegionEnd  (fsread, clrrng_flag);
+    new_mlp->read_length = getFragRecordSequenceLength(fsread);
+    //  XXX  probably don't need these strcpy; I think it's copied again later.
+    strcpy(seq, getFragRecordSequence(fsread));
+    strcpy(qv,  getFragRecordQuality(fsread));
+    frag.eaccession = getFragRecordUID(fsread);
 #ifdef CNS_QVLOOK
     { int j;
       fprintf(stdout,"fid(%d) = %d;\n",i+1,all_frags[i].ident);

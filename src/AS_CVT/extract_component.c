@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: extract_component.c,v 1.9 2007-02-12 22:16:56 brianwalenz Exp $";
+static char CM_ID[] = "$Id: extract_component.c,v 1.10 2007-02-18 14:04:48 brianwalenz Exp $";
 
 /*
   IMPORTANT NOTE:
@@ -42,7 +42,7 @@ static char CM_ID[] = "$Id: extract_component.c,v 1.9 2007-02-12 22:16:56 brianw
 
 // Project header files
 #include "AS_global.h"
-#include "AS_PER_ReadStruct.h"
+#include "AS_PER_gkpStore.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_UTL_PHash.h"
 #include "AS_UTL_Var.h"

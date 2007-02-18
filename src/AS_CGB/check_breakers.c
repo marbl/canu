@@ -25,7 +25,7 @@
 #include <unistd.h>
 
 #include "AS_global.h"
-#include "AS_PER_ReadStruct.h"
+#include "AS_PER_gkpStore.h"
 #include "AS_ALN_aligners.h"
 
 // commented out until good solution found for UIDs
@@ -727,12 +727,11 @@ int GetUnitigData( BreakerSetp chims, BreakerSetp craps, char * cgb_filename )
 // called
 int PopulateFragmentSequence( IntMultiPos * f, GateKeeperStore *fs )
 {
-  ReadStructp rs;
-  char temp_seq[AS_READ_MAX_LEN];
-  char temp_qvs[AS_READ_MAX_LEN];
+  fragRecord *rs;
+  char *seq;
   cds_uint32 bgn, end;
 
-  if( (rs = new_ReadStruct()) == NULL )
+  if( (rs = new_fragRecord()) == NULL )
   {
     fprintf( stderr, "Failed to get new ReadStruct\n" );
     return 1;
@@ -743,16 +742,19 @@ int PopulateFragmentSequence( IntMultiPos * f, GateKeeperStore *fs )
     fprintf( stderr, "Failed to get fragment " F_IID " sequence\n", f->ident );
     return 1;
   }
-  
-  getClearRegion_ReadStruct( rs, &bgn, &end, READSTRUCT_LATEST );
-  getSequence_ReadStruct( rs, temp_seq, temp_qvs, AS_READ_MAX_LEN );
+
+  bgn = getFragRecordClearRegionBegin(rs, AS_READ_CLEAR_CLOSURE);
+  end = getFragRecordClearRegionEnd  (rs, AS_READ_CLEAR_CLOSURE);
+
+  seq = getFragRecordSequence(rs);
+
   f->delta_length = end - bgn;
   
   if( (f->delta = (cds_int32 *) safe_calloc( f->delta_length + 1,
                                              sizeof( char ) )) == NULL )
-  strncpy( (char *) f->delta, &(temp_seq[bgn]), f->delta_length );
+  strncpy( (char *) f->delta, seq + bgn, f->delta_length );
   
-  delete_ReadStruct( rs );
+  del_fragRecord( rs );
   return 0;
 }
 
@@ -1352,7 +1354,7 @@ typedef CheckGlobals * CheckGlobalsp;
 void InitializeGlobals( CheckGlobalsp globals, char * program_name )
 {
   globals->program_name = program_name;
-  globals->version = "$Revision: 1.13 $";
+  globals->version = "$Revision: 1.14 $";
   globals->chims_file = NULL;
   globals->craps_file = NULL;
   globals->cgb_file = NULL;

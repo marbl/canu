@@ -34,10 +34,7 @@ findModeOfFivePrimeMode(GateKeeperStore *gkp, char *name) {
   u32bit         iid;
   u32bit         histo[2048] = {0};
 
-
-  ReadStructp    rd = new_ReadStruct();
-  unsigned int   cl = 0;
-  unsigned int   cr = 0;
+  fragRecord    *fr = new_fragRecord();
 
   errno = 0;
   FILE *O = fopen(name, "r");
@@ -52,10 +49,9 @@ findModeOfFivePrimeMode(GateKeeperStore *gkp, char *name) {
 
     //  Grab the fragment to get the clear range, so we can find the real mode5
     //
-    getFrag(gkp, iid, rd, FRAG_S_INF);
-    getClearRegion_ReadStruct(rd, &cl, &cr, READSTRUCT_ORIGINAL);
+    getFrag(gkp, iid, fr, FRAG_S_INF);
 
-    mode5 += cl;
+    mode5 += getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBT);
 
     if (mode5 < 2047)
       histo[mode5]++;
@@ -135,9 +131,9 @@ main(int argc, char **argv) {
     fprintf(stderr, "Failed to open fragStore %s!\n", frgStore);
     exit(1);
   }
-  u32bit   firstElem = getFirstElemFragStore(gkp);
-  u32bit   lastElem  = getLastElemFragStore(gkp) + 1;
-  ReadStructp       rd = new_ReadStruct();
+  u32bit      firstElem = getFirstElemFragStore(gkp);
+  u32bit      lastElem  = getLastElemFragStore(gkp) + 1;
+  fragRecord *fr = new_fragRecord();
 
 
   ////////////////////////////////////////
@@ -190,33 +186,28 @@ main(int argc, char **argv) {
     //
     lid++;
     while (lid < iid) {
-      getFrag(gkp, lid, rd, FRAG_S_ALL);
+      getFrag(gkp, lid, fr, FRAG_S_INF | FRAG_S_QLT);
 
-      u32bit  qltL0, qltR0, qltL1, qltR1;
+      u32bit qltL0 = getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBT);
+      u32bit qltR0 = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBT);
+      u32bit qltL1 = 0;
+      u32bit qltR1 = 0;
+      u64bit uid   = getFragRecordUID(fr);
 
-      unsigned int l=0;
-      unsigned int r=0;
-      getClearRegion_ReadStruct(rd, &l, &r, READSTRUCT_ORIGINAL);
-      qltL0 = l;
-      qltR0 = r;
-
-      u64bit  uid;
-      getAccID_ReadStruct(rd, &uid);
-
-      doTrim(rd, minQuality, qltL1, qltR1);
+      doTrim(fr, minQuality, qltL1, qltR1);
 
       //  Pick the bigger of the L's and the lesser of the R's.  If
       //  L<R still, then the Q0 and Q1 trimming intersect, and we
       //  should use that intersection for the clear range.
       //  Otherwise, delete the fragment.
 
-      if (l < qltL1)  l = qltL1;
-      if (r > qltR1)  r = qltR1;
+      u32bit l = (qltL0 < qltL1) ? qltL1 : qltL0;
+      u32bit r = (qltR0 < qltR1) ? qltR0 : qltR1;
 
       if (l + OBT_MIN_LENGTH < r) {
         if (doModify) {
-          setClearRegion_ReadStruct(rd, l, r, READSTRUCT_OVL);
-          if (setFrag(gkp, lid, rd)) {
+          setFragRecordClearRegion(fr, l, r, AS_READ_CLEAR_OBT);
+          if (setFrag(gkp, lid, fr)) {
             fprintf(stderr, "setFrag() failed.\n");
             exit(1);
           }
@@ -252,15 +243,11 @@ main(int argc, char **argv) {
     u32bit qltL = 0;
     u32bit qltR = 0;
 
-    getFrag(gkp, iid, rd, FRAG_S_ALL);
-    unsigned int l=0;
-    unsigned int r=0;
-    getClearRegion_ReadStruct(rd, &l, &r, READSTRUCT_ORIGINAL);
-    u32bit qltLQ1 = l;
-    u32bit qltRQ1 = r;
+    getFrag(gkp, iid, fr, FRAG_S_INF | FRAG_S_QLT);
 
-    u64bit uid = 0;
-    getAccID_ReadStruct(rd, &uid);
+    u32bit qltLQ1 = getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBT);
+    u32bit qltRQ1 = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBT);
+    u64bit uid    = getFragRecordUID(fr);
 
     //  Only proceed if we're mutable.
     //
@@ -329,7 +316,7 @@ main(int argc, char **argv) {
       }
 
 
-      doTrim(rd, minQuality, qltL, qltR);
+      doTrim(fr, minQuality, qltL, qltR);
 
       u32bit left  = 0;
       u32bit right = 0;
@@ -474,8 +461,8 @@ main(int argc, char **argv) {
                   uid, iid, qltL, qltR, left, right);
 
         if (doModify) {
-          setClearRegion_ReadStruct(rd, left, right, READSTRUCT_OVL);
-          if (setFrag(gkp, iid, rd)) {
+          setFragRecordClearRegion(fr, left, right, AS_READ_CLEAR_OBT);
+          if (setFrag(gkp, iid, fr)) {
             fprintf(stderr, "setFrag() failed.\n");
             exit(1);
           }

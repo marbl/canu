@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.126 2007-02-14 07:20:10 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.127 2007-02-18 14:04:48 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -136,7 +136,7 @@ int contig_id;
 static double EPROB[CNS_MAX_QV-CNS_MIN_QV+1]; // prob of error for each quality value
 static double PROB[CNS_MAX_QV-CNS_MIN_QV+1];  // prob of correct call for each quality value (1-eprob)
 static int RINDEX[128];
-static ReadStructp fsread=NULL;
+static fragRecord *fsread=NULL;
 char SRCBUFFER[2048];
 
 // Utility variable to control width of "pages" of PrintAlignment output
@@ -935,7 +935,7 @@ int32 AppendFragToLocalStore(FragType type, int32 iid, int complement,int32 cont
   // int srclen;
 
   if (fsread==NULL) {
-     fsread  = new_ReadStruct();
+     fsread  = new_fragRecord();
   }
   if (ungappedSequence== NULL ) {
     ungappedSequence = CreateVA_char(0);
@@ -953,9 +953,13 @@ int32 AppendFragToLocalStore(FragType type, int32 iid, int complement,int32 cont
     } else {
       getFrag(global_fragStore,iid,fsread,FRAG_S_ALL);
     }
-    getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end, READSTRUCT_LATEST);
-    getSequence_ReadStruct(fsread, seqbuffer, qltbuffer, AS_READ_MAX_LEN);
-    getAccID_ReadStruct(fsread, &fragment.uid);
+    clr_bgn = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_CLOSURE);
+    clr_end = getFragRecordClearRegionEnd  (fsread, AS_READ_CLEAR_CLOSURE);
+
+    strcpy(seqbuffer, getFragRecordSequence(fsread));
+    strcpy(qltbuffer, getFragRecordQuality(fsread));
+
+    fragment.uid = getFragRecordUID(fsread);
     //getReadType_ReadStruct(fsread, &fragment.type);
     fragment.type = AS_READ;
     fragment.source = source;
@@ -4449,18 +4453,12 @@ int PrintFrags(FILE *out, int accession, IntMultiPos *all_frags, int num_frags,
          int i,lefti,righti;
          int isread,isforward;
          int num_matches;
-         int srclen;
          GenericMesg pmesg;  
          FragMesg fmesg;
-         static char fseq[200001];
-         static char fqual[200001];
 
-	 //         ReadStructp fsread = new_ReadStruct();
 	 if(fsread == NULL){
-	   fsread = new_ReadStruct();
+	   fsread = new_fragRecord();
 	 }
-         fmesg.sequence = fseq;
-         fmesg.quality = fqual;
          for (i=0;i<num_frags;i++) {
            isread = (all_frags[i].type == AS_READ ||
                      all_frags[i].type == AS_EXTR ||
@@ -4479,31 +4477,27 @@ int PrintFrags(FILE *out, int accession, IntMultiPos *all_frags, int num_frags,
            } else {
              getFrag(global_fragStore,all_frags[i].ident,fsread,FRAG_S_ALL);
            }
-           getSequence_ReadStruct(fsread, fmesg.sequence, fmesg.quality, 200000);
-           getClearRegion_ReadStruct (fsread,(uint32 *)&fmesg.clear_rng.bgn,
-	                                     (uint32 *)&fmesg.clear_rng.end, READSTRUCT_LATEST);
+           fmesg.sequence = getFragRecordSequence(fsread);
+           fmesg.quality  = getFragRecordQuality(fsread);
+
+           fmesg.clear_rng.bgn = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_CLOSURE);
+           fmesg.clear_rng.end = getFragRecordClearRegionEnd  (fsread, AS_READ_CLEAR_CLOSURE);
 
            //getEntryTime_ReadStruct(fsread, &fmesg.entry_time);
            fmesg.entry_time = 0;
            fmesg.iaccession = all_frags[i].ident;
            fmesg.type = all_frags[i].type;
-           getAccID_ReadStruct(fsread, &fmesg.eaccession);
+           fmesg.eaccession = getFragRecordUID(fsread);
            fmesg.action = AS_ADD;
-           srclen = 0;
-           srclen = getSource_ReadStruct(fsread, NULL, srclen);
-           if (srclen > 0) {
-             fmesg.source = (char *) safe_malloc(srclen*sizeof(char));
-             getSource_ReadStruct(fsread, fmesg.source, srclen);
-           } else {
-             fmesg.source = NULL;
-           }
+           fmesg.source = getFragRecordSource(fsread);
+
            pmesg.t = MESG_IFG;
            pmesg.m = &fmesg;
            WriteProtoMesg_AS(out,&pmesg); // write out the Fragment message
            safe_free(fmesg.source);
         }
         fflush(out);
-	 //	delete_ReadStruct(fsread);
+
         return 1;
 }
 

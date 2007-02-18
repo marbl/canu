@@ -29,7 +29,7 @@
 #include <math.h>
 
 #include "AS_global.h"
-#include "AS_PER_ReadStruct.h"
+#include "AS_PER_gkpStore.h"
 #include "AS_ALN_aligners.h"
 #include "UtilsREZ.h"
 #include "GreedyOverlapREZ.h"

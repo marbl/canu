@@ -8,16 +8,11 @@
 extern "C" {
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
-#include "AS_PER_ReadStruct.h"
 }
 
 #include "util++.H"
 #include "overlap.H"
 #include "maps.H"
-
-//  Reads the output of overlap used to find trim points.  Overlaps
-//  were computed using the READSTRUCT_ORIGINAL trimming.  Massages
-//  the overlaps to be compliant with the READSTRUCT_OVL trimming.
 
 #define POSITION_BITS     11
 #define POSITION_MASK     u64bitMASK(11);
@@ -209,9 +204,9 @@ readClearRanges(char *gkpStore) {
   if (gkp == NULL)
     fprintf(stderr, "Failed to open gatekeeper store %s!\n", gkpStore), exit(1);
 
-  u32bit            fe = getFirstElemFragStore(gkp);
-  u32bit            le  = getLastElemFragStore(gkp) + 1;
-  ReadStructp       rd = new_ReadStruct();
+  u32bit            fe    = getFirstElemFragStore(gkp);
+  u32bit            le    = getLastElemFragStore(gkp) + 1;
+  fragRecord       *fr    = new_fragRecord();
   u64bit           *clear = new u64bit [le];
 
   fprintf(stderr, "Reading clear ranges for frags "u32bitFMT" to "u32bitFMT".\n", fe, le-1);
@@ -222,11 +217,15 @@ readClearRanges(char *gkpStore) {
   for (u32bit iid=fe; iid<le; iid++) {
     unsigned int  origl=0, origr=0, ovlpl=0, ovlpr=0;
 
-    getFrag(gkp, iid, rd, FRAG_S_INF);
-    getClearRegion_ReadStruct(rd, &origl, &origr, READSTRUCT_ORIGINAL);
-    getClearRegion_ReadStruct(rd, &ovlpl, &ovlpr, READSTRUCT_OVL);
+    getFrag(gkp, iid, fr, FRAG_S_INF);
 
-    clear[iid]   = getSequence_ReadStruct(rd, 0L, 0L, 0);
+    origl = getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBTINI);
+    origr = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBTINI);
+
+    ovlpl = getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBT);
+    ovlpr = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBT);
+
+    clear[iid]   = getFragRecordSequenceLength(fr);
     clear[iid] <<= POSITION_BITS;
     clear[iid]  |= ovlpl;
     clear[iid] <<= POSITION_BITS;
@@ -237,7 +236,7 @@ readClearRanges(char *gkpStore) {
     clear[iid]  |= origr;
   }
 
-  delete_ReadStruct(rd);
+  del_fragRecord(fr);
   closeGateKeeperStore(gkp);
 
   return(clear);
@@ -270,7 +269,7 @@ printReport(FILE          *reportFile,
 
 void
 printLogMessage(FILE         *reportFile,
-                ReadStructp   rd,
+                fragRecord   *fr,
                 u64bit        uid,
                 u32bit        iid,
                 u32bit        intervalBeg,
@@ -280,8 +279,8 @@ printLogMessage(FILE         *reportFile,
                 char         *message) {
 
   if (reportFile) {
-    unsigned int  oldBeg, oldEnd;
-    getClearRegion_ReadStruct(rd, &oldBeg, &oldEnd, READSTRUCT_OVL);
+    unsigned int  oldBeg = getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBT);
+    unsigned int  oldEnd = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBT);
 
     fprintf(reportFile, u64bitFMT","u32bitFMT" %s Trimmed from "u32bitFMT","u32bitFMT" to "u32bitFMT","u32bitFMT".  %s, gatekeeper store %s.\n",
             uid, iid,
@@ -619,11 +618,11 @@ process(u32bit           iid,
       }
     }
 
-    ReadStructp       rd    = new_ReadStruct();
-    u64bit            uid   = 0;
+    fragRecord       *fr  = new_fragRecord();
+    u64bit            uid = 0;
 
 
-    //  We need this to decide if we should get the UID (and the readStruct)
+    //  We need this to decide if we should get the UID (and the fragRecord)
     //
     bool  isChimera = ((IL.numberOfIntervals() > 1) &&
                        (hasPotentialChimera > 0) &&
@@ -644,8 +643,8 @@ process(u32bit           iid,
 #endif
 
     if (getUID) {
-      getFrag(gkp, iid, rd, FRAG_S_INF);
-      getAccID_ReadStruct(rd, &uid);
+      getFrag(gkp, iid, fr, FRAG_S_INF);
+      uid = getFragRecordUID(fr);
     }
 
 
@@ -673,19 +672,19 @@ process(u32bit           iid,
           spurDeletedSmall++;
 
 #ifdef WITH_REPORT
-          printLogMessage(reportFile, rd, uid, iid, intervalBeg, intervalEnd, doUpdate, "SPUR", "New length too small, fragment deleted");
+          printLogMessage(reportFile, fr, uid, iid, intervalBeg, intervalEnd, doUpdate, "SPUR", "New length too small, fragment deleted");
 #endif
 
           if (doUpdate)
             delFrag(gkp, iid);
         } else {
 #ifdef WITH_REPORT
-          printLogMessage(reportFile, rd, uid, iid, intervalBeg, intervalEnd, doUpdate, "SPUR", "Length OK");
+          printLogMessage(reportFile, fr, uid, iid, intervalBeg, intervalEnd, doUpdate, "SPUR", "Length OK");
 #endif
 
           if (doUpdate) {
-            setClearRegion_ReadStruct(rd, intervalBeg, intervalEnd, READSTRUCT_OVL);
-            if (setFrag(gkp, iid, rd)) {
+            setFragRecordClearRegion(fr, intervalBeg, intervalEnd, AS_READ_CLEAR_OBT);
+            if (setFrag(gkp, iid, fr)) {
               fprintf(stderr, "setFrag() failed.\n");
               exit(1);
             }
@@ -699,7 +698,7 @@ process(u32bit           iid,
         //
 
 #ifdef WITH_REPORT
-        printLogMessage(reportFile, rd, uid, iid, intervalBeg, intervalEnd, doUpdate, "SPUR", "Fragment deleted");
+        printLogMessage(reportFile, fr, uid, iid, intervalBeg, intervalEnd, doUpdate, "SPUR", "Fragment deleted");
 #endif
 
         if (doUpdate)
@@ -722,19 +721,19 @@ process(u32bit           iid,
           chimeraDeletedSmall++;
 
 #ifdef WITH_REPORT
-          printLogMessage(reportFile, rd, uid, iid, intervalBeg, intervalEnd, doUpdate, "CHIMERA", "New length too small, fragment deleted");
+          printLogMessage(reportFile, fr, uid, iid, intervalBeg, intervalEnd, doUpdate, "CHIMERA", "New length too small, fragment deleted");
 #endif
 
           if (doUpdate)
             delFrag(gkp, iid);
         } else {
 #ifdef WITH_REPORT
-          printLogMessage(reportFile, rd, uid, iid, intervalBeg, intervalEnd, doUpdate, "CHIMERA", "Length OK");
+          printLogMessage(reportFile, fr, uid, iid, intervalBeg, intervalEnd, doUpdate, "CHIMERA", "Length OK");
 #endif
 
           if (doUpdate) {
-            setClearRegion_ReadStruct(rd, intervalBeg, intervalEnd, READSTRUCT_OVL);
-            if (setFrag(gkp, iid, rd)) {
+            setFragRecordClearRegion(fr, intervalBeg, intervalEnd, AS_READ_CLEAR_OBT);
+            if (setFrag(gkp, iid, fr)) {
               fprintf(stderr, "setFrag() failed.\n");
               exit(1);
             }
@@ -747,7 +746,7 @@ process(u32bit           iid,
         //
 
 #ifdef WITH_REPORT
-        printLogMessage(reportFile, rd, uid, iid, intervalBeg, intervalEnd, doUpdate, "CHIMERA", "Fragment deleted");
+        printLogMessage(reportFile, fr, uid, iid, intervalBeg, intervalEnd, doUpdate, "CHIMERA", "Fragment deleted");
 #endif
 
         if (doUpdate)
@@ -782,7 +781,7 @@ process(u32bit           iid,
     }
 
     //  Clean up our read struct.
-    delete_ReadStruct(rd);
+    del_fragRecord(fr);
   }
 }
 

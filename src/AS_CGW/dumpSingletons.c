@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpSingletons.c,v 1.14 2007-02-15 23:55:54 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpSingletons.c,v 1.15 2007-02-18 14:04:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,54 +44,31 @@ static char CM_ID[] = "$Id: dumpSingletons.c,v 1.14 2007-02-15 23:55:54 brianwal
 
 
 CDS_UID_t
-getFragmentClear(int iid,
-                 int reversecomplement,
-                 int  *alloclen,
-                 char **seq,
-                 char **qul,
-                 char **toprint) {
+getFragmentClear(int    iid,
+                 int    reversecomplement,
+                 char  *toprint) {
 
-  static ReadStructp               fs = NULL;
-  static GateKeeperFragmentRecord  gs;
-
-#warning someone please rewrite me!
-
-  //  we don't need to get both getFrag() and the gatekeeper frag; they're the same.
+  static fragRecord  *fs = NULL;
+  unsigned int  clr_bgn, clr_end;
 
   if (fs == NULL)
-    fs = new_ReadStruct();
+    fs = new_fragRecord();
 
-  if (getFrag(ScaffoldGraph->gkpStore,
-              iid,
-              fs, FRAG_S_ALL) != 0) {
+  if (getFrag(ScaffoldGraph->gkpStore, iid, fs, FRAG_S_SEQ) != 0) {
     fprintf(stderr,"Couldn't get fragment from frgStore for iid %d\n", iid);
     assert(0);
   }
+ 
+  clr_bgn = getFragRecordClearRegionBegin(fs, AS_READ_CLEAR_CLOSURE);
+  clr_end = getFragRecordClearRegionEnd  (fs, AS_READ_CLEAR_CLOSURE);
 
-  if (getGateKeeperFragmentStore(ScaffoldGraph->gkpStore->frg,
-                                 iid,
-                                 &gs) != 0) {
-    fprintf(stderr,"Couldn't get fragment from gkpStore for iid %d\n", iid);
-    assert(0);
-  }
-
-  unsigned int  clr_bgn, clr_end;
-  
-  getClearRegion_ReadStruct(fs, &clr_bgn, &clr_end, READSTRUCT_LATEST);
-  while (getSequence_ReadStruct(fs, *seq, *qul, *alloclen) != 0) {
-    *alloclen *= 2;
-    *seq       = (char*)safe_realloc(*seq,     *alloclen * sizeof(char));
-    *qul       = (char*)safe_realloc(*qul,     *alloclen * sizeof(char));
-    *toprint   = (char*)safe_realloc(*toprint, *alloclen * sizeof(char));
-  }
-  
-  strcpy(*toprint, *seq + clr_bgn);
-  (*toprint)[clr_end - clr_bgn] = 0;
+  strcpy(toprint, getFragRecordSequence(fs) + clr_bgn);
+  toprint[clr_end - clr_bgn] = 0;
 
   if (reversecomplement)
-    Complement_Seq(*toprint);
+    Complement_Seq(toprint);
 
-  return(gs.UID);
+  return(getFragRecordUID(fs));
 }
 
 
@@ -170,16 +147,8 @@ main( int argc, char **argv) {
     exit(1);
   }
 
-  int   alloclen1  = 2048;
-  char *seq1       = (char *)safe_malloc(sizeof(char) * alloclen1);
-  char *qul1       = (char *)safe_malloc(sizeof(char) * alloclen1);
-  char *toprint1   = (char *)safe_malloc(sizeof(char) * alloclen1);
-
-  int   alloclen2  = 2048;
-  char *seq2       = (char *)safe_malloc(sizeof(char) * alloclen2);
-  char *qul2       = (char *)safe_malloc(sizeof(char) * alloclen2);
-  char *toprint2   = (char *)safe_malloc(sizeof(char) * alloclen2);
-
+  char *toprint1   = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_LEN);
+  char *toprint2   = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_LEN);
 
   ScaffoldGraph = LoadScaffoldGraphFromCheckpoint(GlobalData->File_Name_Prefix, ckptNum, FALSE);
 
@@ -211,7 +180,7 @@ main( int argc, char **argv) {
     if ((mate == NULL) ||
         (mate->flags.bits.isChaff == 0) ||
         (makeMiniScaffolds == 0)) {
-      CDS_UID_t  fUID = getFragmentClear(frag->iid, 0, &alloclen1, &seq1, &qul1, &toprint1);
+      CDS_UID_t  fUID = getFragmentClear(frag->iid, 0, toprint1);
 
       fprintf(stdout, ">"F_S64" /type=singleton\n%s\n",
              fUID, toprint1);
@@ -219,8 +188,8 @@ main( int argc, char **argv) {
                (mate->flags.bits.isChaff == 1) &&
                (makeMiniScaffolds == 1) &&
                (frag->iid < mate->iid)) {
-      CDS_UID_t  fUID = getFragmentClear(frag->iid, 0, &alloclen1, &seq1, &qul1, &toprint1);
-      CDS_UID_t  mUID = getFragmentClear(mate->iid, 1, &alloclen2, &seq2, &qul2, &toprint2);
+      CDS_UID_t  fUID = getFragmentClear(frag->iid, 0, toprint1);
+      CDS_UID_t  mUID = getFragmentClear(mate->iid, 1, toprint2);
 
       //  make sure the following chain of Ns is divisible by three;
       //  the exact length is arbitrary but Doug Rusch points out that

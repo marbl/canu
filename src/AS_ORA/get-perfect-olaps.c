@@ -20,7 +20,7 @@
  *************************************************************************/
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/get-perfect-olaps.c,v $
-$Revision: 1.7 $
+$Revision: 1.8 $
 **********************************************************************/
 
 /**********************************************************************
@@ -47,7 +47,7 @@ Description: Reads the message file produced by the overlapper and
 // project headers
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
-#include "AS_PER_ReadStruct.h"
+#include "AS_PER_gkpStore.h"
 #include "AS_PER_distStore.h"
 #include "AS_ORA_fragments.h"
 #include "AS_ORA_overlaps.h"

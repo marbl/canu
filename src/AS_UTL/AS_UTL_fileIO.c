@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//static char CM_ID[] = "$Id: AS_UTL_fileIO.c,v 1.3 2006-10-08 08:47:40 brianwalenz Exp $";
+//static char CM_ID[] = "$Id: AS_UTL_fileIO.c,v 1.4 2007-02-18 14:04:50 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,23 +29,13 @@
 
 #include "AS_global.h"
 
-/*******************************************************************
- *
- * Provides a safe and reliable mechanism for reading / writing binary
- * data.
- *
- * Split writes/reads into smaller pieces, check the result of each
- * piece.  Really needed by OSF1 (V5.1), useful on other platforms to
- * be a little more friendly (big writes are usually not
- * interruptable).
- *
- */
-
-//  Define this to enable super-safe mode!  We fail if the read/write
-//  is shorter than expected, rather than resuming.
+//  Provides a safe and reliable mechanism for reading / writing
+//  binary data.
 //
-//#define VERY_SAFE
-
+//  Split writes/reads into smaller pieces, check the result of each
+//  piece.  Really needed by OSF1 (V5.1), useful on other platforms to
+//  be a little more friendly (big writes are usually not
+//  interruptable).
 
 void
 AS_UTL_safeWrite(FILE *file, const void *buffer, char *desc, size_t nbytes) {
@@ -54,7 +44,6 @@ AS_UTL_safeWrite(FILE *file, const void *buffer, char *desc, size_t nbytes) {
   size_t  towrite  = 0;
   size_t  written  = 0;
   int     filedes  = fileno(file);
-  int     failed   = 0;
 
   while (position < nbytes) {
     towrite = length;
@@ -64,13 +53,7 @@ AS_UTL_safeWrite(FILE *file, const void *buffer, char *desc, size_t nbytes) {
     errno = 0;
     written = fwrite(((char *)buffer) + position, sizeof(char), towrite, file);
 
-    failed = errno;
-#ifdef VERY_SAFE
-    if (towrite != written)
-      failed = 1;
-#endif
-
-    if (failed) {
+    if (errno) {
       fprintf(stderr, "safeWrite()-- Write failure on %s: %s\n", desc, strerror(errno));
       fprintf(stderr, "safeWrite()-- Wanted to write "F_SIZE_T" bytes, wrote "F_SIZE_T".\n", towrite, written);
       exit(1);
@@ -81,14 +64,13 @@ AS_UTL_safeWrite(FILE *file, const void *buffer, char *desc, size_t nbytes) {
 }
 
 
-void
+int
 AS_UTL_safeRead(FILE *file, void *buffer, char *desc, size_t nbytes) {
   size_t  position = 0;
   size_t  length   = 32 * 1024 * 1024;
   size_t  toread   = 0;
   size_t  written  = 0;  //  readen?
   int     filedes  = fileno(file);
-  int     failed   = 0;
 
   while (position < nbytes) {
     toread = length;
@@ -98,13 +80,10 @@ AS_UTL_safeRead(FILE *file, void *buffer, char *desc, size_t nbytes) {
     errno = 0;
     written = fread(((char *)buffer) + position, sizeof(char), toread, file);
 
-    failed = errno;
-#ifdef VERY_SAFE
-    if (toread != written)
-      failed = 1;
-#endif
+    if (feof(file) || (written == 0))
+      return(TRUE);
 
-    if ((failed) && (errno != EINTR)) {
+    if ((errno) && (errno != EINTR)) {
       fprintf(stderr, "safeRead()-- Read failure on %s: %s.\n", desc, strerror(errno));
       fprintf(stderr, "safeRead()-- Wanted to read "F_SIZE_T" bytes, read "F_SIZE_T".\n", toread, written);
       exit(1);
@@ -112,5 +91,7 @@ AS_UTL_safeRead(FILE *file, void *buffer, char *desc, size_t nbytes) {
 
     position += written;
   }
+
+  return(FALSE);
 }
 

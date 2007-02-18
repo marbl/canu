@@ -6,35 +6,21 @@
 qualityLookup   qual;
 
 
-//  Takes a ReadStructp, returns clear ranges for some quality
+//  Takes a fragRecord, returns clear ranges for some quality
 //  threshold.  Higher level than I wanted, but it obscures
 //  everything, and is exactly the interface that this and
 //  mergeTrimming.C want.
 //
 void
-doTrim(ReadStructp rd, double minQuality, u32bit &left, u32bit &right) {
-  u32bit  seqMax = 10240;
-  u32bit  qltLen = 0;
-  char   *seq    = new char   [seqMax];
-  char   *qltC   = new char   [seqMax];
-  double *qltD   = new double [seqMax];
-
-  if (getSequence_ReadStruct(rd, seq, qltC, seqMax)) {
-    fprintf(stderr, "getSequence_ReadStruct() failed.\n");
-    exit(1);
-  }
-
-  //  XXX  Probably a better way to do this....
-  qltLen = strlen(qltC);
+doTrim(fragRecord *fr, double minQuality, u32bit &left, u32bit &right) {
+  static double  qltD[AS_READ_MAX_LEN];
+  char          *qltC   = getFragRecordQuality(fr);
+  u32bit         qltLen = getFragRecordQualityLength(fr);
 
   for (u32bit i=0; i<qltLen; i++)
     qltD[i] = qual.lookupChar(qltC[i]);
 
   findGoodQuality(qltD, qltLen, minQuality, left, right);
-
-  delete [] seq;
-  delete [] qltC;
-  delete [] qltD;
 }
 
 
@@ -51,8 +37,8 @@ findGoodQuality(double  *qltD,
     u32bit     end;
   };
 
-  pair     f[2048];  //  forward scan ranges
-  pair     r[2048];  //  reverse scan ranges
+  pair     f[AS_READ_MAX_LEN];  //  forward scan ranges
+  pair     r[AS_READ_MAX_LEN];  //  reverse scan ranges
 
   u32bit   fpos=0, flen=0;
   u32bit   rpos=0, rlen=0;

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* RCS info
- * $Id: OlapStoreOVL.h,v 1.6 2007-02-12 22:16:58 brianwalenz Exp $
+ * $Id: OlapStoreOVL.h,v 1.7 2007-02-18 14:04:50 brianwalenz Exp $
 */
 
 
@@ -32,7 +32,7 @@
 #include <sys/param.h>
 //#include  "AS_OVL_delcher.h"
 #include  "AutoScreenOVL.h"
-#include  "AS_PER_ReadStruct.h"
+#include  "AS_PER_gkpStore.h"
 #include  "AS_PER_genericStore.h"
 #include  "AS_PER_distStore.h"
 #include  "AS_UTL_PHash.h"

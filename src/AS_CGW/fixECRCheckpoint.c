@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: fixECRCheckpoint.c,v 1.8 2007-02-12 22:16:56 brianwalenz Exp $";
+static char CM_ID[] = "$Id: fixECRCheckpoint.c,v 1.9 2007-02-18 14:04:48 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -68,7 +68,7 @@ static char CM_ID[] = "$Id: fixECRCheckpoint.c,v 1.8 2007-02-12 22:16:56 brianwa
 #include "RepeatRez.h"
 #include "Stats_CGW.h"
 #include "Instrument_CGW.h"
-#include "AS_PER_ReadStruct.h"
+#include "AS_PER_gkpStore.h"
 #include "PublicAPI_CNS.h"
 #include "MultiAlignment_CNS.h"
 #include "fixZLFContigs.h"

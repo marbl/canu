@@ -26,15 +26,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_driver_common.h,v 1.14 2007-02-14 07:20:13 brianwalenz Exp $
- * $Revision: 1.14 $
+ * $Id: AS_OVL_driver_common.h,v 1.15 2007-02-18 14:04:49 brianwalenz Exp $
+ * $Revision: 1.15 $
 */
 
 
 #include  <unistd.h>
 
 #include  "AS_OVL_delcher.h"
-#include  "AS_PER_ReadStruct.h"
+#include  "AS_PER_gkpStore.h"
 #include  "AS_PER_genericStore.h"
 #include  "AS_MSG_pmesg.h"
 #include  "AS_OVL_overlap.h"
@@ -43,7 +43,7 @@
 
 static int64  First_Hash_Frag = -1;
 static int64   Last_Hash_Frag;
-static ReadStructp  myRead;
+static fragRecord  *myRead;
 static int  Screen_Blocks_Used;
 static int64  Total_Frags_Read = 0;
 static int  Next_Distance_Index;
@@ -151,7 +151,7 @@ fprintf (stderr, "### Using %d pthreads  %d hash bits  %d bucket entries\n",
 
    for  (i = 0;  i < Num_PThreads;  i ++)
      {
-      old_stream_segment [i] = openFragStream (OldFragStore);
+      old_stream_segment [i] = openFragStream (OldFragStore, FRAG_S_INF | FRAG_S_SEQ | FRAG_S_QLT);
      }
 
    if  (noOverlaps == 0)
@@ -170,7 +170,7 @@ fprintf (stderr, "### Using %d pthreads  %d hash bits  %d bucket entries\n",
           Initialize_Work_Area (thread_wa + i, i);
        }
 
-   myRead = new_ReadStruct ();
+   myRead = new_fragRecord ();
 
 #if  SHOW_PROGRESS
 Start_Time = clock ();
@@ -244,9 +244,8 @@ Source_Log_File = File_Open ("ovl-srcinfo.log", "w");
                                && Last_Hash_Frag
                                     <= getLastElemFragStore (OldFragStore));
                     }
-                HashFragStream = openFragStream (hash_frag_store);
-                resetFragStream (HashFragStream, First_Hash_Frag,
-                                 Last_Hash_Frag);
+                HashFragStream = openFragStream (hash_frag_store, FRAG_S_INF | FRAG_S_SEQ | FRAG_S_QLT);
+                resetFragStream (HashFragStream, First_Hash_Frag, Last_Hash_Frag);
                 startIndex = First_Hash_Frag;
 
 
@@ -318,9 +317,8 @@ break;
 
               for  (i = 0;  i < Num_PThreads;  i ++)
                 {
-                 old_stream_segment [i] = openFragStream (curr_frag_store);
-                 resetFragStream (old_stream_segment [i], Frag_Segment_Lo,
-                                  Frag_Segment_Hi);
+                 old_stream_segment [i] = openFragStream (curr_frag_store, FRAG_S_INF | FRAG_S_SEQ | FRAG_S_QLT);
+                 resetFragStream (old_stream_segment [i], Frag_Segment_Lo, Frag_Segment_Hi);
                 }
 
 
@@ -477,7 +475,7 @@ void  Cleanup_Work_Area
   {
    safe_free (wa -> String_Olap_Space);
    safe_free (wa -> Match_Node_Space);
-   delete_ReadStruct (wa -> myRead);
+   del_fragRecord (wa -> myRead);
 
    return;
   }

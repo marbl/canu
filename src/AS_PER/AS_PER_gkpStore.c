@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.18 2007-02-14 07:20:13 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.19 2007-02-18 14:04:50 brianwalenz Exp $";
 
 //    A thin layer on top of the IndexStore supporing the storage and
 // retrieval of records used by the gatekeeper records.
@@ -383,10 +383,11 @@ void clearGateKeeperLibraryRecord(GateKeeperLibraryRecord *g) {
 }
 
 void clearGateKeeperFragmentRecord(GateKeeperFragmentRecord *g) {
+  int which;
 
   memset(g, 0, sizeof(GateKeeperFragmentRecord));
 
-  g->UID           = 0;
+  g->readUID       = 0;
   g->readIID       = 0;
   g->mateIID       = 0;
   g->libraryIID    = 0;
@@ -396,22 +397,13 @@ void clearGateKeeperFragmentRecord(GateKeeperFragmentRecord *g) {
   g->deleted     = 0;
   g->nonrandom   = 0;
   g->status      = 0;
-  g->hasQLT      = 0;
-  g->hasHPS      = 0;
-  g->hasOVLclr   = 0;
-  g->hasCNSclr   = 0;
-  g->hasCGWclr   = 0;
   g->orientation = 0;
   g->spare       = 0;
 
-  g->clrSta = 0;
-  g->clrEnd = 0;
-  g->ovlSta = 0;
-  g->ovlEnd = 0;
-  g->cnsSta = 0;
-  g->cnsEnd = 0;
-  g->cgwSta = 0;
-  g->cgwEnd = 0;
+  for (which=0; which < AS_READ_CLEAR_NUM; which++) {
+    g->clearBeg[which] = 0;
+    g->clearEnd[which] = 0;
+  }
 
   g->seqOffset = 0;
   g->qltOffset = 0;
@@ -429,59 +421,134 @@ void clearGateKeeperFragmentRecord(GateKeeperFragmentRecord *g) {
 
 
 
-static
-void
-getFragData(GateKeeperStore *gkp, ReadStruct *rs, int streamFlags) {
-  VLSTRING_SIZE_T   actualLength = 0;
+fragRecord *new_fragRecord(void) {
+  fragRecord *fr = (fragRecord *)safe_malloc(sizeof(fragRecord));
+  clr_fragRecord(fr);
+  return(fr);
+}
 
-  rs->seq[0] = 0;
-  rs->qlt[0] = 0;
-  rs->hps[0] = 0;
-  rs->src[0] = 0;
+void        del_fragRecord(fragRecord *fr) {
+  safe_free(fr);
+}
 
-  if (streamFlags & FRAG_S_SEQ) {
-    getVLRecordStore(gkp->seq,
-                     rs->gkfr.seqOffset,
-                     rs->seq,
-                     VLSTRING_MAX_SIZE,
-                     &actualLength);
-    rs->seq[actualLength] = 0;
-  }
-  if (streamFlags & FRAG_S_QLT) {
-    getVLRecordStore(gkp->qlt,
-                     rs->gkfr.qltOffset,
-                     rs->qlt,
-                     VLSTRING_MAX_SIZE,
-                     &actualLength);
-    rs->qlt[actualLength] = 0;
-  }
-  if (streamFlags & FRAG_S_HPS) {
-    getVLRecordStore(gkp->hps,
-                     rs->gkfr.hpsOffset,
-                     rs->hps,
-                     VLSTRING_MAX_SIZE,
-                     &actualLength);
-    rs->hps[actualLength] = 0;
-  }
-  if (streamFlags & FRAG_S_SRC) {
-    getVLRecordStore(gkp->src,
-                     rs->gkfr.srcOffset,
-                     rs->src,
-                     VLSTRING_MAX_SIZE,
-                     &actualLength);
-    rs->src[actualLength] = 0;
+void        clr_fragRecord(fragRecord *fr) {
+  clearGateKeeperFragmentRecord(&fr->gkfr);
+  fr->seq[0] = 0;
+  fr->qlt[0] = 0;
+  fr->hps[0] = 0;
+  fr->src[0] = 0;
+}
+
+//  Set clear region 'which' and all later clear regions.  You are
+//  explicitly not allowed to set the original clear range.
+//
+void        setFragRecordClearRegion(fragRecord *fr,
+                                     uint32 start,
+                                     uint32 end,
+                                     uint32 which) {
+  assert(which > AS_READ_CLEAR_VEC);
+  assert(which < AS_READ_CLEAR_NUM);
+  for (; which < AS_READ_CLEAR_NUM; which++) {
+    fr->gkfr.clearBeg[which] = start;
+    fr->gkfr.clearEnd[which] = end;
   }
 }
 
 
-int     getFrag(GateKeeperStore *gkp, int64 iid, ReadStruct *rs, int32 flags) {
-  getGateKeeperFragmentStore(gkp->frg, iid, &rs->gkfr);
-  getFragData(gkp, rs, flags);
+void        getFragRecordClearRegion(fragRecord *fr, uint32 *start, uint32 *end, uint32 which) {
+  assert(which <  AS_READ_CLEAR_NUM);
+  *start = fr->gkfr.clearBeg[which];
+  *end   = fr->gkfr.clearEnd[which];
+}
+
+
+uint32      getFragRecordClearRegionBegin(fragRecord *fr, uint32 which) {
+  assert(which < AS_READ_CLEAR_NUM);
+  return(fr->gkfr.clearBeg[which]);
+}
+
+
+uint32      getFragRecordClearRegionEnd  (fragRecord *fr, uint32 which) {
+  assert(which < AS_READ_CLEAR_NUM);
+  return(fr->gkfr.clearEnd[which]);
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+
+
+static
+void
+getFragData(GateKeeperStore *gkp, fragRecord *fr, int streamFlags) {
+  VLSTRING_SIZE_T   actualLength = 0;
+
+  fr->hasSEQ = 0;
+  fr->hasQLT = 0;
+  fr->hasHPS = 0;
+  fr->hasSRC = 0;
+
+  fr->seq[0] = 0;
+  fr->qlt[0] = 0;
+  fr->hps[0] = 0;
+  fr->src[0] = 0;
+
+  if (streamFlags & FRAG_S_SEQ) {
+    fr->hasSEQ = 1;
+    if (fr->gkfr.seqLen > 0) {
+      getVLRecordStore(gkp->seq,
+                       fr->gkfr.seqOffset,
+                       fr->seq,
+                       VLSTRING_MAX_SIZE,
+                       &actualLength);
+      fr->seq[actualLength] = 0;
+    }
+  }
+  if (streamFlags & FRAG_S_QLT) {
+    fr->hasQLT = 1;
+    if (fr->gkfr.seqLen > 0) {
+      getVLRecordStore(gkp->qlt,
+                       fr->gkfr.qltOffset,
+                       fr->qlt,
+                       VLSTRING_MAX_SIZE,
+                       &actualLength);
+      fr->qlt[actualLength] = 0;
+    }
+  }
+  if (streamFlags & FRAG_S_HPS) {
+    fr->hasHPS = 1;
+    if (fr->gkfr.hpsLen > 0) {
+      getVLRecordStore(gkp->hps,
+                       fr->gkfr.hpsOffset,
+                       fr->hps,
+                       VLSTRING_MAX_SIZE,
+                       &actualLength);
+      fr->hps[actualLength] = 0;
+    }
+  }
+  if (streamFlags & FRAG_S_SRC) {
+    fr->hasSRC = 1;
+    if (fr->gkfr.srcLen > 0) {
+      getVLRecordStore(gkp->src,
+                       fr->gkfr.srcOffset,
+                       fr->src,
+                       VLSTRING_MAX_SIZE,
+                       &actualLength);
+      fr->src[actualLength] = 0;
+    }
+  }
+}
+
+
+int     getFrag(GateKeeperStore *gkp, int64 iid, fragRecord *fr, int32 flags) {
+  getGateKeeperFragmentStore(gkp->frg, iid, &fr->gkfr);
+  getFragData(gkp, fr, flags);
   return(0);
 }
 
-int     setFrag(GateKeeperStore *gkp, int64 iid, ReadStruct *rs) {
-  setGateKeeperFragmentStore(gkp->frg, iid, &rs->gkfr);
+int     setFrag(GateKeeperStore *gkp, int64 iid, fragRecord *fr) {
+  setGateKeeperFragmentStore(gkp->frg, iid, &fr->gkfr);
   return(0);
 }
 
@@ -499,13 +566,13 @@ int     delFrag(GateKeeperStore *gkp, int64 iid) {
   setGateKeeperFragmentStore(gkp->frg, iid, &gkfr);
 
   if (miid > 0) {
-    UnRefPHashTable_AS(gkp->phs, UID_NAMESPACE_AS, gkfr.UID);
+    UnRefPHashTable_AS(gkp->phs, UID_NAMESPACE_AS, gkfr.readUID);
 
     getGateKeeperFragmentStore(gkp->frg, miid, &gkfr);
     gkfr.mateIID = 0;
     setGateKeeperFragmentStore(gkp->frg, miid, &gkfr);
 
-    UnRefPHashTable_AS(gkp->phs, UID_NAMESPACE_AS, gkfr.UID);
+    UnRefPHashTable_AS(gkp->phs, UID_NAMESPACE_AS, gkfr.readUID);
   }
 }
 
@@ -514,14 +581,25 @@ int     delFrag(GateKeeperStore *gkp, int64 iid) {
 ////////////////////////////////////////////////////////////////////////////////
 
 
-FragStream      *openFragStream(GateKeeperStore *gkp) {
+FragStream      *openFragStream(GateKeeperStore *gkp, int flags) {
   FragStream  *fs = (FragStream *)safe_malloc(sizeof(FragStream));
-  fs->gkp = gkp;
-  fs->frg = openStream(fs->gkp->frg, NULL, 0);
-  fs->seq = openStream(fs->gkp->seq, NULL, 0);
-  fs->qlt = openStream(fs->gkp->qlt, NULL, 0);
-  fs->hps = openStream(fs->gkp->hps, NULL, 0);
-  fs->src = openStream(fs->gkp->src, NULL, 0);
+  fs->gkp   = gkp;
+  fs->frg   = openStream(fs->gkp->frg, NULL, 0);
+  fs->seq   = NULLSTOREHANDLE;
+  fs->qlt   = NULLSTOREHANDLE;
+  fs->hps   = NULLSTOREHANDLE;
+  fs->src   = NULLSTOREHANDLE;
+  fs->flags = flags;
+
+  if (fs->flags & FRAG_S_SEQ)
+    fs->seq   = openStream(fs->gkp->seq, NULL, 0);
+  if (fs->flags & FRAG_S_QLT)
+    fs->qlt   = openStream(fs->gkp->qlt, NULL, 0);
+  if (fs->flags & FRAG_S_HPS)
+    fs->hps   = openStream(fs->gkp->hps, NULL, 0);
+  if (fs->flags & FRAG_S_SRC)
+    fs->src   = openStream(fs->gkp->src, NULL, 0);
+
   return(fs);
 }
 
@@ -550,18 +628,27 @@ void             resetFragStream(FragStream *fs, int64 startIndex, int64 endInde
   }
 
   resetStream(fs->frg, startIndex, endIndex);
-  resetStream(fs->seq, seqOffset, STREAM_UNTILEND);
-  resetStream(fs->qlt, qltOffset, STREAM_UNTILEND);
-  resetStream(fs->hps, hpsOffset, STREAM_UNTILEND);
-  resetStream(fs->src, srcOffset, STREAM_UNTILEND);
+  if (fs->flags & FRAG_S_SEQ)
+    resetStream(fs->seq, seqOffset, STREAM_UNTILEND);
+  if (fs->flags & FRAG_S_QLT)
+    resetStream(fs->qlt, qltOffset, STREAM_UNTILEND);
+  if (fs->flags & FRAG_S_HPS)
+    resetStream(fs->hps, hpsOffset, STREAM_UNTILEND);
+  if (fs->flags & FRAG_S_SRC)
+    resetStream(fs->src, srcOffset, STREAM_UNTILEND);
 }
 
 
 void             closeFragStream(FragStream *fs) {
   closeStream(fs->frg);
-  closeStream(fs->qlt);
-  closeStream(fs->hps);
-  closeStream(fs->src);
+  if (fs->flags & FRAG_S_SEQ)
+    closeStream(fs->seq);
+  if (fs->flags & FRAG_S_QLT)
+    closeStream(fs->qlt);
+  if (fs->flags & FRAG_S_HPS)
+    closeStream(fs->hps);
+  if (fs->flags & FRAG_S_SRC)
+    closeStream(fs->src);
 }
 
 
@@ -570,9 +657,48 @@ int64            getStartIndexFragStream(FragStream *fs) {
 }
 
 
-int              nextFragStream(FragStream *fs, ReadStruct *rs, int streamFlags) {
-  if (nextStream(fs->frg, &rs->gkfr) == 0)
+int              nextFragStream(FragStream *fs, fragRecord *fr) {
+  VLSTRING_SIZE_T  actualLength = 0;
+
+  if (nextStream(fs->frg, &fr->gkfr) == 0)
     return(0);
-  getFragData(fs->gkp, rs, streamFlags);
+
+  //  So we can use the stream, we can't use getFragData() here.  We
+  //  need to duplicate it.
+
+  fr->seq[0] = 0;
+  fr->qlt[0] = 0;
+  fr->hps[0] = 0;
+  fr->src[0] = 0;
+
+  fr->hasSEQ = 0;
+  fr->hasQLT = 0;
+  fr->hasHPS = 0;
+  fr->hasSRC = 0;
+
+  if (fs->flags & FRAG_S_SEQ) {
+    fr->hasSEQ = 1;
+    nextVLRecordStream(fs->seq, fr->seq, MAX_SEQ_LENGTH, &actualLength);
+    fr->seq[actualLength] = 0;
+  }
+
+  if (fs->flags & FRAG_S_QLT) {
+    fr->hasQLT = 1;
+    nextVLRecordStream(fs->qlt, fr->qlt, MAX_SEQ_LENGTH, &actualLength);
+    fr->qlt[actualLength] = 0;
+  }
+
+  if (fs->flags & FRAG_S_HPS) {
+    fr->hasHPS = 1;
+    nextVLRecordStream(fs->hps, fr->hps, MAX_HPS_LENGTH, &actualLength);
+    fr->hps[actualLength] = 0;
+  }
+
+  if (fs->flags & FRAG_S_SRC) {
+    fr->hasSRC = 1;
+    nextVLRecordStream(fs->src, fr->src, MAX_SRC_LENGTH, &actualLength);
+    fr->src[actualLength] = 0;
+  }
+
   return(1);
 }

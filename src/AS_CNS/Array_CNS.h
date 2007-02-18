@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
-   CVS_ID:  $Id: Array_CNS.h,v 1.6 2007-02-12 22:16:56 brianwalenz Exp $
+   CVS_ID:  $Id: Array_CNS.h,v 1.7 2007-02-18 14:04:48 brianwalenz Exp $
  *********************************************************************/
 #ifndef AS_CNS_ARRAY_INCLUDE
 #define AS_CNS_ARRAY_INCLUDE
@@ -32,7 +32,7 @@
 
 #include "AS_global.h"
 //#include "AS_MSG_pmesg.h"
-//#include "AS_PER_ReadStruct.h"
+//#include "AS_PER_gkpStore.h"
 //#include "AS_UTL_Var.h"
 #include "MultiAlignStore_CNS.h"
 

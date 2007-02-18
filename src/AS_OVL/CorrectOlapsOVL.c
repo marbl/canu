@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CorrectOlapsOVL.c,v 1.8 2007-02-12 22:16:57 brianwalenz Exp $
- * $Revision: 1.8 $
+ * $Id: CorrectOlapsOVL.c,v 1.9 2007-02-18 14:04:49 brianwalenz Exp $
+ * $Revision: 1.9 $
 */
 
-static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.8 2007-02-12 22:16:57 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.9 2007-02-18 14:04:49 brianwalenz Exp $";
 
 
 //  System include files
@@ -57,8 +57,7 @@ static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.8 2007-02-12 22:16:57 brianwal
 //  Local include files
 
 #include  "AS_OVL_delcher.h"
-#include  "AS_PER_ReadStruct.h"
-#include  "AS_PER_genericStore.h"
+#include  "AS_PER_gkpStore.h"
 #include  "AS_PER_distStore.h"
 #include  "AS_UTL_PHash.h"
 #include  "AS_MSG_pmesg.h"
@@ -2614,7 +2613,7 @@ static void  Read_Frags
 //  global  Frag .
 
   {
-   ReadStructp frag_read;
+   fragRecord *frag_read;
    char  frag_source [MAX_SOURCE_LENGTH + 1];
    unsigned  clear_start, clear_end;
    int  i, j;
@@ -2630,25 +2629,23 @@ static void  Read_Frags
    Num_Frags = 1 + Hi_Frag_IID - Lo_Frag_IID;
    Frag = (Frag_Info_t *) safe_calloc (Num_Frags, sizeof (Frag_Info_t));
 
-   frag_read = new_ReadStruct ();
+   frag_read = new_fragRecord ();
 
    gkpStore = loadFragStorePartial (gkpStore_Path,
                                       Lo_Frag_IID, Hi_Frag_IID);
    
-   Frag_Stream = openFragStream (gkpStore);
+   Frag_Stream = openFragStream (gkpStore, FRAG_S_SEQ | FRAG_S_SRC);
    resetFragStream (Frag_Stream, Lo_Frag_IID, Hi_Frag_IID);
 
-//   for  (i = 0;  nextFragStream (Frag_Stream, frag_read, FRAG_S_SEQ);
-   for  (i = 0;  nextFragStream (Frag_Stream, frag_read,
-                                 FRAG_S_SEQ | FRAG_S_SRC);
+   for  (i = 0;  nextFragStream (Frag_Stream, frag_read);
            i ++)
      {
       char  seq_buff [AS_READ_MAX_LEN + 1];
-      char  qual_buff [AS_READ_MAX_LEN + 1];
+      char *seqptr;
       unsigned  deleted;
       int  result;
 
-      getIsDeleted_ReadStruct (frag_read, & deleted);
+      deleted = getFragRecordIsDeleted (frag_read);
       if  (deleted)
           {
            Frag [i] . sequence = NULL;
@@ -2657,44 +2654,31 @@ static void  Read_Frags
            continue;
           }
 
-      result = getSequence_ReadStruct
-                   (frag_read, seq_buff, qual_buff, AS_READ_MAX_LEN + 1);
-      if  (result != 0)
-          {
-           fprintf (stderr,
-                    "Error reading frag store tried to fit %d in a buffer of %d\n",
-                    result, AS_READ_MAX_LEN + 1);
-           exit (EXIT_FAILURE);
-          }
+      clear_start = getFragRecordClearRegionBegin(frag_read, AS_READ_CLEAR_OBT);
+      clear_end   = getFragRecordClearRegionEnd  (frag_read, AS_READ_CLEAR_OBT);
 
-      result = getClearRegion_ReadStruct
-                   (frag_read, & clear_start, & clear_end, READSTRUCT_OVL);
-      if  (result != 0)
-          {
-           fprintf (stderr, "Error reading clear range from frag store\n");
-           exit (EXIT_FAILURE);
-          }
+      seqptr = getFragRecordSequence(frag_read);
 
       // Make sure that we have a legal lowercase sequence string
 
       for  (j = clear_start;  j < clear_end;  j ++)
-         seq_buff [j] = Filter (seq_buff [j]);
+         seq_buff [j] = Filter (seqptr [j]);
 
       seq_buff [clear_end] = '\0';
 
       Frag [i] . sequence = strdup (seq_buff + clear_start);
 
-      getSource_ReadStruct (frag_read, frag_source, MAX_SOURCE_LENGTH);
-      if  (! Get_Celsim_Coords (frag_source, & Frag [i] . celsim_start,
+      if  (! Get_Celsim_Coords (getFragRecordSource(frag_read),
+                                & Frag [i] . celsim_start,
                                 & Frag [i] . celsim_end))
           Frag [i] . celsim_start = Frag [i] . celsim_end = -1;
 #if  0
-else
-  printf ("%5d:  [%6d,%6d]\n", i, Frag [i] . celsim_start, Frag [i] . celsim_end);
+      else
+        printf ("%5d:  [%6d,%6d]\n", i, Frag [i] . celsim_start, Frag [i] . celsim_end);
 #endif
      }
 
-   delete_ReadStruct (frag_read);
+   del_fragRecord (frag_read);
    closeFragStream (Frag_Stream);
    closeGateKeeperStore (gkpStore);
 
@@ -2790,7 +2774,7 @@ static void  Redo_Olaps
 
   {
    FILE  * fp;
-   ReadStructp frag_read;
+   fragRecord *frag_read;
    unsigned  clear_start, clear_end;
    int  lo_frag, hi_frag;
    int  next_olap;
@@ -2802,10 +2786,10 @@ static void  Redo_Olaps
    uint32  correct_iid = 0, next_iid;
    int  i, j;
 
-   frag_read = new_ReadStruct ();
+   frag_read = new_fragRecord ();
 
    gkpStore = openGateKeeperStore (gkpStore_Path, FALSE);
-   Frag_Stream = openFragStream (gkpStore);
+   Frag_Stream = openFragStream (gkpStore, FRAG_S_SEQ);
 
    lo_frag = Olap [0] . b_iid;
    hi_frag = Olap [Num_Olaps - 1] . b_iid;
@@ -2815,49 +2799,36 @@ static void  Redo_Olaps
    fp = File_Open (Correct_File_Path, "rb");
 
    next_olap = 0;
-   for  (i = 0;  nextFragStream (Frag_Stream, frag_read, FRAG_S_SEQ)
+   for  (i = 0;  nextFragStream (Frag_Stream, frag_read)
                    && next_olap < Num_Olaps;
            i ++)
      {
       char  seq_buff [AS_READ_MAX_LEN + 1];
-      char  qual_buff [AS_READ_MAX_LEN + 1];
+      char *seqptr;
       char  * seq_ptr = seq_buff;
       Adjust_t  * adjust_ptr = adjust;
       uint32  frag_iid;
       unsigned  deleted;
       int  frag_len, result;
 
-      getReadIndex_ReadStruct (frag_read, & frag_iid);
+      frag_iid = getFragRecordIID (frag_read);
       if  (frag_iid < Olap [next_olap] . b_iid)
           continue;
 
-      getIsDeleted_ReadStruct (frag_read, & deleted);
+      deleted = getFragRecordIsDeleted (frag_read);
       if  (deleted)
           continue;
 
-      result = getSequence_ReadStruct
-                   (frag_read, seq_buff, qual_buff, AS_READ_MAX_LEN + 1);
-      if  (result != 0)
-          {
-           fprintf (stderr,
-                    "Error reading frag store tried to fit %d in a buffer of %d\n",
-                    result, AS_READ_MAX_LEN + 1);
-           exit (EXIT_FAILURE);
-          }
+      clear_start = getFragRecordClearRegionBegin(frag_read, AS_READ_CLEAR_OBT);
+      clear_end   = getFragRecordClearRegionEnd  (frag_read, AS_READ_CLEAR_OBT);
 
-      result = getClearRegion_ReadStruct
-                   (frag_read, & clear_start, & clear_end, READSTRUCT_OVL);
-      if  (result != 0)
-          {
-           fprintf (stderr, "Error reading clear range from frag store\n");
-           exit (EXIT_FAILURE);
-          }
+      seqptr = getFragRecordSequence(frag_read);
 
       // Make sure that we have a legal lowercase sequence string
 
       frag_len = 0;
       for  (j = clear_start;  j < clear_end;  j ++)
-         seq_buff [frag_len ++] = Filter (seq_buff [j]);
+         seq_buff [frag_len ++] = Filter (seqptr [j]);
 
       seq_buff [frag_len] = '\0';
 
@@ -2897,7 +2868,7 @@ static void  Redo_Olaps
         }
      }
 
-   delete_ReadStruct (frag_read);
+   del_fragRecord (frag_read);
    closeFragStream (Frag_Stream);
    closeGateKeeperStore (gkpStore);
 

@@ -26,8 +26,8 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.15 2007-02-13 22:48:00 adelcher Exp $
- * $Revision: 1.15 $
+ * $Id: AS_OVL_overlap.h,v 1.16 2007-02-18 14:04:49 brianwalenz Exp $
+ * $Revision: 1.16 $
 */
 
 
@@ -535,7 +535,7 @@ typedef  struct Work_Area
    FragStream  *stream_segment;
    Screen_Info_t  screen_info;
    int  status;
-   ReadStructp  myRead;
+   fragRecord *myRead;
    FragType  curr_frag_type;
    int  thread_id;
   }  Work_Area_t;
@@ -590,13 +590,13 @@ extern pthread_mutex_t  Log_Msg_Mutex;
 //
 
 int  Build_Hash_Index
-    (FragStream *stream, int32 First_Frag_ID, ReadStructp myRead);
+    (FragStream *stream, int32 First_Frag_ID, fragRecord *myRead);
 void  Coalesce_Screen_Info
     (Screen_Range_t space [], int lo, int * hi);
 void  Copy_Branches_To_Store
-    (FragStream *stream, GateKeeperStore *store, ReadStructp myRead);
+    (FragStream *stream, GateKeeperStore *store, fragRecord *myRead);
 void  Dump_Stored_Branch_Info
-    (FragStream *stream, ReadStructp myRead);
+    (FragStream *stream, fragRecord *myRead);
 void  Initialize_Work_Area
     (Work_Area_t *, int);
 int  OVL_Max_int

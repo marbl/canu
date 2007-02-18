@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: post_analysis.c,v 1.12 2007-02-12 22:16:56 brianwalenz Exp $ */
+/* $Id: post_analysis.c,v 1.13 2007-02-18 14:04:48 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
        ma = CreateMultiAlignTFromICM(contig, contig->iaccession,  0);
         
        if (contig->placed == AS_PLACED) {
-	 CollectStats(ma, frag_store, pcs, pfs,READSTRUCT_LATEST);
+	 CollectStats(ma, frag_store, pcs, pfs,AS_READ_CLEAR_CLOSURE);
        } 
          
        //      PrintMultiAlignT(out,ma,frag_store,0,0);

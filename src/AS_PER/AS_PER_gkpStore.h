@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.16 2007-02-13 17:59:34 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.17 2007-02-18 14:04:50 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -54,11 +54,11 @@ typedef struct {
   int32          numLibraries_s;
 } GateKeeperBatchRecord;
 
-#define AS_GKP_ORIENT_UNKNOWN    0x00
-#define AS_GKP_ORIENT_INNIE      0x01
-#define AS_GKP_ORIENT_OUTTIE     0x02
-#define AS_GKP_ORIENT_NORMAL     0x03
-#define AS_GKP_ORIENT_ANTINORMAL 0x04
+#define AS_READ_ORIENT_UNKNOWN    0x00
+#define AS_READ_ORIENT_INNIE      0x01
+#define AS_READ_ORIENT_OUTTIE     0x02
+#define AS_READ_ORIENT_NORMAL     0x03
+#define AS_READ_ORIENT_ANTINORMAL 0x04
 
 typedef struct {
   CDS_UID_t      UID;
@@ -85,53 +85,56 @@ typedef struct {
 } GateKeeperLibraryRecord;
 
 
-#define AS_GKP_STATUS_G   0x00
-#define AS_GKP_STATUS_B   0x01
-#define AS_GKP_STATUS_U   0x02
-#define AS_GKP_STATUS_W   0x03
-#define AS_GKP_STATUS_X   0x04
-#define AS_GKP_STATUS_V   0x05
-#define AS_GKP_STATUS_E   0x06
-#define AS_GKP_STATUS_I   0x07
-#define AS_GKP_STATUS_R   0x08
+#define AS_READ_STATUS_G   0x00
+#define AS_READ_STATUS_B   0x01
+#define AS_READ_STATUS_U   0x02
+#define AS_READ_STATUS_W   0x03
+#define AS_READ_STATUS_X   0x04
+#define AS_READ_STATUS_V   0x05
+#define AS_READ_STATUS_E   0x06
+#define AS_READ_STATUS_I   0x07
+#define AS_READ_STATUS_R   0x08
+
+// Clients must specify which clear range to use.
+//
+// The default 'get' function returns the latest clear range.  Latest
+// is defined as the highest number here.
+//
+#define AS_READ_CLEAR_ORIG     0  //  read only
+#define AS_READ_CLEAR_QLT      1  //  read only
+#define AS_READ_CLEAR_VEC      2  //  read only
+#define AS_READ_CLEAR_OBTINI   3
+#define AS_READ_CLEAR_OBT      4
+#define AS_READ_CLEAR_OVL      5  //  future use
+#define AS_READ_CLEAR_UTG      6  //  future use
+#define AS_READ_CLEAR_ECR1     7
+#define AS_READ_CLEAR_ECR2     8
+#define AS_READ_CLEAR_CLOSURE  9  //  future use
+
+#define AS_READ_CLEAR_NUM      10
 
 typedef struct{
-  CDS_UID_t        UID;
+  CDS_UID_t        readUID;
  
   CDS_IID_t        readIID;
   CDS_IID_t        mateIID;
 
-  CDS_IID_t        libraryIID;
   CDS_UID_t        plateUID;
-  unsigned int     plateLocation;
+  CDS_IID_t        libraryIID;
 
-  unsigned int     deleted:1;
-  unsigned int     nonrandom:1;
-  unsigned int     status:4;
-  unsigned int     hasQLT:1;
-  unsigned int     hasHPS:1;
-  unsigned int     hasOVLclr:1;
-  unsigned int     hasCNSclr:1;
-  unsigned int     hasCGWclr:1;
+  uint32           deleted:1;
+  uint32           nonrandom:1;
+  uint32           status:4;
+  uint32           orientation:3;  //  copied from the library
+  uint32           plateLocation:8;
+  uint32           spare:15;
 
-  unsigned int     orientation:3;  //  copied from library
+  VLSTRING_SIZE_T  clearBeg[AS_READ_CLEAR_NUM];
+  VLSTRING_SIZE_T  clearEnd[AS_READ_CLEAR_NUM];
 
-  //  If someone ever adds "type" to a read, search for getReadType in
-  //  the source.  You'll need to add type to there too.
-
-  unsigned int     spare:20;
-
-  VLSTRING_SIZE_T  clrSta;
-  VLSTRING_SIZE_T  clrEnd;
-
-  VLSTRING_SIZE_T  ovlSta;
-  VLSTRING_SIZE_T  ovlEnd;
-
-  VLSTRING_SIZE_T  cnsSta;
-  VLSTRING_SIZE_T  cnsEnd;
-
-  VLSTRING_SIZE_T  cgwSta;
-  VLSTRING_SIZE_T  cgwEnd;
+  uint16           seqLen;
+  uint16           hpsLen;
+  uint16           srcLen;
 
   uint64           seqOffset;
   uint64           qltOffset;
@@ -144,53 +147,117 @@ typedef struct{
 
 
 
+
+
+////////////////////////////////////////////////////////////
+
+//  The fragRecord is usually how one should access fragments in the
+//  gatekeeper store.  It gets you the fragment info above, and
+//  sequence, quality, hps data and source string.
+
 #define MAX_SEQ_LENGTH (AS_READ_MAX_LEN + 1)
 #define MAX_HPS_LENGTH (AS_READ_MAX_LEN + 1)
 #define MAX_SRC_LENGTH (512 + sizeof(int32) + sizeof(int64))
 
-#define FRAG_S_INF 0x01
-#define FRAG_S_SEQ 0x02
-#define FRAG_S_QLT 0x04
-#define FRAG_S_HPS 0x08
-#define FRAG_S_SRC 0x10
-#define FRAG_S_ALL 0x1f
+#define FRAG_S_INF 0x00
+#define FRAG_S_SEQ 0x01
+#define FRAG_S_QLT 0x02
+#define FRAG_S_HPS 0x04
+#define FRAG_S_SRC 0x08
+#define FRAG_S_ALL 0x0f
 
 typedef struct {
   GateKeeperFragmentRecord   gkfr;
-  uint                       flags;
+  uint32                     hasSEQ:1;
+  uint32                     hasQLT:1;
+  uint32                     hasHPS:1;
+  uint32                     hasSRC:1;
   char                       seq[MAX_SEQ_LENGTH];
   char                       qlt[MAX_SEQ_LENGTH];
   char                       hps[MAX_HPS_LENGTH];
   char                       src[MAX_SRC_LENGTH];
-} ReadStruct;
-
-typedef ReadStruct* ReadStructp;
+} fragRecord;
 
 
+fragRecord *new_fragRecord(void);
+void        del_fragRecord(fragRecord *fr);
+void        clr_fragRecord(fragRecord *fr);
+
+void        setFragRecordClearRegion(fragRecord *fr, 
+                                     uint32 start,
+                                     uint32 end,
+                                     uint32 which);
+
+static
+CDS_UID_t   getFragRecordUID(fragRecord *fr) {
+  return(fr->gkfr.readUID);
+};
+
+static
+CDS_IID_t   getFragRecordIID(fragRecord *fr) {
+  return(fr->gkfr.readIID);
+};
+
+static
+CDS_IID_t   getFragRecordMateIID(fragRecord *fr) {
+  return(fr->gkfr.mateIID);
+};
+
+static
+CDS_IID_t   getFragRecordLibraryIID(fragRecord *fr) {
+  return(fr->gkfr.libraryIID);
+};
+
+static
+int         getFragRecordIsDeleted(fragRecord *fr) {
+  return(fr->gkfr.deleted);
+};
+
+void        getFragRecordClearRegion(fragRecord *fr, uint32 *start, uint32 *end, uint32 flags);
+uint32      getFragRecordClearRegionBegin(fragRecord *fr, uint32 flags);
+uint32      getFragRecordClearRegionEnd  (fragRecord *fr, uint32 flags);
 
 
-static char getLinkOrientation(GateKeeperFragmentRecord *gkpf){
-
-  switch (gkpf->orientation){
-    case AS_GKP_ORIENT_UNKNOWN:
-      return '?';
-    case AS_GKP_ORIENT_INNIE:
-      return 'I';
-    case AS_GKP_ORIENT_OUTTIE:
-      return 'O';
-    case AS_GKP_ORIENT_NORMAL:
-      return 'N';
-    case AS_GKP_ORIENT_ANTINORMAL:
-      return 'A';
-    default:
-      return '-';
-  }
-
-  return '-';
+static
+int         getFragRecordSequenceLength(fragRecord *fr) {
+  return(fr->gkfr.seqLen);
+}
+static
+int         getFragRecordQualityLength(fragRecord *fr) {
+  return(fr->gkfr.seqLen);
+}
+static
+int         getFragRecordHPSLength(fragRecord *fr) {
+  return(fr->gkfr.hpsLen);
+}
+static
+int         getFragRecordSourceLength(fragRecord *fr) {
+  return(fr->gkfr.srcLen);
 }
 
-// Stores
 
+static
+char       *getFragRecordSequence(fragRecord *fr) {
+  assert(fr->hasSEQ);
+  return(fr->seq);
+}
+static
+char       *getFragRecordQuality(fragRecord *fr) {
+  assert(fr->hasQLT);
+  return(fr->qlt);
+}
+static
+char       *getFragRecordHPS(fragRecord *fr) {
+  assert(fr->hasHPS);
+  return(fr->hps);
+}
+static
+char       *getFragRecordSource(fragRecord *fr) {
+  assert(fr->hasSRC);
+  return(fr->src);
+}
+
+////////////////////////////////////////////////////////////
 
 #define INDEXSTORE_DEF_EXTEND(type)\
 static int deleteAndMark ## type ## Store(type ## Store fs, int index, int batchID){\
@@ -302,8 +369,8 @@ void    clearGateKeeperBatchRecord(GateKeeperBatchRecord *g);
 void    clearGateKeeperLibraryRecord(GateKeeperLibraryRecord *g);
 void    clearGateKeeperFragmentRecord(GateKeeperFragmentRecord *g);
 
-int     getFrag(GateKeeperStore *gkp, int64 iid, ReadStruct *rs, int32 flags);
-int     setFrag(GateKeeperStore *gkp, int64 iid, ReadStruct *rs);
+int     getFrag(GateKeeperStore *gkp, int64 iid, fragRecord *fr, int32 flags);
+int     setFrag(GateKeeperStore *gkp, int64 iid, fragRecord *fr);
 int     delFrag(GateKeeperStore *gkp, int64 iid);
 
 #define getFirstElemFragStore(GKP)  getFirstElemStore((GKP)->frg)
@@ -331,15 +398,16 @@ typedef struct {
   StreamHandle       qlt;
   StreamHandle       hps;
   StreamHandle       src;
+  int                flags;
 } FragStream;
 
-FragStream      *openFragStream(GateKeeperStore *gkp);
+FragStream      *openFragStream(GateKeeperStore *gkp, int flags);
 void             resetFragStream(FragStream *fs, int64 startIndex, int64 endIndex);
 void             closeFragStream(FragStream *fs);
 
 int64            getStartIndexFragStream(FragStream *fs);
 
-int              nextFragStream(FragStream *fs, ReadStruct *rs, int streamFlags);
+int              nextFragStream(FragStream *fs, fragRecord *fr);
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -359,8 +427,8 @@ static
 int                  getFragStorePartition(tFragStorePartition *partition,
                                            int32 indx,
                                            int32 getFlags,
-                                           ReadStruct *rs) {
-  return(getFrag(partition, indx, rs, getFlags));
+                                           fragRecord *fr) {
+  return(getFrag(partition, indx, fr, getFlags));
 };
 
 #endif

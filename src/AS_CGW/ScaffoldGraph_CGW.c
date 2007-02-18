@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.16 2007-02-14 07:20:07 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.17 2007-02-18 14:04:48 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -34,8 +34,8 @@ static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.16 2007-02-14 07:20:07 brian
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
+#include "AS_UTL_fileIO.h"
 #include "UtilsREZ.h"
-#include "AS_PER_SafeIO.h"
 #include "AS_CGW_dataTypes.h"
 #include "Globals_CGW.h"
 #include "DiagnosticsCGW.h"
@@ -186,8 +186,7 @@ void SaveScaffoldGraphToStream(ScaffoldGraphT *sgraph, FILE *stream){
   int status;
 
   //  fprintf(GlobalData->stderrc,"* Saving graph %s\n", sgraph->name);
-  status = safeWrite(stream, sgraph->name, 256 * sizeof(char));
-  assert(status == FALSE);
+  AS_UTL_safeWrite(stream, sgraph->name, "SaveScaffoldGraphToStream", 256 * sizeof(char));
 
 
   CopyToFileVA_InfoByIID(sgraph->iidToFragIndex, stream);
@@ -203,21 +202,13 @@ void SaveScaffoldGraphToStream(ScaffoldGraphT *sgraph, FILE *stream){
 
   SaveSequenceDB(sgraph->sequenceDB);
 
-  status = safeWrite(stream, &sgraph->doRezOnContigs, sizeof(int32));
-  assert(status == FALSE);
-  status = safeWrite(stream, &sgraph->checkPointIteration, sizeof(int32));
-  assert(status == FALSE);
-  status = safeWrite(stream, &sgraph->numContigs, sizeof(int32));
-  assert(status == FALSE);
-  status = safeWrite(stream, &sgraph->numDiscriminatorUniqueCIs, sizeof(int32));
-  assert(status == FALSE);
-  status = safeWrite(stream, &sgraph->numOriginalCIs, sizeof(int32));
-  assert(status == FALSE);
-  status = safeWrite(stream, &sgraph->numLiveCIs, sizeof(int32));
-  assert(status == FALSE);
-  status = safeWrite(stream, &sgraph->numLiveScaffolds, sizeof(int32));
-  assert(status == FALSE);
-
+  AS_UTL_safeWrite(stream, &sgraph->doRezOnContigs, "SaveScaffoldGraphToStream", sizeof(int32));
+  AS_UTL_safeWrite(stream, &sgraph->checkPointIteration, "SaveScaffoldGraphToStream", sizeof(int32));
+  AS_UTL_safeWrite(stream, &sgraph->numContigs, "SaveScaffoldGraphToStream", sizeof(int32));
+  AS_UTL_safeWrite(stream, &sgraph->numDiscriminatorUniqueCIs, "SaveScaffoldGraphToStream", sizeof(int32));
+  AS_UTL_safeWrite(stream, &sgraph->numOriginalCIs, "SaveScaffoldGraphToStream", sizeof(int32));
+  AS_UTL_safeWrite(stream, &sgraph->numLiveCIs, "SaveScaffoldGraphToStream", sizeof(int32));
+  AS_UTL_safeWrite(stream, &sgraph->numLiveScaffolds, "SaveScaffoldGraphToStream", sizeof(int32));
 }
 
 ScaffoldGraphT * LoadScaffoldGraphFromStream(FILE *stream){
@@ -238,7 +229,7 @@ ScaffoldGraphT * LoadScaffoldGraphFromStream(FILE *stream){
     exit(1);
   }
 
-  status = safeRead(stream, sgraph->name, 256 * sizeof(char));
+  status = AS_UTL_safeRead(stream, sgraph->name, "LoadScaffoldGraphFromStream", 256 * sizeof(char));
   assert(status == FALSE);
   fprintf(GlobalData->stderrc,"* Reading graph %s *\n", sgraph->name);
 
@@ -300,19 +291,13 @@ ScaffoldGraphT * LoadScaffoldGraphFromStream(FILE *stream){
   sgraph->overlapper     = sgraph->CIGraph->overlapper;
 
 
-  status = safeRead(stream, &sgraph->doRezOnContigs, sizeof(int32));
-  assert(status == FALSE);
-  status = safeRead(stream, &sgraph->checkPointIteration, sizeof(int32));
-  assert(status == FALSE);
-  status = safeRead(stream, &sgraph->numContigs, sizeof(int32));
-  assert(status == FALSE);
-  status = safeRead(stream, &sgraph->numDiscriminatorUniqueCIs, sizeof(int32));
-  assert(status == FALSE);
-  status = safeRead(stream, &sgraph->numOriginalCIs, sizeof(int32));
-  assert(status == FALSE);
-  status = safeRead(stream, &sgraph->numLiveCIs, sizeof(int32));
-  assert(status == FALSE);
-  status = safeRead(stream, &sgraph->numLiveScaffolds, sizeof(int32));
+  status += AS_UTL_safeRead(stream, &sgraph->doRezOnContigs, "LoadScaffoldGraphFromStream", sizeof(int32));
+  status += AS_UTL_safeRead(stream, &sgraph->checkPointIteration, "LoadScaffoldGraphFromStream", sizeof(int32));
+  status += AS_UTL_safeRead(stream, &sgraph->numContigs,"LoadScaffoldGraphFromStream",  sizeof(int32));
+  status += AS_UTL_safeRead(stream, &sgraph->numDiscriminatorUniqueCIs, "LoadScaffoldGraphFromStream", sizeof(int32));
+  status += AS_UTL_safeRead(stream, &sgraph->numOriginalCIs, "LoadScaffoldGraphFromStream", sizeof(int32));
+  status += AS_UTL_safeRead(stream, &sgraph->numLiveCIs, "LoadScaffoldGraphFromStream", sizeof(int32));
+  status += AS_UTL_safeRead(stream, &sgraph->numLiveScaffolds, "LoadScaffoldGraphFromStream", sizeof(int32));
   assert(status == FALSE);
 
   if(sgraph->doRezOnContigs){

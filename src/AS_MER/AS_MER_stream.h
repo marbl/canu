@@ -23,7 +23,7 @@
 
 extern "C" {
 #include "AS_PER_gkpStore.h"
-#include "AS_PER_ReadStruct.h"
+#include "AS_PER_gkpStore.h"
 }
 
 extern unsigned char   compressSymbol[256];
@@ -57,30 +57,18 @@ private:
     if (_iid >= _max)
       return(0);
 
-    getFrag(_fs, _iid, _rs, FRAG_S_SEQ);
+    getFrag(_fs, _iid, _fr, FRAG_S_SEQ);
     _iid += _skipNum;
 
-    getClearRegion_ReadStruct(_rs, &_thePos, &_endPos, READSTRUCT_ORIGINAL);
+    _thePos = getFragRecordClearRegionBegin(_fr, AS_READ_CLEAR_OBT);
+    _endPos = getFragRecordClearRegionEnd  (_fr, AS_READ_CLEAR_OBT);
 
-  again:
-    int len = getSequence_ReadStruct(_rs, _theSeq, _theQlt, _theAlloc);
-    if (len > 0) {
-      delete [] _theSeq;
-      delete [] _theQlt;
-      _theAlloc = len + 1024;
-      _theSeq   = new char [_theAlloc];
-      _theQlt   = new char [_theAlloc];
-      goto again;
-    }
-
-    _theSeq[_endPos] = 0;
+    _theSeq = getFragRecordSequence(_fr);
 
     return('N');
   };
 
-  cds_uint32                _theAlloc;
   char                     *_theSeq;
-  char                     *_theQlt;
   cds_uint32                _theLen;
   unsigned int              _thePos;
   unsigned int              _endPos;
@@ -98,7 +86,7 @@ private:
   char                      _theMerString[33];
 
   GateKeeperStore      *_fs;
-  ReadStruct           *_rs;
+  fragRecord           *_fr;
 
   cds_uint64            _iid;
   cds_uint64            _max;

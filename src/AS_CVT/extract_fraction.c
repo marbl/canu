@@ -29,7 +29,7 @@
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
 #include "AS_PER_gkpStore.h"
-#include "AS_PER_ReadStruct.h"
+#include "AS_PER_gkpStore.h"
 #include "AS_UTL_PHash.h"
 
 #define STRING_LENGTH 1024
@@ -262,7 +262,7 @@ int PopulateFile( char * prog_name,
     adl.next = NULL;
     adl.name = prog_name;
     adl.complete = time(0);
-    adl.version = "$Revision: 1.4 $";
+    adl.version = "$Revision: 1.5 $";
     adl.comment = "Contact Ian @x3036 to report problems";
 
     gen.m = &adt;

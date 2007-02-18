@@ -22,20 +22,15 @@
 #ifndef AS_UTL_FILEIO_H
 #define AS_UTL_FILEIO_H
 
-/*******************************************************************
- *
- * Provides a safe and reliable mechanism for reading / writing binary
- * data.
- *
- * Split writes/reads into smaller pieces, check the result of each
- * piece.  Really needed by OSF1 (V5.1), useful on other platforms to
- * be a little more friendly (big writes are usually not
- * interruptable).
- *
- */
-
+//  Provides a safe and reliable mechanism for reading / writing
+//  binary data.
+//
+//  Split writes/reads into smaller pieces, check the result of each
+//  piece.  Really needed by OSF1 (V5.1), useful on other platforms to
+//  be a little more friendly (big writes are usually not
+//  interruptable).
 
 void AS_UTL_safeWrite(FILE *file, const void *buffer, char *desc, size_t nbytes);
-void AS_UTL_safeRead(FILE *file, void *buffer, char *desc, size_t nbytes);
+int  AS_UTL_safeRead(FILE *file, void *buffer, char *desc, size_t nbytes);
 
 #endif  //  AS_UTL_FILEIO_H

@@ -97,7 +97,7 @@ main(int argc, char **argv) {
   u32bit        firstElem = getFirstElemFragStore(gkp);
   u32bit        lastElem  = getLastElemFragStore(gkp) + 1;
 
-  ReadStructp   rd = new_ReadStruct();
+  fragRecord   *fr = new_fragRecord();
 
   u32bit        qltL = 0;
   u32bit        qltR = 0;
@@ -113,8 +113,8 @@ main(int argc, char **argv) {
   for (u32bit elem=firstElem; elem<lastElem; elem++) {
     u64bit uid = 0;
 
-    getFrag(gkp, elem, rd, FRAG_S_ALL);
-    getAccID_ReadStruct(rd, &uid);
+    getFrag(gkp, elem, fr, FRAG_S_INF | FRAG_S_SEQ | FRAG_S_QLT);
+    uid = getFragRecordUID(fr);
 
     //  Bail now if we've been told to not modify this read.  We do
     //  not print a message in the log.
@@ -124,7 +124,7 @@ main(int argc, char **argv) {
       continue;
     }
 
-    doTrim(rd, minQuality, qltL, qltR);
+    doTrim(fr, minQuality, qltL, qltR);
     vecL = qltL;
     vecR = qltR;
 
@@ -158,9 +158,8 @@ main(int argc, char **argv) {
 
 
     if (logFile) {
-      unsigned int      clrBeg = 0;
-      unsigned int      clrEnd = 0;
-      getClearRegion_ReadStruct(rd, &clrBeg, &clrEnd, READSTRUCT_ORIGINAL);
+      unsigned int      clrBeg = getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_ORIG);
+      unsigned int      clrEnd = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_ORIG);
 
       fprintf(logFile, u64bitFMT","u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"%s\n",
               uid, elem,
@@ -176,9 +175,9 @@ main(int argc, char **argv) {
     }
 
     if (doUpdate) {
-      setClearRegion_ReadStruct(rd, vecL, vecR, READSTRUCT_ORIGINAL);
+      setFragRecordClearRegion(fr, vecL, vecR, AS_READ_CLEAR_OBTINI);
 
-      if (setFrag(gkp, elem, rd))
+      if (setFrag(gkp, elem, fr))
         fprintf(stderr, "setFrag() failed.\n"), exit(1);
 
       if ((vecL + OBT_MIN_LENGTH) > vecR)

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.9 2007-02-14 07:20:13 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.10 2007-02-18 14:04:50 brianwalenz Exp $";
 /*************************************************************************
  Module:  AS_PER_genericStore
  Description:
@@ -52,8 +52,8 @@ static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.9 2007-02-14 07:20:13 bria
  *************************************************************************/
 
 /* RCS Info
- * $Id: AS_PER_genericStore.c,v 1.9 2007-02-14 07:20:13 brianwalenz Exp $
- * $Revision: 1.9 $
+ * $Id: AS_PER_genericStore.c,v 1.10 2007-02-18 14:04:50 brianwalenz Exp $
+ * $Revision: 1.10 $
  *
  */
 
@@ -64,12 +64,12 @@ static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.9 2007-02-14 07:20:13 bria
 #include <string.h>
 
 #include "AS_global.h"
-#include "AS_PER_SafeIO.h"
 #include "AS_PER_genericStore.h"
-
+#include "AS_UTL_fileIO.h"
 
 #define INITIAL_ALLOCATION (2048)
 #define WRITING_BUFFER     (16 * 1024)
+
 
 /* This is the structure maintained in memory for each open Store */
 typedef struct{
@@ -595,7 +595,7 @@ int appendIndexStore(StoreHandle s, void *element){
     if (CDS_FTELL(myStore->fp) != offset)
       if(-1 == CDS_FSEEK(myStore->fp, (off_t) offset, SEEK_SET))
         assert(0);
-    safeWrite(myStore->fp, element, myStore->header.elementSize);
+    AS_UTL_safeWrite(myStore->fp, element, "appendIndexStore", myStore->header.elementSize);
   }
   myStore->header.lastElem ++;
 
@@ -634,7 +634,7 @@ int setIndexStore(StoreHandle s, int64 index, void *element){
     if (CDS_FTELL(myStore->fp) != offset)
       if(-1 == CDS_FSEEK(myStore->fp, (off_t) offset, SEEK_SET))
         assert(0);
-    safeWrite(myStore->fp, element, myStore->header.elementSize);
+    AS_UTL_safeWrite(myStore->fp, element, "setIndexStore", myStore->header.elementSize);
   }
 
   return(0);
@@ -803,9 +803,9 @@ int deleteIndexStore(StoreHandle s, int64 index){
     if (CDS_FTELL(myStore->fp) != offset)
       if(-1 == CDS_FSEEK(myStore->fp, (off_t) offset, SEEK_SET))
         assert(0);
-    safeRead(myStore->fp, &flags, 1);
+    AS_UTL_safeRead(myStore->fp, &flags, "deleteIndexStore", 1);
     flags |= 0x80;
-    safeWrite(myStore->fp, (void *)&flags, 1);
+    AS_UTL_safeWrite(myStore->fp, (void *)&flags, "deleteIndexStore", 1);
   }
   return 0;
 }
@@ -833,7 +833,7 @@ int getIndexStore(StoreHandle s, int64 index, void *buffer){
       if(-1 == CDS_FSEEK(myStore->fp, (off_t) offset, SEEK_SET))
         assert(0);
     
-    return safeRead(myStore->fp,buffer,myStore->header.elementSize);
+    return AS_UTL_safeRead(myStore->fp,buffer,"getIndexStore",myStore->header.elementSize);
   }
 }
 
@@ -882,7 +882,7 @@ int getStringStore(StoreHandle s, int64 offset, char *buffer, int32 maxLength){
       if(-1 == CDS_FSEEK(myStore->fp, (off_t) (offset + sizeof(StoreStat)), SEEK_SET))
         assert(0);
     
-    if(safeRead(myStore->fp,buffer,length) != FALSE)
+    if(AS_UTL_safeRead(myStore->fp,buffer,"getStringStore",length) != FALSE)
       assert(0);
     
   }
@@ -929,7 +929,7 @@ int getVLRecordStore(StoreHandle s, int64 offset, void *buffer, VLSTRING_SIZE_T 
     if (CDS_FTELL(myStore->fp) != (off_t)(actualOffset + sizeof(StoreStat)))
       if(-1 == CDS_FSEEK(myStore->fp, (off_t) (actualOffset + sizeof(StoreStat)), SEEK_SET))
         assert(0);
-    if(safeRead(myStore->fp,&length,sizeof(VLSTRING_SIZE_T)) != FALSE)
+    if(AS_UTL_safeRead(myStore->fp,&length,"getVLRecordStore",sizeof(VLSTRING_SIZE_T)) != FALSE)
       assert(0);
 
     if(!(length + offset + sizeof(VLSTRING_SIZE_T) <= myStore->header.lastElem &&
@@ -940,7 +940,7 @@ int getVLRecordStore(StoreHandle s, int64 offset, void *buffer, VLSTRING_SIZE_T 
       assert(0);
     }
     if(length > 0)
-      if(safeRead(myStore->fp,buffer,length) != FALSE)
+      if(AS_UTL_safeRead(myStore->fp,buffer,"getVLRecordStore",length) != FALSE)
         assert(0);
   }
   *actualLength = length;
@@ -980,7 +980,7 @@ int appendStringStore(StoreHandle s, char *string){
     if (CDS_FTELL(myStore->fp) != offset)
       if(-1 == CDS_FSEEK(myStore->fp, (off_t) offset, SEEK_SET))
         assert(0);
-    safeWrite(myStore->fp, string, length + 1);
+    AS_UTL_safeWrite(myStore->fp, string, "appendStringStore", length + 1);
 #ifdef DEBUG
     fprintf(stderr,"appendString: wrote %s of length " F_SIZE_T "\n",
 	    string, strlen(string));
@@ -1023,12 +1023,12 @@ int appendVLRecordStore(StoreHandle s, void *vlr, VLSTRING_SIZE_T length){
     if (CDS_FTELL(myStore->fp) != offset)
       if(-1 == CDS_FSEEK(myStore->fp, (off_t) offset, SEEK_SET))
         assert(0);
-    safeWrite(myStore->fp, &length, sizeof(VLSTRING_SIZE_T));
+    AS_UTL_safeWrite(myStore->fp, &length, "appendVLRecordStore", sizeof(VLSTRING_SIZE_T));
     if (CDS_FTELL(myStore->fp) != (off_t)(offset + sizeof(VLSTRING_SIZE_T)))
       if(-1 == CDS_FSEEK(myStore->fp, (off_t) (offset + sizeof(VLSTRING_SIZE_T)), SEEK_SET))
         assert(0);
     if(length > 0)
-      safeWrite(myStore->fp, vlr, length);
+      AS_UTL_safeWrite(myStore->fp, vlr, "appendVLRecordStore", length);
   }
 
   myStore->header.lastElem += length + sizeof(VLSTRING_SIZE_T);
@@ -1179,7 +1179,6 @@ int kNextStream(StreamHandle sh, void *buffer, int skipNum){
 int nextStringStream(StreamHandle sh, char *buffer, int32 maxLength){
 
   StreamStruct *ss= Stream_myStruct(sh);
-  //  int next;
 
   assert(ss->status == ActiveStore);
 
@@ -1204,7 +1203,6 @@ int nextStringStream(StreamHandle sh, char *buffer, int32 maxLength){
 int nextVLRecordStream(StreamHandle sh, void *buffer, VLSTRING_SIZE_T maxLength, VLSTRING_SIZE_T *actualLength){
 
   StreamStruct *ss= Stream_myStruct(sh);
-  //  int next;
   int result;
   assert(ss->status == ActiveStore);
 
@@ -1302,7 +1300,7 @@ int writeBufToStore(StoreStruct *target, char *srcPtr, int64 offset, int64 numBy
          assert(0);
       if(CDS_FTELL(target->fp) != offset)
         assert(0);
-      safeWrite(target->fp, srcPtr, numBytes);
+      AS_UTL_safeWrite(target->fp, srcPtr, "writeBufToStore", numBytes);
    }
    return(0);
 }
@@ -1325,7 +1323,7 @@ int readBufFromStore(StoreStruct *source, char *buffer, int64 offset, int64 numB
        CDS_FSEEK(source->fp, (off_t) offset, SEEK_SET); /* set to offset */
      if(CDS_FTELL(source->fp) != offset)
        assert(0);
-     safeRead(source->fp, (void *)buffer, numBytes);
+     AS_UTL_safeRead(source->fp, (void *)buffer, "readBufFromStore", numBytes);
      *result = buffer;
    }
    return(0);
@@ -1410,7 +1408,7 @@ static int writeHeader(StoreStruct *myStore){
 	  fileno(myStore->fp), myStore->status, ferror(myStore->fp));
 #endif    
     rewind(myStore->fp); /* Rewind to beginning of file */
-    safeWrite(myStore->fp,(void *)&myStore->header,sizeof(StoreStat));
+    AS_UTL_safeWrite(myStore->fp,(void *)&myStore->header,"writeHeader",sizeof(StoreStat));
   }
 #ifdef DEBUG
   fprintf(stderr,"*** End WriteHeader:\n");
@@ -1425,7 +1423,7 @@ static int readHeader(StoreStruct *myStore){
     memcpy(&myStore->header,&myStore->buffer, sizeof(StoreStat));
   }else{
     CDS_FSEEK(myStore->fp, (off_t) 0, SEEK_SET); /* Rewind to beginning of file */
-    safeRead(myStore->fp, (void *)&myStore->header, sizeof(StoreStat));
+    AS_UTL_safeRead(myStore->fp, (void *)&myStore->header, "readHeader", sizeof(StoreStat));
   }
 #ifdef DEBUG
   fprintf(stderr,"*** ReadHeader: last = " F_S64 "\n"

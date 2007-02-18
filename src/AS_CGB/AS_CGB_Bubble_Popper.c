@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_Bubble_Popper.c,v 1.8 2007-02-14 07:20:05 brianwalenz Exp $";
+= "$Id: AS_CGB_Bubble_Popper.c,v 1.9 2007-02-18 14:04:47 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,7 +35,7 @@ static char CM_ID[]
 #include "AS_CGB_Bubble_PopperMethods.h"
 #include "AS_CGB_Bubble_GraphMethods.h"
 #include "AS_MSG_pmesg.h"
-#include "AS_PER_ReadStruct.h"
+#include "AS_PER_gkpStore.h"
 
 #undef AS_CGB_BUBBLE_VERBOSE2
 #undef DONT_ALLOC_OLAP_DELTAS
@@ -64,7 +64,7 @@ BP_init(BubblePopper_t bp, BubGraph_t bg, TChunkMesg *chunks,
   bp->globalArrivalRate = global_arrival_rate;
   bp->gkpStore = gkpStore;
   
-  bp->rsp = new_ReadStruct();
+  bp->rsp = new_fragRecord();
   bp->vidToBid     = (int *)safe_malloc(sizeof(int) * GetNumFragments(BG_vertices(bg)));
 
   bp->topDistArray = (int *)safe_malloc(sizeof(int) * POPPER_MAX_BUBBLE_SIZE);
@@ -191,8 +191,7 @@ BP_findOverlap(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2)
   int reversed = FALSE, orientation = FALSE;
   OverlapMesg *aln_msg = NULL;
   InternalFragMesg *if1, *if2;
-  char seq_buf[AS_FRAG_MAX_LEN + 2];
-  char qual_buf[AS_FRAG_MAX_LEN + 2];
+  char *seq_buf;
   IntFragment_ID id1, id2;
   char *src, *dst;
   int where;
@@ -204,10 +203,12 @@ BP_findOverlap(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2)
   if (if1->iaccession != id1) {
     if1->iaccession = id1;
     getFrag(bp->gkpStore, id1, bp->rsp, FRAG_S_SEQ);
-    getClearRegion_ReadStruct(bp->rsp, (unsigned int *) &(if1->clear_rng.bgn), 
-			      (unsigned int *) &(if1->clear_rng.end),
-			      READSTRUCT_LATEST);
-    getSequence_ReadStruct(bp->rsp, seq_buf, qual_buf, AS_FRAG_MAX_LEN + 1);
+
+    if1->clear_rng.bgn = getFragRecordClearRegionBegin(bp->rsp, AS_READ_CLEAR_CLOSURE);
+    if1->clear_rng.end = getFragRecordClearRegionEnd  (bp->rsp, AS_READ_CLEAR_CLOSURE);
+
+    seq_buf = getFragRecordSequence(bp->rsp);
+
     for (src = &(seq_buf[if1->clear_rng.bgn]), dst = if1->sequence;
 	 src < &(seq_buf[if1->clear_rng.end]);
 	 ++src, ++dst)
@@ -218,10 +219,12 @@ BP_findOverlap(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2)
   if (if2->iaccession != id2) {
     if2->iaccession = id2;
     getFrag(bp->gkpStore, id2, bp->rsp, FRAG_S_SEQ);
-    getClearRegion_ReadStruct(bp->rsp, (unsigned int *) &(if2->clear_rng.bgn), 
-			      (unsigned int *) &(if2->clear_rng.end),
-			      READSTRUCT_LATEST);
-    getSequence_ReadStruct(bp->rsp, seq_buf, qual_buf, AS_FRAG_MAX_LEN + 1);
+
+    if2->clear_rng.bgn = getFragRecordClearRegionBegin(bp->rsp, AS_READ_CLEAR_CLOSURE);
+    if2->clear_rng.end = getFragRecordClearRegionEnd  (bp->rsp, AS_READ_CLEAR_CLOSURE);
+
+    seq_buf = getFragRecordSequence(bp->rsp);
+
     for (src = &(seq_buf[if2->clear_rng.bgn]), dst = if2->sequence;
 	 src < &(seq_buf[if2->clear_rng.end]);
 	 ++src, ++dst)
@@ -581,7 +584,7 @@ AS_CGB_Bubble_Popper_destroy(BubblePopper_t bp)
 #endif // DONT_ALLOC_OLAP_DELTAS
   
   BG_destroy(bp->bg);
-  delete_ReadStruct(bp->rsp);
+  del_fragRecord(bp->rsp);
   safe_free(bp->vidToBid); // proportional to the number of fragments
 
   safe_free(bp->topDistArray); // POPPER_MAX_BUBBLE_SIZE

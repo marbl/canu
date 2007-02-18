@@ -32,12 +32,12 @@
 *************************************************/
 
 /* RCS info
- * $Id: CorrectScriptOVL.c,v 1.5 2006-09-26 21:07:45 brianwalenz Exp $
- * $Revision: 1.5 $
+ * $Id: CorrectScriptOVL.c,v 1.6 2007-02-18 14:04:49 brianwalenz Exp $
+ * $Revision: 1.6 $
 */
 
 static char  CM_ID []
-    = "$Id: CorrectScriptOVL.c,v 1.5 2006-09-26 21:07:45 brianwalenz Exp $";
+    = "$Id: CorrectScriptOVL.c,v 1.6 2007-02-18 14:04:49 brianwalenz Exp $";
 
 
 /*************************************************************************/
@@ -59,7 +59,7 @@ static char  CM_ID []
 /*************************************************************************/
 
 #include  "AS_OVL_delcher.h"
-#include  "AS_PER_ReadStruct.h"
+#include  "AS_PER_gkpStore.h"
 #include  "AS_PER_genericStore.h"
 #include  "AS_PER_fragStore.h"
 #include  "AS_PER_distStore.h"

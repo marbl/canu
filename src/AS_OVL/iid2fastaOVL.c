@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: iid2fastaOVL.c,v 1.4 2005-03-22 19:49:19 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: iid2fastaOVL.c,v 1.5 2007-02-18 14:04:50 brianwalenz Exp $
+ * $Revision: 1.5 $
 */
 
 
@@ -58,7 +58,7 @@
 /*************************************************************************/
 
 #include  "AS_OVL_delcher.h"
-#include  "AS_PER_ReadStruct.h"
+#include  "AS_PER_gkpStore.h"
 #include  "AS_PER_genericStore.h"
 #include  "AS_PER_fragStore.h"
 #include  "AS_PER_distStore.h"

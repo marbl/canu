@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.14 2007-02-12 22:16:57 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.15 2007-02-18 14:04:49 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -354,25 +354,23 @@ Check_FragMesg(FragMesg            *frg_mesg,
     }
 
 
-
-#warning XXX  need to set orientation
-#warning XXX  need to set library
-    gkf.orientation = AS_GKP_ORIENT_INNIE;
+    gkf.orientation = AS_READ_ORIENT_INNIE;
     gkf.libraryIID  = 0;
 
+    {
+      int which;
 
-    gkf.clrSta = frg_mesg->clear_rng.bgn;
-    gkf.clrEnd = frg_mesg->clear_rng.end;
+      for (which=0; which < AS_READ_CLEAR_NUM; which++) {
+        gkf.clearBeg[which] = frg_mesg->clear_rng.bgn;
+        gkf.clearEnd[which] = frg_mesg->clear_rng.end;
+      }
 
-    gkf.ovlSta = gkf.clrSta;
-    gkf.ovlEnd = gkf.clrEnd;
+      gkf.clearBeg[AS_READ_CLEAR_QLT] = 0;
+      gkf.clearEnd[AS_READ_CLEAR_QLT] = 0;
 
-    gkf.cnsSta = gkf.clrSta;
-    gkf.cnsEnd = gkf.clrEnd;
-
-    gkf.cgwSta = gkf.clrSta;
-    gkf.cgwEnd = gkf.clrEnd;
-
+      gkf.clearBeg[AS_READ_CLEAR_VEC] = 0;
+      gkf.clearEnd[AS_READ_CLEAR_VEC] = 0;
+    }
 
     value.type = AS_IID_FRG;
     InsertInPHashTable_AS(&(gkpStore->phs),
@@ -382,8 +380,12 @@ Check_FragMesg(FragMesg            *frg_mesg,
                           FALSE,
                           TRUE);
 
-    gkf.UID     = frg_mesg->eaccession;
+    gkf.readUID = frg_mesg->eaccession;
     gkf.readIID = value.IID;
+
+    gkf.seqLen = strlen(frg_mesg->sequence);
+    gkf.hpsLen = 0;
+    gkf.srcLen = strlen(frg_mesg->source);
 
     {
       StoreStat   stats;
@@ -403,10 +405,10 @@ Check_FragMesg(FragMesg            *frg_mesg,
 
     appendGateKeeperFragmentStore(gkpStore->frg, &gkf);
 
-    appendVLRecordStore(gkpStore->seq, frg_mesg->sequence, strlen(frg_mesg->sequence));
-    appendVLRecordStore(gkpStore->qlt, frg_mesg->quality,  strlen(frg_mesg->quality));
+    appendVLRecordStore(gkpStore->seq, frg_mesg->sequence, gkf.seqLen);
+    appendVLRecordStore(gkpStore->qlt, frg_mesg->quality,  gkf.seqLen);
     appendVLRecordStore(gkpStore->hps, NULL,               0);
-    appendVLRecordStore(gkpStore->src, frg_mesg->source,   strlen(frg_mesg->source));
+    appendVLRecordStore(gkpStore->src, frg_mesg->source,   gkf.srcLen);
 
   } else if (frg_mesg->action == AS_DELETE) {
 

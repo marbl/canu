@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.11 2007-02-14 07:20:13 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.12 2007-02-18 14:04:50 brianwalenz Exp $";
 
 #include <assert.h>
 #include <errno.h>
@@ -32,7 +32,7 @@ static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.11 2007-02-14 07:20:13 brianwalenz
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
-#include "AS_PER_ReadStruct.h"
+#include "AS_PER_gkpStore.h"
 #include "AS_PER_distStore.h"
 
 #include "MicroHetREZ.h"
@@ -304,8 +304,12 @@ AS_REZ_get_info(CDS_IID_t iid,
                      VA_TYPE(CDS_UID_t) *locales,
                      VA_TYPE(uint32) *fragtype,
                      VA_TYPE(uint32) *locbeg,
-                     VA_TYPE(uint32) *locend,
-                     ReadStructp input){
+                     VA_TYPE(uint32) *locend){
+  static  fragRecord *input = NULL;
+
+  if (input == NULL)
+    input = new_fragRecord();
+
   if( iid != 0 ){ // blank positions have IID 0
 
     uint32 *mytype = Getuint32(fragtype,iid);
@@ -364,7 +368,6 @@ static  VA_TYPE(CDS_UID_t)  *locales  = NULL;
 static  VA_TYPE(uint32)  *locbeg   = NULL;
 static  VA_TYPE(uint32)  *locend   = NULL;
 static  VA_TYPE(uint32)  *fragtype = NULL;
-static  ReadStructp input;
 
 /* This function compresses shredded fragments from the same location 
  * into basically a 1x coverage, such that there are no aritfical microhets;
@@ -390,7 +393,6 @@ void AS_REZ_compress_shreds_and_null_indels(int c,
     locbeg = CreateVA_uint32(10000);
     locend = CreateVA_uint32(10000);
     fragtype = CreateVA_uint32(10000);
-    input = new_ReadStruct();
   }
 
   if(verbose > 0)
@@ -410,7 +412,7 @@ void AS_REZ_compress_shreds_and_null_indels(int c,
 	if( verbose > 0 )
 	  printf("loop (%d,%d) iid1=" F_IID "\n",i,j,iid1);
 	if( iid1 != 0 ){ // blank positions have IID 0
-	  AS_REZ_get_info(iid1,frag_store,pfrag_store,&l1,&b1,&e1,&t1,locales,fragtype,locbeg,locend,input);
+	  AS_REZ_get_info(iid1,frag_store,pfrag_store,&l1,&b1,&e1,&t1,locales,fragtype,locbeg,locend);
 	  if( verbose > 0 )
 	    printf("(id,loc,beg,end,type) = (" F_IID "," F_UID ",%d,%d,%c)\n",
                    iid1,l1,b1,e1,t1);
@@ -420,7 +422,7 @@ void AS_REZ_compress_shreds_and_null_indels(int c,
 	      if( verbose > 0 )
 		printf("pos (%d,%d)\n",i,k);
 	      iid2 = id_array[k][i];
-	      AS_REZ_get_info(iid2,frag_store,pfrag_store,&l2,&b2,&e2,&t2,locales,fragtype,locbeg,locend,input);
+	      AS_REZ_get_info(iid2,frag_store,pfrag_store,&l2,&b2,&e2,&t2,locales,fragtype,locbeg,locend);
 	      if( verbose > 0)
 		printf("(id2,loc2,beg2,end2,type2) = (" F_IID "," F_UID ",%d,%d,%c)\n",
                        iid2,l2,b2,e2,t2);
@@ -457,7 +459,7 @@ void AS_REZ_compress_shreds_and_null_indels(int c,
 	  if( verbose > 0 )
 	    printf("loop (%d,%d) iid1=" F_IID "\n",i,j,iid1);
 	  if( iid1 != 0 ){ // blank positions have IID 0
-	    AS_REZ_get_info(iid1,frag_store,pfrag_store,&l1,&b1,&e1,&t1,locales,fragtype,locbeg,locend,input);
+	    AS_REZ_get_info(iid1,frag_store,pfrag_store,&l1,&b1,&e1,&t1,locales,fragtype,locbeg,locend);
 	    if( verbose > 0 )
 	      printf("(id,loc,beg,end,type) = (" F_IID "," F_UID ",%d,%d,%c)\n",
                      iid1,l1,b1,e1,t1);
@@ -467,7 +469,7 @@ void AS_REZ_compress_shreds_and_null_indels(int c,
 		if( verbose > 0 )
 		  printf("pos (%d,%d)\n",i,k);
 		iid2 = id_array[k][i];
-		AS_REZ_get_info(iid2,frag_store,pfrag_store,&l2,&b2,&e2,&t2,locales,fragtype,locbeg,locend,input);
+		AS_REZ_get_info(iid2,frag_store,pfrag_store,&l2,&b2,&e2,&t2,locales,fragtype,locbeg,locend);
 		if( verbose > 0)
 		  printf("(id2,loc2,beg2,end2,type2) = (" F_IID "," F_UID ",%d,%d,%c)\n",
                          iid2,l2,b2,e2,t2);

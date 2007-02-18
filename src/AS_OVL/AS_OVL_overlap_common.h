@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.27 2007-02-14 07:20:13 brianwalenz Exp $
- * $Revision: 1.27 $
+ * $Id: AS_OVL_overlap_common.h,v 1.28 2007-02-18 14:04:49 brianwalenz Exp $
+ * $Revision: 1.28 $
 */
 
 
@@ -76,7 +76,6 @@
 
 #include  "AS_OVL_delcher.h"
 #include  "AS_PER_gkpStore.h"
-#include  "AS_PER_ReadStruct.h"
 #include  "AS_UTL_PHash.h"
 #include  "AS_MSG_pmesg.h"
 #include  "AS_OVL_overlap.h"
@@ -460,7 +459,7 @@ static void  Put_String_In_Hash
     (int i);
 static int  Read_Next_Frag
     (char frag [AS_READ_MAX_LEN + 1], char quality [AS_READ_MAX_LEN + 1],
-     FragStream *stream, ReadStructp, Screen_Info_t *,
+     FragStream *stream, fragRecord *, Screen_Info_t *,
      uint32 * last_frag_read);
 static void  Read_uint32_List
     (char * file_name, uint32 * * list, int * n);
@@ -1398,7 +1397,7 @@ WA -> String_Olap_Space [Sub] . Kmer_Hits ++;
 
 
 int  Build_Hash_Index
-    (FragStream *stream, int32 first_frag_id, ReadStructp myRead)
+    (FragStream *stream, int32 first_frag_id, fragRecord *myRead)
 
 /* Read the next batch of strings from  stream  and create a hash
 *  table index of their  WINDOW_SIZE -mers.  Return  1  if successful;
@@ -3022,7 +3021,7 @@ void  Initialize_Work_Area
      }
 
    WA -> status = 0;
-   WA -> myRead = new_ReadStruct ();
+   WA -> myRead = new_fragRecord ();
 
    WA -> screen_info . range = (Screen_Range_t *) safe_malloc
                                    (INIT_SCREEN_MATCHES * sizeof (Screen_Range_t));
@@ -5131,7 +5130,7 @@ static int  Read_Next_Frag
     (char frag [AS_READ_MAX_LEN + 1], 
      char quality [AS_READ_MAX_LEN + 1], 
      FragStream *stream,
-     ReadStructp myRead,
+     fragRecord *myRead,
      Screen_Info_t * screen,
      uint32 * last_frag_read)
 
@@ -5153,16 +5152,16 @@ static int  Read_Next_Frag
        pthread_mutex_lock (& FragStore_Mutex);
 
 #if  USE_SOURCE_FIELD
-   success = nextFragStream (stream, myRead, FRAG_S_SEQ | FRAG_S_SRC);
+   success = nextFragStream (stream, myRead);
 #else
-   success = nextFragStream (stream, myRead, FRAG_S_SEQ);
+   success = nextFragStream (stream, myRead);
 #endif
-   getIsDeleted_ReadStruct (myRead, & deleted);
+   deleted = getFragRecordIsDeleted (myRead);
    if  (! success)
        return_val = 0;
    else if  (deleted)
        {
-        getReadIndex_ReadStruct (myRead, last_frag_read);
+        *last_frag_read = getFragRecordIID (myRead);
         return_val = DELETED_FRAG;
        }
      else
@@ -5170,35 +5169,23 @@ static int  Read_Next_Frag
         int  result;
         uint  clear_start, clear_end;
         size_t  len;
+        char   *seqptr;
+        char   *qltptr;
 
-        getReadIndex_ReadStruct (myRead, last_frag_read);
-        result = getSequence_ReadStruct
-                     (myRead, frag, quality, AS_READ_MAX_LEN + 1);
-        if  (result != 0)
-            {
-             fprintf (stderr,
-                      "Error reading frag store tried to fit %d in a buffer of %d\n",
-                      result, AS_READ_MAX_LEN + 1);
-             exit (EXIT_FAILURE);
-            }
+        *last_frag_read = getFragRecordIID (myRead);
 
         // Make sure that we have a lowercase sequence string
-        len = strlen (frag);
+        seqptr = getFragRecordSequence(myRead);
+        qltptr = getFragRecordQuality(myRead);
+        len    = getFragRecordSequenceLength(myRead);
 
-        for  (i = 0;  i < len;  i ++)
-          frag [i] = tolower (frag [i]);
+        for  (i = 0;  i < len;  i ++) {
+          frag [i]    = tolower (seqptr [i]);
+          quality [i] = qltptr[i];
+        }
 
-        if  (Doing_Partial_Overlaps)
-            result = getClearRegion_ReadStruct
-                         (myRead, & clear_start, & clear_end, READSTRUCT_ORIGINAL);
-          else
-            result = getClearRegion_ReadStruct
-                         (myRead, & clear_start, & clear_end, READSTRUCT_OVL);
-        if  (result != 0)
-            {
-             fprintf (stderr, "Error reading frag store\n");
-             exit (EXIT_FAILURE);
-            }
+        clear_start = getFragRecordClearRegionBegin(myRead, AS_READ_CLEAR_OBT);
+        clear_end   = getFragRecordClearRegionEnd  (myRead, AS_READ_CLEAR_OBT);
 
         if  (Ignore_Clear_Range)
             frag_len = len;
@@ -5213,11 +5200,8 @@ static int  Read_Next_Frag
             }
         if  (OFFSET_MASK < frag_len)
             {
-             uint64  acc;
-
-             getAccID_ReadStruct (myRead, & acc);
              fprintf (stderr, "ERROR:  Read \"%s\" is too long (%lu) for hash table\n",
-                      acc, frag_len);
+                      getFragRecordUID(myRead), frag_len);
              exit (-1);
             }
         frag [frag_len] = '\0';

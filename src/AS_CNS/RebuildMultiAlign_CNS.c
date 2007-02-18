@@ -25,7 +25,7 @@
                  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: RebuildMultiAlign_CNS.c,v 1.9 2007-02-12 22:16:56 brianwalenz Exp $";
+static char CM_ID[] = "$Id: RebuildMultiAlign_CNS.c,v 1.10 2007-02-18 14:04:48 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -41,7 +41,7 @@ static char CM_ID[] = "$Id: RebuildMultiAlign_CNS.c,v 1.9 2007-02-12 22:16:56 br
 // Celera Assembler includes:
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
-#include "AS_PER_ReadStruct.h"
+#include "AS_PER_gkpStore.h"
 #include "AS_PER_genericStore.h"
 #include "AS_UTL_Var.h"
 #include "AS_UTL_ID_store.h"
@@ -274,7 +274,7 @@ int main (int argc, char *argv[]) {
                         ma,
                         global_fragStore,
                         (tFragStorePartition*)NULL,
-			1,0,READSTRUCT_LATEST);
+			1,0,AS_READ_CLEAR_CLOSURE);
      }
     }
    }

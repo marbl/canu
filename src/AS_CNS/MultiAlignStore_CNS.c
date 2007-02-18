@@ -25,7 +25,7 @@
    Assumptions:  libAS_UTL.a
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.27 2007-02-15 21:42:31 eliv Exp $";
+static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.28 2007-02-18 14:04:48 brianwalenz Exp $";
 
 
 #include <assert.h>
@@ -34,7 +34,7 @@ static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.27 2007-02-15 21:42:31 eli
 #include <ctype.h>
 
 #include "AS_global.h"
-#include "AS_PER_SafeIO.h"
+#include "AS_UTL_fileIO.h"
 #include "UtilsREZ.h"
 #include "MultiAlignment_CNS.h"
 #include "MultiAlignStore_CNS.h"
@@ -891,19 +891,15 @@ SaveReferenceMultiAlignTToStream(MultiAlignT *ma, FILE *stream)
   char isPresent = (ma != NULL);
 
   // Sentinel to say this is non-null
-    status = safeWrite(stream, &isPresent, sizeof(char));
-    assert(status == FALSE);
+  AS_UTL_safeWrite(stream, &isPresent, "SaveReferenceMultiAlignTToStream", sizeof(char));
 
-    if(!isPresent)
-      return;
+  if(!isPresent)
+    return;
 
-    // Sentinel to say this is a reference
-    //    fprintf(stderr,"* Saving reference to ma %d\n", reference);
+  // Sentinel to say this is a reference
+  //    fprintf(stderr,"* Saving reference to ma %d\n", reference);
 
-    status = safeWrite(stream, &reference, sizeof(int32));
-    assert(status == FALSE);
-
-
+  AS_UTL_safeWrite(stream, &reference, "SaveReferenceMultiAlignTToStream", sizeof(int32));
 }
 
 
@@ -920,16 +916,14 @@ SaveMultiAlignTToStream(MultiAlignT *ma, FILE *stream)
 
   // Sentinel to say this is non-null
   totalSize++;
-    status = safeWrite(stream, &isPresent, sizeof(char));
-    assert(status == FALSE);
+  AS_UTL_safeWrite(stream, &isPresent, "SaveMultiAlignTToStream", sizeof(char));
 
     if(!isPresent)
       return(sizeof(char));;
 
   // Sentinel to say this is a real one
     totalSize += sizeof(int32);
-    status = safeWrite(stream, &reference, sizeof(int32));
-    assert(status == FALSE);
+    AS_UTL_safeWrite(stream, &reference, "SaveMultiAlignTToStream", sizeof(int32));
 
     //  CheckMAValidity(ma);
 
@@ -964,10 +958,9 @@ SaveMultiAlignTToStream(MultiAlignT *ma, FILE *stream)
   totalSize += CopyToFileVA_IntMultiPos(ma->u_list, stream);
   totalSize += (3 * sizeof(int32));
   //  fprintf(stderr,"*totalSize is %d\n", totalSize);
-  status = safeWrite(stream, &ma->forced, sizeof(int32));
-  status = safeWrite(stream, &ma->id, sizeof(int32));
-  status = safeWrite(stream, &ma->source_alloc, sizeof(int32));
-  assert(status == FALSE);
+  AS_UTL_safeWrite(stream, &ma->forced, "SaveMultiAlignTToStream", sizeof(int32));
+  AS_UTL_safeWrite(stream, &ma->id, "SaveMultiAlignTToStream", sizeof(int32));
+  AS_UTL_safeWrite(stream, &ma->source_alloc, "SaveMultiAlignTToStream", sizeof(int32));
  //  fprintf(stderr,"* ma %d start:%ld total:%ld\n",
   //	  ma->id, size, CDS_FTELL(stream) - size);
   // Restore the delta pointers since they were saved as offset from base of delta array
@@ -1007,7 +1000,7 @@ LoadMultiAlignTFromStream(FILE *stream, int32 *reference)
   char isPresent; 
 
   // Sentinel to say this is non-null
-    status = safeRead(stream, &isPresent, sizeof(char));
+    status = AS_UTL_safeRead(stream, &isPresent, "LoadMultiAlignTFromStream", sizeof(char));
     assert(status == FALSE);
 
     if(!isPresent){
@@ -1015,7 +1008,7 @@ LoadMultiAlignTFromStream(FILE *stream, int32 *reference)
     *reference = NULLINDEX;
       return NULL;
     }
-  status = safeRead(stream, reference, sizeof(int32));
+  status = AS_UTL_safeRead(stream, reference, "LoadMultiAlignTFromStream", sizeof(int32));
   assert(status == FALSE);
 
   if(*reference != NULLINDEX){
@@ -1034,9 +1027,9 @@ LoadMultiAlignTFromStream(FILE *stream, int32 *reference)
   ma->v_list = CreateFromFileVA_IntMultiVar(stream,0);
   ma->udelta = CreateFromFileVA_int32(stream,0);
   ma->u_list = CreateFromFileVA_IntUnitigPos(stream,0);
-  status = safeRead(stream, &ma->forced, sizeof(int32));
-  status = safeRead(stream, &ma->id, sizeof(int32));
-  status = safeRead(stream, &ma->source_alloc, sizeof(int32));
+  status = AS_UTL_safeRead(stream, &ma->forced, "LoadMultiAlignTFromStream", sizeof(int32));
+  status += AS_UTL_safeRead(stream, &ma->id, "LoadMultiAlignTFromStream", sizeof(int32));
+  status += AS_UTL_safeRead(stream, &ma->source_alloc, "LoadMultiAlignTFromStream", sizeof(int32));
   assert(status == FALSE);
 
   // Restore the delta pointers since they were saved as offset from base of delta array
@@ -1083,7 +1076,7 @@ ReLoadMultiAlignTFromStream(FILE *stream, MultiAlignT *ma, int32 *reference)
   ResetVA_IntUnitigPos(ma->u_list);
 
   // Sentinel to say this is non-null
-    status = safeRead(stream, &isPresent, sizeof(char));
+    status = AS_UTL_safeRead(stream, &isPresent, "ReLoadMultiAlignTFromStream", sizeof(char));
     assert(status == FALSE);
 
     if(!isPresent){
@@ -1091,7 +1084,7 @@ ReLoadMultiAlignTFromStream(FILE *stream, MultiAlignT *ma, int32 *reference)
     *reference = NULLINDEX;
       return;
     }
-  status = safeRead(stream, reference, sizeof(int32));
+  status = AS_UTL_safeRead(stream, reference, "ReLoadMultiAlignTFromStream", sizeof(int32));
   assert(status == FALSE);
 
   if(*reference != NULLINDEX){
@@ -1108,9 +1101,9 @@ ReLoadMultiAlignTFromStream(FILE *stream, MultiAlignT *ma, int32 *reference)
   LoadFromFileVA_IntMultiVar(stream,ma->v_list,0);
   LoadFromFileVA_int32(stream,ma->udelta,0);
   LoadFromFileVA_IntUnitigPos(stream,ma->u_list,0);
-  status = safeRead(stream, &ma->forced, sizeof(int32));
-  status = safeRead(stream, &ma->id, sizeof(int32));
-  status = safeRead(stream, &ma->source_alloc, sizeof(int32));
+  status = AS_UTL_safeRead(stream, &ma->forced, "ReLoadMultiAlignTFromStream", sizeof(int32));
+  status += AS_UTL_safeRead(stream, &ma->id, "ReLoadMultiAlignTFromStream", sizeof(int32));
+  status += AS_UTL_safeRead(stream, &ma->source_alloc, "ReLoadMultiAlignTFromStream", sizeof(int32));
   assert(status == FALSE);
 
   // Restore the delta pointers since they were saved as offset from base of delta array
@@ -1339,8 +1332,7 @@ SaveMultiAlignStoreTToStream(MultiAlignStoreT *mas, FILE *stream,
   int i;
   int status;
   int32 size = GetNumPtrTs(mas->multiAligns);
-  status = safeWrite(stream, &size, sizeof(int32));
-  assert(status == FALSE);
+  AS_UTL_safeWrite(stream, &size, "SaveMultiAlignStoreTToStream", sizeof(int32));
   for(i = 0; i < size; i++){
     MultiAlignT *ma = (MultiAlignT *) *GetPtrT(mas->multiAligns, i);
     //    fprintf(stderr,"* i = %d ma = 0x%x\n", i, ma);
@@ -1364,7 +1356,7 @@ LoadMultiAlignStoreTFromStream(FILE *stream)
   int status;
   int32 size;
   int32 reference;
-  status = safeRead(stream, &size, sizeof(int32));
+  status = AS_UTL_safeRead(stream, &size, "LoadMultiAlignStoreTFromStream", sizeof(int32));
   mas = CreateMultiAlignStoreT(size);
   assert(status == FALSE);
   for(i = 0; i < size; i++){
@@ -1390,7 +1382,7 @@ LoadMultiAlignStoreTFromStreamWithReferences(FILE *stream,
   int status;
   int32 size;
   int32 reference;
-  status = safeRead(stream, &size, sizeof(int32));
+  status = AS_UTL_safeRead(stream, &size, "LoadMultiAlignStoreTFromStreamWithReferences", sizeof(int32));
   mas = CreateMultiAlignStoreT(size);
   assert(status == FALSE);
   for(i = 0; i < size; i++){
@@ -1586,11 +1578,9 @@ CollectStats(MultiAlignT *ma,
     int num_errors;
     VA_TYPE(ErrorStruct) *errors; 
     ErrorStruct frag_error;
-    char tmpseq[AS_READ_MAX_LEN+2];
-    char tmpqv[AS_READ_MAX_LEN+2];
     char seqdata[AS_READ_MAX_LEN+2];
     char qvdata[AS_READ_MAX_LEN+2];
-    ReadStructp rsp = new_ReadStruct();
+    fragRecord *rsp = new_fragRecord();
     
     column_cov = (int *) safe_malloc(ma_len*sizeof(int));
     column_mm = (int *) safe_malloc(ma_len*sizeof(int));
@@ -1601,17 +1591,16 @@ CollectStats(MultiAlignT *ma,
     // special case for singletons
     if (num_reads == 1) {
        getFrag(frag_store,reads[0].ident,rsp,FRAG_S_ALL);
-       getClearRegion_ReadStruct(rsp, &clrbgn,&clrend, clrrng_flag);
+       clrbgn = getFragRecordClearRegionBegin(rsp, clrrng_flag);
+       clrend = getFragRecordClearRegionEnd  (rsp, clrrng_flag);
        fprintf(frag_stats,F_IID "  " F_UID " %c %d %d\n",
                reads[0].ident,accession,
                reads[0].type,(int) clrbgn,(int) clrend);
       flen = clrend - clrbgn;
-      if(getSequence_ReadStruct(rsp, tmpseq, tmpqv, AS_READ_MAX_LEN+1) != 0)
-        assert(0);
       // capture only the clear range for analysis
       // reverse complement if necessary:
-      memcpy(seqdata, &tmpseq[clrbgn], (flen+1)*sizeof(char));
-      memcpy(qvdata, &tmpqv[clrbgn], (flen+1)*sizeof(char));
+      memcpy(seqdata, getFragRecordSequence(rsp) + clrbgn, (flen+1)*sizeof(char));
+      memcpy(qvdata,  getFragRecordQuality(rsp)  + clrbgn, (flen+1)*sizeof(char));
       seqdata[flen] = '\0';
       qvdata[flen] = '\0';
        for (j=0;j<ma_len;j++) {
@@ -1634,22 +1623,21 @@ CollectStats(MultiAlignT *ma,
       left = (reads[i].position.bgn < reads[i].position.end)? reads[i].position.bgn : reads[i].position.end;
       right= (reads[i].position.bgn > reads[i].position.end)?reads[i].position.bgn:reads[i].position.end;
       getFrag(frag_store,reads[i].ident,rsp,FRAG_S_ALL);
-      getClearRegion_ReadStruct(rsp, &clrbgn,&clrend, clrrng_flag);
+      clrbgn = getFragRecordClearRegionBegin(rsp, clrrng_flag);
+      clrend = getFragRecordClearRegionEnd  (rsp, clrrng_flag);
       flen = clrend - clrbgn;
       assert(flen < AS_READ_MAX_LEN);
       assert(flen > 0);
-      if(getSequence_ReadStruct(rsp, tmpseq, tmpqv, AS_READ_MAX_LEN+1) != 0)
-        assert(0);
       // capture only the clear range for analysis
       // reverse complement if necessary:
-      memcpy(seqdata, &tmpseq[clrbgn], (flen+1)*sizeof(char));
-      memcpy(qvdata, &tmpqv[clrbgn], (flen+1)*sizeof(char));
+      memcpy(seqdata, getFragRecordSequence(rsp) + clrbgn, (flen+1)*sizeof(char));
+      memcpy(qvdata,  getFragRecordQuality(rsp)  + clrbgn, (flen+1)*sizeof(char));
       seqdata[flen] = '\0';
       qvdata[flen] = '\0';
       if (reads[i].position.bgn > reads[i].position.end) {
         SequenceComplement(seqdata,qvdata);
       }
-      getAccID_ReadStruct(rsp, &accession);
+      accession = getFragRecordUID(rsp);
       ResetErrorStruct(errors);
       
       readptr= 0;
@@ -1732,7 +1720,7 @@ CollectStats(MultiAlignT *ma,
     safe_free(column_cov);
     safe_free(column_mm);
     DeleteVA_ErrorStruct(errors);
-    delete_ReadStruct(rsp);
+    del_fragRecord(rsp);
 }
 
 
@@ -1784,11 +1772,11 @@ PrintMultiAlignT(FILE *out,
   char *nonblank;
   static char *sep0="___________________________________________________________________________________________________________________________________";
   static char *sep1="         |         |         |         |         |         |         |         |         |         |";
-  static  ReadStructp rsp=NULL;
+  static  fragRecord *rsp=NULL;
   int partitioned=0;
   length = strlen(consensus);
   if (rsp==NULL) {
-     rsp  = new_ReadStruct();
+     rsp  = new_fragRecord();
   }
   if ( frag_store == NULL ) {
    partitioned = 1;
@@ -1870,7 +1858,7 @@ PrintMultiAlignT(FILE *out,
                                FRAG_S_INF);
              }
              frgTypeDisplay = ' ';
-             getAccID_ReadStruct(rsp, &uid); 
+             uid = getFragRecordUID(rsp);
              //getReadType_ReadStruct(rsp, &frgTypeData);
              frgTypeData = AS_READ;
 

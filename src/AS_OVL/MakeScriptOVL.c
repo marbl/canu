@@ -28,12 +28,12 @@
 *************************************************/
 
 /* RCS info
- * $Id: MakeScriptOVL.c,v 1.6 2007-01-29 20:41:17 brianwalenz Exp $
- * $Revision: 1.6 $
+ * $Id: MakeScriptOVL.c,v 1.7 2007-02-18 14:04:49 brianwalenz Exp $
+ * $Revision: 1.7 $
 */
 
 static char  CM_ID []
-    = "$Id: MakeScriptOVL.c,v 1.6 2007-01-29 20:41:17 brianwalenz Exp $";
+    = "$Id: MakeScriptOVL.c,v 1.7 2007-02-18 14:04:49 brianwalenz Exp $";
 
 
 /*************************************************************************/
@@ -55,7 +55,7 @@ static char  CM_ID []
 /*************************************************************************/
 
 #include  "AS_OVL_delcher.h"
-#include  "AS_PER_ReadStruct.h"
+#include  "AS_PER_gkpStore.h"
 #include  "AS_PER_genericStore.h"
 #include  "AS_PER_fragStore.h"
 #include  "AS_PER_distStore.h"

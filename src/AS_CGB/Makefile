@@ -73,7 +73,6 @@ PROGS = unitigger \
         check_breakers \
         miniunitigger_test
 
-# Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
 
 DEPEND_FILES = *.c *.h

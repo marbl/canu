@@ -23,7 +23,7 @@
   -o /work/assembly/rbolanos/IBM_PORT_CDS/ibm_migration_work_dir/cds/AS/obj/GraphCGW_T.o GraphCGW_T.c
 */
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.32 2007-02-15 23:55:54 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.33 2007-02-18 14:04:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,13 +36,14 @@ static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.32 2007-02-15 23:55:54 brianwalenz 
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "AS_global.h"
+#include "AS_UTL_fileIO.h"
+#include "AS_UTL_interval.h"
 #include "ScaffoldGraphIterator_CGW.h"
 #include "ScaffoldGraph_CGW.h"
 #include "GraphCGW_T.h"
 #include "ChunkOverlap_CGW.h"
 #include "Instrument_CGW.h"
-#include "AS_PER_SafeIO.h"
-#include "AS_UTL_interval.h"
 #include "MultiAlignment_CNS.h"
 #include "FbacREZ.h"
 #include "UtilsREZ.h"
@@ -103,7 +104,6 @@ GraphCGW_T *CreateGraphCGW(GraphType type,
 
 
 void SaveGraphCGWToStream(GraphCGW_T *graph, FILE *stream){
-  int status;
   int32 i;
   CopyToFileVA_NodeCGW_T(graph->nodes, stream);
 
@@ -120,22 +120,14 @@ void SaveGraphCGWToStream(GraphCGW_T *graph, FILE *stream){
 
   CopyToFileVA_EdgeCGW_T(graph->edges, stream);
   
-  status = safeWrite(stream, &graph->type, sizeof(int32));
-  assert(status == FALSE);
-  status = safeWrite(stream, &graph->numActiveNodes, sizeof(int32));
-  assert(status == FALSE);
-  status = safeWrite(stream, &graph->numActiveEdges, sizeof(int32));
-  assert(status == FALSE);
-  status = safeWrite(stream, &graph->freeEdgeHead, sizeof(CDS_CID_t));
-  assert(status == FALSE);
-  status = safeWrite(stream, &graph->tobeFreeEdgeHead, sizeof(CDS_CID_t));
-  assert(status == FALSE);
-  status = safeWrite(stream, &graph->freeNodeHead, sizeof(CDS_CID_t));
-  assert(status == FALSE);
-  status = safeWrite(stream, &graph->tobeFreeNodeHead, sizeof(CDS_CID_t));
-  assert(status == FALSE);
-  status = safeWrite(stream, &graph->deadNodeHead, sizeof(CDS_CID_t));
-  assert(status == FALSE);
+  AS_UTL_safeWrite(stream, &graph->type, "SaveGraphCGWToStream", sizeof(int32));
+  AS_UTL_safeWrite(stream, &graph->numActiveNodes, "SaveGraphCGWToStream", sizeof(int32));
+  AS_UTL_safeWrite(stream, &graph->numActiveEdges, "SaveGraphCGWToStream", sizeof(int32));
+  AS_UTL_safeWrite(stream, &graph->freeEdgeHead, "SaveGraphCGWToStream", sizeof(CDS_CID_t));
+  AS_UTL_safeWrite(stream, &graph->tobeFreeEdgeHead, "SaveGraphCGWToStream", sizeof(CDS_CID_t));
+  AS_UTL_safeWrite(stream, &graph->freeNodeHead, "SaveGraphCGWToStream", sizeof(CDS_CID_t));
+  AS_UTL_safeWrite(stream, &graph->tobeFreeNodeHead, "SaveGraphCGWToStream", sizeof(CDS_CID_t));
+  AS_UTL_safeWrite(stream, &graph->deadNodeHead, "SaveGraphCGWToStream", sizeof(CDS_CID_t));
 
   // Save the multiAlignStore
   if(graph->type != SCAFFOLD_GRAPH){
@@ -147,8 +139,8 @@ void SaveGraphCGWToStream(GraphCGW_T *graph, FILE *stream){
 
 
 GraphCGW_T *LoadGraphCGWFromStream(FILE *stream){
-  int status;
   CDS_CID_t i;
+  int       status = 0;
   GraphCGW_T *graph = (GraphCGW_T *)safe_malloc(sizeof(GraphCGW_T));
 
   graph->nodes =        CreateFromFileVA_NodeCGW_T(stream,0);
@@ -165,25 +157,16 @@ GraphCGW_T *LoadGraphCGWFromStream(FILE *stream){
     node->info.CI.instances.va = CreateFromFileVA_CDS_CID_t(stream,0);
   }
 
-
-
   graph->edges =          CreateFromFileVA_EdgeCGW_T( stream,0);
 
-  status = safeRead(stream, &graph->type, sizeof(int32));
-  assert(status == FALSE);
-  status = safeRead(stream, &graph->numActiveNodes, sizeof(int32));
-  assert(status == FALSE);
-  status = safeRead(stream, &graph->numActiveEdges, sizeof(int32));
-  assert(status == FALSE);
-  status = safeRead(stream, &graph->freeEdgeHead, sizeof(CDS_CID_t));
-  assert(status == FALSE);
-  status = safeRead(stream, &graph->tobeFreeEdgeHead, sizeof(CDS_CID_t));
-  assert(status == FALSE);
-  status = safeRead(stream, &graph->freeNodeHead, sizeof(CDS_CID_t));
-  assert(status == FALSE);
-  status = safeRead(stream, &graph->tobeFreeNodeHead, sizeof(CDS_CID_t));
-  assert(status == FALSE);
-  status = safeRead(stream, &graph->deadNodeHead, sizeof(CDS_CID_t));
+  status  = AS_UTL_safeRead(stream, &graph->type, "LoadGraphCGWFromStream", sizeof(int32));
+  status += AS_UTL_safeRead(stream, &graph->numActiveNodes, "LoadGraphCGWFromStream", sizeof(int32));
+  status += AS_UTL_safeRead(stream, &graph->numActiveEdges, "LoadGraphCGWFromStream", sizeof(int32));
+  status += AS_UTL_safeRead(stream, &graph->freeEdgeHead, "LoadGraphCGWFromStream", sizeof(CDS_CID_t));
+  status += AS_UTL_safeRead(stream, &graph->tobeFreeEdgeHead, "LoadGraphCGWFromStream", sizeof(CDS_CID_t));
+  status += AS_UTL_safeRead(stream, &graph->freeNodeHead, "LoadGraphCGWFromStream", sizeof(CDS_CID_t));
+  status += AS_UTL_safeRead(stream, &graph->tobeFreeNodeHead, "LoadGraphCGWFromStream", sizeof(CDS_CID_t));
+  status += AS_UTL_safeRead(stream, &graph->deadNodeHead, "LoadGraphCGWFromStream", sizeof(CDS_CID_t));
   assert(status == FALSE);
 
   // Load the multiAlignStore
@@ -2438,8 +2421,8 @@ int CreateGraphEdge(GraphCGW_T *graph,
                                &ciOffset,
                                &ciOrient,
                                &extremalA,
-                               (orient == AS_GKP_ORIENT_INNIE ||
-                                orient == AS_GKP_ORIENT_NORMAL))){
+                               (orient == AS_READ_ORIENT_INNIE ||
+                                orient == AS_READ_ORIENT_NORMAL))){
     fprintf(GlobalData->stderrc,
             "* CIFragOffset returned false for frag " F_CID " (" F_CID ")\n",
             fragID, frag->iid);
@@ -2450,8 +2433,8 @@ int CreateGraphEdge(GraphCGW_T *graph,
                                &mciOffset,
                                &mciOrient,
                                &extremalB,
-                               (orient == AS_GKP_ORIENT_INNIE ||
-                                orient == AS_GKP_ORIENT_ANTINORMAL))){
+                               (orient == AS_READ_ORIENT_INNIE ||
+                                orient == AS_READ_ORIENT_ANTINORMAL))){
     fprintf(GlobalData->stderrc,"* CIFragOffset returned false for frag " F_CID " (" F_CID ")\n",
             mfragID, mfrag->iid);
     return FALSE;
@@ -2466,7 +2449,7 @@ int CreateGraphEdge(GraphCGW_T *graph,
 
   switch(orient){
     
-    case AS_GKP_ORIENT_INNIE: /********* AB_BA *******************************/
+    case AS_READ_ORIENT_INNIE: /********* AB_BA *******************************/
       switch(ciOrient){
 	//
         case A_B:
@@ -2531,7 +2514,7 @@ int CreateGraphEdge(GraphCGW_T *graph,
       }
       break;
       
-    case AS_GKP_ORIENT_NORMAL: /******* AB_AB *******************************/
+    case AS_READ_ORIENT_NORMAL: /******* AB_AB *******************************/
       switch(ciOrient){
 	//
         case A_B:
@@ -2595,7 +2578,7 @@ int CreateGraphEdge(GraphCGW_T *graph,
           break;
       }
       break;
-    case AS_GKP_ORIENT_ANTINORMAL: /***** BA_BA *******************************/
+    case AS_READ_ORIENT_ANTINORMAL: /***** BA_BA *******************************/
       switch(ciOrient){
 	//
         case A_B:
@@ -2660,7 +2643,7 @@ int CreateGraphEdge(GraphCGW_T *graph,
           break;
       }
       break;
-    case AS_GKP_ORIENT_OUTTIE: /******** BA_AB *******************************/
+    case AS_READ_ORIENT_OUTTIE: /******** BA_AB *******************************/
       switch(ciOrient){
 	//
         case A_B:
@@ -2897,7 +2880,7 @@ void  BuildGraphEdgesFromMultiAlign(GraphCGW_T *graph, NodeCGW_T *node,
       dist = GetDistT(ScaffoldGraph->Dists, mfrag->dist);
       assert(dist);
       hasExternalLinks |= CreateGraphEdge(graph, frag, mfrag, dist, mfrag->linkType, 
-                                          (frag->flags.bits.innieMate?AS_GKP_ORIENT_INNIE:AS_GKP_ORIENT_OUTTIE), 
+                                          (frag->flags.bits.innieMate?AS_READ_ORIENT_INNIE:AS_READ_ORIENT_OUTTIE), 
                                           FALSE, stat, buildAll);
     }
 

@@ -22,9 +22,7 @@
 #include <stdlib.h>
 
 merStream::merStream(cds_uint32 merSize, char *gkpstore) {
-  _theAlloc        = 1024;
-  _theSeq          = new char [_theAlloc];
-  _theQlt          = new char [_theAlloc];
+  _theSeq          = 0L;
   _theLen          = 0;
   _thePos          = 0;
   _endPos          = 0;
@@ -43,7 +41,7 @@ merStream::merStream(cds_uint32 merSize, char *gkpstore) {
     fprintf(stderr, "ERROR:  couldn't open the gatekeeper store '%s'\n", gkpstore);
     exit(1);
   }
-  _rs  = new_ReadStruct();
+  _fr  = new_fragRecord();
 
   _iid = 1;
   _max = getLastElemFragStore(_fs);
@@ -54,9 +52,7 @@ merStream::merStream(cds_uint32 merSize, char *gkpstore) {
 
 
 merStream::merStream(cds_uint32 merSize, char *gkpstore, int skipNum) {
-  _theAlloc        = 1024;
-  _theSeq          = new char [_theAlloc];
-  _theQlt          = new char [_theAlloc];
+  _theSeq          = 0L;
   _theLen          = 0;
   _thePos          = 0;
   _endPos          = 0;
@@ -75,7 +71,7 @@ merStream::merStream(cds_uint32 merSize, char *gkpstore, int skipNum) {
     fprintf(stderr, "ERROR:  couldn't open the gatekeeper store '%s'\n", gkpstore);
     exit(1);
   }
-  _rs  = new_ReadStruct();
+  _fr  = new_fragRecord();
 
   _iid = 1;
   _max = getLastElemFragStore(_fs);
@@ -85,9 +81,6 @@ merStream::merStream(cds_uint32 merSize, char *gkpstore, int skipNum) {
 }
 
 merStream::~merStream() {
-  delete_ReadStruct(_rs);
+  del_fragRecord(_fr);
   closeGateKeeperStore(_fs);
-
-  delete [] _theSeq;
-  delete [] _theQlt;
 }

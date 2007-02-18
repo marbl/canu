@@ -74,7 +74,7 @@ typedef struct BubblePopper {
 
   /* Recycled scratch space for each bubble. */
   
-  ReadStructp rsp;
+  fragRecord *rsp;
   IntFragment_ID curBubSize;
   int *topDistArray;		/* Scratch space for longest path algorithm */
   BG_E_Iter *dfsStack;	        /* Scratch space for traversals (dfs and 

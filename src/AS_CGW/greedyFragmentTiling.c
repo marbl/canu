@@ -52,7 +52,7 @@
 #include "AS_UTL_Hash.h"
 #include "OlapStoreOVL.h"
 #include "AS_PER_gkpStore.h"
-#include "AS_PER_ReadStruct.h"
+#include "AS_PER_gkpStore.h"
 #include "UtilsREZ.h"
 #include "AS_GKP_include.h"
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.13 2007-02-12 22:16:57 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.14 2007-02-18 14:04:49 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
@@ -70,6 +70,31 @@ Check_LinkMesg(LinkMesg             *lkg_mesg,
                CDS_CID_t             batchID,
                time_t                currentTime,
                int                   verbose);
+
+
+
+
+void
+dumpGateKeeperAsCompatible(char       *gkpStoreName,
+                           CDS_IID_t   begIID,
+                           CDS_IID_t   endIID);
+
+void
+dumpGateKeeperAsFasta(char       *gkpStoreName,
+                      CDS_IID_t   begIID,
+                      CDS_IID_t   endIID,
+                      int         dumpFastaAllReads,
+                      int         dumpFastaAllBases,
+                      int         dumpFastaClear);
+
+void
+dumpGateKeeperAsXML(char       *gkpStoreName,
+                    CDS_IID_t   begIID,
+                    CDS_IID_t   endIID);
+
+void
+dumpGateKeeperAsOFG(char       *gkpStoreName);
+
 
 
 //

@@ -24,24 +24,16 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-GKPSOURCES = AS_GKP_main.c AS_GKP_checkBatch.c AS_GKP_checkLibrary.c AS_GKP_checkFrag.c AS_GKP_checkLink.c
-GKPOBJECTS = AS_GKP_main.o AS_GKP_checkBatch.o AS_GKP_checkLibrary.o AS_GKP_checkFrag.o AS_GKP_checkLink.o
-
-OTHERSOURCES = dumpGatekeeper.c
-OTHEROBJECTS = dumpGatekeeper.o
-
-SOURCES = $(GKPSOURCES) $(OTHERSOURCES)
-OBJECTS = $(GKPOBJECTS) $(OTHEROBJECTS)
+SOURCES = AS_GKP_main.c AS_GKP_checkBatch.c AS_GKP_checkLibrary.c AS_GKP_checkFrag.c AS_GKP_checkLink.c AS_GKP_dump.c
+OBJECTS = $(SOURCES:.c=.o)
 
 LIBRARIES =
 
-PROGS = gatekeeper dumpGatekeeper
+PROGS = gatekeeper
 
 include $(LOCAL_WORK)/src/c_make.as
 
 all:    $(OBJECTS) $(LIBRARIES) $(PROGS)
 	@test -n nop
 
-gatekeeper: $(GKPOBJECTS) libAS_PER.a libAS_MSG.a libAS_UTL.a
-
-dumpGatekeeper: dumpGatekeeper.o libAS_PER.a libAS_MSG.a libAS_UTL.a
+gatekeeper: $(OBJECTS) libAS_PER.a libAS_MSG.a libAS_UTL.a

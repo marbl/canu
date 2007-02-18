@@ -18,22 +18,20 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: testChunkOverlap.c,v 1.5 2006-09-21 21:34:01 brianwalenz Exp $	 */
-#include "AS_global.h"
+/* 	$Id: testChunkOverlap.c,v 1.6 2007-02-18 14:04:48 brianwalenz Exp $	 */
+
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+
+#include "AS_global.h"
 #include "AS_UTL_Var.h"
-#include "AS_PER_SafeIO.h"
 #include "ChunkStore_AS.h"
 #include "AS_ALN_aligners.h"
-#include "AS_global.h"
-
 
 ChunkFileT *ChunkFile;
-
 
 void ComputeOverlap(CDS_CID_t cidA, char *consensusA,
                     CDS_CID_t cidB, char *consensusB){

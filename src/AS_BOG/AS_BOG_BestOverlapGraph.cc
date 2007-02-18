@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.33 2007-02-15 19:05:34 brianwalenz Exp $
- * $Revision: 1.33 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.34 2007-02-18 14:04:47 brianwalenz Exp $
+ * $Revision: 1.34 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.33 2007-02-15 19:05:34 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.34 2007-02-18 14:04:47 brianwalenz Exp $";
 
 //  System include files
 #include<iostream>
@@ -579,24 +579,23 @@ For debugging i386, alpha differences on float conversion
 
         // Open Frag store
         GateKeeperStore  *gkpStoreHandle = openGateKeeperStore( FRG_Store_Path, FALSE);
-        FragStream       *fragStream = openFragStream( gkpStoreHandle);
-        ReadStructp     fsread = new_ReadStruct();
+        FragStream       *fragStream = openFragStream( gkpStoreHandle, FRAG_S_INF);
+        fragRecord       *fsread = new_fragRecord();
 
         // Allocate and Initialize fragLength array
         BestOverlapGraph::fragLength = new uint16[BestOverlapGraph::lastFrg+1];
         memset( BestOverlapGraph::fragLength, std::numeric_limits<uint16>::max(),
                 sizeof(uint16)*(BestOverlapGraph::lastFrg+1));
         iuid iid = 1;
-        while(nextFragStream( fragStream, fsread, FRAG_S_INF)) {
-            uint32 clrBgn, clrEnd, isDeleted;
-            getIsDeleted_ReadStruct(   fsread, &isDeleted);
-            if (isDeleted) {
+        while(nextFragStream( fragStream, fsread)) {
+            if (getFragRecordIsDeleted(fsread)) {
                 iid++; continue;
             }
-            getClearRegion_ReadStruct( fsread, &clrBgn, &clrEnd, READSTRUCT_OVL);
+            uint32 clrBgn = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_OBT);
+            uint32 clrEnd = getFragRecordClearRegionEnd  (fsread, AS_READ_CLEAR_OBT);
             BestOverlapGraph::fragLength[ iid++ ] = clrEnd - clrBgn;
         }
-        delete_ReadStruct( fsread );
+        del_fragRecord( fsread );
         closeFragStream( fragStream ); 
         closeGateKeeperStore( gkpStoreHandle ); 
 

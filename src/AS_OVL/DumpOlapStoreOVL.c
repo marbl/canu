@@ -33,11 +33,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: DumpOlapStoreOVL.c,v 1.5 2006-09-26 21:07:45 brianwalenz Exp $
- * $Revision: 1.5 $
+ * $Id: DumpOlapStoreOVL.c,v 1.6 2007-02-18 14:04:49 brianwalenz Exp $
+ * $Revision: 1.6 $
 */
 
-static char CM_ID[] = "$Id: DumpOlapStoreOVL.c,v 1.5 2006-09-26 21:07:45 brianwalenz Exp $";
+static char CM_ID[] = "$Id: DumpOlapStoreOVL.c,v 1.6 2007-02-18 14:04:49 brianwalenz Exp $";
 
 
 //  System include files
@@ -56,7 +56,7 @@ static char CM_ID[] = "$Id: DumpOlapStoreOVL.c,v 1.5 2006-09-26 21:07:45 brianwa
 //  Local include files
 
 #include  "AS_OVL_delcher.h"
-#include  "AS_PER_ReadStruct.h"
+#include  "AS_PER_gkpStore.h"
 #include  "AS_PER_genericStore.h"
 #include  "AS_UTL_PHash.h"
 #include  "AS_MSG_pmesg.h"

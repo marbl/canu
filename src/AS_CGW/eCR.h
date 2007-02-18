@@ -36,8 +36,8 @@
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
-#include "UtilsREZ.h"
 #include "AS_UTL_timer.h"
+#include "UtilsREZ.h"
 #include "AS_CGW_dataTypes.h"
 #include "ScaffoldGraph_CGW.h"
 #include "ScaffoldGraphIterator_CGW.h"
@@ -50,7 +50,6 @@
 #include "RepeatRez.h"
 #include "FbacREZ.h"
 #include "PublicAPI_CNS.h"
-#include "AS_PER_SafeIO.h"
 #include "ChiSquareTest_CGW.h"
 
 #define NUM_STDDEV_CUTOFF 5.0
@@ -144,7 +143,7 @@ void saveDefaultLocalAlignerVariables(void);
 void restoreDefaultLocalAlignerVariables(void);
 
 extern int                     totalContigsBaseChange;
-extern ReadStructp             fsread;
+extern fragRecord             *fsread;
 extern VA_TYPE(char)          *lContigConsensus;
 extern VA_TYPE(char)          *rContigConsensus;
 extern VA_TYPE(char)          *lContigQuality;
@@ -154,3 +153,4 @@ extern VA_TYPE(char)          *reformed_quality;
 extern VA_TYPE(int32)         *reformed_deltas;
 extern VA_TYPE(IntElementPos) *ContigPositions;
 extern VA_TYPE(IntElementPos) *UnitigPositions;
+extern int                     passNumber;

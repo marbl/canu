@@ -72,30 +72,27 @@ main(int argc, char **argv) {
   u32bit   firstElem = getFirstElemFragStore(gkp);
   u32bit   lastElem  = getLastElemFragStore(gkp) + 1;
 
-  ReadStructp       rd1 = new_ReadStruct();
-  ReadStructp       rd2 = new_ReadStruct();
+  fragRecord       *fr1 = new_fragRecord();
+  fragRecord       *fr2 = new_fragRecord();
 
   ////////////////////////////////////////
 
   fragHash   *fh = new fragHash [lastElem - firstElem + 1];
   u32bit      seqMax = 10240;
-  char       *seq1   = new char   [seqMax];
-  char       *qlt1   = new char   [seqMax];
-  char       *seq2   = new char   [seqMax];
-  char       *qlt2   = new char   [seqMax];
+  char       *seq1   = NULL;
+  char       *qlt1   = NULL;
+  char       *seq2   = NULL;
+  char       *qlt2   = NULL;
 
   ////////////////////////////////////////
 
   fprintf(stderr, "Read "u32bitFMT" fragments to build hashes.\n", lastElem - firstElem + 1);
 
   for (u32bit elem=firstElem; elem<lastElem; elem++) {
-    getFrag(gkp, elem, rd1, FRAG_S_ALL);
-    if (getSequence_ReadStruct(rd1, seq1, qlt1, seqMax)) {
-      fprintf(stderr, "getSequence_ReadStruct() failed.\n");
-      exit(1);
-    }
+    getFrag(gkp, elem, fr1, FRAG_S_SEQ);
+    seq1 = getFragRecordSequence(fr1);
 
-    u32bit seqLen   = strlen(seq1);
+    u32bit seqLen   = getFragRecordSequenceLength(fr1);
     u64bit hash     = 0;
     u32bit map[256] = { 0 };
 
@@ -146,17 +143,13 @@ main(int argc, char **argv) {
 
       //  Grab those two fragments, compare sequence and quality directly
 
-      getFrag(gkp, fh[elem-1].iid, rd1, FRAG_S_SEQ);
-      if (getSequence_ReadStruct(rd1, seq1, qlt1, seqMax)) {
-        fprintf(stderr, "getSequence_ReadStruct() failed.\n");
-        exit(1);
-      }
+      getFrag(gkp, fh[elem-1].iid, fr1, FRAG_S_SEQ);
+      seq1 = getFragRecordSequence(fr1);
+      qlt1 = getFragRecordQuality(fr1);
 
-      getFrag(gkp, fh[elem].iid, rd2, FRAG_S_SEQ);
-      if (getSequence_ReadStruct(rd2, seq2, qlt2, seqMax)) {
-        fprintf(stderr, "getSequence_ReadStruct() failed.\n");
-        exit(1);
-      }
+      getFrag(gkp, fh[elem].iid, fr2, FRAG_S_SEQ);
+      seq2 = getFragRecordSequence(fr2);
+      qlt2 = getFragRecordQuality(fr2);
 
       if ((strcmp(seq1, seq2) == 0) && (strcmp(qlt1, qlt2) == 0)) {
         realCollisions++;
@@ -171,8 +164,8 @@ main(int argc, char **argv) {
         //        fh[elem-1].iid, fh[elem].iid, hashCollisions, realCollisions);
 
         uint64 uid1=0, uid2=0;
-        getAccID_ReadStruct(rd1, &uid1);
-        getAccID_ReadStruct(rd2, &uid2);
+        uid1 = getFragRecordUID(fr1);
+        uid2 = getFragRecordUID(fr2);
 
         fprintf(stdout, u64bitFMT","u64bitFMT"\n", uid1, uid2);
       }

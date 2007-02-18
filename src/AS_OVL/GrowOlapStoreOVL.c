@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: GrowOlapStoreOVL.c,v 1.12 2007-02-14 07:20:13 brianwalenz Exp $
- * $Revision: 1.12 $
+ * $Id: GrowOlapStoreOVL.c,v 1.13 2007-02-18 14:04:49 brianwalenz Exp $
+ * $Revision: 1.13 $
 */
 
-static char CM_ID[] = "$Id: GrowOlapStoreOVL.c,v 1.12 2007-02-14 07:20:13 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GrowOlapStoreOVL.c,v 1.13 2007-02-18 14:04:49 brianwalenz Exp $";
 
 
 //  System include files
@@ -57,7 +57,7 @@ static char CM_ID[] = "$Id: GrowOlapStoreOVL.c,v 1.12 2007-02-14 07:20:13 brianw
 //  Local include files
 
 #include  "AS_OVL_delcher.h"
-#include  "AS_PER_ReadStruct.h"
+#include  "AS_PER_gkpStore.h"
 #include  "AS_PER_genericStore.h"
 #include  "AS_UTL_PHash.h"
 #include  "AS_MSG_pmesg.h"

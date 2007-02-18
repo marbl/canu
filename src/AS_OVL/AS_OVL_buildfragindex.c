@@ -34,12 +34,12 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_buildfragindex.c,v 1.6 2007-01-28 21:52:24 brianwalenz Exp $
+ * $Id: AS_OVL_buildfragindex.c,v 1.7 2007-02-18 14:04:49 brianwalenz Exp $
  */
 
 #include "AS_global.h"
 #include  "AS_OVL_delcher.h"
-#include  "AS_PER_ReadStruct.h"
+#include  "AS_PER_gkpStore.h"
 #include  "AS_PER_fragStore.h"
 
 #define  ALPHABET_SIZE       4

@@ -33,9 +33,7 @@
 
 #include "AS_global.h"
 #include "OlapStoreOVL.h"
-#include "AS_PER_ReadStruct.h"
 #include "AS_PER_gkpStore.h"
-#include "AS_PER_ReadStruct.h"
 #include "UtilsREZ.h"
 
 

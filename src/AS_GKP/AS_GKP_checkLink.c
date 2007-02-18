@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkLink.c,v 1.1 2007-02-12 22:16:57 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkLink.c,v 1.2 2007-02-18 14:04:49 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -136,8 +136,8 @@ Check_LinkMesg(LinkMesg *lkg_mesg,
     setGateKeeperFragmentStore(gkpStore->frg, frag1IID, &gkFrag1);
     setGateKeeperFragmentStore(gkpStore->frg, frag2IID, &gkFrag2);
 
-    AddRefPHashTable_AS(gkpStore->phs, UID_NAMESPACE_AS, gkFrag2.UID);
-    AddRefPHashTable_AS(gkpStore->phs, UID_NAMESPACE_AS, gkFrag1.UID);
+    AddRefPHashTable_AS(gkpStore->phs, UID_NAMESPACE_AS, gkFrag2.readUID);
+    AddRefPHashTable_AS(gkpStore->phs, UID_NAMESPACE_AS, gkFrag1.readUID);
   } else if (lkg_mesg->action == AS_DELETE) {
     gkFrag1.mateIID = 0;
     gkFrag2.mateIID = 0;
@@ -145,8 +145,8 @@ Check_LinkMesg(LinkMesg *lkg_mesg,
     setGateKeeperFragmentStore(gkpStore->frg, frag1IID, &gkFrag1);
     setGateKeeperFragmentStore(gkpStore->frg, frag2IID, &gkFrag2);
 
-    UnRefPHashTable_AS(gkpStore->phs, UID_NAMESPACE_AS, gkFrag2.UID);
-    UnRefPHashTable_AS(gkpStore->phs, UID_NAMESPACE_AS, gkFrag1.UID);
+    UnRefPHashTable_AS(gkpStore->phs, UID_NAMESPACE_AS, gkFrag2.readUID);
+    UnRefPHashTable_AS(gkpStore->phs, UID_NAMESPACE_AS, gkFrag1.readUID);
   } else {
     fprintf(stderr,"# LinkMessage: invalid action\n");
     return GATEKEEPER_FAILURE;

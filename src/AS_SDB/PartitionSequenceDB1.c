@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: PartitionSequenceDB1.c,v 1.11 2007-01-29 20:41:22 brianwalenz Exp $";
+static char CM_ID[] = "$Id: PartitionSequenceDB1.c,v 1.12 2007-02-18 14:04:50 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -37,7 +37,6 @@ static char CM_ID[] = "$Id: PartitionSequenceDB1.c,v 1.11 2007-01-29 20:41:22 br
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
-#include "AS_PER_SafeIO.h"
 #include "AS_SDB_SequenceDBPartition.h"
 #include "AS_MSG_pmesg.h"
 

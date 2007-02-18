@@ -25,26 +25,37 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-SOURCES = chimera.C consolidate.C dumpFragStoreAsFasta.C dumpFragStoreAsOFG.c \
+SOURCES = chimera.C \
+          consolidate.C \
           dumpRandomMatedFrags.C \
-          findDuplicateFragsInStore.C getNumScaffolds.c initialTrim.C \
-          merge-trimming.C sort-overlaps.C \
-          overlap-convert.C trim.C util++.C \
+          findDuplicateFragsInStore.C \
+          getNumScaffolds.c \
+          initialTrim.C \
+          merge-trimming.C \
+          sort-overlaps.C \
+          overlap-convert.C \
+          trim.C \
+          util++.C \
           overlap-filter.C
 OBJECTS = $(SOURCES:.C=.o) $(SOURCES:.c=.o)
-PROGS   = chimera consolidate initialTrim merge-trimming sort-overlaps \
+PROGS   = chimera \
+          consolidate \
+          initialTrim \
+          merge-trimming \
+          sort-overlaps \
           overlap-convert \
           overlap-filter \
           dumpRandomMatedFrags \
-          dumpFragStoreAsFasta dumpFragStoreAsOFG findDuplicateFragsInStore getNumScaffolds
+          findDuplicateFragsInStore \
+          getNumScaffolds
 SCRIPTS = 
+
+include $(LOCAL_WORK)/src/c_make.as
 
 all: $(PROGS) $(SCRIPTS)
 	@test -n nop
 
 initialTrim: initialTrim.o trim.o -lAS_PER -lAS_UTL
-
-#sort-overlap-trim: sort-overlap-trim.o util++.o
 
 merge-trimming: merge-trimming.o trim.o -lAS_PER -lAS_UTL
 
@@ -58,16 +69,10 @@ chimera: chimera.o util++.o -lAS_PER -lAS_UTL
 
 consolidate: consolidate.o util++.o
 
-dumpFragStoreAsFasta: dumpFragStoreAsFasta.o trim.o -lAS_PER -lAS_UTL
-
-dumpFragStoreAsOFG: dumpFragStoreAsOFG.o -lAS_PER -lAS_UTL
-
 dumpRandomMatedFrags: dumpRandomMatedFrags.o -lAS_PER -lAS_UTL
 
 findDuplicateFragsInStore: findDuplicateFragsInStore.o -lAS_PER -lAS_UTL
 
 getNumScaffolds: getNumScaffolds.o libCA.a
 
-# Include for AS project rules
-include $(LOCAL_WORK)/src/c_make.as
 

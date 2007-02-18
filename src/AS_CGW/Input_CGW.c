@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.22 2007-02-17 21:16:22 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.23 2007-02-18 14:04:48 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -1074,7 +1074,7 @@ void ProcessFrags(void)
       cifrag->mateOf   = miinfo->fragIndex;
       cifrag->dist     = gkf.libraryIID;
       cifrag->linkType = gkf.orientation;
-      if (gkf.orientation == AS_GKP_ORIENT_INNIE)
+      if (gkf.orientation == AS_READ_ORIENT_INNIE)
         cifrag->flags.bits.innieMate = TRUE;
       cifrag->flags.bits.mateStatus = MATE_OK;
       cifrag->flags.bits.edgeStatus = UNKNOWN_EDGE_STATUS;

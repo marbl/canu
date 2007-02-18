@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_branchpts.c,v 1.9 2007-02-12 22:16:55 brianwalenz Exp $";
+= "$Id: AS_CGB_branchpts.c,v 1.10 2007-02-18 14:04:47 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_branchpts.c
@@ -49,7 +49,7 @@ static char CM_ID[]
 /* Local include files */
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
-#include "AS_PER_ReadStruct.h"
+#include "AS_PER_gkpStore.h"
 #include "AS_ALN_aligners.h"
 #include "AS_CGB_all.h"
 #include "AS_CGB_cgb.h"

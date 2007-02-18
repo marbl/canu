@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.15 2007-02-12 22:16:57 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.16 2007-02-18 14:04:49 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -126,55 +126,85 @@ printGKPError(FILE *fout, GKPErrorType type){
 static
 void
 usage(char *filename) {
-  fprintf(stderr, "usage: %s [-aiefnopsCGPNQX] <input.frg> <input.frg> ...\n", filename);
+  fprintf(stderr, "usage: %s [append/create options] <input.frg> <input.frg> ...\n", filename);
+  fprintf(stderr, "       %d [dump-options] <gkpStore>\n");
   fprintf(stderr, "\n");
-  fprintf(stderr, "Opens <Input> to read .frg input\n");
-  fprintf(stderr, "Creates GateKeeperFragmentStore in <output_store_name>\n");
+  fprintf(stderr, "The first form is used to append to or create a GateKeeper store:\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "  -a                     append to existing tore\n");
-
   fprintf(stderr, "  -e <errorThreshhold>   set error threshhold\n");
-
-  fprintf(stderr, "  -h                     print usage\n");
-  fprintf(stderr, "  -H                     print error messages\n");
-
-  fprintf(stderr, "  -o <gkpStore>\n");
-
+  fprintf(stderr, "  -o <gkpStore>          append to or create gkpStore\n");
   fprintf(stderr, "  -v                     enable verbose mode\n");
-
+  fprintf(stderr, "  -H                     print error messages\n");
   fprintf(stderr, "  -G                     gatekeeper for assembler Grande (default)\n");
   fprintf(stderr, "  -T                     gatekeeper for assembler Grande with Overlap Based Trimming\n");
-
   fprintf(stderr, "  -Q                     don't check quality-based data quality\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "The second form will dump the contents of a GateKeeper store:\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "  -b <begin-iid>         dump starting at this read\n");
+  fprintf(stderr, "  -e <ending-iid>        dump until this read\n");
+  fprintf(stderr, "  -C                     like what dumpFragStore used to make\n");
+  fprintf(stderr, "  -F                     as (trimmed) fasta\n");
+  fprintf(stderr, "  -X                     as XML-like\n");
+  fprintf(stderr, "  -O                     as OFG (special for unitigger)\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "  By default, -F will dump clear range multi-fasta for fragments\n");
+  fprintf(stderr, "  that have not been marked as deleted.  This can be changed with:\n");
+  fprintf(stderr, "    -allreads            dump all reads regardless of deletion status\n");
+  fprintf(stderr, "    -allbases            dump all bases, ignore the clear ranges\n");
+  fprintf(stderr, "    -clear <clr>         dump bases in clear range <clr>; valid values are:\n");
+  fprintf(stderr, "                           0-8, orig, qlt, vec, obt, ovl, utg, ecr1, ecr2, closure\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "Additionally:\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "  -h                     print usage\n");
 }
 
-
+#define DUMP_NOTHING 0
+#define DUMP_COMPAT  1
+#define DUMP_FASTA   2
+#define DUMP_XML     3
+#define DUMP_OFG     4
 
 int
 main(int argc, char **argv) {
+
+  //  Options for everyone.  Everyone needs a GateKeeper!
+  //
+  char            *gkpStoreName    = NULL;
+
+  //  Options for appending or creating:
+  //
   int              append          = 0;
   int              outputExists    = 0;
   int              verbose         = 0;
   int              check_qvs       = 1;
   int              assembler       = AS_ASSEMBLER_GRANDE;
   CDS_CID_t        currentBatchID  = NULLINDEX;
-
-  char            *gkpStoreName    = NULL;
-
-  time_t           currentTime     = time(0);
-
   int              nerrs           = 0;   // Number of errors in current run
   int              maxerrs         = 1;   // Number of errors allowed before we punt
-
   int              firstFileArg    = 0;
+
+  //  Options for dumping:
+  //
+  CDS_IID_t        begIID = 0;
+  CDS_IID_t        endIID = 2000000000;
+  int              dump = DUMP_NOTHING;
+  int              dumpFastaAllReads = 0;
+  int              dumpFastaAllBases = 0;
+  int              dumpFastaClear    = AS_READ_CLEAR_CLOSURE;
 
   int arg = 1;
   int err = 0;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-a") == 0) {
       append = 1;
+    } else if (strcmp(argv[arg], "-b") == 0) {
+      begIID = atoi(argv[++arg]);
     } else if (strcmp(argv[arg], "-e") == 0) {
       maxerrs = atoi(argv[++arg]);
+      endIID  = maxerrs;
     } else if (strcmp(argv[arg], "-h") == 0) {
       err++;
     } else if (strcmp(argv[arg], "-H") == 0) {
@@ -185,16 +215,52 @@ main(int argc, char **argv) {
       exit(0);
     } else if (strcmp(argv[arg], "-o") == 0) {
       gkpStoreName = argv[++arg];
-
     } else if (strcmp(argv[arg], "-v") == 0) {
       verbose = 1;
-
+    } else if (strcmp(argv[arg], "-C") == 0) {
+      dump = DUMP_COMPAT;
+    } else if (strcmp(argv[arg], "-F") == 0) {
+      dump = DUMP_FASTA;
     } else if (strcmp(argv[arg], "-G") == 0) {
       assembler = AS_ASSEMBLER_GRANDE;
     } else if (strcmp(argv[arg], "-T") == 0) {
       assembler = AS_ASSEMBLER_OBT;
     } else if (strcmp(argv[arg], "-Q") == 0) {
       check_qvs = 0;
+    } else if (strcmp(argv[arg], "-X") == 0) {
+      dump = DUMP_XML;
+    } else if (strcmp(argv[arg], "-O") == 0) {
+      dump = DUMP_OFG;
+    } else if (strcmp(argv[arg], "-allreads") == 0) {
+      dumpFastaAllReads = 1;
+    } else if (strcmp(argv[arg], "-allbases") == 0) {
+      dumpFastaAllBases = 1;
+    } else if (strcmp(argv[arg], "-clear") == 0) {
+      arg++;
+      if (('0' <= argv[arg][0]) && (argv[arg][0] < '9')) {
+        dumpFastaClear = atoi(argv[arg]);
+      } else if (strcmp(argv[arg], "orig") == 0) {
+        dumpFastaClear = AS_READ_CLEAR_ORIG;
+      } else if (strcmp(argv[arg], "qlt") == 0) {
+        dumpFastaClear = AS_READ_CLEAR_QLT;
+      } else if (strcmp(argv[arg], "vec") == 0) {
+        dumpFastaClear = AS_READ_CLEAR_VEC;
+      } else if (strcmp(argv[arg], "obt") == 0) {
+        dumpFastaClear = AS_READ_CLEAR_OBT;
+      } else if (strcmp(argv[arg], "ovl") == 0) {
+        dumpFastaClear = AS_READ_CLEAR_OVL;
+      } else if (strcmp(argv[arg], "utg") == 0) {
+        dumpFastaClear = AS_READ_CLEAR_UTG;
+      } else if (strcmp(argv[arg], "ecr1") == 0) {
+        dumpFastaClear = AS_READ_CLEAR_ECR1;
+      } else if (strcmp(argv[arg], "ecr2") == 0) {
+        dumpFastaClear = AS_READ_CLEAR_ECR2;
+      } else if (strcmp(argv[arg], "closure") == 0) {
+        dumpFastaClear = AS_READ_CLEAR_CLOSURE;
+      } else {
+        fprintf(stderr, "unknown clear range '%s'\n", argv[arg]);
+        err++;
+      }
     } else if (strcmp(argv[arg], "--") == 0) {
       firstFileArg = arg++;
       arg = argc;
@@ -203,6 +269,10 @@ main(int argc, char **argv) {
       err++;
     } else {
       firstFileArg = arg;
+
+      if (dump != DUMP_NOTHING)
+        gkpStoreName = argv[arg];
+
       arg = argc;
     }
 
@@ -213,8 +283,29 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-
   outputExists = testOpenGateKeeperStore(gkpStoreName, FALSE);
+
+  if ((dump != DUMP_NOTHING) && (outputExists == 0)) {
+    fprintf(stderr,"* Gatekeeper Store %s doesn't exist, but you want to dump it.  Exit.\n", gkpStoreName);
+    exit(1);
+  }
+
+  if (dump == DUMP_COMPAT) {
+    dumpGateKeeperAsCompatible(gkpStoreName, begIID, endIID);
+    exit(0);
+  }
+  if (dump == DUMP_FASTA) {
+    dumpGateKeeperAsFasta(gkpStoreName, begIID, endIID, dumpFastaAllReads, dumpFastaAllBases, dumpFastaClear);
+    exit(0);
+  }
+  if (dump == DUMP_XML) {
+    dumpGateKeeperAsXML(gkpStoreName, begIID, endIID);
+    exit(0);
+  }
+  if (dump == DUMP_OFG) {
+    dumpGateKeeperAsOFG(gkpStoreName);
+    exit(0);
+  }
 
   if ((append == 0) && (outputExists == 1)) {
     fprintf(stderr,"* Gatekeeper Store %s exists and append flag not supplied.  Exit.\n", gkpStoreName);
@@ -259,7 +350,7 @@ main(int argc, char **argv) {
       }
 
       if (pmesg->t == MESG_BAT) {
-        if (GATEKEEPER_SUCCESS != Check_BatchMesg((BatchMesg *)pmesg->m, &currentBatchID, currentTime, verbose)) {
+        if (GATEKEEPER_SUCCESS != Check_BatchMesg((BatchMesg *)pmesg->m, &currentBatchID, time(0), verbose)) {
           fprintf(stderr,"# Invalid BAT message at Line %d of input...exiting\n", GetProtoLineNum_AS());
           WriteProtoMesg_AS(stderr,pmesg);
           return GATEKEEPER_FAILURE;
@@ -273,14 +364,14 @@ main(int argc, char **argv) {
         }
 
       } else if (pmesg->t == MESG_FRG) {
-        if (GATEKEEPER_SUCCESS != Check_FragMesg((FragMesg *)pmesg->m, check_qvs, currentBatchID, currentTime, assembler, verbose)){
+        if (GATEKEEPER_SUCCESS != Check_FragMesg((FragMesg *)pmesg->m, check_qvs, currentBatchID, time(0), assembler, verbose)){
           fprintf(stderr,"# Line %d of input\n", GetProtoLineNum_AS());
           WriteProtoMesg_AS(stderr,pmesg);
           nerrs++;
         }
 
       } else if (pmesg->t == MESG_LKG) {
-        if (GATEKEEPER_SUCCESS != Check_LinkMesg((LinkMesg *)pmesg->m, currentBatchID, currentTime, verbose)) {
+        if (GATEKEEPER_SUCCESS != Check_LinkMesg((LinkMesg *)pmesg->m, currentBatchID, time(0), verbose)) {
           fprintf(stderr,"# Line %d of input\n", GetProtoLineNum_AS());
           WriteProtoMesg_AS(stderr,pmesg);
           nerrs++;

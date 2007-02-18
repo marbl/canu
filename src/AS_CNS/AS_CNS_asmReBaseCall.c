@@ -18,7 +18,7 @@
 // Celera Assembler includes:
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
-#include "AS_PER_ReadStruct.h"
+#include "AS_PER_gkpStore.h"
 #include "AS_PER_genericStore.h"
 #include "AS_UTL_Var.h"
 #include "UtilsREZ.h"
@@ -37,7 +37,7 @@
 #include "Globals_CNS.h"
 #include "PublicAPI_CNS.h"
 
-static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.8 2007-02-14 07:20:09 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.9 2007-02-18 14:04:48 brianwalenz Exp $";
 
 static UIDHashTable_AS *utgUID2IID;
 
@@ -449,7 +449,7 @@ int main (int argc, char *argv[]) {
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.8 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.9 $ processing. Started %s\n",
 	      ctime(&t));
       InitializeAlphTable();
 

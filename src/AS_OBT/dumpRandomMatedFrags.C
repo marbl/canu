@@ -9,7 +9,6 @@
 extern "C" {
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
-#include "AS_PER_ReadStruct.h"
 }
 
 //  Reads the output of "dumpGatekeeper some.gkpStore | grep Link" on
@@ -18,6 +17,14 @@ extern "C" {
 //
 //  usage: dumpRandomMatedFrags -f gkpStore -p prefix -n pairs
 
+#warning Rewrite, please.
+
+int
+main(int argc, char **argv) {
+  fprintf(stderr, "Hello, world!\n");
+}
+
+#if 0
 
 int
 main(int argc, char **argv) {
@@ -218,3 +225,5 @@ main(int argc, char **argv) {
 
   exit(0);
 }
+
+#endif

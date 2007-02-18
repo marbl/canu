@@ -9,12 +9,11 @@
 extern "C" {
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
-#include "AS_PER_ReadStruct.h"
 }
 
 #include "util++.H"
 
-void  doTrim(ReadStructp rd,
+void  doTrim(fragRecord *fr,
              double      minQuality,
              u32bit     &left,
              u32bit     &right);

@@ -26,9 +26,7 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-SOURCES = AS_PER_ReadStruct.c \
-          AS_PER_genericStore.c \
-          AS_PER_SafeIO.c \
+SOURCES = AS_PER_genericStore.c \
           AS_PER_gkpStore.c \
           AS_PER_encodeSequenceQuality.c \
           AS_PER_asmStore.c

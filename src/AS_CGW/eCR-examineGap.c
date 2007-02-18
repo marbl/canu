@@ -91,9 +91,10 @@ examineGap(ContigT *lcontig, int lFragIid, ContigT *rcontig, int rFragIid,
 
   CIFragT *lFrag = NULL, *rFrag = NULL;
   static VA_TYPE(char) *ungappedSequence=NULL, *ungappedQuality=NULL;
-  char lFragSeqBuffer[AS_READ_MAX_LEN+1], lqltbuffer[AS_READ_MAX_LEN+1];
-  char rFragSeqBuffer[AS_READ_MAX_LEN+1], rqltbuffer[AS_READ_MAX_LEN+1];
-  char lcompBuffer[AS_READ_MAX_LEN+1],    rcompBuffer[AS_READ_MAX_LEN+1];
+  char lFragSeqBuffer[AS_READ_MAX_LEN+1];
+  char rFragSeqBuffer[AS_READ_MAX_LEN+1];
+  char lcompBuffer[AS_READ_MAX_LEN+1];
+  char rcompBuffer[AS_READ_MAX_LEN+1];
   uint lclr_bgn, lclr_end;
   uint rclr_bgn, rclr_end;
   char tmp_char, *lSequence, *rSequence;
@@ -140,17 +141,39 @@ examineGap(ContigT *lcontig, int lFragIid, ContigT *rcontig, int rFragIid,
     ResetVA_char(ungappedQuality);
   }
 
-  if (lFragIid != -1) {
-    getFrag(ScaffoldGraph->gkpStore, lFragIid, fsread, FRAG_S_SEQ);
-    getClearRegion_ReadStruct(fsread, &lclr_bgn, &lclr_end, READSTRUCT_CNS);
-    getSequence_ReadStruct(fsread, lFragSeqBuffer, lqltbuffer, AS_READ_MAX_LEN);
+  switch (passNumber) {
+    case 0:
+      if (lFragIid != -1) {
+        getFrag(ScaffoldGraph->gkpStore, lFragIid, fsread, FRAG_S_SEQ);
+        lclr_bgn = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_ECR1 - 1);
+        lclr_end = getFragRecordClearRegionEnd  (fsread, AS_READ_CLEAR_ECR1 - 1);
+        strcpy(lFragSeqBuffer, getFragRecordSequence(fsread));
+      }
+      if (rFragIid != -1) {
+        getFrag(ScaffoldGraph->gkpStore, rFragIid, fsread, FRAG_S_SEQ);
+        rclr_bgn = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_ECR1 - 1);
+        rclr_end = getFragRecordClearRegionEnd  (fsread, AS_READ_CLEAR_ECR1 - 1);
+        strcpy(rFragSeqBuffer, getFragRecordSequence(fsread));
+      }
+      break;
+    case 1:
+      if (lFragIid != -1) {
+        getFrag(ScaffoldGraph->gkpStore, lFragIid, fsread, FRAG_S_SEQ);
+        lclr_bgn = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_ECR2 - 1);
+        lclr_end = getFragRecordClearRegionEnd  (fsread, AS_READ_CLEAR_ECR2 - 1);
+        strcpy(lFragSeqBuffer, getFragRecordSequence(fsread));
+      }
+      if (rFragIid != -1) {
+        getFrag(ScaffoldGraph->gkpStore, rFragIid, fsread, FRAG_S_SEQ);
+        rclr_bgn = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_ECR2 - 1);
+        rclr_end = getFragRecordClearRegionEnd  (fsread, AS_READ_CLEAR_ECR2 - 1);
+        strcpy(rFragSeqBuffer, getFragRecordSequence(fsread));
+      }
+      break;
+    default:
+      break;
   }
-  
-  if (rFragIid != -1) {
-    getFrag(ScaffoldGraph->gkpStore, rFragIid, fsread, FRAG_S_SEQ);
-    getClearRegion_ReadStruct(fsread, &rclr_bgn, &rclr_end, READSTRUCT_CNS);
-    getSequence_ReadStruct(fsread, rFragSeqBuffer, rqltbuffer, AS_READ_MAX_LEN);
-  }
+
   
   // Get the consensus sequences for both chunks from the Store
   GetConsensus(ScaffoldGraph->ContigGraph, lcontig->id, lContigConsensus, lContigQuality);

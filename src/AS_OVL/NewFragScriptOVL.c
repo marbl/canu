@@ -33,12 +33,12 @@
 *************************************************/
 
 /* RCS info
- * $Id: NewFragScriptOVL.c,v 1.5 2007-01-29 20:41:18 brianwalenz Exp $
- * $Revision: 1.5 $
+ * $Id: NewFragScriptOVL.c,v 1.6 2007-02-18 14:04:50 brianwalenz Exp $
+ * $Revision: 1.6 $
 */
 
 static char  CM_ID []
-    = "$Id: NewFragScriptOVL.c,v 1.5 2007-01-29 20:41:18 brianwalenz Exp $";
+    = "$Id: NewFragScriptOVL.c,v 1.6 2007-02-18 14:04:50 brianwalenz Exp $";
 
 
 /*************************************************************************/
@@ -60,7 +60,7 @@ static char  CM_ID []
 /*************************************************************************/
 
 #include  "AS_OVL_delcher.h"
-#include  "AS_PER_ReadStruct.h"
+#include  "AS_PER_gkpStore.h"
 #include  "AS_PER_genericStore.h"
 #include  "AS_PER_fragStore.h"
 #include  "AS_PER_distStore.h"
