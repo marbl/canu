@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_dump.c,v 1.1 2007-02-18 14:04:49 brianwalenz Exp $ */
+/* $Id: AS_GKP_dump.c,v 1.2 2007-02-20 20:48:14 brianwalenz Exp $ */
 
 #include "AS_GKP_include.h"
 
@@ -93,7 +93,6 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
                 mateUID, mateIID,
                 libUID,  libIID,
                 deleted,
-                clrBeg, clrEnd,
                 seq + clrBeg);
       }
     }
