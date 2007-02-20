@@ -25,6 +25,7 @@
 
 
 #include "SYS_UIDcommon.h"
+#include "SYS_UIDerror.h"
 
 const char *TIGR_DefaultEuidServerNames = "http://tools2.tigr.org/servlet/axis/services/EUIDServer";
 char * EuidServerNames = NULL;

@@ -21,6 +21,7 @@
 
 #include "SYS_UIDcommon.h"
 #include "SYS_UIDclient.h"
+#include "SYS_UIDclient_local.h"
  
 #define UID_CHECK_OK             0
 #define UID_CHECK_ERROR          1
