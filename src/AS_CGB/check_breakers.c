@@ -743,8 +743,8 @@ int PopulateFragmentSequence( IntMultiPos * f, GateKeeperStore *fs )
     return 1;
   }
 
-  bgn = getFragRecordClearRegionBegin(rs, AS_READ_CLEAR_CLOSURE);
-  end = getFragRecordClearRegionEnd  (rs, AS_READ_CLEAR_CLOSURE);
+  bgn = getFragRecordClearRegionBegin(rs, AS_READ_CLEAR_LATEST);
+  end = getFragRecordClearRegionEnd  (rs, AS_READ_CLEAR_LATEST);
 
   seq = getFragRecordSequence(rs);
 
@@ -1354,7 +1354,7 @@ typedef CheckGlobals * CheckGlobalsp;
 void InitializeGlobals( CheckGlobalsp globals, char * program_name )
 {
   globals->program_name = program_name;
-  globals->version = "$Revision: 1.14 $";
+  globals->version = "$Revision: 1.15 $";
   globals->chims_file = NULL;
   globals->craps_file = NULL;
   globals->cgb_file = NULL;

@@ -25,7 +25,7 @@
  Assumptions: There is no UID 0
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.28 2007-02-18 14:04:50 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.29 2007-02-20 21:58:04 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
@@ -227,8 +227,8 @@ static CDS_UID_t *fetch_UID_from_fragStore(CDS_IID_t iid){
 
     SetCDS_UID_t(FRGmap,iid,&uid);
     
-    cStart = getFragRecordClearRegionBegin(input, AS_READ_CLEAR_CLOSURE);
-    cEnd   = getFragRecordClearRegionEnd  (input, AS_READ_CLEAR_CLOSURE);
+    cStart = getFragRecordClearRegionBegin(input, AS_READ_CLEAR_LATEST);
+    cEnd   = getFragRecordClearRegionEnd  (input, AS_READ_CLEAR_LATEST);
 
     Setuint32(ClearStartMap,iid,&cStart);
     Setuint32(ClearEndMap,iid,&cEnd);
@@ -1475,8 +1475,8 @@ void read_stores(char* fragStoreName)
 
     /* get the clear region from the frag store */
 
-    cStart = getFragRecordClearRegionBegin(input, AS_READ_CLEAR_CLOSURE);
-    cEnd   = getFragRecordClearRegionEnd  (input, AS_READ_CLEAR_CLOSURE);
+    cStart = getFragRecordClearRegionBegin(input, AS_READ_CLEAR_LATEST);
+    cEnd   = getFragRecordClearRegionEnd  (input, AS_READ_CLEAR_LATEST);
 
     Setuint32(ClearStartMap,iid,&cStart);
     Setuint32(ClearEndMap,iid,&cEnd);

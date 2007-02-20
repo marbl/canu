@@ -539,7 +539,7 @@ double AS_REZ_prob_IUM_MPsimple(IntUnitigMesg* ium, GateKeeperStore *handle,tFra
             &idarray,
             &oriarray,
             0,
-            AS_READ_CLEAR_CLOSURE);
+            AS_READ_CLEAR_LATEST);
 
   ret = AS_REZ_MP_MicroHet_prob(bqarray,idarray,handle,phandle, ium->length,rows);
   /* free the space that is allocated by IMP2Array */
@@ -587,7 +587,7 @@ Alignment_t* AS_REZ_convert_IUM_to_alignment(IntUnitigMesg* ium,
             &idarray,
             &oriarray,
             0,
-            AS_READ_CLEAR_CLOSURE);
+            AS_READ_CLEAR_LATEST);
 
   ali = AS_REZ_convert_array_to_alignment(bqarray,ium->length,rows);
 

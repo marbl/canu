@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Stats_CGW.c,v 1.10 2007-02-18 14:04:48 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Stats_CGW.c,v 1.11 2007-02-20 21:57:59 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -781,9 +781,9 @@ void GenerateContigAlignmentStats(char *phase){
     MultiAlignT *ma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ctg->id, graph->type == CI_GRAPH);
     //    MultiAlignT *ma = GetMultiAlignInStore(graph->maStore, ctg->id);
     if (scaffold && (scaffold->type == REAL_SCAFFOLD)) { // contig is placed
-      CollectStats(ma, ScaffoldGraph->gkpStore, pcs, pfs, AS_READ_CLEAR_CLOSURE);
+      CollectStats(ma, ScaffoldGraph->gkpStore, pcs, pfs, AS_READ_CLEAR_LATEST);
     } else {
-      CollectStats(ma, ScaffoldGraph->gkpStore, dcs, dfs, AS_READ_CLEAR_CLOSURE);
+      CollectStats(ma, ScaffoldGraph->gkpStore, dcs, dfs, AS_READ_CLEAR_LATEST);
     }
   }
   fclose(pcs);

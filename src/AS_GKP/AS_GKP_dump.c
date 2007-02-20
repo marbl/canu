@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_dump.c,v 1.2 2007-02-20 20:48:14 brianwalenz Exp $ */
+/* $Id: AS_GKP_dump.c,v 1.3 2007-02-20 21:58:04 brianwalenz Exp $ */
 
 #include "AS_GKP_include.h"
 
@@ -301,8 +301,8 @@ dumpGateKeeperAsOFG(char *gkpStoreName) {
              getFragRecordIID(fr),
              AS_READ,
              0,
-             getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OVL),
-             getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OVL));
+             getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBT),
+             getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBT));
     }
   }
 

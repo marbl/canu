@@ -78,7 +78,7 @@ echo 53 | rebuildscaffolds -f oct01.fStore -s oct01.sStore -V 23 -c oct01.cStore
 
  *********************************************************************/
 
-static char CM_ID[] = "$Id: RebuildScaffolds_CNS.c,v 1.12 2007-02-18 14:04:48 brianwalenz Exp $";
+static char CM_ID[] = "$Id: RebuildScaffolds_CNS.c,v 1.13 2007-02-20 21:58:00 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -485,12 +485,12 @@ int OutputScaffoldProfile(FILE *profileFile,
 	    if ( show_ma ) {
 	      PrintMultiAlignT(profileFile,contig,global_fragStore,
                                (tFragStorePartition*)NULL, 1,
-                               1,AS_READ_CLEAR_CLOSURE);
+                               1,AS_READ_CLEAR_LATEST);
 	    } else {
 	      if ( show_colcorr ) {
 		PrintColumnCorrelation(profileFile,contig,global_fragStore,
                     (tFragStorePartition*)NULL, NULL, 1,
-                    1,AS_READ_CLEAR_CLOSURE,gapped_length);
+                    1,AS_READ_CLEAR_LATEST,gapped_length);
 	      } else 
 		if ( show_coordmap) {
 		  OutputCoordinateMap(profileFile,scaffoldID,contig,sequenceDB,
@@ -515,12 +515,12 @@ int OutputScaffoldProfile(FILE *profileFile,
 	       fprintf(profileFile,"Scaffold offset %d\n",gapped_length);
 	       PrintMultiAlignT(profileFile,contig,global_fragStore,
                    (tFragStorePartition*)NULL, 
-                   1,1,AS_READ_CLEAR_CLOSURE);
+                   1,1,AS_READ_CLEAR_LATEST);
 	     } else {
 	       if ( show_colcorr ) {
 		 PrintColumnCorrelation(profileFile,contig,global_fragStore,
                      (tFragStorePartition*)NULL, NULL, 
-                      1,1,AS_READ_CLEAR_CLOSURE,gapped_length);
+                      1,1,AS_READ_CLEAR_LATEST,gapped_length);
 	       } else {
 		 if ( show_coordmap) {
 		   OutputCoordinateMap(profileFile,scaffoldID,contig,sequenceDB,
@@ -589,12 +589,12 @@ int OutputScaffoldProfile(FILE *profileFile,
                   fprintf(profileFile,"Scaffold offset %d\n",gapped_length);
                   PrintMultiAlignT(profileFile,contig,global_fragStore,
                       (tFragStorePartition*)NULL,
-                       1,1,AS_READ_CLEAR_CLOSURE);
+                       1,1,AS_READ_CLEAR_LATEST);
                } else {
 		 if ( show_colcorr ) {
 		   PrintColumnCorrelation(profileFile,contig,global_fragStore,
                        (tFragStorePartition*)NULL, NULL, 
-                       1,1,AS_READ_CLEAR_CLOSURE,gapped_length);
+                       1,1,AS_READ_CLEAR_LATEST,gapped_length);
 		 } else {
 		   if ( show_coordmap) {
 		     OutputCoordinateMap(profileFile,scaffoldID,contig,sequenceDB,

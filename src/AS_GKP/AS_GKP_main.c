@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.16 2007-02-18 14:04:49 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.17 2007-02-20 21:58:04 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -193,7 +193,15 @@ main(int argc, char **argv) {
   int              dump = DUMP_NOTHING;
   int              dumpFastaAllReads = 0;
   int              dumpFastaAllBases = 0;
-  int              dumpFastaClear    = AS_READ_CLEAR_CLOSURE;
+  int              dumpFastaClear    = AS_READ_CLEAR_LATEST;
+
+
+#if 0
+  fprintf(stderr, "sizeof(GateKeeperBatchRecord)      %d\n", sizeof(GateKeeperBatchRecord));
+  fprintf(stderr, "sizeof(GateKeeperLibraryRecord)    %d\n", sizeof(GateKeeperLibraryRecord));
+  fprintf(stderr, "sizeof(GateKeeperFragmentRecord)   %d\n", sizeof(GateKeeperFragmentRecord));
+  fprintf(stderr, "sizeof(fragRecord)                 %d\n", sizeof(fragRecord));
+#endif
 
   int arg = 1;
   int err = 0;
@@ -247,8 +255,10 @@ main(int argc, char **argv) {
         dumpFastaClear = AS_READ_CLEAR_VEC;
       } else if (strcmp(argv[arg], "obt") == 0) {
         dumpFastaClear = AS_READ_CLEAR_OBT;
+#if 0
       } else if (strcmp(argv[arg], "ovl") == 0) {
         dumpFastaClear = AS_READ_CLEAR_OVL;
+#endif
       } else if (strcmp(argv[arg], "utg") == 0) {
         dumpFastaClear = AS_READ_CLEAR_UTG;
       } else if (strcmp(argv[arg], "ecr1") == 0) {
@@ -256,7 +266,7 @@ main(int argc, char **argv) {
       } else if (strcmp(argv[arg], "ecr2") == 0) {
         dumpFastaClear = AS_READ_CLEAR_ECR2;
       } else if (strcmp(argv[arg], "closure") == 0) {
-        dumpFastaClear = AS_READ_CLEAR_CLOSURE;
+        dumpFastaClear = AS_READ_CLEAR_LATEST;
       } else {
         fprintf(stderr, "unknown clear range '%s'\n", argv[arg]);
         err++;

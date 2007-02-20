@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.19 2007-02-18 14:04:50 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.20 2007-02-20 21:58:04 brianwalenz Exp $";
 
 //    A thin layer on top of the IndexStore supporing the storage and
 // retrieval of records used by the gatekeeper records.
@@ -166,10 +166,25 @@ openGateKeeperStore(const char *path,
   if (gkpStore->gkp.gkpMagic != 1) {
     fprintf(stderr, "invalid magic!\n");
   }
-
   if (gkpStore->gkp.gkpVersion != 1) {
     fprintf(stderr, "invalid version!\n");
   }
+  if (gkpStore->gkp.gkpBatchRecordSize != sizeof(GateKeeperBatchRecord)) {
+    fprintf(stderr, "ERROR!  Store built unsing GateKeeperBatchRecord of size %d bytes.\n", gkpStore->gkp.gkpBatchRecordSize);
+    fprintf(stderr, "        Code compiled with GateKeeperBatchRecord of size %d bytes.\n", sizeof(GateKeeperBatchRecord));
+    assert(gkpStore->gkp.gkpBatchRecordSize == sizeof(GateKeeperBatchRecord));
+  }
+  if (gkpStore->gkp.gkpLibraryRecordSize != sizeof(GateKeeperLibraryRecord)) {
+    fprintf(stderr, "ERROR!  Store built unsing GateKeeperLibraryRecord of size %d bytes.\n", gkpStore->gkp.gkpLibraryRecordSize);
+    fprintf(stderr, "        Code compiled with GateKeeperLibraryRecord of size %d bytes.\n", sizeof(GateKeeperLibraryRecord));
+    assert(gkpStore->gkp.gkpLibraryRecordSize == sizeof(GateKeeperLibraryRecord));
+  }
+  if (gkpStore->gkp.gkpFragmentRecordSize != sizeof(GateKeeperFragmentRecord)) {
+    fprintf(stderr, "ERROR!  Store built unsing GateKeeperFragmentRecord of size %d bytes.\n", gkpStore->gkp.gkpFragmentRecordSize);
+    fprintf(stderr, "        Code compiled with GateKeeperFragmentRecord of size %d bytes.\n", sizeof(GateKeeperFragmentRecord));
+    assert(gkpStore->gkp.gkpFragmentRecordSize == sizeof(GateKeeperFragmentRecord));
+  }
+
 
   char  mode[4];
   if (writable)
@@ -257,8 +272,11 @@ createGateKeeperStore(const char *path) {
     exit(1);
   }
 
-  gkpStore->gkp.gkpMagic   = 1;
-  gkpStore->gkp.gkpVersion = 1;
+  gkpStore->gkp.gkpMagic              = 1;
+  gkpStore->gkp.gkpVersion            = 1;
+  gkpStore->gkp.gkpBatchRecordSize    = sizeof(GateKeeperBatchRecord);
+  gkpStore->gkp.gkpLibraryRecordSize  = sizeof(GateKeeperLibraryRecord);
+  gkpStore->gkp.gkpFragmentRecordSize = sizeof(GateKeeperFragmentRecord);
 
   sprintf(name,"%s/gkp", path);
   errno = 0;
@@ -341,77 +359,15 @@ closeGateKeeperStore(GateKeeperStore *gkpStore) {
 
 
 void clearGateKeeperBatchRecord(GateKeeperBatchRecord *g) {
-
   memset(g, 0, sizeof(GateKeeperBatchRecord));
-
-  g->UID            = 0;
-  g->name[0]        = 0;
-  g->comment[0]     = 0;
-  g->created        = 0;
-  g->deleted        = 0;
-  g->spare          = 0;
-  g->numFragments   = 0;
-  g->numLibraries   = 0;
-  g->numLibraries_s = 0;
-
-  memset(g->name,    0, AS_PER_NAME_LEN);
-  memset(g->comment, 0, AS_PER_COMMENT_LEN);
 }
 
 void clearGateKeeperLibraryRecord(GateKeeperLibraryRecord *g) {
-
   memset(g, 0, sizeof(GateKeeperLibraryRecord));
-
-  g->UID             = 0;
-  g->name[0]         = 0;
-  g->comment[0]      = 0;
-  g->created         = 0;
-  g->deleted         = 0;
-  g->redefined       = 0;
-  g->orientation     = 0;
-  g->spare           = 0;
-  g->mean            = 0.0;
-  g->stddev          = 0.0;
-  g->numFeatures     = 0;
-  g->prevInstanceID  = 0;
-  g->prevID          = 0;
-  g->birthBatch      = 0;
-  g->deathBatch      = 0;
-
-  memset(g->name,    0, AS_PER_NAME_LEN);
-  memset(g->comment, 0, AS_PER_COMMENT_LEN);
 }
 
 void clearGateKeeperFragmentRecord(GateKeeperFragmentRecord *g) {
-  int which;
-
   memset(g, 0, sizeof(GateKeeperFragmentRecord));
-
-  g->readUID       = 0;
-  g->readIID       = 0;
-  g->mateIID       = 0;
-  g->libraryIID    = 0;
-  g->plateUID      = 0;
-  g->plateLocation = 0;
-
-  g->deleted     = 0;
-  g->nonrandom   = 0;
-  g->status      = 0;
-  g->orientation = 0;
-  g->spare       = 0;
-
-  for (which=0; which < AS_READ_CLEAR_NUM; which++) {
-    g->clearBeg[which] = 0;
-    g->clearEnd[which] = 0;
-  }
-
-  g->seqOffset = 0;
-  g->qltOffset = 0;
-  g->hpsOffset = 0;
-  g->srcOffset = 0;
-
-  g->birthBatch = 0;
-  g->deathBatch = 0;
 }
 
 

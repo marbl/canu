@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.17 2007-02-18 14:04:50 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.18 2007-02-20 21:58:04 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -105,13 +105,12 @@ typedef struct {
 #define AS_READ_CLEAR_VEC      2  //  read only
 #define AS_READ_CLEAR_OBTINI   3
 #define AS_READ_CLEAR_OBT      4
-#define AS_READ_CLEAR_OVL      5  //  future use
-#define AS_READ_CLEAR_UTG      6  //  future use
-#define AS_READ_CLEAR_ECR1     7
-#define AS_READ_CLEAR_ECR2     8
-#define AS_READ_CLEAR_CLOSURE  9  //  future use
+#define AS_READ_CLEAR_UTG      5  //  future use
+#define AS_READ_CLEAR_ECR1     6
+#define AS_READ_CLEAR_ECR2     7
+#define AS_READ_CLEAR_NUM      8
+#define AS_READ_CLEAR_LATEST   (AS_READ_CLEAR_NUM - 1)
 
-#define AS_READ_CLEAR_NUM      10
 
 typedef struct{
   CDS_UID_t        readUID;
@@ -120,29 +119,29 @@ typedef struct{
   CDS_IID_t        mateIID;
 
   CDS_UID_t        plateUID;
-  CDS_IID_t        libraryIID;
 
+  CDS_IID_t        libraryIID;
   uint32           deleted:1;
   uint32           nonrandom:1;
   uint32           status:4;
   uint32           orientation:3;  //  copied from the library
   uint32           plateLocation:8;
-  uint32           spare:15;
+  uint32           pad1:15;
+
+  uint64           seqLen:12;
+  uint64           hpsLen:12;
+  uint64           srcLen:12;
+  uint64           birthBatch:10;  //  This entry is valid
+  uint64           deathBatch:10;  //  [birthBatch, deatchBatch)
+  uint64           pad2:8;
 
   VLSTRING_SIZE_T  clearBeg[AS_READ_CLEAR_NUM];
   VLSTRING_SIZE_T  clearEnd[AS_READ_CLEAR_NUM];
-
-  uint16           seqLen;
-  uint16           hpsLen;
-  uint16           srcLen;
 
   uint64           seqOffset;
   uint64           qltOffset;
   uint64           hpsOffset;
   uint64           srcOffset;
-
-  uint16           birthBatch;         /* This entry is valid */
-  uint16           deathBatch;         /* [birthBatch, deatchBatch) */
 } GateKeeperFragmentRecord;
 
 
@@ -331,6 +330,9 @@ INDEXSTORE_DEF_EXTEND(GateKeeperLibrary);
 typedef struct {
   uint64    gkpMagic;
   uint64    gkpVersion;
+  uint32    gkpBatchRecordSize;
+  uint32    gkpLibraryRecordSize;
+  uint32    gkpFragmentRecordSize;
 } GateKeeperStoreInfo;
 
 #define UID_NAMESPACE_AS 'U'

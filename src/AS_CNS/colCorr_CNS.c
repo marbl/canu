@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: colCorr_CNS.c,v 1.11 2007-02-18 14:04:48 brianwalenz Exp $";
+static char CM_ID[] = "$Id: colCorr_CNS.c,v 1.12 2007-02-20 21:58:00 brianwalenz Exp $";
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -128,7 +128,7 @@ static Alignment_t* convert_MultiAlignT_to_alignment(MultiAlignT* inAlign, GateK
 #endif 
 
   rc = IMP2Array(GetIntMultiPos(inAlign->f_list,0),num_frags,length,
-                 handle,pfraghandle,&rows,&bqarray,&idarray,&oriarray,0,AS_READ_CLEAR_CLOSURE);
+                 handle,pfraghandle,&rows,&bqarray,&idarray,&oriarray,0,AS_READ_CLEAR_LATEST);
 
   // need idarray outside
   *idArray=idarray;

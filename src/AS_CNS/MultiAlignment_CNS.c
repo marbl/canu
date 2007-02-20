@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.128 2007-02-20 20:47:48 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.129 2007-02-20 21:57:59 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -953,8 +953,8 @@ int32 AppendFragToLocalStore(FragType type, int32 iid, int complement,int32 cont
     } else {
       getFrag(global_fragStore,iid,fsread,FRAG_S_ALL);
     }
-    clr_bgn = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_CLOSURE);
-    clr_end = getFragRecordClearRegionEnd  (fsread, AS_READ_CLEAR_CLOSURE);
+    clr_bgn = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_LATEST);
+    clr_end = getFragRecordClearRegionEnd  (fsread, AS_READ_CLEAR_LATEST);
 
     strcpy(seqbuffer, getFragRecordSequence(fsread));
     strcpy(qltbuffer, getFragRecordQuality(fsread));
@@ -4480,8 +4480,8 @@ int PrintFrags(FILE *out, int accession, IntMultiPos *all_frags, int num_frags,
            fmesg.sequence = getFragRecordSequence(fsread);
            fmesg.quality  = getFragRecordQuality(fsread);
 
-           fmesg.clear_rng.bgn = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_CLOSURE);
-           fmesg.clear_rng.end = getFragRecordClearRegionEnd  (fsread, AS_READ_CLEAR_CLOSURE);
+           fmesg.clear_rng.bgn = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_LATEST);
+           fmesg.clear_rng.end = getFragRecordClearRegionEnd  (fsread, AS_READ_CLEAR_LATEST);
 
            //getEntryTime_ReadStruct(fsread, &fmesg.entry_time);
            fmesg.entry_time = 0;

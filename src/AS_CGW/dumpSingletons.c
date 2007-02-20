@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpSingletons.c,v 1.15 2007-02-18 14:04:48 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpSingletons.c,v 1.16 2007-02-20 21:57:59 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,8 +59,8 @@ getFragmentClear(int    iid,
     assert(0);
   }
  
-  clr_bgn = getFragRecordClearRegionBegin(fs, AS_READ_CLEAR_CLOSURE);
-  clr_end = getFragRecordClearRegionEnd  (fs, AS_READ_CLEAR_CLOSURE);
+  clr_bgn = getFragRecordClearRegionBegin(fs, AS_READ_CLEAR_LATEST);
+  clr_end = getFragRecordClearRegionEnd  (fs, AS_READ_CLEAR_LATEST);
 
   strcpy(toprint, getFragRecordSequence(fs) + clr_bgn);
   toprint[clr_end - clr_bgn] = 0;

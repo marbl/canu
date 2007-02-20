@@ -25,7 +25,7 @@
                  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: RebuildMultiAlign_CNS.c,v 1.10 2007-02-18 14:04:48 brianwalenz Exp $";
+static char CM_ID[] = "$Id: RebuildMultiAlign_CNS.c,v 1.11 2007-02-20 21:57:59 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -274,7 +274,7 @@ int main (int argc, char *argv[]) {
                         ma,
                         global_fragStore,
                         (tFragStorePartition*)NULL,
-			1,0,AS_READ_CLEAR_CLOSURE);
+			1,0,AS_READ_CLEAR_LATEST);
      }
     }
    }

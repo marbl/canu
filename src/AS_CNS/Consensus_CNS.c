@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.40 2007-02-18 14:04:48 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.41 2007-02-20 21:57:59 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -864,7 +864,7 @@ int main (int argc, char *argv[])
       VA_TYPE(char) *quality=CreateVA_char(200000);
       time_t t;
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.40 $ processing. Started %s\n",
+      fprintf(stderr,"# Consensus $Revision: 1.41 $ processing. Started %s\n",
         ctime(&t));
       InitializeAlphTable();
       if ( ! align_ium && USE_SDB && extract > -1 ) 
@@ -919,7 +919,7 @@ int main (int argc, char *argv[])
         {
            MultiAlignT *ma1 = CreateMultiAlignTFromICM(&ctmp,-1,0);
            PrintMultiAlignT(cnslog,ma1,global_fragStore,global_fragStorePartition, 
-                            1, 0, AS_READ_CLEAR_CLOSURE);
+                            1, 0, AS_READ_CLEAR_LATEST);
            fflush(cnslog);
            DeleteVA_char(ma1->consensus);
            DeleteVA_char(ma1->quality);
@@ -1159,7 +1159,7 @@ int main (int argc, char *argv[])
                 ma = CreateMultiAlignTFromICM(pcontig,-1,0);
                 PrintMultiAlignT(cnslog,ma,global_fragStore,
                   global_fragStorePartition, 1,0,
-                  AS_READ_CLEAR_CLOSURE);
+                  AS_READ_CLEAR_LATEST);
             }
             output_lengths+=GetUngappedSequenceLength(pcontig->consensus);
             pmesg->t = MESG_ICM; 
@@ -1215,7 +1215,7 @@ int main (int argc, char *argv[])
             {
               AuditLine auditLine;
               AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                                 "Consensus", "$Revision: 1.40 $","(empty)");
+                                 "Consensus", "$Revision: 1.41 $","(empty)");
             }
 #endif
               VersionStampADT(adt_mesg,argc,argv);
@@ -1239,7 +1239,7 @@ int main (int argc, char *argv[])
       }
 
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.40 $ Finished %s\n",ctime(&t));
+      fprintf(stderr,"# Consensus $Revision: 1.41 $ Finished %s\n",ctime(&t));
       if (printcns) 
       {
         int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 
