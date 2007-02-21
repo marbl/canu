@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.6 2007-02-15 19:05:34 brianwalenz Exp $
- * $Revision: 1.6 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.7 2007-02-21 16:14:43 eliv Exp $
+ * $Revision: 1.7 $
 */
 
 #include "AS_BOG_MateChecker.hh"
@@ -186,6 +186,7 @@ namespace AS_BOG{
     {
         LibraryStats globalStats;
         LibraryStats::iterator dcIter;
+        _dists.clear();
         UnitigsConstIter tigIter = tigGraph.unitigs->begin();
         for(; tigIter != tigGraph.unitigs->end(); tigIter++)
         {
@@ -227,7 +228,16 @@ namespace AS_BOG{
                 dc->stddev = sqrt( dc->sumSquares / (dc->numPairs-1) );
             fprintf(stderr,"Distance lib %ld has global %ld pairs with stddev %.1f\n",
                     lib, dc->numPairs, dc->stddev );
+            // Now reset the global stats to zero so the real calculation below works
+            dc->numPairs   = 0;
+            dc->mean       = 0.0;
+            dc->stddev     = 0.0;
+            dc->sumSquares = 0.0;
+            dc->sumDists   = 0.0;
         }
+        fprintf(stderr,
+"DistLib\tnumDists\tmedian\t1/3rd\t2/3rd\tmaxDiff\tmin\tmax\tnumGood\tmean\tstddev\n");
+
         LibDistsConstIter libDistIter = _dists.begin();
         for(; libDistIter != _dists.end(); libDistIter++) {
             iuid libId = libDistIter->first;
@@ -238,9 +248,34 @@ namespace AS_BOG{
             int third    = dl[ size / 3 ];
             int twoThird = dl[ size * 2 / 3 ];
             int aproxStd = MAX( median - third, twoThird - median);
-            fprintf(stderr,
-          "Distance lib %ld has %ld dists, median is %ld 1/3 %ld 2/3 %ld aprox stddev %ld\n",
-                    libId, size, median, third, twoThird, aproxStd );
+            int biggest  = median + aproxStd * 5;
+            int smallest = median - aproxStd * 5;
+
+            // now go through the distances and calculate the real stddev
+            // including everything within 5 stddevs
+            iuid numBad = 0;
+            DistanceCompute *gdc = &(globalStats[ libId ]);
+            DistanceListCIter dIter = dl.begin();
+            for(;dIter != dl.end(); dIter++) {
+                if (*dIter >= smallest && *dIter <= biggest ) {
+                    gdc->numPairs++;
+                    gdc->sumDists += *dIter;
+                } else {
+                    numBad++;
+                } 
+            }
+            gdc->mean = gdc->sumDists / gdc->numPairs;
+            for(dIter = dl.begin(); dIter != dl.end(); dIter++) {
+                if (*dIter >= smallest && *dIter <= biggest ) {
+                    gdc->sumSquares += pow( *dIter - gdc->mean, 2);
+                }
+            }
+            if (gdc->numPairs > 1)
+                gdc->stddev = sqrt( gdc->sumSquares / (gdc->numPairs-1) );
+
+            fprintf(stderr, "%ld\t%ld\t%ld\t%ld\t%ld\t%ld\t%ld\t%ld\t%ld\t%.1f\t%.1f\n",
+                    libId, size, median, third, twoThird, aproxStd, smallest, biggest,
+                            gdc->numPairs, gdc->mean, gdc->stddev );
         }
     }
 }
