@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.22 2007-02-22 14:44:40 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.23 2007-02-22 17:09:26 brianwalenz Exp $";
 
 //    A thin layer on top of the IndexStore supporing the storage and
 // retrieval of records used by the gatekeeper records.
@@ -658,16 +658,19 @@ int              nextFragStream(FragStream *fs, fragRecord *fr) {
   fr->hasHPS = 0;
   fr->hasSRC = 0;
 
-  if (fs->flags & FRAG_S_SEQ) {
+  if ((fs->flags & FRAG_S_SEQ) && !(fs->flags & FRAG_S_QLT)) {
     fr->hasSEQ = 1;
     nextVLRecordStream(fs->seq, fr->seq, MAX_SEQ_LENGTH, &actualLength);
     fr->seq[actualLength] = 0;
   }
 
   if (fs->flags & FRAG_S_QLT) {
+    assert(fr->hasSEQ == 0);
+    fr->hasSEQ = 1;
     fr->hasQLT = 1;
     nextVLRecordStream(fs->qlt, fr->qlt, MAX_SEQ_LENGTH, &actualLength);
     fr->qlt[actualLength] = 0;
+    decodeSequenceQuality(fr->qlt, fr->seq, fr->qlt);
   }
 
   if (fs->flags & FRAG_S_HPS) {
