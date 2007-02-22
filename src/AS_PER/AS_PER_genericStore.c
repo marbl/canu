@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.10 2007-02-18 14:04:50 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.11 2007-02-22 00:59:46 brianwalenz Exp $";
 /*************************************************************************
  Module:  AS_PER_genericStore
  Description:
@@ -52,8 +52,8 @@ static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.10 2007-02-18 14:04:50 bri
  *************************************************************************/
 
 /* RCS Info
- * $Id: AS_PER_genericStore.c,v 1.10 2007-02-18 14:04:50 brianwalenz Exp $
- * $Revision: 1.10 $
+ * $Id: AS_PER_genericStore.c,v 1.11 2007-02-22 00:59:46 brianwalenz Exp $
+ * $Revision: 1.11 $
  *
  */
 
@@ -754,42 +754,6 @@ StoreHandle loadStorePartial
 
 }
 
-/****************************************************************************/
-
-int storeStore
-( StoreHandle sourceH, const char *StorePath /* Path to directory */)
-{
-  int64 targetOffset, sourceOffset, sourceMaxOffset;
-  StoreStruct *source = Store_myStruct(sourceH);
-  StoreStruct *target = allocateStore();
-
-  remove(StorePath);
-  *target = *source ;
-  target->isMemoryStore = 0;
-  target->fp = fopen(StorePath,"w");
-  if(target->fp == NULL){
-    fprintf(stderr,"* Failure opening Store %s for %s\n",
-	    StorePath, "w");
-    exit(1);
-  }
-
-  writeHeader(target);
-
-  target->status = 
-  source->status = ActiveStore;
-
-  targetOffset =   sourceOffset = sizeof(StoreStat);
-  sourceMaxOffset = computeOffset(source, source->header.lastElem+1);
-  /* This does a low level copy of data */
-  copyStore(source, sourceOffset, sourceMaxOffset, target, targetOffset);
-
-  fclose(target->fp);
-  target->status = UnAllocatedStore;
-
-  return 0;
-
-}
-
 
 /****************************************************************************/
 int deleteIndexStore(StoreHandle s, int64 index){
@@ -834,29 +798,6 @@ int getIndexStore(StoreHandle s, int64 index, void *buffer){
         assert(0);
     
     return AS_UTL_safeRead(myStore->fp,buffer,"getIndexStore",myStore->header.elementSize);
-  }
-}
-
-
-/*****************************************************************************/
-	
-int getIndexStorePtr(StoreHandle fs, int64 indx, void **buffer){
-  StoreStruct *myStore = Store_myStruct(fs);
-  int64 offset;
-
-  assert(myStore->status == ActiveStore);
-#ifdef DEBUG
-  fprintf(stderr," *** IndexStoreGetPtr -- Seeking element " F_S64 " (" F_S64 "," F_S64 ")\n",
-	  index, myStore->header.firstElem, myStore->header.lastElem);
-#endif
-  offset = computeOffset(myStore,indx);
-
-  if(myStore->isMemoryStore){
-    *buffer = (void *)(myStore->buffer + offset);
-    return(0);
-  }else{
-    *buffer = NULL;
-    return (1);
   }
 }
 
@@ -1041,83 +982,6 @@ int appendVLRecordStore(StoreHandle s, void *vlr, VLSTRING_SIZE_T length){
 
   return(0);
 }
-
-//#define DEBUG_CONCAT
-
-/***********************************************************************************
- * Function: concatStore
- * Description:
- *     Appends the source Store to the target.  
- *
- * Inputs:
- *     source   StoreHandle of open store to be appended to
- *     target   Storehandle of open store
- * Return Value:
- *     Zero if success.
- ***********************************************************************************/
-
-int concatStore(StoreHandle targetH, StoreHandle sourceH){
-  StoreStruct *target = Store_myStruct(targetH);
-  StoreStruct *source = Store_myStruct(sourceH);
-  int64 targetOffset, sourceOffset, sourceMaxOffset;
-  
-#ifdef DEBUG_CONCAT
-  fprintf(stderr,"*concatStore target:%d  source:%d\n",
-	  targetH, sourceH);
-#endif
-  assert(target->status == ActiveStore &&
-	 source->status == ActiveStore);
-
-  assert(target->header.elementSize == source->header.elementSize);
-  assert(Store_getType(target) == Store_getType(source));
-
-  /* If source is empty, we have nothing to do */
-  if(source->header.lastElem <  source->header.firstElem){
-#ifdef DEBUG_CONCAT
-    fprintf(stderr,"* Concatting empty store -- returning\n");
-#endif
-    return(0);
-  }
-  if(Store_getType(target) == INDEX_STORE){
-#ifdef DEBUG_CONCAT
-    fprintf(stderr," ** Index Store concat!\n");
-#endif
-     assert(source->header.firstElem == target->header.lastElem + 1);
-     targetOffset = computeOffset(target, target->header.lastElem+1);
-     sourceOffset = sizeof(StoreStat);
-     sourceMaxOffset = computeOffset(source, source->header.lastElem+1);
-     target->header.lastElem = source->header.lastElem;
-
-  }else if(Store_getType(target) == STRING_STORE ||
-	   Store_getType(target) == VLRECORD_STORE ){
-#ifdef DEBUG_CONCAT
-    fprintf(stderr," ** String/VLRecord Store concat!\n");
-#endif
-     targetOffset = sizeof(StoreStat) + target->header.lastElem;
-     sourceOffset = sizeof(StoreStat);
-     sourceMaxOffset = sizeof(StoreStat) + source->header.lastElem;
-     target->header.lastElem += source->header.lastElem;
-  }else{
-     assert(0);
-  }
-  
-  if(Store_isMemoryStore(target)){
-    // unlike a file store, we have to make sure there is enough space
-    
-
-
-  }
-#ifdef DEBUG_CONCAT
-     fprintf(stderr,"Concat Store:  source:%d target:%d targetOffset " F_S64 " sourceOffset " F_S64 " maxoffset " F_S64 "\n",
-	     sourceH, targetH, targetOffset, sourceOffset, sourceMaxOffset);
-#endif
-  /* This does a low level copy of data */
-  copyStore(source, sourceOffset, sourceMaxOffset, target, targetOffset);
-
-
-  return(0);
-}
-
 
 
 /****************************************************************************/

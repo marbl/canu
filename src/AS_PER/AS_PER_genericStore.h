@@ -64,8 +64,8 @@
  *************************************************************************/
 
 /* RCS Info
- * $Id: AS_PER_genericStore.h,v 1.6 2007-02-13 17:59:34 brianwalenz Exp $
- * $Revision: 1.6 $
+ * $Id: AS_PER_genericStore.h,v 1.7 2007-02-22 00:59:46 brianwalenz Exp $
+ * $Revision: 1.7 $
  *
  */
 
@@ -466,8 +466,6 @@ int64 getLastElemStore(StoreHandle store);
 int64 getFirstElemStore(StoreHandle store);
 
 
-
-
 /******************************************************************************
  * Function: getStartIndexStream
  * Description:
@@ -480,22 +478,6 @@ int64 getFirstElemStore(StoreHandle store);
  *
  *****************************************************************************/
 int getStartIndexStream(StreamHandle stream);
-
-/******************************************************************************
- * Function: storeStore
- * Description:
- *     Store a store to a file.  This is equivalent to creating a new
- * store, based on the characteristics of source, and concatting source
- * to the new store.
- *
- * Inputs:
- *     source          StoreHandle of open store to be stored to file
- *     FragStorePath   Path to desired FragStore
- * Return Value:
- *     Zero if success.  Fails if target file exists.
- *****************************************************************************/
-
-int storeStore(StoreHandle source, const char *StorePath);
 
 
 /* loadStore:
@@ -516,35 +498,6 @@ StoreHandle loadStorePartial
   int64 firstElem,
   int64 lastElem);
 
-#if 0
-/***************************** Not Yet Implemented ***************************/
-/* loadStringStore:
-      Open an existing file-based Store, and load its entire contents into
-      A newly created memory-based Store. This is equivalent to
-      opening the file-based store, and concatting it to a newly created
-      memory based store. 
-*/
-StoreHandle loadStringStore
-( const char *StorePath /* Path to directory */);
-
-
-
-
-#endif
-
-/******************************************************************************
- * Function: concatStore
- * Description:
- *     Appends the source Store to the target.  
- *
- * Inputs:
- *     source   StoreHandle of open store to be appended to
- *     target   Storehandle of open store
- * Return Value:
- *     Zero if success.
- *****************************************************************************/
-
-int concatStore(StoreHandle target, StoreHandle source);
 
 	
 /******************************************************************************
@@ -563,24 +516,6 @@ int concatStore(StoreHandle target, StoreHandle source);
  *****************************************************************************/
 	
 int getIndexStore(StoreHandle fs, int64 indx, void *buffer);
-
-/******************************************************************************
- * Function: getIndexStorePtr
- * Description:
- *     Random access to records in an IN MEMORY index store
- *
- * Inputs:
- *     fs         Handle of index store
- *     index      index of record
- * Outputs:
- *     buffer     pointer to an element.  
- *
- * Return Value:
- *     Zero if success.
- *     One otherwise.  Fails if store is not in memory
- *****************************************************************************/
-	
-int getIndexStorePtr(StoreHandle fs, int64 indx, void **buffer);
 
 	
 /******************************************************************************
@@ -617,7 +552,6 @@ int getStringStore(StoreHandle fs, int64 offset, char *buffer, int32 maxLength);
  *****************************************************************************/
 
 int appendIndexStore(StoreHandle store, void *element);
-
 
 
 
