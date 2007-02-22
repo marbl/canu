@@ -18,167 +18,113 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_encodeSequenceQuality.c,v 1.4 2005-03-22 19:49:20 jason_miller Exp $";
-/*************************************************************************
- Module:  AS_PER_encodeSequenceQuality
- Description:
-     This module encodes/decodes sequence/quality strings into a string of one char per seq/quality value pair
 
- Assumptions:
-
- Document:
-
- *************************************************************************/
+static char CM_ID[] = "$Id: AS_PER_encodeSequenceQuality.c,v 1.5 2007-02-22 00:06:57 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
 
-#include "AS_global.h"
 #include "AS_PER_encodeSequenceQuality.h"
 
 
+//  This module encodes/decodes sequence/quality strings into a string
+//  of one char per seq/quality value pair
+//
+// Quality values are encoded as follows:
+// lowest 2 bits for sequence value:
+//    a = 0
+//    c = 1
+//    t = 2
+//    g = 3
+// highest 6 bits for quality value:
+//    0 - 60 are valid quality values
+//    63 encodes an n sequence value
 
-/*************************************************************************************************/
-/* Quality values are encoded as follows:
-   2 bits for sequence value:
-      a = 0
-      c = 1
-      t = 2
-      g = 3
-   6 bits for quality value:
-      0 - 60 are valid quality values
-      63 encodes an n sequence value
-      62 encodes a 99 quality value
-*/
 
-#define SEQUENCE_MASK 0xC0
-#define QUALITY_MASK  (~ SEQUENCE_MASK)
+#define SEQ_A 0x00
+#define SEQ_C 0x01
+#define SEQ_G 0x02
+#define SEQ_T 0x03
+#define SEQ_N 0xff
 
-#define GET_SEQUENCE(ch) (((ch) & SEQUENCE_MASK))
-#define GET_QUALITY(ch) ((ch) & QUALITY_MASK)
+#define QUALITY_MAX  60
 
-#define SEQ_A 00
-#define SEQ_C 64
-#define SEQ_T 128
-#define SEQ_G 192
-#define SEQ_N 4
-#define QUALITY_MAX 60
-#define QUALITY_N 63
-#define QUALITY_99 62
-#define EOS '\0'        
+void
+encodeSequenceQuality(char *enc,
+                      char *seq,
+                      char *qlt) {
 
-const char SeqChars[] = {
-  'A',
-  'C',
-  'T',
-  'G',
-  'N'
-};
-
-  /*** NOTE -- encoded value is NOT a null terminated string!!!! */
-int encodeSequenceQuality
-( char *encoded, char *sequence, char *quality, uint hasQuality){
-  char *s = sequence;
-  char *q = quality;
-  char *e = encoded;
-  while(*s != EOS && (!hasQuality || *q != EOS)){
-    unsigned char qv = 0;
+  while ((*seq != 0) && (*qlt != 0)) {
+    unsigned char qv;
     unsigned char sv;
 
-
-    *e = 0;
-
-    if(hasQuality){
-      qv = *q - '0';
-      assert(qv <= QUALITY_MAX);
-      q++;
-    }
-    switch(*s){
-    case 'a':
-    case 'A':
-      sv = SEQ_A;
-      break;
-    case 't':
-    case 'T':
-      sv = SEQ_T;
-      break;
-    case 'c':
-    case 'C':
-      sv = SEQ_C;
-      break;
-    case 'g':
-    case 'G':
-      sv = SEQ_G;
-      break;
-    case 'n':
-    case 'N':
-      sv = SEQ_N;
-      break;
-    default:
-      fprintf(stderr,"*** Illegal sequence char %c detected in sequence:%s\n",
-	      *s, sequence);
-      assert(0);
-      break;
-    }
-    if(sv == SEQ_N){
-      sv = SEQ_A;
-      qv = QUALITY_N;
+    switch (*seq) {
+      case 'a':
+      case 'A':
+        sv = SEQ_A;
+        break;
+      case 'c':
+      case 'C':
+        sv = SEQ_C;
+        break;
+      case 'g':
+      case 'G':
+        sv = SEQ_G;
+        break;
+      case 't':
+      case 'T':
+        sv = SEQ_T;
+        break;
+      case 'n':
+      case 'N':
+        sv = SEQ_N;
+        break;
+      default:
+        fprintf(stderr,"encodeSequenceQuality()-- Illegal char %c detected!  Kaboom!\n", *seq);
+        assert(0);
+        break;
     }
 
-    *e = sv | qv;
+    assert(*qlt >= '0');
+    assert(*qlt <= QUALITY_MAX + '0');
+
+    qv   = *qlt - '0';
+
+    *enc = (qv << 2) | sv;
     
-    s++;
-    e++;
+    seq++;
+    qlt++;
+    enc++;
   }
-  /*** NOTE -- encoded value is NOT a null terminated string!!!! */
 
-  assert(*s == *q); // Should both be EOS
-  return 0;
+  *enc = 0;
+
+  assert(*seq == 0);
+  assert(*qlt == 0);
 }
 
-int decodeSequenceQuality
-( char *encoded, int encodedLength, char *sequence, char *quality, 
-  uint hasQuality){
-  char *s = sequence;
-  char *q = quality;
-  char *e = encoded;   /*** NOTE -- encoded value is NOT a null terminated string!!!! */
+void
+decodeSequenceQuality(char *enc,
+                      char *seq,
+                      char *qlt) {
+  const char sm[5] = {'A', 'C', 'G', 'T', 'N'};
 
-  int i;
+  while (*enc) {
+    *seq = sm[*enc & 0x03];
+    *qlt = ((*enc >> 2) & 0x3f);
 
-  *q = '\0';
-
-  for(i = 0; i < encodedLength; i++){
-      *s = SeqChars[ GET_SEQUENCE(*e)/ SEQ_C ]; // 0-3
-    if(hasQuality){
-      *q = GET_QUALITY((*e));
-      if(*q == QUALITY_N){
-	*s = SeqChars[SEQ_N];
-	*q = 0;
-      }
-      *q += '0';
-      q++;
+    if (*qlt > QUALITY_MAX) {
+      *seq = 'N';
+      *qlt = 0;
     }
 
-    s++;
-    e++;
+    *qlt += '0';
+
+    seq++;
+    qlt++;
+    enc++;
   }
-  if(hasQuality)
-    *q = EOS;
-
-  *s = EOS;
-
-  assert(strlen(sequence) == encodedLength);
-#ifdef DEBUG
-  fprintf(stderr,"decode seq = %s\nqual = %s\n",
-	  sequence, (hasQuality?quality:""));
-#endif
-  return 0;
+  *seq = 0;
+  *qlt = 0;
 }
-
-

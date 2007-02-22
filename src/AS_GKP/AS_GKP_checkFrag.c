@@ -19,32 +19,24 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.15 2007-02-18 14:04:49 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.16 2007-02-22 00:06:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include <assert.h>
-#include <fcntl.h>
-#include <sys/types.h>
 #include <ctype.h>
-#include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
-#include <unistd.h>
 
 #include "AS_global.h"
-#include "AS_PER_genericStore.h"
-#include "AS_PER_gkpStore.h"
-#include "AS_UTL_PHash.h"
-#include "AS_MSG_pmesg.h"
 #include "AS_GKP_include.h"
+#include "AS_PER_gkpStore.h"
+#include "AS_PER_encodeSequenceQuality.h"
+
 
 static int    checkfraginitialized = 0;
 static double qualityToFractionError[61] = {0.0};
 static int    isspacearray[256] = {0};
 static int    isvalidACGTN[256] = {0};
-
+static char   encodedsequence[AS_FRAG_MAX_LEN+1] = {0};
 
 int
 CheckLengthsIntervals(FragMesg *frg_mesg,
@@ -406,7 +398,10 @@ Check_FragMesg(FragMesg            *frg_mesg,
     appendGateKeeperFragmentStore(gkpStore->frg, &gkf);
 
     appendVLRecordStore(gkpStore->seq, frg_mesg->sequence, gkf.seqLen);
-    appendVLRecordStore(gkpStore->qlt, frg_mesg->quality,  gkf.seqLen);
+
+    encodeSequenceQuality(encodedsequence, frg_mesg->sequence, frg_mesg->quality);
+    appendVLRecordStore(gkpStore->qlt, encodedsequence,    gkf.seqLen);
+
     appendVLRecordStore(gkpStore->hps, NULL,               0);
     appendVLRecordStore(gkpStore->src, frg_mesg->source,   gkf.srcLen);
 

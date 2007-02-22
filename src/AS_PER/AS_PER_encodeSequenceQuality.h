@@ -18,35 +18,24 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
+
+// $Id: AS_PER_encodeSequenceQuality.h,v 1.5 2007-02-22 00:06:57 brianwalenz Exp $
+
 #ifndef AS_PER_ENCODESEQUENCEQUALITY_H
 #define AS_PER_ENCODESEQUENCEQUALITY_H
-/*************************************************************************
- Module:  AS_PER_encodeSequenceQuality
 
- Description:
+// Functions for encoding sequence and quality values one char per
+// seq/quality pair.
 
- Functions for encoding sequence and quality values one char per seq/quality pair.
 
- *************************************************************************/
+void
+encodeSequenceQuality(char *encoded,
+                      char *sequence,
+                      char *quality);
 
-/* RCS Info
- * $Id: AS_PER_encodeSequenceQuality.h,v 1.4 2005-03-22 19:49:20 jason_miller Exp $
- * $Revision: 1.4 $
- *
- */
-
-/* encodeSequenceQuality:
-     Compress sequence and quality data to 1 byte per combined value;
-*/
-int encodeSequenceQuality
-( char *encoded, char *sequence, char *quality, uint hasQuality);
-
-/* decodeSequenceQuality:
-     Extract sequence and quality data from 1 byte per combined value
-*/
-int decodeSequenceQuality
-( char *encoded, int encodeLength, char *sequence, char *quality, 
-  uint hasQuality);
-
+void
+decodeSequenceQuality(char *encoded,
+                      char *sequence,
+                      char *quality);
 
 #endif

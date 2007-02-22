@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_dump.c,v 1.3 2007-02-20 21:58:04 brianwalenz Exp $ */
+/* $Id: AS_GKP_dump.c,v 1.4 2007-02-22 00:06:57 brianwalenz Exp $ */
 
 #include "AS_GKP_include.h"
 
@@ -60,7 +60,7 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
   for (; firstElem < lastElem; firstElem++) {
     unsigned int      deleted = 0;
 
-    getFrag(gkp, firstElem, fr, FRAG_S_SEQ);
+    getFrag(gkp, firstElem, fr, FRAG_S_SEQ | FRAG_S_QLT);
 
     deleted = getFragRecordIsDeleted(fr);
 
@@ -77,6 +77,7 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
       unsigned int   clrEnd = getFragRecordClearRegionEnd  (fr, dumpFastaClear);
 
       char          *seq = getFragRecordSequence(fr);
+      char          *qlt = getFragRecordQuality(fr);
 
       if (dumpFastaAllBases) {
         fprintf(stdout, ">"F_UID","F_IID" mate="F_UID","F_IID" lib="F_UID","F_IID" deleted=%d clrBeg="F_U32" clrEnd="F_U32"\n%s\n",
@@ -86,6 +87,13 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
                 deleted,
                 clrBeg, clrEnd,
                 seq);
+        fprintf(stdout, ">"F_UID","F_IID" mate="F_UID","F_IID" lib="F_UID","F_IID" deleted=%d clrBeg="F_U32" clrEnd="F_U32"\n%s\n",
+                readUID, readIID,
+                mateUID, mateIID,
+                libUID,  libIID,
+                deleted,
+                clrBeg, clrEnd,
+                qlt);
       } else {
         seq[clrEnd] = 0;
         fprintf(stdout, ">"F_UID","F_IID" mate="F_UID","F_IID" lib="F_UID","F_IID" deleted=%d\n%s\n",
@@ -94,6 +102,12 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
                 libUID,  libIID,
                 deleted,
                 seq + clrBeg);
+        fprintf(stdout, ">"F_UID","F_IID" mate="F_UID","F_IID" lib="F_UID","F_IID" deleted=%d\n%s\n",
+                readUID, readIID,
+                mateUID, mateIID,
+                libUID,  libIID,
+                deleted,
+                qlt + clrBeg);
       }
     }
   }

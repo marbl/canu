@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.20 2007-02-20 21:58:04 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.21 2007-02-22 00:06:57 brianwalenz Exp $";
 
 //    A thin layer on top of the IndexStore supporing the storage and
 // retrieval of records used by the gatekeeper records.
@@ -40,6 +40,7 @@ static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.20 2007-02-20 21:58:04 brianwa
 #include "AS_global.h"
 #include "AS_PER_genericStore.h"
 #include "AS_PER_gkpStore.h"
+#include "AS_PER_encodeSequenceQuality.h"
 
 
 static
@@ -434,7 +435,6 @@ uint32      getFragRecordClearRegionEnd  (fragRecord *fr, uint32 which) {
 ////////////////////////////////////////////////////////////////////////////////
 
 
-
 static
 void
 getFragData(GateKeeperStore *gkp, fragRecord *fr, int streamFlags) {
@@ -450,7 +450,8 @@ getFragData(GateKeeperStore *gkp, fragRecord *fr, int streamFlags) {
   fr->hps[0] = 0;
   fr->src[0] = 0;
 
-  if (streamFlags & FRAG_S_SEQ) {
+  if ((streamFlags & FRAG_S_SEQ) &&
+      !(streamFlags & FRAG_S_QLT)) {
     fr->hasSEQ = 1;
     if (fr->gkfr.seqLen > 0) {
       getVLRecordStore(gkp->seq,
@@ -462,6 +463,8 @@ getFragData(GateKeeperStore *gkp, fragRecord *fr, int streamFlags) {
     }
   }
   if (streamFlags & FRAG_S_QLT) {
+    assert(fr->hasSEQ == 0);
+    fr->hasSEQ = 1;
     fr->hasQLT = 1;
     if (fr->gkfr.seqLen > 0) {
       getVLRecordStore(gkp->qlt,
@@ -470,6 +473,7 @@ getFragData(GateKeeperStore *gkp, fragRecord *fr, int streamFlags) {
                        VLSTRING_MAX_SIZE,
                        &actualLength);
       fr->qlt[actualLength] = 0;
+      decodeSequenceQuality(fr->qlt, fr->seq, fr->qlt);
     }
   }
   if (streamFlags & FRAG_S_HPS) {

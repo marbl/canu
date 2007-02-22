@@ -19,26 +19,15 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.1 2007-02-12 22:16:57 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.2 2007-02-22 00:06:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include <assert.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <ctype.h>
-#include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
-#include <unistd.h>
 
 #include "AS_global.h"
-#include "AS_PER_genericStore.h"
-#include "AS_PER_gkpStore.h"
-#include "AS_UTL_PHash.h"
-#include "AS_MSG_pmesg.h"
 #include "AS_GKP_include.h"
+#include "AS_PER_gkpStore.h"
 
 
 int
