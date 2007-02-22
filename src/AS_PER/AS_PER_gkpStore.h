@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.18 2007-02-20 21:58:04 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.19 2007-02-22 14:44:40 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -385,13 +385,9 @@ GateKeeperStore *loadFragStore(const char *path) {
   return(openGateKeeperStore(path, FALSE));
 }
 
-static
-GateKeeperStore *loadFragStorePartial(const char *path, int64 firstElem, int64 lastElem) {
-  return(openGateKeeperStore(path, FALSE));
-}
+GateKeeperStore *loadFragStorePartial(const char *path, int64 firstElem, int64 lastElem, int flags);
 
 ////////////////////////////////////////////////////////////////////////////////
-
 
 typedef struct {
   GateKeeperStore   *gkp;
@@ -400,6 +396,13 @@ typedef struct {
   StreamHandle       qlt;
   StreamHandle       hps;
   StreamHandle       src;
+
+  char              *frgBuffer;
+  char              *seqBuffer;
+  char              *qltBuffer;
+  char              *hpsBuffer;
+  char              *srcBuffer;
+
   int                flags;
 } FragStream;
 

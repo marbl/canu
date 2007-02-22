@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.21 2007-02-22 00:06:57 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.22 2007-02-22 14:44:40 brianwalenz Exp $";
 
 //    A thin layer on top of the IndexStore supporing the storage and
 // retrieval of records used by the gatekeeper records.
@@ -302,19 +302,17 @@ createGateKeeperStore(const char *path) {
   sprintf(name,"%s/lis", path);
   gkpStore->lis = createGateKeeperLibraryStore(name, "lib", 1);
 
-  fprintf(stderr, "WARNING!  USING 2048 AS LENGTH FOR VLRecordStore!\n");
-
   sprintf(name,"%s/seq", path);
-  gkpStore->seq = createVLRecordStore(name, "seq", 2048, 1);
+  gkpStore->seq = createVLRecordStore(name, "seq", MAX_SEQ_LENGTH, 1);
 
   sprintf(name,"%s/qlt", path);
-  gkpStore->qlt = createVLRecordStore(name, "qlt", 2048, 1);
+  gkpStore->qlt = createVLRecordStore(name, "qlt", MAX_SEQ_LENGTH, 1);
 
   sprintf(name,"%s/hps", path);
-  gkpStore->hps = createVLRecordStore(name, "hps", 2048, 1);
+  gkpStore->hps = createVLRecordStore(name, "hps", MAX_HPS_LENGTH, 1);
 
   sprintf(name,"%s/src", path);
-  gkpStore->src = createVLRecordStore(name, "src", 2048, 1);
+  gkpStore->src = createVLRecordStore(name, "src", MAX_SRC_LENGTH, 1);
 
   sprintf(name,"%s/phs", path);
   gkpStore->phs = CreatePHashTable_AS(2048,name);
@@ -544,21 +542,39 @@ int     delFrag(GateKeeperStore *gkp, int64 iid) {
 FragStream      *openFragStream(GateKeeperStore *gkp, int flags) {
   FragStream  *fs = (FragStream *)safe_malloc(sizeof(FragStream));
   fs->gkp   = gkp;
-  fs->frg   = openStream(fs->gkp->frg, NULL, 0);
+  fs->frg   = NULLSTOREHANDLE;
   fs->seq   = NULLSTOREHANDLE;
   fs->qlt   = NULLSTOREHANDLE;
   fs->hps   = NULLSTOREHANDLE;
   fs->src   = NULLSTOREHANDLE;
   fs->flags = flags;
 
+#if 0
+  int bufferSize = 1048576;
+  fs->frgBuffer = (char *)safe_malloc(sizeof(char) * bufferSize);
+  fs->seqBuffer = (char *)safe_malloc(sizeof(char) * bufferSize);
+  fs->qltBuffer = (char *)safe_malloc(sizeof(char) * bufferSize);
+  fs->hpsBuffer = (char *)safe_malloc(sizeof(char) * bufferSize);
+  fs->seqBuffer = (char *)safe_malloc(sizeof(char) * bufferSize);
+#else
+  int bufferSize = 0;
+  fs->frgBuffer = NULL;
+  fs->seqBuffer = NULL;
+  fs->qltBuffer = NULL;
+  fs->hpsBuffer = NULL;
+  fs->seqBuffer = NULL;
+#endif
+
+  fs->frg   = openStream(fs->gkp->frg, fs->frgBuffer, bufferSize);
+
   if (fs->flags & FRAG_S_SEQ)
-    fs->seq   = openStream(fs->gkp->seq, NULL, 0);
+    fs->seq   = openStream(fs->gkp->seq, fs->seqBuffer, bufferSize);
   if (fs->flags & FRAG_S_QLT)
-    fs->qlt   = openStream(fs->gkp->qlt, NULL, 0);
+    fs->qlt   = openStream(fs->gkp->qlt, fs->qltBuffer, bufferSize);
   if (fs->flags & FRAG_S_HPS)
-    fs->hps   = openStream(fs->gkp->hps, NULL, 0);
+    fs->hps   = openStream(fs->gkp->hps, fs->hpsBuffer, bufferSize);
   if (fs->flags & FRAG_S_SRC)
-    fs->src   = openStream(fs->gkp->src, NULL, 0);
+    fs->src   = openStream(fs->gkp->src, fs->srcBuffer, bufferSize);
 
   return(fs);
 }
@@ -609,6 +625,12 @@ void             closeFragStream(FragStream *fs) {
     closeStream(fs->hps);
   if (fs->flags & FRAG_S_SRC)
     closeStream(fs->src);
+
+  safe_free(fs->frgBuffer);
+  safe_free(fs->seqBuffer);
+  safe_free(fs->qltBuffer);
+  safe_free(fs->hpsBuffer);
+  safe_free(fs->seqBuffer);
 }
 
 
@@ -661,4 +683,65 @@ int              nextFragStream(FragStream *fs, fragRecord *fr) {
   }
 
   return(1);
+}
+
+
+
+
+
+GateKeeperStore *
+loadFragStorePartial(const char *path,
+                     int64       firstElem,
+                     int64       lastElem,
+                     int         flags) {
+  GateKeeperStore           *gkp = openGateKeeperStore(path, FALSE);
+  GateKeeperFragmentRecord   gkf;
+
+  int64  seqFirst = 0, seqLast = STREAM_UNTILEND;
+  int64  qltFirst = 0, qltLast = STREAM_UNTILEND;
+  int64  hpsFirst = 0, hpsLast = STREAM_UNTILEND;
+  int64  srcFirst = 0, srcLast = STREAM_UNTILEND;
+
+  int64  lastFrag = getLastElemFragStore(gkp);
+
+  //  Making the seq, qlt, etc, stores into memory stores is more
+  //  trouble.
+
+  getGateKeeperFragmentStore(gkp->frg, firstElem, &gkf);
+
+  seqFirst = gkf.seqOffset;
+  qltFirst = gkf.qltOffset;
+  hpsFirst = gkf.hpsOffset;
+  srcFirst = gkf.srcOffset;
+
+  if ((lastElem != STREAM_UNTILEND) &&
+      (lastElem != lastFrag)) {
+    getGateKeeperFragmentStore(gkp->frg, lastElem + 1, &gkf);
+
+    seqLast = gkf.seqOffset;
+    qltLast = gkf.qltOffset;
+    hpsLast = gkf.hpsOffset;
+    srcLast = gkf.srcOffset;
+  }
+
+  if ((flags & FRAG_S_SEQ) && !(flags & FRAG_S_QLT))
+    gkp->seq = convertStoreToPartialMemoryStore(gkp->seq, seqFirst, seqLast);
+
+  if (flags & FRAG_S_QLT)
+    gkp->qlt = convertStoreToPartialMemoryStore(gkp->qlt, qltFirst, qltLast);
+
+  if (flags & FRAG_S_HPS)
+    gkp->hps = convertStoreToPartialMemoryStore(gkp->hps, hpsFirst, hpsLast);
+
+  if (flags & FRAG_S_SRC)
+    gkp->src = convertStoreToPartialMemoryStore(gkp->src, srcFirst, srcLast);
+
+  //  Making the frag info a memory store is easy!  We do this last,
+  //  since we need to get a frag that isn't included here -- being
+  //  lastElem+1.  The cost of doing this last is two fragment loads
+  //  that otherwise we could do from the memory store.
+  //
+  gkp->frg = convertStoreToPartialMemoryStore(gkp->frg, firstElem, lastElem);
+
+  return(gkp);
 }

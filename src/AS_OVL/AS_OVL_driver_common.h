@@ -26,8 +26,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_driver_common.h,v 1.15 2007-02-18 14:04:49 brianwalenz Exp $
- * $Revision: 1.15 $
+ * $Id: AS_OVL_driver_common.h,v 1.16 2007-02-22 14:44:40 brianwalenz Exp $
+ * $Revision: 1.16 $
 */
 
 
@@ -221,7 +221,8 @@ Source_Log_File = File_Open ("ovl-srcinfo.log", "w");
                      hash_frag_store
                          = loadFragStorePartial (BACtig_Store_Path,
                                                  First_Hash_Frag,
-                                                 Last_Hash_Frag);
+                                                 Last_Hash_Frag,
+                                                 FRAG_S_INF | FRAG_S_SEQ | FRAG_S_QLT);
                      fprintf (stderr,
                               "loadFragStorePartial  first = " F_S64 "  last = " F_S64 "\n",
                               First_Hash_Frag, Last_Hash_Frag);
@@ -235,7 +236,8 @@ Source_Log_File = File_Open ("ovl-srcinfo.log", "w");
                      hash_frag_store
                          = loadFragStorePartial (Frag_Store_Path,
                                                  First_Hash_Frag,
-                                                 Last_Hash_Frag);
+                                                 Last_Hash_Frag,
+                                                 FRAG_S_INF | FRAG_S_SEQ | FRAG_S_QLT);
                      fprintf (stderr,
                               "loadFragStorePartial  first = " F_S64 "  last = " F_S64 "\n",
                               First_Hash_Frag, Last_Hash_Frag);
@@ -306,7 +308,7 @@ break;
 
               curr_frag_store
                   = loadFragStorePartial
-                        (Frag_Store_Path, Frag_Segment_Lo, Frag_Segment_Hi);
+                        (Frag_Store_Path, Frag_Segment_Lo, Frag_Segment_Hi, FRAG_S_INF | FRAG_S_SEQ | FRAG_S_QLT);
               fprintf (stderr,
                        "loadFragStorePartial  first = %d  last = %d\n",
                        Frag_Segment_Lo, Frag_Segment_Hi);

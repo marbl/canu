@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CorrectOlapsOVL.c,v 1.9 2007-02-18 14:04:49 brianwalenz Exp $
- * $Revision: 1.9 $
+ * $Id: CorrectOlapsOVL.c,v 1.10 2007-02-22 14:44:40 brianwalenz Exp $
+ * $Revision: 1.10 $
 */
 
-static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.9 2007-02-18 14:04:49 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.10 2007-02-22 14:44:40 brianwalenz Exp $";
 
 
 //  System include files
@@ -2632,7 +2632,7 @@ static void  Read_Frags
    frag_read = new_fragRecord ();
 
    gkpStore = loadFragStorePartial (gkpStore_Path,
-                                      Lo_Frag_IID, Hi_Frag_IID);
+                                      Lo_Frag_IID, Hi_Frag_IID, FRAG_S_SEQ | FRAG_S_SRC);
    
    Frag_Stream = openFragStream (gkpStore, FRAG_S_SEQ | FRAG_S_SRC);
    resetFragStream (Frag_Stream, Lo_Frag_IID, Hi_Frag_IID);

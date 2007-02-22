@@ -64,8 +64,8 @@
  *************************************************************************/
 
 /* RCS Info
- * $Id: AS_PER_genericStore.h,v 1.7 2007-02-22 00:59:46 brianwalenz Exp $
- * $Revision: 1.7 $
+ * $Id: AS_PER_genericStore.h,v 1.8 2007-02-22 14:44:40 brianwalenz Exp $
+ * $Revision: 1.8 $
  *
  */
 
@@ -480,23 +480,26 @@ int64 getFirstElemStore(StoreHandle store);
 int getStartIndexStream(StreamHandle stream);
 
 
-/* loadStore:
-      Open an existing file-based Store, and load its entire contents into
-      A newly created memory-based Store.   This is equivalent to
-      opening the file-based store, and concatting it to a newly created
-      memory based store. 
-*/
-StoreHandle loadStore
-( const char *StorePath /* Path to directory */);
+//  "Convert" the loadStore into a new memory store.  The loadStore is
+//  closed.
+//
+StoreHandle convertStoreToPartialMemoryStore(StoreHandle loadStore,
+                                             int64       firstElem,
+                                             int64       lastElem);
 
-/* loadStorePartial:
-      Open an existing file-based Store, and load a portion of its contents into
-      A newly created memory-based Store.   
-*/
-StoreHandle loadStorePartial
-( const char *StorePath /* Path to directory */,
-  int64 firstElem,
-  int64 lastElem);
+//  Open an existing file-based Store, and load its entire contents
+//  into A newly created memory-based Store.  This is equivalent to
+//  opening the file-based store, and concatting it to a newly created
+//  memory based store.
+//
+StoreHandle loadStore(const char *StorePath);
+
+//  Open an existing file-based Store, and load a portion of its
+//  contents into A newly created memory-based Store.
+///
+StoreHandle loadStorePartial(const char *StorePath,
+                             int64 firstElem,
+                             int64 lastElem);
 
 
 	
@@ -598,6 +601,7 @@ StreamHandle openStringStream(StoreHandle fs,        /* handle to a fragment sto
 			       void *buffer,       /* User supplied buffer for prefetching */
 				 int32 bufferSize);
 
+#if 0
 /******************************************************************************
  * Function: openVLRecordStream:
  * Description:
@@ -617,7 +621,7 @@ StreamHandle openVLRecordStream
  int64 startoffset, /* Offset to start streaming */
  void *buffer,      /* User supplied buffer for prefetching */
  int32 bufferSize);
-
+#endif
 	
 
 

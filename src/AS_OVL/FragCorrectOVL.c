@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FragCorrectOVL.c,v 1.12 2007-02-18 14:04:49 brianwalenz Exp $
- * $Revision: 1.12 $
+ * $Id: FragCorrectOVL.c,v 1.13 2007-02-22 14:44:40 brianwalenz Exp $
+ * $Revision: 1.13 $
 */
 
-static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.12 2007-02-18 14:04:49 brianwalenz Exp $";
+static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.13 2007-02-22 14:44:40 brianwalenz Exp $";
 
 
 //  System include files
@@ -2148,7 +2148,7 @@ static void  Read_Frags
 #else
    Internal_gkpStore
        = loadFragStorePartial (gkpStore_Path,
-                               Lo_Frag_IID, Hi_Frag_IID);
+                               Lo_Frag_IID, Hi_Frag_IID, FRAG_S_SEQ);
 #endif
    
    Frag_Stream = openFragStream (Internal_gkpStore, FRAG_S_SEQ);
@@ -2529,7 +2529,7 @@ static void  Threaded_Stream_Old_Frags
   assert (Internal_gkpStore != NULL);
 #else
    Internal_gkpStore
-       = loadFragStorePartial (gkpStore_Path, lo_frag, hi_frag);
+       = loadFragStorePartial (gkpStore_Path, lo_frag, hi_frag, FRAG_S_SEQ);
 #endif
 
    curr_frag_list = & frag_list_1;
@@ -2573,7 +2573,7 @@ static void  Threaded_Stream_Old_Frags
 
 #ifndef USE_STORE_DIRECTLY_STREAM
            Internal_gkpStore
-               = loadFragStorePartial (gkpStore_Path, lo_frag, hi_frag);
+               = loadFragStorePartial (gkpStore_Path, lo_frag, hi_frag, FRAG_S_SEQ);
 #endif
 
            save_olap = next_olap;
