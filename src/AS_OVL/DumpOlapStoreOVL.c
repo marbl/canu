@@ -33,11 +33,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: DumpOlapStoreOVL.c,v 1.6 2007-02-18 14:04:49 brianwalenz Exp $
- * $Revision: 1.6 $
+ * $Id: DumpOlapStoreOVL.c,v 1.7 2007-02-23 18:28:29 ahalpern Exp $
+ * $Revision: 1.7 $
 */
 
-static char CM_ID[] = "$Id: DumpOlapStoreOVL.c,v 1.6 2007-02-18 14:04:49 brianwalenz Exp $";
+static char CM_ID[] = "$Id: DumpOlapStoreOVL.c,v 1.7 2007-02-23 18:28:29 ahalpern Exp $";
 
 
 //  System include files
@@ -94,7 +94,7 @@ static uint32  Start_Frag = 1;
     // First fragment iid to dump
 static uint32  Stop_Frag = UINT_MAX;
     // Last fragment iid to dump
-
+static uint32  Err_Cutoff = 1000;
 
 
 //  Static Functions
@@ -179,7 +179,8 @@ int  main
 
    while  (Next_From_OVL_Stream (& olap, my_stream))
      {
-      printf ("    %8d %8d %c %5d %5d %4.1f %4.1f\n",
+       if(olap.orig_erate < Err_Cutoff)
+	 printf ("    %8d %8d %c %5d %5d %4.1f %4.1f\n",
               olap . a_iid, olap . b_iid,
               olap . flipped ? 'I' : 'N',
               olap . a_hang, olap . b_hang,
@@ -209,7 +210,7 @@ static void  Parse_Command_Line
    optarg = NULL;
 
    while  (! errflg
-             && ((ch = getopt (argc, argv, "b:e:")) != EOF))
+             && ((ch = getopt (argc, argv, "b:e:r:")) != EOF))
      switch  (ch)
        {
         case  'b' :
@@ -232,6 +233,11 @@ static void  Parse_Command_Line
               }
           break;
 
+        case 'r' :
+	  Err_Cutoff = (int) 1000. * atof(optarg);
+	  assert(Err_Cutoff >= 0 && Err_Cutoff <= 1000);
+	  break;
+	  
         case  '?' :
           fprintf (stderr, "Unrecognized option -%c\n", optopt);
           // fall through
@@ -262,7 +268,7 @@ static void  Usage
 
   {
    fprintf (stderr,
-           "USAGE:  %s [-b <Start_Frag>] [-e <End_Frag>]\n"
+           "USAGE:  %s [-b <Start_Frag>] [-e <End_Frag>] [-r <err cutoff>]\n"
            "           <OVL_Store>\n"
            "\n"
            "Dumps overlap information in  <OVL_Store>  for\n"
