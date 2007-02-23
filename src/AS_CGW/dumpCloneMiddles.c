@@ -101,8 +101,8 @@ usage(char *pgm) {
   fprintf(stderr, "  OPTIONAL OPTIONS\n");
   fprintf(stderr, "    -s <single scfIID>   -- generate a single scaffold\n");
   fprintf(stderr, "    -l <min length>      -- generate only scaffolds larger than min length\n");
-  fprintf(stderr, "    -e <ovl err. cutoff> -- sets cutoff for overlaps; default=0.015;\n"
-  fprintf(stderr, "    -S                   -- suppress surrogate fragment placement (possibly multiple placements per frg)\n"
+  fprintf(stderr, "    -e <ovl err. cutoff> -- sets cutoff for overlaps; default=0.015;\n");
+  fprintf(stderr, "    -S                   -- suppress surrogate fragment placement (possibly multiple placements per frg)\n");
   fprintf(stderr, "    -U                   -- name clones with the UID of their read\n");
 }
 
