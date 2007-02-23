@@ -57,8 +57,11 @@ int main( int argc, char *argv[])
     int ch,errflg=0;
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,
-				    "f:g:U")) != EOF)){
+				    "b:f:g:U")) != EOF)){
       switch(ch) {
+      case 'b':
+	firstIID = atoi(optarg);
+	break;
       case 'f':
 	strcpy( Frag_Store_Name, argv[optind - 1]);
 	setFragStore = TRUE;
@@ -82,12 +85,13 @@ int main( int argc, char *argv[])
 	fprintf(stderr,"* argc = %d optind = %d setFragStore = %d setGatekeeperStore = %d\n",
 		argc, optind, setFragStore,setGatekeeperStore);
 	fprintf (stderr, "USAGE:  %s -f <FragStoreName> -g <GatekeeperStoreName> [-U]\n",argv[0]);
-	fprintf (stderr, "\t-n specifies that even mates with negative hangs should be merged\n");
 	fprintf (stderr, "\t-U prints UIDs instead of IIDs\n");
 	exit (EXIT_FAILURE);
       }
 
   }
+
+  assert(firstIID>=1);
 
   assert(existsFragStore(Frag_Store_Name) == TRUE);
   frgStore = openFragStore(Frag_Store_Name,"r");
