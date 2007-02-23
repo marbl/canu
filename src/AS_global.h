@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_global.h,v 1.6 2006-12-19 01:37:43 brianwalenz Exp $	 */
+/* 	$Id: AS_global.h,v 1.7 2007-02-23 15:33:44 brianwalenz Exp $	 */
 
 /* This is the global include file that all C files in the AS subsystem should
    include.
@@ -179,9 +179,6 @@ typedef double float64;
   #define FILEOFFSET_MASK   0x0000ffffffffffffULL
   #define LOCALE_OFFSET            10000000000ULL  // 10^10 > 2^32
 
-  #define CDS_FTELL ftello
-  #define CDS_FSEEK fseeko
-
   //========== SIMULATOR-specific
   // Fix initial creation time & uid in celsim to support regression testing 
   // time stamp of batch message in first dros file...
@@ -277,9 +274,6 @@ typedef double float64;
     #define FILEOFFSET_MASK   0x0000ffffffffffffUL
     #define LOCALE_OFFSET            10000000000UL  // 10^10 > 2^32
     
-    #define CDS_FTELL ftell
-    #define CDS_FSEEK fseek
-    
     //========== SIMULATOR-specific
     // Fix initial creation time & uid in celsim to support regression testing 
     // time stamp of batch message in first dros file...
@@ -311,6 +305,46 @@ typedef double float64;
     CANNOT SET REQUIRED ASSEMBLER MACROS in cds.h. UNIDENTIFIED ARCHITECTURE.
   #endif
 #endif
+
+
+#if 1
+
+#define CDS_FTELL(F) ftello((F))
+
+#else
+
+static
+off_t
+CDS_FTELL(FILE *stream) {
+  off_t  r = ftello(stream);
+  fprintf(stderr, "CDS_FTELL() = "F_OFF_T"\n", r);
+  return(r);
+}
+
+#endif
+
+
+#if 1
+
+#define CDS_FSEEK(F,O,S) fseeko((F), (O), (S))
+
+#else
+
+static
+int
+CDS_FSEEK(FILE *stream, off_t offset, int whence) {
+  off_t  before = ftello(stream);
+  int    r      = fseek(stream, offset, whence);
+  off_t  after  = ftello(stream);
+
+  fprintf(stderr, "CDS_FSEEK() before="F_OFF_T"  after="F_OFF_T"\n", before, after);
+
+  return(r);
+}
+
+#endif
+
+
 
 typedef cds_uint64 CDS_UID_t;
 typedef cds_uint32 CDS_IID_t;
