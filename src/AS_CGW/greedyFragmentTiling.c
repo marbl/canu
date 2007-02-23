@@ -1,24 +1,4 @@
 
-/**************************************************************************
- * This file is part of Celera Assembler, a software program that 
- * assembles whole-genome shotgun reads into contigs and scaffolds.
- * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
- * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- * 
- * You should have received (LICENSE.txt) a copy of the GNU General Public 
- * License along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- *************************************************************************/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -29,7 +9,6 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
-
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -98,11 +77,11 @@ void setup_stores(char *OVL_Store_Path, char *Frg_Store_Path, char *Gkp_Store_Pa
 
 void print_olap(Long_Olap_Data_t olap){
   printf ("    %8d %8d %c %5d %5d %4.1f %4.1f\n",
-          olap . a_iid,
-          olap . b_iid,
-          olap . flipped ? 'I' : 'N',
-          olap . a_hang, olap . b_hang,
-          olap . orig_erate / 10.0, olap . corr_erate / 10.0);
+	  olap . a_iid,
+	  olap . b_iid,
+	  olap . flipped ? 'I' : 'N',
+	  olap . a_hang, olap . b_hang,
+	  olap . orig_erate / 10.0, olap . corr_erate / 10.0);
 }
 
 
@@ -513,7 +492,7 @@ int setupolaps(int id, int offAEnd,BestMeasure bestType,double erate,int useCorr
 	  olaps=(Long_Olap_Data_t*)safe_malloc(sizeof(Long_Olap_Data_t)*ovlsAlloced);
 	} else {
 	  olaps=(Long_Olap_Data_t*)safe_realloc(olaps,
-					     sizeof(Long_Olap_Data_t)*ovlsAlloced);
+						sizeof(Long_Olap_Data_t)*ovlsAlloced);
 	}
       }
       if(bestType==BEST_MEANS_LOWEST_ERROR&&favorSameSample>0){
@@ -1104,7 +1083,7 @@ int main (int argc , char * argv[] ) {
 
     while(stillGoing){
       Long_Olap_Data_t o;
-      if(currFrg!=seediid&&currFrg!=firstExtend){
+      if(currFrg!=seediid||firstExtend==-1){
 	if(printpid){
 	  if(iid2sample!=NULL){
 	    printf("%d %d %d %s %f %d\n",currFrg,leftEnd,rightEnd,!Aend?"<--":"-->",pid/1000.,iid2sample[currFrg]);
@@ -1139,10 +1118,10 @@ int main (int argc , char * argv[] ) {
 	    currFrg=o.b_iid;
 
 	    if(Aend){
-	      rightEnd+=o.b_hang;
+	      rightEnd=leftEnd+frglen+o.b_hang;
 	      leftEnd+=o.a_hang;
 	    } else {
-	      rightEnd-=o.a_hang;
+	      rightEnd=leftEnd+frglen+o.b_hang;
 	      leftEnd-=o.b_hang;
 	    }
 
