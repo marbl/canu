@@ -37,12 +37,20 @@
 #
 # The final CFLAGS, CXXFLAGS and LDFLAGS are constructed from these.
 
+
 # You can enable a debugging build, disabling all optimizations, by
 # setting this to 1.
 #
 ifneq "$(origin BUILDDEBUG)" "environment"
 BUILDDEBUG  = 0
 endif
+
+# You can enable a profiling build by setting this to 1.
+#
+ifneq "$(origin BUILDPROFILE)" "environment"
+BUILDPROFILE  = 0
+endif
+
 
 OSTYPE      = $(shell echo `uname`)
 MACHINETYPE = $(shell echo `uname -m`)
@@ -209,6 +217,11 @@ ifeq ($(OSTYPE), OSF1)
     ARCH_CFLAGS   += -fast -O4
   endif
   ARCH_INC         =  /usr/local/include /usr/include
+endif
+
+ifeq ($(BUILDPROFILE), 1)
+  ARCH_CFLAGS  += -pg
+  ARCH_LDFLAGS += -pg
 endif
 
 CFLAGS          += $(ARCH_CFLAGS)
