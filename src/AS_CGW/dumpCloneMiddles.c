@@ -35,6 +35,7 @@ static ScaffoldInstrumenter *si;
 
 extern int do_draw_frags_in_CelamyScaffold;
 extern int do_compute_missing_overlaps;
+extern int CelamyOvlCutoff;
 extern int do_surrogate_tracking;
 extern int printMateUIDs;
 
@@ -100,6 +101,8 @@ usage(char *pgm) {
   fprintf(stderr, "  OPTIONAL OPTIONS\n");
   fprintf(stderr, "    -s <single scfIID>   -- generate a single scaffold\n");
   fprintf(stderr, "    -l <min length>      -- generate only scaffolds larger than min length\n");
+  fprintf(stderr, "    -e <ovl err. cutoff> -- sets cutoff for overlaps; default=0.015;\n"
+  fprintf(stderr, "    -S                   -- suppress surrogate fragment placement (possibly multiple placements per frg)\n"
   fprintf(stderr, "    -U                   -- name clones with the UID of their read\n");
 }
 
@@ -119,10 +122,14 @@ main(int argc, char **argv) {
   while (arg < argc) {
     if        (strcmp(argv[arg], "-c") == 0) {
       strcpy(GlobalData->File_Name_Prefix, argv[++arg]);
+    } else if (strcmp(argv[arg],"-e") == 0) {
+      if(atof(argv[++arg])>1.){
+	  CelamyOvlCutoff=atoi(argv[arg]);
+      } else {
+	CelamyOvlCutoff=(int)(1000. * atof(argv[arg]));
+      }
     } else if (strcmp(argv[arg], "-g") == 0) {
       strcpy(GlobalData->Gatekeeper_Store_Name, argv[++arg]);
-    } else if (strcmp(argv[arg], "-o") == 0) {
-      strcpy(GlobalData->OVL_Store_Name, argv[++arg]);
     } else if (strcmp(argv[arg], "-l") == 0) {
       minLen = atoi(argv[++arg]);
       if (minLen <= 0) {
@@ -135,6 +142,8 @@ main(int argc, char **argv) {
         fprintf(stderr, "error: checkpoint number -n must be greater than zero.\n");
         err = 1;
       }
+    } else if (strcmp(argv[arg], "-o") == 0) {
+      strcpy(GlobalData->OVL_Store_Name, argv[++arg]);
     } else if (strcmp(argv[arg], "-p") == 0) {
       ckptNum = SetFileNamePrefix_CGW(GlobalData, argv[++arg]);
     } else if (strcmp(argv[arg], "-s") == 0) {
