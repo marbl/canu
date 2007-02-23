@@ -3,7 +3,7 @@
 ######################################################################
 # test_ca.rb
 # 
-# $Id: test_ca.rb,v 1.3 2007-02-08 22:50:00 catmandew Exp $
+# $Id: test_ca.rb,v 1.4 2007-02-23 21:27:59 catmandew Exp $
 #
 # Terms:
 #   test spec - combination of version, run script, config file, recipe script,
@@ -58,9 +58,9 @@ TampaFileSuffixes = {:intra_breakpoints => "intra.breakpoints.tampa",
   :inter_summary => "inter.summary.tampa"}
 
 AServerConsole = "http://assemblyconsole.tigr.org:8080/AserverConsole"
+AServerRootDir = "/local/aserver"
 RequestString = "requestInfo?id="
 CheckString = "Current State: <INITIALIZING|RUNNING|ERROR|FINISHED>"
-
 
 ######################################################################
 # print_help
@@ -364,7 +364,7 @@ class AssemblerTest
     open(@request_file).each do |line|
       if(line =~ pattern)
         @request_id = line.match(pattern).to_a[1]
-        @aserver_dir = "/local/aserver/#{@request_id}"
+        @aserver_dir = AServerRootDir + "/" + @request_id
         break
       end # end of check if line matches pattern
     end # end of reading status file
@@ -727,14 +727,17 @@ genomes.values.each do |genome|
   # qcCompare_command = "#{comp_script_path}/qcCompare"
   qcCompare_command = "qc_combine"
   tampaCompare_command = "#{comp_script_path}/tampaCompare"
-  num_successful_assemblies = 0
+  num_successful_qcs = 0
   num_successful_tampas = 0
   spec_order.keys.sort.each do |i|
     #qcCompare
-    if(assembler_tests[i].status =~ /FINISHED/)
-      num_successful_assemblies += 1
-      # qcCompare_command += " -f #{assembler_tests[i].aserver_dir}/#{genome.name}.qc"
-      qcCompare_command += " #{assembler_tests[i].aserver_dir}/#{genome.name}.qc"
+    # rather than check for the status text, look for the .qc file
+    qc_filename = assembler_tests[i].aserver_dir + "/" + genome.name + ".qc"
+#    if(assembler_tests[i].status =~ /FINISHED/)
+    if(File.exists?(qc_filename))
+      num_successful_qcs += 1
+      # qcCompare_command += " -f " + qc_filename
+      qcCompare_command += " " + qc_filename
     else
       Log.log("Assembly #{assembler_tests[i].test_spec.version_label} failed for #{genome.name}")
     end
@@ -748,7 +751,7 @@ genomes.values.each do |genome|
     end
   end # loop over all tests for comparisons
 
-  if(num_successful_assemblies > 1)
+  if(num_successful_qcs > 1)
     qcCompare_command += " > #{TestDir}/#{genome.name}_results.txt"
     system(qcCompare_command)
     if($? == 0)
