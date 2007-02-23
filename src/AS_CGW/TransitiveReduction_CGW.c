@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: TransitiveReduction_CGW.c,v 1.9 2007-02-14 07:20:07 brianwalenz Exp $";
+static char CM_ID[] = "$Id: TransitiveReduction_CGW.c,v 1.10 2007-02-23 19:02:03 ahalpern Exp $";
 
 // This file contains the code for computing the candidate
 // chunks of scaffolds.
@@ -269,6 +269,7 @@ int FoundTransitiveEdgePath(ScaffoldGraphT *graph,
   ChunkOrientationType edgeOrient, pathEdgeOrient;
   int returnVal = FALSE;
 
+
   assert(!isSloppyEdge(edge));
   if(++recurseDepth > AS_CGW_MAX_FTEP_RECURSE_DEPTH){
     if(verbose)
@@ -276,10 +277,10 @@ int FoundTransitiveEdgePath(ScaffoldGraphT *graph,
     return(FALSE);
   }
   if(verbose)
-    fprintf(stderr,"* FoundTransEdgepath path (" F_CID "," F_CID ") edge (" F_CID "," F_CID ") start:" F_CID " end:" F_CID " this:" F_CID "\n",
+    fprintf(stderr,"* FoundTransEdgepath path (" F_CID "," F_CID ") edge (" F_CID "," F_CID ") start:" F_CID " end:" F_CID " this:" F_CID " depth %d\n",
 	    pathEdge->idA, pathEdge->idB,
 	    edge->idA, edge->idB,
-	    startCI->id, endCI->id, thisCI->id);
+	    startCI->id, endCI->id, thisCI->id,recurseDepth);
 
   edgeOrient = GetEdgeOrientationWRT(edge, startCI->id);
   pathEdgeOrient = GetEdgeOrientationWRT(pathEdge, startCI->id);
