@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.7 2007-02-21 16:14:43 eliv Exp $
- * $Revision: 1.7 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.8 2007-02-23 15:44:42 eliv Exp $
+ * $Revision: 1.8 $
 */
 
 #include "AS_BOG_MateChecker.hh"
@@ -65,12 +65,13 @@ namespace AS_BOG{
     {
         fprintf(stderr,"Check mates for tig %ld\n",tig->id());
         IdMap goodMates;
-        iuid max = std::numeric_limits<iuid>::max();
+        iuid max = std::numeric_limits<iuid>::max(); // Sentinel value
         int numInTig = 0;
         int numWithMate = 0;
         LibraryStats *libs = new LibraryStats();
         std::vector<iuid> otherUnitig; // mates to another unitig
         IdMap otherTigHist; // count of mates to the other unitigs
+        // Check each frag in unitig for it's mate
         DoveTailConstIter tigIter = tig->dovetail_path_ptr->begin();
         for(;tigIter != tig->dovetail_path_ptr->end(); tigIter++)
         {
@@ -90,6 +91,7 @@ namespace AS_BOG{
                             // 2nd frag seen is reverse, so good orientation
                             long mateDist = fragPos.bgn - goodMates[fragId];
                             goodMates[fragId] = mateDist;
+                            // Record the good distance for later stddev recalculation
                             iuid distId = mateInfo.lib;
                             if (_dists.find( distId ) == _dists.end()) {
                                 DistanceList newDL;
@@ -97,7 +99,7 @@ namespace AS_BOG{
                             } 
                             _dists[ distId ].push_back( mateDist );
                             
-                            
+                            // Record the distance for unitig local stddev
                             if (libs->find( distId ) == libs->end()) {
                                 DistanceCompute d;
                                 d.numPairs   = 1;
@@ -124,6 +126,7 @@ namespace AS_BOG{
                         }
                     }
                 } else {
+                    // mate in other unitig, just create histogram currently
                     otherUnitig.push_back( fragId );
                     iuid otherTig = Unitig::fragIn( mateInfo.mate );
                     if (otherTigHist.find( otherTig ) == otherTigHist.end())
@@ -186,15 +189,15 @@ namespace AS_BOG{
     {
         LibraryStats globalStats;
         LibraryStats::iterator dcIter;
-        _dists.clear();
+        _dists.clear(); // reset to seperate multiple Graphs
         UnitigsConstIter tigIter = tigGraph.unitigs->begin();
         for(; tigIter != tigGraph.unitigs->end(); tigIter++)
         {
             if (*tigIter == NULL ) 
                 continue;
             LibraryStats* libs = checkUnitig(*tigIter);
-            dcIter = libs->begin();
-            for(; dcIter != libs->end(); dcIter++) {
+            // Accumulate per unitig stats to compute global stddev's
+            for(dcIter = libs->begin(); dcIter != libs->end(); dcIter++) {
                 iuid lib = dcIter->first;
                 DistanceCompute dc = dcIter->second;
                 if (globalStats.find(lib) == globalStats.end() ) {
@@ -207,18 +210,18 @@ namespace AS_BOG{
                     gdc->sumSquares += dc.sumSquares;
                 }
             }
-            delete libs;
+            delete libs; // Created in checkUnitig
         }
-        dcIter = globalStats.begin();
-        for(; dcIter != globalStats.end(); dcIter++) {
+        // Calculate and output overall global mean
+        for(dcIter= globalStats.begin(); dcIter != globalStats.end(); dcIter++){
             iuid lib = dcIter->first;
             DistanceCompute *dc = &(dcIter->second);
             dc->mean = dc->sumDists / dc->numPairs;
             fprintf(stderr,"Distance lib %ld has global %ld pairs with mean dist %.1f\n",
                     lib, dc->numPairs, dc->mean );
         }
-        dcIter = globalStats.begin();
-        for(; dcIter != globalStats.end(); dcIter++)
+        // Calculate and output overall global stddev
+        for(dcIter= globalStats.begin(); dcIter != globalStats.end(); dcIter++)
         {
             iuid lib = dcIter->first;
             DistanceCompute *dc = &(dcIter->second);
@@ -235,11 +238,14 @@ namespace AS_BOG{
             dc->sumSquares = 0.0;
             dc->sumDists   = 0.0;
         }
+        // Tab delimited table header
         fprintf(stderr,
 "DistLib\tnumDists\tmedian\t1/3rd\t2/3rd\tmaxDiff\tmin\tmax\tnumGood\tmean\tstddev\n");
 
+        // Disregard outliers and recalculate global stddev
         LibDistsConstIter libDistIter = _dists.begin();
-        for(; libDistIter != _dists.end(); libDistIter++) {
+        for(; libDistIter != _dists.end(); libDistIter++)
+        {
             iuid libId = libDistIter->first;
             DistanceList dl = libDistIter->second;
             sort(dl.begin(),dl.end());
@@ -265,10 +271,11 @@ namespace AS_BOG{
                 } 
             }
             gdc->mean = gdc->sumDists / gdc->numPairs;
-            for(dIter = dl.begin(); dIter != dl.end(); dIter++) {
-                if (*dIter >= smallest && *dIter <= biggest ) {
+            // Compute sum of squares for stddev
+            for(dIter = dl.begin(); dIter != dl.end(); dIter++)
+            {
+                if (*dIter >= smallest && *dIter <= biggest )
                     gdc->sumSquares += pow( *dIter - gdc->mean, 2);
-                }
             }
             if (gdc->numPairs > 1)
                 gdc->stddev = sqrt( gdc->sumSquares / (gdc->numPairs-1) );
