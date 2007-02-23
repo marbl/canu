@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: GrowOlapStoreOVL.c,v 1.13 2007-02-18 14:04:49 brianwalenz Exp $
- * $Revision: 1.13 $
+ * $Id: GrowOlapStoreOVL.c,v 1.14 2007-02-23 18:25:58 ahalpern Exp $
+ * $Revision: 1.14 $
 */
 
-static char CM_ID[] = "$Id: GrowOlapStoreOVL.c,v 1.13 2007-02-18 14:04:49 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GrowOlapStoreOVL.c,v 1.14 2007-02-23 18:25:58 ahalpern Exp $";
 
 
 //  System include files
@@ -279,7 +279,7 @@ static void  Output_New_Batch
                }
           }
 
-      if  (Save_Space && ! File_Status [file_index] . needs_update)
+      if  ( ! File_Status [file_index] . needs_update)
           {
            if  (File_Status [file_index] . old_exists)
                {
@@ -391,7 +391,7 @@ static void  Output_New_Batch
        {
         int  ct = (int) ceil ((double) Max_Old_Frag / Frags_Per_File);
 
-        for  (i = 1;  i <= ct && ! Save_Space;  i ++)
+        for  (i = 1;  i <= ct && ! Save_Space && File_Status[i] . needs_update ;  i ++)
           {
            sprintf (input_name, "%s/data%02d.olap", Input_Store_Path, i);
            Safe_remove (input_name);
@@ -402,7 +402,8 @@ static void  Output_New_Batch
 
    fprintf (stderr, "Renaming tmp files & writing offset file\n");
    for  (i = 1;  i <= Num_Files;  i ++)
-     if  (! Save_Space || File_Status [i] . needs_update)
+     //     if  (! Save_Space && File_Status [i] . needs_update)
+     if  ( File_Status [i] . needs_update)
          {
           sprintf (input_name, "%s/data%02d.tmp", Output_Store_Path, i);
           sprintf (output_name, "%s/data%02d.olap", Output_Store_Path, i);
