@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_dump.c,v 1.4 2007-02-22 00:06:57 brianwalenz Exp $ */
+/* $Id: AS_GKP_dump.c,v 1.5 2007-02-23 15:35:07 brianwalenz Exp $ */
 
 #include "AS_GKP_include.h"
 
@@ -124,26 +124,32 @@ void
 dumpGateKeeperAsXML(char       *gkpStoreName,
                     CDS_IID_t   begIID,
                     CDS_IID_t   endIID) {
-  fprintf(stderr, "Not yet.  Sorry.\n");
 
   int dumpBatchInfo    = 1;
   int dumpLibraryInfo  = 1;
   int dumpFragmentInfo = 1;
 
+  GateKeeperStore   *gkp = openGateKeeperStore(gkpStoreName, FALSE);
+  if (gkp == NULL) {
+    fprintf(stderr, "Failed to open %s\n", gkpStoreName);
+    exit(1);
+  }
+
   if (dumpBatchInfo) {
     StoreStat stat;
     int       i;
 
-    statsStore(gkpStore->bat, &stat);
+    statsStore(gkp->bat, &stat);
      
     for (i=stat.firstElem; i<=stat.lastElem; i++) {
       GateKeeperBatchRecord gkpb;
       time_t                createdtime;
 
-      getGateKeeperBatchStore(gkpStore->bat, i, &gkpb);
+      getGateKeeperBatchStore(gkp->bat, i, &gkpb);
 
       createdtime = (time_t)gkpb.created;
 
+      fprintf(stdout, "\n\n");
       fprintf(stdout, "<batch>\n");
       fprintf(stdout, "<ident>"F_UID","F_IID"</ident>\n", gkpb.UID, i);
       fprintf(stdout, "<name>%s</name>\n", gkpb.name);
@@ -156,10 +162,11 @@ dumpGateKeeperAsXML(char       *gkpStoreName,
       fprintf(stdout, "</batch>\n");
     }
 
+    fprintf(stdout, "\n\n");
     fprintf(stdout, "<total>\n");
-    fprintf(stdout, "<nFragsTotal>"F_S32"</nFragsTotal>\n", getNumGateKeeperFragments(gkpStore->frg));
-    fprintf(stdout, "<nLibsTotal>"F_S32"</nLibsTotal>\n", getNumGateKeeperLibrarys(gkpStore->lib));
-    fprintf(stdout, "<nLibsSTotal>"F_S32"</nLibsSTotal>\n", getNumGateKeeperLibrarys(gkpStore->lis));
+    fprintf(stdout, "<nFragsTotal>"F_S32"</nFragsTotal>\n", getNumGateKeeperFragments(gkp->frg));
+    fprintf(stdout, "<nLibsTotal>"F_S32"</nLibsTotal>\n", getNumGateKeeperLibrarys(gkp->lib));
+    fprintf(stdout, "<nLibsSTotal>"F_S32"</nLibsSTotal>\n", getNumGateKeeperLibrarys(gkp->lis));
     fprintf(stdout, "</total>\n");
   }
 
@@ -168,16 +175,17 @@ dumpGateKeeperAsXML(char       *gkpStoreName,
     StoreStat stat;
     int       i;
 
-    statsStore(gkpStore->lib, &stat);
+    statsStore(gkp->lib, &stat);
 
     for (i=stat.firstElem; i<=stat.lastElem; i++) {
       GateKeeperLibraryRecord gkpl;
       time_t                  createdtime;
 
-      getGateKeeperLibraryStore(gkpStore->lib, i, &gkpl);
+      getGateKeeperLibraryStore(gkp->lib, i, &gkpl);
 
       createdtime = (time_t)gkpl.created;
 
+      fprintf(stdout, "\n\n");
       fprintf(stdout, "<library>\n");
       fprintf(stdout, "<ident>"F_UID","F_IID"</ident>\n", gkpl.UID, i);
       fprintf(stdout, "<name>%s</name>\n", gkpl.name);
@@ -197,16 +205,17 @@ dumpGateKeeperAsXML(char       *gkpStoreName,
       fprintf(stdout, "</library>\n");
     }
        
-    statsStore(gkpStore->lis, &stat);
+    statsStore(gkp->lis, &stat);
 
     for (i=stat.firstElem; i<=stat.lastElem; i++) {
       GateKeeperLibraryRecord gkpl;
       time_t                  createdtime;
 
-      getGateKeeperLibraryStore(gkpStore->lis, i, &gkpl);
+      getGateKeeperLibraryStore(gkp->lis, i, &gkpl);
 
       createdtime = (time_t)gkpl.created;
 
+      fprintf(stdout, "\n\n");
       fprintf(stdout, "<shadow_library>\n");
       fprintf(stdout, "<ident>"F_UID","F_IID"</ident>\n", gkpl.UID, i);
       fprintf(stdout, "<name>%s</name>\n", gkpl.name);
@@ -229,13 +238,12 @@ dumpGateKeeperAsXML(char       *gkpStoreName,
 
 
   if (dumpFragmentInfo) {
-    StreamHandle             frags = openStream(gkpStore->frg, NULL, 0);
+    StreamHandle             frags = openStream(gkp->frg, NULL, 0);
     GateKeeperFragmentRecord gkpf;
     StoreStat                stat;
     int                      i;
-    PHashValue_AS            value;
 
-    statsStore(gkpStore->frg, &stat);
+    statsStore(gkp->frg, &stat);
 
     if (begIID < stat.firstElem)
       begIID = stat.firstElem;
@@ -246,27 +254,32 @@ dumpGateKeeperAsXML(char       *gkpStoreName,
     i = begIID;
 
     while (nextStream(frags, &gkpf)) {
-      if (gkpf.deleted) {
-        fprintf(stdout," * Deleted Fragment ("F_UID","F_IID") refs:%d batch("F_U16","F_U16")\n",
-                gkpf.readUID,
-                i,
-                value.refCount,
-                gkpf.birthBatch,
-                gkpf.deathBatch);
-      } else {
-        fprintf(stdout,"* Fragment ("F_UID","F_IID") refs:%d  batch("F_U16","F_U16")\n",
-                gkpf.readUID, 
-                i,
-                value.refCount,
-                gkpf.birthBatch,
-                gkpf.deathBatch);
+
+      fprintf(stdout, "\n\n");
+      fprintf(stdout, "<fragment>\n");
+      fprintf(stdout, "<ident>"F_UID","F_IID"</ident>\n", gkpf.readUID, gkpf.readIID);
+      fprintf(stdout, "<mate>"F_UID","F_IID"</mate>\n", (CDS_UID_t)0, gkpf.mateIID);
+      fprintf(stdout, "<plate>"F_UID"</plate>\n", gkpf.plateUID);
+      fprintf(stdout, "<library>"F_IID"</library>\n", gkpf.libraryIID);
+
+      //  XXX  flags
+
+      fprintf(stdout, "<sequence>\n%s\n</sequence>\n", "(notyet)");
+      fprintf(stdout, "<quality>\n%s\n</quality>\n", "(notyet)");
+
+      for (i=0; i<AS_READ_CLEAR_NUM; i++) {
+        fprintf(stdout, "<clear_%s>%d,%d</clear_%s>\n", 
+                AS_READ_CLEAR_NAMES[i],
+                gkpf.clearBeg[i], gkpf.clearEnd[i],
+                AS_READ_CLEAR_NAMES[i]);
       }
 
-#if 0
-      fprintf(stdout,"\tLink (" F_IID "," F_IID ") dist:" F_IID " type:%c ori:%c\n",
-              link.frag1, link.frag2, link.distance, link.type,
-              getLinkOrientation( &link ));
-#endif
+      fprintf(stdout, "<seqOffset>"F_U64"</seqOffset)\n", gkpf.seqOffset);
+      fprintf(stdout, "<qltOffset>"F_U64"</qltOffset)\n", gkpf.qltOffset);
+      fprintf(stdout, "<hpsOffset>"F_U64"</hpsOffset)\n", gkpf.hpsOffset);
+      fprintf(stdout, "<srcOffset>"F_U64"</srcOffset)\n", gkpf.srcOffset);
+
+      fprintf(stdout, "</fragment>\n");
 
       i++;
     }

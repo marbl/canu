@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.17 2007-02-20 21:58:04 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.18 2007-02-23 15:35:07 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -127,7 +127,7 @@ static
 void
 usage(char *filename) {
   fprintf(stderr, "usage: %s [append/create options] <input.frg> <input.frg> ...\n", filename);
-  fprintf(stderr, "       %d [dump-options] <gkpStore>\n");
+  fprintf(stderr, "       %s [dump-options] <gkpStore>\n", filename);
   fprintf(stderr, "\n");
   fprintf(stderr, "The first form is used to append to or create a GateKeeper store:\n");
   fprintf(stderr, "\n");
@@ -196,7 +196,7 @@ main(int argc, char **argv) {
   int              dumpFastaClear    = AS_READ_CLEAR_LATEST;
 
 
-#if 0
+#if 1
   fprintf(stderr, "sizeof(GateKeeperBatchRecord)      %d\n", sizeof(GateKeeperBatchRecord));
   fprintf(stderr, "sizeof(GateKeeperLibraryRecord)    %d\n", sizeof(GateKeeperLibraryRecord));
   fprintf(stderr, "sizeof(GateKeeperFragmentRecord)   %d\n", sizeof(GateKeeperFragmentRecord));
