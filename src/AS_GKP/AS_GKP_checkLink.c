@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkLink.c,v 1.3 2007-02-22 00:06:57 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkLink.c,v 1.4 2007-02-23 15:34:44 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -101,11 +101,6 @@ Check_LinkMesg(LinkMesg *lkg_mesg,
 
   //  And now set, not check, the library in the reads.
   //
-  getGateKeeperFragmentStore(gkpStore->frg, frag1IID, &gkFrag1);
-  getGateKeeperFragmentStore(gkpStore->frg, frag2IID, &gkFrag2);
-
-  gkFrag1.libraryIID = value.IID;
-  gkFrag2.libraryIID = value.IID;
 
 #if 0
   //  Keep this one around for version 2....
@@ -119,19 +114,27 @@ Check_LinkMesg(LinkMesg *lkg_mesg,
 #endif
 
   if (lkg_mesg->action == AS_ADD) {
+    getGateKeeperFragmentStore(gkpStore->frg, frag1IID, &gkFrag1);
+    gkFrag1.libraryIID = value.IID;
     gkFrag1.mateIID = frag2IID;
-    gkFrag2.mateIID = frag1IID;
-
     setGateKeeperFragmentStore(gkpStore->frg, frag1IID, &gkFrag1);
+
+    getGateKeeperFragmentStore(gkpStore->frg, frag2IID, &gkFrag2);
+    gkFrag2.libraryIID = value.IID;
+    gkFrag2.mateIID = frag1IID;
     setGateKeeperFragmentStore(gkpStore->frg, frag2IID, &gkFrag2);
 
     AddRefPHashTable_AS(gkpStore->phs, UID_NAMESPACE_AS, gkFrag2.readUID);
     AddRefPHashTable_AS(gkpStore->phs, UID_NAMESPACE_AS, gkFrag1.readUID);
   } else if (lkg_mesg->action == AS_DELETE) {
+    getGateKeeperFragmentStore(gkpStore->frg, frag1IID, &gkFrag1);
     gkFrag1.mateIID = 0;
-    gkFrag2.mateIID = 0;
-
+    gkFrag1.libraryIID = 0;
     setGateKeeperFragmentStore(gkpStore->frg, frag1IID, &gkFrag1);
+
+    getGateKeeperFragmentStore(gkpStore->frg, frag2IID, &gkFrag2);
+    gkFrag2.mateIID = 0;
+    gkFrag2.libraryIID = 0;
     setGateKeeperFragmentStore(gkpStore->frg, frag2IID, &gkFrag2);
 
     UnRefPHashTable_AS(gkpStore->phs, UID_NAMESPACE_AS, gkFrag2.readUID);
