@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.18 2007-02-23 15:35:07 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.19 2007-02-23 22:15:50 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -338,16 +338,36 @@ main(int argc, char **argv) {
   currentBatchID = getNumGateKeeperBatchs(gkpStore->bat);
 
   for (; firstFileArg < argc; firstFileArg++) {
-    FILE            *inFile       = NULL;
-    GenericMesg     *pmesg        = NULL;
-    int              messageCount = 0;
+    FILE            *inFile            = NULL;
+    GenericMesg     *pmesg             = NULL;
+    int              messageCount      = 0;
+    int              fileIsCompressed   = 0;
 
-    errno = 0;
-    inFile = fopen(argv[firstFileArg], "r");
-    if (errno) {
-      fprintf(stderr, "%s: failed to open input '%s': %s\n", argv[0], argv[firstFileArg], strerror(errno));
-      exit(1);
+
+
+    if        (strcmp(argv[firstFileArg] + strlen(argv[firstFileArg]) - 3, ".gz") == 0) {
+      char  cmd[1024];
+      sprintf(cmd, "gzip -dc %s", argv[firstFileArg]);
+      errno = 0;
+      inFile = popen(cmd, "r");
+      fileIsCompressed = 1;
+    } else if (strcmp(argv[firstFileArg] + strlen(argv[firstFileArg]) - 4, ".bz2") == 0) {
+      char  cmd[1024];
+      sprintf(cmd, "bzip2 -dc %s", argv[firstFileArg]);
+      errno = 0;
+      inFile = popen(cmd, "r");
+      fileIsCompressed = 1;
+    } else {
+      errno = 0;
+      inFile = fopen(argv[firstFileArg], "r");
     }
+
+    if (errno)
+      fprintf(stderr, "%s: failed to open input '%s': %s\n", argv[0], argv[firstFileArg], strerror(errno)), exit(1);
+    if (inFile == NULL)
+      fprintf(stderr, "%s: failed to open input '%s': (returned null pointer)\n", argv[0], argv[firstFileArg]);
+
+
 
     while (EOF != ReadProtoMesg_AS(inFile, &pmesg)) {
       messageCount++;
@@ -399,7 +419,16 @@ main(int argc, char **argv) {
       }
     }
 
-    fclose(inFile);
+
+
+    if (fileIsCompressed) {
+      errno = 0;
+      pclose(inFile);
+      if (errno)
+        fprintf(stderr, "%s: WARNING!  Failed to close '%s': %s\n", argv[0], argv[firstFileArg], strerror(errno));
+    } else {
+      fclose(inFile);
+    }
   }
 
   closeGateKeeperStore(gkpStore);
