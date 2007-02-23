@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.23 2007-02-22 17:09:26 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.24 2007-02-23 15:36:19 brianwalenz Exp $";
 
 //    A thin layer on top of the IndexStore supporing the storage and
 // retrieval of records used by the gatekeeper records.
@@ -567,7 +567,7 @@ FragStream      *openFragStream(GateKeeperStore *gkp, int flags) {
 
   fs->frg   = openStream(fs->gkp->frg, fs->frgBuffer, bufferSize);
 
-  if (fs->flags & FRAG_S_SEQ)
+  if ((fs->flags & FRAG_S_SEQ) && !(fs->flags & FRAG_S_QLT))
     fs->seq   = openStream(fs->gkp->seq, fs->seqBuffer, bufferSize);
   if (fs->flags & FRAG_S_QLT)
     fs->qlt   = openStream(fs->gkp->qlt, fs->qltBuffer, bufferSize);
@@ -604,7 +604,8 @@ void             resetFragStream(FragStream *fs, int64 startIndex, int64 endInde
   }
 
   resetStream(fs->frg, startIndex, endIndex);
-  if (fs->flags & FRAG_S_SEQ)
+
+  if ((fs->flags & FRAG_S_SEQ) && !(fs->flags & FRAG_S_QLT))
     resetStream(fs->seq, seqOffset, STREAM_UNTILEND);
   if (fs->flags & FRAG_S_QLT)
     resetStream(fs->qlt, qltOffset, STREAM_UNTILEND);
@@ -617,7 +618,7 @@ void             resetFragStream(FragStream *fs, int64 startIndex, int64 endInde
 
 void             closeFragStream(FragStream *fs) {
   closeStream(fs->frg);
-  if (fs->flags & FRAG_S_SEQ)
+  if ((fs->flags & FRAG_S_SEQ) && !(fs->flags & FRAG_S_QLT))
     closeStream(fs->seq);
   if (fs->flags & FRAG_S_QLT)
     closeStream(fs->qlt);
