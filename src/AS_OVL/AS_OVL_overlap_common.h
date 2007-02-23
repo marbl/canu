@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.28 2007-02-18 14:04:49 brianwalenz Exp $
- * $Revision: 1.28 $
+ * $Id: AS_OVL_overlap_common.h,v 1.29 2007-02-23 15:39:30 brianwalenz Exp $
+ * $Revision: 1.29 $
 */
 
 
@@ -3085,6 +3085,7 @@ static int  Lies_On_Alignment
 
 
 
+#if 0
 int  OVL_Max_int
     (int a, int b)
 
@@ -3110,6 +3111,7 @@ int  OVL_Min_int
 
    return  b;
   }
+#endif
 
 
 
@@ -3745,9 +3747,6 @@ if  (ovMesg.min_offset + 3 < ovMesg.ahg)
    *deltaCursor = AS_ENDOF_DELTA_CODE;
 
 
-   if  (Num_PThreads > 1)
-       pthread_mutex_lock (& Write_Proto_Mutex);
-
    if((ovMesg.overlap_type == AS_CONTAINMENT) &&
       (ovMesg.orientation == AS_OUTTIE)) {
      // CMM: Regularize the reverse orientated containment overlaps to
@@ -3764,11 +3763,15 @@ if  (ovMesg.min_offset + 3 < ovMesg.ahg)
      ovMesg.max_offset = ovMesg.ahg - min_delta;
    }
 
+   if  (Num_PThreads > 1)
+       pthread_mutex_lock (& Write_Proto_Mutex);
+
    Total_Overlaps ++;
    if  (ovMesg . bhg <= 0)
        Contained_Overlap_Ct ++;
      else
        Dovetail_Overlap_Ct ++;
+
    WriteProtoMesg_AS (Out_Stream, & outputMesg);
 
    if  (Num_PThreads > 1)
@@ -5142,91 +5145,77 @@ static int  Read_Next_Frag
 
   {
    int  return_val, success, match_ct;
-   uint32  deleted;
    size_t  i, frag_len;
 #if  USE_SOURCE_FIELD
    char  frag_source [MAX_SOURCE_LENGTH + 1];
 #endif
-   
+   char   *seqptr;
+   char   *qltptr;
+
+
    if  (Num_PThreads > 1)
        pthread_mutex_lock (& FragStore_Mutex);
 
-#if  USE_SOURCE_FIELD
    success = nextFragStream (stream, myRead);
-#else
-   success = nextFragStream (stream, myRead);
-#endif
-   deleted = getFragRecordIsDeleted (myRead);
-   if  (! success)
-       return_val = 0;
-   else if  (deleted)
-       {
-        *last_frag_read = getFragRecordIID (myRead);
-        return_val = DELETED_FRAG;
-       }
-     else
-       {
-        int  result;
-        uint  clear_start, clear_end;
-        size_t  len;
-        char   *seqptr;
-        char   *qltptr;
-
-        *last_frag_read = getFragRecordIID (myRead);
-
-        // Make sure that we have a lowercase sequence string
-        seqptr = getFragRecordSequence(myRead);
-        qltptr = getFragRecordQuality(myRead);
-        len    = getFragRecordSequenceLength(myRead);
-
-        for  (i = 0;  i < len;  i ++) {
-          frag [i]    = tolower (seqptr [i]);
-          quality [i] = qltptr[i];
-        }
-
-        clear_start = getFragRecordClearRegionBegin(myRead, AS_READ_CLEAR_OBT);
-        clear_end   = getFragRecordClearRegionEnd  (myRead, AS_READ_CLEAR_OBT);
-
-        if  (Ignore_Clear_Range)
-            frag_len = len;
-          else
-            {
-             frag_len = clear_end - clear_start;
-             if  (clear_start > 0)
-                 {
-                  memmove (frag, frag + clear_start, frag_len);
-                  memmove (quality, quality + clear_start, frag_len);
-                 }
-            }
-        if  (OFFSET_MASK < frag_len)
-            {
-             fprintf (stderr, "ERROR:  Read \"%s\" is too long (%lu) for hash table\n",
-                      getFragRecordUID(myRead), frag_len);
-             exit (-1);
-            }
-        frag [frag_len] = '\0';
-        quality [frag_len] = '\0';
-        for  (i = 0;  i < frag_len;  i ++)
-          quality [i] -= QUALITY_BASE_CHAR;
-
-        screen -> num_matches        = 0;
-        screen -> left_end_screened  = FALSE;
-        screen -> right_end_screened = FALSE;
-
-#if  USE_SOURCE_FIELD
-        getSource_ReadStruct (myRead, frag_source, MAX_SOURCE_LENGTH);
-        Find_End_Annotations (frag_source, frag_len,
-                              & Global_Left_Annotation,
-                              & Global_Right_Annotation);
-#endif
-
-        return_val = VALID_FRAG;
-       }
 
    if  (Num_PThreads > 1)
        pthread_mutex_unlock (& FragStore_Mutex);
 
-   return  return_val;
+   if  (! success)
+       return(0);
+
+   *last_frag_read = getFragRecordIID (myRead);
+
+   if  (getFragRecordIsDeleted (myRead))
+       return (DELETED_FRAG);
+
+
+   //  We got a read!  Lowercase it, adjust the quality, and extract
+   //  the clear region.
+
+   seqptr   = getFragRecordSequence(myRead);
+   qltptr   = getFragRecordQuality(myRead);
+   frag_len = getFragRecordSequenceLength(myRead);
+
+   for  (i = 0;  i < frag_len;  i ++)
+     {
+       frag [i]    = tolower (seqptr [i]);
+       quality [i] = qltptr[i] - QUALITY_BASE_CHAR;
+     }
+
+   if  (! Ignore_Clear_Range)
+     {
+       uint clear_start = getFragRecordClearRegionBegin(myRead, AS_READ_CLEAR_OBT);
+       uint clear_end   = getFragRecordClearRegionEnd  (myRead, AS_READ_CLEAR_OBT);
+       
+       frag_len = clear_end - clear_start;
+       if  (clear_start > 0)
+         {
+           memmove (frag, frag + clear_start, frag_len);
+           memmove (quality, quality + clear_start, frag_len);
+         }
+     }
+   if  (OFFSET_MASK < frag_len)
+     {
+       fprintf (stderr, "ERROR:  Read \"%s\" is too long (%lu) for hash table\n",
+                getFragRecordUID(myRead), frag_len);
+       exit (-1);
+     }
+   frag [frag_len] = '\0';
+   quality [frag_len] = '\0';
+
+   screen -> num_matches        = 0;
+   screen -> left_end_screened  = FALSE;
+   screen -> right_end_screened = FALSE;
+
+#if  USE_SOURCE_FIELD
+   getSource_ReadStruct (myRead, frag_source, MAX_SOURCE_LENGTH);
+   Find_End_Annotations (frag_source, frag_len,
+                         & Global_Left_Annotation,
+                         & Global_Right_Annotation);
+#endif
+
+   return (VALID_FRAG);
   }
 
 

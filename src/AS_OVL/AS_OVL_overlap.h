@@ -26,8 +26,8 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.16 2007-02-18 14:04:49 brianwalenz Exp $
- * $Revision: 1.16 $
+ * $Id: AS_OVL_overlap.h,v 1.17 2007-02-23 15:39:30 brianwalenz Exp $
+ * $Revision: 1.17 $
 */
 
 
@@ -599,10 +599,12 @@ void  Dump_Stored_Branch_Info
     (FragStream *stream, fragRecord *myRead);
 void  Initialize_Work_Area
     (Work_Area_t *, int);
+#if 0
 int  OVL_Max_int
     (int, int);
 int  OVL_Min_int
     (int, int);
+#endif
 void  Output_Hash_Table_Branch_Pts
     (void);
 void  Output_High_Hit_Frags
@@ -618,9 +620,15 @@ int  Sign
 void  stripWhiteSpace
     (char * target, char * source, int maxlen);
 
+
+#define OVL_Max_int(a,b) ((a) < (b) ? (b) : (a))
+#define OVL_Min_int(a,b) ((a) < (b) ? (a) : (b))
+
+
 #if  USE_SOURCE_FIELD
 extern FILE  * Source_Log_File;
 #endif
+
 #if  ANALYZE_HITS
 extern FILE  * High_Hits_File;
 #endif
