@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* All of the CGW celamy stuff is here */
-static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.11 2007-02-14 07:20:06 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.12 2007-02-23 19:49:14 ahalpern Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -48,6 +48,9 @@ static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.11 2007-02-14 07:20:06 brianwalenz 
 
 int do_draw_frags_in_CelamyScaffold =0;
 int do_compute_missing_overlaps=0;
+
+// error rate (in parts per thousand) cutoff for counting overlaps
+int CelamyOvlCutoff = 15; /* 1.5 percent, default for assembly with error correction */
 
 /* The following is in support of defining a set of Celamy colors to draw with */
 
@@ -453,7 +456,7 @@ void compute_overlaps_off_ends(int id, int *offAEnd, int *offBEnd,char **AEstr, 
 
   while  (Next_From_OVL_Stream (& olap, my_stream)){
     //    print_olap(olap);
-    if(olap.corr_erate>15)continue; /* skip overlaps missing the default conditions for unitigging */
+    if(olap.corr_erate>CelamyOvlCutoff)continue; /* skip overlaps missing the default conditions for unitigging */
     if  (olap . a_hang < 0){
       (*offAEnd)++;
       safelyAppendOvlInfo(&AEndString,olap,&lenAstring,&lenAused);
