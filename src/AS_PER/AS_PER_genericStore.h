@@ -20,54 +20,7 @@
  *************************************************************************/
 #ifndef AS_PER_GENERICSTORE_H
 #define AS_PER_GENERICSTORE_H
-/*************************************************************************
- Module:  AS_PER_genericStore
- Description:
 
-     This module defines the interface and implementation of the index
-     and string "stores" -- binary files used to store fixed and
-     variable size data for the assembler.  An additional type of
-     store needs to be implemented, for storing variable length
-     records.  Strings should probably be implemented as a variable
-     length record prefixed by its length.  The Fragment Store is
-     built using the building blocks of the index and string stores.
-     Both types of stores provide both a file-based and memory-based
-     implementations.  The intent is for the client to build up
-     buffers of records/strings in a memory-based store, and
-     concatenate them to the file-based store using the (as yet
-     unimplemented) concat operation.  A store consists of a fixed
-     length header, followed by data.  The only types of modifications
-     to the store that are currently permitted are to append a new
-     record/string to the store, or to mark a record in an indexStore
-     as deleted.  In principle, there is no reason why the index store
-     could not support a replace operation, that would replace a
-     record with new data, as long as the index of the record in
-     question was within range.
-
-     Client code relates to a store through an opaque handle.  This
-     will faciliate changes to the store structure as we learn more
-     about requirements and optimization.
-
-     Each type of store supports a "stream" operation, for read access
-     to successive elements of the store.
-
- Assumptions:
-
-      To support the delete operation on an index store, the Most
-      Significant Bit of the stored data record must be a deleted
-      flag.  Currently, only the client pays attention to the deleted
-      bit.
-
- Document:
-      GenericStore.rtf
-
- *************************************************************************/
-
-/* RCS Info
- * $Id: AS_PER_genericStore.h,v 1.8 2007-02-22 14:44:40 brianwalenz Exp $
- * $Revision: 1.8 $
- *
- */
 
 #ifdef GENERIC_STORE_USE_LONG_STRINGS
 #define VLSTRING_SIZE_T uint32
@@ -102,34 +55,28 @@ typedef enum { UnAllocatedStore = 0,
 /*  Structure returned by statStore */
 
 typedef struct{
-  unsigned int isDeleted:1;
-  unsigned int type:3;
-  unsigned int p1:28;  // padding field
-  unsigned int p2:32;  // padding field
-  char storeType[8];
-  int64 firstElem; /* Initially -1.  If >0, index of first allocated element */
-  int64 lastElem;  /* Initially -1.  If >0, index of last allocated element */
-  int32 version;        /* For user information only */
-  int32 elementSize;  
-  time_t creationTime;
-#ifndef __x86_64__
-    uint32 padtime_t1;
-#endif
-  time_t lastUpdateTime;
-#ifndef __x86_64__
-    uint32 padtime_t2;
-#endif
+  unsigned int  isDeleted:1;
+  unsigned int  type:3;
+  unsigned int  p1:28;  // padding field
+  unsigned int  p2:32;  // padding field
+  char          storeType[8];
+  int64         firstElem; /* Initially -1.  If >0, index of first allocated element */
+  int64         lastElem;  /* Initially -1.  If >0, index of last allocated element */
+  int32         version;        /* For user information only */
+  int32         elementSize;  
+  int64         creationTime;
+  int64         lastUpdateTime;
 }StoreStat;
 
 
 /* This is the structure maintained for each store Stream */
 typedef struct{
-  StoreHandle store;
-  void *buffer;
-  int32 bufferSize;
-  int64 startIndex;
-  int64 endIndex;
-  StoreStatus status; 
+  StoreHandle   store;
+  void         *buffer;
+  int32         bufferSize;
+  int64         startIndex;
+  int64         endIndex;
+  StoreStatus   status; 
 }StreamStruct;
 
 /******************************************************************************

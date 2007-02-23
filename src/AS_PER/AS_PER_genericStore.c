@@ -18,44 +18,48 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.12 2007-02-22 14:44:40 brianwalenz Exp $";
-/*************************************************************************
- Module:  AS_PER_genericStore
- Description:
-     This module defines the interface and implementation of the index and
- string "stores" -- binary files used to store fixed and variable size data
- for the assembler.  An additional type of store needs to be implemented, for
- storing variable length records.  Strings should probably be implemented as
- a variable length record prefixed by its length.
-     The Fragment Store is built using the building blocks of the index and string
- stores.
-     Both types of stores provide both a file-based and memory-based implementations.
- The intent is for the client to build up buffers of records/strings in a memory-based
- store, and concatenate them to the file-based store using the (as yet unimplemented)
- concat operation.
-     A store consists of a fixed length header, followed by data.  The only types of
- modifications to the store that are currently permitted are to append a new record/string
- to the store, or to mark a record in an indexStore as deleted.  In principle, there is no
- reason why the index store could not support a replace operation, that would replace a record
- with new data, as long as the index of the record in question was within range.
 
-     Client code relates to a store through an opaque handle.  This will faciliate changes to the
- store structure as we learn more about requirements and optimization.
+static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.13 2007-02-23 15:42:10 brianwalenz Exp $";
 
-     Each type of store supports a "stream" operation, for read access to successive elements of the store.
-
- Assumptions:
-      
- Document:
-      GenericStore.rtf
-
- *************************************************************************/
-
-/* RCS Info
- * $Id: AS_PER_genericStore.c,v 1.12 2007-02-22 14:44:40 brianwalenz Exp $
- * $Revision: 1.12 $
- *
- */
+// Module:  AS_PER_genericStore
+// Description:
+//
+//     This module defines the interface and implementation of the index
+//     and string "stores" -- binary files used to store fixed and
+//     variable size data for the assembler.  An additional type of
+//     store needs to be implemented, for storing variable length
+//     records.  Strings should probably be implemented as a variable
+//     length record prefixed by its length.  The Fragment Store is
+//     built using the building blocks of the index and string stores.
+//     Both types of stores provide both a file-based and memory-based
+//     implementations.  The intent is for the client to build up
+//     buffers of records/strings in a memory-based store, and
+//     concatenate them to the file-based store using the (as yet
+//     unimplemented) concat operation.  A store consists of a fixed
+//     length header, followed by data.  The only types of modifications
+//     to the store that are currently permitted are to append a new
+//     record/string to the store, or to mark a record in an indexStore
+//     as deleted.  In principle, there is no reason why the index store
+//     could not support a replace operation, that would replace a
+//     record with new data, as long as the index of the record in
+//     question was within range.
+//
+//     Client code relates to a store through an opaque handle.  This
+//     will faciliate changes to the store structure as we learn more
+//     about requirements and optimization.
+//
+//     Each type of store supports a "stream" operation, for read access
+//     to successive elements of the store.
+//
+// Assumptions:
+//
+//      To support the delete operation on an index store, the Most
+//      Significant Bit of the stored data record must be a deleted
+//      flag.  Currently, only the client pays attention to the deleted
+//      bit.
+//
+// Document:
+//      GenericStore.rtf
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,27 +72,27 @@ static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.12 2007-02-22 14:44:40 bri
 #include "AS_UTL_fileIO.h"
 
 #define INITIAL_ALLOCATION (2048)
-#define WRITING_BUFFER     (16 * 1024)
+#define WRITING_BUFFER     (32 * 1024)
 
+#undef DEBUG_GENERIC_STORE
 
 /* This is the structure maintained in memory for each open Store */
 typedef struct{
-  FILE *fp;            /* For a file-based store */
-  char FileName[FILENAME_MAX];
-  char *buffer;        /* For a memory-based store, also holds setbuffer() buffer for disk stores */
-  int64 allocatedSize;
-  StoreStatus status; 
-  StoreStat header;
-  int64 lastCommittedElem; /* Initially -1.  If >0, index of last committed element */
-  int isMemoryStore;
-  int isDirty;
+  FILE        *fp;            /* For a file-based store */
+  char        *buffer;        /* For a memory-based store, also holds setbuffer() buffer for disk stores */
+  int64        allocatedSize;
+  StoreStatus  status; 
+  StoreStat    header;
+  int64        lastCommittedElem; /* Initially -1.  If >0, index of last committed element */
+  int          isMemoryStore;
+  int          isDirty;
 }StoreStruct;
 
 
 /* Utility routines for reading, writing, and dumping a store Header */
-static int readHeader(StoreStruct *myStore);
-static int writeHeader(StoreStruct *myStore);
-static int dumpHeader(StoreStruct *s);
+static int  readHeader(StoreStruct *myStore);
+static int  writeHeader(StoreStruct *myStore);
+static void dumpHeader(StoreStruct *s);
 
 /* Utility routines for copying stores */
 int  copyStore(StoreStruct *source, int64 sourceOffset, int64 sourceMaxOffset, 
@@ -98,7 +102,21 @@ int readBufFromStore(StoreStruct *source, char *buffer, int64 offset,
 int writeBufToStore(StoreStruct *target, char *srcPtr, int64 offset, 
 		    int64 numBytes);
 
-/* Functions to be inlined or macroified to hide StoreStruct */
+
+
+/** Globals **/
+
+static StoreStruct *gStores = NULL;
+static int gNumStores = 0;
+static int gMaxNumStores = 0;
+
+static StreamStruct *gStreams = NULL;
+static int gNumStreams = 0;
+static int gMaxNumStreams = 0;
+
+
+
+#if 0
 
 static int Store_isMemoryStore(StoreStruct *s){
   return s->isMemoryStore;
@@ -128,17 +146,21 @@ static int32 Store_isVLRecordStore(StoreStruct *s){
   return s->header.type == VLRECORD_STORE;
 }
 
+#else
+
+#define  Store_isMemoryStore(S)    ((S)->isMemoryStore)
+#define  Store_isDirty(S)          ((S)->isDirty)
+#define  Store_setType(S, T)       ((S)->header.type = (T))
+#define  Store_getType(S)          ((S)->header.type)
+#define  Store_isIndexStore(S)     ((S)->header.type == INDEX_STORE)
+#define  Store_isStringStore(S)    ((S)->header.type == STRING_STORE)
+#define  Store_isVLRecordStore(S)  ((S)->header.type == VLRECORD_STORE)
+
+#endif
 
 
-/** Globals **/
 
-static StoreStruct *gStores = NULL;
-static int gNumStores = 0;
-static int gMaxNumStores = 0;
-
-static StreamStruct *gStreams = NULL;
-static int gNumStreams = 0;
-static int gMaxNumStreams = 0;
+#if 0
 
 static int Store_myHandle(StoreStruct *s){
   return s - gStores; /* Pointer Arithmetic */
@@ -158,27 +180,31 @@ static StreamStruct * Stream_myStruct(StreamHandle s){
   return gStreams + s; /* Pointer Arithmetic */
 }
 
-
-
-
-/* Function: computeOffset
- *  Description:  computes offset into store of element with index
- *
- */
-
 static int64 computeOffset(StoreStruct *myStore, int64 index ){
-  int64 offset;
+
+  int64 offset = (index - myStore->header.firstElem) * (int64)myStore->header.elementSize;
+
   assert(Store_isIndexStore(myStore));
+  assert(index >= myStore->header.firstElem);
+  assert(offset >= 0);
 
-  assert( index >= myStore->header.firstElem);
-
-  offset = sizeof(StoreStat) + 
-	((int64)index - (int64)myStore->header.firstElem) * (int64)myStore->header.elementSize;
-
-  assert(offset >= (int64)sizeof(StoreStat));
-
-  return offset;
+  return(offset + sizeof(StoreStat));
 }
+
+#else
+
+#define  Store_myHandle(S)  ((S) - gStores)
+#define  Stream_myHandle(S) ((S) - gStreams)
+
+#define  Store_myStruct(S)  (((S) < 0 || (S) > gMaxNumStores)  ? NULL : (gStores + (S)))
+#define  Stream_myStruct(S) (((S) < 0 || (S) > gMaxNumStreams) ? NULL : (gStreams + (S)))
+
+#define  computeOffset(S, I)  (((I) - (S)->header.firstElem) * (int64)(S)->header.elementSize + sizeof(StoreStat))
+
+#endif
+
+
+
 
 
 /************************************************************************/
@@ -189,55 +215,65 @@ static int64 computeOffset(StoreStruct *myStore, int64 index ){
 StoreStruct  *allocateStore(void){
   int i;
   StoreStruct *ss = NULL;
-  for(i = 0; i < gMaxNumStores;i++){
-    if(gStores[i].status == UnAllocatedStore){
+
+  if (gStores == NULL) {
+    gMaxNumStores = 64;
+    gStores       = (StoreStruct *)safe_calloc(gMaxNumStores, sizeof(StoreStruct));
+    for  (i=gNumStores;  i<gMaxNumStores;  i++)
+      gStores[i].status = UnAllocatedStore;
+  }
+
+  for (i=0; i<gMaxNumStores; i++) {
+    if (gStores[i].status == UnAllocatedStore) {
       ss = gStores + i;
       break;
     }
   }
-  if(ss == NULL){
-    if(gNumStores  >= gMaxNumStores){
-      if(gNumStores == 0)
-	gMaxNumStores = 16;
-      else
-	gMaxNumStores *= 2;
-      gStores = (StoreStruct *) safe_realloc(gStores, gMaxNumStores * sizeof(StoreStruct));
-      for  (i = gNumStores;  i < gMaxNumStores;  i ++)
-        gStores [i] . status = UnAllocatedStore;
-    }
+
+  if (ss == NULL) {
+    assert(gNumStores >= gMaxNumStores);
+
+    gMaxNumStores *= 2;
+    gStores = (StoreStruct *) safe_realloc(gStores, gMaxNumStores * sizeof(StoreStruct));
+    for  (i=gNumStores;  i<gMaxNumStores;  i++)
+      gStores[i].status = UnAllocatedStore;
+
     ss = gStores + gNumStores;
   }
 
-  ss->fp = (FILE *)NULL;
-  ss->FileName[0] = 0;
-  ss->buffer = NULL;
-  ss->allocatedSize = 0;
-  ss->status = UnInitializedStore;
-  ss->header.firstElem = -1;
-  ss->header.lastElem = -1;
-  ss->lastCommittedElem = -1;
+  ss->fp                    = NULL;
+  ss->buffer                = NULL;
+  ss->allocatedSize         = 0;
+  ss->status                = UnInitializedStore;
+  ss->header.firstElem      = -1;
+  ss->header.lastElem       = -1;
+  ss->lastCommittedElem     = -1;
 
-  ss->header.isDeleted = 0;
-  ss->header.type = 0;
-  ss->header.p1 = 0;
-  ss->header.p2 = 0;
-  ss->header.storeType[0] = 0;
-  ss->header.firstElem = -1;
-  ss->header.lastElem = -1;
-  ss->header.version = -1;
-  ss->header.elementSize = -1;
-  ss->header.creationTime = 0;
+  ss->header.isDeleted      = 0;
+  ss->header.type           = 0;
+  ss->header.p1             = 0;
+  ss->header.p2             = 0;
+  ss->header.storeType[0]   = 0;
+  ss->header.storeType[1]   = 0;
+  ss->header.storeType[2]   = 0;
+  ss->header.storeType[3]   = 0;
+  ss->header.storeType[4]   = 0;
+  ss->header.storeType[5]   = 0;
+  ss->header.storeType[6]   = 0;
+  ss->header.storeType[7]   = 0;
+  ss->header.firstElem      = -1;
+  ss->header.lastElem       = -1;
+  ss->header.version        = -1;
+  ss->header.elementSize    = -1;
+  ss->header.creationTime   = 0;
   ss->header.lastUpdateTime = 0;
 
-  ss->lastCommittedElem = -1;
-  ss->isMemoryStore = 0;
-  ss->isDirty = 0;
-
-  memset(ss->FileName, 0, FILENAME_MAX);
-  memset(ss->header.storeType, 0, 8);
+  ss->lastCommittedElem     = -1;
+  ss->isMemoryStore         = 0;
+  ss->isDirty               = 0;
 
   gNumStores++;
-  return ss;
+  return(ss);
 }
 
 
@@ -249,39 +285,40 @@ StreamStruct  *allocateStream(StoreHandle s, void *buffer, int32 bufferSize  ){
   int i;
   StreamStruct *ss = NULL;
 
-  for(i = 0; i < gMaxNumStreams;i++){
-    if(gStreams[i].status == UnAllocatedStore){
+  if (gStreams == NULL) {
+    gMaxNumStreams = 64;
+    gStreams       = (StreamStruct *)safe_calloc(gMaxNumStreams, sizeof(StreamStruct));
+    for  (i=gNumStreams;  i<gMaxNumStreams;  i++)
+      gStreams[i].status = UnAllocatedStore;
+  }
+
+  for (i=0; i<gMaxNumStreams; i++) {
+    if (gStreams[i].status == UnAllocatedStore) {
       ss = gStreams + i;
-      gNumStreams++;
       break;
     }
   }
-  if(ss == NULL){
-    if(gNumStreams  >= gMaxNumStreams){
-      if(gNumStreams == 0)
-	gMaxNumStreams = 16;
-      else
-	gMaxNumStreams *= 2;
-      gStreams = (StreamStruct *)
-	safe_realloc(gStreams, gMaxNumStreams * sizeof(StreamStruct));
-      for  (i = gNumStreams;  i < gMaxNumStreams;  i ++)
-        gStreams [i] . status = UnAllocatedStore;
-    }
-    ss = gStreams + gNumStreams++;
-  }
-  ss->store = s;
-  ss->status = ActiveStore;
-  ss->buffer = buffer;
-  ss->bufferSize = bufferSize;
-  /* Default is to stream from beginning to end */
-  ss->startIndex = gStores[s].header.firstElem;
-  ss->endIndex = gStores[s].header.lastElem;
 
-#ifdef DEBUG
-  fprintf(stderr," Allocating Stream %d with ("F_S64","F_S64")\n",
-	  gNumStreams, ss->startIndex, ss->endIndex);
-#endif  
-  return ss;
+  if (ss == NULL) {
+    assert(gNumStreams >= gMaxNumStreams);
+
+    gMaxNumStreams *= 2;
+    gStreams = (StreamStruct *) safe_realloc(gStreams, gMaxNumStreams * sizeof(StreamStruct));
+    for  (i=gNumStreams;  i<gMaxNumStreams;  i++)
+      gStreams[i].status = UnAllocatedStore;
+
+    ss = gStreams + gNumStreams;
+  }
+
+  ss->store       = s;
+  ss->status      = ActiveStore;
+  ss->buffer      = buffer;
+  ss->bufferSize  = bufferSize;
+  ss->startIndex  = gStores[s].header.firstElem;
+  ss->endIndex    = gStores[s].header.lastElem;
+
+  gNumStreams++;
+  return(ss);
 }
 
 /****************************************************************************/
@@ -356,7 +393,7 @@ StoreHandle createIndexStore
   myStore->header.version = version;
   myStore->header.firstElem = firstID;
   myStore->header.lastElem =  firstID -1; /* Sentinel */
-#ifdef DEBUG
+#ifdef DEBUG_GENERIC_STORE
  fprintf(stderr,
          "createIndexStore with firstID = "F_S64" lastElem = "F_S64"\n",
 	 firstID, myStore->header.lastElem);
@@ -367,25 +404,27 @@ StoreHandle createIndexStore
   myStore->status = ActiveStore;
 
   if(path){ /* File based store */
-#ifdef DEBUG
+#ifdef DEBUG_GENERIC_STORE
     fprintf(stderr," Creating file-based index store %s\n", path);
 #endif
     assert(strlen(path) < FILENAME_MAX);
     myStore->fp = fopen(path,"w+b");
     AssertPtr(myStore->fp);
-    myStore->buffer = (char *)safe_calloc(1, WRITING_BUFFER);
+#if WRITING_BUFFER > 0
+    myStore->buffer = (char *)safe_malloc(WRITING_BUFFER);
     setbuffer(myStore->fp, myStore->buffer, WRITING_BUFFER);
+#else
+    myStore->buffer = NULL;
+#endif
     myStore->isMemoryStore = 0;
-    strcpy(myStore->FileName, path);
   }else{
-#ifdef DEBUG
+#ifdef DEBUG_GENERIC_STORE
     fprintf(stderr," Creating memory-based index store \n");
 #endif
     myStore->allocatedSize = INITIAL_ALLOCATION * elementSize;
-    myStore->buffer = (char *)safe_calloc(1, myStore->allocatedSize);
+    myStore->buffer = (char *)safe_malloc(myStore->allocatedSize);
     myStore->isMemoryStore = 1;
     myStore->fp = NULL;
-    myStore->FileName[0]='\0';
   }
   writeHeader(myStore); 
   myStore->isDirty = 0;
@@ -437,27 +476,29 @@ StoreHandle createStringStore
   myStore->header.creationTime = time(0);
 
   if(path){ /* File based store */
-#ifdef DEBUG
+#ifdef DEBUG_GENERIC_STORE
     fprintf(stderr," Creating file-based string store %s\n", path);
 #endif
     myStore->isMemoryStore = 0;
     assert(strlen(path) < FILENAME_MAX);
     myStore->isMemoryStore = 0;
-    strcpy(myStore->FileName, path);
     myStore->fp = fopen(path,"w+b");
     AssertPtr(myStore->fp);
-    myStore->buffer = (char *)safe_calloc(1, WRITING_BUFFER);
+#if WRITING_BUFFER > 0
+    myStore->buffer = (char *)safe_malloc(WRITING_BUFFER);
     setbuffer(myStore->fp, myStore->buffer, WRITING_BUFFER);
+#else
+    myStore->buffer = NULL;
+#endif
   }else{
-#ifdef DEBUG
+#ifdef DEBUG_GENERIC_STORE
     fprintf(stderr," Creating memory-based string store \n");
 #endif
     myStore->allocatedSize = expectedStringSize;
-    myStore->buffer = (char *)safe_calloc(1, myStore->allocatedSize);
+    myStore->buffer = (char *)safe_malloc(myStore->allocatedSize);
     AssertPtr(myStore->buffer);
     myStore->isMemoryStore = 1;
     myStore->fp = NULL;
-    myStore->FileName[0] = '\0';
   }
 
   myStore->status = ActiveStore;
@@ -517,7 +558,7 @@ int closeStore(StoreHandle s){
   StoreStruct *myStore = Store_myStruct(s);
 
 
-#ifdef DEBUG
+#ifdef DEBUG_GENERIC_STORE
  fprintf(stderr,"*** closeStore %d  status = %d fileno = %d\n", 
 	 s, myStore->status, (myStore->fp?fileno(myStore->fp):-1));
 #endif
@@ -543,7 +584,7 @@ int closeStore(StoreHandle s){
 int commitStore(StoreHandle s){
   StoreStruct *myStore = Store_myStruct(s);
 
-#ifdef DEBUG_COMMIT
+#ifdef DEBUG_GENERIC_STORE
   fprintf(stderr,"*** commitStore %d  dirty:%d\n", s, myStore->isDirty);
 #endif
 
@@ -573,7 +614,7 @@ int appendIndexStore(StoreHandle s, void *element){
 
   offset = computeOffset(myStore, myStore->header.lastElem + 1);
 
-  #ifdef DEBUG
+  #ifdef DEBUG_GENERIC_STORE
   fprintf(stderr,
           " *** IndexStore_append -- Seeking element "F_S64" at "F_S64"\n",
 	  myStore->header.lastElem, offset);
@@ -599,7 +640,7 @@ int appendIndexStore(StoreHandle s, void *element){
   }
   myStore->header.lastElem ++;
 
-#ifdef DEBUG1
+#ifdef DEBUG_GENERIC_STORE1
   fprintf(stderr,"*** appendElements "F_S64"\n",
 	  myStore->header.lastElem);
 #endif
@@ -621,7 +662,7 @@ int setIndexStore(StoreHandle s, int64 index, void *element){
 
   offset = computeOffset(myStore, index);
 
-#ifdef DEBUG
+#ifdef DEBUG_GENERIC_STORE
   fprintf(stderr,
           " *** IndexStore_set -- Seeking element "F_S64" at "F_S64"\n",
 	  index, offset);
@@ -677,7 +718,7 @@ StoreHandle convertStoreToPartialMemoryStore(StoreHandle loadStoreHandle,
   if (lastElem == STREAM_UNTILEND)
     lastElem = loadStore->header.lastElem;
 
-  if(Store_isStringStore(loadStore)){
+  if (Store_isStringStore(loadStore)) {
     sourceOffset    = sizeof(StoreStat) + firstElem;
     sourceMaxOffset = sizeof(StoreStat) + lastElem + 1;
   }else{
@@ -685,11 +726,14 @@ StoreHandle convertStoreToPartialMemoryStore(StoreHandle loadStoreHandle,
     sourceMaxOffset = computeOffset(loadStore, lastElem + 1);
   }
 
+  fprintf(stderr, "firstElem: "F_S64"   Offset: "F_S64"\n", firstElem, sourceOffset);
+  fprintf(stderr, "lastElem:  "F_S64"   Offset: "F_S64"\n", lastElem, sourceMaxOffset);
+
   myStore  = allocateStore();
   *myStore = *loadStore;
 
   myStore->allocatedSize    = sourceMaxOffset - sourceOffset + 1;
-  myStore->buffer           = (char *)safe_calloc(1, myStore->allocatedSize);
+  myStore->buffer           = (char *)safe_malloc(myStore->allocatedSize);
   myStore->isMemoryStore    = 1;
   myStore->fp               = NULL;
   myStore->header.firstElem = firstElem;
@@ -742,7 +786,7 @@ int getIndexStore(StoreHandle s, int64 index, void *buffer){
   int64 offset;
 
   assert(myStore->status == ActiveStore);
-#ifdef DEBUG
+#ifdef DEBUG_GENERIC_STORE
   fprintf(stderr," *** IndexStoreGet -- Seeking element "F_S64" ("F_S64","F_S64")\n",
 	  index, myStore->header.firstElem, myStore->header.lastElem);
   fprintf(stderr," *** IndexStoreGet -- fileno = %d\n",
@@ -860,7 +904,7 @@ int appendStringStore(StoreHandle s, char *string){
   assert(Store_isStringStore(myStore));
 
   offset = sizeof(StoreStat) + myStore->header.lastElem;
-#ifdef DEBUG
+#ifdef DEBUG_GENERIC_STORE
   fprintf(stderr," *** StringStore_append -- Seeking offset "F_S64"\n",
 	  offset);
 #endif
@@ -882,7 +926,7 @@ int appendStringStore(StoreHandle s, char *string){
       if(-1 == CDS_FSEEK(myStore->fp, (off_t) offset, SEEK_SET))
         assert(0);
     AS_UTL_safeWrite(myStore->fp, string, "appendStringStore", length + 1);
-#ifdef DEBUG
+#ifdef DEBUG_GENERIC_STORE
     fprintf(stderr,"appendString: wrote %s of length " F_SIZE_T "\n",
 	    string, strlen(string));
 #endif
@@ -901,7 +945,7 @@ int appendVLRecordStore(StoreHandle s, void *vlr, VLSTRING_SIZE_T length){
   
 
   offset = sizeof(StoreStat) + myStore->header.lastElem;
-#ifdef DEBUG
+#ifdef DEBUG_GENERIC_STORE
   fprintf(stderr," *** appendVLRecordStore -- length = " F_VLS " lastElem = "F_S64" offset = "F_S64"\n",
 	  length, myStore->header.lastElem, offset);
 #endif
@@ -910,7 +954,7 @@ int appendVLRecordStore(StoreHandle s, void *vlr, VLSTRING_SIZE_T length){
       while(myStore->allocatedSize <= offset + length + sizeof(VLSTRING_SIZE_T)){
 	myStore->allocatedSize *= 2;
       }
-#ifdef DEBUG
+#ifdef DEBUG_GENERIC_STORE
       fprintf(stderr,"* Reallocating VLRecord Store %d to "F_S64"\n",
               s, myStore->allocatedSize);
 #endif
@@ -934,7 +978,7 @@ int appendVLRecordStore(StoreHandle s, void *vlr, VLSTRING_SIZE_T length){
 
   myStore->header.lastElem += length + sizeof(VLSTRING_SIZE_T);
   myStore->isDirty = 1;
-#ifdef DEBUG
+#ifdef DEBUG_GENERIC_STORE
     fprintf(stderr,
             "appendVLRecord: wrote  length " F_VLS " lastElem = "F_S64"\n",
 	    length, myStore->header.lastElem);
@@ -960,7 +1004,7 @@ int nextStream(StreamHandle sh, void *buffer){
   }
 
   if(ss->startIndex >  ss->endIndex){
-    #ifdef DEBUG
+    #ifdef DEBUG_GENERIC_STORE
     fprintf(stderr,"nextStream: start = "F_S64" > end = "F_S64".... bailing out\n", 
 	    ss->startIndex, ss->endIndex);
     #endif
@@ -984,7 +1028,7 @@ int kNextStream(StreamHandle sh, void *buffer, int skipNum){
   }
 
   if(ss->startIndex >  ss->endIndex){
-    #ifdef DEBUG
+    #ifdef DEBUG_GENERIC_STORE
     fprintf(stderr,"nextStream: start = "F_S64" > end = "F_S64".... bailing out\n", 
 	    ss->startIndex, ss->endIndex);
     #endif
@@ -1007,14 +1051,14 @@ int nextStringStream(StreamHandle sh, char *buffer, int32 maxLength){
   assert(ss->status == ActiveStore);
 
   if(ss->startIndex >  ss->endIndex){
-#ifdef DEBUG
+#ifdef DEBUG_GENERIC_STORE
     fprintf(stderr,"StringStoreNext: start = "F_S64" >= end = "F_S64" .... bailing out\n", 
 	    ss->startIndex, ss->endIndex);
 #endif
     return(0);
   }
 
-#ifdef DEBUG
+#ifdef DEBUG_GENERIC_STORE
   fprintf(stderr,"StringStoreNext: offset = "F_S64"\n", ss->startIndex);
 #endif
   getStringStore(ss->store, ss->startIndex, buffer, maxLength);
@@ -1031,21 +1075,21 @@ int nextVLRecordStream(StreamHandle sh, void *buffer, VLSTRING_SIZE_T maxLength,
   assert(ss->status == ActiveStore);
 
   if(ss->startIndex >  ss->endIndex){
-#ifdef DEBUG
+#ifdef DEBUG_GENERIC_STORE
     fprintf(stderr,"StringVLRecordNext: start = "F_S64" >= end = "F_S64" .... bailing out\n", 
 	    ss->startIndex, ss->endIndex);
 #endif
     return(0);
   }
 
-#ifdef DEBUG
+#ifdef DEBUG_GENERIC_STORE
   fprintf(stderr,"nextVLRecordStream: offset = "F_S64"\n", ss->startIndex);
 #endif
   result = getVLRecordStore(ss->store, ss->startIndex, buffer, maxLength, actualLength);
   assert(result == 0);
   ss->startIndex += (*actualLength + sizeof(VLSTRING_SIZE_T));
 
-#ifdef DEBUG
+#ifdef DEBUG_GENERIC_STORE
   fprintf(stderr,
           "nextVLRecordStream: read:  " F_VLS " startIndex now:"F_S64"\n",
 	  *actualLength, ss->startIndex);
@@ -1061,13 +1105,13 @@ int nextVLRecordStream(StreamHandle sh, void *buffer, VLSTRING_SIZE_T maxLength,
 int statsStore(StoreHandle s, StoreStat *stats){
   StoreStruct *myStore = Store_myStruct(s);
 
-#ifdef DEBUG
+#ifdef DEBUG_GENERIC_STORE
   dumpHeader(myStore);
 #endif
   /*** HACK!!!! This should be done properly  */
   *((StoreStat *)stats) = myStore->header;
 
-#ifdef DEBUG
+#ifdef DEBUG_GENERIC_STORE
   fprintf(stderr,"header.firstElem = "F_S64" header.lastElem = "F_S64"\n",
 	  myStore->header.firstElem, myStore->header.lastElem);
   fprintf(stderr,"stats.firstElem = "F_S64" stats.lastElem = "F_S64"\n",
@@ -1105,7 +1149,7 @@ int getStartIndexStream(StreamHandle stream){
 /****************************************************************************/
 
 int writeBufToStore(StoreStruct *target, char *srcPtr, int64 offset, int64 numBytes){
-#ifdef DEBUG_COPY
+#ifdef DEBUG_GENERIC_STORE
   fprintf(stderr,
           "*writeBufToStore (%s)write "F_S64" bytes at offset "F_S64"\n",
 	  (Store_isMemoryStore(target)?"Memory":"File"), numBytes, offset);
@@ -1132,7 +1176,7 @@ int writeBufToStore(StoreStruct *target, char *srcPtr, int64 offset, int64 numBy
 
 /****************************************************************************/
 int readBufFromStore(StoreStruct *source, char *buffer, int64 offset, int64 numBytes, char **result){
-#ifdef DEBUG_COPY
+#ifdef DEBUG_GENERIC_STORE
   fprintf(stderr,
           "*readBufFromStore (%s) read "F_S64" bytes at offset "F_S64"\n",
 	  (Store_isMemoryStore(source)?"Memory":"File"), numBytes, offset);
@@ -1185,7 +1229,7 @@ int  copyStore(StoreStruct *source, int64 sourceOffset, int64 sourceMaxOffset,
      }
    }
 
-#ifdef DEBUG_COPY
+#ifdef DEBUG_GENERIC_STORE
      fprintf(stderr,"CopyStore From %ld to %ld:  sourceOffset:"F_S64"  sourceMaxOffset:"F_S64" numReads:"F_S64" lastRead "F_S64"\n",
 	     source - gStores, target - gStores,
              sourceOffset, sourceMaxOffset,
@@ -1193,7 +1237,7 @@ int  copyStore(StoreStruct *source, int64 sourceOffset, int64 sourceMaxOffset,
 #endif
 
      if(numReads){
-#ifdef DEBUG_COPY
+#ifdef DEBUG_GENERIC_STORE
      fprintf(stderr," copyStore:  numReads = "F_S64"\n", numReads);
 #endif
        for(read = 1; read <= numReads; read++){
@@ -1203,7 +1247,7 @@ int  copyStore(StoreStruct *source, int64 sourceOffset, int64 sourceMaxOffset,
        }
      }
    if(lastRead){
-#ifdef DEBUG_COPY
+#ifdef DEBUG_GENERIC_STORE
      fprintf(stderr," copyStore:  lastRead = "F_S64"\n", lastRead);
 #endif
       readBufFromStore(source, buffer, sourceOffset + offset, lastRead, &srcPtr);
@@ -1220,21 +1264,21 @@ int  copyStore(StoreStruct *source, int64 sourceOffset, int64 sourceMaxOffset,
 static int writeHeader(StoreStruct *myStore){
 
   myStore->header.lastUpdateTime = time(0);
-#ifdef DEBUG
+#ifdef DEBUG_GENERIC_STORE
   fprintf(stderr,"*** Begin WriteHeader:\n");
   dumpHeader(myStore);
 #endif
   if(myStore->isMemoryStore){
     memcpy(myStore->buffer,&myStore->header, sizeof(StoreStat));
   }else{
-#ifdef DEBUG
+#ifdef DEBUG_GENERIC_STORE
   fprintf(stderr,"\t*** WriteHeader: fileno %d status = %d err = %d\n",
 	  fileno(myStore->fp), myStore->status, ferror(myStore->fp));
 #endif    
     rewind(myStore->fp); /* Rewind to beginning of file */
     AS_UTL_safeWrite(myStore->fp,(void *)&myStore->header,"writeHeader",sizeof(StoreStat));
   }
-#ifdef DEBUG
+#ifdef DEBUG_GENERIC_STORE
   fprintf(stderr,"*** End WriteHeader:\n");
 #endif
   return(0);
@@ -1249,7 +1293,7 @@ static int readHeader(StoreStruct *myStore){
     CDS_FSEEK(myStore->fp, (off_t) 0, SEEK_SET); /* Rewind to beginning of file */
     AS_UTL_safeRead(myStore->fp, (void *)&myStore->header, "readHeader", sizeof(StoreStat));
   }
-#ifdef DEBUG
+#ifdef DEBUG_GENERIC_STORE
   fprintf(stderr,"*** ReadHeader: last = "F_S64"\n"
           , myStore->header.lastElem);
   dumpHeader(myStore);
@@ -1261,32 +1305,26 @@ static int readHeader(StoreStruct *myStore){
 
 /****************************************************************************/
 
-int dumpHeader(StoreStruct *s){
-  char *t;
-  fprintf(stderr,
-          "*** Dumping StoreHandle %d's header (status = %d dirty = %d)***\n",
-	  Store_myHandle(s), s->status, s->isDirty);
-  fprintf(stderr,"\t*** isDeleted %d\n", s->header.isDeleted);
-  fprintf(stderr,"\t*** isIndexStore %d\n", Store_isIndexStore(s));
-  fprintf(stderr,"\t*** storeType %s\n", s->header.storeType);
-  fprintf(stderr,"\t*** firstElem "F_S64"   lastElem "F_S64"\n", 
-	  s->header.firstElem, s->header.lastElem);
-  fprintf(stderr,"\t*** version %d elementSize %d\n", s->header.version,
-	  s->header.elementSize);
-  
-  t = ctime(&(s->header.creationTime)); 
-  fprintf(stderr,"\t*** created %s\n", t);
-  t = ctime(&(s->header.lastUpdateTime));
-  fprintf(stderr,"\t*** updated %s\n", t);
-  fprintf(stderr,"*** ********************** ***\n");
-
-  return 0;
+void dumpHeader(StoreStruct *s){
+  time_t t;
+  fprintf(stderr, "*** Dumping StoreHandle %d header\n", Store_myHandle(s));
+  fprintf(stderr, "\tstatus %d\n", s->status);
+  fprintf(stderr, "\tdirty %d\n", s->isDirty);
+  fprintf(stderr, "\tisDeleted %d\n", s->header.isDeleted);
+  fprintf(stderr, "\tisIndexStore %d\n", Store_isIndexStore(s));
+  fprintf(stderr, "\tstoreType %s\n", s->header.storeType);
+  fprintf(stderr, "\tfirstElem "F_S64"   lastElem "F_S64"\n", s->header.firstElem, s->header.lastElem);
+  fprintf(stderr, "\tversion %d elementSize %d\n", s->header.version, s->header.elementSize);
+  t = s->header.creationTime;
+  fprintf(stderr, "\tcreated %s", ctime(&t));
+  t = s->header.lastUpdateTime;
+  fprintf(stderr, "\tupdated %s", ctime(&t));
 }
 
 
 
 
-#ifdef DEBUG_TEST
+#ifdef DEBUG_GENERIC_STORE_TEST
 
 char *testString = "abcdefghijklmnopqrstuvwxyz"
                    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
