@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.19 2007-02-22 14:44:40 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.20 2007-02-23 15:36:37 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -110,6 +110,10 @@ typedef struct {
 #define AS_READ_CLEAR_ECR2     7
 #define AS_READ_CLEAR_NUM      8
 #define AS_READ_CLEAR_LATEST   (AS_READ_CLEAR_NUM - 1)
+
+static const char *AS_READ_CLEAR_NAMES[AS_READ_CLEAR_NUM] = {
+  "ORIG", "QLT", "VEC", "OBTINI","OBT","UTG","ECR1","ECR2"
+};
 
 
 typedef struct{
