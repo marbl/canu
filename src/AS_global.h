@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_global.h,v 1.7 2007-02-23 15:33:44 brianwalenz Exp $	 */
+/* 	$Id: AS_global.h,v 1.8 2007-02-24 15:42:32 brianwalenz Exp $	 */
 
 /* This is the global include file that all C files in the AS subsystem should
    include.
@@ -307,6 +307,18 @@ typedef double float64;
 #endif
 
 
+
+
+#ifdef __alpha
+//  BPW hates doing this, but, well, its needed on our OSF1 V5.1 box.
+int   fseeko(FILE *stream, off_t offset, int whence );
+off_t ftello(FILE *stream );
+#endif
+
+
+
+
+
 #if 1
 
 #define CDS_FTELL(F) ftello((F))
@@ -343,6 +355,8 @@ CDS_FSEEK(FILE *stream, off_t offset, int whence) {
 }
 
 #endif
+
+
 
 
 

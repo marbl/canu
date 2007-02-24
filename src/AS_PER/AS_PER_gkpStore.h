@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.20 2007-02-23 15:36:37 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.21 2007-02-24 15:42:33 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -375,9 +375,9 @@ void    clearGateKeeperBatchRecord(GateKeeperBatchRecord *g);
 void    clearGateKeeperLibraryRecord(GateKeeperLibraryRecord *g);
 void    clearGateKeeperFragmentRecord(GateKeeperFragmentRecord *g);
 
-int     getFrag(GateKeeperStore *gkp, int64 iid, fragRecord *fr, int32 flags);
-int     setFrag(GateKeeperStore *gkp, int64 iid, fragRecord *fr);
-int     delFrag(GateKeeperStore *gkp, int64 iid);
+void    getFrag(GateKeeperStore *gkp, int64 iid, fragRecord *fr, int32 flags);
+void    setFrag(GateKeeperStore *gkp, int64 iid, fragRecord *fr);
+void    delFrag(GateKeeperStore *gkp, int64 iid);
 
 #define getFirstElemFragStore(GKP)  getFirstElemStore((GKP)->frg)
 #define getLastElemFragStore(GKP)   getLastElemStore((GKP)->frg)
@@ -433,11 +433,11 @@ void                 closeFragStorePartition(tFragStorePartition *partition) {
 };
 
 static
-int                  getFragStorePartition(tFragStorePartition *partition,
+void                 getFragStorePartition(tFragStorePartition *partition,
                                            int32 indx,
                                            int32 getFlags,
                                            fragRecord *fr) {
-  return(getFrag(partition, indx, fr, getFlags));
+  getFrag(partition, indx, fr, getFlags);
 };
 
 #endif

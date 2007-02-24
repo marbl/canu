@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.24 2007-02-23 15:36:19 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.25 2007-02-24 15:42:33 brianwalenz Exp $";
 
 //    A thin layer on top of the IndexStore supporing the storage and
 // retrieval of records used by the gatekeeper records.
@@ -70,7 +70,6 @@ fileExists(const char *path,
         (s.st_mode & (S_IWUSR | S_IWGRP | S_IWOTH)) &&
         (s.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)))
       return(1);
-    return(0);
   }
 
   if (directory == 0) {
@@ -81,8 +80,9 @@ fileExists(const char *path,
         (s.st_mode & (S_IRUSR | S_IRGRP | S_IROTH)) &&
         (s.st_mode & (S_IWUSR | S_IWGRP | S_IWOTH)))
       return(1);
-    return(0);
   }
+
+  return(0);
 }
 
 
@@ -172,17 +172,17 @@ openGateKeeperStore(const char *path,
   }
   if (gkpStore->gkp.gkpBatchRecordSize != sizeof(GateKeeperBatchRecord)) {
     fprintf(stderr, "ERROR!  Store built unsing GateKeeperBatchRecord of size %d bytes.\n", gkpStore->gkp.gkpBatchRecordSize);
-    fprintf(stderr, "        Code compiled with GateKeeperBatchRecord of size %d bytes.\n", sizeof(GateKeeperBatchRecord));
+    fprintf(stderr, "        Code compiled with GateKeeperBatchRecord of size %d bytes.\n", (int)sizeof(GateKeeperBatchRecord));
     assert(gkpStore->gkp.gkpBatchRecordSize == sizeof(GateKeeperBatchRecord));
   }
   if (gkpStore->gkp.gkpLibraryRecordSize != sizeof(GateKeeperLibraryRecord)) {
     fprintf(stderr, "ERROR!  Store built unsing GateKeeperLibraryRecord of size %d bytes.\n", gkpStore->gkp.gkpLibraryRecordSize);
-    fprintf(stderr, "        Code compiled with GateKeeperLibraryRecord of size %d bytes.\n", sizeof(GateKeeperLibraryRecord));
+    fprintf(stderr, "        Code compiled with GateKeeperLibraryRecord of size %d bytes.\n", (int)sizeof(GateKeeperLibraryRecord));
     assert(gkpStore->gkp.gkpLibraryRecordSize == sizeof(GateKeeperLibraryRecord));
   }
   if (gkpStore->gkp.gkpFragmentRecordSize != sizeof(GateKeeperFragmentRecord)) {
     fprintf(stderr, "ERROR!  Store built unsing GateKeeperFragmentRecord of size %d bytes.\n", gkpStore->gkp.gkpFragmentRecordSize);
-    fprintf(stderr, "        Code compiled with GateKeeperFragmentRecord of size %d bytes.\n", sizeof(GateKeeperFragmentRecord));
+    fprintf(stderr, "        Code compiled with GateKeeperFragmentRecord of size %d bytes.\n", (int)sizeof(GateKeeperFragmentRecord));
     assert(gkpStore->gkp.gkpFragmentRecordSize == sizeof(GateKeeperFragmentRecord));
   }
 
@@ -499,18 +499,16 @@ getFragData(GateKeeperStore *gkp, fragRecord *fr, int streamFlags) {
 }
 
 
-int     getFrag(GateKeeperStore *gkp, int64 iid, fragRecord *fr, int32 flags) {
+void    getFrag(GateKeeperStore *gkp, int64 iid, fragRecord *fr, int32 flags) {
   getGateKeeperFragmentStore(gkp->frg, iid, &fr->gkfr);
   getFragData(gkp, fr, flags);
-  return(0);
 }
 
-int     setFrag(GateKeeperStore *gkp, int64 iid, fragRecord *fr) {
+void    setFrag(GateKeeperStore *gkp, int64 iid, fragRecord *fr) {
   setGateKeeperFragmentStore(gkp->frg, iid, &fr->gkfr);
-  return(0);
 }
 
-int     delFrag(GateKeeperStore *gkp, int64 iid) {
+void    delFrag(GateKeeperStore *gkp, int64 iid) {
   GateKeeperFragmentRecord   gkfr;
   CDS_IID_t                  miid;
 

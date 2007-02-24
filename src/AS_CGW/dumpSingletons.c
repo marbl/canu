@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpSingletons.c,v 1.16 2007-02-20 21:57:59 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpSingletons.c,v 1.17 2007-02-24 15:42:33 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,10 +54,7 @@ getFragmentClear(int    iid,
   if (fs == NULL)
     fs = new_fragRecord();
 
-  if (getFrag(ScaffoldGraph->gkpStore, iid, fs, FRAG_S_SEQ) != 0) {
-    fprintf(stderr,"Couldn't get fragment from frgStore for iid %d\n", iid);
-    assert(0);
-  }
+  getFrag(ScaffoldGraph->gkpStore, iid, fs, FRAG_S_SEQ);
  
   clr_bgn = getFragRecordClearRegionBegin(fs, AS_READ_CLEAR_LATEST);
   clr_end = getFragRecordClearRegionEnd  (fs, AS_READ_CLEAR_LATEST);

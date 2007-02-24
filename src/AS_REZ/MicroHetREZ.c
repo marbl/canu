@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.12 2007-02-18 14:04:50 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.13 2007-02-24 15:42:33 brianwalenz Exp $";
 
 #include <assert.h>
 #include <errno.h>
@@ -318,11 +318,9 @@ AS_REZ_get_info(CDS_IID_t iid,
 
     if(!mytype ){ // we have not seen that iid before 
       if ( frag_store != NULL ) {
-        if(getFrag(frag_store,iid,input,FRAG_S_INF) != 0)
-          assert(0);
+        getFrag(frag_store,iid,input,FRAG_S_INF);
       } else {
-        if(getFragStorePartition(pfrag_store,iid,FRAG_S_INF,input) != 0)
-          assert(0);
+        getFragStorePartition(pfrag_store,iid,FRAG_S_INF,input);
       }
       //getReadType_ReadStruct(input,type); 
       *type == AS_READ;

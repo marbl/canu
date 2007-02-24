@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FragCorrectOVL.c,v 1.13 2007-02-22 14:44:40 brianwalenz Exp $
- * $Revision: 1.13 $
+ * $Id: FragCorrectOVL.c,v 1.14 2007-02-24 15:42:33 brianwalenz Exp $
+ * $Revision: 1.14 $
 */
 
-static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.13 2007-02-22 14:44:40 brianwalenz Exp $";
+static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.14 2007-02-24 15:42:33 brianwalenz Exp $";
 
 
 //  System include files
@@ -1082,12 +1082,7 @@ static void  Extract_Needed_Frags
       if  (frag_iid < Olap [(* next_olap)] . b_iid)
           continue;
 #else
-      if  (getFrag (store, frag_iid, frag_read, FRAG_S_SEQ) != 0)
-          {
-           fprintf (stderr, "Failed to read frag %d\n",
-                    Olap [(* next_olap)] . b_iid);
-           exit (-1);
-          }
+      getFrag (store, frag_iid, frag_read, FRAG_S_SEQ);
 #endif
 
       deleted = getFragRecordIsDeleted(frag_read);

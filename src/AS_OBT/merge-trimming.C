@@ -207,10 +207,7 @@ main(int argc, char **argv) {
       if (l + OBT_MIN_LENGTH < r) {
         if (doModify) {
           setFragRecordClearRegion(fr, l, r, AS_READ_CLEAR_OBT);
-          if (setFrag(gkp, lid, fr)) {
-            fprintf(stderr, "setFrag() failed.\n");
-            exit(1);
-          }
+          setFrag(gkp, lid, fr);
         }
 
         if (logFile)
@@ -462,10 +459,7 @@ main(int argc, char **argv) {
 
         if (doModify) {
           setFragRecordClearRegion(fr, left, right, AS_READ_CLEAR_OBT);
-          if (setFrag(gkp, iid, fr)) {
-            fprintf(stderr, "setFrag() failed.\n");
-            exit(1);
-          }
+          setFrag(gkp, iid, fr);
         }
       }
     }

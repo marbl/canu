@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.19 2007-02-23 22:15:50 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.20 2007-02-24 15:42:33 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -196,13 +196,6 @@ main(int argc, char **argv) {
   int              dumpFastaClear    = AS_READ_CLEAR_LATEST;
 
 
-#if 1
-  fprintf(stderr, "sizeof(GateKeeperBatchRecord)      %d\n", sizeof(GateKeeperBatchRecord));
-  fprintf(stderr, "sizeof(GateKeeperLibraryRecord)    %d\n", sizeof(GateKeeperLibraryRecord));
-  fprintf(stderr, "sizeof(GateKeeperFragmentRecord)   %d\n", sizeof(GateKeeperFragmentRecord));
-  fprintf(stderr, "sizeof(fragRecord)                 %d\n", sizeof(fragRecord));
-#endif
-
   int arg = 1;
   int err = 0;
   while (arg < argc) {
@@ -292,6 +285,13 @@ main(int argc, char **argv) {
     usage(argv[0]);
     exit(1);
   }
+
+#if 1
+  fprintf(stderr, "sizeof(GateKeeperBatchRecord)      "F_SIZE_T"\n", sizeof(GateKeeperBatchRecord));
+  fprintf(stderr, "sizeof(GateKeeperLibraryRecord)    "F_SIZE_T"\n", sizeof(GateKeeperLibraryRecord));
+  fprintf(stderr, "sizeof(GateKeeperFragmentRecord)   "F_SIZE_T"\n", sizeof(GateKeeperFragmentRecord));
+  fprintf(stderr, "sizeof(fragRecord)                 "F_SIZE_T"\n", sizeof(fragRecord));
+#endif
 
   outputExists = testOpenGateKeeperStore(gkpStoreName, FALSE);
 

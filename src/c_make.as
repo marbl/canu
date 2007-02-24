@@ -177,7 +177,7 @@ endif
 
 ifeq ($(OSTYPE), OSF1)
   CC               = cc
-  CXX              = c++
+  CXX              = cxx
   ARCH_CFLAGS      = -w0 \
                      -warnprotos \
                      -trapuv \
@@ -209,7 +209,8 @@ ifeq ($(OSTYPE), OSF1)
                      -msg_disable truncintasn \
                      -msg_disable truncfltasn \
                      -msg_disable truncfltint \
-                     -msg_disable extrasemi
+                     -msg_disable extrasemi \
+                     -msg_disable bitnotint
   ARCH_CFLAGS     += -pthread
   ifeq ($(BUILDDEBUG), 1)
     ARCH_CFLAGS   += -g

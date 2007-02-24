@@ -737,11 +737,7 @@ int PopulateFragmentSequence( IntMultiPos * f, GateKeeperStore *fs )
     return 1;
   }
     
-  if( getFrag( fs, f->ident, rs, FRAG_S_SEQ ) )
-  {
-    fprintf( stderr, "Failed to get fragment " F_IID " sequence\n", f->ident );
-    return 1;
-  }
+  getFrag( fs, f->ident, rs, FRAG_S_SEQ );
 
   bgn = getFragRecordClearRegionBegin(rs, AS_READ_CLEAR_LATEST);
   end = getFragRecordClearRegionEnd  (rs, AS_READ_CLEAR_LATEST);
@@ -1354,7 +1350,7 @@ typedef CheckGlobals * CheckGlobalsp;
 void InitializeGlobals( CheckGlobalsp globals, char * program_name )
 {
   globals->program_name = program_name;
-  globals->version = "$Revision: 1.15 $";
+  globals->version = "$Revision: 1.16 $";
   globals->chims_file = NULL;
   globals->craps_file = NULL;
   globals->cgb_file = NULL;

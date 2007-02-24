@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: eCR.c,v 1.14 2007-02-18 14:04:48 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: eCR.c,v 1.15 2007-02-24 15:42:33 brianwalenz Exp $";
 
 #include "eCR.h"
 
@@ -1697,7 +1697,7 @@ int GetNewUnitigMultiAlign(NodeCGW_T *unitig, fragPositions *fragPoss, int exten
 
 
 
-int
+void
 extendCgwClearRange(int fragIid, int frag3pDelta) {
   unsigned int clr_beg, clr_end;
   int setStatus = 0;
@@ -1723,17 +1723,15 @@ extendCgwClearRange(int fragIid, int frag3pDelta) {
         break;
     }
 
-    setStatus = setFrag(ScaffoldGraph->gkpStore, fragIid, fsread);
+    setFrag(ScaffoldGraph->gkpStore, fragIid, fsread);
 
     fprintf(stderr, "extendCgwClearRange, changed frag %d clr_end from %d to %d\n",
             fragIid, clr_end, clr_end + frag3pDelta);
   }
-
-  return (setStatus); 
 }
 
 
-int
+void
 revertToCnsClearRange(int fragIid) {
   unsigned int clr_beg, clr_end;
   int setStatus = 0;
@@ -1756,9 +1754,8 @@ revertToCnsClearRange(int fragIid) {
         break;
     }
 
-    setStatus = setFrag(ScaffoldGraph->gkpStore, fragIid, fsread);
+    setFrag(ScaffoldGraph->gkpStore, fragIid, fsread);
   }
-  return (setStatus); 
 }
 
 

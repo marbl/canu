@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.33 2007-02-12 22:16:57 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.34 2007-02-24 15:42:33 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -140,7 +140,7 @@ typedef enum {
   AS_MATE       = (int)'M', // Mate
   AS_REREAD     = (int)'R', // Reread
   AS_MAY_JOIN   = (int)'Y', // maY
-  AS_MUST_JOIN  = (int)'T', // musT
+  AS_MUST_JOIN  = (int)'T'  // musT
 } LinkType;
 
 typedef enum {

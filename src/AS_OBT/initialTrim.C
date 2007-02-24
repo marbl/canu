@@ -176,9 +176,7 @@ main(int argc, char **argv) {
 
     if (doUpdate) {
       setFragRecordClearRegion(fr, vecL, vecR, AS_READ_CLEAR_OBTINI);
-
-      if (setFrag(gkp, elem, fr))
-        fprintf(stderr, "setFrag() failed.\n"), exit(1);
+      setFrag(gkp, elem, fr);
 
       if ((vecL + OBT_MIN_LENGTH) > vecR)
         delFrag(gkp, elem);

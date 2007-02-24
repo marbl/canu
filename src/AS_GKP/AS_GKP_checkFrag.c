@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.16 2007-02-22 00:06:57 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.17 2007-02-24 15:42:33 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -167,7 +167,7 @@ checkOverallQuality(char *input, SeqInterval clearRange) {
 // Checks every window of width GATEKEEPER_QV_WINDOW_WIDTH 
 // We no longer do something special on the tails
 //
-double checkWindowQuality(FragMesg *frg_mesg, FILE *stderr) {
+double checkWindowQuality(FragMesg *frg_mesg, FILE *err) {
   char *input=frg_mesg->quality;
   SeqInterval clearRange=frg_mesg->clear_rng;
   int i;
@@ -201,8 +201,8 @@ double checkWindowQuality(FragMesg *frg_mesg, FILE *stderr) {
   }
   normError = cumError / (double)GATEKEEPER_QV_WINDOW_WIDTH;
   if (normError > (1.01 * GATEKEEPER_QV_WINDOW_THRESH))  { 
-    printGKPError(stderr, GKPError_FRGQualityWindow);
-    fprintf(stderr,"# Window quality failed: ID: " F_U64 " eprob: %g > %g in (" F_S32 "," F_S32 ") clr_rng: (" F_S32 "," F_S32 ")\n",
+    printGKPError(err, GKPError_FRGQualityWindow);
+    fprintf(err,"# Window quality failed: ID: " F_U64 " eprob: %g > %g in (" F_S32 "," F_S32 ") clr_rng: (" F_S32 "," F_S32 ")\n",
 	    frg_mesg->eaccession,normError,
 	    GATEKEEPER_QV_WINDOW_THRESH,
 	    window.bgn,window.end,clearRange.bgn,clearRange.end);
@@ -215,8 +215,8 @@ double checkWindowQuality(FragMesg *frg_mesg, FILE *stderr) {
     window.end++;
     normError = cumError / (double)GATEKEEPER_QV_WINDOW_WIDTH;
     if (normError > (1.01 * GATEKEEPER_QV_WINDOW_THRESH))  { 
-      printGKPError(stderr, GKPError_FRGQualityWindow);
-      fprintf(stderr,"# Window quality failed: ID: " F_U64 " eprob: %g > %g in (" F_S32 "," F_S32 ") clr_rng: (" F_S32 "," F_S32 ")\n",
+      printGKPError(err, GKPError_FRGQualityWindow);
+      fprintf(err,"# Window quality failed: ID: " F_U64 " eprob: %g > %g in (" F_S32 "," F_S32 ") clr_rng: (" F_S32 "," F_S32 ")\n",
               frg_mesg->eaccession,normError,
               GATEKEEPER_QV_WINDOW_THRESH,
               window.bgn,window.end,clearRange.bgn,clearRange.end);

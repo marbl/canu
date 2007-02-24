@@ -25,7 +25,7 @@
  Assumptions: There is no UID 0
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.29 2007-02-20 21:58:04 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.30 2007-02-24 15:42:33 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
@@ -201,6 +201,9 @@ static CDS_UID_t *fetch_UID(VA_TYPE(CDS_UID_t) *map, CDS_IID_t iid){
 static CDS_UID_t *fetch_UID_from_fragStore(CDS_IID_t iid){
   short truedummy=TRUE;
   fragRecord *input;
+  CDS_UID_t uid;
+  CDS_UID_t *di;
+  uint32 cStart, cEnd;
 
   if( test_frg_present(iid) ){
     CDS_UID_t* ret = fetch_UID(FRGmap,iid);
@@ -212,30 +215,23 @@ static CDS_UID_t *fetch_UID_from_fragStore(CDS_IID_t iid){
   Setshort(FRGpresent,iid,&truedummy);
     
   input = new_fragRecord();
-  if( 0 == getFrag(FSHandle,iid,input,FRAG_S_INF) ){
-    CDS_UID_t uid;
-    CDS_UID_t *di;
-    uint32 cStart, cEnd;
+  getFrag(FSHandle,iid,input,FRAG_S_INF);
 
-    uid = getFragRecordUID(input);
+  uid = getFragRecordUID(input);
 
-    di = GetCDS_UID_t(FRGmap,iid);
-    if ((di != NULL) && (*di != 0)) {
-      sprintf(errorreport,"Internal fragment ID %d occurred twice (FRGmap)",iid);
-      error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
-    }
-
-    SetCDS_UID_t(FRGmap,iid,&uid);
-    
-    cStart = getFragRecordClearRegionBegin(input, AS_READ_CLEAR_LATEST);
-    cEnd   = getFragRecordClearRegionEnd  (input, AS_READ_CLEAR_LATEST);
-
-    Setuint32(ClearStartMap,iid,&cStart);
-    Setuint32(ClearEndMap,iid,&cEnd);
-  } else {
-    sprintf(errorreport,"Internal fragment ID %d is not present in the fragment store",iid);
+  di = GetCDS_UID_t(FRGmap,iid);
+  if ((di != NULL) && (*di != 0)) {
+    sprintf(errorreport,"Internal fragment ID %d occurred twice (FRGmap)",iid);
     error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
   }
+
+  SetCDS_UID_t(FRGmap,iid,&uid);
+    
+  cStart = getFragRecordClearRegionBegin(input, AS_READ_CLEAR_LATEST);
+  cEnd   = getFragRecordClearRegionEnd  (input, AS_READ_CLEAR_LATEST);
+
+  Setuint32(ClearStartMap,iid,&cStart);
+  Setuint32(ClearEndMap,iid,&cEnd);
 
   del_fragRecord(input); 
 

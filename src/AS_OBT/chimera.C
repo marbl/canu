@@ -684,10 +684,7 @@ process(u32bit           iid,
 
           if (doUpdate) {
             setFragRecordClearRegion(fr, intervalBeg, intervalEnd, AS_READ_CLEAR_OBT);
-            if (setFrag(gkp, iid, fr)) {
-              fprintf(stderr, "setFrag() failed.\n");
-              exit(1);
-            }
+            setFrag(gkp, iid, fr);
           }
         }
 
@@ -733,10 +730,7 @@ process(u32bit           iid,
 
           if (doUpdate) {
             setFragRecordClearRegion(fr, intervalBeg, intervalEnd, AS_READ_CLEAR_OBT);
-            if (setFrag(gkp, iid, fr)) {
-              fprintf(stderr, "setFrag() failed.\n");
-              exit(1);
-            }
+            setFrag(gkp, iid, fr);
           }
         }
       } else {
