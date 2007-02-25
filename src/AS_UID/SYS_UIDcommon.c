@@ -29,10 +29,12 @@ char   SYS_UIDdebug_flag = 0;
 
 
 
-//  Drop in replacement for missing xdr_u_hyper on BSD4 and OS-X.  
+//  Drop in replacement for missing xdr_u_hyper on FreeBSD4 and OS-X.
+//  Set this in c_make.as if needed.
 //
 #ifdef NEEDXDRUHYPER
 
+static
 int
 xdr_u_hyper(XDR *xdrs, cds_uint64 *hp) {
   int res = 0;
