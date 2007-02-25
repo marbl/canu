@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Output_CGW.c,v 1.19 2007-02-14 07:20:07 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Output_CGW.c,v 1.20 2007-02-25 10:15:01 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -81,7 +81,10 @@ void OutputMateDists(ScaffoldGraphT *graph){
 #endif
     imd.refines = i;
     imd.histogram = dptr->histogram;
-    WriteProtoMesg_AS(GlobalData->cgwfp,&pmesg);
+
+    if (GlobalData->cgwfp)
+      WriteProtoMesg_AS(GlobalData->cgwfp,&pmesg);
+
     safe_free(dptr->histogram);
     dptr->histogram = NULL;
   }
@@ -169,7 +172,8 @@ void OutputFrags(ScaffoldGraphT *graph){
     af_mesg.clear_rng.bgn = -1;
     af_mesg.clear_rng.end = -1;
 	  
-    WriteProtoMesg_AS(GlobalData->cgwfp,&pmesg);
+    if (GlobalData->cgwfp)
+      WriteProtoMesg_AS(GlobalData->cgwfp,&pmesg);
   }
   fprintf(GlobalData->stderrc,"* Saw %d good mates\n", goodMates);
   fprintf(GlobalData->stderrc,"* Saw %d trusted mates (good)\n", ctrusted);
@@ -367,7 +371,8 @@ void OutputContigsFromMultiAligns(void){
       
       if(icm_mesg.num_unitigs > 1){
         assert(ctg->scaffoldID != NULLINDEX);
-        WriteProtoMesg_AS(GlobalData->ctgfp,&pmesg);
+        if (GlobalData->ctgfp)
+          WriteProtoMesg_AS(GlobalData->ctgfp,&pmesg);
       }else{
         if(ctg->scaffoldID == NULLINDEX) {// contig is not placed
           GenericMesg		mesg;
@@ -380,14 +385,17 @@ void OutputContigsFromMultiAligns(void){
             mesg.m = &dsc_mesg;
             mesg.t = MESG_IDS;
             
-            WriteProtoMesg_AS(GlobalData->ctgfp,&pmesg); // write the contig
-            WriteProtoMesg_AS(GlobalData->scffp,&mesg);  // write the associated degenerate scaffold
+            if (GlobalData->ctgfp)
+              WriteProtoMesg_AS(GlobalData->ctgfp,&pmesg); // write the contig
+            if (GlobalData->scffp)
+              WriteProtoMesg_AS(GlobalData->scffp,&mesg);  // write the associated degenerate scaffold
           }else{
             // do nothing. The unitig in this contig appears as a surrogate elsewhere in the assembly
           }
         }else{ // Contig is placed
-          WriteProtoMesg_AS(GlobalData->ctgfp,&pmesg); // write the contig
-        }     
+          if (GlobalData->ctgfp)
+            WriteProtoMesg_AS(GlobalData->ctgfp,&pmesg); // write the contig
+        }
       }
       
       //    UnloadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ctg->id, FALSE);
@@ -582,7 +590,9 @@ void OutputContigLinks(ScaffoldGraphT *graph, int outputOverlapOnlyContigEdges)
 	assert(edgeCount == edgeTotal);
       }		// if (edge . . . 
       clm.jump_list = GetIntMate_Pairs(JumpList,0);
-      WriteProtoMesg_AS(GlobalData->scffp,&pmesg);
+
+      if (GlobalData->scffp)
+        WriteProtoMesg_AS(GlobalData->scffp,&pmesg);
     }	// while (edge . . .
   }	// for (i . . .
 }
@@ -686,7 +696,8 @@ static void OutputScaffoldLink(ScaffoldGraphT * graph,
   assert(GetNumIntMate_Pairss(JumpList) == edgeTotal);
   assert(edgeCount == edgeTotal);
   slm.jump_list = GetIntMate_Pairs(JumpList,0);
-  WriteProtoMesg_AS(GlobalData->scffp,&pmesg);
+  if (GlobalData->scffp)
+    WriteProtoMesg_AS(GlobalData->scffp,&pmesg);
 }
 
 
@@ -808,8 +819,8 @@ void OutputUnitigsFromMultiAligns(void){
       ium_mesg.num_vars = GetNumIntMultiVars(ma->v_list); // affects .cns
       ium_mesg.v_list = GetIntMultiVar(ma->v_list,0);
 
-      WriteProtoMesg_AS(GlobalData->cgwfp,&pmesg);  //  write the unitig
-      //    UnloadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ci->id, TRUE);
+      if (GlobalData->cgwfp)
+        WriteProtoMesg_AS(GlobalData->cgwfp,&pmesg);  //  write the unitig
     }
   }	// while NextGraphNode
   DeleteMultiAlignT(ma);
@@ -1008,7 +1019,9 @@ void OutputUnitigLinksFromMultiAligns(void){
         assert(edgeCount == edgeTotal);
       }
       ulm.jump_list = GetIntMate_Pairs(JumpList,0);
-      WriteProtoMesg_AS(GlobalData->cgwfp,&pmesg);  //  write the unitig link
+
+      if (GlobalData->cgwfp)
+        WriteProtoMesg_AS(GlobalData->cgwfp,&pmesg);  //  write the unitig link
     }
   }
 }
@@ -1108,7 +1121,8 @@ void OutputScaffolds(ScaffoldGraphT *graph)
         ++pairCount;
       }		// while (curr . . .
     }
-    WriteProtoMesg_AS(GlobalData->scffp,&pmesg);
+    if (GlobalData->scffp)
+      WriteProtoMesg_AS(GlobalData->scffp,&pmesg);
   }		// for (sid=0; . . .
   safe_free(ism.contig_pairs);
   return;

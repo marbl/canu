@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.33 2007-02-12 22:16:55 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.34 2007-02-25 10:15:01 brianwalenz Exp $";
 
 
 static const char *usage = 
@@ -187,9 +187,6 @@ int main(int argc, char *argv[]){
   int demoteSingletonScaffolds = TRUE;
   Global_CGW *data;
   FILE *infp = NULL;
-  FILE *cgwfp = NULL; /* .cgw file */
-  FILE *ctgfp = NULL; /* .cgw_contigs file */
-  FILE *scffp = NULL; /* .cgw_scaffolds file */
   float transQualityCutoff = 0.1; // quality cutoff for TransChunkEdges
   float cgbMicrohetProb = 1.e-05;      // scores less than this are considered repeats
   float cgbApplyMicrohetCutoff = -1; // This basically turns it off, unless enabled
@@ -510,27 +507,27 @@ int main(int argc, char *argv[]){
 
     if(optind < argc) 
       {
+        char  filepath[2048];
+
 	strcpy(data->Input_File_Name, argv[optind]);
 	infp = File_Open (data->Input_File_Name, "r", TRUE);     // frg file
 	AssertPtr(infp);
 
 	strcpy(data->File_Name_Prefix, outputPath);
 
-        {
-          char  filepath[2048];
-
+        if (generateOutput) {
           sprintf(filepath, "%s.cgw", outputPath);
-          data->cgwfp = cgwfp = File_Open(filepath, "w", TRUE);
+          data->cgwfp = File_Open(filepath, "w", TRUE);
 
           sprintf(filepath, "%s.cgw_contigs", outputPath);
-          data->ctgfp = ctgfp = File_Open(filepath, "w", TRUE);
+          data->ctgfp = File_Open(filepath, "w", TRUE);
 
           sprintf(filepath, "%s.cgw_scaffolds", outputPath);
-          data->scffp = scffp = File_Open(filepath, "w", TRUE);
-
-          sprintf(filepath, "%s.timing", outputPath);
-          data->timefp = File_Open(filepath, "a", TRUE); // timing file
+          data->scffp = File_Open(filepath, "w", TRUE);
         }
+        
+        sprintf(filepath, "%s.timing", outputPath);
+        data->timefp = File_Open(filepath, "a", TRUE); // timing file
 
 	{
 	  time_t t;

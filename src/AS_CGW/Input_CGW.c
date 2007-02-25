@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.23 2007-02-18 14:04:48 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.24 2007-02-25 10:15:01 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -144,7 +144,8 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
 
         default:
           fprintf(stderr,"* Oops: Read Message with type = %d\n", pmesg->t);
-          WriteProtoMesg_AS(data->cgwfp,pmesg);      // Echo to output
+          if (data->cgwfp)
+            WriteProtoMesg_AS(data->cgwfp,pmesg);
           break;
       }
     
@@ -250,7 +251,9 @@ int ProcessInputADT(Global_CGW *data, FILE *infp, int argc, char **argv){
   }
 
   VersionStampADT(adt_mesg, argc, argv);
-  WriteProtoMesg_AS(data->cgwfp,pmesg);        // Echo to output
+
+  if (data->cgwfp)
+    WriteProtoMesg_AS(data->cgwfp,pmesg);
 
   return(!finished);
 }
