@@ -2,12 +2,13 @@ use strict;
 
 #  Don't do interleaved merging unless we are throwing stones.
 
-sub CGW ($$$$$) {
+sub CGW ($$$$$$) {
     my $thisDir    = shift @_;
     my $lastDir    = shift @_;
     my $cgiFile    = shift @_;
     my $stoneLevel = shift @_;
     my $logickp    = shift @_;
+    my $finalRun   = shift @_;
 
     return($thisDir) if (-e "$wrk/$thisDir/cgw.success");
 
@@ -50,6 +51,7 @@ sub CGW ($$$$$) {
 
     my $cmd;
     $cmd  = "$bin/cgw $ckp -c -j 1 -k 5 -r 5 -s $stoneLevel -w 0 -T ";
+    $cmd .= " -G " if (($finalRun == 0) && (getGlobal("cgwOutputIntermediate") == 0));
     $cmd .= " -M " if (($stoneLevel == 0) && (getGlobal("delayInterleavedMerging") == 1));
     $cmd .= " -g $wrk/$asm.gkpStore ";
     $cmd .= " -o $wrk/$thisDir/$asm ";
@@ -60,10 +62,34 @@ sub CGW ($$$$$) {
         exit(1);
     }
 
-    system("mkdir $wrk/$thisDir/log")        if (! -d "$wrk/$thisDir/log");
-    system("mkdir $wrk/$thisDir/analysis")   if (! -d "$wrk/$thisDir/analysis");
-    system("mv $wrk/$thisDir/*.log      $wrk/$thisDir/log");
-    system("mv $wrk/$thisDir/*.analysis $wrk/$thisDir/analysis");
+
+    open(F, "ls -1 $wrk/$thisDir |");
+    while (<F>) {
+        chomp;
+
+        if (m/\.log$/) {
+            system("mkdir $wrk/$thisDir/log")        if (! -d "$wrk/$thisDir/log");
+            rename "$wrk/$thisDir/$_", "$wrk/$thisDir/log/$_";
+        }
+
+        if (m/\.analysis$/) {
+            system("mkdir $wrk/$thisDir/analysis")   if (! -d "$wrk/$thisDir/analysis");
+            rename "$wrk/$thisDir/$_", "$wrk/$thisDir/analysis/$_";
+        }
+    }
+    close(F);
+
+
+    if (getGlobal("cgwPurgeCheckpoints") != 0) {
+        my $f = findFirstCheckpoint($thisDir);
+        my $l = findLastCheckpoint($thisDir);
+
+        while ($f < $l) {
+            #print STDERR "Purging $wrk/$thisDir/$asm.ckp.$f\n";
+            unlink "$wrk/$thisDir/$asm.ckp.$f";
+            $f++;
+        }
+    }
 
     touch("$wrk/$thisDir/cgw.success");
 
@@ -236,7 +262,7 @@ sub scaffolder ($) {
     #  check if we should update.
     #
     if ((getGlobal("updateDistanceType") eq "pre") && (getGlobal("doUpdateDistanceRecords"))) {
-        updateDistanceRecords(CGW("6-clonesize", undef, $cgiFile, $stoneLevel, undef));
+        updateDistanceRecords(CGW("6-clonesize", undef, $cgiFile, $stoneLevel, undef, 0));
     }
 
 
@@ -244,13 +270,13 @@ sub scaffolder ($) {
     #  get the heck outta here!  OK, we'll do resolveSurrogates(), maybe.
     #
     if (getGlobal("doExtendClearRanges") == 0) {
-        $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, $stoneLevel, undef);
+        $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, $stoneLevel, undef, 0);
         $thisDir++;
     } else {
 
         #  Do the initial CGW, making sure to not throw stones.
         #
-        $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, 0, undef);
+        $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, 0, undef, 0);
         $thisDir++;
 
         #  Followed by at least one eCR, and a distance update.
@@ -267,7 +293,7 @@ sub scaffolder ($) {
         #  fall over.
         #
         for (my $rounds = getGlobal("doExtendClearRanges") - 1; $rounds > 0; $rounds--) {
-            $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, 0, 3);
+            $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, 0, 3, 0);
             $thisDir++;
 
             $lastDir = eCR("7-$thisDir-ECR", $lastDir);
@@ -278,9 +304,14 @@ sub scaffolder ($) {
             }
         }
 
+        #  If we aren't resolving surrogates, then this is the last
+        #  CGW, and we should output stuff.
+        #
+        my $isLast = getGlobal("doResolveSurrogates") ? 0 : 1;
+
         #  Then another scaffolder, chucking stones into the big holes.
         #
-        $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, $stoneLevel, 3);
+        $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, $stoneLevel, 3, $isLast);
         $thisDir++;
     }
 
@@ -291,7 +322,7 @@ sub scaffolder ($) {
         $lastDir = resolveSurrogates("7-$thisDir-resolveSurrogates", $lastDir);
         $thisDir++;
         
-        $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, $stoneLevel, 14);
+        $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, $stoneLevel, 14, 1);
         $thisDir++;
     }
 

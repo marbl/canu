@@ -523,6 +523,17 @@ If zero, do not pop bubbles in unitigger.  If one, pop bubbles.  Default is to p
 \subsection{Scaffolder Options}
 
 \begin{longtable}{lp{3.0in}}
+
+cgwOutputIntermediate={\it integer} &
+if non-zero, intermediate CGW runs will output the .cgw,
+.cgw_scaffolds and .cgw_contigs files.  The default is to not output
+these files.
+\\
+
+cgwPurgeCheckpoints={\it integer} &
+If non-zero (the default) remove all but the final CGW checkpoint file.
+\\
+
 stoneLevel={\it integer} &
 The amount of stones thrown in the last iteration of cgw.
 \\

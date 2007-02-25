@@ -98,6 +98,8 @@ sub setGlobal ($$) {
 
 sub setDefaults () {
     $global{"binRoot"}                     = undef;
+    $global{"cgwOutputIntermediate"}       = 0;
+    $global{"cgwPurgeCheckpoints"}         = 1;
     $global{"cnsPartitions"}               = 128;
     $global{"cnsMinFrags"}                 = 75000;
     $global{"cnsConcurrency"}              = 2;
@@ -280,6 +282,27 @@ sub checkDirectories () {
     }
 }
 
+
+sub findFirstCheckpoint ($) {
+    my $dir      = shift @_;
+    my $firstckp = 0;
+
+    $dir = "$wrk/$dir" if (! -d $dir);
+
+    open(F, "ls -1 $dir/*ckp* |");
+    while (<F>) {
+        chomp;
+
+        if (m/ckp.(\d+)$/) {
+            $firstckp = $1 if ($1 < $firstckp);
+        } else {
+            print STDERR "WARNING: Didn't match $_\n";
+        }
+    }
+    close(F);
+
+    return($firstckp);
+}
 
 sub findLastCheckpoint ($) {
     my $dir     = shift @_;
