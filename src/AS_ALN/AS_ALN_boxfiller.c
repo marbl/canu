@@ -57,7 +57,7 @@ void usage(void)
 	fprintf( stderr, "usage: AS_ALN_boxfiller <-a abnd> <-b bbnd> <-e error_rate> <-m minlen> <-P proto_output_file> [-f.orwardOnly] [-n.oAlign] [-I]\n");
 	fprintf( stderr, "\t-n suppresses printing of alignment\n");
 	fprintf( stderr, "\t-f causes only forward orientations to be searched\n");
-	fprintf( stderr, "\t-I uses near-identity settings, appropriate for finding 2% errors in 100-bp matches (much faster)\n");
+	fprintf( stderr, "\t-I uses near-identity settings, appropriate for finding 2%% errors in 100-bp matches (much faster)\n");
 	exit(1);
 }
 

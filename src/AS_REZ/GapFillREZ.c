@@ -34,7 +34,7 @@
 *
 *************************************************/
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.20 2007-02-15 23:55:54 brianwalenz Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.21 2007-02-25 08:13:38 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -12950,6 +12950,7 @@ PALLOC (Num_Scaffolds * sizeof (char));
             splitscaffolds++;
 
             fprintf(stderr, "Throw_Stones()-- Scaffold %d components: ALL_EDGES=%d (%d before stones); ALL_TRUSTED_EDGES=%d components.\n",
+                    scaff_id,
                     components1,
                     components0,
                     IsScaffoldInternallyConnected(ScaffoldGraph,

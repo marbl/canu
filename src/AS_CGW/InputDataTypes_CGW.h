@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: InputDataTypes_CGW.h,v 1.9 2007-02-17 21:16:22 brianwalenz Exp $	 */
+/* 	$Id: InputDataTypes_CGW.h,v 1.10 2007-02-25 08:13:37 brianwalenz Exp $	 */
 /****************************************************************************
  *  InputDataTypes_CGW
  *  
@@ -163,7 +163,7 @@ static FragOrient GetContigFragOrient(CIFragT *frag){
 }
 
 
-
+VA_DEF(CDS_COORD_t);
 
 #define CGW_NUM_BUCKETS 3
 #define CGW_CUTOFF 5

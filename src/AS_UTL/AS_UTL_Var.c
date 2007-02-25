@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.16 2006-11-14 17:52:18 eliv Exp $";
+static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.17 2007-02-25 08:13:38 brianwalenz Exp $";
 /********************************************************************/
 /* Variable Length C Array Package 
  * 
@@ -30,8 +30,8 @@ static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.16 2006-11-14 17:52:18 eliv Exp $";
  * It defines a basic set of operations, and provides a set of
  * macros that expand to support typesafe manipulation of the
  * arrays.
- * Revision: $Revision: 1.16 $
- * Date:     $Date: 2006-11-14 17:52:18 $
+ * Revision: $Revision: 1.17 $
+ * Date:     $Date: 2007-02-25 08:13:38 $
  * CMM, 1999/03/29:  Ported to large arrays on the Digital systems by declaring
  * array sizes using size_t, rather than unit32.
  *
@@ -201,18 +201,44 @@ int MakeRoom_VA
 }
 
 void Clear_VA(VarArrayType * const va){
-  /* Handle NULL va's gracefully */
   if(NULL == va)
     return;
-  if( NULL != va->Elements ) {
+  if( NULL != va->Elements )
     safe_free(va->Elements);
-  }
   va->allocatedElements = 0;
   va->numElements = 0;
   va->sizeofElement = 0;
   va->Elements = NULL;
   va->typeofElement[0] = 0; // A zero length string.
 }
+
+
+#ifdef NEVER
+// Use the Init_VA routine with caution!
+// The data in Elements is assumed to have been allocated from the heap.
+//
+static VarArrayType Init_VA
+(
+ const void * Elements,
+ const size_t sizeofElement,
+ const size_t numElements,
+ const size_t allocatedElements,
+ const char * const typeofElement
+ ) {
+  static VarArrayType va;
+  va.Elements = Elements;
+  va.sizeofElement = sizeofElement;
+  va.numElements = numElements;
+  va.allocatedElements = MAX(allocatedElements,numElements);
+  strncpy(va.typeofElement,typeofElement,VA_TYPENAMELEN);
+  /* Now make sure that the character string is zero terminated. */
+  assert(VA_TYPENAMELEN > 0);
+  va->typeofElement[VA_TYPENAMELEN-1] = (char)0;
+
+  return va;
+};
+#endif
+
 
 
 // *******************************************************************

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_global.h,v 1.8 2007-02-24 15:42:32 brianwalenz Exp $	 */
+/* 	$Id: AS_global.h,v 1.9 2007-02-25 08:13:36 brianwalenz Exp $	 */
 
 /* This is the global include file that all C files in the AS subsystem should
    include.
@@ -113,6 +113,8 @@ typedef float  cds_float32;
 typedef double cds_float64;
 typedef float  float32;
 typedef double float64;
+
+typedef void *PtrT;
 
 #define F_L     "%ld"
 #define F_UL    "%lu"

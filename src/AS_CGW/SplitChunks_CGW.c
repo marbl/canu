@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.14 2007-02-15 23:55:54 brianwalenz Exp $";
+static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.15 2007-02-25 08:13:37 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,6 +41,7 @@ static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.14 2007-02-15 23:55:54 brianwa
 #include "Globals_CNS.h"
 #include "MultiAlignment_CNS.h"
 #include "SplitChunks_CGW.h"
+
 
 //#define DEBUG
 extern void CheckUnitigs(CDS_CID_t start, CDS_CID_t end);
@@ -86,6 +87,8 @@ extern void CheckUnitigs(CDS_CID_t start, CDS_CID_t end);
 #define MAX_GOOD_CLONE_COVERAGE  0
 #define LN_2                      .693147f
 
+
+VA_DEF(cds_uint16);
 VA_DEF(SeqInterval);
 
 

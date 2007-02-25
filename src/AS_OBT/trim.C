@@ -1,4 +1,5 @@
 #include "trim.H"
+#include "util++.H"
 
 //  We're lazy; everyone needs to do quality letter -> quality value
 //  translations.

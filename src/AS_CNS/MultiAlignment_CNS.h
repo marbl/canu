@@ -129,8 +129,6 @@ typedef struct {
     int32               *delta;
 } CNS_AlignedContigElement;
 
-// Macro expand the Variable-Array-of-Type data structure 
-// and its associated functions.
 VA_DEF(CNS_AlignedContigElement)
 
 // -----------------------------------
@@ -147,8 +145,6 @@ int32 frag_index; // Location of containing fragment in fragmentStore
 int32 column_index; // Location of alignment column in columnStore
 } Bead;
 
-// Macro expand the Variable-Array-of-Type data structure 
-// and its associated functions.
 VA_DEF(Bead)
 
 // -----------------------------------
@@ -173,8 +169,6 @@ int32 bactig;  // global index of bactig backbone of unitig pseudo frag
 char *source;  // consensus just carried this through - no mods
 } Fragment;
 
-// Macro expand the Variable-Array-of-Type data structure 
-// and its associated functions.
 VA_DEF(Fragment)
 
 // -----------------------------------
@@ -194,8 +188,6 @@ int32 ma_index;  // index in MANode; // refreshed only periodically
 BaseCount base_count;
 } Column;
 
-// Macro expand the Variable-Array-of-Type data structure 
-// and its associated functions.
 VA_DEF(Column)
 
 // -----------------------------------
@@ -211,8 +203,6 @@ int32 last;
 VA_TYPE(int32) *columns;
 } MANode; 
 
-// Macro expand the Variable-Array-of-Type data structure 
-// and its associated functions.
 VA_DEF(MANode)
 
 // -----------------------------------
@@ -335,8 +325,6 @@ typedef struct {
   int32 left;
   int32 right;
   UnitigType type;
-  // UnitigStatus_t status;
-  //double prob;
 } UnitigData;
 
 VA_DEF(UnitigData)
@@ -347,6 +335,7 @@ typedef struct {
   int32 num_contig_pairs;
   int32 contig_pairs;
 } ScaffoldData;
+
 VA_DEF(ScaffoldData)
 
 // MergeMultiAlignsFast_new is the original CGW/CNS interface for contigging

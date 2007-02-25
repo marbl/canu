@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- $Id: AS_CGB_all.h,v 1.11 2007-02-18 14:04:47 brianwalenz Exp $
+ $Id: AS_CGB_all.h,v 1.12 2007-02-25 08:13:36 brianwalenz Exp $
  Module: Chunk Graph Builder
  Description: A catch-all include file for the Chunk Graph Builder
  Assumptions:
@@ -40,10 +40,6 @@
 
 // Allow un-mated dovetail edges in CGB.
 
-/* System include files */
-//#define _LINT_
-//#define _ANSI_C_SOURCE
-
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -61,17 +57,11 @@
 #include <omp.h>
 #endif
 
-/* Celera Assembler include files */
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_UTL_Var.h"
 #include "AS_UTL_param_proc.h"
 
-VA_DEF(IntMultiPos)
-VA_DEF(IntMultiVar);
-VA_DEF(IntUnitigMesg)
-VA_DEF(OFGMesg)
-VA_DEF(OverlapMesg)
 
 /**************************************************************/
 /* Utility functions */

@@ -1,3 +1,4 @@
+#include "util++.H"
 #include "trim.H"
 
 //  Read a fragStore, reports duplicate fragments, removes all but one

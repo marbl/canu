@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: GraphCGW_T.h,v 1.13 2007-02-12 22:16:55 brianwalenz Exp $	 */
+/* 	$Id: GraphCGW_T.h,v 1.14 2007-02-25 08:13:37 brianwalenz Exp $	 */
 
 /**************************************************************************
  *  GraphCGW
@@ -35,7 +35,6 @@
 #include "AS_UTL_Var.h"
 #include "InputDataTypes_CGW.h"
 #include "ChunkOverlap_CGW.h"
-//#include "MultiAlignStore_CNS.h"
 #include "AS_ALN_aligners.h"
 #include "dpc_CNS.h"
 
@@ -216,6 +215,9 @@ typedef enum {
    OUTPUT_SCAFFOLD,    // an artefact generated for output
    SCRATCH_SCAFFOLD    // a temporary scaffold 
 */	
+
+
+VA_DEF(CDS_CID_t);
 
         
 typedef struct{

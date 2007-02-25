@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_fom2uom.c,v 1.8 2007-01-29 20:40:57 brianwalenz Exp $";
+= "$Id: AS_CGB_fom2uom.c,v 1.9 2007-02-25 08:13:36 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_fom2uom.c
@@ -47,9 +47,11 @@ static char CM_ID[]
 #include "AS_global.h"
 #include "AS_UTL_version.h"  
 #include "AS_MSG_pmesg.h"
-#include "AS_CGB_all.h"
 #include "AS_CGB_histo.h"
+#include "AS_CGB_all.h"
 
+VA_DEF(int32)
+VA_DEF(uint32)
 VA_DEF(IntChunk_ID)
 
 /****************************************************************************/
@@ -61,7 +63,6 @@ VA_DEF(IntChunk_ID)
 #define ANALYSIS_EXTENSION     ".cga"
 
 #define CMD_BUFFER_SIZE 1024
-
 
 /*************************************************************************/
 

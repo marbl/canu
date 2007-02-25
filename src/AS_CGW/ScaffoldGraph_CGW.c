@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.17 2007-02-18 14:04:48 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.18 2007-02-25 08:13:37 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -243,7 +243,7 @@ ScaffoldGraphT * LoadScaffoldGraphFromStream(FILE *stream){
     for( i = 0; i < GetNumDistTs(sgraph->Dists); i++){
       DistT *dist = GetDistT(sgraph->Dists,i);
       fprintf(stderr, "Dist %2d -- nominal %10.3f %10.3f -- chunk %10.3f %10.3f\n",
-              dist->mean, dist->stddev, dist->mu, dist->sigma);
+              i, dist->mean, dist->stddev, dist->mu, dist->sigma);
       dist->samples = NULL;
     }
   }

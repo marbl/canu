@@ -30,9 +30,8 @@
 #include "ScaffoldGraph_CGW.h"
 
 VA_DEF(cds_float32);
+VA_DEF(cds_int32);
 VA_DEF(IntContigPairs);
-
-
 
 /*
   Bit vector switches for instrumenting options - field in instrumenter
@@ -457,11 +456,6 @@ typedef struct
   VA_TYPE(cds_float32) * contigSizes;
   InstrumenterStatistics contigSizeStats;
 
-  /*
-  // for aggregating unitig-level data
-  UnitigInstrumenter unitig;
-  */
-  
   // for instrumenting each contig
   ContigInstrumenter reusableCI;
   
@@ -488,13 +482,6 @@ typedef struct
 
   // hashtable to keep track of contigs that are anchored
   HashTable_AS * anchoredHT;
-  // variable array of IntContigPairs for use in IntScaffoldMesg
-  // VA_TYPE(IntContigPairs) * icps;
-  /*
-  // for exploring contig pair issues
-  VA_TYPE(InstrumenterContigPair) * contigPairs;
-  VA_TYPE(CP_Index) * cp_index;
-  */
 } ScaffoldInstrumenter;
 
 

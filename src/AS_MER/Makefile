@@ -34,11 +34,6 @@ PROGS = meryl
 
 include $(LOCAL_WORK)/src/c_make.as
 
-# DEC cxx requires tlocal for template linking. Not recognized by g++.
-ifeq "$(OSTYPE)" "osf1"
-CXXFLAGS += -tlocal
-endif
-
 all: $(OBJECTS) $(LIBRARIES) $(PROGS) 
 	@test -n nop
 

@@ -77,7 +77,7 @@ main(int argc, char **argv) {
       errno = 0;
       FILE *F = fopen(argv[++arg], "w");
       if (errno)
-        fprintf(stderr, "%s: failed to open output file '%s': %s\n", argv[arg], strerror(errno)), exit(1);
+        fprintf(stderr, "%s: failed to open output file '%s': %s\n", argv[0], argv[arg], strerror(errno)), exit(1);
 
       //  Depending on the include flag, we either write all messages
       //  listed in our msglist (or write all message not in the
@@ -103,7 +103,7 @@ main(int argc, char **argv) {
         msglist[type]++;
         msg++;
       } else {
-        fprintf(stderr, "%s: invalid message type '%s'.\n", argv[arg]);
+        fprintf(stderr, "%s: invalid message type '%s'.\n", argv[0], argv[arg]);
         err = 1;
       }
     } else if (strcmp(argv[arg], "-h") == 0) {

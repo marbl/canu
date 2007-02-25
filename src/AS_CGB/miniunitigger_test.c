@@ -26,10 +26,12 @@
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_UTL_Var.h"
-VA_DEF(OFGMesg)
-VA_DEF(OverlapMesg)
-VA_DEF(IntMultiPos)
-VA_DEF(IntUnitigMesg)
+
+VA_DEF(char);
+VA_DEF(OFGMesg);
+VA_DEF(OverlapMesg);
+VA_DEF(IntMultiPos);
+VA_DEF(IntUnitigMesg);
 
 #include "AS_CGB_miniunitigger.h"
 

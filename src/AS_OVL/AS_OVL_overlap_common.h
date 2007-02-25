@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.29 2007-02-23 15:39:30 brianwalenz Exp $
- * $Revision: 1.29 $
+ * $Id: AS_OVL_overlap_common.h,v 1.30 2007-02-25 08:13:37 brianwalenz Exp $
+ * $Revision: 1.30 $
 */
 
 
@@ -5197,7 +5197,7 @@ static int  Read_Next_Frag
      }
    if  (OFFSET_MASK < frag_len)
      {
-       fprintf (stderr, "ERROR:  Read \"%s\" is too long (%lu) for hash table\n",
+       fprintf (stderr, "ERROR:  Read "F_UID" is too long (%lu) for hash table\n",
                 getFragRecordUID(myRead), frag_len);
        exit (-1);
      }

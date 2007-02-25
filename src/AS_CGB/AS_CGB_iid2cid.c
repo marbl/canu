@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_iid2cid.c,v 1.8 2007-01-29 20:40:58 brianwalenz Exp $";
+= "$Id: AS_CGB_iid2cid.c,v 1.9 2007-02-25 08:13:37 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_fom2uom.c
@@ -50,8 +50,8 @@ static char CM_ID[]
 #include "AS_CGB_histo.h"
 #include "AS_CGB_all.h"
 
-//VA_DEF(int32)
-//VA_DEF(IntMultiPos)
+VA_DEF(int32)
+VA_DEF(uint32)
 VA_DEF(IntChunk_ID)
 
 /****************************************************************************/

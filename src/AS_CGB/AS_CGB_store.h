@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_store.h,v 1.5 2007-02-12 22:16:55 brianwalenz Exp $
+ * $Id: AS_CGB_store.h,v 1.6 2007-02-25 08:13:37 brianwalenz Exp $
  *
  * Module: AS_CGB_store.h
  * Description: Header file for the code that reads and writes the 
@@ -36,9 +36,6 @@
 
 #undef GENINFO
 #define GENINFO
-#if 0
-typedef cds_int64 BPTYPE;
-#endif
 
 typedef struct {
   /* fragment name */
@@ -51,8 +48,14 @@ typedef struct {
 # endif
 } Afraginfo;
 
-/* The following text uses AS_UTL_Var.h. */
-VA_DEF(Afraginfo)
+
+VA_DEF(Afraginfo);
+VA_DEF(char);
+VA_DEF(OFGMesg);
+VA_DEF(OverlapMesg);
+VA_DEF(IntMultiPos);
+VA_DEF(IntUnitigMesg);
+
 typedef VA_TYPE(Afraginfo) Tfraginfo;
 
 #define VAgetaccess(Type,object,index,member) \

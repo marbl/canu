@@ -51,6 +51,14 @@ ifneq "$(origin BUILDPROFILE)" "environment"
 BUILDPROFILE  = 0
 endif
 
+# You can enable a line coverage build by setting this to 1.  This
+# implies a debug build with no optimization.
+#
+ifneq "$(origin BUILDCOVERAGE)" "environment"
+BUILDCOVERAGE  = 0
+endif
+
+
 
 OSTYPE      = $(shell echo `uname`)
 MACHINETYPE = $(shell echo `uname -m`)
@@ -96,13 +104,21 @@ endif
 ifeq ($(OSTYPE), FreeBSD)
   CC               = gcc
   CXX              = g++
-  ARCH_CFLAGS      = -DNEEDXDRUHYPER -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads 
-  ifeq ($(BUILDDEBUG), 1)
-    ARCH_CFLAGS   += -g -Wimplicit
-  else
-    ARCH_CFLAGS   += -O3 -Wimplicit
-  endif
+
   ARCH_LDFLAGS    += -llthread -llgcc_r
+  ARCH_CFLAGS      = -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads 
+
+  ifeq ($(BUILDCOVERAGE), 1)
+    ARCH_CFLAGS   += -g -Wimplicit -fprofile-arcs -ftest-coverage
+    ARCH_LDFLAGS  += -lgcov
+  else
+    ifeq ($(BUILDDEBUG), 1)
+      ARCH_CFLAGS   += -g -Wimplicit -pg
+    else
+      ARCH_CFLAGS   += -O3 -Wimplicit
+    endif
+  endif
+
   ARCH_INC         = /usr/local/include /usr/X11R6/include
   ARCH_LIB         = /usr/local/lib     /usr/X11R6/lib
 endif
@@ -209,13 +225,23 @@ ifeq ($(OSTYPE), OSF1)
                      -msg_disable truncintasn \
                      -msg_disable truncfltasn \
                      -msg_disable truncfltint \
-                     -msg_disable extrasemi \
                      -msg_disable bitnotint
   ARCH_CFLAGS     += -pthread
+  ARCH_CFLAGS      = -warnprotos \
+                     -trapuv \
+                     -float_const \
+                     -readonly_strings \
+                     -msg_disable extrasemi
+  ARCH_CXXFLAGS    = -tlocal
+
+  #  We used to include -fast in optimized builds, but that results in F_pow() (the fastmath pow function)
+  #  being undefined for c++ code.
+
   ifeq ($(BUILDDEBUG), 1)
     ARCH_CFLAGS   += -g
   else
-    ARCH_CFLAGS   += -fast -O4
+    ARCH_CFLAGS   += -O4
+
   endif
   ARCH_INC         =  /usr/local/include /usr/include
 endif
@@ -225,8 +251,11 @@ ifeq ($(BUILDPROFILE), 1)
   ARCH_LDFLAGS += -pg
 endif
 
+# One can argue that CXXFLAGS should be separate.  For now, we only
+# add to the flags.
+
 CFLAGS          += $(ARCH_CFLAGS)
-CXXFLAGS        += $(ARCH_CFLAGS)
+CXXFLAGS        += $(ARCH_CFLAGS) $(ARCH_CXXFLAGS)
 LDFLAGS         += $(ARCH_LDFLAGS)
 
 INC_IMPORT_DIRS += $(LOCAL_WORK)/src $(patsubst %, $(LOCAL_WORK)/src/%, $(strip $(SUBDIRS)))
@@ -241,7 +270,9 @@ OBJ_SEARCH_PATH  = $(LOCAL_OBJ)
 ifeq ($(SITE_NAME), TIGR)
   CFLAGS   += -DUSE_SOAP_UID
   CXXFLAGS += -DUSE_SOAP_UID
-else
+endif
+
+ifeq ($(SITE_NAME), JCVI)
   LDFLAGS += -lcurl
 endif
 
@@ -271,8 +302,8 @@ SUBDIRS = AS_RUN \
           AS_MER \
           AS_OVL \
           AS_ALN \
-          AS_BOG \
           AS_CGB \
+          AS_BOG \
           AS_REZ \
           AS_CNS \
           AS_SDB \

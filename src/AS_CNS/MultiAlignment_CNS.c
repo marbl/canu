@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.129 2007-02-20 21:57:59 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.130 2007-02-25 08:13:37 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -116,6 +116,8 @@ extern int MaxBegGap;       // [ init value is 200; this could be set to the amo
                             // range of seq b, plus 10 for good measure]
 extern int MaxEndGap;       // [ init value is 200; this could be set to the amount you extend the
                             // clear range of seq a, plus 10 for good measure]
+
+VA_DEF(int16);
 
 int NumColumnsInUnitigs;
 int NumRunsOfGapsInUnitigReads;
@@ -6178,7 +6180,7 @@ MapConsensus(int ***imap, char **consensus,  char ***ugconsensus,
 }
 
 /* Count gaps in the short and long consensus sequences */
-static int 
+static void
 CountGaps(char **consensus, int len, int *gapcount)
 {
     int i, j, first_base, last_base;
@@ -6283,7 +6285,7 @@ FindAdjustedRightBounds(int *adjright,  char **ugconsensus, int *uglen,
     }
 }
 
-static int
+static void
 GetLeftScore(char **ugconsensus, int *uglen, int **imap, int *adjleft, 
     int short_allele, int long_allele, int *maxscore, int *maxpos)
 {
@@ -6312,7 +6314,7 @@ GetLeftScore(char **ugconsensus, int *uglen, int **imap, int *adjleft,
     *maxpos = imap[short_allele][*maxpos];
 }
 
-static int
+static void
 GetRightScore(char **ugconsensus, int *uglen, int **imap, int *adjright, 
     int short_allele, int long_allele, int *maxscore, int *maxpos)
 {
@@ -7205,8 +7207,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     if ((num_frags == 1) && 
         (positions[0].position.bgn == positions[0].position.end))
     {
-        fprintf(stderr, 
-            "Warning: unitig #%d contains a single fragment of length 0 !\n");
+        fprintf(stderr, "Warning: unitig %d contains a single fragment of length 0 !\n", unitig->iaccession);
         return EXIT_FAILURE;
     }
 

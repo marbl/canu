@@ -4,6 +4,7 @@
 
 using namespace std;
 #include <set>
+#include <map>
 #include <cassert>
 
 //  Reads the output of sort-overlap-trim, does the actual trim-point
@@ -109,12 +110,14 @@ main(int argc, char **argv) {
       if (errno)
         fprintf(stderr, "Failed to open %s for writing the log: %s\n", argv[arg], strerror(errno)), exit(1);
 
-      char staName[strlen(argv[arg]) + 16];
+      char *staName = new char [strlen(argv[arg]) + 16];
       sprintf(staName, "%s.stats", argv[arg]);
 
       staFile = fopen(staName, "w");
       if (errno)
         fprintf(stderr, "Failed to open %s for writing the statistics: %s\n", staName, strerror(errno)), exit(1);
+
+      delete [] staName;
     }
     arg++;
   }

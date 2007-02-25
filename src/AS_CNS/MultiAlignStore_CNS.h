@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: MultiAlignStore_CNS.h,v 1.9 2007-02-18 14:04:48 brianwalenz Exp $	 */
+/* 	$Id: MultiAlignStore_CNS.h,v 1.10 2007-02-25 08:13:37 brianwalenz Exp $	 */
 #ifndef MULTIALIGNSTORE_H
 #define MULTIALIGNSTORE_H
 
@@ -29,6 +29,11 @@
 
 
 #define MULTIALIGN_FORCED (-1)
+
+VA_DEF(char);
+VA_DEF(int);
+VA_DEF(int32);
+VA_DEF(PtrT);
 
 typedef struct {
   int32 forced;// alignment is fishy if value == MULTIALIGN_FORCED

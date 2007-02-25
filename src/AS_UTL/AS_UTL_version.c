@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_UTL_version.c,v 1.10 2007-02-14 07:20:15 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_UTL_version.c,v 1.11 2007-02-25 08:13:38 brianwalenz Exp $";
 
 #include "AS_UTL_version.h"
 
@@ -27,7 +27,8 @@ static const char CM_ID[] = "$Id: AS_UTL_version.c,v 1.10 2007-02-14 07:20:15 br
 
 #define  SAFE_FCLOSE(adt_tmp_file) \
   assert(NULL != adt_tmp_file); fclose(adt_tmp_file); adt_tmp_file = NULL;
-  
+
+VA_DEF(char);
 
 int VersionStamp(int argc, char *argv[]) {
   time_t t;

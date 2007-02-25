@@ -166,10 +166,10 @@ printCOSdata(FILE *out, COSData *cos, int element) {
           cos[element].index,
           cos[element].firstOverlap,
           cos[element].lastOverlap);
-  fprintf(stderr, "              Ainterval min %d(%f) max %d(%f)\n",
+  fprintf(stderr, "              Ainterval min %d(%d) max %d(%d)\n",
           cos[element].a.minIndex, cos[element].a.minCoord,
           cos[element].b.minIndex, cos[element].b.minCoord);
-  fprintf(stderr, "              Binterval min %d(%f) max %d(%f)\n",
+  fprintf(stderr, "              Binterval min %d(%d) max %d(%d)\n",
           cos[element].a.minIndex, cos[element].a.minCoord,
           cos[element].b.minIndex, cos[element].b.minCoord);
 }

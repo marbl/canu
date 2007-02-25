@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.17 2007-02-15 23:55:54 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.18 2007-02-25 08:13:37 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -798,7 +798,7 @@ main( int argc, char **argv) {
       SYS_UIDset_euid_server(argv[++arg]);
 #endif
     } else {
-      fprintf(stderr, "%s: unknown arg %s\n", argv[arg]);
+      fprintf(stderr, "%s: unknown arg %s\n", argv[0], argv[arg]);
     }
 
     arg++;

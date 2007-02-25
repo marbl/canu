@@ -24,7 +24,6 @@ void  findGoodQuality(double *qltD,
                       u32bit &qltL,
                       u32bit &qltR);
 
-
 //  A simple initialized array -- performs a quality letter -> quality
 //  value translation.
 //
@@ -33,16 +32,9 @@ public:
   qualityLookup() {
     for (u32bit i=0; i<='0'; i++)
       q[i] = 1.0;
-    for (u32bit i='1'; i<255; i++) {
 
-      //  This is wrong, but consistent with what we had before now
-      //q[i] = 1 / pow(10, log10((double)(i - '0')));
-
-      //  This is right.
-      q[i] = 1 / pow(10, (i - '0')/10.0 );
-    }
-
-    q[(u32bit)'0'] = 1.0;
+    for (u32bit i='1'; i<255; i++)
+      q[i] = 1 / pow(10, (i - '0') / 10.0);
   };
   ~qualityLookup() {
   };

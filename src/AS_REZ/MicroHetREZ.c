@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.13 2007-02-24 15:42:33 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.14 2007-02-25 08:13:38 brianwalenz Exp $";
 
 #include <assert.h>
 #include <errno.h>
@@ -39,6 +39,9 @@ static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.13 2007-02-24 15:42:33 brianwalenz
 
 #include "UtilsREZ.h"
 #include "PrimitiveVA_MSG.h"
+
+VA_DEF(CDS_UID_t);
+VA_DEF(uint32);
 
 // The minimum length for which we test for Aarons MP score
 #define MIN_MPTEST_LENGTH_REZ 50

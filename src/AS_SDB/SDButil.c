@@ -290,6 +290,6 @@ testSDB(char   *seqstore,
 
 int
 main(int argc, char **argv) {
-  fprintf(stderr, "usage: %s [a ?useful? SDB utility]\n");
+  fprintf(stderr, "usage: %s [a ?useful? SDB utility]\n", argv[0]);
   exit(0);
 }

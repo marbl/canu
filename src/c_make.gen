@@ -368,9 +368,9 @@ $(PROGS):
 	@ echo "++++++++++++++++++++ " $@ "++++++++++++++++++++++";
 	@ cd $(LOCAL_OBJ); \
           if [ -z "$(filter $(CXX_OBJECTS), $(notdir $+))" ] ; then \
-	    todo='$(CC) -o $(LOCAL_BIN)/$(notdir $@) $(LD_DIRS) $(LDFLAGS) $(filter-out lib%.a, $+) $(patsubst lib%.a, -l%, $(filter lib%.a, $+))'; \
+	    todo='$(CC) -o $(LOCAL_BIN)/$(notdir $@) $(filter-out lib%.a, $+) $(patsubst lib%.a, -l%, $(filter lib%.a, $+)) $(LD_DIRS) $(LDFLAGS) '; \
 	  else \
-	    todo='$(CXX) -o $(LOCAL_BIN)/$(notdir $@) $(LD_DIRS) $(LDFLAGS) $(filter-out lib%.a, $+) $(patsubst lib%.a, -l%, $(filter lib%.a, $+))'; \
+	    todo='$(CXX) -o $(LOCAL_BIN)/$(notdir $@) $(filter-out lib%.a, $+) $(patsubst lib%.a, -l%, $(filter lib%.a, $+)) $(LD_DIRS) $(LDFLAGS)'; \
 	  fi ; \
 	  echo "$$todo"; \
 	  if eval "$$todo"; then true; else rm -f $(LOCAL_BIN)/$(notdir $@); fi

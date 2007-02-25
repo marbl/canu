@@ -86,144 +86,64 @@ typedef struct {
 } VarArrayType;
   
 
-#ifdef NEVER
-// Use the Init_VA routine with caution!
-// The data in Elements is assumed to have been allocated from the heap.
-//
-static VarArrayType Init_VA
-(
- const void * Elements,
- const size_t sizeofElement,
- const size_t numElements,
- const size_t allocatedElements,
- const char * const typeofElement
- ) {
-  static VarArrayType va;
-  va.Elements = Elements;
-  va.sizeofElement = sizeofElement;
-  va.numElements = numElements;
-  va.allocatedElements = MAX(allocatedElements,numElements);
-  strncpy(va.typeofElement,typeofElement,VA_TYPENAMELEN);
-  /* Now make sure that the character string is zero terminated. */
-  assert(VA_TYPENAMELEN > 0);
-  va->typeofElement[VA_TYPENAMELEN-1] = (char)0;
+void Initialize_VA(VarArrayType * const va,
+                   const size_t arraySize,
+                   const size_t sizeofElement,
+                   const char * const thetype);
 
-  return va;
-};
-#endif
+void InitializeFromArray_VA(VarArrayType * const va,
+                            const size_t arraySize,
+                            const size_t sizeofElement,
+                            const char * const thetype,
+                            const void * const data);
 
-void Initialize_VA
-( VarArrayType * const va,
-  const size_t arraySize,
-  const size_t sizeofElement,
-  const char * const thetype
-  );
+void ReInitializeFromArray_VA(VarArrayType * const va,
+                              const size_t arraySize,
+                              const size_t sizeofElement,
+                              const char * const thetype,
+                              const void * const data);
 
-void InitializeFromArray_VA
-( VarArrayType * const va,
-  const size_t arraySize,
-  const size_t sizeofElement,
-  const char * const thetype,
-  const void * const data
-  );
-void ReInitializeFromArray_VA
-( VarArrayType * const va,
-  const size_t arraySize,
-  const size_t sizeofElement,
-  const char * const thetype,
-  const void * const data
-  );
+void InitializeFromFile_VA(FILE *fp,
+                           VarArrayType * const va,
+                           const char * const thetype,
+                           const size_t allocate_additional_elements);
 
-void InitializeFromFile_VA
-( FILE *fp,
-  VarArrayType * const va,
-  const char * const thetype,
-  const size_t allocate_additional_elements
-  );
+void ReInitializeFromFile_VA(FILE *fp,
+                             VarArrayType * const va,
+                             const char * const thetype,
+                             const size_t allocate_additional_elements);
 
-void ReInitializeFromFile_VA
-( FILE *fp,
-  VarArrayType * const va,
-  const char * const thetype,
-  const size_t allocate_additional_elements
-  );
+size_t CopyToFile_VA(const VarArrayType * const va,
+                     FILE *fp);
 
-size_t CopyToFile_VA
-(const VarArrayType * const va,
- FILE *fp);
+void CheckFile_VA(const VarArrayType * const va,
+                  FILE *fp);
 
-void CheckFile_VA
-(const VarArrayType * const va,
- FILE *fp);
-
-void ScatterInPlace_VA
-(
- VarArrayType * const va,
- const size_t         nitems, // the length of rank[]
- const size_t * const rank    // the new rank of each item
- );
-
-void GatherInPlace_VA
-(
- VarArrayType * const va,
- const size_t         nitems, // the length of rank[]
- const size_t * const indx    // the list of the new order
- );
-
-int MakeRoom_VA
-(VarArrayType * const va,
- const size_t         maxElements,
- const int            pad_to_a_power_of_two);
+int MakeRoom_VA(VarArrayType * const va,
+                const size_t         maxElements,
+                const int            pad_to_a_power_of_two);
 
 
 // ResetToRange_VA grows or shrinks the size of the VA as a function of index
 //
 void ResetToRange_VA(VarArrayType * const va, const size_t index);
 
-#pragma inline Reset_VA
-static void Reset_VA(VarArrayType * const va){
-  ResetToRange_VA(va,(const size_t)(0));
-}
+#define Reset_VA(V)   ResetToRange_VA((V), 0)
 
 void Clear_VA(VarArrayType * const va);
 
-#pragma inline GetElement_VA
-static void *GetElement_VA(const VarArrayType * const va,
-			   const size_t index){
-  assert(va != NULL);
-  //  fprintf(stderr,"* GetElement %d (%d)\n",
-  //  index, va->numElements);
-  return (index < va->numElements ?
-	 (va->Elements + (index * (size_t)va->sizeofElement)) : NULL);
-}
+#define GetElement_VA(V, I)  ((I) < (V)->numElements ? ((V)->Elements + ((size_t)(I) * (size_t)((V)->sizeofElement))) : NULL)
 
 // EnableRange grows size of VA, as necessary, to size index
-void EnableRange_VA
-( VarArrayType * const va, const size_t index);
-void SetElement_VA
-( VarArrayType * const va, const size_t index, const void * const data);
-void SetRange_VA
-( VarArrayType * const va, const size_t index, const size_t num_elements, const void * const data);
-void Concat_VA
-( VarArrayType * const va, const VarArrayType * const vb);
+void EnableRange_VA ( VarArrayType * const va, const size_t index);
+void SetElement_VA ( VarArrayType * const va, const size_t index, const void * const data);
+void SetRange_VA ( VarArrayType * const va, const size_t index, const size_t num_elements, const void * const data);
+void Concat_VA ( VarArrayType * const va, const VarArrayType * const vb);
 
-#pragma inline GetNumElements_VA
-static size_t GetNumElements_VA(const VarArrayType * const va){
-  assert(va != NULL);
-  return va->numElements;
-}
+#define GetNumElements_VA(V)        (size_t)((V)->numElements)
+#define GetAllocatedElements_VA(V)  (size_t)((V)->allocatedElements)
+#define GetsizeofElement_VA(V)      (size_t)((V)->sizeofElement)
 
-#pragma inline GetAllocatedElements_VA
-static size_t GetAllocatedElements_VA(const VarArrayType * const va){
-  assert(va != NULL);
-  return va->allocatedElements;
-}
-
-#pragma inline GetsizeofElement_VA
-static size_t GetsizeofElement_VA(const VarArrayType * const va){
-  assert(va != NULL);
-  return va->sizeofElement;
-}
 
 // *************************************************************
 //
@@ -247,13 +167,11 @@ static VarArrayType *Create_VA(const size_t arraySize,
   return va;
 }
 
-static VarArrayType *CreateFromArray_VA
-( const void * const data,
-  const size_t arraySize,
-  const size_t sizeofElement,
-  const char * const thetype)
-{
-  /* 
+static VarArrayType *CreateFromArray_VA(const void * const data,
+                                        const size_t arraySize,
+                                        const size_t sizeofElement,
+                                        const char * const thetype) {
+  /*
      Return a handle to a new variable length array, initialized
      with a copy of the input array 'data'.
      
@@ -268,8 +186,7 @@ static VarArrayType *CreateFromArray_VA
   return va;
 }
 
-static VarArrayType *CreateFromFile_VA
-(FILE *fp,const char * const thetype,size_t space_in_elements_for_growth){
+static VarArrayType *CreateFromFile_VA(FILE *fp,const char * const thetype,size_t space_in_elements_for_growth){
   VarArrayType *va;
   va = (VarArrayType *)safe_malloc(sizeof(VarArrayType));
   InitializeFromFile_VA( fp, va, thetype, space_in_elements_for_growth);
@@ -290,28 +207,16 @@ static VarArrayType *Clone_VA(const VarArrayType *va){
 }
 
 // Like Clone, except the vato VA is recycled, rather than allocated
-static void ReuseClone_VA(VarArrayType *vato, const VarArrayType *vafrom){
-  ReInitializeFromArray_VA(vato, vafrom->numElements, vafrom->sizeofElement, vafrom->typeofElement, vafrom->Elements);
-}
+#define ReuseClone_VA(T, F)  ReInitializeFromArray_VA(T, (F)->numElements, (F)->sizeofElement, (F)->typeofElement, (F)->Elements)
 
-static void Delete_VA(VarArrayType * va) {
-  if(va == NULL)
-    return;
-  Clear_VA((VarArrayType * const)va);
-  safe_free(va);
-}
+#define Delete_VA(V)         { Clear_VA(V); safe_free(V); }
+
+#define GetMemorySize_VA(V)   (size_t)(((V) ? (V)->allocatedElements * (V)->sizeofElement : 0))
 
 
-static size_t GetMemorySize_VA( const VarArrayType * const va){
-  size_t memorySize = 	  (va?va->allocatedElements * va->sizeofElement:0);
-  return memorySize;
-}
-
-static size_t ReportMemorySize_VA
-( VarArrayType * const va,
-  const char * const name,
-  FILE * stream )
-{
+static size_t ReportMemorySize_VA(VarArrayType * const va,
+                                  const char * const name,
+                                  FILE * stream ) {
   size_t numElements       = (NULL == va ? 0 : va->numElements);
   size_t allocatedElements = (NULL == va ? 0 : va->allocatedElements);
   size_t sizeofElement     = (NULL == va ? 0 : va->sizeofElement);
@@ -339,12 +244,6 @@ static size_t ReportMemorySize_VA
 
 
 
-
-
-
-
-
-
 // *************************************************************
 //
 // The user interface:
@@ -352,7 +251,6 @@ static size_t ReportMemorySize_VA
 
 #define VA_TYPE(Type) VarArray ## Type
 
-// CMM: Note that the following statement must be at the file scope!!
 
 #define VA_DEF(Type)\
 typedef VarArrayType VarArray ## Type ;\
@@ -366,8 +264,7 @@ static VA_TYPE(Type) * CreateVA_ ## Type (const size_t numElements){\
      return ( (VA_TYPE(Type) *)Create_VA(numElements, sizeof(Type), #Type)); }\
 static void DeleteVA_ ## Type (VA_TYPE(Type) *va){\
      Delete_VA(va); }\
-static void ConcatVA_ ## Type \
-( VA_TYPE(Type) *va, const VA_TYPE(Type) * const vb){\
+static void ConcatVA_ ## Type ( VA_TYPE(Type) *va, const VA_TYPE(Type) * const vb){\
      Concat_VA(va,vb); }\
 static Type *GetVA_ ## Type (const VA_TYPE(Type) * const va, size_t index){\
      return ( (Type *)GetElement_VA(va,index));\
@@ -488,41 +385,6 @@ static void *PopStack_##type (Stack_##type *stack){\
   item = Get##type (stack->stack, (stack->top)--);\
   return *item;\
 }
-
-
-
-
-////////////////////////////////////////
-//
-//  PrimitiveVA.h
-//
-typedef void *PtrT;
-
-VA_DEF(char);
-VA_DEF(short);
-VA_DEF(int);
-VA_DEF(uint);
-VA_DEF(int16);
-VA_DEF(cds_int16);
-VA_DEF(uint16);
-VA_DEF(cds_uint16);
-VA_DEF(int32);
-VA_DEF(cds_int32);
-VA_DEF(uint32);
-VA_DEF(cds_uint32);
-VA_DEF(uint64);
-VA_DEF(cds_uint64);
-VA_DEF(PtrT);
-
-VA_DEF(CDS_UID_t);
-VA_DEF(CDS_IID_t);
-VA_DEF(CDS_CID_t);
-VA_DEF(CDS_COORD_t);
-//
-//
-//
-////////////////////////////////////////
-
 
 
 #endif // AS_UTL_VAR_H

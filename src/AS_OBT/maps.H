@@ -7,6 +7,8 @@
 using namespace std;
 #include <map>
 
+#include "util++.H"
+
 class vectorInfo {
 public:
   vectorInfo() {
