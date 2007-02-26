@@ -18,15 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.17 2007-02-15 23:55:54 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.18 2007-02-26 08:31:09 brianwalenz Exp $";
 
 #undef DEBUG
 #undef DEBUG_INSERT
 #undef DEBUG_DIAG
 #undef DEBUG_SPLIT
-
-#define DEBUG
-#define DEBUG_INSERT
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -328,7 +325,7 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
         aEndOffset.variance = bEndOffset.variance + chunkInstance->bpLength.variance;
     }
 
-#if defined( DEBUG) || defined(DEBUG_INSERT)
+#if defined(DEBUG) || defined(DEBUG_INSERT)
   fprintf(stderr,"* Insert ci:" F_CID " sid:" F_CID " contigNow:0x%x [%g,%g]\n",
     	  ci,sid,contigNow, aEndOffset.mean, bEndOffset.mean);
 #endif
@@ -1051,12 +1048,12 @@ int IsScaffoldInternallyConnected(ScaffoldGraphT *sgraph,
       if(chunk->id != edge->idA)
         continue;
 
+#ifdef DEBUG
       if(edge->flags.bits.isBridge){
         fprintf(stderr,"* WARNING: chunk " F_CID " weight = %d bridge edge\n",
                 chunk->id, weight);
         PrintGraphEdge(stderr, ScaffoldGraph->ContigGraph,
                        "Bridge ", edge, chunk->id);
-#ifdef DEBUG
         EdgeCGW_T *e;
         GraphEdgeIterator Edges;
         InitGraphEdgeIterator(sgraph->ContigGraph,chunk->id,ALL_END,
@@ -1065,8 +1062,9 @@ int IsScaffoldInternallyConnected(ScaffoldGraphT *sgraph,
         while(NULL!= (e = NextGraphEdgeIterator(&Edges)))
           PrintGraphEdge(stderr, ScaffoldGraph->ContigGraph,
                          "DEBUG Bridge ",e, chunk->id);	
-#endif
       }
+#endif
+
       if(isSingletonOverlapEdge(edge) ||
          (weight == 1 && edge->flags.bits.isBridge))
         continue;
@@ -1191,10 +1189,13 @@ int IsScaffoldInternallyConnectedCheck(ScaffoldGraphT *sgraph,
       if(chunk->id != edge->idA)
         continue;
 
+#ifdef DEBUG
       if(edge->flags.bits.isBridge){
         fprintf(stderr,"* WARNING: chunk " F_CID " weight = %d bridge edge\n", chunk->id, weight);
         PrintGraphEdge(stderr, ScaffoldGraph->ContigGraph, "Bridge ",edge, chunk->id);	
       }
+#endif
+
       if(isSingletonOverlapEdge(edge) ||
          (weight == 1 && edge->flags.bits.isBridge))
         continue;
