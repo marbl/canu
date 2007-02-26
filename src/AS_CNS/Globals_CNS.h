@@ -21,11 +21,13 @@
 #ifndef GLOBALS_CNS_INCLUDE
 #define GLOBALS_CNS_INCLUDE
 
+#include <unistd.h>
+#include <math.h>
+
 #include "MultiAlignment_CNS.h"
 #include "AS_UTL_Var.h"
 #include "AS_SDB_SequenceDB.h"
 #include "AS_SDB_SequenceDBPartition.h"
-#include <math.h>
 #include "AS_UTL_PHash.h"
 
 //====================================================================

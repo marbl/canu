@@ -31,11 +31,13 @@
  **********************************************************************/
 
 /*********************************************************************
-   CVS_ID: $Id: GapWalkerREZ.h,v 1.5 2007-02-17 21:16:23 brianwalenz Exp $
+   CVS_ID: $Id: GapWalkerREZ.h,v 1.6 2007-02-26 15:15:23 brianwalenz Exp $
  ********************************************************************/
 
 #ifndef GAPWALKER_REZ_H
 #define GAPWALKER_REZ_H
+
+#include "DataTypesREZ.h"
 
 #define DEBUG_GAP_WALKER              0 // debugging info (level 1,2,3,4 gives debug info, 0 nothing)
 #define CREATE_CAM_FILE               0 // 0 will not produce cam files of various sorts
