@@ -1,0 +1,45 @@
+
+// since we mucked with the unitigs multialignment, reset the offsets
+// and bpLengths of all the unitigs in the contig the ones in the
+// ScaffoldGraph are not valid anymore
+//
+//  Technically dead, but might be useful later
+//
+#if 0
+void
+adjustUnitigCoords(NodeCGW_T *contig) {
+  MultiAlignT *ma;
+  int i;
+  
+  ma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
+  
+  for (i = 0; i < GetNumIntUnitigPoss(ma->u_list); i++) {
+    IntUnitigPos *pos = GetIntUnitigPos(ma->u_list, i);
+    NodeCGW_T *unitig = GetGraphNode(ScaffoldGraph->CIGraph, pos->ident);
+    MultiAlignT *uma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, TRUE);
+
+#ifdef DEBUG_ECR
+    fprintf(stderr, "before unitig %8d, bgn: %10d, end: %10d, length: %10d\n", 
+            unitig->id, pos->position.bgn, pos->position.end, abs(pos->position.bgn - pos->position.end));
+	
+    fprintf(stderr, "in adjustUnitigCoords, for unitig %d strlen(ma->consensus) = " F_SIZE_T "\n",
+            unitig->id, strlen(Getchar(uma->consensus, 0)));
+#endif
+
+    unitig->bpLength.mean = pos->position.end - pos->position.bgn;      // set length
+    if (unitig->offsetAEnd.mean < unitig->offsetBEnd.mean) {
+      // ordering info is okay
+      unitig->offsetAEnd.mean = pos->position.bgn;
+      unitig->offsetBEnd.mean = pos->position.end;
+    } else {
+      unitig->offsetAEnd.mean = pos->position.end;
+      unitig->offsetBEnd.mean = pos->position.bgn;
+    }
+
+#ifdef DEBUG_ECR
+    fprintf(stderr, " after unitig %8d, bgn: %10d, end: %10d, length: %10d\n", 
+            unitig->id, pos->position.bgn, pos->position.end, abs(pos->position.bgn - pos->position.end));
+#endif
+  }
+}
+#endif
