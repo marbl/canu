@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_SDB_SequenceDBPartition.c,v 1.5 2007-02-14 07:20:13 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_SDB_SequenceDBPartition.c,v 1.6 2007-02-27 04:38:49 brianwalenz Exp $";
 
 /*************************************************************************
  Module:  AS_SDB_SequenceDBPartition
@@ -96,8 +96,6 @@ static void buildSequenceDBPartitionHash(tSequenceDBPartition *partition){
     tMARecord *maRecord = GettMARecord(partition->multiAligns, i);
     MultiAlignT *ma;
     int reference;
-    //fprintf(stderr,"* maRecord storeID %d  offset " F_U64 "\n",
-    //	    maRecord->storeID, maRecord->offset);
     CDS_FSEEK(partition->datafp,maRecord->offset,SEEK_SET);
     ma = LoadMultiAlignTFromStream(partition->datafp,&reference);
     if(InsertInHashTable_AS(partition->index,
@@ -172,12 +170,8 @@ VA_TYPE(int32) *GetContentSequenceDBPartition(tSequenceDBPartition *partition){
   void *keyp, *valuep;
   InitializeHashTable_Iterator_AS(partition->index, &iterator);
 
-  fprintf(stderr,"* SDBPartition has following members\n");
-  while(NextHashTable_Iterator_AS(&iterator, &keyp, &valuep)){
-    int32 key = *(int32 *)keyp;
-    ///Appendint32(members, keyp);  /// C++PROJECT Next line makes this safer
-    Appendint32(members, &key);
-    fprintf(stderr,"* %d\n", key);
-  }
+  while(NextHashTable_Iterator_AS(&iterator, &keyp, &valuep))
+    Appendint32(members, (int32 *)keyp);
+
   return members;
 }

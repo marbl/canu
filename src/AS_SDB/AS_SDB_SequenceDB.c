@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.11 2007-02-18 14:04:50 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.12 2007-02-27 04:38:49 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,8 +32,6 @@ static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.11 2007-02-18 14:04:50 brian
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
 #include "AS_SDB_SequenceDB.h"
-
-#undef DEBUG_OUTPUT
 
 /* CreateSequenceDB:
    Create a SequenceDB with a single data file, and the index in memory..
@@ -141,8 +139,6 @@ tSequenceDB *OpenSequenceDB(char *path, int readWrite, int revision){
     fprintf(stderr, "OpenSequenceDB()-- Failed to open '%s' for reading: %s\n",
             buffer, strerror(errno)), exit(1);
   sequenceDB->Unitigs = CreateFromFileVA_tMARecord(testfp,10);
-  fprintf(stderr,"* Loaded " F_SIZE_T " tMARecords from %s\n",
-          GetNumtMARecords(sequenceDB->Unitigs), buffer);
   fclose(testfp);
 
   sprintf(buffer,"%s/seqDB.contigs.%d",path,revision);
@@ -152,8 +148,6 @@ tSequenceDB *OpenSequenceDB(char *path, int readWrite, int revision){
     fprintf(stderr, "OpenSequenceDB()-- Failed to open '%s' for reading: %s\n",
             buffer, strerror(errno)), exit(1);
   sequenceDB->Contigs = CreateFromFileVA_tMARecord(testfp,10);
-  fprintf(stderr,"* Loaded " F_SIZE_T " tMARecords from %s\n",
-          GetNumtMARecords(sequenceDB->Contigs), buffer);
   fclose(testfp);
 
   sequenceDB->UnitigStore = CreateMultiAlignStoreT(GetNumtMARecords(sequenceDB->Unitigs));
@@ -198,7 +192,6 @@ void SaveSequenceDB(tSequenceDB *db){  // Save the current revision of the indic
   FILE   *indexfp = NULL;
   int64   end = db->offsetOfEOF;
 
-  fprintf(stderr,"* SaveSequenceDB  end = " F_S64 "\n", end);
   sprintf(buffer,"%s/seqDB.unitigs.%d",db->path, db->currentRevision);
   errno = 0;
   indexfp = fopen(buffer,"w");
@@ -206,8 +199,6 @@ void SaveSequenceDB(tSequenceDB *db){  // Save the current revision of the indic
     fprintf(stderr, "SaveSequenceDB()-- Failed to open '%s' for write: %s\n", buffer, strerror(errno)), exit(1);
   CopyToFileVA_tMARecord(db->Unitigs, indexfp);
   fclose(indexfp);
-  fprintf(stderr,"* Saved " F_SIZE_T " Unitig records to %s\n",
-          GetNumtMARecords(db->Unitigs),buffer);
 
   sprintf(buffer,"%s/seqDB.contigs.%d",db->path, db->currentRevision);
   errno = 0;
@@ -216,8 +207,6 @@ void SaveSequenceDB(tSequenceDB *db){  // Save the current revision of the indic
     fprintf(stderr, "SaveSequenceDB()-- Failed to open '%s' for write: %s\n", buffer, strerror(errno)), exit(1);
   CopyToFileVA_tMARecord(db->Contigs, indexfp);
   fclose(indexfp);
-  fprintf(stderr,"* Saved " F_SIZE_T " Contig records to %s\n",
-          GetNumtMARecords(db->Contigs),buffer);
 
   /* Close the current data file, and reopen it as read only */
   currentDatafp = (FILE *) *GetPtrT(db->SubStores, db->currentRevision);
@@ -232,10 +221,8 @@ void SaveSequenceDB(tSequenceDB *db){  // Save the current revision of the indic
   if (errno)
     fprintf(stderr, "SaveSequenceDB()-- Failed to open '%s' for read: %s\n", buffer, strerror(errno)), exit(1);
   SetPtrT(db->SubStores, db->currentRevision, (const void *) &currentDatafp);
-  fprintf(stderr,"* Reopened %s as read only\n", buffer);
 
   db->currentRevision++;
-  fprintf(stderr,"* Reseting offsetOfEOF\n");
   db->offsetOfEOF = 0;
   db->positionedAtEnd = 1;
 
@@ -245,8 +232,6 @@ void SaveSequenceDB(tSequenceDB *db){  // Save the current revision of the indic
   if (errno)
     fprintf(stderr, "SaveSequenceDB()-- Failed to open '%s' for write: %s\n", buffer, strerror(errno)), exit(1);
   SetPtrT(db->SubStores, db->currentRevision, (const void *)&currentDatafp);
-
-  fprintf(stderr,"* Opened %s as write\n", buffer);
 }
 
 void DuplicateEntryInSequenceDB(tSequenceDB *db, int fromIndex, int fromIsUnitig, int toIndex, int toIsUnitig, int keepInCache){
@@ -294,11 +279,8 @@ void InsertMultiAlignTInSequenceDB(tSequenceDB *db,
    }
   SetMultiAlignInStore(maStore,index,ma);
  }
- //  fflush(file);
- // fprintf(stderr,"* Appending at " F_SIZE_T "\n", db->offsetOfEOF);
  if(!db->positionedAtEnd)
    CDS_FSEEK(file, db->offsetOfEOF, SEEK_SET);
-  //  pos = CDS_FTELL(file);
 
   if(maRecord){
     maRecord->storeID = fileID;
@@ -310,11 +292,9 @@ void InsertMultiAlignTInSequenceDB(tSequenceDB *db,
     mar.offset = db->offsetOfEOF;
     SettMARecord(isUnitig?db->Unitigs:db->Contigs, index, &mar);
   }
-  //  fprintf(stderr,"* ma %d saved at offset " F_SIZE_T "\n", index, db->offsetOfEOF);
   totalSize += SaveMultiAlignTToStream(ma,file);
   db->offsetOfEOF += totalSize;
   db->positionedAtEnd = 1;
-  //  fprintf(stderr,"* Appending " F_SIZE_T " bytes offset now " F_SIZE_T "\n", totalSize, db->offsetOfEOF);
 }
 
 
@@ -344,11 +324,8 @@ void UpdateMultiAlignTInSequenceDB(tSequenceDB *db,
    }
   SetMultiAlignInStore(maStore,index,ma);
  }
- //  fflush(file);
- // fprintf(stderr,"* Appending at " F_SIZE_T "\n", db->offsetOfEOF);
  if(!db->positionedAtEnd)
    CDS_FSEEK(file, db->offsetOfEOF, SEEK_SET);
-  //  pos = CDS_FTELL(file);
 
   if(maRecord){
     maRecord->storeID = fileID;
@@ -360,11 +337,9 @@ void UpdateMultiAlignTInSequenceDB(tSequenceDB *db,
     mar.offset = db->offsetOfEOF;
     SettMARecord(isUnitig?db->Unitigs:db->Contigs, index, &mar);
   }
-  //  fprintf(stderr,"* ma %d saved at offset " F_SIZE_T "\n", index, db->offsetOfEOF);
   totalSize += SaveMultiAlignTToStream(ma,file);
   db->offsetOfEOF += totalSize;
   db->positionedAtEnd = 1;
-  //  fprintf(stderr,"* Appending " F_SIZE_T " bytes offset now " F_SIZE_T "\n", totalSize, db->offsetOfEOF);
 }
 
 
@@ -393,24 +368,15 @@ MultiAlignT *LoadMultiAlignTFromSequenceDB(tSequenceDB *db, int index, int isUni
  tMARecord *maRecord = NULL;
  int reference;
  FILE *file;
- if(ma){
-#ifdef DEBUG_OUTPUT
-   fprintf(stderr,"* Loaded %s ma %d from cache\n", (isUnitig?"Unitig":"Contig"),index);
-#endif
-   //   AddReferenceMultiAlignT(ma);
+ if(ma)
    return ma;
- }
 
  maRecord = GettMARecord(isUnitig?db->Unitigs:db->Contigs, index);
 
- if (maRecord == NULL)
- {
-     fprintf(stderr, "Unable to extract MA Record with iid #%d\n", index);
-     exit(2);
-//   return NULL;
+ if (maRecord == NULL) {
+     fprintf(stderr, "LoadMultiAlignTFromSequenceDB()-- Unable to extract MA Record with iid #%d\n", index);
+     assert(0);
  }
- // fprintf(stderr,"* Loading from file %d offset " F_U64 "\n", maRecord->storeID, maRecord->offset);
- // fflush(stderr);
 
  if(maRecord->flags.bits.deleted)
    return NULL;
@@ -423,18 +389,12 @@ MultiAlignT *LoadMultiAlignTFromSequenceDB(tSequenceDB *db, int index, int isUni
  // AddReferenceMultiAlignT(ma);
 
  if(ma == NULL){
-   fprintf(stderr,"** LoadMultiAlignTFromSequenceDB FAILED for %s %d in file %d at offset " F_OFF_T " (reference:%d)\n",
+   fprintf(stderr,"LoadMultiAlignTFromSequenceDB()-- FAILED for %s %d in file %d at offset " F_OFF_T " (reference:%d)\n",
 	   (isUnitig?"Unitig":"Contig"), index, maRecord->storeID, maRecord->offset, reference);
    AssertPtr(ma);
  }
 
  db->totalCacheSize+= GetMemorySize(ma);
-#ifdef DEBUG_OUTPUT
- fprintf(stderr,
-         "* %s ma %d loaded from offset " F_OFF_T " cache = " F_SIZE_T "\n",
-         (isUnitig?"Unitig":"Contig"), index,
-         CDS_FTELL(file), db->totalCacheSize);
-#endif
   SetMultiAlignInStore(maStore,index,ma);
  
  return ma;
@@ -452,11 +412,6 @@ int32 ReLoadMultiAlignTFromSequenceDB(tSequenceDB *db, MultiAlignT *reusema, int
  int reference;
  FILE *file;
  if(ma){
-#ifdef DEBUG_OUTPUT
-   fprintf(stderr,"* Loaded %s ma %d from cache\n",
-           (isUnitig?"Unitig":"Contig"),index);
-#endif
-
    CopyMultiAlignT(reusema, ma);
    return 0;
  }
@@ -464,17 +419,11 @@ int32 ReLoadMultiAlignTFromSequenceDB(tSequenceDB *db, MultiAlignT *reusema, int
  maRecord = GettMARecord(isUnitig?db->Unitigs:db->Contigs, index);
 
  if(maRecord->flags.bits.deleted){
-   //   fprintf(stderr,"* ReLoadMultiAlignTFromSequenceDB -- trying to load deleted %s %d\n",
-   //	   (isUnitig?"Unitig":"Contig"), index);
    return 1;
  }
  file = (FILE*) *GetPtrT(db->SubStores, maRecord->storeID);
 
  db->positionedAtEnd = 0;
-#ifdef DEBUG_OUTPUT
- fprintf(stderr,"* Loading from file %d at offset " F_U64 "\n",
-	 maRecord->storeID, maRecord->offset);
-#endif
  CDS_FSEEK(file,maRecord->offset,SEEK_SET);
  ReLoadMultiAlignTFromStream(file,reusema,&reference);
  return 0;
@@ -489,11 +438,6 @@ void UnloadMultiAlignTFromSequenceDB(tSequenceDB *db, int index, int isUnitig){
  size_t redeemed;
  redeemed = RemoveMultiAlignFromStore(maStore,index);
  db->totalCacheSize -= redeemed;
-#ifdef DEBUG_OUTPUT
- fprintf(stderr,
-         "* Unloading %s %d redeemed " F_SIZE_T " bytes cache = " F_SIZE_T "\n",
-         (isUnitig?"Unitig":"Contig"), index, redeemed, db->totalCacheSize);
-#endif
 }
 
 /* ClearCacheSequenceDB
@@ -503,8 +447,6 @@ void ClearCacheSequenceDB(tSequenceDB *db, int isUnitig){
   MultiAlignStoreT *maStore = (isUnitig?db->UnitigStore:db->ContigStore);
   size_t redeemed = ClearMultiAlignStoreT(maStore);
   db->totalCacheSize -=  redeemed;
-  fprintf(stderr,"* Clear %s Cache redeemed = " F_SIZE_T "\n",
-          (isUnitig?"Unitig":"Contig"), redeemed);
 }
 
 void ClearCacheSequenceDBConditionally(tSequenceDB *db, size_t maxSize){
