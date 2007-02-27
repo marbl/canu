@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_encodeSequenceQuality.c,v 1.5 2007-02-22 00:06:57 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_encodeSequenceQuality.c,v 1.6 2007-02-27 07:11:03 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -32,13 +32,17 @@ static char CM_ID[] = "$Id: AS_PER_encodeSequenceQuality.c,v 1.5 2007-02-22 00:0
 //  of one char per seq/quality value pair
 //
 // Quality values are encoded as follows:
+//
 // lowest 2 bits for sequence value:
 //    a = 0
 //    c = 1
 //    t = 2
 //    g = 3
+//
 // highest 6 bits for quality value:
-//    0 - 60 are valid quality values
+//    0 is unused (qv=0 + 'a' == 0, which terminates the string)
+//    1 - 61 are valid quality values
+//    62 is unused
 //    63 encodes an n sequence value
 
 
@@ -89,7 +93,7 @@ encodeSequenceQuality(char *enc,
     assert(*qlt >= '0');
     assert(*qlt <= QUALITY_MAX + '0');
 
-    qv   = *qlt - '0';
+    qv   = *qlt - '0' + 1;
 
     *enc = (qv << 2) | sv;
     
@@ -112,7 +116,7 @@ decodeSequenceQuality(char *enc,
 
   while (*enc) {
     *seq = sm[*enc & 0x03];
-    *qlt = ((*enc >> 2) & 0x3f);
+    *qlt = ((*enc >> 2) & 0x3f) - 1;
 
     if (*qlt > QUALITY_MAX) {
       *seq = 'N';
