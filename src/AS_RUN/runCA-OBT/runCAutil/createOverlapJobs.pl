@@ -133,6 +133,16 @@ sub createOverlapJobs {
 
     print F "&& \\\n";
     print F "touch $wrk/$outDir/\$bat/\$job.success\n";
+
+    #  Catch any nasty failures, like out of disk, crashes, etc.  This
+    #  should maybe (maybe not) be an option for debugging.  But if
+    #  you're debugging, you're smart enough to figure out how to fix
+    #  this.
+
+    print F "rm -f $scratch/$asm.\$bat-\$job.\$jid.ovb \\\n";
+    print F "rm -f $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
+    print F "rm -f $scratch/$asm.\$bat-\$job.\$jid.ovl.bz2 \\\n";
+
     print F "exit 0\n";
     close(F);
 
