@@ -19,28 +19,29 @@
  *************************************************************************/
 
 #include "eCR.h"
+#include "ScaffoldGraph_CGW.h"
 
 
-void DumpContigMultiAlignInfo (char *label, MultiAlignT *cma, int contigID) {
-#ifdef DIAG_PRINTS
+void
+DumpContigMultiAlignInfo (char *label, MultiAlignT *cma, int contigID) {
   int           i, j;
   MultiAlignT  *uma;
 
   if (label) {
-    fprintf(stderr, "\n%s\n", label);
-    fprintf(stderr, "------------------------------------------------------------\n");
-    fprintf(stderr, "in DumpContigMultiAlignInfo, dumping info on contig %8d\n", contigID);
+    fprintf(debug.diagnosticFP, "\n%s\n", label);
+    fprintf(debug.diagnosticFP, "------------------------------------------------------------\n");
+    fprintf(debug.diagnosticFP, "in DumpContigMultiAlignInfo, dumping info on contig %8d\n", contigID);
   }
 
   if (cma == NULL)
     cma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contigID, FALSE);
 
-  fprintf(stderr, "  contig %8d, strlen(consensus): %9ld\n",
+  fprintf(debug.diagnosticFP, "  contig %8d, strlen(consensus): %9ld\n",
           contigID, strlen(Getchar(cma->consensus, 0)));
 
   for (i = 0; i < GetNumIntMultiPoss(cma->f_list); i++) {
     IntMultiPos *pos = GetIntMultiPos(cma->f_list,i);
-    fprintf(stderr, "  fragment %8d, bgn: %10d, end: %10d, length: %10d\n", 
+    fprintf(debug.diagnosticFP, "  fragment %8d, bgn: %10d, end: %10d, length: %10d\n", 
             pos->ident, pos->position.bgn, pos->position.end, abs(pos->position.bgn - pos->position.end));
   }
 
@@ -50,57 +51,54 @@ void DumpContigMultiAlignInfo (char *label, MultiAlignT *cma, int contigID) {
 
     uma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, TRUE);
 
-    fprintf(stderr, "  unitig %8d, bgn: %10d, end: %10d, length: %10d (consensus: %10d)\n", 
+    fprintf(debug.diagnosticFP, "  unitig %8d, bgn: %10d, end: %10d, length: %10d (consensus: %10d)\n", 
             unitig->id, pos->position.bgn, pos->position.end,
             abs(pos->position.bgn - pos->position.end),
             strlen(Getchar(uma->consensus, 0)));
 
     for (j = 0; j < GetNumIntMultiPoss(uma->f_list); j++) {
       IntMultiPos *pos = GetIntMultiPos(uma->f_list, j);
-      fprintf(stderr, "  fragment %8d, bgn: %10d, end: %10d, length: %10d, source: %10d\n", 
+      fprintf(debug.diagnosticFP, "  fragment %8d, bgn: %10d, end: %10d, length: %10d, source: %10d\n", 
               pos->ident, pos->position.bgn, pos->position.end, abs(pos->position.bgn - pos->position.end),
               pos->sourceInt);
     }
   }
-  fprintf(stderr, "\n");
-#endif
+  fprintf(debug.diagnosticFP, "\n");
 }
 
 
-void DumpUnitigInfo(char *label, NodeCGW_T *unitig) {
-#ifdef DIAG_PRINTS
+void
+DumpUnitigInfo(char *label, NodeCGW_T *unitig) {
   int            i, j;
   MultiAlignT   *uma;
   IntUnitigPos  *pos;
 
   if (label) {
-    fprintf(stderr, "\n%s\n", label);
-    fprintf(stderr, "------------------------------------------------------------\n");
-    fprintf(stderr, "in DumpUnitigInfo, dumping info on unitig %8d\n", unitig->id);
+    fprintf(debug.diagnosticFP, "\n%s\n", label);
+    fprintf(debug.diagnosticFP, "------------------------------------------------------------\n");
+    fprintf(debug.diagnosticFP, "in DumpUnitigInfo, dumping info on unitig %8d\n", unitig->id);
   }
 
   uma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, TRUE);
   pos = GetIntUnitigPos(uma->u_list, i);
 
-  fprintf(stderr, "  unitig %8d, bgn: %10d, end: %10d, length: %10d (consensus: %10d)\n", 
+  fprintf(debug.diagnosticFP, "  unitig %8d, bgn: %10d, end: %10d, length: %10d (consensus: %10d)\n", 
           unitig->id, pos->position.bgn, pos->position.end,
           abs(pos->position.bgn - pos->position.end),
           strlen(Getchar(uma->consensus, 0)));
 
   for (j = 0; j < GetNumIntMultiPoss(uma->f_list); j++) {
     IntMultiPos *mpos = GetIntMultiPos(uma->f_list, j);
-    fprintf(stderr, "  fragment %8d, bgn: %10d, end: %10d, length: %10d, source: %10d\n", 
+    fprintf(debug.diagnosticFP, "  fragment %8d, bgn: %10d, end: %10d, length: %10d, source: %10d\n", 
             mpos->ident, mpos->position.bgn, mpos->position.end, abs(mpos->position.bgn - mpos->position.end),
             mpos->sourceInt);
   }
-  fprintf(stderr, "\n");
-#endif
+  fprintf(debug.diagnosticFP, "\n");
 }
 
 
 void
 DumpContigUngappedOffsets(char *label, int contigID) {
-#ifdef DIAG_PRINTS
   int                    numCIs;
   int                    i;
   MultiAlignT           *cma;
@@ -109,9 +107,9 @@ DumpContigUngappedOffsets(char *label, int contigID) {
   static VA_TYPE(int32) *UngappedOffsets = NULL;
 
   if (label) {
-    fprintf(stderr, "\n%s\n", label);
-    fprintf(stderr, "------------------------------------------------------------\n");
-    fprintf(stderr, "in DumpContigUngappedOffsets, dumping info on contig %8d\n", contigID);
+    fprintf(debug.diagnosticFP, "\n%s\n", label);
+    fprintf(debug.diagnosticFP, "------------------------------------------------------------\n");
+    fprintf(debug.diagnosticFP, "in DumpContigUngappedOffsets, dumping info on contig %8d\n", contigID);
   }
 
   if(!UngappedOffsets) {
@@ -127,12 +125,11 @@ DumpContigUngappedOffsets(char *label, int contigID) {
   for(i = 0; i < numCIs ; i++) {
     IntUnitigPos *pos = GetIntUnitigPos(cma->u_list, i);
     NodeCGW_T *node = GetGraphNode(ScaffoldGraph->CIGraph, pos->ident);
-    int flip = (pos->position.end < pos->position.bgn);
     int bgn, end;
 
     // mp->position is an interval.  We need to subtract one from
     // the upper end of the interval
-    if(flip) {
+    if (pos->position.end < pos->position.bgn) {
       bgn = pos->position.bgn - 1;
       end = pos->position.end;
     } else {
@@ -140,9 +137,9 @@ DumpContigUngappedOffsets(char *label, int contigID) {
       end = pos->position.end - 1;
     }
 
-    fprintf(stderr, "in DCUO, unitig %d, (bgn, end): (%6d, %6d), offsets[bgn]: %10d, offsets[bgn]: %10d\n",
+    fprintf(debug.diagnosticFP, "in DCUO, unitig %d, (bgn, end): (%6d, %6d), offsets[bgn]: %10d, offsets[bgn]: %10d\n",
             node->id, bgn, end, offsets[bgn], offsets[end]);
-    fprintf(stderr, "in DCUO, unitig %d, pos->position.bgn: %10d, pos->position.end: %10d\n",
+    fprintf(debug.diagnosticFP, "in DCUO, unitig %d, pos->position.bgn: %10d, pos->position.end: %10d\n",
             node->id, pos->position.bgn, pos->position.end);
   }
 
@@ -152,28 +149,21 @@ DumpContigUngappedOffsets(char *label, int contigID) {
     // hack next line replaces above
     // int fragID = GetInfoByIID(ScaffoldGraph->iidToFragIndex, mp->ident)->fragIndex;
     CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, fragID);
-    LengthT offset3p, offset5p;
-    int ubgn, uend;
-    int flip = (mp->position.end < mp->position.bgn);
     int bgn, end;
 	
     // mp->position is an interval.  We need to subtract one from
     // the upper end of the interval
-    if(flip)
-      {
+    if (mp->position.end < mp->position.bgn) {
         bgn = mp->position.bgn - 1;
         end = mp->position.end;
-      }
-    else
-      {
+      } else {
         bgn = mp->position.bgn;
         end = mp->position.end - 1;
       }
 
-    fprintf(stderr, "in DCUO, contig %8d, frag %10d, mp->position.bgn: %10d, mp->position.end: %10d, "
+    fprintf(debug.diagnosticFP, "in DCUO, contig %8d, frag %10d, mp->position.bgn: %10d, mp->position.end: %10d, "
             "len: %10d, contained: %8d, source: %10d\n",
             contigID, frag->iid, mp->position.bgn, mp->position.end, abs(mp->position.bgn - mp->position.end),
             mp->contained, mp->sourceInt);
   }
-#endif
 }

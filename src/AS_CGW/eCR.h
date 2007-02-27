@@ -18,139 +18,36 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#undef DEBUG_ECR
-#undef DIAG_PRINTS
-
-//#error I'm probably not opening the frag store for read/write, see the XXX
-
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include <assert.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
-#include <unistd.h>
 
 #include "AS_global.h"
-#include "AS_UTL_Var.h"
-#include "AS_UTL_timer.h"
-#include "UtilsREZ.h"
-#include "AS_CGW_dataTypes.h"
-#include "ScaffoldGraph_CGW.h"
-#include "ScaffoldGraphIterator_CGW.h"
-#include "Globals_CGW.h"
-#include "DiagnosticsCGW.h"
-#include "ScaffoldGraph_CGW.h"
-#include "Output_CGW.h"
-#include "GreedyOverlapREZ.h"
-#include "CommonREZ.h"
-#include "RepeatRez.h"
-#include "FbacREZ.h"
-#include "PublicAPI_CNS.h"
-#include "ChiSquareTest_CGW.h"
+#include "AS_PER_gkpStore.h"
 
-#define NUM_STDDEV_CUTOFF 5.0
-#define CONTIG_BASES 1000
-#define MAX_EXTENDABLE_FRAGS 100
+#define CONTIG_BASES          1000
 
-typedef struct extendableFragT {
-  int fragIid;
-  int extension;
-  int addedBases;
-  int basesToNextFrag;
-  int fragOnEnd;
-  int unitigID;
-} extendableFrag;
+// Except as noted:
+//    0 nothing, 1 warnings, 2 lots of stuff
+//
+//  The names end in LV for "level" to distinguish them from the
+//  function that is usually a very similar name.  This would be
+//  incredibly useful if someone wants to, say, merge two classes into
+//  one.
+//
+typedef struct {
+  int   eCRmainLV;
+  FILE *eCRmainFP;
 
-typedef struct fragPositionsT {
-  int bgn;
-  int end;
-} fragPositions;
+  int   diagnosticLV;
+  FILE *diagnosticFP;
 
-int findFirstFrag(ContigT *contig, int *fragIid,
-                  int *extension, int *basesToNextFrag);
-int findLastFrag(ContigT *contig, int *fragIid,
-                 int *extension, int *basesToNextFrag);
-int dumpFragInfo(int fragIid);
-int examineGap(ContigT *lcontig, int lFragIid,
-               ContigT *rcontig, int rFragIid, 
-               int gapNumber, int *ahang,
-               int* olapLengthOut, int *bhang, int *currDiffs,
-               int *lcontigBasesIntact, int *rcontigBasesIntact,
-               int *closedGapDelta,
-               int lBasesToNextFrag, int rBasesToNextFrag,
-               int *leftFragFlapLength, int *rightFragFlapLength);
-void initVarArrays(void);
-void SequenceComplement(char *sequence, char *quality);
-LengthT FindGapLength(ChunkInstanceT * lchunk,
-                      ChunkInstanceT * rchunk, int verbose);
-int findFirstUnitig(ContigT *contig, int *unitigID);
-int findLastUnitig(ContigT *contig, int *unitigID);
-void collectContigStats(int *allContigLengths, int *contigValid);
-void produceContigStatsConventional(void);
-void produceGapStats(int numGaps, int *closedGap,
-                     int *closedGapDelta, int *originalGaps);
-void produceScaffoldStats(int *alteredScaffoldLengths);
-void produceContigStats(int numGaps, int *closedGap, int *closedGapDelta,
-                        int *lcontigIdGap, int *rcontigIdGap,
-                        int *lcontigLength, int *rcontigLength,
-                        int *contigValid, int *allContigLengths,
-                        int numDeletedContigs);
-int findRightExtendableFrags(ContigT *contig, int *basesToNextFrag,
-                             extendableFrag *extFragsArray);
-void extendUnitigs(NodeCGW_T *unitig, int fragIid,
-                   extendableFrag extFrag, int scaffoldLeftEnd);
-void extendContig(ContigT *contig, int extendAEnd);
-int findFirstExtendableFrags(ContigT *contig, extendableFrag *extFragsArray);
-int findLastExtendableFrags(ContigT *contig, extendableFrag *extFragsArray);
-int GetNewUnitigMultiAlign(NodeCGW_T *unitig, fragPositions *fragPoss,
-                           int extendedFragIid);
-int setCgwClearRange(int fragIid, int frag3pDelta);
-void getAlteredFragPositions(NodeCGW_T *unitig, fragPositions **fragPoss,
-                             int alteredFragIid, int extension);
-void bubbleSortIUMs(IntMultiPos *f_list, int numIMPs);
-void adjustUnitigCoords(NodeCGW_T *contig);
+  int   examineGapLV;
+  FILE *examineGapFP;
+} debugflags_t;
 
-void DumpContigMultiAlignInfo (char *label, MultiAlignT *cma, int contigID);
-void DumpUnitigInfo(char *label, NodeCGW_T *unitig);
-void DumpContigUngappedOffsets(char *label, int contigID);
-
-void leftShiftIUM(IntMultiPos *f_list, int numFrags, int extendedFragIid);
-void rightShiftIUM(IntMultiPos *f_list, int numFrags, int extendedFragIid);
-void saveFragAndUnitigData(int lFragIid, int rFragIid);
-void restoreFragAndUnitigData(int lFragIid, int rFragIid);
-
-int writeEcrCheckpoint(int *numGapsInScaffold,
-                       int *numGapsClosedInScaffold,
-                       int *numSmallGapsInScaffold,
-                       int *numSmallGapsClosedInScaffold,
-                       int *numLargeGapsInScaffold,
-                       int *numLargeGapsClosedInScaffold);
-int loadEcrCheckpoint(int ckptNum, int *numGapsInScaffold,
-                      int *numGapsClosedInScaffold,
-                      int *numSmallGapsInScaffold,
-                      int *numSmallGapsClosedInScaffold,
-                      int *numLargeGapsInScaffold,
-                      int *numLargeGapsClosedInScaffold);
-void extendCgwClearRange(int fragIid, int frag3pDelta);
-void SynchUnitigTWithMultiAlignT(NodeCGW_T *unitig);
-void revertToCnsClearRange(int fragIid);
-
-void saveDefaultLocalAlignerVariables(void);
-void restoreDefaultLocalAlignerVariables(void);
+extern debugflags_t            debug;
 
 extern int                     totalContigsBaseChange;
 extern fragRecord             *fsread;
-extern VA_TYPE(char)          *lContigConsensus;
-extern VA_TYPE(char)          *rContigConsensus;
-extern VA_TYPE(char)          *lContigQuality;
-extern VA_TYPE(char)          *rContigQuality;
-extern VA_TYPE(char)          *reformed_consensus;
-extern VA_TYPE(char)          *reformed_quality;
-extern VA_TYPE(int32)         *reformed_deltas;
-extern VA_TYPE(IntElementPos) *ContigPositions;
-extern VA_TYPE(IntElementPos) *UnitigPositions;
 extern int                     passNumber;
