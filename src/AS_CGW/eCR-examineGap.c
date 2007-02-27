@@ -186,8 +186,8 @@ examineGap(ContigT *lcontig, int lFragIid,
     rFrag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
   }
   
-  switch (passNumber) {
-    case 0:
+  switch (iterNumber) {
+    case 1:
       if (lFragIid != -1) {
         getFrag(ScaffoldGraph->gkpStore, lFragIid, fsread, FRAG_S_SEQ);
         lclr_bgn = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_ECR1 - 1);
@@ -201,7 +201,7 @@ examineGap(ContigT *lcontig, int lFragIid,
         strcpy(rFragSeqBuffer, getFragRecordSequence(fsread));
       }
       break;
-    case 1:
+    case 2:
       if (lFragIid != -1) {
         getFrag(ScaffoldGraph->gkpStore, lFragIid, fsread, FRAG_S_SEQ);
         lclr_bgn = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_ECR2 - 1);
@@ -216,6 +216,7 @@ examineGap(ContigT *lcontig, int lFragIid,
       }
       break;
     default:
+      assert(0);
       break;
   }
 

@@ -97,9 +97,10 @@ sub CGW ($$$$$$) {
 }
 
 
-sub eCR ($$) {
+sub eCR ($$$) {
     my $thisDir = shift @_;
     my $lastDir = shift @_;
+    my $iter    = shift @_;
 
     return $thisDir if (-e "$wrk/$thisDir/extendClearRanges.success");
 
@@ -133,10 +134,11 @@ sub eCR ($$) {
 
             my $cmd;
             $cmd  = "$bin/extendClearRanges ";
-            $cmd .= " -b $curScaffold -e $endScaffold ";
             $cmd .= " -g $wrk/$asm.gkpStore ";
-            $cmd .= " -c $asm ";
             $cmd .= " -n $lastckp ";
+            $cmd .= " -c $asm ";
+            $cmd .= " -b $curScaffold -e $endScaffold ";
+            $cmd .= " -i $iter ";
             $cmd .= " > $wrk/$thisDir/extendClearRanges-scaffold.$curScaffold.err 2>&1";
 
             open(F, "> $wrk/$thisDir/extendClearRanges-scaffold.$curScaffold.sh");
@@ -281,7 +283,7 @@ sub scaffolder ($) {
 
         #  Followed by at least one eCR, and a distance update.
         #
-        $lastDir = eCR("7-$thisDir-ECR", $lastDir);
+        $lastDir = eCR("7-$thisDir-ECR", $lastDir, 1);
         $thisDir++;
 
         if (getGlobal("updateDistanceType") ne "pre") {
@@ -292,11 +294,12 @@ sub scaffolder ($) {
         #  then another eCR.  Again, and again, until we get dizzy and
         #  fall over.
         #
-        for (my $rounds = getGlobal("doExtendClearRanges") - 1; $rounds > 0; $rounds--) {
+        my $iterationMax = getGlobal("doExtendClearRanges") + 1;
+        for (my $iteration = 2; $iteration < $iterationMax; $iteration++) {
             $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, 0, 3, 0);
             $thisDir++;
 
-            $lastDir = eCR("7-$thisDir-ECR", $lastDir);
+            $lastDir = eCR("7-$thisDir-ECR", $lastDir, $iteration);
             $thisDir++;
 
             if (getGlobal("updateDistanceType") ne "pre") {

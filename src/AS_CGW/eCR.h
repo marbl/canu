@@ -39,15 +39,15 @@ typedef struct {
   int   eCRmainLV;
   FILE *eCRmainFP;
 
-  int   diagnosticLV;
-  FILE *diagnosticFP;
-
   int   examineGapLV;
   FILE *examineGapFP;
+
+  int   diagnosticLV;
+  FILE *diagnosticFP;
 } debugflags_t;
 
 extern debugflags_t            debug;
 
 extern int                     totalContigsBaseChange;
 extern fragRecord             *fsread;
-extern int                     passNumber;
+extern int                     iterNumber;
