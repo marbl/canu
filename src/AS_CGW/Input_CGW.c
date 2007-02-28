@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.24 2007-02-25 10:15:01 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.25 2007-02-28 23:09:09 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -1074,16 +1074,22 @@ void ProcessFrags(void)
     if (gkf.mateIID != 0) {
       InfoByIID *miinfo = GetInfoByIID(ScaffoldGraph->iidToFragIndex, gkf.mateIID);
 
-      cifrag->mateOf   = miinfo->fragIndex;
-      cifrag->dist     = gkf.libraryIID;
-      cifrag->linkType = gkf.orientation;
-      if (gkf.orientation == AS_READ_ORIENT_INNIE)
-        cifrag->flags.bits.innieMate = TRUE;
-      cifrag->flags.bits.mateStatus = MATE_OK;
-      cifrag->flags.bits.edgeStatus = UNKNOWN_EDGE_STATUS;
-      cifrag->flags.bits.hasMate    = TRUE;
+      if (miinfo->set) {
+        cifrag->mateOf   = miinfo->fragIndex;
+        cifrag->dist     = gkf.libraryIID;
+        cifrag->linkType = gkf.orientation;
+        if (gkf.orientation == AS_READ_ORIENT_INNIE)
+          cifrag->flags.bits.innieMate = TRUE;
+        cifrag->flags.bits.mateStatus = MATE_OK;
+        cifrag->flags.bits.edgeStatus = UNKNOWN_EDGE_STATUS;
+        cifrag->flags.bits.hasMate    = TRUE;
+      } else {
+        fprintf(stderr, "ProcessFrags()-- WARNING!  fragiid=%d,index=%d mateiid=%d,index=%d -- MATE DOESN'T EXIST!\n",
+                i, ciinfo->fragIndex, gkf.mateIID, miinfo->fragIndex);
+        assert(0);
+      }
 
-      //fprintf(stderr, "Frag: iid=%d,index=%d mate=%d,index=%d\n", i, ciinfo->fragIndex, gkf.mateIID, miinfo->fragIndex);
+      //fprintf(stderr, "Frag: iid=%d,index=%d mateiid=%d,index=%d\n", i, ciinfo->fragIndex, gkf.mateIID, miinfo->fragIndex);
     }
 
     if (cifrag->flags.bits.hasMate == 0)
@@ -1101,6 +1107,7 @@ void ProcessFrags(void)
   for(i = 0; i < GetNumInfoByIIDs(ScaffoldGraph->iidToFragIndex); i++){
     InfoByIID *ciinfo = GetInfoByIID(ScaffoldGraph->iidToFragIndex, i);
     CIFragT   *cifrag = GetCIFragT(ScaffoldGraph->CIFrags, ciinfo->fragIndex);
+    InfoByIID *miinfo = NULL;
     CIFragT   *mifrag = NULL;
 
     //  this frag not used, or no mate
@@ -1108,6 +1115,7 @@ void ProcessFrags(void)
       continue;
 
     mifrag = GetCIFragT(ScaffoldGraph->CIFrags, cifrag->mateOf);
+    miinfo = GetInfoByIID(ScaffoldGraph->iidToFragIndex, mifrag->iid);
 
     if ((mifrag == NULL) || (mifrag->mateOf == NULLINDEX)) {
       //  We set up links to a dead frag, clean up...
@@ -1128,8 +1136,10 @@ void ProcessFrags(void)
     } else {
       //  Both guys are alive, and we're mated.  Throw some asserts
 
+      assert(ciinfo->set);
+      assert(miinfo->set);
       assert(cifrag->dist   == mifrag->dist);
-      //assert(cifrag->mateOf == miinfo->fragIndex);
+      assert(cifrag->mateOf == miinfo->fragIndex);
       assert(mifrag->mateOf == ciinfo->fragIndex);
     }
 
