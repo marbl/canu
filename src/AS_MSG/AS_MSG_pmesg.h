@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.34 2007-02-24 15:42:33 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.35 2007-02-28 08:03:30 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -193,6 +193,12 @@ typedef struct {
 } InternalDistMesg;
 
 
+//
+//  XXX When more types are added, or when the library starts telling
+//  what type the reads are, it will be VERY useful to remove ALL of
+//  these types to catch the numerous places where the type of the
+//  read is assumed to be AS_READ.
+//
 
 typedef enum {
   AS_READ    = (int)'R',  //  Celera Read
