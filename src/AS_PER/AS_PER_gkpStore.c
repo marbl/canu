@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.25 2007-02-24 15:42:33 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.26 2007-02-28 08:02:51 brianwalenz Exp $";
 
 //    A thin layer on top of the IndexStore supporing the storage and
 // retrieval of records used by the gatekeeper records.
@@ -323,6 +323,9 @@ createGateKeeperStore(const char *path) {
 
 void
 closeGateKeeperStore(GateKeeperStore *gkpStore) {
+
+  if (gkpStore == NULL)
+    return;
 
   if(gkpStore->bat != NULLSTOREHANDLE)
     closeStore(gkpStore->bat);
