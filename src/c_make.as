@@ -309,10 +309,10 @@ SUBDIRS = AS_RUN \
           AS_SDB \
           AS_LIN \
           AS_CGW \
-          AS_TER
+          AS_TER \
+          AS_CVT \
+          AS_MPA
 
 D=\
           AS_VWR \
-          AS_CVT \
-          AS_MPA \
           AS_ORA \
