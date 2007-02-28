@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: eCR.c,v 1.17 2007-02-27 10:08:25 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: eCR.c,v 1.18 2007-02-28 18:23:18 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -670,9 +670,6 @@ main(int argc, char **argv) {
 
             int        keepGap             = TRUE;
 
-            int        gotNewLeftMA        = FALSE;
-            int        gotNewRightMA       = FALSE;
-
             int        lextension          = 0;
             int        rextension          = 0;
 
@@ -757,10 +754,13 @@ main(int argc, char **argv) {
 
 
             if (keepGap) { // the fragment extensions have succeeded
-              CIFragT *frag;
-              NodeCGW_T *unitig;
-              MultiAlignT *new_cma;
-              fragPositions *fragPoss;
+              int             gotNewLeftMA        = TRUE;
+              int             gotNewRightMA       = TRUE;
+
+              CIFragT        *frag                = NULL;
+              NodeCGW_T      *unitig              = NULL;
+              MultiAlignT    *new_cma             = NULL;
+              fragPositions  *fragPoss            = NULL;
 				  
               if (debug.diagnosticLV > 0) {
                 DumpContigMultiAlignInfo ("before anything (left)", NULL, lcontig->id);
@@ -925,7 +925,7 @@ main(int argc, char **argv) {
               if (gotNewLeftMA == FALSE || gotNewRightMA == FALSE)  
                 keepGap = FALSE;
             }
-				
+
             if (keepGap) {
               double delta;
               int success;
