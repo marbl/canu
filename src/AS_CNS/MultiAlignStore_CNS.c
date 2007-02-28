@@ -25,7 +25,7 @@
    Assumptions:  libAS_UTL.a
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.28 2007-02-18 14:04:48 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.29 2007-02-28 13:53:10 brianwalenz Exp $";
 
 
 #include <assert.h>
@@ -891,15 +891,13 @@ SaveReferenceMultiAlignTToStream(MultiAlignT *ma, FILE *stream)
   char isPresent = (ma != NULL);
 
   // Sentinel to say this is non-null
-  AS_UTL_safeWrite(stream, &isPresent, "SaveReferenceMultiAlignTToStream", sizeof(char));
+  AS_UTL_safeWrite(stream, &isPresent, "SaveReferenceMultiAlignTToStream", sizeof(char), 1);
 
   if(!isPresent)
     return;
 
   // Sentinel to say this is a reference
-  //    fprintf(stderr,"* Saving reference to ma %d\n", reference);
-
-  AS_UTL_safeWrite(stream, &reference, "SaveReferenceMultiAlignTToStream", sizeof(int32));
+  AS_UTL_safeWrite(stream, &reference, "SaveReferenceMultiAlignTToStream", sizeof(int32), 1);
 }
 
 
@@ -911,31 +909,28 @@ SaveMultiAlignTToStream(MultiAlignT *ma, FILE *stream)
   size_t totalSize = 0;
   int32 reference = NULLINDEX;
   char isPresent = (ma != NULL);
-  //  if(!isPresent)
-    //  fprintf(stderr,"* SaveMultiAlignTToStream   NULL MultiAlignT!!!\n");
 
   // Sentinel to say this is non-null
   totalSize++;
-  AS_UTL_safeWrite(stream, &isPresent, "SaveMultiAlignTToStream", sizeof(char));
+  AS_UTL_safeWrite(stream, &isPresent, "SaveMultiAlignTToStream", sizeof(char), 1);
 
-    if(!isPresent)
-      return(sizeof(char));;
+  if(!isPresent)
+    return(sizeof(char));;
 
   // Sentinel to say this is a real one
-    totalSize += sizeof(int32);
-    AS_UTL_safeWrite(stream, &reference, "SaveMultiAlignTToStream", sizeof(int32));
+  totalSize += sizeof(int32);
+  AS_UTL_safeWrite(stream, &reference, "SaveMultiAlignTToStream", sizeof(int32), 1);
 
-    //  CheckMAValidity(ma);
+  //  CheckMAValidity(ma);
 
   // Save the delta pointers as offset from base of delta array
   {
     int32 *base = Getint32(ma->delta, 0);
-    //    fprintf(stderr,"* base = 0x%x\n",base);
+
     int numf = GetNumIntMultiPoss(ma->f_list);
     for(i = 0; i < numf; i++){
       IntMultiPos *pos = GetIntMultiPos(ma->f_list,i);
       long offset = (pos->delta - base);
-      //      fprintf(stderr,"* %d delta:%x 0x%x \n", i, offset, pos->delta);
       pos->delta = (int32 *)offset;
     }
   }
@@ -958,9 +953,9 @@ SaveMultiAlignTToStream(MultiAlignT *ma, FILE *stream)
   totalSize += CopyToFileVA_IntMultiPos(ma->u_list, stream);
   totalSize += (3 * sizeof(int32));
   //  fprintf(stderr,"*totalSize is %d\n", totalSize);
-  AS_UTL_safeWrite(stream, &ma->forced, "SaveMultiAlignTToStream", sizeof(int32));
-  AS_UTL_safeWrite(stream, &ma->id, "SaveMultiAlignTToStream", sizeof(int32));
-  AS_UTL_safeWrite(stream, &ma->source_alloc, "SaveMultiAlignTToStream", sizeof(int32));
+  AS_UTL_safeWrite(stream, &ma->forced, "SaveMultiAlignTToStream", sizeof(int32), 1);
+  AS_UTL_safeWrite(stream, &ma->id, "SaveMultiAlignTToStream", sizeof(int32), 1);
+  AS_UTL_safeWrite(stream, &ma->source_alloc, "SaveMultiAlignTToStream", sizeof(int32), 1);
  //  fprintf(stderr,"* ma %d start:%ld total:%ld\n",
   //	  ma->id, size, CDS_FTELL(stream) - size);
   // Restore the delta pointers since they were saved as offset from base of delta array
@@ -994,29 +989,26 @@ SaveMultiAlignTToStream(MultiAlignT *ma, FILE *stream)
 MultiAlignT *
 LoadMultiAlignTFromStream(FILE *stream, int32 *reference)
 {
-  int status;
+  int status = 0;
   int i;
   MultiAlignT *ma;
   char isPresent; 
 
   // Sentinel to say this is non-null
-    status = AS_UTL_safeRead(stream, &isPresent, "LoadMultiAlignTFromStream", sizeof(char));
-    assert(status == FALSE);
+  status = AS_UTL_safeRead(stream, &isPresent, "LoadMultiAlignTFromStream", sizeof(char), 1);
+  assert(status == 1);
 
-    if(!isPresent){
-      //      fprintf(stderr,"* Read NULL MultiAlignT...returning\n");
+  if(!isPresent){
     *reference = NULLINDEX;
-      return NULL;
-    }
-  status = AS_UTL_safeRead(stream, reference, "LoadMultiAlignTFromStream", sizeof(int32));
-  assert(status == FALSE);
-
-  if(*reference != NULLINDEX){
-    //    fprintf(stderr,"* ma ?? start:%ld total:%ld\n",
-    //	    size, CDS_FTELL(stream) - size);
     return NULL;
   }
 
+  status = AS_UTL_safeRead(stream, reference, "LoadMultiAlignTFromStream", sizeof(int32), 1);
+  assert(status == 1);
+
+  if(*reference != NULLINDEX){
+    return NULL;
+  }
   
   ma = CreateMultiAlignT();
 
@@ -1027,10 +1019,10 @@ LoadMultiAlignTFromStream(FILE *stream, int32 *reference)
   ma->v_list = CreateFromFileVA_IntMultiVar(stream,0);
   ma->udelta = CreateFromFileVA_int32(stream,0);
   ma->u_list = CreateFromFileVA_IntUnitigPos(stream,0);
-  status = AS_UTL_safeRead(stream, &ma->forced, "LoadMultiAlignTFromStream", sizeof(int32));
-  status += AS_UTL_safeRead(stream, &ma->id, "LoadMultiAlignTFromStream", sizeof(int32));
-  status += AS_UTL_safeRead(stream, &ma->source_alloc, "LoadMultiAlignTFromStream", sizeof(int32));
-  assert(status == FALSE);
+  status  = AS_UTL_safeRead(stream, &ma->forced, "LoadMultiAlignTFromStream", sizeof(int32), 1);
+  status += AS_UTL_safeRead(stream, &ma->id, "LoadMultiAlignTFromStream", sizeof(int32), 1);
+  status += AS_UTL_safeRead(stream, &ma->source_alloc, "LoadMultiAlignTFromStream", sizeof(int32), 1);
+  assert(status == 3);
 
   // Restore the delta pointers since they were saved as offset from base of delta array
   //  fprintf(stderr,"* ma->delta = 0x%x\n", ma->delta);
@@ -1039,7 +1031,6 @@ LoadMultiAlignTFromStream(FILE *stream, int32 *reference)
     int numf = GetNumIntMultiPoss(ma->f_list);
     for(i = 0; i < numf; i++){
       IntMultiPos *pos = GetIntMultiPos(ma->f_list,i);
-      //      fprintf(stderr,"* %d delta:%d\n", i,pos->delta);
       pos->delta = base + (long)(pos->delta);
     }
   }
@@ -1076,23 +1067,20 @@ ReLoadMultiAlignTFromStream(FILE *stream, MultiAlignT *ma, int32 *reference)
   ResetVA_IntUnitigPos(ma->u_list);
 
   // Sentinel to say this is non-null
-    status = AS_UTL_safeRead(stream, &isPresent, "ReLoadMultiAlignTFromStream", sizeof(char));
-    assert(status == FALSE);
+  status = AS_UTL_safeRead(stream, &isPresent, "ReLoadMultiAlignTFromStream", sizeof(char), 1);
+  assert(status == 1);
 
-    if(!isPresent){
-      //      fprintf(stderr,"* Read NULL MultiAlignT...returning\n");
+  if(!isPresent){
     *reference = NULLINDEX;
-      return;
-    }
-  status = AS_UTL_safeRead(stream, reference, "ReLoadMultiAlignTFromStream", sizeof(int32));
-  assert(status == FALSE);
-
-  if(*reference != NULLINDEX){
-    //    fprintf(stderr,"* ma ?? start:%ld total:%ld\n",
-    //	    size, CDS_FTELL(stream) - size);
     return;
   }
 
+  status = AS_UTL_safeRead(stream, reference, "ReLoadMultiAlignTFromStream", sizeof(int32), 1);
+  assert(status == 1);
+
+  if(*reference != NULLINDEX){
+    return;
+  }
   
   LoadFromFileVA_char(stream,ma->consensus,0);
   LoadFromFileVA_char(stream,ma->quality,0);
@@ -1101,10 +1089,10 @@ ReLoadMultiAlignTFromStream(FILE *stream, MultiAlignT *ma, int32 *reference)
   LoadFromFileVA_IntMultiVar(stream,ma->v_list,0);
   LoadFromFileVA_int32(stream,ma->udelta,0);
   LoadFromFileVA_IntUnitigPos(stream,ma->u_list,0);
-  status = AS_UTL_safeRead(stream, &ma->forced, "ReLoadMultiAlignTFromStream", sizeof(int32));
-  status += AS_UTL_safeRead(stream, &ma->id, "ReLoadMultiAlignTFromStream", sizeof(int32));
-  status += AS_UTL_safeRead(stream, &ma->source_alloc, "ReLoadMultiAlignTFromStream", sizeof(int32));
-  assert(status == FALSE);
+  status  = AS_UTL_safeRead(stream, &ma->forced, "ReLoadMultiAlignTFromStream", sizeof(int32), 1);
+  status += AS_UTL_safeRead(stream, &ma->id, "ReLoadMultiAlignTFromStream", sizeof(int32), 1);
+  status += AS_UTL_safeRead(stream, &ma->source_alloc, "ReLoadMultiAlignTFromStream", sizeof(int32), 1);
+  assert(status == 3);
 
   // Restore the delta pointers since they were saved as offset from base of delta array
   //  fprintf(stderr,"* ma->delta = 0x%x\n", ma->delta);
@@ -1332,7 +1320,7 @@ SaveMultiAlignStoreTToStream(MultiAlignStoreT *mas, FILE *stream,
   int i;
   int status;
   int32 size = GetNumPtrTs(mas->multiAligns);
-  AS_UTL_safeWrite(stream, &size, "SaveMultiAlignStoreTToStream", sizeof(int32));
+  AS_UTL_safeWrite(stream, &size, "SaveMultiAlignStoreTToStream", sizeof(int32), 1);
   for(i = 0; i < size; i++){
     MultiAlignT *ma = (MultiAlignT *) *GetPtrT(mas->multiAligns, i);
     //    fprintf(stderr,"* i = %d ma = 0x%x\n", i, ma);
@@ -1356,9 +1344,9 @@ LoadMultiAlignStoreTFromStream(FILE *stream)
   int status;
   int32 size;
   int32 reference;
-  status = AS_UTL_safeRead(stream, &size, "LoadMultiAlignStoreTFromStream", sizeof(int32));
+  status = AS_UTL_safeRead(stream, &size, "LoadMultiAlignStoreTFromStream", sizeof(int32), 1);
+  assert(status == 1);
   mas = CreateMultiAlignStoreT(size);
-  assert(status == FALSE);
   for(i = 0; i < size; i++){
     MultiAlignT *ma =(MultiAlignT *)
          LoadMultiAlignTFromStream(stream, &reference);
@@ -1382,9 +1370,9 @@ LoadMultiAlignStoreTFromStreamWithReferences(FILE *stream,
   int status;
   int32 size;
   int32 reference;
-  status = AS_UTL_safeRead(stream, &size, "LoadMultiAlignStoreTFromStreamWithReferences", sizeof(int32));
+  status = AS_UTL_safeRead(stream, &size, "LoadMultiAlignStoreTFromStreamWithReferences", sizeof(int32), 1);
+  assert(status == 1);
   mas = CreateMultiAlignStoreT(size);
-  assert(status == FALSE);
   for(i = 0; i < size; i++){
     MultiAlignT *ma = (MultiAlignT *) 
         LoadMultiAlignTFromStream(stream, &reference);

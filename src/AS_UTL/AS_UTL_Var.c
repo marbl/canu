@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.17 2007-02-25 08:13:38 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.18 2007-02-28 13:53:10 brianwalenz Exp $";
 /********************************************************************/
 /* Variable Length C Array Package 
  * 
@@ -30,8 +30,8 @@ static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.17 2007-02-25 08:13:38 brianwalenz 
  * It defines a basic set of operations, and provides a set of
  * macros that expand to support typesafe manipulation of the
  * arrays.
- * Revision: $Revision: 1.17 $
- * Date:     $Date: 2007-02-25 08:13:38 $
+ * Revision: $Revision: 1.18 $
+ * Date:     $Date: 2007-02-28 13:53:10 $
  * CMM, 1999/03/29:  Ported to large arrays on the Digital systems by declaring
  * array sizes using size_t, rather than unit32.
  *
@@ -513,7 +513,7 @@ void ReInitializeFromFile_VA
     assert(vat.numElements == nelem);
     assert(nsize > 0);
 
-    AS_UTL_safeRead(fp, elems, "ReInitializeFromFile_VA", nelem * nsize);
+    AS_UTL_safeRead(fp, elems, "ReInitializeFromFile_VA", nsize, nelem);
   }
 }
 
@@ -589,7 +589,7 @@ void InitializeFromFile_VA
     assert(vat.sizeofElement == va->sizeofElement);
     assert(nsize > 0);
 
-    AS_UTL_safeRead(fp, elems, "InitializeFromFile_VA", nelem * nsize);
+    AS_UTL_safeRead(fp, elems, "InitializeFromFile_VA", nsize, nelem);
   }
 }
 
@@ -621,7 +621,7 @@ size_t CopyToFile_VA(const VarArrayType * const va,FILE *fp){
     
     totalSize += nsize * nelem;
 
-    AS_UTL_safeWrite(fp, elems, "CopyToFile_VA", nelem * nsize);
+    AS_UTL_safeWrite(fp, elems, "CopyToFile_VA", nsize, nelem);
   }
   //  fprintf(stderr,"* CopyFileToVa appended " F_SIZE_T " bytes\n", totalSize);
   return totalSize;
@@ -666,7 +666,7 @@ void CheckFile_VA
       char *tmp = (char *)safe_malloc(nelem * nsize);
       size_t ii; 
 
-      AS_UTL_safeRead(fp, tmp, "CheckFile_VA", nelem * nsize);
+      AS_UTL_safeRead(fp, tmp, "CheckFile_VA", nsize, nelem);
 
       for(ii=0;ii<nelem*nsize;ii++)
         assert(elems[ii] == tmp[ii]);

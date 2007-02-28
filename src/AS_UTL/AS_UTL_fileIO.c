@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//static char CM_ID[] = "$Id: AS_UTL_fileIO.c,v 1.4 2007-02-18 14:04:50 brianwalenz Exp $";
+//static char CM_ID[] = "$Id: AS_UTL_fileIO.c,v 1.5 2007-02-28 13:53:11 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,24 +38,26 @@
 //  interruptable).
 
 void
-AS_UTL_safeWrite(FILE *file, const void *buffer, char *desc, size_t nbytes) {
+AS_UTL_safeWrite(FILE *file, const void *buffer, char *desc, size_t size, size_t nobj) {
   size_t  position = 0;
-  size_t  length   = 32 * 1024 * 1024;
+  size_t  length   = 32 * 1024 * 1024 / size;
   size_t  towrite  = 0;
   size_t  written  = 0;
   int     filedes  = fileno(file);
+  size_t  nbytes   = size * nobj;
 
-  while (position < nbytes) {
+  while (position < nobj) {
     towrite = length;
-    if (position + towrite > nbytes)
-      towrite = nbytes - position;
+    if (position + towrite > nobj)
+      towrite = nobj - position;
 
     errno = 0;
-    written = fwrite(((char *)buffer) + position, sizeof(char), towrite, file);
+    written = fwrite(((char *)buffer) + position * size, size, towrite, file);
 
     if (errno) {
       fprintf(stderr, "safeWrite()-- Write failure on %s: %s\n", desc, strerror(errno));
-      fprintf(stderr, "safeWrite()-- Wanted to write "F_SIZE_T" bytes, wrote "F_SIZE_T".\n", towrite, written);
+      fprintf(stderr, "safeWrite()-- Wanted to write "F_SIZE_T" objects (size="F_SIZE_T"), wrote "F_SIZE_T".\n",
+              towrite, size, written);
       exit(1);
     }
 
@@ -64,34 +66,35 @@ AS_UTL_safeWrite(FILE *file, const void *buffer, char *desc, size_t nbytes) {
 }
 
 
-int
-AS_UTL_safeRead(FILE *file, void *buffer, char *desc, size_t nbytes) {
+size_t
+AS_UTL_safeRead(FILE *file, void *buffer, char *desc, size_t size, size_t nobj) {
   size_t  position = 0;
-  size_t  length   = 32 * 1024 * 1024;
+  size_t  length   = 32 * 1024 * 1024 / size;
   size_t  toread   = 0;
   size_t  written  = 0;  //  readen?
   int     filedes  = fileno(file);
 
-  while (position < nbytes) {
+  while (position < nobj) {
     toread = length;
-    if (position + toread > nbytes)
-      toread = nbytes - position;
+    if (position + toread > nobj)
+      toread = nobj - position;
 
     errno = 0;
-    written = fread(((char *)buffer) + position, sizeof(char), toread, file);
+    written = fread(((char *)buffer) + position, size, toread, file);
 
     if (feof(file) || (written == 0))
-      return(TRUE);
+      return(written);
 
     if ((errno) && (errno != EINTR)) {
       fprintf(stderr, "safeRead()-- Read failure on %s: %s.\n", desc, strerror(errno));
-      fprintf(stderr, "safeRead()-- Wanted to read "F_SIZE_T" bytes, read "F_SIZE_T".\n", toread, written);
+      fprintf(stderr, "safeRead()-- Wanted to read "F_SIZE_T" objects (size="F_SIZE_T"), read "F_SIZE_T".\n",
+              toread, size, written);
       exit(1);
     }
 
     position += written;
   }
 
-  return(FALSE);
+  return(written);
 }
 

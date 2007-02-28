@@ -30,7 +30,7 @@
 //  be a little more friendly (big writes are usually not
 //  interruptable).
 
-void AS_UTL_safeWrite(FILE *file, const void *buffer, char *desc, size_t nbytes);
-int  AS_UTL_safeRead(FILE *file, void *buffer, char *desc, size_t nbytes);
+void    AS_UTL_safeWrite(FILE *file, const void *buffer, char *desc, size_t size, size_t nobj);
+size_t  AS_UTL_safeRead (FILE *file, void *buffer,       char *desc, size_t size, size_t nobj);
 
 #endif  //  AS_UTL_FILEIO_H

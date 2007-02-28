@@ -18,12 +18,8 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/*
-  cc -g -pg -qfullpath   -qstrict -qbitfields=signed -qchars=signed -qlanglvl=ext -qignerrno -qupconv -qcpluscmt -qmaxmem=-1 -D_ILS_MACROS -D_C_LOCALE_ONLY -c
-  -o /work/assembly/rbolanos/IBM_PORT_CDS/ibm_migration_work_dir/cds/AS/obj/GraphCGW_T.o GraphCGW_T.c
-*/
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.33 2007-02-18 14:04:48 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.34 2007-02-28 13:53:08 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -120,14 +116,14 @@ void SaveGraphCGWToStream(GraphCGW_T *graph, FILE *stream){
 
   CopyToFileVA_EdgeCGW_T(graph->edges, stream);
   
-  AS_UTL_safeWrite(stream, &graph->type, "SaveGraphCGWToStream", sizeof(int32));
-  AS_UTL_safeWrite(stream, &graph->numActiveNodes, "SaveGraphCGWToStream", sizeof(int32));
-  AS_UTL_safeWrite(stream, &graph->numActiveEdges, "SaveGraphCGWToStream", sizeof(int32));
-  AS_UTL_safeWrite(stream, &graph->freeEdgeHead, "SaveGraphCGWToStream", sizeof(CDS_CID_t));
-  AS_UTL_safeWrite(stream, &graph->tobeFreeEdgeHead, "SaveGraphCGWToStream", sizeof(CDS_CID_t));
-  AS_UTL_safeWrite(stream, &graph->freeNodeHead, "SaveGraphCGWToStream", sizeof(CDS_CID_t));
-  AS_UTL_safeWrite(stream, &graph->tobeFreeNodeHead, "SaveGraphCGWToStream", sizeof(CDS_CID_t));
-  AS_UTL_safeWrite(stream, &graph->deadNodeHead, "SaveGraphCGWToStream", sizeof(CDS_CID_t));
+  AS_UTL_safeWrite(stream, &graph->type,             "SaveGraphCGWToStream", sizeof(int32),     1);
+  AS_UTL_safeWrite(stream, &graph->numActiveNodes,   "SaveGraphCGWToStream", sizeof(int32),     1);
+  AS_UTL_safeWrite(stream, &graph->numActiveEdges,   "SaveGraphCGWToStream", sizeof(int32),     1);
+  AS_UTL_safeWrite(stream, &graph->freeEdgeHead,     "SaveGraphCGWToStream", sizeof(CDS_CID_t), 1);
+  AS_UTL_safeWrite(stream, &graph->tobeFreeEdgeHead, "SaveGraphCGWToStream", sizeof(CDS_CID_t), 1);
+  AS_UTL_safeWrite(stream, &graph->freeNodeHead,     "SaveGraphCGWToStream", sizeof(CDS_CID_t), 1);
+  AS_UTL_safeWrite(stream, &graph->tobeFreeNodeHead, "SaveGraphCGWToStream", sizeof(CDS_CID_t), 1);
+  AS_UTL_safeWrite(stream, &graph->deadNodeHead,     "SaveGraphCGWToStream", sizeof(CDS_CID_t), 1);
 
   // Save the multiAlignStore
   if(graph->type != SCAFFOLD_GRAPH){
@@ -159,15 +155,15 @@ GraphCGW_T *LoadGraphCGWFromStream(FILE *stream){
 
   graph->edges =          CreateFromFileVA_EdgeCGW_T( stream,0);
 
-  status  = AS_UTL_safeRead(stream, &graph->type, "LoadGraphCGWFromStream", sizeof(int32));
-  status += AS_UTL_safeRead(stream, &graph->numActiveNodes, "LoadGraphCGWFromStream", sizeof(int32));
-  status += AS_UTL_safeRead(stream, &graph->numActiveEdges, "LoadGraphCGWFromStream", sizeof(int32));
-  status += AS_UTL_safeRead(stream, &graph->freeEdgeHead, "LoadGraphCGWFromStream", sizeof(CDS_CID_t));
-  status += AS_UTL_safeRead(stream, &graph->tobeFreeEdgeHead, "LoadGraphCGWFromStream", sizeof(CDS_CID_t));
-  status += AS_UTL_safeRead(stream, &graph->freeNodeHead, "LoadGraphCGWFromStream", sizeof(CDS_CID_t));
-  status += AS_UTL_safeRead(stream, &graph->tobeFreeNodeHead, "LoadGraphCGWFromStream", sizeof(CDS_CID_t));
-  status += AS_UTL_safeRead(stream, &graph->deadNodeHead, "LoadGraphCGWFromStream", sizeof(CDS_CID_t));
-  assert(status == FALSE);
+  status  = AS_UTL_safeRead(stream, &graph->type,             "LoadGraphCGWFromStream", sizeof(int32),     1);
+  status += AS_UTL_safeRead(stream, &graph->numActiveNodes,   "LoadGraphCGWFromStream", sizeof(int32),     1);
+  status += AS_UTL_safeRead(stream, &graph->numActiveEdges,   "LoadGraphCGWFromStream", sizeof(int32),     1);
+  status += AS_UTL_safeRead(stream, &graph->freeEdgeHead,     "LoadGraphCGWFromStream", sizeof(CDS_CID_t), 1);
+  status += AS_UTL_safeRead(stream, &graph->tobeFreeEdgeHead, "LoadGraphCGWFromStream", sizeof(CDS_CID_t), 1);
+  status += AS_UTL_safeRead(stream, &graph->freeNodeHead,     "LoadGraphCGWFromStream", sizeof(CDS_CID_t), 1);
+  status += AS_UTL_safeRead(stream, &graph->tobeFreeNodeHead, "LoadGraphCGWFromStream", sizeof(CDS_CID_t), 1);
+  status += AS_UTL_safeRead(stream, &graph->deadNodeHead,     "LoadGraphCGWFromStream", sizeof(CDS_CID_t), 1);
+  assert(status == 8);
 
   // Load the multiAlignStore
   if(graph->type == CI_GRAPH){
