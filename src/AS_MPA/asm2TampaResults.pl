@@ -18,7 +18,7 @@
 #
 ###########################################################################
 #
-# $Id: asm2TampaResults.pl,v 1.6 2005-12-16 22:13:07 catmandew Exp $
+# $Id: asm2TampaResults.pl,v 1.7 2007-02-28 08:04:51 brianwalenz Exp $
 #
 
 # Wrapper to run and post-process results from TAMPA
@@ -35,7 +35,7 @@ use Carp;
 use FileHandle;
 use Getopt::Long;
 
-my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.6 $/ )[1]. ")";
+my $MY_VERSION = " Version 1.01 (Build " . (qw/$Revision: 1.7 $/ )[1]. ")";
 
 my $HELPTEXT = qq~
 Produce TAMPA results from an assembly
@@ -44,7 +44,6 @@ Produce TAMPA results from an assembly
 
     <-a assembly>  The prefix of the input filenames such that
                    assembly.gkpStore = gatekeeper store
-                   assembly.frgStore = fragment store
                    assembly.asm = assembly file
   
     options:
@@ -82,12 +81,10 @@ $binariesPath .= "/" if($binariesPath);
 
 # build an assembly store
 my $gkpStorename = $assemblyPrefix . ".gkpStore";
-my $frgStorename = $assemblyPrefix . ".frgStore";
 my $asmFilename = $assemblyPrefix . ".asm";
 my $asmStorename = $assemblyPrefix . ".asmStore";
 my $command = $binariesPath . "asm2asmStore " .
   "-g $gkpStorename " .
-  "-f $frgStorename " .
   "-a $asmFilename " .
   "-s $asmStorename";
 print STDERR "Running $command\n";

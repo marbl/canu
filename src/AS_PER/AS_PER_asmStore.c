@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_asmStore.c,v 1.6 2007-02-14 07:20:13 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_asmStore.c,v 1.7 2007-02-28 08:04:51 brianwalenz Exp $";
 
 /*************************************************************************
  Module:  AS_PER_asmStore
@@ -56,7 +56,6 @@ char * ASM_Filenames[NUM_ASM_FILES] =
   "asm.bkt",
   
   "asm.afg",
-  "asm.lkg",
   "asm.aci",
   "asm.asi"
   
@@ -250,8 +249,6 @@ AssemblyStore * OpenAssemblyStoreCommon(char * path, char *mode)
   
   sprintf(name, "%s/asm.afg", asmStore->storePath);
   asmStore->afgStore = openASM_AFGStore(name, mode);
-  sprintf(name, "%s/asm.lkg", asmStore->storePath);
-  asmStore->lkgStore = openASM_LKGStore(name, mode);
   sprintf(name, "%s/asm.aci", asmStore->storePath);
   asmStore->aciStore = openASM_InstanceStore(name, mode);
   sprintf(name, "%s/asm.asi", asmStore->storePath);
@@ -286,7 +283,6 @@ AssemblyStore * OpenAssemblyStoreCommon(char * path, char *mode)
   if(NULLSTOREHANDLE == asmStore->mdiStore ||
      NULLSTOREHANDLE == asmStore->bktStore ||
      NULLSTOREHANDLE == asmStore->afgStore ||
-     NULLSTOREHANDLE == asmStore->lkgStore ||
      NULLSTOREHANDLE == asmStore->aciStore ||
      NULLSTOREHANDLE == asmStore->asiStore ||
      NULLSTOREHANDLE == asmStore->utgStore ||
@@ -404,16 +400,9 @@ int OpenGateKeeperStoreAssemblyStore(AssemblyStore * asmStore,
 }
 
 
-int OpenFragmentStoreAssemblyStore(AssemblyStore * asmStore,
-                                   char * frgStorePath)
-{
-  return(1);
-}
-
 
 AssemblyStore * CreateAssemblyStore(char * path,
-                                    char * gkpStorePath,
-                                    char * frgStorePath)
+                                    char * gkpStorePath)
 {
   AssemblyStore * asmStore;
   char name[FILENAME_MAX];
@@ -433,8 +422,6 @@ AssemblyStore * CreateAssemblyStore(char * path,
   
   sprintf(name,"%s/asm.afg", asmStore->storePath);
   asmStore->afgStore = createASM_AFGStore(name, "afg",1);
-  sprintf(name,"%s/asm.lkg", asmStore->storePath);
-  asmStore->lkgStore = createASM_LKGStore(name, "lnk",1);
   sprintf(name,"%s/asm.aci", asmStore->storePath);
   asmStore->aciStore = createASM_InstanceStore(name, "aci",1);
   sprintf(name,"%s/asm.asi", asmStore->storePath);
@@ -521,8 +508,6 @@ void CloseAssemblyStore(AssemblyStore *asmStore)
   
   if(asmStore->afgStore != NULLSTOREHANDLE)
     closeStore(asmStore->afgStore);
-  if(asmStore->lkgStore != NULLSTOREHANDLE)
-    closeStore(asmStore->lkgStore);
   if(asmStore->aciStore != NULLSTOREHANDLE)
     closeStore(asmStore->aciStore);
   if(asmStore->asiStore != NULLSTOREHANDLE)

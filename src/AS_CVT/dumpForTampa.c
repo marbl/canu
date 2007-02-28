@@ -28,6 +28,8 @@
 #include "AS_global.h"
 #include "ASMData.h"
 
+VA_DEF(CDS_UID_t);
+
 void PrintScaffoldCloneData(AssemblyStore * asmStore,
                             CDS_IID_t iid,
                             char * assemblyName)

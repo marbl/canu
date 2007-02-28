@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CVT_hashtable.c,v 1.4 2005-03-22 19:48:52 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_CVT_hashtable.c,v 1.5 2007-02-28 08:04:50 brianwalenz Exp $";
 
 /*********************************************************************/
 // headers
@@ -83,12 +83,12 @@ Bucketp GetBucket( BucketHeapp bucket_heap, cds_uint32 size )
 {
   Bucketp b = NULL;
   char * c;
-  if( (c = (char *) calloc( 1, size )) != NULL )
+  if( (c = (char *) safe_calloc( 1, size )) != NULL )
   {
     if( (b = (Bucketp) GetGenericHeapItem( bucket_heap )) != NULL )
       b->ret = c;
     else
-      free( c );
+      safe_free( c );
   }
   return b;
 }
@@ -136,7 +136,7 @@ BucketStackp AllocateBucketStack( cds_uint32 num_buckets, cds_uint32 size )
 {
   BucketStackp bs;
   
-  if( (bs = (BucketStackp) calloc( 1, sizeof( BucketStack ) )) == NULL )
+  if( (bs = (BucketStackp) safe_calloc( 1, sizeof( BucketStack ) )) == NULL )
   {
     fprintf( stderr, "Failed to allocate bucket stack\n" );
     return NULL;
@@ -148,7 +148,7 @@ BucketStackp AllocateBucketStack( cds_uint32 num_buckets, cds_uint32 size )
   {
     fprintf( stderr,
              "Failed to allocate initial bucket heap for stack\n" );
-    free( bs );
+    safe_free( bs );
     return NULL;
   }
   return bs;
@@ -168,7 +168,7 @@ void FreeBucketStack( BucketStackp bs )
   if( bs != NULL )
   {
     FreeBucketHeap( bs->heap );
-    free( bs );
+    safe_free( bs );
   }
 }
 
@@ -185,7 +185,7 @@ void FreeBucketStack( BucketStackp bs )
 void PushBucketOnStack( BucketStackp bs, Bucketp bucket )
 {
   if( bucket->ret )
-    free( bucket->ret );
+    safe_free( bucket->ret );
   bucket->next = bs->stack;
   bs->stack = bucket;
 }
@@ -204,7 +204,7 @@ Bucketp PopBucketOffStack( BucketStackp bs )
   if( bs->stack != NULL )
   {
     char * c;
-    if( (c = (char *) calloc( 1, bs->size )) != NULL )
+    if( (c = (char *) safe_calloc( 1, bs->size )) != NULL )
     {
       Bucketp b = bs->stack;
       bs->stack = bs->stack->next;
@@ -227,12 +227,12 @@ void FreeHashTable( HashTablep ht )
     {
       Bucketp b;
       for( b = ht->nodes[i]; b != NULL; b = b->next )
-        free( b->ret );
+        safe_free( b->ret );
     }
     FreeBucketStack( ht->buckets );
     if( ht->nodes )
-      free( ht->nodes );
-    free( ht );
+      safe_free( ht->nodes );
+    safe_free( ht );
   }
 }
 
@@ -241,7 +241,7 @@ HashTablep CreateHashTable( cds_uint32 num_nodes, cds_uint32 size )
 {
   HashTablep ht;
   
-  ht = (HashTablep) calloc( 1, sizeof( HashTable ) );
+  ht = (HashTablep) safe_calloc( 1, sizeof( HashTable ) );
   if( ht == NULL )
     return NULL;
 
@@ -253,7 +253,7 @@ HashTablep CreateHashTable( cds_uint32 num_nodes, cds_uint32 size )
   }
   ht->curr = NULL;
 
-  ht->nodes = (Bucketp *) calloc( num_nodes, sizeof( Bucketp ) );
+  ht->nodes = (Bucketp *) safe_calloc( num_nodes, sizeof( Bucketp ) );
   if( ht->nodes == NULL )
   {
     FreeHashTable( ht );

@@ -124,8 +124,7 @@ int main( int argc, char ** argv )
             
             fprintf(fout, "\t%d\n", (int) (.5+maxStddev + 1 - minStddev));
             
-            sc = (int *) calloc((int) (maxStddev + 1.5 - minStddev),
-                                sizeof(int));
+            sc = (int *) safe_calloc((int) (maxStddev + 1.5 - minStddev), sizeof(int));
             for(i = 0; i < smdm->num_buckets; i++)
             {
               sc[(int) ((i * bucketSize + smdm->min - smdm->mean) /
@@ -136,8 +135,8 @@ int main( int argc, char ** argv )
               fprintf(fout, "%d\t%d\n",
                       (int) (.5 + smdm->mean + smdm->stddev * (minStddev + i)),
                       sc[i]);
-            
-            free(sc);
+
+            safe_free(sc);
           }
 
           fclose(fout);

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_PER_asmStore.h,v 1.7 2007-02-12 22:16:58 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_asmStore.h,v 1.8 2007-02-28 08:04:51 brianwalenz Exp $	 */
 #ifndef AS_PER_ASMSTORE_H
 #define AS_PER_ASMSTORE_H
 /*************************************************************************
@@ -93,8 +93,9 @@ typedef struct
   unsigned int   deleted:1;
   unsigned int   spare1:2;
   unsigned int   type:8;
-  unsigned int   numLinks:16;
-  uint32         linkHead;
+  unsigned int   unused:16;
+  ASM_IIDRecord  mate;
+  ASM_IIDRecord  library;
   SeqInterval    inClr;
   SeqInterval    asmClr;
   IntChunk_ID    unitigIndex;
@@ -103,25 +104,6 @@ typedef struct
   int32          sInsIndex;
 } ASM_AFGRecord;
 
-
-//  This is the old GateKeeperLinkRecord.
-typedef struct{
-  unsigned int   deleted:1;
-  unsigned int   type:8;  
-  unsigned int   orientation:3;
-  unsigned int   spare:23;
-  CDS_IID_t      distance;   // iid of distance
-
-  CDS_IID_t      frag1;      // iid of frag1
-  CDS_IID_t      frag2;      // iid of frag2
-
-  CDS_IID_t      frag1Next;
-  CDS_IID_t      frag2Next;
-
-  uint16         birthBatch;         /* This entry is valid */
-  uint16         deathBatch;         /* [birthBatch, deatchBatch) */
-  uint32         padTo8byteWords;
-} ASM_LKGRecord;
 
 typedef struct
 {
@@ -211,7 +193,7 @@ static int32 getNum ## type ## s(type ## Store store){\
 }
 
 // Stores
-#define NUM_ASM_FILES 18
+#define NUM_ASM_FILES 17
 
 // in addition to asm.phash, there are the following files
 
@@ -226,9 +208,6 @@ ASMSTORE_DEF(ASM_AFG)
 
 // for asm.aci, asm.asi, asm.uci, and asm.usi (instances)
 ASMSTORE_DEF(ASM_Instance)
-
-// for asm.lkg
-ASMSTORE_DEF(ASM_LKG)
 
 // for asm.utg
 ASMSTORE_DEF(ASM_UTG)
@@ -253,7 +232,6 @@ ASMSTORE_DEF(ASM_SCF)
 typedef struct
 {
   char gkpStorePath[FILENAME_MAX];
-  char frgStorePath[FILENAME_MAX];
 } ASM_Status;
 
 
@@ -269,7 +247,6 @@ typedef struct
   ASM_BucketStore  bktStore;
   
   ASM_AFGStore     afgStore;
-  ASM_LKGStore     lkgStore;
   ASM_InstanceStore aciStore;
   ASM_InstanceStore asiStore;
   
@@ -294,13 +271,10 @@ typedef struct
 
 int OpenGateKeeperStoreAssemblyStore(AssemblyStore * asmStore,
                                      char * gkpStorePath);
-int OpenFragmentStoreAssemblyStore(AssemblyStore * asmStore,
-                                   char * frgStorePath);
 int CopyGateKeeperStoreLinksAssemblyStore(AssemblyStore * asmStore);
 
 AssemblyStore * CreateAssemblyStore(char * path,
-                                    char * gkpStorePath,
-                                    char * frgStorePath);
+                                    char * gkpStorePath);
 
 AssemblyStore * OpenAssemblyStore(char * path);
 AssemblyStore * OpenReadOnlyAssemblyStore(char * path);

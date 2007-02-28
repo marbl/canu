@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CVT_uid_interface.c,v 1.4 2005-03-22 19:48:52 jason_miller Exp $";
+static char CM_ID[] = "$Id: AS_CVT_uid_interface.c,v 1.5 2007-02-28 08:04:50 brianwalenz Exp $";
 
 /*********************************************************************/
 // headers
@@ -35,7 +35,7 @@ UIDInteractorp CreateUIDInteractor( cds_uint64 block_size)
 {
   UIDInteractorp ui;
 
-  ui = (UIDInteractorp) malloc(sizeof(UIDInteractor));
+  ui = (UIDInteractorp) safe_malloc(sizeof(UIDInteractor));
   ui->currUID = 1;
 
   return ui;
@@ -44,8 +44,7 @@ UIDInteractorp CreateUIDInteractor( cds_uint64 block_size)
 
 void DestroyUIDInteractor( UIDInteractorp ui )
 {
-  if( ui )
-    free( ui );
+  safe_free( ui );
 }
 
 

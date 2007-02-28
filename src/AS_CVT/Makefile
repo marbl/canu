@@ -50,7 +50,8 @@ LIBRARIES =
 DEADPROGS = extract_component \
 	extract_from_uids \
         extract_multiple \
-        extract_fraction \
+        extract_fraction
+
 PROGS = make_cns_list make_range_file \
 	asm2asmStore dumpClones \
 	getMDIDataFromASM dumpFragScaffCoords loadAsmStore \
@@ -63,7 +64,6 @@ PROGS = make_cns_list make_range_file \
 	dumpMappedElsewheres \
 	concatRegions dumpElsewheres dumpForTampa \
         generateReadsFiles ofg2asm
-
 
 SCRIPTS = run_components_thru_grande \
           run_grande_on_component \

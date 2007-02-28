@@ -1,7 +1,4 @@
 
-#warning ASMData.c not working.
-
-#if 0
 /**************************************************************************
  * This file is part of Celera Assembler, a software program that 
  * assembles whole-genome shotgun reads into contigs and scaffolds.
@@ -210,7 +207,6 @@ void PrintFragmentScaffoldCoordinates(AssemblyStore * asmStore,
   ASM_SCFRecord scf;
   ASM_InstanceRecord contigIns;
   ASM_InstanceRecord scaffIns;
-  ASM_LKGRecord lkg;
   // int32 numUTGs = getNumASM_UTGs(asmStore->utgStore);
   // int32 numCCOs = getNumASM_CCOs(asmStore->ccoStore);
   // int32 numDSCs = getNumASM_DSCs(asmStore->dscStore);
@@ -285,25 +281,19 @@ void PrintFragmentScaffoldCoordinates(AssemblyStore * asmStore,
       }
     }
 
-    // print mate & library
-    if(afg.numLinks > 0 && doLinks && printed)
-    {
-      CreateGateKeeperLinkRecordIterator(asmStore->lkgStore, afg.linkHead,
-                                         i, &iterator);
-      while(NextGateKeeperLinkRecordIterator(&iterator, &lkg))
-      {
-        if(lkg.type == AS_MATE)
-        {
-          ASM_MDIRecord mdi;
-          ASM_AFGRecord afg2;
-          CDS_IID_t iid = (lkg.frag1 == i) ? lkg.frag2 : lkg.frag1;
 
-          getASM_AFGStore(asmStore->afgStore, iid, &afg2);
-          getASM_MDIStore(asmStore->mdiStore, lkg.distance, &mdi);
-          fprintf(fo, "\t" F_UID "\t" F_UID, afg2.uid, mdi.uid);
-          break;
-        }
-      }
+
+
+    // print mate & library
+    if(afg.mate > 0 && doLinks && printed)
+    {
+      ASM_MDIRecord mdi;
+      ASM_AFGRecord afg2;
+      CDS_IID_t iid = afg.mate;
+
+      getASM_AFGStore(asmStore->afgStore, iid, &afg2);
+      getASM_MDIStore(asmStore->mdiStore, afg.library, &mdi);
+      fprintf(fo, "\t" F_UID "\t" F_UID, afg2.uid, mdi.uid);
     }
     if(printed)
       fprintf(fo, "\n");
@@ -342,8 +332,6 @@ void PrintReadsPlaced(AssemblyStore * asmStore,
   ASM_SCFRecord scf;
   ASM_InstanceRecord contigIns;
   ASM_InstanceRecord scaffIns;
-  ASM_LKGRecord lkg;
-  GateKeeperLinkRecordIterator iterator;
   int32 numAFGs = getNumASM_AFGs(asmStore->afgStore);
   
   for(i = 1; i <= numAFGs; i++)
@@ -447,7 +435,7 @@ int AddMDI2Store(AssemblyStore * asmStore, SnapMateDistMesg * smdm)
 
   if(asmStore->gkpStore != NULL)
   {
-    if(HASH_FAILURE == LookupInPHashTable_AS(asmStore->gkpStore->hashTable,
+    if(HASH_FAILURE == LookupInPHashTable_AS(asmStore->gkpStore->phs,
                                              ASM_UID_NAMESPACE,
                                              mdi.uid,
                                              &value))
@@ -458,11 +446,11 @@ int AddMDI2Store(AssemblyStore * asmStore, SnapMateDistMesg * smdm)
     }
     else
     {
-      GateKeeperDistanceRecord gkdr;
-      getGateKeeperDistanceStore(asmStore->gkpStore->dstStore,
-                                 value.IID, &gkdr);
-      mdi.inMean = gkdr.mean;
-      mdi.inStddev = gkdr.stddev;
+      GateKeeperLibraryRecord gklr;
+      getGateKeeperLibraryStore(asmStore->gkpStore->lib,
+                                value.IID, &gklr);
+      mdi.inMean   = gklr.mean;
+      mdi.inStddev = gklr.stddev;
     }
   }
   appendASM_MDIStore(asmStore->mdiStore, &mdi);
@@ -479,7 +467,6 @@ int AddAFG2Store(AssemblyStore * asmStore, AugFragMesg * afg)
 {
   ASM_AFGRecord myAFG;
   PHashValue_AS value;
-  static ReadStructp rs;
   GateKeeperFragmentRecord gkfr;
   
   if(asmStore->gkpStore == NULL)
@@ -512,25 +499,17 @@ int AddAFG2Store(AssemblyStore * asmStore, AugFragMesg * afg)
   myAFG.chimeric = afg->chimeric;
   myAFG.asmClr = afg->clear_rng;
   
-  // get link fields - 1:1 correspondence between AFGs & gkfrs
+  // get link fields and original clear range - 1:1 correspondence between AFGs & gkfrs
   if(asmStore->gkpStore != NULL)
   {
-    getGateKeeperFragmentStore(asmStore->gkpStore->frgStore,
+    getGateKeeperFragmentStore(asmStore->gkpStore->frg,
                                value.IID, &gkfr);
-    myAFG.type = gkfr.type;
-    myAFG.numLinks = gkfr.numLinks;
-    myAFG.linkHead = gkfr.linkHead;
-  }
-  
-  // get input clear range
-  if(asmStore->frgStore != NULLSTOREHANDLE)
-  {
-    rs = (rs == NULL) ? new_ReadStruct() : rs;
-    getFragStore(asmStore->frgStore, afg->iaccession, FRAG_S_FIXED, rs);
-    getClearRegion_ReadStruct(rs,
-                              (uint32 *) &(myAFG.inClr.bgn),
-                              (uint32 *) &(myAFG.inClr.end),
-                              READSTRUCT_ORIGINAL);
+    myAFG.type    = AS_READ;
+    myAFG.mate    = gkfr.mateIID;
+    myAFG.library = gkfr.libraryIID;
+
+    myAFG.inClr.bgn = gkfr.clearBeg[AS_READ_CLEAR_ORIG];
+    myAFG.inClr.end = gkfr.clearEnd[AS_READ_CLEAR_ORIG];
   }
   setASM_AFGStore(asmStore->afgStore, value.IID, &myAFG);
   return 0;
@@ -770,7 +749,7 @@ void PrintSurrogateSequenceCoordinates(AssemblyStore * asmStore, FILE * fo)
   }
 
   maxLength += 10000; // for safety...
-  nonU = (CDS_IID_t *) calloc(maxLength, sizeof(CDS_IID_t));
+  nonU = (CDS_IID_t *) safe_calloc(maxLength, sizeof(CDS_IID_t));
   assert(nonU != NULL);
   
   for(i = 1; i <= numCCOs; i++)
@@ -861,8 +840,7 @@ void PrintSurrogateSequenceCoordinates(AssemblyStore * asmStore, FILE * fo)
 
     }
   }
-  if(nonU != NULL)
-    free(nonU);
+  safe_free(nonU);
 }
 
 
@@ -1094,26 +1072,6 @@ int AddGenericMesg2Store(AssemblyStore * asmStore, GenericMesg * gen)
 }
 
 
-void CopyGateKeeperLKGStore(AssemblyStore * asmStore)
-{
-  int32 numLNKs;
-  int32 i;
-  GateKeeperLinkRecord lnk;
-
-  if(asmStore->gkpStore == NULL)
-    return;
-
-  numLNKs = getNumGateKeeperLinks(asmStore->gkpStore->lnkStore);
-  assert(sizeof(GateKeeperLinkRecord) == sizeof(ASM_LKGRecord));
-  assert(asmStore->gkpStore != NULL);
-  for(i = 1; i <= numLNKs; i++)
-  {
-    getGateKeeperLinkStore(asmStore->gkpStore->lnkStore, i, &lnk);
-    appendASM_LKGStore(asmStore->lkgStore, &lnk);
-  }
-}
-
-
 void SetUnitigAndFragmentScaffoldCoordinates(AssemblyStore * asmStore)
 {
   ASM_CCORecord cco;
@@ -1175,12 +1133,12 @@ void InitializeAFGStore(AssemblyStore * asmStore)
 
   if(asmStore->gkpStore == NULL)
     return;
-  numFRGs = getNumGateKeeperFragments(asmStore->gkpStore->frgStore);
+  numFRGs = getNumGateKeeperFragments(asmStore->gkpStore->frg);
   memset(&afg, 0, sizeof(ASM_AFGRecord));
   
   for(i = 1; i <= numFRGs; i++)
   {
-    getGateKeeperFragmentStore(asmStore->gkpStore->frgStore, i, &gkfr);
+    getGateKeeperFragmentStore(asmStore->gkpStore->frg, i, &gkfr);
     afg.uid = gkfr.readUID;
     afg.deleted = gkfr.deleted;
     appendASM_AFGStore(asmStore->afgStore, &afg);
@@ -1195,8 +1153,7 @@ void InitializeAFGStore(AssemblyStore * asmStore)
 
 AssemblyStore * CreateAssemblyStoreFromASMFile(FILE * fi,
                                                char * storePath,
-                                               char * gkpStorePath,
-                                               char * frgStorePath)
+                                               char * gkpStorePath)
 {
   AssemblyStore * asmStore;
   GenericMesg * gen;
@@ -1205,7 +1162,7 @@ AssemblyStore * CreateAssemblyStoreFromASMFile(FILE * fi,
   assert(fi != NULL &&
          storePath != NULL);
   
-  asmStore = CreateAssemblyStore(storePath, gkpStorePath, frgStorePath);
+  asmStore = CreateAssemblyStore(storePath, gkpStorePath);
 
   if(asmStore->gkpStore != NULL)
   {
@@ -1225,12 +1182,6 @@ AssemblyStore * CreateAssemblyStoreFromASMFile(FILE * fi,
       CloseAssemblyStore(asmStore);
       return NULL;
     }
-  }
-
-  if(asmStore->gkpStore != NULL)
-  {
-    fprintf(stderr, "Copying gatekeeeper store mate links\n");
-    CopyGateKeeperLKGStore(asmStore);
   }
 
   fprintf(stderr, "Setting unitig and fragment scaffold coordinates\n");
@@ -1337,7 +1288,6 @@ void AddContigFragmentsToCloneData(AssemblyStore * asmStore,
 {
   int i;
   ASM_AFGRecord afg1;
-  ASM_LKGRecord lkg;
   ASM_CCORecord cco;
   ASM_SCFRecord scf;
   ASM_DSCRecord dsc;
@@ -1359,20 +1309,10 @@ void AddContigFragmentsToCloneData(AssemblyStore * asmStore,
     getASM_AFGStore(asmStore->afgStore, iid1, &afg1);
 
     // only work with mated fragments
-    if(afg1.numLinks > 0)
+    if(afg1.mate > 0)
     {
-      GateKeeperLinkRecordIterator iterator;
-      CreateGateKeeperLinkRecordIterator(asmStore->lkgStore, afg1.linkHead,
-                                         iid1, &iterator);
-
-      // iterate over mates (should be only one)
-      while(NextGateKeeperLinkRecordIterator(&iterator, &lkg))
-      {
-        // ignore non-clone type links
-        if(lkg.type == AS_MATE)
-        {
           // get the mate record
-          iid2 = (lkg.frag1 == iid1) ? lkg.frag2 : lkg.frag1;
+          iid2 = afg1.mate;
           getASM_AFGStore(asmStore->afgStore, iid2, &afg2);
 
           if(canonicalOnly && afg1.uid > afg2.uid)
@@ -1394,7 +1334,7 @@ void AddContigFragmentsToCloneData(AssemblyStore * asmStore,
           }
           
           // get the distance record
-          getASM_MDIStore(asmStore->mdiStore, lkg.distance, &mdi);
+          getASM_MDIStore(asmStore->mdiStore, afg1.library, &mdi);
           mp.distUID = mdi.uid;
 
           if(afg2.chaff || afg2.sInsIndex == 0)
@@ -1439,8 +1379,6 @@ void AddContigFragmentsToCloneData(AssemblyStore * asmStore,
                                       &afg1, &ins1, &afg2, &ins2, &mdi);
           } // else mate is in same scaffold & not in surrogate
           break;
-        } // real link
-      } // iteration over frag1's links
     } // if frag1 has links
   } // loop over contig fragment indexes
 }
@@ -1449,7 +1387,7 @@ void AddContigFragmentsToCloneData(AssemblyStore * asmStore,
 CloneData * CreateCloneData(void)
 {
   CloneData * cd;
-  cd = (CloneData *) calloc(1, sizeof(CloneData));
+  cd = (CloneData *) safe_calloc(1, sizeof(CloneData));
   cd->innie = CreateVA_ASM_MatePair(10);
   cd->normal = CreateVA_ASM_MatePair(10);
   cd->antinormal = CreateVA_ASM_MatePair(10);
@@ -1647,7 +1585,7 @@ void DeleteCloneData(CloneData * cd)
     Delete_VA(cd->inSurrogate);
     Delete_VA(cd->inChaff);
     Delete_VA(cd->missing);
-    free(cd);
+    safe_free(cd);
   }
 }
 
@@ -2364,7 +2302,7 @@ void PrintFastaFragmentCoordinates(AssemblyStore * asmStore, FILE * fo)
         getASM_IIDStore(asmStore->ccfStore, afgIndex, &afgIID);
         getASM_AFGStore(asmStore->afgStore, afgIID, &afg);
 
-        if(afg.numLinks == 0 ||
+        if(afg.mate == 0 ||
            afg.chaff ||
            afg.inDegenerate ||
            afg.inSurrogate)
@@ -2657,8 +2595,6 @@ void PrintChromosomeElsewheres(AssemblyStore * asmStore,
   ASM_AFGRecord afg1;
   ASM_InstanceRecord ins1;
   PHashValue_AS value;
-  ASM_LKGRecord lkg;
-  GateKeeperLinkRecordIterator iterator;
   int nextIndex;
   int chrIndex;
 
@@ -2681,23 +2617,17 @@ void PrintChromosomeElsewheres(AssemblyStore * asmStore,
     assert(ins1.containerIndex == chrIndex);
     
     // look up mate
-    if(afg1.numLinks > 0)
+    if(afg1.mate > 0)
     {
-      CreateGateKeeperLinkRecordIterator(asmStore->lkgStore, afg1.linkHead,
-                                         nextIndex, &iterator);
-      while(NextGateKeeperLinkRecordIterator(&iterator, &lkg))
-      {
-        if(lkg.type == AS_MATE)
-        {
           ASM_MDIRecord mdi;
           ASM_AFGRecord afg2;
           ASM_InstanceRecord ins2;
           
-          CDS_IID_t iid = (lkg.frag1 == nextIndex) ? lkg.frag2 : lkg.frag1;
+          CDS_IID_t iid = afg1.mate;
 
           getASM_AFGStore(asmStore->afgStore, iid, &afg2);
           getASM_InstanceStore(mapStore->finStore, iid, &ins2);
-          getASM_MDIStore(asmStore->mdiStore, lkg.distance, &mdi);
+          getASM_MDIStore(asmStore->mdiStore, afg1.library, &mdi);
           
           // are they in the same container?
           if(ins1.containerIndex != ins2.containerIndex &&
@@ -2714,9 +2644,6 @@ void PrintChromosomeElsewheres(AssemblyStore * asmStore,
                     (ins2.pos.bgn < ins2.pos.end) ? "A_B" : "B_A",
                     mdi.uid);
           }
-          break;
-        }
-      }
     }
     nextIndex = ins1.next;
   }
@@ -2752,27 +2679,16 @@ void PrintScaffoldElsewheres(AssemblyStore * asmStore,
       {
         ASM_IIDRecord iid1;
         ASM_AFGRecord afg1;
-        GateKeeperLinkRecordIterator iterator;
-        ASM_LKGRecord lkg;
         
         getASM_IIDStore(asmStore->ccfStore, i, &iid1);
         getASM_AFGStore(asmStore->afgStore, iid1, &afg1);
 
-        if(afg1.numLinks == 0 ||
+        if(afg1.mate == 0 ||
            afg1.chaff ||
            afg1.inDegenerate ||
            afg1.inSurrogate)
           continue;
 
-        CreateGateKeeperLinkRecordIterator(asmStore->lkgStore,
-                                           afg1.linkHead,
-                                           iid1, &iterator);
-
-        // iterate over mates (should be only one)
-        while(NextGateKeeperLinkRecordIterator(&iterator, &lkg))
-        {
-          // ignore non-clone type links
-          if(lkg.type == AS_MATE)
           {
             // get the mate record
             ASM_IIDRecord iid2;
@@ -2781,7 +2697,7 @@ void PrintScaffoldElsewheres(AssemblyStore * asmStore,
             ASM_InstanceRecord ins2;
             ASM_MDIRecord mdi;
             
-            iid2 = (lkg.frag1 == iid1) ? lkg.frag2 : lkg.frag1;
+            iid2 = afg1.mate;
             getASM_AFGStore(asmStore->afgStore, iid2, &afg2);
             
             if(afg2.chaff ||
@@ -2791,7 +2707,7 @@ void PrintScaffoldElsewheres(AssemblyStore * asmStore,
               break;
             
             // get the distance record
-            getASM_MDIStore(asmStore->mdiStore, lkg.distance, &mdi);
+            getASM_MDIStore(asmStore->mdiStore, afg1.library, &mdi);
             
             // get the instances
             getASM_InstanceStore(asmStore->asiStore, afg1.sInsIndex, &ins1);
@@ -2813,9 +2729,7 @@ void PrintScaffoldElsewheres(AssemblyStore * asmStore,
                         (ins2.pos.bgn < ins2.pos.end) ? "A_B" : "B_A",
                         mdi.uid);
             }
-            break;
           } // real link
-        } // iteration over frag1's links
       } // loop over contig fragment indexes
     } // loop over scaffolds contigs
   } // if scaffold is not degenerate
@@ -2832,8 +2746,6 @@ CloneData * GetChromosomeCloneData(AssemblyStore * asmStore,
   ASM_AFGRecord afg1;
   ASM_InstanceRecord ins1;
   PHashValue_AS value;
-  ASM_LKGRecord lkg;
-  GateKeeperLinkRecordIterator iterator;
   int nextIndex;
   int chrIndex;
 
@@ -2858,24 +2770,18 @@ CloneData * GetChromosomeCloneData(AssemblyStore * asmStore,
     assert(ins1.containerIndex == chrIndex);
     
     // look up mate
-    if(afg1.numLinks > 0)
+    if(afg1.mate > 0)
     {
-      CreateGateKeeperLinkRecordIterator(asmStore->lkgStore, afg1.linkHead,
-                                         nextIndex, &iterator);
-      while(NextGateKeeperLinkRecordIterator(&iterator, &lkg))
-      {
-        if(lkg.type == AS_MATE)
-        {
           ASM_MDIRecord mdi;
           ASM_AFGRecord afg2;
           ASM_InstanceRecord ins2;
           ASM_MatePair mp;
           
-          CDS_IID_t iid = (lkg.frag1 == nextIndex) ? lkg.frag2 : lkg.frag1;
+          CDS_IID_t iid = afg1.mate;
 
           getASM_AFGStore(asmStore->afgStore, iid, &afg2);
           getASM_InstanceStore(mapStore->finStore, iid, &ins2);
-          getASM_MDIStore(asmStore->mdiStore, lkg.distance, &mdi);
+          getASM_MDIStore(asmStore->mdiStore, afg1.library, &mdi);
           mp.containerUID = containerUID;
           mp.distUID = mdi.uid;
           
@@ -2895,9 +2801,6 @@ CloneData * GetChromosomeCloneData(AssemblyStore * asmStore,
             PopulateAndAppendMatePair(cd, &mp,
                                       &afg1, &ins1, &afg2, &ins2, &mdi);
           }
-          break;
-        }
-      }
     }
     nextIndex = ins1.next;
   }
@@ -3013,5 +2916,3 @@ void InitializeATACFile(AssemblyStore * asmStore,
   fprintf(fo, "T %d . distance .\n", AS_IID_MDI);
 #endif
 }
-
-#endif

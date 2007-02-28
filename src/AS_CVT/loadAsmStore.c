@@ -63,7 +63,6 @@ int main(int argc, char ** argv)
       volatile ASM_InstanceRecord ins2;
       volatile ASM_MDIRecord mdi;
       volatile ASM_AFGRecord afg;
-      volatile ASM_LKGRecord lkg;
       volatile ASM_UTGRecord utg;
       volatile ASM_CCORecord cco;
       volatile ASM_DSCRecord dsc;

@@ -82,8 +82,7 @@ typedef CloneData * CloneDatap;
 
 AssemblyStore * CreateAssemblyStoreFromASMFile(FILE * fi,
                                                char * storePath,
-                                               char * gkpStorePath,
-                                               char * frgStorePath);
+                                               char * gkpStorePath);
 void PrintFragmentScaffoldCoordinates(AssemblyStore * asmStore,
                                       int doInstances,
                                       int doSingleSurrogates,

@@ -41,13 +41,12 @@ int main(int argc, char ** argv)
   char * asmFilename = NULL;
   char * storePath = NULL;
   char * gkpStorePath = NULL;
-  char * frgStorePath = NULL;
   AssemblyStore * asmStore;
 
   // parse command line
   {
     int ch,errflg=FALSE;
-    while (!errflg && ((ch = getopt(argc, argv, "a:s:g:f:")) != EOF))
+    while (!errflg && ((ch = getopt(argc, argv, "a:s:g:")) != EOF))
     {
       switch(ch) 
       {
@@ -59,9 +58,6 @@ int main(int argc, char ** argv)
           break;
         case 'g':
           gkpStorePath = optarg;
-          break;
-        case 'f':
-          frgStorePath = optarg;
           break;
         default:
 	  fprintf(stderr,"Unrecognized option -%c\n",optopt);
@@ -76,7 +72,7 @@ int main(int argc, char ** argv)
      storePath == NULL)
   {
     fprintf(stderr,
-            "Usage: %s -a asmFilename -s storePath [-g gkpStore] [-f frgStore]\n",
+            "Usage: %s -a asmFilename -s storePath [-g gkpStore]\n",
             argv[0]);
     exit(-1);
   }
@@ -85,18 +81,12 @@ int main(int argc, char ** argv)
     fprintf(stderr, "\n\nWarning: Creating an assembly store with no gatekeeper store!\n"
             "\tClone/mate-pair data will NOT be available from the assembly store.\n\n\n");
 
-  if(frgStorePath == NULL)
-    fprintf(stderr, "\n\nWarning: Creating an assembly store with no fragment store!\n"
-            "\tOriginal clear ranges will NOT be available from the assembly store.\n\n\n");
-
   // read asm file into data structures
   {
     FILE * fi = fopen(asmFilename, "r");
-
     assert(fi != NULL);
     
-    asmStore = CreateAssemblyStoreFromASMFile(fi, storePath,
-                                              gkpStorePath, frgStorePath);
+    asmStore = CreateAssemblyStoreFromASMFile(fi, storePath, gkpStorePath);
     assert(asmStore != NULL);
   }
 
