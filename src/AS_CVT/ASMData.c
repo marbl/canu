@@ -435,8 +435,7 @@ int AddMDI2Store(AssemblyStore * asmStore, SnapMateDistMesg * smdm)
 
   if(asmStore->gkpStore != NULL)
   {
-    if(HASH_FAILURE == LookupInPHashTable_AS(asmStore->gkpStore->phs,
-                                             ASM_UID_NAMESPACE,
+    if(HASH_FAILURE == getGatekeeperUIDtoIID(asmStore->gkpStore,
                                              mdi.uid,
                                              &value))
     {

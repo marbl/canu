@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.21 2007-02-24 15:42:33 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.22 2007-03-01 16:13:16 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -27,6 +27,7 @@
 #include <sys/types.h>
 #include <time.h>
 
+#include "AS_global.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_PER_genericStore.h"
 #include "AS_UTL_PHash.h"
@@ -357,8 +358,40 @@ typedef struct {
 
   StoreHandle              src;
 
-  PHashTable_AS           *phs;
+  //  This is now a _private_ member.  It is not allocated when the
+  //  gatekeeper is initially loaded -- because on big assemblies, it
+  //  blows the address space of grid-based jobs like overlap,
+  //  consensus, etc.
+  //
+  PHashTable_AS           *phs_private;
 } GateKeeperStore;
+
+
+
+//  The only public accessor for the persistent hash in the
+//  gatekeeper.
+//
+static
+int
+getGatekeeperUIDtoIID(GateKeeperStore *gkp, CDS_UID_t key, PHashValue_AS *value) {
+
+  if (gkp->phs_private == NULL) {
+    char name[FILENAME_MAX];
+
+    sprintf(name,"%s/phs", gkp->storePath);
+    gkp->phs_private = OpenReadOnlyPHashTable_AS(name);
+    if (gkp->phs_private == NULL) {
+      fprintf(stderr,"**** Failed to open GateKeeper Persistent HashTable...\n");
+      assert(0);
+    }
+  }
+
+  return(LookupInPHashTable_AS(gkp->phs_private,
+                               UID_NAMESPACE_AS,
+                               key,
+                               value));
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////
 

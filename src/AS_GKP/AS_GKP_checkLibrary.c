@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.2 2007-02-22 00:06:57 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.3 2007-03-01 16:13:16 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,7 +42,7 @@ Check_LibraryMesg(DistanceMesg     *dst_mesg,
 
   if (dst_mesg->action == AS_ADD) {
 
-    if (HASH_FAILURE != LookupTypeInPHashTable_AS(gkpStore->phs, 
+    if (HASH_FAILURE != LookupTypeInPHashTable_AS(gkpStore->phs_private, 
                                                   UID_NAMESPACE_AS,
                                                   dst_mesg->eaccession, 
                                                   AS_IID_DST, 
@@ -65,7 +65,7 @@ Check_LibraryMesg(DistanceMesg     *dst_mesg,
     }
 
     value.type = AS_IID_DST;
-    InsertInPHashTable_AS(&(gkpStore->phs),
+    InsertInPHashTable_AS(&gkpStore->phs_private,
                           UID_NAMESPACE_AS,
                           dst_mesg->eaccession,
                           &value,
@@ -81,7 +81,7 @@ Check_LibraryMesg(DistanceMesg     *dst_mesg,
 
   } else if (dst_mesg->action == AS_REDEFINE) {
 
-    if (HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore->phs, 
+    if (HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore->phs_private, 
                                                   UID_NAMESPACE_AS,
                                                   dst_mesg->eaccession, 
                                                   AS_IID_DST, 
@@ -123,7 +123,7 @@ Check_LibraryMesg(DistanceMesg     *dst_mesg,
 
   } else if (dst_mesg->action == AS_DELETE) {
 
-    if (HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore->phs, 
+    if (HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore->phs_private, 
 						 UID_NAMESPACE_AS,
 						 dst_mesg->eaccession, 
 						 AS_IID_DST, 
@@ -145,7 +145,7 @@ Check_LibraryMesg(DistanceMesg     *dst_mesg,
 
     deleteAndMarkGateKeeperLibraryStore(gkpStore->lib, value.IID, currentBatchID);
 
-    DeleteFromPHashTable_AS(gkpStore->phs,UID_NAMESPACE_AS, dst_mesg->eaccession);
+    DeleteFromPHashTable_AS(gkpStore->phs_private,UID_NAMESPACE_AS, dst_mesg->eaccession);
 
   } else {
     fprintf(stderr,"# Check_DistanceMessage: invalid action\n");

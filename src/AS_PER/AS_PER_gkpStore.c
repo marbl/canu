@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.26 2007-02-28 08:02:51 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.27 2007-03-01 16:13:16 brianwalenz Exp $";
 
 //    A thin layer on top of the IndexStore supporing the storage and
 // retrieval of records used by the gatekeeper records.
@@ -141,7 +141,6 @@ openGateKeeperStore(const char *path,
 
   strcpy(gkpStore->storePath, path);
 
-  gkpStore->phs = 0L;
   gkpStore->bat = 0;
   gkpStore->frg = 0;
   gkpStore->lib = 0;
@@ -151,6 +150,8 @@ openGateKeeperStore(const char *path,
   gkpStore->qlt = 0;
   gkpStore->hps = 0;
   gkpStore->src = 0;
+
+  gkpStore->phs_private = NULL;
   
 
   sprintf(name,"%s/gkp", gkpStore->storePath);
@@ -229,17 +230,14 @@ openGateKeeperStore(const char *path,
     assert(0);
   }
 
-  sprintf(name,"%s/phs", gkpStore->storePath);
+  if (writable) {
+    sprintf(name,"%s/phs", gkpStore->storePath);
+    gkpStore->phs_private = OpenPHashTable_AS(name);
 
-  if (mode && mode[0] == 'r' && mode[1] == '\0') {
-    gkpStore->phs = OpenReadOnlyPHashTable_AS(name);
-  } else {
-    gkpStore->phs = OpenPHashTable_AS(name);
-  }
-
-  if (gkpStore->phs == NULL) {
-    fprintf(stderr,"**** Failed to open GateKeeper Persistent HashTable...\n");
-    assert(0);
+    if (gkpStore->phs_private == NULL) {
+      fprintf(stderr,"**** Failed to open GateKeeper Persistent HashTable...\n");
+      assert(0);
+    }
   }
 
   return(gkpStore);
@@ -255,7 +253,6 @@ createGateKeeperStore(const char *path) {
 
   strcpy(gkpStore->storePath, path);
 
-  gkpStore->phs = 0L;
   gkpStore->bat = 0;
   gkpStore->frg = 0;
   gkpStore->lib = 0;
@@ -265,6 +262,8 @@ createGateKeeperStore(const char *path) {
   gkpStore->qlt = 0;
   gkpStore->hps = 0;
   gkpStore->src = 0;
+
+  gkpStore->phs_private = NULL;
 
   errno = 0;
   mkdir(path, S_IRWXU | S_IRWXG | S_IROTH);
@@ -315,7 +314,7 @@ createGateKeeperStore(const char *path) {
   gkpStore->src = createVLRecordStore(name, "src", MAX_SRC_LENGTH, 1);
 
   sprintf(name,"%s/phs", path);
-  gkpStore->phs = CreatePHashTable_AS(2048,name);
+  gkpStore->phs_private = CreatePHashTable_AS(32 * 1024, name);
 
   return(gkpStore);
 }
@@ -351,8 +350,8 @@ closeGateKeeperStore(GateKeeperStore *gkpStore) {
   if(gkpStore->src != NULLSTOREHANDLE)
     closeStore(gkpStore->src);
 
-  if(gkpStore->phs != NULL)
-    ClosePHashTable_AS(gkpStore->phs);
+  if(gkpStore->phs_private != NULL)
+    ClosePHashTable_AS(gkpStore->phs_private);
 
   safe_free(gkpStore);
 }
@@ -515,6 +514,8 @@ void    delFrag(GateKeeperStore *gkp, int64 iid) {
   GateKeeperFragmentRecord   gkfr;
   CDS_IID_t                  miid;
 
+  assert(gkp->phs_private != NULL);
+
   //  Delete fragment with iid from the store.  If the fragment has a
   //  mate, remove the mate relationship from both fragmentss.
 
@@ -525,13 +526,13 @@ void    delFrag(GateKeeperStore *gkp, int64 iid) {
   setGateKeeperFragmentStore(gkp->frg, iid, &gkfr);
 
   if (miid > 0) {
-    UnRefPHashTable_AS(gkp->phs, UID_NAMESPACE_AS, gkfr.readUID);
+    UnRefPHashTable_AS(gkp->phs_private, UID_NAMESPACE_AS, gkfr.readUID);
 
     getGateKeeperFragmentStore(gkp->frg, miid, &gkfr);
     gkfr.mateIID = 0;
     setGateKeeperFragmentStore(gkp->frg, miid, &gkfr);
 
-    UnRefPHashTable_AS(gkp->phs, UID_NAMESPACE_AS, gkfr.readUID);
+    UnRefPHashTable_AS(gkp->phs_private, UID_NAMESPACE_AS, gkfr.readUID);
   }
 }
 

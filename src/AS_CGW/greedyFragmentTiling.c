@@ -667,8 +667,7 @@ void usage(char *pgm){
 int uid2iid(uint64 uid){
   PHashValue_AS value;
   static int firstFailure=1;
-  if(HASH_FAILURE == LookupInPHashTable_AS(my_gkp_store.phs, 
-                                           UID_NAMESPACE_AS,
+  if(HASH_FAILURE == getGatekeeperUIDtoIID(my_gkp_store,
                                            uid,
                                            &value)){
     if(firstFailure){

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkLink.c,v 1.4 2007-02-23 15:34:44 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkLink.c,v 1.5 2007-03-01 16:13:16 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,7 +53,7 @@ Check_LinkMesg(LinkMesg *lkg_mesg,
 
   //  Check that the two fragments are alive and well
   //
-  if (HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore->phs, 
+  if (HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore->phs_private, 
                                                 UID_NAMESPACE_AS,
                                                 lkg_mesg->frag1, 
                                                 AS_IID_FRG, 
@@ -67,7 +67,7 @@ Check_LinkMesg(LinkMesg *lkg_mesg,
   }
   frag1IID = value.IID;
 
-  if (HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore->phs, 
+  if (HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore->phs_private, 
                                                 UID_NAMESPACE_AS,
                                                 lkg_mesg->frag2, 
                                                 AS_IID_FRG, 
@@ -86,7 +86,7 @@ Check_LinkMesg(LinkMesg *lkg_mesg,
   //  need to check that the library (from a distance record) is
   //  there, and get the library IID to set in the reads.
   //
-  if (HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore->phs, 
+  if (HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore->phs_private, 
                                                 UID_NAMESPACE_AS,
                                                 lkg_mesg->distance,
                                                 AS_IID_DST, 
@@ -124,8 +124,8 @@ Check_LinkMesg(LinkMesg *lkg_mesg,
     gkFrag2.mateIID = frag1IID;
     setGateKeeperFragmentStore(gkpStore->frg, frag2IID, &gkFrag2);
 
-    AddRefPHashTable_AS(gkpStore->phs, UID_NAMESPACE_AS, gkFrag2.readUID);
-    AddRefPHashTable_AS(gkpStore->phs, UID_NAMESPACE_AS, gkFrag1.readUID);
+    AddRefPHashTable_AS(gkpStore->phs_private, UID_NAMESPACE_AS, gkFrag2.readUID);
+    AddRefPHashTable_AS(gkpStore->phs_private, UID_NAMESPACE_AS, gkFrag1.readUID);
   } else if (lkg_mesg->action == AS_DELETE) {
     getGateKeeperFragmentStore(gkpStore->frg, frag1IID, &gkFrag1);
     gkFrag1.mateIID = 0;
@@ -137,8 +137,8 @@ Check_LinkMesg(LinkMesg *lkg_mesg,
     gkFrag2.libraryIID = 0;
     setGateKeeperFragmentStore(gkpStore->frg, frag2IID, &gkFrag2);
 
-    UnRefPHashTable_AS(gkpStore->phs, UID_NAMESPACE_AS, gkFrag2.readUID);
-    UnRefPHashTable_AS(gkpStore->phs, UID_NAMESPACE_AS, gkFrag1.readUID);
+    UnRefPHashTable_AS(gkpStore->phs_private, UID_NAMESPACE_AS, gkFrag2.readUID);
+    UnRefPHashTable_AS(gkpStore->phs_private, UID_NAMESPACE_AS, gkFrag1.readUID);
   } else {
     fprintf(stderr,"# LinkMessage: invalid action\n");
     return GATEKEEPER_FAILURE;

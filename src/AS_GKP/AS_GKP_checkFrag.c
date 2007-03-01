@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.17 2007-02-24 15:42:33 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.18 2007-03-01 16:13:16 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -288,7 +288,7 @@ Check_FragMesg(FragMesg            *frg_mesg,
     //  Make sure we haven't seen this frag record before... if so
     //  it is a fatal error
     //
-    if (HASH_FAILURE != LookupTypeInPHashTable_AS(gkpStore->phs, 
+    if (HASH_FAILURE != LookupTypeInPHashTable_AS(gkpStore->phs_private, 
                                                   UID_NAMESPACE_AS,
                                                   frg_mesg->eaccession, 
                                                   AS_IID_FRG, 
@@ -365,7 +365,7 @@ Check_FragMesg(FragMesg            *frg_mesg,
     }
 
     value.type = AS_IID_FRG;
-    InsertInPHashTable_AS(&(gkpStore->phs),
+    InsertInPHashTable_AS(&gkpStore->phs_private,
                           UID_NAMESPACE_AS,
                           frg_mesg->eaccession,
                           &value,
@@ -409,7 +409,7 @@ Check_FragMesg(FragMesg            *frg_mesg,
 
     GateKeeperFragmentRecord gkf;
 
-    if(HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore->phs, 
+    if(HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore->phs_private, 
                                                  UID_NAMESPACE_AS,
                                                  frg_mesg->eaccession, 
                                                  AS_IID_FRG, 
@@ -446,7 +446,7 @@ Check_FragMesg(FragMesg            *frg_mesg,
     if(verbose)
       fprintf(stderr,"* Deleting fragment...refcount = %d\n", value.refCount);
 
-    if(HASH_SUCCESS == DeleteFromPHashTable_AS(gkpStore->phs, UID_NAMESPACE_AS, frg_mesg->eaccession)){
+    if(HASH_SUCCESS == DeleteFromPHashTable_AS(gkpStore->phs_private, UID_NAMESPACE_AS, frg_mesg->eaccession)){
       deleteAndMarkGateKeeperFragmentStore(gkpStore->frg, value.IID, batchID);
     }else{
       assert(0);
