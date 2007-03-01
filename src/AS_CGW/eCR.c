@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: eCR.c,v 1.18 2007-02-28 18:23:18 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: eCR.c,v 1.19 2007-03-01 18:30:00 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -609,9 +609,8 @@ main(int argc, char **argv) {
             fprintf(debug.eCRmainFP, "examining frags %d and %d\n", leftExtFragsArray[leftFragIndex].fragIid, 
                     rightExtFragsArray[rightFragIndex].fragIid);
 
-          if ((gapSize.mean - leftExtFragsArray[leftFragIndex].extension - rightExtFragsArray[rightFragIndex].extension) > 
-              (NUM_STDDEV_CUTOFF * sqrt(gapSize.variance) &&
-               (gapSize.mean > 100.0))) {
+          if ((gapSize.mean - leftExtFragsArray[leftFragIndex].extension - rightExtFragsArray[rightFragIndex].extension) > (NUM_STDDEV_CUTOFF * sqrt(gapSize.variance)) &&
+              (gapSize.mean > 100.0)) {
 
             if (debug.eCRmainLV > 0)
               fprintf(debug.eCRmainFP, "leftExtFragsArray[%d].extension: %10d, rightExtFragsArray[%d].extension: %10d\n",
