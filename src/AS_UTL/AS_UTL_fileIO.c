@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//static char CM_ID[] = "$Id: AS_UTL_fileIO.c,v 1.5 2007-02-28 13:53:11 brianwalenz Exp $";
+//static char CM_ID[] = "$Id: AS_UTL_fileIO.c,v 1.6 2007-03-01 12:02:43 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -80,7 +80,7 @@ AS_UTL_safeRead(FILE *file, void *buffer, char *desc, size_t size, size_t nobj) 
       toread = nobj - position;
 
     errno = 0;
-    written = fread(((char *)buffer) + position, size, toread, file);
+    written = fread(((char *)buffer) + position * size, size, toread, file);
 
     if (feof(file) || (written == 0))
       return(written);
