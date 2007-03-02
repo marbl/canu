@@ -49,7 +49,7 @@ sub outputContigs($$$$$) {
     }
     local $, = "\t";
     local $\ = "\n";
-    my $len = length($contigs{$id1});
+    my $len = $contigs{$id1};
     printContig($scf,$id1,$len,$ort1);
 
     $offset += $len;
@@ -58,7 +58,7 @@ sub outputContigs($$$$$) {
 
     $offset += $gap;
 
-    $len = length($contigs{$id2});
+    $len = $contigs{$id2};
     printContig($scf,$id2,$len,$ort2);
 }
 
@@ -70,7 +70,7 @@ while (my $record = getCARecord(\*STDIN)){
         my $len = $$fields{len};
         my $seq = $$fields{cns};
         $seq =~ s/[-\s]//g;
-        $contigs{$id} = $seq;
+        $contigs{$id} = length($seq);
 
     } elsif (!$outputDegen && $rec eq 'SCF') {
         my $scfID = getCAId($$fields{acc});
