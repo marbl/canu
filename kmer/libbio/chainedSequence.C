@@ -25,7 +25,7 @@ chainedSequence::chainedSequence() {
 
   _useListLen         = 0;
   _useListMax         = 32;
-  _useList            = new use_s [_useListMax];
+  _useList            = new use_s [_useListMax + 1];
 
   _currentSeq         = 0;
 
@@ -165,7 +165,7 @@ chainedSequence::add(u32bit v) {
 
   if (_useListLen >= _useListMax) {
     _useListMax <<= 1;
-    use_s *u = new use_s [_useListMax];
+    use_s *u = new use_s [_useListMax + 1];
     memcpy(u, _useList, sizeof(use_s) * _useListLen);
     delete [] _useList;
     _useList = u;
@@ -199,6 +199,55 @@ chainedSequence::IIDOf(u32bit s) {
   if (s >= _useListLen)
     return(~u32bitZERO);
   return(_useList[s].iid);
+}
+
+
+u32bit
+chainedSequence::sequenceNumberOfPosition(u64bit p) {
+  u32bit   sret = ~u32bitZERO;
+
+  //  binary search on our list of start positions, to find the
+  //  sequence that p is in.
+
+  if (_lengthOfSequences < p) {
+    fprintf(stderr, "chainedSequence::sequenceNumberOfPosition()-- WARNING! Position p="u64bitFMT" too big; only "u64bitFMT" positions.\n",
+            p, _lengthOfSequences);
+    return(~u32bitZERO);
+  }
+
+  if (_useListLen < 16) {
+    for (u32bit ss=0; ss<_useListLen; ss++) {
+      if ((_useList[ss].start <= p) && (p < _useList[ss+1].start)) {
+        sret = ss;
+        break;
+      }
+    }
+  } else {
+    u32bit  lo = 0;
+    u32bit  hi = _useListLen;
+    u32bit  md = 0;
+
+    while (lo <= hi) {
+      md = (lo + hi) / 2;
+
+      if        (p < _useList[md].start) {
+        //  This block starts after the one we're looking for.  
+        hi = md;
+
+      } else if ((_useList[md].start <= p) && (p < _useList[md+1].start)) {
+        //  Got it!
+        lo           = md + 1;
+        hi           = md;
+        sret         = md;
+
+      } else {
+        //  By default, then, the block is too low.
+        lo = md;
+      }
+    }
+  }
+
+  return(sret);
 }
 
 
@@ -238,7 +287,7 @@ chainedSequence::finish(void) {
     delete [] _useList;
 
     _useListMax = seenLen;
-    _useList    = new use_s [_useListMax];
+    _useList    = new use_s [_useListMax + 1];
   } else {
     useAll  = false;
     seen    = new bool [_file->getNumberOfSequences()];
@@ -284,6 +333,10 @@ chainedSequence::finish(void) {
   delete [] seen;
 
   _lengthOfSequences = startPos;
+
+  _useList[_useListLen].iid      = ~u32bitZERO;
+  _useList[_useListLen].length   = 0;
+  _useList[_useListLen].start    = _lengthOfSequences;
 
   //  Initialize -- grab the first sequence
   //

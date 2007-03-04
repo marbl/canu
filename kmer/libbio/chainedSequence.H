@@ -67,6 +67,8 @@ public:
   u64bit       startOf(u32bit s);
   u64bit       IIDOf(u32bit s);
 
+  u32bit       sequenceNumberOfPosition(u64bit p);
+
   //  Move the file pointer back to the start of the chained sequence
   //
   bool         rewind(void);
