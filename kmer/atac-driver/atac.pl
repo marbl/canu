@@ -188,9 +188,9 @@ sub parseArgs {
             $merlimit     = 9;  # mostly unique mers only
             $minfill      = 20; # the mimimum fill for a reported match.
             $maxgap       = 0;  # the maximum substitution gap
-        } elsif ($arg eq "-crossspecies1") {
+        } elsif ($arg eq "-crossspecies20") {
             $mersize      = 20; # the mer size
-            $merlimit     = 1;  # mostly unique mers only
+            $merlimit     = 9;  # mostly unique mers only
             $minfill      = 20; # the mimimum fill for a reported match.
             $maxgap       = 0;  # the maximum substitution gap
             $crossSpecies = 1;  # extra parameters in the atac file
