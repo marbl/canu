@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: DiagnosticsCGW.c,v 1.8 2007-03-04 01:18:45 brianwalenz Exp $";
+static char CM_ID[] = "$Id: DiagnosticsCGW.c,v 1.9 2007-03-04 02:05:08 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,7 +42,7 @@ static char CM_ID[] = "$Id: DiagnosticsCGW.c,v 1.8 2007-03-04 01:18:45 brianwale
 #include "UnionFind_AS.h"
 #include "Globals_CGW.h"
 #include "AS_ALN_aligners.h"
-#if 1
+
 
 void CheckSmallScaffoldGaps(ScaffoldGraphT *graph){
   CIScaffoldT *scaffold;
@@ -57,9 +57,6 @@ void CheckSmallScaffoldGaps(ScaffoldGraphT *graph){
   char buffer[2048];
   FILE *fastaFile = NULL;
   LengthT gap;
-#if 0
-  int reverseNext, reverseCurr;
-#endif
 
   sprintf(buffer,"%s.fasta",graph->name);
   fastaFile = fopen(buffer,"w");
@@ -261,209 +258,4 @@ void CheckSmallScaffoldGaps(ScaffoldGraphT *graph){
   fprintf(stderr,"* Gaps Checked %d Overlaps checked %d confirmed %d (avg " F_COORD ")    Overlaps found %d (avg " F_COORD ")\n",
           gapsChecked, overlapsChecked, overlapsConfirmed,  (overlapsConfirmed?overlapDistances/overlapsConfirmed:0), overlapsFound, (overlapsFound?gapDistances/overlapsFound:0));
 }
-#endif
 
-
-#ifdef DEBUG_DATA
-void CheckFragmentOrientation(ScaffoldGraphT *graph){
-  int totalChecked = 0;
-  int totalBad = 0;
-  CDS_CID_t i;
-  for(i = 0; i < GetNumChunkInstanceTs(graph->ChunkInstances);i++){
-    int j;
-    ChunkInstanceT *CI = GetChunkInstanceT(graph->ChunkInstances,i);
-    FragOrient chunkRealOrient, fragRealOrient, fragOrient;
-
-
-    if(CI->flags.bits.isUnique){
-
-      if(CI->bEndCoord > CI->aEndCoord)
-	chunkRealOrient = A_B;
-      else
-	chunkRealOrient = B_A;
-
-      for(j = 0; j < CI->info.CI.numFragments; j++){
-        CIFragT *cifrag = GetCIFragT(graph->CIFrags, CI->info.CI.headOfFragments + j);
-
-        totalChecked++;
-        fragOrient = getCIFragOrient(cifrag);
-        if(cifrag->bEndCoord > cifrag->aEndCoord)
-          fragRealOrient = (chunkRealOrient == A_B? A_B:B_A);
-        else
-          fragRealOrient = (chunkRealOrient == A_B? B_A:A_B);
-	    
-        if(fragRealOrient != fragOrient){
-          fprintf(stderr,"*** Frag " F_CID " is oriented incorrectly in its chunk " F_CID " fragReal:%c chunkReal:%c frag:%c\n",
-                  cifrag->iid, i,
-                  fragRealOrient, chunkRealOrient, fragOrient);
-          totalBad++;
-        }
-      }
-    }
-  }
-
-  fprintf(stderr,"* %d/%d (%g %%) of the fragments in unique chunks are oriented WRONG\n",
-	  totalBad, totalChecked, (100.0 * (float)totalBad/(float)totalChecked));
-
-}
-#endif
-
-// Compute connected components, and label Unique Chunks
-void  ScaffoldGraphComponents(ScaffoldGraphT *graph){
-  int numChunks = GetNumChunkInstanceTs(graph->ChunkInstances);
-  UFDataT *UFData;
-  int *chunkMap;
-  CDS_CID_t ic;
-  int set = 0;
-  CDS_CID_t numComponents;
-
-
-  UFData = UFCreateSets(numChunks);
-  chunkMap = (int *)safe_malloc(sizeof(int) * numChunks);
-
-  for(ic = 0; ic < GetNumChunkInstanceTs(graph->ChunkInstances); ic++){
-    ChunkInstanceT *chunk = GetChunkInstanceT(graph->ChunkInstances, ic);
-    UFSetT *chunkSet;
-
-    if(!chunk->flags.bits.isUnique){
-      chunkMap[ic] = -1;            // Unmapped to a set
-      continue;
-    }
-    chunkSet = UFGetSet(UFData, set);
-    AssertPtr(chunkSet);
-    chunkMap[ic] = set++;           // This maps chunkIDs to setIDs
-    chunkSet->data = (void *)chunk; // This maps the set to a chunk
-  }
-
-
-  for(ic = 0; ic < GetNumChunkInstanceTs(graph->ChunkInstances); ic++){
-    ChunkInstanceT *chunk = GetChunkInstanceT(graph->ChunkInstances, ic);
-    CIEdgeTIterator edges;
-    CIEdgeT *edge;
-    int setA = chunkMap[ic];
-    
-    if(!chunk->flags.bits.isUnique){
-      continue;
-    }
-    assert(setA >= 0);
-
-
-    InitCIEdgeTIterator(graph, ic, FALSE /* merged */, TRUE /* confirmed */, ALL_END, ALL_EDGES, FALSE, &edges);
-    while(NULL != (edge = NextCIEdgeTIterator(&edges))){
-      int  setB;
-
-      // Graph has two edges for every relation -- only do half.
-      if(edge->idA != ic)
-	continue;
-
-      setB = chunkMap[edge->idB];
-      assert(setB >= 0);
-
-      UFUnion(UFData, setA, setB);
-
-    }
-  }
-
-  numComponents = UFRenumberSets(UFData);
-  fprintf(GlobalData->stderrc," Chunk Instnce Graph has " F_CID " components\n",
-	  numComponents);
-
-  for(set = 0; set < UFData->numSets; set++){
-    UFSetT *chunkSet = UFGetSet(UFData, set);
-    ChunkInstanceT *chunk = (ChunkInstanceT *)chunkSet->data;
-
-    chunk->setID = chunkSet->component;
-#ifdef DEBUG_DIAG
-    fprintf(GlobalData->stderrc,"* Chunk " F_CID " has component " F_CID "\n",
-	    chunk->id, chunk->setID);
-#endif
-  }
-  UFFreeSets(UFData);
-  safe_free(chunkMap);
-}
-
-
-
-#ifdef CREATE_CHUNK_GRAPH
-// Compute connected components, and label Unique Chunks
-void  ExtendedChunkGraphComponents(ChunkGraphT *graph){
-  int numChunks;
-  CDS_CID_t startChunk;
-  UFDataT *UFData;
-  int *chunkMap;
-  CDS_CID_t ic;
-  int set = 0;
-  int numComponents;
-
-  if(graph->type == FRAGMENT_CHUNK_GRAPH){
-    startChunk = FIRST_CHUNK_INDEX;
-    numChunks = graph->numUniqueChunks;
-  }else{
-    startChunk = 0;
-    numChunks = GetNumChunkTs(graph->Chunks);
-  }
-
-  UFData = UFCreateSets(numChunks);
-  chunkMap = (int *)safe_malloc(sizeof(int) * GetNumChunkTs(graph->Chunks));
-
-  for(ic = startChunk; ic < GetNumChunkTs(graph->Chunks); ic++){
-    ChunkT *chunk = GetChunkT(graph->Chunks, ic);
-    UFSetT *chunkSet;
-
-    if(!chunk->isUnique){
-      chunkMap[ic] = -1;            // Unmapped to a set
-      continue;
-    }
-    chunkSet = UFGetSet(UFData, set);
-    assert(chunkSet);
-    chunkMap[ic] = set++;           // This maps chunkIDs to setIDs
-    chunkSet->data = (void *)chunk; // This maps the set to a chunk
-  }
-
-
-  for(ic = startChunk; ic < GetNumChunkTs(graph->Chunks); ic++){
-    ChunkT *chunk = GetChunkT(graph->Chunks, ic);
-    EdgeMateTIterator edgeMates;
-    EdgeMateT *edge;
-    int setA = chunkMap[ic];
-    
-    if(!chunk->isUnique){
-      continue;
-    }
-    assert(setA >= 0);
-
-
-    InitEdgeMateTIterator(graph, ic, TRUE /* confirmed */, TRUE /* unique */, ALL_END, FALSE, &edgeMates);
-    while(edge = NextEdgeMateTIterator(&edgeMates)){
-      int  setB;
-
-      // Graph has two edges for every relation -- only do half.
-      if(edge->cidA > edge->cidB)
-	continue;
-
-      setB = chunkMap[edge->cidB];
-      assert(setB >= 0);
-
-      UFUnion(UFData, setA, setB);
-
-    }
-  }
-
-  numComponents = UFRenumberSets(UFData);
-  fprintf(GlobalData->stderrc," Extended Chunk Graph has %d components\n",
-	  numComponents);
-
-  for(set = 0; set < UFData->numSets; set++){
-    UFSetT *chunkSet = UFGetSet(UFData, set);
-    ChunkT *chunk = (ChunkT *)chunkSet->data;
-
-    chunk->setID = chunkSet->component;
-#ifdef DEBUG_DIAG
-    fprintf(GlobalData->stderrc,"* Chunk " F_CID " has component " F_CID "\n",
-	    chunk->cid, chunk->setID);
-#endif
-  }
-  UFFreeSets(UFData);
-  safe_free(chunkMap);
-}
-#endif

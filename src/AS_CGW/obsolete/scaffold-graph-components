@@ -1,0 +1,73 @@
+// Compute connected components, and label Unique Chunks
+void  ScaffoldGraphComponents(ScaffoldGraphT *graph){
+  int numChunks = GetNumChunkInstanceTs(graph->ChunkInstances);
+  UFDataT *UFData;
+  int *chunkMap;
+  CDS_CID_t ic;
+  int set = 0;
+  CDS_CID_t numComponents;
+
+
+  UFData = UFCreateSets(numChunks);
+  chunkMap = (int *)safe_malloc(sizeof(int) * numChunks);
+
+  for(ic = 0; ic < GetNumChunkInstanceTs(graph->ChunkInstances); ic++){
+    ChunkInstanceT *chunk = GetChunkInstanceT(graph->ChunkInstances, ic);
+    UFSetT *chunkSet;
+
+    if(!chunk->flags.bits.isUnique){
+      chunkMap[ic] = -1;            // Unmapped to a set
+      continue;
+    }
+    chunkSet = UFGetSet(UFData, set);
+    AssertPtr(chunkSet);
+    chunkMap[ic] = set++;           // This maps chunkIDs to setIDs
+    chunkSet->data = (void *)chunk; // This maps the set to a chunk
+  }
+
+
+  for(ic = 0; ic < GetNumChunkInstanceTs(graph->ChunkInstances); ic++){
+    ChunkInstanceT *chunk = GetChunkInstanceT(graph->ChunkInstances, ic);
+    CIEdgeTIterator edges;
+    CIEdgeT *edge;
+    int setA = chunkMap[ic];
+    
+    if(!chunk->flags.bits.isUnique){
+      continue;
+    }
+    assert(setA >= 0);
+
+
+    InitCIEdgeTIterator(graph, ic, FALSE /* merged */, TRUE /* confirmed */, ALL_END, ALL_EDGES, FALSE, &edges);
+    while(NULL != (edge = NextCIEdgeTIterator(&edges))){
+      int  setB;
+
+      // Graph has two edges for every relation -- only do half.
+      if(edge->idA != ic)
+	continue;
+
+      setB = chunkMap[edge->idB];
+      assert(setB >= 0);
+
+      UFUnion(UFData, setA, setB);
+
+    }
+  }
+
+  numComponents = UFRenumberSets(UFData);
+  fprintf(GlobalData->stderrc," Chunk Instnce Graph has " F_CID " components\n",
+	  numComponents);
+
+  for(set = 0; set < UFData->numSets; set++){
+    UFSetT *chunkSet = UFGetSet(UFData, set);
+    ChunkInstanceT *chunk = (ChunkInstanceT *)chunkSet->data;
+
+    chunk->setID = chunkSet->component;
+#ifdef DEBUG_DIAG
+    fprintf(GlobalData->stderrc,"* Chunk " F_CID " has component " F_CID "\n",
+	    chunk->id, chunk->setID);
+#endif
+  }
+  UFFreeSets(UFData);
+  safe_free(chunkMap);
+}

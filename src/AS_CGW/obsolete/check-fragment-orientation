@@ -1,0 +1,41 @@
+void CheckFragmentOrientation(ScaffoldGraphT *graph){
+  int totalChecked = 0;
+  int totalBad = 0;
+  CDS_CID_t i;
+  for(i = 0; i < GetNumChunkInstanceTs(graph->ChunkInstances);i++){
+    int j;
+    ChunkInstanceT *CI = GetChunkInstanceT(graph->ChunkInstances,i);
+    FragOrient chunkRealOrient, fragRealOrient, fragOrient;
+
+
+    if(CI->flags.bits.isUnique){
+
+      if(CI->bEndCoord > CI->aEndCoord)
+	chunkRealOrient = A_B;
+      else
+	chunkRealOrient = B_A;
+
+      for(j = 0; j < CI->info.CI.numFragments; j++){
+        CIFragT *cifrag = GetCIFragT(graph->CIFrags, CI->info.CI.headOfFragments + j);
+
+        totalChecked++;
+        fragOrient = getCIFragOrient(cifrag);
+        if(cifrag->bEndCoord > cifrag->aEndCoord)
+          fragRealOrient = (chunkRealOrient == A_B? A_B:B_A);
+        else
+          fragRealOrient = (chunkRealOrient == A_B? B_A:A_B);
+	    
+        if(fragRealOrient != fragOrient){
+          fprintf(stderr,"*** Frag " F_CID " is oriented incorrectly in its chunk " F_CID " fragReal:%c chunkReal:%c frag:%c\n",
+                  cifrag->iid, i,
+                  fragRealOrient, chunkRealOrient, fragOrient);
+          totalBad++;
+        }
+      }
+    }
+  }
+
+  fprintf(stderr,"* %d/%d (%g %%) of the fragments in unique chunks are oriented WRONG\n",
+	  totalBad, totalChecked, (100.0 * (float)totalBad/(float)totalChecked));
+
+}
