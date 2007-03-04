@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: GraphCGW_T.h,v 1.14 2007-02-25 08:13:37 brianwalenz Exp $	 */
+/* 	$Id: GraphCGW_T.h,v 1.15 2007-03-04 02:06:21 brianwalenz Exp $	 */
 
 /**************************************************************************
  *  GraphCGW
@@ -273,9 +273,7 @@ typedef struct{
 	}in_line;
 	VA_TYPE(CDS_CID_t) *va; // if numInstances is > 2
       }instances;
-#ifdef DEBUG_DATA
       CDS_CID_t source;
-#endif
     }CI;
     struct CONTIGINFO_TAG{
       // All of this is redundant to what is incldued in the multiAlignment
@@ -640,10 +638,8 @@ static int32 IsSurrogateNode(NodeCGW_T *node){
 
 
 static NodeOrient GetNodeOrient(NodeCGW_T *CI){
-  if(CI->offsetBEnd.mean > CI->offsetAEnd.mean){
+  if(CI->offsetBEnd.mean > CI->offsetAEnd.mean)
     return A_B;
-  }
-  //else
   return B_A;
 }
 
@@ -653,7 +649,6 @@ static ChunkOrientationType GetEdgeOrientationWRT(EdgeCGW_T* edge,
   AssertPtr(edge);
   if(edge->idA == wrtCI)
     return edge->orient;
-  //else
   return FlipEdgeOrient(edge->orient);
 }
 

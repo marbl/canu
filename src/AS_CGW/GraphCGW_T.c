@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.34 2007-02-28 13:53:08 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.35 2007-03-04 02:06:21 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1520,7 +1520,54 @@ CDS_CID_t AddGraphEdge(GraphCGW_T *graph,
           isTransChunk);
 #endif
   
+
+
   ciedge->flags.bits.isProbablyBogus = FALSE;
+
+
+  //  Determine whether this is potentally bogus edge
+  //
+  if(ciedge->fragA != NULLINDEX && ciedge->fragB != NULLINDEX){
+    // Not an overlap fragment
+
+    // Determine whether this LOOKS like a bogus edge.  Our criteria are:
+    //  1) Implied overlap is > 500 base pairs + 5 sigma
+    //  2) Implied distance is outside mean of distribution + 5 sigma
+    
+    DistT *distRecord = GetDistT(ScaffoldGraph->Dists, dist);
+    CDS_COORD_t minDistance = -500 - distRecord->stddev * 5;
+    CDS_COORD_t maxDistance = distRecord->mean + distRecord->stddev * 5;
+
+    //  The isBogus flag is from the now-dead simulator, but it's
+    //  overloaded in scaffold merging.
+
+    ciedge->flags.bits.isBogus         = FALSE;
+    ciedge->flags.bits.isProbablyBogus = (ciedge->distance.mean < minDistance ||
+                                          ciedge->distance.mean > maxDistance);
+      
+#ifdef DEBUG_CIEDGES
+    if (ciedge->flags.bits.isProbablyBogus) {
+      CIFragT        *fragA = GetCIFragT(ScaffoldGraph->CIFrags, ciedge->fragA);
+      CIFragT        *fragB = GetCIFragT(ScaffoldGraph->CIFrags, ciedge->fragB);
+      ChunkInstanceT *CIA   = GetGraphNode(graph, ciedge->idA);
+      ChunkInstanceT *CIB   = GetGraphNode(graph, ciedge->idB);
+
+      fprintf(GlobalData->stderrc,"* Edge (" F_CID "," F_CID ") %c distance:%f [" F_COORD "," F_COORD "] marked probably bogus --> IS REAL?\nrawDistance " F_COORD " [" F_COORD "," F_COORD "] [" F_COORD "," F_COORD "] simChunks [" F_COORD "," F_COORD "] [" F_COORD "," F_COORD "]!\n",
+              ciedge->idA, ciedge->idB, ciedge->orient,
+              ciedge->distance.mean, minDistance, maxDistance,
+              distance,
+              fragA->aEndCoord, fragA->bEndCoord,
+              fragB->aEndCoord, fragB->bEndCoord,
+              CIA->aEndCoord, CIA->bEndCoord,
+              CIB->aEndCoord, CIB->bEndCoord );
+    }
+#endif
+  }
+
+
+
+
+
   
   assert(!(ciedge->flags.bits.hasContributingOverlap &&
            ciedge->flags.bits.hasTandemOverlap));

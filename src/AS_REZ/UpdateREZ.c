@@ -33,7 +33,7 @@
 
  **********************************************************************/
 
-static char fileID[] = "$Id: UpdateREZ.c,v 1.8 2007-02-14 07:20:13 brianwalenz Exp $";
+static char fileID[] = "$Id: UpdateREZ.c,v 1.9 2007-03-04 02:06:21 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <assert.h>
@@ -46,10 +46,6 @@ static char fileID[] = "$Id: UpdateREZ.c,v 1.8 2007-02-14 07:20:13 brianwalenz E
 //
 #include "AS_CGW_dataTypes.h"
 #include "Globals_CGW.h"
-#ifdef CREATE_CHUNK_GRAPH
-#include "AS_CGW_Scaffold.h"
-#include "AS_CGW_Scaffolds.h"
-#endif
 #include "ScaffoldGraph_CGW.h"
 #include "ChiSquareTest_CGW.h"
 //

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGW_dataTypes.c,v 1.10 2007-02-14 07:20:05 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGW_dataTypes.c,v 1.11 2007-03-04 02:06:21 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -142,14 +142,6 @@ void DeleteGlobal_CGW(Global_CGW *g){
 #ifdef NEVER
   free_histogram(g->scaffold_unique);
   free_histogram(g->scaffold_repeat);
-#endif
-  
-#ifdef CREATE_CHUNK_GRAPH
-  DeleteVA_DistInfoT(g->Dists);
-  DeleteVA_ScaffoldPO_T(GlobalData->ScaffoldPOs);
-  DeleteVA_ScaffoldPOChunkT(GlobalData->ScaffoldPOChunks);
-  DeleteVA_ScaffoldPOLinkT(GlobalData->ScaffoldPOLinks);
-  DeleteVA_ScaffoldPOOverlapT(GlobalData->ScaffoldPOOverlaps);
 #endif
 
   safe_free(g);

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: InputDataTypes_CGW.h,v 1.10 2007-02-25 08:13:37 brianwalenz Exp $	 */
+/* 	$Id: InputDataTypes_CGW.h,v 1.11 2007-03-04 02:06:21 brianwalenz Exp $	 */
 /****************************************************************************
  *  InputDataTypes_CGW
  *  
@@ -36,8 +36,6 @@ typedef struct {
   float64  mean;
   float64 variance;
 }LengthT;
-
-//#define DEBUG_DATA 1
 
 // Do the arithmetic and stats on two unordered pairs of LengthTs
 // If resulting variance is negative assert
@@ -85,15 +83,9 @@ typedef struct {
   CDS_CID_t contigID;           /* id of the containing contig */
   LengthT   contigOffset5p;         // offset in containing contig of suffix
   LengthT   contigOffset3p;         // offset in containing contig of prefix
-  
-#ifdef DEBUG_DATA     // This is used for debug purposes only
-  int32 aEndCoord, bEndCoord;  /***** Simulator Coordinates ****/
-  int32 source; // offset into source store
-#endif
 
   char type;
   char label;
-
   char linkType;
 
   union{
@@ -133,32 +125,18 @@ static FragOrient getCIFragOrient(CIFragT *frag){
     fprintf(stderr,"* Frag %d in unitig %d has 3p=%g 5p=%g\n",frag->iid,frag->cid, frag->offset3p.mean, frag->offset5p.mean);
     assert(0);
   }
-  if(frag->offset3p.mean > frag->offset5p.mean){
+  if(frag->offset3p.mean > frag->offset5p.mean)
     return A_B;
-  }
-  //else
   return B_A;
 }
-
-#ifdef DEBUG_DATA
-static FragOrient getCIFragSimOrient(CIFragT *frag){
-  if(frag->bEndCoord > frag->aEndCoord){
-    return A_B;
-  }
-  //else
-  return B_A;
-}
-#endif
 
 static FragOrient GetContigFragOrient(CIFragT *frag){
   if(frag->contigOffset3p.mean == frag->contigOffset5p.mean){
     fprintf(stderr,"* Frag %d in contig %d has 3p=%g 5p=%g\n",frag->iid,frag->contigID, frag->contigOffset3p.mean, frag->contigOffset5p.mean);
     assert(0);
   }
-  if(frag->contigOffset3p.mean > frag->contigOffset5p.mean){
+  if(frag->contigOffset3p.mean > frag->contigOffset5p.mean)
     return A_B;
-  }
-  //else
   return B_A;
 }
 

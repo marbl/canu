@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.26 2007-03-04 01:18:45 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.27 2007-03-04 02:06:21 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -615,15 +615,12 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
   CI.info.CI.instances.in_line.instance1 = 0;
   CI.info.CI.instances.in_line.instance2 = 0;
   CI.info.CI.instances.va = NULL;
-#ifdef DEBUG_DATA
   CI.info.CI.source = NULLINDEX;
-#endif
   CI.flags.all = 0;
   CI.offsetAEnd.mean = 0.0;
   CI.offsetAEnd.variance = 0.0;
   CI.offsetBEnd = CI.bpLength;
 
-#ifdef DEBUG_DATA
   if(ium_mesg->source){
     char *c = ium_mesg->source;
     CI.info.CI.source = GetNumchars(ScaffoldGraph->SourceFields);
@@ -634,7 +631,6 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
   }else{
     CI.info.CI.source = NULLINDEX;
   }
-#endif
 
   // Collect the microhetScore if available
   {
@@ -865,9 +861,6 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
 	cifrag.flags.bits.mateStatus = MATE_NONE;
 	cifrag.type  = cfr_mesg->type;
 	cifrag.linkType = 0;
-#ifdef DEBUG_DATA
-	cifrag.source = NULLINDEX;
-#endif
 	cifrag.flags.bits.hasInternalOnlyCILinks = FALSE; // set in CreateCIEdge
 	cifrag.flags.bits.hasInternalOnlyContigLinks = FALSE; // set in CreateCIEdge
 	cifrag.flags.bits.edgeStatus = INVALID_EDGE_STATUS;
@@ -885,15 +878,6 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
 	  cifrag.flags.bits.isSingleton = TRUE;
 	  cifrag.flags.bits.isChaff = TRUE;
 	}
-	    
-	// cifrag.fragOrient = getFragOrient(&cifrag);
-	    
-#ifdef DEBUG_DATA
-	{
-          cifrag.aEndCoord = cifrag.bEndCoord = -1;
-	}
-        cifrag.source = NULLINDEX;
-#endif	    
 
 	AppendCIFragT(ScaffoldGraph->CIFrags, &cifrag);
 
@@ -1076,7 +1060,7 @@ void ProcessFrags(void)
       if (miinfo->set) {
         cifrag->mateOf   = miinfo->fragIndex;
         cifrag->dist     = gkf.libraryIID;
-        cifrag->linkType = gkf.orientation;
+        cifrag->linkType = AS_MATE;
         if (gkf.orientation == AS_READ_ORIENT_INNIE)
           cifrag->flags.bits.innieMate = TRUE;
         cifrag->flags.bits.mateStatus = MATE_OK;
@@ -1091,7 +1075,7 @@ void ProcessFrags(void)
       //fprintf(stderr, "Frag: iid=%d,index=%d mateiid=%d,index=%d\n", i, ciinfo->fragIndex, gkf.mateIID, miinfo->fragIndex);
     }
 
-    if (cifrag->flags.bits.hasMate == 0)
+    if (cifrag->flags.bits.hasMate == FALSE)
       unmatedFrags++;
   }
 
@@ -1124,14 +1108,16 @@ void ProcessFrags(void)
       cifrag->linkType = 0;
       cifrag->flags.bits.mateStatus = MATE_NONE;
       cifrag->flags.bits.edgeStatus = INVALID_EDGE_STATUS;
-      cifrag->flags.bits.hasMate    = TRUE;
+      cifrag->flags.bits.hasMate    = FALSE;
 
-      mifrag->mateOf   = NULLINDEX;
-      mifrag->dist     = NULLINDEX;
-      mifrag->linkType = 0;
-      mifrag->flags.bits.mateStatus = MATE_NONE;
-      mifrag->flags.bits.edgeStatus = INVALID_EDGE_STATUS;
-      cifrag->flags.bits.hasMate    = TRUE;
+      if (mifrag) {
+        mifrag->mateOf   = NULLINDEX;
+        mifrag->dist     = NULLINDEX;
+        mifrag->linkType = 0;
+        mifrag->flags.bits.mateStatus = MATE_NONE;
+        mifrag->flags.bits.edgeStatus = INVALID_EDGE_STATUS;
+        cifrag->flags.bits.hasMate    = FALSE;
+      }
     } else {
       //  Both guys are alive, and we're mated.  Throw some asserts
 
