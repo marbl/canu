@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.19 2007-02-28 13:53:09 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.20 2007-03-04 01:18:45 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -38,7 +38,6 @@ static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.19 2007-02-28 13:53:09 brian
 #include "UtilsREZ.h"
 #include "AS_CGW_dataTypes.h"
 #include "Globals_CGW.h"
-#include "DiagnosticsCGW.h"
 #include "ScaffoldGraph_CGW.h"
 #include "ScaffoldGraphIterator_CGW.h"
 #include "RepeatRez.h"

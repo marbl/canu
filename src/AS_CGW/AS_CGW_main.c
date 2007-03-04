@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.34 2007-02-25 10:15:01 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.35 2007-03-04 01:18:44 brianwalenz Exp $";
 
 
 static const char *usage = 
@@ -131,7 +131,6 @@ static const char *usage =
 #include "ScaffoldGraph_CGW.h"
 #include "ScaffoldGraphIterator_CGW.h"
 #include "Globals_CGW.h"
-#include "DiagnosticsCGW.h"
 #include "ScaffoldGraph_CGW.h"
 #include "Output_CGW.h"
 #include "SplitChunks_CGW.h"

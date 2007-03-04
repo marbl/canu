@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.18 2007-02-25 08:13:37 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.19 2007-03-04 01:18:45 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,7 +40,6 @@ static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.18 2007-02-25 08:13:37 b
 #include "ScaffoldGraph_CGW.h"
 #include "ScaffoldGraphIterator_CGW.h"
 #include "Globals_CGW.h"
-#include "DiagnosticsCGW.h"
 #include "ScaffoldGraph_CGW.h"
 #include "Output_CGW.h"
 #include "GreedyOverlapREZ.h"

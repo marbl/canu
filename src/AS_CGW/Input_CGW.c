@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.25 2007-02-28 23:09:09 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.26 2007-03-04 01:18:45 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -43,7 +43,6 @@ static char CM_ID[] = "$Id: Input_CGW.c,v 1.25 2007-02-28 23:09:09 brianwalenz E
 #include "AS_PER_gkpStore.h"
 #include "ScaffoldGraph_CGW.h"
 #include "Globals_CGW.h"
-#include "DiagnosticsCGW.h"
 #include "ScaffoldGraph_CGW.h"
 #include "Output_CGW.h"
 #include "Input_CGW.h"

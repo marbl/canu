@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* All of the CGW celamy stuff is here */
-static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.12 2007-02-23 19:49:14 ahalpern Exp $";
+static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.13 2007-03-04 01:18:45 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -40,7 +40,6 @@ static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.12 2007-02-23 19:49:14 ahalpern Exp
 #include "AS_UTL_interval.h"
 #include "AS_CGW_dataTypes.h"
 #include "Globals_CGW.h"
-#include "DiagnosticsCGW.h"
 #include "ScaffoldGraph_CGW.h"
 #include "ScaffoldGraphIterator_CGW.h"
 

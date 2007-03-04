@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: SEdgeT_CGW.c,v 1.7 2007-02-03 07:06:27 brianwalenz Exp $";
+static char CM_ID[] = "$Id: SEdgeT_CGW.c,v 1.8 2007-03-04 01:18:45 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_SEDGES
@@ -39,7 +39,6 @@ static char CM_ID[] = "$Id: SEdgeT_CGW.c,v 1.7 2007-02-03 07:06:27 brianwalenz E
 #include "AS_UTL_interval.h"
 #include "AS_CGW_dataTypes.h"
 #include "Globals_CGW.h"
-#include "DiagnosticsCGW.h"
 #include "GraphCGW_T.h"
 #include "ScaffoldGraph_CGW.h"
 #include "ScaffoldGraphIterator_CGW.h"

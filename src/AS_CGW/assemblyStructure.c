@@ -20,7 +20,7 @@
  *************************************************************************/
 
 
-static char CM_ID[] = "$Id: assemblyStructure.c,v 1.6 2006-10-08 08:47:39 brianwalenz Exp $";
+static char CM_ID[] = "$Id: assemblyStructure.c,v 1.7 2007-03-04 01:18:45 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -48,7 +48,6 @@ static char CM_ID[] = "$Id: assemblyStructure.c,v 1.6 2006-10-08 08:47:39 brianw
 #include "ScaffoldGraph_CGW.h"
 #include "ScaffoldGraphIterator_CGW.h"
 #include "Globals_CGW.h"
-#include "DiagnosticsCGW.h"
 #include "ScaffoldGraph_CGW.h"
 #include "PublicAPI_CNS.h"
 #include "MultiAlignStore_CNS.h"
