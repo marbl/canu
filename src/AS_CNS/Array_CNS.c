@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: Array_CNS.c,v 1.12 2007-02-18 14:04:48 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Array_CNS.c,v 1.13 2007-03-04 16:03:04 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -170,9 +170,9 @@ int IMP2Array(IntMultiPos *all_frags,
   for (i=0;i<num_pieces;i++) {
     new_mlp = createLaneNode(&all_frags[i]); 
     if ( frag_store != NULL ) {
-      getFrag(frag_store,all_frags[i].ident,fsread,FRAG_S_ALL);
+      getFrag(frag_store,all_frags[i].ident,fsread,FRAG_S_QLT);
     } else {
-      getFragStorePartition(pfrag_store,all_frags[i].ident,FRAG_S_ALL,fsread);
+      getFragStorePartition(pfrag_store,all_frags[i].ident,FRAG_S_QLT,fsread);
     }
     clr_bgn = getFragRecordClearRegionBegin(fsread, clrrng_flag);
     clr_end = getFragRecordClearRegionEnd  (fsread, clrrng_flag);

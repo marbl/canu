@@ -966,7 +966,7 @@ int main (int argc , char * argv[] ) {
     currFrg=seediid;
     seen[currFrg]='\1';
     ahang=0;
-    getFrag(my_gkp_store,currFrg,fsread,FRAG_S_ALL);
+    getFrag(my_gkp_store,currFrg,fsread,FRAG_S_INF);
 
     getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end, READSTRUCT_LATEST);
     frglen=clr_end-clr_bgn;
@@ -1042,7 +1042,7 @@ int main (int argc , char * argv[] ) {
 
 	}
 	if(!seen[currFrg]){
-	  getFrag(my_gkp_store,currFrg,fsread,FRAG_S_ALL);
+	  getFrag(my_gkp_store,currFrg,fsread,FRAG_S_INF);
 	  getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end, READSTRUCT_LATEST);
 	  frglen=clr_end-clr_bgn;
 	  numOvls = setupolaps(currFrg, Aend, bestType,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds,&olaps,favorSameSample,favorSameSampleAsSeed);
@@ -1069,7 +1069,7 @@ int main (int argc , char * argv[] ) {
     stillGoing=1;
     Aend=0;
     currFrg=seediid;
-    getFrag(my_gkp_store,currFrg,fsread,FRAG_S_ALL);
+    getFrag(my_gkp_store,currFrg,fsread,FRAG_S_INF);
     getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end, READSTRUCT_LATEST);
     frglen=clr_end-clr_bgn;
 
@@ -1145,7 +1145,7 @@ int main (int argc , char * argv[] ) {
 	}
 	if(!seen[currFrg]){
 	  seen[currFrg]='\1';
-	  getFrag(my_gkp_store,currFrg,fsread,FRAG_S_ALL);
+	  getFrag(my_gkp_store,currFrg,fsread,FRAG_S_INF);
 	  getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end, READSTRUCT_LATEST);
 	  frglen=clr_end-clr_bgn;
 	  numOvls = setupolaps(currFrg, Aend, bestType,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds,&olaps,favorSameSample,favorSameSampleAsSeed);

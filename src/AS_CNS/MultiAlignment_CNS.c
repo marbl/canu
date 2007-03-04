@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.131 2007-02-27 04:41:15 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.132 2007-03-04 16:03:04 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -951,9 +951,9 @@ int32 AppendFragToLocalStore(FragType type, int32 iid, int complement,int32 cont
   case AS_EXTR:
   case AS_TRNR:
     if ( partitioned ) {
-      getFragStorePartition(global_fragStorePartition,iid,FRAG_S_ALL,fsread);
+      getFragStorePartition(global_fragStorePartition,iid,FRAG_S_QLT,fsread);
     } else {
-      getFrag(global_fragStore,iid,fsread,FRAG_S_ALL);
+      getFrag(global_fragStore,iid,fsread,FRAG_S_QLT);
     }
     clr_bgn = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_LATEST);
     clr_end = getFragRecordClearRegionEnd  (fsread, AS_READ_CLEAR_LATEST);
@@ -7507,9 +7507,10 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
              fprintf(stderr, "afrag %d (%c) and bfrag %d (%c); estimated ahang: %d\n",
                      afrag->iid,afrag->type,bfrag->iid,bfrag->type,ahang);
            }
+
+           PrintFrags(cnslog,0,&positions[i],1,global_fragStore);
          }
 
-         PrintFrags(cnslog,0,&positions[i],1,global_fragStore);
          if ( allow_forced_frags ) {
             frag_forced = 1;
             unitig_forced = 1;

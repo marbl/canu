@@ -25,7 +25,7 @@
    Assumptions:  libAS_UTL.a
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.29 2007-02-28 13:53:10 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.30 2007-03-04 16:03:04 brianwalenz Exp $";
 
 
 #include <assert.h>
@@ -1578,7 +1578,7 @@ CollectStats(MultiAlignT *ma,
 
     // special case for singletons
     if (num_reads == 1) {
-       getFrag(frag_store,reads[0].ident,rsp,FRAG_S_ALL);
+       getFrag(frag_store,reads[0].ident,rsp,FRAG_S_QLT);
        clrbgn = getFragRecordClearRegionBegin(rsp, clrrng_flag);
        clrend = getFragRecordClearRegionEnd  (rsp, clrrng_flag);
        fprintf(frag_stats,F_IID "  " F_UID " %c %d %d\n",
@@ -1610,7 +1610,7 @@ CollectStats(MultiAlignT *ma,
     for(i=0;i<num_reads;i++) {
       left = (reads[i].position.bgn < reads[i].position.end)? reads[i].position.bgn : reads[i].position.end;
       right= (reads[i].position.bgn > reads[i].position.end)?reads[i].position.bgn:reads[i].position.end;
-      getFrag(frag_store,reads[i].ident,rsp,FRAG_S_ALL);
+      getFrag(frag_store,reads[i].ident,rsp,FRAG_S_QLT);
       clrbgn = getFragRecordClearRegionBegin(rsp, clrrng_flag);
       clrend = getFragRecordClearRegionEnd  (rsp, clrrng_flag);
       flen = clrend - clrbgn;
