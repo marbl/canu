@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.44 2007-02-15 16:53:22 eliv Exp $
- * $Revision: 1.44 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.45 2007-03-05 18:20:12 eliv Exp $
+ * $Revision: 1.45 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.44 2007-02-15 16:53:22 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.45 2007-03-05 18:20:12 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -110,8 +110,6 @@ namespace AS_BOG{
             if (BestOverlapGraph::fragLen(frag_idx) == std::numeric_limits<uint16>::max())
                 continue; // Deleted frag
 
-            //std::cerr << "Working on " << frag_idx << std::endl; 
-
             // Check the map to so we don't visit a unitig twice (once from
             //   both ends)
             if( !Unitig::fragIn( frag_idx ) && 
@@ -159,11 +157,7 @@ namespace AS_BOG{
                     utg->reverseComplement();
                     populateUnitig( utg,
                             tpBest->frag_b_id, whichEnd, cg_ptr, offset);
-
                 }
-
-                // must be sorted before merge
-//                utg->sort();
 
                 // Store unitig in unitig graph
                 unitigs->push_back(utg);
@@ -177,6 +171,7 @@ namespace AS_BOG{
 		}
         std::cerr << std::endl;
 
+        // Pick up frags missed above, possibly circular unitigs
         for(frag_idx=1; frag_idx<=num_frags; frag_idx++){
             if (Unitig::fragIn( frag_idx ) == 0) {
 				cg_ptr->getChunking( frag_idx, fp_dst_frag_id, tp_dst_frag_id);
@@ -213,8 +208,6 @@ namespace AS_BOG{
         }
         fprintf(stderr,"Max contain depth is %d\n",maxContainDepth);
         delete cntnrmap_ptr;
-
-        //mergeAllUnitigs( visited_map );
 
 		std::cerr << "Setting Global Arrival Rate.\n";
 		float globalARate = getGlobalArrivalRate(num_rand_frags, genome_size);

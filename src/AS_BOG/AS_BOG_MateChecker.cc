@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.8 2007-02-23 15:44:42 eliv Exp $
- * $Revision: 1.8 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.9 2007-03-05 18:20:12 eliv Exp $
+ * $Revision: 1.9 $
 */
 
 #include "AS_BOG_MateChecker.hh"
@@ -121,7 +121,7 @@ namespace AS_BOG{
                             // 1st reversed, so bad
                             goodMates[mateInfo.mate] = max;
                         } else {
-                            // 1st forward, so good
+                            // 1st forward, so good store begin
                             goodMates[mateInfo.mate] = fragPos.bgn;
                         }
                     }
@@ -284,5 +284,117 @@ namespace AS_BOG{
                     libId, size, median, third, twoThird, aproxStd, smallest, biggest,
                             gdc->numPairs, gdc->mean, gdc->stddev );
         }
+        tigIter = tigGraph.unitigs->begin();
+        for(; tigIter != tigGraph.unitigs->end(); tigIter++)
+        {
+            if (*tigIter == NULL ) 
+                continue;
+
+            computeMateCoverage( *tigIter, globalStats );
+        }
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+
+    inline void incrRange( short graph[], short val, iuid n, iuid m ) {
+        for(iuid i=n; i <=m ; i++)
+            graph[i] += val;
+    }
+    ///////////////////////////////////////////////////////////////////////////
+
+    void MateChecker::computeMateCoverage( Unitig* tig, LibraryStats& globalStats )
+    {
+        int max = std::numeric_limits<int>::max(); // Sentinel value
+        int tigLen = tig->getLength();
+        short goodGraph[tigLen]; 
+        short  badGraph[tigLen];
+        memset( goodGraph, 0, tigLen * sizeof(short));
+        memset(  badGraph, 0, tigLen * sizeof(short));
+        IdMap seenMates;
+        // Build good and bad mate graphs 
+        DoveTailConstIter tigIter = tig->dovetail_path_ptr->begin();
+        for(;tigIter != tig->dovetail_path_ptr->end(); tigIter++)
+        {
+            DoveTailNode frag = *tigIter;
+            iuid fragId = frag.ident;
+            MateInfo mateInfo = getMateInfo( fragId );
+            DistanceCompute *gdc = &(globalStats[ mateInfo.lib ]);
+            int badMax = static_cast<int>(gdc->mean + 5 * gdc->stddev);
+            int badMin = static_cast<int>(gdc->mean - 5 * gdc->stddev);
+            if ( mateInfo.mate != NULL_FRAG_ID )
+            {
+                SeqInterval fragPos = frag.position;
+                if ( tig->id() == Unitig::fragIn( mateInfo.mate ) )
+                {
+                    // Mate inside unitig
+                    if (seenMates.find( fragId ) != seenMates.end())
+                    {
+                        // already seen it's mate
+                        if (isReverse(fragPos))
+                        {
+                            if ( seenMates[fragId] == max ) { // mate wrong orient
+                                if ( fragPos.bgn > badMax )
+                                  incrRange( badGraph,-1, fragPos.bgn-badMax,fragPos.bgn);
+                            } else {
+                                // 2nd frag seen is reverse, so good orientation
+                                int mateBgn = seenMates[ fragId ];
+                                int mateDist = fragPos.bgn - mateBgn;
+                                if (mateDist >= badMin && mateDist <= badMax)
+                                    incrRange(goodGraph,2, mateBgn, fragPos.bgn);
+                                else {
+                                    // if tig ends before range, cap at tig end
+                                    int edge = MAX(0, fragPos.end - badMax);
+                                    incrRange(badGraph,-1, edge, fragPos.bgn);
+
+                                    edge = MIN(tigLen, mateBgn + badMax);
+                                    incrRange(badGraph,-1, mateBgn, edge);
+                                }
+                            }
+                        }
+                    } else {
+                        // Haven't seen mate yet, but it's in this unitig later
+                        if (isReverse(fragPos)) {
+                            // 1st reversed, so bad if range internal to unitig
+                            seenMates[mateInfo.mate] = max;
+                            if ( fragPos.bgn > badMax )
+                                incrRange( badGraph, -1, fragPos.bgn-badMax, fragPos.bgn);
+                            // else end of unitig before end of range
+                        } else {
+                            // 1st forward, so good store begin
+                            seenMates[mateInfo.mate] = fragPos.bgn;
+                        }
+                    }
+                } else {
+                    // mate in another tig, mark bad only if max range exceeded
+                    if (isReverse(fragPos)) {
+                        if ( fragPos.bgn > badMax )
+                            incrRange( badGraph, -1, fragPos.bgn - badMax, fragPos.bgn );
+                    } else {
+                        if ( fragPos.bgn + badMax < tigLen ) 
+                            incrRange( badGraph, -1, fragPos.bgn, fragPos.bgn + badMax );
+                    }
+                }
+            }
+        }
+        // do something with the good and bad graphs
+        fprintf(stderr,"Per 300 bases good graph unitig %ld size %ld:\n",tig->id(),tigLen);
+        long sum = 0;
+        for(int i=0; i < tigLen; i++) {
+            if (i > 1 && i % 300 == 0) {
+                fprintf(stderr,"%d ", sum / 300);
+                sum = 0;
+            }
+            sum += goodGraph[ i ];
+        }
+        fprintf(stderr,"\nPer 300 bases bad graph:\n");
+        sum = 0;
+        for(int i=0; i < tigLen; i++) {
+            if (i > 1 && i % 300 == 0) {
+                fprintf(stderr,"%d ", sum / 300);
+                sum = 0;
+            }
+            sum += badGraph[ i ];
+        }
+        fprintf(stderr,"\n");
     }
 }

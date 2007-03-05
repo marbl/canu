@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.hh,v 1.3 2007-02-09 22:12:06 eliv Exp $
- * $Revision: 1.3 $
+ * $Id: AS_BOG_MateChecker.hh,v 1.4 2007-03-05 18:20:12 eliv Exp $
+ * $Revision: 1.4 $
 */
 
 #ifndef INCLUDE_AS_BOG_MATECHEKER
@@ -67,7 +67,11 @@ namespace AS_BOG{
         // returns the mate iid for the given iid, or zero if none
         MateInfo getMateInfo(iuid);
 
-        LibraryStats* checkUnitig( Unitig* ); //Checks size of mates internal to unitig
+        // Checks size of mates internal to unitig
+        LibraryStats* checkUnitig( Unitig* );
+        // Compute good and bad coverage graphs for a unitig
+        void computeMateCoverage( Unitig*, LibraryStats &);
+        // Computes stddev and mate coverage over all unitigs
         void checkUnitigGraph( UnitigGraph& );
 
         private:
