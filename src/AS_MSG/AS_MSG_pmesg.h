@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.35 2007-02-28 08:03:30 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.36 2007-03-05 23:42:11 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -263,14 +263,12 @@ typedef struct {
   ActionType   		action;
   Fragment_ID  		eaccession;
   FragType     		type;
-  Sequence_ID  		eseq_id;
   time_t       		entry_time;
   SeqInterval  		clear_rng;
   char        		*source;
   char        		*sequence;
   char        		*quality;
   IntFragment_ID   	iaccession;
-  IntSequence_ID        iseq_id;
 } FragMesg;
 
 typedef FragMesg OFGMesg;

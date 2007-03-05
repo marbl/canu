@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.21 2007-03-05 05:57:16 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.22 2007-03-05 23:42:11 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -156,7 +156,8 @@ usage(char *filename) {
   fprintf(stderr, "  -C                     like what dumpFragStore used to make\n");
   fprintf(stderr, "  -F                     as (trimmed) fasta\n");
   fprintf(stderr, "  -X                     as XML-like\n");
-  fprintf(stderr, "  -O                     as OFG (special for unitigger)\n");
+  fprintf(stderr, "  -ofg                   as OFG (special for unitigger)\n");
+  fprintf(stderr, "  -frg                   as FRG\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "  By default, -F will dump clear range multi-fasta for fragments\n");
@@ -172,6 +173,7 @@ usage(char *filename) {
 #define DUMP_FASTA   2
 #define DUMP_XML     3
 #define DUMP_OFG     4
+#define DUMP_FRG     5
 
 int
 main(int argc, char **argv) {
@@ -240,8 +242,10 @@ main(int argc, char **argv) {
       check_qvs = 0;
     } else if (strcmp(argv[arg], "-X") == 0) {
       dump = DUMP_XML;
-    } else if (strcmp(argv[arg], "-O") == 0) {
+    } else if (strcmp(argv[arg], "-ofg") == 0) {
       dump = DUMP_OFG;
+    } else if (strcmp(argv[arg], "-frg") == 0) {
+      dump = DUMP_FRG;
     } else if (strcmp(argv[arg], "-allreads") == 0) {
       dumpFastaAllReads = 1;
     } else if (strcmp(argv[arg], "-allbases") == 0) {
@@ -327,6 +331,10 @@ main(int argc, char **argv) {
   }
   if (dump == DUMP_OFG) {
     dumpGateKeeperAsOFG(gkpStoreName);
+    exit(0);
+  }
+  if (dump == DUMP_FRG) {
+    dumpGateKeeperAsFRG(gkpStoreName);
     exit(0);
   }
 

@@ -162,26 +162,19 @@ sub terminate ($) {
         my $termDir = "$wrk/9-terminator";
         if (! -e "$termDir/$asm.qc") {
 
-            #  Some amazingly ugly magic to get the perl libs.
-            #
-            #if (!defined($ENV{'PERL5LIB'}) && !defined($ENV{'PERLLIB'})) {
-            #    if (-d "/home/smurphy/preassembly/test/TIGR/scripts") {
-            #        $ENV{'PERL5LIB'} = "/home/smurphy/preassembly/test/TIGR/scripts";
-            #    }
-            #}
-
             my $cmd;
             $cmd = "$bin/mateLinkIIDRanges.rb $wrk/$asm.gkpStore $bin > mateLinkIIDRanges.txt";
             if (runCommand($termDir, $cmd)) {
                 warn "mateLinkIIDRanges failed mate ranges won't be available.\n";
             }
 
-            my $frg = "$wrk/0-preoverlap/$asm.frg";
-            if ( -e $frg ) {
-                link $frg,"$termDir/$asm.frg";
-                if (runCommand($termDir, "$bin/ca2ace.pl $asm.asm")) {
-                    warn "ca2ace failed no ace file created.\n";
-                }
+            $cmd = "$bin/gatekeeper -frg $wrk/$asm.gkpStore > $termDir/$asm.frg 2> $termDir/gatekeeper.err";
+            if (runCommand($termDir, $cmd)) {
+                warn "gatekeeper didn't dump fragments.\n";
+                unlink "$termDir/$asm.frg";
+            }
+            if (runCommand($termDir, "$bin/ca2ace.pl $asm.asm")) {
+                warn "ca2ace failed no ace file created.\n";
             }
             
             if (runCommand($termDir, "$bin/asmToAGP.pl < $asm.asm > $asm.agp")) {

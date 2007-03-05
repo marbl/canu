@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.33 2007-02-14 07:20:13 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.34 2007-03-05 23:42:11 brianwalenz Exp $";
 
 //  reads old and new AFG message (with and w/o chaff field)
 #define AFG_BACKWARDS_COMPATIBLE
@@ -85,7 +85,6 @@ static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.33 2007-02-14 07:20:13 brianwalenz
 #define ELEN_FORMAT  "len:" F_UID
 #define ELOC_FORMAT  "loc:" F_UID
 #define EREF_FORMAT  "ref:" F_UID
-#define ESEQ_FORMAT  "sid:" F_UID
 
 #define F_UID_IID    "(" F_UID "," F_IID ")"
 
@@ -565,8 +564,6 @@ static void *Read_Frag_Mesg(FILE *fin, int frag_class)
       GET_TYPE(ch,TYP1_FORMAT "[RXELTFUCBW]","type");
       fmesg.type = (FragType) ch;
     }
-
-    fmesg.eseq_id = 0;
 
     fmesg.source   = (char *) GetText("src:",fin,FALSE);
 

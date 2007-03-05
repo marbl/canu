@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_dump.c,v 1.5 2007-02-23 15:35:07 brianwalenz Exp $ */
+/* $Id: AS_GKP_dump.c,v 1.6 2007-03-05 23:42:11 brianwalenz Exp $ */
 
 #include "AS_GKP_include.h"
 
@@ -289,6 +289,7 @@ dumpGateKeeperAsXML(char       *gkpStoreName,
 
 
 
+
 void
 dumpGateKeeperAsOFG(char *gkpStoreName) {
   fragRecord       *fr = new_fragRecord();
@@ -331,6 +332,51 @@ dumpGateKeeperAsOFG(char *gkpStoreName) {
              getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBT),
              getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBT));
     }
+  }
+
+  del_fragRecord(fr);
+  closeGateKeeperStore(gkp);
+}
+
+
+
+
+void
+dumpGateKeeperAsFRG(char *gkpStoreName) {
+  fragRecord       *fr = new_fragRecord();
+  unsigned int      firstElem = 0;
+  unsigned int      lastElem = 0;
+
+  GenericMesg       pmesg;
+  FragMesg          fmesg;
+
+  pmesg.m = &fmesg;
+  pmesg.t = MESG_FRG;
+
+  GateKeeperStore   *gkp = openGateKeeperStore(gkpStoreName, FALSE);
+  if (gkp == NULL) {
+    fprintf(stderr, "Failed to open %s\n", gkpStoreName);
+    exit(1);
+  }
+
+  firstElem = getFirstElemFragStore(gkp);
+  lastElem  = getLastElemFragStore(gkp) + 1;
+
+  for (; firstElem < lastElem; firstElem++) {
+    getFrag(gkp, firstElem, fr, FRAG_S_ALL);
+
+    fmesg.action        = AS_ADD;
+    fmesg.eaccession    = getFragRecordUID(fr);
+    fmesg.type          = AS_READ;
+    fmesg.entry_time    = 0;
+    fmesg.clear_rng.bgn = getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_ORIG);
+    fmesg.clear_rng.end = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_ORIG);
+    fmesg.source        = getFragRecordSource(fr);
+    fmesg.sequence      = getFragRecordSequence(fr);
+    fmesg.quality       = getFragRecordQuality(fr);
+    fmesg.iaccession    = firstElem;
+
+    WriteProtoMesg_AS(stdout, &pmesg);
   }
 
   del_fragRecord(fr);

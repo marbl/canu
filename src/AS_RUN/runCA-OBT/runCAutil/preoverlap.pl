@@ -26,10 +26,6 @@ sub preoverlap {
                 print STDERR "MISSING: $frg\n";
                 $failedFiles++;
             }
-            my $cat = 'cat';
-            $cat = 'zcat' if $frg =~ /\.gz$/;
-            $cat = 'bzcat' if $frg =~ /\.bz2$/;
-            system "$cat $frg | sed 's/(No source)//' >> $wrk/0-preoverlap/$asm.frg";
             $gkpInput .= " $frg";
         }
         die if ($failedFiles);

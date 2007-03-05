@@ -23,7 +23,7 @@ sub unitigger (@) {
         if ((! -e "$wrk/4-unitigger/$asm.ofg") ||
             (-M "$wrk/$asm.gkpStore/db.frg" < -M "$wrk/4-unitigger/$asm.ofg")) {
             my $cmd;
-            $cmd  = "$bin/gatekeeper -O $wrk/$asm.gkpStore ";
+            $cmd  = "$bin/gatekeeper -ofg $wrk/$asm.gkpStore ";
             $cmd .= " > $wrk/4-unitigger/$asm.ofg ";
             $cmd .= " 2> $wrk/4-unitigger/$asm.ofg.err";
 
