@@ -465,7 +465,10 @@ StoreHandle loadStorePartial(const char *StorePath,
  *     Zero if success.
  *****************************************************************************/
 	
-int getIndexStore(StoreHandle fs, int64 indx, void *buffer);
+int   getIndexStore(StoreHandle fs, int64 indx, void *buffer);
+
+void *getIndexStorePtr(StoreHandle fs, int64 indx);
+
 
 	
 /******************************************************************************

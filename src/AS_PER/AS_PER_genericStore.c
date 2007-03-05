@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.14 2007-02-28 13:53:10 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.15 2007-03-05 05:57:16 brianwalenz Exp $";
 
 // Module:  AS_PER_genericStore
 // Description:
@@ -557,7 +557,6 @@ StoreHandle resetVLRecordStore( StoreHandle sh){
 int closeStore(StoreHandle s){
   StoreStruct *myStore = Store_myStruct(s);
 
-
 #ifdef DEBUG_GENERIC_STORE
  fprintf(stderr,"*** closeStore %d  status = %d fileno = %d\n", 
 	 s, myStore->status, (myStore->fp?fileno(myStore->fp):-1));
@@ -804,6 +803,18 @@ int getIndexStore(StoreHandle s, int64 index, void *buffer){
     
     return(1 == AS_UTL_safeRead(myStore->fp,buffer,"getIndexStore",myStore->header.elementSize, 1));
   }
+}
+
+
+
+/****************************************************************************/
+void *getIndexStorePtr(StoreHandle s, int64 index) {
+  StoreStruct *myStore = Store_myStruct(s);
+
+  assert(myStore->status == ActiveStore);
+  assert(myStore->isMemoryStore);
+
+  return((void *)(myStore->buffer + computeOffset(myStore,index)));
 }
 
 

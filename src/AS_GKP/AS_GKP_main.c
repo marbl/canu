@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.20 2007-02-24 15:42:33 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.21 2007-03-05 05:57:16 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -127,9 +127,10 @@ static
 void
 usage(char *filename) {
   fprintf(stderr, "usage: %s [append/create options] <input.frg> <input.frg> ...\n", filename);
-  fprintf(stderr, "       %s [dump-options] <gkpStore>\n", filename);
+  fprintf(stderr, "       %s -P partitionfile gkpStore\n", filename);
+  fprintf(stderr, "       %s [dump-options] gkpStore\n", filename);
   fprintf(stderr, "\n");
-  fprintf(stderr, "The first form is used to append to or create a GateKeeper store:\n");
+  fprintf(stderr, "The first form will append to or create a GateKeeper store:\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "  -a                     append to existing tore\n");
   fprintf(stderr, "  -e <errorThreshhold>   set error threshhold\n");
@@ -140,7 +141,15 @@ usage(char *filename) {
   fprintf(stderr, "  -T                     gatekeeper for assembler Grande with Overlap Based Trimming\n");
   fprintf(stderr, "  -Q                     don't check quality-based data quality\n");
   fprintf(stderr, "\n");
-  fprintf(stderr, "The second form will dump the contents of a GateKeeper store:\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "The second form will partition an existing store, allowing\n");
+  fprintf(stderr, "the entire partitioned store to be loaded into memory.\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "  -P <partitionfile>     a list of (iid partition)\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "The third form will dump the contents of a GateKeeper store:\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "  -b <begin-iid>         dump starting at this read\n");
   fprintf(stderr, "  -e <ending-iid>        dump until this read\n");
@@ -149,16 +158,13 @@ usage(char *filename) {
   fprintf(stderr, "  -X                     as XML-like\n");
   fprintf(stderr, "  -O                     as OFG (special for unitigger)\n");
   fprintf(stderr, "\n");
+  fprintf(stderr, "\n");
   fprintf(stderr, "  By default, -F will dump clear range multi-fasta for fragments\n");
   fprintf(stderr, "  that have not been marked as deleted.  This can be changed with:\n");
   fprintf(stderr, "    -allreads            dump all reads regardless of deletion status\n");
   fprintf(stderr, "    -allbases            dump all bases, ignore the clear ranges\n");
   fprintf(stderr, "    -clear <clr>         dump bases in clear range <clr>; valid values are:\n");
   fprintf(stderr, "                           0-8, orig, qlt, vec, obt, ovl, utg, ecr1, ecr2, closure\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "Additionally:\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "  -h                     print usage\n");
 }
 
 #define DUMP_NOTHING 0
@@ -185,6 +191,10 @@ main(int argc, char **argv) {
   int              nerrs           = 0;   // Number of errors in current run
   int              maxerrs         = 1;   // Number of errors allowed before we punt
   int              firstFileArg    = 0;
+
+  //  Options for partitioning
+  //
+  char            *partitionFile = NULL;
 
   //  Options for dumping:
   //
@@ -264,6 +274,8 @@ main(int argc, char **argv) {
         fprintf(stderr, "unknown clear range '%s'\n", argv[arg]);
         err++;
       }
+    } else if (strcmp(argv[arg], "-P") == 0) {
+      partitionFile = argv[++arg];
     } else if (strcmp(argv[arg], "--") == 0) {
       firstFileArg = arg++;
       arg = argc;
@@ -273,7 +285,7 @@ main(int argc, char **argv) {
     } else {
       firstFileArg = arg;
 
-      if (dump != DUMP_NOTHING)
+      if ((dump != DUMP_NOTHING) || (partitionFile))
         gkpStoreName = argv[arg];
 
       arg = argc;
@@ -285,6 +297,7 @@ main(int argc, char **argv) {
     usage(argv[0]);
     exit(1);
   }
+  
 
 #if 1
   fprintf(stderr, "sizeof(GateKeeperBatchRecord)      "F_SIZE_T"\n", sizeof(GateKeeperBatchRecord));
@@ -316,6 +329,12 @@ main(int argc, char **argv) {
     dumpGateKeeperAsOFG(gkpStoreName);
     exit(0);
   }
+
+  if (partitionFile) {
+    fprintf(stderr, "I would have partitioned, if Bri wasn't such a fuckin' slacker.\n");
+    exit(0);
+  }
+   
 
   if ((append == 0) && (outputExists == 1)) {
     fprintf(stderr,"* Gatekeeper Store %s exists and append flag not supplied.  Exit.\n", gkpStoreName);

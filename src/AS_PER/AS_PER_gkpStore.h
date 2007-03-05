@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.22 2007-03-01 16:13:16 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.23 2007-03-05 05:57:16 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -31,6 +31,7 @@
 #include "AS_MSG_pmesg.h"
 #include "AS_PER_genericStore.h"
 #include "AS_UTL_PHash.h"
+#include "AS_UTL_Hash.h"
 
 #define NULL_LINK 0
 
@@ -364,6 +365,27 @@ typedef struct {
   //  consensus, etc.
   //
   PHashTable_AS           *phs_private;
+
+  //  The rest are for a partitioned fragment store.
+  //
+  //  Notice that we do not load the 'seq' store; we load the 'qlt'
+  //  store which contains both the sequence and quality values.
+  //
+  //  We load all frg and qlt in this partition into memory, and
+  //  optionally load hps and src.  The map converts an iid (global
+  //  fragment iid) into a pointer to the correct frg record, which we
+  //  can then use to grab the sequence/quality/hps/src.  (whatever
+  //  builds the partitions needs to reset the offsets in the
+  //  partitioned frg to be the correct offsets in these stores).
+  //
+  int32                    partnum;
+
+  StoreHandle              partfrg;
+  StoreHandle              partqlt;
+  StoreHandle              parthps;
+  StoreHandle              partsrc;
+
+  HashTable_AS            *partmap;
 } GateKeeperStore;
 
 
@@ -395,14 +417,13 @@ getGatekeeperUIDtoIID(GateKeeperStore *gkp, CDS_UID_t key, PHashValue_AS *value)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-
-////////////////////////////////////////////////////////////////////////////////
-
 GateKeeperStore *createGateKeeperStore(const char *path);
 int              testOpenGateKeeperStore(const char *path, int writable);
 GateKeeperStore *openGateKeeperStore(const char *path, int writable);
 void             closeGateKeeperStore(GateKeeperStore *gkpStore);
 
+void       createGateKeeperPartition(GateKeeperStore *gkp, uint32 partnum);
+void       loadGateKeeperPartition(GateKeeperStore *gkp, uint32 partnum);
 
 void    clearGateKeeperBatchRecord(GateKeeperBatchRecord *g);
 void    clearGateKeeperLibraryRecord(GateKeeperLibraryRecord *g);

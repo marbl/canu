@@ -24,7 +24,13 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-SOURCES = AS_GKP_main.c AS_GKP_checkBatch.c AS_GKP_checkLibrary.c AS_GKP_checkFrag.c AS_GKP_checkLink.c AS_GKP_dump.c
+SOURCES = AS_GKP_main.c \
+          AS_GKP_buildPartition.c \
+          AS_GKP_checkBatch.c \
+          AS_GKP_checkLibrary.c \
+          AS_GKP_checkFrag.c \
+          AS_GKP_checkLink.c \
+          AS_GKP_dump.c
 OBJECTS = $(SOURCES:.c=.o)
 
 LIBRARIES =

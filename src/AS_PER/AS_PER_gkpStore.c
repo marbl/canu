@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.27 2007-03-01 16:13:16 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.28 2007-03-05 05:57:16 brianwalenz Exp $";
 
 //    A thin layer on top of the IndexStore supporing the storage and
 // retrieval of records used by the gatekeeper records.
@@ -141,18 +141,25 @@ openGateKeeperStore(const char *path,
 
   strcpy(gkpStore->storePath, path);
 
-  gkpStore->bat = 0;
-  gkpStore->frg = 0;
-  gkpStore->lib = 0;
-  gkpStore->lis = 0;
+  gkpStore->bat = NULLSTOREHANDLE;
+  gkpStore->frg = NULLSTOREHANDLE;
+  gkpStore->lib = NULLSTOREHANDLE;
+  gkpStore->lis = NULLSTOREHANDLE;
 
-  gkpStore->seq = 0;
-  gkpStore->qlt = 0;
-  gkpStore->hps = 0;
-  gkpStore->src = 0;
+  gkpStore->seq = NULLSTOREHANDLE;
+  gkpStore->qlt = NULLSTOREHANDLE;
+  gkpStore->hps = NULLSTOREHANDLE;
+  gkpStore->src = NULLSTOREHANDLE;
 
   gkpStore->phs_private = NULL;
   
+  gkpStore->partnum = -1;
+  gkpStore->partfrg = NULLSTOREHANDLE;
+  gkpStore->partqlt = NULLSTOREHANDLE;
+  gkpStore->parthps = NULLSTOREHANDLE;
+  gkpStore->partsrc = NULLSTOREHANDLE;
+  gkpStore->partmap = NULL;
+
 
   sprintf(name,"%s/gkp", gkpStore->storePath);
   errno = 0;
@@ -253,17 +260,24 @@ createGateKeeperStore(const char *path) {
 
   strcpy(gkpStore->storePath, path);
 
-  gkpStore->bat = 0;
-  gkpStore->frg = 0;
-  gkpStore->lib = 0;
-  gkpStore->lis = 0;
+  gkpStore->bat = NULLSTOREHANDLE;
+  gkpStore->frg = NULLSTOREHANDLE;
+  gkpStore->lib = NULLSTOREHANDLE;
+  gkpStore->lis = NULLSTOREHANDLE;
 
-  gkpStore->seq = 0;
-  gkpStore->qlt = 0;
-  gkpStore->hps = 0;
-  gkpStore->src = 0;
+  gkpStore->seq = NULLSTOREHANDLE;
+  gkpStore->qlt = NULLSTOREHANDLE;
+  gkpStore->hps = NULLSTOREHANDLE;
+  gkpStore->src = NULLSTOREHANDLE;
 
   gkpStore->phs_private = NULL;
+
+  gkpStore->partnum = -1;
+  gkpStore->partfrg = NULLSTOREHANDLE;
+  gkpStore->partqlt = NULLSTOREHANDLE;
+  gkpStore->parthps = NULLSTOREHANDLE;
+  gkpStore->partsrc = NULLSTOREHANDLE;
+  gkpStore->partmap = NULL;
 
   errno = 0;
   mkdir(path, S_IRWXU | S_IRWXG | S_IROTH);
@@ -353,8 +367,98 @@ closeGateKeeperStore(GateKeeperStore *gkpStore) {
   if(gkpStore->phs_private != NULL)
     ClosePHashTable_AS(gkpStore->phs_private);
 
+
+  if(gkpStore->partfrg != NULLSTOREHANDLE)
+    closeStore(gkpStore->partfrg);
+
+  if(gkpStore->partqlt != NULLSTOREHANDLE)
+    closeStore(gkpStore->partqlt);
+
+  if(gkpStore->parthps != NULLSTOREHANDLE)
+    closeStore(gkpStore->parthps);
+
+  if(gkpStore->partsrc != NULLSTOREHANDLE)
+    closeStore(gkpStore->partsrc);
+
+  if (gkpStore->partmap != NULL)
+    DeleteHashTable_AS(gkpStore->partmap);
+
+
   safe_free(gkpStore);
 }
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+void       createGateKeeperPartition(GateKeeperStore *gkp, uint32 partnum) {
+  char       name[FILENAME_MAX];
+
+  gkp->partnum = partnum;
+
+  sprintf(name,"%s/frg.%03d", gkp->storePath, partnum);
+  gkp->partfrg = createGateKeeperFragmentStore(name, "partfrg", 1);
+
+  sprintf(name,"%s/qlt.%03d", gkp->storePath, partnum);
+  gkp->partqlt = createVLRecordStore(name, "partqlt", MAX_SEQ_LENGTH, 1);
+
+  sprintf(name,"%s/hps.%03d", gkp->storePath, partnum);
+  gkp->parthps = createVLRecordStore(name, "parthps", MAX_HPS_LENGTH, 1);
+
+  sprintf(name,"%s/src.%03d", gkp->storePath, partnum);
+  gkp->partsrc = createVLRecordStore(name, "partsrc", MAX_SRC_LENGTH, 1);
+}
+
+
+
+
+void       loadGateKeeperPartition(GateKeeperStore *gkp, uint32 partnum) {
+  char       name[FILENAME_MAX];
+  StoreStat  stats;
+  int        i;
+
+  gkp->partnum = partnum;
+
+  //  load all our data
+
+  sprintf(name,"%s/frg.%03d", gkp->storePath, partnum);
+  gkp->partfrg = loadStore(name);
+
+  sprintf(name,"%s/qlt.%03d", gkp->storePath, partnum);
+  gkp->partqlt = loadStore(name);
+
+  sprintf(name,"%s/hps.%03d", gkp->storePath, partnum);
+  gkp->parthps = loadStore(name);
+
+  sprintf(name,"%s/src.%03d", gkp->storePath, partnum);
+  gkp->partsrc = loadStore(name);
+
+  //  zip through the frg and build a map from iid to the frg record
+
+  statsStore(gkp->partfrg, &stats);
+  gkp->partmap = CreateHashTable_int32_AS(stats.lastElem + 1);
+
+  for(i = stats.firstElem; i <= stats.lastElem; i++){
+    GateKeeperFragmentRecord *p = getIndexStorePtr(gkp->partfrg, i);
+
+    if(InsertInHashTable_AS(gkp->partmap,
+                            &p->readIID,
+                            sizeof(uint32),
+                            p) != HASH_SUCCESS)
+      assert(0);
+  }
+}
+
+
+
+
+////////////////////////////////////////////////////////////////////////////////
+
+
+
 
 
 
@@ -439,6 +543,7 @@ static
 void
 getFragData(GateKeeperStore *gkp, fragRecord *fr, int streamFlags) {
   VLSTRING_SIZE_T   actualLength = 0;
+  StoreHandle       store        = NULLSTOREHANDLE;
 
   fr->hasSEQ = 0;
   fr->hasQLT = 0;
@@ -454,6 +559,7 @@ getFragData(GateKeeperStore *gkp, fragRecord *fr, int streamFlags) {
       !(streamFlags & FRAG_S_QLT)) {
     fr->hasSEQ = 1;
     if (fr->gkfr.seqLen > 0) {
+      assert(gkp->partmap == NULL);
       getVLRecordStore(gkp->seq,
                        fr->gkfr.seqOffset,
                        fr->seq,
@@ -467,7 +573,10 @@ getFragData(GateKeeperStore *gkp, fragRecord *fr, int streamFlags) {
     fr->hasSEQ = 1;
     fr->hasQLT = 1;
     if (fr->gkfr.seqLen > 0) {
-      getVLRecordStore(gkp->qlt,
+      store = gkp->qlt;
+      if (gkp->partmap)
+        store = gkp->partqlt;
+      getVLRecordStore(store,
                        fr->gkfr.qltOffset,
                        fr->qlt,
                        VLSTRING_MAX_SIZE,
@@ -479,7 +588,10 @@ getFragData(GateKeeperStore *gkp, fragRecord *fr, int streamFlags) {
   if (streamFlags & FRAG_S_HPS) {
     fr->hasHPS = 1;
     if (fr->gkfr.hpsLen > 0) {
-      getVLRecordStore(gkp->hps,
+      store = gkp->hps;
+      if (gkp->partmap)
+        store = gkp->parthps;
+      getVLRecordStore(store,
                        fr->gkfr.hpsOffset,
                        fr->hps,
                        VLSTRING_MAX_SIZE,
@@ -490,7 +602,10 @@ getFragData(GateKeeperStore *gkp, fragRecord *fr, int streamFlags) {
   if (streamFlags & FRAG_S_SRC) {
     fr->hasSRC = 1;
     if (fr->gkfr.srcLen > 0) {
-      getVLRecordStore(gkp->src,
+      store = gkp->src;
+      if (gkp->partmap)
+        store = gkp->partsrc;
+      getVLRecordStore(store,
                        fr->gkfr.srcOffset,
                        fr->src,
                        VLSTRING_MAX_SIZE,
@@ -502,11 +617,26 @@ getFragData(GateKeeperStore *gkp, fragRecord *fr, int streamFlags) {
 
 
 void    getFrag(GateKeeperStore *gkp, int64 iid, fragRecord *fr, int32 flags) {
-  getGateKeeperFragmentStore(gkp->frg, iid, &fr->gkfr);
+  if (gkp->partmap == NULL) {
+    getGateKeeperFragmentStore(gkp->frg, iid, &fr->gkfr);
+  } else {
+    GateKeeperFragmentRecord *gkfr;
+
+    gkfr = LookupInHashTable_AS(gkp->partmap, &iid, sizeof(int32));
+    if (gkfr == NULL) {
+      fprintf(stderr, "getFrag()-- ERROR!  IID "F_S64" not in partition!\n", iid);
+      assert(0);
+    }
+
+    memcpy(&fr->gkfr, gkfr, sizeof(GateKeeperFragmentRecord));
+  }
+
   getFragData(gkp, fr, flags);
 }
 
+
 void    setFrag(GateKeeperStore *gkp, int64 iid, fragRecord *fr) {
+  assert(gkp->partmap == NULL);
   setGateKeeperFragmentStore(gkp->frg, iid, &fr->gkfr);
 }
 
@@ -514,6 +644,7 @@ void    delFrag(GateKeeperStore *gkp, int64 iid) {
   GateKeeperFragmentRecord   gkfr;
   CDS_IID_t                  miid;
 
+  assert(gkp->partmap == NULL);
   assert(gkp->phs_private != NULL);
 
   //  Delete fragment with iid from the store.  If the fragment has a
