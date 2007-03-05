@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.30 2007-02-25 08:13:37 brianwalenz Exp $
- * $Revision: 1.30 $
+ * $Id: AS_OVL_overlap_common.h,v 1.31 2007-03-05 22:45:46 brianwalenz Exp $
+ * $Revision: 1.31 $
 */
 
 
@@ -552,7 +552,7 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
      optarg = NULL;
      while  (! errflg
                && ((ch = getopt_long (argc, argv,
-                                      "b:cGh:I:k:K:l:mM:no:Pqr:st:uv:wxz",
+                                      "b:cGh:I:k:K:l:mM:no:qr:st:uv:wxz",
                                       ovlopts, &optindex)) != EOF))
        switch  (ch)
          {
@@ -707,9 +707,6 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
           case  'o' :
             Outfile_Name = strdup (optarg);
             assert (Outfile_Name != NULL);
-            break;
-          case  'P' :
-            fprintf(stderr, "-P is depricated; protoIO is default.\n");
             break;
           case  'q' :
             Single_Line_Output = TRUE;
