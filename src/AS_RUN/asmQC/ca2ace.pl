@@ -1,8 +1,7 @@
-#!/usr/bin/perl
-use lib "/home/eventer/lib";
+#!/usr/local/bin/perl
 
 
-# $Id: ca2ace.pl,v 1.2 2007-03-05 15:52:54 eliv Exp $
+# $Id: ca2ace.pl,v 1.3 2007-03-05 17:19:09 eliv Exp $
 #
 # Converts from a Celera .asm file to a new .ace file
 #
@@ -22,7 +21,7 @@ if (! defined $base){
     die ("Foundation cannot be created.  FATAL!\n");
 }
 
-my $VERSION = '$Revision: 1.2 $ ';
+my $VERSION = '$Revision: 1.3 $ ';
 $base->setVersionInfo($VERSION);
 
 my $HELPTEXT = q~
