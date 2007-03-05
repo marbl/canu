@@ -1,6 +1,8 @@
 #!/usr/bin/perl
+use lib "/home/eventer/lib";
 
-# $Id: ca2ace.pl,v 1.1 2006-03-16 20:32:29 eliv Exp $
+
+# $Id: ca2ace.pl,v 1.2 2007-03-05 15:52:54 eliv Exp $
 #
 # Converts from a Celera .asm file to a new .ace file
 #
@@ -11,6 +13,7 @@ use DB_File;
 use TIGR::Foundation;
 use TIGR::FASTAreader;
 use TIGR::FASTArecord;
+use TIGR::AsmLib;
 
 my $base = new TIGR::Foundation;
 my $GREP = '/bin/grep';
@@ -19,7 +22,7 @@ if (! defined $base){
     die ("Foundation cannot be created.  FATAL!\n");
 }
 
-my $VERSION = '$Revision: 1.1 $ ';
+my $VERSION = '$Revision: 1.2 $ ';
 $base->setVersionInfo($VERSION);
 
 my $HELPTEXT = q~
@@ -104,6 +107,25 @@ if ( defined $contamFile ) {
        $base->bail("Cannot open output file \"$outfile.contaminant\" : $!");
 }
 
+# we're going to pre read the DSC messages so we know we have a degen contig
+# when we first read it, instead of having to wait until the end now that
+# the DSC messages occur after all the CCOs
+my $asmFileSize = -s $infile;
+open(IN, $infile) || $base->bail("Cannot open $infile: $!\n");
+# DSC messages come near the end of the .asm, might need to adjust fraction
+seek IN, int( $asmFileSize * 0.95 ), 0;
+my %degenCTGs;
+while(<IN>) {
+    if ( $_ eq "{DSC\n" ) {
+        $_ = <IN>;
+        die "Expected acc: got $_" unless /^acc:/;
+        $_ = <IN>;
+        die "Expected ctg: got $_" unless /^ctg:(\d+)/;
+        $degenCTGs{ $1 } = 1;
+    }
+}
+seek IN, 0, 0;
+
 
 # Here's the process
 #
@@ -155,8 +177,8 @@ my $seekpos = tell FRG;
 sub populateSeqPos($){
     my ($inFrg) = @_;
 
-    while (my $record = getRecord($inFrg)){
-        my ($rec, $fields, $recs) = parseRecord($record);
+    while (my $record = getCARecord($inFrg)){
+        my ($rec, $fields, $recs) = parseCARecord($record);
         if ($rec eq "FRG"){
             my $nm = $$fields{src};
             $nm =~ tr/\n/ /;
@@ -183,56 +205,38 @@ if ( defined $seqPosFile ) {
     populateSeqPos( \*FRG );
 }
 
-open(IN, $infile) || $base->bail("Cannot open $infile: $!\n");
-$seekpos = tell IN;
-
 sub cntContigsAndReads() {
     local $/="\n{";
 
-    my ($co,$coR,$frgCO);
-    my ($dco,$dcoR,$dfrgCO);
-    my ($sco,$scoR,$sfrgCO);
-    my $coNumReads;
+    my ($co,$coR);
+    my ($dco,$dcoR);
+    my ($sco,$scoR);
     while(<IN>) {
-        if( /^(CCO|UTG\n[\s\S]+?\nsta:(\w))/) {
-            if( $1 eq 'CCO') {
+        if( /^UTG\nacc:\(\d+,[\s\S]+?\nsta:(\w)\n[\s\S]+?nfr:(\d+)/) {
+            next unless $1 eq 'S';
+            $sco++;
+            $scoR += $2;
+        } elsif( /^CCO\nacc:\((\d+),[\s\S]+?npc:(\d+)/) {
+            if (exists $degenCTGs{ $1 }) {
+                $dco++;
+                $dcoR += $2;
+            } else {
                 $co++;
-                $frgCO=1;
-                $sfrgCO=0;
-                $coNumReads=0;
-            } elsif ($2 eq 'S') {
-                $sco++;
-                $frgCO=0;
-                $sfrgCO=1;
-            } else {
-                $frgCO=0;
-                $sfrgCO=0;
+                $coR += $2;
             }
-            next;
-        } elsif( /^(DSC|SCF)\nacc:(\w+)/ ) {
-            my $scf = $2;
-            if ($1 eq 'DSC') {
-                $dco++;$co--;
-                $dcoR += $coNumReads;
-                $coR -= $coNumReads;
-            } else {
-                my $scf = $1;
-                if (exists $vectors{ $scf }) {
-                    while(<IN>) {
-                        if( /\nct1:(\w+)\nct2:(\w+)\n/ ) {
-                            $vectors{ $1 } = 1;
-                            $vectors{ $2 } = 1;
-                        }
-                        last if "}\n}" eq substr($_,length($_)-5,3);
+        } elsif( /^SCF\nacc:(\w+)/ ) {
+            my $scf = $1;
+            if (exists $vectors{ $scf }) {
+                while(<IN>) {
+                    if( /\nct1:(\w+)\nct2:(\w+)\n/ ) {
+                        $vectors{ $1 } = 1;
+                        $vectors{ $2 } = 1;
                     }
+                    last if "}\n}" eq substr($_,length($_)-5,3);
                 }
             }
         }
-
-        $coR++,$coNumReads++ if $frgCO && /^(MPS\n|UPS\ntyp:S)/;
-        $scoR++ if $sfrgCO && /^(MPS\n|UPS\ntyp:S)/;
     }
-
     print OUT   "AS $co $coR\n\n";
     print DEGEN "AS $dco $dcoR\n\n";
     print SURR  "AS $sco $scoR\n\n";
@@ -243,7 +247,7 @@ sub cntContigsAndReads() {
 #my ($numContigs,$numReads) = split ' ',`$countCMD < $infile`
 
 cntContigsAndReads(); # write AS messages to 3 output files
-seek IN,$seekpos,0;
+seek IN,0,0;
 
 sub printCO($$$$) {
     my ($handle, $coLine, $ctgOutRef, $seqOutRef) = @_;
@@ -258,9 +262,9 @@ sub printCO($$$$) {
 my %utgs;
 my %seenutgs;
 my (@ctgOut,@seqOut,$coLine);
-my ($prevRecord,$prevCO);
-while (my $record = getRecord(\*IN)){
-    my ($rec, $fields, $recs) = parseRecord($record);
+my ($prevRecord,$prevCO) = ('','');
+while (my $record = getCARecord(\*IN)){
+    my ($rec, $fields, $recs) = parseCARecord($record);
 
     my $id = getCAId($$fields{acc});
     if ($rec eq 'AFG') {
@@ -270,26 +274,19 @@ while (my $record = getRecord(\*IN)){
     my $nseqs;
     $contigid = $id;
 
-    if ($rec eq 'DSC' && $$fields{ctg} == $prevCO) {
-        my $handle;
-        if (exists $vectors{ $id } ) {
-            $handle = \*VEC;
-        } else {
-            $handle = \*DEGEN;
-        }
-        printCO($handle, \$coLine, \@ctgOut, \@seqOut);
-
-    } elsif ( $prevRecord eq 'UTG' ) {
+    if ( $prevRecord eq 'UTG' ) {
         printCO(\*SURR, \$coLine, \@ctgOut, \@seqOut);
 
     } elsif ( $prevRecord eq 'CCO' ) {
         my $handle;
-        if (exists $vectors{ $id } ) {
+        if (exists $vectors{ $prevCO } ) {
             $handle = \*VEC;
+        } elsif (exists $degenCTGs{ $prevCO }) {
+            $handle = \*DEGEN;
         } else {
             $handle = \*OUT;
         }
-        printCO(\*OUT, \$coLine, \@ctgOut, \@seqOut);
+        printCO($handle, \$coLine, \@ctgOut, \@seqOut);
     }
     $prevRecord = $rec;
     $prevCO = $contigid;
@@ -354,7 +351,7 @@ while (my $record = getRecord(\*IN)){
 	%rend = ();
 
 	for (my $r = 0; $r <= $#$recs; $r++){
-	    my ($srec, $sfields, $srecs) = parseRecord($$recs[$r]);
+	    my ($srec, $sfields, $srecs) = parseCARecord($$recs[$r]);
 	    my $seql;
 	    my $seqr;
 	    my $sequence;
@@ -531,13 +528,13 @@ sub get_seq($$$)
     my $spos = shift;
 
     seek $file, $spos, 0; # seek set
-    my $record = getRecord($file);
+    my $record = getCARecord($file);
     if (! defined $record){
         print STDERR "weird error\n";
         return;
     }
 
-    my ($rec, $fields, $recs) = parseRecord($record);
+    my ($rec, $fields, $recs) = parseCARecord($record);
     
     if ($rec ne "FRG"){
         print STDERR "wierd error in get_seq, expecting frg\n";
