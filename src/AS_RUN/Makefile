@@ -48,6 +48,8 @@ SCRIPTS = runCA-OBT.pl \
 	  apply_assembler \
 	  glen_est_truncadjusted.pl \
       caqc.pl \
+      ca2ace.pl \
+      asmToAGP.pl \
       mateLinkIIDRanges.rb
 
 # Include for AS project rules
@@ -83,6 +85,14 @@ mateLinkIIDRanges.rb: asmQC/mateLinkIIDRanges.rb
 	@chmod 775 $(LOCAL_BIN)/$@
 
 caqc.pl: asmQC/caqc.pl
+	@cp $< $(LOCAL_BIN)/$@
+	@chmod 775 $(LOCAL_BIN)/$@
+
+ca2ace.pl: asmQC/ca2ace.pl
+	@cp $< $(LOCAL_BIN)/$@
+	@chmod 775 $(LOCAL_BIN)/$@
+
+asmToAGP.pl: asmQC/asmToAGP.pl
 	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 

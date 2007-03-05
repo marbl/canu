@@ -159,7 +159,8 @@ sub terminate ($) {
         #
         #  Generate statistics.
         #
-        if (! -e "$wrk/9-terminator/$asm.qc") {
+        my $termDir = "$wrk/9-terminator";
+        if (! -e "$termDir/$asm.qc") {
 
             #  Some amazingly ugly magic to get the perl libs.
             #
@@ -171,8 +172,20 @@ sub terminate ($) {
 
             my $cmd;
             $cmd = "$bin/mateLinkIIDRanges.rb $wrk/$asm.gkpStore $bin > mateLinkIIDRanges.txt";
-            if (runCommand("$wrk/9-terminator", $cmd)) {
+            if (runCommand($termDir, $cmd)) {
                 warn "mateLinkIIDRanges failed mate ranges won't be available.\n";
+            }
+
+            my $frg = "$wrk/0-preoverlap/$asm.frg";
+            if ( -e $frg ) {
+                link $frg,"$termDir/$asm.frg";
+                if (runCommand($termDir, "$bin/ca2ace.pl $asm.asm")) {
+                    warn "ca2ace failed no ace file created.\n";
+                }
+            }
+            
+            if (runCommand($termDir, "$bin/asmToAGP.pl < $asm.asm > $asm.agp")) {
+                    warn "asmToAGP.pl failed no agp file created.\n";
             }
 
             $cmd = "$perl $bin/caqc.pl $wrk/9-terminator/$asm.asm";
