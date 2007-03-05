@@ -145,20 +145,23 @@ if (! -e "$path/init.merStream") {
 #  mersPerSegment - the _actual_ number of mers we can stuff into a
 #  segment.  We then overlap each segment by 1,000,000 mers.
 
-my $mersInFile     = `$mimsf $path/init`;  chomp $mersInFile;
+my $mersInFile     = int(`$mimsf $path/init`);
 my $mersPerSegment = 0;
 my $segmentOverlap = 10000000;
+
+print STDERR "Found $mersInFile mers in the input.\n";
+die "No mers found?\n" if ($mersInFile <= 0);
 
 #  XXX:  Magic Number!  12 bytes per base!
 
 if ($memory > 0) {
-    print STDERR "configureESTmapper-- packing to preserve ${memory}MB memory limit\n";
     $mersPerSegment = int($memory / 12 * 1000000) + 1;
+    print STDERR "configureESTmapper-- packing to preserve ${memory}MB memory limit ($mersPerSegment mers per segment)\n";
 }
 
 if ($segments > 0) {
-    print STDERR "configureESTmapper-- packing to preserve $segments processor limit\n";
     $mersPerSegment = int($mersInFile / $segments + $segmentOverlap) + 1;
+    print STDERR "configureESTmapper-- packing to preserve $segments processor limit ($mersPerSegment mers per segment)\n";
 }
 
 $memory = int($mersPerSegment * 12 / 1000000);
@@ -227,6 +230,7 @@ close(F);
 close(S);
 
 print STDERR "configureESTmapper-- Created $segId groups with maximum memory requirement of ${memory}MB.\n";
+die "Created no groups?\n" if (int($segId) == 0);
 
 ########################################
 #
