@@ -168,7 +168,7 @@ sub terminate ($) {
                 warn "mateLinkIIDRanges failed mate ranges won't be available.\n";
             }
 
-            $cmd = "$bin/gatekeeper -frg $wrk/$asm.gkpStore > $termDir/$asm.frg 2> $termDir/gatekeeper.err";
+            $cmd = "$bin/gatekeeper -frg $wrk/$asm.gkpStore | sed 's/(No source)//' > $termDir/$asm.frg 2> $termDir/gatekeeper.err";
             if (runCommand($termDir, $cmd)) {
                 warn "gatekeeper didn't dump fragments.\n";
                 unlink "$termDir/$asm.frg";
