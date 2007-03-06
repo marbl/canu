@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: colCorr_CNS.c,v 1.12 2007-02-20 21:58:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: colCorr_CNS.c,v 1.13 2007-03-06 01:02:44 brianwalenz Exp $";
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -106,7 +106,7 @@ static void count_columns_copy(Alignment_t* a)
 
 
 
-static Alignment_t* convert_MultiAlignT_to_alignment(MultiAlignT* inAlign, GateKeeperStore *handle, tFragStorePartition *pfraghandle, int ***idArray)
+static Alignment_t* convert_MultiAlignT_to_alignment(MultiAlignT* inAlign, GateKeeperStore *handle, int ***idArray)
 {
   int i;
   int rows;
@@ -128,7 +128,7 @@ static Alignment_t* convert_MultiAlignT_to_alignment(MultiAlignT* inAlign, GateK
 #endif 
 
   rc = IMP2Array(GetIntMultiPos(inAlign->f_list,0),num_frags,length,
-                 handle,pfraghandle,&rows,&bqarray,&idarray,&oriarray,0,AS_READ_CLEAR_LATEST);
+                 handle,&rows,&bqarray,&idarray,&oriarray,0,AS_READ_CLEAR_LATEST);
 
   // need idarray outside
   *idArray=idarray;
@@ -140,13 +140,13 @@ static Alignment_t* convert_MultiAlignT_to_alignment(MultiAlignT* inAlign, GateK
   if( inAlign->id == -1 ){
     printf("BEFORE COMPRESSION\n");
     AS_REZ_print_alignment(ali,90);
-    AS_REZ_compress_shreds_and_null_indels(length,rows,handle,pfraghandle,
+    AS_REZ_compress_shreds_and_null_indels(length,rows,handle,
                                                 ali->ali, idarray,1);
     printf("AFTER COMPRESSION\n");
     AS_REZ_print_alignment(ali,90);
   }
   else
-    AS_REZ_compress_shreds_and_null_indels(length,rows,handle,pfraghandle,
+    AS_REZ_compress_shreds_and_null_indels(length,rows,handle,
 			    ali->ali, idarray,0);
   //AS_REZ_print_alignment(ali,90);
 
@@ -372,8 +372,7 @@ static int is_consistent_partition(Alignment_t *a,int prevmm,int thismm, int row
 }
 
 ColumnCorrelationT *test_correlated_columns(MultiAlignT* ma, 
-					    GateKeeperStore *handle,
-					    tFragStorePartition *pfraghandle){
+					    GateKeeperStore *handle) {
   Alignment_t *ali;
   int i;
   int rows,length;
@@ -385,7 +384,7 @@ ColumnCorrelationT *test_correlated_columns(MultiAlignT* ma,
   if(colcorr==NULL)
     colcorr=(ColumnCorrelationT*)safe_malloc(sizeof(ColumnCorrelationT)*sizeColCorr);
   
-  ali = convert_MultiAlignT_to_alignment(ma,handle,pfraghandle,&idArray);
+  ali = convert_MultiAlignT_to_alignment(ma,handle,&idArray);
 
   rows=ali->rows;
   length=GetMultiAlignLength(ma);

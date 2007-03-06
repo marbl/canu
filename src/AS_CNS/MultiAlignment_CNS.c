@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.132 2007-03-04 16:03:04 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.133 2007-03-06 01:02:44 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -950,11 +950,8 @@ int32 AppendFragToLocalStore(FragType type, int32 iid, int complement,int32 cont
   case AS_READ:
   case AS_EXTR:
   case AS_TRNR:
-    if ( partitioned ) {
-      getFragStorePartition(global_fragStorePartition,iid,FRAG_S_QLT,fsread);
-    } else {
-      getFrag(global_fragStore,iid,fsread,FRAG_S_QLT);
-    }
+    getFrag(gkpStore,iid,fsread,FRAG_S_QLT);
+
     clr_bgn = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_LATEST);
     clr_end = getFragRecordClearRegionEnd  (fsread, AS_READ_CLEAR_LATEST);
 
@@ -4482,11 +4479,9 @@ int PrintFrags(FILE *out, int accession, IntMultiPos *all_frags, int num_frags,
               lefti = all_frags[i].position.end;
               isforward = 0;
            }
-           if ( partitioned ) {
-             getFragStorePartition(global_fragStorePartition,all_frags[i].ident,FRAG_S_ALL,fsread);
-           } else {
-             getFrag(global_fragStore,all_frags[i].ident,fsread,FRAG_S_ALL);
-           }
+
+           getFrag(gkpStore,all_frags[i].ident,fsread,FRAG_S_ALL);
+
            fmesg.sequence = getFragRecordSequence(fsread);
            fmesg.quality  = getFragRecordQuality(fsread);
 
@@ -7226,7 +7221,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
 
     if ( cnslog == NULL ) cnslog = stderr;
     ALIGNMENT_CONTEXT=AS_CONSENSUS;
-    global_fragStore=fragStore;
+    gkpStore=fragStore;
 
     RALPH_INIT = InitializeAlphTable();
     offsets = (SeqInterval *) safe_calloc(num_frags,sizeof(SeqInterval));
@@ -7508,7 +7503,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
                      afrag->iid,afrag->type,bfrag->iid,bfrag->type,ahang);
            }
 
-           PrintFrags(cnslog,0,&positions[i],1,global_fragStore);
+           PrintFrags(cnslog,0,&positions[i],1,gkpStore);
          }
 
          if ( allow_forced_frags ) {
@@ -7605,8 +7600,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
         if ( rc ) {
           prob_value = AS_REZ_MP_MicroHet_prob(multia,
                                                id_array,
-                                               global_fragStore,
-                                               global_fragStorePartition,
+                                               gkpStore,
                                                unitig->length,
                                                depth);
         } else {
@@ -8658,7 +8652,7 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
    USE_SDB=1;
    sequenceDB = sequenceDBp;
    RALPH_INIT = InitializeAlphTable();
-   global_fragStore = frag_store;
+   gkpStore = frag_store;
    oma =  LoadMultiAlignTFromSequenceDB(sequenceDB, contig_iid, FALSE);
    ResetStores(2,GetNumchars(oma->consensus)+MAX_EXTEND_LENGTH);
    num_unitigs=GetNumIntUnitigPoss(oma->u_list);
@@ -8974,7 +8968,7 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
      num_columns = ( cpositions[i].position.end>num_columns)? cpositions[i].position.end : num_columns;
    }
 
-   global_fragStore = frag_store;
+   gkpStore = frag_store;
    ResetStores(num_contigs,num_columns);
 
    if (num_contigs == 1) {

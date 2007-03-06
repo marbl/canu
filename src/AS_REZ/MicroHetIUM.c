@@ -520,7 +520,7 @@ CGB_Type get_simulator_type(IntUnitigMesg* ium_mesg){
    (mismatches are random errors).
    A return value of 1.0 may indicate that the unitig was not deep enough for meaningful test.
 */
-double AS_REZ_prob_IUM_MPsimple(IntUnitigMesg* ium, GateKeeperStore *handle,tFragStorePartition *phandle)
+double AS_REZ_prob_IUM_MPsimple(IntUnitigMesg* ium, GateKeeperStore *handle)
 {
   int i;
   int rows;
@@ -533,7 +533,6 @@ double AS_REZ_prob_IUM_MPsimple(IntUnitigMesg* ium, GateKeeperStore *handle,tFra
             ium->num_frags,
             ium->length,
 	    handle,
-            phandle,
             &rows,
             &bqarray,
             &idarray,
@@ -541,7 +540,7 @@ double AS_REZ_prob_IUM_MPsimple(IntUnitigMesg* ium, GateKeeperStore *handle,tFra
             0,
             AS_READ_CLEAR_LATEST);
 
-  ret = AS_REZ_MP_MicroHet_prob(bqarray,idarray,handle,phandle, ium->length,rows);
+  ret = AS_REZ_MP_MicroHet_prob(bqarray,idarray,handle, ium->length,rows);
   /* free the space that is allocated by IMP2Array */
   for(i=0; i<2*rows; i++)
     safe_free(bqarray[i]);
@@ -567,7 +566,6 @@ double AS_REZ_prob_IUM_MPsimple(IntUnitigMesg* ium, GateKeeperStore *handle,tFra
 
 Alignment_t* AS_REZ_convert_IUM_to_alignment(IntUnitigMesg* ium,
                                              GateKeeperStore *handle,
-                                             tFragStorePartition *phandle,
 					     int compress)
 {
   int i;
@@ -581,7 +579,6 @@ Alignment_t* AS_REZ_convert_IUM_to_alignment(IntUnitigMesg* ium,
             ium->num_frags,
             ium->length,
 	    handle,
-            phandle,
             &rows,
             &bqarray,
             &idarray,
@@ -598,7 +595,6 @@ Alignment_t* AS_REZ_convert_IUM_to_alignment(IntUnitigMesg* ium,
     AS_REZ_compress_shreds_and_null_indels(ium->length,
                                            rows,
                                            handle,
-                                           phandle,
                                            ali->ali,
                                            idarray,
                                            0);  //  verbose
@@ -642,7 +638,6 @@ Alignment_t* AS_REZ_convert_IUM_to_alignment(IntUnitigMesg* ium,
    can be inspected in order to find repetitive segments
 */
 UnitigStatus_t AS_REZ_is_IUM_MPsimple(IntUnitigMesg* ium, GateKeeperStore *handle,
-                                      tFragStorePartition *phandle,
                                       Alignment_t **ali, double thresh, int variant, 
                                       double *pval)
 {
@@ -651,7 +646,7 @@ UnitigStatus_t AS_REZ_is_IUM_MPsimple(IntUnitigMesg* ium, GateKeeperStore *handl
   
   *pval=1.0; //Sets up default return for cases when no test can be made.
 
-  *ali = AS_REZ_convert_IUM_to_alignment(ium,handle,phandle,TRUE);
+  *ali = AS_REZ_convert_IUM_to_alignment(ium,handle,TRUE);
 
   /* for this test we allocate a marker that is by default TRUE
      for all columns */
@@ -745,7 +740,7 @@ main(int argc, char **argv) {
           printf("Length          = %d\n",iunitig->length);	
           printf("Source          = %s\n",iunitig->source);	
 
-          ali = AS_REZ_convert_IUM_to_alignment(iunitig,storeHandle,NULL,FALSE);
+          ali = AS_REZ_convert_IUM_to_alignment(iunitig,storeHandle,FALSE);
 
           switch(printWhat){
             case PRINT_DOTS:
@@ -915,7 +910,7 @@ main(int argc, char **argv) {
 #endif
 
 #else
-          pval3 = AS_REZ_prob_IUM_MPsimple(iunitig,storeHandle,NULL);
+          pval3 = AS_REZ_prob_IUM_MPsimple(iunitig,storeHandle);
           printf(F_IID " %d %f %e\n",
                  iunitig->iaccession,(int)type,iunitig->coverage_stat,pval3);
 #endif

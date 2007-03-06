@@ -25,7 +25,7 @@
                  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: TestAlign_CNS.c,v 1.9 2007-02-18 14:04:48 brianwalenz Exp $";
+static char CM_ID[] = "$Id: TestAlign_CNS.c,v 1.10 2007-03-06 01:02:44 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -157,8 +157,8 @@ int main (int argc, char *argv[]) {
    }
    ResetStores(LINE_MAX,20);
    if ( use_store ) {
-     global_fragStore = openGateKeeperStore(frgStoreFileName, FALSE);
-     if (global_fragStore == NULL)
+     gkpStore = openGateKeeperStore(frgStoreFileName, FALSE);
+     if (gkpStore == NULL)
        return 0;
  
     if ( ! merge ) {
@@ -221,9 +221,9 @@ int main (int argc, char *argv[]) {
       }
      }
       
-     MergeMultiAligns( sequenceDB, global_fragStore, pos_va, 1, 0, DP_Compare, NULL);
+     MergeMultiAligns( sequenceDB, gkpStore, pos_va, 1, 0, DP_Compare, NULL);
      if ( local_aligner ) 
-        MergeMultiAligns( sequenceDB, global_fragStore, pos_va, 1, 0, Local_Overlap_AS_forCNS, NULL);
+        MergeMultiAligns( sequenceDB, gkpStore, pos_va, 1, 0, Local_Overlap_AS_forCNS, NULL);
    }
    return 0;
 }

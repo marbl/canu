@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.23 2007-03-05 05:57:16 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.24 2007-03-06 01:02:44 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -422,8 +422,14 @@ int              testOpenGateKeeperStore(const char *path, int writable);
 GateKeeperStore *openGateKeeperStore(const char *path, int writable);
 void             closeGateKeeperStore(GateKeeperStore *gkpStore);
 
-void       createGateKeeperPartition(GateKeeperStore *gkp, uint32 partnum);
-void       loadGateKeeperPartition(GateKeeperStore *gkp, uint32 partnum);
+void             createGateKeeperPartition(GateKeeperStore *gkp, uint32 partnum);
+
+void             loadGateKeeperPartition(GateKeeperStore *gkp, uint32 partnum);
+
+void             loadGateKeeperStorePartial(GateKeeperStore *gkpStore,
+                                            int64 firstElem,
+                                            int64 lastElem,
+                                            int flags);
 
 void    clearGateKeeperBatchRecord(GateKeeperBatchRecord *g);
 void    clearGateKeeperLibraryRecord(GateKeeperLibraryRecord *g);
@@ -436,14 +442,6 @@ void    delFrag(GateKeeperStore *gkp, int64 iid);
 #define getFirstElemFragStore(GKP)  getFirstElemStore((GKP)->frg)
 #define getLastElemFragStore(GKP)   getLastElemStore((GKP)->frg)
 
-////////////////////////////////////////////////////////////////////////////////
-
-static
-GateKeeperStore *loadFragStore(const char *path) {
-  return(openGateKeeperStore(path, FALSE));
-}
-
-GateKeeperStore *loadFragStorePartial(const char *path, int64 firstElem, int64 lastElem, int flags);
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -472,26 +470,7 @@ int64            getStartIndexFragStream(FragStream *fs);
 
 int              nextFragStream(FragStream *fs, fragRecord *fr);
 
-////////////////////////////////////////////////////////////////////////////////
 
-typedef GateKeeperStore  tFragStorePartition;
 
-static
-tFragStorePartition *openFragStorePartition(char *fragStorePath, int32 partition, int loadData) {
-  return(openGateKeeperStore(fragStorePath, FALSE));
-};
-
-static
-void                 closeFragStorePartition(tFragStorePartition *partition) {
-  closeGateKeeperStore(partition);
-};
-
-static
-void                 getFragStorePartition(tFragStorePartition *partition,
-                                           int32 indx,
-                                           int32 getFlags,
-                                           fragRecord *fr) {
-  getFrag(partition, indx, fr, getFlags);
-};
 
 #endif

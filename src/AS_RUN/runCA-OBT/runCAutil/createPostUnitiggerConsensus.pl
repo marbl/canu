@@ -3,8 +3,7 @@ use strict;
 sub createPostUnitiggerConsensusJobs(@) {
     my @cgbFiles  = @_;
 
-if (0) {
-    if (! -e "$wrk/5-consensus/$asm.partFile") {
+    if (! -e "$wrk/5-consensus/$asm.partitioned") {
 
         #  Then, build a partition information file, and do the partitioning.
         #
@@ -24,18 +23,17 @@ if (0) {
         close(G);
 
         my $cmd;
-        $cmd  = "$bin/partitionFragStore ";
+        $cmd  = "$bin/gatekeeper -P ";
         $cmd .= "$wrk/5-consensus/$asm.partFile ";
-        $cmd .= "$wrk/$asm.frgStore ";
-        $cmd .= "$wrk/$asm.frgStore_cns1part ";
-        $cmd .= "> $wrk/5-consensus/partitionfragstore.err 2>&1";
+        $cmd .= "$wrk/$asm.gkpStore ";
+        $cmd .= "> $wrk/5-consensus/$asm.partitioned.err 2>&1";
         if (runCommand("$wrk/5-consensus", $cmd)) {
             rename "$wrk/5-consensus/$asm.partFile", "$wrk/5-consensus/$asm.partFile.FAILED";
             die "Failed to partition the fragStore.\n";
         }
-    }
-}
 
+        touch "$wrk/5-consensus/$asm.partitioned";
+    }
 
     ########################################
     #
@@ -84,18 +82,16 @@ if (0) {
     print F "echo \\\n";
     print F "$gin/consensus \\\n";
     print F "  -G -U \\\n";
-    #print F "  -P -m -S \$jobp \\\n";
+    print F "  -m -S \$jobp \\\n";
     print F "  -o $wrk/5-consensus/${asm}_\$jobp.cgi \\\n";
-    #print F "  $wrk/$asm.frgStore_cns1part \\\n";
     print F "  $wrk/$asm.gkpStore \\\n";
     print F "  \$cgbfile \\\n";
     print F " \\> $wrk/5-consensus/${asm}_\$jobp.err 2\\>\\&1\n";
     print F "\n";
     print F "$gin/consensus \\\n";
     print F "  -G -U \\\n";
-    #print F "  -P -m -S \$jobp \\\n";
+    print F "  -m -S \$jobp \\\n";
     print F "  -o $wrk/5-consensus/${asm}_\$jobp.cgi \\\n";
-    #print F "  $wrk/$asm.frgStore_cns1part \\\n";
     print F "  $wrk/$asm.gkpStore \\\n";
     print F "  \$cgbfile \\\n";
     print F " > $wrk/5-consensus/${asm}_\$jobp.err 2>&1 \\\n";
@@ -176,6 +172,22 @@ sub postUnitiggerConsensus (@) {
     }
 
     die  "$failedJobs consensusAfterUnitigger jobs failed.  Good luck.\n" if ($failedJobs);
+
+    #  All jobs finished.  Remove the partitioning from the gatekeeper
+    #  store.  The gatekeeper store is currently (5 Mar 2007) tolerant
+    #  of someone asking for a partition that isn't there -- it'll
+    #  fallback to the complete store.  So, if you happen to want to
+    #  run consensus again, it'll still work, just a little slower.
+    #
+    open(F, "ls $wrk/$asm.gkpStore |");
+    while (<F>) {
+        chomp;
+        if (m/^\S\S\S\.\d\d\d$/) {
+            unlink $_;
+        }
+    }
+    close(F);
+
 
     #
     #  Consolidate all the output

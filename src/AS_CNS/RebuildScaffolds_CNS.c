@@ -78,7 +78,7 @@ echo 53 | rebuildscaffolds -f oct01.fStore -s oct01.sStore -V 23 -c oct01.cStore
 
  *********************************************************************/
 
-static char CM_ID[] = "$Id: RebuildScaffolds_CNS.c,v 1.13 2007-02-20 21:58:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: RebuildScaffolds_CNS.c,v 1.14 2007-03-06 01:02:44 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -123,7 +123,7 @@ int OutputScaffoldProfile(FILE *,ScaffoldData *,IntContigPairs *,
     tSequenceDB *, tSequenceDB *, VA_TYPE(UnitigData) *, int, int , int);
 
 int PrintColumnCorrelation(FILE *, MultiAlignT *, GateKeeperStore *,
-    tFragStorePartition *, GateKeeperStore *, int , int , uint32 , int );
+    GateKeeperStore *, int , int , uint32 , int );
 
 void OutputCoordinateMap(FILE *,int ,MultiAlignT *,tSequenceDB *,int *,int);
 
@@ -254,8 +254,8 @@ int main (int argc, char *argv[]) {
    }
    ResetStores(LINE_MAX,20);
 
-   global_fragStore = openGateKeeperStore(frgStoreFileName, FALSE);
-   if (global_fragStore == NULL) return 0;
+   gkpStore = openGateKeeperStore(frgStoreFileName, FALSE);
+   if (gkpStore == NULL) return 0;
  
    sequenceDB = OpenSequenceDB(SeqStoreFileName, FALSE, sdb_version);
 
@@ -433,7 +433,6 @@ int main (int argc, char *argv[]) {
 int PrintColumnCorrelation(FILE *out,
 			   MultiAlignT *ma,  
 			   GateKeeperStore *frag_store,
-			   tFragStorePartition *pfrag_store,
 			   GateKeeperStore *bactig_store,
 			   int show_qv, 
 			   int dots,
@@ -441,7 +440,7 @@ int PrintColumnCorrelation(FILE *out,
 			   int offset){
   int i=0;
   ColumnCorrelationT *cc;
-  cc = test_correlated_columns(ma,frag_store,pfrag_store);
+  cc = test_correlated_columns(ma,frag_store);
   fprintf(out,"<<< begin Contig %d >>>\n",ma->id);
   if(cc!=NULL){
     while( cc[i].col!=-1){
@@ -483,13 +482,13 @@ int OutputScaffoldProfile(FILE *profileFile,
 
 	  if( contigOk ) {
 	    if ( show_ma ) {
-	      PrintMultiAlignT(profileFile,contig,global_fragStore,
-                               (tFragStorePartition*)NULL, 1,
+	      PrintMultiAlignT(profileFile,contig,gkpStore,
+                               1,
                                1,AS_READ_CLEAR_LATEST);
 	    } else {
 	      if ( show_colcorr ) {
-		PrintColumnCorrelation(profileFile,contig,global_fragStore,
-                    (tFragStorePartition*)NULL, NULL, 1,
+		PrintColumnCorrelation(profileFile,contig,gkpStore,
+                    NULL, 1,
                     1,AS_READ_CLEAR_LATEST,gapped_length);
 	      } else 
 		if ( show_coordmap) {
@@ -513,13 +512,12 @@ int OutputScaffoldProfile(FILE *profileFile,
 	     }
 	     if ( show_ma ) {
 	       fprintf(profileFile,"Scaffold offset %d\n",gapped_length);
-	       PrintMultiAlignT(profileFile,contig,global_fragStore,
-                   (tFragStorePartition*)NULL, 
+	       PrintMultiAlignT(profileFile,contig,gkpStore,
                    1,1,AS_READ_CLEAR_LATEST);
 	     } else {
 	       if ( show_colcorr ) {
-		 PrintColumnCorrelation(profileFile,contig,global_fragStore,
-                     (tFragStorePartition*)NULL, NULL, 
+		 PrintColumnCorrelation(profileFile,contig,gkpStore,
+                      NULL, 
                       1,1,AS_READ_CLEAR_LATEST,gapped_length);
 	       } else {
 		 if ( show_coordmap) {
@@ -587,13 +585,12 @@ int OutputScaffoldProfile(FILE *profileFile,
 
                if ( show_ma ) {
                   fprintf(profileFile,"Scaffold offset %d\n",gapped_length);
-                  PrintMultiAlignT(profileFile,contig,global_fragStore,
-                      (tFragStorePartition*)NULL,
+                  PrintMultiAlignT(profileFile,contig,gkpStore,
                        1,1,AS_READ_CLEAR_LATEST);
                } else {
 		 if ( show_colcorr ) {
-		   PrintColumnCorrelation(profileFile,contig,global_fragStore,
-                       (tFragStorePartition*)NULL, NULL, 
+		   PrintColumnCorrelation(profileFile,contig,gkpStore,
+                       NULL, 
                        1,1,AS_READ_CLEAR_LATEST,gapped_length);
 		 } else {
 		   if ( show_coordmap) {

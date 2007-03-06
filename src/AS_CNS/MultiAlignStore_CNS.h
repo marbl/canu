@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: MultiAlignStore_CNS.h,v 1.10 2007-02-25 08:13:37 brianwalenz Exp $	 */
+/* 	$Id: MultiAlignStore_CNS.h,v 1.11 2007-03-06 01:02:44 brianwalenz Exp $	 */
 #ifndef MULTIALIGNSTORE_H
 #define MULTIALIGNSTORE_H
 
@@ -136,7 +136,6 @@ MultiAlignStoreT *CloneMultiAlignStoreT(MultiAlignStoreT *original);
 int PrintMultiAlignT(FILE *out,
                      MultiAlignT *ma,
                      GateKeeperStore *gkp_store,
-                     tFragStorePartition *pfrag_store,
                      int show_qv,
                      int dots,
                      uint32 clrrng_flag);

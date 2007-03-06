@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.14 2007-02-25 08:13:38 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.15 2007-03-06 01:02:44 brianwalenz Exp $";
 
 #include <assert.h>
 #include <errno.h>
@@ -300,7 +300,6 @@ static
 void
 AS_REZ_get_info(CDS_IID_t iid,
                      GateKeeperStore *frag_store,
-                     tFragStorePartition *pfrag_store,
                      CDS_UID_t *locale,
                      uint32 *beg, uint32 *end,
                      FragType *type,
@@ -320,11 +319,8 @@ AS_REZ_get_info(CDS_IID_t iid,
       mytype = NULL;
 
     if(!mytype ){ // we have not seen that iid before 
-      if ( frag_store != NULL ) {
-        getFrag(frag_store,iid,input,FRAG_S_INF);
-      } else {
-        getFragStorePartition(pfrag_store,iid,FRAG_S_INF,input);
-      }
+      getFrag(frag_store,iid,input,FRAG_S_INF);
+
       //getReadType_ReadStruct(input,type); 
       *type == AS_READ;
 
@@ -378,7 +374,6 @@ static  VA_TYPE(uint32)  *fragtype = NULL;
 void AS_REZ_compress_shreds_and_null_indels(int c,
                                             int r,
                                             GateKeeperStore *frag_store, 
-                                            tFragStorePartition *pfrag_store,
                                             char **array,
                                             int **id_array,
                                             int verbose){
@@ -413,7 +408,7 @@ void AS_REZ_compress_shreds_and_null_indels(int c,
 	if( verbose > 0 )
 	  printf("loop (%d,%d) iid1=" F_IID "\n",i,j,iid1);
 	if( iid1 != 0 ){ // blank positions have IID 0
-	  AS_REZ_get_info(iid1,frag_store,pfrag_store,&l1,&b1,&e1,&t1,locales,fragtype,locbeg,locend);
+	  AS_REZ_get_info(iid1,frag_store,&l1,&b1,&e1,&t1,locales,fragtype,locbeg,locend);
 	  if( verbose > 0 )
 	    printf("(id,loc,beg,end,type) = (" F_IID "," F_UID ",%d,%d,%c)\n",
                    iid1,l1,b1,e1,t1);
@@ -423,7 +418,7 @@ void AS_REZ_compress_shreds_and_null_indels(int c,
 	      if( verbose > 0 )
 		printf("pos (%d,%d)\n",i,k);
 	      iid2 = id_array[k][i];
-	      AS_REZ_get_info(iid2,frag_store,pfrag_store,&l2,&b2,&e2,&t2,locales,fragtype,locbeg,locend);
+	      AS_REZ_get_info(iid2,frag_store,&l2,&b2,&e2,&t2,locales,fragtype,locbeg,locend);
 	      if( verbose > 0)
 		printf("(id2,loc2,beg2,end2,type2) = (" F_IID "," F_UID ",%d,%d,%c)\n",
                        iid2,l2,b2,e2,t2);
@@ -460,7 +455,7 @@ void AS_REZ_compress_shreds_and_null_indels(int c,
 	  if( verbose > 0 )
 	    printf("loop (%d,%d) iid1=" F_IID "\n",i,j,iid1);
 	  if( iid1 != 0 ){ // blank positions have IID 0
-	    AS_REZ_get_info(iid1,frag_store,pfrag_store,&l1,&b1,&e1,&t1,locales,fragtype,locbeg,locend);
+	    AS_REZ_get_info(iid1,frag_store,&l1,&b1,&e1,&t1,locales,fragtype,locbeg,locend);
 	    if( verbose > 0 )
 	      printf("(id,loc,beg,end,type) = (" F_IID "," F_UID ",%d,%d,%c)\n",
                      iid1,l1,b1,e1,t1);
@@ -470,7 +465,7 @@ void AS_REZ_compress_shreds_and_null_indels(int c,
 		if( verbose > 0 )
 		  printf("pos (%d,%d)\n",i,k);
 		iid2 = id_array[k][i];
-		AS_REZ_get_info(iid2,frag_store,pfrag_store,&l2,&b2,&e2,&t2,locales,fragtype,locbeg,locend);
+		AS_REZ_get_info(iid2,frag_store,&l2,&b2,&e2,&t2,locales,fragtype,locbeg,locend);
 		if( verbose > 0)
 		  printf("(id2,loc2,beg2,end2,type2) = (" F_IID "," F_UID ",%d,%d,%c)\n",
                          iid2,l2,b2,e2,t2);
@@ -1011,7 +1006,7 @@ AS_REZ_test_MPsimple(Alignment_t *ali, double thresh, Marker_t* m,
 // depth   : number of rows in the multialignment
 //
 double AS_REZ_MP_MicroHet_prob(char **bqarray,int **idarray,GateKeeperStore *handle,
-                               tFragStorePartition *phandle,int len,int depth){
+                               int len,int depth){
   double pvalue;
   UnitigStatus_t result;
   Marker_t *m;
@@ -1021,7 +1016,7 @@ double AS_REZ_MP_MicroHet_prob(char **bqarray,int **idarray,GateKeeperStore *han
 
   Alignment_t *ali = AS_REZ_convert_array_to_alignment(bqarray,len,depth);
 
-  AS_REZ_compress_shreds_and_null_indels(len,depth,handle,phandle,ali->ali,idarray,0);
+  AS_REZ_compress_shreds_and_null_indels(len,depth,handle,ali->ali,idarray,0);
 
   if(ali->rows<4){
     pvalue = 1.0;

@@ -58,8 +58,7 @@
 //====================================================================
 // Persistent store of the fragment data (produced upstream)
 
-   GateKeeperStore *global_fragStore;
-   tFragStorePartition *global_fragStorePartition;
+   GateKeeperStore *gkpStore;
    tSequenceDB *sequenceDB;
    tSequenceDBPartition *sequenceDB_part;
    int partitioned;

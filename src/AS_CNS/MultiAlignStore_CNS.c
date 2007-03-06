@@ -25,7 +25,7 @@
    Assumptions:  libAS_UTL.a
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.30 2007-03-04 16:03:04 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.31 2007-03-06 01:02:44 brianwalenz Exp $";
 
 
 #include <assert.h>
@@ -1742,7 +1742,6 @@ int
 PrintMultiAlignT(FILE *out,
 	         MultiAlignT *ma,
 	         GateKeeperStore *frag_store, 
-	         tFragStorePartition *pfrag_store,
 	         int show_qv, 
 	         int dots,
                  uint32 clrrng_flag) 
@@ -1770,7 +1769,7 @@ PrintMultiAlignT(FILE *out,
    partitioned = 1;
   }
    
-  rc = MultiAlignT2Array(ma, frag_store, pfrag_store,
+  rc = MultiAlignT2Array(ma, frag_store,
                          &depth, &multia, &idarray, &oriarray, clrrng_flag);
   if (rc) {
     fprintf(out,"<<< begin Contig %d >>>",ma->id);;
@@ -1834,17 +1833,11 @@ PrintMultiAlignT(FILE *out,
            }
            // Look up UID for row_id
            if ( row_id > 0 ) {
-             if ( partitioned ) {
-                  getFragStorePartition(pfrag_store,
-					row_id,
-					FRAG_S_INF,
-                                        rsp);
-             } else {
-                  getFrag(frag_store,
-			       row_id,
-                               rsp,
-                               FRAG_S_INF);
-             }
+             getFrag(frag_store,
+                     row_id,
+                     rsp,
+                     FRAG_S_INF);
+
              frgTypeDisplay = ' ';
              uid = getFragRecordUID(rsp);
              //getReadType_ReadStruct(rsp, &frgTypeData);
@@ -1899,7 +1892,6 @@ PrintMultiAlignTSNPs(
 		     FILE *out,
 		     MultiAlignT *ma,
 		     GateKeeperStore *frag_store, 
-		     tFragStorePartition *pfrag_store,
 		     int show_qv, 
 		     int dots,uint32 clrrng_flag) 
 {
@@ -1920,7 +1912,7 @@ PrintMultiAlignTSNPs(
    partitioned = 1;
   }
    
-  rc = MultiAlignT2Array(ma, frag_store, pfrag_store,
+  rc = MultiAlignT2Array(ma, frag_store,
                          &depth, &multia, &idarray,&oriarray,clrrng_flag);
   if (rc) {
        BaseCount profile;

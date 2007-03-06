@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AutoScreenOVL.c,v 1.8 2007-02-22 14:44:40 brianwalenz Exp $
- * $Revision: 1.8 $
+ * $Id: AutoScreenOVL.c,v 1.9 2007-03-06 01:02:44 brianwalenz Exp $
+ * $Revision: 1.9 $
 */
 
-static char CM_ID[] = "$Id: AutoScreenOVL.c,v 1.8 2007-02-22 14:44:40 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AutoScreenOVL.c,v 1.9 2007-03-06 01:02:44 brianwalenz Exp $";
 
 
 //  System include files
@@ -2217,8 +2217,8 @@ static void  Read_Frags
         if  (Frag [check_iid] . need_sequence)
             last_iid = check_iid;
 
-      gkpStore = loadFragStorePartial (gkpStore_Path,
-                                         first_iid, last_iid, FRAG_S_ALL);
+      gkpStore = openGateKeeperStore(gkpStore_Path, FALSE);
+      loadGateKeeperStorePartial(gkpStore, first_iid, last_iid, FRAG_S_ALL);
    
       for  (iid = first_iid;  iid <= last_iid;  iid ++)
         {

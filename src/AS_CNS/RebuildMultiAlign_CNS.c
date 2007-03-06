@@ -25,7 +25,7 @@
                  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: RebuildMultiAlign_CNS.c,v 1.11 2007-02-20 21:57:59 brianwalenz Exp $";
+static char CM_ID[] = "$Id: RebuildMultiAlign_CNS.c,v 1.12 2007-03-06 01:02:44 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -193,8 +193,8 @@ int main (int argc, char *argv[]) {
    }
    ResetStores(LINE_MAX,20);
 
-   global_fragStore = openGateKeeperStore(frgStoreFileName, FALSE);
-   if (global_fragStore == NULL)
+   gkpStore = openGateKeeperStore(frgStoreFileName, FALSE);
+   if (gkpStore == NULL)
      return 0;
  
    sequenceDB = OpenSequenceDB(SeqStoreFileName, FALSE, sdb_version);
@@ -244,7 +244,7 @@ int main (int argc, char *argv[]) {
 	 dat.ident = acc;
 	 dat.length = len;
 	 dat.coverage_stat = stat;
-	 // dat.status=is_tig_simple(imps,n_frags,len,global_fragStore,ali,thresh,variant,&dat.prob);
+	 // dat.status=is_tig_simple(imps,n_frags,len,gkpStore,ali,thresh,variant,&dat.prob);
 	 SetVA_UnitigData(unitigData,acc,&dat);
 	 counter++;
 	 //	 if(counter == 1000 * (int) (counter/1000))
@@ -272,8 +272,7 @@ int main (int argc, char *argv[]) {
      if ( SHOW_ALIGNMENT ) {
        PrintMultiAlignT(stdout,
                         ma,
-                        global_fragStore,
-                        (tFragStorePartition*)NULL,
+                        gkpStore,
 			1,0,AS_READ_CLEAR_LATEST);
      }
     }

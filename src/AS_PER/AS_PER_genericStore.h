@@ -430,23 +430,24 @@ int getStartIndexStream(StreamHandle stream);
 //  "Convert" the loadStore into a new memory store.  The loadStore is
 //  closed.
 //
-StoreHandle convertStoreToPartialMemoryStore(StoreHandle loadStore,
-                                             int64       firstElem,
-                                             int64       lastElem);
+StoreHandle
+convertStoreToPartialMemoryStore(StoreHandle loadStore,
+                                 int64       firstElem,
+                                 int64       lastElem);
 
-//  Open an existing file-based Store, and load its entire contents
-//  into A newly created memory-based Store.  This is equivalent to
-//  opening the file-based store, and concatting it to a newly created
-//  memory based store.
-//
-StoreHandle loadStore(const char *StorePath);
 
 //  Open an existing file-based Store, and load a portion of its
 //  contents into A newly created memory-based Store.
 ///
-StoreHandle loadStorePartial(const char *StorePath,
-                             int64 firstElem,
-                             int64 lastElem);
+static
+StoreHandle
+loadStorePartial(const char *StorePath,
+                 int64 firstElem,
+                 int64 lastElem) {
+  return(convertStoreToPartialMemoryStore(openStore(StorePath, "r"), firstElem, lastElem));
+}
+
+
 
 
 	

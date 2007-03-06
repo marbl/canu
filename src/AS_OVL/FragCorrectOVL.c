@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FragCorrectOVL.c,v 1.14 2007-02-24 15:42:33 brianwalenz Exp $
- * $Revision: 1.14 $
+ * $Id: FragCorrectOVL.c,v 1.15 2007-03-06 01:02:44 brianwalenz Exp $
+ * $Revision: 1.15 $
 */
 
-static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.14 2007-02-24 15:42:33 brianwalenz Exp $";
+static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.15 2007-03-06 01:02:44 brianwalenz Exp $";
 
 
 //  System include files
@@ -2141,9 +2141,9 @@ static void  Read_Frags
   Internal_gkpStore = openGateKeeperStore (gkpStore_Path, FALSE);
   assert (Internal_gkpStore != NULL);
 #else
-   Internal_gkpStore
-       = loadFragStorePartial (gkpStore_Path,
-                               Lo_Frag_IID, Hi_Frag_IID, FRAG_S_SEQ);
+  Internal_gkpStore = openGateKeeperStore (gkpStore_Path, FALSE);
+  loadGateKeeperStorePartial(Internal_gkpStore,
+                             Lo_Frag_IID, Hi_Frag_IID, FRAG_S_SEQ);
 #endif
    
    Frag_Stream = openFragStream (Internal_gkpStore, FRAG_S_SEQ);
@@ -2520,11 +2520,11 @@ static void  Threaded_Stream_Old_Frags
    next_olap = 0;
 
 #ifdef USE_STORE_DIRECTLY_STREAM
-  Internal_gkpStore = openGateKeeperStore (gkpStore_Path, FALSE);
+  Internal_gkpStore = openGateKeeperStore(gkpStore_Path, FALSE);
   assert (Internal_gkpStore != NULL);
 #else
-   Internal_gkpStore
-       = loadFragStorePartial (gkpStore_Path, lo_frag, hi_frag, FRAG_S_SEQ);
+  Internal_gkpStore = openGateKeeperStore(gkpStore_Path, FALSE);
+  loadGateKeeperStorePartial(Internal_gkpStore, lo_frag, hi_frag, FRAG_S_SEQ);
 #endif
 
    curr_frag_list = & frag_list_1;
@@ -2567,8 +2567,8 @@ static void  Threaded_Stream_Old_Frags
                hi_frag = last_frag;
 
 #ifndef USE_STORE_DIRECTLY_STREAM
-           Internal_gkpStore
-               = loadFragStorePartial (gkpStore_Path, lo_frag, hi_frag, FRAG_S_SEQ);
+           Internal_gkpStore = openGateKeeperStore(gkpStore_Path, FALSE);
+           loadGateKeeperStorePartial(Internal_gkpStore, lo_frag, hi_frag, FRAG_S_SEQ);
 #endif
 
            save_olap = next_olap;

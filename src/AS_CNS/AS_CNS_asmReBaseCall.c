@@ -37,7 +37,7 @@
 #include "Globals_CNS.h"
 #include "PublicAPI_CNS.h"
 
-static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.10 2007-03-01 16:13:15 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.11 2007-03-06 01:02:43 brianwalenz Exp $";
 
 static UIDHashTable_AS *utgUID2IID;
 
@@ -57,7 +57,7 @@ int   CNS_CALL_PUBLIC = 0;   // Used to direct basecalling to favor public data
 
 static int fraguid2iid(uint64 uid){
   PHashValue_AS value;
-  if(HASH_FAILURE == getGatekeeperUIDtoIID(global_fragStore, uid, &value)){
+  if(HASH_FAILURE == getGatekeeperUIDtoIID(gkpStore, uid, &value)){
     fprintf(stderr,"Tried to look up iid of unknown uid: " F_UID " -- DIE!\n",uid);
     exit (-1);
   }
@@ -410,14 +410,11 @@ int main (int argc, char *argv[]) {
     }
 
     /****************          Open Fragment Store             ***********/
-    if ( in_memory ) {
-      global_fragStore = loadFragStore(frgStorePath);
-    } else {
-      global_fragStore = openGateKeeperStore(frgStorePath, FALSE);
-    }
-    global_fragStorePartition = NULL;
-    assert(global_fragStore!=NULL);
 
+    gkpStore = openGateKeeperStore(argv[optind++], FALSE);
+
+    if (in_memory)
+      loadGateKeeperStorePartial(gkpStore, 0, 0, FRAG_S_QLT);
 
     /* initialize a unitig UID-to-IID hash table */
     utgUID2IID = CreateUIDHashTable_AS(5000000);
@@ -446,7 +443,7 @@ int main (int argc, char *argv[]) {
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.10 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.11 $ processing. Started %s\n",
 	      ctime(&t));
       InitializeAlphTable();
 
@@ -530,6 +527,6 @@ int main (int argc, char *argv[]) {
     }
 
     DeleteMultiAlignStoreT(unitigStore);
-    closeGateKeeperStore(global_fragStore);
+    closeGateKeeperStore(gkpStore);
     return 0;
 }

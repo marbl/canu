@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.28 2007-03-05 05:57:16 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.29 2007-03-06 01:02:44 brianwalenz Exp $";
 
 //    A thin layer on top of the IndexStore supporing the storage and
 // retrieval of records used by the gatekeeper records.
@@ -420,21 +420,27 @@ void       loadGateKeeperPartition(GateKeeperStore *gkp, uint32 partnum) {
   StoreStat  stats;
   int        i;
 
+  sprintf(name,"%s/frg.%03d", gkp->storePath, partnum);
+  if (fileExists(name, 0, FALSE) == 0) {
+    fprintf(stderr, "loadGateKeeperPartition()--  Partition %d doesn't exist; normal store used instead.\n", partnum);
+    return;
+  }
+
   gkp->partnum = partnum;
 
   //  load all our data
 
   sprintf(name,"%s/frg.%03d", gkp->storePath, partnum);
-  gkp->partfrg = loadStore(name);
+  gkp->partfrg = loadStorePartial(name, 0, 0);
 
   sprintf(name,"%s/qlt.%03d", gkp->storePath, partnum);
-  gkp->partqlt = loadStore(name);
+  gkp->partqlt = loadStorePartial(name, 0, 0);
 
   sprintf(name,"%s/hps.%03d", gkp->storePath, partnum);
-  gkp->parthps = loadStore(name);
+  gkp->parthps = loadStorePartial(name, 0, 0);
 
   sprintf(name,"%s/src.%03d", gkp->storePath, partnum);
-  gkp->partsrc = loadStore(name);
+  gkp->partsrc = loadStorePartial(name, 0, 0);
 
   //  zip through the frg and build a map from iid to the frg record
 
@@ -824,35 +830,29 @@ int              nextFragStream(FragStream *fs, fragRecord *fr) {
 
 
 
-
-
-GateKeeperStore *
-loadFragStorePartial(const char *path,
-                     int64       firstElem,
-                     int64       lastElem,
-                     int         flags) {
-  GateKeeperStore           *gkp = openGateKeeperStore(path, FALSE);
+void
+loadGateKeeperStorePartial(GateKeeperStore *gkp,
+                           int64            firstElem,
+                           int64            lastElem,
+                           int              flags) {
   GateKeeperFragmentRecord   gkf;
 
-  int64  seqFirst = 0, seqLast = STREAM_UNTILEND;
-  int64  qltFirst = 0, qltLast = STREAM_UNTILEND;
-  int64  hpsFirst = 0, hpsLast = STREAM_UNTILEND;
-  int64  srcFirst = 0, srcLast = STREAM_UNTILEND;
+  int64  seqFirst = 0, seqLast = 0;
+  int64  qltFirst = 0, qltLast = 0;
+  int64  hpsFirst = 0, hpsLast = 0;
+  int64  srcFirst = 0, srcLast = 0;
 
-  int64  lastFrag = getLastElemFragStore(gkp);
+  if (firstElem != 0) {
+    getGateKeeperFragmentStore(gkp->frg, firstElem, &gkf);
 
-  //  Making the seq, qlt, etc, stores into memory stores is more
-  //  trouble.
+    seqFirst = gkf.seqOffset;
+    qltFirst = gkf.qltOffset;
+    hpsFirst = gkf.hpsOffset;
+    srcFirst = gkf.srcOffset;
+  }
 
-  getGateKeeperFragmentStore(gkp->frg, firstElem, &gkf);
-
-  seqFirst = gkf.seqOffset;
-  qltFirst = gkf.qltOffset;
-  hpsFirst = gkf.hpsOffset;
-  srcFirst = gkf.srcOffset;
-
-  if ((lastElem != STREAM_UNTILEND) &&
-      (lastElem != lastFrag)) {
+  if ((lastElem != 0) &&
+      (lastElem != getLastElemFragStore(gkp))) {
     getGateKeeperFragmentStore(gkp->frg, lastElem + 1, &gkf);
 
     seqLast = gkf.seqOffset;
@@ -879,6 +879,4 @@ loadFragStorePartial(const char *path,
   //  that otherwise we could do from the memory store.
   //
   gkp->frg = convertStoreToPartialMemoryStore(gkp->frg, firstElem, lastElem);
-
-  return(gkp);
 }

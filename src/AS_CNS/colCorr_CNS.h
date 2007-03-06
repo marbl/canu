@@ -33,8 +33,7 @@ typedef struct{
 } ColumnCorrelationT;
 
 ColumnCorrelationT *test_correlated_columns(MultiAlignT         *ma, 
-					    GateKeeperStore     *handle,
-					    tFragStorePartition *pfraghandle);
+					    GateKeeperStore     *handle);
 
 #endif
 

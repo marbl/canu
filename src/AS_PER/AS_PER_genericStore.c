@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.15 2007-03-05 05:57:16 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.16 2007-03-06 01:02:44 brianwalenz Exp $";
 
 // Module:  AS_PER_genericStore
 // Description:
@@ -142,7 +142,6 @@ static int32 Store_isStringStore(StoreStruct *s){
   return s->header.type == STRING_STORE;
 }
 static int32 Store_isVLRecordStore(StoreStruct *s){
-  //  fprintf(stderr,"* Header type is %d\n", s->header.type);
   return s->header.type == VLRECORD_STORE;
 }
 
@@ -711,10 +710,13 @@ StoreHandle convertStoreToPartialMemoryStore(StoreHandle loadStoreHandle,
   int64        sourceOffset    = 0;
   int64        sourceMaxOffset = 0;
 
-  if (firstElem == STREAM_FROMSTART)
+  if (loadStoreHandle == NULLSTOREHANDLE)
+    return(NULLSTOREHANDLE);
+
+  if (firstElem <= 0)
     firstElem = loadStore->header.firstElem;
 
-  if (lastElem == STREAM_UNTILEND)
+  if (lastElem <= 0)
     lastElem = loadStore->header.lastElem;
 
   if (Store_isStringStore(loadStore)) {
@@ -724,9 +726,6 @@ StoreHandle convertStoreToPartialMemoryStore(StoreHandle loadStoreHandle,
     sourceOffset    = computeOffset(loadStore, firstElem);
     sourceMaxOffset = computeOffset(loadStore, lastElem + 1);
   }
-
-  fprintf(stderr, "firstElem: "F_S64"   Offset: "F_S64"\n", firstElem, sourceOffset);
-  fprintf(stderr, "lastElem:  "F_S64"   Offset: "F_S64"\n", lastElem, sourceMaxOffset);
 
   myStore  = allocateStore();
   *myStore = *loadStore;
@@ -738,7 +737,9 @@ StoreHandle convertStoreToPartialMemoryStore(StoreHandle loadStoreHandle,
   myStore->header.firstElem = firstElem;
   myStore->header.lastElem  = lastElem;
 
+#ifdef DEBUG_GENERIC_STORE
   fprintf(stderr, "* Copying "F_S64" bytes to memory store.\n", myStore->allocatedSize);
+#endif
 
   copyStore(loadStore, sourceOffset, sourceMaxOffset,
             myStore, sizeof(StoreStat));
@@ -746,16 +747,6 @@ StoreHandle convertStoreToPartialMemoryStore(StoreHandle loadStoreHandle,
   closeStore(loadStoreHandle);
 
   return(myStore - gStores);
-}
-
-StoreHandle loadStorePartial(const char *StorePath,
-                             int64 firstElem,
-                             int64 lastElem) {
-  return(convertStoreToPartialMemoryStore(openStore(StorePath, "r"), firstElem, lastElem));
-}
-
-StoreHandle loadStore(const char *StorePath) {
-  return(loadStorePartial(StorePath, STREAM_FROMSTART, STREAM_UNTILEND));
 }
 
 

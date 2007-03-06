@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.14 2007-02-18 14:04:49 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.15 2007-03-06 01:02:44 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
@@ -94,6 +94,16 @@ dumpGateKeeperAsXML(char       *gkpStoreName,
 
 void
 dumpGateKeeperAsOFG(char       *gkpStoreName);
+
+void
+dumpGateKeeperAsFRG(char       *gkpStoreName);
+
+
+
+int
+Build_Partition(char      *gatekeeperName,
+                char      *partitionFile,
+                int32      flags);
 
 
 

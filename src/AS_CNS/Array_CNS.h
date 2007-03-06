@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
-   CVS_ID:  $Id: Array_CNS.h,v 1.7 2007-02-18 14:04:48 brianwalenz Exp $
+   CVS_ID:  $Id: Array_CNS.h,v 1.8 2007-03-06 01:02:44 brianwalenz Exp $
  *********************************************************************/
 #ifndef AS_CNS_ARRAY_INCLUDE
 #define AS_CNS_ARRAY_INCLUDE
@@ -42,7 +42,6 @@ int IMP2Array(IntMultiPos *frags,
 	      int num_frags, 
 	      int length, 
 	      GateKeeperStore *frag_store, 
-              tFragStorePartition *pfrag_store,
 	      int *depth, 
 	      char ***multia, 
 	      int ***id_array, 
@@ -51,7 +50,6 @@ int IMP2Array(IntMultiPos *frags,
 
 int MultiAlignT2Array(MultiAlignT *ma, 
 		      GateKeeperStore *frag_store, 
-		      tFragStorePartition *pfrag_store, 
 		      int *depth, 
 		      char ***multia, 
 		      int ***id_array,

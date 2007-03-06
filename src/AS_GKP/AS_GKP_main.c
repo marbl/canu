@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.22 2007-03-05 23:42:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.23 2007-03-06 01:02:44 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -143,10 +143,9 @@ usage(char *filename) {
   fprintf(stderr, "\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "The second form will partition an existing store, allowing\n");
-  fprintf(stderr, "the entire partitioned store to be loaded into memory.\n");
+  fprintf(stderr, "the entire store partition to be loaded into memory.\n");
   fprintf(stderr, "\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "  -P <partitionfile>     a list of (iid partition)\n");
+  fprintf(stderr, "  -P <partitionfile>     a list of (partition fragiid)\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "The third form will dump the contents of a GateKeeper store:\n");
@@ -339,7 +338,7 @@ main(int argc, char **argv) {
   }
 
   if (partitionFile) {
-    fprintf(stderr, "I would have partitioned, if Bri wasn't such a fuckin' slacker.\n");
+    Build_Partition(gkpStoreName, partitionFile, FRAG_S_ALL);
     exit(0);
   }
    

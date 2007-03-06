@@ -29,7 +29,6 @@ sub createPostScaffolderConsensusJobs ($) {
         touch("$wrk/8-consensus/partitionSDB.success");
     }
 
-if (0) {
     if (-z "$wrk/8-consensus/UnitigPartition.txt") {
         print STDERR "WARNING!  Nothing for consensus to do!  Forcing consensus to skip!\n";
         touch("$wrk/8-consensus/partitionFragStore.success");
@@ -37,15 +36,14 @@ if (0) {
         return;
     }
 
-    if (! -e "$wrk/8-consensus/partitionFragStore.success") {
+    if (! -e "$wrk/8-consensus/$asm.partitioned") {
         my $cmd;
-        $cmd  = "$bin/partitionFragStore $wrk/8-consensus/FragPartition.txt $wrk/$asm.frgStore $wrk/$asm.frgStore_cns2part ";
-        $cmd .= "> $wrk/8-consensus/partitionFragStore.out 2>&1";
+        $cmd  = "$bin/gatekeeper -P $wrk/8-consensus/FragPartition.txt $wrk/$asm.gkpStore ";
+        $cmd .= "> $wrk/8-consensus/$asm.partitioned.err 2>&1";
 
         die "Failed.\n" if (runCommand("$wrk/8-consensus", $cmd));
-        touch("$wrk/8-consensus/partitionFragStore.success");
+        touch("$wrk/8-consensus/$asm.partitioned");
     }
-}
 
     ########################################
     #
@@ -88,11 +86,10 @@ if (0) {
     print F "$gin/consensus \\\n";
     print F "  -s $cgwDir/$asm.SeqStore \\\n";
     print F "  -V $lastckpt \\\n";
-#    print F "  -p \$jobp \\\n";
-#    print F "  -S \$jobp \\\n";
-#    print F "  -m \\\n";
+    print F "  -p \$jobp \\\n";
+    print F "  -S \$jobp \\\n";
+    print F "  -m \\\n";
     print F "  -o $wrk/8-consensus/$asm.cns_contigs.\$jobp \\\n";
-#    print F "  $wrk/$asm.frgStore_cns2part \\\n";
     print F "  $wrk/$asm.gkpStore \\\n";
     print F "  $cgwDir/$asm.cgw_contigs.\$jobp \\\n";
     print F " \\> $wrk/8-consensus/$asm.cns_contigs.\$jobp.err 2\\>\\&1\n";
@@ -100,11 +97,10 @@ if (0) {
     print F "$gin/consensus \\\n";
     print F "  -s $cgwDir/$asm.SeqStore \\\n";
     print F "  -V $lastckpt \\\n";
-#    print F "  -p \$jobp \\\n";
-#    print F "  -S \$jobp \\\n";
-#    print F "  -m \\\n";
+    print F "  -p \$jobp \\\n";
+    print F "  -S \$jobp \\\n";
+    print F "  -m \\\n";
     print F "  -o $wrk/8-consensus/$asm.cns_contigs.\$jobp \\\n";
-#    print F "  $wrk/$asm.frgStore_cns2part \\\n";
     print F "  $wrk/$asm.gkpStore \\\n";
     print F "  $cgwDir/$asm.cgw_contigs.\$jobp \\\n";
     print F " > $wrk/8-consensus/$asm.cns_contigs.\$jobp.err 2>&1 \\\n";

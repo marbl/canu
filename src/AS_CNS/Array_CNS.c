@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: Array_CNS.c,v 1.13 2007-03-04 16:03:04 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Array_CNS.c,v 1.14 2007-03-06 01:02:43 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -132,7 +132,6 @@ int IMP2Array(IntMultiPos *all_frags,
 	      int num_pieces, 
 	      int length, 
 	      GateKeeperStore *frag_store, 
-              tFragStorePartition *pfrag_store,
 	      int *depth, 
 	      char ***array, 
 	      int ***id_array,
@@ -169,11 +168,7 @@ int IMP2Array(IntMultiPos *all_frags,
   next_lane=0;
   for (i=0;i<num_pieces;i++) {
     new_mlp = createLaneNode(&all_frags[i]); 
-    if ( frag_store != NULL ) {
-      getFrag(frag_store,all_frags[i].ident,fsread,FRAG_S_QLT);
-    } else {
-      getFragStorePartition(pfrag_store,all_frags[i].ident,FRAG_S_QLT,fsread);
-    }
+    getFrag(frag_store,all_frags[i].ident,fsread,FRAG_S_QLT);
     clr_bgn = getFragRecordClearRegionBegin(fsread, clrrng_flag);
     clr_end = getFragRecordClearRegionEnd  (fsread, clrrng_flag);
     new_mlp->read_length = getFragRecordSequenceLength(fsread);
@@ -353,11 +348,11 @@ int IMP2Array(IntMultiPos *all_frags,
   return rc;
 }
 
-int MultiAlignT2Array(MultiAlignT *ma, GateKeeperStore *frag_store, tFragStorePartition *pfrag_store,
+int MultiAlignT2Array(MultiAlignT *ma, GateKeeperStore *frag_store,
                       int *depth, char ***multia, int *** id_array,int ***ori_array,uint32 clrrng_flag){
   IntMultiPos *frags=GetIntMultiPos(ma->f_list,0);
   int num_frags=GetNumIntMultiPoss(ma->f_list);
   int length=GetNumchars(ma->consensus);
-  int rc=IMP2Array(frags,num_frags,length,frag_store,pfrag_store, depth,multia,id_array,ori_array,0,clrrng_flag);
+  int rc=IMP2Array(frags,num_frags,length,frag_store, depth,multia,id_array,ori_array,0,clrrng_flag);
   return rc; 
 }

@@ -26,8 +26,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_driver_common.h,v 1.16 2007-02-22 14:44:40 brianwalenz Exp $
- * $Revision: 1.16 $
+ * $Id: AS_OVL_driver_common.h,v 1.17 2007-03-06 01:02:44 brianwalenz Exp $
+ * $Revision: 1.17 $
 */
 
 
@@ -218,33 +218,25 @@ Source_Log_File = File_Open ("ovl-srcinfo.log", "w");
 
                 if  (Contig_Mode)
                     {
-                     hash_frag_store
-                         = loadFragStorePartial (BACtig_Store_Path,
+                      hash_frag_store = openGateKeeperStore(BACtig_Store_Path, FALSE);
+                      loadGateKeeperStorePartial(hash_frag_store,
                                                  First_Hash_Frag,
                                                  Last_Hash_Frag,
                                                  FRAG_S_INF | FRAG_S_SEQ | FRAG_S_QLT);
-                     fprintf (stderr,
-                              "loadFragStorePartial  first = " F_S64 "  last = " F_S64 "\n",
-                              First_Hash_Frag, Last_Hash_Frag);
-                     assert (0 < First_Hash_Frag
-                               && First_Hash_Frag <= Last_Hash_Frag
-                               && Last_Hash_Frag
-                                    <= getLastElemFragStore (BACtigStore));
+                      assert (0 < First_Hash_Frag
+                              && First_Hash_Frag <= Last_Hash_Frag
+                              && Last_Hash_Frag  <= getLastElemFragStore (BACtigStore));
                     }
                   else
                     {
-                     hash_frag_store
-                         = loadFragStorePartial (Frag_Store_Path,
+                      hash_frag_store = openGateKeeperStore(Frag_Store_Path, FALSE);
+                      loadGateKeeperStorePartial(hash_frag_store,
                                                  First_Hash_Frag,
                                                  Last_Hash_Frag,
                                                  FRAG_S_INF | FRAG_S_SEQ | FRAG_S_QLT);
-                     fprintf (stderr,
-                              "loadFragStorePartial  first = " F_S64 "  last = " F_S64 "\n",
-                              First_Hash_Frag, Last_Hash_Frag);
-                     assert (0 < First_Hash_Frag
-                               && First_Hash_Frag <= Last_Hash_Frag
-                               && Last_Hash_Frag
-                                    <= getLastElemFragStore (OldFragStore));
+                      assert (0 < First_Hash_Frag
+                              && First_Hash_Frag <= Last_Hash_Frag
+                              && Last_Hash_Frag  <= getLastElemFragStore (OldFragStore));
                     }
                 HashFragStream = openFragStream (hash_frag_store, FRAG_S_INF | FRAG_S_SEQ | FRAG_S_QLT);
                 resetFragStream (HashFragStream, First_Hash_Frag, Last_Hash_Frag);
@@ -306,16 +298,14 @@ break;
                    Frag_Segment_Hi = IID_List [IID_Hi];
                   }
 
-              curr_frag_store
-                  = loadFragStorePartial
-                        (Frag_Store_Path, Frag_Segment_Lo, Frag_Segment_Hi, FRAG_S_INF | FRAG_S_SEQ | FRAG_S_QLT);
-              fprintf (stderr,
-                       "loadFragStorePartial  first = %d  last = %d\n",
-                       Frag_Segment_Lo, Frag_Segment_Hi);
+              curr_frag_store = openGateKeeperStore(Frag_Store_Path, FALSE);
+              loadGateKeeperStorePartial(curr_frag_store,
+                                         Frag_Segment_Lo,
+                                         Frag_Segment_Hi,
+                                         FRAG_S_INF | FRAG_S_SEQ | FRAG_S_QLT);
               assert (0 < Frag_Segment_Lo
-                        && Frag_Segment_Lo <= Frag_Segment_Hi
-                        && Frag_Segment_Hi
-                             <= getLastElemFragStore (OldFragStore));
+                      && Frag_Segment_Lo <= Frag_Segment_Hi
+                      && Frag_Segment_Hi <= getLastElemFragStore (OldFragStore));
 
               for  (i = 0;  i < Num_PThreads;  i ++)
                 {

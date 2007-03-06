@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_buildPartition.c,v 1.1 2007-03-05 05:57:16 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_buildPartition.c,v 1.2 2007-03-06 01:02:44 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,12 +42,12 @@ Build_Partition(char      *gatekeeperName,
   int               iid    = 0;
   int               maxIID = 0;
 
-  short            *partition;
-  int               maxPart;
+  short            *partition = NULL;
+  int               maxPart   = 0;
 
   FILE             *F   = NULL;
 
-  GateKeeperStore **gkpart;
+  GateKeeperStore **gkpart = NULL;
 
   fragRecord       *fr  = new_fragRecord();
   StoreStat         stats;
@@ -74,7 +74,7 @@ Build_Partition(char      *gatekeeperName,
 
   while (!feof(F)) {
     int  i, p;
-    if (2 == fscanf(F, " %d %d ", &i, &p)) {
+    if (2 == fscanf(F, " %d %d ", &p, &i)) {
       partition[i] = p;
       if (p > maxPart)
         maxPart = p;
@@ -82,15 +82,13 @@ Build_Partition(char      *gatekeeperName,
   }
   fclose(F);
 
-  //  No, really, it's one more.
-  maxPart++;
 
   //  Create the partitions by opening N copies of the gatekeeper store,
   //  and telling each one to make a partition.
   //
-  gkpart = (GateKeeperStore **)safe_malloc(sizeof(GateKeeperStore *) * maxPart);
+  gkpart = (GateKeeperStore **)safe_calloc(sizeof(GateKeeperStore *), maxPart + 1);
 
-  for (iid=0; iid<maxPart; iid++) {
+  for (iid=1; iid<=maxPart; iid++) {
     gkpart[iid] = openGateKeeperStore(gatekeeperName, FALSE);
     createGateKeeperPartition(gkpart[iid], iid);
   }
@@ -104,6 +102,11 @@ Build_Partition(char      *gatekeeperName,
     getFrag(gkp, iid, fr, flags);
 
     p = partition[iid];
+
+    //  Check it's actually partitioned.  Deleted reads won't get
+    //  assigned to a partition.
+    if (p == -1)
+      continue;
 
     //  update pointers
 
@@ -133,7 +136,7 @@ Build_Partition(char      *gatekeeperName,
 
   //  cleanup -- close all the stores
 
-  for (iid=0; iid<maxPart; iid++)
+  for (iid=0; iid<=maxPart; iid++)
     closeGateKeeperStore(gkpart[iid]);
 
   closeGateKeeperStore(gkp);

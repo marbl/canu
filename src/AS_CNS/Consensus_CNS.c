@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.41 2007-02-20 21:57:59 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.42 2007-03-06 01:02:44 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -59,13 +59,15 @@ static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.41 2007-02-20 21:57:59 bri
 #include "AS_UTL_version.h"
 #include "AS_SDB_SequenceDBPartition.h"
 #include "AS_ALN_forcns.h"
-#include "Consensus_CNS.h"
 
 // Consensus includes:
 #include "MultiAlignStore_CNS.h"
 #include "MultiAlignment_CNS.h"
 #include "Globals_CNS.h"
 #include "PublicAPI_CNS.h"
+
+#define MAX_NUM_UNITIG_FAILURES 100
+#define MAX_NUM_CONTIG_FAILURES 100
 
 extern int NumColumnsInUnitigs;
 extern int NumRunsOfGapsInUnitigReads;
@@ -639,21 +641,13 @@ int main (int argc, char *argv[])
     }
 
     /****************          Open Gatekeeper Store             ***********/
-    global_fragStore          = NULL;
-    global_fragStorePartition = NULL;
 
-    if ( partitioned ) 
-    {
-      global_fragStorePartition = openFragStorePartition(argv[optind++], partition,in_memory);
-    } 
-    else 
-    {
-      if ( in_memory ) {
-        global_fragStore = loadFragStore(argv[optind++]);
-      } else {
-        global_fragStore = openGateKeeperStore(argv[optind++], FALSE);
-      }
-    }
+    gkpStore = openGateKeeperStore(argv[optind++], FALSE);
+
+    if (partitioned)
+      loadGateKeeperPartition(gkpStore, partition);
+    else if (in_memory)
+      loadGateKeeperStorePartial(gkpStore, 0, 0, FRAG_S_QLT);
 
     /****************      Initialize reusable stores          ***********/
     sequenceStore = NULL;
@@ -864,7 +858,7 @@ int main (int argc, char *argv[])
       VA_TYPE(char) *quality=CreateVA_char(200000);
       time_t t;
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.41 $ processing. Started %s\n",
+      fprintf(stderr,"# Consensus $Revision: 1.42 $ processing. Started %s\n",
         ctime(&t));
       InitializeAlphTable();
       if ( ! align_ium && USE_SDB && extract > -1 ) 
@@ -918,7 +912,7 @@ int main (int argc, char *argv[])
         if ( printwhat != CNS_STATS_ONLY && cnslog != NULL )
         {
            MultiAlignT *ma1 = CreateMultiAlignTFromICM(&ctmp,-1,0);
-           PrintMultiAlignT(cnslog,ma1,global_fragStore,global_fragStorePartition, 
+           PrintMultiAlignT(cnslog,ma1,gkpStore, 
                             1, 0, AS_READ_CLEAR_LATEST);
            fflush(cnslog);
            DeleteVA_char(ma1->consensus);
@@ -1022,7 +1016,7 @@ int main (int argc, char *argv[])
               {
                 int   unitigfail = 0;
 
-                unitigfail = MultiAlignUnitig(iunitig, global_fragStore, sequence,
+                unitigfail = MultiAlignUnitig(iunitig, gkpStore, sequence,
                                               quality, deltas, printwhat, do_rez, COMPARE_FUNC, &options);
 
                 if ((unitigfail == EXIT_FAILURE) &&
@@ -1030,7 +1024,7 @@ int main (int argc, char *argv[])
                     (allow_neg_hang == 0))
                   {
                     allow_neg_hang = 1;
-                    unitigfail = MultiAlignUnitig(iunitig, global_fragStore, sequence,
+                    unitigfail = MultiAlignUnitig(iunitig, gkpStore, sequence,
                                                   quality, deltas, printwhat, do_rez, COMPARE_FUNC, &options);
                     allow_neg_hang = 0;
                     if (unitigfail != EXIT_FAILURE)
@@ -1079,7 +1073,7 @@ int main (int argc, char *argv[])
             else if (align_ium && (process_sublist || 
                        iunitig->iaccession == extract)) 
             {
-        //camview(cam,iunitig->iaccession,iunitig->f_list,iunitig->num_frags,NULL,0,global_fragStore);
+        //camview(cam,iunitig->iaccession,iunitig->f_list,iunitig->num_frags,NULL,0,gkpStore);
         //fclose(cam);
         //fclose(cnslog);
               if (CNS_HAPLOTYPES == 1) {
@@ -1157,9 +1151,7 @@ int main (int argc, char *argv[])
                  pcontig->num_pieces > 0)
             {
                 ma = CreateMultiAlignTFromICM(pcontig,-1,0);
-                PrintMultiAlignT(cnslog,ma,global_fragStore,
-                  global_fragStorePartition, 1,0,
-                  AS_READ_CLEAR_LATEST);
+                PrintMultiAlignT(cnslog,ma,gkpStore, 1, 0, AS_READ_CLEAR_LATEST);
             }
             output_lengths+=GetUngappedSequenceLength(pcontig->consensus);
             pmesg->t = MESG_ICM; 
@@ -1174,7 +1166,7 @@ int main (int argc, char *argv[])
               WriteProtoMesg_AS(cnsout,pmesg);
             } else if ( pcontig->iaccession == extract) {
               //camview(cam,pcontig->iaccession,pcontig->pieces,pcontig->num_pieces,pcontig->unitigs,
-              //        pcontig->num_unitigs,global_fragStore);
+              //        pcontig->num_unitigs,gkpStore);
               WriteProtoMesg_AS(cnsout,pmesg);
               OutputScores(NumColumnsInUnitigs, NumRunsOfGapsInUnitigReads,
                            NumGapsInUnitigs, NumColumnsInContigs,
@@ -1215,7 +1207,7 @@ int main (int argc, char *argv[])
             {
               AuditLine auditLine;
               AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                                 "Consensus", "$Revision: 1.41 $","(empty)");
+                                 "Consensus", "$Revision: 1.42 $","(empty)");
             }
 #endif
               VersionStampADT(adt_mesg,argc,argv);
@@ -1239,7 +1231,7 @@ int main (int argc, char *argv[])
       }
 
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.41 $ Finished %s\n",ctime(&t));
+      fprintf(stderr,"# Consensus $Revision: 1.42 $ Finished %s\n",ctime(&t));
       if (printcns) 
       {
         int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 
