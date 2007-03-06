@@ -1,17 +1,17 @@
 #!/usr/local/bin/perl
 
 
-# $Id: ca2ace.pl,v 1.3 2007-03-05 17:19:09 eliv Exp $
+# $Id: ca2ace.pl,v 1.4 2007-03-06 15:16:57 eliv Exp $
 #
 # Converts from a Celera .asm file to a new .ace file
 #
 
 use strict;
 use DB_File;
+use FindBin;
+use lib "$FindBin::Bin";
 
 use TIGR::Foundation;
-use TIGR::FASTAreader;
-use TIGR::FASTArecord;
 use TIGR::AsmLib;
 
 my $base = new TIGR::Foundation;
@@ -21,7 +21,7 @@ if (! defined $base){
     die ("Foundation cannot be created.  FATAL!\n");
 }
 
-my $VERSION = '$Revision: 1.3 $ ';
+my $VERSION = '$Revision: 1.4 $ ';
 $base->setVersionInfo($VERSION);
 
 my $HELPTEXT = q~

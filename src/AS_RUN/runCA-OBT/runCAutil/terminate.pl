@@ -173,11 +173,11 @@ sub terminate ($) {
                 warn "gatekeeper didn't dump fragments.\n";
                 unlink "$termDir/$asm.frg";
             }
-            if (runCommand($termDir, "$bin/ca2ace.pl $asm.asm")) {
+            if (runCommand($termDir, "$perl $bin/ca2ace.pl $asm.asm")) {
                 warn "ca2ace failed no ace file created.\n";
             }
             
-            if (runCommand($termDir, "$bin/asmToAGP.pl < $asm.asm > $asm.agp")) {
+            if (runCommand($termDir, "$perl $bin/asmToAGP.pl < $asm.asm > $asm.agp")) {
                     warn "asmToAGP.pl failed no agp file created.\n";
             }
 

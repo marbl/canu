@@ -84,11 +84,14 @@ mateLinkIIDRanges.rb: asmQC/mateLinkIIDRanges.rb
 	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
+TIGR: asmQC/TIGR
+	@cp -rp $< $(LOCAL_BIN)
+
 caqc.pl: asmQC/caqc.pl
 	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
-ca2ace.pl: asmQC/ca2ace.pl
+ca2ace.pl: asmQC/ca2ace.pl TIGR
 	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
