@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.35 2007-03-04 01:18:44 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.36 2007-03-07 21:03:40 granger_sutton Exp $";
 
 
 static const char *usage = 
@@ -49,6 +49,7 @@ static const char *usage =
 "   [-w <walkLevel> ]\n"
 "   [-x]           Dump stats on checkpoint load\n"
 "   [-y]           Turn off Check for -R < -N, for restarting small assemblies\n"
+"   [-z]           Turn on Check for Repeat Branch Pattern (demotes some unique unitigs to repeat)\n"
 "\n"
 "   [-A]           don't align overlaps (quality values reflect bayesian)\n"
 "   [-B]           ignore UOM between contained\n"
@@ -146,10 +147,13 @@ static const char *usage =
 
 extern int allow_forced_frags;
 
+void DemoteUnitigsWithRBP(FILE *stream, GraphCGW_T *graph);
+
 FILE *  File_Open (const char * Filename, const char * Mode, int exitOnFailure);
 
 
 int main(int argc, char *argv[]){
+  int checkRepeatBranchPattern = FALSE;
   int preMergeRezLevel = -1;
   int generateOutput = 1;
   int annotateUnitigs = 0;
@@ -232,7 +236,7 @@ int main(int argc, char *argv[]){
 
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,
-                                    "abcde:f:g:hi:j:k:l:m:n:o:p:q:r:s:tuvw:xyz:"
+                                    "abcde:f:g:hi:j:k:l:m:n:o:p:q:r:s:tuvw:xyz"
                                     "ABCD:EFGHIJK:L:N:MO:PQR:STUV:W:X:Y:Z"
 				    "4" )) != EOF)){
       switch(ch) {
@@ -452,6 +456,10 @@ int main(int argc, char *argv[]){
         case 'Z':
           fprintf(GlobalData->stderrc,"* DON'T demote singleton scaffolds\n");
           demoteSingletonScaffolds = FALSE;
+          break;
+        case 'z':
+          fprintf(GlobalData->stderrc,"* Check for Repeat Branch Pattern\n");
+          checkRepeatBranchPattern = TRUE;
           break;
 
         case '4':
@@ -674,6 +682,11 @@ int main(int argc, char *argv[]){
     MergeAllGraphEdges(ScaffoldGraph->CIGraph, FALSE);
     CheckEdgesAgainstOverlapper(ScaffoldGraph->CIGraph);
 
+    /* Mark some Unitigs/Chunks/CIs as repeats based on overlaps GRANGER 2/2/07 */
+
+    if(checkRepeatBranchPattern){
+      DemoteUnitigsWithRBP(GlobalData->stderrc, ScaffoldGraph->CIGraph);
+    }
 
     /* At this Point we've constructed the CIGraph */
 

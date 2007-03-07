@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MergeEdges_CGW.c,v 1.9 2006-11-14 19:58:21 eliv Exp $";
+static char CM_ID[] = "$Id: MergeEdges_CGW.c,v 1.10 2007-03-07 21:03:40 granger_sutton Exp $";
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -168,56 +168,86 @@ static int ConfirmOverlap(GraphCGW_T *graph,
   return(goodOverlapA && goodOverlapB);
 }
 
+/*
+From numerical recipes in C
+Produces p-values for Chi-square distributions
+*/
 
-#define CHI_SQUARED995_TABLE_SIZE 41
-/* This is the chiSquared threshholds for 0.995 probability */
-static double chiSquared995[CHI_SQUARED995_TABLE_SIZE /* index is degrees of freedom */] = {
-  0.0,        /* 0 degrees of freedom */
-  7.879,
-  10.597,
-  12.838,
-  14.860,
-  16.750,
-  18.548,
-  20.278,
-  21.955,
-  23.589,
-  25.188, /* 10 */
-  26.757,
-  28.299,
-  29.819,
-  31.319,
-  32.801,
-  34.267,
-  35.718,
-  37.156,
-  38.582,
-  39.997,/*20*/
-  41.401,
-  42.796,
-  44.181,
-  45.559,
-  46.928,
-  48.290,
-  49.645,
-  50.993,
-  52.336,
-  53.672,/* 30 */
-  55.003,
-  56.328,
-  57.648,
-  58.964,
-  60.275,
-  61.581,
-  62.883,
-  64.181,
-  65.476,
-  66.766   /* 40 */
-};
+#define ITMAX 1000
+#define EPS 3.0e-7
+#define FPMIN 1.0e-30
+
+float gser(float a, float x) 
+{
+  float sum,del,ap,gln;
+  int n;
+
+  gln = lgammaf(a);
+  if (x <= 0.0) {
+    if (x < 0.0) 
+      assert(0);
+    return 0.0;
+  }else{
+    ap = a;
+    del = sum = 1.0/a;
+    for (n=1;n<=ITMAX;n++) {
+      ++ap;
+      del *= x/ap;
+      sum += del;
+      if (fabs(del) < fabs(sum)*EPS) {
+	return sum*exp(-x+a*log(x)-gln);
+      }
+    }
+    assert(0);
+  }
+}
+      
+float gcf(float a, float x)
+{
+  int i;
+  float an,b,c,d,del,h,gln;
+
+  gln = lgammaf(a);
+  b = x+1.0-a;
+  c = 1.0/FPMIN;
+  d = 1.0/b;
+  h = d;
+  for (i=1;i<=ITMAX;i++) {
+    an = -i*(i-a);
+    b += 2.0;
+    d = an*d+b;
+    if (fabs(d) < FPMIN) d=FPMIN;
+    c = b + an/c;
+    if (fabs(c) < FPMIN) c=FPMIN;
+    d = 1.0/d;
+    del = d*c;
+    h *= del;
+    if (fabs(del-1.0) < EPS) break;
+  }
+  if (i > ITMAX) assert(0);
+  return exp(-x+a*log(x)-gln)*h;
+}
+
+float gammq(float a, float x)
+{
+ float gamser,gammcf;
+
+ if (x < 0.0 || a <= 0.0) {
+   assert(0);
+ }
+ if (x < (a+1.0)) {
+   return 1.0 - gser(a,x);
+ }else{
+   return gcf(a,x);
+ }
+}
+
 
 /* ComputeChiSquared:
  *   Computes a chi squared test on the distribution of the edge distances around the computed mean.
- *   If includeOverlaps is true, overlap edges are included.  Otherwise they are ignored
+ *   If skip is >= 0 and < numEdges then the edge corresponding to that index is ignored. Because we
+ *   are computing the mean from the edges the number of degrees of freedom is (numEdges - 1) unless
+ *   we are skipping an edge then it is (numEdges - 2).
  */
 
 /* Returns 1 if test SUCCEEDS */
@@ -225,18 +255,18 @@ static int ComputeChiSquared(Chi2ComputeT *edges, int numEdges,
                              CDS_CID_t skip, 
 			     LengthT *distance, float *score){
   CDS_CID_t edgeIndex;
-  double chiSquaredThreshhold = chiSquared995[MIN(CHI_SQUARED995_TABLE_SIZE,
-						  (numEdges - 1)) - 1];
   double cumScore;
   double cumWeightedMean;
   double cumInverseVariance;
   double leastSquaresMean;
+  int numEdgesCorrection = 1;
 
   for (cumWeightedMean = 0.0, cumInverseVariance = 0.0, edgeIndex = 0;
        edgeIndex < numEdges; edgeIndex++){
     Chi2ComputeT *edge;
 
     if(edgeIndex == skip){
+      numEdgesCorrection++;
       continue;
     }
     edge = edges + edgeIndex;
@@ -259,7 +289,7 @@ static int ComputeChiSquared(Chi2ComputeT *edges, int numEdges,
     cumScore += deviation / (double)edge->distance.variance;
   }
   *score = (float)cumScore;
-  return(cumScore < chiSquaredThreshhold);
+  return(gammq(numEdges - numEdgesCorrection, cumScore) > 0.005);
 }
 
 
@@ -512,7 +542,7 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
 
   /* Check to see if the entire set of inputEdges passes the Chi Squared
      test. */
-  if(confirmable && ComputeChiSquared(edgeChi2Compute, numEdges + 1, numEdges,
+  if(confirmable && ComputeChiSquared(edgeChi2Compute, numEdges, (CDS_CID_t)(numEdges + 1),
 				      &distance, &chiSquareScore)){
     /* We passed */
     newEdge = GetFreeGraphEdge(graph);
@@ -607,7 +637,7 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
     int numClusters;
     /* edgeClusterChi2 is an array of numEdges elements which represent
        each initial edge (cluster of size 1) or merged cluster which has
-       this edge as the smallest index based on the 0 - (numEdges -1)
+       this edge as the smallest index based on the 0 - (numEdges - 1)
        indexing of the inputEdges array. Each of these elements points
        to an array of ((numEdges - 1) - index) of pairwise Chi Squared
        scores which taken together are the upper right triangle of the
@@ -682,6 +712,8 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
 			    &(pairClusterScoreChi2Ptr->distance),
 			    &(pairClusterScoreChi2Ptr->score),
 			    (float)PAIRWISECHI2THRESHOLD_CGW);
+	/* We want all of the clusters to try to pass the full chi squared test so we set this to TRUE */
+	pairClusterScoreChi2Ptr->passed = TRUE;
       }
     }
     /* Sort potential merge candidates by their pairwise Chi Squared scores. */
@@ -724,8 +756,8 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
 	  edgeChi2Compute[edgeClusterChi2Ptr - edgeClusterChi2];
       }
       /* Run the full Chi Squared Test. */
-      if(ComputeChiSquared(clusterChi2Compute, numInCluster + 1,
-			   numInCluster, &distance, &chiSquareScore)){
+      if(ComputeChiSquared(clusterChi2Compute, numInCluster,
+			   (CDS_CID_t)(numInCluster + 1), &distance, &chiSquareScore)){
 	/* We passed so we need to update the clusters by merging the
 	   row and column clusters and computing new pairwise Chi Squared
 	   scores for this new cluster. */
@@ -768,6 +800,8 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
 				&(rowClusterScoreChi2Ptr->distance),
 				&(rowClusterScoreChi2Ptr->score),
 				(float)PAIRWISECHI2THRESHOLD_CGW);
+	    /* We want all of the clusters to try to pass the full chi squared test so we set this to TRUE */
+	    rowClusterScoreChi2Ptr->passed = TRUE;
 	  }
 	}
 	/* then the row of scores. */
@@ -784,6 +818,8 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
 				&(rowClusterScoreChi2Ptr->distance),
 				&(rowClusterScoreChi2Ptr->score),
 				(float)PAIRWISECHI2THRESHOLD_CGW);
+	    /* We want all of the clusters to try to pass the full chi squared test so we set this to TRUE */
+	    rowClusterScoreChi2Ptr->passed = TRUE;
 	  }
 	}
 	/* Resort the pairwise Chi Squared scores. */
