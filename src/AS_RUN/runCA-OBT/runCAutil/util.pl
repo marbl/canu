@@ -161,6 +161,7 @@ sub setDefaults () {
     $global{"utgFragments"}                = undef;
     $global{"utgBubblePopping"}            = 1;
     $global{"utgGenomeSize"}               = undef;
+    $global{"cgwDemoteRBP"}               = undef;
     $global{"useGrid"}                     = 0;
     $global{"useBogUnitig"}                = 0;
     $global{"vectorIntersect"}             = undef;

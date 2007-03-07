@@ -53,6 +53,7 @@ sub CGW ($$$$$$) {
     $cmd  = "$bin/cgw $ckp -c -j 1 -k 5 -r 5 -s $stoneLevel -w 0 -T ";
     $cmd .= " -G " if (($finalRun == 0) && (getGlobal("cgwOutputIntermediate") == 0));
     $cmd .= " -M " if (($stoneLevel == 0) && (getGlobal("delayInterleavedMerging") == 1));
+    $cmd .= " -z " if (getGlobal("cgwDemoteRBP") == 1);
     $cmd .= " -g $wrk/$asm.gkpStore ";
     $cmd .= " -o $wrk/$thisDir/$asm ";
     $cmd .= " $wrk/$thisDir/$asm.cgi ";
