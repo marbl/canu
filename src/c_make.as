@@ -301,6 +301,7 @@ SUBDIRS = AS_RUN \
           AS_OBT \
           AS_MER \
           AS_OVL \
+          AS_OVS \
           AS_ALN \
           AS_CGB \
           AS_BOG \
