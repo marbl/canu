@@ -45,6 +45,7 @@ CGW_LIB_SOURCES = AS_CGW_dataTypes.c \
                   Celamy_CGW.c \
                   ChunkOverlap_CGW.c \
                   ContigT_CGW.c \
+		  DemoteUnitigsWithRBP_CGW.c \
                   DiagnosticsCGW.c \
                   GraphCGW_T.c \
                   Input_CGW.c \
