@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MergeEdges_CGW.c,v 1.10 2007-03-07 21:03:40 granger_sutton Exp $";
+static char CM_ID[] = "$Id: MergeEdges_CGW.c,v 1.11 2007-03-08 21:18:44 granger_sutton Exp $";
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -830,7 +830,7 @@ int MergeGraphEdges(GraphCGW_T *graph,  VA_TYPE(CDS_CID_t) *inputEdges){
 	/* Failed the full Chi Squared Test so see if there are any more
 	   potential merges and try again. */
 	pairClusterScoreChi2Ptr->passed = FALSE;
-	if(sortClusterScoreChi2Ptr < (sortClusterScoreChi2 + numPairs)){
+	if(sortClusterScoreChi2Ptr < (sortClusterScoreChi2 + (numPairs - 1))){
 	  sortClusterScoreChi2Ptr++;
 	}else{
 	  break;
