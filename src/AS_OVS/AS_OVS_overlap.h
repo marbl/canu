@@ -24,63 +24,68 @@
 
 #include "AS_global.h"
 
-
 #define AS_OVS_POSBITS   11
 #define AS_OVS_ERRBITS   16
 
-#define MAX_ERATE        ((1 << AS_OVS_ERRBITS) - 1)
+//  With 16 bits for storing the error, we can store up to 65% error,
+//  with three decimal points of precision, 65.XXX.  If space become
+//  tight later on, we could store less precise overlaps, 12 bits
+//  would get us 40.XX.
 
+#define MAX_ERATE        ((1 << AS_OVS_ERRBITS) - 1)
 
 //  Convert q from/to a condensed form / floating point equivalent
 //
 #define Expand_Quality(Q)   ((Q) / 1000.0)
 #define Shrink_Quality(Q)   (((Q) < Expand_Quality(MAX_ERATE)) ? (int)(1000.0 * (Q) + 0.5) : MAX_ERATE)
 
+#define AS_OVS_TYPE_OVL   0x00
+#define AS_OVS_TYPE_OBT   0x01
+#define AS_OVS_TYPE_MER   0x02
+#define AS_OVS_TYPE_UNS   0x03
 
 typedef union {
   uint64   dat;
   struct {
-    uint64  datpad:9;
+    uint64  datpad:7;
     uint64  flipped:1;
-    int64   Ahang:AS_OVS_POSBITS;
-    int64   Bhang:AS_OVS_POSBITS;
-    uint64  origE:AS_OVS_ERRBITS;
-    uint64  corrE:AS_OVS_ERRBITS;
+    int64   a_hang:AS_OVS_POSBITS;
+    int64   b_hang:AS_OVS_POSBITS;
+    uint64  orig_erate:AS_OVS_ERRBITS;
+    uint64  corr_erate:AS_OVS_ERRBITS;
+    uint64  type:2;
   } ovl;
   struct {
-    uint64  datpad:3;
-    uint64  ori:1;
-    uint64  Abeg:AS_OVS_POSBITS;
-    uint64  Aend:AS_OVS_POSBITS;
-    uint64  Bbeg:AS_OVS_POSBITS;
-    uint64  Bend:AS_OVS_POSBITS;
+    uint64  datpad:1;
+    uint64  fwd:1;
+    uint64  a_beg:AS_OVS_POSBITS;
+    uint64  a_end:AS_OVS_POSBITS;
+    uint64  b_beg:AS_OVS_POSBITS;
+    uint64  b_end:AS_OVS_POSBITS;
     uint64  erate:AS_OVS_ERRBITS;
+    uint64  type:2;
   } obt;
   struct {
-    uint64  datpad:22;
-    uint64  ori:1;
+    uint64  datpad:20;
+    uint64  fwd:1;
     uint64  palindrome:1;
-    uint64  Apos:AS_OVS_POSBITS;
-    uint64  Bpos:AS_OVS_POSBITS;
-    uint64  kcount:10;
-    uint64  klen:8;
+    uint64  a_pos:AS_OVS_POSBITS;
+    uint64  b_pos:AS_OVS_POSBITS;
+    uint64  k_count:10;
+    uint64  k_len:8;
+    uint64  type:2;
   } mer;
 } OVSoverlapDAT;
 
-
 typedef struct {
-  uint32         bid;
+  uint32         b_iid;
   OVSoverlapDAT  dat;
 } OVSoverlapINT;
 
-
 typedef struct {
-  uint32         aid;
-  uint32         bid;
+  uint32         a_iid;
+  uint32         b_iid;
   OVSoverlapDAT  dat;
 } OVSoverlap;
 
-
 #endif  //  AS_OVS_OVERLAP_H
-
-

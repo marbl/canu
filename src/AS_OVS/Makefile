@@ -24,16 +24,20 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-SOURCES = AS_OVS_overlapFile.c convertOverlap.c
+OVS_SOURCES = AS_OVS_overlapFile.c AS_OVS_overlapStore.c
+
+SOURCES = $(OVS_SOURCES) convertOverlap.c overlapStore.c overlapStore_build.c
 OBJECTS = $(SOURCES:.c=.o)
 
 LIBRARIES =
 
-PROGS = convertOverlap
+PROGS = convertOverlap overlapStore
 
 include $(LOCAL_WORK)/src/c_make.as
 
 all:    $(OBJECTS) $(LIBRARIES) $(PROGS)
 	@test -n nop
 
-convertOverlap: $(OBJECTS) libAS_PER.a libAS_MSG.a libAS_UTL.a
+convertOverlap: convertOverlap.o AS_OVS_overlapFile.o  libAS_PER.a libAS_MSG.a libAS_UTL.a
+
+overlapStore:   overlapStore.o overlapStore_build.o  AS_OVS_overlapFile.o AS_OVS_overlapStore.o  libAS_PER.a libAS_MSG.a libAS_UTL.a

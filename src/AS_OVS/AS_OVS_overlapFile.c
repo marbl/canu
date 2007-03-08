@@ -73,7 +73,7 @@ AS_OVS_createBinaryOverlapFile(const char *name, int isOutput) {
 void
 AS_OVS_flushBinaryOverlapFile(BinaryOverlapFile *bof) {
   if ((bof->isOutput) && (bof->bufferLen > 0)) {
-    AS_UTL_safeWrite(bof->file, bof->buffer, "AS_OVS_outputOverlap", sizeof(OVSoverlap), bof->bufferLen);
+    AS_UTL_safeWrite(bof->file, bof->buffer, "AS_OVS_flushBinaryOverlapFile", sizeof(OVSoverlap), bof->bufferLen);
     bof->bufferLen = 0;
   }
 }
@@ -81,6 +81,9 @@ AS_OVS_flushBinaryOverlapFile(BinaryOverlapFile *bof) {
 
 void
 AS_OVS_closeBinaryOverlapFile(BinaryOverlapFile *bof) {
+
+  if (bof == NULL)
+    return;
 
   if (bof->isOutput)
     AS_OVS_flushBinaryOverlapFile(bof);

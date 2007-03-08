@@ -42,4 +42,5 @@ void               AS_OVS_closeBinaryOverlapFile(BinaryOverlapFile *bof);
 void               AS_OVS_writeOverlap(BinaryOverlapFile *bof, OVSoverlap *olap);
 OVSoverlap        *AS_OVS_readOverlap(BinaryOverlapFile *bof);
 
+
 #endif  //  AS_OVS_OVERLAPFILE_H
