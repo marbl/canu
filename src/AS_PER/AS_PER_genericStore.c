@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.16 2007-03-06 01:02:44 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.17 2007-03-09 19:10:35 brianwalenz Exp $";
 
 // Module:  AS_PER_genericStore
 // Description:
@@ -63,16 +63,14 @@ static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.16 2007-03-06 01:02:44 bri
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <string.h>
+#include <assert.h>
+#include <errno.h>
 
 #include "AS_global.h"
 #include "AS_PER_genericStore.h"
 #include "AS_UTL_fileIO.h"
-
-#define INITIAL_ALLOCATION (2048)
-#define WRITING_BUFFER     (32 * 1024)
 
 #undef DEBUG_GENERIC_STORE
 
@@ -107,45 +105,16 @@ int writeBufToStore(StoreStruct *target, char *srcPtr, int64 offset,
 /** Globals **/
 
 static StoreStruct *gStores = NULL;
-static int gNumStores = 0;
-static int gMaxNumStores = 0;
+static int gNumStores       = 0;
+static int gMaxNumStores    = 0;
 
 static StreamStruct *gStreams = NULL;
-static int gNumStreams = 0;
-static int gMaxNumStreams = 0;
+static int gNumStreams        = 0;
+static int gMaxNumStreams     = 0;
 
+static int INITIAL_ALLOCATION = 4096;
+static int WRITING_BUFFER     = 8 * 1024;
 
-
-#if 0
-
-static int Store_isMemoryStore(StoreStruct *s){
-  return s->isMemoryStore;
-}
-
-static int Store_isDirty(StoreStruct *s){
-  return s->isDirty;
-}
-
-static void Store_setType(StoreStruct *s, int32 type){
-  assert(type == INDEX_STORE ||
-         type == STRING_STORE ||
-         type == VLRECORD_STORE);
-  s->header.type = type;
-}
-static int32 Store_getType(StoreStruct *s){
-  return s->header.type;
-}
-static int32 Store_isIndexStore(StoreStruct *s){
-  return s->header.type == INDEX_STORE;
-}
-static int32 Store_isStringStore(StoreStruct *s){
-  return s->header.type == STRING_STORE;
-}
-static int32 Store_isVLRecordStore(StoreStruct *s){
-  return s->header.type == VLRECORD_STORE;
-}
-
-#else
 
 #define  Store_isMemoryStore(S)    ((S)->isMemoryStore)
 #define  Store_isDirty(S)          ((S)->isDirty)
@@ -155,43 +124,6 @@ static int32 Store_isVLRecordStore(StoreStruct *s){
 #define  Store_isStringStore(S)    ((S)->header.type == STRING_STORE)
 #define  Store_isVLRecordStore(S)  ((S)->header.type == VLRECORD_STORE)
 
-#endif
-
-
-
-#if 0
-
-static int Store_myHandle(StoreStruct *s){
-  return s - gStores; /* Pointer Arithmetic */
-}
-static int Stream_myHandle(StreamStruct *s){
-  return s - gStreams; /* Pointer Arithmetic */
-}
-
-static StoreStruct *Store_myStruct(StoreHandle s){
-  if(s < 0 || s > gMaxNumStores)
-    return NULL;
-  return gStores + s; /* Pointer Arithmetic */
-}
-static StreamStruct * Stream_myStruct(StreamHandle s){
-  if(s < 0 || s > gMaxNumStreams)
-    return NULL;
-  return gStreams + s; /* Pointer Arithmetic */
-}
-
-static int64 computeOffset(StoreStruct *myStore, int64 index ){
-
-  int64 offset = (index - myStore->header.firstElem) * (int64)myStore->header.elementSize;
-
-  assert(Store_isIndexStore(myStore));
-  assert(index >= myStore->header.firstElem);
-  assert(offset >= 0);
-
-  return(offset + sizeof(StoreStat));
-}
-
-#else
-
 #define  Store_myHandle(S)  ((S) - gStores)
 #define  Stream_myHandle(S) ((S) - gStreams)
 
@@ -200,16 +132,16 @@ static int64 computeOffset(StoreStruct *myStore, int64 index ){
 
 #define  computeOffset(S, I)  (((I) - (S)->header.firstElem) * (int64)(S)->header.elementSize + sizeof(StoreStat))
 
-#endif
-
-
-
 
 
 /************************************************************************/
 /* Memory allocation for stores and streams                             */
 /************************************************************************/
 
+
+void AS_PER_setBufferSize(int wb) {
+  WRITING_BUFFER = wb;
+}
 
 StoreStruct  *allocateStore(void){
   int i;
@@ -407,14 +339,18 @@ StoreHandle createIndexStore
     fprintf(stderr," Creating file-based index store %s\n", path);
 #endif
     assert(strlen(path) < FILENAME_MAX);
-    myStore->fp = fopen(path,"w+b");
-    AssertPtr(myStore->fp);
-#if WRITING_BUFFER > 0
-    myStore->buffer = (char *)safe_malloc(WRITING_BUFFER);
-    setbuffer(myStore->fp, myStore->buffer, WRITING_BUFFER);
-#else
+    errno = 0;
+    myStore->fp = fopen(path,"w+");
+    if(errno){
+      fprintf(stderr,"createIndexStore()-- Failure opening Store %s for w+: %s\n", path, strerror(errno));
+      assert(errno == 0);
+    }
     myStore->buffer = NULL;
-#endif
+    if (WRITING_BUFFER > 0) {
+      fprintf(stderr, "allocate buffer of size %d\n", WRITING_BUFFER);
+      myStore->buffer = (char *)safe_malloc(WRITING_BUFFER);
+      setbuffer(myStore->fp, myStore->buffer, WRITING_BUFFER);
+    }
     myStore->isMemoryStore = 0;
   }else{
 #ifdef DEBUG_GENERIC_STORE
@@ -481,14 +417,18 @@ StoreHandle createStringStore
     myStore->isMemoryStore = 0;
     assert(strlen(path) < FILENAME_MAX);
     myStore->isMemoryStore = 0;
-    myStore->fp = fopen(path,"w+b");
-    AssertPtr(myStore->fp);
-#if WRITING_BUFFER > 0
-    myStore->buffer = (char *)safe_malloc(WRITING_BUFFER);
-    setbuffer(myStore->fp, myStore->buffer, WRITING_BUFFER);
-#else
+    errno = 0;
+    myStore->fp = fopen(path,"w+");
+    if(errno){
+      fprintf(stderr,"createStringStore()-- Failure opening Store %s for w+: %s\n", path, strerror(errno));
+      assert(errno == 0);
+    }
     myStore->buffer = NULL;
-#endif
+    if (WRITING_BUFFER > 0) {
+      fprintf(stderr, "allocate buffer of size %d\n", WRITING_BUFFER);
+      myStore->buffer = (char *)safe_malloc(WRITING_BUFFER);
+      setbuffer(myStore->fp, myStore->buffer, WRITING_BUFFER);
+    }
   }else{
 #ifdef DEBUG_GENERIC_STORE
     fprintf(stderr," Creating memory-based string store \n");
@@ -687,9 +627,10 @@ StoreHandle openStore
   StoreStruct *myStore;
 
   myStore = allocateStore();
+  errno = 0;
   myStore->fp = fopen(path,rw);
-  if(myStore->fp == NULL){
-    fprintf(stderr,"* Failure opening Store %s for %s\n", path, rw);
+  if(errno){
+    fprintf(stderr,"openStore()-- Failure opening Store %s for %s: %s\n", path, rw, strerror(errno));
     return(NULLSTOREHANDLE);
   }
 

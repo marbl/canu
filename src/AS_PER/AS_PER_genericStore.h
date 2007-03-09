@@ -79,6 +79,16 @@ typedef struct{
   StoreStatus   status; 
 }StreamStruct;
 
+
+
+//  Make all stores use a system buffer of size wb bytes.  Bigger
+//  buffers work great for writing sequentially to lots of files
+//  (e.g., partitioning a store) but are TERRIBLE for updating a store
+//  (nearly everything else).
+//
+void AS_PER_setBufferSize(int wb);
+
+
 /******************************************************************************
  * Function: createIndexStore:
  * Description:
