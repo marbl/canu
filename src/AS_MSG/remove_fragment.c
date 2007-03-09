@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: remove_fragment.c,v 1.8 2007-01-29 20:41:15 brianwalenz Exp $ */
+/* $Id: remove_fragment.c,v 1.9 2007-03-09 03:05:58 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,6 +26,7 @@
 #include <ctype.h>
 
 #include "AS_global.h"
+#include "AS_MSG_pmesg.h"
 #include "AS_UTL_ID_store.h"
 
 CDS_UID_t a2UID( char * string )

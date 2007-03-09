@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: wpack.c,v 1.5 2007-02-08 02:04:57 brianwalenz Exp $ */
+/* $Id: wpack.c,v 1.6 2007-03-09 03:05:58 brianwalenz Exp $ */
 
 #undef DEBUG
 
@@ -38,7 +38,6 @@
 #include <X11/Xutil.h>
 #include <X11/Xatom.h>
 
-#include "AS_global.h"
 #include "wpack.h"
 
 /* UGLY PATCH BY EWM TO GET A COUPLE OF BUTTON PACKAGE OBJECTS VISIBLE
@@ -2786,14 +2785,14 @@ int ReadBitmap(display, d, filename, width, height, btm, x_hot, y_hot)
           RETURN (status);
 
   /* Suntools icons */
-  CDS_FSEEK(fstream, (off_t) 0, 0);
+  rewind(fstream);
   status = _ReadIconFile(display, d, fstream, width, height,
                         btm, x_hot, y_hot);
   if (status != BitmapFileInvalid)
           RETURN (status);
 
   /* Sun rasterfiles */
-  CDS_FSEEK(fstream, (off_t) 0, 0);
+  rewind(fstream);
   status = _ReadRasterFile(display, d, fstream,
                            width, height, btm, x_hot, y_hot);
 
@@ -3075,7 +3074,7 @@ _ReadRasterFile(Display *display, Drawable d, FILE *fstream,
           RETURN (BitmapFileInvalid);
 
   if (ras.maplength &&
-      (0 == CDS_FSEEK(fstream, (off_t) (sizeof(ras) + ras.maplength), 0)))
+      (0 == fseeko(fstream, (off_t) (sizeof(ras) + ras.maplength), 0)))
           RETURN (BitmapFileInvalid);
 
   /*

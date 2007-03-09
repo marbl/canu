@@ -19,13 +19,14 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: convertOverlap.c,v 1.2 2007-03-08 20:51:57 brianwalenz Exp $";
+static char CM_ID[] = "$Id: convertOverlap.c,v 1.3 2007-03-09 03:05:58 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "AS_global.h"
+#include "AS_MSG_pmesg.h"
 #include "AS_OVS_overlap.h"
 #include "AS_OVS_overlapFile.h"
 

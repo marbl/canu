@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: InputDataTypes_CGW.h,v 1.11 2007-03-04 02:06:21 brianwalenz Exp $	 */
+/* 	$Id: InputDataTypes_CGW.h,v 1.12 2007-03-09 03:05:58 brianwalenz Exp $	 */
 /****************************************************************************
  *  InputDataTypes_CGW
  *  
@@ -31,6 +31,7 @@
 #define INPUTDATATYPES_CGW_H
 
 #include "AS_global.h"
+#include "AS_MSG_pmesg.h"
 
 typedef struct {
   float64  mean;

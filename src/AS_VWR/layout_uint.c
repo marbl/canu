@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: layout_uint.c,v 1.7 2007-02-08 02:04:56 brianwalenz Exp $ */
+/* $Id: layout_uint.c,v 1.8 2007-03-09 03:05:58 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,6 +31,11 @@
 #include "hash.h"
 #include "agrep.h"
 
+//  AS_global includes AS_UTL_alloc.h which redefines malloc() and
+//  free() to AS's much safer versions.  We don't support those
+//  versions here, so we pretend that we've already included it.
+//
+#define AS_UTL_ALLOC_H
 #include "AS_global.h"  //  F_S64 and int64, used to be cds.h
 
 #undef  DEBUG_READ

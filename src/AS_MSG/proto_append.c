@@ -18,15 +18,15 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: proto_append.c,v 1.4 2005-03-22 19:49:01 jason_miller Exp $ */
+/* $Id: proto_append.c,v 1.5 2007-03-09 03:05:58 brianwalenz Exp $ */
 
 // standard headers
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-// project headers
 #include "AS_global.h"
+#include "AS_MSG_pmesg.h"
 
 int main( int argc, char ** argv )
 {

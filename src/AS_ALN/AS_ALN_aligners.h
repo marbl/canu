@@ -22,6 +22,7 @@
 #define AS_ALN_ALIGNERS_H
 
 #include "AS_global.h"
+#include "AS_MSG_pmesg.h"
 #include "SUBDELREZ.h"
 
 void Complement_Seq(char *a);

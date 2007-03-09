@@ -27,6 +27,7 @@
 #include <unistd.h>
 
 #include "AS_global.h"
+#include "AS_MSG_pmesg.h"
 
 int
 main(int argc, char **argv) {

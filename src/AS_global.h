@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_global.h,v 1.9 2007-02-25 08:13:36 brianwalenz Exp $	 */
+/* 	$Id: AS_global.h,v 1.10 2007-03-09 03:05:58 brianwalenz Exp $	 */
 
 /* This is the global include file that all C files in the AS subsystem should
    include.
@@ -35,6 +35,8 @@
 #include <inttypes.h>
 #include <time.h>
 
+
+#include "AS_UTL_alloc.h"
 
 
 ////////////////////////////////////////
@@ -388,11 +390,6 @@ typedef cds_int32  CDS_COORD_t;
 ////////////////////////////////////////
 
 
-#include "AS_MSG_pmesg.h"
-#include "AS_UTL_alloc.h"
-//#include "AS_UTL_Var.h"
-
-
 
 // Constants that SHOULD be included
 #ifndef  EXIT_SUCCESS
@@ -456,7 +453,6 @@ typedef cds_int32  CDS_COORD_t;
 //
 #define AS_FRAG_MAX_LEN (2048)
 #define AS_FRAG_MIN_LEN (64)
-
 
 
 #endif

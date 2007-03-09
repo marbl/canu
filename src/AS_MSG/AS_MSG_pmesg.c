@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.34 2007-03-05 23:42:11 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.35 2007-03-09 03:05:58 brianwalenz Exp $";
 
 //  reads old and new AFG message (with and w/o chaff field)
 #define AFG_BACKWARDS_COMPATIBLE
@@ -38,6 +38,7 @@ static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.34 2007-03-05 23:42:11 brianwalenz
 #include <assert.h>
 
 #include "AS_global.h"
+#include "AS_MSG_pmesg.h"
 
 // time_t field formats
 #define CRT_FORMAT   "crt:" F_TIME_T

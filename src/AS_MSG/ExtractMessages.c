@@ -25,6 +25,7 @@
 #include <string.h>
 #include <assert.h>
 #include "AS_global.h"
+#include "AS_MSG_pmesg.h"
 
 void
 usage(char *name) {

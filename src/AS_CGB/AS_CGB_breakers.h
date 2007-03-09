@@ -19,10 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*
-  $Id: AS_CGB_breakers.h,v 1.4 2005-03-22 19:48:24 jason_miller Exp $
+  $Id: AS_CGB_breakers.h,v 1.5 2007-03-09 03:05:58 brianwalenz Exp $
 */
 #ifndef AS_CGB_BREAKERS_H
 #define AS_CGB_BREAKERS_H
+
+#include "AS_global.h"
+#include "AS_MSG_pmesg.h"
 
 #define CHECK_FOR_BAD_BREAKERS
 
