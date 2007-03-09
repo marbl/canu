@@ -139,12 +139,12 @@ AS_OVS_readOverlap(BinaryOverlapFile *bof, OVSoverlap *overlap) {
     return(FALSE);
 
   if (bof->isInternal == FALSE)
-    overlap->a_iid = bof->buffer[bof->bufferLen++];
+    overlap->a_iid = bof->buffer[bof->bufferPos++];
 
-  overlap->b_iid     = bof->buffer[bof->bufferLen++];
-  overlap->dat.dat   = bof->buffer[bof->bufferLen++];
+  overlap->b_iid     = bof->buffer[bof->bufferPos++];
+  overlap->dat.dat   = bof->buffer[bof->bufferPos++];
   overlap->dat.dat <<= 32;
-  overlap->dat.dat  |= bof->buffer[bof->bufferLen++];
+  overlap->dat.dat  |= bof->buffer[bof->bufferPos++];
 
   return(TRUE);
 }

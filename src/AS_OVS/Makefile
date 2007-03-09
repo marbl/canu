@@ -24,12 +24,18 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-OVS_SOURCES = AS_OVS_overlapFile.c AS_OVS_overlapStore.c
+OVS_LIB_SRC = AS_OVS_overlapFile.c AS_OVS_overlapStore.c
+OVS_STR_SRC = overlapStore.c overlapStore_build.c overlapStore_merge.c overlapStore_dump.c overlapStore_stats.c
+OVS_CVT_SRC = convertOverlap.c 
 
-SOURCES = $(OVS_SOURCES) convertOverlap.c overlapStore.c overlapStore_build.c
+OVS_LIB_OBJ = $(OVS_LIB_SRC:.c=.o)
+OVS_STR_OBJ = $(OVS_STR_SRC:.c=.o)
+OVS_CVT_OBJ = $(OVS_CVT_SRC:.c=.o)
+
+SOURCES = $(OVS_LIB_SRC) $(OVS_STR_SRC) $(OVS_CVT_SRC)
 OBJECTS = $(SOURCES:.c=.o)
 
-LIBRARIES =
+LIBRARIES = libAS_OVS.a libAS.a
 
 PROGS = convertOverlap overlapStore
 
@@ -38,6 +44,8 @@ include $(LOCAL_WORK)/src/c_make.as
 all:    $(OBJECTS) $(LIBRARIES) $(PROGS)
 	@test -n nop
 
-convertOverlap: convertOverlap.o AS_OVS_overlapFile.o  libAS_PER.a libAS_MSG.a libAS_UTL.a
+libAS_OVS.a: $(OVS_LIB_OBJ)
+libCA.a:     $(OVS_LIB_OBJ)
 
-overlapStore:   overlapStore.o overlapStore_build.o  AS_OVS_overlapFile.o AS_OVS_overlapStore.o  libAS_PER.a libAS_MSG.a libAS_UTL.a
+overlapStore:   $(OVS_STR_OBJ) libCA.a
+convertOverlap: $(OVS_CVT_OBJ) libCA.a

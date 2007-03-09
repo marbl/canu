@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: convertOverlap.c,v 1.4 2007-03-09 04:36:49 brianwalenz Exp $";
+static char CM_ID[] = "$Id: convertOverlap.c,v 1.5 2007-03-09 07:29:23 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -94,6 +94,11 @@ main(int argc, char **argv) {
   if ((format == FORMAT_NONE) ||
       (err)) {
     fprintf(stderr, "usage: %s [-a | -b] [-ovl | -obt | -mer] < input > output\n", argv[0]);
+    fprintf(stderr, "  -a    convert to ASCII, from BINARY.\n");
+    fprintf(stderr, "  -b    convert to BINARY, from ASCII.\n");
+    fprintf(stderr, "  -ovl\n");
+    fprintf(stderr, "  -obt\n");
+    fprintf(stderr, "  -mer\n");
     exit(1);
   }
 

@@ -43,6 +43,8 @@ AS_OVS_openOverlapStore(const char *path) {
 
   strcpy(ovs->storePath, path);
 
+  ovs->isOutput = FALSE;
+
   ovs->ovs.ovsMagic              = 1;
   ovs->ovs.ovsVersion            = 1;
   ovs->ovs.numOverlapsPerFile    = 0;
@@ -113,7 +115,7 @@ AS_OVS_readOverlapFromStore(OverlapStore *ovs, OVSoverlap *overlap) {
 
     //  AS_OVS_createBinaryOverlapFile() actually bombs if it can't open; this test is useless....
     if (ovs->bof == NULL) {
-      fprintf(stderr, "AS_OVS_openOverlapStore()-- failed to open overlap file '%s': %s\n", name, strerror(errno));
+      fprintf(stderr, "AS_OVS_readOverlapFromStore()-- failed to open overlap file '%s': %s\n", name, strerror(errno));
       exit(1);
     }
   }
@@ -135,16 +137,32 @@ AS_OVS_closeOverlapStore(OverlapStore *ovs) {
   if (ovs == NULL)
     return;
 
-  //  Write the last index element, maybe
-  //
-  if (ovs->offset.numOlaps > 0)
-    AS_UTL_safeWrite(ovs->offsetFile, &ovs->offset, "AS_OVS_writeOverlapToStore offset",
-                     sizeof(OverlapStoreOffsetRecord), 1);
+  if (ovs->isOutput) {
+    char  name[FILENAME_MAX];
+    FILE *ovsinfo = NULL;
+
+    //  Write the last index element, maybe
+    //
+    if (ovs->offset.numOlaps > 0)
+      AS_UTL_safeWrite(ovs->offsetFile, &ovs->offset, "AS_OVS_writeOverlapToStore offset",
+                       sizeof(OverlapStoreOffsetRecord), 1);
+
+    //  Update the info
+    //
+
+    sprintf(name, "%s/ovs", ovs->storePath);
+    errno = 0;
+    ovsinfo = fopen(name, "w");
+    if (errno) {
+      fprintf(stderr, "failed to create overlap store '%s': %s\n", ovs->storePath, strerror(errno));
+      exit(1);
+    }
+    ovs->ovs.highestFileIndex = ovs->currentFileIndex;
+    AS_UTL_safeWrite(ovsinfo, &ovs->ovs, "AS_OVS_closeOverlapStore", sizeof(OverlapStoreInfo), 1);
+    fclose(ovsinfo);
+  }
 
   AS_OVS_closeBinaryOverlapFile(ovs->bof);
-
-  //  Update the info
-  //
 
   fclose(ovs->offsetFile);
   safe_free(ovs);
@@ -158,7 +176,7 @@ AS_OVS_closeOverlapStore(OverlapStore *ovs) {
 //  store is write-only.
 //
 OverlapStore *
-AS_OVS_createOverlapStore(const char *path) {
+AS_OVS_createOverlapStore(const char *path, int failOnExist) {
   char            name[FILENAME_MAX];
   FILE           *ovsinfo;
 
@@ -167,10 +185,12 @@ AS_OVS_createOverlapStore(const char *path) {
   OverlapStore   *ovs = (OverlapStore *)safe_malloc(sizeof(OverlapStore));
   strcpy(ovs->storePath, path);
 
+  ovs->isOutput = TRUE;
+
   errno = 0;
   mkdir(path, S_IRWXU | S_IRWXG | S_IROTH);
-  if (errno) {
-    fprintf(stderr, "CreateOverlapStore(): failed to create directory '%s': %s\n", ovs->storePath, strerror(errno));
+  if ((errno) && ((errno != EEXIST) && (failOnExist == FALSE))) {
+    fprintf(stderr, "AS_OVS_createOverlapStore(): failed to create directory '%s': %s\n", ovs->storePath, strerror(errno));
     exit(1);
   }
 
@@ -188,6 +208,7 @@ AS_OVS_createOverlapStore(const char *path) {
   ovs->ovs.smallestIID           = 0;
   ovs->ovs.largestIID            = 0;
   ovs->ovs.numOverlapsTotal      = 0;
+  ovs->ovs.highestFileIndex      = 0;
   AS_UTL_safeWrite(ovsinfo, &ovs->ovs, "AS_OVS_createOverlapStore", sizeof(OverlapStoreInfo), 1);
   fclose(ovsinfo);
 

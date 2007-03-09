@@ -35,6 +35,7 @@ typedef struct {
   uint64    smallestIID;         //  smallest frag iid in the store
   uint64    largestIID;          //  largest frag iid in the store
   uint64    numOverlapsTotal;    //  number of overlaps in the store
+  uint64    highestFileIndex;
 } OverlapStoreInfo;
 
 typedef struct {
@@ -68,7 +69,7 @@ void               AS_OVS_setRangeOverlapStore(OverlapStore *ovs, uint32 low, ui
 
 //  The mostly private interface for creating an overlap store.
 
-OverlapStore      *AS_OVS_createOverlapStore(const char *name);
+OverlapStore      *AS_OVS_createOverlapStore(const char *name, int failOnExist);
 void               AS_OVS_writeOverlapToStore(OverlapStore *ovs, OVSoverlap *olap);
 
 #endif  //  AS_OVS_OVERLAPSTORE_H

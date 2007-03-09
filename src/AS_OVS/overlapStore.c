@@ -19,40 +19,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore.c,v 1.2 2007-03-09 04:36:49 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore.c,v 1.3 2007-03-09 07:29:23 brianwalenz Exp $";
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
+#include "overlapStore.h"
 
-#include "AS_global.h"
-
-
-void
-buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 fileListLen, char **fileList);
-void
-mergeStore(char *storeName, uint32 fileListLen, char **fileList);
-void
-dumpStore(char *storeName, uint32 dumpBinary, uint32 bgnIID, uint32 endIID);
-void
-statsStore(char *storeName);
-
-
-
-//  perl's chomp is pretty nice
-//
-#define chomp(S) { char *t=S; while (*t) t++; t--; while (isspace(*t)) *t--=0; }
-
-
-
-#define OP_NONE   0
-#define OP_BUILD  1
-#define OP_MERGE  2
-#define OP_DUMP   3
-#define OP_STATS  4
-
-
+#include <ctype.h>
 
 int
 main(int argc, char **argv) {
@@ -79,9 +50,9 @@ main(int argc, char **argv) {
       if (storeName == NULL) {
         storeName   = argv[++arg];
         operation   = OP_MERGE;
+      } else {
+        maxIID      = atoi(argv[++arg]);
       }
-      maxIID      = atoi(argv[++arg]);
-
     } else if (strcmp(argv[arg], "-d") == 0) {
       storeName   = argv[++arg];
       operation   = OP_DUMP;
@@ -159,7 +130,7 @@ main(int argc, char **argv) {
       buildStore(storeName, memoryLimit, maxIID, fileListLen, fileList);
       break;
     case OP_MERGE:
-      mergeStore(storeName, fileListLen, fileList);
+      mergeStore(storeName, fileList[0]);
       break;
     case OP_DUMP:
       dumpStore(storeName, dumpBinary, bgnIID, endIID);

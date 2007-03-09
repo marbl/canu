@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore_build.c,v 1.2 2007-03-09 04:36:49 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore_build.c,v 1.3 2007-03-09 07:29:23 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,11 +38,9 @@ static char CM_ID[] = "$Id: overlapStore_build.c,v 1.2 2007-03-09 04:36:49 brian
 #include "AS_OVS_overlapFile.h"
 #include "AS_OVS_overlapStore.h"
 
+#include "overlapStore.h"
 
-#define DONT_FLIP_INPUT_OVERLAPS
 
-
-static
 int
 OVSoverlap_sort(const void *a, const void *b) {
   OVSoverlap const *A = (OVSoverlap const *)a;
@@ -53,6 +51,9 @@ OVSoverlap_sort(const void *a, const void *b) {
   if (A->b_iid > B->b_iid)  return(1);
   return(0);
 }
+
+
+#define DONT_FLIP_INPUT_OVERLAPS
 
 
 static
@@ -104,7 +105,7 @@ writeToDumpFile(OVSoverlap          *overlap,
 
 
 
-int
+void
 buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 fileListLen, char **fileList) {
   int   i;
 
@@ -112,7 +113,7 @@ buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 fileListLe
   //  We create the store early, allowing it to fail if it already
   //  exists, or just cannot be created.
   //
-  OverlapStore  *storeFile = AS_OVS_createOverlapStore(storeName);
+  OverlapStore  *storeFile = AS_OVS_createOverlapStore(storeName, TRUE);
 
 
   //  Decide on some sizes.  We need to decide on how many IID's to
@@ -268,85 +269,3 @@ buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 fileListLe
 
   exit(0);
 }
-
-
-
-
-void
-mergeStore(char *storeName, char *mergeName) {
-
-  //  Idea:
-  //  Open mergeName as a store.
-  //  For each file in storeName,
-  //    rename it to ###.orig
-  //    create a new ### file.
-  //    open ###.orig for reading
-  //    until ###.orig is empty
-  //      write smaller of two overlaps to ###
-  //    close ###
-  //    close ###.orig, remove it optionally
-  //  close mergeName store
-  //  update stats on storeName
-  //  
-  
-}
-
-
-
-
-void
-dumpStore(char *storeName, uint32 dumpBinary, uint32 bgnIID, uint32 endIID) {
-
-  OverlapStore  *storeFile = AS_OVS_openOverlapStore(storeName);
-  OVSoverlap     overlap;
-
-  while (AS_OVS_readOverlapFromStore(storeFile, &overlap) == TRUE) {
-    if (dumpBinary) {
-      AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(OVSoverlap), 1);
-    } else {
-      switch (overlap.dat.ovl.type) {
-        case AS_OVS_TYPE_OVL:
-          fprintf(stdout, "    %8d %8d %c %5d %5d %4.1f %4.1f\n",
-                  overlap.a_iid,
-                  overlap.b_iid,
-                  overlap.dat.ovl.flipped ? 'I' : 'N',
-                  overlap.dat.ovl.a_hang,
-                  overlap.dat.ovl.b_hang,
-                  Expand_Quality(overlap.dat.ovl.orig_erate) * 100.0,
-                  Expand_Quality(overlap.dat.ovl.corr_erate) * 100.0);
-          break;
-        case AS_OVS_TYPE_OBT:
-
-          //  compatible with OBT convert
-          //fprintf(stdout, "%8d %8d %c %4d %4d %4d %4d %4d %4d    %5.2f\n",
-                  
-          fprintf(stdout, "%7d %7d  %c %4d %4d %4d  %4d %4d %4d  %5.2f\n",
-                  overlap.a_iid, overlap.b_iid,
-                  overlap.dat.obt.fwd ? 'f' : 'r',
-                  overlap.dat.obt.a_beg,
-                  overlap.dat.obt.a_end,
-                  666,
-                  overlap.dat.obt.b_beg,
-                  overlap.dat.obt.b_end,
-                  666,
-                  Expand_Quality(overlap.dat.obt.erate));
-          break;
-        case AS_OVS_TYPE_MER:
-          break;
-        default:
-          assert(0);
-          break;
-      }
-    }
-  }
-
-  AS_OVS_closeOverlapStore(storeFile);
-}
-
-
-
-
-void
-statsStore(char *storeName) {
-}
-
