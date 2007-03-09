@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore_build.c,v 1.3 2007-03-09 07:29:23 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore_build.c,v 1.4 2007-03-09 22:00:02 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -221,33 +221,35 @@ buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 fileListLe
   //
 
   for (i=0; i<dumpFileMax; i++) {
-    FILE   *mergeFile;
     char    name[FILENAME_MAX];
     int     x;
 
     if (dumpLength[i] == 0)
       continue;
 
-    OVSoverlap *overlapsort = (OVSoverlap *)safe_malloc(sizeof(OVSoverlap) * dumpLength[i]);
-
-    sprintf(name, "%s/tmp.sort.%03d", storeName, i);
-    errno = 0;
-    mergeFile = fopen(name, "rb");
-    if (errno)
-      fprintf(stderr, "Failed to open '%s' for reading: %s\n", name, strerror(errno)), exit(1);
+    BinaryOverlapFile  *bof;
+    OVSoverlap         *overlapsort = (OVSoverlap *)safe_malloc(sizeof(OVSoverlap) * dumpLength[i]);
 
     //  We're vastly more efficient if we skip the AS_OVS interface
-    //  and just suck in the whole file directly.
+    //  and just suck in the whole file directly....BUT....we can't do
+    //  that because the AS_OVS interface is rearranging the data to
+    //  make sure the store is cross-platform compatible.
 
-    AS_UTL_safeRead(mergeFile, overlapsort, "sortOverlap", sizeof(OVSoverlap), dumpLength[i]);
-    if (errno)
-      fprintf(stderr, "Failed to read "F_U32" overlaps from '%s': %s\n", dumpLength[i], name, strerror(errno)), exit(1);
+    sprintf(name, "%s/tmp.sort.%03d", storeName, i);
+    bof = AS_OVS_createBinaryOverlapFile(name, FALSE, FALSE);
 
-    fclose(mergeFile);
+    fprintf(stderr, "reading %s\n", name);
+
+    for (x=0; x<dumpLength[i]; x++)
+      AS_OVS_readOverlap(bof, overlapsort + x);
+
+    AS_OVS_closeBinaryOverlapFile(bof);
 
     fprintf(stderr, "sorting %s\n", name);
 
     qsort(overlapsort, dumpLength[i], sizeof(OVSoverlap), OVSoverlap_sort);
+
+    fprintf(stderr, "writing %s\n", name);
 
     for (x=0; x<dumpLength[i]; x++)
       AS_OVS_writeOverlapToStore(storeFile, overlapsort + x);

@@ -25,7 +25,7 @@
 #include "AS_global.h"
 
 #define AS_OVS_POSBITS   11
-#define AS_OVS_ERRBITS   16
+#define AS_OVS_ERRBITS   12
 
 //  With 16 bits for storing the error, we can store up to 65% error,
 //  with three decimal points of precision, 65.XXX.  If space become
@@ -47,7 +47,7 @@
 typedef union {
   uint64   dat;
   struct {
-    uint64  datpad:7;
+    uint64  datpad:15;
     uint64  flipped:1;
     int64   a_hang:AS_OVS_POSBITS;
     int64   b_hang:AS_OVS_POSBITS;
@@ -56,7 +56,7 @@ typedef union {
     uint64  type:2;
   } ovl;
   struct {
-    uint64  datpad:1;
+    uint64  datpad:5;
     uint64  fwd:1;
     uint64  a_beg:AS_OVS_POSBITS;
     uint64  a_end:AS_OVS_POSBITS;

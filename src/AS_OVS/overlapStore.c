@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore.c,v 1.3 2007-03-09 07:29:23 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore.c,v 1.4 2007-03-09 22:00:02 brianwalenz Exp $";
 
 #include "overlapStore.h"
 

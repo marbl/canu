@@ -21,8 +21,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <assert.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -31,8 +33,45 @@
 #include "AS_OVS_overlapFile.h"
 #include "AS_UTL_fileIO.h"
 
+
+
+static
+void
+renameToBackup(char const *storeName, char const *name) {
+  char   orig[FILENAME_MAX];
+  char   bkup[FILENAME_MAX];
+
+  sprintf(orig, "%s/%s", storeName, name);
+  sprintf(bkup, "%s/%s~", storeName, name);
+
+  errno = 0;
+  rename(orig, bkup);
+  if (errno) {
+    fprintf(stderr, "overlapStore: ERROR: failed to make backup of '%s' into '%s': %s\n", orig, bkup, strerror(errno));
+    assert(0);
+  }
+}
+
+
+
+static
+void
+nukeBackup(char const *storeName, char const *name) {
+  char   bkup[FILENAME_MAX];
+
+  sprintf(bkup, "%s/%s~", storeName, name);
+
+  errno = 0;
+  unlink(bkup);
+  if ((errno) && (errno != ENOENT))
+    fprintf(stderr, "overlapStore: WARNING: failed to remove backup '%s': %s\n", bkup, strerror(errno));
+}
+
+
+
+
 OverlapStore *
-AS_OVS_openOverlapStore(const char *path) {
+AS_OVS_openOverlapStorePrivate(const char *path, int useBackup, int saveSpace) {
   char            name[FILENAME_MAX];
   FILE           *ovsinfo;
 
@@ -43,7 +82,9 @@ AS_OVS_openOverlapStore(const char *path) {
 
   strcpy(ovs->storePath, path);
 
-  ovs->isOutput = FALSE;
+  ovs->isOutput  = FALSE;
+  ovs->useBackup = (useBackup) ? '~' : 0;
+  ovs->saveSpace = saveSpace;
 
   ovs->ovs.ovsMagic              = 1;
   ovs->ovs.ovsVersion            = 1;
@@ -51,6 +92,7 @@ AS_OVS_openOverlapStore(const char *path) {
   ovs->ovs.smallestIID           = 0;
   ovs->ovs.largestIID            = 0;
   ovs->ovs.numOverlapsTotal      = 0;
+  ovs->ovs.highestFileIndex      = 0;
 
   sprintf(name, "%s/ovs", path);
   errno = 0;
@@ -63,7 +105,23 @@ AS_OVS_openOverlapStore(const char *path) {
   fclose(ovsinfo);
 
 
-  sprintf(name, "%s/idx", path);
+  //  If we're supposed to be using the backup, actually make the
+  //  backup.  OK, it's not much of a "backup", it's really just a
+  //  stashing the current store somewhere, so we can recreate this
+  //  store with merged in data.
+  //
+  if (ovs->useBackup) {
+    int i;
+    renameToBackup(ovs->storePath, "ovs");
+    renameToBackup(ovs->storePath, "idx");
+    for (i=1; i<=ovs->ovs.highestFileIndex; i++) {
+      sprintf(name, "%04d", i);
+      renameToBackup(ovs->storePath, name);
+    }
+  }
+
+
+  sprintf(name, "%s/idx%c", path, ovs->useBackup);
   errno = 0;
   ovs->offsetFile      = fopen(name, "r");
   ovs->offset.a_iid    = 0;
@@ -78,7 +136,7 @@ AS_OVS_openOverlapStore(const char *path) {
   ovs->overlapsThisFile = 0;
   ovs->currentFileIndex = 1;
 
-  sprintf(name, "%s/%04d", ovs->storePath, ovs->currentFileIndex);
+  sprintf(name, "%s/%04d%c", ovs->storePath, ovs->currentFileIndex, ovs->useBackup);
   ovs->bof = AS_OVS_createBinaryOverlapFile(name, TRUE, FALSE);
 
   return(ovs);
@@ -108,9 +166,14 @@ AS_OVS_readOverlapFromStore(OverlapStore *ovs, OVSoverlap *overlap) {
 
     AS_OVS_closeBinaryOverlapFile(ovs->bof);
 
+    if (ovs->saveSpace) {
+      sprintf(name, "%04d", ovs->currentFileIndex);
+      nukeBackup(ovs->storePath, name);
+    }
+
     ovs->currentFileIndex++;
 
-    sprintf(name, "%s/%04d", ovs->storePath, ovs->currentFileIndex);
+    sprintf(name, "%s/%04d%c", ovs->storePath, ovs->currentFileIndex, ovs->useBackup);
     ovs->bof = AS_OVS_createBinaryOverlapFile(name, TRUE, FALSE);
 
     //  AS_OVS_createBinaryOverlapFile() actually bombs if it can't open; this test is useless....
@@ -133,12 +196,22 @@ AS_OVS_readOverlapFromStore(OverlapStore *ovs, OVSoverlap *overlap) {
 
 void
 AS_OVS_closeOverlapStore(OverlapStore *ovs) {
+  char name[FILENAME_MAX];
 
   if (ovs == NULL)
     return;
 
+  if (ovs->useBackup) {
+    int i;
+    nukeBackup(ovs->storePath, "ovs");
+    nukeBackup(ovs->storePath, "idx");
+    for (i=1; i<=ovs->ovs.highestFileIndex; i++) {
+      sprintf(name, "%04d", i);
+      nukeBackup(ovs->storePath, name);
+    }
+  }
+
   if (ovs->isOutput) {
-    char  name[FILENAME_MAX];
     FILE *ovsinfo = NULL;
 
     //  Write the last index element, maybe
@@ -185,7 +258,9 @@ AS_OVS_createOverlapStore(const char *path, int failOnExist) {
   OverlapStore   *ovs = (OverlapStore *)safe_malloc(sizeof(OverlapStore));
   strcpy(ovs->storePath, path);
 
-  ovs->isOutput = TRUE;
+  ovs->isOutput  = TRUE;
+  ovs->useBackup = 0;
+  ovs->saveSpace = 0;
 
   errno = 0;
   mkdir(path, S_IRWXU | S_IRWXG | S_IROTH);

@@ -48,6 +48,8 @@ typedef struct {
 typedef struct {
   char                        storePath[FILENAME_MAX];
   int                         isOutput;
+  char                        useBackup;
+  int                         saveSpace;
 
   OverlapStoreInfo            ovs;
 
@@ -59,8 +61,10 @@ typedef struct {
   BinaryOverlapFile          *bof;
 } OverlapStore;
 
-OverlapStore      *AS_OVS_openOverlapStore(const char *name);
+OverlapStore      *AS_OVS_openOverlapStorePrivate(const char *name, int useBackup, int saveSpace);
 void               AS_OVS_closeOverlapStore(OverlapStore *ovs);
+
+#define            AS_OVS_openOverlapStore(N)  AS_OVS_openOverlapStorePrivate((N), FALSE, FALSE)
 
 int                AS_OVS_readOverlapFromStore(OverlapStore *ovs, OVSoverlap *overlap);
 
