@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore.c,v 1.1 2007-03-08 20:51:57 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore.c,v 1.2 2007-03-09 04:36:49 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -140,12 +140,12 @@ main(int argc, char **argv) {
   }
   if ((operation == OP_NONE) || (err)) {
     fprintf(stderr, "usage: %s -c storeName [-M x (MB) -m maxIID] [-L list-of-ovl-files] ovl-file ...\n", argv[0]);
-    fprintf(stderr, "       %s -m mergeName storeName ....\n", argv[0]);
+    fprintf(stderr, "       %s -m storeName mergeName\n", argv[0]);
     fprintf(stderr, "       %s -d storeName [-B] [-b beginIID] [-e endIID]\n");
     fprintf(stderr, "       %s -s storeName\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "-c create a new store, fails if the store exists\n");
-    fprintf(stderr, "-m merge stores into mergeName\n");
+    fprintf(stderr, "-m merge store mergeName into store storeName\n");
     fprintf(stderr, "-d dump a store\n");
     fprintf(stderr, "-s dump statistics about a store\n");
     fprintf(stderr, "\n");

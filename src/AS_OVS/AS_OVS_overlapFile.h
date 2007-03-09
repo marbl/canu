@@ -31,16 +31,20 @@ typedef struct {
   int           bufferLen;  //  length of valid data in the buffer
   int           bufferPos;  //  position the read is at in the buffer
   int           bufferMax;  //  allocated size of the buffer
-  OVSoverlap   *buffer;
+  uint32       *buffer;
   int           isOutput;
+  int           isInternal; //  if true, 3 words per overlap, else 4
   FILE         *file;
 } BinaryOverlapFile;
 
-BinaryOverlapFile *AS_OVS_createBinaryOverlapFile(const char *name, int isOutput);
+
+BinaryOverlapFile *AS_OVS_createBinaryOverlapFile(const char *name, int isInternal, int isOutput);
+
 void               AS_OVS_flushBinaryOverlapFile(BinaryOverlapFile *bof);
 void               AS_OVS_closeBinaryOverlapFile(BinaryOverlapFile *bof);
-void               AS_OVS_writeOverlap(BinaryOverlapFile *bof, OVSoverlap *olap);
-OVSoverlap        *AS_OVS_readOverlap(BinaryOverlapFile *bof);
+
+void               AS_OVS_writeOverlap(BinaryOverlapFile *bof, OVSoverlap *overlap);
+int                AS_OVS_readOverlap(BinaryOverlapFile *bof, OVSoverlap *overlap);
 
 
 #endif  //  AS_OVS_OVERLAPFILE_H

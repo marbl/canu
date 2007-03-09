@@ -26,6 +26,7 @@
 
 #include "AS_global.h"
 #include "AS_OVS_overlap.h"
+#include "AS_OVS_overlapFile.h"
 
 typedef struct {
   uint64    ovsMagic;
@@ -45,34 +46,16 @@ typedef struct {
 
 typedef struct {
   char                        storePath[FILENAME_MAX];
+  int                         isOutput;
 
   OverlapStoreInfo            ovs;
 
-  //  At 12 bytes per iid, this makes it a little big to read into
-  //  core.  But then we can adjust the cached offset record to show
-  //  the current position in the overlap file.
-  //
   FILE                       *offsetFile;
   OverlapStoreOffsetRecord    offset;
 
-  //  I was tempted to overload the binary overlap file to also handle
-  //  the smaller internal overlap data record.  The big advantage is
-  //  that about 100 lines of code doesn't need to be duplicated.  The
-  //  bigger disadvantages is that the code becomes much more
-  //  complicated, ugly, brittle, and mighty hackish.  We'd need to
-  //  either extend the createBOF() function to take another param
-  //  (OVSoverlap or OVSoverlapINT), OR add another function to
-  //  convert the BOF to handle OVSoverlapINT.  Just aint' worth it.
-  //
-  int             bufferLen;  //  length of valid data in the buffer
-  int             bufferPos;  //  position the read is at in the buffer
-  int             bufferMax;  //  allocated size of the buffer
-  OVSoverlapINT  *buffer;
-  int             isOutput;
-
-  int             overlapsThisFile;
-  int             currentFileIndex;
-  FILE           *file;
+  int                         overlapsThisFile;
+  int                         currentFileIndex;
+  BinaryOverlapFile          *bof;
 } OverlapStore;
 
 OverlapStore      *AS_OVS_openOverlapStore(const char *name);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore_build.c,v 1.1 2007-03-08 20:51:57 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore_build.c,v 1.2 2007-03-09 04:36:49 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -92,7 +92,7 @@ writeToDumpFile(OVSoverlap          *overlap,
   if (dumpFile[df] == NULL) {
     char name[FILENAME_MAX];
     sprintf(name, "%s/tmp.sort.%03d", storeName, df);
-    dumpFile[df]   = AS_OVS_createBinaryOverlapFile(name, TRUE);
+    dumpFile[df]   = AS_OVS_createBinaryOverlapFile(name, FALSE, TRUE);
     dumpLength[df] = 0;
   }
 
@@ -145,24 +145,17 @@ buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 fileListLe
 
   for (i=0; i<fileListLen; i++) {
     BinaryOverlapFile  *inputFile;
-    OVSoverlap         *overlap;
     OVSoverlap          fovrlap;
     OVSoverlap          rovrlap;
     int                 df;
 
     fprintf(stderr, "bucketizing %s\n", fileList[i]);
 
-    inputFile = AS_OVS_createBinaryOverlapFile(fileList[i], FALSE);
+    inputFile = AS_OVS_createBinaryOverlapFile(fileList[i], FALSE, FALSE);
 
-    while ((overlap = AS_OVS_readOverlap(inputFile)) != 0L) {
+    while (AS_OVS_readOverlap(inputFile, &fovrlap)) {
 
-      //  Copy the overlap onto our stack, presumabely this will be
-      //  more efficient because we won't be deref'ing a pointer all
-      //  the time.
-      //
-      fovrlap = *overlap;
-
-      writeToDumpFile(overlap, dumpFile, dumpFileMax, dumpLength, iidPerBucket, storeName);
+      writeToDumpFile(&fovrlap, dumpFile, dumpFileMax, dumpLength, iidPerBucket, storeName);
 
       //  flip the overlap -- copy all the dat, then fix whatever
       //  needs to change for the flip.
@@ -280,7 +273,22 @@ buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 fileListLe
 
 
 void
-mergeStore(char *storeName, uint32 fileListLen, char **fileList) {
+mergeStore(char *storeName, char *mergeName) {
+
+  //  Idea:
+  //  Open mergeName as a store.
+  //  For each file in storeName,
+  //    rename it to ###.orig
+  //    create a new ### file.
+  //    open ###.orig for reading
+  //    until ###.orig is empty
+  //      write smaller of two overlaps to ###
+  //    close ###
+  //    close ###.orig, remove it optionally
+  //  close mergeName store
+  //  update stats on storeName
+  //  
+  
 }
 
 
