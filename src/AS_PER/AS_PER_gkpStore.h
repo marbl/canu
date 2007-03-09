@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.24 2007-03-06 01:02:44 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.25 2007-03-09 19:12:24 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -406,6 +406,8 @@ getGatekeeperUIDtoIID(GateKeeperStore *gkp, CDS_UID_t key, PHashValue_AS *value)
       fprintf(stderr,"**** Failed to open GateKeeper Persistent HashTable...\n");
       assert(0);
     }
+
+    fprintf(stderr, "Loaded GateKeeperStore Persistent Hash Table.\n");
   }
 
   return(LookupInPHashTable_AS(gkp->phs_private,
@@ -422,7 +424,7 @@ int              testOpenGateKeeperStore(const char *path, int writable);
 GateKeeperStore *openGateKeeperStore(const char *path, int writable);
 void             closeGateKeeperStore(GateKeeperStore *gkpStore);
 
-void             createGateKeeperPartition(GateKeeperStore *gkp, uint32 partnum);
+GateKeeperStore *createGateKeeperPartition(const char *path, uint32 partnum);
 
 void             loadGateKeeperPartition(GateKeeperStore *gkp, uint32 partnum);
 

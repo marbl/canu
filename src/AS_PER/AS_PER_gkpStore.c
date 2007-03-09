@@ -19,14 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.29 2007-03-06 01:02:44 brianwalenz Exp $";
-
-//    A thin layer on top of the IndexStore supporing the storage and
-// retrieval of records used by the gatekeeper records.
-//
-//    The idea is to provide easier to use shortcuts for the common
-// operations, and let the other operations be accessed through the
-// generic Index Store API.
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.30 2007-03-09 19:12:24 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -201,49 +194,51 @@ openGateKeeperStore(const char *path,
   else
     strcpy(mode, "r");
 
-  sprintf(name,"%s/bat", gkpStore->storePath);
-  gkpStore->bat   = openGateKeeperBatchStore(name, mode);
+  if (writable >= 0) {
+    sprintf(name,"%s/bat", gkpStore->storePath);
+    gkpStore->bat   = openGateKeeperBatchStore(name, mode);
 
-  sprintf(name,"%s/frg", gkpStore->storePath);
-  gkpStore->frg   = openGateKeeperFragmentStore(name, mode);
+    sprintf(name,"%s/frg", gkpStore->storePath);
+    gkpStore->frg   = openGateKeeperFragmentStore(name, mode);
 
-  sprintf(name,"%s/lib", gkpStore->storePath);
-  gkpStore->lib   = openGateKeeperLibraryStore(name, mode);
+    sprintf(name,"%s/lib", gkpStore->storePath);
+    gkpStore->lib   = openGateKeeperLibraryStore(name, mode);
 
-  sprintf(name,"%s/lis", gkpStore->storePath);
-  gkpStore->lis = openGateKeeperLibraryStore(name, mode);
+    sprintf(name,"%s/lis", gkpStore->storePath);
+    gkpStore->lis = openGateKeeperLibraryStore(name, mode);
 
-  sprintf(name,"%s/seq", gkpStore->storePath);
-  gkpStore->seq = openStore(name, mode);
+    sprintf(name,"%s/seq", gkpStore->storePath);
+    gkpStore->seq = openStore(name, mode);
 
-  sprintf(name,"%s/qlt", gkpStore->storePath);
-  gkpStore->qlt = openStore(name, mode);
+    sprintf(name,"%s/qlt", gkpStore->storePath);
+    gkpStore->qlt = openStore(name, mode);
 
-  sprintf(name,"%s/hps", gkpStore->storePath);
-  gkpStore->hps = openStore(name, mode);
+    sprintf(name,"%s/hps", gkpStore->storePath);
+    gkpStore->hps = openStore(name, mode);
 
-  sprintf(name,"%s/src", gkpStore->storePath);
-  gkpStore->src = openStore(name, mode);
+    sprintf(name,"%s/src", gkpStore->storePath);
+    gkpStore->src = openStore(name, mode);
 
-  if ((NULLSTOREHANDLE == gkpStore->bat) ||
-      (NULLSTOREHANDLE == gkpStore->frg) ||
-      (NULLSTOREHANDLE == gkpStore->lib) ||
-      (NULLSTOREHANDLE == gkpStore->lis) ||
-      (NULLSTOREHANDLE == gkpStore->seq) ||
-      (NULLSTOREHANDLE == gkpStore->qlt) ||
-      (NULLSTOREHANDLE == gkpStore->hps) ||
-      (NULLSTOREHANDLE == gkpStore->src)) {
-    fprintf(stderr,"**** Failure to open Gatekeeper Store ...\n");
-    assert(0);
-  }
-
-  if (writable) {
-    sprintf(name,"%s/phs", gkpStore->storePath);
-    gkpStore->phs_private = OpenPHashTable_AS(name);
-
-    if (gkpStore->phs_private == NULL) {
-      fprintf(stderr,"**** Failed to open GateKeeper Persistent HashTable...\n");
+    if ((NULLSTOREHANDLE == gkpStore->bat) ||
+        (NULLSTOREHANDLE == gkpStore->frg) ||
+        (NULLSTOREHANDLE == gkpStore->lib) ||
+        (NULLSTOREHANDLE == gkpStore->lis) ||
+        (NULLSTOREHANDLE == gkpStore->seq) ||
+        (NULLSTOREHANDLE == gkpStore->qlt) ||
+        (NULLSTOREHANDLE == gkpStore->hps) ||
+        (NULLSTOREHANDLE == gkpStore->src)) {
+      fprintf(stderr,"**** Failure to open Gatekeeper Store ...\n");
       assert(0);
+    }
+
+    if (writable) {
+      sprintf(name,"%s/phs", gkpStore->storePath);
+      gkpStore->phs_private = OpenPHashTable_AS(name);
+
+      if (gkpStore->phs_private == NULL) {
+        fprintf(stderr,"**** Failed to open GateKeeper Persistent HashTable...\n");
+        assert(0);
+      }
     }
   }
 
@@ -394,8 +389,10 @@ closeGateKeeperStore(GateKeeperStore *gkpStore) {
 
 
 
-void       createGateKeeperPartition(GateKeeperStore *gkp, uint32 partnum) {
+GateKeeperStore *createGateKeeperPartition(const char *path, uint32 partnum) {
   char       name[FILENAME_MAX];
+
+  GateKeeperStore *gkp = openGateKeeperStore(path, -1);
 
   gkp->partnum = partnum;
 
@@ -410,6 +407,8 @@ void       createGateKeeperPartition(GateKeeperStore *gkp, uint32 partnum) {
 
   sprintf(name,"%s/src.%03d", gkp->storePath, partnum);
   gkp->partsrc = createVLRecordStore(name, "partsrc", MAX_SRC_LENGTH, 1);
+
+  return(gkp);
 }
 
 
@@ -419,6 +418,26 @@ void       loadGateKeeperPartition(GateKeeperStore *gkp, uint32 partnum) {
   char       name[FILENAME_MAX];
   StoreStat  stats;
   int        i;
+
+  if (gkp->partnum != -1) {
+    fprintf(stderr, "WARNING:  Throwing out partition %d to load %d\n",
+            gkp->partnum, partnum);
+
+    if(gkp->partfrg != NULLSTOREHANDLE)
+      closeStore(gkp->partfrg);
+
+    if(gkp->partqlt != NULLSTOREHANDLE)
+      closeStore(gkp->partqlt);
+
+    if(gkp->parthps != NULLSTOREHANDLE)
+      closeStore(gkp->parthps);
+
+    if(gkp->partsrc != NULLSTOREHANDLE)
+      closeStore(gkp->partsrc);
+
+    if (gkp->partmap != NULL)
+      DeleteHashTable_AS(gkp->partmap);
+  }
 
   sprintf(name,"%s/frg.%03d", gkp->storePath, partnum);
   if (fileExists(name, 0, FALSE) == 0) {

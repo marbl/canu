@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_buildPartition.c,v 1.2 2007-03-06 01:02:44 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_buildPartition.c,v 1.3 2007-03-09 19:12:24 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,6 +52,10 @@ Build_Partition(char      *gatekeeperName,
   fragRecord       *fr  = new_fragRecord();
   StoreStat         stats;
   char              encodedsequence[AS_FRAG_MAX_LEN];
+
+  uint64            seqLen = 0;
+  uint64            hpsLen = 0;
+  uint64            srcLen = 0;
 
   //  Open the gatekeeper, read-only
   //
@@ -88,11 +92,12 @@ Build_Partition(char      *gatekeeperName,
   //
   gkpart = (GateKeeperStore **)safe_calloc(sizeof(GateKeeperStore *), maxPart + 1);
 
-  for (iid=1; iid<=maxPart; iid++) {
-    gkpart[iid] = openGateKeeperStore(gatekeeperName, FALSE);
-    createGateKeeperPartition(gkpart[iid], iid);
-  }
+  AS_PER_setBufferSize(512 * 1024);
 
+  for (iid=1; iid<=maxPart; iid++) {
+    //fprintf(stderr, "Create partition %04d in %s\n", iid, gatekeeperName);
+    gkpart[iid] = createGateKeeperPartition(gatekeeperName, iid);
+  }
 
   //  And, finally, add stuff to each partition.
   //
@@ -131,6 +136,18 @@ Build_Partition(char      *gatekeeperName,
     appendVLRecordStore(gkpart[p]->parthps, NULL,    0);
 
     appendVLRecordStore(gkpart[p]->partsrc, fr->src, fr->gkfr.srcLen);
+
+    seqLen += fr->gkfr.seqLen;
+    hpsLen += 0;
+    srcLen += fr->gkfr.srcLen;
+
+    if ((iid % 100000) == 0) {
+      fprintf(stderr, "frags:%6d  seqLen:%9.3fMbp  hpsLen:%9.3fM  srcLen:%9.3fM\n",
+              iid,
+              (double)seqLen / 1000000.0,
+              (double)hpsLen / 1000000.0,
+              (double)srcLen / 1000000.0);
+    }
   }
 
 
