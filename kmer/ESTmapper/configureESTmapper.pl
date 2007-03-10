@@ -87,6 +87,9 @@ if (!defined($genome) || !defined($path)) {
     exit(1);
 }
 
+$path   = "$ENV{'PWD'}/$path"   if ($path   !~ m!^/!);
+$genome = "$ENV{'PWD'}/$genome" if ($genome !~ m!^/!);
+
 system("mkdir -p $path") if (! -d $path);
 
 if ($genome !~ m/^\//) {

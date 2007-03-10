@@ -28,6 +28,7 @@ sub setExecutables {
 }
 
 
+
 sub parseArgs (@) {
     my @ARGS = @_;
 
@@ -161,6 +162,11 @@ sub parseArgs (@) {
     #
     ($args{'path'} eq "") and die "ERROR: ESTmapper/configure-- no directory given.\n";
 
+    #  Be tolerant of relative paths, but don't use them!
+    #
+    $args{'genome'}  = "$ENV{'PWD'}/$args{'genome'}"  if ($args{'genome'}  !~ m!^/!);
+    $args{'queries'} = "$ENV{'PWD'}/$args{'queries'}" if ($args{'queries'} !~ m!^/!);
+    $args{'path'}    = "$ENV{'PWD'}/$args{'path'}"    if ($args{'path'}    !~ m!^/!);
 
     #  If told to restart, suck in the original configration, but
     #  don't overwrite things already defined.
