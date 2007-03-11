@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.133 2007-03-06 01:02:44 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.134 2007-03-11 02:36:16 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -5388,6 +5388,37 @@ int MergeAbacus(Abacus *abacus, int merge_dir)
 }
 
 
+/* Refine the original abacus:
+ *    - make sure that reads that belong to the same (confirmed) allele
+ *      are aligned identically
+ *    - this alignment will be dictated by the last read in the allele
+ */
+
+int32
+RefineOrigAbacus(Abacus *abacus, VarRegion vreg)
+{
+    int32 i, j, k, l;
+    int32 il;
+    char c, call;
+    ResetCalls(abacus);
+
+    for (j=abacus->window_width; j<2*abacus->window_width; j++)
+    {
+        // Look through confirmed alleles only
+        for (k=0; k<vreg.nca; k++)
+        {
+            // Line number corresponding to the last read in allele
+            il = vreg.alleles[k].read_ids[vreg.alleles[k].num_reads-1];
+            c  = *GetAbacus(abacus, il, j);
+            for (l=0; l<vreg.alleles[k].num_reads-1; l++)
+            {
+                i = vreg.alleles[k].read_ids[l];
+                SetAbacus(abacus, i, j, c);
+            }
+        }
+    }
+}
+
 int32 
 LeftShift(Abacus *abacus, VarRegion vreg, int *lcols) 
 {  
@@ -6505,6 +6536,11 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
     ClusterReads(vreg.reads, vreg.nr, vreg.alleles, &vreg.na,
         &vreg.nca, vreg.dist_matrix);
     SortConfirmedAllelesByLength(vreg.alleles, vreg.nca, vreg.reads);
+
+    RefineOrigAbacus(orig_abacus, vreg);
+    //ShowAbacus(orig_abacus);
+    orig_mm_score = ScoreAbacus(orig_abacus, &orig_columns);
+
 #if 0
         fprintf(stderr, "vreg.alleles= ");
         for (i=0; i<vreg.nr; i++)
