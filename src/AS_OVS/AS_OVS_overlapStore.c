@@ -137,7 +137,7 @@ AS_OVS_openOverlapStorePrivate(const char *path, int useBackup, int saveSpace) {
   ovs->currentFileIndex = 1;
 
   sprintf(name, "%s/%04d%c", ovs->storePath, ovs->currentFileIndex, ovs->useBackup);
-  ovs->bof = AS_OVS_createBinaryOverlapFile(name, TRUE, FALSE);
+  ovs->bof = AS_OVS_openBinaryOverlapFile(name, TRUE);
 
   return(ovs);
 }
@@ -174,9 +174,9 @@ AS_OVS_readOverlapFromStore(OverlapStore *ovs, OVSoverlap *overlap) {
     ovs->currentFileIndex++;
 
     sprintf(name, "%s/%04d%c", ovs->storePath, ovs->currentFileIndex, ovs->useBackup);
-    ovs->bof = AS_OVS_createBinaryOverlapFile(name, TRUE, FALSE);
+    ovs->bof = AS_OVS_openBinaryOverlapFile(name, TRUE);
 
-    //  AS_OVS_createBinaryOverlapFile() actually bombs if it can't open; this test is useless....
+    //  AS_OVS_openBinaryOverlapFile() actually bombs if it can't open; this test is useless....
     if (ovs->bof == NULL) {
       fprintf(stderr, "AS_OVS_readOverlapFromStore()-- failed to open overlap file '%s': %s\n", name, strerror(errno));
       exit(1);
@@ -341,7 +341,7 @@ AS_OVS_writeOverlapToStore(OverlapStore *ovs, OVSoverlap *overlap) {
     ovs->currentFileIndex++;
 
     sprintf(name, "%s/%04d", ovs->storePath, ovs->currentFileIndex);
-    ovs->bof = AS_OVS_createBinaryOverlapFile(name, TRUE, TRUE);
+    ovs->bof = AS_OVS_createBinaryOverlapFile(name, TRUE);
   }
 
 

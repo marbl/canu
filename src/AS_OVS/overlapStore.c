@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore.c,v 1.4 2007-03-09 22:00:02 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore.c,v 1.5 2007-03-12 18:32:17 brianwalenz Exp $";
 
 #include "overlapStore.h"
 
@@ -109,7 +109,7 @@ main(int argc, char **argv) {
     }
     arg++;
   }
-  if ((operation == OP_NONE) || (err)) {
+  if ((operation == OP_NONE) || (storeName == NULL) || (err)) {
     fprintf(stderr, "usage: %s -c storeName [-M x (MB) -m maxIID] [-L list-of-ovl-files] ovl-file ...\n", argv[0]);
     fprintf(stderr, "       %s -m storeName mergeName\n", argv[0]);
     fprintf(stderr, "       %s -d storeName [-B] [-b beginIID] [-e endIID]\n");

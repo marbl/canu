@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore_build.c,v 1.4 2007-03-09 22:00:02 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore_build.c,v 1.5 2007-03-12 18:32:17 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,9 +51,6 @@ OVSoverlap_sort(const void *a, const void *b) {
   if (A->b_iid > B->b_iid)  return(1);
   return(0);
 }
-
-
-#define DONT_FLIP_INPUT_OVERLAPS
 
 
 static
@@ -93,7 +90,7 @@ writeToDumpFile(OVSoverlap          *overlap,
   if (dumpFile[df] == NULL) {
     char name[FILENAME_MAX];
     sprintf(name, "%s/tmp.sort.%03d", storeName, df);
-    dumpFile[df]   = AS_OVS_createBinaryOverlapFile(name, FALSE, TRUE);
+    dumpFile[df]   = AS_OVS_createBinaryOverlapFile(name, FALSE);
     dumpLength[df] = 0;
   }
 
@@ -152,7 +149,7 @@ buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 fileListLe
 
     fprintf(stderr, "bucketizing %s\n", fileList[i]);
 
-    inputFile = AS_OVS_createBinaryOverlapFile(fileList[i], FALSE, FALSE);
+    inputFile = AS_OVS_openBinaryOverlapFile(fileList[i], FALSE);
 
     while (AS_OVS_readOverlap(inputFile, &fovrlap)) {
 
@@ -160,8 +157,6 @@ buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 fileListLe
 
       //  flip the overlap -- copy all the dat, then fix whatever
       //  needs to change for the flip.
-
-#ifndef DONT_FLIP_INPUT_OVERLAPS
 
       switch (fovrlap.dat.ovl.type) {
         case AS_OVS_TYPE_OVL:
@@ -203,9 +198,6 @@ buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 fileListLe
           assert(0);
           break;
       }
-
-#endif
-
     }
 
     AS_OVS_closeBinaryOverlapFile(inputFile);
@@ -236,7 +228,7 @@ buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 fileListLe
     //  make sure the store is cross-platform compatible.
 
     sprintf(name, "%s/tmp.sort.%03d", storeName, i);
-    bof = AS_OVS_createBinaryOverlapFile(name, FALSE, FALSE);
+    bof = AS_OVS_openBinaryOverlapFile(name, FALSE);
 
     fprintf(stderr, "reading %s\n", name);
 

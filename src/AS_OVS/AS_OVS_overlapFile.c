@@ -28,10 +28,9 @@
 #include "AS_OVS_overlapFile.h"
 #include "AS_UTL_fileIO.h"
 
-//  XXX  split this into create() and open()
 
 BinaryOverlapFile *
-AS_OVS_createBinaryOverlapFile(const char *name, int isInternal, int isOutput) {
+AS_OVS_openBinaryOverlapFile(const char *name, int isInternal) {
 
   BinaryOverlapFile   *bof = (BinaryOverlapFile *)safe_malloc(sizeof(BinaryOverlapFile));
 
@@ -39,7 +38,7 @@ AS_OVS_createBinaryOverlapFile(const char *name, int isInternal, int isOutput) {
   bof->bufferPos  = 16384 * 12;
   bof->bufferMax  = 16384 * 12;
   bof->buffer     = (uint32 *)safe_malloc(sizeof(uint32) * bof->bufferMax);
-  bof->isOutput   = isOutput;
+  bof->isOutput   = FALSE;
   bof->isInternal = isInternal;
   bof->file       = NULL;
 
@@ -53,32 +52,60 @@ AS_OVS_createBinaryOverlapFile(const char *name, int isInternal, int isOutput) {
   if ((name == NULL) || (strcmp(name, "-") == 0))
     name = NULL;
 
-  if (isOutput) {
-    errno = 0;
-    if (name == NULL)
-      bof->file = stdout;
-    else
-      bof->file = fopen(name, "w");
-    if (errno) {
-      fprintf(stderr, "AS_OVS_createBinaryOverlapFile()-- Failed to open '%s' for writing: %s\n",
-              name, strerror(errno));
-      exit(1);
-    }
-  } else {
-    errno = 0;
-    if (name == NULL)
-      bof->file = stdin;
-    else
-      bof->file = fopen(name, "r");
-    if (errno) {
-      fprintf(stderr, "AS_OVS_createBinaryOverlapFile()-- Failed to open '%s' for reading: %s\n",
-              name, strerror(errno));
-      exit(1);
-    }
+  errno = 0;
+  if (name == NULL)
+    bof->file = stdin;
+  else
+    bof->file = fopen(name, "r");
+  if (errno) {
+    fprintf(stderr, "AS_OVS_createBinaryOverlapFile()-- Failed to open '%s' for reading: %s\n",
+            name, strerror(errno));
+    exit(1);
   }
 
   return(bof);
 }
+
+
+
+
+BinaryOverlapFile *
+AS_OVS_createBinaryOverlapFile(const char *name, int isInternal) {
+
+  BinaryOverlapFile   *bof = (BinaryOverlapFile *)safe_malloc(sizeof(BinaryOverlapFile));
+
+  bof->bufferLen  = 0;
+  bof->bufferPos  = 16384 * 12;
+  bof->bufferMax  = 16384 * 12;
+  bof->buffer     = (uint32 *)safe_malloc(sizeof(uint32) * bof->bufferMax);
+  bof->isOutput   = TRUE;
+  bof->isInternal = isInternal;
+  bof->file       = NULL;
+
+  //  The size of the buffer MUST be divisible by 3 and 4, otherwise
+  //  our writer will lose data.  We carefully chose 16384*12 to be
+  //  close to a 1MB buffer.
+  //
+  assert((bof->bufferMax % 3) == 0);
+  assert((bof->bufferMax % 4) == 0);
+
+  if ((name == NULL) || (strcmp(name, "-") == 0))
+    name = NULL;
+
+  errno = 0;
+  if (name == NULL)
+    bof->file = stdout;
+  else
+    bof->file = fopen(name, "w");
+  if (errno) {
+    fprintf(stderr, "AS_OVS_createBinaryOverlapFile()-- Failed to open '%s' for writing: %s\n",
+            name, strerror(errno));
+    exit(1);
+  }
+
+  return(bof);
+}
+
 
 
 void

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: convertOverlap.c,v 1.6 2007-03-09 22:00:01 brianwalenz Exp $";
+static char CM_ID[] = "$Id: convertOverlap.c,v 1.7 2007-03-12 18:32:17 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -173,7 +173,7 @@ convertOVLtoBinary(void) {
   OverlapMesg  *omesg;
   OVSoverlap    olap;
 
-  BinaryOverlapFile  *output = AS_OVS_createBinaryOverlapFile(NULL, FALSE, TRUE);
+  BinaryOverlapFile  *output = AS_OVS_createBinaryOverlapFile(NULL, FALSE);
 
   while (EOF != ReadProtoMesg_AS(stdin, &pmesg)) {
     if (pmesg->t == MESG_OVL) {
@@ -228,7 +228,7 @@ void   convertOVLDUMPtoBinary(void) {
   char          line[1024];
   OVSoverlap    olap;
 
-  BinaryOverlapFile  *output = AS_OVS_createBinaryOverlapFile(NULL, FALSE, TRUE);
+  BinaryOverlapFile  *output = AS_OVS_createBinaryOverlapFile(NULL, FALSE);
 
   //  Comment from GrowOlapStoreOVL:
   //  Open file in  Dump_Format_Input_Path  and read its overlaps
@@ -268,7 +268,7 @@ void   convertOBTtoBinary(void) {
   char          line[1024];
   OVSoverlap    olap;
 
-  BinaryOverlapFile  *output = AS_OVS_createBinaryOverlapFile(NULL, FALSE, TRUE);
+  BinaryOverlapFile  *output = AS_OVS_createBinaryOverlapFile(NULL, FALSE);
 
   fgets(line, 1024, stdin);
   while (!feof(stdin)) {
@@ -334,7 +334,7 @@ void   convertOVLtoASCII(void) {
   omesg.polymorph_ct = 0;
   omesg.delta        = deltas;
 
-  BinaryOverlapFile  *input = AS_OVS_createBinaryOverlapFile(NULL, FALSE, FALSE);
+  BinaryOverlapFile  *input = AS_OVS_openBinaryOverlapFile(NULL, FALSE);
 
   while (AS_OVS_readOverlap(input, &olap)) {
 
@@ -363,7 +363,7 @@ void   convertOVLtoASCII(void) {
 void   convertOVLDUMPtoASCII(void) {
   OVSoverlap    olap;
 
-  BinaryOverlapFile  *input = AS_OVS_createBinaryOverlapFile(NULL, FALSE, FALSE);
+  BinaryOverlapFile  *input = AS_OVS_openBinaryOverlapFile(NULL, FALSE);
 
   while (AS_OVS_readOverlap(input, &olap)) {
     fprintf(stdout, "    %8d %8d %c %5d %5d %4.1f %4.1f\n",
@@ -383,7 +383,7 @@ void   convertOVLDUMPtoASCII(void) {
 void   convertOBTtoASCII(void) {
   OVSoverlap    olap;
 
-  BinaryOverlapFile  *input = AS_OVS_createBinaryOverlapFile(NULL, FALSE, FALSE);
+  BinaryOverlapFile  *input = AS_OVS_openBinaryOverlapFile(NULL, FALSE);
 
   while (AS_OVS_readOverlap(input, &olap)) {
     fprintf(stdout, "%7d %7d  %c %4d %4d %4d  %4d %4d %4d  %5.2f\n",

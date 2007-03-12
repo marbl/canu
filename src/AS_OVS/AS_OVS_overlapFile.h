@@ -37,8 +37,8 @@ typedef struct {
   FILE         *file;
 } BinaryOverlapFile;
 
-
-BinaryOverlapFile *AS_OVS_createBinaryOverlapFile(const char *name, int isInternal, int isOutput);
+BinaryOverlapFile *AS_OVS_openBinaryOverlapFile(const char *name, int isInternal);
+BinaryOverlapFile *AS_OVS_createBinaryOverlapFile(const char *name, int isInternal);
 
 void               AS_OVS_flushBinaryOverlapFile(BinaryOverlapFile *bof);
 void               AS_OVS_closeBinaryOverlapFile(BinaryOverlapFile *bof);
