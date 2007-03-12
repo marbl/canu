@@ -109,14 +109,14 @@ sub createOverlapJobs {
     print F "&& \\\n";
 
     if ($isTrim eq "trim") {
-        print F "$gin/overlap-convert -b $scratch/$asm.\$bat-\$job.\$jid.ovl $scratch/$asm.\$bat-\$job.\$jid.ovb \\\n";
-        print F "&& \\\n";
-        print F "cp -p $scratch/$asm.\$bat-\$job.\$jid.ovb \\\n";
-        print F "      $wrk/$outDir/\$bat/\$job.ovb \\\n";
-        print F "&& \\\n";
-        print F "rm -f $scratch/$asm.\$bat-\$job.\$jid.ovb \\\n";
-        print F "&& \\\n";
-        print F "rm -f $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
+        print F "$gin/convertOverlap -b -obt \\\n";
+        print F "  < $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
+        print F "| \\\n";
+        print F "$gin/acceptableOBToverlap \\\n";
+        print F "  > $wrk/$outDir/\$bat/\$job.ovb \\\n";
+        #print F "&& \\\n";
+        #print F "rm -f $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
+
     } elsif (getGlobal("useGrid") && getGlobal("ovlOnGrid")) {
         print F "bzip2 -9v $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
         print F "&& \\\n";
@@ -129,6 +129,22 @@ sub createOverlapJobs {
         print F "      $wrk/$outDir/\$bat/\$job.ovl \\\n";
         print F "&& \\\n";
         print F "rm -f $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
+ 
+#    } elsif (getGlobal("useGrid") && getGlobal("ovlOnGrid")) {
+#        print F "$gin/convertOverlap -b -obt \\\n";
+#        print F "  < $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
+#        print F "| \\\n";
+#        print F "bzip2 -9vc \\\n";
+#        print F "  > $wrk/$outDir/\$bat/\$job.ovb.bz2 \\\n";
+#        print F "&& \\\n";
+#        print F "rm -f $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
+#    } else {
+#        print F "$gin/convertOverlap -b -obt \\\n";
+#        print F "  < $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
+#        print F "  > $wrk/$outDir/\$bat/\$job.ovb \\\n";
+#        print F "&& \\\n";
+#        print F "rm -f $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
+
     }
 
     print F "&& \\\n";

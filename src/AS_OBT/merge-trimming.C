@@ -207,7 +207,7 @@ main(int argc, char **argv) {
       u32bit l = (qltL0 < qltL1) ? qltL1 : qltL0;
       u32bit r = (qltR0 < qltR1) ? qltR0 : qltR1;
 
-      if (l + OBT_MIN_LENGTH < r) {
+      if (l + AS_FRAG_MIN_LEN < r) {
         if (doModify) {
           setFragRecordClearRegion(fr, l, r, AS_READ_CLEAR_OBT);
           setFrag(gkp, lid, fr);
@@ -428,7 +428,7 @@ main(int argc, char **argv) {
       //  XXX: We should check if the quality of the OVL region is
       //  decent, and then use that if it is also large.
       //
-      if ((left + right > 0) && ((left + OBT_MIN_LENGTH) > right)) {
+      if ((left + right > 0) && ((left + AS_FRAG_MIN_LEN) > right)) {
         stats[13]++;
 #if 0
         fprintf(stderr, "INVALID CLEAR: "u64bitFMTW(8)" "u32bitFMTW(3)"-"u32bitFMTW(4)" -> "u32bitFMTW(3)"-"u32bitFMTW(4)" -- %s\n",

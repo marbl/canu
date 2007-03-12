@@ -25,26 +25,23 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-SOURCES = chimera.C \
+SOURCES = acceptableOBToverlap.c \
+          chimera.C \
           consolidate.C \
           dumpRandomMatedFrags.C \
           findDuplicateFragsInStore.C \
           getNumScaffolds.c \
           initialTrim.C \
           merge-trimming.C \
-          sort-overlaps.C \
-          overlap-convert.C \
           trim.C \
-          util++.C \
-          overlap-filter.C
+          util++.C
+
 OBJECTS = $(SOURCES:.C=.o) $(SOURCES:.c=.o)
-PROGS   = chimera \
-          consolidate \
+PROGS   = acceptableOBToverlap \
           initialTrim \
           merge-trimming \
-          sort-overlaps \
-          overlap-convert \
-          overlap-filter \
+          consolidate \
+          chimera \
           dumpRandomMatedFrags \
           findDuplicateFragsInStore \
           getNumScaffolds
@@ -55,19 +52,16 @@ include $(LOCAL_WORK)/src/c_make.as
 all: $(PROGS) $(SCRIPTS)
 	@test -n nop
 
+acceptableOBToverlap: acceptableOBToverlap.o -lAS_OVS -lAS_PER -lAS_UTL
+
 initialTrim: initialTrim.o trim.o -lAS_PER -lAS_UTL
 
 merge-trimming: merge-trimming.o trim.o -lAS_PER -lAS_UTL
 
-sort-overlaps: sort-overlaps.o util++.o
+chimera: chimera.o util++.o -lAS_OVS -lAS_PER -lAS_UTL
 
-overlap-convert: overlap-convert.o util++.o
+consolidate: consolidate.o util++.o -lAS_OVS -lAS_PER -lAS_UTL
 
-overlap-filter: overlap-filter.o util++.o
-
-chimera: chimera.o util++.o -lAS_PER -lAS_UTL
-
-consolidate: consolidate.o util++.o
 
 dumpRandomMatedFrags: dumpRandomMatedFrags.o -lAS_PER -lAS_UTL
 

@@ -180,8 +180,7 @@ main(int argc, char **argv) {
               qltL, qltR,
               m[uid].vecL, m[uid].vecR,
               vecL, vecR,
-              ((vecL + OBT_MIN_LENGTH) > vecR) ? " (deleted)" : "");
-
+              ((vecL + AS_FRAG_MIN_LEN) > vecR) ? " (deleted)" : "");
     }
 
     if (doReplace) {
@@ -191,7 +190,7 @@ main(int argc, char **argv) {
       setFragRecordClearRegion(fr, vecL, vecR, AS_READ_CLEAR_OBTINI);
       setFrag(gkp, elem, fr);
 
-      if ((vecL + OBT_MIN_LENGTH) > vecR)
+      if ((vecL + AS_FRAG_MIN_LEN) > vecR)
         delFrag(gkp, elem);
     }
   }

@@ -7,28 +7,10 @@
 #include <assert.h>
 
 #include "util++.H"
-#include "overlap.H"
 
-//  This used to be sort-overlap-trim.C -- which would read raw overlaps
-//  from overlap, sort them, and then do everything here.
-
-//  Reads the output of overlap used to find trim points.  Bucket
-//  sorts.
-//
-//  An overlap is
-//    fragA fragB  ori  leftA rightA lenA  leftB rightB lenB  qual
-//
-//  Discards overlap if it is less than 100bp
-//  Discards overlap if percent error is more than 1.5
-//  (But see the code for what it really does)
-//
-//  The output contains:
-//      fragment id
-//      the list of 5' and 3' points
-//        mode
-//        max/min
-//        max/min with more than one occurance
-//
+extern "C" {
+#include "AS_OVS_overlapStore.h"
+}
 
 #define MAX_OVERLAPS_PER_FRAG   (16 * 1024 * 1024)
 
@@ -44,6 +26,7 @@ position_compare5(const void *a, const void *b) {
   return(0);
 }
 
+
 //  sort the position values on the 3' end -- this sorts decreasingly
 int
 position_compare3(const void *a, const void *b) {
@@ -54,8 +37,6 @@ position_compare3(const void *a, const void *b) {
   if (A > B)  return(-1);
   return(0);
 }
-
-
 
 
 void
@@ -142,7 +123,6 @@ sortAndOutput(u32bit fid, u32bit numOvl, u32bit *left, u32bit *right) {
       maxm3c = mode3c;
   }
 
-
   //  Output!
   //
   fprintf(stdout, u32bitFMT"  "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT"  "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT"",
@@ -150,9 +130,9 @@ sortAndOutput(u32bit fid, u32bit numOvl, u32bit *left, u32bit *right) {
           min5, minm5, minm5c, mode5, mode5c,
           max3, maxm3, maxm3c, mode3, mode3c);
 
-#if 0
   //  Save all the overlaps too
   //
+#if 0
   fprintf(stdout, "  "u32bitFMT"", numOvl);
   for (u32bit i=0; i<numOvl; i++)
     fprintf(stdout, "  "u32bitFMT" "u32bitFMT"",
@@ -163,44 +143,27 @@ sortAndOutput(u32bit fid, u32bit numOvl, u32bit *left, u32bit *right) {
 }
 
 
-
-bool
-readOverlap(FILE *file, overlap_t &ovl) {
-  static char line[1024];
-
-  if (feof(file))
-    return(false);
-
-#ifdef ASCII_OVERLAPS
-  fgets(line, 1024, stdin);
-  ovl.decode(line, false);
-#else
-  ovl.load(file);
-#endif
-
-  if (feof(file))
-    return(false);
-
-  return(true);
-}
-
-
-
 int
 main(int argc, char **argv) {
-  bool  beVerbose = false;
+  bool           beVerbose = false;
+  OverlapStore  *ovs = NULL;
+  OVSoverlap     ovl;
 
   int arg=1;
   int err=0;
   while (arg < argc) {
-    if (strcmp(argv[arg], "-v") == 0)
+    if        (strcmp(argv[arg], "-v") == 0) {
       beVerbose = true;
-    else
+    } else if (strcmp(argv[arg], "-ovs") == 0) {
+      ovs = AS_OVS_openOverlapStore(argv[++arg]);
+    } else {
+      fprintf(stderr, "%s: unknown arg '%s'\n", argv[0], argv[arg]);
       err++;
+    }
     arg++;
   }
-  if (isatty(fileno(stdin)) || err)
-    fprintf(stderr, "usage: %s [-v] < asm.ovl.sorted > asm.ovl.consolidated\n", argv[0]), exit(1);
+  if ((ovs == NULL) || err)
+    fprintf(stderr, "usage: %s [-v] -ovs obtStore > asm.ovl.consolidated\n", argv[0]), exit(1);
 
   u32bit   idAlast     = 0;
   u32bit   numOverlaps = 0;
@@ -211,41 +174,23 @@ main(int argc, char **argv) {
                                       1000000.0, 0x3ffff, beVerbose);
   C->enableLiner();
 
-  overlap_t ovl;
-  while (readOverlap(stdin, ovl)) {
+  while (AS_OVS_readOverlapFromStore(ovs, &ovl)) {
     u64bit   wa, wb;
-
-    //  We should get rid of these aliases...
-    u32bit idA    = ovl.Aiid;
-    //u32bit idB    = strtou32bit(W[1], 0L);
-    char   ori    = (ovl.ori) ? 'f' : 'r';
-    u32bit leftA  = ovl.Abeg;
-    u32bit rightA = ovl.Aend;
-    //u32bit lenA   = strtou32bit(W[5], 0L);
-    u32bit leftB  = ovl.Bbeg;
-    u32bit rightB = ovl.Bend;
-    //u32bit lenB   = strtou32bit(W[8], 0L);
-    double  error  = ovl.erate;
 
     //  If we see a different idA than we had last time, process
     //  the previous read.
     //
-    if ((idAlast != idA) && (numOverlaps > 0)) {
-      assert(idA > idAlast);
+    if ((idAlast != ovl.a_iid) &&
+        (numOverlaps > 0)) {
+      assert(ovl.a_iid > idAlast);
       sortAndOutput(idAlast, numOverlaps, left, right);
       numOverlaps = 0;
     }
 
-    idAlast     = idA;
-
-    //  Save the location of the overlap in the A fragment if it's
-    //  an acceptable 
-    //
-    if (ovl.acceptable()) {
-      left[numOverlaps]  = leftA;
-      right[numOverlaps] = rightA;
-      numOverlaps++;
-    }
+    idAlast            = ovl.a_iid;
+    left[numOverlaps]  = ovl.dat.obt.a_beg;
+    right[numOverlaps] = ovl.dat.obt.a_end;
+    numOverlaps++;
 
     C->tick();
   }

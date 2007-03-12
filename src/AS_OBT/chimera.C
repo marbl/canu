@@ -8,27 +8,29 @@
 extern "C" {
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
+#include "AS_OVS_overlapStore.h"
 }
 
 #include "util++.H"
-#include "overlap.H"
 #include "maps.H"
 
 #define POSITION_BITS     11
-#define POSITION_MASK     u64bitMASK(11);
-#define LENGTH_MASK       u64bitMASK(11);
+#define LENGTH_BITS       11
+#define POSITION_MASK     u64bitMASK(POSITION_BITS);
+#define LENGTH_MASK       u64bitMASK(LENGTH_BITS);
 
-#define POSITION_ORIG_R   (0 * POSITION_BITS)
-#define POSITION_ORIG_L   (1 * POSITION_BITS)
-#define POSITION_OVLP_R   (2 * POSITION_BITS)
-#define POSITION_OVLP_L   (3 * POSITION_BITS)
-#define POSITION_LENGTH   (4 * POSITION_BITS)
+#define POSITION_ORIG_R   (0 * POSITION_BITS + 1)
+#define POSITION_ORIG_L   (1 * POSITION_BITS + 1)
+#define POSITION_OVLP_R   (2 * POSITION_BITS + 1)
+#define POSITION_OVLP_L   (3 * POSITION_BITS + 1)
+#define POSITION_LENGTH   (4 * POSITION_BITS + 1)
 
 //  WITH_REPORT will report spurs and chimera.  WITH_REPORT_FULL will
 //  report unmodified fragments.
 //
 #define WITH_REPORT
 #undef  WITH_REPORT_FULL
+#undef  DEBUG
 
 FILE   *summaryFile = 0L;
 FILE   *reportFile  = 0L;
@@ -36,9 +38,6 @@ FILE   *reportFile  = 0L;
 //  Define this to delete chimeric and spur fragments, instead of
 //  fixing them.
 bool fixChimera = true;
-
-//  General debuggin
-#undef  DEBUG
 
 //  Yuck!  Needs a better name.  overlapHang_t?
 class overlap2_t {
@@ -215,25 +214,20 @@ readClearRanges(char *gkpStore) {
     clear[iid] = ~u64bitZERO;
 
   for (u32bit iid=fe; iid<le; iid++) {
-    unsigned int  origl=0, origr=0, ovlpl=0, ovlpr=0;
-
     getFrag(gkp, iid, fr, FRAG_S_INF);
 
-    origl = getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBTINI);
-    origr = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBTINI);
-
-    ovlpl = getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBT);
-    ovlpr = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBT);
-
-    clear[iid]   = getFragRecordSequenceLength(fr);
+    clear[iid]   = 0;
+    clear[iid]  |= getFragRecordSequenceLength(fr);
     clear[iid] <<= POSITION_BITS;
-    clear[iid]  |= ovlpl;
+    clear[iid]  |= getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBT);
     clear[iid] <<= POSITION_BITS;
-    clear[iid]  |= ovlpr;
+    clear[iid]  |= getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBT);
     clear[iid] <<= POSITION_BITS;
-    clear[iid]  |= origl;
+    clear[iid]  |= getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBTINI);
     clear[iid] <<= POSITION_BITS;
-    clear[iid]  |= origr;
+    clear[iid]  |= getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBTINI);
+    clear[iid] <<= 1;
+    clear[iid]  |= (getFragRecordIsDeleted(fr)) ? 1 : 0;
   }
 
   del_fragRecord(fr);
@@ -599,7 +593,6 @@ process(u32bit           iid,
 	break;
       }
       if (leftIntervalHang[interval]) {
-        //  UL.lo(interval) - currentBeg - 10 > intervalMax + 10
         if (IL.lo(interval) > intervalMax + 10 + currentBeg) {
 	  intervalBeg = currentBeg;
 	  intervalEnd = IL.lo(interval) - 10;
@@ -608,7 +601,6 @@ process(u32bit           iid,
 	currentBeg = IL.lo(interval);
       }
       if (rightIntervalHang[interval]) {
-        //  IL.hi(interval) - currentBeg > intervalMax
         if (IL.hi(interval) > intervalMax + currentBeg) {
 	  intervalBeg = currentBeg;
 	  intervalEnd = IL.hi(interval);
@@ -781,36 +773,10 @@ process(u32bit           iid,
 
 
 
-
-
-
-bool
-readOverlap(FILE *file, overlap_t &ovl) {
-  static char line[1024];
-
-  if (feof(file))
-    return(false);
-
-#ifdef ASCII_OVERLAPS
-  fgets(line, 1024, stdin);
-  ovl.decode(line, false);
-#else
-  ovl.load(file);
-#endif
-
-  if (feof(file))
-    return(false);
-
-  return(true);
-}
-
-
-
-
-
 int
 main(int argc, char **argv) {
   char   *gkpStore          = 0L;
+  char   *ovsStore          = 0L;
   bool    doUpdate          = true;  //  set to false for testing
   char   *summaryName       = 0L;
   char   *reportName        = 0L;
@@ -821,9 +787,12 @@ main(int argc, char **argv) {
   u32bit  notclear = 0;
 
   int arg=1;
+  int err=0;
   while (arg < argc) {
-    if        (strncmp(argv[arg], "-frg", 2) == 0) {
+    if        (strncmp(argv[arg], "-gkp", 2) == 0) {
       gkpStore = argv[++arg];
+    } else if (strncmp(argv[arg], "-ovs", 2) == 0) {
+      ovsStore = argv[++arg];
     } else if (strncmp(argv[arg], "-immutable", 2) == 0) {
       immutableFileName = argv[++arg];
     } else if (strncmp(argv[arg], "-delete", 2) == 0) {
@@ -834,12 +803,14 @@ main(int argc, char **argv) {
       reportName = argv[++arg];
     } else if (strncmp(argv[arg], "-verbose", 2) == 0) {
       beVerbose = true;
+    } else {
+      fprintf(stderr, "%s: unknown option '%s'\n", argv[0], argv[arg]);
+      err++;
     }
     arg++;
   }
-
-  if (gkpStore == 0L) {
-    fprintf(stderr, "usage: %s [-1] -f <fragStore> [opts] < overlap-trim-results\n", argv[0]);
+  if ((gkpStore == 0L) || (ovsStore == 0L) || (err)) {
+    fprintf(stderr, "usage: %s [-1] -gkp <gkpStore> -ovs <ovsStore> [opts] < overlap-trim-results\n", argv[0]);
     fprintf(stderr, "  -immutable I    don't modify the uids listed in I\n");
     fprintf(stderr, "  -update         do update the frag store\n");
     fprintf(stderr, "  -delete         instead of fixing chimera, delete them\n");
@@ -890,37 +861,42 @@ main(int argc, char **argv) {
   C->enableLiner();
 #endif
 
-  overlap_t ovl;
-  while (readOverlap(stdin, ovl)) {
+  OverlapStore *ovs = AS_OVS_openOverlapStore(ovsStore);
+  OVSoverlap    ovl;
 
-    idA    = ovl.Aiid;
-    idB    = ovl.Biid;
-    ori    = (ovl.ori) ? 'f' : 'r';
+  while (AS_OVS_readOverlapFromStore(ovs, &ovl)) {
+
+    idA    = ovl.a_iid;
+    idB    = ovl.b_iid;
+    ori    = (ovl.dat.obt.fwd) ? 'f' : 'r';
 
     u32bit   cra = (clear[idA] >> POSITION_ORIG_R) & POSITION_MASK;
     u32bit   cla = (clear[idA] >> POSITION_ORIG_L) & POSITION_MASK;
     u32bit   ora = (clear[idA] >> POSITION_OVLP_R) & POSITION_MASK;
     u32bit   ola = (clear[idA] >> POSITION_OVLP_L) & POSITION_MASK;
+    u32bit   dla = (clear[idA]) & u64bitONE;
 
     u32bit   crb = (clear[idB] >> POSITION_ORIG_R) & POSITION_MASK;
     u32bit   clb = (clear[idB] >> POSITION_ORIG_L) & POSITION_MASK;
     u32bit   orb = (clear[idB] >> POSITION_OVLP_R) & POSITION_MASK;
     u32bit   olb = (clear[idB] >> POSITION_OVLP_L) & POSITION_MASK;
+    u32bit   dlb = (clear[idA]) & u64bitONE;
 
-    leftA  = ovl.Abeg + cla;
-    rightA = ovl.Aend + cla;
+
+    leftA  = ovl.dat.obt.a_beg + cla;
+    rightA = ovl.dat.obt.a_end + cla;
     lenA   = (clear[idA] >> POSITION_LENGTH) & LENGTH_MASK;
-    leftB  = ovl.Bbeg + clb;
-    rightB = ovl.Bend + clb;
+    leftB  = ovl.dat.obt.b_beg + clb;
+    rightB = ovl.dat.obt.b_end + clb;
     lenB   = (clear[idB] >> POSITION_LENGTH) & LENGTH_MASK;
-    error  = ovl.erate;
+    error  = Expand_Quality(ovl.dat.obt.erate);
 
     if (idA != idAlast) {
       process(idAlast, gkp, doUpdate, m, overlap, olalast, oralast);
       delete overlap;
       overlap = new overlapList;
     }
-    idAlast = idA;
+    idAlast = ovl.a_iid;
     olalast = ola;
     oralast = ora;
 
@@ -995,8 +971,8 @@ main(int argc, char **argv) {
       if (reportFile) {
         fprintf(reportFile, "A: orig: "u32bitFMT" "u32bitFMT"  ovlp:"u32bitFMT" "u32bitFMT"\n", cla, cra, ola, ora);
         fprintf(reportFile, "B: orig: "u32bitFMT" "u32bitFMT"  ovlp:"u32bitFMT" "u32bitFMT"\n", clb, crb, olb, orb);
-        fprintf(reportFile, u32bitFMTW(7)" "u32bitFMTW(7)"  %c "u32bitFMTW(4)" "u32bitFMTW(4)" "u32bitFMTW(4)"  "u32bitFMTW(4)" "u32bitFMTW(4)" "u32bitFMTW(4)" %5.3f\n",
-                idA, idB, ori, leftA, rightA, lenA, leftB, rightB, lenB, error);
+        //fprintf(reportFile, u32bitFMTW(7)" "u32bitFMTW(7)"  %c "u32bitFMTW(4)" "u32bitFMTW(4)" "u32bitFMTW(4)"  "u32bitFMTW(4)" "u32bitFMTW(4)" "u32bitFMTW(4)" %5.3f\n",
+        //        idA, idB, ori, leftA, rightA, lenA, leftB, rightB, lenB, error);
       }
 #endif
 
@@ -1089,12 +1065,13 @@ main(int argc, char **argv) {
 
         //  Add to the list.
 
-        overlap->add(idA, lhangA, leftA, rightA, rhangA,
-                     idB, lhangB, leftB, rightB, rhangB, ori);
+        if ((dla == 0) && (dlb == 0))
+          overlap->add(idA, lhangA, leftA, rightA, rhangA,
+                       idB, lhangB, leftB, rightB, rhangB, ori);
 
       } else {
         notclear++;
-#if DEBUG
+#ifdef DEBUG_NOT_IN_CLEAR
         fprintf(stderr, "Overlap not in clear!  Removed!\n");
         fprintf(stderr, "A: orig: "u32bitFMT" "u32bitFMT"  ovlp:"u32bitFMT" "u32bitFMT"\n", cla, cra, ola, ora);
         fprintf(stderr, "B: orig: "u32bitFMT" "u32bitFMT"  ovlp:"u32bitFMT" "u32bitFMT"\n", clb, crb, olb, orb);

@@ -44,8 +44,7 @@ sub overlapTrim {
 
     #  Compute overlaps, if we don't have them already
 
-    if ((! -e "$wrk/0-overlaptrim/$asm.ovl.sorted") &&
-        (! -e "$wrk/0-overlaptrim/$asm.ovl.sorted.bz2")) {
+    if (! -e "$wrk/$asm.obtStore") {
 
         #  Run meryl on the now quality-trimmed frags.  This hopefully
         #  will get around some sequencing centers' habit of having N's in
@@ -65,12 +64,12 @@ sub overlapTrim {
         }
 
         my $cmd;
-        $cmd  = "$bin/sort-overlaps";
-        $cmd .= " -memory " . getGlobal('ovlSortMemory') . " ";
-        $cmd .= " -maxiid $numFrags ";
+        $cmd  = "$bin/overlapStore ";
+        $cmd .= " -c $wrk/$asm.obtStore ";
+        $cmd .= " -M " . getGlobal('ovlSortMemory') . " ";
+        $cmd .= " -m $numFrags ";
         $cmd .= " -L $wrk/0-overlaptrim/all-overlaps-trim.ovllist";
-        $cmd .= " > $wrk/0-overlaptrim/$asm.ovl.sorted";
-        $cmd .= " 2> $wrk/0-overlaptrim/$asm.ovl.sorted.err";
+        $cmd .= " > $wrk/0-overlaptrim/$asm.ovl.sorted.err 2>&1";
 
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
             unlink "$wrk/0-overlaptrim/$asm.ovl.sorted";
@@ -84,8 +83,13 @@ sub overlapTrim {
     if ((! -e "$wrk/0-overlaptrim/$asm.ovl.consolidated") &&
         (! -e "$wrk/0-overlaptrim/$asm.ovl.consolidated.bz2")) {
 
-        if (runCommand("$wrk/0-overlaptrim",
-                       "$bin/consolidate < $wrk/0-overlaptrim/$asm.ovl.sorted > $wrk/0-overlaptrim/$asm.ovl.consolidated")) {
+        my $cmd;
+        $cmd  = "$bin/consolidate ";
+        $cmd .= " -ovs $wrk/$asm.obtStore";
+        $cmd .= " > $wrk/0-overlaptrim/$asm.ovl.consolidated";
+
+        if (runCommand("$wrk/0-overlaptrim", $cmd)) {
+
           unlink "$wrk/0-overlaptrim/$asm.ovl.consolidated";
           die "Failed to consolidate.\n";
         }
@@ -117,81 +121,6 @@ sub overlapTrim {
     }
 
 
-    #  Be nice, and generate a report of our trimming done.
-    #
-    if (0) {
-
-        if ((! -e "$wrk/0-overlaptrim/$asm.report") &&
-            (! -e "$wrk/0-overlaptrim/$asm.report.bz2")) {
-
-
-            #  Clean up stuff
-            #   - add missing fragments to $wrk/0-overlaptrim/$asm.ovl.consolidated
-            #
-            open(F, "< $wrk/0-overlaptrim/$asm.ovl.consolidated");
-            open(G, "> $wrk/0-overlaptrim/$asm.ovl.consolidated.full");
-            my $inId = 0;
-            my $otId = 0;
-            while (<F>) {
-                ($inId) = split '\s+', $_;
-                $otId++;
-                while ($otId < $inId) {
-                    #print STDERR "$otId has no overlaps (but $inId does).\n";
-                    print G "$otId  0 0 0 0 0  0 0 0 0 0  0\n";
-                    $otId++;
-                }
-                print G $_;
-                $otId = $inId;
-            }
-            close(F);
-
-            $otId++;
-            while ($otId <= $numFrags) {
-                print G "$otId  0 0 0 0 0  0 0 0 0 0  0\n";
-                $otId++;
-            }
-            close(G);
-
-
-            open(A, "< $wrk/0-overlaptrim/$asm.qualityLog") or die "Failed to open $wrk/0-overlaptrim/$asm.qualityLog\n";
-            open(B, "< $wrk/0-overlaptrim/$asm.mergeLog") or die "Failed to open $wrk/0-overlaptrim/$asm.mergeLog\n";
-            open(C, "< $wrk/0-overlaptrim/$asm.ovl.consolidated.full") or die "Failed to open $wrk/0-overlaptrim/$asm.ovl.consolidated.full\n";
-            open(F, "> $wrk/0-overlaptrim/$asm.report") or die "Failed to open $wrk/0-overlaptrim/$asm.report\n";
-
-            while (!eof(A) || !eof(B) || !eof(C)) {
-                my $a = <A>; chomp $a;
-                my $b = <B>; chomp $b;
-                my $c = <C>; chomp $c;
-
-                my @av = split '\s+', $a;
-                my @bv = split '\s+', $b;
-                my @cv = split '\s+', $c;
-
-                if (($av[0] != $bv[0]) || ($bv[0] != $cv[0]) || ($av[0] != $cv[0])) {
-                    print STDERR "ERROR: ID MISMATCH!\n";
-                    print STDERR "A: $a\nB: $b\nC: $c\n";
-                    die;
-                }
-
-                printf(F "%6d : TI: %4d %4d Q1: %4d %4d Q2: %4d %4d TF: %4d %4d : %s\n",
-                       $av[0],
-                       $av[1], $av[2],  #  TI
-                       $av[4], $av[5],  #  Q1
-                       $bv[1], $bv[2],  #  Q2
-                       $bv[3], $bv[4],  #  TF
-                       $c);
-            }
-
-            close(C);
-            close(B);
-            close(A);
-            close(F);
-
-            unlink "$wrk/0-overlaptrim/$asm.ovl.consolidated.full";
-        }
-    }
-
-
     #  Add "-delete" to remove, instead of fix, chimera and spurs.
     #
     if ((! -e "$wrk/0-overlaptrim/$asm.chimera.report") &&
@@ -201,12 +130,12 @@ sub overlapTrim {
 
         my $cmd;
         $cmd  = "$bin/chimera ";
-        $cmd .= " -frg $wrk/$asm.gkpStore ";
+        $cmd .= " -gkp $wrk/$asm.gkpStore ";
+        $cmd .= " -ovs $wrk/$asm.obtStore ";
         $cmd .= " -immutable $im " if (defined($im));
         $cmd .= " -summary $wrk/0-overlaptrim/$asm.chimera.summary ";
         $cmd .= " -report  $wrk/0-overlaptrim/$asm.chimera.report ";
-        $cmd .= " < $wrk/0-overlaptrim/$asm.ovl.sorted ";
-        $cmd .= " 2> $wrk/0-overlaptrim/$asm.chimera.err ";
+        $cmd .= " > $wrk/0-overlaptrim/$asm.chimera.err 2>&1";
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
             rename "$wrk/0-overlaptrim/$asm.chimera.report", "$wrk/0-overlaptrim/$asm.chimera.report.FAILED";
             die "Failed.\n";
