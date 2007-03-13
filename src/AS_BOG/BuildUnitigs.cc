@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.18 2007-02-15 20:34:33 eliv Exp $
- * $Revision: 1.18 $
+ * $Id: BuildUnitigs.cc,v 1.19 2007-03-13 06:33:05 brianwalenz Exp $
+ * $Revision: 1.19 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.18 2007-02-15 20:34:33 eliv Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.19 2007-03-13 06:33:05 brianwalenz Exp $";
 
 //  System include files
 
@@ -59,7 +59,7 @@ using AS_BOG::BestOverlapGraph;
 
 //  Local include files
 extern "C" {
-#include "OlapStoreOVL.h"
+#include "AS_OVS_overlapStore.h"
 #include "AS_CGB_myhisto.h"
 }
 
@@ -68,11 +68,8 @@ void outputHistograms(AS_BOG::UnitigGraph *);
 int  main (int argc, char * argv [])
 
 {
-   OVL_Store_t  * my_store;
-   OVL_Stream_t  * my_stream;
-   Long_Olap_Data_t  olap;
-   uint32  first,last;			// IUID of first/last fragments in olap store
-   first = 1;
+   OverlapStore  * my_store;
+   OVSoverlap      olap;
 
    fprintf(stderr, "%s\n\n", BUILD_UNITIGS_MAIN_CM_ID);
 
@@ -93,18 +90,12 @@ int  main (int argc, char * argv [])
    genome_size=atol(argv[3]);
    std::cerr << "Genome Size: " << genome_size << std::endl;
 
-   my_store = New_OVL_Store ();
-   my_stream = New_OVL_Stream ();
-
-   // Open and initialize Overlap store
-   Open_OVL_Store (my_store, OVL_Store_Path);
-   last = Last_Frag_In_OVL_Store(my_store);
-   Init_OVL_Stream (my_stream, first, last, my_store);
+   my_store = AS_OVS_openOverlapStore(OVL_Store_Path);
 
    AS_BOG::MateChecker mateChecker;
    mateChecker.readStore(GKP_Store_Path);
    // must be before creating the scoring objects, because it sets their size
-   AS_BOG::BOG_Runner bogRunner(last);
+   AS_BOG::BOG_Runner bogRunner(AS_OVS_lastFragInStore(my_store));
 
    // Initialize our three different types of Best Overlap Graphs
    //AS_BOG::ErateScore erScore;
@@ -119,7 +110,7 @@ int  main (int argc, char * argv [])
    bogRunner.push_back( new AS_BOG::LongestHighIdent(scr2));
    bogRunner.push_back( new AS_BOG::LongestHighIdent(scr3));
 
-   bogRunner.processOverlapStream(my_store, my_stream, GKP_Store_Path);
+   bogRunner.processOverlapStream(my_store, GKP_Store_Path);
 
    ////////////////////////////////////////////////////////////////////////////
 
@@ -169,8 +160,7 @@ int  main (int argc, char * argv [])
 
    std::cerr << "Cleaning up." << std::endl;
    // Free/clean up the frag/overlap store/stream handles
-   Free_OVL_Stream( my_stream );
-   Free_OVL_Store( my_store );
+   AS_OVS_closeOverlapStore(my_store);
    // Shouldn't these both be n a  destructor in BOG?
    delete[] BestOverlapGraph::fragLength;
 

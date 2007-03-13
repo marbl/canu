@@ -31,11 +31,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FindContainedFrags.cc,v 1.24 2007-02-15 19:05:34 brianwalenz Exp $
- * $Revision: 1.24 $
+ * $Id: FindContainedFrags.cc,v 1.25 2007-03-13 06:33:05 brianwalenz Exp $
+ * $Revision: 1.25 $
 */
 
-static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.24 2007-02-15 19:05:34 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.25 2007-03-13 06:33:05 brianwalenz Exp $";
 
 //  System include files
 
@@ -56,29 +56,23 @@ using AS_BOG::BestOverlapGraph;
 
 //  Local include files
 extern "C" {
-#include "OlapStoreOVL.h"
+#include "AS_OVS_overlapStore.h"
 }
 
 int  main
     (int argc, char * argv [])
 
 {
-   OVL_Store_t  * my_store;
-   OVL_Stream_t  * my_stream;
-   uint32  first,last;			// IUID of first/last fragments in olap store
-   first = 1;
+   OverlapStore  * my_store;
 
    // Get path/names of olap and frg stores from command line
    const char* OVL_Store_Path = argv[1];
    const char* FRG_Store_Path = argv[2];
 
-   my_store = New_OVL_Store ();
-   my_stream = New_OVL_Stream ();
-
    // Open and initialize Overlap store
-   Open_OVL_Store (my_store, OVL_Store_Path);
-   last = Last_Frag_In_OVL_Store(my_store);
-   Init_OVL_Stream (my_stream, first, last, my_store);
+   my_store = AS_OVS_openOverlapStore(OVL_Store_Path);
+
+   uint32  last = AS_OVS_lastFragInStore(my_store);
 
    // must be before creating scores, since it sets the num frags
    AS_BOG::BOG_Runner bogRunner(last);
@@ -98,11 +92,10 @@ int  main
    bogRunner.push_back(&lenid10);
 
    // Go through the overlap stream, and populate the 3 overlap graphs
-   bogRunner.processOverlapStream( my_store, my_stream, FRG_Store_Path );
+   bogRunner.processOverlapStream( my_store, FRG_Store_Path );
 
    // Free/clean up the frag/overlap store/stream handles
-   Free_OVL_Stream( my_stream );
-   Free_OVL_Store( my_store );
+   AS_OVS_closeOverlapStore(my_store);
 
    // Compute the width (number of digits) in the largest IUID
    int pad = static_cast<int>(ceil( log10( last )));

@@ -19,10 +19,11 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.9 2007-03-05 18:20:12 eliv Exp $
- * $Revision: 1.9 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.10 2007-03-13 06:33:04 brianwalenz Exp $
+ * $Revision: 1.10 $
 */
 
+#include <math.h>
 #include "AS_BOG_MateChecker.hh"
 
 namespace AS_BOG{
