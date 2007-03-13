@@ -36,10 +36,13 @@ AS_OVL_CMN_OBJS = $(AS_OVL_CMN_SRCS:.c=.o)
 CORRECT_SRCS = FragCorrectOVL.c ShowCorrectsOVL.c CorrectOlapsOVL.c DeleteOlapsOVL.c FilterOlapsOVL.c CatCorrectsOVL.c CatEratesOVL.c
 CORRECT_OBJS = $(CORRECT_SRCS:.c=.o)
 
-LIBSOURCES =  OlapStoreOVL.c  MatchListOVL.c
+LIBSOURCES =  MatchListOVL.c
+#OlapStoreOVL.c
 LIBOBJECTS = $(LIBSOURCES:.c=.o) 
 
-OLAPSTORE_SRCS = DumpOlapStoreOVL.c ForceEratesOVL.c GrowOlapStoreOVL.c UpdateEratesOVL.c
+OLAPSTORE_SRCS = 
+#DumpOlapStoreOVL.c ForceEratesOVL.c GrowOlapStoreOVL.c 
+#UpdateEratesOVL.c
 OLAPSTORE_OBJS = $(OLAPSTORE_SRCS:.c=.o)
 
 SCREEN_SRCS = frag-anomaly.c AutoScreenOVL.c CombineMUMsOVL.c RemoveDupScreenOVL.c removedups.c
@@ -51,18 +54,19 @@ TOOL_OBJS = $(TOOL_SRCS:.c=.o)
 CXX_SOURCES =  olapcoverage.cc
 CXX_OBJECTSS = $(TOOL_CXX_SRCS:.cc=.o)
 
-SOURCES = $(AS_OVL_SRCS) $(AS_OVL_CA_SRCS) $(AS_OVL_CMN_SRCS) $(CORRECT_SRCS) $(OLAPSTORE_SRCS) $(LIBSOURCES) LastFragInStoreOVL.c 
+SOURCES = $(AS_OVL_SRCS) $(AS_OVL_CA_SRCS) $(AS_OVL_CMN_SRCS) $(CORRECT_SRCS) $(OLAPSTORE_SRCS) $(LIBSOURCES)
 OBJECTS = $(SOURCES:.cc=.o)
 
 AS_OVL_PROGS    = overlap overlap_ca
 CORRECT_PROGS   = correct-frags show-corrects correct-olaps delete-olaps filter-olaps cat-corrects cat-erates
 OLAPSTORE_PROGS = dump-olap-store force-erates grow-olap-store update-erates
+OLAPSTORE_PROGS =
 
 OBSOLETE        = 
 SCREEN_PROGS    = frag-anomaly auto-screen combine-mums remove-dup-screen removedups
 TOOL_PROGS      = get-degrees get-subgraph get-iidgraph get-uid-olaps olapcoverage fgbovlhits rev-olaps hit-limit
 
-PROGS     = $(AS_OVL_PROGS) $(OLAPSTORE_PROGS) $(CORRECT_PROGS) lastfraginstore
+PROGS     = $(AS_OVL_PROGS) $(OLAPSTORE_PROGS) $(CORRECT_PROGS)
 SCRIPTS   = 
 LIBRARIES = libAS_OVL.a libCA.a
 
@@ -129,8 +133,6 @@ get-uid-olaps:  get-uid-olaps.o AS_OVL_delcher.o $(LIBS)
 grow-olap-store:  GrowOlapStoreOVL.o $(LIBS)
 
 hit-limit:  Hit_Limit_OVL.o
-
-lastfraginstore:  LastFragInStoreOVL.o  $(LIBS)
 
 olapcoverage:  olapcoverage.o
 

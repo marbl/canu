@@ -348,7 +348,7 @@ sub getNumberOfFragsInStore ($$$) {
 
     return(0) if (! -e "$wrk/$asm.gkpStore/frg");
 
-    open(F, "$bin/lastfraginstore $wrk/$asm.gkpStore 2> /dev/null |") or die;
+    open(F, "$bin/gatekeeper -L $wrk/$asm.gkpStore 2> /dev/null |") or die;
     $_ = <F>;    chomp $_;
     close(F);
 
