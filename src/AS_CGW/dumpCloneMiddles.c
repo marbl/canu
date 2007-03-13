@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
+#include <errno.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
@@ -183,8 +184,7 @@ main(int argc, char **argv) {
   mkdir(CMDIR, S_IRWXU | S_IRWXG | S_IRWXO);
 
   ScaffoldGraph = LoadScaffoldGraphFromCheckpoint(GlobalData->File_Name_Prefix, ckptNum, FALSE);
-  ScaffoldGraph->frgOvlStore = New_OVL_Store();
-  Open_OVL_Store(ScaffoldGraph->frgOvlStore, GlobalData->OVL_Store_Name);
+  ScaffoldGraph->frgOvlStore = AS_OVS_openOverlapStore(GlobalData->OVL_Store_Name);
 
   si = CreateScaffoldInstrumenter(ScaffoldGraph, INST_OPT_ALL);
   if (si == NULL) {
@@ -216,7 +216,6 @@ main(int argc, char **argv) {
   }
 
   DestroyScaffoldInstrumenter(si);
-  Free_OVL_Store (ScaffoldGraph->frgOvlStore);
-
+  AS_OVS_closeOverlapStore(ScaffoldGraph->frgOvlStore);
 }
 

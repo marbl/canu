@@ -219,7 +219,8 @@ AS_OVS_setRangeOverlapStore(OverlapStore *ovs, uint32 firstIID, uint32 lastIID) 
   if (lastIID >= ovs->ovs.largestIID)
     lastIID = ovs->ovs.largestIID;
 
-  assert(firstIID <= lastIID);
+  //  If our range is invalid (firstIID > lastIID) we keep going, and
+  //  let AS_OVS_readOverlapFromStore() deal with it.
 
   CDS_FSEEK(ovs->offsetFile, (size_t)firstIID * sizeof(OverlapStoreOffsetRecord), SEEK_SET);
 
@@ -462,6 +463,9 @@ AS_OVS_writeOverlapToStore(OverlapStore *ovs, OVSoverlap *overlap) {
       ovs->missing.a_iid++;
     }
 
+    //  One more, since this iid is not missing -- we write it next!
+    ovs->missing.a_iid++;
+
     AS_UTL_safeWrite(ovs->offsetFile,
                      &ovs->offset,
                      "AS_OVS_writeOverlapToStore offset",
@@ -482,4 +486,44 @@ AS_OVS_writeOverlapToStore(OverlapStore *ovs, OVSoverlap *overlap) {
 
   AS_OVS_writeOverlap(ovs->bof, overlap);
   ovs->offset.numOlaps++;
+  ovs->ovs.numOverlapsTotal++;
+}
+
+
+
+
+uint64
+AS_OVS_numOverlapsInRange(OverlapStore *ovs) {
+  size_t                     originalposition = 0;
+  uint64                     i = 0;
+  uint64                     len = 0;
+  OverlapStoreOffsetRecord  *offsets = NULL;
+  uint64                     numolap = 0;
+
+  originalposition = CDS_FTELL(ovs->offsetFile);
+
+  CDS_FSEEK(ovs->offsetFile, (size_t)ovs->firstIIDrequested * sizeof(OverlapStoreOffsetRecord), SEEK_SET);
+
+  //  Even if we're doing a whole human-size store, this allocation is
+  //  (a) temporary and (b) only 512MB.  The only current consumer of
+  //  this code is FragCorrectOVL.c, which doesn't run on the whole
+  //  human, it runs on ~24 pieces, which cuts this down to < 32MB.
+
+  len = ovs->lastIIDrequested - ovs->firstIIDrequested + 1;
+  offsets = (OverlapStoreOffsetRecord *)safe_malloc(sizeof(OverlapStoreOffsetRecord) * len);
+
+  if (len != AS_UTL_safeRead(ovs->offsetFile, offsets, "AS_OVS_numOverlapsInRange",
+                             sizeof(OverlapStoreOffsetRecord), len)) {
+    fprintf(stderr, "AS_OVS_numOverlapsInRange()-- short read on offsets!\n");
+    exit(1);
+  }
+
+  for (i=0; i<len; i++)
+    numolap += offsets[i].numOlaps;
+
+  safe_free(offsets);
+
+  CDS_FSEEK(ovs->offsetFile, originalposition, SEEK_SET);
+
+  return(numolap);
 }

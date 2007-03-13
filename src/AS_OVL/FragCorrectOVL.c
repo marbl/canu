@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FragCorrectOVL.c,v 1.15 2007-03-06 01:02:44 brianwalenz Exp $
- * $Revision: 1.15 $
+ * $Id: FragCorrectOVL.c,v 1.16 2007-03-13 22:38:50 brianwalenz Exp $
+ * $Revision: 1.16 $
 */
 
-static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.15 2007-03-06 01:02:44 brianwalenz Exp $";
+static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.16 2007-03-13 22:38:50 brianwalenz Exp $";
 
 
 //  System include files
@@ -64,7 +64,7 @@ static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.15 2007-03-06 01:02:44 brianwal
 #include  "AS_MSG_pmesg.h"
 #include  "AS_UTL_version.h"
 #include  "FragCorrectOVL.h"
-
+#include  "AS_OVS_overlapStore.h"
 
 
 //  Constants
@@ -188,16 +188,6 @@ typedef  struct
    signed int  b_hang : 15;
    signed int  orient : 2;
   }  Olap_Info_t;
-
-typedef  struct
-  {
-   unsigned  b_iid : 31;
-   unsigned  flipped : 1;
-   signed int  a_hang : 16;
-   signed int  b_hang : 16;
-   unsigned  orig_erate : ERATE_BITS;   // original error rate (aka quality)
-   unsigned  corr_erate : ERATE_BITS;   // error rate after fragment correction
-  }  Short_Olap_Data_t;
 
 typedef  struct
   {
@@ -1182,141 +1172,36 @@ static void  Get_Olaps_From_Store
 //  in  (* olap) .
 
   {
-   FILE  * fp;
-   Short_Olap_Data_t  buff;
-   uint32  * offset = NULL;
-   uint32  header [3], max_frag, frags_per_file, last_frag_in_file;
-   int  file_index, num_frags, olap_size;
-   char  filename [MAX_FILENAME_LEN];
-   int  first = TRUE;
-   int  ct;
-   int  i, j;
+    OverlapStore  *ovs = NULL;
+    OVSoverlap     ovl;
+    uint64         numolaps = 0;
+    uint64         numread  = 0;
 
-   sprintf (filename, "%s/offset.olap", path);
-   fp = File_Open (filename, "rb");
+    assert (1 <= lo_id && lo_id <= hi_id);
 
-   Safe_fread (header, sizeof (uint32), 3, fp);
-   max_frag = header [0];
-   assert (header [1] == sizeof (Short_Olap_Data_t));
-   frags_per_file = header [2];
-   fprintf (stderr, "sizeof (Short_Olap_Data_t) = %u\n", header [1]);
-   fprintf (stderr, "Frags per File = %u\n", frags_per_file);
+    ovs = AS_OVS_openOverlapStore(path);
 
-   assert (1 <= lo_id && lo_id <= hi_id);
+    AS_OVS_setRangeOverlapStore(ovs, lo_id, hi_id);
 
-   if  (max_frag < lo_id)
-       {
-        fprintf (stderr, "No overlaps for frags in this range--nothing to do\n");
-        (* num) = 0;
-        return;
-       }
-   if  (max_frag < hi_id)
-       {
-        fprintf (stderr, "Hi frag %d past last ovlStore frag %d\n",
-                 hi_id, max_frag);
+    numolaps = AS_OVS_numOverlapsInRange(ovs);
 
-         hi_id = max_frag;
-       }
+    *olap = (Olap_Info_t *)safe_malloc(numolaps * sizeof(Olap_Info_t));
+    *num  = 0;
 
-   num_frags = 2 + hi_id - lo_id;   // go 1 past the end
-   offset = (uint32 *) safe_malloc (num_frags * sizeof (uint32));
-   CDS_FSEEK (fp, (off_t) (lo_id * sizeof (uint32)), SEEK_CUR);
-   Safe_fread (offset, sizeof (uint32), num_frags, fp);
+    while (AS_OVS_readOverlapFromStore(ovs, &ovl)) {
+      (*olap)[numread].a_iid  = ovl.a_iid;
+      (*olap)[numread].b_iid  = ovl.b_iid;
+      (*olap)[numread].a_hang = ovl.dat.ovl.a_hang;
+      (*olap)[numread].b_hang = ovl.dat.ovl.b_hang;
+      (*olap)[numread].orient = NORMAL;
 
-   fclose (fp);
+      if  (ovl.dat.ovl.flipped)
+        (*olap)[numread].orient = INNIE;
+      
+      numread++;
+    }
 
-   file_index = (int) ceil ((double) lo_id / frags_per_file);
-
-    // Don't know how many overlaps the last frag in file has
-    // without reading the file to see where it ends
-    // 1000 is a reasonable upper bound, I hope.
-    // Will check below to make sure don't overflow
-   last_frag_in_file = (file_index - 1) * frags_per_file;
-   olap_size = 0;
-   while  (hi_id > last_frag_in_file)
-     {
-      uint32  first_frag_in_file, lo_offset;
-
-      first_frag_in_file = last_frag_in_file + 1;
-      if  (lo_id <= first_frag_in_file)
-          lo_offset = 0;
-        else
-          lo_offset = offset [0];
-      last_frag_in_file += frags_per_file;
-      if  (max_frag < last_frag_in_file)
-          last_frag_in_file = max_frag;
-      if  (hi_id < last_frag_in_file
-             && last_frag_in_file != first_frag_in_file)
-          olap_size += offset [hi_id + 1 - lo_id] - lo_offset;
-        else
-          olap_size += offset [last_frag_in_file - lo_id] + 1000 - lo_offset;
-     }
-
-   (* olap) = (Olap_Info_t*) safe_malloc (olap_size * sizeof (Olap_Info_t));
-
-   ct = 0;
-   for  (i = lo_id;  i <= hi_id;  i ++)
-     {
-      if  (first || i % frags_per_file == 1)
-          {
-           sprintf (filename, "%s/data%02d.olap", path, file_index);
-           fp = File_Open (filename, "rb");
-           if  (first)
-               CDS_FSEEK (fp, (off_t) (offset [i - lo_id] * sizeof (Short_Olap_Data_t)), SEEK_SET);
-           first = FALSE;
-          }
-
-      if  (i % frags_per_file == 0)
-          while  (fread (& buff, sizeof (Short_Olap_Data_t), 1, fp) == 1)
-            {
-             if  (ct >= olap_size)
-                 {
-                  olap_size *= EXPANSION_FACTOR;
-                  (* olap) = (Olap_Info_t *) safe_realloc ((* olap),
-                                           olap_size * sizeof (Olap_Info_t));
-                 }
-             (* olap) [ct] . a_iid = i;
-             (* olap) [ct] . b_iid = buff . b_iid;
-             (* olap) [ct] . a_hang = buff . a_hang;
-             (* olap) [ct] . b_hang = buff . b_hang;
-             if  (buff . flipped)
-                 (* olap) [ct] . orient = INNIE;
-               else
-                 (* olap) [ct] . orient = NORMAL;
-             ct ++;
-            }
-        else
-          for  (j = offset [i - lo_id];  j < offset [i + 1 - lo_id];  j ++)
-            {
-             Safe_fread (& buff, sizeof (Short_Olap_Data_t), 1, fp);
-             if  (ct >= olap_size)
-                 {
-                  olap_size *= EXPANSION_FACTOR;
-                  (* olap) = (Olap_Info_t *) safe_realloc ((* olap),
-                                           olap_size * sizeof (Olap_Info_t));
-                 }
-             (* olap) [ct] . a_iid = i;
-             (* olap) [ct] . b_iid = buff . b_iid;
-             (* olap) [ct] . a_hang = buff . a_hang;
-             (* olap) [ct] . b_hang = buff . b_hang;
-             if  (buff . flipped)
-                 (* olap) [ct] . orient = INNIE;
-               else
-                 (* olap) [ct] . orient = NORMAL;
-             ct ++;
-            }
-
-      if  (i % frags_per_file == 0 || i == hi_id)
-          {
-           fclose (fp);
-           file_index ++;
-          }
-     }
-
-   (* num) = ct;
-   (* olap) = (Olap_Info_t *) safe_realloc ((* olap), ct * sizeof (Olap_Info_t));
-
-   return;
+    (*num) = numread;
   }
 
 

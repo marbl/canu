@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: convertOverlap.c,v 1.8 2007-03-13 02:35:07 brianwalenz Exp $";
+static char CM_ID[] = "$Id: convertOverlap.c,v 1.9 2007-03-13 22:38:51 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -186,7 +186,7 @@ convertOVLtoBinary(void) {
 
       olap.a_iid = omesg->aifrag;
       olap.b_iid = omesg->bifrag;
-      olap.dat.ovl.orig_erate = Shrink_Quality(omesg->quality);
+      olap.dat.ovl.orig_erate = Shrink_Quality(100.0 * omesg->quality);
       olap.dat.ovl.corr_erate = olap.dat.ovl.orig_erate;
       olap.dat.ovl.type = AS_OVS_TYPE_OVL;
 

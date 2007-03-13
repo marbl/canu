@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.23 2007-03-06 01:02:44 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.24 2007-03-13 22:38:49 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -126,7 +126,7 @@ printGKPError(FILE *fout, GKPErrorType type){
 static
 void
 usage(char *filename) {
-  fprintf(stderr, "usage: %s [append/create options] <input.frg> <input.frg> ...\n", filename);
+  fprintf(stderr, "usage: %s [append/create options] -o gkpStore <input.frg> <input.frg> ...\n", filename);
   fprintf(stderr, "       %s -P partitionfile gkpStore\n", filename);
   fprintf(stderr, "       %s [dump-options] gkpStore\n", filename);
   fprintf(stderr, "\n");
@@ -152,6 +152,7 @@ usage(char *filename) {
   fprintf(stderr, "\n");
   fprintf(stderr, "  -b <begin-iid>         dump starting at this read\n");
   fprintf(stderr, "  -e <ending-iid>        dump until this read\n");
+  fprintf(stderr, "  -L                     print the last IID in the store\n");
   fprintf(stderr, "  -C                     like what dumpFragStore used to make\n");
   fprintf(stderr, "  -F                     as (trimmed) fasta\n");
   fprintf(stderr, "  -X                     as XML-like\n");
@@ -173,6 +174,7 @@ usage(char *filename) {
 #define DUMP_XML     3
 #define DUMP_OFG     4
 #define DUMP_FRG     5
+#define DUMP_LASTFRG 6
 
 int
 main(int argc, char **argv) {
@@ -217,6 +219,8 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-e") == 0) {
       maxerrs = atoi(argv[++arg]);
       endIID  = maxerrs;
+    } else if (strcmp(argv[arg], "-L") == 0) {
+      dump = DUMP_LASTFRG;
     } else if (strcmp(argv[arg], "-h") == 0) {
       err++;
     } else if (strcmp(argv[arg], "-H") == 0) {
@@ -301,8 +305,7 @@ main(int argc, char **argv) {
     exit(1);
   }
   
-
-#if 1
+#if 0
   fprintf(stderr, "sizeof(GateKeeperBatchRecord)      "F_SIZE_T"\n", sizeof(GateKeeperBatchRecord));
   fprintf(stderr, "sizeof(GateKeeperLibraryRecord)    "F_SIZE_T"\n", sizeof(GateKeeperLibraryRecord));
   fprintf(stderr, "sizeof(GateKeeperFragmentRecord)   "F_SIZE_T"\n", sizeof(GateKeeperFragmentRecord));
@@ -334,6 +337,12 @@ main(int argc, char **argv) {
   }
   if (dump == DUMP_FRG) {
     dumpGateKeeperAsFRG(gkpStoreName);
+    exit(0);
+  }
+  if (dump == DUMP_LASTFRG) {
+    GateKeeperStore *gkp = openGateKeeperStore(gkpStoreName, FALSE);
+    fprintf(stdout, "Last frag in store is iid = "F_IID"\n", getLastElemFragStore(gkp));
+    closeGateKeeperStore(gkp);
     exit(0);
   }
 

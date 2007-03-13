@@ -5,15 +5,19 @@ sub createFragmentCorrectionJobs {
     my $frgCorrThreads    = getGlobal("frgCorrThreads");
     my $scratch           = getGlobal("scratch");
 
-    print STDERR "WARNING:  Fragment Error Correction BROKEN.\n";
-    return;
-
     return if (getGlobal("doFragmentCorrection") == 0);
     return if (-e "$wrk/2-frgcorr/jobsCreated.success");
     system("mkdir $wrk/2-frgcorr") if (! -e "$wrk/2-frgcorr");
 
     #  Figure out how many jobs there are
     my $jobs = int($numFrags / ($frgCorrBatchSize-1)) + 1;
+
+    my $correctfrags;
+    if (getGlobal('frgCorrOnGrid')) {
+        $correctfrags = "$gin/correct-frags";
+    } else {
+        $correctfrags = "$bin/correct-frags";
+    }
 
     open(F, "> $wrk/2-frgcorr/correct.sh") or die;
     print F "#!/bin/sh\n\n";
@@ -33,17 +37,25 @@ sub createFragmentCorrectionJobs {
     print F "frgBeg=`expr \$jobid \\* $frgCorrBatchSize - $frgCorrBatchSize + 1`\n";
     print F "frgEnd=`expr \$jobid \\* $frgCorrBatchSize`\n";
     print F "if [ \$frgEnd -ge $numFrags ] ; then\n";
-    print F "  frgEnd=`expr $numFrags - 1`\n";
+    #print F "  frgEnd=`expr $numFrags - 1`\n";
+    print F "  frgEnd=$numFrags\n";
     print F "fi\n";
     print F "frgBeg=`printf %08d \$frgBeg`\n";
     print F "frgEnd=`printf %08d \$frgEnd`\n";
     print F "\n";
     print F "if [ ! -e $wrk/2-frgcorr/$asm-\$frgBeg-\$frgEnd.success ] ; then\n";
-    if (getGlobal('frgCorrOnGrid')) {
-        print F "  $gin/correct-frags \\\n";
-    } else {
-        print F "  $bin/correct-frags \\\n";
-    }
+
+    print F "\n";
+    print F "\n";
+    print F "  echo \\\n";
+    print F "  $correctfrags \\\n";
+    print F "    -S $wrk/$asm.ovlStore \\\n";
+    print F "    -o $scratch/$asm-\$frgBeg-\$frgEnd.frgcorr \\\n";
+    print F "    $wrk/$asm.gkpStore \\\n";
+    print F "    \$frgBeg \$frgEnd\n";
+    print F "\n";
+    print F "\n";
+    print F "  $correctfrags \\\n";
     print F "    -S $wrk/$asm.ovlStore \\\n";
     print F "    -o $scratch/$asm-\$frgBeg-\$frgEnd.frgcorr \\\n";
     print F "    $wrk/$asm.gkpStore \\\n";

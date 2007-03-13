@@ -54,28 +54,27 @@ void setup_stores(char *OVL_Store_Path, char *Gkp_Store_Path){
   assert(OVL_Store_Path!=NULL);
   assert(Gkp_Store_Path!=NULL);
 
-  my_ovl_store = New_OVL_Store ();
-  Open_OVL_Store (my_ovl_store, OVL_Store_Path);
-
+  my_ovl_store = AS_OVS_openOverlapStore(OVL_Store_Path);
   my_gkp_store = openGateKeeperStore( Gkp_Store_Path, "r");
 }
 
 void finished_with_stores(void){
 
-  Free_OVL_Store (my_ovl_store);
-  closeGateKeeperStore(&my_gkp_store);
+  AS_OVS_closeOverlapStore(my_ovl_store);
   closeGateKeeperStore(my_gkp_store);
 
 }
 
-void print_olap(Long_Olap_Data_t olap,FILE*fs,char *space){
+void print_olap(OVSoverlap olap,FILE*fs,char *space){
   fprintf (fs,"%s%8d %8d %c %5d %5d %4.1f %4.1f\n",
            space,
            olap . a_iid,
            olap . b_iid,
-           olap . flipped ? 'I' : 'N',
-           olap . a_hang, olap . b_hang,
-           olap . orig_erate / 10.0, olap . corr_erate / 10.0);
+           olap . dat.ovl.flipped ? 'I' : 'N',
+           olap . dat.ovl.a_hang,
+           olap . dat.ovl.b_hang,
+           olap . dat.ovl.orig_erate / 10.0,
+           olap . dat.ovl.corr_erate / 10.0);
 }
 
 
@@ -136,7 +135,7 @@ typedef struct dfs_node_tag {
   int flipped;
   int numOvlsCompleted;
   int numOvls;
-  Long_Olap_Data_t *ovls;
+  OVSoverlap *ovls;
   double avgerr;
   double errvar;
 } dfsGreedyFrg;
@@ -164,7 +163,7 @@ typedef struct ovlfilt_tag {
 
 
 
-int usefulOverlap(  Long_Olap_Data_t olap, int id, int offAEnd, overlapFilters filter){
+int usefulOverlap(  OVSoverlap olap, int id, int offAEnd, overlapFilters filter){
   // exclude too-sloppy overlaps
 
   assert(olap.a_iid == id);

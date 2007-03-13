@@ -36,6 +36,9 @@ void
 mergeStore(char *storeName, char *mergeName);
 
 void
+updateErates(char *storeName, char *eratesName);
+
+void
 dumpStore(char *storeName, uint32 dumpBinary, uint32 bgnIID, uint32 endIID);
 
 void
@@ -50,11 +53,12 @@ OVSoverlap_sort(const void *a, const void *b);
 #define chomp(S) { char *t=S; while (*t) t++; t--; while (isspace(*t)) *t--=0; }
 
 
-#define OP_NONE   0
-#define OP_BUILD  1
-#define OP_MERGE  2
-#define OP_DUMP   3
-#define OP_STATS  4
+#define OP_NONE           0
+#define OP_BUILD          1
+#define OP_MERGE          2
+#define OP_DUMP           3
+#define OP_STATS          4
+#define OP_UPDATE_ERATES  5
 
 
 #endif  //  OVERLAPSTORE_H

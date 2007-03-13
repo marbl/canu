@@ -4,9 +4,6 @@ use strict;
 
 sub mergeFragmentCorrection {
 
-    print STDERR "WARNING:  Fragment Error Correction BROKEN.\n";
-    return;
-
     return if (getGlobal("doFragmentCorrection") == 0);
 
     my $frgCorrBatchSize  = getGlobal("frgCorrBatchSize");
@@ -21,7 +18,7 @@ sub mergeFragmentCorrection {
             my $frgBeg = $i * $frgCorrBatchSize - $frgCorrBatchSize + 1;
             my $frgEnd = $i * $frgCorrBatchSize;
             if ($frgEnd > $numFrags) {
-                $frgEnd = $numFrags - 1;
+                $frgEnd = $numFrags;
             }
             $frgBeg = substr("00000000$frgBeg", -8);
             $frgEnd = substr("00000000$frgEnd", -8);

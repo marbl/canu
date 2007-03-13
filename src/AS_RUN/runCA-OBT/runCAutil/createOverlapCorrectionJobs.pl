@@ -4,9 +4,6 @@ sub createOverlapCorrectionJobs {
     my $ovlCorrBatchSize    = getGlobal("ovlCorrBatchSize");
     my $scratch             = getGlobal("scratch");
 
-    print STDERR "WARNING:  Fragment Error Correction BROKEN.\n";
-    return;
-
     return if (getGlobal("doFragmentCorrection") == 0);
     return if (-e "$wrk/3-ovlcorr/jobsCreated.success");
     system("mkdir $wrk/3-ovlcorr") if (! -d "$wrk/3-ovlcorr");
@@ -31,12 +28,21 @@ sub createOverlapCorrectionJobs {
     print F "frgBeg=`expr \$jobid \\* $ovlCorrBatchSize - $ovlCorrBatchSize + 1`\n";
     print F "frgEnd=`expr \$jobid \\* $ovlCorrBatchSize`\n";
     print F "if [ \$frgEnd -ge $numFrags ] ; then\n";
-    print F "  frgEnd=`expr $numFrags - 1`\n";
+    #print F "  frgEnd=`expr $numFrags - 1`\n";
+    print F "  frgEnd=$numFrags\n";
     print F "fi\n";
     print F "frgBeg=`printf %08d \$frgBeg`\n";
     print F "frgEnd=`printf %08d \$frgEnd`\n";
     print F "\n";
     print F "if [ ! -e $wrk/3-ovlcorr/$asm-\$frgBeg-\$frgEnd.success ] ; then\n";
+    print F "  echo \\\n";
+    print F "  $gin/correct-olaps \\\n";
+    print F "    -S $wrk/$asm.ovlStore \\\n";
+    print F "    -e $scratch/$asm-\$frgBeg-\$frgEnd.erate \\\n";
+    print F "    $wrk/$asm.gkpStore \\\n";
+    print F "    $wrk/2-frgcorr/$asm.corr \\\n";
+    print F "    \$frgBeg \$frgEnd \\\n";
+    print F "\n";
     print F "  $gin/correct-olaps \\\n";
     print F "    -S $wrk/$asm.ovlStore \\\n";
     print F "    -e $scratch/$asm-\$frgBeg-\$frgEnd.erate \\\n";

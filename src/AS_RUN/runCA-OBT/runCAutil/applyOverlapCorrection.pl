@@ -4,9 +4,6 @@ use strict;
 
 sub applyOverlapCorrection {
 
-    print STDERR "WARNING:  Fragment Error Correction BROKEN.\n";
-    return;
-
     return if (getGlobal("doFragmentCorrection") == 0);
 
     my $ovlCorrBatchSize    = getGlobal("ovlCorrBatchSize");
@@ -21,7 +18,7 @@ sub applyOverlapCorrection {
             my $frgBeg = $i * $ovlCorrBatchSize - $ovlCorrBatchSize + 1;
             my $frgEnd = $i * $ovlCorrBatchSize;
             if ($frgEnd > $numFrags) {
-                $frgEnd = $numFrags - 1;
+                $frgEnd = $numFrags;
             }
             $frgBeg = substr("00000000$frgBeg", -8);
             $frgEnd = substr("00000000$frgEnd", -8);
@@ -51,10 +48,10 @@ sub applyOverlapCorrection {
         }
 
         my $cmd;
-        $cmd  = "$bin/update-erates ";
-        $cmd .= "$wrk/$asm.ovlStore ";
-        $cmd .= "$wrk/3-ovlcorr/$asm.erates";
-        $cmd .= "> $wrk/3-ovlcorr/update-erates.err 2>&1";
+        $cmd  = "$bin/overlapStore ";
+        $cmd .= " -u $wrk/$asm.ovlStore ";
+        $cmd .= " $wrk/3-ovlcorr/$asm.erates";
+        $cmd .= "> $wrk/3-ovlcorr/overlapStore-update-erates.err 2>&1";
         if (runCommand("$wrk/3-ovlcorr", $cmd)) {
             die "Failed to apply the overlap corrections.\n";
         }

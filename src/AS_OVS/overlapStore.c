@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore.c,v 1.5 2007-03-12 18:32:17 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore.c,v 1.6 2007-03-13 22:38:51 brianwalenz Exp $";
 
 #include "overlapStore.h"
 
@@ -31,7 +31,7 @@ main(int argc, char **argv) {
   char     *storeName   = NULL;
   uint32    dumpBinary  = FALSE;
   uint32    bgnIID      = 0;
-  uint32    endIID      = 0;
+  uint32    endIID      = 1000000000;
   uint64    memoryLimit = 512 * 1024 * 1024;
   uint64    maxIID      = 1000000;
   uint32    fileListLen = 0;
@@ -60,6 +60,10 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-s") == 0) {
       storeName   = argv[++arg];
       operation   = OP_STATS;
+
+    } else if (strcmp(argv[arg], "-u") == 0) {
+      storeName   = argv[++arg];
+      operation   = OP_UPDATE_ERATES;
 
     } else if (strcmp(argv[arg], "-B") == 0) {
       dumpBinary = TRUE;
@@ -137,6 +141,9 @@ main(int argc, char **argv) {
       break;
     case OP_STATS:
       statsStore(storeName);
+      break;
+    case OP_UPDATE_ERATES:
+      updateErates(storeName, fileList[0]);
       break;
     default:
       break;

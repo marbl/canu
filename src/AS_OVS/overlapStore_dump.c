@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore_dump.c,v 1.3 2007-03-13 06:34:38 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore_dump.c,v 1.4 2007-03-13 22:38:51 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -60,8 +60,8 @@ dumpStore(char *storeName, uint32 dumpBinary, uint32 bgnIID, uint32 endIID) {
                   overlap.dat.ovl.flipped ? 'I' : 'N',
                   overlap.dat.ovl.a_hang,
                   overlap.dat.ovl.b_hang,
-                  Expand_Quality(overlap.dat.ovl.orig_erate) * 100.0,
-                  Expand_Quality(overlap.dat.ovl.corr_erate) * 100.0);
+                  Expand_Quality(overlap.dat.ovl.orig_erate),
+                  Expand_Quality(overlap.dat.ovl.corr_erate));
           break;
         case AS_OVS_TYPE_OBT:
 

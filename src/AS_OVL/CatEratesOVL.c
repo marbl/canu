@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CatEratesOVL.c,v 1.7 2007-02-18 14:04:49 brianwalenz Exp $
- * $Revision: 1.7 $
+ * $Id: CatEratesOVL.c,v 1.8 2007-03-13 22:38:50 brianwalenz Exp $
+ * $Revision: 1.8 $
 */
 
-static char CM_ID[] = "$Id: CatEratesOVL.c,v 1.7 2007-02-18 14:04:49 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CatEratesOVL.c,v 1.8 2007-03-13 22:38:50 brianwalenz Exp $";
 
 
 //  System include files
@@ -64,8 +64,9 @@ static char CM_ID[] = "$Id: CatEratesOVL.c,v 1.7 2007-02-18 14:04:49 brianwalenz
 #include  "AS_PER_genericStore.h"
 #include  "AS_PER_distStore.h"
 #include  "AS_UTL_PHash.h"
+#include  "AS_UTL_Var.h"
 #include  "AS_MSG_pmesg.h"
-#include  "OlapStoreOVL.h"
+
 
 
 
@@ -202,7 +203,7 @@ static void  Parse_Command_Line
 //  arguments in  argv [0 .. (argc - 1)] .
 
   {
-   char  buffer [MAX_FILENAME_LEN];
+   char  buffer [FILENAME_MAX];
    int  ch, errflg = FALSE, len;
    int  i, n;
    char  * p;

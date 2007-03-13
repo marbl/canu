@@ -75,6 +75,7 @@ int                AS_OVS_readOverlapFromStore(OverlapStore *ovs, OVSoverlap *ov
 void               AS_OVS_setRangeOverlapStore(OverlapStore *ovs, uint32 low, uint32 high);
 void               AS_OVS_resetRangeOverlapStore(OverlapStore *ovs);
 
+uint64             AS_OVS_numOverlapsInRange(OverlapStore *ovs);
 
 static
 uint32             AS_OVS_lastFragInStore(OverlapStore *ovs) {

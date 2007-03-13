@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CatCorrectsOVL.c,v 1.6 2007-02-18 14:04:49 brianwalenz Exp $
- * $Revision: 1.6 $
+ * $Id: CatCorrectsOVL.c,v 1.7 2007-03-13 22:38:49 brianwalenz Exp $
+ * $Revision: 1.7 $
 */
 
-static char CM_ID[] = "$Id: CatCorrectsOVL.c,v 1.6 2007-02-18 14:04:49 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CatCorrectsOVL.c,v 1.7 2007-03-13 22:38:49 brianwalenz Exp $";
 
 
 //  System include files
@@ -63,8 +63,8 @@ static char CM_ID[] = "$Id: CatCorrectsOVL.c,v 1.6 2007-02-18 14:04:49 brianwale
 #include  "AS_PER_genericStore.h"
 #include  "AS_PER_distStore.h"
 #include  "AS_UTL_PHash.h"
+#include  "AS_UTL_Var.h"
 #include  "AS_MSG_pmesg.h"
-#include  "OlapStoreOVL.h"
 #include  "FragCorrectOVL.h"
 
 
@@ -157,7 +157,7 @@ static void  Parse_Command_Line
 //  arguments in  argv [0 .. (argc - 1)] .
 
   {
-   char  buffer [MAX_FILENAME_LEN];
+   char  buffer [FILENAME_MAX];
    int  ch, errflg = FALSE;
    int  i, n;
 

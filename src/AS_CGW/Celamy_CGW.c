@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* All of the CGW celamy stuff is here */
-static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.13 2007-03-04 01:18:45 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.14 2007-03-13 22:38:49 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -405,7 +405,7 @@ void CelamyOrderedScaffolds(FILE *fout,  FILE *fdregs,
 
 
 
-void safelyAppendOvlInfo(char **ovlsString,Long_Olap_Data_t olap, int *lenString, int *lenUsed){
+void safelyAppendOvlInfo(char **ovlsString,OVSoverlap olap, int *lenString, int *lenUsed){
   char teststring[100];
   int testsize;
    
@@ -426,8 +426,7 @@ void safelyAppendOvlInfo(char **ovlsString,Long_Olap_Data_t olap, int *lenString
 
 void compute_overlaps_off_ends(int id, int *offAEnd, int *offBEnd,char **AEstr, char **BEstr){
 
-  Long_Olap_Data_t  olap;
-  static OVL_Stream_t  * my_stream = NULL;
+  OVSoverlap            olap;
   int retval=0;
   static char *AEndString=NULL,*BEndString=NULL;
   static int lenAstring=0,lenBstring=0;
@@ -445,22 +444,16 @@ void compute_overlaps_off_ends(int id, int *offAEnd, int *offBEnd,char **AEstr, 
   }
   BEndString[0]='\0';
 
-  if(my_stream == NULL){
-    my_stream = New_OVL_Stream ();
-  } else {
-    //    Renew_OVL_Stream (my_stream);
-  }
+  AS_OVS_setRangeOverlapStore(ScaffoldGraph->frgOvlStore, id, id);
 
-  Init_OVL_Stream (my_stream, id, id, ScaffoldGraph->frgOvlStore);
-
-  while  (Next_From_OVL_Stream (& olap, my_stream)){
+  while  (AS_OVS_readOverlapFromStore(ScaffoldGraph->frgOvlStore, &olap)) {
     //    print_olap(olap);
-    if(olap.corr_erate>CelamyOvlCutoff)continue; /* skip overlaps missing the default conditions for unitigging */
-    if  (olap . a_hang < 0){
+    if(olap.dat.ovl.corr_erate>CelamyOvlCutoff)continue; /* skip overlaps missing the default conditions for unitigging */
+    if  (olap . dat.ovl.a_hang < 0){
       (*offAEnd)++;
       safelyAppendOvlInfo(&AEndString,olap,&lenAstring,&lenAused);
     }
-    if  (olap . b_hang > 0){
+    if  (olap . dat.ovl.b_hang > 0){
       (*offBEnd)++;
       safelyAppendOvlInfo(&BEndString,olap,&lenBstring,&lenBused);
       //      fprintf(stderr,"BEndString x%x\n",BEndString);

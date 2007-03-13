@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ScaffoldGraph_CGW.h,v 1.13 2007-02-12 22:16:56 brianwalenz Exp $	 */
+/* 	$Id: ScaffoldGraph_CGW.h,v 1.14 2007-03-13 22:38:49 brianwalenz Exp $	 */
 /***************************************************************************
  *  ScaffoldGraph
  *  
@@ -37,7 +37,7 @@
 #include "GraphCGW_T.h"
 #include "Globals_CGW.h"
 #include "AS_SDB_SequenceDB.h"
-#include "OlapStoreOVL.h"
+#include "AS_OVS_overlapStore.h"
 
 //#define RAT_RUN_1
 //#define RAT_RUN_2
@@ -103,9 +103,6 @@ VA_DEF(InternalLinkMesg);
 
 
 typedef struct{
-#if 0
-  GateKeeperLinkStore     gkplStore;
-#endif
   VA_TYPE(InfoByIID)      *iidToFragIndex;  // map from iid to fragment
   VA_TYPE(CIFragT)        *CIFrags;
   VA_TYPE(char)           *SourceFields;  // source fields of fragments AND UNITIGS
@@ -137,7 +134,7 @@ typedef struct{
   GraphCGW_T             *RezGraph;  // Graph used by scaffold building and  repeat rez...either a ref to ContigGraph or CIGraph
   GateKeeperStore        *gkpStore;
   tSequenceDB            *sequenceDB;
-  OVL_Store_t            *frgOvlStore;
+  OverlapStore           *frgOvlStore;
 }ScaffoldGraphT;
 
 
