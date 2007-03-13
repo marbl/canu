@@ -55,6 +55,10 @@ typedef struct {
 
   FILE                       *offsetFile;
   OverlapStoreOffsetRecord    offset;
+  OverlapStoreOffsetRecord    missing;
+
+  uint32                      firstIIDrequested;
+  uint32                      lastIIDrequested;
 
   int                         overlapsThisFile;
   int                         currentFileIndex;
@@ -69,6 +73,13 @@ void               AS_OVS_closeOverlapStore(OverlapStore *ovs);
 int                AS_OVS_readOverlapFromStore(OverlapStore *ovs, OVSoverlap *overlap);
 
 void               AS_OVS_setRangeOverlapStore(OverlapStore *ovs, uint32 low, uint32 high);
+void               AS_OVS_resetRangeOverlapStore(OverlapStore *ovs);
+
+
+static
+uint32             AS_OVS_lastFragInStore(OverlapStore *ovs) {
+  return(ovs->ovs.largestIID);
+}
 
 
 //  The mostly private interface for creating an overlap store.

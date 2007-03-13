@@ -175,3 +175,15 @@ AS_OVS_readOverlap(BinaryOverlapFile *bof, OVSoverlap *overlap) {
 
   return(TRUE);
 }
+
+
+void
+AS_OVS_seekOverlap(BinaryOverlapFile *bof, uint32 overlap) {
+
+  //  Move to the correct spot, and force a load on the next read
+  //
+  CDS_FSEEK(bof->file,
+            (off_t)overlap * sizeof(uint32) * ((bof->isInternal) ? 3 : 4),
+            SEEK_SET);
+  bof->bufferPos = bof->bufferLen;
+}

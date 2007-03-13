@@ -46,5 +46,6 @@ void               AS_OVS_closeBinaryOverlapFile(BinaryOverlapFile *bof);
 void               AS_OVS_writeOverlap(BinaryOverlapFile *bof, OVSoverlap *overlap);
 int                AS_OVS_readOverlap(BinaryOverlapFile *bof, OVSoverlap *overlap);
 
+void               AS_OVS_seekOverlap(BinaryOverlapFile *bof, uint32 overlap);
 
 #endif  //  AS_OVS_OVERLAPFILE_H

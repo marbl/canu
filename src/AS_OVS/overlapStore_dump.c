@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore_dump.c,v 1.2 2007-03-09 22:00:02 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore_dump.c,v 1.3 2007-03-13 06:34:38 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,6 +45,8 @@ dumpStore(char *storeName, uint32 dumpBinary, uint32 bgnIID, uint32 endIID) {
 
   OverlapStore  *storeFile = AS_OVS_openOverlapStore(storeName);
   OVSoverlap     overlap;
+
+  AS_OVS_setRangeOverlapStore(storeFile, bgnIID, endIID);
 
   while (AS_OVS_readOverlapFromStore(storeFile, &overlap) == TRUE) {
     if (dumpBinary) {
