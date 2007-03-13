@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.46 2007-03-13 06:33:05 brianwalenz Exp $
- * $Revision: 1.46 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.47 2007-03-13 21:10:11 eliv Exp $
+ * $Revision: 1.47 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.46 2007-03-13 06:33:05 brianwalenz Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.47 2007-03-13 21:10:11 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -129,15 +129,18 @@ namespace AS_BOG{
                 Unitig *utg=new Unitig;
                 unitig_id = utg->id();
 
-                populateUnitig( utg,
-                                frag_idx, FIVE_PRIME, cg_ptr, 0);
+                // create it going off the 5' end
+                populateUnitig( utg, frag_idx, FIVE_PRIME, cg_ptr, 0);
+                // now check if we can also go off 3' end
                 fragment_end_type whichEnd = THREE_PRIME;
                 BestEdgeOverlap *tpBest = bog_ptr->getBestEdgeOverlap( frag_idx, whichEnd);
                 iuid tpId = tpBest->frag_b_id;
-                // if it the other end is already in a unitig, don't try to extend
+                // if the other end is already in another unitig, don't try to extend
                 if (Unitig::fragIn(tpId)) {
+                    // question, should we include the circle in the intersection list?
                     if (tpId != 0 && unitig_id != Unitig::fragIn(tpId))
                     {
+                      // save this outgoing intersection point for future use
                       (*unitigIntersect)[tpId].push_back( frag_idx );
                       fprintf(stderr,"Unitig %5d 1st frag %7d -> Unitig %5d frag %7d\n",
                             unitig_id, frag_idx, Unitig::fragIn(tpId), tpId );
@@ -631,7 +634,7 @@ namespace AS_BOG{
             }
         }
 		if ( next_frag_id != 0 && Unitig::fragIn( current_frag_id ) ) {
-            // record unitig join/break point
+            // save this outgoing intersection point for future use
             (*unitigIntersect)[current_frag_id].push_back( next_frag_id );
             fprintf(stderr,"Unitig %5d frag %7d -> Unitig %5d frag %7d\n",
                     unitig->id(), next_frag_id, Unitig::fragIn(current_frag_id),
@@ -643,7 +646,7 @@ namespace AS_BOG{
 
         const char * fiveP  = "5'";
         const char * threeP = "3'";
-        UnitigVector* splits = new UnitigVector();
+        UnitigVector* splits = new UnitigVector(); // save split locations
         UnitigVector::iterator tigIter = unitigs->begin();
         for(;tigIter != unitigs->end(); tigIter++)
         {
@@ -657,20 +660,26 @@ namespace AS_BOG{
             {
                 DoveTailNode node = *dt_itr;
                 iuid dtFrag = node.ident;
+                // Include contained frags in count for coverage calculation
                 if ( cntnrmap_ptr->find( dtFrag ) != cntnrmap_ptr->end()) {
                     fragCount += (*cntnrmap_ptr)[ dtFrag ].size();
                 }
                 BestEdgeOverlap *bestEdge;
-                if ( dt_itr == tig->dovetail_path_ptr->begin() ||
+                // Detect first or last frg in unitig
+                if (dt_itr   == tig->dovetail_path_ptr->begin() ||
                     dt_itr+1 == tig->dovetail_path_ptr->end() )
                 {
+                    // default to 3' end of untig for the last frag
                     fragment_end_type dtEnd = THREE_PRIME;
                     const char *endStr = threeP;
+                    // want the backbone, not a contained
                     if (node.contained)
                         node = lastBackbone;
 
                     if ( isReverse( node.position ) )
                         dtEnd = FIVE_PRIME;
+
+                    // At the begining we want the 5' end of unitig, so switch
                     if (dt_itr == tig->dovetail_path_ptr->begin()) {
                         dtEnd = dtEnd == FIVE_PRIME ? THREE_PRIME : FIVE_PRIME;
                         endStr = fiveP;
@@ -681,35 +690,40 @@ namespace AS_BOG{
                     fprintf(stderr,"Unitig %5d %s frag %7d points to Unitig %5d frag %7d\n",
                             tig->id(), endStr, node.ident, Unitig::fragIn(bFrg), bFrg);
                 }
-                if (dtFrag != node.ident)
-                    continue;
-                lastBackbone = node;
+                // store previous backbone frag for next loop iteration
+                if (!node.contained)
+                    lastBackbone = node;
 
                 FragmentEdgeList::const_iterator edge_itr =
                                             unitigIntersect->find( dtFrag );
                 if (edge_itr != unitigIntersect->end() ) {
-
+                // We have a set of best edges incoming from other unitigs
                     FragmentList::const_iterator fragItr;
                     for( fragItr  = edge_itr->second.begin();
                          fragItr != edge_itr->second.end();  fragItr++)
                     {
                         iuid inFrag = *fragItr;
                         BestEdgeOverlap *bestEdge;
+                        // check if it's incoming frag's 5' best edge
                         fragment_end_type bestEnd = FIVE_PRIME;
                         bestEdge = bog_ptr->getBestEdgeOverlap( inFrag, bestEnd );
                         if (bestEdge->frag_b_id != dtFrag)
-                        { 
+                        { // not 5' best edge, so 3'
                             bestEnd = THREE_PRIME;
                             bestEdge = bog_ptr->getBestEdgeOverlap( inFrag, bestEnd );
                         }
-//                        assert( bestEdge->frag_b_id == dtFrag );
+                        // dtFrag must be either 3' or 5' best edge of inFrag
+                        assert( bestEdge->frag_b_id == dtFrag );
                         const char *inEnd = bestEnd == FIVE_PRIME ? fiveP : threeP;
+                        // Guess dtFrag's end is 3' or end pos
                         const char *dtEnd = threeP;
                         int pos = node.position.end;
                         if ( bestEdge->bend == FIVE_PRIME) {
+                            // nope it's the 5'/begining of dtFrag
                             dtEnd = fiveP;
                             pos = node.position.bgn;
                         }
+                        // get incoming unitig, unitig id's start at 1, storage at 0
                         Unitig *inTig = (*unitigs)[Unitig::fragIn(inFrag)-1];
                         if (inTig == NULL) {
                             fprintf(stderr, "  NullBreak tig %5d at frag %7d\n",
@@ -744,17 +758,21 @@ namespace AS_BOG{
                 breakPoint.inSize     = std::numeric_limits<int>::max();
                 breaks.push_back( breakPoint );
 
+                // Perform the unitig split, requires breaks to be ordered begin->end
                 UnitigVector* newUs = breakUnitigAt( tig, breaks );
                 if (!newUs->empty()) {
+                    // we have some new split up unitigs
                     int frgCnt = 0;
                     UnitigsConstIter newIter = newUs->begin();
+                    // Number of frags should stay the same
                     for(;newIter != newUs->end(); newIter++) {
                         Unitig* tigTmp = *newIter;
                         frgCnt += tigTmp->dovetail_path_ptr->size();
                     }
                     fprintf(stderr,"Num frgs after splits is %d\n",frgCnt);
+                    // store new unitigs
                     splits->insert( splits->end(), newUs->begin(), newUs->end());
-                    //                (*unitigs)[ tig->id-1 ] = NULL;
+                    // remove old unsplit unitig
                     delete *tigIter;
                     *tigIter = NULL;
                 }
@@ -1495,6 +1513,7 @@ namespace AS_BOG{
         }
         breaks = newBPs;
     }
+    // Doesn't handle contained frags yet
     UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig, FragmentEnds &breaks)
     {
         if (breaks.empty())
@@ -1502,12 +1521,14 @@ namespace AS_BOG{
         fprintf(stderr,"Before break size is %d, unitig %d\n",breaks.size(),tig->dovetail_path_ptr->size());
         lastBPCoord = 0;
         lastBPFragNum = 0;
+        // remove small break points
         filterBreakPoints( tig, breaks );
         fprintf(stderr,"After filter break size is %d\n",breaks.size());
-        UnitigVector* splits = new UnitigVector();
+        UnitigVector* splits = new UnitigVector(); // holds the new split unitigs
+        // if we filtered all the breaks out return an empty list
         if (breaks.empty()) 
             return splits;
-        Unitig* newTig = new Unitig();
+        Unitig* newTig = new Unitig(); // the first of the split unitigs
         splits->push_back( newTig );
         DoveTailIter dtIter = tig->dovetail_path_ptr->begin();
         UnitigBreakPoint breakPoint = breaks.front();
@@ -1519,6 +1540,7 @@ namespace AS_BOG{
             DoveTailNode frg = *dtIter;
             UnitigBreakPoint nextBP = breaks.front();
             bool bothEnds = false;
+            // reduce multiple breaks at the same fragment end down to one
             while ( !breaks.empty() && nextBP.fragEnd.id == breakPoint.fragEnd.id ) {
                 if (nextBP.fragEnd.end != breakPoint.fragEnd.end)
                     bothEnds = true;
@@ -1527,46 +1549,49 @@ namespace AS_BOG{
             }
             bool reverse = isReverse(frg.position);
             if (breakPoint.fragEnd.id == frg.ident) {
+                // At a fragment to break on
                 if (bothEnds) {
-                    // create singleton when split at both ends
+                    // create singleton when breaking at both ends of a fragment
                     fprintf(stderr,"  Breaking tig %d at both ends of %d num %d\n",
                             tig->id(), breakPoint.fragEnd.id, breakPoint.fragNumber);
-                    newTig->shiftCoordinates( offset );
-                    newTig = new Unitig();
-                    splits->push_back( newTig );
-                    frg.position.bgn = 0;
+                    newTig->shiftCoordinates( offset ); // set coords for last piece
+                    newTig = new Unitig();              // create the singlenton
+                    splits->push_back( newTig );        // add to list of new untigs
+                    frg.position.bgn = 0;               // set begin and end
                     frg.position.end = BestOverlapGraph::fragLen( frg.ident );
-                    newTig->addFrag( frg );
-                    newTig = new Unitig();
+                    newTig->addFrag( frg );             // add frag to unitig
+                    newTig = new Unitig();              // create next new unitig
                 }
                 else if (breakPoint.fragEnd.end ==  FIVE_PRIME && !reverse ||
-                        breakPoint.fragEnd.end == THREE_PRIME && reverse)
+                         breakPoint.fragEnd.end == THREE_PRIME && reverse)
                 {
-                    // break at end, frg starts new tig
+                    // break at left end of frg, frg starts new tig
                     fprintf(stderr,"  Break tig %d before %d num %d\n",
                             tig->id(), breakPoint.fragEnd.id, breakPoint.fragNumber);
-                    newTig->shiftCoordinates( offset );
-                    newTig = new Unitig();
+                    newTig->shiftCoordinates( offset ); // set coords for last piece
+                    newTig = new Unitig();              // create next new unitig
+                    // record offset of start of new unitig
                     offset = reverse ? -frg.position.end : -frg.position.bgn;
                     fprintf(stderr,"Offset is %d for frg %d %d,%d ",
                             offset,frg.ident,frg.position.bgn,frg.position.end);
-                    newTig->addFrag( frg );
+                    newTig->addFrag( frg );             // add frag as 1st in unitig
                 }
                 else if (breakPoint.fragEnd.end ==  FIVE_PRIME && reverse ||
-                        breakPoint.fragEnd.end == THREE_PRIME && !reverse )
+                         breakPoint.fragEnd.end == THREE_PRIME && !reverse )
                 {
+                    // break at right end of frg, frg goes in existing tig
                     fprintf(stderr,"  Break tig %d after %d num %d\n",
                             tig->id(), breakPoint.fragEnd.id, breakPoint.fragNumber);
-                    newTig->addFrag( frg );
+                    newTig->addFrag( frg );             // add frag as last
                     newTig->shiftCoordinates( offset );
-                    newTig = new Unitig();
-                    // break at begin, frg goes in existing tig
+                    newTig = new Unitig();              // create new empty unitig
                 } else {
-                    // ack!
+                    // logically impossible!
                     assert(0);
                 }
-                splits->push_back( newTig );
+                splits->push_back( newTig );           // add new tig to list of splits
                 if (breaks.empty()) {
+                    // Done breaking, continue adding remaining frags to newTig
                     breakPoint.fragEnd.id = 0;
                     continue;
                 }
@@ -1575,7 +1600,9 @@ namespace AS_BOG{
                     breaks.pop_front();
                 }
             } else {
+                // not a unitig break point fragment, add to current new tig
                 if (newTig->dovetail_path_ptr->empty()) {
+                    // if it's empty, this is it's 1st frag, store the offset
                     offset = reverse ? -frg.position.end : -frg.position.bgn;
                     fprintf(stderr,"Offset is %d for frg %d %d,%d ",
                             offset,frg.ident,frg.position.bgn,frg.position.end);
@@ -1584,6 +1611,7 @@ namespace AS_BOG{
             }
         }
         newTig->shiftCoordinates( offset );
+        // should be zero
         fprintf(stderr,"After break size is %d\n",breaks.size());
         return splits;
     }
