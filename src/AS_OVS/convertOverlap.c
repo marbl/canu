@@ -19,11 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: convertOverlap.c,v 1.7 2007-03-12 18:32:17 brianwalenz Exp $";
+static char CM_ID[] = "$Id: convertOverlap.c,v 1.8 2007-03-13 02:35:07 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -179,9 +180,14 @@ convertOVLtoBinary(void) {
     if (pmesg->t == MESG_OVL) {
       omesg = pmesg->m;
 
+      //  The asserts below check for encoding errors -- the dat
+      //  structure only saves a small number of bits for each field,
+      //  and we want to be sure we stored all the bits.
+
       olap.a_iid = omesg->aifrag;
       olap.b_iid = omesg->bifrag;
-      olap.dat.ovl.orig_erate = olap.dat.ovl.corr_erate = Shrink_Quality(omesg->quality);
+      olap.dat.ovl.orig_erate = Shrink_Quality(omesg->quality);
+      olap.dat.ovl.corr_erate = olap.dat.ovl.orig_erate;
       olap.dat.ovl.type = AS_OVS_TYPE_OVL;
 
       switch (omesg->orientation) {
@@ -189,24 +195,36 @@ convertOVLtoBinary(void) {
           olap.dat.ovl.a_hang   = omesg->ahg;
           olap.dat.ovl.b_hang   = omesg->bhg;
           olap.dat.ovl.flipped  = FALSE;
+          
+          assert(olap.dat.ovl.a_hang  == omesg->ahg);
+          assert(olap.dat.ovl.b_hang  == omesg->bhg);
           break;
 
         case  AS_INNIE:
           olap.dat.ovl.a_hang   = omesg->ahg;
           olap.dat.ovl.b_hang   = omesg->bhg;
           olap.dat.ovl.flipped  = TRUE;
+
+          assert(olap.dat.ovl.a_hang  == omesg->ahg);
+          assert(olap.dat.ovl.b_hang  == omesg->bhg);
           break;
 
         case  AS_OUTTIE:
-          olap.dat.ovl.a_hang   = -omesg->ahg;
-          olap.dat.ovl.b_hang   = -omesg->bhg;
+          olap.dat.ovl.a_hang   = -omesg->bhg;
+          olap.dat.ovl.b_hang   = -omesg->ahg;
           olap.dat.ovl.flipped  = TRUE;
+
+          assert(olap.dat.ovl.a_hang  == -omesg->bhg);
+          assert(olap.dat.ovl.b_hang  == -omesg->ahg);
           break;
 
         case  AS_ANTI:
           olap.dat.ovl.a_hang   = -omesg->bhg;
           olap.dat.ovl.b_hang   = -omesg->ahg;
           olap.dat.ovl.flipped  = FALSE;
+
+          assert(olap.dat.ovl.a_hang  == -omesg->bhg);
+          assert(olap.dat.ovl.b_hang  == -omesg->ahg);
           break;
 
         default:
@@ -242,14 +260,19 @@ void   convertOVLDUMPtoBinary(void) {
     int  items = stringSplit(line, ptrs, 16);
 
     if (items == 7) {
-      olap.a_iid             = atoi(ptrs[0]);
-      olap.b_iid             = atoi(ptrs[1]);
-      olap.dat.ovl.flipped = (ptrs[2][0] == 'n') || (ptrs[2][0] == 'N');
-      olap.dat.ovl.a_hang   = atoi(ptrs[3]);
-      olap.dat.ovl.b_hang   = atoi(ptrs[4]);
-      olap.dat.ovl.orig_erate   = atoi(ptrs[4]);
-      olap.dat.ovl.corr_erate   = atoi(ptrs[4]);
-      olap.dat.ovl.type = AS_OVS_TYPE_OVL;
+      olap.a_iid              = atoi(ptrs[0]);
+      olap.b_iid              = atoi(ptrs[1]);
+      olap.dat.ovl.flipped    = (ptrs[2][0] == 'n') || (ptrs[2][0] == 'N');
+      olap.dat.ovl.a_hang     = atoi(ptrs[3]);
+      olap.dat.ovl.b_hang     = atoi(ptrs[4]);
+      olap.dat.ovl.orig_erate = atoi(ptrs[4]);
+      olap.dat.ovl.corr_erate = atoi(ptrs[4]);
+      olap.dat.ovl.type       = AS_OVS_TYPE_OVL;
+
+      assert(olap.dat.ovl.a_hang     == atoi(ptrs[3]));
+      assert(olap.dat.ovl.b_hang     == atoi(ptrs[4]));
+      assert(olap.dat.ovl.orig_erate == atoi(ptrs[4]));
+      assert(olap.dat.ovl.corr_erate == atoi(ptrs[4]));
 
       AS_OVS_writeOverlap(output, &olap);
     } else {
@@ -283,8 +306,13 @@ void   convertOBTtoBinary(void) {
       olap.dat.obt.a_end  = atoi(ptrs[4]);
       olap.dat.obt.b_beg  = atoi(ptrs[6]);
       olap.dat.obt.b_end  = atoi(ptrs[7]);
-      olap.dat.obt.erate = Shrink_Quality(atof(ptrs[9]));
-      olap.dat.ovl.type = AS_OVS_TYPE_OBT;
+      olap.dat.obt.erate  = Shrink_Quality(atof(ptrs[9]));
+      olap.dat.ovl.type   = AS_OVS_TYPE_OBT;
+
+      assert(olap.dat.obt.a_beg == atoi(ptrs[3]));
+      assert(olap.dat.obt.a_end == atoi(ptrs[4]));
+      assert(olap.dat.obt.b_beg == atoi(ptrs[6]));
+      assert(olap.dat.obt.b_end == atoi(ptrs[7]));
 
       AS_OVS_writeOverlap(output, &olap);
     } else {

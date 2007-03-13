@@ -24,6 +24,7 @@
 
 #include "AS_global.h"
 
+#define AS_OVS_HNGBITS   12
 #define AS_OVS_POSBITS   11
 #define AS_OVS_ERRBITS   12
 
@@ -32,12 +33,12 @@
 //  tight later on, we could store less precise overlaps, 12 bits
 //  would get us 40.XX.
 
-#define MAX_ERATE        ((1 << AS_OVS_ERRBITS) - 1)
+#define AS_OVS_MAX_ERATE        ((1 << AS_OVS_ERRBITS) - 1)
 
 //  Convert q from/to a condensed form / floating point equivalent
 //
-#define Expand_Quality(Q)   ((Q) / 1000.0)
-#define Shrink_Quality(Q)   (((Q) < Expand_Quality(MAX_ERATE)) ? (int)(1000.0 * (Q) + 0.5) : MAX_ERATE)
+#define Expand_Quality(Q)   ((Q) / 100.0)
+#define Shrink_Quality(Q)   (((Q) < Expand_Quality(AS_OVS_MAX_ERATE)) ? (int)(100.0 * (Q) + 0.5) : AS_OVS_MAX_ERATE)
 
 #define AS_OVS_TYPE_OVL   0x00
 #define AS_OVS_TYPE_OBT   0x01
@@ -47,10 +48,10 @@
 typedef union {
   uint64   dat;
   struct {
-    uint64  datpad:15;
+    uint64  datpad:13;
     uint64  flipped:1;
-    int64   a_hang:AS_OVS_POSBITS;
-    int64   b_hang:AS_OVS_POSBITS;
+    int64   a_hang:AS_OVS_HNGBITS;
+    int64   b_hang:AS_OVS_HNGBITS;
     uint64  orig_erate:AS_OVS_ERRBITS;
     uint64  corr_erate:AS_OVS_ERRBITS;
     uint64  type:2;
