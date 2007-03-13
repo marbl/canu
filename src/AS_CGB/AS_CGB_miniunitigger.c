@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_miniunitigger.c,v 1.8 2007-02-14 07:20:05 brianwalenz Exp $
+ * $Id: AS_CGB_miniunitigger.c,v 1.9 2007-03-13 03:03:46 brianwalenz Exp $
  * Module:  AS_CGB_miniunitigger
  * Description: 
  * Assumptions:
@@ -42,7 +42,7 @@
 #endif
 
 /*************************************************************************/
-static char CM_ID[] = "$Id: AS_CGB_miniunitigger.c,v 1.8 2007-02-14 07:20:05 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_miniunitigger.c,v 1.9 2007-03-13 03:03:46 brianwalenz Exp $";
 /*************************************************************************/
 
 extern int REAPER_VALIDATION;
@@ -105,7 +105,7 @@ static void InitializeGlobals
   rg->cgb_unique_cutoff = CGB_UNIQUE_CUTOFF;
   rg->walk_depth = 100;
   rg->iv_start = 0;
-  rg->overlap_error_threshold = PerMil_to_CGB_ERATE_TYPE(1000);
+  rg->overlap_error_threshold = Shrink_Quality(1.0);
   rg->work_limit_placing_contained_fragments = 20;
   rg->walk_depth=100;
   rg->iv_start=0;

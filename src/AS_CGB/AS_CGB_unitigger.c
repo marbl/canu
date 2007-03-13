@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_unitigger.c,v 1.10 2007-02-12 22:16:55 brianwalenz Exp $";
+= "$Id: AS_CGB_unitigger.c,v 1.11 2007-03-13 03:03:46 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_unitigger.c
@@ -96,21 +96,13 @@ static void output_OVL_mesgs
         const IntFragment_ID avx = get_avx_edge(edges,ie);
         const int asx = get_asx_edge(edges,ie);
         const int ahg = get_ahg_edge(edges,ie);
-#ifdef STORE_OVERLAP_EXTREMES
-        const int amn = get_amn_edge(edges,ie);
-        const int amx = get_amx_edge(edges,ie);
-#endif // STORE_OVERLAP_EXTREMES
         
         const IntFragment_ID bvx = get_bvx_edge(edges,ie);
         const int bsx = get_bsx_edge(edges,ie);
         const int bhg = get_bhg_edge(edges,ie);
-#ifdef STORE_OVERLAP_EXTREMES
-        const int bmn = get_bmn_edge(edges,ie);
-        const int bmx = get_bmx_edge(edges,ie);
-#endif // STORE_OVERLAP_EXTREMES
         
-        const Tnes  nes = get_nes_edge(edges,ie);
-        const CGB_ERATE_TYPE qua = get_qua_edge(edges,ie);
+        const Tnes   nes = get_nes_edge(edges,ie);
+        const uint32 qua = get_qua_edge(edges,ie);
         
         const IntFragment_ID aid = get_iid_fragment(frags,avx);
         const IntFragment_ID bid = get_iid_fragment(frags,bvx);
@@ -125,13 +117,8 @@ static void output_OVL_mesgs
           
           ovl_mesg.ahg = ahg;
           ovl_mesg.bhg = bhg;
-#ifndef STORE_OVERLAP_EXTREMES
           ovl_mesg.min_offset = ahg;
           ovl_mesg.max_offset = ahg;
-#else // STORE_OVERLAP_EXTREMES
-          ovl_mesg.min_offset = amn;
-          ovl_mesg.max_offset = amx;
-#endif // STORE_OVERLAP_EXTREMES
           
           ovl_mesg.orientation =
             ( asx ?
@@ -156,7 +143,7 @@ static void output_OVL_mesgs
             assert(FALSE);
           }
 
-          ovl_mesg.quality = CGB_ERATE_TYPE_to_cds_float32(qua);
+          ovl_mesg.quality = Expand_Quality(qua);
           ovl_mesg.polymorph_ct = 0;
           ovl_mesg.delta = delta;
           
@@ -554,7 +541,7 @@ static void InitializeGlobals
 #if 0
   rg->overlap_error_threshold = AS_READ_ERROR_RATE; // cds/AS/inc/AS_global.h
 #else
-  rg->overlap_error_threshold = PerMil_to_CGB_ERATE_TYPE(1000);
+  rg->overlap_error_threshold = Shrink_Quality(1.0);
 #endif
   rg->work_limit_placing_contained_fragments = 20;
   rg->walk_depth=100;
@@ -811,12 +798,12 @@ static int ParseCommandLine
         {
           const int float_erate_value = (NULL != strstr(optarg,"."));
           if(float_erate_value) {
-            rg->overlap_error_threshold = cds_float32_to_CGB_ERATE_TYPE(atof(optarg));
+            rg->overlap_error_threshold = Shrink_Quality(atof(optarg));
           } else {
-            rg->overlap_error_threshold = PerMil_to_CGB_ERATE_TYPE(atoi(optarg));
+            rg->overlap_error_threshold = Shrink_Quality(atof(optarg) / 10.0);
           }
-          fprintf(stderr,"The overlap_error_threshold = %d per thousand\n",
-                  rg->overlap_error_threshold);
+          fprintf(stderr,"The overlap_error_threshold = %f%%\n",
+                  Expand_Quality(rg->overlap_error_threshold));
         }
         break;
       case 'f':

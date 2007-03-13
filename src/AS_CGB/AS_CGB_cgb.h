@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_cgb.h,v 1.6 2007-02-12 22:16:55 brianwalenz Exp $
+ * $Id: AS_CGB_cgb.h,v 1.7 2007-03-13 03:03:46 brianwalenz Exp $
  *
  * Module: AS_CGB_cgb.h
  *
@@ -49,6 +49,10 @@
 
 #ifndef AS_CGB_CGB_INCLUDE
 #define AS_CGB_CGB_INCLUDE
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
 
 
 /* ******************************************************************** */

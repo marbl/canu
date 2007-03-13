@@ -5,6 +5,9 @@ sub createFragmentCorrectionJobs {
     my $frgCorrThreads    = getGlobal("frgCorrThreads");
     my $scratch           = getGlobal("scratch");
 
+    print STDERR "WARNING:  Fragment Error Correction BROKEN.\n";
+    return;
+
     return if (getGlobal("doFragmentCorrection") == 0);
     return if (-e "$wrk/2-frgcorr/jobsCreated.success");
     system("mkdir $wrk/2-frgcorr") if (! -e "$wrk/2-frgcorr");

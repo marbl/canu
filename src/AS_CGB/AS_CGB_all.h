@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- $Id: AS_CGB_all.h,v 1.12 2007-02-25 08:13:36 brianwalenz Exp $
+ $Id: AS_CGB_all.h,v 1.13 2007-03-13 03:03:46 brianwalenz Exp $
  Module: Chunk Graph Builder
  Description: A catch-all include file for the Chunk Graph Builder
  Assumptions:
@@ -32,11 +32,8 @@
 #undef STORE_BRANCH_POINTS_AT_FRAGMENT
 
 #undef CONTAINMENT_STACKING
-#undef USE_CROSS_POINTERS
 
 #undef DONT_RUN_IN_SYMMETRIC_MODE    
-
-#define USE_CORRECTED_ERROR_RATE
 
 // Allow un-mated dovetail edges in CGB.
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_unitigger_globals.h,v 1.4 2005-03-22 19:48:31 jason_miller Exp $
+ * $Id: AS_CGB_unitigger_globals.h,v 1.5 2007-03-13 03:03:46 brianwalenz Exp $
  *
  * Module: AS_CGB_unitigger_globals.h
  * Description: A subroutine interface for the unitigger.
@@ -101,7 +101,7 @@ typedef struct
   int            con_double_sided_threshold_fragment_end_degree;
   int            intrude_with_non_blessed_overlaps_flag;
   int            cutoff_fragment_end_degree;
-  CGB_ERATE_TYPE overlap_error_threshold;
+  uint32         overlap_error_threshold;
 
   int work_limit_placing_contained_fragments;
   int output_iterations_flag;

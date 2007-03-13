@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_edgemate.c,v 1.4 2005-03-22 19:48:27 jason_miller Exp $";
+= "$Id: AS_CGB_edgemate.c,v 1.5 2007-03-13 03:03:46 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_edgemate.c
@@ -73,18 +73,10 @@ void reflect_Aedge( Aedge *new_edge, Aedge *old_edge) {
   new_edge->avx = old_bvx;
   new_edge->asx = old_bsx;
   new_edge->ahg = old_bhg;
-#ifdef STORE_OVERLAP_EXTREMES
-  new_edge->amn = old_bmn;
-  new_edge->amx = old_bmx;
-#endif // STORE_OVERLAP_EXTREMES
 
   new_edge->bvx = old_avx;
   new_edge->bsx = old_asx;
   new_edge->bhg = old_ahg;
-#ifdef STORE_OVERLAP_EXTREMES
-  new_edge->bmn = old_amn;
-  new_edge->bmx = old_amx;
-#endif // STORE_OVERLAP_EXTREMES
 
   new_edge->nes = old_edge->nes;
   new_edge->blessed = old_edge->blessed; // Is this correct?
@@ -126,18 +118,10 @@ void granger_Aedge( Aedge *new_edge, Aedge *old_edge) {
   new_edge->avx =   old_avx;
   new_edge->asx = ! old_asx;
   new_edge->ahg = - old_bhg;
-#ifdef STORE_OVERLAP_EXTREMES
-  new_edge->amn = - old_bmx;
-  new_edge->amx = - old_bmn;
-#endif // STORE_OVERLAP_EXTREMES
 
   new_edge->bvx =   old_bvx;
   new_edge->bsx = ! old_bsx;
   new_edge->bhg = - old_ahg;
-#ifdef STORE_OVERLAP_EXTREMES
-  new_edge->bmn = - old_amx;
-  new_edge->bmx = - old_amn;
-#endif // STORE_OVERLAP_EXTREMES
 
   new_edge->nes = old_edge->nes;
   new_edge->blessed = old_edge->blessed; // Is this correct?

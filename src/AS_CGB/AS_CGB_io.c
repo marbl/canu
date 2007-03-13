@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_io.c,v 1.9 2007-01-29 20:40:58 brianwalenz Exp $";
+= "$Id: AS_CGB_io.c,v 1.10 2007-03-13 03:03:46 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_io.c
@@ -328,13 +328,8 @@ void output_the_chunks
 	  // A flag indicating whether the suffix of the fragment at
 	  // the distant vertex is in the overlap.
 	  const int iahg = get_ahg_edge(edges,ie); /* overhang in bp. */
-#ifndef STORE_OVERLAP_EXTREMES
           const int iamn = get_ahg_edge(edges,ie);
 	  const int iamx = get_ahg_edge(edges,ie);
-#else // STORE_OVERLAP_EXTREMES
-          const int iamn = get_amn_edge(edges,ie);
-	  const int iamx = get_amx_edge(edges,ie);
-#endif // STORE_OVERLAP_EXTREMES
 	  const int ibhg = get_bhg_edge(edges,ie); /* overhang in bp. */
 	  
 	  const int ilen = get_length_fragment(frags,iavx);
@@ -364,10 +359,6 @@ void output_the_chunks
 	    
 	    FragOverlapMesg cea;
 	    UnitigOverlapType overlap_type;
-#if 0
-	    const int casx = (iasx ^ (! get_forward_fragment(frags,iavx)));
-	    const int cbsx = (ibsx ^ (! get_forward_fragment(frags,ibvx)));
-#endif
 	    
 	    switch(inese) {
 	    case AS_CGB_INTERCHUNK_EDGE:
@@ -382,11 +373,9 @@ void output_the_chunks
 	    case AS_CGB_TOUCHES_CRAPPY_DVT:
 	    case AS_CGB_BETWEEN_CRAPPY_DVT:
 	      overlap_type = AS_OVERLAP; break;
-#if 1
 	    case AS_CGB_MARKED_BY_BRANCH_DVT:
 	    case AS_CGB_MARKED_BY_BREAKER:
 	      overlap_type = IGNORE; break;
-#endif                
 
 	    case AS_CGB_CONTAINED_EDGE:
 	    case AS_CGB_TOUCHES_CRAPPY_CON:

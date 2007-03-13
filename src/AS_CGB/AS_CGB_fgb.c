@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_fgb.c,v 1.8 2006-11-14 19:58:21 eliv Exp $";
+= "$Id: AS_CGB_fgb.c,v 1.9 2007-03-13 03:03:46 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_fgb.c
@@ -193,7 +193,7 @@ static void check_edges1(/* Input Only */
 	const int ahg = get_ahg_edge(edges,ie0);
 	const int bhg = get_bhg_edge(edges,ie0);
 	const Tnes ines = get_nes_edge(edges,ie0);
-	const CGB_ERATE_TYPE qua = get_qua_edge(edges,ie0);
+	const uint32 qua = get_qua_edge(edges,ie0);
 	//const int inv = get_inv_edge(edges,ie0);
 	int bad_edge = FALSE;
 
@@ -245,9 +245,7 @@ static void check_edges1(/* Input Only */
 
 	if( bad_edge ) {
 	  fprintf(stderr,
-		  F_IID ": " F_IID " " F_IID " " F_IID " " F_IID " %d %d %d %d %d "
-		  CGB_ERATE_FORMAT
-		  "\n",
+		  F_IID ": " F_IID " " F_IID " " F_IID " " F_IID " %d %d %d %d %d %d\n"
 		  ie0,
 		  afr,bfr,avx,bvx,
 		  asx,bsx,

@@ -4,6 +4,9 @@ use strict;
 
 sub applyOverlapCorrection {
 
+    print STDERR "WARNING:  Fragment Error Correction BROKEN.\n";
+    return;
+
     return if (getGlobal("doFragmentCorrection") == 0);
 
     my $ovlCorrBatchSize    = getGlobal("ovlCorrBatchSize");

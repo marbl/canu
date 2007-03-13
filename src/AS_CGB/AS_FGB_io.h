@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_FGB_io.h,v 1.5 2007-01-29 20:40:58 brianwalenz Exp $
+ * $Id: AS_FGB_io.h,v 1.6 2007-03-13 03:03:46 brianwalenz Exp $
  *
  * Module: AS_FGB_io.h
  * Description: Header file for the code that reads and writes the 
@@ -52,7 +52,7 @@ void InsertOverlapsIntoGraph
   const int dvt_double_sided_threshold_fragment_end_degree,
   const int con_double_sided_threshold_fragment_end_degree,
   const int intrude_with_non_blessed_overlaps_flag,
-  const CGB_ERATE_TYPE overlap_error_threshold
+  const uint32 overlap_error_threshold
   );
 
 void input_messages_from_a_file
@@ -73,7 +73,7 @@ void input_messages_from_a_file
  const int dvt_double_sided_threshold_fragment_end_degree,
  const int con_double_sided_threshold_fragment_end_degree,
  const int intrude_with_non_blessed_overlaps_flag,
- const CGB_ERATE_TYPE overlap_error_threshold
+ const uint32 overlap_error_threshold
  );
 
 
@@ -93,7 +93,7 @@ void process_ovl_store
  const int dvt_double_sided_threshold_fragment_end_degree,
  const int con_double_sided_threshold_fragment_end_degree,
  const int intrude_with_non_blessed_overlaps_flag,
- const CGB_ERATE_TYPE overlap_error_threshold
+ const uint32 overlap_error_threshold
  );
   
 #endif // AS_FGB_IO_INCLUDE

@@ -4,6 +4,9 @@ sub createOverlapCorrectionJobs {
     my $ovlCorrBatchSize    = getGlobal("ovlCorrBatchSize");
     my $scratch             = getGlobal("scratch");
 
+    print STDERR "WARNING:  Fragment Error Correction BROKEN.\n";
+    return;
+
     return if (getGlobal("doFragmentCorrection") == 0);
     return if (-e "$wrk/3-ovlcorr/jobsCreated.success");
     system("mkdir $wrk/3-ovlcorr") if (! -d "$wrk/3-ovlcorr");

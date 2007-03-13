@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_fga.c,v 1.7 2006-11-14 19:58:21 eliv Exp $";
+= "$Id: AS_CGB_fga.c,v 1.8 2007-03-13 03:03:46 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_fga.c
@@ -1246,9 +1246,6 @@ static void analyze_the_fragment_overlap_graph
       for(iedge=0;iedge<nedge;iedge++){
 	IntFragment_ID iavx,ibvx;
 	int iasx,ibsx,iahg;
-#ifdef STORE_OVERLAP_EXTREMES
-        int iamn,iamx;
-#endif // STORE_OVERLAP_EXTREMES
 	Tnes ines;
 	int invalid;
 		
@@ -1259,10 +1256,6 @@ static void analyze_the_fragment_overlap_graph
 
 	ines = get_nes_edge(edges,iedge);
 	iahg = get_ahg_edge(edges,iedge);
-#ifdef STORE_OVERLAP_EXTREMES
-	iamn = get_amn_edge(edges,iedge);
-	iamx = get_amx_edge(edges,iedge);
-#endif // STORE_OVERLAP_EXTREMES
 
 	invalid = get_inv_edge(edges,iedge);
 

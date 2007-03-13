@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_FGB_main.c,v 1.8 2007-02-12 22:16:55 brianwalenz Exp $";
+= "$Id: AS_FGB_main.c,v 1.9 2007-03-13 03:03:46 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module:  AS_FGB_main.c
@@ -261,22 +261,13 @@ static void output_mesgs
       const IntFragment_ID avx = get_avx_edge(edges,ie);
       const int asx = get_asx_edge(edges,ie);
       const int ahg = get_ahg_edge(edges,ie);
-#ifdef STORE_OVERLAP_EXTREMES
-      const int amn = get_amn_edge(edges,ie);
-      const int amx = get_amx_edge(edges,ie);
-#endif // STORE_OVERLAP_EXTREMES
 
       const IntFragment_ID bvx = get_bvx_edge(edges,ie);
       const int bsx = get_bsx_edge(edges,ie);
       const int bhg = get_bhg_edge(edges,ie);
-#ifdef STORE_OVERLAP_EXTREMES
-      const int bmn = get_bmn_edge(edges,ie);
-      const int bmx = get_bmx_edge(edges,ie);
-#endif // STORE_OVERLAP_EXTREMES
 
-      const Tnes  nes = get_nes_edge(edges,ie);
-      //const int   inv = get_inv_edge(edges,ie);
-      const CGB_ERATE_TYPE qua = get_qua_edge(edges,ie);
+      const Tnes    nes = get_nes_edge(edges,ie);
+      const uint32  qua = get_qua_edge(edges,ie);
 
       const IntFragment_ID aid = get_iid_fragment(frags,avx);
       const IntFragment_ID bid = get_iid_fragment(frags,bvx);
@@ -289,13 +280,8 @@ static void output_mesgs
 
       ovl_mesg.ahg = ahg;
       ovl_mesg.bhg = bhg;
-#ifndef STORE_OVERLAP_EXTREMES
       ovl_mesg.min_offset = ahg;
       ovl_mesg.max_offset = ahg;
-#else // STORE_OVERLAP_EXTREMES
-      ovl_mesg.min_offset = amn;
-      ovl_mesg.max_offset = amx;
-#endif // STORE_OVERLAP_EXTREMES
 
       ovl_mesg.orientation =
         ( asx ?
@@ -320,7 +306,7 @@ static void output_mesgs
         assert(FALSE);
       }
 
-      ovl_mesg.quality = CGB_ERATE_TYPE_to_cds_float32(qua);
+      ovl_mesg.quality = Expand_Quality(qua);
       ovl_mesg.polymorph_ct = 0;
       ovl_mesg.delta = delta;
 
@@ -380,7 +366,7 @@ static void process_one_ovl_file
  const int dvt_double_sided_threshold_fragment_end_degree,
  const int con_double_sided_threshold_fragment_end_degree,
  const int intrude_with_non_blessed_overlaps_flag,
- const CGB_ERATE_TYPE overlap_error_threshold,
+ const uint32 overlap_error_threshold,
  const int check_point_level
 )
 { // Process the ovl files.
@@ -483,7 +469,7 @@ static void delete_duplicate_edges
                   "DELETED DUPLICATE EDGE " F_IID ":"
                   "(" F_U64 "," F_IID "," F_IID ") %d %d, "
                   "(" F_U64 "," F_IID "," F_IID ") %d %d : %d "
-                  CGB_ERATE_FORMAT " %d "
+                  " %d %d "
                   "\n",
                   ie1,
                   get_uid_fragment(frags,avx),
@@ -624,7 +610,7 @@ int main_fgb
         rg->dvt_double_sided_threshold_fragment_end_degree,
         rg->con_double_sided_threshold_fragment_end_degree,
         rg->intrude_with_non_blessed_overlaps_flag,
-        PerMil_to_CGB_ERATE_TYPE(1000),
+        Shrink_Quality(1.0),
         rg->check_point_level
         );
     {

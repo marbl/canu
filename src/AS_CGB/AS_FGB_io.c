@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_FGB_io.c,v 1.14 2007-02-12 22:16:55 brianwalenz Exp $";
+= "$Id: AS_FGB_io.c,v 1.15 2007-03-13 03:03:46 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_FGB_io.c
@@ -47,8 +47,8 @@ static char CM_ID[]
 #include "AS_UTL_version.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_CGB_all.h"
-#include "OlapStoreOVL.h"  // In cds/AS/src/AS_OVL
 #include "AS_CGB_util.h"
+#include "AS_OVS_overlapStore.h"
 
 /****************************************************************************/
 /* File Scope Globals */
@@ -469,21 +469,13 @@ static void add_overlap_to_graph
   const IntFragment_ID iafr = an_edge.avx;
   const int iasx = an_edge.asx;
   const int iahg = an_edge.ahg;
-#ifdef STORE_OVERLAP_EXTREMES
-  const int iamn = an_edge.amn;
-  const int iamx = an_edge.amx;
-#endif // STORE_OVERLAP_EXTREMES
 
   const IntFragment_ID ibfr = an_edge.bvx;
   const int ibsx = an_edge.bsx;
   const int ibhg = an_edge.bhg;
-#ifdef STORE_OVERLAP_EXTREMES
-  const int ibmn = an_edge.bmn;
-  const int ibmx = an_edge.bmx;
-#endif // STORE_OVERLAP_EXTREMES
 
   const Tnes ines = AS_CGB_SafeCast_cdsInt8_to_Tnes(an_edge.nes);
-  const CGB_ERATE_TYPE qua = an_edge.quality;
+  const uint32 qua = an_edge.quality;
   const int iinv = an_edge.invalid;
   //const int grangered = an_edge.grangered;
   //const int reflected = an_edge.reflected;
@@ -510,19 +502,6 @@ static void add_overlap_to_graph
   const int ialn = get_length_fragment(frags,iavx);
   const int ibln = get_length_fragment(frags,ibvx);
   
-#ifdef STORE_OVERLAP_EXTREMES
-#ifdef REPORT_THIS_BUG
-  if(iamn < 0) {
-    fprintf(stderr,"BUG: amn < 0, adjusting to zero....\n");
-    fprintf(stderr,"afr,bfr,ahg,bhg,amn,amx=" F_IID "," F_IID ",%d,%d,%d,%d\n",
-            iafr,ibfr,iahg,ibhg,iamn,iamx);
-  }
-#endif // REPORT_THIS_BUG
-  assert( iamn >= 0);
-  assert( iamn <= iahg);
-  assert( iamx >= iahg);
-#endif // STORE_OVERLAP_EXTREMES
-
   switch(ines) {
   case AS_CGB_DOVETAIL_EDGE: (*novl_dovetail)++; break;
   case AS_CGB_CONTAINED_EDGE: (*novl_containment)++; break;
@@ -576,43 +555,25 @@ static void add_overlap_to_graph
   assert(iafr == get_iid_fragment(frags,iavx));
   assert(ibfr == get_iid_fragment(frags,ibvx));
 
-  {
-    if((ialn <= iahg) || (ibln <= ibhg) || (ialn <= -ibhg) || (ibln <= -iahg) ) {
-      FILE *ferror = stdout;
-      if(ialn < iahg) {
-        fprintf(ferror,"INPUT ERROR: aln < ahg\n");
-      }
-      if(ialn < -ibhg) {
-        fprintf(ferror,"INPUT ERROR: aln < -ahg\n");
-      }
-      if(ialn == iahg) {
-        fprintf(ferror,"INPUT ERROR: aln == ahg\n");
-      }
-      if(ialn == -ibhg) {
-        fprintf(ferror,"INPUT ERROR: aln == -bhg\n");
-      }
-      if(ibln < ibhg) {
-        fprintf(ferror,"INPUT ERROR: bln < bhg\n");
-      }
-      if(ibln < -iahg) {
-        fprintf(ferror,"INPUT ERROR: bln < -bhg\n");
-      }
-      if(ibln == ibhg) {
-        fprintf(ferror,"INPUT ERROR: bln == bhg\n");
-      }
-      if(ibln == -iahg) {
-        fprintf(ferror,"INPUT ERROR: bln == bhg\n");
-      }
-      fprintf(ferror," afr=" F_IID " bfr=" F_IID " aln=%d bln=%d\n",
-              iafr, ibfr, ialn, ibln);
-      fprintf(ferror," avx=" F_IID " bvx=" F_IID " ahg=%d bhg=%d\n",
-              iavx, ibvx, iahg, ibhg);
-    }
+  if((ialn <= iahg) || (ibln <= ibhg) || (ialn <= -ibhg) || (ibln <= -iahg) ) {
+    if(ialn < iahg)      fprintf(stderr,"INPUT ERROR: aln < ahg\n");
+    if(ialn < -ibhg)     fprintf(stderr,"INPUT ERROR: aln < -bhg\n");
+    if(ialn == iahg)     fprintf(stderr,"INPUT ERROR: aln == ahg\n");
+    if(ialn == -ibhg)    fprintf(stderr,"INPUT ERROR: aln == -bhg\n");
+
+    if(ibln < ibhg)      fprintf(stderr,"INPUT ERROR: bln < bhg\n");
+    if(ibln < -iahg)     fprintf(stderr,"INPUT ERROR: bln < -ahg\n");
+    if(ibln == ibhg)     fprintf(stderr,"INPUT ERROR: bln == bhg\n");
+    if(ibln == -iahg)    fprintf(stderr,"INPUT ERROR: bln == -ahg\n");
+
+    fprintf(stderr," afr=" F_IID " bfr=" F_IID " aln=%d bln=%d\n", iafr, ibfr, ialn, ibln);
+    fprintf(stderr," avx=" F_IID " bvx=" F_IID " ahg=%d bhg=%d\n", iavx, ibvx, iahg, ibhg);
   }
-  assert( ialn > iahg);
-  assert( ibln > ibhg);
-  assert( ialn > -ibhg);
-  assert( ibln > -iahg);
+
+  assert(ialn > iahg);
+  assert(ibln > ibhg);
+  assert(ialn > -ibhg);
+  assert(ibln > -iahg);
   
   if((get_del_fragment(frags,iavx) == TRUE) ||
      (get_del_fragment(frags,ibvx) == TRUE) ) {
@@ -636,7 +597,7 @@ static void add_overlap_to_graph
 #ifdef REPORT_DEGENERATE_OVERLAPS
   if( (iahg == 0) && (ibhg == 0) ) {
     fprintf(stdout,
-            "Degenerate Overlap " F_IID " %d %d " F_IID " %d %d " CGB_ERATE_FORMAT " %d\n",
+            "Degenerate Overlap " F_IID " %d %d " F_IID " %d %d %d %d\n",
             get_iid_fragment(frags,iavx), iasx, iahg,
             get_iid_fragment(frags,ibvx), ibsx, ibhg,
             qua,
@@ -662,13 +623,6 @@ static void add_overlap_to_graph
       the_raw_new_edge.invalid = iinv;
       the_raw_new_edge.grangered = FALSE;
       the_raw_new_edge.reflected = FALSE;
-
-#ifdef STORE_OVERLAP_EXTREMES
-      the_raw_new_edge.amn = iamn;
-      the_raw_new_edge.amx = iamx;
-      the_raw_new_edge.bmn = ibmn;
-      the_raw_new_edge.bmx = ibmx;
-#endif // STORE_OVERLAP_EXTREMES
     }
     
     if( is_dovetail ) {
@@ -842,7 +796,7 @@ static void Convert_OverlapMesg_to_Aedge
   //const int ibmn = (ibhg - (iamx-iahg));
   //const int ibmx = (ibhg + (iahg-iamn));
 
-  const CGB_ERATE_TYPE qua = ovl_mesg->quality;
+  const uint32 qua = ovl_mesg->quality;
   // Assume that the overlap is valid unless proven otherwise.
 
   const int improper = ((a_hang <  0) && (b_hang <  0)) 
@@ -880,12 +834,6 @@ static void Convert_OverlapMesg_to_Aedge
   //  B_frag  >>>>>>>>>>
 
   const int is_dovetail = is_a_dvt_simple(iahg,ibhg);
-#ifdef STORE_OVERLAP_EXTREMES
-  const int iamn = iahg;
-  const int iamx = iahg;
-  const int ibmn = ibhg;
-  const int ibmx = ibhg;
-#endif
   const int iinv = FALSE;
   const Tnes ines = ( is_dovetail
 		      ? AS_CGB_DOVETAIL_EDGE
@@ -907,13 +855,6 @@ static void Convert_OverlapMesg_to_Aedge
   the_new_raw_edge->grangered = FALSE;
   the_new_raw_edge->reflected = FALSE;
   the_new_raw_edge->blessed = FALSE;
-
-#ifdef STORE_OVERLAP_EXTREMES
-  the_new_raw_edge->amn = iamn;
-  the_new_raw_edge->amx = iamx;
-  the_new_raw_edge->bmn = ibmn;
-  the_new_raw_edge->bmx = ibmx;
-#endif // STORE_OVERLAP_EXTREMES
 }
 
 
@@ -928,7 +869,7 @@ static void add_OverlapMesg_to_graph
  const int dvt_double_sided_threshold_fragment_end_degree,
  const int con_double_sided_threshold_fragment_end_degree,
  const int intrude_with_non_blessed_overlaps_flag,
- const CGB_ERATE_TYPE overlap_error_threshold,
+ const uint32 overlap_error_threshold,
  IntEdge_ID * novl_dovetail,
  IntEdge_ID * novl_containment,
  IntEdge_ID * novl_degenerate,
@@ -960,7 +901,7 @@ static void add_OverlapMesg_to_graph
 
 static void Convert_Olap_To_Aedge
 (
- const Long_Olap_Data_t * const olap,
+ const OVSoverlap * const olap,
  // The raw edge input from the overlap store.
  Aedge * const the_new_raw_edge
  // The raw edge as an Unitigger internal overlap edge.
@@ -974,27 +915,15 @@ static void Convert_Olap_To_Aedge
   // Beginning of the input data:
   const IntFragment_ID a_frag = (olap -> a_iid);
   const IntFragment_ID b_frag = (olap -> b_iid);
-  const int a_hang = (olap -> a_hang);
-  const int b_hang = (olap -> b_hang);
+  const int a_hang = (olap -> dat.ovl.a_hang);
+  const int b_hang = (olap -> dat.ovl.b_hang);
   const int regular = TRUE;
   //(ovl_mesg->orientation == AS_NORMAL) ||
   //(ovl_mesg->orientation == AS_INNIE); 
-  const int flipped = (olap -> flipped);
+  const int flipped = (olap -> dat.ovl.flipped);
 
-#ifndef USE_FLOAT_ERATE
-# ifndef USE_CORRECTED_ERROR_RATE
-  const CGB_ERATE_TYPE qua = olap -> orig_erate;
-# else // USE_CORRECTED_ERROR_RATE
-  const CGB_ERATE_TYPE qua = olap -> corr_erate;
-# endif // USE_CORRECTED_ERROR_RATE
-#else // USE_FLOAT_ERATE
-# ifndef USE_CORRECTED_ERROR_RATE
-  const CGB_ERATE_TYPE qua = Expand_Quality (olap -> orig_erate);
-# else // USE_CORRECTED_ERROR_RATE
-  const CGB_ERATE_TYPE qua = Expand_Quality (olap -> corr_erate);
-# endif // USE_CORRECTED_ERROR_RATE
-#endif // USE_FLOAT_ERATE
-    
+  const uint32 qua = olap -> dat.ovl.corr_erate;
+
   // Ending of the input data.
 
   const int improper = ((a_hang <  0) && (b_hang <  0)) 
@@ -1031,12 +960,6 @@ static void Convert_Olap_To_Aedge
   //  A_frag  >>>>>>>>>>
   //  B_frag  >>>>>>>>>>
 
-#ifdef STORE_OVERLAP_EXTREMES
-  const int iamn = iahg;
-  const int iamx = iahg;
-  const int ibmn = ibhg;
-  const int ibmx = ibhg;
-#endif
   const int iinv = FALSE;
 
   const int is_dovetail = is_a_dvt_simple(iahg,ibhg);
@@ -1061,19 +984,12 @@ static void Convert_Olap_To_Aedge
   the_new_raw_edge->grangered = FALSE;
   the_new_raw_edge->blessed = FALSE;
 
-#ifdef STORE_OVERLAP_EXTREMES
-  the_new_raw_edge->amn = iamn;
-  the_new_raw_edge->amx = iamx;
-  the_new_raw_edge->bmn = ibmn;
-  the_new_raw_edge->bmx = ibmx;
-#endif // STORE_OVERLAP_EXTREMES
-
   return;
 }
 
-static void add_Long_Olap_Data_t_to_graph
+static void add_OVSoverlap_to_graph
 (
- Long_Olap_Data_t  * olap,
+ OVSoverlap *olap,
  Tfragment  frags[],
  Tedge      edges[],
  FragmentHashObject  *afr_to_avx, // Part of a hash table replacement
@@ -1081,7 +997,7 @@ static void add_Long_Olap_Data_t_to_graph
  const int dvt_double_sided_threshold_fragment_end_degree,
  const int con_double_sided_threshold_fragment_end_degree,
  const int intrude_with_non_blessed_overlaps_flag,
- const CGB_ERATE_TYPE overlap_error_threshold,
+ const uint32 overlap_error_threshold,
  IntEdge_ID * novl_dovetail,
  IntEdge_ID * novl_containment,
  IntEdge_ID * nedges_delta
@@ -1167,7 +1083,7 @@ void InsertOverlapsIntoGraph
   const int dvt_double_sided_threshold_fragment_end_degree,
   const int con_double_sided_threshold_fragment_end_degree,
   const int intrude_with_non_blessed_overlaps_flag,
-  const CGB_ERATE_TYPE overlap_error_threshold
+  const uint32 overlap_error_threshold
   )
 {
   assert(NULL != heapva);
@@ -1230,34 +1146,21 @@ void process_ovl_store
  const int dvt_double_sided_threshold_fragment_end_degree,
  const int con_double_sided_threshold_fragment_end_degree,
  const int intrude_with_non_blessed_overlaps_flag,
- const CGB_ERATE_TYPE overlap_error_threshold
+ const uint32 overlap_error_threshold
  ) 
 {
- Long_Olap_Data_t  olap;
- IntFragment_ID last=0;
- IntFragment_ID Start = (*min_frag_iid);
- IntFragment_ID Stop  = (*max_frag_iid);
- 
+  OverlapStore  *ovs;
+  OVSoverlap     olap;
+
  IntEdge_ID novl_dovetail = 0;
  IntEdge_ID novl_containment = 0;
  IntEdge_ID nedges_delta = 0;
 
- OVL_Store_t  * my_store = New_OVL_Store ();
- OVL_Stream_t  * my_stream = New_OVL_Stream ();
-
- Open_OVL_Store (my_store, OVL_Store_Path);
-
- last = Last_Frag_In_OVL_Store (my_store);
- Start = 1;
- Stop  = last;
+ ovs = AS_OVS_openOverlapStore(OVL_Store_Path);
  
- if(Stop > last) { Stop = last;}
- 
- fprintf(stderr," Start = " F_IID " Stop =" F_IID "\n",  Start, Stop);
- Init_OVL_Stream (my_stream, Start, Stop, my_store);
- while  (Next_From_OVL_Stream (& olap, my_stream))
+ while  (AS_OVS_readOverlapFromStore(ovs, &olap))
    {
-     add_Long_Olap_Data_t_to_graph
+     add_OVSoverlap_to_graph
        ( &olap,
          frags, edges, afr_to_avx, next_edge_obj,
          dvt_double_sided_threshold_fragment_end_degree,
@@ -1270,8 +1173,7 @@ void process_ovl_store
          );
    }
  
- Free_OVL_Stream (my_stream);
- Free_OVL_Store (my_store);
+ AS_OVS_closeOverlapStore(ovs);
 
  fprintf(stderr,"novl_dovetail    = " F_IID "\n", novl_dovetail);
  fprintf(stderr,"novl_containment = " F_IID "\n", novl_containment);
@@ -1307,7 +1209,7 @@ static void input_mesgs_internal
  const int dvt_double_sided_threshold_fragment_end_degree,
  const int con_double_sided_threshold_fragment_end_degree,
  const int intrude_with_non_blessed_overlaps_flag,
- const CGB_ERATE_TYPE overlap_error_threshold
+ const uint32 overlap_error_threshold
 )
 {
   /* It is assumed that in the overlap records that new fragments
@@ -1449,7 +1351,7 @@ void input_messages_from_a_file
  const int dvt_double_sided_threshold_fragment_end_degree,
  const int con_double_sided_threshold_fragment_end_degree,
  const int intrude_with_non_blessed_overlaps_flag,
- const CGB_ERATE_TYPE overlap_error_threshold
+ const uint32 overlap_error_threshold
  ) 
 {
   /* Input a batch of fragment read and overlap records from a stream. */

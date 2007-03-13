@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_cga.c,v 1.10 2007-01-29 20:40:56 brianwalenz Exp $";
+= "$Id: AS_CGB_cga.c,v 1.11 2007-03-13 03:03:46 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_cga.c
@@ -1104,10 +1104,6 @@ static void analyze_the_fragment_overlap_graph
       
       for(iedge=0;iedge<nedge;iedge++){
 	const Tnes ines = get_nes_edge(edges,iedge);
-#ifdef STORE_OVERLAP_EXTREMES
-	const int iamn = get_amn_edge(edges,iedge);
-	const int iamx = get_amx_edge(edges,iedge);
-#endif // STORE_OVERLAP_EXTREMES
 
 	const int invalid = get_inv_edge(edges,iedge);
 

@@ -69,11 +69,11 @@ sub overlapTrim {
         $cmd .= " -M " . getGlobal('ovlSortMemory') . " ";
         $cmd .= " -m $numFrags ";
         $cmd .= " -L $wrk/0-overlaptrim/all-overlaps-trim.ovllist";
-        $cmd .= " > $wrk/0-overlaptrim/$asm.ovl.sorted.err 2>&1";
+        $cmd .= " > $wrk/0-overlaptrim/$asm.overlapstore.err 2>&1";
 
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
-            unlink "$wrk/0-overlaptrim/$asm.ovl.sorted";
-            die "Failed to sort.\n";
+            rename "$wrk/$asm.obtStore", "$wrk/$asm.obtStore.FAILED";
+            die "Failed to build the obt store.\n";
         }
     }
 

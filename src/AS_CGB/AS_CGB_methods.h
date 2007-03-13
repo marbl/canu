@@ -32,65 +32,24 @@
 #ifndef AS_CGB_METHODS_INCLUDE
 #define AS_CGB_METHODS_INCLUDE
 
-#undef USE_FLOAT_ERATE
 
-typedef int PerMil; // parts per thousand.
-#ifndef USE_FLOAT_ERATE
-#include "OlapStoreOVL.h"  // In cds/AS/src/AS_OVL
-typedef  ERATE_TYPE CGB_ERATE_TYPE;  // zero is a perfect overlap
+#include "AS_OVS_overlapStore.h"
 
-static CGB_ERATE_TYPE  cds_float32_to_CGB_ERATE_TYPE(cds_float32 qua)
-{ return Shrink_Quality(qua); }
-static CGB_ERATE_TYPE  PerMil_to_CGB_ERATE_TYPE(PerMil qua)
-{ return (CGB_ERATE_TYPE)(qua); } // parts per thousand to CGB_ERATE_TYPE
-static cds_float32 CGB_ERATE_TYPE_to_cds_float32(CGB_ERATE_TYPE qua)
-{ return Expand_Quality (qua); }
-static PerMil CGB_ERATE_TYPE_to_PerMil(PerMil qua)
-{ return qua; }
-#define CGB_ERATE_FORMAT "%d"
-#else // USE_FLOAT_ERATE
-typedef  cds_float32 CGB_ERATE_TYPE;  // zero is a perfect overlap
-static CGB_ERATE_TYPE  cds_float32_to_CGB_ERATE_TYPE(cds_float32 qua)
-{ return (CGB_ERATE_TYPE)(qua); }
-static CGB_ERATE_TYPE  PerMil_to_CGB_ERATE_TYPE(PerMil qua)
-{ return (CGB_ERATE_TYPE)(qua/1000.); } // parts per thousand to CGB_ERATE_TYPE
-static cds_float32 CGB_ERATE_TYPE_to_cds_float32(CGB_ERATE_TYPE qua)
-{ return (cds_float32)(qua); }
-static PerMil CGB_ERATE_TYPE_to_PerMil(PerMil qua)
-{ return (PerMil)(1000.*qua); }
-#define CGB_ERATE_FORMAT "%f"
-#endif // USE_FLOAT_ERATE
 
 typedef struct {
-  // Currently using 16 bytes per edge => 2 eight-byte words
-#ifdef USE_CROSS_POINTERS
-  // IntEdge_ID  cross_pointer;
-  /* Currently using 24 bytes per edge => 3 eight-byte words */
-  /* Index is currently zero biased, needs 28 bits for 10x human */
-#endif // USE_CROSS_POINTERS
   IntFragment_ID  avx,bvx;
-  // 8 bytes
-  cds_int16   ahg,bhg; 
-  // 4 bytes
-#ifdef STORE_OVERLAP_EXTREMES
-  cds_int16   amn,amx;
-  // 4 bytes
-  cds_int16   bmn,bmx;  // unnecessary now that there is a reflected bit.
-  // 4 bytes
-#endif // STORE_OVERLAP_EXTREMES
-  CGB_ERATE_TYPE quality;  // zero is a perfect overlap
-  // 2 bytes
-  cds_int8    nes;      // The edge labeling.
-  // 1 byte
-  unsigned int asx : 1;
-  unsigned int bsx : 1;
-  unsigned int reflected : 1; // Is this a direction mate edge.
-  unsigned int grangered : 1;
-  unsigned int invalid : 1; // Is this edge known to be invalid?
-  unsigned int blessed : 1;
-  unsigned int bit6 : 1;
-  unsigned int bit7 : 1;
-  // 1 byte for flags
+  cds_int16       ahg,bhg; 
+
+  uint32    quality : 16;  // zero is a perfect overlap
+  uint32    nes : 8;      // The edge labeling.
+  uint32    asx : 1;
+  uint32    bsx : 1;
+  uint32    reflected : 1; // Is this a direction mate edge.
+  uint32    grangered : 1;
+  uint32    invalid : 1; // Is this edge known to be invalid?
+  uint32    blessed : 1;
+  uint32    bit6 : 1;
+  uint32    bit7 : 1;
 } Aedge;
 
 
@@ -161,10 +120,6 @@ typedef struct {
   /* URT branch point info. The non-existence of a branch point is
      signaled by (pre_br==0)&&(suf_br==0). */
 #endif 
-
-  /* these next two fields are never used? */
-  //cds_int16       clrbgn;   /* The clear range of the fragment. */
-  //cds_int16       clrend;
 
   /* FGB bit flags: */
   unsigned int deleted : 1;
@@ -302,36 +257,15 @@ static void set_bsx_edge(Tedge edges[],IntEdge_ID i,int value)
 #pragma inline set_ahg_edge
 static void set_ahg_edge(Tedge edges[],IntEdge_ID i,int value)
 { VAgetaccess(Aedge,edges,i,ahg) = (cds_int16)value;}
-#ifdef STORE_OVERLAP_EXTREMES
-#pragma inline set_amn_edge
-static void set_amn_edge(Tedge edges[],IntEdge_ID i,int value)
-{ VAgetaccess(Aedge,edges,i,amn) = (cds_int16)value;}
-#pragma inline set_amx_edge
-static void set_amx_edge(Tedge edges[],IntEdge_ID i,int value)
-{ VAgetaccess(Aedge,edges,i,amx) = (cds_int16)value;}
-#endif // STORE_OVERLAP_EXTREMES
 #pragma inline set_bhg_edge
 static void set_bhg_edge(Tedge edges[],IntEdge_ID i,int value)
 { VAgetaccess(Aedge,edges,i,bhg) = (cds_int16)value;}
-#ifdef STORE_OVERLAP_EXTREMES
-#pragma inline set_bmn_edge
-static void set_bmn_edge(Tedge edges[],IntEdge_ID i,int value)
-{ VAgetaccess(Aedge,edges,i,bmn) = (cds_int16)value;}
-#pragma inline set_bmx_edge
-static void set_bmx_edge(Tedge edges[],IntEdge_ID i,int value)
-{ VAgetaccess(Aedge,edges,i,bmx) = (cds_int16)value;}
-#endif // STORE_OVERLAP_EXTREMES
 #pragma inline set_nes_edge
 static void set_nes_edge(Tedge edges[],IntEdge_ID i,Tnes value)
 { VAgetaccess(Aedge,edges,i,nes) = (cds_int8)value;}
 #pragma inline set_inv_edge
 static void set_inv_edge(Tedge edges[],IntEdge_ID i,int value)
 { VAgetaccess(Aedge,edges,i,invalid) = value;}
-#ifdef USE_CROSS_POINTERS
-#pragma inline set_crs_edge
-static void set_crs_edge(Tedge edges[],IntEdge_ID i,IntEdge_ID value)
-{ VAgetaccess(Aedge,edges,i,cross_pointer) = value;}
-#endif // USE_CROSS_POINTERS
 #pragma inline set_reflected_edge
 static void set_reflected_edge(Tedge edges[],IntEdge_ID i,int value)
 { VAgetaccess(Aedge,edges,i,reflected) = value;}
@@ -339,8 +273,8 @@ static void set_reflected_edge(Tedge edges[],IntEdge_ID i,int value)
 static void set_grangered_edge(Tedge edges[],IntEdge_ID i,int value)
 { VAgetaccess(Aedge,edges,i,grangered) = value;}
 #pragma inline set_qua_edge
-static void set_qua_edge(const Tedge * const edges,IntEdge_ID i,CGB_ERATE_TYPE value)
-{ VAgetaccess(Aedge,edges,i,quality) = (CGB_ERATE_TYPE) value;}
+static void set_qua_edge(const Tedge * const edges,IntEdge_ID i,uint32 value)
+{ VAgetaccess(Aedge,edges,i,quality) = (uint32) value;}
 #pragma inline set_blessed_edge
 static void set_blessed_edge(Tedge edges[],IntEdge_ID i,int value)
 { VAgetaccess(Aedge,edges,i,blessed) = value;}
@@ -363,31 +297,12 @@ static int get_ahg_edge(const Tedge * const edges,IntEdge_ID i)
 #pragma inline get_bhg_edge
 static int get_bhg_edge(const Tedge * const edges,IntEdge_ID i)
 { return (int) VAgetaccess(Aedge,edges,i,bhg);}
-#ifdef STORE_OVERLAP_EXTREMES
-#pragma inline get_amn_edge
-static int get_amn_edge(const Tedge * const edges,IntEdge_ID i)
-{ return (int) VAgetaccess(Aedge,edges,i,amn);}
-#pragma inline get_amx_edge
-static int get_amx_edge(const Tedge * const edges,IntEdge_ID i)
-{ return (int) VAgetaccess(Aedge,edges,i,amx);}
-#pragma inline get_bmn_edge
-static int get_bmn_edge(const Tedge * const edges,IntEdge_ID i)
-{ return (int) VAgetaccess(Aedge,edges,i,bmn);}
-#pragma inline get_bmx_edge
-static int get_bmx_edge(const Tedge * const edges,IntEdge_ID i)
-{ return (int) VAgetaccess(Aedge,edges,i,bmx);}
-#endif // STORE_OVERLAP_EXTREMES
 #pragma inline get_nes_edge
 static Tnes get_nes_edge(const Tedge * const edges,IntEdge_ID i)
 { return (Tnes) VAgetaccess(Aedge,edges,i,nes);}
 #pragma inline get_inv_edge
 static int get_inv_edge(const Tedge * const edges,IntEdge_ID i)
 { return (int) VAgetaccess(Aedge,edges,i,invalid);}
-#ifdef USE_CROSS_POINTERS
-#pragma inline get_crs_edge
-static int get_crs_edge(const Tedge * const edges,IntEdge_ID i)
-{ return (IntEdge_ID) VAgetaccess(Aedge,edges,i,cross_pointer);}
-#endif // USE_CROSS_POINTERS
 #pragma inline get_reflected_edge
 static int get_reflected_edge(const Tedge * const edges,IntEdge_ID i)
 { return (int) VAgetaccess(Aedge,edges,i,reflected);}
@@ -395,8 +310,8 @@ static int get_reflected_edge(const Tedge * const edges,IntEdge_ID i)
 static int get_grangered_edge(const Tedge * const edges,IntEdge_ID i)
 { return (int) VAgetaccess(Aedge,edges,i,grangered);}
 #pragma inline get_qua_edge
-static CGB_ERATE_TYPE get_qua_edge(const Tedge * const edges,IntEdge_ID i)
-{ return (CGB_ERATE_TYPE) VAgetaccess(Aedge,edges,i,quality);}
+static uint32 get_qua_edge(const Tedge * const edges,IntEdge_ID i)
+{ return (uint32) VAgetaccess(Aedge,edges,i,quality);}
 #pragma inline get_blessed_edge
 static int get_blessed_edge(const Tedge * const edges,IntEdge_ID i)
 { return (int) VAgetaccess(Aedge,edges,i,blessed);}
@@ -749,26 +664,6 @@ static cds_int32 get_best_ovl
 { IntFragment_ID iavx = get_avx_edge(edges,ie);
   cds_int32  ilen = get_length_fragment(frags,iavx);
   return (cds_int32) (ilen - get_ahg_edge(edges,ie));}
-
-#ifdef STORE_OVERLAP_EXTREMES
-#pragma inline get_min_ovl
-static cds_int32 get_min_ovl
-(const Tfragment * const frags,
- const Tedge * const edges,
- IntEdge_ID ie)
-{ IntFragment_ID iavx = get_avx_edge(edges,ie);
-  cds_int32  ilen = get_length_fragment(frags,iavx);
-  return (cds_int32) (ilen - get_amx_edge(edges,ie));}
-
-#pragma inline get_max_ovl
-static cds_int32 get_max_ovl
-(const Tfragment * const frags,
- const Tedge * const edges,
- IntEdge_ID ie)
-{ IntFragment_ID iavx = get_avx_edge(edges,ie);
-  cds_int32  ilen = get_length_fragment(frags,iavx);
-  return (cds_int32) (ilen - get_amn_edge(edges,ie));}
-#endif // STORE_OVERLAP_EXTREMES
 
 
 #pragma inline get_chunk_index
