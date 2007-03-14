@@ -27,6 +27,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h> // for toupper
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
