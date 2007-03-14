@@ -34,21 +34,20 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.47 2007-03-13 21:10:11 eliv Exp $
- * $Revision: 1.47 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.48 2007-03-14 12:59:58 eliv Exp $
+ * $Revision: 1.48 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.47 2007-03-13 21:10:11 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.48 2007-03-14 12:59:58 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_UnitigGraph.hh"
-//#include <float.h>
-//#include <stdlib.h>
-#include <cstdio>
 #include <set>
 #include <limits>
-#include <math.h>
+#include <cstdio>
+#include <cmath>
+#include <cassert>
 
 extern "C" {
 	#include "AS_global.h"
