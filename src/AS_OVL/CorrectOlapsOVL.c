@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CorrectOlapsOVL.c,v 1.12 2007-03-13 22:38:50 brianwalenz Exp $
- * $Revision: 1.12 $
+ * $Id: CorrectOlapsOVL.c,v 1.13 2007-03-14 19:07:29 brianwalenz Exp $
+ * $Revision: 1.13 $
 */
 
-static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.12 2007-03-13 22:38:50 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.13 2007-03-14 19:07:29 brianwalenz Exp $";
 
 
 //  System include files
@@ -87,14 +87,10 @@ static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.12 2007-03-13 22:38:50 brianwa
 #define  EDIT_DIST_PROB_BOUND        1e-4
     //  Probability limit to "band" edit-distance calculation
     //  Determines  NORMAL_DISTRIB_THOLD
-#define  ERATE_BITS                  16
-    //  Number of bits to store integer versions of error rates
 #define  ERRORS_FOR_FREE             1
     //  The number of errors that are ignored in setting probability
     //  bound for terminating alignment extensions in edit distance
     //  calculations
-#define  MAX_ERATE               ((1 << ERATE_BITS) - 1)
-    //  Maximum value allowed for integer versions of error rates
 #define  MAX_ERROR_RATE              AS_GUIDE_ERROR_RATE
     //  The largest error allowed in overlaps
 #define  MAX_FASTA_LINE              2048
@@ -147,22 +143,12 @@ typedef  struct
 
 typedef  struct                 
   {
-   int32  a_iid, b_iid;
-   int16  a_hang, b_hang;
-   int32  place;                // position in array before sort
-   unsigned  corr_erate : ERATE_BITS;
-   char  orient;
+   int32   a_iid, b_iid;
+   int16   a_hang, b_hang;
+   int32   place;                // position in array before sort
+   uint16  corr_erate;
+   char    orient;
   }  Olap_Info_t;
-
-typedef  struct
-  {
-   unsigned  b_iid : 31;
-   unsigned  flipped : 1;
-   signed int  a_hang : 16;
-   signed int  b_hang : 16;
-   unsigned  orig_erate : ERATE_BITS;   // original error rate (aka quality)
-   unsigned  corr_erate : ERATE_BITS;   // error rate after fragment correction
-  }  Short_Olap_Data_t;
 
 typedef  struct
   {
@@ -367,8 +353,6 @@ static int  Rev_Prefix_Edit_Dist
     (char A [], int m, char T [], int n, int Error_Limit,
      int * A_End, int * T_End, int * Match_To_End,
      int Delta [MAX_ERRORS], int * Delta_Len);
-static void  Set_Corrected_Erate
-    (char * path, int32 lo_id, int32 hi_id, Olap_Info_t * olap, int num);
 static int  Sign
     (int a);
 static int  Union
@@ -432,19 +416,6 @@ int  main
              fprintf (stderr, "Saving corrected error rates to file %s\n",
                       Erate_Path);
              Dump_Erate_File (Erate_Path, Lo_Frag_IID, Hi_Frag_IID, Olap, Num_Olaps);
-            }
-          else
-            {
-              if (Num_Olaps != 0)
-              {
-                fprintf (stderr, "Saving corrected error rates to store %s\n",
-                         Olap_Path);
-                Set_Corrected_Erate (Olap_Path, Lo_Frag_IID, Hi_Frag_IID, Olap, Num_Olaps);
-              }
-              else
-              {
-                fprintf(stderr, "No overlaps for fragment range, not updating store\n");
-              }
             }
        }
 
@@ -1271,11 +1242,13 @@ static void  Dump_Erate_File
    header [2] = num;
    Safe_fwrite (header, sizeof (int32), 3, fp);
 
-   erate = (uint16 *) safe_malloc (num * sizeof (uint16));
+   erate = (uint16 *) safe_malloc (num * sizeof(uint16));
    for  (i = 0;  i < num;  i ++)
      erate [i] = olap [i] . corr_erate;
 
    Safe_fwrite (erate, sizeof (uint16), num, fp);
+
+   safe_free(erate);
 
    fclose (fp);
 
@@ -1311,7 +1284,7 @@ static void  Dump_Olap
 
    fprintf (Dump_Olap_fp, "%7d %7d %4d %4d %2c %5.2f %5.2f %4d\n",
             olap -> a_iid, olap -> b_iid, olap -> a_hang, olap -> b_hang,
-            olap -> orient, Expand_Quality(olap -> corr_erate),
+            olap -> orient, AS_OVS_decodeQuality(olap -> corr_erate) * 100.0,
             100.0 * new_error_rate, olap_len);
 
    return;
@@ -1580,11 +1553,15 @@ static void  Get_Olaps_From_Store
       (*olap)[numread].b_iid  = ovl.b_iid;
       (*olap)[numread].a_hang = ovl.dat.ovl.a_hang;
       (*olap)[numread].b_hang = ovl.dat.ovl.b_hang;
-      (*olap)[numread].orient = 'N';
 
+      (*olap)[numread].place = numread;
+
+      (*olap)[numread].corr_erate = ovl.dat.ovl.corr_erate;
+
+      (*olap)[numread].orient = 'N';
       if  (ovl.dat.ovl.flipped)
         (*olap)[numread].orient = 'I';
-      
+
       numread++;
     }
 
@@ -2015,10 +1992,6 @@ static void  Parse_Command_Line
           OVL_fp = File_Open (optarg, "w");
           break;
 
-        case  'P' :
-          fprintf(stderr, "-P is depricated; protoIO is default.\n");
-          break;
-
         case  'q' :
           Quality_Threshold = strtod (optarg, NULL);
           break;
@@ -2417,10 +2390,11 @@ static void  Process_Olap
         return;
        }
 
-if  (0)
-printf ("errors = %d  denom = %.1f\n", errors, denom);
+   if  (0)
+     printf ("errors = %d  denom = %.1f\n", errors, denom);
+
    quality = errors / denom;
-   olap -> corr_erate = Shrink_Quality (quality);
+   olap -> corr_erate = AS_OVS_encodeQuality (quality);
 
    if  (DNA_String != NULL)
        Dump_Olap (olap, quality);
@@ -2634,7 +2608,7 @@ static void  Read_Olaps
                      Olap [ct] . b_hang = b_hang;
                      Olap [ct] . orient = orient [0];
                     }
-                Olap [ct] . corr_erate = Shrink_Quality (100.0 * error_rate);
+                Olap [ct] . corr_erate = AS_OVS_encodeQuality(error_rate);
                 ct ++;
                }
 
@@ -2981,74 +2955,6 @@ static int  Rev_Prefix_Edit_Dist
   }
 
 
-
-static void  Set_Corrected_Erate
-    (char * path, int32 lo_id, int32 hi_id, Olap_Info_t * olap, int num)
-
-//  Set the  corr_erate  field in the overlap store in  path .
-//  Set it for fragments  lo_id .. hi_id  using the values in
-//   olap [0 .. (num - 1)]  which are in the same order as the
-//  overlaps in the store.
-
-  {
-   FILE  * fp;
-   Short_Olap_Data_t  buff;
-   char  filename [MAX_FILENAME_LEN];
-   size_t  file_position;
-   int  i, j, ct, first, file_index;
-
-   ct = 0;
-   first = TRUE;
-   file_index = (int) ceil ((double) lo_id / Frags_Per_File);
-
-   for  (i = lo_id;  i <= hi_id;  i ++)
-     {
-      if  (first || i % Frags_Per_File == 1)
-          {
-           sprintf (filename, "%s/data%02d.olap", path, file_index);
-           fp = File_Open (filename, "rb+");
-           file_position = Olap_Offset [i - lo_id] * sizeof (Short_Olap_Data_t);
-           CDS_FSEEK (fp, (off_t) file_position, SEEK_SET);
-           first = FALSE;
-          }
-
-      if  (i % Frags_Per_File == 0)
-          while  (fread (& buff, sizeof (Short_Olap_Data_t), 1, fp) == 1)
-            {
-             assert (buff . b_iid == olap [ct] . b_iid);
-             assert (buff . a_hang == olap [ct] . a_hang);
-             assert (buff . b_hang == olap [ct] . b_hang);
-             buff . corr_erate = olap [ct] . corr_erate;
-             ct ++;
-             CDS_FSEEK (fp, (off_t) file_position, SEEK_SET);
-             Safe_fwrite (& buff, sizeof (Short_Olap_Data_t), 1, fp);
-             file_position += sizeof (Short_Olap_Data_t);
-             CDS_FSEEK (fp, (off_t) file_position, SEEK_SET);
-            }
-        else
-          for  (j = Olap_Offset [i - lo_id];  j < Olap_Offset [i + 1 - lo_id];  j ++)
-            {
-             Safe_fread (& buff, sizeof (Short_Olap_Data_t), 1, fp);
-             assert (buff . b_iid == olap [ct] . b_iid);
-             assert (buff . a_hang == olap [ct] . a_hang);
-             assert (buff . b_hang == olap [ct] . b_hang);
-             buff . corr_erate = olap [ct] . corr_erate;
-             ct ++;
-             CDS_FSEEK (fp, (off_t) file_position, SEEK_SET);
-             Safe_fwrite (& buff, sizeof (Short_Olap_Data_t), 1, fp);
-             file_position += sizeof (Short_Olap_Data_t);
-             CDS_FSEEK (fp, (off_t) file_position, SEEK_SET);
-            }
-
-      if  (i % Frags_Per_File == 0 || i == hi_id)
-          {
-           fclose (fp);
-           file_index ++;
-          }
-     }
-
-   return;
-  }
 
 
 

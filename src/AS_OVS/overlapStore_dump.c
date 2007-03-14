@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore_dump.c,v 1.4 2007-03-13 22:38:51 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore_dump.c,v 1.5 2007-03-14 19:07:29 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -54,21 +54,17 @@ dumpStore(char *storeName, uint32 dumpBinary, uint32 bgnIID, uint32 endIID) {
     } else {
       switch (overlap.dat.ovl.type) {
         case AS_OVS_TYPE_OVL:
-          fprintf(stdout, "    %8d %8d %c %5d %5d %4.1f %4.1f\n",
+          fprintf(stdout, "%8d %8d %c %5d %5d %5.2f %5.2f\n",
                   overlap.a_iid,
                   overlap.b_iid,
                   overlap.dat.ovl.flipped ? 'I' : 'N',
                   overlap.dat.ovl.a_hang,
                   overlap.dat.ovl.b_hang,
-                  Expand_Quality(overlap.dat.ovl.orig_erate),
-                  Expand_Quality(overlap.dat.ovl.corr_erate));
+                  AS_OVS_decodeQuality(overlap.dat.ovl.orig_erate) * 100.0,
+                  AS_OVS_decodeQuality(overlap.dat.ovl.corr_erate) * 100.0);
           break;
         case AS_OVS_TYPE_OBT:
-
-          //  compatible with OBT convert
-          //fprintf(stdout, "%8d %8d %c %4d %4d %4d %4d %4d %4d    %5.2f\n",
-                  
-          fprintf(stdout, "%7d %7d  %c %4d %4d %4d  %4d %4d %4d  %5.2f\n",
+          fprintf(stdout, "%7d %7d %c %4d %4d %4d %4d %4d %4d %5.2f\n",
                   overlap.a_iid, overlap.b_iid,
                   overlap.dat.obt.fwd ? 'f' : 'r',
                   overlap.dat.obt.a_beg,
@@ -77,7 +73,7 @@ dumpStore(char *storeName, uint32 dumpBinary, uint32 bgnIID, uint32 endIID) {
                   overlap.dat.obt.b_beg,
                   overlap.dat.obt.b_end,
                   666,
-                  Expand_Quality(overlap.dat.obt.erate));
+                  AS_OVS_decodeQuality(overlap.dat.obt.erate) * 100.0);
           break;
         case AS_OVS_TYPE_MER:
           break;

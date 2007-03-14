@@ -889,7 +889,7 @@ main(int argc, char **argv) {
     leftB  = ovl.dat.obt.b_beg + clb;
     rightB = ovl.dat.obt.b_end + clb;
     lenB   = (clear[idB] >> POSITION_LENGTH) & LENGTH_MASK;
-    error  = Expand_Quality(ovl.dat.obt.erate);
+    error  = AS_OVS_decodeQuality(ovl.dat.obt.erate);
 
     if (idA != idAlast) {
       process(idAlast, gkp, doUpdate, m, overlap, olalast, oralast);

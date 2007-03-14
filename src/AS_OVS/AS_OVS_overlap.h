@@ -28,17 +28,21 @@
 #define AS_OVS_POSBITS   11
 #define AS_OVS_ERRBITS   12
 
-//  With 16 bits for storing the error, we can store up to 65% error,
-//  with three decimal points of precision, 65.XXX.  If space become
-//  tight later on, we could store less precise overlaps, 12 bits
-//  would get us 40.XX.
-
-#define AS_OVS_MAX_ERATE        ((1 << AS_OVS_ERRBITS) - 1)
-
-//  Convert q from/to a condensed form / floating point equivalent
+//  Convert q between a condensed/encoded integer and a floating point
+//  value.
 //
-#define Expand_Quality(Q)   ((Q) / 100.0)
-#define Shrink_Quality(Q)   (((Q) < Expand_Quality(AS_OVS_MAX_ERATE)) ? (int)(100.0 * (Q) + 0.5) : AS_OVS_MAX_ERATE)
+//  Q should be a floating point value between 0.000 and 1.000, and is
+//  the fraction error in this alignment.  We are able to encode error
+//  up to 0.4000 (40%), with up to four significant figures.
+//
+//  Previous versions of the overlap store stored any error, with
+//  three significant figures, but used 16 bits to do it.  You can get
+//  the same effect by using 1000.0 instead of 10000.0 below.
+
+#define AS_OVS_MAX_ERATE          ((1 << AS_OVS_ERRBITS) - 1)
+
+#define AS_OVS_decodeQuality(E)   ((E) / 10000.0)
+#define AS_OVS_encodeQuality(Q)   (((Q) < AS_OVS_decodeQuality(AS_OVS_MAX_ERATE)) ? (int)(10000.0 * (Q) + 0.5) : AS_OVS_MAX_ERATE)
 
 #define AS_OVS_TYPE_OVL   0x00
 #define AS_OVS_TYPE_OBT   0x01

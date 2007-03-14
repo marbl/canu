@@ -30,6 +30,8 @@ main(int argc, char **argv) {
   BinaryOverlapFile   *ot = AS_OVS_createBinaryOverlapFile("-", FALSE);
   OVSoverlap           ol;
 
+  int32                minq = AS_OVS_encodeQuality(OBT_MIN_ERATE / 100.0);
+
   while (AS_OVS_readOverlap(in, &ol)) {
 
     //  Remember if the 5' ends are far apart -- but we only care if
@@ -51,7 +53,7 @@ main(int argc, char **argv) {
     //  It's an acceptable overlap if the error is within tolerance,
     //  if it's long, and if the 5' ends are far apart.
     //
-    if (((Expand_Quality(ol.dat.obt.erate) < OBT_MIN_ERATE) ||
+    if (((ol.dat.obt.erate < minq) ||
          ((Adiff > OBT_MIN_DIFF) &&
           (Bdiff > OBT_MIN_DIFF))) &&
         (far5prime))

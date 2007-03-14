@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AutoScreenOVL.c,v 1.9 2007-03-06 01:02:44 brianwalenz Exp $
- * $Revision: 1.9 $
+ * $Id: AutoScreenOVL.c,v 1.10 2007-03-14 19:07:29 brianwalenz Exp $
+ * $Revision: 1.10 $
 */
 
-static char CM_ID[] = "$Id: AutoScreenOVL.c,v 1.9 2007-03-06 01:02:44 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AutoScreenOVL.c,v 1.10 2007-03-14 19:07:29 brianwalenz Exp $";
 
 
 //  System include files
@@ -1110,7 +1110,7 @@ static int  Get_Olap
         olap -> a_hang = a_hang;
         olap -> b_hang = b_hang;
         olap -> orient = orient [0];
-        olap -> e_rate = Shrink_Quality (error_rate);
+        olap -> e_rate = AS_OVS_encodeQuality(error_rate);
        }
 
    return  TRUE;
@@ -1291,7 +1291,7 @@ static void  Make_Graph_Edges
    int  ct = 0;
    ERATE_TYPE  max_erate;
 
-   max_erate = Shrink_Quality (MAX_EDGE_ERATE);
+   max_erate = AS_OVS_encodeQuality(MAX_EDGE_ERATE);
 
    if  (Olaps_From_Store)
        {

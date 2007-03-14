@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_FGB_main.c,v 1.9 2007-03-13 03:03:46 brianwalenz Exp $";
+= "$Id: AS_FGB_main.c,v 1.10 2007-03-14 19:07:29 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module:  AS_FGB_main.c
@@ -306,7 +306,7 @@ static void output_mesgs
         assert(FALSE);
       }
 
-      ovl_mesg.quality = Expand_Quality(qua);
+      ovl_mesg.quality = AS_OVS_decodeQuality(qua);
       ovl_mesg.polymorph_ct = 0;
       ovl_mesg.delta = delta;
 
@@ -610,7 +610,7 @@ int main_fgb
         rg->dvt_double_sided_threshold_fragment_end_degree,
         rg->con_double_sided_threshold_fragment_end_degree,
         rg->intrude_with_non_blessed_overlaps_flag,
-        Shrink_Quality(1.0),
+        AS_OVS_encodeQuality(1.0),
         rg->check_point_level
         );
     {

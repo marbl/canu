@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore_erates.c,v 1.1 2007-03-13 22:38:51 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore_erates.c,v 1.2 2007-03-14 19:07:29 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,14 +46,15 @@ updateErates(char *storeName, char *eratesName) {
   OverlapStore   *orig  = NULL;
   OVSoverlap      ovl;
 
-  int32          eFirst;
-  int32          eLast;
-  int32          eNum;
+  int32          iFirst;
+  int32          iLast;
+  int32          iNum;
 
   FILE           *eF   = NULL;
   int             eLen = 0;
-  int             eMax = 0;
-  int16          *e    = NULL;
+  int             eNum = 0;
+  int             eMax = 32;
+  uint16         *e    = NULL;
 
   //  Open the erates, read in the header.
   //
@@ -63,9 +64,11 @@ updateErates(char *storeName, char *eratesName) {
     fprintf(stderr, "failed to open erates file '%s': %s\n", eratesName, strerror(errno));
     exit(1);
   }
-  AS_UTL_safeRead(eF, &eFirst, "updateErates read header 0", sizeof(int32), 1);
-  AS_UTL_safeRead(eF, &eLast,  "updateErates read header 1", sizeof(int32), 1);
-  AS_UTL_safeRead(eF, &eNum,   "updateErates read header 2", sizeof(int32), 1);
+  AS_UTL_safeRead(eF, &iFirst, "updateErates read header 0", sizeof(int32), 1);
+  AS_UTL_safeRead(eF, &iLast,  "updateErates read header 1", sizeof(int32), 1);
+  AS_UTL_safeRead(eF, &iNum,   "updateErates read header 2", sizeof(int32), 1);
+
+  fprintf(stderr, "read first=%d last=%d num=%d\n", iFirst, iLast, iNum);
 
 
   //  Open the two stores so we can read overlaps from them.  The
@@ -75,39 +78,43 @@ updateErates(char *storeName, char *eratesName) {
   //
   orig = AS_OVS_openOverlapStorePrivate(storeName, TRUE,  TRUE);
 
-  assert(eNum == orig->ovs.numOverlapsTotal);
+  assert(iNum == orig->ovs.numOverlapsTotal);
 
   //  Recreate a store in the same place as the original store.
   //
   store = AS_OVS_createOverlapStore(storeName, FALSE);
 
   //  Grab some space for our cache of erates
-  e = (int16 *)safe_malloc(sizeof(int16) * 1048576);
+  e = (uint16 *)safe_malloc(sizeof(uint16) * eMax);
 
   while (AS_OVS_readOverlapFromStore(orig, &ovl)) {
-    if (eLen >= eMax) {
+    if (eLen >= eNum) {
       eLen = 0;
-      eMax = AS_UTL_safeRead(eF, e, "updateErates read erates", sizeof(uint16), 1048576);
-      if (eMax == 0) {
+      eNum = AS_UTL_safeRead(eF, e, "updateErates read erates", sizeof(uint16), eMax);
+      if (eNum == 0) {
         fprintf(stderr, "failed to read more erates from '%s'.\n", eratesName);
         exit(1);
       }
     }
 
     ovl.dat.ovl.corr_erate = e[eLen++];
-    eNum--;
+    iNum--;
 
-    fprintf(stderr, "%d-vs-%d from %d(%6.3f) to %d(%6.2f)\n",
-            ovl.a_iid, ovl.b_iid,
-            ovl.dat.ovl.orig_erate, Expand_Quality(ovl.dat.ovl.orig_erate),
-            ovl.dat.ovl.corr_erate, Expand_Quality(ovl.dat.ovl.corr_erate));
+#if 0
+    fprintf(stderr, "%d-vs-%d from %d(%6.3f) to %d(%6.3f) [eLen=%4d eNum=%4d eMax=%4d]\n",
+            (int)ovl.a_iid,
+            (int)ovl.b_iid,
+            (int)ovl.dat.ovl.orig_erate, AS_OVS_decodeQuality(ovl.dat.ovl.orig_erate) * 100.0,
+            (int)ovl.dat.ovl.corr_erate, AS_OVS_decodeQuality(ovl.dat.ovl.corr_erate) * 100.0,
+            eLen, eNum, eMax);
+#endif
 
     AS_OVS_writeOverlapToStore(store, &ovl);
   }
 
   //  check that both files are empty now
 
-  assert(eNum == 0);
+  assert(iNum == 0);
   
 
   //  ALL DONE!  Close the stores, nuke the backups and get outta here.

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: convertOverlap.c,v 1.9 2007-03-13 22:38:51 brianwalenz Exp $";
+static char CM_ID[] = "$Id: convertOverlap.c,v 1.10 2007-03-14 19:07:29 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -186,7 +186,7 @@ convertOVLtoBinary(void) {
 
       olap.a_iid = omesg->aifrag;
       olap.b_iid = omesg->bifrag;
-      olap.dat.ovl.orig_erate = Shrink_Quality(100.0 * omesg->quality);
+      olap.dat.ovl.orig_erate = AS_OVS_encodeQuality(omesg->quality);
       olap.dat.ovl.corr_erate = olap.dat.ovl.orig_erate;
       olap.dat.ovl.type = AS_OVS_TYPE_OVL;
 
@@ -306,7 +306,7 @@ void   convertOBTtoBinary(void) {
       olap.dat.obt.a_end  = atoi(ptrs[4]);
       olap.dat.obt.b_beg  = atoi(ptrs[6]);
       olap.dat.obt.b_end  = atoi(ptrs[7]);
-      olap.dat.obt.erate  = Shrink_Quality(atof(ptrs[9]));
+      olap.dat.obt.erate  = AS_OVS_encodeQuality(atof(ptrs[9]) / 100.0);
       olap.dat.ovl.type   = AS_OVS_TYPE_OBT;
 
       assert(olap.dat.obt.a_beg == atoi(ptrs[3]));
@@ -375,7 +375,7 @@ void   convertOVLtoASCII(void) {
     omesg.bhg          = olap.dat.ovl.b_hang;
     omesg.orientation  = (olap.dat.ovl.flipped) ? AS_INNIE : AS_NORMAL;
     omesg.overlap_type = AS_DOVETAIL;
-    omesg.quality      = Expand_Quality(olap.dat.ovl.orig_erate);
+    omesg.quality      = AS_OVS_decodeQuality(olap.dat.ovl.orig_erate);
     omesg.min_offset   = 0;
     omesg.max_offset   = 0;
     omesg.polymorph_ct = 0;
@@ -400,8 +400,8 @@ void   convertOVLDUMPtoASCII(void) {
             olap.dat.ovl.flipped ? 'I' : 'N',
             olap.dat.ovl.a_hang,
             olap.dat.ovl.b_hang,
-            Expand_Quality(olap.dat.ovl.orig_erate) * 100.0,
-            Expand_Quality(olap.dat.ovl.corr_erate) * 100.0);
+            AS_OVS_decodeQuality(olap.dat.ovl.orig_erate) * 100.0,
+            AS_OVS_decodeQuality(olap.dat.ovl.corr_erate) * 100.0);
   }
 
   AS_OVS_closeBinaryOverlapFile(input);
@@ -423,7 +423,7 @@ void   convertOBTtoASCII(void) {
             olap.dat.obt.b_beg,
             olap.dat.obt.b_end,
             666,
-            Expand_Quality(olap.dat.obt.erate));
+            AS_OVS_decodeQuality(olap.dat.obt.erate) * 100.0);
   }
 
   AS_OVS_closeBinaryOverlapFile(input);

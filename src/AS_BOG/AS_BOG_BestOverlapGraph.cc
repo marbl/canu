@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.35 2007-03-13 06:33:04 brianwalenz Exp $
- * $Revision: 1.35 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.36 2007-03-14 19:07:29 brianwalenz Exp $
+ * $Revision: 1.36 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.35 2007-03-13 06:33:04 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.36 2007-03-14 19:07:29 brianwalenz Exp $";
 
 //  System include files
 #include<iostream>
@@ -543,7 +543,7 @@ namespace AS_BOG{
     // Computes the score for a Error Rate BOG based on overlap corrected error rate.  
     //        Error rate is normalized so that the higher the error rate, the lower the score.
 
-        return 100 - Expand_Quality(olap.dat.ovl.corr_erate) * 100;
+        return 100 - AS_OVS_decodeQuality(olap.dat.ovl.corr_erate) * 100;
     }
     
     float LongestEdge::scoreOverlap(const OVSoverlap& olap) {
@@ -557,7 +557,7 @@ namespace AS_BOG{
     //   after applying an an error rate cutoff.
 
         short olapLen = olapLength(olap);
-        float erate = Expand_Quality(olap.dat.ovl.corr_erate) * 1000;
+        float erate = AS_OVS_decodeQuality(olap.dat.ovl.corr_erate) * 10;
 /*        if ( olap.a_iid == 3771 && olap.b_iid == 5550 || olap.a_iid == 26784 && olap.b_iid == 11910 || olap.a_iid == 27570 && (olap.b_iid == 16509 || olap.b_iid == 26319) )
             std::cerr << olap.a_iid << " " << olap.b_iid << " Erate " <<
                 olap.dat.ovl.corr_erate << " expanded " << erate << " cutoff " <<

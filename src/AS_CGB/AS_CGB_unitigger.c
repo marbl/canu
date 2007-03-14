@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_unitigger.c,v 1.11 2007-03-13 03:03:46 brianwalenz Exp $";
+= "$Id: AS_CGB_unitigger.c,v 1.12 2007-03-14 19:07:29 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_unitigger.c
@@ -143,7 +143,7 @@ static void output_OVL_mesgs
             assert(FALSE);
           }
 
-          ovl_mesg.quality = Expand_Quality(qua);
+          ovl_mesg.quality = AS_OVS_decodeQuality(qua);
           ovl_mesg.polymorph_ct = 0;
           ovl_mesg.delta = delta;
           
@@ -538,11 +538,7 @@ static void InitializeGlobals
   rg->cgb_unique_cutoff = CGB_UNIQUE_CUTOFF;
   rg->walk_depth = 100;
   rg->iv_start = 0;
-#if 0
-  rg->overlap_error_threshold = AS_READ_ERROR_RATE; // cds/AS/inc/AS_global.h
-#else
-  rg->overlap_error_threshold = Shrink_Quality(1.0);
-#endif
+  rg->overlap_error_threshold = AS_OVS_encodeQuality(1.0);
   rg->work_limit_placing_contained_fragments = 20;
   rg->walk_depth=100;
   rg->iv_start=0;
@@ -798,12 +794,12 @@ static int ParseCommandLine
         {
           const int float_erate_value = (NULL != strstr(optarg,"."));
           if(float_erate_value) {
-            rg->overlap_error_threshold = Shrink_Quality(atof(optarg));
+            rg->overlap_error_threshold = AS_OVS_encodeQuality(atof(optarg) / 100.0);
           } else {
-            rg->overlap_error_threshold = Shrink_Quality(atof(optarg) / 10.0);
+            rg->overlap_error_threshold = AS_OVS_encodeQuality(atof(optarg) / 1000.0);
           }
           fprintf(stderr,"The overlap_error_threshold = %f%%\n",
-                  Expand_Quality(rg->overlap_error_threshold));
+                  AS_OVS_decodeQuality(rg->overlap_error_threshold) * 100.0);
         }
         break;
       case 'f':
