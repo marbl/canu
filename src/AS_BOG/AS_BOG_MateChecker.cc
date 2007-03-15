@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.10 2007-03-13 06:33:04 brianwalenz Exp $
- * $Revision: 1.10 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.11 2007-03-15 21:07:20 eliv Exp $
+ * $Revision: 1.11 $
 */
 
 #include <math.h>
@@ -303,6 +303,7 @@ namespace AS_BOG{
     }
     ///////////////////////////////////////////////////////////////////////////
 
+    static const bool MATE_3PRIME_END = false;
     void MateChecker::computeMateCoverage( Unitig* tig, LibraryStats& globalStats )
     {
         int max = std::numeric_limits<int>::max(); // Sentinel value
@@ -325,6 +326,10 @@ namespace AS_BOG{
             if ( mateInfo.mate != NULL_FRAG_ID )
             {
                 SeqInterval fragPos = frag.position;
+                int frgBgn = fragPos.bgn;
+                int frgEnd  = frgBgn;
+                if (MATE_3PRIME_END) frgEnd = fragPos.end;
+
                 if ( tig->id() == Unitig::fragIn( mateInfo.mate ) )
                 {
                     // Mate inside unitig
@@ -334,20 +339,28 @@ namespace AS_BOG{
                         if (isReverse(fragPos))
                         {
                             if ( seenMates[fragId] == max ) { // mate wrong orient
-                                if ( fragPos.bgn > badMax )
-                                  incrRange( badGraph,-1, fragPos.bgn-badMax,fragPos.bgn);
+                                if (frgBgn > badMax )
+                                    incrRange( badGraph,-1, frgBgn-badMax,frgEnd);
                             } else {
                                 // 2nd frag seen is reverse, so good orientation
+                                uint16 mateLen = BestOverlapGraph::fragLen(mateInfo.mate);
                                 int mateBgn = seenMates[ fragId ];
-                                int mateDist = fragPos.bgn - mateBgn;
+                                int mateDist = frgBgn - mateBgn;  
+                                if (MATE_3PRIME_END)
+                                    mateDist += mateLen;
+
                                 if (mateDist >= badMin && mateDist <= badMax)
-                                    incrRange(goodGraph,2, mateBgn, fragPos.bgn);
+                                    incrRange(goodGraph,2, mateBgn, frgEnd);
                                 else {
                                     // if tig ends before range, cap at tig end
-                                    int edge = MAX(0, fragPos.end - badMax);
-                                    incrRange(badGraph,-1, edge, fragPos.bgn);
+                                    int edge = MAX(0, frgBgn - badMax); 
+                                    incrRange(badGraph,-1, edge, frgEnd);
 
-                                    edge = MIN(tigLen, mateBgn + badMax);
+                                    if (MATE_3PRIME_END)
+                                        edge = MIN(tigLen-1, mateBgn - mateLen + badMax);
+                                    else
+                                        edge = MIN(tigLen-1, mateBgn + badMax);
+
                                     incrRange(badGraph,-1, mateBgn, edge);
                                 }
                             }
@@ -357,22 +370,26 @@ namespace AS_BOG{
                         if (isReverse(fragPos)) {
                             // 1st reversed, so bad if range internal to unitig
                             seenMates[mateInfo.mate] = max;
-                            if ( fragPos.bgn > badMax )
-                                incrRange( badGraph, -1, fragPos.bgn-badMax, fragPos.bgn);
+
+                            if ( frgBgn > badMax ) 
+                                incrRange( badGraph, -1, frgBgn-badMax, frgEnd);
                             // else end of unitig before end of range
                         } else {
                             // 1st forward, so good store begin
-                            seenMates[mateInfo.mate] = fragPos.bgn;
+                            if (MATE_3PRIME_END)
+                                seenMates[mateInfo.mate] = fragPos.end;
+                            else
+                                seenMates[mateInfo.mate] = fragPos.bgn;
                         }
                     }
                 } else {
                     // mate in another tig, mark bad only if max range exceeded
                     if (isReverse(fragPos)) {
-                        if ( fragPos.bgn > badMax )
-                            incrRange( badGraph, -1, fragPos.bgn - badMax, fragPos.bgn );
+                        if ( frgBgn > badMax )
+                            incrRange( badGraph, -1, frgBgn - badMax, frgEnd );
                     } else {
-                        if ( fragPos.bgn + badMax < tigLen ) 
-                            incrRange( badGraph, -1, fragPos.bgn, fragPos.bgn + badMax );
+                        if ( frgBgn + badMax < tigLen ) 
+                            incrRange( badGraph, -1, frgEnd, frgBgn + badMax );
                     }
                 }
             }
@@ -397,5 +414,26 @@ namespace AS_BOG{
             sum += badGraph[ i ];
         }
         fprintf(stderr,"\n");
+        int badBegin, peakBad, peakBegin, peakEnd, lastBad;
+        peakBad = peakBegin = peakEnd = lastBad = badBegin = 0;
+        for(int i=0; i < tigLen; i++) {
+            if( badGraph[ i ] < -3 ) {
+                if (badBegin == 0)  // start bad region
+                    badBegin = i;
+                if(badGraph[i] < peakBad) {
+                    peakBad   = badGraph[i];
+                    peakBegin = i;
+                } else if (lastBad < 0 && lastBad == peakBad) {
+                    peakEnd = i;
+                }
+                lastBad = badGraph[i];
+            } else {
+                if (badBegin > 0) {  // end bad region
+                    fprintf(stderr,"Bad mates >3 from %d to %d peak %d from %d to %d\n",
+                            badBegin,i-1,peakBad,peakBegin,peakEnd);
+                    peakBad = peakBegin = peakEnd = lastBad = badBegin = 0;
+                }
+            }
+        }
     }
 }
