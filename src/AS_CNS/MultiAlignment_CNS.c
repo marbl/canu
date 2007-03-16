@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.134 2007-03-11 02:36:16 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.135 2007-03-16 18:56:09 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -74,6 +74,7 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.134 2007-03-11 02:36:16 gde
 #define MAX_WINDOW_FOR_ABACUS_REFINE      100
 #define SHOW_ABACUS                         0
 #define SHOW_READS                          0
+#define SHOW_CONFIRMED_READS                0
 #define STABWIDTH                           6
 #define DEBUG_ABACUS                        0
 #define DEBUG_CONSENSUS_CALL                0
@@ -119,6 +120,8 @@ extern int MaxEndGap;       // [ init value is 200; this could be set to the amo
 
 VA_DEF(int16);
 
+// Variables used to compute general statistics
+
 int NumColumnsInUnitigs;
 int NumRunsOfGapsInUnitigReads;
 int NumGapsInUnitigs;
@@ -130,6 +133,14 @@ int NumVARRecords;
 int NumVARStringsWithFlankingGaps;
 int NumUnitigRetrySuccess;
 int contig_id;
+
+// Variables used to phase VAR records
+
+static int32 vreg_id  = -1; // id of a VAR record
+static int32 prev_nca =  0; // size of array prev_nrca (<= 10)
+static int32 prev_ncr =  0; // size ogft array prev_iidrca (<= 100)
+int32  prev_nrca[10];       // number of reads in 10 first confirmed alleles
+int32  prev_iidrca[100];    // iids of the first 100 reads, rev. sorted by allele
 
 //*********************************************************************************
 //  Tables to facilitate SNP Basecalling
@@ -2337,6 +2348,8 @@ ClusterReads(Read *reads, int nr, Allele *alleles, int32 *na, int32 *nca,
                 alleles[*na].uglen  = reads[row].uglen;
                 alleles[*na].read_ids[0] = row;
                 alleles[*na].read_ids[1] = col;
+                alleles[*na].read_iids[0] = reads[row].iid;
+                alleles[*na].read_iids[1] = reads[col].iid;
                 alleles[*na].num_reads = 2;
                 alleles[*na].id = *na;
                 (*na)++;
@@ -2350,6 +2363,7 @@ ClusterReads(Read *reads, int nr, Allele *alleles, int32 *na, int32 *nca,
                 alleles[aid].weight += ROUND(reads[row].ave_qv); 
                 anr = alleles[aid].num_reads;
                 alleles[aid].read_ids[anr] = row;
+                alleles[aid].read_iids[anr] = reads[row].iid;
                 alleles[aid].num_reads++;
             }
             else if (reads[row].allele_id >=0 &&
@@ -2361,6 +2375,7 @@ ClusterReads(Read *reads, int nr, Allele *alleles, int32 *na, int32 *nca,
                 alleles[aid].weight += ROUND(reads[col].ave_qv);
                 anr = alleles[aid].num_reads;
                 alleles[aid].read_ids[anr] = col;
+                alleles[aid].read_iids[anr] = reads[col].iid;
                 alleles[aid].num_reads++;
             }
         }       
@@ -2377,6 +2392,7 @@ ClusterReads(Read *reads, int nr, Allele *alleles, int32 *na, int32 *nca,
            alleles[*na].weight = ROUND(reads[row].ave_qv);
            alleles[*na].uglen  = reads[row].uglen;
            alleles[*na].read_ids[0] = row;
+           alleles[*na].read_iids[0] = reads[row].iid;
            alleles[*na].num_reads = 1;
            alleles[*na].id = *na;
            (*na)++;
@@ -2422,7 +2438,7 @@ SortAllelesByWeight(Allele *alleles, int32 num_alleles, Read *reads)
 
 // Reverse sort confirmed alleles by ungapped length
 static void
-SortConfirmedAllelesByLength(Allele *alleles, int32 num_alleles, Read *reads)
+SortAllelesByLength(Allele *alleles, int32 num_alleles, Read *reads)
 {
     int i, j, best_id;
     Allele temp;
@@ -2449,6 +2465,45 @@ SortConfirmedAllelesByLength(Allele *alleles, int32 num_alleles, Read *reads)
     // Update allele_id of reads
     for (i=0; i<num_alleles; i++)
     {
+        for (j=0; j<alleles[i].num_reads; j++)
+        {
+           int read_id = alleles[i].read_ids[j];
+           reads[read_id].allele_id = i;
+        }
+    }
+}
+
+// Sort confirmed alleles according to their mapping
+// between two "phased" VAR records
+static void
+SortAllelesByMapping(Allele *alleles, int32 nca, Read *reads,
+   int *allele_map)
+{
+    int i, j, k;
+    Allele temp;
+
+    for (i=0; i<nca; i++)
+    {
+        // j is id of the allele that should be at i-th place
+        for (j=0; j<nca; j++)
+            if (allele_map[j] == i) break;
+
+        for (k=i; k<nca; k++)
+        {
+            if (alleles[k].id == j)
+            {
+                temp       = alleles[i];
+                alleles[i] = alleles[k];
+                alleles[k] = temp;
+                break;
+            }
+        }
+    }
+
+    // Update allele_ids
+    for (i=0; i<nca; i++)
+    {
+        alleles[i].id = i;
         for (j=0; j<alleles[i].num_reads; j++)
         {
            int read_id = alleles[i].read_ids[j];
@@ -2554,9 +2609,10 @@ GetReadsForVARRecord(Read *reads, int32 *iids, int32 nvr,
             type = GetFragment(fragmentStore,bead->frag_index)->type;
             iid  = GetFragment(fragmentStore,bead->frag_index)->iid;
 
-            if ((type == AS_READ)   ||
-                (type == AS_EXTR)   ||
-                (type == AS_TRNR))
+            if ((type == AS_READ)   
+//              || (type == AS_EXTR) 
+//              || (type == AS_TRNR)
+                                 )
             {
                 // Filter out "duplicated" reads with the same iid
                 if (!IsNewRead(iid, column_iid_list, nr))
@@ -2607,6 +2663,7 @@ GetReadsForVARRecord(Read *reads, int32 *iids, int32 nvr,
                 }
                 reads[i].bases[k-beg] = base;
                 reads[i].qvs[k-beg] = qv;
+                reads[i].iid = iid;
             }
         }
         safe_free(column_iid_list);
@@ -2794,7 +2851,7 @@ OutputAlleles(FILE *fout, VarRegion *vreg)
 }
 
 static void
-PopulateVarRecord(int32 *cids, int32 *nvars, int32 *min_len_vlist,
+PopulateVARRecord(int is_phased, int32 *cids, int32 *nvars, int32 *min_len_vlist,
     IntMultiVar **v_list, VarRegion vreg, CNS_Options *opp, int get_scores)
 {
     double fict_var;
@@ -2813,6 +2870,9 @@ PopulateVarRecord(int32 *cids, int32 *nvars, int32 *min_len_vlist,
        *v_list = (IntMultiVar *)safe_realloc(*v_list, *min_len_vlist*
             sizeof(IntMultiVar));
     }
+//  (*v_list)[*nvars].phs_id = is_phased ? vreg_id : -1;
+    vreg_id++;
+//  (*v_list)[*nvars].id = vreg_id;
     (*v_list)[*nvars].position.bgn = vreg.beg;
     (*v_list)[*nvars].position.end = vreg.end+1;
     (*v_list)[*nvars].num_reads = (int32)vreg.nr;
@@ -2974,16 +3034,197 @@ AllocateMemoryForAlleles(Allele **alleles, int32 nr, int32 *na)
       (*alleles)[j].id = -1;
       (*alleles)[j].weight = 0;
       (*alleles)[j].read_ids = (int *)safe_calloc(nr, sizeof(int));
+      (*alleles)[j].read_iids = (int32 *)safe_calloc(nr, sizeof(int));
     }
 }
+
+static int
+PhaseWithPrevVreg(int nca, Allele *alleles, Read *reads)
+{
+    int i, j, k, l;
+    int is_phased = 0;
+    int **allele_matrix;
+    int  *allele_map, *check;
+
+    if (prev_nca != nca)
+        return 0;
+ 
+    allele_matrix = (int **)safe_calloc(prev_nca, sizeof(int *)); 
+    for (i=0; i<prev_nca; i++)
+    {
+        allele_matrix[i] = (int *)safe_calloc(nca, sizeof(int));
+    }
+
+    // Populate the matrix allele_matrix
+    for (i=0; i<nca; i++)   // i = allele id in current VAR record
+    {
+        for (j=0; j<alleles[i].num_reads; j++)
+        {
+            int read_id=0;
+            l = 0; // allele id in the prev VAR record
+            for (k=0; k<prev_ncr; k++)
+            {
+                if (read_id == prev_nrca[l])  // start of a new allele
+                {
+                    l++;
+                    read_id = 0;
+                }
+                read_id++;                
+    
+                if (prev_iidrca[k] == alleles[i].read_iids[j])
+                    allele_matrix[l][i]++;      
+            }    
+        }
+    }
+
+#if 0
+    fprintf(stderr, "Matrix allele_matrix =\n");
+    for (i=0; i<prev_nca; i++)
+    {
+        for (j=0; j<nca; j++)
+        {
+            fprintf(stderr, "%d ", allele_matrix[i][j]);
+        }
+        fprintf(stderr, "\n");
+    }
+    fprintf(stderr, "\n");
+#endif
+
+    // Check if alleles of previous VAR record map well on reads of current
+    // VAR record. They do, if:
+    // - maximal element in each row in allele_matrix is greater than half 
+    //   the sum of all elements, and 
+    // - maximal elements of different rows are located in different 
+    //   columns
+    allele_map = (int *)safe_calloc(nca, sizeof(int));
+    check      = (int *)safe_calloc(nca, sizeof(int));
+    for (i=0; i<nca; i++)
+    {
+        allele_map[i] = check[i] = -1;
+    }
+    for (i=0; i<nca; i++)
+    {
+        int sum = 0, max = -1, j_best = -1;
+        for (j=0; j<prev_nca; j++)
+        {
+            sum += allele_matrix[i][j];
+            if (max < allele_matrix[i][j])
+            {
+                max = allele_matrix[i][j];
+                j_best = j;
+            }
+        }
+        if (2*max > sum)
+        {
+            allele_map[i] = j_best;
+            check[j_best] = 1;
+        }
+    }
+    {
+        int product = 1;
+        for (i=0; i< nca; i++)
+            product *= (check[i]+1);
+        if (product > 0)
+            is_phased = 1;
+    }
+            
+    // Check if alleles of current  VAR record map well on reads of previous
+    // VAR record. They do, if:
+    // - maximal element in each col in the allele_matrix is greater than half
+    //   the sum of all elements, and
+    // - maximal elements of different cols are located in different
+    //   rows   
+    if (!is_phased)
+    {
+        for (i=0; i<nca; i++)
+        {
+            allele_map[i] = check[i] = -1;
+        }
+        for (j=0; j<nca; j++) // loop through all columns
+        {
+            int sum = 0, max = -1, i_best = -1;
+            for (i=0; i<nca; i++)
+            {
+                sum += allele_matrix[i][j];
+                if (max < allele_matrix[i][j])
+                {
+                    max = allele_matrix[i][j];
+                    i_best = i;
+                }
+            }
+            if (2*max > sum)
+            {
+                allele_map[i_best] = j;
+                check[i_best] = 1;
+            }
+        }
+        {
+            int product = 1;
+            for (i=0; i< nca; i++)
+                product *= (check[i]+1);
+            if (product > 0)
+                is_phased = 1;
+        }
+    }
+
+#if 0
+    fprintf(stderr, "is_phased = %d\n", is_phased);
+    fprintf(stderr, "allele_map= ");
+    for (i=0; i<nca; i++)
+    {
+        fprintf(stderr, "%d ", allele_map[i]);
+    }
+    fprintf(stderr, "\n\n");
+#endif
+
+    // Reorder alleles in accordance with allele_map
+    if (is_phased)
+    {
+        SortAllelesByMapping(alleles, nca, reads, allele_map);
+    }
+
+#if 0
+    {
+        fprintf(stderr, "Prev read iids= \n");
+        k = 0;
+        for (i=0; i<prev_nca; i++)
+        {
+            fprintf(stderr, "    allele %d : ", i);
+            for (j= 0; j<prev_nrca[i]; j++)
+            {
+                fprintf(stderr, "%d ", prev_iidrca[k]);
+                k++;
+            }
+            fprintf(stderr, "\n");
+        }
+        fprintf(stderr, "Curr read iids= \n");
+        for (i=0; i<nca; i++)
+        {
+            fprintf(stderr, "    allele %d : ", i);
+            for (j=0; j<alleles[i].num_reads; j++)
+                fprintf(stderr, "%d ", alleles[i].read_iids[j]);
+            fprintf(stderr, "\n");
+        }
+    }
+#endif
+
+    for (i=0; i<prev_nca; i++)
+    {
+       FREE(allele_matrix[i]);
+    } 
+    FREE(allele_matrix); 
+    FREE(allele_map);
+    FREE(check);
+    return is_phased;
+}
+
 
 //*********************************************************************************
 // Basic MultiAlignmentNode (MANode) manipulation
 //*********************************************************************************
 int 
-RefreshMANode(int32 mid, int quality, CNS_Options *opp, 
-                      int32 *nvars, IntMultiVar **v_list, int make_v_list,
-                      int get_scores)
+RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars, 
+    IntMultiVar **v_list, int make_v_list, int get_scores)
 {
     // refresh columns from cid to end
     // if quality == -1, don't recall the consensus base
@@ -2999,6 +3240,7 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
     char  **reads; 
     MANode *ma = GetMANode(manodeStore,mid);
     int32   min_len_vlist = 10;
+    int32   is_phased;
 
     //  Make sure that we have valid options here, we then reset the
     //  pointer to the freshly copied options, so that we can always
@@ -3015,9 +3257,6 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
     window = opp->smooth_win;
    *nvars = 0;
 
-#if 0
-    fprintf(fout,   "Calling RefreshMANode, quality = %d\n", quality);
-#endif
     if (ma == NULL ) 
         CleanExit("RefreshMANode ma==NULL",__LINE__,1);
     if ( ma->first == -1 ) 
@@ -3117,8 +3356,7 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
         NumColumnsInContigs += index;
     }
 
-    if ((opp->split_alleles == 0) ||
-        (quality <= 0))
+    if (opp->split_alleles == 0 || quality <= 0 || make_v_list == 0)
     {
         safe_free(vreg.curr_bases);
         safe_free(vreg.iids);
@@ -3233,17 +3471,53 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
                 fprintf(stderr, "%d ", vreg.alleles[j].weight);
             fprintf(stderr, "\n");
 #endif
-            SortAllelesByWeight(vreg.alleles, vreg.na, vreg.reads);
-#if 0            
-            OutputAlleles(stderr, &vreg);
-#endif
-            /* Store variations in a v_list */
-            if (quality > 0 && make_v_list)
+            is_phased = PhaseWithPrevVreg(vreg.nca, vreg.alleles, vreg.reads);
+
+            if (!is_phased)
             {
-                PopulateVarRecord(cids, nvars, &min_len_vlist, v_list, vreg,
-                    opp, get_scores); 
+                SortAllelesByWeight(vreg.alleles, vreg.na, vreg.reads);
             }
-            
+
+            {
+                int iv, jv, kv = 0; 
+#if SHOW_CONFIRMED_READS
+                fprintf(stderr, "Confirmed reads=\n");
+                for (j=0; j<vreg.nr; j++)
+                {
+                    if (vreg.reads[j].allele_id >= vreg.nca)
+                        continue;
+    
+                    for (l=0; l< vreg.end-vreg.beg+1; l++)
+                    {
+                        fprintf(stderr, "%c", vreg.reads[j].bases[l]);
+                    }
+                    fprintf(stderr, " allele= %d iid= %d\n",
+                         vreg.reads[j].allele_id, vreg.reads[j].iid);
+                }
+                fprintf(stderr, "\n");
+#endif
+                // Update the info about the previous VAR record :
+                // prev_nca, prev_nrca and prev_iidrca
+                prev_nca = vreg.nca;
+                for (iv = 0; iv < vreg.nca && iv < 10; iv++)
+                {
+                    prev_nrca[iv] = vreg.alleles[iv].num_reads;
+                    for (jv = 0; jv < vreg.alleles[iv].num_reads && kv < 100;
+                         jv++)
+                    {
+                        prev_iidrca[kv] = vreg.alleles[iv].read_iids[jv];
+                        kv++;
+                    }
+                }
+                prev_ncr = kv;
+#if 0            
+                OutputAlleles(stderr, &vreg);
+#endif
+                /* Store variations in a v_list */
+                PopulateVARRecord(is_phased, cids, nvars, &min_len_vlist, v_list, 
+                    vreg, opp, get_scores); 
+            }
+           
             i = vend;
 
             for (j=0; j<vreg.nr; j++)
@@ -3252,6 +3526,7 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp,
                 safe_free(vreg.reads[j].bases);
                 safe_free(vreg.reads[j].qvs);
                 safe_free(vreg.alleles[j].read_ids);
+                safe_free(vreg.alleles[j].read_iids);
             }
             safe_free(vreg.dist_matrix); 
             safe_free(vreg.reads);
@@ -3295,8 +3570,7 @@ int SeedMAWithFragment(int32 mid, int32 fid, int quality,
   {
       IntMultiVar *vl = NULL;
       int32 nv=0;
-      int make_v_list = 0;
-      RefreshMANode(mid, quality, opp, &nv, &vl, make_v_list, 0); 
+      RefreshMANode(mid, quality, opp, &nv, &vl, 0, 0); 
       safe_free(vl);
   }
   return 1;
@@ -6535,7 +6809,7 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
     AllocateMemoryForAlleles(&vreg.alleles, vreg.nr, &vreg.na);
     ClusterReads(vreg.reads, vreg.nr, vreg.alleles, &vreg.na,
         &vreg.nca, vreg.dist_matrix);
-    SortConfirmedAllelesByLength(vreg.alleles, vreg.nca, vreg.reads);
+    SortAllelesByLength(vreg.alleles, vreg.nca, vreg.reads);
 
     RefineOrigAbacus(orig_abacus, vreg);
     //ShowAbacus(orig_abacus);
@@ -6959,8 +7233,7 @@ int AbacusRefine(MANode *ma, int32 from, int32 to, CNS_RefineLevel level,
   {
       int32 nv=0;
       IntMultiVar *vl=NULL;
-      int make_v_list = 0;
-      RefreshMANode(ma->lid, 1, opp, &nv, &vl, make_v_list, 0);
+      RefreshMANode(ma->lid, 1, opp, &nv, &vl, 0, 0);
       safe_free(vl);
   }
   refined_length = GetMANodeLength(ma->lid);
