@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.35 2007-03-04 02:06:21 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.36 2007-03-16 15:31:50 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -4117,8 +4117,11 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
       
         fprintf( stderr,
                  "could not open directory: %s, creating...\n", filename);
-        retval = system( "mkdir stat" );
-        assert(retval == 0);
+        retval = mkdir("stat", 0775 );
+        if (retval != 0 ) {
+            perror("mkdir stat failed");
+            assert(0);
+        }
 
         dirStream = opendir("stat");
         if(dirStream == NULL)
