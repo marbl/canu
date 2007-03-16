@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.20 2007-03-04 01:18:45 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.21 2007-03-16 15:32:41 eliv Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -86,8 +86,6 @@ void CheckpointOnDemand(int whatToDoAfter)
   FILE * fp;
   if((fp = fopen(CHECKPOINT_DEMAND_FILE, "r")) != NULL)
     {
-      char command[1024];
-    
       fclose(fp);
     
       CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
@@ -95,13 +93,12 @@ void CheckpointOnDemand(int whatToDoAfter)
       fprintf( GlobalData->timefp,"Checkpoint %d written during MergeScaffoldsAggressive demanded by user\n", ScaffoldGraph->checkPointIteration);
       CheckpointScaffoldGraph(ScaffoldGraph, -1);
     
-      sprintf(command, "rm -f %s", CHECKPOINT_DEMAND_FILE);
-      if(system(command) != 0)
+      if(0 != unlink( CHECKPOINT_DEMAND_FILE ))
         {
           fprintf(GlobalData->stderrc,
                   "ALERT!!!!! Failed to remove checkpoint-on-demand file, %s\n",
                   CHECKPOINT_DEMAND_FILE);
-          fprintf(GlobalData->stderrc, "Please remove it immediately!!!!\n");
+          perror("Please remove it immediately!!!!\n");
         }
 
       switch(whatToDoAfter)
