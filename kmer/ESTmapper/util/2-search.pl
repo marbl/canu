@@ -7,6 +7,14 @@ sub submitFilter (@) {
 
     open(F, "> $path/1-search/filter-restart.sh");
     print F "#!/bin/sh\n";
+    print F "#\n";
+    print F "#  Attempt to (re)configure SGE.  For reasons Bri doesn't know,\n";
+    print F "#  jobs submitted to SGE, and running under SGE, fail to read his\n";
+    print F "#  .tcshrc (or .bashrc, limited testing), and so they don't setup\n";
+    print F "#  SGE (or ANY other paths, etc) properly.  For the record,\n";
+    print F "#  interactive SGE logins (qlogin, etc) DO set the environment.\n";
+    print F "#\n";
+    print F ". \$SGE_ROOT/\$SGE_CELL/common/settings.sh\n";
     print F "/usr/bin/perl $prog{'ESTmapper'} -restart $path\n";
     close(F);
 
@@ -28,6 +36,14 @@ sub submitFinish (@) {
 
     open(F, "> $path/3-polish/finish-restart.sh");
     print F "#!/bin/sh\n";
+    print F "#\n";
+    print F "#  Attempt to (re)configure SGE.  For reasons Bri doesn't know,\n";
+    print F "#  jobs submitted to SGE, and running under SGE, fail to read his\n";
+    print F "#  .tcshrc (or .bashrc, limited testing), and so they don't setup\n";
+    print F "#  SGE (or ANY other paths, etc) properly.  For the record,\n";
+    print F "#  interactive SGE logins (qlogin, etc) DO set the environment.\n";
+    print F "#\n";
+    print F ". \$SGE_ROOT/\$SGE_CELL/common/settings.sh\n";
     print F "/usr/bin/perl $prog{'ESTmapper'} -restart $path\n";
     close(F);
 
@@ -71,7 +87,7 @@ sub search {
     #  Look for a mer masking file, or use the one supplied.
     #
     if (!defined($args{'maskmers'})) {
-        $args{'maskmers'} = "$args{'genome'}/frequentMers-$mersize.fasta";
+        $args{'maskmers'} = "$args{'genome'}/frequentMers-ge1000.fasta";
     }
     if (($args{'maskmers'} ne "none") && (! -e $args{'maskmers'})) {
         print STDERR "ESTmapper/search-- Can't find mer mask file '$args{'maskmers'}'.\n";
@@ -188,11 +204,11 @@ sub search {
                     $cmd  = "qsub -cwd -j y -o $path/1-search/sgeout-\\\$TASK_ID ";
                     $cmd .= " $args{'sgeoptions'} " if (defined($args{'sgeoptions'}));
                     $cmd .= " $args{'sgesearch'} "  if (defined($args{'sgesearch'}));
-                    $cmd .= " -N \"s$args{'sgename'}$fJob\" ";
+                    $cmd .= " -N \"s$args{'sgename'}.$fJob\" ";
                     $cmd .= " -t $fJob-$lJob ";
                     $cmd .= "$path/1-search/search.sh";
 
-                    push @watchJobs, "s$args{'sgename'}$fJob";
+                    push @watchJobs, "s$args{'sgename'}.$fJob";
 
                     die "Failed to submit job to SGE.\n" if (runCommand($cmd));
 

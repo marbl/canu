@@ -162,11 +162,26 @@ sub parseArgs (@) {
     #
     ($args{'path'} eq "") and die "ERROR: ESTmapper/configure-- no directory given.\n";
 
+    #print STDERR "CONF $args{'genome'}\n";
+    #print STDERR "CONF $args{'queries'}\n";
+    #print STDERR "CONF $args{'path'}\n";
+
+
     #  Be tolerant of relative paths, but don't use them!
     #
-    $args{'genome'}  = "$ENV{'PWD'}/$args{'genome'}"  if ($args{'genome'}  !~ m!^/!);
-    $args{'queries'} = "$ENV{'PWD'}/$args{'queries'}" if ($args{'queries'} !~ m!^/!);
-    $args{'path'}    = "$ENV{'PWD'}/$args{'path'}"    if ($args{'path'}    !~ m!^/!);
+    $args{'genome'}  = "$ENV{'PWD'}/$args{'genome'}"  if (defined($args{'genome'})  && ($args{'genome'}  !~ m!^/!));
+    $args{'queries'} = "$ENV{'PWD'}/$args{'queries'}" if (defined($args{'queries'}) && ($args{'queries'} !~ m!^/!));
+    $args{'path'}    = "$ENV{'PWD'}/$args{'path'}"    if (defined($args{'path'})    && ($args{'path'}    !~ m!^/!));
+
+
+    #  Make some organization
+    #
+    mkdir "$args{'path'}"          if (! -d "$args{'path'}");
+    mkdir "$args{'path'}/0-input"  if (! -d "$args{'path'}/0-input");
+    mkdir "$args{'path'}/1-search" if (! -d "$args{'path'}/1-search");
+    mkdir "$args{'path'}/2-filter" if (! -d "$args{'path'}/2-filter");
+    mkdir "$args{'path'}/3-polish" if (! -d "$args{'path'}/3-polish");
+
 
     #  If told to restart, suck in the original configration, but
     #  don't overwrite things already defined.
@@ -179,7 +194,7 @@ sub parseArgs (@) {
 
         delete $args{'runstyle'};
 
-        open(F, "< $args{'path'}/.runOptions");
+        open(F, "< $args{'path'}/.runOptions") or die "Failed to open '$args{'path'}/.runOptions' to read options.\n";
         while (<F>) {
             chomp;
 
@@ -192,25 +207,11 @@ sub parseArgs (@) {
         close(F);
     }
 
-
-    foreach my $k (keys %args) {
-        print STDERR "DEBUG $k=$args{$k}\n";
-    }
-
-
-    #  Make some organization
-    #
-    mkdir "$args{'path'}"          if (! -d "$args{'path'}");
-    mkdir "$args{'path'}/0-input"  if (! -d "$args{'path'}/0-input");
-    mkdir "$args{'path'}/1-search" if (! -d "$args{'path'}/1-search");
-    mkdir "$args{'path'}/2-filter" if (! -d "$args{'path'}/2-filter");
-    mkdir "$args{'path'}/3-polish" if (! -d "$args{'path'}/3-polish");
-
-
     #  Write the current set of args to the runOptions file
     #
     open(F, "> $args{'path'}/.runOptions") or die "Failed to open '$args{'path'}/.runOptions' to save options.\n";
     foreach my $k (keys %args) {
+        #print STDERR "DEBUG $k=$args{$k}\n";
         print F "$k=$args{$k}\n";
     }
     close(F);

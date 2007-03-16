@@ -246,11 +246,11 @@ sub polish {
                     $cmd  = "qsub -cwd -j y -o $path/3-polish/sgeout-\\\$TASK_ID ";
                     $cmd .= " $args{'sgeoptions'} " if (defined($args{'sgeoptions'}));;
                     $cmd .= " $args{'sgepolish'} "  if (defined($args{'sgepolish'}));
-                    $cmd .= " -N \"p$args{'sgename'}$fJob\" ";
+                    $cmd .= " -N \"p$args{'sgename'}.$fJob\" ";
                     $cmd .= " -t $fJob-$lJob ";
                     $cmd .= "$path/3-polish/polish.sh";
 
-                    push @watchJobs, "p$args{'sgename'}$fJob";
+                    push @watchJobs, "p$args{'sgename'}.$fJob";
 
                     die "Failed to submit job to SGE.\n" if (runCommand($cmd));
 

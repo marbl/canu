@@ -25,9 +25,6 @@ require "run.pl";
 #    -memory    max memory per segment
 #    -segments  number of segments
 #
-#  To get the list of frequent kmers.  If not specified, it will be computed.
-#    -species   human | mouse | rat | none
-#
 #  Where will we compute what we need to compute?
 #    -sge       sge-options, e.g., "-pe thread 2", accounting info, etc.
 #    -local
@@ -36,6 +33,7 @@ my $exechome  = "$FindBin::Bin";
 my $leaff     = "$exechome/leaff";
 my $posdb     = "$exechome/positionDB";
 my $mimsf     = "$exechome/mersInMerStreamFile";
+my $meryl     = "$exechome/meryl";
 
 my $genome    = undef;
 my $path      = undef;
@@ -43,9 +41,9 @@ my $mersize   = 20;
 my $merskip   = 0;
 my $memory    = 1000;
 my $segments  = 0;
-my $species   = undef;
 my $local     = 1;
 my $sge       = undef;
+my $sgename   = "EMconfig";
 
 while (scalar(@ARGV)) {
     my $arg = shift @ARGV;
@@ -62,33 +60,44 @@ while (scalar(@ARGV)) {
         $memory = int(shift @ARGV);
     } elsif ($arg eq "-segments") {
         $segments = int(shift @ARGV);
-    } elsif ($arg eq "-species") {
-        $species = shift @ARGV;
     } elsif ($arg eq "-sge") {
         $local = undef;
         $sge   = shift @ARGV;
+    } elsif ($arg eq "-sgename") {
+        $sgename = shift @ARGV;
     } elsif ($arg eq "-local") {
         $local = 1;
+    } elsif ($arg eq "-h") {
+        undef $genome;
+        undef $path;
+        undef @ARGV;
     } elsif ($arg eq "-justtestingifitworks") {
         exit(0);
     } else {
         die "ERROR: unknown arg '$arg'\n";
     }
 }
-
 if (!defined($genome) || !defined($path)) {
     print STDERR "usage: $0 -genome g.fasta -path /some/path [args]\n";
-    print STDERR "  -genome g.fasta          The genome to map to.\n";
-    print STDERR "  -path d                  Absolute path to the directory to save the configuration.\n";
+    print STDERR "  -genome g.fasta   the genome to map to\n";
+    print STDERR "  -path d           the directory to save the configuration in\n";
+    print STDERR "\n";
+    print STDERR "  -mersize m        use m-mers (default 20)\n";
+    print STDERR "  -merskip s        skip s m-mers between mers (default 0, use all mers)\n";
+    print STDERR "  -memory M         use M MB memory for the search processes (default 1000MB)\n";
+    print STDERR "  -segment S        use S search processed (default, decided on memory size)\n";
+    print STDERR "  -sge              compute the configuration on the grid; args are passed to qsub\n";
+    print STDERR "  -sgename          sge job name (default 'EMconfig')\n";
+    print STDERR "  -local            compute the configuration right now (the default)\n";
     print STDERR "\n";
     print STDERR "Example:\n";
-    print STDERR "  time perl /home/work/src/genomics/ESTmapper/configureESTmapper.pl -genome B35LC.fasta -path /n6/junk -memory 900 -sge \"-pe thread 2\"\n";
+    print STDERR "  configureESTmapper.pl -genome B35LC.fasta -path B35LC -memory 900 -sge \"-pe thread 2\"\n";
     print STDERR "\n";
     exit(1);
 }
 
-$path   = "$ENV{'PWD'}/$path"   if ($path   !~ m!^/!);
 $genome = "$ENV{'PWD'}/$genome" if ($genome !~ m!^/!);
+$path   = "$ENV{'PWD'}/$path"   if ($path   !~ m!^/!);
 
 system("mkdir -p $path") if (! -d $path);
 
@@ -106,7 +115,6 @@ print STDERR "  merSize $mersize\n";
 print STDERR "  merSkip $merskip\n";
 print STDERR "  ${memory}MB\n" if (defined($memory));
 print STDERR "  $segments segments\n" if (defined($segments));
-print STDERR "  $species\n" if (defined($species));
 
 symlink "${genome}",    "$path/genome.fasta"    if ((! -f "$path/genome.fasta"));
 symlink "${genome}idx", "$path/genome.fastaidx" if ((! -f "$path/genome.fastaidx") && (-f "${genome}idx"));
@@ -126,20 +134,22 @@ if (! -f "$path/genome.fastaidx") {
 
 print STDERR "configureESTmapper-- Initializing positionDB creation.\n";
 
-if (! -e "$path/init.merStream") {
+if (! -e "$path/genome.merStream") {
     my $cmd;
     $cmd  = "$posdb";
     $cmd .= " -mersize $mersize";
     $cmd .= " -merskip $merskip";
     $cmd .= " -merbegin 1 -merend 100";
     $cmd .= " -sequence $path/genome.fasta";
-    $cmd .= " -output $path/init";
+    $cmd .= " -output $path/genome";
+    $cmd .= " > $path/genome.merStream.out 2>&1";
     if (runCommand($cmd)) {
         die "Failed.\n";
     }
 
-    unlink("$path/init");
+    unlink("$path/genome");
 }
+
 
 
 #  Figure out how many mers are in our sequence, then decide on a
@@ -148,7 +158,7 @@ if (! -e "$path/init.merStream") {
 #  mersPerSegment - the _actual_ number of mers we can stuff into a
 #  segment.  We then overlap each segment by 1,000,000 mers.
 
-my $mersInFile     = int(`$mimsf $path/init`);
+my $mersInFile     = int(`$mimsf $path/genome`);
 my $mersPerSegment = 0;
 my $segmentOverlap = 10000000;
 
@@ -174,46 +184,6 @@ print F "$memory\n";
 close(F);
 
 
-
-#  Create the script that builds the positionDB's
-#
-open(F, "> $path/create.sh");
-print F "#!/bin/sh\n";
-print F "/usr/bin/perl $path/create.pl \$@\n";
-close(F);
-
-open(F, "> $path/create.pl");
-print F "#!/usr/bin/perl\n";
-print F "use strict;\n";
-print F "open(F, \"< $path/create.dat\") or die \"Failed to open '$path/create.dat'\\n\";\n";
-print F "my \@args = <F>;\n";
-print F "close(F);\n";
-print F "chomp \@args;\n";
-print F "\n";
-print F "my \$jid = shift @ARGV;\n";
-print F "if (!defined(\$jid)) {\n";
-print F "    \$jid = \$ENV{'SGE_TASK_ID'} - 1;\n";
-print F "}\n";
-print F "\n";
-print F "my (\$seg, \$beg, \$end) = split '\\s+', \$args[\$jid];\n";
-print F "\n";
-print F "if (! -e \"$path/init.merStream\") {\n";
-print F "  die \"Didn't find the merStreamFile!\\n\";\n";
-print F "}\n";
-print F "\n";
-print F "system(\"ln -s $path/init.merStream $path/seg\$seg.building.posDB.merStream\");\n";
-print F "\n";
-print F "my \$cmd;\n";
-print F "\$cmd  = \"$posdb -mersize $mersize -merbegin \$beg -merend \$end -sequence $path/genome.fasta -output $path/seg\$seg.building.posDB\";\n";
-print F "\$cmd .= \" && mv $path/seg\$seg.building.posDB $path/seg\$seg.posDB\";\n";
-print F "print STDERR \"\$cmd\\n\";\n";
-print F "\n";
-print F "system(\$cmd);\n";
-print F "\n";
-print F "unlink(\"$path/seg\$seg.building.posDB.merStream\");\n";
-close(F);
-
-
 my $merBeg = 0;
 my $merEnd = 0;
 my $segId  = "000";
@@ -235,6 +205,82 @@ close(S);
 print STDERR "configureESTmapper-- Created $segId groups with maximum memory requirement of ${memory}MB.\n";
 die "Created no groups?\n" if (int($segId) == 0);
 
+
+#  Configure meryl
+#
+if (! -e "$path/genome.merylArgs") {
+    my $cmd;
+    $cmd  = "$meryl";
+    $cmd .= " -B -f -m $mersize -segments $segId -configbatch";
+    $cmd .= " -s $path/genome.fasta";
+    $cmd .= " -o $path/genome";
+    $cmd .= " > $path/meryl.config.out 2>&1";
+    if (runCommand($cmd)) {
+        die "Failed.\n";
+    }
+}
+
+
+#  Create the script that builds the positionDB's and meryl partitions
+#
+open(F, "> $path/create.sh");
+print F "#!/bin/sh\n";
+print F "\n";
+print F "jobid=\$SGE_TASK_ID\n";
+print F "if [ x\$jobid = x -o x\$jobid = xundefined ]; then\n";
+print F "  jobid=\$1\n";
+print F "fi\n";
+print F "if [ x\$jobid = x ]; then\n";
+print F "  echo Error: I need SGE_TASK_ID set, or a job index on the command line.\n";
+print F "  exit 1\n";
+print F "fi\n";
+print F "jobp=`cat $path/create.dat | head -\$jobid | tail -1`\n";
+print F "\n";
+print F "seg=`echo \$jobp | awk '{ print \$1 }'`\n";
+print F "beg=`echo \$jobp | awk '{ print \$2 }'`\n";
+print F "end=`echo \$jobp | awk '{ print \$3 }'`\n";
+print F "\n";
+print F "if [ ! -e \"$path/genome.merStream\" ] ; then\n";
+print F "  echo \"Didn't find the merStreamFile!\"\n";
+print F "  exit 1\n";
+print F "fi\n";
+print F "\n";
+print F "ln -s \"$path/genome.merStream\" \"$path/seg\$seg.building.posDB.merStream\"\n";
+print F "\n";
+print F "$posdb \\\n";
+print F "  -mersize $mersize \\\n";
+print F "  -merbegin \$beg \\\n";
+print F "  -merend \$end \\\n";
+print F "  -sequence \"$path/genome.fasta\" \\\n";
+print F "  -output   \"$path/seg\$seg.building.posDB\" \\\n";
+print F "&& \\\n";
+print F "mv \"$path/seg\$seg.building.posDB\" \\\n";
+print F "   \"$path/seg\$seg.posDB\" \\\n";
+print F "&& \\\n";
+print F "$meryl -countbatch `expr \$jobid - 1` -o \"$path/genome\" \\\n";
+print F "|| \\\n";
+print F "rm -f dddd\n";
+print F "\n";
+print F "rm -f \"$path/seg\$seg.building.posDB.merStream\"\n";
+close(F);
+
+
+#  Create the script that merges meryl outputs
+#
+open(F, "> $path/meryl.sh");
+print F "#!/bin/sh\n";
+print F "\n";
+print F "if [ ! -e \"$path/genome.mcidx\" ] ; then\n";
+print F "  $meryl -mergebatch -o \"$path/genome\"\n";
+print F "fi\n";
+print F "if [ ! -e \"$path/frequentMers-ge1000.fasta\" ] ; then\n";
+print F "  $meryl -Dt -n 1000 -s \"$path/genome\" \\\n";
+print F "    > \"$path/frequentMers-ge1000.fasta\"\n";
+print F "fi\n";
+close(F);
+
+
+
 ########################################
 #
 #  run the jobs.
@@ -246,12 +292,14 @@ if      ($local) {
         print STDERR "Creating $seg out of $segId\n";
 
         if (! -e "$path/seg$seg.posDB") {
-            runCommand("/bin/sh $path/create.sh $seg") and die "Segment $seg failed.\n";
+            my $s = $seg + 1;
+            runCommand("/bin/sh $path/create.sh $s") and die "Segment $seg failed.\n";
         }
 
         $seg++;
         $seg = substr("000$seg", -3);
     }
+    runCommand("/bin/sh $path/meryl.sh") and die "Meryl failed.\n";
 } elsif ($sge) {
 
     #  Check if we need to submit pieces of the array, or if we can submit the whole thing.
@@ -260,6 +308,8 @@ if      ($local) {
     my $wholeThing = 0;
 
     system("mkdir $path/sgeout") if (! -d "$path/sgeout");
+
+    my $sgebuildname = "$sgename." . time();
 
     my $seg = "000";
     while ($seg ne $segId) {
@@ -278,7 +328,7 @@ if      ($local) {
     if ($wholeThing == $seg) {
         #  Yippee!  Submit all at once!
         #
-        if (runCommand("qsub -cwd -j y -o $path/sgeout/seg\\\$TASK_ID.out -t 1-$segId $sge $path/create.sh")) {
+        if (runCommand("qsub -cwd -j y -o $path/sgeout/seg\\\$TASK_ID.out -t 1-$segId $sge -N $sgebuildname $path/create.sh")) {
             die "SGE submission failed?\n";
         }
     } elsif ($wholeThing > 0) {
@@ -303,7 +353,7 @@ if      ($local) {
             }
             if (defined($st) && defined($ed)) {
                 #print STDERR "submit $st - $ed\n";
-                if (runCommand("qsub -cwd -j y -o $path/sgeout/seg\\\$TASK_ID.out -t $st-$ed $sge $path/create.sh")) {
+                if (runCommand("qsub -cwd -j y -o $path/sgeout/seg\\\$TASK_ID.out -t $st-$ed $sge -N $sgebuildname $path/create.sh")) {
                     die "SGE submission failed?\n";
                 }
                 undef $st;
@@ -315,7 +365,15 @@ if      ($local) {
     } else {
         print STDERR "All segments computed successfully!\n";
     }
+    if (runCommand("qsub -cwd -j y -o $path/sgeout/meryl.out $sge -hold_jid $sgebuildname -N $sgename $path/meryl.sh")) {
+        die "SGE submission failed?\n";
+    }
 } else {
     die "HELP!  I don't know how to run jobs!\n";
 }
+
+
+
+$sgename = "$sgename." . time();
+print "$sgename\n";
 
