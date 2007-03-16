@@ -88,7 +88,7 @@ AS_OVS_openOverlapStorePrivate(const char *path, int useBackup, int saveSpace) {
 
   ovs->ovs.ovsMagic              = 1;
   ovs->ovs.ovsVersion            = 1;
-  ovs->ovs.numOverlapsPerFile    = 0;
+  ovs->ovs.numOverlapsPerFile    = 0;  //  not used for reading
   ovs->ovs.smallestIID           = 1000000000;
   ovs->ovs.largestIID            = 0;
   ovs->ovs.numOverlapsTotal      = 0;
@@ -369,7 +369,7 @@ AS_OVS_createOverlapStore(const char *path, int failOnExist) {
   }
   ovs->ovs.ovsMagic              = 1;
   ovs->ovs.ovsVersion            = 1;
-  ovs->ovs.numOverlapsPerFile    = 0;
+  ovs->ovs.numOverlapsPerFile    = 1024 * 1024 * 1024 / sizeof(OVSoverlapINT);
   ovs->ovs.smallestIID           = 1000000000;
   ovs->ovs.largestIID            = 0;
   ovs->ovs.numOverlapsTotal      = 0;
@@ -427,10 +427,10 @@ AS_OVS_writeOverlapToStore(OverlapStore *ovs, OVSoverlap *overlap) {
   if (ovs->ovs.largestIID < overlap->a_iid)
      ovs->ovs.largestIID = overlap->a_iid;
 
-  //  If we don't have an output file yet, or the current file it
+  //  If we don't have an output file yet, or the current file is
   //  too big, open a new file.
   //
-  if (ovs->overlapsThisFile > ovs->ovs.numOverlapsPerFile) {
+  if (ovs->overlapsThisFile >= ovs->ovs.numOverlapsPerFile) {
     AS_OVS_closeBinaryOverlapFile(ovs->bof);
     
     ovs->bof              = NULL;
@@ -487,6 +487,7 @@ AS_OVS_writeOverlapToStore(OverlapStore *ovs, OVSoverlap *overlap) {
   AS_OVS_writeOverlap(ovs->bof, overlap);
   ovs->offset.numOlaps++;
   ovs->ovs.numOverlapsTotal++;
+  ovs->overlapsThisFile++;
 }
 
 
