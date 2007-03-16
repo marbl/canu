@@ -57,6 +57,7 @@ typedef struct {
 
 typedef struct {
 int      id;
+int32    iid;
 char    *bases;      // gapped sequence
 int     *qvs;        // quality values
 double   ave_qv; 
@@ -68,6 +69,7 @@ typedef struct {
 int    id;
 int    num_reads;
 int   *read_ids;
+int   *read_iids;
 int    weight;
 int    uglen;      // ungapped length
 } Allele;
