@@ -24,17 +24,32 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-CXX_SOURCES = AS_MER_meryl.cc
-CXX_OBJECTS = $(CXX_SOURCES:.cc=.o)
+#  KMER should point to a configured and compiled copy of
+#  http://sourceforge.net/projects/kmer/
 
-SOURCES = $(CXX_SOURCES)
-OBJECTS = $(CXX_SOURCES:.cc=.o)
+ifdef KMER
+  MERYLSOURCE      = meryl.C
+  MERYLOBJECTS     = meryl.o
+  SOURCES          = $(MERYLSOURCE) mercy.C mercy-regions.C
+  OBJECTS          = $(SOURCES:.C=.o)
+  PROGS            = meryl mercy
+  INC_IMPORT_DIRS += $(KMER)/meryl $(KMER)/libutil $(KMER)/libmeryl $(KMER)/libbio $(KMER)/libkmer
+  LIB_IMPORT_DIRS += $(KMER)/meryl $(KMER)/libutil $(KMER)/libmeryl $(KMER)/libbio $(KMER)/libkmer
+  KMERLIBS         = libmerylguts.a libkmer.a libmeryl.a libbio.a libutil.a
+else
+  MERYLSOURCE      = AS_MER_meryl.cc
+  MERYLOBJECTS     = AS_MER_meryl.o
+  SOURCES          = $(MERYLSOURCE)
+  OBJECTS          = $(SOURCES:.cc=.o)
+  PROGS            = meryl
+endif
 
-PROGS = meryl 
 
 include $(LOCAL_WORK)/src/c_make.as
 
 all: $(OBJECTS) $(LIBRARIES) $(PROGS) 
 	@test -n nop
 
-meryl: AS_MER_meryl.o libAS_PER.a libAS_UTL.a 
+meryl: $(MERYLOBJECTS) libAS_PER.a libAS_UTL.a $(KMERLIBS)
+
+mercy: mercy.o libAS_PER.a libAS_UTL.a $(KMERLIBS)
