@@ -30,9 +30,9 @@ LOCAL_WORK = $(shell cd ../..; pwd)
 ifdef KMER
   MERYLSOURCE      = meryl.C
   MERYLOBJECTS     = meryl.o
-  SOURCES          = $(MERYLSOURCE) mercy.C mercy-regions.C
+  SOURCES          = $(MERYLSOURCE) mercy.C mercy-regions.C overmerry.C
   OBJECTS          = $(SOURCES:.C=.o)
-  PROGS            = meryl mercy
+  PROGS            = meryl mercy overmerry
   INC_IMPORT_DIRS += $(KMER)/meryl $(KMER)/libutil $(KMER)/libmeryl $(KMER)/libbio $(KMER)/libkmer
   LIB_IMPORT_DIRS += $(KMER)/meryl $(KMER)/libutil $(KMER)/libmeryl $(KMER)/libbio $(KMER)/libkmer
   KMERLIBS         = libmerylguts.a libkmer.a libmeryl.a libbio.a libutil.a
@@ -53,3 +53,5 @@ all: $(OBJECTS) $(LIBRARIES) $(PROGS)
 meryl: $(MERYLOBJECTS) libAS_PER.a libAS_UTL.a $(KMERLIBS)
 
 mercy: mercy.o libAS_PER.a libAS_UTL.a $(KMERLIBS)
+
+overmerry: overmerry.o libAS_PER.a libAS_UTL.a $(KMERLIBS)
