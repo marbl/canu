@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.135 2007-03-16 18:56:09 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.136 2007-03-19 08:38:22 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -3210,11 +3210,11 @@ PhaseWithPrevVreg(int nca, Allele *alleles, Read *reads)
 
     for (i=0; i<prev_nca; i++)
     {
-       FREE(allele_matrix[i]);
+       safe_free(allele_matrix[i]);
     } 
-    FREE(allele_matrix); 
-    FREE(allele_map);
-    FREE(check);
+    safe_free(allele_matrix); 
+    safe_free(allele_map);
+    safe_free(check);
     return is_phased;
 }
 
