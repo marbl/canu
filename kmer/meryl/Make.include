@@ -5,27 +5,28 @@ LIBBIO/     :=$(call MakePath,$/../libbio/)
 LIBMERYL/   :=$(call MakePath,$/../libmeryl/)
 LIBKMER/    :=$(call MakePath,$/../libkmer/)
 
-src     := $/args.C \
-           $/binaryOp.C \
-           $/build.C \
-           $/build-threads.C \
-           $/dump.C \
-           $/estimate.C \
-           $/merge.C \
-           $/meryl.C $/meryl.H \
-           $/unaryOp.C
-src_C   := $(filter %.C,${src})
+merylsrc := $/args.C \
+            $/binaryOp.C \
+            $/build.C \
+            $/build-threads.C \
+            $/dump.C \
+            $/estimate.C \
+            $/merge.C \
+            $/unaryOp.C
 
-$/.CXX_SRCS   := ${src_C} $/merle.C $/asmMerQC.C $/mapMers.C $/m.C
-$/.CXX_EXES   := $/meryl  $/merle   $/asmMerQC   $/mapMers   $/m
+$/.CXX_SRCS   := ${merylsrc} $/meryl.C $/merle.C $/asmMerQC.C $/mapMers.C $/m.C
+$/.CXX_LIBS   := $/libmerylguts.a
+$/.CXX_EXES   := $/meryl $/merle $/asmMerQC $/mapMers $/m
 $/.CLEAN      := $/*.o
 $/.REAL-CLEAN := $/buildinfo-*
 
-$/merle         : $/merle.o      $/buildinfo-merle.o ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
-$/meryl         : ${src_C:.C=.o} $/buildinfo-meryl.o ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
-$/asmMerQC      : $/asmMerQC.o   ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
-$/mapMers       : $/mapMers.o    ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
-$/m             : $/m.o          ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/libmerylguts.a : ${merylsrc:.C=.o} $/buildinfo-meryl.o
+
+$/merle          : $/merle.o      $/buildinfo-merle.o                         ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/meryl          : $/meryl.o      $/libmerylguts.a     ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/asmMerQC       : $/asmMerQC.o                        ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/mapMers        : $/mapMers.o    ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/m              : $/m.o          ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
 $(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBMERYL/} -I${LIBKMER/} -I${LIBBIO/} -I${LIBUTL/})
 
@@ -34,7 +35,7 @@ $/meryl.C.d: $/buildinfo-meryl.h ${LIBBIO/}buildinfo-libbio.h ${LIBUTL/}buildinf
 $/merle.C.d: $/buildinfo-merle.h ${LIBBIO/}buildinfo-libbio.h ${LIBUTL/}buildinfo-libutil.h
 
 $/buildinfo-meryl.c: $/buildinfo-meryl.h
-$/buildinfo-meryl.h: ${src}
+$/buildinfo-meryl.h: ${merylsrc}
 	@${LIBUTL/}buildinfo.pl meryl "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
 	@[ `dirname $@` = "." ] || mv buildinfo-meryl.[ch] `dirname $@`
 
