@@ -24,7 +24,7 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-CXX_SOURCES = AS_MER_stream.cc AS_MER_meryl.cc
+CXX_SOURCES = AS_MER_meryl.cc
 CXX_OBJECTS = $(CXX_SOURCES:.cc=.o)
 
 SOURCES = $(CXX_SOURCES)
@@ -37,4 +37,4 @@ include $(LOCAL_WORK)/src/c_make.as
 all: $(OBJECTS) $(LIBRARIES) $(PROGS) 
 	@test -n nop
 
-meryl: AS_MER_meryl.o AS_MER_stream.o libAS_PER.a libAS_UTL.a 
+meryl: AS_MER_meryl.o libAS_PER.a libAS_UTL.a 

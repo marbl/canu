@@ -18,213 +18,345 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-
-#include "AS_MER_stream.h"
-
-static cds_int64 mersToCount = 999999999999LL;
-
-////////////////////////////////////////////////////////////////////////////////
-//
-//  These are stolen from libbri/alphabet.C
-//
-unsigned char   compressSymbol[256] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-unsigned char   validSymbol[256] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-unsigned char   decompressSymbol[256] = { 65, 67, 71, 84, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-unsigned char   complementSymbol[256] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 84, 86, 71, 72, 0, 0, 67, 68, 0, 0, 77, 0, 75, 78, 0, 0, 0, 89, 87, 65, 65, 66, 83, 0, 82, 0, 0, 0, 0, 0, 0, 0, 116, 118, 103, 104, 0, 0, 99, 100, 0, 0, 109, 0, 107, 110, 0, 0, 0, 121, 119, 97, 97, 98, 115, 0, 114, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-unsigned char   validCompressedSymbol[256] = { 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 255, 1, 255, 255, 255, 2, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 3, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 255, 1, 255, 255, 255, 2, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 3, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 };
-
-
-
-////////////////////////////////////////////////////////////////////////////////
-//
-//  These are stolen from libbri/bit-packing.H
-//    setDecodedValue
-//    getDecodedValue
-//    preDecrementDecodedValue
-//
-inline
-cds_uint64
-getDecodedValue(cds_uint64 *ptr,
-                cds_uint64  pos,
-                cds_uint64  siz) {
-  cds_uint64 wrd = (pos >> 6) & 0x0000cfffffffffffllu;
-  cds_uint64 bit = (pos     ) & 0x000000000000003fllu;
-  cds_uint64 b1  = 64 - bit;
-  cds_uint64 b2  = siz - b1;  //  Only used if siz > b1
-  cds_uint64 ret = 0;
-
-  if (b1 >= siz) {
-    ret = ptr[wrd] >> (b1 - siz);
-  } else {
-    ret  = (ptr[wrd] & CDS_UINT64_MASK(b1)) << b2;
-    ret |= (ptr[wrd+1] >> (64 - b2)) & CDS_UINT64_MASK(b2);
-  }
-
-  ret &= CDS_UINT64_MASK(siz);
-
-  return(ret);
+extern "C" {
+#include "AS_PER_gkpStore.h"
+#include "AS_PER_gkpStore.h"
 }
-
-inline
-void
-setDecodedValue(cds_uint64 *ptr,
-                cds_uint64  pos,
-                cds_uint64  siz,
-                cds_uint64  val) {
-  cds_uint64 wrd = (pos >> 6) & 0x0000cfffffffffffllu;
-  cds_uint64 bit = (pos     ) & 0x000000000000003fllu;
-  cds_uint64 b1  = 64 - bit;
-  cds_uint64 b2  = siz - b1;  //  Only used if siz > b1
-
-  val &= CDS_UINT64_MASK(siz);
-
-  if (b1 >= siz) {
-    ptr[wrd] &= ~( CDS_UINT64_MASK(siz) << (b1-siz) );
-    ptr[wrd] |= val << (b1-siz);
-  } else {
-    ptr[wrd] &= ~CDS_UINT64_MASK(b1);
-    ptr[wrd] |= (val & (CDS_UINT64_MASK(b1) << (b2))) >> (b2);
-
-    ptr[wrd+1] &= ~(CDS_UINT64_MASK(b2) << (64-b2));
-    ptr[wrd+1] |= (val & (CDS_UINT64_MASK(b2))) << (64-b2);
-  }
-}
-
-inline
-cds_uint64
-preDecrementDecodedValue(cds_uint64 *ptr,
-                         cds_uint64  pos,
-                         cds_uint64  siz) {
-  cds_uint64 wrd = (pos >> 6) & 0x0000cfffffffffffllu;
-  cds_uint64 bit = (pos     ) & 0x000000000000003fllu;
-  cds_uint64 b1  = 64 - bit;
-  cds_uint64 b2  = siz - b1;  //  Only used if siz > b1
-  cds_uint64 ret = 0;
-
-  if (b1 >= siz) {
-    ret = ptr[wrd] >> (b1 - siz);
-
-    ret--;
-    ret &= CDS_UINT64_MASK(siz);
-
-    ptr[wrd] &= ~( CDS_UINT64_MASK(siz) << (b1-siz) );
-    ptr[wrd] |= ret << (b1-siz);
-  } else {
-    ret  = (ptr[wrd] & CDS_UINT64_MASK(b1)) << b2;
-    ret |= (ptr[wrd+1] >> (64 - b2)) & CDS_UINT64_MASK(b2);
-
-    ret--;
-    ret &= CDS_UINT64_MASK(siz);
-
-    ptr[wrd] &= ~CDS_UINT64_MASK(b1);
-    ptr[wrd] |= (ret & (CDS_UINT64_MASK(b1) << (b2))) >> (b2);
-
-    ptr[wrd+1] &= ~(CDS_UINT64_MASK(b2) << (64-b2));
-    ptr[wrd+1] |= (ret & (CDS_UINT64_MASK(b2))) << (64-b2);
-  }
-
-  return(ret);
-}
-
 
 
 //  Parameters for the mer counter, and a nice utility function.
 //
 class mcDescription {
 public:
-  cds_uint32      _merSizeInBases;
-  cds_uint32      _merSizeInBits;
+  uint32      _merSizeInBases;
+  uint32      _merSizeInBits;
 
-  cds_uint32      _tableSizeInBits;
-  cds_uint64      _tableSizeInEntries;
+  uint32      _tableSizeInBits;
+  uint64      _tableSizeInEntries;
 
-  cds_uint32      _chckBits;
-  cds_uint64      _chckMask;
+  uint32      _chckBits;
+  uint64      _chckMask;
 
-  cds_uint32      _hashWidth;
-  cds_uint64      _hashMask;
+  uint32      _hashWidth;
+  uint64      _hashMask;
 
-  cds_uint64      _actualNumberOfMers;
+  uint64      _actualNumberOfMers;
 
-  cds_uint64 HASH(cds_uint64 a) {
+  uint64 HASH(uint64 a) {
     return((a >> _chckBits) & _hashMask);
   }
 };
 
-static mcDescription   mcd;
+mcDescription   mcd;
 
-cds_uint64     *_chck;
-cds_uint64     *_hash;
+uint64     *_chck;
+uint64     *_hash;
 
-//  Stuff for sorting the list of mers.
-//
-typedef cds_uint64 heapbit;
+uint64       mersToCount;
 
+unsigned char   compressSymbol[256] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+unsigned char   validSymbol[256] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+unsigned char   decompressSymbol[256] = { 65, 67, 71, 84, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+unsigned char   complementSymbol[256] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 84, 86, 71, 72, 0, 0, 67, 68, 0, 0, 77, 0, 75, 78, 0, 0, 0, 89, 87, 65, 65, 66, 83, 0, 82, 0, 0, 0, 0, 0, 0, 0, 116, 118, 103, 104, 0, 0, 99, 100, 0, 0, 109, 0, 107, 110, 0, 0, 0, 121, 119, 97, 97, 98, 115, 0, 114, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+unsigned char   validCompressedSymbol[256] = { 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 255, 1, 255, 255, 255, 2, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 3, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 0, 255, 1, 255, 255, 255, 2, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 3, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255 };
 
-
-
-const char *usage =
-"usage: %s [options]\n"
-"\n"
-"Given a sequence file (-s) and lots of parameters, compute\n"
-"the mer-count tables.  By default, both strands are processed.\n"
-"\n"
-"        -m #                    (size of a mer)\n"
-"        -s /path/to/fragstore   (a fragstore)\n"
-"        -n #                    (threshold to output)\n"
-"        -N #                    (number of mers to examine)\n"
-"        -K #                    (read only every Kth ffragment)\n"
-"        -o tblprefix            (output table prefix)\n";
-
-
-
-
-
-#if 0
-cds_uint32
-estimateTableSize(cds_uint64 numMers, cds_uint32 merSize) {
-
-  //  How many bits do we need in the hash table to store all the mers?
-  //
-  cds_uint32 hBits = 1;
-  while ((numMers+1) > (CDS_UINT64_ONE << hBits))
-    hBits++;
-
-
-  //  Compute the table size that results in the smalest memory footprint.
-  //  Footprint is measured in megabytes.
-  //
-  cds_uint64 one  = CDS_UINT64_ONE;
-  cds_uint64 cmin = 1048576;    //  Assume that using a terabyte is big.
-  cds_uint64 t    = 0;
-
-  for (cds_uint64 h=16; h<=32 && h<2*merSize; h++) {
-    cds_uint64  c     = 2 * merSize - h;
-    cds_uint64  hSize = ((one << h) * hBits) >> 23;
-    cds_uint64  cSize = (numMers * c) >> 23;
-
-    if (cmin > hSize+cSize) {
-      cmin = hSize+cSize;
-      t    = h;
-    }
-  }
-
-  fprintf(stderr, "Estimated table size to be %d mers -> t = %d\n", numMers, t);
-
-  return(t);
-}
+#if TRUE64BIT
+#define UINT64_ZERO   0x0000000000000000UL
+#define UINT64_ONE    0x0000000000000001UL
+#else
+#define UINT64_ZERO   0x0000000000000000ULL
+#define UINT64_ONE    0x0000000000000001ULL
 #endif
 
+#define UINT64_MASK(X)   ((~UINT64_ZERO) >> (64 - (X)))
+
+
+class merStream {
+public:
+  merStream(uint32 merSize, char *gkpstore, int skipNum);
+  ~merStream();
+
+  uint64         theFMer(void)        { return(_theFMer); };
+  uint64         theRMer(void)        { return(_theRMer); };
+
+  bool               nextMer(void);
+private:
+  void               loadMer(uint32 s);
+  unsigned char      nextSymbol(void) {
+
+    //  If the sequence in valid, just return the next letter.
+    //
+    if (_thePos < _endPos)
+      return((unsigned char)_theSeq[_thePos++]);
+
+    //  Otherwise, we need to read another fragment and return an 'N'
+    //  to break the merstream.
+
+    if (_iid >= _max)
+      return(0);
+
+    getFrag(_fs, _iid, _fr, FRAG_S_SEQ);
+    _iid += _skipNum;
+
+    _thePos = getFragRecordClearRegionBegin(_fr, AS_READ_CLEAR_OBT);
+    _endPos = getFragRecordClearRegionEnd  (_fr, AS_READ_CLEAR_OBT);
+
+    _theSeq = getFragRecordSequence(_fr);
+
+    return('N');
+  };
+
+  char                     *_theSeq;
+  uint32                _theLen;
+  unsigned int              _thePos;
+  unsigned int              _endPos;
+
+  uint32                _skipNum;
+  uint32                _merSize;
+  int32                 _timeUntilValid;
+  uint64                _theMerMask;
+
+  uint64                _theFMer;
+  uint64                _theRMer;
+
+  uint32                _theRMerShift;
+
+  char                      _theMerString[33];
+
+  GateKeeperStore      *_fs;
+  fragRecord           *_fr;
+
+  uint64            _iid;
+  uint64            _max;
+};
 
 
 
 
+//  We have a problem; at the start of a stream, we want to
+//  initialize the mer with merSize-1 bases.  In the middle of the
+//  stream, we need to load the mer with merSize bases.
+//
+//  loadMer will push s bases onto the mer, restarting if it hits a
+//  mer break.
+//
+//  No masking of the mer is performed.
+//
+inline
+void
+merStream::loadMer(uint32 s) {
+  uint64   ch = 255;
+  uint64   cf = 0;
+  uint64   cr = 0;
+
+  _timeUntilValid = s;
+
+  //  While we are invalid, and still in the sequence
+  //  push characters onto the mer.  The valid
+  //  count is updated if we hit an invalid base.
+  //
+  while ((_timeUntilValid > 0) && (ch != 0)) {
+    ch = nextSymbol();
+    cf = validCompressedSymbol[ch];
+
+    //  Rather than take the chance of generating a cache miss accessing
+    //  another array, we just mask out the upper bits of validCompressedSymbol[];
+    //  this is exactly the same as using compressSymbol[].
+    //
+    //  We need to mask the upper bits for reverse (but not for forward)
+    //  because, in reverse, we shift to the right.  If we don't mask these
+    //  out, we will have extra bits set in the mer.
+    //
+    //  Example: Consider placing 255 (== 11111111, the invalid symbol returned
+    //  from validCompressedSymbol) at the fourth base in a four mer:
+    //    000000**xxxxxx -- the ** are is the fourth base.
+    //
+    //  Without masking, we'd set all the 0's and all the *'s to one, in effect,
+    //  preloading the next three bases of the mer.
+    //
+    cr = validCompressedSymbol[complementSymbol[ch]] & 0x03;
+
+    _timeUntilValid--;
+
+    if (cf & 0xfc)
+      _timeUntilValid = s;
+
+    //  If the ch is valid, we can obviously add it to the mer.
+    //  If it is invalid, we don't care; by the time the mer is valid
+    //  all bits of any invalid mers are removed.  Sure, we could
+    //  put this into the else, but I suspect that it will be faster outside.
+    //
+    _theFMer <<= 2;
+    _theRMer >>= 2;
+
+    _theFMer |= cf;
+    _theRMer |= cr << _theRMerShift;
+  }
+}
+
+inline
+bool
+merStream::nextMer(void) {
+  uint64  ch = nextSymbol();
+  uint64  cf = validCompressedSymbol[ch];
+  uint64  cr = validCompressedSymbol[complementSymbol[ch]] & 0x03;
+
+  //  EOF?
+  if (ch == 0)
+    return(false);
+
+  //  Push the ch onto the mer.
+  //
+  _theFMer <<= 2;
+  _theRMer >>= 2;
+
+  _theFMer |= cf;
+  _theRMer |= cr << _theRMerShift;
+
+  //  If the ch is invalid, we need to make a whole new mer.
+  //
+  if (cf & (unsigned char)0xfc)
+    loadMer(_merSize);
+
+  _theFMer &= _theMerMask;
+  _theRMer &= _theMerMask;
+
+  //  Still need to check if we are valid -- we could
+  //  have run off the end of the sequence before a valid
+  //  mer was created.
+  //
+  return(_timeUntilValid <= 0);
+}
 
 
+merStream::merStream(uint32 merSize, char *gkpstore, int skipNum) {
+  _theSeq          = 0L;
+  _theLen          = 0;
+  _thePos          = 0;
+  _endPos          = 0;
+
+  _merSize         = merSize;
+  _timeUntilValid  = 0;
+  _theMerMask      = UINT64_MASK(_merSize << 1);
+
+  _theFMer         = 0;
+  _theRMer         = 0;
+
+  _theRMerShift    = (_merSize << 1) - 2;
+
+  _fs = openGateKeeperStore(gkpstore, FALSE);
+  if (_fs == NULL) {
+    fprintf(stderr, "ERROR:  couldn't open the gatekeeper store '%s'\n", gkpstore);
+    exit(1);
+  }
+  _fr  = new_fragRecord();
+
+  _iid = 1;
+  _max = getLastElemFragStore(_fs);
+
+  _skipNum=skipNum;
+  loadMer(_merSize - 1);
+}
+
+
+merStream::~merStream() {
+  del_fragRecord(_fr);
+  closeGateKeeperStore(_fs);
+}
+
+
+inline
+uint64
+getDecodedValue(uint64 *ptr,
+                uint64  pos,
+                uint64  siz) {
+  uint64 wrd = (pos >> 6) & 0x0000cfffffffffffllu;
+  uint64 bit = (pos     ) & 0x000000000000003fllu;
+  uint64 b1  = 64 - bit;
+  uint64 b2  = siz - b1;  //  Only used if siz > b1
+  uint64 ret = 0;
+
+  if (b1 >= siz) {
+    ret = ptr[wrd] >> (b1 - siz);
+  } else {
+    ret  = (ptr[wrd] & UINT64_MASK(b1)) << b2;
+    ret |= (ptr[wrd+1] >> (64 - b2)) & UINT64_MASK(b2);
+  }
+
+  ret &= UINT64_MASK(siz);
+
+  return(ret);
+}
+
+
+
+inline
+void
+setDecodedValue(uint64 *ptr,
+                uint64  pos,
+                uint64  siz,
+                uint64  val) {
+  uint64 wrd = (pos >> 6) & 0x0000cfffffffffffllu;
+  uint64 bit = (pos     ) & 0x000000000000003fllu;
+  uint64 b1  = 64 - bit;
+  uint64 b2  = siz - b1;  //  Only used if siz > b1
+
+  val &= UINT64_MASK(siz);
+
+  if (b1 >= siz) {
+    ptr[wrd] &= ~( UINT64_MASK(siz) << (b1-siz) );
+    ptr[wrd] |= val << (b1-siz);
+  } else {
+    ptr[wrd] &= ~UINT64_MASK(b1);
+    ptr[wrd] |= (val & (UINT64_MASK(b1) << (b2))) >> (b2);
+
+    ptr[wrd+1] &= ~(UINT64_MASK(b2) << (64-b2));
+    ptr[wrd+1] |= (val & (UINT64_MASK(b2))) << (64-b2);
+  }
+}
+
+
+
+inline
+uint64
+preDecrementDecodedValue(uint64 *ptr,
+                         uint64  pos,
+                         uint64  siz) {
+  uint64 wrd = (pos >> 6) & 0x0000cfffffffffffllu;
+  uint64 bit = (pos     ) & 0x000000000000003fllu;
+  uint64 b1  = 64 - bit;
+  uint64 b2  = siz - b1;  //  Only used if siz > b1
+  uint64 ret = 0;
+
+  if (b1 >= siz) {
+    ret = ptr[wrd] >> (b1 - siz);
+
+    ret--;
+    ret &= UINT64_MASK(siz);
+
+    ptr[wrd] &= ~( UINT64_MASK(siz) << (b1-siz) );
+    ptr[wrd] |= ret << (b1-siz);
+  } else {
+    ret  = (ptr[wrd] & UINT64_MASK(b1)) << b2;
+    ret |= (ptr[wrd+1] >> (64 - b2)) & UINT64_MASK(b2);
+
+    ret--;
+    ret &= UINT64_MASK(siz);
+
+    ptr[wrd] &= ~UINT64_MASK(b1);
+    ptr[wrd] |= (ret & (UINT64_MASK(b1) << (b2))) >> (b2);
+
+    ptr[wrd+1] &= ~(UINT64_MASK(b2) << (64-b2));
+    ptr[wrd+1] |= (ret & (UINT64_MASK(b2))) << (64-b2);
+  }
+
+  return(ret);
+}
 
 
 
@@ -235,38 +367,25 @@ estimateTableSize(cds_uint64 numMers, cds_uint32 merSize) {
 //
 
 void
-createHashTable(char *inputFile, cds_uint32 skipNum) {
-  cds_uint64  mer;
+createHashTable(char *inputFile, uint32 skipNum) {
+  uint64  mer;
 
-  cds_uint32 *_ctbl = new cds_uint32 [ mcd._tableSizeInEntries ];
-  for (cds_uint32 i=mcd._tableSizeInEntries; i--; )
+  uint32 *_ctbl = new uint32 [ mcd._tableSizeInEntries ];
+  for (uint32 i=mcd._tableSizeInEntries; i--; )
     _ctbl[i] = 0;
 
-  //
-  //  XXX:  Huge stalls accessing _ctbl.
-  //
   //  I think we can get by with 24 bits of count here; the fragstore
   //  seems to have only 9 million mers in the first bucket.  Should
   //  probably check for overflow, though.
   //  
   merStream          M(mcd._merSizeInBases, inputFile, skipNum);
-  cds_int64 nummers=0;
-  while (M.nextMer()&&(nummers++)<mersToCount) {
+
+  while (M.nextMer() && (mcd._actualNumberOfMers < mersToCount)) {
     mer = M.theFMer();
     if (mer > M.theRMer())
       mer = M.theRMer();
 
     _ctbl[ mcd.HASH(mer) ]++;
-
-
-
-#if 0
-    char theMerString[33];
-    for (cds_uint32 i=0; i<mcd._merSizeInBases; i++)
-      theMerString[mcd._merSizeInBases-i-1] = decompressSymbol[(M.theFMer() >> (2*i)) & 0x03];
-    theMerString[mcd._merSizeInBases] = 0;
-    fprintf(stdout, "%s\n", theMerString);
-#endif
 
     mcd._actualNumberOfMers++;
   }
@@ -287,12 +406,12 @@ createHashTable(char *inputFile, cds_uint32 skipNum) {
   //  position 2.
   //
   mcd._hashWidth  = 1;
-  while ((mcd._actualNumberOfMers+1) > (CDS_UINT64_ONE << mcd._hashWidth))
+  while ((mcd._actualNumberOfMers+1) > (UINT64_ONE << mcd._hashWidth))
     mcd._hashWidth++;
 
   //  ....allocate a hash table that is that many bits wide.
   //
-  _hash = new cds_uint64 [(mcd._tableSizeInEntries+1) * mcd._hashWidth / 64 + 2];
+  _hash = new uint64 [(mcd._tableSizeInEntries+1) * mcd._hashWidth / 64 + 2];
 
   //
   //  Create the hash index using the counts.  The hash points
@@ -301,9 +420,9 @@ createHashTable(char *inputFile, cds_uint32 skipNum) {
   //
   //  When done, we can deallocate the counting table.
   //
-  cds_uint64 i=0;
-  cds_uint64 j=0;
-  cds_uint64 c=0;
+  uint64 i=0;
+  uint64 j=0;
+  uint64 c=0;
 
   while (i < mcd._tableSizeInEntries) {
     c += _ctbl[i++];
@@ -323,15 +442,16 @@ createHashTable(char *inputFile, cds_uint32 skipNum) {
 
 void
 verifyHashTable(void) {
-  cds_uint64 i=0, j=0, c=0, d=0;
-
-  fprintf(stderr, "    Verifying hash table.\n");
+  uint64 i=0, j=0, c=0, d=0;
+  uint64 fail=0;
 
   while (i <= mcd._tableSizeInEntries) {
     c = getDecodedValue(_hash, j, mcd._hashWidth);
 
-    if (c < d)
+    if (c < d) {
       fprintf(stderr, "ERROR:  Table[%lu] out of order.\n", i);
+      fail++;
+    }
 
     d = c;
 
@@ -339,24 +459,23 @@ verifyHashTable(void) {
     i++;
   }
 
-  fprintf(stderr, "    Verify finished.\n");
+  assert(fail == 0);
 }
 
 
-//  0.52 Mb per second on viking5
 void
-fillCheckTable(char *inputFile, cds_uint32 skipNum) {
-  cds_uint64  mer, b, c;
+fillCheckTable(char *inputFile, uint32 skipNum) {
+  uint64  mer, b, c;
 
   //  Allocate space for mcd._actualNumberOfMers mers in the _chck array.
   //  This doesn't need to be cleared.
   //
-  _chck = new cds_uint64 [mcd._actualNumberOfMers * mcd._chckBits / 64 + 1];
+  _chck = new uint64 [mcd._actualNumberOfMers * mcd._chckBits / 64 + 1];
 
-  merStream   M(mcd._merSizeInBases, inputFile,skipNum);
-  cds_int64 nummers=0;
+  merStream   M(mcd._merSizeInBases, inputFile, skipNum);
+  uint64      nummers=0;
 
-  while (M.nextMer()&&(nummers++)<mersToCount) {
+  while (M.nextMer() && (nummers++ < mersToCount)) {
     mer = M.theFMer();
     if (mer > M.theRMer())
       mer = M.theRMer();
@@ -370,17 +489,14 @@ fillCheckTable(char *inputFile, cds_uint32 skipNum) {
 
 
 
-
-
-
 ////////////////////////////////////////////////////////////////////////////////
 //
 //  OUTPUT
 //
 void
-adjustHeap(heapbit *M, cds_int64 i, cds_int64 n) {
-  heapbit   m = M[i];
-  cds_int64    j = (i << 1) + 1;  //  let j be the left child
+adjustHeap(uint64 *M, int64 i, int64 n) {
+  uint64   m = M[i];
+  int64    j = (i << 1) + 1;  //  let j be the left child
 
   while (j < n) {
     if (j<n-1 && M[j] < M[j+1])
@@ -401,17 +517,17 @@ adjustHeap(heapbit *M, cds_int64 i, cds_int64 n) {
 
 void
 sortAndOutput(char   *outfilename,
-              cds_uint32  targetCount) {
-  cds_uint64 m     = CDS_UINT64_ONE << mcd._tableSizeInBits;
-  cds_uint32 count = 0;
-  cds_uint32 items = 0;
+              uint32  targetCount) {
+  uint64 m     = UINT64_ONE << mcd._tableSizeInBits;
+  uint32 count = 0;
+  uint32 items = 0;
 
-  heapbit *_sortedList    = 0L;
-  cds_uint32   _sortedListMax = 0;
-  cds_uint32   _sortedListLen = 0;
+  uint64  *_sortedList    = 0L;
+  uint32   _sortedListMax = 0;
+  uint32   _sortedListLen = 0;
 
   unsigned char  theMerString[33];
-  cds_uint64         mer;
+  uint64         mer;
 
   //  Open the output file
   //
@@ -421,15 +537,12 @@ sortAndOutput(char   *outfilename,
   //  For each bucket, sort it.  The output is done
   //  in the sort.
   //
-  for (cds_uint64 B=0, b=0; b<m; b++) {
-    cds_uint64 st = getDecodedValue(_hash, B, mcd._hashWidth);
+  for (uint64 B=0, b=0; b<m; b++) {
+    uint64 st = getDecodedValue(_hash, B, mcd._hashWidth);
     B        += mcd._hashWidth;
-    cds_uint64 ed = getDecodedValue(_hash, B, mcd._hashWidth);
+    uint64 ed = getDecodedValue(_hash, B, mcd._hashWidth);
 
-    if (ed < st) {
-      fprintf(stderr, "ERROR: Bucket %10lu starts at %10lu ends at %10lu\n", b, st, ed);
-      fflush(stderr);
-    }
+    assert(ed >= st);
 
     _sortedListLen = ed - st;
 
@@ -442,13 +555,13 @@ sortAndOutput(char   *outfilename,
       //
       if (_sortedListLen > _sortedListMax) {
         delete [] _sortedList;
-        _sortedList    = new heapbit [_sortedListLen + 1];
+        _sortedList    = new uint64 [_sortedListLen + 1];
         _sortedListMax = _sortedListLen;
       }
 
       //  Unpack the check values
       //
-      for (cds_uint64 i=st, J=st*mcd._chckBits; i<ed; i++, J += mcd._chckBits)
+      for (uint64 i=st, J=st*mcd._chckBits; i<ed; i++, J += mcd._chckBits)
         _sortedList[i-st] = getDecodedValue(_chck, J, mcd._chckBits);
 
       //  Sort if there is more than one item
@@ -457,13 +570,13 @@ sortAndOutput(char   *outfilename,
 
         //  Create the heap of lines.
         //
-        for (cds_int64 t=(_sortedListLen-2)/2; t>=0; t--)
+        for (int64 t=(_sortedListLen-2)/2; t>=0; t--)
           adjustHeap(_sortedList, t, _sortedListLen);
 
         //  Interchange the new maximum with the element at the end of the tree
         //
-        for (cds_int64 t=_sortedListLen-1; t>0; t--) {
-          heapbit          tv = _sortedList[t];
+        for (int64 t=_sortedListLen-1; t>0; t--) {
+          uint64           tv = _sortedList[t];
           _sortedList[t]      = _sortedList[0];
           _sortedList[0]      = tv;
 
@@ -477,12 +590,12 @@ sortAndOutput(char   *outfilename,
       //
       count = 1;
       if (_sortedListLen > 0) {
-        cds_uint32 t;
+        uint32 t;
         for (t=1; t<_sortedListLen; t++) {
           if (_sortedList[t] != _sortedList[t-1]) {
             if (targetCount <= count) {
               mer = (b << mcd._chckBits) | _sortedList[t-1];
-              for (cds_uint32 i=0; i<mcd._merSizeInBases; i++)
+              for (uint32 i=0; i<mcd._merSizeInBases; i++)
                 theMerString[mcd._merSizeInBases-i-1] = decompressSymbol[(mer >> (2*i)) & 0x03];
               theMerString[mcd._merSizeInBases] = 0;
               fprintf(outFile, ">%d\n%s\n", count, theMerString);
@@ -497,7 +610,7 @@ sortAndOutput(char   *outfilename,
         //
         if (targetCount <= count) {
           mer = (b << mcd._chckBits) | _sortedList[t-1];
-          for (cds_uint32 i=0; i<mcd._merSizeInBases; i++)
+          for (uint32 i=0; i<mcd._merSizeInBases; i++)
             theMerString[mcd._merSizeInBases-i-1] = decompressSymbol[(mer >> (2*i)) & 0x03];
           theMerString[mcd._merSizeInBases] = 0;
           fprintf(outFile, ">%d\n%s\n", count, theMerString);
@@ -511,67 +624,30 @@ sortAndOutput(char   *outfilename,
 
 
 
-
-
-
-void
-build(char   *fragStore,
-      char   *outputFile,
-      cds_uint32  merSize,
-      cds_uint32  targetCount,
-      cds_uint32 skipNum) {
-
-  mcd._merSizeInBases      = merSize;
-  mcd._merSizeInBits       = mcd._merSizeInBases << 1;
-
-  //  XXX:  Hardcoded; need to estimate based on the fragstore
-  //  estimateTableSize(fragStore, merSize),
-  //
-  mcd._tableSizeInBits     = 26;
-  mcd._tableSizeInEntries  = 1 << mcd._tableSizeInBits;
-
-  mcd._chckBits            = mcd._merSizeInBits - mcd._tableSizeInBits;
-  _chck                    = 0L;
-  mcd._chckMask            = CDS_UINT64_MASK(mcd._chckBits);
-
-  mcd._hashWidth           = 0;
-  _hash                    = 0L;
-  mcd._hashMask            = CDS_UINT64_MASK(mcd._tableSizeInBits);  //  unused?
-
-  mcd._actualNumberOfMers  = 0;
-
-  createHashTable(fragStore,skipNum);
-  verifyHashTable();
-  fillCheckTable(fragStore,skipNum);
-  sortAndOutput(outputFile, targetCount);
-
-  delete [] _chck;
-  delete [] _hash;
-}
-
-
-
-
-
-
-
-
-
-
-
-
 int
 main(int argc, char **argv) {
-  cds_uint32            merSize          = 20;
+  uint32            merSize          = 20;
   char             *fragStore        = 0L;
   char             *outputFile       = 0L;
-  cds_uint64            minimumCount     = 0;
-  cds_uint32            skipNum = 1;
+  uint64            minimumCount     = 0;
+  uint32            skipNum = 1;
 
   if (argc == 1) {
-    fprintf(stderr, usage, argv[0], argv[0]);
+    fprintf(stderr, "usage: %s [options]\n", argv[0]);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Given a sequence file (-s) and lots of parameters, compute\n");
+    fprintf(stderr, "the mer-count tables.  By default, both strands are processed.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "        -m #                    (size of a mer)\n");
+    fprintf(stderr, "        -s /path/to/fragstore   (a fragstore)\n");
+    fprintf(stderr, "        -n #                    (threshold to output)\n");
+    fprintf(stderr, "        -N #                    (number of mers to examine)\n");
+    fprintf(stderr, "        -K #                    (read only every Kth ffragment)\n");
+    fprintf(stderr, "        -o tblprefix            (output table prefix)\n");
     exit(1);
   }
+
+  mersToCount = ~UINT64_ZERO;
 
   for (int arg=1; arg < argc; arg++) {
     if (argv[arg][0] != '-') {
@@ -598,7 +674,7 @@ main(int argc, char **argv) {
         case 'N':
 	  arg++;
           mersToCount = STR_TO_UINT64(argv[arg], NULL, 10);
- 	  if(mersToCount<=0){
+ 	  if(mersToCount <= 0){
  	    fprintf(stderr,"Trouble getting number of mers to count from %s (option -N)\n",
  		    argv[arg]);
  	    exit(1);
@@ -609,7 +685,7 @@ main(int argc, char **argv) {
           outputFile = argv[arg];
           break;
         case 'V':
-          fprintf(stdout, "version: CA $Id: AS_MER_meryl.cc,v 1.5 2006-10-28 02:25:45 brianwalenz Exp $\n");
+          fprintf(stdout, "version: CA $Id: AS_MER_meryl.cc,v 1.6 2007-03-19 03:54:11 brianwalenz Exp $\n");
           exit(0);
           break;
         default:
@@ -629,9 +705,32 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  build(fragStore,
-        outputFile,
-        merSize,
-        minimumCount,
-	skipNum);
+  mcd._merSizeInBases      = merSize;
+  mcd._merSizeInBits       = mcd._merSizeInBases << 1;
+
+  //  XXX:  Hardcoded; need to estimate based on the fragstore
+  //  estimateTableSize(fragStore, merSize),
+  //
+  mcd._tableSizeInBits     = 26;
+  mcd._tableSizeInEntries  = 1 << mcd._tableSizeInBits;
+
+  mcd._chckBits            = mcd._merSizeInBits - mcd._tableSizeInBits;
+  _chck                    = 0L;
+  mcd._chckMask            = UINT64_MASK(mcd._chckBits);
+
+  mcd._hashWidth           = 0;
+  _hash                    = 0L;
+  mcd._hashMask            = UINT64_MASK(mcd._tableSizeInBits);  //  unused?
+
+  mcd._actualNumberOfMers  = 0;
+
+  createHashTable(fragStore,skipNum);
+  verifyHashTable();
+  fillCheckTable(fragStore,skipNum);
+  sortAndOutput(outputFile, minimumCount);
+
+  delete [] _chck;
+  delete [] _hash;
+
+  return(0);
 }

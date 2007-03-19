@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_global.h,v 1.10 2007-03-09 03:05:58 brianwalenz Exp $	 */
+/* 	$Id: AS_global.h,v 1.11 2007-03-19 03:54:11 brianwalenz Exp $	 */
 
 /* This is the global include file that all C files in the AS subsystem should
    include.
@@ -71,8 +71,7 @@
   #include <stdlib.h>
 #endif
 
-#ifdef __cplusplus
-#else
+#ifndef __cplusplus
   #ifdef bool
     #undef bool
   #endif // bool
@@ -124,9 +123,9 @@ typedef void *PtrT;
 #define F_ULL  "%llu"
 
 #if ULONG_MAX == 0xffffffff
-  /***********************************************************************
-   32-bit architecture
-   ***********************************************************************/
+  // 64-bit architecture
+
+  #define TRUE32BIT
 
   /*  Newer gcc's know INT64_MAX, older ones don't.  */
   #ifdef UINT64_MAX
@@ -190,10 +189,6 @@ typedef void *PtrT;
   // UID of first frag in first dros input file...
   #define FIRST_UID     17000001585819ULL
 
-  //========== MERYL-specific
-  #define CDS_UINT64_ZERO   0x0000000000000000ULL
-  #define CDS_UINT64_ONE    0x0000000000000001ULL
-
   //========== CGB-specific
   #define CGB_MULTIPLIER               1000
 
@@ -203,114 +198,98 @@ typedef void *PtrT;
   // Used in cgw: 256 * 1024^2
   #define MAX_SEQUENCEDB_CACHE_SIZE   268435456UL
 
-#else
-  /***********************************************************************
-   Not 32-bit architecture
-   ***********************************************************************/
+#endif  // 32-bit architecture
 
 
-  #if ULONG_MAX == 0xffffffffffffffff
-    /***********************************************************************
-     64-bit architecture
-     ***********************************************************************/
 
-    #define CDS_INT64_MAX LONG_MAX
-    #define CDS_UINT64_MAX ULONG_MAX
-    
-    // included here for downstream .c files
-    // I don't know if this is needed anywhere else but on the alphas (MP)
-    #ifdef _OSF_SOURCE
-    #include <sys/mode.h>
-    #endif
-    
-    #define F_S16    "%d"
-    #define F_U16    "%u"
-    #define F_S32    "%d"
-    #define F_S32P    "d"
-    #define F_U32    "%u"
-    #define F_U32P    "u"
-    #define F_S64   "%ld"
-    #define F_S64P   "ld"
-    #define F_U64   "%lu"
-    #define F_U64P   "lu"
-    #define F_X64   "%lx"
-    #define F_X64P   "lx"
-    
-    #define F_SIZE_T  "%lu"
-    #define F_SIZE_TP  "lu"
 
-    #ifdef _AIX
-      #define F_TIME_T  "%ld"
-      #define F_TIME_TP  "ld"
+#if ULONG_MAX == 0xffffffffffffffff
+  // 64-bit architecture
 
-      #define F_PID_T   "%ld"
-      #define F_PID_TP   "ld"
+  #define TRUE64BIT
 
-      #ifdef _LARGE_FILES
-        #define F_OFF_T   "%lld"
-        #define F_OFF_TP   "lld"
-      #else
-        #define F_OFF_T   "%ld"
-        #define F_OFF_TP   "ld"
-      #endif
-    #else
-      // these are valid for __alpha, perhaps not for others...
-      #define F_TIME_T  "%d"
-      #define F_TIME_TP  "d"
-
-      #define F_PID_T   "%d"
-      #define F_PID_TP   "d"
-
-        #ifdef _KERNEL
-          #define F_OFF_T   "%lu"
-          #define F_OFF_TP   "lu"
-        #else
-          #define F_OFF_T   "%ld"
-          #define F_OFF_TP   "ld"
-        #endif
-      #endif
+  #define CDS_INT64_MAX LONG_MAX
+  #define CDS_UINT64_MAX ULONG_MAX
     
-    #define STR_TO_UID     strtoul
-    #define STR_TO_UINT64  strtoul
-    #define STR_TO_INT64    strtol
-    
-    #define FILEID_MASK       0xffff000000000000UL
-    #define FILEOFFSET_MASK   0x0000ffffffffffffUL
-    #define LOCALE_OFFSET            10000000000UL  // 10^10 > 2^32
-    
-    //========== SIMULATOR-specific
-    // Fix initial creation time & uid in celsim to support regression testing 
-    // time stamp of batch message in first dros file...
-    #define CREATION_TIME      915170460
-    // UID of first frag in first dros input file...
-    #define FIRST_UID     17000001585819UL
-    
-    //========== MERYL-specific
-    #define CDS_UINT64_ZERO   0x0000000000000000UL
-    #define CDS_UINT64_ONE    0x0000000000000001UL
-    
-    //========== CGB-specific
-    #ifndef __alpha
-      #define CGB_MULTIPLIER            1000
-    #else
-      #define CGB_MULTIPLIER               1000
-    #endif
-    
-    //========== CGW-specific
-    // Used in cgw: 2 * 1024^3
-    #define MAX_SEQUENCEDB_SIZE           2147483648ul
-
-    // Used in cgw: 2 * 256 * 1024^2
-    #define MAX_SEQUENCEDB_CACHE_SIZE      536870912ul
-  #else
-    /***********************************************************************
-     not 32-bit nor 64-bit architecture
-     ***********************************************************************/
-    CANNOT SET REQUIRED ASSEMBLER MACROS in cds.h. UNIDENTIFIED ARCHITECTURE.
+  // included here for downstream .c files
+  // I don't know if this is needed anywhere else but on the alphas (MP)
+  #ifdef _OSF_SOURCE
+   #include <sys/mode.h>
   #endif
-#endif
+    
+  #define F_S16    "%d"
+  #define F_U16    "%u"
+  #define F_S32    "%d"
+  #define F_S32P    "d"
+  #define F_U32    "%u"
+  #define F_U32P    "u"
+  #define F_S64   "%ld"
+  #define F_S64P   "ld"
+  #define F_U64   "%lu"
+  #define F_U64P   "lu"
+  #define F_X64   "%lx"
+  #define F_X64P   "lx"
+    
+  #define F_SIZE_T  "%lu"
+  #define F_SIZE_TP  "lu"
 
+  #ifdef _AIX
+    #define F_TIME_T  "%ld"
+    #define F_TIME_TP  "ld"
 
+    #define F_PID_T   "%ld"
+    #define F_PID_TP   "ld"
+
+    #ifdef _LARGE_FILES
+      #define F_OFF_T   "%lld"
+      #define F_OFF_TP   "lld"
+    #else
+      #define F_OFF_T   "%ld"
+      #define F_OFF_TP   "ld"
+    #endif
+  #else
+    // these are valid for __alpha, perhaps not for others...
+    #define F_TIME_T  "%d"
+    #define F_TIME_TP  "d"
+
+    #define F_PID_T   "%d"
+    #define F_PID_TP   "d"
+
+    #ifdef _KERNEL
+      #define F_OFF_T   "%lu"
+      #define F_OFF_TP   "lu"
+    #else
+      #define F_OFF_T   "%ld"
+      #define F_OFF_TP   "ld"
+    #endif
+  #endif
+    
+  #define STR_TO_UID     strtoul
+  #define STR_TO_UINT64  strtoul
+  #define STR_TO_INT64    strtol
+    
+  #define FILEID_MASK       0xffff000000000000UL
+  #define FILEOFFSET_MASK   0x0000ffffffffffffUL
+  #define LOCALE_OFFSET            10000000000UL  // 10^10 > 2^32
+    
+  //========== SIMULATOR-specific
+  // Fix initial creation time & uid in celsim to support regression testing 
+  // time stamp of batch message in first dros file...
+  #define CREATION_TIME      915170460
+  // UID of first frag in first dros input file...
+  #define FIRST_UID     17000001585819UL
+
+  //========== CGB-specific
+  #define CGB_MULTIPLIER            1000
+
+  //========== CGW-specific
+  // Used in cgw: 2 * 1024^3
+  #define MAX_SEQUENCEDB_SIZE           2147483648ul
+
+  // Used in cgw: 2 * 256 * 1024^2
+  #define MAX_SEQUENCEDB_CACHE_SIZE      536870912ul
+
+#endif  // 64-bit architecture
 
 
 #ifdef __alpha
@@ -318,8 +297,6 @@ typedef void *PtrT;
 int   fseeko(FILE *stream, off_t offset, int whence );
 off_t ftello(FILE *stream );
 #endif
-
-
 
 
 
@@ -373,9 +350,6 @@ typedef cds_int32  CDS_COORD_t;
 #define CDS_COORD_MIN   CDS_INT32_MIN
 #define CDS_COORD_MAX   CDS_INT32_MAX
 
-// used in AS_MER
-#define CDS_UINT64_MASK(X)   ((~CDS_UINT64_ZERO) >> (64 - (X)))
-
 #define F_UID    F_U64
 #define F_UIDP   F_U64P
 #define F_IID    F_U32
@@ -393,16 +367,17 @@ typedef cds_int32  CDS_COORD_t;
 
 // Constants that SHOULD be included
 #ifndef  EXIT_SUCCESS
-  #define  EXIT_SUCCESS  0
+#define  EXIT_SUCCESS  0
 #endif
 #ifndef  EXIT_FAILURE
-  #define  EXIT_FAILURE  -1
+#define  EXIT_FAILURE  -1
 #endif
 
 #define CGB_INVALID_CUTOFF           -12.0f
 // A threshold value for Gene^s coverage statistic. Values BELOW this value
 // have never been known to associated with unitigs with fragments that ARE
 // not contiguous in the genome. They are guaranteed REPEATS.
+
 #define CGB_UNIQUE_CUTOFF            10.0f
 //#define CGB_UNIQUE_CUTOFF            12.0f
 // A threshold value for Gene^s coverage statistic. Values above this value
@@ -416,11 +391,13 @@ typedef cds_int32  CDS_COORD_t;
 
 #define ERR_MODEL_IN_AS_GLOBAL_H 6
 #define ERR_FRACTION_IN_AS_GLOBAL_H (ERR_MODEL_IN_AS_GLOBAL_H/100.)
+
 #define AS_READ_ERROR_RATE         ERR_FRACTION_IN_AS_GLOBAL_H
-    //  Errors per base allowed in matching regions between frag reads
+//  Errors per base allowed in matching regions between frag reads
+
 #define AS_GUIDE_ERROR_RATE        ERR_FRACTION_IN_AS_GLOBAL_H
-    //  Errors per base allowed in matching regions involving BAC ends
-    //  or other guides.
+//  Errors per base allowed in matching regions involving BAC ends
+//  or other guides.
 
 #define AS_CGB_BPT_MIN_PREFIX   25
 #define AS_CGB_BPT_MIN_SUFFIX   25
