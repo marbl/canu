@@ -91,9 +91,7 @@ sub parseArgs (@) {
         #
         #  search options
         #
-        elsif  (($arg =~ m/^-(mersize)/)       ||
-                ($arg =~ m/^-(merskip)/)       ||
-                ($arg =~ m/^-(searchopts)/)    ||
+        elsif  (($arg =~ m/^-(searchopts)/)    ||
                 ($arg =~ m/^-(localsearches)/) ||
                 ($arg =~ m/^-(searchthreads)/) ||
                 ($arg =~ m/^-(hitsortmemory)/) ||
@@ -104,6 +102,10 @@ sub parseArgs (@) {
         #
         #  filter options
         #
+        elsif  (($arg =~ m/^-(hitsortmemory)/)) {
+            $args{$1}       = shift @ARGS;
+        } elsif ($arg =~ m/^-nofilter/) {
+            $args{'nofilter'} = 1;
 
         #
         #  polish options
@@ -128,8 +130,6 @@ sub parseArgs (@) {
             delete $args{'aligns'};
         } elsif ($arg =~ m/^-abort/) {
             $args{'abort'} = 1;
-        } elsif ($arg =~ m/^-nofilter/) {
-            $args{'nofilter'} = 1;
         } elsif ($arg =~ m/^-yn/) {
             $args{'nofilter'} = 1;
             $args{'sim4-yn'} = 1;
