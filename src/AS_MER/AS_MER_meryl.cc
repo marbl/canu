@@ -111,10 +111,10 @@ private:
     return('N');
   };
 
-  char                     *_theSeq;
+  char                 *_theSeq;
   uint32                _theLen;
-  unsigned int              _thePos;
-  unsigned int              _endPos;
+  uint32                _thePos;
+  uint32                _endPos;
 
   uint32                _skipNum;
   uint32                _merSize;
@@ -126,13 +126,11 @@ private:
 
   uint32                _theRMerShift;
 
-  char                      _theMerString[33];
-
   GateKeeperStore      *_fs;
   fragRecord           *_fr;
 
-  uint64            _iid;
-  uint64            _max;
+  uint64                _iid;
+  uint64                _max;
 };
 
 
@@ -685,7 +683,7 @@ main(int argc, char **argv) {
           outputFile = argv[arg];
           break;
         case 'V':
-          fprintf(stdout, "version: CA $Id: AS_MER_meryl.cc,v 1.7 2007-03-20 00:10:34 brianwalenz Exp $\n");
+          fprintf(stdout, "version: CA $Id: AS_MER_meryl.cc,v 1.8 2007-03-20 13:56:56 brianwalenz Exp $\n");
           exit(0);
           break;
         default:
