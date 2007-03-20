@@ -12,7 +12,7 @@ extern u32bit       uniqThresh;
 extern u32bit       reptThresh;
 extern FILE        *logFile;
 extern bool         decided;
-extern char        *label;
+extern const char  *label;
 extern u32bit       hitsToSave;
 extern double       qualToSave;
 

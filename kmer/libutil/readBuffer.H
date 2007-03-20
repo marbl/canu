@@ -15,34 +15,34 @@ public:
 
   ~readBuffer();
 
-  bool      eof(void);
-  bool      next(void);
-  char      get(void);
-  char      getnext(void);
-  bool      seek(off_t pos);
-  size_t    read(char *buf, size_t len);   //  read the next len bytes into the user buffer buf
-  off_t     tell(void);
+  bool             eof(void);
+  bool             next(void);
+  char             get(void);
+  char             getnext(void);
+  bool             seek(off_t pos);
+  size_t           read(char *buf, size_t len);
+  off_t            tell(void);
 
 private:
-  void      fillBuffer(void);
-  void      init(int fileptr, const char *filename, u32bit bufferMax);
+  void             fillBuffer(void);
+  void             init(int fileptr, const char *filename, u32bit bufferMax);
 
-  char    *_filename;
+  char           *_filename;
 
-  int      _file;
-  int      _fileType;  //  0=stdin, 1=normal, 2=mmap
+  int             _file;
+  int             _fileType;  //  0=stdin, 1=normal, 2=mmap
 
-  off_t    _filePos;
+  off_t           _filePos;
 
-  bool     _eof;
+  bool            _eof;
 
   //  If bufferMax is zero, then we are using the mmapped interface, otherwise,
   //  we are using a open()/read() and a small buffer.
 
-  size_t   _bufferPos;
-  size_t   _bufferLen;
-  size_t   _bufferMax;
-  char    *_buffer;
+  size_t          _bufferPos;
+  size_t          _bufferLen;
+  size_t          _bufferMax;
+  char           *_buffer;
 };
 
 

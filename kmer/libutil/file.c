@@ -302,7 +302,7 @@ freeDiskSpace(char *path) {
 //  piece.  Really needed by OSF1 (V5.1).
 //
 void
-safeWrite(int filedes, const void *buffer, char *desc, size_t nbytes) {
+safeWrite(int filedes, const void *buffer, const char *desc, size_t nbytes) {
   size_t  position = 0;
   size_t  length   = 32 * 1024 * 1024;
   size_t  towrite  = 0;
@@ -327,7 +327,7 @@ safeWrite(int filedes, const void *buffer, char *desc, size_t nbytes) {
 }
 
 int
-safeRead(int filedes, const void *buffer, char *desc, size_t nbytes) {
+safeRead(int filedes, const void *buffer, const char *desc, size_t nbytes) {
   size_t  position = 0;
   size_t  length   = 32 * 1024 * 1024;
   size_t  toread   = 0;

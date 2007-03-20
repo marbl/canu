@@ -61,7 +61,7 @@ public:
 
 private:
   void             createIndex(u32bit indextype);
-  char            *indexTypeNames(u32bit indextype);
+  const char      *indexTypeNames(u32bit indextype);
   char            *moveToNextName(char *ptr, u32bit iid);
 
   _idxfa_desc    *_theSeqs;

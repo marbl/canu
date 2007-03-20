@@ -2,7 +2,7 @@
 
 #include "bio++.H"
 
-char*
+const char *
 FastAWrapper::indexTypeNames(u32bit indextype) {
 
   switch (indextype) {

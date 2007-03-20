@@ -34,7 +34,7 @@
 
 
 FILE*
-openOutput(char *prefix, char *suffix) {
+openOutput(const char *prefix, const char *suffix) {
   char name[1025];
   sprintf(name, "%s.%s", prefix, suffix);
   errno = 0;
@@ -52,7 +52,7 @@ int
 main(int argc, char **argv) {
   u32bit           minI   = 95;
   u32bit           minC   = 50;
-  char            *prefix = "comparePolishes";
+  const char      *prefix = "comparePolishes";
   sim4polishFile  *Afile  = 0L;
   sim4polishFile  *Bfile  = 0L;
 

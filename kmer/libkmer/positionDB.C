@@ -876,7 +876,7 @@ positionDB::positionDB(merStream   *MS,
       fprintf(stderr, "    Rebuilding the hash table, from "u32bitFMT" bits wide to "u32bitFMT" bits wide.\n",
               _hashWidth, newHashWidth);
 
-    for (u64bit b=0; b<_tableSizeInEntries+1; b++) {
+    for (u64bit z=0; z<_tableSizeInEntries+1; z++) {
 
       //  Set the start of the bucket -- we took pains to ensure that
       //  we don't overwrite _bucketSizes[b], if we are reusing that

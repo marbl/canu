@@ -46,7 +46,7 @@ FILE        *logFile            = 0L;
 //  double qualToSave -- the quality threshold to filter at
 //
 bool         decided;
-char        *label;
+const char  *label;
 u32bit       hitsToSave;
 double       qualToSave;
 
@@ -54,8 +54,9 @@ double       qualToSave;
 
 
 void
-report(u32bit iid,
+report(u32bit iid
 #ifdef WITH_ANSWERS
+       ,
        u32bit filterTP,
        u32bit filterFP,
        u32bit filterFNfilt,
@@ -63,11 +64,9 @@ report(u32bit iid,
        u32bit filterTN,
        u32bit seqsMapped,
        u32bit seqsPartial,
-       u32bit seqsMissed,
+       u32bit seqsMissed
 #endif
-       u32bit hitsSaved,
-       u32bit hitsTotal,
-       double perc) {
+       ) {
 
   fprintf(stderr,
           u32bitFMTW(9)"]"
@@ -82,7 +81,7 @@ report(u32bit iid,
           seqsMapped, seqsPartial, seqsMissed,
 #endif
           hitsSaved, hitsTotal,
-          perc);
+          100.0 * hitsSaved / hitsTotal);
 }
 
 
@@ -249,13 +248,13 @@ main(int argc, char **argv) {
 
 
     if ((HR.iid() % 500) == 0) {
-      report(HR.iid(),
+      report(HR.iid()
 #ifdef WITH_ANSWERS
+             ,
              filterTP, filterFP, filterFNfilt, filterFNunk, filterTN,
-             seqsMapped, seqsPartial, seqsMissed,
+             seqsMapped, seqsPartial, seqsMissed
 #endif
-             hitsSaved, hitsTotal,
-             100.0 * hitsSaved / hitsTotal);
+             );
       fflush(stderr);
     }
   }
@@ -264,13 +263,13 @@ main(int argc, char **argv) {
     fclose(logFile);
 
 
-  report(HR.iid(),
+  report(HR.iid()
 #ifdef WITH_ANSWERS
+         ,
          filterTP, filterFP, filterFNfilt, filterFNunk, filterTN,
-         seqsMapped, seqsPartial, seqsMissed,
+         seqsMapped, seqsPartial, seqsMissed
 #endif
-         hitsSaved, hitsTotal,
-         100.0 * hitsSaved / hitsTotal);
+         );
   fprintf(stderr, "\n");
 
   return(0);

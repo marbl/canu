@@ -83,9 +83,9 @@ FastAWrapper::getSequence(void) {
     //
     char *h = new char [ _theSeqs[_currentSequenceNumber]._headerLen + 1 ];
     char *s = new char [ _theSeqs[_currentSequenceNumber]._seqLen + 1 ];
-    
+
     _filebuffer->read(h, _theSeqs[_currentSequenceNumber]._headerLen);
-  
+
     //  Skip any whitespace between the defline and the start of the sequence
     //  (Rather than a seek, we just skip the spaces)
     //
