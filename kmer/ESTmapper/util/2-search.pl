@@ -87,7 +87,7 @@ sub search {
     #  Look for a mer masking file, or use the one supplied.
     #
     if (!defined($args{'maskmers'})) {
-        $args{'maskmers'} = "$args{'genome'}/frequentMers-ge1000.fasta";
+        $args{'maskmers'} = "$args{'genomedir'}/frequentMers-ge1000.fasta";
     }
     if (($args{'maskmers'} ne "none") && (! -e $args{'maskmers'})) {
         print STDERR "ESTmapper/search-- Can't find mer mask file '$args{'maskmers'}'.\n";

@@ -61,7 +61,7 @@ I. What is ESTmapper?\
 There are two required parameters:\
 \pard\pardeftab720\li3600\fi-3600
 \cf0 	-genome g.fasta		the genome to map to\
-	-path genome-directory	the directory to save the configuration in\
+	-genomedir genome-directory	the directory to save the configuration in\
 \
 And numerous optional parameters:\
 	-mersize m			use m-mers (default 20)\
@@ -105,7 +105,7 @@ Configure the
 
 \f3 \cf0 configureESTmapper.pl \\\
   -genome /genomedir/ame_ref.fasta \\\
-  -path /scratch/apis \\\
+  -genomedir /scratch/apis \\\
   -mersize 20 \\\
   -merskip 0 \\\
   -segments 4 \\\
@@ -122,8 +122,8 @@ Once a genome is configured, any number of ESTmapper mappings can be performed, 
 \
 There are three required parameters:\
 \pard\pardeftab720\li2880\fi-2880
-\cf0 	-path			mapping-directory, the output and temporary files will go here.\
-	-genome		genome-directory, as configured with configureESTmapper.pl.\
+\cf0 	-outputdir		mapping-directory, the output and temporary files will go here.\
+	-genomedir		genome-directory, as configured with configureESTmapper.pl.\
 	-mapX			mapping style; -mapest, -mapmrna or -mapsnp.\
 \pard\pardeftab720
 \cf0 \
@@ -203,8 +203,8 @@ Using the configured
 \
 
 \f4 ESTmapper.pl \\\
-  -path apismap \\\
-  -genome /scratch/apis \\\
+  -outputdir apismap \\\
+  -genomedir /scratch/apis \\\
   -mapmrna /home/work/SEQUENCE/HUMREFSEQ1/HUMREFSEQ1.fasta \\\
   -minidentity 80 \\\
   -mincoverage 50 \\\

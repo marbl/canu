@@ -38,10 +38,14 @@ sub parseArgs (@) {
     while (scalar(@ARGS) > 0) {
         my $arg = shift @ARGS;
 
-        if      (($arg =~ m/^-dir/) || ($arg =~ m/^-path/)) {
+        if      (($arg =~ m/^-dir/) ||   #  depricated
+                 ($arg =~ m/^-path/) ||  #  depricated
+                 ($arg =~ m/^-outputdir/) ||
+                 ($arg =~ m/^-mapdir/)) {
             $args{'path'} = shift @ARGS;
-        } elsif ($arg =~ m/^-genome/) {
-            $args{'genome'} = shift @ARGS;
+        } elsif (($arg =~ m/^-genomedir/) ||
+                 ($arg =~ m/-genome/)) {  #  depricated
+            $args{'genomedir'} = shift @ARGS;
 
         } elsif (($arg =~ m/^-map(est)/) ||
                  ($arg =~ m/^-map(mrna)/) ||
@@ -106,6 +110,7 @@ sub parseArgs (@) {
             $args{$1}       = shift @ARGS;
         } elsif ($arg =~ m/^-nofilter/) {
             $args{'nofilter'} = 1;
+        }
 
         #
         #  polish options
@@ -162,16 +167,16 @@ sub parseArgs (@) {
     #
     ($args{'path'} eq "") and die "ERROR: ESTmapper/configure-- no directory given.\n";
 
-    #print STDERR "CONF $args{'genome'}\n";
+    #print STDERR "CONF $args{'genomedir'}\n";
     #print STDERR "CONF $args{'queries'}\n";
     #print STDERR "CONF $args{'path'}\n";
 
 
     #  Be tolerant of relative paths, but don't use them!
     #
-    $args{'genome'}  = "$ENV{'PWD'}/$args{'genome'}"  if (defined($args{'genome'})  && ($args{'genome'}  !~ m!^/!));
-    $args{'queries'} = "$ENV{'PWD'}/$args{'queries'}" if (defined($args{'queries'}) && ($args{'queries'} !~ m!^/!));
-    $args{'path'}    = "$ENV{'PWD'}/$args{'path'}"    if (defined($args{'path'})    && ($args{'path'}    !~ m!^/!));
+    $args{'genomedir'} = "$ENV{'PWD'}/$args{'genomedir'}" if (defined($args{'genomedir'}) && ($args{'genomedir'} !~ m!^/!));
+    $args{'queries'}   = "$ENV{'PWD'}/$args{'queries'}"   if (defined($args{'queries'})   && ($args{'queries'}   !~ m!^/!));
+    $args{'path'}      = "$ENV{'PWD'}/$args{'path'}"      if (defined($args{'path'})      && ($args{'path'}      !~ m!^/!));
 
 
     #  Make some organization
@@ -225,14 +230,14 @@ sub configure {
 
     print STDERR "ESTmapper: Performing a configure.\n";
 
-    ($args{'genome'}  eq "") and die "ERROR: ESTmapper/configure-- no genomic sequences given.\n";
-    ($args{'queries'} eq "") and die "ERROR: ESTmapper/configure-- no cDNA sequences given.\n";
+    ($args{'genomedir'} eq "") and die "ERROR: ESTmapper/configure-- no genomic sequences given.\n";
+    ($args{'queries'}   eq "") and die "ERROR: ESTmapper/configure-- no cDNA sequences given.\n";
 
     (! -f $args{'queries'})     and die "ERROR: ESTmapper/configure-- can't find the cdna sequence '$args{'queries'}'\n";
 
     #  XXX:  We should check that the genome dir is valid and complete.
     #
-    symlink "$args{'genome'}", "$path/0-input/genome"  if (! -d "$path/0-input/genome");
+    symlink "$args{'genomedir'}", "$path/0-input/genome"  if (! -d "$path/0-input/genome");
 
     #  Check the input files exist, create symlinks to them, and find/build index files
     #

@@ -17,7 +17,7 @@ require "run.pl";
 #    -genome    some.fasta
 #
 #  Where?
-#    -path      some-directory
+#    -genomedir some-directory
 #
 #  How will we run?  Exactly one of -memory and -segments should be specified.
 #    -mersize   k
@@ -36,7 +36,7 @@ my $mimsf     = "$exechome/mersInMerStreamFile";
 my $meryl     = "$exechome/meryl";
 
 my $genome    = undef;
-my $path      = undef;
+my $genomedir = undef;
 my $mersize   = 20;
 my $merskip   = 0;
 my $memory    = 1000;
@@ -50,8 +50,8 @@ while (scalar(@ARGV)) {
 
     if      ($arg eq "-genome") {
         $genome = shift @ARGV;
-    } elsif ($arg eq "-path") {
-        $path = shift @ARGV;
+    } elsif (($arg eq "-genomedir") || ($arg eq "-path")) {
+        $genomedir = shift @ARGV;
     } elsif ($arg eq "-mersize") {
         $mersize  = int(shift @ARGV);
     } elsif ($arg eq "-merskip") {
@@ -69,7 +69,7 @@ while (scalar(@ARGV)) {
         $local = 1;
     } elsif ($arg eq "-h") {
         undef $genome;
-        undef $path;
+        undef $genomedir;
         undef @ARGV;
     } elsif ($arg eq "-justtestingifitworks") {
         exit(0);
@@ -77,10 +77,10 @@ while (scalar(@ARGV)) {
         die "ERROR: unknown arg '$arg'\n";
     }
 }
-if (!defined($genome) || !defined($path)) {
+if (!defined($genome) || !defined($genomedir)) {
     print STDERR "usage: $0 -genome g.fasta -path /some/path [args]\n";
     print STDERR "  -genome g.fasta   the genome to map to\n";
-    print STDERR "  -path d           the directory to save the configuration in\n";
+    print STDERR "  -genomedir d      the directory to save the configuration in\n";
     print STDERR "\n";
     print STDERR "  -mersize m        use m-mers (default 20)\n";
     print STDERR "  -merskip s        skip s m-mers between mers (default 0, use all mers)\n";
@@ -91,15 +91,15 @@ if (!defined($genome) || !defined($path)) {
     print STDERR "  -local            compute the configuration right now (the default)\n";
     print STDERR "\n";
     print STDERR "Example:\n";
-    print STDERR "  configureESTmapper.pl -genome B35LC.fasta -path B35LC -memory 900 -sge \"-pe thread 2\"\n";
+    print STDERR "  configureESTmapper.pl -genome B35LC.fasta -genomedir B35LC -memory 900 -sge \"-pe thread 2\"\n";
     print STDERR "\n";
     exit(1);
 }
 
-$genome = "$ENV{'PWD'}/$genome" if ($genome !~ m!^/!);
-$path   = "$ENV{'PWD'}/$path"   if ($path   !~ m!^/!);
+$genome    = "$ENV{'PWD'}/$genome"     if ($genome    !~ m!^/!);
+$genomedir = "$ENV{'PWD'}/$genomedir"  if ($genomedir !~ m!^/!);
 
-system("mkdir -p $path") if (! -d $path);
+system("mkdir -p $genomedir") if (! -d $genomedir);
 
 if ($genome !~ m/^\//) {
     my $cwd = `pwd`;
@@ -108,7 +108,7 @@ if ($genome !~ m/^\//) {
 }
 
 die "Can't find genome '$genome'\n"         if (! -e $genome);
-die "Can't find output directory '$path'\n" if (! -d $path);
+die "Can't find output directory '$genomedir'\n" if (! -d $genomedir);
 
 print STDERR "Configuring ESTmapper:\n";
 print STDERR "  merSize $mersize\n";
@@ -116,13 +116,13 @@ print STDERR "  merSkip $merskip\n";
 print STDERR "  ${memory}MB\n" if (defined($memory));
 print STDERR "  $segments segments\n" if (defined($segments));
 
-symlink "${genome}",    "$path/genome.fasta"    if ((! -f "$path/genome.fasta"));
-symlink "${genome}idx", "$path/genome.fastaidx" if ((! -f "$path/genome.fastaidx") && (-f "${genome}idx"));
+symlink "${genome}",    "$genomedir/genome.fasta"    if ((! -f "$genomedir/genome.fasta"));
+symlink "${genome}idx", "$genomedir/genome.fastaidx" if ((! -f "$genomedir/genome.fastaidx") && (-f "${genome}idx"));
 
-if (! -f "$path/genome.fastaidx") {
+if (! -f "$genomedir/genome.fastaidx") {
     print STDERR "configureESTmapper-- Generating the genome index.\n";
-    if (runCommand("$leaff -F $path/genome.fasta")) {
-        unlink "$path/genome.fastaidx";
+    if (runCommand("$leaff -F $genomedir/genome.fasta")) {
+        unlink "$genomedir/genome.fastaidx";
         die "Failed.\n";
     }
 }
@@ -134,20 +134,20 @@ if (! -f "$path/genome.fastaidx") {
 
 print STDERR "configureESTmapper-- Initializing positionDB creation.\n";
 
-if (! -e "$path/genome.merStream") {
+if (! -e "$genomedir/genome.merStream") {
     my $cmd;
     $cmd  = "$posdb";
     $cmd .= " -mersize $mersize";
     $cmd .= " -merskip $merskip";
     $cmd .= " -merbegin 1 -merend 100";
-    $cmd .= " -sequence $path/genome.fasta";
-    $cmd .= " -output $path/genome";
-    $cmd .= " > $path/genome.merStream.out 2>&1";
+    $cmd .= " -sequence $genomedir/genome.fasta";
+    $cmd .= " -output $genomedir/genome";
+    $cmd .= " > $genomedir/genome.merStream.out 2>&1";
     if (runCommand($cmd)) {
         die "Failed.\n";
     }
 
-    unlink("$path/genome");
+    unlink("$genomedir/genome");
 }
 
 
@@ -158,7 +158,7 @@ if (! -e "$path/genome.merStream") {
 #  mersPerSegment - the _actual_ number of mers we can stuff into a
 #  segment.  We then overlap each segment by 1,000,000 mers.
 
-my $mersInFile     = int(`$mimsf $path/genome`);
+my $mersInFile     = int(`$mimsf $genomedir/genome`);
 my $mersPerSegment = 0;
 my $segmentOverlap = 10000000;
 
@@ -179,7 +179,7 @@ if ($segments > 0) {
 
 $memory = int($mersPerSegment * 12 / 1000000);
 
-open(F, "> $path/memoryLimit") or die "Can't write $path/memoryLimit\n";
+open(F, "> $genomedir/memoryLimit") or die "Can't write $genomedir/memoryLimit\n";
 print F "$memory\n";
 close(F);
 
@@ -188,8 +188,8 @@ my $merBeg = 0;
 my $merEnd = 0;
 my $segId  = "000";
 
-open(F, "> $path/segments");
-open(S, "> $path/create.dat");
+open(F, "> $genomedir/segments");
+open(S, "> $genomedir/create.dat");
 while ($merBeg < $mersInFile) {
     $merEnd  = $merBeg + $mersPerSegment;
 
@@ -208,13 +208,13 @@ die "Created no groups?\n" if (int($segId) == 0);
 
 #  Configure meryl
 #
-if (! -e "$path/genome.merylArgs") {
+if (! -e "$genomedir/genome.merylArgs") {
     my $cmd;
     $cmd  = "$meryl";
     $cmd .= " -B -f -m $mersize -segments $segId -configbatch";
-    $cmd .= " -s $path/genome.fasta";
-    $cmd .= " -o $path/genome";
-    $cmd .= " > $path/meryl.config.out 2>&1";
+    $cmd .= " -s $genomedir/genome.fasta";
+    $cmd .= " -o $genomedir/genome";
+    $cmd .= " > $genomedir/meryl.config.out 2>&1";
     if (runCommand($cmd)) {
         die "Failed.\n";
     }
@@ -223,7 +223,7 @@ if (! -e "$path/genome.merylArgs") {
 
 #  Create the script that builds the positionDB's and meryl partitions
 #
-open(F, "> $path/create.sh");
+open(F, "> $genomedir/create.sh");
 print F "#!/bin/sh\n";
 print F "\n";
 print F "jobid=\$SGE_TASK_ID\n";
@@ -234,48 +234,48 @@ print F "if [ x\$jobid = x ]; then\n";
 print F "  echo Error: I need SGE_TASK_ID set, or a job index on the command line.\n";
 print F "  exit 1\n";
 print F "fi\n";
-print F "jobp=`cat $path/create.dat | head -\$jobid | tail -1`\n";
+print F "jobp=`cat $genomedir/create.dat | head -\$jobid | tail -1`\n";
 print F "\n";
 print F "seg=`echo \$jobp | awk '{ print \$1 }'`\n";
 print F "beg=`echo \$jobp | awk '{ print \$2 }'`\n";
 print F "end=`echo \$jobp | awk '{ print \$3 }'`\n";
 print F "\n";
-print F "if [ ! -e \"$path/genome.merStream\" ] ; then\n";
+print F "if [ ! -e \"$genomedir/genome.merStream\" ] ; then\n";
 print F "  echo \"Didn't find the merStreamFile!\"\n";
 print F "  exit 1\n";
 print F "fi\n";
 print F "\n";
-print F "ln -s \"$path/genome.merStream\" \"$path/seg\$seg.building.posDB.merStream\"\n";
+print F "ln -s \"$genomedir/genome.merStream\" \"$genomedir/seg\$seg.building.posDB.merStream\"\n";
 print F "\n";
 print F "$posdb \\\n";
 print F "  -mersize $mersize \\\n";
 print F "  -merbegin \$beg \\\n";
 print F "  -merend \$end \\\n";
-print F "  -sequence \"$path/genome.fasta\" \\\n";
-print F "  -output   \"$path/seg\$seg.building.posDB\" \\\n";
+print F "  -sequence \"$genomedir/genome.fasta\" \\\n";
+print F "  -output   \"$genomedir/seg\$seg.building.posDB\" \\\n";
 print F "&& \\\n";
-print F "mv \"$path/seg\$seg.building.posDB\" \\\n";
-print F "   \"$path/seg\$seg.posDB\" \\\n";
+print F "mv \"$genomedir/seg\$seg.building.posDB\" \\\n";
+print F "   \"$genomedir/seg\$seg.posDB\" \\\n";
 print F "&& \\\n";
-print F "$meryl -countbatch `expr \$jobid - 1` -o \"$path/genome\" \\\n";
+print F "$meryl -countbatch `expr \$jobid - 1` -o \"$genomedir/genome\" \\\n";
 print F "|| \\\n";
 print F "rm -f dddd\n";
 print F "\n";
-print F "rm -f \"$path/seg\$seg.building.posDB.merStream\"\n";
+print F "rm -f \"$genomedir/seg\$seg.building.posDB.merStream\"\n";
 close(F);
 
 
 #  Create the script that merges meryl outputs
 #
-open(F, "> $path/meryl.sh");
+open(F, "> $genomedir/meryl.sh");
 print F "#!/bin/sh\n";
 print F "\n";
-print F "if [ ! -e \"$path/genome.mcidx\" ] ; then\n";
-print F "  $meryl -mergebatch -o \"$path/genome\"\n";
+print F "if [ ! -e \"$genomedir/genome.mcidx\" ] ; then\n";
+print F "  $meryl -mergebatch -o \"$genomedir/genome\"\n";
 print F "fi\n";
-print F "if [ ! -e \"$path/frequentMers-ge1000.fasta\" ] ; then\n";
-print F "  $meryl -Dt -n 1000 -s \"$path/genome\" \\\n";
-print F "    > \"$path/frequentMers-ge1000.fasta\"\n";
+print F "if [ ! -e \"$genomedir/frequentMers-ge1000.fasta\" ] ; then\n";
+print F "  $meryl -Dt -n 1000 -s \"$genomedir/genome\" \\\n";
+print F "    > \"$genomedir/frequentMers-ge1000.fasta\"\n";
 print F "fi\n";
 close(F);
 
@@ -291,15 +291,15 @@ if      ($local) {
     while ($seg ne $segId) {
         print STDERR "Creating $seg out of $segId\n";
 
-        if (! -e "$path/seg$seg.posDB") {
+        if (! -e "$genomedir/seg$seg.posDB") {
             my $s = $seg + 1;
-            runCommand("/bin/sh $path/create.sh $s") and die "Segment $seg failed.\n";
+            runCommand("/bin/sh $genomedir/create.sh $s") and die "Segment $seg failed.\n";
         }
 
         $seg++;
         $seg = substr("000$seg", -3);
     }
-    runCommand("/bin/sh $path/meryl.sh") and die "Meryl failed.\n";
+    runCommand("/bin/sh $genomedir/meryl.sh") and die "Meryl failed.\n";
 } elsif ($sge) {
 
     #  Check if we need to submit pieces of the array, or if we can submit the whole thing.
@@ -307,13 +307,13 @@ if      ($local) {
     my @ap;
     my $wholeThing = 0;
 
-    system("mkdir $path/sgeout") if (! -d "$path/sgeout");
+    system("mkdir $genomedir/sgeout") if (! -d "$genomedir/sgeout");
 
     my $sgebuildname = "$sgename." . time();
 
     my $seg = "000";
     while ($seg ne $segId) {
-        if (-e "$path/seg$seg.posDB") {
+        if (-e "$genomedir/seg$seg.posDB") {
             #print STDERR "Segment $seg finished successfully!\n";
         } else {
             #print STDERR "Segment $seg failed.\n";
@@ -328,7 +328,7 @@ if      ($local) {
     if ($wholeThing == $seg) {
         #  Yippee!  Submit all at once!
         #
-        if (runCommand("qsub -cwd -j y -o $path/sgeout/seg\\\$TASK_ID.out -t 1-$segId $sge -N $sgebuildname $path/create.sh")) {
+        if (runCommand("qsub -cwd -j y -o $genomedir/sgeout/seg\\\$TASK_ID.out -t 1-$segId $sge -N $sgebuildname $genomedir/create.sh")) {
             die "SGE submission failed?\n";
         }
     } elsif ($wholeThing > 0) {
@@ -353,7 +353,7 @@ if      ($local) {
             }
             if (defined($st) && defined($ed)) {
                 #print STDERR "submit $st - $ed\n";
-                if (runCommand("qsub -cwd -j y -o $path/sgeout/seg\\\$TASK_ID.out -t $st-$ed $sge -N $sgebuildname $path/create.sh")) {
+                if (runCommand("qsub -cwd -j y -o $genomedir/sgeout/seg\\\$TASK_ID.out -t $st-$ed $sge -N $sgebuildname $genomedir/create.sh")) {
                     die "SGE submission failed?\n";
                 }
                 undef $st;
@@ -365,7 +365,7 @@ if      ($local) {
     } else {
         print STDERR "All segments computed successfully!\n";
     }
-    if (runCommand("qsub -cwd -j y -o $path/sgeout/meryl.out $sge -hold_jid $sgebuildname -N $sgename $path/meryl.sh")) {
+    if (runCommand("qsub -cwd -j y -o $genomedir/sgeout/meryl.out $sge -hold_jid $sgebuildname -N $sgename $genomedir/meryl.sh")) {
         die "SGE submission failed?\n";
     }
 } else {
