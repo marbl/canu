@@ -22,6 +22,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+extern "C" {
+#include "AS_global.h"
+#include "AS_PER_gkpStore.h"
+}
+
+#include "AS_MER_gkpStore_to_FastABase.H"
+
 #include "bio++.H"
 #include "positionDB.H"
 
@@ -90,7 +97,7 @@ addHit(chainedSequence *CS, FastASequenceInCore *S, merStream *M,
 int
 main(int argc, char **argv) {
   char   *gkpName  = 0L;
-  u32bit  merSize  = 32;
+  u32bit  merSize  = 23;
 
   int arg=1;
   int err=0;
@@ -112,10 +119,46 @@ main(int argc, char **argv) {
 
 
   //  NEED a gkpStore to chainedSequence converter.
+  //  A gkpStore to FastAStream might be easier.
+  //
+  //  OK, the chainedSequence is needed to decode the positions....
+  //  We can construct an adapter here, that adds functions to chainedSequence
+  //  to get stuff from a gkpStore.  chainedSequence.H needs to have those
+  //  functions
+  //
+  //  or how about:
+  //    dumpGateKeeper | makeMerStream > gkp.merstream
+  //    then we can load pieces of the merstream here
+  //
+  //  a merstream of human would be 32,000,000 * 1000 / 4 = 8GB.
+  //
+  //  but we still need the chained sequence to decode positions!!
+
+  FastABase *gkp = new gkpStoreSequence(gkpName);
+
+  {
+    FastASequenceOnDisk *d;
+    IID_t i = 0;
+    gkp->find(i);
+    d = gkp->getSequenceOnDisk();
+    fprintf(stderr, "[0] - '%s' '%s'\n", d->header(), d->sequence());
+    d = gkp->getSequenceOnDisk();
+    fprintf(stderr, "[1] - '%s' '%s'\n", d->header(), d->sequence());
+  }
+
+  {
+    FastASequenceInCore *d;
+    IID_t i = 0;
+    gkp->find(i);
+    d = gkp->getSequence();
+    fprintf(stderr, "[0] - '%s' '%s'\n", d->header(), d->sequence());
+    d = gkp->getSequence();
+    fprintf(stderr, "[1] - '%s' '%s'\n", d->header(), d->sequence());
+  }
 
 
-  chainedSequence *CS = new chainedSequence();
-  CS->setSource(argv[1]);
+  chainedSequence *CS = new chainedSequence;
+  CS->setSource(gkp);
   CS->finish();
 
   merStream    *MS = new merStream(merSize, CS);
@@ -127,7 +170,7 @@ main(int argc, char **argv) {
   u64bit   posnMax = 0;
   u64bit   posnLen = 0;
 
-  FastAWrapper         *F = new FastAWrapper(argv[1]);
+  FastABase            *F = new gkpStoreSequence(gkpName);
   FastASequenceInCore  *S = F->getSequence();
 
   u64bit  merfound = 0;
@@ -165,8 +208,9 @@ main(int argc, char **argv) {
         ovlfound++;
 
 #if 1
-        fprintf(stdout, "seq="u64bitFMT" pos="u64bitFMT" to seq="u64bitFMT" pos="u64bitFMT" count="u64bitFMT" ori=%c\n",
-                S->getIID(),       hits[lowest].qpos,
+        fprintf(stdout, "seq="u32bitFMT" pos="u64bitFMT" to seq="u64bitFMT" pos="u64bitFMT" count="u64bitFMT" ori=%c\n",
+                S->getIID(),
+                hits[lowest].qpos,
                 hits[lowest].tseq, hits[lowest].tpos,
                 hits[lowest].cnt,
                 hits[lowest].ori ? 'r' : 'f');
