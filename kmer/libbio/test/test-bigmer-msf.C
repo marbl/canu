@@ -20,11 +20,6 @@
 //  The merStreamFile is tested both forwards (nextMer(), via the
 //  merstream interface) and backwards (setIterationStart()).
 
-//  Minimum KMER_WORDS is 13 -- mersizes up to 416 bases
-#if KMER_WORDS < 13
-#error KMER_WORDS needs to be at least 13
-#endif
-
 #define BUILD_SIZE        88
 #define TEST_SIZE        403
 #define MERS_PER_SEQ      37
@@ -74,7 +69,7 @@ buildFastA(void) {
 //
 void
 test1(u32bit style) {
-  FastAWrapper         *fasta = new FastAWrapper(FASTA_FILENAME);
+  FastABase            *fasta = new FastAFile(FASTA_FILENAME);
   FastASequenceInCore  *sseq  = fasta->getSequence();
   FastASequenceInCore  *lseq  = fasta->getSequence();
 
@@ -210,6 +205,12 @@ test1(u32bit style) {
 
 int
 main(int argc, char **argv) {
+
+  //  Minimum KMER_WORDS is 13 -- mersizes up to 416 bases
+  if (KMER_WORDS < 13) {
+    fprintf(stderr, "I need at least KMER_WORDS == 13; test not run.\n");
+    exit(0);
+  }
 
   buildFastA();
 
