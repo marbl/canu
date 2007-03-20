@@ -30,6 +30,8 @@ FastASequenceOnDisk::FastASequenceOnDisk(char const *filename,
   _readBuffer->read(_header, _headerLength);
   _header[_headerLength] = 0;
 
+  _sequence = 0L;
+
   _readBuffer->seek(_sequenceStart);
 
   _sequencePosition  = 0;
@@ -46,9 +48,31 @@ FastASequenceOnDisk::FastASequenceOnDisk(char const *filename,
 }
 
 
+
+FastASequenceOnDisk::FastASequenceOnDisk(IID_t iid,
+                                         char *hdr, u32bit hdrlen,
+                                         char *seq, u32bit seqlen) {
+  _readBuffer       = 0L;;
+  _idx              = iid;
+  _headerLength     = hdrlen;
+  _sequenceLength   = seqlen;
+  _headerStart      = ~u64bitZERO;
+  _sequenceStart    = ~u64bitZERO;
+  _header           = hdr;
+  _sequence         = seq;
+  _sequencePosition = 0;
+  _sourceType       = 3;
+  _lineLength       = ~u32bitZERO;
+  _lineSep          = ~u32bitZERO;
+}
+
+
+
+
 FastASequenceOnDisk::~FastASequenceOnDisk() {
   delete    _readBuffer;
   delete [] _header;
+  delete [] _sequence;
 }
 
 
@@ -73,6 +97,7 @@ FastASequenceOnDisk::getChars(char *block, u32bit position, u32bit length) {
 
   if (block == 0L)
     block = new char [length + 1];
+
 
   switch (_sourceType) {
     case 0:
@@ -117,6 +142,13 @@ FastASequenceOnDisk::getChars(char *block, u32bit position, u32bit length) {
           _readBuffer->next();    
       }
       break;
+    case 3:
+      //  Yow!  A faked on-disk sequence!
+      strncpy(block, _sequence + position, length);
+      break;
+    default:
+      assert(0);
+      break;
   }
 
   block[length] = 0;
@@ -131,22 +163,6 @@ FastAFile::getSequenceOnDisk(void) {
 
   if (_currentSequenceNumber >= _theGlobalDesc._numberOfSequences)
     return(0L);
-
-#if 0
-  //  XXX: The current implementation of FastASequenceOnDisk requires
-  //  that the file be squeezed.  This should be fixed later -- the
-  //  interface doesn't require squeezedness.
-  //
-  if (!isRandomAccess() || !isSqueezed()) {
-    fprintf(stderr, "FastABase::getSequenceOnDisk()-- Asked for a sequence, but file '%s' is not\n", getSourceName());
-    if (!_isRandomAccess)
-      fprintf(stderr, "FastABase::getSequenceOnDisk()--   Randomly accessable (no index)\n");
-    if (!_theGlobalDesc._squeezedSequences)
-      fprintf(stderr, "FastABase::getSequenceOnDisk()--   Squeezed\n");
-    fprintf(stderr, "FastABase::getSequenceOnDisk()-- Pester Bri to fix this.\n");
-    exit(1);
-  }
-#endif
 
   //  XXX: A find has already been performed.  This is probably wasted
   //  (it loads the readbuffer).  We should pass the read buffer into

@@ -37,12 +37,15 @@ public:
                       bool isFixedWidth,
                       _idxfa_len sl,
                       _idxfa_len ss);
+  FastASequenceOnDisk(IID_t iid,
+                      char *hdr, u32bit hdrlen,
+                      char *seq, u32bit seqlen);
   ~FastASequenceOnDisk();
 
   char           *header(void) const         { return(_header);       };
   u32bit          headerLength(void) const   { return(_headerLength); };
 
-  char           *sequence(void) const       { return(0L); };
+  char           *sequence(void) const       { return(_sequence);       };
   u32bit          sequenceLength(void) const { return(_sequenceLength); };
 
   u32bit          getIID(void) const         { return(_idx); };
@@ -76,6 +79,11 @@ private:
   //
   char          *_header;
 
+  //  If defined, this means we are not readBuffer backed, but
+  //  we are faking it.
+  //
+  char          *_sequence;
+
   //  The position we are at in the sequence.  Used to decide when we
   //  have seen all the sequence.  If the source is not squeezed, this
   //  is not the same as the file position.
@@ -95,10 +103,6 @@ private:
   //
   _idxfa_len     _lineLength;
   _idxfa_len     _lineSep;
-
-#ifdef __APPLE__
-  u32bit         _pad;
-#endif
 };
 
 
@@ -118,14 +122,17 @@ FastASequenceOnDisk::next(void) {
   //  Nope, we know there is another non-space letter out there
   //  somewhere.
 
-  _readBuffer->next();
+  if (_readBuffer) {
+    _readBuffer->next();
 
-  if (_sourceType != 0)
-    while (whitespaceSymbol[(int)_readBuffer->get()])
-      _readBuffer->next();    
+    if (_sourceType != 0)
+      while (whitespaceSymbol[(int)_readBuffer->get()])
+        _readBuffer->next();    
+  }
 
   _sequencePosition++;
-  return(false);
+
+  return(true);
 }
 
 
@@ -140,15 +147,12 @@ FastASequenceOnDisk::get(void) {
   if (_sequencePosition >= _sequenceLength)
     return(0);
 
-#ifdef CHECK_SANITY
-  if (whitespaceSymbol[(int)_readBuffer->get()]) {
-    fprintf(stderr, "WARNING:  FastASequenceOnDisk::get() got a space!\n");
-    //next();
-  }
-#endif
-
-  return(_readBuffer->get());
+  if (_readBuffer)
+    return(_readBuffer->get());
+  else
+    return(_sequence[_sequencePosition]);
 }
+
 
 
 #endif  //  FASTA_SEQUENCEONDISK_H
