@@ -47,6 +47,29 @@ endif
 
 include $(LOCAL_WORK)/src/c_make.as
 
+
+#  This must come after c_make.as, grrr.
+ifdef KMER
+  #  See also AS_OVL/Makefile
+  ifeq ($(OSTYPE), Linux)
+    LDFLAGS  += -lpthread
+    CFLAGS   += -pthread
+    CPPFLAGS += -pthread
+  endif
+
+  ifeq ($(OSTYPE), OSF1)
+    LDFLAGS  += -lpthread
+    CFLAGS   += -pthread
+    CPPFLAGS += -pthread
+  endif
+
+  ifeq ($(OSTYPE), FreeBSD)
+  endif
+
+  ifeq ($(OSTYPE), Darwin)
+  endif
+endif
+
 all: $(OBJECTS) $(LIBRARIES) $(PROGS) 
 	@test -n nop
 

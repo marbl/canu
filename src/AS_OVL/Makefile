@@ -74,6 +74,7 @@ LIBS = libCA.a
 
 include $(LOCAL_WORK)/src/c_make.as
 
+#  See also AS_MER/Makefile
 ifeq ($(OSTYPE), Linux)
   LDFLAGS  += -lpthread
   CFLAGS   += -pthread
