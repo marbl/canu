@@ -59,7 +59,8 @@ public:
   //
   u32bit       sequenceLength(IID_t iid);
   u32bit       headerLength(IID_t iid);
-  u32bit       currentIID(void);
+  u32bit       currentIID(void) { return(_currentSequenceNumber); };
+
 
   //  Sequential access to sequences (also use getSequence*()).
   //

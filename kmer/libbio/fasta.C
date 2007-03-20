@@ -99,8 +99,3 @@ FastAFile::headerLength(IID_t iid) {
   else
     return(0);
 }
-
-u32bit
-FastAFile::currentIID(void) {
-  return(_currentSequenceNumber);
-}
