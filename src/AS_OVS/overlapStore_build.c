@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore_build.c,v 1.5 2007-03-12 18:32:17 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore_build.c,v 1.6 2007-03-20 07:25:45 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -124,8 +124,15 @@ buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 fileListLe
   //  Maybe.
   //
   uint64  numOverlaps    = 0;
-  for (i=0; i<fileListLen; i++)
-    numOverlaps += 2 * sizeOfFile(fileList[i]) / sizeof(OVSoverlap);
+  for (i=0; i<fileListLen; i++) {
+    uint64  no = sizeOfFile(fileList[i]);
+    if (no == 0)
+      fprintf(stderr, "No overlaps found (or file not found) in '%s'.\n", fileList[i]);
+    assert(no > 0);
+    numOverlaps += 2 * no / sizeof(OVSoverlap);
+  }
+
+  assert(numOverlaps > 0);
 
   uint64  overlapsPerBucket   = memoryLimit / sizeof(OVSoverlap);
   uint64  overlapsPerIID      = numOverlaps / maxIID;

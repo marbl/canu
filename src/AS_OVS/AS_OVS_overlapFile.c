@@ -31,6 +31,7 @@
 
 BinaryOverlapFile *
 AS_OVS_openBinaryOverlapFile(const char *name, int isInternal) {
+  char     cmd[1024 + FILENAME_MAX];
 
   BinaryOverlapFile   *bof = (BinaryOverlapFile *)safe_malloc(sizeof(BinaryOverlapFile));
 
@@ -39,6 +40,8 @@ AS_OVS_openBinaryOverlapFile(const char *name, int isInternal) {
   bof->bufferMax  = 16384 * 12;
   bof->buffer     = (uint32 *)safe_malloc(sizeof(uint32) * bof->bufferMax);
   bof->isOutput   = FALSE;
+  bof->isSeekable = FALSE;
+  bof->isPopened  = FALSE;
   bof->isInternal = isInternal;
   bof->file       = NULL;
 
@@ -53,10 +56,20 @@ AS_OVS_openBinaryOverlapFile(const char *name, int isInternal) {
     name = NULL;
 
   errno = 0;
-  if (name == NULL)
+  if        (name == NULL) {
     bof->file = stdin;
-  else
-    bof->file = fopen(name, "r");
+  } else if (strcmp(name+strlen(name)-3, ".gz") == 0) {
+    sprintf(cmd, "gzip -dc %s", name);
+    bof->file = popen(cmd, "r");
+    bof->isPopened = TRUE;
+  } else if (strcmp(name+strlen(name)-4, ".bz2") == 0) {
+    sprintf(cmd, "bzip2 -dc %s", name);
+    bof->file = popen(cmd, "r");
+    bof->isPopened = TRUE;
+  } else {
+    bof->file       = fopen(name, "r");
+    bof->isSeekable = TRUE;
+  }
   if (errno) {
     fprintf(stderr, "AS_OVS_createBinaryOverlapFile()-- Failed to open '%s' for reading: %s\n",
             name, strerror(errno));
@@ -71,6 +84,7 @@ AS_OVS_openBinaryOverlapFile(const char *name, int isInternal) {
 
 BinaryOverlapFile *
 AS_OVS_createBinaryOverlapFile(const char *name, int isInternal) {
+  char     cmd[1024 + FILENAME_MAX];
 
   BinaryOverlapFile   *bof = (BinaryOverlapFile *)safe_malloc(sizeof(BinaryOverlapFile));
 
@@ -79,6 +93,8 @@ AS_OVS_createBinaryOverlapFile(const char *name, int isInternal) {
   bof->bufferMax  = 16384 * 12;
   bof->buffer     = (uint32 *)safe_malloc(sizeof(uint32) * bof->bufferMax);
   bof->isOutput   = TRUE;
+  bof->isSeekable = FALSE;
+  bof->isPopened  = FALSE;
   bof->isInternal = isInternal;
   bof->file       = NULL;
 
@@ -93,10 +109,19 @@ AS_OVS_createBinaryOverlapFile(const char *name, int isInternal) {
     name = NULL;
 
   errno = 0;
-  if (name == NULL)
+  if (name == NULL) {
     bof->file = stdout;
-  else
+  } else if (strcmp(name+strlen(name)-3, ".gz") == 0) {
+    sprintf(cmd, "gzip -9c %s", name);
+    bof->file = popen(cmd, "w");
+    bof->isPopened = TRUE;
+  } else if (strcmp(name+strlen(name)-4, ".bz2") == 0) {
+    sprintf(cmd, "bzip2 -9c %s", name);
+    bof->file = popen(cmd, "w");
+    bof->isPopened = TRUE;
+  } else {
     bof->file = fopen(name, "w");
+  }
   if (errno) {
     fprintf(stderr, "AS_OVS_createBinaryOverlapFile()-- Failed to open '%s' for writing: %s\n",
             name, strerror(errno));
@@ -126,7 +151,10 @@ AS_OVS_closeBinaryOverlapFile(BinaryOverlapFile *bof) {
   if (bof->isOutput)
     AS_OVS_flushBinaryOverlapFile(bof);
 
-  fclose(bof->file);
+  if (bof->isPopened)
+    pclose(bof->file);
+  else
+    fclose(bof->file);
 
   safe_free(bof->buffer);
   safe_free(bof);
@@ -135,6 +163,8 @@ AS_OVS_closeBinaryOverlapFile(BinaryOverlapFile *bof) {
 
 void
 AS_OVS_writeOverlap(BinaryOverlapFile *bof, OVSoverlap *overlap) {
+
+  assert(bof->isOutput == TRUE);
 
   if (bof->bufferLen >= bof->bufferMax) {
     AS_UTL_safeWrite(bof->file, bof->buffer, "AS_OVS_outputOverlap", sizeof(uint32), bof->bufferLen);
@@ -152,6 +182,8 @@ AS_OVS_writeOverlap(BinaryOverlapFile *bof, OVSoverlap *overlap) {
 
 int
 AS_OVS_readOverlap(BinaryOverlapFile *bof, OVSoverlap *overlap) {
+
+  assert(bof->isOutput == FALSE);
 
   if (bof->bufferPos >= bof->bufferLen) {
     bof->bufferPos = 0;
@@ -180,8 +212,10 @@ AS_OVS_readOverlap(BinaryOverlapFile *bof, OVSoverlap *overlap) {
 void
 AS_OVS_seekOverlap(BinaryOverlapFile *bof, uint32 overlap) {
 
+  assert(bof->isSeekable == TRUE);
+
   //  Move to the correct spot, and force a load on the next read
-  //
+
   CDS_FSEEK(bof->file,
             (off_t)overlap * sizeof(uint32) * ((bof->isInternal) ? 3 : 4),
             SEEK_SET);

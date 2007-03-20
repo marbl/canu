@@ -32,7 +32,9 @@ typedef struct {
   int           bufferPos;  //  position the read is at in the buffer
   int           bufferMax;  //  allocated size of the buffer
   uint32       *buffer;
-  int           isOutput;
+  int           isOutput;   //  if true, we can AS_OVS_writeOverlap()
+  int           isSeekable; //  if true, we can AS_OVS_seekOverlap()
+  int           isPopened;  //  if true, we need to pclose()
   int           isInternal; //  if true, 3 words per overlap, else 4
   FILE         *file;
 } BinaryOverlapFile;
