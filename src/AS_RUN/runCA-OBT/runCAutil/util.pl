@@ -231,6 +231,12 @@ sub setParameters ($@) {
     $gin        = setBinDirectory($binhost, $binmach)  if (getGlobal("useGrid") == 0);  #  bin for the Grid
     $gin        = setBinDirectory($ginhost, $ginmach)  if (getGlobal("useGrid") == 1);  #  bin for the Grid
 
+    #  We assume the grid is the same as the local, which will sting
+    #  us if the poor user actually goofed and gave us the wrong grid,
+    #  or didn't compile for the grid.
+    #
+    $gin = $bin   if (! -e "$gin/gatekeeper");
+
     die "Can't find local bin/gatekeeper in $bin\n" if (! -e "$bin/gatekeeper");
     die "Can't find grid bin/gatekeeper in $gin\n"  if (! -e "$gin/gatekeeper");
 }
