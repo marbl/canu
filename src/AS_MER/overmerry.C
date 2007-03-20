@@ -118,44 +118,7 @@ main(int argc, char **argv) {
   }
 
 
-  //  NEED a gkpStore to chainedSequence converter.
-  //  A gkpStore to FastAStream might be easier.
-  //
-  //  OK, the chainedSequence is needed to decode the positions....
-  //  We can construct an adapter here, that adds functions to chainedSequence
-  //  to get stuff from a gkpStore.  chainedSequence.H needs to have those
-  //  functions
-  //
-  //  or how about:
-  //    dumpGateKeeper | makeMerStream > gkp.merstream
-  //    then we can load pieces of the merstream here
-  //
-  //  a merstream of human would be 32,000,000 * 1000 / 4 = 8GB.
-  //
-  //  but we still need the chained sequence to decode positions!!
-
-  FastABase *gkp = new gkpStoreSequence(gkpName);
-
-  {
-    FastASequenceOnDisk *d;
-    IID_t i = 0;
-    gkp->find(i);
-    d = gkp->getSequenceOnDisk();
-    fprintf(stderr, "[0] - '%s' '%s'\n", d->header(), d->sequence());
-    d = gkp->getSequenceOnDisk();
-    fprintf(stderr, "[1] - '%s' '%s'\n", d->header(), d->sequence());
-  }
-
-  {
-    FastASequenceInCore *d;
-    IID_t i = 0;
-    gkp->find(i);
-    d = gkp->getSequence();
-    fprintf(stderr, "[0] - '%s' '%s'\n", d->header(), d->sequence());
-    d = gkp->getSequence();
-    fprintf(stderr, "[1] - '%s' '%s'\n", d->header(), d->sequence());
-  }
-
+  FastABase *gkp = new gkpStoreSequence(gkpName, AS_READ_CLEAR_OBTINI);
 
   chainedSequence *CS = new chainedSequence;
   CS->setSource(gkp);
@@ -164,13 +127,16 @@ main(int argc, char **argv) {
   merStream    *MS = new merStream(merSize, CS);
   positionDB   *PS = new positionDB(MS, merSize, 0, 26, 0L, 0L, 100, true);
 
+  //  XXXXX: Are we DONE with the MS and CS and gkp here?  Does
+  //  positionDB need those still?
+
   fprintf(stderr, "Go!\n");
 
   u64bit  *posn    = 0L;
   u64bit   posnMax = 0;
   u64bit   posnLen = 0;
 
-  FastABase            *F = new gkpStoreSequence(gkpName);
+  FastABase            *F = new gkpStoreSequence(gkpName, AS_READ_CLEAR_OBTINI);
   FastASequenceInCore  *S = F->getSequence();
 
   u64bit  merfound = 0;
@@ -207,7 +173,7 @@ main(int argc, char **argv) {
           (i+1 == hitsLen)) {
         ovlfound++;
 
-#if 1
+#if 0
         fprintf(stdout, "seq="u32bitFMT" pos="u64bitFMT" to seq="u64bitFMT" pos="u64bitFMT" count="u64bitFMT" ori=%c\n",
                 S->getIID(),
                 hits[lowest].qpos,
@@ -234,4 +200,6 @@ main(int argc, char **argv) {
   delete PS;
   delete MS;
   delete CS;
+
+  delete gkp;
 }

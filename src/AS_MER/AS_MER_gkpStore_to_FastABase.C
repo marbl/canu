@@ -22,24 +22,67 @@
 #include "AS_MER_gkpStore_to_FastABase.H"
 
 
-gkpStoreSequence::gkpStoreSequence(char const *gkpName) {
+gkpStoreSequence::gkpStoreSequence(char const *gkpName, uint32 clearRangeSpec) {
   _gkp = openGateKeeperStore(gkpName, FALSE);
-  _stm = openFragStream(_gkp, FRAG_S_SEQ);
-
   _frg = new_fragRecord();
-
+  _clr = clearRangeSpec;
   _iid = 1;
   _eof = false;
 
-  _seqLengths = 0L;
+  assert(_clr < AS_READ_CLEAR_NUM);
+
+  //  even though, yes, we don't strictly need to be loading the
+  //  sequence lengths, and we could get them from the store, this
+  //  code is much simpler, and a whole lot faster, if we always load
+  //  them.
+  //
+  _seqLengths = new uint32 [getNumberOfSequences() + 1];
+
+  FragStream *stm = openFragStream(_gkp, FRAG_S_INF);
+  while (nextFragStream(stm, _frg)) {
+    uint32  beg = getFragRecordClearRegionBegin(_frg, _clr);
+    uint32  end = getFragRecordClearRegionEnd  (_frg, _clr);
+
+    if (getFragRecordIsDeleted(_frg))
+      end = beg;
+
+    _seqLengths[getFragRecordIID(_frg)] = end - beg;
+  }
+
+  closeFragStream(stm);
 }
 
 
 gkpStoreSequence::~gkpStoreSequence() {
   del_fragRecord(_frg);
-  closeFragStream(_stm);
   closeGateKeeperStore(_gkp);
   delete [] _seqLengths;
+}
+
+
+void
+gkpStoreSequence::getSequence(uint32 iid,
+                              uint32 &hLen, char *&h,
+                              uint32 &sLen, char *&s) {
+
+  _iid = iid + 1;
+
+  if (_iid != getFragRecordIID(_frg))
+    find(_iid - 1);
+
+  h    = new char [65];
+  sprintf(h, F_UID","F_IID,
+          getFragRecordUID(_frg),
+          getFragRecordIID(_frg));
+  hLen = strlen(h);
+
+  sLen = _seqLengths[_iid];
+  s    = new char [sLen + 1];
+
+  if (sLen > 0)
+    strncpy(s, getFragRecordSequence(_frg) + getFragRecordClearRegionBegin(_frg, _clr), sLen);
+
+  s[sLen] = 0;
 }
 
 
@@ -48,26 +91,9 @@ gkpStoreSequence::getSequence(void) {
   char   *h = NULL, *s = NULL;
   uint32  hLen=0,    sLen=0;
 
-  if (_iid != getFragRecordIID(_frg))
-    find(_iid-1);
+  getSequence(_iid, hLen, h, sLen, s);
 
-  h    = new char [65];
-  sprintf(h, F_UID","F_IID,
-          getFragRecordUID(_frg),
-          getFragRecordIID(_frg));
-  hLen = strlen(h);
-
-  sLen = getFragRecordSequenceLength(_frg);
-  s    = new char [sLen + 1];
-  strcpy(s, getFragRecordSequence(_frg));
-
-  //  The same stuff above is used for InCore and OnDisk.
-
-  FastASequenceInCore *f = new FastASequenceInCore(_iid - 1,
-                                                   h, hLen,
-                                                   s, sLen);
-  _iid++;
-  return(f);
+  return(new FastASequenceInCore(_iid++ - 1, h, hLen, s, sLen));
 }
 
 
@@ -76,40 +102,15 @@ gkpStoreSequence::getSequenceOnDisk(void) {
   char   *h = NULL, *s = NULL;
   uint32  hLen=0,    sLen=0;
 
-  if (_iid != getFragRecordIID(_frg))
-    find(_iid-1);
+  getSequence(_iid, hLen, h, sLen, s);
 
-  h    = new char [65];
-  sprintf(h, F_UID","F_IID,
-          getFragRecordUID(_frg),
-          getFragRecordIID(_frg));
-  hLen = strlen(h);
-
-  sLen = getFragRecordSequenceLength(_frg);
-  s    = new char [sLen + 1];
-  strcpy(s, getFragRecordSequence(_frg));
-
-  //  The same stuff above is used for InCore and OnDisk.
-
-  FastASequenceOnDisk *f = new FastASequenceOnDisk(_iid - 1,
-                                                   h, hLen,
-                                                   s, sLen);
-  _iid++;
-  return(f);
+  return(new FastASequenceOnDisk(_iid++ - 1, h, hLen, s, sLen));
 }
 
 
 u32bit
 gkpStoreSequence::sequenceLength(IID_t iid) {
-
-  if (_seqLengths) {
-    return(_seqLengths[iid+1]);
-  } else {
-    assert(0);
-    if (iid+1 != getFragRecordIID(_frg))
-      find(iid);
-    return(getFragRecordSequenceLength(_frg));
-  }
+  return(_seqLengths[iid+1]);
 }
 
 
@@ -136,22 +137,4 @@ gkpStoreSequence::find(IID_t  iid) {
 bool
 gkpStoreSequence::find(char  *id) {
   return(false);
-}
-
-
-
-void
-gkpStoreSequence::openIndex(u32bit indextypetoload) {
-  FragStream *stm = openFragStream(_gkp, FRAG_S_INF);
-  fragRecord *frg = new_fragRecord();
-
-  fprintf(stderr, "gkpStoreSequence::openIndex()--  opening.\n");
-
-  _seqLengths = new uint32 [getNumberOfSequences() + 1];
-
-  while (nextFragStream(stm, frg))
-    _seqLengths[getFragRecordIID(frg)] = getFragRecordSequenceLength(frg);
-
-  del_fragRecord(frg);
-  closeFragStream(stm);
 }

@@ -46,7 +46,6 @@ extern "C" {
 //
 
 
-
 //  openIndex() should cache the sequence lengths (and header lengths?)
 //
 //  About IIDs: gkpStore starts IIDs at 1, while kmer starts at 0.
@@ -55,7 +54,7 @@ extern "C" {
 
 class gkpStoreSequence : public FastABase {
 public:
-  gkpStoreSequence(char const *gkpName);
+  gkpStoreSequence(char const *gkpName, uint32 clearRangeSpec);
   ~gkpStoreSequence();
 
   FastASequenceInCore *getSequence(void);
@@ -76,7 +75,9 @@ public:
     return(true);
   };
 
-  void         openIndex(u32bit indextypetoload=FASTA_INDEX_ANY);
+  void         openIndex(u32bit indextypetoload=FASTA_INDEX_ANY) {
+    //  NOP.
+  };
 
   void         optimizeRandomAccess(void) {
     //  NOP.
@@ -99,12 +100,13 @@ public:
   bool         isSqueezed(void)     { return(true); };
 
 private:
+  void               getSequence(uint32 iid,
+                                 uint32 &hLen, char *&h,
+                                 uint32 &sLen, char *&s);
 
   GateKeeperStore  *_gkp;
-  FragStream       *_stm;
-
   fragRecord       *_frg;
-
+  uint32            _clr;
   uint32            _iid;
   bool              _eof;
 
