@@ -59,7 +59,7 @@ test-intervalList: test-intervalList.C ../libutil.a ../util.h ../util++.H
 test-logMsg: test-logMsg.C ../libutil.a ../util.h ../util++.H
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-logMsg.o test-logMsg.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-logMsg test-logMsg.o $(LIBS)
-	./test-logMsg
+	./test-logMsg | wc
 
 test-md5: test-md5.c ../libutil.a ../util.h ../util++.H
 	$(CC) $(CFLAGS_COMPILE) -c -o test-md5.o test-md5.c $(INCLUDE)

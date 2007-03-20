@@ -10,8 +10,8 @@
 //  testSize -- the number of words to use in a write then read test
 //  testIter -- the number of random access tests to do
 
-u32bit   testSize = 50000000;
-u32bit   testIter = 200;
+u32bit   testSize = 2000000;
+u32bit   testIter = 50;
 
 mt_s  *mtctx;
 

@@ -5,8 +5,8 @@
 #include "util++.H"
 
 u32bit wordSize = 41;
-u32bit testSize =  2 * 1024 * 1024;
-u32bit arrySize =  2 * 1024 * 1024;
+u32bit testSize =  1 * 1024 * 1024;
+u32bit arrySize =  1 * 1024 * 1024;
 
 int
 u64bitcompare(const void *a, const void *b) {
@@ -32,7 +32,7 @@ main(int argc, char **argv) {
   bitPackedArray *ARR  = new bitPackedArray(wordSize, 16);
   u32bit          fail = u32bitZERO;
 
-#if 0
+#if 1
   fprintf(stderr, "Touching the end of the array and clearing.\n");
   //ARR->set(arrySize, 0);
   //ARR->clear();
@@ -90,13 +90,13 @@ main(int argc, char **argv) {
   //
   //
 
-  for (u32bit testNum=0; testNum<128; testNum++) {
+  for (u32bit testNum=0; testNum<32; testNum++) {
     u32bit  thisTestSize = 0;
     u32bit  thisWordSize = 0;
 
     //  Test a BIG heap the first iteration.
     if (testNum == 0) {
-      thisTestSize = 23987153;
+      thisTestSize = 857353; //23987153;
       thisWordSize = 63;
 
       fprintf(stderr, "Building heap "u32bitFMT" (wordsize="u32bitFMT" testsize="u32bitFMT").\n",
