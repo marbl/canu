@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 #include "util.h"
 
 //#define WITH_BZIP2
@@ -119,6 +120,7 @@ bitPackedFile::getNumber(void) {
 inline
 void
 bitPackedFile::putBits(u64bit bits, u32bit siz) {
+  assert(_isReadOnly == false);
   sync();
   setDecodedValue(_bfr, _bit, siz, bits);
   _bit += siz;
@@ -128,6 +130,7 @@ bitPackedFile::putBits(u64bit bits, u32bit siz) {
 inline
 void
 bitPackedFile::putBits(u64bit pos, u64bit bits, u32bit siz) {
+  assert(_isReadOnly == false);
   seek(pos);
   setDecodedValue(_bfr, _bit, siz, bits);
   _bfrDirty = true;
@@ -136,6 +139,7 @@ bitPackedFile::putBits(u64bit pos, u64bit bits, u32bit siz) {
 inline
 void
 bitPackedFile::putNumber(u64bit val) {
+  assert(_isReadOnly == false);
   sync();
   u64bit siz = 0;
   setFibonacciEncodedNumber(_bfr, _bit, &siz, val);
