@@ -8,15 +8,15 @@
 
 //  Run a single EST against a genomic range
 //
-//  XXX: We should pull out the EST and GEN from the FastAWrapper,
+//  XXX: We should pull out the EST and GEN from the FastABase,
 //  and store them as the "two char*" method.
 //
 sim4command::sim4command(u32bit        ESTid,
-                         FastAWrapper *ESTs,
+                         FastABase    *ESTs,
                          u32bit        GENid,
                          u32bit        GENlo,
                          u32bit        GENhi,
-                         FastAWrapper *GENs,
+                         FastABase    *GENs,
                          bool          doFor,
                          bool          doRev) {
 
@@ -152,7 +152,7 @@ sim4command::finalize(void) {
 
 //  get() routines have multple cases
 //
-//  if no fastawrapper, they can quickly return
+//  if no fastaBase, they can quickly return
 //  otherwise
 //  if nothing loaded or the thing loaded isn't right:
 //    delete the current

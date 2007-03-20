@@ -61,7 +61,7 @@ public:
 
   //  Running state
   //
-  FastAWrapper     *_qsFASTA;
+  FastABase        *_qsFASTA;
   existDB          *_maskDB;
   existDB          *_onlyDB;
   positionDB       *_positions;

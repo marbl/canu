@@ -29,7 +29,7 @@ main(int argc, char **argv) {
   u32bit                desiredLength = 0;
   u32bit                overlapLength = 0;
   bool                  beVerbose = false;
-  FastAWrapper         *F = 0L;
+  FastABase            *F = 0L;
   FastASequenceInCore  *B = 0L;
   FILE                 *O = 0L;
   FILE                 *L = 0L;
@@ -43,7 +43,7 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-overlap") == 0) {
       overlapLength = strtou32bit(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-input") == 0) {
-      F = new FastAWrapper(argv[++arg]);
+      F = new FastAFile(argv[++arg]);
     } else if (strcmp(argv[arg], "-output") == 0) {
       errno = 0;
       O = fopen(argv[++arg], "w");

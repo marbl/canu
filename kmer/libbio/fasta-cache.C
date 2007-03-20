@@ -2,17 +2,17 @@
 
 
 FastACache::FastACache(const char *filename, u32bit cachesize, bool loadall, bool report) {
-  _fastawrapper = new FastAWrapper(filename);
-  _fastawrapper->openIndex();
-  _fastawrapper->optimizeRandomAccess();
+  _fasta = new FastAFile(filename);
+  _fasta->openIndex();
+  _fasta->optimizeRandomAccess();
 
   if (loadall == false) {
     _allSequencesLoaded = false;
     _reportLoading      = report;
   
-    _cacheMap  = new u32bit [_fastawrapper->getNumberOfSequences()];
+    _cacheMap  = new u32bit [_fasta->getNumberOfSequences()];
 
-    for (u32bit i=_fastawrapper->getNumberOfSequences(); i--; )
+    for (u32bit i=_fasta->getNumberOfSequences(); i--; )
       _cacheMap[i] = ~u32bitZERO;
 
     _cacheSize = cachesize;
@@ -26,7 +26,7 @@ FastACache::FastACache(const char *filename, u32bit cachesize, bool loadall, boo
     _reportLoading      = false;
 
     _cacheMap  = 0L;
-    _cacheSize = _fastawrapper->getNumberOfSequences();
+    _cacheSize = _fasta->getNumberOfSequences();
     _cacheNext = 0;
     _cache     = new FastASequenceInCore* [_cacheSize];
 
@@ -35,7 +35,7 @@ FastACache::FastACache(const char *filename, u32bit cachesize, bool loadall, boo
             filename);
 
     for (u32bit i=0; i<_cacheSize; i++)
-      _cache[i] = _fastawrapper->getSequence();
+      _cache[i] = _fasta->getSequence();
   }
 }
 
@@ -45,7 +45,7 @@ FastACache::~FastACache() {
     delete _cache[i];
   delete [] _cache;
   delete [] _cacheMap;
-  delete    _fastawrapper;
+  delete    _fasta;
 }
 
 
@@ -58,7 +58,7 @@ FastACache::getSequence(u32bit iid)  {
       return(_cache[iid]);
     } else {
       fprintf(stderr, "ERROR: FastACache of '%s' was asked for iid="u32bitFMT", but only "u32bitFMT" available.\n",
-              _fastawrapper->getSourceName(), iid, _cacheSize);
+              _fasta->getSourceName(), iid, _cacheSize);
       return(0L);
     }
   }
@@ -73,7 +73,7 @@ FastACache::getSequence(u32bit iid)  {
 
   if (_reportLoading)
     fprintf(stderr, "FastACache::getSequence()-- %s:"u32bitFMT" isn't loaded -- loading.\n",
-            _fastawrapper->getSourceName(), iid);
+            _fasta->getSourceName(), iid);
 
   if (_cache[_cacheNext]) {
     _cacheMap[ _cache[_cacheNext]->getIID() ] = ~u32bitZERO;
@@ -82,8 +82,8 @@ FastACache::getSequence(u32bit iid)  {
 
   //  Load the sequence into the cache
 
-  _fastawrapper->find(iid);
-  FastASequenceInCore *ret = _fastawrapper->getSequence();
+  _fasta->find(iid);
+  FastASequenceInCore *ret = _fasta->getSequence();
 
   _cache[_cacheNext] = ret;
   _cacheMap[iid] = _cacheNext;

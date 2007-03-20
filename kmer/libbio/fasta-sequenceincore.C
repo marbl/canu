@@ -49,7 +49,7 @@ FastASequenceInCore::~FastASequenceInCore() {
 
 
 FastASequenceInCore*
-FastAWrapper::getSequence(void) {
+FastAFile::getSequence(void) {
   FastASequenceInCore *c = 0L;
 
   //  Skip whitespace at the start of the sequence.

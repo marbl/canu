@@ -5,7 +5,7 @@
 
 #include "bio++.H"
 
-FastAWrapper::FastAWrapper(const char *filename, u32bit bufferSize) {
+FastAFile::FastAFile(const char *filename, u32bit bufferSize) {
   _theSeqs               = 0L;
   _theNamesLen           = 0;
   _theNames              = 0L;
@@ -62,7 +62,7 @@ FastAWrapper::FastAWrapper(const char *filename, u32bit bufferSize) {
   }
 }
 
-FastAWrapper::~FastAWrapper() {
+FastAFile::~FastAFile() {
   delete [] _filename;
   delete [] _indexname;
   delete    _filebuffer;
@@ -72,7 +72,7 @@ FastAWrapper::~FastAWrapper() {
 
 
 u32bit
-FastAWrapper::getNumberOfSequences(void) {
+FastAFile::getNumberOfSequences(void) {
   if (_isRandomAccess)
     return(_theGlobalDesc._numberOfSequences);
   else
@@ -80,12 +80,12 @@ FastAWrapper::getNumberOfSequences(void) {
 }
 
 const char *
-FastAWrapper::getSourceName(void) {
+FastAFile::getSourceName(void) {
   return(_filename);
 }
 
 u32bit
-FastAWrapper::sequenceLength(IID_t iid) {
+FastAFile::sequenceLength(IID_t iid) {
   if (_isRandomAccess)
     return(_theSeqs[iid]._seqLen);
   else
@@ -93,7 +93,7 @@ FastAWrapper::sequenceLength(IID_t iid) {
 }
 
 u32bit
-FastAWrapper::headerLength(IID_t iid) {
+FastAFile::headerLength(IID_t iid) {
   if (_isRandomAccess)
     return(_theSeqs[iid]._headerLen);
   else
@@ -101,6 +101,6 @@ FastAWrapper::headerLength(IID_t iid) {
 }
 
 u32bit
-FastAWrapper::currentIID(void) {
+FastAFile::currentIID(void) {
   return(_currentSequenceNumber);
 }

@@ -2,7 +2,7 @@
 #include "/home/walenzbp/projects/fasta/fasta-c.h"
 
 //
-//  Test program for the C wrapper of FastAWrapper.
+//  Test program for the C wrapper of FastABase.
 //
 
 //  cxx -c -o fasta-c-test.o fasta-c-test.c

@@ -68,12 +68,12 @@ chainedSequence::setSeparatorLength(u32bit len) {
 
 void
 chainedSequence::setSource(char const *filename) {
-  setSource(_fileToDelete = new FastAWrapper(filename));
+  setSource(_fileToDelete = new FastAFile(filename));
 }
 
 
 void
-chainedSequence::setSource(FastAWrapper *file) {
+chainedSequence::setSource(FastABase *file) {
   _file     = file;
   _file->openIndex();
 

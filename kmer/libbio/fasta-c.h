@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 //
-//  A limited FastAWrapper wrapper that is callable from C
+//  A limited FastABase wrapper that is callable from C
 //
 
 #ifdef __cplusplus

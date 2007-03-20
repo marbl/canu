@@ -13,12 +13,8 @@ u32bit          sequenceLength(void) const;
 u32bit          getIID(void) const;
 
 
-----------------------------------------------------------------------
-FastAFileWrapper
-
-
 ----------------------------------------
-FastAWrapper(const char *filename);
+FastAFile(const char *filename);
 
 Create a new wrapper, given a path name.  If the filename is 0L or "-", stdin is opened.
 

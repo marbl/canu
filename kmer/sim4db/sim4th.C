@@ -36,7 +36,7 @@ configuration config;
 //
 readBuffer           *scriptFile       = 0L;
 
-FastAWrapper         *GENs             = 0L;
+FastABase            *GENs             = 0L;
 FastACache           *ESTs             = 0L;
 
 u32bit                lastGENiid       = ~u32bitZERO;
@@ -280,7 +280,7 @@ main(int argc, char **argv) {
 
   //  Open input files
   //
-  GENs = new FastAWrapper(config.databaseFileName);
+  GENs = new FastAFile(config.databaseFileName);
   ESTs = new FastACache(config.cdnaFileName, config.loaderCacheSize, false);
 
   GENs->openIndex();

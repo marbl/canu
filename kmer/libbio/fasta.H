@@ -9,10 +9,45 @@
 #include "fasta-sequenceondisk.H"
 #include "fasta-sequenceincore.H"
 
-class FastAWrapper {
+
+class FastABase {
 public:
-  FastAWrapper(char const *filename, u32bit bufferSize=~u32bitZERO);
-  ~FastAWrapper();
+  FastABase() {};
+  virtual ~FastABase() {};
+
+  virtual FastASequenceInCore *getSequence(void) = 0;
+  virtual FastASequenceOnDisk *getSequenceOnDisk(void) = 0;
+
+  virtual u32bit       sequenceLength(IID_t iid) = 0;
+  virtual u32bit       headerLength(IID_t iid) = 0;
+  virtual u32bit       currentIID(void) = 0;
+
+  virtual bool         eof(void) = 0;
+
+  virtual bool         find(IID_t  iid) = 0;
+  virtual bool         find(char  *id) = 0;
+
+  virtual bool         isIndexValid(u32bit indextypetoload=FASTA_INDEX_ANY,
+                                    bool   beVerbose=false) = 0;
+
+  virtual void         openIndex(u32bit indextypetoload=FASTA_INDEX_ANY) = 0;
+
+  virtual void         optimizeRandomAccess(void) = 0;
+
+  virtual u32bit       getNumberOfSequences(void) = 0;
+  virtual char const  *getSourceName(void) = 0;
+
+  virtual void         printDescription(FILE *out, char *name) = 0;
+
+  virtual bool         isRandomAccess(void)  = 0;
+  virtual bool         isSqueezed(void)      = 0;
+};
+
+
+class FastAFile : public FastABase {
+public:
+  FastAFile(char const *filename, u32bit bufferSize=~u32bitZERO);
+  ~FastAFile();
 
   //  Return some accessors for whatever sequence we are currently at.
   //

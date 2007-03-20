@@ -30,7 +30,7 @@ main(int argc, char **argv) {
     }
 
   } else {
-    FastAWrapper *F = new FastAWrapper(argv[1]);
+    FastABase *F = new FastAFile(argv[1]);
 
     while (F->eof() == false) {
       FastASequenceInCore  *S = F->getSequence();

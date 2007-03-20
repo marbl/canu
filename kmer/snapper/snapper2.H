@@ -182,7 +182,7 @@ extern configuration          config;
 extern sim4parameters         sim4params;
 extern FastACache            *cache;
 
-extern FastAWrapper          *qsFASTA;  //  Used exclusively by thr-loader.C
+extern FastABase            *qsFASTA;  //  Used exclusively by thr-loader.C
 
 extern existDB               *maskDB;  //  thr-search.C
 extern existDB               *onlyDB;  //  thr-search.C

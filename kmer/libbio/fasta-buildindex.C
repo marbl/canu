@@ -3,7 +3,7 @@
 #include "bio++.H"
 
 const char *
-FastAWrapper::indexTypeNames(u32bit indextype) {
+FastAFile::indexTypeNames(u32bit indextype) {
 
   switch (indextype) {
     case FASTA_INDEX_ANY:
@@ -29,7 +29,7 @@ FastAWrapper::indexTypeNames(u32bit indextype) {
 
 
 void
-FastAWrapper::createIndex(u32bit indextype) {
+FastAFile::createIndex(u32bit indextype) {
 
 
   //  If the user didn't specify which type of index to build, build

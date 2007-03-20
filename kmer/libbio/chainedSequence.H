@@ -7,7 +7,7 @@
 //  chainedSequence
 //
 //  Build a chained sequence from a source file or source
-//  FastAWrapper.  In the case of a file, a FastAWrapper (with iid
+//  FastABase.  In the case of a file, a FastABase (with iid
 //  index) is opened.
 //
 //  It "assembles" sequences, separated by a fixed number of any
@@ -27,7 +27,7 @@ public:
   //  Sets the source file
   //
   void         setSource(char const *filename);
-  void         setSource(FastAWrapper *file);
+  void         setSource(FastABase *file);
 
   //  Adds sequences to the useList.  For parse(), sequences are
   //  specified in a character string, e.g., "10,20,30-40,50".  add()
@@ -86,8 +86,8 @@ private:
   };
 
   char                 *_filename;
-  FastAWrapper         *_file;
-  FastAWrapper         *_fileToDelete;
+  FastABase            *_file;
+  FastABase            *_fileToDelete;
   FastASequenceOnDisk  *_sequence;
 
   u32bit                _useListLen;

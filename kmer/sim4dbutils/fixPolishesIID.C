@@ -27,7 +27,7 @@ addToDict(dict_t *d, char *n) {
   if (n == 0L)
     return;
 
-  FastAWrapper  *F = new FastAWrapper(n);
+  FastABase  *F = new FastAFile(n);
   while (!F->eof()) {
     FastASequenceInCore *S = F->getSequence();
 

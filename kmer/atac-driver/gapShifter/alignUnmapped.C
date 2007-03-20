@@ -101,8 +101,8 @@ main(int argc, char *argv[]) {
   ML1.sort1();  //  Sorted by first index
   ML2.sort2();  //  Sorted by second index
 
-  FastAWrapper         *W1 = ML1._seq1;
-  FastAWrapper         *W2 = ML1._seq2;
+  FastABase            *W1 = ML1._seq1;
+  FastABase            *W2 = ML1._seq2;
 
 
   //  For every match,

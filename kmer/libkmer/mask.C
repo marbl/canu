@@ -27,7 +27,7 @@ main(int argc, char **argv) {
     exist = new existDB("/project/huref4/assembly-mapping/missing/missing0/HMISSING-and-B35LC.existDB");
   }
 
-  FastAWrapper         *F     = new FastAWrapper(seqFile);
+  FastABase            *F     = new FastAFile(seqFile);
   FastASequenceInCore  *S     = 0L;
 
   u32bit   maskLen = 1048576;

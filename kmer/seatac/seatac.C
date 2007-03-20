@@ -8,7 +8,7 @@
 //  Shared data
 //
 configuration          config;
-FastAWrapper          *qsFASTA          = 0L;
+FastABase             *qsFASTA          = 0L;
 positionDB            *positions        = 0L;
 volatile u32bit        numberOfQueries  = 0;
 filterObj            **output           = 0L;
@@ -89,7 +89,7 @@ main(int argc, char **argv) {
 
   //  Open and init the query sequence
   //
-  qsFASTA = new FastAWrapper(config._qsFileName);
+  qsFASTA = new FastAFile(config._qsFileName);
   qsFASTA->openIndex();
 
   numberOfQueries  = qsFASTA->getNumberOfSequences();

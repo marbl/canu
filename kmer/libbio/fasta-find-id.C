@@ -5,7 +5,7 @@
 
 
 char*
-FastAWrapper::moveToNextName(char *ptr, u32bit iid) {
+FastAFile::moveToNextName(char *ptr, u32bit iid) {
 
   //  XXX:
   //
@@ -29,7 +29,7 @@ FastAWrapper::moveToNextName(char *ptr, u32bit iid) {
 
 
 bool
-FastAWrapper::find(char *id) {
+FastAFile::find(char *id) {
   u32bit         iid = 0;
   char          *ptr = _theNames;
   char          *res = 0L;

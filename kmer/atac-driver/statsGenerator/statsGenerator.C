@@ -214,7 +214,7 @@ tandemRepeatACGTLength(intervalList &il,
 
 
 u64bit *
-buildOffset(FastAWrapper *F) {
+buildOffset(FastABase *F) {
   u64bit  *offset = new u64bit [F->getNumberOfSequences() + 1];
   offset[0] = 1000000;
   for (u32bit i=0; i<F->getNumberOfSequences(); i++)

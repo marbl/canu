@@ -37,7 +37,7 @@ main(int argc, char **argv) {
   char                  merstring[1024];
 
   existDB              *E = new existDB(merylFile, merSize, 16);
-  FastAWrapper         *F = new FastAWrapper(fastaFile);
+  FastABase            *F = new FastAFile(fastaFile);
   FastASequenceInCore  *S = F->getSequence();
 
   while (S) {

@@ -18,12 +18,12 @@ public:
 
   //  Returns a pointer to the fasta wrapper we are using.
   //
-  FastAWrapper           *fasta(void) {
-    return(_fastawrapper);
+  FastABase              *fasta(void) {
+    return(_fasta);
   };
 
 private:
-  FastAWrapper          *_fastawrapper;
+  FastABase             *_fasta;
 
   bool                   _allSequencesLoaded;
   bool                   _reportLoading;

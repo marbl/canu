@@ -283,7 +283,7 @@ char                  *specialDefLine    = 0L;
 u32bit                 withLineBreaks    = 0;
 bool                   toUppercase       = false;
 char                  *sourceFile        = 0L;
-FastAWrapper          *fasta             = 0L;
+FastABase             *fasta             = 0L;
 FastACache            *cache             = 0L;
 char                   seqIDtype         = 'i';
 u32bit                 begPos            = ~(u32bit)0;
@@ -311,9 +311,9 @@ failIfNotRandomAccess(void) {
 
 
 //  Just so we can support the printOnLoad flag, this
-//  routine will call loadSequence on a FastAWrapper.
+//  routine will call loadSequence on a FastABase.
 //
-FastASequenceInCore *loadSequence(FastAWrapper *F) {
+FastASequenceInCore *loadSequence(FastABase *F) {
   FastASequenceInCore *s = F->getSequence();
 
   if (printOnLoad)
@@ -325,13 +325,13 @@ FastASequenceInCore *loadSequence(FastAWrapper *F) {
 
 
 
-FastAWrapper*
+FastABase*
 openNewFile(char *name, char *arg) {
 
   if (fasta)
     delete fasta;
 
-  fasta = new FastAWrapper(name);
+  fasta = new FastAFile(name);
 
   seqIDtype = 'i';
 
@@ -618,7 +618,7 @@ printIDsFromFile(char *name) {
 
 
 md5_s *
-computeMD5ForEachSequence(FastAWrapper *F) {
+computeMD5ForEachSequence(FastABase *F) {
   u32bit   numSeqs = F->getNumberOfSequences();
   md5_s   *result  = new md5_s [numSeqs];
 
@@ -638,7 +638,7 @@ void
 findDuplicates(char *filename) {
   FastASequenceInCore  *s1 = 0L;
   FastASequenceInCore  *s2 = 0L;
-  FastAWrapper         *A = new FastAWrapper(filename);
+  FastABase            *A = new FastAFile(filename);
 
   A->openIndex(FASTA_INDEX_ONLY);
 
@@ -699,12 +699,12 @@ mapDuplicates_Print(char *filea, FastASequenceInCore *sa,
 
 void
 mapDuplicates(char *filea, char *fileb) {
-  FastAWrapper   *A = new FastAWrapper(filea);
+  FastABase   *A = new FastAFile(filea);
   A->openIndex(FASTA_INDEX_ONLY);
   fprintf(stderr, "Computing MD5's for each sequence in '%s'.\n", filea);
   md5_s *resultA = computeMD5ForEachSequence(A);
 
-  FastAWrapper   *B = new FastAWrapper(fileb);
+  FastABase   *B = new FastAFile(fileb);
   B->openIndex(FASTA_INDEX_ONLY);
   fprintf(stderr, "Computing MD5's for each sequence in '%s'.\n", fileb);
   md5_s *resultB = computeMD5ForEachSequence(B);
@@ -786,7 +786,7 @@ mapDuplicates(char *filea, char *fileb) {
 
 void
 computeGCcontent(char *name) {
-  FastAWrapper   *A = new FastAWrapper(name);
+  FastABase   *A = new FastAFile(name);
   A->openIndex();
 
   A->find((u32bit)0);
@@ -1178,7 +1178,7 @@ processArray(int argc, char **argv) {
       partitionBySegment(argv[arg+1], strtou32bit(argv[arg+2], 0L));
       arg += 2;
     } else if (strncmp(argv[arg], "--testindex", 3) == 0) {
-      fasta = new FastAWrapper(argv[arg+1]);
+      fasta = new FastAFile(argv[arg+1]);
       if (fasta->isIndexValid())
         exit(0);
       exit(1);

@@ -127,7 +127,7 @@ FastASequenceOnDisk::getChars(char *block, u32bit position, u32bit length) {
 
 
 FastASequenceOnDisk*
-FastAWrapper::getSequenceOnDisk(void) {
+FastAFile::getSequenceOnDisk(void) {
 
   if (_currentSequenceNumber >= _theGlobalDesc._numberOfSequences)
     return(0L);
@@ -138,12 +138,12 @@ FastAWrapper::getSequenceOnDisk(void) {
   //  interface doesn't require squeezedness.
   //
   if (!isRandomAccess() || !isSqueezed()) {
-    fprintf(stderr, "FastAWrapper::getSequenceOnDisk()-- Asked for a sequence, but file '%s' is not\n", getSourceName());
+    fprintf(stderr, "FastABase::getSequenceOnDisk()-- Asked for a sequence, but file '%s' is not\n", getSourceName());
     if (!_isRandomAccess)
-      fprintf(stderr, "FastAWrapper::getSequenceOnDisk()--   Randomly accessable (no index)\n");
+      fprintf(stderr, "FastABase::getSequenceOnDisk()--   Randomly accessable (no index)\n");
     if (!_theGlobalDesc._squeezedSequences)
-      fprintf(stderr, "FastAWrapper::getSequenceOnDisk()--   Squeezed\n");
-    fprintf(stderr, "FastAWrapper::getSequenceOnDisk()-- Pester Bri to fix this.\n");
+      fprintf(stderr, "FastABase::getSequenceOnDisk()--   Squeezed\n");
+    fprintf(stderr, "FastABase::getSequenceOnDisk()-- Pester Bri to fix this.\n");
     exit(1);
   }
 #endif

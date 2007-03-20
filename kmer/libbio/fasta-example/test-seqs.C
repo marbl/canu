@@ -12,7 +12,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  FastAWrapper  seqs(argv[1]);
+  FastAFile  seqs(argv[1]);
 
 #if 0
   while (!seqs.eof()) {

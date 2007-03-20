@@ -142,7 +142,7 @@ public:
   void  display(FILE *out=stdout);
   void  writeATACheader(FILE *out);
 
-  void  completeUseList(FastAWrapper *db);
+  void  completeUseList(FastABase *db);
 
   void  setTime(struct timespec *ts, double t) {
     ts->tv_sec  = (time_t)floor(t);
@@ -163,7 +163,7 @@ private:
 //
 extern configuration          config;
 
-extern FastAWrapper          *qsFASTA;  //  Used exclusively by thr-loader.C
+extern FastABase             *qsFASTA;  //  Used exclusively by thr-loader.C
 
 extern positionDB            *positions;
 

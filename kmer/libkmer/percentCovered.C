@@ -20,7 +20,7 @@ main(int argc, char **argv) {
   }
 
   existDB              *E = new existDB(merFile, 22, 17);
-  FastAWrapper         *Q = new FastAWrapper(queryFile);
+  FastABase            *Q = new FastAFile(queryFile);
   FastASequenceInCore  *S = Q->getSequence();
 
   intervalList          IL;

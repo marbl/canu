@@ -250,11 +250,11 @@ atacFileBase::readHeader(char *inLine, FILE *in) {
   //fprintf(stderr, "assemblyId1   = '%s'\n", _labelA);
   //fprintf(stderr, "assemblyId2   = '%s'\n", _labelB);
 
-  //  Open some FastAWrappers for each of the files
+  //  Open some FastABase for each of the files
   //
   if (_fileA && _fileA[0]) {
     if (fileExists(_fileA)) {
-      _seqA = new FastAWrapper(_fileA);
+      _seqA = new FastAFile(_fileA);
       _seqA->openIndex();
     } else {
       fprintf(stderr, "atacFile::readHeader()-- can't find '%s', no sequence read.\n", _fileA);
@@ -262,7 +262,7 @@ atacFileBase::readHeader(char *inLine, FILE *in) {
   }
   if (_fileB && _fileB[0]) {
     if (fileExists(_fileA)) {
-      _seqB = new FastAWrapper(_fileB);
+      _seqB = new FastAFile(_fileB);
       _seqB->openIndex();
     } else {
       fprintf(stderr, "atacFile::readHeader()-- can't find '%s', no sequence read.\n", _fileB);

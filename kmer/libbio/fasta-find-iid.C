@@ -5,15 +5,15 @@
 
 
 bool
-FastAWrapper::find(IID_t  iid) {
+FastAFile::find(IID_t  iid) {
 
   if (!_isRandomAccess) {
-    fprintf(stderr, "FastAWrapper::find(IID)-- ERROR: '%s' is not open for random access; find() failed.\n", _filename);
+    fprintf(stderr, "FastAFile::find(IID)-- ERROR: '%s' is not open for random access; find() failed.\n", _filename);
     return(false);
   }
 
   if (iid >= _theGlobalDesc._numberOfSequences) {
-    fprintf(stderr, "FastAWrapper::find(IID)-- ERROR: index of "u32bitFMT" too large for '%s' (only "u32bitFMT" sequences).\n",
+    fprintf(stderr, "FastAFile::find(IID)-- ERROR: index of "u32bitFMT" too large for '%s' (only "u32bitFMT" sequences).\n",
             iid, _filename, _theGlobalDesc._numberOfSequences);
     return(false);
   }

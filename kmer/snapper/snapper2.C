@@ -25,7 +25,7 @@ struct filterStats {
 configuration          config;
 sim4parameters         sim4params;
 FastACache            *cache;
-FastAWrapper          *qsFASTA;
+FastABase             *qsFASTA;
 existDB               *maskDB;
 existDB               *onlyDB;
 positionDB            *positions;
@@ -183,7 +183,7 @@ main(int argc, char **argv) {
   if (config._beVerbose)
     fprintf(stderr, "Opening the cDNA sequences.\n");
 
-  qsFASTA = new FastAWrapper(config._qsFileName);
+  qsFASTA = new FastAFile(config._qsFileName);
   qsFASTA->openIndex();
 
   numberOfQueries  = qsFASTA->getNumberOfSequences();
@@ -380,7 +380,7 @@ main(int argc, char **argv) {
   //  attached, and possibly an open file handle.
   //
   delete qsFASTA;
-  qsFASTA = new FastAWrapper(config._qsFileName);
+  qsFASTA = new FastAFile(config._qsFileName);
 #endif
 
   input            = new FastASequenceInCore * [numberOfQueries];

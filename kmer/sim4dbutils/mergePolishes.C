@@ -66,7 +66,7 @@ main(int argc, char **argv) {
 
   FILE         *O = fopen(otSeqName, "w");
   for (int i=0; i<numIn; i++) {
-    FastAWrapper  *I = new FastAWrapper(inSeqName[i]);
+    FastABase  *I = new FastAFile(inSeqName[i]);
 
     numSeqs[i] = 0;
 

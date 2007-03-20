@@ -44,8 +44,8 @@ public:
   char           *assemblyFileA(void) { return(_fileA); };
   char           *assemblyFileB(void) { return(_fileB); };
 
-  FastAWrapper   *fastaA(void) { return(_seqA); };
-  FastAWrapper   *fastaB(void) { return(_seqB); };
+  FastABase      *fastaA(void) { return(_seqA); };
+  FastABase      *fastaB(void) { return(_seqB); };
 
 protected:
   void  readHeader(char *inLine, FILE *in);
@@ -61,8 +61,8 @@ protected:
 
   map<string,string> _params;
 
-  FastAWrapper      *_seqA;
-  FastAWrapper      *_seqB;
+  FastABase         *_seqA;
+  FastABase         *_seqB;
 };
 
 

@@ -57,7 +57,7 @@ public:
 
   void   decode(char *line);
 
-  bool   sanity(FastAWrapper *A, char *inLine);
+  bool   sanity(FastABase *A, char *inLine);
 
   char    featureuid[16];
   char    parentuid[16];

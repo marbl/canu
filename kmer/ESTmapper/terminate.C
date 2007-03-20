@@ -139,7 +139,7 @@ main(int argc, char **argv) {
 
   FILE                 *defaultOut = 0L;
 
-  FastAWrapper         *F = 0L;
+  FastABase            *F = 0L;
   FastASequenceInCore  *S = 0L;
 
   int arg=1;
@@ -156,7 +156,7 @@ main(int argc, char **argv) {
       if (errno)
         fprintf(stderr, "Can't open '%s': %s\n", argv[arg], strerror(errno)), exit(1);
     } else if (strcmp(argv[arg], "-i") == 0) {
-      F = new FastAWrapper(argv[++arg]);
+      F = new FastAFile(argv[++arg]);
       F->openIndex();
     } else {
       fprintf(stderr, "ESTmapper utility function -- not for human use.\n");

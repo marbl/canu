@@ -132,7 +132,7 @@ main(int argc, char **argv) {
   u32bit     nodesMax = 16 * 1024 * 1024;
   trieNode  *nodes    = new trieNode [nodesMax];
 
-  FastAWrapper         *F = new FastAWrapper(queries);
+  FastAFile            *F = new FastAFile(queries);
   FastASequenceInCore  *S = 0L;
 
   u32bit      seqptrLen = 0;
@@ -190,7 +190,7 @@ main(int argc, char **argv) {
 
   //
 
-  F = new FastAWrapper(genome);
+  F = new FastAFile(genome);
   S = 0L;
   while ((S = F->getSequence()) != 0L) {
     char    *s    = S->sequence();

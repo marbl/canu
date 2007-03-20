@@ -99,7 +99,7 @@ atacFeature::decode(char *line) {
 
 
 bool
-atacFeature::sanity(FastAWrapper *A, char *inLine) {
+atacFeature::sanity(FastABase *A, char *inLine) {
 
   bool  featureOK = true;
 

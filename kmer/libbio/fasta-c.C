@@ -2,14 +2,14 @@
 #include "fasta-c.h"
 
 typedef struct {
-  FastAWrapper        *F;
+  FastABase           *F;
   FastASequenceInCore *B;
 } _fasta_c_private;
 
 void*
 createFastA(char *file) {
   _fasta_c_private  *c = new _fasta_c_private;
-  c->F = new FastAWrapper(file);
+  c->F = new FastAFile(file);
   c->F->openIndex();
   c->B = 0L;
   return(c);

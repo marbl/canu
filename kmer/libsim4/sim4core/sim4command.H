@@ -5,7 +5,7 @@
 
 //
 //  Contains the variable stuff for an execution of sim4
-//    access to sequences (via FastAWrappers)
+//    access to sequences (via FastABase)
 //    genomic iid
 //    genomic range
 //    est iid (maybe more than one)
@@ -19,11 +19,11 @@ public:
   //  Run a single EST against a genomic range
   //
   sim4command(u32bit        ESTid,
-              FastAWrapper *ESTs,
+              FastABase    *ESTs,
               u32bit        GENid,
               u32bit        GENlo,
               u32bit        GENhi,
-              FastAWrapper *GENs,
+              FastABase    *GENs,
               bool          doForward,
               bool          doReverse);
 
@@ -107,7 +107,7 @@ private:
 
   u32bit                _estIdx;
 
-  FastAWrapper         *_ESTs;
+  FastABase            *_ESTs;
   FastASequenceInCore  *_ESTloaded;
   char                 *_ESTsequence;
   u32bit                _ESTsequenceLength;  //  valid only for _ESTsequence
@@ -116,7 +116,7 @@ private:
   u32bit                _genLo;
   u32bit                _genHi;
 
-  FastAWrapper         *_GENs;
+  FastABase            *_GENs;
   FastASequenceInCore  *_GENloaded;
   char                 *_GENsequence;
   u32bit                _GENsequenceLength;

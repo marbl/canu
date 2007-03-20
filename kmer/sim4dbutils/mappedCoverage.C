@@ -51,7 +51,7 @@ main(int argc, char **argv) {
   char                 *fastaname = 0L;
   char                 *covname   = 0L;
 
-  FastAWrapper         *F = 0L;
+  FastABase            *F = 0L;
   FastASequenceInCore  *S = 0L;
 
   FILE                 *C = stdout;
@@ -77,7 +77,7 @@ main(int argc, char **argv) {
 
   if (fastaname) {
     C = 0L;
-    F = new FastAWrapper(fastaname);
+    F = new FastAFile(fastaname);
     F->openIndex();
   }
 

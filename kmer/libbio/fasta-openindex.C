@@ -19,7 +19,7 @@
 //    The index doesn't match the fasta file and would need to be rebuilt
 //
 bool
-FastAWrapper::isIndexValid(u32bit indextype, bool beVerbose) {
+FastAFile::isIndexValid(u32bit indextype, bool beVerbose) {
   errno = 0;
 
   //  No indexname?  Must be stdin.
@@ -135,14 +135,14 @@ FastAWrapper::isIndexValid(u32bit indextype, bool beVerbose) {
 
 
 void
-FastAWrapper::openIndex(u32bit indextypetoload) {
+FastAFile::openIndex(u32bit indextypetoload) {
 
 
   //  If we've been told to open an index, but we're not random
   //  access, complain.
   //
   if (_isStreamInput) {
-    fprintf(stderr, "FastAWrapper()--  '%s' is a stream and not valid for indexing!\n", _filename);
+    fprintf(stderr, "FastAFile()--  '%s' is a stream and not valid for indexing!\n", _filename);
     return;
   }
 
@@ -169,7 +169,7 @@ FastAWrapper::openIndex(u32bit indextypetoload) {
   errno = 0;
   int indexfile = open(_indexname, O_RDONLY | O_LARGEFILE);
   if (errno) {
-    fprintf(stderr, "FastAWrapper()-- couldn't open the index '%s': %s\n", _indexname, strerror(errno));
+    fprintf(stderr, "FastAFile()-- couldn't open the index '%s': %s\n", _indexname, strerror(errno));
     exit(1);
   }
 
@@ -178,7 +178,7 @@ FastAWrapper::openIndex(u32bit indextypetoload) {
   //
   read(indexfile, &_theGlobalDesc, sizeof(_idxfa_global));
   if (errno) {
-    fprintf(stderr, "FastAWrapper()-- couldn't read description from the index '%s': %s\n", _indexname, strerror(errno));
+    fprintf(stderr, "FastAFile()-- couldn't read description from the index '%s': %s\n", _indexname, strerror(errno));
     exit(1);
   }
 
@@ -211,7 +211,7 @@ FastAWrapper::openIndex(u32bit indextypetoload) {
 
   read(indexfile, _theSeqs, sizeof(_idxfa_desc) * _theGlobalDesc._numberOfSequences);
   if (errno) {
-    fprintf(stderr, "FastAWrapper()-- couldn't read sequence descriptions from the index '%s': %s\n", _indexname, strerror(errno));
+    fprintf(stderr, "FastAFile()-- couldn't read sequence descriptions from the index '%s': %s\n", _indexname, strerror(errno));
     exit(1);
   }
 
@@ -239,7 +239,7 @@ FastAWrapper::openIndex(u32bit indextypetoload) {
       ((_theGlobalDesc._indexType & FASTA_INDEX_MASK) == FASTA_INDEX_PLUS_DEFLINES)) {
     read(indexfile, &_theNamesLen, sizeof(u32bit));
     if (errno) {
-      fprintf(stderr, "FastAWrapper()-- couldn't read lengths of names from the index '%s': %s\n", _indexname, strerror(errno));
+      fprintf(stderr, "FastAFile()-- couldn't read lengths of names from the index '%s': %s\n", _indexname, strerror(errno));
       exit(1);
     }
 
@@ -252,7 +252,7 @@ FastAWrapper::openIndex(u32bit indextypetoload) {
 
     read(indexfile, _theNames, sizeof(char) * _theNamesLen);
     if (errno) {
-      fprintf(stderr, "FastAWrapper()-- couldn't read names from the index '%s': %s\n", _indexname, strerror(errno));
+      fprintf(stderr, "FastAFile()-- couldn't read names from the index '%s': %s\n", _indexname, strerror(errno));
       exit(1);
     }
   }
@@ -260,7 +260,7 @@ FastAWrapper::openIndex(u32bit indextypetoload) {
   errno = 0;
   close(indexfile);
   if (errno)
-    fprintf(stderr, "FastAWrapper()-- couldn't close the index '%s': %s\n", _indexname, strerror(errno));
+    fprintf(stderr, "FastAFile()-- couldn't close the index '%s': %s\n", _indexname, strerror(errno));
 }
 
 
@@ -272,7 +272,7 @@ FastAWrapper::openIndex(u32bit indextypetoload) {
 //  -- we'll be doing a read on almost every sequence.
 //
 void
-FastAWrapper::optimizeRandomAccess(void) {
+FastAFile::optimizeRandomAccess(void) {
 
   if (_isRandomAccessOpt)
     return;
@@ -296,7 +296,7 @@ FastAWrapper::optimizeRandomAccess(void) {
 
   stdDev = (u64bit)ceil(sqrt((double)stdDev));
 
-  fprintf(stderr, "FastAWrapper::optimizeRandomAccess()-- For "u32bitFMT" seqs, ave="u64bitFMT" stddev="u64bitFMT", reset buffer to "u64bitFMT"\n",
+  fprintf(stderr, "FastAFile::optimizeRandomAccess()-- For "u32bitFMT" seqs, ave="u64bitFMT" stddev="u64bitFMT", reset buffer to "u64bitFMT"\n",
           _theGlobalDesc._numberOfSequences, aveLen, stdDev, aveLen + stdDev);
 
   if (aveLen + stdDev < 32768) {
@@ -311,7 +311,7 @@ FastAWrapper::optimizeRandomAccess(void) {
     aveLen |= aveLen >> 32;
     aveLen++;
 
-    fprintf(stderr, "FastAWrapper::optimizeRandomAccess()-- Make new filebuffer of size "u64bitFMT".\n", aveLen);
+    fprintf(stderr, "FastAFile::optimizeRandomAccess()-- Make new filebuffer of size "u64bitFMT".\n", aveLen);
 
     delete _filebuffer;
     _filebuffer    = new readBuffer(_filename, aveLen);
@@ -328,7 +328,7 @@ FastAWrapper::optimizeRandomAccess(void) {
 //  ctg == contig
 //
 void
-FastAWrapper::printDescription(FILE *out, char *name) {
+FastAFile::printDescription(FILE *out, char *name) {
 
   fprintf(out, "!format ata 1.0\n");
 
