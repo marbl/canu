@@ -26,13 +26,11 @@ const char *usage =
 "\n"
 "SOURCE FILE\n"
 "       -f file:     use 'file' as an UN-INDEXED source file\n"
-"       -Ft[c] file: use 'file' as an INDEXED source file (the index is built if\n"
+"       -Ft file:    use 'file' as an INDEXED source file (the index is built if\n"
 "                    it doesn't exist), where 't' is the type of index to build:\n"
 "                      i:  internal id's only (the default if t is not specified)\n"
 "                      n:  names only (the first word on defline)\n"
 "                      d:  full deflines\n"
-"                    The optional character c will build an index with checksums,\n"
-"                    and --checksum will verify the checksums.\n"
 "\n"
 "OUTPUT OPTIONS\n"
 "       -6:          insert a newline every 60 letters\n"
@@ -100,15 +98,6 @@ const char *usage =
 "                    Splits the sequences into n files, prefix-###.fasta.\n"
 "                    Sequences are not reordered; the first n sequences are in\n"
 "                    the first file, the next n in the second file, etc.\n"
-"\n"
-"       --checksum a.fasta\n"
-"                    One of three actions:\n"
-"                    1) If no fastaidx file exists, this is equivalent to\n"
-"                       \"-Fc a.fasta\".\n"
-"                    2) If a fastaidx file exists, but doesn't have checksums,\n"
-"                       checksums are added to that index file.\n"
-"                    3) If a fastaidx file exists and checksums are present,\n"
-"                       the checksums are verified.\n"
 "\n"
 "       --gccontent a.fasta\n"
 "                    Reports the GC content over a sliding window of\n"
@@ -248,18 +237,18 @@ printSequence(FastASequenceInCore *b,
 
   if (withLineBreaks) {
     char      *t = n;
-    char      *b = new char [withLineBreaks+1];
+    char      *a = new char [withLineBreaks+1];
 
     while (*t) {
       u32bit i=0;
       while ((*t) && (i < withLineBreaks))
-        b[i++] = *(t++);
-      b[i++] = '\n';
-      b[i]   = 0;
-      fprintf(stdout, "%s", b);
+        a[i++] = *(t++);
+      a[i++] = '\n';
+      a[i]   = 0;
+      fprintf(stdout, "%s", a);
     }
 
-    delete [] b;
+    delete [] a;
   } else {
     fprintf(stdout, "%s\n", n);
   }
@@ -360,8 +349,6 @@ openNewFile(char *name, char *arg) {
       } else if (arg[ap] == 'd') {
         seqIDtype = 'e';
         indextype = FASTA_INDEX_PLUS_DEFLINES;
-      } else if (arg[ap] == 'c') {
-        md5type   = FASTA_INDEX_MD5;
       } else {
         fprintf(stderr, "Unknown option for '-F': '%c'\n", arg[ap]);
       }
@@ -797,41 +784,6 @@ mapDuplicates(char *filea, char *fileb) {
 
 
 
-
-
-
-
-
-
-void
-checksum(char *name) {
-  char            stra[33];
-  char            strb[33];
-  FastAWrapper   *A = new FastAWrapper(name);
-  A->openIndex(FASTA_INDEX_ONLY | FASTA_INDEX_MD5);
-
-  md5_s *result   = computeMD5ForEachSequence(A);
-  u32bit  numSeqs = A->getNumberOfSequences();
-
-  for (u32bit idx=0; idx < numSeqs; idx++) {
-    if (md5_compare(result+idx, A->getMD5(idx)) != 0) {
-      fprintf(stderr, "Checksum mismatch for iid "u32bitFMT": computed %s saved %s\n",
-              idx,
-              md5_toascii(result+idx, stra),
-              md5_toascii(A->getMD5(idx), strb));
-    }
-  }
-
-  delete A;
-}
-
-
-
-
-
-
-
-
 void
 computeGCcontent(char *name) {
   FastAWrapper   *A = new FastAWrapper(name);
@@ -1225,9 +1177,6 @@ processArray(int argc, char **argv) {
       failIfNotRandomAccess();
       partitionBySegment(argv[arg+1], strtou32bit(argv[arg+2], 0L));
       arg += 2;
-    } else if (strncmp(argv[arg], "--checksum", 4) == 0) {
-      arg++;
-      checksum(argv[arg]);
     } else if (strncmp(argv[arg], "--testindex", 3) == 0) {
       fasta = new FastAWrapper(argv[arg+1]);
       if (fasta->isIndexValid())

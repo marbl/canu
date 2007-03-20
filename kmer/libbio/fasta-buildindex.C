@@ -18,18 +18,6 @@ FastAWrapper::indexTypeNames(u32bit indextype) {
     case FASTA_INDEX_PLUS_DEFLINES:
       return("index-plus-deflines");
       break;
-    case FASTA_INDEX_ANY | FASTA_INDEX_MD5:
-      return("any-index-md5");
-      break;
-    case FASTA_INDEX_ONLY | FASTA_INDEX_MD5:
-      return("index-only-md5");
-      break;
-    case FASTA_INDEX_PLUS_IDS | FASTA_INDEX_MD5:
-      return("index-plus-names-md5");
-      break;
-    case FASTA_INDEX_PLUS_DEFLINES | FASTA_INDEX_MD5:
-      return("index-plus-deflines-md5");
-      break;
   }
 
   return("Unknown Index Type");
@@ -126,11 +114,6 @@ FastAWrapper::createIndex(u32bit indextype) {
   u32bit                     theNamesLen = 0;
   u32bit                     theNamesMax = 16 * 1024;
   char                      *theNames    = new char [theNamesMax];
-
-  //  Checksums
-  //
-  md5_increment_s           *curmd5  = 0L;
-  md5_s                     *theMD5s = new md5_s [maxSeqs];
 
   //  Info about the sequence we just read
   //
@@ -250,11 +233,6 @@ FastAWrapper::createIndex(u32bit indextype) {
         thisLineLen++;
         theGlobalDesc._alphabet[(int)B.get()] = 1;
 
-        //  Add this character to the MD5 hash
-        //
-        if (theGlobalDesc._indexType & FASTA_INDEX_MD5)
-          curmd5 = md5_increment_char(curmd5, B.get());
-
         //  If we've seen space already, then we have embedded space,
         //  and we're not fixed width or squeezed.
         //
@@ -344,11 +322,6 @@ FastAWrapper::createIndex(u32bit indextype) {
       memcpy(sa, theSeqs, sizeof(_idxfa_desc) * numSeqs);
       delete [] theSeqs;
       theSeqs = sa;
-
-      md5_s *sm = new md5_s [ maxSeqs ];
-      memcpy(sm, theMD5s, sizeof(md5_s) * numSeqs);
-      delete [] theMD5s;
-      theMD5s = sm;
     }
 
     //  Add the new sequence description to the list.
@@ -357,16 +330,6 @@ FastAWrapper::createIndex(u32bit indextype) {
     theSeqs[numSeqs]._headerLen    = defLen;
     theSeqs[numSeqs]._seqStart     = seqStart;
     theSeqs[numSeqs]._seqLen       = seqLen;
-
-    //  Add the md5 checksum to the list
-    //
-    if (theGlobalDesc._indexType & FASTA_INDEX_MD5) {
-      md5_increment_finalize(curmd5);
-      theMD5s[numSeqs].a = curmd5->a;
-      theMD5s[numSeqs].b = curmd5->b;
-      md5_increment_destroy(curmd5);
-      curmd5 = 0L;
-    }
 
     //  Add the description of the sequence to the list of descriptions
     //
@@ -440,15 +403,6 @@ FastAWrapper::createIndex(u32bit indextype) {
     write(indexfile, theNames,  sizeof(char) * theNamesLen);
     if (errno) {
       fprintf(stderr, "FastA::buildIndex() can't write names to index file '%s'.\n%s\n", _filename, strerror(errno));
-      exit(1);
-    }
-  }
-
-  if (theGlobalDesc._indexType & FASTA_INDEX_MD5) {
-    errno = 0;
-    write(indexfile, theMD5s, sizeof(md5_s) * numSeqs);
-    if (errno) {
-      fprintf(stderr, "FastA::buildIndex() can't write checksums to index file '%s'.\n%s\n", _filename, strerror(errno));
       exit(1);
     }
   }

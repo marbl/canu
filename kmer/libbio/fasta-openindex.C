@@ -104,8 +104,7 @@ FastAWrapper::isIndexValid(u32bit indextype, bool beVerbose) {
   if ((theGlobalDesc._magic                          == FASTA_MAGICNUMBER) &&
       (theGlobalDesc._version                        == FASTA_VERSIONNUMBER) &&
       (theGlobalDesc._fastaModificationTime          == st.st_mtime) &&
-      ((theGlobalDesc._indexType & FASTA_INDEX_MASK) >= (indextype & FASTA_INDEX_MASK)) &&
-      ((theGlobalDesc._indexType & FASTA_INDEX_MD5)  >= (indextype & FASTA_INDEX_MD5))) {
+      ((theGlobalDesc._indexType & FASTA_INDEX_MASK) >= (indextype & FASTA_INDEX_MASK))) {
     return(true);
   } else {
     if (beVerbose) {
@@ -127,9 +126,6 @@ FastAWrapper::isIndexValid(u32bit indextype, bool beVerbose) {
         fprintf(stderr, "           Type of index insufficient; got %s, need %s.\n",
                 indexTypeNames(theGlobalDesc._indexType),
                 indexTypeNames(indextype));
-
-      if ((theGlobalDesc._indexType & FASTA_INDEX_MD5) < (indextype & FASTA_INDEX_MD5))
-        fprintf(stderr, "           MD5 checksums not present.\n");
     }
   }
 
@@ -260,29 +256,6 @@ FastAWrapper::openIndex(u32bit indextypetoload) {
       exit(1);
     }
   }
-
-
-  if (_theGlobalDesc._indexType & FASTA_INDEX_MD5) {
-    _theMD5s = new md5_s [_theGlobalDesc._numberOfSequences];
-
-    errno = 0;
-    read(indexfile, _theMD5s, sizeof(md5_s) * _theGlobalDesc._numberOfSequences);
-    if (errno) {
-      fprintf(stderr, "FastA::buildIndex() couldn't read checksums from the index '%s': %s\n", _filename, strerror(errno));
-      exit(1);
-    }
-
-#if FASTA_VERSIONNUMBER > 4
-    if (swapIndex) {
-      for (u32bit i=0; i<_theGlobalDesc._numberOfSequences; i++) {
-        _theMD5s[i].a = u64bitSwap(_theMD5s[i].a);
-        _theMD5s[i].b = u64bitSwap(_theMD5s[i].b);
-        _theMD5s[i].i = u32bitSwap(_theMD5s[i].i);
-      }
-    }
-#endif
-  }
-
 
   errno = 0;
   close(indexfile);

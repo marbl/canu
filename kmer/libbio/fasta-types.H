@@ -10,8 +10,8 @@
 //  1 index is binary compatible with version 2.  You can revert to
 //  this version.
 //
-//  versionNumber 3 changes the order of _idxfa_desc, so that data
-//  is natuarlly aligned.  You can revert to this version.
+//  versionNumber 3 changes the order of _idxfa_desc, so that data is
+//  natuarlly aligned.  You can revert to this version.
 //
 //  versionNumber 4 changes flags in _idxfa_global from bool to u32bit
 //  so that the size of the structure is more reliable across
@@ -21,10 +21,14 @@
 //
 //  versionNumber 5 adjusts for differences in off_t / time_t between
 //  Linux and Linux64.
-
+//
+//  versionNumber 6 removes md5 support to simplify the interface.
+//  You cannot enable md5 from this code base, but it will read those
+//  index files.
+//
 
 #define FASTA_MAGICNUMBER   0x4abeadeddadababeULL
-#define FASTA_VERSIONNUMBER 5
+#define FASTA_VERSIONNUMBER 6
 
 
 //  INDEX TYPES
@@ -39,8 +43,6 @@
 #define FASTA_INDEX_PLUS_DEFLINES      0x00000003
 
 #define FASTA_INDEX_MASK               0x000000ff
-
-#define FASTA_INDEX_MD5                0x80000000
 
 
 //  FASTA TYPES

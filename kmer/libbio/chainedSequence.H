@@ -46,7 +46,7 @@ public:
   //  eof() returns true if the last get() returned eof()
   //
   char         get(void);
-  bool         eof(void);
+  bool         eof(void) { return(_eof); };
 
   //  These positions are pre-incremented, so they're off by one.
 
@@ -120,25 +120,7 @@ private:
   u32bit                _separatorPosition;
 
   char                  _separator;
-
-#ifdef __APPLE__
-  char                  _pad[7];
-#endif
 };
-
-
-
-
-inline
-bool
-chainedSequence::eof(void) {
-
-  //  It's easy to tell if the _next_ get() is going to return
-  //  eof, but that's not what we need to return.
-  //return((_sequence->get() == 0) && (_currentSeq + 1 >= _useListLen));
-  //
-  return(_eof);
-}
 
 
 
