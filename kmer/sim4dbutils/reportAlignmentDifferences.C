@@ -25,8 +25,6 @@ main(int argc, char **argv) {
     sim4polish *p = s4p_readPolish(stdin);
 
     if (p != 0L) {
-      s4p_normalize(p);
-
       bool    fwd  = (p->matchOrientation == SIM4_MATCH_FORWARD);
 
       for (u32bit exon=0; exon<p->numExons; exon++) {

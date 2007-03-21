@@ -29,15 +29,15 @@ pickBest(sim4polish **p, int pNum) {
         int sd = 666;
         int ed = 666;
 
-        a = p[i]->genLo + p[i]->exons[0].genFrom;
-        b = p[j]->genLo + p[j]->exons[0].genFrom;
+        a = p[i]->exons[0].genFrom;
+        b = p[j]->exons[0].genFrom;
         if (a < b)
           sd = b - a;
         else
           sd = a - b;
 
-        a = p[i]->genLo + p[i]->exons[p[i]->numExons-1].genTo;
-        b = p[j]->genLo + p[j]->exons[p[j]->numExons-1].genTo;
+        a = p[i]->exons[p[i]->numExons-1].genTo;
+        b = p[j]->exons[p[j]->numExons-1].genTo;
         if (a < b)
           ed = b - a;
         else

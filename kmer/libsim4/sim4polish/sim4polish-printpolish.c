@@ -12,8 +12,7 @@ s4p_printPolish(FILE *O, sim4polish *o, u32bit flags) {
 
   //  If there are flags, modify the polish before printing.
   //
-  if (flags & (S4P_PRINTPOLISH_NORMALIZED |
-               S4P_PRINTPOLISH_NOALIGNS |
+  if (flags & (S4P_PRINTPOLISH_NOALIGNS |
                S4P_PRINTPOLISH_NODEFS)) {
 
     //  If the NOTVALUABLE flag is given, we modify the input polish.  Otherwise,
@@ -21,17 +20,6 @@ s4p_printPolish(FILE *O, sim4polish *o, u32bit flags) {
     //
     if (!(flags & S4P_PRINTPOLISH_NOTVALUABLE))
       p = s4p_copyPolish(o);
-
-    //  Normalized?
-    //
-    if (flags & S4P_PRINTPOLISH_NORMALIZED) {
-      for (i=0; i<p->numExons; i++) {
-        p->exons[i].genFrom += p->genLo;
-        p->exons[i].genTo   += p->genLo;
-      }
-      p->genLo = 0;
-      p->genHi = 0;
-    }
 
     //  Remove alignments?
     //
@@ -83,7 +71,7 @@ s4p_printPolish(FILE *O, sim4polish *o, u32bit flags) {
 
   fprintf(O, ""u32bitFMT"["u32bitFMT"-"u32bitFMT"-"u32bitFMT"] "u32bitFMT"["u32bitFMT"-"u32bitFMT"] <"u32bitFMT"-"u32bitFMT"-"u32bitFMT"-%s-%s>\n",
           p->estID, p->estLen, p->estPolyA, p->estPolyT,
-          p->genID, p->genLo, p->genHi,
+          p->genID, p->genRangeBeg, p->genRangeEnd,
           p->numMatches, p->numMatchesN, p->percentIdentity, mOri, sOri);
 
   if (p->comment)

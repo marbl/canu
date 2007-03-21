@@ -59,9 +59,9 @@ sim4polishBuilder::create(u32bit estid, u32bit estlen,
   it->estPolyA = 0;
   it->estPolyT = 0;
 
-  it->genID = genid;
-  it->genLo = genlo;
-  it->genHi = genhi;
+  it->genID       = genid;
+  it->genRangeBeg = genlo;
+  it->genRangeEnd = genhi;
 
   it->numMatches        = 0;
   it->numMatchesN       = 0;
@@ -203,8 +203,8 @@ sim4polishBuilder::addExon(u32bit estlo, u32bit esthi,
 
   ex[exPos]->estFrom           = estlo;
   ex[exPos]->estTo             = esthi;
-  ex[exPos]->genFrom           = genlo;
-  ex[exPos]->genTo             = genhi;
+  ex[exPos]->genFrom           = genlo + it->genRangeBeg;
+  ex[exPos]->genTo             = genhi + it->genRangeBeg;
   ex[exPos]->numMatches        = nummatches;
   ex[exPos]->numMatchesN       = nummatchesN;
   ex[exPos]->percentIdentity   = percentid;

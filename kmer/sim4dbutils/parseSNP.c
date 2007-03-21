@@ -14,7 +14,7 @@
 //  line describing the snp is output.
 
 
-char *usage =
+const char *usage =
 "usage: %s [options]\n"
 "             -i min-identity     filter matches on percent identity\n"
 "             -c min-coverage     filter matches on percent coverage\n"
@@ -60,34 +60,35 @@ char *usage =
 "             You should use an offset of 1.\n"
 "\n";
 
-FILE *multiMultiFile   = 0L;  //  multiple hits, at least one is multiple exon
-FILE *multiSingleFile  = 0L;  //  multiple hits, all are single exon
-FILE *singleMultiFile  = 0L;  //  single hit, and it has more than one exon
-FILE *singleSingleFile = 0L;  //  single hit, single exon
+FILE       *multiMultiFile   = 0L;  //  multiple hits, at least one is multiple exon
+FILE       *multiSingleFile  = 0L;  //  multiple hits, all are single exon
+FILE       *singleMultiFile  = 0L;  //  single hit, and it has more than one exon
+FILE       *singleSingleFile = 0L;  //  single hit, single exon
 
-int   smpass = 0;
-int   sspass = 0;
-int   mmpass = 0;
-int   mspass = 0;
+int         smpass = 0;
+int         sspass = 0;
+int         mmpass = 0;
+int         mspass = 0;
 
-int   smfail = 0;
-int   ssfail = 0;
-int   mmfail = 0;
-int   msfail = 0;
+int         smfail = 0;
+int         ssfail = 0;
+int         mmfail = 0;
+int         msfail = 0;
 
-int   failedsnps    = 0;
-int   failedmatches = 0;
+int         failedsnps    = 0;
+int         failedmatches = 0;
 
-FILE *validSNPMapFile   = 0L;
-FILE *failedSNPMapFile  = 0L;
+FILE       *validSNPMapFile   = 0L;
+FILE       *failedSNPMapFile  = 0L;
 
-char  fieldDelimiter = 0;
-char *sizeTag        = "/size=";
-char *posTag         = "/pos=";
-int   positionOffset = 0;
+char        fieldDelimiter = 0;
+const char *sizeTag        = "/size=";
+const char *posTag         = "/pos=";
+int         positionOffset = 0;
 
-int   outputFormat   = 1;
+int         outputFormat   = 1;
 
+static
 char *
 findSNPid(char *defline) {
   char *ret = 0L;
@@ -129,6 +130,7 @@ findSNPid(char *defline) {
   return(ret);
 }
 
+static
 char *
 findGENid(char *defline) {
   char *ret = 0L;
@@ -155,6 +157,7 @@ findGENid(char *defline) {
 
 
 
+static
 int
 findPosition(char *defline) {
   char *p = 0L;
@@ -187,6 +190,7 @@ findPosition(char *defline) {
 //  Returns 1 if SNP was valid and printed,
 //  0 otherwise.
 //
+static
 int
 printSNP(FILE *F, sim4polish *p) {
   u32bit   pos           = findPosition(p->estDefLine);
@@ -238,7 +242,7 @@ printSNP(FILE *F, sim4polish *p) {
     //
     u32bit  bpToExamine = seqOffset - (p->exons[exonWithSNP].estFrom - 1) + 1;
     u32bit  examinePos  = 0;
-    u32bit  genPosition = p->genLo + p->exons[exonWithSNP].genFrom - 1;
+    u32bit  genPosition = p->exons[exonWithSNP].genFrom - 1;
 
     //  Recent runs of dbSNP showed that we are off by one (too many if forward, too few if complement).  This is a hack to fix it.
     //
@@ -348,6 +352,7 @@ printSNP(FILE *F, sim4polish *p) {
 //  Just a wrapper around the real best picker, so that we can easily
 //  destroy polishes when we're done.
 //
+static
 void
 parseSNP(sim4polish **p, int pNum) {
   int   numMulti  = 0;

@@ -88,9 +88,6 @@ main(int argc, char **argv) {
   sim4polish *p = 0L;
   while ((p = s4p_readPolish(stdin)) != 0L) {
 
-    //  This only works if polishes are normalized.
-    s4p_normalize(p);
-
     //fprintf(stdout, "BEFORE\n");
     //s4p_printPolish(stdout, p, 0);
 

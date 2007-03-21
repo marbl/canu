@@ -19,13 +19,13 @@ findOverlap(sim4polish *A, sim4polish *B) {
   for (u32bit i=0; i<A->numExons; i++) {
     length = A->exons[i].genTo - A->exons[i].genFrom + 1;
     total  += length;
-    IL.add(A->genLo + A->exons[i].genFrom, length);
+    IL.add(A->exons[i].genFrom, length);
   }
 
   for (u32bit i=0; i<B->numExons; i++) {
     length = B->exons[i].genTo - B->exons[i].genFrom + 1;
     total  += length;
-    IL.add(B->genLo + B->exons[i].genFrom, length);
+    IL.add(B->exons[i].genFrom, length);
   }
 
   IL.merge();

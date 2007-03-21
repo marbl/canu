@@ -155,8 +155,8 @@ main(int argc, char **argv) {
       } else if (numPts < maxPts) {
         begPt[numPts] = beg;
         endPt[numPts] = end;
-        genBeg[numPts] = p->genLo + p->exons[0].genFrom - 1;
-        genEnd[numPts] = p->genLo + p->exons[p->numExons-1].genTo;
+        genBeg[numPts] = p->exons[0].genFrom - 1;
+        genEnd[numPts] = p->exons[p->numExons-1].genTo;
       }
       numPts++;
 

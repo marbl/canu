@@ -40,7 +40,7 @@ output(sim4polish *p,
 
   fprintf(stdout, "%s\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t%s\t"u32bitFMT"\t"u32bitFMT"\t%6.3f\t%6.3f\n",
           Ep, p->estLen, a, beg, end,
-          Gp, p->genLo + p->exons[a].genFrom - 1, p->genLo + p->exons[b].genTo,
+          Gp, p->exons[a].genFrom - 1, p->exons[b].genTo,
           ident, cover);
 }
 

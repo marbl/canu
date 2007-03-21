@@ -28,6 +28,7 @@ int EPS_N       = EPS_N_ESTS;
 int doValidate  = 0;
 
 
+static
 void
 printPolishValidate(FILE *O, sim4polish *p, int isBest) {
   int i;
@@ -35,7 +36,10 @@ printPolishValidate(FILE *O, sim4polish *p, int isBest) {
   fprintf(O, u32bitFMTW(8)" "u32bitFMTW(8)" "u32bitFMTW(4)" "u32bitFMTW(4), p->estID, p->genID, p->percentIdentity, p->numMatches);
 
   for (i=0; i<p->numExons; i++)
-    fprintf(O, " ("u32bitFMTW(6)"/"u32bitFMTW(6)" "u32bitFMTW(6)"/"u32bitFMTW(6)" "u32bitFMTW(3)")", p->exons[i].estFrom, p->genLo + p->exons[i].genFrom, p->exons[i].estTo, p->genLo + p->exons[i].genTo, p->exons[i].percentIdentity);
+    fprintf(O, " ("u32bitFMTW(6)"/"u32bitFMTW(6)" "u32bitFMTW(6)"/"u32bitFMTW(6)" "u32bitFMTW(3)")",
+            p->exons[i].estFrom, p->exons[i].genFrom,
+            p->exons[i].estTo,   p->exons[i].genTo,
+            p->exons[i].percentIdentity);
 
   if (isBest)
     fprintf(O, " *");
@@ -44,6 +48,7 @@ printPolishValidate(FILE *O, sim4polish *p, int isBest) {
 }
 
 
+static
 void
 pickBestSlave(sim4polish **p, int pNum) {
   int           i = 0;
@@ -349,6 +354,7 @@ pickBestSlave(sim4polish **p, int pNum) {
 //  Just a wrapper around the real best picker, so that we can easily
 //  destroy polishes when we're done.
 //
+static
 void
 pickBest(sim4polish **p, int pNum) {
   int i;

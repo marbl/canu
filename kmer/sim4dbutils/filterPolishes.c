@@ -137,8 +137,6 @@ main(int argc, char ** argv) {
       printOpts |= S4P_PRINTPOLISH_NODEFS;
     } else if (strncmp(argv[arg], "-noalignments", 4) == 0) {
       printOpts |= S4P_PRINTPOLISH_NOALIGNS;
-    } else if (strncmp(argv[arg], "-normalized", 4) == 0) {
-      printOpts |= S4P_PRINTPOLISH_NORMALIZED;
     } else {
       fprintf(stderr, "UNKNOWN option '%s'\n", argv[arg]);
       exit(1);

@@ -25,8 +25,8 @@ s4p_estIDcompare(const void *a, const void *b) {
   if (A->estID > B->estID) return(1);
   if (A->genID < B->genID) return(-1);
   if (A->genID > B->genID) return(1);
-  if (A->genLo + A->exons[0].genFrom < B->genLo + B->exons[0].genFrom) return(-1);
-  if (A->genLo + A->exons[0].genFrom > B->genLo + B->exons[0].genFrom) return(1);
+  if (A->exons[0].genFrom < B->exons[0].genFrom) return(-1);
+  if (A->exons[0].genFrom > B->exons[0].genFrom) return(1);
 
   return(0);
 }
@@ -43,8 +43,8 @@ s4p_genIDcompare(const void *a, const void *b) {
 
   if (A->genID < B->genID) return(-1);
   if (A->genID > B->genID) return(1);
-  if (A->genLo + A->exons[0].genFrom < B->genLo + B->exons[0].genFrom) return(-1);
-  if (A->genLo + A->exons[0].genFrom > B->genLo + B->exons[0].genFrom) return(1);
+  if (A->exons[0].genFrom < B->exons[0].genFrom) return(-1);
+  if (A->exons[0].genFrom > B->exons[0].genFrom) return(1);
   if (A->estID < B->estID) return(-1);
   if (A->estID > B->estID) return(1);
 
@@ -74,8 +74,6 @@ s4p_estDEFcompare(const void *a, const void *b) {
   if (e < 0) return(-1);
   if (e > 0) return(1);
 
-  if (A->genLo < B->genLo) return(-1);
-  if (A->genLo > B->genLo) return(1);
   if (A->exons[0].genFrom < B->exons[0].genFrom) return(-1);
   if (A->exons[0].genFrom > B->exons[0].genFrom) return(1);
 
@@ -105,8 +103,6 @@ s4p_genDEFcompare(const void *a, const void *b) {
   if (e < 0) return(-1);
   if (e > 0) return(1);
 
-  if (A->genLo < B->genLo) return(-1);
-  if (A->genLo > B->genLo) return(1);
   if (A->exons[0].genFrom < B->exons[0].genFrom) return(-1);
   if (A->exons[0].genFrom > B->exons[0].genFrom) return(1);
 
@@ -145,13 +141,13 @@ s4p_IsSameRegion(sim4polish *A, sim4polish *B, int tolerance) {
   int Dlo=0, Dhi=0;
 
   if (A->numExons > 0) {
-    Alo = A->genLo + A->exons[0].genFrom;
-    Ahi = A->genLo + A->exons[A->numExons-1].genTo;
+    Alo = A->exons[0].genFrom;
+    Ahi = A->exons[A->numExons-1].genTo;
   }
 
   if (B->numExons > 0) {
-    Blo = B->genLo + B->exons[0].genFrom;
-    Bhi = B->genLo + B->exons[B->numExons-1].genTo;
+    Blo = B->exons[0].genFrom;
+    Bhi = B->exons[B->numExons-1].genTo;
   }
 
   Dlo = Blo - Alo;
@@ -176,13 +172,13 @@ s4p_IsRegionOverlap(sim4polish *A, sim4polish *B) {
     return(0);
 
   if (A->numExons > 0) {
-    Alo = A->genLo + A->exons[0].genFrom;
-    Ahi = A->genLo + A->exons[A->numExons-1].genTo;
+    Alo = A->exons[0].genFrom;
+    Ahi = A->exons[A->numExons-1].genTo;
   }
 
   if (B->numExons > 0) {
-    Blo = B->genLo + B->exons[0].genFrom;
-    Bhi = B->genLo + B->exons[B->numExons-1].genTo;
+    Blo = B->exons[0].genFrom;
+    Bhi = B->exons[B->numExons-1].genTo;
   }
 
   if (((Alo <= Blo) && (Blo <= Ahi)) ||
@@ -207,11 +203,11 @@ s4p_IsSameExonModel(sim4polish *A, sim4polish *B, int tolerance) {
     return(0);
 
   for (i=0; i<A->numExons; i++) {
-    Alo = A->genLo + A->exons[i].genFrom;
-    Ahi = A->genLo + A->exons[i].genTo;
+    Alo = A->exons[i].genFrom;
+    Ahi = A->exons[i].genTo;
 
-    Blo = B->genLo + B->exons[i].genFrom;
-    Bhi = B->genLo + B->exons[i].genTo;
+    Blo = B->exons[i].genFrom;
+    Bhi = B->exons[i].genTo;
 
     Dlo = Blo - Alo;
     Dhi = Bhi - Ahi;
@@ -262,10 +258,10 @@ s4p_compareExons_Overlap(sim4polish *A,
   //
   for (i=0; i<A->numExons; i++) {
     for (j=0; j<B->numExons; j++) {
-      al = A->genLo + A->exons[i].genFrom;
-      ah = A->genLo + A->exons[i].genTo;
-      bl = B->genLo + B->exons[j].genFrom;
-      bh = B->genLo + B->exons[j].genTo;
+      al = A->exons[i].genFrom;
+      ah = A->exons[i].genTo;
+      bl = B->exons[j].genFrom;
+      bh = B->exons[j].genTo;
 
       overlap = 0;
 
@@ -378,8 +374,8 @@ s4p_compareExons_Ends(sim4polish *A,
   //
   for (i=0; i<A->numExons; i++) {
     for (j=0; j<B->numExons; j++) {
-      Dlo = (int)(B->genLo + B->exons[j].genFrom) - (int)(A->genLo + A->exons[i].genFrom);
-      Dhi = (int)(B->genLo + B->exons[j].genTo)   - (int)(A->genLo + A->exons[i].genTo);
+      Dlo = (int)(B->exons[j].genFrom) - (int)(A->exons[i].genFrom);
+      Dhi = (int)(B->exons[j].genTo)   - (int)(A->exons[i].genTo);
 
       if ((Dlo > -tolerance) && (Dlo < tolerance) &&
           (Dhi > -tolerance) && (Dhi < tolerance)) {

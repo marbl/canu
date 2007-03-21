@@ -51,8 +51,8 @@ typedef struct {
   u32bit           estPolyT;
 
   u32bit           genID;
-  u32bit           genLo;
-  u32bit           genHi;
+  u32bit           genRangeBeg;
+  u32bit           genRangeEnd;
 
   u32bit           numMatches;
   u32bit           numMatchesN;
@@ -115,22 +115,18 @@ double         s4p_percentCoverageExact(sim4polish *p);
 
 //  We allow the polish to be printed in different ways:
 //
-//  Normalized to the start of the genomic sequence (gets rid of the
-//  "region"), with/without deflines and alignments
-//
 //  WARNING:  A flags value of zero MUST ALWAYS mean print the whole
 //  polish.
 //
 #define S4P_PRINTPOLISH_FULL         0x0000
-#define S4P_PRINTPOLISH_NORMALIZED   0x0001
-#define S4P_PRINTPOLISH_NOALIGNS     0x0002
-#define S4P_PRINTPOLISH_NODEFS       0x0004
+#define S4P_PRINTPOLISH_NOALIGNS     0x0001
+#define S4P_PRINTPOLISH_NODEFS       0x0002
 
 #define S4P_PRINTPOLISH_MINIMAL     (S4P_PRINTPOLISH_NOALIGNS | S4P_PRINTPOLISH_NODEFS)
 
 //  The polish is not valuable, and the print routine is allowed to
-//  modify it.  If this is not set, and you use NORMALIZED, NOALIGNS
-//  or NODEFS, a copy of the polish is made at some non-zero expense.
+//  modify it.  If this is not set, and you use NOALIGNS or NODEFS, a
+//  copy of the polish is made at some non-zero expense.
 //
 #define S4P_PRINTPOLISH_NOTVALUABLE  0x8000
 
@@ -150,8 +146,6 @@ void           s4p_insertExons(sim4polish     *p,
 
 sim4polish    *s4p_stringToPolish(char *s);
 char          *s4p_polishToString(sim4polish *p);
-
-void           s4p_normalize(sim4polish *p);
 
 int            s4p_compatable(sim4polish *A, sim4polish *B);
 int            s4p_IsSameRegion(sim4polish *A, sim4polish *B, int tolerance);

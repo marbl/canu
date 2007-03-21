@@ -31,8 +31,8 @@ main(int argc, char **argv) {
     sim4polish *p = s4p_readPolish(stdin);
 
     if (p != 0L) {
-      u32bit  beg = p->genLo + p->exons[0].genFrom - 1;
-      u32bit  end = p->genLo + p->exons[p->numExons-1].genTo;
+      u32bit  beg = p->exons[0].genFrom - 1;
+      u32bit  end = p->exons[p->numExons-1].genTo;
 
       if (end > genomeLength)
         genomeLength = end;

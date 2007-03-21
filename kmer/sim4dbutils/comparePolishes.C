@@ -173,7 +173,7 @@ main(int argc, char **argv) {
         novelInA++;
 
         if (fanovel)
-          s4p_printPolish(fanovel, (*A)[a], S4P_PRINTPOLISH_NORMALIZED);
+          s4p_printPolish(fanovel, (*A)[a], 0);
       }
     }
 
@@ -189,7 +189,7 @@ main(int argc, char **argv) {
         novelInB++;
 
         if (fbnovel)
-          s4p_printPolish(fbnovel, (*B)[b], S4P_PRINTPOLISH_NORMALIZED);
+          s4p_printPolish(fbnovel, (*B)[b], 0);
       }
     }    
 
@@ -300,9 +300,9 @@ main(int argc, char **argv) {
                   BgenLen, (*B)[b]->numExons, Bgaps);
                   
           if (fasame)
-            s4p_printPolish(fasame, (*A)[a], S4P_PRINTPOLISH_NORMALIZED);
+            s4p_printPolish(fasame, (*A)[a], 0);
           if (fbsame)
-            s4p_printPolish(fbsame, (*B)[b], S4P_PRINTPOLISH_NORMALIZED);
+            s4p_printPolish(fbsame, (*B)[b], 0);
         }
       }
     }
@@ -406,30 +406,30 @@ main(int argc, char **argv) {
         fprintf(fhairy, "EST="u32bitFMT" "u32bitFMT" "u32bitFMT"\n", (*A)[0]->estID, inA, inB);
         for (u32bit a=0; a<A->length(); a++)
           if (removeA[a])
-            s4p_printPolish(fhairy, (*A)[a], S4P_PRINTPOLISH_NORMALIZED);
+            s4p_printPolish(fhairy, (*A)[a], 0);
         for (u32bit b=0; b<B->length(); b++)
           if (removeB[b])
-            s4p_printPolish(fhairy, (*B)[b], S4P_PRINTPOLISH_NORMALIZED);
+            s4p_printPolish(fhairy, (*B)[b], 0);
       } else if ((inA == 1) && (inB  > 1)) {
         multipleInB++;
 
         fprintf(fbmulti, "EST="u32bitFMT" "u32bitFMT" "u32bitFMT"\n", (*A)[0]->estID, inA, inB);
         for (u32bit a=0; a<A->length(); a++)
           if (removeA[a])
-            s4p_printPolish(fbmulti, (*A)[a], S4P_PRINTPOLISH_NORMALIZED);
+            s4p_printPolish(fbmulti, (*A)[a], 0);
         for (u32bit b=0; b<B->length(); b++)
           if (removeB[b])
-            s4p_printPolish(fbmulti, (*B)[b], S4P_PRINTPOLISH_NORMALIZED);
+            s4p_printPolish(fbmulti, (*B)[b], 0);
       } else if ((inA  > 1) && (inB == 1)) {
         multipleInA++;
 
         fprintf(famulti, "EST="u32bitFMT" "u32bitFMT" "u32bitFMT"\n", (*A)[0]->estID, inA, inB);
         for (u32bit a=0; a<A->length(); a++)
           if (removeA[a])
-            s4p_printPolish(famulti, (*A)[a], S4P_PRINTPOLISH_NORMALIZED);
+            s4p_printPolish(famulti, (*A)[a], 0);
         for (u32bit b=0; b<B->length(); b++)
           if (removeB[b])
-            s4p_printPolish(famulti, (*B)[b], S4P_PRINTPOLISH_NORMALIZED);
+            s4p_printPolish(famulti, (*B)[b], 0);
       } else {
         fprintf(stderr, "ERROR!  inA="u32bitFMT" inB="u32bitFMT"\n", inA, inB);
       }

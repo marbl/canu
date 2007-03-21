@@ -253,8 +253,8 @@ sim4polishFile::buildIndex(void) {
         _polishRecord[_polishRecordLen]._fileposition = fp;
         _polishRecord[_polishRecordLen]._ESTiid = p->estID;
         _polishRecord[_polishRecordLen]._GENiid = p->genID;
-        _polishRecord[_polishRecordLen]._GENlo  = p->genLo + p->exons[0].genFrom;
-        _polishRecord[_polishRecordLen]._GENhi  = p->genLo + p->exons[p->numExons-1].genTo;
+        _polishRecord[_polishRecordLen]._GENlo  = p->exons[0].genFrom;
+        _polishRecord[_polishRecordLen]._GENhi  = p->exons[p->numExons-1].genTo;
         _polishRecordLen++;
       }
 

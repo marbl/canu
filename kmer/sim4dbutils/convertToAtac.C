@@ -196,11 +196,9 @@ main(int argc, char **argv) {
 
           e->estFrom += qSeqBeg;
           e->estTo   += qSeqBeg;
-          e->genFrom += gSeqBeg + p->genLo;
-          e->genTo   += gSeqBeg + p->genLo;
+          e->genFrom += gSeqBeg;
+          e->genTo   += gSeqBeg;
         }
-
-        p->genLo = 0;
       } else {
         //  Reverse is not easy.  Need to reverse complement the query positions.
 
@@ -215,11 +213,9 @@ main(int argc, char **argv) {
           //  Now we can just offset stuff.
           e->estFrom  = qSeqBeg + t;  //  Really the end!
           e->estTo    = qSeqBeg + f;  //  Really the begin!
-          e->genFrom += gSeqBeg + p->genLo;
-          e->genTo   += gSeqBeg + p->genLo;
+          e->genFrom += gSeqBeg;
+          e->genTo   += gSeqBeg;
         }
-
-        p->genLo = 0;
       }
 
 
