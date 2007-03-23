@@ -49,8 +49,8 @@ extern "C" {
 //  openIndex() should cache the sequence lengths (and header lengths?)
 //
 //  About IIDs: gkpStore starts IIDs at 1, while kmer starts at 0.
-//  The _iid in gkpStoreSequence is a gkpStore IID, but externally to
-//  gkpStoreSequence, we need this to be a kmer IID.
+//  The _iid in gkpStoreSequence is a gkpStore IID.  All external iid
+//  references, e.g., find(iid), should be kmer IIDs.
 
 class gkpStoreSequence : public FastABase {
 public:
@@ -84,7 +84,7 @@ public:
   };
 
   u32bit       getNumberOfSequences(void) {
-    return(getLastElemFragStore(_gkp) + 1);
+    return(getLastElemFragStore(_gkp));
   };
 
   char const  *getSourceName(void) {
@@ -100,8 +100,7 @@ public:
   bool         isSqueezed(void)     { return(true); };
 
 private:
-  void               getSequence(uint32 iid,
-                                 uint32 &hLen, char *&h,
+  bool               getSequence(uint32 &hLen, char *&h,
                                  uint32 &sLen, char *&s);
 
   GateKeeperStore  *_gkp;

@@ -60,15 +60,13 @@ gkpStoreSequence::~gkpStoreSequence() {
 }
 
 
-void
-gkpStoreSequence::getSequence(uint32 iid,
-                              uint32 &hLen, char *&h,
+bool
+gkpStoreSequence::getSequence(uint32 &hLen, char *&h,
                               uint32 &sLen, char *&s) {
 
-  _iid = iid + 1;
-
   if (_iid != getFragRecordIID(_frg))
-    find(_iid - 1);
+    if (find(_iid - 1) == false)
+      return(false);
 
   h    = new char [65];
   sprintf(h, F_UID","F_IID,
@@ -83,6 +81,8 @@ gkpStoreSequence::getSequence(uint32 iid,
     strncpy(s, getFragRecordSequence(_frg) + getFragRecordClearRegionBegin(_frg, _clr), sLen);
 
   s[sLen] = 0;
+
+  return(true);
 }
 
 
@@ -91,7 +91,8 @@ gkpStoreSequence::getSequence(void) {
   char   *h = NULL, *s = NULL;
   uint32  hLen=0,    sLen=0;
 
-  getSequence(_iid, hLen, h, sLen, s);
+  if (getSequence(hLen, h, sLen, s) == false)
+    return(0L);
 
   return(new FastASequenceInCore(_iid++ - 1, h, hLen, s, sLen));
 }
@@ -102,7 +103,8 @@ gkpStoreSequence::getSequenceOnDisk(void) {
   char   *h = NULL, *s = NULL;
   uint32  hLen=0,    sLen=0;
 
-  getSequence(_iid, hLen, h, sLen, s);
+  if (getSequence(hLen, h, sLen, s) == 0L)
+    return(0L);
 
   return(new FastASequenceOnDisk(_iid++ - 1, h, hLen, s, sLen));
 }
