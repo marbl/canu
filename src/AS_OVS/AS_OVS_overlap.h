@@ -52,7 +52,8 @@
 typedef union {
   uint64   dat;
   struct {
-    uint64  datpad:13;
+    uint64  datpad:5;
+    uint64  seed_value:8;
     uint64  flipped:1;
     int64   a_hang:AS_OVS_HNGBITS;
     int64   b_hang:AS_OVS_HNGBITS;
@@ -60,6 +61,17 @@ typedef union {
     uint64  corr_erate:AS_OVS_ERRBITS;
     uint64  type:2;
   } ovl;
+  struct {
+    uint64  datpad:19;
+    uint64  compression_length:3;
+    uint64  fwd:1;
+    uint64  palindrome:1;
+    uint64  a_pos:AS_OVS_POSBITS;
+    uint64  b_pos:AS_OVS_POSBITS;
+    uint64  k_count:8;
+    uint64  k_len:8;
+    uint64  type:2;
+  } mer;
   struct {
     uint64  datpad:5;
     uint64  fwd:1;
@@ -70,16 +82,6 @@ typedef union {
     uint64  erate:AS_OVS_ERRBITS;
     uint64  type:2;
   } obt;
-  struct {
-    uint64  datpad:20;
-    uint64  fwd:1;
-    uint64  palindrome:1;
-    uint64  a_pos:AS_OVS_POSBITS;
-    uint64  b_pos:AS_OVS_POSBITS;
-    uint64  k_count:10;
-    uint64  k_len:8;
-    uint64  type:2;
-  } mer;
 } OVSoverlapDAT;
 
 typedef struct {
