@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.24 2007-03-13 22:38:49 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.25 2007-03-23 04:51:08 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -155,6 +155,7 @@ usage(char *filename) {
   fprintf(stderr, "  -L                     print the last IID in the store\n");
   fprintf(stderr, "  -C                     like what dumpFragStore used to make\n");
   fprintf(stderr, "  -F                     as (trimmed) fasta\n");
+  fprintf(stderr, "  -Fq                    as (trimmed) fasta, but quality values, not sequence\n");
   fprintf(stderr, "  -X                     as XML-like\n");
   fprintf(stderr, "  -ofg                   as OFG (special for unitigger)\n");
   fprintf(stderr, "  -frg                   as FRG\n");
@@ -207,7 +208,7 @@ main(int argc, char **argv) {
   int              dumpFastaAllReads = 0;
   int              dumpFastaAllBases = 0;
   int              dumpFastaClear    = AS_READ_CLEAR_LATEST;
-
+  int              dumpFastaQuality  = 0;
 
   int arg = 1;
   int err = 0;
@@ -237,6 +238,9 @@ main(int argc, char **argv) {
       dump = DUMP_COMPAT;
     } else if (strcmp(argv[arg], "-F") == 0) {
       dump = DUMP_FASTA;
+    } else if (strcmp(argv[arg], "-Fq") == 0) {
+      dump = DUMP_FASTA;
+      dumpFastaQuality = 1;
     } else if (strcmp(argv[arg], "-G") == 0) {
       assembler = AS_ASSEMBLER_GRANDE;
     } else if (strcmp(argv[arg], "-T") == 0) {
@@ -324,7 +328,11 @@ main(int argc, char **argv) {
     exit(0);
   }
   if (dump == DUMP_FASTA) {
-    dumpGateKeeperAsFasta(gkpStoreName, begIID, endIID, dumpFastaAllReads, dumpFastaAllBases, dumpFastaClear);
+    dumpGateKeeperAsFasta(gkpStoreName, begIID, endIID,
+                          dumpFastaAllReads,
+                          dumpFastaAllBases,
+                          dumpFastaClear,
+                          dumpFastaQuality);
     exit(0);
   }
   if (dump == DUMP_XML) {

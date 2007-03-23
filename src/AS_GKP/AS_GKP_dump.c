@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_dump.c,v 1.6 2007-03-05 23:42:11 brianwalenz Exp $ */
+/* $Id: AS_GKP_dump.c,v 1.7 2007-03-23 04:51:08 brianwalenz Exp $ */
 
 #include "AS_GKP_include.h"
 
@@ -38,7 +38,8 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
                       CDS_IID_t   endIID,
                       int         dumpFastaAllReads,
                       int         dumpFastaAllBases,
-                      int         dumpFastaClear) {
+                      int         dumpFastaClear,
+                      int         dumpFastaQuality) {
   fragRecord       *fr = new_fragRecord();
   unsigned int      firstElem = 0;
   unsigned int      lastElem = 0;
@@ -86,14 +87,7 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
                 libUID,  libIID,
                 deleted,
                 clrBeg, clrEnd,
-                seq);
-        fprintf(stdout, ">"F_UID","F_IID" mate="F_UID","F_IID" lib="F_UID","F_IID" deleted=%d clrBeg="F_U32" clrEnd="F_U32"\n%s\n",
-                readUID, readIID,
-                mateUID, mateIID,
-                libUID,  libIID,
-                deleted,
-                clrBeg, clrEnd,
-                qlt);
+                (dumpFastaQuality) ? qlt : seq);
       } else {
         seq[clrEnd] = 0;
         fprintf(stdout, ">"F_UID","F_IID" mate="F_UID","F_IID" lib="F_UID","F_IID" deleted=%d\n%s\n",
@@ -101,13 +95,7 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
                 mateUID, mateIID,
                 libUID,  libIID,
                 deleted,
-                seq + clrBeg);
-        fprintf(stdout, ">"F_UID","F_IID" mate="F_UID","F_IID" lib="F_UID","F_IID" deleted=%d\n%s\n",
-                readUID, readIID,
-                mateUID, mateIID,
-                libUID,  libIID,
-                deleted,
-                qlt + clrBeg);
+                ((dumpFastaQuality) ? qlt : seq) + clrBeg);
       }
     }
   }
