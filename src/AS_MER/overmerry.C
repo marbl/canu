@@ -25,6 +25,7 @@
 extern "C" {
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
+#include "AS_OVS_overlapStore.h"
 }
 
 #include "AS_MER_gkpStore_to_FastABase.H"
@@ -32,25 +33,18 @@ extern "C" {
 #include "bio++.H"
 #include "positionDB.H"
 
-//  The real overlap size:
-//  26 - Aiid
-//  26 - Biid
-//  11 - Apos
-//  11 - Bpos
-//  10 - k count
-//   8 - k size
-//   1 - orientation
-//   1 - palindrome
-//  94 bits, 34 remain
 
-
-//  The internal overlap
+//  Instead of using The internal overlap, which has enough extra
+//  stuff in it that we cannot store a sequence iid for the table
+//  sequence, we need to make our own overlap structure.
+//
 struct kmerhit {
-  u64bit   tseq:31;  //  sequence in the table
-  u64bit   tpos:11;  //  position in that sequence
-  u64bit   qpos:11;  //  position in the query sequence
-  u64bit   cnt:10;   //  count of the kmer
-  u64bit   ori:1;   //  orientation ; 0 = forward, 1 = reverse
+  u64bit   tseq:30;              //  sequence in the table
+  u64bit   tpos:AS_OVS_POSBITS;  //  position in that sequence
+  u64bit   qpos:AS_OVS_POSBITS;  //  position in the query sequence
+  u64bit   cnt:8;                //  count of the kmer
+  u64bit   pal:1;                //  palindromic ; 0 = nope,    1 = yup
+  u64bit   fwd:1;                //  orientation ; 0 = reverse, 1 = forward
 };
 
 
@@ -71,7 +65,8 @@ u64bit
 addHit(chainedSequence *CS, FastASequenceInCore *S, merStream *M,
        kmerhit *&hits, u32bit &hitsLen, u32bit &hitsMax,
        u64bit pos, u64bit cnt,
-       u64bit ori) {
+       u64bit pal,
+       u64bit fwd) {
   u32bit  seq = CS->sequenceNumberOfPosition(pos);
 
   pos -= CS->startOf(seq);
@@ -85,7 +80,8 @@ addHit(chainedSequence *CS, FastASequenceInCore *S, merStream *M,
     hits[hitsLen].tpos = pos;
     hits[hitsLen].qpos = M->thePositionInSequence();
     hits[hitsLen].cnt  = cnt;
-    hits[hitsLen].ori  = ori;
+    hits[hitsLen].pal  = pal;
+    hits[hitsLen].fwd  = fwd;
     hitsLen++;
 
     return(1);
@@ -98,6 +94,8 @@ int
 main(int argc, char **argv) {
   char   *gkpName  = 0L;
   u32bit  merSize  = 23;
+
+  assert(sizeof(kmerhit) == 8);
 
   int arg=1;
   int err=0;
@@ -120,6 +118,24 @@ main(int argc, char **argv) {
 
   FastABase *gkp = new gkpStoreSequence(gkpName, AS_READ_CLEAR_OBTINI);
 
+#if 0
+  u32bit i;
+  FastASequenceOnDisk *s;
+
+  i=0;
+  gkp->find(i);
+  s = gkp->getSequenceOnDisk();
+  fprintf(stderr, "'%s'\n", s->sequence());
+
+  i=1;
+  gkp->find(i);
+  s = gkp->getSequenceOnDisk();
+  fprintf(stderr, "'%s'\n", s->sequence());
+
+  assert(0);
+#endif
+
+
   chainedSequence *CS = new chainedSequence;
   CS->setSource(gkp);
   CS->finish();
@@ -128,9 +144,7 @@ main(int argc, char **argv) {
   positionDB   *PS = new positionDB(MS, merSize, 0, 26, 0L, 0L, 100, true);
 
   //  XXXXX: Are we DONE with the MS and CS and gkp here?  Does
-  //  positionDB need those still?
-
-  fprintf(stderr, "Go!\n");
+  //  positionDB need those still?  We need the CS below to decode positions.
 
   u64bit  *posn    = 0L;
   u64bit   posnMax = 0;
@@ -139,6 +153,8 @@ main(int argc, char **argv) {
   FastABase            *F = new gkpStoreSequence(gkpName, AS_READ_CLEAR_OBTINI);
   FastASequenceInCore  *S = F->getSequence();
 
+  //  XXXXX:  need to get the clear range begin and end so we can offset properly.
+
   u64bit  merfound = 0;
   u64bit  ovlfound = 0;
 
@@ -146,18 +162,33 @@ main(int argc, char **argv) {
   u32bit     hitsMax = 1048576;
   kmerhit   *hits    = new kmerhit [hitsMax];
 
+  fprintf(stderr, "Go!\n");
+
+#ifdef BINARYOUTPUY
+  BinaryOverlapFile *binout = AS_OVS_createBinaryOverlapFile("-", FALSE);
+  OVSoverlap         overlap;
+#endif
+
   while (S) {
+    fprintf(stdout, "%s\n", S->header());
+
     merStream  *M = new merStream(merSize, S->sequence(), S->sequenceLength());
 
     hitsLen = 0;
 
     while (M->nextMer()) {
-      if ((PS->get(M->theFMer(), posn, posnMax, posnLen)) && (posnLen > 1))
-        for (u32bit i=0; i<posnLen; i++)
-          merfound += addHit(CS, S, M, hits, hitsLen, hitsMax, posn[i], posnLen, 0);
-      if ((PS->get(M->theRMer(), posn, posnMax, posnLen)) && (posnLen > 1))
-        for (u32bit i=0; i<posnLen; i++)
-          merfound += addHit(CS, S, M, hits, hitsLen, hitsMax, posn[i], posnLen, 1);
+      if (M->theFMer() == M->theRMer()) {
+        if ((PS->get(M->theFMer(), posn, posnMax, posnLen)) && (posnLen > 1))
+          for (u32bit i=0; i<posnLen; i++)
+            merfound += addHit(CS, S, M, hits, hitsLen, hitsMax, posn[i], posnLen, 1, 0);
+      } else {
+        if ((PS->get(M->theFMer(), posn, posnMax, posnLen)) && (posnLen > 1))
+          for (u32bit i=0; i<posnLen; i++)
+            merfound += addHit(CS, S, M, hits, hitsLen, hitsMax, posn[i], posnLen, 0, 1);
+        if ((PS->get(M->theRMer(), posn, posnMax, posnLen)) && (posnLen > 1))
+          for (u32bit i=0; i<posnLen; i++)
+            merfound += addHit(CS, S, M, hits, hitsLen, hitsMax, posn[i], posnLen, 0, 0);
+      }
     }
 
     //  We have all the hits for this frag.  Sort them by sequence
@@ -168,18 +199,58 @@ main(int argc, char **argv) {
 
     u32bit  lowest = 0;
 
-    for (u32bit i=0; i<hitsLen; i++) {
-      if ((hits[lowest].tseq != hits[i].tseq) ||
-          (i+1 == hitsLen)) {
+    for (u32bit i=0; i<=hitsLen; i++) {
+
+      //  Debug, I guess.  Generates lots of output, since frags with
+      //  big identical overlaps will have lots and lots of mers in
+      //  common.
+      //
+#if 0
+      if (i != hitsLen) {
+        fprintf(stdout, u32bitFMT"\t"u64bitFMT"\t"u32bitFMT"\t"u64bitFMT"\t%c\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\tTAG\n",
+                S->getIID(), hits[i].qpos,
+                hits[i].tseq, hits[i].tpos,
+                hits[i].pal ? 'p' : (hits[i].fwd ? 'f' : 'r'),
+                0,
+                hits[i].cnt,
+                merSize);
+      }
+#endif
+
+      if ((i == hitsLen) || (hits[lowest].tseq != hits[i].tseq)) {
+
+        //  We either found a different sequence than the one we were
+        //  looking at, or we've gone past the end.
+
         ovlfound++;
 
-#if 0
-        fprintf(stdout, "seq="u32bitFMT" pos="u64bitFMT" to seq="u64bitFMT" pos="u64bitFMT" count="u64bitFMT" ori=%c\n",
-                S->getIID(),
-                hits[lowest].qpos,
+        if (hits[lowest].fwd == 0)
+          hits[lowest].qpos = S->sequenceLength() - hits[lowest].qpos;
+
+        //  Output IID1, pos1, IID2, pos2, orient/palindrome, compressionLength, count, kmersize
+
+#ifdef BINARYOUTPUT
+        overlap.a_iid              = hits[lowest].tseq;
+        overlap.b_iid              = S->getIID();
+        overlap.datpad             = 0;
+        overlap.compression_length = 0;
+        overlap.fwd                = hits[lowest].fwd;
+        overlap.palindrome         = hits[lowest].pal;
+        overlap.a_pos              = hits[lowest].tpos;
+        overlap.b_pos              = hits[lowest].qpos;
+        overlap.k_count            = hits[lowest].cnt;
+        overlap.k_len              = merSize;
+        overlap.type               = AS_OVS_TYPE_MER;
+        
+        AS_OVS_writeOverlap(binout, &overlap);
+#else
+        fprintf(stdout, u32bitFMT"\t"u64bitFMT"\t"u32bitFMT"\t"u64bitFMT"\t%c\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\n",
                 hits[lowest].tseq, hits[lowest].tpos,
+                S->getIID(), hits[lowest].qpos,
+                hits[lowest].pal ? 'p' : (hits[lowest].fwd ? 'f' : 'r'),
+                0,
                 hits[lowest].cnt,
-                hits[lowest].ori ? 'r' : 'f');
+                merSize);
 #endif
 
         lowest = i;
@@ -196,6 +267,10 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "Found "u64bitFMT" mer hits.\n", merfound);
   fprintf(stderr, "Found "u64bitFMT" overlaps.\n", ovlfound);
+
+#ifdef BINARYOUTPUT
+  AS_OVS_closeBinaryOverlapFile(binout);
+#endif
 
   delete PS;
   delete MS;
