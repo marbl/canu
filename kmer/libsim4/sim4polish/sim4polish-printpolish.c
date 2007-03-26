@@ -71,7 +71,7 @@ s4p_printPolish(FILE *O, sim4polish *o, u32bit flags) {
 
   fprintf(O, ""u32bitFMT"["u32bitFMT"-"u32bitFMT"-"u32bitFMT"] "u32bitFMT"["u32bitFMT"-"u32bitFMT"] <"u32bitFMT"-"u32bitFMT"-"u32bitFMT"-%s-%s>\n",
           p->estID, p->estLen, p->estPolyA, p->estPolyT,
-          p->genID, p->genRangeBeg, p->genRangeEnd,
+          p->genID, p->genRegionOffset, p->genRegionLength,
           p->numMatches, p->numMatchesN, p->percentIdentity, mOri, sOri);
 
   if (p->comment)

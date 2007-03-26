@@ -51,8 +51,8 @@ typedef struct {
   u32bit           estPolyT;
 
   u32bit           genID;
-  u32bit           genRangeBeg;
-  u32bit           genRangeEnd;
+  u32bit           genRegionOffset;
+  u32bit           genRegionLength;
 
   u32bit           numMatches;
   u32bit           numMatchesN;

@@ -73,7 +73,7 @@ s4p_polishToString(sim4polish *p) {
 
   sprintf(outc, "sim4begin\n"u32bitFMT"["u32bitFMT"-"u32bitFMT"-"u32bitFMT"] "u32bitFMT"["u32bitFMT"-"u32bitFMT"] <"u32bitFMT"-"u32bitFMT"-"u32bitFMT"-%s-%s>\n",
           p->estID, p->estLen, p->estPolyA, p->estPolyT,
-          p->genID, p->genRangeBeg, p->genRangeEnd,
+          p->genID, p->genRegionOffset, p->genRegionLength,
           p->numMatches, p->numMatchesN, p->percentIdentity, mOri, sOri);
   while (*outc)  outc++;
 

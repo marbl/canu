@@ -3,9 +3,9 @@
 \f3\fmodern\fcharset77 CourierNewPSMT;\f4\fmodern\fcharset77 Courier;\f5\fnil\fcharset77 Verdana;
 \f6\fnil\fcharset77 Verdana-Italic;}
 {\colortbl;\red255\green255\blue255;}
-\vieww20300\viewh19080\viewkind1\viewscale200
+\vieww21500\viewh19820\viewkind1\viewscale128
 \deftab720
-\pard\pardeftab720
+\pard\pardeftab720\ql\qnatural
 
 \f0\b\fs22 \cf0 ESTmapper Documentation v1.0\
 
@@ -22,10 +22,10 @@ I. What is ESTmapper?\
 
 \f0\b II. How does ESTmapper work?\
 \
-\pard\pardeftab720\sb60\sa60
+\pard\pardeftab720\sb60\sa60\ql\qnatural
 
 \f1\b0 \cf0 For each cDNA in the input set, ESTmapper detects one or several occurrences of the cDNA in the target genome. ESTmapper uses a three-stage process to locate a cDNA sequence in the genome:\
-\pard\pardeftab720\li900\fi-900\sb120\sa60
+\pard\pardeftab720\li900\fi-900\sb120\sa60\ql\qnatural
 
 \f0\b \cf0 Stage 0:
 \f1\b0  
@@ -38,7 +38,7 @@ I. What is ESTmapper?\
 \f1\i0  \'d0 uses an efficient sequence similarity search to identify regions on the genome potentially containing the cDNA (
 \f2\i signals
 \f1\i0 );\
-\pard\pardeftab720\li900\fi-900\sb60\sa60
+\pard\pardeftab720\li900\fi-900\sb60\sa60\ql\qnatural
 
 \f0\b \cf0 Stage 2:
 \f1\b0  
@@ -49,7 +49,7 @@ I. What is ESTmapper?\
 \f1\b0  
 \f2\i Signal polishing
 \f1\i0  \'d0 generates a spliced alignment between the cDNA and each of the genomic regions selected earlier.\
-\pard\pardeftab720
+\pard\pardeftab720\ql\qnatural
 \cf0 \
 \
 
@@ -59,7 +59,7 @@ I. What is ESTmapper?\
 \f1\b0 The first step is to pre-process the genomic sequences, using the configureESTmapper.pl program.\
 \
 There are two required parameters:\
-\pard\pardeftab720\li3600\fi-3600
+\pard\pardeftab720\li3600\fi-3600\ql\qnatural
 \cf0 	-genome g.fasta		the genome to map to\
 	-genomedir genome-directory	the directory to save the configuration in\
 \
@@ -71,7 +71,7 @@ And numerous optional parameters:\
 	-sge				compute the configuration on the grid; args are passed to qsub\
 	-sgename			sge job name (default 'EMconfig')\
 	-local				compute the configuration right now (the default)\
-\pard\pardeftab720
+\pard\pardeftab720\ql\qnatural
 \cf0 \
 This will build an index into the genomic sequences 
 \f2\i g.fasta
@@ -101,7 +101,7 @@ Configure the
 \f2\i s
 \f1\i0 =0 merskip.  Request four segments, instead of limiting each segment to a specific memory size.  Perform the configuration computations using SGE, passing some SGE-specific options to the submission command.\
 \
-\pard\pardeftab720
+\pard\pardeftab720\ql\qnatural
 
 \f3 \cf0 configureESTmapper.pl \\\
   -genome /genomedir/ame_ref.fasta \\\
@@ -112,7 +112,7 @@ Configure the
   -sge "-pe thread 2 -A estmapper"
 \f1 \
 \
-\pard\pardeftab720
+\pard\pardeftab720\ql\qnatural
 
 \f0\b \cf0 \
 IIIb. Basic usage (mapping)\
@@ -121,33 +121,33 @@ IIIb. Basic usage (mapping)\
 Once a genome is configured, any number of ESTmapper mappings can be performed, on any input cDNA, EST or short genomic region input set.\
 \
 There are three required parameters:\
-\pard\pardeftab720\li2880\fi-2880
+\pard\pardeftab720\li2880\fi-2880\ql\qnatural
 \cf0 	-outputdir		mapping-directory, the output and temporary files will go here.\
 	-genomedir		genome-directory, as configured with configureESTmapper.pl.\
 	-mapX			mapping style; -mapest, -mapmrna or -mapsnp.\
-\pard\pardeftab720
+\pard\pardeftab720\ql\qnatural
 \cf0 \
 There are numerous optional parameters, grouped by ESTmapper phase:\
 \
 [global]\
-\pard\pardeftab720\li2880\fi-2880
+\pard\pardeftab720\li2880\fi-2880\ql\qnatural
 \cf0 	-runlater		prepare the computations (search, filter, polish) but do not actually compute them.  Instead, tell the user what to do.\
-\pard\pardeftab720
+\pard\pardeftab720\ql\qnatural
 \cf0 \
 [SGE options]\
-\pard\pardeftab720\li2880\fi-2880
+\pard\pardeftab720\li2880\fi-2880\ql\qnatural
 \cf0 	-sge N			run ESTmapper using SGE, with name N.\
 	-sgeoptions "O"	"O" is supplied to all SGE submit commands.\
 	-sgesearch "O"	"O" is supplied to search phase SGE submit commands.\
 	-sgefilter "O"		"O" is supplied to filter phase SGE submit commands.\
 	-sgepolish "O"		"O" is supplied to polish phase SGE submit commands.\
 	-sgefinish "O"		"O" is supplied to finish phase SGE submit commands.\
-\pard\pardeftab720
+\pard\pardeftab720\ql\qnatural
 \cf0 \
 A note about SGE options:  It is very important to quote the options to these parameters, otherwise, ESTmapper will attempt to interpret them.  For example:  -sgepolish "-q idle.q -p -10".\
 \
 [searching phase]\
-\pard\pardeftab720\li2880\fi-2880
+\pard\pardeftab720\li2880\fi-2880\ql\qnatural
 \cf0 	-localsearches N	compute the search phase locally, on this machine, running 
 \f2\i N
 \f1\i0  processes at the same time.\
@@ -157,22 +157,22 @@ A note about SGE options:  It is very important to quote the options to these pa
 	-maskmers M.fasta	read 
 \f2\i M.fasta
 \f1\i0 , and ignore any mer present there when searching for signal.\
-\pard\pardeftab720
+\pard\pardeftab720\ql\qnatural
 \cf0 \
 [filtering options]\
-\pard\pardeftab720\li2880\fi-2880
+\pard\pardeftab720\li2880\fi-2880\ql\qnatural
 \cf0 	-hitsortmemory M	use 
 \f2\i M
 \f1\i0 MB memory to sort hits.\
-\pard\pardeftab720
+\pard\pardeftab720\ql\qnatural
 \cf0 	-nofilter		do no filtering of hits.\
 \
 [polishing phase]\
-\pard\pardeftab720\li3600\fi-3600
+\pard\pardeftab720\li3600\fi-3600\ql\qnatural
 \cf0 	-min[sim4]coverage C		report [make sim4 look for] alignments that cover at least C% of the query.  Default C=50.\
 	-min[sim4]identity I		report [make sim4 look for] alignments that are at least I% identity.  Default I=95.\
 	-min[sim4]length L		report [make sim4 look for] alignments that are at least L bases long.  Default L=0.\
-\pard\pardeftab720\li2880\fi-2880
+\pard\pardeftab720\li2880\fi-2880\ql\qnatural
 \cf0 	-relink R		Sim4 \'d4relink\'d5 constant, to allow for large introns. The default values are 500 for ESTs and 1000 for mRNAs.\
 	-alwaysprint A		always report A alignments per query, regardless of quality.\
 	-batchsize B		run polishing in batches of B signals each.\
@@ -182,19 +182,19 @@ A note about SGE options:  It is very important to quote the options to these pa
 	-[no]aligns		[do not] save alignments in the output.\
 	-abort			abort alignments that look suspicions and are expensive.\
 	-yn			save the answer for each signal processed (for debugging).\
-\pard\pardeftab720
+\pard\pardeftab720\ql\qnatural
 \cf0 \
 Usually, the [sim4] flavor of the -min* options are unnecessary.  By default, sim4 will look for alignments 5% below what is specified, e.g., "-mincoverage 50" implies "-minsim4coverage 45".\
 \
 If any -min option is supplied, it is better to supply all three.  Supplying just "-minlength 100" will leave the default values of "-mincoverage 50" and "-minidentity 95"; especially -mincoverage is probably not desired in this case.\
 \
 [termination phase]\
-\pard\pardeftab720\li2880\fi-2880
+\pard\pardeftab720\li2880\fi-2880\ql\qnatural
 \cf0 	-[no]cleanup		[do not] attempt to cleanup the results, removing small spurious exons, among other things\
 	-savetemporary	save all the gory intermediate files\
-\pard\pardeftab720
+\pard\pardeftab720\ql\qnatural
 \cf0 \
-\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\ql\qnatural
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardeftab720\ql\qnatural
 \cf0 Example:\
 \
 Using the configured 
@@ -217,10 +217,10 @@ Using the configured
   -savetemporary\
 
 \f1 \
-\pard\pardeftab720
+\pard\pardeftab720\ql\qnatural
 \cf0 This found alignments for (the number of alignments is the first number):\
 \
-\pard\pardeftab720
+\pard\pardeftab720\ql\qnatural
 
 \f4\fs20 \cf0 1	gi|11038618|ref|NM_001614.2| actin, gamma 1 (ACTG1), mRNA\
 19	gi|24371439|ref|NR_000037.1| tRNA glutamine 1 (TRQ1) on chr 17\
@@ -231,7 +231,7 @@ Using the configured
 1	gi|68299771|ref|NM_001069.2| tubulin, beta 2A (TUBB2A), mRNA\
 9	gi|73760420|ref|NR_002457.1| tRNA proline 2 (TRP2) on chr 14
 \fs22 \
-\pard\pardeftab720
+\pard\pardeftab720\ql\qnatural
 
 \f1 \cf0 \
 	\
@@ -248,7 +248,7 @@ The
 \f2\i output
 \f1\i0  consists primarily of the final alignment and summary files, located in the work directory:\
 \
-\pard\pardeftab720\li2160\fi-2160
+\pard\pardeftab720\li2160\fi-2160\ql\qnatural
 \cf0 polishes-good
 \f2\i 		
 \f1\i0 all cDNA-genomic alignments that meet the specified quality criteria\
@@ -257,22 +257,22 @@ polishes-best
 \f1\i0 for each EST, only the \'d5best\'d5 genomic alignment among those that meet  the specified quality criteria (if multiple alignments with the same \'d4best\'d5 characteristics exist, then all are reported)\
 \
 summary		summary mapping statistics for the run\
-\pard\tx1800\pardeftab720
+\pard\tx1800\pardeftab720\ql\qnatural
 \cf0 \
-\pard\pardeftab720
+\pard\pardeftab720\ql\qnatural
 \cf0 The following associated sequence files will also be created:\
 \
-\pard\pardeftab720\li2150\fi-2150
+\pard\pardeftab720\li2150\fi-2150\ql\qnatural
 \cf0 cDNA-good.fasta	multi-fasta file of input sequences that were successfully mapped\
 cDNA-missing.fasta	multi-fasta file of input sequences that had signals, but did not produce a valid match\
 cDNA-zero.fasta	multi-fasta file of input sequences that did not have any signals\
-\pard\pardeftab720
+\pard\pardeftab720\ql\qnatural
 \cf0 \
 
 \f0\b ESTmapper output format:\
 
 \f1\b0 \
-\pard\pardeftab720
+\pard\pardeftab720\ql\qnatural
 
 \f5 \cf0 sim4begin\
 
@@ -286,9 +286,9 @@ cDNA-zero.fasta	multi-fasta file of input sequences that did not have any signal
 \f5\i0 ] 
 \f6\i GENidx
 \f5\i0 [
-\f6\i GENlo
+\f6\i GENoff
 \f5\i0 -
-\f6\i GENhi
+\f6\i GENlen
 \f5\i0 ] <
 \f6\i M
 \f5\i0 -
@@ -364,12 +364,12 @@ genomic alignment sequence for exon #1\
 genomic alignment sequence for exon #n\
 
 \f5\i0 sim4end\
-\pard\pardeftab720
+\pard\pardeftab720\ql\qnatural
 
 \f1 \cf0 \
 where:\
 \
-\pard\pardeftab720
+\pard\pardeftab720\ql\qnatural
 
 \f2\i \cf0 cDNAidx
 \f1\i0 	internal index of the cDNA in the input cDNA fasta file\
@@ -383,11 +383,11 @@ where:\
 \f2\i GENidx
 \f1\i0  	internal index of the genomic sequence in the genome fasta file\
 
-\f2\i GENlo
-\f1\i0 		start position of the genomic region \
+\f2\i GENoff
+\f1\i0 	offset to the beginning of the genomic region containing the signal\
 
-\f2\i GENhi
-\f1\i0 		end position of the genomic region\
+\f2\i GENlen
+\f1\i0 	length of the genomic region containing the signal\
 
 \f2\i M
 \f1\i0  		number of nucleotide matches in the alignment\
@@ -400,14 +400,14 @@ where:\
 
 \f2\i O
 \f1\i0  		match orientation:\
-\pard\pardeftab720\li2880\fi-2880
+\pard\pardeftab720\li2880\fi-2880\ql\qnatural
 \cf0 		
 \f4 forward
 \f1  	the cDNA sequence aligns to the genomic sequence directly\
 		
 \f4 complement
 \f1 	the reverse complement of the cDNA sequence matches the genomic sequence; this is the equivalent of the Sim4 \'d4(complement)\'d5 output line\
-\pard\pardeftab720
+\pard\pardeftab720\ql\qnatural
 
 \f2\i \cf0 S
 \f1\i0  		strand predicted based on the splice signals and alignment quality\
@@ -458,53 +458,47 @@ where:\
 \f4 ==
 \f1  	gap (unaligned portion) in the cDNA sequence\
 \
-Exon coordinates are nucleotide based, starting from 1. Coordinates in the genomic sequence are relative to the 
-\f2\i GENlo
-\f1\i0  value displayed in the match description line. The true location of the exon in the genomic sequence is 
-\f2\i GENlo+GENbgn
-\f1\i0  and 
-\f2\i GENlo+GENend
-\f1\i0 . Lastly, genomic coordinates are always in the original sequence, while the cDNA coordinates will refer to positions in the reverse complement of the sequence if the match orientation is indicated as \'d4complement\'d5.\
+Exon coordinates are nucleotide based, starting from 1. Genomic coordinates are always in the original sequence, while the cDNA coordinates will refer to positions in the reverse complement of the sequence if the match orientation is indicated as \'d4complement\'d5.\
 \
 Lowercase letters in the alignment lines indicate positions with matching nucleotides, \'d4-\'d4 indicate gaps in the corresponding sequence, and uppercase letters mark either substitutions, or gaps in the other sequence.\
 \
 
 \f2\i Examples:\
 \
-\pard\pardeftab720
+\pard\pardeftab720\ql\qnatural
 
 \f1\i0 \cf0 1. A minimal match description. The cDNA and genomic sequence deflines and alignment lines need not be present:\
 \
-\pard\pardeftab720\li360
+\pard\pardeftab720\li360\ql\qnatural
 
 \f5\fs20 \cf0 sim4begin\
-2[2472-0-0] 0[239821074-239872324] <2472-0-100-complement-reverse>\
-1-1542 (2001-3542) <1542-0-100> <-\
-1543-1794 (6597-6848) <252-0-100> <-\
-1795-1954 (13271-13430) <160-0-100> <-\
-1955-2472 (48733-49250) <518-0-100>\
+2[2472-0-0] 0[239821074-51250] <2472-0-100-complement-reverse>\
+1-1542 (238923075-239824616) <1542-0-100> <-\
+1543-1794 (239827671-239827922) <251-0-99> <-\
+1795-1954 (239834345-239834504) <160-0-100> <-\
+1955-2472 (239869807-239870324) <518-0-100>\
 sim4end\
-\pard\pardeftab720
+\pard\pardeftab720\ql\qnatural
 
 \f1\fs22 \cf0 \
 The record describes a cDNA-genomic alignment between the cDNA with index number 2 (3\super rd\nosupersub  sequence in the cDNA multi-fasta file) and the genomic segment between positions 
-\f5\fs20 239821074-23987232
-\f1\fs22  (counting starting at 0). The header line contains 3 tokens that provide information about the cDNA (2472 bp long, no polyA or polyT tails identified), the genomic sequence (index - 0, and range), and the match (number of nucleotide identity matches \'d0 2472, percent sequence identity \'d0 100%, match orientation \'d0 complement, and likely gene location, on the reverse strand).\
+\f5\fs20 239821075-23987233
+\f1\fs22 . The header line contains 3 tokens that provide information about the cDNA (2472 bp long, no polyA or polyT tails identified), the genomic sequence (index 0, and range), and the match (number of nucleotide identity matches \'d0 2472, percent sequence identity \'d0 100%, match orientation \'d0 complement, and likely gene location, on the reverse strand).\
 \
-The alignment contains 4 exons. Since the cDNA and the genomic sequences match in \'d4complement\'d5, the cDNA coordinates are given in the reverse complement of the cDNA sequence (e.g., exon 1, 1-1542, refers to the segment between positions 2472-1542+1 and 2472-1+1 in the original sequence). The absolute genomic coordinates can be calculated by adding the offset 239821074: (2001+239821074) and (3542+239821074), for exon 1.\
+The alignment contains 4 exons. Since the cDNA and the genomic sequences match in \'d4complement\'d5, the cDNA coordinates are given in the reverse complement of the cDNA sequence (e.g., exon 1, 1-1542, refers to the segment between positions 2472-1542+1 and 2472-1+1 in the original sequence).\
 \
 2. A more detailed match description, including alignments and deflines.\
 \
-\pard\pardeftab720\li360
+\pard\pardeftab720\li360\ql\qnatural
 
 \f5\fs20 \cf0 sim4begin\
-2[2472-0-0] 0[239821074-239872324] <2471-0-100-complement-reverse>\
+2[2472-0-0] 0[239821074-51250] <2471-0-100-complement-reverse>\
 edef=>gi|71999139|ref|NM_001030012.1| Homo sapiens opsin 3(encephalopsin, panopsin) (OPN3), transcript variant 3, mRNA\
 ddef=>chr1 /len=247249719 /nonNlen=224999719 /org=H.sapiens(hg18)\
-1-1542 (2001-3542) <1542-0-100> <-\
-1543-1794 (6597-6848) <251-0-99> <-\
-1795-1954 (13271-13430) <160-0-100> <-\
-1955-2472 (48733-49250) <518-0-100>\
+1-1542 (238923075-239824616) <1542-0-100> <-\
+1543-1794 (239827671-239827922) <251-0-99> <-\
+1795-1954 (239834345-239834504) <160-0-100> <-\
+1955-2472 (239869807-239870324) <518-0-100>\
 taaattaaatg\'c9gggatcttcgaaa\
 taaattaaatg\'c9gggatcttcgaaa\
 ctttCtgatcatgaaga\'c9cacacaacgaag\
@@ -514,7 +508,7 @@ ctgttccatcccag\'c9tggaaacaatc\
 cgaagaggctgccgctaaa\'c9cgcgccgggccc\
 cgaagaggctgccgctaaa\'c9cgcgccgggccc\
 sim4end\
-\pard\pardeftab720
+\pard\pardeftab720\ql\qnatural
 
 \f1\fs22 \cf0 \
 This is the same match as in example 1. The edef line now characterizes the cDNA sequence (i.e., the RefSeq sequence corresponding to the opsin 3 gene mRNA), and the ddef line characterizes the genomic sequence (i.e., human chromosome 1). \
