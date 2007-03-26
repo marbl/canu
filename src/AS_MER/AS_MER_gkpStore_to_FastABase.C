@@ -24,19 +24,31 @@
 gkpStoreSequence::gkpStoreSequence() {
   _gkp = 0L;
   _frg = 0L;
+  _bgn = 0;
+  _end = 0;
   _clr = AS_READ_CLEAR_LATEST;
   _iid = 0;
   _eof = false;
 }
 
-gkpStoreSequence::gkpStoreSequence(char const *gkpName) {
+gkpStoreSequence::gkpStoreSequence(char const *gkpName,
+                                   uint32 bgn,
+                                   uint32 end,
+                                   uint32 clr) {
   _gkp = openGateKeeperStore(gkpName, FALSE);
   _frg = new_fragRecord();
-  _clr = AS_READ_CLEAR_LATEST;
-  _iid = 1;
+  _bgn = bgn;
+  _end = end;
+  _clr = clr;
+  _iid = _bgn;
   _eof = false;
 
   assert(_clr < AS_READ_CLEAR_NUM);
+
+  if (_end < _bgn)
+    fprintf(stderr, "gkpStoreSequence()--  ERROR:  begin IID = %u > end IID = %u\n",
+            _bgn, _end);
+  assert(_bgn <= _end);
 
   //  even though, yes, we don't strictly need to be loading the
   //  sequence lengths, and we could get them from the store, this
@@ -47,13 +59,15 @@ gkpStoreSequence::gkpStoreSequence(char const *gkpName) {
 
   FragStream *stm = openFragStream(_gkp, FRAG_S_INF);
   while (nextFragStream(stm, _frg)) {
-    uint32  beg = getFragRecordClearRegionBegin(_frg, _clr);
-    uint32  end = getFragRecordClearRegionEnd  (_frg, _clr);
+    bgn = getFragRecordClearRegionBegin(_frg, _clr);
+    end = getFragRecordClearRegionEnd  (_frg, _clr);
 
     if (getFragRecordIsDeleted(_frg))
-      end = beg;
+      end = bgn;
+    if ((getFragRecordIID(_frg) < _bgn) || (_end < getFragRecordIID(_frg)))
+      end = bgn;
 
-    _seqLengths[getFragRecordIID(_frg)] = end - beg;
+    _seqLengths[getFragRecordIID(_frg)] = end - bgn;
   }
 
   closeFragStream(stm);
@@ -69,9 +83,43 @@ gkpStoreSequence::~gkpStoreSequence() {
 
 seqFile*
 gkpStoreSequence::openFile(const char *name) {
-  fprintf(stderr, "openFile gkpStoreSequence '%s'\n", name);
-  if (testOpenGateKeeperStore(name, FALSE))
-    return(new gkpStoreSequence(name));
+  char  *p;
+  char  *q;
+  char   n[FILENAME_MAX + 32];
+
+  uint32 bgn = 1;
+  uint32 end = ~(uint32)0;
+  uint32 clr = AS_READ_CLEAR_LATEST;
+
+  //fprintf(stderr, "openFile gkpStoreSequence '%s'\n", name);
+
+  //  We need to make a copy of the name so we can munge out the IID's
+  //  and clear range specification.
+  //
+  strcpy(n, name);
+
+  //  Parse the name, look for :'s.  If we find a ':', terminate the
+  //  gkpName.  Then check if there is a '-'.  If so, decode the two
+  //  IID's, and move to the next ':'.  Finally, decode the clear
+  //  range spec.
+  //
+  p = strchr(n, ':');
+  if (p) {
+    *p = 0;
+    q = strchr(p+1, '-');
+    if (q) {
+      bgn = atoi(p+1);
+      end = atoi(q+1);
+      p = strrchr(q, ':');
+    }
+
+    if (p)
+      clr = AS_PER_decodeClearRangeLabel(p+1);
+  }
+
+
+  if (testOpenGateKeeperStore(n, FALSE))
+    return(new gkpStoreSequence(n, bgn, end, clr));
   else
     return(0L);
 };
@@ -80,6 +128,9 @@ gkpStoreSequence::openFile(const char *name) {
 bool
 gkpStoreSequence::getSequence(uint32 &hLen, char *&h,
                               uint32 &sLen, char *&s) {
+
+  if (_iid > _end)
+    return(false);
 
   if (_iid != getFragRecordIID(_frg))
     if (find(_iid - 1) == false)
@@ -133,6 +184,16 @@ gkpStoreSequence::find(seqIID  iid) {
   iid++;
   if (iid > getLastElemFragStore(_gkp)) {
     _eof = true;
+    _iid = getLastElemFragStore(_gkp) + 1;
+    return(false);
+  }
+  if ((iid < _bgn) || (_end < iid)) {
+    //  Not sure this is a useful warning.  Certainly, if we're in a
+    //  loop from iid=0 to iid=last, we'll get this LOTS.
+    //  
+    //fprintf(stderr, "gkpStoreSequence::find()--  WARNING: looked for gkp iid=%u, not in range [%u,%u]\n",
+    //        iid, _bgn, _end);
+    _iid = getLastElemFragStore(_gkp) + 1;
     return(false);
   }
   getFrag(_gkp, iid, _frg, FRAG_S_SEQ);

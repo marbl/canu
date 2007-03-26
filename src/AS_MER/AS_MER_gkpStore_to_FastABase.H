@@ -35,24 +35,27 @@ extern "C" {
 //  Transform a wgs-assembler gkpStore object into a kmer FastABase
 //  object.
 //
-//  TODO:
-//
-//  Deleted fragments should be returned as zero-length sequence.
-//
-//  Take a clear range label as a parameter, return only that sequence.
-//
-//  This is probably from not ignoring deleted reads somewhere:
-//    chainedSequence::sequenceNumberOfPosition()-- WARNING! Position p=44307369 too big; only 44307361 positions.
-
-//  openIndex() should cache the sequence lengths (and header lengths?)
-//
 //  About IIDs: gkpStore starts IIDs at 1, while kmer starts at 0.
 //  The _iid in gkpStoreSequence is a gkpStore IID.  All external iid
 //  references, e.g., find(iid), should be kmer IIDs.
+//
+//  The "name" in openFile() should refer to a gatekeeper store
+//  directory.  It can optionally include ":bgn-end:clr" to return a
+//  subset of the reads, and to return only the clear range.  For
+//  example:
+//
+//    dros.gkpStore:500-1000:obtini
+//
+//  would return fragments 500 through 1000 inclusive, and return the
+//  initial OBT clear range.
+//
+//  NOTE!  The IID range violates a lot of assumptions!  Use at risk!
+//  (assumptions like: sequences start at iid=0, go to iid=M-1, and
+//  there are exactly M sequences in the file)
 
 class gkpStoreSequence : public seqFile {
 protected:
-  gkpStoreSequence(char const *filename);
+  gkpStoreSequence(char const *filename, uint32 bgn, uint32 end, uint32 clr);
 
 public:
   gkpStoreSequence();
@@ -62,13 +65,13 @@ public:
 
   void         openIndex(u32bit indextypetoload=FASTA_INDEX_ANY) {};
 
-  bool         rewind(void)   { _iid = 1; };
+  bool         rewind(void)   { _iid = _bgn; };
   bool         eof(void)      { return(_eof); };
 
   seqInCore   *getSequenceInCore(void);
   seqOnDisk   *getSequenceOnDisk(void);
 
-  u32bit       currentIID(void) { return(_iid); };
+  u32bit       currentIID(void) { return(_iid - 1); };
 
   bool         find(seqIID  iid);
   bool         find(char   *uid);
@@ -106,6 +109,8 @@ private:
 
   GateKeeperStore  *_gkp;
   fragRecord       *_frg;
+  uint32            _bgn;
+  uint32            _end;
   uint32            _clr;
   uint32            _iid;
   bool              _eof;
