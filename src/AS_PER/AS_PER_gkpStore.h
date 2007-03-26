@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.25 2007-03-09 19:12:24 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.26 2007-03-26 16:14:54 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -114,8 +114,32 @@ typedef struct {
 #define AS_READ_CLEAR_LATEST   (AS_READ_CLEAR_NUM - 1)
 
 static const char *AS_READ_CLEAR_NAMES[AS_READ_CLEAR_NUM] = {
-  "ORIG", "QLT", "VEC", "OBTINI","OBT","UTG","ECR1","ECR2"
+  "ORIG", "QLT", "VEC", "OBTINI", "OBT", "UTG", "ECR1", "ECR2"
 };
+
+static
+uint32
+AS_PER_decodeClearRangeLabel(const char *label) {
+  uint32 clr = AS_READ_CLEAR_LATEST;
+
+  if (('0' <= label[0]) && (label[0] < '9')) {
+    return(atoi(label));
+  } else {
+    for (clr=0; clr<AS_READ_CLEAR_NUM; clr++)
+      if (strcasecmp(label, AS_READ_CLEAR_NAMES[clr]) == 0)
+        return(clr);
+  }
+
+  fprintf(stderr, "AS_PER_decodeClearRangeLabel()-- unknown clear range label '%s'\n", label);
+  fprintf(stderr, "AS_PER_decodeClearRangeLabel()-- valid labels are:\n");
+  fprintf(stderr, "AS_PER_decodeClearRangeLabel()--");
+  for (clr=0; clr<AS_READ_CLEAR_NUM; clr++)
+    fprintf(stderr, " %s", AS_READ_CLEAR_NAMES[clr]);
+  fprintf(stderr, "\n");
+
+  exit(1);
+  return(AS_READ_CLEAR_LATEST);
+}
 
 
 typedef struct{

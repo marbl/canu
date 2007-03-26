@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.25 2007-03-23 04:51:08 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.26 2007-03-26 16:14:54 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -258,33 +258,7 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-allbases") == 0) {
       dumpFastaAllBases = 1;
     } else if (strcmp(argv[arg], "-clear") == 0) {
-      arg++;
-      if (('0' <= argv[arg][0]) && (argv[arg][0] < '9')) {
-        dumpFastaClear = atoi(argv[arg]);
-      } else if (strcmp(argv[arg], "orig") == 0) {
-        dumpFastaClear = AS_READ_CLEAR_ORIG;
-      } else if (strcmp(argv[arg], "qlt") == 0) {
-        dumpFastaClear = AS_READ_CLEAR_QLT;
-      } else if (strcmp(argv[arg], "vec") == 0) {
-        dumpFastaClear = AS_READ_CLEAR_VEC;
-      } else if (strcmp(argv[arg], "obt") == 0) {
-        dumpFastaClear = AS_READ_CLEAR_OBT;
-#if 0
-      } else if (strcmp(argv[arg], "ovl") == 0) {
-        dumpFastaClear = AS_READ_CLEAR_OVL;
-#endif
-      } else if (strcmp(argv[arg], "utg") == 0) {
-        dumpFastaClear = AS_READ_CLEAR_UTG;
-      } else if (strcmp(argv[arg], "ecr1") == 0) {
-        dumpFastaClear = AS_READ_CLEAR_ECR1;
-      } else if (strcmp(argv[arg], "ecr2") == 0) {
-        dumpFastaClear = AS_READ_CLEAR_ECR2;
-      } else if (strcmp(argv[arg], "closure") == 0) {
-        dumpFastaClear = AS_READ_CLEAR_LATEST;
-      } else {
-        fprintf(stderr, "unknown clear range '%s'\n", argv[arg]);
-        err++;
-      }
+      dumpFastaClear = AS_PER_decodeClearRangeLabel(argv[++arg]);
     } else if (strcmp(argv[arg], "-P") == 0) {
       partitionFile = argv[++arg];
     } else if (strcmp(argv[arg], "--") == 0) {
