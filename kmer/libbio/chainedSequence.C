@@ -312,7 +312,8 @@ chainedSequence::finish(void) {
   _useListLen = 0;
 
   for (u32bit i=0; i<_file->getNumberOfSequences(); i++) {
-    if (useAll || seen[i]) {
+    if ((useAll || seen[i]) &&
+        (_file->sequenceLength(i) > 0)) {
       _useList[_useListLen].iid    = i;
       _useList[_useListLen].length = _file->sequenceLength(i);
       _useList[_useListLen].start  = startPos;

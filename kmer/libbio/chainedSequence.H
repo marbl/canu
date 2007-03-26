@@ -165,14 +165,15 @@ chainedSequence::get(void) {
     //
     if (_separatorDone) {
       delete _sequence;
+      _sequence = 0L;
       _currentSeq++;
 
-      _file->find(_useList[_currentSeq].iid);
-
-      _sequence           = _file->getSequenceOnDisk();
-      _separatorDone      = false;
-      _positionInSequence = u64bitZERO;
-      ret = _sequence->get();
+      if (_file->find(_useList[_currentSeq].iid)) {
+        _sequence           = _file->getSequenceOnDisk();
+        _separatorDone      = false;
+        _positionInSequence = u64bitZERO;
+        ret = _sequence->get();
+      }
     } else {
       _separatorPosition  = _separatorLength;
       _separatorDone      = true;
