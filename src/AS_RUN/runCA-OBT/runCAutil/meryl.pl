@@ -35,13 +35,11 @@ sub meryl {
             my $merylMemory = getGlobal("merylMemory");
 
             my $cmd;
-            $cmd  = "$bin/dumpFragStoreAsFasta -frg $wrk/$asm.gkpStore | ";
             $cmd .= "$bin/meryl ";
-            $cmd .= "  -B -C -v -m $merSize -memory $merylMemory ";
-            $cmd .= "  -s - ";
-            $cmd .= "  -o $wrk/0-preoverlap/$asm-ms$merSize ";
-            $cmd .= "> $wrk/0-preoverlap/meryl.out ";
-            $cmd .= "2>&1";
+            $cmd .= " -B -C -v -m $merSize -memory $merylMemory ";
+            $cmd .= " -s $wrk/$asm.gkpStore ";
+            $cmd .= " -o $wrk/0-preoverlap/$asm-ms$merSize ";
+            $cmd .= "> $wrk/0-preoverlap/meryl.out 2>&1";
 
             if (runCommand("$wrk/0-preoverlap", $cmd)) {
                 die "Failed.\n";
@@ -77,10 +75,10 @@ sub meryl {
             $merylOvlThreshold /= $merylSkip;
 
             my $cmd;
-            $cmd  = "$bin/meryl -m $merSize -s $wrk/$asm.gkpStore -n $merylOvlThreshold -K $merylSkip ";
-            $cmd .= "-o $wrk/0-preoverlap/$asm.nmers.fasta";
-            $cmd .= "> $wrk/0-preoverlap/meryl.out ";
-            $cmd .= "2>&1";
+            $cmd  = "$bin/meryl ";
+            $cmd .= " -m $merSize -s $wrk/$asm.gkpStore -n $merylOvlThreshold -K $merylSkip ";
+            $cmd .= " -o $wrk/0-preoverlap/$asm.nmers.fasta";
+            $cmd .= "> $wrk/0-preoverlap/meryl.out 2>&1";
 
             if (runCommand("$wrk/0-preoverlap", $cmd)) {
                 rename "$wrk/$asm.nmers.fasta", "$wrk/$asm.nmers.fasta.FAILED";
