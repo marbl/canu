@@ -98,12 +98,16 @@ sub setGlobal ($$) {
 
 sub setDefaults () {
     $global{"binRoot"}                     = undef;
+
     $global{"cgwOutputIntermediate"}       = 0;
     $global{"cgwPurgeCheckpoints"}         = 1;
+    $global{"cgwDemoteRBP"}                = undef;
+
     $global{"cnsPartitions"}               = 128;
     $global{"cnsMinFrags"}                 = 75000;
     $global{"cnsConcurrency"}              = 2;
     $global{"cnsOnGrid"}                   = 1;
+
     $global{"delayInterleavedMerging"}     = 0;
     $global{"doBackupFragStore"}           = 1;
     $global{"doExtendClearRanges"}         = 2;
@@ -112,14 +116,18 @@ sub setDefaults () {
     $global{"doResolveSurrogates"}         = 1;
     $global{"doUpdateDistanceRecords"}     = 1;
     $global{"fakeUIDs"}                    = 0;
+
     $global{"frgCorrBatchSize"}            = 175000;
     $global{"frgCorrOnGrid"}               = 0;
     $global{"frgCorrThreads"}              = 2;
     $global{"frgCorrConcurrency"}          = 1;
+
     $global{"gridHost"}                    = "Linux";
     $global{"gridMachine"}                 = "i686";
+
     $global{"help"}                        = 0;
     $global{"immutableFrags"}              = undef;
+
     $global{"localHost"}                   = undef;
     $global{"localMachine"}                = undef;
 
@@ -144,12 +152,12 @@ sub setDefaults () {
     $global{"scriptOnGrid"}                = 0;
 
     #  Undocumented!
-    $global{"sge"}                         = undef;           #  Options to all qsub
-    $global{"sgeScript"}                   = undef;           #  Options to qsub of the script (high-memory)
-    $global{"sgeOverlap"}                  = "-pe thread 2";  #  Options to overlap jobs
-    $global{"sgeConsensus"}                = "-pe thread 2";  #  Options to consensus jobs
-    $global{"sgeFragmentCorrection"}       = "-pe thread 2";  #  Options to fragment correction jobs
-    $global{"sgeOverlapCorrection"}        = "-pe thread 2";  #  Options to overlap correction jobs
+    $global{"sge"}                         = undef;    #  Options to all qsub
+    $global{"sgeScript"}                   = undef;    #  Options to qsub of the script (high-memory)
+    $global{"sgeOverlap"}                  = undef;    #  Options to overlap jobs
+    $global{"sgeConsensus"}                = undef;    #  Options to consensus jobs
+    $global{"sgeFragmentCorrection"}       = undef;    #  Options to fragment correction jobs
+    $global{"sgeOverlapCorrection"}        = undef;    #  Options to overlap correction jobs
 
     $global{"stoneLevel"}                  = 2;
     $global{"stopAfter"}                   = undef;
@@ -161,7 +169,6 @@ sub setDefaults () {
     $global{"utgFragments"}                = undef;
     $global{"utgBubblePopping"}            = 1;
     $global{"utgGenomeSize"}               = undef;
-    $global{"cgwDemoteRBP"}               = undef;
     $global{"useGrid"}                     = 0;
     $global{"useBogUnitig"}                = 0;
     $global{"vectorIntersect"}             = undef;
