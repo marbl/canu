@@ -29,7 +29,7 @@ LOCAL_WORK = $(shell cd ../..; pwd)
 
 ifdef KMER
   MERYLSOURCE      = meryl.C
-  MERYLOBJECTS     = meryl.o
+  MERYLOBJECTS     = meryl.o AS_MER_gkpStore_to_FastABase.o
   SOURCES          = $(MERYLSOURCE) mercy.C mercy-regions.C overmerry.C AS_MER_gkpStore_to_FastABase.C
   OBJECTS          = $(SOURCES:.C=.o)
   PROGS            = meryl mercy overmerry

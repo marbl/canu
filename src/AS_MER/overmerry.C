@@ -62,7 +62,7 @@ kmerhitcompare(const void *a, const void *b) {
 
 inline
 u64bit
-addHit(chainedSequence *CS, FastASequenceInCore *S, merStream *M,
+addHit(chainedSequence *CS, seqInCore *S, merStream *M,
        kmerhit *&hits, u32bit &hitsLen, u32bit &hitsMax,
        u64bit pos, u64bit cnt,
        u64bit pal,
@@ -116,11 +116,12 @@ main(int argc, char **argv) {
   }
 
 
-  FastABase *gkp = new gkpStoreSequence(gkpName, AS_READ_CLEAR_OBTINI);
+  seqFile *gkp = openSeqFile(gkpName);
+  //gkp->setClearRange(AS_READ_CLEAR_OBTINI);
 
 #if 0
   u32bit i;
-  FastASequenceOnDisk *s;
+  seqOnDisk *s;
 
   i=0;
   gkp->find(i);
@@ -150,8 +151,11 @@ main(int argc, char **argv) {
   u64bit   posnMax = 0;
   u64bit   posnLen = 0;
 
-  FastABase            *F = new gkpStoreSequence(gkpName, AS_READ_CLEAR_OBTINI);
-  FastASequenceInCore  *S = F->getSequence();
+  seqFile    *F = openSeqFile(gkpName);
+
+  //F->setClearRange(AS_READ_CLEAR_OBTINI);
+
+  seqInCore  *S = F->getSequenceInCore();
 
   //  XXXXX:  need to get the clear range begin and end so we can offset properly.
 
@@ -172,7 +176,7 @@ main(int argc, char **argv) {
   while (S) {
     fprintf(stdout, "%s\n", S->header());
 
-    merStream  *M = new merStream(merSize, S->sequence(), S->sequenceLength());
+    merStream  *M = new merStream(merSize, S);
 
     hitsLen = 0;
 
@@ -262,7 +266,7 @@ main(int argc, char **argv) {
     delete M;
     delete S;
 
-    S = F->getSequence();
+    S = F->getSequenceInCore();
   }
 
   fprintf(stderr, "Found "u64bitFMT" mer hits.\n", merfound);

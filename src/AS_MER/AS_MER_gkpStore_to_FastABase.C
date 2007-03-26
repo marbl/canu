@@ -21,11 +21,18 @@
 
 #include "AS_MER_gkpStore_to_FastABase.H"
 
+gkpStoreSequence::gkpStoreSequence() {
+  _gkp = 0L;
+  _frg = 0L;
+  _clr = AS_READ_CLEAR_LATEST;
+  _iid = 0;
+  _eof = false;
+}
 
-gkpStoreSequence::gkpStoreSequence(char const *gkpName, uint32 clearRangeSpec) {
+gkpStoreSequence::gkpStoreSequence(char const *gkpName) {
   _gkp = openGateKeeperStore(gkpName, FALSE);
   _frg = new_fragRecord();
-  _clr = clearRangeSpec;
+  _clr = AS_READ_CLEAR_LATEST;
   _iid = 1;
   _eof = false;
 
@@ -60,6 +67,16 @@ gkpStoreSequence::~gkpStoreSequence() {
 }
 
 
+seqFile*
+gkpStoreSequence::openFile(const char *name) {
+  fprintf(stderr, "openFile gkpStoreSequence '%s'\n", name);
+  if (testOpenGateKeeperStore(name, FALSE))
+    return(new gkpStoreSequence(name));
+  else
+    return(0L);
+};
+
+
 bool
 gkpStoreSequence::getSequence(uint32 &hLen, char *&h,
                               uint32 &sLen, char *&s) {
@@ -86,45 +103,33 @@ gkpStoreSequence::getSequence(uint32 &hLen, char *&h,
 }
 
 
-FastASequenceInCore *
-gkpStoreSequence::getSequence(void) {
+seqInCore *
+gkpStoreSequence::getSequenceInCore(void) {
   char   *h = NULL, *s = NULL;
   uint32  hLen=0,    sLen=0;
 
   if (getSequence(hLen, h, sLen, s) == false)
     return(0L);
 
-  return(new FastASequenceInCore(_iid++ - 1, h, hLen, s, sLen));
+  return(new seqInCore(_iid++ - 1, h, hLen, s, sLen));
 }
 
 
-FastASequenceOnDisk *
+seqOnDisk *
 gkpStoreSequence::getSequenceOnDisk(void) {
   char   *h = NULL, *s = NULL;
   uint32  hLen=0,    sLen=0;
 
-  if (getSequence(hLen, h, sLen, s) == 0L)
+  if (getSequence(hLen, h, sLen, s) == false)
     return(0L);
 
-  return(new FastASequenceOnDisk(_iid++ - 1, h, hLen, s, sLen));
+  return(new seqOnDisk(_iid++ - 1, h, hLen, s, sLen));
 }
 
-
-u32bit
-gkpStoreSequence::sequenceLength(IID_t iid) {
-  return(_seqLengths[iid+1]);
-}
-
-
-u32bit
-gkpStoreSequence::headerLength(IID_t iid) {
-  //  Not critical, just an upper bound, I think.
-  return(64);
-}
 
 
 bool
-gkpStoreSequence::find(IID_t  iid) {
+gkpStoreSequence::find(seqIID  iid) {
   iid++;
   if (iid > getLastElemFragStore(_gkp)) {
     _eof = true;

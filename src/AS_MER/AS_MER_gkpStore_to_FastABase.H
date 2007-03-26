@@ -43,8 +43,6 @@ extern "C" {
 //
 //  This is probably from not ignoring deleted reads somewhere:
 //    chainedSequence::sequenceNumberOfPosition()-- WARNING! Position p=44307369 too big; only 44307361 positions.
-//
-
 
 //  openIndex() should cache the sequence lengths (and header lengths?)
 //
@@ -52,40 +50,40 @@ extern "C" {
 //  The _iid in gkpStoreSequence is a gkpStore IID.  All external iid
 //  references, e.g., find(iid), should be kmer IIDs.
 
-class gkpStoreSequence : public FastABase {
+class gkpStoreSequence : public seqFile {
+protected:
+  gkpStoreSequence(char const *filename);
+
 public:
-  gkpStoreSequence(char const *gkpName, uint32 clearRangeSpec);
+  gkpStoreSequence();
   ~gkpStoreSequence();
 
-  FastASequenceInCore *getSequence(void);
-  FastASequenceOnDisk *getSequenceOnDisk(void);
+  seqFile     *openFile(const char *name);
 
-  u32bit       sequenceLength(IID_t iid);
-  u32bit       headerLength(IID_t iid);
-  u32bit       currentIID(void) { return(_iid-1); };
+  void         openIndex(u32bit indextypetoload=FASTA_INDEX_ANY) {};
 
-  bool         eof(void) { return(_eof); };
+  bool         rewind(void)   { _iid = 1; };
+  bool         eof(void)      { return(_eof); };
 
-  bool         find(IID_t  iid);
-  bool         find(char  *id);
+  seqInCore   *getSequenceInCore(void);
+  seqOnDisk   *getSequenceOnDisk(void);
 
+  u32bit       currentIID(void) { return(_iid); };
 
-  bool         isIndexValid(u32bit indextypetoload=FASTA_INDEX_ANY,
-                            bool   beVerbose=false) {
-    return(true);
+  bool         find(seqIID  iid);
+  bool         find(char   *uid);
+
+  u32bit       sequenceLength(seqIID iid) {
+    return(_seqLengths[iid+1]);
   };
 
-  void         openIndex(u32bit indextypetoload=FASTA_INDEX_ANY) {
-    //  NOP.
-  };
-
-  void         optimizeRandomAccess(void) {
-    //  NOP.
+  u32bit       nameLength(seqIID iid) {
+    return(64);
   };
 
   u32bit       getNumberOfSequences(void) {
     return(getLastElemFragStore(_gkp));
-  };
+  }
 
   char const  *getSourceName(void) {
     return(_gkp->storePath);
@@ -96,12 +94,15 @@ public:
     assert(0);
   };
 
-  bool         isRandomAccess(void) { return(true); };
-  bool         isSqueezed(void)     { return(true); };
+  bool         isIndexed(void)  { return(true); };
+  bool         isSqueezed(void) { return(true); };
+
+public:
+  void         setClearRange(uint32 clearRangeSpec);
 
 private:
-  bool               getSequence(uint32 &hLen, char *&h,
-                                 uint32 &sLen, char *&s);
+  bool         getSequence(uint32 &hLen, char *&h,
+                           uint32 &sLen, char *&s);
 
   GateKeeperStore  *_gkp;
   fragRecord       *_frg;

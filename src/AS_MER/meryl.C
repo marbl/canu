@@ -29,6 +29,8 @@
 #include "bio++.H"
 #include "meryl.H"
 
+#include "AS_MER_gkpStore_to_FastABase.H"
+
 //
 //  This is a SHADOW COPY!  The main really exists in kmer/meryl/meryl.C!
 //
@@ -36,6 +38,8 @@
 int
 main(int argc, char **argv) {
   merylArgs   *args = new merylArgs(argc, argv);
+
+  seqFactory::instance()->registerFile(new gkpStoreSequence());
 
   switch (args->personality) {
     case 'P':
