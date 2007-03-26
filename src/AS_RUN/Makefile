@@ -60,7 +60,6 @@ all: $(OBJECTS) $(LIBRARIES) $(PROGS) $(SCRIPTS)
 
 RUNCAOBTUTIL = runCA-OBT/runCAutil/applyOverlapCorrection.pl \
                runCA-OBT/runCAutil/checkOverlap.pl \
-               runCA-OBT/runCAutil/checkPostUnitiggerConsensus.pl \
                runCA-OBT/runCAutil/createConsensusJobs.pl \
                runCA-OBT/runCAutil/createFragmentCorrectionJobs.pl \
                runCA-OBT/runCAutil/createOverlapCorrectionJobs.pl \
