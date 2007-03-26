@@ -12,11 +12,11 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  FastAFile  seqs(argv[1]);
+  seqFile  *seqs = openSeqFile(argv[1]);
 
 #if 0
-  while (!seqs.eof()) {
-    FastASequenceInCore *aSeq = seqs.getSequence();
+  while (!seqs->eof()) {
+    seqInCore *aSeq = seqs->getSequenceInCore();
 
     fprintf(stdout, "%s\n%s\n\n", aSeq->header(), aSeq->sequence());
 
@@ -26,11 +26,11 @@ main(int argc, char **argv) {
 
 
 #if 1
-  seqs.openIndex();
-  for (int id=seqs.getNumberOfSequences() - 1; id>=0; id--) {
-    seqs.find(id);
+  seqs->openIndex();
+  for (int id=seqs->getNumberOfSequences() - 1; id>=0; id--) {
+    seqs->find(id);
 
-    FastASequenceOnDisk *aSeq = seqs.getSequenceOnDisk();
+    seqOnDisk *aSeq = seqs->getSequenceOnDisk();
 
     fprintf(stdout, "%s\n", aSeq->header());
 
@@ -66,5 +66,7 @@ main(int argc, char **argv) {
     delete aSeq;
   }
 #endif
+
+  delete seqs;
 }
 

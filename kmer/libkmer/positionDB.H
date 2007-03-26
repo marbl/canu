@@ -4,16 +4,20 @@
 #include <stdio.h>
 #include "bio++.H"
 
+//  The two existDB inputs can be either forward or canonical.  If
+//  canonical, we are smart enough to search exist/only with the
+//  canonical mer.
+
 typedef u64bit heapbit;
 
 //  Define this to leave out references to getTime(), speedCounter()
 //  and make the positionDB build very quietly.
 //
-//#define SILENTPOSITIONDB
+#undef SILENTPOSITIONDB
 
 //  Define these to enable some debugging methods
-//#define DEBUGPOSDB
-//#define DEBUGREBUILD
+#undef DEBUGPOSDB
+#undef DEBUGREBUILD
 
 class existDB;
 

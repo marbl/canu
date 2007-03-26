@@ -9,11 +9,11 @@
 
 class encodedQuery {
 public:
-  encodedQuery(FastASequenceInCore  *S,
-               u32bit                k);
+  encodedQuery(seqInCore  *S,
+               u32bit      k);
   ~encodedQuery();
 
-  void             test(FastASequenceInCore  *S);
+  void             test(seqInCore  *S);
 
   u32bit           IID(void)                 { return(_iid); };
 

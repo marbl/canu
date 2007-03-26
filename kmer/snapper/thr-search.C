@@ -3,7 +3,7 @@
 
 void
 doSearch(searcherState       *state,
-         FastASequenceInCore *seq,
+         seqInCore           *seq,
          u32bit               idx,
          bool                 rc,
          aHit               *&theHits,
@@ -146,13 +146,13 @@ doSearch(searcherState       *state,
 
       //  Grab the genomic sequence
       //
-      FastASequenceInCore  *GENseq = cache->getSequence(theHits[h]._dsIdx);
+      seqInCore            *GENseq = cache->getSequenceInCore(theHits[h]._dsIdx);
       u32bit                GENlo  = theHits[h]._dsLo;
       u32bit                GENhi  = theHits[h]._dsHi;
 
       //  Construct a merstream for the region
       //
-      merStream            *MS     = new merStream(config._merSize, GENseq->sequence() + GENlo, GENhi - GENlo);
+      merStream            *MS     = new merStream(config._merSize, GENseq, GENlo, GENhi - GENlo);
 
       //  Build a positionDB of the region.  This gets us both
       //  positions and counts.  Then fill out another hitMatrix,

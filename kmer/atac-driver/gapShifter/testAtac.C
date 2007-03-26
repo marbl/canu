@@ -65,8 +65,8 @@ main(int argc, char *argv[]) {
 
     u32bit identities = 0;
 
-    char  *a = Acache.getSequence(m->iid1)->sequence() + m->pos1;
-    char  *b = Bcache.getSequence(m->iid2)->sequence() + m->pos2;
+    char  *a = Acache.getSequenceInCore(m->iid1)->sequence() + m->pos1;
+    char  *b = Bcache.getSequenceInCore(m->iid2)->sequence() + m->pos2;
 
     if (m->fwd2) {
       for (u32bit p=0; p<m->len1; p++) {

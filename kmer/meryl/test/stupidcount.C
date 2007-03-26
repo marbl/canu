@@ -24,15 +24,17 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  FastAstream *FS = new FastAstream(seqName);
-  merStream   *MS = new merStream(merSize, FS);
-  char         str[1024];
+  chainedSequence *CS = new chainedSequence();
+  CS->setSource(seqName);
+  CS->finish();
+  merStream       *MS = new merStream(merSize, CS);
+  char             str[1024];
 
   while (MS->nextMer())
     fprintf(stdout, "%s\n", MS->theFMer().merToString(str));
 
   delete MS;
-  delete FS;
+  delete CS;
 
   exit(0);
 }

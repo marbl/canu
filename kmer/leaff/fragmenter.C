@@ -29,8 +29,8 @@ main(int argc, char **argv) {
   u32bit                desiredLength = 0;
   u32bit                overlapLength = 0;
   bool                  beVerbose = false;
-  FastABase            *F = 0L;
-  FastASequenceInCore  *B = 0L;
+  seqFile              *F = 0L;
+  seqInCore            *B = 0L;
   FILE                 *O = 0L;
   FILE                 *L = 0L;
 
@@ -43,7 +43,7 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-overlap") == 0) {
       overlapLength = strtou32bit(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-input") == 0) {
-      F = new FastAFile(argv[++arg]);
+      F = openSeqFile(argv[++arg]);
     } else if (strcmp(argv[arg], "-output") == 0) {
       errno = 0;
       O = fopen(argv[++arg], "w");
@@ -66,7 +66,7 @@ main(int argc, char **argv) {
   if ((F == 0L) || (O == 0L) || (L == 0L))
     usage(argv[0]);
 
-  B = F->getSequence();
+  B = F->getSequenceInCore();
   while (B) {
     if (beVerbose)
       fprintf(stderr, "working on %s\n", B->header());
@@ -181,7 +181,7 @@ main(int argc, char **argv) {
     delete [] end;
 
     delete B;
-    B = F->getSequence();
+    B = F->getSequenceInCore();
   }
 
   fclose(L);

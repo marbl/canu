@@ -5,7 +5,7 @@
 
 //
 //  Contains the variable stuff for an execution of sim4
-//    access to sequences (via FastABase)
+//    access to sequences (via seqFile)
 //    genomic iid
 //    genomic range
 //    est iid (maybe more than one)
@@ -19,23 +19,23 @@ public:
   //  Run a single EST against a genomic range
   //
   sim4command(u32bit        ESTid,
-              FastABase    *ESTs,
+              seqFile    *ESTs,
               u32bit        GENid,
               u32bit        GENlo,
               u32bit        GENhi,
-              FastABase    *GENs,
+              seqFile    *GENs,
               bool          doForward,
               bool          doReverse);
 
   //  Single EST against a genomic range, using alternative
   //  interface.
   //
-  sim4command(FastASequenceInCore  *EST,
-              FastASequenceInCore  *GEN,
-              u32bit                GENlo,
-              u32bit                GENhi,
-              bool                  doForward,
-              bool                  doReverse);
+  sim4command(seqInCore  *EST,
+              seqInCore  *GEN,
+              u32bit      GENlo,
+              u32bit      GENhi,
+              bool        doForward,
+              bool        doReverse);
 
   //  Use two char*'s for sequence sources -- both sequence deflines
   //  and iid's are undefined!
@@ -107,8 +107,8 @@ private:
 
   u32bit                _estIdx;
 
-  FastABase            *_ESTs;
-  FastASequenceInCore  *_ESTloaded;
+  seqFile              *_ESTs;
+  seqInCore            *_ESTloaded;
   char                 *_ESTsequence;
   u32bit                _ESTsequenceLength;  //  valid only for _ESTsequence
 
@@ -116,8 +116,8 @@ private:
   u32bit                _genLo;
   u32bit                _genHi;
 
-  FastABase            *_GENs;
-  FastASequenceInCore  *_GENloaded;
+  seqFile              *_GENs;
+  seqInCore            *_GENloaded;
   char                 *_GENsequence;
   u32bit                _GENsequenceLength;
 

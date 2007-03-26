@@ -79,8 +79,8 @@ readMatches(atacFileStreamMerge   &AF,
   u32bit               iid1 = m->iid1;
   u32bit               iid2 = m->iid2;
 
-  FastASequenceInCore *seq1 = C1->getSequence(iid1);
-  FastASequenceInCore *seq2 = C2->getSequence(iid2);
+  seqInCore *seq1 = C1->getSequenceInCore(iid1);
+  seqInCore *seq2 = C2->getSequenceInCore(iid2);
 
   while (m) {
     if ((m->iid1 == iid1) && (m->iid2 == iid2)) {

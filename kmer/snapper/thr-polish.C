@@ -4,7 +4,7 @@
 
 char*
 doPolish(searcherState       *state,
-         FastASequenceInCore *seq,
+         seqInCore           *seq,
          aHit               *&theHits,
          u32bit              &theHitsLen,
          logMsg              *theLog) {
@@ -91,8 +91,8 @@ doPolish(searcherState       *state,
     //
 
 
-    FastASequenceInCore  *ESTseq = seq;
-    FastASequenceInCore  *GENseq = cache->getSequence(theHits[h]._dsIdx);
+    seqInCore            *ESTseq = seq;
+    seqInCore            *GENseq = cache->getSequenceInCore(theHits[h]._dsIdx);
     u32bit                GENlo  = theHits[h]._dsLo;
     u32bit                GENhi  = theHits[h]._dsHi;
 

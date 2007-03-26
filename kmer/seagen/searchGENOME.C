@@ -34,7 +34,7 @@ main(int argc, char **argv) {
   if (config._beVerbose)
     fprintf(stderr, "Opening the cDNA sequences.\n");
 
-  config._qsFASTA = new FastAFile(config._qsFileName);
+  config._qsFASTA = openSeqFile(config._qsFileName);
   config._qsFASTA->openIndex();
 
   //  Complete the configuration

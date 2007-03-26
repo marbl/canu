@@ -33,7 +33,7 @@ public:
 
 void
 doSearch(searcherState *state,
-         FastASequenceInCore *seq,
+         seqInCore *seq,
          u32bit idx,
          bool rc,
          filterObj *FO) {
@@ -48,10 +48,6 @@ doSearch(searcherState *state,
   startTime = getTime();
   query = new encodedQuery(seq->sequence(), seq->sequenceLength(), config._merSize, rc);
   state->encodeTime += getTime() - startTime;
-
-  //  bpw, 20050310 - there was no masking?
-  //startTime = getTime();
-  //state->maskTime += getTime() - startTime;
 
   //  Get the hits
   //
@@ -79,7 +75,7 @@ doSearch(searcherState *state,
 void*
 searchThread(void *U) {
   u32bit               idx      = 0;
-  FastASequenceInCore *seq      = 0L;
+  seqInCore           *seq      = 0L;
   u32bit               blockedI = 0;
   u32bit               blockedO = 0;
   u32bit               computed = 0;

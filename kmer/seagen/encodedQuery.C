@@ -2,8 +2,8 @@
 
 #include "encodedQuery.H"
 
-encodedQuery::encodedQuery(FastASequenceInCore  *S,
-                           u32bit                k) {
+encodedQuery::encodedQuery(seqInCore  *S,
+                           u32bit      k) {
 
   _iid             = S->getIID();
   _sequenceLength  = S->sequenceLength();
@@ -36,8 +36,8 @@ encodedQuery::encodedQuery(FastASequenceInCore  *S,
     substring <<= 2;
     substring  &= mermask;
 
-    if (validSymbol[(int)seq[i]]) {
-      substring |= compressSymbol[ (int)seq[i] ];
+    if (validSymbol[seq[i]]) {
+      substring |= compressSymbol[ seq[i] ];
       timeUntilValid--;
     } else {
       timeUntilValid = k;
@@ -62,7 +62,7 @@ encodedQuery::~encodedQuery() {
 
 
 void
-encodedQuery::test(FastASequenceInCore *S) {
+encodedQuery::test(seqInCore *S) {
 
   //  We assume we've been initialized with the forward version!
 
@@ -90,8 +90,8 @@ encodedQuery::test(FastASequenceInCore *S) {
     substring <<= 2;
     substring  &= mermask;
 
-    if (validSymbol[(int)seq[seqLen - 1 - i]]) {
-      substring |= compressSymbol[ complementSymbol[ (int)seq[seqLen - 1 - i] ]];
+    if (validSymbol[seq[seqLen - 1 - i]]) {
+      substring |= compressSymbol[ complementSymbol[ seq[seqLen - 1 - i] ]];
       timeUntilValid--;
     } else {
       timeUntilValid = k;
@@ -114,8 +114,8 @@ encodedQuery::test(FastASequenceInCore *S) {
     substring <<= 2;
     substring  &= mermask;
 
-    if (validSymbol[(int)seq[seqLen - 1 - i]]) {
-      substring |= compressSymbol[ complementSymbol[ (int)seq[seqLen - 1 - i] ]];
+    if (validSymbol[seq[seqLen - 1 - i]]) {
+      substring |= compressSymbol[ complementSymbol[ seq[seqLen - 1 - i] ]];
       timeUntilValid--;
     } else {
       timeUntilValid = k;

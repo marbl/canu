@@ -36,13 +36,13 @@
 
 
 void
-writeGaplessSequence(FILE                *output,
-                     FastASequenceInCore *S,
-                     u32bit               beg,
-                     u32bit               end,
-                     u32bit               extend,
-                     atacMatch           *l,
-                     atacMatch           *r) {
+writeGaplessSequence(FILE         *output,
+                     seqInCore    *S,
+                     u32bit        beg,
+                     u32bit        end,
+                     u32bit        extend,
+                     atacMatch    *l,
+                     atacMatch    *r) {
   char  *s = S->sequence();
 
 
@@ -248,9 +248,9 @@ extractUnmapped(FastACache *A, FastACache *B,
     coveredA[seq].sort1();
 
     //ML.fastaA()->find(seq);
-    //FastASequenceInCore  *S = ML.fastaA()->getSequence();
+    //seqInCore  *S = ML.fastaA()->getSequenceInCore();
 
-    FastASequenceInCore *S = A->getSequence(seq);
+    seqInCore *S = A->getSequenceInCore(seq);
 
     if (coveredA[seq].len() == 0) {
       //  Hey!  This sequence has NO matches at all!
@@ -305,7 +305,7 @@ extractUnmapped(FastACache *A, FastACache *B,
   for (u32bit seq=0; seq<numSeqsB; seq++) {
     coveredB[seq].sort2();
 
-    FastASequenceInCore *S = B->getSequence(seq);
+    seqInCore *S = B->getSequenceInCore(seq);
 
     if (coveredB[seq].len() == 0) {
       //  Hey!  This sequence has NO matches at all!
@@ -365,8 +365,8 @@ extractUnmappedRuns(FastACache *A, FastACache *B,
                     FILE *ARoutput, FILE *BRoutput,
                     u32bit extend,
                     atacMatchList &ML) {
-  FastASequenceInCore  *S1 = 0L;
-  FastASequenceInCore  *S2 = 0L;
+  seqInCore  *S1 = 0L;
+  seqInCore  *S2 = 0L;
 
   atacMatchOrder  MO(ML);
   MO.sortA();
@@ -399,17 +399,17 @@ extractUnmappedRuns(FastACache *A, FastACache *B,
       if (l->iid1 != S1->getIID()) {
         delete S1;
         W1->find(l->iid1);
-        S1 = W1->getSequence();
+        S1 = W1->getSequenceInCore();
       }
 
       if (l->iid2 != S2->getIID()) {
         delete S2;
         W2->find(l->iid2);
-        S2 = W2->getSequence();
+        S2 = W2->getSequenceInCore();
       }
 #else
-      S1 = A->getSequence(l->iid1);
-      S2 = B->getSequence(l->iid2);
+      S1 = A->getSequenceInCore(l->iid1);
+      S2 = B->getSequenceInCore(l->iid2);
 #endif
 
       writeGaplessSequence(ARoutput,
@@ -544,16 +544,16 @@ main(int argc, char *argv[]) {
       u32bit len    = strtou32bit(W[3], 0L);
       bool   fwd    = (W[4][0] != '-');
 
-      FastASequenceInCore  *S = 0L;
-      char                 *s = 0L;
+      seqInCore   *S = 0L;
+      char        *s = 0L;
 
       if (source == 'B') {
-        S = A->getSequence(iid);
-        s = A->getSequence(iid)->sequence();
+        S = A->getSequenceInCore(iid);
+        s = A->getSequenceInCore(iid)->sequence();
         statidx = 0;
       } else if (source == 'H') {
-        S = B->getSequence(iid);
-        s = B->getSequence(iid)->sequence();
+        S = B->getSequenceInCore(iid);
+        s = B->getSequenceInCore(iid)->sequence();
         statidx = 1;
       } else {
         fprintf(stderr, "Unknown source '%c'\n", source);

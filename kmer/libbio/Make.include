@@ -8,22 +8,12 @@ src    := $/alphabet.c \
           $/bio.h \
           $/chainedSequence.C \
           $/chainedSequence.H \
-          $/fasta-buildindex.C \
           $/fasta-c.C \
           $/fasta-c.h \
           $/fasta-cache.C \
           $/fasta-cache.H \
-          $/fasta-find-id.C \
-          $/fasta-find-iid.C \
-          $/fasta-openindex.C \
-          $/fasta-sequenceincore.C \
-          $/fasta-sequenceincore.H \
-          $/fasta-sequenceondisk.C \
-          $/fasta-sequenceondisk.H \
-          $/fasta-types.H \
           $/fasta.C \
           $/fasta.H \
-          $/fastastream.H \
           $/halign.c \
           $/kmer.H \
           $/merCovering.H \
@@ -33,7 +23,9 @@ src    := $/alphabet.c \
           $/merstream.H \
           $/merstreamfile.C \
           $/merstreamfile.H \
-          $/reversecomplement.c
+          $/reversecomplement.c \
+          $/seq.C
+
 
 $/.C_SRCS    :=$(filter %.c,${src})
 $/.CXX_SRCS  :=$(filter %.C,${src})

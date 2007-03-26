@@ -13,13 +13,13 @@ reverseComplementSequence(char *seq, u32bit seqlen) {
   u32bit  c = seqlen / 2;
 
   while (c--) {
-    t = complementSymbol[(int)*s];
-    *(s++) = complementSymbol[(int)*e];
+    t = complementSymbol[*s];
+    *(s++) = complementSymbol[*e];
     *(e--) = t;
   }
 
   if (s == e)
-    *s = complementSymbol[(int)*s];
+    *s = complementSymbol[*s];
 
   return(seq);
 }

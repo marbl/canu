@@ -11,14 +11,14 @@ class match_s {
 public:
   char    _matchId[32];
 
-  FastASequenceInCore  *_seq1;
+  seqInCore  *_seq1;
   FastAAccessor  *_acc1;
   u32bit  _iid1;
   u32bit  _pos1;
   u32bit  _len1;
   u32bit  _ori1;
 
-  FastASequenceInCore  *_seq2;
+  seqInCore  *_seq2;
   FastAAccessor  *_acc2;
   u32bit  _iid2;
   u32bit  _pos2;
@@ -32,8 +32,8 @@ public:
 
 public:
   match_s(char *matchId,
-          FastASequenceInCore *s1, u32bit i1, u32bit p1, u32bit l1, u32bit o1,
-          FastASequenceInCore *s2, u32bit i2, u32bit p2, u32bit l2, u32bit o2) {
+          seqInCore *s1, u32bit i1, u32bit p1, u32bit l1, u32bit o1,
+          seqInCore *s2, u32bit i2, u32bit p2, u32bit l2, u32bit o2) {
 
     strncpy(_matchId, matchId, 32);
 
@@ -115,11 +115,11 @@ public:
       extendRight(m->_acc1->getRangeEnd() - _acc1->getRangeEnd());
   };
 
-  u32bit  len(void) { return(_acc1->getRangeEnd() - _acc1->getRangeBegin()); };
-  u32bit  pos1(void) { return(_acc1->getRangeBegin()); };
-  u32bit  pos2(void) { return(_acc2->getRangeBegin()); };
-  FastASequenceInCore  *seq1(void) { return(_seq1); };
-  FastASequenceInCore  *seq2(void) { return(_seq2); };
+  u32bit      len(void)  { return(_acc1->getRangeEnd() - _acc1->getRangeBegin()); };
+  u32bit      pos1(void) { return(_acc1->getRangeBegin()); };
+  u32bit      pos2(void) { return(_acc2->getRangeBegin()); };
+  seqInCore  *seq1(void) { return(_seq1); };
+  seqInCore  *seq2(void) { return(_seq2); };
 };
 
 #endif  //  MATCH_H

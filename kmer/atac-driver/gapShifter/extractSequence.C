@@ -106,7 +106,7 @@ main(int argc, char *argv[]) {
         ((Biid == ~u32bitZERO) || (Biid == m->iid2))) {
 
       if (Aoutput) {
-        FastASequenceInCore *S = A->getSequence(m->iid1);
+        seqInCore *S = A->getSequenceInCore(m->iid1);
 
         fprintf(Aoutput, "%s extracted from iid "u32bitFMT" pos "u32bitFMT" "u32bitFMT" match %s(%s)\n",
                 S->header(), S->getIID(),
@@ -117,7 +117,7 @@ main(int argc, char *argv[]) {
       }
 
       if (Boutput) {
-        FastASequenceInCore *S = B->getSequence(m->iid2);
+        seqInCore *S = B->getSequenceInCore(m->iid2);
 
         fprintf(Boutput, "%s extracted from iid "u32bitFMT" pos "u32bitFMT" "u32bitFMT" match %s(%s)\n",
                 S->header(), S->getIID(),

@@ -8,12 +8,12 @@
 //  Shared data
 //
 configuration          config;
-FastABase             *qsFASTA          = 0L;
+seqFile               *qsFASTA          = 0L;
 positionDB            *positions        = 0L;
 volatile u32bit        numberOfQueries  = 0;
 filterObj            **output           = 0L;
 pthread_mutex_t        inputTailMutex;
-FastASequenceInCore  **input            = 0L;
+seqInCore            **input            = 0L;
 volatile u32bit        inputHead        = 0;
 volatile u32bit        inputTail        = 0;
 volatile u32bit        outputPos        = 0;
@@ -89,12 +89,12 @@ main(int argc, char **argv) {
 
   //  Open and init the query sequence
   //
-  qsFASTA = new FastAFile(config._qsFileName);
+  qsFASTA = openSeqFile(config._qsFileName);
   qsFASTA->openIndex();
 
   numberOfQueries  = qsFASTA->getNumberOfSequences();
   output           = new filterObj * [numberOfQueries];
-  input            = new FastASequenceInCore * [numberOfQueries];
+  input            = new seqInCore * [numberOfQueries];
   inputHead        = 0;
   inputTail        = 0;
 
@@ -141,14 +141,14 @@ main(int argc, char **argv) {
     if (config._maskFileName) {
       if (config._beVerbose)
         fprintf(stderr, "Building maskDB from '%s'\n", config._maskFileName);
-      maskDB = new existDB(config._maskFileName, config._merSize, tblSize, 0, ~u32bitZERO, existDBverbose | existDBcompressHash | existDBcompressBuckets);
+      maskDB = new existDB(config._maskFileName, config._merSize, tblSize, 0, ~u32bitZERO, existDBcanonical | existDBcompressHash | existDBcompressBuckets);
     }
 
     existDB *onlyDB = 0L;
     if (config._onlyFileName) {
       if (config._beVerbose)
         fprintf(stderr, "Building onlyDB from '%s'\n", config._onlyFileName);
-      onlyDB = new existDB(config._onlyFileName, config._merSize, tblSize, 0, ~u32bitZERO, existDBverbose | existDBcompressHash | existDBcompressBuckets);
+      onlyDB = new existDB(config._onlyFileName, config._merSize, tblSize, 0, ~u32bitZERO, existDBcanonical | existDBcompressHash | existDBcompressBuckets);
     }
 
     merStream *MS = new merStream(config._merSize, &config._useList);

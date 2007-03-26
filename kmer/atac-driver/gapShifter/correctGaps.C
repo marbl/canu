@@ -73,8 +73,8 @@ main(int argc, char *argv[]) {
   FastACache           *C1 = new FastACache(AF.assemblyFileA(),    2, false, false);
   FastACache           *C2 = new FastACache(AF.assemblyFileB(), 1024, false, false);
 
-  FastASequenceInCore  *S1 = 0L;
-  FastASequenceInCore  *S2 = 0L;
+  seqInCore  *S1 = 0L;
+  seqInCore  *S2 = 0L;
 
   for (u32bit iter=0; iter<10; iter++) {
     u32bit  gapsize = 1000;
@@ -106,8 +106,8 @@ main(int argc, char *argv[]) {
 
             if ((gap1 == gap2) &&
                 (gap1 <= gapsize)) {
-              S1 = C1->getSequence(l->iid1);
-              S2 = C2->getSequence(l->iid2);
+              S1 = C1->getSequenceInCore(l->iid1);
+              S2 = C2->getSequenceInCore(l->iid2);
 
               char *s1 = S1->sequence() + l->pos1 + l->len1;
               char *s2 = S2->sequence() + l->pos2 + l->len1;
@@ -165,8 +165,8 @@ main(int argc, char *argv[]) {
             if ((gap1 == gap2) &&
                 (gap1 <= gapsize)) {
 
-              S1 = C1->getSequence(l->iid1);
-              S2 = C2->getSequence(l->iid2);
+              S1 = C1->getSequenceInCore(l->iid1);
+              S2 = C2->getSequenceInCore(l->iid2);
 
               char *s1 = S1->sequence() + l->pos1 + l->len1;
               char *s2 = S2->sequence() + r->pos2 + r->len2;

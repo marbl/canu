@@ -74,8 +74,8 @@ u32bit  totLQ = 0;
 u32bit  totMQ = 0;
 u32bit  totRQ = 0;
 
-FastABase    *SEQ = 0L;
-FastABase    *QLT = 0L;
+seqFile      *SEQ = 0L;
+seqFile      *QLT = 0L;
 
 double       filter      = 0.0;
 FILE        *oFile       = 0L;
@@ -94,7 +94,7 @@ analyze(u32bit   iid,
         char     type) {
 
   QLT->find(iid);
-  FastASequenceInCore  *Q = QLT->getSequence();;
+  seqInCore  *Q = QLT->getSequenceInCore();;
 
   char  *q = Q->sequence();
 
@@ -457,9 +457,9 @@ addToDict(dict_t *d, char *n) {
   if (n == 0L)
     return;
 
-  FastABase  *F = new FastAFile(n);
+  seqFile  *F = openSeqFile(n);
   while (!F->eof()) {
-    FastASequenceInCore *S = F->getSequence();
+    seqInCore *S = F->getSequenceInCore();
 
     node = (dnode_t *)palloc(sizeof(dnode_t));
     dcpy = (char    *)palloc(sizeof(char) * S->headerLength() + 1);
@@ -537,11 +537,11 @@ main(int argc, char **argv) {
       addToDict(SEQdict, argv[arg]);
     } else if (strcmp(argv[arg], "-f") == 0) {
       ++arg;
-      SEQ = new FastAFile(argv[arg]);
+      SEQ = openSeqFile(argv[arg]);
       SEQ->openIndex();
     } else if (strcmp(argv[arg], "-q") == 0) {
       ++arg;
-      QLT = new FastAFile(argv[arg]);
+      QLT = openSeqFile(argv[arg]);
       QLT->openIndex();
 
     } else if (strcmp(argv[arg], "-filter") == 0) {

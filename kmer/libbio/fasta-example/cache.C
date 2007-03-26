@@ -25,7 +25,7 @@ main(int argc, char **argv) {
 
   //  Grab the second sequence from the cache
   //
-  FastASequenceInCore  *seq = cache.getSequence(atoi(argv[1]));
+  seqInCore  *seq = cache.getSequenceInCore(atoi(argv[1]));
 
   //  And do something with the sequence
   //

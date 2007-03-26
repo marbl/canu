@@ -142,7 +142,7 @@ public:
   void  display(FILE *out=stdout);
   void  writeATACheader(FILE *out);
 
-  void  completeUseList(FastABase *db);
+  void  completeUseList(seqFile *db);
 
   void  setTime(struct timespec *ts, double t) {
     ts->tv_sec  = (time_t)floor(t);
@@ -163,7 +163,7 @@ private:
 //
 extern configuration          config;
 
-extern FastABase             *qsFASTA;  //  Used exclusively by thr-loader.C
+extern seqFile               *qsFASTA;  //  Used exclusively by thr-loader.C
 
 extern positionDB            *positions;
 
@@ -172,7 +172,7 @@ extern volatile u32bit        numberOfQueries;
 extern filterObj            **output;
 
 extern pthread_mutex_t        inputTailMutex;
-extern FastASequenceInCore  **input;
+extern seqInCore            **input;
 extern volatile u32bit        inputHead;
 extern volatile u32bit        inputTail;
 

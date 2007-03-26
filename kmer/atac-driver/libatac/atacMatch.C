@@ -121,7 +121,7 @@ atacMatch::decode(char *line) {
 //  sequence itself.
 //
 bool
-atacMatch::sanity(FastABase *A, FastABase *B, char *inLine) {
+atacMatch::sanity(seqFile *A, seqFile *B, char *inLine) {
 
   bool matchOK = true;
 

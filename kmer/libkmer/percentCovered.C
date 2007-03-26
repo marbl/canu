@@ -19,15 +19,15 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  existDB              *E = new existDB(merFile, 22, 17);
-  FastABase            *Q = new FastAFile(queryFile);
-  FastASequenceInCore  *S = Q->getSequence();
+  existDB      *E = new existDB(merFile, 22, 17);
+  seqFile      *Q = openSeqFile(queryFile);
+  seqInCore    *S = Q->getSequenceInCore();
 
   intervalList          IL;
   speedCounter          SC(" %8f frags (%8.5f frags/sec)\r", 1, 1000, true);
 
   while (S) {
-    merStream     *MS = new merStream(22, S->sequence(), S->sequenceLength());
+    merStream     *MS = new merStream(22, S);
 
     IL.clear();
 
@@ -49,7 +49,7 @@ main(int argc, char **argv) {
 
     SC.tick();
 
-    S = Q->getSequence();
+    S = Q->getSequenceInCore();
   }
 
   delete Q;

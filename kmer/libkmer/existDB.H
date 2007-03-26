@@ -3,33 +3,24 @@
 
 #include "bio++.H"
 
-//
 //  Takes as input a list of mers (in a file) and builds a searchable
-//  structure listing those mers.  Doesn't remove duplicate mers.
+//  structure listing those mers.  Duplicate mers are not removed and
+//  will be stored multiple times.
 //
-//  Insert either the forward of the reverse mer only if it exists in
-//  the positionDB.
+//  Using a compressed hash is allowed, but somewhat useless -- it is
+//  really slow and doesn't save that much.
 //
+//  If existDBcanonical is requested, this will store only the
+//  canonical mer.  It is up to the client to be sure that is
+//  appropriate!  See positionDB.H for more.
 
-//  Extend to allow runtime selection of COMPRESSED_HASH and COMPRESSED_BUCKET.
-//  Extend to allow runtime enable of VERBOSE (currently always not verbose)
-//  Extend to allow optimal memory sizing ala meryl (only if we are given meryl as input)
-
-//  Using a compressed hash is extreme -- really slow and doesn't save that much.
-
-//  Print some statistics
-//
 //#define STATS
-
-//#define VERBOSE_BUILD
 
 typedef u32bit existDBflags;
 const existDBflags  existDBcompressHash    = 0x0001;
 const existDBflags  existDBcompressBuckets = 0x0002;
-const existDBflags  existDBverbose         = 0x0004;
 const existDBflags  existDBcanonical       = 0x0008;
 const existDBflags  existDBforward         = 0x0010;
-const existDBflags  existDBreverse         = 0x0020;
 
 class existDB {
 public:
@@ -51,10 +42,12 @@ public:
 
   void        printState(FILE *stream);
 
-  //  Inlining this is a loss on x86.
-  //
+  bool        isForward(void)    { return(_isForward);   };
+  bool        isCanonical(void)  { return(_isCanonical); };
+
   bool        exists(u64bit mer);
   bool        exists(u64bit b, u64bit c);
+
 private:
   bool        loadState(char const *filename, bool beNoisy=false, bool loadData=true);
   bool        createFromFastA(char const  *filename,
@@ -76,9 +69,6 @@ private:
   };
 
   void         insertMer(u64bit h, u64bit c, u64bit *countingTable) {
-#ifdef VERBOSE_BUILD
-    fprintf(stderr, "existDB::insert()-- h="u64bitHEX" c="u64bitHEX"\n", h, c);
-#endif
     if (_compressedBucket)
       setDecodedValue(_buckets, countingTable[h] * _chckWidth, _chckWidth, c);
     else
@@ -88,7 +78,8 @@ private:
 
   bool        _compressedHash;
   bool        _compressedBucket;
-  bool        _beVerbose;
+  bool        _isForward;
+  bool        _isCanonical;
 
   u32bit      _merSizeInBases;
 

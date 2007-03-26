@@ -25,8 +25,8 @@ void removeTmpFile(void) {
 
 void
 test1(int style) {
-  FastASequenceInCore  *x;
-  FILE *O = openTmpFile();
+  seqInCore  *x;
+  FILE       *O = openTmpFile();
 
   FastAFileWrapper  F(filename);
 
@@ -48,7 +48,7 @@ test1(int style) {
   }
 
   while (!F.eof()) {
-    x = F.getSequence();
+    x = F.getSequenceInCore();
     fprintf(O, "%s\n%s\n", x->header(), x->sequence());
     delete x;
   }
@@ -61,7 +61,7 @@ test1(int style) {
 
 void
 test2(int style, char *target) {
-  FastASequenceInCore  *x;
+  seqInCore  *x;
 
   FastAFileWrapper  F(filename);
 
@@ -91,7 +91,7 @@ test2(int style, char *target) {
       break;
   }
 
-  x = F.getSequence();
+  x = F.getSequenceInCore();
   fprintf(stderr, "%s\n%s\n", x->header(), x->sequence());
   delete x;
 }
@@ -99,7 +99,7 @@ test2(int style, char *target) {
 
 void
 test3(void) {
-  FastASequenceInCore  *x;
+  seqInCore  *x;
 
   FastAFileWrapper  F(filename);
 
@@ -107,7 +107,7 @@ test3(void) {
 
   while (!F.eof()) {
     fprintf(stderr, "%d\n", i++);
-    x = F.getSequence();
+    x = F.getSequenceInCore();
     fprintf(stderr, "%s\n", x->header());
   }
 }
@@ -156,21 +156,21 @@ main(int argc, char **argv) {
 
 #if 0
   F.find(0);
-  x = F.getSequence();
+  x = F.getSequenceInCore();
   fprintf(stdout, "h=%s\ns=%s\n", x->header(), x->sequence());
   delete x;
 
   F.find(1);
-  x = F.getSequence();
+  x = F.getSequenceInCore();
   fprintf(stdout, "h=%s\ns=%s\n", x->header(), x->sequence());
   delete x;
 
   F.find(0);
-  x = F.getSequence();
+  x = F.getSequenceInCore();
   fprintf(stdout, "h=%s\ns=%s\n", x->header(), x->sequence());
   delete x;
 
-  x = F.getSequence();
+  x = F.getSequenceInCore();
   fprintf(stdout, "h=%s\ns=%s\n", x->header(), x->sequence());
   delete x;
 #endif

@@ -2,14 +2,14 @@
 #include "fasta-c.h"
 
 typedef struct {
-  FastABase           *F;
-  FastASequenceInCore *B;
+  seqFile    *F;
+  seqInCore  *B;
 } _fasta_c_private;
 
 void*
 createFastA(char *file) {
   _fasta_c_private  *c = new _fasta_c_private;
-  c->F = new FastAFile(file);
+  c->F = openSeqFile(file);
   c->F->openIndex();
   c->B = 0L;
   return(c);
@@ -32,7 +32,7 @@ getFastAsequence(void *c, int idx) {
       fprintf(stderr, "Can't find iid=%u in %s\n", idx, C->F->getSourceName());
       exit(1);
     }
-    C->B = C->F->getSequence();
+    C->B = C->F->getSequenceInCore();
   }
 
   if (C->B->getIID() != (u32bit)idx) {
@@ -41,7 +41,7 @@ getFastAsequence(void *c, int idx) {
       fprintf(stderr, "Can't find iid=%u in %s\n", idx, C->F->getSourceName());
       exit(1);
     }
-    C->B = C->F->getSequence();
+    C->B = C->F->getSequenceInCore();
   }
 
   return(C->B->sequence());
@@ -63,7 +63,7 @@ getFastAheader(void *c, int idx) {
       fprintf(stderr, "Can't find iid=%u in %s\n", idx, C->F->getSourceName());
       exit(1);
     }
-    C->B = C->F->getSequence();
+    C->B = C->F->getSequenceInCore();
   }
 
   if (C->B->getIID() != (u32bit)idx) {
@@ -72,7 +72,7 @@ getFastAheader(void *c, int idx) {
       fprintf(stderr, "Can't find iid=%u in %s\n", idx, C->F->getSourceName());
       exit(1);
     }
-    C->B = C->F->getSequence();
+    C->B = C->F->getSequenceInCore();
   }
 
   return(C->B->header());

@@ -25,7 +25,7 @@
 //  phases.
 //
 #define MER_REMOVAL_DURING_XFER
-//#define MER_REMOVAL_TEST
+#undef  MER_REMOVAL_TEST
 
 
 positionDB::positionDB(char const    *filename,
@@ -156,15 +156,7 @@ positionDB::positionDB(merStream   *MS,
   }
   bool     bktAllocIsJunk = false;
 
-  //  Who knows which one is better...we'll assume that, by now,
-  //  library writers know how to zero out memory pretty fast.
-  //
-#if 0
-  bzero(bktAlloc, sizeof(u64bit) * _tableSizeInEntries / 2 + 4);
-#else
-  for (u64bit i=0; i<_tableSizeInEntries / 2 + 4; i++)
-    bktAlloc[i] = u64bitZERO;
-#endif
+  bzero(bktAlloc, sizeof(u64bit) * (_tableSizeInEntries / 2 + 4));
 
   //  Why +2?  We try to reuse the bktAlloc space for the hash table,
   //  which is constructed from the bucketSizes.  The hashTable is
@@ -212,9 +204,11 @@ positionDB::positionDB(merStream   *MS,
 
 #ifndef MER_REMOVAL_DURING_XFER
   if (mask) {
+    bool  isCanonical = mask->isCanonical();
+
     while (MS->nextMer(_merSkipInBases)) {
       u64bit  canonicalmer = MS->theFMer();
-      if (canonicalmer > MS->theRMer())
+      if ((isCanonical) && (canonicalmer > MS->theRMer()))
         canonicalmer = MS->theRMer();
 
       if (!mask->exists(canonicalmer)) {
@@ -226,9 +220,11 @@ positionDB::positionDB(merStream   *MS,
       C->tick();
     }
   } else if (only) {
+    bool  isCanonical = only->isCanonical();
+
     while (MS->nextMer(_merSkipInBases)) {
       u64bit  canonicalmer = MS->theFMer();
-      if (canonicalmer > MS->theRMer())
+      if ((isCanonical) && (canonicalmer > MS->theRMer()))
         canonicalmer = MS->theRMer();
 
       if (only->exists(canonicalmer)) {
@@ -359,10 +355,11 @@ positionDB::positionDB(merStream   *MS,
 
 #ifndef MER_REMOVAL_DURING_XFER
   if (mask) {
+    bool  isCanonical = mask->isCanonical();
 
     while (MS->nextMer(_merSkipInBases)) {
       u64bit  canonicalmer = MS->theFMer();
-      if (canonicalmer > MS->theRMer())
+      if ((isCanonical) && (canonicalmer > MS->theRMer()))
         canonicalmer = MS->theRMer();
 
       if (!mask->exists(canonicalmer)) {
@@ -377,10 +374,11 @@ positionDB::positionDB(merStream   *MS,
 
 
   } else if (only) {
+    bool  isCanonical = only->isCanonical();
 
     while (MS->nextMer(_merSkipInBases)) {
       u64bit  canonicalmer = MS->theFMer();
-      if (canonicalmer > MS->theRMer())
+      if ((isCanonical) && (canonicalmer > MS->theRMer()))
         canonicalmer = MS->theRMer();
 
       if (only->exists(canonicalmer)) {
@@ -734,16 +732,27 @@ positionDB::positionDB(merStream   *MS,
         //  forward or reverse exists (or doesn't exist).
 
         u64bit m = REBUILD(b, (_sortedList[stM] & checkMask) >> _posnWidth);
-        u64bit r = reverseComplementMer(_merSizeInBases, m);
+        u64bit r;
 
-        if (r < m)
-          m = r;
+        if (mask) {
+          if (mask->isCanonical()) {
+            r = reverseComplementMer(_merSizeInBases, m);
+            if (r < m)
+              m = r;
+          }
+          if (mask->exists(m))
+            useMer = false;
+        }
 
-        if ((mask) && (mask->exists(m)))
-          useMer = false;
-
-        if ((only) && (!only->exists(m)))
-          useMer = false;
+        if (only) {
+          if (only->isCanonical()) {
+            r = reverseComplementMer(_merSizeInBases, m);
+            if (r < m)
+              m = r;
+          }
+          if (!only->exists(m))
+            useMer = false;
+        }
       }
 
       if (edM - stM > maxCount)
@@ -920,6 +929,9 @@ positionDB::positionDB(merStream   *MS,
 
 
 #ifdef MER_REMOVAL_TEST
+
+  //  this was not updated to deal with canonical mers
+
   MS->rewind();
   if (mask) {
     if (beVerbose)

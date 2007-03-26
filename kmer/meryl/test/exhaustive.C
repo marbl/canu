@@ -112,8 +112,10 @@ main(int argc, char **argv) {
     //  STEP 2:  Stream the original file, decrementing the count
     //
     fprintf(stderr, "STEP 2 BATCH "u32bitFMTW(2)":  Stream fasta\n", batch);
-    FastAstream  *FS = new FastAstream(fastaName);
-    merStream    *MS = new merStream(merSize, FS);
+    chainedSequence  *CS = new chainedSequence();
+    CS->setSource(fastaName);
+    CS->finish();
+    merStream        *MS = new merStream(merSize, CS);
 
     kMerLite       mer;
     dnode_t       *nod;
@@ -140,7 +142,7 @@ main(int argc, char **argv) {
     }
 
     delete MS;
-    delete FS;
+    delete CS;
 
     //  STEP 3:  Check every node in the tree to make sure that the counts
     //  are exactly zero.

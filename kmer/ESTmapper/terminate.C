@@ -76,7 +76,7 @@ public:
     return(result);
   };
 
-  void     writeSequence(FastASequenceInCore *S) {
+  void     writeSequence(seqInCore *S) {
     fprintf(otFile, "%s\n%s\n", S->header(), S->sequence());
   };
 
@@ -139,8 +139,8 @@ main(int argc, char **argv) {
 
   FILE                 *defaultOut = 0L;
 
-  FastABase            *F = 0L;
-  FastASequenceInCore  *S = 0L;
+  seqFile              *F = 0L;
+  seqInCore            *S = 0L;
 
   int arg=1;
   while (arg < argc) {
@@ -156,7 +156,7 @@ main(int argc, char **argv) {
       if (errno)
         fprintf(stderr, "Can't open '%s': %s\n", argv[arg], strerror(errno)), exit(1);
     } else if (strcmp(argv[arg], "-i") == 0) {
-      F = new FastAFile(argv[++arg]);
+      F = openSeqFile(argv[++arg]);
       F->openIndex();
     } else {
       fprintf(stderr, "ESTmapper utility function -- not for human use.\n");
@@ -174,7 +174,7 @@ main(int argc, char **argv) {
     for (u32bit i=0; i<iidRWlen; i++)
       iidRW[i]->load(F->getNumberOfSequences());
 
-  while ((S = F->getSequence()) != 0L) {
+  while ((S = F->getSequenceInCore()) != 0L) {
     bool     found = false;
     u32bit   iid   = S->getIID();
 

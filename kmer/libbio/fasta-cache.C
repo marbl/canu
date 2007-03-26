@@ -2,9 +2,9 @@
 
 
 FastACache::FastACache(const char *filename, u32bit cachesize, bool loadall, bool report) {
-  _fasta = new FastAFile(filename);
+  _fasta = openSeqFile(filename);
   _fasta->openIndex();
-  _fasta->optimizeRandomAccess();
+  //_fasta->optimizeRandomAccess();
 
   if (loadall == false) {
     _allSequencesLoaded = false;
@@ -17,7 +17,7 @@ FastACache::FastACache(const char *filename, u32bit cachesize, bool loadall, boo
 
     _cacheSize = cachesize;
     _cacheNext = 0;
-    _cache     = new FastASequenceInCore* [_cacheSize];
+    _cache     = new seqInCore* [_cacheSize];
 
     for (u32bit i=0; i<_cacheSize; i++)
       _cache[i] = 0L;
@@ -28,14 +28,14 @@ FastACache::FastACache(const char *filename, u32bit cachesize, bool loadall, boo
     _cacheMap  = 0L;
     _cacheSize = _fasta->getNumberOfSequences();
     _cacheNext = 0;
-    _cache     = new FastASequenceInCore* [_cacheSize];
+    _cache     = new seqInCore* [_cacheSize];
 
     fprintf(stderr, "Loading "u32bitFMT" sequences from '%s'\n",
             _cacheSize,
             filename);
 
     for (u32bit i=0; i<_cacheSize; i++)
-      _cache[i] = _fasta->getSequence();
+      _cache[i] = _fasta->getSequenceInCore();
   }
 }
 
@@ -50,8 +50,8 @@ FastACache::~FastACache() {
 
 
 
-FastASequenceInCore*
-FastACache::getSequence(u32bit iid)  {
+seqInCore*
+FastACache::getSequenceInCore(u32bit iid)  {
 
   if (_allSequencesLoaded) {
     if (iid < _cacheSize) {
@@ -72,7 +72,7 @@ FastACache::getSequence(u32bit iid)  {
   //  isn't space in the cache, make space.
 
   if (_reportLoading)
-    fprintf(stderr, "FastACache::getSequence()-- %s:"u32bitFMT" isn't loaded -- loading.\n",
+    fprintf(stderr, "FastACache::getSequenceInCore()-- %s:"u32bitFMT" isn't loaded -- loading.\n",
             _fasta->getSourceName(), iid);
 
   if (_cache[_cacheNext]) {
@@ -83,7 +83,7 @@ FastACache::getSequence(u32bit iid)  {
   //  Load the sequence into the cache
 
   _fasta->find(iid);
-  FastASequenceInCore *ret = _fasta->getSequence();
+  seqInCore *ret = _fasta->getSequenceInCore();
 
   _cache[_cacheNext] = ret;
   _cacheMap[iid] = _cacheNext;

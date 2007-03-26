@@ -15,11 +15,13 @@
 #include "util++.H"
 
 #include "mers.h"
+#include "seq.H"
 #include "fasta.H"
+
 #include "fasta-cache.H"
 #include "fasta-accessor.H"
+
 #include "chainedSequence.H"
-#include "fastastream.H"
 
 #include "kmer.H"
 #include "merstreamfile.H"

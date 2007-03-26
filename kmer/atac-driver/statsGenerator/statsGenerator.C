@@ -167,15 +167,15 @@ totalLength(atacFile &AF, FastACache *A, FastACache *B) {
   length1 = 0;
   length2 = 0;
   for (u32bit i=0; i<A->fasta()->getNumberOfSequences(); i++) {
-    FastASequenceInCore *S = A->getSequence(i);
-    char                *s = S->sequence();
+    seqInCore   *S = A->getSequenceInCore(i);
+    char        *s = S->sequence();
     for (u32bit j=0; j<S->sequenceLength(); j++)
       if (validSymbol[(int)s[j]])
         length1++;
   }
   for (u32bit i=0; i<B->fasta()->getNumberOfSequences(); i++) {
-    FastASequenceInCore *S = B->getSequence(i);
-    char                *s = S->sequence();
+    seqInCore   *S = B->getSequenceInCore(i);
+    char        *s = S->sequence();
     for (u32bit j=0; j<S->sequenceLength(); j++)
       if (validSymbol[(int)s[j]])
         length2++;
@@ -203,7 +203,7 @@ tandemRepeatACGTLength(intervalList &il,
   for (u32bit i=0, s=0; i<il.numberOfIntervals(); i++) {
     while ((offset[s + 1]) < il.lo(i)) 
       s++;
-    char *S = A->getSequence(s)->sequence();
+    char *S = A->getSequenceInCore(s)->sequence();
     for (u64bit j=il.lo(i)-offset[s]; j < il.hi(i)-offset[s]; j++)
       if (validSymbol[(int)S[j]])
         length++;
@@ -214,7 +214,7 @@ tandemRepeatACGTLength(intervalList &il,
 
 
 u64bit *
-buildOffset(FastABase *F) {
+buildOffset(seqFile *F) {
   u64bit  *offset = new u64bit [F->getNumberOfSequences() + 1];
   offset[0] = 1000000;
   for (u32bit i=0; i<F->getNumberOfSequences(); i++)
@@ -360,11 +360,11 @@ mappedNs(atacFile &AF, atacMatchList &matches, FastACache *A, FastACache *B, cha
   u64bit   length2n = 0;
 
   for (u32bit m=0; m<matches.numberOfMatches(); m++) {
-    FastASequenceInCore *Sa = A->getSequence(matches[m]->iid1);
-    FastASequenceInCore *Sb = B->getSequence(matches[m]->iid2);
+    seqInCore   *Sa = A->getSequenceInCore(matches[m]->iid1);
+    seqInCore   *Sb = B->getSequenceInCore(matches[m]->iid2);
 
-    char                *sa = Sa->sequence() + matches[m]->pos1;
-    char                *sb = Sb->sequence() + matches[m]->pos2;
+    char        *sa = Sa->sequence() + matches[m]->pos1;
+    char        *sb = Sb->sequence() + matches[m]->pos2;
 
     length = 0;
     for (u32bit j=0; j<matches[m]->len1; j++) {
@@ -509,8 +509,8 @@ MappedByChromosome(atacFile      &AF,
   //  We could cache this when we compute the totalLength() above
   u64bit   *nonNlength = new u64bit [maxIID1+1];
   for (u32bit i=0; i<maxIID1; i++) {
-    FastASequenceInCore *S = A->getSequence(i);
-    char                *s = S->sequence();
+    seqInCore   *S = A->getSequenceInCore(i);
+    char        *s = S->sequence();
     nonNlength[i] = 0;
     for (u32bit j=0; j<S->sequenceLength(); j++)
       if (validSymbol[(int)s[j]])
@@ -533,8 +533,8 @@ MappedByChromosome(atacFile      &AF,
       il1full[matches[m]->iid1].add(matches[m]->pos1, matches[m]->len1);
       hist1full[matches[m]->iid1]->add(matches[m]->len1);
 
-      FastASequenceInCore *Sa = A->getSequence(matches[m]->iid1);
-      char                *sa = Sa->sequence() + matches[m]->pos1;
+      seqInCore   *Sa = A->getSequenceInCore(matches[m]->iid1);
+      char        *sa = Sa->sequence() + matches[m]->pos1;
 
       u32bit               length = 0;
 
@@ -593,11 +593,11 @@ MappedByChromosome(atacFile      &AF,
 
 
 void
-statsInACGT(FastASequenceInCore  *S,
-            u32bit                beg,
-            u32bit                len,
-            intervalList         *IL,
-            histogram            *HI) {
+statsInACGT(seqInCore       *S,
+            u32bit           beg,
+            u32bit           len,
+            intervalList    *IL,
+            histogram       *HI) {
   char     *s = S->sequence() + beg;
   u32bit    length = 0;
 
@@ -667,12 +667,12 @@ unmappedInRuns(atacFile &AF, FastACache *A, FastACache *B, char *prefix) {
       //  Crimeny!  I really should put this in a function....  Lessee...it needs the
       //  sequence, the begin and length, the il and the histogram.
 
-      statsInACGT(A->getSequence(MO[i]->iid1),
+      statsInACGT(A->getSequenceInCore(MO[i]->iid1),
                   l1,
                   r1-l1,
                   &il1acgt,
                   &hist1acgt);
-      statsInACGT(B->getSequence(MO[i]->iid2),
+      statsInACGT(B->getSequenceInCore(MO[i]->iid2),
                   l2,
                   r2-l2,
                   &il2acgt,

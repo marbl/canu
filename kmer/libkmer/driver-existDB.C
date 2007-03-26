@@ -27,7 +27,7 @@ testFiles(char *filename, char *prefix, u32bit merSize, u32bit tblSize) {
 
   //  Create existDB f by loading the saved copy from disk
   //
-  existDB  *f = new existDB(prefixfilename, merSize, tblSize);
+  existDB  *f = new existDB(prefixfilename);
 
   //  Create a fresh existDB g
   //
@@ -56,11 +56,13 @@ testFiles(char *filename, char *prefix, u32bit merSize, u32bit tblSize) {
 
 int
 testExistence(char *filename, u32bit merSize, u32bit tblSize) {
-  existDB     *E      = new existDB(filename, merSize, tblSize);
-  FastAstream *F      = new FastAstream(filename);
-  merStream   *M      = new merStream(merSize, F);
-  u64bit       tried  = 0;
-  u64bit       lost   = 0;
+  existDB         *E      = new existDB(filename, merSize, tblSize);
+  chainedSequence *C      = new chainedSequence();
+  C->setSource(filename);
+  C->finish();
+  merStream       *M      = new merStream(merSize, C);
+  u64bit           tried  = 0;
+  u64bit           lost   = 0;
 
   while (M->nextMer()) {
     tried++;
@@ -69,7 +71,7 @@ testExistence(char *filename, u32bit merSize, u32bit tblSize) {
   }
 
   delete M;
-  delete F;
+  delete C;
   delete E;
 
   if (lost) {

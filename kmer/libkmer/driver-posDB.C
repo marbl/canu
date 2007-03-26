@@ -55,15 +55,17 @@ char const *usage =
 
 int
 test1(char *filename) {
-  FastAstream *F       = new FastAstream(filename);
-  merStream   *T       = new merStream(MERSIZE, F);
-  positionDB  *M       = new positionDB(T, MERSIZE, 0, TBLSIZE, 0L, 0L, 0, true);
-  u64bit      *posn    = new u64bit [1024];
-  u64bit       posnMax = 1024;
-  u64bit       posnLen = u64bitZERO;
-  u32bit       missing = u32bitZERO;
-  u32bit       failed  = u32bitZERO;
-  char         str[33];
+  chainedSequence   *C       = new chainedSequence();
+  C->setSource(filename);
+  C->finish();
+  merStream         *T       = new merStream(MERSIZE, C);
+  positionDB        *M       = new positionDB(T, MERSIZE, 0, TBLSIZE, 0L, 0L, 0, true);
+  u64bit            *posn    = new u64bit [1024];
+  u64bit             posnMax = 1024;
+  u64bit             posnLen = u64bitZERO;
+  u32bit             missing = u32bitZERO;
+  u32bit             failed  = u32bitZERO;
+  char               str[33];
 
   if (T->rewind() == false) {
     fprintf(stderr, "test 1 failed to rewind the merStream.\n");
@@ -105,7 +107,7 @@ test1(char *filename) {
 
   delete M;
   delete T;
-  delete F;
+  delete C;
 
   return(failed != 0);
 }
@@ -114,19 +116,23 @@ test1(char *filename) {
 
 int
 test2(char *filename, char *query) {
-  FastAstream *F       = new FastAstream(filename);
-  merStream   *T       = new merStream(MERSIZE, F);
-  positionDB  *M       = new positionDB(T, MERSIZE, 0, TBLSIZE, 0L, 0L, 0, true);
-  u64bit      *posn    = new u64bit [1024];
-  u64bit       posnMax = 1024;
-  u64bit       posnLen = u64bitZERO;
-  char         str[33];
+  chainedSequence   *C       = new chainedSequence();
+  C->setSource(filename);
+  C->finish();
+  merStream         *T       = new merStream(MERSIZE, C);
+  positionDB        *M       = new positionDB(T, MERSIZE, 0, TBLSIZE, 0L, 0L, 0, true);
+  u64bit            *posn    = new u64bit [1024];
+  u64bit             posnMax = 1024;
+  u64bit             posnLen = u64bitZERO;
+  char               str[33];
 
   delete T;
-  delete F;
+  delete C;
 
-  F = new FastAstream(query);
-  T = new merStream(MERSIZE, F);
+  C = new chainedSequence();
+  C->setSource(query);
+  C->finish();
+  T = new merStream(MERSIZE, C);
 
   while (T->nextMer()) {
     if (M->get(T->theFMer(),
@@ -146,7 +152,7 @@ test2(char *filename, char *query) {
     }
   }
 
-  delete F;
+  delete C;
   delete M;
   delete T;
 

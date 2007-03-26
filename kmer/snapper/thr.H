@@ -115,7 +115,7 @@ public:
 
 void
 doSearch(searcherState       *state,
-         FastASequenceInCore *seq,
+         seqInCore           *seq,
          u32bit               idx,
          bool                 rc,
          aHit               *&theHits,
@@ -131,7 +131,7 @@ doFilter(searcherState       *state,
 
 char*
 doPolish(searcherState       *state,
-         FastASequenceInCore *seq,
+         seqInCore           *seq,
          aHit               *&theHits,
          u32bit              &theHitsLen,
          logMsg              *theLog);

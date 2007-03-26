@@ -8,10 +8,10 @@
 void*
 loaderThread(void *) {
   encodedQuery         *Q = 0L;
-  FastASequenceInCore  *B = 0L;
+  seqInCore            *B = 0L;
 
   try {
-    B = config._qsFASTA->getSequence();
+    B = config._qsFASTA->getSequenceInCore();
   } catch (std::bad_alloc) {
     fprintf(stderr, "loaderThread()-- Failed to load next query sequence\ncaught bad_alloc in %s at line %d\n", __FILE__, __LINE__);
     exit(1);

@@ -12,10 +12,10 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  FastAFile  seqs(argv[1]);
+  seqFile *seqs = openSeqFile(argv[1]);
 
   while (!seqs.eof()) {
-    FastASequenceInCore *aSeq = seqs.getSequence();
+    seqInCore *aSeq = seqs.getSequenceInCore();
 
     fprintf(stderr, "%8d  '%s'\n", aSeq->getIID(), aSeq->header());
 
@@ -28,11 +28,13 @@ main(int argc, char **argv) {
   for (int id=seqs.getNumberOfSequences() - 1; id>=0; id--) {
     seqs.find(id);
 
-    FastASequenceOnDisk *aSeq = seqs.getSequenceOnDisk();
+    seqOnDisk *aSeq = seqs.getSequenceOnDisk();
 
     fprintf(stderr, "%8d  '%s'\n", aSeq->getIID(), aSeq->header());
 
     delete aSeq;
   }
+
+  delete seqs;
 }
 

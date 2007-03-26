@@ -35,8 +35,10 @@ main(int argc, char **argv) {
   fprintf(stderr, "BUILDING INCLUDE\n");
   include = new existDB(incName, MERSIZE, TBLSIZE);
 
-  FastAstream *F       = new FastAstream(seqName);
-  merStream   *T       = new merStream(MERSIZE, F);
+  chainedSequence *F       = new chainedSequence();
+  F->setSource(seqName);
+  F->finish();
+  merStream       *T       = new merStream(MERSIZE, F);
 
   fprintf(stderr, "BUILDING FULL\n");
   full = new positionDB(T, MERSIZE, 0, TBLSIZE,      0L,      0L, 0, true);
@@ -66,44 +68,46 @@ main(int argc, char **argv) {
   char    themer[1000];
   u32bit  mernum = 0;
 
+  u32bit  err = 0;
+
   //  Check everything looks ok
   T->rewind();
   while (T->nextMer()) {
 
     if (!full->exists(T->theFMer())) {
       fprintf(stderr, "Didn't find mer "u32bitFMT" %s in full.\n", mernum, T->theFMer().merToString(themer));
-      exit(1);
+      err++;
     }
 
     if (include->exists(T->theFMer())) {
       if (!incl->exists(T->theFMer())) {
         fprintf(stderr, "Didn't find mer "u32bitFMT" %s in incl.\n", mernum, T->theFMer().merToString(themer));
-        exit(1);
+        err++;
       }
     } else {
       if (incl->exists(T->theFMer())) {
         fprintf(stderr, "Found extra mer "u32bitFMT" %s in incl.\n", mernum, T->theFMer().merToString(themer));
-        exit(1);
+        err++;
       }
     }
 
     if (exclude->exists(T->theFMer())) {
       if (excl->exists(T->theFMer())) {
         fprintf(stderr, "Found extra mer "u32bitFMT" %s in excl.\n", mernum, T->theFMer().merToString(themer));
-        exit(1);
+        err++;
       }
     } else {
       if (!excl->exists(T->theFMer())) {
         fprintf(stderr, "Didn't find mer "u32bitFMT" %s in excl.\n", mernum, T->theFMer().merToString(themer));
-        exit(1);
+        err++;
       }
     }
 
     mernum++;
   }
   
-
   delete T;
   delete F;
 
+  exit(err > 0);
 }

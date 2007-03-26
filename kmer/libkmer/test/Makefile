@@ -16,27 +16,33 @@ all: test-mertable test-maskonly-passed position-passed
 test-mertable:
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-mertable.o test-mertable.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-mertable test-mertable.o $(LIBS)
-	../../leaff/leaff -G 10000 5000 10000 > xp.fasta
+	../../leaff/leaff -G 1000 5000 8000 > xp.fasta
 	./test-mertable xp.fasta
+	echo test-mertable PASSED
+	rm xp* junk*
 
 test-maskonly-passed:
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-maskonly.o test-maskonly.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-maskonly test-maskonly.o $(LIBS)
-	../../leaff/leaff -G 10000 5000 10000 > xp.fasta
+	../../leaff/leaff -G 1000 5000 8000 > xp.fasta
 	../../meryl/meryl -B -f -m 14 -s xp.fasta -o xp
 	../../meryl/meryl -Dt -n 2 -s xp  > xp.dup.fasta
 	./test-maskonly xp.fasta xp.dup.fasta xp.dup.fasta
+	echo test-maskonky-passed PASSED
+	rm xp* junk*
 	touch test-maskonly-passed
 
 test-rebuild: test-rebuild.C ../positionDB.H
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-rebuild.o test-rebuild.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-rebuild test-rebuild.o $(LIBS)
 	./test-rebuild 20 23
+	echo test-rebuild-passed PASSED
+	rm xp* junk*
 
 position-passed: position-passed1 position-passed2 exist-fast-passed
 	touch position-passed
 xp.fasta: ../../leaff/leaff
-	../../leaff/leaff -G 1000 5000 10000 > xp.fasta
+	../../leaff/leaff -G 1000 5000 8000 > xp.fasta
 yp.fasta: ../../leaff/leaff
 	../../leaff/leaff -G 100 500 1000 > yp.fasta
 position-passed1: testerp xp.fasta
@@ -48,6 +54,7 @@ position-passed2: testerp xp.fasta yp.fasta
 exist-fast-passed: ../existDB xe.fasta
 	../existDB -mersize 14 -tblsize 21 -testfiles xe.fasta junk
 	../existDB -mersize 14 -tblsize 21 -testexistence xe.fasta
+	rm -f xe.mcdat xe.mcidx
 	../../meryl/meryl -B -f -m 14 -s xe.fasta -o xe
 	../existDB -mersize 14 -tblsize 21 -testexhaustive xe.fasta xe
 	touch exist-fast-passed
@@ -56,16 +63,20 @@ exist-fast-passed: ../existDB xe.fasta
 exist-passed: exist-passed1 exist-passed2 exist-passed3
 	touch exist-passed
 xe.fasta: ../../leaff/leaff
-	../../leaff/leaff -G 1000 5000 10000 > xe.fasta
+	../../leaff/leaff -G 1000 5000 8000 > xe.fasta
 exist-passed1: ../existDB xe.fasta
 	../existDB -mersize 17 -tblsize 23 -testfiles xe.fasta junk
+	rm -f junk*
 	touch exist-passed1
 exist-passed2: ../existDB xe.fasta
 	../existDB -mersize 17 -tblsize 23 -testexistence xe.fasta
+	rm -f junk*
 	touch exist-passed2
 exist-passed3: ../existDB xe.fasta ../../meryl/meryl
+	rm -f xe.mcdat xe.mcidx
 	../../meryl/meryl -B -f -m 17 -s xe.fasta -o xe
 	../existDB -mersize 17 -tblsize 23 -testexhaustive xe.fasta xe
+	rm -f junk*
 	touch exist-passed3
 
 

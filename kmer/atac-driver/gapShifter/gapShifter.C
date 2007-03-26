@@ -347,8 +347,8 @@ shiftGap(atacFile &AF,
 
   //  Grab the sequences we use, and make the accesors
   //
-  FastASequenceInCore  *s1 = C1->getSequence(ma->iid1);
-  FastASequenceInCore  *s2 = C2->getSequence(ma->iid2);
+  seqInCore  *s1 = C1->getSequenceInCore(ma->iid1);
+  seqInCore  *s2 = C2->getSequenceInCore(ma->iid2);
 
   FastAAccessor mas1(s1, ma->fwd1 == false);
   FastAAccessor mas2(s2, ma->fwd2 == false);

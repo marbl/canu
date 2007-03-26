@@ -3,7 +3,6 @@
 #include <string.h>
 #include <errno.h>
 #include "existDB.H"
-#include "positionDB.H"
 #include "bio++.H"
 
 
@@ -11,11 +10,8 @@ existDB::existDB(char const  *filename,
                  bool         loadData) {
   clear();
 
-  //  XXX  we should extend this function to take flags like the other constructor.
-
   _compressedHash   = false;
   _compressedBucket = false;
-  _beVerbose        = false;
 
   if (loadState(filename, true, loadData) == false) {
     fprintf(stderr, "existDB::existDB()-- Tried to read state from '%s', but failed.\n", filename);
@@ -34,8 +30,6 @@ existDB::existDB(char const    *filename,
 
   _compressedHash   = flags & existDBcompressHash;
   _compressedBucket = flags & existDBcompressBuckets;
-  _beVerbose        = flags & existDBverbose;
-
 
   //  Try to read state from the filename.  If successful, make sure that
   //  the merSize and tblBits are correct.
@@ -63,7 +57,7 @@ existDB::existDB(char const    *filename,
   //  If no direction flags are set, set the default direction of
   //  forward.  Stupid precedence rules.
   //
-  if ((flags & (existDBcanonical | existDBforward | existDBreverse)) == u32bitZERO)
+  if ((flags & (existDBcanonical | existDBforward)) == u32bitZERO)
     flags |= existDBforward;
 
   //  If we can open 'filename' for reading, then we assume the file is a multi-fasta, and
@@ -126,6 +120,7 @@ existDB::exists(u64bit mer) {
 }
 
 
+#if 0
 //  Special case used from inside the posDB.  Errrr, it _was_ used
 //  inside the posDB.
 //
@@ -135,7 +130,6 @@ existDB::exists(u64bit mer) {
 //    The checks are in increasing order.
 //  Then we can bypass a lot of the overhead of checking for existence.
 //
-#if 0
 bool
 existDB::exists(u64bit b, u64bit c) {
 

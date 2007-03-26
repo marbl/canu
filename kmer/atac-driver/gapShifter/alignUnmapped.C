@@ -101,8 +101,8 @@ main(int argc, char *argv[]) {
   ML1.sort1();  //  Sorted by first index
   ML2.sort2();  //  Sorted by second index
 
-  FastABase            *W1 = ML1._seq1;
-  FastABase            *W2 = ML1._seq2;
+  seqFile            *W1 = ML1._seq1;
+  seqFile            *W2 = ML1._seq2;
 
 
   //  For every match,
@@ -117,7 +117,7 @@ main(int argc, char *argv[]) {
   ML.sort1();
   W = ML._seq1;
   W->find(ML[0]->iid1);
-  S = W->getSequence();
+  S = W->getSequenceInCore();
   for (u32bit i=1; i<ML.numMatches(); i++) {
     atacMatch *l = ML[i-1];
     atacMatch *r = ML[i];
@@ -128,7 +128,7 @@ main(int argc, char *argv[]) {
     if (l->iid1 != S->getIID()) {
       delete S;
       W->find(l->iid1);
-      S = W->getSequence();
+      S = W->getSequenceInCore();
     }
 
     //  Extract from (l->pos1 + l->len1) to (r->pos1), if it's longer than 20bp
@@ -145,7 +145,7 @@ main(int argc, char *argv[]) {
   ML.sort2();
   W = ML._seq2;
   W->find(ML[0]->iid2);
-  S = W->getSequence();
+  S = W->getSequenceInCore();
   for (u32bit i=1; i<ML.numMatches(); i++) {
     atacMatch *l = ML[i-1];
     atacMatch *r = ML[i];
@@ -156,7 +156,7 @@ main(int argc, char *argv[]) {
     if (l->iid2 != S->getIID()) {
       delete S;
       W->find(l->iid2);
-      S = W->getSequence();
+      S = W->getSequenceInCore();
     }
 
     //  Extract from (l->pos2 + l->len2) to (r->pos2), if it's longer than 20bp

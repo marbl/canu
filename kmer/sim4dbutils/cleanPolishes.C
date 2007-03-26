@@ -48,13 +48,13 @@ lowComplexityExon(char *s) {
   if (s == 0L)
     return(false);
 
-  map[(int)'A'] = map[(int)'a'] = 1;
-  map[(int)'C'] = map[(int)'c'] = 2;
-  map[(int)'G'] = map[(int)'g'] = 3;
-  map[(int)'T'] = map[(int)'t'] = 4;
+  map['A'] = map['a'] = 1;
+  map['C'] = map['c'] = 2;
+  map['G'] = map['g'] = 3;
+  map['T'] = map['t'] = 4;
 
   for (i=0, j=1, l=0; s[j]; i++, j++, l++)
-    cnt[map[(int)s[i]]][map[(int)s[j]]]++;
+    cnt[map[s[i]]][map[s[j]]]++;
 
   if (l > MIN_EXON_LENGTH)
     return(false);

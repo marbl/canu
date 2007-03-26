@@ -27,9 +27,9 @@ addToDict(dict_t *d, char *n) {
   if (n == 0L)
     return;
 
-  FastABase  *F = new FastAFile(n);
+  seqFile  *F = openSeqFile(n);
   while (!F->eof()) {
-    FastASequenceInCore *S = F->getSequence();
+    seqInCore *S = F->getSequenceInCore();
 
     node = (dnode_t *)palloc(sizeof(dnode_t));
     dcpy = (char    *)palloc(sizeof(char) * S->headerLength() + 1);

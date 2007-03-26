@@ -118,17 +118,15 @@ scan(merylArgs *args) {
     _seqLengths      = new u32bit [_defLinesMax];
     _numberOfSeqs    = 0;
 
-
-    //  the zeroth sequence is not defined in FastAstream.
+    //  the zeroth sequence is not defined
     //
     _defLines[0]   = 0L;
     _seqLengths[0] = 0;
 
-
     if (args->beVerbose)
       fprintf(stderr, " 0) Reading deflines and sequence lengths.\n");
 
-    FastAstream    F(args->queryFile);
+    seqStream      F(args->queryFile);
     unsigned char  ch = 255;
 
     while (ch != 0) {

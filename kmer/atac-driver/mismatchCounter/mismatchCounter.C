@@ -85,8 +85,8 @@ main(int argc, char *argv[]) {
   for (u32bit mi=0; mi<ML.numberOfMatches(); mi++) {
     atacMatch *m = ML.getMatch(mi);
 
-    FastASequenceInCore  *S1 = C1->getSequence(m->iid1);
-    FastASequenceInCore  *S2 = C2->getSequence(m->iid2);
+    seqInCore  *S1 = C1->getSequenceInCore(m->iid1);
+    seqInCore  *S2 = C2->getSequenceInCore(m->iid2);
 
     FastAAccessor A1(S1, false);
     FastAAccessor A2(S2, (m->fwd1 != m->fwd2));

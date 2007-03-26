@@ -34,14 +34,12 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  char                  merstring[1024];
-
-  existDB              *E = new existDB(merylFile, merSize, 16);
-  FastABase            *F = new FastAFile(fastaFile);
-  FastASequenceInCore  *S = F->getSequence();
+  existDB       *E = new existDB(merylFile, merSize, 16);
+  seqFile       *F = openSeqFile(fastaFile);
+  seqInCore     *S = F->getSequenceInCore();
 
   while (S) {
-    merStream  *MS = new merStream(merSize, S->sequence(), S->sequenceLength());
+    merStream  *MS = new merStream(merSize, S);
 
     u64bit    beg = ~u64bitZERO;
     u64bit    end = ~u64bitZERO;
@@ -72,7 +70,7 @@ main(int argc, char **argv) {
     delete MS;
     delete S;
 
-    S = F->getSequence();
+    S = F->getSequenceInCore();
   }
 
   delete S;

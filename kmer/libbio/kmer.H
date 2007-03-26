@@ -60,7 +60,7 @@ public:
 
   kMer  &reverseComplement(void) {
 #if KMER_WORDS == 1
-    reverseComplementMer(_merSize, _wd[0]);
+    _wd[0] = reverseComplementMer(_merSize, _wd[0]);
 #else
 
     //  Reverse all the words, reverse and complement the bases in

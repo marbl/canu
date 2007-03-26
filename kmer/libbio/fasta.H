@@ -1,121 +1,112 @@
 #ifndef FASTA_H
 #define FASTA_H
 
-#ifndef BIO_PLUS_PLUS_H
-#error Please use bio++.H instead of fasta.H
-#endif
+#include "seq.H"
 
-#include "fasta-types.H"
-#include "fasta-sequenceondisk.H"
-#include "fasta-sequenceincore.H"
+class seqInCore;
+class seqOnDisk;
 
+#define FASTA_MAGICNUMBER   0x4abeadeddadababeULL
+#define FASTA_VERSIONNUMBER 0x00000010
 
-class FastABase {
-public:
-  FastABase() {};
-  virtual ~FastABase() {};
+#define FASTA_INDEX_ANY                0x00000000
+#define FASTA_INDEX_ONLY               0x00000001
+#define FASTA_INDEX_PLUS_IDS           0x00000002
+#define FASTA_INDEX_PLUS_DEFLINES      0x00000003
 
-  virtual FastASequenceInCore *getSequence(void) = 0;
-  virtual FastASequenceOnDisk *getSequenceOnDisk(void) = 0;
+struct _idxfa_global {
+  u64bit       _magic;
+  u32bit       _version;
+  u32bit       _indexType;
+  u32bit       _numberOfSequences;      //  Number of sequences in the file
+  u64bit       _fastaFileSize;          //  st_size  - size of file in bytes
+  u64bit       _fastaModificationTime;  //  st_mtime - time of last data modification
+  u64bit       _fastaCreationTime;      //  st_ctime - time of last file status change
+  u32bit       _seqlineLength;          //  Length of the sequence lines, if fixed width
+  u32bit       _seqendlLength;          //  Length of the sequence line terminators, if fixed width (really, "\n" or "\r\n"?)
+  u32bit       _fixedWidth;             //  All (but last) lines are the same width, and there is no embedded space
+  u32bit       _squeezedSequences;      //  No whitespace in the sequences
+  char         _alphabet[256];          //  true/false for each character seen
+};
 
-  virtual u32bit       sequenceLength(IID_t iid) = 0;
-  virtual u32bit       headerLength(IID_t iid) = 0;
-  virtual u32bit       currentIID(void) = 0;
-
-  virtual bool         eof(void) = 0;
-
-  virtual bool         find(IID_t  iid) = 0;
-  virtual bool         find(char  *id) = 0;
-
-  virtual bool         isIndexValid(u32bit indextypetoload=FASTA_INDEX_ANY,
-                                    bool   beVerbose=false) = 0;
-
-  virtual void         openIndex(u32bit indextypetoload=FASTA_INDEX_ANY) = 0;
-
-  virtual void         optimizeRandomAccess(void) = 0;
-
-  virtual u32bit       getNumberOfSequences(void) = 0;
-  virtual char const  *getSourceName(void) = 0;
-
-  virtual void         printDescription(FILE *out, char *name) = 0;
-
-  virtual bool         isRandomAccess(void)  = 0;
-  virtual bool         isSqueezed(void)      = 0;
+struct _idxfa_desc {
+  u64bit       _headerStart;       //  Position of the header in the file
+  u64bit       _seqStart;          //  Position of the sequence in the file
+  u32bit       _headerLen;         //  Length of the header, not counting the '\n'
+  u32bit       _seqLen;            //  Length of the sequence
 };
 
 
-class FastAFile : public FastABase {
+class fastaFile : public seqFile {
+protected:
+  fastaFile(char const *filename);
+
 public:
-  FastAFile(char const *filename, u32bit bufferSize=~u32bitZERO);
-  ~FastAFile();
+  fastaFile();
+  ~fastaFile();
 
-  //  Return some accessors for whatever sequence we are currently at.
-  //
-  FastASequenceInCore *getSequence(void);
-  FastASequenceOnDisk *getSequenceOnDisk(void);
+  seqFile         *openFile(const char *name);
 
-  //  Return information about the sequence, only if we have an index.
-  //  Otherwise, returns 0.
-  //
-  u32bit       sequenceLength(IID_t iid);
-  u32bit       headerLength(IID_t iid);
-  u32bit       currentIID(void) { return(_currentSequenceNumber); };
+  void             openIndex(u32bit indextypetoload=FASTA_INDEX_ANY);
 
+  bool             rewind(void)   { _curIID = 0; return(_filebuffer->seek(0)); };
+  bool             eof(void)      { return(_filebuffer->eof()); };
 
-  //  Sequential access to sequences (also use getSequence*()).
-  //
-  bool         eof(void) { return(_filebuffer->eof()); };
+  seqInCore       *getSequenceInCore(void);
+  seqOnDisk       *getSequenceOnDisk(void);
 
-  //  Random access to sequences.
-  //
-  bool         find(IID_t  iid);
-  bool         find(char  *id);
+  u32bit           currentIID(void) { return(_curIID); };
 
-  //  Returns true if a call to openIndex() will find a valid index to
-  //  load.  Returns false if openIndex() will need to build an index.
-  //
-  bool         isIndexValid(u32bit indextypetoload=FASTA_INDEX_ANY,
-                            bool   beVerbose=false);
+  bool             find(seqIID  iid);
+  bool             find(char   *uid);
 
-  //  Opens an existing index, or creates and opens an index if none
-  //  exists.
-  //
-  void         openIndex(u32bit indextypetoload=FASTA_INDEX_ANY);
+  u32bit           sequenceLength(seqIID iid) {
+    return((_isIndexed) ? _theSeqs[iid]._seqLen : 0);
+  };
 
-  //  Tell the wrapper that we are going to be doing mostly random
-  //  access, and it should adjust it's buffer size appropriately.
-  //
-  void         optimizeRandomAccess(void);
+  u32bit           nameLength(seqIID iid) {
+    return((_isIndexed) ? _theSeqs[iid]._headerLen : 0);
+  };
 
-  u32bit       getNumberOfSequences(void);
-  char const  *getSourceName(void);
+  u32bit           getNumberOfSequences(void) {
+    return((_isIndexed) ? _theDesc._numberOfSequences : 0);
+  }
 
-  void         printDescription(FILE *out, char *name);
+  char const      *getSourceName(void) {
+    return(_filename);
+  };
 
-  bool         isRandomAccess(void)  { return(_isRandomAccess); };
-  bool         isSqueezed(void)      { return(_theGlobalDesc._squeezedSequences); };
+  void             printDescription(FILE *out, char *name);
+
+  bool             isIndexed(void)  { return(_isIndexed); };
+  bool             isSqueezed(void) { return(_theDesc._squeezedSequences); };
 
 private:
   void             createIndex(u32bit indextype);
-  const char      *indexTypeNames(u32bit indextype);
-  char            *moveToNextName(char *ptr, u32bit iid);
 
+  //  probably should go away
+  void             optimizeRandomAccess(void);
+
+  _idxfa_global   _theDesc;
+
+  u32bit          _numSeqs;  //  for create
+  u32bit          _maxSeqs;  //  for create
   _idxfa_desc    *_theSeqs;
+
   u32bit          _theNamesLen;
+  u32bit          _theNamesMax;  //  for create
   char           *_theNames;
 
   readBuffer     *_filebuffer;
-  char           *_filename;
-  char           *_indexname;
+  char            _filename[PATH_MAX];
+  char            _indexname[PATH_MAX];
 
-  u32bit          _currentSequenceNumber;
+  u32bit          _curIID;
 
   bool            _isStreamInput;      //  Forced to be not random access
-  bool            _isRandomAccess;     //  Set if an index is open
+  bool            _isIndexed;          //  Set if an index is open
   bool            _isRandomAccessOpt;  //  Set if we resized the readBuffer
-
-  _idxfa_global   _theGlobalDesc;
 };
 
-#endif  //  FASTA_H
 
+#endif  //  FASTA_H

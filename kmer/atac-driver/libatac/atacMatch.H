@@ -48,7 +48,7 @@ public:
   //  Sanity check the match record -- make sure it's within the
   //  sequence itself.
   //
-  bool   sanity(FastABase *A, FastABase *B, char *inLine);
+  bool   sanity(seqFile *A, seqFile *B, char *inLine);
 
 
   char    matchuid[16];     //  external id

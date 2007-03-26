@@ -7,7 +7,7 @@
 //  chainedSequence
 //
 //  Build a chained sequence from a source file or source
-//  FastABase.  In the case of a file, a FastABase (with iid
+//  seqFile.  In the case of a file, a seqFile (with iid
 //  index) is opened.
 //
 //  It "assembles" sequences, separated by a fixed number of any
@@ -23,11 +23,12 @@ public:
   //
   void         setSeparator(char sep);
   void         setSeparatorLength(u32bit len);
+  char         getSeparator(void) { return(_separator); };
 
   //  Sets the source file
   //
   void         setSource(char const *filename);
-  void         setSource(FastABase *file);
+  void         setSource(seqFile *file);
 
   //  Adds sequences to the useList.  For parse(), sequences are
   //  specified in a character string, e.g., "10,20,30-40,50".  add()
@@ -48,15 +49,13 @@ public:
   char         get(void);
   bool         eof(void) { return(_eof); };
 
-  //  These positions are pre-incremented, so they're off by one.
-
+  //  The positions are pre-incremented, so they're off by one.  The
+  //  sequence number is the sequence number in the CHAIN, not the
+  //  IID; see IIDOf().
+  //
   u64bit       thePositionInSequence(void) { return(_positionInSequence - 1); };
   u64bit       thePositionInStream(void)   { return(_positionInStream - 1);   };
-
-  //  This returns the sequence number in the chain, not the IID of the sequence.  See IIDOf().
-  u64bit       theSequenceNumber(void) {
-    return(_currentSeq);
-  };
+  u64bit       theSequenceNumber(void)     { return(_currentSeq);             };
 
   //  Return the length of, position of (in the chain) and IID of the
   //  (s)th sequence in the chain.
@@ -86,9 +85,9 @@ private:
   };
 
   char                 *_filename;
-  FastABase            *_file;
-  FastABase            *_fileToDelete;
-  FastASequenceOnDisk  *_sequence;
+  seqFile              *_file;
+  seqFile              *_fileToDelete;
+  seqOnDisk            *_sequence;
 
   u32bit                _useListLen;
   u32bit                _useListMax;
@@ -131,7 +130,14 @@ chainedSequence::get(void) {
 
   _positionInStream++;
 
-  if (ret == 0) {
+  //  The while is needed to skip over empty sequences -- without it,
+  //  we'll catch the end of the last sequence (ret == 0, and we'll
+  //  enter this block), do the separator, grab the next sequence, get
+  //  the first letter into ret, and blindly return that first letter.
+  //  If the sequence is emtpy, the first letter is 0, and we then
+  //  terminate the chainedSequence early.
+  //
+  while (ret == 0) {
 
     //  Are we at the end of the chained sequence?
     //

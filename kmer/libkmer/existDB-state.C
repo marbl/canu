@@ -3,16 +3,16 @@
 #include <string.h>
 #include <errno.h>
 #include "existDB.H"
-#include "positionDB.H"
 #include "bio++.H"
 
 
-char     magic[16] = { 'e', 'x', 'i', 's', 't', 'D', 'B', '1', 
-                       ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '  };
+const char  magic[16] = { 'e', 'x', 'i', 's', 't', 'D', 'B', '1', 
+                          ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '  };
 
 
 void
 existDB::saveState(char const *filename) {
+  char     cigam[16];
 
   errno = 0;
   FILE *F = fopen(filename, "wb");
@@ -21,13 +21,18 @@ existDB::saveState(char const *filename) {
     exit(1);
   }
 
+  strncpy(cigam, magic, 16);
+
   if (_compressedHash)
-    magic[8] = 'h';
-
+    cigam[8] = 'h';
   if (_compressedBucket)
-    magic[9] = 'b';
+    cigam[9] = 'b';
+  if (_isForward)
+    cigam[10] = 'f';
+  if (_isCanonical)
+    cigam[10] = 'c';
 
-  fwrite(magic, sizeof(char), 16, F);
+  fwrite(cigam, sizeof(char), 16, F);
 
   fwrite(&_merSizeInBases, sizeof(u32bit), 1, F);
   fwrite(&_shift1, sizeof(u32bit), 1, F);
@@ -68,13 +73,25 @@ existDB::loadState(char const *filename,
     return(false);
   }
 
-  if (_compressedHash)
-    magic[8] = 'h';
-
-  if (_compressedBucket)
-    magic[9] = 'b';
-
   fread(cigam, sizeof(char), 16, F);
+
+  _compressedHash   = false;
+  _compressedBucket = false;
+  _isForward        = false;
+  _isCanonical      = false;
+
+  if (cigam[8] == 'h')
+    _compressedHash = true;
+  if (cigam[9] == 'b')
+    _compressedBucket = true;
+  if (cigam[10] == 'f')
+    _isForward = true;
+  if (cigam[10] == 'c')
+    _isCanonical = true;
+
+  cigam[ 8] = ' ';
+  cigam[ 9] = ' ';
+  cigam[10] = ' ';
 
   if (strncmp(magic, cigam, 16) != 0) {
     if (beNoisy) {

@@ -22,7 +22,7 @@ main(int argc, char **argv) {
 
       sprintf(hdr, ">"u32bitFMT, i);
 
-      FastASequenceInCore  *S = new FastASequenceInCore(i, hdr, strlen(hdr), seq, 9999);
+      seqInCore            *S = new seqInCore(i, hdr, strlen(hdr), seq, 9999);
       encodedQuery         *Q = new encodedQuery(S, 22);
       Q->test(S);
       delete Q;
@@ -30,10 +30,10 @@ main(int argc, char **argv) {
     }
 
   } else {
-    FastABase *F = new FastAFile(argv[1]);
+    seqFile *F = openSeqFile(argv[1]);
 
     while (F->eof() == false) {
-      FastASequenceInCore  *S = F->getSequence();
+      seqInCore            *S = F->getSequenceInCore();
       encodedQuery         *Q = new encodedQuery(S, 22);
       Q->test(S);
       delete Q;

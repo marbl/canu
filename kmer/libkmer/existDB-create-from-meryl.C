@@ -3,7 +3,6 @@
 #include <string.h>
 #include <errno.h>
 #include "existDB.H"
-#include "positionDB.H"
 #include "libmeryl.H"
 
 
@@ -36,16 +35,11 @@ existDB::createFromMeryl(char const  *prefix,
   u64bit  numberOfMers       = u64bitZERO;
   u64bit *countingTable      = new u64bit [tableSizeInEntries + 1];
 
-  if (_beVerbose)
-    fprintf(stderr, "existDB::createFromMeryl()-- countingTable is "u64bitFMT"MB\n",
-            tableSizeInEntries >> 17);
-
   for (u64bit i=tableSizeInEntries+1; i--; )
     countingTable[i] = 0;
 
-  bool  doCanonical = flags & existDBcanonical;
-  bool  doForward   = flags & existDBforward;
-  bool  doReverse   = flags & existDBreverse;
+  _isCanonical = flags & existDBcanonical;
+  _isForward   = flags & existDBforward;
 
   //  1) Count bucket sizes
   //     While we don't know the bucket sizes right now, but we do know
@@ -55,24 +49,24 @@ existDB::createFromMeryl(char const  *prefix,
   //  really move the direction testing outside the loop, unless we
   //  want to do two iterations over M.
   //
-  speedCounter  *C = new speedCounter("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, _beVerbose);
+  speedCounter  *C = new speedCounter("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, false);
 
   while (M->nextMer()) {
     if ((lo <= M->theCount()) && (M->theCount() <= hi)) {
-      if (doForward) {
+      if (_isForward) {
         countingTable[ HASH(M->theFMer()) ]++;
         numberOfMers++;
       }
 
-      if (doReverse) {
-        //  Ouch!  No nice way to do this.  reverseComplement() modifies theFMer inplace!
-        countingTable[ HASH(M->theFMer().reverseComplement()) ]++;
-        numberOfMers++;
-      }
+      if (_isCanonical) {
+        kMer  r = M->theFMer();
+        r.reverseComplement();
 
-      if (doCanonical) {
-        fprintf(stderr, "existDB::createFromMeryl()-- canonical mers in existDB not implemented.\n");
-        exit(1);
+        if (M->theFMer() < r)
+          countingTable[ HASH(M->theFMer()) ]++;
+        else
+          countingTable[ HASH(r) ]++;
+        numberOfMers++;
       }
 
       C->tick();
@@ -88,9 +82,8 @@ existDB::createFromMeryl(char const  *prefix,
       _hashWidth++;
   }
 
-  if (_beVerbose)
-    fprintf(stderr, "existDB::createFromMeryl()-- Found "u64bitFMT" mers between count of "u32bitFMT" and "u32bitFMT"\n",
-            numberOfMers, lo, hi);
+  //fprintf(stderr, "existDB::createFromMeryl()-- Found "u64bitFMT" mers between count of "u32bitFMT" and "u32bitFMT"\n",
+  //        numberOfMers, lo, hi);
 
 
   //  2) Allocate hash table, mer storage buckets
@@ -103,12 +96,8 @@ existDB::createFromMeryl(char const  *prefix,
   if (_compressedBucket)
     _bucketsWords = _bucketsWords * _chckWidth / 64 + 1;
 
-  if (_beVerbose) {
-    fprintf(stderr, "existDB::createFromMeryl()-- hashTable is "u64bitFMT"MB\n",
-            _hashTableWords >> 17);
-    fprintf(stderr, "existDB::createFromMeryl()-- buckets is "u64bitFMT"MB\n",
-            _bucketsWords >> 17);
-  }
+  //fprintf(stderr, "existDB::createFromMeryl()-- hashTable is "u64bitFMT"MB\n", _hashTableWords >> 17);
+  //fprintf(stderr, "existDB::createFromMeryl()-- buckets is "u64bitFMT"MB\n", _bucketsWords >> 17);
 
   _hashTable = new u64bit [_hashTableWords];
   _buckets   = new u64bit [_bucketsWords];
@@ -157,20 +146,24 @@ existDB::createFromMeryl(char const  *prefix,
   //  3)  Build list of mers, placed into buckets
   //
   M = new merylStreamReader(prefix);
-  C = new speedCounter("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, _beVerbose);
+  C = new speedCounter("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, false);
 
   while (M->nextMer()) {
     if ((lo <= M->theCount()) && (M->theCount() <= hi)) {
-      if (doForward)
+      if (_isForward)
         insertMer(HASH(M->theFMer()), CHECK(M->theFMer()), countingTable);
 
-      if (doReverse) {
-        M->theFMer().reverseComplement();
-        insertMer(HASH(M->theFMer()), CHECK(M->theFMer()), countingTable);
+      if (_isCanonical) {
+        kMer  r = M->theFMer();
+        r.reverseComplement();
+
+        if (M->theFMer() < r)
+          insertMer(HASH(M->theFMer()), CHECK(M->theFMer()), countingTable);
+        else
+          insertMer(HASH(r), CHECK(r), countingTable);
+        numberOfMers++;
       }
 
-      if (doCanonical)
-        ;  //  Not implemented, caught above
 
       C->tick();
     }

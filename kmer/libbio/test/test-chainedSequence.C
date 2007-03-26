@@ -52,9 +52,9 @@ int
 main(int argc, char **argv) {
   chainedSequence *CS  = 0L;
   chainedSequence *CT  = 0L;
-  FastAstream     *F1  = 0L;
-  FastAstream     *F2  = 0L;
-  FastAstream     *F3  = 0L;
+  seqStream       *F1  = 0L;
+  seqStream       *F2  = 0L;
+  seqStream       *F3  = 0L;
   unsigned char    a   = 1;
   unsigned char    b   = 1;
   unsigned char    c   = 1;
@@ -101,28 +101,24 @@ main(int argc, char **argv) {
   CT->loadState("junk.chainedSequence");
   CT->saveState("junk.copied.chainedSequence");
 
-  F1 = new FastAstream(filename);
-  F2 = new FastAstream(CS);
-  F3 = new FastAstream(CT);
+  F1 = new seqStream(filename);
+  F2 = new seqStream(CS);
+  F3 = new seqStream(CT);
 
   a = F1->nextSymbol();
   b = F2->nextSymbol();
   c = F3->nextSymbol();
 
   while ((a != 0) && (b != 0) && (c != 0)) {
-
-    //  Skip the _sequence_ _breaks_ and _gaps_ in the fasta sourced stream
     while ((a == 254) || (a == 253))
       a = F1->nextSymbol();
-
-    //  Skip the _sequence_ _gaps_ in the chainedSequence sourced stream
-    while (b == 253)
+    while ((b == 254) || (b == 253))
       b = F2->nextSymbol();
-    while (c == 253)
+    while ((c == 254) || (c == 253))
       c = F3->nextSymbol();
 
     if ((a != b) || (a != c) || (b != c))
-      fprintf(stderr, "FS:%c != CSoriginal:%c != CSrestored:%c\n", a, b, c);
+      fprintf(stderr, "FS:%c(%3d) != CSoriginal:%c(%3d) != CSrestored:%c(%3d)\n", a, a, b, b, c, c);
 
     a = F1->nextSymbol();
     b = F2->nextSymbol();
@@ -130,11 +126,11 @@ main(int argc, char **argv) {
   }
 
   if (a)
-    fprintf(stderr, "FastAstream(filename) has more stuff (%d %c)!\n", a, a), err=1;
+    fprintf(stderr, "seqStream(filename) has more stuff (%d %c)!\n", a, a), err=1;
   if (b)
-    fprintf(stderr, "FastAstream(chainedSequence) original has more stuff (%d %c)!\n", b, b), err=1;
+    fprintf(stderr, "seqSstream(chainedSequence) original has more stuff (%d %c)!\n", b, b), err=1;
   if (c)
-    fprintf(stderr, "FastAstream(chainedSequence) restored has more stuff (%d %c)!\n", c, c), err=1;
+    fprintf(stderr, "seqStream(chainedSequence) restored has more stuff (%d %c)!\n", c, c), err=1;
 
   delete F2;
   delete F1;

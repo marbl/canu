@@ -14,16 +14,16 @@ public:
   //  Returns sequence iid.  If the sequence is not in the cache,
   //  the sequence is loaded.
   //
-  FastASequenceInCore    *getSequence(u32bit iid);
+  seqInCore              *getSequenceInCore(u32bit iid);
 
   //  Returns a pointer to the fasta wrapper we are using.
   //
-  FastABase              *fasta(void) {
+  seqFile                *fasta(void) {
     return(_fasta);
   };
 
 private:
-  FastABase             *_fasta;
+  seqFile               *_fasta;
 
   bool                   _allSequencesLoaded;
   bool                   _reportLoading;
@@ -34,7 +34,7 @@ private:
   u32bit                *_cacheMap;
   u32bit                 _cacheSize;
   u32bit                 _cacheNext;
-  FastASequenceInCore  **_cache;
+  seqInCore            **_cache;
 };
 
 #endif  //  FASTA_CACHE_H

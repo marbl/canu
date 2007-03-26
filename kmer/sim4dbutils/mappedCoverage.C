@@ -51,8 +51,8 @@ main(int argc, char **argv) {
   char                 *fastaname = 0L;
   char                 *covname   = 0L;
 
-  FastABase            *F = 0L;
-  FastASequenceInCore  *S = 0L;
+  seqFile              *F = 0L;
+  seqInCore            *S = 0L;
 
   FILE                 *C = stdout;
 
@@ -77,7 +77,7 @@ main(int argc, char **argv) {
 
   if (fastaname) {
     C = 0L;
-    F = new FastAFile(fastaname);
+    F = openSeqFile(fastaname);
     F->openIndex();
   }
 
@@ -201,7 +201,7 @@ main(int argc, char **argv) {
 
     if (F) {
       F->find(iid);
-      S = F->getSequence();
+      S = F->getSequenceInCore();
 
       if (len[iid] == 0)
         len[iid] = S->sequenceLength();

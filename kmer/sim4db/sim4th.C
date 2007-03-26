@@ -36,12 +36,12 @@ configuration config;
 //
 readBuffer           *scriptFile       = 0L;
 
-FastABase            *GENs             = 0L;
+seqFile              *GENs             = 0L;
 FastACache           *ESTs             = 0L;
 
 u32bit                lastGENiid       = ~u32bitZERO;
 u32bit                lastESTiid       = ~u32bitZERO;
-FastASequenceInCore  *lastGENseq       = 0L;
+seqInCore            *lastGENseq       = 0L;
 
 int                   fOutput          = 0;
 int                   fYesNo           = 0;
@@ -52,8 +52,8 @@ public:
   sim4command          *input;
   char                 *script;
   sim4polishList       *output;
-  FastASequenceInCore  *gendelete;
-  FastASequenceInCore  *estdelete;
+  seqInCore            *gendelete;
+  seqInCore            *estdelete;
 
   sim4thWork() {
     input = 0L;
@@ -79,8 +79,8 @@ loader(void *U) {
   p->script = getNextScript(ESTiid, GENiid, GENlo, GENhi, doForward, doReverse, scriptFile);
 
   if (p->script) {
-    FastASequenceInCore  *ESTseq = 0L;
-    FastASequenceInCore  *GENseq = 0L;
+    seqInCore  *ESTseq = 0L;
+    seqInCore  *GENseq = 0L;
 
     //  If we already have the GENseq, use that, otherwise, register it for deletion.
     //
@@ -98,7 +98,7 @@ loader(void *U) {
       p->gendelete = lastGENseq;
 
       GENs->find(GENiid);
-      GENseq = GENs->getSequence();
+      GENseq = GENs->getSequenceInCore();
 
       lastGENiid = GENiid;
       lastGENseq = GENseq;
@@ -107,7 +107,7 @@ loader(void *U) {
     //  The cache can, and does, overwrite the EST sequence we care
     //  about.  For now, we just copy the EST from the cache.
     //
-    ESTseq         = ESTs->getSequence(ESTiid)->copy();
+    ESTseq         = ESTs->getSequenceInCore(ESTiid)->copy();
     p->estdelete   = ESTseq;
 
     p->input       = new sim4command(ESTseq, GENseq, GENlo, GENhi, doForward, doReverse);
@@ -139,10 +139,10 @@ loaderPairwise(void *) {
 
   //  Grab the GEN sequence
   GENs->find(lastGENiid++);
-  p->gendelete = GENs->getSequence();
+  p->gendelete = GENs->getSequenceInCore();
 
   //  Grab the EST sequence
-  p->estdelete = ESTs->getSequence(lastESTiid++)->copy();
+  p->estdelete = ESTs->getSequenceInCore(lastESTiid++)->copy();
 
   //  build the command
   p->input     = new sim4command(p->estdelete,
@@ -183,11 +183,11 @@ loaderAll(void *) {
   //  Update the genomic sequence?
   if (lastGENseq == 0L) {
     GENs->find(lastGENiid);
-    lastGENseq = GENs->getSequence();
+    lastGENseq = GENs->getSequenceInCore();
   }
 
   //  Grab the EST sequence
-  p->estdelete = ESTs->getSequence(lastESTiid++)->copy();
+  p->estdelete = ESTs->getSequenceInCore(lastESTiid++)->copy();
 
   //  build the command
   p->input     = new sim4command(p->estdelete,
@@ -280,7 +280,7 @@ main(int argc, char **argv) {
 
   //  Open input files
   //
-  GENs = new FastAFile(config.databaseFileName);
+  GENs = openSeqFile(config.databaseFileName);
   ESTs = new FastACache(config.cdnaFileName, config.loaderCacheSize, false);
 
   GENs->openIndex();

@@ -20,7 +20,7 @@ char const *loadDesc = "WARNING: Loader ran dry.  Increasing limit to %lu sequen
 void*
 loaderThread(void *) {
   u32bit               waterLevel = 0;
-  FastASequenceInCore *B          = 0L;
+  seqInCore           *B          = 0L;
   bool                 slept      = false;
 
   while (inputHead < numberOfQueries) {
@@ -65,7 +65,7 @@ loaderThread(void *) {
 #endif
 
       try {
-        B = qsFASTA->getSequence();
+        B = qsFASTA->getSequenceInCore();
       } catch (std::bad_alloc) {
         fprintf(stderr, "loaderThread()-- Failed to load next query sequence\ncaught bad_alloc in %s at line %d\n", __FILE__, __LINE__);
         exit(1);

@@ -15,9 +15,9 @@
 //
 //  **********
 //
-//  N.B. white-space in the source (applies to FastAstream and char*
+//  N.B. white-space in the source (applies to seqStream and char*
 //  only) result in an incorrect positionInStream().  If this troubles
-//  you, use a chainedSequence instead of a FastAstream, or squeeze
+//  you, use a chainedSequence instead of a seqStream, or squeeze
 //  the sequences.
 //
 //  The merstream has many modes of operation, depending
@@ -37,21 +37,15 @@
 class merStream {
 public:
   merStream(merStreamFileReader *merstreamfile);
-  merStream(u32bit merSize, FastAstream *str);
   merStream(u32bit merSize, chainedSequence *cs);
-  merStream(u32bit merSize, const char *seq, u32bit len);
+  merStream(u32bit merSize, seqInCore *seq, u32bit offset=0, u32bit length=0);
   ~merStream();
 
   u32bit                 theMerSize(void) { return(_merSize); };
 
-  kMer const &           theFMer(void)        { return(*_fMerP); };
-  kMer const &           theRMer(void)        { return(*_rMerP); };
-  kMer const &           theCMer(void)        {
-    if (_fMerP < _rMerP)
-      return(*_fMerP);
-    else
-      return(*_rMerP);
-  };
+  kMer const &           theFMer(void)    { return(*_fMerP); };
+  kMer const &           theRMer(void)    { return(*_rMerP); };
+  kMer const &           theCMer(void)    { return((_fMerP < _rMerP) ? *_fMerP : *_rMerP); };
 
   bool                   nextMer(u32bit skip=0);
   bool                   rewind(void);
@@ -75,10 +69,6 @@ public:
   u64bit                 approximateNumberOfMers(void) {
     if (_ms_mers)
       return(_ms_mers->numberOfMers());
-    if (_fs_file)
-      //  XXX!  Not actually true!  If the FastAstream was sourced from a chainedSequence,
-      //  we can get the length.  This needs to be implemented.
-      fprintf(stderr, "WARNING:  merStream::approximateNumberOfMers()-- using a FastAstream, bri needs to implement this!\n");
     if (_cs_chainedSeq)
       return(_cs_chainedSeq->lengthOfSequences());
     if (_st_string)
@@ -91,7 +81,6 @@ private:
   u64bit                 nextSymbol(void);
 
   merStreamFileReader  *_ms_mers;
-  FastAstream          *_fs_file;
   chainedSequence      *_cs_chainedSeq;
   char const           *_st_string;
   u64bit                _st_stringPos;
@@ -122,14 +111,12 @@ inline
 u64bit
 merStream::thePositionInSequence(void) {
 
-  //  Why the +1?  FastAstream->thePositionInSequence() returns the
+  //  Why the +1?  seqStream->thePositionInSequence() returns the
   //  position that the last character retrieved is at.  We need to go
   //  back _merSize-1 positions to get to the start of the mer.
 
   if      (_ms_mers)
     return(_ms_mers->thePositionInSequence());
-  else if (_fs_file)
-    return(_fs_file->thePositionInSequence() - _merSize + 1);
   else if (_cs_chainedSeq)
     return(_cs_chainedSeq->thePositionInSequence() - _merSize + 1);
   else
@@ -141,8 +128,6 @@ u64bit
 merStream::thePositionInStream(void) {
   if      (_ms_mers)
     return(_ms_mers->thePositionInStream());
-  else if (_fs_file)
-    return(_fs_file->thePositionInStream() - _merSize + 1);
   else if (_cs_chainedSeq)
     return(_cs_chainedSeq->thePositionInStream() - _merSize + 1);
   else
@@ -154,8 +139,6 @@ u64bit
 merStream::theSequenceNumber(void) {
   if      (_ms_mers)
     return(_ms_mers->theSequenceNumber());
-  else  if (_fs_file)
-    return(_fs_file->theSequenceNumber());
   else if (_cs_chainedSeq)
     return(_cs_chainedSeq->theSequenceNumber());
   else
@@ -165,10 +148,7 @@ merStream::theSequenceNumber(void) {
 inline
 char const *
 merStream::theDefLine(void) {
-  if (_fs_file)
-    return(_fs_file->theDefLine());
-  else
-    return(">not-available");
+  return(">not-available");
 }
 
 
@@ -176,10 +156,7 @@ inline
 u64bit
 merStream::nextSymbol(void) {
 
-  //  This is called only for FastAstreams, chainedSequences and char* input.
-
-  if (_fs_file)
-    return(_fs_file->nextSymbol());
+  //  This is called only for seqStreams, chainedSequences and char* input.
 
   if (_cs_chainedSeq)
     return(_cs_chainedSeq->get());
@@ -189,7 +166,7 @@ merStream::nextSymbol(void) {
   
   //  Skip any whitespace
   //
-  while (whitespaceSymbol[(int)_st_string[_st_stringPos]] &&
+  while (whitespaceSymbol[_st_string[_st_stringPos]] &&
          (_st_string[_st_stringPos]) &&
          (_st_stringPos < _st_stringLen))
     _st_stringPos++;

@@ -66,12 +66,12 @@ main(int argc, char **argv) {
 
   FILE         *O = fopen(otSeqName, "w");
   for (int i=0; i<numIn; i++) {
-    FastABase  *I = new FastAFile(inSeqName[i]);
+    seqFile  *I = openSeqFile(inSeqName[i]);
 
     numSeqs[i] = 0;
 
     while (!I->eof()) {
-      FastASequenceInCore *B = I->getSequence();
+      seqInCore *B = I->getSequenceInCore();
 
       fprintf(O, "%s\n%s\n", B->header(), B->sequence());
       numSeqs[i]++;

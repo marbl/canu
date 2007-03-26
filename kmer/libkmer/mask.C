@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "util++.H"
 #include "bio++.H"
 #include "libmeryl.H"
@@ -13,22 +14,22 @@
 
 int
 main(int argc, char **argv) {
-  char   *merFile = "/project/huref4/assembly-mapping/missing/missing0/HMISSING-and-B35LC";
-  char   *seqFile = "/project/huref4/assembly-mapping/missing/missing0/HMISSING-ge64.uid.fasta";
+  char   *merName = "/project/huref4/assembly-mapping/missing/missing0/HMISSING-and-B35LC";
+  char   *seqName = "/project/huref4/assembly-mapping/missing/missing0/HMISSING-ge64.uid.fasta";
   u32bit  merSize = 28;
 
   fprintf(stderr, "Build existDB.\n");
 
   existDB *exist = 0L;
   if (0) {
-    exist = new existDB(merFile, merSize, 20);
+    exist = new existDB(merName, merSize, 20);
     exist->saveState("/project/huref4/assembly-mapping/missing/missing0/HMISSING-and-B35LC.existDB");
   } else {
     exist = new existDB("/project/huref4/assembly-mapping/missing/missing0/HMISSING-and-B35LC.existDB");
   }
 
-  FastABase            *F     = new FastAFile(seqFile);
-  FastASequenceInCore  *S     = 0L;
+  seqFile      *F     = openSeqFile(seqName);
+  seqInCore    *S     = 0L;
 
   u32bit   maskLen = 1048576;
   bool    *mask    = new bool [maskLen];
@@ -37,7 +38,7 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "Begin.\n");
 
-  while ((S = F->getSequence()) != 0L) {
+  while ((S = F->getSequenceInCore()) != 0L) {
     //fprintf(stderr, "iid="u32bitFMT" len="u32bitFMT" %s\n", S->getIID(), S->sequenceLength(), S->header());
 
     if (maskLen <= S->sequenceLength() + 1024) {
@@ -57,9 +58,7 @@ main(int argc, char **argv) {
 
     //  Build the initial masking
     //
-    merStream  *MS = new merStream(merSize,
-                                   S->sequence(),
-                                   S->sequenceLength());
+    merStream  *MS = new merStream(merSize, S);
     while (MS->nextMer())
       if (exist->exists(MS->theFMer()) || exist->exists(MS->theRMer()))
         mask[MS->thePositionInSequence()] = true;

@@ -69,9 +69,9 @@ buildFastA(void) {
 //
 void
 test1(u32bit style) {
-  FastABase            *fasta = new FastAFile(FASTA_FILENAME);
-  FastASequenceInCore  *sseq  = fasta->getSequence();
-  FastASequenceInCore  *lseq  = fasta->getSequence();
+  seqFile    *fasta = openSeqFile(FASTA_FILENAME);
+  seqInCore  *sseq  = fasta->getSequenceInCore();
+  seqInCore  *lseq  = fasta->getSequenceInCore();
 
   char                  mseq[TEST_SIZE * MERS_PER_SEQ + 1];
 
@@ -79,7 +79,6 @@ test1(u32bit style) {
 
   merStream           *MS = 0L;
   merStreamFileReader *RD = 0L;
-  FastAstream         *FS = 0L;
   chainedSequence     *CS = 0L;
 
   switch (style) {
@@ -89,18 +88,13 @@ test1(u32bit style) {
       MS = new merStream(RD);
       break;
     case 1:
-      fprintf(stderr, "test1(1)-- Testing FastAstream -> merStream\n");
-      FS = new FastAstream(FASTA_FILENAME);
-      MS = new merStream(TEST_SIZE, FS);
-      break;
-    case 2:
       fprintf(stderr, "test1(2)-- Testing chainedSequence -> merStream\n");
       CS = new chainedSequence();
       CS->setSource(FASTA_FILENAME);
       CS->finish();
       MS = new merStream(TEST_SIZE, CS);
       break;
-    case 3:
+    case 2:
       fprintf(stderr, "test1(3)-- Testing merStreamFileReader (backwards)\n");
       RD = new merStreamFileReader(MSF_FILENAME, TEST_SIZE);
       break;
@@ -116,7 +110,6 @@ test1(u32bit style) {
     switch (style) {
       case 0:
       case 1:
-      case 2:
         //  Fill the sequence using non-overlapping mers, skipping
         //  intermediate mers (there aren't intermediate mers if we're the
         //  last mer in the sequence!)
@@ -128,7 +121,7 @@ test1(u32bit style) {
             MS->nextMer(TEST_SIZE - 1);
         }
         break;
-      case 3:
+      case 2:
         //  Same thing, but read the mers backwards -- we could read
         //  the sequences backwards, too, but that doesn't gain us
         //  anything (we still seek to every location).
@@ -185,15 +178,14 @@ test1(u32bit style) {
     delete sseq;
     delete lseq;
 
-    sseq = fasta->getSequence();
-    lseq = fasta->getSequence();
+    sseq = fasta->getSequenceInCore();
+    lseq = fasta->getSequenceInCore();
   }
 
   delete sseq;
   delete lseq;
 
   delete CS;
-  delete FS;
   delete RD;
   delete MS;
 
@@ -221,7 +213,6 @@ main(int argc, char **argv) {
   test1(0);
   test1(1);
   test1(2);
-  test1(3);
 
   unlink(FASTA_FILENAME);
   unlink(FASTA_FILENAME "idx");

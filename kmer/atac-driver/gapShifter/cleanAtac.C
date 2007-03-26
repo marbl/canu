@@ -69,16 +69,16 @@ main(int argc, char *argv[]) {
 
     u32bit identities = 0;
 
-    //char   *a = Acache.getSequence(m->iid1)->sequence() + m->pos1;
-    //char   *b = Bcache.getSequence(m->iid2)->sequence() + m->pos2;
+    //char   *a = Acache.getSequenceInCore(m->iid1)->sequence() + m->pos1;
+    //char   *b = Bcache.getSequenceInCore(m->iid2)->sequence() + m->pos2;
     //u32bit  p, q;
 
 
     //  Trim the match
     //
     if (m->fwd2) {
-      char   *a = Acache.getSequence(m->iid1)->sequence() + m->pos1;
-      char   *b = Bcache.getSequence(m->iid2)->sequence() + m->pos2;
+      char   *a = Acache.getSequenceInCore(m->iid1)->sequence() + m->pos1;
+      char   *b = Bcache.getSequenceInCore(m->iid2)->sequence() + m->pos2;
       u32bit  p = 0;
 
       while ((m->len1 > 0) && (toUpper[(int)a[p]] != toUpper[(int)b[p]])) {
@@ -89,8 +89,8 @@ main(int argc, char *argv[]) {
         p++;
       }
 
-      a = Acache.getSequence(m->iid1)->sequence() + m->pos1;
-      b = Bcache.getSequence(m->iid2)->sequence() + m->pos2;
+      a = Acache.getSequenceInCore(m->iid1)->sequence() + m->pos1;
+      b = Bcache.getSequenceInCore(m->iid2)->sequence() + m->pos2;
       p = m->len1-1;
       while ((m->len1 > 0) && (toUpper[(int)a[p]] != toUpper[(int)b[p]])) {
         m->len1--;
@@ -99,8 +99,8 @@ main(int argc, char *argv[]) {
       }
 
     } else {
-      char   *a = Acache.getSequence(m->iid1)->sequence() + m->pos1;
-      char   *b = Bcache.getSequence(m->iid2)->sequence() + m->pos2;
+      char   *a = Acache.getSequenceInCore(m->iid1)->sequence() + m->pos1;
+      char   *b = Bcache.getSequenceInCore(m->iid2)->sequence() + m->pos2;
       u32bit  p = 0;
       u32bit  q = m->len2 - 1;
 
@@ -112,8 +112,8 @@ main(int argc, char *argv[]) {
         q--;
       }
 
-      a = Acache.getSequence(m->iid1)->sequence() + m->pos1;
-      b = Bcache.getSequence(m->iid2)->sequence() + m->pos2;
+      a = Acache.getSequenceInCore(m->iid1)->sequence() + m->pos1;
+      b = Bcache.getSequenceInCore(m->iid2)->sequence() + m->pos2;
       p = m->len1 - 1;
       q = 0;
       while ((m->len1 > 0) && (toUpper[(int)a[p]] != complementSymbol[toUpper[(int)b[q]]])) {
@@ -126,8 +126,8 @@ main(int argc, char *argv[]) {
     }
 
     if (m->len1 > 0) {
-      char *a = Acache.getSequence(m->iid1)->sequence() + m->pos1;
-      char *b = Bcache.getSequence(m->iid2)->sequence() + m->pos2;
+      char *a = Acache.getSequenceInCore(m->iid1)->sequence() + m->pos1;
+      char *b = Bcache.getSequenceInCore(m->iid2)->sequence() + m->pos2;
 
       if (m->fwd2) {
         for (u32bit p=0; p<m->len1; p++) {

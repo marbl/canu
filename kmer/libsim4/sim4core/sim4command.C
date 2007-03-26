@@ -8,17 +8,17 @@
 
 //  Run a single EST against a genomic range
 //
-//  XXX: We should pull out the EST and GEN from the FastABase,
+//  XXX: We should pull out the EST and GEN from the seqFile,
 //  and store them as the "two char*" method.
 //
-sim4command::sim4command(u32bit        ESTid,
-                         FastABase    *ESTs,
-                         u32bit        GENid,
-                         u32bit        GENlo,
-                         u32bit        GENhi,
-                         FastABase    *GENs,
-                         bool          doFor,
-                         bool          doRev) {
+sim4command::sim4command(u32bit      ESTid,
+                         seqFile    *ESTs,
+                         u32bit      GENid,
+                         u32bit      GENlo,
+                         u32bit      GENhi,
+                         seqFile    *GENs,
+                         bool        doFor,
+                         bool        doRev) {
 
   _estIdx = ESTid;
 
@@ -45,12 +45,12 @@ sim4command::sim4command(u32bit        ESTid,
 }
 
 
-sim4command::sim4command(FastASequenceInCore  *EST,
-                         FastASequenceInCore  *GEN,
-                         u32bit                GENlo,
-                         u32bit                GENhi,
-                         bool                  doFor,
-                         bool                  doRev) {
+sim4command::sim4command(seqInCore  *EST,
+                         seqInCore  *GEN,
+                         u32bit      GENlo,
+                         u32bit      GENhi,
+                         bool        doFor,
+                         bool        doRev) {
 
   _estIdx = EST->getIID();
 
@@ -168,7 +168,7 @@ sim4command::loadEST(void) {
       fprintf(stderr, "ERROR: Can't find IID %lu in the set of ESTs\n", _estIdx);
       exit(1);
     }
-    _ESTloaded = _ESTs->getSequence();
+    _ESTloaded = _ESTs->getSequenceInCore();
   }
 }
 
@@ -217,7 +217,7 @@ sim4command::loadGEN(void) {
       fprintf(stderr, "ERROR: Can't find IID %lu in the set of genomic sequences\n", _genIdx);
       exit(1);
     }
-    _GENloaded = _GENs->getSequence();
+    _GENloaded = _GENs->getSequenceInCore();
   }
 }
 

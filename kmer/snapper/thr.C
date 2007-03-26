@@ -7,7 +7,7 @@
 void*
 searchThread(void *U) {
   u32bit               idx      = 0;
-  FastASequenceInCore *seq      = 0L;
+  seqInCore           *seq      = 0L;
   u32bit               blockedI = 0;
   u32bit               blockedO = 0;
 

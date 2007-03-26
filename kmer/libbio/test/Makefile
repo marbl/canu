@@ -32,8 +32,8 @@ test-fasta-accessor: test-fasta-accessor.C
 test-merstream: test-merstream.C
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-merstream.o test-merstream.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-merstream test-merstream.o $(LIBS)
-	#this is known to be broken
-	#./test-merstream
+	../../leaff/leaff -G 1 10000 30000 > junk.fasta
+	./test-merstream junk.fasta
 	../../leaff/leaff -G 1000 10000 30000 > junk.fasta
 	./test-merstream junk.fasta
 	rm -f junk.fasta junk.fastaidx

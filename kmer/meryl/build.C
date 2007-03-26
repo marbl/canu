@@ -13,39 +13,6 @@ void runThreaded(merylArgs *args);
 //  defined.
 #define REMOVE_TEMPORARY_FILES
 
-
-//  Threaded build times on G5/2GHz, including merStreamFile building,
-//  of 167256385 mers.
-//
-//  1 314.100u  5.900s 5:21.84 99.4%  0+0k 0+ 31io 0pf+0w (2.45, 1.06, 2.67)
-//  2 376.620u  9.970s 6:28.84 99.4%  0+0k 0+ 55io 0pf+0w (2.67, 1.07, 2.66, 2.38)
-//  4 363.760u 10.670s 6:18.72 98.8%  0+0k 0+ 57io 0pf+0w (3.15, 1.07, 2.48, 2.15)
-//  7 347.130u 12.100s 6:31.48 91.7%  0+0k 0+ 95io 0pf+0w (3.5x, 1.05, 2.30, 1.94)
-//  8 333.330u 10.410s 5:46.75 99.1%  0+0k 0+ 75io 0pf+0w (3.78, 1.18, 2.65)
-// 32 335.240u 12.670s 5:50.42 99.2%  0+0k 0+104io 0pf+0w (5.20, 1.33, 2.41, 1.61)
-// 64 338.400u 14.170s 5:54.96 99.3%  0+0k 0+ 96io 0pf+0w (6.6x, 1.50, 2.42, 1.28)
-//
-//  Notice that writing the output (includes the sort) is constant
-//  speed.  Buckets are small enough to fit in cache.
-//
-//  The slowdown in merge is probably implementation related.
-//
-//  Times might get N seconds better (N segments) if we stop destroying
-//  the merStreamFile for each segment.  Easy enough if only one thread,
-//  trouble if more than one.
-//
-//  md5's of the dumps of all those are the same.  The file sizes are all
-//  different (except 7 and 8):
-//
-//  330677936  t0.mcdat  6116056 t0.mcidx
-//  348964824  t2.mcdat  3669912 t2.mcidx
-//  367251712  t4.mcdat  2202664 t4.mcidx
-//  385538600  t7.mcdat  1281176 t7.mcidx
-//  385538600  t8.mcdat  1281176 t8.mcidx
-//  422112376  t32.mcdat  418704 t32.mcidx
-//  440399264  t64.mcdat  235592 t64.mcidx
-
-
 //  You probably want this to be the same as KMER_WORDS, but in rare
 //  cases, it can be less.
 //

@@ -2,6 +2,8 @@ PROG    = stupidcount exhaustive
 INCLUDE = -I.. -I../../libutil -I../../libbio -I../../libmeryl
 LIBS    = -L.. -L../../libutil -L../../libbio -L../../libmeryl -lmeryl -lbio -lutil -lm
 
+MERSIZE = 26
+
 include ../../Make.compilers
 
 all:  $(PROG)
@@ -15,9 +17,9 @@ exhaustive: exhaustive.C kmerlite.H
 	$(CXX) $(CXXLDFLAGS) -o exhaustive exhaustive.o $(LIBS)
 
 test-exhaustive: exhaustive ../meryl ../../leaff/leaff
-	../../leaff/leaff -G 1000 10000 40000 > /scratch/g.fasta
-	../meryl -B -s /scratch/g.fasta -o /scratch/s -m 100
-	./exhaustive -m /scratch/s -f /scratch/g.fasta
+	../../leaff/leaff -G 1000 10000 40000 > g.fasta
+	../meryl -B -s g.fasta -o s -m $(MERSIZE) -threads 7
+	./exhaustive -m s -f g.fasta
 
 test-reduce: ../meryl
 	#  Build the initial table
@@ -34,11 +36,6 @@ test-reduce: ../meryl
 
 test:
 	../meryl -B -s      test-seq1.fasta -o t -m 20
-
-nothin:
-	../meryl -S -s t -q test-seq1.fasta -o tc.out -d -e -c
-	../meryl -S -s t -q test-seq1.fasta -o ta.out -d -e -a
-	../meryl -S -s t -q test-seq1.fasta -o tp.out -d -e -p
 
 clean:
 	rm -f $(PROG) *.o

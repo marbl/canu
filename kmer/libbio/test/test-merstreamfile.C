@@ -55,7 +55,9 @@ streamingTest(char *msfile, bool inCore) {
   int                  errors = 0;
   u64bit               compared = 0;
   merStreamFileReader *R = new merStreamFileReader("junk", TEST_SIZE);
-  FastAstream         *F = new FastAstream(msfile);
+  chainedSequence     *F = new chainedSequence();
+  F->setSource(msfile);
+  F->finish();
   merStream           *M = new merStream(TEST_SIZE, F);
 
   if (inCore)
@@ -98,7 +100,9 @@ randomAccessTest(char *msfile, bool inCore) {
   int                  errors = 0;
   u64bit               merNum   = 0;
   merStreamFileReader *R = new merStreamFileReader("junk", TEST_SIZE);
-  FastAstream         *F = new FastAstream(msfile);
+  chainedSequence     *F = new chainedSequence();
+  F->setSource(msfile);
+  F->finish();
   merStream           *M = new merStream(TEST_SIZE, F);
 
   if (inCore)

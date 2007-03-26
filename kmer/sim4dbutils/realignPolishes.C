@@ -187,7 +187,7 @@ main(int argc, char **argv) {
 
 
     if (statsOnly == 0) {
-      p->estLen   = EST->getSequence(p->estID)->sequenceLength();
+      p->estLen   = EST->getSequenceInCore(p->estID)->sequenceLength();
       p->estPolyA = 0;
       p->estPolyT = 0;
 
@@ -195,11 +195,11 @@ main(int argc, char **argv) {
         l1 = p->exons[i].estTo - p->exons[i].estFrom + 1;
         l2 = p->exons[i].genTo - p->exons[i].genFrom + 1;
 
-        strncpy(s1, EST->getSequence(p->estID)->sequence() + p->exons[i].estFrom - 1, l1);
-        strncpy(s2, GEN->getSequence(p->genID)->sequence() + p->exons[i].genFrom - 1, l2);
+        strncpy(s1, EST->getSequenceInCore(p->estID)->sequence() + p->exons[i].estFrom - 1, l1);
+        strncpy(s2, GEN->getSequenceInCore(p->genID)->sequence() + p->exons[i].genFrom - 1, l2);
 
         if (p->matchOrientation == SIM4_MATCH_COMPLEMENT) {
-          strncpy(s1, EST->getSequence(p->estID)->sequence() + p->estLen - p->exons[i].estTo, l1);
+          strncpy(s1, EST->getSequenceInCore(p->estID)->sequence() + p->estLen - p->exons[i].estTo, l1);
           reverseComplementSequence(s1, l1);
         }
 

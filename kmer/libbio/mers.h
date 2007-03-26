@@ -37,7 +37,7 @@ stringToMer(u32bit ms, char *str) {
 
   for (u32bit i=0; i<ms; i++) {
     mer <<= 2;
-    mer  |= compressSymbol[(int)str[i]];
+    mer  |= compressSymbol[str[i]];
   }
 
   return(mer);

@@ -3,7 +3,6 @@
 #include <string.h>
 #include <errno.h>
 #include "existDB.H"
-#include "positionDB.H"
 #include "bio++.H"
 
 
@@ -33,45 +32,35 @@ existDB::createFromFastA(char const  *filename,
   u64bit  numberOfMers       = u64bitZERO;
   u64bit *countingTable      = new u64bit [tableSizeInEntries + 1];
 
-  _beVerbose=true;
-
-  if (_beVerbose)
-    fprintf(stderr, "existDB::createFromFastA()-- countingTable is "u64bitFMT"MB\n",
-            tableSizeInEntries >> 17);
-
   for (u64bit i=tableSizeInEntries+1; i--; )
     countingTable[i] = 0;
 
-  bool  doCanonical = flags & existDBcanonical;
-  bool  doForward   = flags & existDBforward;
-  bool  doReverse   = flags & existDBreverse;
+  _isCanonical = flags & existDBcanonical;
+  _isForward   = flags & existDBforward;
 
   ////////////////////////////////////////////////////////////////////////////////
   //
   //  1)  Count bucket sizes
   //
-  FastAstream   *F = new FastAstream(filename);
-  merStream     *M = new merStream(_merSizeInBases, F);
+  chainedSequence  *CS = new chainedSequence();
+  CS->setSource(filename);
+  CS->finish();
+  merStream        *M  = new merStream(_merSizeInBases, CS);
 
   while (M->nextMer()) {
-    if (doForward) {
+    if (_isForward) {
       countingTable[ HASH(M->theFMer()) ]++;
       numberOfMers++;
     }
 
-    if (doReverse) {
-      countingTable[ HASH(M->theRMer()) ]++;
+    if (_isCanonical) {
+      countingTable[ HASH(M->theCMer()) ]++;
       numberOfMers++;
-    }
-
-    if (doCanonical) {
-      fprintf(stderr, "ERROR:  canonical mers in existDB not implemented.\n");
-      exit(1);
     }
   }
 
   delete M;
-  delete F;
+  delete CS;
 
 #ifdef STATS
   u64bit  dist[32] = {0};
@@ -171,22 +160,21 @@ existDB::createFromFastA(char const  *filename,
   //
   //  3)  Build list of mers, placed into buckets
   //
-  F = new FastAstream(filename);
-  M = new merStream(_merSizeInBases, F);
+  CS = new chainedSequence();
+  CS->setSource(filename);
+  CS->finish();
+  M  = new merStream(_merSizeInBases, CS);
 
   while (M->nextMer()) {
-    if (doForward)
+    if (_isForward)
       insertMer(HASH(M->theFMer()), CHECK(M->theFMer()), countingTable);
 
-    if (doReverse)
-      insertMer(HASH(M->theRMer()), CHECK(M->theRMer()), countingTable);
-
-    if (doCanonical)
-      ;  //  Not implemented, caught above
+    if (_isCanonical)
+      insertMer(HASH(M->theCMer()), CHECK(M->theCMer()), countingTable);
   }
 
   delete M;
-  delete F;
+  delete CS;
 
   //  All done.  Delete temporary stuff
   //

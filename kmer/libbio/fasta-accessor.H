@@ -57,7 +57,7 @@ private:
   };
 
 public:
-  FastAAccessor(FastASequenceInCore *S, bool revcomp=false) {
+  FastAAccessor(seqInCore *S, bool revcomp=false) {
     FastAAccessorInit(S->sequence(), S->sequenceLength(), revcomp);
   };
 
@@ -121,7 +121,7 @@ public:
 
   char operator[](u32bit p) const {
     if ((_rcBase <= p) && (p < _rcBase + _rcLen)) {
-      if (_doRevComp) return(complementSymbol[(int)_seq[rc(p)]]);
+      if (_doRevComp) return(complementSymbol[_seq[rc(p)]]);
       else            return(_seq[p]);
     } else {
       fprintf(stderr, "operator[]-- Tried to access to "u32bitFMT", but range is "u32bitFMT"-"u32bitFMT"\n",
@@ -187,13 +187,13 @@ public:
 
   char operator*(void) const {
     SANITY("FastAAccessor::operator*()", _pos);
-    if (_doRevComp) return(complementSymbol[(int)_seq[_pos]]);
+    if (_doRevComp) return(complementSymbol[_seq[_pos]]);
     else            return(_seq[_pos]);
   };
 
   char get(void) const {
     SANITY("FastAAccessor::get()", _pos);
-    if (_doRevComp) return(complementSymbol[(int)_seq[_pos]]);
+    if (_doRevComp) return(complementSymbol[_seq[_pos]]);
     else            return(_seq[_pos]);
   };
 

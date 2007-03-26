@@ -52,7 +52,7 @@ trieSeqPtrCompare(const void *a, const void *b) {
 u32bit
 addSequence(trieNode *nodes,    u32bit &nodesLen,
             trieSeqPtr *seqptr, u32bit &seqptrLen,
-            FastASequenceInCore *S,
+            seqInCore *S,
             bool isReverse) {
   char   *s = 0L;
   u32bit  n = 0;
@@ -61,11 +61,11 @@ addSequence(trieNode *nodes,    u32bit &nodesLen,
     return(0);
 
   for (s = S->sequence(); *s; s++)
-    if (validSymbol[(int)*s] == 0)
+    if (validSymbol[*s] == 0)
       return(0);
 
   for (s = S->sequence(); *s; s++) {
-    u32bit  v = compressSymbol[(int)*s];
+    u32bit  v = compressSymbol[*s];
 
     //  add a new pointer if needed
     if (nodes[n].next[v] == ~u32bitZERO)
@@ -132,8 +132,8 @@ main(int argc, char **argv) {
   u32bit     nodesMax = 16 * 1024 * 1024;
   trieNode  *nodes    = new trieNode [nodesMax];
 
-  FastAFile            *F = new FastAFile(queries);
-  FastASequenceInCore  *S = 0L;
+  seqFile              *F = openSeqFile(queries);
+  seqInCore            *S = 0L;
 
   u32bit      seqptrLen = 0;
   u32bit      seqptrMax = 2 * 1024 * 1024;
@@ -146,7 +146,7 @@ main(int argc, char **argv) {
   for (u32bit i=0; i<seqptrMax; i++)
     nummatches[i] = 0;
 
-  while ((S = F->getSequence()) != 0L) {
+  while ((S = F->getSequenceInCore()) != 0L) {
     u32bit success = 0;
 
     success += addSequence(nodes, nodesLen, seqptr, seqptrLen, S, false);
@@ -190,9 +190,9 @@ main(int argc, char **argv) {
 
   //
 
-  F = new FastAFile(genome);
+  F = openSeqFile(genome);
   S = 0L;
-  while ((S = F->getSequence()) != 0L) {
+  while ((S = F->getSequenceInCore()) != 0L) {
     char    *s    = S->sequence();
     u32bit   siid = S->getIID();
     u32bit   spos = 0;
@@ -204,7 +204,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "WORKING ON '%s'\n", S->header());
 
     while (*s) {
-      if (validSymbol[(int)*s] == 0) {
+      if (validSymbol[*s] == 0) {
 
         //  Not a valid symbol, all node pointers are killed, no exact matches
         //  possible!
@@ -216,7 +216,7 @@ main(int argc, char **argv) {
         //  matches, kill any pointers, and then finally add a new
         //  one.
 
-        u32bit  v = compressSymbol[(int)*s];
+        u32bit  v = compressSymbol[*s];
         u32bit  ni;
         u32bit  nj;
 

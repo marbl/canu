@@ -182,7 +182,7 @@ extern configuration          config;
 extern sim4parameters         sim4params;
 extern FastACache            *cache;
 
-extern FastABase            *qsFASTA;  //  Used exclusively by thr-loader.C
+extern seqFile               *qsFASTA;  //  Used exclusively by thr-loader.C
 
 extern existDB               *maskDB;  //  thr-search.C
 extern existDB               *onlyDB;  //  thr-search.C
@@ -199,7 +199,7 @@ extern u32bit                *outputLen;
 extern logMsg               **logmsg;
 
 extern pthread_mutex_t        inputTailMutex;
-extern FastASequenceInCore  **input;
+extern seqInCore            **input;
 extern volatile u32bit        inputHead;
 extern volatile u32bit        inputTail;
 

@@ -12,7 +12,7 @@
 //  number.  If we then store the deflines, we get everything!
 //
 //  N.B. because we create a merStream internally, and that uses
-//  the FastAstream to get sequence from the file, the sequence
+//  the seqStream to get sequence from the file, the sequence
 //  file MUST BE SQUEEZED to get the correct positionInStream.
 
 //  Returns true if the merStreamFile exists.
@@ -31,7 +31,7 @@ public:
 
 private:
   u32bit                _merSize;
-  FastAstream          *_fastaStream;
+  chainedSequence      *_chainedSeq;
   merStream            *_merStream;
   const char           *_outputFile;
 };
