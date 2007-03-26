@@ -14,9 +14,9 @@
 
 int
 main(int argc, char **argv) {
-  char   *merName = "/project/huref4/assembly-mapping/missing/missing0/HMISSING-and-B35LC";
-  char   *seqName = "/project/huref4/assembly-mapping/missing/missing0/HMISSING-ge64.uid.fasta";
-  u32bit  merSize = 28;
+  const char   *merName = "/project/huref4/assembly-mapping/missing/missing0/HMISSING-and-B35LC";
+  const char   *seqName = "/project/huref4/assembly-mapping/missing/missing0/HMISSING-ge64.uid.fasta";
+  u32bit        merSize = 28;
 
   fprintf(stderr, "Build existDB.\n");
 
