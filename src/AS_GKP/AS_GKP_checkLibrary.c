@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.3 2007-03-01 16:13:16 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.4 2007-03-27 07:31:59 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,7 +72,7 @@ Check_LibraryMesg(DistanceMesg     *dst_mesg,
                           FALSE,
                           TRUE);
 
-    gkpl.UID          = dst_mesg->eaccession;
+    gkpl.libraryUID   = dst_mesg->eaccession;
     gkpl.mean         = dst_mesg->mean;
     gkpl.stddev       = dst_mesg->stddev;
     gkpl.birthBatch   = currentBatchID;

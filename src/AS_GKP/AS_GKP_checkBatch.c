@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkBatch.c,v 1.4 2007-03-01 16:13:15 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkBatch.c,v 1.5 2007-03-27 07:31:59 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,7 +67,7 @@ int Check_BatchMesg(BatchMesg          *bat_mesg,
                         FALSE,
                         TRUE);
 
-  gkpb.UID            = bat_mesg->eaccession;
+  gkpb.batchUID       = bat_mesg->eaccession;
   gkpb.created        = bat_mesg->created;
   strncpy(gkpb.name,    bat_mesg->name, 255);
   strncpy(gkpb.comment, bat_mesg->comment, 255);

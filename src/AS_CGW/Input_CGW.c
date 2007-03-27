@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.27 2007-03-04 02:06:21 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.28 2007-03-27 07:31:59 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -981,7 +981,8 @@ void LoadDistData(void){ // Load the distance record info from the gkpStore
     dist.samples       = CreateVA_CDS_COORD_t(1024);
     dist.numReferences = dist.numBad = 0;
 
-    fprintf(GlobalData->stderrc,"* Loaded dist "F_UID","F_CID" (%g +/- %g)\n", gkpl.UID, i, dist.mean, dist.stddev);
+    fprintf(GlobalData->stderrc,"* Loaded dist "F_UID","F_CID" (%g +/- %g)\n",
+            gkpl.libraryUID, i, dist.mean, dist.stddev);
 
     SetDistT(ScaffoldGraph->Dists, i, &dist);
   }

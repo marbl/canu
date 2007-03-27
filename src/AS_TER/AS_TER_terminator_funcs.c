@@ -25,7 +25,7 @@
  Assumptions: There is no UID 0
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.31 2007-02-25 08:13:38 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.32 2007-03-27 07:31:59 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
@@ -266,7 +266,7 @@ static CDS_UID_t *fetch_UID_from_distStore(VA_TYPE(CDS_UID_t) *map, CDS_IID_t ii
         sprintf(errorreport,"Internal DST ID %d occurred twice",iid);
         error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
       }
-      SetCDS_UID_t(map,iid,&gkpl.UID);
+      SetCDS_UID_t(map,iid,&gkpl.libraryUID);
       return GetCDS_UID_t(map,iid);
     }
     else{
@@ -1512,9 +1512,9 @@ void read_stores(char* fragStoreName)
 	 sprintf(errorreport,"Internal DST ID %d occurred twice",i);
 	 error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
        }
-       SetCDS_UID_t(DSTmap,i,&gkpl.UID);
-       if( get_start_uid() <= gkpl.UID )
-         set_start_uid(gkpl.UID+1);
+       SetCDS_UID_t(DSTmap,i,&gkpl.libraryUID);
+       if( get_start_uid() <= gkpl.libraryUID )
+         set_start_uid(gkpl.libraryUID+1);
 
 #if DEBUG_UID
        fprintf(stderr,"SYS_UID_uidStart after reading distribs %lu\n",get_start_uid());

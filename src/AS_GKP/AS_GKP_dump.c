@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_dump.c,v 1.7 2007-03-23 04:51:08 brianwalenz Exp $ */
+/* $Id: AS_GKP_dump.c,v 1.8 2007-03-27 07:31:59 brianwalenz Exp $ */
 
 #include "AS_GKP_include.h"
 
@@ -139,7 +139,7 @@ dumpGateKeeperAsXML(char       *gkpStoreName,
 
       fprintf(stdout, "\n\n");
       fprintf(stdout, "<batch>\n");
-      fprintf(stdout, "<ident>"F_UID","F_IID"</ident>\n", gkpb.UID, i);
+      fprintf(stdout, "<ident>"F_UID","F_IID"</ident>\n", gkpb.batchUID, i);
       fprintf(stdout, "<name>%s</name>\n", gkpb.name);
       fprintf(stdout, "<created>("F_U64") %s</created>\n", gkpb.created, ctime(&createdtime));
       if (gkpb.comment[0])
@@ -175,7 +175,7 @@ dumpGateKeeperAsXML(char       *gkpStoreName,
 
       fprintf(stdout, "\n\n");
       fprintf(stdout, "<library>\n");
-      fprintf(stdout, "<ident>"F_UID","F_IID"</ident>\n", gkpl.UID, i);
+      fprintf(stdout, "<ident>"F_UID","F_IID"</ident>\n", gkpl.libraryUID, i);
       fprintf(stdout, "<name>%s</name>\n", gkpl.name);
       fprintf(stdout, "<created>("F_U64") %s</created>\n", gkpl.created, ctime(&createdtime));
       if (gkpl.comment[0])
@@ -205,7 +205,7 @@ dumpGateKeeperAsXML(char       *gkpStoreName,
 
       fprintf(stdout, "\n\n");
       fprintf(stdout, "<shadow_library>\n");
-      fprintf(stdout, "<ident>"F_UID","F_IID"</ident>\n", gkpl.UID, i);
+      fprintf(stdout, "<ident>"F_UID","F_IID"</ident>\n", gkpl.libraryUID, i);
       fprintf(stdout, "<name>%s</name>\n", gkpl.name);
       fprintf(stdout, "<created>("F_U64") %s</created>\n", gkpl.created, ctime(&createdtime));
       if (gkpl.comment[0])

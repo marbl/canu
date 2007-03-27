@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.26 2007-03-26 16:14:54 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.27 2007-03-27 07:31:59 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -43,7 +43,7 @@
 //  the difference between batch i+1 and batch i.
 //
 typedef struct {
-  CDS_UID_t      UID;
+  CDS_UID_t      batchUID;
   char           name[AS_PER_NAME_LEN];
   char           comment[AS_PER_COMMENT_LEN];
   uint64         created;
@@ -63,7 +63,7 @@ typedef struct {
 #define AS_READ_ORIENT_ANTINORMAL 0x04
 
 typedef struct {
-  CDS_UID_t      UID;
+  CDS_UID_t      libraryUID;
 
   char           name[AS_PER_NAME_LEN];
   char           comment[AS_PER_COMMENT_LEN];

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.19 2007-03-04 01:18:45 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.20 2007-03-27 07:31:59 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -738,11 +738,11 @@ buildLibraryIIDmap(char *gkpStoreName) {
 
   for (i=1; i<=stat.lastElem; i++) {
     getGateKeeperLibraryStore(gkpStore->lib, i, &gkpl);
-    map[i] = gkpl.UID;
+    map[i] = gkpl.libraryUID;
 
     fprintf(stderr,"* Dist " F_S64 " UID:" F_UID " del:%d red:%d mean:%f std:%f batch(" F_U16 "," F_U16 ") prevID:" F_IID " prevInstanceID: " F_IID "\n",
             i,
-            gkpl.UID,
+            gkpl.libraryUID,
             gkpl.deleted,
             gkpl.redefined,
             gkpl.mean,
