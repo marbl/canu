@@ -20,6 +20,7 @@
  *************************************************************************/
 
 #include <string.h> // for memcpy
+#include <assert.h> // for assert
 #include <curl/curl.h>
 #include <curl/types.h>
 #include <curl/easy.h>
@@ -32,11 +33,29 @@ struct JTC_GUIDMemoryStruct {
   size_t size;
 };
 
-const char JTC_GUID_URL[] = "http://guid.jtc.jcvsf.org:8080/guid/GuidClientServer?Request=GET&Size=";
+const char JTC_GUID_URL[] = "http://guid.jtc.jcvsf.org:8080/guid/GuidClientServer";
+char * guidServerNames = NULL;
+char * guidNamespace = NULL;
 
 #define JTC_GUID_REQUEST_URL_MAX_SIZE 2048
 #define JTC_GUID_HTTP_RESPONSE_MAX_SIZE 4096
 #define JTC_GUID_NUM_BUFFER_SIZE 100
+#define JTC_GUID_SEPARATOR ","
+#define JTC_GUID_MAX_NUM_URL 10
+
+void SYS_UIDset_euid_server(const char * servers)
+{
+  guidServerNames=strdup(servers);
+  assert(guidServerNames != NULL);
+}
+
+void SYS_UIDset_euid_namespace(const char * namespaceName)
+{
+	if (namespaceName == NULL) { return; }
+	
+  	guidNamespace=strdup(namespaceName);
+  	assert(guidNamespace != NULL);
+}
 
 
 int findGuidStartFromHttpString(char* httpString) {
@@ -93,7 +112,12 @@ CDS_UID_t getGUIDBlock(int guidRequestSize)
   CDS_UID_t guidStart = 0;
 
   CURL *curl_handle;
+  int curl_response = -1;
+  /* we only handle a limited max of servers that can be specified */
+  //char guidRequest[JTC_GUID_REQUEST_URL_MAX_SIZE];
+  char *currentURL = NULL;
   char guidRequest[JTC_GUID_REQUEST_URL_MAX_SIZE];
+  char guidBuffer[JTC_GUID_REQUEST_URL_MAX_SIZE];
   char httpResponse[JTC_GUID_HTTP_RESPONSE_MAX_SIZE];
   char guidNumResponse[JTC_GUID_NUM_BUFFER_SIZE]; /* needs to comfortably fit a long as a string */
   int guidNumLength = 0;
@@ -104,65 +128,89 @@ CDS_UID_t getGUIDBlock(int guidRequestSize)
 
   chunk.memory=NULL; /* we expect realloc(NULL, size) to work */
   chunk.size = 0;    /* no data at this point */
- 
-  curl_global_init(CURL_GLOBAL_ALL);
- 
-  /* init the curl session */
-  curl_handle = curl_easy_init();
- 
-  /* specify URL to get */
-  sprintf(guidRequest, "%s%d", JTC_GUID_URL, guidRequestSize);
-  curl_easy_setopt(curl_handle, CURLOPT_URL, guidRequest);
- 
-  /* send all data to this function  */
-  curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, JTC_GUIDWriteMemoryCallback);
 
-  /* we pass our 'chunk' struct to the callback function */
-  curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)&chunk);
+  if (guidServerNames == NULL)
+  {
+    // Have to copy because a static string lives in a read-only section on alpha
+    strncpy(guidBuffer, JTC_GUID_URL, JTC_GUID_REQUEST_URL_MAX_SIZE);
+  }
+  else
+  {
+    strncpy(guidBuffer, guidServerNames, JTC_GUID_REQUEST_URL_MAX_SIZE);
+  }
   
-  /* get it! */
-  curl_easy_perform(curl_handle);
- 
-  /* cleanup curl stuff */
-  curl_easy_cleanup(curl_handle);
+  currentURL = strtok(guidBuffer, ",");
 
-  if (chunk.size >= JTC_GUID_HTTP_RESPONSE_MAX_SIZE) {
-    /* error */
-    safe_free(chunk.memory);
-    return 0;
+  while (currentURL != NULL && curl_response != CURLE_OK) 
+  {
+		sprintf(guidRequest, "%s?Request=GET&Size=%d", currentURL, guidRequestSize);
+	
+		if (guidNamespace != NULL) {
+			sprintf(guidRequest, "%s&Namespace=%s", guidRequest, guidNamespace);
+		}
+	
+		currentURL = strtok(NULL, ",");
+	
+		curl_global_init(CURL_GLOBAL_ALL);
+		 
+		/* init the curl session */
+		curl_handle = curl_easy_init();
+		 
+		/* specify URL to get */
+		curl_easy_setopt(curl_handle, CURLOPT_URL, guidRequest);
+	
+		/* send all data to this function  */
+		curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, JTC_GUIDWriteMemoryCallback);
+		
+		/* we pass our 'chunk' struct to the callback function */
+		curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void *)&chunk);
+		  
+		/* get it! */	
+		curl_response = curl_easy_perform(curl_handle);
+	
+	    /* cleanup curl stuff */
+	    curl_easy_cleanup(curl_handle);
+	
+		if (curl_response != CURLE_OK) {
+			safe_free(chunk.memory);
+			continue;
+		}
+			
+		if (chunk.size >= JTC_GUID_HTTP_RESPONSE_MAX_SIZE) {
+		  safe_free(chunk.memory);
+		  continue;//return 0;
+		}
+	
+		memcpy(httpResponse, chunk.memory, chunk.size);
+		httpResponse[chunk.size] = '\0';
+		
+		/* HTTP response of this form is assumed:   */
+		/* <html><title>SUCCESS</title><body>       */
+		/* <h2>Guid Start:</h2>                     */
+		/* 1089045040000                            */
+		/* </body></html>                           */	
+		if (strncmp(httpResponse+13,"SUCCESS",7)==0) {
+	      guidPositionStart = findGuidStartFromHttpString(httpResponse);
+		  guidPositionEnd = findGuidEndFromHttpString(httpResponse);
+		  guidNumLength = guidPositionEnd - guidPositionStart;
+		  if (guidPositionStart == 0 || guidPositionEnd <= guidPositionStart) {
+		    /* error */
+		    safe_free(chunk.memory);
+		    continue;//return 0;
+		  }
+		  memcpy(guidNumResponse, httpResponse + guidPositionStart, guidNumLength);
+		  for (i=guidNumLength;i<JTC_GUID_NUM_BUFFER_SIZE;i++) {
+		    guidNumResponse[i] = '\0';
+		  }
+		  guidStart = STR_TO_UID(guidNumResponse,NULL,10);
+		} else {
+		  /* error */
+		  safe_free(chunk.memory);
+		  continue;//return 0;
+		}	
+		
+		safe_free(chunk.memory);
   }
-
-  memcpy(httpResponse, chunk.memory, chunk.size);
-  httpResponse[chunk.size] = '\0';
-
-  /* HTTP response of this form is assumed:   */
-  /* <html><title>SUCCESS</title><body>       */
-  /* <h2>Guid Start:</h2>                     */
-  /* 1089045040000                            */
-  /* </body></html>                           */
-
-  if (strncmp(httpResponse+13,"SUCCESS",7)==0) {
-    guidPositionStart = findGuidStartFromHttpString(httpResponse);
-    guidPositionEnd = findGuidEndFromHttpString(httpResponse);
-    guidNumLength = guidPositionEnd - guidPositionStart;
-    if (guidPositionStart == 0 || guidPositionEnd <= guidPositionStart) {
-      /* error */
-      safe_free(chunk.memory);
-      return 0;
-    }
-    memcpy(guidNumResponse, httpResponse + guidPositionStart, guidNumLength);
-    for (i=guidNumLength;i<JTC_GUID_NUM_BUFFER_SIZE;i++) {
-      guidNumResponse[i] = '\0';
-    }
-    guidStart = STR_TO_UID(guidNumResponse,NULL,10);
-  } else {
-    /* error */
-    safe_free(chunk.memory);
-    return 0;
-  }
-
-  safe_free(chunk.memory);
-
 
   return guidStart;
 }

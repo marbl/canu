@@ -35,9 +35,6 @@
 
 static uint64 SYS_UID_uidStart = 99000000000LL;
 
-// Allocates blockSize many UIDs from the UID server if real
-// is TRUE. Otherwise it allocates some dummy numbers.
-//
 void
 get_uids(uint64 blockSize, uint64 *interval, int32 real) {
   int32  uidStatus;

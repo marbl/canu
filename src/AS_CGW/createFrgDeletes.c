@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: createFrgDeletes.c,v 1.6 2007-02-12 22:16:56 brianwalenz Exp $";
+static char CM_ID[] = "$Id: createFrgDeletes.c,v 1.7 2007-03-28 13:59:02 skoren Exp $";
 
 
 /*********************************************************************/
@@ -126,7 +126,8 @@ int main( int argc, char *argv[])
     // Get a UID to use
     /*************************/
     {
-      int32 blockSize = 300;
+    	// SK - was requesting block size 300 but only using the first one
+      int32 blockSize = 1;
       int32  uidStatus;
       CDS_UID_t interval_UID[4];
       if(firstUID){

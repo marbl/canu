@@ -28,7 +28,7 @@ accession numbers.
 
 **********************************************************************/
 
-static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.14 2007-02-12 22:16:58 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.15 2007-03-28 13:59:05 skoren Exp $";
 
 #include  <stdlib.h>
 #include  <stdio.h>
@@ -52,20 +52,24 @@ int main (int argc, char *argv[]) {
   char *gkpStoreName    = NULL;
   char *euidServerNames = NULL;
 
-  int32 illegal   = 0;
-  int32 realUIDs  = FALSE;
-  int32 help      = FALSE;
-  uint32 random   = FALSE;
-  uint32 quiet    = FALSE;
-  uint64 uidStart = 0;
-  novar           = 0;
+  int32 illegal   		= 0;
+  int32 realUIDs  		= FALSE;
+  int32 help      		= FALSE;
+  uint32 random   		= FALSE;
+  uint32 quiet    		= FALSE;
+  uint64 uidStart 		= 0;
+  uint64 maxBlockSize 	= 0;
+  uint64 blockSize		= 0;
+  int32	customBlockSize= FALSE;
+  int32	uid_status		= 0;
+  novar           		= 0;
 
   fprintf(stderr, "Version: %s\n",CM_ID);
 
   { /* Parse the argument list using "man 3 getopt". */
     int ch,errflg=FALSE;
     optarg = NULL;
-    while (!errflg && ((ch = getopt(argc, argv, "b:g:hi:o:m:rs:uE:NPQ")) != EOF))
+    while (!errflg && ((ch = getopt(argc, argv, "g:hi:o:m:rs:uE:B:n:NPQ")) != EOF))
       switch(ch) 
 	{
 	case 'P':
@@ -99,15 +103,30 @@ int main (int argc, char *argv[]) {
 	  mapFileName = strdup(optarg);
 	  assert(mapFileName != NULL);
 	  break;
-#ifdef USE_SOAP_UID
 	case 'E':
 	  realUIDs = TRUE;
 	  SYS_UIDset_euid_server(optarg);
 	  break;
-#endif
-        case 'N':
-          novar++;
-          break;
+	case 'B':
+	  realUIDs = TRUE;
+	  uid_status = SYS_UIDgetMaxUIDSize(&maxBlockSize);
+	  blockSize = atoi(optarg);
+	  
+	  if (uid_status == UID_CODE_OK && blockSize <= maxBlockSize) {
+	    customBlockSize = TRUE;
+	  }
+	  else {
+	  	 fprintf(stderr,"Warning: specified block size " F_S64 " is greater than maximum allowed of " F_S64 ", will use default\n", blockSize, maxBlockSize); 
+	    customBlockSize = FALSE;
+	  }
+	  break;
+	case 'n':
+	  realUIDs = TRUE;
+	  SYS_UIDset_euid_namespace(optarg);
+	  break;
+  case 'N':
+    novar++;
+    break;
 	case 'h':	  
 	  help = TRUE;
 	  break;
@@ -127,11 +146,11 @@ int main (int argc, char *argv[]) {
 	     "-s <uid_start> sets dummy UIDs start has to be > 0 (only required for -r)\n"
 	     "-r puts terminator in random access mode\n"
 	     "-P forces ASCII output\n"
-#ifdef USE_SOAP_UID
-	     "-E <server:port> changes default EUID server from tools.tigr.org:8190 (implies -u)\n"
-#endif
+	     "-E <server:port> changes default EUID server (implies -u)\n"
+	     "-B <block_size> changesthe block size to use for EUID server, up to the maximum allowed (implies -u) \n"
+	     "-n <namespace> changes the namespace used for the EUID server (implies -u) \n"
 	     "-u forces real UIDs\n"
-             "-N don't output variation record to .asm file\n"
+        "-N don't output variation record to .asm file\n"
 	     "-Q runs also for simulator\n");
     exit(1);
   }
@@ -178,6 +197,8 @@ int main (int argc, char *argv[]) {
                     quiet,
                     random,
                     uidStart,
+                    customBlockSize,
+                    blockSize,                    
                     argc,
                     argv);
   }

@@ -31,10 +31,7 @@
 // commented out until good solution found for UIDs
 //#define NEED_REAL_UID
 
-#ifdef NEED_REAL_UID
-#include "SYS_UIDcommon.h"
-#include "SYS_UIDclient.h"
-#endif
+// 3/13/07 - removing unused UID code that was using the old UID interface
 
 #define CHECK_FOR_BAD_BREAKERS
 
@@ -1350,7 +1347,7 @@ typedef CheckGlobals * CheckGlobalsp;
 void InitializeGlobals( CheckGlobalsp globals, char * program_name )
 {
   globals->program_name = program_name;
-  globals->version = "$Revision: 1.16 $";
+  globals->version = "$Revision: 1.17 $";
   globals->chims_file = NULL;
   globals->craps_file = NULL;
   globals->cgb_file = NULL;
@@ -1466,18 +1463,8 @@ void InitializeOVLFile( CheckGlobalsp globals )
   AuditMesg   adt;
   AuditLine   adl;
   
-#ifdef NEED_REAL_UID
-  cds_uint64  max_block_size;
-  cds_int32   uid_status;
-  cds_uint64  uid_interval[4];
-
-  // set up the UID system to get 1 uid
-  uid_status = SYS_UIDgetMaxUIDSize( &max_block_size );
-  SYS_UIDsetUIDSize( 1 );
-  uid_status = SYS_UIDgetNewUIDInterval( uid_interval );
-  SYS_UIDgetNextUID( &bat.eaccession );
-#endif
-
+  // 3/13/07 - removing unused UID code that was using the old UID interface
+  
   // BAT messages
   bat.name       = globals->program_name;
   bat.created    = time(0);

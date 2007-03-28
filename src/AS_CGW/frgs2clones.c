@@ -205,7 +205,8 @@ int main( int argc, char *argv[])
   {
 
     {
-      uint64 blockSize = 300;
+    	// SK - was requesting block size 300 but only using the first one
+      uint64 blockSize = 1;
       int32  uidStatus;
       CDS_UID_t interval_UID[4];
       if(firstUID){
@@ -308,8 +309,9 @@ int main( int argc, char *argv[])
       // Create a UID for the clone
       /*********************************************/
 
-      {
-	uint64 blockSize = 300;
+      {	
+				// SK - was requesting block size 300 but only using the first one
+	uint64 blockSize = 1;
 	int32  uidStatus;
 	CDS_UID_t interval_UID[4];
 	if(firstUID){

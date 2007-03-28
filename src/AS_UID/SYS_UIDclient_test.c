@@ -29,7 +29,7 @@
 cds_int32 main(cds_int32 argc, char** argv)
 {
    cds_uint64             uid_interval[4];
-   cds_int32              uid_status;
+   cds_int32              uid_status = 0;
    cds_int32              msec_delay = 0;
    cds_int32              count = 0;
    cds_int32              print_flag = 0;
@@ -41,12 +41,13 @@ cds_int32 main(cds_int32 argc, char** argv)
    cds_int32              j;
    char               err_str[300];
    cds_uint64             max_block_size = 0L;
+   char 				  *namespaceName = NULL;
 
    // check
    if (argc < 3)
    {
       sprintf(err_str,
-	      "usage: %s <block_size> <count> <ms_delay> [-p to print]\n",
+	      "usage: %s <block_size> <count> <ms_delay> [-p to print] [-n namespace]\n",
 	      argv[0]);
       fprintf(stderr, err_str);
       return 0;
@@ -60,17 +61,32 @@ cds_int32 main(cds_int32 argc, char** argv)
    if (argc >= 5)
       if (strcmp("-p", argv[4]) == 0)
          print_flag = 1;
+   if (argc >= 6) {
+      if (strcmp("-n", argv[5]) == 0) {
+      	if (argc < 7) {
+      		sprintf(err_str, "usage %s: when -n option is used, a namespace must be supplied\n", argv[0]);
+      		fprintf(stderr, err_str);
+      		return 0;
+      	}
+      	else {
+     	      namespaceName = argv[6];
+      	}
+      }
+   }
 
    uid_status = SYS_UIDgetMaxUIDSize(&max_block_size);
 
    if (print_flag)
      printf("max UID status : "F_S32" max size: "F_S64" \n", uid_status, max_block_size);
 
+	if (namespaceName != NULL) { 
+		SYS_UIDset_euid_namespace(namespaceName);
+	}
+	
    // begin loop
-   SYS_UIDsetUIDSize(block_size);
    for (i=0;i<count;i++)
    {
-      uid_status = SYS_UIDgetNewUIDInterval(uid_interval);
+      get_uids(block_size, uid_interval, TRUE);
       if (print_flag)
          printf(F_S32": " F_S64" "F_S64" "F_S64" "F_S64"\n", 
 		uid_status, 
@@ -81,7 +97,7 @@ cds_int32 main(cds_int32 argc, char** argv)
 
       for (j=0; j<block_size; j++)
       {
-         a_new_uid_status = SYS_UIDgetNextUID(&a_new_uid);
+         a_new_uid_status = get_next_uid(&a_new_uid, TRUE);
          if (print_flag)
 	   printf(F_S32"_"F_S64" ", a_new_uid_status, a_new_uid); 
       }

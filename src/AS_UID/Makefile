@@ -66,17 +66,19 @@ include $(LOCAL_WORK)/src/site_name.as
 
 SITEOBJS = 
 
-ifeq ($(SITE_NAME), TIGR)
-  SOURCES        += SYS_UIDclient_SOAP.c checkEuidService.c
-  PROGS          += checkEuidService
-  SOAPSOURCES     = stdsoap2.c euidC.c euidClientLib.c 
-  SOURCES        += $(SOAPSOURCES)
-  SITEOBJS        = SYS_UIDclient_SOAP.o $(SOAPSOURCES:.c=.o)
-endif
+## TIGR EUID server is now deprecated and is no longer used
+#ifeq ($(SITE_NAME), TIGR)
+#  SOURCES        += SYS_UIDclient_SOAP.c checkEuidService.c
+#  PROGS          += checkEuidService
+#  SOAPSOURCES     = stdsoap2.c euidC.c euidClientLib.c 
+#  SOURCES        += $(SOAPSOURCES)
+#  SITEOBJS        = SYS_UIDclient_SOAP.o $(SOAPSOURCES:.c=.o)
+#endif
 
 ifeq ($(SITE_NAME), JCVI)
-  SOURCES        += SYS_UIDclient_JTC.c
+  SOURCES        += SYS_UIDclient_JTC.c checkEuidService.c
   SITEOBJS        = SYS_UIDclient_JTC.o
+  PROGS          += checkEuidService
 endif
 
 ifeq ($(SITE_NAME), LOCAL)

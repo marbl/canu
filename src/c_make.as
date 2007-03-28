@@ -267,10 +267,10 @@ LIB_IMPORT_DIRS += $(ARCH_LIB)
 OBJ_SEARCH_PATH  = $(LOCAL_OBJ)
 
 
-ifeq ($(SITE_NAME), TIGR)
-  CFLAGS   += -DUSE_SOAP_UID
-  CXXFLAGS += -DUSE_SOAP_UID
-endif
+#ifeq ($(SITE_NAME), TIGR)
+#  CFLAGS   += -DUSE_SOAP_UID
+#  CXXFLAGS += -DUSE_SOAP_UID
+#endif
 
 ifeq ($(SITE_NAME), JCVI)
   LDFLAGS += -lcurl

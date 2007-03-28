@@ -31,6 +31,7 @@ void         SYS_UIDsetUIDSize(cds_uint64 block_size);
 cds_int32    SYS_UIDgetNextUID(cds_uint64* uid);
 cds_int32    SYS_UIDgetLastUID(cds_uint64* uid);
 void         SYS_UIDset_euid_server(const char * servers);
+void         SYS_UIDset_euid_namespace(const char * namespaceName);
 
 
 // Allocates blockSize many UIDs from the UID server if real is

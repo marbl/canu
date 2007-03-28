@@ -1,5 +1,5 @@
 #
-# $Id: site_name.as,v 1.6 2006-11-15 13:27:18 eliv Exp $
+# $Id: site_name.as,v 1.7 2007-03-28 13:59:05 skoren Exp $
 #
 # Set the name of the site/location where the assembler is buing built.
 #
@@ -33,6 +33,6 @@ ifeq ($(SITE_NAME),)
   #SITE_NAME=LOCAL
 endif
 
-ifeq (,$(findstring $(SITE_NAME),"TIGR JCVI LOCAL"))
-  $(error Invalid SITE_NAME $(SITE_NAME).  Must be one of TIGR, JCVI, LOCAL.  Please edit this file)
+ifeq (,$(findstring $(SITE_NAME),"JCVI LOCAL"))
+  $(error Invalid SITE_NAME $(SITE_NAME).  Must be one of JCVI, LOCAL.  Please edit this file)
 endif

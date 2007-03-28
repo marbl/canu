@@ -25,7 +25,7 @@
  Assumptions: There is no UID 0
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.32 2007-03-27 07:31:59 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.33 2007-03-28 13:59:05 skoren Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
@@ -279,28 +279,22 @@ static CDS_UID_t *fetch_UID_from_distStore(VA_TYPE(CDS_UID_t) *map, CDS_IID_t ii
 
 
 
-// This is an inelegant way to achieve large block sizes at VI
-// and small block sizes at TIGR. Later, define an EUID service
-// configuration file, to be parsed at run time, containing
-// primary and backup URLs plus the block size.
 // Also, take the opportunity to clean up the dozens of places
 // in the code where block size is set explicitly, usually to 300.
 // -- Jason Miller, 8/22/2006.
-#ifdef USE_SOAP_UID
-#define UID_BLOCK_SIZE 100
-#else
+// This is the default blocksize used if no custom is specified
+// -- Sergey Koren 3/23/2007
 #define UID_BLOCK_SIZE 1024
-#endif
 
 static
 void
-initUID(int32 real) {
+initUID(int32 real, uint64 blockSize) {
   CDS_UID_t  interval_UID[4];
 
   //  Allocate the buffer of UIDS. If real is TRUE, the server is
   //  queried, otherwise a dummy contiguous number is assigned
-  //
-  get_uids(UID_BLOCK_SIZE, interval_UID, real);
+  //  
+  get_uids(blockSize, interval_UID, real);
 }
 
 
@@ -1123,7 +1117,8 @@ void output_snapshot(char* fragStoreName,
 		     char** inputFileList, int32 numInputFiles,
 		     char* outputFileName, char* mapFileName,
 		     int32 real, int32 quiet,
-		     int32 random, CDS_UID_t uidStart, 
+		     int32 random, CDS_UID_t uidStart,
+		     int32 customBlockSize, uint64 blockSize, 
 		     int argc, char *argv[])
 {
   GenericMesg *pmesg       = NULL; 
@@ -1158,6 +1153,10 @@ void output_snapshot(char* fragStoreName,
     {
       sprintf(errorreport,"Argument mapFileName is empty");
       error(errorreport, AS_TER_EXIT_FAILURE,__FILE__,__LINE__);
+    }
+  if (customBlockSize == FALSE)
+    {
+      blockSize = UID_BLOCK_SIZE;
     }
 
 
@@ -1199,7 +1198,7 @@ void output_snapshot(char* fragStoreName,
     fileOutput = stdout;
 
 
-  initUID(real);
+  initUID(real, blockSize);
 
 
   for(ifile = 0; ifile < numInputFiles; ifile++){

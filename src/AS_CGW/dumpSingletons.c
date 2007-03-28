@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpSingletons.c,v 1.17 2007-02-24 15:42:33 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpSingletons.c,v 1.18 2007-03-28 13:59:02 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -78,8 +78,9 @@ getUID(int realUID) {
 
   CDS_UID_t            uid       = 0;;
 
+	// SK - was requesting block size 300 but only using the first one
   if (blockSize == 0) {
-    blockSize = 300;
+    blockSize = 1;
     set_start_uid(UIDstart); /* used if realUID == FALSE */
     get_uids(blockSize, interval_UID, realUID);
   }

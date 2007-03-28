@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
-   CVS_ID:  $Id: AS_TER_terminator_funcs.h,v 1.7 2007-02-12 22:16:59 brianwalenz Exp $
+   CVS_ID:  $Id: AS_TER_terminator_funcs.h,v 1.8 2007-03-28 13:59:05 skoren Exp $
  *********************************************************************/
 #ifndef AS_TER_TERMINATOR_FUNCS_H
 #define AS_TER_TERMINATOR_FUNCS_H
@@ -44,6 +44,7 @@ void output_snapshot(char* fragStoreName,
 		     char* mapFileName,
 		     int32 real, int32 quiet,
 		     int32 random, uint64 uidStart,
+		     int32 customBlockSize, uint64 blockSize,
 		     int argc, char *argv[]);
 
 #endif

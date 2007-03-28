@@ -89,3 +89,15 @@ fix it (from 3/16).
 Local phasing.  Unknown what changes.
 
 ----------------------------------------
+20070328:
+
+A change to remove the TIGR site name option as part of retiring the TIGR EUID servers. Also added options
+to give custom blockSize and namespace to terminator.
+
+Changes serveral files that were requesting 300 EUIDs but only using 1, the files are:
+combineMates.c
+createFrgDeletes.c
+dumpDistanceEstimates.c
+dumpSingletons.c
+frgs2clones.c
+----------------------------------------

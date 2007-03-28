@@ -21,7 +21,6 @@
 
 #include "SYS_UIDcommon.h"
 #include "SYS_UIDclient.h"
-#include "SYS_UIDclient_local.h"
  
 #define UID_CHECK_OK             0
 #define UID_CHECK_ERROR          1
@@ -30,6 +29,7 @@ int main (int argc, char** argv) {
   char *option = NULL; 
   char *service = NULL; 
   cds_uint64 uid;
+  CDS_UID_t interval_UID[4];
   int32 uidStatus;
 
   if(argc == 2) {
@@ -49,7 +49,8 @@ int main (int argc, char** argv) {
          
   printf("the service is %s\n", service);
   SYS_UIDset_euid_server(service);
-  uidStatus = getGUIDBlock(1);
+  get_uids(1, interval_UID, TRUE);
+  uidStatus = get_next_uid(&uid, TRUE);
   
   if(uidStatus == UID_FAILS) 
   {
