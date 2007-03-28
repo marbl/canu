@@ -149,9 +149,9 @@ sub setDefaults () {
 
     $global{"stoneLevel"}                  = 2;
 
-    $global{"createAGP"}                   = 0;
-    $global{"createACE"}                   = 0;
-    $global{"createPosMap"}                = 0;
+    $global{"createAGP"}                   = 1;
+    $global{"createACE"}                   = 1;
+    $global{"createPosMap"}                = 1;
 
     $global{"stopAfter"}                   = undef;
     $global{"uidServer"}                   = undef;
