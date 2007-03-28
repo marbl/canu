@@ -167,7 +167,7 @@ while (my $record = getCARecord(\*STDIN)){
         my $scfId = $1;
         for my $sr (@$recs) {
             my ($sub,$sfs,$srecs) = parseCARecord($sr);
-            print STDERR "$sub $sfs->{ct1} $sfs->{ct2} $sfs->{mea} $sfs->{std} $sfs->{ori}\n";
+            #print STDERR "$sub $sfs->{ct1} $sfs->{ct2} $sfs->{mea} $sfs->{std} $sfs->{ori}\n";
             my $ori = 'N';
             $ori = $sfs->{ori} if $useScafOrient;
             outputContigs($sfs->{ct1},$sfs->{ct2},$sfs->{mea},$ori,$scfId);
