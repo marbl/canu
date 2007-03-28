@@ -29,6 +29,16 @@
 
 #include "AS_global.h"
 
+void SYS_UIDset_euid_server(const char * servers)
+{
+	// do nothing for local server
+}
+
+void SYS_UIDset_euid_namespace(const char * namespaceName)
+{
+	// do nothing for local server
+}
+
 CDS_UID_t
 getGUIDBlock(int guidRequestSize) {
   CDS_UID_t guidStart = 7180000;
