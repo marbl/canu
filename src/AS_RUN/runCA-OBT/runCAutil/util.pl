@@ -48,28 +48,16 @@ sub setBinDirectory ($$) {
     }
 
 
+    $binDir = "$binRoot/$host-$mach/bin";
 
-    if      (($host eq "Linux") && ($mach eq "i686")) {
-        #  Linux, on Intel 686
-        $binDir       = "$binRoot/Linux/bin";
-    } elsif (($host eq "Linux") && ($mach eq "x86_64")) {
+    #  Fix up some of the bizarre cases
+    #
+    if      (($host eq "Linux") && ($mach eq "x86_64")) {
         #  Linux on Opteron
-        $binDir       = "$binRoot/Linux64/bin";
-    } elsif (($host eq "Linux") && ($mach eq "ia64")) {
-        #  Linux on IA64
-        $binDir       = "$binRoot/Linux-ia64/bin";
-    } elsif (($host eq "FreeBSD") && ($mach eq "i386")) {
-        #  FreeBSD on Intel
-        $binDir       = "$binRoot/FreeBSD/bin";
-    } elsif ($host eq "Darwin") {
-        #  Darwin (UNTESTED)
-        $binDir       = "$binRoot/Darwin/bin";
-    } elsif (($mach eq "alpha") || ($mach eq "OSF1")) {
-        #  OSF1 on alpha
-        $binDir       = "$binRoot/OSF1/bin";
-    } else {
-        print STDERR "Unknown host '$host' and machine '$mach' combination.\n";
-        exit(1);
+        $binDir       = "$binRoot/Linux-amd64/bin";
+    } elsif (($host eq "Darwin") && ($mach eq "Power Macintosh")) {
+        #  Darwin on PowerPC
+        $binDir       = "$binRoot/Darwin-ppc/bin";
     }
 
     if (! -d $binRoot) {

@@ -203,18 +203,24 @@
 #
 ######################################################################
 
-LOCAL_OS_TYPE = $(OSTYPE)
+
+####  Figure out what we're building on.
+
+OSTYPE      = $(shell echo `uname`)
+MACHINETYPE = $(shell echo `uname -m`)
 
 ifeq ($(MACHINETYPE), x86_64)
-  LOCAL_OS_TYPE = Linux64
+  MACHINETYPE = amd64
 endif
-ifeq ($(MACHINETYPE), ia64)
-  LOCAL_OS_TYPE = Linux-ia64
+ifeq ($(MACHINETYPE), Power Macintosh)
+  MACHINETYPE = ppc
 endif
 
+
 #### Set up paths
+
 LOCAL_INC=$(LOCAL_WORK)/inc
-LOCAL_OS=$(LOCAL_WORK)/$(LOCAL_OS_TYPE)
+LOCAL_OS=$(LOCAL_WORK)/$(OSTYPE)-$(MACHINETYPE)
 LOCAL_BIN=$(LOCAL_OS)/bin
 LOCAL_LIB=$(LOCAL_OS)/lib
 LOCAL_OBJ=$(LOCAL_OS)/obj
@@ -427,7 +433,11 @@ for i in $(SUBDIRS);\
   do \
     if [ -d $$i ]; then \
       echo "############################## $$i ##############################"  ;\
-        $(MAKE) --no-print-directory -j 4 -C $$i $(TGT) ;\
+      if [ $(TGT) = "libs" ] ; then \
+        $(MAKE) --no-print-directory        -C $$i $(TGT) ;\
+      else \
+        $(MAKE) --no-print-directory -j $$p -C $$i $(TGT) ;\
+      fi; \
     fi; \
   done;
 endef

@@ -39,29 +39,22 @@
 
 
 # You can enable a debugging build, disabling all optimizations, by
-# setting this to 1.
+# setting BUILDDEBUG to 1.
+#
+# You can enable a profiling build by setting BUILDPROFILE to 1.
+#
+# You can enable a line coverage build by setting BUILDCOVERAGE to 1.
+# This implies a debug build with no optimization.
 #
 ifneq "$(origin BUILDDEBUG)" "environment"
-BUILDDEBUG  = 0
+BUILDDEBUG     = 0
 endif
-
-# You can enable a profiling build by setting this to 1.
-#
 ifneq "$(origin BUILDPROFILE)" "environment"
-BUILDPROFILE  = 0
+BUILDPROFILE   = 0
 endif
-
-# You can enable a line coverage build by setting this to 1.  This
-# implies a debug build with no optimization.
-#
 ifneq "$(origin BUILDCOVERAGE)" "environment"
 BUILDCOVERAGE  = 0
 endif
-
-
-
-OSTYPE      = $(shell echo `uname`)
-MACHINETYPE = $(shell echo `uname -m`)
 
 include $(LOCAL_WORK)/src/site_name.as
 include $(LOCAL_WORK)/src/c_make.gen
@@ -86,7 +79,7 @@ ifeq ($(OSTYPE), Linux)
     ARCH_CFLAGS   += -march=i686 -DX86_GCC_LINUX
     ARCH_LDFLAGS  += -march=i686
   endif
-  ifeq ($(MACHINETYPE), x86_64)
+  ifeq ($(MACHINETYPE), amd64)
     ARCH_CFLAGS   += -m64 -DX86_GCC_LINUX
 
     #  JCVI's opteron has 32-bit libraries in /usr/lib and /usr/X11R6/lib,
@@ -105,8 +98,15 @@ ifeq ($(OSTYPE), FreeBSD)
   CC               = gcc
   CXX              = g++
 
-  ARCH_LDFLAGS    += -llthread -llgcc_r
-  ARCH_CFLAGS      = -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads 
+  ifeq ($(MACHINETYPE), i386)
+    #  We use the devel/linuxthreads port for much greater performance!
+    ARCH_LDFLAGS    += -llthread -llgcc_r
+    ARCH_CFLAGS      = -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads 
+  endif
+  ifeq ($(MACHINETYPE), amd64)
+    ARCH_LDFLAGS    += -pthread
+    ARCH_CFLAGS      = -pthread
+  endif
 
   ifeq ($(BUILDCOVERAGE), 1)
     ARCH_CFLAGS   += -g -Wimplicit -fprofile-arcs -ftest-coverage
@@ -115,7 +115,7 @@ ifeq ($(OSTYPE), FreeBSD)
     ifeq ($(BUILDDEBUG), 1)
       ARCH_CFLAGS   += -g -Wimplicit -pg
     else
-      ARCH_CFLAGS   += -O3 -Wimplicit
+      ARCH_CFLAGS   += -O3 -Wimplicit -mtune=nocona -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
     endif
   endif
 
@@ -126,11 +126,12 @@ endif
 ifeq ($(OSTYPE), Darwin)
   CC               = gcc
   CXX              = g++
-  ARCH_CFLAGS      = -pipe -DNEEDXDRUHYPER -D_THREAD_SAFE
+  ARCH_CFLAGS      = -DNEEDXDRUHYPER -D_THREAD_SAFE
   ifeq ($(BUILDDEBUG), 1)
     ARCH_CFLAGS   += -g
   else
-    ARCH_CFLAGS   += -fast
+    # -fast breaks Bri's OS 10.3.9 G5 with "out of stack space" so we backed off to -O3.
+    ARCH_CFLAGS   += -O3
   endif
   ARCH_LIB         = /usr/local/lib /usr/X11R6/lib
 endif
