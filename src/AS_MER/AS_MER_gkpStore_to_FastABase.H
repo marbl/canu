@@ -77,7 +77,7 @@ public:
   bool         find(char   *uid);
 
   u32bit       sequenceLength(seqIID iid) {
-    return(_seqLengths[iid+1]);
+    return(_clrEnd[iid+1] - _clrBeg[iid+1]);
   };
 
   u32bit       nameLength(seqIID iid) {
@@ -101,7 +101,8 @@ public:
   bool         isSqueezed(void) { return(true); };
 
 public:
-  void         setClearRange(uint32 clearRangeSpec);
+  uint16       clrBeg(seqIID iid) { return(_clrBeg[iid+1]); };
+  uint16       clrEnd(seqIID iid) { return(_clrEnd[iid+1]); };
 
 private:
   bool         getSequence(uint32 &hLen, char *&h,
@@ -115,7 +116,9 @@ private:
   uint32            _iid;
   bool              _eof;
 
-  uint32           *_seqLengths;
+  uint16           *_seqLen;
+  uint16           *_clrBeg;
+  uint16           *_clrEnd;
 };
 
 

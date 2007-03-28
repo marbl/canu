@@ -55,19 +55,22 @@ gkpStoreSequence::gkpStoreSequence(char const *gkpName,
   //  code is much simpler, and a whole lot faster, if we always load
   //  them.
   //
-  _seqLengths = new uint32 [getNumberOfSequences() + 1];
+  _seqLen = new uint16 [getNumberOfSequences() + 1];
+  _clrBeg = new uint16 [getNumberOfSequences() + 1];
+  _clrEnd = new uint16 [getNumberOfSequences() + 1];
 
   FragStream *stm = openFragStream(_gkp, FRAG_S_INF);
   while (nextFragStream(stm, _frg)) {
-    bgn = getFragRecordClearRegionBegin(_frg, _clr);
-    end = getFragRecordClearRegionEnd  (_frg, _clr);
+    uint32  iid = getFragRecordIID(_frg);
+
+    _clrBeg[iid] = getFragRecordClearRegionBegin(_frg, _clr);
+    _clrEnd[iid] = getFragRecordClearRegionEnd  (_frg, _clr);
+    _seqLen[iid] = getFragRecordSequenceLength  (_frg);
 
     if (getFragRecordIsDeleted(_frg))
-      end = bgn;
+      _clrBeg[iid] = _clrEnd[iid] = 0;
     if ((getFragRecordIID(_frg) < _bgn) || (_end < getFragRecordIID(_frg)))
-      end = bgn;
-
-    _seqLengths[getFragRecordIID(_frg)] = end - bgn;
+      _clrBeg[iid] = _clrEnd[iid] = 0;
   }
 
   closeFragStream(stm);
@@ -77,7 +80,9 @@ gkpStoreSequence::gkpStoreSequence(char const *gkpName,
 gkpStoreSequence::~gkpStoreSequence() {
   del_fragRecord(_frg);
   closeGateKeeperStore(_gkp);
-  delete [] _seqLengths;
+  delete [] _seqLen;
+  delete [] _clrBeg;
+  delete [] _clrEnd;
 }
 
 
@@ -142,11 +147,11 @@ gkpStoreSequence::getSequence(uint32 &hLen, char *&h,
           getFragRecordIID(_frg));
   hLen = strlen(h);
 
-  sLen = _seqLengths[_iid];
+  sLen = _clrEnd[_iid] - _clrBeg[_iid];
   s    = new char [sLen + 1];
 
   if (sLen > 0)
-    strncpy(s, getFragRecordSequence(_frg) + getFragRecordClearRegionBegin(_frg, _clr), sLen);
+    strncpy(s, getFragRecordSequence(_frg) + _clrBeg[_iid], sLen);
 
   s[sLen] = 0;
 

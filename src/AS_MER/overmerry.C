@@ -92,7 +92,8 @@ addHit(chainedSequence *CS, seqInCore *S, merStream *M,
 
 int
 main(int argc, char **argv) {
-  char   *gkpName  = 0L;
+  char   *gkpPath  = 0L;
+  char    gkpName[FILENAME_MAX + 64] = {0};
   u32bit  merSize  = 23;
 
   assert(sizeof(kmerhit) == 8);
@@ -101,7 +102,7 @@ main(int argc, char **argv) {
   int err=0;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-g") == 0) {
-      gkpName = argv[++arg];
+      gkpPath = argv[++arg];
     } else if (strcmp(argv[arg], "-m") == 0) {
       merSize = atoi(argv[++arg]);
     } else {
@@ -110,54 +111,58 @@ main(int argc, char **argv) {
     }
     arg++;
   }
-  if ((gkpName == 0L) || (err)) {
+  if ((gkpPath == 0L) || (err)) {
     fprintf(stderr, "usage: %s [opts]\n", argv[0]);
     exit(1);
   }
 
 
-  seqFile *gkp = openSeqFile(gkpName);
-  //gkp->setClearRange(AS_READ_CLEAR_OBTINI);
+  seqFactory::instance()->registerFile(new gkpStoreSequence());
 
-#if 0
+  //  Open the gatekeeper store as a kmer seqFile.  We need to
+  //  dynamic_cast this back to our gkpStoreSequence, so we can access
+  //  methods defined only on that object.
+  //
+  sprintf(gkpName, "%s:obtini", gkpPath);
+  gkpStoreSequence *gkpseq = dynamic_cast<gkpStoreSequence*>(openSeqFile(gkpName));
+  if (gkpseq == 0L) {
+    fprintf(stderr, "%s: invalid input file '%s' (not a GateKeeperStore?).\n", gkpName);
+    exit(1);
+  }
+
+
+  //  XXXX  extend merstream with spaced, compressed, skips, transitions
+
+
+#if 1
   u32bit i;
   seqOnDisk *s;
 
   i=0;
-  gkp->find(i);
-  s = gkp->getSequenceOnDisk();
-  fprintf(stderr, "'%s'\n", s->sequence());
+  gkpseq->find(i);
+  s = gkpseq->getSequenceOnDisk();
+  fprintf(stderr, "0: '%s'\n", s->sequence());
 
   i=1;
-  gkp->find(i);
-  s = gkp->getSequenceOnDisk();
-  fprintf(stderr, "'%s'\n", s->sequence());
-
-  assert(0);
+  gkpseq->find(i);
+  s = gkpseq->getSequenceOnDisk();
+  fprintf(stderr, "1: '%s'\n", s->sequence());
 #endif
 
-
   chainedSequence *CS = new chainedSequence;
-  CS->setSource(gkp);
+  CS->setSource(gkpseq);
   CS->finish();
 
   merStream    *MS = new merStream(merSize, CS);
   positionDB   *PS = new positionDB(MS, merSize, 0, 26, 0L, 0L, 100, true);
 
-  //  XXXXX: Are we DONE with the MS and CS and gkp here?  Does
-  //  positionDB need those still?  We need the CS below to decode positions.
-
   u64bit  *posn    = 0L;
   u64bit   posnMax = 0;
   u64bit   posnLen = 0;
 
-  seqFile    *F = openSeqFile(gkpName);
-
-  //F->setClearRange(AS_READ_CLEAR_OBTINI);
-
-  seqInCore  *S = F->getSequenceInCore();
-
-  //  XXXXX:  need to get the clear range begin and end so we can offset properly.
+  fragRecord       *fr  = new_fragRecord();
+  GateKeeperStore  *gkp = openGateKeeperStore(gkpPath, FALSE);
+  FragStream       *frg = openFragStream(gkp, FRAG_S_SEQ);
 
   u64bit  merfound = 0;
   u64bit  ovlfound = 0;
@@ -173,10 +178,17 @@ main(int argc, char **argv) {
   OVSoverlap         overlap;
 #endif
 
-  while (S) {
-    fprintf(stdout, "%s\n", S->header());
+  while (nextFragStream(frg, fr)) {
+    char        *seq = new char [getFragRecordSequenceLength(fr) + 1];
+    uint32       beg = getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBTINI);
+    uint32       end = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBTINI);
+    uint32       len = end - beg;
 
-    merStream  *M = new merStream(merSize, S);
+    strncpy(seq, getFragRecordSequence(fr) + beg, len);
+    seq[len] = 0;
+
+    seqInCore   *S   = new seqInCore(getFragRecordIID(fr), 0L, 0, seq, len);
+    merStream  *M    = new merStream(merSize, S);
 
     hitsLen = 0;
 
@@ -205,11 +217,11 @@ main(int argc, char **argv) {
 
     for (u32bit i=0; i<=hitsLen; i++) {
 
+#if 0
       //  Debug, I guess.  Generates lots of output, since frags with
       //  big identical overlaps will have lots and lots of mers in
       //  common.
       //
-#if 0
       if (i != hitsLen) {
         fprintf(stdout, u32bitFMT"\t"u64bitFMT"\t"u32bitFMT"\t"u64bitFMT"\t%c\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\tTAG\n",
                 S->getIID(), hits[i].qpos,
@@ -233,6 +245,16 @@ main(int argc, char **argv) {
 
         //  Output IID1, pos1, IID2, pos2, orient/palindrome, compressionLength, count, kmersize
 
+        //  Adjust coords to be relative to whole read
+        //
+        hits[lowest].tpos += gkpseq->clrBeg(hits[lowest].tseq);
+        hits[lowest].qpos += gkpseq->clrBeg(S->getIID());
+
+        //  And reverse if needed.
+        //
+        if (hits[lowest].fwd == false)
+          hits[lowest].qpos = gkpseq->sequenceLength(S->getIID()) - hits[lowest].qpos - merSize;
+
 #ifdef BINARYOUTPUT
         overlap.a_iid              = hits[lowest].tseq;
         overlap.b_iid              = S->getIID();
@@ -248,13 +270,15 @@ main(int argc, char **argv) {
         
         AS_OVS_writeOverlap(binout, &overlap);
 #else
-        fprintf(stdout, u32bitFMT"\t"u64bitFMT"\t"u32bitFMT"\t"u64bitFMT"\t%c\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\n",
-                hits[lowest].tseq, hits[lowest].tpos,
-                S->getIID(), hits[lowest].qpos,
+        fprintf(stdout, "%d\t%d\t%d\t%d\t%c\t%d\t%d\t%d\n",
+                (int)hits[lowest].tseq,
+                (int)hits[lowest].tpos,
+                (int)S->getIID(),
+                (int)hits[lowest].qpos,
                 hits[lowest].pal ? 'p' : (hits[lowest].fwd ? 'f' : 'r'),
-                0,
-                hits[lowest].cnt,
-                merSize);
+                (int)0,
+                (int)hits[lowest].cnt,
+                (int)merSize);
 #endif
 
         lowest = i;
@@ -265,8 +289,6 @@ main(int argc, char **argv) {
 
     delete M;
     delete S;
-
-    S = F->getSequenceInCore();
   }
 
   fprintf(stderr, "Found "u64bitFMT" mer hits.\n", merfound);
@@ -276,9 +298,12 @@ main(int argc, char **argv) {
   AS_OVS_closeBinaryOverlapFile(binout);
 #endif
 
+  closeFragStream(frg);
+  closeGateKeeperStore(gkp);
+
   delete PS;
   delete MS;
   delete CS;
 
-  delete gkp;
+  delete gkpseq;
 }
