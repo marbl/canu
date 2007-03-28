@@ -35,7 +35,7 @@ OVS_CVT_OBJ = $(OVS_CVT_SRC:.c=.o)
 SOURCES = $(OVS_LIB_SRC) $(OVS_STR_SRC) $(OVS_CVT_SRC)
 OBJECTS = $(SOURCES:.c=.o)
 
-LIBRARIES = libAS_OVS.a libAS.a
+LIBRARIES = libAS_OVS.a libCA.a
 
 PROGS = convertOverlap overlapStore
 
