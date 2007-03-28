@@ -59,10 +59,12 @@ sub terminate ($) {
     my $cgwDir = shift @_;
     $cgwDir = "$wrk/7-CGW" if (!defined($cgwDir));
 
-    if (! -e "$wrk/9-terminator/terminator.success") {
-        system("mkdir $wrk/9-terminator") if (! -e "$wrk/9-terminator");
+    my $termDir = "$wrk/9-terminator";
 
-        if (! -e "$wrk/9-terminator/$asm.asm") {
+    if (! -e "$termDir/terminator.success") {
+        system("mkdir $termDir") if (! -e "$termDir");
+
+        if (! -e "$termDir/$asm.asm") {
             my $uidServer = getGlobal("uidServer");
             my $fakeUIDs  = getGlobal("fakeUIDs");
 
@@ -74,27 +76,27 @@ sub terminate ($) {
             $cmd .= "$bin/terminator -u "           if ($fakeUIDs == 0);
             $cmd .= " $uidServer "                     if (defined($uidServer));
             $cmd .= " -g $wrk/$asm.gkpStore ";
-            $cmd .= " -o $wrk/9-terminator/$asm.asm ";
-            $cmd .= " -m $wrk/9-terminator/$asm.map ";
-            $cmd .= " > $wrk/9-terminator/terminator.err 2>&1 ";
+            $cmd .= " -o $termDir/$asm.asm ";
+            $cmd .= " -m $termDir/$asm.map ";
+            $cmd .= " > $termDir/terminator.err 2>&1 ";
 
-            if (runCommand("$wrk/9-terminator", $cmd)) {
-                rename "$wrk/9-terminator/$asm.asm", "$wrk/9-terminator/$asm.asm.FAILED";
-                rename "$wrk/9-terminator/$asm.map", "$wrk/9-terminator/$asm.map.FAILED";
+            if (runCommand("$termDir", $cmd)) {
+                rename "$termDir/$asm.asm", "$termDir/$asm.asm.FAILED";
+                rename "$termDir/$asm.map", "$termDir/$asm.map.FAILED";
                 die "Failed.\n";
             }
         }
 
         ########################################
 
-        if (! -e "$wrk/9-terminator/$asm.scaffold.fasta") {
+        if (! -e "$termDir/$asm.scaffold.fasta") {
             my $cmd;
             $cmd  = "$bin/asmProcessScaffolds_TER -q -d ";
-            $cmd .= "-f $wrk/9-terminator/$asm.scaffold.fasta ";
-            $cmd .= "< $wrk/9-terminator/$asm.asm";
+            $cmd .= "-f $termDir/$asm.scaffold.fasta ";
+            $cmd .= "< $termDir/$asm.asm";
 
-            if (runCommand("$wrk/9-terminator", $cmd)) {
-                rename "$wrk/9-terminator/$asm.scaffold.fasta", "$wrk/9-terminator/$asm.scaffold.fasta.FAILED";
+            if (runCommand("$termDir", $cmd)) {
+                rename "$termDir/$asm.scaffold.fasta", "$termDir/$asm.scaffold.fasta.FAILED";
                 die "Failed.\n";
             }
         }
@@ -103,7 +105,7 @@ sub terminate ($) {
         #
         #  Generate singletons
         #
-        if (! -e "$wrk/9-terminator/$asm.singleton.fasta") {
+        if (! -e "$termDir/$asm.singleton.fasta") {
             my $lastckp = findLastCheckpoint("$wrk/7-CGW");
 
             my $cmd;
@@ -111,12 +113,12 @@ sub terminate ($) {
             $cmd .= " -f $wrk/$asm.frgStore ";
             $cmd .= " -g $wrk/$asm.gkpStore ";
             $cmd .= " -c $cgwDir/$asm -n $lastckp -S ";
-            $cmd .= "> $wrk/9-terminator/$asm.singleton.fasta ";
-            $cmd .= "2> $wrk/9-terminator/dumpSingletons.err ";
+            $cmd .= "> $termDir/$asm.singleton.fasta ";
+            $cmd .= "2> $termDir/dumpSingletons.err ";
 
-            if (runCommand("$wrk/9-terminator", $cmd)) {
+            if (runCommand("$termDir", $cmd)) {
                 print STDERR "Failed.\n";
-                rename "$wrk/9-terminator/$asm.singleton.fasta", "$wrk/9-terminator/$asm.singleton.fasta.FAILED";
+                rename "$termDir/$asm.singleton.fasta", "$termDir/$asm.singleton.fasta.FAILED";
             }
         }
 
@@ -137,12 +139,24 @@ sub terminate ($) {
         #
         #  Generate fragment/unitig/contig/scaffold mappings
         #
-        if (! -e "$wrk/9-terminator/$asm.posmap.frgscf") {
-            my $cmd;
-            $cmd = "$perl $bin/buildFragContigPosMap.pl $asm.posmap < $wrk/9-terminator/$asm.asm";
-            if (runCommand("$wrk/9-terminator", $cmd)) {
-                rename "$wrk/9-terminator/$asm.posmap.frgscf", "$wrk/9-terminator/$asm.posmap.frgscf.FAILED";
-                die "buildFragContigMap failed.\n";
+        if (getGlobal("createPosMap") > 0) {
+            if (! -e "$termDir/$asm.posmap.frgscf") {
+                my $cmd;
+                $cmd = "$perl $bin/buildFragContigPosMap.pl $asm.posmap < $termDir/$asm.asm";
+                if (runCommand("$termDir", $cmd)) {
+                    rename "$termDir/$asm.posmap.frgscf", "$termDir/$asm.posmap.frgscf.FAILED";
+                    die "buildFragContigMap failed.\n";
+                }
+            }
+            if (! -e "$termDir/$asm.posmap.frgscf.sorted") {
+                if (runCommand("$termDir", "sort -k2n -T $termDir $termDir/$asm.posmap.frgscf > $termDir/$asm.posmap.frgscf.sorted")) {
+                    rename "$termDir/$asm.posmap.frgscf.histogram", "$termDir/$asm.posmap.frgscf.histogram.FAILED";
+                } else {
+                    runCommand("$termDir", "$bin/fragmentDepth -min       0 -max    3000 < $termDir/$asm.posmap.frgscf.sorted > $termDir/$asm.posmap.frgscf.histogram1");
+                    runCommand("$termDir", "$bin/fragmentDepth -min    3001 -max   10000 < $termDir/$asm.posmap.frgscf.sorted > $termDir/$asm.posmap.frgscf.histogram2");
+                    runCommand("$termDir", "$bin/fragmentDepth -min   10001 -max 1000000 < $termDir/$asm.posmap.frgscf.sorted > $termDir/$asm.posmap.frgscf.histogram3");
+                    runCommand("$termDir", "$bin/fragmentDepth -min 1000001              < $termDir/$asm.posmap.frgscf.sorted > $termDir/$asm.posmap.frgscf.histogram4");
+                }
             }
         }
 
@@ -159,54 +173,114 @@ sub terminate ($) {
         #
         #  Generate statistics.
         #
-        my $termDir = "$wrk/9-terminator";
-        if (! -e "$termDir/$asm.qc") {
-
+        if (! -e "$termDir/mateLinkIIDRanges.txt") {
             my $cmd;
-            $cmd = "$bin/mateLinkIIDRanges.rb $wrk/$asm.gkpStore $bin > mateLinkIIDRanges.txt";
+            $cmd = "$bin/mateLinkIIDRanges.rb $wrk/$asm.gkpStore $bin > $termDir/mateLinkIIDRanges.txt";
             if (runCommand($termDir, $cmd)) {
-                warn "mateLinkIIDRanges failed mate ranges won't be available.\n";
+                rename "$termDir/mateLinkIIDRanges.txt", "$termDir/mateLinkIIDRanges.txt.FAILED";
+            }
+        }
+
+        if (! -e "$termDir/$asm.qc") {
+            if (runCommand("$termDir", "$perl $bin/caqc.pl $termDir/$asm.asm")) {
+                rename "$termDir/$asm.qc", "$termDir/$asm.qc.FAILED";
             }
 
-            $cmd = "$bin/gatekeeper -frg $wrk/$asm.gkpStore | sed 's/(No source)//' > $termDir/$asm.frg 2> $termDir/gatekeeper.err";
-            if (runCommand($termDir, $cmd)) {
-                warn "gatekeeper didn't dump fragments.\n";
-                unlink "$termDir/$asm.frg";
+            open(F, ">> $termDir/$asm.qc") or die;
+
+            if (-e "$wrk/5-consensus/consensus.stats.summary") {
+                print F "\n[Unitig Consensus]\n";
+                open(G, "<  $wrk/5-consensus/consensus.stats.summary") or die;
+                while (<G>) {
+                    print F $_;
+                }
+                close(G);
             }
-            if (runCommand($termDir, "$perl $bin/ca2ace.pl $asm.asm")) {
-                warn "ca2ace failed no ace file created.\n";
+
+            if (-e "$wrk/8-consensus/consensus.stats.summary") {
+                print F "\n[Contig Consensus]\n";
+                open(G, "<  $wrk/8-consensus/consensus.stats.summary") or die;
+                while (<G>) {
+                    print F $_;
+                }
+                close(G);
             }
+
+            my @H1;
+            my @H2;
+            my @H3;
+            my @H4;
+            my $histMax = 0;
+            if (-e "$termDir/$asm.posmap.frgscf.histogram1") {
+                open(G, "<  $termDir/$asm.posmap.frgscf.histogram1") or die;
+                while (<G>) {
+                    my ($v, $s) = split '\s+', $_;
+                    $H1[$v] = $s;
+                    $histMax = $v if ($histMax < $v);
+                }
+                close(G);
+            }
+            if (-e "$termDir/$asm.posmap.frgscf.histogram2") {
+                open(G, "<  $termDir/$asm.posmap.frgscf.histogram2") or die;
+                while (<G>) {
+                    my ($v, $s) = split '\s+', $_;
+                    $H2[$v] = $s;
+                    $histMax = $v if ($histMax < $v);
+                }
+                close(G);
+            }
+            if (-e "$termDir/$asm.posmap.frgscf.histogram3") {
+                open(G, "<  $termDir/$asm.posmap.frgscf.histogram3") or die;
+                while (<G>) {
+                    my ($v, $s) = split '\s+', $_;
+                    $H3[$v] = $s;
+                    $histMax = $v if ($histMax < $v);
+                }
+                close(G);
+            }
+            if (-e "$termDir/$asm.posmap.frgscf.histogram4") {
+                open(G, "<  $termDir/$asm.posmap.frgscf.histogram4") or die;
+                while (<G>) {
+                    my ($v, $s) = split '\s+', $_;
+                    $H4[$v] = $s;
+                    $histMax = $v if ($histMax < $v);
+                }
+                close(G);
+            }
+
             
-            if (runCommand($termDir, "$perl $bin/asmToAGP.pl < $asm.asm > $asm.agp")) {
-                    warn "asmToAGP.pl failed no agp file created.\n";
+            print F "\n[Read Depth Histogram]\n";
+            print F "depth    < 3Kbp     < 10Kbp    < 1Mbp     < inf\n";
+            for (my $v=0; $v<=$histMax; $v++) {
+                printf(F "%-8d %-10d %-10d %-10d %-10d\n",
+                       $v, int($H1[$v]), int($H2[$v]), int($H3[$v]), int($H4[$v]));
             }
 
-            $cmd = "$perl $bin/caqc.pl $wrk/9-terminator/$asm.asm";
-            if (runCommand("$wrk/9-terminator", $cmd)) {
-                rename "$wrk/9-terminator/$asm.qc", "$wrk/9-terminator/$asm.qc.FAILED";
-                die "Failed.\n";
-            }
-
-            open(F, ">> $wrk/9-terminator/$asm.qc") or die;
-            print F "\n[Unitig Consensus]\n";
-            open(G, "<  $wrk/5-consensus/consensus.stats.summary") or die;
-            while (<G>) {
-                print F $_;
-            }
-            close(G);
-
-            print F "\n[Contig Consensus]\n";
-            open(G, "<  $wrk/8-consensus/consensus.stats.summary") or die;
-            while (<G>) {
-                print F $_;
-            }
-            close(G);
             close(F);
         }
 
-        touch("$wrk/9-terminator/terminator.success");
-        system("ln $wrk/9-terminator/$asm.asm $wrk/$asm.asm");
-        system("ln $wrk/9-terminator/$asm.qc  $wrk/$asm.qc");
+        if (getGlobal("createAGP") > 0) {
+            if (! -e "$termDir/$asm.agp") {
+                if (runCommand($termDir, "$perl $bin/asmToAGP.pl < $termDir/$asm.asm > $termDir/$asm.agp")) {
+                    rename "$termDir/$asm.agp", "$termDir/$asm.agp.FAILED";
+                }
+            }
+        }
+
+        if (getGlobal("createACE") > 0) {
+            if (! -e "$termDir/test.ace.bz2") {
+                if (runCommand($termDir, "$bin/gatekeeper -frg $wrk/$asm.gkpStore 2> $termDir/gatekeeper.err | grep -v No\ source > $termDir/$asm.frg")) {
+                    unlink "$termDir/$asm.frg";
+                }
+                if (runCommand($termDir, "$perl $bin/ca2ace.pl $termDir/$asm.asm")) {
+                    rename "$termDir/test.ace.bz2", "$termDir/test.ace.FAILED.bz2";
+                }
+            }
+        }
+
+        touch("$termDir/terminator.success");
+        system("ln $termDir/$asm.asm $wrk/$asm.asm");
+        system("ln $termDir/$asm.qc  $wrk/$asm.qc");
     }
 }
 

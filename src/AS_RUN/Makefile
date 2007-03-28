@@ -21,11 +21,10 @@
 #
 ###########################################################################
 #
-# gmake Makefile for AS_RUN
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-C_PROG_SOURCES = 
+C_PROG_SOURCES = fragmentDepth.c
 C_PROG_OBJECTS = $(C_PROG_SOURCES:.c=.o)
 
 C_SOURCES = $(C_PROG_SOURCES)
@@ -37,20 +36,20 @@ CXX_OBJECTS = $(CXX_SOURCES:.cc=.o)
 SOURCES = $(C_SOURCES) $(CXX_SOURCES)
 OBJECTS = $(C_OBJECTS) $(CXX_OBJECTS)
 
-PROGS = 
+PROGS = fragmentDepth
 
 SCRIPTS = runCA-OBT.pl \
           assemblyCompare \
           qcCompare \
           tampaCompare \
           mummerCompare \
-	  testVersionOnPlatform.sh \
-	  apply_assembler \
-	  glen_est_truncadjusted.pl \
-      caqc.pl \
-      ca2ace.pl \
-      asmToAGP.pl \
-      mateLinkIIDRanges.rb
+          testVersionOnPlatform.sh \
+          apply_assembler \
+          glen_est_truncadjusted.pl \
+          caqc.pl \
+          ca2ace.pl \
+          asmToAGP.pl \
+          mateLinkIIDRanges.rb
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -126,3 +125,4 @@ glen_est_truncadjusted.pl: dataQC/$@
 	@cp dataQC/$@ $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
+fragmentDepth: fragmentDepth.o

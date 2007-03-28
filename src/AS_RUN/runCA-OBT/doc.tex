@@ -595,7 +595,24 @@ cnsConcurrency={\it integer} &
 If the grid is not enabled, run this many consensus jobs at the same
 time.  Default is 2.
 \\
+\end{longtable}
 
+
+\subsection{Terminator Options}
+\begin{longtable}{lp{3.0in}}
+createAGP={\it integer} &
+If non-zero, create an AGP file for the scaffolds.  Default is 1.
+\\
+
+createACE={\it integer} &
+If non-zero, create an ACE file for the scaffolds.  Default is 1.
+\\
+
+createPosMap={\it integer} &
+If non-zero, create the ``posmap'' files that map fragments, contigs,
+variation records, etc, with contig and scaffold coordinates.  Default
+is 1.
+\\
 \end{longtable}
 
 \end{document}

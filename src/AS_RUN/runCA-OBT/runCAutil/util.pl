@@ -148,6 +148,11 @@ sub setDefaults () {
     $global{"sgeOverlapCorrection"}        = undef;    #  Options to overlap correction jobs
 
     $global{"stoneLevel"}                  = 2;
+
+    $global{"createAGP"}                   = 0;
+    $global{"createACE"}                   = 0;
+    $global{"createPosMap"}                = 0;
+
     $global{"stopAfter"}                   = undef;
     $global{"uidServer"}                   = undef;
     $global{"updateDistanceType"}          = "pre";
