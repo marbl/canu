@@ -436,7 +436,7 @@ for i in $(SUBDIRS);\
       if [ $(TGT) = "libs" ] ; then \
         $(MAKE) --no-print-directory        -C $$i $(TGT) ;\
       else \
-        $(MAKE) --no-print-directory -j $$p -C $$i $(TGT) ;\
+        $(MAKE) --no-print-directory -j 4   -C $$i $(TGT) ;\
       fi; \
     fi; \
   done;
