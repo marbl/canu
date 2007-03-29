@@ -96,62 +96,31 @@ sub createOverlapJobs {
     print F "  \$opt \\\n";
     print F "  -k $wrk/0-preoverlap/$asm.nmers.fasta \\\n"          if ($isTrim ne "trim");
     print F "  -k $wrk/0-overlaptrim-overlap/$asm.nmers.fasta \\\n" if ($isTrim eq "trim");
-    print F "  -o $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
+    print F "  -o $scratch/$asm.\$bat-\$job.\$jid.ovb \\\n"  if ($isTrim eq "trim");
+    print F "  -o $wrk/$outDir/\$bat/\$job.ovb \\\n"         if ($isTrim ne "trim");
     print F "  $wrk/$asm.gkpStore\n";
     print F "\n";
     print F "\n";
     print F "$gin/overlap $ovlOpt -M $ovlMemory -t $ovlThreads \\\n";
     print F "  \$opt \\\n";
-    print F "  -k $wrk/0-preoverlap/$asm.nmers.fasta \\\n"          if ($isTrim ne "trim");
     print F "  -k $wrk/0-overlaptrim-overlap/$asm.nmers.fasta \\\n" if ($isTrim eq "trim");
-    print F "  -o $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
+    print F "  -k $wrk/0-preoverlap/$asm.nmers.fasta \\\n"          if ($isTrim ne "trim");
+    print F "  -o $scratch/$asm.\$bat-\$job.\$jid.ovb \\\n"  if ($isTrim eq "trim");
+    print F "  -o $wrk/$outDir/\$bat/\$job.ovb \\\n"         if ($isTrim ne "trim");
     print F "  $wrk/$asm.gkpStore \\\n";
-    print F "&& \\\n";
 
     if ($isTrim eq "trim") {
-        print F "$gin/convertOverlap -b -obt \\\n";
-        print F "  < $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
-        print F "| \\\n";
-        print F "$gin/acceptableOBToverlap \\\n";
-        print F "  > $wrk/$outDir/\$bat/\$job.ovb \\\n";
-        #print F "&& \\\n";
-        #print F "rm -f $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
-
-#  Compressed output here screws up the overlapStore memory sizing,
-#  which uses the size of the file to decide the number of overlaps
-#  present.  For general use, we cannot compress the output, but maybe
-#  someone will find this useful -- if there are a LOT of overlaps,
-#  and disk is tight, for example.
-#
-#    } elsif (getGlobal("useGrid") && getGlobal("ovlOnGrid")) {
-#        print F "$gin/convertOverlap -b -ovl \\\n";
-#        print F "  < $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
-#        print F "| \\\n";
-#        print F "bzip2 -9vc \\\n";
-#        print F "  > $wrk/$outDir/\$bat/\$job.ovb.bz2 \\\n";
-#        print F "&& \\\n";
-#        print F "rm -f $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
-
-    } else {
-        print F "$gin/convertOverlap -b -ovl \\\n";
-        print F "  < $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
-        print F "  > $wrk/$outDir/\$bat/\$job.ovb \\\n";
         print F "&& \\\n";
-        print F "rm -f $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
+        print F "$gin/acceptableOBToverlap \\\n";
+        print F "  < $scratch/$asm.\$bat-\$job.\$jid.ovb \\\n";
+        print F "  > $wrk/$outDir/\$bat/\$job.ovb \\\n";
     }
 
     print F "&& \\\n";
     print F "touch $wrk/$outDir/\$bat/\$job.success\n";
-
-    #  Catch any nasty failures, like out of disk, crashes, etc.  This
-    #  should maybe (maybe not) be an option for debugging.  But if
-    #  you're debugging, you're smart enough to figure out how to fix
-    #  this.
-
+    print F "\n";
     print F "rm -f $scratch/$asm.\$bat-\$job.\$jid.ovb \\\n";
-    print F "rm -f $scratch/$asm.\$bat-\$job.\$jid.ovl \\\n";
-    print F "rm -f $scratch/$asm.\$bat-\$job.\$jid.ovl.bz2 \\\n";
-
+    print F "\n";
     print F "exit 0\n";
     close(F);
 

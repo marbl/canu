@@ -26,8 +26,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_driver_common.h,v 1.17 2007-03-06 01:02:44 brianwalenz Exp $
- * $Revision: 1.17 $
+ * $Id: AS_OVL_driver_common.h,v 1.18 2007-03-29 20:27:21 brianwalenz Exp $
+ * $Revision: 1.18 $
 */
 
 
@@ -51,7 +51,6 @@ static int  Next_Fragment_Index;
 static int  IID_Lo, IID_Hi;
 static int  Frag_Segment_Lo;
 static int  Frag_Segment_Hi;
-static pthread_mutex_t  Fragment_Range_Mutex;
 static Batch_ID  Batch_Msg_UID = 0;
 static IntBatch_ID  Batch_Msg_IID = 0;
 static int  Batch_Num = 0;
@@ -66,14 +65,6 @@ void  Cleanup_Work_Area
     (Work_Area_t * wa);
 static int  ReadFrags
     (int maxFrags);
-
-
-#if 0
-#undef DEBUG
-#define DEBUG 1
-#undef MAX_HASH_STRINGS
-#define MAX_HASH_STRINGS 20
-#endif
 
 
 static void  Check_VSize
@@ -115,12 +106,9 @@ static void  Check_VSize
 
 // **********************************************************************
 
-int  OverlapDriver
-    (int noOverlaps, int argc, char **argv)
+int  OverlapDriver(int argc, char **argv)
 
 //  This is the main control loop for the overlapper.
-//  If  noOverlaps != 0 , then no overlaps are computed or output
-//  (but the fragment store is created).
 
   {
    FragStream  *HashFragStream = NULL;
@@ -128,7 +116,6 @@ int  OverlapDriver
    pthread_t  * thread_id;
    FragStream **new_stream_segment;
    FragStream **old_stream_segment;
-//   Work_Area_t  * driver_wa;
    Work_Area_t  * thread_wa;
    int64  first_new_frag = -1, last_new_frag = -1;
    int  i;
@@ -145,7 +132,6 @@ fprintf (stderr, "### Using %d pthreads  %d hash bits  %d bucket entries\n",
                    (Num_PThreads, sizeof (FragStream *));
    old_stream_segment = (FragStream **) safe_calloc
                    (Num_PThreads, sizeof (FragStream *));
-//   driver_wa = (Work_Area_t *) safe_malloc (sizeof (Work_Area_t));
    thread_wa = (Work_Area_t *) safe_calloc
                    (Num_PThreads, sizeof (Work_Area_t));
 
@@ -154,21 +140,16 @@ fprintf (stderr, "### Using %d pthreads  %d hash bits  %d bucket entries\n",
       old_stream_segment [i] = openFragStream (OldFragStore, FRAG_S_INF | FRAG_S_SEQ | FRAG_S_QLT);
      }
 
-   if  (noOverlaps == 0)
-       {
-        if  (Num_PThreads > 1)
-            {
-             pthread_attr_init (& attr);
-             pthread_attr_setstacksize (& attr, THREAD_STACKSIZE);
-             pthread_mutex_init (& Fragment_Range_Mutex, NULL);
-             pthread_mutex_init (& FragStore_Mutex, NULL);
-             pthread_mutex_init (& Write_Proto_Mutex, NULL);
-             pthread_mutex_init (& Log_Msg_Mutex, NULL);
-            }
-        Initialize_Work_Area (thread_wa, 0);
-        for  (i = 1;  i < Num_PThreads;  i ++)
-          Initialize_Work_Area (thread_wa + i, i);
-       }
+   if  (Num_PThreads > 1)
+     {
+       pthread_attr_init (& attr);
+       pthread_attr_setstacksize (& attr, THREAD_STACKSIZE);
+       pthread_mutex_init (& FragStore_Mutex, NULL);
+       pthread_mutex_init (& Write_Proto_Mutex, NULL);
+     }
+   Initialize_Work_Area (thread_wa, 0);
+   for  (i = 1;  i < Num_PThreads;  i ++)
+     Initialize_Work_Area (thread_wa + i, i);
 
    myRead = new_fragRecord ();
 
@@ -209,8 +190,6 @@ Source_Log_File = File_Open ("ovl-srcinfo.log", "w");
      {
       int startIndex;
 
-      if  (noOverlaps == 0)
-          {
            GateKeeperStore  *curr_frag_store;
            GateKeeperStore  *hash_frag_store;
            int  highest_old_frag, lowest_old_frag;
@@ -315,7 +294,7 @@ break;
 
 
               Now = time (NULL);
-              fprintf (stderr, "### starting old fragments   %s\n", ctime (& Now));
+              fprintf (stderr, "### starting old fragments   %s", ctime (& Now));
               for  (i = 1;  i < Num_PThreads;  i ++)
                 {
                  thread_wa [i] . stream_segment = old_stream_segment [i];
@@ -368,7 +347,6 @@ break;
                  
            closeFragStream (HashFragStream);
            closeGateKeeperStore (hash_frag_store);
-          }
 
 
 #if  SHOW_PROGRESS
@@ -406,11 +384,9 @@ Profile_Hits ();
    /* If we've added dst records, save them persistently */
 
 
-//   Cleanup_Work_Area (driver_wa);
    Cleanup_Work_Area (thread_wa);
    for  (i = 1;  i < Num_PThreads;  i ++)
      Cleanup_Work_Area (thread_wa + i);
-//   safe_free (driver_wa);
    safe_free (thread_wa);
    safe_free (thread_id);
    safe_free (new_stream_segment);
@@ -468,7 +444,7 @@ void  Cleanup_Work_Area
    safe_free (wa -> String_Olap_Space);
    safe_free (wa -> Match_Node_Space);
    del_fragRecord (wa -> myRead);
-
+   safe_free (wa -> overlaps);
    return;
   }
 
@@ -486,51 +462,62 @@ static void *  Choose_And_Process_Stream_Segment
 
   {
    Work_Area_t  * WA = (Work_Area_t *) (ptr);
+   int            allDone = 0;
 
-   while  (TRUE)
+   while  (allDone == 0)
      {
       int  lo, hi;
 
       if  (Num_PThreads > 1)
-          pthread_mutex_lock (& Fragment_Range_Mutex);
+          pthread_mutex_lock (& FragStore_Mutex);
+
+      //  This block used to be in the Fragment_Range_Mutex, then the
+      //  resetFragStream() was in the FragStore_Mutex.  Using two
+      //  mutexes (with the little block of if's below not in a mutex)
+      //  was wasteful.  All this code is now in one mutex.
 
       if  (IID_List == NULL)
-          {
-           lo = Frag_Segment_Lo;
-           Frag_Segment_Lo += MAX_FRAGS_PER_THREAD;
-           hi = Frag_Segment_Lo - 1;
-          }
-        else
-          {
-           if  (IID_Lo > IID_Hi)
-               lo = hi = INT_MAX;
-             else
-               lo = hi = IID_List [IID_Lo ++];
-          }
+        {
+          lo = Frag_Segment_Lo;
+          Frag_Segment_Lo += MAX_FRAGS_PER_THREAD;
+          hi = Frag_Segment_Lo - 1;
+        }
+      else
+        {
+          if  (IID_Lo > IID_Hi)
+            lo = hi = INT_MAX;
+          else
+            lo = hi = IID_List [IID_Lo ++];
+        }
 
-      if  (Num_PThreads > 1)
-          pthread_mutex_unlock (& Fragment_Range_Mutex);
-
+      //  This block doesn't need to be in a mutex, but it's so quick
+      //  we just do it rather than exiting and entering a mutex
+      //  again.
+      //
       if  (IID_List != NULL && hi > Frag_Segment_Hi)
-          break;
+          allDone = 1;
       if  (hi > Frag_Segment_Hi)
           hi = Frag_Segment_Hi;
       if  (lo > hi)
-          break;
-      
-      if  (Num_PThreads > 1)
-          pthread_mutex_lock (& FragStore_Mutex);
+          allDone = 1;
 
+      //  BPW says we DEFINITELY need to mutex this!
       resetFragStream (WA -> stream_segment, lo, hi);
 
       if  (Num_PThreads > 1)
           pthread_mutex_unlock (& FragStore_Mutex);
 
-      Process_Overlaps (WA -> stream_segment, WA);
+      if (allDone == 0)
+        Process_Overlaps (WA -> stream_segment, WA);
      }
 
-   if  (Num_PThreads > 1 && WA -> thread_id > 0)
-       pthread_exit (ptr);
+   //  An implicit call to pthread_exit() is made when a thread other
+   //  than the thread in which main() was first invoked returns from
+   //  the start routine that was used to create it.  The function's
+   //  return value serves as the thread's exit status.
+   //
+   //if  (Num_PThreads > 1 && WA -> thread_id > 0)
+   //    pthread_exit (ptr);
 
    return  ptr;
   }
@@ -574,6 +561,7 @@ static int  ReadFrags
 
 /******************************************************************************/
 
+#if  ANALYZE_HITS && ! SHOW_HI_HIT_KMERS
 /* Function stripWhiteSpace:
    Input:  source   string of maximum length maxlen
            maxlen   maximum length of source
@@ -600,3 +588,4 @@ void  stripWhiteSpace
   }
 
 }
+#endif

@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.31 2007-03-05 22:45:46 brianwalenz Exp $
- * $Revision: 1.31 $
+ * $Id: AS_OVL_overlap_common.h,v 1.32 2007-03-29 20:27:21 brianwalenz Exp $
+ * $Revision: 1.32 $
 */
 
 
@@ -80,7 +80,7 @@
 #include  "AS_MSG_pmesg.h"
 #include  "AS_OVL_overlap.h"
 #include  "AS_UTL_version.h"
-
+#include  "AS_UTL_fileIO.h"
 
 
 /*************************************************************************/
@@ -219,7 +219,7 @@ static uint64  * Loc_ID = NULL;
 static int  Min_Olap_Len = DEFAULT_MIN_OLAP_LEN;
 static int64  Multi_Overlap_Ct = 0;
 static String_Ref_t  * Next_Ref = NULL;
-static int  Single_Line_Output = FALSE;
+static int  Full_ProtoIO_Output = FALSE;
     //  If set true by -q option, output a single ASCII line
     //  for each overlap in the same format as used by
     //  partial overlaps
@@ -351,6 +351,7 @@ FILE  * Kmer_Skip_File = NULL;
     // File of kmers to be ignored in the hash table
     // Specified by the  -k  option
 Output_Stream  Out_Stream = NULL;
+BinaryOverlapFile  *Out_BOF = NULL;
 GateKeeperStore  *OldFragStore;
 GateKeeperStore  *BACtigStore;
 char  * Frag_Store_Path;
@@ -360,7 +361,6 @@ int  IID_List_Len = 0;
 
 pthread_mutex_t  FragStore_Mutex;
 pthread_mutex_t  Write_Proto_Mutex;
-pthread_mutex_t  Log_Msg_Mutex;
 
 #if  ANALYZE_HITS
 FILE  * High_Hits_File = NULL;
@@ -440,10 +440,11 @@ static int64  Next_Odd_Prime
     (int64);
 static void  Output_Overlap
     (Int_Frag_ID_t, int, Direction_t, Int_Frag_ID_t,
-     int, Olap_Info_t *);
+     int, Olap_Info_t *, Work_Area_t *);
 static void  Output_Partial_Overlap
     (Int_Frag_ID_t s_id, Int_Frag_ID_t t_id, Direction_t dir,
-     const Olap_Info_t * p, int s_len, int t_len);
+     const Olap_Info_t * p, int s_len, int t_len,
+     Work_Area_t *WA);
 static int  Passes_Screen
     (int, int, int);
 static int  Prefix_Edit_Dist
@@ -500,12 +501,11 @@ static void  Show_SNPs
 int  main  (int argc, char * argv [])
 
   {
-   char  File_Name [MAX_NAME_LEN];
-   char  * bolfile_name = NULL, * Outfile_Name = NULL;
-   char  * iidlist_file_name = NULL;
+   char  bolfile_name[FILENAME_MAX] = {0};
+   char  Outfile_Name[FILENAME_MAX] = {0};
+   char  iidlist_file_name[FILENAME_MAX] = {0};
    int  illegal;
    char  * p;
-   int  noOverlaps;  /* If 1, run but don't compute/generate overlaps */
 
    assert (8 * sizeof (uint64) > 2 * WINDOW_SIZE);
 
@@ -533,7 +533,6 @@ fprintf (stderr, "Running Fragment version, AS_READ_MAX_LEN = %d\n",
 fprintf (stderr, "### Bucket size = " F_SIZE_T " bytes\n", sizeof (Hash_Bucket_t));
 fprintf (stderr, "### Read error rate = %.2f%%\n", 100.0 * AS_READ_ERROR_RATE);
 fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE);
-   noOverlaps = 0; /* If 1, don't compute/generate overlaps */
 
    illegal = 0;
 
@@ -552,7 +551,7 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
      optarg = NULL;
      while  (! errflg
                && ((ch = getopt_long (argc, argv,
-                                      "b:cGh:I:k:K:l:mM:no:qr:st:uv:wxz",
+                                      "b:cGh:I:k:K:l:mM:o:Pr:st:uv:wxz",
                                       ovlopts, &optindex)) != EOF))
        switch  (ch)
          {
@@ -569,8 +568,7 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
              }
              break;
           case  'b' :
-            bolfile_name = strdup (optarg);
-            assert (bolfile_name != NULL);
+            strcpy(bolfile_name, optarg);
             break;
           case  'c':
             Contig_Mode = TRUE;
@@ -584,8 +582,7 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
             Get_Range (optarg, ch, & Lo_Hash_Frag, & Hi_Hash_Frag);
             break;
           case  'I' :
-            iidlist_file_name = strdup (optarg);
-            assert (iidlist_file_name != NULL);
+            strcpy(iidlist_file_name, optarg);
             break;
           case  'k' :
             Kmer_Skip_File = File_Open (optarg, "r");
@@ -700,16 +697,11 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
                  MAX_OLD_BATCH_SIZE);
 #endif
             break;
-          case  'n' :
-            noOverlaps = 1;
-            fprintf(stderr,"* No Overlaps will be generated!\n");
-            break;
           case  'o' :
-            Outfile_Name = strdup (optarg);
-            assert (Outfile_Name != NULL);
+            strcpy(Outfile_Name, optarg);
             break;
-          case  'q' :
-            Single_Line_Output = TRUE;
+          case  'P' :
+            Full_ProtoIO_Output = TRUE;
             break;
           case  'r' :
             Get_Range (optarg, ch, & Lo_Old_Frag, & Hi_Old_Frag);
@@ -794,9 +786,8 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
                   "-m          allow multiple overlaps per oriented fragment pair\n"
                   "-M          specify memory size.  Valid values are '8GB', '4GB',\n"
                   "            '2GB', '1GB', '256MB'.  (Not for Contig mode)\n"
-                  "-n          skip overlaps (only update frag store)\n"
                   "-o          specify output file name\n"
-                  "-q          make single-line output (same format as -G)\n"
+                  "-P          write protoIO output (if not -G)\n"
                   "-r <range>  specify old fragments to overlap\n"
                   "-s          ignore screen information with fragments\n"
                   "-t <n>      use <n> parallel threads\n"
@@ -827,7 +818,7 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
                     exit (EXIT_FAILURE);
                    }
 
-               if  (bolfile_name == NULL)
+               if  (bolfile_name[0] == 0)
                    {
                     fprintf (stderr,
                              "ERROR:  No .BOL file name specified\n");
@@ -835,7 +826,7 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
                    }
                BOL_File = File_Open (bolfile_name, "w");
 
-               if  (Outfile_Name != NULL)
+               if  (Outfile_Name[0] != 0)
                    {
                     fprintf (stderr,
                              "WARNING:  Output file name \"%s\" ignored\n",
@@ -848,7 +839,7 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
 
           optind ++;
          }
-     else if  (Outfile_Name == NULL)
+     else if  (Outfile_Name[0] == 0)
          {
           fprintf (stderr, "ERROR:  No output file name specified\n");
           exit (EXIT_FAILURE);
@@ -856,8 +847,12 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
        else
          {
 	   assert(NULL == Out_Stream);
-	   Out_Stream = File_Open (Outfile_Name, "w");     // ovl file
-	   safe_free (Outfile_Name);
+	   assert(NULL == Out_BOF);
+
+           if (Full_ProtoIO_Output)
+             Out_Stream = File_Open (Outfile_Name, "w");
+           else
+             Out_BOF    = AS_OVS_createBinaryOverlapFile(Outfile_Name, FALSE);
          }
 
      /* End of command line parsing */
@@ -903,7 +898,7 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
             }
         BACtigStore = openGateKeeperStore(BACtig_Store_Path, FALSE);
 
-        if  (iidlist_file_name != NULL)
+        if  (iidlist_file_name[0] != 0)
             {
              fprintf (stderr, "### Using IID list = %s\n",
                       iidlist_file_name);
@@ -927,7 +922,11 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
 
    OldFragStore = openGateKeeperStore(Frag_Store_Path, FALSE);
    
-   if  (! Contig_Mode)
+#if  ! (SHOW_SNPS)
+   if  (! Contig_Mode &&
+        ! Doing_Partial_Overlaps &&
+        Full_ProtoIO_Output &&
+        Out_Stream)
        {
         GenericMesg   * pmesg = (GenericMesg *) safe_malloc (sizeof (GenericMesg));
         AuditMesg  * adtmesg = (AuditMesg *) safe_malloc (sizeof (AuditMesg));
@@ -937,34 +936,33 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
         VersionStampADT(adtmesg, argc, argv);
 
 	pmesg -> m = adtmesg;
-#if  ! (FOR_CARL_FOSLER || SHOW_SNPS)
-        if  (! Doing_Partial_Overlaps && ! Single_Line_Output)
-            WriteProtoMesg_AS (Out_Stream, pmesg);
-#endif
+        WriteProtoMesg_AS (Out_Stream, pmesg);
 
         safe_free (adtmesg);
         safe_free (pmesg);
        }
+#endif
 
    /****************************************/
-   OverlapDriver(noOverlaps, argc, argv);
+   OverlapDriver(argc, argv);
    /****************************************/
 
 #ifdef  CHECK_SCREENING
 Dump_Screen_Info (0, NULL, 'x');
 #endif
 
-   if (bolfile_name == NULL)
-     {
-      assert(NULL != Out_Stream);
+   if (Out_Stream)
       fclose (Out_Stream);
-     }
    Out_Stream = NULL;
-   if  (Contig_Mode) {
-     assert(NULL != BOL_File);
+
+   if (Out_BOF)
+     AS_OVS_closeBinaryOverlapFile(Out_BOF);
+
+   if  (BOL_File)
      fclose (BOL_File);
-     BOL_File = NULL;
-   }
+   BOL_File = NULL;
+
+
 
 #if  SHOW_STATS
 fprintf (Stat_File, "Regular Overlaps:\n %10llu\n",
@@ -3027,6 +3025,13 @@ void  Initialize_Work_Area
 
    WA -> thread_id = id;
 
+   //  OVSoverlap is 16 bytes, so 1MB of data would store 65536
+   //  overlaps.
+   //
+   WA->overlapsLen = 0;
+   WA->overlapsMax = 1024 * 1024 / sizeof(OVSoverlap);
+   WA->overlaps    = (OVSoverlap *)safe_malloc(sizeof(OVSoverlap) * WA->overlapsMax);
+
    return;
   }
 
@@ -3476,7 +3481,8 @@ void  Output_High_Hit_Frags
 
 static void  Output_Overlap
     (Int_Frag_ID_t S_ID, int S_Len, Direction_t S_Dir,
-     Int_Frag_ID_t T_ID, int T_Len, Olap_Info_t * olap)
+     Int_Frag_ID_t T_ID, int T_Len, Olap_Info_t * olap,
+     Work_Area_t *WA)
 
 //  Output the overlap between strings  S_ID  and  T_ID  which
 //  have lengths  S_Len  and  T_Len , respectively.
@@ -3574,64 +3580,10 @@ if  (Contig_Mode)
         ovMesg.min_offset = olap -> s_lo - (olap -> max_diag - this_diag);
         ovMesg.max_offset = olap -> s_lo + (this_diag - olap -> min_diag);
 #if  USE_SOURCE_FIELD
-if  (ovMesg.min_offset + 3 < ovMesg.ahg)
-    fprintf (Source_Log_File, "%4d %4d %4d %c\n", ovMesg.min_offset,
-             ovMesg.ahg, ovMesg.max_offset,
-             Left_Repeat_Tag [T_ID - Hash_String_Num_Offset]);
-#endif
-#if  FOR_CARL_FOSLER
-        {
-         double  a_percen, b_percen;
-         int  a_start, a_end, b_start, b_end;
-
-         a_percen = S_Len;
-         if  (ovMesg . ahg > 0)
-             {
-              a_percen -= ovMesg . ahg;
-              a_start = ovMesg . ahg;
-              b_start = 0;
-             }
-           else
-             {
-              a_start = 0;
-              b_start = - ovMesg . ahg;
-             }
-         if  (ovMesg . bhg < 0)
-             {
-              a_percen += ovMesg . bhg;
-              a_end = S_Len + ovMesg . bhg;
-              b_end = T_Len;
-             }
-           else
-             {
-              a_end = S_Len;
-              b_end = T_Len - ovMesg . bhg;
-             }
-         a_percen *= 100.0 / S_Len;
-
-         if  (S_Dir != FORWARD)
-             {
-              int  save = a_start;
-
-              a_start = S_Len - a_end;
-              a_end = S_Len - save;
-             }
-         
-         b_percen = T_Len;
-         if  (ovMesg . ahg < 0)
-             b_percen += ovMesg . ahg;
-         if  (ovMesg . bhg > 0)
-             b_percen -= ovMesg . bhg;
-         b_percen *= 100.0 / T_Len;
-         
-         fprintf (Out_Stream,
-                  "%9d  %9d  %c  %5d  %5d  %5.1f  %5d  %5d  %5.1f  %5.3f\n",
-                  S_ID, T_ID, (char) ovMesg . orientation,
-                  a_start, a_end, a_percen,
-                  b_start, b_end, b_percen,
-                  100.0 * ovMesg . quality);
-         return;
-        }
+        if  (ovMesg.min_offset + 3 < ovMesg.ahg)
+          fprintf (Source_Log_File, "%4d %4d %4d %c\n", ovMesg.min_offset,
+                   ovMesg.ahg, ovMesg.max_offset,
+                   Left_Repeat_Tag [T_ID - Hash_String_Num_Offset]);
 #endif
        }
      else
@@ -3658,68 +3610,10 @@ if  (ovMesg.min_offset + 3 < ovMesg.ahg)
         ovMesg.min_offset = olap -> t_lo - (this_diag - olap -> min_diag);
         ovMesg.max_offset = olap -> t_lo + (olap -> max_diag - this_diag);
 #if  USE_SOURCE_FIELD
-if  (ovMesg.min_offset + 3 < ovMesg.ahg)
-    fprintf (Source_Log_File, "%4d %4d %4d %c\n", ovMesg.min_offset,
-             ovMesg.ahg, ovMesg.max_offset,
-             Right_Repeat_Tag [T_ID - Hash_String_Num_Offset]);
-#endif
-#if  FOR_CARL_FOSLER
-        {
-         double  a_percen, b_percen;
-         int  a_start, a_end, b_start, b_end;
-
-         a_percen = T_Len;
-         if  (ovMesg . ahg > 0)
-             {
-              a_percen -= ovMesg . ahg;
-              a_start = ovMesg . ahg;
-              b_start = 0;
-             }
-           else
-             {
-              a_start = 0;
-              b_start = - ovMesg . ahg;
-             }
-         if  (ovMesg . bhg < 0)
-             {
-              a_percen += ovMesg . bhg;
-              a_end = T_Len + ovMesg . bhg;
-              b_end = S_Len;
-             }
-           else
-             {
-              a_end = T_Len;
-              b_end = S_Len - ovMesg . bhg;
-             }
-         a_percen *= 100.0 / T_Len;
-         
-         if  (S_Dir != FORWARD)
-             {
-              int  save = b_start;
-
-              b_start = S_Len - b_end;
-              b_end = S_Len - save;
-             }
-         
-         b_percen = S_Len;
-         if  (ovMesg . ahg < 0)
-             b_percen += ovMesg . ahg;
-         if  (ovMesg . bhg > 0)
-             b_percen -= ovMesg . bhg;
-         b_percen *= 100.0 / S_Len;
-         
-         if  (Num_PThreads > 1)
-           pthread_mutex_lock (& Write_Proto_Mutex);
-         fprintf (Out_Stream,
-                  "%9d  %9d  %c  %5d  %5d  %5.1f  %5d  %5d  %5.1f  %5.3f\n",
-                  T_ID, S_ID, (char) ovMesg . orientation,
-                  a_start, a_end, a_percen,
-                  b_start, b_end, b_percen,
-                  100.0 * ovMesg . quality);
-         if  (Num_PThreads > 1)
-           pthread_mutex_unlock (& Write_Proto_Mutex);
-         return;
-        }
+        if  (ovMesg.min_offset + 3 < ovMesg.ahg)
+          fprintf (Source_Log_File, "%4d %4d %4d %c\n", ovMesg.min_offset,
+                   ovMesg.ahg, ovMesg.max_offset,
+                   Right_Repeat_Tag [T_ID - Hash_String_Num_Offset]);
 #endif
        }
 
@@ -3760,19 +3654,45 @@ if  (ovMesg.min_offset + 3 < ovMesg.ahg)
      ovMesg.max_offset = ovMesg.ahg - min_delta;
    }
 
-   if  (Num_PThreads > 1)
+   WA->Total_Overlaps ++;
+   if  (ovMesg . bhg <= 0)
+       WA->Contained_Overlap_Ct ++;
+     else
+       WA->Dovetail_Overlap_Ct ++;
+
+   //  Output either the full protoIO format message, or
+   //  the overlap store binary format.
+   //
+   if (Full_ProtoIO_Output) {
+     if  (Num_PThreads > 1)
        pthread_mutex_lock (& Write_Proto_Mutex);
 
-   Total_Overlaps ++;
-   if  (ovMesg . bhg <= 0)
-       Contained_Overlap_Ct ++;
-     else
-       Dovetail_Overlap_Ct ++;
+     if (Out_Stream)
+       WriteProtoMesg_AS (Out_Stream, & outputMesg);
 
-   WriteProtoMesg_AS (Out_Stream, & outputMesg);
-
-   if  (Num_PThreads > 1)
+     if  (Num_PThreads > 1)
        pthread_mutex_unlock (& Write_Proto_Mutex);
+
+   } else {
+
+     AS_OVS_convertOverlapMesgToOVSoverlap(&ovMesg, WA->overlaps + WA->overlapsLen++);
+
+     //  We also flush the file at the end of a thread
+
+     if (WA->overlapsLen >= WA->overlapsMax) {
+       int zz;
+
+       if  (Num_PThreads > 1)
+         pthread_mutex_lock (& Write_Proto_Mutex);
+
+       for (zz=0; zz<WA->overlapsLen; zz++)
+         AS_OVS_writeOverlap(Out_BOF, WA->overlaps + zz);
+       WA->overlapsLen = 0;
+
+       if  (Num_PThreads > 1)
+         pthread_mutex_unlock (& Write_Proto_Mutex);
+     }
+   }
 
    return;
   }
@@ -3781,7 +3701,8 @@ if  (ovMesg.min_offset + 3 < ovMesg.ahg)
 
 static void  Output_Partial_Overlap
     (Int_Frag_ID_t s_id, Int_Frag_ID_t t_id, Direction_t dir,
-     const Olap_Info_t * p, int s_len, int t_len)
+     const Olap_Info_t * p, int s_len, int t_len,
+     Work_Area_t  *WA)
 
 //  Output the overlap between strings  s_id  and  t_id  which
 //  have lengths  s_len  and  t_len , respectively.
@@ -3797,40 +3718,61 @@ static void  Output_Partial_Overlap
    // Convert to canonical form with s forward and use space-based
    // coordinates
    if  (dir == FORWARD)
-       {
-        a = p -> s_lo;
-        b = p -> s_hi + 1;
-        c = p -> t_lo;
-        d = p -> t_hi + 1;
-        dir_ch = 'f';
-       }
-     else
-       {
-        a = s_len - p -> s_hi - 1;
-        b = s_len - p -> s_lo;
-        c = p -> t_hi + 1;
-        d = p -> t_lo;
-        dir_ch = 'r';
-       }
-   if  (Num_PThreads > 1)
+     {
+       a = p -> s_lo;
+       b = p -> s_hi + 1;
+       c = p -> t_lo;
+       d = p -> t_hi + 1;
+       dir_ch = 'f';
+     }
+   else
+     {
+       a = s_len - p -> s_hi - 1;
+       b = s_len - p -> s_lo;
+       c = p -> t_hi + 1;
+       d = p -> t_lo;
+       dir_ch = 'r';
+     }
+
+   if  (Contig_Mode) {
+     if  (Num_PThreads > 1)
        pthread_mutex_lock (& Write_Proto_Mutex);
-   errno = 0;
-   if  (Contig_Mode)
-       fprintf (BOL_File, "%7d %7d  %c %4d %4d %4d  %6d %6d %6d  %5.2f\n",
-            s_id, t_id, dir_ch, a, b, s_len, c, d, t_len,
-            100.0 * p -> quality);
-     else
-       fprintf (Out_Stream, "%7d %7d  %c %4d %4d %4d  %4d %4d %4d  %5.2f\n",
-            s_id, t_id, dir_ch, a, b, s_len, c, d, t_len,
-            100.0 * p -> quality);
-   if (errno) {
-     fprintf(stderr, "Write failed: %s\n", strerror(errno));
-     //fprintf(stderr, "Unlinking output file.\n");
-     //unlink(Outfile_Name);
-     exit(1);
-   }
-   if  (Num_PThreads > 1)
+
+     fprintf (BOL_File, "%7d %7d  %c %4d %4d %4d  %6d %6d %6d  %5.2f\n",
+              s_id, t_id, dir_ch, a, b, s_len, c, d, t_len,
+              100.0 * p -> quality);
+
+     if  (Num_PThreads > 1)
        pthread_mutex_unlock (& Write_Proto_Mutex);
+   } else {
+     OVSoverlap  *ovl = WA->overlaps + WA->overlapsLen++;
+     ovl->a_iid           = s_id;
+     ovl->b_iid           = t_id;
+     ovl->dat.obt.datpad  = 0;
+     ovl->dat.obt.fwd     = (dir == FORWARD);
+     ovl->dat.obt.a_beg   = a;
+     ovl->dat.obt.a_end   = b;
+     ovl->dat.obt.b_beg   = c;
+     ovl->dat.obt.b_end   = d;
+     ovl->dat.obt.erate   = AS_OVS_encodeQuality(p->quality);
+     ovl->dat.obt.type    = AS_OVS_TYPE_OBT;
+
+     //  We also flush the file at the end of a thread
+
+     if (WA->overlapsLen >= WA->overlapsMax) {
+       int zz;
+
+       if  (Num_PThreads > 1)
+         pthread_mutex_lock (& Write_Proto_Mutex);
+
+       for (zz=0; zz<WA->overlapsLen; zz++)
+         AS_OVS_writeOverlap(Out_BOF, WA->overlaps + zz);
+       WA->overlapsLen = 0;
+
+       if  (Num_PThreads > 1)
+         pthread_mutex_unlock (& Write_Proto_Mutex);
+     }
+   }
 
    return;
   }
@@ -4036,10 +3978,10 @@ Incr_Distrib (& Edit_Depth_Dist, 1 + Error_Limit);
 
 
 static void  Process_Matches
-    (int * Start, char * S, int S_Len, char * S_quality,
-     Int_Frag_ID_t S_ID, Direction_t Dir, char * T, Hash_Frag_Info_t t_info,
-     char * T_quality, Int_Frag_ID_t T_ID,
-     Work_Area_t * WA, int consistent)
+(int * Start, char * S, int S_Len, char * S_quality,
+ Int_Frag_ID_t S_ID, Direction_t Dir, char * T, Hash_Frag_Info_t t_info,
+ char * T_quality, Int_Frag_ID_t T_ID,
+ Work_Area_t * WA, int consistent)
 
 //  Find and report all overlaps and branch points between string  S
 //  (with length  S_Len  and id  S_ID ) and string  T  (with
@@ -4047,425 +3989,412 @@ static void  Process_Matches
 //  matches in the list beginning at subscript  (* Start) .   Dir  is
 //  the orientation of  S .
 
-  {
-   int  P, * Ref;
-   Olap_Info_t  distinct_olap [MAX_DISTINCT_OLAPS];
-   Match_Node_t  * Longest_Match, * Ptr;
-   Overlap_t  Kind_Of_Olap = NONE;
-   double  Quality;
-   int  Olap_Len;
-   int  overlaps_output = 0;
-   int  distinct_olap_ct;
-   int  Max_Len, S_Lo, S_Hi, T_Lo, T_Hi;
-   int  t_len;
-   int  Done_S_Left, Done_S_Right;
-   int  Errors, rejected;
+{
+  int  P, * Ref;
+  Olap_Info_t  distinct_olap [MAX_DISTINCT_OLAPS];
+  Match_Node_t  * Longest_Match, * Ptr;
+  Overlap_t  Kind_Of_Olap = NONE;
+  double  Quality;
+  int  Olap_Len;
+  int  overlaps_output = 0;
+  int  distinct_olap_ct;
+  int  Max_Len, S_Lo, S_Hi, T_Lo, T_Hi;
+  int  t_len;
+  int  Done_S_Left, Done_S_Right;
+  int  Errors, rejected;
 
-   Done_S_Left = Done_S_Right = FALSE;
-   t_len = t_info . length;
+  Done_S_Left = Done_S_Right = FALSE;
+  t_len = t_info . length;
 
 #if  SHOW_STATS
-Is_Duplicate_Olap = FALSE;
-{
- int  Space [2 * AS_READ_MAX_LEN + 3] = {0};
- int  * Ct = Space + AS_READ_MAX_LEN + 1;
- int  i, Diag_Ct, Gap_Ct, In_Order, Prev;
+  Is_Duplicate_Olap = FALSE;
+  {
+    int  Space [2 * AS_READ_MAX_LEN + 3] = {0};
+    int  * Ct = Space + AS_READ_MAX_LEN + 1;
+    int  i, Diag_Ct, Gap_Ct, In_Order, Prev;
  
- In_Order = TRUE;
- Prev = INT_MAX;
- Gap_Ct = 0;
- for  (i = (* Start);  i != 0;  i = WA -> Match_Node_Space [i] . Next)
-   {
-    Gap_Ct ++;
-    if  (WA -> Match_Node_Space [i] . Start >= Prev)
-        In_Order = FALSE;
-      else
-        Prev = WA -> Match_Node_Space [i] . Start;
-   }
- Incr_Distrib (& Exacts_Per_Olap_Dist, Gap_Ct);
- if  (In_Order)
-     Incr_Distrib (& Gap_Dist, Gap_Ct - 1);
- Diag_Ct = 0;
- for  (i = - AS_READ_MAX_LEN;  i <= AS_READ_MAX_LEN;  i ++)
-   if  (Ct [i] > 0)
-       Diag_Ct ++;
- Incr_Distrib (& Diag_Dist, Diag_Ct);
-}
+    In_Order = TRUE;
+    Prev = INT_MAX;
+    Gap_Ct = 0;
+    for  (i = (* Start);  i != 0;  i = WA -> Match_Node_Space [i] . Next)
+      {
+        Gap_Ct ++;
+        if  (WA -> Match_Node_Space [i] . Start >= Prev)
+          In_Order = FALSE;
+        else
+          Prev = WA -> Match_Node_Space [i] . Start;
+      }
+    Incr_Distrib (& Exacts_Per_Olap_Dist, Gap_Ct);
+    if  (In_Order)
+      Incr_Distrib (& Gap_Dist, Gap_Ct - 1);
+    Diag_Ct = 0;
+    for  (i = - AS_READ_MAX_LEN;  i <= AS_READ_MAX_LEN;  i ++)
+      if  (Ct [i] > 0)
+        Diag_Ct ++;
+    Incr_Distrib (& Diag_Dist, Diag_Ct);
+  }
 #endif
 
-   assert ((* Start) != 0);
+  assert ((* Start) != 0);
 
-       // If a singleton match is hopeless on either side
-       // it needn't be processed
+  // If a singleton match is hopeless on either side
+  // it needn't be processed
 
-   if  (Use_Hopeless_Check
-          && WA -> Match_Node_Space [(* Start)] . Next == 0
-          && ! Doing_Partial_Overlaps)
-       {
-        int  s_head, t_head, s_tail, t_tail;
-        int  is_hopeless = FALSE;
+  if  (Use_Hopeless_Check
+       && WA -> Match_Node_Space [(* Start)] . Next == 0
+       && ! Doing_Partial_Overlaps)
+    {
+      int  s_head, t_head, s_tail, t_tail;
+      int  is_hopeless = FALSE;
 
-        s_head = WA -> Match_Node_Space [(* Start)] . Start;
-        t_head = WA -> Match_Node_Space [(* Start)] . Offset;
-        if  (s_head <= t_head)
-            {
-             if  (s_head > HOPELESS_MATCH
-                    && ! WA -> screen_info . left_end_screened)
-                 is_hopeless = TRUE;
-            }
-          else
-            {
-             if  (t_head > HOPELESS_MATCH
-                    && ! t_info . left_end_screened)
-                 is_hopeless = TRUE;
-            }
+      s_head = WA -> Match_Node_Space [(* Start)] . Start;
+      t_head = WA -> Match_Node_Space [(* Start)] . Offset;
+      if  (s_head <= t_head)
+        {
+          if  (s_head > HOPELESS_MATCH
+               && ! WA -> screen_info . left_end_screened)
+            is_hopeless = TRUE;
+        }
+      else
+        {
+          if  (t_head > HOPELESS_MATCH
+               && ! t_info . left_end_screened)
+            is_hopeless = TRUE;
+        }
 
-        s_tail = S_Len - s_head - WA -> Match_Node_Space [(* Start)] . Len + 1;
-        t_tail = t_len - t_head - WA -> Match_Node_Space [(* Start)] . Len + 1;
-        if  (s_tail <= t_tail)
-            {
-             if  (s_tail > HOPELESS_MATCH
-                    && ! WA -> screen_info . right_end_screened)
-                 is_hopeless = TRUE;
-            }
-          else
-            {
-             if  (t_tail > HOPELESS_MATCH
-                    && ! t_info . right_end_screened)
-                 is_hopeless = TRUE;
-            }
+      s_tail = S_Len - s_head - WA -> Match_Node_Space [(* Start)] . Len + 1;
+      t_tail = t_len - t_head - WA -> Match_Node_Space [(* Start)] . Len + 1;
+      if  (s_tail <= t_tail)
+        {
+          if  (s_tail > HOPELESS_MATCH
+               && ! WA -> screen_info . right_end_screened)
+            is_hopeless = TRUE;
+        }
+      else
+        {
+          if  (t_tail > HOPELESS_MATCH
+               && ! t_info . right_end_screened)
+            is_hopeless = TRUE;
+        }
 
-        if  (is_hopeless)
-            {
-             (* Start) = 0;
-             Kmer_Hits_Without_Olap_Ct ++;
-             return;
-            }
-      }
+      if  (is_hopeless)
+        {
+          (* Start) = 0;
+          Kmer_Hits_Without_Olap_Ct ++;
+          return;
+        }
+    }
 
-   distinct_olap_ct = 0;
+  distinct_olap_ct = 0;
 
-   while  ((* Start) != 0)
-     {
+  while  ((* Start) != 0)
+    {
       int  a_hang, b_hang;
       int  hit_limit = FALSE;
 
       Max_Len = WA -> Match_Node_Space [(* Start)] . Len;
       Longest_Match = WA -> Match_Node_Space + (* Start);
       for  (P = WA -> Match_Node_Space [(* Start)] . Next;  P != 0;
-                 P = WA -> Match_Node_Space [P] . Next)
+            P = WA -> Match_Node_Space [P] . Next)
         if  (WA -> Match_Node_Space [P] . Len > Max_Len)
-            {
-             Max_Len = WA -> Match_Node_Space [P] . Len;
-             Longest_Match = WA -> Match_Node_Space + P;
-            }
+          {
+            Max_Len = WA -> Match_Node_Space [P] . Len;
+            Longest_Match = WA -> Match_Node_Space + P;
+          }
 
       a_hang = Longest_Match -> Start - Longest_Match -> Offset;
       b_hang = a_hang + S_Len - t_len;
       hit_limit =  ((WA -> A_Olaps_For_Frag >= Frag_Olap_Limit
-                        && a_hang <= 0)
-                      ||
+                     && a_hang <= 0)
+                    ||
                     (WA -> B_Olaps_For_Frag >= Frag_Olap_Limit
-                        && b_hang <= 0));
+                     && b_hang <= 0));
 
       if  (! hit_limit)
-          {
-           Kind_Of_Olap = Extend_Alignment (Longest_Match, S, S_Len, T, t_len,
-                             & S_Lo, & S_Hi, & T_Lo, & T_Hi, & Errors, WA);
+        {
+          Kind_Of_Olap = Extend_Alignment (Longest_Match, S, S_Len, T, t_len,
+                                           & S_Lo, & S_Hi, & T_Lo, & T_Hi, & Errors, WA);
 
-           if  (Kind_Of_Olap == DOVETAIL || Doing_Partial_Overlaps)
-               {
-                if  (1 + S_Hi - S_Lo >= Min_Olap_Len
-                       && 1 + T_Hi - T_Lo >= Min_Olap_Len)
+          if  (Kind_Of_Olap == DOVETAIL || Doing_Partial_Overlaps)
+            {
+              if  (1 + S_Hi - S_Lo >= Min_Olap_Len
+                   && 1 + T_Hi - T_Lo >= Min_Olap_Len)
+                {
+                  int  scr_sub;
+
+                  Olap_Len = 1 + OVL_Min_int (S_Hi - S_Lo, T_Hi - T_Lo);
+                  Quality = (double) Errors / Olap_Len;
+                  scr_sub = Screen_Sub [T_ID - Hash_String_Num_Offset];
+                  if  (Errors <= WA -> Error_Bound [Olap_Len]
+                       && (scr_sub == 0
+                           || Passes_Screen (T_Lo, T_Hi, scr_sub)))
                     {
-                     int  scr_sub;
-
-                     Olap_Len = 1 + OVL_Min_int (S_Hi - S_Lo, T_Hi - T_Lo);
-                     Quality = (double) Errors / Olap_Len;
-                     scr_sub = Screen_Sub [T_ID - Hash_String_Num_Offset];
-                     if  (Errors <= WA -> Error_Bound [Olap_Len]
-                            && (scr_sub == 0
-                                  || Passes_Screen (T_Lo, T_Hi, scr_sub)))
-                         {
-                          Add_Overlap (S_Lo, S_Hi, T_Lo, T_Hi, Quality,
-                                       distinct_olap, & distinct_olap_ct, WA);
+                      Add_Overlap (S_Lo, S_Hi, T_Lo, T_Hi, Quality,
+                                   distinct_olap, & distinct_olap_ct, WA);
 #if  SHOW_STATS
-Incr_Distrib (& Olap_Len_Dist, 1 + S_Hi - S_Lo);
-if  (Is_Duplicate_Olap)
-    Duplicate_Olap_Ct ++;
-  else
-    {
-     Regular_Olap_Ct ++;
-     Is_Duplicate_Olap = TRUE;
-    }
+                      Incr_Distrib (& Olap_Len_Dist, 1 + S_Hi - S_Lo);
+                      if  (Is_Duplicate_Olap)
+                        Duplicate_Olap_Ct ++;
+                      else
+                        {
+                          Regular_Olap_Ct ++;
+                          Is_Duplicate_Olap = TRUE;
+                        }
 #endif
-                         }
                     }
+                }
 #if  SHOW_STATS
-                  else
-                    Too_Short_Ct ++;
+              else
+                Too_Short_Ct ++;
 #endif
-               }
-          }
+            }
+        }
 
 #if  1
       if  (consistent)      
-          (* Start) = 0;
+        (* Start) = 0;
 #endif
 
       for  (Ref = Start;  (* Ref) != 0;  )
         {
-         Ptr = WA -> Match_Node_Space + (* Ref);
-         if  (Ptr == Longest_Match
-                 || ((Kind_Of_Olap == DOVETAIL || Doing_Partial_Overlaps)
-                     && S_Lo - SHIFT_SLACK <= Ptr -> Start
-                     && Ptr -> Start + Ptr -> Len
-                                     <= (S_Hi + 1) + SHIFT_SLACK - 1
-                     && Lies_On_Alignment
-                            (Ptr -> Start, Ptr -> Offset,
-                             S_Lo, T_Lo, WA)
-                    ))
-             (* Ref) = Ptr -> Next;         // Remove this node, it matches
-                                            //   the alignment
-           else
-             Ref = & (Ptr -> Next);
-        }
-     }
-   
-   if  (distinct_olap_ct > 0)
-       {
-        int  deleted [MAX_DISTINCT_OLAPS] = {0};
-        Olap_Info_t  * p;
-        int  i;
-
-//  Check if any previously distinct overlaps should be merged because
-//  of other merges.
-
-        if  (Doing_Partial_Overlaps)
-            {
-             if  (Unique_Olap_Per_Pair)
-                 Choose_Best_Partial (distinct_olap, distinct_olap_ct,
-                      deleted);
-               else
-                 ;  // Do nothing, output them all
-            }
+          Ptr = WA -> Match_Node_Space + (* Ref);
+          if  (Ptr == Longest_Match
+               || ((Kind_Of_Olap == DOVETAIL || Doing_Partial_Overlaps)
+                   && S_Lo - SHIFT_SLACK <= Ptr -> Start
+                   && Ptr -> Start + Ptr -> Len
+                   <= (S_Hi + 1) + SHIFT_SLACK - 1
+                   && Lies_On_Alignment
+                   (Ptr -> Start, Ptr -> Offset,
+                    S_Lo, T_Lo, WA)
+                   ))
+            (* Ref) = Ptr -> Next;         // Remove this node, it matches
+          //   the alignment
           else
-            {
-             if  (Unique_Olap_Per_Pair)
-                 Combine_Into_One_Olap (distinct_olap, distinct_olap_ct,
-                      deleted);
-               else
-                 Merge_Intersecting_Olaps (distinct_olap, distinct_olap_ct,
-                      deleted);
-            }
-
-        p = distinct_olap;
-        for  (i = 0;  i < distinct_olap_ct;  i ++)
-          {
-           if  (! deleted [i])
-               {
-#if  SHOW_OVERLAPS
+            Ref = & (Ptr -> Next);
+        }
+    }
+   
+  if  (distinct_olap_ct > 0)
     {
-   if  (Num_PThreads > 1)
-       pthread_mutex_lock (& Write_Proto_Mutex);
+      int  deleted [MAX_DISTINCT_OLAPS] = {0};
+      Olap_Info_t  * p;
+      int  i;
+
+      //  Check if any previously distinct overlaps should be merged because
+      //  of other merges.
+
+      if  (Doing_Partial_Overlaps)
+        {
+          if  (Unique_Olap_Per_Pair)
+            Choose_Best_Partial (distinct_olap, distinct_olap_ct,
+                                 deleted);
+          else
+            ;  // Do nothing, output them all
+        }
+      else
+        {
+          if  (Unique_Olap_Per_Pair)
+            Combine_Into_One_Olap (distinct_olap, distinct_olap_ct,
+                                   deleted);
+          else
+            Merge_Intersecting_Olaps (distinct_olap, distinct_olap_ct,
+                                      deleted);
+        }
+
+      p = distinct_olap;
+      for  (i = 0;  i < distinct_olap_ct;  i ++)
+        {
+          if  (! deleted [i])
+            {
+#if  SHOW_OVERLAPS
+              {
 
 #if  DO_OLAP_ALIGN_PROFILE
-Align_P = Align_Ct [T_ID - Hash_String_Num_Offset];
+                Align_P = Align_Ct [T_ID - Hash_String_Num_Offset];
 #else
-     printf ("\nA = %d  B = %d  quality = %.4f  A_Len = %d  B_Len = %d\n",
-             S_ID, T_ID, p -> quality, S_Len, t_len);
+                printf ("\nA = %d  B = %d  quality = %.4f  A_Len = %d  B_Len = %d\n",
+                        S_ID, T_ID, p -> quality, S_Len, t_len);
 #endif
 
-     Show_Overlap (S, S_Len, S_quality, T, t_len, T_quality, p);
-
-   if  (Num_PThreads > 1)
-       pthread_mutex_unlock (& Write_Proto_Mutex);
-    }
+                Show_Overlap (S, S_Len, S_quality, T, t_len, T_quality, p);
+              }
 #endif
 
 #define  SHOW_V_ALIGN  0
-                rejected = FALSE;
-                if  (Use_Window_Filter)
+              rejected = FALSE;
+              if  (Use_Window_Filter)
+                {
+                  int  d, i, j, k, q_len;
+                  char  q_diff [MAX_FRAG_LEN];
+
+                  i = p -> s_lo;
+                  j = p -> t_lo;
+                  q_len = 0;
+
+                  for  (k = 0;  k < p -> delta_ct;  k ++)
                     {
-                     int  d, i, j, k, q_len;
-                     char  q_diff [MAX_FRAG_LEN];
+                      int  n, len;
 
-                     i = p -> s_lo;
-                     j = p -> t_lo;
-                     q_len = 0;
-
-                     for  (k = 0;  k < p -> delta_ct;  k ++)
-                       {
-                        int  n, len;
-
-                        len = abs (p -> delta [k]);
-                        for  (n = 1;  n < len;  n ++)
-                          {
-                           if  (S [i] == T [j]
-                                  || S [i] == DONT_KNOW_CHAR
-                                  || T [j] == DONT_KNOW_CHAR)
-                               d = 0;
-                             else
-                               {
-                                d = char_Min (S_quality [i], T_quality [j]);
-                                d = char_Min (d, QUALITY_CUTOFF);
-                               }
-                    #if  SHOW_V_ALIGN
-                           fprintf (stderr, "%3d: %c %2d  %3d: %c %2d  %3d\n",
-                                    i, S [i], S_quality [i],
-                                    j, T [j], T_quality [j], d);
-                    #endif
-                           q_diff [q_len ++] = d;
-                           i ++;
-                           j ++;
-                          }
-                        if  (p -> delta [k] > 0)
-                            {
-                             d = S_quality [i];
-                    #if  SHOW_V_ALIGN
-                             fprintf (stderr, "%3d: %c %2d  %3s: %c %2c  %3d\n",
-                                      i, S [i], S_quality [i],
-                                      " . ", '-', '-', d);
-                    #endif
-                             i ++;
-                            }
-                          else
-                            {
-                             d = T_quality [j];
-                    #if  SHOW_V_ALIGN
-                             fprintf (stderr, "%3s: %c %2c  %3d: %c %2d  %3d\n",
-                                      " . ", '-', '-',
-                                      j, T [j], T_quality [j], d);
-                    #endif
-                             j ++;
-                            }
-                        q_diff [q_len ++] = char_Min (d, QUALITY_CUTOFF);
-                       }
-                     while  (i <= p -> s_hi)
-                       {
-                        if  (S [i] == T [j]
+                      len = abs (p -> delta [k]);
+                      for  (n = 1;  n < len;  n ++)
+                        {
+                          if  (S [i] == T [j]
                                || S [i] == DONT_KNOW_CHAR
                                || T [j] == DONT_KNOW_CHAR)
                             d = 0;
                           else
                             {
-                             d = char_Min (S_quality [i], T_quality [j]);
-                             d = char_Min (d, QUALITY_CUTOFF);
+                              d = char_Min (S_quality [i], T_quality [j]);
+                              d = char_Min (d, QUALITY_CUTOFF);
                             }
-                    #if  SHOW_V_ALIGN
-                        fprintf (stderr, "%3d: %c %2d  %3d: %c %2d  %3d\n",
-                                 i, S [i], S_quality [i],
-                                 j, T [j], T_quality [j], d);
-                    #endif
-                        q_diff [q_len ++] = d;
-                        i ++;
-                        j ++;
-                       }
-
-                     if  (Has_Bad_Window (q_diff, q_len,
-                                          BAD_WINDOW_LEN, BAD_WINDOW_VALUE))
-                         {
-#if  SHOW_BAD_WINDOWS
-                          printf ("\n>>>At least %d errors in window of length %d\n",
-                                  BAD_WINDOW_VALUE / QUALITY_CUTOFF, BAD_WINDOW_LEN);
-                          printf ("\nA = %d  B = %d  quality = %.4f\n",
-                                  S_ID, T_ID, p -> quality);
-                          Show_Overlap (S, S_Len, S_quality, T, t_len, T_quality, p);
+#if  SHOW_V_ALIGN
+                          fprintf (stderr, "%3d: %c %2d  %3d: %c %2d  %3d\n",
+                                   i, S [i], S_quality [i],
+                                   j, T [j], T_quality [j], d);
 #endif
-                          rejected = TRUE;
-                          Bad_Short_Window_Ct ++;
-                         }
-                     else if  (Has_Bad_Window (q_diff, q_len, 100, 240))
-                         {
-#if  SHOW_BAD_WINDOWS
-                          printf ("\n###At least %d errors in window of length %d\n",
-                                  240 / QUALITY_CUTOFF, 100);
-                          printf ("\nA = %d  B = %d  quality = %.4f\n",
-                                  S_ID, T_ID, p -> quality);
-                          Show_Overlap (S, S_Len, S_quality, T, t_len, T_quality, p);
+                          q_diff [q_len ++] = d;
+                          i ++;
+                          j ++;
+                        }
+                      if  (p -> delta [k] > 0)
+                        {
+                          d = S_quality [i];
+#if  SHOW_V_ALIGN
+                          fprintf (stderr, "%3d: %c %2d  %3s: %c %2c  %3d\n",
+                                   i, S [i], S_quality [i],
+                                   " . ", '-', '-', d);
 #endif
-                          rejected = TRUE;
-                          Bad_Long_Window_Ct ++;
-                         }
+                          i ++;
+                        }
+                      else
+                        {
+                          d = T_quality [j];
+#if  SHOW_V_ALIGN
+                          fprintf (stderr, "%3s: %c %2c  %3d: %c %2d  %3d\n",
+                                   " . ", '-', '-',
+                                   j, T [j], T_quality [j], d);
+#endif
+                          j ++;
+                        }
+                      q_diff [q_len ++] = char_Min (d, QUALITY_CUTOFF);
                     }
+                  while  (i <= p -> s_hi)
+                    {
+                      if  (S [i] == T [j]
+                           || S [i] == DONT_KNOW_CHAR
+                           || T [j] == DONT_KNOW_CHAR)
+                        d = 0;
+                      else
+                        {
+                          d = char_Min (S_quality [i], T_quality [j]);
+                          d = char_Min (d, QUALITY_CUTOFF);
+                        }
+#if  SHOW_V_ALIGN
+                      fprintf (stderr, "%3d: %c %2d  %3d: %c %2d  %3d\n",
+                               i, S [i], S_quality [i],
+                               j, T [j], T_quality [j], d);
+#endif
+                      q_diff [q_len ++] = d;
+                      i ++;
+                      j ++;
+                    }
+
+                  if  (Has_Bad_Window (q_diff, q_len,
+                                       BAD_WINDOW_LEN, BAD_WINDOW_VALUE))
+                    {
+#if  SHOW_BAD_WINDOWS
+                      printf ("\n>>>At least %d errors in window of length %d\n",
+                              BAD_WINDOW_VALUE / QUALITY_CUTOFF, BAD_WINDOW_LEN);
+                      printf ("\nA = %d  B = %d  quality = %.4f\n",
+                              S_ID, T_ID, p -> quality);
+                      Show_Overlap (S, S_Len, S_quality, T, t_len, T_quality, p);
+#endif
+                      rejected = TRUE;
+                      Bad_Short_Window_Ct ++;
+                    }
+                  else if  (Has_Bad_Window (q_diff, q_len, 100, 240))
+                    {
+#if  SHOW_BAD_WINDOWS
+                      printf ("\n###At least %d errors in window of length %d\n",
+                              240 / QUALITY_CUTOFF, 100);
+                      printf ("\nA = %d  B = %d  quality = %.4f\n",
+                              S_ID, T_ID, p -> quality);
+                      Show_Overlap (S, S_Len, S_quality, T, t_len, T_quality, p);
+#endif
+                      rejected = TRUE;
+                      Bad_Long_Window_Ct ++;
+                    }
+                }
 
 #if  SHOW_SNPS
-  {
-   int  mismatch_ct, indel_ct;
-   int  olap_bases, unscreened_olap_bases, all_match_ct, hi_qual_ct;
-   int  local_msnp_bin [20] = {0};
-   int  local_isnp_bin [20] = {0};
-   int  local_match_bin [20] = {0};
-   int  local_other_bin [20] = {0};
-   int  i;
+              {
+                int  mismatch_ct, indel_ct;
+                int  olap_bases, unscreened_olap_bases, all_match_ct, hi_qual_ct;
+                int  local_msnp_bin [20] = {0};
+                int  local_isnp_bin [20] = {0};
+                int  local_match_bin [20] = {0};
+                int  local_other_bin [20] = {0};
+                int  i;
 
-   if  (Num_PThreads > 1)
-       pthread_mutex_lock (& Write_Proto_Mutex);
+                Show_SNPs (S, S_Len, S_quality, T, t_len, T_quality, p, WA,
+                           & mismatch_ct, & indel_ct, & olap_bases,
+                           & unscreened_olap_bases, & all_match_ct, & hi_qual_ct,
+                           local_msnp_bin, local_isnp_bin,
+                           local_match_bin, local_other_bin);
+                fprintf (Out_Stream, "%8d %c %8d %3d %3d %4d %4d %4d %4d",
+                         S_ID, Dir == FORWARD ? 'f' : 'r', T_ID,
+                         mismatch_ct, indel_ct, olap_bases, unscreened_olap_bases,
+                         all_match_ct, hi_qual_ct);
+                fprintf (Out_Stream, "  ");
+                for  (i = 3;  i <= 9;  i ++)
+                  fprintf (Out_Stream, " %3d", local_msnp_bin [i]);
+                fprintf (Out_Stream, "  ");
+                for  (i = 3;  i <= 9;  i ++)
+                  fprintf (Out_Stream, " %3d", local_isnp_bin [i]);
+                fprintf (Out_Stream, "  ");
+                for  (i = 3;  i <= 9;  i ++)
+                  fprintf (Out_Stream, " %3d", local_match_bin [i]);
+                fprintf (Out_Stream, "  ");
+                for  (i = 3;  i <= 9;  i ++)
+                  fprintf (Out_Stream, " %3d", local_other_bin [i]);
+                fprintf (Out_Stream, "\n");
 
-   Show_SNPs (S, S_Len, S_quality, T, t_len, T_quality, p, WA,
-              & mismatch_ct, & indel_ct, & olap_bases,
-              & unscreened_olap_bases, & all_match_ct, & hi_qual_ct,
-              local_msnp_bin, local_isnp_bin,
-              local_match_bin, local_other_bin);
-   fprintf (Out_Stream, "%8d %c %8d %3d %3d %4d %4d %4d %4d",
-            S_ID, Dir == FORWARD ? 'f' : 'r', T_ID,
-            mismatch_ct, indel_ct, olap_bases, unscreened_olap_bases,
-            all_match_ct, hi_qual_ct);
-   fprintf (Out_Stream, "  ");
-   for  (i = 3;  i <= 9;  i ++)
-     fprintf (Out_Stream, " %3d", local_msnp_bin [i]);
-   fprintf (Out_Stream, "  ");
-   for  (i = 3;  i <= 9;  i ++)
-     fprintf (Out_Stream, " %3d", local_isnp_bin [i]);
-   fprintf (Out_Stream, "  ");
-   for  (i = 3;  i <= 9;  i ++)
-     fprintf (Out_Stream, " %3d", local_match_bin [i]);
-   fprintf (Out_Stream, "  ");
-   for  (i = 3;  i <= 9;  i ++)
-     fprintf (Out_Stream, " %3d", local_other_bin [i]);
-   fprintf (Out_Stream, "\n");
-
-   if  (Num_PThreads > 1)
-       pthread_mutex_unlock (& Write_Proto_Mutex);
-   rejected = TRUE;
-  }
+                rejected = TRUE;
+              }
 #endif
 
-                if  (! rejected)
-                    {
-                     if  (Doing_Partial_Overlaps || Single_Line_Output)
-                         Output_Partial_Overlap (S_ID, T_ID, Dir, p,
-                              S_Len, t_len);
-                       else
-                         Output_Overlap (S_ID, S_Len, Dir, T_ID, t_len, p);
-                     overlaps_output ++;
-                     if  (p -> s_lo == 0)
-                         WA -> A_Olaps_For_Frag ++;
-                     if  (p -> s_hi >= S_Len - 1)
-                         WA -> B_Olaps_For_Frag ++;
-                    }
-               }
-           p ++;
-          }
-       }
-         
-   if  (Num_PThreads > 1)
-       pthread_mutex_lock (& Write_Proto_Mutex);
+              if  (! rejected)
+                {
+                  if  (Doing_Partial_Overlaps)
+                    Output_Partial_Overlap (S_ID, T_ID, Dir, p,
+                                            S_Len, t_len,
+                                            WA);
+                  else
+                    Output_Overlap (S_ID, S_Len, Dir, T_ID, t_len, p, WA);
+                  overlaps_output ++;
+                  if  (p -> s_lo == 0)
+                    WA -> A_Olaps_For_Frag ++;
+                  if  (p -> s_hi >= S_Len - 1)
+                    WA -> B_Olaps_For_Frag ++;
+                }
+            }
+          p ++;
+        }
+    }
 
-   if  (overlaps_output == 0)
-       Kmer_Hits_Without_Olap_Ct ++;
-     else
-       {
-        Kmer_Hits_With_Olap_Ct ++;
-        if  (overlaps_output > 1)
-            Multi_Overlap_Ct ++;
-       }
 
-   if  (Num_PThreads > 1)
-       pthread_mutex_unlock (& Write_Proto_Mutex);
+  if  (overlaps_output == 0)
+    WA->Kmer_Hits_Without_Olap_Ct ++;
+  else
+    {
+      WA->Kmer_Hits_With_Olap_Ct ++;
+      if  (overlaps_output > 1)
+        WA->Multi_Overlap_Ct ++;
+    }
 
-   return;
-  }
+
+  return;
+}
 
 
 
@@ -4484,14 +4413,19 @@ void  Process_Overlaps
    int  frag_status;
    int  Len;
 
-   if  (Num_PThreads > 1)
-       pthread_mutex_lock (& FragStore_Mutex);
+   WA->overlapsLen                = 0;
 
-   Curr_String_Num = getStartIndexFragStream(stream);
-   start_string_num = Curr_String_Num;
+   WA->Total_Overlaps             = 0;
+   WA->Contained_Overlap_Ct       = 0;
+   WA->Dovetail_Overlap_Ct        = 0;
 
-   if  (Num_PThreads > 1)
-       pthread_mutex_unlock (& FragStore_Mutex);
+   WA->Kmer_Hits_Without_Olap_Ct  = 0;
+   WA->Kmer_Hits_With_Olap_Ct     = 0;
+   WA->Multi_Overlap_Ct           = 0;
+
+
+   //  BPW says we don't need to mutex this.
+   start_string_num = Curr_String_Num = getStartIndexFragStream(stream);
 
    while  ((frag_status
               = Read_Next_Frag (Frag, quality, stream, WA -> myRead,
@@ -4569,25 +4503,6 @@ Dump_Screen_Info (Curr_String_Num, & (WA -> screen_info), 'f');
 #endif
            Find_Overlaps (Frag, Len, quality, Curr_String_Num, FORWARD, WA);
 
-#if  FOR_CARL_FOSLER
-           if  (WA -> A_Olaps_For_Frag >= Frag_Olap_Limit
-                 || WA -> B_Olaps_For_Frag >= Frag_Olap_Limit)
-               {
-   if  (Num_PThreads > 1)
-       pthread_mutex_lock (& Log_Msg_Mutex);
-                if  (WA -> A_Olaps_For_Frag >= Frag_Olap_Limit)
-                    fprintf (stderr,
-                             "### Hit forward A-end olap limit for frag %d\n",
-                         Curr_String_Num);
-                if  (WA -> B_Olaps_For_Frag >= Frag_Olap_Limit)
-                    fprintf (stderr,
-                             "### Hit forward B-end olap limit for frag %d\n",
-                         Curr_String_Num);
-   if  (Num_PThreads > 1)
-       pthread_mutex_unlock (& Log_Msg_Mutex);
-               }
-#endif
-
 
            Rev_Complement (Frag, Len);
            Reverse_String (quality, Len);
@@ -4601,25 +4516,6 @@ Dump_Screen_Info (Curr_String_Num, & (WA -> screen_info), 'r');
            WA -> A_Olaps_For_Frag = WA -> B_Olaps_For_Frag = 0;
 
            Find_Overlaps (Frag, Len, quality, Curr_String_Num, REVERSE, WA);
-
-#if  FOR_CARL_FOSLER
-           if  (WA -> A_Olaps_For_Frag >= Frag_Olap_Limit
-                 || WA -> B_Olaps_For_Frag >= Frag_Olap_Limit)
-               {
-   if  (Num_PThreads > 1)
-       pthread_mutex_lock (& Log_Msg_Mutex);
-                if  (WA -> A_Olaps_For_Frag >= Frag_Olap_Limit)
-                    fprintf (stderr,
-                             "### Hit reverse A-end olap limit for frag %d\n",
-                         Curr_String_Num);
-                if  (WA -> B_Olaps_For_Frag >= Frag_Olap_Limit)
-                    fprintf (stderr,
-                             "### Hit reverse B-end olap limit for frag %d\n",
-                         Curr_String_Num);
-   if  (Num_PThreads > 1)
-       pthread_mutex_unlock (& Log_Msg_Mutex);
-               }
-#endif
 
 #if  SHOW_STATS
 Incr_Distrib (& Num_Olaps_Dist, Overlap_Ct);
@@ -4635,6 +4531,30 @@ Incr_Distrib (& Kmer_Hits_Dist, Kmer_Hits_Ct);
 fprintf (stderr, "### Thread #%d processed overlaps for frags %ld .. %ld\n",
          WA -> thread_id, start_string_num, Curr_String_Num - 1);
 #endif
+
+
+ if  (Num_PThreads > 1)
+   pthread_mutex_lock (& Write_Proto_Mutex);
+
+  //  Flush!  Also flushed in Output_Partial_Overlap and
+  //  Output_Overlap.
+  {
+    int zz;
+    for (zz=0; zz<WA->overlapsLen; zz++)
+       AS_OVS_writeOverlap(Out_BOF, WA->overlaps + zz);
+  }
+  WA->overlapsLen = 0;
+
+  Total_Overlaps            += WA->Total_Overlaps;
+  Contained_Overlap_Ct      += WA->Contained_Overlap_Ct;
+  Dovetail_Overlap_Ct       += WA->Dovetail_Overlap_Ct;
+
+  Kmer_Hits_Without_Olap_Ct += WA->Kmer_Hits_Without_Olap_Ct;
+  Kmer_Hits_With_Olap_Ct    += WA->Kmer_Hits_With_Olap_Ct;
+  Multi_Overlap_Ct          += WA->Multi_Overlap_Ct;
+
+  if  (Num_PThreads > 1)
+    pthread_mutex_unlock (& Write_Proto_Mutex);
 
    return;
   }
@@ -4771,13 +4691,6 @@ if  (WA -> String_Olap_Space [i] . Match_List == 0)
               WA -> String_Olap_Space [i] . consistent);
       assert (WA -> String_Olap_Space [i] . Match_List == 0);
 
-#if  FOR_CARL_FOSLER
-{
- if  (ID == 517)
-     fprintf (stderr, "### 517A  A_Olaps = %d  B_Olaps = %d\n",
-              WA -> A_Olaps_For_Frag, WA -> B_Olaps_For_Frag);
-}
-#endif
       processed_ct ++;
      }
    for  (i = start - 1;  i >= 0 && WA -> B_Olaps_For_Frag < Frag_Olap_Limit ;  i --)
@@ -4808,13 +4721,6 @@ if  (WA -> String_Olap_Space [i] . Match_List == 0)
               WA -> String_Olap_Space [i] . consistent);
       assert (WA -> String_Olap_Space [i] . Match_List == 0);
 
-#if  FOR_CARL_FOSLER
-{
- if  (ID == 517)
-     fprintf (stderr, "### 517B  A_Olaps = %d  B_Olaps = %d\n",
-              WA -> A_Olaps_For_Frag, WA -> B_Olaps_For_Frag);
-}
-#endif
       processed_ct ++;
      }
 
@@ -5150,13 +5056,8 @@ static int  Read_Next_Frag
    char   *qltptr;
 
 
-   if  (Num_PThreads > 1)
-       pthread_mutex_lock (& FragStore_Mutex);
-
+   //  BPW says we don't need to mutex this
    success = nextFragStream (stream, myRead);
-
-   if  (Num_PThreads > 1)
-       pthread_mutex_unlock (& FragStore_Mutex);
 
    if  (! success)
        return(0);

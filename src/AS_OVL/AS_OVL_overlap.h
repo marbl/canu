@@ -26,13 +26,16 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.17 2007-02-23 15:39:30 brianwalenz Exp $
- * $Revision: 1.17 $
+ * $Id: AS_OVL_overlap.h,v 1.18 2007-03-29 20:27:21 brianwalenz Exp $
+ * $Revision: 1.18 $
 */
 
 
 #ifndef AS_OVL_OVERLAP_H
 #define AS_OVL_OVERLAP_H
+
+#include "AS_global.h"
+#include "AS_OVS_overlapStore.h"
 
 //
 // Component:
@@ -164,9 +167,6 @@
 /* Constant definitions; Macro definitions; type definitions */
 /***************************************************************/
 
-#define  FOR_CARL_FOSLER          0
-    //  If  1  outputs a single line per overlap in ASCII form
-    //  Also restricts overlaps more
 #define  HASH_KMER_SKIP           0
     //  Skip this many kmers between the kmers put into the hash
     //  table.  Setting this to 0 will make every kmer go
@@ -382,14 +382,10 @@
     //  Amount by which k-mers can overlap a screen region and still
     //  be added to the hash table.
 
-#if  FOR_CARL_FOSLER
-  #define  WINDOW_SIZE             28
+#if ERR_MODEL_IN_AS_GLOBAL_H > 6
+  #define  WINDOW_SIZE             14
 #else
-  #if ERR_MODEL_IN_AS_GLOBAL_H > 6
-    #define  WINDOW_SIZE             14
-  #else
-    #define  WINDOW_SIZE             22
-  #endif
+  #define  WINDOW_SIZE             22
 #endif
     //  Length of segments hashed, i.e., the  k  value in k-mer.
     //  There must be an exact match of this length or more to
@@ -452,7 +448,6 @@
 #define  SHOW_THREAD_PROGRESS     0
 #define  DEBUGSTREAM              0
 #define  TEST_DP_BPT_CODE         0
-#define  UPDATE_FRAG_STORE        1     // Temporarily set to 0 for contigs
 #define  USE_SOURCE_FIELD         0
 
 #include <pthread.h>
@@ -538,6 +533,24 @@ typedef  struct Work_Area
    fragRecord *myRead;
    FragType  curr_frag_type;
    int  thread_id;
+
+    //  Instead of outputting each overlap as we create it, we
+    //  buffer them and output blocks of overlaps.
+    int32         overlapsLen;
+    int32         overlapsMax;
+    OVSoverlap   *overlaps;
+
+    //  Various stats that used to be global and updated whenever we
+    //  output an overlap or finished processing a set of hits.
+    //  Needed a mutex to update.
+    int32         Total_Overlaps;
+    int32         Contained_Overlap_Ct;
+    int32         Dovetail_Overlap_Ct;
+
+    int32         Kmer_Hits_Without_Olap_Ct;
+    int32         Kmer_Hits_With_Olap_Ct;
+    int32         Multi_Overlap_Ct;
+
   }  Work_Area_t;
 
 
@@ -576,13 +589,13 @@ extern GateKeeperStore  *BACtigStore;
 extern char  * BACtig_Store_Path;
 extern char  * Frag_Store_Path;
 extern Output_Stream  Out_Stream;
+extern BinaryOverlapFile  *Out_BOF;
     //  To handle I/O
 extern uint32  * IID_List;
 extern int  IID_List_Len;
 
 extern pthread_mutex_t  FragStore_Mutex;
 extern pthread_mutex_t  Write_Proto_Mutex;
-extern pthread_mutex_t  Log_Msg_Mutex;
 
 //
 //  Prototypes of functions used by both  AS_OVL_driver.c  and
@@ -610,7 +623,7 @@ void  Output_Hash_Table_Branch_Pts
 void  Output_High_Hit_Frags
     (void);
 int  OverlapDriver
-    (int noOverlaps, int argc, char **argv);
+    (int argc, char **argv);
 void  Process_Overlaps
     (FragStream *stream, Work_Area_t *);
 void  Profile_Hits
