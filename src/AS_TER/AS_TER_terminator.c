@@ -28,7 +28,7 @@ accession numbers.
 
 **********************************************************************/
 
-static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.15 2007-03-28 13:59:05 skoren Exp $";
+static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.16 2007-03-29 08:33:46 brianwalenz Exp $";
 
 #include  <stdlib.h>
 #include  <stdio.h>
@@ -62,7 +62,6 @@ int main (int argc, char *argv[]) {
   uint64 blockSize		= 0;
   int32	customBlockSize= FALSE;
   int32	uid_status		= 0;
-  novar           		= 0;
 
   fprintf(stderr, "Version: %s\n",CM_ID);
 
@@ -124,9 +123,6 @@ int main (int argc, char *argv[]) {
 	  realUIDs = TRUE;
 	  SYS_UIDset_euid_namespace(optarg);
 	  break;
-  case 'N':
-    novar++;
-    break;
 	case 'h':	  
 	  help = TRUE;
 	  break;
@@ -150,7 +146,6 @@ int main (int argc, char *argv[]) {
 	     "-B <block_size> changesthe block size to use for EUID server, up to the maximum allowed (implies -u) \n"
 	     "-n <namespace> changes the namespace used for the EUID server (implies -u) \n"
 	     "-u forces real UIDs\n"
-        "-N don't output variation record to .asm file\n"
 	     "-Q runs also for simulator\n");
     exit(1);
   }

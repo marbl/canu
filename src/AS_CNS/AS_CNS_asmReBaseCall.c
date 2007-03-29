@@ -37,7 +37,7 @@
 #include "Globals_CNS.h"
 #include "PublicAPI_CNS.h"
 
-static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.11 2007-03-06 01:02:43 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.12 2007-03-29 08:33:46 brianwalenz Exp $";
 
 static UIDHashTable_AS *utgUID2IID;
 
@@ -298,7 +298,6 @@ int main (int argc, char *argv[]) {
     int ch,errflg=0,illegal_use=0,help_flag=0,iflags=0;
 
     fprintf(stderr,"Version: %s\n",CM_ID);
-    novar = 0;
 
     optarg = NULL;
     ALIGNMENT_CONTEXT=AS_CONSENSUS;
@@ -443,7 +442,7 @@ int main (int argc, char *argv[]) {
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.11 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.12 $ processing. Started %s\n",
 	      ctime(&t));
       InitializeAlphTable();
 

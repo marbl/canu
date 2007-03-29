@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.36 2007-03-05 23:42:11 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.37 2007-03-29 08:33:46 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -39,8 +39,6 @@
 #define AS_READ_MIN_LEN AS_FRAG_MIN_LEN
 
 //   #define NEW_UNITIGGER_INTERFACE
-
-extern int novar;
 
 #define DEFINE_IDs(type)\
 typedef CDS_UID_t type##_ID;\
@@ -908,6 +906,17 @@ typedef struct EndOfFileMesgTag {
 
 
 //  External Routines
+
+
+
+FragType   AS_MSG_SafeConvert_charToFragType (const char input, bool strict);
+
+
+void       AS_MSG_setFormatVersion(int format);
+
+
+
+
 
 
 //  Functions: ReadProtoMesg_AS 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.36 2007-03-07 21:03:40 granger_sutton Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.37 2007-03-29 08:33:46 brianwalenz Exp $";
 
 
 static const char *usage = 
@@ -279,9 +279,6 @@ int main(int argc, char *argv[]){
           break;	  
         case 'h':
           failOn_NoOverlapFound = 0;
-          break;
-        case 'F':
-          novar++;
           break;
         case 'G':
           generateOutput = 0;

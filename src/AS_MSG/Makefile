@@ -26,17 +26,19 @@ LOCAL_WORK = $(shell cd ../..; pwd)
 
 LIBRARIES = libAS_MSG.a libCA.a
 
-SOURCES = AS_MSG_pmesg.c  \
-          proto_append.c \
-          remove_fragment.c \
+SOURCES = AS_MSG_pmesg.c      \
+          AS_MSG_pmesg1.c     \
+          AS_MSG_pmesg2.c     \
+          proto_append.c      \
+          remove_fragment.c   \
           AS_MSG_pmesg_test.c \
           ExtractMessages.c
 
 OBJECTS = $(SOURCES:.c=.o)
 
 PROGS = AS_MSG_pmesg_test \
-	proto_append \
-        remove_fragment \
+	proto_append      \
+        remove_fragment   \
 	extractmessages
 
 # Include for AS project rules
@@ -45,17 +47,17 @@ include $(LOCAL_WORK)/src/c_make.as
 all: $(OBJECTS) $(LIBRARIES) $(PROGS)
 	@test -n nop
 
-libAS_MSG.a:   AS_MSG_pmesg.o
+libAS_MSG.a:       AS_MSG_pmesg.o AS_MSG_pmesg1.o AS_MSG_pmesg2.o
 
-libCA.a:       AS_MSG_pmesg.o
+libCA.a:           AS_MSG_pmesg.o AS_MSG_pmesg1.o AS_MSG_pmesg2.o
 
-AS_MSG_pmesg_test: AS_MSG_pmesg_test.o AS_MSG_pmesg.o libAS_UTL.a
+AS_MSG_pmesg_test: AS_MSG_pmesg_test.o libAS_MSG.a libAS_UTL.a
 
-proto_append: proto_append.o AS_MSG_pmesg.o libAS_UTL.a
+proto_append:      proto_append.o      libAS_MSG.a libAS_UTL.a
 
-remove_fragment: remove_fragment.o AS_MSG_pmesg.o libAS_UTL.a
+remove_fragment:   remove_fragment.o   libAS_MSG.a libAS_UTL.a
 
-extractmessages: ExtractMessages.o AS_MSG_pmesg.o libAS_UTL.a
+extractmessages:   ExtractMessages.o   libAS_MSG.a libAS_UTL.a
 
 tester: AS_MSG_pmesg_test AS_MSG_testfile.in
 	AS_MSG_pmesg_test -d < AS_MSG_testfile.in > testfile.out
