@@ -23,6 +23,7 @@
 #define AS_OVS_OVERLAP_H
 
 #include "AS_global.h"
+#include "AS_MSG_pmesg.h"  //  pretty heavy just to get OverlapMesg.
 
 #define AS_OVS_HNGBITS   12
 #define AS_OVS_POSBITS   11
@@ -94,5 +95,11 @@ typedef struct {
   uint32         b_iid;
   OVSoverlapDAT  dat;
 } OVSoverlap;
+
+
+void  AS_OVS_convertOverlapMesgToOVSoverlap(OverlapMesg *omesg, OVSoverlap *ovs);
+int   AS_OVS_convertOVLdumpToOVSoverlap(char *line, OVSoverlap *olap);
+int   AS_OVS_convertOBTdumpToOVSoverlap(char *line, OVSoverlap *olap);
+
 
 #endif  //  AS_OVS_OVERLAP_H
