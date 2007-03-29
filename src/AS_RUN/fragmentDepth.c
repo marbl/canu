@@ -26,6 +26,7 @@
 //  A quick hack to compute a histogram of coverage depth using
 //  the runCA-OBT posmap files.
 
+#define HISTMAX     (8192)
 #define DEPTHSIZE   (128 * 1024 * 1024)
 
 int
@@ -41,7 +42,7 @@ main(int argc, char **argv) {
   unsigned long    lastuid = 0;
   int              lastend = 0;
 
-  int              histogram[256] = { 0 };
+  int              histogram[HISTMAX] = { 0 };
   int              histmax = 0;
 
   int              minSize = 0;
@@ -72,9 +73,11 @@ main(int argc, char **argv) {
     if (uid != lastuid) {
       if ((minSize <= lastend) && (lastend <= maxSize)) {
         for (i=0; i<lastend; i++) {
-          if (histmax < depth[i])
-            histmax = depth[i];
-          histogram[depth[i]]++;
+          if (depth[i] < HISTMAX) {
+            if (histmax < depth[i])
+              histmax = depth[i];
+            histogram[depth[i]]++;
+          }
           depth[i] = 0;
         }
       }
