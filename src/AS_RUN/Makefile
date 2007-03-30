@@ -47,6 +47,7 @@ SCRIPTS = runCA-OBT.pl \
           apply_assembler \
           glen_est_truncadjusted.pl \
           caqc.pl \
+          caqc-diff.pl \
           ca2ace.pl \
           asmToAGP.pl \
           mateLinkIIDRanges.rb
@@ -86,6 +87,10 @@ TIGR: asmQC/TIGR
 	@cp -rp $< $(LOCAL_BIN)
 
 caqc.pl: asmQC/caqc.pl
+	@cp $< $(LOCAL_BIN)/$@
+	@chmod 775 $(LOCAL_BIN)/$@
+
+caqc-diff.pl: asmQC/caqc-diff.pl
 	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
