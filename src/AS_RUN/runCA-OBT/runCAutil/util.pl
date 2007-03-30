@@ -140,6 +140,10 @@ sub setDefaults () {
     $global{"createACE"}                   = 1;
     $global{"createPosMap"}                = 1;
 
+    $global{"merQC"}                       = 0;
+    $global{"merQCmemory"}                 = 1024;
+    $global{"merQCmerSize"}                = 22;
+
     $global{"stopAfter"}                   = undef;
     $global{"uidServer"}                   = undef;
     $global{"updateDistanceType"}          = "pre";
@@ -347,6 +351,21 @@ sub getNumberOfFragsInStore ($$$) {
     die "No frags in the store?\n" if ($numFrags == 0);
     return($numFrags);
 }
+
+
+#  Decide if we have the CA meryl or the Mighty one.
+#
+sub merylVersion () {
+    my $v = "unknown";
+    open(F, "$bin/meryl -V |");
+    while (<F>) {
+        $v = "CA"     if (m/CA/);
+        $v = "Mighty" if (m/Mighty/);
+    }
+    close(F);
+    return($v);
+}
+
 
 
 sub backupFragStore ($) {

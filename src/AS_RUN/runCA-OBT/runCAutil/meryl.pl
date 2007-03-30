@@ -12,17 +12,6 @@ sub meryl {
     #
     system("mkdir $wrk/0-preoverlap") if (! -d "$wrk/0-preoverlap");
 
-    #  Decide if we have the CA meryl or the Mighty one.
-    #
-    my $merylVersion = "Mighty";
-    open(F, "$bin/meryl -V |");
-    while (<F>) {
-        if (m/CA/) {
-            $merylVersion = "CA";
-        }
-    }
-    close(F);
-
     #  What threshold to use?
     #
     my $merylObtThreshold = getGlobal("merylObtThreshold");
@@ -30,7 +19,7 @@ sub meryl {
 
     #  Use the better meryl, .....
     #
-    if ($merylVersion eq "Mighty") {
+    if (merylVersion() eq "Mighty") {
         if (! -e "$wrk/0-preoverlap/$asm.nmers.fasta") {
             my $merylMemory = getGlobal("merylMemory");
 
@@ -61,7 +50,7 @@ sub meryl {
                 die "Failed.\n";
             }
         }
-    } elsif ($merylVersion eq "CA") {
+    } elsif (merylVersion() eq "CA") {
         if (! -e "$wrk/0-preoverlap/$asm.nmers.fasta") {
 
             #  Meryl is run at the most resticted setting (the one used
