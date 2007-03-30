@@ -4,67 +4,58 @@ use strict;
 #  Decide what host we are on, and the the bin directory
 #  appropriately
 #
-sub setBinDirectory ($$) {
-    my $host    = shift @_;
-    my $mach    = shift @_;
+sub setBinDirectory ($) {
+    my $gridarch = shift @_;
+    my $thisarch;
     my $binRoot;
-    my $binDir;
 
-    #  See if we're being forced to a host/maching combination.
+    #  Assume the current binary path is the correct one.
     #
-    $host = `uname`     if (!defined($host) || ($host eq ""));
-    $mach = `uname -m`  if (!defined($mach) || ($mach eq ""));
-    chomp $host;
-    chomp $mach;
+    $binRoot = "$FindBin::Bin";
+    my @t = split '/', $binRoot;
+    pop @t;
+    $thisarch = pop @t;
+    $binRoot  = join '/', @t;
 
-
-    #  Test if we are in an installed wgs-assembler tree.  If so, set the
-    #  root to the root of the assembler tree.
+    #  Guess what platform we're on, unless we've been told already.
     #
-    if (-e "$FindBin::Bin/gatekeeper") {
-        $binRoot = "$FindBin::Bin";
-        my @t = split '/', $binRoot;
-        $#t -= 2;
-        $binRoot = join '/', @t;
+    #  Check, and warn, if the user is trying something strange, like
+    #  running the wrong binaries for this host, or running pointing to
+    #  binaries other than the ones associated with this script.
+
+    if (defined($gridarch)) {
+        $thisarch = $gridarch;
+    } else {
+        my $hostF = `uname`;
+        my $machF = `uname -m`;
+        chomp $hostF;
+        chomp $machF;
+
+        $machF = "amd64"  if ($machF eq "x86_64");
+        $machF = "ppc"    if ($machF eq "Power Macintosh");
+        
+        if ($thisarch ne "$hostF-$machF") {
+            print STDERR "WARNING: You're running the script from the $bin directory,\n";
+            print STDERR "         but are on a $hostF-$machF.\n";
+        }
     }
 
-    #  Let the user override this root, for no good reason.  We'll warn, though.
-    #
     my $t = getGlobal("binRoot");
-    if (defined($binRoot) && (defined($t)) && ($binRoot ne $t)) {
+    if ((defined($t)) && ($binRoot ne $t)) {
         print STDERR "WARNING: I appear to be installed in $binRoot, but you\n";
         print STDERR "         specified a bin directory of $t in the spec file.\n";
         $binRoot = $t;
     }
-
     if (!defined($binRoot)) {
         $binRoot = $t;
     }
-
     if (!defined($binRoot)) {
         print STDERR "ERROR: I'm not installed in the assembler tree, and you\n";
         print STDERR "       didn't specify a binDir in the spec file.\n";
         exit(1);
     }
 
-
-    $binDir = "$binRoot/$host-$mach/bin";
-
-    #  Fix up some of the bizarre cases
-    #
-    if      (($host eq "Linux") && ($mach eq "x86_64")) {
-        #  Linux on Opteron
-        $binDir       = "$binRoot/Linux-amd64/bin";
-    } elsif (($host eq "Darwin") && ($mach eq "Power Macintosh")) {
-        #  Darwin on PowerPC
-        $binDir       = "$binRoot/Darwin-ppc/bin";
-    }
-
-    if (! -d $binRoot) {
-        die "ERROR: Failed to find the binary directory $binDir.\n";
-    }
-
-    return($binDir);
+    return("$binRoot/$thisarch/bin");
 }
 
 
@@ -110,14 +101,10 @@ sub setDefaults () {
     $global{"frgCorrThreads"}              = 2;
     $global{"frgCorrConcurrency"}          = 1;
 
-    $global{"gridHost"}                    = "Linux";
-    $global{"gridMachine"}                 = "i686";
+    $global{"grid"}                        = "Linux-i686";
 
     $global{"help"}                        = 0;
     $global{"immutableFrags"}              = undef;
-
-    $global{"localHost"}                   = undef;
-    $global{"localMachine"}                = undef;
 
     #  Undocumented!
     $global{"merylMemory"}                 = 800;
@@ -220,22 +207,20 @@ sub setParameters ($@) {
     makeAbsolute("immutableFrags");
     makeAbsolute("vectorIntersect");
 
-    #  If we have been given a configuration in the spec file, use that instead.
+    #  Decode on a set of binaries to use
     #
-    my $binhost = getGlobal("localHost");
-    my $binmach = getGlobal("localMachine");
-    my $ginhost = getGlobal("gridHost");
-    my $ginmach = getGlobal("gridMachine");
-
-    $bin        = setBinDirectory($binhost, $binmach);
-    $gin        = setBinDirectory($binhost, $binmach)  if (getGlobal("useGrid") == 0);  #  bin for the Grid
-    $gin        = setBinDirectory($ginhost, $ginmach)  if (getGlobal("useGrid") == 1);  #  bin for the Grid
+    $bin = $gin = setBinDirectory( undef);
+    $gin        = setBinDirectory(getGlobal("grid"))  if (getGlobal("useGrid") == 1);
 
     #  We assume the grid is the same as the local, which will sting
     #  us if the poor user actually goofed and gave us the wrong grid,
     #  or didn't compile for the grid.
     #
-    $gin = $bin   if (! -e "$gin/gatekeeper");
+    if (! -e "$gin/gatekeeper") {
+        print STDERR "WARNING: Didn't find binaries for the grid in $gin.\n";
+        print STDERR "         Using $bin instead.\n";
+        $gin = $bin;
+    }
 
     die "Can't find local bin/gatekeeper in $bin\n" if (! -e "$bin/gatekeeper");
     die "Can't find grid bin/gatekeeper in $gin\n"  if (! -e "$gin/gatekeeper");

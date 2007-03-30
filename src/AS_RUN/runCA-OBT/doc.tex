@@ -222,28 +222,12 @@ specify {\it binRoot=/opt/software/wgs-assembler}.  If not specified,
 this defaults to the location of \runCA.
 \\
 
-localMachine={\it string} &
-The architecture of the local machine, usually the machine you
-initiate \runCA\ from.  Currently supported machines are {\it alpha},
-{\it i686}, {\it i386} and {\it x86\_64}.  If not specified, it
-defaults to the result of {\it uname -m}.
-\\
-
-localHost={\it string} &
-The operating system of the local machine, usually the machine you
-initiate \runCA\ from.  Currently supported hosts are {\it Darwin},
-{\it FreeBSD}, {\it Linux}, {\it Linux64} and {\it OSF1}.  If not specified, it
-defaults to the result of {\it uname}.
-\\
-
-gridMachine={\it string} &
-The architecture of the grid machines, {\tt i686} by default.  See
-{\it localMachine} for supported machines.
-\\
-
-gridHost={\it string} &
-The operating system of the grid machines {\tt Linux} by default.  See
-{\it localHost} for supported hosts.
+grid={\it string} &
+The architecture of the machines in the grid. This should be the name
+of the Celera Assembler directory containing the grid binaries, for
+example, ``Linux-i686'', ``Darwin-ppc'', ``OSF1-alpha'' and
+``FreeBSD0-amd64''.  If not specified, it defaults to the architecture
+of the current host, or ``Linux-i686'' if that exists.
 \\
 
 useGrid={\it integer} &
