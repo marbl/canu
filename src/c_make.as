@@ -81,12 +81,7 @@ ifeq ($(OSTYPE), Linux)
   endif
   ifeq ($(MACHINETYPE), amd64)
     ARCH_CFLAGS   += -m64 -DX86_GCC_LINUX
-
-    #  JCVI's opteron has 32-bit libraries in /usr/lib and /usr/X11R6/lib,
-    #  so we reset ARCH_LIB to the appropriate things.
-    ifeq ($(SITE_NAME), JCVI)
-      ARCH_LIB     = /usr/lib64 /usr/X11R6/lib64
-    endif
+    ARCH_LIB       = /usr/lib64 /usr/X11R6/lib64
   endif
   ifeq ($(MACHINETYPE), ia64)
     # Don't set X86_GCC_LINUX because IEEE floating point mode is not available.
@@ -104,6 +99,8 @@ ifeq ($(OSTYPE), FreeBSD)
     ARCH_CFLAGS      = -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads 
   endif
   ifeq ($(MACHINETYPE), amd64)
+    # Using the standard M:N model in -pthread can result in lots of
+    # blocking; if so, use -lthr instead.
     ARCH_LDFLAGS    += -pthread
     ARCH_CFLAGS      = -pthread
   endif
