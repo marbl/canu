@@ -295,8 +295,8 @@ merStreamFileReader::merStreamFileReader(const char *i, u32bit desiredMerSize) {
   //  Useful for the binary search below!
   _blockFirstMerNum[_numBlocks] = _numMers;
 
-  fprintf(stderr, "Found "u64bitFMT" mers at size "u32bitFMT", and "u64bitFMT" mers at desired size of "u32bitFMT"\n",
-          origNumMers, _merSizeInFile, _numMers, _merSizeDesired);
+  //fprintf(stderr, "Found "u64bitFMT" mers at size "u32bitFMT", and "u64bitFMT" mers at desired size of "u32bitFMT"\n",
+  //        origNumMers, _merSizeInFile, _numMers, _merSizeDesired);
 
   delete blocksFile;
 

@@ -216,7 +216,6 @@ prepareBatch(merylArgs *args) {
   //  If the stream already exists, skip this step.
   //
   if (merStreamFileExists(args->outputFile)) {
-    fprintf(stderr, "Using existing merStreamFile!\n");
     merStreamFileReader *R = new merStreamFileReader(args->outputFile, args->merSize);
     args->numMersActual = R->numberOfMers();
     delete R;
@@ -225,7 +224,6 @@ prepareBatch(merylArgs *args) {
     //  really build the merStreamFile, regardless.
     //
     if ((args->isOnGrid) || (args->sgeJobName == 0L)) {
-      fprintf(stderr, "Building new merStreamFile!\n");
       merStreamFileBuilder   *B = new merStreamFileBuilder(args->merSize,
                                                            args->inputFile,
                                                            args->outputFile);
@@ -255,14 +253,17 @@ prepareBatch(merylArgs *args) {
   if (args->memoryLimit) {
     args->mersPerBatch = estimateNumMersInMemorySize(args->merSize, args->memoryLimit, args->beVerbose);
     args->segmentLimit = (u64bit)ceil((double)args->numMersActual / (double)args->mersPerBatch);
-    fprintf(stderr, "Have a memory limit: mersPerBatch="u64bitFMT" segmentLimit="u64bitFMT"\n", args->mersPerBatch, args->segmentLimit);
+    if (args->beVerbose)
+      fprintf(stderr, "Have a memory limit: mersPerBatch="u64bitFMT" segmentLimit="u64bitFMT"\n", args->mersPerBatch, args->segmentLimit);
   } else if (args->segmentLimit) {
     args->mersPerBatch = (u64bit)ceil((double)args->numMersActual / (double)args->segmentLimit);
-    fprintf(stderr, "Have a segment limit: mersPerBatch="u64bitFMT" segmentLimit="u64bitFMT"\n", args->mersPerBatch, args->segmentLimit);
+    if (args->beVerbose)
+      fprintf(stderr, "Have a segment limit: mersPerBatch="u64bitFMT" segmentLimit="u64bitFMT"\n", args->mersPerBatch, args->segmentLimit);
   } else {
     args->mersPerBatch = args->numMersActual;
     args->segmentLimit = 1;
-    fprintf(stderr, "Have NO LIMITS!: mersPerBatch="u64bitFMT" segmentLimit="u64bitFMT"\n", args->mersPerBatch, args->segmentLimit);
+    if (args->beVerbose)
+      fprintf(stderr, "Have NO LIMITS!: mersPerBatch="u64bitFMT" segmentLimit="u64bitFMT"\n", args->mersPerBatch, args->segmentLimit);
   }
 
 
@@ -330,7 +331,8 @@ runSegment(merylArgs *args, u64bit segment) {
   sprintf(filename, "%s.batch"u64bitFMT".mcdat", args->outputFile, segment);
 
   if (fileExists(filename)) {
-    fprintf(stderr, "Found result for batch "u64bitFMT" in %s.\n", segment, filename);
+    if (args->beVerbose)
+      fprintf(stderr, "Found result for batch "u64bitFMT" in %s.\n", segment, filename);
     delete [] filename;
     return;
   }
