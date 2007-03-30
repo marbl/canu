@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.18 2007-03-01 16:13:16 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.19 2007-03-30 19:36:45 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -352,7 +352,7 @@ Check_FragMesg(FragMesg            *frg_mesg,
     {
       int which;
 
-      for (which=0; which < AS_READ_CLEAR_NUM; which++) {
+      for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
         gkf.clearBeg[which] = frg_mesg->clear_rng.bgn;
         gkf.clearEnd[which] = frg_mesg->clear_rng.end;
       }

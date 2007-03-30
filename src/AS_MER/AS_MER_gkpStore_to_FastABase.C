@@ -43,8 +43,6 @@ gkpStoreSequence::gkpStoreSequence(char const *gkpName,
   _iid = _bgn;
   _eof = false;
 
-  assert(_clr < AS_READ_CLEAR_NUM);
-
   if (_end < _bgn)
     fprintf(stderr, "gkpStoreSequence()--  ERROR:  begin IID = %u > end IID = %u\n",
             _bgn, _end);

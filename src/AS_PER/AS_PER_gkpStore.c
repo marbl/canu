@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.30 2007-03-09 19:12:24 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.31 2007-03-30 19:36:46 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -532,9 +532,9 @@ void        setFragRecordClearRegion(fragRecord *fr,
                                      uint32 start,
                                      uint32 end,
                                      uint32 which) {
-  assert(which > AS_READ_CLEAR_VEC);
-  assert(which < AS_READ_CLEAR_NUM);
-  for (; which < AS_READ_CLEAR_NUM; which++) {
+  assert(which >  AS_READ_CLEAR_VEC);
+  assert(which <= AS_READ_CLEAR_LATEST);
+  for (; which <= AS_READ_CLEAR_LATEST; which++) {
     fr->gkfr.clearBeg[which] = start;
     fr->gkfr.clearEnd[which] = end;
   }
@@ -542,23 +542,35 @@ void        setFragRecordClearRegion(fragRecord *fr,
 
 
 void        getFragRecordClearRegion(fragRecord *fr, uint32 *start, uint32 *end, uint32 which) {
-  assert(which <  AS_READ_CLEAR_NUM);
-  *start = fr->gkfr.clearBeg[which];
-  *end   = fr->gkfr.clearEnd[which];
+  if (which == AS_READ_CLEAR_UNTRIM) {
+    *start = 0;
+    *end   = fr->gkfr.seqLen;
+  } else {
+    assert(which <= AS_READ_CLEAR_LATEST);
+    *start = fr->gkfr.clearBeg[which];
+    *end   = fr->gkfr.clearEnd[which];
+  }
 }
 
 
 uint32      getFragRecordClearRegionBegin(fragRecord *fr, uint32 which) {
-  assert(which < AS_READ_CLEAR_NUM);
-  return(fr->gkfr.clearBeg[which]);
+  if (which == AS_READ_CLEAR_UNTRIM) {
+    return(0);
+  } else {
+    assert(which <= AS_READ_CLEAR_LATEST);
+    return(fr->gkfr.clearBeg[which]);
+  }
 }
 
 
 uint32      getFragRecordClearRegionEnd  (fragRecord *fr, uint32 which) {
-  assert(which < AS_READ_CLEAR_NUM);
-  return(fr->gkfr.clearEnd[which]);
+  if (which == AS_READ_CLEAR_UNTRIM) {
+    return(fr->gkfr.seqLen);
+  } else {
+    assert(which <= AS_READ_CLEAR_LATEST);
+    return(fr->gkfr.clearEnd[which]);
+  }
 }
-
 
 
 ////////////////////////////////////////////////////////////////////////////////

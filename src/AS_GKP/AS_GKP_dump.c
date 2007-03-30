@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_dump.c,v 1.8 2007-03-27 07:31:59 brianwalenz Exp $ */
+/* $Id: AS_GKP_dump.c,v 1.9 2007-03-30 19:36:45 brianwalenz Exp $ */
 
 #include "AS_GKP_include.h"
 
@@ -255,7 +255,7 @@ dumpGateKeeperAsXML(char       *gkpStoreName,
       fprintf(stdout, "<sequence>\n%s\n</sequence>\n", "(notyet)");
       fprintf(stdout, "<quality>\n%s\n</quality>\n", "(notyet)");
 
-      for (i=0; i<AS_READ_CLEAR_NUM; i++) {
+      for (i=0; i <= AS_READ_CLEAR_LATEST; i++) {
         fprintf(stdout, "<clear_%s>%d,%d</clear_%s>\n", 
                 AS_READ_CLEAR_NAMES[i],
                 gkpf.clearBeg[i], gkpf.clearEnd[i],

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.27 2007-03-27 07:31:59 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.28 2007-03-30 19:36:46 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -102,6 +102,12 @@ typedef struct {
 // The default 'get' function returns the latest clear range.  Latest
 // is defined as the highest number here.
 //
+// UNTRIM is a special case that returns untrimmed sequence (0, len);
+// see getFragRecordClearRegion() for example.
+//
+// NUM _must_ be the number of real clear ranges we store, not the
+// number of real and virtual (like UNTRIM) ranges.
+//
 #define AS_READ_CLEAR_ORIG     0  //  read only
 #define AS_READ_CLEAR_QLT      1  //  read only
 #define AS_READ_CLEAR_VEC      2  //  read only
@@ -110,11 +116,15 @@ typedef struct {
 #define AS_READ_CLEAR_UTG      5  //  future use
 #define AS_READ_CLEAR_ECR1     6
 #define AS_READ_CLEAR_ECR2     7
-#define AS_READ_CLEAR_NUM      8
-#define AS_READ_CLEAR_LATEST   (AS_READ_CLEAR_NUM - 1)
+#define AS_READ_CLEAR_UNTRIM   8  //  read only, virtual
+#define AS_READ_CLEAR_LATEST   (AS_READ_CLEAR_ECR2)
 
-static const char *AS_READ_CLEAR_NAMES[AS_READ_CLEAR_NUM] = {
-  "ORIG", "QLT", "VEC", "OBTINI", "OBT", "UTG", "ECR1", "ECR2"
+//  These are private to AS_PER.  Please don't use!
+#define AS_READ_CLEAR_NUMREAL  (AS_READ_CLEAR_LATEST + 1)
+#define AS_READ_CLEAR_NUMVIRT  1
+
+static const char *AS_READ_CLEAR_NAMES[AS_READ_CLEAR_NUMREAL + AS_READ_CLEAR_NUMVIRT] = {
+  "ORIG", "QLT", "VEC", "OBTINI", "OBT", "UTG", "ECR1", "ECR2", "UNTRIM"
 };
 
 static
@@ -122,18 +132,14 @@ uint32
 AS_PER_decodeClearRangeLabel(const char *label) {
   uint32 clr = AS_READ_CLEAR_LATEST;
 
-  if (('0' <= label[0]) && (label[0] < '9')) {
-    return(atoi(label));
-  } else {
-    for (clr=0; clr<AS_READ_CLEAR_NUM; clr++)
-      if (strcasecmp(label, AS_READ_CLEAR_NAMES[clr]) == 0)
-        return(clr);
-  }
+  for (clr=0; clr<AS_READ_CLEAR_NUMREAL + AS_READ_CLEAR_NUMVIRT; clr++)
+    if (strcasecmp(label, AS_READ_CLEAR_NAMES[clr]) == 0)
+      return(clr);
 
   fprintf(stderr, "AS_PER_decodeClearRangeLabel()-- unknown clear range label '%s'\n", label);
   fprintf(stderr, "AS_PER_decodeClearRangeLabel()-- valid labels are:\n");
   fprintf(stderr, "AS_PER_decodeClearRangeLabel()--");
-  for (clr=0; clr<AS_READ_CLEAR_NUM; clr++)
+  for (clr=0; clr<AS_READ_CLEAR_NUMREAL + AS_READ_CLEAR_NUMVIRT; clr++)
     fprintf(stderr, " %s", AS_READ_CLEAR_NAMES[clr]);
   fprintf(stderr, "\n");
 
@@ -165,8 +171,8 @@ typedef struct{
   uint64           deathBatch:10;  //  [birthBatch, deatchBatch)
   uint64           pad2:8;
 
-  VLSTRING_SIZE_T  clearBeg[AS_READ_CLEAR_NUM];
-  VLSTRING_SIZE_T  clearEnd[AS_READ_CLEAR_NUM];
+  VLSTRING_SIZE_T  clearBeg[AS_READ_CLEAR_NUMREAL];
+  VLSTRING_SIZE_T  clearEnd[AS_READ_CLEAR_NUMREAL];
 
   uint64           seqOffset;
   uint64           qltOffset;
