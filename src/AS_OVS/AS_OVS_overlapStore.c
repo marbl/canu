@@ -304,11 +304,25 @@ AS_OVS_closeOverlapStore(OverlapStore *ovs) {
   if (ovs->isOutput) {
     FILE *ovsinfo = NULL;
 
-    //  Write the last index element, maybe
+    //  Write the last index element, maybe, and don't forget to fill
+    //  in gaps!
     //
-    if (ovs->offset.numOlaps > 0)
+    if (ovs->offset.numOlaps > 0) {
+      while (ovs->missing.a_iid < ovs->offset.a_iid) {
+        ovs->missing.fileno    = ovs->offset.fileno;
+        ovs->missing.offset    = ovs->offset.offset;
+        ovs->missing.numOlaps  = 0;
+        AS_UTL_safeWrite(ovs->offsetFile,
+                         &ovs->missing,
+                         "AS_OVS_writeOverlapToStore offset",
+                         sizeof(OverlapStoreOffsetRecord),
+                         1);
+        ovs->missing.a_iid++;
+      }
+
       AS_UTL_safeWrite(ovs->offsetFile, &ovs->offset, "AS_OVS_writeOverlapToStore offset",
                        sizeof(OverlapStoreOffsetRecord), 1);
+    }
 
     //  Update the info
     //
