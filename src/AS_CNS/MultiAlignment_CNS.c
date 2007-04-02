@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.136 2007-03-19 08:38:22 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.137 2007-04-02 13:33:38 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -2879,7 +2879,8 @@ PopulateVARRecord(int is_phased, int32 *cids, int32 *nvars, int32 *min_len_vlist
     (*v_list)[*nvars].num_conf_alleles = vreg.nca;
     (*v_list)[*nvars].anchor_size = opp->smooth_win;
     (*v_list)[*nvars].var_length = vreg.end+1-vreg.beg;
-
+    (*v_list)[*nvars].curr_var_id = vreg_id;
+    (*v_list)[*nvars].phased_var_id = is_phased ? vreg_id-1 : -1;
     (*v_list)[*nvars].weights = (char*)safe_calloc(num_reported_alleles,
         (5+2)* sizeof(char));
     (*v_list)[*nvars].nr_conf_alleles = (char*)safe_calloc(num_reported_alleles,
