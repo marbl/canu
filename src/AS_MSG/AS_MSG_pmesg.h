@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.37 2007-03-29 08:33:46 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.38 2007-04-02 13:30:30 gdenisov Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -520,9 +520,14 @@ typedef struct IntMultiVar {
   int32           num_conf_alleles;
   int32           anchor_size;
   int32           var_length;
+  int32           curr_var_id; // id of current VAR record
+  int32           phased_var_id;  // id of the VAR record phased with the current one
   char           *nr_conf_alleles;
   char           *weights;
   char           *var_seq;
+  char           *phs_map;
+  char           *nr_phased_alleles;  // num reads in each phased allele
+  char           *phs_iids; // iids of phased reads
 } IntMultiVar;
 
 /* This is a variant of IntMultiPos to handle deltas in a longer (unitig) sequence */
