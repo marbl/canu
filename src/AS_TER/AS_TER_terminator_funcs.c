@@ -25,7 +25,7 @@
  Assumptions: There is no UID 0
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.33 2007-03-28 13:59:05 skoren Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.34 2007-04-02 13:43:14 gdenisov Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
@@ -538,6 +538,8 @@ static SnapConConMesg* convert_ICM_to_CCO(IntConConMesg* icmMesg, int32 real)
         ccoMesg->vars[i].num_conf_alleles = icmMesg->v_list[i].num_conf_alleles;
         ccoMesg->vars[i].anchor_size      = icmMesg->v_list[i].anchor_size;
         ccoMesg->vars[i].var_length       = icmMesg->v_list[i].var_length ;
+        ccoMesg->vars[i].curr_var_id      = icmMesg->v_list[i].curr_var_id;
+        ccoMesg->vars[i].phased_var_id    = icmMesg->v_list[i].phased_var_id;
         ccoMesg->vars[i].nr_conf_alleles  = strdup(icmMesg->v_list[i].nr_conf_alleles);
         ccoMesg->vars[i].weights          = strdup(icmMesg->v_list[i].weights);
         ccoMesg->vars[i].var_seq          = strdup(icmMesg->v_list[i].var_seq);  
