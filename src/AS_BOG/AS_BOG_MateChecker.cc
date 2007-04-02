@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.11 2007-03-15 21:07:20 eliv Exp $
- * $Revision: 1.11 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.12 2007-04-02 21:00:15 eliv Exp $
+ * $Revision: 1.12 $
 */
 
 #include <math.h>
@@ -303,7 +303,7 @@ namespace AS_BOG{
     }
     ///////////////////////////////////////////////////////////////////////////
 
-    static const bool MATE_3PRIME_END = false;
+    static const bool MATE_3PRIME_END = true;
     void MateChecker::computeMateCoverage( Unitig* tig, LibraryStats& globalStats )
     {
         int max = std::numeric_limits<int>::max(); // Sentinel value
@@ -313,87 +313,146 @@ namespace AS_BOG{
         memset( goodGraph, 0, tigLen * sizeof(short));
         memset(  badGraph, 0, tigLen * sizeof(short));
         IdMap seenMates;
-        // Build good and bad mate graphs 
+        MateLocMap positions;
+        std::set<iuid> badMates;
+        // Build mate position table
         DoveTailConstIter tigIter = tig->dovetail_path_ptr->begin();
         for(;tigIter != tig->dovetail_path_ptr->end(); tigIter++)
         {
             DoveTailNode frag = *tigIter;
             iuid fragId = frag.ident;
             MateInfo mateInfo = getMateInfo( fragId );
-            DistanceCompute *gdc = &(globalStats[ mateInfo.lib ]);
-            int badMax = static_cast<int>(gdc->mean + 5 * gdc->stddev);
-            int badMin = static_cast<int>(gdc->mean - 5 * gdc->stddev);
+            iuid mateId = mateInfo.mate;
             if ( mateInfo.mate != NULL_FRAG_ID )
             {
-                SeqInterval fragPos = frag.position;
-                int frgBgn = fragPos.bgn;
-                int frgEnd  = frgBgn;
-                if (MATE_3PRIME_END) frgEnd = fragPos.end;
-
-                if ( tig->id() == Unitig::fragIn( mateInfo.mate ) )
-                {
-                    // Mate inside unitig
-                    if (seenMates.find( fragId ) != seenMates.end())
-                    {
-                        // already seen it's mate
-                        if (isReverse(fragPos))
-                        {
-                            if ( seenMates[fragId] == max ) { // mate wrong orient
-                                if (frgBgn > badMax )
-                                    incrRange( badGraph,-1, frgBgn-badMax,frgEnd);
-                            } else {
-                                // 2nd frag seen is reverse, so good orientation
-                                uint16 mateLen = BestOverlapGraph::fragLen(mateInfo.mate);
-                                int mateBgn = seenMates[ fragId ];
-                                int mateDist = frgBgn - mateBgn;  
-                                if (MATE_3PRIME_END)
-                                    mateDist += mateLen;
-
-                                if (mateDist >= badMin && mateDist <= badMax)
-                                    incrRange(goodGraph,2, mateBgn, frgEnd);
-                                else {
-                                    // if tig ends before range, cap at tig end
-                                    int edge = MAX(0, frgBgn - badMax); 
-                                    incrRange(badGraph,-1, edge, frgEnd);
-
-                                    if (MATE_3PRIME_END)
-                                        edge = MIN(tigLen-1, mateBgn - mateLen + badMax);
-                                    else
-                                        edge = MIN(tigLen-1, mateBgn + badMax);
-
-                                    incrRange(badGraph,-1, mateBgn, edge);
-                                }
-                            }
-                        }
-                    } else {
-                        // Haven't seen mate yet, but it's in this unitig later
-                        if (isReverse(fragPos)) {
-                            // 1st reversed, so bad if range internal to unitig
-                            seenMates[mateInfo.mate] = max;
-
-                            if ( frgBgn > badMax ) 
-                                incrRange( badGraph, -1, frgBgn-badMax, frgEnd);
-                            // else end of unitig before end of range
-                        } else {
-                            // 1st forward, so good store begin
-                            if (MATE_3PRIME_END)
-                                seenMates[mateInfo.mate] = fragPos.end;
-                            else
-                                seenMates[mateInfo.mate] = fragPos.bgn;
-                        }
+                if (positions.find( mateId ) != positions.end())
+                    positions[ mateId ].pos2  = frag.position;
+                else {
+                    MateLocation ml = { frag.position, NULL_MATE_LOC };
+                    positions[ fragId ] = ml;
+                }
+            }
+        }
+        MateLocMap::const_iterator posIter  = positions.begin();
+        for(;                      posIter != positions.end(); posIter++) {
+            iuid fragId         =  posIter->first;
+            MateLocation loc    =  posIter->second;
+            MateInfo mateInfo   =  getMateInfo( fragId );
+            iuid mateId         =  mateInfo.mate;
+            DistanceCompute *gdc = &(globalStats[ mateInfo.lib ]);
+            int badMax = static_cast<int>(gdc->mean + 5 * gdc->stddev);
+            int frgBgn = loc.pos1.bgn;
+            int frgEnd = loc.pos1.end;
+            if ( loc.pos2.bgn == NULL_FRAG_ID && loc.pos2.end == NULL_FRAG_ID) {
+                // mate in another tig, mark bad only if max range exceeded
+                if (isReverse(loc.pos1)) {
+                    if ( frgBgn > badMax ) {
+                        if (MATE_3PRIME_END) frgEnd = loc.pos1.bgn;
+                        incrRange( badGraph, -1, frgBgn - badMax, frgEnd );
+                        badMates.insert( fragId );
+                        fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld\n",
+                                fragId, frgBgn, loc.pos1.end, mateId);
                     }
                 } else {
-                    // mate in another tig, mark bad only if max range exceeded
-                    if (isReverse(fragPos)) {
-                        if ( frgBgn > badMax )
-                            incrRange( badGraph, -1, frgBgn - badMax, frgEnd );
+                    if ( frgBgn + badMax < tigLen ) {
+                        iuid beg = frgBgn;
+                        if (MATE_3PRIME_END) beg = frgEnd;
+                        incrRange( badGraph, -1, beg, frgBgn + badMax );
+                        badMates.insert( fragId );
+                        fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld\n",
+                                fragId, frgBgn, frgEnd, mateId);
+                    }
+                }
+            } else {
+                // both mates in this unitig
+                int mateBgn =  loc.pos2.bgn;
+                int mateEnd =  loc.pos2.end;
+                if (isReverse( loc.pos1 )) {
+                    // 1st reversed, so bad 
+                    iuid beg = MAX( 0, frgBgn - badMax );
+                    incrRange( badGraph, -1, beg, frgEnd);
+                    badMates.insert( fragId );
+                    fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld\n",
+                                fragId, frgBgn, frgEnd, mateId);
+                    iuid end;
+                    if (isReverse( loc.pos2 )) {
+                        // 2nd mate is reversed, so mark bad towards tig begin
+                        beg = MAX( 0, mateBgn - badMax );
+                        end = mateBgn;
+                        if (MATE_3PRIME_END)
+                            end = mateEnd;
                     } else {
-                        if ( frgBgn + badMax < tigLen ) 
-                            incrRange( badGraph, -1, frgEnd, frgBgn + badMax );
+                        // 2nd mate is forward, so mark bad towards tig end
+                        end = MIN( tigLen-1, mateBgn + badMax );
+                        beg = mateBgn;
+                        if (MATE_3PRIME_END)
+                            beg = mateEnd;
+                    }
+                    incrRange( badGraph, -1, beg, end);
+                    badMates.insert( mateId );
+                    fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld\n",
+                                mateId, mateBgn, mateEnd, fragId);
+
+                } else {
+                    // 1st forward
+                    if (isReverse( loc.pos2 )) {
+                        // 2nd reverse so good orient, check distance
+                        uint16 mateLen = mateBgn - mateEnd;
+                        int mateDist = mateBgn - frgBgn;  
+
+                        int badMin = static_cast<int>(gdc->mean - 5 * gdc->stddev);
+                        if (mateDist >= badMin && mateDist <= badMax)
+                            incrRange(goodGraph,2, frgBgn, mateEnd);
+                        else {
+                            // both are bad, mate points towards tig begin
+                            iuid beg = MAX(0, mateBgn - badMax); 
+                            iuid end = mateBgn;
+                            if (MATE_3PRIME_END)
+                                end = mateEnd;
+
+                            incrRange(badGraph, -1, beg, end);
+                            badMates.insert( mateId );
+                            fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld\n",
+                                    mateId, mateBgn, mateEnd, fragId);
+
+                            end = MIN( tigLen-1, frgBgn + badMax );
+                            beg = frgBgn;
+                            if (MATE_3PRIME_END)
+                                beg = frgEnd;
+
+                            incrRange(badGraph,-1, beg, end);
+                            badMates.insert( fragId );
+                            fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld\n",
+                                    fragId, frgBgn, frgEnd, mateId);
+                        }
+                    } else {
+                        // 1st and 2nd forward so both bad 
+                        iuid end = MIN( tigLen-1, frgBgn + badMax );
+                        iuid beg = frgBgn;
+                        if (MATE_3PRIME_END)
+                            beg = frgEnd;
+
+                        incrRange(badGraph,-1, beg, end);
+                        badMates.insert( fragId );
+
+                        fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld\n",
+                                fragId, frgBgn, frgEnd, mateId);
+
+                        // 2nd mate is forward, so mark bad towards tig end
+                        end = MIN( tigLen-1, mateBgn + badMax );
+                        beg = mateBgn;
+                        if (MATE_3PRIME_END)
+                            beg = mateEnd;
+
+                        incrRange( badGraph, -1, beg, end);
+                        badMates.insert( mateId );
+                        fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld\n",
+                                mateId, mateBgn, mateEnd, fragId);
                     }
                 }
             }
         }
+        fprintf(stderr,"Num bad mates %ld\n",badMates.size());
         // do something with the good and bad graphs
         fprintf(stderr,"Per 300 bases good graph unitig %ld size %ld:\n",tig->id(),tigLen);
         long sum = 0;

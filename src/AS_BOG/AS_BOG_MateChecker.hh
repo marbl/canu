@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.hh,v 1.4 2007-03-05 18:20:12 eliv Exp $
- * $Revision: 1.4 $
+ * $Id: AS_BOG_MateChecker.hh,v 1.5 2007-04-02 21:00:16 eliv Exp $
+ * $Revision: 1.5 $
 */
 
 #ifndef INCLUDE_AS_BOG_MATECHEKER
@@ -48,6 +48,43 @@ namespace AS_BOG{
     };
     typedef std::map<iuid,MateInfo> MateMap;
     static const MateInfo NULL_MATE_INFO = {0,0};
+
+    struct MateLocation {
+        SeqInterval pos1;
+        SeqInterval pos2;
+    };
+    /*
+    inline bool operator==(SeqInterval a, SeqInterval b) {
+        if (a.bgn == b.bgn && a.end == b.end ||
+            a.bgn == b.end && a.end == b.bgn)
+            return true;
+        else
+            return false;
+    };
+    inline bool operator<(SeqInterval a, SeqInterval b)
+    {
+        if ( isReverse(a) ) {
+            if ( isReverse(b) ) return a.end < b.end;
+            else                return a.end < b.bgn;
+        } else {
+            if ( isReverse(b) ) return a.bgn < b.end;
+            else                return a.bgn < b.bgn; 
+        }
+    };
+    inline bool operator==(MateLocation a, MateLocation b) {
+        if (a.pos1 == b.pos1 && a.pos2 == b.pos2)
+            return true;
+        else
+            return false;
+    };
+    inline bool operator<(MateLocation a, MateLocation b) {
+        if (a.pos1 < b.pos1) return true;
+        if (a.pos2 < b.pos2) return true;
+        else                 return false;
+    };
+    */
+    static const SeqInterval NULL_MATE_LOC = {0,0};
+    typedef std::map<iuid,MateLocation> MateLocMap;
 
     struct DistanceCompute {
         double stddev;
