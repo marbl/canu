@@ -30,12 +30,31 @@
 
 #define HISTMAX     (8192)
 #define DEPTHSIZE   (128 * 1024 * 1024)
+#define FRAGMAX     (1024 * 1024)
+
+
+typedef struct {
+  uint32    lo;
+  uint32    hi;
+  uint32    de;
+} intDep;
+
+
+static
+int
+intDep_sort(const void *a, const void *b) {
+  intDep *A = (intDep *)a;
+  intDep *B = (intDep *)b;
+
+  if (A->lo < B->lo) return(-1);
+  if (A->lo > B->lo) return(1);
+  return(0);
+}
+
 
 int
 main(int argc, char **argv) {
   int              i = 0;
-
-  unsigned short  *depth = NULL;
 
   CDS_UID_t        uidjunk = 0;
   CDS_UID_t        uid = 0;
@@ -70,29 +89,127 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -max N     count scaffolds at most N bases long.\n");
   }
 
-  depth = (unsigned short *)safe_malloc(sizeof(unsigned short) * DEPTHSIZE);
+  uint32   inlen = 0;
+  uint32   inmax = 1048576;
+  intDep  *in    = (intDep *)safe_malloc(sizeof(intDep) * inmax);
 
   while (4 == fscanf(stdin, " "F_UID" "F_UID" %d %d %*d ", &uidjunk, &uid, &beg, &end)) {
     //fprintf(stderr, "read "F_UID" "F_UID" %d %d\n", uidjunk, uid, beg, end);
 
-    if (uid != lastuid) {
-      if ((minSize <= lastend) && (lastend <= maxSize)) {
-        for (i=0; i<lastend; i++) {
-          if (depth[i] < HISTMAX) {
-            if (histmax < depth[i])
-              histmax = depth[i];
-            histogram[depth[i]]++;
-          }
-          depth[i] = 0;
+    //  Did we switch to a new scaffold?  Process this set of intervals.
+    //
+    if ((uid != lastuid) &&
+        (inlen > 0)) {
+
+      //  This scaffold is the correct size
+      //
+      if ((minSize <= lastend) &&
+          (lastend <= maxSize)) {
+        uint32   idlen = 0;
+        intDep  *id    = NULL;
+
+        //  Convert the list of overlapping intervals into a list
+        //  of non-intersecting intervals annotated with depth
+        uint32   islen = inlen * 2;
+        intDep  *is    = (intDep *)safe_malloc(sizeof(intDep) * islen);
+
+        for (i=0; i<inlen; i++) {
+          is[2*i  ].lo = in[i].lo;
+          is[2*i  ].hi = 0;
+          is[2*i  ].de = 1;
+          is[2*i+1].lo = in[i].hi;
+          is[2*i+1].hi = 0;
+          is[2*i+1].de = 0;
         }
-      }
+
+        qsort(is, islen, sizeof(intDep), intDep_sort);
+
+        //  Scan the list, counting how many times we change depth.
+        //
+        idlen = 1;
+        for (i=1; i<islen; i++) {
+          if (is[i-1].lo != is[i].lo)
+            idlen++;
+        }
+
+        //  Allocate the real depth of coverage intervals
+        //
+        id    = (intDep *)safe_malloc(sizeof(intDep) * idlen);
+        idlen = 0;
+
+        //  Build new intervals
+        //
+        //  Initialize the first interval
+        //
+        id[idlen].lo = is[0].lo;
+        id[idlen].hi = is[0].lo;
+        id[idlen].de = 1;
+
+        for (i=1; i<islen; i++) {
+
+          if (id[idlen].de == 0) {
+            //  Update the start position if the current interval is at zero
+            //  depth.
+            //
+            id[idlen].lo = is[i].lo;
+          } else {
+
+            //  If we are at a position different from the start, we need to
+            //  close out the current interval and make a new one.
+            //
+            if (is[i-1].lo != is[i].lo) {
+              id[idlen].hi = is[i].lo;
+
+              idlen++;
+
+              id[idlen].lo = is[i].lo;
+              id[idlen].hi = is[i].lo;
+              id[idlen].de = id[idlen-1].de;
+            }
+          }
+
+          //  Finally, update the depth of the current interval
+          //
+          if (is[i].de)
+            id[idlen].de++;
+          else
+            id[idlen].de--;
+        }
+
+        //  Toss out the last one if it's zero length -- I think it's always
+        //  zero length, just can't convince myself.
+        //
+        if (id[idlen].lo == id[idlen].hi)
+          idlen--;
+
+        safe_free(is);
+
+        //  Update the histogram
+        //
+        for (i=0; i<idlen; i++) {
+          if (id[i].de < HISTMAX) {
+            histogram[id[i].de] += id[i].hi - id[i].lo;
+            if (histmax < id[i].de)
+              histmax = id[i].de;
+          }
+        }
+
+        safe_free(id);
+      }  //  scaffold is correct size
+
+      //  Setup for the next scaffold
+      //
+      inlen = 0;
 
       lastuid = uid;
       lastend = 0;
-    }
+    }  //  got a new scaffold
 
-    for (i=beg; i<end; i++)
-      depth[i]++;
+    //  Save this fragment.
+    //
+    in[inlen].lo = beg;
+    in[inlen].hi = end;
+    inlen++;
 
     if (lastend < end)
       lastend = end;
@@ -101,7 +218,7 @@ main(int argc, char **argv) {
   for (i=0; i<=histmax; i++)
     fprintf(stdout, "%d\t%d\n", i, histogram[i]);
 
-  safe_free(depth);
+  safe_free(in);
 
   exit(0);
 }
