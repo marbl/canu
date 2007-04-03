@@ -130,4 +130,4 @@ glen_est_truncadjusted.pl: dataQC/$@
 	@cp dataQC/$@ $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
-fragmentDepth: fragmentDepth.o
+fragmentDepth: fragmentDepth.o libAS_UTL.a
