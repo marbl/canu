@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore_build.c,v 1.6 2007-03-20 07:25:45 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore_build.c,v 1.7 2007-04-03 09:30:47 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,15 +31,16 @@ static char CM_ID[] = "$Id: overlapStore_build.c,v 1.6 2007-03-20 07:25:45 brian
 #include <assert.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <time.h>
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
+#include "AS_UTL_qsort_mt.h"
 #include "AS_OVS_overlap.h"
 #include "AS_OVS_overlapFile.h"
 #include "AS_OVS_overlapStore.h"
 
 #include "overlapStore.h"
-
 
 int
 OVSoverlap_sort(const void *a, const void *b) {
@@ -74,7 +75,7 @@ void
 writeToDumpFile(OVSoverlap          *overlap,
                 BinaryOverlapFile  **dumpFile,
                 uint32               dumpFileMax,
-                uint32              *dumpLength,
+                uint64              *dumpLength,
                 uint32               iidPerBucket,
                 char                *storeName) {
 
@@ -103,7 +104,7 @@ writeToDumpFile(OVSoverlap          *overlap,
 
 
 void
-buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 fileListLen, char **fileList) {
+buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 nThreads, uint32 fileListLen, char **fileList) {
   int   i;
 
 
@@ -140,13 +141,13 @@ buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 fileListLe
 
   fprintf(stderr, "For %.3f million overlaps, in "F_U64"MB memory, I'll put "F_U64" IID's (approximately "F_U64" overlaps) per bucket.\n",
           numOverlaps / 1000000.0,
-          memoryLimit / 1048576,
+          memoryLimit / (uint64)1048576,
           iidPerBucket,
           overlapsPerBucket);
 
   int                      dumpFileMax = sysconf(_SC_OPEN_MAX);
   BinaryOverlapFile      **dumpFile    = (BinaryOverlapFile **)safe_calloc(sizeof(BinaryOverlapFile *), dumpFileMax);
-  uint32                  *dumpLength  = (uint32 *)safe_calloc(sizeof(uint32), dumpFileMax);
+  uint64                  *dumpLength  = (uint64 *)safe_calloc(sizeof(uint64), dumpFileMax);
 
   for (i=0; i<fileListLen; i++) {
     BinaryOverlapFile  *inputFile;
@@ -219,15 +220,23 @@ buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 fileListLe
   //  Read each bucket, sort it, and dump it to the store
   //
 
+  uint64 dumpLengthMax = 0;
+  for (i=0; i<dumpFileMax; i++)
+    if (dumpLengthMax < dumpLength[i])
+      dumpLengthMax = dumpLength[i];
+
+  OVSoverlap         *overlapsort = NULL;
+  overlapsort = (OVSoverlap *)safe_malloc(sizeof(OVSoverlap) * dumpLengthMax);
+
+  time_t  beginTime = time(NULL);
+
   for (i=0; i<dumpFileMax; i++) {
-    char    name[FILENAME_MAX];
-    int     x;
+    char                name[FILENAME_MAX];
+    int                 x;
+    BinaryOverlapFile  *bof = NULL;
 
     if (dumpLength[i] == 0)
       continue;
-
-    BinaryOverlapFile  *bof;
-    OVSoverlap         *overlapsort = (OVSoverlap *)safe_malloc(sizeof(OVSoverlap) * dumpLength[i]);
 
     //  We're vastly more efficient if we skip the AS_OVS interface
     //  and just suck in the whole file directly....BUT....we can't do
@@ -235,38 +244,43 @@ buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 fileListLe
     //  make sure the store is cross-platform compatible.
 
     sprintf(name, "%s/tmp.sort.%03d", storeName, i);
+    fprintf(stderr, "reading %s (%d)\n", name, time(NULL) - beginTime);
+
     bof = AS_OVS_openBinaryOverlapFile(name, FALSE);
-
-    fprintf(stderr, "reading %s\n", name);
-
-    for (x=0; x<dumpLength[i]; x++)
-      AS_OVS_readOverlap(bof, overlapsort + x);
-
+    x   = 0;
+    while (AS_OVS_readOverlap(bof, overlapsort + x))
+      x++;
     AS_OVS_closeBinaryOverlapFile(bof);
 
-    fprintf(stderr, "sorting %s\n", name);
+    assert(x == dumpLength[i]);
+    assert(x <= dumpLengthMax);
 
-    qsort(overlapsort, dumpLength[i], sizeof(OVSoverlap), OVSoverlap_sort);
+    //  There's no real advantage to saving this file until after we
+    //  write it out.  If we crash anywhere during the build, we are
+    //  forced to restart from scratch.  I'll argue that removing it
+    //  early helps us to not crash from running out of disk space.
+    //
+    unlink(name);
 
-    fprintf(stderr, "writing %s\n", name);
+    fprintf(stderr, "sorting %s (%d)\n", name, time(NULL) - beginTime);
+    qsort_mt(overlapsort, dumpLength[i], sizeof(OVSoverlap), OVSoverlap_sort, nThreads, 16 * 1024 * 1024);
 
+    fprintf(stderr, "writing %s (%d)\n", name, time(NULL) - beginTime);
     for (x=0; x<dumpLength[i]; x++)
       AS_OVS_writeOverlapToStore(storeFile, overlapsort + x);
-
-    safe_free(overlapsort);
   }
 
   AS_OVS_closeOverlapStore(storeFile);
 
-  //
-  //  And we have a store.  Clean up all the temporary files.
-  //
+  safe_free(overlapsort);
 
-  for (i=0; i<dumpFileMax; i++) {
-    char name[FILENAME_MAX];
-    sprintf(name, "%s/tmp.sort.%03d", storeName, i);
-    unlink(name);
-  }
-
+  //  And we have a store.
+  //
   exit(0);
 }
+
+
+//  time /scratch/wgs/FreeBSD-amd64/bin/overlapStore -c /scratch/tri.obtStore -M 16000 -m 1403477 /external/tri/0-overlaptrim-overlap/00000001/h00000001r00000000.ovb
+//
+//  8 threads 16GB took 7814.983u 3032.649s 3:18:40.14 91.0%    46+19153893k 1973461+2309221io 3pf+0w
+//  2 threads  4GB took 6619.982u 2939.473s 4:01:32.30 65.9%    46+4802800k 1988156+2309826io 4pf+0w

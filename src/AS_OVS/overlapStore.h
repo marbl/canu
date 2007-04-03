@@ -30,7 +30,7 @@
 #include "AS_global.h"
 
 void
-buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 fileListLen, char **fileList);
+buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 nThreads, uint32 fileListLen, char **fileList);
 
 void
 mergeStore(char *storeName, char *mergeName);

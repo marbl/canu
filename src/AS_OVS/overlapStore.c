@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore.c,v 1.6 2007-03-13 22:38:51 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore.c,v 1.7 2007-04-03 09:30:47 brianwalenz Exp $";
 
 #include "overlapStore.h"
 
@@ -34,6 +34,7 @@ main(int argc, char **argv) {
   uint32    endIID      = 1000000000;
   uint64    memoryLimit = 512 * 1024 * 1024;
   uint64    maxIID      = 1000000;
+  uint32    nThreads    = 4;
   uint32    fileListLen = 0;
   uint32    fileListMax = 10 * 1024;  //  If you run more than 10,000 overlapper jobs, you'll die.
   char    **fileList    = (char **)safe_malloc(sizeof(char *) * fileListMax);
@@ -53,6 +54,7 @@ main(int argc, char **argv) {
       } else {
         maxIID      = atoi(argv[++arg]);
       }
+
     } else if (strcmp(argv[arg], "-d") == 0) {
       storeName   = argv[++arg];
       operation   = OP_DUMP;
@@ -60,6 +62,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-s") == 0) {
       storeName   = argv[++arg];
       operation   = OP_STATS;
+
+    } else if (strcmp(argv[arg], "-t") == 0) {
+      nThreads    = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-u") == 0) {
       storeName   = argv[++arg];
@@ -75,7 +80,8 @@ main(int argc, char **argv) {
       endIID = atoi(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-M") == 0) {
-      memoryLimit = atoi(argv[++arg]) * 1024 * 1024;
+      memoryLimit  = atoi(argv[++arg]);  //  convert first, then multiply so we don't
+      memoryLimit *= 1024 * 1024;        //  overflow whatever type atoi() is.
 
     } else if (strcmp(argv[arg], "-L") == 0) {
       char *line;
@@ -114,7 +120,7 @@ main(int argc, char **argv) {
     arg++;
   }
   if ((operation == OP_NONE) || (storeName == NULL) || (err)) {
-    fprintf(stderr, "usage: %s -c storeName [-M x (MB) -m maxIID] [-L list-of-ovl-files] ovl-file ...\n", argv[0]);
+    fprintf(stderr, "usage: %s -c storeName [-M x (MB) -m maxIID] [-t threads] [-L list-of-ovl-files] ovl-file ...\n", argv[0]);
     fprintf(stderr, "       %s -m storeName mergeName\n", argv[0]);
     fprintf(stderr, "       %s -d storeName [-B] [-b beginIID] [-e endIID]\n");
     fprintf(stderr, "       %s -s storeName\n");
@@ -131,7 +137,7 @@ main(int argc, char **argv) {
 
   switch (operation) {
     case OP_BUILD:
-      buildStore(storeName, memoryLimit, maxIID, fileListLen, fileList);
+      buildStore(storeName, memoryLimit, maxIID, nThreads, fileListLen, fileList);
       break;
     case OP_MERGE:
       mergeStore(storeName, fileList[0]);
