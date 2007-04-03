@@ -28,18 +28,14 @@
  * SUCH DAMAGE.
  */
 
-#if defined(LIBC_SCCS) && !defined(lint)
-static char sccsid[] = "@(#)qsort.c	8.1 (Berkeley) 6/4/93";
-#endif /* LIBC_SCCS and not lint */
-#include <sys/cdefs.h>
-#ifdef __FBSDID
-__FBSDID("$FreeBSD: src/lib/libc/stdlib/qsort.c,v 1.12 2002/09/10 02:04:49 wollman Exp $");
-#endif
+//static char sccsid[] = "@(#)qsort.c	8.1 (Berkeley) 6/4/93";
+//__FBSDID("$FreeBSD: src/lib/libc/stdlib/qsort.c,v 1.12 2002/09/10 02:04:49 wollman Exp $");
+
+//#include <sys/cdefs.h>
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdbool.h>
 #include <pthread.h>
 
 #include <sys/types.h>
@@ -152,7 +148,7 @@ qsort_mt(void *a, size_t n, size_t es, cmp_t *cmp, int maxthreads, int forkelem)
   struct qsort *qs;
   struct common c;
   int i, islot;
-  bool bailout = true;
+  int    bailout = 1;
 
   if (n < forkelem)
     goto f1;
@@ -184,7 +180,7 @@ qsort_mt(void *a, size_t n, size_t es, cmp_t *cmp, int maxthreads, int forkelem)
   }
 
   /* All systems go. */
-  bailout = false;
+  bailout = 0;
 
   /* Initialize common elements. */
   c.swaptype = ((char *)a - (char *)0) % sizeof(long) || \
@@ -385,7 +381,7 @@ qsort_thread(void *p)
     pthread_cond_wait(&qs->cond_st, &qs->mtx_st);
   pthread_mutex_unlock(&qs->mtx_st);
   if (qs->st == ts_term) {
-    return;
+    return(NULL);
   }
   assert(qs->st == ts_work);
 
@@ -405,7 +401,7 @@ qsort_thread(void *p)
       pthread_mutex_unlock(&qs2->mtx_st);
     }
     pthread_mutex_unlock(&c->mtx_al);
-    return;
+    return(NULL);
   }
   pthread_mutex_unlock(&c->mtx_al);
   goto again;
