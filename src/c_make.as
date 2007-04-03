@@ -65,12 +65,15 @@ ifeq ($(OSTYPE), Linux)
 
   ARCH_CFLAGS = -DANSI_C -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 
+  ARCH_CFLAGS    += -pthread
+  ARCH_LDFLAGS   += -pthread
+
   ifeq ($(BUILDDEBUG), 1)
     ARCH_CFLAGS  += -g -Wimplicit
-    ARCH_LDFLAGS  = 
+    ARCH_LDFLAGS += 
   else
     ARCH_CFLAGS  += -O2 -Wimplicit
-    ARCH_LDFLAGS  = -Wl,-O1
+    ARCH_LDFLAGS += -Wl,-O1
   endif
 
   ARCH_LIB      = /usr/X11R6/lib
@@ -239,6 +242,9 @@ ifeq ($(OSTYPE), OSF1)
     ARCH_CFLAGS   += -g
   else
     ARCH_CFLAGS   += -O4
+
+  ARCH_CFLAGS      += -pthread
+  ARCH_LDFLAGS     += -pthread
 
   endif
   ARCH_INC         =  /usr/local/include /usr/include
