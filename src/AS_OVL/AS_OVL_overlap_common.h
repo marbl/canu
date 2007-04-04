@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.32 2007-03-29 20:27:21 brianwalenz Exp $
- * $Revision: 1.32 $
+ * $Id: AS_OVL_overlap_common.h,v 1.33 2007-04-04 19:29:34 brianwalenz Exp $
+ * $Revision: 1.33 $
 */
 
 
@@ -106,10 +106,17 @@ typedef  struct Olap_Info
 
 typedef  struct String_Ref
   {
-   unsigned int  String_Num : STRING_NUM_BITS;
-   unsigned int  Offset : OFFSET_BITS;
-   unsigned int  Empty : 1;
-   unsigned int  Last : 1;
+#if STRING_NUM_BITS + OFFSET_BITS <= 30
+   uint32  String_Num : STRING_NUM_BITS;
+   uint32  Offset : OFFSET_BITS;
+   uint32  Empty : 1;
+   uint32  Last : 1;
+#else
+   uint64  String_Num : STRING_NUM_BITS;
+   uint64  Offset : OFFSET_BITS;
+   uint64  Empty : 1;
+   uint64  Last : 1;
+#endif
   }  String_Ref_t;
 
 typedef  struct Hash_Bucket
@@ -182,7 +189,7 @@ static size_t  Extra_Data_Len;
     //  Total length available for hash table string data,
     //  including both regular strings and extra strings
     //  added from kmer screening
-static int64  Extra_Ref_Ct = 0;
+static uint64  Extra_Ref_Ct = 0;
 static String_Ref_t  * Extra_Ref_Space = NULL;
 static int  Extra_String_Ct = 0;
     //  Number of extra strings of screen kmers added to hash table
@@ -640,7 +647,7 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
             break;
           case  'M' :
 #ifdef CONTIG_OVERLAPPER_VERSION
-            if       (strcmp (optarg, "8GB") == 0) {
+            if        (strcmp (optarg, "8GB") == 0) {
               Hash_Mask_Bits    = 24;
               Max_Hash_Data_Len = 400000000;
             } else if (strcmp (optarg, "4GB") == 0) {
@@ -668,7 +675,33 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
                  = OVL_Min_int (2 * Max_Hash_Data_Len / MAX_FRAG_LEN,
                         MAX_OLD_BATCH_SIZE);
 #else
-            if       (strcmp (optarg, "8GB") == 0) {
+            if        (strcmp (optarg, "16GB") == 0) {
+              if (STRING_NUM_BITS <= 19) {
+                fprintf(stderr, "16GB run module requires STRING_NUM_BITS > 19.\n");
+                exit(1);
+              } else {
+                fprintf(stderr, "\nWARNING:\n");
+                fprintf(stderr, "WARNING:  \"-M 16GB\" not tuned to use less than 16GB!\n");
+                fprintf(stderr, "WARNING:  It will use more!\n");
+                fprintf(stderr, "WARNING:\n\n");
+              }
+
+              //  Read this if you're considering using -M 16GB.  You
+              //  can up the Hash_Mask_Bits to 25.  The data set BPW
+              //  tested with was highly repetitive, and so 24 was
+              //  actually better, letting 1.5M reads (barely) fit
+              //  into 24GB memory.
+              //
+              //  You'll certainly want to adjust Max_Hash_Strings,
+              //  and Max_Hash_Data_Len; run it once, watch the table
+              //  building results, and then increase/decrease to get
+              //  the table loaded around 70%.
+
+              Hash_Mask_Bits    = 24;
+              Max_Hash_Strings  = 1500000;
+              Max_Hash_Data_Len = 1200000000;
+
+            } else if (strcmp (optarg, "8GB") == 0) {
               Hash_Mask_Bits    = 24;
               Max_Hash_Strings  = 512000;
               Max_Hash_Data_Len = 400000000;
@@ -1548,6 +1581,15 @@ Align_Ct [String_Ct] = (Align_Entry_t *)
       total_len = new_len;
 
       Put_String_In_Hash (String_Ct);
+
+      if ((STRING_NUM_BITS > 19) &&
+          ((String_Ct % 10000) == 0)) {
+        fprintf (stderr, "String_Ct:%d  totalLen:%d  Hash_Entries:"F_S64"  Load:%.1f%%\n",
+                 String_Ct,
+                 total_len,
+                 Hash_Entries,
+                 (100.0 * Hash_Entries) / (HASH_TABLE_SIZE * ENTRIES_PER_BUCKET));
+      }
 
       String_Ct ++;
      }
