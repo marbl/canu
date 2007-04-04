@@ -3,8 +3,8 @@
 LIBUTL/     :=$(call MakePath,$/../libutil/)
 LIBBIO/     :=$(call MakePath,$/../libbio/)
 
-$/.CXX_SRCS  :=$/leaff.C $/fragmenter.C $/simseq.C
-$/.CXX_EXES  :=$/leaff $/fragmenter
+$/.CXX_SRCS  :=$/leaff.C $/fragmenter.C $/simseq.C $/percentLength.C
+$/.CXX_EXES  :=$/leaff $/fragmenter $/percentLength
 
 $/.CLEAN  :=$/*.o
 
@@ -14,6 +14,7 @@ $/leaff.C.d: $/buildinfo-leaff.h ${LIBBIO/}buildinfo-libbio.h ${LIBUTL/}buildinf
 
 $/leaff                : $/leaff.o $/buildinfo-leaff.o $/simseq.o ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 $/fragmenter           : $/fragmenter.o ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/percentLength        : $/percentLength.o ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
 $(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBBIO/} -I${LIBUTL/})
 $(eval $/%.d $/%.o:  CFLAGS  +=-I${LIBBIO/} -I${LIBUTL/})
