@@ -113,7 +113,7 @@ ifeq ($(OSTYPE), FreeBSD)
     ARCH_LDFLAGS  += -lgcov
   else
     ifeq ($(BUILDDEBUG), 1)
-      ARCH_CFLAGS   += -g -Wimplicit -pg
+      ARCH_CFLAGS   += -g -Wimplicit
     else
       ARCH_CFLAGS   += -O3 -Wimplicit -mtune=nocona -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
     endif
