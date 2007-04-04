@@ -26,8 +26,8 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.19 2007-04-04 19:29:34 brianwalenz Exp $
- * $Revision: 1.19 $
+ * $Id: AS_OVL_overlap.h,v 1.20 2007-04-04 23:09:52 brianwalenz Exp $
+ * $Revision: 1.20 $
 */
 
 
@@ -278,7 +278,7 @@
     //  The number of fragments each parallel thread tries to
     //  process in a "round"
 
-#undf HUGE_TABLE_VERSION
+#undef HUGE_TABLE_VERSION
     //  The HUGE_TABLE_VERSION essentially unlimits the amount of sequence
     //  that can be stored in the table.  It also gets around the problem
     //  of not having enough space to load the kmers to ignore.  It also
