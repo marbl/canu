@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore_build.c,v 1.7 2007-04-03 09:30:47 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore_build.c,v 1.8 2007-04-04 08:46:46 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,10 +46,12 @@ int
 OVSoverlap_sort(const void *a, const void *b) {
   OVSoverlap const *A = (OVSoverlap const *)a;
   OVSoverlap const *B = (OVSoverlap const *)b;
-  if (A->a_iid < B->a_iid)  return(-1);
-  if (A->a_iid > B->a_iid)  return(1);
-  if (A->b_iid < B->b_iid)  return(-1);
-  if (A->b_iid > B->b_iid)  return(1);
+  if (A->a_iid   < B->a_iid)    return(-1);
+  if (A->a_iid   > B->a_iid)    return(1);
+  if (A->b_iid   < B->b_iid)    return(-1);
+  if (A->b_iid   > B->b_iid)    return(1);
+  if (A->dat.dat < B->dat.dat)  return(-1);
+  if (A->dat.dat > B->dat.dat)  return(1);
   return(0);
 }
 
