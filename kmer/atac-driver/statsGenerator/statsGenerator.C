@@ -664,9 +664,6 @@ unmappedInRuns(atacFile &AF, FastACache *A, FastACache *B, char *prefix) {
       hist1full.add(r1-l1);
       hist2full.add(r2-l2);
 
-      //  Crimeny!  I really should put this in a function....  Lessee...it needs the
-      //  sequence, the begin and length, the il and the histogram.
-
       statsInACGT(A->getSequenceInCore(MO[i]->iid1),
                   l1,
                   r1-l1,
@@ -754,6 +751,7 @@ main(int argc, char **argv) {
   atacFile           AF(atacFileName);
   atacMatchList     &matches = *AF.matches();
   atacMatchList     &runs    = *AF.runs();
+  atacMatchList     &clumps  = *AF.clumps();
 
   //  We end up using sequences a lot here, so just bite it and load them in a cache.
   //
@@ -769,23 +767,41 @@ main(int argc, char **argv) {
     tandemRepeatStats(tr1, tr2, AF, A, B);
   }
 
-  fprintf(stdout, "\nMATCHES IN RUNS\n");
-  unmappedInRuns(AF, A, B, prefix);
+  //  XXX unmappedInRuns only works on runs, and if we have clumps in
+  //  the input it fails.
+  //
+  if ((runs.numberOfMatches() > 0) && (clumps.numberOfMatches() == 0)) {
+    fprintf(stdout, "\nMATCHES IN RUNS\n");
+    unmappedInRuns(AF, A, B, prefix);
+  }
 
-  fprintf(stdout, "\nMATCHES\n");
-  sprintf(prefixFull, "%s-matches", prefix);
-  mappedLengths(AF, matches, prefixFull);
-  mappedNs(AF, matches, A, B, prefixFull);
-  NxOfMapped(AF, matches, genomeSize, prefixFull);
-  MappedByChromosome(AF, matches, A, B, prefixFull);
+  if (matches.numberOfMatches() > 0) {
+    fprintf(stdout, "\nMATCHES\n");
+    sprintf(prefixFull, "%s-matches", prefix);
+    mappedLengths(AF, matches, prefixFull);
+    mappedNs(AF, matches, A, B, prefixFull);
+    NxOfMapped(AF, matches, genomeSize, prefixFull);
+    MappedByChromosome(AF, matches, A, B, prefixFull);
+  }
 
-  fprintf(stdout, "\nRUNS\n");
-  sprintf(prefixFull, "%s-runs", prefix);
-  mappedLengths(AF, runs, prefixFull);
-  mappedNs(AF, runs, A, B, prefixFull);
-  NxOfMapped(AF, runs, genomeSize, prefixFull);
-  MappedByChromosome(AF, runs, A, B, prefixFull);
-  
+  if (runs.numberOfMatches() > 0) {
+    fprintf(stdout, "\nRUNS\n");
+    sprintf(prefixFull, "%s-runs", prefix);
+    mappedLengths(AF, runs, prefixFull);
+    mappedNs(AF, runs, A, B, prefixFull);
+    NxOfMapped(AF, runs, genomeSize, prefixFull);
+    MappedByChromosome(AF, runs, A, B, prefixFull);
+  }
+
+  if (clumps.numberOfMatches() > 0) {
+    fprintf(stdout, "\nCLUMPS\n");
+    sprintf(prefixFull, "%s-clumps", prefix);
+    mappedLengths(AF, clumps, prefixFull);
+    mappedNs(AF, clumps, A, B, prefixFull);
+    NxOfMapped(AF, clumps, genomeSize, prefixFull);
+    MappedByChromosome(AF, clumps, A, B, prefixFull);
+  }
+
   delete A;
   delete B;
 
