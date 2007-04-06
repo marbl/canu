@@ -1,5 +1,7 @@
 #include "bio++.H"
 
+bool  sortOnN  = false;
+
 
 struct info {
   u32bit  realLength;
@@ -14,10 +16,18 @@ info_compare(const void *a, const void *b) {
   const info  *A = (const info *)a;
   const info  *B = (const info *)b;
 
-  if (A->realLength < B->realLength)
-    return(-1);
-  if (A->realLength > B->realLength)
-    return(1);
+  if (sortOnN) {
+    if (A->realLength > B->realLength)
+      return(-1);
+    if (A->realLength < B->realLength)
+      return(1);
+  } else {
+    if (A->acgtLength > B->acgtLength)
+      return(-1);
+    if (A->acgtLength < B->acgtLength)
+      return(1);
+  }
+
   return(0);
 }
 
@@ -31,8 +41,8 @@ main(int argc, char **argv) {
   while (arg < argc) {
     if        (strcmp(argv[arg], "-f") == 0) {
       filename = argv[++arg];
-    } else if (strcmp(argv[arg], "-x") == 0) {
-
+    } else if (strcmp(argv[arg], "-n") == 0) {
+      sortOnN = true;
     } else {
       fprintf(stderr, "unknown option '%s'\n", argv[arg]);
       err++;
@@ -59,7 +69,7 @@ main(int argc, char **argv) {
   while ((seq = F->getSequenceOnDisk()) != 0L) {
     seqIID      iid = seq->getIID();
 
-    strncpy(I[iid].name, seq->header(), 32);
+    strncpy(I[iid].name, seq->header() + (seq->header()[0] == '>'), 32);
     for (u32bit x=0; x<32; x++)
       if (isspace(I[iid].name[x]))
         I[iid].name[x] = 0;
@@ -83,13 +93,23 @@ main(int argc, char **argv) {
   u64bit  realCumulative = 0;
   u64bit  acgtCumulative = 0;
 
+  fprintf(stdout, "name\tlength\tcumulativeLength\t%% covered by seq >= given length\n");
+
   for (u32bit i=0; i<N; i++) {
     realCumulative += I[i].realLength;
     acgtCumulative += I[i].acgtLength;
 
-    fprintf(stdout, "%s\t"u32bitFMT"\t%6.2f\t"u32bitFMT"\t%6.2f\n",
-            I[i].name,
-            I[i].realLength, 100.0 * realCumulative / realLengthTotal,
-            I[i].acgtLength, 100.0 * acgtCumulative / acgtLengthTotal);
+    if (sortOnN)
+      fprintf(stdout, "%s\t"u32bitFMT"\t"u64bitFMT"\t%f\n",
+              I[i].name,
+              I[i].realLength,
+              realCumulative,
+              100.0 * realCumulative / realLengthTotal);
+    else
+      fprintf(stdout, "%s\t"u32bitFMT"\t"u64bitFMT"\t%f\n",
+              I[i].name,
+              I[i].acgtLength,
+              acgtCumulative,
+              100.0 * acgtCumulative / acgtLengthTotal);
   }
 }
