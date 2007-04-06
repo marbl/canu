@@ -1,20 +1,27 @@
 #include "util++.H"
 #include "bio++.H"
 
+//#define ALPHALEN   4
+#define ALPHALEN   20
+
+//  NOTE that our list of letters is not alphabetic.  The DNA letters
+//  are first, then the rest of the protein letters.
+//
+const char  *trieAlpha         = "acgtdefhiklmnpqrsvwy";
+u32bit       trieAlphaMap[256] = {0};
+
 class trieNode {
 public:
   trieNode(void) {
-    next[0] = ~u32bitZERO;
-    next[1] = ~u32bitZERO;
-    next[2] = ~u32bitZERO;
-    next[3] = ~u32bitZERO;
+    for (u32bit i=0; i<ALPHALEN; i++)
+      next[i] = ~u32bitZERO;
     numseq  = 0;
     seqptr  = ~u32bitZERO;
   };
 
-  u32bit   next[4];  //  next node for A, C, G, T input, ~u32bitZERO if no next
-  u32bit   numseq;   //  number of seqs we have in here
-  u32bit   seqptr;   //  pointer to seqs
+  u32bit   next[ALPHALEN];  //  next node for A, C, G, T input, ~u32bitZERO if no next
+  u32bit   numseq;          //  number of seqs we have in here
+  u32bit   seqptr;         //  pointer to seqs
 };
 
 
@@ -61,11 +68,11 @@ addSequence(trieNode *nodes,    u32bit &nodesLen,
     return(0);
 
   for (s = S->sequence(); *s; s++)
-    if (validSymbol[*s] == 0)
+    if (trieAlphaMap[*s] == 0)
       return(0);
 
   for (s = S->sequence(); *s; s++) {
-    u32bit  v = compressSymbol[*s];
+    u32bit  v = trieAlphaMap[*s] - 1;
 
     //  add a new pointer if needed
     if (nodes[n].next[v] == ~u32bitZERO)
@@ -120,8 +127,16 @@ main(int argc, char **argv) {
 
   if (err) {
     fprintf(stderr, "usage: %s -q queries.fasta -g genome.fasta\n", argv[0]);
+    fprintf(stderr, "  -q queries.fasta   -- the input with the short stuff\n");
+    fprintf(stderr, "  -q queries.fasta   -- the input with the short stuff\n");
     exit(1);
   }
+
+  for (u32bit i=0; i<ALPHALEN; i++) {
+    trieAlphaMap[trieAlpha[i]] = i+1;
+    trieAlphaMap[trieAlpha[i] + 'A' - 'a'] = i+1;
+  }
+
 
   //  Build the trie from the queries.  We just allocate a large
   //  number of nodes so we don't need to deal with reallocation.
@@ -129,7 +144,7 @@ main(int argc, char **argv) {
   //  32M * 28 = 896M.
   //
   u32bit     nodesLen = 1;
-  u32bit     nodesMax = 16 * 1024 * 1024;
+  u32bit     nodesMax = 32 * 1024 * 1024;
   trieNode  *nodes    = new trieNode [nodesMax];
 
   seqFile              *F = openSeqFile(queries);
@@ -151,8 +166,12 @@ main(int argc, char **argv) {
 
     success += addSequence(nodes, nodesLen, seqptr, seqptrLen, S, false);
 
+#if ALPHALEN == 4
     reverseComplementSequence(S->sequence(), S->sequenceLength());
     success += addSequence(nodes, nodesLen, seqptr, seqptrLen, S, true);
+#else
+    success++;
+#endif
 
     if (success != 2)
       if (logfile)
@@ -201,10 +220,10 @@ main(int argc, char **argv) {
     u32bit   d[256] = {0};  //  Depth this pointer is at (== sequence length)
     u32bit   nLen = 0;
 
-    fprintf(stderr, "WORKING ON '%s'\n", S->header());
+    //fprintf(stderr, "WORKING ON '%s'\n", S->header());
 
     while (*s) {
-      if (validSymbol[*s] == 0) {
+      if (trieAlphaMap[*s] == 0) {
 
         //  Not a valid symbol, all node pointers are killed, no exact matches
         //  possible!
@@ -216,7 +235,7 @@ main(int argc, char **argv) {
         //  matches, kill any pointers, and then finally add a new
         //  one.
 
-        u32bit  v = compressSymbol[*s];
+        u32bit  v = trieAlphaMap[*s] - 1;
         u32bit  ni;
         u32bit  nj;
 
