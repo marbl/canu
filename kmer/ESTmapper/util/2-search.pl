@@ -86,11 +86,25 @@ sub search {
 
     #  Look for a mer masking file, or use the one supplied.
     #
-    if (!defined($args{'maskmers'})) {
-        $args{'maskmers'} = "$args{'genomedir'}/frequentMers-ge1000.fasta";
+    if (!defined($args{'mermaskfile'})) {
+        $args{'merignore'} = 1000  if (!defined($args{'merignore'}));
+        $args{'merignore'} = substr("000000$args{'merignore'}", -4);
+        $args{'mermaskfile'} = "$args{'genomedir'}/frequentMers-ge$args{'merignore'}.fasta";
     }
-    if (($args{'maskmers'} ne "none") && (! -e $args{'maskmers'})) {
-        print STDERR "ESTmapper/search-- Can't find mer mask file '$args{'maskmers'}'.\n";
+    if (($args{'mermaskfile'} ne "none") && (! -e $args{'mermaskfile'})) {
+        print STDERR "ESTmapper/search-- Didn't find mer mask file '$args{'mermaskfile'}', attempting\n";
+        print STDERR "ESTmapper/search-- create it.\n";
+        my $cmd;
+        $cmd  = "$prog{'meryl'}";
+        $cmd .= " -Dt -n $args{'merignore'} ";
+        $cmd .= " -s \"$args{'genomedir'}//genome\"";
+        $cmd .= " > \"$args{'genomedir'}/frequentMers-ge$args{'merignore'}.fasta\"";
+        if (runCommand($cmd)) {
+            die "ESTmapper/search-- Failed to create mask file.\n";
+        }
+    }
+    if (($args{'mermaskfile'} ne "none") && (! -e $args{'mermaskfile'})) {
+        print STDERR "ESTmapper/search-- Can't find mer mask file '$args{'mermaskfile'}'.\n";
         print STDERR "ESTmapper/search-- Perhaps your genome isn't installed correctly?\n";
         print STDERR "ESTmapper/search-- Try a different mersize?\n";
         exit(1);
@@ -135,7 +149,7 @@ sub search {
     print F "  -cdna      $path/0-input/cDNA.fasta \\\n";
     print F "  -genomic   $path/0-input/genome/genome.fasta \\\n";
     print F "  -positions $path/0-input/genome/seg\$jid.posDB \\\n";
-    print F "  -mask      $args{'maskmers'} \\\n" if ($args{'maskmers'} ne "none");
+    print F "  -mask      $args{'mermaskfile'} \\\n" if ($args{'mermaskfile'} ne "none");
     print F "  -output    $path/1-search/\$jid.hits \\\n";
     print F "  -count     $path/1-search/\$jid.count \\\n";
     print F "  -stats     $path/1-search/\$jid.stats \\\n" if ($args{'stats'} == 1);

@@ -12,6 +12,7 @@ sub setExecutables {
     $prog{'filterNULL'}          = "$exechome/filterNULL";
     $prog{'sim4db'}              = "$exechome/sim4th";
     $prog{'leaff'}               = "$exechome/leaff";
+    $prog{'meryl'}               = "$exechome/meryl";
     $prog{'cleanPolishes'}       = "$exechome/cleanPolishes";
     $prog{'toFILTER'}            = "$exechome/filterPolishes";
     $prog{'sortHits'}            = "$exechome/sortHits";
@@ -99,7 +100,8 @@ sub parseArgs (@) {
                 ($arg =~ m/^-(localsearches)/) ||
                 ($arg =~ m/^-(searchthreads)/) ||
                 ($arg =~ m/^-(hitsortmemory)/) ||
-                ($arg =~ m/^-(maskmers)/)) {
+                ($arg =~ m/^-(mermaskfile)/) ||
+                ($arg =~ m/^-(merignore)/)) {
             $args{$1}       = shift @ARGS;
         }
 

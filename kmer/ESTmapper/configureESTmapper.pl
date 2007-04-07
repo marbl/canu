@@ -85,7 +85,7 @@ if (!defined($genome) || !defined($genomedir)) {
     print STDERR "  -mersize m        use m-mers (default 20)\n";
     print STDERR "  -merskip s        skip s m-mers between mers (default 0, use all mers)\n";
     print STDERR "  -memory M         use M MB memory for the search processes (default 1000MB)\n";
-    print STDERR "  -segment S        use S search processed (default, decided on memory size)\n";
+    print STDERR "  -segments S       use S search processes (default, based on memory size)\n";
     print STDERR "  -sge              compute the configuration on the grid; args are passed to qsub\n";
     print STDERR "  -sgename          sge job name (default 'EMconfig')\n";
     print STDERR "  -local            compute the configuration right now (the default)\n";
@@ -211,7 +211,7 @@ die "Created no groups?\n" if (int($segId) == 0);
 if (! -e "$genomedir/genome.merylArgs") {
     my $cmd;
     $cmd  = "$meryl";
-    $cmd .= " -B -f -m $mersize -segments $segId -configbatch";
+    $cmd .= " -B -L 5 -f -m $mersize -segments $segId -configbatch";
     $cmd .= " -s $genomedir/genome.fasta";
     $cmd .= " -o $genomedir/genome";
     $cmd .= " > $genomedir/meryl.config.out 2>&1";
@@ -371,9 +371,4 @@ if      ($local) {
 } else {
     die "HELP!  I don't know how to run jobs!\n";
 }
-
-
-
-$sgename = "$sgename." . time();
-print "$sgename\n";
 
