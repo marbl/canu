@@ -1,10 +1,5 @@
 #include "sim4db.H"
 
-#include "buildinfo-sim4th.h"
-#include "buildinfo-libbio.h"
-#include "buildinfo-libutil.h"
-
-
 const char *usage = 
 "usage: %s [options]\n"
 "\n"
@@ -73,12 +68,7 @@ configuration::parseCommandLine(int argc, char **argv) {
   int arg = 1;
 
   while (arg < argc) {
-    if        (strncmp(argv[arg], "--buildinfo", 3) == 0) {
-        buildinfo_sim4th(stderr);
-        buildinfo_libbio(stderr);
-        buildinfo_libutil(stderr);
-        exit(1);
-    } else if (strncmp(argv[arg], "-alignments", 4) == 0) {
+    if        (strncmp(argv[arg], "-alignments", 4) == 0) {
       sim4params.setPrintAlignments(true);
     } else if (strncmp(argv[arg], "-alwaysprint", 4) == 0) {
       sim4params.setFindAllExons(true);

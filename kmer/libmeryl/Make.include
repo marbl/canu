@@ -6,14 +6,8 @@ LIBBIO/     :=$(call MakePath,$/../libbio/)
 $/.CXX_SRCS   := $/libmeryl.C
 $/.CXX_LIBS   := $/libmeryl.a
 $/.CLEAN      := $/*.o
-$/.REAL-CLEAN :=$/buildinfo-*
 
-$/libmeryl.a    : $/libmeryl.o $/buildinfo-libmeryl.o
+$/libmeryl.a    : $/libmeryl.o
 
 $(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBBIO/} -I${LIBUTL/})
-
-$/buildinfo-libmeryl.c: $/buildinfo-libmeryl.h
-$/buildinfo-libmeryl.h: $/libmeryl.C $/libmeryl.H
-	@${LIBUTL/}buildinfo.pl libmeryl "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	@[ `dirname $@` = "." ] || mv buildinfo-libmeryl.[ch] `dirname $@`
 

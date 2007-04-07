@@ -10,8 +10,7 @@ LIBUTL/       :=$/libutl/
 # Bah!  Order is important here.  It would be nice to get things to
 # build in order of dependency (e.g., libbri, then fasta, then
 # existdb, then posdb, then searchgen), but the .d dependency
-# generation goes BACKWARDS and it also makes the buildinfo files that
-# other things include.
+# generation goes BACKWARDS.
 #
 # So, this list is backwards.
 

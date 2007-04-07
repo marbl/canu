@@ -36,18 +36,12 @@ $/.CXX_EXES := $/seagen \
                $/sortHits $/filterESTsimple
 
 $/.CLEAN     :=$/*.o
-$/.REAL-CLEAN:=$/buildinfo-*
 
 $(eval $/%.d $/%.o: CXXFLAGS+=-I${LIBKMER/} -I${LIBBIO/} -I${LIBUTL/})
 
-$/configuration.C.d: $/buildinfo-seagen.h \
-                     ${LIBKMER/}buildinfo-libkmer.h \
-                     ${LIBBIO/}buildinfo-libbio.h \
-                     ${LIBUTL/}buildinfo-libutil.h
-
 $/seagen:        $/hitMatrix.o
 
-$/seagen: ${src_C:.C=.o} $/buildinfo-seagen.o \
+$/seagen: ${src_C:.C=.o} \
                 ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
 $/hitConverter:       $/hitConverter.o $/aHit.o ${LIBUTL/}libutil.a
@@ -57,8 +51,3 @@ $/filterMRNA:         $/filterMRNA.o $/hitReader.o $/aHit.o ${LIBUTL/}libutil.a
 $/filterNULL:         $/filterNULL.o $/hitReader.o $/aHit.o ${LIBUTL/}libutil.a
 $/sortHits:           $/sortHits.o $/aHit.o ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 $/filtertest:         $/filtertest.o
-
-$/buildinfo-seagen.c: $/buildinfo-seagen.h
-$/buildinfo-seagen.h: ${src}
-	@${LIBUTL/}buildinfo.pl seagen "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	@[ `dirname $@` = "." ] || mv buildinfo-seagen.[ch] `dirname $@`

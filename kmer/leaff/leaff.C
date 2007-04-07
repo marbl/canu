@@ -13,13 +13,9 @@
 
 void          simseq(char *,char *,int,int,int,int,double);
 
-#include "buildinfo-leaff.h"
-#include "buildinfo-libbio.h"
-#include "buildinfo-libutil.h"
-
 
 const char *usage =
-"usage: %s [--buildinfo] [-f|-F|-I <fasta-file>] [options]\n"
+"usage: %s [-f|-F|-I <fasta-file>] [options]\n"
 "\n"
 "ENTERTAINMENT OPTIONS\n"
 "       -V:          whenever a sequence is read, print the defline to stderr\n"
@@ -1118,12 +1114,7 @@ processArray(int argc, char **argv) {
 
   int arg = 1;
   while (arg < argc) {
-    if        (strncmp(argv[arg], "--buildinfo", 3) == 0) {
-      buildinfo_leaff(stderr);
-      buildinfo_libbio(stderr);
-      buildinfo_libutil(stderr);
-      exit(1);
-    } else if (strncmp(argv[arg], "--findduplicates", 3) == 0) {
+    if        (strncmp(argv[arg], "--findduplicates", 3) == 0) {
       arg++;
       findDuplicates(argv[arg]);
     } else if (strncmp(argv[arg], "--mapduplicates", 3) == 0) {

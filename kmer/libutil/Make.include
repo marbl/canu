@@ -42,9 +42,8 @@ $/.CXX_SRCS  :=$(filter %.C,${src})
 $/.CXX_LIBS  :=$/libutil.a
 
 $/.CLEAN := $/*.o
-$/.REAL-CLEAN :=$/buildinfo-*
 
-$/libutil.a: ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} $/buildinfo-libutil.o \
+$/libutil.a: ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} \
         $/md5lib/md5c.o \
 	$/mt19937ar/mt19937ar.o \
         $/kazlib/dict.o \
@@ -52,8 +51,3 @@ $/libutil.a: ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} $/buildinfo-libutil.o \
         $/kazlib/hash.o \
         $/kazlib/list.o \
         $/kazlib/sfx.o
-
-$/buildinfo-libutil.c: $/buildinfo-libutil.h
-$/buildinfo-libutil.h: ${src}
-	@${LIBUTL/}buildinfo.pl libutil "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	@[ `dirname $@` = "." ] || mv buildinfo-libutil.[ch] `dirname $@`

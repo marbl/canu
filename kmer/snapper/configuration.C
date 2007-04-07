@@ -1,11 +1,5 @@
 #include "posix.H"
 #include "snapper2.H"
-#include "buildinfo-snapper2.h"
-#include "buildinfo-libutil.h"
-#include "buildinfo-libbio.h"
-#include "buildinfo-libmeryl.h"
-#include "buildinfo-libkmer.h"
-#include "buildinfo-libsim4.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -97,7 +91,7 @@ configuration::~configuration() {
 }
 
 static char const *usageString =
-"usage: %s [--buildinfo] [options]\n"
+"usage: %s [options]\n"
 "\n"
 "Algorithm Options:\n"
 "    -forward                Search only the normal cDNA.\n"
@@ -298,16 +292,6 @@ configuration::read(int argc, char **argv) {
       setTime(&_writerSleep, atof(argv[++arg]));
     } else if (strncmp(argv[arg], "-writerwarnings",      8) == 0) {
       _writerWarnings = true;
-    } else if (strncmp(argv[arg], "--buildinfo", 3) == 0) {
-      buildinfo_snapper2(stderr);
-#if 0
-      buildinfo_existDB(stderr);
-      buildinfo_positionDB(stderr);
-      buildinfo_libbri(stderr);
-      buildinfo_libsim4(stderr);
-      buildinfo_libsim4polish(stderr);
-#endif
-      exit(1);
     } else {
       fprintf(stderr, "Unknown option '%s'\n", argv[arg]);
       exit(1);

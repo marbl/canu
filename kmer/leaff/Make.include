@@ -8,21 +8,9 @@ $/.CXX_EXES  :=$/leaff $/fragmenter $/percentLength
 
 $/.CLEAN  :=$/*.o
 
-$/.REAL-CLEAN :=$/buildinfo-*
-
-$/leaff.C.d: $/buildinfo-leaff.h ${LIBBIO/}buildinfo-libbio.h ${LIBUTL/}buildinfo-libutil.h
-
-$/leaff                : $/leaff.o $/buildinfo-leaff.o $/simseq.o ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/leaff                : $/leaff.o $/simseq.o ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 $/fragmenter           : $/fragmenter.o ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 $/percentLength        : $/percentLength.o ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
 $(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBBIO/} -I${LIBUTL/})
 $(eval $/%.d $/%.o:  CFLAGS  +=-I${LIBBIO/} -I${LIBUTL/})
-$(eval $/%.d      :  ${LIBBIO/}buildinfo-libbio.h ${LIBUTL/}buildinfo-libutil.h )
-
-$/buildinfo-leaff.c: $/buildinfo-leaff.h
-$/buildinfo-leaff.h: $/leaff.C
-	@${LIBUTL/}buildinfo.pl leaff "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	@[ `dirname $@` = "." ] || mv buildinfo-leaff.[ch] `dirname $@`
-
-

@@ -1,9 +1,5 @@
 #include "posix.H"
 #include "seatac.H"
-#include "buildinfo-seatac.h"
-#include "buildinfo-libkmer.h"
-#include "buildinfo-libbio.h"
-#include "buildinfo-libutil.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,7 +64,7 @@ configuration::~configuration() {
 }
 
 static char const *usageString =
-"usage: %s [--buildinfo] [options]\n"
+"usage: %s [options]\n"
 "\n"
 "Algorithm Options:\n"
 "    -mersize k              Use k-mers\n"
@@ -212,12 +208,6 @@ configuration::read(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-filteropts") == 0) {
       arg++;
       _filteropts = argv[arg];
-    } else if (strncmp(argv[arg], "--buildinfo", 3) == 0) {
-      buildinfo_seatac(stderr);
-      buildinfo_libkmer(stderr);
-      buildinfo_libbio(stderr);
-      buildinfo_libutil(stderr);
-      exit(1);
     } else {
       fprintf(stderr, "ERROR: Unknown option '%s'\n", argv[arg]);
       fail++;

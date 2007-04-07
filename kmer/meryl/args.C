@@ -5,11 +5,6 @@
 
 #include "bio++.H"
 #include "meryl.H"
-#include "buildinfo-meryl.h"
-#include "buildinfo-libbio.h"
-#include "buildinfo-libutil.h"
-
-
 
 
 //  Some string handling utilities.
@@ -327,12 +322,7 @@ merylArgs::merylArgs(int argc, char **argv) {
   //  Parse the options
   //
   for (int arg=1; arg < argc; arg++) {
-    if        (strncmp(argv[arg], "--buildinfo", 3) == 0) {
-      buildinfo_meryl(stderr);
-      buildinfo_libbio(stderr);
-      buildinfo_libutil(stderr);
-      exit(1);
-    } else if (strncmp(argv[arg], "-V", 2) == 0) {
+    if        (strncmp(argv[arg], "-V", 2) == 0) {
       fprintf(stdout, "meryl the Mighty Mer Counter version (no version)\n");
       exit(0);
     } else if (strcmp(argv[arg], "-m") == 0) {

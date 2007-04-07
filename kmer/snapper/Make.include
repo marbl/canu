@@ -25,35 +25,15 @@ $/.CXX_SRCS := $(filter %.C,${src})
 $/.CXX_EXES := $/snapper2
 
 $/.CLEAN     :=$/*.o
-$/.REAL-CLEAN:=$/buildinfo-*
 
 $(eval $/%.d $/%.o:  CXXFLAGS+= -I${LIBUTL/} -I${LIBBIO/} -I${LIBMERYL/} -I${LIBKMER/} -I${LIBSIM4/})
-$(eval $/%.d      :  ${LIBUTL/}buildinfo-libutil.h )
-$(eval $/%.d      :  ${LIBBIO/}buildinfo-libbio.h )
-$(eval $/%.d      :  ${LIBMERYL/}buildinfo-libmeryl.h )
-$(eval $/%.d      :  ${LIBKMER/}buildinfo-libkmer.h )
-$(eval $/%.d      :  ${LIBSIM4/}buildinfo-libsim4.h )
-
-$/configuration.C.d: $/buildinfo-snapper2.h \
-                     ${LIBUTL/}buildinfo-libutil.h \
-                     ${LIBBIO/}buildinfo-libbio.h \
-                     ${LIBMERYL/}buildinfo-libmeryl.h \
-                     ${LIBKMER/}buildinfo-libkmer.h \
-                     ${LIBSIM4/}buildinfo-libsim4.h
 
 $/snapper2:   ${$/.CXX_SRCS:.C=.o} \
-              $/buildinfo-snapper2.o \
               ${LIBSIM4/}libsim4.a \
               ${LIBKMER/}libkmer.a \
               ${LIBMERYL/}libmeryl.a \
               ${LIBBIO/}libbio.a \
               ${LIBUTL/}libutil.a
-
-$/buildinfo-snapper2.c: $/buildinfo-snapper2.h
-$/buildinfo-snapper2.h: ${src}
-	@${LIBUTL/}buildinfo.pl snapper2 "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	@[ `dirname $@` = "." ] || mv buildinfo-snapper2.[ch] `dirname $@`
-
 
 
 

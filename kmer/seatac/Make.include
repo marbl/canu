@@ -31,20 +31,10 @@ $/filter-nop.so:         $/filter-nop.o
 $/filter-heavychains.so: $/filter-heavychains.o $/heavychains.o
 
 $/.CLEAN     :=$/*.o
-$/.REAL-CLEAN:=$/buildinfo-*
 
 $/%.d $/%.o: CXXFLAGS+=-I${LIBKMER/} -I${LIBBIO/} -I${LIBUTL/}
-$/configuration.C.d: $/buildinfo-seatac.h \
-                     ${LIBKMER/}buildinfo-libkmer.h \
-                     ${LIBBIO/}buildinfo-libbio.h \
-                     ${LIBUTL/}buildinfo-libutil.h
 
-$/seatac:  ${$/.CXX_SRCS:.C=.o} $/buildinfo-seatac.o \
+$/seatac:  ${$/.CXX_SRCS:.C=.o} \
            ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
 $/heavychains: $/heavychains-driver.o $/heavychains.o
-
-$/buildinfo-seatac.c: $/buildinfo-seatac.h
-$/buildinfo-seatac.h: ${src}
-	@${LIBUTL/}buildinfo.pl seatac "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	@[ `dirname $@` = "." ] || mv buildinfo-seatac.[ch] `dirname $@`

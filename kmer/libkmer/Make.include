@@ -21,20 +21,11 @@ $/.CXX_SRCS   := $/driver-existDB.C $/driver-posDB.C $/percentCovered.C $/mask.C
 $/.CXX_EXES   := $/existDB $/positionDB $/percentCovered $/mask
 $/.CXX_LIBS   := $/libkmer.a
 $/.CLEAN      := $/*.o
-$/.REAL-CLEAN := $/buildinfo-*
 
-$/libkmer.a:      $/buildinfo-libkmer.o $(filter %.o,${src:.C=.o})
+$/libkmer.a:      $(filter %.o,${src:.C=.o})
 $/existDB:        $/driver-existDB.o $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
 $/positionDB:     $/driver-posDB.o   $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
 $/percentCovered: $/percentCovered.o $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
 $/mask:           $/mask.o           $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
 
-# $/merTableTest
-#$/merTableTest:  $/merTableTest.o   $/libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a 
-
 $(eval $/%.d $/%.o:    CXXFLAGS+= -I${LIBMERYL/} -I${LIBBIO/} -I${LIBUTL/})
-
-$/buildinfo-libkmer.c: $/buildinfo-libkmer.h
-$/buildinfo-libkmer.h: ${src}
-	@${LIBUTL/}buildinfo.pl libkmer "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	@[ `dirname $@` = "." ] || mv buildinfo-libkmer.[ch] `dirname $@`

@@ -32,7 +32,6 @@ $/.CXX_SRCS  :=$(filter %.C,${src})
 $/.CXX_LIBS  :=$/libbio.a
 
 $/.CLEAN := $/*.o
-$/.REAL-CLEAN :=$/buildinfo-*
 
 #  For reasons bri doesn't know, we must explicitly include libbio.
 #  It's related to things in fasta needing to include things in libbio,
@@ -46,15 +45,9 @@ $(eval $/%.d $/%.o: CXXFLAGS+=-I${LIBUTL/})
 $/reversecomplement.c.d: $/alphabet.h
 $/merstream.C.d:         $/alphabet.h
 
-$/libbio.a: ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} $/alphabet.o $/buildinfo-libbio.o
+$/libbio.a: ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} $/alphabet.o
 
 $/alphabet.c: $/alphabet.h
 $/alphabet.h:  $/alphabet-generate.c
 	$(CC) $(CFLAGS) $(CFLAGS_COMPILE) -o `dirname $@`/a.out -DMAIN $<
 	cd `dirname $@` ; ./a.out && rm -f a.out
-
-$/buildinfo-libbio.c: $/buildinfo-libbio.h
-$/buildinfo-libbio.h: ${src}
-	@${LIBUTL/}buildinfo.pl libbio "${CXXFLAGS} ${CXXFLAGS_COMPILE}" $^
-	@[ `dirname $@` = "." ] || mv buildinfo-libbio.[ch] `dirname $@`
-

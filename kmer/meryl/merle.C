@@ -3,7 +3,6 @@
 #include <strings.h>
 
 #include "bio++.H"
-#include "buildinfo-merle.h"
 
 //
 //  Very simple mer counter, works only for small mers.

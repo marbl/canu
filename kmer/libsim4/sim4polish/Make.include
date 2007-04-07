@@ -27,15 +27,8 @@ $/.CXX_SRCS  :=$(filter %.C,${src})
 $/.CXX_LIBS  :=$/libsim4polish.a
 
 $/.CLEAN  :=$/*.o
-$/.REAL-CLEAN :=$/buildinfo-*
 
-$/libsim4polish.a    :  ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} \
-                        $/buildinfo-libsim4polish.o
+$/libsim4polish.a    :  ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o}
 
 $(eval $/%.d $/%.o:  CFLAGS  +=-I${LIBUTL/} -I${LIBBIO/})
 $(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBUTL/} -I${LIBBIO/})
-
-$/buildinfo-libsim4polish.c: $/buildinfo-libsim4polish.h
-$/buildinfo-libsim4polish.h: ${src}
-	@../../buildinfo.pl libsim4polish "${CXXFLAGS} ${CXXFLAGS_COMPILE}" ${src}
-	@[ `dirname $@` = "." ] || mv buildinfo-libsim4polish.[ch] `dirname $@`
