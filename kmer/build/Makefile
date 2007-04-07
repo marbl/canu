@@ -29,6 +29,9 @@ debug:
 ifndef MAKEFILE/
   MAKEFILE/ :=$(dir $(firstword $(MAKEFILE_LIST)))
 endif
+ifndef MAKEFILE/
+  MAKEFILE/ := ./
+endif
 
 ifdef MAKE_COMPILERS
  include ${MAKE_COMPILERS}
@@ -51,39 +54,39 @@ MAKECWD:=$(shell pwd)
 ## find a makepath utility and get it compiled as C or scripted
 ## as perl or BUST!
 
-ifneq ($(shell ${MAKEFILE/}Make_utils/makepath .),)
+ifneq ($(shell ${MAKEFILE/}makepath .),)
 
   define MakePath
-$(shell ${MAKEFILE/}Make_utils/makepath $1 ${MAKECWD})
+$(shell ${MAKEFILE/}makepath $1 ${MAKECWD})
   endef
 
 else
-  $(warning Attempting to create the makepath executable in ${MAKEFILE/}Make_utils/ \
+  $(warning Attempting to create the makepath executable in ${MAKEFILE/} \
    $(shell ${CC} \
            ${CFLAGS} ${CLDFLAGS} \
-           -o ${MAKEFILE/}Make_utils/makepath ${MAKEFILE/}Make_utils/makepath.c \
+           -o ${MAKEFILE/}makepath ${MAKEFILE/}makepath.c \
            ${CLIBS}))
 
-  ifneq ($(shell ${MAKEFILE/}Make_utils/makepath .),)
+  ifneq ($(shell ${MAKEFILE/}makepath .),)
 
     define MakePath
-$(shell ${MAKEFILE/}Make_utils/makepath $1 ${MAKECWD})
+$(shell ${MAKEFILE/}makepath $1 ${MAKECWD})
     endef
 
   else
 
-    $(warning COMPILE FAILED for ${MAKEFILE/}Make_utils/makepath)
+    $(warning COMPILE FAILED for ${MAKEFILE/}makepath)
     $(warning Attempting to use PERL version)
 
-    ifneq ($(shell ${PERL} ${MAKEFILE/}Make_utils/makepath.pl .),)
+    ifneq ($(shell ${PERL} ${MAKEFILE/}makepath.pl .),)
 
       define MakePath
-$(shell ${PERL} ${MAKEFILE/}Make_utils/makepath.pl $1 ${MAKECWD})
+$(shell ${PERL} ${MAKEFILE/}makepath.pl $1 ${MAKECWD})
       endef
 
     else
 
-      $(warning PERL version ${MAKEFILE/}Make_utils/makepath.pl FAILED)
+      $(warning PERL version ${MAKEFILE/}makepath.pl FAILED)
       $(error Aborting this build due to lack of makepath support.)
 
     endif
