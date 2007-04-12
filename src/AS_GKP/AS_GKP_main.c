@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.26 2007-03-26 16:14:54 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.27 2007-04-12 10:05:20 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -131,7 +131,6 @@ usage(char *filename) {
   fprintf(stderr, "       %s [dump-options] gkpStore\n", filename);
   fprintf(stderr, "\n");
   fprintf(stderr, "The first form will append to or create a GateKeeper store:\n");
-  fprintf(stderr, "\n");
   fprintf(stderr, "  -a                     append to existing tore\n");
   fprintf(stderr, "  -e <errorThreshhold>   set error threshhold\n");
   fprintf(stderr, "  -o <gkpStore>          append to or create gkpStore\n");
@@ -144,38 +143,40 @@ usage(char *filename) {
   fprintf(stderr, "\n");
   fprintf(stderr, "The second form will partition an existing store, allowing\n");
   fprintf(stderr, "the entire store partition to be loaded into memory.\n");
-  fprintf(stderr, "\n");
   fprintf(stderr, "  -P <partitionfile>     a list of (partition fragiid)\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "\n");
-  fprintf(stderr, "The third form will dump the contents of a GateKeeper store:\n");
+  fprintf(stderr, "The third form will dump the contents of a GateKeeper store.\n");
+  fprintf(stderr, "  -b <begin-iid>         dump starting at this batch, library or read\n");
+  fprintf(stderr, "  -e <ending-iid>        dump stopping after this iid\n");
+  fprintf(stderr, "  -tabular               dump info, batches, libraries or fragments in a tabular\n");
+  fprintf(stderr, "                         format (for -dumpinfo, -dumpbatch, -dumplibraries,\n");
+  fprintf(stderr, "                         and -dumpfragments, ignores -withsequence and -clear)\n");
+  fprintf(stderr, "  -dumpinfo              print information on the store\n");
+  fprintf(stderr, "    -lastfragiid         just print the last IID in the store\n");
+  fprintf(stderr, "  -dumpbatch             dump all batch records\n");
+  fprintf(stderr, "  -dumplibraries         dump all library records\n");
+  fprintf(stderr, "  -dumpfragments         dump fragment info, no sequence\n");
+  fprintf(stderr, "    -withsequence          ...and include sequence\n");
+  fprintf(stderr, "    -clear <clr>           ...in clear range <clr>, default=UNTRIM\n");
+  fprintf(stderr, "  -dumpfasta[seq|qlt]    dump fragment sequence or quality, as fasta format\n");
+  fprintf(stderr, "    -allreads              ...all reads, regardless of deletion status\n");
+  fprintf(stderr, "    -decoded               ...quality as integers ('20 21 19')\n");
+  fprintf(stderr, "    -clear <clr>           ...in clear range <clr>, default=LATEST\n");
+  fprintf(stderr, "  -dumpfrg               reproduce the input fragment file\n");
+  fprintf(stderr, "  -dumpofg               generate OverlapFragMessages, for unitigger\n");
   fprintf(stderr, "\n");
-  fprintf(stderr, "  -b <begin-iid>         dump starting at this read\n");
-  fprintf(stderr, "  -e <ending-iid>        dump until this read\n");
-  fprintf(stderr, "  -L                     print the last IID in the store\n");
-  fprintf(stderr, "  -C                     like what dumpFragStore used to make\n");
-  fprintf(stderr, "  -F                     as (trimmed) fasta\n");
-  fprintf(stderr, "  -Fq                    as (trimmed) fasta, but quality values, not sequence\n");
-  fprintf(stderr, "  -X                     as XML-like\n");
-  fprintf(stderr, "  -ofg                   as OFG (special for unitigger)\n");
-  fprintf(stderr, "  -frg                   as FRG\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "  By default, -F will dump clear range multi-fasta for fragments\n");
-  fprintf(stderr, "  that have not been marked as deleted.  This can be changed with:\n");
-  fprintf(stderr, "    -allreads            dump all reads regardless of deletion status\n");
-  fprintf(stderr, "    -allbases            dump all bases, ignore the clear ranges\n");
-  fprintf(stderr, "    -clear <clr>         dump bases in clear range <clr>; valid values are:\n");
-  fprintf(stderr, "                           0-8, orig, qlt, vec, obt, ovl, utg, ecr1, ecr2, closure\n");
 }
 
-#define DUMP_NOTHING 0
-#define DUMP_COMPAT  1
-#define DUMP_FASTA   2
-#define DUMP_XML     3
-#define DUMP_OFG     4
-#define DUMP_FRG     5
-#define DUMP_LASTFRG 6
+#define DUMP_NOTHING     0
+#define DUMP_INFO        1
+#define DUMP_BATCHES     2
+#define DUMP_LIBRARIES   3
+#define DUMP_FRAGMENTS   4
+#define DUMP_FASTA       5
+#define DUMP_OFG         6
+#define DUMP_FRG         7
+#define DUMP_LASTFRG     8
 
 int
 main(int argc, char **argv) {
@@ -205,8 +206,10 @@ main(int argc, char **argv) {
   CDS_IID_t        begIID = 0;
   CDS_IID_t        endIID = 2000000000;
   int              dump = DUMP_NOTHING;
+  int              dumpTabular       = 0;
+  int              dumpWithSequence  = 0;
   int              dumpFastaAllReads = 0;
-  int              dumpFastaAllBases = 0;
+  int              dumpClear         = AS_READ_CLEAR_UNTRIM;
   int              dumpFastaClear    = AS_READ_CLEAR_LATEST;
   int              dumpFastaQuality  = 0;
 
@@ -220,8 +223,6 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-e") == 0) {
       maxerrs = atoi(argv[++arg]);
       endIID  = maxerrs;
-    } else if (strcmp(argv[arg], "-L") == 0) {
-      dump = DUMP_LASTFRG;
     } else if (strcmp(argv[arg], "-h") == 0) {
       err++;
     } else if (strcmp(argv[arg], "-H") == 0) {
@@ -234,33 +235,54 @@ main(int argc, char **argv) {
       gkpStoreName = argv[++arg];
     } else if (strcmp(argv[arg], "-v") == 0) {
       verbose = 1;
-    } else if (strcmp(argv[arg], "-C") == 0) {
-      dump = DUMP_COMPAT;
-    } else if (strcmp(argv[arg], "-F") == 0) {
-      dump = DUMP_FASTA;
-    } else if (strcmp(argv[arg], "-Fq") == 0) {
-      dump = DUMP_FASTA;
-      dumpFastaQuality = 1;
     } else if (strcmp(argv[arg], "-G") == 0) {
       assembler = AS_ASSEMBLER_GRANDE;
     } else if (strcmp(argv[arg], "-T") == 0) {
       assembler = AS_ASSEMBLER_OBT;
     } else if (strcmp(argv[arg], "-Q") == 0) {
       check_qvs = 0;
-    } else if (strcmp(argv[arg], "-X") == 0) {
-      dump = DUMP_XML;
-    } else if (strcmp(argv[arg], "-ofg") == 0) {
-      dump = DUMP_OFG;
-    } else if (strcmp(argv[arg], "-frg") == 0) {
-      dump = DUMP_FRG;
-    } else if (strcmp(argv[arg], "-allreads") == 0) {
-      dumpFastaAllReads = 1;
-    } else if (strcmp(argv[arg], "-allbases") == 0) {
-      dumpFastaAllBases = 1;
-    } else if (strcmp(argv[arg], "-clear") == 0) {
-      dumpFastaClear = AS_PER_decodeClearRangeLabel(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-P") == 0) {
       partitionFile = argv[++arg];
+
+      //  Except for -b and -e, all the dump options are below.
+
+    } else if (strcmp(argv[arg], "-tabular") == 0) {
+      dumpTabular = 1;
+    } else if (strcmp(argv[arg], "-dumpinfo") == 0) {
+      dump = DUMP_INFO;
+    } else if ((strcmp(argv[arg], "-lastfragiid") == 0) ||
+               (strcmp(argv[arg], "-L") == 0)) {
+      //  -L for compatability
+      dump = DUMP_LASTFRG;
+    } else if (strcmp(argv[arg], "-dumpbatch") == 0) {
+      dump = DUMP_BATCHES;
+    } else if (strcmp(argv[arg], "-dumplibraries") == 0) {
+      dump = DUMP_LIBRARIES;
+    } else if (strcmp(argv[arg], "-dumpfragments") == 0) {
+      dump = DUMP_FRAGMENTS;
+    } else if (strcmp(argv[arg], "-withsequence") == 0) {
+      dumpWithSequence = 1;
+    } else if (strcmp(argv[arg], "-clear") == 0) {
+      dumpClear      = AS_PER_decodeClearRangeLabel(argv[++arg]);
+      dumpFastaClear = dumpClear;
+    } else if (strcmp(argv[arg], "-dumpfastaseq") == 0) {
+      dump = DUMP_FASTA;
+      dumpFastaQuality = 0;
+    } else if (strcmp(argv[arg], "-dumpfastaqlt") == 0) {
+      dump = DUMP_FASTA;
+      dumpFastaQuality = 1;
+    } else if (strcmp(argv[arg], "-allreads") == 0) {
+      dumpFastaAllReads = 1;
+    } else if (strcmp(argv[arg], "-decoded") == 0) {
+      dumpFastaQuality = 2;
+    } else if (strcmp(argv[arg], "-dumpfrg") == 0) {
+      dump = DUMP_FRG;
+    } else if (strcmp(argv[arg], "-dumpofg") == 0) {
+      dump = DUMP_OFG;
+
+      //  End of dump options
+
     } else if (strcmp(argv[arg], "--") == 0) {
       firstFileArg = arg++;
       arg = argc;
@@ -292,41 +314,54 @@ main(int argc, char **argv) {
 
   outputExists = testOpenGateKeeperStore(gkpStoreName, FALSE);
 
-  if ((dump != DUMP_NOTHING) && (outputExists == 0)) {
-    fprintf(stderr,"* Gatekeeper Store %s doesn't exist, but you want to dump it.  Exit.\n", gkpStoreName);
-    exit(1);
+  if (dump != DUMP_NOTHING) {
+    if (outputExists == 0) {
+      fprintf(stderr,"* Gatekeeper Store %s doesn't exist, but you want to dump it.  Exit.\n", gkpStoreName);
+      exit(1);
+    }
+
+    switch (dump) {
+      case DUMP_INFO:
+        dumpGateKeeperInfo(gkpStoreName);
+        break;
+      case DUMP_BATCHES:
+        dumpGateKeeperBatches(gkpStoreName, begIID, endIID, dumpTabular);
+        break;
+      case DUMP_LIBRARIES:
+        dumpGateKeeperLibraries(gkpStoreName, begIID, endIID, dumpTabular);
+        break;
+      case DUMP_FRAGMENTS:
+        dumpGateKeeperFragments(gkpStoreName, begIID, endIID,
+                                dumpWithSequence,
+                                dumpClear,
+                                dumpTabular);
+        break;
+      case DUMP_FASTA:
+        dumpGateKeeperAsFasta(gkpStoreName, begIID, endIID,
+                              dumpFastaAllReads,
+                              dumpFastaClear,
+                              dumpFastaQuality);
+        break;
+      case DUMP_OFG:
+        dumpGateKeeperAsOFG(gkpStoreName);
+        break;
+      case DUMP_FRG:
+        dumpGateKeeperAsFRG(gkpStoreName);
+        break;
+      case DUMP_LASTFRG:
+        {
+          GateKeeperStore *gkp = openGateKeeperStore(gkpStoreName, FALSE);
+          fprintf(stdout, "Last frag in store is iid = "F_IID"\n", getLastElemFragStore(gkp));
+          closeGateKeeperStore(gkp);
+        }
+        break;
+      default:
+        break;
+    }
+
+    exit(0);
   }
 
-  if (dump == DUMP_COMPAT) {
-    dumpGateKeeperAsCompatible(gkpStoreName, begIID, endIID);
-    exit(0);
-  }
-  if (dump == DUMP_FASTA) {
-    dumpGateKeeperAsFasta(gkpStoreName, begIID, endIID,
-                          dumpFastaAllReads,
-                          dumpFastaAllBases,
-                          dumpFastaClear,
-                          dumpFastaQuality);
-    exit(0);
-  }
-  if (dump == DUMP_XML) {
-    dumpGateKeeperAsXML(gkpStoreName, begIID, endIID);
-    exit(0);
-  }
-  if (dump == DUMP_OFG) {
-    dumpGateKeeperAsOFG(gkpStoreName);
-    exit(0);
-  }
-  if (dump == DUMP_FRG) {
-    dumpGateKeeperAsFRG(gkpStoreName);
-    exit(0);
-  }
-  if (dump == DUMP_LASTFRG) {
-    GateKeeperStore *gkp = openGateKeeperStore(gkpStoreName, FALSE);
-    fprintf(stdout, "Last frag in store is iid = "F_IID"\n", getLastElemFragStore(gkp));
-    closeGateKeeperStore(gkp);
-    exit(0);
-  }
 
   if (partitionFile) {
     Build_Partition(gkpStoreName, partitionFile, FRAG_S_ALL);
@@ -389,12 +424,14 @@ main(int argc, char **argv) {
     while (EOF != ReadProtoMesg_AS(inFile, &pmesg)) {
       messageCount++;
 
+#if 0
       if (((messageCount == 1) && (pmesg->t != MESG_BAT)) ||
           ((messageCount != 1) && (pmesg->t == MESG_BAT))) {
         printGKPError(stderr, GKPError_FirstMessageBAT);
         WriteProtoMesg_AS(stderr,pmesg);
         return GATEKEEPER_FAILURE;
       }
+#endif
 
       if (pmesg->t == MESG_BAT) {
         if (GATEKEEPER_SUCCESS != Check_BatchMesg((BatchMesg *)pmesg->m, &currentBatchID, time(0), verbose)) {

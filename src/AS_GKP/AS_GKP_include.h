@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.16 2007-03-23 04:51:08 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.17 2007-04-12 10:05:20 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
@@ -74,30 +74,44 @@ Check_LinkMesg(LinkMesg             *lkg_mesg,
 
 
 
+
 void
-dumpGateKeeperAsCompatible(char       *gkpStoreName,
-                           CDS_IID_t   begIID,
-                           CDS_IID_t   endIID);
+dumpGateKeeperInfo(char       *gkpStoreName);
+
+void
+dumpGateKeeperBatches(char       *gkpStoreName,
+                      CDS_IID_t   begIID,
+                      CDS_IID_t   endIID,
+                      int         asTable);
+
+void
+dumpGateKeeperLibraries(char       *gkpStoreName,
+                        CDS_IID_t   begIID,
+                        CDS_IID_t   endIID,
+                        int         asTable);
+
+void
+dumpGateKeeperFragments(char       *gkpStoreName,
+                        CDS_IID_t   begIID,
+                        CDS_IID_t   endIID,
+                        int         dumpWithSequence,
+                        int         dumpClear,
+                        int         asTable);
 
 void
 dumpGateKeeperAsFasta(char       *gkpStoreName,
                       CDS_IID_t   begIID,
                       CDS_IID_t   endIID,
                       int         dumpFastaAllReads,
-                      int         dumpFastaAllBases,
                       int         dumpFastaClear,
                       int         dumpFastaQuality);
-
-void
-dumpGateKeeperAsXML(char       *gkpStoreName,
-                    CDS_IID_t   begIID,
-                    CDS_IID_t   endIID);
 
 void
 dumpGateKeeperAsOFG(char       *gkpStoreName);
 
 void
 dumpGateKeeperAsFRG(char       *gkpStoreName);
+
 
 
 

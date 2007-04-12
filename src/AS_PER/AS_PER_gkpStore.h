@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.28 2007-03-30 19:36:46 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.29 2007-04-12 10:05:20 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -62,6 +62,10 @@ typedef struct {
 #define AS_READ_ORIENT_NORMAL     0x03
 #define AS_READ_ORIENT_ANTINORMAL 0x04
 
+static const char *AS_READ_ORIENT_NAMES[8] = {
+  "U", "I", "O", "N", "A", "X", "X", "X"
+};
+
 typedef struct {
   CDS_UID_t      libraryUID;
 
@@ -96,6 +100,11 @@ typedef struct {
 #define AS_READ_STATUS_E   0x06
 #define AS_READ_STATUS_I   0x07
 #define AS_READ_STATUS_R   0x08
+
+static const char *AS_READ_STATUS_NAMES[9] = {
+  "G", "B", "U", "W", "X", "V", "E", "I", "R"
+};
+
 
 // Clients must specify which clear range to use.
 //
@@ -246,6 +255,11 @@ CDS_IID_t   getFragRecordLibraryIID(fragRecord *fr) {
 static
 int         getFragRecordIsDeleted(fragRecord *fr) {
   return(fr->gkfr.deleted);
+};
+
+static
+int         getFragRecordIsNonRandom(fragRecord *fr) {
+  return(fr->gkfr.nonrandom);
 };
 
 void        getFragRecordClearRegion(fragRecord *fr, uint32 *start, uint32 *end, uint32 flags);

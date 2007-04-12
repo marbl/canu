@@ -19,30 +19,28 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_dump.c,v 1.9 2007-03-30 19:36:45 brianwalenz Exp $ */
+/* $Id: AS_GKP_dump.c,v 1.10 2007-04-12 10:05:20 brianwalenz Exp $ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
 
 #include "AS_GKP_include.h"
 
-void
-dumpGateKeeperAsCompatible(char       *gkpStoreName,
-                           CDS_IID_t   begIID,
-                           CDS_IID_t   endIID) {
-  fprintf(stderr, "Not yet.  Sorry.\n");
+
+//  perl's chomp is pretty nice
+#define chomp(S) { char *t=S; while (*t) t++; t--; while (isspace(*t)) *t--=0; }
+
+static const char *ctimec(uint64 createdtime) {
+  static char  timestring[256];
+  strcpy(timestring, ctime(&createdtime));
+  chomp(timestring);
+  return(timestring);
 }
 
 
-
 void
-dumpGateKeeperAsFasta(char       *gkpStoreName,
-                      CDS_IID_t   begIID,
-                      CDS_IID_t   endIID,
-                      int         dumpFastaAllReads,
-                      int         dumpFastaAllBases,
-                      int         dumpFastaClear,
-                      int         dumpFastaQuality) {
-  fragRecord       *fr = new_fragRecord();
-  unsigned int      firstElem = 0;
-  unsigned int      lastElem = 0;
+dumpGateKeeperInfo(char       *gkpStoreName) {
 
   GateKeeperStore   *gkp = openGateKeeperStore(gkpStoreName, FALSE);
   if (gkp == NULL) {
@@ -50,53 +48,314 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
     exit(1);
   }
 
-  firstElem = getFirstElemFragStore(gkp);
-  lastElem  = getLastElemFragStore(gkp) + 1;
+  fprintf(stdout, "num fragments        = "F_S32"\n", getNumGateKeeperFragments(gkp->frg));
+  fprintf(stdout, "num libraries        = "F_S32"\n", getNumGateKeeperLibrarys(gkp->lib));
+  fprintf(stdout, "num shadow libraries = "F_S32"\n", getNumGateKeeperLibrarys(gkp->lis));
 
-  if (firstElem < begIID)
-    firstElem = begIID;
-  if (endIID < lastElem)
-    lastElem = endIID;
+  closeGateKeeperStore(gkp);
+}
 
-  for (; firstElem < lastElem; firstElem++) {
-    unsigned int      deleted = 0;
 
-    getFrag(gkp, firstElem, fr, FRAG_S_SEQ | FRAG_S_QLT);
+void
+dumpGateKeeperBatches(char       *gkpStoreName,
+                      CDS_IID_t   begIID,
+                      CDS_IID_t   endIID,
+                      int         asTable) {
+  GateKeeperStore   *gkp = openGateKeeperStore(gkpStoreName, FALSE);
+  if (gkp == NULL) {
+    fprintf(stderr, "Failed to open %s\n", gkpStoreName);
+    exit(1);
+  }
 
-    deleted = getFragRecordIsDeleted(fr);
+  StoreStat stat;
+  int       i;
 
-    if (dumpFastaAllReads || !deleted) {
-      CDS_UID_t      readUID = getFragRecordUID(fr);
-      CDS_UID_t      mateUID = 0;
-      CDS_UID_t      libUID  = 0;
+  statsStore(gkp->bat, &stat);
 
-      CDS_IID_t      readIID = getFragRecordIID(fr);
-      CDS_IID_t      mateIID = getFragRecordMateIID(fr);
-      CDS_IID_t      libIID  = getFragRecordLibraryIID(fr);
+  if (begIID < stat.firstElem)
+    begIID = stat.firstElem;
+  if (stat.lastElem < endIID)
+    endIID = stat.lastElem;
 
-      unsigned int   clrBeg = getFragRecordClearRegionBegin(fr, dumpFastaClear);
-      unsigned int   clrEnd = getFragRecordClearRegionEnd  (fr, dumpFastaClear);
+  for (i=begIID; i<=endIID; i++) {
+    GateKeeperBatchRecord gkpb;
 
-      char          *seq = getFragRecordSequence(fr);
-      char          *qlt = getFragRecordQuality(fr);
+    getGateKeeperBatchStore(gkp->bat, i, &gkpb);
 
-      if (dumpFastaAllBases) {
-        fprintf(stdout, ">"F_UID","F_IID" mate="F_UID","F_IID" lib="F_UID","F_IID" deleted=%d clrBeg="F_U32" clrEnd="F_U32"\n%s\n",
-                readUID, readIID,
-                mateUID, mateIID,
-                libUID,  libIID,
-                deleted,
-                clrBeg, clrEnd,
-                (dumpFastaQuality) ? qlt : seq);
-      } else {
+    if (asTable) {
+      fprintf(stdout, F_UID"\t"F_IID"\t%s\t"F_U64"\t%s\t"F_S32"\t"F_S32"\t"F_S32"\n",
+              gkpb.batchUID, i,
+              (gkpb.name[0]) ? gkpb.name : ".",
+              gkpb.created, ctimec(gkpb.created),
+              gkpb.numFragments,
+              gkpb.numLibraries,
+              gkpb.numLibraries_s);
+    } else {
+      fprintf(stdout, "batchIdent   = "F_UID","F_IID"\n", gkpb.batchUID, i);
+      fprintf(stdout, "batchName    = %s\n", gkpb.name);
+      fprintf(stdout, "batchCreated = "F_U64" (%s)\n", gkpb.created, ctimec(gkpb.created));
+      fprintf(stdout, "batchNFrags  = "F_S32"\n", gkpb.numFragments);
+      fprintf(stdout, "batchNLibs   = "F_S32"\n", gkpb.numLibraries);
+      fprintf(stdout, "batchNLibsS  = "F_S32"\n", gkpb.numLibraries_s);
+      chomp(gkpb.comment);
+      fprintf(stdout, "batchComment\n");
+      if (gkpb.comment[0] != 0)
+        fprintf(stdout, "%s\n", gkpb.comment);
+      fprintf(stdout, "batchCommentEnd\n");
+    }
+  }
+
+  closeGateKeeperStore(gkp);
+}
+
+
+void
+dumpGateKeeperLibraries(char       *gkpStoreName,
+                        CDS_IID_t   begIID,
+                        CDS_IID_t   endIID,
+                        int         asTable) {
+  GateKeeperStore   *gkp = openGateKeeperStore(gkpStoreName, FALSE);
+  if (gkp == NULL) {
+    fprintf(stderr, "Failed to open %s\n", gkpStoreName);
+    exit(1);
+  }
+
+  StoreStat stat;
+  int       i;
+
+  statsStore(gkp->lib, &stat);
+
+  if (begIID < stat.firstElem)
+    begIID = stat.firstElem;
+  if (stat.lastElem < endIID)
+    endIID = stat.lastElem;
+
+  for (i=begIID; i<=endIID; i++) {
+    GateKeeperLibraryRecord gkpl;
+
+    getGateKeeperLibraryStore(gkp->lib, i, &gkpl);
+
+    if (asTable) {
+      fprintf(stdout, F_UID"\t"F_IID"\t%s\t"F_U64"\t%s\t%d\t%d\t%s\t%f\t%f\n",
+              gkpl.libraryUID, i,
+              (gkpl.name[0]) ? gkpl.name : ".",
+              gkpl.created, ctimec(gkpl.created),
+              gkpl.deleted,
+              gkpl.redefined,
+              AS_READ_ORIENT_NAMES[gkpl.orientation],
+              gkpl.mean,
+              gkpl.stddev);
+    } else {
+      fprintf(stdout, "libraryIdent         = "F_UID","F_IID"\n", gkpl.libraryUID, i);
+      fprintf(stdout, "libraryName          = %s\n", gkpl.name);
+      fprintf(stdout, "libraryCreated       = "F_U64" (%s)\n", gkpl.created, ctimec(gkpl.created));
+      fprintf(stdout, "libraryDeleted       = %d\n", gkpl.deleted);
+      fprintf(stdout, "libraryRedefined     = %d\n", gkpl.redefined);
+      fprintf(stdout, "libraryOrientation   = %s\n", AS_READ_ORIENT_NAMES[gkpl.orientation]);
+      fprintf(stdout, "libraryMean          = %f\n", gkpl.mean);
+      fprintf(stdout, "libraryStdDev        = %f\n", gkpl.stddev);
+      fprintf(stdout, "libraryNumFeatures   = %d\n", gkpl.numFeatures);
+      fprintf(stdout, "libraryPrevInstance  = "F_IID"\n", gkpl.prevInstanceID);
+      fprintf(stdout, "libraryPrevID        = "F_IID"\n", gkpl.prevID);
+      fprintf(stdout, "libraryBirthBatch    = %d\n", gkpl.birthBatch);
+      fprintf(stdout, "libraryDeathBatch    = %d\n", gkpl.deathBatch);
+      chomp(gkpl.comment);
+      fprintf(stdout, "libraryComment\n");
+      if (gkpl.comment[0] != 0)
+        fprintf(stdout, "%s\n", gkpl.comment);
+      fprintf(stdout, "libraryCommentEnd\n");
+    }
+  }
+       
+  statsStore(gkp->lis, &stat);
+
+  for (i=stat.firstElem; i<=stat.lastElem; i++) {
+    GateKeeperLibraryRecord gkpl;
+
+    getGateKeeperLibraryStore(gkp->lis, i, &gkpl);
+
+    //  This is a verbatim copy of the above block, except we change
+    //  the label to indiacte it is a shadow library.
+    //
+    if (asTable) {
+      fprintf(stdout, F_UID"\t"F_IID"\t%s\t"F_U64"\t%s\t%d\t%d\t%s\t%f\t%f\tshadow\n",
+              gkpl.libraryUID, i,
+              (gkpl.name[0]) ? gkpl.name : ".",
+              gkpl.created, ctimec(gkpl.created),
+              gkpl.deleted,
+              gkpl.redefined,
+              AS_READ_ORIENT_NAMES[gkpl.orientation],
+              gkpl.mean,
+              gkpl.stddev);
+    } else {
+      fprintf(stdout, "shadowLibraryIdent         = "F_UID","F_IID"\n", gkpl.libraryUID, i);
+      fprintf(stdout, "shadowLibraryName          = %s\n", gkpl.name);
+      fprintf(stdout, "shadowLibraryCreated       = "F_U64" (%s)\n", gkpl.created, ctimec(gkpl.created));
+      fprintf(stdout, "shadowLibraryDeleted       = %d\n", gkpl.deleted);
+      fprintf(stdout, "shadowLibraryRedefined     = %d\n", gkpl.redefined);
+      fprintf(stdout, "shadowLibraryOrientation   = %s\n", AS_READ_ORIENT_NAMES[gkpl.orientation]);
+      fprintf(stdout, "shadowLibraryMean          = %f\n", gkpl.mean);
+      fprintf(stdout, "shadowLibraryStdDev        = %f\n", gkpl.stddev);
+      fprintf(stdout, "shadowLibraryNumFeatures   = %d\n", gkpl.numFeatures);
+      fprintf(stdout, "shadowLibraryPrevInstance  = "F_IID"\n", gkpl.prevInstanceID);
+      fprintf(stdout, "shadowLibraryPrevID        = "F_IID"\n", gkpl.prevID);
+      fprintf(stdout, "shadowLibraryBirthBatch    = %d\n", gkpl.birthBatch);
+      fprintf(stdout, "shadowLibraryDeathBatch    = %d\n", gkpl.deathBatch);
+      chomp(gkpl.comment);
+      fprintf(stdout, "shadowLibraryComment\n");
+      if (gkpl.comment[0] != 0)
+        fprintf(stdout, "%s\n", gkpl.comment);
+      fprintf(stdout, "shadowLibraryCommentEnd\n");
+    }
+  }
+
+  closeGateKeeperStore(gkp);
+}
+
+
+void
+dumpGateKeeperFragments(char       *gkpStoreName,
+                        CDS_IID_t   begIID,
+                        CDS_IID_t   endIID,
+                        int         dumpWithSequence,
+                        int         dumpClear,
+                        int         asTable) {
+  GateKeeperStore   *gkp = openGateKeeperStore(gkpStoreName, FALSE);
+  if (gkp == NULL) {
+    fprintf(stderr, "Failed to open %s\n", gkpStoreName);
+    exit(1);
+  }
+
+  fragRecord   *fr = new_fragRecord();
+  FragStream   *fs = openFragStream(gkp, (!dumpWithSequence || asTable) ? FRAG_S_INF : FRAG_S_ALL);
+  StoreStat     stat;
+
+  int           i;
+
+  statsStore(gkp->frg, &stat);
+
+  if (begIID < stat.firstElem)
+    begIID = stat.firstElem;
+  if (stat.lastElem < endIID)
+    endIID = stat.lastElem;
+
+  resetFragStream(fs, begIID, endIID);
+
+  while (nextFragStream(fs, fr)) {
+    if (asTable) {
+      fprintf(stdout, F_UID"\t"F_IID"\t"F_UID"\t"F_IID"\t"F_UID"\t"F_IID"\t%d\t%d\t%s\t%s\t%d\t%d\t%d\n",
+              getFragRecordUID(fr), getFragRecordIID(fr),
+              (CDS_UID_t)0, getFragRecordMateIID(fr),
+              (CDS_UID_t)0, getFragRecordLibraryIID(fr),
+              getFragRecordIsDeleted(fr),
+              getFragRecordIsNonRandom(fr),
+              AS_READ_STATUS_NAMES[fr->gkfr.status],
+              AS_READ_ORIENT_NAMES[fr->gkfr.orientation],
+              getFragRecordSequenceLength(fr),
+              getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_LATEST),
+              getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_LATEST));
+    } else {
+      fprintf(stdout, "fragmentIdent           = "F_UID","F_IID"\n", getFragRecordUID(fr), getFragRecordIID(fr));
+      fprintf(stdout, "fragmentMate            = "F_UID","F_IID"\n", (CDS_UID_t)0, getFragRecordMateIID(fr));
+      fprintf(stdout, "fragmentLibrary         = "F_UID","F_IID"\n", (CDS_UID_t)0, getFragRecordLibraryIID(fr));
+
+      fprintf(stdout, "fragmentIsDeleted       = %d\n", getFragRecordIsDeleted(fr));
+      fprintf(stdout, "fragmentIsNonRandom     = %d\n", getFragRecordIsNonRandom(fr));
+      fprintf(stdout, "fragmentStatus          = %s\n", AS_READ_STATUS_NAMES[fr->gkfr.status]);
+      fprintf(stdout, "fragmentOrientation     = %s\n", AS_READ_ORIENT_NAMES[fr->gkfr.orientation]);
+      fprintf(stdout, "fragmentPlate           = "F_UID"\n", fr->gkfr.plateUID);
+      fprintf(stdout, "fragmentPlateLocation   = %d\n", fr->gkfr.plateLocation);
+
+      fprintf(stdout, "fragmentSeqLen          = %d\n", getFragRecordSequenceLength(fr));
+      fprintf(stdout, "fragmentHPSLen          = %d\n", getFragRecordHPSLength(fr));
+      fprintf(stdout, "fragmentSrcLen          = %d\n", getFragRecordSourceLength(fr));
+
+      fprintf(stdout, "fragmentBirthBatch      = %d\n", fr->gkfr.birthBatch);
+      fprintf(stdout, "fragmentDeathBatch      = %d\n", fr->gkfr.birthBatch);
+
+      if (dumpWithSequence) {
+        unsigned int   clrBeg = getFragRecordClearRegionBegin(fr, dumpClear);
+        unsigned int   clrEnd = getFragRecordClearRegionEnd  (fr, dumpClear);
+        char          *seq = getFragRecordSequence(fr);
+        char          *qlt = getFragRecordQuality(fr);
+        char          *hps = getFragRecordHPS(fr);
+        char          *src = getFragRecordSource(fr);
+
+        chomp(src);
+
         seq[clrEnd] = 0;
-        fprintf(stdout, ">"F_UID","F_IID" mate="F_UID","F_IID" lib="F_UID","F_IID" deleted=%d\n%s\n",
-                readUID, readIID,
-                mateUID, mateIID,
-                libUID,  libIID,
-                deleted,
-                ((dumpFastaQuality) ? qlt : seq) + clrBeg);
+        qlt[clrEnd] = 0;
+
+        fprintf(stdout, "fragmentSequence%-6s  = %s\n", AS_READ_CLEAR_NAMES[dumpClear], seq + clrBeg);
+        fprintf(stdout, "fragmentQuality%-6s   = %s\n", AS_READ_CLEAR_NAMES[dumpClear], qlt + clrBeg);
+        fprintf(stdout, "fragmentHPS             = %s\n", hps);
+        fprintf(stdout, "fragmentSource          = %s\n", src);
       }
+
+      for (i=0; i <= AS_READ_CLEAR_LATEST; i++) {
+        fprintf(stdout, "fragmentClear%-6s     = %d,%d\n", 
+                AS_READ_CLEAR_NAMES[i],
+                fr->gkfr.clearBeg[i], fr->gkfr.clearEnd[i]);
+      }
+
+      fprintf(stdout, "fragmentSeqOffset       = "F_U64"\n", fr->gkfr.seqOffset);
+      fprintf(stdout, "fragmentQltOffset       = "F_U64"\n", fr->gkfr.qltOffset);
+      fprintf(stdout, "fragmentHpsOffset       = "F_U64"\n", fr->gkfr.hpsOffset);
+      fprintf(stdout, "fragmentSrcOffset       = "F_U64"\n", fr->gkfr.srcOffset);
+    }
+  }
+
+  closeGateKeeperStore(gkp);
+}
+
+
+void
+dumpGateKeeperAsFasta(char       *gkpStoreName,
+                      CDS_IID_t   begIID,
+                      CDS_IID_t   endIID,
+                      int         dumpAllReads,
+                      int         dumpClear,
+                      int         dumpQuality) {
+  GateKeeperStore   *gkp = openGateKeeperStore(gkpStoreName, FALSE);
+  if (gkp == NULL) {
+    fprintf(stderr, "Failed to open %s\n", gkpStoreName);
+    exit(1);
+  }
+
+  fragRecord   *fr = new_fragRecord();
+  FragStream   *fs = openFragStream(gkp, (dumpQuality) ? FRAG_S_QLT : FRAG_S_SEQ);
+  StoreStat     stat;
+
+  int           i;
+
+  statsStore(gkp->frg, &stat);
+
+  if (begIID < stat.firstElem)
+    begIID = stat.firstElem;
+  if (stat.lastElem < endIID)
+    endIID = stat.lastElem;
+
+  resetFragStream(fs, begIID, endIID);
+
+  while (nextFragStream(fs, fr)) {
+
+    if (dumpAllReads || !getFragRecordIsDeleted(fr)) {
+      unsigned int   clrBeg = getFragRecordClearRegionBegin(fr, dumpClear);
+      unsigned int   clrEnd = getFragRecordClearRegionEnd  (fr, dumpClear);
+      char          *seq = getFragRecordSequence(fr);
+
+      if (dumpQuality)
+        seq = getFragRecordQuality(fr);
+
+      seq[clrEnd] = 0;
+
+      fprintf(stdout, ">"F_UID","F_IID" mate="F_UID","F_IID" lib="F_UID","F_IID" clr=%s,%d,%d deleted=%d\n%s\n",
+              getFragRecordUID(fr), getFragRecordIID(fr),
+              (uint64)0, getFragRecordMateIID(fr),
+              (uint64)0, getFragRecordLibraryIID(fr),
+              AS_READ_CLEAR_NAMES[dumpClear], clrBeg, clrEnd,
+              getFragRecordIsDeleted(fr),
+              seq + clrBeg);
     }
   }
 
@@ -105,181 +364,8 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
 }
 
 
-
-
-
 void
-dumpGateKeeperAsXML(char       *gkpStoreName,
-                    CDS_IID_t   begIID,
-                    CDS_IID_t   endIID) {
-
-  int dumpBatchInfo    = 1;
-  int dumpLibraryInfo  = 1;
-  int dumpFragmentInfo = 1;
-
-  GateKeeperStore   *gkp = openGateKeeperStore(gkpStoreName, FALSE);
-  if (gkp == NULL) {
-    fprintf(stderr, "Failed to open %s\n", gkpStoreName);
-    exit(1);
-  }
-
-  if (dumpBatchInfo) {
-    StoreStat stat;
-    int       i;
-
-    statsStore(gkp->bat, &stat);
-     
-    for (i=stat.firstElem; i<=stat.lastElem; i++) {
-      GateKeeperBatchRecord gkpb;
-      time_t                createdtime;
-
-      getGateKeeperBatchStore(gkp->bat, i, &gkpb);
-
-      createdtime = (time_t)gkpb.created;
-
-      fprintf(stdout, "\n\n");
-      fprintf(stdout, "<batch>\n");
-      fprintf(stdout, "<ident>"F_UID","F_IID"</ident>\n", gkpb.batchUID, i);
-      fprintf(stdout, "<name>%s</name>\n", gkpb.name);
-      fprintf(stdout, "<created>("F_U64") %s</created>\n", gkpb.created, ctime(&createdtime));
-      if (gkpb.comment[0])
-        fprintf(stdout, "<comment>\n%s\n</comment>\n", gkpb.comment);
-      fprintf(stdout, "<nFrags>"F_S32"</nFrags>\n", gkpb.numFragments);
-      fprintf(stdout, "<nLibs>"F_S32"</nLibs)\n", gkpb.numLibraries);
-      fprintf(stdout, "<nLibsS>"F_S32"</nLibsS>\n", gkpb.numLibraries_s);
-      fprintf(stdout, "</batch>\n");
-    }
-
-    fprintf(stdout, "\n\n");
-    fprintf(stdout, "<total>\n");
-    fprintf(stdout, "<nFragsTotal>"F_S32"</nFragsTotal>\n", getNumGateKeeperFragments(gkp->frg));
-    fprintf(stdout, "<nLibsTotal>"F_S32"</nLibsTotal>\n", getNumGateKeeperLibrarys(gkp->lib));
-    fprintf(stdout, "<nLibsSTotal>"F_S32"</nLibsSTotal>\n", getNumGateKeeperLibrarys(gkp->lis));
-    fprintf(stdout, "</total>\n");
-  }
-
-
-  if (dumpLibraryInfo) {
-    StoreStat stat;
-    int       i;
-
-    statsStore(gkp->lib, &stat);
-
-    for (i=stat.firstElem; i<=stat.lastElem; i++) {
-      GateKeeperLibraryRecord gkpl;
-      time_t                  createdtime;
-
-      getGateKeeperLibraryStore(gkp->lib, i, &gkpl);
-
-      createdtime = (time_t)gkpl.created;
-
-      fprintf(stdout, "\n\n");
-      fprintf(stdout, "<library>\n");
-      fprintf(stdout, "<ident>"F_UID","F_IID"</ident>\n", gkpl.libraryUID, i);
-      fprintf(stdout, "<name>%s</name>\n", gkpl.name);
-      fprintf(stdout, "<created>("F_U64") %s</created>\n", gkpl.created, ctime(&createdtime));
-      if (gkpl.comment[0])
-        fprintf(stdout, "<comment>\n%s\n</comment>\n", gkpl.comment);
-      fprintf(stdout, "<deleted>%d</deleted>\n", gkpl.deleted);
-      fprintf(stdout, "<redefined>%d</redefined>\n", gkpl.redefined);
-      fprintf(stdout, "<orientation>%d</orientation>\n", gkpl.orientation);
-      fprintf(stdout, "<mean>%f</mean>\n", gkpl.mean);
-      fprintf(stdout, "<stddev>%f</stddev>\n", gkpl.stddev);
-      fprintf(stdout, "<numFeatures>%d</numFeatures>\n", gkpl.numFeatures);
-      fprintf(stdout, "<prevInstanceID>"F_IID"</prevInstanceID>\n", gkpl.prevInstanceID);
-      fprintf(stdout, "<prevID>"F_IID"</prevID>\n", gkpl.prevID);
-      fprintf(stdout, "<birthBatch>%d</birthBatch>\n", gkpl.birthBatch);
-      fprintf(stdout, "<deathBatch>%d</deathBatch>\n", gkpl.deathBatch);
-      fprintf(stdout, "</library>\n");
-    }
-       
-    statsStore(gkp->lis, &stat);
-
-    for (i=stat.firstElem; i<=stat.lastElem; i++) {
-      GateKeeperLibraryRecord gkpl;
-      time_t                  createdtime;
-
-      getGateKeeperLibraryStore(gkp->lis, i, &gkpl);
-
-      createdtime = (time_t)gkpl.created;
-
-      fprintf(stdout, "\n\n");
-      fprintf(stdout, "<shadow_library>\n");
-      fprintf(stdout, "<ident>"F_UID","F_IID"</ident>\n", gkpl.libraryUID, i);
-      fprintf(stdout, "<name>%s</name>\n", gkpl.name);
-      fprintf(stdout, "<created>("F_U64") %s</created>\n", gkpl.created, ctime(&createdtime));
-      if (gkpl.comment[0])
-        fprintf(stdout, "<comment>\n%s\n</comment>\n", gkpl.comment);
-      fprintf(stdout, "<deleted>%d</deleted>\n", gkpl.deleted);
-      fprintf(stdout, "<redefined>%d</redefined>\n", gkpl.redefined);
-      fprintf(stdout, "<orientation>%d</orientation>\n", gkpl.orientation);
-      fprintf(stdout, "<mean>%f</mean>\n", gkpl.mean);
-      fprintf(stdout, "<stddev>%f</stddev>\n", gkpl.stddev);
-      fprintf(stdout, "<numFeatures>%d</numFeatures>\n", gkpl.numFeatures);
-      fprintf(stdout, "<prevInstanceID>"F_IID"</prevInstanceID>\n", gkpl.prevInstanceID);
-      fprintf(stdout, "<prevID>"F_IID"</prevID>\n", gkpl.prevID);
-      fprintf(stdout, "<birthBatch>%d</birthBatch>\n", gkpl.birthBatch);
-      fprintf(stdout, "<deathBatch>%d</deathBatch>\n", gkpl.deathBatch);
-      fprintf(stdout, "</shadow_library>\n");
-    }
-  }
-
-
-  if (dumpFragmentInfo) {
-    StreamHandle             frags = openStream(gkp->frg, NULL, 0);
-    GateKeeperFragmentRecord gkpf;
-    StoreStat                stat;
-    int                      i;
-
-    statsStore(gkp->frg, &stat);
-
-    if (begIID < stat.firstElem)
-      begIID = stat.firstElem;
-    if (endIID > stat.lastElem)
-      endIID = stat.lastElem;
-
-    resetStream(frags, begIID, endIID);
-    i = begIID;
-
-    while (nextStream(frags, &gkpf)) {
-
-      fprintf(stdout, "\n\n");
-      fprintf(stdout, "<fragment>\n");
-      fprintf(stdout, "<ident>"F_UID","F_IID"</ident>\n", gkpf.readUID, gkpf.readIID);
-      fprintf(stdout, "<mate>"F_UID","F_IID"</mate>\n", (CDS_UID_t)0, gkpf.mateIID);
-      fprintf(stdout, "<plate>"F_UID"</plate>\n", gkpf.plateUID);
-      fprintf(stdout, "<library>"F_IID"</library>\n", gkpf.libraryIID);
-
-      //  XXX  flags
-
-      fprintf(stdout, "<sequence>\n%s\n</sequence>\n", "(notyet)");
-      fprintf(stdout, "<quality>\n%s\n</quality>\n", "(notyet)");
-
-      for (i=0; i <= AS_READ_CLEAR_LATEST; i++) {
-        fprintf(stdout, "<clear_%s>%d,%d</clear_%s>\n", 
-                AS_READ_CLEAR_NAMES[i],
-                gkpf.clearBeg[i], gkpf.clearEnd[i],
-                AS_READ_CLEAR_NAMES[i]);
-      }
-
-      fprintf(stdout, "<seqOffset>"F_U64"</seqOffset)\n", gkpf.seqOffset);
-      fprintf(stdout, "<qltOffset>"F_U64"</qltOffset)\n", gkpf.qltOffset);
-      fprintf(stdout, "<hpsOffset>"F_U64"</hpsOffset)\n", gkpf.hpsOffset);
-      fprintf(stdout, "<srcOffset>"F_U64"</srcOffset)\n", gkpf.srcOffset);
-
-      fprintf(stdout, "</fragment>\n");
-
-      i++;
-    }
-  }
-}
-
-
-
-
-
-void
-dumpGateKeeperAsOFG(char *gkpStoreName) {
+dumpGateKeeperAsOFG(char       *gkpStoreName) {
   fragRecord       *fr = new_fragRecord();
   unsigned int      firstElem = 0;
   unsigned int      lastElem = 0;
@@ -327,16 +413,17 @@ dumpGateKeeperAsOFG(char *gkpStoreName) {
 }
 
 
-
-
 void
-dumpGateKeeperAsFRG(char *gkpStoreName) {
+dumpGateKeeperAsFRG(char       *gkpStoreName) {
   fragRecord       *fr = new_fragRecord();
   unsigned int      firstElem = 0;
   unsigned int      lastElem = 0;
 
   GenericMesg       pmesg;
   FragMesg          fmesg;
+
+  fprintf(stderr, "dumpGateKeeperAsFRG isn't fully implemented.\n");
+  assert(0);
 
   pmesg.m = &fmesg;
   pmesg.t = MESG_FRG;
