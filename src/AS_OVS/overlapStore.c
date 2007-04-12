@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore.c,v 1.7 2007-04-03 09:30:47 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore.c,v 1.8 2007-04-12 10:07:58 brianwalenz Exp $";
 
 #include "overlapStore.h"
 
@@ -30,6 +30,7 @@ main(int argc, char **argv) {
   uint32    operation   = OP_NONE;
   char     *storeName   = NULL;
   uint32    dumpBinary  = FALSE;
+  double    dumpERate   = 100.0;
   uint32    bgnIID      = 0;
   uint32    endIID      = 1000000000;
   uint64    memoryLimit = 512 * 1024 * 1024;
@@ -69,6 +70,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-u") == 0) {
       storeName   = argv[++arg];
       operation   = OP_UPDATE_ERATES;
+
+    } else if (strcmp(argv[arg], "-E") == 0) {
+      dumpERate = atof(argv[++arg]);
 
     } else if (strcmp(argv[arg], "-B") == 0) {
       dumpBinary = TRUE;
@@ -122,14 +126,35 @@ main(int argc, char **argv) {
   if ((operation == OP_NONE) || (storeName == NULL) || (err)) {
     fprintf(stderr, "usage: %s -c storeName [-M x (MB) -m maxIID] [-t threads] [-L list-of-ovl-files] ovl-file ...\n", argv[0]);
     fprintf(stderr, "       %s -m storeName mergeName\n", argv[0]);
-    fprintf(stderr, "       %s -d storeName [-B] [-b beginIID] [-e endIID]\n");
-    fprintf(stderr, "       %s -s storeName\n");
+    fprintf(stderr, "       %s -d storeName [-B] [-E erate] [-b beginIID] [-e endIID]\n", argv[0]);
+    fprintf(stderr, "       %s -s storeName\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "-c create a new store, fails if the store exists\n");
-    fprintf(stderr, "-m merge store mergeName into store storeName\n");
-    fprintf(stderr, "-d dump a store\n");
-    fprintf(stderr, "-s dump statistics about a store\n");
+    fprintf(stderr, "  -c create a new store, fails if the store exists\n");
+    fprintf(stderr, "  -m merge store mergeName into store storeName\n");
+    fprintf(stderr, "  -d dump a store\n");
+    fprintf(stderr, "  -s dump statistics about a store\n");
     fprintf(stderr, "\n");
+    fprintf(stderr, "CREATION\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -M x         Use 'x'MB memory for sorting overlaps.\n");
+    fprintf(stderr, "  -m m         There are 'm' reads in the fragment set.\n");
+    fprintf(stderr, "  -t t         Use 't' threads for sorting overlaps.\n");
+    fprintf(stderr, "  -L f         Read overlaps from files listed in 'f'.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "MERGING\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -m storeName mergeName   Merge the store 'mergeName' into 'storeName'\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "DUMPING\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -B            Dump the store as binary, suitable for input to create a new store.\n");
+    fprintf(stderr, "  -E erate      Dump only overlaps <= erate error.\n");
+    fprintf(stderr, "  -b beginIID   Start dumping at 'beginIID'.\n");
+    fprintf(stderr, "  -e endIID     Stop dumping after 'endIID'.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "STATISTICS\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -s storeName  Print statistics on the overlap store 'storeName'.\n");
     fprintf(stderr, "\n");
     exit(1);
   }
@@ -143,7 +168,7 @@ main(int argc, char **argv) {
       mergeStore(storeName, fileList[0]);
       break;
     case OP_DUMP:
-      dumpStore(storeName, dumpBinary, bgnIID, endIID);
+      dumpStore(storeName, dumpBinary, dumpERate, bgnIID, endIID);
       break;
     case OP_STATS:
       statsStore(storeName);

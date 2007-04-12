@@ -39,7 +39,7 @@ void
 updateErates(char *storeName, char *eratesName);
 
 void
-dumpStore(char *storeName, uint32 dumpBinary, uint32 bgnIID, uint32 endIID);
+dumpStore(char *storeName, uint32 dumpBinary, double dumpERate, uint32 bgnIID, uint32 endIID);
 
 void
 statsStore(char *storeName);
