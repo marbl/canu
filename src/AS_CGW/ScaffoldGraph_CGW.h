@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ScaffoldGraph_CGW.h,v 1.14 2007-03-13 22:38:49 brianwalenz Exp $	 */
+/* 	$Id: ScaffoldGraph_CGW.h,v 1.15 2007-04-12 18:54:45 brianwalenz Exp $	 */
 /***************************************************************************
  *  ScaffoldGraph
  *  
@@ -97,8 +97,6 @@ VA_DEF(CIScaffoldT);
 VA_DEF(ContigT);
 VA_DEF(CIEdgeT);
 VA_DEF(SEdgeT);
-VA_DEF(InternalLinkMesg);
-
 
 
 

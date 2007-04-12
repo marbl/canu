@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_FGB_io.c,v 1.15 2007-03-13 03:03:46 brianwalenz Exp $";
+= "$Id: AS_FGB_io.c,v 1.16 2007-04-12 18:54:44 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_FGB_io.c
@@ -1187,10 +1187,8 @@ static void input_mesgs_internal
 (int             argc, 
  char           *argv[],
  FILE           *fovl, 
- FILE           *filk,
  int            *Pnadt,
  int            *Pnidt, 
- int            *Pnilk,
  IntFragment_ID *Pnofg,
  IntEdge_ID     *Pnedges_delta,
  IntEdge_ID     *Pnovl_dovetail, 
@@ -1215,7 +1213,7 @@ static void input_mesgs_internal
   /* It is assumed that in the overlap records that new fragments
     point to old fragments.  */
 
-  int nadt=0,nidt=0,nilk=0;
+  int nadt=0,nidt=0;
   IntEdge_ID nedges_delta=0,novl_dovetail=0,novl_containment=0,novl_degenerate=0;
   GenericMesg *pmesg;
   VA_TYPE(char) * the_ofg_source = NULL;
@@ -1231,20 +1229,6 @@ static void input_mesgs_internal
 	AuditLine  *adl;
 	/*  Audit Message record-- for now scavenge for genome length */
 	nadt++;
-	if(NULL != filk) {
-          static const char teststr[] = "Genome Length is";
-	  for(adl = adt_mesg->list; adl != NULL; adl = adl->next) {
-	    const size_t len1 = strlen(teststr);
-	    const size_t len2 = strlen(adl->comment);
-	    const size_t len3 = (len1 < len2 ? len1 : len2);
-	    if(0 == strncmp(teststr,adl->comment,len3))
-	      { 
-		sscanf(  &((adl->comment)[strlen(teststr)]), BPFORMAT,
-			 nbase_in_genome);}
-	  }
-	  VersionStampADT(adt_mesg, argc, argv);
-	  WriteProtoMesg_AS(filk,pmesg);
-	}
       }
       break;
     case MESG_IDT: 
@@ -1253,17 +1237,6 @@ static void input_mesgs_internal
 	/*  Distance record--skip for now */
 	idt_mesg = (InternalDistMesg  *)(pmesg->m);
 	nidt++;
-	if(NULL != filk) {
-	  WriteProtoMesg_AS(filk,pmesg);
-	}
-      }
-      break;
-    case MESG_ILK: 
-      {
-	nilk++;
-	if(NULL != filk) {
-	  WriteProtoMesg_AS(filk,pmesg);
-	}
       }
       break;
     case MESG_OFG: 
@@ -1301,16 +1274,11 @@ static void input_mesgs_internal
     case MESG_IBC:
       {
 	// Just swallow these...
-	if(NULL != filk) {
-	  // WriteProtoMesg_AS(filk,pmesg);
-	}
       }
       break;
     case MESG_IBA:
       {
-	if(NULL != filk) {
-	  WriteProtoMesg_AS(filk,pmesg);
-	}
+	// Just swallow these...
       }
       break;
     default:
@@ -1325,7 +1293,6 @@ static void input_mesgs_internal
   }
   *Pnadt = nadt;
   *Pnidt = nidt;
-  *Pnilk = nilk;
   *Pnedges_delta = nedges_delta;
   *Pnovl_dovetail = novl_dovetail;
   *Pnovl_containment = novl_containment;
@@ -1337,7 +1304,6 @@ void input_messages_from_a_file
 (int        argc, 
  char       *argv[],
  FILE       *fovl,
- FILE       *filk,
  Tfragment  frags[],
  // The internal representation of the fragment reads. 
  Tedge      edges[],
@@ -1365,7 +1331,6 @@ void input_messages_from_a_file
   
   int nadt=0;   /* The number of audit messages read. */
   int nidt=0;   /* The number of distance records read. */
-  int nilk=0;   /* The number of internal link messages. */
   IntFragment_ID nofg=0;   /* The number of fragment records read. */
   IntEdge_ID novl_dovetail=0,novl_containment=0,novl_degenerate=0; /* The number of overlap records read. */
   IntEdge_ID nedge_delta=0;   
@@ -1387,8 +1352,8 @@ void input_messages_from_a_file
   
   input_mesgs_internal
     (argc,argv,
-     fovl,filk,
-     &nadt,&nidt,&nilk,&nofg,&nedge_delta,
+     fovl,
+     &nadt,&nidt,&nofg,&nedge_delta,
      &novl_dovetail,&novl_containment,&novl_degenerate,
      nbase_in_genome,
      nfrag_old, frags,
@@ -1405,7 +1370,6 @@ void input_messages_from_a_file
 
   fprintf(stderr,"Input %10d ADT records.\n",nadt);
   fprintf(stderr,"Input %10d IDT records.\n",nidt);
-  fprintf(stderr,"Input %10d ILK records.\n",nilk);
   fprintf(stderr,"Input %10d OFG records.\n",nofg);
   fprintf(stderr,"Input %10" F_IIDP " OVL records (skipped %10"F_IIDP" degenerate).\n",novl_dovetail+novl_containment, novl_degenerate);
   fprintf(stderr,"min_frag_iid=" F_IID " max_frag_iid=" F_IID "\n",

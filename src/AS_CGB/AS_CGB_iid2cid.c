@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_iid2cid.c,v 1.9 2007-02-25 08:13:37 brianwalenz Exp $";
+= "$Id: AS_CGB_iid2cid.c,v 1.10 2007-04-12 18:54:44 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_fom2uom.c
@@ -57,11 +57,6 @@ VA_DEF(IntChunk_ID)
 /****************************************************************************/
 #define DEBUGGING
 
-#define INPUT_EXTENSION        ".ovl"
-#define INTERMEDIATE_EXTENSION ".ilk"
-#define GRAPH_STORE_EXTENSION  ".fgb"
-#define ANALYSIS_EXTENSION     ".cga"
-
 #define CMD_BUFFER_SIZE 1024
 
 /*************************************************************************/
@@ -72,7 +67,6 @@ static void input_mesgs_pp
  //FILE       *fcgb,
  int        *Pnadt,
  int        *Pnidt, 
- int        *Pnilk,
  int        *Pnium,
  IntFragment_ID *Pnimp,
  IntEdge_ID *Pnuom,
@@ -91,7 +85,7 @@ static void input_mesgs_pp
 { /* It is assumed that in the overlap records that new fragments
      point to old fragments.  */
   
-  int nadt=0,nidt=0,nilk=0,nium=0,nimp=0;
+  int nadt=0,nidt=0,nium=0,nimp=0;
   int nuom=0,nuom_dovetail=0,nuom_containment=0;
   GenericMesg *pmesg;
 
@@ -128,12 +122,6 @@ static void input_mesgs_pp
 	nidt++;
 	//WriteProtoMesg_AS(fcgb,pmesg);
       }
-      break;
-    case MESG_ILK: 
-      {
-	//WriteProtoMesg_AS(fcgb,pmesg);
-      }
-      nilk++;
       break;
     case MESG_IUM: 
       {
@@ -325,7 +313,6 @@ static void input_mesgs_pp
   fprintf(stderr, "Input Done\n");
   *Pnadt = nadt;
   *Pnidt = nidt;
-  *Pnilk = nilk;
   *Pnium = nium;
   *Pnimp = nimp;
   *Pnuom = nuom;
@@ -347,7 +334,6 @@ int main(int argc, char * argv [])
   //FILE       *fcgb = NULL;
   int        nadt = 0;
   int        nidt = 0; 
-  int        nilk = 0;
   int        nium = 0;
   IntFragment_ID nimp = 0;
   IntEdge_ID nuom = 0;
@@ -421,7 +407,6 @@ int main(int argc, char * argv [])
      //fcgb,
      &nadt,
      &nidt, 
-     &nilk,
      &nium,
      &nimp,
      &nuom,
@@ -440,7 +425,6 @@ int main(int argc, char * argv [])
 
   fprintf(stderr,"nadt=%d\n",nadt);
   fprintf(stderr,"nidt=%d\n",nidt);
-  fprintf(stderr,"nilk=%d\n",nilk);
   fprintf(stderr,"nium=%d\n",nium);
   fprintf(stderr,"nuom=" F_IID "\n",nuom);
   fprintf(stderr,"nimp=" F_IID "\n",nimp);

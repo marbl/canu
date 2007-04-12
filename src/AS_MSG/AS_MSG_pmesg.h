@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.38 2007-04-02 13:30:30 gdenisov Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.39 2007-04-12 18:54:45 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -69,7 +69,7 @@ typedef struct {
 typedef enum {
   MESG_NUL = 0,
   MESG_ADT, MESG_FRG, MESG_IFG, MESG_SPe, MESG_OFG, // 5
-  MESG_LKG, MESG_ILK, MESG_DST, MESG_IDT, MESG_SPb, // 10
+  MESG_LKG, MESG_SPg, MESG_DST, MESG_IDT, MESG_SPb, // 10
   MESG_SPc, MESG_SP1, MESG_OVL, MESG_SPf, MESG_UOM, // 15
   MESG_IUM, MESG_IUL, MESG_ICL, MESG_AFG, MESG_ISF, // 20
   MESG_IMD, MESG_IAF, MESG_UTG, MESG_ULK, MESG_ICM, // 25
@@ -85,7 +85,7 @@ typedef enum {
 static char  *MessageTypeName[NUM_OF_REC_TYPES + 1] = {
   "NUL",
   "ADT", "FRG", "IFG", "SPe", "OFG", // 5
-  "LKG", "ILK", "DST", "IDT", "SPb", // 10
+  "LKG", "SPg", "DST", "IDT", "SPb", // 10
   "SPc", "SP1", "OVL", "SPf", "UOM",// 15
   "IUM", "IUL", "ICL", "AFG", "ISF",// 20  
   "IMD", "IAF", "UTG", "ULK", "ICM",// 25 
@@ -158,18 +158,6 @@ typedef struct {
   Fragment_ID     frag2;
   Distance_ID     distance;
 } LinkMesg;
-
-/* ILK message */
- 
-typedef struct {
-  ActionType      action;
-  LinkType        type;
-  time_t          entry_time;
-  OrientType      link_orient;
-  IntFragment_ID  ifrag1;
-  IntFragment_ID  ifrag2;
-  IntDist_ID      idistance;
-} InternalLinkMesg;
 
 /* DST message */
 
@@ -972,9 +960,6 @@ void Transfer_IFG_to_OFG_AS(InternalFragMesg *ifg_mesg,
 
 void Transfer_DST_to_IDT_AS(DistanceMesg     *dst_mesg,
                             InternalDistMesg *idt_mesg);
-
-void Transfer_LKG_to_ILK_AS(LinkMesg         *lkg_mesg,
-                            InternalLinkMesg *ilk_mesg);
 
 
 

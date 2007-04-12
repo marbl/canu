@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.29 2007-04-12 10:17:39 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.30 2007-04-12 18:54:45 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -78,13 +78,7 @@ static int32 BetweenContained = 0;
 static int32 ContainStack = 0;
 static int32 BadQuality = 0;
 
-/****  Temporary  ****/
-//static VA_TYPE(InternalLinkMesg) *ILKs;
 
-
-#if 0
-static void ProcessIDT(InternalDistMesg *idt_mesg);
-#endif
 static void ProcessUOM(UnitigOverlapMesg *uom_mesg, float transQualityCutoff);
 static void ProcessIUM(IntUnitigMesg *ium_mesg);
 static void ProcessFrags(void);
@@ -92,7 +86,7 @@ static void ProcessEdges(int32 maxDegree, int32 maxDegreeUnique);
 
 
 static int32 msgCnt = 0;
-static int32 numIDT = 0, numILK = 0, numILKReread = 0, numIUM = 0, numUOM = 0, numJNC = 0;
+static int32 numIDT = 0, numIUM = 0, numUOM = 0, numJNC = 0;
 
 /****************************************************************************/
 int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
@@ -134,9 +128,6 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
         case MESG_ADT:
           // We already processes this
           break;
-        case MESG_ILK:
-          numILK++;
-          break;
         case MESG_IBA:
         case MESG_FOM:
           break;
@@ -169,8 +160,6 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
     fprintf(stderr,"Total edges read:%d != sum of types %d\n",
 	    numUOM ,(Containment + DoveTail + Tandem + TouchesContained + BetweenContained + ContainStack + TransChunk));
   }
-  if(numILK)
-    fprintf(stderr,"\tILK:%d  (%d rereads ignored)(ignored)\n",  numILK, numILKReread);
   if(numIDT)
     fprintf(stderr,"\tIDT:%d  (ignored...read from the gatekeeper store)\n",  numIDT);
   if(numJNC)
@@ -181,7 +170,6 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
 
   /***vvvvv********  Process Frags *************************vvvvvvvvvvv******/
   ProcessFrags();
-  //  DeleteVA_InternalLinkMesg(ILKs);
   /***^^^^^********  End Process Frags ***************************^^^^^******/
 
   fprintf(stderr,"* Total Long Discriminator Uniques : %d   Short Uniques: %d\n",

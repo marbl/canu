@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.2 2007-04-02 13:32:23 gdenisov Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.3 2007-04-12 18:54:45 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -256,26 +256,6 @@ static void *Read_LKG_Mesg(FILE *fin)
     {
       GET_FIELD(lmesg.entry_time,ETM_FORMAT,"entry time field");
       GET_FIELD(lmesg.distance,EDST_FORMAT,"distance field");
-      GET_TYPE(ch,ORI1_FORMAT "[NAIOU]","link orientation");
-      lmesg.link_orient = (OrientType) ch;
-    }
-  GET_EOM;
-  return ((void *) (&lmesg));
-}
-
-static void *Read_ILK_Mesg(FILE *fin)
-{ static InternalLinkMesg lmesg;
-  char ch;
-  
-  GET_TYPE(ch,ACT1_FORMAT "[AD]","action");
-  lmesg.action = (ActionType) ch;
-  GET_TYPE(ch,TYP1_FORMAT "[MBSRYTG]","link");
-  lmesg.type = (LinkType) ch;
-  GET_FIELD(lmesg.ifrag1,IFRAG1_FORMAT,"fragment 1 field");
-  GET_FIELD(lmesg.ifrag2,IFRAG2_FORMAT,"fragment 2 field");
-  if (lmesg.action == AS_ADD)
-    { GET_FIELD(lmesg.entry_time,ETM_FORMAT,"entry time field");
-      GET_FIELD(lmesg.idistance,IDST_FORMAT,"distance field");
       GET_TYPE(ch,ORI1_FORMAT "[NAIOU]","link orientation");
       lmesg.link_orient = (OrientType) ch;
     }
@@ -1416,22 +1396,6 @@ static void Write_LKG_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"}\n");
 }
 
-static void Write_ILK_Mesg(FILE *fout, void *vmesg)
-{ InternalLinkMesg *mesg = (InternalLinkMesg *) vmesg;
-
-  fprintf(fout,"{ILK\n");
-  fprintf(fout,ACT_FORMAT "\n",mesg->action);
-  fprintf(fout,TYP_FORMAT "\n",(char) mesg->type);
-  fprintf(fout,IFRAG1_FORMAT "\n",mesg->ifrag1);
-  fprintf(fout,IFRAG2_FORMAT "\n",mesg->ifrag2);
-  if(mesg->action == AS_ADD)
-    { fprintf(fout,ETM_FORMAT "\n",mesg->entry_time);
-      fprintf(fout,IDST_FORMAT "\n",mesg->idistance);
-      fprintf(fout,ORI_FORMAT "\n",mesg->link_orient);
-    }
-  fprintf(fout,"}\n");
-}
-
 static void Write_Frag_Mesg(FILE *fout, void *vmesg, int frag_class) {
   FragMesg *mesg = (FragMesg *) vmesg;
   static const char * const header[]  = { "FRG", "IFG", "OFG" };
@@ -2115,7 +2079,7 @@ static AS_MSG_callrecord CallTable1[NUM_OF_REC_TYPES + 1] = {
   {"", NULL, NULL, NULL, 0l },
   {"{OFG", Read_OFG_Mesg, Write_OFG_Mesg, Clear_FRG_Mesg,   sizeof(OFGMesg) },
   {"{LKG", Read_LKG_Mesg, Write_LKG_Mesg, NULL,             sizeof(LinkMesg) },
-  {"{ILK", Read_ILK_Mesg, Write_ILK_Mesg, NULL,             sizeof(InternalLinkMesg) },
+  {"", NULL, NULL, NULL, 0l },
   {"{DST", Read_DST_Mesg, Write_DST_Mesg, NULL,             sizeof(DistanceMesg) },
   {"{IDT", Read_IDT_Mesg, Write_IDT_Mesg, NULL,             sizeof(InternalDistMesg) },
   {"", NULL, NULL, NULL, 0l },

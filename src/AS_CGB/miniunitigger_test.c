@@ -74,7 +74,7 @@ static void input_mesgs_to_VA
   assert(NULL != the_ofg_source);
   assert(NULL != the_ovl_source);
   {
-    int nadt=0,nidt=0,nilk=0,nofg=0,novl=0,nibc=0,niba=0;
+    int nadt=0,nidt=0,nofg=0,novl=0,nibc=0,niba=0;
     GenericMesg *pmesg = NULL;
     while( EOF != ReadProtoMesg_AS(fovl, &pmesg)) {
       const MessageType imesgtype = pmesg->t;
@@ -86,9 +86,6 @@ static void input_mesgs_to_VA
         break;
       case MESG_IDT: 
         nidt++;
-        break;
-      case MESG_ILK: 
-        nilk++;
         break;
       case MESG_OFG:
         nofg++;
@@ -117,12 +114,11 @@ static void input_mesgs_to_VA
     fprintf(stderr,
             "input_mesgs_to_VA: nadt = %d\n"
             "input_mesgs_to_VA: nidt = %d\n"
-            "input_mesgs_to_VA: nilk = %d\n"
             "input_mesgs_to_VA: nofg = %d\n"
             "input_mesgs_to_VA: novl = %d\n"
             "input_mesgs_to_VA: nibc = %d\n"
             "input_mesgs_to_VA: niba = %d\n"
-            , nadt, nidt, nilk, nofg, novl, nibc, niba);
+            , nadt, nidt, nofg, novl, nibc, niba);
     
   }
 }

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_FGB_main.c,v 1.10 2007-03-14 19:07:29 brianwalenz Exp $";
+= "$Id: AS_FGB_main.c,v 1.11 2007-04-12 18:54:44 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module:  AS_FGB_main.c
@@ -202,18 +202,9 @@ static void output_mesgs
  const Tedge     edges[],
  const VA_TYPE(char) fragsrc[],
  /* Read Only */
- FILE *filk,
  /* Append Only*/
  FILE *fcgb)
 {
-
-  // Output the IBA and ADT messages from the batches:
-  if(NULL != filk) {
-    GenericMesg *pmesg = NULL;
-    while(EOF != ReadProtoMesg_AS(filk,&pmesg)) {
-      WriteProtoMesg_AS(fcgb,pmesg);
-    }
-  }
 
   // Output the OFG messages:
   {
@@ -381,7 +372,7 @@ static void process_one_ovl_file
     
     input_messages_from_a_file
       (argc, argv, // For ADT version stamp.
-       fovl, NULL,
+       fovl,
        (heapva->frags), // The internal representation of the fragments.
        (heapva->edges), // The internal representation of the overlaps.
        (heapva->frag_annotations),
@@ -896,21 +887,9 @@ int main_fgb
 #endif    
 
   if( rg->create_dump_file ) {
-    FILE *fiba = NULL;
     FILE *folp = NULL;
     char strtmp[CMD_BUFFER_SIZE-1];
     
-    if(NULL != rg->Input_Graph_Store) {
-      fprintf(stderr,"Opening intermediate file to read the "
-	      "IBA+ADT(+ADL)+IDT messages.\n");
-      system_date();
-      sprintf(strtmp,"%s/fgb.iba",rg->Input_Graph_Store);
-      if(NULL == (fiba = fopen(strtmp, "r"))) {
-	fprintf(stderr,"* Can not open fgb.iba file %s\n",strtmp);
-	exit(1);
-      }
-    }
-
     fprintf(stderr,"Opening dump file to write a batch of "
 	    "ADT+IDT+OFG+OVL messages.\n");
 
@@ -923,11 +902,7 @@ int main_fgb
       (/* Input Only*/
        (heapva->frags), (heapva->edges),
        (heapva->frag_annotations),
-       fiba,
        folp);
-#ifdef PREPEND_IBA_FILE
-    if(NULL != fiba) { ierr = fclose(fiba); assert(ierr == 0);}
-#endif // PREPEND_IBA_FILE
     ierr = fclose(folp); assert(ierr == 0);
   }
   

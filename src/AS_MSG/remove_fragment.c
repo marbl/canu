@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: remove_fragment.c,v 1.9 2007-03-09 03:05:58 brianwalenz Exp $ */
+/* $Id: remove_fragment.c,v 1.10 2007-04-12 18:54:45 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -162,21 +162,6 @@ int main( int argc, char ** argv )
 	    }
 	}
         break;
-      case MESG_ILK:
-	{ 
-	  InternalLinkMesg * ilk = (InternalLinkMesg *) gen->m;
-	  if( frag_iids->num_ids == 0 ||
-	      (FindID_ArrayID( frag_iids, (CDS_UID_t) ilk->ifrag1) == -1 &&
-	       FindID_ArrayID( frag_iids, (CDS_UID_t) ilk->ifrag2) == -1) )
-	    {
-	      WriteProtoMesg_AS( fp_out, gen );
-	    }
-	  else
-	    {
-	      WriteProtoMesg_AS( stdout, gen );
-	    }
-	}
-	break;
       case MESG_OVL:
 	{ 
 	  OverlapMesg  * ovl = (OverlapMesg *) gen->m;

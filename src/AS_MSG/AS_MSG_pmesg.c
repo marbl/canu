@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.36 2007-03-29 08:33:46 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.37 2007-04-12 18:54:45 brianwalenz Exp $";
 
 #include "AS_MSG_pmesg_internal.h"
 
@@ -336,18 +336,6 @@ Transfer_DST_to_IDT_AS(DistanceMesg *dst, InternalDistMesg *idt) {
   idt->iaccession  = 0;
   idt->mean        = dst->mean;
   idt->stddev      = dst->stddev;
-}
-
-void
-Transfer_LKG_to_ILK_AS(LinkMesg *lkg, 
-                       InternalLinkMesg *ilk) {
-  ilk->action      = lkg->action;
-  ilk->type        = lkg->type;
-  ilk->ifrag1      = 0;
-  ilk->ifrag2      = 0;
-  ilk->entry_time  = lkg->entry_time;
-  ilk->idistance   = 0;
-  ilk->link_orient = lkg->link_orient;
 }
 
 

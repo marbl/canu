@@ -63,7 +63,6 @@ CGW_LIB_SOURCES = AS_CGW_dataTypes.c \
 
 CRUD_SOURCES = \
                   AS_CGW_LoadCheckpoint.c \
-                  CheckILK.c \
                   Checkpoint.c \
                   InstrumentCheckpoint.c \
                   ProcessScaffolds_CGW.c \
@@ -101,7 +100,7 @@ LIBS          = libCA.a
 
 PROGS = cgw extendClearRanges resolveSurrogates dumpCloneMiddles dumpDistanceEstimates dumpSingletons
 
-CRUD =  CheckILK Checkpoint process_scaffolds loadcgw \
+CRUD =  Checkpoint process_scaffolds loadcgw \
         ScaffoldMap testSplitChunks instrumentCheckpoint \
 	traceNodes findMissedOverlaps localUnitigging_CGW \
 	dumpCheckpointAsFasta examineFragStore exploreMates fixECRCheckpoint \
@@ -158,8 +157,6 @@ localUnitigging_CGW: localUnitigging_CGW.o $(LIBS)
 GetDregsStats: GetDregsStats.o $(LIBS)
 
 findFragments: FindFragments.o $(LIBS)
-
-CheckILK: CheckILK.o $(LIBS)
 
 Checkpoint: Checkpoint.o $(LIBS)
 

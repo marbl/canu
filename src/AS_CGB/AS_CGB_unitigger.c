@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_unitigger.c,v 1.12 2007-03-14 19:07:29 brianwalenz Exp $";
+= "$Id: AS_CGB_unitigger.c,v 1.13 2007-04-12 18:54:44 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_unitigger.c
@@ -77,7 +77,6 @@ static void output_OVL_mesgs
  const Tedge     edges[],
  const VA_TYPE(char) fragsrc[],
  /* Read Only */
- FILE *filk,
  /* Append Only*/
  FILE *fcgb)
 {
@@ -1597,7 +1596,6 @@ static void StandardUnitigger
 
       // VersionStamp(argc,argv);
       
-      FILE *filk = NULL;
       FILE *fcgb = (NULL == rg->blessed_overlaps_output_filename
                     ? NULL
                     : fopen(rg->blessed_overlaps_output_filename,"w")
@@ -1610,7 +1608,6 @@ static void StandardUnitigger
            heapva->edges,
            heapva->frag_annotations,
            /* Read Only */
-           filk,
            /* Append Only*/
            fcgb);
         fclose(fcgb);
