@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.28 2007-03-27 07:31:59 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.29 2007-04-12 10:17:39 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -1070,6 +1070,9 @@ void ProcessFrags(void)
       } else {
         fprintf(stderr, "ProcessFrags()-- WARNING!  fragiid=%d,index=%d mateiid=%d,index=%d -- MATE DOESN'T EXIST!\n",
                 i, ciinfo->fragIndex, gkf.mateIID, miinfo->fragIndex);
+        //  This is not a critical failure, but does indicate
+        //  something amiss with either the store or the unitigs.
+        //
         assert(0);
       }
 
