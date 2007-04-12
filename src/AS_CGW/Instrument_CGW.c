@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.19 2007-02-18 14:04:48 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.20 2007-04-12 13:46:13 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -5021,6 +5021,11 @@ void PopulateICP(IntContigPairs * icp, CDS_CID_t id, CIEdgeT * edge)
   icp->contig1 = id;
   icp->contig2 = (edge->idA == id) ? edge->idB : edge->idA;
   icp->mean = edge->distance.mean;
+  if (edge->distance.variance < 0) {
+      fprintf(stderr,"Negative variance in sqrt: ctg1:%ld ctg2:%ld mean:%lf var:%lf\n",
+              id, icp->contig2, icp->mean, edge->distance.variance);
+      assert(0);
+  }
   icp->stddev = sqrt(edge->distance.variance);
 
   switch(edge->orient)
