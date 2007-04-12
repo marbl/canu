@@ -391,7 +391,7 @@ sub terminate ($) {
 
     if (getGlobal("createACE") > 0) {
         if (! -e "$termDir/test.ace.bz2") {
-            if (runCommand($termDir, "$bin/gatekeeper -frg $wrk/$asm.gkpStore 2> $termDir/gatekeeper.err | grep -v 'No source' > $termDir/$asm.frg")) {
+            if (runCommand($termDir, "$bin/gatekeeper -dumpfrg $wrk/$asm.gkpStore 2> $termDir/gatekeeper.err | grep -v 'No source' > $termDir/$asm.frg")) {
                 unlink "$termDir/$asm.frg";
             }
             if (runCommand($termDir, "$perl $bin/ca2ace.pl $termDir/$asm.asm")) {

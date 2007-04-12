@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_dump.c,v 1.10 2007-04-12 10:05:20 brianwalenz Exp $ */
+/* $Id: AS_GKP_dump.c,v 1.11 2007-04-12 19:09:06 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -422,8 +422,7 @@ dumpGateKeeperAsFRG(char       *gkpStoreName) {
   GenericMesg       pmesg;
   FragMesg          fmesg;
 
-  fprintf(stderr, "dumpGateKeeperAsFRG isn't fully implemented.\n");
-  assert(0);
+  fprintf(stderr, "WARNING:  dumpGateKeeperAsFRG isn't fully implemented.\n");
 
   pmesg.m = &fmesg;
   pmesg.t = MESG_FRG;
