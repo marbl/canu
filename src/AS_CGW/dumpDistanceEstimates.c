@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.21 2007-03-28 13:59:02 skoren Exp $";
+static char CM_ID[] = "$Id: dumpDistanceEstimates.c,v 1.22 2007-04-15 21:21:49 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -409,19 +409,11 @@ dde_stats(int         operateOnNodes,
             numPotentialRocks, (int) GetNumGraphNodes(graph),
             numPotentialStones, (int) GetNumGraphNodes(graph));
   }
-  
-  
-  for (i = 1; i < GetNumDistTs(ScaffoldGraph->Dists); i++) {
-    if ( GetNumCDS_COORD_ts( GetDistT(ScaffoldGraph->Dists, i)->samples) > maxSamples)
-      maxSamples = GetNumCDS_COORD_ts( GetDistT(ScaffoldGraph->Dists, i)->samples);
-  }
-  
-  fprintf( stderr, "maxSamples = %d\n", maxSamples);
-  
+
   // now sort the samples, mates, and frags arrays, based on samples
   for (i = 1; i < GetNumDistTs(ScaffoldGraph->Dists); i++) {
     // MateInfoT *matePairs;
-    MateInfoT matePairs[maxSamples]; // matePairs[maxSamples];
+    MateInfoT *matePairs;
     int icnt;
     CDS_COORD_t newLower, newUpper;
     CDS_COORD_t median = 0, lowerSigma = 0, upperSigma = 0;
@@ -431,7 +423,9 @@ dde_stats(int         operateOnNodes,
       continue;
     if (dptr->numSamples == 0 || dptr->numSamples == 1)
       continue;
-    
+
+    matePairs = (MateInfoT *)safe_malloc(sizeof(MateInfoT) * GetNumCDS_COORD_ts( dptr->samples ));
+
     for ( icnt = 0; icnt < GetNumCDS_COORD_ts( dptr->samples ); icnt++) {
       matePairs[icnt].samples = *GetCDS_COORD_t( dptr->samples, icnt);
       matePairs[icnt].frags = *GetCDS_CID_t( dptrFrags[i], icnt);
@@ -564,6 +558,8 @@ dde_stats(int         operateOnNodes,
         }
       }
     }
+
+    safe_free(matePairs);
   }
 
 

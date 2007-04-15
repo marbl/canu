@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.36 2007-03-16 15:31:50 eliv Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.37 2007-04-15 21:21:49 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,9 +28,9 @@ static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.36 2007-03-16 15:31:50 eliv Exp $";
 #include <fcntl.h>
 #include <sys/types.h>
 #include <string.h>
-#include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
@@ -67,10 +67,7 @@ int isDeadCIScaffoldT(CIScaffoldT *scaffold){
 
 /* Make sure there is enough space for the number of edges we expect */
 void ReallocGraphEdges(GraphCGW_T *graph, int32 numEdges){
-  fprintf(stderr," Reallocating %d edges, currently %d\n",
-          numEdges, (int) GetNumGraphEdges(graph));
   MakeRoom_VA(graph->edges, (size_t) numEdges, FALSE);
-
 }
 
 GraphCGW_T *CreateGraphCGW(GraphType type,
@@ -148,8 +145,7 @@ GraphCGW_T *LoadGraphCGWFromStream(FILE *stream){
       continue;
     if(node->info.CI.numInstances < 3)
       continue;
-    fprintf(GlobalData->stderrc,"* Loading instance list for CI " F_CID " of length %d from VA\n",
-	    i,node->info.CI.numInstances);
+    //fprintf(GlobalData->stderrc,"* Loading instance list for CI " F_CID " of length %d from VA\n", i,node->info.CI.numInstances);
     node->info.CI.instances.va = CreateFromFileVA_CDS_CID_t(stream,0);
   }
 
@@ -196,12 +192,8 @@ void DeleteGraphCGW(GraphCGW_T *graph){
 
   DeleteVA_NodeCGW_T(graph->nodes);
   DeleteVA_EdgeCGW_T(graph->edges);
-  if(graph->type != SCAFFOLD_GRAPH){
-    fprintf(GlobalData->stderrc,"* Destroying Overlapper\n");
+  if(graph->type != SCAFFOLD_GRAPH)
     DestroyChunkOverlapper(graph->overlapper);
-    //    fprintf(GlobalData->stderrc,"* Destroying Multi Align Store\n");
-    //    DeleteMultiAlignStoreT(graph->maStore);
-  }
   safe_free(graph);
 }
 
@@ -254,11 +246,6 @@ int FindGraphEdgeChain(GraphCGW_T *graph, CDS_CID_t eid,
 
   assert(head->idA <= head->idB); // Only interesting on canonical chains
 
-  /*  fprintf(GlobalData->stderrc,"* FindGraphEdgeCHain eid:" F_CID " (" F_CID "," F_CID ",%c) prev:(" F_CID "," F_CID ") next:(" F_CID "," F_CID ")\n",
-      eid, edge->idA, edge->idB,edge->orient,
-      edge->prevALink, edge->prevBLink,
-      edge->nextALink, edge->nextBLink);
-  */
   // Make sure this edge is correctly hooked into the graph
   assert(GraphEdgeSanity(graph, eid));
 
@@ -267,8 +254,6 @@ int FindGraphEdgeChain(GraphCGW_T *graph, CDS_CID_t eid,
   while(1) {
     count++;
     AppendCDS_CID_t(chain, &edgeID);
-    //	fprintf(GlobalData->stderrc,
-    //		"* Appended " F_CID " (" F_CID "," F_CID ",%d)to chain\n", edgeID, edge->idA, edge->idB, edge->orient);
 
     tail = edge;
 
@@ -305,16 +290,6 @@ int FindGraphEdgeChain(GraphCGW_T *graph, CDS_CID_t eid,
     chunkB = GetGraphNode(graph, edge->idB);
     assert(chunkA && chunkB);
     
-    /* fprintf(GlobalData->stderrc,"* Unlinking %d edges... \n\t* ", count);
-       {
-       CDS_CID_t *edges = GetCDS_CID_t(chain,0);
-       int i;
-       for(i = 0; i < count; i++){
-       fprintf(GlobalData->stderrc,F_CID " ", edges[i]);
-       }
-       fprintf(GlobalData->stderrc,"\n");
-       }
-    */
     nextA = NULL;
     if(tail->nextALink != NULLINDEX)
       nextA = GetGraphEdge(graph, tail->nextALink);
@@ -393,11 +368,11 @@ int GraphEdgeSanity(GraphCGW_T *graph, CDS_CID_t eid){
     if(edgeFromA == edge)
       break;
   }
-
-  if(edgeFromA == NULL){
+#ifdef VERBOSE
+  if(edgeFromA == NULL)
     fprintf(GlobalData->stderrc,"* Couldn't find edge " F_CID " (" F_CID "," F_CID ") looking from " F_CID "\n",
 	    eid, idA, idB, idA);
-  }
+#endif
 
   InitGraphEdgeIterator(graph, idB, ALL_END, ALL_EDGES,
                         GRAPH_EDGE_DEFAULT , &edges);
@@ -405,11 +380,11 @@ int GraphEdgeSanity(GraphCGW_T *graph, CDS_CID_t eid){
     if(edgeFromB == edge)
       break;
   }
-
-  if(edgeFromB == NULL){
+#ifdef VERBOSE
+  if(edgeFromB == NULL)
     fprintf(GlobalData->stderrc,"* Couldn't find edge " F_CID " (" F_CID "," F_CID ") looking from " F_CID "\n",
-	    eid, idA, idB, idB);
-  }
+            eid, idA, idB, idB);
+#endif
 
   if(edgeFromB == NULL ||
      edgeFromA == NULL){
@@ -599,16 +574,10 @@ void InsertGraphEdgeInList(GraphCGW_T *graph,
                prevEdge->prevBLink != edges.prev));
     }
 
-#ifdef NEVER
-    // previous version of asserts
-    assert(newEdge->nextALink != CIedgeID && newEdge->nextBLink != CIedgeID);
-    assert(newEdge->prevALink != CIedgeID && newEdge->prevBLink != CIedgeID);
-#else
     if(isA)
       assert(newEdge->prevALink != CIedgeID && newEdge->nextALink != CIedgeID);
     else
       assert(newEdge->prevBLink != CIedgeID && newEdge->nextBLink != CIedgeID);
-#endif
   }
 }
 
@@ -699,9 +668,6 @@ int32 InsertGraphEdge(GraphCGW_T *graph, CDS_CID_t edgeID, int verbose){
 void FreeGraphEdgeByEID(GraphCGW_T *graph, CDS_CID_t eid){
   int count = 0;
   EdgeCGW_T *edge = GetGraphEdge(graph, eid);
-#ifdef DEBUG 
-  PrintGraphEdge(GlobalData->stderrc,graph,"Freeing", edge, edge->idA);
-#endif
   assert(!edge->flags.bits.isDeleted);
 
   if(!edge->flags.bits.isRaw)
@@ -709,13 +675,7 @@ void FreeGraphEdgeByEID(GraphCGW_T *graph, CDS_CID_t eid){
       EdgeCGW_T *rawEdge = GetGraphEdge(graph, edge->nextRawEdge);
       while(rawEdge){
 	EdgeCGW_T *nextEdge = GetGraphEdge(graph, rawEdge->nextRawEdge);
-#ifdef DEBUG
-	PrintGraphEdge(GlobalData->stderrc,graph,"Freeing raw",
-                       rawEdge, rawEdge->idA);
-#endif      
 	count++;
-	//      rawEdge->flags.bits.isDeleted = TRUE;
-	//      rawEdge->flags.bits.isRaw = TRUE;
 
 	assert(rawEdge->idA == edge->idA &&
 	       rawEdge->idB == edge->idB &&
@@ -725,12 +685,6 @@ void FreeGraphEdgeByEID(GraphCGW_T *graph, CDS_CID_t eid){
 	FreeGraphEdge(graph,rawEdge);
 	rawEdge = nextEdge;
       }
-      /*    if(count != edge->edgesContributing){
-            fprintf(GlobalData->stderrc,
-            "* contributing = %d only deleted %d raw edges!!!\n",
-            edge->edgesContributing, count);
-	    }
-      */
     }
   edge->flags.bits.isDeleted = TRUE;
     
@@ -1108,11 +1062,6 @@ void PrintGraphEdge(FILE *fp, GraphCGW_T *graph,
   if(edge->flags.bits.hasTransChunk){
     strcat(flagbuf,"$t");
   }
-#if 0
-  if(edge->flags.bits.mustOverlap){
-    strcat(flagbuf,"$m");
-  }
-#endif
   if(edge->flags.bits.aContainsB){
     strcat(flagbuf,"$C");
   }else if(edge->flags.bits.bContainsA){
@@ -1311,11 +1260,6 @@ void PrintContigEdgeInScfContext(FILE *fp, GraphCGW_T *graph,
   if(edge->flags.bits.hasTransChunk){
     strcat(flagbuf,"$t");
   }
-#if 0
-  if(edge->flags.bits.mustOverlap){
-    strcat(flagbuf,"$m");
-  }
-#endif
   if(edge->flags.bits.aContainsB){
     strcat(flagbuf,"$C");
   }else if(edge->flags.bits.bContainsA){
@@ -1465,11 +1409,6 @@ CDS_CID_t AddGraphEdge(GraphCGW_T *graph,
   ciedge->distance = distance;
   ciedge->quality = quality;
   ciedge->minDistance = distance.mean - 3 * sqrt(distance.variance);
-#if 0
-  ciedge->fudgeDistance = fudgeDistance;
-  ciedge->minDistance = distance.mean - fudgeDistance;
-  ciedge->maxDistance = distance.mean + fudgeDistance;
-#endif
   ciedge->orient = orient;
   ciedge->flags.all = 0;
   ciedge->prevBLink = ciedge->prevALink = NULLINDEX;
@@ -1571,24 +1510,9 @@ CDS_CID_t AddGraphEdge(GraphCGW_T *graph,
   
   assert(!(ciedge->flags.bits.hasContributingOverlap &&
            ciedge->flags.bits.hasTandemOverlap));
-  /*
-    AppendGraphEdge(graph, &ciedge);
-    ciedgeIndex = GetNumGraphEdges(graph) - 1;
-  */
-  if(insert){
-    //MarkTandemEdge(graph, &ciedge);
-    
-    //    fprintf(GlobalData->stderrc,"* Inserting graph edge " F_CID "\n",
-    //	    ciedgeIndex);
+  if(insert)
     InsertGraphEdge(graph, ciedgeIndex, FALSE);
-  }
   
-#if 0
-  fprintf(stderr,"* AddGraphEdge (" F_CID "," F_CID ",%c) %s %s\n",
-          ciedge->idA, ciedge->idB, ciedge->orient,
-          (CIa->flags.bits.isPotentialRock?"YES":"NO"),
-          (CIb->flags.bits.isPotentialRock?"YES":"NO"));
-#endif
   if(collectOverlap &&
      CIa->flags.bits.isPotentialRock &&
      CIb->flags.bits.isPotentialRock){ 
@@ -1603,9 +1527,7 @@ CDS_CID_t AddGraphEdge(GraphCGW_T *graph,
                             ScaffoldGraph->alignOverlaps,
                             TRUE,
                             FALSE);
-      }else{ //  if(ciedge->minDistance < CGW_MISSED_OVERLAP){
-        //	  fprintf(stderr,"* Collected Overlap (" F_CID "," F_CID ",%c)\n", ciedge->idA, ciedge->idB, ciedge->orient);
-        //	  PrintGraphEdge(GlobalData->stderrc, graph, " ", ciedge, ciedge->idA);
+      }else{
         CollectChunkOverlap(graph,
                             ciedge->idA, 
                             ciedge->idB,
@@ -1685,39 +1607,19 @@ EdgeCGW_T *FindGraphOverlapEdge(GraphCGW_T *graph,
       assert(0);
   }
   
-#if 0
-  fprintf(GlobalData->stderrc,
-          "* Looking for edges " F_CID "," F_CID " orient:%c\n",
-          idA, idB,orient);
-  fprintf(GlobalData->stderrc,
-          "* Looking for edges of " F_CID " at end %s\n",
-          idA, (end == A_END? "A_END":"B_END"));
-#endif
   InitGraphEdgeIterator(graph, idA, end, ALL_EDGES,
                         GRAPH_EDGE_DEFAULT, &edges);
   
   while(NULL != (edge = NextGraphEdgeIterator(&edges))){
     ChunkOrientationType corient = GetEdgeOrientationWRT(edge, idA);
     if(!isOverlapEdge(edge)){
-#if 0
-      fprintf(GlobalData->stderrc,"* Found, but not an overlap edge\n");
-#endif
       continue;
     }
     if(corient != orient){
-#if 0
-      fprintf(GlobalData->stderrc,"* Orientation %c is not %c\n",
-              corient, orient);
-#endif
       continue;
     }
     if(edge->idA != idB &&
        edge->idB != idB){
-#if 0
-      fprintf(GlobalData->stderrc,
-              "* ida = " F_CID " idb = " F_CID " NOT Equal to " F_CID "\n",
-              edge->idA, edge->idB, idB);
-#endif
       continue;
     }
     found = TRUE;
@@ -1756,35 +1658,16 @@ EdgeCGW_T *FindGraphEdge(GraphCGW_T *graph,
       assert(0);
   }
   
-#if 0
-  fprintf(GlobalData->stderrc,
-          "* Looking for edges " F_CID "," F_CID " orient:%c\n",
-          idA, idB,orient);
-  fprintf(GlobalData->stderrc,
-          "* Looking for edges of " F_CID " at end %s\n",
-          idA, (end == A_END? "A_END":"B_END"));
-#endif
   InitGraphEdgeIterator(graph, idA, end, ALL_EDGES,
                         GRAPH_EDGE_DEFAULT, &edges);
   
   while(NULL != (edge = NextGraphEdgeIterator(&edges))){
     ChunkOrientationType corient = GetEdgeOrientationWRT(edge, idA);
-    if(corient != orient){
-#if 0
-      fprintf(GlobalData->stderrc,"* Orientation %c is not %c\n",
-              corient, orient);
-#endif
+    if(corient != orient)
       continue;
-    }
     if(edge->idA != idB &&
-       edge->idB != idB){
-#if 0
-      fprintf(GlobalData->stderrc,
-              "* ida = " F_CID " idb = " F_CID " NOT Equal to " F_CID "\n",
-              edge->idA, edge->idB, idB);
-#endif
+       edge->idB != idB)
       continue;
-    }
     found = TRUE;
     break;
   }
@@ -1904,9 +1787,6 @@ void MergeNodeGraphEdges(GraphCGW_T *graph, NodeCGW_T *node,
       
       for(i = 0; i < GetNumCDS_CID_ts(chain); i ++){
         CDS_CID_t edgeID = *GetCDS_CID_t(chain,i);
-#if 0 // Not currently supported for ScaffoldGraphT
-        TruncateEdgeRange(newEdge, overlapEdgeAll, graph);
-#endif
         InsertGraphEdge(graph,edgeID,FALSE);
       }
       
@@ -1974,10 +1854,6 @@ int IsRepeatOverlap(GraphCGW_T *graph,
      -overlap.mean  - branchPoint2 < AS_CGW_MIN_REPEAT_OVERLAP)
     ret = TRUE;
   
-#if 0
-  fprintf(GlobalData->stderrc,"* isRepeatCIOverlap:%d cid1:" F_CID " cid2:" F_CID " o:%c bp1:" F_COORD " bp2:" F_COORD " overlap:%d\n",
-          ret, cid1, cid2, orient, branchPoint1, branchPoint2, (int) -overlap.mean);
-#endif
   return ret;
   
 }
@@ -2113,14 +1989,6 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
   if(ungappedOffsets == NULL)
     ungappedOffsets = CreateVA_CDS_COORD_t(10);
 
-  /*
-    fprintf(GlobalData->stderrc,
-    "* UpdateNodeFragments on chunk " F_CID "\n", cid);
-    fprintf(GlobalData->stderrc,
-    "* UpdateNodeFragments ... isPlaced = %d\n", isPlaced);
-  */
-  
-  //  ma = GetMultiAlignInStore(graph->maStore, cid);
   ma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, cid,
                                      graph->type == CI_GRAPH);
   GetMultiAlignUngappedOffsets(ma, ungappedOffsets);
@@ -2144,55 +2012,42 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
   
   for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++){
     IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
-    CDS_CID_t fragID = (CDS_CID_t)mp->sourceInt; // GetInfoByIID(ScaffoldGraph->iidToFragIndex, mp->ident)->fragIndex;
+    CDS_CID_t fragID = (CDS_CID_t)mp->sourceInt;
     CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, fragID);
     LengthT offset3p, offset5p;
     CDS_COORD_t ubgn, uend;
     int flip = (mp->position.end < mp->position.bgn);
     CDS_COORD_t bgn, end;
     
-
-    // the original code here called for changing from space-based to 0-base-based
-    // coordinates ... but this seems incompatible with the behavior of GetMultiAlignUngappedOffsets???
-    // So, let's stop adjusting the interval coordinates!
-#undef CONVERT_INTERVAL_TO_BASES_WHICH_IS_A_BAD_IDEA
-#ifdef CONVERT_INTERVAL_TO_BASES_WHICH_IS_A_BAD_IDEA
-#define INTERVAL_TO_BASE_END_CONVERSION 1
-#else
-#define INTERVAL_TO_BASE_END_CONVERSION 0
-#endif
-
     // mp->position is an interval.  We need to subtract one from
     // the upper end of the interval
     if(flip){
-      bgn = mp->position.bgn - INTERVAL_TO_BASE_END_CONVERSION;
+      bgn = mp->position.bgn;
       end = mp->position.end;
     }else{
       bgn = mp->position.bgn;
-      end = mp->position.end - INTERVAL_TO_BASE_END_CONVERSION;
+      end = mp->position.end;
     }
 
     if(bgn>=ungappedOffsets->numElements){
-      fprintf(stderr,"WARNING: fragment %d falls off end of multialignment %d; fudging ...\n",
-	      mp->ident,ma->id);
+      //fprintf(stderr,"WARNING: fragment %d falls off end of multialignment %d; fudging ...\n", mp->ident,ma->id);
       bgn=ungappedOffsets->numElements-1;
     }
     ubgn = *GetCDS_COORD_t(ungappedOffsets, bgn);
     if(end>=ungappedOffsets->numElements){
-      fprintf(stderr,"WARNING: fragment %d falls off end of multialignment %d; fudging ...\n",
-	      mp->ident,ma->id);
+      //fprintf(stderr,"WARNING: fragment %d falls off end of multialignment %d; fudging ...\n", mp->ident,ma->id);
       end=ungappedOffsets->numElements-1;
     }
     uend = *GetCDS_COORD_t(ungappedOffsets, end);
     
     if(ubgn == uend){
-      fprintf(GlobalData->stderrc,"* Fragment " F_CID " now has ungapped length = %d (" F_COORD "," F_COORD ")...from gapped (" F_COORD "," F_COORD ")...either bad multi-alignment\n"
-	      "* or a fragment fully contained within a gap in the consensus due to a bubble\n",
-              mp->ident,(int)abs(ubgn-uend), ubgn, uend, bgn,end);
+      //fprintf(GlobalData->stderrc,"* Fragment " F_CID " now has ungapped length = %d (" F_COORD "," F_COORD ")...from gapped (" F_COORD "," F_COORD ")...either bad multi-alignment\n"
+      //        "* or a fragment fully contained within a gap in the consensus due to a bubble\n",
+      //        mp->ident,(int)abs(ubgn-uend), ubgn, uend, bgn,end);
       if(!markUnitigAndContig){
-	fprintf(GlobalData->stderrc,"* Details: fragment in CI " F_CID " [" F_COORD "," F_COORD "] CtgID " F_CID " [" F_COORD "," F_COORD "]\n",
-		frag->cid,(int)(frag->offset5p.mean),(int)(frag->offset3p.mean),
-		frag->contigID,(int)(frag->contigOffset5p.mean),(int)(frag->contigOffset3p.mean));
+	//fprintf(GlobalData->stderrc,"* Details: fragment in CI " F_CID " [" F_COORD "," F_COORD "] CtgID " F_CID " [" F_COORD "," F_COORD "]\n",
+	//        frag->cid,(int)(frag->offset5p.mean),(int)(frag->offset3p.mean),
+	//        frag->contigID,(int)(frag->contigOffset5p.mean),(int)(frag->contigOffset3p.mean));
       }
       fprintf(GlobalData->stderrc,"* More details: graph node " F_CID "\n",cid);
 
@@ -4091,51 +3946,21 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
   GraphNodeIterator nodes;
   NodeCGW_T *node;
   DistT *dptr;
-  int i, ii, maxSamples = 1;
   MultiAlignT *ma = CreateEmptyMultiAlignT();
   int numPotentialRocks = 0;
   int numPotentialStones = 0;
-  //VA_TYPE(int32) *dptrFrags[GetNumDistTs(ScaffoldGraph->Dists)];
-  //VA_TYPE(int32) *dptrMates[GetNumDistTs(ScaffoldGraph->Dists)];
   int NN = GetNumDistTs(ScaffoldGraph->Dists);
   VA_TYPE(CDS_CID_t) *dptrFrags[NN];
   VA_TYPE(CDS_CID_t) *dptrMates[NN];
-  
-  // make the stat directory if it doesn't exist already
-  {
-    char filename[128];
-    DIR *dout;
-    
-    sprintf( filename, "stat");
-    fprintf( stderr, "opening directory: %s\n", filename);
-    dout = opendir(filename);
-    if ( dout == NULL )
-      {
-        // the original system call has had problems, thus the checking now
-        int retval;
-        DIR * dirStream;
-      
-        fprintf( stderr,
-                 "could not open directory: %s, creating...\n", filename);
-        retval = mkdir("stat", 0775 );
-        if (retval != 0 ) {
-            perror("mkdir stat failed");
-            assert(0);
-        }
+  int i, ii;
 
-        dirStream = opendir("stat");
-        if(dirStream == NULL)
-          {
-            fprintf(stderr, "Failed to access newly created directory: %s\n",
-                    filename);
-            assert(0);
-          }
-        closedir(dirStream);
-      }
-    else
-      closedir(dout);
+  errno = 0;
+  mkdir("stat", 0775 );
+  if ((errno) && (errno != EEXIST)) {
+    fprintf(stderr, "ComputeMatePairStatisticsRestricted()-- Couldn't create directory 'stat': %s\n", strerror(errno));
+    exit(1);
   }
-  
+
   if (operateOnNodes == UNITIG_OPERATIONS)
     graph = ScaffoldGraph->CIGraph;
   else if (operateOnNodes == CONTIG_OPERATIONS)
@@ -4192,14 +4017,6 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
       int numFrags;
       int numExternalLinks = 0;
     
-      if(node->id % 100000 == 0)
-        {
-          fprintf(GlobalData->stderrc, "node " F_CID "\n", node->id);
-          fflush(GlobalData->stderrc);
-        }
-      //	fprintf(GlobalData->stderrc,"* Marking mates of %d frags in %s " F_CID "\n",	
-      // numFrags, (operateOnNodes == CONTIG_OPERATIONS ? "Contig" : "Unitig"), node->id);
-    
       // Don't waste time loading singletons for this
       if(node->flags.bits.isChaff) {
         numChaff++;
@@ -4230,6 +4047,7 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
                   frag->flags.bits.hasInternalOnlyCILinks,
                   frag->flags.bits.hasInternalOnlyContigLinks);
 #endif
+
           // This is important for keeping our computation as local as possible.
           // We skip fragments that have external links only, or no links
           if (frag->flags.bits.hasMate == 0) {
@@ -4523,24 +4341,9 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
               numPotentialStones, (int) GetNumGraphNodes(graph));
     }
   
-#if 1
-  // mjf
-  
-  for (i = 1; i < GetNumDistTs(ScaffoldGraph->Dists); i++)
-    {
-      fprintf( stderr, "GetNumCDS_COORD_ts( GetDistT(ScaffoldGraph->Dists, " F_CID ")->samples) = %d\n", 
-               i, (int) GetNumCDS_COORD_ts( GetDistT(ScaffoldGraph->Dists, i)->samples));
-      if ( GetNumCDS_COORD_ts( GetDistT(ScaffoldGraph->Dists, i)->samples) > maxSamples)
-        maxSamples = GetNumCDS_COORD_ts( GetDistT(ScaffoldGraph->Dists, i)->samples);
-    }
-  
-  fprintf( stderr, "maxSamples = %d\n", maxSamples);
-  
   // now sort the samples, mates, and frags arrays, based on samples
-  for (i = 1; i < GetNumDistTs(ScaffoldGraph->Dists); i++)
-    {
-      // MateInfoT *matePairs;
-      MateInfoT matePairs[maxSamples]; // matePairs[maxSamples];
+  for (i = 1; i < GetNumDistTs(ScaffoldGraph->Dists); i++) {
+      MateInfoT *matePairs;
       int icnt;
       CDS_COORD_t newLower, newUpper;
       CDS_COORD_t median = 0, lowerSigma = 0, upperSigma = 0;
@@ -4551,8 +4354,9 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
       if (dptr->numSamples == 0 || dptr->numSamples == 1)
         continue;
     
-      for ( icnt = 0; icnt < GetNumCDS_COORD_ts( dptr->samples ); icnt++)
-        {
+      matePairs = (MateInfoT *)safe_malloc(sizeof(MateInfoT) * GetNumCDS_COORD_ts( dptr->samples ));
+
+      for ( icnt = 0; icnt < GetNumCDS_COORD_ts( dptr->samples ); icnt++) {
           matePairs[icnt].samples = *GetCDS_COORD_t( dptr->samples, icnt);
           matePairs[icnt].frags = *GetCDS_CID_t( dptrFrags[i], icnt);
           matePairs[icnt].mates = *GetCDS_CID_t( dptrMates[i], icnt);
@@ -4560,12 +4364,6 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
     
       qsort( matePairs, GetNumCDS_COORD_ts( dptr->samples ),
              sizeof(MateInfoT), &compDists);
-    
-      //if (dptr->mean > 5000 && dptr->numSamples > minSamplesForOverride)
-      //for ( icnt = 0; icnt < GetNumCDS_COORD_ts( dptr->samples ); icnt++)
-      //fprintf( stderr, "dptr: " F_CID ", matePairs[%d].samples: " F_COORD " (" F_CID ", " F_CID ")\n",
-      //         i, icnt, matePairs[icnt].samples,
-      //	       matePairs[icnt].frags, matePairs[icnt].mates);
     
       // now find median
       median = matePairs[ (int) (GetNumCDS_COORD_ts( dptr->samples ) / 2)].samples;
@@ -4619,7 +4417,6 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
             }
         }
     
-#if 1
       // upper set
       if (dptr->upper < newUpper)
         {
@@ -4648,9 +4445,8 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
                 }
             }
         }
-#endif
-    
-#if 1	
+
+
       // now see if there are edges marked trusted that are now considered untrusted
       // lower set
       if (dptr->lower < newLower)
@@ -4708,8 +4504,7 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
                 }
             }
         }
-#endif
-      // free(matePairs);
+      safe_free(matePairs);
     }
   
   for (i = 1; i < GetNumDistTs(ScaffoldGraph->Dists); i++)
@@ -4718,7 +4513,6 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
       DeleteVA_CDS_CID_t( dptrMates[i] );
     }
   
-#endif
   
   /* now set mean, stddev, size & number of buckets */
   for(i = 1; i < GetNumDistTs(ScaffoldGraph->Dists); i++)
@@ -4896,13 +4690,9 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
 void RecycleDeletedGraphElements(GraphCGW_T *graph){
   EdgeCGW_T *end = NULL;
   
-#if 0
-  CDS_CID_t nextIndex = graph->freeEdgeHead;
-  // Find the end of the free list;
-#else
-  // Find the end of the tobefree list (this should be MUCH shorter than looking for teh end of the free list )
+  // Find the end of the tobefree list (this should be MUCH shorter
+  // than looking for teh end of the free list )
   CDS_CID_t nextIndex = graph->tobeFreeEdgeHead;
-#endif
   
   while(nextIndex != NULLINDEX){
     end = GetGraphEdge(graph, nextIndex);
@@ -4911,14 +4701,6 @@ void RecycleDeletedGraphElements(GraphCGW_T *graph){
     nextIndex = end->referenceEdge;
   }
   
-#if 0
-  // Tack the tobe freed edges onto the end of the free list
-  if(end){
-    end->referenceEdge = graph->tobeFreeEdgeHead;
-  }else{
-    graph->freeEdgeHead = graph->tobeFreeEdgeHead;
-  }
-#else
   // Tack the tobe freed edges onto the head of the free list
   if(end){
     end->referenceEdge = graph->freeEdgeHead;
@@ -4927,14 +4709,10 @@ void RecycleDeletedGraphElements(GraphCGW_T *graph){
     ; // nothing to do, no 
   }
   
-#endif
-  
   graph->tobeFreeEdgeHead = NULLINDEX;
   
   // Flush Deleted nodes from the hashtable
-  
   // Free tobe freed nodes
-  
 }
 
 
@@ -5204,13 +4982,7 @@ void  CheckUnitigs(CDS_CID_t startUnitigID)
     
       assert(ma && node);
       numFrags = GetNumIntMultiPoss(ma->f_list);
-    
-#if 0
-      fprintf(GlobalData->stderrc,
-              "* CheckUnitigs on node " F_CID " with %d frags\n",
-              node->id, numFrags);
-#endif
-    
+
       for(i = 0; i < numFrags; i++)
         {
           IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
