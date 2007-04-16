@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: StatisticsREZ.h,v 1.5 2007-04-16 15:35:41 brianwalenz Exp $	 */
+/* 	$Id: StatisticsREZ.h,v 1.6 2007-04-16 17:34:16 brianwalenz Exp $	 */
 
 /**********************************************************************************
  *  StatisticsRez.h
@@ -32,9 +32,6 @@
 #ifndef STATISTICS_REZ_H
 #define STATISTICS_REZ_H
 
-#include <dirent.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <stdio.h>

@@ -34,14 +34,11 @@
  **********************************************************************/
 
 
-static char fileID[] = "$Id: GWDriversREZ.c,v 1.9 2007-02-14 07:20:13 brianwalenz Exp $";
+static char fileID[] = "$Id: GWDriversREZ.c,v 1.10 2007-04-16 17:34:15 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <assert.h>
 #include <math.h>
-#include <dirent.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <stdlib.h>
 #include "AS_global.h"
 #include "AS_UTL_Var.h"

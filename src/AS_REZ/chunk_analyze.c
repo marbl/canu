@@ -38,21 +38,18 @@
 *************************************************/
 
 /* RCS info
- * $Id: chunk_analyze.c,v 1.9 2007-04-16 15:35:41 brianwalenz Exp $
- * $Revision: 1.9 $
+ * $Id: chunk_analyze.c,v 1.10 2007-04-16 17:34:16 brianwalenz Exp $
+ * $Revision: 1.10 $
 */
 
-static char fileID[] = "$Id: chunk_analyze.c,v 1.9 2007-04-16 15:35:41 brianwalenz Exp $";
+static char fileID[] = "$Id: chunk_analyze.c,v 1.10 2007-04-16 17:34:16 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
 #include <fcntl.h>
-#include <sys/types.h>
 #include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 #include "AS_global.h"

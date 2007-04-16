@@ -39,7 +39,7 @@
  **********************************************************************/
 
 
-static char fileID[] = "$Id: GapWalkerREZ.c,v 1.10 2007-04-16 15:35:41 brianwalenz Exp $";
+static char fileID[] = "$Id: GapWalkerREZ.c,v 1.11 2007-04-16 17:34:15 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -47,8 +47,6 @@ static char fileID[] = "$Id: GapWalkerREZ.c,v 1.10 2007-04-16 15:35:41 brianwale
 #include <math.h>
 #include <float.h>
 #include <stdlib.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
@@ -442,11 +440,8 @@ void Visit_Subgraph(chunk_subgraph * s,
   float tooShort = 0.0;
   float tooLong = 0.0;
 
-#include <sys/types.h>
   assert(s != NULL);
   assert(quality != NULL);
-
-  AS_UTL_mkdir("cam");
 
   //
   // if the start/end chunk are not in <s>, add them
@@ -459,7 +454,8 @@ void Visit_Subgraph(chunk_subgraph * s,
   // open the file where the graphical path information
   // will be stored
   //
-  sprintf(filename, "./cam/%s.%d.%d.gw.cam",
+  AS_UTL_mkdir("cam");
+  sprintf(filename, "cam/%s.%d.%d.gw.cam",
 	  GW_Filename_Prefix,
 	  begin_cid, end_cid);
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: StatisticsREZ.c,v 1.6 2007-04-16 15:35:41 brianwalenz Exp $	 */
+/* 	$Id: StatisticsREZ.c,v 1.7 2007-04-16 17:34:16 brianwalenz Exp $	 */
 
 /****************************************************************************************
  *  StatisticsRez.c
@@ -32,9 +32,6 @@
 #include <stdio.h>
 #include <math.h>
 #include <float.h>
-#include <dirent.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <stdlib.h>
 #include <assert.h>
 
@@ -520,7 +517,7 @@ void output_combined_celagram_files(WalkStatisticsT* ws)
   char statFileName[256];
 
   // make sure that the stat directory exists
-  AS_UTL_mkdir("stat");
+  AS_UTL_mkdir("stats");
 
   // now we open the celagram files 
   sprintf(statFileName,"stats/number.negativ.hops.cgm");

@@ -30,7 +30,7 @@
 
 **********************************************************************/
 
-static char CM_ID[] = "$Id: ConsistencyChecksREZ.c,v 1.7 2007-02-04 09:30:45 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ConsistencyChecksREZ.c,v 1.8 2007-04-16 17:34:15 brianwalenz Exp $";
 
 
 /* ---------------------------------------------------- */
@@ -41,10 +41,7 @@ static char CM_ID[] = "$Id: ConsistencyChecksREZ.c,v 1.7 2007-02-04 09:30:45 bri
 #include <math.h>
 #include <assert.h>
 #include <fcntl.h>
-#include <sys/types.h>
 #include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 

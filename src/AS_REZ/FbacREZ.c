@@ -34,7 +34,7 @@
 
  **********************************************************************/
 
-static char fileID[] = "$Id: FbacREZ.c,v 1.13 2007-02-17 21:16:23 brianwalenz Exp $";
+static char fileID[] = "$Id: FbacREZ.c,v 1.14 2007-04-16 17:34:15 brianwalenz Exp $";
 
 #define FBACDEBUG 2
 
@@ -43,6 +43,7 @@ static char fileID[] = "$Id: FbacREZ.c,v 1.13 2007-02-17 21:16:23 brianwalenz Ex
 #include <math.h>
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
+#include "AS_UTL_fileIO.h"
 
 //
 // AS_CNS
@@ -3273,9 +3274,8 @@ void localeCam(char *middleName)
   //
   // open the cam file
   //
+  AS_UTL_mkdir("cam");
   sprintf(filename, "./cam/locales_%s.cam", middleName);
-  system("mkdir cam");
-  // sprintf(filename, "./cam/locale.%d.cam", locale);
   cam_file = file_open (filename, "w");
   assert(cam_file != NULL);
   

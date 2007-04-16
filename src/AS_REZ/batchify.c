@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: batchify.c,v 1.8 2007-02-14 07:20:13 brianwalenz Exp $
- * $Revision: 1.8 $
+ * $Id: batchify.c,v 1.9 2007-04-16 17:34:16 brianwalenz Exp $
+ * $Revision: 1.9 $
 */
 
-static char fileID[] = "$Id: batchify.c,v 1.8 2007-02-14 07:20:13 brianwalenz Exp $";
+static char fileID[] = "$Id: batchify.c,v 1.9 2007-04-16 17:34:16 brianwalenz Exp $";
 
 #define FILE_NAME_FORMAT "b%03d."
 
@@ -49,10 +49,7 @@ static char fileID[] = "$Id: batchify.c,v 1.8 2007-02-14 07:20:13 brianwalenz Ex
 #include <math.h>
 #include <assert.h>
 #include <fcntl.h>
-#include <sys/types.h>
 #include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 #include "AS_global.h"
@@ -151,7 +148,7 @@ int main  (int argc, char * argv [])
           adt_mesg = (AuditMesg *) gmesg -> m;
           sprintf (batch_line, "Batch %d", batch_num);
           AppendAuditLine_AS (adt_mesg, & audit_line, time (0), "batchify",
-                              "$Revision: 1.8 $", batch_line);
+                              "$Revision: 1.9 $", batch_line);
           WriteProtoMesg_AS (outfile, gmesg);
           break;
 
@@ -178,7 +175,7 @@ int main  (int argc, char * argv [])
                audit_line . next = NULL;
                audit_line . name = "batchify";
                audit_line . complete = time (0);
-               audit_line . version = "$Revision: 1.8 $";
+               audit_line . version = "$Revision: 1.9 $";
                sprintf (batch_line, "Batch %d", batch_num);
                audit_line . comment = batch_line;
                WriteProtoMesg_AS (outfile, pmesg);

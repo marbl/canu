@@ -34,7 +34,7 @@
 *
 *************************************************/
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.22 2007-04-16 15:35:41 brianwalenz Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.23 2007-04-16 17:34:15 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -6743,17 +6743,17 @@ int  Fill_Gaps
    start_time = clock ();
 
    AS_UTL_mkdir("rezlog");
-   sprintf(filename, "rezlog/%s.rez.i%02d.log", prefix, iteration);
+   sprintf(filename, "rezlog/rez.i%02d.log", iteration);
    log_file = file_open (filename, "w");
 
 #if  MAKE_CAM_FILE
-   sprintf(filename, "rezlog/%s.rez.i%02d.cam", prefix, iteration);
+   sprintf(filename, "rezlog/rez.i%02d.cam", iteration);
    Cam_File = file_open (filename, "w");
 
    for  (i = 0;  i < NUM_COLOURS;  i ++)
      fprintf (Cam_File, "%dREZ: %s\n", i, Colour_String [i]);
 #if  SHOW_CALC_COORDS
-   sprintf(filename, "rezlog/%s.calcrez.i%02d.cam", prefix, iteration);
+   sprintf(filename, "rezlog/calcrez.i%02d.cam", iteration);
    Calc_Cam_File = file_open (filename, "w");
 
    for  (i = 0;  i < NUM_COLOURS;  i ++)
@@ -6969,14 +6969,14 @@ fprintf (log_file, "\n>>> Fill before  Update_Scaffold_Graph <<<\n");
 
    fclose (log_file);
 
-   sprintf(filename, "rezlog/%s.rez.i%02d.analysis", prefix, iteration);
+   sprintf(filename, "rezlog/rez.i%02d.analysis", iteration);
    log_file = file_open (filename, "w");
    Analyze_Rock_Fill (log_file, fill_chunks);
    fclose (log_file);
 
 
 #if  CHECK_CELSIM_COORDS
-   sprintf(filename, "rezlog/%s.rez.i%02d.place", prefix, iteration);
+   sprintf(filename, "rezlog/rez.i%02d.place", iteration);
    log_file = file_open (filename, "w");
    Analyze_Placement (log_file, fill_chunks);
    fclose (log_file);
@@ -7573,17 +7573,17 @@ int  Hurl_Contained_Rocks
    start_time = clock ();
 
    AS_UTL_mkdir("rezlog");
-   sprintf(filename, "rezlog/%s.crocks.i%02d.log", prefix, iteration);
+   sprintf(filename, "rezlog/crocks.i%02d.log", iteration);
    log_file = file_open (filename, "w");
 
 #if  MAKE_CAM_FILE
-   sprintf(filename, "rezlog/%s.crocks.i%02d.cam", prefix, iteration);
+   sprintf(filename, "rezlog/crocks.i%02d.cam", iteration);
    Cam_File = file_open (filename, "w");
 
    for  (i = 0;  i < NUM_COLOURS;  i ++)
      fprintf (Cam_File, "%dREZ: %s\n", i, Colour_String [i]);
 #if  SHOW_CALC_COORDS
-   sprintf(filename, "rezlog/%s.calccr.i%02d.cam", prefix, iteration);
+   sprintf(filename, "rezlog/calccr.i%02d.cam", iteration);
    Calc_Cam_File = file_open (filename, "w");
 
    for  (i = 0;  i < NUM_COLOURS;  i ++)
@@ -7665,7 +7665,7 @@ fprintf (log_file, "\n>>> Fill before  Update_Scaffold_Graph <<<\n");
 
    fclose (log_file);
 
-   sprintf(filename, "rezlog/%s.crocks.i%02d.analysis", prefix, iteration);
+   sprintf(filename, "rezlog/crocks.i%02d.analysis", iteration);
    log_file = file_open (filename, "w");
    Analyze_Rock_Fill (log_file, fill_chunks);
    fclose (log_file);
@@ -12481,7 +12481,6 @@ int  Show_Reads_In_Gaps
 
   {
    FILE  * fp;
-   char  filename [FILENAME_MAX];
    Scaffold_Fill_t  * fill_stones;
    clock_t  start_time, stop_time;
    time_t  now;
@@ -12516,8 +12515,7 @@ int  Show_Reads_In_Gaps
 #endif
 
    AS_UTL_mkdir("rezlog");
-   sprintf(filename, "rezlog/%s.gapreads", prefix);
-   fp = file_open (filename, "w");
+   fp = file_open ("rezlog/gapreads", "w");
 
    Scaffold_Start = (int64 *) safe_calloc
                       (Num_Scaffolds, sizeof (int64));
@@ -12678,17 +12676,17 @@ int Throw_Stones
    start_time = clock ();
 
    AS_UTL_mkdir("rezlog");
-   sprintf(filename, "rezlog/%s.stone.i%02d.log", prefix, iteration);
+   sprintf(filename, "rezlog/stone.i%02d.log", iteration);
    log_file = file_open (filename, "w");
 
 #if  MAKE_CAM_FILE
-   sprintf(filename, "rezlog/%s.stone.i%02d.cam", prefix, iteration);
+   sprintf(filename, "rezlog/stone.i%02d.cam", iteration);
    Cam_File = file_open (filename, "w");
 
    for  (i = 0;  i < NUM_COLOURS;  i ++)
      fprintf (Cam_File, "%dREZ: %s\n", i, Colour_String [i]);
 #if  SHOW_CALC_COORDS
-   sprintf(filename, "rezlog/%s.calcstone.i%02d.cam", prefix, iteration);
+   sprintf(filename, "rezlog/calcstone.i%02d.cam", iteration);
    Calc_Cam_File = file_open (filename, "w");
 
    for  (i = 0;  i < NUM_COLOURS;  i ++)
@@ -12909,7 +12907,7 @@ int Throw_Stones
 #endif
 #endif
 
-   sprintf(filename, "rezlog/%s.stone.i%02d.analysis", prefix, iteration);
+   sprintf(filename, "rezlog/stone.i%02d.analysis", iteration);
    log_file = file_open (filename, "w");
    Analyze_Stone_Fill (log_file, fill_stones);
    fclose (log_file);
@@ -13083,18 +13081,18 @@ int  Toss_Contained_Stones
 
    AS_UTL_mkdir("rezlog");
 #if VERBOSE
-   sprintf(filename, "rezlog/%s.cstones.i%02d.log", prefix, iteration);
+   sprintf(filename, "rezlog/cstones.i%02d.log", iteration);
    log_file = file_open (filename, "w");
 #endif
 
 #if  MAKE_CAM_FILE
-   sprintf(filename, "rezlog/%s.cstones.i%02d.cam", prefix, iteration);
+   sprintf(filename, "rezlog/cstones.i%02d.cam", iteration);
    Cam_File = file_open (filename, "w");
 
    for  (i = 0;  i < NUM_COLOURS;  i ++)
      fprintf (Cam_File, "%dREZ: %s\n", i, Colour_String [i]);
 #if  SHOW_CALC_COORDS
-   sprintf(filename, "rezlog/%s.calccs.i%02d.cam", prefix, iteration);
+   sprintf(filename, "rezlog/calccs.i%02d.cam", iteration);
    Calc_Cam_File = file_open (filename, "w");
 
    for  (i = 0;  i < NUM_COLOURS;  i ++)
@@ -13178,7 +13176,7 @@ int  Toss_Contained_Stones
 
    fclose (log_file);
 
-   sprintf(filename, "rezlog/%s.cstones.i%02d.analysis", prefix, iteration);
+   sprintf(filename, "rezlog/cstones.i%02d.analysis", iteration);
    log_file = file_open (filename, "w");
    Analyze_Rock_Fill (log_file, fill_stones);
 
