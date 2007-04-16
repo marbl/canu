@@ -96,4 +96,4 @@ placed_contigs: placed_contigs.o $(LIBS)
 
 quality_assess: quality_assess.o $(LIBS)
 
-null_scaffolder: null_scaffolder.o libAS_MSG.a libAS_UTL.a
+null_scaffolder: null_scaffolder.o libCA.a

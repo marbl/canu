@@ -51,13 +51,13 @@ libAS_MSG.a:       AS_MSG_pmesg.o AS_MSG_pmesg1.o AS_MSG_pmesg2.o
 
 libCA.a:           AS_MSG_pmesg.o AS_MSG_pmesg1.o AS_MSG_pmesg2.o
 
-AS_MSG_pmesg_test: AS_MSG_pmesg_test.o libAS_MSG.a libAS_UTL.a
+AS_MSG_pmesg_test: AS_MSG_pmesg_test.o libCA.a
 
-proto_append:      proto_append.o      libAS_MSG.a libAS_UTL.a
+proto_append:      proto_append.o      libCA.a
 
-remove_fragment:   remove_fragment.o   libAS_MSG.a libAS_UTL.a
+remove_fragment:   remove_fragment.o   libCA.a
 
-extractmessages:   ExtractMessages.o   libAS_MSG.a libAS_UTL.a
+extractmessages:   ExtractMessages.o   libCA.a
 
 tester: AS_MSG_pmesg_test AS_MSG_testfile.in
 	AS_MSG_pmesg_test -d < AS_MSG_testfile.in > testfile.out

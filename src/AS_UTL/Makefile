@@ -28,8 +28,6 @@ LOCAL_WORK = $(shell cd ../..; pwd)
 
 LIBRARIES = libAS_UTL.a libCA.a
 
-REQ_LIB = libAS_MSG.a
-
 SCRIPTS = AS_UTL_extractMSG.awk extractMSG 
 
 PROGS = testVar \
@@ -94,6 +92,8 @@ install: $(SCRIPTS)
 libAS_UTL.a: $(LIB_OBJECTS)
 
 libCA.a: $(LIB_OBJECTS)
+
+REQ_LIB = libCA.a
 
 testBuckets: $(BUCKET_OBJECTS) $(LIB_OBJECTS) $(REQ_LIB)
 

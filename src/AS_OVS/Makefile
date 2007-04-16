@@ -47,5 +47,5 @@ all:    $(OBJECTS) $(LIBRARIES) $(PROGS)
 libAS_OVS.a: $(OVS_LIB_OBJ)
 libCA.a:     $(OVS_LIB_OBJ)
 
-overlapStore:   $(OVS_STR_OBJ) libAS_OVS.a libAS_MSG.a libAS_UTL.a
-convertOverlap: $(OVS_CVT_OBJ) libAS_OVS.a libAS_MSG.a libAS_UTL.a
+overlapStore:   $(OVS_STR_OBJ) libCA.a
+convertOverlap: $(OVS_CVT_OBJ) libCA.a

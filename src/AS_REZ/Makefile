@@ -62,8 +62,8 @@ libAS_REZ.a: $(LIBOBJECTS)
 libCA.a: $(LIBOBJECTS)
 
 
-batchify:              batchify.o libAS_MSG.a libAS_UTL.a
+batchify:              batchify.o libCA.a
 
-chunk_analyze:         chunk_analyze.o libAS_MSG.a libAS_UTL.a
+chunk_analyze:         chunk_analyze.o libCA.a
 
 MicroHetIUM:           MicroHetIUM.o libCA.a

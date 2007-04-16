@@ -88,7 +88,7 @@ scf2chrSimple: scf2chrSimple.o libAS_UTL.a
 concatRegions: concatRegions.o
 
 ofg2asm: ofg2asm.o \
-	libAS_MSG.a libAS_UTL.a
+	libCA.a
 
 dumpMappedMatePairsBinary: dumpMappedMatePairsBinary.o ASMData.o \
 	libAS_MSG.a libAS_PER.a libAS_UTL.a
@@ -148,7 +148,7 @@ dumpFragScaffCoords: dumpFragScaffoldCoordinates.o ASMData.o \
 	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 getMDIDataFromASM: getMDIDataFromASM.o \
-	libAS_MSG.a libAS_UTL.a
+	libCA.a
 
 dumpContigLengths: dumpContigLengths.o ASMData.o \
 	libAS_MSG.a libAS_PER.a libAS_UTL.a
