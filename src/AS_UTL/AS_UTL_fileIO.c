@@ -19,11 +19,13 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//static char CM_ID[] = "$Id: AS_UTL_fileIO.c,v 1.8 2007-04-02 20:16:14 brianwalenz Exp $";
+//static char CM_ID[] = "$Id: AS_UTL_fileIO.c,v 1.9 2007-04-16 15:29:09 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <errno.h>
 #include <string.h>
 
@@ -93,5 +95,37 @@ AS_UTL_safeRead(FILE *file, void *buffer, char *desc, size_t size, size_t nobj) 
   }
 
   return(position);
+}
+
+
+//  Ensure that directory 'dirname' exists.  Returns true if the
+//  directory needed to be created, false if it already exists.
+int
+AS_UTL_mkdir(const char *dirname) {
+  struct stat  st;
+
+  errno = 0;
+  stat(dirname, &st);
+  if (errno == 0) {
+    if (S_ISDIR(st.st_mode))
+      return(0);
+
+    fprintf(stderr, "AS_UTL_mkdir()--  ERROR!  '%s' is a file, and not a directory.\n", dirname);
+    exit(1);
+  }
+
+  if (errno != ENOENT) {
+    fprintf(stderr, "AS_UTL_mkdir()--  Couldn't stat '%s': %s\n", dirname, strerror(errno));
+    exit(1);
+  }
+
+  errno = 0;
+  mkdir(dirname, S_IRWXU | S_IRWXG | S_IRWXO);
+  if (errno) {
+    fprintf(stderr, "AS_UTL_mkdir()--  Couldn't create directory '%s': %s\n", dirname, strerror(errno));
+    exit(1);
+  }
+
+  return(1);
 }
 

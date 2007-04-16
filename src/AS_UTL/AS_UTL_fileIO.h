@@ -33,4 +33,6 @@
 void    AS_UTL_safeWrite(FILE *file, const void *buffer, char *desc, size_t size, size_t nobj);
 size_t  AS_UTL_safeRead (FILE *file, void *buffer,       char *desc, size_t size, size_t nobj);
 
+int     AS_UTL_mkdir(const char *dirname);
+
 #endif  //  AS_UTL_FILEIO_H
