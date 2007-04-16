@@ -18,40 +18,22 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Stats_CGW.c,v 1.11 2007-02-20 21:57:59 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Stats_CGW.c,v 1.12 2007-04-16 17:36:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
 #include <fcntl.h>
-#include <sys/types.h>
 #include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 #include "ScaffoldGraphIterator_CGW.h"
 #include "ScaffoldGraph_CGW.h"
 #include "GraphCGW_T.h"
 #include "AS_UTL_interval.h"
+#include "AS_UTL_fileIO.h"
 #include "ChunkOverlap_CGW.h"
-
-void MakeStatDir(void){
-  mode_t mode = S_IRWXU | S_IRWXG | S_IROTH;
-  DIR* statDir;
-    
-  statDir = opendir("./stat");
-    
-  if(statDir == NULL) {
-    fprintf(GlobalData->stderrc,"Could not open stat dir\n");
-    if(mkdir("./stat",mode)) {
-      exit(1);
-    }
-  } else {
-    closedir(statDir);
-  }
-}
 
 /* Generate statistics on the U-Unitig induced subgraph of
    the CIGraph */
@@ -66,7 +48,7 @@ void GenerateCIGraph_U_Stats(void){
   int unodes = 0;
   int uedges = 0;
 
-  MakeStatDir();
+  AS_UTL_mkdir("stat");
 
   fprintf(GlobalData->stderrc,"**** GenerateCIGraph_U_Stats ****\n");
 
@@ -224,7 +206,7 @@ void GeneratePlacedContigGraphStats(char *label,int iteration){
     return;
   }
 
-  MakeStatDir();
+  AS_UTL_mkdir("stat");
 
   fprintf(GlobalData->stderrc,"**** GeneratePlacedContigStats %s %d****\n", label, iteration);
 
@@ -362,7 +344,7 @@ void GenerateScaffoldGraphStats(char *label, int iteration){
     return;
   }
 
-  MakeStatDir();
+  AS_UTL_mkdir("stat");
 
   fprintf(GlobalData->stderrc,"**** GeneratePlacedContigStats %s %d ****\n", label,iteration);
 
@@ -570,7 +552,8 @@ void GenerateLinkStats(GraphCGW_T *graph, char *label, int iteration){
   int cgbOverlap = 0;
   int nonCGBOverlap = 0;
   const char *graphName = (graph->type == CI_GRAPH?"CI":"Contig");
-  MakeStatDir();
+
+  AS_UTL_mkdir("stat");
 
   sprintf(buffer,"stat/%s%s%d.mates_per_link.cgm",graphName,label,iteration);
   mates_per_link = fopen(buffer,"w");
@@ -678,7 +661,8 @@ void GenerateSurrogateStats(char *phase){
   NodeCGW_T *node;
   int stoneSurrogs=0, 
     walkSurrogs=0;
-  MakeStatDir();
+
+  AS_UTL_mkdir("stat");
   
   sprintf(buffer,"stat/%s.surrogates_per_repeatCI.cgm",phase);
   surrogPer = fopen(buffer,"w");

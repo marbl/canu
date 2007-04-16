@@ -23,11 +23,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 
 #include <unistd.h>
-#include <dirent.h>
 #include "assert.h"
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"

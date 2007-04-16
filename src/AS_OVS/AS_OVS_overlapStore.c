@@ -26,8 +26,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <assert.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 
 #include "AS_OVS_overlapStore.h"
 #include "AS_OVS_overlapFile.h"
@@ -366,13 +364,7 @@ AS_OVS_createOverlapStore(const char *path, int failOnExist) {
   ovs->useBackup = 0;
   ovs->saveSpace = 0;
 
-  errno = 0;
-  mkdir(path, S_IRWXU | S_IRWXG | S_IROTH);
-  if ((errno) && ((errno != EEXIST) && (failOnExist == FALSE))) {
-    fprintf(stderr, "AS_OVS_createOverlapStore(): failed to create directory '%s': %s\n", ovs->storePath, strerror(errno));
-    exit(1);
-  }
-
+  AS_UTL_mkdir(path);
 
   sprintf(name, "%s/ovs", path);
   errno = 0;

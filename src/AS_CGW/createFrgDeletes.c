@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: createFrgDeletes.c,v 1.7 2007-03-28 13:59:02 skoren Exp $";
+static char CM_ID[] = "$Id: createFrgDeletes.c,v 1.8 2007-04-16 17:36:31 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -29,10 +29,7 @@ static char CM_ID[] = "$Id: createFrgDeletes.c,v 1.7 2007-03-28 13:59:02 skoren 
 #include <math.h>
 #include <assert.h>
 #include <fcntl.h>
-#include <sys/types.h>
 #include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 

@@ -25,7 +25,7 @@
                  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: RebuildMultiAlign_CNS.c,v 1.12 2007-03-06 01:02:44 brianwalenz Exp $";
+static char CM_ID[] = "$Id: RebuildMultiAlign_CNS.c,v 1.13 2007-04-16 17:36:32 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -33,9 +33,6 @@ static char CM_ID[] = "$Id: RebuildMultiAlign_CNS.c,v 1.12 2007-03-06 01:02:44 b
 #include <assert.h>
 #include <string.h>
 #include <time.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <dirent.h>
 #include <unistd.h> // Linux has optarg here.
 
 // Celera Assembler includes:

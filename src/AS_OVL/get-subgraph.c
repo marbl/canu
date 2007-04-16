@@ -38,21 +38,18 @@
 *************************************************/
 
 /* RCS info
- * $Id: get-subgraph.c,v 1.7 2007-01-29 20:41:19 brianwalenz Exp $
- * $Revision: 1.7 $
+ * $Id: get-subgraph.c,v 1.8 2007-04-16 17:36:35 brianwalenz Exp $
+ * $Revision: 1.8 $
 */
 
-static char fileID[] = "$Id: get-subgraph.c,v 1.7 2007-01-29 20:41:19 brianwalenz Exp $";
+static char fileID[] = "$Id: get-subgraph.c,v 1.8 2007-04-16 17:36:35 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
 #include <fcntl.h>
-#include <sys/types.h>
 #include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 #include "AS_global.h"
@@ -135,7 +132,7 @@ fprintf (stderr, "Hash table size = %d\n", hash_table_size);
            sprintf (label_line, "%s %s %s", argv [0], infile_name,
                     argv [2]);
            AppendAuditLine_AS (adt_mesg, & audit_line, time (0), "get-subgraph",
-                               "$Revision: 1.7 $", label_line);
+                               "$Revision: 1.8 $", label_line);
            WriteProtoMesg_AS (outfile, gmesg);
            break;
           }

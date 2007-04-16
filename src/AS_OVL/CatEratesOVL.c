@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CatEratesOVL.c,v 1.8 2007-03-13 22:38:50 brianwalenz Exp $
- * $Revision: 1.8 $
+ * $Id: CatEratesOVL.c,v 1.9 2007-04-16 17:36:34 brianwalenz Exp $
+ * $Revision: 1.9 $
 */
 
-static char CM_ID[] = "$Id: CatEratesOVL.c,v 1.8 2007-03-13 22:38:50 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CatEratesOVL.c,v 1.9 2007-04-16 17:36:34 brianwalenz Exp $";
 
 
 //  System include files
@@ -50,10 +50,7 @@ static char CM_ID[] = "$Id: CatEratesOVL.c,v 1.8 2007-03-13 22:38:50 brianwalenz
 #include  <stdio.h>
 #include  <assert.h>
 #include  <fcntl.h>
-#include  <sys/types.h>
 #include  <string.h>
-#include  <dirent.h>
-#include  <sys/stat.h>
 #include  <unistd.h>
 
 

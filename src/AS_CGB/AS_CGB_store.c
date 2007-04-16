@@ -30,7 +30,6 @@
 #include <stdio.h>
 #include <assert.h>
 #include <unistd.h>
-//#include <dirent.h>
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
@@ -42,7 +41,7 @@
 
 /*************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_store.c,v 1.6 2006-11-14 17:52:14 eliv Exp $";
+= "$Id: AS_CGB_store.c,v 1.7 2007-04-16 17:36:29 brianwalenz Exp $";
 /*************************************************************************/
 
 void open_fgb_store

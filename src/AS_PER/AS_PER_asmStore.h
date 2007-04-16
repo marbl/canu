@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_PER_asmStore.h,v 1.8 2007-02-28 08:04:51 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_asmStore.h,v 1.9 2007-04-16 17:36:36 brianwalenz Exp $	 */
 #ifndef AS_PER_ASMSTORE_H
 #define AS_PER_ASMSTORE_H
 /*************************************************************************
@@ -45,6 +45,7 @@
 #include "AS_PER_genericStore.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_UTL_PHash.h"
+#include "AS_UTL_fileIO.h"
 
 #define ASM_UID_NAMESPACE 'U'
 

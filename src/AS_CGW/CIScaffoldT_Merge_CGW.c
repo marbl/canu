@@ -18,7 +18,8 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.25 2007-03-04 01:18:45 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.26 2007-04-16 17:36:30 brianwalenz Exp $";
+
 
 #undef ORIG_MERGE_EDGE_INVERT
 #define MINSATISFIED_CUTOFF 0.985
@@ -42,8 +43,6 @@ static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.25 2007-03-04 01:18:45 b
 //#define DRAW_BAD_MATE_CAMS 8
 
 #ifdef DRAW_BAD_MATE_CAMS
-#include <sys/types.h>
-#include <dirent.h>
 extern int do_draw_frags_in_CelamyScaffold;
 #endif
 
@@ -61,14 +60,12 @@ extern int do_draw_frags_in_CelamyScaffold;
 #include <math.h>
 #include <assert.h>
 #include <fcntl.h>
-#include <sys/types.h>
 #include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
+#include "AS_UTL_fileIO.h"
 #include "UtilsREZ.h"
 #include "AS_UTL_interval.h"
 #include "AS_CGW_dataTypes.h"
@@ -1552,7 +1549,9 @@ static  FILE *fMergeDistance, *fInterleavedMergeDistance;
 /****************************************************************************/
 void OpenStatsFiles(void ) {
   char buffer[2048];
-  MakeStatDir();
+
+  AS_UTL_mkdir("stat");
+
   sprintf(buffer,"stat/ScaffoldMerge.mergeWeight.cgm");
   fMergeWeight = fopen(buffer,"w");
   AssertPtr(fMergeWeight);
@@ -3313,18 +3312,12 @@ int isQualityScaffoldMergingEdge(SEdgeT * curEdge,
             {
               int64 scaffoldAEndCoord = 0, scaffoldBEndCoord = 0, endcoord=0;
               char camname[1000];
-              static DIR *camdir=NULL;
               static int lowmate_count=0;
               FILE *camfile=NULL;
 
 	
               if(++lowmate_count < 500){
-                camdir=opendir("MergeCams");
-                if(camdir==NULL){
-                  system("mkdir MergeCams");
-                  camdir=opendir("MergeCams");
-                  assert(camdir!=NULL);
-                }
+                AS_UTL_mkdir("MergeCams");
                 sprintf(camname,"MergeCams/lowmate_failure_%d_%d.cam",scaffoldA->id,scaffoldB->id);
                 camfile = fopen(camname,"w");
                 assert(camfile!=NULL);
@@ -3363,7 +3356,6 @@ int isQualityScaffoldMergingEdge(SEdgeT * curEdge,
 
 
                 fclose(camfile);
-                closedir(camdir);
               }
             }
 #endif
@@ -3497,17 +3489,11 @@ int LooseAbuttingCheck(SEdgeT * curEdge,
 
       int64 scaffoldAEndCoord = 0, scaffoldBEndCoord = 0, endcoord=0;
       char camname[1000];
-      static DIR *camdir=NULL;
       static int looseabut_count=0;
       FILE *camfile=NULL;
 
       if(++looseabut_count < 500){
-        camdir=opendir("MergeCams");
-        if(camdir==NULL){
-          system("mkdir MergeCams");
-          camdir=opendir("MergeCams");
-          assert(camdir!=NULL);
-        }
+        AS_UTL_mkdir("MergeCams");
         sprintf(camname,"MergeCams/looseabut_failure_%d_%d.cam",scaffoldA->id,scaffoldB->id);
         camfile = fopen(camname,"w");
         assert(camfile!=NULL);
@@ -3560,7 +3546,6 @@ int LooseAbuttingCheck(SEdgeT * curEdge,
         }
 
         fclose(camfile);
-        closedir(camdir);
       }
     }
 #endif

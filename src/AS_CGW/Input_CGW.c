@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.31 2007-04-16 15:35:40 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.32 2007-04-16 17:36:30 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -30,10 +30,7 @@ static char CM_ID[] = "$Id: Input_CGW.c,v 1.31 2007-04-16 15:35:40 brianwalenz E
 #include <math.h>
 #include <assert.h>
 #include <fcntl.h>
-#include <sys/types.h>
 #include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 #include "AS_global.h"

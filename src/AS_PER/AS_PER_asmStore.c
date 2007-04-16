@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_asmStore.c,v 1.7 2007-02-28 08:04:51 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_asmStore.c,v 1.8 2007-04-16 17:36:36 brianwalenz Exp $";
 
 /*************************************************************************
  Module:  AS_PER_asmStore
@@ -42,8 +42,6 @@ static char CM_ID[] = "$Id: AS_PER_asmStore.c,v 1.7 2007-02-28 08:04:51 brianwal
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 #include "AS_global.h"
@@ -85,23 +83,6 @@ char * MAP_Filenames[NUM_MAP_FILES] =
   "map.phash",
 };
 
-void MakeDirectoryAsNeeded(char * path)
-{
-  DIR *dbDir;
-  dbDir = opendir(path);
-  if(dbDir == NULL)
-  {
-    char command[1024];
-    int sysret;
-    
-    sprintf(command, "mkdir %s", path);
-    sysret = system(command);
-    assert(sysret == 0);
-  }
-  else
-    closedir(dbDir);
-}
-
 int testOpenFile(char * path, char * name, char * mode)
 {
   char fullName[FILENAME_MAX];
@@ -121,40 +102,26 @@ int TestOpenAssemblyStore(AssemblyStore *asmStore)
 {
   char * mode = "r+";
   int exists = 0;
-  DIR *dbDir;
   int i;
+  int fileCount = 0;
   
   fprintf(stderr,"*** TestOpen %s\n", asmStore->storePath);
 
-  dbDir = opendir(asmStore->storePath);
 
-  if(dbDir != NULL)
-  {
-    int fileCount = 0;
-    fprintf (stderr, "*** Directory exists %s... \n", asmStore->storePath);
-
-    exists = -1;
-    closedir (dbDir);
-
-    for(i = 0; i < NUM_ASM_FILES; i++)
-      fileCount += testOpenFile(asmStore->storePath, ASM_Filenames[i], mode);
+  for(i = 0; i < NUM_ASM_FILES; i++)
+    fileCount += testOpenFile(asmStore->storePath, ASM_Filenames[i], mode);
     
-    if(fileCount == NUM_ASM_FILES)
+  if(fileCount == NUM_ASM_FILES)
     {
       fprintf(stderr,"*  All files exist\n");
       exists = 1;
     }
-    else
+  else
     {
-      fprintf(stderr,"*  Directory exists -- %d files missing\n",
+      fprintf(stderr,"*  %d files missing\n",
               NUM_ASM_FILES - fileCount);
     }
-  }
-  else
-  {
-    fprintf (stderr,
-             "*** Directory DOES NOT exist %s... \n", asmStore->storePath);
-  }
+
   return exists;
 }
 
@@ -206,7 +173,7 @@ int CopyAssemblyStoreFiles(AssemblyStore *asmStore, char *path)
   fprintf(stderr, "*** Copy %s//%s == > %s\n",
           getcwd(NULL,256), asmStore->storePath, path);
 
-  MakeDirectoryAsNeeded(path);
+  AS_UTL_mkdir(path);
   
   for(i = 0; i < NUM_ASM_FILES; i++)
     copyFile(ASM_Filenames[i], asmStore->storePath, path);
@@ -220,7 +187,7 @@ int CopyMapStoreFiles(MapStore *mapStore, char *path)
   fprintf(stderr, "*** Copy %s//%s == > %s\n",
           getcwd(NULL,256), mapStore->storePath, path);
 
-  MakeDirectoryAsNeeded(path);
+  AS_UTL_mkdir(path);
   
   for(i = 0; i < NUM_MAP_FILES; i++)
     copyFile(MAP_Filenames[i], mapStore->storePath, path);
@@ -240,7 +207,7 @@ AssemblyStore * OpenAssemblyStoreCommon(char * path, char *mode)
   fprintf(stderr, "*** Open %s//%s\n", getcwd(NULL,256), asmStore->storePath);
 
   if(!strcmp(mode, "r"))
-     MakeDirectoryAsNeeded(path);
+    AS_UTL_mkdir(path);
      
   sprintf(name, "%s/asm.mdi", asmStore->storePath);
   asmStore->mdiStore = openASM_MDIStore(name, mode);
@@ -331,7 +298,7 @@ MapStore * OpenMapStoreCommon(char * path, char *mode)
   fprintf(stderr, "*** Open %s//%s\n", getcwd(NULL,256), mapStore->storePath);
 
   if(!strcmp(mode, "r"))
-     MakeDirectoryAsNeeded(path);
+    AS_UTL_mkdir(path);
 
   sprintf(name, "%s/map.chr", mapStore->storePath);
   mapStore->chrStore = openASM_CHRStore(name, mode);
@@ -413,7 +380,7 @@ AssemblyStore * CreateAssemblyStore(char * path,
   fprintf(stderr,"*** Create store %s at cwd %s\n",
           asmStore->storePath, getcwd(NULL, 256));
 
-  MakeDirectoryAsNeeded(path);
+  AS_UTL_mkdir(path);
   
   sprintf(name,"%s/asm.mdi", asmStore->storePath);
   asmStore->mdiStore = createASM_MDIStore(name, "mdi",1);
@@ -474,7 +441,7 @@ MapStore * CreateMapStore(char * path)
   fprintf(stderr,"*** Create store %s at cwd %s\n",
           mapStore->storePath, getcwd(NULL, 256));
 
-  MakeDirectoryAsNeeded(path);
+  AS_UTL_mkdir(path);
   
   sprintf(name,"%s/map.chr", mapStore->storePath);
   mapStore->chrStore = createASM_CHRStore(name, "chr",1);

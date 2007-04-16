@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIEdgeT_CGW.c,v 1.9 2007-03-04 01:18:44 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIEdgeT_CGW.c,v 1.10 2007-04-16 17:36:29 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -26,10 +26,7 @@ static char CM_ID[] = "$Id: CIEdgeT_CGW.c,v 1.9 2007-03-04 01:18:44 brianwalenz 
 #include <math.h>
 #include <assert.h>
 #include <fcntl.h>
-#include <sys/types.h>
 #include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 #include "AS_global.h"

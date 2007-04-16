@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- $Id: AS_CGB_all.h,v 1.13 2007-03-13 03:03:46 brianwalenz Exp $
+ $Id: AS_CGB_all.h,v 1.14 2007-04-16 17:36:29 brianwalenz Exp $
  Module: Chunk Graph Builder
  Description: A catch-all include file for the Chunk Graph Builder
  Assumptions:
@@ -43,11 +43,8 @@
 #include <time.h>
 #include <string.h>
 #include <unistd.h> /* man 3 getopt */
-#include <sys/types.h>
 
 #include <fcntl.h>
-#include <dirent.h>
-#include <sys/stat.h>
 #include <assert.h>
 
 #ifdef _OPENMP

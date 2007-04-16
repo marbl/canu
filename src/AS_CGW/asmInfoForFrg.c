@@ -19,7 +19,7 @@
  *************************************************************************/
 
 
-static char CM_ID[] = "$Id: asmInfoForFrg.c,v 1.9 2007-02-12 22:16:56 brianwalenz Exp $";
+static char CM_ID[] = "$Id: asmInfoForFrg.c,v 1.10 2007-04-16 17:36:31 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -29,10 +29,7 @@ static char CM_ID[] = "$Id: asmInfoForFrg.c,v 1.9 2007-02-12 22:16:56 brianwalen
 #include <math.h>
 #include <assert.h>
 #include <fcntl.h>
-#include <sys/types.h>
 #include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 

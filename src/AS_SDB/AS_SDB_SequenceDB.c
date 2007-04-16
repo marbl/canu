@@ -18,19 +18,18 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.12 2007-02-27 04:38:49 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.13 2007-04-16 17:36:36 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <errno.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #include <string.h>
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
+#include "AS_UTL_fileIO.h"
 #include "AS_SDB_SequenceDB.h"
 
 /* CreateSequenceDB:
@@ -40,18 +39,11 @@ static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.12 2007-02-27 04:38:49 brian
 */
 tSequenceDB *CreateSequenceDB(char *path, int initialSize, int force){
   int32 size;
-  struct stat dirstat;
   FILE *indexfp, *datafp;
   char buffer[FILENAME_MAX + 30];
   tSequenceDB *sequenceDB = (tSequenceDB *)safe_calloc(1, sizeof(tSequenceDB));
 
-  errno = 0;
-  if (stat(path, &dirstat) != 0) {
-    errno = 0;
-    if (mkdir(path, (mode_t)(S_IRWXU | S_IRWXG | S_IROTH)))
-      fprintf(stderr, "CreateSequenceDB()-- Failed to create '%s': %s",
-              path, strerror(errno)), exit(1);
-  }
+  AS_UTL_mkdir(path);
 
   sequenceDB->path = strdup(path);
 

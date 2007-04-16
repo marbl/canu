@@ -38,21 +38,18 @@
 *************************************************/
 
 /* RCS info
- * $Id: frag-anomaly.c,v 1.8 2007-01-29 20:41:19 brianwalenz Exp $
- * $Revision: 1.8 $
+ * $Id: frag-anomaly.c,v 1.9 2007-04-16 17:36:34 brianwalenz Exp $
+ * $Revision: 1.9 $
 */
 
-static char fileID[] = "$Id: frag-anomaly.c,v 1.8 2007-01-29 20:41:19 brianwalenz Exp $";
+static char fileID[] = "$Id: frag-anomaly.c,v 1.9 2007-04-16 17:36:34 brianwalenz Exp $";
 
 #include  <stdio.h>
 #include  <stdlib.h>
 #include  <math.h>
 #include  <assert.h>
 #include  <fcntl.h>
-#include  <sys/types.h>
 #include  <string.h>
-#include  <dirent.h>
-#include  <sys/stat.h>
 #include  <unistd.h>
 
 #include  "AS_global.h"
@@ -519,7 +516,7 @@ printf ("\n olap1 = %d %c %c %d  olap2 = %d %c %c %d",
            sprintf (label_line, "%s %s %s", argv [0], infile_name,
                     argv [optind]);
            AppendAuditLine_AS (adt_mesg, & audit_line, time (0), "frag-anomaly screen",
-                               "$Revision: 1.8 $", label_line);
+                               "$Revision: 1.9 $", label_line);
            WriteProtoMesg_AS (outfile, gmesg);
            break;
           }

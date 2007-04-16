@@ -37,21 +37,18 @@
 *************************************************/
 
 /* RCS info
- * $Id: get-degrees.c,v 1.4 2005-03-22 19:49:19 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: get-degrees.c,v 1.5 2007-04-16 17:36:34 brianwalenz Exp $
+ * $Revision: 1.5 $
 */
 
-static char fileID[] = "$Id: get-degrees.c,v 1.4 2005-03-22 19:49:19 jason_miller Exp $";
+static char fileID[] = "$Id: get-degrees.c,v 1.5 2007-04-16 17:36:34 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
 #include <fcntl.h>
-#include <sys/types.h>
 #include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #include <ctype.h>
 #include  <limits.h>

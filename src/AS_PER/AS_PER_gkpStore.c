@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.31 2007-03-30 19:36:46 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.32 2007-04-16 17:36:36 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,14 +27,14 @@ static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.31 2007-03-30 19:36:46 brianwa
 #include <time.h>
 #include <string.h>
 #include <errno.h>
-#include <sys/stat.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 #include "AS_global.h"
 #include "AS_PER_genericStore.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_PER_encodeSequenceQuality.h"
-
+#include "AS_UTL_fileIO.h"
 
 static
 int
@@ -274,12 +274,7 @@ createGateKeeperStore(const char *path) {
   gkpStore->partsrc = NULLSTOREHANDLE;
   gkpStore->partmap = NULL;
 
-  errno = 0;
-  mkdir(path, S_IRWXU | S_IRWXG | S_IROTH);
-  if (errno) {
-    fprintf(stderr, "CreateGateKeeperStore(): failed to create directory '%s': %s\n", gkpStore->storePath, strerror(errno));
-    exit(1);
-  }
+  AS_UTL_mkdir(path);
 
   gkpStore->gkp.gkpMagic              = 1;
   gkpStore->gkp.gkpVersion            = 1;

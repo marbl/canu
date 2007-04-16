@@ -25,7 +25,7 @@
                  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: TestBaseCall_CNS.c,v 1.16 2007-02-18 14:04:48 brianwalenz Exp $";
+static char CM_ID[] = "$Id: TestBaseCall_CNS.c,v 1.17 2007-04-16 17:36:33 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -33,9 +33,6 @@ static char CM_ID[] = "$Id: TestBaseCall_CNS.c,v 1.16 2007-02-18 14:04:48 brianw
 #include <assert.h>
 #include <string.h>
 #include <time.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <dirent.h>
 #include <unistd.h>
 
 // Celera Assembler includes:

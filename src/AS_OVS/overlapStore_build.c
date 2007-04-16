@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore_build.c,v 1.8 2007-04-04 08:46:46 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore_build.c,v 1.9 2007-04-16 17:36:35 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,9 +29,8 @@ static char CM_ID[] = "$Id: overlapStore_build.c,v 1.8 2007-04-04 08:46:46 brian
 #include <errno.h>
 #include <fcntl.h>
 #include <assert.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include <time.h>
+#include <sys/stat.h>
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"

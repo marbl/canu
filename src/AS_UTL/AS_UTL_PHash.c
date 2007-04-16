@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_PHash.c,v 1.7 2007-02-14 07:20:15 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_UTL_PHash.c,v 1.8 2007-04-16 17:36:36 brianwalenz Exp $";
 /*************************************************************************
  Module:  AS_UTL_PHash
  Description:
@@ -44,7 +44,6 @@ static char CM_ID[] = "$Id: AS_UTL_PHash.c,v 1.7 2007-02-14 07:20:15 brianwalenz
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/mman.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 
 #include "AS_global.h"
@@ -533,7 +532,6 @@ PHashTable_AS *CreatePHashTable_AS(int numItemsToHash, char *pathToHashTable){
 static PHashTable_AS *OpenPHashTableCommon_AS(char *pathToHashTable, int32 readWrite){
   PHashTable_AS *table = NULL;
   FILE *fp;
-  struct stat statbuf;
   char *allocate;
   PHashTable_AS header;
 
@@ -545,14 +543,6 @@ static PHashTable_AS *OpenPHashTableCommon_AS(char *pathToHashTable, int32 readW
 #endif
   if(fp == NULL)
     return NULL;
-
-  /* fstat succeeds and filesize is reasonable */
-  assert(0 == fstat(fileno(fp),&statbuf));
-
-  if(statbuf.st_size <  (sizeof(PHashTable_AS)) ){
-    fprintf(stderr,"* File size is screwed up " F_OFF_T "\n", statbuf.st_size);
-    assert(0);
-  }
 
   {
     /* Compute the total size needed to hold header + buckets + nodes */

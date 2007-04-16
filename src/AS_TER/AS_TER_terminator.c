@@ -28,13 +28,12 @@ accession numbers.
 
 **********************************************************************/
 
-static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.16 2007-03-29 08:33:46 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.17 2007-04-16 17:36:36 brianwalenz Exp $";
 
 #include  <stdlib.h>
 #include  <stdio.h>
 #include  <unistd.h>
 #include  <assert.h>
-#include  <sys/types.h>
 #include  <string.h>
 
 #include "AS_global.h"

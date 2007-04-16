@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: iid2fastaOVL.c,v 1.5 2007-02-18 14:04:50 brianwalenz Exp $
- * $Revision: 1.5 $
+ * $Id: iid2fastaOVL.c,v 1.6 2007-04-16 17:36:35 brianwalenz Exp $
+ * $Revision: 1.6 $
 */
 
 
@@ -47,10 +47,7 @@
 #include  <stdio.h>
 #include  <assert.h>
 #include  <fcntl.h>
-#include  <sys/types.h>
 #include  <string.h>
-#include  <dirent.h>
-#include  <sys/stat.h>
 #include  <unistd.h>
 
 /*************************************************************************/

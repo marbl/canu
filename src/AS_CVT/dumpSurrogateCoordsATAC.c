@@ -22,7 +22,6 @@
 #include  <stdio.h>
 #include  <unistd.h>
 #include  <assert.h>
-#include  <sys/types.h>
 #include  <string.h>
 
 #include "AS_global.h"

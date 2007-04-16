@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_SDB_SequenceDBPartition.c,v 1.6 2007-02-27 04:38:49 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_SDB_SequenceDBPartition.c,v 1.7 2007-04-16 17:36:36 brianwalenz Exp $";
 
 /*************************************************************************
  Module:  AS_SDB_SequenceDBPartition
@@ -35,10 +35,7 @@ static char CM_ID[] = "$Id: AS_SDB_SequenceDBPartition.c,v 1.6 2007-02-27 04:38:
 #include <stdio.h>
 #include <assert.h>
 #include <fcntl.h>
-#include <sys/types.h>
 #include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
 
 #include "AS_global.h"
 #include "AS_SDB_SequenceDBPartition.h"

@@ -3,9 +3,6 @@
 #include <assert.h>
 #include <string.h>
 #include <time.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <dirent.h>
 #include <unistd.h>
 
 #include <math.h>
@@ -37,7 +34,7 @@
 #include "Globals_CNS.h"
 #include "PublicAPI_CNS.h"
 
-static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.12 2007-03-29 08:33:46 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.13 2007-04-16 17:36:32 brianwalenz Exp $";
 
 static UIDHashTable_AS *utgUID2IID;
 
@@ -442,7 +439,7 @@ int main (int argc, char *argv[]) {
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.12 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.13 $ processing. Started %s\n",
 	      ctime(&t));
       InitializeAlphTable();
 

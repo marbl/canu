@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FragCorrectOVL.c,v 1.16 2007-03-13 22:38:50 brianwalenz Exp $
- * $Revision: 1.16 $
+ * $Id: FragCorrectOVL.c,v 1.17 2007-04-16 17:36:34 brianwalenz Exp $
+ * $Revision: 1.17 $
 */
 
-static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.16 2007-03-13 22:38:50 brianwalenz Exp $";
+static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.17 2007-04-16 17:36:34 brianwalenz Exp $";
 
 
 //  System include files
@@ -47,10 +47,7 @@ static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.16 2007-03-13 22:38:50 brianwal
 #include  <stdio.h>
 #include  <assert.h>
 #include  <fcntl.h>
-#include  <sys/types.h>
 #include  <string.h>
-#include  <dirent.h>
-#include  <sys/stat.h>
 #include  <unistd.h>
 #include  <pthread.h>
 

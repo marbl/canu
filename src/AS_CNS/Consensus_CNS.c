@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.45 2007-03-29 08:33:46 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.46 2007-04-16 17:36:32 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -36,9 +36,6 @@ static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.45 2007-03-29 08:33:46 bri
 #include <errno.h>
 #include <string.h>
 #include <time.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <dirent.h>
 #include <unistd.h>
 
 #include <math.h>
@@ -54,6 +51,7 @@ static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.45 2007-03-29 08:33:46 bri
 #include "AS_PER_gkpStore.h"
 #include "AS_PER_genericStore.h"
 #include "AS_UTL_Var.h"
+#include "AS_UTL_fileIO.h"
 #include "UtilsREZ.h"
 #include "AS_UTL_ID_store.h"
 #include "PrimitiveVA_MSG.h"
@@ -108,24 +106,15 @@ int HandleDir(char * filePathAndName, char *fileName) {
   // Make sure that the file directory path of the filename exists so
   // that the file can be created.  The output is the cleaned
   // "fileName".
-   mode_t mode = S_IRWXU | S_IRWXG | S_IROTH;
    char *suffix;
    char *DirName;
    char *FileName;
-   DIR *Dir;
    suffix = strrchr(filePathAndName,(int)'/');
    if ( suffix != NULL ) {
       *suffix = '\0';
       DirName = filePathAndName; 
-      if ( DirName != NULL ) {
-        Dir = opendir(DirName);
-        if ( Dir == NULL ) {
-          if(mkdir(DirName,mode)){
-            fprintf(stderr,"Failure to create directory %s\n", DirName);
-            exit(1);
-          }
-        }
-      }
+      if ( DirName != NULL )
+        AS_UTL_mkdir(DirName);
       *suffix = '/';
       FileName = filePathAndName;
     } else {
@@ -854,7 +843,7 @@ int main (int argc, char *argv[])
       VA_TYPE(char) *quality=CreateVA_char(200000);
       time_t t;
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.45 $ processing. Started %s\n",
+      fprintf(stderr,"# Consensus $Revision: 1.46 $ processing. Started %s\n",
         ctime(&t));
       InitializeAlphTable();
       if ( ! align_ium && USE_SDB && extract > -1 ) 
@@ -1203,7 +1192,7 @@ int main (int argc, char *argv[])
             {
               AuditLine auditLine;
               AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                                 "Consensus", "$Revision: 1.45 $","(empty)");
+                                 "Consensus", "$Revision: 1.46 $","(empty)");
             }
 #endif
               VersionStampADT(adt_mesg,argc,argv);
@@ -1227,7 +1216,7 @@ int main (int argc, char *argv[])
       }
 
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.45 $ Finished %s\n",ctime(&t));
+      fprintf(stderr,"# Consensus $Revision: 1.46 $ Finished %s\n",ctime(&t));
       if (printcns) 
       {
         int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 

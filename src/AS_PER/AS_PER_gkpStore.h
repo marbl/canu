@@ -19,12 +19,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.29 2007-04-12 10:05:20 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.30 2007-04-16 17:36:36 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
 
-#include <sys/types.h>
 #include <time.h>
 
 #include "AS_global.h"

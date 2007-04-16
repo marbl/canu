@@ -38,21 +38,18 @@
 *************************************************/
 
 /* RCS info
- * $Id: get-iidgraph.c,v 1.9 2007-01-29 20:41:19 brianwalenz Exp $
- * $Revision: 1.9 $
+ * $Id: get-iidgraph.c,v 1.10 2007-04-16 17:36:35 brianwalenz Exp $
+ * $Revision: 1.10 $
 */
 
-static char fileID[] = "$Id: get-iidgraph.c,v 1.9 2007-01-29 20:41:19 brianwalenz Exp $";
+static char fileID[] = "$Id: get-iidgraph.c,v 1.10 2007-04-16 17:36:35 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
 #include <fcntl.h>
-#include <sys/types.h>
 #include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 #include "AS_global.h"
@@ -164,7 +161,7 @@ int  main  (int argc, char * argv [])
            sprintf (label_line, "%s %s %s", argv [0], infile_name,
                     argv [2]);
            AppendAuditLine_AS (adt_mesg, & audit_line, time (0), "get-subgraph",
-                               "$Revision: 1.9 $", label_line);
+                               "$Revision: 1.10 $", label_line);
            WriteProtoMesg_AS (outfile, gmesg);
            break;
           }

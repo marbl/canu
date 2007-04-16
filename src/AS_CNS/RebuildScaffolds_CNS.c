@@ -78,7 +78,7 @@ echo 53 | rebuildscaffolds -f oct01.fStore -s oct01.sStore -V 23 -c oct01.cStore
 
  *********************************************************************/
 
-static char CM_ID[] = "$Id: RebuildScaffolds_CNS.c,v 1.14 2007-03-06 01:02:44 brianwalenz Exp $";
+static char CM_ID[] = "$Id: RebuildScaffolds_CNS.c,v 1.15 2007-04-16 17:36:32 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -86,9 +86,6 @@ static char CM_ID[] = "$Id: RebuildScaffolds_CNS.c,v 1.14 2007-03-06 01:02:44 br
 #include <assert.h>
 #include <string.h>
 #include <time.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <dirent.h>
 #include <unistd.h>
 
 // Celera Assembler includes:

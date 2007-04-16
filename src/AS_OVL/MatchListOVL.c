@@ -25,8 +25,8 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: MatchListOVL.c,v 1.4 2005-03-22 19:49:19 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: MatchListOVL.c,v 1.5 2007-04-16 17:36:34 brianwalenz Exp $
+ * $Revision: 1.5 $
 */
 
 
@@ -62,10 +62,7 @@
 #include  <stdio.h>
 #include  <assert.h>
 #include  <fcntl.h>
-#include  <sys/types.h>
 #include  <string.h>
-#include  <dirent.h>
-#include  <sys/stat.h>
 #include  <unistd.h>
 
 #include  "AS_OVL_delcher.h"

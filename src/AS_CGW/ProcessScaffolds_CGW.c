@@ -18,15 +18,13 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: ProcessScaffolds_CGW.c,v 1.17 2007-02-18 14:04:48 brianwalenz Exp $ */
+/* $Id: ProcessScaffolds_CGW.c,v 1.18 2007-04-16 17:36:30 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <unistd.h>
-#include <dirent.h>
 #include <assert.h>
+
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_PER_genericStore.h"
@@ -80,8 +78,7 @@ static char *Colors[MAXCOLORS] = {
 #define  NUM_COLOURS           14
 
 
-static  char  * Colour_String [NUM_COLOURS]
-= {
+static  char  * Colour_String [NUM_COLOURS] = {
   "C000000 T2 S  # Unused",
   "CFFFF00 T2 S  # DUnique",
   "CFF8040 T2 S  # Consistent",
@@ -123,60 +120,9 @@ VA_TYPE(int32) *reversedVA=NULL;
 VA_TYPE(char) *ctmp=NULL;
 VA_TYPE(char) *qtmp=NULL;
 
-
-
 GateKeeperStore *frag_store;
 GateKeeperStore *bactig_store;
 int show_uids;
-
-void CleanExit(int rc) {
-  char command[100+FILENAME_MAX];
-  if( fastaFile != NULL ){
-    fclose(fastaFile);
-    sprintf(command,"rm -f %s",fastaFileName);
-    fprintf(stderr,"%s\n",command);
-    system(command);
-  }
-  if( celamyFile != NULL ) {
-    fclose(celamyFile);
-    sprintf(command,"rm -f %s",celamyFileName);
-    fprintf(stderr,"%s\n",command);
-    system(command);
-  }
-  exit(rc);
-}
-
-int HandleDir(char *filePathAndName, char *fileName) {
-  mode_t mode = S_IRWXU | S_IRWXG | S_IROTH;
-  char *suffix;
-  char *DirName;
-  char *FileName;
-  DIR *Dir;
-  suffix = strrchr(filePathAndName,(int)'/');
-  if ( suffix != NULL ) {
-    *suffix = '\0';
-    DirName = filePathAndName; 
-    if ( DirName != NULL ) {
-      Dir = opendir(DirName);
-      if ( Dir == NULL ) {
-        if(mkdir(DirName,mode)){
-          fprintf(stderr,"Failure to create directory %s\n", DirName);
-          CleanExit(1);
-        }
-      } else {
-        closedir(Dir);
-      }
-    }
-    *suffix = '/';
-    FileName = filePathAndName;
-  } else {
-    FileName = filePathAndName;
-  }
-  strcpy(fileName,FileName);
-  return 1;
-}
-
-/* DumpCelamy Colors */
 
 static void DumpCelamyColors(FILE *file){
   { int icolour;
@@ -213,9 +159,7 @@ static void DumpCelamyColors(FILE *file){
             Colors[3]);
     fprintf(file, "4FragColor: %s T1 S # ShreddedBacFrag\n",
             Colors[4]);
-
   }
-
 }
 
 static int ComputeCIRow(IntUnitigPos *ci){
@@ -619,9 +563,7 @@ int main(int argc, char *argv[])
  IntContigLinkMesg *link;
  MultiAlignT *ma;
  char *suffix;
- char fastaNameBuffer[FILENAME_MAX];
  char fastaIdentifier[FILENAME_MAX];
- char celamyNameBuffer[FILENAME_MAX];
  VA_TYPE(char) *dummy_consensus;
  VA_TYPE(CDS_IID_t) *link_index;
  VA_TYPE(IntContigLinkMesg) *clinks;
@@ -657,18 +599,17 @@ int main(int argc, char *argv[])
        break;
      case 'f':
        fasta = 1;
-       strcpy(fastaNameBuffer, optarg);
-       HandleDir(fastaNameBuffer,fastaFileName);
+       strcpy(fastaFileName, optarg);
        fastaFile = fopen(fastaFileName,"w");
        if (fastaFile == NULL ) {
          fprintf(stderr,"Failure to create fasta file %s\n", fastaFileName);
-         CleanExit(1);
+         exit(1);
        }
        if(fastaDregs){
          fastaDregsFile = fopen(fastaDregsFileName,"w");
          if (fastaDregsFile == NULL ) {
            fprintf(stderr,"Failure to create fasta file %s\n", fastaDregsFileName);
-           CleanExit(1);
+           exit(1);
          }
        }
        strcpy(fastaIdentifier,fastaFileName);
@@ -686,12 +627,11 @@ int main(int argc, char *argv[])
        break;
      case 'c':
        celamy = 1;
-       strcpy(celamyNameBuffer, optarg);
-       HandleDir(celamyNameBuffer,celamyFileName);
+       strcpy(celamyFileName, optarg);
        celamyFile = fopen(celamyFileName,"w");
        if (celamyFile == NULL ) {
          fprintf(stderr,"Failure to create celamy file %s\n", celamyFileName);
-         CleanExit(1);
+         exit(1);
        }
        DumpCelamyColors(celamyFile);
        break;
@@ -705,30 +645,23 @@ int main(int argc, char *argv[])
      case 's':
        show_stddev=1; 
        break;
-     case 'h':
-     case '?':
-       {
-         fprintf(stderr,"\n\nUsage: process_scaffolds [-H] [-d] [-h] [-c celamy.output.filename [-F Frag.Store -B Bactig.Store]] [-f fasta.output.filename [-s]]\n");
-         fprintf(stderr,"\n The -f option produces a multi-fasta file, with one fasta record for each scaffold,\n");
-         fprintf(stderr," and 'n's used as intercontig gap placeholders.  For positive gaps, the number of 'n's\n");
-         fprintf(stderr," used represents the calculated mean gap size.  For negative gaps, 20 'n's are used.\n");
-         fprintf(stderr," The -s suboption to -f (fasta output) directs the program to include gap standard\n");
-         fprintf(stderr," deviations to the comment line of each scaffold.  The convention for this output is\n");
-         fprintf(stderr,"\n   >UBAC_IID_UID_Scaffold_SID stddev: num_gaps fp[0] ... fp[num_gaps-1]\n");
-         fprintf(stderr,"\n that is, num_gaps specifies how many floats to expect in remainder of line.\n");
-         fprintf(stderr,"\n The -c option produces a celamy file for the assembly, down to the fragment level\n\n");
-         fprintf(stderr,"\n        -F and -B can be used to open frag stores to capture fragment uids for comment field\n\n");
-         fprintf(stderr,"\n The -d option produces a multi-fasta dregs file, with one fasta record for each degenerate scaffold,\n");
-         fprintf(stderr,"\n The -d option is only meaningful when specified with -f\n");
-         fprintf(stderr,"\n The -H option, handles the gaps as per Scott Henderson's spec \n");
-         fprintf(stderr,"\n The -Z option, handles the headers and gaps as per Z Lai's  spec \n");
-         CleanExit(1);
-       }
      default:
-       {
-         fprintf(stderr,"Invalid option -%c, try -h for usage\n",ch);
-         CleanExit(1);
-       }
+       fprintf(stderr,"\n\nUsage: process_scaffolds [-H] [-d] [-h] [-c celamy.output.filename [-F Frag.Store -B Bactig.Store]] [-f fasta.output.filename [-s]]\n");
+       fprintf(stderr,"\n The -f option produces a multi-fasta file, with one fasta record for each scaffold,\n");
+       fprintf(stderr," and 'n's used as intercontig gap placeholders.  For positive gaps, the number of 'n's\n");
+       fprintf(stderr," used represents the calculated mean gap size.  For negative gaps, 20 'n's are used.\n");
+       fprintf(stderr," The -s suboption to -f (fasta output) directs the program to include gap standard\n");
+       fprintf(stderr," deviations to the comment line of each scaffold.  The convention for this output is\n");
+       fprintf(stderr,"\n   >UBAC_IID_UID_Scaffold_SID stddev: num_gaps fp[0] ... fp[num_gaps-1]\n");
+       fprintf(stderr,"\n that is, num_gaps specifies how many floats to expect in remainder of line.\n");
+       fprintf(stderr,"\n The -c option produces a celamy file for the assembly, down to the fragment level\n\n");
+       fprintf(stderr,"\n        -F and -B can be used to open frag stores to capture fragment uids for comment field\n\n");
+       fprintf(stderr,"\n The -d option produces a multi-fasta dregs file, with one fasta record for each degenerate scaffold,\n");
+       fprintf(stderr,"\n The -d option is only meaningful when specified with -f\n");
+       fprintf(stderr,"\n The -H option, handles the gaps as per Scott Henderson's spec \n");
+       fprintf(stderr,"\n The -Z option, handles the headers and gaps as per Z Lai's  spec \n");
+       exit(1);
+       break;
    }
  }
 
@@ -737,7 +670,7 @@ int main(int argc, char *argv[])
    fastaDregsFile = fopen(fastaDregsFileName,"w");
    if (fastaDregsFile == NULL ) {
      fprintf(stderr,"Failure to create fasta file %s\n", fastaDregsFileName);
-     CleanExit(1);
+     exit(1);
    }
  }
 
@@ -753,7 +686,7 @@ int main(int argc, char *argv[])
    if( sublist == NULL )
      {
        fprintf( stderr, "Failed to open list file %s for reading.\n", argv[2] );
-       CleanExit(1);
+       exit(1);
      }
    num_uids = 0;
    while( fgets( string, 1000, sublist ) )
@@ -788,7 +721,7 @@ int main(int argc, char *argv[])
        if ( fasta ) {
          fprintf(stderr,"Input appears to be pre-consensus. Fasta information not available.\n");
          fprintf(stderr,"For fasta file, run consensus first.\n");
-         CleanExit(1);
+         exit(1);
        }
 #endif
        ResetVA_char(dummy_consensus);
@@ -813,7 +746,7 @@ int main(int argc, char *argv[])
        if ( fasta ) {
          fprintf(stderr,"Input appears to be pre-consensus. Fasta information not available.\n");
          fprintf(stderr,"For fasta file, run consensus first.\n");
-         CleanExit(1);
+         exit(1);
        }
 #endif
        ResetVA_char(dummy_consensus);

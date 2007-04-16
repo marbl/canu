@@ -32,12 +32,12 @@
 *************************************************/
 
 /* RCS info
- * $Id: CorrectScriptOVL.c,v 1.6 2007-02-18 14:04:49 brianwalenz Exp $
- * $Revision: 1.6 $
+ * $Id: CorrectScriptOVL.c,v 1.7 2007-04-16 17:36:34 brianwalenz Exp $
+ * $Revision: 1.7 $
 */
 
 static char  CM_ID []
-    = "$Id: CorrectScriptOVL.c,v 1.6 2007-02-18 14:04:49 brianwalenz Exp $";
+    = "$Id: CorrectScriptOVL.c,v 1.7 2007-04-16 17:36:34 brianwalenz Exp $";
 
 
 /*************************************************************************/
@@ -48,10 +48,7 @@ static char  CM_ID []
 #include  <stdio.h>
 #include  <assert.h>
 #include  <fcntl.h>
-#include  <sys/types.h>
 #include  <string.h>
-#include  <dirent.h>
-#include  <sys/stat.h>
 #include  <unistd.h>
 
 /*************************************************************************/

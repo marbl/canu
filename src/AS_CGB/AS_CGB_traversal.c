@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_traversal.c,v 1.5 2006-11-14 19:58:21 eliv Exp $";
+= "$Id: AS_CGB_traversal.c,v 1.6 2007-04-16 17:36:29 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_traversal.c
@@ -64,7 +64,6 @@ static char CM_ID[]
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
 #include <sys/times.h>
 
 /*************************************************************************/

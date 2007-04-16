@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.22 2007-04-16 15:35:40 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.23 2007-04-16 17:36:31 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -26,10 +26,7 @@ static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.22 2007-04-16 15:35:40 brian
 #include <math.h>
 #include <assert.h>
 #include <fcntl.h>
-#include <sys/types.h>
 #include <string.h>
-#include <dirent.h>
-#include <sys/stat.h>
 #include <unistd.h>
 
 #include "AS_global.h"

@@ -25,7 +25,6 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/stat.h>
-#include <sys/types.h>
 
 #include "AS_global.h"
 #include "Instrument_CGW.h"

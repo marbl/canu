@@ -19,16 +19,14 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.37 2007-04-15 21:21:49 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.38 2007-04-16 17:36:30 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <assert.h>
 #include <fcntl.h>
-#include <sys/types.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #include <errno.h>
 
@@ -3954,12 +3952,7 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
   VA_TYPE(CDS_CID_t) *dptrMates[NN];
   int i, ii;
 
-  errno = 0;
-  mkdir("stat", 0775 );
-  if ((errno) && (errno != EEXIST)) {
-    fprintf(stderr, "ComputeMatePairStatisticsRestricted()-- Couldn't create directory 'stat': %s\n", strerror(errno));
-    exit(1);
-  }
+  AS_UTL_mkdir("stat");
 
   if (operateOnNodes == UNITIG_OPERATIONS)
     graph = ScaffoldGraph->CIGraph;

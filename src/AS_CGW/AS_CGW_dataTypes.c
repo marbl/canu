@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGW_dataTypes.c,v 1.11 2007-03-04 02:06:21 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGW_dataTypes.c,v 1.12 2007-04-16 17:36:29 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -26,7 +26,6 @@ static char CM_ID[] = "$Id: AS_CGW_dataTypes.c,v 1.11 2007-03-04 02:06:21 brianw
 #include <math.h>
 #include <string.h>
 #include <unistd.h>
-#include <dirent.h>
 #include <sys/stat.h>
 
 #include "AS_global.h"
