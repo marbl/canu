@@ -35,13 +35,14 @@
 *************************************************/
 
 /* RCS info
- * $Id: DataTypesREZ.h,v 1.4 2005-03-22 19:49:21 jason_miller Exp $
- * $Revision: 1.4 $
+ * $Id: DataTypesREZ.h,v 1.5 2007-04-16 15:35:41 brianwalenz Exp $
+ * $Revision: 1.5 $
 */
 
 #ifndef DATA_TYPES_REZ_H
 #define DATA_TYPES_REZ_H
 
+#include "AS_global.h"
 #include "AS_CGW_dataTypes.h"
 #include "ScaffoldGraphIterator_CGW.h"
 #include "ChunkOverlap_CGW.h"

@@ -39,7 +39,7 @@
  **********************************************************************/
 
 
-static char fileID[] = "$Id: GapWalkerREZ.c,v 1.9 2007-02-14 07:20:13 brianwalenz Exp $";
+static char fileID[] = "$Id: GapWalkerREZ.c,v 1.10 2007-04-16 15:35:41 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -47,11 +47,13 @@ static char fileID[] = "$Id: GapWalkerREZ.c,v 1.9 2007-02-14 07:20:13 brianwalen
 #include <math.h>
 #include <float.h>
 #include <stdlib.h>
-#include "AS_global.h"
-#include "AS_UTL_Var.h"
-#include <dirent.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#include "AS_global.h"
+#include "AS_UTL_Var.h"
+#include "AS_UTL_fileIO.h"
+
 //
 // AS_CGW
 //
@@ -436,8 +438,6 @@ void Visit_Subgraph(chunk_subgraph * s,
   int
     i,
     c = FIRST_PATH_COLOUR;
-  DIR *dbDir;
-  mode_t mode = S_IRWXU | S_IRWXG | S_IROTH;
   long currentCalls=0;
   float tooShort = 0.0;
   float tooLong = 0.0;
@@ -446,17 +446,8 @@ void Visit_Subgraph(chunk_subgraph * s,
   assert(s != NULL);
   assert(quality != NULL);
 
-  fprintf(stderr,"** open cam dir\n");
-  dbDir = opendir("cam");
-  
-  if(dbDir == NULL)
-    {
-      fprintf(stderr,"Could not open cam dir\n");
-      if(mkdir("cam",mode))
-	{
-	  exit(1);
-	}
-    }
+  AS_UTL_mkdir("cam");
+
   //
   // if the start/end chunk are not in <s>, add them
   //

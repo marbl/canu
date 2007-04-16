@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_io.c,v 1.10 2007-03-13 03:03:46 brianwalenz Exp $";
+= "$Id: AS_CGB_io.c,v 1.11 2007-04-16 15:35:40 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_io.c
@@ -224,7 +224,9 @@ void output_the_chunks
       
     // The ProtoSpec specifies that the first chunk id is ZERO.
     achunk.iaccession     = mychunk->iaccession;
+#ifdef AS_ENABLE_SOURCE
     achunk.source         = GetVA_char(chunksrc,mychunk->isrc);
+#endif
     achunk.coverage_stat  = coverage_statistic;
     achunk.status         = AS_UNASSIGNED;
     achunk.a_branch_point = mychunk->a_branch_point;
@@ -410,25 +412,25 @@ void output_the_chunks
 	    
 	    if( overlap_type != IGNORE) {
 	      
-	      { // The following are fragment overlaps.
-		const ChunkOrientationType  orient
-		  = ( iasx 
-		      ? (ibsx ? AB_BA : AB_AB )
-		      : (ibsx ? BA_BA : BA_AB )
-		      );
-		char source[80]= {0};
+	      // The following are fragment overlaps.
+              const ChunkOrientationType  orient
+                = ( iasx 
+                    ? (ibsx ? AB_BA : AB_AB )
+                    : (ibsx ? BA_BA : BA_AB )
+                    );
+              char source[80]= {0};
 
-		cea.afrag = get_iid_fragment(frags,iavx);
-		cea.bfrag = get_iid_fragment(frags,ibvx);
-		cea.orient = orient;
-		cea.overlap_type = overlap_type;
-		cea.best_overlap_length = best_overlap_length;
-		cea.min_overlap_length  = min_overlap_length;
-		cea.max_overlap_length  = max_overlap_length;
-		cea.quality             = quality;
-		cea.source = source;
-		
-	      }
+              cea.afrag = get_iid_fragment(frags,iavx);
+              cea.bfrag = get_iid_fragment(frags,ibvx);
+              cea.orient = orient;
+              cea.overlap_type = overlap_type;
+              cea.best_overlap_length = best_overlap_length;
+              cea.min_overlap_length  = min_overlap_length;
+              cea.max_overlap_length  = max_overlap_length;
+              cea.quality             = quality;
+#ifdef AS_ENABLE_SOURCE
+              cea.source = source;
+#endif		
 	      
 	      if( NULL != fom_types_histogram ) {
 		add_to_histogram(fom_types_histogram, (int)overlap_type, NULL);
@@ -555,7 +557,9 @@ void convert_the_chunks_to_IUM
       
     // The ProtoSpec specifies that the first chunk id is ZERO.
     achunk.iaccession     = mychunk->iaccession;
+#ifdef AS_ENABLE_SOURCE
     achunk.source         = GetVA_char(chunksrc,mychunk->isrc);
+#endif
     achunk.coverage_stat  = coverage_statistic;
     achunk.status         = AS_UNASSIGNED;
     achunk.a_branch_point = mychunk->a_branch_point;

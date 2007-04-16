@@ -31,26 +31,22 @@
 
 **********************************************************************/
 
-static char CM_ID[] = "$Id: UtilsREZ.c,v 1.6 2007-02-14 07:20:13 brianwalenz Exp $";
+static char CM_ID[] = "$Id: UtilsREZ.c,v 1.7 2007-04-16 15:35:41 brianwalenz Exp $";
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <assert.h>
+#include <errno.h>
 #include <math.h>
 #include "UtilsREZ.h"
-#include "DataTypesREZ.h"
-#include "dpc_CNS.h"
 
 // -------------------------------------
 // bit manipulation (for chunk subgraph)
 // -------------------------------------
 
 void Clear_All_Path_Bit(chunk_subgraph * s) {
-  //
-  // clear all path bits
-  //
-  int
-    i;
-
+  int i;
   assert(s != NULL);
   for (i = 0; i < s->size; i++)
     s->node[i].path_bit = FALSE;
@@ -59,9 +55,6 @@ void Clear_All_Path_Bit(chunk_subgraph * s) {
 
 
 void Clear_Path_Bit(chunk_subgraph * s, int32 cid) {
-  //
-  // clear the path bit of <cid>
-  //
   assert(s != NULL);
   assert(cid < s->max);
   assert(s->table[cid] != NULL);
@@ -71,9 +64,6 @@ void Clear_Path_Bit(chunk_subgraph * s, int32 cid) {
 
 
 void Set_Path_Bit(chunk_subgraph * s, int32 cid) {
-  //
-  // set the path bit of <cid>
-  //
   assert(s != NULL);
   assert(cid < s->max);
   assert(s->table[cid] != NULL);
@@ -83,12 +73,7 @@ void Set_Path_Bit(chunk_subgraph * s, int32 cid) {
 
 
 void Clear_All_Visited_Bit(chunk_subgraph * s) {
-  //
-  // clear all visited bits
-  //
-  int
-    i;
-
+  int i;
   assert(s != NULL);
   for (i = 0; i < s->size; i++)
     s->node[i].visited = FALSE;
@@ -97,9 +82,6 @@ void Clear_All_Visited_Bit(chunk_subgraph * s) {
 
 
 void Clear_Visited_Bit(chunk_subgraph * s, int32 cid) {
-  //
-  // clear the visited bit of <cid>
-  //
   assert(s != NULL);
   assert(cid < s->max);
   assert(s->table[cid] != NULL);
@@ -109,9 +91,6 @@ void Clear_Visited_Bit(chunk_subgraph * s, int32 cid) {
 
 
 void Set_Visited_Bit(chunk_subgraph * s, int32 cid) {
-  //
-  // set the visited bit of <cid>
-  //
   assert(s != NULL);
   assert(cid < s->max);
   assert(s->table[cid] != NULL);
@@ -121,12 +100,7 @@ void Set_Visited_Bit(chunk_subgraph * s, int32 cid) {
 
 
 void Clear_All_Done_Bit(chunk_subgraph * s) {
-  //
-  // clear all done bits
-  //
-  int
-    i;
-
+  int i;
   assert(s != NULL);
   for (i = 0; i < s->size; i++)
     s->node[i].done = FALSE;
@@ -135,9 +109,6 @@ void Clear_All_Done_Bit(chunk_subgraph * s) {
 
 
 void Set_Done_Bit(chunk_subgraph * s, int32 cid) {
-  //
-  // set the done bit of <cid>
-  //
   assert(s != NULL);
   assert(cid < s->max);
   assert(s->table[cid] != NULL);
@@ -151,9 +122,6 @@ void Set_Done_Bit(chunk_subgraph * s, int32 cid) {
 
 
 void Push_Node(nodes_stack * s, int v) {
-  //
-  // push a node
-  //
   assert(s != NULL);
   assert(s->top < s->max_size);
   s->nodes[s->top] = v;
@@ -163,9 +131,6 @@ void Push_Node(nodes_stack * s, int v) {
 
 
 int Pop_Node(nodes_stack * s) {
-  //
-  // pop a node
-  //
   assert(s != NULL);
   assert(s->top);
   return s->nodes[--(s->top)];
@@ -173,10 +138,8 @@ int Pop_Node(nodes_stack * s) {
 
 
 
+// get the value of Top without popping
 int Top(nodes_stack * s) {
-  //
-  // get the value of Top without popping
-  //
   assert(s != NULL);
   assert(s->top);
   return s->nodes[(s->top - 1)];
@@ -184,27 +147,19 @@ int Top(nodes_stack * s) {
 
 
 
+// crate a stack of <no_element> size
 nodes_stack * Create_Stack(int no_elements) {
-  //
-  // crate a stack of <no_element> size
-  //
-  nodes_stack
-    * s = (nodes_stack *)safe_calloc(1, sizeof(nodes_stack));
-
+  nodes_stack * s = (nodes_stack *)safe_calloc(1, sizeof(nodes_stack));
   assert(no_elements);
   s->top = 0;
   s->max_size = no_elements;
   s->nodes = (int *)safe_calloc(no_elements, sizeof(int));
-
   return s;
 }
 
 
 
 void Free_Stack(nodes_stack * s) {
-  //
-  // do you want the memory back?
-  //
   assert(s != NULL);
   safe_free(s->nodes);
   safe_free(s);
@@ -274,66 +229,7 @@ int Interval_Intersection (int a, int b, int c, int d) {
   if  (d < a || b < c)
     return  0;
   else
-    return  1 + Min_int (b, d) - Max_int (a, c);
-}
-
-
-
-double Max_double (double a, double b) {
-  //  Return the larger of a and  b 
-  if  (a < b)
-    return  b;
-  else
-    return  a;
-}
-
-
-
-double  Min_double (double a, double b) {
-  //  Return the smaller of a and  b 
-  if  (a < b)
-    return  a;
-  else
-    return  b;
-}
-
-
-float Max_float (float a, float b) {
-  //  Return the larger of a and  b 
-  if  (a < b)
-    return  b;
-  else
-    return  a;
-}
-
-
-
-float  Min_float(float a, float b) {
-  //  Return the smaller of a and  b 
-  if  (a < b)
-    return  a;
-  else
-    return  b;
-}
-
-
-
-int Max_int (int a, int b) {
-  //  Return the larger of a and  b 
-  if  (a < b)
-    return  b;
-  else
-    return  a;
-}
-
-
-
-int  Min_int (int a, int b) {
-  //  Return the smaller of a and  b 
-  if  (a < b)
-    return  a;
-  else
-    return  b;
+    return  1 + MIN (b, d) - MAX (a, c);
 }
 
 
@@ -341,6 +237,7 @@ int  Min_int (int a, int b) {
 /* Error Handling */
 /*--------------------------------------------------------------------*/
 
+#if 0
 static char ErrorString[NumOfErrorsREZ][30] = 
 {
   "FILE ERROR",
@@ -369,51 +266,19 @@ void error(ErrorCodeREZ err, const char* errorMesg,  ExitStatusREZ ex,
   
   exit(ex);
 }
+#endif
 
 
-
-/*--------------------------------------------------------------------*/
-/*  File Handling routines */
-/*--------------------------------------------------------------------*/
 
 
 FILE*  file_open(const char* fileName, const char* mode)
 {
-  /*****************************************************************/
-  /* Open  Filename  in  Mode  and return a pointer to its control */
-  /* block.  If fail, print a message and exit.                    */
-  /*****************************************************************/
    FILE* fp;
-
+   errno = 0;
    fp = fopen (fileName,mode);
-   if(fp == NULL)
-     {
-        char dummy[40];
-	sprintf(dummy,"Could not open file  %s in mode %s\n",fileName, mode);
-        error(FILE_ERROR_REZ,dummy,EXIT_FAILURE_REZ,__FILE__,__LINE__);
+   if (errno) {
+     fprintf(stderr, "Failed to open '%s' for '%s': %s\n", fileName, mode, strerror(errno));
+     exit(1);
    }
    return  fp;
 }
-
-
-FileStatusREZ file_exists (const char * fileName)
-{
-  /*****************************************************************/
-  /* Test for filename existence.                                  */
-  /*****************************************************************/
-  FILE* fp;
-
-  fp = fopen (fileName, "r+");
-  if(fp)
-    {
-      fclose(fp);
-      return FILE_EXISTS_REZ;
-    }
-  
-  return FILE_EXISTS_NOT_REZ;
-}
-
-
-
-
-

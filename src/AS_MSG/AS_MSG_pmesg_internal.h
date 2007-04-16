@@ -35,63 +35,6 @@
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
 
-// time_t field formats
-#define CRT_FORMAT   "crt:" F_TIME_T
-#define CTM_FORMAT   "ctm:" F_TIME_T
-#define ETM_FORMAT   "etm:" F_TIME_T
-
-// action field formats
-#define ACT_FORMAT   "act:%c"
-#define ACT1_FORMAT  "act:%1"
-
-// type field formats
-#define TYP_FORMAT   "typ:%c"
-#define TYP1_FORMAT  "typ:%1"
-
-// orientation field formats
-#define ORI_FORMAT   "ori:%c"
-#define ORI1_FORMAT  "ori:%1"
-
-// floating point formats
-#define MEA_IN_FORMAT   "mea:%f"
-#define MEA_OUT_FORMAT  "mea:%.3f"
-#define STD_IN_FORMAT   "std:%f"
-#define STD_OUT_FORMAT  "std:%.3f"
-#define VAR_FORMAT      "var:%f"
-#define QUA_FORMAT      "qua:%f"
-#define RAT_IN_FORMAT   "rat:%f"
-#define RAT_OUT_FORMAT  "rat:%.3f"
-
-//position formats
-#define POS1_FORMAT  "pos:" F_COORD
-#define POS2_FORMAT  "pos:" F_COORD "," F_COORD
-#define CLR_FORMAT   "clr:" F_COORD "," F_COORD
-
-#define MINC_FORMAT "min:" F_COORD
-#define MAXC_FORMAT "max:" F_COORD
-
-#define EFRAG1_FORMAT "fg1:" F_UID
-#define EFRAG2_FORMAT "fg2:" F_UID
-#define IFRAG1_FORMAT "fg1:" F_IID
-#define IFRAG2_FORMAT "fg2:" F_IID
-
-#define EACC_FORMAT  "acc:" F_UID
-#define EBTG_FORMAT  "btd:" F_UID
-#define EDST_FORMAT  "dst:" F_UID
-#define ELEN_FORMAT  "len:" F_UID
-#define ELOC_FORMAT  "loc:" F_UID
-#define EREF_FORMAT  "ref:" F_UID
-
-#define F_UID_IID    "(" F_UID "," F_IID ")"
-
-#define IACCS_FORMAT "acc:" F_UID_IID
-#define IDST_FORMAT  "dst:" F_IID
-#define ILENS_FORMAT "len:" F_UID_IID
-#define ILOCS_FORMAT "loc:" F_UID_IID
-#define IREFS_FORMAT "ref:" F_UID_IID
-#define ISEQS_FORMAT "sid:" F_UID_IID
-
-#define MAX_LINE_LEN (128 * 1024)    /* Maximum input line length (checked) */
 
 #define ROUNDUP(n,u) ((((n)-1)/(u) + 1)*(u))  /* Round n up to nearest multiple of u */
 
@@ -122,6 +65,7 @@ typedef struct {
   GenericMesg ReadMesg;
 
   //  The current line
+#define MAX_LINE_LEN (128 * 1024)
   char        CurLine[MAX_LINE_LEN];
 
   //  The current calling table

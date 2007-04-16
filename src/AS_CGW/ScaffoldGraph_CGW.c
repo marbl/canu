@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.21 2007-03-16 15:32:41 eliv Exp $";
+static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.22 2007-04-16 15:35:40 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -187,7 +187,9 @@ void SaveScaffoldGraphToStream(ScaffoldGraphT *sgraph, FILE *stream){
 
   CopyToFileVA_InfoByIID(sgraph->iidToFragIndex, stream);
   CopyToFileVA_CIFragT(sgraph->CIFrags, stream);
+#ifdef AS_ENABLE_SOURCE
   CopyToFileVA_char(sgraph->SourceFields, stream);
+#endif
   CopyToFileVA_DistT(sgraph->Dists, stream);
     
   //  fprintf(GlobalData->stderrc,"* Saving CIGraph\n");
@@ -232,7 +234,9 @@ ScaffoldGraphT * LoadScaffoldGraphFromStream(FILE *stream){
 
   sgraph->iidToFragIndex = CreateFromFileVA_InfoByIID(stream, 0);
   sgraph->CIFrags        = CreateFromFileVA_CIFragT(stream, 0);
+#ifdef AS_ENABLE_SOURCE
   sgraph->SourceFields   = CreateFromFileVA_char(stream, 0);
+#endif
   sgraph->Dists          = CreateFromFileVA_DistT(stream, 0);
   {
     int i;
@@ -388,7 +392,9 @@ ScaffoldGraphT *CreateScaffoldGraph(int rezOnContigs, char *name,
   sprintf(buffer,"%s.SeqStore", name);
   sgraph->sequenceDB = CreateSequenceDB(buffer, numNodes, TRUE);
 
+#ifdef AS_ENABLE_SOURCE
   sgraph->SourceFields = CreateVA_char(1024);
+#endif
 
   sgraph->CIGraph = CreateGraphCGW(CI_GRAPH, numNodes, numEdges);
 
@@ -450,7 +456,9 @@ void DestroyScaffoldGraph(ScaffoldGraphT *sgraph){
   closeGateKeeperStore(sgraph->gkpStore);
 
   DeleteVA_CIFragT(sgraph->CIFrags);
+#ifdef AS_ENABLE_SOURCE
   DeleteVA_char(sgraph->SourceFields);
+#endif
 
   for( i = 0; i < GetNumDistTs(sgraph->Dists); i++){
     DistT *dist = GetDistT(sgraph->Dists,i);
@@ -473,7 +481,9 @@ void ReportMemorySize(ScaffoldGraphT *graph, FILE *stream){
   fprintf(stream,"*\t     \tnumElements\tAllocatedElements\tAllocatedSize\n");
   totalMemorySize += ReportMemorySize_VA(graph->Dists, "Dists", stream);
   totalMemorySize += ReportMemorySize_VA(graph->CIFrags, "CIFrags", stream);
+#ifdef AS_ENABLE_SOURCE
   totalMemorySize += ReportMemorySize_VA(graph->SourceFields, "SourceFields", stream);
+#endif
   totalMemorySize += ReportMemorySize_VA(graph->iidToFragIndex, "iidToFrag", stream);
   totalMemorySize += ReportMemorySizeGraphCGW(graph->CIGraph, stream);
   totalMemorySize += ReportMemorySizeGraphCGW(graph->ContigGraph, stream);

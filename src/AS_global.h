@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_global.h,v 1.12 2007-03-19 08:38:22 brianwalenz Exp $	 */
+/* 	$Id: AS_global.h,v 1.13 2007-04-16 15:35:39 brianwalenz Exp $	 */
 
 /* This is the global include file that all C files in the AS subsystem should
    include.
@@ -429,6 +429,9 @@ typedef cds_int32  CDS_COORD_t;
 //
 #define AS_FRAG_MAX_LEN (2048)
 #define AS_FRAG_MIN_LEN (64)
+
+#define AS_READ_MAX_LEN AS_FRAG_MAX_LEN
+#define AS_READ_MIN_LEN AS_FRAG_MIN_LEN
 
 
 #endif

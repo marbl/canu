@@ -34,7 +34,7 @@
 *
 *************************************************/
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.21 2007-02-25 08:13:38 brianwalenz Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.22 2007-04-16 15:35:41 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -45,7 +45,8 @@ static char fileID[] = "$Id: GapFillREZ.c,v 1.21 2007-02-25 08:13:38 brianwalenz
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
 #include "AS_UTL_timer.h"
-#include "dpc_CNS.h"
+#include "AS_UTL_fileIO.h"
+//#include "dpc_CNS.h"
 
 //
 // AS_CGW
@@ -67,15 +68,6 @@ static char fileID[] = "$Id: GapFillREZ.c,v 1.21 2007-02-25 08:13:38 brianwalenz
 #include "GWDriversREZ.h"
 #include "RepeatRez.h"
 
-// Temporary to show memory allocation
-
-#if  0
-#define  PALLOC(x)  fprintf (stderr, "  ALLOC %8ld bytes at line %5d\n", (long) (x), __LINE__);
-#define  PRALLOC(x)  fprintf (stderr, "REALLOC %8ld bytes at line %5d\n", (long) (x), __LINE__);
-#else
-#define  PALLOC(x)  // Nothing
-#define  PRALLOC(x)  // Nothing
-#endif
                             
 //#define  REF(i)   (Ref [i])   // Macro to reference chunk_ref data
 #define  REF(i)   (Ref_Data [Ref_Index [i]])   // Macro to reference chunk_ref data
@@ -204,10 +196,11 @@ char  * Colour_String [NUM_COLOURS]
        "C80C080 T3 S  # rr_ru",
        "C00FFFF T3 S  # ur"
       };
-FILE  * Cam_File;
+
 #if  MAKE_CAM_FILE
+FILE  * Cam_File      = NULL;
 #if  SHOW_CALC_COORDS
-FILE  * Calc_Cam_File;
+FILE  * Calc_Cam_File = NULL;
 #endif
 #endif
 
@@ -372,8 +365,6 @@ static Chunk_Info_t  * Chunk_Info = NULL;
 static int  Contained_Only_Switch = FALSE;
     // If  TRUE  then only insert rocks/stones that are
     // contained within a previously scaffolded contig.
-char  * Filename_Prefix;
-    // the prefix of the file name in the cgw command line
 long int  Global_Fill_Info_Size;
     // To sum the number of bytes in the fill data structure
 #if  TEST_HOPELESS_SCAFFS
@@ -878,8 +869,8 @@ static void  Add_Join_Entry
    join . chunk_id = cid;
    join . scaff1 = scaff1;
    join . scaff2 = scaff2;
-   join . variance = Max_double (a_end1 . variance, b_end1 . variance)
-                       + Max_double (a_end2 . variance, b_end2 . variance);
+   join . variance = MAX (a_end1 . variance, b_end1 . variance)
+                       + MAX (a_end2 . variance, b_end2 . variance);
    
    assert (b_end1 . mean != a_end1 . mean);
    assert (b_end2 . mean != a_end2 . mean);
@@ -957,7 +948,7 @@ static void  Adjust_Stone_Positions
       far_end -> mean
           = factor * path_info [sub] . hi_position + ref_position;
       far_end -> variance
-          = Max_double
+          = MAX
                 (ComputeFudgeVariance (path_info [sub] . total_olap),
                  MIN_VARIANCE);
       if  (i == 0)
@@ -968,7 +959,7 @@ static void  Adjust_Stone_Positions
       prev_near_end = near_end -> mean;
 
       near_end -> variance
-          = Max_double
+          = MAX
               (ComputeFudgeVariance
                    (path_info [sub] . total_olap - node [sub] -> len),
                MIN_VARIANCE);
@@ -1116,13 +1107,13 @@ static void  Analyze_Placement
 
                  assert (contig != NULL);
 
-                 lo = Min_double (this_chunk -> start . mean,
+                 lo = MIN (this_chunk -> start . mean,
                                   this_chunk -> end . mean);
                  if  (hi >= 0
                         && lo >= hi - 5.0)
                      fprintf (fp, "*** break ***\n");
 
-                 next = Max_double (this_chunk -> start . mean,
+                 next = MAX (this_chunk -> start . mean,
                                     this_chunk -> end . mean);
                  if  (next > hi)
                      hi = next;
@@ -1207,7 +1198,7 @@ void  Analyze_Rock_Fill
                   = GetGraphNode(ScaffoldGraph->RezGraph, this_gap -> left_cid);
               scaffold_bases += fabs (scaff_chunk -> offsetAEnd . mean
                                         - scaff_chunk -> offsetBEnd . mean);
-              prev_left = Max_double (scaff_chunk -> offsetAEnd . mean,
+              prev_left = MAX (scaff_chunk -> offsetAEnd . mean,
                                       scaff_chunk -> offsetBEnd . mean);
              }
            else
@@ -1222,7 +1213,7 @@ void  Analyze_Rock_Fill
 
               right_chunk
                   = GetGraphNode(ScaffoldGraph->RezGraph, this_gap -> right_cid);
-              target_right = Min_double (right_chunk -> offsetAEnd . mean,
+              target_right = MIN (right_chunk -> offsetAEnd . mean,
                                          right_chunk -> offsetBEnd . mean);
              }
            else
@@ -1236,9 +1227,9 @@ void  Analyze_Rock_Fill
                 {
                  double  lo, hi;
 
-                 lo = Min_double (this_chunk -> start .mean,
+                 lo = MIN (this_chunk -> start .mean,
                                   this_chunk -> end .mean);
-                 hi = Max_double (this_chunk -> start .mean,
+                 hi = MAX (this_chunk -> start .mean,
                                   this_chunk -> end .mean);
                                   
                  inserted_chunks ++;
@@ -1333,16 +1324,15 @@ void  Analyze_Rock_Fill
          right_scaff_chunk
              = GetGraphNode(ScaffoldGraph->RezGraph, this_gap -> right_cid);
 
-         start_position = Max_double (left_scaff_chunk -> offsetAEnd . mean,
+         start_position = MAX (left_scaff_chunk -> offsetAEnd . mean,
                                         left_scaff_chunk -> offsetBEnd . mean);
-         gap_len = Min_double (right_scaff_chunk -> offsetAEnd . mean,
+         gap_len = MIN (right_scaff_chunk -> offsetAEnd . mean,
                                         right_scaff_chunk -> offsetBEnd . mean)
                      - start_position;
 
          if  (this_gap -> num_chunks > place_size)
              {
               place_size = 2 * this_gap -> num_chunks;
-PRALLOC (place_size * sizeof (Interval_t));
               place = (Interval_t *) safe_realloc
                           (place, place_size * sizeof (Interval_t));
              }
@@ -1354,13 +1344,13 @@ PRALLOC (place_size * sizeof (Interval_t));
             if  (this_chunk -> keep)
                 {
                  place [num_inserts] . lo
-                     = Min_double (this_chunk -> start . mean,
+                     = MIN (this_chunk -> start . mean,
                                    this_chunk -> end . mean)
                          - start_position;
                  if  (place [num_inserts] . lo < 0)
                      place [num_inserts] . lo = 0;
                  place [num_inserts] . hi
-                     = Max_double (this_chunk -> start . mean,
+                     = MAX (this_chunk -> start . mean,
                                    this_chunk -> end . mean)
                          - start_position;
                  if  (place [num_inserts] . hi > gap_len)
@@ -1436,19 +1426,18 @@ PRALLOC (place_size * sizeof (Interval_t));
          if  (left_scaff_chunk == NULL)
              start_position = 0.0;
            else
-             start_position = Max_double (left_scaff_chunk -> offsetAEnd . mean,
+             start_position = MAX (left_scaff_chunk -> offsetAEnd . mean,
                                           left_scaff_chunk -> offsetBEnd . mean);
          if  (right_scaff_chunk == NULL)
              gap_len = DBL_MAX;
            else
-             gap_len = Min_double (right_scaff_chunk -> offsetAEnd . mean,
+             gap_len = MIN (right_scaff_chunk -> offsetAEnd . mean,
                                    right_scaff_chunk -> offsetBEnd . mean)
                           - start_position;
 
          if  (this_gap -> num_chunks > place_size)
              {
               place_size = 2 * this_gap -> num_chunks;
-PRALLOC (place_size * sizeof (Interval_t));
               place = (Interval_t *) safe_realloc
                           (place, place_size * sizeof (Interval_t));
              }
@@ -1462,13 +1451,13 @@ PRALLOC (place_size * sizeof (Interval_t));
             if  (this_chunk -> keep)
                 {
                  place [num_inserts] . lo
-                     = Min_double (this_chunk -> start . mean,
+                     = MIN (this_chunk -> start . mean,
                                    this_chunk -> end . mean)
                          - start_position;
                  if  (place [num_inserts] . lo < 0)
                      place [num_inserts] . lo = 0;
                  place [num_inserts] . hi
-                     = Max_double (this_chunk -> start . mean,
+                     = MAX (this_chunk -> start . mean,
                                    this_chunk -> end . mean)
                          - start_position;
                  if  (place [num_inserts] . hi > gap_len)
@@ -1573,7 +1562,7 @@ void  Analyze_Stone_Fill
                   = GetGraphNode(ScaffoldGraph->RezGraph, this_gap -> left_cid);
               scaffold_bases += fabs (scaff_chunk -> offsetAEnd . mean
                                         - scaff_chunk -> offsetBEnd . mean);
-              prev_left = Max_double (scaff_chunk -> offsetAEnd . mean,
+              prev_left = MAX (scaff_chunk -> offsetAEnd . mean,
                                       scaff_chunk -> offsetBEnd . mean);
              }
            else
@@ -1588,7 +1577,7 @@ void  Analyze_Stone_Fill
 
               right_chunk
                   = GetGraphNode(ScaffoldGraph->RezGraph, this_gap -> right_cid);
-              target_right = Min_double (right_chunk -> offsetAEnd . mean,
+              target_right = MIN (right_chunk -> offsetAEnd . mean,
                                          right_chunk -> offsetBEnd . mean);
              }
            else
@@ -1602,9 +1591,9 @@ void  Analyze_Stone_Fill
                 {
                  double  lo, hi;
 
-                 lo = Min_double (this_chunk -> start .mean,
+                 lo = MIN (this_chunk -> start .mean,
                                   this_chunk -> end .mean);
-                 hi = Max_double (this_chunk -> start .mean,
+                 hi = MAX (this_chunk -> start .mean,
                                   this_chunk -> end .mean);
                                   
                  inserted_chunks ++;
@@ -1690,19 +1679,18 @@ void  Analyze_Stone_Fill
          if  (left_scaff_chunk == NULL)
              start_position = 0.0;
            else
-             start_position = Max_double (left_scaff_chunk -> offsetAEnd . mean,
+             start_position = MAX (left_scaff_chunk -> offsetAEnd . mean,
                                           left_scaff_chunk -> offsetBEnd . mean);
          if  (right_scaff_chunk == NULL)
              gap_len = DBL_MAX;
            else
-             gap_len = Min_double (right_scaff_chunk -> offsetAEnd . mean,
+             gap_len = MIN (right_scaff_chunk -> offsetAEnd . mean,
                                    right_scaff_chunk -> offsetBEnd . mean)
                           - start_position;
 
          if  (this_gap -> num_chunks > place_size)
              {
               place_size = 2 * this_gap -> num_chunks;
-PRALLOC (place_size * sizeof (Interval_t));
               place = (Interval_t *) safe_realloc
                           (place, place_size * sizeof (Interval_t));
              }
@@ -1716,13 +1704,13 @@ PRALLOC (place_size * sizeof (Interval_t));
             if  (this_chunk -> keep)
                 {
                  place [num_inserts] . lo
-                     = Min_double (this_chunk -> start . mean,
+                     = MIN (this_chunk -> start . mean,
                                    this_chunk -> end . mean)
                          - start_position;
                  if  (place [num_inserts] . lo < 0)
                      place [num_inserts] . lo = 0;
                  place [num_inserts] . hi
-                     = Max_double (this_chunk -> start . mean,
+                     = MAX (this_chunk -> start . mean,
                                    this_chunk -> end . mean)
                          - start_position;
                  if  (place [num_inserts] . hi > gap_len)
@@ -1905,7 +1893,6 @@ fprintf (stderr, ">>> Adding cid = %d to gap %d in scaff %d\n",
        }
 
    g -> num_chunks ++;
-PRALLOC (g -> num_chunks * sizeof (Gap_Chunk_t));
    g -> chunk = (Gap_Chunk_t *) safe_realloc
                     (g -> chunk,
                      g -> num_chunks
@@ -2071,8 +2058,8 @@ static int  By_High_Placement
    x = (Placement_t *) a;
    y = (Placement_t *) b;
 
-   x_hi = Max_double (x -> A_end . mean, x -> B_end . mean);
-   y_hi = Max_double (y -> A_end . mean, y -> B_end . mean);
+   x_hi = MAX (x -> A_end . mean, x -> B_end . mean);
+   y_hi = MAX (y -> A_end . mean, y -> B_end . mean);
 
    if  (x_hi < y_hi)
        return  -1;
@@ -2100,8 +2087,8 @@ static int  By_High_Position
    x = (Gap_Chunk_t * *) a;
    y = (Gap_Chunk_t * *) b;
 
-   x_hi = Max_double ((* x) -> start . mean, (* x) -> end . mean);
-   y_hi = Max_double ((* y) -> start . mean, (* y) -> end . mean);
+   x_hi = MAX ((* x) -> start . mean, (* x) -> end . mean);
+   y_hi = MAX ((* y) -> start . mean, (* y) -> end . mean);
 
    if  (x_hi < y_hi)
        return  -1;
@@ -2596,7 +2583,6 @@ static void  Check_Olaps
    ChunkInstanceT  * chunk;
    int  i, j, ct;
 
-PALLOC ((2 + gap -> num_chunks) * sizeof (Placement_t));
    place = (Placement_t *) safe_malloc
              ((2 + gap -> num_chunks) * sizeof (Placement_t));
    ct = 0;
@@ -2669,18 +2655,18 @@ PALLOC ((2 + gap -> num_chunks) * sizeof (Placement_t));
         int  min_ahang, max_ahang;
 
         how_much = Interval_Intersection
-                       ((int) Min_double (place [j] . A_end . mean,
+                       ((int) MIN (place [j] . A_end . mean,
                                           place [j] . B_end . mean),
-                        (int) Max_double (place [j] . A_end . mean,
+                        (int) MAX (place [j] . A_end . mean,
                                           place [j] . B_end . mean),
-                        (int) Min_double (place [i] . A_end . mean,
+                        (int) MIN (place [i] . A_end . mean,
                                           place [i] . B_end . mean),
-                        (int) Max_double (place [i] . A_end . mean,
+                        (int) MAX (place [i] . A_end . mean,
                                           place [i] . B_end . mean));
         if  (gap -> has_path)
             allowed_error = 30.0 + CGW_FUDGE_FACTOR * how_much;
           else
-            allowed_error = 3.0 * sqrt (Max_double (place [j] . A_end . variance,
+            allowed_error = 3.0 * sqrt (MAX (place [j] . A_end . variance,
                            place [i] . A_end . variance));
 
         if  (place [j] . keep
@@ -2786,7 +2772,7 @@ if  (olap_found)
                 (ScaffoldGraph -> RezGraph,
                  place [i] . id, place [j] . id,
                  new_orient,
-                 0, Max_int (i_len, j_len),
+                 0, MAX (i_len, j_len),
                  CGW_DP_ERATE, FALSE);
 
      rev_olap_found = (rev_olap . overlap > 0);
@@ -3001,8 +2987,8 @@ static void  Check_Rock_Olaps
                    place2 . flipped = FALSE;
                place2 . chunk = gap -> chunk + i;
 
-               if  (Max_double (place2 . A_end . mean, place2 . B_end . mean)
-                      <= Max_double (place1 . A_end . mean, place1 . B_end . mean))
+               if  (MAX (place2 . A_end . mean, place2 . B_end . mean)
+                      <= MAX (place1 . A_end . mean, place1 . B_end . mean))
                    gap -> chunk [i] . keep = FALSE;
                else if  (Should_Overlap (& place1, & place2, & orient, & how_much))
                    {
@@ -3057,8 +3043,8 @@ static void  Check_Rock_Olaps
                    place2 . flipped = FALSE;
                place2 . chunk = gap -> chunk + i;
 
-               if  (Min_double (place2 . A_end . mean, place2 . B_end . mean)
-                      >= Min_double (place1 . A_end . mean, place1 . B_end . mean))
+               if  (MIN (place2 . A_end . mean, place2 . B_end . mean)
+                      >= MIN (place1 . A_end . mean, place1 . B_end . mean))
                    gap -> chunk [i] . keep = FALSE;
                else if  (Should_Overlap (& place2, & place1, & orient, & how_much))
                    {
@@ -3380,8 +3366,8 @@ static void  Check_Scaffold_Join
          flipped += stack [i] . num_good_mates;
        else
          not_flipped += stack [i] . num_good_mates;
-   min = Min_int (flipped, not_flipped);
-   max = Max_int (flipped, not_flipped);
+   min = MIN (flipped, not_flipped);
+   max = MAX (flipped, not_flipped);
    if  (min + bad_links > 1 || (min > 0 && max < GOOD_LINKS_IF_BAD))
        return;
    if  (min > 0)
@@ -3400,8 +3386,8 @@ static void  Check_Scaffold_Join
          flipped += stack [i] . num_good_mates;
        else
          not_flipped += stack [i] . num_good_mates;
-   min = Min_int (flipped, not_flipped);
-   max = Max_int (flipped, not_flipped);
+   min = MIN (flipped, not_flipped);
+   max = MAX (flipped, not_flipped);
    if  (min + bad_links > 1 || (min > 0 && max < GOOD_LINKS_IF_BAD))
        return;
    if  (min > 0)
@@ -3417,7 +3403,7 @@ static void  Check_Scaffold_Join
    contig = GetGraphNode(ScaffoldGraph->RezGraph, cid);
    cover_stat = GetCoverageStat (contig);
 
-   bad_allowed = Max_int (0, 1 - bad_links);
+   bad_allowed = MAX (0, 1 - bad_links);
    consistent = Estimate_Chunk_Ends
                     (stack, group1, & left_end1,
                      & right_end1, contig, & edge_quality1,
@@ -3436,7 +3422,7 @@ static void  Check_Scaffold_Join
         b_end1 = right_end1;
        }
 
-   bad_allowed = Max_int (0, bad_allowed);
+   bad_allowed = MAX (0, bad_allowed);
    consistent = Estimate_Chunk_Ends
                     (stack + group1, group2 - group1, & left_end2,
                      & right_end2, contig, & edge_quality2,
@@ -3879,7 +3865,7 @@ static void  Choose_Safe_Chunks
 #endif
                     }
 
-                bad_allowed = Max_int (0, 1 - bad_links);
+                bad_allowed = MAX (0, 1 - bad_links);
                 if  (consistent && good_total >= min_good_links)
                     consistent = Estimate_Chunk_Ends
                                      (stack, stack_top, & left_end,
@@ -3920,14 +3906,14 @@ static void  Choose_Safe_Chunks
 #if  CHECK_CELSIM_COORDS
                      if  (Scaffold_Flipped [REF (stack [0] . chunk_id) . scaff_id])
                          this_offset
-                             = Max_int (contig -> aEndCoord, contig -> bEndCoord)
+                             = MAX (contig -> aEndCoord, contig -> bEndCoord)
                                    + left_end . mean;
                        else
                          this_offset
-                             = Min_int (contig -> aEndCoord, contig -> bEndCoord)
+                             = MIN (contig -> aEndCoord, contig -> bEndCoord)
                                    - left_end . mean;
                      diff = abs (this_offset - stack [0] . celsim_offset);
-                     cutoff = Max_int (6 * sqrt (stack [0] . edge
+                     cutoff = MAX (6 * sqrt (stack [0] . edge
                                                    -> distance . variance
                                                    + stack [0] . source_variance),
                                        100);
@@ -4854,10 +4840,8 @@ static void  Confirm_Stones
          if  (this_gap -> num_chunks > target_size)
              {
               target_size = this_gap -> num_chunks;
-PRALLOC (target_size * sizeof (Target_Info_t));
               target = (Target_Info_t *) safe_realloc
                            (target, target_size * sizeof (Target_Info_t));
-PRALLOC (target_size * sizeof (int));
               fill_sub = (int *) safe_realloc
                              (fill_sub, target_size * sizeof (int));
              }
@@ -5079,10 +5063,10 @@ static int  Contained_In
   {
    double  a, b, c, d;
 
-   a = Min_double (p -> A_end . mean, p -> B_end . mean);
-   b = Max_double (p -> A_end . mean, p -> B_end . mean);
-   c = Min_double (q -> A_end . mean, q -> B_end . mean);
-   d = Max_double (q -> A_end . mean, q -> B_end . mean);
+   a = MIN (p -> A_end . mean, p -> B_end . mean);
+   b = MAX (p -> A_end . mean, p -> B_end . mean);
+   c = MIN (q -> A_end . mean, q -> B_end . mean);
+   d = MAX (q -> A_end . mean, q -> B_end . mean);
 
    return  (c <= a && a <= d && c <= b && b <= d);
   }
@@ -5133,7 +5117,6 @@ static int  Depth_First_Visit
    if  (sub >= (* tree_size) - 1)
        {
         (* tree_size) *= EXPANSION_FACTOR;
-PRALLOC ((* tree_size) * sizeof (DFS_Info_t));
         (* dfs_tree) = (DFS_Info_t *) safe_realloc ((* dfs_tree),
                            (* tree_size) * sizeof (DFS_Info_t));
        }
@@ -5495,10 +5478,8 @@ static int  Determine_Components
 
    if  (num_nodes > path_info_size)
        {
-PRALLOC (num_nodes * sizeof (Path_Info_t));
         path_info = (Path_Info_t *) safe_realloc
                         (path_info, num_nodes * sizeof (Path_Info_t));
-PRALLOC (num_nodes * sizeof (Component_Info_t));
         comp_info = (Component_Info_t *) safe_realloc
                         (comp_info, num_nodes * sizeof (Component_Info_t));
         path_info_size = num_nodes;
@@ -5870,7 +5851,7 @@ fprintf (stderr, "Determine_Components:\n");
            a_hang_sum = 0;
            for  (i = 0;  i < num_kept;  i ++)
              a_hang_sum += path_info [list [i]] . a_hang;
-           needed_expansion = Max_double (0.0, a_hang_sum - gap_avail);
+           needed_expansion = MAX (0.0, a_hang_sum - gap_avail);
 #if  SHOW_STONE_CONFIRM
            fprintf (stderr,
                "target comp = %d  needed_expansion = %.0f  avail_expansion = %.0f"
@@ -5897,7 +5878,7 @@ fprintf (stderr, "Determine_Components:\n");
                             - path_info [list [num_kept - 1]] . a_hang;
                 ref_var = gap -> start . variance - gap -> ref_variance;
                }
-           hi_delta = Max_double (node [list [num_kept - 1]] -> start . mean,
+           hi_delta = MAX (node [list [num_kept - 1]] -> start . mean,
                                   node [list [num_kept - 1]] -> end . mean)
                         + needed_expansion
                         - path_info [list [num_kept - 1]] . hi_position;
@@ -5937,7 +5918,7 @@ fprintf (stderr, "Determine_Components:\n");
       else if  (comp_info [comp_num] . has_start)
           {
            needed_expansion
-               = Max_double (0.0,
+               = MAX (0.0,
                              path_info [comp_info [comp_num] . sub] . hi_position
                                - gap_avail);
 #if  SHOW_STONE_CONFIRM
@@ -5981,7 +5962,7 @@ fprintf (stderr, "Determine_Components:\n");
                       node [list [i]] -> flipped ?
                         node [list [i]] -> end . mean :
                         node [list [i]] -> start . mean,
-                      sqrt (Min_double (node [list [i]] -> start . variance,
+                      sqrt (MIN (node [list [i]] -> start . variance,
                                         node [list [i]] -> start . variance)),
                       path_info [list [i]] . lo_position);
 #endif
@@ -6136,10 +6117,8 @@ static void  Doublecheck_Positions_One_Scaffold
    if  (check_size == 0)
        {
         check_size = INITIAL_GAP_ENTRIES;
-PALLOC (check_size * sizeof (Gap_Chunk_t *));
         check = (Gap_Chunk_t * *)
                      safe_malloc (check_size * sizeof (Gap_Chunk_t *));
-PALLOC (check_size * sizeof (double));
         adjustment = (double *)
                      safe_malloc (check_size * sizeof (double));
        }
@@ -6174,12 +6153,10 @@ PALLOC (check_size * sizeof (double));
            if  (this_gap -> num_chunks > check_size)
                {
                 check_size *= 2;
-PRALLOC (check_size * sizeof (Gap_Chunk_t *));
                 check = (Gap_Chunk_t * *)
                             safe_realloc
                                 (check,
                                  check_size * sizeof (Gap_Chunk_t *));
-PRALLOC (check_size * sizeof (double));
                 adjustment = (double *)
                             safe_realloc
                                 (adjustment,
@@ -6211,23 +6188,23 @@ PRALLOC (check_size * sizeof (double));
           {
            left_chunk = GetGraphNode (ScaffoldGraph -> RezGraph,
                                        this_gap -> left_cid);
-           prev_hi = Max_double (left_chunk -> offsetAEnd . variance,
+           prev_hi = MAX (left_chunk -> offsetAEnd . variance,
                                  left_chunk -> offsetBEnd . variance);
           }
 
       hi_var = 0.0;
       for  (k = 0;  k < ct;  k ++)
         {
-         hi_var = Max_double (check [k] -> start . variance,
+         hi_var = MAX (check [k] -> start . variance,
                               check [k] -> end . variance);
-         lo_var = Min_double (check [k] -> start . variance,
+         lo_var = MIN (check [k] -> start . variance,
                               check [k] -> end . variance);
          if  (lo_var < 0.0)
              {
               fprintf (stderr,
               "Doublecheck ERROR:  variance = %f  chunk %d  scaff %d\n",
                        lo_var, check [k] -> chunk_id, check [k] -> scaff_id);
-              var_adjust = Max_double (var_adjust, - lo_var);
+              var_adjust = MAX (var_adjust, - lo_var);
              }
          if  (lo_var < prev_hi)
              {
@@ -6245,7 +6222,7 @@ PRALLOC (check_size * sizeof (double));
           {
            right_chunk = GetGraphNode (ScaffoldGraph->RezGraph,
                                        this_gap -> right_cid);
-           next_lo = Min_double (right_chunk -> offsetAEnd . variance,
+           next_lo = MIN (right_chunk -> offsetAEnd . variance,
                                  right_chunk -> offsetBEnd . variance);
            if  (next_lo < hi_var)
                {
@@ -6722,7 +6699,7 @@ int  Fill_Gaps
 
   {
    FILE  * log_file;
-   char  filename [1000], iter_string [20];
+   char  filename [FILENAME_MAX];
    Scaffold_Fill_t  * fill_chunks;
    static int  iteration = 0;
    clock_t  start_time, stop_time;
@@ -6756,37 +6733,27 @@ int  Fill_Gaps
    Is_Hopeless_Size = Num_Scaffolds;
 #endif
 
-   Filename_Prefix = prefix;
-
    fprintf (stderr, "### Fill_Gaps iteration #%d\n", iteration);
    
-   sprintf (iter_string, "%d", iteration ++);
+   iteration++;
 
    now = time (NULL);
-   fprintf (stderr, "### Start Rocks iteration #%s   %s\n",
-            iter_string, ctime (& now));
+   fprintf (stderr, "### Start Rocks iteration #%d   %s\n",
+            iteration, ctime (& now));
    start_time = clock ();
 
-   strcpy (filename, prefix);
-   strcat (filename, ".rez.i");
-   strcat (filename, iter_string);
-   strcat (filename, ".log");
+   AS_UTL_mkdir("rezlog");
+   sprintf(filename, "rezlog/%s.rez.i%02d.log", prefix, iteration);
    log_file = file_open (filename, "w");
 
 #if  MAKE_CAM_FILE
-   strcpy (filename, prefix);
-   strcat (filename, ".rez.i");
-   strcat (filename, iter_string);
-   strcat (filename, ".cam");
+   sprintf(filename, "rezlog/%s.rez.i%02d.cam", prefix, iteration);
    Cam_File = file_open (filename, "w");
 
    for  (i = 0;  i < NUM_COLOURS;  i ++)
      fprintf (Cam_File, "%dREZ: %s\n", i, Colour_String [i]);
 #if  SHOW_CALC_COORDS
-   strcpy (filename, prefix);
-   strcat (filename, ".calcrez.i");
-   strcat (filename, iter_string);
-   strcat (filename, ".cam");
+   sprintf(filename, "rezlog/%s.calcrez.i%02d.cam", prefix, iteration);
    Calc_Cam_File = file_open (filename, "w");
 
    for  (i = 0;  i < NUM_COLOURS;  i ++)
@@ -6794,13 +6761,10 @@ int  Fill_Gaps
 #endif
 #endif
 
-PALLOC (Num_Scaffolds * sizeof (int64));
    Scaffold_Start = (int64 *) safe_calloc
                       (Num_Scaffolds, sizeof (int64));
-PALLOC (Num_Scaffolds * sizeof (int64));
    Scaffold_End = (int64 *) safe_calloc
                     (Num_Scaffolds, sizeof (int64));
-PALLOC (Num_Scaffolds * sizeof (char));
    Scaffold_Flipped = (char *) safe_calloc
                         (Num_Scaffolds, sizeof (char));
 
@@ -7005,20 +6969,14 @@ fprintf (log_file, "\n>>> Fill before  Update_Scaffold_Graph <<<\n");
 
    fclose (log_file);
 
-   strcpy (filename, prefix);
-   strcat (filename, ".rez.i");
-   strcat (filename, iter_string);
-   strcat (filename, ".analysis");
+   sprintf(filename, "rezlog/%s.rez.i%02d.analysis", prefix, iteration);
    log_file = file_open (filename, "w");
    Analyze_Rock_Fill (log_file, fill_chunks);
    fclose (log_file);
 
 
 #if  CHECK_CELSIM_COORDS
-   strcpy (filename, prefix);
-   strcat (filename, ".rez.i");
-   strcat (filename, iter_string);
-   strcat (filename, ".place");
+   sprintf(filename, "rezlog/%s.rez.i%02d.place", prefix, iteration);
    log_file = file_open (filename, "w");
    Analyze_Placement (log_file, fill_chunks);
    fclose (log_file);
@@ -7058,8 +7016,8 @@ Clear_Keep_Flags (fill_chunks, 1);
    UnJigglePositions();
 
    now = time (NULL);
-   fprintf (stderr, "### Finish Rocks iteration #%s   %s\n",
-            iter_string, ctime (& now));
+   fprintf (stderr, "### Finish Rocks iteration #%d   %s\n",
+            iteration, ctime (& now));
    stop_time = clock ();
    fprintf (stderr, "### cpu time = %.1f sec\n",
                (double) (stop_time - start_time) / CLOCKS_PER_SEC);
@@ -7186,7 +7144,6 @@ int  Find_Olap_Path
        return  TRUE;                        // Nothing to do
 
    num_nodes = GetNumGraphNodes (ScaffoldGraph -> RezGraph);
-PRALLOC (num_nodes * sizeof (Node_Index_t));
    node = (Node_Index_t *) safe_realloc (node, num_nodes * sizeof (Node_Index_t));
    for  (i = 0;  i < num_nodes;  i ++)
      node [i] . visited = node [i] . finished = FALSE;
@@ -7194,7 +7151,6 @@ PRALLOC (num_nodes * sizeof (Node_Index_t));
    if  (dfs_tree == NULL)
        {
         tree_size = INITIAL_TREE_SIZE;
-PALLOC (tree_size * sizeof (DFS_Info_t));
         dfs_tree = (DFS_Info_t *) safe_malloc (tree_size * sizeof (DFS_Info_t));
        }
    tree_sub = 0;
@@ -7351,7 +7307,7 @@ void  Force_Increasing_Variances_One_Scaffold
      {
       double  dip, min_var;
 
-      min_var = Min_double (chunk -> offsetAEnd . variance,
+      min_var = MIN (chunk -> offsetAEnd . variance,
                             chunk -> offsetBEnd . variance);
       if  (min_var >= prev_variance)
           dip = 0.0;
@@ -7366,7 +7322,7 @@ void  Force_Increasing_Variances_One_Scaffold
 	   */
           }
 
-      prev_variance = Max_double (chunk -> offsetAEnd . variance,
+      prev_variance = MAX (chunk -> offsetAEnd . variance,
                                   chunk -> offsetBEnd . variance);
       if  (prev_chunk != NULL)
           {
@@ -7397,7 +7353,7 @@ void  Force_Increasing_Variances_One_Scaffold
      {
       double  min_var;
 
-      min_var = Min_double (chunk -> offsetAEnd . variance,
+      min_var = MIN (chunk -> offsetAEnd . variance,
                             chunk -> offsetBEnd . variance);
       if  (min_var < prev_variance)
           {
@@ -7406,7 +7362,7 @@ void  Force_Increasing_Variances_One_Scaffold
                     prev_variance - min_var, chunk -> id, scaff -> id);
           }
 
-      prev_variance = Max_double (chunk -> offsetAEnd . variance,
+      prev_variance = MAX (chunk -> offsetAEnd . variance,
                                   chunk -> offsetBEnd . variance);
      }
 #endif
@@ -7457,13 +7413,13 @@ static Overlap *  Get_Chunk_Overlap
    ChunkOrientationType  orient;
    int  min_ahang, max_ahang;
 
-   max_var = Max_double (a -> start . variance, a -> end . variance);
-   max_var = Max_double (max_var, b -> start . variance);
-   max_var = Max_double (max_var, b -> end . variance);
+   max_var = MAX (a -> start . variance, a -> end . variance);
+   max_var = MAX (max_var, b -> start . variance);
+   max_var = MAX (max_var, b -> end . variance);
 
-   min_var = Min_double (a -> start . variance, a -> end . variance);
-   min_var = Min_double (min_var, b -> start . variance);
-   min_var = Min_double (min_var, b -> end . variance);
+   min_var = MIN (a -> start . variance, a -> end . variance);
+   min_var = MIN (min_var, b -> start . variance);
+   min_var = MIN (min_var, b -> end . variance);
 
    var_diff = max_var - min_var;
 
@@ -7545,7 +7501,6 @@ static char *  Get_Contig_Sequence
         exit (EXIT_FAILURE);
        }
 
-PALLOC (len + 1);
    ungapped_seq = (char *) safe_malloc (len + 1);
 
    ct = 0;
@@ -7573,7 +7528,7 @@ int  Hurl_Contained_Rocks
 
   {
    FILE  * log_file;
-   char  filename [1000], iter_string [20];
+   char  filename [FILENAME_MAX];
    Scaffold_Fill_t  * fill_chunks;
    static int  iteration = 0;
    clock_t  start_time, stop_time;
@@ -7607,38 +7562,28 @@ int  Hurl_Contained_Rocks
    Is_Hopeless_Size = Num_Scaffolds;
 #endif
 
-   Filename_Prefix = prefix;
-
    fprintf (stderr, "### Hurl_Contained_Rocks iteration #%d\n", iteration);
    Contained_Only_Switch = TRUE;
    
-   sprintf (iter_string, "%d", iteration ++);
+   iteration++;
 
    now = time (NULL);
-   fprintf (stderr, "### Start Contained Rocks iteration #%s   %s\n",
-            iter_string, ctime (& now));
+   fprintf (stderr, "### Start Contained Rocks iteration #%d   %s\n",
+            iteration, ctime (& now));
    start_time = clock ();
 
-   strcpy (filename, prefix);
-   strcat (filename, ".crocks.i");
-   strcat (filename, iter_string);
-   strcat (filename, ".log");
+   AS_UTL_mkdir("rezlog");
+   sprintf(filename, "rezlog/%s.crocks.i%02d.log", prefix, iteration);
    log_file = file_open (filename, "w");
 
 #if  MAKE_CAM_FILE
-   strcpy (filename, prefix);
-   strcat (filename, ".crocks.i");
-   strcat (filename, iter_string);
-   strcat (filename, ".cam");
+   sprintf(filename, "rezlog/%s.crocks.i%02d.cam", prefix, iteration);
    Cam_File = file_open (filename, "w");
 
    for  (i = 0;  i < NUM_COLOURS;  i ++)
      fprintf (Cam_File, "%dREZ: %s\n", i, Colour_String [i]);
 #if  SHOW_CALC_COORDS
-   strcpy (filename, prefix);
-   strcat (filename, ".calccr.i");
-   strcat (filename, iter_string);
-   strcat (filename, ".cam");
+   sprintf(filename, "rezlog/%s.calccr.i%02d.cam", prefix, iteration);
    Calc_Cam_File = file_open (filename, "w");
 
    for  (i = 0;  i < NUM_COLOURS;  i ++)
@@ -7646,13 +7591,10 @@ int  Hurl_Contained_Rocks
 #endif
 #endif
 
-PALLOC (Num_Scaffolds * sizeof (int64));
    Scaffold_Start = (int64 *) safe_calloc
                       (Num_Scaffolds, sizeof (int64));
-PALLOC (Num_Scaffolds * sizeof (int64));
    Scaffold_End = (int64 *) safe_calloc
                     (Num_Scaffolds, sizeof (int64));
-PALLOC (Num_Scaffolds * sizeof (char));
    Scaffold_Flipped = (char *) safe_calloc
                         (Num_Scaffolds, sizeof (char));
 
@@ -7723,10 +7665,7 @@ fprintf (log_file, "\n>>> Fill before  Update_Scaffold_Graph <<<\n");
 
    fclose (log_file);
 
-   strcpy (filename, prefix);
-   strcat (filename, ".crocks.i");
-   strcat (filename, iter_string);
-   strcat (filename, ".analysis");
+   sprintf(filename, "rezlog/%s.crocks.i%02d.analysis", prefix, iteration);
    log_file = file_open (filename, "w");
    Analyze_Rock_Fill (log_file, fill_chunks);
    fclose (log_file);
@@ -7758,8 +7697,8 @@ Clear_Keep_Flags (fill_chunks, 1);
    Free_Global_Arrays ();
 
    now = time (NULL);
-   fprintf (stderr, "### Finish Contained Rocks iteration #%s   %s\n",
-            iter_string, ctime (& now));
+   fprintf (stderr, "### Finish Contained Rocks iteration #%d   %s\n",
+            iteration, ctime (& now));
    stop_time = clock ();
    fprintf (stderr, "### cpu time = %.1f sec\n",
                (double) (stop_time - start_time) / CLOCKS_PER_SEC);
@@ -7907,7 +7846,6 @@ static void  Include_Good_Joins
    if  (n == 0)
        return;
 
-PALLOC (n * sizeof (Scaff_Join_t *));
    p = (Scaff_Join_t * *) safe_calloc (n, sizeof (Scaff_Join_t *));
 
    for  (i = 0;  i < n;  i ++)
@@ -7934,7 +7872,7 @@ PALLOC (n * sizeof (Scaff_Join_t *));
              scaffold = GetCIScaffoldT (ScaffoldGraph -> CIScaffolds, p [r] -> scaff2);
              chunk = GetGraphNode(ScaffoldGraph->RezGraph,
                                         scaffold -> info . Scaffold . BEndCI);
-             tail = Max_double (chunk -> offsetAEnd . mean, chunk -> offsetBEnd . mean);
+             tail = MAX (chunk -> offsetAEnd . mean, chunk -> offsetBEnd . mean);
              if  (p [r] -> m > 0)
                  {
                   lo1 = (0.0 - p [r] -> b) / p [r] -> m;
@@ -7948,7 +7886,7 @@ PALLOC (n * sizeof (Scaff_Join_t *));
              scaffold = GetCIScaffoldT (ScaffoldGraph -> CIScaffolds, p [i] -> scaff2);
              chunk = GetGraphNode(ScaffoldGraph->RezGraph,
                                         scaffold -> info . Scaffold . BEndCI);
-             tail = Max_double (chunk -> offsetAEnd . mean, chunk -> offsetBEnd . mean);
+             tail = MAX (chunk -> offsetAEnd . mean, chunk -> offsetBEnd . mean);
              if  (p [i] -> m > 0)
                  {
                   lo2 = (0.0 - p [i] -> b) / p [i] -> m;
@@ -7970,7 +7908,7 @@ PALLOC (n * sizeof (Scaff_Join_t *));
              scaffold = GetCIScaffoldT (ScaffoldGraph -> CIScaffolds, p [r] -> scaff1);
              chunk = GetGraphNode(ScaffoldGraph->RezGraph,
                                         scaffold -> info . Scaffold . BEndCI);
-             tail = Max_double (chunk -> offsetAEnd . mean, chunk -> offsetBEnd . mean);
+             tail = MAX (chunk -> offsetAEnd . mean, chunk -> offsetBEnd . mean);
              if  (p [r] -> m > 0)
                  {
                   lo1 = 0.0 + p [r] -> b;
@@ -7984,7 +7922,7 @@ PALLOC (n * sizeof (Scaff_Join_t *));
              scaffold = GetCIScaffoldT (ScaffoldGraph -> CIScaffolds, p [i] -> scaff1);
              chunk = GetGraphNode(ScaffoldGraph->RezGraph,
                                         scaffold -> info . Scaffold . BEndCI);
-             tail = Max_double (chunk -> offsetAEnd . mean, chunk -> offsetBEnd . mean);
+             tail = MAX (chunk -> offsetAEnd . mean, chunk -> offsetBEnd . mean);
              if  (p [i] -> m > 0)
                  {
                   lo2 = 0.0 + p [i] -> b;
@@ -8006,7 +7944,7 @@ PALLOC (n * sizeof (Scaff_Join_t *));
              scaffold = GetCIScaffoldT (ScaffoldGraph -> CIScaffolds, p [r] -> scaff2);
              chunk = GetGraphNode(ScaffoldGraph->RezGraph,
                                         scaffold -> info . Scaffold . BEndCI);
-             tail = Max_double (chunk -> offsetAEnd . mean, chunk -> offsetBEnd . mean);
+             tail = MAX (chunk -> offsetAEnd . mean, chunk -> offsetBEnd . mean);
              if  (p [r] -> m > 0)
                  {
                   lo1 = (0.0 - p [r] -> b) / p [r] -> m;
@@ -8020,7 +7958,7 @@ PALLOC (n * sizeof (Scaff_Join_t *));
              scaffold = GetCIScaffoldT (ScaffoldGraph -> CIScaffolds, p [i] -> scaff1);
              chunk = GetGraphNode(ScaffoldGraph->RezGraph,
                                         scaffold -> info . Scaffold . BEndCI);
-             tail = Max_double (chunk -> offsetAEnd . mean, chunk -> offsetBEnd . mean);
+             tail = MAX (chunk -> offsetAEnd . mean, chunk -> offsetBEnd . mean);
              if  (p [i] -> m > 0)
                  {
                   lo2 = 0.0 + p [i] -> b;
@@ -8042,7 +7980,7 @@ PALLOC (n * sizeof (Scaff_Join_t *));
              scaffold = GetCIScaffoldT (ScaffoldGraph -> CIScaffolds, p [r] -> scaff1);
              chunk = GetGraphNode(ScaffoldGraph->RezGraph,
                                         scaffold -> info . Scaffold . BEndCI);
-             tail = Max_double (chunk -> offsetAEnd . mean, chunk -> offsetBEnd . mean);
+             tail = MAX (chunk -> offsetAEnd . mean, chunk -> offsetBEnd . mean);
              if  (p [r] -> m > 0)
                  {
                   lo1 = 0.0 + p [r] -> b;
@@ -8056,7 +7994,7 @@ PALLOC (n * sizeof (Scaff_Join_t *));
              scaffold = GetCIScaffoldT (ScaffoldGraph -> CIScaffolds, p [i] -> scaff2);
              chunk = GetGraphNode(ScaffoldGraph->RezGraph,
                                         scaffold -> info . Scaffold . BEndCI);
-             tail = Max_double (chunk -> offsetAEnd . mean, chunk -> offsetBEnd . mean);
+             tail = MAX (chunk -> offsetAEnd . mean, chunk -> offsetBEnd . mean);
              if  (p [i] -> m > 0)
                  {
                   lo2 = (0.0 - p [i] -> b) / p [i] -> m;
@@ -8168,14 +8106,14 @@ PALLOC (n * sizeof (Scaff_Join_t *));
 #if  CHECK_CELSIM_COORDS
           if  (Scaffold_Flipped [p [i] -> insert_scaff])
               this_offset
-                  = Max_int (chunk -> aEndCoord, chunk -> bEndCoord)
+                  = MAX (chunk -> aEndCoord, chunk -> bEndCoord)
                         + p [i] -> left_end . mean;
             else
               this_offset
-                  = Min_int (chunk -> aEndCoord, chunk -> bEndCoord)
+                  = MIN (chunk -> aEndCoord, chunk -> bEndCoord)
                         - p [i] -> left_end . mean;
           diff = fabs (this_offset - p [i] -> stack_val . celsim_offset);
-          cutoff = Max_double (6 * sqrt (p [i] -> stack_val . edge
+          cutoff = MAX (6 * sqrt (p [i] -> stack_val . edge
                                         -> distance . variance
                                         + p [i] -> stack_val . source_variance),
                             100);
@@ -8678,10 +8616,10 @@ static int  Might_Overlap
    double  a_lo, a_hi, b_lo, b_hi;
    double  a_len, b_len;
 
-   a_lo = Min_double (a_frag_start, a_frag_end);
-   a_hi = Max_double (a_frag_start, a_frag_end);
-   b_lo = Min_double (b_frag_start, b_frag_end);
-   b_hi = Max_double (b_frag_start, b_frag_end);
+   a_lo = MIN (a_frag_start, a_frag_end);
+   a_hi = MAX (a_frag_start, a_frag_end);
+   b_lo = MIN (b_frag_start, b_frag_end);
+   b_hi = MAX (b_frag_start, b_frag_end);
    a_len = a_hi - a_lo;
    b_len = b_hi - b_lo;
 
@@ -8707,8 +8645,8 @@ static int  Might_Overlap
    if  (Interval_Intersection (a_lo - slop, a_hi + slop,
                                b_lo, b_hi))
        {
-        (* max_ahang) = (int) rint (Min_double (a_len, b_lo - a_lo + abs (slop)));
-        (* min_ahang) = (int) rint (Max_double (- b_len, b_lo - a_lo - abs (slop)));
+        (* max_ahang) = (int) rint (MIN (a_len, b_lo - a_lo + abs (slop)));
+        (* min_ahang) = (int) rint (MAX (- b_len, b_lo - a_lo - abs (slop)));
         return  TRUE;
        }
 
@@ -8766,22 +8704,16 @@ static void  New_Confirm_Stones_One_Scaffold
        {
         check_size = INITIAL_GAP_ENTRIES;
         edge_pool_size = INITIAL_GAP_ENTRIES;
-PALLOC (check_size * sizeof (Gap_Chunk_t *));
         check = (Gap_Chunk_t * *)
                      safe_malloc (check_size * sizeof (Gap_Chunk_t *));
-PALLOC (edge_pool_size * sizeof (Stone_Edge_t));
         edge_pool = (Stone_Edge_t *)
                      safe_malloc (edge_pool_size * sizeof (Stone_Edge_t));
-PALLOC (check_size * sizeof (int));
         forward_edge = (int *)
                      safe_malloc (check_size * sizeof (int));
-PALLOC (check_size * sizeof (int));
         reverse_edge = (int *)
                      safe_malloc (check_size * sizeof (int));
-PALLOC (check_size * sizeof (int));
         sorted = (int *)
                      safe_malloc (check_size * sizeof (int));
-PALLOC (check_size * sizeof (char *));
         sequence = (char * *)
                      safe_malloc (check_size * sizeof (char *));
        }
@@ -8809,26 +8741,21 @@ fprintf (stderr, "\nScaff %d  Gap %d\n", scaff_id, j);
            check_size *= 2;
            if  (check_size < this_gap -> num_chunks)
                check_size = this_gap -> num_chunks;
-PRALLOC (check_size * sizeof (Gap_Chunk_t *));
            check = (Gap_Chunk_t * *)
                        safe_realloc
                            (check,
                             check_size * sizeof (Gap_Chunk_t *));
-PRALLOC (check_size * sizeof (int));
            forward_edge = (int *)
                               safe_realloc
                                   (forward_edge,
                                    check_size * sizeof (int));
-PRALLOC (check_size * sizeof (int));
            reverse_edge = (int *)
                               safe_realloc
                                   (reverse_edge,
                                    check_size * sizeof (int));
-PRALLOC (check_size * sizeof (int));
            sorted = (int *)
                         safe_realloc
                             (sorted, check_size * sizeof (int));
-PRALLOC (check_size * sizeof (char *));
            sequence = (char * *)
                           safe_realloc (sequence,
                                         check_size * sizeof (char *));
@@ -8878,7 +8805,6 @@ PRALLOC (check_size * sizeof (char *));
                  if  (next_edge >= edge_pool_size - 1)
                      {
                       edge_pool_size *= 2;
-PRALLOC (edge_pool_size * sizeof (Stone_Edge_t));
                       edge_pool
                           = (Stone_Edge_t *)
                               safe_realloc
@@ -9376,9 +9302,9 @@ static void  Output_Cam_Files
                  row = 4;
                 }
 
-            lo = Min_double (this_chunk -> start . mean,
+            lo = MIN (this_chunk -> start . mean,
                              this_chunk -> end . mean);
-            hi = Max_double (this_chunk -> start . mean,
+            hi = MAX (this_chunk -> start . mean,
                              this_chunk -> end . mean);
             if  (hi > scaff_end)
                 scaff_end = hi;
@@ -9574,7 +9500,7 @@ static void  Print_Scaffolds
                            diff, tolerance, slope, y_intercept);
              }
 
-         prev_variance = Max_double (chunk -> offsetAEnd . variance,
+         prev_variance = MAX (chunk -> offsetAEnd . variance,
                                      chunk -> offsetBEnd . variance);
 
          denom = chunk -> offsetBEnd . mean - chunk -> offsetAEnd . mean;
@@ -9823,9 +9749,7 @@ static void  Print_Coverage
    int64  * lo, * hi, sum;
    int  i, j, n;
 
-PALLOC (Num_Chunks * sizeof (int64));
    lo = (int64 *) safe_malloc (Num_Chunks * sizeof (int64));
-PALLOC (Num_Chunks * sizeof (int64));
    hi = (int64 *) safe_malloc (Num_Chunks * sizeof (int64));
 
    for  (i = n = 0;  i < Num_Chunks;  i ++)
@@ -10005,14 +9929,14 @@ void  Print_Fill_Info_One_Scaffold
                     scaff_chunk -> offsetBEnd . mean,
                     scaff_chunk -> offsetBEnd . variance);
 #endif
-           ref_var = Max_double (scaff_chunk -> offsetAEnd . variance,
+           ref_var = MAX (scaff_chunk -> offsetAEnd . variance,
                                  scaff_chunk -> offsetBEnd . variance);
           }
         else
           {
            scaff_chunk
                = GetGraphNode(ScaffoldGraph->RezGraph, this_gap -> right_cid);
-           ref_var = Min_double (scaff_chunk -> offsetAEnd . variance,
+           ref_var = MIN (scaff_chunk -> offsetAEnd . variance,
                                  scaff_chunk -> offsetBEnd . variance);
           }
 
@@ -10463,7 +10387,6 @@ static void  Print_Unique_Chunks
    if  (fp != NULL)
        fprintf (fp, "### Contigs in graph = %d\n", Num_Chunks);
 
-PALLOC (Num_Chunks * sizeof (Chunk_Ref_t));
 #if  0
    Ref = (Chunk_Ref_t *) safe_calloc
            (Num_Chunks, sizeof (Chunk_Ref_t));
@@ -10485,7 +10408,6 @@ PALLOC (Num_Chunks * sizeof (Chunk_Ref_t));
    ref_entry_ct = 1;
 
 
-PALLOC (Num_Chunks * sizeof (Chunk_Info_t));
    Chunk_Info = (Chunk_Info_t *) safe_calloc
                   (Num_Chunks, sizeof (Chunk_Info_t));
 
@@ -10697,7 +10619,7 @@ static void  Re_Check_Inserted_Rocks
                      consistent = Check_Scaffold_and_Orientation
                                       (cid, stack, stack_top, & good_total,
                                        fill, & bad_links, min_good_links);
-                     bad_allowed = Max_int (0, 1 - bad_links);
+                     bad_allowed = MAX (0, 1 - bad_links);
                      if  (consistent && good_total >= min_good_links)
                          consistent = Estimate_Chunk_Ends
                                           (stack, stack_top, & left_end,
@@ -10930,7 +10852,7 @@ static void  Restore_Best_Rocks
               if  (this_gap -> left_cid >= 0)
                   {
                    left_hi_mean
-                       = Max_double
+                       = MAX
                              (REF (this_gap -> left_cid) . a_end . mean,
                               REF (this_gap -> left_cid) . b_end . mean);
                    max_left_shift = best_lo_pos -> mean - left_hi_mean
@@ -10949,7 +10871,7 @@ static void  Restore_Best_Rocks
                   {
 #if  0
                    how_much
-                     = (int) rint (Min_double
+                     = (int) rint (MIN
                                     (fabs (REF (this_gap -> left_cid) . a_end . mean
                                             - REF (this_gap -> left_cid) . b_end . mean),
                                      fabs (best_chunk -> start . mean
@@ -11059,7 +10981,7 @@ if  (olap == NULL)
 #endif
 
                    right_lo_mean
-                       = Min_double
+                       = MIN
                              (REF (this_gap -> right_cid) . a_end . mean,
                               REF (this_gap -> right_cid) . b_end . mean);
 
@@ -11174,7 +11096,7 @@ fprintf (stderr,
                                  = best_chunk -> end . variance;
                              best_chunk -> end . variance = save;
                             }
-                        hi_var = Max_double (best_chunk -> start . variance,
+                        hi_var = MAX (best_chunk -> start . variance,
                                              best_chunk -> end . variance)
                                    + this_gap -> ref_variance;
                         if  (hi_var > this_gap -> end . variance)
@@ -11319,7 +11241,6 @@ Scaffold_Fill_t *  Scan_Gaps
 
    Num_Scaffolds = GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph);
 
-PALLOC (Num_Scaffolds * sizeof (Scaffold_Fill_t));
    fill = (Scaffold_Fill_t *) safe_calloc (Num_Scaffolds, sizeof (Scaffold_Fill_t));
 
    for  (i = 0;  i < Num_Scaffolds;  i ++)
@@ -11348,7 +11269,6 @@ PALLOC (Num_Scaffolds * sizeof (Scaffold_Fill_t));
 
       num_chunks = scaff -> info.Scaffold.numElements;
       fill [scaff_id] . num_gaps = 1 + num_chunks;   // including ends
-PALLOC ((1 + num_chunks) * sizeof (Gap_Fill_t));
       fill [scaff_id] . gap
           = (Gap_Fill_t *) safe_calloc (1 + num_chunks, sizeof (Gap_Fill_t));
       fill [scaff_id] . gap [0] . gap = 0;
@@ -11486,7 +11406,6 @@ Scaffold_Fill_t *  Scan_Gaps_In_Scaffold (int target_scaffold)
    CIScaffoldT  * scaff;
    Scaffold_Fill_t  * fill;
 
-PALLOC (1 * sizeof (Scaffold_Fill_t));
    fill = (Scaffold_Fill_t *) safe_calloc (1, sizeof (Scaffold_Fill_t));
 
    fill -> num_gaps = 0;
@@ -11509,7 +11428,6 @@ PALLOC (1 * sizeof (Scaffold_Fill_t));
 
       num_chunks = scaff -> info.Scaffold.numElements;
       fill -> num_gaps = 1 + num_chunks;   // including ends
-PALLOC ((1 + num_chunks) * sizeof (Gap_Fill_t));
       fill -> gap
           = (Gap_Fill_t *) safe_calloc (1 + num_chunks, sizeof (Gap_Fill_t));
       fill -> gap [0] . gap = 0;
@@ -11882,7 +11800,6 @@ static int  Set_Longest_Path
 
    if  (num_nodes > path_info_size)
        {
-PRALLOC (num_nodes * sizeof (Path_Info_t));
         path_info = (Path_Info_t *) safe_realloc
                         (path_info, num_nodes * sizeof (Path_Info_t));
         path_info_size = num_nodes;
@@ -12362,17 +12279,17 @@ static int  Should_Overlap
   {
    double  a, b, c, d;
 
-   a = Min_double (left -> A_end . mean, left -> B_end . mean);
-   b = Max_double (left -> A_end . mean, left -> B_end . mean);
-   c = Min_double (right -> A_end . mean, right -> B_end . mean);
-   d = Max_double (right -> A_end . mean, right -> B_end . mean);
+   a = MIN (left -> A_end . mean, left -> B_end . mean);
+   b = MAX (left -> A_end . mean, left -> B_end . mean);
+   c = MIN (right -> A_end . mean, right -> B_end . mean);
+   d = MAX (right -> A_end . mean, right -> B_end . mean);
 
    assert (b <= d);
 
    if  (d < a || b < c)
      (* how_much) = 0.0;
    else
-     (* how_much) = Min_double (b, d) - Max_double (a, c);
+     (* how_much) = MIN (b, d) - MAX (a, c);
 
    if  (left -> flipped)
        {
@@ -12424,14 +12341,14 @@ void  Show_Gap_Reads_One_Scaff
           {
            scaff_chunk
                = GetGraphNode(ScaffoldGraph->RezGraph, this_gap -> left_cid);
-           ref_var = Max_double (scaff_chunk -> offsetAEnd . variance,
+           ref_var = MAX (scaff_chunk -> offsetAEnd . variance,
                                  scaff_chunk -> offsetBEnd . variance);
           }
         else
           {
            scaff_chunk
                = GetGraphNode(ScaffoldGraph->RezGraph, this_gap -> right_cid);
-           ref_var = Min_double (scaff_chunk -> offsetAEnd . variance,
+           ref_var = MIN (scaff_chunk -> offsetAEnd . variance,
                                  scaff_chunk -> offsetBEnd . variance);
           }
 
@@ -12564,7 +12481,7 @@ int  Show_Reads_In_Gaps
 
   {
    FILE  * fp;
-   char  filename [1000];
+   char  filename [FILENAME_MAX];
    Scaffold_Fill_t  * fill_stones;
    clock_t  start_time, stop_time;
    time_t  now;
@@ -12598,17 +12515,14 @@ int  Show_Reads_In_Gaps
    Is_Hopeless_Size = Num_Scaffolds;
 #endif
 
-   strcpy (filename, prefix);
-   strcat (filename, ".gapreads");
+   AS_UTL_mkdir("rezlog");
+   sprintf(filename, "rezlog/%s.gapreads", prefix);
    fp = file_open (filename, "w");
 
-PALLOC (Num_Scaffolds * sizeof (int64));
    Scaffold_Start = (int64 *) safe_calloc
                       (Num_Scaffolds, sizeof (int64));
-PALLOC (Num_Scaffolds * sizeof (int64));
    Scaffold_End = (int64 *) safe_calloc
                     (Num_Scaffolds, sizeof (int64));
-PALLOC (Num_Scaffolds * sizeof (char));
    Scaffold_Flipped = (char *) safe_calloc
                         (Num_Scaffolds, sizeof (char));
 
@@ -12721,7 +12635,7 @@ int Throw_Stones
 
   {
    FILE  * log_file;
-   char  filename [1000], iter_string [20];
+   char  filename [FILENAME_MAX];
    Scaffold_Fill_t  * fill_stones;
    static int  iteration = 0;
    clock_t  start_time, stop_time;
@@ -12754,37 +12668,27 @@ int Throw_Stones
    Is_Hopeless_Size = Num_Scaffolds;
 #endif
 
-   Filename_Prefix = prefix;
-
    fprintf (stderr, "### Throw_Stones iteration #%d\n", iteration);
 
-   sprintf (iter_string, "%d", iteration ++);
+   iteration++;
 
    now = time (NULL);
-   fprintf (stderr, "### Start Stones iteration #%s   %s\n",
-            iter_string, ctime (& now));
+   fprintf (stderr, "### Start Stones iteration #%d   %s\n",
+            iteration, ctime (& now));
    start_time = clock ();
 
-   strcpy (filename, prefix);
-   strcat (filename, ".stone.i");
-   strcat (filename, iter_string);
-   strcat (filename, ".log");
+   AS_UTL_mkdir("rezlog");
+   sprintf(filename, "rezlog/%s.stone.i%02d.log", prefix, iteration);
    log_file = file_open (filename, "w");
 
 #if  MAKE_CAM_FILE
-   strcpy (filename, prefix);
-   strcat (filename, ".stone.i");
-   strcat (filename, iter_string);
-   strcat (filename, ".cam");
+   sprintf(filename, "rezlog/%s.stone.i%02d.cam", prefix, iteration);
    Cam_File = file_open (filename, "w");
 
    for  (i = 0;  i < NUM_COLOURS;  i ++)
      fprintf (Cam_File, "%dREZ: %s\n", i, Colour_String [i]);
 #if  SHOW_CALC_COORDS
-   strcpy (filename, prefix);
-   strcat (filename, ".calcstone.i");
-   strcat (filename, iter_string);
-   strcat (filename, ".cam");
+   sprintf(filename, "rezlog/%s.calcstone.i%02d.cam", prefix, iteration);
    Calc_Cam_File = file_open (filename, "w");
 
    for  (i = 0;  i < NUM_COLOURS;  i ++)
@@ -12793,13 +12697,10 @@ int Throw_Stones
 #endif
 #endif
 
-PALLOC (Num_Scaffolds * sizeof (int64));
    Scaffold_Start = (int64 *) safe_calloc
                       (Num_Scaffolds, sizeof (int64));
-PALLOC (Num_Scaffolds * sizeof (int64));
    Scaffold_End = (int64 *) safe_calloc
                     (Num_Scaffolds, sizeof (int64));
-PALLOC (Num_Scaffolds * sizeof (char));
    Scaffold_Flipped = (char *) safe_calloc
                         (Num_Scaffolds, sizeof (char));
 
@@ -13008,10 +12909,7 @@ PALLOC (Num_Scaffolds * sizeof (char));
 #endif
 #endif
 
-   strcpy (filename, prefix);
-   strcat (filename, ".stone.i");
-   strcat (filename, iter_string);
-   strcat (filename, ".analysis");
+   sprintf(filename, "rezlog/%s.stone.i%02d.analysis", prefix, iteration);
    log_file = file_open (filename, "w");
    Analyze_Stone_Fill (log_file, fill_stones);
    fclose (log_file);
@@ -13022,8 +12920,8 @@ PALLOC (Num_Scaffolds * sizeof (char));
    Free_Global_Arrays ();
 
    now = time (NULL);
-   fprintf (stderr, "### Finish Stones iteration #%s   %s\n",
-            iter_string, ctime (& now));
+   fprintf (stderr, "### Finish Stones iteration #%d   %s\n",
+            iteration, ctime (& now));
    stop_time = clock ();
    fprintf (stderr, "### cpu time = %.1f sec\n",
                (double) (stop_time - start_time) / CLOCKS_PER_SEC);
@@ -13137,7 +13035,7 @@ int  Toss_Contained_Stones
 
   {
    FILE  * log_file = NULL;
-   char  filename [1000], iter_string [20];
+   char  filename [FILENAME_MAX];
    Scaffold_Fill_t  * fill_stones;
    static int  iteration = 0;
    clock_t  start_time, stop_time;
@@ -13173,40 +13071,30 @@ int  Toss_Contained_Stones
    Is_Hopeless_Size = Num_Scaffolds;
 #endif
 
-   Filename_Prefix = prefix;
-
    fprintf (stderr, "### Toss_Contained_Stones iteration #%d\n", iteration);
    Contained_Only_Switch = TRUE;
    
-   sprintf (iter_string, "%d", iteration ++);
+   iteration++;
 
    now = time (NULL);
-   fprintf (stderr, "### Start Contained Stones iteration #%s   %s\n",
-            iter_string, ctime (& now));
+   fprintf (stderr, "### Start Contained Stones iteration #%d   %s\n",
+            iteration, ctime (& now));
    start_time = clock ();
 
+   AS_UTL_mkdir("rezlog");
 #if VERBOSE
-   strcpy (filename, prefix);
-   strcat (filename, ".cstones.i");
-   strcat (filename, iter_string);
-   strcat (filename, ".log");
+   sprintf(filename, "rezlog/%s.cstones.i%02d.log", prefix, iteration);
    log_file = file_open (filename, "w");
 #endif
 
 #if  MAKE_CAM_FILE
-   strcpy (filename, prefix);
-   strcat (filename, ".cstones.i");
-   strcat (filename, iter_string);
-   strcat (filename, ".cam");
+   sprintf(filename, "rezlog/%s.cstones.i%02d.cam", prefix, iteration);
    Cam_File = file_open (filename, "w");
 
    for  (i = 0;  i < NUM_COLOURS;  i ++)
      fprintf (Cam_File, "%dREZ: %s\n", i, Colour_String [i]);
 #if  SHOW_CALC_COORDS
-   strcpy (filename, prefix);
-   strcat (filename, ".calccs.i");
-   strcat (filename, iter_string);
-   strcat (filename, ".cam");
+   sprintf(filename, "rezlog/%s.calccs.i%02d.cam", prefix, iteration);
    Calc_Cam_File = file_open (filename, "w");
 
    for  (i = 0;  i < NUM_COLOURS;  i ++)
@@ -13214,13 +13102,10 @@ int  Toss_Contained_Stones
 #endif
 #endif
 
-PALLOC (Num_Scaffolds * sizeof (int64));
    Scaffold_Start = (int64 *) safe_calloc
                       (Num_Scaffolds, sizeof (int64));
-PALLOC (Num_Scaffolds * sizeof (int64));
    Scaffold_End = (int64 *) safe_calloc
                     (Num_Scaffolds, sizeof (int64));
-PALLOC (Num_Scaffolds * sizeof (char));
    Scaffold_Flipped = (char *) safe_calloc
                         (Num_Scaffolds, sizeof (char));
 
@@ -13293,15 +13178,12 @@ PALLOC (Num_Scaffolds * sizeof (char));
 
    fclose (log_file);
 
-   strcpy (filename, prefix);
-   strcat (filename, ".cstones.i");
-   strcat (filename, iter_string);
-   strcat (filename, ".analysis");
+   sprintf(filename, "rezlog/%s.cstones.i%02d.analysis", prefix, iteration);
    log_file = file_open (filename, "w");
    Analyze_Rock_Fill (log_file, fill_stones);
 
    fclose (log_file);
-#endif
+   #endif
 
 
    StartTimerT(&GlobalData->UpdateTimer);
@@ -13330,8 +13212,8 @@ PALLOC (Num_Scaffolds * sizeof (char));
    Free_Global_Arrays ();
 
    now = time (NULL);
-   fprintf (stderr, "### Finish Contained Stones iteration #%s   %s\n",
-            iter_string, ctime (& now));
+   fprintf (stderr, "### Finish Contained Stones iteration #%d   %s\n",
+            iteration, ctime (& now));
    stop_time = clock ();
    fprintf (stderr, "### cpu time = %.1f sec\n",
                (double) (stop_time - start_time) / CLOCKS_PER_SEC);

@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.137 2007-04-02 13:33:38 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.138 2007-04-16 15:35:40 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -150,7 +150,10 @@ static double EPROB[CNS_MAX_QV-CNS_MIN_QV+1]; // prob of error for each quality 
 static double PROB[CNS_MAX_QV-CNS_MIN_QV+1];  // prob of correct call for each quality value (1-eprob)
 static int RINDEX[128];
 static fragRecord *fsread=NULL;
+
+#ifdef AS_ENABLE_SOURCE
 char SRCBUFFER[2048];
+#endif
 
 // Utility variable to control width of "pages" of PrintAlignment output
 static int ALNPAGEWIDTH=100;
@@ -7918,6 +7921,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
         }
 
         addlen = sprintf(srcadd,"\nmhp:%e",prob_value); 
+#ifdef AS_ENABLE_SOURCE
         if ( unitig->source != NULL ) {
           memcpy(&SRCBUFFER[0],unitig->source,strlen(unitig->source)+1);
           strcat(&SRCBUFFER[0],srcadd);
@@ -7926,6 +7930,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
           memcpy(&SRCBUFFER[0],srcadd,addlen+1);
           unitig->source = &SRCBUFFER[0];
         }
+#endif
         if ( rc ) {
           for (i=0;i<depth;i++) {
             safe_free(multia[2*i]);

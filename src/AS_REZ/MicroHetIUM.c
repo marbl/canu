@@ -494,10 +494,11 @@ static int doPrintMPobs=0;
 
 CGB_Type get_simulator_type(IntUnitigMesg* ium_mesg){
   char *type;
-  CGB_Type t;
+  CGB_Type t = XX_CGBTYPE;
+
   // See if this is a repeat, or we can pin it down to an interval
+#ifdef AS_ENABLE_SOURCE
   type = strstr(ium_mesg->source,"gen> ");
-  t = (unsigned int)XX_CGBTYPE;
   if(type){
     type += 5;
     if(!strncmp(type,"uu",2)){
@@ -510,6 +511,7 @@ CGB_Type get_simulator_type(IntUnitigMesg* ium_mesg){
       t = (unsigned int)UR_CGBTYPE;
     }
   }
+#endif
   return t;
 }
 
@@ -738,7 +740,9 @@ main(int argc, char **argv) {
           printf("\nInspecting Unitig %d\n",iunitig->iaccession);
           printf("Number of frags = %d\n",iunitig->num_frags);	
           printf("Length          = %d\n",iunitig->length);	
+#ifdef AS_ENABLE_SOURCE
           printf("Source          = %s\n",iunitig->source);	
+#endif
 
           ali = AS_REZ_convert_IUM_to_alignment(iunitig,storeHandle,FALSE);
 

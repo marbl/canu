@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: StatisticsREZ.c,v 1.5 2006-11-14 17:52:18 eliv Exp $	 */
+/* 	$Id: StatisticsREZ.c,v 1.6 2007-04-16 15:35:41 brianwalenz Exp $	 */
 
 /****************************************************************************************
  *  StatisticsRez.c
@@ -39,6 +39,7 @@
 #include <assert.h>
 
 #include "AS_global.h"
+#include "AS_UTL_fileIO.h"
 #include "StatisticsREZ.h"
 #include "GraphCGW_T.h"
 #include "ScaffoldGraph_CGW.h"
@@ -374,7 +375,7 @@ void store_scaffold_walk_statistics(ScaffoldWalkStatisticsT *s)
   char filename[200];
   FILE *output;
 
-  init_stat_dir();
+  AS_UTL_mkdir("stat");
   sprintf(filename,"stats/gapsInScaffold.%d.stat",s->scaffoldID);
   output = fopen(filename,"w");
   if( output == NULL )
@@ -519,7 +520,7 @@ void output_combined_celagram_files(WalkStatisticsT* ws)
   char statFileName[256];
 
   // make sure that the stat directory exists
-  init_stat_dir();
+  AS_UTL_mkdir("stat");
 
   // now we open the celagram files 
   sprintf(statFileName,"stats/number.negativ.hops.cgm");
@@ -650,63 +651,3 @@ void print_all_scaffold_walk_stat_struct(char* mesg,WalkStatisticsT* ws, FILE* f
     }
   return;
 }
-
-
-
-/* misc. functions */
-
-
-void init_stat_dir()
-{
-  mode_t mode = S_IRWXU | S_IRWXG | S_IROTH;
-  DIR* statsDir;  
-    
-  fprintf(stderr,"** open stats dir\n");
-  statsDir = opendir("./stats");
-    
-    if(statsDir == NULL)
-      {
-	fprintf(stderr,"Could not open stats dir. Creating a new one\n");
-	if(mkdir("./stats",mode))
-	  {
-	    exit(1);
-	  }
-      } 
-}
-
-void init_cam_dir()
-  {
-    mode_t mode = S_IRWXU | S_IRWXG | S_IROTH;
-    DIR* camDir;
-    
-    fprintf(stderr,"** open cam dir\n");
-    camDir = opendir("./cam");
-    
-    if(camDir == NULL)
-      {
-	fprintf(stderr,"Could not open cam dir\n");
-	if(mkdir("./cam",mode))
-	  {
-	    exit(1);
-	  }
-      }
-  }
-
-void init_uoms_dir()
-  {
-    mode_t mode = S_IRWXU | S_IRWXG | S_IROTH;
-    DIR* uomsDir;
-    
-    fprintf(stderr,"** open uoms dir\n");
-    uomsDir = opendir("./uoms");
-    
-    if(uomsDir == NULL)
-      {
-	fprintf(stderr,"Could not open uoms dir\n");
-	if(mkdir("./uoms",mode))
-	  {
-	    exit(1);
-	  }
-      }
-  }
-

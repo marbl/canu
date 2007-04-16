@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.30 2007-04-12 18:54:45 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.31 2007-04-16 15:35:40 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -609,6 +609,7 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
   CI.offsetAEnd.variance = 0.0;
   CI.offsetBEnd = CI.bpLength;
 
+#ifdef AS_ENABLE_SOURCE
   if(ium_mesg->source){
     char *c = ium_mesg->source;
     CI.info.CI.source = GetNumchars(ScaffoldGraph->SourceFields);
@@ -619,25 +620,19 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
   }else{
     CI.info.CI.source = NULLINDEX;
   }
-
-  // Collect the microhetScore if available
-  {
-    char *mhp;
-    char *score;
-
-    mhp = strstr(ium_mesg->source,"mhp:");
-    if(mhp){
-      score = mhp+4;
-      CI.microhetScore = atof(score);
-#if 0
-      fprintf(stderr,"* %s\n*  mhp:%g found *\n", ium_mesg->source, CI.microhetScore);
 #endif
 
-    }else{
-      CI.microhetScore = 1.01;
-    }
-
+  // Collect the microhetScore if available
+  CI.microhetScore = 1.01;
+#ifdef AS_ENABLE_SOURCE
+  {
+    char *mhp = strstr(ium_mesg->source,"mhp:");
+    if(mhp)
+      CI.microhetScore = atof(mhp+4);
+      //fprintf(stderr,"* %s\n*  mhp:%g found *\n", ium_mesg->source, CI.microhetScore);
   }
+#endif
+
   // See if this is a repeat, or we can pin it down to an interval
   {
     char *interval;
@@ -645,9 +640,13 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
     int result;
     //	  fprintf(stderr,"* source = %s\n", ium_mesg->source);
 	  
+    CI.flags.bits.cgbType = XX_CGBTYPE;
+    CI.aEndCoord = CI.bEndCoord = -1;
+    simLength = CI.bpLength.mean;
+
     // See if this is a repeat, or we can pin it down to an interval
+#ifdef AS_ENABLE_SOURCE
     type = strstr(ium_mesg->source,"gen> ");
-    CI.flags.bits.cgbType = (unsigned int)XX_CGBTYPE;
     if(type){
       type += 5;
       if(!strncmp(type,"uu",2) || !strncmp(type,"@@",2)){
@@ -669,11 +668,8 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
 	CI.aEndCoord = CI.bEndCoord = -1;
 	simLength = CI.bpLength.mean;
       }
-    }else{
-      CI.aEndCoord = CI.bEndCoord = -1;
-      simLength = CI.bpLength.mean;
-
     }
+#endif
   }
 
   if(ium_mesg->coverage_stat >= GlobalData->cgbUniqueCutoff){

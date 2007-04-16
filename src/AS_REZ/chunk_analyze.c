@@ -38,11 +38,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: chunk_analyze.c,v 1.8 2007-02-14 07:20:13 brianwalenz Exp $
- * $Revision: 1.8 $
+ * $Id: chunk_analyze.c,v 1.9 2007-04-16 15:35:41 brianwalenz Exp $
+ * $Revision: 1.9 $
 */
 
-static char fileID[] = "$Id: chunk_analyze.c,v 1.8 2007-02-14 07:20:13 brianwalenz Exp $";
+static char fileID[] = "$Id: chunk_analyze.c,v 1.9 2007-04-16 15:35:41 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -149,7 +149,7 @@ int main  (int argc, char * argv [])
       if  (gmesg && gmesg -> t == MESG_IUM)
           {
            IntUnitigMesg  * msg;
-           char  * p;
+           char  * p = NULL;
 
            // deal with the generic message as an IUM message
            msg = (IntUnitigMesg *) gmesg -> m;
@@ -158,7 +158,9 @@ int main  (int argc, char * argv [])
            Passes_Discriminator
                = (msg -> coverage_stat >= COVERAGE_THRESHOLD);
            Num_Frags = msg -> num_frags;
+#ifdef AS_ENABLE_SOURCE
            p = strstr (msg -> source, "gen>");
+#endif
            if  (p == NULL)
                {
                 fprintf (stderr, "ERROR:  Missing  gen>  in source entry\n");

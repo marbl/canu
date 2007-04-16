@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: StatisticsREZ.h,v 1.4 2005-03-22 19:49:25 jason_miller Exp $	 */
+/* 	$Id: StatisticsREZ.h,v 1.5 2007-04-16 15:35:41 brianwalenz Exp $	 */
 
 /**********************************************************************************
  *  StatisticsRez.h
@@ -275,19 +275,4 @@ int read_scaffold_walk_statistics(ScaffoldWalkStatisticsT *s);
 void store_scaffold_walk_statistics(ScaffoldWalkStatisticsT *s);
 // stores the actual atomic units the GapStatisticsT of one scaffold
 
-/* ------------------------------------------------ */
-/* misc. functions                                  */
-/* ------------------------------------------------ */
-
-void init_stat_dir(void);
-// checks for a directory stats in the working directory. If not present it 
-// creates it
-
-void init_cam_dir(void);
-// checks for a directory cam in the working directory. If not present it 
-// creates it
-
-void init_uoms_dir(void);
-// checks for a directory uoms in the working directory. If not present it 
-// creates it
 #endif

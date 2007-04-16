@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_fom2uom.c,v 1.10 2007-04-12 18:54:44 brianwalenz Exp $";
+= "$Id: AS_CGB_fom2uom.c,v 1.11 2007-04-16 15:35:40 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_fom2uom.c
@@ -296,8 +296,9 @@ static void input_mesgs_pp
 	  cea.min_overlap_length  = pa1 + pb1 + min_overlap_length;
 	  cea.max_overlap_length  = pa1 + pb1 + max_overlap_length;
 	  cea.quality = quality;
+#ifdef AS_ENABLE_SOURCE
 	  cea.source = NULL;
-	  
+#endif
 
 	} // Convert to chunk overlaps from fragment overlaps
 

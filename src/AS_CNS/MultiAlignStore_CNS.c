@@ -25,7 +25,7 @@
    Assumptions:  libAS_UTL.a
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.31 2007-03-06 01:02:44 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.32 2007-04-16 15:35:40 brianwalenz Exp $";
 
 
 #include <assert.h>
@@ -486,7 +486,7 @@ CreateMultiAlignTFromIUM(IntUnitigMesg *ium, int localID, int sequenceOnly)
 	//	tmp.ident = cfr_mesg->ident;
 	if (localFragID == -2) {
           tmp.sourceInt = cfr_mesg->sourceInt;
-			 ma->source_alloc = 0;
+          ma->source_alloc = 0;
 	} else if (localFragID < 0) {
           tmp.sourceInt = INT_MAX;
           ma->source_alloc = 0;
@@ -744,21 +744,23 @@ CreateMultiAlignTFromCCO(SnapConConMesg *cco, int localID, int sequenceOnly)
 	
 	tmp.type = cfr_mesg->type;
 	tmp.eident = cfr_mesg->eident;
-	/* if (localFragID == -2) {
-             tmp.source = cfr_mesg->source;
-			 } else */
+
+#ifdef AS_ENABLE_SOURCE
+        tmp.source = NULL;
 	if (localFragID < 0) {
           int32 src_len;
           if (cfr_mesg->source) {
              src_len =  strlen(cfr_mesg->source);
              tmp.source = (char *) safe_malloc((src_len+1)*sizeof(char));
              strcpy(tmp.source,cfr_mesg->source);
-	  } else {
-             tmp.source = cfr_mesg->source;
           }
 	} else {
+          //  BPW thinks this looks very, very suspicious!
+          //  localFragID is an integer.
+          assert(0);
 	  tmp.source = (char *)localFragID++;
 	}
+#endif
 	tmp.position = cfr_mesg->position;
 	//	tmp.contained = cfr_mesg->contained;
 	tmp.delta_length = cfr_mesg->delta_length;

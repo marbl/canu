@@ -18,11 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.37 2007-04-12 18:54:45 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.38 2007-04-16 15:35:40 brianwalenz Exp $";
 
 #include "AS_MSG_pmesg_internal.h"
 
 AS_MSG_global_t *AS_MSG_globals = NULL;
+
 
 
 ////////////////////////////////////////
@@ -381,13 +382,10 @@ void
 Clear_FRG_Mesg(void *mesg, int typ) {
   FragMesg *fgm = (FragMesg *) mesg;
 
-  if (fgm->action == AS_ADD)
-    { safe_free(fgm->source);
-      if (typ != MESG_OFG)
-        { safe_free(fgm->sequence);
-          safe_free(fgm->quality);
-        }
-    }
+  safe_free(fgm->source);
+  safe_free(fgm->sequence);
+  safe_free(fgm->quality);
+  safe_free(fgm->hps);
 }
 
 void
@@ -514,6 +512,7 @@ GetProtoLineNum_AS(void) {
   AS_MSG_globalsInitialize();
   return (AS_MSG_globals->LineNum);
 }
+
 
 
 int

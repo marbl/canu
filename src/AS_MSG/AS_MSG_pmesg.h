@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.39 2007-04-12 18:54:45 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.40 2007-04-16 15:35:40 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -28,15 +28,8 @@
 
 #include "AS_global.h"
 
-/* Exported constant definitions; Macro definitions; type definitions */
-
 // Defining the following enables internal source fields for testing
 #define AS_ENABLE_SOURCE
-
-/* All externally created accession numbers are 64 bits. */
-
-#define AS_READ_MAX_LEN AS_FRAG_MAX_LEN
-#define AS_READ_MIN_LEN AS_FRAG_MIN_LEN
 
 //   #define NEW_UNITIGGER_INTERFACE
 
@@ -46,6 +39,7 @@ typedef CDS_IID_t Int##type##_ID;
 
 DEFINE_IDs(Fragment);
 DEFINE_IDs(Distance);
+DEFINE_IDs(Library);
 DEFINE_IDs(Chunk);
 DEFINE_IDs(Unitig);
 DEFINE_IDs(Contig);
@@ -68,8 +62,8 @@ typedef struct {
 
 typedef enum {
   MESG_NUL = 0,
-  MESG_ADT, MESG_FRG, MESG_IFG, MESG_SPe, MESG_OFG, // 5
-  MESG_LKG, MESG_SPg, MESG_DST, MESG_IDT, MESG_SPb, // 10
+  MESG_ADT, MESG_VER, MESG_FRG, MESG_IFG, MESG_OFG, // 5
+  MESG_LKG, MESG_SPg, MESG_DST, MESG_IDT, MESG_LIB, // 10
   MESG_SPc, MESG_SP1, MESG_OVL, MESG_SPf, MESG_UOM, // 15
   MESG_IUM, MESG_IUL, MESG_ICL, MESG_AFG, MESG_ISF, // 20
   MESG_IMD, MESG_IAF, MESG_UTG, MESG_ULK, MESG_ICM, // 25
@@ -84,14 +78,14 @@ typedef enum {
 
 static char  *MessageTypeName[NUM_OF_REC_TYPES + 1] = {
   "NUL",
-  "ADT", "FRG", "IFG", "SPe", "OFG", // 5
-  "LKG", "SPg", "DST", "IDT", "SPb", // 10
-  "SPc", "SP1", "OVL", "SPf", "UOM",// 15
-  "IUM", "IUL", "ICL", "AFG", "ISF",// 20  
-  "IMD", "IAF", "UTG", "ULK", "ICM",// 25 
-  "CCO", "CLK", "SCF", "MDI", "BAT",// 30  
-  "IBA", "BAC", "IBC", "SP2", "IBI",// 35
-  "SP3", "SP4", "SP5", "SP6", "SP7",// 40
+  "ADT", "VER", "FRG", "IFG", "OFG", // 5
+  "LKG", "SPg", "DST", "IDT", "LIB", // 10
+  "SPc", "SP1", "OVL", "SPf", "UOM", // 15
+  "IUM", "IUL", "ICL", "AFG", "ISF", // 20  
+  "IMD", "IAF", "UTG", "ULK", "ICM", // 25 
+  "CCO", "CLK", "SCF", "MDI", "BAT", // 30  
+  "IBA", "BAC", "IBC", "SP2", "IBI", // 35
+  "SP3", "SP4", "SP5", "SP6", "SP7", // 40
   "IDS", "DSC", "SLK", "ISL", "FOM", // 45
   "SPd", "SP8", "SP9", "SPa", "EOF"  // 50
 };
@@ -132,6 +126,12 @@ typedef struct {
   AuditLine *list;
 } AuditMesg;
 
+/* VER message */
+
+typedef struct {
+  uint32     version;
+} VersionMesg;
+
 /* LKG message */
 
 typedef enum {
@@ -159,7 +159,22 @@ typedef struct {
   Distance_ID     distance;
 } LinkMesg;
 
-/* DST message */
+/* LIB message -- only for version 2 */
+
+typedef struct {
+  ActionType   action;
+  Library_ID   eaccession;
+  float32      mean;
+  float32      stddev;
+  time_t       entry_time;
+#ifdef AS_ENABLE_SOURCE
+  char        *source;
+#endif
+  OrientType   link_orient;
+  uint32       num_features;
+} LibraryMesg;
+
+/* DST message  --  only for version 1 */
 
 typedef struct {
   ActionType   action;
@@ -247,13 +262,23 @@ typedef enum {
 
 typedef struct {
   ActionType   		action;
+  uint32                version;
   Fragment_ID  		eaccession;
-  FragType     		type;
+  Library_ID            library_uid;     //  only version 2
+  IntLibrary_ID         library_iid;     //  only version 2
+  CDS_UID_t             plate_uid;       //  only version 2
+  uint32                plate_location;  //  only version 2
+  FragType     		type;            //  only version 1
+  uint32                is_random;       //  only version 2
+  char                  status_code;     //  only version 2
   time_t       		entry_time;
   SeqInterval  		clear_rng;
+  SeqInterval  		clear_vec;       //  only version 2
+  SeqInterval  		clear_qlt;       //  only version 2
   char        		*source;
   char        		*sequence;
   char        		*quality;
+  char                  *hps;            //  only version 2
   IntFragment_ID   	iaccession;
 } FragMesg;
 
@@ -480,9 +505,9 @@ typedef struct IntMultiPos {
   IntFragment_ID  ident2; // iid of the fragment that will align with current one
 #endif
   
-#ifdef AS_ENABLE_SOURCE
-  int32        sourceInt;
-#endif
+  //  This should probably be called frgSource, and an IntFragment_ID
+  int32           sourceInt;
+
 #ifdef NEW_UNITIGGER_INTERFACE
   int32           ahang;
   int32           bhang;
@@ -906,9 +931,6 @@ FragType   AS_MSG_SafeConvert_charToFragType (const char input, bool strict);
 
 
 void       AS_MSG_setFormatVersion(int format);
-
-
-
 
 
 
