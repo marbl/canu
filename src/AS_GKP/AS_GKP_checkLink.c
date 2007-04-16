@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkLink.c,v 1.5 2007-03-01 16:13:16 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkLink.c,v 1.6 2007-04-16 22:26:39 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -82,59 +82,63 @@ Check_LinkMesg(LinkMesg *lkg_mesg,
   frag2IID = value.IID;
 
 
-  //  Version 1 encodes the library in the mate, not the read.  We
-  //  need to check that the library (from a distance record) is
-  //  there, and get the library IID to set in the reads.
+  //  Now grab the reads, we'll need them soon enough anyway.
   //
-  if (HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore->phs_private, 
-                                                UID_NAMESPACE_AS,
-                                                lkg_mesg->distance,
-                                                AS_IID_DST, 
-                                                FALSE,
-                                                stderr,
-                                                &value)) {
-    printGKPError(stderr, GKPError_MissingLIB);
-    fprintf(stderr,"# Link Message:  Library " F_UID " DOES NOT exist!!!" 
-	    "Can't reference it... bye\n",	    lkg_mesg->distance);
-    return(GATEKEEPER_FAILURE);
+  getGateKeeperFragmentStore(gkpStore->frg, frag1IID, &gkFrag1);
+  getGateKeeperFragmentStore(gkpStore->frg, frag2IID, &gkFrag2);
+
+
+  if (lkg_mesg->distance != 0) {
+    //  Version 1 encodes the library in the mate, not the read.  We
+    //  need to check that the library (from a distance record) is
+    //  there, and get the library IID to set in the reads.
+    //
+    if (HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore->phs_private,
+                                                  UID_NAMESPACE_AS,
+                                                  lkg_mesg->distance,
+                                                  AS_IID_DST,
+                                                  FALSE,
+                                                  stderr,
+                                                  &value)) {
+      printGKPError(stderr, GKPError_MissingLIB);
+      fprintf(stderr,"# Link Message:  Library " F_UID " DOES NOT exist!!!" 
+              "Can't reference it... bye\n",	    lkg_mesg->distance);
+      return(GATEKEEPER_FAILURE);
+    }
+
+    //  One could also check that the two reads are version 1...but,
+    //  heck, if they aren't, we're still good to go!
+
+    gkFrag1.libraryIID = value.IID;
+    gkFrag2.libraryIID = value.IID;
   }
 
-  //  And now set, not check, the library in the reads.
+  //  Now make absolutely sure the two reads are in the same library.
   //
-
-#if 0
-  //  Keep this one around for version 2....
   if (gkFrag1.libraryIID != gkFrag2.libraryIID) {
     printGKPError(stderr, GKPError_LNKFragLibMismatch);
-    fprintf(stderr,"# Link Message:  Fragments " F_UID " and "F_UID" are in different libraries!" 
-	    "Can't reference it... bye\n",
-	    frag1IID, frag2IID);
+    fprintf(stderr,"# Link Message:  Fragment "F_IID" in lib "F_IID" -- fragment "F_IID" in lib "F_IID".\n",
+            frag1IID, gkFrag1.libraryIID,
+            frag2IID, gkFrag2.libraryIID);
     return(GATEKEEPER_FAILURE);
   }
-#endif
+
+  //  And now set the library in the reads.
 
   if (lkg_mesg->action == AS_ADD) {
-    getGateKeeperFragmentStore(gkpStore->frg, frag1IID, &gkFrag1);
-    gkFrag1.libraryIID = value.IID;
-    gkFrag1.mateIID = frag2IID;
-    setGateKeeperFragmentStore(gkpStore->frg, frag1IID, &gkFrag1);
+    gkFrag1.mateIID    = frag2IID;
+    gkFrag2.mateIID    = frag1IID;
 
-    getGateKeeperFragmentStore(gkpStore->frg, frag2IID, &gkFrag2);
-    gkFrag2.libraryIID = value.IID;
-    gkFrag2.mateIID = frag1IID;
+    setGateKeeperFragmentStore(gkpStore->frg, frag1IID, &gkFrag1);
     setGateKeeperFragmentStore(gkpStore->frg, frag2IID, &gkFrag2);
 
     AddRefPHashTable_AS(gkpStore->phs_private, UID_NAMESPACE_AS, gkFrag2.readUID);
     AddRefPHashTable_AS(gkpStore->phs_private, UID_NAMESPACE_AS, gkFrag1.readUID);
   } else if (lkg_mesg->action == AS_DELETE) {
-    getGateKeeperFragmentStore(gkpStore->frg, frag1IID, &gkFrag1);
-    gkFrag1.mateIID = 0;
-    gkFrag1.libraryIID = 0;
-    setGateKeeperFragmentStore(gkpStore->frg, frag1IID, &gkFrag1);
+    gkFrag1.mateIID    = 0;
+    gkFrag2.mateIID    = 0;
 
-    getGateKeeperFragmentStore(gkpStore->frg, frag2IID, &gkFrag2);
-    gkFrag2.mateIID = 0;
-    gkFrag2.libraryIID = 0;
+    setGateKeeperFragmentStore(gkpStore->frg, frag1IID, &gkFrag1);
     setGateKeeperFragmentStore(gkpStore->frg, frag2IID, &gkFrag2);
 
     UnRefPHashTable_AS(gkpStore->phs_private, UID_NAMESPACE_AS, gkFrag2.readUID);

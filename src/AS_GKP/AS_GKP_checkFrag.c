@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.19 2007-03-30 19:36:45 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.20 2007-04-16 22:26:38 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -324,7 +324,7 @@ Check_FragMesg(FragMesg            *frg_mesg,
                                                     seqLength, quaLength,
                                                     assembler,
                                                     verbose)) {
-      fprintf(stderr, "# Check_FragMessage: ID: " F_U64 " lengths and intervals are incompatible\n",
+      fprintf(stderr, "# Check_FragMessage: ID " F_U64 " lengths and intervals are incompatible\n",
               frg_mesg->eaccession);
       return GATEKEEPER_FAILURE;
     }
@@ -345,9 +345,32 @@ Check_FragMesg(FragMesg            *frg_mesg,
         return GATEKEEPER_FAILURE;
     }
 
+    //  Version 2 comes with library information.  Get it.
+    value.type = AS_IID_DST;
+    value.IID  = 0;
+
+    if (frg_mesg->library_uid > 0) {
+      if (HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore->phs_private,
+                                                    UID_NAMESPACE_AS,
+                                                    frg_mesg->library_uid,
+                                                    AS_IID_DST,
+                                                    FALSE,
+                                                    stderr,
+                                                    &value)) {
+        printGKPError(stderr, GKPError_MissingLIB);
+        fprintf(stderr,"# Check_FragMEssage: ID "F_UID" references unknown library "F_UID"\n",
+                frg_mesg->eaccession, frg_mesg->library_uid);
+        return(GATEKEEPER_FAILURE);
+      }
+    }
+
+    //  we should cache the library orientation, keeping an array of
+    //  orientation flags, initialized to maxint or something.
+#warning should get orientation from library
+
 
     gkf.orientation = AS_READ_ORIENT_INNIE;
-    gkf.libraryIID  = 0;
+    gkf.libraryIID  = value.IID;
 
     {
       int which;
@@ -357,11 +380,11 @@ Check_FragMesg(FragMesg            *frg_mesg,
         gkf.clearEnd[which] = frg_mesg->clear_rng.end;
       }
 
-      gkf.clearBeg[AS_READ_CLEAR_QLT] = 0;
-      gkf.clearEnd[AS_READ_CLEAR_QLT] = 0;
+      gkf.clearBeg[AS_READ_CLEAR_QLT] = frg_mesg->clear_qlt.bgn;
+      gkf.clearEnd[AS_READ_CLEAR_QLT] = frg_mesg->clear_qlt.end;
 
-      gkf.clearBeg[AS_READ_CLEAR_VEC] = 0;
-      gkf.clearEnd[AS_READ_CLEAR_VEC] = 0;
+      gkf.clearBeg[AS_READ_CLEAR_VEC] = frg_mesg->clear_vec.bgn;
+      gkf.clearEnd[AS_READ_CLEAR_VEC] = frg_mesg->clear_vec.end;
     }
 
     value.type = AS_IID_FRG;

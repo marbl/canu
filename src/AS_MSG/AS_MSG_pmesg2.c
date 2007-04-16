@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg2.c,v 1.2 2007-04-16 15:35:41 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg2.c,v 1.3 2007-04-16 22:26:39 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,6 +34,90 @@ static char CM_ID[]= "$Id: AS_MSG_pmesg2.c,v 1.2 2007-04-16 15:35:41 brianwalenz
 static
 void *
 Read_LIB_Mesg(FILE *fin) {
+  static LibraryMesg  lmesg;
+  char                ch;
+  long                featureoffset = 0;
+
+  GET_TYPE(ch,"act:%c","action");
+  lmesg.action = (ActionType) ch;
+
+  GET_FIELD(lmesg.eaccession,"acc:"F_UID,"accession field");
+
+  if ((lmesg.action == AS_ADD) ||
+      (lmesg.action == AS_REDEFINE)) {
+    GET_TYPE(ch,"ori:%c","orientation");
+    lmesg.link_orient = (OrientType) ch;
+
+    GET_FIELD(lmesg.mean,"mea:%f","mean field");
+    GET_FIELD(lmesg.stddev ,"std:%f","stddev field");
+
+    GET_FIELD(lmesg.entry_time,"etm:"F_TIME_T,"time field");
+
+    lmesg.source   = (char *)GetText("src:",fin,FALSE);
+
+    GET_FIELD(lmesg.num_features ,"nft:%f","number of features");
+    featureoffset = GetText("fea:",fin,TRUE);
+
+    //  Adjust source to be a pointer instead of an offset
+    lmesg.source = AS_MSG_globals->MemBuffer + (long)lmesg.source;
+  }  //  End of AS_ADD
+
+  GET_EOM;
+
+
+  //  Munge the feature string into a list of features
+  //
+  if (lmesg.num_features > 0) {
+    int      i;
+    char    *fb = AS_MSG_globals->MemBuffer + featureoffset;
+    char    *fn = fb;
+
+    lmesg.features = (char **)safe_malloc(sizeof(char *) * lmesg.num_features);
+    lmesg.values   = (char **)safe_malloc(sizeof(char *) * lmesg.num_features);
+
+    //  
+    for (i=0; i<lmesg.num_features; i++) {
+      //  get rid of spaces in the label
+      while (isspace(*fb))
+        fb++;
+
+      lmesg.features[i] = fb;
+
+      //  Look for the '='
+      while (*fb != '=')
+        fb++;
+
+      //  strip whitespace at the end of the label
+      fn = fb-1;
+      while (isspace(*fn)) {
+        *fn = 0;
+        fn--;
+      }
+
+      //  skip over the =, and any white space
+      fb++;
+      while (isspace(*fb))
+        fb++;
+
+      lmesg.values[i] = fb;
+      
+      //  Look for the end (a new line)
+      while ((*fb != '\n') && (*fb != '\r'))
+        fb++;
+
+      //  strip whitespace at the end of the label
+      fn = fb-1;
+      while (isspace(*fn)) {
+        *fn = 0;
+        fn--;
+      }
+
+      fprintf(stderr, "GOT:   F'%s' V'%s'\n", lmesg.features[i], lmesg.values[i]);
+    }
+  }  //  num_features > 0
+
+
+  return(&lmesg);
 }
 
 static
@@ -59,6 +143,7 @@ Read_Frag_Mesg(FILE *fin,int frag_class) {
   fmesg.version        = 2;
 
   fmesg.library_uid    = 0;
+  fmesg.library_iid    = 0;
   fmesg.plate_uid      = 0;
   fmesg.plate_location = 0;
   fmesg.is_random      = 1;
@@ -67,7 +152,7 @@ Read_Frag_Mesg(FILE *fin,int frag_class) {
   fmesg.clear_vec.end  = 0;
   fmesg.clear_qlt.bgn  = 0;
   fmesg.clear_qlt.end  = 0;
-  
+
   if (frag_class == MESG_FRG) { 
     GET_TYPE(ch,"act:%c","action");
     fmesg.action = (ActionType) ch;
@@ -78,8 +163,8 @@ Read_Frag_Mesg(FILE *fin,int frag_class) {
     GET_PAIR(fmesg.eaccession,fmesg.iaccession,"acc:("F_UID","F_IID")","accession field pair");
   } 
 
-  GET_FIELD(fmesg.is_random,"rnd:"F_U32,"is_random field");
-  GET_TYPE(fmesg.status_code,"%1[GBUWXVEIR]","status code");
+  GET_FIELD(fmesg.is_random,"rnd:"F_U32,"is_random");
+  GET_TYPE(fmesg.status_code,"sta:%1[GBUWXVEIR]","status code");
 
   if (frag_class == MESG_FRG) { 
     GET_FIELD(fmesg.library_uid,"lib:"F_UID,"library accession field");
@@ -89,6 +174,7 @@ Read_Frag_Mesg(FILE *fin,int frag_class) {
 
   GET_FIELD(fmesg.plate_uid,"pla:"F_UID,"plate_uid field");
   GET_FIELD(fmesg.plate_location,"loc:"F_U32,"plate_location field");
+  GET_FIELD(fmesg.entry_time,"etm:"F_TIME_T,"time field");
 
   fmesg.source   = NULL;
   fmesg.sequence = NULL;
@@ -98,8 +184,6 @@ Read_Frag_Mesg(FILE *fin,int frag_class) {
   if (fmesg.action == AS_ADD) { 
     fmesg.source   = (char *) GetText("src:",fin,FALSE);
 
-    GET_FIELD(fmesg.entry_time,"etm:"F_TIME_T,"time field");
-
     if( frag_class != MESG_OFG ) {
       fmesg.sequence = (char *) GetText("seq:",fin,TRUE);
       fmesg.quality  = (char *) GetText("qlt:",fin,TRUE);
@@ -107,8 +191,8 @@ Read_Frag_Mesg(FILE *fin,int frag_class) {
     }
 
     GET_PAIR(fmesg.clear_rng.bgn,fmesg.clear_rng.end,"clr:"F_COORD","F_COORD,"clear range field");
-    GET_PAIR(fmesg.clear_vec.bgn,fmesg.clear_rng.end,"clv:"F_COORD","F_COORD,"vector clear range field");
-    GET_PAIR(fmesg.clear_qlt.bgn,fmesg.clear_rng.end,"clq:"F_COORD","F_COORD,"quality clear range field");
+    GET_PAIR(fmesg.clear_vec.bgn,fmesg.clear_vec.end,"clv:"F_COORD","F_COORD,"vector clear range field");
+    GET_PAIR(fmesg.clear_qlt.bgn,fmesg.clear_qlt.end,"clq:"F_COORD","F_COORD,"quality clear range field");
 
     fmesg.source   = AS_MSG_globals->MemBuffer + ((long) (fmesg.source));
     if( frag_class != MESG_OFG ) {
@@ -196,8 +280,8 @@ Read_LKG_Mesg(FILE *fin) {
   lmesg.type = AS_MATE;
   lmesg.entry_time = 0;
   lmesg.link_orient = AS_READ_ORIENT_UNKNOWN;
-  GET_FIELD(lmesg.frag1,"fg1:"F_UID,"fragment 1 field");
-  GET_FIELD(lmesg.frag2,"fg2:"F_UID,"fragment 2 field");
+  GET_FIELD(lmesg.frag1,"frg:"F_UID,"fragment 1 field");
+  GET_FIELD(lmesg.frag2,"frg:"F_UID,"fragment 2 field");
   lmesg.distance = 0;
   GET_EOM;
   return (&lmesg);
@@ -209,8 +293,8 @@ Write_LKG_Mesg(FILE *fout,void *mesg) {
   LinkMesg *lmesg = (LinkMesg *)mesg;
   fprintf(fout,"{LKG\n");
   fprintf(fout,"act:%c\n",lmesg->action);
-  fprintf(fout,"fg1:"F_UID"\n",lmesg->frag1);
-  fprintf(fout,"fg2:"F_UID"\n",lmesg->frag2);
+  fprintf(fout,"frg:"F_UID"\n",lmesg->frag1);
+  fprintf(fout,"frg:"F_UID"\n",lmesg->frag2);
   fprintf(fout,"}\n");
 }
 
@@ -226,15 +310,9 @@ void AS_MSG_setFormatVersion2(void) {
   //  VersionMesg VER doesn't change from format 1.
   //  AuditRecord and AuditLine don't change from format 1.
 
-  //  LinkMesg LKG and DistanceMesg DST do not exist in version 2.
-  //  The internal versions do exist.
+  //  DistanceMesg DST does not exist in version 2.
+  //  The internal version (IDT) does exist.
   //
-  ct[MESG_LKG].header  = "";
-  ct[MESG_LKG].reader  = NULL;
-  ct[MESG_LKG].writer  = NULL;
-  ct[MESG_LKG].clearer = NULL;
-  ct[MESG_LKG].size    = 0l;
-
   ct[MESG_DST].header  = "";
   ct[MESG_DST].reader  = NULL;
   ct[MESG_DST].writer  = NULL;

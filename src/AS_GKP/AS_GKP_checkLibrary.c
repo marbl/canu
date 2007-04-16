@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.4 2007-03-27 07:31:59 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.5 2007-04-16 22:26:39 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +31,33 @@ static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.4 2007-03-27 07:31:59 bria
 
 
 int
-Check_LibraryMesg(DistanceMesg     *dst_mesg,
+Check_DistanceMesg(DistanceMesg    *dst_mesg,
+                   CDS_CID_t        currentBatchID,
+                   int              verbose) {
+  LibraryMesg  lmesg;
+
+  //  Upconvert to a real LibraryMesg, then pass it on to the library
+  //  check.
+
+  lmesg.action       = dst_mesg->action;
+  lmesg.eaccession   = dst_mesg->eaccession;
+  lmesg.mean         = dst_mesg->mean;
+  lmesg.stddev       = dst_mesg->stddev;
+  lmesg.entry_time   = 0;
+#ifdef AS_ENABLE_SOURCE
+  lmesg.source       = NULL;
+#endif
+  lmesg.link_orient  = AS_READ_ORIENT_INNIE;
+  lmesg.num_features = 0;
+  lmesg.features     = NULL;
+  lmesg.values       = NULL;
+
+  return(Check_LibraryMesg(&lmesg, currentBatchID, verbose));
+}
+
+
+int
+Check_LibraryMesg(LibraryMesg      *lib_mesg,
                   CDS_CID_t         currentBatchID,
                   int               verbose) {
 
@@ -40,66 +66,68 @@ Check_LibraryMesg(DistanceMesg     *dst_mesg,
 
   clearGateKeeperLibraryRecord(&gkpl);
 
-  if (dst_mesg->action == AS_ADD) {
+  if (lib_mesg->action == AS_ADD) {
 
     if (HASH_FAILURE != LookupTypeInPHashTable_AS(gkpStore->phs_private, 
                                                   UID_NAMESPACE_AS,
-                                                  dst_mesg->eaccession, 
+                                                  lib_mesg->eaccession, 
                                                   AS_IID_DST, 
                                                   FALSE,
                                                   stderr,
                                                   &value)) {
       printGKPError(stderr, GKPError_BadUniqueLIB);
       fprintf(stderr,"# Check_DistanceMessage:  A message with UID " F_UID " exists %s!!! Can't reuse the UID... bye\n",
-	      dst_mesg->eaccession, (value.deleted?"and has been deleted":""));
+	      lib_mesg->eaccession, (value.deleted?"and has been deleted":""));
       return(GATEKEEPER_FAILURE);
     }
 
-    if ((dst_mesg->mean   <= 0.0) ||
-        (dst_mesg->stddev <= 0.0) ||
-        (dst_mesg->mean - 3.0 * dst_mesg->stddev < 0.0)) {
+    if ((lib_mesg->mean   <= 0.0) ||
+        (lib_mesg->stddev <= 0.0) ||
+        (lib_mesg->mean - 3.0 * lib_mesg->stddev < 0.0)) {
       printGKPError(stderr, GKPError_DSTValues);
       fprintf(stderr,"# Check_DistanceMessage:  Illegal Mean %g and/or Standard Deviation %g\n",
-	      dst_mesg->mean, dst_mesg->stddev);
+	      lib_mesg->mean, lib_mesg->stddev);
       return(GATEKEEPER_FAILURE);
     }
 
     value.type = AS_IID_DST;
     InsertInPHashTable_AS(&gkpStore->phs_private,
                           UID_NAMESPACE_AS,
-                          dst_mesg->eaccession,
+                          lib_mesg->eaccession,
                           &value,
                           FALSE,
                           TRUE);
 
-    gkpl.libraryUID   = dst_mesg->eaccession;
-    gkpl.mean         = dst_mesg->mean;
-    gkpl.stddev       = dst_mesg->stddev;
+    gkpl.libraryUID   = lib_mesg->eaccession;
+    gkpl.mean         = lib_mesg->mean;
+    gkpl.stddev       = lib_mesg->stddev;
     gkpl.birthBatch   = currentBatchID;
+
+#warning not using full library message
 
     appendIndexStore(gkpStore->lib, &gkpl);
 
-  } else if (dst_mesg->action == AS_REDEFINE) {
+  } else if (lib_mesg->action == AS_REDEFINE) {
 
     if (HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore->phs_private, 
                                                   UID_NAMESPACE_AS,
-                                                  dst_mesg->eaccession, 
+                                                  lib_mesg->eaccession, 
                                                   AS_IID_DST, 
                                                   FALSE,
                                                   stderr,
                                                   &value)) {
       printGKPError(stderr, GKPError_MissingLIB);
       fprintf(stderr,"# Check_DistanceMessage:  Distance " F_UID " does NOT exist %s!!! Can't redefine it...\n",
-	      dst_mesg->eaccession, (value.deleted?"and has been deleted":""));
+	      lib_mesg->eaccession, (value.deleted?"and has been deleted":""));
       return(GATEKEEPER_FAILURE);
     }
 
-    if ((dst_mesg->mean   <= 0.0) ||
-        (dst_mesg->stddev <= 0.0) ||
-        (dst_mesg->mean - 3.0 * dst_mesg->stddev < 0.0)) {
+    if ((lib_mesg->mean   <= 0.0) ||
+        (lib_mesg->stddev <= 0.0) ||
+        (lib_mesg->mean - 3.0 * lib_mesg->stddev < 0.0)) {
       printGKPError(stderr, GKPError_DSTValues);
       fprintf(stderr,"# Check_DistanceMessage:  Illegal Mean %g and/or Standard Deviation %g\n",
-	      dst_mesg->mean, dst_mesg->stddev);
+	      lib_mesg->mean, lib_mesg->stddev);
       return(GATEKEEPER_FAILURE);
     }
 
@@ -116,36 +144,36 @@ Check_LibraryMesg(DistanceMesg     *dst_mesg,
     gkpl.prevInstanceID = getNumGateKeeperLibrarys(gkpStore->lis) - 1;
 
     // Update these two fields ONLY
-    gkpl.mean   = dst_mesg->mean;
-    gkpl.stddev = dst_mesg->stddev;
+    gkpl.mean   = lib_mesg->mean;
+    gkpl.stddev = lib_mesg->stddev;
 
     setGateKeeperLibraryStore(gkpStore->lib, value.IID, &gkpl); // save the IID->UID mapping
 
-  } else if (dst_mesg->action == AS_DELETE) {
+  } else if (lib_mesg->action == AS_DELETE) {
 
     if (HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore->phs_private, 
 						 UID_NAMESPACE_AS,
-						 dst_mesg->eaccession, 
+						 lib_mesg->eaccession, 
 						 AS_IID_DST, 
 						 FALSE,
 						 stderr,
 						 &value)) {
       printGKPError(stderr, GKPError_MissingLIB);
       fprintf(stderr,"# Check_DistanceMessage:  Distance " F_UID " DOES NOT exist!!!" 
-	      "Can't delete it... bye\n", dst_mesg->eaccession);
+	      "Can't delete it... bye\n", lib_mesg->eaccession);
       return(GATEKEEPER_FAILURE);
     }
 
     if (value.refCount > 1) {
       printGKPError(stderr, GKPError_DeleteLIB);
       fprintf(stderr, "# Check_DistanceMessage: There are %d references outstanding to Distance "F_UID ".\n"
-	      "Can't delete it...\n", value.refCount, dst_mesg->eaccession);
+	      "Can't delete it...\n", value.refCount, lib_mesg->eaccession);
       return(GATEKEEPER_FAILURE);
     }
 
     deleteAndMarkGateKeeperLibraryStore(gkpStore->lib, value.IID, currentBatchID);
 
-    DeleteFromPHashTable_AS(gkpStore->phs_private,UID_NAMESPACE_AS, dst_mesg->eaccession);
+    DeleteFromPHashTable_AS(gkpStore->phs_private,UID_NAMESPACE_AS, lib_mesg->eaccession);
 
   } else {
     fprintf(stderr,"# Check_DistanceMessage: invalid action\n");

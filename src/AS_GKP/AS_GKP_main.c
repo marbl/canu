@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.28 2007-04-16 17:36:33 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.29 2007-04-16 22:26:39 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -436,9 +436,16 @@ main(int argc, char **argv) {
           WriteProtoMesg_AS(stderr,pmesg);
           return GATEKEEPER_FAILURE;
         }
-	
+
       } else if (pmesg->t == MESG_DST) {
-        if (GATEKEEPER_SUCCESS != Check_LibraryMesg((DistanceMesg *)pmesg->m, currentBatchID, verbose)){
+        if (GATEKEEPER_SUCCESS != Check_DistanceMesg((DistanceMesg *)pmesg->m, currentBatchID, verbose)){
+          fprintf(stderr,"# Line %d of input\n", GetProtoLineNum_AS());
+          WriteProtoMesg_AS(stderr,pmesg);
+          nerrs++;
+        }
+
+      } else if (pmesg->t == MESG_LIB) {
+        if (GATEKEEPER_SUCCESS != Check_LibraryMesg((LibraryMesg *)pmesg->m, currentBatchID, verbose)){
           fprintf(stderr,"# Line %d of input\n", GetProtoLineNum_AS());
           WriteProtoMesg_AS(stderr,pmesg);
           nerrs++;

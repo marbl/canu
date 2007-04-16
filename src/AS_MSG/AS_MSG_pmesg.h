@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.40 2007-04-16 15:35:40 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.41 2007-04-16 22:26:39 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -172,6 +172,8 @@ typedef struct {
 #endif
   OrientType   link_orient;
   uint32       num_features;
+  char       **features;
+  char       **values;
 } LibraryMesg;
 
 /* DST message  --  only for version 1 */

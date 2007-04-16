@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.4 2007-04-16 15:35:41 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.5 2007-04-16 22:26:39 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -161,6 +161,7 @@ static void *Read_Frag_Mesg(FILE *fin, int frag_class)
 
   fmesg.version        = 1;
   fmesg.library_uid    = 0;
+  fmesg.library_iid    = 0;
   fmesg.plate_uid      = 0;
   fmesg.plate_location = 0;
   fmesg.is_random      = 1;
@@ -2110,6 +2111,6 @@ static AS_MSG_callrecord CallTable1[NUM_OF_REC_TYPES + 1] = {
 
 
 void AS_MSG_setFormatVersion1(void) {
-  memcpy(AS_MSG_globals->CallTable, CallTable1, sizeof(AS_MSG_callrecord) * NUM_OF_REC_TYPES + 1);
+  memcpy(AS_MSG_globals->CallTable, CallTable1, sizeof(AS_MSG_callrecord) * (NUM_OF_REC_TYPES + 1));
 }
 

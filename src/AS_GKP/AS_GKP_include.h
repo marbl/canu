@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.17 2007-04-12 10:05:20 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.18 2007-04-16 22:26:39 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
@@ -53,7 +53,12 @@ Check_BatchMesg(BatchMesg           *bat_mesg,
                 int                  verbose);
 
 int
-Check_LibraryMesg(DistanceMesg      *dst_mesg,
+Check_DistanceMesg(DistanceMesg     *dst_mesg,
+                   CDS_CID_t         currentBatchID,
+                   int               verbose);
+
+int
+Check_LibraryMesg(LibraryMesg       *dst_mesg,
                   CDS_CID_t          currentBatchID,
                   int                verbose);
 
