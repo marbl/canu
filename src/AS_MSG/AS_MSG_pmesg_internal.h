@@ -69,7 +69,7 @@ typedef struct {
   char        CurLine[MAX_LINE_LEN];
 
   //  The current calling table
-  AS_MSG_callrecord CallTable[NUM_OF_REC_TYPES];
+  AS_MSG_callrecord CallTable[NUM_OF_REC_TYPES+1];
 } AS_MSG_global_t;
 
 extern AS_MSG_global_t  *AS_MSG_globals;
