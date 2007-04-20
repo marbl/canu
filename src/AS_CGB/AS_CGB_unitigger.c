@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_unitigger.c,v 1.13 2007-04-12 18:54:44 brianwalenz Exp $";
+= "$Id: AS_CGB_unitigger.c,v 1.14 2007-04-20 09:17:56 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_unitigger.c
@@ -52,7 +52,7 @@ static char CM_ID[]
 // ../Test11/a006l.ovl
 
 // unitigger -P -A 2 -Y 1 -N 1000 -n 1000 -j 5
-//   -F xy.frgStore -f -c -o xy4.fgbStore -I xy.ovlStore -L xy.ofgList
+//   -F xy.frgStore -f -c -o xy4.fgbStore -I xy.ovlStore -L xy.ofg
 //   1> xy4.stdout 2> xy4.stderr
 
 #include "AS_CGB_all.h"
@@ -1252,7 +1252,7 @@ static int ParseCommandLine
            "\t[-I <directory>] Read the OVL store.\n"
 	   "\t[-J <boolean>] Remove blizzard overlaps in FGB.\n"
 	   "\t[-K <filename>] File of known fragment-end based branch-points.\n"
-           "\t[-L <filename>] A file that lists the input overlap files.\n"
+           "\t[-L <filename>] The input OverlapFragMesgs; asm.ofg.\n"
            "\t[-M <boolean>] Unused\n"
            "\t[-N <max IID of the fragments> ]\n"
 #ifdef REPAIR_BREAKERS
