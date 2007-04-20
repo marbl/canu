@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.29 2007-04-16 22:26:39 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.30 2007-04-20 08:57:36 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -123,9 +123,9 @@ printGKPError(FILE *fout, GKPErrorType type){
 static
 void
 usage(char *filename) {
-  fprintf(stderr, "usage: %s [append/create options] -o gkpStore <input.frg> <input.frg> ...\n", filename);
-  fprintf(stderr, "       %s -P partitionfile gkpStore\n", filename);
-  fprintf(stderr, "       %s [dump-options] gkpStore\n", filename);
+  fprintf(stderr, "usage1: %s -o gkpStore [append/create options] <input.frg> <input.frg> ...\n", filename);
+  fprintf(stderr, "usage2: %s -P partitionfile gkpStore\n", filename);
+  fprintf(stderr, "usage3: %s [dump-options] gkpStore\n", filename);
   fprintf(stderr, "\n");
   fprintf(stderr, "The first form will append to or create a GateKeeper store:\n");
   fprintf(stderr, "  -a                     append to existing tore\n");
@@ -144,8 +144,10 @@ usage(char *filename) {
   fprintf(stderr, "\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "The third form will dump the contents of a GateKeeper store.\n");
-  fprintf(stderr, "  -b <begin-iid>         dump starting at this batch, library or read\n");
-  fprintf(stderr, "  -e <ending-iid>        dump stopping after this iid\n");
+  fprintf(stderr, "  -b <begin-iid>         dump starting at this batch, library or read (1)\n");
+  fprintf(stderr, "  -e <ending-iid>        dump stopping after this iid (1)\n");
+  fprintf(stderr, "  -uid <uid-file>        dump only objects listed in 'uid-file' (1)\n");
+  fprintf(stderr, "  -iid <iid-file>        dump only objects listed in 'iid-file' (1)\n");
   fprintf(stderr, "  -tabular               dump info, batches, libraries or fragments in a tabular\n");
   fprintf(stderr, "                         format (for -dumpinfo, -dumpbatch, -dumplibraries,\n");
   fprintf(stderr, "                         and -dumpfragments, ignores -withsequence and -clear)\n");
@@ -162,6 +164,8 @@ usage(char *filename) {
   fprintf(stderr, "    -clear <clr>           ...in clear range <clr>, default=LATEST\n");
   fprintf(stderr, "  -dumpfrg               reproduce the input fragment file\n");
   fprintf(stderr, "  -dumpofg               generate OverlapFragMessages, for unitigger\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "  (1) - must have a -dump option, e.g., -uid file -tabular -dumpfragments some.gkpStore\n");
   fprintf(stderr, "\n");
 }
 
@@ -200,15 +204,19 @@ main(int argc, char **argv) {
 
   //  Options for dumping:
   //
-  CDS_IID_t        begIID = 0;
-  CDS_IID_t        endIID = 2000000000;
-  int              dump = DUMP_NOTHING;
+  CDS_IID_t        begIID            = 0;
+  CDS_IID_t        endIID            = 2000000000;  //  I hope I never see an assembly with 2 billion IIDs!
+  char            *uidFileName       = NULL;
+  char            *iidFileName       = NULL;
+  int              dump              = DUMP_NOTHING;
   int              dumpTabular       = 0;
   int              dumpWithSequence  = 0;
   int              dumpFastaAllReads = 0;
   int              dumpClear         = AS_READ_CLEAR_UNTRIM;
   int              dumpFastaClear    = AS_READ_CLEAR_LATEST;
   int              dumpFastaQuality  = 0;
+
+  char            *iidToDump         = NULL;
 
   int arg = 1;
   int err = 0;
@@ -246,6 +254,10 @@ main(int argc, char **argv) {
 
     } else if (strcmp(argv[arg], "-tabular") == 0) {
       dumpTabular = 1;
+    } else if (strcmp(argv[arg], "-uid") == 0) {
+      uidFileName = argv[++arg];
+    } else if (strcmp(argv[arg], "-iid") == 0) {
+      iidFileName = argv[++arg];
     } else if (strcmp(argv[arg], "-dumpinfo") == 0) {
       dump = DUMP_INFO;
     } else if ((strcmp(argv[arg], "-lastfragiid") == 0) ||
@@ -302,14 +314,72 @@ main(int argc, char **argv) {
     exit(1);
   }
   
-#if 0
-  fprintf(stderr, "sizeof(GateKeeperBatchRecord)      "F_SIZE_T"\n", sizeof(GateKeeperBatchRecord));
-  fprintf(stderr, "sizeof(GateKeeperLibraryRecord)    "F_SIZE_T"\n", sizeof(GateKeeperLibraryRecord));
-  fprintf(stderr, "sizeof(GateKeeperFragmentRecord)   "F_SIZE_T"\n", sizeof(GateKeeperFragmentRecord));
-  fprintf(stderr, "sizeof(fragRecord)                 "F_SIZE_T"\n", sizeof(fragRecord));
-#endif
-
   outputExists = testOpenGateKeeperStore(gkpStoreName, FALSE);
+
+  //  Construct an IID map of objects we care about.
+  //
+  if (uidFileName || iidFileName) {
+    GateKeeperStore *gkp      = openGateKeeperStore(gkpStoreName, FALSE);
+    CDS_IID_t        lastElem = getLastElemFragStore(gkp) + 1;
+    FILE            *F        = NULL;
+    char             L[1024];
+
+    iidToDump = (char *)safe_calloc(lastElem, sizeof(char));
+
+    if (iidFileName) {
+      errno = 0;
+      if (strcmp(iidFileName, "-") == 0)
+        F = stdin;
+      else
+        F = fopen(iidFileName, "r");
+      if (errno) {
+        fprintf(stderr, "%s: Couldn't open -iid file '%s': %s\n", argv[0], iidFileName, strerror(errno));
+        exit(1);
+      }
+      fgets(L, 1024, F);
+      while (!feof(F)) {
+        CDS_UID_t      iid = STR_TO_UID(L, 0L, 10);
+        if (iid >= lastElem)
+          fprintf(stderr, "%s: IID "F_UID" too big, ignored.\n", argv[0], iid);
+        else
+          iidToDump[iid]++;
+        fgets(L, 1024, F);
+      }
+      if (F != stdin)
+        fclose(F);
+    }
+
+    if (uidFileName) {
+      errno = 0;
+      if (strcmp(uidFileName, "-") == 0)
+        F = stdin;
+      else
+        F = fopen(uidFileName, "r");
+      if (errno) {
+        fprintf(stderr, "%s: Couldn't open -uid file '%s': %s\n", argv[0], uidFileName, strerror(errno));
+        exit(1);
+      }
+      fgets(L, 1024, F);
+      while (!feof(F)) {
+        CDS_UID_t      uid = STR_TO_UID(L, 0L, 10);
+        PHashValue_AS  value;
+
+        if (HASH_FAILURE == getGatekeeperUIDtoIID(gkp, uid, &value)) {
+          fprintf(stderr, "%s: UID "F_UID" doesn't exist, ignored.\n", argv[0], uid);
+        } else {
+          if (value.IID >= lastElem)
+            fprintf(stderr, "%s: UID "F_UID" is IID "F_IID", and that's too big, ignored.\n", argv[0], uid, value.IID);
+          else
+            iidToDump[value.IID]++;
+        }
+        fgets(L, 1024, F);
+      }
+      if (F != stdin)
+        fclose(F);
+    }
+
+    closeGateKeeperStore(gkp);
+  }
 
   if (dump != DUMP_NOTHING) {
     if (outputExists == 0) {
@@ -322,19 +392,19 @@ main(int argc, char **argv) {
         dumpGateKeeperInfo(gkpStoreName);
         break;
       case DUMP_BATCHES:
-        dumpGateKeeperBatches(gkpStoreName, begIID, endIID, dumpTabular);
+        dumpGateKeeperBatches(gkpStoreName, begIID, endIID, iidToDump, dumpTabular);
         break;
       case DUMP_LIBRARIES:
-        dumpGateKeeperLibraries(gkpStoreName, begIID, endIID, dumpTabular);
+        dumpGateKeeperLibraries(gkpStoreName, begIID, endIID, iidToDump, dumpTabular);
         break;
       case DUMP_FRAGMENTS:
-        dumpGateKeeperFragments(gkpStoreName, begIID, endIID,
+        dumpGateKeeperFragments(gkpStoreName, begIID, endIID, iidToDump,
                                 dumpWithSequence,
                                 dumpClear,
                                 dumpTabular);
         break;
       case DUMP_FASTA:
-        dumpGateKeeperAsFasta(gkpStoreName, begIID, endIID,
+        dumpGateKeeperAsFasta(gkpStoreName, begIID, endIID, iidToDump,
                               dumpFastaAllReads,
                               dumpFastaClear,
                               dumpFastaQuality);

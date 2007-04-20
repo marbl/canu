@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.18 2007-04-16 22:26:39 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.19 2007-04-20 08:57:36 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
@@ -87,18 +87,21 @@ void
 dumpGateKeeperBatches(char       *gkpStoreName,
                       CDS_IID_t   begIID,
                       CDS_IID_t   endIID,
+                      char       *iidToDump, 
                       int         asTable);
 
 void
 dumpGateKeeperLibraries(char       *gkpStoreName,
                         CDS_IID_t   begIID,
                         CDS_IID_t   endIID,
+                        char       *iidToDump, 
                         int         asTable);
 
 void
 dumpGateKeeperFragments(char       *gkpStoreName,
                         CDS_IID_t   begIID,
                         CDS_IID_t   endIID,
+                        char       *iidToDump, 
                         int         dumpWithSequence,
                         int         dumpClear,
                         int         asTable);
@@ -107,6 +110,7 @@ void
 dumpGateKeeperAsFasta(char       *gkpStoreName,
                       CDS_IID_t   begIID,
                       CDS_IID_t   endIID,
+                      char       *iidToDump, 
                       int         dumpFastaAllReads,
                       int         dumpFastaClear,
                       int         dumpFastaQuality);
