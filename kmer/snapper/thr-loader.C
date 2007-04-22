@@ -1,14 +1,5 @@
-#include "posix.H"
-#include <stdio.h>
-#include <stdlib.h>
-#include <new>
 #include "snapper2.H"
 
-//  Define this to print a message whenever a sequence is loaded.
-//  Useful for testing the loader with large sequences (scaffolds,
-//  chromosomes).
-//
-//#define VERBOSE_LOADER
 
 void*
 loaderThread(void *) {
@@ -54,9 +45,7 @@ loaderThread(void *) {
     } else {
       slept = false;
 
-#ifdef VERBOSE_LOADER
-      fprintf(stderr, "Loading sequence %u (tail = %u)\n", inputHead, inputTail);
-#endif
+      //fprintf(stderr, "Loading sequence %u (tail = %u)\n", inputHead, inputTail);
 
       try {
         B = qsFASTA->getSequenceInCore();

@@ -17,8 +17,6 @@ src      := $/snapper2.C \
             $/thr-deadlock.C \
             $/hitMatrix.C \
             $/hitMatrix-sort.C \
-            $/hitMatrix.H \
-            $/posix.H \
             $/snapper2.H
 
 $/.CXX_SRCS := $(filter %.C,${src})
@@ -34,6 +32,3 @@ $/snapper2:   ${$/.CXX_SRCS:.C=.o} \
               ${LIBMERYL/}libmeryl.a \
               ${LIBBIO/}libbio.a \
               ${LIBUTL/}libutil.a
-
-
-

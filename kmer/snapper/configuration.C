@@ -1,10 +1,4 @@
-#include "posix.H"
 #include "snapper2.H"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
 
 configuration::configuration(void) {
 
@@ -110,18 +104,19 @@ static char const *usageString =
 "    -extendminimum e        Always extend hits by at least this much (100).\n"
 "    -repeatthreshold t      Tune hits to expect t local repeat count (3).\n"
 "\n"
-"  Filter and Filter Validation:\n"
-"    -validate               Enable tuning of the filter (expensive!).\n"
+"Filter and Filter Validation:\n"
 "    -setfilter L H V        Use { L,H,V } as the filter parameters.\n"
+"    -validate               Enable tuning of the filter (expensive!).\n"
 "\n"
-"Input Options:\n"
-"    -ignore n               Ignore mers with count at least n.\n"
+"Masking Options:\n"
+"    -ignore n               Ignore mers with count more than n.\n"
 "    -mask f                 Ignore (only use) all mers listed in file f.\n"
 "    -only f\n"
 "    -maskn f n              Ignore (only use) the mers listed in meryl prefix f.\n"
 "    -onlyn f n              For mask, mers with count >= n are masked.\n"
 "                            For only, mers with count <= n are used.\n"
 "\n"
+"Input Options:\n"
 "    -queries c.fasta        Query sequences.\n"
 "    -genomic g.fasta        Database sequences.\n"
 "    -positions p.positionDB Build and save / use positionDB.  Assumes you aren't using -use.\n"

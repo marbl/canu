@@ -1,4 +1,3 @@
-#include "posix.H"
 #include "snapper2.H"
 
 #ifdef __alpha

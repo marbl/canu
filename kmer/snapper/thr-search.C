@@ -1,4 +1,4 @@
-#include "thr.H"
+#include "snapper2.H"
 
 
 void
@@ -54,26 +54,6 @@ doSearch(searcherState       *state,
 
 
 
-
-#ifdef SAVE_HITS_TO_FILES
-  {
-    char  filename[1024];
-    if (rc)
-      sprintf(filename, "hitsDump-%08d-r.1.raw", (int)seq->getIID());
-    else
-      sprintf(filename, "hitsDump-%08d-f.1.raw", (int)seq->getIID());
-    errno = 0;
-    state->hitsDump = fopen(filename, "w");
-    if (errno) {
-      fprintf(stderr, "Failed to open '%s' for hitsDump!\n", filename);
-      exit(1);
-    }
-  }
-#endif
-
-
-
-
   ///////////////////////////////////////
   //
   //  Get the hits
@@ -83,10 +63,6 @@ doSearch(searcherState       *state,
   for (u32bit qi=0; qi<query->numberOfMers(); qi++) {
     if ((query->getSkip(qi) == false) &&
         (positions->get(query->getMer(qi), state->posn, state->posnMax, state->posnLen))) {
-#ifdef SAVE_HITS_TO_FILES
-      for (u32bit x=0; x<state->posnLen; x++)
-        fprintf(state->hitsDump, u32bitFMT" "u64bitFMT"\n", qi, state->posn[x]);
-#endif
       matrix->addHits(qi, state->posn, state->posnLen);
     }
   }
@@ -104,21 +80,6 @@ doSearch(searcherState       *state,
                  theHits, theHitsLen, theHitsMax);
   state->chainTime += getTime() - startTime;
 
-
-
-#ifdef SAVE_HITS_TO_FILES
-  fclose(state->hitsDump);
-
-  char  filename[1024];
-  if (rc)
-    sprintf(filename, "hitsDump-%08d-r.2.refine", (int)seq->getIID());
-  else
-    sprintf(filename, "hitsDump-%08d-f.2.refine", (int)seq->getIID());
-  errno = 0;
-  state->hitsDump = fopen(filename, "w");
-  if (errno)
-    fprintf(stderr, "Failed to open '%s' for hitsDump!\n", filename);
-#endif
 
 
   ////////////////////////////////////////
@@ -144,27 +105,17 @@ doSearch(searcherState       *state,
                  seq->getIID(), h, rc ? 'r' : 'f', theHits[h]._matched, theHits[h]._numMers);
 #endif
 
-      //  Grab the genomic sequence
+      //  Grab the genomic sequence.
+      //  Construct a merstream for the region.
+      //  Build a positionDB of the region (both positions and counts).
+      //  Fill out another hitMatrix using about 2*length mers.
       //
       seqInCore            *GENseq = cache->getSequenceInCore(theHits[h]._dsIdx);
       u32bit                GENlo  = theHits[h]._dsLo;
       u32bit                GENhi  = theHits[h]._dsHi;
-
-      //  Construct a merstream for the region
-      //
       merStream            *MS     = new merStream(config._merSize, GENseq, GENlo, GENhi - GENlo);
-
-      //  Build a positionDB of the region.  This gets us both
-      //  positions and counts.  Then fill out another hitMatrix,
-      //  using about 2*length mers.
-      //
-      positionDB           *PS     = new positionDB(MS,
-                                                    config._merSize,
-                                                    0,
-                                                    20,
-                                                    0L, 0L, 0, false);
-
-      hitMatrix            *HM = new hitMatrix(seq->sequenceLength(), qMers, idx);
+      positionDB           *PS     = new positionDB(MS, config._merSize, 0, 20, 0L, 0L, 0, false);
+      hitMatrix            *HM     = new hitMatrix(seq->sequenceLength(), qMers, idx);
 
       //  We find the number of hits we would get if we use a
       //  countLimit of i.
@@ -175,29 +126,31 @@ doSearch(searcherState       *state,
       u32bit countLimit                = 0;
 
       u32bit numMers = 0;
+#ifdef SHOW_HIT_DISCARDING
       u32bit numHits = 0;
       u32bit minNum  = ~u32bitZERO;
       u32bit maxNum  = 0;
+#endif
 
       for (u32bit qi=0; qi<query->numberOfMers(); qi++) {
         if ((query->getSkip(qi) == false) &&
             (PS->get(query->getMer(qi), state->posn, state->posnMax, state->posnLen))) {
+          numMers++;
 
           if (state->posnLen < COUNT_MAX)
             numHitsAtCount[state->posnLen] += state->posnLen;
 
-          //  Collect some statistics
-
-          numMers++;
+#ifdef SHOW_HIT_DISCARDING
           numHits += state->posnLen;
-
           if (minNum > state->posnLen)  minNum = state->posnLen;
           if (maxNum < state->posnLen)  maxNum = state->posnLen;
+#endif
         }
       }
 
-      numHitsAtCount[0] = 0;
-
+      //  Scan the number of hits at count, pick the first highest
+      //  count such that the number of hits is below our threshold.
+      //
       for (u32bit qi=1; qi<COUNT_MAX; qi++) {
         numHitsAtCount[qi] = numHitsAtCount[qi-1] + numHitsAtCount[qi];
 
@@ -215,13 +168,9 @@ doSearch(searcherState       *state,
       for (u32bit qi=0; qi<query->numberOfMers(); qi++) {
         if ((query->getSkip(qi) == false) &&
             (PS->get(query->getMer(qi), state->posn, state->posnMax, state->posnLen))) {
-          if (state->posnLen < countLimit) {
-            for (u32bit x=0; x<state->posnLen; x++) {
+          if (state->posnLen <= countLimit) {
+            for (u32bit x=0; x<state->posnLen; x++)
               state->posn[x] += GENlo + config._useList.startOf(theHits[h]._dsIdx);
-#ifdef SAVE_HITS_TO_FILES
-              fprintf(state->hitsDump, u32bitFMT" "u64bitFMT"\n", qi, state->posn[x]);
-#endif
-            }
 
             //  The kmer counts for these mers are relative to the
             //  sub-regions, not the global, so we want to disable any
@@ -249,41 +198,8 @@ doSearch(searcherState       *state,
     }
   }
 
-
-#ifdef SAVE_HITS_TO_FILES
- {
-   fclose(state->hitsDump);
-
-   char  filename[1024];
-   if (rc)
-     sprintf(filename, "hitsDump-%08d-r.3.final", (int)seq->getIID());
-   else
-     sprintf(filename, "hitsDump-%08d-f.3.final", (int)seq->getIID());
-   errno = 0;
-   state->hitsDump = fopen(filename, "w");
-   if (errno) {
-     fprintf(stderr, "Failed to open '%s' for hitsDump!\n", filename);
-   }
-
-   for (u32bit x=0; x<theHitsLen; x++)
-     fprintf(state->hitsDump, u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT" %c "u32bitHEX"\n",
-             theHits[x]._dsIdx,
-             theHits[x]._dsLo,
-             theHits[x]._dsHi,
-             theHits[x]._covered,
-             theHits[x]._matched,
-             theHits[x]._numMers,
-             theHits[x]._status & AHIT_DIRECTION_MASK ? 'f' : 'r',
-             theHits[x]._status);
- }
-#endif
-
   delete matrix;
   delete query;
-
-#ifdef SAVE_HITS_TO_FILES
-  fclose(state->hitsDump);
-#endif
 }
 
 

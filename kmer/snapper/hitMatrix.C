@@ -1,8 +1,6 @@
-#include "posix.H"
 #include "snapper2.H"
 
 #define MINCOUNT  3
-
 
 hitMatrix::hitMatrix(u32bit qsLen, u32bit qsMers, u32bit qsIdx) {
   _qsLen    = qsLen;
@@ -53,9 +51,11 @@ hitMatrix::addMatch(u32bit         isunique,
   //
   trapMatch *n = new trapMatch(isunique, qsLo, qsHi, dsLo, dsHi, IL, ML);
 
-  //fprintf(stderr, "chained:  Q::"u32bitFMT"-"u32bitFMT"("u32bitFMT") G::"u32bitFMT"-"u32bitFMT"("u32bitFMT")\n",
-  //        qsLo, qsHi, qsHi - qsLo,
-  //        dsLo, dsHi, dsHi - dsLo);
+#ifdef SHOW_HITMATRIX
+  theLog->add(stderr, "chained:  Q::"u32bitFMT"-"u32bitFMT"("u32bitFMT") G::"u32bitFMT"-"u32bitFMT"("u32bitFMT")\n",
+              qsLo, qsHi, qsHi - qsLo,
+              dsLo, dsHi, dsHi - dsLo);
+#endif
 
   //  And find a home for it in the list.  No merging of matches is done here.  It's
   //  too hard.
@@ -167,14 +167,9 @@ hitMatrix::filter(char      direction,
   u32bit  lastHit    = 0;
   u32bit  currentSeq = 0;
 
-
-  //fprintf(stderr, "filter: got "u32bitFMT" hits\n", _hitsLen);
-
-
   //
   //  Step 1:  Sort the mer-hits, chain, promote decent ones to matches
   //
-
 
   while (firstHit < _hitsLen) {
 
@@ -183,15 +178,8 @@ hitMatrix::filter(char      direction,
     //  want hits in.
     //
     while ((currentSeq < config._useList.numberOfSequences()) &&
-           (config._useList.startOf(currentSeq) <= _hits[firstHit].val.dPos)) {
-
-      //fprintf(stderr, "currentSeq: "u32bitFMT" length "u64bitFMT" hit "u32bitFMT"\n",
-      //        currentSeq,
-      //        config._useList.startOf(currentSeq),
-      //        _hits[firstHit].val.dPos);
-
+           (config._useList.startOf(currentSeq) <= _hits[firstHit].val.dPos))
       currentSeq++;
-    }
 
     //  Find the first hit that is in currentSeq.  If this is the last sequence,
     //  then, of course, all remaining hits are in it.
@@ -208,8 +196,6 @@ hitMatrix::filter(char      direction,
     //  Drop back one sequence; this is the sequence the hits are in.
     //
     currentSeq--;
-
-    //fprintf(stderr, "Found sequence "u32bitFMT" for hits "u32bitFMT" to "u32bitFMT"\n", currentSeq, firstHit, lastHit);
 
     //  Adjust the hits to be relative to the start of this sequence
     //
@@ -413,11 +399,13 @@ hitMatrix::filter(char      direction,
       a->_numMers   = _qsMers;
       a->_ML        = ML;
 
-      //fprintf(stderr, "merged:   G::"u32bitFMT"-"u32bitFMT"("u32bitFMT")  q:"u32bitFMT" g:"u32bitFMT" cov:"u32bitFMT" mat:"u32bitFMT" mer:"u32bitFMT"\n",
-      //        a->_dsLo, a->_dsHi, a->_dsHi - a->_dsLo,
-      //        a->_qsIdx,
-      //        a->_dsIdx,
-      //        a->_covered, a->_matched, a->_numMers);
+#ifdef SHOW_HITMATRIX
+      theLog->add("merged:   G::"u32bitFMT"-"u32bitFMT"("u32bitFMT")  q:"u32bitFMT" g:"u32bitFMT" cov:"u32bitFMT" mat:"u32bitFMT" mer:"u32bitFMT"\n",
+              a->_dsLo, a->_dsHi, a->_dsHi - a->_dsLo,
+              a->_qsIdx,
+              a->_dsIdx,
+              a->_covered, a->_matched, a->_numMers);
+#endif
 
       delete IL;
     }
