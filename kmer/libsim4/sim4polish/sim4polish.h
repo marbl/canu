@@ -93,7 +93,6 @@ void           s4p_destroyPolish(sim4polish *p);
 
 //  Reverse complement an input polish
 //
-void           s4p_reverseComplement(sim4polish *p);
 int            s4p_makeForward(sim4polish *p);
 int            s4p_makeReverse(sim4polish *p);
 
