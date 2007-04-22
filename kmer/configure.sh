@@ -5,14 +5,10 @@
 #
 if [ ! -e Makefile ] ; then
   if [ -e ../build/Makefile ] ; then
-    ln -s ../build/Make.path .
     ln -s ../build/Make.rules .
-    ln -s ../build/Make_utils .
     ln -s ../build/Makefile .
   elif [ -e build/Makefile ] ; then
-    ln -s build/Make.path .
     ln -s build/Make.rules .
-    ln -s build/Make_utils .
     ln -s build/Makefile .
   else
     echo "Hey, couldn't find the Makefile"
@@ -175,19 +171,21 @@ EOF
     ;;
   freebsd)
     rm -f Make.compilers
-    echo "Using linuxthreads by default!"
+#    echo "Using linuxthreads by default!"
     cat <<EOF > Make.compilers
 # -*- makefile -*-
 #  FreeBSD, optimized
 THREADS           := -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads 
 THREADL           := -llthread -llgcc_r
+THREADS           := -pthread
+THREADL           := -pthread
 CC                := cc
 SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -O3 \$(THREADS) -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CFLAGS_COMPILE    := -O3 -fPIC \$(THREADS) -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CLDFLAGS          := -L/usr/local/lib
 CLIBS             := \$(THREADL)
 CXX               := g++
-CXXFLAGS_COMPILE  := -O3 \$(THREADS) -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
+CXXFLAGS_COMPILE  := -O3 -fPIC \$(THREADS) -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL)
 CXXSHARED         := -shared
@@ -202,6 +200,8 @@ EOF
 #  FreeBSD, optimized, profiled (same as FreeBSD, optimized, but includes -pg)
 THREADS           := -D_THREAD_SAFE -I/usr/local/include/pthread/linuxthreads 
 THREADL           := -llthread -llgcc_r
+THREADS           := -pthread
+THREADL           := -pthread
 CC                := cc
 SHLIB_FLAGS       := -shared
 CFLAGS_COMPILE    := -pg -O3 \$(THREADS) -Wall -Wno-char-subscripts -funroll-loops -fexpensive-optimizations -finline-functions -fomit-frame-pointer
