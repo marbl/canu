@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.30 2007-04-16 17:36:36 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.31 2007-04-23 22:21:59 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -72,21 +72,63 @@ typedef struct {
   char           comment[AS_PER_COMMENT_LEN];
   uint64         created;
 
-  unsigned int   deleted:1;
-  unsigned int   redefined:1;
-  unsigned int   orientation:3;
-  unsigned int   spare:28;
+  //  Features: you can add boolean flags and small-value types to the
+  //  64-bit-wide bit-vector immediately below.  And just in case you
+  //  need A LOT of space, you've got ONE-HUNDRED-AND-TWENTY-EIGHT
+  //  bits!!  (OK, minus 5, that are currently used).
+  //
+  uint64         spare2:64;
+  uint64         spare1:59;
+  uint64         orientation:3;
+  uint64         redefined:1;
+  uint64         deleted:1;
 
   double         mean;
   double         stddev;
   
-  unsigned int   numFeatures;
-
   CDS_IID_t      prevInstanceID;    // Previous definitions are linked by this reference
   CDS_IID_t      prevID;            // If redefined == TRUE, the original ID of this
 
   uint16         birthBatch;        // This entry is valid
   uint16         deathBatch;        // [birthBatch, deatchBatch)
+
+  //  Features: you can add more complicated data to the structure
+  //  below.  It is in a union, of size 16KB, so that lots of data can
+  //  be added without breaking backwards compatibility -- as long as
+  //  your features don't break if they are all zero-valued (hint, use
+  //  a boolean flag to indicate the data is valid) you can add a new
+  //  feature without breaking older stores.
+  //
+  //  The idea here is that we allow the on-disk data (the structure
+  //  in the union below) to be extended to accomodate new features,
+  //  and also extend the AS_MSG library message with some variable,
+  //  freeform, annotations.  This should allow both stores and
+  //  message format to be flexible enough to extend to new features.
+  //
+#define AS_PER_LIBRARY_FEATURE_DATA_SIZE   16 * 1024
+  union {
+    char         bytes[AS_PER_LIBRARY_FEATURE_DATA_SIZE];
+
+    struct {
+      //  Example 1; indicate that the reads in this library should go
+      //  between some specific clone.
+      //
+      //CDS_UID_t   cloneRestrictLeft;
+      //CDS_UID_t   cloneRestrictRight;
+
+      //  Example 2: just a collection of whatever.  This would be accessed
+      //  as gkpl->features.data.whatever.a
+      //
+      //struct {
+      //  uint32      a;
+      //  uint32      b;
+      //  double      c;
+      //  char        m[256];
+      //} whatever;
+
+    } data;
+  } features;
+
 } GateKeeperLibraryRecord;
 
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_dump.c,v 1.12 2007-04-20 08:57:35 brianwalenz Exp $ */
+/* $Id: AS_GKP_dump.c,v 1.13 2007-04-23 22:21:59 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -166,7 +166,6 @@ dumpGateKeeperLibraries(char       *gkpStoreName,
         fprintf(stdout, "libraryOrientation   = %s\n", AS_READ_ORIENT_NAMES[gkpl.orientation]);
         fprintf(stdout, "libraryMean          = %f\n", gkpl.mean);
         fprintf(stdout, "libraryStdDev        = %f\n", gkpl.stddev);
-        fprintf(stdout, "libraryNumFeatures   = %d\n", gkpl.numFeatures);
         fprintf(stdout, "libraryPrevInstance  = "F_IID"\n", gkpl.prevInstanceID);
         fprintf(stdout, "libraryPrevID        = "F_IID"\n", gkpl.prevID);
         fprintf(stdout, "libraryBirthBatch    = %d\n", gkpl.birthBatch);
@@ -210,7 +209,6 @@ dumpGateKeeperLibraries(char       *gkpStoreName,
         fprintf(stdout, "shadowLibraryOrientation   = %s\n", AS_READ_ORIENT_NAMES[gkpl.orientation]);
         fprintf(stdout, "shadowLibraryMean          = %f\n", gkpl.mean);
         fprintf(stdout, "shadowLibraryStdDev        = %f\n", gkpl.stddev);
-        fprintf(stdout, "shadowLibraryNumFeatures   = %d\n", gkpl.numFeatures);
         fprintf(stdout, "shadowLibraryPrevInstance  = "F_IID"\n", gkpl.prevInstanceID);
         fprintf(stdout, "shadowLibraryPrevID        = "F_IID"\n", gkpl.prevID);
         fprintf(stdout, "shadowLibraryBirthBatch    = %d\n", gkpl.birthBatch);
