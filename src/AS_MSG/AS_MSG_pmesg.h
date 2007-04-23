@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.41 2007-04-16 22:26:39 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.42 2007-04-23 15:24:35 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -139,6 +139,7 @@ typedef enum {
   AS_REREAD     = (int)'R', // Reread
   AS_MAY_JOIN   = (int)'Y', // maY
   AS_MUST_JOIN  = (int)'T'  // musT
+  //AS_UNKNOWN	= (int)'U'  // the initial value, can't be defined here as it is in OrientType
 } LinkType;
 
 typedef enum {
@@ -702,7 +703,7 @@ typedef struct {
 
 /* Grangers new list, roughly in order of precedence */
 typedef enum {
-  UNASSIGNED         = 'Z',
+  UNASSIGNED_MATE    = 'Z',
   GOOD_MATE          = 'G',
   BAD_SHORT_MATE     = 'C',
   BAD_LONG_MATE      = 'L',

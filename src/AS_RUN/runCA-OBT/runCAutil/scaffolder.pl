@@ -171,52 +171,22 @@ sub updateDistanceRecords ($) {
     my $thisDir = shift @_;
 
     return if (getGlobal("doUpdateDistanceRecords") == 0);
-    return if (-e "$wrk/$thisDir/distupdate/distupdate.success");
+    return if (-e "$wrk/$thisDir/cgw.distupdate.success");
 
-    my $lastckp    = findLastCheckpoint($thisDir);
-    my $distupdate = "$wrk/$thisDir/distupdate";
-
-    system("mkdir $distupdate") if (! -d "$distupdate");
-
-    system("ln -s ../$asm.ckp.$lastckp   $distupdate/$asm.ckp.$lastckp")  if (! -e "$distupdate/$asm.ckp.$lastckp");
-    system("ln -s ../$asm.SeqStore       $distupdate/$asm.SeqStore")      if (! -e "$distupdate/$asm.SeqStore");
-
-    #  Instead of suffering through extreme pain making nice fake
-    #  UIDs, we just use the checkpoint number to offset from some
-    #  arbitrary UID.
-    #
-    my $terminateFakeUID = getGlobal("fakeUIDs");
-    my $uidServer        = getGlobal("uidServer");
-
-    #  Some funny baloney to get around perl wanting to print large
-    #  numbers in scientific notation.  Makes you just want to hate and
-    #  love perl, don't it?
-    #
-    $terminateFakeUID = "987654312198765" . (4320 + $lastckp + $terminateFakeUID) if ($terminateFakeUID > 0);
+    #  Older versions needed to actually compute the updated
+    #  distances.  Now, cgw outputs it!  Yay!
 
     my $cmd;
-    $cmd  = "$bin/dumpDistanceEstimates ";
-    $cmd .= "    -u "                    if ($terminateFakeUID == 0);
-    $cmd .= "    -s $terminateFakeUID "  if ($terminateFakeUID  > 0);
-    $cmd .= "    $uidServer "            if (defined($uidServer));
-    $cmd .= " -g $wrk/$asm.gkpStore ";
-    $cmd .= " -p $asm ";
-    $cmd .= " -n $lastckp ";
-    $cmd .= " > $distupdate/update.dst ";
-    $cmd .= " 2> $distupdate/dumpDistanceEstimates.err ";
-    if (runCommand("$distupdate", $cmd)) {
-        rename "$distupdate/update.dst", "$distupdate/update.dst.FAILED";
-        die "dumpDistanceEstimates Failed.\n";
-    }
-
     $cmd  = "$bin/gatekeeper ";
-    $cmd .= " -a -o $wrk/$asm.gkpStore $distupdate/update.dst ";
-    $cmd .= " > $distupdate/gatekeeper.err 2>&1";
-    if (runCommand("$distupdate", $cmd)) {
+    $cmd .= " -a -o $wrk/$asm.gkpStore ";
+    $cmd .= " $wrk/$thisDir/stat/scaffold_final.distupdate.dst ";
+    $cmd .= " $wrk/$thisDir/stat/contig_final.distupdate.dst ";
+    $cmd .= " > $wrk/$thisDir/cgw.distupdate.err 2>&1";
+    if (runCommand("$wrk/$thisDir", $cmd)) {
         die "Gatekeeper Failed.\n";
     }
 
-    touch("$distupdate/distupdate.success");
+    touch("$wrk/$thisDir/cgw.distupdate.success");
 }
 
 
@@ -264,7 +234,7 @@ sub scaffolder ($) {
     #  doUpdateDistanceRecords, otherwise that CGW() is run, _then_ we
     #  check if we should update.
     #
-    if ((getGlobal("updateDistanceType") eq "pre") && (getGlobal("doUpdateDistanceRecords"))) {
+    if (getGlobal("doUpdateDistanceRecords")) {
         updateDistanceRecords(CGW("6-clonesize", undef, $cgiFile, $stoneLevel, undef, 0));
     }
 
@@ -282,14 +252,10 @@ sub scaffolder ($) {
         $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, 0, undef, 0);
         $thisDir++;
 
-        #  Followed by at least one eCR, and a distance update.
+        #  Followed by at least one eCR
         #
         $lastDir = eCR("7-$thisDir-ECR", $lastDir, 1);
         $thisDir++;
-
-        if (getGlobal("updateDistanceType") ne "pre") {
-            updateDistanceRecords($lastDir);
-        }
 
         #  Iterate eCR: do another scaffolder still without stones,
         #  then another eCR.  Again, and again, until we get dizzy and
@@ -302,10 +268,6 @@ sub scaffolder ($) {
 
             $lastDir = eCR("7-$thisDir-ECR", $lastDir, $iteration);
             $thisDir++;
-
-            if (getGlobal("updateDistanceType") ne "pre") {
-                updateDistanceRecords($lastDir);
-            }
         }
 
         #  If we aren't resolving surrogates, then this is the last

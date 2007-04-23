@@ -34,7 +34,7 @@
 *
 *************************************************/
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.23 2007-04-16 17:34:15 brianwalenz Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.24 2007-04-23 15:24:35 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -10209,7 +10209,7 @@ static void  Print_Frag_Info
                     mateFrag -> contigOffset5p . mean,
                     mateFrag -> contigOffset3p . mean,
                     mateChunk -> scaffoldID,
-                    fragDist -> mean,
+                    fragDist -> mu,
                     mateFrag -> flags . bits . hasInternalOnlyCILinks
                       ? 'T' : 'F',
                     mateFrag -> flags . bits . hasInternalOnlyContigLinks
@@ -12462,7 +12462,7 @@ static void  Show_Read_Info
                     mateChunk -> info . CI . contigID,
                     mateChunk -> info . CI . numFragments,
                     mateChunk -> scaffoldID,
-                    fragDist -> mean);
+                    fragDist -> mu);
           }
       fprintf (fp, "\n");
      }

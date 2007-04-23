@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: ofg2asm.c,v 1.5 2007-03-09 03:05:58 brianwalenz Exp $   */
+/* $Id: ofg2asm.c,v 1.6 2007-04-23 15:24:35 brianwalenz Exp $   */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -59,7 +59,7 @@ int main(int argc, char ** argv)
   }
 
   // initialize unchanging attributes of afg messages
-  afg.mate_status = UNASSIGNED;
+  afg.mate_status = UNASSIGNED_MATE;
   afg.chimeric = 0;
   afg.chaff = 1;
 

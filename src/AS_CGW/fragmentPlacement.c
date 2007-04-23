@@ -140,9 +140,9 @@ int FragAndMateAreCompatible(CIFragT *frag, ChunkInstanceT *fragChunk,
 
   fragDist = GetDistT(ScaffoldGraph->Dists, frag->dist);
 
-  jointstddev = sqrt ( separation.variance + fragDist->stddev * fragDist->stddev);
+  jointstddev = sqrt ( separation.variance + fragDist->sigma * fragDist->sigma);
   
-  if (abs (separation.mean - fragDist->mean) < MAX_SIGMA_SLOP * jointstddev) {
+  if (abs (separation.mean - fragDist->mu) < MAX_SIGMA_SLOP * jointstddev) {
     return TRUE;
   } else {
     return FALSE;

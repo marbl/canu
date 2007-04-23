@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.23 2007-04-16 17:36:31 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.24 2007-04-23 15:24:35 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -209,7 +209,7 @@ void SaveScaffoldGraphToStream(ScaffoldGraphT *sgraph, FILE *stream){
 ScaffoldGraphT * LoadScaffoldGraphFromStream(FILE *stream){
   ScaffoldGraphT *sgraph =
     (ScaffoldGraphT *)safe_calloc(1, sizeof(ScaffoldGraphT));
-  int status;
+  int    i, status;
   TimerT timer;
 
   InitTimerT(&timer);
@@ -235,40 +235,6 @@ ScaffoldGraphT * LoadScaffoldGraphFromStream(FILE *stream){
   sgraph->SourceFields   = CreateFromFileVA_char(stream, 0);
 #endif
   sgraph->Dists          = CreateFromFileVA_DistT(stream, 0);
-  {
-    int i;
-    for( i = 0; i < GetNumDistTs(sgraph->Dists); i++){
-      DistT *dist = GetDistT(sgraph->Dists,i);
-      fprintf(stderr, "Dist %2d -- nominal %10.3f %10.3f -- chunk %10.3f %10.3f\n",
-              i, dist->mean, dist->stddev, dist->mu, dist->sigma);
-      dist->samples = NULL;
-    }
-  }
-
-
-  int32     numDists = getNumGateKeeperLibrarys(ScaffoldGraph->gkpStore->lib);
-  CDS_CID_t i;
-
-  fprintf(stderr, "Dist RESET!\n");
-  
-  for(i = 1; i <= numDists; i++){
-    DistT                     *dist;
-    GateKeeperLibraryRecord    gkpl;
-
-    getGateKeeperLibraryStore(ScaffoldGraph->gkpStore->lib, i, &gkpl);
-    
-    if(gkpl.deleted)
-      continue;
-
-    dist = GetDistT(sgraph->Dists, i);
-
-    dist->mean   = gkpl.mean;
-    dist->stddev = gkpl.stddev;
-
-    fprintf(stderr, "Dist %2d -- nominal %10.3f %10.3f -- chunk %10.3f %10.3f\n",
-            i, dist->mean, dist->stddev, dist->mu, dist->sigma);
-  }
-
 
   sgraph->CIGraph       = LoadGraphCGWFromStream(stream);
   sgraph->ContigGraph   = LoadGraphCGWFromStream(stream);
@@ -277,6 +243,11 @@ ScaffoldGraphT * LoadScaffoldGraphFromStream(FILE *stream){
   CheckGraph(sgraph->CIGraph);
   CheckGraph(sgraph->ContigGraph);
   CheckGraph(sgraph->ScaffoldGraph);
+
+  //  Erase the bogus pointer in dists
+  //
+  for (i=0; i<GetNumDistTs(ScaffoldGraph->Dists); i++)
+    GetDistT(ScaffoldGraph->Dists, i)->histogram = NULL;
 
   // Temporary
   sgraph->ChunkInstances = sgraph->CIGraph->nodes;
@@ -456,12 +427,6 @@ void DestroyScaffoldGraph(ScaffoldGraphT *sgraph){
 #ifdef AS_ENABLE_SOURCE
   DeleteVA_char(sgraph->SourceFields);
 #endif
-
-  for( i = 0; i < GetNumDistTs(sgraph->Dists); i++){
-    DistT *dist = GetDistT(sgraph->Dists,i);
-    if(dist->samples)
-      DeleteVA_CDS_COORD_t(dist->samples);
-  }
 
   DeleteVA_DistT(sgraph->Dists);
   DeleteVA_InfoByIID(sgraph->iidToFragIndex);

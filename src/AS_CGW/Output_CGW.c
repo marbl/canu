@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Output_CGW.c,v 1.22 2007-04-16 15:35:40 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Output_CGW.c,v 1.23 2007-04-23 15:24:35 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -54,32 +54,23 @@ void OutputMateDists(ScaffoldGraphT *graph){
   for(i = 1; i < GetNumDistTs(graph->Dists); i++){
     dptr = GetDistT(graph->Dists, i);
 
-#define ORIGINALFLAVOR 0
+    //  Believe whatever estimate is here.  We used to reset to zero
+    //  and the input (except we had already munged the input stddev)
+    //  if there were 30 or fewer samples.
 
-#if ORIGINALFLAVOR != 0
-    if (dptr->numSamples == 0)
-      continue;
-    imd.num_buckets = dptr->bnum;
-    imd.min = dptr->min;
-    imd.max = dptr->max;
-    imd.stddev = dptr->sigma;
-    imd.mean = dptr->mu;
-#else
-    if (dptr->numSamples > 30 ){
-      imd.stddev = dptr->sigma;
-      imd.mean = dptr->mu;
+    imd.stddev      = dptr->sigma;
+    imd.mean        = dptr->mu;
+    imd.num_buckets = 0;
+    imd.min         = CDS_COORD_MIN;
+    imd.max         = CDS_COORD_MAX;      
+
+    if (dptr->numSamples > 0) {
       imd.num_buckets = dptr->bnum;
-      imd.min = dptr->min;
-      imd.max = dptr->max;
-    } else {
-      imd.num_buckets = 0;
-      imd.min = CDS_COORD_MIN;
-      imd.max = CDS_COORD_MAX;
-      imd.stddev = dptr->stddev;
-      imd.mean = dptr->mean;
+      imd.min         = dptr->min;
+      imd.max         = dptr->max;
     }
-#endif
-    imd.refines = i;
+
+    imd.refines   = i;
     imd.histogram = dptr->histogram;
 
     if (GlobalData->cgwfp)
@@ -108,10 +99,6 @@ void OutputFrags(ScaffoldGraphT *graph){
   int cwrongScf  =0;
 
   InfoByIID *info = GetInfoByIID(graph->iidToFragIndex,0);
-#if 0
-  ReadStructp fsread = new_ReadStruct();
-  uint32 clr_bgn_orig, clr_end_orig, clr_bgn_latest, clr_end_latest;
-#endif
   
   pmesg.m = &af_mesg;
   pmesg.t = MESG_IAF;
@@ -119,26 +106,14 @@ void OutputFrags(ScaffoldGraphT *graph){
   // Output fragments in iid order
   //
   for(i = 0; i < numFrags; i++, info++){
-    CDS_CID_t fragID;
     CIFragT *cifrag;
 
     if(!info->set)
       continue;
 
-    if(((i+1) % 1000000) == 0){
-      fprintf(stderr,"* Outputing fragment " F_CID "\n",i);
-      fflush(stderr);
-    }
-    fragID = info->fragIndex;
-
-    cifrag = GetCIFragT(graph->CIFrags,fragID);
+    cifrag = GetCIFragT(graph->CIFrags, info->fragIndex);
 
     assert(cifrag->iid == i);
-
-    af_mesg.iaccession = cifrag->iid;
-    af_mesg.type = (FragType)cifrag->type;
-    af_mesg.chaff = cifrag->flags.bits.isChaff;
-    af_mesg.mate_status = cifrag->flags.bits.mateDetail;
 
     switch(cifrag->flags.bits.edgeStatus){
       case INVALID_EDGE_STATUS:             cinvalid++;    break;
@@ -150,31 +125,22 @@ void OutputFrags(ScaffoldGraphT *graph){
       case INTER_SCAFFOLD_EDGE_STATUS:      cwrongScf++;   break;
       case UNKNOWN_EDGE_STATUS:             cunknown++;    break;
     }
-    af_mesg.chimeric = 0;
 
-#if 0
-    getFrag( ScaffoldGraph->gkpStore, i, fsread, FRAG_S_INF);
-    getClearRegion_ReadStruct( fsread, &clr_bgn_orig, &clr_end_orig, READSTRUCT_ORIGINAL);
-    getClearRegion_ReadStruct( fsread, &clr_bgn_latest, &clr_end_latest, READSTRUCT_LATEST);
+    //  Terminator sets the final fragment clear range based on the
+    //  fragStore.
 
-    if ( (clr_bgn_orig == clr_bgn_latest) && (clr_end_orig == clr_end_latest)) // clr range is unchanged
-      {
-        af_mesg.clear_rng.bgn = -1;
-        af_mesg.clear_rng.end = -1;
-      }
-    else
-      {
-        af_mesg.clear_rng.bgn = clr_bgn_latest;
-        af_mesg.clear_rng.end = clr_end_latest;
-      }
-#endif
+    af_mesg.iaccession     = cifrag->iid;
+    af_mesg.type           = (FragType)cifrag->type;
+    af_mesg.chaff          = cifrag->flags.bits.isChaff;
+    af_mesg.mate_status    = cifrag->flags.bits.mateDetail;
+    af_mesg.chimeric       = 0;
+    af_mesg.clear_rng.bgn  = -1;
+    af_mesg.clear_rng.end  = -1;
 
-    af_mesg.clear_rng.bgn = -1;
-    af_mesg.clear_rng.end = -1;
-	  
     if (GlobalData->cgwfp)
       WriteProtoMesg_AS(GlobalData->cgwfp,&pmesg);
   }
+
   fprintf(GlobalData->stderrc,"* Saw %d good mates\n", goodMates);
   fprintf(GlobalData->stderrc,"* Saw %d trusted mates (good)\n", ctrusted);
   fprintf(GlobalData->stderrc,"* Saw %d tentative trusted mates (good)\n", ctenTrust);
@@ -192,91 +158,55 @@ void OutputFrags(ScaffoldGraphT *graph){
    before OutputConigLinks and OutputMateDists */
 
 void MarkContigEdges(void){
+  CIScaffoldT *scaffold;
+  GraphNodeIterator scaffolds;
+
   assert(ScaffoldGraph->doRezOnContigs);
   
   fprintf(GlobalData->stderrc,"* MarkContigEdges\n");
-  /* This block initializes some values for the mate distance distribution */
-  {
-    /* hopefully this is the max positive value for int32 */
-    DistT *dptr;
-    int i, dbound;
-    
-    dbound = (int) GetNumDistTs(ScaffoldGraph->Dists);
-    for (i=0; i < dbound; ++i) {
-      dptr = GetDistT(ScaffoldGraph->Dists,i);
-      dptr->min = CDS_COORD_MAX;
-      dptr->max = CDS_COORD_MIN;
-      dptr->numSamples = 0;
-      dptr->mu = dptr->sigma = 0.0;
-      dptr->lower = dptr->mean - CGW_CUTOFF*dptr->stddev;
-      dptr->upper = dptr->mean + CGW_CUTOFF*dptr->stddev;
-    }
-  } 
   
-  fprintf(GlobalData->stderrc,"* Intra-scaffold inter-contig edges\n");
   // Mark the trustedness of the intra-scaffold, inter-contig edges
-  {
-    CIScaffoldT *scaffold;
-    GraphNodeIterator scaffolds;
-    int numContigs = 0, numEdges = 0, numScaffolds = 0;
     
-    InitGraphNodeIterator(&scaffolds, ScaffoldGraph->ScaffoldGraph, GRAPH_NODE_DEFAULT);
-    while((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL){
-      if(scaffold->type != REAL_SCAFFOLD)
-	continue;
-      MarkInternalEdgeStatus(ScaffoldGraph, scaffold, PAIRWISECHI2THRESHOLD_CGW,
-			     100000000000.0, TRUE, TRUE, 0, FALSE);
-    }
+  InitGraphNodeIterator(&scaffolds, ScaffoldGraph->ScaffoldGraph, GRAPH_NODE_DEFAULT);
+  while((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL){
+    if(scaffold->type != REAL_SCAFFOLD)
+      continue;
+    MarkInternalEdgeStatus(ScaffoldGraph, scaffold, PAIRWISECHI2THRESHOLD_CGW,
+                           100000000000.0, TRUE, TRUE, 0, FALSE);
+  }
     
-    InitGraphNodeIterator(&scaffolds, ScaffoldGraph->ScaffoldGraph, GRAPH_NODE_DEFAULT);
-    while((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL){
-      ContigT *contig;
-      CIScaffoldTIterator Contigs;
-      
-      numScaffolds++;
-      if(numScaffolds % 100 == 0)
-	fprintf(GlobalData->stderrc,"* Scaffold %d (" F_CID ") \n", numScaffolds, scaffold->id);
-      
-      /* Iterate over all contigs in scaffolds */
-      
-      InitCIScaffoldTIterator(ScaffoldGraph, scaffold,TRUE, FALSE, &Contigs);
-      while((contig = NextCIScaffoldTIterator(&Contigs)) != NULL){
-	GraphEdgeIterator edges;
-	EdgeCGW_T *edge;
-        
-	numContigs++;
-	InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, contig->id, ALL_END, ALL_EDGES, GRAPH_EDGE_RAW_ONLY , &edges);
-	while((edge = NextGraphEdgeIterator(&edges)) != NULL){
-          ContigT *mcontig;
-          
-	  assert(edge->flags.bits.isRaw);
-	  if((edge->idA != contig->id) || isSingletonOverlapEdge(edge))
-	    continue;
-          
-	  numEdges++;
-          
-	  if(numEdges % 1000 == 0)
-	    fprintf(GlobalData->stderrc,"* Marked %d edges for %d contigs (contig " F_CID ")\n",
-		    numEdges, numContigs, contig->id);
-          
-	  mcontig = GetGraphNode(ScaffoldGraph->ContigGraph, edge->idB);
-          
-	  if(contig->scaffoldID != mcontig->scaffoldID)
-	    SetEdgeStatus(ScaffoldGraph->ContigGraph, edge, INTER_SCAFFOLD_EDGE_STATUS);
-	  PropagateEdgeStatusToFrag(ScaffoldGraph->ContigGraph, edge);
-	}
+  InitGraphNodeIterator(&scaffolds, ScaffoldGraph->ScaffoldGraph, GRAPH_NODE_DEFAULT);
+  while((scaffold = NextGraphNodeIterator(&scaffolds)) != NULL){
+    ContigT *contig;
+    CIScaffoldTIterator Contigs;
+
+    InitCIScaffoldTIterator(ScaffoldGraph, scaffold,TRUE, FALSE, &Contigs);
+    while((contig = NextCIScaffoldTIterator(&Contigs)) != NULL){
+      GraphEdgeIterator edges;
+      EdgeCGW_T *edge;
+
+      InitGraphEdgeIterator(ScaffoldGraph->ContigGraph, contig->id, ALL_END, ALL_EDGES, GRAPH_EDGE_RAW_ONLY , &edges);
+      while((edge = NextGraphEdgeIterator(&edges)) != NULL){
+        ContigT *mcontig;
+
+        assert(edge->flags.bits.isRaw);
+        if((edge->idA != contig->id) || isSingletonOverlapEdge(edge))
+          continue;
+
+        mcontig = GetGraphNode(ScaffoldGraph->ContigGraph, edge->idB);
+
+        if(contig->scaffoldID != mcontig->scaffoldID)
+          SetEdgeStatus(ScaffoldGraph->ContigGraph, edge, INTER_SCAFFOLD_EDGE_STATUS);
+
+        PropagateEdgeStatusToFrag(ScaffoldGraph->ContigGraph, edge);
       }
     }
   }
-  fprintf(GlobalData->stderrc,"* Calculating Intra-contig mate link stats *\n");
-  
-  // Now collect mate link stats for mate link 
-  
-  /* Accumulate Mate Link Statistics */
-  
-  fprintf(GlobalData->stderrc,"* Mate pair statistics\n");
-  
-  ComputeMatePairStatisticsRestricted( CONTIG_OPERATIONS, CDS_CID_MAX /* minSamplesForOverride */, "MarkContigEdges");
+
+  //  This is needed (??) to update the edge status that we screwed up
+  //  above.  The huge int disables any update to the distances.
+  //
+  //ComputeMatePairStatisticsRestricted(CONTIG_OPERATIONS, 2147483647, "MarkContigEdges");
 }
 
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: InputDataTypes_CGW.h,v 1.12 2007-03-09 03:05:58 brianwalenz Exp $	 */
+/* 	$Id: InputDataTypes_CGW.h,v 1.13 2007-04-23 15:24:34 brianwalenz Exp $	 */
 /****************************************************************************
  *  InputDataTypes_CGW
  *  
@@ -56,54 +56,45 @@ typedef FragOrient ChunkOrient;
 typedef FragOrient NodeOrient;
 
 
-typedef enum {
-  MATE_FALSE  = -2, 
-  MATE_PROBLEM  = -1, 
-  MATE_UNKNOWN  = 0,
-  MATE_NONE     = 1, 
-  MATE_OK       = 2,
-  MATE_TRUSTED  = 3,
-  MATE_TENTATIVELYTRUSTED  = 4,
-  MATE_UNTRUSTED  = 5,
-  MATE_TENTATIVELYUNTRUSTED  = 6
-} MateStatusType;
-
-
-
 /* Fragment positions within a ChunkInstance */
 typedef struct {
   CDS_CID_t iid;                // IID of this fragment, used to reference this frag via iidToFragIndex
-  CDS_CID_t mateOf;            // the index of the CIFragT of the mate.  Valid even if numLinks > 1
+  CDS_CID_t mateOf;             // the index of the CIFragT of the mate.  Valid even if numLinks > 1
   CDS_CID_t dist;		// index of the DistT record
 
-  CDS_CID_t cid;                /* id of the unitig containing this fragment */
-  CDS_CID_t CIid;                /* id of the chunk instance containing this fragment */
-  LengthT   offset5p;         // offset in containing chunk of suffix
-  LengthT   offset3p;         // offset in containing chunk of prefix
+  CDS_CID_t cid;                // id of the unitig containing this fragment
+  CDS_CID_t CIid;               // id of the chunk instance containing this fragment
+  LengthT   offset5p;           // offset in containing chunk of suffix
+  LengthT   offset3p;           // offset in containing chunk of prefix
 
-  CDS_CID_t contigID;           /* id of the containing contig */
-  LengthT   contigOffset5p;         // offset in containing contig of suffix
-  LengthT   contigOffset3p;         // offset in containing contig of prefix
+  CDS_CID_t contigID;           // id of the containing contig
+  LengthT   contigOffset5p;     // offset in containing contig of suffix
+  LengthT   contigOffset3p;     // offset in containing contig of prefix
 
-  char type;
-  char label;
-  char linkType;
+  char      type;               //  a FragType, 5 character values
+  char      label;              //  a LabelType, 5 character values
 
-  union{
-    struct {
-      unsigned int hasInternalOnlyCILinks:1;     // If all of this fragments links are internal to its CI
-      unsigned int hasInternalOnlyContigLinks:1; // If all of this fragment's links are internal to its Contig
-      unsigned int edgeStatus:7;                 // See edgeStatus field in EdgeCGW_T
-      unsigned int isPlaced:1;                   // Fragments is in a contig that is in a scaffold
-      signed int mateStatus:8;
-      unsigned int isSingleton:1;                // Singleton unitig
-      unsigned int isChaff:1;                    // Must be isSingleton, and is not used either directly or indirectly (surrogate) in scaffold
-      unsigned int innieMate:1;                  // True for regular mate pairs, false for Outtie pairs
-      unsigned int hasMate:1;                    // True if we have a mate
-      MateStatType mateDetail:8;
-    }bits;
-    int32 all;
-  }flags;
+  //  This used to be a union of a struct and an int32; the int32 was
+  //  never used, and BPW tried to remove the union....until he
+  //  realized that lots of code would need to be changed from
+  //  thing.flags.bits.hasMate to thing.hasMate.
+  struct {
+  struct {
+  uint32       hasInternalOnlyCILinks:1;     // If all of this fragment's links are internal to its CI
+  uint32       hasInternalOnlyContigLinks:1; // If all of this fragment's links are internal to its Contig
+  uint32       isPlaced:1;                   // Fragments is in a contig that is in a scaffold
+  uint32       isSingleton:1;                // Singleton unitig
+  uint32       isChaff:1;                    // Must be isSingleton, and is not used either directly or indirectly (surrogate) in scaffold
+  uint32       innieMate:1;                  // True for regular mate pairs, false for Outtie pairs
+  uint32       hasMate:1;                    // True if we have a mate
+
+  LinkType     linkType:8;                   //  mostly unused
+
+  uint32       edgeStatus:7;                 // See edgeStatus field in EdgeCGW_T
+
+  MateStatType mateDetail:8;
+  } bits;
+  } flags;
 
   // Used only by Finished BAC Fragments -- this is now dead data, and
   // should be removed.  It's used heavily in FbacREZ.c though.
@@ -114,11 +105,6 @@ typedef struct {
 }CIFragT;
 
 VA_DEF(CIFragT);
-
-
-static MateStatusType getCIFragMateStatus(CIFragT *frag){
-  return (MateStatusType)(frag->flags.bits.mateStatus);
-}
 
 
 static FragOrient getCIFragOrient(CIFragT *frag){
@@ -149,21 +135,18 @@ VA_DEF(CDS_COORD_t);
 
 /* Distance Records */
 typedef struct {
-  float32       mean;     /* Nominal value -- input */
-  float32       stddev;      /* Nominal value -- input */
-  double        mu;        /* Calculated from chunk-internal mates */
-  double        sigma;     /* Calculated from chunk-internal mates */
-  int32         numSamples; // Redundant -- REMOVE THIS!
-  CDS_COORD_t   min;	/* Calculated, from contigs */
-  CDS_COORD_t   max;	/* Calculated, from contigs */
-  int32 	bnum;	/* number of buckets */
-  float		bsize;	/* size of buckets */
-  int32 	*histogram;
-  CDS_COORD_t 	lower;
-  CDS_COORD_t 	upper;
-  int32         numReferences; // Total number of links referencing this distance record
+  double        mu;              // Calculated from chunk-internal mates
+  double        sigma;           // Calculated from chunk-internal mates
+  int32         numSamples;      // Redundant -- REMOVE THIS!
+  CDS_COORD_t   min;             // Calculated, from contigs
+  CDS_COORD_t   max;             // Calculated, from contigs
+  int32         bnum;            // number of buckets
+  float         bsize;           // size of buckets
+  int32        *histogram;
+  CDS_COORD_t   lower;
+  CDS_COORD_t   upper;
+  int32         numReferences;   // Total number of links referencing this distance record
   int32         numBad;
-  VA_TYPE(CDS_COORD_t) *samples;
 }DistT;
 
 VA_DEF(DistT);

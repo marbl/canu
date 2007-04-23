@@ -31,7 +31,6 @@ CGW_SOURCES =     AS_CGW_main.c \
                   resolveSurrogates.c \
                   fragmentPlacement.c \
                   dumpCloneMiddles.c \
-                  dumpDistanceEstimates.c \
                   dumpSingletons.c
 
 #  Not all of these are external, most are probably private to cgw itself.
@@ -98,7 +97,7 @@ CGW_LIB_OBJECTS = $(CGW_LIB_SOURCES:.c=.o)
 LIBRARIES     = libAS_CGW.a libCA.a
 LIBS          = libCA.a
 
-PROGS = cgw extendClearRanges resolveSurrogates dumpCloneMiddles dumpDistanceEstimates dumpSingletons
+PROGS = cgw extendClearRanges resolveSurrogates dumpCloneMiddles dumpSingletons
 
 CRUD =  Checkpoint process_scaffolds loadcgw \
         ScaffoldMap testSplitChunks instrumentCheckpoint \
@@ -129,8 +128,6 @@ extendClearRanges: eCR.o eCR-examineGap.o eCR-diagnostic.o $(LIBS)
 resolveSurrogates: resolveSurrogates.o fragmentPlacement.o $(LIBS)
 
 dumpCloneMiddles: dumpCloneMiddles.o $(LIBS)
-
-dumpDistanceEstimates: dumpDistanceEstimates.o $(LIBS) 
 
 dumpSingletons: dumpSingletons.o $(LIBS)
 

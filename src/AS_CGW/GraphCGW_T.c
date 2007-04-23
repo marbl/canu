@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.38 2007-04-16 17:36:30 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.39 2007-04-23 15:24:34 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -76,10 +76,6 @@ GraphCGW_T *CreateGraphCGW(GraphType type,
   graph->type = type;
   graph->nodes = CreateVA_NodeCGW_T((size_t) MAX(1024, numNodes));
   graph->edges = CreateVA_EdgeCGW_T((size_t) MAX(1024, numNodes));
-#ifdef USE_UNITIG_FILE
-  graph->chunkFile =   CreateUnitigFile();
-  assert(graph->chunkFile);
-#endif
   if(graph->type == SCAFFOLD_GRAPH){
     //    graph->maStore = NULL;
     graph->overlapper = NULL;
@@ -219,9 +215,6 @@ size_t ReportMemorySizeGraphCGW(GraphCGW_T *graph, FILE *stream){
   }
   totalMemorySize += ReportMemorySize_VA(graph->nodes, nodeName, stream);
   totalMemorySize += ReportMemorySize_VA(graph->edges, edgeName, stream);
-#ifdef USE_UNITIG_FILE
-  totalMemorySize += StatsUnitigFile(graph->chunkFile, stream);
-#endif
   if(graph->type != SCAFFOLD_GRAPH){
     //    totalMemorySize += StatsMultiAlignStore(graph->maStore, stream, /* CI_GRAPH always owns its contents */(graph->type == CI_GRAPH));
     totalMemorySize += ReportMemorySize_CO(graph->overlapper, stream);
@@ -747,10 +740,8 @@ void DeleteGraphNode(GraphCGW_T *graph, NodeCGW_T *node){
 
   InitGraphEdgeIterator(graph, node->id,
                         ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT , &edges);
-  while(NULL != (edge = NextGraphEdgeIterator(&edges))){
-    ///AppendPtrT(edgeList, (PtrT)&edge);
+  while(NULL != (edge = NextGraphEdgeIterator(&edges)))
     AppendPtrT(edgeList, (const void *) &edge);
-  }
 
   for(i = 0; i < GetNumPtrTs(edgeList); i++){
     EdgeCGW_T *edge = *(EdgeCGW_T **)GetPtrT(edgeList,i);
@@ -918,7 +909,7 @@ void  DeleteGraphEdge(GraphCGW_T *graph,  EdgeCGW_T *edge){
   return;
 }
 
-/* ************************************************************/
+
 void PrintGraphEdge(FILE *fp, GraphCGW_T *graph,
                     char *label, EdgeCGW_T *edge, CDS_CID_t cid){
   char actualOverlap[256];
@@ -1113,7 +1104,6 @@ void PrintGraphEdge(FILE *fp, GraphCGW_T *graph,
 }
 
 
-/* ************************************************************/
 void PrintContigEdgeInScfContext(FILE *fp, GraphCGW_T *graph,
                                  char *label, EdgeCGW_T *edge,
                                  CDS_CID_t cid){
@@ -1316,7 +1306,6 @@ void PrintContigEdgeInScfContext(FILE *fp, GraphCGW_T *graph,
 }
 
 
-/****************************************************************************/
 // collectOverlap argument is ignored.
 // We NEVER collect overlaps! SAK 10/13/2000
 // This means overlaps are never pre-computed, which was needed for dros
@@ -1472,8 +1461,8 @@ CDS_CID_t AddGraphEdge(GraphCGW_T *graph,
     //  2) Implied distance is outside mean of distribution + 5 sigma
     
     DistT *distRecord = GetDistT(ScaffoldGraph->Dists, dist);
-    CDS_COORD_t minDistance = -500 - distRecord->stddev * 5;
-    CDS_COORD_t maxDistance = distRecord->mean + distRecord->stddev * 5;
+    CDS_COORD_t minDistance = -500 - distRecord->sigma * 5;
+    CDS_COORD_t maxDistance = distRecord->mu + distRecord->sigma * 5;
 
     //  The isBogus flag is from the now-dead simulator, but it's
     //  overloaded in scaffold merging.
@@ -1898,7 +1887,7 @@ void CheckEdgesAgainstOverlapper(GraphCGW_T *graph){
   fprintf(GlobalData->stderrc,"**** Survived CheckEdgesAgainstOverlapper with %d failures****\n", failures);
 }
 
-/****************************************************************************/
+
 /* Update all the Unitigs belonging to the multiAlignment for contig
    contigID so that their membership and offsets are recorded properly. */
 
@@ -1967,7 +1956,7 @@ void UpdateNodeUnitigs(MultiAlignT *ma, ContigT *contig){
   
 }
 
-/****************************************************************************/
+
 /* Update all the fragments belonging to the multiAlignment for Chunk cid
    so that their membership and offsets in their CIFragT record are recorded
    properly.
@@ -2248,7 +2237,7 @@ int CreateGraphEdge(GraphCGW_T *graph,
 
 #if 0
   fprintf(GlobalData->stderrc,"* CreateGraphEdge frags (" F_CID "," F_CID ") dist:%g orient %c\n",
-          fragID, mfragID, dist->mean, orient);
+          fragID, mfragID, dist->mu, orient);
 #endif
   
   switch(graph->type){
@@ -2276,29 +2265,16 @@ int CreateGraphEdge(GraphCGW_T *graph,
   }
   
   // Don't add edges to chaff
-  if(GlobalData->ignoreChaffUnitigs && (
-                                        mnode->flags.bits.isChaff ||
-                                        node->flags.bits.isChaff)){
+  if(GlobalData->ignoreChaffUnitigs && (mnode->flags.bits.isChaff ||
+                                        node->flags.bits.isChaff))
     return FALSE;
-  }
+
   // Don't build double
-  if(!buildAll && (node->id >  mnode->id)){
-    /*
-      fprintf(GlobalData->stderrc,"* not building (" F_CID "," F_CID ")\n",
-      node->id, mnode->id);
-    */
+  if(!buildAll && (node->id >  mnode->id))
     return TRUE; // there ARE external edges, we just aren't building them
-  }
-  if(type == AS_MATE) {
+
+  if(type == AS_MATE)
     assert(mfragID == frag->mateOf);
-    if(getCIFragMateStatus(frag) == MATE_NONE ){
-      fprintf(GlobalData->stderrc,
-              "* Chunk " F_CID " has Bogus mate " F_CID " of frag " F_CID "\n",
-              frag->cid, frag->mateOf, frag->iid);
-      assert(0 /* Invalid mateStatus*/);
-    }
-  }
-  
   
   if(GlobalData->verbose)
     fprintf(GlobalData->stderrc,
@@ -2308,33 +2284,24 @@ int CreateGraphEdge(GraphCGW_T *graph,
             mfragID, mfrag->iid,
             mfrag->cid, 
             (CDS_CID_t) GetVAIndex_DistT(ScaffoldGraph->Dists, dist));
-  
-  
-  
-  
+
   if(!FragOffsetAndOrientation(frag,
                                node,
                                &ciOffset,
                                &ciOrient,
                                &extremalA,
                                (orient == AS_READ_ORIENT_INNIE ||
-                                orient == AS_READ_ORIENT_NORMAL))){
-    fprintf(GlobalData->stderrc,
-            "* CIFragOffset returned false for frag " F_CID " (" F_CID ")\n",
-            fragID, frag->iid);
+                                orient == AS_READ_ORIENT_NORMAL)))
     return FALSE;
-  }
+
   if(!FragOffsetAndOrientation(mfrag,
                                mnode,
                                &mciOffset,
                                &mciOrient,
                                &extremalB,
                                (orient == AS_READ_ORIENT_INNIE ||
-                                orient == AS_READ_ORIENT_ANTINORMAL))){
-    fprintf(GlobalData->stderrc,"* CIFragOffset returned false for frag " F_CID " (" F_CID ")\n",
-            mfragID, mfrag->iid);
+                                orient == AS_READ_ORIENT_ANTINORMAL)))
     return FALSE;
-  }
 
   /* The following triply nested case statement captures all of the cases that arise from different
      relative alignments of the fragments in the LKG relationship, and their alignment with their 
@@ -2609,10 +2576,9 @@ int CreateGraphEdge(GraphCGW_T *graph,
       assert(0);
   }
 
-  distance.mean = (CDS_COORD_t) dist->mean - ciOffset.mean - mciOffset.mean;
+  distance.mean = (CDS_COORD_t) dist->mu - ciOffset.mean - mciOffset.mean;
   // Since the two offsets and the dist are independent we SUM their variances
-  distance.variance = dist->stddev * dist->stddev +
-    ciOffset.variance + mciOffset.variance;
+  distance.variance = dist->sigma * dist->sigma + ciOffset.variance + mciOffset.variance;
   
 #ifdef DEBUG_CIEDGES_1
   fprintf(GlobalData->stderrc,"* Adding edge (" F_CID "," F_CID ",%c) insert:%d induced by fragments (" F_CID "," F_CID ",%c) with distance %g and status %d\n",
@@ -2698,7 +2664,7 @@ void  BuildGraphEdgesDirectly(GraphCGW_T *graph){
 }
 
 
-/***************************************************************************/
+
 // Create the raw link-based edges
 void  BuildGraphEdgesFromMultiAlign(GraphCGW_T *graph, NodeCGW_T *node,
                                     MultiAlignT *ma, GraphEdgeStatT *stat,
@@ -2771,11 +2737,11 @@ void  BuildGraphEdgesFromMultiAlign(GraphCGW_T *graph, NodeCGW_T *node,
     mfragID = frag->mateOf;
     if(mfragID != NULLINDEX){ // this could happen if there are links, but they are rereads, for example
       mfrag = GetCIFragT(ScaffoldGraph->CIFrags, mfragID);
-      if(mfrag->linkType == AS_MATE)
+      if(mfrag->flags.bits.linkType == AS_MATE)
         stat->totalMatePairs++;
       dist = GetDistT(ScaffoldGraph->Dists, mfrag->dist);
       assert(dist);
-      hasExternalLinks |= CreateGraphEdge(graph, frag, mfrag, dist, mfrag->linkType, 
+      hasExternalLinks |= CreateGraphEdge(graph, frag, mfrag, dist, mfrag->flags.bits.linkType, 
                                           (frag->flags.bits.innieMate?AS_READ_ORIENT_INNIE:AS_READ_ORIENT_OUTTIE), 
                                           FALSE, stat, buildAll);
     }
@@ -2898,11 +2864,9 @@ void PropagateEdgeStatusToFrag(GraphCGW_T *graph, EdgeCGW_T *edge){
 
 
 
-/******************************************************************************
- * MarkTandemEdge
- *   Propagate tandem repeat marks between edges<->CIs.
- *   Returns TRUE if something was marked, FALSE otherwise
- *****************************************************************************/
+// MarkTandemEdge
+//   Propagate tandem repeat marks between edges<->CIs.
+//   Returns TRUE if something was marked, FALSE otherwise
 int  MarkTandemEdge(GraphCGW_T *graph, EdgeCGW_T *edge){
   ChunkInstanceT *chunkA = GetGraphNode(graph, edge->idA);
   ChunkInstanceT *chunkB = GetGraphNode(graph, edge->idB);
@@ -3035,7 +2999,6 @@ int  MarkTandemEdge(GraphCGW_T *graph, EdgeCGW_T *edge){
   return(setOverlaps);
 }
 
-/****************************************************************************/
 /* PropagateTandemMarks
    This should be replaced with a UnionFind algorithm to mark all of the CI ends that
    are tandem repeats, followed by one pass over the edges to mark any edge that touches
@@ -3086,7 +3049,6 @@ void PropagateTandemMarks(GraphCGW_T *graph){
 }
 
 #if 1
-/****************************************************************************/
 static VA_TYPE(IntMultiPos) *f_list_CI = NULL;
 static VA_TYPE(IntMultiPos) *f_list_Contig = NULL;
 
@@ -3183,7 +3145,7 @@ void AssignFragsToResolvedCI(GraphCGW_T *graph,
   
 }
 
-/**************************************************************************/
+
 /* Split an unresolved CI, moving a subset of its fragments to the new node.
    Returns the index of the new node, or NULLINDEX if failure.
    The new CI gets copies of all of the overlap edges of its parent, and inherits some of the
@@ -3316,7 +3278,6 @@ CDS_CID_t SplitUnresolvedCI(GraphCGW_T *graph,
 
 
 
-/****************************************************************************/
 
 /* Split an unresolved Contig.
    This involves splitting its underling CI, and creating a new Contig containing
@@ -3520,7 +3481,6 @@ int compDists( const void *s1, const void *s2)
 }
 
 
-/****************************************************************************/
 
 
 /* NOTE: This routine should make a collection of distances for each
@@ -3555,6 +3515,9 @@ void ComputeMatePairDetailedStatus(void) {
   NodeCGW_T *node;
   DistT *dptr;
   MultiAlignT *ma = CreateEmptyMultiAlignT();
+
+  int i;
+
   int numTotalFrags = 0;
   int numReverse    = 0;
   int numGood       = 0;
@@ -3610,386 +3573,409 @@ void ComputeMatePairDetailedStatus(void) {
 
   InitGraphNodeIterator(&nodes, graph, GRAPH_NODE_DEFAULT);
   
-  while(NULL != (node = NextGraphNodeIterator(&nodes)))
-    {
-      switch (node->type)
-        {
-          case DISCRIMINATORUNIQUECHUNK_CGW: duCI++; break;
-          case UNRESOLVEDCHUNK_CGW:          urCI++; break;
-          case UNIQUECHUNK_CGW:               uCI++; break;
-          case RESOLVEDREPEATCHUNK_CGW:      rrCI++; break;
-          case CONTIG_CGW:                   ctig++; break;
-          case UNIQUECONTIG_CGW:            uctig++; break;
-          case RESOLVEDCONTIG_CGW:          rctig++; break;
-          case UNRESOLVEDCONTIG_CGW:       urctig++; break;
-          case REAL_SCAFFOLD:               rScaf++; break;
-          case OUTPUT_SCAFFOLD:             oScaf++; break;
-          case SCRATCH_SCAFFOLD:            sScaf++; break;
-          default:
-            assert(0);
-        }
+  while(NULL != (node = NextGraphNodeIterator(&nodes))) {
+    switch (node->type) {
+      case DISCRIMINATORUNIQUECHUNK_CGW: duCI++; break;
+      case UNRESOLVEDCHUNK_CGW:          urCI++; break;
+      case UNIQUECHUNK_CGW:               uCI++; break;
+      case RESOLVEDREPEATCHUNK_CGW:      rrCI++; break;
+      case CONTIG_CGW:                   ctig++; break;
+      case UNIQUECONTIG_CGW:            uctig++; break;
+      case RESOLVEDCONTIG_CGW:          rctig++; break;
+      case UNRESOLVEDCONTIG_CGW:       urctig++; break;
+      case REAL_SCAFFOLD:               rScaf++; break;
+      case OUTPUT_SCAFFOLD:             oScaf++; break;
+      case SCRATCH_SCAFFOLD:            sScaf++; break;
+      default:
+        assert(0);
+    }
 
-      ReLoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ma, node->id, graph->type == CI_GRAPH);
-      if (node->info.CI.baseID != node->id ) {
-        fprintf(GlobalData->stderrc,"* skip surr chunk id %d, baseID %d, type %d, isStone %d\n",node->id,node->info.CI.baseID, node->type, node->flags.bits.isStoneSurrogate);
-        //continue;
-      }
-      int numFrags  = GetNumIntMultiPoss(ma->f_list);
-      if (node->flags.bits.isDead) {
-        numDeadNode+=numFrags;
+    ReLoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ma, node->id, graph->type == CI_GRAPH);
+
+    //  BPW isn't sure what's going on here.  The original was
+    //  checking this condition, then printing the message.  The
+    //  "continue" was disabled.  Enabling the continue causes every
+    //  node to be skipped.  I think the wrong ID's are being tested:
+    //
+    //  * skip surr chunk id 0, baseID 12548880, type 0, isStone 0
+    //  * skip surr chunk id 1, baseID 12548880, type 1, isStone 0
+    //  * skip surr chunk id 2, baseID 12548880, type 0, isStone 0
+    //  * skip surr chunk id 3, baseID 12548880, type 0, isStone 0
+    //  * skip surr chunk id 4, baseID 12548880, type 1, isStone 0
+    //  * skip surr chunk id 5, baseID 12548880, type 0, isStone 0
+    //  * skip surr chunk id 6, baseID 12548880, type 0, isStone 0
+    //  * skip surr chunk id 7, baseID 12548880, type 1, isStone 0
+    //  * skip surr chunk id 8, baseID 12548880, type 0, isStone 0
+    //
+    //
+    //if (node->info.CI.baseID != node->id ) {
+    //  fprintf(GlobalData->stderrc,"* skip surr chunk id %d, baseID %d, type %d, isStone %d\n",node->id,node->info.CI.baseID, node->type, node->flags.bits.isStoneSurrogate);
+    //  continue;
+    //}
+
+    int numFrags  = GetNumIntMultiPoss(ma->f_list);
+
+    if (node->flags.bits.isDead) {
+      numDeadNode+=numFrags;
+      continue;
+    }
+
+    numTotalFrags += numFrags;
+
+    for( i = 0; i < numFrags; i++) {
+      IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
+      CIFragT *frag, *mate;
+      CDS_COORD_t dist;
+      
+      frag = GetCIFragT(ScaffoldGraph->CIFrags, (CDS_CID_t)mp->sourceInt);
+      assert(frag->iid == mp->ident);
+      if (frag->flags.bits.hasMate == 0) {
+        numNoMate++;
+        frag->flags.bits.mateDetail = NO_MATE;
         continue;
       }
-      numTotalFrags += numFrags;
-      int i;
-      for( i = 0; i < numFrags; i++)
-        {
-          IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
-          CIFragT *frag, *mate;
-          CDS_COORD_t dist;
-      
-          frag = GetCIFragT(ScaffoldGraph->CIFrags, (CDS_CID_t)mp->sourceInt);
-          assert(frag->iid == mp->ident);
-          if (frag->flags.bits.hasMate == 0) {
-            numNoMate++;
-            frag->flags.bits.mateDetail = NO_MATE;
-            continue;
+      mate = GetCIFragT(ScaffoldGraph->CIFrags,frag->mateOf);
+      if (mate == NULL) {
+        numNoMate++;
+        frag->flags.bits.mateDetail = NO_MATE;
+        continue;
+      }
+      if ( mate->mateOf != (CDS_CID_t)mp->sourceInt) {
+        assert(0);
+      }
+      if(frag->flags.bits.isChaff) {
+        if (mate->flags.bits.isChaff) {
+          if (mate->flags.bits.mateDetail != BOTH_CHAFF_MATE) {
+            mate->flags.bits.mateDetail  = BOTH_CHAFF_MATE;
+            frag->flags.bits.mateDetail  = BOTH_CHAFF_MATE;
+            numBothChaff+=2;
           }
-          mate = GetCIFragT(ScaffoldGraph->CIFrags,frag->mateOf);
-          if (mate == NULL) {
-            numNoMate++;
-            frag->flags.bits.mateDetail = NO_MATE;
-            continue;
-          }
-          if ( mate->mateOf != (CDS_CID_t)mp->sourceInt) {
-            assert(0);
-          }
-          if(frag->flags.bits.isChaff) {
-            if (mate->flags.bits.isChaff) {
-              if (mate->flags.bits.mateDetail != BOTH_CHAFF_MATE) {
-                mate->flags.bits.mateDetail  = BOTH_CHAFF_MATE;
-                frag->flags.bits.mateDetail  = BOTH_CHAFF_MATE;
-                numBothChaff+=2;
-              }
-            } else {
-              numChaff+=2;
-              mate->flags.bits.mateDetail = CHAFF_MATE;
-              frag->flags.bits.mateDetail = CHAFF_MATE;
-            }
-            continue;
-          }
-          if(mate->flags.bits.isChaff || frag->flags.bits.mateDetail == CHAFF_MATE) {
-            numSkipChaff++;
-            continue;
-          }
-
-          dptr = GetDistT(ScaffoldGraph->Dists, frag->dist);
-
-          NodeCGW_T *fragContig, *mateContig;
-          fragContig = GetGraphNode( ScaffoldGraph->ContigGraph, frag->contigID);
-          AssertPtr(fragContig);
-          if (fragContig->flags.bits.isDead) {
-            numDeadCtg++;
-          }
-          switch (fragContig->type)
-            {
-              case DISCRIMINATORUNIQUECHUNK_CGW: fduCI++; break;
-              case UNRESOLVEDCHUNK_CGW:          furCI++; break;
-              case UNIQUECHUNK_CGW:               fuCI++; break;
-              case RESOLVEDREPEATCHUNK_CGW:      frrCI++; break;
-              case CONTIG_CGW:                   fctig++; break;
-              case UNIQUECONTIG_CGW:            fuctig++; break;
-              case RESOLVEDCONTIG_CGW:          frctig++; break;
-              case UNRESOLVEDCONTIG_CGW:       furctig++; break;
-              case REAL_SCAFFOLD:               frScaf++; break;
-              case OUTPUT_SCAFFOLD:             foScaf++; break;
-              case SCRATCH_SCAFFOLD:            fsScaf++; break;
-              default:
-                assert(0);
-            }
-          mateContig = GetGraphNode( ScaffoldGraph->ContigGraph, mate->contigID);
-          AssertPtr(mateContig);
-
-          NodeCGW_T *mchunk = GetGraphNode( ScaffoldGraph->CIGraph, mate->CIid);
-          if ( node->type == RESOLVEDREPEATCHUNK_CGW)
-            numInResRep++;
-
-          if ( node->type != DISCRIMINATORUNIQUECHUNK_CGW ) {
-            if (node->info.CI.numInstances == 0) {
-              numZero++;
-            } else if (node->info.CI.numInstances == 1) {
-              numOne++;
-            } else {
-              numMore++;
-            }
-            if ( node->info.CI.numInstances > 1 || node->flags.bits.isStoneSurrogate ) {
-              int *frgAlready = LookupInUID2IIDHashTable_AS( surrHash, frag->iid );
-              int *mateAlready = LookupInUID2IIDHashTable_AS( surrHash, mate->iid );
-              if (frgAlready != NULL && mateAlready != NULL) {
-                if (mate->flags.bits.mateDetail != BOTH_SURR_MATE) {
-                  numSurrogate-=1;
-                  numBothSurr+=2;
-                  mate->flags.bits.mateDetail = BOTH_SURR_MATE;
-                  frag->flags.bits.mateDetail = BOTH_SURR_MATE;
-                  /*                      fprintf(GlobalData->stderrc,
-                                          "* Both surr %d,%d from chunks %d.\n",
-                                          frag->iid, mate->iid, node->id, mchunk->id); 
-                  */
-                }
-                *frgAlready++;
-                *mateAlready++;
-              } else {
-                numSurrogate++;
-                mate->flags.bits.mateDetail = SURR_MATE;
-                frag->flags.bits.mateDetail = SURR_MATE;
-                if (frgAlready == NULL) {
-                  /*                      fprintf(GlobalData->stderrc,
-                                          "* Add frag %d from repeat chunk %d to surr hash, num: %d\n",
-                                          frag->iid, node->id, node->info.CI.numInstances );
-                  */
-                  InsertInUID2IIDHashTable_AS( surrHash, frag->iid, 1);
-                }
-              }
-              continue;
-            } else {
-              //              fprintf(GlobalData->stderrc,"* Non surrogate node %d, num %d, frag %d\n",
-              //                      node->id, node->info.CI.numInstances, frag->iid);
-            }
-          }
-          if( mchunk->info.CI.numInstances > 1 || mchunk->flags.bits.isStoneSurrogate ) {
-            int *frgAlready = LookupInUID2IIDHashTable_AS( surrHash, frag->iid );
-            if (frgAlready != NULL) { // already seen
-              if (frag->flags.bits.mateDetail != BOTH_SURR_MATE) {
-                numSurrogate-=1;
-                numBothSurr+=2;
-                mate->flags.bits.mateDetail = BOTH_SURR_MATE;
-                frag->flags.bits.mateDetail = BOTH_SURR_MATE;
-                InsertInUID2IIDHashTable_AS( surrHash, mate->iid, 1);
-              }
-              *frgAlready++;
-              continue;
-            } 
-            int *mateAlready = LookupInUID2IIDHashTable_AS( surrHash, mate->iid );
-            if (mateAlready != NULL) { // already seen
-              *mateAlready++;
-            } else {
-              /*              fprintf(GlobalData->stderrc,
-                              "* Add frag %d from chunk %d to surr hash, num: %d\n",
-                              mate->iid, mchunk->id, mchunk->info.CI.numInstances );
-              */
-              InsertInUID2IIDHashTable_AS( surrHash, mate->iid, 1);
-              numSurrogate++;
-              mate->flags.bits.mateDetail = SURR_MATE;
-              frag->flags.bits.mateDetail = SURR_MATE;
-            }
-            continue;
-          }
-          if ( node->type == UNRESOLVEDCHUNK_CGW)
-            numInUnresolv++;
-          if ( fragContig->scaffoldID == NULLINDEX )
-            numInNullScaf++;
-
-          if( fragContig->scaffoldID == NULLINDEX ) {
-            assert( node->type != DISCRIMINATORUNIQUECHUNK_CGW );
-            if (mateContig->scaffoldID == NULLINDEX) {
-              if (mate->flags.bits.mateDetail != BOTH_DEGEN_MATE) {
-                mate->flags.bits.mateDetail  = BOTH_DEGEN_MATE;
-                frag->flags.bits.mateDetail  = BOTH_DEGEN_MATE;
-                numBothDegen+=2;
-              }
-            } else {
-              numDegen+=2;
-              mate->flags.bits.mateDetail = DEGEN_MATE;
-              frag->flags.bits.mateDetail = DEGEN_MATE;
-            }
-            continue;
-          }
-          if(mateContig->scaffoldID == NULLINDEX) {
-            numSkipDegen++;
-            continue;
-          }
-          if ( fragContig->scaffoldID != mateContig->scaffoldID )
-            // we want them to be in the same scaffold
-          {
-              numDiffScaf++;
-              mate->flags.bits.mateDetail = DIFF_SCAFF_MATE;
-              frag->flags.bits.mateDetail = DIFF_SCAFF_MATE;
-              continue;
-          }
-
-          CDS_COORD_t fragLeftEnd, fragRightEnd;
-          CDS_COORD_t mateLeftEnd, mateRightEnd;
-          int mateScaffoldOrientation, fragScaffoldOrientation;
-
-          GetFragmentPositionInScaffold( frag, &fragLeftEnd, &fragRightEnd, &fragScaffoldOrientation);
-          GetFragmentPositionInScaffold( mate, &mateLeftEnd, &mateRightEnd, &mateScaffoldOrientation);
-
-          if (fragScaffoldOrientation == mateScaffoldOrientation) 
-            {
-              numSame++;
-              frag->flags.bits.mateDetail = SAME_ORIENT_MATE;
-              mate->flags.bits.mateDetail = SAME_ORIENT_MATE;
-              continue;
-            }
-
-          if (fragScaffoldOrientation == 0) // frag ---->  <---- mate
-            {
-              if ( fragLeftEnd < mateRightEnd ) //innie
-                dist = mateRightEnd - fragLeftEnd;		  
-              else { //outtie if they're psat each other
-                numOuttie++;
-                frag->flags.bits.mateDetail = OUTTIE_ORIENT_MATE;
-                mate->flags.bits.mateDetail = OUTTIE_ORIENT_MATE;
-                continue; // real outtie mates not currently supported
-              }
-            } else {                          // mate ---->  <---- frag
-              numReverse++;
-              if ( mateLeftEnd < fragRightEnd ) //innie
-                dist = fragRightEnd - mateLeftEnd;		  
-              else { //outtie
-                numOuttie++;
-                frag->flags.bits.mateDetail = OUTTIE_ORIENT_MATE;
-                mate->flags.bits.mateDetail = OUTTIE_ORIENT_MATE;
-                continue; // real outtie mates not currently supported
-              }
-            }
-
-          if (dist < dptr->lower )
-            {
-              numShort++;
-              frag->flags.bits.mateDetail = BAD_SHORT_MATE;
-              mate->flags.bits.mateDetail = BAD_SHORT_MATE;
-            }
-          else if ( dist > dptr->upper)
-            {
-              numLong++;
-              frag->flags.bits.mateDetail = BAD_LONG_MATE;
-              mate->flags.bits.mateDetail = BAD_LONG_MATE;
-            } else
-              {
-                numGood++;
-                frag->flags.bits.mateDetail = GOOD_MATE;
-                mate->flags.bits.mateDetail = GOOD_MATE;
-              }
+        } else {
+          numChaff+=2;
+          mate->flags.bits.mateDetail = CHAFF_MATE;
+          frag->flags.bits.mateDetail = CHAFF_MATE;
         }
+        continue;
+      }
+      if(mate->flags.bits.isChaff || frag->flags.bits.mateDetail == CHAFF_MATE) {
+        numSkipChaff++;
+        continue;
+      }
+
+      NodeCGW_T *fragContig, *mateContig;
+      fragContig = GetGraphNode( ScaffoldGraph->ContigGraph, frag->contigID);
+      AssertPtr(fragContig);
+
+      if (fragContig->flags.bits.isDead) {
+        numDeadCtg++;
+      }
+
+      switch (fragContig->type) {
+        case DISCRIMINATORUNIQUECHUNK_CGW: fduCI++; break;
+        case UNRESOLVEDCHUNK_CGW:          furCI++; break;
+        case UNIQUECHUNK_CGW:               fuCI++; break;
+        case RESOLVEDREPEATCHUNK_CGW:      frrCI++; break;
+        case CONTIG_CGW:                   fctig++; break;
+        case UNIQUECONTIG_CGW:            fuctig++; break;
+        case RESOLVEDCONTIG_CGW:          frctig++; break;
+        case UNRESOLVEDCONTIG_CGW:       furctig++; break;
+        case REAL_SCAFFOLD:               frScaf++; break;
+        case OUTPUT_SCAFFOLD:             foScaf++; break;
+        case SCRATCH_SCAFFOLD:            fsScaf++; break;
+        default:
+          assert(0);
+      }
+
+      mateContig = GetGraphNode( ScaffoldGraph->ContigGraph, mate->contigID);
+      AssertPtr(mateContig);
+
+      NodeCGW_T *mchunk = GetGraphNode( ScaffoldGraph->CIGraph, mate->CIid);
+      if ( node->type == RESOLVEDREPEATCHUNK_CGW)
+        numInResRep++;
+
+      if ( node->type != DISCRIMINATORUNIQUECHUNK_CGW ) {
+        if (node->info.CI.numInstances == 0) {
+          numZero++;
+        } else if (node->info.CI.numInstances == 1) {
+          numOne++;
+        } else {
+          numMore++;
+        }
+
+        if ( node->info.CI.numInstances > 1 || node->flags.bits.isStoneSurrogate ) {
+          int *frgAlready = LookupInUID2IIDHashTable_AS( surrHash, frag->iid );
+          int *mateAlready = LookupInUID2IIDHashTable_AS( surrHash, mate->iid );
+          if (frgAlready != NULL && mateAlready != NULL) {
+            if (mate->flags.bits.mateDetail != BOTH_SURR_MATE) {
+              numSurrogate-=1;
+              numBothSurr+=2;
+              mate->flags.bits.mateDetail = BOTH_SURR_MATE;
+              frag->flags.bits.mateDetail = BOTH_SURR_MATE;
+              //fprintf(GlobalData->stderrc, "* Both surr %d,%d from chunks %d.\n",
+              //        frag->iid, mate->iid, node->id, mchunk->id); 
+            }
+            *frgAlready++;
+            *mateAlready++;
+          } else {
+            numSurrogate++;
+            mate->flags.bits.mateDetail = SURR_MATE;
+            frag->flags.bits.mateDetail = SURR_MATE;
+            if (frgAlready == NULL) {
+              //fprintf(GlobalData->stderrc, "* Add frag %d from repeat chunk %d to surr hash, num: %d\n",
+              //        frag->iid, node->id, node->info.CI.numInstances );
+              InsertInUID2IIDHashTable_AS( surrHash, frag->iid, 1);
+            }
+          }
+          continue;
+        } else {
+          //fprintf(GlobalData->stderrc,"* Non surrogate node %d, num %d, frag %d\n",
+          //        node->id, node->info.CI.numInstances, frag->iid);
+        }
+      }
+      if( mchunk->info.CI.numInstances > 1 || mchunk->flags.bits.isStoneSurrogate ) {
+        int *frgAlready = LookupInUID2IIDHashTable_AS( surrHash, frag->iid );
+        if (frgAlready != NULL) { // already seen
+          if (frag->flags.bits.mateDetail != BOTH_SURR_MATE) {
+            numSurrogate-=1;
+            numBothSurr+=2;
+            mate->flags.bits.mateDetail = BOTH_SURR_MATE;
+            frag->flags.bits.mateDetail = BOTH_SURR_MATE;
+            InsertInUID2IIDHashTable_AS( surrHash, mate->iid, 1);
+          }
+          *frgAlready++;
+          continue;
+        } 
+        int *mateAlready = LookupInUID2IIDHashTable_AS( surrHash, mate->iid );
+        if (mateAlready != NULL) { // already seen
+          *mateAlready++;
+        } else {
+          //fprintf(GlobalData->stderrc, "* Add frag %d from chunk %d to surr hash, num: %d\n",
+          //        mate->iid, mchunk->id, mchunk->info.CI.numInstances );
+          InsertInUID2IIDHashTable_AS( surrHash, mate->iid, 1);
+          numSurrogate++;
+          mate->flags.bits.mateDetail = SURR_MATE;
+          frag->flags.bits.mateDetail = SURR_MATE;
+        }
+        continue;
+      }
+      if ( node->type == UNRESOLVEDCHUNK_CGW)
+        numInUnresolv++;
+      if ( fragContig->scaffoldID == NULLINDEX )
+        numInNullScaf++;
+
+      if( fragContig->scaffoldID == NULLINDEX ) {
+        assert( node->type != DISCRIMINATORUNIQUECHUNK_CGW );
+        if (mateContig->scaffoldID == NULLINDEX) {
+          if (mate->flags.bits.mateDetail != BOTH_DEGEN_MATE) {
+            mate->flags.bits.mateDetail  = BOTH_DEGEN_MATE;
+            frag->flags.bits.mateDetail  = BOTH_DEGEN_MATE;
+            numBothDegen+=2;
+          }
+        } else {
+          numDegen+=2;
+          mate->flags.bits.mateDetail = DEGEN_MATE;
+          frag->flags.bits.mateDetail = DEGEN_MATE;
+        }
+        continue;
+      }
+      if(mateContig->scaffoldID == NULLINDEX) {
+        numSkipDegen++;
+        continue;
+      }
+      if ( fragContig->scaffoldID != mateContig->scaffoldID ) {
+        // we want them to be in the same scaffold
+        numDiffScaf++;
+        mate->flags.bits.mateDetail = DIFF_SCAFF_MATE;
+        frag->flags.bits.mateDetail = DIFF_SCAFF_MATE;
+        continue;
+      }
+
+      CDS_COORD_t fragLeftEnd, fragRightEnd;
+      CDS_COORD_t mateLeftEnd, mateRightEnd;
+      int mateScaffoldOrientation, fragScaffoldOrientation;
+
+      GetFragmentPositionInScaffold( frag, &fragLeftEnd, &fragRightEnd, &fragScaffoldOrientation);
+      GetFragmentPositionInScaffold( mate, &mateLeftEnd, &mateRightEnd, &mateScaffoldOrientation);
+
+      if (fragScaffoldOrientation == mateScaffoldOrientation) {
+        numSame++;
+        frag->flags.bits.mateDetail = SAME_ORIENT_MATE;
+        mate->flags.bits.mateDetail = SAME_ORIENT_MATE;
+        continue;
+      }
+
+      if (fragScaffoldOrientation == 0) {
+        // frag ---->  <---- mate
+        if ( fragLeftEnd < mateRightEnd ) {
+          //innie
+          dist = mateRightEnd - fragLeftEnd;		  
+        } else {
+          //outtie if they're psat each other
+          numOuttie++;
+          frag->flags.bits.mateDetail = OUTTIE_ORIENT_MATE;
+          mate->flags.bits.mateDetail = OUTTIE_ORIENT_MATE;
+          continue; // real outtie mates not currently supported
+        }
+      } else {
+        // mate ---->  <---- frag
+        numReverse++;
+        if ( mateLeftEnd < fragRightEnd ) {
+          //innie
+          dist = fragRightEnd - mateLeftEnd;		  
+        } else {
+          //outtie
+          numOuttie++;
+          frag->flags.bits.mateDetail = OUTTIE_ORIENT_MATE;
+          mate->flags.bits.mateDetail = OUTTIE_ORIENT_MATE;
+          continue; // real outtie mates not currently supported
+        }
+      }
+
+      dptr = GetDistT(ScaffoldGraph->Dists, frag->dist);
+      if (dist < dptr->lower ) {
+        numShort++;
+        frag->flags.bits.mateDetail = BAD_SHORT_MATE;
+        mate->flags.bits.mateDetail = BAD_SHORT_MATE;
+      } else if ( dist > dptr->upper) {
+        numLong++;
+        frag->flags.bits.mateDetail = BAD_LONG_MATE;
+        mate->flags.bits.mateDetail = BAD_LONG_MATE;
+      } else {
+        numGood++;
+        frag->flags.bits.mateDetail = GOOD_MATE;
+        mate->flags.bits.mateDetail = GOOD_MATE;
+      }
     }
-  fprintf(GlobalData->stderrc,"\n* Mate counts from ComputeMatePairDetailedStatus()\n");
-  fprintf(GlobalData->stderrc,"* num Frags %d\n",numTotalFrags);
-  fprintf(GlobalData->stderrc,"* num reverse frags %d\n",numReverse);
-  fprintf(GlobalData->stderrc,"* num frags in dead chunks %d\n",numDeadNode);
-  fprintf(GlobalData->stderrc,"* num frags in dead ctgs %d\n",numDeadCtg);
-  fprintf(GlobalData->stderrc,"* num frags in unresolved chunks %d\n",numInUnresolv);
-  fprintf(GlobalData->stderrc,"* num frags in repeat chunks %d\n",numInResRep);
-  fprintf(GlobalData->stderrc,"* num frags in zero instance chunks %d\n",numZero);
-  fprintf(GlobalData->stderrc,"* num frags in one instance chunks %d\n",numOne);
+  }
+
+  fprintf(GlobalData->stderrc,"\n");
+  fprintf(GlobalData->stderrc,"* Mate counts from ComputeMatePairDetailedStatus()\n");
+  fprintf(GlobalData->stderrc,"* num Frags                          %d\n",numTotalFrags);
+  fprintf(GlobalData->stderrc,"* num reverse frags                  %d\n",numReverse);
+  fprintf(GlobalData->stderrc,"* num frags in dead chunks           %d\n",numDeadNode);
+  fprintf(GlobalData->stderrc,"* num frags in dead ctgs             %d\n",numDeadCtg);
+  fprintf(GlobalData->stderrc,"* num frags in unresolved chunks     %d\n",numInUnresolv);
+  fprintf(GlobalData->stderrc,"* num frags in repeat chunks         %d\n",numInResRep);
+  fprintf(GlobalData->stderrc,"* num frags in zero instance chunks  %d\n",numZero);
+  fprintf(GlobalData->stderrc,"* num frags in one instance chunks   %d\n",numOne);
   fprintf(GlobalData->stderrc,"* num frags in >=two instance chunks %d\n",numMore);
-  fprintf(GlobalData->stderrc,"* num frags in NULL scafs %d\n",numInNullScaf);
-  fprintf(GlobalData->stderrc,"* num no mates %d\n",numNoMate);
-  fprintf(GlobalData->stderrc,"* num good mates %d\n",numGood);
-  fprintf(GlobalData->stderrc,"* num bad short mates %d\n",numShort);
-  fprintf(GlobalData->stderrc,"* num bad long mates %d\n",numLong);
-  fprintf(GlobalData->stderrc,"* num same orientation mates %d\n",numSame);
-  fprintf(GlobalData->stderrc,"* num outtie mates %d\n",numOuttie);
-  fprintf(GlobalData->stderrc,"* num both chaff mates %d\n",numBothChaff);
-  fprintf(GlobalData->stderrc,"* num chaff mates %d\n",numChaff);
-  fprintf(GlobalData->stderrc,"* num skiped chaff %d\n",numSkipChaff);
-  fprintf(GlobalData->stderrc,"* num both degen mates %d\n",numBothDegen);
-  fprintf(GlobalData->stderrc,"* num degen mates %d\n",numDegen);
-  fprintf(GlobalData->stderrc,"* num skiped degen %d\n",numSkipDegen);
-  fprintf(GlobalData->stderrc,"* num both surrogate mates %d\n",numBothSurr);
-  fprintf(GlobalData->stderrc,"* num surrogate mates %d\n",numSurrogate);
-  fprintf(GlobalData->stderrc,"* num other scaffold %d\n",numDiffScaf);
-  int sum = numNoMate + numGood + numShort + numLong + numSame + numOuttie +
-    numBothChaff + numChaff + numBothSurr + numSurrogate + numBothDegen +
-    numDegen + numDiffScaf;
-  fprintf(GlobalData->stderrc,"* sum of frag mate status %d\n\n",sum);
+  fprintf(GlobalData->stderrc,"* num frags in NULL scafs            %d\n",numInNullScaf);
+  fprintf(GlobalData->stderrc,"* num no mates                       %d\n",numNoMate);
+  fprintf(GlobalData->stderrc,"* num good mates                     %d\n",numGood);
+  fprintf(GlobalData->stderrc,"* num bad short mates                %d\n",numShort);
+  fprintf(GlobalData->stderrc,"* num bad long mates                 %d\n",numLong);
+  fprintf(GlobalData->stderrc,"* num same orientation mates         %d\n",numSame);
+  fprintf(GlobalData->stderrc,"* num outtie mates                   %d\n",numOuttie);
+  fprintf(GlobalData->stderrc,"* num both chaff mates               %d\n",numBothChaff);
+  fprintf(GlobalData->stderrc,"* num chaff mates                    %d\n",numChaff);
+  fprintf(GlobalData->stderrc,"* num skiped chaff                   %d\n",numSkipChaff);
+  fprintf(GlobalData->stderrc,"* num both degen mates               %d\n",numBothDegen);
+  fprintf(GlobalData->stderrc,"* num degen mates                    %d\n",numDegen);
+  fprintf(GlobalData->stderrc,"* num skiped degen                   %d\n",numSkipDegen);
+  fprintf(GlobalData->stderrc,"* num both surrogate mates           %d\n",numBothSurr);
+  fprintf(GlobalData->stderrc,"* num surrogate mates                %d\n",numSurrogate);
+  fprintf(GlobalData->stderrc,"* num other scaffold                 %d\n",numDiffScaf);
+
+  int sum = (numNoMate + numGood + numShort + numLong + numSame + numOuttie +
+             numBothChaff + numChaff + numBothSurr + numSurrogate + numBothDegen +
+             numDegen + numDiffScaf);
+  fprintf(GlobalData->stderrc,"* sum of frag mate status            %d\n\n",sum);
+
   //  assert( sum == numTotalFrags );
+
   fprintf(GlobalData->stderrc,"* Counts of top level node type\n");
-  fprintf(GlobalData->stderrc,"* num DISCRIMINATORUNIQUECHUNK_CGW %d\n", duCI);
-  fprintf(GlobalData->stderrc,"* num UNRESOLVEDCHUNK_CGW          %d\n", urCI);
-  fprintf(GlobalData->stderrc,"* num UNIQUECHUNK_CGW              %d\n", uCI);
-  fprintf(GlobalData->stderrc,"* num RESOLVEDREPEATCHUNK_CGW      %d\n", rrCI);
-  fprintf(GlobalData->stderrc,"* num CONTIG_CGW                   %d\n", ctig);
-  fprintf(GlobalData->stderrc,"* num UNIQUECONTIG_CGW             %d\n", uctig);
-  fprintf(GlobalData->stderrc,"* num RESOLVEDCONTIG_CGW           %d\n", rctig);
-  fprintf(GlobalData->stderrc,"* num UNRESOLVEDCONTIG_CGW         %d\n", urctig);
-  fprintf(GlobalData->stderrc,"* num REAL_SCAFFOLD                %d\n", rScaf);
-  fprintf(GlobalData->stderrc,"* num OUTPUT_SCAFFOLD              %d\n", oScaf);
-  fprintf(GlobalData->stderrc,"* num SCRATCH_SCAFFOLD             %d\n", sScaf);
+  fprintf(GlobalData->stderrc,"* num DISCRIMINATORUNIQUECHUNK_CGW   %d\n", duCI);
+  fprintf(GlobalData->stderrc,"* num UNRESOLVEDCHUNK_CGW            %d\n", urCI);
+  fprintf(GlobalData->stderrc,"* num UNIQUECHUNK_CGW                %d\n", uCI);
+  fprintf(GlobalData->stderrc,"* num RESOLVEDREPEATCHUNK_CGW        %d\n", rrCI);
+  fprintf(GlobalData->stderrc,"* num CONTIG_CGW                     %d\n", ctig);
+  fprintf(GlobalData->stderrc,"* num UNIQUECONTIG_CGW               %d\n", uctig);
+  fprintf(GlobalData->stderrc,"* num RESOLVEDCONTIG_CGW             %d\n", rctig);
+  fprintf(GlobalData->stderrc,"* num UNRESOLVEDCONTIG_CGW           %d\n", urctig);
+  fprintf(GlobalData->stderrc,"* num REAL_SCAFFOLD                  %d\n", rScaf);
+  fprintf(GlobalData->stderrc,"* num OUTPUT_SCAFFOLD                %d\n", oScaf);
+  fprintf(GlobalData->stderrc,"* num SCRATCH_SCAFFOLD               %d\n", sScaf);
+  fprintf(GlobalData->stderrc,"\n");
   fprintf(GlobalData->stderrc,"* Counts of contig level node type\n");
-  fprintf(GlobalData->stderrc,"* num DISCRIMINATORUNIQUECHUNK_CGW %d\n", fduCI);
-  fprintf(GlobalData->stderrc,"* num UNRESOLVEDCHUNK_CGW          %d\n", furCI);
-  fprintf(GlobalData->stderrc,"* num UNIQUECHUNK_CGW              %d\n", fuCI);
-  fprintf(GlobalData->stderrc,"* num RESOLVEDREPEATCHUNK_CGW      %d\n", frrCI);
-  fprintf(GlobalData->stderrc,"* num CONTIG_CGW                   %d\n", fctig);
-  fprintf(GlobalData->stderrc,"* num UNIQUECONTIG_CGW             %d\n", fuctig);
-  fprintf(GlobalData->stderrc,"* num RESOLVEDCONTIG_CGW           %d\n", frctig);
-  fprintf(GlobalData->stderrc,"* num UNRESOLVEDCONTIG_CGW         %d\n", furctig);
-  fprintf(GlobalData->stderrc,"* num REAL_SCAFFOLD                %d\n", frScaf);
-  fprintf(GlobalData->stderrc,"* num OUTPUT_SCAFFOLD              %d\n", foScaf);
-  fprintf(GlobalData->stderrc,"* num SCRATCH_SCAFFOLD             %d\n\n", fsScaf);
+  fprintf(GlobalData->stderrc,"* num DISCRIMINATORUNIQUECHUNK_CGW   %d\n", fduCI);
+  fprintf(GlobalData->stderrc,"* num UNRESOLVEDCHUNK_CGW            %d\n", furCI);
+  fprintf(GlobalData->stderrc,"* num UNIQUECHUNK_CGW                %d\n", fuCI);
+  fprintf(GlobalData->stderrc,"* num RESOLVEDREPEATCHUNK_CGW        %d\n", frrCI);
+  fprintf(GlobalData->stderrc,"* num CONTIG_CGW                     %d\n", fctig);
+  fprintf(GlobalData->stderrc,"* num UNIQUECONTIG_CGW               %d\n", fuctig);
+  fprintf(GlobalData->stderrc,"* num RESOLVEDCONTIG_CGW             %d\n", frctig);
+  fprintf(GlobalData->stderrc,"* num UNRESOLVEDCONTIG_CGW           %d\n", furctig);
+  fprintf(GlobalData->stderrc,"* num REAL_SCAFFOLD                  %d\n", frScaf);
+  fprintf(GlobalData->stderrc,"* num OUTPUT_SCAFFOLD                %d\n", foScaf);
+  fprintf(GlobalData->stderrc,"* num SCRATCH_SCAFFOLD               %d\n", fsScaf);
+  fprintf(GlobalData->stderrc,"\n");
 
   DeleteUIDHashTable_AS( surrHash );
 }
 
-/******************************************************************************
- *****************************************************************************
- *****************************************************************************/
 
 
-void ComputeMatePairStatisticsRestricted( int operateOnNodes,
-                                          int32 minSamplesForOverride,
-                                          char *instance_label)
-{
+void ComputeMatePairStatisticsRestricted(int operateOnNodes,
+                                         int32 minSamplesForOverride,
+                                         char *instance_label) {
   GraphCGW_T *graph = NULL;
   GraphNodeIterator nodes;
   NodeCGW_T *node;
-  DistT *dptr;
+
   MultiAlignT *ma = CreateEmptyMultiAlignT();
+
   int numPotentialRocks = 0;
   int numPotentialStones = 0;
+
   int NN = GetNumDistTs(ScaffoldGraph->Dists);
-  VA_TYPE(CDS_CID_t) *dptrFrags[NN];
-  VA_TYPE(CDS_CID_t) *dptrMates[NN];
-  int i, ii;
+
+  DistT                  dwork[NN];
+  VA_TYPE(CDS_COORD_t)  *dworkSamples[NN];
+  VA_TYPE(CDS_CID_t)    *dworkFrags[NN];
+  VA_TYPE(CDS_CID_t)    *dworkMates[NN];
+
+  int i, j;
 
   AS_UTL_mkdir("stat");
 
+  fprintf(stderr, "ComputeMatePairStatisticsRestricted()-- on %s\n", instance_label);
+
   if (operateOnNodes == UNITIG_OPERATIONS)
     graph = ScaffoldGraph->CIGraph;
-  else if (operateOnNodes == CONTIG_OPERATIONS)
+  if (operateOnNodes == CONTIG_OPERATIONS)
     graph = ScaffoldGraph->ContigGraph;
   if (operateOnNodes == SCAFFOLD_OPERATIONS)
     graph = ScaffoldGraph->CIGraph;
-  
-  // Initialize computed mean/variance and counters, and bounds
-  for(i = 1; i < GetNumDistTs(ScaffoldGraph->Dists); i++)
-    {
-      DistT *dptr = GetDistT(ScaffoldGraph->Dists,i);
-      dptr->mu            = 0.0;
-      dptr->sigma         = 0.0;
-      dptr->numSamples    = 0.0;
-      dptr->numReferences = 0;
-      dptr->min           = CDS_COORD_MAX;
-      dptr->max           = CDS_COORD_MIN;
-      dptr->bsize         = 0;
-      dptr->numBad        = 0;
-      dptr->histogram     = NULL;
 
-      // Lower and upper are based on nominal mean and stddev
-      dptr->lower = dptr->mean - CGW_CUTOFF*dptr->stddev;
-      dptr->upper = dptr->mean + CGW_CUTOFF*dptr->stddev;
-    
-      if(dptr->samples) // starting from scratch
-        ResetVA_CDS_COORD_t(dptr->samples);
-      else  // if are starting from a checkpoint?
-        dptr->samples = CreateVA_CDS_COORD_t(1024);
+  //  Copy all distances to our work structure.  Any that have valid
+  //  changes will be copied back at the end.  This is needed because
+  //  we call ComputeMatePairStatisticsRestricted() twice at the end
+  //  of a scaffolding run -- once on scaffolds, then on contigs.  The
+  //  contig computation destroys lots of what we just computed for
+  //  scaffolds, and if a contig doesn't have enough samples for an
+  //  update, we just screwed up the scaffold estimate.
 
-#if 1
-      dptrFrags[i] = CreateVA_CDS_CID_t(256);
-      dptrMates[i] = CreateVA_CDS_CID_t(256);
-#endif
-    }
-  
+  for(i = 1; i < GetNumDistTs(ScaffoldGraph->Dists); i++) {
+    DistT *dorig = GetDistT(ScaffoldGraph->Dists, i);
+
+    dwork[i].mu             = 0.0;
+    dwork[i].sigma          = 0.0;
+    dwork[i].numSamples     = 0;
+    dwork[i].numReferences  = 0;
+    dwork[i].min            = CDS_COORD_MAX;
+    dwork[i].max            = CDS_COORD_MIN;
+    dwork[i].bnum           = 0;
+    dwork[i].bsize          = 0;
+    dwork[i].histogram      = NULL;
+    dwork[i].lower          = dorig->mu - CGW_CUTOFF * dorig->sigma;
+    dwork[i].upper          = dorig->mu + CGW_CUTOFF * dorig->sigma;
+    dwork[i].numBad         = 0;
+
+    dworkSamples[i]         = CreateVA_CDS_COORD_t(1024);
+    dworkFrags[i]           = CreateVA_CDS_CID_t(1024);
+    dworkMates[i]           = CreateVA_CDS_CID_t(1024);
+  }
+
   int numChaff = 0;
   int numSingle = 0;
   int numNolink = 0;
@@ -4002,315 +3988,271 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
   int numTotalFrags = 0;
   int numNullMate = 0;
   int numMateNotSource = 0;
+
   InitGraphNodeIterator(&nodes, graph, GRAPH_NODE_DEFAULT);
-  
-  while(NULL != (node = NextGraphNodeIterator(&nodes)))
-    {
-      CDS_CID_t i;
-      int numFrags;
-      int numExternalLinks = 0;
-    
-      // Don't waste time loading singletons for this
-      if(node->flags.bits.isChaff) {
-        numChaff++;
-        continue;
-      }
-    
-      ReLoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ma, node->id, graph->type == CI_GRAPH);
-      numFrags  = GetNumIntMultiPoss(ma->f_list);
-      numTotalFrags += numFrags;
-    
-      if (numFrags < 2) {
-        numSingle++;
-        continue;
-      }
-    
-      for( i = 0; i < numFrags; i++)
-        {
-          IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
-          CIFragT *frag, *mate;
-          CDS_COORD_t dist;
-      
-          frag = GetCIFragT(ScaffoldGraph->CIFrags, (CDS_CID_t)mp->sourceInt);
-          assert(frag->iid == mp->ident);
+  while (NULL != (node = NextGraphNodeIterator(&nodes))) {
+    CDS_CID_t i;
+    int       numFrags;
+    int       numExternalLinks = 0;
 
-#if 0
-          fprintf(GlobalData->stderrc,"* frag " F_CID " (" F_CID ") mate:" F_CID " numLinks:%d extCI:%d extCon:%d\n",
-                  (CDS_CID_t)mp->source, frag->iid, frag->mateOf, frag->flags.bits.hasMate, 
-                  frag->flags.bits.hasInternalOnlyCILinks,
-                  frag->flags.bits.hasInternalOnlyContigLinks);
-#endif
-
-          // This is important for keeping our computation as local as possible.
-          // We skip fragments that have external links only, or no links
-          if (frag->flags.bits.hasMate == 0) {
-            numNolink++;
-            continue;
-          }
-
-          if (frag->flags.bits.hasMate == 1 &&  // the typical case
-              (operateOnNodes == CONTIG_OPERATIONS && !frag->flags.bits.hasInternalOnlyContigLinks))
-            {
-              //     ||    (!operateOnContigs && !frag->flags.bits.hasInternalOnlyCILinks))
-              numCtgNotInternal++;
-              continue;
-            }
-      
-          mate = GetCIFragT(ScaffoldGraph->CIFrags,frag->mateOf);
-      
-          if (operateOnNodes == UNITIG_OPERATIONS && mate != NULL && (mate->cid != frag->cid))
-            numExternalLinks++;
-
-          if (mate == NULL) {
-            numNullMate++;
-            continue;
-          }
-          if ( mate->mateOf != (CDS_CID_t)mp->sourceInt) {
-            numMateNotSource++;
-            continue;
-          }
-          dptr = GetDistT(ScaffoldGraph->Dists, frag->dist);
-          dptr->numReferences++;
-      
-      
-          if (operateOnNodes == UNITIG_OPERATIONS)
-            {
-              NodeCGW_T *unitig = GetGraphNode( ScaffoldGraph->CIGraph, frag->cid);
-
-              if (frag->cid != mate->cid) {
-                numOtherUtg++;
-                continue;
-              }
-        
-              if(	getCIFragOrient(mate) == getCIFragOrient(frag)) 
-                {
-                  //      fprintf(GlobalData->stderrc,"* (" F_CID "," F_CID ") is bad due to orientation problems\n",      frag->iid, mate->iid);
-                  frag->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
-                  mate->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
-                  dptr->numBad++;
-                  numSameOrient++;
-                  continue;
-                }
-
-              // now make sure the 5p end is less than the 3p end
-              if ( frag->offset5p.mean > frag->offset3p.mean) {
-                numReverse++;
-                continue;
-              }
-
-              // try to sample fairly by only doing mates where ones of any length could live
-              if ( frag->offset5p.mean + dptr->mean + 5 * dptr->stddev > unitig->bpLength.mean)
-                {
-                  numNot5stddev++;
-                  continue;
-                }
-
-              dist = mate->offset5p.mean - frag->offset5p.mean;
-        
-              if((frag->flags.bits.innieMate && getCIFragOrient(frag) == B_A) ||
-                 (!frag->flags.bits.innieMate && getCIFragOrient(frag) == A_B) )
-                dist = -dist;
-            }
-          else if (operateOnNodes == CONTIG_OPERATIONS)
-            {
-              ContigT *contig = GetGraphNode( ScaffoldGraph->ContigGraph, frag->contigID);
-        
-              assert(frag->contigID == mate->contigID);
-              if(GetContigFragOrient(mate) == GetContigFragOrient(frag)) 
-                {
-                  //  fprintf(GlobalData->stderrc,"* (" F_CID "," F_CID ") is bad due to orientation problems\n",      frag->iid, mate->iid);
-                  frag->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
-                  mate->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
-                  dptr->numBad++;
-                  numSameOrient++;
-                  continue;
-                }
-        
-              // now make sure the 5p end is less than the 3p end
-              if ( frag->contigOffset5p.mean > frag->contigOffset3p.mean) {
-                numReverse++;
-                continue;
-              }
-
-              // try to sample fairly by only doing mates where ones of any length could live
-              if ( frag->contigOffset5p.mean + dptr->mean + 5 * dptr->stddev > contig->bpLength.mean)
-                {
-                  numNot5stddev++;
-                  continue;
-                }
-        
-              dist =  mate->contigOffset5p.mean - frag->contigOffset5p.mean; 
-              //   -------------------->          <----------------------
-              //     mate                 innie            frag 
-        
-              //   <-------------------           ---------------------->
-              //     mate                 outie            frag 
-        
-              if((frag->flags.bits.innieMate && GetContigFragOrient(frag) == B_A) ||
-                 (!frag->flags.bits.innieMate && GetContigFragOrient(frag) == A_B) )
-                dist =  -dist;
-        
-            }
-          else if (operateOnNodes == SCAFFOLD_OPERATIONS)
-            {
-              NodeCGW_T *fragContig, *mateContig;
-              CDS_COORD_t fragLeftEnd, fragRightEnd;
-              CDS_COORD_t mateLeftEnd, mateRightEnd;
-              int mateScaffoldOrientation, fragScaffoldOrientation;
-        
-              fragContig = GetGraphNode( ScaffoldGraph->ContigGraph, frag->contigID);
-              AssertPtr(fragContig);
-        
-              mateContig = GetGraphNode( ScaffoldGraph->ContigGraph, mate->contigID);
-              AssertPtr(mateContig);
-        
-              // we want them to be in the same scaffold
-              if ( fragContig->scaffoldID != mateContig->scaffoldID || fragContig->scaffoldID == -1)
-                {
-                  numDiffScaf++;
-                  continue;
-                }
-        
-              GetFragmentPositionInScaffold( frag, &fragLeftEnd, &fragRightEnd, &fragScaffoldOrientation);
-              GetFragmentPositionInScaffold( mate, &mateLeftEnd, &mateRightEnd, &mateScaffoldOrientation);
-
-              if (fragScaffoldOrientation == mateScaffoldOrientation) 
-                {
-                  // fprintf(GlobalData->stderrc,"* (" F_CID "," F_CID ") is bad due to orientation problems\n",      frag->iid, mate->iid);
-                  frag->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
-                  mate->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
-                  dptr->numBad++;
-                  numSameOrient++;
-                  continue;
-                }
-        
-              // now make sure the 5p end is less than the 3p end
-              if ( fragScaffoldOrientation == 1 ) {
-                numReverse++;
-                continue;
-              }
-
-              // try to sample fairly by only doing mates where ones of any length could live
-              {
-                NodeCGW_T *scaff, *extremeContig;
-                CDS_COORD_t contigLeftEnd, contigRightEnd;
-                int contigScaffoldOrientation;
-          
-                // grab scaffold
-                scaff = GetGraphNode( ScaffoldGraph->ScaffoldGraph, fragContig->scaffoldID);
-                extremeContig = GetGraphNode( ScaffoldGraph->ContigGraph, scaff->info.Scaffold.BEndCI);
-                GetContigPositionInScaffold ( extremeContig, &contigLeftEnd, &contigRightEnd, &contigScaffoldOrientation);
-          
-                if ( fragLeftEnd + dptr->mean + 5 * dptr->stddev > contigRightEnd)
-                  {
-                    numNot5stddev++;
-                    continue;
-                  }
-              }
-        
-#if 0
-              if (frag->contigID != mate->contigID && fragContig->scaffoldID != -1
-                  && mateContig->scaffoldID != -1
-                  && mateContig->scaffoldID == fragContig->scaffoldID)
-                fprintf( stderr, "frags (" F_CID "," F_CID ") are in contigs (" F_CID "," F_CID ") in scaffold " F_CID " at (" F_COORD ", " F_COORD ", %d) and (" F_COORD ", " F_COORD ", %d)\n", 
-                         frag->iid, mate->iid, frag->contigID, mate->contigID,
-                         fragContig->scaffoldID,
-                         fragLeftEnd, fragRightEnd, fragScaffoldOrientation,
-                         mateLeftEnd, mateRightEnd, mateScaffoldOrientation);
-#endif
-        
-              if (frag->flags.bits.innieMate)  
-                {
-                  if (fragScaffoldOrientation == 0) // frag ---->  <---- mate
-                    dist = mateRightEnd - fragLeftEnd;		  
-                  else                              // mate ---->  <---- frag
-                    dist = fragRightEnd - mateLeftEnd;
-                }
-              else  // outtie pair
-                {
-                  if (fragScaffoldOrientation == 0) // mate <----  ----> frag
-                    dist = fragRightEnd - mateLeftEnd;		  
-                  else                              // frag <----  ----> mate
-                    dist = mateRightEnd - fragLeftEnd;
-                }
-        
-              if (dist < 0)
-                fprintf( stderr, "frag, mate: " F_CID ", " F_CID " have negative dist: " F_COORD "\n",
-                         frag->iid, mate->iid, dist);
-            }
-      
-          if (dist > 0 && dist < dptr->min)
-            dptr->min = dist;
-          if (dist > dptr->max)
-            dptr->max = dist;
-      
-          AppendCDS_COORD_t( dptr->samples, &dist);
-          AppendCDS_CID_t( dptrFrags[frag->dist], &frag->iid);
-          AppendCDS_CID_t( dptrMates[frag->dist], &mate->iid);
-      
-          // fprintf( stderr, "adding (" F_CID ", " F_CID ") to dist " F_COORD " samples\n", frag->iid, mate->iid, dist);
-      
-              // See if the mate distance implied is outside of a 5-sigma range
-        
-              if (dist < dptr->lower || dist > dptr->upper) 
-                {
-                  //if (dist > 5000)
-                  // fprintf(GlobalData->stderrc,"* (" F_CID "," F_CID ") lib:" F_CID " is bad due to distance problems " F_COORD " is outside [" F_COORD "," F_COORD "]\n",
-                  //	frag->iid, mate->iid, frag->dist, dist, dptr->lower, dptr->upper);
-                  frag->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
-                  mate->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
-                  dptr->numBad++;
-                }
-              else
-                {
-                  frag->flags.bits.edgeStatus = TRUSTED_EDGE_STATUS;
-                  mate->flags.bits.edgeStatus = TRUSTED_EDGE_STATUS;
-          
-                  //if (dist > 5000)
-                  //fprintf(GlobalData->stderrc,"* (" F_CID "," F_CID ") lib:" F_CID " is trusted due to distance " F_COORD " being inside [" F_COORD "," F_COORD "]\n",
-                  //	frag->iid, mate->iid, frag->dist, dist, dptr->lower, dptr->upper);
-          
-                  dptr->numSamples++;
-                  dptr->mu += dist;
-                  dptr->sigma += (((double)dist)*(double)dist);
-
-                }
-        }
-    
-      //        UnloadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, node->id, graph->type == CI_GRAPH);
-    
-      // Mark unitigs as potential Rocks and Stones
-      if (operateOnNodes == UNITIG_OPERATIONS)
-        {
-          int rock = FALSE;
-          int stone = FALSE;
-          switch(numExternalLinks){
-            case 0:
-              stone = TRUE;
-              rock = FALSE;
-              break;
-            case 1:
-              stone = TRUE;
-              rock = FALSE;
-              numPotentialStones++;
-              break;
-            case 2:
-            default:
-              stone = rock = TRUE;
-              numPotentialRocks++;
-              break;
-          }
-          node->flags.bits.isPotentialRock = rock;
-          node->flags.bits.isPotentialStone = stone;
-      
-#if 0
-          fprintf(stderr,"* Unitig " F_CID " has %d external links r:%s s:%s\n",
-                  node->id, numExternalLinks, 
-                  (rock?" YES ": "NO"),
-                  (stone?" YES ": "NO"));
-#endif
-        }
+    // Don't waste time loading singletons for this
+    if(node->flags.bits.isChaff) {
+      numChaff++;
+      continue;
     }
+    
+    ReLoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ma, node->id, graph->type == CI_GRAPH);
+    numFrags  = GetNumIntMultiPoss(ma->f_list);
+    numTotalFrags += numFrags;
+    
+    if (numFrags < 2) {
+      numSingle++;
+      continue;
+    }
+
+    for (i = 0; i < numFrags; i++) {
+      IntMultiPos *mp    = NULL;
+      CIFragT     *frag  = NULL;
+      CIFragT     *mate  = NULL;
+      CDS_COORD_t  dist  = 0;
+      DistT       *dorig = NULL;
+      DistT       *dfrg  = NULL;
+
+      mp   = GetIntMultiPos(ma->f_list, i);
+      frag = GetCIFragT(ScaffoldGraph->CIFrags, (CDS_CID_t)mp->sourceInt);
+
+      assert(frag->iid == mp->ident);
+
+      if (frag->flags.bits.hasMate == 0) {
+        numNolink++;
+        continue;
+      }
+
+      if (frag->flags.bits.hasMate == 1 &&  // the typical case
+          (operateOnNodes == CONTIG_OPERATIONS && !frag->flags.bits.hasInternalOnlyContigLinks)) {
+        //     ||    (!operateOnContigs && !frag->flags.bits.hasInternalOnlyCILinks))
+        numCtgNotInternal++;
+        continue;
+      }
+      
+      mate = GetCIFragT(ScaffoldGraph->CIFrags,frag->mateOf);
+      
+      if ((operateOnNodes == UNITIG_OPERATIONS) &&
+          (mate != NULL) &&
+          (mate->cid != frag->cid))
+        numExternalLinks++;
+
+      if (mate == NULL) {
+        numNullMate++;
+        continue;
+      }
+      if (mate->mateOf != (CDS_CID_t)mp->sourceInt) {
+        numMateNotSource++;
+        continue;
+      }
+
+      //  dorig -- the original distance, used to get the existing
+      //  value of mu and sigma, used below to check that a mate is
+      //  the correct size.
+      //
+      //  dfrg  -- the temporary distance we are computing in
+      //
+      dorig = GetDistT(ScaffoldGraph->Dists, frag->dist);
+      dfrg  = &dwork[frag->dist];
+
+      dfrg->numReferences++;
+
+      if (operateOnNodes == UNITIG_OPERATIONS) {
+        NodeCGW_T *unitig = GetGraphNode( ScaffoldGraph->CIGraph, frag->cid);
+
+        if (frag->cid != mate->cid) {
+          numOtherUtg++;
+          continue;
+        }
+        
+        if (getCIFragOrient(mate) == getCIFragOrient(frag)) {
+          frag->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
+          mate->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
+          dfrg->numBad++;
+          numSameOrient++;
+          continue;
+        }
+
+        // now make sure the 5p end is less than the 3p end
+        if (frag->offset5p.mean > frag->offset3p.mean) {
+          numReverse++;
+          continue;
+        }
+
+        // try to sample fairly by only doing mates where ones of any length could live
+        if (frag->offset5p.mean + dorig->mu + CGW_CUTOFF * dorig->sigma > unitig->bpLength.mean) {
+          numNot5stddev++;
+          continue;
+        }
+
+        dist = mate->offset5p.mean - frag->offset5p.mean;
+        
+        if((frag->flags.bits.innieMate && getCIFragOrient(frag) == B_A) ||
+           (!frag->flags.bits.innieMate && getCIFragOrient(frag) == A_B) )
+          dist = -dist;
+      } else if (operateOnNodes == CONTIG_OPERATIONS) {
+        ContigT *contig = GetGraphNode( ScaffoldGraph->ContigGraph, frag->contigID);
+        
+        assert(frag->contigID == mate->contigID);
+        if(GetContigFragOrient(mate) == GetContigFragOrient(frag)) {
+          //  fprintf(GlobalData->stderrc,"* (" F_CID "," F_CID ") is bad due to orientation problems\n",      frag->iid, mate->iid);
+          frag->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
+          mate->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
+          dfrg->numBad++;
+          numSameOrient++;
+          continue;
+        }
+        
+        // now make sure the 5p end is less than the 3p end
+        if ( frag->contigOffset5p.mean > frag->contigOffset3p.mean) {
+          numReverse++;
+          continue;
+        }
+
+        // try to sample fairly by only doing mates where ones of any length could live
+        if ( frag->contigOffset5p.mean + dorig->mu + CGW_CUTOFF * dorig->sigma > contig->bpLength.mean) {
+          numNot5stddev++;
+          continue;
+        }
+        
+        dist =  mate->contigOffset5p.mean - frag->contigOffset5p.mean; 
+        //   -------------------->          <----------------------
+        //     mate                 innie            frag 
+        
+        //   <-------------------           ---------------------->
+        //     mate                 outie            frag 
+        
+        if((frag->flags.bits.innieMate && GetContigFragOrient(frag) == B_A) ||
+           (!frag->flags.bits.innieMate && GetContigFragOrient(frag) == A_B) )
+          dist =  -dist;
+        
+      } else if (operateOnNodes == SCAFFOLD_OPERATIONS) {
+        NodeCGW_T *fragContig, *mateContig;
+        CDS_COORD_t fragLeftEnd, fragRightEnd;
+        CDS_COORD_t mateLeftEnd, mateRightEnd;
+        int mateScaffoldOrientation, fragScaffoldOrientation;
+        
+        fragContig = GetGraphNode( ScaffoldGraph->ContigGraph, frag->contigID);
+        AssertPtr(fragContig);
+        
+        mateContig = GetGraphNode( ScaffoldGraph->ContigGraph, mate->contigID);
+        AssertPtr(mateContig);
+        
+        // we want them to be in the same scaffold
+        if ( fragContig->scaffoldID != mateContig->scaffoldID || fragContig->scaffoldID == -1) {
+          numDiffScaf++;
+          continue;
+        }
+        
+        GetFragmentPositionInScaffold( frag, &fragLeftEnd, &fragRightEnd, &fragScaffoldOrientation);
+        GetFragmentPositionInScaffold( mate, &mateLeftEnd, &mateRightEnd, &mateScaffoldOrientation);
+
+        if (fragScaffoldOrientation == mateScaffoldOrientation) {
+          // fprintf(GlobalData->stderrc,"* (" F_CID "," F_CID ") is bad due to orientation problems\n",      frag->iid, mate->iid);
+          frag->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
+          mate->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
+          dfrg->numBad++;
+          numSameOrient++;
+          continue;
+        }
+        
+        // now make sure the 5p end is less than the 3p end
+        if ( fragScaffoldOrientation == 1 ) {
+          numReverse++;
+          continue;
+        }
+
+        // try to sample fairly by only doing mates where ones of any length could live
+        {
+          NodeCGW_T *scaff, *extremeContig;
+          CDS_COORD_t contigLeftEnd, contigRightEnd;
+          int contigScaffoldOrientation;
+          
+          // grab scaffold
+          scaff = GetGraphNode( ScaffoldGraph->ScaffoldGraph, fragContig->scaffoldID);
+          extremeContig = GetGraphNode( ScaffoldGraph->ContigGraph, scaff->info.Scaffold.BEndCI);
+          GetContigPositionInScaffold ( extremeContig, &contigLeftEnd, &contigRightEnd, &contigScaffoldOrientation);
+          
+          if ( fragLeftEnd + dorig->mu + CGW_CUTOFF * dorig->sigma > contigRightEnd) {
+            numNot5stddev++;
+            continue;
+          }
+        }
+
+        if (frag->flags.bits.innieMate) {
+          if (fragScaffoldOrientation == 0) // frag ---->  <---- mate
+            dist = mateRightEnd - fragLeftEnd;		  
+          else                              // mate ---->  <---- frag
+            dist = fragRightEnd - mateLeftEnd;
+        } else { // outtie pair
+          if (fragScaffoldOrientation == 0) // mate <----  ----> frag
+            dist = fragRightEnd - mateLeftEnd;		  
+          else                              // frag <----  ----> mate
+            dist = mateRightEnd - fragLeftEnd;
+        }
+        
+        if (dist < 0)
+          fprintf( stderr, "frag, mate: " F_CID ", " F_CID " have negative dist: "F_COORD"\n",
+                   frag->iid, mate->iid, dist);
+      }  //  end of operateOnNodes if..elseif..elseif block
+      
+      if (dist > 0 && dist < dfrg->min)
+        dfrg->min = dist;
+      if (dist > dfrg->max)
+        dfrg->max = dist;
+
+      AppendCDS_COORD_t(dworkSamples[frag->dist], &dist);
+      AppendCDS_CID_t(dworkFrags[frag->dist], &frag->iid);
+      AppendCDS_CID_t(dworkMates[frag->dist], &mate->iid);
+
+      // See if the mate distance implied is outside of a 5-sigma range
+
+      if ((dist < dfrg->lower) || (dist > dfrg->upper)) {
+        frag->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
+        mate->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
+        dfrg->numBad++;
+      } else {
+        frag->flags.bits.edgeStatus = TRUSTED_EDGE_STATUS;
+        mate->flags.bits.edgeStatus = TRUSTED_EDGE_STATUS;
+
+        //if (frag->dist == 12)
+        //  fprintf(stderr, "lib %d sample %d dist "F_COORD"\n", frag->dist, dfrg->numSamples, dist);
+
+        dfrg->numSamples++;
+        dfrg->mu    += dist;
+        dfrg->sigma += (double)dist * (double)dist;
+      }
+    }  //  over all frags
+
+    // Mark unitigs as potential Rocks and Stones
+    if (operateOnNodes == UNITIG_OPERATIONS) {
+      int rock = FALSE;
+      int stone = FALSE;
+      switch(numExternalLinks){
+        case 0:
+          stone = TRUE;
+          rock = FALSE;
+          break;
+        case 1:
+          stone = TRUE;
+          rock = FALSE;
+          numPotentialStones++;
+          break;
+        case 2:
+        default:
+          stone = rock = TRUE;
+          numPotentialRocks++;
+          break;
+      }
+      node->flags.bits.isPotentialRock = rock;
+      node->flags.bits.isPotentialStone = stone;
+    }
+  }  //  over all graph nodes
   
   fprintf(GlobalData->stderrc, "* ComputeMatePairStats some mate data:\n");
   fprintf(GlobalData->stderrc, "* num total - chaff                 %d\n",numTotalFrags);
@@ -4327,352 +4269,298 @@ void ComputeMatePairStatisticsRestricted( int operateOnNodes,
   fprintf(GlobalData->stderrc, "* num NULL mate                     %d\n",numNullMate);
 
   if (operateOnNodes == UNITIG_OPERATIONS)
-    {
-      fprintf(GlobalData->stderrc,
-              "* ComputeMatePairStats has marked %d/%d unitigs as potential rocks +  %d/%d as potential stones\n",
-              numPotentialRocks, (int) GetNumGraphNodes(graph),
-              numPotentialStones, (int) GetNumGraphNodes(graph));
-    }
+    fprintf(GlobalData->stderrc,
+            "* ComputeMatePairStats has marked %d/%d unitigs as potential rocks +  %d/%d as potential stones\n",
+            numPotentialRocks, (int) GetNumGraphNodes(graph),
+            numPotentialStones, (int) GetNumGraphNodes(graph));
   
   // now sort the samples, mates, and frags arrays, based on samples
   for (i = 1; i < GetNumDistTs(ScaffoldGraph->Dists); i++) {
-      MateInfoT *matePairs;
-      int icnt;
-      CDS_COORD_t newLower, newUpper;
-      CDS_COORD_t median = 0, lowerSigma = 0, upperSigma = 0;
-    
-      dptr = GetDistT(ScaffoldGraph->Dists, i);
-      if(dptr->numReferences == 0)
-        continue;
-      if (dptr->numSamples == 0 || dptr->numSamples == 1)
-        continue;
-    
-      matePairs = (MateInfoT *)safe_malloc(sizeof(MateInfoT) * GetNumCDS_COORD_ts( dptr->samples ));
+    MateInfoT   *matePairs  = NULL;
+    int          icnt       = 0;
+    CDS_COORD_t  newLower   = 0;
+    CDS_COORD_t  newUpper   = 0;
+    CDS_COORD_t  median     = 0;
+    CDS_COORD_t  lowerSigma = 0;
+    CDS_COORD_t  upperSigma = 0;
+    DistT       *dfrg       = &dwork[i];
+    int          numSamples = GetNumCDS_COORD_ts(dworkSamples[i]);
 
-      for ( icnt = 0; icnt < GetNumCDS_COORD_ts( dptr->samples ); icnt++) {
-          matePairs[icnt].samples = *GetCDS_COORD_t( dptr->samples, icnt);
-          matePairs[icnt].frags = *GetCDS_CID_t( dptrFrags[i], icnt);
-          matePairs[icnt].mates = *GetCDS_CID_t( dptrMates[i], icnt);
-        }
+    if (dfrg->numReferences == 0)
+      continue;
+    if (dfrg->numSamples == 0 || dfrg->numSamples == 1)
+      continue;
+
+    matePairs = (MateInfoT *)safe_malloc(sizeof(MateInfoT) * numSamples);
+
+    for ( icnt = 0; icnt<numSamples; icnt++) {
+      matePairs[icnt].samples = *GetCDS_COORD_t(dworkSamples[i], icnt);
+      matePairs[icnt].frags   = *GetCDS_CID_t(dworkFrags[i], icnt);
+      matePairs[icnt].mates   = *GetCDS_CID_t(dworkMates[i], icnt);
+    }
     
-      qsort( matePairs, GetNumCDS_COORD_ts( dptr->samples ),
-             sizeof(MateInfoT), &compDists);
+    qsort(matePairs, numSamples, sizeof(MateInfoT), compDists);
     
-      // now find median
-      median = matePairs[ (int) (GetNumCDS_COORD_ts( dptr->samples ) / 2)].samples;
-    
-      // find lower and upper "sigmas"
-      lowerSigma = median - matePairs[ (int) ((0.5 - 0.34) * GetNumCDS_COORD_ts( dptr->samples ))].samples;
-      upperSigma = - median + matePairs[ (int) ((0.5 + 0.34) * GetNumCDS_COORD_ts( dptr->samples ))].samples;	
-    
-      newLower = median - 5 * MAX (lowerSigma, upperSigma);
-      if ( newLower < 0 )
-        newLower = 0;
-      newUpper = median + 5 * MAX (lowerSigma, upperSigma);
-    
-      fprintf( stderr, "\nlib " F_CID ", numSamples: %d, orig mean, sig: ( %.2f, %.2f), calc mean, sig: (%.2f, %.2f) median: " F_COORD "\n",
-               i, dptr->numSamples, dptr->mean, dptr->stddev, dptr->mu/dptr->numSamples, 
-               sqrt((dptr->sigma - (dptr->mu*dptr->mu)/dptr->numSamples) / (dptr->numSamples - 1)),
+    median     =  matePairs[numSamples / 2].samples;
+    lowerSigma =  median - matePairs[ (int) ((0.5 - 0.34) * numSamples)].samples;
+    upperSigma = -median + matePairs[ (int) ((0.5 + 0.34) * numSamples)].samples;	
+
+    newLower = median - CGW_CUTOFF * MAX(lowerSigma, upperSigma);
+    newUpper = median + CGW_CUTOFF * MAX(lowerSigma, upperSigma);
+    if (newLower < 0)
+      newLower = 0;
+
+    {
+      DistT       *dorig      = GetDistT(ScaffoldGraph->Dists, i);  //  only for an output
+      double       mu         = dfrg->mu / dfrg->numSamples;
+      double       sigma      = sqrt((dfrg->sigma - dfrg->numSamples * mu * mu) / (dfrg->numSamples - 1));
+
+      fprintf( stderr, "lib " F_CID ", numSamples: %d, orig mean, sig: ( %.2f, %.2f), calc mean, sig: (%.2f, %.2f) median: " F_COORD "\n",
+               i,
+               dfrg->numSamples,
+               dfrg->mu,
+               dfrg->sigma,
+               mu,
+               sigma,
                median);
-      fprintf( stderr, "dptr->lower: " F_COORD ", dptr->upper: " F_COORD "\n", dptr->lower, dptr->upper);
-      fprintf( stderr, "  dptr->min: " F_COORD ",   dptr->max: " F_COORD "\n", dptr->min, dptr->max);
-      fprintf( stderr, "lowerSigma: " F_COORD ", upperSigma: " F_COORD "\n", lowerSigma, upperSigma);						  
-      fprintf( stderr, "newLower: " F_COORD ", newUpper: " F_COORD "\n", newLower, newUpper);
-    
-      // now reset the trusted flag if necessary
-      // first see if there are edges marked untrusted that are now considered trusted
-      // lower set
-      if (dptr->lower > newLower)
-        {
-          fprintf( stderr, "GetNumCDS_COORD_ts( dptr->samples ): %d\n",
-                   (int) GetNumCDS_COORD_ts( dptr->samples )); 
-          for ( icnt = 0; icnt < GetNumCDS_COORD_ts( dptr->samples ); icnt++)
-            {
-              if (matePairs[icnt].samples < dptr->lower && matePairs[icnt].samples > newLower)
-                {
-                  CIFragT *frag, *mate;
-          
-                  frag = GetCIFragT( ScaffoldGraph->CIFrags, 
-                                     GetInfoByIID(ScaffoldGraph->iidToFragIndex, matePairs[icnt].frags)->fragIndex);
-                  mate = GetCIFragT( ScaffoldGraph->CIFrags,
-                                     GetInfoByIID(ScaffoldGraph->iidToFragIndex, matePairs[icnt].mates)->fragIndex);
-          
-                  fprintf( stderr, "1 reclassifying samples[%d] (" F_CID ", " F_CID ") from UNTRUSTED to TRUSTED\n", 
-                           icnt, frag->iid, mate->iid);
-          
-                  frag->flags.bits.edgeStatus = TRUSTED_EDGE_STATUS;
-                  mate->flags.bits.edgeStatus = TRUSTED_EDGE_STATUS;
-                  dptr->numBad--;
-                  dptr->numSamples++;
-                  dptr->mu += matePairs[icnt].samples;
-                  dptr->sigma += (((double) matePairs[icnt].samples) * (double) matePairs[icnt].samples);
-                }
-            }
-        }
-    
-      // upper set
-      if (dptr->upper < newUpper)
-        {
-          fprintf( stderr, "GetNumCDS_COORD_ts( dptr->samples ): %d\n",
-                   (int) GetNumCDS_COORD_ts( dptr->samples )); 
-          for ( icnt = 0; icnt < GetNumCDS_COORD_ts( dptr->samples ); icnt++)
-            {	
-              if (matePairs[icnt].samples > dptr->upper && matePairs[icnt].samples < newUpper)
-                {
-                  CIFragT *frag, *mate;
-          
-                  frag = GetCIFragT( ScaffoldGraph->CIFrags, 
-                                     GetInfoByIID(ScaffoldGraph->iidToFragIndex, matePairs[icnt].frags)->fragIndex);
-                  mate = GetCIFragT( ScaffoldGraph->CIFrags,
-                                     GetInfoByIID(ScaffoldGraph->iidToFragIndex, matePairs[icnt].mates)->fragIndex);
-          
-                  fprintf( stderr, "2 reclassifying samples[%d] (" F_CID ", " F_CID ") from UNTRUSTED to TRUSTED\n", 
-                           icnt, frag->iid, mate->iid);
-          
-                  frag->flags.bits.edgeStatus = TRUSTED_EDGE_STATUS;
-                  mate->flags.bits.edgeStatus = TRUSTED_EDGE_STATUS;
-                  dptr->numBad--;
-                  dptr->numSamples++;
-                  dptr->mu += matePairs[icnt].samples;
-                  dptr->sigma += (((double) matePairs[icnt].samples) * (double) matePairs[icnt].samples);
-                }
-            }
-        }
-
-
-      // now see if there are edges marked trusted that are now considered untrusted
-      // lower set
-      if (dptr->lower < newLower)
-        {
-          fprintf( stderr, "GetNumCDS_COORD_ts( dptr->samples ): %d\n",
-                   (int) GetNumCDS_COORD_ts( dptr->samples )); 
-          for ( icnt = 0; icnt < GetNumCDS_COORD_ts( dptr->samples ); icnt++)
-            {
-              if (matePairs[icnt].samples > dptr->lower && matePairs[icnt].samples < newLower)
-                {
-                  CIFragT *frag, *mate;
-          
-                  frag = GetCIFragT( ScaffoldGraph->CIFrags, 
-                                     GetInfoByIID(ScaffoldGraph->iidToFragIndex, matePairs[icnt].frags)->fragIndex);
-                  mate = GetCIFragT( ScaffoldGraph->CIFrags,
-                                     GetInfoByIID(ScaffoldGraph->iidToFragIndex, matePairs[icnt].mates)->fragIndex);
-          
-                  fprintf( stderr, "3 reclassifying samples[%d] (" F_CID ", " F_CID ") from TRUSTED to UNTRUSTED\n", 
-                           icnt, frag->iid, mate->iid);
-          
-                  frag->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
-                  mate->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
-                  dptr->numBad++;
-                  dptr->numSamples--;
-                  dptr->mu -= matePairs[icnt].samples;
-                  dptr->sigma -= (((double) matePairs[icnt].samples) * (double) matePairs[icnt].samples);
-                }
-            }
-        }
-      // upper set
-      if (dptr->upper > newUpper)
-        {
-          fprintf( stderr, "GetNumCDS_COORD_ts( dptr->samples ): %d\n",
-                   (int) GetNumCDS_COORD_ts( dptr->samples )); 
-          for ( icnt = 0; icnt < GetNumCDS_COORD_ts( dptr->samples ); icnt++)
-            {	
-              if (matePairs[icnt].samples < dptr->upper && matePairs[icnt].samples > newUpper)
-                {
-                  CIFragT *frag, *mate;
-          
-                  frag = GetCIFragT( ScaffoldGraph->CIFrags, 
-                                     GetInfoByIID(ScaffoldGraph->iidToFragIndex, matePairs[icnt].frags)->fragIndex);
-                  mate = GetCIFragT( ScaffoldGraph->CIFrags,
-                                     GetInfoByIID(ScaffoldGraph->iidToFragIndex, matePairs[icnt].mates)->fragIndex);
-          
-                  fprintf( stderr, "4 reclassifying samples[%d] (" F_CID ", " F_CID ") from TRUSTED to UNTRUSTED\n", 
-                           icnt, frag->iid, mate->iid);
-          
-                  frag->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
-                  mate->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
-                  dptr->numBad++;
-                  dptr->numSamples--;
-                  dptr->mu -= matePairs[icnt].samples;
-                  dptr->sigma -= (((double) matePairs[icnt].samples) * (double) matePairs[icnt].samples);
-                }
-            }
-        }
-      safe_free(matePairs);
+      fprintf( stderr, "dfrg->lower: " F_COORD "  dfrg->upper: " F_COORD "\n", dfrg->lower, dfrg->upper);
+      fprintf( stderr, "dfrg->min  : " F_COORD "  dfrg->max  : " F_COORD "\n", dfrg->min, dfrg->max);
+      fprintf( stderr, "lowerSigma : " F_COORD "  upperSigma : " F_COORD "\n", lowerSigma, upperSigma);						  
+      fprintf( stderr, "newLower   : " F_COORD "  newUpper   : " F_COORD "\n", newLower, newUpper);
     }
-  
-  for (i = 1; i < GetNumDistTs(ScaffoldGraph->Dists); i++)
-    {
-      DeleteVA_CDS_CID_t( dptrFrags[i] );
-      DeleteVA_CDS_CID_t( dptrMates[i] );
-    }
-  
-  
-  /* now set mean, stddev, size & number of buckets */
-  for(i = 1; i < GetNumDistTs(ScaffoldGraph->Dists); i++)
-    {
-      dptr = GetDistT(ScaffoldGraph->Dists, i);
-      if(dptr->numReferences == 0)
-        {
-          //      fprintf(GlobalData->stderrc,"* No references for mate distance record %d\n", i);
-          continue;
+
+    // now reset the trusted flag if necessary
+    // first see if there are edges marked untrusted that are now considered trusted
+    // lower set
+    if (dfrg->lower > newLower) {
+      for ( icnt = 0; icnt<numSamples; icnt++) {
+        if (matePairs[icnt].samples < dfrg->lower && matePairs[icnt].samples > newLower) {
+          CIFragT *frag, *mate;
+          
+          frag = GetCIFragT( ScaffoldGraph->CIFrags, 
+                             GetInfoByIID(ScaffoldGraph->iidToFragIndex, matePairs[icnt].frags)->fragIndex);
+          mate = GetCIFragT( ScaffoldGraph->CIFrags,
+                             GetInfoByIID(ScaffoldGraph->iidToFragIndex, matePairs[icnt].mates)->fragIndex);
+          
+          //fprintf( stderr, "1 reclassifying samples[%d] (" F_CID ", " F_CID ") from UNTRUSTED to TRUSTED\n", 
+          //         icnt, frag->iid, mate->iid);
+          
+          frag->flags.bits.edgeStatus = TRUSTED_EDGE_STATUS;
+          mate->flags.bits.edgeStatus = TRUSTED_EDGE_STATUS;
+          dfrg->numBad--;
+          dfrg->numSamples++;
+          dfrg->mu    += matePairs[icnt].samples;
+          dfrg->sigma += (double)matePairs[icnt].samples * (double)matePairs[icnt].samples;
         }
-      if (dptr->numSamples == 0)
-        {
-          fprintf(GlobalData->stderrc,"* No samples for mate distance record %d... numBad = %d/%d\n", 
-                  i, dptr->numBad, dptr->numReferences);
-          continue;
-        }
-      if(dptr->numSamples == 1)
-        dptr->sigma = -1.0;
-      else
-        dptr->sigma = sqrt((dptr->sigma - (dptr->mu*dptr->mu)/dptr->numSamples) /
-                           (dptr->numSamples - 1));
-    
-      dptr->mu = dptr->mu/dptr->numSamples;
-    
-      if(dptr->numSamples > minSamplesForOverride)
-        {
-          fprintf(GlobalData->stderrc,
-                  "**** >>>>>>>>>  Distance record %d updated from %g +/- %g  ==> %g +/- %g  based on %d samples <<<<<<<< ****\n",
-                  i,
-                  dptr->mean, dptr->stddev,
-                  dptr->mu, dptr->sigma,
-                  dptr->numSamples);
-      
-          dptr->mean = dptr->mu;
-          dptr->stddev = dptr->sigma;
-          dptr->lower = dptr->mean - CGW_CUTOFF*dptr->stddev;
-          dptr->upper = dptr->mean + CGW_CUTOFF*dptr->stddev;
-        }
-    
-      fprintf(GlobalData->stderrc,
-              "* Distance %d:  mean:%g(nominal %g, delta %g) stddev:%g (nominal %g, delta %g) numSamples:%d numRef:%d\n",
-              i, 
-              dptr->mu, dptr->mean, fabs((dptr->mu - dptr->mean)/dptr->mean),
-              dptr->sigma, dptr->stddev, fabs((dptr->sigma - dptr->stddev)/dptr->stddev),
-              dptr->numSamples, dptr->numReferences);
-    
-      dptr->bsize = dptr->sigma/CGW_NUM_BUCKETS;
-      if (dptr->bsize > 1.) 
-        {
-          dptr->bnum = (dptr->max-dptr->min)/dptr->bsize + 1;
-          dptr->bsize = ((float)(dptr->max-dptr->min))/dptr->bnum;
-        } 
-      else 
-        {
-          dptr->bnum = 1;
-          dptr->bsize = dptr->max-dptr->min;
-        }
-#if 0
-      fprintf(GlobalData->stderrc,"* id:%d bnum:%d bsize:%g min:" F_COORD " max:" F_COORD "\n",
-              i, dptr->bnum, dptr->bsize, dptr->min, dptr->max);
-#endif
-      safe_free(dptr->histogram);
-      dptr->histogram = (int32 *) safe_malloc(sizeof(int32)*dptr->bnum);
-      {
-        int	j;
-        for (j=0; j < dptr->bnum; ++j)
-          dptr->histogram[j] = 0;
       }
     }
-  
-  fprintf(GlobalData->stderrc,"* Bucketizing Data\n");
-  fflush(NULL);
-  // Now bucketize data
-  {
-    // int ii;
-    // void *ptr = (void *)ScaffoldGraph->sequenceDB->UnitigStore;
-    int32 numDists = GetNumDistTs(ScaffoldGraph->Dists);
-    DistT *dist = GetDistT(ScaffoldGraph->Dists,1);
-    for(ii = 1; ii < numDists ; ii++, dist++){
-      int numSamples = GetNumCDS_COORD_ts(dist->samples);
-      CDS_COORD_t *samplep = GetCDS_COORD_t(dist->samples,0);
-      int j;
-      if(!dist->samples || dist->bsize == 0.0)
-        continue;
-      for(j = 0; j < numSamples ; j++, samplep++)
-        {
-          CDS_COORD_t sample = *samplep;
-          int32 binNum = ((float)sample - (float)dist->min)/dist->bsize;
-          binNum = MIN(binNum, dist->bnum -1);
-          binNum = MAX(binNum,0); // sample can be negative
-          dist->histogram[binNum]++;
-        }	  
-    }
-  }
-  {
-    // int ii;
-    for(ii = 1; ii < GetNumDistTs(ScaffoldGraph->Dists); ii++)
-      {
-        int j;
-        DistT *dist = GetDistT(ScaffoldGraph->Dists, ii);
-        if(dist->samples && dist->bsize > 0.0 && dist->numSamples > 0)
-          {
-            fprintf(GlobalData->stderrc,"* Distance Record %d min:" F_COORD " max:" F_COORD "  mu:%g sigma:%g samples:%d bad:%d references:%d\n",
-                    ii, dist->min, dist->max, dist->mu, dist->sigma, dist->numSamples, dist->numBad, dist->numReferences);
-            fflush(NULL);
-            for(j = 0; j < dist->bnum; j++)
-              {
-                int32 binVal = dist->histogram[j];
+    
+    // upper set
+    if (dfrg->upper < newUpper) {
+      for ( icnt = 0; icnt<numSamples; icnt++) {	
+        if (matePairs[icnt].samples > dfrg->upper && matePairs[icnt].samples < newUpper) {
+          CIFragT *frag, *mate;
           
-                if (binVal > 0 )
-                  fprintf(GlobalData->stderrc,"* [%5d,%5d]\t%d\n",
-                          (int32)(dist->min + j * dist->bsize), (int32)(dist->min + (j + 1) * dist->bsize), binVal);
-              }
-          }
-      }
-  }
-  // output a histogram file for each library
-  for( ii = 1; ii < GetNumDistTs(ScaffoldGraph->Dists); ii++)
-    {
-      int j;
-      DistT *dist = GetDistT(ScaffoldGraph->Dists,ii);
-      if(dist->samples && dist->bsize > 0.0 && dist->numSamples > 0)
-        {
-          FILE *fout;
-          char  filename[1024];
-
-          sprintf( filename, "stat/%s.distlib_%d.cgm", instance_label, ii);
-          fprintf( stderr, "writing file %s\n", filename);
-          fout = fopen( filename,"w");
-          AssertPtr( fout );
-
-          fprintf( fout, "lib %d mu %g sigma %g\n", ii, dist->mu, dist->sigma );
-          {
-            int numSamples = GetNumCDS_COORD_ts(dist->samples);
-            CDS_COORD_t samps[numSamples];
-            CDS_COORD_t *samplep = GetCDS_COORD_t(dist->samples,0);
-            for( j = 0; j < numSamples; j++, samplep++) {
-              samps[ j ] = *samplep;
-            }
-            qsort( samps, numSamples, sizeof(CDS_COORD_t), &compareInt);
-            for( j = 0; j < numSamples; j++) {
-              fprintf( fout, "%d\n", samps[j]);
-            }
-            fclose( fout );
-          }
+          frag = GetCIFragT( ScaffoldGraph->CIFrags, 
+                             GetInfoByIID(ScaffoldGraph->iidToFragIndex, matePairs[icnt].frags)->fragIndex);
+          mate = GetCIFragT( ScaffoldGraph->CIFrags,
+                             GetInfoByIID(ScaffoldGraph->iidToFragIndex, matePairs[icnt].mates)->fragIndex);
+          
+          //fprintf( stderr, "2 reclassifying samples[%d] (" F_CID ", " F_CID ") from UNTRUSTED to TRUSTED\n", 
+          //         icnt, frag->iid, mate->iid);
+          
+          frag->flags.bits.edgeStatus = TRUSTED_EDGE_STATUS;
+          mate->flags.bits.edgeStatus = TRUSTED_EDGE_STATUS;
+          dfrg->numBad--;
+          dfrg->numSamples++;
+          dfrg->mu    += matePairs[icnt].samples;
+          dfrg->sigma += (double)matePairs[icnt].samples * (double)matePairs[icnt].samples;
         }
+      }
     }
-  
+
+
+    // now see if there are edges marked trusted that are now considered untrusted
+    // lower set
+    if (dfrg->lower < newLower) {
+      for ( icnt = 0; icnt<numSamples; icnt++) {
+        if (matePairs[icnt].samples > dfrg->lower && matePairs[icnt].samples < newLower) {
+          CIFragT *frag, *mate;
+          
+          frag = GetCIFragT( ScaffoldGraph->CIFrags, 
+                             GetInfoByIID(ScaffoldGraph->iidToFragIndex, matePairs[icnt].frags)->fragIndex);
+          mate = GetCIFragT( ScaffoldGraph->CIFrags,
+                             GetInfoByIID(ScaffoldGraph->iidToFragIndex, matePairs[icnt].mates)->fragIndex);
+          
+          //fprintf( stderr, "3 reclassifying samples[%d] (" F_CID ", " F_CID ") from TRUSTED to UNTRUSTED\n", 
+          //         icnt, frag->iid, mate->iid);
+          
+          frag->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
+          mate->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
+          dfrg->numBad++;
+          dfrg->numSamples--;
+          dfrg->mu    -= matePairs[icnt].samples;
+          dfrg->sigma -= (double)matePairs[icnt].samples * (double)matePairs[icnt].samples;
+        }
+      }
+    }
+    // upper set
+    if (dfrg->upper > newUpper) {
+      for ( icnt = 0; icnt<numSamples; icnt++) {	
+        if (matePairs[icnt].samples < dfrg->upper && matePairs[icnt].samples > newUpper) {
+          CIFragT *frag, *mate;
+          
+          frag = GetCIFragT( ScaffoldGraph->CIFrags, 
+                             GetInfoByIID(ScaffoldGraph->iidToFragIndex, matePairs[icnt].frags)->fragIndex);
+          mate = GetCIFragT( ScaffoldGraph->CIFrags,
+                             GetInfoByIID(ScaffoldGraph->iidToFragIndex, matePairs[icnt].mates)->fragIndex);
+          
+          //fprintf( stderr, "4 reclassifying samples[%d] (" F_CID ", " F_CID ") from TRUSTED to UNTRUSTED\n", 
+          //         icnt, frag->iid, mate->iid);
+          
+          frag->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
+          mate->flags.bits.edgeStatus = UNTRUSTED_EDGE_STATUS;
+          dfrg->numBad++;
+          dfrg->numSamples--;
+          dfrg->mu    -= matePairs[icnt].samples;
+          dfrg->sigma -= (double)matePairs[icnt].samples * (double)matePairs[icnt].samples;
+        }
+      }
+    }
+    safe_free(matePairs);
+  }  //  over all distances
+
+  //
+  // now set mean, stddev, size & number of buckets
+  //
+
+  for (i=1; i<GetNumDistTs(ScaffoldGraph->Dists); i++) {
+    DistT *dfrg = &dwork[i];
+
+    //  If we don't have enough samples for an update, don't do anything to dfrg
+
+    if (dfrg->numSamples > minSamplesForOverride) {
+      DistT  *dupd       = GetDistT(ScaffoldGraph->Dists, i);
+
+      //  only used for an stderr message
+      double  origmu     = dupd->mu;
+      double  origsigma  = dupd->sigma;
+
+      dupd->mu             = dfrg->mu / dfrg->numSamples;
+      dupd->sigma          = sqrt((dfrg->sigma - dfrg->mu * dfrg->mu / dfrg->numSamples) / (dfrg->numSamples - 1));
+      dupd->numSamples     = dfrg->numSamples;
+      dupd->numReferences  = dfrg->numReferences;
+      dupd->min            = dfrg->min;
+      dupd->max            = dfrg->max;
+      dupd->bnum           = 1;
+      dupd->bsize          = dfrg->max - dfrg->min;
+      dupd->lower          = dupd->mu - CGW_CUTOFF * dupd->sigma;
+      dupd->upper          = dupd->mu + CGW_CUTOFF * dupd->sigma;
+      dupd->numReferences  = dfrg->numReferences;
+      dupd->numBad         = dfrg->numBad;
+
+      if (dupd->sigma > CGW_NUM_BUCKETS)
+        dupd->bnum = dupd->bsize * CGW_NUM_BUCKETS / dupd->sigma + 1;
+
+      dupd->bsize /= dupd->bnum;
+
+      fprintf(GlobalData->stderrc, "distance record %3d: updated from %g +/- %g  to  %g +/- %g  based on %d samples (%d bad, %d references)\n",
+              i,
+              origmu,
+              origsigma,
+              dupd->mu,
+              dupd->sigma,
+              dupd->numSamples,
+              dupd->numBad,
+              dupd->numReferences);
+      fprintf(GlobalData->stderrc, "distance record %3d: min:"F_COORD" max:"F_COORD"\n",
+              i, dupd->min, dupd->max);
+
+      // output a histogram file for each library
+
+      {
+        FILE         *fout;
+        char          filename[FILENAME_MAX];
+        int           numSamples = GetNumCDS_COORD_ts(dworkSamples[i]);
+        CDS_COORD_t  *samples    = GetCDS_COORD_t(dworkSamples[i],0);
+
+        //  Remove any existing histogram, then reallocate (and clear)
+        //  one big enough.
+        safe_free(dupd->histogram);
+        dupd->histogram = (int32 *)safe_calloc(dupd->bnum, sizeof(int32));
+
+        for (j=0; j<numSamples ; j++) {
+          int32 binNum = (samples[j] - dupd->min) / (float)dupd->bsize;
+
+          binNum = MIN(binNum, dupd->bnum - 1);
+          binNum = MAX(binNum,0);
+
+          dupd->histogram[binNum]++;
+        }
+
+        for (j=0; j<dupd->bnum; j++)
+          if (dupd->histogram[j] > 0)
+            fprintf(GlobalData->stderrc,"* [%5d,%5d]\t%d\n",
+                    (int32)(dupd->min + j * dupd->bsize),
+                    (int32)(dupd->min + (j + 1) * dupd->bsize),
+                    dupd->histogram[j]);
+
+        qsort(samples, numSamples, sizeof(CDS_COORD_t), &compareInt);
+
+        sprintf(filename, "stat/%s.distlib_%d.cgm", instance_label, i);
+        fout = fopen(filename, "w");
+        AssertPtr(fout);
+
+        fprintf( fout, "lib %d mu %g sigma %g\n", i, dupd->mu, dupd->sigma);
+        for (j=0; j<numSamples; j++)
+          fprintf(fout, "%d\n", samples[j]);
+        fclose(fout);
+      }
+    }  //  end of update
+
+    DeleteVA_CDS_CID_t(dworkSamples[i]);
+    DeleteVA_CDS_CID_t(dworkFrags[i]);
+    DeleteVA_CDS_CID_t(dworkMates[i]);
+
+  }  //  over all distances
+
+
+  //  Finally, output a file appropriate for sending to gatekeeper, to
+  //  update the distances there.  This is used by some modes of
+  //  runCA-OBT.
+  //
+  //  We have to grab the UID from gatekeeper.  Sigh.
+  {
+    GateKeeperStore  *gkpStore = openGateKeeperStore(GlobalData->Gatekeeper_Store_Name, FALSE);
+    FILE             *fout;
+    char              filename[FILENAME_MAX];
+
+    sprintf(filename, "stat/%s.distupdate.dst", instance_label);
+
+    fout = fopen(filename, "w");
+    AssertPtr(fout);
+
+    for (i=1; i<GetNumDistTs(ScaffoldGraph->Dists); i++) {
+      DistT                     *dptr = GetDistT(ScaffoldGraph->Dists, i);
+      GateKeeperLibraryRecord    gkpl;
+
+      getGateKeeperLibraryStore(gkpStore->lib, i, &gkpl);
+
+      fprintf(fout, "{DST\n");
+      fprintf(fout, "act:R\n");
+      fprintf(fout, "acc:"F_UID"\n", gkpl.libraryUID);
+      fprintf(fout, "mea:%f\n", dptr->mu);
+      fprintf(fout, "std:%f\n", dptr->sigma);
+      fprintf(fout, "}\n");
+    }
+
+    fclose(fout);
+
+    closeGateKeeperStore(gkpStore);
+  }
+
   DeleteMultiAlignT(ma);
-  fprintf(stderr,"* Done bucketizing data\n");
-  fflush(NULL);
-  
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -4773,7 +4661,8 @@ int32 GetGappedMultipleCoverageInterval(GraphCGW_T *graph,
   
 }
 
-/***********************************************/
+
+
 #define SEGLEN 50
 static void dumpFastaRecord(FILE *stream, char *header, char *sequence){
   int i;
@@ -4786,7 +4675,8 @@ static void dumpFastaRecord(FILE *stream, char *header, char *sequence){
     else
       fprintf(stream,"%.*s\n",SEGLEN,sequence+i);
 }
-/***********************************************/
+
+
 
 void   DumpNodeEndUngappedToFasta(FILE *fastaFile,
                                   GraphCGW_T *graph,

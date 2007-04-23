@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.10 2007-04-16 17:36:29 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.11 2007-04-23 15:24:34 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -242,7 +242,7 @@ void PopulateChunkEdgeBasics(ScaffoldGraphT * graph,
   LengthT distFromAChunkEnd;
   LengthT distFromBChunkEnd;
   LengthT distBetweenChunks;
-  cds_float32 distVariance = dist->stddev * dist->stddev;
+  cds_float32 distVariance = dist->sigma * dist->sigma;
   
   // determine distance from 5p of fragment to relevant end of CI
   ComputeFragToChunkEndForEdge(graph, fragA,
@@ -254,8 +254,7 @@ void PopulateChunkEdgeBasics(ScaffoldGraphT * graph,
                                &distFromBChunkEnd,
                                chunkB);
   
-  distBetweenChunks.mean = dist->mean -
-    (distFromAChunkEnd.mean + distFromBChunkEnd.mean);
+  distBetweenChunks.mean = dist->mu - (distFromAChunkEnd.mean + distFromBChunkEnd.mean);
 
   // need to be careful with containment edges
   if(distBetweenChunks.mean < 0.0)
@@ -358,7 +357,7 @@ void PopulateChunkEdgeBasics(ScaffoldGraphT * graph,
                                   &distFromBChunkEnd,
                                   chunkB);
       
-          distBetweenChunks.mean = -(dist->mean +
+          distBetweenChunks.mean = -(dist->mu +
                                      distFromAChunkEnd.mean +
                                      distFromBChunkEnd.mean);
         }

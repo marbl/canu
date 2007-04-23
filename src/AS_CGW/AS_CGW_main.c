@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.38 2007-04-16 17:36:29 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.39 2007-04-23 15:24:34 brianwalenz Exp $";
 
 
 static const char *usage = 
@@ -1203,18 +1203,13 @@ int main(int argc, char *argv[]){
 
   // now recompute mate pair statistics, once on scaffolds, once on contigs, with 
   // the results on contigs being the ones that are output in OutputMateDists
-  if (immediateOutput == 0)
-    {
-      fprintf(GlobalData->stderrc,"* Calling ComputeMatePairStatisticsRestricted (SCAFFOLD_OPERATIONS)\n");
-      fflush(stderr);
-      ComputeMatePairStatisticsRestricted( SCAFFOLD_OPERATIONS, minSamplesForOverride /* update distance estimates */,
-                                           "scaffold_final");
+  if (immediateOutput == 0) {
+    fprintf(GlobalData->stderrc,"* Calling ComputeMatePairStatisticsRestricted (SCAFFOLD_OPERATIONS)\n");
+    ComputeMatePairStatisticsRestricted( SCAFFOLD_OPERATIONS, minSamplesForOverride, "scaffold_final");
 
-      fprintf(GlobalData->stderrc,"* Calling ComputeMatePairStatisticsRestricted (CONTIG_OPERATIONS)\n");
-      fflush(stderr);
-      ComputeMatePairStatisticsRestricted( CONTIG_OPERATIONS, minSamplesForOverride /* update distance estimates */,
-                                           "contig_final");
-    }
+    fprintf(GlobalData->stderrc,"* Calling ComputeMatePairStatisticsRestricted (CONTIG_OPERATIONS)\n");
+    ComputeMatePairStatisticsRestricted( CONTIG_OPERATIONS, minSamplesForOverride, "contig_final");
+  }
 
   fprintf(GlobalData->stderrc,"* Output cam files *\n");
   GenerateCIGraph_U_Stats();
@@ -1231,13 +1226,8 @@ int main(int argc, char *argv[]){
   MarkMisplacedContigs();
 
   if(camFileOnly || generateOutput){
-
-    fprintf(stderr,"* Calling CelamyCIScaffolds\n");
     CelamyCIScaffolds(data->File_Name_Prefix,ScaffoldGraph);
-    fprintf(stderr,"* Calling CelamyAssembly\n");
     CelamyAssembly(data->File_Name_Prefix);
-    fprintf(stderr,"* Done with Celamy output\n");
-    fflush(NULL);
   }
 
   /************* Output ***************/
@@ -1250,8 +1240,8 @@ int main(int argc, char *argv[]){
 
     MarkContigEdges();
     OutputMateDists(ScaffoldGraph);
-    ComputeMatePairDetailedStatus();
 
+    ComputeMatePairDetailedStatus();
     OutputFrags(ScaffoldGraph);
 
     // We always have multiAlignments for Unitigs

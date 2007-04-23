@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.32 2007-04-16 17:36:30 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.33 2007-04-23 15:24:34 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -760,13 +760,55 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
 	InfoByIID  info, *old_info;
 	CDS_CID_t fragid = GetNumCIFragTs(ScaffoldGraph->CIFrags);
 	IntMultiPos *cfr_mesg = ium_mesg->f_list + cfr;
-	cifrag.iid = cfr_mesg->ident;
-	cifrag.cid = ium_mesg->iaccession;
-	cifrag.CIid = ium_mesg->iaccession;
-	cifrag.contigID = NULLINDEX;
-	info.fragIndex = fragid;
-	info.set = TRUE;
-	    
+
+	cifrag.iid      = cfr_mesg->ident;
+        cifrag.mateOf   = NULLINDEX;
+        cifrag.dist     = 0;
+	cifrag.cid      = ium_mesg->iaccession;
+	cifrag.CIid     = ium_mesg->iaccession;
+
+	// These get set in UpdateNodeFragments, called below
+        cifrag.offset5p.mean      = 0.0;
+        cifrag.offset5p.variance  = 0.0;
+        cifrag.offset3p.mean      = 0.0;
+        cifrag.offset3p.variance  = 0.0;
+
+	cifrag.contigID                 = NULLINDEX;
+        cifrag.contigOffset5p.mean      = 0.0;
+        cifrag.contigOffset5p.variance  = 0.0;
+        cifrag.contigOffset3p.mean      = 0.0;
+        cifrag.contigOffset3p.variance  = 0.0;
+
+        cifrag.type      = cfr_mesg->type;
+        cifrag.label     = AS_SINGLETON;
+
+	cifrag.flags.bits.hasInternalOnlyCILinks     = FALSE; // set in CreateCIEdge
+	cifrag.flags.bits.hasInternalOnlyContigLinks = FALSE; // set in CreateCIEdge
+	cifrag.flags.bits.isPlaced                   = FALSE;
+	cifrag.flags.bits.isSingleton                = FALSE;
+	cifrag.flags.bits.isChaff                    = FALSE;
+        cifrag.flags.bits.innieMate                  = FALSE;
+        cifrag.flags.bits.hasMate                    = FALSE;
+        cifrag.flags.bits.linkType                   = AS_UNKNOWN;
+	cifrag.flags.bits.edgeStatus                 = INVALID_EDGE_STATUS;
+        cifrag.flags.bits.mateDetail                 = UNASSIGNED_MATE;
+
+        //  Singleton chunks are chaff; singleton frags are chaff
+        //  unless proven otherwise
+        //
+        if (ium_mesg->num_frags < 2) {
+          CI.flags.bits.isChaff         = TRUE;
+          cifrag.flags.bits.isSingleton = TRUE;
+          cifrag.flags.bits.isChaff     = TRUE;
+	}
+
+        cifrag.locale         = NULLINDEX;
+        cifrag.localePos.bgn  = 0;
+        cifrag.localePos.end  = 0;
+
+	info.fragIndex   = fragid;
+	info.set         = TRUE;
+
 	// Check to see if we've already seen this fragment by IID!!!!
 	old_info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, cifrag.iid);
 	if(old_info && old_info->set){
@@ -780,89 +822,40 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
 
 	SetInfoByIID(ScaffoldGraph->iidToFragIndex, cifrag.iid, &info);
 	    
-	//	cifrag.nextCIFrag = fragid + 1;   // obsolete
-	cifrag.label = AS_SINGLETON; // interim
-
-
-        if(ium_mesg->num_frags < 2){
-          CI.flags.bits.isChaff = TRUE;
-          if(GlobalData->debugLevel > 0)
-            fprintf(stderr,"* Singleton chunk " F_CID " is CHAFF\n", CI.id);
-        }
-
-
-
 	// Collect guide stats
         if(AS_FA_GUIDE(cfr_mesg->type)){ 
 	  totalGuideFrags++;
-	  if(CI.flags.bits.isUnique){
+	  if(CI.flags.bits.isUnique)
 	    inUniqueGuideFrags++;
-	  }else{
+          else
 	    inRepeatGuideFrags++;
-	  }
 	  if(ium_mesg->num_frags <= 2)
 	    inTeenyUnitigGuideFrags++;
-	      
 	  if(ium_mesg->num_frags < 2)
 	    inSingletonUnitigGuideFrags++;
-	      
-	      
-	  if(cfr == extremalA || cfr == extremalB){
+	  if(cfr == extremalA || cfr == extremalB)
 	    onEndGuideFrags++;
-	  }
 	}
 	    
 	// Collect read stats
         if (AS_FA_READ(cfr_mesg->type)) { 
 	  totalReadFrags++;
-	  if(CI.flags.bits.isUnique){
+	  if(CI.flags.bits.isUnique)
 	    inUniqueReadFrags++;
-	  }else{
+	  else
 	    inRepeatReadFrags++;
-	  }
 	  if(ium_mesg->num_frags <= 2)
-	    inTeenyUnitigReadFrags++;
-	      
-	  if(ium_mesg->num_frags < 2){
+            inTeenyUnitigReadFrags++;
+          if(ium_mesg->num_frags < 2)
 	    inSingletonUnitigReadFrags++;
-	  }
-	  if(cfr == extremalA || cfr == extremalB){
+	  if(cfr == extremalA || cfr == extremalB)
 	    onEndReadFrags++;
-	  }
-	      
-	      
 	}
         //else if(AS_FA_SHREDDED(cfr_mesg->type)){ 
 	//  CI.flags.bits.includesFinishedBacFragments = TRUE; 
         //}
-
-	cifrag.locale = NULLINDEX;
-	cifrag.localePos.bgn = cifrag.localePos.end = 0;
-	cifrag.mateOf = NULLINDEX;
-	cifrag.flags.bits.mateStatus = MATE_NONE;
-	cifrag.type  = cfr_mesg->type;
-	cifrag.linkType = 0;
-	cifrag.flags.bits.hasInternalOnlyCILinks = FALSE; // set in CreateCIEdge
-	cifrag.flags.bits.hasInternalOnlyContigLinks = FALSE; // set in CreateCIEdge
-	cifrag.flags.bits.edgeStatus = INVALID_EDGE_STATUS;
-	cifrag.flags.bits.isPlaced = FALSE;
-	cifrag.flags.bits.isSingleton = FALSE;
-	cifrag.flags.bits.isChaff = FALSE;
-        cifrag.flags.bits.hasMate = FALSE;
-	// These get set in UpdateNodeFragments, called below
-	cifrag.offset3p.mean  =  cifrag.offset5p.mean = 0.0;
-	cifrag.offset3p.variance  =  cifrag.offset5p.variance = 0.0;
-	    
-
-	// Singleton frags are chaff unless proven otherwise
-	if(ium_mesg->num_frags == 1){
-	  cifrag.flags.bits.isSingleton = TRUE;
-	  cifrag.flags.bits.isChaff = TRUE;
-	}
-
-	AppendCIFragT(ScaffoldGraph->CIFrags, &cifrag);
-
-        //fprintf(stderr, "CIFrag: iid=%d mate=%d pointer=%p\n", cifrag.iid, cifrag.mateOf, GetCIFragT(ScaffoldGraph->CIFrags, cifrag.iid));
+	   
+        AppendCIFragT(ScaffoldGraph->CIFrags, &cifrag);
       }
     }
 
@@ -903,37 +896,6 @@ void ProcessIUM(IntUnitigMesg *ium_mesg){
 
 
 /****************************************************************************/
-#if 0
-void ProcessIDT(InternalDistMesg *idt_mesg)
-{
-
-
-  switch(idt_mesg->action){
-    case AS_DELETE:
-      return;
-      break; // Nothing to do...they won't be referenced
-    case AS_ADD:
-    case AS_REDEFINE:
-      {
-        DistT dist;
-        dist.mean = idt_mesg->mean;
-        dist.stddev = idt_mesg->stddev;
-        dist.mu = dist.sigma = 0.0;
-        dist.min = CDS_COORD_MAX;
-        dist.max = CDS_COORD_MIN;
-        dist.bsize = 0;
-        dist.histogram = NULL;
-        dist.lower = dist.upper = 0;
-        dist.samples = CreateVA_CDS_COORD_t(1024);
-        dist.numReferences = dist.numBad = 0;
-        SetDistT(ScaffoldGraph->Dists, idt_mesg->iaccession, &dist);
-      }
-      break;
-    default:
-      assert(0);
-  }
-}
-#endif
 
 
 
@@ -949,21 +911,21 @@ void LoadDistData(void){ // Load the distance record info from the gkpStore
     if (gkpl.deleted)
       continue;
 
-    dist.mean          = gkpl.mean;
-    dist.stddev        = gkpl.stddev;
-    dist.mu            = 0.0;
-    dist.sigma         = 0.0;
-    dist.min           = CDS_COORD_MAX;
-    dist.max           = CDS_COORD_MIN;
-    dist.bsize         = 0;
-    dist.histogram     = NULL;
-    dist.lower         = 0;
-    dist.upper         = 0;
-    dist.samples       = CreateVA_CDS_COORD_t(1024);
-    dist.numReferences = dist.numBad = 0;
+    dist.mu             = gkpl.mean;
+    dist.sigma          = gkpl.stddev;
+    dist.numSamples     = 0;
+    dist.min            = CDS_COORD_MAX;
+    dist.max            = CDS_COORD_MIN;
+    dist.bnum           = 0;
+    dist.bsize          = 0;
+    dist.histogram      = NULL;
+    dist.lower          = dist.mu - CGW_CUTOFF * dist.sigma;
+    dist.upper          = dist.mu + CGW_CUTOFF * dist.sigma;
+    dist.numReferences  = 0;
+    dist.numBad         = 0;
 
     fprintf(GlobalData->stderrc,"* Loaded dist "F_UID","F_CID" (%g +/- %g)\n",
-            gkpl.libraryUID, i, dist.mean, dist.stddev);
+            gkpl.libraryUID, i, dist.mu, dist.sigma);
 
     SetDistT(ScaffoldGraph->Dists, i, &dist);
   }
@@ -1026,14 +988,6 @@ void ProcessFrags(void)
 
     assert(cifrag->iid == i);  //  If !set, this fails.
 
-    cifrag->locale   = NULLINDEX;
-    cifrag->mateOf   = NULLINDEX;
-    cifrag->dist     = NULLINDEX;
-    cifrag->linkType = 0;
-
-    cifrag->flags.bits.innieMate = FALSE;
-    cifrag->flags.bits.hasMate   = FALSE;
-
     getGateKeeperFragmentStore(ScaffoldGraph->gkpStore->frg, i, &gkf);
 
     if (gkf.mateIID != 0) {
@@ -1042,10 +996,9 @@ void ProcessFrags(void)
       if (miinfo->set) {
         cifrag->mateOf   = miinfo->fragIndex;
         cifrag->dist     = gkf.libraryIID;
-        cifrag->linkType = AS_MATE;
         if (gkf.orientation == AS_READ_ORIENT_INNIE)
           cifrag->flags.bits.innieMate = TRUE;
-        cifrag->flags.bits.mateStatus = MATE_OK;
+        cifrag->flags.bits.linkType   = AS_MATE;
         cifrag->flags.bits.edgeStatus = UNKNOWN_EDGE_STATUS;
         cifrag->flags.bits.hasMate    = TRUE;
       } else {
@@ -1090,16 +1043,14 @@ void ProcessFrags(void)
 
       cifrag->mateOf   = NULLINDEX;
       cifrag->dist     = NULLINDEX;
-      cifrag->linkType = 0;
-      cifrag->flags.bits.mateStatus = MATE_NONE;
+      cifrag->flags.bits.linkType   = AS_UNKNOWN;
       cifrag->flags.bits.edgeStatus = INVALID_EDGE_STATUS;
       cifrag->flags.bits.hasMate    = FALSE;
 
       if (mifrag) {
         mifrag->mateOf   = NULLINDEX;
         mifrag->dist     = NULLINDEX;
-        mifrag->linkType = 0;
-        mifrag->flags.bits.mateStatus = MATE_NONE;
+        mifrag->flags.bits.linkType   = AS_UNKNOWN;
         mifrag->flags.bits.edgeStatus = INVALID_EDGE_STATUS;
         cifrag->flags.bits.hasMate    = FALSE;
       }

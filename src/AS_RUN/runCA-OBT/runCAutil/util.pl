@@ -93,7 +93,7 @@ sub setDefaults () {
     $global{"doFragmentCorrection"}        = 1;
     $global{"doOverlapTrimming"}           = 1;
     $global{"doResolveSurrogates"}         = 1;
-    $global{"doUpdateDistanceRecords"}     = 1;
+    $global{"doUpdateDistanceRecords"}     = 0;
     $global{"fakeUIDs"}                    = 0;
 
     $global{"frgCorrBatchSize"}            = 175000;
@@ -146,7 +146,6 @@ sub setDefaults () {
 
     $global{"stopAfter"}                   = undef;
     $global{"uidServer"}                   = undef;
-    $global{"updateDistanceType"}          = "pre";
     $global{"updateFragFiles"}             = undef;
     $global{"utgEdges"}                    = undef;
     $global{"utgErrorRate"}                = 15;

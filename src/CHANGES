@@ -101,3 +101,19 @@ dumpDistanceEstimates.c
 dumpSingletons.c
 frgs2clones.c
 ----------------------------------------
+20070423
+
+CGW now propagates distance estimates across checkpoints.  Scaffolds
+change.  Excerpts from the commit log:
+
+Previously, CGW had two definitions of clone distance; (mean, stddev)
+and (mu, sigma).  I suspect that one of those was intended to be
+scratch space (mu, sigma) for calculating an updated distance to be
+placed into (mean, stddev).  Unfortunately, both of those were used
+throughout CGW, and they were not always the same.
+
+Now, there is only one distance: (mu, sigma).  If CGW doesn't start
+from a checkpoint, the distance is loaded from gatekeeper, and
+reestimated very soon using unitigs.  If started from a checkpoint,
+the values from the checkpoint are used.
+

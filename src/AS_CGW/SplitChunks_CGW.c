@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.17 2007-04-16 17:36:31 brianwalenz Exp $";
+static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.18 2007-04-23 15:24:35 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -239,13 +239,13 @@ static int AddLinkToMaps(ScaffoldGraphT * graph,
                       // note that maxPos < length
                       IncrementMapInterval(bcc,
                                            minPos,
-                                           MIN(minPos + dist->mean +
-                                               CGW_CUTOFF * dist->stddev,
+                                           MIN(minPos + dist->mu +
+                                               CGW_CUTOFF * dist->sigma,
                                                maxPos));
                       IncrementMapInterval(bcc,
                                            maxPos,
-                                           MIN(maxPos + dist->mean +
-                                               CGW_CUTOFF * dist->stddev,
+                                           MIN(maxPos + dist->mu +
+                                               CGW_CUTOFF * dist->sigma,
                                                length - 1));
                     }
                   else
@@ -259,13 +259,13 @@ static int AddLinkToMaps(ScaffoldGraphT * graph,
                       */
                       IncrementMapInterval(bcc,
                                            MAX(0,
-                                               minPos - dist->mean -
-                                               CGW_CUTOFF * dist->stddev),
+                                               minPos - dist->mu -
+                                               CGW_CUTOFF * dist->sigma),
                                            minPos);
                       IncrementMapInterval(bcc,
                                            MAX(minPos,
-                                               maxPos - dist->mean -
-                                               CGW_CUTOFF * dist->stddev),
+                                               maxPos - dist->mu -
+                                               CGW_CUTOFF * dist->sigma),
                                            maxPos);
                     }
                 }
@@ -285,12 +285,12 @@ static int AddLinkToMaps(ScaffoldGraphT * graph,
                       IncrementMapInterval(bcc,
                                            MAX(0,
                                                minPos -
-                                               dist->mean - CGW_CUTOFF * dist->stddev),
+                                               dist->mu - CGW_CUTOFF * dist->sigma),
                                            minPos);
                       IncrementMapInterval(bcc,
                                            MAX(minPos,
                                                maxPos -
-                                               dist->mean - CGW_CUTOFF * dist->stddev),
+                                               dist->mu - CGW_CUTOFF * dist->sigma),
                                            maxPos);
                     }
                   else
@@ -305,13 +305,13 @@ static int AddLinkToMaps(ScaffoldGraphT * graph,
                       IncrementMapInterval(bcc,
                                            minPos,
                                            MIN(minPos +
-                                               dist->mean + CGW_CUTOFF * dist->stddev,
+                                               dist->mu + CGW_CUTOFF * dist->sigma,
                                                maxPos));
                       IncrementMapInterval(bcc,
                                            maxPos,
                                            MIN(length - 1,
                                                maxPos +
-                                               dist->mean + CGW_CUTOFF * dist->stddev));
+                                               dist->mu + CGW_CUTOFF * dist->sigma));
                     }
                 }
             }
@@ -321,8 +321,8 @@ static int AddLinkToMaps(ScaffoldGraphT * graph,
               CDS_COORD_t distance = maxPos - minPos;
         
               // if the distance is wrong, the pair is bad
-              if(distance < dist->mean - CGW_CUTOFF * dist->stddev ||
-                 distance > dist->mean + CGW_CUTOFF * dist->stddev)
+              if(distance < dist->mu - CGW_CUTOFF * dist->sigma ||
+                 distance > dist->mu + CGW_CUTOFF * dist->sigma)
                 {
                   // bad pair
                   // same intervals for either innie or outtie
@@ -343,12 +343,12 @@ static int AddLinkToMaps(ScaffoldGraphT * graph,
                                        minPos,
                                        MIN(maxPos,
                                            minPos +
-                                           dist->mean + CGW_CUTOFF * dist->stddev));
+                                           dist->mu + CGW_CUTOFF * dist->sigma));
                   IncrementMapInterval(bcc,
                                        MAX(minPos +
-                                           dist->mean + CGW_CUTOFF * dist->stddev,
+                                           dist->mu + CGW_CUTOFF * dist->sigma,
                                            maxPos -
-                                           dist->mean - CGW_CUTOFF * dist->stddev),
+                                           dist->mu - CGW_CUTOFF * dist->sigma),
                                        maxPos);
                 }
               else
@@ -366,10 +366,10 @@ static int AddLinkToMaps(ScaffoldGraphT * graph,
         {
           if((isUnitig && getCIFragOrient(frag) == A_B &&
               frag->offset5p.mean <
-              length - dist->mean - CGW_CUTOFF * dist->stddev) ||
+              length - dist->mu - CGW_CUTOFF * dist->sigma) ||
              (!isUnitig && GetContigFragOrient(frag) == A_B &&
               frag->contigOffset5p.mean <
-              length - dist->mean - CGW_CUTOFF * dist->stddev))
+              length - dist->mu - CGW_CUTOFF * dist->sigma))
             {
               /*
                 --------->
@@ -382,14 +382,14 @@ static int AddLinkToMaps(ScaffoldGraphT * graph,
                                    ((isUnitig) ?
                                     frag->offset5p.mean :
                                     frag->contigOffset5p.mean) +
-                                   dist->mean + CGW_CUTOFF * dist->stddev);
+                                   dist->mu + CGW_CUTOFF * dist->sigma);
             }
           else if((isUnitig && getCIFragOrient(frag) == B_A &&
                    frag->offset5p.mean >
-                   dist->mean + CGW_CUTOFF * dist->stddev) ||
+                   dist->mu + CGW_CUTOFF * dist->sigma) ||
                   (!isUnitig && GetContigFragOrient(frag) == B_A &&
                    frag->contigOffset5p.mean >
-                   dist->mean + CGW_CUTOFF * dist->stddev))
+                   dist->mu + CGW_CUTOFF * dist->sigma))
             {
               /*
                 <----------
@@ -399,7 +399,7 @@ static int AddLinkToMaps(ScaffoldGraphT * graph,
                                    ((isUnitig) ?
                                     frag->offset5p.mean :
                                     frag->contigOffset5p.mean) -
-                                   dist->mean - CGW_CUTOFF * dist->stddev,
+                                   dist->mu - CGW_CUTOFF * dist->sigma,
                                    ((isUnitig) ?
                                     frag->offset5p.mean :
                                     frag->contigOffset5p.mean));
@@ -410,10 +410,10 @@ static int AddLinkToMaps(ScaffoldGraphT * graph,
           // outtie
           if((isUnitig && getCIFragOrient(frag) == B_A &&
               frag->offset5p.mean <
-              length - dist->mean - CGW_CUTOFF * dist->stddev) ||
+              length - dist->mu - CGW_CUTOFF * dist->sigma) ||
              (!isUnitig && GetContigFragOrient(frag) == B_A &&
               frag->contigOffset5p.mean <
-              length - dist->mean - CGW_CUTOFF * dist->stddev))
+              length - dist->mu - CGW_CUTOFF * dist->sigma))
             {
               /*
                 <----------
@@ -426,15 +426,15 @@ static int AddLinkToMaps(ScaffoldGraphT * graph,
                                    ((isUnitig) ?
                                     frag->offset5p.mean :
                                     frag->contigOffset5p.mean) +
-                                   dist->mean + CGW_CUTOFF * dist->stddev);
+                                   dist->mu + CGW_CUTOFF * dist->sigma);
                              
             }
           else if((isUnitig && getCIFragOrient(frag) == A_B &&
                    frag->offset5p.mean >
-                   dist->mean + CGW_CUTOFF * dist->stddev) ||
+                   dist->mu + CGW_CUTOFF * dist->sigma) ||
                   (!isUnitig && GetContigFragOrient(frag) == A_B &&
                    frag->contigOffset5p.mean >
-                   dist->mean + CGW_CUTOFF * dist->stddev))
+                   dist->mu + CGW_CUTOFF * dist->sigma))
             {
               /*
                 --------->
@@ -444,7 +444,7 @@ static int AddLinkToMaps(ScaffoldGraphT * graph,
                                    ((isUnitig) ?
                                     frag->offset5p.mean :
                                     frag->contigOffset5p.mean) -
-                                   dist->mean - CGW_CUTOFF * dist->stddev,
+                                   dist->mu - CGW_CUTOFF * dist->sigma,
                                    ((isUnitig) ?
                                     frag->offset5p.mean :
                                     frag->contigOffset5p.mean));
@@ -478,7 +478,7 @@ static int CreateCloneCoverageMaps(ScaffoldGraphT * graph,
       if(frag->flags.bits.hasMate > 0)
         {
           // get lone mate fragment
-          if(frag->mateOf != NULLINDEX && frag->linkType != AS_REREAD)
+          if(frag->mateOf != NULLINDEX && frag->flags.bits.linkType != AS_REREAD)
             {
               AddLinkToMaps(graph, gcc, bcc, frag,
                             GetCIFragT(graph->CIFrags, frag->mateOf),
@@ -1246,7 +1246,7 @@ int SplitInputUnitigs(ScaffoldGraphT * graph)
   for(i = 0; i < GetNumDistTs(graph->Dists); i++)
     {
       DistT * dptr = GetDistT(graph->Dists,i);
-      minLength = MIN(minLength,dptr->mean + CGW_CUTOFF * dptr->stddev);
+      minLength = MIN(minLength,dptr->mu + CGW_CUTOFF * dptr->sigma);
     }
 
 #ifdef DEBUG
@@ -1649,7 +1649,7 @@ VA_TYPE(SplitInterval) * DetectChimericChunksInGraph(ScaffoldGraphT * graph)
           if(frag->flags.bits.hasMate)
             {
               // get lone mate fragment
-              if(frag->mateOf != NULLINDEX && frag->linkType != AS_REREAD)
+              if(frag->mateOf != NULLINDEX && frag->flags.bits.linkType != AS_REREAD)
                 {
                   ProcessLinkForChimeraDetection(graph, frag,
                                                  GetCIFragT(graph->CIFrags,
