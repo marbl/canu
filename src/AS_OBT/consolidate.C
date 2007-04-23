@@ -18,8 +18,8 @@ extern "C" {
 //  sort the position values on the 5' end -- this sorts increasingly
 int
 position_compare5(const void *a, const void *b) {
-  u32bit  A = (u32bit)*((u32bit *)a);
-  u32bit  B = (u32bit)*((u32bit *)b);
+  uint32  A = (uint32)*((uint32 *)a);
+  uint32  B = (uint32)*((uint32 *)b);
 
   if (A < B)  return(-1);
   if (A > B)  return(1);
@@ -30,8 +30,8 @@ position_compare5(const void *a, const void *b) {
 //  sort the position values on the 3' end -- this sorts decreasingly
 int
 position_compare3(const void *a, const void *b) {
-  u32bit  A = (u32bit)*((u32bit *)a);
-  u32bit  B = (u32bit)*((u32bit *)b);
+  uint32  A = (uint32)*((uint32 *)a);
+  uint32  B = (uint32)*((uint32 *)b);
 
   if (A < B)  return(1);
   if (A > B)  return(-1);
@@ -40,10 +40,10 @@ position_compare3(const void *a, const void *b) {
 
 
 void
-sortAndOutput(u32bit fid, u32bit numOvl, u32bit *left, u32bit *right) {
+sortAndOutput(uint32 fid, uint32 numOvl, uint32 *left, uint32 *right) {
 
-  qsort(left,  numOvl, sizeof(u32bit), position_compare5);
-  qsort(right, numOvl, sizeof(u32bit), position_compare3);
+  qsort(left,  numOvl, sizeof(uint32), position_compare5);
+  qsort(right, numOvl, sizeof(uint32), position_compare3);
 
   //  XXX:  Print the 5' and 3' stuff
   //
@@ -61,8 +61,8 @@ sortAndOutput(u32bit fid, u32bit numOvl, u32bit *left, u32bit *right) {
   //  modeNt  -- temp copy of the mode
   //  modeNtc -- temp copy of the mode, number of times
   //
-  u32bit  min5, minm5, minm5c,  mode5, mode5c,  mode5t, mode5tc;
-  u32bit  max3, maxm3, maxm3c,  mode3, mode3c,  mode3t, mode3tc;
+  uint32  min5, minm5, minm5c,  mode5, mode5c,  mode5t, mode5tc;
+  uint32  max3, maxm3, maxm3c,  mode3, mode3c,  mode3t, mode3tc;
 
   min5 = left[0];
   max3 = right[0];
@@ -76,7 +76,7 @@ sortAndOutput(u32bit fid, u32bit numOvl, u32bit *left, u32bit *right) {
   mode5t = left[0];   mode5tc = 1;
   mode3t = right[0];  mode3tc = 1;
 
-  for (u32bit i=1; i<numOvl; i++) {
+  for (uint32 i=1; i<numOvl; i++) {
 
     //  5' end.  We scan the list, remembering the best mode
     //  we've seen so far.  When a better one arrives, we copy
@@ -125,7 +125,7 @@ sortAndOutput(u32bit fid, u32bit numOvl, u32bit *left, u32bit *right) {
 
   //  Output!
   //
-  fprintf(stdout, u32bitFMT"  "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT"  "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT"",
+  fprintf(stdout, F_U32"  "F_U32" "F_U32" "F_U32" "F_U32" "F_U32"  "F_U32" "F_U32" "F_U32" "F_U32" "F_U32"",
           fid,
           min5, minm5, minm5c, mode5, mode5c,
           max3, maxm3, maxm3c, mode3, mode3c);
@@ -133,9 +133,9 @@ sortAndOutput(u32bit fid, u32bit numOvl, u32bit *left, u32bit *right) {
   //  Save all the overlaps too
   //
 #if 0
-  fprintf(stdout, "  "u32bitFMT"", numOvl);
-  for (u32bit i=0; i<numOvl; i++)
-    fprintf(stdout, "  "u32bitFMT" "u32bitFMT"",
+  fprintf(stdout, "  "F_U32"", numOvl);
+  for (uint32 i=0; i<numOvl; i++)
+    fprintf(stdout, "  "F_U32" "F_U32"",
             left[i], right[i]);
 #endif
 
@@ -165,17 +165,13 @@ main(int argc, char **argv) {
   if ((ovs == NULL) || err)
     fprintf(stderr, "usage: %s [-v] -ovs obtStore > asm.ovl.consolidated\n", argv[0]), exit(1);
 
-  u32bit   idAlast     = 0;
-  u32bit   numOverlaps = 0;
-  u32bit  *left        = new u32bit [MAX_OVERLAPS_PER_FRAG];
-  u32bit  *right       = new u32bit [MAX_OVERLAPS_PER_FRAG];
-
-  speedCounter  *C = new speedCounter("%7.2f Moverlaps -- %5.2f Moverlaps/second\r",
-                                      1000000.0, 0x3ffff, beVerbose);
-  C->enableLiner();
+  uint32   idAlast     = 0;
+  uint32   numOverlaps = 0;
+  uint32  *left        = new uint32 [MAX_OVERLAPS_PER_FRAG];
+  uint32  *right       = new uint32 [MAX_OVERLAPS_PER_FRAG];
 
   while (AS_OVS_readOverlapFromStore(ovs, &ovl)) {
-    u64bit   wa, wb;
+    uint64   wa, wb;
 
     //  If we see a different idA than we had last time, process
     //  the previous read.
@@ -191,8 +187,6 @@ main(int argc, char **argv) {
     left[numOverlaps]  = ovl.dat.obt.a_beg;
     right[numOverlaps] = ovl.dat.obt.a_end;
     numOverlaps++;
-
-    C->tick();
   }
 
   //  Don't forget to do the last batch!

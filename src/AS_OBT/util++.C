@@ -106,8 +106,8 @@ intervalList::sort(void) {
 
 void
 intervalList::merge(void) {
-  u32bit  thisInterval  = 0;
-  u32bit  nextInterval = 1;
+  uint32  thisInterval  = 0;
+  uint32  nextInterval = 1;
 
   if (_listLen < 2)
     return;
@@ -175,12 +175,12 @@ intervalList::merge(void) {
 
 
 
-u32bit
+uint32
 intervalList::overlapping(intervalNumber    rangelo,
                           intervalNumber    rangehi,
-                          u32bit          *&intervals,
-                          u32bit           &intervalsLen,
-                          u32bit           &intervalsMax) {
+                          uint32          *&intervals,
+                          uint32           &intervalsLen,
+                          uint32           &intervalsMax) {
 
 
   //  XXX: Naive implementation that is easy to verify (and that works
@@ -188,18 +188,18 @@ intervalList::overlapping(intervalNumber    rangelo,
 
   if (intervals == 0L) {
     intervalsMax = 256;
-    intervals    = new u32bit [intervalsMax];
+    intervals    = new uint32 [intervalsMax];
   }
 
   intervalsLen = 0;
 
-  for (u32bit i=0; i<_listLen; i++) {
+  for (uint32 i=0; i<_listLen; i++) {
     if ((rangelo <= _list[i].hi) &&
         (rangehi >= _list[i].lo)) {
       if (intervalsLen >= intervalsMax) {
         intervalsMax *= 2;
-        u32bit *X = new u32bit [intervalsMax];
-        memcpy(X, intervals, sizeof(u32bit) * intervalsLen);
+        uint32 *X = new uint32 [intervalsMax];
+        memcpy(X, intervals, sizeof(uint32) * intervalsLen);
         delete [] intervals;
         intervals = X;
       }
@@ -209,77 +209,4 @@ intervalList::overlapping(intervalNumber    rangelo,
   }
 
   return(intervalsLen);
-}
-
-
-
-
-////////////////////////////////////////
-
-
-
-
-double
-getTime(void) {
-  struct timeval  tp;
-  gettimeofday(&tp, NULL);
-  return(tp.tv_sec + (double)tp.tv_usec / 1000000.0);
-}
-
-
-const char*
-speedCounter::_spinr[4] = { "[|]", "[/]", "[-]", "[\\]" };
-
-const char*
-speedCounter::_liner[19] = { "[-         ]",
-                             "[--        ]",
-                             "[ --       ]",
-                             "[  --      ]",
-                             "[   --     ]",
-                             "[    --    ]",
-                             "[     --   ]",
-                             "[      --  ]",
-                             "[       -- ]",
-                             "[        --]",
-                             "[         -]",
-                             "[        --]",
-                             "[       -- ]",
-                             "[      --  ]",
-                             "[     --   ]",
-                             "[    --    ]",
-                             "[   --     ]",
-                             "[  --      ]",
-                             "[ --       ]" };
-
-
-speedCounter::speedCounter(char const   *fmt,
-                           double        unit,
-                           u64bit        freq,
-                           bool          enabled) {
-  _count     = 0;
-  _draws     = 0;
-  _unit      = unit;
-  _freq      = freq;
-  _startTime = getTime();
-  _fmt       = fmt;
-  _spin      = false;
-  _line      = false;
-  _enabled   = enabled;
-
-  //  We use _draws instead of shifting _count just because it's
-  //  simpler, and both methods need another variable anyway.
-
-  //  Set all the bits below the hightest set in _freq --
-  //  this allows us to do a super-fast test in tick().
-  //
-  _freq |= _freq >> 1;
-  _freq |= _freq >> 2;
-  _freq |= _freq >> 4;
-  _freq |= _freq >> 8;
-  _freq |= _freq >> 16;
-  _freq |= _freq >> 32;
-}
-
-speedCounter::~speedCounter() {
-  finish();
 }

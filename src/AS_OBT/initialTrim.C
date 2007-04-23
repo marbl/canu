@@ -56,7 +56,7 @@ main(int argc, char **argv) {
   int arg = 1;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-quality", 2) == 0) {
-      minQuality = qual.lookupNumber(strtou32bit(argv[++arg], 0L));
+      minQuality = qual.lookupNumber(atoi(argv[++arg]));
     } else if (strncmp(argv[arg], "-vector", 2) == 0) {
       vectorFileName = argv[++arg];
     } else if (strncmp(argv[arg], "-immutable", 2) == 0) {
@@ -66,11 +66,6 @@ main(int argc, char **argv) {
       doUpdate = true;
     } else if (strncmp(argv[arg], "-replace", 2) == 0) {
       doReplace = true;
-
-    } else if (strncmp(argv[arg], "-memory", 2) == 0) {
-      ++arg;
-      //batchMemory = strtou32bit(argv[arg], 0L) * 1024 * 1024;
-      //batchSize   = batchMemory / sizeof();
 
     } else if (strncmp(argv[arg], "-log", 2) == 0) {
       errno=0;
@@ -93,46 +88,44 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  //srand48(time(NULL));
-
-  vectorMap  m;
-  m.readVectorMap(vectorFileName);
-  m.readImmutableMap(immutableFileName);
-
-  //  Open the store
-  //
   GateKeeperStore  *gkp = openGateKeeperStore(gkpStore, doUpdate);
   if (gkp == NULL) {
     fprintf(stderr, "Failed to open %s\n", gkpStore);
     exit(1);
   }
 
-  u32bit        firstElem = getFirstElemFragStore(gkp);
-  u32bit        lastElem  = getLastElemFragStore(gkp) + 1;
+  vectorMap  m(gkp);
+  m.readVectorMap(vectorFileName);
+  m.readImmutableMap(immutableFileName);
+
+
+  uint32        firstElem = getFirstElemFragStore(gkp);
+  uint32        lastElem  = getLastElemFragStore(gkp) + 1;
 
   fragRecord   *fr = new_fragRecord();
 
-  u32bit        qltL = 0;
-  u32bit        qltR = 0;
-  u32bit        vecL = 0;
-  u32bit        vecR = 0;
+  uint32        qltL = 0;
+  uint32        qltR = 0;
+  uint32        vecL = 0;
+  uint32        vecR = 0;
 
-  u32bit        stat_notPresent  = 0;
-  u32bit        stat_noIntersect = 0;
-  u32bit        stat_change      = 0;
-  u32bit        stat_noChange    = 0;
-  u32bit        stat_immutable   = 0;
+  uint32        stat_notPresent  = 0;
+  uint32        stat_noIntersect = 0;
+  uint32        stat_change      = 0;
+  uint32        stat_noChange    = 0;
+  uint32        stat_immutable   = 0;
 
-  for (u32bit elem=firstElem; elem<lastElem; elem++) {
-    u64bit uid = 0;
+  if (logFile)
+    fprintf(logFile, "uid,iid\torigL\torigR\tqltL\tqltR\tvecL\tvecR\tfinalL\tfinalR\tdeleted?\n");
 
-    getFrag(gkp, elem, fr, FRAG_S_INF | FRAG_S_SEQ | FRAG_S_QLT);
-    uid = getFragRecordUID(fr);
+  for (uint32 iid=firstElem; iid<lastElem; iid++) {
+
+    getFrag(gkp, iid, fr, FRAG_S_INF | FRAG_S_SEQ | FRAG_S_QLT);
 
     //  Bail now if we've been told to not modify this read.  We do
     //  not print a message in the log.
     //
-    if (m.exists(uid) && (m[uid].immutable == 1)) {
+    if (m[iid].immutable) {
       stat_immutable++;
       continue;
     }
@@ -143,10 +136,10 @@ main(int argc, char **argv) {
 
     //  Intersect with the vector clear range, if it exists
     //
-    if (!m.exists(uid) || (m[uid].hasVec == 0)) {
-      //  uid not present in our input list, do nothing.
+    if (m[iid].hasVec == 0) {
+      //  iid not present in our input list, do nothing.
       stat_notPresent++;
-    } else if ((m[uid].vecL > vecR) || (m[uid].vecR < vecL)) {
+    } else if ((m[iid].vecL > vecR) || (m[iid].vecR < vecL)) {
       //  don't intersect, we've already set vecL and vecR appropriately.
       stat_noIntersect++;
     } else {
@@ -154,13 +147,13 @@ main(int argc, char **argv) {
 
       bool changed = false;
 
-      if (vecL < m[uid].vecL) {
+      if (vecL < m[iid].vecL) {
         changed = true;
-        vecL = m[uid].vecL;
+        vecL = m[iid].vecL;
       }
-      if (m[uid].vecR < vecR) {
+      if (m[iid].vecR < vecR) {
         changed = true;
-        vecR = m[uid].vecR;
+        vecR = m[iid].vecR;
       }
 
       if (changed)
@@ -171,15 +164,17 @@ main(int argc, char **argv) {
 
 
     if (logFile) {
-      unsigned int      clrBeg = getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_ORIG);
-      unsigned int      clrEnd = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_ORIG);
-
-      fprintf(logFile, u64bitFMT","u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"%s\n",
-              uid, elem,
-              (u32bit)clrBeg, (u32bit)clrEnd,
-              qltL, qltR,
-              m[uid].vecL, m[uid].vecR,
-              vecL, vecR,
+      fprintf(logFile, F_U64","F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"%s\n",
+              getFragRecordUID(fr),
+              iid,
+              getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_ORIG),
+              getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_ORIG),
+              qltL,
+              qltR,
+              m[iid].vecL,
+              m[iid].vecR,
+              vecL,
+              vecR,
               ((vecL + AS_FRAG_MIN_LEN) > vecR) ? " (deleted)" : "");
     }
 
@@ -188,18 +183,18 @@ main(int argc, char **argv) {
 
     if (doUpdate) {
       setFragRecordClearRegion(fr, vecL, vecR, AS_READ_CLEAR_OBTINI);
-      setFrag(gkp, elem, fr);
+      setFrag(gkp, iid, fr);
 
       if ((vecL + AS_FRAG_MIN_LEN) > vecR)
-        delFrag(gkp, elem);
+        delFrag(gkp, iid);
     }
   }
 
   closeGateKeeperStore(gkp);
 
-  fprintf(stderr, "Fragments with no vector clear:  "u32bitFMT"\n", stat_notPresent);
-  fprintf(stderr, "Fragments with no intersection:  "u32bitFMT"\n", stat_noIntersect);
-  fprintf(stderr, "Fragments with vector trimmed:   "u32bitFMT"\n", stat_change);
-  fprintf(stderr, "Fragments low quality vector:    "u32bitFMT"\n", stat_noChange);
-  fprintf(stderr, "Fragments marked immutable:      "u32bitFMT"\n", stat_immutable);
+  fprintf(stderr, "Fragments with no vector clear:  "F_U32"\n", stat_notPresent);
+  fprintf(stderr, "Fragments with no intersection:  "F_U32"\n", stat_noIntersect);
+  fprintf(stderr, "Fragments with vector trimmed:   "F_U32"\n", stat_change);
+  fprintf(stderr, "Fragments low quality vector:    "F_U32"\n", stat_noChange);
+  fprintf(stderr, "Fragments marked immutable:      "F_U32"\n", stat_immutable);
 }

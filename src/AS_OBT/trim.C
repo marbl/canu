@@ -13,12 +13,12 @@ qualityLookup   qual;
 //  mergeTrimming.C want.
 //
 void
-doTrim(fragRecord *fr, double minQuality, u32bit &left, u32bit &right) {
+doTrim(fragRecord *fr, double minQuality, uint32 &left, uint32 &right) {
   static double  qltD[AS_READ_MAX_LEN];
   char          *qltC   = getFragRecordQuality(fr);
-  u32bit         qltLen = getFragRecordQualityLength(fr);
+  uint32         qltLen = getFragRecordQualityLength(fr);
 
-  for (u32bit i=0; i<qltLen; i++)
+  for (uint32 i=0; i<qltLen; i++)
     qltD[i] = qual.lookupChar(qltC[i]);
 
   findGoodQuality(qltD, qltLen, minQuality, left, right);
@@ -28,23 +28,23 @@ doTrim(fragRecord *fr, double minQuality, u32bit &left, u32bit &right) {
 
 void
 findGoodQuality(double  *qltD,
-                u32bit   qltLen,
+                uint32   qltLen,
                 double   minQuality,
-                u32bit  &qltL,
-                u32bit  &qltR) {
+                uint32  &qltL,
+                uint32  &qltR) {
 
   struct pair {
-    u32bit     start;
-    u32bit     end;
+    uint32     start;
+    uint32     end;
   };
 
   pair     f[AS_READ_MAX_LEN];  //  forward scan ranges
   pair     r[AS_READ_MAX_LEN];  //  reverse scan ranges
 
-  u32bit   fpos=0, flen=0;
-  u32bit   rpos=0, rlen=0;
+  uint32   fpos=0, flen=0;
+  uint32   rpos=0, rlen=0;
 
-  u32bit   p = 0;
+  uint32   p = 0;
   double   q = 0;
 
 
@@ -80,7 +80,7 @@ findGoodQuality(double  *qltD,
 
   //  Scan backward, just like the forward.
   //
-  //  Stung by using u32bit for p; p is one more than it wants to be.
+  //  Stung by using uint32 for p; p is one more than it wants to be.
   //  Although, to be fair, there are just about as many cases of p+1
   //  as p below.
   //
@@ -119,11 +119,11 @@ findGoodQuality(double  *qltD,
   flen = fpos;
   rlen = rpos;
 
-  //fprintf(stderr, "qltLen = "u32bitFMT"  flen="u32bitFMT"  rlen="u32bitFMT"\n", qltLen, flen, rlen);
+  //fprintf(stderr, "qltLen = "uint32FMT"  flen="uint32FMT"  rlen="uint32FMT"\n", qltLen, flen, rlen);
 
-  u32bit   winningFPos  = 0;
-  u32bit   winningRPos  = 0;
-  u32bit   winningStyle = 0;
+  uint32   winningFPos  = 0;
+  uint32   winningRPos  = 0;
+  uint32   winningStyle = 0;
 
   for (fpos=0; fpos<flen; fpos++) {
     for (rpos=0; rpos<rlen; rpos++) {
@@ -198,7 +198,7 @@ findGoodQuality(double  *qltD,
       }
 
       else {
-        fprintf(stderr, "UNMATCHED OVERLAP "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
+        fprintf(stderr, "UNMATCHED OVERLAP\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\n",
                 f[fpos].start, f[fpos].end, r[rpos].start, r[rpos].end);
       }
     }
@@ -208,29 +208,29 @@ findGoodQuality(double  *qltD,
   //  Statistics - do we care?  Not really.  It's mostly for debugging stuff.
   //  (the variables should be globals...)
   //
-  u32bit   overlapA = 0;  //  The winning style of overlap
-  u32bit   overlapB = 0;
-  u32bit   overlapC = 0;
-  u32bit   overlapD = 0;
+  uint32   overlapA = 0;  //  The winning style of overlap
+  uint32   overlapB = 0;
+  uint32   overlapC = 0;
+  uint32   overlapD = 0;
 
   switch (winningStyle) {
     case 0:
       overlapA++;
       break;
     case 1:
-      fprintf(stderr, "overlapB:  "u32bitFMTW(4)"-"u32bitFMTW(4)"  "u32bitFMTW(4)"-"u32bitFMTW(4)"\n",
+      fprintf(stderr, "overlapB\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\n",
               f[winningFPos].start, f[winningFPos].end,
               r[winningRPos].start, r[winningRPos].end);
       overlapB++;
       break;
     case 2:
-      fprintf(stderr, "overlapC:  "u32bitFMTW(4)"-"u32bitFMTW(4)"  "u32bitFMTW(4)"-"u32bitFMTW(4)"\n",
+      fprintf(stderr, "overlapC\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\n",
               f[winningFPos].start, f[winningFPos].end,
               r[winningRPos].start, r[winningRPos].end);
       overlapC++;
       break;
     case 3:
-      fprintf(stderr, "overlapD:  "u32bitFMTW(4)"-"u32bitFMTW(4)"  "u32bitFMTW(4)"-"u32bitFMTW(4)"\n",
+      fprintf(stderr, "overlapD\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\n",
               f[winningFPos].start, f[winningFPos].end,
               r[winningRPos].start, r[winningRPos].end);
       overlapD++;

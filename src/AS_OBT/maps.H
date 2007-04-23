@@ -4,9 +4,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-using namespace std;
-#include <map>
-
 #include "util++.H"
 
 class vectorInfo {
@@ -18,28 +15,30 @@ public:
     immutable = 0;
   };
 
-  u32bit  vecL      : 12;
-  u32bit  vecR      : 12;
-  u32bit  hasVec    : 1;
-  u32bit  immutable : 1;
+  uint32  vecL      : 12;
+  uint32  vecR      : 12;
+  uint32  hasVec    : 1;
+  uint32  immutable : 1;
 };
 
 
 class vectorMap {
 public:
-  vectorMap() {};
-  ~vectorMap() {};
-
-private:
-  map<u64bit, vectorInfo>  m;
-
-public:
-  vectorInfo &operator[](u64bit uid) {
-    return(m[uid]);
+  vectorMap(GateKeeperStore *gkp) {
+    _gkp = gkp;
+    _inf = new vectorInfo [getLastElemFragStore(_gkp) + 1];
+  };
+  ~vectorMap() {
+    delete [] _inf;
   };
 
-  bool        exists(u64bit uid) {
-    return(m.find(uid) != m.end());
+private:
+  GateKeeperStore          *_gkp;
+  vectorInfo               *_inf;
+
+public:
+  vectorInfo &operator[](uint32 iid) {
+    return(_inf[iid]);
   };
 
 public:
@@ -63,28 +62,25 @@ public:
         fprintf(stderr, "readVectorMap()-- Invalid line '%s'\n", intLine);
         fatal = true;
       } else {
+        CDS_UID_t      uid  = STR_TO_UID(W[0], 0L, 10);
+        PHashValue_AS  value;
 
-        //  These look base-based!
+        //  If the UID exists, set the values
+        if (HASH_FAILURE != getGatekeeperUIDtoIID(_gkp, uid, &value)) {
+          uint32 iid = value.IID;
 
-        u64bit  uid  = strtou64bit(W[0], 0L);
-        u32bit  intl = strtou32bit(W[1], 0L) - 1;
-        u32bit  intr = strtou32bit(W[2], 0L);
+          //  These look base-based!
+          _inf[iid].vecL   = atoi(W[1]) - 1;
+          _inf[iid].vecR   = atoi(W[2]);
+          _inf[iid].hasVec = 1;
 
-        //  Silently swap, if needed
-
-        if (intl > intr) {
-          u32bit  s = intl;
-          intl = intr;
-          intr = s;
+          //  Silently swap, if needed
+          if (_inf[iid].vecL > _inf[iid].vecR) {
+            uint32       s = _inf[iid].vecL;
+            _inf[iid].vecL = _inf[iid].vecR;
+            _inf[iid].vecR = s;
+          }
         }
-
-        vectorInfo v;
-        v.vecL      = intl;
-        v.vecR      = intr;
-        v.hasVec    = 1;
-        v.immutable = 0;
-
-        m[uid] = v;
       }
 
       fgets(intLine, 1024, intFile);
@@ -117,8 +113,11 @@ public:
         fprintf(stderr, "readImmutableMap()-- Invalid line '%s'\n", intLine);
         fatal = true;
       } else {
-        u64bit  uid  = strtou64bit(W[0], 0L);
-        m[uid].immutable = 1;
+        CDS_UID_t      uid  = STR_TO_UID(W[0], 0L, 10);
+        PHashValue_AS  value;
+
+        if (HASH_FAILURE != getGatekeeperUIDtoIID(_gkp, uid, &value))
+          _inf[value.IID].immutable = 1;
       }
 
       fgets(intLine, 1024, intFile);

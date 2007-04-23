@@ -15,14 +15,14 @@ extern "C" {
 
 void  doTrim(fragRecord *fr,
              double      minQuality,
-             u32bit     &left,
-             u32bit     &right);
+             uint32     &left,
+             uint32     &right);
 
 void  findGoodQuality(double *qltD,
-                      u32bit  qltLen,
+                      uint32  qltLen,
                       double  minQuality,
-                      u32bit &qltL,
-                      u32bit &qltR);
+                      uint32 &qltL,
+                      uint32 &qltR);
 
 //  A simple initialized array -- performs a quality letter -> quality
 //  value translation.
@@ -30,19 +30,19 @@ void  findGoodQuality(double *qltD,
 class qualityLookup {
 public:
   qualityLookup() {
-    for (u32bit i=0; i<='0'; i++)
+    for (uint32 i=0; i<='0'; i++)
       q[i] = 1.0;
 
-    for (u32bit i='1'; i<255; i++)
+    for (uint32 i='1'; i<255; i++)
       q[i] = 1 / pow(10, (i - '0') / 10.0);
   };
   ~qualityLookup() {
   };
 
   double lookupChar(char x) {
-    return(q[(u32bit)x]);
+    return(q[(uint32)x]);
   };
-  double lookupNumber(u32bit x) {
+  double lookupNumber(uint32 x) {
     return(q['0' + x]);
   };
 

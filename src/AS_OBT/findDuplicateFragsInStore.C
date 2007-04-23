@@ -16,11 +16,11 @@ usage(char *name) {
 //  12 bytes per frag, 25,000,000 frags will need about 300MB to run.
 //
 struct fragHash {
-  u64bit    hash;
-  u32bit    iid;
-  u32bit    mate;
-  u32bit    dupcount:8;
-  u32bit    killme:1;
+  uint64    hash;
+  uint32    iid;
+  uint32    mate;
+  uint32    dupcount:8;
+  uint32    killme:1;
 };
 
 
@@ -70,8 +70,8 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  u32bit   firstElem = getFirstElemFragStore(gkp);
-  u32bit   lastElem  = getLastElemFragStore(gkp) + 1;
+  uint32   firstElem = getFirstElemFragStore(gkp);
+  uint32   lastElem  = getLastElemFragStore(gkp) + 1;
 
   fragRecord       *fr1 = new_fragRecord();
   fragRecord       *fr2 = new_fragRecord();
@@ -79,7 +79,7 @@ main(int argc, char **argv) {
   ////////////////////////////////////////
 
   fragHash   *fh = new fragHash [lastElem - firstElem + 1];
-  u32bit      seqMax = 10240;
+  uint32      seqMax = 10240;
   char       *seq1   = NULL;
   char       *qlt1   = NULL;
   char       *seq2   = NULL;
@@ -87,25 +87,25 @@ main(int argc, char **argv) {
 
   ////////////////////////////////////////
 
-  fprintf(stderr, "Read "u32bitFMT" fragments to build hashes.\n", lastElem - firstElem + 1);
+  fprintf(stderr, "Read "F_U32" fragments to build hashes.\n", lastElem - firstElem + 1);
 
-  for (u32bit elem=firstElem; elem<lastElem; elem++) {
+  for (uint32 elem=firstElem; elem<lastElem; elem++) {
     getFrag(gkp, elem, fr1, FRAG_S_SEQ);
     seq1 = getFragRecordSequence(fr1);
 
-    u32bit seqLen   = getFragRecordSequenceLength(fr1);
-    u64bit hash     = 0;
-    u32bit map[256] = { 0 };
+    uint32 seqLen   = getFragRecordSequenceLength(fr1);
+    uint64 hash     = 0;
+    uint32 map[256] = { 0 };
 
-    for (u32bit s=0; s<256; s++)
+    for (uint32 s=0; s<256; s++)
       map[s] = 1;
     map['A'] = map['a'] = 2;
     map['C'] = map['c'] = 3;
     map['G'] = map['g'] = 4;
     map['T'] = map['t'] = 5;
 
-    for (u64bit s=0; s<seqLen; s++) {
-      hash  ^= s * (u64bit)(map[seq1[s]]) * (u64bit)(qlt1[s] - '0');
+    for (uint64 s=0; s<seqLen; s++) {
+      hash  ^= s * (uint64)(map[seq1[s]]) * (uint64)(qlt1[s] - '0');
       hash   = (hash << 5) | (hash >> 59);
     }
 
@@ -126,20 +126,20 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "Examine hashes to find collisiosn.\n");
 
-  u32bit   reallyDup;
-  u32bit   hashCollisions = 0;
-  u32bit   realCollisions = 0;
-  u32bit   maxDup         = 0;
+  uint32   reallyDup;
+  uint32   hashCollisions = 0;
+  uint32   realCollisions = 0;
+  uint32   maxDup         = 0;
 
-  for (u32bit elem=1; elem<lastElem; elem++) {
+  for (uint32 elem=1; elem<lastElem; elem++) {
     if (fh[elem-1].hash == fh[elem].hash) {
       hashCollisions++;
     }
   }
 
-  fprintf(stderr, "Found "u32bitFMT" hash collisions, examining.\n", hashCollisions);
+  fprintf(stderr, "Found "F_U32" hash collisions, examining.\n", hashCollisions);
 
-  for (u32bit elem=1; elem<lastElem; elem++) {
+  for (uint32 elem=1; elem<lastElem; elem++) {
     if (fh[elem-1].hash == fh[elem].hash) {
 
       //  Grab those two fragments, compare sequence and quality directly
@@ -161,26 +161,26 @@ main(int argc, char **argv) {
         if (maxDup < fh[elem-1].dupcount)  maxDup = fh[elem-1].dupcount;
         if (maxDup < fh[elem].dupcount)  maxDup = fh[elem].dupcount;
 
-        //fprintf(stderr, "Dup "u32bitFMT" <-> "u32bitFMT" ("u32bitFMT" hash collisions, "u32bitFMT" real collisions.)\n",
+        //fprintf(stderr, "Dup "F_U32" <-> "F_U32" ("F_U32" hash collisions, "F_U32" real collisions.)\n",
         //        fh[elem-1].iid, fh[elem].iid, hashCollisions, realCollisions);
 
         uint64 uid1=0, uid2=0;
         uid1 = getFragRecordUID(fr1);
         uid2 = getFragRecordUID(fr2);
 
-        fprintf(stdout, u64bitFMT","u64bitFMT"\n", uid1, uid2);
+        fprintf(stdout, F_U64","F_U64"\n", uid1, uid2);
       }
     }
   }
 
-  fprintf(stderr, "Found "u32bitFMT" real collisions (maximum duplication "u32bitFMT").\n",
+  fprintf(stderr, "Found "F_U32" real collisions (maximum duplication "F_U32").\n",
           realCollisions, maxDup);
 
   ////////////////////////////////////////
 
   fprintf(stderr, "Examine collisions to remove duplicates.\n");
 
-  for (u32bit elem=1; elem<lastElem; elem++) {
+  for (uint32 elem=1; elem<lastElem; elem++) {
     if (fh[elem-1].hash == fh[elem].hash) {
 
       if ((fh[elem-1].dupcount == 1) && (fh[elem].dupcount == 1)) {
