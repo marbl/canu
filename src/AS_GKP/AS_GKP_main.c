@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.30 2007-04-20 08:57:36 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.31 2007-04-23 15:20:10 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -501,11 +501,13 @@ main(int argc, char **argv) {
 #endif
 
       if (pmesg->t == MESG_BAT) {
+#if 0
         if (GATEKEEPER_SUCCESS != Check_BatchMesg((BatchMesg *)pmesg->m, &currentBatchID, time(0), verbose)) {
           fprintf(stderr,"# Invalid BAT message at Line %d of input...exiting\n", GetProtoLineNum_AS());
           WriteProtoMesg_AS(stderr,pmesg);
           return GATEKEEPER_FAILURE;
         }
+#endif
 
       } else if (pmesg->t == MESG_DST) {
         if (GATEKEEPER_SUCCESS != Check_DistanceMesg((DistanceMesg *)pmesg->m, currentBatchID, verbose)){
