@@ -25,11 +25,6 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-DEADSOURCES = extract_component.c \
-          extract_from_uids.c \
-          extract_multiple.c \
-          extract_fraction.c
-
 SOURCES = AS_CVT_hashtable.c AS_CVT_uid_interface.c \
           make_cns_list.c make_range_file.c \
 	  ASMData.c asm2asmStore.c dumpClones.c \
@@ -46,11 +41,6 @@ SOURCES = AS_CVT_hashtable.c AS_CVT_uid_interface.c \
 OBJECTS = $(SOURCES:.c=.o)
 
 LIBRARIES = 
-
-DEADPROGS = extract_component \
-	extract_from_uids \
-        extract_multiple \
-        extract_fraction
 
 PROGS = make_cns_list make_range_file \
 	asm2asmStore dumpClones \
@@ -160,21 +150,6 @@ dumpSurrogateFrags: dumpSurrogateFrags.o ASMData.o \
 	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 dumpMultiInstanceFrags: dumpMultiInstanceFrags.o ASMData.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a
-
-extract_fraction: extract_fraction.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a
-
-extract_multiple: extract_multiple.o \
-	AS_CVT_hashtable.o AS_CVT_uid_interface.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a
-
-extract_component: extract_component.o \
-	AS_CVT_hashtable.o AS_CVT_uid_interface.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a
-
-extract_from_uids: extract_from_uids.o \
-	AS_CVT_hashtable.o AS_CVT_uid_interface.o \
 	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 make_cns_list: make_cns_list.o \
