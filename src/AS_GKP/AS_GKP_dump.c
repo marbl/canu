@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_dump.c,v 1.13 2007-04-23 22:21:59 brianwalenz Exp $ */
+/* $Id: AS_GKP_dump.c,v 1.14 2007-04-25 11:24:39 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -435,18 +435,33 @@ dumpGateKeeperAsOFG(char       *gkpStoreName) {
 
 
 void
-dumpGateKeeperAsFRG(char       *gkpStoreName) {
+dumpGateKeeperAsFRG(char       *gkpStoreName,
+                    int         dumpFormat,
+                    CDS_IID_t   begIID,
+                    CDS_IID_t   endIID,
+                    char       *iidToDump,
+                    int         doNotFixMates,
+                    int         dumpFRGClear) {
   fragRecord       *fr = new_fragRecord();
+  FragStream       *fs = NULL;
+  StoreStat         stat;
+
   unsigned int      firstElem = 0;
   unsigned int      lastElem = 0;
 
   GenericMesg       pmesg;
-  FragMesg          fmesg;
 
-  fprintf(stderr, "WARNING:  dumpGateKeeperAsFRG isn't fully implemented.\n");
+  LibraryMesg       libMesg;
+  DistanceMesg      dstMesg;
+  FragMesg          frgMesg;
+  LinkMesg          lnkMesg;
 
-  pmesg.m = &fmesg;
-  pmesg.t = MESG_FRG;
+  int               i;
+
+  int              *libToDump;
+  CDS_UID_t        *libUID;
+  CDS_UID_t        *frgUID;
+  int               mateAdded = 0;
 
   GateKeeperStore   *gkp = openGateKeeperStore(gkpStoreName, FALSE);
   if (gkp == NULL) {
@@ -454,25 +469,153 @@ dumpGateKeeperAsFRG(char       *gkpStoreName) {
     exit(1);
   }
 
-  firstElem = getFirstElemFragStore(gkp);
-  lastElem  = getLastElemFragStore(gkp) + 1;
+  statsStore(gkp->frg, &stat);
 
-  for (; firstElem < lastElem; firstElem++) {
-    getFrag(gkp, firstElem, fr, FRAG_S_ALL);
+  if (begIID < stat.firstElem)
+    begIID = stat.firstElem;
+  if (stat.lastElem < endIID)
+    endIID = stat.lastElem;
 
-    fmesg.action        = AS_ADD;
-    fmesg.eaccession    = getFragRecordUID(fr);
-    fmesg.type          = AS_READ;
-    fmesg.entry_time    = 0;
-    fmesg.clear_rng.bgn = getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_ORIG);
-    fmesg.clear_rng.end = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_ORIG);
-    fmesg.source        = getFragRecordSource(fr);
-    fmesg.sequence      = getFragRecordSequence(fr);
-    fmesg.quality       = getFragRecordQuality(fr);
-    fmesg.iaccession    = firstElem;
-
-    WriteProtoMesg_AS(stdout, &pmesg);
+  if (iidToDump == NULL) {
+    iidToDump = (char *)safe_calloc(stat.lastElem+1, sizeof(char));
+    for (i=begIID; i<endIID; i++)
+      iidToDump[i] = 1;
   }
+
+  //  Pass 1: Scan the fragments, build a list of libraries to dump,
+  //  also add in any mates that were omitted from the input.
+
+  fprintf(stderr, "Scanning store to find libraries used.\n");
+
+  statsStore(gkp->lib, &stat);
+
+  libToDump = (int       *)safe_calloc(stat.lastElem+1, sizeof(int));
+  libUID    = (CDS_UID_t *)safe_calloc(stat.lastElem+1, sizeof(CDS_UID_t));
+  frgUID    = (CDS_UID_t *)safe_calloc(endIID+1, sizeof(CDS_UID_t));
+
+  fs = openFragStream(gkp, FRAG_S_INF);
+  resetFragStream(fs, begIID, endIID);
+
+  while (nextFragStream(fs, fr)) {
+    frgUID[getFragRecordIID(fr)] = getFragRecordUID(fr);
+
+    if (iidToDump[getFragRecordIID(fr)]) {
+      libToDump[getFragRecordLibraryIID(fr)]++;
+
+      if (iidToDump[getFragRecordMateIID(fr)] == 0) {
+        mateAdded++;
+        if (doNotFixMates == 0)
+          iidToDump[getFragRecordMateIID(fr)] = 1;
+      }
+    }
+  }
+
+  fprintf(stderr, "%sdded %d reads to maintain mate relationships.\n",
+          (doNotFixMates) ? "Would have a" : "A", mateAdded);
+
+  for (i=1; i<stat.lastElem+1; i++)
+    fprintf(stderr, "Dumping %d fragments from library IID %d\n", libToDump[i], i);
+
+  //  Dump libraries.
+  //
+  for (i=0; i<=stat.lastElem; i++) {
+    if (libToDump[i]) {
+      GateKeeperLibraryRecord gkpl;
+
+      getGateKeeperLibraryStore(gkp->lib, i, &gkpl);
+
+      libUID[i] = gkpl.libraryUID;
+
+      if (dumpFormat == 1) {
+        DistanceMesg  dmesg;
+
+        pmesg.m = &dmesg;
+        pmesg.t = MESG_DST;
+
+        dmesg.action     = AS_ADD;
+        dmesg.eaccession = gkpl.libraryUID;
+        dmesg.mean       = gkpl.mean;
+        dmesg.stddev     = gkpl.stddev;
+      } else {
+        LibraryMesg  lmesg;
+
+        pmesg.m = &lmesg;
+        pmesg.t = MESG_LIB;
+
+        lmesg.action       = AS_ADD;
+        lmesg.eaccession   = gkpl.libraryUID;
+        lmesg.mean         = gkpl.mean;
+        lmesg.stddev       = gkpl.stddev;
+        lmesg.entry_time   = gkpl.created;
+        lmesg.source       = gkpl.comment;
+        lmesg.link_orient  = AS_READ_ORIENT_NAMES[gkpl.orientation][0];
+        lmesg.num_features = 0;
+        lmesg.features     = NULL;
+        lmesg.values       = NULL;
+      }
+
+      WriteProtoMesg_AS(stdout, &pmesg);
+    }
+  }
+  closeFragStream(fs);
+
+
+  //  Dump fragments -- as soon as both reads in a mate are defined,
+  //  we dump the mate relationship.
+  //
+  fs = openFragStream(gkp, FRAG_S_ALL);
+  resetFragStream(fs, begIID, endIID);
+
+  while (nextFragStream(fs, fr)) {
+    FragMesg  fmesg;
+    LinkMesg  lmesg;
+
+    if (iidToDump[getFragRecordIID(fr)]) {
+      pmesg.m = &fmesg;
+      pmesg.t = MESG_FRG;
+
+      fmesg.action          = AS_ADD;
+      fmesg.eaccession      = getFragRecordUID(fr);
+      fmesg.library_uid     = libUID[getFragRecordLibraryIID(fr)];
+      fmesg.library_iid     = getFragRecordLibraryIID(fr);
+      fmesg.plate_uid       = fr->gkfr.plateUID;
+      fmesg.plate_location  = fr->gkfr.plateLocation;
+      fmesg.type            = AS_READ;
+      fmesg.is_random       = (getFragRecordIsNonRandom(fr)) ? 0 : 1;
+      fmesg.status_code     = AS_READ_STATUS_NAMES[fr->gkfr.status][0];
+      fmesg.entry_time      = 0;
+      fmesg.clear_rng.bgn   = getFragRecordClearRegionBegin(fr, dumpFRGClear);
+      fmesg.clear_rng.end   = getFragRecordClearRegionEnd  (fr, dumpFRGClear);
+      fmesg.clear_vec.bgn   = getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_VEC);
+      fmesg.clear_vec.end   = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_VEC);
+      fmesg.clear_qlt.bgn   = getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_QLT);
+      fmesg.clear_qlt.end   = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_QLT);
+      fmesg.source          = getFragRecordSource(fr);
+      fmesg.sequence        = getFragRecordSequence(fr);
+      fmesg.quality         = getFragRecordQuality(fr);
+      fmesg.hps             = getFragRecordHPS(fr);
+      fmesg.iaccession      = firstElem;
+
+      WriteProtoMesg_AS(stdout, &pmesg);
+
+      if ((getFragRecordMateIID(fr) > 0) &&
+          (getFragRecordMateIID(fr) < getFragRecordIID(fr))) {
+        pmesg.m = &lmesg;
+        pmesg.t = MESG_LKG;
+
+        lmesg.action      = AS_ADD;
+        lmesg.type        = AS_MATE;
+        lmesg.entry_time  = 0;
+        lmesg.link_orient = AS_READ_ORIENT_NAMES[fr->gkfr.orientation][0];
+        lmesg.frag1       = frgUID[getFragRecordMateIID(fr)];
+        lmesg.frag2       = getFragRecordUID(fr);
+        lmesg.distance    = libUID[getFragRecordLibraryIID(fr)];
+
+        WriteProtoMesg_AS(stdout, &pmesg);
+      }
+    }
+  }
+  closeFragStream(fs);
 
   del_fragRecord(fr);
   closeGateKeeperStore(gkp);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.31 2007-04-23 15:20:10 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.32 2007-04-25 11:24:39 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -127,7 +127,7 @@ usage(char *filename) {
   fprintf(stderr, "usage2: %s -P partitionfile gkpStore\n", filename);
   fprintf(stderr, "usage3: %s [dump-options] gkpStore\n", filename);
   fprintf(stderr, "\n");
-  fprintf(stderr, "The first form will append to or create a GateKeeper store:\n");
+  fprintf(stderr, "The first usage will append to or create a GateKeeper store:\n");
   fprintf(stderr, "  -a                     append to existing tore\n");
   fprintf(stderr, "  -e <errorThreshhold>   set error threshhold\n");
   fprintf(stderr, "  -o <gkpStore>          append to or create gkpStore\n");
@@ -138,19 +138,21 @@ usage(char *filename) {
   fprintf(stderr, "  -Q                     don't check quality-based data quality\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "\n");
-  fprintf(stderr, "The second form will partition an existing store, allowing\n");
+  fprintf(stderr, "The second usage will partition an existing store, allowing\n");
   fprintf(stderr, "the entire store partition to be loaded into memory.\n");
   fprintf(stderr, "  -P <partitionfile>     a list of (partition fragiid)\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "\n");
-  fprintf(stderr, "The third form will dump the contents of a GateKeeper store.\n");
+  fprintf(stderr, "The third usage will dump the contents of a GateKeeper store.\n");
   fprintf(stderr, "  -b <begin-iid>         dump starting at this batch, library or read (1)\n");
   fprintf(stderr, "  -e <ending-iid>        dump stopping after this iid (1)\n");
   fprintf(stderr, "  -uid <uid-file>        dump only objects listed in 'uid-file' (1)\n");
   fprintf(stderr, "  -iid <iid-file>        dump only objects listed in 'iid-file' (1)\n");
+  fprintf(stderr, "\n");
   fprintf(stderr, "  -tabular               dump info, batches, libraries or fragments in a tabular\n");
   fprintf(stderr, "                         format (for -dumpinfo, -dumpbatch, -dumplibraries,\n");
   fprintf(stderr, "                         and -dumpfragments, ignores -withsequence and -clear)\n");
+  fprintf(stderr, "\n");
   fprintf(stderr, "  -dumpinfo              print information on the store\n");
   fprintf(stderr, "    -lastfragiid         just print the last IID in the store\n");
   fprintf(stderr, "  -dumpbatch             dump all batch records\n");
@@ -162,8 +164,11 @@ usage(char *filename) {
   fprintf(stderr, "    -allreads              ...all reads, regardless of deletion status\n");
   fprintf(stderr, "    -decoded               ...quality as integers ('20 21 19')\n");
   fprintf(stderr, "    -clear <clr>           ...in clear range <clr>, default=LATEST\n");
-  fprintf(stderr, "  -dumpfrg               reproduce the input fragment file\n");
-  fprintf(stderr, "  -dumpofg               generate OverlapFragMessages, for unitigger\n");
+  fprintf(stderr, "  -dumpfrg               extract LIB, FRG and LKG messages\n");
+  fprintf(stderr, "    -donotfixmates         ...only extract the fragments given, do not add in\n");
+  fprintf(stderr, "                              missing mated reads\n");
+  fprintf(stderr, "    -clear <clr>           ...use clear range <clr>, default=ORIG\n");
+  fprintf(stderr, "  -dumpofg               extract OFG (for unitigger)\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "  (1) - must have a -dump option, e.g., -uid file -tabular -dumpfragments some.gkpStore\n");
   fprintf(stderr, "\n");
@@ -213,8 +218,10 @@ main(int argc, char **argv) {
   int              dumpWithSequence  = 0;
   int              dumpFastaAllReads = 0;
   int              dumpClear         = AS_READ_CLEAR_UNTRIM;
+  int              dumpFRGClear      = AS_READ_CLEAR_ORIG;
   int              dumpFastaClear    = AS_READ_CLEAR_LATEST;
   int              dumpFastaQuality  = 0;
+  int              doNotFixMates     = 0;
 
   char            *iidToDump         = NULL;
 
@@ -274,6 +281,7 @@ main(int argc, char **argv) {
       dumpWithSequence = 1;
     } else if (strcmp(argv[arg], "-clear") == 0) {
       dumpClear      = AS_PER_decodeClearRangeLabel(argv[++arg]);
+      dumpFRGClear   = dumpClear;
       dumpFastaClear = dumpClear;
     } else if (strcmp(argv[arg], "-dumpfastaseq") == 0) {
       dump = DUMP_FASTA;
@@ -287,6 +295,8 @@ main(int argc, char **argv) {
       dumpFastaQuality = 2;
     } else if (strcmp(argv[arg], "-dumpfrg") == 0) {
       dump = DUMP_FRG;
+    } else if (strcmp(argv[arg], "-donotfixmates") == 0) {
+      doNotFixMates = 1;
     } else if (strcmp(argv[arg], "-dumpofg") == 0) {
       dump = DUMP_OFG;
 
@@ -413,7 +423,9 @@ main(int argc, char **argv) {
         dumpGateKeeperAsOFG(gkpStoreName);
         break;
       case DUMP_FRG:
-        dumpGateKeeperAsFRG(gkpStoreName);
+        dumpGateKeeperAsFRG(gkpStoreName, 1, begIID, endIID, iidToDump,
+                            doNotFixMates,
+                            dumpFRGClear);
         break;
       case DUMP_LASTFRG:
         {
