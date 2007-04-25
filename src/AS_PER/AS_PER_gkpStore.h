@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.31 2007-04-23 22:21:59 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.32 2007-04-25 12:05:23 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -171,10 +171,10 @@ static const char *AS_READ_STATUS_NAMES[9] = {
 
 //  These are private to AS_PER.  Please don't use!
 #define AS_READ_CLEAR_NUMREAL  (AS_READ_CLEAR_LATEST + 1)
-#define AS_READ_CLEAR_NUMVIRT  1
+#define AS_READ_CLEAR_NUMVIRT  2
 
 static const char *AS_READ_CLEAR_NAMES[AS_READ_CLEAR_NUMREAL + AS_READ_CLEAR_NUMVIRT] = {
-  "ORIG", "QLT", "VEC", "OBTINI", "OBT", "UTG", "ECR1", "ECR2", "UNTRIM"
+  "ORIG", "QLT", "VEC", "OBTINI", "OBT", "UTG", "ECR1", "ECR2", "UNTRIM", "LATEST"
 };
 
 static
@@ -183,8 +183,11 @@ AS_PER_decodeClearRangeLabel(const char *label) {
   uint32 clr = AS_READ_CLEAR_LATEST;
 
   for (clr=0; clr<AS_READ_CLEAR_NUMREAL + AS_READ_CLEAR_NUMVIRT; clr++)
-    if (strcasecmp(label, AS_READ_CLEAR_NAMES[clr]) == 0)
+    if (strcasecmp(label, AS_READ_CLEAR_NAMES[clr]) == 0) {
+      if (clr == AS_READ_CLEAR_NUMREAL + AS_READ_CLEAR_NUMVIRT - 1)
+        clr = AS_READ_CLEAR_LATEST;
       return(clr);
+    }
 
   fprintf(stderr, "AS_PER_decodeClearRangeLabel()-- unknown clear range label '%s'\n", label);
   fprintf(stderr, "AS_PER_decodeClearRangeLabel()-- valid labels are:\n");
