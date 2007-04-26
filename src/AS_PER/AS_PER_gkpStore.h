@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.32 2007-04-25 12:05:23 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.33 2007-04-26 14:07:04 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -45,7 +45,6 @@ typedef struct {
   CDS_UID_t      batchUID;
   char           name[AS_PER_NAME_LEN];
   char           comment[AS_PER_COMMENT_LEN];
-  uint64         created;
 
   unsigned int   deleted:1;
   unsigned int   spare:31;
@@ -68,9 +67,7 @@ static const char *AS_READ_ORIENT_NAMES[8] = {
 typedef struct {
   CDS_UID_t      libraryUID;
 
-  char           name[AS_PER_NAME_LEN];
   char           comment[AS_PER_COMMENT_LEN];
-  uint64         created;
 
   //  Features: you can add boolean flags and small-value types to the
   //  64-bit-wide bit-vector immediately below.  And just in case you
@@ -78,19 +75,12 @@ typedef struct {
   //  bits!!  (OK, minus 5, that are currently used).
   //
   uint64         spare2:64;
-  uint64         spare1:59;
+  uint64         spare1:60;
   uint64         orientation:3;
-  uint64         redefined:1;
   uint64         deleted:1;
 
   double         mean;
   double         stddev;
-  
-  CDS_IID_t      prevInstanceID;    // Previous definitions are linked by this reference
-  CDS_IID_t      prevID;            // If redefined == TRUE, the original ID of this
-
-  uint16         birthBatch;        // This entry is valid
-  uint16         deathBatch;        // [birthBatch, deatchBatch)
 
   //  Features: you can add more complicated data to the structure
   //  below.  It is in a union, of size 16KB, so that lots of data can
@@ -130,6 +120,42 @@ typedef struct {
   } features;
 
 } GateKeeperLibraryRecord;
+
+
+
+
+//  AS_MSG reads protoIO, turns a library into a LibraryMesg, which
+//  has the features and values strings.
+//
+//  AS_GKP receives the LibraryMesg, checks sanity, and converts it
+//  into GateKeeperLibraryRecord.  It uses the functions below to
+//  populate the GKLR.
+//
+static
+void
+AS_PER_decodeLibraryFeatures(GateKeeperLibraryRecord *gkpl,
+                             int    num_features,
+                             char **features,
+                             char **values) {
+}
+
+static
+int
+AS_PER_encodeLibraryFeatures(GateKeeperLibraryRecord *gkpl,
+                             char ***features,
+                             char ***values) {
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 #define AS_READ_STATUS_G   0x00
@@ -210,19 +236,20 @@ typedef struct{
   CDS_UID_t        plateUID;
 
   CDS_IID_t        libraryIID;
+
   uint32           deleted:1;
   uint32           nonrandom:1;
   uint32           status:4;
   uint32           orientation:3;  //  copied from the library
+  uint32           hasVectorClear:1;
+  uint32           hasQualityClear:1;
   uint32           plateLocation:8;
-  uint32           pad1:15;
+  uint32           pad1:13;
 
   uint64           seqLen:12;
   uint64           hpsLen:12;
   uint64           srcLen:12;
-  uint64           birthBatch:10;  //  This entry is valid
-  uint64           deathBatch:10;  //  [birthBatch, deatchBatch)
-  uint64           pad2:8;
+  uint64           pad2:28;
 
   VLSTRING_SIZE_T  clearBeg[AS_READ_CLEAR_NUMREAL];
   VLSTRING_SIZE_T  clearEnd[AS_READ_CLEAR_NUMREAL];
@@ -352,15 +379,6 @@ char       *getFragRecordSource(fragRecord *fr) {
 
 ////////////////////////////////////////////////////////////
 
-#define INDEXSTORE_DEF_EXTEND(type)\
-static int deleteAndMark ## type ## Store(type ## Store fs, int index, int batchID){\
-  type ## Record dr;\
-  getIndexStore(fs,index,&dr); \
-  dr.deleted = TRUE;\
-  dr.deathBatch = batchID;\
-  setIndexStore(fs,index,&dr);\
-  return(0);\
-}
 
 #define INDEXSTORE_DEF(type)\
 typedef StoreHandle type ## Store;\
@@ -404,22 +422,19 @@ static int32 getNum ## type ## s(type ## Store store){\
 
 INDEXSTORE_DEF(GateKeeperBatch);
 INDEXSTORE_DEF(GateKeeperFragment);
-INDEXSTORE_DEF_EXTEND(GateKeeperFragment);
 INDEXSTORE_DEF(GateKeeperLibrary);
-INDEXSTORE_DEF_EXTEND(GateKeeperLibrary);
 
-#define NUM_GKP_FILES 10
+#define NUM_GKP_FILES 9
 
 // 1  is gatekeeper store info
 // 2  is batches
 // 3  is fragments
 // 4  is libraries
-// 5  is shadow libraries
-// 6  is sequence
-// 7  is quality
-// 8  is homopolymer spacing and etc
-// 9  is source
-// 10 is gkp.phash
+// 5  is sequence
+// 6  is quality
+// 7  is homopolymer spacing and etc
+// 8  is source
+// 9  is gkp.phash
 
 typedef struct {
   uint64    gkpMagic;
@@ -439,7 +454,6 @@ typedef struct {
   GateKeeperBatchStore     bat;
   GateKeeperFragmentStore  frg;
   GateKeeperLibraryStore   lib;    
-  GateKeeperLibraryStore   lis;
 
   StoreHandle              seq;
   StoreHandle              qlt;

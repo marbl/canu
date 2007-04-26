@@ -1347,7 +1347,7 @@ typedef CheckGlobals * CheckGlobalsp;
 void InitializeGlobals( CheckGlobalsp globals, char * program_name )
 {
   globals->program_name = program_name;
-  globals->version = "$Revision: 1.17 $";
+  globals->version = "$Revision: 1.18 $";
   globals->chims_file = NULL;
   globals->craps_file = NULL;
   globals->cgb_file = NULL;
@@ -1467,7 +1467,6 @@ void InitializeOVLFile( CheckGlobalsp globals )
   
   // BAT messages
   bat.name       = globals->program_name;
-  bat.created    = time(0);
   fprintf( stderr, "Batch UID is " F_U64 "\n", bat.eaccession );
   bat.comment    = globals->cgb_file;
   gen.t = MESG_BAT;

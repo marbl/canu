@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg2.c,v 1.3 2007-04-16 22:26:39 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg2.c,v 1.4 2007-04-26 14:07:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,7 +34,7 @@ static char CM_ID[]= "$Id: AS_MSG_pmesg2.c,v 1.3 2007-04-16 22:26:39 brianwalenz
 static
 void *
 Read_LIB_Mesg(FILE *fin) {
-  static LibraryMesg  lmesg;
+  static LibraryMesg  lmesg;  // statics are initialized to zero, important for realloc() below
   char                ch;
   long                featureoffset = 0;
 
@@ -43,24 +43,28 @@ Read_LIB_Mesg(FILE *fin) {
 
   GET_FIELD(lmesg.eaccession,"acc:"F_UID,"accession field");
 
-  if ((lmesg.action == AS_ADD) ||
-      (lmesg.action == AS_REDEFINE)) {
+  if (lmesg.action == AS_UPDATE) {
+    GET_FIELD(lmesg.mean,"mea:%f","mean field");
+    GET_FIELD(lmesg.stddev ,"std:%f","stddev field");
+  }
+
+  lmesg.num_features = 0;
+
+  if ((lmesg.action == AS_ADD) || (lmesg.action == AS_IGNORE)) {
     GET_TYPE(ch,"ori:%c","orientation");
     lmesg.link_orient = (OrientType) ch;
 
     GET_FIELD(lmesg.mean,"mea:%f","mean field");
     GET_FIELD(lmesg.stddev ,"std:%f","stddev field");
 
-    GET_FIELD(lmesg.entry_time,"etm:"F_TIME_T,"time field");
-
     lmesg.source   = (char *)GetText("src:",fin,FALSE);
 
-    GET_FIELD(lmesg.num_features ,"nft:%f","number of features");
+    GET_FIELD(lmesg.num_features ,"nft:%d","number of features");
     featureoffset = GetText("fea:",fin,TRUE);
 
     //  Adjust source to be a pointer instead of an offset
     lmesg.source = AS_MSG_globals->MemBuffer + (long)lmesg.source;
-  }  //  End of AS_ADD
+  }  //  End of AS_ADD & AS_IGNORE
 
   GET_EOM;
 
@@ -72,10 +76,9 @@ Read_LIB_Mesg(FILE *fin) {
     char    *fb = AS_MSG_globals->MemBuffer + featureoffset;
     char    *fn = fb;
 
-    lmesg.features = (char **)safe_malloc(sizeof(char *) * lmesg.num_features);
-    lmesg.values   = (char **)safe_malloc(sizeof(char *) * lmesg.num_features);
+    lmesg.features = (char **)safe_realloc(lmesg.features, sizeof(char *) * lmesg.num_features);
+    lmesg.values   = (char **)safe_realloc(lmesg.values,   sizeof(char *) * lmesg.num_features);
 
-    //  
     for (i=0; i<lmesg.num_features; i++) {
       //  get rid of spaces in the label
       while (isspace(*fb))
@@ -123,11 +126,32 @@ Read_LIB_Mesg(FILE *fin) {
 static
 void
 Write_LIB_Mesg(FILE *fout,void *mesg) {
-}
+  LibraryMesg  *lmesg = (LibraryMesg *)mesg;
+  int           i;
 
-static
-void
-Clear_LIB_Mesg(void *mesg,int typ) {
+  fprintf(fout,"{LIB\n");
+  fprintf(fout,"act:%c\n", lmesg->action);
+  fprintf(fout,"acc:"F_UID"\n", lmesg->eaccession);
+
+  if (lmesg->action == AS_UPDATE) {
+    fprintf(fout,"mea:%.3f\n",lmesg->mean);
+    fprintf(fout,"std:%.3f\n",lmesg->stddev);
+  }
+
+  if ((lmesg->action == AS_ADD) || (lmesg->action == AS_IGNORE)) {
+    fprintf(fout,"ori:%c\n",lmesg->link_orient);
+    fprintf(fout,"mea:%.3f\n",lmesg->mean);
+    fprintf(fout,"std:%.3f\n",lmesg->stddev);
+
+    PutText(fout,"src:",lmesg->source,FALSE);
+
+    fprintf(fout,"nft:%d\n",lmesg->num_features);
+    fprintf(fout,"fea:\n");
+    for (i=0; i<lmesg->num_features; i++)
+      fprintf(fout,"%s=%s\n", lmesg->features[i], lmesg->values[i]);
+    fprintf(fout,".\n");
+    fprintf(fout,"}\n");
+  }
 }
 
 
@@ -174,14 +198,16 @@ Read_Frag_Mesg(FILE *fin,int frag_class) {
 
   GET_FIELD(fmesg.plate_uid,"pla:"F_UID,"plate_uid field");
   GET_FIELD(fmesg.plate_location,"loc:"F_U32,"plate_location field");
-  GET_FIELD(fmesg.entry_time,"etm:"F_TIME_T,"time field");
 
   fmesg.source   = NULL;
   fmesg.sequence = NULL;
   fmesg.quality  = NULL;
   fmesg.hps      = NULL;
 
-  if (fmesg.action == AS_ADD) { 
+  if ((fmesg.action == AS_ADD) || (fmesg.action == AS_IGNORE)) { 
+    char  *line;
+    int    b, e;
+
     fmesg.source   = (char *) GetText("src:",fin,FALSE);
 
     if( frag_class != MESG_OFG ) {
@@ -190,19 +216,47 @@ Read_Frag_Mesg(FILE *fin,int frag_class) {
       fmesg.hps      = (char *) GetText("hps:",fin,TRUE);
     }
 
-    GET_PAIR(fmesg.clear_rng.bgn,fmesg.clear_rng.end,"clr:"F_COORD","F_COORD,"clear range field");
-    GET_PAIR(fmesg.clear_vec.bgn,fmesg.clear_vec.end,"clv:"F_COORD","F_COORD,"vector clear range field");
-    GET_PAIR(fmesg.clear_qlt.bgn,fmesg.clear_qlt.end,"clq:"F_COORD","F_COORD,"quality clear range field");
+    //  Special handling for clear ranges -- the vector and quality clear are optional.
 
+    fmesg.clear_vec.bgn = 1;
+    fmesg.clear_vec.end = 0;
+
+    fmesg.clear_qlt.bgn = 1;
+    fmesg.clear_qlt.end = 0;
+
+    fmesg.clear_rng.bgn = 1;
+    fmesg.clear_rng.end = 0;
+
+    line = GetLine(fin, TRUE);
+    if(sscanf(line,"clv:"F_COORD","F_COORD,&b,&e)==2){
+      fmesg.clear_vec.bgn = b;
+      fmesg.clear_vec.end = e;
+      line = GetLine(fin, TRUE);
+    }
+    if(sscanf(line,"clq:"F_COORD","F_COORD,&b,&e)==2){
+      fmesg.clear_qlt.bgn = b;
+      fmesg.clear_qlt.end = e;
+      line = GetLine(fin, TRUE);
+    }
+    if(sscanf(line,"clr:"F_COORD","F_COORD,&b,&e)==2){
+      fmesg.clear_rng.bgn = b;
+      fmesg.clear_rng.end = e;
+    } else {
+      MfieldError("final clear range field");	
+    }
+
+    // Convert from an index to a pointer.
+    //
     fmesg.source   = AS_MSG_globals->MemBuffer + ((long) (fmesg.source));
     if( frag_class != MESG_OFG ) {
-      // Convert from an index to a pointer.
       fmesg.sequence = AS_MSG_globals->MemBuffer + ((long) (fmesg.sequence));
       fmesg.quality  = AS_MSG_globals->MemBuffer + ((long) (fmesg.quality));
       fmesg.hps      = AS_MSG_globals->MemBuffer + ((long) (fmesg.hps));
     }
   }  //  action is AS_ADD
+
   GET_EOM;
+
   return ((void *) (&fmesg));
 }
 
@@ -241,17 +295,20 @@ Write_Frag_Mesg(FILE *fout,void *vmesg,int frag_class) {
   fprintf(fout,"pla:"F_UID"\n",mesg->plate_uid);
   fprintf(fout,"loc:"F_U32"\n",mesg->plate_location);
 
-  if (mesg->action == AS_ADD) {
+  if ((mesg->action == AS_ADD) || (mesg->action == AS_IGNORE)) {
     PutText(fout,"src:",mesg->source,FALSE);
-    fprintf(fout,"etm:"F_TIME_T"\n",mesg->entry_time);
     if( frag_class != MESG_OFG ) {
       PutText(fout,"seq:",mesg->sequence,TRUE);
       PutText(fout,"qlt:",mesg->quality,TRUE);
       PutText(fout,"hps:",mesg->hps,TRUE);
     }
     fprintf(fout,"clr:"F_COORD","F_COORD"\n",mesg->clear_rng.bgn,mesg->clear_rng.end);
-    fprintf(fout,"clv:"F_COORD","F_COORD"\n",mesg->clear_vec.bgn,mesg->clear_vec.end);
-    fprintf(fout,"clq:"F_COORD","F_COORD"\n",mesg->clear_qlt.bgn,mesg->clear_qlt.end);
+
+    if (mesg->clear_vec.bgn <= mesg->clear_vec.end)
+      fprintf(fout,"clv:"F_COORD","F_COORD"\n",mesg->clear_vec.bgn,mesg->clear_vec.end);
+
+    if (mesg->clear_qlt.bgn <= mesg->clear_qlt.end)
+      fprintf(fout,"clq:"F_COORD","F_COORD"\n",mesg->clear_qlt.bgn,mesg->clear_qlt.end);
   }
 
   fprintf(fout,"}\n");
@@ -278,7 +335,6 @@ Read_LKG_Mesg(FILE *fin) {
   GET_TYPE(ch,"act:%c","action");
   lmesg.action = (ActionType) ch;
   lmesg.type = AS_MATE;
-  lmesg.entry_time = 0;
   lmesg.link_orient = AS_READ_ORIENT_UNKNOWN;
   GET_FIELD(lmesg.frag1,"frg:"F_UID,"fragment 1 field");
   GET_FIELD(lmesg.frag2,"frg:"F_UID,"fragment 2 field");
@@ -316,7 +372,6 @@ void AS_MSG_setFormatVersion2(void) {
   ct[MESG_DST].header  = "";
   ct[MESG_DST].reader  = NULL;
   ct[MESG_DST].writer  = NULL;
-  ct[MESG_DST].clearer = NULL;
   ct[MESG_DST].size    = 0l;
 
   //  The LibraryMesg LIB is new.
@@ -324,7 +379,6 @@ void AS_MSG_setFormatVersion2(void) {
   ct[MESG_LIB].header  = "{LIB";
   ct[MESG_LIB].reader  = Read_LIB_Mesg;
   ct[MESG_LIB].writer  = Write_LIB_Mesg;
-  ct[MESG_LIB].clearer = Clear_LIB_Mesg;
   ct[MESG_LIB].size    = sizeof(LibraryMesg);
 
   //  The FragMesg FRG, IFG and OFG messages are updated.

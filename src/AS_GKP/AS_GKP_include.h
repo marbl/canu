@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.20 2007-04-25 11:24:39 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.21 2007-04-26 14:07:03 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
@@ -48,32 +48,24 @@ extern GateKeeperStore  *gkpStore;
 
 int
 Check_BatchMesg(BatchMesg           *bat_mesg,
-                int                 *currentBatchID,
-                time_t               currentTime,
                 int                  verbose);
 
 int
 Check_DistanceMesg(DistanceMesg     *dst_mesg,
-                   CDS_CID_t         currentBatchID,
                    int               verbose);
 
 int
 Check_LibraryMesg(LibraryMesg       *dst_mesg,
-                  CDS_CID_t          currentBatchID,
                   int                verbose);
 
 int
 Check_FragMesg(FragMesg            *frg_mesg,  
                int                   check_qvs,
-               int32                 batchID,
-               time_t                currentTime,
                int                   assembler,
                int                   verbose);
 
 int
 Check_LinkMesg(LinkMesg             *lkg_mesg,
-               CDS_CID_t             batchID,
-               time_t                currentTime,
                int                   verbose);
 
 
@@ -151,7 +143,6 @@ typedef enum GKPErrorType_tag{
   GKPError_DeleteFRG,
   GKPError_DeleteLIB,
   GKPError_DeleteLNK,
-  GKPError_Time,
   GKPError_Action,
   GKPError_Scalar,
   GKPError_FRGSequence,

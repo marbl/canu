@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.18 2007-04-16 17:36:32 brianwalenz Exp $";
+static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.19 2007-04-26 14:07:03 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -922,14 +922,12 @@ static int OverlapPieceList(VA_TYPE(ChunkPlacement) *piece_list, VA_TYPE(OFGMesg
     OFGMesg ofg;
     char *aseq,*bseq;
     size_t length=0;
-    time_t currentTime = time(0);
     CDS_CID_t iuniq=0;
     int is_placed=0;
     ofg.sequence = NULL;
     ofg.quality = NULL;
     ofg.source = NULL;
     ofg.action = AS_ADD;
-    ofg.entry_time = currentTime;
     A.quality=NULL;
     B.quality=NULL;
     unsorted_pieces = GetChunkPlacement(piece_list,0);

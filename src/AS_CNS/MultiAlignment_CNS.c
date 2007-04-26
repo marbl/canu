@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.139 2007-04-19 18:04:02 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.140 2007-04-26 14:07:03 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -4766,8 +4766,6 @@ int PrintFrags(FILE *out, int accession, IntMultiPos *all_frags, int num_frags,
            fmesg.clear_rng.bgn = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_LATEST);
            fmesg.clear_rng.end = getFragRecordClearRegionEnd  (fsread, AS_READ_CLEAR_LATEST);
 
-           //getEntryTime_ReadStruct(fsread, &fmesg.entry_time);
-           fmesg.entry_time = 0;
            fmesg.iaccession = all_frags[i].ident;
            fmesg.type = all_frags[i].type;
            fmesg.eaccession = getFragRecordUID(fsread);

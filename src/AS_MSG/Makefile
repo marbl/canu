@@ -29,7 +29,6 @@ LIBRARIES = libAS_MSG.a libCA.a
 SOURCES = AS_MSG_pmesg.c      \
           AS_MSG_pmesg1.c     \
           AS_MSG_pmesg2.c     \
-          proto_append.c      \
           remove_fragment.c   \
           AS_MSG_pmesg_test.c \
           ExtractMessages.c
@@ -37,7 +36,6 @@ SOURCES = AS_MSG_pmesg.c      \
 OBJECTS = $(SOURCES:.c=.o)
 
 PROGS = AS_MSG_pmesg_test \
-	proto_append      \
         remove_fragment   \
 	extractmessages
 
@@ -52,8 +50,6 @@ libAS_MSG.a:       AS_MSG_pmesg.o AS_MSG_pmesg1.o AS_MSG_pmesg2.o
 libCA.a:           AS_MSG_pmesg.o AS_MSG_pmesg1.o AS_MSG_pmesg2.o
 
 AS_MSG_pmesg_test: AS_MSG_pmesg_test.o libCA.a
-
-proto_append:      proto_append.o      libCA.a
 
 remove_fragment:   remove_fragment.o   libCA.a
 

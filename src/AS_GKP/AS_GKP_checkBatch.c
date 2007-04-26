@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkBatch.c,v 1.5 2007-03-27 07:31:59 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkBatch.c,v 1.6 2007-04-26 14:07:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,10 +30,7 @@ static char CM_ID[] = "$Id: AS_GKP_checkBatch.c,v 1.5 2007-03-27 07:31:59 brianw
 #include "AS_PER_gkpStore.h"
 
 int Check_BatchMesg(BatchMesg          *bat_mesg,
-                    int                *currentBatchID,
-		    time_t              currentTime,
 		    int                 verbose){
-
   GateKeeperBatchRecord  gkpb;
   PHashValue_AS          value;
 
@@ -52,13 +49,6 @@ int Check_BatchMesg(BatchMesg          *bat_mesg,
     return(GATEKEEPER_FAILURE);
   }
 
-  if (bat_mesg->created > currentTime) {
-    printGKPError(stderr, GKPError_Time);
-    fprintf(stderr,"# Check_BatchMessage: invalid entry time " F_TIME_T " > current time (" F_TIME_T ")\n",
-	    bat_mesg->created, currentTime);
-    return GATEKEEPER_FAILURE;
-  }
-
   value.type = AS_IID_BAT;
   InsertInPHashTable_AS(&gkpStore->phs_private,
                         UID_NAMESPACE_AS,
@@ -68,20 +58,16 @@ int Check_BatchMesg(BatchMesg          *bat_mesg,
                         TRUE);
 
   gkpb.batchUID       = bat_mesg->eaccession;
-  gkpb.created        = bat_mesg->created;
   strncpy(gkpb.name,    bat_mesg->name, 255);
   strncpy(gkpb.comment, bat_mesg->comment, 255);
   gkpb.numFragments   = getNumGateKeeperFragments(gkpStore->frg);
   gkpb.numLibraries   = getNumGateKeeperLibrarys(gkpStore->lib);
-  gkpb.numLibraries_s = getNumGateKeeperLibrarys(gkpStore->lis);
 
   if(verbose)
     fprintf(stderr,"* Batch " F_IID "  name:%s  comment:%s\n",
 	  value.IID, gkpb.name, gkpb.comment);
 
   appendGateKeeperBatchStore(gkpStore->bat, &gkpb);
-
-  *currentBatchID = value.IID;
 
   return GATEKEEPER_SUCCESS;
 }

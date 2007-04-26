@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: Array_CNS.c,v 1.14 2007-03-06 01:02:43 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Array_CNS.c,v 1.15 2007-04-26 14:07:03 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -154,7 +154,6 @@ int IMP2Array(IntMultiPos *all_frags,
   lane_depth = ESTDEPTH; 
   Packed = (VA_TYPE(Lane) *) CreateVA_Lane(lane_depth);
   frag.action = AS_ADD;
-  frag.entry_time = 0;
   frag.source = NULL;
   null_lane.first=NULL;
   null_lane.last=NULL;

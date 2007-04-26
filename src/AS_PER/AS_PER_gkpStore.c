@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.32 2007-04-16 17:36:36 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.33 2007-04-26 14:07:04 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -99,9 +99,6 @@ testOpenGateKeeperStore(const char *path,
     sprintf(name,"%s/lib", path);
     fileCount += fileExists(name, 0, writable);
 
-    sprintf(name,"%s/lis", path);
-    fileCount += fileExists(name, 0, writable);
-
     sprintf(name,"%s/seq", path);
     fileCount += fileExists(name, 0, writable);
 
@@ -137,7 +134,6 @@ openGateKeeperStore(const char *path,
   gkpStore->bat = NULLSTOREHANDLE;
   gkpStore->frg = NULLSTOREHANDLE;
   gkpStore->lib = NULLSTOREHANDLE;
-  gkpStore->lis = NULLSTOREHANDLE;
 
   gkpStore->seq = NULLSTOREHANDLE;
   gkpStore->qlt = NULLSTOREHANDLE;
@@ -204,9 +200,6 @@ openGateKeeperStore(const char *path,
     sprintf(name,"%s/lib", gkpStore->storePath);
     gkpStore->lib   = openGateKeeperLibraryStore(name, mode);
 
-    sprintf(name,"%s/lis", gkpStore->storePath);
-    gkpStore->lis = openGateKeeperLibraryStore(name, mode);
-
     sprintf(name,"%s/seq", gkpStore->storePath);
     gkpStore->seq = openStore(name, mode);
 
@@ -222,7 +215,6 @@ openGateKeeperStore(const char *path,
     if ((NULLSTOREHANDLE == gkpStore->bat) ||
         (NULLSTOREHANDLE == gkpStore->frg) ||
         (NULLSTOREHANDLE == gkpStore->lib) ||
-        (NULLSTOREHANDLE == gkpStore->lis) ||
         (NULLSTOREHANDLE == gkpStore->seq) ||
         (NULLSTOREHANDLE == gkpStore->qlt) ||
         (NULLSTOREHANDLE == gkpStore->hps) ||
@@ -258,7 +250,6 @@ createGateKeeperStore(const char *path) {
   gkpStore->bat = NULLSTOREHANDLE;
   gkpStore->frg = NULLSTOREHANDLE;
   gkpStore->lib = NULLSTOREHANDLE;
-  gkpStore->lis = NULLSTOREHANDLE;
 
   gkpStore->seq = NULLSTOREHANDLE;
   gkpStore->qlt = NULLSTOREHANDLE;
@@ -302,9 +293,6 @@ createGateKeeperStore(const char *path) {
   sprintf(name,"%s/lib", path);
   gkpStore->lib = createGateKeeperLibraryStore(name, "lib", 1);
 
-  sprintf(name,"%s/lis", path);
-  gkpStore->lis = createGateKeeperLibraryStore(name, "lib", 1);
-
   sprintf(name,"%s/seq", path);
   gkpStore->seq = createVLRecordStore(name, "seq", MAX_SEQ_LENGTH, 1);
 
@@ -338,9 +326,6 @@ closeGateKeeperStore(GateKeeperStore *gkpStore) {
 
   if(gkpStore->lib != NULLSTOREHANDLE)
     closeStore(gkpStore->lib);
-
-  if(gkpStore->lis != NULLSTOREHANDLE)
-    closeStore(gkpStore->lis);
 
   if(gkpStore->seq != NULLSTOREHANDLE)
     closeStore(gkpStore->seq);

@@ -43,7 +43,6 @@ typedef struct {
   const char          *header;
   void              *(*reader)(FILE *);
   void               (*writer)(FILE *, void *);
-  void               (*clearer)(void *, int);
   size_t               size;
 } AS_MSG_callrecord;
 

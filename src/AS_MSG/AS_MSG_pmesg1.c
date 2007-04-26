@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.5 2007-04-16 22:26:39 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.6 2007-04-26 14:07:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,12 +49,13 @@ static void *Read_Dist_Mesg(FILE *fin, int external)
         }
   else
     { char ch;
-      GET_TYPE(ch,"act:%1[ADR]","action");
+      GET_TYPE(ch,"act:%1[ADIUR]","action");  //  R, redefine, for compatibility; same as update
       dmesg.action = (ActionType) ch;
       GET_PAIR(dmesg.eaccession,dmesg.iaccession,"acc:("F_UID","F_IID")","accession field pair");
     }
-  if (dmesg.action == AS_ADD ||
-      dmesg.action == AS_REDEFINE)
+  if (dmesg.action == 'R')
+    dmesg.action = AS_UPDATE;
+  if ((dmesg.action == AS_ADD) || (dmesg.action == AS_UPDATE) || (dmesg.action == AS_IGNORE))
     { GET_FIELD(dmesg.mean,"mea:%f","mean field");
       GET_FIELD(dmesg.stddev ,"std:%f","stddev field");
     }
@@ -156,6 +157,7 @@ static void *Read_VER_Mesg(FILE *fin) {
 static void *Read_Frag_Mesg(FILE *fin, int frag_class)
 { static FragMesg fmesg;
   char   ch;
+  time_t entry_time;
 
   assert((frag_class == MESG_FRG) || (frag_class == MESG_IFG) || (frag_class == MESG_OFG));
 
@@ -186,7 +188,7 @@ static void *Read_Frag_Mesg(FILE *fin, int frag_class)
   fmesg.quality  = NULL;
   fmesg.hps      = NULL;
 
-  if (fmesg.action == AS_ADD) { 
+  if ((fmesg.action == AS_ADD) || (fmesg.action == AS_IGNORE)) { 
     if (frag_class == MESG_FRG){
       GET_TYPE(ch,"typ:%c","type");
       fmesg.type = (FragType) ch;
@@ -198,7 +200,8 @@ static void *Read_Frag_Mesg(FILE *fin, int frag_class)
 
     fmesg.source   = (char *) GetText("src:",fin,FALSE);
 
-    GET_FIELD(fmesg.entry_time,"etm:"F_TIME_T,"time field");
+    //  Unused
+    GET_FIELD(entry_time,"etm:"F_TIME_T,"time field");
 
     if( frag_class != MESG_OFG ) {
       fmesg.sequence = (char *) GetText("seq:",fin,TRUE);
@@ -211,7 +214,7 @@ static void *Read_Frag_Mesg(FILE *fin, int frag_class)
       fmesg.sequence = AS_MSG_globals->MemBuffer + ((long) (fmesg.sequence));
       fmesg.quality  = AS_MSG_globals->MemBuffer + ((long) (fmesg.quality));
     }
-  }  //  action is AS_ADD
+  }  //  action is AS_ADD or AS_IGNORE
   GET_EOM;
   return ((void *) (&fmesg));
 }
@@ -271,16 +274,18 @@ static void *Read_OVL_Mesg(FILE *fin)
 
 static void *Read_LKG_Mesg(FILE *fin)
 { static LinkMesg lmesg;
-  char ch; 
+  char ch;
+  time_t entry_time;
   GET_TYPE(ch,"act:%c","action");
   lmesg.action = (ActionType) ch;
   GET_TYPE(ch,"typ:%c","link");
   lmesg.type = (LinkType) ch;
   GET_FIELD(lmesg.frag1,"fg1:"F_UID,"fragment 1 field");
   GET_FIELD(lmesg.frag2,"fg2:"F_UID,"fragment 2 field");
-  if (lmesg.action == AS_ADD)
+  if ((lmesg.action == AS_ADD) || (lmesg.action == AS_IGNORE))
     {
-      GET_FIELD(lmesg.entry_time,"etm:"F_TIME_T,"entry time field");
+      //  Unused
+      GET_FIELD(entry_time,"etm:"F_TIME_T,"entry time field");
       GET_FIELD(lmesg.distance,"dst:"F_UID,"distance field");
       GET_TYPE(ch,"ori:%1[NAIOU]","link orientation");
       lmesg.link_orient = (OrientType) ch;
@@ -853,9 +858,10 @@ static void *Read_EOF_Mesg(FILE *fin)
 {
   static EndOfFileMesg mesg;
   int commentidx;
+  time_t entry_time;
 
   GET_FIELD(mesg.status,"sta:"F_S32,"status field");
-  GET_FIELD(mesg.created,"crt:"F_TIME_T,"entry time field");
+  GET_FIELD(entry_time,"crt:"F_TIME_T,"entry time field");  //  Unused
   commentidx = GetText("com:",fin,FALSE);
   mesg.comment = AS_MSG_globals->MemBuffer + commentidx;
   GET_EOM;
@@ -1293,9 +1299,9 @@ static void *Read_MDI_Mesg(FILE *fin)
 static void *Read_BAT_Mesg(FILE *fin){
   static BatchMesg mesg;
   int nameidx, commentidx;
-  
+  time_t entry_time;
   nameidx = GetString("bna:",fin);
-  GET_FIELD(mesg.created,"crt:"F_TIME_T,"entry time field");
+  GET_FIELD(entry_time,"crt:"F_TIME_T,"entry time field");  //  Unused
   GET_FIELD(mesg.eaccession,"acc:"F_UID,"accession number");
   commentidx = GetText("com:",fin, FALSE);
 
@@ -1310,9 +1316,9 @@ static void *Read_BAT_Mesg(FILE *fin){
 static void *Read_IBA_Mesg(FILE *fin){
   static BatchMesg mesg;
   int nameidx, commentidx;
-  
+  time_t entry_time;
   nameidx = GetString("bna:",fin);
-  GET_FIELD(mesg.created,"crt:"F_TIME_T,"entry time field");
+  GET_FIELD(entry_time,"crt:"F_TIME_T,"entry time field");  //  Unused
   GET_PAIR(mesg.eaccession, mesg.iaccession,"acc:("F_UID","F_IID")","accession field pair");
   commentidx = GetText("com:",fin, FALSE);
 
@@ -1386,8 +1392,8 @@ static void Write_LKG_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"typ:%c\n",(char) mesg->type);
   fprintf(fout,"fg1:"F_UID"\n",mesg->frag1);
   fprintf(fout,"fg2:"F_UID"\n",mesg->frag2);
-  if(mesg->action == AS_ADD)
-    { fprintf(fout,"etm:"F_TIME_T"\n",mesg->entry_time);
+  if((mesg->action == AS_ADD) || (mesg->action == AS_IGNORE))
+    { fprintf(fout,"etm:0\n");
       fprintf(fout,"dst:"F_UID"\n",mesg->distance);
       fprintf(fout,"ori:%c\n",mesg->link_orient);
     }
@@ -1406,10 +1412,10 @@ static void Write_Frag_Mesg(FILE *fout, void *vmesg, int frag_class) {
   else
     fprintf(fout,"acc:("F_UID","F_IID")\n",mesg->eaccession,mesg->iaccession);
 
-  if (mesg->action == AS_ADD) {
+  if ((mesg->action == AS_ADD) || (mesg->action == AS_IGNORE)) {
     fprintf(fout,"typ:%c\n",(char) mesg->type);
     PutText(fout,"src:",mesg->source,FALSE);
-    fprintf(fout,"etm:"F_TIME_T"\n",mesg->entry_time);
+    fprintf(fout,"etm:0\n");
     if( frag_class != MESG_OFG ) {
       PutText(fout,"seq:",mesg->sequence,TRUE);
       PutText(fout,"qlt:",mesg->quality,TRUE);
@@ -2015,7 +2021,7 @@ static void Write_BAT_Mesg(FILE *fout, void *vmesg){
   BatchMesg *mesg = (BatchMesg *)vmesg;
   fprintf(fout,"{BAT\n");
   fprintf(fout,"bna:%s\n",mesg->name);
-  fprintf(fout,"crt:"F_TIME_T"\n",mesg->created);
+  fprintf(fout,"crt:0\n");
   fprintf(fout,"acc:"F_UID"\n",mesg->eaccession);
   PutText(fout,"com:",mesg->comment, FALSE);
   fprintf(fout,"}\n");
@@ -2025,7 +2031,7 @@ static void Write_IBA_Mesg(FILE *fout, void *vmesg){
   InternalBatchMesg *mesg = (InternalBatchMesg *)vmesg;
   fprintf(fout,"{IBA\n");
   fprintf(fout,"bna:%s\n",mesg->name);
-  fprintf(fout,"crt:"F_TIME_T"\n",mesg->created);
+  fprintf(fout,"crt:0\n");
   fprintf(fout,"acc:("F_UID","F_IID")\n",mesg->eaccession, mesg->iaccession);
   PutText(fout,"com:",mesg->comment, FALSE);
   //  fprintf(stderr,"* Write_IBA_Mesg comment = %s\n", mesg->comment);
@@ -2038,75 +2044,66 @@ static void Write_EOF_Mesg(FILE *fout, void *vmesg)
 
   fprintf(fout,"{EOF\n");
   fprintf(fout,"sta:"F_S32"\n", mesg->status);
-  fprintf(fout,"crt:"F_TIME_T"\n", mesg->created);
+  fprintf(fout,"crt:0\n");
   PutText(fout,"com:", mesg->comment, FALSE);
   fprintf(fout,"}\n");
 }
 
 
 
-void Clear_ADT_Mesg(void *mesg, int typ);
-void Clear_FRG_Mesg(void *mesg, int typ);
-void Clear_OVL_Mesg(void *mesg, int typ);
-void Clear_IUM_Mesg(void *vmesg, int typ);
-void Clear_IUL_Mesg(void *vmesg, int typ);
-void Clear_ICL_Mesg(void *vmesg, int typ);
-void Clear_ISF_Mesg(void *vmesg, int typ);
-void Clear_IMD_Mesg(void *vmesg, int typ);
-void Clear_ICM_Mesg(void *vmesg, int typ);
 
 static AS_MSG_callrecord CallTable1[NUM_OF_REC_TYPES + 1] = {
-  {"", NULL, NULL, NULL, 0l},
-  {"{ADT", Read_ADT_Mesg, Write_ADT_Mesg, Clear_ADT_Mesg,   sizeof(AuditMesg) },
-  {"{VER", Read_VER_Mesg, Write_VER_Mesg, NULL,             sizeof(VersionMesg)  },
-  {"{FRG", Read_FRG_Mesg, Write_FRG_Mesg, Clear_FRG_Mesg,   sizeof(FragMesg)  },
-  {"{IFG", Read_IFG_Mesg, Write_IFG_Mesg, Clear_FRG_Mesg,   sizeof(InternalFragMesg) },
-  {"{OFG", Read_OFG_Mesg, Write_OFG_Mesg, Clear_FRG_Mesg,   sizeof(OFGMesg) },
-  {"{LKG", Read_LKG_Mesg, Write_LKG_Mesg, NULL,             sizeof(LinkMesg) },
-  {"", NULL, NULL, NULL, 0l },
-  {"{DST", Read_DST_Mesg, Write_DST_Mesg, NULL,             sizeof(DistanceMesg) },
-  {"{IDT", Read_IDT_Mesg, Write_IDT_Mesg, NULL,             sizeof(InternalDistMesg) },
-  {"RLIB", NULL, NULL, NULL, 0l },  //  RESERVED for Version 2's LIB message
-  {"", NULL, NULL, NULL, 0l },
-  {"", NULL, NULL, NULL, 0l },
-  {"{OVL", Read_OVL_Mesg, Write_OVL_Mesg, Clear_OVL_Mesg,   sizeof(OverlapMesg) },
-  {"", NULL, NULL, NULL, 0l },
-  {"{UOM", Read_UOM_Mesg, Write_UOM_Mesg, NULL,             sizeof(UnitigOverlapMesg) },
-  {"{IUM", Read_IUM_Mesg, Write_IUM_Mesg, Clear_IUM_Mesg,   sizeof(IntUnitigMesg) },
-  {"{IUL", Read_IUL_Mesg, Write_IUL_Mesg, Clear_IUL_Mesg,   sizeof(IntUnitigLinkMesg) },
-  {"{ICL", Read_ICL_Mesg, Write_ICL_Mesg, Clear_ICL_Mesg,   sizeof(IntContigLinkMesg) },
-  {"{AFG", Read_AFG_Mesg, Write_AFG_Mesg, NULL,             sizeof(AugFragMesg) },
-  {"{ISF", Read_ISF_Mesg, Write_ISF_Mesg, Clear_ISF_Mesg,   sizeof(IntScaffoldMesg) },
-  {"{IMD", Read_IMD_Mesg, Write_IMD_Mesg, Clear_IMD_Mesg,   sizeof(IntMateDistMesg) },
-  {"{IAF", Read_IAF_Mesg, Write_IAF_Mesg, NULL,             sizeof(IntAugFragMesg) },
-  {"{UTG", Read_UTG_Mesg, Write_UTG_Mesg, NULL,             sizeof(SnapUnitigMesg) },
-  {"{ULK", Read_ULK_Mesg, Write_ULK_Mesg, NULL,             sizeof(SnapUnitigLinkMesg) },
-  {"{ICM", Read_ICM_Mesg, Write_ICM_Mesg, NULL,             sizeof(IntConConMesg) },
-  {"{CCO", Read_CCO_Mesg, Write_CCO_Mesg, NULL,             sizeof(SnapConConMesg) },
-  {"{CLK", Read_CLK_Mesg, Write_CLK_Mesg, NULL,             sizeof(SnapContigLinkMesg) },
-  {"{SCF", Read_SCF_Mesg, Write_SCF_Mesg, NULL,             sizeof(SnapScaffoldMesg) },
-  {"{MDI", Read_MDI_Mesg, Write_MDI_Mesg, NULL,             sizeof(SnapMateDistMesg) },
-  {"{BAT", Read_BAT_Mesg, Write_BAT_Mesg, NULL,             sizeof(BatchMesg) },
-  {"{IBA", Read_IBA_Mesg, Write_IBA_Mesg, NULL,             sizeof(InternalBatchMesg) },
-  {"", NULL, NULL, NULL, 0l },
-  {"", NULL, NULL, NULL, 0l },
-  {"", NULL, NULL, NULL, 0l },
-  {"", NULL, NULL, NULL, 0l },
-  {"", NULL, NULL, NULL, 0l },
-  {"", NULL, NULL, NULL, 0l },
-  {"", NULL, NULL, NULL, 0l },
-  {"", NULL, NULL, NULL, 0l },
-  {"", NULL, NULL, NULL, 0l },
-  {"{IDS", Read_IDS_Mesg, Write_IDS_Mesg, NULL,             sizeof(IntDegenerateScaffoldMesg) },
-  {"{DSC", Read_DSC_Mesg, Write_DSC_Mesg, NULL,             sizeof(SnapDegenerateScaffoldMesg) },
-  {"{SLK", Read_SLK_Mesg, Write_SLK_Mesg, NULL,             sizeof(SnapScaffoldLinkMesg) },
-  {"{ISL", Read_ISL_Mesg, Write_ISL_Mesg, NULL,             sizeof(InternalScaffoldLinkMesg) },
-  {"{FOM", Read_FOM_Mesg, Write_FOM_Mesg, NULL,             sizeof(FragOverlapMesg) },
-  {"", NULL, NULL, NULL, 0l },
-  {"", NULL, NULL, NULL, 0l },
-  {"", NULL, NULL, NULL, 0l },
-  {"", NULL, NULL, NULL, 0l },
-  {"{EOF", Read_EOF_Mesg, Write_EOF_Mesg, NULL,             sizeof(EndOfFileMesg) }
+  {"", NULL, NULL, 0l},
+  {"{ADT", Read_ADT_Mesg, Write_ADT_Mesg, sizeof(AuditMesg) },
+  {"{VER", Read_VER_Mesg, Write_VER_Mesg, sizeof(VersionMesg)  },
+  {"{FRG", Read_FRG_Mesg, Write_FRG_Mesg, sizeof(FragMesg)  },
+  {"{IFG", Read_IFG_Mesg, Write_IFG_Mesg, sizeof(InternalFragMesg) },
+  {"{OFG", Read_OFG_Mesg, Write_OFG_Mesg, sizeof(OFGMesg) },
+  {"{LKG", Read_LKG_Mesg, Write_LKG_Mesg, sizeof(LinkMesg) },
+  {"", NULL, NULL, 0l },
+  {"{DST", Read_DST_Mesg, Write_DST_Mesg, sizeof(DistanceMesg) },
+  {"{IDT", Read_IDT_Mesg, Write_IDT_Mesg, sizeof(InternalDistMesg) },
+  {"RLIB", NULL, NULL, 0l },  //  RESERVED for Version 2's LIB message
+  {"", NULL, NULL, 0l },
+  {"", NULL, NULL, 0l },
+  {"{OVL", Read_OVL_Mesg, Write_OVL_Mesg, sizeof(OverlapMesg) },
+  {"", NULL, NULL, 0l },
+  {"{UOM", Read_UOM_Mesg, Write_UOM_Mesg, sizeof(UnitigOverlapMesg) },
+  {"{IUM", Read_IUM_Mesg, Write_IUM_Mesg, sizeof(IntUnitigMesg) },
+  {"{IUL", Read_IUL_Mesg, Write_IUL_Mesg, sizeof(IntUnitigLinkMesg) },
+  {"{ICL", Read_ICL_Mesg, Write_ICL_Mesg, sizeof(IntContigLinkMesg) },
+  {"{AFG", Read_AFG_Mesg, Write_AFG_Mesg, sizeof(AugFragMesg) },
+  {"{ISF", Read_ISF_Mesg, Write_ISF_Mesg, sizeof(IntScaffoldMesg) },
+  {"{IMD", Read_IMD_Mesg, Write_IMD_Mesg, sizeof(IntMateDistMesg) },
+  {"{IAF", Read_IAF_Mesg, Write_IAF_Mesg, sizeof(IntAugFragMesg) },
+  {"{UTG", Read_UTG_Mesg, Write_UTG_Mesg, sizeof(SnapUnitigMesg) },
+  {"{ULK", Read_ULK_Mesg, Write_ULK_Mesg, sizeof(SnapUnitigLinkMesg) },
+  {"{ICM", Read_ICM_Mesg, Write_ICM_Mesg, sizeof(IntConConMesg) },
+  {"{CCO", Read_CCO_Mesg, Write_CCO_Mesg, sizeof(SnapConConMesg) },
+  {"{CLK", Read_CLK_Mesg, Write_CLK_Mesg, sizeof(SnapContigLinkMesg) },
+  {"{SCF", Read_SCF_Mesg, Write_SCF_Mesg, sizeof(SnapScaffoldMesg) },
+  {"{MDI", Read_MDI_Mesg, Write_MDI_Mesg, sizeof(SnapMateDistMesg) },
+  {"{BAT", Read_BAT_Mesg, Write_BAT_Mesg, sizeof(BatchMesg) },
+  {"{IBA", Read_IBA_Mesg, Write_IBA_Mesg, sizeof(InternalBatchMesg) },
+  {"", NULL, NULL, 0l },
+  {"", NULL, NULL, 0l },
+  {"", NULL, NULL, 0l },
+  {"", NULL, NULL, 0l },
+  {"", NULL, NULL, 0l },
+  {"", NULL, NULL, 0l },
+  {"", NULL, NULL, 0l },
+  {"", NULL, NULL, 0l },
+  {"", NULL, NULL, 0l },
+  {"{IDS", Read_IDS_Mesg, Write_IDS_Mesg, sizeof(IntDegenerateScaffoldMesg) },
+  {"{DSC", Read_DSC_Mesg, Write_DSC_Mesg, sizeof(SnapDegenerateScaffoldMesg) },
+  {"{SLK", Read_SLK_Mesg, Write_SLK_Mesg, sizeof(SnapScaffoldLinkMesg) },
+  {"{ISL", Read_ISL_Mesg, Write_ISL_Mesg, sizeof(InternalScaffoldLinkMesg) },
+  {"{FOM", Read_FOM_Mesg, Write_FOM_Mesg, sizeof(FragOverlapMesg) },
+  {"", NULL, NULL, 0l },
+  {"", NULL, NULL, 0l },
+  {"", NULL, NULL, 0l },
+  {"", NULL, NULL, 0l },
+  {"{EOF", Read_EOF_Mesg, Write_EOF_Mesg, sizeof(EndOfFileMesg) }
 };
 
 

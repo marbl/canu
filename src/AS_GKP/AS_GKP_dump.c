@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_dump.c,v 1.14 2007-04-25 11:24:39 brianwalenz Exp $ */
+/* $Id: AS_GKP_dump.c,v 1.15 2007-04-26 14:07:03 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,14 +30,6 @@
 
 //  perl's chomp is pretty nice
 #define chomp(S) { char *t=S; while (*t) t++; t--; while (isspace(*t)) *t--=0; }
-
-static const char *ctimec(uint64 createdtime) {
-  static char  timestring[256];
-  time_t       createdtimetime = createdtime;
-  strcpy(timestring, ctime(&createdtimetime));
-  chomp(timestring);
-  return(timestring);
-}
 
 
 void
@@ -51,7 +43,6 @@ dumpGateKeeperInfo(char       *gkpStoreName) {
 
   fprintf(stdout, "num fragments        = "F_S32"\n", getNumGateKeeperFragments(gkp->frg));
   fprintf(stdout, "num libraries        = "F_S32"\n", getNumGateKeeperLibrarys(gkp->lib));
-  fprintf(stdout, "num shadow libraries = "F_S32"\n", getNumGateKeeperLibrarys(gkp->lis));
 
   closeGateKeeperStore(gkp);
 }
@@ -80,7 +71,7 @@ dumpGateKeeperBatches(char       *gkpStoreName,
     endIID = stat.lastElem;
 
   if (asTable)
-    fprintf(stdout, "UID\tIID\tName\tCreated\tCreated\tnumFrags\tnumLibs\tnumShadowLibs\n");
+    fprintf(stdout, "UID\tIID\tName\tnumFrags\tnumLibs\tnumShadowLibs\n");
 
   for (i=begIID; i<=endIID; i++) {
     if ((iidToDump == NULL) || (iidToDump[i])) {
@@ -89,17 +80,15 @@ dumpGateKeeperBatches(char       *gkpStoreName,
       getGateKeeperBatchStore(gkp->bat, i, &gkpb);
 
       if (asTable) {
-        fprintf(stdout, F_UID"\t"F_IID"\t%s\t"F_U64"\t%s\t"F_S32"\t"F_S32"\t"F_S32"\n",
+        fprintf(stdout, F_UID"\t"F_IID"\t%s\t"F_S32"\t"F_S32"\t"F_S32"\n",
                 gkpb.batchUID, i,
                 (gkpb.name[0]) ? gkpb.name : ".",
-                gkpb.created, ctimec(gkpb.created),
                 gkpb.numFragments,
                 gkpb.numLibraries,
                 gkpb.numLibraries_s);
       } else {
         fprintf(stdout, "batchIdent   = "F_UID","F_IID"\n", gkpb.batchUID, i);
         fprintf(stdout, "batchName    = %s\n", gkpb.name);
-        fprintf(stdout, "batchCreated = "F_U64" (%s)\n", gkpb.created, ctimec(gkpb.created));
         fprintf(stdout, "batchNFrags  = "F_S32"\n", gkpb.numFragments);
         fprintf(stdout, "batchNLibs   = "F_S32"\n", gkpb.numLibraries);
         fprintf(stdout, "batchNLibsS  = "F_S32"\n", gkpb.numLibraries_s);
@@ -139,7 +128,7 @@ dumpGateKeeperLibraries(char       *gkpStoreName,
     endIID = stat.lastElem;
 
   if (asTable)
-    fprintf(stdout, "UID\tIID\tName\tCreated\tCreated\tisDeleted\tisRedefined\tOrientation\tMean\tStdDev\n");
+    fprintf(stdout, "UID\tIID\tisDeleted\tOrientation\tMean\tStdDev\n");
 
   for (i=begIID; i<=endIID; i++) {
     if ((iidToDump == NULL) || (iidToDump[i])) {
@@ -148,28 +137,18 @@ dumpGateKeeperLibraries(char       *gkpStoreName,
       getGateKeeperLibraryStore(gkp->lib, i, &gkpl);
 
       if (asTable) {
-        fprintf(stdout, F_UID"\t"F_IID"\t%s\t"F_U64"\t%s\t%d\t%d\t%s\t%f\t%f\n",
+        fprintf(stdout, F_UID"\t"F_IID"\t%d\t%s\t%f\t%f\n",
                 gkpl.libraryUID, i,
-                (gkpl.name[0]) ? gkpl.name : ".",
-                gkpl.created, ctimec(gkpl.created),
                 gkpl.deleted,
-                gkpl.redefined,
                 AS_READ_ORIENT_NAMES[gkpl.orientation],
                 gkpl.mean,
                 gkpl.stddev);
       } else {
         fprintf(stdout, "libraryIdent         = "F_UID","F_IID"\n", gkpl.libraryUID, i);
-        fprintf(stdout, "libraryName          = %s\n", gkpl.name);
-        fprintf(stdout, "libraryCreated       = "F_U64" (%s)\n", gkpl.created, ctimec(gkpl.created));
         fprintf(stdout, "libraryDeleted       = %d\n", gkpl.deleted);
-        fprintf(stdout, "libraryRedefined     = %d\n", gkpl.redefined);
         fprintf(stdout, "libraryOrientation   = %s\n", AS_READ_ORIENT_NAMES[gkpl.orientation]);
         fprintf(stdout, "libraryMean          = %f\n", gkpl.mean);
         fprintf(stdout, "libraryStdDev        = %f\n", gkpl.stddev);
-        fprintf(stdout, "libraryPrevInstance  = "F_IID"\n", gkpl.prevInstanceID);
-        fprintf(stdout, "libraryPrevID        = "F_IID"\n", gkpl.prevID);
-        fprintf(stdout, "libraryBirthBatch    = %d\n", gkpl.birthBatch);
-        fprintf(stdout, "libraryDeathBatch    = %d\n", gkpl.deathBatch);
         chomp(gkpl.comment);
         fprintf(stdout, "libraryComment\n");
         if (gkpl.comment[0] != 0)
@@ -178,49 +157,6 @@ dumpGateKeeperLibraries(char       *gkpStoreName,
       }
     }
   }       
-
-  statsStore(gkp->lis, &stat);
-
-  for (i=stat.firstElem; i<=stat.lastElem; i++) {
-    if ((iidToDump == NULL) || (iidToDump[i])) {
-      GateKeeperLibraryRecord gkpl;
-
-      getGateKeeperLibraryStore(gkp->lis, i, &gkpl);
-
-      //  This is a verbatim copy of the above block, except we change
-      //  the label to indiacte it is a shadow library.
-      //
-      if (asTable) {
-        fprintf(stdout, F_UID"\t"F_IID"\t%s\t"F_U64"\t%s\t%d\t%d\t%s\t%f\t%f\tshadow\n",
-                gkpl.libraryUID, i,
-                (gkpl.name[0]) ? gkpl.name : ".",
-                gkpl.created, ctimec(gkpl.created),
-                gkpl.deleted,
-                gkpl.redefined,
-                AS_READ_ORIENT_NAMES[gkpl.orientation],
-                gkpl.mean,
-                gkpl.stddev);
-      } else {
-        fprintf(stdout, "shadowLibraryIdent         = "F_UID","F_IID"\n", gkpl.libraryUID, i);
-        fprintf(stdout, "shadowLibraryName          = %s\n", gkpl.name);
-        fprintf(stdout, "shadowLibraryCreated       = "F_U64" (%s)\n", gkpl.created, ctimec(gkpl.created));
-        fprintf(stdout, "shadowLibraryDeleted       = %d\n", gkpl.deleted);
-        fprintf(stdout, "shadowLibraryRedefined     = %d\n", gkpl.redefined);
-        fprintf(stdout, "shadowLibraryOrientation   = %s\n", AS_READ_ORIENT_NAMES[gkpl.orientation]);
-        fprintf(stdout, "shadowLibraryMean          = %f\n", gkpl.mean);
-        fprintf(stdout, "shadowLibraryStdDev        = %f\n", gkpl.stddev);
-        fprintf(stdout, "shadowLibraryPrevInstance  = "F_IID"\n", gkpl.prevInstanceID);
-        fprintf(stdout, "shadowLibraryPrevID        = "F_IID"\n", gkpl.prevID);
-        fprintf(stdout, "shadowLibraryBirthBatch    = %d\n", gkpl.birthBatch);
-        fprintf(stdout, "shadowLibraryDeathBatch    = %d\n", gkpl.deathBatch);
-        chomp(gkpl.comment);
-        fprintf(stdout, "shadowLibraryComment\n");
-        if (gkpl.comment[0] != 0)
-          fprintf(stdout, "%s\n", gkpl.comment);
-        fprintf(stdout, "shadowLibraryCommentEnd\n");
-      }
-    }
-  }
 
   closeGateKeeperStore(gkp);
 }
@@ -287,9 +223,6 @@ dumpGateKeeperFragments(char       *gkpStoreName,
         fprintf(stdout, "fragmentSeqLen          = %d\n", getFragRecordSequenceLength(fr));
         fprintf(stdout, "fragmentHPSLen          = %d\n", getFragRecordHPSLength(fr));
         fprintf(stdout, "fragmentSrcLen          = %d\n", getFragRecordSourceLength(fr));
-
-        fprintf(stdout, "fragmentBirthBatch      = %d\n", fr->gkfr.birthBatch);
-        fprintf(stdout, "fragmentDeathBatch      = %d\n", fr->gkfr.birthBatch);
 
         if (dumpWithSequence) {
           unsigned int   clrBeg = getFragRecordClearRegionBegin(fr, dumpClear);
@@ -478,7 +411,7 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
 
   if (iidToDump == NULL) {
     iidToDump = (char *)safe_calloc(stat.lastElem+1, sizeof(char));
-    for (i=begIID; i<endIID; i++)
+    for (i=begIID; i<=endIID; i++)
       iidToDump[i] = 1;
   }
 
@@ -502,7 +435,7 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
     if (iidToDump[getFragRecordIID(fr)]) {
       libToDump[getFragRecordLibraryIID(fr)]++;
 
-      if (iidToDump[getFragRecordMateIID(fr)] == 0) {
+      if ((getFragRecordMateIID(fr) > 0) && (iidToDump[getFragRecordMateIID(fr)] == 0)) {
         mateAdded++;
         if (doNotFixMates == 0)
           iidToDump[getFragRecordMateIID(fr)] = 1;
@@ -513,12 +446,29 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
   fprintf(stderr, "%sdded %d reads to maintain mate relationships.\n",
           (doNotFixMates) ? "Would have a" : "A", mateAdded);
 
-  for (i=1; i<stat.lastElem+1; i++)
+  fprintf(stderr, "Dumping %d fragments from unknown library (version 1 has these)\n", libToDump[0]);
+
+  for (i=1; i<=stat.lastElem; i++)
     fprintf(stderr, "Dumping %d fragments from library IID %d\n", libToDump[i], i);
+
+  //  Dump the format message
+  //
+  if (dumpFormat > 1) {
+    AS_MSG_setFormatVersion(dumpFormat);
+
+    VersionMesg  vmesg;
+    vmesg.version = dumpFormat;
+
+    pmesg.m = &vmesg;
+    pmesg.t = MESG_VER;
+
+    WriteProtoMesg_AS(stdout, &pmesg);
+  }
+
 
   //  Dump libraries.
   //
-  for (i=0; i<=stat.lastElem; i++) {
+  for (i=1; i<=stat.lastElem; i++) {
     if (libToDump[i]) {
       GateKeeperLibraryRecord gkpl;
 
@@ -546,7 +496,6 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
         lmesg.eaccession   = gkpl.libraryUID;
         lmesg.mean         = gkpl.mean;
         lmesg.stddev       = gkpl.stddev;
-        lmesg.entry_time   = gkpl.created;
         lmesg.source       = gkpl.comment;
         lmesg.link_orient  = AS_READ_ORIENT_NAMES[gkpl.orientation][0];
         lmesg.num_features = 0;
@@ -583,7 +532,6 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
       fmesg.type            = AS_READ;
       fmesg.is_random       = (getFragRecordIsNonRandom(fr)) ? 0 : 1;
       fmesg.status_code     = AS_READ_STATUS_NAMES[fr->gkfr.status][0];
-      fmesg.entry_time      = 0;
       fmesg.clear_rng.bgn   = getFragRecordClearRegionBegin(fr, dumpFRGClear);
       fmesg.clear_rng.end   = getFragRecordClearRegionEnd  (fr, dumpFRGClear);
       fmesg.clear_vec.bgn   = getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_VEC);
@@ -596,6 +544,16 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
       fmesg.hps             = getFragRecordHPS(fr);
       fmesg.iaccession      = firstElem;
 
+      if (fr->gkfr.hasVectorClear == 0) {
+        fmesg.clear_vec.bgn   = 1;
+        fmesg.clear_vec.end   = 0;
+      }
+
+      if (fr->gkfr.hasQualityClear == 0) {
+        fmesg.clear_qlt.bgn   = 1;
+        fmesg.clear_qlt.end   = 0;
+      }
+
       WriteProtoMesg_AS(stdout, &pmesg);
 
       if ((getFragRecordMateIID(fr) > 0) &&
@@ -605,7 +563,6 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
 
         lmesg.action      = AS_ADD;
         lmesg.type        = AS_MATE;
-        lmesg.entry_time  = 0;
         lmesg.link_orient = AS_READ_ORIENT_NAMES[fr->gkfr.orientation][0];
         lmesg.frag1       = frgUID[getFragRecordMateIID(fr)];
         lmesg.frag2       = getFragRecordUID(fr);

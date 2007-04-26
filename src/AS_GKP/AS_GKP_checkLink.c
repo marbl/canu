@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkLink.c,v 1.6 2007-04-16 22:26:39 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkLink.c,v 1.7 2007-04-26 14:07:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,15 +31,16 @@ static char CM_ID[] = "$Id: AS_GKP_checkLink.c,v 1.6 2007-04-16 22:26:39 brianwa
 
 int
 Check_LinkMesg(LinkMesg *lkg_mesg,
-               CDS_CID_t batchID,
-               time_t currentTime,
                int verbose) {
-
   PHashValue_AS              value;
   CDS_IID_t                  frag1IID;
   CDS_IID_t                  frag2IID;
   GateKeeperFragmentRecord   gkFrag1;
   GateKeeperFragmentRecord   gkFrag2;
+
+
+  if (lkg_mesg->action == AS_IGNORE)
+    return GATEKEEPER_SUCCESS;
 
 
   //  Check that the fragments are different
@@ -92,7 +93,9 @@ Check_LinkMesg(LinkMesg *lkg_mesg,
     //  Version 1 encodes the library in the mate, not the read.  We
     //  need to check that the library (from a distance record) is
     //  there, and get the library IID to set in the reads.
-    //
+
+    value.type = AS_IID_DST;
+    value.IID  = 0;
     if (HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore->phs_private,
                                                   UID_NAMESPACE_AS,
                                                   lkg_mesg->distance,
@@ -111,6 +114,9 @@ Check_LinkMesg(LinkMesg *lkg_mesg,
 
     gkFrag1.libraryIID = value.IID;
     gkFrag2.libraryIID = value.IID;
+
+    gkFrag1.orientation = lkg_mesg->link_orient;
+    gkFrag2.orientation = lkg_mesg->link_orient;
   }
 
   //  Now make absolutely sure the two reads are in the same library.

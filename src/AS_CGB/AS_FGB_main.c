@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_FGB_main.c,v 1.11 2007-04-12 18:54:44 brianwalenz Exp $";
+= "$Id: AS_FGB_main.c,v 1.12 2007-04-26 14:07:03 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module:  AS_FGB_main.c
@@ -220,7 +220,6 @@ static void output_mesgs
       ofg_mesg.type       = get_typ_fragment(frags,iv);
       //Locale_ID    		elocale;
       //SeqInterval  		locale_pos;
-      ofg_mesg.entry_time = 0;
       ofg_mesg.clear_rng.bgn = 0;
       ofg_mesg.clear_rng.end = get_length_fragment(frags,iv);
       ofg_mesg.source = NULL;

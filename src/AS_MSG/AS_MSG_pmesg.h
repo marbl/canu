@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.42 2007-04-23 15:24:35 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.43 2007-04-26 14:07:03 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -51,8 +51,8 @@ DEFINE_IDs(Sequence);
 typedef enum {
   AS_ADD      = (int)'A',
   AS_DELETE   = (int)'D',
-  AS_UPDATE   = (int)'U',
-  AS_REDEFINE = (int)'R'
+  AS_IGNORE   = (int)'I',
+  AS_UPDATE   = (int)'U'
 } ActionType;
 
 typedef struct {
@@ -102,7 +102,6 @@ typedef struct {
 
 typedef struct InternalBatchMesgTag {
   char         *name;
-  time_t       created;
   Batch_ID     eaccession;
   char         *comment;
   IntBatch_ID  iaccession;
@@ -153,7 +152,6 @@ typedef enum {
 typedef struct {
   ActionType      action;
   LinkType        type;
-  time_t          entry_time;
   OrientType      link_orient;
   Fragment_ID     frag1;
   Fragment_ID     frag2;
@@ -167,7 +165,6 @@ typedef struct {
   Library_ID   eaccession;
   float32      mean;
   float32      stddev;
-  time_t       entry_time;
 #ifdef AS_ENABLE_SOURCE
   char        *source;
 #endif
@@ -274,7 +271,6 @@ typedef struct {
   FragType     		type;            //  only version 1
   uint32                is_random;       //  only version 2
   char                  status_code;     //  only version 2
-  time_t       		entry_time;
   SeqInterval  		clear_rng;
   SeqInterval  		clear_vec;       //  only version 2
   SeqInterval  		clear_qlt;       //  only version 2
@@ -921,7 +917,6 @@ typedef struct {
 /* EOF */
 typedef struct EndOfFileMesgTag {
   int32   status;
-  time_t  created;
   char    *comment;
 } EndOfFileMesg;
 

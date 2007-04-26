@@ -20,7 +20,7 @@
  *************************************************************************/
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/AS_ORA_main.c,v $
-$Revision: 1.11 $
+$Revision: 1.12 $
 **********************************************************************/
 
 /**********************************************************************
@@ -1283,7 +1283,7 @@ int GenerateOverlapFile( char * output_ovl_filename,
     // regressor ADL message
     auditLine2.complete = time(0);
     auditLine2.name = "overlap_regressor";
-    auditLine2.version = "$Revision: 1.11 $ $Date: 2007-02-18 14:04:49 $";
+    auditLine2.version = "$Revision: 1.12 $ $Date: 2007-04-26 14:07:04 $";
     auditLine2.comment = "(empty)";
     auditLine2.next = NULL;
 
@@ -1396,7 +1396,6 @@ int GenerateOverlapFile( char * output_ovl_filename,
         //ofg_mesg.type = AS_READ;
         getSource_ReadStruct( read_struct, source, MAX_SOURCE_LENGTH );
         ofg_mesg.source = source;
-        getEntryTime_ReadStruct( read_struct, &ofg_mesg.entry_time );
         getClearRegion_ReadStruct( read_struct,
                                    (unsigned int *) &ofg_mesg.clear_rng.bgn,
                                    (unsigned int *) &ofg_mesg.clear_rng.end,

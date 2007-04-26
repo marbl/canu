@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.38 2007-04-16 15:35:40 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.39 2007-04-26 14:07:03 brianwalenz Exp $";
 
 #include "AS_MSG_pmesg_internal.h"
 
@@ -360,95 +360,6 @@ AppendAuditLine_AS(AuditMesg *adt, AuditLine *adl,
   adl->comment  = comment;
   adl->next     = NULL;
 }
-
-/******************** FREE ROUTINES ***************************/
-
-/*  Routines to free the second-level parts of a message.  */
-
-void
-Clear_ADT_Mesg(void *mesg, int typ) {
-  AuditLine *alm, *nxt;
-
-  for (alm = ((AuditMesg *) mesg)->list; alm != NULL; alm = nxt)
-    { nxt = alm->next;
-      safe_free(alm->name);
-      safe_free(alm->version);
-      safe_free(alm->comment);
-      safe_free(alm);
-    }
-}
-
-void
-Clear_FRG_Mesg(void *mesg, int typ) {
-  FragMesg *fgm = (FragMesg *) mesg;
-
-  safe_free(fgm->source);
-  safe_free(fgm->sequence);
-  safe_free(fgm->quality);
-  safe_free(fgm->hps);
-}
-
-void
-Clear_OVL_Mesg(void *mesg, int typ) {
-  safe_free(((OverlapMesg *) mesg)->delta);
-}
-
-void
-Clear_IUM_Mesg(void *vmesg, int typ) { 
-  IntUnitigMesg *mesg = (IntUnitigMesg *) vmesg;
-  int i;
-
-  safe_free(mesg->consensus);
-  safe_free(mesg->quality);
-  for (i=0; i < mesg->num_frags; i++)
-    safe_free(mesg->f_list[i].delta);
-  safe_free(mesg->f_list);
-  //safe_free(mesg->v_list);
-}
-
-void
-Clear_IUL_Mesg(void *vmesg, int typ) {
-  IntUnitigLinkMesg *mesg = (IntUnitigLinkMesg *) vmesg;
-  safe_free(mesg->jump_list);
-}
-
-void
-Clear_ICL_Mesg(void *vmesg, int typ) {
-  IntContigLinkMesg *mesg = (IntContigLinkMesg *) vmesg;
-  safe_free(mesg->jump_list);
-}
-
-void
-Clear_ISF_Mesg(void *vmesg, int typ) {
-  IntScaffoldMesg *mesg = (IntScaffoldMesg *) vmesg;
-  safe_free(mesg->contig_pairs);
-}
-
-void
-Clear_IMD_Mesg(void *vmesg, int typ) {
-  IntMateDistMesg *mesg = (IntMateDistMesg *) vmesg;
-  safe_free(mesg->histogram);
-}
-
-void
-Clear_ICM_Mesg(void *vmesg, int typ) {
-  IntConConMesg *mesg = (IntConConMesg *) vmesg;
-  int        i;
-
-  safe_free(mesg->consensus);
-  safe_free(mesg->quality);
-  for (i=0; i < mesg->num_pieces; ++i)
-    safe_free(mesg->pieces[i].delta);
-  safe_free(mesg->pieces);
-  safe_free(mesg->unitigs);
-  for (i=0; i < mesg->num_vars; ++i) {
-    safe_free(mesg->v_list[i].nr_conf_alleles);
-    safe_free(mesg->v_list[i].weights); 
-    safe_free(mesg->v_list[i].var_seq);
-  }
-  safe_free(mesg->v_list);           
-}
-
 
 
 /******************** EXTERNAL ENTRY POINTS ***************************/

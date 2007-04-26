@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.20 2007-04-16 22:26:38 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.21 2007-04-26 14:07:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -236,12 +236,17 @@ double checkWindowQuality(FragMesg *frg_mesg, FILE *err) {
 int
 Check_FragMesg(FragMesg            *frg_mesg,  
                int                   check_qvs,
-               int32                 batchID,
-               time_t                currentTime,
                int                   assembler,
                int                   verbose) {
+  static  uint32    libOrientationMax = 0;
+  static  uint64   *libOrientation    = NULL;
 
   PHashValue_AS value;
+
+
+  if (frg_mesg->action == AS_IGNORE)
+    return GATEKEEPER_SUCCESS;
+
 
   if (checkfraginitialized == 0) {
     int i;
@@ -274,17 +279,6 @@ Check_FragMesg(FragMesg            *frg_mesg,
 
     clearGateKeeperFragmentRecord(&gkf);
 
-    gkf.birthBatch = batchID;
-
-    //  Check entryTime
-    //
-    if (frg_mesg->entry_time > currentTime) {
-      printGKPError(stderr, GKPError_Time);
-      fprintf(stderr, "# Check_FragMessage: invalid entry time " F_TIME_T " > current time (" F_TIME_T ")\n",
-              frg_mesg->entry_time, currentTime);
-      return GATEKEEPER_FAILURE;
-    }
-      
     //  Make sure we haven't seen this frag record before... if so
     //  it is a fatal error
     //
@@ -346,10 +340,17 @@ Check_FragMesg(FragMesg            *frg_mesg,
     }
 
     //  Version 2 comes with library information.  Get it.
-    value.type = AS_IID_DST;
-    value.IID  = 0;
+    //
+    //  Version 1 sets orient and library when mates are added.
+    //  Version 1 libraries NEVER have a valid orientation.
+
+    gkf.libraryIID  = 0;
+    gkf.orientation = AS_READ_ORIENT_UNKNOWN;
 
     if (frg_mesg->library_uid > 0) {
+      value.type = AS_IID_DST;
+      value.IID  = 0;
+
       if (HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore->phs_private,
                                                     UID_NAMESPACE_AS,
                                                     frg_mesg->library_uid,
@@ -362,15 +363,28 @@ Check_FragMesg(FragMesg            *frg_mesg,
                 frg_mesg->eaccession, frg_mesg->library_uid);
         return(GATEKEEPER_FAILURE);
       }
+
+      gkf.libraryIID  = value.IID;
+
+      //  Get the library orientation; cache values across invocations.
+      //
+      if (libOrientation == NULL) {
+        libOrientationMax = 256;
+        libOrientation    = (uint64 *)safe_calloc(libOrientationMax, sizeof(uint64));
+      }
+      if (libOrientationMax <= gkf.libraryIID) {
+        libOrientation    = safe_realloc(libOrientation, 2 * gkf.libraryIID);
+        while (libOrientationMax < 2 * gkf.libraryIID)
+          libOrientation[libOrientationMax++] = 0;
+      }
+      if (libOrientation[gkf.libraryIID] == 0) {
+        GateKeeperLibraryRecord  gkpl;
+        getIndexStore(gkpStore->lib, gkf.libraryIID, &gkpl); 
+        libOrientation[gkf.libraryIID] = gkpl.orientation;
+      }
+      gkf.orientation = libOrientation[gkf.libraryIID];
     }
 
-    //  we should cache the library orientation, keeping an array of
-    //  orientation flags, initialized to maxint or something.
-#warning should get orientation from library
-
-
-    gkf.orientation = AS_READ_ORIENT_INNIE;
-    gkf.libraryIID  = value.IID;
 
     {
       int which;
@@ -380,14 +394,30 @@ Check_FragMesg(FragMesg            *frg_mesg,
         gkf.clearEnd[which] = frg_mesg->clear_rng.end;
       }
 
-      gkf.clearBeg[AS_READ_CLEAR_QLT] = frg_mesg->clear_qlt.bgn;
-      gkf.clearEnd[AS_READ_CLEAR_QLT] = frg_mesg->clear_qlt.end;
+      if (frg_mesg->clear_qlt.bgn <= frg_mesg->clear_qlt.end) {
+        gkf.hasQualityClear = 1;
+        gkf.clearBeg[AS_READ_CLEAR_QLT] = frg_mesg->clear_qlt.bgn;
+        gkf.clearEnd[AS_READ_CLEAR_QLT] = frg_mesg->clear_qlt.end;
+      } else {
+        gkf.clearBeg[AS_READ_CLEAR_QLT] = 1;
+        gkf.clearEnd[AS_READ_CLEAR_QLT] = 0;
+      }
 
-      gkf.clearBeg[AS_READ_CLEAR_VEC] = frg_mesg->clear_vec.bgn;
-      gkf.clearEnd[AS_READ_CLEAR_VEC] = frg_mesg->clear_vec.end;
+      if (frg_mesg->clear_vec.bgn <= frg_mesg->clear_vec.end) {
+        gkf.hasVectorClear = 1;
+        gkf.clearBeg[AS_READ_CLEAR_VEC] = frg_mesg->clear_vec.bgn;
+        gkf.clearEnd[AS_READ_CLEAR_VEC] = frg_mesg->clear_vec.end;
+      } else {
+        gkf.clearBeg[AS_READ_CLEAR_VEC] = 1;
+        gkf.clearEnd[AS_READ_CLEAR_VEC] = 0;
+      }
     }
 
+    //  Now add the fragment to the store
+    //
     value.type = AS_IID_FRG;
+    value.IID  = 0;
+
     InsertInPHashTable_AS(&gkpStore->phs_private,
                           UID_NAMESPACE_AS,
                           frg_mesg->eaccession,
@@ -470,7 +500,7 @@ Check_FragMesg(FragMesg            *frg_mesg,
       fprintf(stderr,"* Deleting fragment...refcount = %d\n", value.refCount);
 
     if(HASH_SUCCESS == DeleteFromPHashTable_AS(gkpStore->phs_private, UID_NAMESPACE_AS, frg_mesg->eaccession)){
-      deleteAndMarkGateKeeperFragmentStore(gkpStore->frg, value.IID, batchID);
+      deleteGateKeeperFragmentStore(gkpStore->frg, value.IID);
     }else{
       assert(0);
     }

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.32 2007-04-25 11:24:39 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.33 2007-04-26 14:07:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -69,9 +69,6 @@ printGKPError(FILE *fout, GKPErrorType type){
       break;
     case GKPError_DeleteLNK:
       fprintf(fout,"# GKP Error %d: Can't delete Link\n",(int)type);
-      break;
-    case GKPError_Time:
-      fprintf(fout,"# GKP Error %d: Invalid creation time\n",(int)type);
       break;
     case GKPError_Action:
       fprintf(fout,"# GKP Error %d: Invalid action\n",(int)type);
@@ -168,6 +165,7 @@ usage(char *filename) {
   fprintf(stderr, "    -donotfixmates         ...only extract the fragments given, do not add in\n");
   fprintf(stderr, "                              missing mated reads\n");
   fprintf(stderr, "    -clear <clr>           ...use clear range <clr>, default=ORIG\n");
+  fprintf(stderr, "    -format2               ...extract using frg format version 2\n");
   fprintf(stderr, "  -dumpofg               extract OFG (for unitigger)\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "  (1) - must have a -dump option, e.g., -uid file -tabular -dumpfragments some.gkpStore\n");
@@ -198,7 +196,6 @@ main(int argc, char **argv) {
   int              verbose         = 0;
   int              check_qvs       = 1;
   int              assembler       = AS_ASSEMBLER_GRANDE;
-  CDS_CID_t        currentBatchID  = NULLINDEX;
   int              nerrs           = 0;   // Number of errors in current run
   int              maxerrs         = 1;   // Number of errors allowed before we punt
   int              firstFileArg    = 0;
@@ -222,7 +219,7 @@ main(int argc, char **argv) {
   int              dumpFastaClear    = AS_READ_CLEAR_LATEST;
   int              dumpFastaQuality  = 0;
   int              doNotFixMates     = 0;
-
+  int              dumpFormat        = 1;
   char            *iidToDump         = NULL;
 
   int arg = 1;
@@ -283,6 +280,8 @@ main(int argc, char **argv) {
       dumpClear      = AS_PER_decodeClearRangeLabel(argv[++arg]);
       dumpFRGClear   = dumpClear;
       dumpFastaClear = dumpClear;
+    } else if (strcmp(argv[arg], "-format2") == 0) {
+      dumpFormat = 2;
     } else if (strcmp(argv[arg], "-dumpfastaseq") == 0) {
       dump = DUMP_FASTA;
       dumpFastaQuality = 0;
@@ -423,7 +422,7 @@ main(int argc, char **argv) {
         dumpGateKeeperAsOFG(gkpStoreName);
         break;
       case DUMP_FRG:
-        dumpGateKeeperAsFRG(gkpStoreName, 1, begIID, endIID, iidToDump,
+        dumpGateKeeperAsFRG(gkpStoreName, dumpFormat, begIID, endIID, iidToDump,
                             doNotFixMates,
                             dumpFRGClear);
         break;
@@ -466,15 +465,10 @@ main(int argc, char **argv) {
   else
     gkpStore = createGateKeeperStore(gkpStoreName);
 
-  currentBatchID = getNumGateKeeperBatchs(gkpStore->bat);
-
   for (; firstFileArg < argc; firstFileArg++) {
     FILE            *inFile            = NULL;
     GenericMesg     *pmesg             = NULL;
-    int              messageCount      = 0;
-    int              fileIsCompressed   = 0;
-
-
+    int              fileIsCompressed  = 0;
 
     if        (strcmp(argv[firstFileArg] + strlen(argv[firstFileArg]) - 3, ".gz") == 0) {
       char  cmd[1024];
@@ -498,57 +492,39 @@ main(int argc, char **argv) {
     if (inFile == NULL)
       fprintf(stderr, "%s: failed to open input '%s': (returned null pointer)\n", argv[0], argv[firstFileArg]);
 
-
-
     while (EOF != ReadProtoMesg_AS(inFile, &pmesg)) {
-      messageCount++;
-
-#if 0
-      if (((messageCount == 1) && (pmesg->t != MESG_BAT)) ||
-          ((messageCount != 1) && (pmesg->t == MESG_BAT))) {
-        printGKPError(stderr, GKPError_FirstMessageBAT);
-        WriteProtoMesg_AS(stderr,pmesg);
-        return GATEKEEPER_FAILURE;
-      }
-#endif
-
       if (pmesg->t == MESG_BAT) {
-#if 0
-        if (GATEKEEPER_SUCCESS != Check_BatchMesg((BatchMesg *)pmesg->m, &currentBatchID, time(0), verbose)) {
+        if (GATEKEEPER_SUCCESS != Check_BatchMesg((BatchMesg *)pmesg->m, verbose)) {
           fprintf(stderr,"# Invalid BAT message at Line %d of input...exiting\n", GetProtoLineNum_AS());
           WriteProtoMesg_AS(stderr,pmesg);
           return GATEKEEPER_FAILURE;
         }
-#endif
-
       } else if (pmesg->t == MESG_DST) {
-        if (GATEKEEPER_SUCCESS != Check_DistanceMesg((DistanceMesg *)pmesg->m, currentBatchID, verbose)){
+        if (GATEKEEPER_SUCCESS != Check_DistanceMesg((DistanceMesg *)pmesg->m, verbose)){
           fprintf(stderr,"# Line %d of input\n", GetProtoLineNum_AS());
           WriteProtoMesg_AS(stderr,pmesg);
           nerrs++;
         }
-
       } else if (pmesg->t == MESG_LIB) {
-        if (GATEKEEPER_SUCCESS != Check_LibraryMesg((LibraryMesg *)pmesg->m, currentBatchID, verbose)){
+        if (GATEKEEPER_SUCCESS != Check_LibraryMesg((LibraryMesg *)pmesg->m, verbose)){
           fprintf(stderr,"# Line %d of input\n", GetProtoLineNum_AS());
           WriteProtoMesg_AS(stderr,pmesg);
           nerrs++;
         }
-
       } else if (pmesg->t == MESG_FRG) {
-        if (GATEKEEPER_SUCCESS != Check_FragMesg((FragMesg *)pmesg->m, check_qvs, currentBatchID, time(0), assembler, verbose)){
+        if (GATEKEEPER_SUCCESS != Check_FragMesg((FragMesg *)pmesg->m, check_qvs, assembler, verbose)){
           fprintf(stderr,"# Line %d of input\n", GetProtoLineNum_AS());
           WriteProtoMesg_AS(stderr,pmesg);
           nerrs++;
         }
-
       } else if (pmesg->t == MESG_LKG) {
-        if (GATEKEEPER_SUCCESS != Check_LinkMesg((LinkMesg *)pmesg->m, currentBatchID, time(0), verbose)) {
+        if (GATEKEEPER_SUCCESS != Check_LinkMesg((LinkMesg *)pmesg->m, verbose)) {
           fprintf(stderr,"# Line %d of input\n", GetProtoLineNum_AS());
           WriteProtoMesg_AS(stderr,pmesg);
           nerrs++;
         }
-
+      } else if (pmesg->t == MESG_VER) {
+        //  Ignore
       } else {
         fprintf(stderr,"# ERROR: Read Message with type %s...skipping!\n", MessageTypeName[pmesg->t]);
         WriteProtoMesg_AS(stderr,pmesg);
@@ -560,8 +536,6 @@ main(int argc, char **argv) {
         return(GATEKEEPER_FAILURE);
       }
     }
-
-
 
     if (fileIsCompressed) {
       errno = 0;
