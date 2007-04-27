@@ -28,7 +28,6 @@ LOCAL_WORK = $(shell cd ../..; pwd)
 SOURCES = acceptableOBToverlap.c \
           chimera.C \
           consolidate.C \
-          dumpRandomMatedFrags.C \
           findDuplicateFragsInStore.C \
           getNumScaffolds.c \
           initialTrim.C \
@@ -42,7 +41,6 @@ PROGS   = acceptableOBToverlap \
           merge-trimming \
           consolidate \
           chimera \
-          dumpRandomMatedFrags \
           findDuplicateFragsInStore \
           getNumScaffolds
 SCRIPTS = 
@@ -62,8 +60,6 @@ chimera: chimera.o util++.o -lAS_OVS -lAS_PER -lAS_UTL
 
 consolidate: consolidate.o util++.o -lAS_OVS -lAS_PER -lAS_UTL
 
-
-dumpRandomMatedFrags: dumpRandomMatedFrags.o -lAS_PER -lAS_UTL
 
 findDuplicateFragsInStore: findDuplicateFragsInStore.o -lAS_PER -lAS_UTL
 
