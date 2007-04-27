@@ -2,7 +2,7 @@
 /**************************************************************************
  * This file is part of Celera Assembler, a software program that 
  * assembles whole-genome shotgun reads into contigs and scaffolds.
- * Copyright (C) 1999-2004, Applera Corporation. All rights reserved.
+ * Copyright (C) 2007, J. Craig Venter Institute.
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 //  A quick hack to compute a histogram of coverage depth using
 //  the runCA-OBT posmap files.
@@ -52,6 +53,75 @@ intDep_sort(const void *a, const void *b) {
 }
 
 
+void
+computeStuff(uint32 *V, uint32 N,
+             uint32  B,
+             uint32  E,
+             uint32  *mode,
+             double  *mean,
+             uint32  *median) {
+
+  uint32  histogramMax = 128 * 1024;
+  uint32 *histogram    = (uint32 *)safe_malloc(sizeof(uint32) * histogramMax);
+  uint32  histogramBig = 0;
+  uint32  meanCount    = 0;
+  uint32  i;
+
+  if (E > N)
+    E = N;
+
+  *mean = 0;
+  for (i=B; i<E; i++) {
+    if (V[i] > 0) {
+      *mean += V[i];
+      meanCount++;
+    }
+
+    if (V[i] < histogramMax)
+      histogram[V[i]]++;
+    else 
+      histogramBig++;
+  }
+
+  if (histogramBig) {
+    fprintf(stderr, "histogramBig: "F_U32"\n", histogramBig);
+    exit(1);
+  }
+
+  //  Find the mode -- except for 0.
+  //
+  *mode = 1;
+  for (i=1; i<histogramMax; i++) {
+    if (histogram[*mode] < histogram[i])
+      *mode = i;
+  }
+
+  //  Find the mean
+  //
+  *mean = *mean / meanCount;
+
+
+  //  Find the median
+  //
+  meanCount /= 2;
+  *median    = 1;
+
+  for (i=1; i<histogramMax; i++)
+    if (meanCount >= histogram[i]) {
+      meanCount -= histogram[i];
+    } else {
+      *median = i;
+      break;
+    }
+
+  safe_free(histogram);
+}
+
+
+
+
+
+
 int
 main(int argc, char **argv) {
   int              i = 0;
@@ -70,6 +140,8 @@ main(int argc, char **argv) {
   int              minSize = 0;
   int              maxSize = DEPTHSIZE;
 
+  int              doScaffold = 0;
+
   int arg=1;
   int err=0;
   while (arg < argc) {
@@ -77,6 +149,8 @@ main(int argc, char **argv) {
       minSize = atoi(argv[++arg]);
     } else if (strcmp(argv[arg], "-max") == 0) {
       maxSize = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-scaffold") == 0) {
+      doScaffold = 1;
     } else {
       fprintf(stderr, "unknown option '%s'\n", argv[arg]);
       err++;
@@ -84,17 +158,28 @@ main(int argc, char **argv) {
     arg++;
   }
   if (err) {
-    fprintf(stderr, "usage: %s [-min N] [-max N] < x.posmap.frgscf", argv[0]);
-    fprintf(stderr, "  -min N     count scaffolds at least N bases long.\n");
-    fprintf(stderr, "  -max N     count scaffolds at most N bases long.\n");
+    fprintf(stderr, "usage: %s [-min N] [-max N] [-scaffold] < x.posmap.frgscf", argv[0]);
+    fprintf(stderr, "  Default is to compute a histogram of the number of bases at some\n");
+    fprintf(stderr, "  depth of coverage.  Options for this are:\n");
+    fprintf(stderr, "    -min N     use scaffolds at least N bases long.\n");
+    fprintf(stderr, "    -max N     use scaffolds at most N bases long.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  The -scaffold switch disables the default output, and instead reports\n");
+    fprintf(stderr, "  the mode, mean, median per scaffold.\n");
+    exit(1);
   }
 
   uint32   inlen = 0;
   uint32   inmax = 1048576;
   intDep  *in    = (intDep *)safe_malloc(sizeof(intDep) * inmax);
 
+  if (doScaffold)
+    fprintf(stdout, "uid\tlength\tmode\tmean\tmedian\n");
+
   while (4 == fscanf(stdin, " "F_UID" "F_UID" %d %d %*d ", &uidjunk, &uid, &beg, &end)) {
-    //fprintf(stderr, "read "F_UID" "F_UID" %d %d\n", uidjunk, uid, beg, end);
+
+    if (lastuid == 0)
+      lastuid = uid;
 
     //  Did we switch to a new scaffold?  Process this set of intervals.
     //
@@ -176,22 +261,44 @@ main(int argc, char **argv) {
             id[idlen].de--;
         }
 
-        //  Toss out the last one if it's zero length -- I think it's always
-        //  zero length, just can't convince myself.
-        //
-        if (id[idlen].lo == id[idlen].hi)
-          idlen--;
+        //  The way the loop is constructed above, the number of id
+        //  intervals is idlen+1.  The last interval is always zero
+        //  (thats id[idlen]) and so our later loops are supposed to
+        //  be i<idlen.
+        assert(id[idlen].lo == id[idlen].hi);
 
         safe_free(is);
 
         //  Update the histogram
         //
-        for (i=0; i<idlen; i++) {
-          if (id[i].de < HISTMAX) {
-            histogram[id[i].de] += id[i].hi - id[i].lo;
-            if (histmax < id[i].de)
-              histmax = id[i].de;
+        if (doScaffold == 0) {
+          for (i=0; i<idlen; i++) {
+            if (id[i].de < HISTMAX) {
+              histogram[id[i].de] += id[i].hi - id[i].lo;
+              if (histmax < id[i].de)
+                histmax = id[i].de;
+            }
           }
+        }
+
+        //  Report mode, mean and median for thsi scaffold
+        //
+        if (doScaffold) {
+          uint32  N      = id[idlen-1].hi;
+          uint32 *V      = (uint32 *)safe_calloc(N, sizeof(uint32));
+          uint32  mode   = 0;
+          double  mean   = 0.0;
+          uint32  median = 0;
+
+          for (i=0; i<idlen; i++) {
+            int j;
+            for (j=id[i].lo; j<id[i].hi; j++)
+              V[i] = id[i].de;
+          }
+
+          computeStuff(V, N, 0, N, &mode, &mean, &median);
+          fprintf(stdout, F_UID"\t"F_U32"\t"F_U32"\t%f\t"F_U32"\n", lastuid, N, mode, mean, median);
+          safe_free(V);
         }
 
         safe_free(id);
@@ -215,8 +322,9 @@ main(int argc, char **argv) {
       lastend = end;
   }
 
-  for (i=0; i<=histmax; i++)
-    fprintf(stdout, "%d\t%d\n", i, histogram[i]);
+  if (doScaffold == 0)
+    for (i=0; i<=histmax; i++)
+      fprintf(stdout, "%d\t%d\n", i, histogram[i]);
 
   safe_free(in);
 
