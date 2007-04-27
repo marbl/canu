@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.33 2007-04-26 14:07:03 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.34 2007-04-27 19:38:35 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -141,15 +141,19 @@ usage(char *filename) {
   fprintf(stderr, "\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "The third usage will dump the contents of a GateKeeper store.\n");
+  fprintf(stderr, "  [selection of what objects to dump]\n");
   fprintf(stderr, "  -b <begin-iid>         dump starting at this batch, library or read (1)\n");
   fprintf(stderr, "  -e <ending-iid>        dump stopping after this iid (1)\n");
   fprintf(stderr, "  -uid <uid-file>        dump only objects listed in 'uid-file' (1)\n");
   fprintf(stderr, "  -iid <iid-file>        dump only objects listed in 'iid-file' (1)\n");
+  fprintf(stderr, "  -randommated <lib> <n> pick n mates (2n frags) at random from library lib,\n");
   fprintf(stderr, "\n");
+  fprintf(stderr, "  [how to dump it]\n");
   fprintf(stderr, "  -tabular               dump info, batches, libraries or fragments in a tabular\n");
   fprintf(stderr, "                         format (for -dumpinfo, -dumpbatch, -dumplibraries,\n");
   fprintf(stderr, "                         and -dumpfragments, ignores -withsequence and -clear)\n");
   fprintf(stderr, "\n");
+  fprintf(stderr, "  [format of dump]\n");
   fprintf(stderr, "  -dumpinfo              print information on the store\n");
   fprintf(stderr, "    -lastfragiid         just print the last IID in the store\n");
   fprintf(stderr, "  -dumpbatch             dump all batch records\n");
@@ -220,7 +224,11 @@ main(int argc, char **argv) {
   int              dumpFastaQuality  = 0;
   int              doNotFixMates     = 0;
   int              dumpFormat        = 1;
+  int              dumpRandMateLib   = 0;
+  int              dumpRandMateNum   = 0;
   char            *iidToDump         = NULL;
+
+
 
   int arg = 1;
   int err = 0;
@@ -262,6 +270,9 @@ main(int argc, char **argv) {
       uidFileName = argv[++arg];
     } else if (strcmp(argv[arg], "-iid") == 0) {
       iidFileName = argv[++arg];
+    } else if (strcmp(argv[arg], "-randommated") == 0) {
+      dumpRandMateLib = atoi(argv[++arg]);
+      dumpRandMateNum = atoi(argv[++arg]);
     } else if (strcmp(argv[arg], "-dumpinfo") == 0) {
       dump = DUMP_INFO;
     } else if ((strcmp(argv[arg], "-lastfragiid") == 0) ||
@@ -333,6 +344,11 @@ main(int argc, char **argv) {
     FILE            *F        = NULL;
     char             L[1024];
 
+    if (gkp == NULL) {
+      fprintf(stderr, "Failed to open %s\n", gkpStoreName);
+      exit(1);
+    }
+
     iidToDump = (char *)safe_calloc(lastElem, sizeof(char));
 
     if (iidFileName) {
@@ -389,6 +405,76 @@ main(int argc, char **argv) {
 
     closeGateKeeperStore(gkp);
   }
+
+  if (dumpRandMateNum > 0) {
+    GateKeeperStore *gkp        = openGateKeeperStore(gkpStoreName, FALSE);
+    CDS_IID_t        lastElem   = getLastElemFragStore(gkp) + 1;
+
+    //  No way to know (currently) how many reads are in a library,
+    //  without actually counting it.  We just allocate enough space
+    //  to hold every read.
+
+    uint32          *candidatesA   = (uint32 *)safe_malloc(lastElem * sizeof(uint32));
+    uint32          *candidatesB   = (uint32 *)safe_malloc(lastElem * sizeof(uint32));
+    uint32           candidatesLen = 0;
+
+    if (gkp == NULL) {
+      fprintf(stderr, "Failed to open %s\n", gkpStoreName);
+      exit(1);
+    }
+
+    iidToDump = (char *)safe_calloc(lastElem, sizeof(char));
+
+    fragRecord   *fr = new_fragRecord();
+    FragStream   *fs = openFragStream(gkp, FRAG_S_INF);
+    StoreStat     stat;
+
+    int           i;
+
+    statsStore(gkp->frg, &stat);
+
+    if (begIID < stat.firstElem)
+      begIID = stat.firstElem;
+    if (stat.lastElem < endIID)
+      endIID = stat.lastElem;
+
+    resetFragStream(fs, begIID, endIID);
+
+    //  Scan the whole fragstore, looking for mated reads in the
+    //  correct library, and save the lesser of the two reads.
+    //
+    while (nextFragStream(fs, fr)) {
+      if ((getFragRecordLibraryIID(fr) == dumpRandMateLib) &&
+          (getFragRecordMateIID(fr) > 0) &&
+          (getFragRecordIID(fr) < getFragRecordMateIID(fr))) {
+        candidatesA[candidatesLen] = getFragRecordIID(fr);
+        candidatesB[candidatesLen] = getFragRecordMateIID(fr);
+        candidatesLen++;
+      }
+    }
+
+    //  Now pick N reads from our list of candidates, and let the
+    //  other guys fill in the mates.
+    //
+    srand48(time(NULL));
+    for (i=0; (i<dumpRandMateNum) && (candidatesLen > 0); i++) {
+      int  x = lrand48() % candidatesLen;
+      iidToDump[candidatesA[x]] = 1;
+      iidToDump[candidatesB[x]] = 1;
+      candidatesLen--;
+      candidatesA[x] = candidatesA[candidatesLen];
+      candidatesB[x] = candidatesB[candidatesLen];
+    }
+
+    closeFragStream(fs);
+    closeGateKeeperStore(gkp);
+
+    safe_free(candidatesA);
+    safe_free(candidatesB);
+  }
+
+
+
 
   if (dump != DUMP_NOTHING) {
     if (outputExists == 0) {
