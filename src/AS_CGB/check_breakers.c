@@ -734,7 +734,7 @@ int PopulateFragmentSequence( IntMultiPos * f, GateKeeperStore *fs )
     return 1;
   }
     
-  getFrag( fs, f->ident, rs, FRAG_S_SEQ );
+  getFrag( fs, f->ident, rs, FRAG_S_QLT );
 
   bgn = getFragRecordClearRegionBegin(rs, AS_READ_CLEAR_LATEST);
   end = getFragRecordClearRegionEnd  (rs, AS_READ_CLEAR_LATEST);
@@ -743,10 +743,9 @@ int PopulateFragmentSequence( IntMultiPos * f, GateKeeperStore *fs )
 
   f->delta_length = end - bgn;
   
-  if( (f->delta = (cds_int32 *) safe_calloc( f->delta_length + 1,
-                                             sizeof( char ) )) == NULL )
+  f->delta = (cds_int32 *) safe_calloc( f->delta_length + 1, sizeof( char ));
   strncpy( (char *) f->delta, seq + bgn, f->delta_length );
-  
+
   del_fragRecord( rs );
   return 0;
 }
@@ -781,8 +780,6 @@ OverlapMesg * OverlapFragments( FILE * fp, Verbosity verbose,
   InternalFragMesg ifg1;
   InternalFragMesg ifg2;
   OverlapMesg    * ovl;
-  char str1[AS_READ_MAX_LEN];
-  char str2[AS_READ_MAX_LEN];
   int where;
   int dp_orient;
 
@@ -791,16 +788,14 @@ OverlapMesg * OverlapFragments( FILE * fp, Verbosity verbose,
   ifg1.clear_rng.bgn = 0;
   ifg1.clear_rng.end = f1->delta_length;
 
-  strcpy( str1, (char *) f1->delta );
-  ifg1.sequence = str1;
+  ifg1.sequence = (char *) f1->delta;
   ifg1.quality = NULL;
 
   ifg2.iaccession = f2->ident;
   ifg2.clear_rng.bgn = 0;
   ifg2.clear_rng.end = f2->delta_length;
 
-  strcpy( str2, (char *) f2->delta );
-  ifg2.sequence = str2;
+  ifg2.sequence = (char *)f2->delta;
   ifg2.quality = NULL;
 
   if( orient == AB_AB || orient == BA_BA )
@@ -1317,8 +1312,7 @@ void Usage( char * program_name, char * message )
            "                     0 for none\n"
            "                     1 for only missing overlaps\n"
            "                     2 for all overlaps\n"
-           "-o ovl_file        output ovl file for found overlaps(optional)\n"
-           "-P                 specifies ASCII ovl_file\n",
+           "-o ovl_file        output ovl file for found overlaps(optional)\n",
            program_name );
   exit( 1 );
 }
@@ -1347,7 +1341,7 @@ typedef CheckGlobals * CheckGlobalsp;
 void InitializeGlobals( CheckGlobalsp globals, char * program_name )
 {
   globals->program_name = program_name;
-  globals->version = "$Revision: 1.18 $";
+  globals->version = "$Revision: 1.19 $";
   globals->chims_file = NULL;
   globals->craps_file = NULL;
   globals->cgb_file = NULL;
@@ -1369,16 +1363,6 @@ void ParseCommandLine( CheckGlobalsp globals, int argc, char ** argv )
   int ch, errflg = 0;
     
   optarg = NULL;
-  /* check_breakers
-           [-h chimeras]
-           [-r crappies]
-           [-c cgb]
-           [-s store]
-           [-l log]
-           [-v level]
-           [-o ovl]
-           [-P]
-  */
   while( !errflg && ((ch = getopt( argc, argv, "h:r:c:s:l:o:v:" )) != EOF) )
   {
     switch( ch )
