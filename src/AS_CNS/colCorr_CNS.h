@@ -23,7 +23,6 @@
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
-#include "PrimitiveVA_MSG.h"
 
 #include "MultiAlignStore_CNS.h"
 

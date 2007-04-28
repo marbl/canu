@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CorrectOlapsOVL.c,v 1.14 2007-04-16 17:36:34 brianwalenz Exp $
- * $Revision: 1.14 $
+ * $Id: CorrectOlapsOVL.c,v 1.15 2007-04-28 08:46:22 brianwalenz Exp $
+ * $Revision: 1.15 $
 */
 
-static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.14 2007-04-16 17:36:34 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.15 2007-04-28 08:46:22 brianwalenz Exp $";
 
 
 //  System include files
@@ -164,10 +164,6 @@ typedef  struct
 
 //  Static Globals
 
-static char  * CGB_File_Path;
-    // Name of file FOM messages
-static char  * CGB_File2_Path = NULL;
-    // Name of second CGB file to merge unitigs with first file
 static char  * Correct_File_Path;
     // Name of file containing fragment corrections
 static FILE  * Delete_fp = NULL;
@@ -198,8 +194,6 @@ static int  Error_Bound [MAX_FRAG_LEN + 1];
     //  i * MAXERROR_RATE .
 static int  Failed_Alignments_Ct = 0;
     // Count the number of alignments that failed
-static Frag_Pair_t  * FOM_List = NULL;
-    // Sorted list of overlaps in FOM messages
 static Frag_Info_t  * Frag;
     // Sequence and vote information for current range of fragments
     // being corrected
@@ -231,8 +225,6 @@ static int  Kmer_Len = DEFAULT_KMER_LEN;
     // Length of minimum exact match in overlap to confirm base pairs
 static int32  Lo_Frag_IID;
     // Internal ID of first fragment in frag store to process
-static int  Num_FOMs;
-    // Number of entries in  FOM_List
 static int  Num_Frags = 0;
     // Number of fragments being corrected
 static int  Num_Olaps;
@@ -254,9 +246,6 @@ static int  Total_Alignments_Ct = 0;
     // Count the number of alignments attempted
 static int  * UF = NULL;
     // For Union-Find data structure for sets of fragments.
-static int  Use_CGB_File = FALSE;
-    // If true use unitig info in specified cgb file to create
-    // files  ium.id  and  unitig.pair 
 static int  Verbose_Level = 0;
     // Determines number of extra outputs
 
@@ -269,8 +258,6 @@ static void  Apply_Seq_Corrects
      Correction_t correct [], int n, int fixed);
 static int  Binomial_Bound
     (int, double, int, double);
-static void  Build_FOM_List
-    (void);
 static int  By_B_IID
     (const void * a, const void * b);
 static int  By_Lo_IID
@@ -374,12 +361,6 @@ int  main
 
 //   Display_Frags ();
 
-   if  (Use_CGB_File)
-       {
-        fprintf (stderr, "Starting Build_FOM_List ()\n");
-        Build_FOM_List ();
-       }
-
    fprintf (stderr, "Starting Correct_Frags ()\n");
    Correct_Frags ();
 
@@ -420,45 +401,6 @@ int  main
        {
         fprintf (stderr, "Dumping overlaps\n");
         fclose (Dump_Olap_fp);
-       }
-
-   if  (Use_CGB_File && Num_Olaps != 0)
-       {
-        FILE  * fp;
-        int  len;
-
-        Output_Delete_OVLs ();
-
-        fp = File_Open ("unitig.pair", "w");
-        for  (i = 0;  i <= Hi_Unitig;  i ++)
-          if  (Keep_Pair [i] . len > 0)
-              {
-               int  j, k;
-
-               for  (j = 0;  j < Keep_Pair [i] . len - 1;  j ++)
-                 for  (k = j + 1;  k < Keep_Pair [i] . len;  k ++)
-                   if  (Keep_Pair [i] . list [j] > Keep_Pair [i] . list [k])
-                       {
-                        int  save;
-
-                        save = Keep_Pair [i] . list [j];
-                        Keep_Pair [i] . list [j] = Keep_Pair [i] . list [k];
-                        Keep_Pair [i] . list [k] = save;
-                       }
-
-               for  (j = 0;  j < Keep_Pair [i] . len;  j ++)
-                 fprintf (fp, "%6d %6d\n", i, Keep_Pair [i] . list [j]);
-              }
-        fclose (fp);
-
-        fp = File_Open ("ium.id", "wb");
-
-        len = 1 + Highest_Frag;
-        printf ("Highest_Frag = %u\n", Highest_Frag);
-        fwrite (& len, sizeof (int), 1, fp);
-        fwrite (IUM, sizeof (int), len, fp);
-
-        fclose (fp);
        }
 
    fprintf (stderr, "%d/%d failed/total alignments (%.1f%%)\n",
@@ -675,183 +617,6 @@ static int  Binomial_Bound
 
 
 
-static void  Build_FOM_List
-    (void)
-
-//  Read  FOM  messages from  CGB_File_Path  and create a sorted
-//  list of them in  FOM_List .
-//  Also read IUM messages and build a map from fragment ID to
-//  unitig ID.
-
-  {
-   FILE  * fp;
-   GenericMesg  * gmesg = NULL;
-   FragOverlapMesg  * fom = NULL;
-   IntUnitigMesg  * ium = NULL;
-   int  unitig;
-   int  list_size = 10000;
-   int  i;
-
-   FOM_List = (Frag_Pair_t *) safe_malloc (list_size * sizeof (Frag_Pair_t));
-   Num_FOMs = 0;
-
-   IUM_Size = 1 + Hi_Frag_IID;
-   IUM = (int *) safe_malloc (IUM_Size * sizeof (int));
-   for  (i = 0;  i < IUM_Size;  i ++)
-     IUM [i] = -1;
-   
-   Num_Frags = 1 + Hi_Frag_IID - Lo_Frag_IID;
-   UF = (int *) safe_malloc ((1 + Num_Frags) * sizeof (int));
-   for  (i = 0;  i <= Num_Frags;  i ++)
-     UF [i] = -1;
-
-   fp = File_Open (CGB_File_Path, "r");
-
-   while  (ReadProtoMesg_AS (fp, & gmesg) != EOF)
-     {
-      if  (gmesg == NULL)
-          continue;
-      switch  (gmesg -> t)
-        {
-         case  MESG_FOM :
-           // deal with the generic message as an overlap message
-           fom = (FragOverlapMesg *) gmesg -> m;
-
-           if  (Num_FOMs >= list_size)
-               {
-                list_size *= EXPANSION_FACTOR;
-                FOM_List = (Frag_Pair_t *) safe_realloc (FOM_List,
-                               list_size * sizeof (Frag_Pair_t));
-                assert (Num_FOMs < list_size);
-               }
-           if  (fom -> afrag < fom -> bfrag)
-               {
-                FOM_List [Num_FOMs] . lo_iid = fom -> afrag;
-                FOM_List [Num_FOMs] . hi_iid = fom -> bfrag;
-               }
-             else
-               {
-                FOM_List [Num_FOMs] . lo_iid = fom -> bfrag;
-                FOM_List [Num_FOMs] . hi_iid = fom -> afrag;
-               }
-           FOM_List [Num_FOMs] . confirmed = FALSE;
-           Num_FOMs ++;
-           break;
-
-#if  1
-         case  MESG_IUM :
-           ium = (IntUnitigMesg *) gmesg -> m;
-
-           unitig = ium -> iaccession;
-           if  (unitig > Hi_Unitig)
-               Hi_Unitig = unitig;
-
-           for  (i = 0;  i < ium -> num_frags;  i ++)
-             {
-	      IntMultiPos  * imp = ium -> f_list + i;
-
-              if  (imp -> ident >= IUM_Size)
-                  {
-                   int  new_size, j;
-
-                   new_size = OVL_Max_int (1 + imp -> ident, 2 * IUM_Size);
-                   IUM = (int *) safe_realloc (IUM, new_size * sizeof (int));
-                   for  (j = IUM_Size;  j < new_size;  j ++)
-                     IUM [j] = -1;
-                   IUM_Size = new_size;
-                  }
-
-              IUM [imp -> ident] = unitig;
-              if  (imp -> ident > Highest_Frag)
-                  Highest_Frag = imp -> ident;
-             }
-
-           break;
-#endif
-
-         default :
-           // ignore it
-           ;
-        }
-     }
-
-   if  (Num_FOMs > 0)
-       FOM_List = (Frag_Pair_t *) safe_realloc (FOM_List,
-                      Num_FOMs * sizeof (Frag_Pair_t));
-
-   qsort (FOM_List, Num_FOMs, sizeof (Frag_Pair_t), By_Lo_IID);
-
-#if  0
-{
- int  i;
-
- for  (i = 0;  i < Num_FOMs;  i ++)
-   printf ("FOM %8d %8d\n", FOM_List [i] . lo_iid, FOM_List [i] . hi_iid);
-}
-#endif
-
-   fclose (fp);
-
-   Keep_Pair = (Int_List_t *) safe_malloc ((1 + Hi_Unitig) * sizeof (Int_List_t));
-   for  (i = 0;  i <= Hi_Unitig;  i ++)
-     {
-      Keep_Pair [i] . list = NULL;
-      Keep_Pair [i] . len = 0;
-     }
-
-   if  (CGB_File2_Path == NULL)
-       return;
-
-   fp = File_Open (CGB_File2_Path, "r");
-
-   while  (ReadProtoMesg_AS (fp, & gmesg) != EOF)
-     {
-      if  (gmesg == NULL)
-          continue;
-      switch  (gmesg -> t)
-        {
-         case  MESG_IUM :
-           ium = (IntUnitigMesg *) gmesg -> m;
-
-#if  1
-           unitig = ium -> iaccession;
-           for  (i = 0;  i < ium -> num_frags;  i ++)
-             {
-	      IntMultiPos  * imp = ium -> f_list + i;
-              int  sub;
-
-              sub = imp -> ident - Lo_Frag_IID;
-              Frag [sub] . unitig2 = unitig;
-              Frag [sub] . lo2
-                  = OVL_Min_int (imp -> position . end,
-                             imp -> position . bgn);
-              Frag [sub] . hi2
-                  = OVL_Max_int (imp -> position . end,
-                             imp -> position . bgn);
-             }
-#else
-           for  (i = 1;  i < ium -> num_frags;  i ++)
-             {
-              int  a, b;
-              
-              a = Find (ium -> f_list [i - 1] . ident, UF);
-              b = Find (ium -> f_list [i] . ident, UF);
-              if  (a != b)
-                  Union (a, b, UF);
-             }
-#endif
-           break;
-
-         default :
-           // ignore it
-           ;
-        }
-     }
-
-   fclose (fp);
-
-   return;
-  }
 
 
 
@@ -1823,27 +1588,6 @@ static int  Olap_In_Unitig
   }
 
 
-static void  Output_Delete_OVLs
-    (void)
-
-//  Output to  Delete_fp  a list of overlaps to delete.
-
-  {
-   int  i;
-
-   if  (Delete_fp == NULL)
-       Delete_fp = File_Open ("delete.lst", "w");
-
-   for  (i = 0;  i < Num_FOMs;  i ++)
-     if  (! FOM_List [i] . confirmed)
-         fprintf (Delete_fp, "%8d %8d\n",
-                 FOM_List [i] . lo_iid, FOM_List [i] . hi_iid);
-
-   fclose (Delete_fp);
-
-   return;
-  }
-
 
 
 static int  Output_OVL
@@ -1919,27 +1663,6 @@ static int  Output_OVL
         WriteProtoMesg_AS (OVL_fp, & outputMesg);
        }
 
-
-   if  (! Use_CGB_File)
-       return  TRUE;
-
-   // Update  FOM_List
-
-   if  (olap -> a_iid < olap -> b_iid)
-       {
-        pair . lo_iid = olap -> a_iid;
-        pair . hi_iid = olap -> b_iid;
-       }
-     else
-       {
-        pair . lo_iid = olap -> b_iid;
-        pair . hi_iid = olap -> a_iid;
-       }
-   found = (Frag_Pair_t*) bsearch (& pair, FOM_List, Num_FOMs, 
-		    sizeof (Frag_Pair_t), By_Lo_IID);
-   if  (found)
-       found -> confirmed = TRUE;
-
    return  TRUE;
   }
 
@@ -1959,13 +1682,9 @@ static void  Parse_Command_Line
    optarg = NULL;
 
    while  (! errflg
-             && ((ch = getopt (argc, argv, "c:d:e:F:o:Pq:S:u:v:X:")) != EOF))
+             && ((ch = getopt (argc, argv, "d:e:F:o:Pq:S:v:X:")) != EOF))
      switch  (ch)
        {
-        case  'c' :
-          Use_CGB_File = TRUE;
-          CGB_File_Path = optarg;
-          break;
         case  'd' :
           fp = File_Open (optarg, "r");
           DNA_String = Read_Fasta (fp);
@@ -1996,10 +1715,6 @@ static void  Parse_Command_Line
         case  'S' :
           Olap_Path = optarg;
           Olaps_From_Store = TRUE;
-          break;
-
-        case  'u' :
-          CGB_File2_Path = optarg;
           break;
 
         case  'v' :
@@ -2406,8 +2121,6 @@ static void  Process_Olap
 #endif
        {
         Output_OVL (olap, quality);
-        if  (Use_CGB_File)
-            Keep_Olap (olap);
        }
 
    return;
@@ -3018,11 +2731,6 @@ static void  Usage
        " <gkpStore>  using corrections in  <CorrectFile> \n"
        "\n"
        "Options:\n"
-       "-c <cgb-file>  specifies CGB file which is used to determine a\n"
-       "               list of overlaps that do not break existing unitigs.\n"
-       "               Files  ium.id  and  unitig.pair  are generated listing\n"
-       "               the unitig of each fragment and pairs of unitigs that\n"
-       "               have a corrected overlap between them\n"
        "-d <dna-file>  specifies celsim genome file from which fragments came\n"
        "-e <erate-file>  specifies binary file to dump corrected erates to\n"
        "                 for later updating of olap store by  update-erates \n"

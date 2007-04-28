@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- $Id: AS_CGB_all.h,v 1.14 2007-04-16 17:36:29 brianwalenz Exp $
+ $Id: AS_CGB_all.h,v 1.15 2007-04-28 08:46:21 brianwalenz Exp $
  Module: Chunk Graph Builder
  Description: A catch-all include file for the Chunk Graph Builder
  Assumptions:
@@ -29,10 +29,7 @@
 #ifndef AS_CGB_ALL_INCLUDE
 #define AS_CGB_ALL_INCLUDE
 
-#undef STORE_BRANCH_POINTS_AT_FRAGMENT
-
 #undef CONTAINMENT_STACKING
-
 #undef DONT_RUN_IN_SYMMETRIC_MODE    
 
 // Allow un-mated dovetail edges in CGB.
@@ -47,54 +44,15 @@
 #include <fcntl.h>
 #include <assert.h>
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_UTL_Var.h"
 #include "AS_UTL_param_proc.h"
 
 
-/**************************************************************/
-/* Utility functions */
-
-
-#define SAFE_FOPEN( file_handle, file_name, the_mode) \
-assert(NULL == file_handle); \
-assert(NULL != file_name); \
-assert(NULL != the_mode); \
-if(NULL == (file_handle = fopen(file_name, the_mode))) \
-   { fprintf(stderr,"WARNING: Can not open file %s\n", file_name); exit(1); }
-
-#define  SAFE_FCLOSE(file_handle) \
-assert(NULL != file_handle); fclose(file_handle); file_handle = NULL;
-  
-#define warning_AS(expr) ((void) ((expr) ? 0 : (fprintf(stderr, "WARNING file=" __FILE__ " line=%d : %s\n",  __LINE__ , #expr ))))
-
 #define ABS(a) ((a)>= 0 ?(a):-(a))
 
-static void system_date(void) {
-}
-
-static void system_top(void) {
-}
-
-/**************************************************************/
-/* Global Variables */
-#if 0
-extern int TIMINGS;
-extern int TIMINGS1;
-#endif
-
-
-/**************************************************************/
-/* Global Preprocessor Variables */
-
-#if 1
-typedef cds_int64 BPTYPE;
-#endif
+typedef int64 BPTYPE;
 
 # define BPFORMAT    F_S64
 # define BPFORMATS10 "% 10" F_S64P
@@ -105,12 +63,12 @@ typedef cds_int64 BPTYPE;
 #define FRAG_FORMAT "%15" F_IIDP
 
 /* Exported constant definitions; Macro definitions; type definitions */
-#define AS_CGB_NO_MATE 0
-#define FRAGMENT_NOT_VISITED CDS_INT32_MAX
-#define CHUNK_NOT_VISITED    CDS_INT32_MAX
+#define AS_CGB_NO_MATE        0
+#define FRAGMENT_NOT_VISITED INT32_MAX
+#define CHUNK_NOT_VISITED    INT32_MAX
+
 typedef size_t IntRank;
 typedef uint32 IntEdge_ID;
-#define CMD_BUFFER_SIZE 1024
 
 
 /* The transitive overlap inference slop is 
@@ -290,16 +248,9 @@ typedef enum {
   AS_CGB_REMOVED_BY_DUPLICATE_CON=119
   // An edge removed because it was a duplicate.
 
-#if 0  
-  // A dovetail overlap touching a deleted fragment.
-  AS_CGB_REMOVED_BY_DELETED_DVT=121,
-  AS_CGB_REMOVED_BY_DELETED_CON=124
-#endif  
-
 } Tnes;
 
 
-/* Consult AS_UTL_Var.h. */
 
 // The methods to access the vertex and edge data store.
 #include "AS_CGB_methods.h"
@@ -308,19 +259,14 @@ typedef enum {
 
 /* Prototypes for exported function definitions */
 #include "AS_CGB_walk.h"
-//#include "AS_CGB_branch_walk.h"
-//#include "AS_CGB_triplets.h"
-//#include "AS_CGB_contained.h"
 #include "AS_CGB_edgemate.h"
 #include "AS_CGB_fgb.h"
 #include "AS_CGB_io.h"
 #include "AS_CGB_cgb.h"
-//#include "AS_CGB_branchpts.h"
 #include "AS_CGB_fga.h"
 #include "AS_CGB_cga.h"
 #include "AS_CGB_histo.h"
 #include "AS_CGB_traversal.h"
-//#include "AS_CGB_edgetrimmer.h"
 #include "AS_CGB_classify.h"
 #include "AS_CGB_chimeras.h"
 #include "AS_CGB_count_fragment_and_edge_labels.h"

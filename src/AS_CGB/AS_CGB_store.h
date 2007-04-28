@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_store.h,v 1.6 2007-02-25 08:13:37 brianwalenz Exp $
+ * $Id: AS_CGB_store.h,v 1.7 2007-04-28 08:46:21 brianwalenz Exp $
  *
  * Module: AS_CGB_store.h
  * Description: Header file for the code that reads and writes the 
@@ -31,10 +31,6 @@
 #ifndef AS_CGB_STORE_INCLUDE
 #define AS_CGB_STORE_INCLUDE
 
-#define SIMINFO
-#undef SIMINFO
-
-#undef GENINFO
 #define GENINFO
 
 typedef struct {
@@ -42,10 +38,6 @@ typedef struct {
 #ifdef GENINFO
   BPTYPE  genbgn,genend; /* Coordinates in genome */
 #endif
-#ifdef SIMINFO
-  int16 pre_brp,suf_brp,pre_end,suf_end,pre_ins,suf_ins;
-  char  pre_let,suf_let;
-# endif
 } Afraginfo;
 
 
@@ -53,67 +45,21 @@ VA_DEF(Afraginfo);
 VA_DEF(char);
 VA_DEF(OFGMesg);
 VA_DEF(OverlapMesg);
-VA_DEF(IntMultiPos);
-VA_DEF(IntUnitigMesg);
 
 typedef VA_TYPE(Afraginfo) Tfraginfo;
 
-#define VAgetaccess(Type,object,index,member) \
- (Get ## Type (object,index)->member )
-
-/* Object access functions */
-
 #ifdef GENINFO
 static void set_genbgn_fraginfo(Tfraginfo * const fraginfo,IntFragment_ID i,BPTYPE value)
-{ VAgetaccess(Afraginfo,fraginfo,i,genbgn) = (BPTYPE)value;}
+{ GetAfraginfo(fraginfo,i)->genbgn = (BPTYPE)value;}
 static void set_genend_fraginfo(Tfraginfo * const fraginfo,IntFragment_ID i,BPTYPE value)
-{ VAgetaccess(Afraginfo,fraginfo,i,genend) = (BPTYPE)value;}
-#endif
-#ifdef SIMINFO
-static void set_pre_let_fraginfo(Tfraginfo * const fraginfo,IntFragment_ID i,char value)
-{ VAgetaccess(Afraginfo,fraginfo,i,pre_let) = (char)value;}
-static void set_pre_ins_fraginfo(Tfraginfo * const fraginfo,IntFragment_ID i,int16 value)
-{ VAgetaccess(Afraginfo,fraginfo,i,pre_ins) = (int16)value;}
-static void set_pre_brp_fraginfo(Tfraginfo * const fraginfo,IntFragment_ID i,int16 value)
-{ VAgetaccess(Afraginfo,fraginfo,i,pre_brp) = (int16)value;}
-static void set_pre_end_fraginfo(Tfraginfo * const fraginfo,IntFragment_ID i,int16 value)
-{ VAgetaccess(Afraginfo,fraginfo,i,pre_end) = (int16)value;}
-static void set_suf_let_fraginfo(Tfraginfo * const fraginfo,IntFragment_ID i,char value)
-{ VAgetaccess(Afraginfo,fraginfo,i,suf_let) = (char)value;}
-static void set_suf_ins_fraginfo(Tfraginfo * const fraginfo,IntFragment_ID i,int16 value)
-{ VAgetaccess(Afraginfo,fraginfo,i,suf_ins) = (int16)value;}
-static void set_suf_brp_fraginfo(Tfraginfo * const fraginfo,IntFragment_ID i,int16 value)
-{ VAgetaccess(Afraginfo,fraginfo,i,suf_brp) = (int16)value;}
-static void set_suf_end_fraginfo(Tfraginfo * const fraginfo,IntFragment_ID i,int16 value)
-{ VAgetaccess(Afraginfo,fraginfo,i,suf_end) = (int16)value;}
-#endif /*SIMINFO*/
+{ GetAfraginfo(fraginfo,i)->genend = (BPTYPE)value;}
 
-#ifdef GENINFO
 static BPTYPE get_genbgn_fraginfo(const Tfraginfo * const fraginfo,IntFragment_ID i)
-{ return (BPTYPE) VAgetaccess(Afraginfo,fraginfo,i,genbgn);}
+{ return (BPTYPE) GetAfraginfo(fraginfo,i)->genbgn;}
 static BPTYPE get_genend_fraginfo(const Tfraginfo * const fraginfo,IntFragment_ID i)
-{ return (BPTYPE) VAgetaccess(Afraginfo,fraginfo,i,genend);}
+{ return (BPTYPE) GetAfraginfo(fraginfo,i)->genend;}
 #endif /*GENINFO*/
-#ifdef SIMINFO
-static char get_pre_let_fraginfo(const Tfraginfo * const fraginfo,IntFragment_ID i)
-{ return (char) VAgetaccess(Afraginfo,fraginfo,i,pre_let);}
-static int16 get_pre_ins_fraginfo(const Tfraginfo * const fraginfo,IntFragment_ID i)
-{ return (int16) VAgetaccess(Afraginfo,fraginfo,i,pre_ins);}
-static int16 get_pre_brp_fraginfo(const Tfraginfo * const fraginfo,IntFragment_ID i)
-{ return (int16) VAgetaccess(Afraginfo,fraginfo,i,pre_brp);}
-static int16 get_pre_end_fraginfo(const Tfraginfo * const fraginfo,IntFragment_ID i)
-{ return (int16) VAgetaccess(Afraginfo,fraginfo,i,pre_end);}
-static char get_suf_let_fraginfo(const Tfraginfo * const fraginfo,IntFragment_ID i)
-{ return (char) VAgetaccess(Afraginfo,fraginfo,i,suf_let);}
-static int16 get_suf_ins_fraginfo(const Tfraginfo * const fraginfo,IntFragment_ID i)
-{ return (int16) VAgetaccess(Afraginfo,fraginfo,i,suf_ins);}
-static int16 get_suf_brp_fraginfo(const Tfraginfo * const fraginfo,IntFragment_ID i)
-{ return (int16) VAgetaccess(Afraginfo,fraginfo,i,suf_brp);}
-static int16 get_suf_end_fraginfo(const Tfraginfo * const fraginfo,IntFragment_ID i)
-{ return (int16) VAgetaccess(Afraginfo,fraginfo,i,suf_end);}
-#endif /*SIMINFO*/
 
-#undef VAgetaccess
 
 // End of fraginfo stuff... 
 
@@ -130,31 +76,7 @@ typedef struct {
   unsigned int    dechorded : 1;
   unsigned int    transitively_marked : 1;
   unsigned int    using_to_contained_edges : 1;
-  unsigned int    bit07 : 1;
-  unsigned int    bit08 : 1;
-  unsigned int    bit09 : 1;
-  unsigned int    bit10 : 1;
-  unsigned int    bit11 : 1;
-  unsigned int    bit12 : 1;
-  unsigned int    bit13 : 1;
-  unsigned int    bit14 : 1;
-  unsigned int    bit15 : 1;
-  unsigned int    bit16 : 1;
-  unsigned int    bit17 : 1;
-  unsigned int    bit18 : 1;
-  unsigned int    bit19 : 1;
-  unsigned int    bit20 : 1;
-  unsigned int    bit21 : 1;
-  unsigned int    bit22 : 1;
-  unsigned int    bit23 : 1;
-  unsigned int    bit24 : 1;
-  unsigned int    bit25 : 1;
-  unsigned int    bit26 : 1;
-  unsigned int    bit27 : 1;
-  unsigned int    bit28 : 1;
-  unsigned int    bit29 : 1;
-  unsigned int    bit30 : 1;
-  unsigned int    bit31 : 1;
+  unsigned int    unusedbits : 25;
 
   BPTYPE          nbase_in_genome;
   IntFragment_ID  nfrag_randomly_sampled_in_genome;
@@ -181,85 +103,7 @@ typedef struct {
   VA_TYPE(char) *frag_annotations;
   VA_TYPE(char) *chunksrcs;
 
-  //#ifdef MINIUNITIGGER
-  VA_TYPE(OFGMesg)     * the_ofg_messages;
-  VA_TYPE(OverlapMesg) * the_ovl_messages;
-  VA_TYPE(char)        * the_ofg_source;
-  VA_TYPE(char)        * the_ovl_source;
-  VA_TYPE(IntMultiPos)   * the_imp_messages;
-  VA_TYPE(IntUnitigMesg) * the_ium_messages;
-  VA_TYPE(char)        * the_imp_source;
-  VA_TYPE(char)        * the_ium_source;
-  //#endif // MINIUNITIGGER
-  
 } THeapGlobals;
 
-static void ReportHeapUsage_CGB
-(
- TStateGlobals * gstate,
- THeapGlobals  * heapva,
- FILE          * fout 
-)
-{
-  size_t total = 0;
-  total += ReportMemorySize_VA( heapva->frags, "frags", fout);
-  total += ReportMemorySize_VA( heapva->edges, "edges", fout);
-  total += ReportMemorySize_VA( heapva->next_edge_obj, "next_edge_obj", fout);
-  total += ReportMemorySize_VA( heapva->fraginfo, "fraginfo", fout);
-  total += ReportMemorySize_VA( heapva->chunkfrags, "chunkfrags", fout);
-  total += ReportMemorySize_VA( heapva->thechunks, "thechunks", fout);
-  total += ReportMemorySize_VA( heapva->chunkseqs, "chunkseqs", fout);
-  total += ReportMemorySize_VA( heapva->chunkquas, "chunkquas", fout);
-  total += ReportMemorySize_VA( heapva->frag_annotations, "frag_annotations", fout);
-  total += ReportMemorySize_VA( heapva->chunksrcs, "chunksrcs", fout);
-  total += ReportMemorySize_VA( heapva->the_ofg_messages, "the_ofg_messages", fout);
-  total += ReportMemorySize_VA( heapva->the_ovl_messages, "the_ovl_messages", fout);
-  total += ReportMemorySize_VA( heapva->the_ofg_source, "the_ofg_source", fout);
-  total += ReportMemorySize_VA( heapva->the_ovl_source, "the_ovl_source", fout);
-  total += ReportMemorySize_VA( heapva->the_imp_messages, "the_imp_messages", fout);
-  total += ReportMemorySize_VA( heapva->the_ium_messages, "the_ium_messages", fout);
-  total += ReportMemorySize_VA( heapva->the_imp_source, "the_imp_source", fout);
-  total += ReportMemorySize_VA( heapva->the_ium_source, "the_ium_source", fout);
-
-  fprintf( fout,"ReportHeapUsage: " F_SIZE_T " bytes\n", total);
-}
-
-
-void open_fgb_store
-( TStateGlobals * state,
-  THeapGlobals * heapva);
-
-void close_fgb_store
-( TStateGlobals * state,
-  THeapGlobals * heapva);
-
-void read_fgb_store
-( const char    * const theStorePath,
-  TStateGlobals * gstate,
-  THeapGlobals  * heapva,
-  const size_t new_additional_number_of_frags,
-  const size_t new_additional_number_of_edges,
-  const size_t new_additional_amount_of_text);
-
-void write_fgb_store
-( const char * const theStorePath,
-  const TStateGlobals * const gstate,
-  const THeapGlobals  * const heapva
-  );
-
-void check_fgb_store
-( const char * const theStorePath,
-  const TStateGlobals * const gstate,
-  const THeapGlobals  * const heapva
-  );
-
-void clear_fgb_store
-(
-  TStateGlobals * state,
-  THeapGlobals  * heapva,
-  int clear_the_frags,
-  int clear_the_edges,
-  int clear_the_frag_annotations,
-  int clear_the_next_edge);
 
 #endif /* AS_CGB_STORE_INCLUDE */

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_FGB_FragmentHash.h,v 1.4 2005-03-22 19:48:32 jason_miller Exp $
+ * $Id: AS_FGB_FragmentHash.h,v 1.5 2007-04-28 08:46:21 brianwalenz Exp $
  *
  * Module:
  * Description:
@@ -31,13 +31,9 @@
 #define AS_CGB_FRAGMENT_HASH_INCLUDE
 
 #include "AS_MSG_pmesg.h"
-#if 0
-#include "AS_UTL_Var.h"
-#endif
 
 #define AS_CGB_NOT_SEEN_YET  CDS_INT32_MAX
 
-//typedef IntFragment_ID FragmentHashInt;
 
 typedef void FragmentHashObject;
 // Hide the implementation of the object.  I encapsulate the object
@@ -56,5 +52,6 @@ extern void set_vid_FragmentHash
 
 extern IntFragment_ID get_vid_FragmentHash
 (FragmentHashObject *self, IntFragment_ID iid);
+
 
 #endif // AS_CGB_FRAGMENT_HASH_INCLUDE

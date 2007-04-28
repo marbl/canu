@@ -343,12 +343,6 @@ void separate_fragments_as_solo_hanging_thru
       assert( cur_fragment_suffix_dovetail_overlap_count <=
               raw_fragment_suffix_dovetail_overlap_count );
 
-#if 0
-      assert( ! (raw_fragment_prefix_dovetail_overlap_count>0)
-              ||(cur_fragment_prefix_dovetail_overlap_count>0) );
-      assert( ! (raw_fragment_suffix_dovetail_overlap_count>0)
-              ||(cur_fragment_suffix_dovetail_overlap_count>0) );
-#else
       {
 	IntFragment_ID iid = get_iid_fragment(frags,vid);
         if(!(! (raw_fragment_prefix_dovetail_overlap_count>0)
@@ -370,7 +364,6 @@ void separate_fragments_as_solo_hanging_thru
 		  cur_fragment_suffix_dovetail_overlap_count);
 	}
       }
-#endif
 
       if(
          (ilab != AS_CGB_DELETED_FRAG) &&

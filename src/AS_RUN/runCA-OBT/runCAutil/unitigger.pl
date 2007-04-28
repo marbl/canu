@@ -33,12 +33,6 @@ sub unitigger (@) {
             }
         }
 
-        if (! -e "$wrk/4-unitigger/$asm.ofgList") {
-            open(G, "> $wrk/4-unitigger/$asm.ofgList") or die;
-            print G "$wrk/4-unitigger/$asm.ofg\n";
-            close(G);
-        }
-
         my $l = getGlobal("utgGenomeSize");
         my $m = getGlobal("utgEdges");
         my $e = getGlobal("utgErrorRate");
@@ -53,10 +47,9 @@ sub unitigger (@) {
         $cmd .= " -l $l " if defined($l);
         $cmd .= " -m $m " if defined($m);
         $cmd .= " -n $n " if defined($n);
-        $cmd .= " -c -A 1 -d 1 -x 1 -z 10 -j 5 -U $u -e $e ";
+        $cmd .= " -A 1 -d 1 -x 1 -z 10 -j 5 -U $u -e $e ";
         $cmd .= " -F $wrk/$asm.gkpStore ";
-        $cmd .= " -f ";
-        $cmd .= " -o $wrk/4-unitigger/$asm.fgbStore ";
+        $cmd .= " -o $wrk/4-unitigger/$asm ";
         $cmd .= " -L $wrk/4-unitigger/$asm.ofg ";
         $cmd .= " -I $wrk/$asm.ovlStore ";
         $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";

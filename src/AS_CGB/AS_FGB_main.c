@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_FGB_main.c,v 1.12 2007-04-26 14:07:03 brianwalenz Exp $";
+= "$Id: AS_FGB_main.c,v 1.13 2007-04-28 08:46:21 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module:  AS_FGB_main.c
@@ -89,9 +89,6 @@ static char CM_ID[]
  * 
  *********************************************************************/
 
-/*********************************************************************/
-
-/* Local include files */
 #include "AS_UTL_version.h"  
 #include "AS_CGB_all.h"
 #include "AS_FGB_hanging_fragment.h"
@@ -99,9 +96,7 @@ static char CM_ID[]
 #include "AS_CGB_unitigger_globals.h"
 #include "AS_FGB_buildFragmentHash.h"
 
-/****************************************************************************/
-#define DEBUGGING
-#define PREPEND_IBA_FILE
+
 #undef DEBUG_VIEW1
 #undef DEBUG_VIEW2
 #undef DEBUG_VIEW3
@@ -109,92 +104,6 @@ static char CM_ID[]
 #undef DEBUG_VIEW5
 #undef DEBUG_VIEW6
 #undef DEBUG_RISM
-
-/* These are optimization parameters. */
-
-/****************************************************************************/
-/* File Scope Globals */
-
-static int TIMINGS = TRUE;
-static int TIMINGS1 = FALSE;
-
-/****************************************************************************/
-
-static void processing_phase_3
-(
-  TStateGlobals * gstate,
-  THeapGlobals  * heapva,
-  const char Output_Graph_Store[],
-  const int analysis_flag
-)
-{
-  system_date();
-  ReportHeapUsage_CGB( gstate, heapva, stderr);
-
-#if 0
-  view_fgb_chkpnt( Output_Graph_Store, heapva->frags, heapva->edges);
-  system_date();
-#endif
-
-  if(NULL != Output_Graph_Store) {
-    { 
-      int ierr=0;
-      char thePath1[CMD_BUFFER_SIZE-1]={0};
-      char thePath2[CMD_BUFFER_SIZE-1]={0};
-      sprintf(thePath1,"%s/%s",Output_Graph_Store,"fgb.ckp_tmp");
-      sprintf(thePath2,"%s/%s",Output_Graph_Store,"fgb.ckp");
-      write_fgb_store(thePath1, gstate, heapva);
-      system_date();
-      ierr = accept_tmp_as_final_file( thePath1, thePath2);
-      assert(ierr == 0);
-      // The temporary checkpoint file was moved into its final
-      // position.
-    }
-    if(analysis_flag) {
-      const int ProcessFragmentAnnotationsForSimulatorCoordinates
-        = (analysis_flag > 1);
-      FILE *ffga=NULL;
-      int ierr=0;
-      char thePath3[CMD_BUFFER_SIZE-1]={0};
-      char thePath4[CMD_BUFFER_SIZE-1]={0};
-      sprintf(thePath3,"%s/%s",Output_Graph_Store,"fga.ckp_tmp");
-      sprintf(thePath4,"%s/%s",Output_Graph_Store,"fga.ckp");
-      ffga = fopen(thePath3,"w");
-      fragment_graph_analysis
-        (/* Input Only */
-          gstate->max_frag_iid,
-          heapva->frags,
-          heapva->edges,
-          heapva->frag_annotations,
-          ProcessFragmentAnnotationsForSimulatorCoordinates,
-          /* Output only */
-          ffga
-          );
-      fclose(ffga);
-      system_date();
-      ierr = accept_tmp_as_final_file( thePath3, thePath4);
-      assert(ierr == 0);
-      // The temporary analysis file could not be moved into its final
-      // position.
-    }
-
-    {
-      char thePath5[CMD_BUFFER_SIZE-1]={0};
-      char thePath6[CMD_BUFFER_SIZE-1]={0};
-      int ierr=0;
-      sprintf(thePath5,"%s/%s",Output_Graph_Store,"fgb.iba_tmp");
-      sprintf(thePath6,"%s/%s",Output_Graph_Store,"fgb.iba");
-      fprintf(stderr,"thePath5=<%s>\n", thePath5);
-      fprintf(stderr,"thePath6=<%s>\n", thePath6);
-      system_date();
-      ierr = accept_tmp_as_final_file( thePath5, thePath6);
-      assert(ierr == 0);
-      // The temporary batch info file could not be moved into its final
-      // position.
-    }
-    system_date();
-  }
-}
 
 static void output_mesgs
 (/* Input Only*/
@@ -207,78 +116,74 @@ static void output_mesgs
 {
 
   // Output the OFG messages:
-  {
-    const IntFragment_ID nfrag = GetNumFragments(frags);
-    IntFragment_ID iv;
-    for(iv=0;iv<nfrag;iv++){
-      OFGMesg ofg_mesg;
 
-      ofg_mesg.action     = (get_del_fragment(frags,iv)
-                             ? AS_DELETE : AS_ADD);
-      ofg_mesg.eaccession = get_uid_fragment(frags,iv);
-      ofg_mesg.iaccession = get_iid_fragment(frags,iv);
-      ofg_mesg.type       = get_typ_fragment(frags,iv);
-      //Locale_ID    		elocale;
-      //SeqInterval  		locale_pos;
-      ofg_mesg.clear_rng.bgn = 0;
-      ofg_mesg.clear_rng.end = get_length_fragment(frags,iv);
-      ofg_mesg.source = NULL;
+  const IntFragment_ID nfrag = GetNumFragments(frags);
+  IntFragment_ID iv;
+  for(iv=0;iv<nfrag;iv++){
+    OFGMesg ofg_mesg;
+
+    ofg_mesg.action     = (get_del_fragment(frags,iv)
+                           ? AS_DELETE : AS_ADD);
+    ofg_mesg.eaccession = get_uid_fragment(frags,iv);
+    ofg_mesg.iaccession = get_iid_fragment(frags,iv);
+    ofg_mesg.type       = get_typ_fragment(frags,iv);
+    ofg_mesg.clear_rng.bgn = 0;
+    ofg_mesg.clear_rng.end = get_length_fragment(frags,iv);
+    ofg_mesg.source = NULL;
   
-      if(fragsrc != NULL) {
-	const size_t isrc = get_src_fragment(frags,iv);
-	ofg_mesg.source = Getchar(fragsrc,isrc);
-      } else {
-        ofg_mesg.source = "";
-      }
+    if(fragsrc != NULL) {
+      const size_t isrc = get_src_fragment(frags,iv);
+      ofg_mesg.source = Getchar(fragsrc,isrc);
+    } else {
+      ofg_mesg.source = "";
+    }
       
-      {
-        assert(0);        //  MESG_OFR was removed, so we now crash
-        GenericMesg pmesg;
-        //pmesg.t = MESG_OFR;
-        pmesg.m = &ofg_mesg;
-        WriteProtoMesg_AS(fcgb,&pmesg);
-      }
+    {
+      GenericMesg pmesg;
+      pmesg.t = MESG_OFG;
+      pmesg.m = &ofg_mesg;
+      WriteProtoMesg_AS(fcgb,&pmesg);
     }
   }
   
   // Output the OVL messages:
-  {
-    const IntEdge_ID  nedge = GetNumEdges(edges);
-    IntEdge_ID ie;
-    for(ie=0;ie<nedge;ie++){
-      OverlapMesg ovl_mesg;
 
-      const IntFragment_ID avx = get_avx_edge(edges,ie);
-      const int asx = get_asx_edge(edges,ie);
-      const int ahg = get_ahg_edge(edges,ie);
+  const IntEdge_ID  nedge = GetNumEdges(edges);
+  IntEdge_ID ie;
+  for(ie=0;ie<nedge;ie++){
+    OverlapMesg ovl_mesg;
 
-      const IntFragment_ID bvx = get_bvx_edge(edges,ie);
-      const int bsx = get_bsx_edge(edges,ie);
-      const int bhg = get_bhg_edge(edges,ie);
+    const IntFragment_ID avx = get_avx_edge(edges,ie);
+    const int asx = get_asx_edge(edges,ie);
+    const int ahg = get_ahg_edge(edges,ie);
 
-      const Tnes    nes = get_nes_edge(edges,ie);
-      const uint32  qua = get_qua_edge(edges,ie);
+    const IntFragment_ID bvx = get_bvx_edge(edges,ie);
+    const int bsx = get_bsx_edge(edges,ie);
+    const int bhg = get_bhg_edge(edges,ie);
 
-      const IntFragment_ID aid = get_iid_fragment(frags,avx);
-      const IntFragment_ID bid = get_iid_fragment(frags,bvx);
-      // Assembler internal Fragment ids.
+    const Tnes    nes = get_nes_edge(edges,ie);
+    const uint32  qua = get_qua_edge(edges,ie);
 
-      signed char delta[1] = {AS_ENDOF_DELTA_CODE};
+    const IntFragment_ID aid = get_iid_fragment(frags,avx);
+    const IntFragment_ID bid = get_iid_fragment(frags,bvx);
+    // Assembler internal Fragment ids.
+
+    signed char delta[1] = {AS_ENDOF_DELTA_CODE};
       
-      ovl_mesg.aifrag = aid;
-      ovl_mesg.bifrag = bid;
+    ovl_mesg.aifrag = aid;
+    ovl_mesg.bifrag = bid;
 
-      ovl_mesg.ahg = ahg;
-      ovl_mesg.bhg = bhg;
-      ovl_mesg.min_offset = ahg;
-      ovl_mesg.max_offset = ahg;
+    ovl_mesg.ahg = ahg;
+    ovl_mesg.bhg = bhg;
+    ovl_mesg.min_offset = ahg;
+    ovl_mesg.max_offset = ahg;
 
-      ovl_mesg.orientation =
-        ( asx ?
-          ( bsx ? AS_INNIE : AS_NORMAL ) :
-          ( bsx ? AS_ANTI  : AS_OUTTIE ) );
+    ovl_mesg.orientation =
+      ( asx ?
+        ( bsx ? AS_INNIE : AS_NORMAL ) :
+        ( bsx ? AS_ANTI  : AS_OUTTIE ) );
 
-      switch(nes) {
+    switch(nes) {
       case AS_CGB_DOVETAIL_EDGE:
       case AS_CGB_INTERCHUNK_EDGE:
       case AS_CGB_INTRACHUNK_EDGE:
@@ -294,62 +199,36 @@ static void output_mesgs
       default:
         fprintf(stderr,"Unexpected overlap edge type: nes=%d\n", nes);
         assert(FALSE);
-      }
-
-      ovl_mesg.quality = AS_OVS_decodeQuality(qua);
-      ovl_mesg.polymorph_ct = 0;
-      ovl_mesg.delta = delta;
-
-      if(
-         ((is_a_dvt_simple(ahg,bhg))&&(aid < bid))
-         // Output only one dovetail overlap edge record per overlap.
-         ||
-         ((!is_a_dvt_simple(ahg,bhg))&&(asx))
-         // Output only one containment overlap edge record per overlap.
-         // Choose the NORMAL and INNIE orientations.
-          ){
-        GenericMesg   pmesg;
-        pmesg.t = MESG_OVL;
-        pmesg.m = &ovl_mesg;
-        WriteProtoMesg_AS(fcgb,&pmesg);
-      }
     }
-  }
-  
-#if 0  
-  if(analysis_flag) {
-    fprintf(stderr,"\n\nHistogram of the OVL types\n");
-    print_histogram(stderr, OVL_types_histogram, 0, 1);
-  }
-  if(NULL != ovl_types_histogram) {
-    free_histogram(fom_types_histogram);
-  }
-#endif
-}
 
-static void dump_next_edge_obj
-( FILE * fout,
-  VA_TYPE(IntEdge_ID) * next_edge_obj
-  )
-{
-  const size_t length = GetNumElements_VA(next_edge_obj);
-  size_t ii;
-  for(ii=0; ii< length; ii++) {
-    const size_t jj = *GetVA_IntEdge_ID(next_edge_obj,ii);
-    if( ii != jj) { 
-      fprintf(fout,F_SIZE_T " " F_SIZE_T "\n", ii, jj );
+    ovl_mesg.quality = AS_OVS_decodeQuality(qua);
+    ovl_mesg.polymorph_ct = 0;
+    ovl_mesg.delta = delta;
+
+    if(
+       ((is_a_dvt_simple(ahg,bhg))&&(aid < bid))
+       // Output only one dovetail overlap edge record per overlap.
+       ||
+       ((!is_a_dvt_simple(ahg,bhg))&&(asx))
+       // Output only one containment overlap edge record per overlap.
+       // Choose the NORMAL and INNIE orientations.
+       ){
+      GenericMesg   pmesg;
+      pmesg.t = MESG_OVL;
+      pmesg.m = &ovl_mesg;
+      WriteProtoMesg_AS(fcgb,&pmesg);
     }
   }
 }
 
-/****************************************************************************/
+
+
 
 
 static void process_one_ovl_file
 (int        argc, 
  char       *argv[],
  const char Batch_File_Name[],
- const char Output_Graph_Store[],
  TStateGlobals  * gstate,
  THeapGlobals   * heapva,
  FragmentHashObject * afr_to_avx,    // Part of a hash table replacement
@@ -358,7 +237,7 @@ static void process_one_ovl_file
  const int intrude_with_non_blessed_overlaps_flag,
  const uint32 overlap_error_threshold,
  const int check_point_level
-)
+ )
 { // Process the ovl files.
   
   if( check_point_level == 0 ) { // Process the ovl file....
@@ -391,6 +270,9 @@ static void process_one_ovl_file
   }
 } // Process the ovl files.
 
+
+
+
 static void delete_duplicate_edges
 (/* Input Only */
  Tfragment frags[], 
@@ -406,16 +288,10 @@ static void delete_duplicate_edges
   //const IntFragment_ID nfrag = GetNumFragments(frags);
   const IntEdge_ID nedge = GetNumEdges(edges);
   IntEdge_ID ie1=0;
-  time_t tp1 = 0,tp2;
 
   const QsortCompare compare_edge = get_compare_edge_function();
 
   IntEdge_ID count=0;
-
-  if(TIMINGS) {
-    tp1 = time(NULL); fprintf(stderr,"Begin delete duplicate edges\n");
-    system_top();
-  }
 
   for(ie1=1; ie1 < nedge; ie1++) {
     const IntEdge_ID ie0 = ie1 - 1;
@@ -441,81 +317,24 @@ static void delete_duplicate_edges
       // The edges must be sorted before running this routine.
       
       if( icompare == 0 ) {
-        
         count++;
-        if( is_a_dvt_edge(edges,ie1) == TRUE ) {
+
+        if( is_a_dvt_edge(edges,ie1) == TRUE )
           set_nes_edge(edges,ie1,AS_CGB_REMOVED_BY_DUPLICATE_DVT);
-        } else {
-          // const int ahg = get_ahg_edge(edges,ie1);
-          // const int bhg = get_bhg_edge(edges,ie1);
+        else
           set_nes_edge(edges,ie1,AS_CGB_REMOVED_BY_DUPLICATE_CON);
-        }
-        //fix_overlap_edge_mate(frags,edges,ie1);
-        {
-          const IntFragment_ID avx = get_avx_edge(edges,ie1);
-          const IntFragment_ID bvx = get_bvx_edge(edges,ie1);
-          
-          fprintf(stdout,
-                  "DELETED DUPLICATE EDGE " F_IID ":"
-                  "(" F_U64 "," F_IID "," F_IID ") %d %d, "
-                  "(" F_U64 "," F_IID "," F_IID ") %d %d : %d "
-                  " %d %d "
-                  "\n",
-                  ie1,
-                  get_uid_fragment(frags,avx),
-                  get_iid_fragment(frags,avx),
-                  get_avx_edge(edges,ie1),
-                  get_asx_edge(edges,ie1),
-                  get_ahg_edge(edges,ie1),
-                  get_uid_fragment(frags,bvx),
-                  get_iid_fragment(frags,bvx),
-                  get_bvx_edge(edges,ie1),
-                  get_bsx_edge(edges,ie1),
-                  get_bhg_edge(edges,ie1),
-                  get_nes_edge(edges,ie1),
-                  get_qua_edge(edges,ie1),
-                  get_blessed_edge(edges,ie1)
-                  );
-        }
       }
     }
   }
+
   fprintf(stderr, " " F_IID " duplicate edges found.\n",count);
-  if(TIMINGS) {
-    tp2 = time(NULL); 
-    fprintf(stderr,"%10" F_TIME_TP " sec: Finished duplicate edge deletion\n",(tp2-tp1));
-    system_top();
-  }
-  if(count > 0) {
+
+  if(count > 0)
     ResetToRangeVA_IntEdge_ID(next_edge_obj,0);
-    // The next_edge_obj data is invalidated.
-  }
 }
 
-static void check_edges3( Tfragment frags[], Tedge edges[]) {
-  const IntEdge_ID nedge = GetNumEdges(edges);
-  IntEdge_ID ir2;
-  for(ir2=0;ir2<nedge; ir2++) {
-    const IntFragment_ID ir2avx = get_avx_edge(edges,ir2);
-    const IntFragment_ID ir2bvx = get_bvx_edge(edges,ir2);
-    const int ir2ahg = get_ahg_edge(edges,ir2);
-    const int ir2bhg = get_bhg_edge(edges,ir2);
-    const int ir2aln = get_length_fragment(frags,ir2avx);
-    const int ir2bln = get_length_fragment(frags,ir2bvx);
-    if( (ir2aln <= ir2ahg) || (ir2bln <= ir2bhg) ||
-        (ir2aln <= -ir2bhg) || (ir2bln <= -ir2ahg) ) {
-      const IntFragment_ID ir2afr = get_iid_fragment(frags,ir2avx);
-      const IntFragment_ID ir2bfr = get_iid_fragment(frags,ir2bvx);
-      const Tnes ir2nes = get_nes_edge(edges,ir2);
-      fprintf(stderr,"ERROR: Bad edge "
-              " ir2afr=" F_IID " ir2bfr=" F_IID " ir2avx=" F_IID " ir2bvx=" F_IID " ir2ahg=%d ir2bhg=%d ir2nes=%d\n",
-              ir2afr, ir2bfr, ir2avx, ir2bvx, ir2ahg, ir2bhg, ir2nes);
-      
-    }
-  }
-}
 
-/****************************************************************************/
+
 
 int main_fgb
 (
@@ -528,8 +347,6 @@ int main_fgb
 {
   int status = 0;
   int ierr = 0;
-
-  time_t tp1 = 0,tp2; 
 
   /* The Store/Checkpoint */
   FragmentHashObject *afr_to_avx = NULL;
@@ -548,40 +365,20 @@ int main_fgb
 
   // WARNING do we need to rebuild the next_edge_obj here?
 
-  if(NULL != heapva->the_ofg_messages ) {
-    IntFragment_ID nofg = 0;
-    
-    fprintf(stderr,"Process the ofg VA.\n");
-
-    InsertFragmentsIntoGraph
-      (
-       heapva,
-       heapva->the_ofg_messages, // Additional fragments in a VA.
-       heapva->the_ofg_source,
-       afr_to_avx,        // Part of a hash table replacement
-       &nofg,
-       &(gstate->min_frag_iid),
-       &(gstate->max_frag_iid),
-       heapva->frag_annotations
-       );
-  }
-  
-
   if (rg->ovl_files_list_fname != NULL)
-      process_one_ovl_file
-        ( argc, 
-          argv,
-          rg->ovl_files_list_fname,
-          rg->Output_Graph_Store,
-          gstate,
-          heapva,
-          afr_to_avx,
-          rg->dvt_double_sided_threshold_fragment_end_degree,
-          rg->con_double_sided_threshold_fragment_end_degree,
-          rg->intrude_with_non_blessed_overlaps_flag,
-          rg->overlap_error_threshold,
-          rg->check_point_level
-          );
+    process_one_ovl_file
+      ( argc, 
+        argv,
+        rg->ovl_files_list_fname,
+        gstate,
+        heapva,
+        afr_to_avx,
+        rg->dvt_double_sided_threshold_fragment_end_degree,
+        rg->con_double_sided_threshold_fragment_end_degree,
+        rg->intrude_with_non_blessed_overlaps_flag,
+        rg->overlap_error_threshold,
+        rg->check_point_level
+        );
   
 
   if(NULL != rg->blessed_overlaps_input_filename){
@@ -593,7 +390,6 @@ int main_fgb
       ( argc, 
         argv,
         rg->blessed_overlaps_input_filename,
-        rg->Output_Graph_Store,
         gstate,
         heapva,
         afr_to_avx,
@@ -627,7 +423,6 @@ int main_fgb
       ( argc, 
         argv,
         rg->bubble_overlaps_filename,
-        rg->Output_Graph_Store,
         gstate,
         heapva,
         afr_to_avx,
@@ -639,31 +434,8 @@ int main_fgb
         );
   }
 
-  if( NULL != heapva->the_ovl_messages ) {
-    
-    fprintf(stderr,"Process the ovl VA.\n");
-
-    InsertOverlapsIntoGraph
-      (
-       heapva,
-       heapva->the_ovl_messages, // Additional overlaps in a VA.
-       heapva->the_ovl_source,
-       afr_to_avx,        // Part of a hash table replacement
-       rg->dvt_double_sided_threshold_fragment_end_degree,
-       rg->con_double_sided_threshold_fragment_end_degree,
-       rg->intrude_with_non_blessed_overlaps_flag,
-       rg->overlap_error_threshold
-       );
-
-  }
-
   if((NULL != rg->OVL_Store_Path) &&
      (rg->OVL_Store_Path[0] != '\0')) {
-    if(TIMINGS) {
-      tp1 = time(NULL);
-      fprintf(stderr,"Begin reading overlap store\n");
-      system_top();
-    }
     process_ovl_store
       ( rg->OVL_Store_Path,
         heapva->frags, // The internal representation of the fragment reads. 
@@ -679,139 +451,38 @@ int main_fgb
         rg->intrude_with_non_blessed_overlaps_flag,
         rg->overlap_error_threshold
         );
-    if(TIMINGS) {
-      time(&tp2); 
-      fprintf(stderr,"%10" F_TIME_TP " sec: Finished reading input file\n",
-              (tp2-tp1));
-      system_top();
-    }
   }
 
   destroy_FragmentHash(afr_to_avx);
 
   /////////////////////////////////////////////////////////////////
-  fprintf(stderr,"All data is in.\n");
-  ReportHeapUsage_CGB( gstate, heapva, stderr); 
 
-  if(NULL != rg->Output_Graph_Store) {
-    fprintf(stderr,"Check point after all the data is in.\n");
-    { 
-      {	  
-        char thePath1[CMD_BUFFER_SIZE-1]={0};
-        char thePath2[CMD_BUFFER_SIZE-1]={0};
-        int ierr=0;
-        sprintf(thePath1,"%s/%s",rg->Output_Graph_Store,"fgb.ckp_tmp");
-        sprintf(thePath2,"%s/%s",rg->Output_Graph_Store,"fgb.ckp_all_data_in");
-        write_fgb_store(thePath1, gstate, heapva);
-        ierr = accept_tmp_as_final_file( thePath1, thePath2);
-        assert(ierr == 0);
-      }
-      if(rg->analysis_flag) {
-        FILE *ffga=NULL;
-        char thePath3[CMD_BUFFER_SIZE-1]={0};
-        char thePath4[CMD_BUFFER_SIZE-1]={0};
-        const int ProcessFragmentAnnotationsForSimulatorCoordinates
-          = (rg->analysis_flag > 1);
-        int ierr=0;
-        sprintf(thePath3,"%s/%s",rg->Output_Graph_Store,"fga.ckp_tmp");
-        sprintf(thePath4,"%s/%s",rg->Output_Graph_Store,"fga.ckp_all_data_in");
-        ffga = fopen(thePath3,"w");
-        fragment_graph_analysis
-          (/* Input Only */
-           (gstate->max_frag_iid),
-           (heapva->frags),
-           (heapva->edges),
-           (heapva->frag_annotations),
-           ProcessFragmentAnnotationsForSimulatorCoordinates,
-           /* Output only */
-           ffga
-           );
-        fclose(ffga);
-        ierr = accept_tmp_as_final_file( thePath3, thePath4);
-        assert(ierr == 0);
-      }
-    }
-  }
-  /////////////////////////////////////////////////////////////////
-  
+  count_fragment_and_edge_labels ( heapva->frags, heapva->edges, "Before separate_fragments_as_solo_hanging_thru");
 
-#ifdef DEBUG_VIEW1
-    if( NULL != rg->Output_Graph_Store ) {
-      char strtmp[CMD_BUFFER_SIZE-1];
-      sprintf(strtmp,"%s.all_data_is_in",
-	      rg->Output_Graph_Store);
-      view_fgb_chkpnt( strtmp, heapva->frags, heapva->edges);
-    }
-#endif    
-  
-#if 0
-  {
-    FILE *before = fopen("next_edge_obj.before","w");
-    FILE *after  = fopen("next_edge_obj.after","w");
-    // Re-establish the next_edge[] pointers.
-    fprintf(stderr,"Re-establish the next_edge[] pointers.\n");
-    dump_next_edge_obj(before, heapva->next_edge_obj);
-    // clear next_edge_obj
-    Reset_VA(heapva->next_edge_obj);
-    rebuild_next_edge_obj( heapva->edges, heapva->next_edge_obj);
-    dump_next_edge_obj(after, heapva->next_edge_obj);
-    fclose(before);
-    fclose(after);
-  }
-#endif
-
-  count_fragment_and_edge_labels
-    ( heapva->frags, heapva->edges,
-      "Before separate_fragments_as_solo_hanging_thru");
   separate_fragments_as_solo_hanging_thru(heapva->frags,heapva->edges);
 
-#ifdef DEBUG_VIEW2
-    if( NULL != rg->Output_Graph_Store ) {
-      char strtmp[CMD_BUFFER_SIZE-1];
-      sprintf(strtmp,"%s.separate_solo_hanging_thru",
-	      rg->Output_Graph_Store);
-      view_fgb_chkpnt( strtmp, heapva->frags, heapva->edges);
-    }
-#endif    
+  set_compare_edge_function(compare_edge_weak);
 
-    set_compare_edge_function(compare_edge_weak);
-    // Now do not distinguish the blessed overlaps.
+  // Now do not distinguish the blessed overlaps.
 
-    reorder_edges( heapva->frags, heapva->edges, heapva->next_edge_obj);
-    count_fragment_and_edge_labels( heapva->frags, heapva->edges, "RISM_reorder_edges");
-#ifdef DEBUG_RISM
-    view_fgb_chkpnt( "RISM_reorder_edges", heapva->frags, heapva->edges);
-#endif// DEBUG_RISM
-    check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
+  reorder_edges( heapva->frags, heapva->edges, heapva->next_edge_obj);
+  count_fragment_and_edge_labels( heapva->frags, heapva->edges, "RISM_reorder_edges");
+  check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
     
-    append_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
-    // Currently the spur finding and micro-bubble smoothing code
-    // needs the dovetail edge mates to exist.
-    count_fragment_and_edge_labels( heapva->frags, heapva->edges, "RISM_append_the_edge_mates");
-#ifdef DEBUG_RISM
-    view_fgb_chkpnt( "RISM_append_the_edge_mates", heapva->frags, heapva->edges);
-#endif // DEBUG_RISM
-    check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
+  append_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
 
-    delete_duplicate_edges( heapva->frags, heapva->edges, heapva->next_edge_obj);
-    count_fragment_and_edge_labels( heapva->frags, heapva->edges, "RISM_delete_duplicate_edges");
-#ifdef DEBUG_RISM
-    view_fgb_chkpnt( "RISM_delete_duplicate_edges", heapva->frags, heapva->edges);
-#endif // DEBUG_RISM
-    check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
-    // Currently the spur finding code needs the dovetail edge mates to
-    // exist.
+  // Currently the spur finding and micro-bubble smoothing code
+  // needs the dovetail edge mates to exist.
 
-#ifdef DEBUG_VIEW3
-  if( NULL != rg->Output_Graph_Store ) {
-    char strtmp[CMD_BUFFER_SIZE-1];
-    sprintf(strtmp,"%s.jake_3.fgb",
-            rg->Output_Graph_Store);
-    fprintf(stderr,"View graph is %s\n", strtmp);
-    view_fgb_chkpnt( strtmp, heapva->frags, heapva->edges);
-    check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
-  }
-#endif    
+  count_fragment_and_edge_labels( heapva->frags, heapva->edges, "RISM_append_the_edge_mates");
+  check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
+
+  delete_duplicate_edges( heapva->frags, heapva->edges, heapva->next_edge_obj);
+  count_fragment_and_edge_labels( heapva->frags, heapva->edges, "RISM_delete_duplicate_edges");
+  check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
+
+  // Currently the spur finding code needs the dovetail edge mates to
+  // exist.
 
   if( (GetNumFragments(heapva->frags) > 0) &&
       (GetNumEdges(heapva->edges) > 0) &&
@@ -819,41 +490,16 @@ int main_fgb
       (!did_processing_phase_2) 
       ) /* The FGB computations need a populated graph store. */ {
 
-    if(TIMINGS) {
-      tp1 = time(NULL); 
-      fprintf(stderr,"Begin transitively inferable edge marking\n");
-      system_top();
-    }
     transitive_edge_marking
       ( gstate, heapva, heapva->frags, heapva->edges, heapva->next_edge_obj,
         rg->walk_depth,
         rg->cutoff_fragment_end_degree,
         rg->work_limit_per_candidate_edge,
         rg->iv_start,
-        rg->analysis_flag,
-        rg->Output_Graph_Store);
-    
-    // Needs a global thread synchronization here.
-    if(TIMINGS) {
-      tp2 = time(NULL);
-      fprintf(stderr,
-              "%10" F_TIME_TP " sec: Finished transitively inferable edge marking\n",
-              (tp2-tp1));
-      system_top();
-    }
-  } // Finish processing the input.
+        rg->analysis_flag);
+  }
   
   identify_early_spur_fragments( heapva->frags, heapva->edges);
-#ifdef DEBUG_VIEW4
-  if( NULL != rg->Output_Graph_Store ) {
-    char strtmp[CMD_BUFFER_SIZE-1];
-    sprintf(strtmp,"%s.identify_early_spur_fragments",
-            rg->Output_Graph_Store);
-    fprintf(stderr,"Last graph is %s\n", strtmp);
-    view_fgb_chkpnt( strtmp, heapva->frags, heapva->edges);
-    check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
-  }
-#endif
   
   count_fragment_and_edge_labels
     ( heapva->frags, heapva->edges,
@@ -864,30 +510,28 @@ int main_fgb
       "After contained_fragment_marking_frc");
   
 
-  if( ! rg->create_dump_file ) {
-    processing_phase_3
-      (
-       gstate, heapva,
-       rg->Output_Graph_Store,
-       rg->analysis_flag
-       );
+  if(rg->analysis_flag) {
+    char  thePath[FILENAME_MAX];
+    FILE *ffga;
+
+    sprintf(thePath,"%s.%s",rg->Output_Graph_Store_Prefix,"fga.ckp");
+    ffga = fopen(thePath,"w");
+    
+    fragment_graph_analysis (/* Input Only */
+                             gstate->max_frag_iid,
+                             heapva->frags,
+                             heapva->edges,
+                             heapva->frag_annotations,
+                             (rg->analysis_flag > 1),
+                             /* Output only */
+                             ffga);
+    fclose(ffga);
   }
     
-  /**************** Finish Process *********************/
-  
-#ifdef DEBUG_VIEW5
-  if(NULL != rg->Output_Graph_Store ) {
-    char strtmp[CMD_BUFFER_SIZE-1];
-    sprintf(strtmp,"%s.reaper",rg->Output_Graph_Store);
-    fprintf(stderr,"Last graph is %s\n", strtmp);
-    view_fgb_chkpnt( strtmp, heapva->frags, heapva->edges);
-    check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
-  }
-#endif    
 
   if( rg->create_dump_file ) {
     FILE *folp = NULL;
-    char strtmp[CMD_BUFFER_SIZE-1];
+    char strtmp[FILENAME_MAX];
     
     fprintf(stderr,"Opening dump file to write a batch of "
 	    "ADT+IDT+OFG+OVL messages.\n");
@@ -897,24 +541,12 @@ int main_fgb
       exit(1);
     }
 
-    output_mesgs
-      (/* Input Only*/
-       (heapva->frags), (heapva->edges),
-       (heapva->frag_annotations),
-       folp);
-    ierr = fclose(folp); assert(ierr == 0);
+    output_mesgs (heapva->frags,
+                  heapva->edges,
+                  heapva->frag_annotations,
+                  folp);
+    fclose(folp);
   }
   
-#ifdef DEBUG_VIEW6
-    if( NULL != rg->Output_Graph_Store ) {
-      char strtmp[CMD_BUFFER_SIZE-1];
-      sprintf(strtmp,"%s.fgb_main",
-	      rg->Output_Graph_Store);
-      view_fgb_chkpnt( strtmp, heapva->frags, heapva->edges);
-      check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
-    }
-#endif    
-
-  system_date();
   return( status);
 }

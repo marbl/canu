@@ -25,7 +25,7 @@
                  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: ScaffoldUnitigProfile_CNS.c,v 1.10 2007-04-16 17:36:33 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ScaffoldUnitigProfile_CNS.c,v 1.11 2007-04-28 08:46:22 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -43,7 +43,6 @@ static char CM_ID[] = "$Id: ScaffoldUnitigProfile_CNS.c,v 1.10 2007-04-16 17:36:
 #include "AS_UTL_Var.h"
 #include "UtilsREZ.h"
 #include "AS_UTL_ID_store.h"
-#include "PrimitiveVA_MSG.h"
 #include "AS_UTL_version.h"
 #include "AS_SDB_SequenceDBPartition.h"
 #include "AS_ALN_forcns.h"

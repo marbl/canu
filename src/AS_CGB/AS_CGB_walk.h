@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_walk.h,v 1.4 2005-03-22 19:48:32 jason_miller Exp $
+ * $Id: AS_CGB_walk.h,v 1.5 2007-04-28 08:46:21 brianwalenz Exp $
  *
  * Module: AS_CGB_walk.h
  * Description: 
@@ -70,11 +70,6 @@ int is_there_an_overlap_path
  // Maximum number of edges to explore per candidate edge.
  int *            work_tally_per_candidate_edge,
  // Current number of edges explored per candidate edge.
-#if 0
- int saved_ahg[], // Was the fragment visited with the same ahg?
- int saved_bhg[], // Was the fragment visited with the same bhg?
- int saved_depth[], // What was the search depth? To guarantee a simple path.
-#endif
  /* diagnostic variables: */
 #ifdef WALK_DEPTH_DIAGNOSTICS
  int64      search_depth_histogram[], // How many times this depth is visited.
@@ -82,33 +77,5 @@ int is_there_an_overlap_path
 #endif // WALK_DEPTH_DIAGNOSTICS
  int64      *ntrans_test_fail // How many paths failed the last test.
 );
-
-#if 0
-int count_dovetail_overlap_paths
-(
-  const Tfragment *frags,
-  const Tedge     *edges,
-  const IntFragment_ID start_avx,
-  const int        start_asx,
-  /* recursion variables: */
-        int        the_count,    // Use zero at top level.
-  const int        search_depth, // Use zero at the top level.
-  const IntFragment_ID current_avx,  // Use start_avx at the top level.
-  const int        current_asx,  // Use start_asx at the top level.
-  const int        current_ahg,  // Use zero at the top level.
-  const int        current_bhg,  // Use zero at the top level.
-  /* search path limiting: */
-  const int        walk_depth,   // The maximum depth of the stack.
-  IntFragment_ID   visited[],
-  IntFragment_ID   visited_a[],
-  IntFragment_ID   visited_b[],
-  // Was this fragment visited by a search from the starting
-  // fragment-end before? That is by the same (start_avx, start_asx).
-  /* diagnostic variables: */
-  int64      search_depth_histogram[], // How many times this level is visited.
-  int64      search_path_histogram[],  // How many paths were this length.
-  int64      *ntrans_test_fail // How many paths failed the last test.
-  );
-#endif 
 
 #endif // AS_CGB_WALK_INCLUDE

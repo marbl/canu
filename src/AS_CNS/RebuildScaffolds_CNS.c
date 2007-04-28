@@ -78,7 +78,7 @@ echo 53 | rebuildscaffolds -f oct01.fStore -s oct01.sStore -V 23 -c oct01.cStore
 
  *********************************************************************/
 
-static char CM_ID[] = "$Id: RebuildScaffolds_CNS.c,v 1.15 2007-04-16 17:36:32 brianwalenz Exp $";
+static char CM_ID[] = "$Id: RebuildScaffolds_CNS.c,v 1.16 2007-04-28 08:46:22 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -95,7 +95,6 @@ static char CM_ID[] = "$Id: RebuildScaffolds_CNS.c,v 1.15 2007-04-16 17:36:32 br
 #include "AS_PER_genericStore.h"
 #include "AS_UTL_Var.h"
 #include "AS_UTL_ID_store.h"
-#include "PrimitiveVA_MSG.h"
 #include "AS_UTL_version.h"
 #include "AS_SDB_SequenceDBPartition.h"
 #include "AS_ALN_forcns.h"

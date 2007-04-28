@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_fgb.c,v 1.9 2007-03-13 03:03:46 brianwalenz Exp $";
+= "$Id: AS_CGB_fgb.c,v 1.10 2007-04-28 08:46:21 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_fgb.c
@@ -53,9 +53,6 @@ static char CM_ID[]
 
 /****************************************************************************/
 /* File Scope Globals */
-
-static int TIMINGS = TRUE;
-static int TIMINGS1 = FALSE;
 
 /* Conditional compilation */
 #define IN_PLACE_PERMUTATION
@@ -162,175 +159,6 @@ static void in_place_permute
 }
 
 
-#if 0
-static void check_edges1(/* Input Only */
-		 Tfragment frags[], 
-		 Tedge edges[],
-		 int scrub)
-{
-  /* This routine is for checks overlaps not assuming adjacency
-     list sorted edges.
-  */
-  //const IntFragment_ID nfrag = GetNumFragments(frags);
-  const IntEdge_ID nedge = GetNumEdges(edges);
-  //IntFragment_ID iv0;
-  //int is0;
-  IntEdge_ID ie0;
-  time_t tp1 = 0,tp2;
-
-  if(TIMINGS) {
-    tp1 = time(NULL); fprintf(stderr,"Begin check_edges1\n");
-    system_top();
-  }
-
-  for(ie0=0; ie0 < nedge; ie0++) {
-	const IntFragment_ID avx = get_avx_edge(edges,ie0);
-	const IntFragment_ID bvx = get_bvx_edge(edges,ie0);
-	const IntFragment_ID afr = get_iid_fragment(frags,avx);
-	const IntFragment_ID bfr = get_iid_fragment(frags,bvx);
-	const int asx = get_asx_edge(edges,ie0);
-	const int bsx = get_bsx_edge(edges,ie0);
-	const int ahg = get_ahg_edge(edges,ie0);
-	const int bhg = get_bhg_edge(edges,ie0);
-	const Tnes ines = get_nes_edge(edges,ie0);
-	const uint32 qua = get_qua_edge(edges,ie0);
-	//const int inv = get_inv_edge(edges,ie0);
-	int bad_edge = FALSE;
-
-	if( (avx == bvx)&&(asx == bsx) ) { 
-	  fprintf(stderr,F_IID ": " F_IID " " F_IID " " F_IID " " F_IID " %d %d %d %d %d\n",
-		  ie0,
-		  afr,bfr,avx,bvx,
-		  asx,bsx,
-		  ahg,bhg,
-		  ines);
-	  fprintf(stderr,"check_edges1 found an impossible overlap:\n");
-	  assert(FALSE);
-	}
-
-	switch(ines) {
-	  /* The dovetail overlaps */
-	case AS_CGB_INTERCHUNK_EDGE:
-	case AS_CGB_INTRACHUNK_EDGE:
-	case AS_CGB_TOUCHES_CONTAINED_EDGE:
-	case AS_CGB_BETWEEN_CONTAINED_EDGE:
-	case AS_CGB_REMOVED_BY_TRANSITIVITY_DVT:
-	case AS_CGB_REMOVED_BY_THRESHOLD_DVT:
-	case AS_CGB_MARKED_BY_BRANCH_DVT:
-          // get_dvt_edge()
-	  if(!is_a_dvt_simple(ahg,bhg)) {
-	    bad_edge = TRUE;
-	  }
-	  break;
-	case AS_CGB_CONTAINED_EDGE:
-	case AS_CGB_REMOVED_BY_TRANSITIVITY_CON:
-	case AS_CGB_REMOVED_BY_THRESHOLD_CON:
-	  if(
-#if 1
-             is_a_dvt_simple(ahg,bhg)
-#else             
-             ! (is_a_frc_simple(ahg,bhg) || is_a_toc_simple(ahg,bhg) || is_a_dgn_simple(ahg,bhg))
-#endif             
-             ) {
-	    bad_edge = TRUE;
-	  }
-	  break;
-
-	case AS_CGB_REMOVED_BY_DUPLICATE_DVT:
-	case AS_CGB_REMOVED_BY_DUPLICATE_CON:
-	  break;
-	default:
-	  break;
-	}
-
-	if( bad_edge ) {
-	  fprintf(stderr,
-		  F_IID ": " F_IID " " F_IID " " F_IID " " F_IID " %d %d %d %d %d %d\n"
-		  ie0,
-		  afr,bfr,avx,bvx,
-		  asx,bsx,
-		  ahg,bhg,
-		  ines,qua);
-	}
-  }
-  if(TIMINGS) {
-    tp2 = time(NULL); 
-    fprintf(stderr,"%10" F_TIME_TP " sec: Finished check_edges1\n",(tp2-tp1));
-    system_top();
-  }
-}
-#endif
-
-#if 0
-static void reorder_fragments
-(
- Tfragment frags[],
- IntRank   fragment_rank[],
- Tedge     edges[])
-{
-  const IntFragment_ID nfrag = GetNumFragments(frags);
-  const IntEdge_ID nedge = GetNumEdges(edges);
-
-#ifdef CHECK96
-  {
-    IntFragment_ID ivold;
-    IntRank * fragment_tmp = NULL;
-    fragment_tmp = safe_malloc(sizeof(IntRank) * nfrag);
-
-    /* Begin validating the permutation. */
-    // #pragma omp parallel for
-    for(ivold=0; ivold<nfrag; ivold++){
-      fragment_tmp[ivold] = FRAGMENT_NOT_VISITED;
-    }
-    // #pragma omp parallel for
-    for(ivold=0; ivold<nfrag; ivold++){
-      fragment_tmp[fragment_rank[ivold]] = ivold;
-    }
-    // #pragma omp parallel for
-    for(ivold=0; ivold<nfrag; ivold++){
-      assert(fragment_tmp[ivold] != FRAGMENT_NOT_VISITED);
-    }
-    /* End validating the permutation. */
-    safe_free(fragment_tmp);
-  }
-#endif // CHECK96
-
-#ifdef CHECK80
-  {
-    const IntFragment_ID max_frag_iid = 1000000;
-    check_for_fragment_corruption( frags, edges, max_frag_iid );
-  }
-#endif
-
-  /* re-order the fragments. */
-  /* move the fragment data */
-  in_place_permute
-    ( nfrag, sizeof(Afragment), 
-      fragment_rank, GetVA_Afragment(frags,0));
-
-#ifdef CHECK80
-  {
-    const IntFragment_ID max_frag_iid = 1000000;
-    check_for_fragment_corruption( frags, edges, max_frag_iid );
-  }
-#endif
-
-  {
-    /* Remap the fragment references from IIDs to VIDs (fragment
-       identifiers). */
-    // #pragma omp parallel for
-    IntEdge_ID iedge;
-    for(iedge=0;iedge<nedge;iedge++){
-      set_avx_edge(edges,iedge, 
-		   (IntFragment_ID)fragment_rank[get_avx_edge(edges,iedge)]);
-      set_bvx_edge(edges,iedge,
-		   (IntFragment_ID)fragment_rank[get_bvx_edge(edges,iedge)]);
-    }
-  }
-  
-  /* The edge data is ready to be resorted for memory locality. */
-}
-#endif
 
 static void setup_segments
 ( /* Modify */
@@ -629,36 +457,6 @@ static void rebuild_next_edge_obj
   //assert(FALSE);
 }
 
-#if 0
-static void reorder_edges_qsort_all
-( Tfragment frags[],
-  Tedge edges[] 
-  )
-{ // Sort the edges....
-  const IntEdge_ID nedge = GetNumEdges(edges);
-  time_t tp1 = 0,tp2;
-  QsortCompare compare_edge = get_compare_edge_function();
-
-fprintf(stderr,"Sort the edges by (avx,asx,ahg,bvx,bsx,bhg).\n");
-  if(TIMINGS) {
-    tp1 = time(NULL); fprintf(stderr,"Begin qsort\n");
-    system_top();
-  }
-  qsort(GetVA_Aedge(edges,0),nedge,sizeof(Aedge),
-	(int (*)(const void *,const void *))compare_edge); /* FIX this */
-  /* The internal structure of the edges object of type Tedge is
-     used here.  We are using the fact that the first address of the
-     edges object is a pointer to an array of type Aedge and length
-     nedges.*/
-  if(TIMINGS) {
-    tp2 = time(NULL); 
-    fprintf(stderr,"%10" F_TIME_TP " sec: Finished qsort\n",(tp2-tp1));
-    system_top();
-  }
-  setup_segments(/* Modify */ frags, edges);
-}
-#endif
-
 static void reorder_edges_bin_and_qsort
 ( Tfragment *frags,
   Tedge *edges,
@@ -675,7 +473,6 @@ static void reorder_edges_bin_and_qsort
   if( nedge > 0) { // Sort the edges ......
     const int max_frag_len = 2048;
     const IntEdge_ID max_nbins = MAX(max_frag_len,2*nfrag);
-    time_t tp1 = 0,tp2;
  
     IntEdge_ID * seglen = NULL;
     IntEdge_ID * segstart = NULL;
@@ -689,11 +486,6 @@ static void reorder_edges_bin_and_qsort
     edge_rank = safe_malloc(sizeof(IntRank) * nedge);
 
     { // FRAGMENT-END SORT
-      if(TIMINGS) {
-	fprintf(stderr,"Sort the edges by avx,asx\n");
-	tp1 = time(NULL); fprintf(stderr,"Begin bin rank\n");
-        system_top();
-      }
       { // Sort all of the edges ....
 	const IntEdge_ID ie_start  = 0;
 	const IntEdge_ID ie_finish = nedge + ie_start;
@@ -707,12 +499,6 @@ static void reorder_edges_bin_and_qsort
 	  set_segstart_vertex(frags,iv0,is0,0);
 	}}
 	
-	if(TIMINGS1) {
-	  tp2 = time(NULL); 
-	  fprintf(stderr,"%10" F_TIME_TP " sec: so far at 1\n",(tp2-tp1));
-          system_top();
-	}
-
 	// #pragma omp parallel for
 	// Count the number of edges at each fragment-end.
 	{ IntEdge_ID ie;
@@ -725,12 +511,6 @@ static void reorder_edges_bin_and_qsort
 	  set_seglen_vertex(frags,iavx,iasx,nnode);
 	}}
 	
-	if(TIMINGS1) {
-	  tp2 = time(NULL); 
-	  fprintf(stderr,"%10" F_TIME_TP " sec: so far at 2\n",(tp2-tp1));
-          system_top();
-	}
-
 	// Scan the number of edges at each fragment-end to find the
 	// segment start for each fragment end.
 	{ 
@@ -746,12 +526,6 @@ static void reorder_edges_bin_and_qsort
 	  assert( isum == (ie_finish - ie_start) );
 	}
 	
-	if(TIMINGS1) {
-	  tp2 = time(NULL); 
-	  fprintf(stderr,"%10" F_TIME_TP " sec: so far at 3\n",(tp2-tp1));
-          system_top();
-        }
-
 	// #pragma omp parallel for
 	// Assign a rank to each edge.
 	{ IntEdge_ID ie;
@@ -766,12 +540,6 @@ static void reorder_edges_bin_and_qsort
 	}}
       } // Sort all of the edges...
 
-      if(TIMINGS) {
-	tp2 = time(NULL); 
-	fprintf(stderr,"%10" F_TIME_TP " sec: Finished bin rank\n",(tp2-tp1));
-        system_top();
-      }
-      
 #ifdef CHECK99
       {
 	IntEdge_ID * edge_index = NULL;
@@ -794,33 +562,13 @@ static void reorder_edges_bin_and_qsort
 #endif // CHECK99
 
 #ifdef IN_PLACE_PERMUTATION
-      if(TIMINGS) {
-	tp1 = time(NULL); fprintf(stderr,"Begin in-place permutation\n");
-        system_top();
-      }
       // Now permute the edges by the rank.
       in_place_permute
 	( nedge, sizeof(Aedge), 
 	  edge_rank, GetVA_Aedge(edges,0));
-      if(TIMINGS) {
-	tp2 = time(NULL); 
-	fprintf(stderr,
-		"%10" F_TIME_TP " sec: Finished in-place permutation\n",(tp2-tp1));
-        system_top();
-      }
 #else
-      if(TIMINGS) {
-	tp1 = time(NULL); fprintf(stderr,"Begin VA permutation\n");
-        system_top();
-      }
       // Now permute the edges by the rank.
       ScatterInPlace_VA( edges, nedge, edge_rank);
-      if(TIMINGS) {
-	tp2 = time(NULL); 
-	fprintf(stderr,
-		"%10" F_TIME_TP " sec: Finished VA permutation\n",(tp2-tp1));
-        system_top();
-      }
 #endif
 
     } // FRAGMENT-END SORT
@@ -831,16 +579,10 @@ static void reorder_edges_bin_and_qsort
   }
   
    { // Sort the edges (in fragment-end segments)
-     time_t tp1 = 0,tp2;
     
 #ifdef DEBUGGING
      fprintf(stderr,"Sort the segment of edges by avx\n");
 #endif
-     if(TIMINGS) {
-       tp1 = time(NULL); 
-       fprintf(stderr,"Begin qsort of the fragment-end segments\n");
-       system_top();
-     }
      { IntFragment_ID iv0; int is0;
      for(iv0=0;iv0<nfrag;iv0++) for(is0=0;is0<2;is0++) {
        const IntEdge_ID ie_start 
@@ -854,13 +596,6 @@ static void reorder_edges_bin_and_qsort
 	  edges object is a pointer to an array of type Aedge and length
 	  nedges.*/
      }}
-     if(TIMINGS) { 
-       tp2 = time(NULL); 
-       fprintf(stderr,
-	       "%10" F_TIME_TP " sec: Finished qsort of the fragment-end segments\n",
-	       (tp2-tp1));
-       system_top();
-     }
    }
 
   rebuild_next_edge_obj( edges, next_edge_obj);
@@ -886,11 +621,6 @@ void graph_locality_diagnostic
   char      *namec
   )
 {
-  time_t tp1 = 0, tp2;
-  if(TIMINGS) {
-    tp1 = time(NULL); fprintf(stderr,"Begin writing locality diagnostic.\n");
-  }
-  { 
     FILE *ffga = stderr;
     IntEdge_ID ie1;
     const IntFragment_ID nfrag = GetNumFragments(frags);
@@ -962,221 +692,9 @@ void graph_locality_diagnostic
       }
       fclose(fdiagc);
     }
-  }
-  if(TIMINGS) {
-    tp2 = time(NULL); fprintf(stderr,"%10" F_TIME_TP " sec: Finished "
-                              "locality diagnostic.\n",
-                              (tp2-tp1));
-  }
 }
 
-#if 0
-static void reorder_graph
-(
- Tfragment *frags, 
- Tedge     *edges,
- TIntEdge_ID * next_edge_obj
- )
-{
-  const int output_graph_locality_diagnostic = FALSE;
-  time_t tp1 = 0, tp2;
-  const IntFragment_ID nfrag = GetNumFragments(frags);
-  IntRank * fragment_rank = NULL;
 
-  fragment_rank = safe_malloc((sizeof(IntRank) * nfrag); // for graph traversal
-  
-  if(output_graph_locality_diagnostic){
-    graph_locality_diagnostic( frags, edges, "Before.diagd", "Before.diagc");
-  }
-
-  if(TIMINGS) { 
-    tp1 = time(NULL); 
-    fprintf(stderr,"Begin: Find a new ordering of the fragments in fragment_rank.\n");
-    system_top();
-  }
-  as_graph_traversal(stderr, frags, edges, fragment_rank);
-  if(TIMINGS) { 
-    tp2 = time(NULL); 
-    fprintf(stderr,"%10" F_TIME_TP " sec: "
-            "Finished finding a new ordering of the fragments in fragment_rank.\n",
-            (tp2-tp1));
-    system_top();
-  }
-
-  if(TIMINGS) { 
-    tp1 = time(NULL); 
-    fprintf(stderr,"Begin: reorder_fragments.\n");
-    system_top();
-  }
-  reorder_fragments( frags, fragment_rank, edges);
-  if(TIMINGS) {
-    tp2 = time(NULL); 
-    fprintf(stderr,"%10" F_TIME_TP " sec: "
-            "Finished reorder_fragments.\n",
-            (tp2-tp1));
-    system_top();
-  }
-  
-  if(TIMINGS) {
-    tp1 = time(NULL); 
-    fprintf(stderr,"Begin: reorder_edges.\n");
-    system_top();
-  }
-  reorder_edges(frags, edges, next_edge_obj);
-  if(TIMINGS) {
-    tp2 = time(NULL);
-    fprintf(stderr,"%10" F_TIME_TP " sec: "
-            "Finished reorder_edges.\n",
-            (tp2-tp1));
-    system_top();
-  }
-  
-  if(output_graph_locality_diagnostic){
-    graph_locality_diagnostic( frags, edges, "After.diagd", "After.diagc");
-  }
-
-#ifdef DEBUG_GRAPH_DIAGNOSTICS
-  {
-    char strtmp[2048] = {0};
-    strcat(strtmp,"graph0p");
-    fprintf(stderr,"graph_diagnostics\n");
-    graph_diagnostics
-      (strtmp, frags, edges, AS_CGB_INTERCHUNK,AS_CGB_THRU,0);
-  }
-#endif /*DEBUG_GRAPH_DIAGNOSTICS*/
-  
-  safe_free(fragment_rank);
-}
-#endif
-
-/****************************************************************
- *
- * The main graph transformation routines
- *
- ****************************************************************/
-
-#if 0
-static void check_transitive_overlap_marking
-(
- Tfragment frags[],
- Tedge     edges[])
-{
-  /* Check for overly aggressive transitive overlap removal. That is,
-   * transitive overlap removal should NEVER remove all the overlaps
-   * on a fragment end.  
-   */
-
-  const IntFragment_ID nfrag = GetNumFragments(frags);
-  IntEdge_ID ie;
-  IntFragment_ID ifrag;
-  int is; 
-
-  for(ifrag=0; ifrag<nfrag; ifrag++) {
-    for(is=0; is<2; is++) {
-      const IntEdge_ID segstart = get_segstart_vertex(frags,ifrag,is);
-      const int seglength = get_seglen_vertex(frags,ifrag,is);
-      int count = 0;
-      for(ie=segstart; ie<segstart+seglength; ie++) {
-	const Tnes ines = get_nes_edge(edges,ie);
-	switch(ines) {
-	  /* The containment overlaps... */
-	case AS_CGB_CONTAINED_EDGE:
-	  count ++;
-	  break;
-	  
-	  /* The dovetail overlaps... */
-	case AS_CGB_DOVETAIL_EDGE:
-	case AS_CGB_THICKEST_EDGE:
-	case AS_CGB_INTERCHUNK_EDGE:
-	case AS_CGB_TOUCHES_CONTAINED_EDGE:
-	case AS_CGB_BETWEEN_CONTAINED_EDGE:
-	  count ++;
-	  break;
-	case AS_CGB_REMOVED_BY_TRANSITIVITY_DVT:
-	case AS_CGB_REMOVED_BY_DUPLICATE_DVT:
-	case AS_CGB_REMOVED_BY_TRANSITIVITY_CON:
-	case AS_CGB_REMOVED_BY_DUPLICATE_CON:
-	  break;
-	default:
-          fprintf(stderr,"Unexpected overlap edge type nes=%d\n",ines);
-	  assert(FALSE);
-	}
-      }
-
-      if( (seglength > 0) && 
-	  (count == 0) &&
-	  (! get_del_fragment(frags,ifrag))
-	  //(AS_CGB_DELETED_FRAG != get_lab_fragment(frags,ifrag))
-          ) {
-	fprintf(stderr,"Disconnected fragment end " F_IID " %d\n",
-		ifrag,is);
-      }
-    }
-  }
-}
-#endif
-
-
-#if 0
-static void find_median_fragment_end_degree
-(
- Tfragment frags[],
- Tedge edges[],
- const char Output_Graph_Store[],
- int *median_fragment_end_degree
- ) {
-  const IntFragment_ID nfrag=GetNumFragments(frags);
-  const IntEdge_ID nedge=GetNumEdges(edges);
-
-  { // Find the median adjacency degree...
-    int * bincount = NULL;
-    int maxcount = 0;
-    IntEdge_ID totcount = 0;
-    { IntFragment_ID iv0; int is0;
-    for(iv0=0;iv0<nfrag;iv0++) for(is0=0;is0<2;is0++) {
-      const int nnode = get_seglen_vertex(frags,iv0,is0);
-      maxcount = ( maxcount > nnode ? maxcount : nnode );
-      totcount += nnode;
-      assert(nnode >= 0);
-    }}
-    assert(totcount == nedge);
-
-    bincount = safe_malloc(sizeof(int) * (maxcount+1));
-
-    { int ii; for(ii=0;ii<maxcount+1;ii++) {
-      bincount[ii] = 0;
-    }}
-    // #pragma omp parallel for
-    { IntFragment_ID iv0; int is0;
-    for(iv0=0;iv0<nfrag;iv0++) for(is0=0;is0<2;is0++) {
-      const int nnode = get_seglen_vertex(frags,iv0,is0);
-      bincount[nnode] ++;
-    }}
-
-#ifdef CHECK97
-    totcount = 0;
-    { int ii; 
-    for(ii=0;(ii<maxcount+1);ii++) {
-      totcount += ii*bincount[ii];
-    }}
-    assert(totcount == nedge);
-#endif // CHECK97
-    
-    { 
-      int ii; IntFragment_ID sumcount=0;
-      for(ii=0;(ii<maxcount+1);ii++) {
-	sumcount += bincount[ii];
-	if(sumcount >= nfrag) { break;} 
-	// There are 2*nfrag fragment ends.
-      }
-      (*median_fragment_end_degree) = ii;
-    }
-    safe_free(bincount);
-  }
-}
-#endif
-
-/////////////////////////////////////////////////////////////////////
 
 typedef struct {
   int min_bin;
@@ -1225,8 +743,7 @@ void transitive_edge_marking
  const int cutoff_fragment_end_degree,
  const int work_limit_per_candidate_edge,
  const IntFragment_ID iv_start,
- const int analysis_flag,
- const char Output_Graph_Store[]
+ const int analysis_flag
  ) {
   const IntFragment_ID nfrag=GetNumFragments(frags);
 
@@ -1261,11 +778,9 @@ void transitive_edge_marking
   int64 num_of_triangles_visited = 0;
   int64 num_of_quads_visited = 0;
   int64 ntrans_test_fail = 0;
-  FILE *ftrans = NULL;
   
   const int report_interval = 60; // one minute
   const int check_point_interval = 4*60*60; // four hours
-  time_t tp3,next_report_time,next_check_point_time;
 
   visited_a = safe_malloc(sizeof(IntFragment_ID) * 2 * nfrag);
   visited_b = safe_malloc(sizeof(IntFragment_ID) * 2 * nfrag);
@@ -1279,42 +794,12 @@ void transitive_edge_marking
   }
 #endif // DONT_RUN_IN_SYMMETRIC_MODE    
 
-#if 1
   check_symmetry_of_the_edge_mates( frags, edges, next_edge_obj);
-#ifdef DEBUG_RISM
-  view_fgb_chkpnt( "RISM_before_trans_before_packing", frags, edges);
-#endif // DEBUG_RISM
   {
-    time_t tp1 = 0, tp2;
-    if(TIMINGS) {
-      tp1 = time(NULL);
-      fprintf(stderr,"Begin packing the edges before transitive edge marking.\n");
-      system_top();
-    }
     /* Reduce the amount of memory used for the graph. */
     pack_the_edges( frags, edges, next_edge_obj);
-    if(TIMINGS) {
-      tp2 = time(NULL); 
-      fprintf(stderr,"%10" F_TIME_TP " sec: Finished packing the edges before transitive edge marking.\n",
-              (tp2-tp1));
-      system_top();
-    }
   }
-#ifdef DEBUG_RISM
-  view_fgb_chkpnt( "RISM_before_trans_after_packing", frags, edges);
-#endif // DEBUG_RISM
   check_symmetry_of_the_edge_mates( frags, edges, next_edge_obj);
-#endif
-
-
-  
-#if 0 // Time interval triggered diagnostics
-  if(NULL != Output_Graph_Store) {
-    char fname[CMD_BUFFER_SIZE-1] = {0};
-    ftrans = fopen(strcat(strcpy(fname,Output_Graph_Store),
-                 "/fgb.trans"),"a");
-  }
-#endif // Time interval triggered diagnostics
   
   { IntFragment_ID iv0; for(iv0=iv_start;iv0<nfrag;iv0++) {
     int is0; for(is0=0;is0<2;is0++) {
@@ -1339,121 +824,20 @@ void transitive_edge_marking
   // Should these histograms be stored in the check-point or remain a
   // batch quanitity?
   
-  tp3 = time(NULL);
-  next_report_time = tp3;
-  next_check_point_time = tp3+check_point_interval;
-
   fprintf(stderr,"transitively inferable edge marking\n");
   fprintf(stderr,"Cutoff fragment-end degree=%d\n",
 	  cutoff_fragment_end_degree);
 
-  if(ftrans != NULL) {
-    fprintf(ftrans,"transitively inferable edge marking\n");
-    fprintf(ftrans,"Cutoff fragment-end degree=%d\n",
-	    cutoff_fragment_end_degree);
-    fprintf(ftrans,
-	    "trans: seconds, fragments, edges, triangles, quads\n");
-  }
-
   /* Begin: Check each vertex in the fragment overlap graph. */
   {
-#ifndef _OPENMP
     IntFragment_ID iv0;
-#else // _OPENMP
-    int iv0; // OpenMP requires a signed integer type
-#pragma omp parallel for schedule(dynamic,10000)
-#endif // _OPENMP
     for(iv0=iv_start;iv0<nfrag;iv0++) {
-      int is0; for(is0=0;is0<2;is0++) {
+      int is0;
+      for(is0=0;is0<2;is0++) {
         const IntEdge_ID ir0 = get_segstart_vertex(frags,iv0,is0);
         const int nnode  = get_seglen_vertex(frags,iv0,is0);
         int in2;
-        
-#ifdef _OPENMP
-#pragma omp master
-#endif // _OPENMP
-	if(NULL != ftrans) {
-	  time_t tp4=time(NULL);
-	  if( (tp4 >= next_report_time) ||
-	      (tp4 >= next_check_point_time) ) { 
-	    fprintf(ftrans,
-		    "trans: %8" F_TIME_TP ", %15" F_IIDP ",%1d, %15" F_IIDP ", %20" F_S64P ", %20" F_S64P "\n", 
-		    tp4-tp3,
-		    iv0,is0,ir0,
-		    num_of_triangles_visited,
-		    num_of_quads_visited);
-	    fflush(ftrans);
-	    next_report_time = tp4 + report_interval;
-	  }
-	}
-      
-#ifdef _OPENMP
-#pragma omp critical
-#endif // _OPENMP
-      if(NULL != ftrans) {
-        if( time(NULL) >= next_check_point_time ) {
-#if 0
-          time_t tp1 = 0, tp2;
-          if(TIMINGS) {
-            tp1 = time(NULL);
-            fprintf(stderr,"Begin packing the edges for checkpoint.\n");
-            system_top();
-          }
-          /* Reduce the amount of memory used for the graph. */
-          pack_the_edges( frags, edges, next_edge_obj);
-          if(TIMINGS) {
-            tp2 = time(NULL); 
-            fprintf(stderr,"%10" F_TIME_TP " sec: Finished packing the edges\n",
-                    (tp2-tp1));
-            system_top();
-          }
-#endif
-          if(NULL != ftrans && NULL != Output_Graph_Store) {
-            fprintf(ftrans,"trans: %8" F_TIME_TP " starting check point\n", time(NULL)-tp3);
-            { 
-              {	  
-                char thePath1[CMD_BUFFER_SIZE-1]={0};
-                char thePath2[CMD_BUFFER_SIZE-1]={0};
-                int ierr=0;
-                sprintf(thePath1,"%s/%s",Output_Graph_Store,"fgb.ckp_tmp");
-                sprintf(thePath2,"%s/%s",Output_Graph_Store,"fgb.ckp_trans");
-                write_fgb_store(thePath1, gstate, heapva);
-                ierr = accept_tmp_as_final_file( thePath1, thePath2);
-                assert(ierr == 0);
-              }
-              if(analysis_flag) {
-                FILE *ffga=NULL;
-                char thePath3[CMD_BUFFER_SIZE-1]={0};
-                char thePath4[CMD_BUFFER_SIZE-1]={0};
-                const int ProcessFragmentAnnotationsForSimulatorCoordinates
-                  = (analysis_flag > 1);
-                int ierr=0;
-                sprintf(thePath3,"%s/%s",Output_Graph_Store,"fga.ckp_tmp");
-                sprintf(thePath4,"%s/%s",Output_Graph_Store,"fga.ckp_trans");
-                ffga = fopen(thePath3,"w");
-                fragment_graph_analysis
-                  (/* Input Only */
-                   (gstate->max_frag_iid),
-                   (heapva->frags),
-                   (heapva->edges),
-                   (heapva->frag_annotations),
-                   ProcessFragmentAnnotationsForSimulatorCoordinates,
-                   /* Output only */
-                   ffga
-                   );
-                fclose(ffga);
-                ierr = accept_tmp_as_final_file( thePath3, thePath4);
-                assert(ierr == 0);
-              }
-            }
-            fprintf(ftrans,"trans: %8" F_TIME_TP " finished check point\n", time(NULL)-tp3);
-            fflush(ftrans);
-            next_check_point_time = time(NULL) + check_point_interval;
-          }
-        }
-      }
 
-      //if(nnode < cutoff_fragment_end_degree) // Limit the run time.
       for(in2=0;in2<nnode;in2++) { 
 	const IntEdge_ID ir2 = ir0+in2;
 	const Tnes ir2nes = get_nes_edge(edges,ir2);
@@ -1564,19 +948,6 @@ void transitive_edge_marking
 
 	    if(walk_depth == 0) {
               assert(FALSE);
-#if 0
-	      iremove = mark_edge_if_there_is_a_path
-		(ir2,
-		 frags,
-		 edges,
-		 cutoff_fragment_end_degree,
-		 tolerance,
-		 /* diagnostics */
-                 &ntrans_test_fail,
-                 &num_of_triangles_visited,
-                 &num_of_quads_visited
-		 );
-#endif              
 	    } else {
                int work_tally_per_candidate_edge = 0;
                // Current number of edges explored per candidate edge.
@@ -1594,14 +965,8 @@ void transitive_edge_marking
                 const int target_is_to_contained = is_a_toc_edge(edges,ir2);
                 const int target_is_dgn_contained = is_a_dgn_edge(edges,ir2);
                 
-                const int last_edge_was_containment =
-#if 1
-                  FALSE  // 
-#else                  
-                  TRUE   // Allow containment and dovetail overlaps to infer a dovetail
-#endif
-                  ;
-                  
+                // Allow containment and dovetail overlaps to infer a dovetail
+                const int last_edge_was_containment = FALSE;
 
                       iremove = is_there_an_overlap_path
                   ( frags, edges,
@@ -1693,127 +1058,14 @@ void transitive_edge_marking
 	  " times at the length comparison.\n",ntrans_test_fail);
 #endif
 
-  if(NULL != ftrans) {
-    time_t tp4=time(NULL);
-    int64 successful_search_path_total = 0;
-    int64 successful_search_depth_total = 0;
-    int64 failed_search_depth_total = 0;
-    const IntEdge_ID nedge=GetNumEdges(edges);
-    fprintf(ftrans,
-	    "trans: %8" F_TIME_TP ",%10" F_IIDP ",%1d,%10" F_IIDP "\n",
-	    tp4-tp3,
-	    nfrag, 1, nedge);
-    fprintf(ftrans,"transx:     %20" F_S64P ", %20" F_S64P "\n", 
-            num_of_triangles_visited,
-	    num_of_quads_visited);
-    fprintf(ftrans,
-	    "trans: successful_searches=" F_S64 ",failed_searches=" F_S64 "\n",
-              successful_searches,failed_searches);
-#ifdef WALK_DEPTH_DIAGNOSTICS
-    fprintf(ftrans,
-	    "trans: walk_depth, suc.paths, suc.visits, unsuc.visits\n");
-    { int i; for(i=0;i<walk_depth;i++) {
-      successful_search_path_total += successful_search_path_histogram[i];
-      successful_search_depth_total += successful_search_depth_histogram[i];
-      failed_search_depth_total += failed_search_depth_histogram[i];
-      fprintf(ftrans,
-              "%6d %15" F_S64P " %15" F_S64P " %15" F_S64P "\n",
-              i,
-              successful_search_path_histogram[i],
-              successful_search_depth_histogram[i],
-              failed_search_depth_histogram[i]
-        );
-    }}
-#endif // WALK_DEPTH_DIAGNOSTICS
 
-    fprintf(ftrans,
-	    "trans: walk_tally_per_candidate_edge, counts\n");
-    { int i; for(i=0;i<work_limit_per_candidate_edge+1;i++) {
-      if(work_tally_per_candidate_edge_histogram[i] > 0) {
-        fprintf(ftrans,"%10d %15" F_S64P "\n",
-                i, work_tally_per_candidate_edge_histogram[i]);
-          }
-    }}
-    
-    // Should these histograms be stored in the check-point or remain a
-    // batch quanitity?
-    
-    fprintf(ftrans,
-            "totals:%15" F_S64P " %15" F_S64P " %15" F_S64P "\n",
-            successful_search_path_total,
-            successful_search_depth_total,
-            failed_search_depth_total);
-    fflush(ftrans);
-  }
-
-#if 1
   check_symmetry_of_the_edge_mates( frags, edges, next_edge_obj);
-#ifdef DEBUG_RISM
-  view_fgb_chkpnt( "RISM_after_trans_before_packing", frags, edges);
-#endif // DEBUG_RISM
   {
-    time_t tp1 = 0, tp2;
-    if(TIMINGS) {
-      tp1 = time(NULL);
-      fprintf(stderr,"Begin packing the edges after transitive edge marking.\n");
-      system_top();
-    }
     /* Reduce the amount of memory used for the graph. */
     pack_the_edges( frags, edges, next_edge_obj);
-    if(TIMINGS) {
-      tp2 = time(NULL); 
-      fprintf(stderr,"%10" F_TIME_TP " sec: Finished packing the edges after transitive edge marking.\n",
-              (tp2-tp1));
-      system_top();
-    }
   }
-#ifdef DEBUG_RISM
-  view_fgb_chkpnt( "RISM_after_trans_after_packing", frags, edges);
-#endif // DEBUG_RISM
   check_symmetry_of_the_edge_mates( frags, edges, next_edge_obj);
-#endif
-  
-  if(NULL != ftrans && NULL != Output_Graph_Store) {
-    fprintf(ftrans,"trans: %8" F_TIME_TP " starting check point\n", time(NULL)-tp3);
-    { 
-      int ierr=0;
-      { 
-        char thePath1[CMD_BUFFER_SIZE-1]={0};
-        char thePath2[CMD_BUFFER_SIZE-1]={0};
-        sprintf(thePath1,"%s/%s",Output_Graph_Store,"fgb.ckp_tmp");
-        sprintf(thePath2,"%s/%s",Output_Graph_Store,"fgb.ckp_trans");
-        write_fgb_store(thePath1, gstate, heapva);
-        ierr = accept_tmp_as_final_file( thePath1, thePath2);
-        assert(ierr == 0);
-      }
-      if(analysis_flag) {
-        FILE *ffga=NULL;
-        char thePath3[CMD_BUFFER_SIZE-1]={0};
-        char thePath4[CMD_BUFFER_SIZE-1]={0};
-        const int ProcessFragmentAnnotationsForSimulatorCoordinates
-          = (analysis_flag > 1);
-        sprintf(thePath3,"%s/%s",Output_Graph_Store,"fga.ckp_tmp");
-        sprintf(thePath4,"%s/%s",Output_Graph_Store,"fga.ckp_trans");
-        ffga = fopen(thePath3,"w");
-        fragment_graph_analysis
-          (/* Input Only */
-           gstate->max_frag_iid,
-           heapva->frags,
-           heapva->edges,
-           heapva->frag_annotations,
-           ProcessFragmentAnnotationsForSimulatorCoordinates,
-           /* Output only */
-           ffga
-           );
-        fclose(ffga);
-        ierr = accept_tmp_as_final_file( thePath3, thePath4);
-        assert(ierr == 0);
-      }
-    }
-    fprintf(ftrans,"trans: %8" F_TIME_TP " finished check point\n", time(NULL)-tp3);
-    fflush(ftrans);
-  }
-  if(NULL != ftrans) { fclose(ftrans);}
+
   safe_free(visited_a);
   safe_free(visited_b);
 }

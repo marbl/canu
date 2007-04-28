@@ -20,6 +20,7 @@
  *************************************************************************/
 #include "AS_FGB_buildFragmentHash.h"
 
+
 FragmentHashObject * build_FragmentHash
 (
  const Tfragment * const frags,
@@ -50,18 +51,9 @@ FragmentHashObject * build_FragmentHash
 
   /* Set the translation mappings converting array location and
      assembler internal fragment ids.  */
-  fprintf(stderr,"** observed min_frag_iid=" F_IID "\n", min_frag_iid);
-  fprintf(stderr,"** observed max_frag_iid=" F_IID "\n", max_frag_iid);
 
   max_frag_iid = MAX(as_cgb_max_frag_iid, max_frag_iid);
-  fprintf(stderr,"as_cgb_max_frag_iid=" F_IID " max_frag_iid=" F_IID "\n",
-          as_cgb_max_frag_iid, max_frag_iid);
-#if 0
-  assert(as_cgb_max_frag_iid >=  max_frag_iid );
-#endif  
-  fprintf(stderr,"** allocate max_frag_iid=" F_IID "\n", max_frag_iid);
-
-  afr_to_avx = create_FragmentHash(max_frag_iid+1);
+  afr_to_avx   = create_FragmentHash(max_frag_iid+1);
 
   /* The current mapping from IIDs to fragment index. */
   if( frags != NULL ) {
@@ -79,34 +71,3 @@ FragmentHashObject * build_FragmentHash
   return afr_to_avx;
 }
 
-#if 0
-static void check_for_fragment_corruption
-( Tfragment * frags,
-  Tedge     * edges,
-  IntFragment_ID max_frag_iid
-  )
-{
-  const IntFragment_ID nfrag = GetNumFragments(frags);
-  const IntEdge_ID nedge = GetNumEdges(edges);
-  IntFragment_ID ifrag;
-  IntFragment_ID *afr_to_avx = NULL;
-
-  afr_to_avx = safe_malloc(sizoef(IntFragment_ID) * (max_frag_iid+1));
-  for( ifrag=0; ifrag <= max_frag_iid ; ifrag++ ) { 
-    afr_to_avx[ifrag] = FRAGMENT_NOT_FOUND;
-  }
-  for(ifrag=0;ifrag<nfrag;ifrag++) { 
-    const IntFragment_ID iid = get_iid_fragment(frags,ifrag);
-    assert(iid >= 1);
-    assert(iid <= max_frag_iid);
-    if( afr_to_avx[iid] == FRAGMENT_NOT_FOUND ) {
-      afr_to_avx[iid] = ifrag;
-    } else {
-      fprintf(stderr,"ifrag=" F_IID " iid=" F_IID " afr_to_avx[iid]=" F_IID "\n",
-              ifrag, iid, afr_to_avx[iid] );
-      assert(FALSE);
-    }
-  }
-  safe_free(afr_to_avx);
-}
-#endif

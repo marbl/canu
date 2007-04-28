@@ -24,7 +24,6 @@
 
 #include "AS_global.h"
 #include "GraphCGW_T.h"  //  for CGB_Type
-#include "PrimitiveVA_MSG.h"
 #include "Array_CNS.h"
 #include "MicroHetREZ.h"
 

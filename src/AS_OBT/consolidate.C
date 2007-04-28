@@ -9,6 +9,7 @@
 #include "util++.H"
 
 extern "C" {
+#include "AS_global.h"
 #include "AS_OVS_overlapStore.h"
 }
 

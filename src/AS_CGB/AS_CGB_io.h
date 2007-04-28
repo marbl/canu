@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_io.h,v 1.5 2007-01-29 20:40:58 brianwalenz Exp $
+ * $Id: AS_CGB_io.h,v 1.6 2007-04-28 08:46:21 brianwalenz Exp $
  *
  * Module: AS_CGB_io.h
  * Description: Header file for the code that reads and writes the 
@@ -42,39 +42,9 @@ void output_the_chunks
  const VA_TYPE(char) chunkquas[],
  const VA_TYPE(char) chunksrc[],
  const int analysis_flag,
- const int output_fom_messages,
  const float global_fragment_arrival_rate,
  const int fragment_count_target,
  const char * const Graph_Store_File_Prefix
-);
-
-void convert_the_chunks_to_IUM
-(/* Input Only*/
- const Tfragment        * frags,
- const Tedge            * edges,
- const VA_TYPE(char)    * fragsrc,
- const TChunkFrag       * chunkfrags,
- const TChunkMesg       * thechunks,
- const VA_TYPE(char)    * chunkseqs,
- const VA_TYPE(char)    * chunkquas,
- const VA_TYPE(char)    * chunksrc,
- const int                analysis_level,
- const float              global_fragment_arrival_rate,
- /* Output Only */
- VA_TYPE(IntMultiPos)   * the_imps,
- VA_TYPE(IntUnitigMesg) * the_iums,
- VA_TYPE(char)   * the_imp_source,
- VA_TYPE(char)   * the_ium_source
-);
-
-void output_the_IUM_to_file
-(/* Input Only*/
- const VA_TYPE(char)    *    fragsrc,
- const VA_TYPE(char)    *    chunksrc,
- VA_TYPE(IntMultiPos)   *    the_imps,
- VA_TYPE(IntUnitigMesg) *    the_iums,
- const int                   fragment_count_target,
- const char * const          Graph_Store_File_Prefix
 );
 
 

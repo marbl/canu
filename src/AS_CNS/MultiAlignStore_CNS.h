@@ -18,14 +18,13 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: MultiAlignStore_CNS.h,v 1.11 2007-03-06 01:02:44 brianwalenz Exp $	 */
+/* 	$Id: MultiAlignStore_CNS.h,v 1.12 2007-04-28 08:46:22 brianwalenz Exp $	 */
 #ifndef MULTIALIGNSTORE_H
 #define MULTIALIGNSTORE_H
 
 #include "AS_MSG_pmesg.h"
 #include "AS_UTL_Var.h"
 #include "AS_PER_gkpStore.h"
-#include "PrimitiveVA_MSG.h"
 
 
 #define MULTIALIGN_FORCED (-1)

@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.140 2007-04-26 14:07:03 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.141 2007-04-28 08:46:22 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -102,7 +102,6 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.140 2007-04-26 14:07:03 bri
 #include "AS_UTL_PHash.h"
 #include "AS_UTL_alloc.h"
 #include "AS_MSG_pmesg.h"
-#include "PrimitiveVA_MSG.h"
 
 #include "Globals_CNS.h"
 #include "PublicAPI_CNS.h"

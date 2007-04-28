@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.33 2007-04-23 15:24:34 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.34 2007-04-28 08:46:22 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -124,9 +124,6 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
           break;
         case MESG_ADT:
           // We already processes this
-          break;
-        case MESG_IBA:
-        case MESG_FOM:
           break;
 
         default:

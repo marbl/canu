@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_FGB_io.h,v 1.7 2007-04-12 18:54:44 brianwalenz Exp $
+ * $Id: AS_FGB_io.h,v 1.8 2007-04-28 08:46:21 brianwalenz Exp $
  *
  * Module: AS_FGB_io.h
  * Description: Header file for the code that reads and writes the 
@@ -31,29 +31,6 @@
 #ifndef AS_FGB_IO_INCLUDE
 #define AS_FGB_IO_INCLUDE
 
-void InsertFragmentsIntoGraph
-(
-  THeapGlobals * heapva,
-  VA_TYPE(OFGMesg)  * the_ofg_messages, // Additional fragments in a VA.
-  VA_TYPE(char)     * the_ofg_source,
-  FragmentHashObject * afr_to_avx,        // Part of a hash table replacement
-  IntFragment_ID * Pnofg,
-  IntFragment_ID * Pmin_frag_iid,
-  IntFragment_ID * Pmax_frag_iid,
-  VA_TYPE(char)  * frag_annotations
-  );
-
-void InsertOverlapsIntoGraph
-(
-  THeapGlobals * heapva,
-  VA_TYPE(OverlapMesg) * the_ovl_messages, // Additional overlaps in a VA.
-  VA_TYPE(char)        * the_ovl_source,
-  FragmentHashObject   * afr_to_avx,        // Part of a hash table replacement
-  const int dvt_double_sided_threshold_fragment_end_degree,
-  const int con_double_sided_threshold_fragment_end_degree,
-  const int intrude_with_non_blessed_overlaps_flag,
-  const uint32 overlap_error_threshold
-  );
 
 void input_messages_from_a_file
 (int        argc, 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_FGB_contained.c,v 1.4 2005-03-22 19:48:32 jason_miller Exp $";
+= "$Id: AS_FGB_contained.c,v 1.5 2007-04-28 08:46:21 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module: AS_FGB_contained.c
@@ -29,34 +29,14 @@ static char CM_ID[]
  * Author: Clark Mobarry
  *********************************************************************/
 
-/*************************************************************************/
-/* System include files */
-
-/*************************************************************************/
-/* Local include files */
 #include "AS_CGB_all.h"
 
-/* Conditional compilation */
-
-/*************************************************************************/
-/* Constant definitions; Macro definitions; type definitions */
-
-/*************************************************************************/
-/* Static Globals */
-
-/*************************************************************************/
-/* Function prototypes for internal static functions */
-
-/**************************************************************/
-/* Utility functions */
 
 void check_containment_edges
 (
  Tfragment frags[],
  Tedge edges[])
 {
-  /* 
-   */
   const IntEdge_ID nedge = GetNumEdges(edges);
 
   { IntEdge_ID ie; for(ie=0; ie<nedge; ie++) {
@@ -120,14 +100,6 @@ void contained_fragment_marking_frc
   { IntEdge_ID ie; for(ie=0; ie<nedge; ie++) {
     const IntFragment_ID iavx = get_avx_edge(edges,ie);
     const IntFragment_ID ibvx = get_bvx_edge(edges,ie);
-#if 0
-    const IntFragment_ID aid = get_iid_fragment(frags,iavx);
-    const IntFragment_ID bid = get_iid_fragment(frags,ibvx);
-    const Tlab alabel = get_lab_fragment(frags,iavx);
-    const Tlab blabel = get_lab_fragment(frags,ibvx);
-#endif
-    //const int iahg = get_ahg_edge(edges,ie);
-    //const int ibhg = get_bhg_edge(edges,ie);
     const Tnes ines = get_nes_edge(edges,ie);
 
     switch(ines) {

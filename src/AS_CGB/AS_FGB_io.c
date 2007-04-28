@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_FGB_io.c,v 1.16 2007-04-12 18:54:44 brianwalenz Exp $";
+= "$Id: AS_FGB_io.c,v 1.17 2007-04-28 08:46:21 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_FGB_io.c
@@ -32,8 +32,6 @@ static char CM_ID[]
  * Author: Clark M. Mobarry
  *********************************************************************/
 
-/*********************************************************************/
-/* System include files */
 #include <assert.h>
 #include <errno.h>
 #include <stdio.h>
@@ -41,8 +39,6 @@ static char CM_ID[]
 #include <string.h>
 #include <time.h>
 
-/*********************************************************************/
-/* Local include files */
 #include "AS_global.h"
 #include "AS_UTL_version.h"
 #include "AS_MSG_pmesg.h"
@@ -50,21 +46,11 @@ static char CM_ID[]
 #include "AS_CGB_util.h"
 #include "AS_OVS_overlapStore.h"
 
-/****************************************************************************/
-/* File Scope Globals */
 
-static int TIMINGS = TRUE;
-static int TIMINGS1 = FALSE;
 int REAPER_VALIDATION = FALSE;
 
-/************************************************************************/
-/* File Scope Preprocessor Globals */
-
 #undef REPORT_THIS_BUG
-#undef ZAPZAP
-#undef DEBUG113
-#undef DEBUG280
-#undef DEBUG_MOSQ_01
+
 
 //  Define this to silently ignore overlaps with no valid fragment.
 //  e.g., if you're throwing out fragments after overlaps have been
@@ -123,13 +109,6 @@ static void add_OFGMesg_to_graph
   
   // Has this fragment been processed before???
   a_new_fragment = (vid == AS_CGB_NOT_SEEN_YET);
-#ifdef ZAPZAP
-  fprintf(stderr,"AS_CGB_NOT_SEEN_YET=" F_S32 "\n",AS_CGB_NOT_SEEN_YET);
-  fprintf(stderr,"vid=" F_IID "\n",vid);
-  fprintf(stderr,"nofg=" F_IID "\n",(*Pnofg));
-  fprintf(stderr,"a_new_fragment=%d\n",a_new_fragment);
-  fprintf(stderr,"get_vid_FragmentHash(afr_to_avx,iid)=" F_IID "\n",get_vid_FragmentHash(afr_to_avx,iid));
-#endif // ZAPZAP
 
   assert( (a_new_fragment == TRUE) ||
           (get_vid_FragmentHash(afr_to_avx,iid) <= nfrag_base+(*Pnofg)) );
@@ -178,6 +157,7 @@ static void add_OFGMesg_to_graph
       set_container_fragment(frags,vid,0); 
       // Zero if this flag is not contained, but equal to the
       // fragment containing this one in a unitig layout graph.
+
 #ifdef STORE_BRANCH_POINTS_AT_FRAGMENT
       set_bpt_vertex(frags,vid,FALSE,0); // Sentinal for no branch point.
       set_bpt_vertex(frags,vid,TRUE,0);
@@ -197,12 +177,6 @@ static void add_OFGMesg_to_graph
 
       set_blessed_vertex(frags,vid,FALSE,FALSE);
       set_blessed_vertex(frags,vid,TRUE,FALSE);
-#if 0
-      set_frozen_dvt_vertex(frags,vid,FALSE,0);
-      set_frozen_dvt_vertex(frags,vid,TRUE,0);
-      set_frozen_frc_vertex(frags,vid,FALSE,0);
-      set_frozen_frc_vertex(frags,vid,TRUE,0);
-#endif
 
       if(NULL != frag_annotations) {
         char * the_text =
@@ -399,13 +373,12 @@ static void Insert_Aedge_into_the_edge_array_wrapper
 #endif // CONTAINMENT_STACKING
           );
     }
-#if 1
+
     {
       const int degree=get_seglen_frc_vertex(frags,avx,asx);
       assert( degree >= 0 );
       assert( degree <= con_double_sided_threshold_fragment_end_degree);
     }
-#endif    
   }
 }
 
@@ -897,6 +870,7 @@ static void add_OverlapMesg_to_graph
     );
 }
 
+
 /****************************************************************************/
 
 static void Convert_Olap_To_Aedge
@@ -987,146 +961,7 @@ static void Convert_Olap_To_Aedge
   return;
 }
 
-static void add_OVSoverlap_to_graph
-(
- OVSoverlap *olap,
- Tfragment  frags[],
- Tedge      edges[],
- FragmentHashObject  *afr_to_avx, // Part of a hash table replacement
- TIntEdge_ID     next_edge_obj[],
- const int dvt_double_sided_threshold_fragment_end_degree,
- const int con_double_sided_threshold_fragment_end_degree,
- const int intrude_with_non_blessed_overlaps_flag,
- const uint32 overlap_error_threshold,
- IntEdge_ID * novl_dovetail,
- IntEdge_ID * novl_containment,
- IntEdge_ID * nedges_delta
-)
-{
-  Aedge  an_edge = {0};
-  Convert_Olap_To_Aedge ( olap, & an_edge);
-  if(
-     ((AS_CGB_CONTAINED_EDGE == an_edge.nes) &&
-      (is_a_frc_simple(an_edge.ahg,an_edge.bhg)))
-      // Avoid entering the containment overlap twice.
-      ){
-    return;
-  }
-  if(overlap_error_threshold < an_edge.quality ) { return;}
-  add_overlap_to_graph
-    ( an_edge,
-      frags,
-      edges,
-      afr_to_avx, // Part of a hash table replacement
-      next_edge_obj,
-      dvt_double_sided_threshold_fragment_end_degree,
-      con_double_sided_threshold_fragment_end_degree,
-      intrude_with_non_blessed_overlaps_flag,
-      novl_dovetail,
-      novl_containment,
-      nedges_delta
-      );
-}
 
-void InsertFragmentsIntoGraph
-(
-  THeapGlobals * heapva,
-  VA_TYPE(OFGMesg)  * the_ofg_messages, // Additional fragments in a VA.
-  VA_TYPE(char) * the_ofg_source,
-  FragmentHashObject   * afr_to_avx,  // Part of a hash table replacement
-  IntFragment_ID * Pnofg,
-  IntFragment_ID * Pmin_frag_iid,
-  IntFragment_ID * Pmax_frag_iid,
-  VA_TYPE(char)  * frag_annotations
-  )
-{
-  assert(NULL != heapva);
-  assert(NULL != heapva->frags);
-  assert(NULL != the_ofg_messages);
-  assert(NULL != afr_to_avx);
-  assert(NULL != Pnofg);
-  assert(NULL != Pmin_frag_iid);
-  assert(NULL != Pmax_frag_iid);
-
-  {
-    // Add the fragments of a Variable Length Array into the fragment
-    // overlap graph.
-    const IntFragment_ID number_of_new_fragments = GetNumVA_OFGMesg(the_ofg_messages);
-    const IntFragment_ID nfrag_base = GetNumFragments(heapva->frags);
-    IntFragment_ID ii;
-
-    for( ii = 0; ii < number_of_new_fragments; ii++ ) {
-      OFGMesg * ofg_mesg = GetVA_OFGMesg(the_ofg_messages, ii);
-      assert(NULL != ofg_mesg);
-
-      add_OFGMesg_to_graph
-        ( ofg_mesg,
-          the_ofg_source,
-          heapva->frags,
-          nfrag_base,
-          afr_to_avx,
-          Pnofg,
-          Pmin_frag_iid,
-          Pmax_frag_iid,
-          frag_annotations
-          );
-    }
-  }
-}
-
-void InsertOverlapsIntoGraph
-(
-  THeapGlobals * heapva,
-  VA_TYPE(OverlapMesg) * the_ovl_messages, // Additional overlaps in a VA.
-  VA_TYPE(char)        * the_ovl_source,
-  FragmentHashObject * afr_to_avx,        // Part of a hash table replacement
-  const int dvt_double_sided_threshold_fragment_end_degree,
-  const int con_double_sided_threshold_fragment_end_degree,
-  const int intrude_with_non_blessed_overlaps_flag,
-  const uint32 overlap_error_threshold
-  )
-{
-  assert(NULL != heapva);
-  assert(NULL != heapva->edges);
-  assert(NULL != the_ovl_messages);
-  assert(NULL != afr_to_avx);
-  {
-    // Add the overlaps of a Variable Length Array into the fragment
-    // overlap graph.
-    
-    const IntEdge_ID number_of_new_overlaps = GetNumVA_OverlapMesg(the_ovl_messages);
-    IntEdge_ID novl_dovetail = 0;
-    IntEdge_ID novl_containment = 0;
-    IntEdge_ID novl_degenerate = 0;
-    IntEdge_ID nedges_delta = 0;
-    IntEdge_ID ii;
-    
-    for( ii = 0; ii < number_of_new_overlaps; ii++ ) {
-      OverlapMesg * ovl_mesg = GetVA_OverlapMesg(the_ovl_messages, ii);
-      assert(NULL != ovl_mesg);
-      add_OverlapMesg_to_graph
-        ( ovl_mesg,
-          the_ovl_source,
-          heapva->frags,
-          heapva->edges,
-          afr_to_avx,  // Part of a hash table replacement
-          heapva->next_edge_obj,
-          dvt_double_sided_threshold_fragment_end_degree,
-          con_double_sided_threshold_fragment_end_degree,
-          intrude_with_non_blessed_overlaps_flag,
-          overlap_error_threshold,
-          &novl_dovetail,
-          &novl_containment,
-          &novl_degenerate,
-          &nedges_delta );
-    }
-    fprintf(stderr,"Added %10" F_IIDP " OVL records.\n",novl_dovetail+novl_containment);
-    fprintf(stderr,"      %10" F_IIDP " OVL dovetail records.\n",novl_dovetail);
-    fprintf(stderr,"      %10" F_IIDP " OVL containment records.\n",novl_containment);
-    fprintf(stderr,"Found %10" F_IIDP " OVL records with no valid frag (degenerate).\n",novl_degenerate);
-  }
-  //return 0;
-}
 
 /****************************************************************************/
 
@@ -1156,22 +991,32 @@ void process_ovl_store
  IntEdge_ID novl_containment = 0;
  IntEdge_ID nedges_delta = 0;
 
+ fprintf(stderr, "READING OVL\n");
+
  ovs = AS_OVS_openOverlapStore(OVL_Store_Path);
  
- while  (AS_OVS_readOverlapFromStore(ovs, &olap))
-   {
-     add_OVSoverlap_to_graph
-       ( &olap,
-         frags, edges, afr_to_avx, next_edge_obj,
-         dvt_double_sided_threshold_fragment_end_degree,
-         con_double_sided_threshold_fragment_end_degree,
-         intrude_with_non_blessed_overlaps_flag,
-         overlap_error_threshold,
-         &novl_dovetail,
-         &novl_containment,
-         &nedges_delta
-         );
-   }
+ while  (AS_OVS_readOverlapFromStore(ovs, &olap)) {
+   Aedge  an_edge = {0};
+   Convert_Olap_To_Aedge ( &olap, & an_edge);
+
+   // Avoid entering the containment overlap twice.
+   if(((AS_CGB_CONTAINED_EDGE == an_edge.nes) &&
+       (is_a_frc_simple(an_edge.ahg,an_edge.bhg))))
+     continue;
+
+   if (an_edge.quality <= overlap_error_threshold)
+     add_overlap_to_graph(an_edge,
+                          frags,
+                          edges,
+                          afr_to_avx,
+                          next_edge_obj,
+                          dvt_double_sided_threshold_fragment_end_degree,
+                          con_double_sided_threshold_fragment_end_degree,
+                          intrude_with_non_blessed_overlaps_flag,
+                          &novl_dovetail,
+                          &novl_containment,
+                          &nedges_delta);
+ }
  
  AS_OVS_closeOverlapStore(ovs);
 
@@ -1182,122 +1027,6 @@ void process_ovl_store
 
 /****************************************************************************/
 /****************************************************************************/
-
-static void input_mesgs_internal
-(int             argc, 
- char           *argv[],
- FILE           *fovl, 
- int            *Pnadt,
- int            *Pnidt, 
- IntFragment_ID *Pnofg,
- IntEdge_ID     *Pnedges_delta,
- IntEdge_ID     *Pnovl_dovetail, 
- IntEdge_ID     *Pnovl_containment,
- IntEdge_ID     *Pnovl_degenerate,
- BPTYPE         *nbase_in_genome,
- IntFragment_ID  nfrag_base,
- Tfragment       frags[],
- IntEdge_ID      nedge_base,
- Tedge           edges[],
- VA_TYPE(char)   frag_annotations[],
- FragmentHashObject *afr_to_avx, // Part of a hash table replacement
- IntFragment_ID *Pmin_frag_iid,
- IntFragment_ID *Pmax_frag_iid,
- TIntEdge_ID     next_edge_obj[],
- const int dvt_double_sided_threshold_fragment_end_degree,
- const int con_double_sided_threshold_fragment_end_degree,
- const int intrude_with_non_blessed_overlaps_flag,
- const uint32 overlap_error_threshold
-)
-{
-  /* It is assumed that in the overlap records that new fragments
-    point to old fragments.  */
-
-  int nadt=0,nidt=0;
-  IntEdge_ID nedges_delta=0,novl_dovetail=0,novl_containment=0,novl_degenerate=0;
-  GenericMesg *pmesg;
-  VA_TYPE(char) * the_ofg_source = NULL;
-  VA_TYPE(char) * the_ovl_source = NULL;
-
-  while( EOF != ReadProtoMesg_AS(fovl, &pmesg)) {
-    const MessageType imesgtype = pmesg->t;
-
-    switch(imesgtype) {
-    case MESG_ADT: 
-      {
-	AuditMesg  *adt_mesg = (AuditMesg  *)(pmesg->m);
-	AuditLine  *adl;
-	/*  Audit Message record-- for now scavenge for genome length */
-	nadt++;
-      }
-      break;
-    case MESG_IDT: 
-      {
-	InternalDistMesg  *idt_mesg;
-	/*  Distance record--skip for now */
-	idt_mesg = (InternalDistMesg  *)(pmesg->m);
-	nidt++;
-      }
-      break;
-    case MESG_OFG: 
-      {
-        add_OFGMesg_to_graph
-          ( (OFGMesg *) pmesg->m,
-            the_ofg_source,
-            frags,
-            nfrag_base,
-            afr_to_avx,  // part of a hash table replacement
-            Pnofg,
-            Pmin_frag_iid,
-            Pmax_frag_iid,
-            frag_annotations
-            );
-      }
-      break;
-    case MESG_OVL:
-      {
-        add_OverlapMesg_to_graph
-          ( (OverlapMesg *) pmesg->m,
-            the_ovl_source,
-            frags, edges, afr_to_avx, next_edge_obj,
-            dvt_double_sided_threshold_fragment_end_degree,
-            con_double_sided_threshold_fragment_end_degree,
-            intrude_with_non_blessed_overlaps_flag,
-            overlap_error_threshold,
-            &novl_dovetail,
-            &novl_containment,
-            &novl_degenerate,
-            &nedges_delta
-            );
-      }
-      break;
-    case MESG_IBC:
-      {
-	// Just swallow these...
-      }
-      break;
-    case MESG_IBA:
-      {
-	// Just swallow these...
-      }
-      break;
-    default:
-      {
-	fprintf(stderr,"Unexpected message type %d\n",imesgtype);
-	fprintf(stderr,"Message typename %s\n",
-		MessageTypeName[imesgtype]);
-	assert(FALSE);
-      }
-      break;
-    }
-  }
-  *Pnadt = nadt;
-  *Pnidt = nidt;
-  *Pnedges_delta = nedges_delta;
-  *Pnovl_dovetail = novl_dovetail;
-  *Pnovl_containment = novl_containment;
-  *Pnovl_degenerate = novl_degenerate;
-}
 
 
 void input_messages_from_a_file
@@ -1350,23 +1079,53 @@ void input_messages_from_a_file
   }
   assert((*min_frag_iid) <= (*max_frag_iid));
   
-  input_mesgs_internal
-    (argc,argv,
-     fovl,
-     &nadt,&nidt,&nofg,&nedge_delta,
-     &novl_dovetail,&novl_containment,&novl_degenerate,
-     nbase_in_genome,
-     nfrag_old, frags,
-     nedge_old, edges,
-     frag_annotations,
-     afr_to_avx,  // Part of a hash table replacement
-     min_frag_iid,max_frag_iid,
-     next_edge_obj,
-     dvt_double_sided_threshold_fragment_end_degree,
-     con_double_sided_threshold_fragment_end_degree,
-     intrude_with_non_blessed_overlaps_flag,
-     overlap_error_threshold
-     );
+  /* It is assumed that in the overlap records that new fragments
+     point to old fragments.  */
+
+  GenericMesg  *pmesg;
+
+  while( EOF != ReadProtoMesg_AS(fovl, &pmesg)) {
+    const MessageType imesgtype = pmesg->t;
+
+    switch(imesgtype) {
+      case MESG_OFG: 
+        add_OFGMesg_to_graph
+          ( (OFGMesg *) pmesg->m,
+            NULL,
+            frags,
+            nfrag_old,
+            afr_to_avx,  // part of a hash table replacement
+            &nofg,
+            min_frag_iid,
+            max_frag_iid,
+            frag_annotations
+            );
+        break;
+      case MESG_OVL:
+        //  bubble popper writes this input!
+        add_OverlapMesg_to_graph
+          ( (OverlapMesg *) pmesg->m,
+            NULL,
+            frags, edges, afr_to_avx, next_edge_obj,
+            dvt_double_sided_threshold_fragment_end_degree,
+            con_double_sided_threshold_fragment_end_degree,
+            intrude_with_non_blessed_overlaps_flag,
+            overlap_error_threshold,
+            &novl_dovetail,
+            &novl_containment,
+            &novl_degenerate,
+            &nedge_delta
+            );
+        break;
+      default:
+	fprintf(stderr,"Unexpected message type %d\n",imesgtype);
+	fprintf(stderr,"Message typename %s\n",
+		MessageTypeName[imesgtype]);
+	assert(FALSE);
+        break;
+    }
+  }
+
 
   fprintf(stderr,"Input %10d ADT records.\n",nadt);
   fprintf(stderr,"Input %10d IDT records.\n",nidt);

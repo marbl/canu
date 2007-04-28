@@ -19,28 +19,17 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_count_fragment_and_edge_labels.c,v 1.4 2005-03-22 19:48:27 jason_miller Exp $";
+= "$Id: AS_CGB_count_fragment_and_edge_labels.c,v 1.5 2007-04-28 08:46:21 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_count_fragment_and_edge_labels
  * 
- * Description: 
- *
- * Assumptions: 
- *
  * Author: Clark Mobarry
  *********************************************************************/
 
-/*************************************************************************/
-/* System include files */
 
-/*************************************************************************/
-/* Local include files */
 #include "AS_CGB_all.h"
 
-/*************************************************************************/
-/* Conditional compilation */
-#define ZEBA
 
 void count_fragment_and_edge_labels
 (
@@ -49,6 +38,9 @@ void count_fragment_and_edge_labels
  char      comment[])
 {
   FILE *fout = stderr;
+
+  fprintf(stderr, "count_fragment_and_edge_labels()--  Disabled.\n");
+  return;
 
   {
     IntFragment_ID nfrag = GetNumFragments(frags);
@@ -71,6 +63,7 @@ void count_fragment_and_edge_labels
     free_histogram(frag_lab_histogram);
   }
   
+#define ZEBA
 #ifndef ZEBA
   {
     IntEdge_ID ie;

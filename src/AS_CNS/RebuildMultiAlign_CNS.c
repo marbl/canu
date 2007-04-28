@@ -25,7 +25,7 @@
                  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: RebuildMultiAlign_CNS.c,v 1.13 2007-04-16 17:36:32 brianwalenz Exp $";
+static char CM_ID[] = "$Id: RebuildMultiAlign_CNS.c,v 1.14 2007-04-28 08:46:22 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -42,7 +42,6 @@ static char CM_ID[] = "$Id: RebuildMultiAlign_CNS.c,v 1.13 2007-04-16 17:36:32 b
 #include "AS_PER_genericStore.h"
 #include "AS_UTL_Var.h"
 #include "AS_UTL_ID_store.h"
-#include "PrimitiveVA_MSG.h"
 #include "AS_UTL_version.h"
 #include "AS_SDB_SequenceDBPartition.h"
 #include "AS_ALN_forcns.h"

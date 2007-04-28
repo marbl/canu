@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_main.c,v 1.7 2007-02-12 22:16:55 brianwalenz Exp $";
+= "$Id: AS_CGB_main.c,v 1.8 2007-04-28 08:46:21 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module:  AS_CGB_main.c
@@ -83,9 +83,8 @@ static char CM_ID[]
 
 /****************************************************************************/
 #define DEBUGGING
-#define USE_IBA_FILE
+
 #undef SWITCH_CONTAINMENT_DIRECTION_CGB
-#undef NOT_PACKED
 #undef DEBUG_RISM
 
 /* These are optimization parameters. */
@@ -93,7 +92,6 @@ static char CM_ID[]
 /****************************************************************************/
 /* Globals */
 
-static int TIMINGS = TRUE;
 extern int REAPER_VALIDATION;
 
 /****************************************************************************/
@@ -158,21 +156,6 @@ static IntEdge_ID get_the_thickest_dvt_overlap_from_vertex
 
   assert((AS_CGB_EDGE_NOT_FOUND == ie_thickest) || (nedge > ie_thickest));
 
-#ifdef ZIGGY
-  if(nedge > ie_thickest) {
-    IntFragment_ID bvx = get_bvx_edge(edges,ie_thickest);
-    int            bsx = get_bsx_edge(edges,ie_thickest);
-    int           acon = get_con_fragment(frags,avx);
-    int           bcon = get_con_fragment(frags,bvx);
-    Tlab          alab = get_lab_fragment(frags,avx);
-    Tlab          blab = get_lab_fragment(frags,bvx);
-    fprintf(stdout,"ZIGGY path "
-            "afr= " F_IID " asx= %d acon= %d alab= %d bfr= " F_IID " bsx= %d bcon= %d blab= %d\n",
-            get_iid_fragment(frags, avx), asx, acon, alab, 
-            get_iid_fragment(frags, bvx), bsx, bcon, blab );
-  }
-#endif // ZIGGY
-  
   return ie_thickest;
 }
 
@@ -271,20 +254,6 @@ static void identify_bmpc_paths
              (AS_CGB_BRANCHMULTICONT_FRAG == lab));
       // What if this fragment was labeled a spur?
       set_lab_fragment( frags, bvx, AS_CGB_BRANCHMULTICONT_FRAG);
-#ifdef ZIGGY
-      {
-        IntFragment_ID avx = get_avx_edge(edges,ie_now);
-        int            asx = get_asx_edge(edges,ie_now);
-        int           acon = get_con_fragment(frags,avx);
-        int           bcon = get_con_fragment(frags,bvx);
-        Tlab          alab = get_lab_fragment(frags,avx);
-        Tlab          blab = get_lab_fragment(frags,bvx);
-        fprintf(stdout,"ZIGGY start "
-                "afr= " F_IID " asx= %d acon= %d alab= %d bfr= " F_IID " bsx= %d bcon= %d blab= %d\n",
-                get_iid_fragment(frags, avx), asx, acon, alab, 
-                get_iid_fragment(frags, bvx), bsx, bcon, blab );
-      }
-#endif // ZIGGY
 
       ie_next =
         get_the_thickest_dvt_overlap_from_vertex
@@ -371,11 +340,6 @@ static void reflect_containment_direction_in_place
   IntEdge_ID iedge;
   time_t tp1, tp2;
   
-  if(TIMINGS) {
-    tp1 = time(NULL); fprintf(stderr,"Begin reflect_containment_direction_in_place\n");
-    system_top();
-  }
-
   for(iedge=0; iedge<nedge; iedge++) {
     const Tnes nes = get_nes_edge(edges, iedge);
     const int ahg = get_ahg_edge(edges, iedge);
@@ -396,11 +360,6 @@ static void reflect_containment_direction_in_place
       reflect_an_edge_in_place( edges, iedge);
     }
   }
-  if(TIMINGS) { 
-    tp2 = time(NULL); 
-    fprintf(stderr,"%10" F_TIME_TP " sec: Finished reflect_containment_direction_in_place\n",(tp2-tp1));
-    system_top();
-  }
 }
 
 static void convert_all_containment_overlaps_direction_TOC
@@ -411,19 +370,8 @@ static void convert_all_containment_overlaps_direction_TOC
  )
 {
   time_t tp1, tp2;
-  if(TIMINGS) {
-    tp1 = time(NULL);
-    fprintf(stderr,"Begin switching the containment direction in graph store.\n");
-    system_date();
-  }
   reflect_containment_direction_in_place( edges, become_to_contained);
   reorder_edges( frags, edges, next_edge_obj);
-  if(TIMINGS) {
-    tp2 = time(NULL); 
-    fprintf(stderr,"%10" F_TIME_TP " sec: Finished switching the containment direction in graph store.\n",
-            (tp2-tp1));
-    system_date();
-  }
 }
 #endif // SWITCH_CONTAINMENT_DIRECTION_CGB
 
@@ -490,14 +438,6 @@ static void maskout_overlaps_touching_crappy_fragments
 	}
       }
       break;
-#ifdef NOT_PACKED
-    case AS_CGB_REMOVED_BY_TRANSITIVITY_DVT:
-    case AS_CGB_REMOVED_BY_DUPLICATE_DVT:
-    case AS_CGB_REMOVED_BY_TRANSITIVITY_CON:
-    case AS_CGB_REMOVED_BY_DUPLICATE_CON:
-      // Do nothing ....
-      break;	
-#endif      
     default:
       fprintf(stderr,"Unexpected overlap label ines=%d\n",ines);
       assert(FALSE);
@@ -522,22 +462,7 @@ int main_cgb
   int ierr = 0;
 
   time_t tp1,tp2; 
-  //The time() function returns the time in seconds since the
-  //Epoch. The Epoch is referenced to 00:00:00 CUT (Coordinated
-  //Universal Time) 1 Jan 1970.
 
-#ifdef _OPENMP
-  fprintf(stderr,"Compiled by an OpenMP compilant compiler\n");
-#endif
-
-#ifdef DEBUGGING
-  fprintf(stderr,__FILE__ " compiled at "  __DATE__ " " __TIME__ "\n");
-  fprintf(stderr,"%s\n",CM_ID);
-#endif
-
-  system_date();
-
-  
   if( NULL != rg->frag_store ) { 
     gkpStore = openGateKeeperStore(rg->frag_store, FALSE);
     assert(gkpStore != NULL);
@@ -581,13 +506,7 @@ int main_cgb
   check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
 #endif    
 
-#if 0
-  identify_buddy_overlaps(heapva->frags,heapva->edges);
-  count_fragment_and_edge_labels
-    ( heapva->frags, heapva->edges,
-      "After identify_buddy_overlaps");
-#endif
-  
+ 
   chunk_classification_dvt
     ( heapva->frags, heapva->edges,
       rg->walk_depth,
@@ -659,79 +578,15 @@ int main_cgb
     }
 
 
-    if(TIMINGS) {
-      time(&tp1); fprintf(stderr,"Begin marking graph\n");
-    }
 
-#ifdef STORE_BRANCH_POINTS_AT_FRAGMENT
-    if(branch_points_input_file_name != NULL &&
-       branch_points_input_file_name[0] != '\0') {
-      fprintf(stderr,"CGB input known branch-points <%s>\n",
-              branch_points_input_file_name );
-      {
-        FragmentHash * afr_to_avx = build_FragmentHash( heapva->frags, 0);
-        // STORE_BRANCH_POINTS_AT_FRAGMENT
-        char input_line[CMD_BUFFER_SIZE] = {0};
-        
-        FILE * fbpts = NULL;
-        SAFE_FOPEN( fbpts, branch_points_input_file_name,"r");
-#if 0
-        fopen(branch_points_input_file_name,"r");
-        if(NULL == fbpts) {
-          fprintf(stderr,"Could not open <%s>\n",
-                  branch_points_input_file_name);
-          exit(1);
-        }
-#endif
-        assert(NULL != afr_to_avx);
-
-        // Input the known fragment-end branch-points.
-        while(NULL != fgets(input_line,CMD_BUFFER_SIZE-2,fbpts)) {
-          IntFragment_ID iid, vid;
-          int suf, bpt_type, bpt_offset, old_bpt_offset=0;
-          if(input_line[0] == '#') continue; // ignore comment lines
-          sscanf(input_line,F_IID " %d %d %d",&iid,&suf,&bpt_type,&bpt_offset);
-          vid = get_vid_FragmentHash(afr_to_avx,iid);
-          // There is no bounds checking here.  This is
-          // dangerous. What if the external file has bad data?
-          old_bpt_offset = get_bpt_vertex(heapva->frags,vid,suf);
-          bpt_offset = MAX(bpt_offset,old_bpt_offset);
-          set_bpt_vertex(heapva->frags,vid,suf,bpt_offset);
-        }
-        // STORE_BRANCH_POINTS_AT_FRAGMENT
-        destroy_FragmentHash(afr_to_avx);
-        SAFE_FCLOSE(fbpts);
-
-      fragment_end_edge_trimmer
-        (
-         /* input only */
-         heapva->frags,
-         /* modify */
-         heapva->edges);
-      }
-    }
-#endif // STORE_BRANCH_POINTS_AT_FRAGMENT
-
-#if 0
-    view_fgb_chkpnt( rg->Output_Graph_Store_Prefix, heapva->frags, heapva->edges);
-#endif    
 #ifdef DEBUG_RISM
   view_fgb_chkpnt( "finished_marking_graph", heapva->frags, heapva->edges);
   check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
 #endif    
     
-    if(TIMINGS) {
-      time(&tp2); 
-      fprintf(stderr,"%10" F_TIME_TP " sec: Finished marking graph\n",(tp2-tp1));
-    }
-    
     count_fragment_and_edge_labels( heapva->frags, heapva->edges,
                                     "In main before build 1");
 
-    if(TIMINGS) {
-      tp1 = time(NULL); fprintf(stderr,"Begin chunk graph build 1\n");
-      system_date();
-    }
     chunk_graph_build_1
       (
        /* Input Only */
@@ -752,12 +607,6 @@ int main_cgb
        heapva->chunkfrags,
        heapva->thechunks
        );
-    if(TIMINGS) {
-      tp2 = time(NULL); 
-      fprintf(stderr,"%10" F_TIME_TP " sec: Finished chunk graph build 1\n",
-              (tp2-tp1));
-      system_date();
-    }
 
     count_fragment_and_edge_labels( heapva->frags, heapva->edges,
                                     "In main after build 1");
@@ -768,12 +617,8 @@ int main_cgb
       int iterator;
       for(iterator=0;iterator< rg->num_cgb_passes;iterator++) {
 
-        if(TIMINGS) {
-          tp1 = time(NULL); fprintf(stderr,"Begin chunk graph build 2\n");
-          system_date();
-        }
 	{
-	  char strtmp1[CMD_BUFFER_SIZE-1];
+	  char strtmp1[FILENAME_MAX];
 	  FILE * fbpts1 = fopen
 	    (strcat(strcpy(strtmp1,rg->Output_Graph_Store_Prefix),
                     ".cgb_bpts1"),"a");
@@ -806,40 +651,23 @@ int main_cgb
 	     fbpts1,
              fbpts2
 	     );
-          SAFE_FCLOSE(fbpts1);
-          SAFE_FCLOSE(fbpts2);
-        }
-        if(TIMINGS) {
-          tp2 = time(NULL); 
-          fprintf(stderr,"%10" F_TIME_TP " sec: Finished chunk graph build 2\n",
-                  (tp2-tp1));
-          system_date();
+          fclose(fbpts1);
+          fclose(fbpts2);
         }
 
 
         count_fragment_and_edge_labels( heapva->frags, heapva->edges,
                                         "Before chunk_classification_dvt");
 
-        if(TIMINGS) {
-          time(&tp1); fprintf(stderr,"Begin re-marking graph\n");
-        }
         chunk_classification_dvt
           ( heapva->frags, heapva->edges,
             rg->walk_depth,
             rg->remove_blizzard_overlaps
             );
-        if(TIMINGS) {
-          time(&tp2); 
-          fprintf(stderr,"%10" F_TIME_TP " sec: Finished re-marking graph\n",(tp2-tp1));
-        }
     
         count_fragment_and_edge_labels( heapva->frags, heapva->edges,
                                         "After chunk_classification_dvt");
 
-        if(TIMINGS) {
-          tp1 = time(NULL); fprintf(stderr,"Begin chunk graph build 1\n");
-          system_date();
-        }
         chunk_graph_build_1
           (
            /* Input Only */
@@ -860,12 +688,6 @@ int main_cgb
            heapva->chunkfrags,
            heapva->thechunks
            );
-        if(TIMINGS) {
-          tp2 = time(NULL); 
-          fprintf(stderr,"%10" F_TIME_TP " sec: Finished chunk graph build 1\n",
-                  (tp2-tp1));
-          system_date();
-        }
       }
     } // END CGB ITERATION PHASE
 
@@ -883,17 +705,7 @@ int main_cgb
                                   "After switching the containment direction");
 #endif // SWITCH_CONTAINMENT_DIRECTION_CGB
 
-#if 0
-  {
-    char strtmp[CMD_BUFFER_SIZE-1];
-    sprintf(strtmp,"%s.fgb",rg->Graph_Store_File_Prefix);
-    fprintf(stderr,"Last graph is %s\n", strtmp);
-    view_fgb_chkpnt( strtmp, heapva->frags, heapva->edges);
-  }
-#endif    
-
   /**************** Finish Process Input  *********************/
-  system_date();
   
   closeGateKeeperStore(gkpStore);
   

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_io.c,v 1.11 2007-04-16 15:35:40 brianwalenz Exp $";
+= "$Id: AS_CGB_io.c,v 1.12 2007-04-28 08:46:21 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_io.c
@@ -32,8 +32,6 @@ static char CM_ID[]
  * Author: Clark M. Mobarry
  *********************************************************************/
 
-/*********************************************************************/
-/* System include files */
 #include <assert.h>
 #include <errno.h>
 #include <stdio.h>
@@ -41,24 +39,11 @@ static char CM_ID[]
 #include <string.h>
 #include <time.h>
 
-/*********************************************************************/
-/* Local include files */
 #include "AS_global.h"
 #include "AS_UTL_version.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_CGB_all.h"
 
-/************************************************************************/
-
-#ifdef DEBUGGING
-#define DEBUG_SHORTCUT
-#undef DEBUG_SHORTCUT
-#endif
-
-/*************************************************************************/
-#define FILENAME_MAX_LEN 1024
-#define IGNORE (AS_NO_OVERLAP)
-/*************************************************************************/
 
 void output_the_chunks
 (/* Input Only*/
@@ -71,7 +56,6 @@ void output_the_chunks
  const VA_TYPE(char) chunkquas[],
  const VA_TYPE(char) chunksrc[],
  const int analysis_level,
- const int output_fom_messages,
  const float global_fragment_arrival_rate,
  const int fragment_count_target,
  const char * const Graph_Store_File_Prefix
@@ -90,18 +74,13 @@ void output_the_chunks
   const int nsample=500;
   const int nbucket=500;
 
-  char filename[FILENAME_MAX_LEN];
+  char filename[FILENAME_MAX];
   
   FILE *fcgb = NULL;
   int fragment_count = 0;
   int file_count = 0;
 
-#if 0
-  ResetToRange_VA(the_imps,0);
-  ResetToRange_VA(the_iums,0);
-#else
- VA_TYPE(IntMultiPos) * the_imps = CreateVA_IntMultiPos(0);
-#endif
+  VA_TYPE(IntMultiPos) * the_imps = CreateVA_IntMultiPos(0);
   
   // Determine the maximum sizes of the variant parts of a chunk message.
   for(chunk_index=0;chunk_index < nchunks; chunk_index++){
@@ -189,12 +168,6 @@ void output_the_chunks
         number_of_randomly_sampled_fragments_in_chunk,
         global_fragment_arrival_rate );
 
-#if 0
-    fprintf(stdout, __FILE__ " coverage stat " F_IID " %f %f\n",
-            chunk_index, mychunk->coverage_stat, coverage_statistic);
-#endif
-    
-    //assert(mychunk->f_list >= 0);
     for(ivc=0; ivc<num_frags; ivc++) {
       const IntFragment_ID ivn = mychunk->f_list + ivc; 
       // Get the ivc-th fragment of the chunk.
@@ -215,12 +188,8 @@ void output_the_chunks
       SetVA_IntMultiPos(the_imps,ivc,&a_frag);
     }
 
-    {
-      //achunk.consensus      = GetVA_char(chunkseqs,mychunk->seq_loc);
-      //achunk.quality        = GetVA_char(chunkquas,mychunk->qua_loc);
-      achunk.consensus = "";
-      achunk.quality   = "";
-    }
+    achunk.consensus = "";
+    achunk.quality   = "";
       
     // The ProtoSpec specifies that the first chunk id is ZERO.
     achunk.iaccession     = mychunk->iaccession;
@@ -232,12 +201,10 @@ void output_the_chunks
     achunk.a_branch_point = mychunk->a_branch_point;
     achunk.b_branch_point = mychunk->b_branch_point;
 
-    {
-      achunk.consensus      = "";
-      achunk.quality        = "";
-      achunk.length         = mychunk->bp_length;
-      //achunk.length         = strlen(achunk.consensus);
-    }
+    achunk.consensus      = "";
+    achunk.quality        = "";
+    achunk.length         = mychunk->bp_length;
+
     achunk.forced         = forced;
     achunk.num_frags      = mychunk->num_frags;
     achunk.f_list         = GetVA_IntMultiPos(the_imps,0);
@@ -251,16 +218,14 @@ void output_the_chunks
       }
       if(NULL == fcgb) {
         file_count ++;
-        sprintf(filename,"%s_%03d.cgb_tmp",Graph_Store_File_Prefix,file_count);
+        sprintf(filename,"%s_%03d.cgb",Graph_Store_File_Prefix,file_count);
         fcgb = fopen(filename,"w");
         assert(NULL != fcgb);
       }
     } else {
       if(NULL == fcgb) {
-        sprintf(filename,"%s.cgb_tmp",Graph_Store_File_Prefix);
-        fcgb = fopen(filename,"a");
-	// We are depending on the ADT messages having just been
-	// written to a new file with a file name of filename.
+        sprintf(filename,"%s.cgb",Graph_Store_File_Prefix);
+        fcgb = fopen(filename,"w");
         assert(NULL != fcgb);
       }
     }
@@ -268,22 +233,9 @@ void output_the_chunks
     pmesg.t = MESG_IUM;
     pmesg.m = &achunk;
     WriteProtoMesg_AS(fcgb,&pmesg);
-    //fprintf(fpar,"% 5d % 10" F_IIDP "\n", file_count, iid);
-
   }
 
   DeleteVA_IntMultiPos(the_imps);
-
-  if(fragment_count_target > 0) {
-    if(NULL != fcgb) { fclose(fcgb); fcgb = NULL;}
-    fragment_count = 0;
-    if(NULL == fcgb) {
-      file_count ++;
-      sprintf(filename,"%s_%03d.cgb_tmp",Graph_Store_File_Prefix,file_count);
-      fcgb = fopen(filename,"w");
-      assert(NULL != fcgb);
-    }
-  }
 
   if( NULL != frag_source_index ) {
     assert(NULL != newfragsrc);
@@ -291,390 +243,5 @@ void output_the_chunks
     safe_free(frag_source_index);
   }
 
-  if( output_fom_messages ) {
-    /* Output all the fragment overlaps between unitigs in a form that
-       the CGW wants. */
-
-    Histogram_t  * fom_types_histogram = NULL;
-    IntFragment_ID vid;
-    int vsx;
-
-    if(analysis_level > 0) {
-      fom_types_histogram = create_histogram(nsample,nbucket,TRUE,FALSE);
-    }
-
-    for( vid=0; vid < nfrag; vid++ ) {
-      for( vsx=0; vsx<2 ; vsx ++ ) {
-
-	const IntEdge_ID frag_edge_list = get_segstart_vertex(frags,vid,vsx);
-	const int frag_edge_degree = get_seglen_vertex(frags,vid,vsx);
-	GenericMesg   pmesg;
-	
-	int ifoe;
-	for(ifoe=0;ifoe < frag_edge_degree; ifoe++){
-	
-	  const IntEdge_ID ie = frag_edge_list + ifoe;
-	  /* A raw fragment overlap edge */
-	  const Tnes inese = get_nes_edge(edges,ie);
-	
-	  const IntFragment_ID iavx = get_avx_edge(edges,ie);
-	  // An index into the Tfragment array of the fragment at the
-	  // proximal vertex of the edge.
-	  const int iasx = get_asx_edge(edges,ie);
-	  // A flag indicating whether the suffix of the fragment at
-	  // the proximal vertex is in the overlap.
-	  const IntFragment_ID ibvx = get_bvx_edge(edges,ie);
-	  // An index into the Tfragment array of the fragment at the
-	  // distal vertex of the edge.
-	  const int ibsx = get_bsx_edge(edges,ie);
-	  // A flag indicating whether the suffix of the fragment at
-	  // the distant vertex is in the overlap.
-	  const int iahg = get_ahg_edge(edges,ie); /* overhang in bp. */
-          const int iamn = get_ahg_edge(edges,ie);
-	  const int iamx = get_ahg_edge(edges,ie);
-	  const int ibhg = get_bhg_edge(edges,ie); /* overhang in bp. */
-	  
-	  const int ilen = get_length_fragment(frags,iavx);
-	  const int best_overlap_length = (ilen - iahg);
-	  const int min_overlap_length  = (ilen - iamx);
-	  const int max_overlap_length  = (ilen - iamn);
-	  const float32 quality         = get_qua_edge(edges,ie);
-	  
-          const int containment = ! is_a_dvt_simple(iahg,ibhg);
-          //const Tlab alab = get_lab_fragment(frags,iavx);
-          //const Tlab blab = get_lab_fragment(frags,ibvx);
-          const IntChunk_ID cavx = get_cid_fragment(frags,iavx);
-          const IntChunk_ID cbvx = get_cid_fragment(frags,ibvx);
-          
-          assert( iavx == vid );
-	  assert( iasx == vsx );
-	  
-          if( (cavx != cbvx ) &&
-              // Do not output overlaps between fragments in the same unitig.
-              
-              ( containment ? (iasx == TRUE) : (iavx > ibvx) )
-              // Output only one edge per overlap. We use the
-              // knowledge that each contaiment overlap has two edges
-              // from the container fragment to the contained
-              // fragment.
-              ) {
-	    
-	    FragOverlapMesg cea;
-	    UnitigOverlapType overlap_type;
-	    
-	    switch(inese) {
-	    case AS_CGB_INTERCHUNK_EDGE:
-	      overlap_type = AS_OVERLAP; break;
-	    case AS_CGB_INTRACHUNK_EDGE:
-	      assert(FALSE); break;
-	    case AS_CGB_TOUCHES_CONTAINED_EDGE:
-	      overlap_type = AS_TOUCHES_CONTAINED_OVERLAP; break;
-	    case AS_CGB_BETWEEN_CONTAINED_EDGE:
-	      overlap_type = IGNORE; break;
-	      // overlap_type = AS_BETWEEN_CONTAINED_OVERLAP; break;
-	    case AS_CGB_TOUCHES_CRAPPY_DVT:
-	    case AS_CGB_BETWEEN_CRAPPY_DVT:
-	      overlap_type = AS_OVERLAP; break;
-	    case AS_CGB_MARKED_BY_BRANCH_DVT:
-	    case AS_CGB_MARKED_BY_BREAKER:
-	      overlap_type = IGNORE; break;
-
-	    case AS_CGB_CONTAINED_EDGE:
-	    case AS_CGB_TOUCHES_CRAPPY_CON:
-	    case AS_CGB_BETWEEN_CRAPPY_CON:
-              if(is_a_toc_simple(iahg,ibhg)) {
-                overlap_type = AS_1_CONTAINS_2_OVERLAP;
-              } else if ( is_a_frc_simple(iahg,ibhg)) {
-                overlap_type = AS_2_CONTAINS_1_OVERLAP;
-              } else {
-                assert(FALSE);
-              }
-              break;
-	    case AS_CGB_REMOVED_BY_TRANSITIVITY_CON: // A chord in the graph.
-              if(is_a_toc_simple(iahg,ibhg)) {
-                overlap_type = AS_1_CONTAINS_2_CHORD_OVERLAP;
-              } else if ( is_a_frc_simple(iahg,ibhg)) {
-                overlap_type = AS_2_CONTAINS_1_CHORD_OVERLAP;
-              } else {
-                assert(FALSE);
-              }
-              break;
-	      
-	    case AS_CGB_MARKED_BY_DELETED_DVT:
-	    case AS_CGB_MARKED_BY_DELETED_CON:
-	      overlap_type = IGNORE; break;
-	      
-	    default:
-	      fprintf(stderr,"Unexpected overlap edge type = %d\n",
-		      inese);
-	      assert(FALSE);
-	    }
-	    
-	    if( overlap_type != IGNORE) {
-	      
-	      // The following are fragment overlaps.
-              const ChunkOrientationType  orient
-                = ( iasx 
-                    ? (ibsx ? AB_BA : AB_AB )
-                    : (ibsx ? BA_BA : BA_AB )
-                    );
-              char source[80]= {0};
-
-              cea.afrag = get_iid_fragment(frags,iavx);
-              cea.bfrag = get_iid_fragment(frags,ibvx);
-              cea.orient = orient;
-              cea.overlap_type = overlap_type;
-              cea.best_overlap_length = best_overlap_length;
-              cea.min_overlap_length  = min_overlap_length;
-              cea.max_overlap_length  = max_overlap_length;
-              cea.quality             = quality;
-#ifdef AS_ENABLE_SOURCE
-              cea.source = source;
-#endif		
-	      
-	      if( NULL != fom_types_histogram ) {
-		add_to_histogram(fom_types_histogram, (int)overlap_type, NULL);
-	      }
-
-	      pmesg.t = MESG_FOM;
-	      pmesg.m = &cea;
-	      WriteProtoMesg_AS(fcgb,&pmesg);
-	    } // (overlap_type != IGNORE)
-          }
-        }
-      }
-    }
-
-    if(NULL != fom_types_histogram) {
-      fprintf(stderr,"\n\nHistogram of the FOM types\n");
-      print_histogram(stderr, fom_types_histogram, 0, 1);
-      free_histogram(fom_types_histogram);
-    }
-  }
-
   fclose(fcgb);
-
-  {
-    int iii = 0;
-    int ierr;
-
-    if(fragment_count_target > 0) {
-      for( iii=0; iii <= file_count ; iii++) {
-        char thePath1[CMD_BUFFER_SIZE-1]={0};
-	sprintf(filename,"%s_%03d.cgb",Graph_Store_File_Prefix,iii);
-        sprintf(thePath1,"%s_tmp",filename);
-        ierr = accept_tmp_as_final_file( thePath1, filename);
-        assert(ierr == 0);
-        // The temporary batch info file could not be moved into its final
-        // position.
-      }
-    } else {
-      char thePath1[CMD_BUFFER_SIZE-1]={0};
-      sprintf(filename,"%s.cgb", Graph_Store_File_Prefix);
-      sprintf(thePath1,"%s_tmp",filename);
-      ierr = accept_tmp_as_final_file( thePath1, filename);
-      assert(ierr == 0);
-      // The temporary batch info file could not be moved into its final
-      // position.
-    }
-  }
 }
-
-
-void convert_the_chunks_to_IUM
-(/* Input Only*/
- const Tfragment        * frags,
- const Tedge            * edges,
- const VA_TYPE(char)    * fragsrc,
- const TChunkFrag       * chunkfrags,
- const TChunkMesg       * thechunks,
- const VA_TYPE(char)    * chunkseqs,
- const VA_TYPE(char)    * chunkquas,
- const VA_TYPE(char)    * chunksrc,
- const int                analysis_level,
- const float              global_fragment_arrival_rate,
- /* Filled as output only */
- VA_TYPE(IntMultiPos)   * the_imps,
- VA_TYPE(IntUnitigMesg) * the_iums,
- VA_TYPE(char)   * the_imp_source,
- VA_TYPE(char)   * the_ium_source
-)
-{
-  const IntChunk_ID nchunks = (IntChunk_ID)GetNumVA_AChunkMesg(thechunks);
-  const IntFragment_ID  nfrag   = GetNumFragments(frags);
-  
-  int           fragment_count = 0;
-  IntChunk_ID   chunk_index = 0;
-  
-  EnableRangeVA_IntMultiPos( the_imps, nfrag);
-  EnableRangeVA_IntUnitigMesg( the_iums, nchunks);
-  EnableRangeVA_char(the_imp_source,0);
-  EnableRangeVA_char(the_ium_source,0);
-                     
-  for(chunk_index=0;chunk_index < nchunks; chunk_index++) {
-    const AChunkMesg * const mychunk = GetVA_AChunkMesg(thechunks,chunk_index);
-    const IntFragment_ID num_frags = mychunk->num_frags;
-    IntUnitigMesg achunk;
-    IntFragment_ID ivc;
-    int forced  = FALSE;
-
-    const int number_of_randomly_sampled_fragments_in_chunk
-      = count_the_randomly_sampled_fragments_in_a_chunk
-      ( frags, chunkfrags, thechunks, chunk_index);
-    const float coverage_statistic 
-      = compute_coverage_statistic
-      ( mychunk->rho,
-        number_of_randomly_sampled_fragments_in_chunk,
-        global_fragment_arrival_rate );
-
-    //assert(mychunk->f_list >= 0);
-    for(ivc=0; ivc<num_frags; ivc++) {
-      const IntFragment_ID ivn = mychunk->f_list + ivc; 
-      // Get the ivc-th fragment of the chunk.
-      // assert(ivn < nfrag);
-      // Get the next fragment in the chunk.
-      const IntFragment_ID vid = GetVA_AChunkFrag(chunkfrags,ivn)->vid; 
-      // const IntFragment_ID iid  = get_iid_fragment(frags,vid);
-      IntMultiPos a_frag;
-
-      a_frag.type   = get_typ_fragment(frags,vid);
-      a_frag.ident  = get_iid_fragment(frags,vid);
-      a_frag.contained  = get_container_fragment(frags,vid);
-      a_frag.position.bgn = get_o5p_fragment(frags,vid);
-      a_frag.position.end = get_o3p_fragment(frags,vid);
-      a_frag.delta_length = 0;
-      a_frag.delta        = NULL;
-
-      SetVA_IntMultiPos(the_imps,fragment_count+ivc,&a_frag);
-    }
-
-    {
-      //achunk.consensus      = GetVA_char(chunkseqs,mychunk->seq_loc);
-      //achunk.quality        = GetVA_char(chunkquas,mychunk->qua_loc);
-      achunk.consensus = "";
-      achunk.quality   = "";
-    }
-      
-    // The ProtoSpec specifies that the first chunk id is ZERO.
-    achunk.iaccession     = mychunk->iaccession;
-#ifdef AS_ENABLE_SOURCE
-    achunk.source         = GetVA_char(chunksrc,mychunk->isrc);
-#endif
-    achunk.coverage_stat  = coverage_statistic;
-    achunk.status         = AS_UNASSIGNED;
-    achunk.a_branch_point = mychunk->a_branch_point;
-    achunk.b_branch_point = mychunk->b_branch_point;
-
-    {
-      achunk.consensus      = "";
-      achunk.quality        = "";
-      achunk.length         = mychunk->bp_length;
-      //achunk.length         = strlen(achunk.consensus);
-    }
-    achunk.forced         = forced;
-    achunk.f_list         = GetVA_IntMultiPos(the_imps,fragment_count);
-    achunk.num_frags      = mychunk->num_frags;
-
-    SetVA_IntUnitigMesg( the_iums, chunk_index, &achunk);
-
-    fragment_count += mychunk->num_frags;
-  }
-
-  // Warning: Convert the offsets into the_imps into C-pointers.
-}
-
-
-void output_the_IUM_to_file
-(/* Input Only*/
- const VA_TYPE(char)    *    fragsrc,
- const VA_TYPE(char)    *    chunksrc,
- VA_TYPE(IntMultiPos)   *    the_imps,
- VA_TYPE(IntUnitigMesg) *    the_iums,
- const int                   fragment_count_target,
- const char * const          Graph_Store_File_Prefix
-)
-{
-  const IntChunk_ID nchunks = (IntChunk_ID)GetNumVA_IntUnitigMesg(the_iums);
-  char          filename[FILENAME_MAX_LEN] = {0};
-  FILE *        fcgb = NULL;
-  int           fragment_count = 0;
-  int           file_count = 0;
-  IntChunk_ID   chunk_index = 0;
-
-  for(chunk_index=0;chunk_index < nchunks; chunk_index++) {
-    IntUnitigMesg * mychunk
-      = GetVA_IntUnitigMesg(the_iums,chunk_index);
-
-    fragment_count += GetVA_IntUnitigMesg(the_iums,chunk_index)->num_frags;
-
-    if(fragment_count_target > 0) {
-      if((fragment_count >= fragment_count_target)) {
-        if(NULL != fcgb) { fclose(fcgb); fcgb = NULL;}
-        fragment_count = 0;
-      }
-      if(NULL == fcgb) {
-        file_count ++;
-        sprintf(filename,"%s_%03d.cgb_tmp",Graph_Store_File_Prefix,file_count);
-        fcgb = fopen(filename,"w");
-        assert(NULL != fcgb);
-      }
-    } else {
-      if(NULL == fcgb) {
-        sprintf(filename,"%s.cgb_tmp",Graph_Store_File_Prefix);
-        fcgb = fopen(filename,"a");
-	// We are depending on the ADT messages having just been
-	// written to a new file with a file name of filename.
-        assert(NULL != fcgb);
-      }
-    }
-
-    {
-      GenericMesg   pmesg;
-      pmesg.t = MESG_IUM;
-      pmesg.m = mychunk;
-      WriteProtoMesg_AS(fcgb,&pmesg);
-      //fprintf(fpar,"% 5d % 10" F_IIDP "\n", file_count, iid);
-    }
-  }
-
-  if(fragment_count_target > 0) {
-    if(NULL != fcgb) { fclose(fcgb); fcgb = NULL;}
-    fragment_count = 0;
-    if(NULL == fcgb) {
-      file_count ++;
-      sprintf(filename,"%s_%03d.cgb_tmp",Graph_Store_File_Prefix,file_count);
-      fcgb = fopen(filename,"w");
-      assert(NULL != fcgb);
-    }
-  }
-
-  fclose(fcgb);
-
-  {
-    int iii = 0;
-    int ierr;
-
-    if(fragment_count_target > 0) {
-      for( iii=0; iii <= file_count ; iii++) {
-        char thePath1[CMD_BUFFER_SIZE-1]={0};
-	sprintf(filename,"%s_%03d.cgb",Graph_Store_File_Prefix,iii);
-        sprintf(thePath1,"%s_tmp",filename);
-        ierr = accept_tmp_as_final_file( thePath1, filename);
-        assert(ierr == 0);
-        // The temporary batch info file could not be moved into its final
-        // position.
-      }
-    } else {
-      char thePath1[CMD_BUFFER_SIZE-1]={0};
-      sprintf(filename,"%s.cgb", Graph_Store_File_Prefix);
-      sprintf(thePath1,"%s_tmp",filename);
-      ierr = accept_tmp_as_final_file( thePath1, filename);
-      assert(ierr == 0);
-      // The temporary batch info file could not be moved into its final
-      // position.
-    }
-  }
-
-}
-
-

@@ -354,9 +354,6 @@ cds_uint32 count_chimeras
       fprintf( fp_chimeras, "#\n" );
       fprintf( fp_chimeras,
                "# "
-#if 0
-	       "s frag IID "
-#endif
 	       "si : (ai,as) (bi,bs) (ci,cs) (di,ds)\n");
       fprintf( fp_chimeras,
                "#-------------------------------------------------"
@@ -364,17 +361,7 @@ cds_uint32 count_chimeras
     }
     num_chimeras++;
     fprintf( fp_chimeras,
-#if 0
-             "%12" F_IIDP " "
-#endif
 	     "%10" F_IIDP " :  (%10" F_IIDP ",%1d) (%10" F_IIDP ",%1d) (%10" F_IIDP ",%1d) (%10" F_IIDP ",%1d)\n",
-#if 0
-             get_iid_fragment
-	     ( frags,
-	       (GetVA_AChunkFrag( chunk_frags,
-			       GetVA_AChunkMesg( chunks, s_index )->f_list)
-		)->vid),
-#endif
              O2CI(s_index ),  //s_chunk->iaccession,
 	     O2CI(a_index ),  //a_chunk->iaccession,
              O2S( a_index ),
@@ -500,9 +487,6 @@ cds_uint32 count_crappies
       fprintf( fp_crappies, "#\n" );
       fprintf( fp_crappies,
                "# "
-#if 0
-	       "s frag IID "
-#endif
 	       "(si,ss) (ci,cs) (di,ds)\n");
       fprintf( fp_crappies,
                "#-------------------------------------------------"
@@ -510,17 +494,7 @@ cds_uint32 count_crappies
     }
     num_crappies++;
     fprintf( fp_crappies,
-#if 0
-             "%12" F_IIDP " "
-#endif
 	     "(%10" F_IIDP ",%1d) (%10" F_IIDP ",%1d) (%10" F_IIDP ",%1d)\n",
-#if 0
-             get_iid_fragment
-	     ( frags,
-	       (GetVA_AChunkFrag( chunk_frags,
-			       GetVA_AChunkMesg( chunks, s_index )->f_list)
-		)->vid),
-#endif
              O2CI(s_index ),  //s_chunk->iaccession,
 	     O2S( s_index ),
              O2CI(c_index ),  //c_chunk->iaccession,

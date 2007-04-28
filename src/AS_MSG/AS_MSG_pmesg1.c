@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.6 2007-04-26 14:07:03 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.7 2007-04-28 08:46:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -304,31 +304,6 @@ static void *Read_UOM_Mesg(FILE *fin)
   GET_TYPE(ch,"ovt:%1[NOTCIMXdcYZ]","overlap type");
   mesg.overlap_type = (UnitigOverlapType) ch;
 
-#ifdef AS_ENABLE_SOURCE
-  {
-    long		sindx;
-    sindx = GetText("src:",fin,FALSE);
-    mesg.source = AS_MSG_globals->MemBuffer + sindx;
-  }
-#endif
-  GET_FIELD(mesg.best_overlap_length,"len:"F_COORD,"best overlap");
-  GET_FIELD(mesg.min_overlap_length,"min:"F_COORD,"min overlap");
-  GET_FIELD(mesg.max_overlap_length,"max:"F_COORD,"max overlap");
-  GET_FIELD(mesg.quality,"qua:%f","quality field");
-  GET_EOM;
-  return ((void *) (&mesg));
-}
-
-static void *Read_FOM_Mesg(FILE *fin)
-{ static FragOverlapMesg	mesg;
-  char ch;
-  
-  GET_FIELD(mesg.afrag,"afr:"F_IID,"fragment A id field");
-  GET_FIELD(mesg.bfrag,"bfr:"F_IID,"fragment B id field");
-  GET_TYPE(ch,"ori:%1[NAIO]","orientation");
-  mesg.orient = (ChunkOrientationType) ch;
-  GET_TYPE(ch,"ovt:%1[NOTCIMXYZ]","overlap type");
-  mesg.overlap_type = (UnitigOverlapType) ch;
 #ifdef AS_ENABLE_SOURCE
   {
     long		sindx;
@@ -1312,23 +1287,6 @@ static void *Read_BAT_Mesg(FILE *fin){
   return ((void *) (&mesg));
 }
 
-
-static void *Read_IBA_Mesg(FILE *fin){
-  static BatchMesg mesg;
-  int nameidx, commentidx;
-  time_t entry_time;
-  nameidx = GetString("bna:",fin);
-  GET_FIELD(entry_time,"crt:"F_TIME_T,"entry time field");  //  Unused
-  GET_PAIR(mesg.eaccession, mesg.iaccession,"acc:("F_UID","F_IID")","accession field pair");
-  commentidx = GetText("com:",fin, FALSE);
-
-  mesg.comment = AS_MSG_globals->MemBuffer + commentidx;
-  mesg.name = AS_MSG_globals->MemBuffer + nameidx;
-
-  GET_EOM;
-  return ((void *) (&mesg));
-}
-
 /******************** OUTPUT ROUTINES ***************************/
 
 /*  Routine to output each type of proto-IO message. */
@@ -1465,25 +1423,6 @@ static void Write_UOM_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"{UOM\n");
   fprintf(fout,"ck1:"F_IID"\n",mesg->chunk1);
   fprintf(fout,"ck2:"F_IID"\n",mesg->chunk2);
-  fprintf(fout,"ori:%c\n",mesg->orient);
-  fprintf(fout,"ovt:%c\n",mesg->overlap_type);
-#ifdef AS_ENABLE_SOURCE
-  PutText(fout,"src:",mesg->source,FALSE);
-#endif
-  fprintf(fout,"len:"F_COORD"\n",mesg->best_overlap_length);
-  fprintf(fout,"min:"F_COORD"\n",mesg->min_overlap_length);
-  fprintf(fout,"max:"F_COORD"\n",mesg->max_overlap_length);
-  fprintf(fout,"qua:%.6f\n",mesg->quality);
-  fprintf(fout,"}\n");
-  return;
-}
-
-static void Write_FOM_Mesg(FILE *fout, void *vmesg)
-{ FragOverlapMesg *mesg = (FragOverlapMesg *) vmesg;
-
-  fprintf(fout,"{FOM\n");
-  fprintf(fout,"afr:"F_IID"\n",mesg->afrag);
-  fprintf(fout,"bfr:"F_IID"\n",mesg->bfrag);
   fprintf(fout,"ori:%c\n",mesg->orient);
   fprintf(fout,"ovt:%c\n",mesg->overlap_type);
 #ifdef AS_ENABLE_SOURCE
@@ -2027,16 +1966,6 @@ static void Write_BAT_Mesg(FILE *fout, void *vmesg){
   fprintf(fout,"}\n");
 
 }
-static void Write_IBA_Mesg(FILE *fout, void *vmesg){
-  InternalBatchMesg *mesg = (InternalBatchMesg *)vmesg;
-  fprintf(fout,"{IBA\n");
-  fprintf(fout,"bna:%s\n",mesg->name);
-  fprintf(fout,"crt:0\n");
-  fprintf(fout,"acc:("F_UID","F_IID")\n",mesg->eaccession, mesg->iaccession);
-  PutText(fout,"com:",mesg->comment, FALSE);
-  //  fprintf(stderr,"* Write_IBA_Mesg comment = %s\n", mesg->comment);
-  fprintf(fout,"}\n");
-}
 
 static void Write_EOF_Mesg(FILE *fout, void *vmesg)
 {
@@ -2084,7 +2013,7 @@ static AS_MSG_callrecord CallTable1[NUM_OF_REC_TYPES + 1] = {
   {"{SCF", Read_SCF_Mesg, Write_SCF_Mesg, sizeof(SnapScaffoldMesg) },
   {"{MDI", Read_MDI_Mesg, Write_MDI_Mesg, sizeof(SnapMateDistMesg) },
   {"{BAT", Read_BAT_Mesg, Write_BAT_Mesg, sizeof(BatchMesg) },
-  {"{IBA", Read_IBA_Mesg, Write_IBA_Mesg, sizeof(InternalBatchMesg) },
+  {"", NULL, NULL, 0l },
   {"", NULL, NULL, 0l },
   {"", NULL, NULL, 0l },
   {"", NULL, NULL, 0l },
@@ -2098,7 +2027,7 @@ static AS_MSG_callrecord CallTable1[NUM_OF_REC_TYPES + 1] = {
   {"{DSC", Read_DSC_Mesg, Write_DSC_Mesg, sizeof(SnapDegenerateScaffoldMesg) },
   {"{SLK", Read_SLK_Mesg, Write_SLK_Mesg, sizeof(SnapScaffoldLinkMesg) },
   {"{ISL", Read_ISL_Mesg, Write_ISL_Mesg, sizeof(InternalScaffoldLinkMesg) },
-  {"{FOM", Read_FOM_Mesg, Write_FOM_Mesg, sizeof(FragOverlapMesg) },
+  {"", NULL, NULL, 0l },
   {"", NULL, NULL, 0l },
   {"", NULL, NULL, 0l },
   {"", NULL, NULL, 0l },

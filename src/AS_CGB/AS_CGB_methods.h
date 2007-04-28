@@ -809,20 +809,8 @@ static int compare_edge_weak(const void * const aa, const void * const bb)
             // The following is unnecessary, but useful for the binary
             // search in the adjaceny lists and regression output.
             icom = ((a->bvx) - (b->bvx));
-            if( icom == 0 ) {
+            if( icom == 0 )
               icom = ((a->bsx) - (b->bsx));
-#if 0
-              if( icom == 0 ) {
-                icom = (a->reflected - b->reflected);
-                if( icom == 0 ) {
-                  icom = ((a->quality) - (b->quality));
-                }
-                // The reorder_edges, duplicated edge remover, and mate
-                // edge finder need to be updated if we use the quality
-                // in the comparison.
-              }
-#endif
-            }
           }
         } // End of regression stuff.
       }
@@ -860,17 +848,8 @@ static int compare_edge_strong(const void * const aa, const void * const bb)
             icom = ((a->bvx) - (b->bvx));
             if( icom == 0 ) {
               icom = ((a->bsx) - (b->bsx));
-              if( icom == 0 ) {
+              if( icom == 0 )
                 icom = (a->reflected - b->reflected);
-#if 0
-                if( icom == 0 ) {
-                  icom = ((a->quality) - (b->quality));
-                }
-                // The reorder_edges, duplicated edge remover, and mate
-                // edge finder need to be updated if we use the quality
-                // in the comparison.
-#endif
-              }
             }
           }
         } // End of regression stuff.
@@ -880,25 +859,4 @@ static int compare_edge_strong(const void * const aa, const void * const bb)
   return icom ;
 }
 
-
-static int accept_tmp_as_final_file
-( const char *thePath1,
-  const char *thePath2
-  )
-{
-  char a_message[CMD_BUFFER_SIZE];
-  int ierr;
-  ierr = rename(thePath1, thePath2);
-  if( ierr != 0 ) {
-    if( errno == ENOENT ) {
-      perror(thePath1);
-      ierr = 0; // Accept the error ENOENT code as a NFS workaround.
-    }
-    sprintf(a_message,"Failed to rename %s to %s.\n",
-            thePath1, thePath2);
-    perror(a_message);
-    // </usr/include/errno.h>
-  }
-  return ierr;
-}
 #endif /* AS_CGB_METHODS_INCLUDE */

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_fga.c,v 1.8 2007-03-13 03:03:46 brianwalenz Exp $";
+= "$Id: AS_CGB_fga.c,v 1.9 2007-04-28 08:46:21 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_fga.c
@@ -27,22 +27,10 @@ static char CM_ID[]
  * Description: A fragment graph analyser. This functional unit computes
  * whether fragment overlaps are valid.
  *
- * Assumptions: 
- * 
- * Dependencies:
- *
  * Author: Clark M. Mobarry
  ********************************************************************/
 
-/*************************************************************************/
-/* System include files */
-
-/*************************************************************************/
-/* Local include files */
 #include "AS_CGB_all.h"
-
-/*************************************************************************/
-/* Conditional compilation */
 
 #define DEBUGGING
 #undef DEBUGGING
@@ -57,17 +45,8 @@ static char CM_ID[]
 #define DEBUG27
 #endif // DEBUGGING
 
-/****************************************************************************/
-/* File Scope Globals */
-
-static int TIMINGS = TRUE;
-
-/*************************************************************************/
-/* Global Defines */
-
 #undef DEBUG54
 
-/*************************************************************************/
 
 static void processOneFragSourceString
 (const IntFragment_ID frgiid,
@@ -183,20 +162,12 @@ static void processOneFragSourceString
 	     overlapping the repeat region, in fragment coordinates.
 	     
 	  */
-#if 0
-	  fprintf(stdout,"strlen=%ld,<%s>\n",
-		  strlen(repeat_source),repeat_source);
-#endif
 	  iret = sscanf
 	    (repeat_source,
 	     "%c.%d.%d (%d) [%d,%d] [%d,%d]",
 	     &(letter),&(instance),&(copynum),&(idontknow),
 	     &(repbgn),&(repend),&(frgbgn),&(frgend));
-#if 1
 	  assert(iret == 8);
-#else
-          break;
-#endif          
 
 #ifdef DEBUG14
 	  fprintf(stdout,"ZIP: [" 
@@ -216,19 +187,6 @@ static void processOneFragSourceString
 	  // (frgbgn,frgend) is the interval of the fragment covered
 	  // by a paricular repeat copy.
 	  
-#if 0
-	  if((frgbgn > 0) && (frgend < frglen)) {
-	    // The repeat region is contained by the fragment.
-	    pre_brp = MIN(pre_brp,frgbgn);
-	    pre_end = MAX(pre_end,frgend);
-	    pre_let = letter;
-	    pre_ins = instance;
-	    suf_brp = MAX(suf_brp,frgend);
-	    suf_end = MIN(suf_end,frgbgn);
-	    suf_let = letter;
-	    suf_ins = instance;
-	  }
-#endif          
 	  /* Check for branch points where the
 	     repeat region extends to the end of the fragment. */
 	  if(frgend >= frglen - MINIMUM_OFFSET1) { 
@@ -360,7 +318,7 @@ static void processFragSourceString
  Tfraginfo * const fraginfo, 
  const IntFragment_ID ifrag,
  const IntFragment_ID frgiid
-)
+ )
 {
   /* Extract interval info from source string.  */
   char *so=NULL;
@@ -375,17 +333,6 @@ static void processFragSourceString
   set_genbgn_fraginfo(fraginfo,ifrag,the_fraginfo.genbgn);
   set_genend_fraginfo(fraginfo,ifrag,the_fraginfo.genend);
 #endif /*GENINFO*/
-#ifdef SIMINFO
-  set_pre_let_fraginfo(fraginfo,ifrag,the_fraginfo.pre_let);
-  set_pre_ins_fraginfo(fraginfo,ifrag,the_fraginfo.pre_ins);
-  set_pre_brp_fraginfo(fraginfo,ifrag,the_fraginfo.pre_brp);
-  set_pre_end_fraginfo(fraginfo,ifrag,the_fraginfo.pre_end);
-  
-  set_suf_let_fraginfo(fraginfo,ifrag,the_fraginfo.suf_let);
-  set_suf_ins_fraginfo(fraginfo,ifrag,the_fraginfo.suf_ins);
-  set_suf_brp_fraginfo(fraginfo,ifrag,the_fraginfo.suf_brp);
-  set_suf_end_fraginfo(fraginfo,ifrag,the_fraginfo.suf_end);
-#endif /*SIMINFO*/
 }
 
 static void mark_invalid_edges
@@ -412,23 +359,22 @@ static void mark_invalid_edges
 
 void view_fgb_chkpnt
 (
-  const char * const Store_File_Prefix,
-  /* Input Only */
-  Tfragment frags[], 
-  Tedge edges[])
+ const char * const Store_File_Prefix,
+ /* Input Only */
+ Tfragment frags[], 
+ Tedge edges[])
 {
   /* We are creating two line-by-line sortable files that can be UNIX
-   diff^ed to find the differences in two assemblies.  One of the
-   files has the fragments and the other is the edges. */
+     diff^ed to find the differences in two assemblies.  One of the
+     files has the fragments and the other is the edges. */
   
   const IntFragment_ID nfrag = GetNumFragments(frags);
   const IntEdge_ID nedge     = GetNumEdges(edges);
-  char thePath[CMD_BUFFER_SIZE-1]={0};
+  char thePath[FILENAME_MAX]={0};
 
   FILE *foutv = NULL;
   FILE *foute = NULL;
 
-  warning_AS(NULL != Store_File_Prefix);
   if(NULL == Store_File_Prefix) { return;}
      
   sprintf(thePath,"%s%s",Store_File_Prefix,".fgv");
@@ -438,47 +384,47 @@ void view_fgb_chkpnt
   foute = fopen(thePath,"w");
 
   { IntFragment_ID iv0;
-  for(iv0=0; iv0<nfrag; iv0++) {
-    fprintf(foutv,
-	    //"%6d: "
+    for(iv0=0; iv0<nfrag; iv0++) {
+      fprintf(foutv,
+              //"%6d: "
 #ifndef OUTPUT_UID
-            "iid %9" F_IIDP " "
+              "iid %9" F_IIDP " "
 #else
-            "uid %16" F_UIDP " "
+              "uid %16" F_UIDP " "
 #endif
-	    "%c%c%c "
-            "raw: %2d %2d %2d %2d "
-	    //"src %10ld "
-	    "prefix:"
-            //"%8ld"
-            "%5" F_S32P " %5" F_S32P " "
-            "suffix:"
-            //"%8ld"
-            "%5" F_S32P " %5" F_S32P " lab:%d\n",
-	    //iv0,
+              "%c%c%c "
+              "raw: %2d %2d %2d %2d "
+              //"src %10ld "
+              "prefix:"
+              //"%8ld"
+              "%5" F_S32P " %5" F_S32P " "
+              "suffix:"
+              //"%8ld"
+              "%5" F_S32P " %5" F_S32P " lab:%d\n",
+              //iv0,
 #ifndef OUTPUT_UID
-	    get_iid_fragment(frags,iv0),
+              get_iid_fragment(frags,iv0),
 #else
-	    get_uid_fragment(frags,iv0),
+              get_uid_fragment(frags,iv0),
 #endif	   
-	    (char)get_typ_fragment(frags,iv0),
-	    (get_con_fragment(frags,iv0) ? 'C' : ' '),
-	    (get_del_fragment(frags,iv0) ? 'D' : ' '),
+              (char)get_typ_fragment(frags,iv0),
+              (get_con_fragment(frags,iv0) ? 'C' : ' '),
+              (get_del_fragment(frags,iv0) ? 'D' : ' '),
 
-            get_raw_dvt_count_vertex(frags,iv0,FALSE),
-            get_raw_dvt_count_vertex(frags,iv0,TRUE),
-            get_raw_frc_count_fragment(frags,iv0),
-            get_raw_toc_count_fragment(frags,iv0),
+              get_raw_dvt_count_vertex(frags,iv0,FALSE),
+              get_raw_dvt_count_vertex(frags,iv0,TRUE),
+              get_raw_frc_count_fragment(frags,iv0),
+              get_raw_toc_count_fragment(frags,iv0),
 
-	    //get_segstart_vertex(frags,iv0,FALSE),
-	    get_seglen_dvt_vertex(frags,iv0,FALSE),
-	    get_seglen_frc_vertex(frags,iv0,FALSE),
-	    //get_segstart_vertex(frags,iv0,TRUE),
-	    get_seglen_dvt_vertex(frags,iv0,TRUE),
-	    get_seglen_frc_vertex(frags,iv0,TRUE),
-	    get_lab_fragment(frags,iv0)
-	    );
-  }}
+              //get_segstart_vertex(frags,iv0,FALSE),
+              get_seglen_dvt_vertex(frags,iv0,FALSE),
+              get_seglen_frc_vertex(frags,iv0,FALSE),
+              //get_segstart_vertex(frags,iv0,TRUE),
+              get_seglen_dvt_vertex(frags,iv0,TRUE),
+              get_seglen_frc_vertex(frags,iv0,TRUE),
+              get_lab_fragment(frags,iv0)
+              );
+    }}
   {
     IntEdge_ID ie0;
     for(ie0=0; ie0 < nedge; ie0++) {
@@ -566,202 +512,124 @@ static void analyze_the_fragment_overlap_graph
  const IntFragment_ID max_frag_iid,
  Tfragment frags[],
  Tedge edges[]
-)
+ )
 {
   const IntFragment_ID nfrag = GetNumFragments(frags);
   const IntEdge_ID nedge = GetNumEdges(edges);
-#if 0
-  FILE *debug_file = fopen("iid_dvt_frc_degrees","w");
-#else
-  FILE *debug_file = NULL;
-#endif  
 
-  fprintf(fout,"RAW FRAGMENT OVERLAP GRAPH INFORMATION\n\n");
-  {
-    IntFragment_ID ifrag;
-    IntFragment_ID
+  IntFragment_ID ifrag;
+  IntFragment_ID
+    n_raw_noncontained_nonspur_thru_frag = 0,
+    n_raw_noncontained_nonspur_prefix_hanging_frag = 0,
+    n_raw_noncontained_nonspur_suffix_hanging_frag = 0,
+    n_raw_noncontained_nonspur_solo_frag = 0,
 
-      n_raw_noncontained_nonspur_thru_frag = 0,
-      n_raw_noncontained_nonspur_prefix_hanging_frag = 0,
-      n_raw_noncontained_nonspur_suffix_hanging_frag = 0,
-      n_raw_noncontained_nonspur_solo_frag = 0,
+    n_raw_noncontained_spur_thru_frag = 0,
+    n_raw_noncontained_spur_prefix_hanging_frag = 0,
+    n_raw_noncontained_spur_suffix_hanging_frag = 0,
+    n_raw_noncontained_spur_solo_frag = 0,
 
-      n_raw_noncontained_spur_thru_frag = 0,
-      n_raw_noncontained_spur_prefix_hanging_frag = 0,
-      n_raw_noncontained_spur_suffix_hanging_frag = 0,
-      n_raw_noncontained_spur_solo_frag = 0,
+    n_raw_contained_nonspur_thru_frag = 0,
+    n_raw_contained_nonspur_prefix_hanging_frag = 0,
+    n_raw_contained_nonspur_suffix_hanging_frag = 0,
+    n_raw_contained_nonspur_solo_frag = 0,
 
-      n_raw_contained_nonspur_thru_frag = 0,
-      n_raw_contained_nonspur_prefix_hanging_frag = 0,
-      n_raw_contained_nonspur_suffix_hanging_frag = 0,
-      n_raw_contained_nonspur_solo_frag = 0,
+    n_raw_contained_spur_thru_frag = 0,
+    n_raw_contained_spur_prefix_hanging_frag = 0,
+    n_raw_contained_spur_suffix_hanging_frag = 0,
+    n_raw_contained_spur_solo_frag = 0,
 
-      n_raw_contained_spur_thru_frag = 0,
-      n_raw_contained_spur_prefix_hanging_frag = 0,
-      n_raw_contained_spur_suffix_hanging_frag = 0,
-      n_raw_contained_spur_solo_frag = 0,
+    n_cur_noncontained_nonspur_thru_frag = 0,
+    n_cur_noncontained_nonspur_prefix_hanging_frag = 0,
+    n_cur_noncontained_nonspur_suffix_hanging_frag = 0,
+    n_cur_noncontained_nonspur_solo_frag = 0,
 
-      n_cur_noncontained_nonspur_thru_frag = 0,
-      n_cur_noncontained_nonspur_prefix_hanging_frag = 0,
-      n_cur_noncontained_nonspur_suffix_hanging_frag = 0,
-      n_cur_noncontained_nonspur_solo_frag = 0,
+    n_cur_noncontained_spur_thru_frag = 0,
+    n_cur_noncontained_spur_prefix_hanging_frag = 0,
+    n_cur_noncontained_spur_suffix_hanging_frag = 0,
+    n_cur_noncontained_spur_solo_frag = 0,
 
-      n_cur_noncontained_spur_thru_frag = 0,
-      n_cur_noncontained_spur_prefix_hanging_frag = 0,
-      n_cur_noncontained_spur_suffix_hanging_frag = 0,
-      n_cur_noncontained_spur_solo_frag = 0,
+    n_cur_contained_nonspur_thru_frag = 0,
+    n_cur_contained_nonspur_prefix_hanging_frag = 0,
+    n_cur_contained_nonspur_suffix_hanging_frag = 0,
+    n_cur_contained_nonspur_solo_frag = 0,
 
-      n_cur_contained_nonspur_thru_frag = 0,
-      n_cur_contained_nonspur_prefix_hanging_frag = 0,
-      n_cur_contained_nonspur_suffix_hanging_frag = 0,
-      n_cur_contained_nonspur_solo_frag = 0,
+    n_cur_contained_spur_thru_frag = 0,
+    n_cur_contained_spur_prefix_hanging_frag = 0,
+    n_cur_contained_spur_suffix_hanging_frag = 0,
+    n_cur_contained_spur_solo_frag = 0,
 
-      n_cur_contained_spur_thru_frag = 0,
-      n_cur_contained_spur_prefix_hanging_frag = 0,
-      n_cur_contained_spur_suffix_hanging_frag = 0,
-      n_cur_contained_spur_solo_frag = 0,
+    n_as_fgb_deleted_frag = 0;
 
-      n_as_fgb_deleted_frag = 0;
-    
-    IntFragment_ID
-      raw_dvt_count = 0,
-      raw_frc_count = 0,
-      raw_toc_count = 0,
-      cur_dvt_count = 0,
-      cur_frc_count = 0,
-      cur_toc_count = 0;
+  IntFragment_ID
+    raw_dvt_count = 0,
+    raw_frc_count = 0,
+    raw_toc_count = 0,
+    cur_dvt_count = 0,
+    cur_frc_count = 0,
+    cur_toc_count = 0;
 
-    for(ifrag=0; ifrag<nfrag; ifrag++){
-      const int deleted   = (TRUE == get_del_fragment(frags,ifrag));
-      const int contained = (TRUE == get_con_fragment(frags,ifrag));
-      const int spur      = (TRUE == get_spur_fragment(frags,ifrag));
+  for(ifrag=0; ifrag<nfrag; ifrag++){
+    const int deleted   = (TRUE == get_del_fragment(frags,ifrag));
+    const int contained = (TRUE == get_con_fragment(frags,ifrag));
+    const int spur      = (TRUE == get_spur_fragment(frags,ifrag));
 
-      const int raw_prefix_dvt_degree = get_raw_dvt_count_vertex(frags,ifrag,FALSE);
-      const int raw_suffix_dvt_degree = get_raw_dvt_count_vertex(frags,ifrag,TRUE);
-      const int raw_frc_degree = get_raw_frc_count_fragment(frags,ifrag);
-      const int raw_toc_degree = get_raw_toc_count_fragment(frags,ifrag);
-      const int cur_prefix_dvt_degree = get_seglen_dvt_vertex(frags,ifrag,FALSE);
-      const int cur_suffix_dvt_degree = get_seglen_dvt_vertex(frags,ifrag,TRUE);
-      const int cur_prefix_frc_degree = get_seglen_frc_vertex(frags,ifrag,FALSE);
-      const int cur_suffix_frc_degree = get_seglen_frc_vertex(frags,ifrag,TRUE);
+    const int raw_prefix_dvt_degree = get_raw_dvt_count_vertex(frags,ifrag,FALSE);
+    const int raw_suffix_dvt_degree = get_raw_dvt_count_vertex(frags,ifrag,TRUE);
+    const int raw_frc_degree = get_raw_frc_count_fragment(frags,ifrag);
+    const int raw_toc_degree = get_raw_toc_count_fragment(frags,ifrag);
+    const int cur_prefix_dvt_degree = get_seglen_dvt_vertex(frags,ifrag,FALSE);
+    const int cur_suffix_dvt_degree = get_seglen_dvt_vertex(frags,ifrag,TRUE);
+    const int cur_prefix_frc_degree = get_seglen_frc_vertex(frags,ifrag,FALSE);
+    const int cur_suffix_frc_degree = get_seglen_frc_vertex(frags,ifrag,TRUE);
 
-      const int raw_thru 
-	= ((raw_prefix_dvt_degree != 0) && 
-	   (raw_suffix_dvt_degree != 0) );
-      const int raw_prefix_hanging
-        = ((raw_prefix_dvt_degree == 0) && 
-           (raw_suffix_dvt_degree != 0) );
-      const int raw_suffix_hanging 
-        = ((raw_prefix_dvt_degree != 0) && 
-           (raw_suffix_dvt_degree == 0) );
-      const int raw_solo
-        = ((raw_prefix_dvt_degree == 0) && 
-           (raw_suffix_dvt_degree == 0) );
-      // The raw counters affected by the deleted and removed by breaker flags on fragments.
-      // The raw counters not affected by the spur flag and contained flags on fragments.
+    const int raw_thru 
+      = ((raw_prefix_dvt_degree != 0) && 
+         (raw_suffix_dvt_degree != 0) );
+    const int raw_prefix_hanging
+      = ((raw_prefix_dvt_degree == 0) && 
+         (raw_suffix_dvt_degree != 0) );
+    const int raw_suffix_hanging 
+      = ((raw_prefix_dvt_degree != 0) && 
+         (raw_suffix_dvt_degree == 0) );
+    const int raw_solo
+      = ((raw_prefix_dvt_degree == 0) && 
+         (raw_suffix_dvt_degree == 0) );
+    // The raw counters affected by the deleted and removed by breaker flags on fragments.
+    // The raw counters not affected by the spur flag and contained flags on fragments.
       
-      const int cur_thru 
-	= ((cur_prefix_dvt_degree != 0) && 
-	   (cur_suffix_dvt_degree != 0) );
-      const int cur_prefix_hanging
-        = ((cur_prefix_dvt_degree == 0) && 
-           (cur_suffix_dvt_degree != 0) );
-      const int cur_suffix_hanging 
-        = ((cur_prefix_dvt_degree != 0) && 
-           (cur_suffix_dvt_degree == 0) );
-      const int cur_solo
-        = ((cur_prefix_dvt_degree == 0) && 
-           (cur_suffix_dvt_degree == 0) );
+    const int cur_thru 
+      = ((cur_prefix_dvt_degree != 0) && 
+         (cur_suffix_dvt_degree != 0) );
+    const int cur_prefix_hanging
+      = ((cur_prefix_dvt_degree == 0) && 
+         (cur_suffix_dvt_degree != 0) );
+    const int cur_suffix_hanging 
+      = ((cur_prefix_dvt_degree != 0) && 
+         (cur_suffix_dvt_degree == 0) );
+    const int cur_solo
+      = ((cur_prefix_dvt_degree == 0) && 
+         (cur_suffix_dvt_degree == 0) );
 
-      if(!deleted) {
-	raw_dvt_count += raw_prefix_dvt_degree + raw_suffix_dvt_degree;
-	raw_frc_count += raw_frc_degree;
-	raw_toc_count += raw_toc_degree;
-	cur_dvt_count += cur_prefix_dvt_degree + cur_suffix_dvt_degree;
-	cur_frc_count += cur_prefix_frc_degree + cur_suffix_frc_degree;
-	cur_toc_count += 0;
+    if(!deleted) {
+      raw_dvt_count += raw_prefix_dvt_degree + raw_suffix_dvt_degree;
+      raw_frc_count += raw_frc_degree;
+      raw_toc_count += raw_toc_degree;
+      cur_dvt_count += cur_prefix_dvt_degree + cur_suffix_dvt_degree;
+      cur_frc_count += cur_prefix_frc_degree + cur_suffix_frc_degree;
+      cur_toc_count += 0;
 
-        if(NULL != debug_file) {
-          char * message = NULL;
-          if((cur_prefix_dvt_degree == 0) && (cur_suffix_dvt_degree == 0)) { message = "SOLO";}
-          if((cur_prefix_dvt_degree == 0) && (cur_suffix_dvt_degree >  0)) { message = "PREX";}
-          if((cur_prefix_dvt_degree >  0) && (cur_suffix_dvt_degree == 0)) { message = "SUFX";}
-          if((cur_prefix_dvt_degree >  0) && (cur_suffix_dvt_degree >  0)) { message = "THRU";}
-          assert(NULL != message);
-          fprintf(debug_file,"%15" F_IIDP " %s\n", get_iid_fragment(frags,ifrag), message);
-        }
+      assert( !(raw_prefix_dvt_degree == 0) || (cur_prefix_dvt_degree == 0));
+      assert( !(raw_suffix_dvt_degree == 0) || (cur_suffix_dvt_degree == 0));
+      // If the fragment-end has a zero dvt degree in the raw graph,
+      // then it has a zero dvt degree in the current graph.
 
-        assert( !(raw_prefix_dvt_degree == 0) || (cur_prefix_dvt_degree == 0));
-        assert( !(raw_suffix_dvt_degree == 0) || (cur_suffix_dvt_degree == 0));
-        // If the fragment-end has a zero dvt degree in the raw graph,
-        // then it has a zero dvt degree in the current graph.
-
-        if(
-           ((cur_prefix_dvt_degree == 0)&&(raw_prefix_dvt_degree > 0)) ||
-           ((cur_suffix_dvt_degree == 0)&&(raw_suffix_dvt_degree > 0))
-           ) {
-          // If the fragment-end has a zero dvt degree in the current graph,
-          // then it should have a zero dvt degree in the raw graph.
-          const IntFragment_ID iid = get_iid_fragment(frags,ifrag);
-          fprintf(stdout,"REAPER DVT DISCONNECT: " F_IID " %d %d %d %d %d %d %d\n",
-                  iid,
-                  deleted, spur, contained,
-                  raw_prefix_dvt_degree,
-                  raw_suffix_dvt_degree,
-                  cur_prefix_dvt_degree,
-                  cur_suffix_dvt_degree
-                  );
-        }
-      }
-      
-#if 0
-      if(!deleted) {
-        assert(cur_prefix_frc_degree <= raw_prefix_frc_degree);
-        assert(cur_suffix_frc_degree <= raw_suffix_frc_degree);
-        if(
-           ((cur_prefix_frc_degree == 0)&&(raw_prefix_frc_degree > 0)) ||
-           ((cur_suffix_frc_degree == 0)&&(raw_suffix_frc_degree > 0))
-           ) {
-          const IntFragment_ID iid = get_iid_fragment(frags,ifrag);
-          fprintf(stdout,"REAPER FRC DISCONNECT: " F_IID " %d %d %d %d %d %d %d\n",
-                  iid,
-                  deleted, spur, contained,
-                  raw_prefix_frc_degree,
-                  raw_suffix_frc_degree,
-                  cur_prefix_frc_degree,
-                  cur_suffix_frc_degree
-                  );
-        }
-      }
-#endif
-              
-      assert(deleted || (raw_thru + raw_prefix_hanging + raw_suffix_hanging + raw_solo == 1));
-      assert(deleted || (cur_thru + cur_prefix_hanging + cur_suffix_hanging + cur_solo == 1));
-      assert(deleted || (cur_prefix_dvt_degree <= raw_prefix_dvt_degree));
-      assert(deleted || (cur_suffix_dvt_degree <= raw_suffix_dvt_degree));
-
-#if 1
-      {
-	const IntFragment_ID iid = get_iid_fragment(frags,ifrag);
-	
-	if(!(deleted || contained || (!raw_thru) || cur_thru)) {
-	  fprintf(stdout,"REAPER THRU DISCONNECT: "
-		  "iid=" F_IID " deleted=%d contained=%d raw_thru=%d cur_thru=%d\n",
-		  iid, deleted, contained, raw_thru, cur_thru);
-	}
-      }
-#else
-      assert(deleted || contained || (!raw_thru) || cur_thru); 
-      // Assert if (raw_thru && !contained) then cur_thru
-#endif
-
-      assert(deleted || (!cur_thru) || raw_thru);
-      // Assert if cur_thru then raw_thru
-      
-#if 0
-      assert(deleted || !spur || !raw_thru); // if spur, then not raw_thru.
-#else
-      if(!(deleted || !spur || !raw_thru)) {
+      if(
+         ((cur_prefix_dvt_degree == 0)&&(raw_prefix_dvt_degree > 0)) ||
+         ((cur_suffix_dvt_degree == 0)&&(raw_suffix_dvt_degree > 0))
+         ) {
+        // If the fragment-end has a zero dvt degree in the current graph,
+        // then it should have a zero dvt degree in the raw graph.
         const IntFragment_ID iid = get_iid_fragment(frags,ifrag);
         fprintf(stdout,"REAPER DVT DISCONNECT: " F_IID " %d %d %d %d %d %d %d\n",
                 iid,
@@ -772,303 +640,332 @@ static void analyze_the_fragment_overlap_graph
                 cur_suffix_dvt_degree
                 );
       }
-#endif
-      assert(deleted || !spur || !cur_thru); // if spur, then not cur_thru.
+    }
       
-      if(deleted) {
-	n_as_fgb_deleted_frag++;
-      } else {
+              
+    assert(deleted || (raw_thru + raw_prefix_hanging + raw_suffix_hanging + raw_solo == 1));
+    assert(deleted || (cur_thru + cur_prefix_hanging + cur_suffix_hanging + cur_solo == 1));
+    assert(deleted || (cur_prefix_dvt_degree <= raw_prefix_dvt_degree));
+    assert(deleted || (cur_suffix_dvt_degree <= raw_suffix_dvt_degree));
 
-	if(contained) {
-          if(spur) {
-            if(raw_thru)           { n_raw_contained_spur_thru_frag++;}
-            if(raw_prefix_hanging) { n_raw_contained_spur_prefix_hanging_frag++;}
-            if(raw_suffix_hanging) { n_raw_contained_spur_suffix_hanging_frag++;}
-            if(raw_solo)           { n_raw_contained_spur_solo_frag++;}
-          } else {
-            if(raw_thru)           { n_raw_contained_nonspur_thru_frag++;}
-            if(raw_prefix_hanging) { n_raw_contained_nonspur_prefix_hanging_frag++;}
-            if(raw_suffix_hanging) { n_raw_contained_nonspur_suffix_hanging_frag++;}
-            if(raw_solo)           { n_raw_contained_nonspur_solo_frag++;}
-          }
-	} else {
-          if(spur) {
-            if(raw_thru)           { n_raw_noncontained_spur_thru_frag++;}
-            if(raw_prefix_hanging) { n_raw_noncontained_spur_prefix_hanging_frag++;}
-            if(raw_suffix_hanging) { n_raw_noncontained_spur_suffix_hanging_frag++;}
-            if(raw_solo)           { n_raw_noncontained_spur_solo_frag++;}
-          } else {
-            if(raw_thru)           { n_raw_noncontained_nonspur_thru_frag++;}
-            if(raw_prefix_hanging) { n_raw_noncontained_nonspur_prefix_hanging_frag++;}
-            if(raw_suffix_hanging) { n_raw_noncontained_nonspur_suffix_hanging_frag++;}
-            if(raw_solo)           { n_raw_noncontained_nonspur_solo_frag++;}
-          }
-	}
-
-	if(contained) {
-          if(spur) {
-            if(cur_thru)           { n_cur_contained_spur_thru_frag++;}
-            if(cur_prefix_hanging) { n_cur_contained_spur_prefix_hanging_frag++;}
-            if(cur_suffix_hanging) { n_cur_contained_spur_suffix_hanging_frag++;}
-            if(cur_solo)           { n_cur_contained_spur_solo_frag++;}
-          } else {
-            if(cur_thru)           { n_cur_contained_nonspur_thru_frag++;}
-            if(cur_prefix_hanging) { n_cur_contained_nonspur_prefix_hanging_frag++;}
-            if(cur_suffix_hanging) { n_cur_contained_nonspur_suffix_hanging_frag++;}
-            if(cur_solo)           { n_cur_contained_nonspur_solo_frag++;}
-          }
-	} else {
-          if(spur) {
-            if(cur_thru)           { n_cur_noncontained_spur_thru_frag++;}
-            if(cur_prefix_hanging) { n_cur_noncontained_spur_prefix_hanging_frag++;}
-            if(cur_suffix_hanging) { n_cur_noncontained_spur_suffix_hanging_frag++;}
-            if(cur_solo)           { n_cur_noncontained_spur_solo_frag++;}
-          } else {
-            if(cur_thru)           { n_cur_noncontained_nonspur_thru_frag++;}
-            if(cur_prefix_hanging) { n_cur_noncontained_nonspur_prefix_hanging_frag++;}
-            if(cur_suffix_hanging) { n_cur_noncontained_nonspur_suffix_hanging_frag++;}
-            if(cur_solo)           { n_cur_noncontained_nonspur_solo_frag++;}
-          }
-	}
-
-        
+    {
+      const IntFragment_ID iid = get_iid_fragment(frags,ifrag);
+	
+      if(!(deleted || contained || (!raw_thru) || cur_thru)) {
+        fprintf(stdout,"REAPER THRU DISCONNECT: "
+                "iid=" F_IID " deleted=%d contained=%d raw_thru=%d cur_thru=%d\n",
+                iid, deleted, contained, raw_thru, cur_thru);
       }
     }
 
-    fprintf(fout,"Deleted Fragment types\n");
-    fprintf(fout,
-	    "%15" F_IIDP " : total number of fragments\n"
-            "---Deleted Classification:\n"
-	    "%15" F_IIDP " : number of deleted fragments\n"
-	    "%15" F_IIDP " : number of non-deleted fragments\n"
-            ,
-	    nfrag, 
-	    n_as_fgb_deleted_frag,
-	    nfrag - n_as_fgb_deleted_frag
-	    );
+    assert(deleted || (!cur_thru) || raw_thru);
+    // Assert if cur_thru then raw_thru
+      
+    if(!(deleted || !spur || !raw_thru)) {
+      const IntFragment_ID iid = get_iid_fragment(frags,ifrag);
+      fprintf(stdout,"REAPER DVT DISCONNECT: " F_IID " %d %d %d %d %d %d %d\n",
+              iid,
+              deleted, spur, contained,
+              raw_prefix_dvt_degree,
+              raw_suffix_dvt_degree,
+              cur_prefix_dvt_degree,
+              cur_suffix_dvt_degree
+              );
+    }
 
-    fprintf(fout,"Non-Deleted Fragment types\n");
+    assert(deleted || !spur || !cur_thru); // if spur, then not cur_thru.
+      
+    if(deleted) {
+      n_as_fgb_deleted_frag++;
+    } else {
 
-    //  The Raw overlap classifications:
-    fprintf(fout,
-            "---Raw Dovetail Degree Classification:\n"
-	    "%15" F_IIDP " : solo           fragments\n"
-	    "%15" F_IIDP " : prefix hanging fragments\n"
-	    "%15" F_IIDP " : suffix hanging fragments\n"
-	    "%15" F_IIDP " : thru           fragments\n"
-            ,
+      if(contained) {
+        if(spur) {
+          if(raw_thru)           { n_raw_contained_spur_thru_frag++;}
+          if(raw_prefix_hanging) { n_raw_contained_spur_prefix_hanging_frag++;}
+          if(raw_suffix_hanging) { n_raw_contained_spur_suffix_hanging_frag++;}
+          if(raw_solo)           { n_raw_contained_spur_solo_frag++;}
+        } else {
+          if(raw_thru)           { n_raw_contained_nonspur_thru_frag++;}
+          if(raw_prefix_hanging) { n_raw_contained_nonspur_prefix_hanging_frag++;}
+          if(raw_suffix_hanging) { n_raw_contained_nonspur_suffix_hanging_frag++;}
+          if(raw_solo)           { n_raw_contained_nonspur_solo_frag++;}
+        }
+      } else {
+        if(spur) {
+          if(raw_thru)           { n_raw_noncontained_spur_thru_frag++;}
+          if(raw_prefix_hanging) { n_raw_noncontained_spur_prefix_hanging_frag++;}
+          if(raw_suffix_hanging) { n_raw_noncontained_spur_suffix_hanging_frag++;}
+          if(raw_solo)           { n_raw_noncontained_spur_solo_frag++;}
+        } else {
+          if(raw_thru)           { n_raw_noncontained_nonspur_thru_frag++;}
+          if(raw_prefix_hanging) { n_raw_noncontained_nonspur_prefix_hanging_frag++;}
+          if(raw_suffix_hanging) { n_raw_noncontained_nonspur_suffix_hanging_frag++;}
+          if(raw_solo)           { n_raw_noncontained_nonspur_solo_frag++;}
+        }
+      }
 
-	    n_raw_noncontained_nonspur_solo_frag+
-	    n_raw_contained_nonspur_solo_frag+
-	    n_raw_noncontained_spur_solo_frag+
-	    n_raw_contained_spur_solo_frag,
-
-	    n_raw_noncontained_nonspur_prefix_hanging_frag+
-	    n_raw_contained_nonspur_prefix_hanging_frag+
-	    n_raw_noncontained_spur_prefix_hanging_frag+
-	    n_raw_contained_spur_prefix_hanging_frag,
-
-	    n_raw_noncontained_nonspur_suffix_hanging_frag+
-	    n_raw_contained_nonspur_suffix_hanging_frag+
-	    n_raw_noncontained_spur_suffix_hanging_frag+
-	    n_raw_contained_spur_suffix_hanging_frag,
-
-            n_raw_noncontained_nonspur_thru_frag+
-	    n_raw_contained_nonspur_thru_frag+
-            n_raw_noncontained_spur_thru_frag+
-	    n_raw_contained_spur_thru_frag
-
-            );
-    fprintf(fout,
-            "---Raw Dovetail Degree and Spur Classification:\n"
-	    "%15" F_IIDP " : non-spur solo           fragments\n"
-	    "%15" F_IIDP " : non-spur prefix hanging fragments\n"
-	    "%15" F_IIDP " : non-spur suffix hanging fragments\n"
-	    "%15" F_IIDP " : non-spur thru           fragments\n"
-	    "%15" F_IIDP " :     spur solo           fragments\n"
-	    "%15" F_IIDP " :     spur prefix hanging fragments\n"
-	    "%15" F_IIDP " :     spur suffix hanging fragments\n"
-	    "%15" F_IIDP " :     spur thru           fragments\n"
-            ,
-
-	    n_raw_noncontained_nonspur_solo_frag+
-	    n_raw_contained_nonspur_solo_frag,
-	    n_raw_noncontained_nonspur_prefix_hanging_frag+
-	    n_raw_contained_nonspur_prefix_hanging_frag,
-	    n_raw_noncontained_nonspur_suffix_hanging_frag+
-	    n_raw_contained_nonspur_suffix_hanging_frag,
-	    n_raw_noncontained_nonspur_thru_frag+
-	    n_raw_contained_nonspur_thru_frag,
-
-	    n_raw_noncontained_spur_solo_frag+
-	    n_raw_contained_spur_solo_frag,
-	    n_raw_noncontained_spur_prefix_hanging_frag+
-	    n_raw_contained_spur_prefix_hanging_frag,
-	    n_raw_noncontained_spur_suffix_hanging_frag+
-	    n_raw_contained_spur_suffix_hanging_frag,
-	    n_raw_noncontained_spur_thru_frag+
-	    n_raw_contained_spur_thru_frag
-            );
-    fprintf(fout,
-            "---Raw Dovetail Degree, Spur, and Containment Degree Classification:\n"
-	    "%15" F_IIDP " : non-contained non-spur solo           fragments\n"
-	    "%15" F_IIDP " : non-contained non-spur prefix hanging fragments\n"
-	    "%15" F_IIDP " : non-contained non-spur suffix hanging fragments\n"
-	    "%15" F_IIDP " : non-contained non-spur thru           fragments\n"
-	    "%15" F_IIDP " : non-contained     spur solo           fragments\n"
-	    "%15" F_IIDP " : non-contained     spur prefix hanging fragments\n"
-	    "%15" F_IIDP " : non-contained     spur suffix hanging fragments\n"
-	    "%15" F_IIDP " : non-contained     spur thru           fragments\n"
-	    "%15" F_IIDP " :     contained non-spur solo           fragments\n"
-	    "%15" F_IIDP " :     contained non-spur prefix hanging fragments\n"
-	    "%15" F_IIDP " :     contained non-spur suffix hanging fragments\n"
-	    "%15" F_IIDP " :     contained non-spur thru           fragments\n"
-	    "%15" F_IIDP " :     contained     spur solo           fragments\n"
-	    "%15" F_IIDP " :     contained     spur prefix hanging fragments\n"
-	    "%15" F_IIDP " :     contained     spur suffix hanging fragments\n"
-	    "%15" F_IIDP " :     contained     spur thru           fragments\n"
-            ,
-
-	    n_raw_noncontained_nonspur_solo_frag,
-	    n_raw_noncontained_nonspur_prefix_hanging_frag,
-	    n_raw_noncontained_nonspur_suffix_hanging_frag,
-	    n_raw_noncontained_nonspur_thru_frag,
-
-	    n_raw_noncontained_spur_solo_frag,
-	    n_raw_noncontained_spur_prefix_hanging_frag,
-	    n_raw_noncontained_spur_suffix_hanging_frag,
-	    n_raw_noncontained_spur_thru_frag,
-
-	    n_raw_contained_nonspur_solo_frag,
-	    n_raw_contained_nonspur_prefix_hanging_frag,
-	    n_raw_contained_nonspur_suffix_hanging_frag,
-	    n_raw_contained_nonspur_thru_frag,
-
-	    n_raw_contained_spur_solo_frag,
-	    n_raw_contained_spur_prefix_hanging_frag,
-	    n_raw_contained_spur_suffix_hanging_frag,
-	    n_raw_contained_spur_thru_frag
-            );
-
-
-    //  The Current overlap classifications:
-    fprintf(fout,
-            "---Current Dovetail Degree Classification:\n"
-	    "%15" F_IIDP " : solo           fragments\n"
-	    "%15" F_IIDP " : prefix hanging fragments\n"
-	    "%15" F_IIDP " : suffix hanging fragments\n"
-	    "%15" F_IIDP " : thru           fragments\n"
-            ,
-
-	    n_cur_noncontained_nonspur_solo_frag+
-	    n_cur_contained_nonspur_solo_frag+
-	    n_cur_noncontained_spur_solo_frag+
-	    n_cur_contained_spur_solo_frag,
-
-	    n_cur_noncontained_nonspur_prefix_hanging_frag+
-	    n_cur_contained_nonspur_prefix_hanging_frag+
-	    n_cur_noncontained_spur_prefix_hanging_frag+
-	    n_cur_contained_spur_prefix_hanging_frag,
-
-	    n_cur_noncontained_nonspur_suffix_hanging_frag+
-	    n_cur_contained_nonspur_suffix_hanging_frag+
-	    n_cur_noncontained_spur_suffix_hanging_frag+
-	    n_cur_contained_spur_suffix_hanging_frag,
-
-            n_cur_noncontained_nonspur_thru_frag+
-	    n_cur_contained_nonspur_thru_frag+
-            n_cur_noncontained_spur_thru_frag+
-	    n_cur_contained_spur_thru_frag
-
-            );
-    fprintf(fout,
-            "---Current Dovetail Degree and Spur Classification:\n"
-	    "%15" F_IIDP " : non-spur solo           fragments\n"
-	    "%15" F_IIDP " : non-spur prefix hanging fragments\n"
-	    "%15" F_IIDP " : non-spur suffix hanging fragments\n"
-	    "%15" F_IIDP " : non-spur thru           fragments\n"
-	    "%15" F_IIDP " :     spur solo           fragments\n"
-	    "%15" F_IIDP " :     spur prefix hanging fragments\n"
-	    "%15" F_IIDP " :     spur suffix hanging fragments\n"
-	    "%15" F_IIDP " :     spur thru           fragments\n"
-            ,
-
-	    n_cur_noncontained_nonspur_solo_frag+
-	    n_cur_contained_nonspur_solo_frag,
-	    n_cur_noncontained_nonspur_prefix_hanging_frag+
-	    n_cur_contained_nonspur_prefix_hanging_frag,
-	    n_cur_noncontained_nonspur_suffix_hanging_frag+
-	    n_cur_contained_nonspur_suffix_hanging_frag,
-	    n_cur_noncontained_nonspur_thru_frag+
-	    n_cur_contained_nonspur_thru_frag,
-
-	    n_cur_noncontained_spur_solo_frag+
-	    n_cur_contained_spur_solo_frag,
-	    n_cur_noncontained_spur_prefix_hanging_frag+
-	    n_cur_contained_spur_prefix_hanging_frag,
-	    n_cur_noncontained_spur_suffix_hanging_frag+
-	    n_cur_contained_spur_suffix_hanging_frag,
-	    n_cur_noncontained_spur_thru_frag+
-	    n_cur_contained_spur_thru_frag
-            );
-    fprintf(fout,
-            "---Current Dovetail Degree, Spur, and Containment Degree Classification:\n"
-	    "%15" F_IIDP " : non-contained non-spur solo           fragments\n"
-	    "%15" F_IIDP " : non-contained non-spur prefix hanging fragments\n"
-	    "%15" F_IIDP " : non-contained non-spur suffix hanging fragments\n"
-	    "%15" F_IIDP " : non-contained non-spur thru           fragments\n"
-	    "%15" F_IIDP " : non-contained     spur solo           fragments\n"
-	    "%15" F_IIDP " : non-contained     spur prefix hanging fragments\n"
-	    "%15" F_IIDP " : non-contained     spur suffix hanging fragments\n"
-	    "%15" F_IIDP " : non-contained     spur thru           fragments\n"
-	    "%15" F_IIDP " :     contained non-spur solo           fragments\n"
-	    "%15" F_IIDP " :     contained non-spur prefix hanging fragments\n"
-	    "%15" F_IIDP " :     contained non-spur suffix hanging fragments\n"
-	    "%15" F_IIDP " :     contained non-spur thru           fragments\n"
-	    "%15" F_IIDP " :     contained     spur solo           fragments\n"
-	    "%15" F_IIDP " :     contained     spur prefix hanging fragments\n"
-	    "%15" F_IIDP " :     contained     spur suffix hanging fragments\n"
-	    "%15" F_IIDP " :     contained     spur thru           fragments\n"
-            ,
-
-	    n_cur_noncontained_nonspur_solo_frag,
-	    n_cur_noncontained_nonspur_prefix_hanging_frag,
-	    n_cur_noncontained_nonspur_suffix_hanging_frag,
-	    n_cur_noncontained_nonspur_thru_frag,
-
-	    n_cur_noncontained_spur_solo_frag,
-	    n_cur_noncontained_spur_prefix_hanging_frag,
-	    n_cur_noncontained_spur_suffix_hanging_frag,
-	    n_cur_noncontained_spur_thru_frag,
-
-	    n_cur_contained_nonspur_solo_frag,
-	    n_cur_contained_nonspur_prefix_hanging_frag,
-	    n_cur_contained_nonspur_suffix_hanging_frag,
-	    n_cur_contained_nonspur_thru_frag,
-
-	    n_cur_contained_spur_solo_frag,
-	    n_cur_contained_spur_prefix_hanging_frag,
-	    n_cur_contained_spur_suffix_hanging_frag,
-	    n_cur_contained_spur_thru_frag
-            );
-
-    //  Totals:
-    fprintf(fout,
-	    "Fragment-end overlap edge degree counts\n"
-	    "%15" F_IIDP " : raw dovetail edges\n"
-	    "%15" F_IIDP " : raw from-contained edges\n"
-	    "%15" F_IIDP " : raw to-contained edges\n"
-	    "%15" F_IIDP " : current dovetail edges\n"
-	    "%15" F_IIDP " : current from-contained edges\n"
-	    "%15" F_IIDP " : current to-contained edges\n"
-	    ,
-	    raw_dvt_count,
-	    raw_frc_count,
-	    raw_toc_count,
-	    cur_dvt_count,
-	    cur_frc_count,
-	    cur_toc_count );
+      if(contained) {
+        if(spur) {
+          if(cur_thru)           { n_cur_contained_spur_thru_frag++;}
+          if(cur_prefix_hanging) { n_cur_contained_spur_prefix_hanging_frag++;}
+          if(cur_suffix_hanging) { n_cur_contained_spur_suffix_hanging_frag++;}
+          if(cur_solo)           { n_cur_contained_spur_solo_frag++;}
+        } else {
+          if(cur_thru)           { n_cur_contained_nonspur_thru_frag++;}
+          if(cur_prefix_hanging) { n_cur_contained_nonspur_prefix_hanging_frag++;}
+          if(cur_suffix_hanging) { n_cur_contained_nonspur_suffix_hanging_frag++;}
+          if(cur_solo)           { n_cur_contained_nonspur_solo_frag++;}
+        }
+      } else {
+        if(spur) {
+          if(cur_thru)           { n_cur_noncontained_spur_thru_frag++;}
+          if(cur_prefix_hanging) { n_cur_noncontained_spur_prefix_hanging_frag++;}
+          if(cur_suffix_hanging) { n_cur_noncontained_spur_suffix_hanging_frag++;}
+          if(cur_solo)           { n_cur_noncontained_spur_solo_frag++;}
+        } else {
+          if(cur_thru)           { n_cur_noncontained_nonspur_thru_frag++;}
+          if(cur_prefix_hanging) { n_cur_noncontained_nonspur_prefix_hanging_frag++;}
+          if(cur_suffix_hanging) { n_cur_noncontained_nonspur_suffix_hanging_frag++;}
+          if(cur_solo)           { n_cur_noncontained_nonspur_solo_frag++;}
+        }
+      }
+    }
   }
+
+  fprintf(fout,"Deleted Fragment types\n");
+  fprintf(fout,
+          "%15" F_IIDP " : total number of fragments\n"
+          "---Deleted Classification:\n"
+          "%15" F_IIDP " : number of deleted fragments\n"
+          "%15" F_IIDP " : number of non-deleted fragments\n"
+          ,
+          nfrag, 
+          n_as_fgb_deleted_frag,
+          nfrag - n_as_fgb_deleted_frag
+          );
+
+  fprintf(fout,"Non-Deleted Fragment types\n");
+
+  //  The Raw overlap classifications:
+  fprintf(fout,
+          "---Raw Dovetail Degree Classification:\n"
+          "%15" F_IIDP " : solo           fragments\n"
+          "%15" F_IIDP " : prefix hanging fragments\n"
+          "%15" F_IIDP " : suffix hanging fragments\n"
+          "%15" F_IIDP " : thru           fragments\n"
+          ,
+
+          n_raw_noncontained_nonspur_solo_frag+
+          n_raw_contained_nonspur_solo_frag+
+          n_raw_noncontained_spur_solo_frag+
+          n_raw_contained_spur_solo_frag,
+
+          n_raw_noncontained_nonspur_prefix_hanging_frag+
+          n_raw_contained_nonspur_prefix_hanging_frag+
+          n_raw_noncontained_spur_prefix_hanging_frag+
+          n_raw_contained_spur_prefix_hanging_frag,
+
+          n_raw_noncontained_nonspur_suffix_hanging_frag+
+          n_raw_contained_nonspur_suffix_hanging_frag+
+          n_raw_noncontained_spur_suffix_hanging_frag+
+          n_raw_contained_spur_suffix_hanging_frag,
+
+          n_raw_noncontained_nonspur_thru_frag+
+          n_raw_contained_nonspur_thru_frag+
+          n_raw_noncontained_spur_thru_frag+
+          n_raw_contained_spur_thru_frag
+
+          );
+  fprintf(fout,
+          "---Raw Dovetail Degree and Spur Classification:\n"
+          "%15" F_IIDP " : non-spur solo           fragments\n"
+          "%15" F_IIDP " : non-spur prefix hanging fragments\n"
+          "%15" F_IIDP " : non-spur suffix hanging fragments\n"
+          "%15" F_IIDP " : non-spur thru           fragments\n"
+          "%15" F_IIDP " :     spur solo           fragments\n"
+          "%15" F_IIDP " :     spur prefix hanging fragments\n"
+          "%15" F_IIDP " :     spur suffix hanging fragments\n"
+          "%15" F_IIDP " :     spur thru           fragments\n"
+          ,
+
+          n_raw_noncontained_nonspur_solo_frag+
+          n_raw_contained_nonspur_solo_frag,
+          n_raw_noncontained_nonspur_prefix_hanging_frag+
+          n_raw_contained_nonspur_prefix_hanging_frag,
+          n_raw_noncontained_nonspur_suffix_hanging_frag+
+          n_raw_contained_nonspur_suffix_hanging_frag,
+          n_raw_noncontained_nonspur_thru_frag+
+          n_raw_contained_nonspur_thru_frag,
+
+          n_raw_noncontained_spur_solo_frag+
+          n_raw_contained_spur_solo_frag,
+          n_raw_noncontained_spur_prefix_hanging_frag+
+          n_raw_contained_spur_prefix_hanging_frag,
+          n_raw_noncontained_spur_suffix_hanging_frag+
+          n_raw_contained_spur_suffix_hanging_frag,
+          n_raw_noncontained_spur_thru_frag+
+          n_raw_contained_spur_thru_frag
+          );
+  fprintf(fout,
+          "---Raw Dovetail Degree, Spur, and Containment Degree Classification:\n"
+          "%15" F_IIDP " : non-contained non-spur solo           fragments\n"
+          "%15" F_IIDP " : non-contained non-spur prefix hanging fragments\n"
+          "%15" F_IIDP " : non-contained non-spur suffix hanging fragments\n"
+          "%15" F_IIDP " : non-contained non-spur thru           fragments\n"
+          "%15" F_IIDP " : non-contained     spur solo           fragments\n"
+          "%15" F_IIDP " : non-contained     spur prefix hanging fragments\n"
+          "%15" F_IIDP " : non-contained     spur suffix hanging fragments\n"
+          "%15" F_IIDP " : non-contained     spur thru           fragments\n"
+          "%15" F_IIDP " :     contained non-spur solo           fragments\n"
+          "%15" F_IIDP " :     contained non-spur prefix hanging fragments\n"
+          "%15" F_IIDP " :     contained non-spur suffix hanging fragments\n"
+          "%15" F_IIDP " :     contained non-spur thru           fragments\n"
+          "%15" F_IIDP " :     contained     spur solo           fragments\n"
+          "%15" F_IIDP " :     contained     spur prefix hanging fragments\n"
+          "%15" F_IIDP " :     contained     spur suffix hanging fragments\n"
+          "%15" F_IIDP " :     contained     spur thru           fragments\n"
+          ,
+
+          n_raw_noncontained_nonspur_solo_frag,
+          n_raw_noncontained_nonspur_prefix_hanging_frag,
+          n_raw_noncontained_nonspur_suffix_hanging_frag,
+          n_raw_noncontained_nonspur_thru_frag,
+
+          n_raw_noncontained_spur_solo_frag,
+          n_raw_noncontained_spur_prefix_hanging_frag,
+          n_raw_noncontained_spur_suffix_hanging_frag,
+          n_raw_noncontained_spur_thru_frag,
+
+          n_raw_contained_nonspur_solo_frag,
+          n_raw_contained_nonspur_prefix_hanging_frag,
+          n_raw_contained_nonspur_suffix_hanging_frag,
+          n_raw_contained_nonspur_thru_frag,
+
+          n_raw_contained_spur_solo_frag,
+          n_raw_contained_spur_prefix_hanging_frag,
+          n_raw_contained_spur_suffix_hanging_frag,
+          n_raw_contained_spur_thru_frag
+          );
+
+
+  //  The Current overlap classifications:
+  fprintf(fout,
+          "---Current Dovetail Degree Classification:\n"
+          "%15" F_IIDP " : solo           fragments\n"
+          "%15" F_IIDP " : prefix hanging fragments\n"
+          "%15" F_IIDP " : suffix hanging fragments\n"
+          "%15" F_IIDP " : thru           fragments\n"
+          ,
+
+          n_cur_noncontained_nonspur_solo_frag+
+          n_cur_contained_nonspur_solo_frag+
+          n_cur_noncontained_spur_solo_frag+
+          n_cur_contained_spur_solo_frag,
+
+          n_cur_noncontained_nonspur_prefix_hanging_frag+
+          n_cur_contained_nonspur_prefix_hanging_frag+
+          n_cur_noncontained_spur_prefix_hanging_frag+
+          n_cur_contained_spur_prefix_hanging_frag,
+
+          n_cur_noncontained_nonspur_suffix_hanging_frag+
+          n_cur_contained_nonspur_suffix_hanging_frag+
+          n_cur_noncontained_spur_suffix_hanging_frag+
+          n_cur_contained_spur_suffix_hanging_frag,
+
+          n_cur_noncontained_nonspur_thru_frag+
+          n_cur_contained_nonspur_thru_frag+
+          n_cur_noncontained_spur_thru_frag+
+          n_cur_contained_spur_thru_frag
+
+          );
+  fprintf(fout,
+          "---Current Dovetail Degree and Spur Classification:\n"
+          "%15" F_IIDP " : non-spur solo           fragments\n"
+          "%15" F_IIDP " : non-spur prefix hanging fragments\n"
+          "%15" F_IIDP " : non-spur suffix hanging fragments\n"
+          "%15" F_IIDP " : non-spur thru           fragments\n"
+          "%15" F_IIDP " :     spur solo           fragments\n"
+          "%15" F_IIDP " :     spur prefix hanging fragments\n"
+          "%15" F_IIDP " :     spur suffix hanging fragments\n"
+          "%15" F_IIDP " :     spur thru           fragments\n"
+          ,
+
+          n_cur_noncontained_nonspur_solo_frag+
+          n_cur_contained_nonspur_solo_frag,
+          n_cur_noncontained_nonspur_prefix_hanging_frag+
+          n_cur_contained_nonspur_prefix_hanging_frag,
+          n_cur_noncontained_nonspur_suffix_hanging_frag+
+          n_cur_contained_nonspur_suffix_hanging_frag,
+          n_cur_noncontained_nonspur_thru_frag+
+          n_cur_contained_nonspur_thru_frag,
+
+          n_cur_noncontained_spur_solo_frag+
+          n_cur_contained_spur_solo_frag,
+          n_cur_noncontained_spur_prefix_hanging_frag+
+          n_cur_contained_spur_prefix_hanging_frag,
+          n_cur_noncontained_spur_suffix_hanging_frag+
+          n_cur_contained_spur_suffix_hanging_frag,
+          n_cur_noncontained_spur_thru_frag+
+          n_cur_contained_spur_thru_frag
+          );
+  fprintf(fout,
+          "---Current Dovetail Degree, Spur, and Containment Degree Classification:\n"
+          "%15" F_IIDP " : non-contained non-spur solo           fragments\n"
+          "%15" F_IIDP " : non-contained non-spur prefix hanging fragments\n"
+          "%15" F_IIDP " : non-contained non-spur suffix hanging fragments\n"
+          "%15" F_IIDP " : non-contained non-spur thru           fragments\n"
+          "%15" F_IIDP " : non-contained     spur solo           fragments\n"
+          "%15" F_IIDP " : non-contained     spur prefix hanging fragments\n"
+          "%15" F_IIDP " : non-contained     spur suffix hanging fragments\n"
+          "%15" F_IIDP " : non-contained     spur thru           fragments\n"
+          "%15" F_IIDP " :     contained non-spur solo           fragments\n"
+          "%15" F_IIDP " :     contained non-spur prefix hanging fragments\n"
+          "%15" F_IIDP " :     contained non-spur suffix hanging fragments\n"
+          "%15" F_IIDP " :     contained non-spur thru           fragments\n"
+          "%15" F_IIDP " :     contained     spur solo           fragments\n"
+          "%15" F_IIDP " :     contained     spur prefix hanging fragments\n"
+          "%15" F_IIDP " :     contained     spur suffix hanging fragments\n"
+          "%15" F_IIDP " :     contained     spur thru           fragments\n"
+          ,
+
+          n_cur_noncontained_nonspur_solo_frag,
+          n_cur_noncontained_nonspur_prefix_hanging_frag,
+          n_cur_noncontained_nonspur_suffix_hanging_frag,
+          n_cur_noncontained_nonspur_thru_frag,
+
+          n_cur_noncontained_spur_solo_frag,
+          n_cur_noncontained_spur_prefix_hanging_frag,
+          n_cur_noncontained_spur_suffix_hanging_frag,
+          n_cur_noncontained_spur_thru_frag,
+
+          n_cur_contained_nonspur_solo_frag,
+          n_cur_contained_nonspur_prefix_hanging_frag,
+          n_cur_contained_nonspur_suffix_hanging_frag,
+          n_cur_contained_nonspur_thru_frag,
+
+          n_cur_contained_spur_solo_frag,
+          n_cur_contained_spur_prefix_hanging_frag,
+          n_cur_contained_spur_suffix_hanging_frag,
+          n_cur_contained_spur_thru_frag
+          );
+
+  //  Totals:
+  fprintf(fout,
+          "Fragment-end overlap edge degree counts\n"
+          "%15" F_IIDP " : raw dovetail edges\n"
+          "%15" F_IIDP " : raw from-contained edges\n"
+          "%15" F_IIDP " : raw to-contained edges\n"
+          "%15" F_IIDP " : current dovetail edges\n"
+          "%15" F_IIDP " : current from-contained edges\n"
+          "%15" F_IIDP " : current to-contained edges\n"
+          ,
+          raw_dvt_count,
+          raw_frc_count,
+          raw_toc_count,
+          cur_dvt_count,
+          cur_frc_count,
+          cur_toc_count );
 
   {
     IntEdge_ID iedge;
@@ -1105,81 +1002,72 @@ static void analyze_the_fragment_overlap_graph
       const Tnes ines = get_nes_edge(edges,iedge);
       
       switch(ines) {
-      case AS_CGB_DOVETAIL_EDGE: 
-	n_as_cgb_dovetail++; break;
-      case AS_CGB_THICKEST_EDGE: 
-	n_as_cgb_thickest++; break;
-      case AS_CGB_INTERCHUNK_EDGE: 
-	n_as_cgb_interchunk++; break;
-      case AS_CGB_INTRACHUNK_EDGE: 
-	n_as_cgb_intrachunk++; break;
-      case AS_CGB_TOUCHES_CONTAINED_EDGE:
-	n_as_cgb_touches_contained++; break;
-      case AS_CGB_BETWEEN_CONTAINED_EDGE:
-	n_as_cgb_between_contained++; break;
-      case AS_CGB_TOUCHES_CRAPPY_DVT:
-        n_as_cgb_touches_crappy_dvt++; break;
-      case AS_CGB_BETWEEN_CRAPPY_DVT:
-        n_as_cgb_between_crappy_dvt++; break;
+        case AS_CGB_DOVETAIL_EDGE: 
+          n_as_cgb_dovetail++; break;
+        case AS_CGB_THICKEST_EDGE: 
+          n_as_cgb_thickest++; break;
+        case AS_CGB_INTERCHUNK_EDGE: 
+          n_as_cgb_interchunk++; break;
+        case AS_CGB_INTRACHUNK_EDGE: 
+          n_as_cgb_intrachunk++; break;
+        case AS_CGB_TOUCHES_CONTAINED_EDGE:
+          n_as_cgb_touches_contained++; break;
+        case AS_CGB_BETWEEN_CONTAINED_EDGE:
+          n_as_cgb_between_contained++; break;
+        case AS_CGB_TOUCHES_CRAPPY_DVT:
+          n_as_cgb_touches_crappy_dvt++; break;
+        case AS_CGB_BETWEEN_CRAPPY_DVT:
+          n_as_cgb_between_crappy_dvt++; break;
 
-      case AS_CGB_TOUCHES_CRAPPY_CON:
-        if(is_a_frc_edge(edges,iedge)) {
-          n_as_cgb_touches_crappy_frc++;
-        } else {
-          n_as_cgb_touches_crappy_toc++;
-        }
-        break;
-      case AS_CGB_BETWEEN_CRAPPY_CON:
-        if(is_a_frc_edge(edges,iedge)) {
-          n_as_cgb_between_crappy_frc++;
-        } else {
-          n_as_cgb_between_crappy_toc++;
-        }
-        break;
+        case AS_CGB_TOUCHES_CRAPPY_CON:
+          if(is_a_frc_edge(edges,iedge)) {
+            n_as_cgb_touches_crappy_frc++;
+          } else {
+            n_as_cgb_touches_crappy_toc++;
+          }
+          break;
+        case AS_CGB_BETWEEN_CRAPPY_CON:
+          if(is_a_frc_edge(edges,iedge)) {
+            n_as_cgb_between_crappy_frc++;
+          } else {
+            n_as_cgb_between_crappy_toc++;
+          }
+          break;
         
-      case AS_CGB_CONTAINED_EDGE:
-        if(is_a_frc_edge(edges,iedge)) {
-          n_as_cgb_containment_frc++; break;
-        } else {
-          n_as_cgb_containment_toc++; break;
-        }
-        break;
+        case AS_CGB_CONTAINED_EDGE:
+          if(is_a_frc_edge(edges,iedge)) {
+            n_as_cgb_containment_frc++; break;
+          } else {
+            n_as_cgb_containment_toc++; break;
+          }
+          break;
 
-      case AS_CGB_MARKED_BY_BRANCH_DVT:
-	n_as_cgb_marked_by_branch_dvt++; break;
+        case AS_CGB_MARKED_BY_BRANCH_DVT:
+          n_as_cgb_marked_by_branch_dvt++; break;
 
-      case AS_CGB_REMOVED_BY_TRANSITIVITY_DVT:
-	n_as_cgb_removed_by_transitivity_dvt++; break;
-      case AS_CGB_REMOVED_BY_TRANSITIVITY_CON:
-        if(is_a_frc_edge(edges,iedge)) {
-          n_as_cgb_removed_by_transitivity_frc++;
-        } else {
-          n_as_cgb_removed_by_transitivity_toc++;
-        }
-        break;
+        case AS_CGB_REMOVED_BY_TRANSITIVITY_DVT:
+          n_as_cgb_removed_by_transitivity_dvt++; break;
+        case AS_CGB_REMOVED_BY_TRANSITIVITY_CON:
+          if(is_a_frc_edge(edges,iedge)) {
+            n_as_cgb_removed_by_transitivity_frc++;
+          } else {
+            n_as_cgb_removed_by_transitivity_toc++;
+          }
+          break;
 
-#if 0
-      case AS_CGB_REMOVED_BY_THRESHOLD_DVT:
-	n_as_cgb_removed_by_threshold_dvt++; break;
-      case AS_CGB_REMOVED_BY_THRESHOLD_FRC:
-	n_as_cgb_removed_by_threshold_frc++; break;
-      case AS_CGB_REMOVED_BY_THRESHOLD_TOC:
-	n_as_cgb_removed_by_threshold_toc++; break;
-#endif
+        case AS_CGB_REMOVED_BY_DUPLICATE_DVT:
+          n_as_cgb_removed_by_duplicate_dvt++; break;
+        case AS_CGB_REMOVED_BY_DUPLICATE_CON:
+          if(is_a_frc_edge(edges,iedge)) {
+            n_as_cgb_removed_by_duplicate_frc++;
+          } else {
+            n_as_cgb_removed_by_duplicate_toc++;
+          }
+          break;
 
-      case AS_CGB_REMOVED_BY_DUPLICATE_DVT:
-	n_as_cgb_removed_by_duplicate_dvt++; break;
-      case AS_CGB_REMOVED_BY_DUPLICATE_CON:
-        if(is_a_frc_edge(edges,iedge)) {
-          n_as_cgb_removed_by_duplicate_frc++;
-        } else {
-          n_as_cgb_removed_by_duplicate_toc++;
-        }
-        break;
-
-      default:
-	fprintf(stderr,"FGA: unexpected overlap edge type %d\n",ines);
-	assert(FALSE);
+        default:
+          fprintf(stderr,"FGA: unexpected overlap edge type %d\n",ines);
+          assert(FALSE);
       }
     }
 
@@ -1230,37 +1118,37 @@ static void analyze_the_fragment_overlap_graph
 	    );
   }
 #ifdef GENINFO
-    { // 
-      IntEdge_ID iedge;
-      size_t
-	count_invalid_dovetail_edges=0,
-	count_invalid_thickest_edges=0,
-	count_invalid_interchunk_edges=0,
-	count_invalid_intrachunk_edges=0,
-	count_invalid_containment_edges=0,
-	count_invalid_touches_contained_edges=0,
-	count_invalid_between_contained_edges=0,
-	count_invalid_touches_crappy_dvt=0,
-        count_invalid_between_crappy_dvt=0;
+  { // 
+    IntEdge_ID iedge;
+    size_t
+      count_invalid_dovetail_edges=0,
+      count_invalid_thickest_edges=0,
+      count_invalid_interchunk_edges=0,
+      count_invalid_intrachunk_edges=0,
+      count_invalid_containment_edges=0,
+      count_invalid_touches_contained_edges=0,
+      count_invalid_between_contained_edges=0,
+      count_invalid_touches_crappy_dvt=0,
+      count_invalid_between_crappy_dvt=0;
       
-      for(iedge=0;iedge<nedge;iedge++){
-	IntFragment_ID iavx,ibvx;
-	int iasx,ibsx,iahg;
-	Tnes ines;
-	int invalid;
+    for(iedge=0;iedge<nedge;iedge++){
+      IntFragment_ID iavx,ibvx;
+      int iasx,ibsx,iahg;
+      Tnes ines;
+      int invalid;
 		
-	iavx = get_avx_edge(edges,iedge);
-	iasx = get_asx_edge(edges,iedge);
-	ibvx = get_bvx_edge(edges,iedge);
-	ibsx = get_bsx_edge(edges,iedge);
+      iavx = get_avx_edge(edges,iedge);
+      iasx = get_asx_edge(edges,iedge);
+      ibvx = get_bvx_edge(edges,iedge);
+      ibsx = get_bsx_edge(edges,iedge);
 
-	ines = get_nes_edge(edges,iedge);
-	iahg = get_ahg_edge(edges,iedge);
+      ines = get_nes_edge(edges,iedge);
+      iahg = get_ahg_edge(edges,iedge);
 
-	invalid = get_inv_edge(edges,iedge);
+      invalid = get_inv_edge(edges,iedge);
 
-	if( invalid ) {
-	  switch(ines) {
+      if( invalid ) {
+        switch(ines) {
 	  case AS_CGB_DOVETAIL_EDGE:
 	    count_invalid_dovetail_edges++; break;
 	  case AS_CGB_THICKEST_EDGE:
@@ -1296,9 +1184,9 @@ static void analyze_the_fragment_overlap_graph
 	  default:
             //	    assert(FALSE);
             break;
-	  }
-	}
+        }
       }
+    }
     fprintf(fout,"Fragment information from the simulator\n");
 
     fprintf(fout,
@@ -1319,226 +1207,224 @@ static void analyze_the_fragment_overlap_graph
 	    count_invalid_touches_crappy_dvt/2,
 	    count_invalid_between_crappy_dvt/2,
 	    count_invalid_containment_edges/2
-      );
-    }
+            );
+  }
 #endif // GENINFO
 
-    {
-      IntFragment_ID ifrag;
-      const int nsample=500;
-      const int nbucket=500;
-      Histogram_t 
-        * raw_dvt_count_histogram
-	= create_histogram(nsample,nbucket,0,TRUE),
-        * raw_toc_count_histogram
-	= create_histogram(nsample,nbucket,0,TRUE),
-        * raw_frc_count_histogram
-	= create_histogram(nsample,nbucket,0,TRUE);
-      for(ifrag=0;ifrag<nfrag;ifrag++) {
-	{ 
-	  add_to_histogram(raw_dvt_count_histogram,
-                           get_raw_dvt_count_vertex(frags,ifrag,FALSE), NULL);
-          add_to_histogram(raw_dvt_count_histogram,
-                           get_raw_dvt_count_vertex(frags,ifrag,TRUE), NULL);
-	  add_to_histogram(raw_toc_count_histogram,
-                           get_raw_toc_count_fragment(frags,ifrag), NULL);
-	  add_to_histogram(raw_frc_count_histogram,
-                           get_raw_frc_count_fragment(frags,ifrag), NULL);
-	}
+  {
+    IntFragment_ID ifrag;
+    const int nsample=500;
+    const int nbucket=500;
+    Histogram_t 
+      * raw_dvt_count_histogram
+      = create_histogram(nsample,nbucket,0,TRUE),
+      * raw_toc_count_histogram
+      = create_histogram(nsample,nbucket,0,TRUE),
+      * raw_frc_count_histogram
+      = create_histogram(nsample,nbucket,0,TRUE);
+    for(ifrag=0;ifrag<nfrag;ifrag++) {
+      { 
+        add_to_histogram(raw_dvt_count_histogram,
+                         get_raw_dvt_count_vertex(frags,ifrag,FALSE), NULL);
+        add_to_histogram(raw_dvt_count_histogram,
+                         get_raw_dvt_count_vertex(frags,ifrag,TRUE), NULL);
+        add_to_histogram(raw_toc_count_histogram,
+                         get_raw_toc_count_fragment(frags,ifrag), NULL);
+        add_to_histogram(raw_frc_count_histogram,
+                         get_raw_frc_count_fragment(frags,ifrag), NULL);
       }
-      fprintf(fout,"\n\nHistogram of the raw dvt degree of the fragment-ends\n");
-      print_histogram(fout,raw_dvt_count_histogram, 0, 1);
-      free_histogram(raw_dvt_count_histogram);
-
-      fprintf(fout,"\n\nHistogram of the raw toc degree of the fragment-ends\n");
-      print_histogram(fout,raw_toc_count_histogram, 0, 1);
-      free_histogram(raw_toc_count_histogram);
-
-      fprintf(fout,"\n\nHistogram of the raw frc degree of the fragment-ends\n");
-      print_histogram(fout,raw_frc_count_histogram, 0, 1);
-      free_histogram(raw_frc_count_histogram);
     }
+    fprintf(fout,"\n\nHistogram of the raw dvt degree of the fragment-ends\n");
+    print_histogram(fout,raw_dvt_count_histogram, 0, 1);
+    free_histogram(raw_dvt_count_histogram);
 
-    {
-      IntFragment_ID ifrag;
-      const int nsample=500;
-      const int nbucket=500;
-      Histogram_t 
-	*edges_per_vertex_histogram
-	= create_histogram(nsample,nbucket,0,TRUE);
-      for(ifrag=0;ifrag<nfrag;ifrag++) {
-	{ 
-	  const int deleted = get_del_fragment(frags,ifrag);
-	  const int contained = get_con_fragment(frags,ifrag);
-          const int spur = get_spur_fragment(frags,ifrag);
-	  int isuffix;
-	  if((!deleted)&&(!contained)&&(!spur)) for(isuffix=0;isuffix<2;isuffix++) {
+    fprintf(fout,"\n\nHistogram of the raw toc degree of the fragment-ends\n");
+    print_histogram(fout,raw_toc_count_histogram, 0, 1);
+    free_histogram(raw_toc_count_histogram);
+
+    fprintf(fout,"\n\nHistogram of the raw frc degree of the fragment-ends\n");
+    print_histogram(fout,raw_frc_count_histogram, 0, 1);
+    free_histogram(raw_frc_count_histogram);
+  }
+
+  {
+    IntFragment_ID ifrag;
+    const int nsample=500;
+    const int nbucket=500;
+    Histogram_t 
+      *edges_per_vertex_histogram
+      = create_histogram(nsample,nbucket,0,TRUE);
+    for(ifrag=0;ifrag<nfrag;ifrag++) {
+      { 
+        const int deleted = get_del_fragment(frags,ifrag);
+        const int contained = get_con_fragment(frags,ifrag);
+        const int spur = get_spur_fragment(frags,ifrag);
+        int isuffix;
+        if((!deleted)&&(!contained)&&(!spur)) for(isuffix=0;isuffix<2;isuffix++) {
 	    int nnode;
 	    nnode = get_seglen_dvt_vertex(frags,ifrag,isuffix);
 	    add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
 	  }
-	}
       }
-      fprintf(fout,"\n\nHistogram of the dovetail degree of the non-contained non-spur fragment-ends\n");
-      print_histogram(fout,edges_per_vertex_histogram, 0, 1);
-      free_histogram(edges_per_vertex_histogram);
     }
+    fprintf(fout,"\n\nHistogram of the dovetail degree of the non-contained non-spur fragment-ends\n");
+    print_histogram(fout,edges_per_vertex_histogram, 0, 1);
+    free_histogram(edges_per_vertex_histogram);
+  }
 
-    {
-      IntFragment_ID ifrag;
-      const int nsample=500;
-      const int nbucket=500;
-      Histogram_t 
-	*edges_per_vertex_histogram
-	= create_histogram(nsample,nbucket,0,TRUE);
-      for(ifrag=0;ifrag<nfrag;ifrag++) {
-	const int deleted = get_del_fragment(frags,ifrag);
-	const int contained = get_con_fragment(frags,ifrag);
-	const int spur = get_spur_fragment(frags,ifrag);
-	int isuffix;
-	if((!deleted)&&(!contained)&&(spur)) for(isuffix=0;isuffix<2;isuffix++) {
+  {
+    IntFragment_ID ifrag;
+    const int nsample=500;
+    const int nbucket=500;
+    Histogram_t 
+      *edges_per_vertex_histogram
+      = create_histogram(nsample,nbucket,0,TRUE);
+    for(ifrag=0;ifrag<nfrag;ifrag++) {
+      const int deleted = get_del_fragment(frags,ifrag);
+      const int contained = get_con_fragment(frags,ifrag);
+      const int spur = get_spur_fragment(frags,ifrag);
+      int isuffix;
+      if((!deleted)&&(!contained)&&(spur)) for(isuffix=0;isuffix<2;isuffix++) {
 	  const IntEdge_ID nnode = get_seglen_dvt_vertex(frags,ifrag,isuffix);
 	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
 	}
-      }
-      fprintf(fout,"\n\nHistogram of the dovetail degree of the non-contained spur fragment-ends\n");
-      print_histogram(fout,edges_per_vertex_histogram, 0, 1);
-      free_histogram(edges_per_vertex_histogram);
     }
+    fprintf(fout,"\n\nHistogram of the dovetail degree of the non-contained spur fragment-ends\n");
+    print_histogram(fout,edges_per_vertex_histogram, 0, 1);
+    free_histogram(edges_per_vertex_histogram);
+  }
 
-    {
-      IntFragment_ID ifrag;
-      const int nsample=500;
-      const int nbucket=500;
-      Histogram_t 
-	*edges_per_vertex_histogram
-	= create_histogram(nsample,nbucket,0,TRUE);
-      for(ifrag=0;ifrag<nfrag;ifrag++) {
-	const int deleted = get_del_fragment(frags,ifrag);
-	const int contained = get_con_fragment(frags,ifrag);
-	const int spur = get_spur_fragment(frags,ifrag);
-	int isuffix;
-	if((!deleted)&&(contained)&&(!spur)) for(isuffix=0;isuffix<2;isuffix++) {
+  {
+    IntFragment_ID ifrag;
+    const int nsample=500;
+    const int nbucket=500;
+    Histogram_t 
+      *edges_per_vertex_histogram
+      = create_histogram(nsample,nbucket,0,TRUE);
+    for(ifrag=0;ifrag<nfrag;ifrag++) {
+      const int deleted = get_del_fragment(frags,ifrag);
+      const int contained = get_con_fragment(frags,ifrag);
+      const int spur = get_spur_fragment(frags,ifrag);
+      int isuffix;
+      if((!deleted)&&(contained)&&(!spur)) for(isuffix=0;isuffix<2;isuffix++) {
 	  const IntEdge_ID nnode = get_seglen_dvt_vertex(frags,ifrag,isuffix);
 	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
 	}
-      }
-      fprintf(fout,"\n\nHistogram of the dovetail degree of the contained non-spur fragment-ends\n");
-      print_histogram(fout,edges_per_vertex_histogram, 0, 1);
-      free_histogram(edges_per_vertex_histogram);
     }
+    fprintf(fout,"\n\nHistogram of the dovetail degree of the contained non-spur fragment-ends\n");
+    print_histogram(fout,edges_per_vertex_histogram, 0, 1);
+    free_histogram(edges_per_vertex_histogram);
+  }
 
-    {
-      IntFragment_ID ifrag;
-      const int nsample=500;
-      const int nbucket=500;
-      Histogram_t 
-	*edges_per_vertex_histogram
-	= create_histogram(nsample,nbucket,0,TRUE);
-      for(ifrag=0;ifrag<nfrag;ifrag++) {
-	const int deleted = get_del_fragment(frags,ifrag);
-	const int contained = get_con_fragment(frags,ifrag);
-	const int spur = get_spur_fragment(frags,ifrag);
-	int isuffix;
-	if((!deleted)&&(contained)&&(spur)) for(isuffix=0;isuffix<2;isuffix++) {
+  {
+    IntFragment_ID ifrag;
+    const int nsample=500;
+    const int nbucket=500;
+    Histogram_t 
+      *edges_per_vertex_histogram
+      = create_histogram(nsample,nbucket,0,TRUE);
+    for(ifrag=0;ifrag<nfrag;ifrag++) {
+      const int deleted = get_del_fragment(frags,ifrag);
+      const int contained = get_con_fragment(frags,ifrag);
+      const int spur = get_spur_fragment(frags,ifrag);
+      int isuffix;
+      if((!deleted)&&(contained)&&(spur)) for(isuffix=0;isuffix<2;isuffix++) {
 	  const IntEdge_ID nnode = get_seglen_dvt_vertex(frags,ifrag,isuffix);
 	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
 	}
-      }
-      fprintf(fout,"\n\nHistogram of the dovetail degree of the contained spur fragment-ends\n");
-      print_histogram(fout,edges_per_vertex_histogram, 0, 1);
-      free_histogram(edges_per_vertex_histogram);
     }
+    fprintf(fout,"\n\nHistogram of the dovetail degree of the contained spur fragment-ends\n");
+    print_histogram(fout,edges_per_vertex_histogram, 0, 1);
+    free_histogram(edges_per_vertex_histogram);
+  }
 
-    {
-      IntFragment_ID ifrag;
-      const int nsample=500;
-      const int nbucket=500;
-      Histogram_t 
-	*edges_per_vertex_histogram
-	= create_histogram(nsample,nbucket,0,TRUE);
-      for(ifrag=0;ifrag<nfrag;ifrag++) {
-	const int deleted = get_del_fragment(frags,ifrag);
-	const int contained = get_con_fragment(frags,ifrag);
-	const int spur = get_spur_fragment(frags,ifrag);
-	int isuffix;
-	if((!deleted)&&(!contained)&&(!spur)) for(isuffix=0;isuffix<2;isuffix++) {
+  {
+    IntFragment_ID ifrag;
+    const int nsample=500;
+    const int nbucket=500;
+    Histogram_t 
+      *edges_per_vertex_histogram
+      = create_histogram(nsample,nbucket,0,TRUE);
+    for(ifrag=0;ifrag<nfrag;ifrag++) {
+      const int deleted = get_del_fragment(frags,ifrag);
+      const int contained = get_con_fragment(frags,ifrag);
+      const int spur = get_spur_fragment(frags,ifrag);
+      int isuffix;
+      if((!deleted)&&(!contained)&&(!spur)) for(isuffix=0;isuffix<2;isuffix++) {
 	  const IntEdge_ID nnode = get_seglen_frc_vertex(frags,ifrag,isuffix);
 	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
 	}
-      }
-      fprintf(fout,"\n\nHistogram of the from-contained degree of the non-contained non-spur fragment-ends\n");
-      print_histogram(fout,edges_per_vertex_histogram, 0, 1);
-      free_histogram(edges_per_vertex_histogram);
     }
+    fprintf(fout,"\n\nHistogram of the from-contained degree of the non-contained non-spur fragment-ends\n");
+    print_histogram(fout,edges_per_vertex_histogram, 0, 1);
+    free_histogram(edges_per_vertex_histogram);
+  }
 
-    {
-      IntFragment_ID ifrag;
-      const int nsample=500;
-      const int nbucket=500;
-      Histogram_t 
-	*edges_per_vertex_histogram
-	= create_histogram(nsample,nbucket,0,TRUE);
-      for(ifrag=0;ifrag<nfrag;ifrag++) {
-	const int deleted = get_del_fragment(frags,ifrag);
-	const int contained = get_con_fragment(frags,ifrag);
-	const int spur = get_spur_fragment(frags,ifrag);
-	int isuffix;
-	if((!deleted)&&(!contained)&&(spur)) for(isuffix=0;isuffix<2;isuffix++) {
+  {
+    IntFragment_ID ifrag;
+    const int nsample=500;
+    const int nbucket=500;
+    Histogram_t 
+      *edges_per_vertex_histogram
+      = create_histogram(nsample,nbucket,0,TRUE);
+    for(ifrag=0;ifrag<nfrag;ifrag++) {
+      const int deleted = get_del_fragment(frags,ifrag);
+      const int contained = get_con_fragment(frags,ifrag);
+      const int spur = get_spur_fragment(frags,ifrag);
+      int isuffix;
+      if((!deleted)&&(!contained)&&(spur)) for(isuffix=0;isuffix<2;isuffix++) {
 	  const IntEdge_ID nnode = get_seglen_frc_vertex(frags,ifrag,isuffix);
 	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
 	}
-      }
-      fprintf(fout,"\n\nHistogram of the from-contained degree of the non-contained spur fragment-ends\n");
-      print_histogram(fout,edges_per_vertex_histogram, 0, 1);
-      free_histogram(edges_per_vertex_histogram);
     }
+    fprintf(fout,"\n\nHistogram of the from-contained degree of the non-contained spur fragment-ends\n");
+    print_histogram(fout,edges_per_vertex_histogram, 0, 1);
+    free_histogram(edges_per_vertex_histogram);
+  }
 
-    {
-      IntFragment_ID ifrag;
-      const int nsample=500;
-      const int nbucket=500;
-      Histogram_t 
-	*edges_per_vertex_histogram
-	= create_histogram(nsample,nbucket,0,TRUE);
-      for(ifrag=0;ifrag<nfrag;ifrag++) {
-	const int deleted = get_del_fragment(frags,ifrag);
-	const int contained = get_con_fragment(frags,ifrag);
-	const int spur = get_spur_fragment(frags,ifrag);
-	int isuffix;
-	if((!deleted)&&(contained)&&(!spur)) for(isuffix=0;isuffix<2;isuffix++) {
+  {
+    IntFragment_ID ifrag;
+    const int nsample=500;
+    const int nbucket=500;
+    Histogram_t 
+      *edges_per_vertex_histogram
+      = create_histogram(nsample,nbucket,0,TRUE);
+    for(ifrag=0;ifrag<nfrag;ifrag++) {
+      const int deleted = get_del_fragment(frags,ifrag);
+      const int contained = get_con_fragment(frags,ifrag);
+      const int spur = get_spur_fragment(frags,ifrag);
+      int isuffix;
+      if((!deleted)&&(contained)&&(!spur)) for(isuffix=0;isuffix<2;isuffix++) {
 	  const IntEdge_ID nnode = get_seglen_frc_vertex(frags,ifrag,isuffix);
 	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
 	}
-      }
-      fprintf(fout,"\n\nHistogram of the from-contained degree of the contained non-spur fragment-ends\n");
-      print_histogram(fout,edges_per_vertex_histogram, 0, 1);
-      free_histogram(edges_per_vertex_histogram);
     }
+    fprintf(fout,"\n\nHistogram of the from-contained degree of the contained non-spur fragment-ends\n");
+    print_histogram(fout,edges_per_vertex_histogram, 0, 1);
+    free_histogram(edges_per_vertex_histogram);
+  }
 
-    {
-      IntFragment_ID ifrag;
-      const int nsample=500;
-      const int nbucket=500;
-      Histogram_t 
-	*edges_per_vertex_histogram
-	= create_histogram(nsample,nbucket,0,TRUE);
-      for(ifrag=0;ifrag<nfrag;ifrag++) {
-	const int deleted = get_del_fragment(frags,ifrag);
-	const int contained = get_con_fragment(frags,ifrag);
-	const int spur = get_spur_fragment(frags,ifrag);
-	int isuffix;
-	if((!deleted)&&(contained)&&(spur)) for(isuffix=0;isuffix<2;isuffix++) {
+  {
+    IntFragment_ID ifrag;
+    const int nsample=500;
+    const int nbucket=500;
+    Histogram_t 
+      *edges_per_vertex_histogram
+      = create_histogram(nsample,nbucket,0,TRUE);
+    for(ifrag=0;ifrag<nfrag;ifrag++) {
+      const int deleted = get_del_fragment(frags,ifrag);
+      const int contained = get_con_fragment(frags,ifrag);
+      const int spur = get_spur_fragment(frags,ifrag);
+      int isuffix;
+      if((!deleted)&&(contained)&&(spur)) for(isuffix=0;isuffix<2;isuffix++) {
 	  const IntEdge_ID nnode = get_seglen_frc_vertex(frags,ifrag,isuffix);
 	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
 	}
-      }
-      fprintf(fout,"\n\nHistogram of the from-contained degree of the contained spur fragment-ends\n");
-      print_histogram(fout,edges_per_vertex_histogram, 0, 1);
-      free_histogram(edges_per_vertex_histogram);
     }
-
-    if(NULL != debug_file) { fclose(debug_file);}
+    fprintf(fout,"\n\nHistogram of the from-contained degree of the contained spur fragment-ends\n");
+    print_histogram(fout,edges_per_vertex_histogram, 0, 1);
+    free_histogram(edges_per_vertex_histogram);
+  }
 }
 
 void setup_fraginfo
@@ -1558,7 +1444,7 @@ void setup_fraginfo
   // const IntEdge_ID nedge = GetNumEdges(edges);
   FragmentHashObject *afr_to_avx = create_FragmentHash((max_frag_iid+1));
 
-#if defined(GENINFO) || defined(SIMINFO)
+#ifdef GENINFO
   /* Process the fragment source field. */ {
     IntFragment_ID ifrag;
     
@@ -1584,20 +1470,10 @@ void setup_fraginfo
   
   fprintf(stderr,"after processFragSourceString\n");
 
-#endif // defined(GENINFO) || defined(SIMINFO)
+#endif // GENINFO
   destroy_FragmentHash(afr_to_avx);
 }
 
-#if 0
-#pragma inline ovl_score
-static int ovl_score( float best_ovl, float qua) 
-{ 
-  // return  qua*best_ovl*10;
-  return (int)((0.06-qua)*best_ovl);
-  // return (int)((best_ovl*best_ovl) + (0.06-qua)*best_ovl);
-  // return (int)((best_ovl*best_ovl));
-}
-#endif
 
 
 void fragment_graph_analysis
@@ -1615,14 +1491,7 @@ void fragment_graph_analysis
  ) 
 {
   const IntFragment_ID nfrag = GetNumFragments(frags);
-  // const IntEdge_ID nedge = GetNumEdges(edges);
   Tfraginfo     *fraginfo   = CreateVA_Afraginfo(nfrag);
-
-  time_t tp1,tp2;
-#ifdef NEVER
-  int false_positive_brc=0, false_negative_brc=0, 
-    total_ovl_brc=0, total_sim_brc=0, total_sim_repeat_frags=0;
-#endif
 
   assert(frags      != NULL);
   assert(edges      != NULL);
@@ -1638,12 +1507,7 @@ void fragment_graph_analysis
   analyze_the_fragment_overlap_graph
     ( ffga, max_frag_iid, frags, edges);
 
-  if(TIMINGS) {
-    time(&tp1); fprintf(stderr,"Begin writing locality diagnostic.\n");
-  }
   { 
-    //FILE *fout = stdout;
-    // FILE * fdiag = fopen("cgb.diag_edge","w");
     IntEdge_ID ie1;
     const IntEdge_ID nedge = GetNumEdges(edges);
     const int nsample=500;
@@ -1668,11 +1532,6 @@ void fragment_graph_analysis
     print_histogram(ffga,edges_locality_histogram, 0, 1);
     free_histogram(edges_locality_histogram);
     // fclose(fdiag);
-  }
-  if(TIMINGS) {
-    time(&tp2); fprintf(stderr,"%10" F_TIME_TP " sec: Finished "
-			"locality diagnostic.\n",
-			(tp2-tp1));
   }
   DeleteVA_Afraginfo(fraginfo);
 

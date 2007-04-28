@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_classify.c,v 1.5 2006-09-26 22:21:13 brianwalenz Exp $";
+= "$Id: AS_CGB_classify.c,v 1.6 2007-04-28 08:46:21 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_classify.c
@@ -27,101 +27,14 @@ static char CM_ID[]
  * Description: These routines classify the fragments and overlaps in
  * a local manner as to their status in chunks.
  *
- * Assumptions: 
- *
  * Author: Clark Mobarry
  *********************************************************************/
 
-/*************************************************************************/
-/* System include files */
-
-/*************************************************************************/
-/* Local include files */
 #include "AS_CGB_all.h"
-//#include "AS_CGB_blizzard.h"
 
-/*************************************************************************/
-/* Conditional compilation */
 #undef DEBUGVIEW
 #undef USE_BUDDYCHUNK_EGDES
 
-/*************************************************************************/
-/* Global Defines */
-
-/*************************************************************************/
-/* File Scope Global Variables */
-static int TIMINGS = TRUE;
-
-/*************************************************************************/
-#if 0
-static void remap_edge_labels
-(
- Tfragment frags[],
- Tedge edges[])
-{
-  /* Remap the edge labels to a near FGB status.  The exception are
-    edges marked by spurs, crappy fragments, branchpoints, ....  */
-  
-  const IntEdge_ID nedge = GetNumEdges(edges);
-
-  { IntEdge_ID ie; for(ie=0; ie<nedge; ie++) {
-#if 0
-    const IntFragment_ID iavx = get_avx_edge(edges,ie);
-    const IntFragment_ID ibvx = get_bvx_edge(edges,ie);
-    const IntFragment_ID aid = get_iid_fragment(frags,iavx);
-    const IntFragment_ID bid = get_iid_fragment(frags,ibvx);
-    const int iahg = get_ahg_edge(edges,ie);
-    const int ibhg = get_bhg_edge(edges,ie);
-#endif    
-    const Tnes nes = get_nes_edge(edges,ie);
-
-    switch(nes) {
-
-      /* The containment overlaps... 'C' */
-    case AS_CGB_TO_CONTAINED_EDGE:
-      // do nothing ...
-      break;
-      
-    case AS_CGB_FROM_CONTAINED_EDGE:
-      // do nothing ...
-      break;
-
-      /* The dovetail overlaps... 'D' */
-    case AS_CGB_DOVETAIL_EDGE:
-    case AS_CGB_THICKEST_EDGE:
-      break;
-
-    case AS_CGB_BETWEEN_CONTAINED_EDGE:
-      set_nes_edge(edges,ie,AS_CGB_DOVETAIL_EDGE); 
-      fix_overlap_edge_mate(frags,edges,ie);
-      break;
-      
-    case AS_CGB_INTERCHUNK_EDGE:
-    case AS_CGB_BUDDYCHUNK_EDGE:
-    case AS_CGB_INTRACHUNK_EDGE:
-    case AS_CGB_TOUCHES_CONTAINED_EDGE:
-      set_nes_edge(edges,ie,AS_CGB_INTERCHUNK_EDGE); 
-      fix_overlap_edge_mate(frags,edges,ie);
-      break;
-
-    case AS_CGB_TOUCHES_CRAPPY_DVT:
-    case AS_CGB_TOUCHES_CRAPPY_TOC:
-    case AS_CGB_BETWEEN_CRAPPY_DVT:
-    case AS_CGB_BETWEEN_CRAPPY_TOC:
-    case AS_CGB_MARKED_BY_BRANCH_DVT:
-    case AS_CGB_MARKED_BY_BREAKER:
-    case AS_CGB_MARKED_BY_DELETED_DVT:
-    case AS_CGB_MARKED_BY_DELETED_FRC:
-    case AS_CGB_MARKED_BY_DELETED_TOC:
-      // Leave as is ....
-      break;
-    default:
-      fprintf(stderr,"Unsupported edge type %d\n",nes);
-      assert(FALSE);
-    }
-  }}
-}
-#endif
 
 static void maskout_overlaps_touching_crappy_fragments
 ( Tfragment * frags,
@@ -270,12 +183,6 @@ static void buddychunk_classification_of_overlaps
   IntEdge_ID buddy_edges_count = 0;
   IntEdge_ID buddy_invalid_edges_count = 0;
 #endif  
-  time_t tp1 = 0,tp2;
-
-  if(TIMINGS) {
-    tp1 = time(NULL); fprintf(stderr,"Begin buddychunk edge classification.\n");
-    system_top();
-  }
 
   for(ie0=0; ie0 < nedge; ie0++) {
     // For each candidate dovetail overlap edge.
@@ -284,16 +191,7 @@ static void buddychunk_classification_of_overlaps
     const int b0_suf = get_asx_edge(edges,ie0);
     const int c0_suf = get_bsx_edge(edges,ie0);
     const Tnes nes0 = get_nes_edge(edges,ie0);
-#if 0
-    fprintf(stdout,
-	    "ie0=" F_IID " b0_iid=" F_IID " b0_suf=%d c0_iid=" F_IID " c0_suf=%d nes=%d\n",
-	    ie0,
-	    get_iid_fragment(frags,b0_vid),
-	    b0_suf,
-	    get_iid_fragment(frags,c0_vid),
-	    c0_suf,
-	    nes0);
-#endif
+
     if( is_dovetail_for_chunk_classification(nes0) ) {
       const IntEdge_ID ie1 =
         find_thickest_dovetail_edge_for_buddy_classification
@@ -355,21 +253,13 @@ static void buddychunk_classification_of_overlaps
     }
   }
 
-  if(TIMINGS) {
-    tp1 = time(NULL); fprintf(stderr,"Finished buddy edge classification.\n");
-    system_top();
-  }
-
-  {
     fprintf(stderr,"buddy_edges_count=" F_IID "\n",
             buddy_edges_count);
 #ifdef DEBUG
     fprintf(stderr,"buddy_invalid_edges_count=" F_IID "\n",
             buddy_invalid_edges_count);
 #endif            
-  } 
 
-  //return buddy_edges_count/2;
 }
 #endif // USE_BUDDYCHUNK_EGDES
 
@@ -432,31 +322,6 @@ static void find_in_degree_of_essential_dovetails
       }
     }
   }
-  
-#if 0
-  {
-    IntFragment_ID vid;
-    FILE *fp = fopen("Q1.txt","w");
-    // #pragma omp parallel for
-    for(vid=0; vid<nfrag; vid++){
-      fprintf(fp,"% 10" F_IIDP " % 10" F_IIDP " | % 5d % 5d\n",
-      vid,
-      get_iid_fragment(frags,vid),
-      fragment_npx[vid],
-      // The number of dovetail edges that overlap the prefix of the
-      // read.
-      fragment_nsx[vid]);
-      // The number of dovetail edges that overlap the suffix of the
-      // read.
-    }
-    fclose(fp);
-  }
-#endif
-#if 0
-  {
-    view_fgb_chkpnt("Q2", frags, edges);
-  }
-#endif  
 }
 
 static void intrachunk_classification_of_overlaps
@@ -775,7 +640,6 @@ static void chunk_classification_of_fragments
     }
   }
 
-  // check_edges(frags, edges);
   safe_free(intrachunk_npx);
   safe_free(intrachunk_nsx);
   safe_free(interchunk_npx);
@@ -790,33 +654,9 @@ void chunk_classification_dvt
  const int remove_blizzard_overlaps
  )
 {
-  time_t tp1 = 0, tp2;
   fprintf(stderr,"** Entered chunk_classification_dvt\n");
   fprintf(stderr,"**   remove_blizzard_overlaps=%d\n",remove_blizzard_overlaps);
   
-    if(TIMINGS) {
-      tp1 = time(NULL); 
-      fprintf(stderr,
-	      "Begin making the global fragment assignment\n");
-    } 
-#if 0
-    remap_edge_labels( frags, edges);
-    count_fragment_and_edge_labels( frags, edges,
-                                    "after remap_edge_labels");
-    // Remap the edges to a near FGB state.  The exceptions being
-    // AS_TOUCHES_CRAPPY_DVT, AS_TOUCHES_CRAPPY_TOC, and
-    // AS_CGB_MARKED_BY_BRANCH_DVT.
-#endif
-
-    // Needs a global thread synchronization here.
-    // DANGER: I still need to make this incremental data safe.
-    if(TIMINGS) {
-      tp2 = time(NULL); 
-      fprintf(stderr,
-	      "%10" F_TIME_TP " sec: Finished making global "
-	      "fragment assignment.\n",(tp2-tp1));
-    }
-
 #ifdef USE_BUDDYCHUNK_EGDES
     buddychunk_classification_of_overlaps
       (frags, edges, walk_depth);
@@ -829,27 +669,11 @@ void chunk_classification_dvt
        walk_depth);
     count_fragment_and_edge_labels( frags, edges,
                                     "after intrachunk_classification_of_overlaps");
-    if(TIMINGS) {
-      tp2 = time(NULL);
-      fprintf(stderr,
-	      "%10" F_TIME_TP " sec: Finished chunk_classification_of_overlaps\n",
-	      (tp2-tp1));
-    }
 #ifdef DEBUGVIEW
     view_fgb_chkpnt( "chunk_classification_of_overlaps",
                      frags, edges); 
 #endif
-    if(TIMINGS) {
-      tp1 = time(NULL); 
-      fprintf(stderr,"Begin chunk_classification_of_fragments\n");
-    }
     chunk_classification_of_fragments(frags, edges);
-    if(TIMINGS) {
-      tp2 = time(NULL);
-      fprintf(stderr,
-	      "%10" F_TIME_TP " sec: Finished chunk_classification_of_fragments\n",
-	      (tp2-tp1));
-    }
     count_fragment_and_edge_labels( frags, edges,
                                     "after chunk_classification_of_fragments");
 #ifdef DEBUGVIEW

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.43 2007-04-26 14:07:03 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.44 2007-04-28 08:46:22 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -27,6 +27,7 @@
 #include <time.h>
 
 #include "AS_global.h"
+#include "AS_UTL_Var.h"
 
 // Defining the following enables internal source fields for testing
 #define AS_ENABLE_SOURCE
@@ -68,9 +69,9 @@ typedef enum {
   MESG_IUM, MESG_IUL, MESG_ICL, MESG_AFG, MESG_ISF, // 20
   MESG_IMD, MESG_IAF, MESG_UTG, MESG_ULK, MESG_ICM, // 25
   MESG_CCO, MESG_CLK, MESG_SCF, MESG_MDI, MESG_BAT, // 30  
-  MESG_IBA, MESG_BAC, MESG_IBC, MESG_SP2, MESG_IBI, // 35
+  MESG_SPl, MESG_SPn, MESG_SPm, MESG_SP2, MESG_IBI, // 35
   MESG_SP3, MESG_SP4, MESG_SP5, MESG_SP6, MESG_SP7, // 40
-  MESG_IDS, MESG_DSC, MESG_SLK, MESG_ISL, MESG_FOM, // 45
+  MESG_IDS, MESG_DSC, MESG_SLK, MESG_ISL, MESG_SPk, // 45
   MESG_SPd, MESG_SP8, MESG_SP9, MESG_SPa, MESG_EOF  // 50
 } MessageType;
 
@@ -84,9 +85,9 @@ static char  *MessageTypeName[NUM_OF_REC_TYPES + 1] = {
   "IUM", "IUL", "ICL", "AFG", "ISF", // 20  
   "IMD", "IAF", "UTG", "ULK", "ICM", // 25 
   "CCO", "CLK", "SCF", "MDI", "BAT", // 30  
-  "IBA", "BAC", "IBC", "SP2", "IBI", // 35
+  "SPl", "SPn", "SPm", "SP2", "IBI", // 35
   "SP3", "SP4", "SP5", "SP6", "SP7", // 40
-  "IDS", "DSC", "SLK", "ISL", "FOM", // 45
+  "IDS", "DSC", "SLK", "ISL", "SPk", // 45
   "SPd", "SP8", "SP9", "SPa", "EOF"  // 50
 };
 
@@ -98,16 +99,14 @@ typedef struct {
   int32        s;          /* The message size in bytes. */
 } GenericMesg;
 
-/* BAT && IBA record */
+/* BAT record */
 
 typedef struct InternalBatchMesgTag {
   char         *name;
   Batch_ID     eaccession;
   char         *comment;
   IntBatch_ID  iaccession;
-}InternalBatchMesg;
-
-typedef InternalBatchMesg BatchMesg;
+}BatchMesg;
 
 /* ADL record */
 
@@ -437,23 +436,6 @@ typedef struct {
   float32               quality;
 } UnitigOverlapMesg;
 
-/* FOM */
-// This is the alternative overlap message.  The FOM message includes
-// the same information as the OVL message in the absence of alignment
-// deltas.
-typedef struct {
-  IntFragment_ID	afrag;
-  IntFragment_ID     	bfrag;
-  ChunkOrientationType	orient;
-  UnitigOverlapType	overlap_type;
-#ifdef AS_ENABLE_SOURCE
-  char			*source;
-#endif
-  CDS_COORD_t           best_overlap_length;
-  CDS_COORD_t           min_overlap_length;
-  CDS_COORD_t           max_overlap_length;
-  float32               quality;
-} FragOverlapMesg;
 
 typedef struct {
   IntChunk_ID     iaccession;
@@ -524,6 +506,8 @@ typedef struct IntMultiPos {
 #endif
 } IntMultiPos;
 
+VA_DEF(IntMultiPos);
+
 /* IMV message */
 
 typedef struct IntMultiVar {
@@ -542,6 +526,8 @@ typedef struct IntMultiVar {
   char           *phs_iids; // iids of phased reads
 } IntMultiVar;
 
+VA_DEF(IntMultiVar);
+
 /* This is a variant of IntMultiPos to handle deltas in a longer (unitig) sequence */
 typedef struct {
   UnitigType    type;
@@ -555,6 +541,7 @@ typedef struct {
 #endif
 } IntUnitigPos;
 
+VA_DEF(IntUnitigPos);
 
 typedef struct {
   UnitigType   type;
@@ -571,6 +558,8 @@ typedef struct {
   IntFragment_ID  ident;
   SeqInterval     position;
 } IntElementPos;
+
+VA_DEF(IntElementPos);
 
 /* IUM */
 
@@ -593,6 +582,7 @@ typedef struct {
   IntMultiVar    *v_list;
 } IntUnitigMesg;
 
+VA_DEF(IntUnitigMesg);  //  Used by unitigger.
 
 /* The following message type will eventually be Removed */
 typedef struct {

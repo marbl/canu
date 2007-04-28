@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_cgb.h,v 1.7 2007-03-13 03:03:46 brianwalenz Exp $
+ * $Id: AS_CGB_cgb.h,v 1.8 2007-04-28 08:46:21 brianwalenz Exp $
  *
  * Module: AS_CGB_cgb.h
  *
@@ -120,32 +120,25 @@ static float compute_coverage_statistic
   // single coverage, negative for multiple coverage, and near zero
   // for indecisive.
 
-#undef ADJUST_FOR_PARTIAL_EXCESS
   // the standard statistic gives log likelihood ratio of expected depth vs.
   // twice expected depth; but when enough fragments are present, we can actually
   // test whether depth exceeds expected even fractionally; in deeply sequenced datasets
   // (e.g. bacterial genomes), this has been observed for repetitive segments
+#undef ADJUST_FOR_PARTIAL_EXCESS
+#ifdef ADJUST_FOR_PARTIAL_EXCESS
   if(rho>0&&global_fragment_arrival_rate>0.f){
     float lambda = global_fragment_arrival_rate * rho;
-    float zscore = ((number_of_randomly_sampled_fragments_in_chunk -1)-lambda)/
-      sqrt(lambda);
+    float zscore = ((number_of_randomly_sampled_fragments_in_chunk -1)-lambda) / sqrt(lambda);
     float p = .5 - erf(zscore/sqrt2)*.5;
     if(coverage_statistic>5 && p < .001){
-      fprintf(stderr,"Standard unitigger a-stat is %f , but only %e chance of this great an excess of fragments: obs = %d, expect = %g rho = " F_S64 " Will%s reset a-stat to 1.5\n",
+      fprintf(stderr,"Standard unitigger a-stat is %f, but only %e chance of this great an excess of fragments: obs = %d, expect = %g rho = " F_S64 " Will reset a-stat to 1.5\n",
 	      coverage_statistic,p,
 	      number_of_randomly_sampled_fragments_in_chunk-1,
-	      lambda,rho,
-#ifdef ADJUST_FOR_PARTIAL_EXCESS
-	      ""
-#else
-	      " not"
-#endif
-	      );
-#ifdef ADJUST_FOR_PARTIAL_EXCESS
+	      lambda,rho);
       return 1.5;
-#endif
     }
   }
+#endif
 
   return coverage_statistic;
 }

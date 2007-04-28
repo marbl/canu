@@ -9,14 +9,13 @@
 #include <errno.h>
 #include <string.h>
 
+extern "C" {
 #include "AS_global.h"
-
+}
 
 //  perl's chomp is pretty nice
 //
 #define chomp(S) { char *t=S; while (*t) t++; t--; while (isspace(*t)) *t--=0; }
-
-
 
 
 class splitToWords {

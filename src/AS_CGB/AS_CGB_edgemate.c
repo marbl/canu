@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_edgemate.c,v 1.5 2007-03-13 03:03:46 brianwalenz Exp $";
+= "$Id: AS_CGB_edgemate.c,v 1.6 2007-04-28 08:46:21 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_edgemate.c
@@ -147,7 +147,7 @@ QsortCompare get_compare_edge_function(void)
 
 //////////////////////////////////////////////////////////////////
 
-static IntEdge_ID find_overlap_edge_mate_binary_search
+IntEdge_ID find_overlap_edge_mate
 (/* Input Only */
  const Tfragment frags[], 
  const Tedge edges[],
@@ -234,18 +234,6 @@ static IntEdge_ID find_overlap_edge_mate_binary_search
 }
 
 
-IntEdge_ID find_overlap_edge_mate
-(/* Input Only */
- const Tfragment frags[], 
- const Tedge edges[],
- const IntEdge_ID ie0
- )
-{
-  return
-    //find_overlap_edge_mate_linear_search
-    find_overlap_edge_mate_binary_search
-    ( frags, edges, ie0 );
-}
 
 void fix_overlap_edge_mate
 (/* Input Only */
@@ -259,10 +247,6 @@ void fix_overlap_edge_mate
   const Tnes ines0 = get_nes_edge(edges,ie0);
   Tnes ines1 = ines0; // This will be the "fix".
 
-#if 0
-  assert( is_a_dvt_edge(edges,ie0) );
-#endif
-  
   if(AS_CGB_EDGE_NOT_FOUND == ie1) {
     const IntFragment_ID avx = get_avx_edge(edges,ie0);
     const IntFragment_ID bvx = get_bvx_edge(edges,ie0);
@@ -348,6 +332,10 @@ IntEdge_ID check_symmetry_of_the_edge_mates
  TIntEdge_ID * next_edge_obj
 )
 {
+
+  fprintf(stderr, "check_symmetry_of_the_edge_mates()--  Disabled.  (Was a NOP anyway)\n");
+  return(0);
+
   // const QsortCompare compare_edge = get_compare_edge_function();
   IntEdge_ID 
     ie0,
@@ -373,4 +361,3 @@ IntEdge_ID check_symmetry_of_the_edge_mates
           nedge, counter);
   return counter;
 }
-

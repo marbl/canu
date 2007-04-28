@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_cgb.c,v 1.8 2007-02-12 22:16:55 brianwalenz Exp $";
+= "$Id: AS_CGB_cgb.c,v 1.9 2007-04-28 08:46:21 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_cgb.c
@@ -29,24 +29,10 @@ static char CM_ID[]
  * augmentation, and writes the chunk graph using the assembler
  * message library.
  *
- * Assumptions: 
- *
  * Author: Clark Mobarry
  *********************************************************************/
 
-/*************************************************************************/
-/* System include files */
-
-/*************************************************************************/
-/* Local include files */
 #include "AS_CGB_all.h"
-
-#ifndef MAX
-#define MAX(a,b) ((a)>(b)?(a):(b))
-#endif
-
-/*************************************************************************/
-/* Conditional compilation */
 
 #define GNAT
 #undef DEBUG30
@@ -55,7 +41,6 @@ static char CM_ID[]
 
 #undef USE_SUM_OF_BHG_FOR_CONTAINMENTS
 
-#define SKIP_CONSENSUS
 #define PROCESS_CHAFF
 
 #undef HANGING_BY_REDUCED_EDGES
@@ -79,15 +64,8 @@ static char CM_ID[]
 #undef COORDS_FROM_A_END
 #define COORDS_FROM_A_END
 
-/*************************************************************************/
-/* Global Defines */
 #define AS_CGB_EDGE_NOT_VISITED     CDS_INT32_MAX
 
-/*************************************************************************/
-
-static int TIMINGS = TRUE;
-
-/*************************************************************************/
 
 static void check_edge_trimming
 ( 
@@ -346,11 +324,6 @@ static void add_fragment_to_chunk
           offset_error = AS_CGB_TRANSITIVE_SLOP_ALPHA 
             + (int)(AS_CGB_TRANSITIVE_SLOP_EPSILON*jlen);
           
-#if 0
-          if((pass == 0)) {
-            set_container_fragment(frags,ibvx,0);
-          }
-#endif          
           if( 
              // During the first pass discover the number of times a
              // fragment can be contained in different chunks.
@@ -512,10 +485,6 @@ static void make_a_chunk
   *nfrag_contained_in_chunk = 0;
   *nbase_contained_sampled_in_chunk = 0;
   
-#ifdef DEBUG_SHORTCUT1
-  fprintf(stdout,"Start shortcut: ichunk=" F_IID ", vid=" F_IID "\n",ichunk,vid);
-#endif
-
 #ifndef GNAT
   assert(fragment_timesinchunks[vid] == 0);
 #else // GNAT  
@@ -669,16 +638,6 @@ static void make_a_chunk
     
     assert(fragment_timesinchunks[iavx] == 0);
     assert(fragment_timesinchunks[ibvx] == 0);
-#ifdef DEBUG21
-    { 
-      IntFragment_ID iafr = get_iid_fragment(frags,iavx);
-      IntFragment_ID ibfr = get_iid_fragment(frags,ibvx);
-      fprintf(stdout,"FIRST INTRACHUNK EDGE "
-	      "iedge, iafr,iavx,iasx, ibfr,ibvx,ibsx ="
-	      F_IID ", " F_IID "," F_IID ",%d, " F_IID "," F_IID ",%d\n", 
-	      iedge, iafr,iavx,iasx, ibfr,ibvx,ibsx);
-    }
-#endif
   }
 
   {
@@ -971,15 +930,6 @@ static void fill_a_chunk_starting_at
   assert(GetNumVA_AChunkFrag(chunkfrags) == 
 	 irec_start_of_chunk+nfrag_in_chunk);
     
-#ifdef DEBUG_SHORTCUT4
-  fprintf(stdout,"ichunk,nfrag_in_chunk,nbase_essential_in_chunk,"
-	  "rho,nbase_sampled_in_chunk=\n");
-  fprintf(stdout,"%10" F_IIDP ",%5" F_IIDP "," BPFORMAT10 ", " BPFORMAT10 ", " BPFORMAT10 "\n",
-	  ichunk,nfrag_in_chunk,nbase_essential_in_chunk,
-	  rho,nbase_sampled_in_chunk);
-  // fflush(fout);
-#endif /*DEBUG_SHORTCUT4*/
-
   mychunk.iaccession   = ichunk;
   mychunk.bp_length    = nbase_essential_in_chunk;
   mychunk.rho          = rho;
@@ -990,31 +940,6 @@ static void fill_a_chunk_starting_at
   mychunk.num_frags    = nfrag_in_chunk;
   mychunk.f_list       = irec_start_of_chunk;
   mychunk.isrc = 0; 
-  // All chunk annotations initially point to the same location.  We
-  // need this string to be initialized.
-#if 0
-  { 
-    /* Count the total amount of guide fragments in the chunk. */
-    IntFragment_ID ii;
-    for(ii=0;ii<mychunk.num_frags;ii++) {
-      const IntFragment_ID ifrag = 
-	GetVA_AChunkFrag(chunkfrags,mychunk.f_list+ii)->vid;
-      const FragType type = 
-	get_typ_fragment(frags,ifrag);
-      if (type != AS_READ && 
-          type != AS_EXTR){
-	num_of_guides_in_chunk++;
-	// Only AS_READ and AS_EXTR fragments are to be used in Gene
-	// Myers coverage discriminator statistic.
-      }
-    }
-#if 0
-    fprintf(stderr,
-	    "RICHU pass=%d, ichunk=" F_IID ", num_frags=" F_IID " (guides=%d)\n",
-	    pass, ichunk, mychunk.num_frags, num_of_guides_in_chunk);
-#endif
-  }
-#endif
 
   mychunk.chunk_avx    = chunk_avx;
   mychunk.chunk_asx    = chunk_asx;
@@ -1026,9 +951,6 @@ static void fill_a_chunk_starting_at
   mychunk.b_list_raw   = get_segstart_vertex(frags,chunk_bvx,chunk_bsx);
   mychunk.b_degree_raw = get_seglen_vertex(frags,chunk_bvx,chunk_bsx);
 
-#if 0
-  assert(nfrag_in_chunk>=num_of_guides_in_chunk);
-#endif
   assert(nfrag_in_chunk>0);
 
 #if 0
@@ -1100,37 +1022,8 @@ static void make_the_chunks
   const int num_passes=2;
   // To implement the logic to eject multiply containable fragments.
 
-#if 1
-  {
-    { IntFragment_ID vid; for(vid=0;vid<GetNumFragments(frags);vid++) { 
-      IntFragment_ID iid = get_iid_fragment(frags,vid);
-      Tlab lab = get_lab_fragment(frags,vid);
-      int con = get_con_fragment(frags,vid);
-      
-      if(!(
-           (!con) ||
-           (AS_CGB_UNPLACEDCONT_FRAG == lab) ||
-           (AS_CGB_SINGLECONT_FRAG == lab) ||
-           (AS_CGB_MULTICONT_FRAG == lab) ||
-           (AS_CGB_BRANCHMULTICONT_FRAG == lab) )) {
-        fprintf(stderr,
-                "ZARGO: iid=" F_IID " vid=" F_IID " con=%d lab=%d container=" F_IID "\n",
-                iid, vid,
-                get_con_fragment(frags,vid),
-                get_lab_fragment(frags,vid),
-                get_container_fragment(frags,vid)
-                );
-      }
-    }}
-  }
-#endif
-
   count_fragment_and_edge_labels( frags, edges,
                                   "before chunking passes");
-#ifdef DEBUGGING
-  view_fgb_chkpnt( "before_chunking_passes", frags, edges);
-#endif  
-
 
   { int pass; for(pass=0; pass<num_passes; pass++) {
 
@@ -1166,8 +1059,6 @@ static void make_the_chunks
       // Zero is the sentinal fragment iid for no container fragment.
     }}
 
-    fprintf(stderr, __FILE__ " line %d\n", __LINE__);
-    
     // Assign chunks to essential fragments at the ends of chunks.
     { IntFragment_ID vid; for(vid=0;vid<GetNumFragments(frags);vid++) 
       /* beginning loop through fragment */ {
@@ -1197,8 +1088,6 @@ static void make_the_chunks
     count_fragment_and_edge_labels( frags, edges,
                                     "In a chunking pass at A");
 
-    fprintf(stderr, __FILE__ " line %d\n", __LINE__);
-
     // Assign chunks to Circular chunks.
     { IntFragment_ID vid; for(vid=0;vid<GetNumFragments(frags);vid++) 
       /* beginning loop through fragment */ {
@@ -1224,8 +1113,6 @@ static void make_the_chunks
     count_fragment_and_edge_labels( frags, edges,
                                     "In a chunking pass at B");
 
-    fprintf(stderr, __FILE__ " line %d\n", __LINE__);
-
   { IntFragment_ID vid; for(vid=0;vid<GetNumFragments(frags);vid++) { 
       const Tlab ilabv = get_lab_fragment(frags,vid);
       if( (fragment_timesinchunks[vid] > 1) ) {
@@ -1239,48 +1126,14 @@ static void make_the_chunks
           fprintf(stderr,"ERROR: mis-labeled MULTICONT fragment iid=" F_IID " lab=%d \n",
                   iid, ilabv);
         }
-#if 1
 	assert( (ilabv == AS_CGB_UNPLACEDCONT_FRAG) ||
 	        (ilabv == AS_CGB_MULTICONT_FRAG)
                 );
-#else        
-        set_container_fragment(frags,vid,0);
-#endif        
+
 	set_lab_fragment(frags,vid,AS_CGB_MULTICONT_FRAG);
-#if 0
-	fill_a_chunk_starting_at
-	  ( pass, 
-            work_limit_placing_contained_fragments, vid,
-	    frags, edges,
-	    fragment_timesinchunks,
-	    chunkfrags, thechunks);
-#endif	
+
         // This field is used by the consensus phase to walk the
         // fragment overlap layout tree for each unitig.
-      }
-      if( (pass > 0) &&
-	  (fragment_timesinchunks[vid] == 0) &&
-          (ilabv != AS_CGB_DELETED_FRAG)   ) {
-	// We have an orphaned fragment!!!!
-#if 0
-	if(!((ilabv == AS_CGB_ORPHANEDCONT_FRAG) ||
-	     (ilabv == AS_CGB_SINGLECONT_FRAG) ||
-	     (ilabv == AS_CGB_MULTICONT_FRAG) ||
-             (ilabv == AS_CGB_DELETED_FRAG) ))
-#endif          
-          {
-	  fprintf(stderr,
-		  "A contained orphaned fragment! "
-		  "pass=%d"
-                  " uid=" F_UID
-                  " iid=" F_IID " vid=" F_IID ", type=%d, label=%d\n",
-		  pass,
-		  get_uid_fragment(frags,vid),
-		  get_iid_fragment(frags,vid),
-		  vid,
-		  get_typ_fragment(frags,vid),
-		  get_lab_fragment(frags,vid));
-	}
       }
   }}
 
@@ -1310,26 +1163,10 @@ static void make_the_chunks
       }
     }
     
-    fprintf(stderr, __FILE__ " line %d\n", __LINE__);
-
     for(vid=0;vid<nfrag;vid++) {
       /* beginning loop through fragment */
       const Tlab lab = get_lab_fragment(frags,vid);
-#if 0
-      const IntFragment_ID container = get_container_fragment(frags,vid);
-      const IntFragment_ID iid = get_iid_fragment(frags,vid);
 
-      if( (0 != container) && (lab != AS_CGB_SINGLECONT_FRAG) ) {
-        // 0 is not used as a fragment IID.
-        fprintf(stderr,
-                "ERROR: iid,vid,lab,container=" F_IID "," F_IID
-                ",%d," F_IID "\n",
-                iid,vid,lab,container);
-        // exit(1);
-      }
-#endif
-
-#if 1
       if( (fragment_timesinchunks[vid] == 0) &&
           (lab != AS_CGB_DELETED_FRAG) ) {
         const int pass = num_passes; // CMM This is a HACK!!!!
@@ -1341,14 +1178,11 @@ static void make_the_chunks
 	    frags, edges,
 	    fragment_timesinchunks,
 	    chunkfrags, thechunks);
-#endif
       }
     }} /* End of a loop over all fragments. */
   fprintf(stderr," after pass=%d\n",num_passes);
 #endif // PROCESS_CHAFF
   
-  fprintf(stderr, __FILE__ " line %d\n", __LINE__);
-
   // Quality control!!!
   // Check that each fragment is refered to once and only once in all 
   // of the unitigs.
@@ -1367,14 +1201,7 @@ static void make_the_chunks
       AChunkMesg * const mychunkptr = GetAChunkMesg(thechunks,ichunk);
       assert(mychunkptr != NULL);
       irec_start_of_chunk = mychunkptr->f_list;
-      // assert(irec_start_of_chunk >= 0);
-      // assert(irec_start_of_chunk < nfrag);
 
-#ifdef DEBUG11
-      fprintf(stderr,"make_the_chunks: ichunk=" F_IID ",num_frags=" F_IID "\n",
-	      ichunk,GetAChunkMesg(thechunks,ichunk)->num_frags);
-#endif    
-      
       for(iv=0; iv<(mychunkptr->num_frags); iv++) {
 	IntFragment_ID ivc,iid,vid;
 	AChunkFrag * mychunkfrag = NULL;
@@ -1411,68 +1238,6 @@ static void make_the_chunks
           }
         }
         fragment_timesinchunks[vid] ++;
-
-	switch(get_lab_fragment(frags,vid)) {
-	case AS_CGB_SOLO_FRAG: 
-#ifdef DEBUG11
-	  fprintf(stderr,"SOLO        IID,VID = " F_IID "," F_IID "\n",iid,vid);
-#endif
-	  break;
-	case AS_CGB_HANGING_FRAG: 
-#ifdef DEBUG11
-	  fprintf(stderr,"HANGING    IID,VID = " F_IID "," F_IID "\n",iid,vid);
-#endif
-	  break;
-	case AS_CGB_THRU_FRAG: 
-#ifdef DEBUG11
-	  fprintf(stderr,"THRU    IID,VID = " F_IID "," F_IID "\n",iid,vid);
-#endif
-	  break;
-	case AS_CGB_MULTICONT_FRAG: 
-#ifdef DEBUG11
-	  fprintf(stderr,"MULTICONT   IID,VID = " F_IID "," F_IID "\n",iid,vid);
-#endif
-	  break;
-	case AS_CGB_ORPHANEDCONT_FRAG: 
-#ifdef DEBUG11
-	  fprintf(stderr,"Orphaned    IID,VID = " F_IID "," F_IID "\n",iid,vid);
-#endif
-	  break;
-	case AS_CGB_HANGING_CHUNK_FRAG: 
-#ifdef DEBUG11
-	  fprintf(stderr,"HANGING CHUNK IID,VID = " F_IID "," F_IID "\n",iid,vid);
-#endif
-	  break;
-	case AS_CGB_HANGING_CRAPPY_FRAG: 
-#ifdef DEBUG11
-	  fprintf(stderr,"HANGING CRAPPY IID,VID = " F_IID "," F_IID "\n",iid,vid);
-#endif
-	  break;
-	case AS_CGB_INTERCHUNK_FRAG: 
-#ifdef DEBUG11
-	  fprintf(stderr,"INTERCHUNK  IID,VID = " F_IID "," F_IID "\n",iid,vid);
-#endif
-	  break;
-	case AS_CGB_INTRACHUNK_FRAG:
-#ifdef DEBUG11
-	  fprintf(stderr,"INTRACHUNK   IID,VID = " F_IID "," F_IID "\n",iid,vid);
-#endif
-	  break;
-	case AS_CGB_SINGLECONT_FRAG:
-#ifdef DEBUG11
-	  fprintf(stderr,"SINGLECONT    IID,VID = " F_IID "," F_IID "\n",iid,vid);
-#endif
-	  break;
-	case AS_CGB_BRANCHMULTICONT_FRAG: 
-#ifdef DEBUG11
-	  fprintf(stderr,"BRANCHMULTICONT  IID,VID = " F_IID "," F_IID "\n",iid,vid);
-#endif
-	  break;
-	case AS_CGB_DELETED_FRAG:
-          break;
-	default:
-	  assert(FALSE);
-	}
       }
     }
   }
@@ -1612,7 +1377,6 @@ void chunk_graph_build_1
  TChunkMesg    *thechunks
  ) 
 {
-  time_t tp1,tp2;
   IntFragment_ID nfrag = GetNumFragments(frags);
   // IntEdge_ID nedge = GetNumEdges(edges);
 
@@ -1624,16 +1388,6 @@ void chunk_graph_build_1
   assert(thechunks  != NULL);
   assert(fragment_timesinchunks != NULL);
 
-  /* BEGIN CHUNK GRAPH BUILDING */
-
-  /******************************************************
-   * We now make the graph G3
-   * That is a chunk graph.
-   ******************************************************/
-
-  if(TIMINGS) {
-    time(&tp1); fprintf(stderr,"Begin make_the_chunks\n");
-  }
 
 #ifdef DEBUG71
   view_fgb_chkpnt("AAA", frags, edges);
@@ -1649,11 +1403,6 @@ void chunk_graph_build_1
 		  chunkfrags,
 		  thechunks
 		  );
-
-  if(TIMINGS) {
-    time(&tp2); fprintf(stderr,"%10" F_TIME_TP " sec: Finished make_the_chunks \n",
-			(tp2-tp1));
-  }
   
   check_edge_trimming( frags, edges);
 
@@ -1692,32 +1441,16 @@ void chunk_graph_build_1
 
   if( chimeras_file ) {
     cds_uint32 num_chimeras = 0;
-    if(TIMINGS) {
-      time(&tp1); fprintf(stderr,"Begin count_chimeras\n");
-    }
     num_chimeras = count_chimeras
       (chimeras_file, cgb_unique_cutoff, frags, edges, chunkfrags, thechunks);
     check_edge_trimming( frags, edges);
-    if(TIMINGS) {
-      time(&tp2); 
-      fprintf(stderr,"%10" F_TIME_TP " sec: Finished count_chimeras. " F_U32 " found \n",
-	      (tp2-tp1),num_chimeras);
-    }
   }
     
   if( spurs_file ) {
     cds_uint32 num_crappies = 0;
-    if(TIMINGS) {
-      time(&tp1); fprintf(stderr,"Begin count_crappies\n");
-    }
     num_crappies = count_crappies
       (spurs_file, cgb_unique_cutoff, frags, edges, chunkfrags, thechunks);
     check_edge_trimming( frags, edges);
-    if(TIMINGS) {
-      time(&tp2); 
-      fprintf(stderr,"%10" F_TIME_TP " sec: Finished count_crappies. " F_U32 " found \n",
-	      (tp2-tp1),num_crappies);
-    }
   }
     
   safe_free(fragment_timesinchunks);
@@ -1747,9 +1480,6 @@ void chunk_graph_build_2
  FILE          *fbpts2
  ) 
 {
-#ifndef SKIP_CONSENSUS
-  time_t tp1,tp2;
-#endif
 
   /* In case the analysis flag is not set, just make sure that 
      a few variable are initialized so the output routine
@@ -1763,45 +1493,15 @@ void chunk_graph_build_2
     // Set the default chunk annotations to the empty string.
   }
 
-#ifndef SKIP_CONSENSUS
-  if(use_consensus) {
-
-    if(TIMINGS) {
-      time(&tp1); fprintf(stderr,"Begin making the unitig sequences\n");
-    }
-    ResetVA_char(chunkseqs);
-    ResetVA_char(chunkquas);
-    Make_Chunk_Sequences
-      (chunkseqs,chunkquas,
-       frags,afr_to_avx,chunkfrags,thechunks,gkpStore);
-    if(TIMINGS) {
-      time(&tp2); 
-      fprintf(stderr,"%10" F_TIME_TP " sec: Finished making the unitig sequences\n",
-		       (tp2-tp1));
-    }
-  }
-#endif // SKIP_CONSENSUS
-
 #ifdef BRANCHPOINTS
 #error branchpoints defined
   if( ! dont_find_branch_points ) {
-    if(TIMINGS) {
-      time(&tp1); fprintf(stderr,"Begin find_the_branch_points\n");
-    }
     find_the_branch_points
       ( use_consensus, cgb_unique_cutoff, global_fragment_arrival_rate,
         gkpStore, frags, edges, chunkfrags, 
 	chunkseqs, thechunks, fbpts1);
-    if(TIMINGS) {
-      time(&tp2); 
-      fprintf(stderr,"%10" F_TIME_TP " sec: Finished find_the_branch_points \n",
-	      (tp2-tp1));
-    }
 
 #ifdef STORE_BRANCH_POINTS_AT_FRAGMENT
-    if(TIMINGS) {
-      time(&tp1); fprintf(stderr,"Begin save fragment-end branch-points\n");
-    }
     {
       FILE * fout = fbpts2;
       if(NULL != fout) {
@@ -1820,16 +1520,8 @@ void chunk_graph_build_2
         }
       }
     }
-    if(TIMINGS) {
-      time(&tp2); 
-      fprintf(stderr,"%10" F_TIME_TP " sec: Finished save fragment-end branch-points\n",
-	      (tp2-tp1));
-    }
 #endif // STORE_BRANCH_POINTS_AT_FRAGMENT
     
-    if(TIMINGS) {
-      time(&tp1); fprintf(stderr,"Begin the edge trimmming.\n");
-    }
 #ifndef STORE_BRANCH_POINTS_AT_FRAGMENT
     chunk_end_edge_trimmer
       ( /* input only */
@@ -1848,22 +1540,10 @@ void chunk_graph_build_2
        edges);
 #endif // STORE_BRANCH_POINTS_AT_FRAGMENT
     check_edge_trimming( frags, edges);
-    if(TIMINGS) {
-      time(&tp2); 
-      fprintf(stderr,"%10" F_TIME_TP " sec: Finished the edge trimming.\n",
-	      (tp2-tp1));
-    }
 
 #ifdef UNDIRECTED_DEBUG_2
-    if(TIMINGS) {
-      time(&tp1); fprintf(stderr,"Begin check edges.\n");
-    }
     check_edges1(frags, edges, FALSE);
     check_edges2(frags, edges, FALSE);
-    if(TIMINGS) {
-      time(&tp2); fprintf(stderr,"%10" F_TIME_TP " sec: Finished check edges.\n",
-			  (tp2-tp1));
-    }
 #endif /*UNDIRECTED_DEBUG_2*/
   } // ! dont_find_branch_points
 #endif // BRANCHPOINTS

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ScaffoldGraph_CGW.h,v 1.16 2007-04-16 15:35:40 brianwalenz Exp $	 */
+/* 	$Id: ScaffoldGraph_CGW.h,v 1.17 2007-04-28 08:46:22 brianwalenz Exp $	 */
 /***************************************************************************
  *  ScaffoldGraph
  *  
@@ -91,14 +91,11 @@ typedef struct {
 
 VA_DEF(InfoByIID);
 
-
 VA_DEF(ChunkInstanceT);
 VA_DEF(CIScaffoldT);
 VA_DEF(ContigT);
 VA_DEF(CIEdgeT);
 VA_DEF(SEdgeT);
-
-
 
 typedef struct{
   VA_TYPE(InfoByIID)      *iidToFragIndex;  // map from iid to fragment

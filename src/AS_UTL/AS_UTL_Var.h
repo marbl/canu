@@ -73,6 +73,7 @@
 #include <assert.h>
 
 #include "AS_global.h"
+#include "AS_UTL_alloc.h"
 
 #define VA_TYPENAMELEN 32 /* The number of significant characters used to 
 			     distinguish a array element type. */

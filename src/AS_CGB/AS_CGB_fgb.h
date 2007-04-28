@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_fgb.h,v 1.4 2005-03-22 19:48:27 jason_miller Exp $
+ * $Id: AS_CGB_fgb.h,v 1.5 2007-04-28 08:46:21 brianwalenz Exp $
  *
  * Module: AS_CGB_fgb.h
  * Description: 
@@ -41,8 +41,7 @@ void transitive_edge_marking
  const int cutoff_fragment_end_degree,
  const int work_limit_per_candidate_edge,
  const IntFragment_ID iv_start,
- const int analysis_flag,
- const char Output_Graph_Store[]
+ const int analysis_flag
  );
 
 void reorder_edges

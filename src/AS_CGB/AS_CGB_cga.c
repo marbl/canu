@@ -18,8 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] 
-= "$Id: AS_CGB_cga.c,v 1.11 2007-03-13 03:03:46 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_cga.c,v 1.12 2007-04-28 08:46:21 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_cga.c
@@ -36,42 +35,9 @@ static char CM_ID[]
  * Author: Clark Mobarry
  ********************************************************************/
 
-/*************************************************************************/
-/* System include files */
-
-/*************************************************************************/
-/* Local include files */
 #include "AS_CGB_all.h"
 #include "AS_CGB_myhisto.h"
 
-/*************************************************************************/
-/* File Scope Global Variables */
-static int TIMINGS = TRUE;
-
-/*************************************************************************/
-/* Conditional compilation */
-
-#define DEBUGGING
-#undef DEBUGGING
-
-#ifdef DEBUGGING
-#define ORDERING
-#define DEBUG01
-#define DEBUG8
-#define DEBUG78
-#undef DEBUG14
-#undef DEBUG15
-#define DEBUG17
-#define DEBUG77
-#undef DEBUG_SHORTCUT
-#endif // DEBUGGING
-
-/*************************************************************************/
-/* Global Defines */
-
-#define GRAPHID(ifrag) ifrag
-
-#define NLETTERS 26
 
 typedef struct {
   BPTYPE atip,btip;    /* Coordinates from 0..(length of genome). */
@@ -108,10 +74,7 @@ char * ChunkLabelDesc[MAX_NUM_CHUNK_LABELS] = {
 
 
 
-/*************************************************************************/
-/*************************************************************************/
-
-//#define ABS(a) (((a)>0)?(a):(-(a)))
+#ifdef DEBUG_VISUAL
 
 typedef struct {
   int32 key;
@@ -249,7 +212,7 @@ static void plot_edges_from_vertex
       fprintf(stderr,"plot edge iavx=" F_IID ",ibvx=" F_IID "\n",iavx,ibvx);
 #endif
       /* Format the bvx index to a string. */
-      sprintf(vs3,F_IID,GRAPHID(ibvx));
+      sprintf(vs3,F_IID,ibvx);
 	      
       sprintf(essential_string," ");
       if( inese == AS_CGB_INTRACHUNK_EDGE ) 
@@ -313,15 +276,11 @@ static void exhale_term_rep
   fragment_visited = safe_malloc(sizeof(IntFragment_ID) * nfrag);
 
   {
-    time_t tp1,tp2;
     IntFragment_ID ifrag;
     
 #ifdef DEBUGGING
     fprintf(stderr,"Sort the fragments by genome position.\n");
 #endif
-    if(TIMINGS) {
-      time(&tp1); fprintf(stderr,"Begin sort\n");
-    }
     for(ifrag=0; ifrag<nfrag; ifrag++) {
       if(fraginfo != NULL) {
 	fragment_mapping[ifrag].key = (int32) 
@@ -344,10 +303,6 @@ static void exhale_term_rep
       { fragment_visited[fragment_ranking[ifrag]] ++;}
     for(ifrag=0;ifrag<nfrag;ifrag++) 
       { assert(fragment_visited[ifrag] == 1);}
-      
-    if(TIMINGS) {
-      time(&tp2); fprintf(stderr,"%10" F_TIME_TP " sec: Finished sort\n",(tp2-tp1));
-    }
   }
 
   /* Initialize a flag for chunk following. */
@@ -395,7 +350,7 @@ static void exhale_term_rep
       /* mark this fragment unique to this pass */
 
       /* Format the avx index into a string. */
-      sprintf(vs0,"\"" F_IID "\"",GRAPHID(ifrag));
+      sprintf(vs0,"\"" F_IID "\"",ifrag);
       /* Format the afr index into a string. */
       if(fraginfo == NULL) {
 	sprintf(vs1,"a(\"OBJECT\",\"(" F_IID ":" F_IID ")\"),",
@@ -509,6 +464,9 @@ static void graph_diagnostics
       assert(0);
   }
 }
+
+#endif  //  DEBUG_VISUAL
+
 
 static void annotate_the_chunks_with_coordinate_info
 (/*Input Only*/
@@ -661,14 +619,6 @@ static void annotate_the_chunks_with_coordinate_info
 #ifdef GENINFO
 	  assert(abforward != -1);
 	  direction_error += (abforward ^ ((iend>ibgn) ^ ibsx));
-#if 0
-          {
-            const IntFragment_ID iid = get_iid_fragment(frags,vid);
-
-            fprintf(stderr,"iid,ifrag,abforward,ibgn,iend,ibsx=" F_IID "," F_IID ",%d," BPFORMAT "," BPFORMAT ",%d\n",
-                    iid,ifrag,abforward,ibgn,iend,ibsx);
-          }
-#endif
 	  invalid = check_overlap_with_simulator(nfrag,fraginfo,iavx,ibvx);
 	  if(invalid) {
             const int acon = get_con_fragment(frags,iavx);
@@ -2180,13 +2130,6 @@ static void analyze_the_chunks
               case AS_CGB_INTRACHUNK_EDGE:
               case AS_CGB_DOVETAIL_EDGE:
               case AS_CGB_THICKEST_EDGE:
-#if 0
-                fprintf(stderr,"Unexpected overlap label nes=%d interior to chunk\n", nes);
-                fprintf(stderr,"ichunk=" F_IID " isuffix=%d ifrag=" F_IID " isuff=%d\n",
-                        ichunk, isuffix, ifrag, isuff);
-                // Should this edge type be seen here??
-		//assert(FALSE);
-#endif
                 break;
 	      case AS_CGB_TOUCHES_CONTAINED_EDGE:
 		num_as_touches_contained_overlap[isuffix]++; break;
@@ -2551,6 +2494,9 @@ static void analyze_the_chunks
   destroy_FragmentHash(afr_to_avx);
 } 
 
+
+
+
 void chunk_graph_analysis
 (/* Input Only */
  const int        analysis_flag,
@@ -2586,9 +2532,6 @@ void chunk_graph_analysis
   ChunkAnnotation *chunkinfo
     = (ChunkAnnotation *)safe_malloc((nchunks)*sizeof(ChunkAnnotation));
 
-#ifdef DEBUG
-  time_t tp1,tp2;
-#endif
   Tfraginfo     *fraginfo = NULL;
 
   assert(frags      != NULL);
@@ -2597,16 +2540,6 @@ void chunk_graph_analysis
   assert(chunkfrags != NULL);
   assert(thechunks  != NULL);
   assert(chunkinfo !=NULL);
-
-#if 0
-  assert(fcga != NULL);
-  assert(fp_unitig_statistics != NULL);
-  assert(fwrn != NULL);
-#else
-  warning_AS(fcga != NULL);
-  warning_AS(fp_unitig_statistics != NULL);
-  warning_AS(fwrn != NULL);
-#endif
 
   if( ProcessFragmentAnnotationsForSimulatorCoordinates ) {
     assert(NULL == fraginfo);
@@ -2641,21 +2574,13 @@ void chunk_graph_analysis
     }
   }
 
-#ifdef DEBUG
-  time(&tp1); fprintf(stderr,"Begin Statistical Graph Diagnostics\n");
-#endif
-  
-  /* BEGIN CHUNK GRAPH ANALYSIS */ {
-
-    /******************************************************
-     * Statistical Graph Diagnostics
-     ******************************************************/
+  /******************************************************
+   * Statistical Graph Diagnostics
+   ******************************************************/
 
     fprintf(stderr,"Begin Statistical Graph Diagnostics " __FILE__ "\n");
     fprintf(stderr,"nbase_in_genome=" BPFORMAT "\n",nbase_in_genome);
-    fprintf(stderr,
-	    "global_fragment_arrival_rate=%f\n",
-	    global_fragment_arrival_rate);
+    fprintf(stderr, "global_fragment_arrival_rate=%f\n", global_fragment_arrival_rate);
 
     analyze_the_fragment_overlap_graph
       (fcga,
@@ -2676,7 +2601,8 @@ void chunk_graph_analysis
        global_fragment_arrival_rate );
 
     fprintf(stderr,"End Statistical Graph Diagnostics " __FILE__ "\n");
-  } /* END CHUNK GRAPH ANALYSIS */
+
+
 
   if(NULL == fraginfo) {
     IntChunk_ID ichunk;
@@ -2694,7 +2620,9 @@ void chunk_graph_analysis
       }
     }
   }
-#if defined(GENINFO) || defined(SIMINFO)
+
+
+#ifdef GENINFO
   else /* (NULL != fraginfo) */ {
   /* 
      genome location type:
@@ -2715,11 +2643,6 @@ void chunk_graph_analysis
   {
     // FILE *fout=stdout;
     IntChunk_ID ichunk;
-#ifdef SIMINFO
-    int false_positive_brc = 0, false_negative_brc = 0;
-    int simulator_bpts=0, unitigger_bpts=0;
-    int unitigger_bpt=FALSE, simulator_bpt=FALSE;
-#endif
 
 #define  NUM_COLOURS   16
 
@@ -2783,7 +2706,7 @@ void chunk_graph_analysis
       FILE * cgb_bubbles = NULL;
       FragmentHashObject *afr_to_avx = NULL; 
 
-      SAFE_FOPEN(cgb_bubbles, bubble_boundaries_filename,"r");
+      cgb_bubbles = fopen(bubble_boundaries_filename,"r");
       afr_to_avx = create_FragmentHash(max_frag_iid+1);
 
       {
@@ -2811,11 +2734,6 @@ void chunk_graph_analysis
                           F_IID " %d " F_IID " %d\n", 
                           &start_iid, &start_sx, &end_iid, &end_sx);
           if(nitems != 4 ) break;
-#if 0
-          fprintf(stdout,
-                 "CGABUBBLES: " F_IID " %d " F_IID " %d\n", 
-                 start_iid, start_sx, end_iid, end_sx);
-#endif
 	  start_vid = get_vid_FragmentHash(afr_to_avx,start_iid);
 	  end_vid   = get_vid_FragmentHash(afr_to_avx,end_iid);
 	  assert(get_iid_fragment(frags,start_vid) == start_iid);
@@ -2853,7 +2771,7 @@ void chunk_graph_analysis
           }
           bubble_count++;
         }
-        SAFE_FCLOSE(cgb_bubbles);
+        fclose(cgb_bubbles);
       }
       destroy_FragmentHash(afr_to_avx);
     }
@@ -2898,172 +2816,6 @@ void chunk_graph_analysis
 	strcpy(GetVA_char(chunksrcs,nchunksrc),source);
       }
 
-#ifdef SIMINFO
-      /* Begin checking the new chunk based branch points. */ {
- 
-	/* The simulator^s definition of a branch point is as
-           follows. It is the first transition from a repeat region to
-           another repeat region or the unique region of the genome is
-           a branch point.  */
-
-	/* A false positive branch point is defined as a branch point
-           more than 10 bps into the unique region of the genome.
-           This can be checked by taking the branch points of the
-           unitig and finding the fragments that include the branch
-           points. If the branch points are in the unique region of
-           the genome as determined by the fragments simulator
-           information, then it is a false positive branch point.  */
-	
-
-	/* A false negative branch point is defined when a simulator
-	 branch point is detected in a unitig, but a branch point was
-	 not found.  */
-	
-	const IntFragment_ID chunk_avx
-          = GetVA_AChunkMesg(thechunks,ichunk)->chunk_avx;
-	const IntFragment_ID chunk_bvx
-          = GetVA_AChunkMesg(thechunks,ichunk)->chunk_bvx;
-
-	const int chunk_asx = GetVA_AChunkMesg(thechunks,ichunk)->chunk_asx;
-	const int chunk_bsx = GetVA_AChunkMesg(thechunks,ichunk)->chunk_bsx;
-	int gen_frag_bplength;
-	IntFragment_ID ifrag
-	int isuffix, branching, position;
-	
-	branching = GetVA_AChunkMesg(thechunks,ichunk)->a_branch_type;
-	position  = GetVA_AChunkMesg(thechunks,ichunk)->a_branch_point;
-	ifrag   = chunk_avx;
-	isuffix = chunk_asx;
-	gen_frag_bplength = get_genend_fraginfo(fraginfo,ifrag) 
-	  - get_genbgn_fraginfo(fraginfo,ifrag);
-	gen_frag_bplength = (gen_frag_bplength > 0 ? 
-			     gen_frag_bplength : -gen_frag_bplength); 
-
-	assert(branching != AS_INTO_REPEAT);
-	unitigger_bpt = (branching == AS_INTO_UNIQUE);
-	simulator_bpt = 
-	  ((isuffix == TRUE)&&
-	   // Is there enough repeated sequence?
-	   (get_pre_end_fraginfo(fraginfo,ifrag) -
-	    get_pre_brp_fraginfo(fraginfo,ifrag) >= BPT_MIN_PREFIX)
-	   // And not contained in the repeat region.
-	   &&(get_pre_brp_fraginfo(fraginfo,ifrag) != 0)
-	   )
-	  ||
-	  ((isuffix == FALSE)&&
-	   (get_suf_brp_fraginfo(fraginfo,ifrag) -
-	    get_suf_end_fraginfo(fraginfo,ifrag) >= BPT_MIN_PREFIX)
-	   // And not contained in the repeat region.
-	   &&(get_suf_brp_fraginfo(fraginfo,ifrag) != gen_frag_bplength)
-	   );
-	
-	// Screen against a repeat region wholly contained by the fragment.
-	simulator_bpt = simulator_bpt &&
-	  ((get_pre_brp_fraginfo(fraginfo,ifrag) >
-	    get_suf_brp_fraginfo(fraginfo,ifrag)) &&
-	   (get_pre_brp_fraginfo(fraginfo,ifrag) != 0) &&
-	   (get_suf_brp_fraginfo(fraginfo,ifrag) != gen_frag_bplength));
-
-	if(unitigger_bpt) {unitigger_bpts++;} 
-	if(simulator_bpt) {simulator_bpts++;} 
-
-	if(unitigger_bpt && !simulator_bpt
-	   // Associated with an ALU
-	   // &&(!((get_pre_let_fraginfo(fraginfo,ifrag) == 'B') ||
-	   //      (get_suf_let_fraginfo(fraginfo,ifrag) == 'B')))
-	   // Associated with a short tandem repeat
-	   &&(!((get_pre_let_fraginfo(fraginfo,ifrag) == 'E') ||
-		(get_suf_let_fraginfo(fraginfo,ifrag) == 'E')))
-	   // Associated with a medium tandem repeat
-	   &&(!((get_pre_let_fraginfo(fraginfo,ifrag) == 'G') ||
-		(get_suf_let_fraginfo(fraginfo,ifrag) == 'G')))
-	   ) {
-	  false_positive_brc ++;
-	}
-	if(!unitigger_bpt && simulator_bpt) {
-	  false_negative_brc ++;
-#ifdef DEBUG17
-	  fprintf(fout,"FN BPT: " F_IID ",A,%c,%d " F_IID ",%d, %c,%d,%d:%c,%d,%d\n",
-		  ichunk,branching,position,
-		  get_iid_fragment(frags,ifrag),
-		  isuffix,
-		  get_suf_let_fraginfo(fraginfo,ifrag),
-		  get_suf_brp_fraginfo(fraginfo,ifrag),
-		  get_suf_end_fraginfo(fraginfo,ifrag),
-		  get_pre_let_fraginfo(fraginfo,ifrag),
-		  get_pre_brp_fraginfo(fraginfo,ifrag),
-		  get_pre_end_fraginfo(fraginfo,ifrag)
-		  );
-#endif
-	}
-
-	branching = GetVA_AChunkMesg(thechunks,ichunk)->b_branch_type;
-	position  = GetVA_AChunkMesg(thechunks,ichunk)->b_branch_point;
-	ifrag   = chunk_bvx;
-	isuffix = chunk_bsx;
-	gen_frag_bplength = get_genend_fraginfo(fraginfo,ifrag) 
-	  - get_genbgn_fraginfo(fraginfo,ifrag);
-	gen_frag_bplength = (gen_frag_bplength > 0 ?
-			     gen_frag_bplength : -gen_frag_bplength); 
-
-	assert(branching != AS_INTO_REPEAT);
-	unitigger_bpt = (branching == AS_INTO_UNIQUE);
-	simulator_bpt = 
-	  ((isuffix == TRUE)&&
-	   (get_pre_end_fraginfo(fraginfo,ifrag) -
-	    get_pre_brp_fraginfo(fraginfo,ifrag) >= BPT_MIN_PREFIX)
-	   // And not contained in the repeat region.
-	   &&(get_pre_brp_fraginfo(fraginfo,ifrag) != 0)  
-	   )
-	  ||
-	  ((isuffix == FALSE)&&
-	   (get_suf_brp_fraginfo(fraginfo,ifrag) -
-	    get_suf_end_fraginfo(fraginfo,ifrag) >= BPT_MIN_PREFIX)
-	   // And not contained in the repeat region.
-	   &&(get_suf_brp_fraginfo(fraginfo,ifrag) != gen_frag_bplength)
-	   );
-
-	// Screen against a repeat region wholly contained by the fragment.
-	simulator_bpt = simulator_bpt &&
-	  ((get_pre_brp_fraginfo(fraginfo,ifrag) >
-	    get_suf_brp_fraginfo(fraginfo,ifrag)) &&
-	   (get_pre_brp_fraginfo(fraginfo,ifrag) != 0) &&
-	   (get_suf_brp_fraginfo(fraginfo,ifrag) != gen_frag_bplength));
-
-	if(unitigger_bpt) {unitigger_bpts++;} 
-	if(simulator_bpt) {simulator_bpts++;} 
-
-	if(unitigger_bpt && !simulator_bpt
-	   // Associated with an ALU
-	   //&&(!((get_pre_let_fraginfo(fraginfo,ifrag) == 'B') ||
-	   //    (get_suf_let_fraginfo(fraginfo,ifrag) == 'B')))
-	   // Associated with a short tandem repeat
-	   &&(!((get_pre_let_fraginfo(fraginfo,ifrag) == 'E') ||
-		(get_suf_let_fraginfo(fraginfo,ifrag) == 'E')))
-	   // Associated with a medium tandem repeat
-	   &&(!((get_pre_let_fraginfo(fraginfo,ifrag) == 'G') ||
-		(get_suf_let_fraginfo(fraginfo,ifrag) == 'G')))
-	   ) {
-	  false_positive_brc ++;
-	}
-	if(!unitigger_bpt && simulator_bpt) {
-	  false_negative_brc ++;
-#ifdef DEBUG17
-	  fprintf(fout,"FN BPT: " F_IID ",B,%c,%d " F_IID ",%d, %c,%d,%d:%c,%d,%d\n",
-		  ichunk,branching,position,
-		  get_iid_fragment(frags,ifrag),
-		  isuffix,
-		  get_suf_let_fraginfo(fraginfo,ifrag),
-		  get_suf_brp_fraginfo(fraginfo,ifrag),
-		  get_suf_end_fraginfo(fraginfo,ifrag),
-		  get_pre_let_fraginfo(fraginfo,ifrag),
-		  get_pre_brp_fraginfo(fraginfo,ifrag),
-		  get_pre_end_fraginfo(fraginfo,ifrag)
-		  );
-#endif
-	}
-      } /* End checking the new branch points. */
-#endif // SIMINFO
 
       {
 	int ia,im_left,im_right;
@@ -3168,18 +2920,6 @@ void chunk_graph_analysis
 	  pos_left_end  = gen_low_coord;
 	  pos_right_end = pos_left_end + bp_length;
 
-#if 0
-          {
-            // Plot unitigs with sum of overhangs length instead of maximal length.
-            BPTYPE slop_a = bp_length - (GetVA_AChunkMesg(thechunks,ichunk)->rho);
-            BPTYPE slop_b = MAX(slop_a,0);
-            BPTYPE slop_l = slop_b / 2;
-            BPTYPE slop_r = slop_b - slop_l;
-            
-            pos_left_end  += slop_l;
-            pos_right_end -= slop_r;
-          }
-#endif
           
 	  pos_left_bpt = pos_left_end 
 	    + (abforward ? a_branch_point : b_branch_point);
@@ -3253,34 +2993,16 @@ void chunk_graph_analysis
       }
 
     }
-#ifdef DEBUGGING
-    fprintf(fout,"Chunk end branch points\n"
-	    "simulator bpts=%d, unitigger bpts=%d,"
-	    "false_positive_brc=%d,false_negative_brc=%d\n",
-	    simulator_bpts, unitigger_bpts,
-	    false_positive_brc,false_negative_brc);
-#endif
   }
-    fprintf(stderr,"XXXXC\n");
-
   }
-#endif /* defined(GENINFO) || defined(SIMINFO) */
+#endif /* GENINFO) */
 
-#ifdef DEBUG
-  time(&tp2); fprintf(stderr,"%10" F_TIME_TP " sec: Finished Statistical Graph Diagnostics\n",
-		      (tp2-tp1));
-#endif
 
 #ifdef DEBUG_VISUAL
   /******************************************************
    * Visual Graph Diagnostics
    ******************************************************/
 
-#ifdef DEBUG
-  if(TIMINGS) {
-    time(&tp1); fprintf(stderr,"Begin visual diagnostics\n");
-  }
-#endif
   if(NULL != fraginfo) {
     char File_Prefix[] = "TMP";
     char strtmp[1024]={0};
@@ -3317,16 +3039,10 @@ void chunk_graph_analysis
 		      TRUE,fraginfo);
   }
 
-#ifdef DEBUG
-  if(TIMINGS) {
-    time(&tp2); fprintf(stderr,"%10" F_TIME_TP " sec: Finished visual diagnostics\n",
-			(tp2-tp1));
-  }
-#endif
 #endif /*DEBUG_VISUAL*/
 
   safe_free(chunkinfo);
-  if( ProcessFragmentAnnotationsForSimulatorCoordinates ) {
+
+  if( ProcessFragmentAnnotationsForSimulatorCoordinates )
     DeleteVA_Afraginfo(fraginfo);
-  }
 }

@@ -18,14 +18,13 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: extract_gap_flanking.c,v 1.8 2007-01-29 20:41:08 brianwalenz Exp $ */
+/* $Id: extract_gap_flanking.c,v 1.9 2007-04-28 08:46:22 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include "assert.h"
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
-#include "PrimitiveVA_MSG.h"
 #include "MultiAlignStore_CNS.h"
 
 int main(int argc, char *argv[])

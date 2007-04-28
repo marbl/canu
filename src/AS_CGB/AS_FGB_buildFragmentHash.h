@@ -26,3 +26,4 @@ FragmentHashObject * build_FragmentHash
  const Tfragment * const frags,
  const IntFragment_ID as_cgb_max_frag_iid
  );
+

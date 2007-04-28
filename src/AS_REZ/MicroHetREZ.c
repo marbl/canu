@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.15 2007-03-06 01:02:44 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.16 2007-04-28 08:46:22 brianwalenz Exp $";
 
 #include <assert.h>
 #include <errno.h>
@@ -38,7 +38,6 @@ static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.15 2007-03-06 01:02:44 brianwalenz
 #include "MicroHetREZ.h"
 
 #include "UtilsREZ.h"
-#include "PrimitiveVA_MSG.h"
 
 VA_DEF(CDS_UID_t);
 VA_DEF(uint32);

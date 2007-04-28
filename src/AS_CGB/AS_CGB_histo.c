@@ -18,11 +18,10 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
+static char CM_ID[] = "$Id: AS_CGB_histo.c,v 1.10 2007-04-28 08:46:21 brianwalenz Exp $";
 /*********************************************************************
- * $Id: AS_CGB_histo.c,v 1.9 2007-02-14 07:20:05 brianwalenz Exp $
  * Module:  AS_CGB_histo.c
  * Description: A histogramming routine and auxillary functions.
- * Assumptions:
  *********************************************************************/
 
 #include <stdio.h>
@@ -31,13 +30,6 @@
 #include <assert.h>
 #include "AS_global.h"
 #include "AS_CGB_histo.h"
-
-#undef DEBUGGING1
-#undef DEBUGGING2
-
-/*************************************************************************/
-static char CM_ID[] = "$Id: AS_CGB_histo.c,v 1.9 2007-02-14 07:20:05 brianwalenz Exp $";
-/*************************************************************************/
 
 /* Histogram library */
 
@@ -49,9 +41,6 @@ typedef struct {
   int   *thescore;       /* score array */
   int    filled;  /* Have NSAMPLE samples been collected? 
 		     Are we in bucket mode? */
-#ifdef USE_SYNC
-  int   sync;    /* value to sync lower bucket bounds to */
-#endif
   int   low;     /* Lowest bucket score, an integer */
   int   hgh;     /* Highest bucket score */
   int   min;
@@ -78,9 +67,6 @@ typedef struct {
 Histogram_t *create_histogram(
 			    int nsample,
 			    int nbucket,
-#ifdef USE_SYNC
-			    int sync,
-#endif
 			    int filled,
 			    int logarithmic)
 /* Create an initially empty histogram where buckets will be
@@ -94,9 +80,6 @@ Histogram_t *create_histogram(
   bucket_cnt = (int *)safe_calloc(nbucket,sizeof(int));
   h->cnt         = 0;
   h->filled      = filled;
-#ifdef USE_SYNC
-  h->sync        = sync;
-#endif
   h->nsample     = nsample;
   h->nbucket     = nbucket;
   h->thescore    = thescore;
@@ -129,10 +112,6 @@ Histogram_t *create_histogram(
   if(logarithmic) {
     h->filled = 1;
   }
-#ifdef DEBUGGING1
-  printf("h->cnt = %d\n",h->cnt);
-  printf("h->filled = %d\n",h->filled);
-#endif
   return (Histogram_t *)h;
 }
 
@@ -209,10 +188,6 @@ static int bucket_from_score(HISTOGRAM *h, int thescore) {
     divisor = 1; for(ii=0;ii<decade;ii++) { divisor *= 10;}
     theoffset = thesign*thescore/divisor;
     ib = thesign*(theoffset + decade*10) + middlebucket;
-#if 0
-    printf("thescore,thesign,decade,theoffset,ib = %5d %3d %5d %5d %5d\n",
-	   thescore,thesign,decade,theoffset,ib);
-#endif
   }
 
   /* Place a floor and ceiling to the histogram. */
@@ -247,10 +222,6 @@ static void fill(HISTOGRAM *h)
   h->max = hgh;
   h->min = low;
   h->bucket_width = (h->hgh - h->low)/(h->nbucket) + 1;
-#ifdef DEBUGGING1
-  printf("in fill: h->low,h->hgh=%d,%d\n",
-	 h->low,h->hgh);
-#endif
 
   {
     int ib;
@@ -263,9 +234,6 @@ static void fill(HISTOGRAM *h)
     for (is = 0 ; is < h->cnt; is++) {
       const int thescore = h->thescore[is];
       const int ib = bucket_from_score(h,thescore);
-#ifdef DEBUGGING1
-      printf("in fill is,score,ib = %d,%d,%d\n",is,thescore,ib);
-#endif
       h->bucket_cnt[ib] += 1;
       if( h->bucket_cnt[ib] == 1) {
         h->bucket_min[ib] = thescore;
@@ -276,9 +244,6 @@ static void fill(HISTOGRAM *h)
       }
       if(h->extended) {
         HistoDataType *data;
-#ifdef DEBUGGING1
-        printf("heeee %d %d\n",is,ib);
-#endif
         data = (h->indexdata)(h->sample_data,is);
         if( h->bucket_cnt[ib] == 1) {
           (h->setdata)(h->bucket_data,ib,data);
@@ -341,86 +306,6 @@ void add_to_histogram(Histogram_t *histogram, int thescore, HistoDataType *data)
   h->cnt ++;
 }
 
-#if 0
-static int compute_cm(HISTOGRAM *h, int rez, int numb) {
-  /* 
-     Compute the number of buckets per printed bucket.
-   */
-  int cm; 
-  if (rez == 0)
-    { cm = 1;}
-  else
-    { 
-      int nbuck_printed,bck;
-      nbuck_printed = (numb-1)/rez+1;
-      bck = nbuck_printed*(h->bucket_width);
-#if 0
-      { 
-	double nrm;
-	nrm = pow(10.,floor(log10(1.*bck)));
-	if (bck/nrm < 1.001)
-	  bck = nrm;
-	else if (bck/nrm < 2.)
-	  bck = 2.*nrm;
-	else if (bck/nrm < 5.)
-	  bck = 5.*nrm;
-	else
-        bck = 10.*nrm;
-	if (bck % h->bucket_width != 0) bck *= 2;
-      }
-#endif
-      cm = bck/h->bucket_width;
-    }
-  return cm;
-}
-#endif
-
-#if 0
-static int compute_precision(HISTOGRAM *h,int min,int max) 
-{
-  int i, prec;
-  /* "prec" is the number of digits necessary to print the integer. */
-  i = (h->low) + (max+1)*(h->bucket_width) - 1;
-  if (i == 0)
-    { prec = 0;}
-  else
-    { prec = (int) log10((double)i);}
-  i = (h->low) + min*(h->bucket_width);
-  if ((i < 0) && (prec < 1. + log10((double)(-i))))
-    prec = 1 + (int) log10((double)(-i));
-  prec += 1;
-  return prec;
-}
-#endif
-
-#if 0
-static int compute_proc(HISTOGRAM *h,int cs,int cm)
-{
-  int max,ib,proc;
-  /* Compute the maximum number of samples in a consolidated bucket.
-     Call it "max". */
-  max = 0;
-  for (ib = cs; ib+cm >= 1; ib -= cm) {
-    int j;
-    int s;
-    s = 0;
-    for (j = 0; j < cm; j++)
-      if( (ib+j >= 0) && (ib+j < h->nsample))
-	{
-	  s += h->thescore[ib+j];
-	}
-    if (s > max) max = s;
-  }
-  /* max is now the maximum value in a consolidated bucket */
-  
-  if (max == 0)
-    proc = 1;
-  else
-    proc = (int)log10((double)max) + 1;
-  
-  return proc;
-}
-#endif
 
 /* Print a histogram of "h" with approximately "rez" buckets and with
    the  ":" of the output in column "indent".  If "rez" = 0 then histogram
@@ -444,28 +329,8 @@ void print_histogram(FILE *fout, Histogram_t *histogram, int rez, int indent)
   int single;
   int first_flag;
 
-#ifdef DEBUGGING1
-  printf("h->cnt = %d\n",h->cnt);
-  printf("h->filled = %d\n",h->filled);
-#endif
-
   if (h->cnt == 0) 
     { return ;}
-
-#ifdef DEBUGGING2
-  {
-    int is;
-    for (is = 0; is < MIN((h->cnt),(h->nsample)); is++) {
-      HistoDataType *data;
-      fprintf(fout," %d : %d ",is,h->thescore[is]);
-      if(h->extended) {
-	data = (h->indexdata)(h->sample_data,is);
-	(h->printdata)(fout,data);
-      }
-      fprintf(fout,"\n");
-    }
-  }
-#endif
 
   if (! h->filled)
     { fill(h);}
@@ -479,46 +344,12 @@ void print_histogram(FILE *fout, Histogram_t *histogram, int rez, int indent)
         { if (numb == 0) minb = ib;
         numb += 1;
         maxb = ib;
-#ifdef DEBUGGING2
-	fprintf(fout," %d : %d ",ib, icnt);
-	if(h->extended) {
-	  HistoDataType *data;
-	  data = (h->indexdata)(h->bucket_data,ib);
-	  (h->printdata)(fout,data);
-	}
-	fprintf(fout,"\n");
-#endif
         }
     }
   }
-#ifdef DEBUGGING1
-  h->bucket_width = (h->hgh - h->low)/(h->nbucket) + 1;
-  printf("numb,minb,maxb = %d,%d,%d\n",numb,minb,maxb);
-  printf("h->low,h->bucket_width = %d,%d\n",
-	 h->low,h->bucket_width);
-#endif
-#if 0
-  cm = compute_cm(h, rez, numb);
-  cs = (h->sync - h->low)/h->bucket_width;
-  if (cs > 0) {
-    cs = cs%cm - cm;
-  } else {
-    cs = - ( (-cs)%cm );
-  }
-  cs += ((h->nbucket - cs)/cm+1)*cm;
-#else
+
   cm = 1;
   cs = h->nbucket;
-#endif
-
-#ifdef DEBUGGING1
-  printf("cm,cs = %d,%d\n",cm,cs);
-#endif
-
-#if 0
-  prec = compute_precision(h,minb,maxb);
-  proc = compute_proc(h,cs,cm);
-#endif
 
   single = (cm*h->bucket_width == 1);
   single = FALSE;
@@ -594,70 +425,3 @@ void print_histogram(FILE *fout, Histogram_t *histogram, int rez, int indent)
     }
   }
 }
-
-
-#if 0
- h->cnt += 1;
- h->sum += data;
- h->mom += data*data;
- if( (h->cnt == 1) || (h->min > data))
-   { h->min = data;}
- if( (h->cnt == 1) || (h->max < data))
-   { h->max = data;}
-
-/* Return the average of the data points in histogram "h" */
-
-double histogram_avg(Histogram_t *histogram)
-{ 
-  HISTOGRAM *h = histogram;
-  if (h->cnt == 0)
-    return (0.);
-  else
-    return ((1.*h->sum)/h->cnt);
-}
-
-/* Return the standard deviation of the data points in histogram "h" */
-
-double histogram_stdev(Histogram_t *histogram)
-{ 
-  HISTOGRAM *h = histogram;
-  double fmom, fsum, fcnt;
-
-  fmom = h->mom;
-  fsum = h->sum;
-  fcnt = h->cnt;
-  if (h->cnt == 0)
-    return (0.);
-  else
-    return (sqrt((fcnt*fmom - fsum*fsum)/(fcnt*fcnt)));
-}
-#endif
-
-
-
-#if 0
-  {
-    /* Pretty up something */
-    int bck,idiff;
-    double nrm;
-    bck = (hgh-low)/(h->nbucket-20) + 1;
-    nrm = pow(10.,floor(log10((double)bck)));
-    if (bck/nrm < 1.001)
-      bck = nrm;
-    else if (bck/nrm < 2.)
-      bck = 2.*nrm;
-    else if (bck/nrm < 5.)
-      bck = 5.*nrm;
-    else
-      bck = 10.*nrm;
-    h->bucket_width = bck;
-    low = low - 10*bck;
-    
-    idiff = h->sync - low;
-    if (idiff < 0) {
-      h->low = low - (-idiff)%(h->bucket_width);
-    } else {
-      h->low = low + ( idiff)%(h->bucket_width);
-    }
-  }
-#endif /* 0 */
