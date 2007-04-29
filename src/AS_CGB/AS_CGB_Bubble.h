@@ -32,6 +32,8 @@
    teensy-weensy test-size problems ... */
 #define AS_CGB_BUBBLE_VERY_VERBOSE 0
 
+extern FILE *BUB_LOG_G;
+
 /* For outputting distribution bubble size distribution data to a
    file.  Set to 1 to create three files, "bubble.nfrags.celagram",
    "bubble.poppedfrags.celagram", and "bubble.sdiff.celagram", with the number
@@ -100,26 +102,7 @@ AS_CGB_Bubble_find_bubbles(Tfragment *frags, Tedge *edges, int sz, int age,
  *
  */
 
-struct Bubblepopper;
 typedef struct BubblePopper * BubblePopper_t;
-
-
-/* This method creates a new BubblePopper object which can subsequently
-   be used by the BOPPER bubble popping routine below.  The standard procedure
-   is to call this method to get a new bubble popper, then immediately
-   call the bubble popping routines.  After that, the BubblePopper's accessor
-   functions (also below) can be used to get statistics and the actual
-   overlaps needed to squash the bubbles. 
-
-   Implemented in "AS_CGB_Bubble_Popper.c" */
-BubblePopper_t
-AS_CGB_Bubble_Popper_create
-(GateKeeperStore *gkpStore,
- Tfragment *frags, Tedge *edges, 
- TChunkMesg *chunks, TChunkFrag *cfrgs,
- float global_arrival_rate,
- const char * fileprefix
- );
 
 
 /* This method attempts to squash the given bubble with the BOPPER

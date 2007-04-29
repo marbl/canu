@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_Bubble_VertexSet.c,v 1.6 2006-09-26 22:21:13 brianwalenz Exp $";
+= "$Id: AS_CGB_Bubble_VertexSet.c,v 1.7 2007-04-29 06:25:27 brianwalenz Exp $";
 
 #include <string.h>
 #include "AS_CGB_all.h"
@@ -43,14 +43,6 @@ static int BVS_memstack_top_G;
 /*
  * BVS PRIVATE UTILITY FUNCTIONS
  */
-
-#ifndef MIN
-#define MIN(x,y)  (((x) < (y)) ? (x) : (y))
-#endif
-
-#ifndef MAX
-#define MAX(x,y)  (((x) > (y)) ? (x) : (y))
-#endif
 
 static BubVertexEntry *
 BVS__alloc(void)

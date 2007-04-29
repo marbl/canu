@@ -19,17 +19,17 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_Bubble_dfs.c,v 1.5 2006-09-26 22:21:13 brianwalenz Exp $";
+= "$Id: AS_CGB_Bubble_dfs.c,v 1.6 2007-04-29 06:25:27 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "AS_CGB_all.h"
 #include "AS_CGB_Bubble.h"
-#include "AS_CGB_Bubble_log.h"
 #include "AS_CGB_Bubble_Graph.h"
-#include "AS_CGB_Bubble_GraphMethods.h"
 
+
+static
 int64 _get_dist_from_edge(BubGraph_t bg, IntFragment_ID src, IntEdge_ID e)
 {
   IntEdge_ID dst;
@@ -62,6 +62,7 @@ int64 _get_dist_from_edge(BubGraph_t bg, IntFragment_ID src, IntEdge_ID e)
 }
 
 
+static
 int
 _dst_edge_is_reversed(int cur_rev, int cur_sx, int dst_sx)
 {
@@ -81,6 +82,7 @@ _dst_edge_is_reversed(int cur_rev, int cur_sx, int dst_sx)
 }
 
 
+static
 void 
 _set_dist_from_edge(BubGraph_t bg, IntFragment_ID src, IntEdge_ID e)
 {
@@ -90,6 +92,7 @@ _set_dist_from_edge(BubGraph_t bg, IntFragment_ID src, IntEdge_ID e)
 }
 
 
+static
 int
 _back_edge_consistent(BubGraph_t bg, IntEdge_ID cur_e, IntFragment_ID cur_v, 
 		      IntFragment_ID dst_v)
@@ -134,6 +137,7 @@ _back_edge_consistent(BubGraph_t bg, IntEdge_ID cur_e, IntFragment_ID cur_v,
 }
 
 
+static
 void
 _do_dfs(BubGraph_t bg, IntFragment_ID start_v, BG_E_Iter stack[])
 {

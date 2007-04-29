@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_Bubble_Popper.c,v 1.11 2007-04-29 02:08:54 brianwalenz Exp $";
+= "$Id: AS_CGB_Bubble_Popper.c,v 1.12 2007-04-29 06:25:27 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,10 +30,8 @@ static char CM_ID[]
 #include "AS_CGB_methods.h"
 #include "AS_CGB_Bubble_Graph.h"
 #include "AS_CGB_Bubble.h"
-#include "AS_CGB_Bubble_log.h"
 #include "AS_CGB_Bubble_Popper.h"
 #include "AS_CGB_Bubble_PopperMethods.h"
-#include "AS_CGB_Bubble_GraphMethods.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_PER_gkpStore.h"
 
@@ -382,28 +380,6 @@ BP_setAdj_VID(BubblePopper_t bp, IntFragment_ID vid1, IntFragment_ID vid2,
 	 bp->vidToBid[vid2]] = v;
 }
 
-
-BubblePopper_t
-AS_CGB_Bubble_Popper_create
-(GateKeeperStore *gkpStore,
- Tfragment *frags, Tedge *edges, TChunkMesg *chunks,
- TChunkFrag *cfrgs, float gar,
- const char * fileprefix)
-{
-  BubblePopper_t bp = NULL;
-  BubGraph_t bg = NULL;
-
-  bp = safe_malloc(sizeof(BubblePopper));
-  bg = safe_malloc(sizeof(BubGraph));
-
-  BG_initialize(bg, frags, edges);
-  AS_CGB_Bubble_dfs(bg);
-
-  BP_init(bp, bg, chunks, cfrgs, gar, gkpStore, fileprefix);
-  bp->allocatedByCreate = TRUE;
-
-  return bp;
-}
 
 
 OverlapMesg *

@@ -34,7 +34,7 @@ AS_OGB_SRCS = AS_CGB_histo.c \
 AS_CGB_SRCS = AS_CGB_main.c AS_CGB_io.c AS_CGB_cgb.c AS_CGB_classify.c AS_CGB_chimeras.c
 AS_CGA_SRCS = AS_CGB_cga.c
 AS_BUB_SRCS = AS_CGB_Bubble.c AS_CGB_Bubble_Graph.c \
-              AS_CGB_Bubble_VertexSet.c AS_CGB_Bubble_top.c \
+              AS_CGB_Bubble_VertexSet.c \
               AS_CGB_Bubble_dfs.c AS_CGB_Bubble_Popper.c \
               AS_CGB_Bubble_PopperMethods.c
 

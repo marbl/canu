@@ -19,20 +19,35 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_Bubble.c,v 1.7 2007-02-12 22:16:55 brianwalenz Exp $";
+= "$Id: AS_CGB_Bubble.c,v 1.8 2007-04-29 06:25:27 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
 #include "AS_global.h"
 #include "AS_CGB_all.h"
-#include "AS_CGB_methods.h"
 #include "AS_CGB_Bubble_Graph.h"
 #include "AS_CGB_Bubble_VertexSet.h"
-#include "AS_CGB_Bubble_GraphMethods.h"
 #include "AS_CGB_Bubble.h"
 #include "AS_CGB_Bubble_Popper.h"
 #include "AS_UTL_Hash.h"
-#include "AS_CGB_Bubble_log.h"
+
+
+/* This method uses a depth first search to mark all(*) fragments with
+   the AS_CGB_BUBBLE_V_VALID flag.  As part of the process, the position
+   and orientation of each fragment is set, and some edges become marked
+   as invalid if they represent back edges in the DFS tree.
+
+   (*) Not all fragments are marked.  Searches are only begun with
+   non-contained fragments, and only non-containment edges are used.
+   Contained fragments which are not touched by dovetail edges can
+   therefore be omitted.
+
+   Implemented in "AS_CGB_Bubble_dfs.c"
+*/
+
+void AS_CGB_Bubble_dfs(BubGraph_t bg);
+
+
 
 FILE *BUB_LOG_G = NULL;
 
@@ -222,6 +237,67 @@ _reverse_collect_sets(BubGraph_t bg, BubVertexSet *fwd, IntFragment_ID *top,
       --f;
   }
 }
+
+
+
+
+
+/* Performs a topological sort of the fragment graph.  The output is an array 
+   of fragment IDs in topological order, pointed to by the out parameter (which
+   is assumed to point to sufficient pre-allocated space).  Only those 
+   fragments and edges which are marked as VALID are used. 
+
+   The return value is the number of elements placed in topological order.
+   If the graph is found to be cyclic, 0 is returned instead.
+*/
+IntFragment_ID
+AS_CGB_Bubble_topo_sort(BubGraph_t bg, IntFragment_ID *out)
+{
+  IntFragment_ID q_start = 0, q_end = 0, f, opp_f, num_valid = 0;
+  IntEdge_ID e;
+  uint16 valid_and_unused = AS_CGB_BUBBLE_E_VALID | AS_CGB_BUBBLE_E_UNUSED;
+  BG_E_Iter e_it;
+
+  for (e = 0; e < GetNumEdges(BG_edges(bg)); ++e)
+    if (BG_E_isSetFlag(bg, e, AS_CGB_BUBBLE_E_VALID)) {
+      num_valid++;
+      BG_E_setFlag(bg, e, AS_CGB_BUBBLE_E_UNUSED);
+    }
+
+  //fprintf(BUB_LOG_G, "  * Found " F_IID " valid edges.\n", num_valid);
+
+  num_valid = 0;
+  for (f = 0; f < GetNumFragments(BG_vertices(bg)); ++f) 
+    if (BG_V_isSetFlag(bg, f, AS_CGB_BUBBLE_V_VALID)) {
+      num_valid++;
+      if (BG_inDegree(bg, f, valid_and_unused) == 0)
+	out[q_end++] = f;
+    }
+  
+  //fprintf(BUB_LOG_G, "  * Found " F_IID " valid vertices.\n", num_valid);
+
+  while (q_start < q_end) {
+    for (e = BGEI_bgn(bg, &e_it, out[q_start], bgeiOut, valid_and_unused);
+	 !BGEI_end(&e_it);
+	 e = BGEI_next(bg, &e_it, valid_and_unused)) {
+      opp_f = BG_getOppositeVertex(bg, e, out[q_start]);
+      BG_E_clearFlagSymmetric(bg, e, AS_CGB_BUBBLE_E_UNUSED);
+      if (BG_inDegree(bg, opp_f, valid_and_unused) == 0)
+	out[q_end++] = opp_f;
+    }
+    q_start++;
+  }
+  
+  if (q_end < num_valid) {
+    //fprintf(BUB_LOG_G, "  * WARNING: Only processed " F_IID " of " F_IID " vertices!  Cyclic graph!\n", q_end, num_valid);
+    return 0;
+  }
+
+  return num_valid;
+}
+
+
+
 
 
 AS_CGB_Bubble_List_t
