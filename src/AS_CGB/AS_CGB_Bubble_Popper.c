@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_Bubble_Popper.c,v 1.10 2007-02-20 21:57:58 brianwalenz Exp $";
+= "$Id: AS_CGB_Bubble_Popper.c,v 1.11 2007-04-29 02:08:54 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -204,8 +204,8 @@ BP_findOverlap(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2)
     if1->iaccession = id1;
     getFrag(bp->gkpStore, id1, bp->rsp, FRAG_S_SEQ);
 
-    if1->clear_rng.bgn = getFragRecordClearRegionBegin(bp->rsp, AS_READ_CLEAR_LATEST);
-    if1->clear_rng.end = getFragRecordClearRegionEnd  (bp->rsp, AS_READ_CLEAR_LATEST);
+    if1->clear_rng.bgn = getFragRecordClearRegionBegin(bp->rsp, AS_READ_CLEAR_OBT);
+    if1->clear_rng.end = getFragRecordClearRegionEnd  (bp->rsp, AS_READ_CLEAR_OBT);
 
     seq_buf = getFragRecordSequence(bp->rsp);
 
@@ -220,8 +220,8 @@ BP_findOverlap(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2)
     if2->iaccession = id2;
     getFrag(bp->gkpStore, id2, bp->rsp, FRAG_S_SEQ);
 
-    if2->clear_rng.bgn = getFragRecordClearRegionBegin(bp->rsp, AS_READ_CLEAR_LATEST);
-    if2->clear_rng.end = getFragRecordClearRegionEnd  (bp->rsp, AS_READ_CLEAR_LATEST);
+    if2->clear_rng.bgn = getFragRecordClearRegionBegin(bp->rsp, AS_READ_CLEAR_OBT);
+    if2->clear_rng.end = getFragRecordClearRegionEnd  (bp->rsp, AS_READ_CLEAR_OBT);
 
     seq_buf = getFragRecordSequence(bp->rsp);
 
