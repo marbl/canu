@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: remove_fragment.c,v 1.10 2007-04-12 18:54:45 brianwalenz Exp $ */
+/* $Id: remove_fragment.c,v 1.11 2007-04-30 13:00:30 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -130,7 +130,6 @@ int main( int argc, char ** argv )
 	}
         break;
       case MESG_IFG:
-      case MESG_OFG:
 	{
 	  FragMesg * frg = (FragMesg *) gen->m;
 	  if( (i = FindID_ArrayID( frag_uids, frg->eaccession)) > -1 ||

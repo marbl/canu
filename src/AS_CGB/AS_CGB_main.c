@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_main.c,v 1.8 2007-04-28 08:46:21 brianwalenz Exp $";
+= "$Id: AS_CGB_main.c,v 1.9 2007-04-30 13:00:29 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module:  AS_CGB_main.c
@@ -447,15 +447,9 @@ static void maskout_overlaps_touching_crappy_fragments
 }
 
 
-int main_cgb
-(
- int argc,
- char * argv [],
- TStateGlobals * gstate,
- THeapGlobals  * heapva,
- UnitiggerGlobals * rg
- )
-{
+int main_cgb(TStateGlobals * gstate,
+             THeapGlobals  * heapva,
+             UnitiggerGlobals * rg) {
   GateKeeperStore *gkpStore = NULL;
 
   int status = 0; // Main program exit status.

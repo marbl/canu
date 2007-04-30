@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_dump.c,v 1.15 2007-04-26 14:07:03 brianwalenz Exp $ */
+/* $Id: AS_GKP_dump.c,v 1.16 2007-04-30 13:00:29 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -257,6 +257,7 @@ dumpGateKeeperFragments(char       *gkpStoreName,
     }
   }
 
+  closeFragStream(fs);
   closeGateKeeperStore(gkp);
 }
 
@@ -314,55 +315,7 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
   }
 
   del_fragRecord(fr);
-  closeGateKeeperStore(gkp);
-}
-
-
-void
-dumpGateKeeperAsOFG(char       *gkpStoreName) {
-  fragRecord       *fr = new_fragRecord();
-  unsigned int      firstElem = 0;
-  unsigned int      lastElem = 0;
-
-  GateKeeperStore   *gkp = openGateKeeperStore(gkpStoreName, FALSE);
-  if (gkp == NULL) {
-    fprintf(stderr, "Failed to open %s\n", gkpStoreName);
-    exit(1);
-  }
-
-  firstElem = getFirstElemFragStore(gkp);
-  lastElem  = getLastElemFragStore(gkp) + 1;
-
-  for (; firstElem < lastElem; firstElem++) {
-    getFrag(gkp, firstElem, fr, FRAG_S_INF);
-
-    if (getFragRecordIsDeleted(fr)) {
-      printf("{OFG\n"
-             "act:D\n"
-             "acc:("F_UID","F_IID")\n"
-             "}\n",
-             getFragRecordUID(fr),
-             getFragRecordIID(fr));
-    } else {
-      printf("{OFG\n"
-             "act:A\n"
-             "acc:("F_UID","F_IID")\n"
-             "typ:%c\n"
-             "src:\n"
-             "(omit)\n.\n"
-             "etm:"F_TIME_T"\n"
-             "clr:"F_U32","F_U32"\n"
-             "}\n",
-             getFragRecordUID(fr),
-             getFragRecordIID(fr),
-             AS_READ,
-             0,
-             getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBT),
-             getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBT));
-    }
-  }
-
-  del_fragRecord(fr);
+  closeFragStream(fs);
   closeGateKeeperStore(gkp);
 }
 
@@ -523,7 +476,8 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
       pmesg.m = &fmesg;
       pmesg.t = MESG_FRG;
 
-      fmesg.action          = AS_ADD;
+      //  This code used in AS_GKP_dump.c (dumpFRG), and in AS_FGB_io.c
+      fmesg.action          = getFragRecordIsDeleted(fr) ? AS_DELETE : AS_ADD;
       fmesg.eaccession      = getFragRecordUID(fr);
       fmesg.library_uid     = libUID[getFragRecordLibraryIID(fr)];
       fmesg.library_iid     = getFragRecordLibraryIID(fr);
@@ -572,8 +526,8 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
       }
     }
   }
-  closeFragStream(fs);
 
   del_fragRecord(fr);
+  closeFragStream(fs);
   closeGateKeeperStore(gkp);
 }

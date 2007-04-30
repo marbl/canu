@@ -13,26 +13,6 @@ sub unitigger (@) {
     if (! -e "$wrk/4-unitigger/unitigger.success") {
         system("mkdir $wrk/4-unitigger") if (! -e "$wrk/4-unitigger");
 
-        #  Unitigger needs an input .ofg file, which is pretty much just a
-        #  dump of the fragstore.  We used to save the original, for no
-        #  real reason.  Now, just rebuild the .ofg if the fragstore is
-        #  newer than the ofg we have.
-        #
-        #  -M says "start time - mod time" so if that is small, it's newer
-        #
-        if ((! -e "$wrk/4-unitigger/$asm.ofg") ||
-            (-M "$wrk/$asm.gkpStore/db.frg" < -M "$wrk/4-unitigger/$asm.ofg")) {
-            my $cmd;
-            $cmd  = "$bin/gatekeeper -dumpofg $wrk/$asm.gkpStore ";
-            $cmd .= " > $wrk/4-unitigger/$asm.ofg ";
-            $cmd .= " 2> $wrk/4-unitigger/$asm.ofg.err";
-
-            if (runCommand("$wrk/4-unitigger", $cmd)) {
-                rename "$wrk/4-unitigger/$asm.ofg", "$wrk/4-unitigger/$asm.ofg.FAILED";
-                die "Failed.\n";
-            }
-        }
-
         my $l = getGlobal("utgGenomeSize");
         my $m = getGlobal("utgEdges");
         my $e = getGlobal("utgErrorRate");
@@ -50,7 +30,6 @@ sub unitigger (@) {
         $cmd .= " -A 1 -d 1 -x 1 -z 10 -j 5 -U $u -e $e ";
         $cmd .= " -F $wrk/$asm.gkpStore ";
         $cmd .= " -o $wrk/4-unitigger/$asm ";
-        $cmd .= " -L $wrk/4-unitigger/$asm.ofg ";
         $cmd .= " -I $wrk/$asm.ovlStore ";
         $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";
 

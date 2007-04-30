@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_FGB_main.c,v 1.13 2007-04-28 08:46:21 brianwalenz Exp $";
+= "$Id: AS_FGB_main.c,v 1.14 2007-04-30 13:00:29 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module:  AS_FGB_main.c
@@ -97,13 +97,39 @@ static char CM_ID[]
 #include "AS_FGB_buildFragmentHash.h"
 
 
-#undef DEBUG_VIEW1
-#undef DEBUG_VIEW2
-#undef DEBUG_VIEW3
-#undef DEBUG_VIEW4
-#undef DEBUG_VIEW5
-#undef DEBUG_VIEW6
-#undef DEBUG_RISM
+
+void
+input_messages_from_a_file(FILE       *fovl,
+                           Tfragment  frags[],
+                           Tedge      edges[],
+                           FragmentHashObject *afr_to_avx,
+                           TIntEdge_ID       *next_edge_obj,
+                           const int dvt_double_sided_threshold_fragment_end_degree,
+                           const int con_double_sided_threshold_fragment_end_degree,
+                           const int intrude_with_non_blessed_overlaps_flag,
+                           const uint32 overlap_error_threshold);
+
+void
+process_gkp_store_for_fragments(char *gkpStoreName,
+                                Tfragment   *frags,
+                                Tedge       *edges,
+                                FragmentHashObject *afr_to_avx,
+                                IntFragment_ID    *min_frag_iid,
+                                IntFragment_ID    *max_frag_iid);
+
+void
+process_ovl_store(char * OVL_Store_Path,
+                  Tfragment  frags[],
+                  Tedge      edges[],
+                  FragmentHashObject *afr_to_avx,
+                  TIntEdge_ID         next_edge_obj[],
+                  const int dvt_double_sided_threshold_fragment_end_degree,
+                  const int con_double_sided_threshold_fragment_end_degree,
+                  const int intrude_with_non_blessed_overlaps_flag,
+                  const uint32 overlap_error_threshold);
+  
+
+
 
 static void output_mesgs
 (/* Input Only*/
@@ -116,6 +142,11 @@ static void output_mesgs
 {
 
   // Output the OFG messages:
+#if 0
+
+  //  Not only is there no such thing as an OFGMesg now, but we also
+  //  require unitigger to run from a store.  Outputting a list of
+  //  fragments isn't terribly useful anymore.
 
   const IntFragment_ID nfrag = GetNumFragments(frags);
   IntFragment_ID iv;
@@ -145,6 +176,7 @@ static void output_mesgs
       WriteProtoMesg_AS(fcgb,&pmesg);
     }
   }
+#endif
   
   // Output the OVL messages:
 
@@ -225,50 +257,36 @@ static void output_mesgs
 
 
 
-static void process_one_ovl_file
-(int        argc, 
- char       *argv[],
- const char Batch_File_Name[],
- TStateGlobals  * gstate,
- THeapGlobals   * heapva,
- FragmentHashObject * afr_to_avx,    // Part of a hash table replacement
- const int dvt_double_sided_threshold_fragment_end_degree,
- const int con_double_sided_threshold_fragment_end_degree,
- const int intrude_with_non_blessed_overlaps_flag,
- const uint32 overlap_error_threshold,
- const int check_point_level
- )
-{ // Process the ovl files.
+static void process_one_ovl_file(const char Batch_File_Name[],
+                                 TStateGlobals  * gstate,
+                                 THeapGlobals   * heapva,
+                                 FragmentHashObject * afr_to_avx,
+                                 const int dvt_double_sided_threshold_fragment_end_degree,
+                                 const int con_double_sided_threshold_fragment_end_degree,
+                                 const int intrude_with_non_blessed_overlaps_flag,
+                                 const uint32 overlap_error_threshold,
+                                 const int check_point_level) {
   
-  if( check_point_level == 0 ) { // Process the ovl file....
-
+  if( check_point_level == 0 ) {
     FILE *fovl = fopen(Batch_File_Name,"r");
     if(NULL == fovl){
       fprintf(stderr,"* Can not open input file %s\n",Batch_File_Name);
       exit(1);
     }
     
-    input_messages_from_a_file
-      (argc, argv, // For ADT version stamp.
-       fovl,
-       (heapva->frags), // The internal representation of the fragments.
-       (heapva->edges), // The internal representation of the overlaps.
-       (heapva->frag_annotations),
-       afr_to_avx, 
-       &(gstate->min_frag_iid),
-       &(gstate->max_frag_iid),
-       (heapva->next_edge_obj),
-       &(gstate->nbase_in_genome),
-       dvt_double_sided_threshold_fragment_end_degree,
-       con_double_sided_threshold_fragment_end_degree,
-       intrude_with_non_blessed_overlaps_flag,
-       overlap_error_threshold
-       );
+    input_messages_from_a_file(fovl,
+                               heapva->frags,
+                               heapva->edges,
+                               afr_to_avx, 
+                               heapva->next_edge_obj,
+                               dvt_double_sided_threshold_fragment_end_degree,
+                               con_double_sided_threshold_fragment_end_degree,
+                               intrude_with_non_blessed_overlaps_flag,
+                               overlap_error_threshold);
     
     fclose(fovl);
-    
   }
-} // Process the ovl files.
+}
 
 
 
@@ -336,15 +354,9 @@ static void delete_duplicate_edges
 
 
 
-int main_fgb
-(
- int argc,
- char * argv [],
- TStateGlobals * gstate,
- THeapGlobals  * heapva,
- UnitiggerGlobals * rg
- )
-{
+int main_fgb(TStateGlobals * gstate,
+             THeapGlobals  * heapva,
+             UnitiggerGlobals * rg) {
   int status = 0;
   int ierr = 0;
 
@@ -365,40 +377,41 @@ int main_fgb
 
   // WARNING do we need to rebuild the next_edge_obj here?
 
+  if((rg->frag_store) && (rg->frag_store[0] != '\0'))
+    process_gkp_store_for_fragments(rg->frag_store,
+                                    heapva->frags,
+                                    heapva->edges,
+                                    afr_to_avx,
+                                    &(gstate->min_frag_iid),
+                                    &(gstate->max_frag_iid));
+
   if (rg->ovl_files_list_fname != NULL)
-    process_one_ovl_file
-      ( argc, 
-        argv,
-        rg->ovl_files_list_fname,
-        gstate,
-        heapva,
-        afr_to_avx,
-        rg->dvt_double_sided_threshold_fragment_end_degree,
-        rg->con_double_sided_threshold_fragment_end_degree,
-        rg->intrude_with_non_blessed_overlaps_flag,
-        rg->overlap_error_threshold,
-        rg->check_point_level
-        );
+    process_one_ovl_file(rg->ovl_files_list_fname,
+                         gstate,
+                         heapva,
+                         afr_to_avx,
+                         rg->dvt_double_sided_threshold_fragment_end_degree,
+                         rg->con_double_sided_threshold_fragment_end_degree,
+                         rg->intrude_with_non_blessed_overlaps_flag,
+                         rg->overlap_error_threshold,
+                         rg->check_point_level);
   
 
-  if(NULL != rg->blessed_overlaps_input_filename){
-    // Process the blessed ovl file.
 
+  // Process the blessed ovl file.
+  if(rg->blessed_overlaps_input_filename){
     assert(0 == GetNumEdges(heapva->edges));
 
-    process_one_ovl_file
-      ( argc, 
-        argv,
-        rg->blessed_overlaps_input_filename,
-        gstate,
-        heapva,
-        afr_to_avx,
-        rg->dvt_double_sided_threshold_fragment_end_degree,
-        rg->con_double_sided_threshold_fragment_end_degree,
-        rg->intrude_with_non_blessed_overlaps_flag,
-        AS_OVS_encodeQuality(1.0),
-        rg->check_point_level
-        );
+    process_one_ovl_file(rg->blessed_overlaps_input_filename,
+                         gstate,
+                         heapva,
+                         afr_to_avx,
+                         rg->dvt_double_sided_threshold_fragment_end_degree,
+                         rg->con_double_sided_threshold_fragment_end_degree,
+                         rg->intrude_with_non_blessed_overlaps_flag,
+                         AS_OVS_encodeQuality(1.0),
+                         rg->check_point_level);
+
     {
       const IntFragment_ID nfrag = GetNumFragments(heapva->frags);
       const IntEdge_ID nedge = GetNumEdges(heapva->edges);
@@ -412,46 +425,32 @@ int main_fgb
         set_blessed_vertex(heapva->frags, avx, asx, TRUE);
       }
     }
-    // The blessed overlaps are loaded.
   }
   
 
-  if(NULL != rg->bubble_overlaps_filename){
-    // Process the bubble smoothing ovl file.
+  // Process the bubble smoothing ovl file.
+  if(rg->bubble_overlaps_filename)
+    process_one_ovl_file(rg->bubble_overlaps_filename,
+                         gstate,
+                         heapva,
+                         afr_to_avx,
+                         rg->dvt_double_sided_threshold_fragment_end_degree,
+                         rg->con_double_sided_threshold_fragment_end_degree,
+                         rg->intrude_with_non_blessed_overlaps_flag,
+                         rg->overlap_error_threshold,
+                         rg->check_point_level);
 
-    process_one_ovl_file
-      ( argc, 
-        argv,
-        rg->bubble_overlaps_filename,
-        gstate,
-        heapva,
-        afr_to_avx,
-        rg->dvt_double_sided_threshold_fragment_end_degree,
-        rg->con_double_sided_threshold_fragment_end_degree,
-        rg->intrude_with_non_blessed_overlaps_flag,
-        rg->overlap_error_threshold,
-        rg->check_point_level
-        );
-  }
 
-  if((NULL != rg->OVL_Store_Path) &&
-     (rg->OVL_Store_Path[0] != '\0')) {
-    process_ovl_store
-      ( rg->OVL_Store_Path,
-        heapva->frags, // The internal representation of the fragment reads. 
-        heapva->edges, // The internal representation of the overlaps.
-        heapva->frag_annotations,
-        afr_to_avx,
-        &(gstate->min_frag_iid),
-        &(gstate->max_frag_iid),
-        heapva->next_edge_obj,
-        &(gstate->nbase_in_genome),
-        rg->dvt_double_sided_threshold_fragment_end_degree,
-        rg->con_double_sided_threshold_fragment_end_degree,
-        rg->intrude_with_non_blessed_overlaps_flag,
-        rg->overlap_error_threshold
-        );
-  }
+  if ((rg->OVL_Store_Path) && (rg->OVL_Store_Path[0] != '\0'))
+    process_ovl_store(rg->OVL_Store_Path,
+                      heapva->frags,
+                      heapva->edges,
+                      afr_to_avx,
+                      heapva->next_edge_obj,
+                      rg->dvt_double_sided_threshold_fragment_end_degree,
+                      rg->con_double_sided_threshold_fragment_end_degree,
+                      rg->intrude_with_non_blessed_overlaps_flag,
+                      rg->overlap_error_threshold);
 
   destroy_FragmentHash(afr_to_avx);
 

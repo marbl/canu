@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- $Id: AS_CGB_all.h,v 1.15 2007-04-28 08:46:21 brianwalenz Exp $
+ $Id: AS_CGB_all.h,v 1.16 2007-04-30 13:00:28 brianwalenz Exp $
  Module: Chunk Graph Builder
  Description: A catch-all include file for the Chunk Graph Builder
  Assumptions:
@@ -261,7 +261,6 @@ typedef enum {
 #include "AS_CGB_walk.h"
 #include "AS_CGB_edgemate.h"
 #include "AS_CGB_fgb.h"
-#include "AS_CGB_io.h"
 #include "AS_CGB_cgb.h"
 #include "AS_CGB_fga.h"
 #include "AS_CGB_cga.h"
@@ -270,6 +269,5 @@ typedef enum {
 #include "AS_CGB_classify.h"
 #include "AS_CGB_chimeras.h"
 #include "AS_CGB_count_fragment_and_edge_labels.h"
-#include "AS_FGB_io.h"
 
 #endif /*AS_CGB_ALL_INCLUDE*/

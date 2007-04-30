@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_edgemate.c,v 1.6 2007-04-28 08:46:21 brianwalenz Exp $";
+= "$Id: AS_CGB_edgemate.c,v 1.7 2007-04-30 13:00:28 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_edgemate.c
@@ -32,17 +32,8 @@ static char CM_ID[]
  * Author: Clark Mobarry
  *********************************************************************/
 
-/*************************************************************************/
-/* System include files */
-
-/*************************************************************************/
-/* Local include files */
 #include "AS_CGB_all.h"
 
-/*************************************************************************/
-/* Conditional compilation */
-
-//////////////////////////////////////////////////////////////////
 
 void reflect_Aedge( Aedge *new_edge, Aedge *old_edge) {
 /*  fragment overlaps:

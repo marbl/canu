@@ -37,7 +37,7 @@ SOURCES = AS_CVT_hashtable.c AS_CVT_uid_interface.c \
 	  dumpMappedMatePairsBinary.c scf2chrSimple.c \
 	  dumpMappedElsewheres.c \
 	  concatRegions.c dumpElsewheres.c dumpForTampa.c \
-          generateReadsFiles.c ofg2asm.c
+          generateReadsFiles.c
 OBJECTS = $(SOURCES:.c=.o)
 
 LIBRARIES = 
@@ -53,7 +53,7 @@ PROGS = make_cns_list make_range_file \
 	dumpMappedMatePairsBinary scf2chrSimple \
 	dumpMappedElsewheres \
 	concatRegions dumpElsewheres dumpForTampa \
-        generateReadsFiles ofg2asm
+        generateReadsFiles
 
 SCRIPTS = run_components_thru_grande \
           run_grande_on_component \
@@ -76,9 +76,6 @@ all: $(PROGS) $(LIBRARIES) $(OBJECTS) $(SCRIPTS)
 scf2chrSimple: scf2chrSimple.o libAS_UTL.a
 
 concatRegions: concatRegions.o
-
-ofg2asm: ofg2asm.o \
-	libCA.a
 
 dumpMappedMatePairsBinary: dumpMappedMatePairsBinary.o ASMData.o \
 	libAS_MSG.a libAS_PER.a libAS_UTL.a

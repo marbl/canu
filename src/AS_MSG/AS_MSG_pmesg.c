@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.39 2007-04-26 14:07:03 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.40 2007-04-30 13:00:29 brianwalenz Exp $";
 
 #include "AS_MSG_pmesg_internal.h"
 
@@ -313,31 +313,6 @@ PutText(FILE *fout, const char * const tag,
 
 
 
-/******************** TRANSFER ROUTINES ***************************/
-
-/*  Routines to transfer a message type through the phases.  */
-
-/* the next 2 transfer routines exist only for backward compatability */
-/* They are not needed! */
-
-void
-Transfer_FRG_to_IFG_AS(FragMesg *fmg, InternalFragMesg *img) {
-  memcpy(img,fmg,sizeof(FragMesg));
-}
-
-void
-Transfer_IFG_to_OFG_AS(InternalFragMesg *ifg, OFGMesg *ofg) {
-  memcpy(ofg,ifg,sizeof(FragMesg));
-}
-
-void
-Transfer_DST_to_IDT_AS(DistanceMesg *dst, InternalDistMesg *idt) {
-  idt->action      = dst->action;
-  idt->eaccession  = dst->eaccession;
-  idt->iaccession  = 0;
-  idt->mean        = dst->mean;
-  idt->stddev      = dst->stddev;
-}
 
 
 void
@@ -362,7 +337,6 @@ AppendAuditLine_AS(AuditMesg *adt, AuditLine *adl,
 }
 
 
-/******************** EXTERNAL ENTRY POINTS ***************************/
 
 
 static

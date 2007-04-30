@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_unitigger_globals.h,v 1.6 2007-04-28 08:46:21 brianwalenz Exp $
+ * $Id: AS_CGB_unitigger_globals.h,v 1.7 2007-04-30 13:00:29 brianwalenz Exp $
  *
  * Module: AS_CGB_unitigger_globals.h
  * Description: A subroutine interface for the unitigger.
@@ -90,12 +90,13 @@ typedef struct
   int            cutoff_fragment_end_degree;
   uint32         overlap_error_threshold;
 
+  BPTYPE nbase_in_genome;
+
   int work_limit_placing_contained_fragments;
   int output_iterations_flag;
   int aggressive_spur_fragment_marking;
   int bubble_smoothing_flag;
 
-  BPTYPE nbase_in_genome;
   int use_consensus;
   int dont_find_branch_points;
   int dont_count_chimeras;
@@ -104,23 +105,12 @@ typedef struct
 
 } UnitiggerGlobals;
 
-int main_fgb
-(
- int argc,
- char * argv [],
- TStateGlobals * gstate,
- THeapGlobals  * heapva,
- UnitiggerGlobals * rg
- );
+int main_fgb (TStateGlobals * gstate,
+              THeapGlobals  * heapva,
+              UnitiggerGlobals * rg);
 
-int main_cgb
-(
- int argc,
- char * argv [],
- TStateGlobals * gstate,
- THeapGlobals  * heapva,
- UnitiggerGlobals * rg
- );
-
+int main_cgb(TStateGlobals * gstate,
+             THeapGlobals  * heapva,
+             UnitiggerGlobals * rg);
 
 #endif // AS_CGB_UNITIGGER_GLOBALS_INCLUDE

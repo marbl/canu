@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_FGB_io.c,v 1.17 2007-04-28 08:46:21 brianwalenz Exp $";
+= "$Id: AS_FGB_io.c,v 1.18 2007-04-30 13:00:29 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_FGB_io.c
@@ -70,157 +70,6 @@ int REAPER_VALIDATION = FALSE;
 #undef REPORT_DELETED_UNDEF_FRAGS
 
 
-static void add_OFGMesg_to_graph
-( OFGMesg      * ofg_mesg,
-  VA_TYPE(char) * the_ofg_source,
-  Tfragment    * frags,
-  IntFragment_ID nfrag_base,
-  FragmentHashObject   *afr_to_avx,  // part of a hash table replacement
-  IntFragment_ID *Pnofg,
-  IntFragment_ID *Pmin_frag_iid,
-  IntFragment_ID *Pmax_frag_iid,
-  VA_TYPE(char)  *frag_annotations
-  )
-{
-  const Fragment_ID    uid = ofg_mesg->eaccession;
-  const IntFragment_ID iid = ofg_mesg->iaccession;
-  IntFragment_ID vid = AS_CGB_NOT_SEEN_YET;
-  int a_new_fragment = FALSE;
-  
-  assert(ofg_mesg->action == AS_ADD ||
-         ofg_mesg->action == AS_DELETE );
-
-  vid = get_vid_FragmentHash(afr_to_avx,iid);
-  
-  if(ofg_mesg->action == AS_DELETE) {
-    // Has this fragment been processed before???
-    if( vid != AS_CGB_NOT_SEEN_YET ) {
-      assert( vid >=0 );
-      assert( vid < nfrag_base + (*Pnofg));
-      set_del_fragment(frags,vid,TRUE);
-      //set_con_fragment(frags,vid,FALSE); // Set default to non-contained
-    } else {
-#ifdef REPORT_DELETED_UNDEF_FRAGS
-      fprintf(stderr,"Deleting an undefined fragment (uid,iid)=("
-              F_UID "," F_IID ")\n", uid,iid);
-#endif
-    }
-  }
-  
-  // Has this fragment been processed before???
-  a_new_fragment = (vid == AS_CGB_NOT_SEEN_YET);
-
-  assert( (a_new_fragment == TRUE) ||
-          (get_vid_FragmentHash(afr_to_avx,iid) <= nfrag_base+(*Pnofg)) );
-  
-  if( ofg_mesg->action == AS_ADD) {
-    
-    /* Put the record where it belongs in the array.
-       This array is indexed by the overlaps. */
-    
-    FragType typ = ofg_mesg->type;
-    CDS_COORD_t length = ofg_mesg->clear_rng.end - ofg_mesg->clear_rng.bgn;
-    
-    // imate  = ofg_mesg->u.read.imate;
-    // distance = ofg_mesg->u.read.idistance;
-    if((*Pmin_frag_iid) == 0 &&
-       (*Pmax_frag_iid) == 0 ) {
-      (*Pmin_frag_iid) = iid;
-      (*Pmax_frag_iid) = iid;
-    } else {
-      (*Pmin_frag_iid) = MIN((*Pmin_frag_iid),iid);
-      (*Pmax_frag_iid) = MAX((*Pmax_frag_iid),iid);
-    }
-    
-    
-    // This is a new fragment!
-    
-    if( TRUE == a_new_fragment ) {
-      vid = nfrag_base+(*Pnofg);
-      set_vid_FragmentHash(afr_to_avx,iid,vid);
-      (*Pnofg)++;
-      EnableRangeVA_Afragment(frags,nfrag_base+(*Pnofg));
-      
-      set_uid_fragment(frags,vid,uid);
-      set_iid_fragment(frags,vid,iid);
-      set_cid_fragment(frags,vid,iid);
-      set_typ_fragment(frags,vid,typ);
-      set_del_fragment(frags,vid,FALSE); // Default to good.
-      set_length_fragment(frags,vid,length);
-      // set_imate_fragment(frags,vid,imate);
-      // set_distance_fragment(frags,vid,distance);
-      
-      set_lab_fragment(frags,vid,AS_CGB_UNLABELED_FRAG);
-      // Assume that each fragment spans a chunk.
-      set_con_fragment(frags,vid,FALSE); // Set default to non-contained.
-      // A flag specifying if this fragment is known to be contained.
-      set_container_fragment(frags,vid,0); 
-      // Zero if this flag is not contained, but equal to the
-      // fragment containing this one in a unitig layout graph.
-
-#ifdef STORE_BRANCH_POINTS_AT_FRAGMENT
-      set_bpt_vertex(frags,vid,FALSE,0); // Sentinal for no branch point.
-      set_bpt_vertex(frags,vid,TRUE,0);
-#endif // STORE_BRANCH_POINTS_AT_FRAGMENT
-      
-      set_raw_dvt_count_vertex(frags,vid,FALSE,0);
-      set_raw_dvt_count_vertex(frags,vid,TRUE,0);
-      set_raw_toc_count_fragment(frags,vid,0);
-      set_raw_frc_count_fragment(frags,vid,0);
-      // Set the counts of raw overlaps seen to zero.
-      
-      set_seglen_dvt_vertex(frags,vid,FALSE,0);
-      set_seglen_frc_vertex(frags,vid,FALSE,0);
-      set_seglen_dvt_vertex(frags,vid,TRUE,0);
-      set_seglen_frc_vertex(frags,vid,TRUE,0);
-      // Initialize the lists for the edge trimming.
-
-      set_blessed_vertex(frags,vid,FALSE,FALSE);
-      set_blessed_vertex(frags,vid,TRUE,FALSE);
-
-      if(NULL != frag_annotations) {
-        char * the_text =
-          ( //ofg_mesg_source_as_offsets_in_frgsrc &&
-           (NULL != the_ofg_source)
-           ? GetVA_char(the_ofg_source, (size_t)ofg_mesg->source)
-           : ofg_mesg->source );
-        
-        /* Save the simulator annotations. */
-        size_t nsrc = GetNumVA_char(frag_annotations);
-        size_t nsource = nsrc+(NULL != the_text ? strlen(the_text) : 0)+1; 
-        // Remember the terminal null character.
-        // fprintf(fp_frgsrc,"IO: " F_SIZE_T " <%s>\n",nsrc,the_text);
-        EnableRangeVA_char(frag_annotations,nsource);
-        if(NULL != the_text) {
-          strcpy(Getchar(frag_annotations,nsrc),the_text);
-        }
-        set_src_fragment(frags,vid,nsrc);
-        
-        // ofg_mesg->source = nsrc; ofg_mesg_source_as_offsets_in_frgsrc = TRUE;
-        // Replace the C-pointer to absolute address with an index into a VA.
-      } else {
-        set_src_fragment(frags,vid,0);
-      }
-
-    } else {
-      // Demand that it is a duplicate definition!!
-      const int duplicate =
-        (uid == get_uid_fragment(frags,vid)) &&
-        (iid == get_iid_fragment(frags,vid)) &&
-        (typ == get_typ_fragment(frags,vid)) &&
-        (length == get_length_fragment(frags,vid)); // a duplicate fragment?
-        // get_del_fragment(frags,vid)
-      if( duplicate ) {
-        fprintf(stderr,"IGNORED DUPLICATE FRAG (" F_UID "," F_IID ")\n",
-                uid, iid);
-      } else {
-        fprintf(stderr,"IGNORED INCONSISENT FRAG (" F_UID "," F_IID ")\n",
-                uid, iid);
-      }
-      assert(TRUE == duplicate);
-    }
-  }
-}
 
 static void keep_a_list_of_extreme_elements
 ( 
@@ -300,8 +149,6 @@ static void Insert_Aedge_into_the_edge_array_wrapper
   const IntFragment_ID avx = the_edge->avx;
   const int asx = the_edge->asx;
   const int ahg = the_edge->ahg;
-  //const IntFragment_ID bvx = the_edge->bvx;
-  //const int bsx = the_edge->bsx;
   const int bhg = the_edge->bhg;
   
   if(is_a_dvt_simple(ahg,bhg)) {  // A dovetail overlap. See get_dvt_edge().
@@ -324,55 +171,47 @@ static void Insert_Aedge_into_the_edge_array_wrapper
             );
       set_segend_vertex(frags,avx,asx,iedge);
     }
-    {
-      const IntEdge_ID iedge = get_segend_vertex(frags,avx,asx);
-      keep_a_list_of_extreme_elements
-        ( the_edge,
-          GetVA_IntEdge_ID(next_edge_obj,0),
-          iedge,
-          GetVA_Aedge(edges,0),
-          sizeof(Aedge),
-          compare_edge,
-          -1);  // save the minimum ahg elements.
-    }
+    keep_a_list_of_extreme_elements
+      ( the_edge,
+        GetVA_IntEdge_ID(next_edge_obj,0),
+        get_segend_vertex(frags,avx,asx),
+        GetVA_Aedge(edges,0),
+        sizeof(Aedge),
+        compare_edge,
+        -1);  // save the minimum ahg elements.
   }else { // A containment overlap a.k.a. not a dovetail overlap.
-    {
-      const int degree=get_seglen_frc_vertex(frags,avx,asx);
-      assert( degree >= 0 );
-      assert( degree <= con_double_sided_threshold_fragment_end_degree);
-      if(degree < con_double_sided_threshold_fragment_end_degree) {
-        // Not a full list. Add the new record to the array.
-        // What about duplicates?
-        const IntEdge_ID iedge = Insert_Aedge_into_the_edge_array_simple
-          ( frags, edges, nedges_delta, next_edge_obj, the_edge);
-        // Added the edge to the edge array.
-        set_seglen_frc_vertex(frags,avx,asx,(degree+1));
-        *GetVA_IntEdge_ID(next_edge_obj,iedge)
-          = ( degree > 1
-              ? get_segstart_vertex(frags,avx,asx)
-              // A reference to the old top of the list.
-              : iedge
-              // A reference to self is a sentinal for the end of the list.
-              );
-        set_segstart_vertex(frags,avx,asx,iedge);
-      }
+    const int degree=get_seglen_frc_vertex(frags,avx,asx);
+    assert( degree >= 0 );
+    assert( degree <= con_double_sided_threshold_fragment_end_degree);
+    if(degree < con_double_sided_threshold_fragment_end_degree) {
+      // Not a full list. Add the new record to the array.
+      // What about duplicates?
+      const IntEdge_ID iedge = Insert_Aedge_into_the_edge_array_simple
+        ( frags, edges, nedges_delta, next_edge_obj, the_edge);
+      // Added the edge to the edge array.
+      set_seglen_frc_vertex(frags,avx,asx,(degree+1));
+      *GetVA_IntEdge_ID(next_edge_obj,iedge)
+        = ( degree > 1
+            ? get_segstart_vertex(frags,avx,asx)
+            // A reference to the old top of the list.
+            : iedge
+            // A reference to self is a sentinal for the end of the list.
+            );
+      set_segstart_vertex(frags,avx,asx,iedge);
     }
-    {
-      const IntEdge_ID iedge = get_segstart_vertex(frags,avx,asx);
-      keep_a_list_of_extreme_elements
-        ( the_edge,
-          GetVA_IntEdge_ID(next_edge_obj,0),
-          iedge,
-          GetVA_Aedge(edges,0),
-          sizeof(Aedge),
-          compare_edge,
+    keep_a_list_of_extreme_elements
+      ( the_edge,
+        GetVA_IntEdge_ID(next_edge_obj,0),
+        get_segstart_vertex(frags,avx,asx),
+        GetVA_Aedge(edges,0),
+        sizeof(Aedge),
+        compare_edge,
 #ifndef CONTAINMENT_STACKING
-          -1  // save the minimum ahg elements.
+        -1  // save the minimum ahg elements.
 #else // CONTAINMENT_STACKING
-          1   // save the minimum abs(ahg) elements.
+        1   // save the minimum abs(ahg) elements.
 #endif // CONTAINMENT_STACKING
-          );
-    }
+        );
 
     {
       const int degree=get_seglen_frc_vertex(frags,avx,asx);
@@ -453,7 +292,7 @@ static void add_overlap_to_graph
   //const int grangered = an_edge.grangered;
   //const int reflected = an_edge.reflected;
   
-  const int is_dovetail =  is_a_dvt_simple(iahg,ibhg);
+  const int is_dovetail = is_a_dvt_simple(iahg,ibhg) ;
 
   const IntFragment_ID iavx = get_vid_FragmentHash(afr_to_avx,iafr);
   const IntFragment_ID ibvx = get_vid_FragmentHash(afr_to_avx,ibfr);
@@ -743,341 +582,223 @@ static void add_overlap_to_graph
 
 /****************************************************************************/
 
-static void Convert_OverlapMesg_to_Aedge
-(
- const OverlapMesg * const ovl_mesg,
- // The raw overlap input from proto-IO.
- Aedge * const the_new_raw_edge
- // The raw edge converted to the internal overlap edge.
- )
-{
-  const IntFragment_ID a_frag = ovl_mesg->aifrag; 
-  const IntFragment_ID b_frag = ovl_mesg->bifrag;
-  /* Assembler internal Fragment ids. */
-  const int a_hang = ovl_mesg->ahg;
-  const int b_hang = ovl_mesg->bhg;
-  const int regular =
-    (ovl_mesg->orientation == AS_NORMAL) ||
-    (ovl_mesg->orientation == AS_INNIE); 
-  const int flipped =
-    (ovl_mesg->orientation == AS_INNIE) ||
-    (ovl_mesg->orientation == AS_OUTTIE);
+void
+process_gkp_store_for_fragments(char *gkpStoreName,
+                                Tfragment   *frags,
+                                Tedge       *edges,
+                                FragmentHashObject *afr_to_avx,
+                                IntFragment_ID    *min_frag_iid,
+                                IntFragment_ID    *max_frag_iid) {
+
+  fragRecord       *fr = new_fragRecord();
+  FragStream       *fs = NULL;
+
+  IntFragment_ID    iid = 0;
+  IntFragment_ID    vid = 0;
+
+  GateKeeperStore   *gkp = openGateKeeperStore(gkpStoreName, FALSE);
+  if (gkp == NULL) {
+    fprintf(stderr, "Failed to open %s\n", gkpStoreName);
+    exit(1);
+  }
+
+  assert(0 == GetNumFragments(frags));
+
+  *min_frag_iid = getLastElemFragStore(gkp) + 1;
+  *max_frag_iid = 0;
+
+  fs = openFragStream(gkp, FRAG_S_INF);
+
+  //unsigned int firstElem = getFirstElemFragStore(gkp);
+  ///unsigned int lastElem  = getLastElemFragStore(gkp) + 1;
+  //resetFragStream(fs, firstElem, lastElem);
+
+  while (nextFragStream(fs, fr)) {
+    if (getFragRecordIsDeleted(fr) == FALSE) {
+      iid = getFragRecordIID(fr);
   
-  //const int iamn = MAX(0,ovl_mesg->min_offset);
-  //const int iamx = ovl_mesg->max_offset;
-  // This is an approximation.
-  //const int ibmn = (ibhg - (iamx-iahg));
-  //const int ibmx = (ibhg + (iahg-iamn));
+      *min_frag_iid = MIN(*min_frag_iid, iid);
+      *max_frag_iid = MAX(*max_frag_iid, iid);
 
-  const uint32 qua = ovl_mesg->quality;
-  // Assume that the overlap is valid unless proven otherwise.
+      //  Argh!  This needs to be here, other code depends on the
+      //  range of the VA being the number of fragments.
+      //
+      EnableRangeVA_Afragment(frags, vid + 1);
 
-  const int improper = ((a_hang <  0) && (b_hang <  0)) 
-    || ((a_hang == 0) && (b_hang <  0)) || ((a_hang <  0) && (b_hang == 0)) ;
-  const IntFragment_ID iafr = a_frag;
-  const IntFragment_ID ibfr = b_frag;
-  const int iahg = (improper ? -b_hang : a_hang);
-  const int ibhg = (improper ? -a_hang : b_hang);
-  const int iasx = improper ^ regular;
-  const int ibsx = iasx ^ (!flipped);
+      set_vid_FragmentHash(afr_to_avx, iid, vid);
 
-  //  This improper dovetail overlap (a_hang<0)&&(b_hang<0)
-  //  A_frag    >>>>>>>>>>>
-  //  B_frag  >>>>>>>>
-  //  becomes a proper dovetail overlap (ahg>0)&&(bhg>0)
-  //  A_frag  <<<<<<<<<<<
-  //  B_frag       <<<<<<<<
+      set_uid_fragment(frags, vid, getFragRecordUID(fr));
+      set_iid_fragment(frags, vid, iid);
+      set_cid_fragment(frags, vid, iid);
+      set_typ_fragment(frags, vid, AS_READ);
+      set_del_fragment(frags, vid, FALSE);
+      set_length_fragment(frags, vid,
+                          getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBT) -
+                          getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBT));
 
-  //  This improper to-contained overlap (a_hang==0)&&(b_hang<0)
-  //  A_frag  >>>>>>>>>>
-  //  B_frag  >>>>>>>...
-  //  becomes a proper to-contained overlap (ahg>0)&&(bhg==0)
-  //  A_frag  <<<<<<<<<<
-  //  B_frag     <<<<<<<
+      // Assume that each fragment spans a chunk.
+      set_lab_fragment(frags, vid, AS_CGB_UNLABELED_FRAG);
 
-  //  This improper from-contained overlap (a_hang<0)&&(b_hang==0)
-  //  A_frag  ...>>>>>>>
-  //  B_frag  >>>>>>>>>>
-  //  becomes a proper from-contained overlap (ahg==0)&&(bhg>0)
-  //  A_frag  <<<<<<<
-  //  B_frag  <<<<<<<<<<
+      // A flag specifying if this fragment is known to be contained.
+      // Set default to non-contained.
+      set_con_fragment(frags, vid, FALSE);
 
-  //  A degenerate overlap (a_hang==0)&&(b_hang==0)
-  //  A_frag  >>>>>>>>>>
-  //  B_frag  >>>>>>>>>>
+      // Zero if this flag is not contained, but equal to the
+      // fragment containing this one in a unitig layout graph.
+      set_container_fragment(frags, vid,0); 
 
-  const int is_dovetail = is_a_dvt_simple(iahg,ibhg);
-  const int iinv = FALSE;
-  const Tnes ines = ( is_dovetail
-		      ? AS_CGB_DOVETAIL_EDGE
-                      : AS_CGB_CONTAINED_EDGE );
+#ifdef STORE_BRANCH_POINTS_AT_FRAGMENT
+      set_bpt_vertex(frags, vid, FALSE, 0); // Sentinal for no branch point.
+      set_bpt_vertex(frags, vid, TRUE, 0);
+#endif // STORE_BRANCH_POINTS_AT_FRAGMENT
 
-  assert( (iahg>0) || (ibhg>0) || ((iahg == 0) && (ibhg == 0)) );
-  
-  the_new_raw_edge->avx = iafr;
-  the_new_raw_edge->asx = iasx;
-  the_new_raw_edge->ahg = iahg;
-  
-  the_new_raw_edge->bvx = ibfr;
-  the_new_raw_edge->bsx = ibsx;
-  the_new_raw_edge->bhg = ibhg;
-  
-  the_new_raw_edge->nes = ines;
-  the_new_raw_edge->quality = qua;
-  the_new_raw_edge->invalid = iinv;
-  the_new_raw_edge->grangered = FALSE;
-  the_new_raw_edge->reflected = FALSE;
-  the_new_raw_edge->blessed = FALSE;
-}
+      // Set the counts of raw overlaps seen to zero.
+      set_raw_dvt_count_vertex(frags, vid, FALSE, 0);
+      set_raw_dvt_count_vertex(frags, vid, TRUE, 0);
+      set_raw_toc_count_fragment(frags, vid, 0);
+      set_raw_frc_count_fragment(frags, vid, 0);
 
+      // Initialize the lists for the edge trimming.
+      set_seglen_dvt_vertex(frags, vid, FALSE, 0);
+      set_seglen_frc_vertex(frags, vid, FALSE, 0);
+      set_seglen_dvt_vertex(frags, vid, TRUE, 0);
+      set_seglen_frc_vertex(frags, vid, TRUE, 0);
 
-static void add_OverlapMesg_to_graph
-(
- OverlapMesg * ovl_mesg,
- VA_TYPE(char) * the_ovl_source,
- Tfragment  frags[],
- Tedge      edges[],
- FragmentHashObject   *afr_to_avx,   // part of a hash table replacement
- TIntEdge_ID     next_edge_obj[],
- const int dvt_double_sided_threshold_fragment_end_degree,
- const int con_double_sided_threshold_fragment_end_degree,
- const int intrude_with_non_blessed_overlaps_flag,
- const uint32 overlap_error_threshold,
- IntEdge_ID * novl_dovetail,
- IntEdge_ID * novl_containment,
- IntEdge_ID * novl_degenerate,
- IntEdge_ID * nedges_delta
-)
-{
- Aedge  an_edge = {0};
- Convert_OverlapMesg_to_Aedge( ovl_mesg, &an_edge);
+      set_blessed_vertex(frags, vid, FALSE, FALSE);
+      set_blessed_vertex(frags, vid, TRUE, FALSE);
 
- if(overlap_error_threshold < an_edge.quality ) { return;}
+      set_src_fragment(frags, vid, 0);
 
- add_overlap_to_graph
-   (
-    an_edge,
-    frags,
-    edges,
-    afr_to_avx, // Part of a hash table replacement
-    next_edge_obj,
-    dvt_double_sided_threshold_fragment_end_degree,
-    con_double_sided_threshold_fragment_end_degree,
-    intrude_with_non_blessed_overlaps_flag,
-    novl_dovetail,
-    novl_containment,
-    nedges_delta
-    );
-}
+      vid++;
+    }
+  }
 
-
-/****************************************************************************/
-
-static void Convert_Olap_To_Aedge
-(
- const OVSoverlap * const olap,
- // The raw edge input from the overlap store.
- Aedge * const the_new_raw_edge
- // The raw edge as an Unitigger internal overlap edge.
- )
-  
-  //  Copy the information in  (* olap)  into  (* the_new_raw_edge)  with
-  //  appropriate conversions.  Both must have been allocated by
-  //  the calling routine.
-  
-{
-  // Beginning of the input data:
-  const IntFragment_ID a_frag = (olap -> a_iid);
-  const IntFragment_ID b_frag = (olap -> b_iid);
-  const int a_hang = (olap -> dat.ovl.a_hang);
-  const int b_hang = (olap -> dat.ovl.b_hang);
-  const int regular = TRUE;
-  //(ovl_mesg->orientation == AS_NORMAL) ||
-  //(ovl_mesg->orientation == AS_INNIE); 
-  const int flipped = (olap -> dat.ovl.flipped);
-
-  const uint32 qua = olap -> dat.ovl.corr_erate;
-
-  // Ending of the input data.
-
-  const int improper = ((a_hang <  0) && (b_hang <  0)) 
-    || ((a_hang == 0) && (b_hang <  0)) || ((a_hang <  0) && (b_hang == 0)) ;
-  const IntFragment_ID iafr = a_frag;
-  const IntFragment_ID ibfr = b_frag;
-  const int iahg = (improper ? -b_hang : a_hang);
-  const int ibhg = (improper ? -a_hang : b_hang);
-  const int iasx = improper ^ regular;
-  const int ibsx = iasx ^ (!flipped);
-
-  //  This improper dovetail overlap (a_hang<0)&&(b_hang<0)
-  //  A_frag    >>>>>>>>>>>
-  //  B_frag  >>>>>>>>
-  //  becomes a proper dovetail overlap (ahg>0)&&(bhg>0)
-  //  A_frag  <<<<<<<<<<<
-  //  B_frag       <<<<<<<<
-
-  //  This improper to-contained overlap (a_hang==0)&&(b_hang<0)
-  //  A_frag  >>>>>>>>>>
-  //  B_frag  >>>>>>>...
-  //  becomes a proper to-contained overlap (ahg>0)&&(bhg==0)
-  //  A_frag  <<<<<<<<<<
-  //  B_frag     <<<<<<<
-
-  //  This improper from-contained overlap (a_hang<0)&&(b_hang==0)
-  //  A_frag  ...>>>>>>>
-  //  B_frag  >>>>>>>>>>
-  //  becomes a proper from-contained overlap (ahg==0)&&(bhg>0)
-  //  A_frag  <<<<<<<
-  //  B_frag  <<<<<<<<<<
-
-  //  A degenerate overlap (a_hang==0)&&(b_hang==0)
-  //  A_frag  >>>>>>>>>>
-  //  B_frag  >>>>>>>>>>
-
-  const int iinv = FALSE;
-
-  const int is_dovetail = is_a_dvt_simple(iahg,ibhg);
-  const Tnes ines = ( is_dovetail
-		      ? AS_CGB_DOVETAIL_EDGE
-                      : AS_CGB_CONTAINED_EDGE );
-
-  assert( (iahg>0) || (ibhg>0) || ((iahg == 0) && (ibhg == 0)) );
-  
-  the_new_raw_edge->avx = iafr;
-  the_new_raw_edge->asx = iasx;
-  the_new_raw_edge->ahg = iahg;
-  
-  the_new_raw_edge->bvx = ibfr;
-  the_new_raw_edge->bsx = ibsx;
-  the_new_raw_edge->bhg = ibhg;
-  
-  the_new_raw_edge->nes = ines;
-  the_new_raw_edge->quality = qua;
-  the_new_raw_edge->invalid = iinv;
-  the_new_raw_edge->reflected = FALSE;
-  the_new_raw_edge->grangered = FALSE;
-  the_new_raw_edge->blessed = FALSE;
-
-  return;
+  del_fragRecord(fr);
+  closeFragStream(fs);
+  closeGateKeeperStore(gkp);
 }
 
 
 
-/****************************************************************************/
 
-void process_ovl_store
-(
- char * OVL_Store_Path,
- Tfragment  frags[],
- // The internal representation of the fragment reads. 
- Tedge      edges[],
- // The internal representation of the overlaps.
- VA_TYPE(char)   frag_annotations[],
- FragmentHashObject *afr_to_avx, // Part of a hash table replacement
- IntFragment_ID *min_frag_iid,
- IntFragment_ID *max_frag_iid,
- TIntEdge_ID     next_edge_obj[],
- BPTYPE         *nbase_in_genome,
- const int dvt_double_sided_threshold_fragment_end_degree,
- const int con_double_sided_threshold_fragment_end_degree,
- const int intrude_with_non_blessed_overlaps_flag,
- const uint32 overlap_error_threshold
- ) 
-{
+void process_ovl_store(char * OVL_Store_Path,
+                       Tfragment  frags[],
+                       Tedge      edges[],
+                       FragmentHashObject *afr_to_avx,
+                       TIntEdge_ID     next_edge_obj[],
+                       const int dvt_double_sided_threshold_fragment_end_degree,
+                       const int con_double_sided_threshold_fragment_end_degree,
+                       const int intrude_with_non_blessed_overlaps_flag,
+                       const uint32 overlap_error_threshold) {
   OverlapStore  *ovs;
   OVSoverlap     olap;
 
- IntEdge_ID novl_dovetail = 0;
- IntEdge_ID novl_containment = 0;
- IntEdge_ID nedges_delta = 0;
+  IntEdge_ID novl_dovetail = 0;
+  IntEdge_ID novl_containment = 0;
+  IntEdge_ID nedges_delta = 0;
 
- fprintf(stderr, "READING OVL\n");
+  ovs = AS_OVS_openOverlapStore(OVL_Store_Path);
 
- ovs = AS_OVS_openOverlapStore(OVL_Store_Path);
+  //  Copy the information in  (* olap)  into  (* an_edge)  with
+  //  appropriate conversions.
+  //
+  //  This improper dovetail overlap (a_hang<0)&&(b_hang<0)
+  //  A_frag    >>>>>>>>>>>
+  //  B_frag  >>>>>>>>
+  //  becomes a proper dovetail overlap (ahg>0)&&(bhg>0)
+  //  A_frag  <<<<<<<<<<<
+  //  B_frag       <<<<<<<<
+  //
+  //  This improper to-contained overlap (a_hang==0)&&(b_hang<0)
+  //  A_frag  >>>>>>>>>>
+  //  B_frag  >>>>>>>...
+  //  becomes a proper to-contained overlap (ahg>0)&&(bhg==0)
+  //  A_frag  <<<<<<<<<<
+  //  B_frag     <<<<<<<
+  //
+  //  This improper from-contained overlap (a_hang<0)&&(b_hang==0)
+  //  A_frag  ...>>>>>>>
+  //  B_frag  >>>>>>>>>>
+  //  becomes a proper from-contained overlap (ahg==0)&&(bhg>0)
+  //  A_frag  <<<<<<<
+  //  B_frag  <<<<<<<<<<
+  //
+  //  A degenerate overlap (a_hang==0)&&(b_hang==0)
+  //  A_frag  >>>>>>>>>>
+  //  B_frag  >>>>>>>>>>
+  while  (AS_OVS_readOverlapFromStore(ovs, &olap)) {
+    Aedge  e = {0};
+
+    int improper = (((olap.dat.ovl.a_hang <  0) && (olap.dat.ovl.b_hang <  0)) ||
+                    ((olap.dat.ovl.a_hang == 0) && (olap.dat.ovl.b_hang <  0)) ||
+                    ((olap.dat.ovl.a_hang <  0) && (olap.dat.ovl.b_hang == 0)));
+
+    e.avx = olap.a_iid;
+    e.asx = !improper;
+    e.ahg = (improper ? -olap.dat.ovl.b_hang : olap.dat.ovl.a_hang);
+  
+    e.bvx = olap.b_iid;
+    e.bsx = (!improper) ^ (!olap.dat.ovl.flipped);
+    e.bhg = (improper ? -olap.dat.ovl.a_hang : olap.dat.ovl.b_hang);
+  
+    e.nes       = (is_a_dvt_simple(e.ahg, e.bhg) ? AS_CGB_DOVETAIL_EDGE : AS_CGB_CONTAINED_EDGE);
+    e.quality   = olap.dat.ovl.corr_erate;
+    e.invalid   = FALSE;
+    e.reflected = FALSE;
+    e.grangered = FALSE;
+    e.blessed   = FALSE;
+
+    assert((e.ahg > 0) || (e.bhg > 0) || ((e.ahg == 0) && (e.bhg == 0)));
+
+    // Avoid entering the containment overlap twice.
+    if(((AS_CGB_CONTAINED_EDGE == e.nes) &&
+        (is_a_frc_simple(e.ahg,e.bhg))))
+      continue;
+
+    if (e.quality <= overlap_error_threshold)
+      add_overlap_to_graph(e,
+                           frags,
+                           edges,
+                           afr_to_avx,
+                           next_edge_obj,
+                           dvt_double_sided_threshold_fragment_end_degree,
+                           con_double_sided_threshold_fragment_end_degree,
+                           intrude_with_non_blessed_overlaps_flag,
+                           &novl_dovetail,
+                           &novl_containment,
+                           &nedges_delta);
+  }
  
- while  (AS_OVS_readOverlapFromStore(ovs, &olap)) {
-   Aedge  an_edge = {0};
-   Convert_Olap_To_Aedge ( &olap, & an_edge);
+  AS_OVS_closeOverlapStore(ovs);
 
-   // Avoid entering the containment overlap twice.
-   if(((AS_CGB_CONTAINED_EDGE == an_edge.nes) &&
-       (is_a_frc_simple(an_edge.ahg,an_edge.bhg))))
-     continue;
-
-   if (an_edge.quality <= overlap_error_threshold)
-     add_overlap_to_graph(an_edge,
-                          frags,
-                          edges,
-                          afr_to_avx,
-                          next_edge_obj,
-                          dvt_double_sided_threshold_fragment_end_degree,
-                          con_double_sided_threshold_fragment_end_degree,
-                          intrude_with_non_blessed_overlaps_flag,
-                          &novl_dovetail,
-                          &novl_containment,
-                          &nedges_delta);
- }
- 
- AS_OVS_closeOverlapStore(ovs);
-
- fprintf(stderr,"novl_dovetail    = " F_IID "\n", novl_dovetail);
- fprintf(stderr,"novl_containment = " F_IID "\n", novl_containment);
- fprintf(stderr,"nedges_delta     = " F_IID "\n", nedges_delta);
+  fprintf(stderr,"novl_dovetail    = " F_IID "\n", novl_dovetail);
+  fprintf(stderr,"novl_containment = " F_IID "\n", novl_containment);
+  fprintf(stderr,"nedges_delta     = " F_IID "\n", nedges_delta);
 }
 
 /****************************************************************************/
-/****************************************************************************/
 
-
-void input_messages_from_a_file
-(int        argc, 
- char       *argv[],
- FILE       *fovl,
- Tfragment  frags[],
- // The internal representation of the fragment reads. 
- Tedge      edges[],
- // The internal representation of the overlaps.
- VA_TYPE(char) frag_annotations[],
- FragmentHashObject *afr_to_avx, // Part of a hash table replacement
- IntFragment_ID    *min_frag_iid,
- IntFragment_ID    *max_frag_iid,
- TIntEdge_ID       *next_edge_obj,
- BPTYPE *nbase_in_genome,
- const int dvt_double_sided_threshold_fragment_end_degree,
- const int con_double_sided_threshold_fragment_end_degree,
- const int intrude_with_non_blessed_overlaps_flag,
- const uint32 overlap_error_threshold
- ) 
-{
+void input_messages_from_a_file(FILE       *fovl,
+                                Tfragment  frags[],
+                                Tedge      edges[],
+                                FragmentHashObject *afr_to_avx,
+                                TIntEdge_ID       *next_edge_obj,
+                                const int dvt_double_sided_threshold_fragment_end_degree,
+                                const int con_double_sided_threshold_fragment_end_degree,
+                                const int intrude_with_non_blessed_overlaps_flag,
+                                const uint32 overlap_error_threshold) {
   /* Input a batch of fragment read and overlap records from a stream. */
   /* Keep a copy of the number of fragments and edges before
      the new data is read in. */
-  const IntFragment_ID nfrag_old = GetNumFragments(frags); 
   const IntEdge_ID nedge_old = GetNumEdges(edges);
   
-  IntFragment_ID nfrag_new = nfrag_old; // Note that this is NOT const.
   IntEdge_ID nedge_new = nedge_old;
   
-  int nadt=0;   /* The number of audit messages read. */
-  int nidt=0;   /* The number of distance records read. */
-  IntFragment_ID nofg=0;   /* The number of fragment records read. */
-  IntEdge_ID novl_dovetail=0,novl_containment=0,novl_degenerate=0; /* The number of overlap records read. */
+  IntEdge_ID novl_dovetail=0;  /* The number of overlap records read. */
+  IntEdge_ID novl_containment=0;
+  IntEdge_ID novl_degenerate=0;
+
   IntEdge_ID nedge_delta=0;   
-  
-  if(nfrag_old > 0){
-    const IntFragment_ID iid = get_iid_fragment(frags,0);
-    (*max_frag_iid) = MAX((*max_frag_iid),iid);
-    (*min_frag_iid) = MIN((*min_frag_iid),iid);
-  }
-  if(nfrag_old > 1) {
-    IntFragment_ID vid = 0;
-    for(vid=1;vid<nfrag_old;vid++) {
-      const IntFragment_ID iid = get_iid_fragment(frags,vid);
-      (*max_frag_iid) = MAX((*max_frag_iid),iid);
-      (*min_frag_iid) = MIN((*min_frag_iid),iid);
-    }
-  }
-  assert((*min_frag_iid) <= (*max_frag_iid));
   
   /* It is assumed that in the overlap records that new fragments
      point to old fragments.  */
@@ -1087,66 +808,82 @@ void input_messages_from_a_file
   while( EOF != ReadProtoMesg_AS(fovl, &pmesg)) {
     const MessageType imesgtype = pmesg->t;
 
-    switch(imesgtype) {
-      case MESG_OFG: 
-        add_OFGMesg_to_graph
-          ( (OFGMesg *) pmesg->m,
-            NULL,
-            frags,
-            nfrag_old,
-            afr_to_avx,  // part of a hash table replacement
-            &nofg,
-            min_frag_iid,
-            max_frag_iid,
-            frag_annotations
-            );
-        break;
-      case MESG_OVL:
-        //  bubble popper writes this input!
-        add_OverlapMesg_to_graph
-          ( (OverlapMesg *) pmesg->m,
-            NULL,
-            frags, edges, afr_to_avx, next_edge_obj,
-            dvt_double_sided_threshold_fragment_end_degree,
-            con_double_sided_threshold_fragment_end_degree,
-            intrude_with_non_blessed_overlaps_flag,
-            overlap_error_threshold,
-            &novl_dovetail,
-            &novl_containment,
-            &novl_degenerate,
-            &nedge_delta
-            );
-        break;
-      default:
-	fprintf(stderr,"Unexpected message type %d\n",imesgtype);
-	fprintf(stderr,"Message typename %s\n",
-		MessageTypeName[imesgtype]);
-	assert(FALSE);
-        break;
+    //
+    //  bubble popper writes this input, otherwise, it's unused
+    //
+
+    if (pmesg->t == MESG_OVL) {
+
+      //  This improper dovetail overlap (a_hang<0)&&(b_hang<0)
+      //  A_frag    >>>>>>>>>>>
+      //  B_frag  >>>>>>>>
+      //  becomes a proper dovetail overlap (ahg>0)&&(bhg>0)
+      //  A_frag  <<<<<<<<<<<
+      //  B_frag       <<<<<<<<
+      //
+      //  This improper to-contained overlap (a_hang==0)&&(b_hang<0)
+      //  A_frag  >>>>>>>>>>
+      //  B_frag  >>>>>>>...
+      //  becomes a proper to-contained overlap (ahg>0)&&(bhg==0)
+      //  A_frag  <<<<<<<<<<
+      //  B_frag     <<<<<<<
+      //
+      //  This improper from-contained overlap (a_hang<0)&&(b_hang==0)
+      //  A_frag  ...>>>>>>>
+      //  B_frag  >>>>>>>>>>
+      //  becomes a proper from-contained overlap (ahg==0)&&(bhg>0)
+      //  A_frag  <<<<<<<
+      //  B_frag  <<<<<<<<<<
+      //
+      //  A degenerate overlap (a_hang==0)&&(b_hang==0)
+      //  A_frag  >>>>>>>>>>
+      //  B_frag  >>>>>>>>>>
+
+      OverlapMesg *o = (OverlapMesg *)pmesg->m;
+      Aedge        e = {0};
+
+      int improper = ((o->ahg <  0) && (o->bhg <  0)) || ((o->ahg == 0) && (o->bhg <  0)) || ((o->ahg < 0) && (o->bhg == 0)) ;
+
+      e.avx = o->aifrag;
+      e.asx = improper ^ ((o->orientation == AS_NORMAL) || (o->orientation == AS_INNIE));
+      e.ahg = (improper) ? -o->bhg : o->ahg;
+  
+      e.bvx = o->bifrag;
+      e.bsx = e.asx ^ !((o->orientation == AS_INNIE)  || (o->orientation == AS_OUTTIE));
+      e.bhg = (improper) ? -o->ahg : o->bhg;
+  
+      e.nes       = (is_a_dvt_simple(e.ahg, e.bhg)) ? AS_CGB_DOVETAIL_EDGE : AS_CGB_CONTAINED_EDGE;
+      e.quality   = o->quality;
+      e.invalid   = FALSE;
+      e.grangered = FALSE;
+      e.reflected = FALSE;
+      e.blessed   = FALSE;
+
+      assert( (e.ahg>0) || (e.bhg>0) || ((e.ahg == 0) && (e.bhg == 0)) );
+
+      if (e.quality < overlap_error_threshold)
+        add_overlap_to_graph(e,
+                             frags,
+                             edges,
+                             afr_to_avx,
+                             next_edge_obj,
+                             dvt_double_sided_threshold_fragment_end_degree,
+                             con_double_sided_threshold_fragment_end_degree,
+                             intrude_with_non_blessed_overlaps_flag,
+                             &novl_dovetail,
+                             &novl_containment,
+                             &nedge_delta);
+    } else {
+      fprintf(stderr,"Unexpected message type %d (%s)\n",imesgtype, MessageTypeName[imesgtype]);
+      assert(FALSE);
     }
   }
 
 
-  fprintf(stderr,"Input %10d ADT records.\n",nadt);
-  fprintf(stderr,"Input %10d IDT records.\n",nidt);
-  fprintf(stderr,"Input %10d OFG records.\n",nofg);
   fprintf(stderr,"Input %10" F_IIDP " OVL records (skipped %10"F_IIDP" degenerate).\n",novl_dovetail+novl_containment, novl_degenerate);
-  fprintf(stderr,"min_frag_iid=" F_IID " max_frag_iid=" F_IID "\n",
-	  (*min_frag_iid),(*max_frag_iid));
-
   fprintf(stderr,"      %10" F_IIDP " OVL dovetail records.\n",novl_dovetail);
   fprintf(stderr,"      %10" F_IIDP " OVL containment records.\n",novl_containment);
 
-
-
-  nfrag_new = nfrag_old + nofg;
-  assert(nfrag_new == GetNumFragments(frags));
-  
   nedge_new = nedge_old + nedge_delta;
   assert(nedge_new == GetNumEdges(edges));
-
-  fprintf(stderr,
-          "AS_FGB_io.c: nbase_in_genome=" BPFORMAT "\n",
-          (*nbase_in_genome));
 }
-

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.34 2007-04-27 19:38:35 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.35 2007-04-30 13:00:29 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -170,7 +170,6 @@ usage(char *filename) {
   fprintf(stderr, "                              missing mated reads\n");
   fprintf(stderr, "    -clear <clr>           ...use clear range <clr>, default=ORIG\n");
   fprintf(stderr, "    -format2               ...extract using frg format version 2\n");
-  fprintf(stderr, "  -dumpofg               extract OFG (for unitigger)\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "  (1) - must have a -dump option, e.g., -uid file -tabular -dumpfragments some.gkpStore\n");
   fprintf(stderr, "\n");
@@ -182,9 +181,8 @@ usage(char *filename) {
 #define DUMP_LIBRARIES   3
 #define DUMP_FRAGMENTS   4
 #define DUMP_FASTA       5
-#define DUMP_OFG         6
-#define DUMP_FRG         7
-#define DUMP_LASTFRG     8
+#define DUMP_FRG         6
+#define DUMP_LASTFRG     7
 
 int
 main(int argc, char **argv) {
@@ -307,8 +305,6 @@ main(int argc, char **argv) {
       dump = DUMP_FRG;
     } else if (strcmp(argv[arg], "-donotfixmates") == 0) {
       doNotFixMates = 1;
-    } else if (strcmp(argv[arg], "-dumpofg") == 0) {
-      dump = DUMP_OFG;
 
       //  End of dump options
 
@@ -503,9 +499,6 @@ main(int argc, char **argv) {
                               dumpFastaAllReads,
                               dumpFastaClear,
                               dumpFastaQuality);
-        break;
-      case DUMP_OFG:
-        dumpGateKeeperAsOFG(gkpStoreName);
         break;
       case DUMP_FRG:
         dumpGateKeeperAsFRG(gkpStoreName, dumpFormat, begIID, endIID, iidToDump,

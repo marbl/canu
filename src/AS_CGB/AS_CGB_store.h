@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_store.h,v 1.7 2007-04-28 08:46:21 brianwalenz Exp $
+ * $Id: AS_CGB_store.h,v 1.8 2007-04-30 13:00:29 brianwalenz Exp $
  *
  * Module: AS_CGB_store.h
  * Description: Header file for the code that reads and writes the 
@@ -43,7 +43,6 @@ typedef struct {
 
 VA_DEF(Afraginfo);
 VA_DEF(char);
-VA_DEF(OFGMesg);
 VA_DEF(OverlapMesg);
 
 typedef VA_TYPE(Afraginfo) Tfraginfo;

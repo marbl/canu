@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGB_cga.c,v 1.12 2007-04-28 08:46:21 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_cga.c,v 1.13 2007-04-30 13:00:28 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_cga.c
@@ -2306,10 +2306,8 @@ static void analyze_the_chunks
 	Tlab lab = get_lab_fragment(frags,ifrag);
 	if( (fragment_visited[ifrag] == FRAGMENT_NOT_VISITED) &&
 	    (AS_CGB_DELETED_FRAG != lab) ) {
-	  // #ifdef DEBUG10
 	  fprintf(stderr,"Not visited: fragment iid=" F_IID ",ifrag=" F_IID ",ilab=%d\n",
 		  get_iid_fragment(frags,ifrag),ifrag,lab);
-	  // #endif
 	  nfound++;
 	}
       }

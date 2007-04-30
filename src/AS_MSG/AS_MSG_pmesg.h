@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.44 2007-04-28 08:46:22 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.45 2007-04-30 13:00:30 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -63,7 +63,7 @@ typedef struct {
 
 typedef enum {
   MESG_NUL = 0,
-  MESG_ADT, MESG_VER, MESG_FRG, MESG_IFG, MESG_OFG, // 5
+  MESG_ADT, MESG_VER, MESG_FRG, MESG_IFG, MESG_SPo, // 5
   MESG_LKG, MESG_SPg, MESG_DST, MESG_IDT, MESG_LIB, // 10
   MESG_SPc, MESG_SP1, MESG_OVL, MESG_SPf, MESG_UOM, // 15
   MESG_IUM, MESG_IUL, MESG_ICL, MESG_AFG, MESG_ISF, // 20
@@ -79,7 +79,7 @@ typedef enum {
 
 static char  *MessageTypeName[NUM_OF_REC_TYPES + 1] = {
   "NUL",
-  "ADT", "VER", "FRG", "IFG", "OFG", // 5
+  "ADT", "VER", "FRG", "IFG", "SPo", // 5
   "LKG", "SPg", "DST", "IDT", "LIB", // 10
   "SPc", "SP1", "OVL", "SPf", "UOM", // 15
   "IUM", "IUL", "ICL", "AFG", "ISF", // 20  
@@ -257,7 +257,7 @@ typedef enum {
 } UnitigType;
 
 
-/* Fragment messages, FRG, IFG, OFG */
+/* Fragment messages, FRG, IFG */
 
 typedef struct {
   ActionType   		action;
@@ -280,7 +280,6 @@ typedef struct {
   IntFragment_ID   	iaccession;
 } FragMesg;
 
-typedef FragMesg OFGMesg;
 typedef FragMesg InternalFragMesg;
 
 /*OVL message*/
@@ -952,24 +951,6 @@ int ReadProtoMesg_AS(FILE *fin, GenericMesg **pmesg);
 //  Input/Outputs: fout - A file openned for text writing.
 //
 int WriteProtoMesg_AS(FILE *fout, GenericMesg *mesg);
-
-
-//  Function: Transfer_XXX_to_YYY
-//
-//  Description: Transfers the fields of an XXX message to that of a
-//  YYY message.  Note carefully that second level memory is not duplicated,
-//  so that such items (e.g. sequence) are *shared* between the two structures.
-//  A kludge to allow items to be throughput without assignment of internal
-//  IDs, should no longer be in use!
-//
-void Transfer_FRG_to_IFG_AS(FragMesg         *frg_mesg,
-                            InternalFragMesg *ifg_mesg);
-
-void Transfer_IFG_to_OFG_AS(InternalFragMesg *ifg_mesg,
-                            OFGMesg          *ofg_mesg);
-
-void Transfer_DST_to_IDT_AS(DistanceMesg     *dst_mesg,
-                            InternalDistMesg *idt_mesg);
 
 
 

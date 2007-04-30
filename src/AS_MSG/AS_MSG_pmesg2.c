@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg2.c,v 1.4 2007-04-26 14:07:03 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg2.c,v 1.5 2007-04-30 13:00:30 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -162,7 +162,7 @@ Read_Frag_Mesg(FILE *fin,int frag_class) {
   static FragMesg fmesg;
   char   ch;
 
-  assert((frag_class == MESG_FRG) || (frag_class == MESG_IFG) || (frag_class == MESG_OFG));
+  assert((frag_class == MESG_FRG) || (frag_class == MESG_IFG));
 
   fmesg.version        = 2;
 
@@ -210,11 +210,9 @@ Read_Frag_Mesg(FILE *fin,int frag_class) {
 
     fmesg.source   = (char *) GetText("src:",fin,FALSE);
 
-    if( frag_class != MESG_OFG ) {
-      fmesg.sequence = (char *) GetText("seq:",fin,TRUE);
-      fmesg.quality  = (char *) GetText("qlt:",fin,TRUE);
-      fmesg.hps      = (char *) GetText("hps:",fin,TRUE);
-    }
+    fmesg.sequence = (char *) GetText("seq:",fin,TRUE);
+    fmesg.quality  = (char *) GetText("qlt:",fin,TRUE);
+    fmesg.hps      = (char *) GetText("hps:",fin,TRUE);
 
     //  Special handling for clear ranges -- the vector and quality clear are optional.
 
@@ -248,11 +246,9 @@ Read_Frag_Mesg(FILE *fin,int frag_class) {
     // Convert from an index to a pointer.
     //
     fmesg.source   = AS_MSG_globals->MemBuffer + ((long) (fmesg.source));
-    if( frag_class != MESG_OFG ) {
-      fmesg.sequence = AS_MSG_globals->MemBuffer + ((long) (fmesg.sequence));
-      fmesg.quality  = AS_MSG_globals->MemBuffer + ((long) (fmesg.quality));
-      fmesg.hps      = AS_MSG_globals->MemBuffer + ((long) (fmesg.hps));
-    }
+    fmesg.sequence = AS_MSG_globals->MemBuffer + ((long) (fmesg.sequence));
+    fmesg.quality  = AS_MSG_globals->MemBuffer + ((long) (fmesg.quality));
+    fmesg.hps      = AS_MSG_globals->MemBuffer + ((long) (fmesg.hps));
   }  //  action is AS_ADD
 
   GET_EOM;
@@ -266,16 +262,13 @@ static void *Read_FRG_Mesg(FILE *fin)
 static void *Read_IFG_Mesg(FILE *fin)
 { return Read_Frag_Mesg(fin,MESG_IFG); }
 
-static void *Read_OFG_Mesg(FILE *fin)
-{ return Read_Frag_Mesg(fin,MESG_OFG); }
-
 
 static
 void
 Write_Frag_Mesg(FILE *fout,void *vmesg,int frag_class) {
   FragMesg *mesg = (FragMesg *) vmesg;
 
-  assert((frag_class == MESG_FRG) || (frag_class == MESG_IFG) || (frag_class == MESG_OFG));
+  assert((frag_class == MESG_FRG) || (frag_class == MESG_IFG));
 
   fprintf(fout,"{%s\n",MessageTypeName[frag_class]);
   fprintf(fout,"act:%c\n",mesg->action);
@@ -297,11 +290,9 @@ Write_Frag_Mesg(FILE *fout,void *vmesg,int frag_class) {
 
   if ((mesg->action == AS_ADD) || (mesg->action == AS_IGNORE)) {
     PutText(fout,"src:",mesg->source,FALSE);
-    if( frag_class != MESG_OFG ) {
-      PutText(fout,"seq:",mesg->sequence,TRUE);
-      PutText(fout,"qlt:",mesg->quality,TRUE);
-      PutText(fout,"hps:",mesg->hps,TRUE);
-    }
+    PutText(fout,"seq:",mesg->sequence,TRUE);
+    PutText(fout,"qlt:",mesg->quality,TRUE);
+    PutText(fout,"hps:",mesg->hps,TRUE);
     fprintf(fout,"clr:"F_COORD","F_COORD"\n",mesg->clear_rng.bgn,mesg->clear_rng.end);
 
     if (mesg->clear_vec.bgn <= mesg->clear_vec.end)
@@ -319,9 +310,6 @@ static void Write_FRG_Mesg(FILE *fout,void *mesg)
 
 static void Write_IFG_Mesg(FILE *fout,void *mesg)
 { Write_Frag_Mesg(fout,mesg,MESG_IFG); }
-
-static void Write_OFG_Mesg(FILE *fout,void *mesg)
-{ Write_Frag_Mesg(fout,mesg,MESG_OFG); }
 
 
 
@@ -381,16 +369,13 @@ void AS_MSG_setFormatVersion2(void) {
   ct[MESG_LIB].writer  = Write_LIB_Mesg;
   ct[MESG_LIB].size    = sizeof(LibraryMesg);
 
-  //  The FragMesg FRG, IFG and OFG messages are updated.
+  //  The FragMesg FRG, IFG messages are updated.
 
   ct[MESG_FRG].reader  = Read_FRG_Mesg;
   ct[MESG_FRG].writer  = Write_FRG_Mesg;
 
   ct[MESG_IFG].reader  = Read_IFG_Mesg;
   ct[MESG_IFG].writer  = Write_IFG_Mesg;
-
-  ct[MESG_OFG].reader  = Read_OFG_Mesg;
-  ct[MESG_OFG].writer  = Write_OFG_Mesg;
 
   //  The LinkMesg LKG is updated.
 

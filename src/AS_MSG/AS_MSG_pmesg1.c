@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.7 2007-04-28 08:46:22 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.8 2007-04-30 13:00:30 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -159,7 +159,7 @@ static void *Read_Frag_Mesg(FILE *fin, int frag_class)
   char   ch;
   time_t entry_time;
 
-  assert((frag_class == MESG_FRG) || (frag_class == MESG_IFG) || (frag_class == MESG_OFG));
+  assert((frag_class == MESG_FRG) || (frag_class == MESG_IFG));
 
   fmesg.version        = 1;
   fmesg.library_uid    = 0;
@@ -203,17 +203,15 @@ static void *Read_Frag_Mesg(FILE *fin, int frag_class)
     //  Unused
     GET_FIELD(entry_time,"etm:"F_TIME_T,"time field");
 
-    if( frag_class != MESG_OFG ) {
-      fmesg.sequence = (char *) GetText("seq:",fin,TRUE);
-      fmesg.quality  = (char *) GetText("qlt:",fin,TRUE);
-    }
+    fmesg.sequence = (char *) GetText("seq:",fin,TRUE);
+    fmesg.quality  = (char *) GetText("qlt:",fin,TRUE);
+
     GET_PAIR(fmesg.clear_rng.bgn,fmesg.clear_rng.end,"clr:"F_COORD","F_COORD,"clear range field");
     fmesg.source   = AS_MSG_globals->MemBuffer + ((long) (fmesg.source));
-    if( frag_class != MESG_OFG ) {
-      // Convert from an index to a pointer.
-      fmesg.sequence = AS_MSG_globals->MemBuffer + ((long) (fmesg.sequence));
-      fmesg.quality  = AS_MSG_globals->MemBuffer + ((long) (fmesg.quality));
-    }
+
+    // Convert from an index to a pointer.
+    fmesg.sequence = AS_MSG_globals->MemBuffer + ((long) (fmesg.sequence));
+    fmesg.quality  = AS_MSG_globals->MemBuffer + ((long) (fmesg.quality));
   }  //  action is AS_ADD or AS_IGNORE
   GET_EOM;
   return ((void *) (&fmesg));
@@ -224,9 +222,6 @@ static void *Read_FRG_Mesg(FILE *fin)
 
 static void *Read_IFG_Mesg(FILE *fin)
 { return Read_Frag_Mesg(fin,MESG_IFG); }
-
-static void *Read_OFG_Mesg(FILE *fin)
-{ return Read_Frag_Mesg(fin,MESG_OFG); }
 
 
 static void *Read_OVL_Mesg(FILE *fin)
@@ -1361,7 +1356,7 @@ static void Write_LKG_Mesg(FILE *fout, void *vmesg)
 static void Write_Frag_Mesg(FILE *fout, void *vmesg, int frag_class) {
   FragMesg *mesg = (FragMesg *) vmesg;
 
-  assert((frag_class == MESG_FRG) || (frag_class == MESG_IFG) || (frag_class == MESG_OFG));
+  assert((frag_class == MESG_FRG) || (frag_class == MESG_IFG));
 
   fprintf(fout,"{%s\n",MessageTypeName[frag_class]);
   fprintf(fout,"act:%c\n",mesg->action);
@@ -1374,10 +1369,8 @@ static void Write_Frag_Mesg(FILE *fout, void *vmesg, int frag_class) {
     fprintf(fout,"typ:%c\n",(char) mesg->type);
     PutText(fout,"src:",mesg->source,FALSE);
     fprintf(fout,"etm:0\n");
-    if( frag_class != MESG_OFG ) {
-      PutText(fout,"seq:",mesg->sequence,TRUE);
-      PutText(fout,"qlt:",mesg->quality,TRUE);
-    }
+    PutText(fout,"seq:",mesg->sequence,TRUE);
+    PutText(fout,"qlt:",mesg->quality,TRUE);
     fprintf(fout,"clr:"F_COORD","F_COORD"\n", mesg->clear_rng.bgn,mesg->clear_rng.end);
   }
 
@@ -1389,9 +1382,6 @@ static void Write_FRG_Mesg(FILE *fout, void *vmesg)
 
 static void Write_IFG_Mesg(FILE *fout, void *vmesg)
 { Write_Frag_Mesg(fout,vmesg,MESG_IFG); }
-
-static void Write_OFG_Mesg(FILE *fout, void *vmesg)
-{ Write_Frag_Mesg(fout,vmesg,MESG_OFG); }
 
 
 static void Write_OVL_Mesg(FILE *fout, void *vmesg)
@@ -1987,7 +1977,7 @@ static AS_MSG_callrecord CallTable1[NUM_OF_REC_TYPES + 1] = {
   {"{VER", Read_VER_Mesg, Write_VER_Mesg, sizeof(VersionMesg)  },
   {"{FRG", Read_FRG_Mesg, Write_FRG_Mesg, sizeof(FragMesg)  },
   {"{IFG", Read_IFG_Mesg, Write_IFG_Mesg, sizeof(InternalFragMesg) },
-  {"{OFG", Read_OFG_Mesg, Write_OFG_Mesg, sizeof(OFGMesg) },
+  {"", NULL, NULL, 0l },
   {"{LKG", Read_LKG_Mesg, Write_LKG_Mesg, sizeof(LinkMesg) },
   {"", NULL, NULL, 0l },
   {"{DST", Read_DST_Mesg, Write_DST_Mesg, sizeof(DistanceMesg) },
