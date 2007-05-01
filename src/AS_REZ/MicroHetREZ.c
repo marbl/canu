@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.16 2007-04-28 08:46:22 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.17 2007-05-01 06:02:37 brianwalenz Exp $";
 
 #include <assert.h>
 #include <errno.h>
@@ -33,7 +33,6 @@ static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.16 2007-04-28 08:46:22 brianwalenz
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_PER_gkpStore.h"
-#include "AS_PER_distStore.h"
 
 #include "MicroHetREZ.h"
 

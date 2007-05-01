@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: DeleteOlapsOVL.c,v 1.10 2007-04-16 17:36:34 brianwalenz Exp $
- * $Revision: 1.10 $
+ * $Id: DeleteOlapsOVL.c,v 1.11 2007-05-01 06:02:36 brianwalenz Exp $
+ * $Revision: 1.11 $
 */
 
-static char CM_ID[] = "$Id: DeleteOlapsOVL.c,v 1.10 2007-04-16 17:36:34 brianwalenz Exp $";
+static char CM_ID[] = "$Id: DeleteOlapsOVL.c,v 1.11 2007-05-01 06:02:36 brianwalenz Exp $";
 
 
 //  System include files
@@ -56,7 +56,6 @@ static char CM_ID[] = "$Id: DeleteOlapsOVL.c,v 1.10 2007-04-16 17:36:34 brianwal
 #include  "AS_OVL_delcher.h"
 #include  "AS_PER_gkpStore.h"
 #include  "AS_PER_genericStore.h"
-#include  "AS_PER_distStore.h"
 #include  "AS_UTL_PHash.h"
 #include  "AS_MSG_pmesg.h"
 #include  "AS_UTL_version.h"

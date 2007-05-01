@@ -33,12 +33,12 @@
 *************************************************/
 
 /* RCS info
- * $Id: NewFragScriptOVL.c,v 1.7 2007-04-16 17:36:34 brianwalenz Exp $
- * $Revision: 1.7 $
+ * $Id: NewFragScriptOVL.c,v 1.8 2007-05-01 06:02:36 brianwalenz Exp $
+ * $Revision: 1.8 $
 */
 
 static char  CM_ID []
-    = "$Id: NewFragScriptOVL.c,v 1.7 2007-04-16 17:36:34 brianwalenz Exp $";
+    = "$Id: NewFragScriptOVL.c,v 1.8 2007-05-01 06:02:36 brianwalenz Exp $";
 
 
 /*************************************************************************/
@@ -60,7 +60,6 @@ static char  CM_ID []
 #include  "AS_PER_gkpStore.h"
 #include  "AS_PER_genericStore.h"
 #include  "AS_PER_fragStore.h"
-#include  "AS_PER_distStore.h"
 #include  "AS_UTL_PHash.h"
 #include  "AS_MSG_pmesg.h"
 #include  "AS_OVL_overlap.h"

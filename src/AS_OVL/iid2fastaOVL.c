@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: iid2fastaOVL.c,v 1.6 2007-04-16 17:36:35 brianwalenz Exp $
- * $Revision: 1.6 $
+ * $Id: iid2fastaOVL.c,v 1.7 2007-05-01 06:02:36 brianwalenz Exp $
+ * $Revision: 1.7 $
 */
 
 
@@ -58,7 +58,6 @@
 #include  "AS_PER_gkpStore.h"
 #include  "AS_PER_genericStore.h"
 #include  "AS_PER_fragStore.h"
-#include  "AS_PER_distStore.h"
 #include  "AS_UTL_PHash.h"
 #include  "AS_MSG_pmesg.h"
 #include  "AS_OVL_overlap.h"
