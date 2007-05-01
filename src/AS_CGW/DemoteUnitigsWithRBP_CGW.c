@@ -57,7 +57,7 @@ void DemoteUnitigsWithRBP(FILE *stream, GraphCGW_T *graph){
 	otherNodeId = edge->idA;
       }
       otherNode = GetNodeCGW_T(graph->nodes, otherNodeId);
-      if((edge->edgesContributing >= 2) && isOverlapEdge(edge) && (otherNode->bpLength.mean > 3000.0)){
+      if((edge->edgesContributing >= 2) && isOverlapEdge(edge) && (otherNode->bpLength.mean > 1500.0)){
 	switch(GetEdgeOrientationWRT(edge, node->id)){
 	  /* EdgeMate from the A-End */
 	case BA_BA:
@@ -73,9 +73,10 @@ void DemoteUnitigsWithRBP(FILE *stream, GraphCGW_T *graph){
 	}
       }
     }
-    fprintf(stream, "Unitig %d: branchA %d branchB %d\n", node->id, numAEndConfirmOverlap, numBEndConfirmOverlap);
+    /* fprintf(stream, "Unitig %d: branchA %d branchB %d\n", node->id, numAEndConfirmOverlap,
+	    numBEndConfirmOverlap); */
     if((numAEndConfirmOverlap > 1) && (numBEndConfirmOverlap > 1)){
-      fprintf(stream, "Demoting unitig\n");
+      /* fprintf(stream, "Demoting unitig\n"); */
       node->flags.bits.isUnique = FALSE;
       node->type = UNRESOLVEDCHUNK_CGW;
     }

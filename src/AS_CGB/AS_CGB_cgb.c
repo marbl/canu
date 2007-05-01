@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_cgb.c,v 1.9 2007-04-28 08:46:21 brianwalenz Exp $";
+= "$Id: AS_CGB_cgb.c,v 1.10 2007-05-01 14:41:43 granger_sutton Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_cgb.c
@@ -66,6 +66,17 @@ static char CM_ID[]
 
 #define AS_CGB_EDGE_NOT_VISITED     CDS_INT32_MAX
 
+
+static int comparefloats(const void * const a, const void * const b) 
+{
+  /* This comparison function is to be used with ANSI qsort() for
+     sorting local arrival rates. */
+  int icom;
+  float aa = *((float*)a);
+  float bb = *((float *)b);
+  icom = (int)(100000.0 * (aa - bb));
+  return icom ;
+}
 
 static void check_edge_trimming
 ( 
@@ -1277,19 +1288,22 @@ static void make_the_chunks
 
 float compute_the_global_fragment_arrival_rate
 ( 
- FILE *fout,
+ const int           recalibrate, /* Boolean flag to recalibrate global arrival rate to max
+				     unique local arrival rate */
+ const float         cgb_unique_cutoff, /* threshold for unique chunks */
+ FILE               *fout,
  /* Input Only */
- const BPTYPE nbase_in_genome,
-/* Input/Output */
+ const BPTYPE        nbase_in_genome,
+ /* Input/Output */
  const Tfragment     frags[],     /* The internal representation of
-			       the fragment reads. I have one
-			       extra for the segstart field. */
+				     the fragment reads. I have one
+				     extra for the segstart field. */
  const Tedge         edges[],     /* The internal representation of the
-			       overlaps. */
+				     overlaps. */
  const float         estimated_global_fragment_arrival_rate,
  /* Output Only */
- const TChunkFrag    *chunkfrags,
- const TChunkMesg    *thechunks
+ const TChunkFrag   *chunkfrags,
+ const TChunkMesg   *thechunks
  )
 { 
   IntChunk_ID ichunk = 0;
@@ -1300,6 +1314,10 @@ float compute_the_global_fragment_arrival_rate
   float best_global_fragment_arrival_rate;
   const IntChunk_ID nchunks = (IntChunk_ID)GetNumVA_AChunkMesg(thechunks);
   
+  if(NULL != fout){
+    fprintf(fout,"compute_the_global_fragment_arrival_rate(%d,%f,fout,%d,ptr,ptr,%f,ptr,ptr)\n",
+	    recalibrate,cgb_unique_cutoff,nbase_in_genome,estimated_global_fragment_arrival_rate);
+  }
   for(ichunk=0;ichunk<nchunks;ichunk++) {
     const BPTYPE rho 
       = GetAChunkMesg(thechunks,ichunk)->rho; // The sum of overhangs ...
@@ -1349,6 +1367,81 @@ float compute_the_global_fragment_arrival_rate
              ? 1./(best_global_fragment_arrival_rate)
              : 0.));
   }
+
+  if(recalibrate && (nbase_in_genome == 0)){
+    int i;
+    float min_local_arrival_rate = best_global_fragment_arrival_rate;
+    float max_local_arrival_rate = best_global_fragment_arrival_rate;
+    float *arrival_rate_array = NULL, *arrival_rate_ptr = NULL;
+    size_t num_arrival_rates, arrival_rate_array_size = 0;
+
+    for(ichunk=0;ichunk<nchunks;ichunk++) {
+      const BPTYPE rho 
+	= GetAChunkMesg(thechunks,ichunk)->rho; // The sum of overhangs ...
+      if((int)rho > 10000){
+	arrival_rate_array_size += (int)rho / 10000;
+      }
+    }
+    arrival_rate_ptr = arrival_rate_array = safe_malloc(sizeof(*arrival_rate_array) * arrival_rate_array_size);
+    for(ichunk=0;ichunk<nchunks;ichunk++){
+      const BPTYPE rho
+	= GetAChunkMesg(thechunks,ichunk)->rho; // The sum of overhangs ...
+      /*      const int number_of_randomly_sampled_fragments_in_chunk
+	= count_the_randomly_sampled_fragments_in_a_chunk
+	( frags, chunkfrags, thechunks, ichunk);*/
+
+      if((int)rho > 10000)/* &&
+	 (compute_coverage_statistic( rho, number_of_randomly_sampled_fragments_in_chunk,
+				      best_global_fragment_arrival_rate ) > cgb_unique_cutoff))*/{
+	const int num_10000 = (int)rho / 10000;
+	const int number_of_randomly_sampled_fragments_in_chunk
+	  = count_the_randomly_sampled_fragments_in_a_chunk
+	  (frags, chunkfrags, thechunks, ichunk);
+	const float local_arrival_rate = ((float)(number_of_randomly_sampled_fragments_in_chunk-1)) /
+	  ((float)rho);
+	assert(num_10000 > 0);
+	for(i=0;i<num_10000;i++){
+	  assert((size_t)(arrival_rate_ptr - arrival_rate_array) < arrival_rate_array_size);
+	  *arrival_rate_ptr++ = local_arrival_rate;
+	}
+      }
+    }
+    num_arrival_rates = (size_t)(arrival_rate_ptr - arrival_rate_array);
+    if(num_arrival_rates > 0){
+      float recalibrated_fragment_arrival_rate, tmp_fragment_arrival_rate;
+      qsort(arrival_rate_array, num_arrival_rates,
+	    sizeof(*arrival_rate_array),
+	    &comparefloats);
+      min_local_arrival_rate = arrival_rate_array[0];
+      max_local_arrival_rate = arrival_rate_array[num_arrival_rates-1];
+      recalibrated_fragment_arrival_rate =
+	arrival_rate_array[((num_arrival_rates * 19) / 20)];
+      if((min_local_arrival_rate * 2.0) > (best_global_fragment_arrival_rate * 1.25)){
+	tmp_fragment_arrival_rate = best_global_fragment_arrival_rate * 1.25;
+      }else{
+	tmp_fragment_arrival_rate = min_local_arrival_rate * 2.0;
+      }
+      if(tmp_fragment_arrival_rate > recalibrated_fragment_arrival_rate){
+	best_global_fragment_arrival_rate = recalibrated_fragment_arrival_rate;
+      }else{
+	best_global_fragment_arrival_rate = tmp_fragment_arrival_rate;
+      }
+    }
+    if(NULL != fout) {
+      fprintf(fout,"Used recalibrated global_fragment_arrival_rate=%f\n",
+	      (best_global_fragment_arrival_rate));
+      fprintf(fout,"Used recalibrated global_fragment_arrival_distance=%f\n",
+	      ((best_global_fragment_arrival_rate) > 0.
+	       ? 1./(best_global_fragment_arrival_rate)
+	       : 0.));
+      fprintf(fout,"Chunk arrival rates sorted at 1/10s\n");
+      for(i=0;i<10;i++){
+	fprintf(fout,"%f\n",arrival_rate_array[((num_arrival_rates * i) / 10)]);
+      }
+      fprintf(fout,"%f\n",max_local_arrival_rate);
+    }
+    safe_free(arrival_rate_array);
+  }
   return best_global_fragment_arrival_rate;
 }
 
@@ -1364,6 +1457,7 @@ void chunk_graph_build_1
  const BPTYPE nbase_in_genome,
  const char * chimeras_file,
  const char * spurs_file,
+ const int recalibrate_global_arrival_rate,
  const float cgb_unique_cutoff,
  /* Input/Output */
  Tfragment     frags[],     /* The internal representation of
@@ -1409,7 +1503,7 @@ void chunk_graph_build_1
   if( nbase_in_genome == 0) {
     (*global_fragment_arrival_rate) 
       = compute_the_global_fragment_arrival_rate
-      ( stderr, nbase_in_genome, frags, edges, *global_fragment_arrival_rate,
+      ( recalibrate_global_arrival_rate, cgb_unique_cutoff, stderr, nbase_in_genome, frags, edges, *global_fragment_arrival_rate,
         chunkfrags, thechunks );
   }
 

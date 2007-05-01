@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.16 2007-04-30 13:00:29 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.17 2007-05-01 14:41:43 granger_sutton Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_unitigger.c
@@ -260,7 +260,7 @@ ParseCommandLine(UnitiggerGlobals * rg,
   while (!errflg && 
          ((ch = getopt(argc, argv, 
                        "A:B:C:D:E:F:G:H:I:J:K:L:M:N:O:PQ:R:S:V:U:W:XY:Z:"
-                       "ab:cd:e:fg:hi:j:l:m:n:o:p:qr:st:u:v:w:x:y:z:"
+                       "ab:cd:e:fg:hi:j:kl:m:n:o:p:qr:st:u:v:w:x:y:z:"
                        "156:789"
                        )) != EOF)) {
 
@@ -269,8 +269,8 @@ ParseCommandLine(UnitiggerGlobals * rg,
     // Unsup. Assem.  :  CDE            R     X                     t v
     // FGB CGB common :A                  
     // FGB specific   :      G IJ L N  Q    VW      de       mn        wxyz
-    // CGB specific   : B        K         U   YZ b       j l    q s
-    // left-overs     :            M      T                k             
+    // CGB specific   : B        K         U   YZ b       jkl    q s
+    // left-overs     :            M      T                             
 
     switch(ch) {
       /* The required command line options: */
@@ -417,6 +417,12 @@ ParseCommandLine(UnitiggerGlobals * rg,
         // -j <float> : Astat cut-off threshold
         rg->cgb_unique_cutoff = atof(optarg);
         fprintf(stderr,"* cgb_unique_cutoff set to %f\n", rg->cgb_unique_cutoff);
+        break;
+      case 'k':
+        // -k : Recalibrate the global arrival rate to be the max unique local arrival rate
+        rg->recalibrate_global_arrival_rate = TRUE;
+        fprintf(stderr,
+                "* -k: Recalibrate the global arrival rate to be the max unique local arrival rate.\n");
         break;
       case 'l':
         // -l <int> : the length of the genome
@@ -629,6 +635,7 @@ main(int argc, char **argv) {
   rg->walk_depth = 100;
   rg->iv_start = 0;
   rg->overlap_error_threshold = AS_OVS_encodeQuality(1.0);
+  rg->recalibrate_global_arrival_rate = FALSE;
   rg->work_limit_placing_contained_fragments = 20;
   rg->walk_depth=100;
   rg->iv_start=0;
@@ -755,6 +762,7 @@ main(int argc, char **argv) {
                          heapva->edges,  /* The internal representation of the  overlaps. */
                          heapva->frag_annotations,
                          gstate->nbase_in_genome,
+                         rg->recalibrate_global_arrival_rate,
                          rg->cgb_unique_cutoff,
                          gstate->global_fragment_arrival_rate,
                          rg->bubble_boundaries_filename,

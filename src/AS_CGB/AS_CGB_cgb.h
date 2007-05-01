@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_cgb.h,v 1.8 2007-04-28 08:46:21 brianwalenz Exp $
+ * $Id: AS_CGB_cgb.h,v 1.9 2007-05-01 14:41:43 granger_sutton Exp $
  *
  * Module: AS_CGB_cgb.h
  *
@@ -175,19 +175,22 @@ static int count_the_randomly_sampled_fragments_in_a_chunk
 
 float compute_the_global_fragment_arrival_rate
 ( 
- FILE *fout,
+ const int           recalibrate, /* Boolean flag to recalibrate global arrival rate to max
+				     unique local arrival rate */
+ const float         cgb_unique_cutoff, /* threshold for unique chunks */
+ FILE               *fout,
  /* Input Only */
- const BPTYPE nbase_in_genome,
-/* Input/Output */
+ const BPTYPE        nbase_in_genome,
+ /* Input/Output */
  const Tfragment     frags[],     /* The internal representation of
-			       the fragment reads. I have one
-			       extra for the segstart field. */
+				     the fragment reads. I have one
+				     extra for the segstart field. */
  const Tedge         edges[],     /* The internal representation of the
-			       overlaps. */
+				     overlaps. */
  const float         estimated_global_fragment_arrival_rate,
  /* Output Only */
- const TChunkFrag    *chunkfrags,
- const TChunkMesg    *thechunks
+ const TChunkFrag   *chunkfrags,
+ const TChunkMesg   *thechunks
  );
 
 void chunk_graph_build_1
@@ -200,6 +203,7 @@ void chunk_graph_build_1
  const BPTYPE nbase_in_genome,
  const char * chimeras_file,
  const char * spurs_file,
+ const int recalibrate_global_arrival_rate,
  const float cgb_unique_cutoff,
  // Don't count chimeras
  /* Input/Output */

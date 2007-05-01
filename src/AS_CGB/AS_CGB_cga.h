@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_cga.h,v 1.4 2005-03-22 19:48:24 jason_miller Exp $
+ * $Id: AS_CGB_cga.h,v 1.5 2007-05-01 14:41:43 granger_sutton Exp $
  *
  * Module: AS_CGB_cga.h
  *
@@ -46,6 +46,7 @@ void chunk_graph_analysis
  // A store of simulator fragment annotations.
  const BPTYPE     nbase_in_genome,
  // The estimated length of the genome.
+ const int        recalibrate_global_arrival_rate,
  const float cgb_unique_cutoff,
  // The threshold A-statistic score for classifying a unitig as a
  // u-unitig.

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGB_cga.c,v 1.13 2007-04-30 13:00:28 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_cga.c,v 1.14 2007-05-01 14:41:42 granger_sutton Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_cga.c
@@ -1793,6 +1793,7 @@ static void analyze_the_chunks
  TChunkFrag chunkfrags[],
  TChunkMesg thechunks[],
  const BPTYPE nbase_in_genome,
+ const int recalibrate_global_arrival_rate,
  const float cgb_unique_cutoff,
  const float global_fragment_arrival_rate )
 {
@@ -1898,7 +1899,8 @@ static void analyze_the_chunks
 
     const int number_of_randomly_sampled_fragments_in_chunk
       = count_the_randomly_sampled_fragments_in_a_chunk
-      ( frags, chunkfrags, thechunks, ichunk);
+      ( frags, chunkfrags, thechunks,
+ ichunk);
     const float coverage_statistic = compute_coverage_statistic
       ( rho,
         number_of_randomly_sampled_fragments_in_chunk,
@@ -2338,7 +2340,7 @@ static void analyze_the_chunks
 
     {
       compute_the_global_fragment_arrival_rate
-        ( fout, nbase_in_genome, frags, edges,
+        ( recalibrate_global_arrival_rate, cgb_unique_cutoff, fout, nbase_in_genome, frags, edges,
           global_fragment_arrival_rate, chunkfrags, thechunks );
     }
     
@@ -2506,6 +2508,7 @@ void chunk_graph_analysis
 			   overlaps. */
  VA_TYPE(char)    frag_annotations[], /* Fragment annotations. */
  const BPTYPE     nbase_in_genome,
+ const int        recalibrate_global_arrival_rate,
  const float      cgb_unique_cutoff,
  const float      global_fragment_arrival_rate,
  const char       bubble_boundaries_filename[],
@@ -2595,6 +2598,7 @@ void chunk_graph_analysis
        chunkfrags,
        thechunks,
        nbase_in_genome,
+       recalibrate_global_arrival_rate,
        cgb_unique_cutoff,
        global_fragment_arrival_rate );
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ScaffoldGraph_CGW.h,v 1.17 2007-04-28 08:46:22 brianwalenz Exp $	 */
+/* 	$Id: ScaffoldGraph_CGW.h,v 1.18 2007-05-01 14:41:43 granger_sutton Exp $	 */
 /***************************************************************************
  *  ScaffoldGraph
  *  
@@ -38,6 +38,7 @@
 #include "Globals_CGW.h"
 #include "AS_SDB_SequenceDB.h"
 #include "AS_OVS_overlapStore.h"
+#include "AS_CGW_dataTypes.h"
 
 //#define RAT_RUN_1
 //#define RAT_RUN_2
@@ -56,7 +57,7 @@
 #define CONTAINMENT_CONTIGGING 2
 #define ALL_CONTIGGING (DOVETAIL_CONTIGGING | CONTAINMENT_CONTIGGING)
 
-#define CGW_MISSED_OVERLAP 20 /* size the overlapper may have missed */
+#define CGW_MISSED_OVERLAP CGW_DP_MINLEN /* size the overlapper may have missed */
 #define MAX_OVERLAP_SLOP_CGW 10
 
 // controls whether or not we assert in CheckCIScaffoldTLength, ScaffoldSanity

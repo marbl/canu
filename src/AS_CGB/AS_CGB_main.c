@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_main.c,v 1.9 2007-04-30 13:00:29 brianwalenz Exp $";
+= "$Id: AS_CGB_main.c,v 1.10 2007-05-01 14:41:43 granger_sutton Exp $";
 /*********************************************************************
  *
  * Module:  AS_CGB_main.c
@@ -591,6 +591,7 @@ int main_cgb(TStateGlobals * gstate,
        rg->nbase_in_genome,
        rg->chimeras_file,
        rg->spurs_file,
+       rg->recalibrate_global_arrival_rate,
        rg->cgb_unique_cutoff,
        heapva->frags,     /* The internal representation of
                               the fragment reads. I have one
@@ -672,6 +673,7 @@ int main_cgb(TStateGlobals * gstate,
            rg->nbase_in_genome,
            rg->chimeras_file,
            rg->spurs_file,
+	   rg->recalibrate_global_arrival_rate,
            rg->cgb_unique_cutoff,
            heapva->frags,     /* The internal representation of
                                   the fragment reads. I have one

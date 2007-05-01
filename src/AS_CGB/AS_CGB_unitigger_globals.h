@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_unitigger_globals.h,v 1.7 2007-04-30 13:00:29 brianwalenz Exp $
+ * $Id: AS_CGB_unitigger_globals.h,v 1.8 2007-05-01 14:41:43 granger_sutton Exp $
  *
  * Module: AS_CGB_unitigger_globals.h
  * Description: A subroutine interface for the unitigger.
@@ -64,7 +64,7 @@ typedef struct
   // A file that subsets the active fragments by intersection.
 
   int            as_proto_output;
-
+  int            recalibrate_global_arrival_rate;
   int            dechord_the_graph;
   int            create_dump_file;
   int            check_point_level;

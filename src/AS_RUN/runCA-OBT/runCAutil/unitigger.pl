@@ -23,6 +23,7 @@ sub unitigger (@) {
 
         my $cmd;
         $cmd  = "$bin/unitigger ";
+	$cmd .= " -k " if (getGlobal("utgRecalibrateGAR") == 1);
         $cmd .= " -B $B ";
         $cmd .= " -l $l " if defined($l);
         $cmd .= " -m $m " if defined($m);

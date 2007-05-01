@@ -80,7 +80,7 @@ sub setDefaults () {
 
     $global{"cgwOutputIntermediate"}       = 0;
     $global{"cgwPurgeCheckpoints"}         = 1;
-    $global{"cgwDemoteRBP"}                = undef;
+    $global{"cgwDemoteRBP"}                = 1;
 
     $global{"cnsPartitions"}               = 128;
     $global{"cnsMinFrags"}                 = 75000;
@@ -152,6 +152,7 @@ sub setDefaults () {
     $global{"utgFragments"}                = undef;
     $global{"utgBubblePopping"}            = 1;
     $global{"utgGenomeSize"}               = undef;
+    $global{"utgRecalibrateGAR"}           = 1;
     $global{"useGrid"}                     = 0;
     $global{"useBogUnitig"}                = 0;
     $global{"vectorIntersect"}             = undef;
