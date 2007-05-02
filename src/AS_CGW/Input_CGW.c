@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.34 2007-04-28 08:46:22 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.35 2007-05-02 09:30:13 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -897,19 +897,18 @@ void ProcessIUM(IntUnitigMesg *ium_mesg){
 
 
 void LoadDistData(void){ // Load the distance record info from the gkpStore
-  int32 numDists = getNumGateKeeperLibrarys(ScaffoldGraph->gkpStore->lib);
+  int32 numDists = getNumGateKeeperLibraries(ScaffoldGraph->gkpStore);
   CDS_CID_t i;
   
   for(i = 1; i <= numDists; i++){
     DistT dist;
-    GateKeeperLibraryRecord gkpl;
-    getGateKeeperLibraryStore(ScaffoldGraph->gkpStore->lib, i, &gkpl);
+    GateKeeperLibraryRecord  *gkpl = getGateKeeperLibrary(ScaffoldGraph->gkpStore, i);
     
-    if (gkpl.deleted)
+    if (gkpl->deleted)
       continue;
 
-    dist.mu             = gkpl.mean;
-    dist.sigma          = gkpl.stddev;
+    dist.mu             = gkpl->mean;
+    dist.sigma          = gkpl->stddev;
     dist.numSamples     = 0;
     dist.min            = CDS_COORD_MAX;
     dist.max            = CDS_COORD_MIN;
@@ -922,7 +921,7 @@ void LoadDistData(void){ // Load the distance record info from the gkpStore
     dist.numBad         = 0;
 
     fprintf(GlobalData->stderrc,"* Loaded dist "F_UID","F_CID" (%g +/- %g)\n",
-            gkpl.libraryUID, i, dist.mu, dist.sigma);
+            gkpl->libraryUID, i, dist.mu, dist.sigma);
 
     SetDistT(ScaffoldGraph->Dists, i, &dist);
   }
@@ -985,7 +984,7 @@ void ProcessFrags(void)
 
     assert(cifrag->iid == i);  //  If !set, this fails.
 
-    getGateKeeperFragmentStore(ScaffoldGraph->gkpStore->frg, i, &gkf);
+    getGateKeeperFragment(ScaffoldGraph->gkpStore, i, &gkf);
 
     if (gkf.mateIID != 0) {
       InfoByIID *miinfo = GetInfoByIID(ScaffoldGraph->iidToFragIndex, gkf.mateIID);

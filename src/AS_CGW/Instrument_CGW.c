@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.22 2007-04-23 15:24:34 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.23 2007-05-02 09:30:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -4359,11 +4359,11 @@ void PrintScaffoldMateDetail(HashTable_AS * cpHT,
       cds_uint64 mateUID;
       GateKeeperFragmentRecord gkpFrag;
 
-      if(getGateKeeperFragmentStore(ScaffoldGraph->gkpStore->frg,fragIID,&gkpFrag)!=0){
+      if(getGateKeeperFragment(ScaffoldGraph->gkpStore,fragIID,&gkpFrag)!=0){
 	assert(0);
       }
       fragUID=gkpFrag.readUID;
-      if(getGateKeeperFragmentStore(ScaffoldGraph->gkpStore->frg,mateIID,&gkpFrag)!=0){
+      if(getGateKeeperFragment(ScaffoldGraph->gkpStore,mateIID,&gkpFrag)!=0){
 	assert(0);
       }
       mateUID=gkpFrag.readUID;

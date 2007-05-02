@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg2.c,v 1.5 2007-04-30 13:00:30 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg2.c,v 1.6 2007-05-02 09:30:18 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -60,7 +60,7 @@ Read_LIB_Mesg(FILE *fin) {
     lmesg.source   = (char *)GetText("src:",fin,FALSE);
 
     GET_FIELD(lmesg.num_features ,"nft:%d","number of features");
-    featureoffset = GetText("fea:",fin,TRUE);
+    featureoffset = GetText("fea:",fin,FALSE);
 
     //  Adjust source to be a pointer instead of an offset
     lmesg.source = AS_MSG_globals->MemBuffer + (long)lmesg.source;
@@ -97,7 +97,8 @@ Read_LIB_Mesg(FILE *fin) {
         fn--;
       }
 
-      //  skip over the =, and any white space
+      //  skip over the = (and make it a terminator), and any white space
+      *fb = 0;
       fb++;
       while (isspace(*fb))
         fb++;
@@ -108,14 +109,15 @@ Read_LIB_Mesg(FILE *fin) {
       while ((*fb != '\n') && (*fb != '\r'))
         fb++;
 
-      //  strip whitespace at the end of the label
-      fn = fb-1;
+      //  strip whitespace at the end of the label, advance fb to the
+      //  next feature.
+      fn = fb++;
       while (isspace(*fn)) {
         *fn = 0;
         fn--;
       }
 
-      fprintf(stderr, "GOT:   F'%s' V'%s'\n", lmesg.features[i], lmesg.values[i]);
+      fprintf(stderr, "GOT:   fea'%s' val'%s'\n", lmesg.features[i], lmesg.values[i]);
     }
   }  //  num_features > 0
 

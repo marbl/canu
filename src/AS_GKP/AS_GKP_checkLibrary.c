@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.6 2007-04-26 14:07:03 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.7 2007-05-02 09:30:15 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -113,7 +113,7 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
       strncpy(gkpl.comment, lib_mesg->source, AS_PER_COMMENT_LEN);
 #endif
 
-    AS_PER_decodeLibraryFeatures(&gkpl, lib_mesg->num_features, lib_mesg->features, lib_mesg->values);
+    AS_PER_decodeLibraryFeatures(&gkpl, lib_mesg);
 
     value.type = AS_IID_DST;
     InsertInPHashTable_AS(&gkpStore->phs_private,
@@ -151,7 +151,7 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
     getIndexStore(gkpStore->lib, value.IID, &gkpl); 
     gkpl.mean   = lib_mesg->mean;
     gkpl.stddev = lib_mesg->stddev;
-    setGateKeeperLibraryStore(gkpStore->lib, value.IID, &gkpl);
+    setIndexStore(gkpStore->lib, value.IID, &gkpl);
 
   } else if (lib_mesg->action == AS_DELETE) {
 
@@ -176,7 +176,15 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
     }
 
     if(HASH_SUCCESS == DeleteFromPHashTable_AS(gkpStore->phs_private,UID_NAMESPACE_AS, lib_mesg->eaccession)) {
-      deleteGateKeeperLibraryStore(gkpStore->lib, value.IID);
+      //  This isn't something we want to make easy for anyone to do,
+      //  so it's not a nice library function in AS_PER_gkpStore.
+      //
+      //  deleteGateKeeperLibraryStore(gkpStore->lib, value.IID);
+      //
+      GateKeeperLibraryRecord dr;
+      getIndexStore(gkpStore->lib, value.IID, &dr);
+      dr.deleted = TRUE;
+      setIndexStore(gkpStore->lib, value.IID, &dr);
     } else {
       assert(0);
     }

@@ -445,11 +445,9 @@ int AddMDI2Store(AssemblyStore * asmStore, SnapMateDistMesg * smdm)
     }
     else
     {
-      GateKeeperLibraryRecord gklr;
-      getGateKeeperLibraryStore(asmStore->gkpStore->lib,
-                                value.IID, &gklr);
-      mdi.inMean   = gklr.mean;
-      mdi.inStddev = gklr.stddev;
+      GateKeeperLibraryRecord  *gklr = getGateKeeperLibrary(asmStore->gkpStore, value.IID);
+      mdi.inMean   = gklr->mean;
+      mdi.inStddev = gklr->stddev;
     }
   }
   appendASM_MDIStore(asmStore->mdiStore, &mdi);
@@ -501,8 +499,7 @@ int AddAFG2Store(AssemblyStore * asmStore, AugFragMesg * afg)
   // get link fields and original clear range - 1:1 correspondence between AFGs & gkfrs
   if(asmStore->gkpStore != NULL)
   {
-    getGateKeeperFragmentStore(asmStore->gkpStore->frg,
-                               value.IID, &gkfr);
+    getGateKeeperFragment(asmStore->gkpStore, value.IID, &gkfr);
     myAFG.type    = AS_READ;
     myAFG.mate    = gkfr.mateIID;
     myAFG.library = gkfr.libraryIID;
@@ -1132,12 +1129,12 @@ void InitializeAFGStore(AssemblyStore * asmStore)
 
   if(asmStore->gkpStore == NULL)
     return;
-  numFRGs = getNumGateKeeperFragments(asmStore->gkpStore->frg);
+  numFRGs = getNumGateKeeperFragments(asmStore->gkpStore);
   memset(&afg, 0, sizeof(ASM_AFGRecord));
   
   for(i = 1; i <= numFRGs; i++)
   {
-    getGateKeeperFragmentStore(asmStore->gkpStore->frg, i, &gkfr);
+    getGateKeeperFragment(asmStore->gkpStore, i, &gkfr);
     afg.uid = gkfr.readUID;
     afg.deleted = gkfr.deleted;
     appendASM_AFGStore(asmStore->afgStore, &afg);

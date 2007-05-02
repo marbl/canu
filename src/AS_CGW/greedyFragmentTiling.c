@@ -104,7 +104,7 @@ uint64 iid2uid(uint32 iid){
     return (uid[iid]);
   } else {
     GateKeeperFragmentRecord gkpFrag;
-    if(getGateKeeperFragmentStore(my_gkp_store.frg,iid,&gkpFrag)!=0)
+    if(getGateKeeperFragment(&my_gkp_store,iid,&gkpFrag)!=0)
       assert(0);
     uid[iid] = gkpFrag.UID;
   }
@@ -936,7 +936,7 @@ int main (int argc , char * argv[] ) {
 
     // skip deleted fragments
     GateKeeperFragmentRecord gkpFrag;
-    if(getGateKeeperFragmentStore(my_gkp_store.frg,seediid,&gkpFrag)!=0)
+    if(getGateKeeperFragment(&my_gkp_store,seediid,&gkpFrag)!=0)
       assert(0);
     if(gkpFrag.deleted)continue;
 

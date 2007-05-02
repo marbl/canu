@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.33 2007-04-26 14:07:04 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.34 2007-05-02 09:30:18 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -48,10 +48,6 @@ typedef struct {
 
   unsigned int   deleted:1;
   unsigned int   spare:31;
-
-  int32          numFragments;
-  int32          numLibraries;
-  int32          numLibraries_s;
 } GateKeeperBatchRecord;
 
 #define AS_READ_ORIENT_UNKNOWN    0x00
@@ -64,6 +60,7 @@ static const char *AS_READ_ORIENT_NAMES[8] = {
   "U", "I", "O", "N", "A", "X", "X", "X"
 };
 
+
 typedef struct {
   CDS_UID_t      libraryUID;
 
@@ -72,12 +69,22 @@ typedef struct {
   //  Features: you can add boolean flags and small-value types to the
   //  64-bit-wide bit-vector immediately below.  And just in case you
   //  need A LOT of space, you've got ONE-HUNDRED-AND-TWENTY-EIGHT
-  //  bits!!  (OK, minus 5, that are currently used).
+  //  bits!!  (OK, minus 7, that are currently used).
+  //
+  //  The default value of these should be 0.
   //
   uint64         spare2:64;
-  uint64         spare1:60;
-  uint64         orientation:3;
-  uint64         deleted:1;
+  uint64         spare1:55;
+
+  uint64         hpsIsFlowGram:1;              //  Default 0 == no flow gram
+  uint64         hpsIsPeakSpacing:1;           //  Default 0 == no peak spacing
+
+  uint64         doNotTrustHomopolymerRuns:1;  //  Default 0 == trust 'em
+  uint64         doNotOverlapTrim:1;           //  Default 0 == do trimming
+  uint64         isNotRandom:1;                //  Default 0 == is random
+
+  uint64         orientation:3;                //  Default 0 == AS_READ_ORIENT_UNKNOWN
+  uint64         deleted:1;                    //  Default 0 == not deleted
 
   double         mean;
   double         stddev;
@@ -122,8 +129,6 @@ typedef struct {
 } GateKeeperLibraryRecord;
 
 
-
-
 //  AS_MSG reads protoIO, turns a library into a LibraryMesg, which
 //  has the features and values strings.
 //
@@ -131,28 +136,16 @@ typedef struct {
 //  into GateKeeperLibraryRecord.  It uses the functions below to
 //  populate the GKLR.
 //
-static
 void
 AS_PER_decodeLibraryFeatures(GateKeeperLibraryRecord *gkpl,
-                             int    num_features,
-                             char **features,
-                             char **values) {
-}
+                             LibraryMesg             *lmesg);
 
-static
-int
+void
+AS_PER_encodeLibraryFeaturesCleanup(LibraryMesg *lmesg);
+
+void
 AS_PER_encodeLibraryFeatures(GateKeeperLibraryRecord *gkpl,
-                             char ***features,
-                             char ***values) {
-}
-
-
-
-
-
-
-
-
+                             LibraryMesg             *lmesg);
 
 
 
@@ -379,51 +372,6 @@ char       *getFragRecordSource(fragRecord *fr) {
 
 ////////////////////////////////////////////////////////////
 
-
-#define INDEXSTORE_DEF(type)\
-typedef StoreHandle type ## Store;\
-static int commit ## type ## Store(type ## Store sh){\
-  return commitStore(sh);\
-}\
-static type ## Store reset ## type ## Store(type ## Store sh, int firstID){\
-  return resetIndexStore(sh, firstID);\
-}\
-static int close ## type ## Store(type ## Store sh){\
-  return closeStore(sh);\
-}\
-static int delete ## type ## Store(type ## Store fs, int index){\
-  type ## Record dr;\
-  getIndexStore(fs,index,&dr); \
-  dr.deleted = TRUE;\
-  setIndexStore(fs,index,&dr);\
-  return(0);\
-}\
-static int get ## type ## Store(type ## Store fs, int index, type ## Record *dr){\
-  return getIndexStore(fs,index,dr); \
-}\
-static int set ## type ## Store(type ## Store fs, int index, type ## Record *dr){\
-  return setIndexStore(fs,index,dr); \
-}\
-static type ## Store create ## type ## Store(char *StorePath, char *ext, int firstID){\
-  type ## Store s = createIndexStore(StorePath,ext, sizeof(type ## Record), 1, firstID);\
-  return s;\
-}\
-static type ## Store open ## type ## Store(char *StorePath, char *rw){\
-  return openStore(StorePath, rw);\
-}\
-static int append ## type ## Store(type ## Store store, type ## Record *element){\
-  return appendIndexStore(store,element);\
-}\
-static int32 getNum ## type ## s(type ## Store store){\
-  StoreStat stat;\
-  statsStore(store, &stat);\
-  return(stat.lastElem);\
-}
-
-INDEXSTORE_DEF(GateKeeperBatch);
-INDEXSTORE_DEF(GateKeeperFragment);
-INDEXSTORE_DEF(GateKeeperLibrary);
-
 #define NUM_GKP_FILES 9
 
 // 1  is gatekeeper store info
@@ -451,9 +399,9 @@ typedef struct {
 
   GateKeeperStoreInfo      gkp;
 
-  GateKeeperBatchStore     bat;
-  GateKeeperFragmentStore  frg;
-  GateKeeperLibraryStore   lib;    
+  StoreHandle              bat;
+  StoreHandle              frg;
+  StoreHandle              lib;    
 
   StoreHandle              seq;
   StoreHandle              qlt;
@@ -467,6 +415,10 @@ typedef struct {
   //  consensus, etc.
   //
   PHashTable_AS           *phs_private;
+
+  //  We cache all the library records, for quick access.
+  //
+  GateKeeperLibraryRecord *lib_cache;
 
   //  The rest are for a partitioned fragment store.
   //
@@ -492,6 +444,65 @@ typedef struct {
 
 
 
+
+
+static
+int32
+getNumGateKeeperBatches(GateKeeperStore *gkp) {
+  StoreStat stat;
+  statsStore(gkp->bat, &stat);
+  return(stat.lastElem);
+}
+static
+int32
+getNumGateKeeperLibraries(GateKeeperStore *gkp) {
+  StoreStat stat;
+  statsStore(gkp->lib, &stat);
+  return(stat.lastElem);
+}
+static
+int32
+getNumGateKeeperFragments(GateKeeperStore *gkp) {
+  StoreStat stat;
+  statsStore(gkp->frg, &stat);
+  return(stat.lastElem);
+}
+
+
+static
+int
+getGateKeeperBatch(GateKeeperStore *gkp, int index, GateKeeperBatchRecord *dr) {
+  return(getIndexStore(gkp->bat, index, dr));
+}
+static
+int
+getGateKeeperFragment(GateKeeperStore *gkp, int index, GateKeeperFragmentRecord *dr) {
+  return(getIndexStore(gkp->frg, index, dr));
+}
+static
+GateKeeperLibraryRecord *
+getGateKeeperLibrary(GateKeeperStore *gkp, int libiid) {
+  int32 n = getNumGateKeeperLibraries(gkp);
+
+  //  If not initialized, we need to load all the library records.
+  if (gkp->lib_cache == NULL) {
+    int32 i;
+    gkp->lib_cache = (GateKeeperLibraryRecord *)safe_calloc(n+1, sizeof(GateKeeperLibraryRecord));
+    for (i=1; i<=n; i++)
+      getIndexStore(gkp->lib, i, &gkp->lib_cache[i]);
+  }
+
+  if ((1 <= libiid) || (libiid <= n))
+    return(gkp->lib_cache + libiid);
+
+  return(NULL);
+}
+
+
+
+
+
+
 //  The only public accessor for the persistent hash in the
 //  gatekeeper.
 //
@@ -508,8 +519,6 @@ getGatekeeperUIDtoIID(GateKeeperStore *gkp, CDS_UID_t key, PHashValue_AS *value)
       fprintf(stderr,"**** Failed to open GateKeeper Persistent HashTable...\n");
       assert(0);
     }
-
-    fprintf(stderr, "Loaded GateKeeperStore Persistent Hash Table.\n");
   }
 
   return(LookupInPHashTable_AS(gkp->phs_private,
@@ -517,6 +526,7 @@ getGatekeeperUIDtoIID(GateKeeperStore *gkp, CDS_UID_t key, PHashValue_AS *value)
                                key,
                                value));
 }
+
 
 
 ////////////////////////////////////////////////////////////////////////////////

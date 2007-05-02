@@ -238,7 +238,7 @@ int main( int argc, char *argv[])
     // get the fragment
     /*************************/
 
-    rv1 = getGateKeeperFragmentStore(gkpStore.frg,fragIID,&gkpFrag);
+    rv1 = getGateKeeperFragment(&gkpStore,fragIID,&gkpFrag);
     if(gkpFrag.deleted)continue;
     assert(rv1==0);
     fragUID = gkpFrag.UID;
@@ -275,7 +275,7 @@ int main( int argc, char *argv[])
       // get (clear) sequence of mate
       /*************************/
 
-      rv2 = getGateKeeperFragmentStore(gkpStore.frg,mateIID,&gkpFrag);
+      rv2 = getGateKeeperFragment(&gkpStore,mateIID,&gkpFrag);
       assert(rv2==0);
       mateUID = gkpFrag.UID;
 	

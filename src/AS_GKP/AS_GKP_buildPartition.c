@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_buildPartition.c,v 1.3 2007-03-09 19:12:24 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_buildPartition.c,v 1.4 2007-05-02 09:30:15 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -128,7 +128,7 @@ Build_Partition(char      *gatekeeperName,
 
     //  append the elements
 
-    appendGateKeeperFragmentStore(gkpart[p]->partfrg, &fr->gkfr);
+    appendIndexStore(gkpart[p]->partfrg, &fr->gkfr);
 
     encodeSequenceQuality(encodedsequence, fr->seq, fr->qlt);
     appendVLRecordStore(gkpart[p]->partqlt, encodedsequence, fr->gkfr.seqLen);

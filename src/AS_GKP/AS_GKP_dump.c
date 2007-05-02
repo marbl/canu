@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_dump.c,v 1.16 2007-04-30 13:00:29 brianwalenz Exp $ */
+/* $Id: AS_GKP_dump.c,v 1.17 2007-05-02 09:30:15 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,8 +41,8 @@ dumpGateKeeperInfo(char       *gkpStoreName) {
     exit(1);
   }
 
-  fprintf(stdout, "num fragments        = "F_S32"\n", getNumGateKeeperFragments(gkp->frg));
-  fprintf(stdout, "num libraries        = "F_S32"\n", getNumGateKeeperLibrarys(gkp->lib));
+  fprintf(stdout, "num fragments        = "F_S32"\n", getNumGateKeeperFragments(gkp));
+  fprintf(stdout, "num libraries        = "F_S32"\n", getNumGateKeeperLibraries(gkp));
 
   closeGateKeeperStore(gkp);
 }
@@ -77,21 +77,15 @@ dumpGateKeeperBatches(char       *gkpStoreName,
     if ((iidToDump == NULL) || (iidToDump[i])) {
       GateKeeperBatchRecord gkpb;
 
-      getGateKeeperBatchStore(gkp->bat, i, &gkpb);
+      getGateKeeperBatch(gkp, i, &gkpb);
 
       if (asTable) {
-        fprintf(stdout, F_UID"\t"F_IID"\t%s\t"F_S32"\t"F_S32"\t"F_S32"\n",
+        fprintf(stdout, F_UID"\t"F_IID"\t%s\n",
                 gkpb.batchUID, i,
-                (gkpb.name[0]) ? gkpb.name : ".",
-                gkpb.numFragments,
-                gkpb.numLibraries,
-                gkpb.numLibraries_s);
+                (gkpb.name[0]) ? gkpb.name : ".");
       } else {
         fprintf(stdout, "batchIdent   = "F_UID","F_IID"\n", gkpb.batchUID, i);
         fprintf(stdout, "batchName    = %s\n", gkpb.name);
-        fprintf(stdout, "batchNFrags  = "F_S32"\n", gkpb.numFragments);
-        fprintf(stdout, "batchNLibs   = "F_S32"\n", gkpb.numLibraries);
-        fprintf(stdout, "batchNLibsS  = "F_S32"\n", gkpb.numLibraries_s);
         chomp(gkpb.comment);
         fprintf(stdout, "batchComment\n");
         if (gkpb.comment[0] != 0)
@@ -132,27 +126,25 @@ dumpGateKeeperLibraries(char       *gkpStoreName,
 
   for (i=begIID; i<=endIID; i++) {
     if ((iidToDump == NULL) || (iidToDump[i])) {
-      GateKeeperLibraryRecord gkpl;
-
-      getGateKeeperLibraryStore(gkp->lib, i, &gkpl);
+      GateKeeperLibraryRecord *gkpl = getGateKeeperLibrary(gkp, i);
 
       if (asTable) {
         fprintf(stdout, F_UID"\t"F_IID"\t%d\t%s\t%f\t%f\n",
-                gkpl.libraryUID, i,
-                gkpl.deleted,
-                AS_READ_ORIENT_NAMES[gkpl.orientation],
-                gkpl.mean,
-                gkpl.stddev);
+                gkpl->libraryUID, i,
+                gkpl->deleted,
+                AS_READ_ORIENT_NAMES[gkpl->orientation],
+                gkpl->mean,
+                gkpl->stddev);
       } else {
-        fprintf(stdout, "libraryIdent         = "F_UID","F_IID"\n", gkpl.libraryUID, i);
-        fprintf(stdout, "libraryDeleted       = %d\n", gkpl.deleted);
-        fprintf(stdout, "libraryOrientation   = %s\n", AS_READ_ORIENT_NAMES[gkpl.orientation]);
-        fprintf(stdout, "libraryMean          = %f\n", gkpl.mean);
-        fprintf(stdout, "libraryStdDev        = %f\n", gkpl.stddev);
-        chomp(gkpl.comment);
+        fprintf(stdout, "libraryIdent         = "F_UID","F_IID"\n", gkpl->libraryUID, i);
+        fprintf(stdout, "libraryDeleted       = %d\n", gkpl->deleted);
+        fprintf(stdout, "libraryOrientation   = %s\n", AS_READ_ORIENT_NAMES[gkpl->orientation]);
+        fprintf(stdout, "libraryMean          = %f\n", gkpl->mean);
+        fprintf(stdout, "libraryStdDev        = %f\n", gkpl->stddev);
+        chomp(gkpl->comment);
         fprintf(stdout, "libraryComment\n");
-        if (gkpl.comment[0] != 0)
-          fprintf(stdout, "%s\n", gkpl.comment);
+        if (gkpl->comment[0] != 0)
+          fprintf(stdout, "%s\n", gkpl->comment);
         fprintf(stdout, "libraryCommentEnd\n");
       }
     }
@@ -423,40 +415,43 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
   //
   for (i=1; i<=stat.lastElem; i++) {
     if (libToDump[i]) {
-      GateKeeperLibraryRecord gkpl;
+      DistanceMesg              dmesg;
+      LibraryMesg               lmesg;
+      GateKeeperLibraryRecord  *gkpl = getGateKeeperLibrary(gkp, i);
 
-      getGateKeeperLibraryStore(gkp->lib, i, &gkpl);
+      //  We don't really need to cache UIDs anymore;
+      //  getGateKeeperLibrary should be doing this for us.  It's
+      //  already implemented, and slightly more efficient, so BPW
+      //  left it in.
 
-      libUID[i] = gkpl.libraryUID;
+      libUID[i] = gkpl->libraryUID;
 
       if (dumpFormat == 1) {
-        DistanceMesg  dmesg;
-
         pmesg.m = &dmesg;
         pmesg.t = MESG_DST;
 
         dmesg.action     = AS_ADD;
-        dmesg.eaccession = gkpl.libraryUID;
-        dmesg.mean       = gkpl.mean;
-        dmesg.stddev     = gkpl.stddev;
+        dmesg.eaccession = gkpl->libraryUID;
+        dmesg.mean       = gkpl->mean;
+        dmesg.stddev     = gkpl->stddev;
       } else {
-        LibraryMesg  lmesg;
-
         pmesg.m = &lmesg;
         pmesg.t = MESG_LIB;
 
         lmesg.action       = AS_ADD;
-        lmesg.eaccession   = gkpl.libraryUID;
-        lmesg.mean         = gkpl.mean;
-        lmesg.stddev       = gkpl.stddev;
-        lmesg.source       = gkpl.comment;
-        lmesg.link_orient  = AS_READ_ORIENT_NAMES[gkpl.orientation][0];
-        lmesg.num_features = 0;
-        lmesg.features     = NULL;
-        lmesg.values       = NULL;
+        lmesg.eaccession   = gkpl->libraryUID;
+        lmesg.mean         = gkpl->mean;
+        lmesg.stddev       = gkpl->stddev;
+        lmesg.source       = gkpl->comment;
+        lmesg.link_orient  = AS_READ_ORIENT_NAMES[gkpl->orientation][0];
+
+        AS_PER_encodeLibraryFeatures(gkpl, &lmesg);
       }
 
       WriteProtoMesg_AS(stdout, &pmesg);
+
+      if (dumpFormat != 1)
+        AS_PER_encodeLibraryFeaturesCleanup(&lmesg);
     }
   }
   closeFragStream(fs);

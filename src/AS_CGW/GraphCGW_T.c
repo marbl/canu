@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.39 2007-04-23 15:24:34 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.40 2007-05-02 09:30:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -4541,14 +4541,12 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
     AssertPtr(fout);
 
     for (i=1; i<GetNumDistTs(ScaffoldGraph->Dists); i++) {
-      DistT                     *dptr = GetDistT(ScaffoldGraph->Dists, i);
-      GateKeeperLibraryRecord    gkpl;
-
-      getGateKeeperLibraryStore(gkpStore->lib, i, &gkpl);
+      DistT                         *dptr = GetDistT(ScaffoldGraph->Dists, i);
+      GateKeeperLibraryRecord       *gkpl = getGateKeeperLibrary(gkpStore, i);
 
       fprintf(fout, "{DST\n");
       fprintf(fout, "act:R\n");
-      fprintf(fout, "acc:"F_UID"\n", gkpl.libraryUID);
+      fprintf(fout, "acc:"F_UID"\n", gkpl->libraryUID);
       fprintf(fout, "mea:%f\n", dptr->mu);
       fprintf(fout, "std:%f\n", dptr->sigma);
       fprintf(fout, "}\n");

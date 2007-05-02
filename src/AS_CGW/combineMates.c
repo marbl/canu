@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: combineMates.c,v 1.13 2007-04-16 17:36:31 brianwalenz Exp $";
+static char CM_ID[] = "$Id: combineMates.c,v 1.14 2007-05-02 09:30:13 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -299,7 +299,7 @@ int main( int argc, char *argv[])
 
 
     //    fprintf(stderr,"Working on frgIID %d\n",fragIID);
-    rv1 = getGateKeeperFragmentStore(gkpStore.frg,fragIID,&gkpFrag);
+    rv1 = getGateKeeperFragment(&gkpStore,fragIID,&gkpFrag);
 
     assert(rv1==0);
     fragUID = gkpFrag.UID;
@@ -336,7 +336,7 @@ int main( int argc, char *argv[])
     clear1[len1]='\0';
     //    fprintf(stderr, F_UID " %d : %s\n", 	    fragUID,len1,clear1);
 
-    rv2 = getGateKeeperFragmentStore(gkpStore.frg,mateIID,&gkpFrag);
+    rv2 = getGateKeeperFragment(&gkpStore,mateIID,&gkpFrag);
     assert(rv2==0);
     mateUID = gkpFrag.UID;
     if(getFrag(gkpStore,mateIID,fsmate,FRAG_S_ALL)!=0){

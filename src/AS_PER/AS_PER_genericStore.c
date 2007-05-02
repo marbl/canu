@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.17 2007-03-09 19:10:35 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.18 2007-05-02 09:30:18 brianwalenz Exp $";
 
 // Module:  AS_PER_genericStore
 // Description:
@@ -347,7 +347,7 @@ StoreHandle createIndexStore
     }
     myStore->buffer = NULL;
     if (WRITING_BUFFER > 0) {
-      fprintf(stderr, "allocate buffer of size %d\n", WRITING_BUFFER);
+      //fprintf(stderr, "allocate buffer of size %d\n", WRITING_BUFFER);
       myStore->buffer = (char *)safe_malloc(WRITING_BUFFER);
       setbuffer(myStore->fp, myStore->buffer, WRITING_BUFFER);
     }
@@ -425,7 +425,7 @@ StoreHandle createStringStore
     }
     myStore->buffer = NULL;
     if (WRITING_BUFFER > 0) {
-      fprintf(stderr, "allocate buffer of size %d\n", WRITING_BUFFER);
+      //fprintf(stderr, "allocate buffer of size %d\n", WRITING_BUFFER);
       myStore->buffer = (char *)safe_malloc(WRITING_BUFFER);
       setbuffer(myStore->fp, myStore->buffer, WRITING_BUFFER);
     }

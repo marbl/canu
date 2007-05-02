@@ -25,7 +25,7 @@
  Assumptions: There is no UID 0
 **********************************************************************/
 
-static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.34 2007-04-02 13:43:14 gdenisov Exp $";
+static char CM_ID[] = "$Id: AS_TER_terminator_funcs.c,v 1.35 2007-05-02 09:30:18 brianwalenz Exp $";
 
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
@@ -258,15 +258,14 @@ static CDS_UID_t *fetch_UID_from_distStore(VA_TYPE(CDS_UID_t) *map, CDS_IID_t ii
   CDS_UID_t* ret = fetch_UID(map,iid);
   if(ret == NULL)
   {
-    GateKeeperLibraryRecord gkpl;
-    if( 0 == getGateKeeperLibraryStore(FSHandle->lib,iid,&gkpl) ){
-      CDS_UID_t *di;
-      di = GetCDS_UID_t(map,iid);
+    GateKeeperLibraryRecord *gkpl = getGateKeeperLibrary(FSHandle, iid);
+    if (gkpl) {
+      CDS_UID_t *di = GetCDS_UID_t(map,iid);
       if ((di != NULL) && (*di != 0)) {
         sprintf(errorreport,"Internal DST ID %d occurred twice",iid);
         error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
       }
-      SetCDS_UID_t(map,iid,&gkpl.libraryUID);
+      SetCDS_UID_t(map,iid,&gkpl->libraryUID);
       return GetCDS_UID_t(map,iid);
     }
     else{
@@ -1492,34 +1491,20 @@ void read_stores(char* fragStoreName)
   {
     /* reading distributions */
     {
-     GateKeeperLibraryRecord gkpl;
      StoreStat stat;
      int i ;
      statsStore(FSHandle->lib, &stat);
-#if DEBUG > 0
-     fprintf(stderr,"* Stats for Dist Store are first:%lu last :%lu\n",
-	     stat.firstElem, stat.lastElem);
-#endif
      for(i = stat.firstElem; i <= stat.lastElem; i++){
-       getGateKeeperLibraryStore(FSHandle->lib,i,&gkpl);
-#if DEBUG > 1
-       fprintf(stderr,"* Dist %d UID:%lu del:%d red:%d mean:%f std:%f batch(%d,%d) prevID:%d prevInstanceID:%d\n",
-	       i,gkpl.UID, gkpl.deleted, gkpl.redefined, gkpl.mean, gkpl.stddev,
-	       gkpl.birthBatch, gkpl.deathBatch, gkpl.prevID, gkpl.prevInstanceID);
-#endif
+       GateKeeperLibraryRecord *gkpl = getGateKeeperLibrary(FSHandle,i);
 
        di = GetCDS_UID_t(DSTmap,i);
        if ((di != NULL) && (*di != 0)) {
 	 sprintf(errorreport,"Internal DST ID %d occurred twice",i);
 	 error(errorreport,AS_TER_EXIT_FAILURE,__FILE__,__LINE__); 
        }
-       SetCDS_UID_t(DSTmap,i,&gkpl.libraryUID);
-       if( get_start_uid() <= gkpl.libraryUID )
-         set_start_uid(gkpl.libraryUID+1);
-
-#if DEBUG_UID
-       fprintf(stderr,"SYS_UID_uidStart after reading distribs %lu\n",get_start_uid());
-#endif
+       SetCDS_UID_t(DSTmap,i,&gkpl->libraryUID);
+       if( get_start_uid() <= gkpl->libraryUID )
+         set_start_uid(gkpl->libraryUID+1);
      }
     }
   }

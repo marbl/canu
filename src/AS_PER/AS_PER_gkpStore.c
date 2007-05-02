@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.33 2007-04-26 14:07:04 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.34 2007-05-02 09:30:18 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -192,13 +192,13 @@ openGateKeeperStore(const char *path,
 
   if (writable >= 0) {
     sprintf(name,"%s/bat", gkpStore->storePath);
-    gkpStore->bat   = openGateKeeperBatchStore(name, mode);
+    gkpStore->bat   = openStore(name, mode);
 
     sprintf(name,"%s/frg", gkpStore->storePath);
-    gkpStore->frg   = openGateKeeperFragmentStore(name, mode);
+    gkpStore->frg   = openStore(name, mode);
 
     sprintf(name,"%s/lib", gkpStore->storePath);
-    gkpStore->lib   = openGateKeeperLibraryStore(name, mode);
+    gkpStore->lib   = openStore(name, mode);
 
     sprintf(name,"%s/seq", gkpStore->storePath);
     gkpStore->seq = openStore(name, mode);
@@ -285,13 +285,13 @@ createGateKeeperStore(const char *path) {
   fclose(gkpinfo);
 
   sprintf(name,"%s/bat", path);
-  gkpStore->bat = createGateKeeperBatchStore(name, "bat", 1);
+  gkpStore->bat = createIndexStore(name, "bat", sizeof(GateKeeperBatchRecord), 1, 1);
 
   sprintf(name,"%s/frg", path);
-  gkpStore->frg = createGateKeeperFragmentStore(name, "frg", 1);
+  gkpStore->frg = createIndexStore(name, "frg", sizeof(GateKeeperFragmentRecord), 1, 1);
 
   sprintf(name,"%s/lib", path);
-  gkpStore->lib = createGateKeeperLibraryStore(name, "lib", 1);
+  gkpStore->lib = createIndexStore(name, "lib", sizeof(GateKeeperLibraryRecord), 1, 1);
 
   sprintf(name,"%s/seq", path);
   gkpStore->seq = createVLRecordStore(name, "seq", MAX_SEQ_LENGTH, 1);
@@ -377,7 +377,7 @@ GateKeeperStore *createGateKeeperPartition(const char *path, uint32 partnum) {
   gkp->partnum = partnum;
 
   sprintf(name,"%s/frg.%03d", gkp->storePath, partnum);
-  gkp->partfrg = createGateKeeperFragmentStore(name, "partfrg", 1);
+  gkp->partfrg = createIndexStore(name, "partfrg", sizeof(GateKeeperFragmentRecord), 1, 1);
 
   sprintf(name,"%s/qlt.%03d", gkp->storePath, partnum);
   gkp->partqlt = createVLRecordStore(name, "partqlt", MAX_SEQ_LENGTH, 1);
@@ -458,14 +458,7 @@ void       loadGateKeeperPartition(GateKeeperStore *gkp, uint32 partnum) {
 }
 
 
-
-
 ////////////////////////////////////////////////////////////////////////////////
-
-
-
-
-
 
 
 void clearGateKeeperBatchRecord(GateKeeperBatchRecord *g) {
@@ -481,10 +474,167 @@ void clearGateKeeperFragmentRecord(GateKeeperFragmentRecord *g) {
 }
 
 
+////////////////////////////////////////////////////////////////////////////////
+
+
+static
+int
+AS_PER_decodeLibraryFeaturesBoolean(char *feature, char *value) {
+  int  ret = 0;
+
+  //  Decodes a string with 0/1, false/true, no/yes into an integer flag.
+
+  switch (value[0]) {
+    case '0':
+    case 'f':
+    case 'F':
+    case 'n':
+    case 'N':
+      ret = 0;
+      break;
+    case '1':
+    case 't':
+    case 'T':
+    case 'y':
+    case 'Y':
+      ret = 1;
+      break;
+    default:
+      fprintf(stderr, "AS_PER_decodeLibraryFeatures()-- Found feature '%s' but has unknown boolean value '%s'\n",
+              feature, value);
+      break;
+  }
+
+  return(ret);
+}
+
+
+
+void
+AS_PER_decodeLibraryFeatures(GateKeeperLibraryRecord *gkpl,
+                             LibraryMesg             *lmesg) {
+  int f;
+  for (f=0; f<lmesg->num_features; f++) {
+    char *fea = lmesg->features[f];
+    char *val = lmesg->values[f];
+
+
+    //  isNotRandom --
+    if        (strcasecmp(fea, "isNotRandom") == 0) {
+      gkpl->isNotRandom = AS_PER_decodeLibraryFeaturesBoolean("isNotRandom", val);
+    }
+
+    //  doNotOverlapTrim -- 
+    else if (strcasecmp(fea, "doNotOverlapTrim") == 0) {
+      gkpl->doNotOverlapTrim = AS_PER_decodeLibraryFeaturesBoolean("doNotOverlapTrim", val);
+    }
+
+    //  doNotTrustHomopolymerRuns -- 
+    else if (strcasecmp(fea, "doNotTrustHomopolymerRuns") == 0) {
+      gkpl->doNotTrustHomopolymerRuns = AS_PER_decodeLibraryFeaturesBoolean("doNotTrustHomopolymerRuns", val);
+    }
+
+    //  hpsIsPeakSpacing -- 
+    else if (strcasecmp(fea, "hpsIsPeakSpacing") == 0) {
+      gkpl->hpsIsPeakSpacing = AS_PER_decodeLibraryFeaturesBoolean("hpsIsPeakSpacing", val);
+    }
+
+    //  hpsIsFlowGram -- 
+    else if (strcasecmp(fea, "hpsIsFlowGram") == 0) {
+      gkpl->hpsIsFlowGram = AS_PER_decodeLibraryFeaturesBoolean("hpsIsFlowGram", val);
+    }
+
+    else {
+      fprintf(stderr, "AS_PER_decodeLibraryFeatures()-- Found feature '%s' but don't understand it.\n",
+              fea);
+    }
+  }
+}
+
+
+void
+AS_PER_encodeLibraryFeaturesCleanup(LibraryMesg *lmesg) {
+  while (lmesg->num_features > 0) {
+    lmesg->num_features--;
+    safe_free(lmesg->features[lmesg->num_features]);
+    safe_free(lmesg->values  [lmesg->num_features]);
+  }
+  safe_free(lmesg->features);
+  safe_free(lmesg->values);
+}
+
+
+void
+AS_PER_encodeLibraryFeatures(GateKeeperLibraryRecord *gkpl,
+                             LibraryMesg             *lmesg) {
+
+  //  Examine the gkpl, allocate space to encode the features into
+  //  features/values, return the number of features encoded.
+  //
+  //  Be sure to call AS_PER_encodeLibraryFeaturesCleanup to properly
+  //  cleanup the LibraryMesg after it is written!
+
+  //  We can hardcode the maximum number of features we expect to be
+  //  writing.  Otherwise, we should count the number of features we
+  //  want to encode, allocate....but what a pain.
+  //
+  lmesg->num_features = 0;
+  lmesg->features     = (char **)safe_malloc(5 * sizeof(char*));
+  lmesg->values       = (char **)safe_malloc(5 * sizeof(char*));
+
+  int    nf  = 0;
+  char **fea = lmesg->features;
+  char **val = lmesg->values;
+
+  //  Mostly for debugging, but just might be generally a
+  //  GoodThing(tm) to always specify optional features.
+  int    alwaysEncode = 1;
+
+  if (gkpl->isNotRandom || alwaysEncode) {
+    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
+    val[nf] = (char *)safe_malloc(32 * sizeof(char));
+    sprintf(fea[nf], "isNotRandom");
+    sprintf(val[nf], "%d", gkpl->isNotRandom);
+    nf++;
+  }
+
+  if (gkpl->doNotOverlapTrim || alwaysEncode) {
+    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
+    val[nf] = (char *)safe_malloc(32 * sizeof(char));
+    sprintf(fea[nf], "doNotOverlapTrim");
+    sprintf(val[nf], "%d", gkpl->doNotOverlapTrim);
+    nf++;
+  }
+
+  if (gkpl->doNotTrustHomopolymerRuns || alwaysEncode) {
+    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
+    val[nf] = (char *)safe_malloc(32 * sizeof(char));
+    sprintf(fea[nf], "doNotTrustHomopolymerRuns");
+    sprintf(val[nf], "%d", gkpl->doNotTrustHomopolymerRuns);
+    nf++;
+  }
+
+  if (gkpl->hpsIsPeakSpacing || alwaysEncode) {
+    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
+    val[nf] = (char *)safe_malloc(32 * sizeof(char));
+    sprintf(fea[nf], "hpsIsPeakSpacing");
+    sprintf(val[nf], "%d", gkpl->hpsIsPeakSpacing);
+    nf++;
+  }
+
+  if (gkpl->hpsIsFlowGram || alwaysEncode) {
+    fea[nf] = (char *)safe_malloc(32 * sizeof(char));
+    val[nf] = (char *)safe_malloc(32 * sizeof(char));
+    sprintf(fea[nf], "hpsIsFlowGram");
+    sprintf(val[nf], "%d", gkpl->hpsIsFlowGram);
+    nf++;
+  }
+
+  lmesg->num_features = nf;
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////
-
 
 
 fragRecord *new_fragRecord(void) {
@@ -635,7 +785,7 @@ getFragData(GateKeeperStore *gkp, fragRecord *fr, int streamFlags) {
 
 void    getFrag(GateKeeperStore *gkp, int64 iid, fragRecord *fr, int32 flags) {
   if (gkp->partmap == NULL) {
-    getGateKeeperFragmentStore(gkp->frg, iid, &fr->gkfr);
+    getIndexStore(gkp->frg, iid, &fr->gkfr);
   } else {
     GateKeeperFragmentRecord *gkfr;
 
@@ -654,7 +804,7 @@ void    getFrag(GateKeeperStore *gkp, int64 iid, fragRecord *fr, int32 flags) {
 
 void    setFrag(GateKeeperStore *gkp, int64 iid, fragRecord *fr) {
   assert(gkp->partmap == NULL);
-  setGateKeeperFragmentStore(gkp->frg, iid, &fr->gkfr);
+  setIndexStore(gkp->frg, iid, &fr->gkfr);
 }
 
 void    delFrag(GateKeeperStore *gkp, int64 iid) {
@@ -667,18 +817,18 @@ void    delFrag(GateKeeperStore *gkp, int64 iid) {
   //  Delete fragment with iid from the store.  If the fragment has a
   //  mate, remove the mate relationship from both fragmentss.
 
-  getGateKeeperFragmentStore(gkp->frg, iid, &gkfr);
+  getIndexStore(gkp->frg, iid, &gkfr);
   miid = gkfr.mateIID;
   gkfr.deleted = 1;
   gkfr.mateIID = 0;
-  setGateKeeperFragmentStore(gkp->frg, iid, &gkfr);
+  setIndexStore(gkp->frg, iid, &gkfr);
 
   if (miid > 0) {
     UnRefPHashTable_AS(gkp->phs_private, UID_NAMESPACE_AS, gkfr.readUID);
 
-    getGateKeeperFragmentStore(gkp->frg, miid, &gkfr);
+    getIndexStore(gkp->frg, miid, &gkfr);
     gkfr.mateIID = 0;
-    setGateKeeperFragmentStore(gkp->frg, miid, &gkfr);
+    setIndexStore(gkp->frg, miid, &gkfr);
 
     UnRefPHashTable_AS(gkp->phs_private, UID_NAMESPACE_AS, gkfr.readUID);
   }
@@ -745,7 +895,7 @@ void             resetFragStream(FragStream *fs, int64 startIndex, int64 endInde
 
     GateKeeperFragmentRecord  gkpf;
 
-    getGateKeeperFragmentStore(fs->gkp->frg, startIndex, &gkpf);
+    getIndexStore(fs->gkp->frg, startIndex, &gkpf);
 
     seqOffset = gkpf.seqOffset;
     qltOffset = gkpf.qltOffset;
@@ -854,7 +1004,7 @@ loadGateKeeperStorePartial(GateKeeperStore *gkp,
   int64  srcFirst = 0, srcLast = 0;
 
   if (firstElem != 0) {
-    getGateKeeperFragmentStore(gkp->frg, firstElem, &gkf);
+    getIndexStore(gkp->frg, firstElem, &gkf);
 
     seqFirst = gkf.seqOffset;
     qltFirst = gkf.qltOffset;
@@ -864,7 +1014,7 @@ loadGateKeeperStorePartial(GateKeeperStore *gkp,
 
   if ((lastElem != 0) &&
       (lastElem != getLastElemFragStore(gkp))) {
-    getGateKeeperFragmentStore(gkp->frg, lastElem + 1, &gkf);
+    getIndexStore(gkp->frg, lastElem + 1, &gkf);
 
     seqLast = gkf.seqOffset;
     qltLast = gkf.qltOffset;

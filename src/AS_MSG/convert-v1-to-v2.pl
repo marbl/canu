@@ -15,19 +15,28 @@ use strict;
 
 my $vec;
 my %clv;
+my %clq;  #  Currently, we never have this info
 my $lib;
+
+my $noOBT = 0;
+my $is454 = 0;
+my $nft   = 0;
 
 my $err = 0;
 while (scalar(@ARGV) > 0) {
     my $arg = shift @ARGV;
     if      ($arg eq "-v") {
         $vec = shift @ARGV;
+    } elsif ($arg eq "-noobt") {
+        $noOBT = 1;
+    } elsif ($arg eq "-is454") {
+        $is454 = 1;
     } else {
         $err++;
     }
 }
 if ($err) {
-    die "usage: $0 [-v vector-clear-file] < old.frg > new.frg\n";
+    die "usage: $0 [-v vector-clear-file] [-noobt] [-is454] < old.frg > new.frg\n";
 }
 
 if (defined($vec)) {
@@ -39,7 +48,6 @@ if (defined($vec)) {
     close(F);
     print STDERR "Read vector info for ", scalar(keys %clv), " reads.\n";
 }
-
 
 
 sub readMultiLineDot {
@@ -100,18 +108,18 @@ while (!eof(STDIN)) {
         print "ori:I\n";
         print "mea:$mea\n";
         print "std:$std\n";
-        print "etm:", time(), "\n";
         print "src:\n";
         print "convert-v1-to-v2\n";
         print ".\n";
-        print "nft:0\n";
+        print "nft:2\n";
         print "fea:\n";
+        print "is454=$is454\n";
+        print "doNotOverlapTrim=$noOBT\n";
         print ".\n";
         print "}\n";
         $lib = $acc;
     } elsif ($line =~ m/^{FRG$/) {
         my $acc;
-        my $etm;
         my $src;
         my $seq;
         my $qlt;
@@ -120,9 +128,6 @@ while (!eof(STDIN)) {
 
             if ($line =~ m/^acc:(\d+)$/) {
                 $acc = $1;
-            }
-            if ($line =~ m/^etm:(\d+)$/) {
-                $etm = $1;
             }
             if ($line =~ m/^clr:(\d+,\d+)$/) {
                 $clr = $1;
@@ -148,7 +153,6 @@ while (!eof(STDIN)) {
         print "lib:$lib\n";
         print "pla:0\n";
         print "loc:0\n";
-        print "etm:", time(), "\n";
         print "src:\n";
         print ".\n";
         print "seq:\n";
@@ -159,13 +163,13 @@ while (!eof(STDIN)) {
         print ".\n";
         print "hps:\n";
         print ".\n";
-        print "clr:$clr\n";
         if (defined($clv{$acc})) {
             print "clv:$clv{$acc}\n";
-        } else {
-            print "clv:0,0\n";
         }
-        print "clq:0,0\n";
+        if (defined($clq{$acc})) {
+            print "clq:$clq{$acc}\n";
+        }
+        print "clr:$clr\n";
         print "}\n";
     } elsif ($line =~ m/^{LKG$/) {
         my $fg1;

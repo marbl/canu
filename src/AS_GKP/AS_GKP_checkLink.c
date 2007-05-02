@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkLink.c,v 1.7 2007-04-26 14:07:03 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkLink.c,v 1.8 2007-05-02 09:30:15 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -85,8 +85,8 @@ Check_LinkMesg(LinkMesg *lkg_mesg,
 
   //  Now grab the reads, we'll need them soon enough anyway.
   //
-  getGateKeeperFragmentStore(gkpStore->frg, frag1IID, &gkFrag1);
-  getGateKeeperFragmentStore(gkpStore->frg, frag2IID, &gkFrag2);
+  getGateKeeperFragment(gkpStore, frag1IID, &gkFrag1);
+  getGateKeeperFragment(gkpStore, frag2IID, &gkFrag2);
 
 
   if (lkg_mesg->distance != 0) {
@@ -135,8 +135,8 @@ Check_LinkMesg(LinkMesg *lkg_mesg,
     gkFrag1.mateIID    = frag2IID;
     gkFrag2.mateIID    = frag1IID;
 
-    setGateKeeperFragmentStore(gkpStore->frg, frag1IID, &gkFrag1);
-    setGateKeeperFragmentStore(gkpStore->frg, frag2IID, &gkFrag2);
+    setIndexStore(gkpStore->frg, frag1IID, &gkFrag1);
+    setIndexStore(gkpStore->frg, frag2IID, &gkFrag2);
 
     AddRefPHashTable_AS(gkpStore->phs_private, UID_NAMESPACE_AS, gkFrag2.readUID);
     AddRefPHashTable_AS(gkpStore->phs_private, UID_NAMESPACE_AS, gkFrag1.readUID);
@@ -144,8 +144,8 @@ Check_LinkMesg(LinkMesg *lkg_mesg,
     gkFrag1.mateIID    = 0;
     gkFrag2.mateIID    = 0;
 
-    setGateKeeperFragmentStore(gkpStore->frg, frag1IID, &gkFrag1);
-    setGateKeeperFragmentStore(gkpStore->frg, frag2IID, &gkFrag2);
+    setIndexStore(gkpStore->frg, frag1IID, &gkFrag1);
+    setIndexStore(gkpStore->frg, frag2IID, &gkFrag2);
 
     UnRefPHashTable_AS(gkpStore->phs_private, UID_NAMESPACE_AS, gkFrag2.readUID);
     UnRefPHashTable_AS(gkpStore->phs_private, UID_NAMESPACE_AS, gkFrag1.readUID);

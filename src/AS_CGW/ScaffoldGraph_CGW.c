@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.24 2007-04-23 15:24:35 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.25 2007-05-02 09:30:13 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -375,8 +375,8 @@ ScaffoldGraphT *CreateScaffoldGraph(int rezOnContigs, char *name,
     exit(1);
   }
 
-  numFrags = getNumGateKeeperFragments(sgraph->gkpStore->frg);
-  numDists = getNumGateKeeperLibrarys(sgraph->gkpStore->lib);
+  numFrags = getNumGateKeeperFragments(sgraph->gkpStore);
+  numDists = getNumGateKeeperLibraries(sgraph->gkpStore);
 
   sgraph->iidToFragIndex = CreateVA_InfoByIID(numFrags);
   sgraph->Dists = CreateVA_DistT(numDists);

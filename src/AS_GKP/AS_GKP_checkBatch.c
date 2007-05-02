@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkBatch.c,v 1.6 2007-04-26 14:07:03 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkBatch.c,v 1.7 2007-05-02 09:30:15 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -60,14 +60,12 @@ int Check_BatchMesg(BatchMesg          *bat_mesg,
   gkpb.batchUID       = bat_mesg->eaccession;
   strncpy(gkpb.name,    bat_mesg->name, 255);
   strncpy(gkpb.comment, bat_mesg->comment, 255);
-  gkpb.numFragments   = getNumGateKeeperFragments(gkpStore->frg);
-  gkpb.numLibraries   = getNumGateKeeperLibrarys(gkpStore->lib);
 
   if(verbose)
     fprintf(stderr,"* Batch " F_IID "  name:%s  comment:%s\n",
 	  value.IID, gkpb.name, gkpb.comment);
 
-  appendGateKeeperBatchStore(gkpStore->bat, &gkpb);
+  appendIndexStore(gkpStore->bat, &gkpb);
 
   return GATEKEEPER_SUCCESS;
 }

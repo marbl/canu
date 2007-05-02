@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.21 2007-04-26 14:07:03 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.22 2007-05-02 09:30:15 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -448,7 +448,7 @@ Check_FragMesg(FragMesg            *frg_mesg,
       gkf.srcOffset = stats.lastElem;
     }
 
-    appendGateKeeperFragmentStore(gkpStore->frg, &gkf);
+    appendIndexStore(gkpStore->frg, &gkf);
 
     appendVLRecordStore(gkpStore->seq, frg_mesg->sequence, gkf.seqLen);
 
@@ -486,7 +486,7 @@ Check_FragMesg(FragMesg            *frg_mesg,
       return(GATEKEEPER_FAILURE);
     }
 
-    getGateKeeperFragmentStore(gkpStore->frg, value.IID, &gkf);
+    getGateKeeperFragment(gkpStore, value.IID, &gkf);
 
     if (gkf.mateIID > 0) {
       printGKPError(stderr, GKPError_DeleteFRG);
@@ -494,13 +494,17 @@ Check_FragMesg(FragMesg            *frg_mesg,
       return(GATEKEEPER_FAILURE);
     }      
 
-    getGateKeeperFragmentStore(gkpStore->frg, value.IID, &gkf);
+    getGateKeeperFragment(gkpStore, value.IID, &gkf);
 
     if(verbose)
       fprintf(stderr,"* Deleting fragment...refcount = %d\n", value.refCount);
 
     if(HASH_SUCCESS == DeleteFromPHashTable_AS(gkpStore->phs_private, UID_NAMESPACE_AS, frg_mesg->eaccession)){
-      deleteGateKeeperFragmentStore(gkpStore->frg, value.IID);
+      //deleteGateKeeperFragment(gkpStore, value.IID);
+      GateKeeperFragmentRecord dr;
+      getIndexStore(gkpStore->frg, value.IID, &dr);
+      dr.deleted = TRUE;
+      setIndexStore(gkpStore->frg, value.IID, &dr);
     }else{
       assert(0);
     }

@@ -31,7 +31,6 @@ usage(char *name) {
   fprintf(stderr, "  -i uidlist    Never, ever modify these fragments.\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "  -update       Update the clear range in the fragStore.\n");
-  fprintf(stderr, "  -replace      Replace non ACGT with random ACGT with low quality (unimplemented).\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "  -log X        Report the iid, original trim and new quality trim\n");
   fprintf(stderr, "  -frg F        Operate on this gkpStore\n");
@@ -49,7 +48,6 @@ main(int argc, char **argv) {
   char   *vectorFileName      = 0L;
   char   *immutableFileName   = 0L;
   bool    doUpdate            = false;
-  bool    doReplace           = false;
   char   *gkpStore            = 0L;
   FILE   *logFile             = 0L;
 
@@ -64,8 +62,6 @@ main(int argc, char **argv) {
 
     } else if (strncmp(argv[arg], "-update", 2) == 0) {
       doUpdate = true;
-    } else if (strncmp(argv[arg], "-replace", 2) == 0) {
-      doReplace = true;
 
     } else if (strncmp(argv[arg], "-log", 2) == 0) {
       errno=0;
@@ -176,9 +172,6 @@ main(int argc, char **argv) {
               vecL,
               vecR,
               ((vecL + AS_FRAG_MIN_LEN) > vecR) ? " (deleted)" : "");
-    }
-
-    if (doReplace) {
     }
 
     if (doUpdate) {
