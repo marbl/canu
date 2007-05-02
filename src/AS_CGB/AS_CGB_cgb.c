@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_cgb.c,v 1.10 2007-05-01 14:41:43 granger_sutton Exp $";
+= "$Id: AS_CGB_cgb.c,v 1.11 2007-05-02 18:53:39 granger_sutton Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_cgb.c
@@ -1314,10 +1314,10 @@ float compute_the_global_fragment_arrival_rate
   float best_global_fragment_arrival_rate;
   const IntChunk_ID nchunks = (IntChunk_ID)GetNumVA_AChunkMesg(thechunks);
   
-  if(NULL != fout){
+  /* if(NULL != fout){
     fprintf(fout,"compute_the_global_fragment_arrival_rate(%d,%f,fout,%d,ptr,ptr,%f,ptr,ptr)\n",
 	    recalibrate,cgb_unique_cutoff,nbase_in_genome,estimated_global_fragment_arrival_rate);
-  }
+	    } */
   for(ichunk=0;ichunk<nchunks;ichunk++) {
     const BPTYPE rho 
       = GetAChunkMesg(thechunks,ichunk)->rho; // The sum of overhangs ...
@@ -1370,10 +1370,8 @@ float compute_the_global_fragment_arrival_rate
 
   if(recalibrate && (nbase_in_genome == 0)){
     int i;
-    float min_local_arrival_rate = best_global_fragment_arrival_rate;
-    float max_local_arrival_rate = best_global_fragment_arrival_rate;
     float *arrival_rate_array = NULL, *arrival_rate_ptr = NULL;
-    size_t num_arrival_rates, arrival_rate_array_size = 0;
+    size_t arrival_rate_array_size = 0;
 
     for(ichunk=0;ichunk<nchunks;ichunk++) {
       const BPTYPE rho 
@@ -1382,65 +1380,105 @@ float compute_the_global_fragment_arrival_rate
 	arrival_rate_array_size += (int)rho / 10000;
       }
     }
-    arrival_rate_ptr = arrival_rate_array = safe_malloc(sizeof(*arrival_rate_array) * arrival_rate_array_size);
-    for(ichunk=0;ichunk<nchunks;ichunk++){
-      const BPTYPE rho
-	= GetAChunkMesg(thechunks,ichunk)->rho; // The sum of overhangs ...
-      /*      const int number_of_randomly_sampled_fragments_in_chunk
-	= count_the_randomly_sampled_fragments_in_a_chunk
-	( frags, chunkfrags, thechunks, ichunk);*/
+    if((float)(arrival_rate_array_size * 20000) > (float)total_rho){// Check there are enough large unitigs
+      float min_10_local_arrival_rate = best_global_fragment_arrival_rate;
+      float median_local_arrival_rate = best_global_fragment_arrival_rate;
+      float max_local_arrival_rate = best_global_fragment_arrival_rate;
+      float recalibrated_fragment_arrival_rate = best_global_fragment_arrival_rate;
+      size_t num_arrival_rates;
+      int median_index;
 
-      if((int)rho > 10000)/* &&
-	 (compute_coverage_statistic( rho, number_of_randomly_sampled_fragments_in_chunk,
-				      best_global_fragment_arrival_rate ) > cgb_unique_cutoff))*/{
-	const int num_10000 = (int)rho / 10000;
-	const int number_of_randomly_sampled_fragments_in_chunk
-	  = count_the_randomly_sampled_fragments_in_a_chunk
-	  (frags, chunkfrags, thechunks, ichunk);
-	const float local_arrival_rate = ((float)(number_of_randomly_sampled_fragments_in_chunk-1)) /
-	  ((float)rho);
-	assert(num_10000 > 0);
-	for(i=0;i<num_10000;i++){
-	  assert((size_t)(arrival_rate_ptr - arrival_rate_array) < arrival_rate_array_size);
-	  *arrival_rate_ptr++ = local_arrival_rate;
+      arrival_rate_ptr = arrival_rate_array = safe_malloc(sizeof(*arrival_rate_array) * arrival_rate_array_size);
+      for(ichunk=0;ichunk<nchunks;ichunk++){
+	const BPTYPE rho
+	  = GetAChunkMesg(thechunks,ichunk)->rho; // The sum of overhangs ...
+	/*      const int number_of_randomly_sampled_fragments_in_chunk
+		= count_the_randomly_sampled_fragments_in_a_chunk
+		( frags, chunkfrags, thechunks, ichunk);*/
+	
+	if((int)rho > 10000)/* &&
+			       (compute_coverage_statistic( rho, number_of_randomly_sampled_fragments_in_chunk,
+			       best_global_fragment_arrival_rate ) > cgb_unique_cutoff))*/{
+	  const int num_10000 = (int)rho / 10000;
+	  const int number_of_randomly_sampled_fragments_in_chunk
+	    = count_the_randomly_sampled_fragments_in_a_chunk
+	    (frags, chunkfrags, thechunks, ichunk);
+	  const float local_arrival_rate = ((float)(number_of_randomly_sampled_fragments_in_chunk-1)) /
+	    ((float)rho);
+	  assert(num_10000 > 0);
+	  for(i=0;i<num_10000;i++){
+	    assert((size_t)(arrival_rate_ptr - arrival_rate_array) < arrival_rate_array_size);
+	    *arrival_rate_ptr++ = local_arrival_rate;
+	  }
 	}
       }
-    }
-    num_arrival_rates = (size_t)(arrival_rate_ptr - arrival_rate_array);
-    if(num_arrival_rates > 0){
-      float recalibrated_fragment_arrival_rate, tmp_fragment_arrival_rate;
-      qsort(arrival_rate_array, num_arrival_rates,
-	    sizeof(*arrival_rate_array),
-	    &comparefloats);
-      min_local_arrival_rate = arrival_rate_array[0];
-      max_local_arrival_rate = arrival_rate_array[num_arrival_rates-1];
-      recalibrated_fragment_arrival_rate =
-	arrival_rate_array[((num_arrival_rates * 19) / 20)];
-      if((min_local_arrival_rate * 2.0) > (best_global_fragment_arrival_rate * 1.25)){
-	tmp_fragment_arrival_rate = best_global_fragment_arrival_rate * 1.25;
-      }else{
-	tmp_fragment_arrival_rate = min_local_arrival_rate * 2.0;
+      num_arrival_rates = (size_t)(arrival_rate_ptr - arrival_rate_array);
+      if(num_arrival_rates > 0){
+	float tmp_fragment_arrival_rate, max_diff_arrival_rate;
+	float prev_arrival_rate, cur_arrival_rate, diff_arrival_rate;
+	int max_diff_index;
+	qsort(arrival_rate_array, num_arrival_rates,
+	      sizeof(*arrival_rate_array),
+	      &comparefloats);
+	min_10_local_arrival_rate = arrival_rate_array[num_arrival_rates / 10];
+	median_index = (num_arrival_rates * 5) / 10;
+	median_local_arrival_rate = arrival_rate_array[median_index];
+	max_local_arrival_rate = arrival_rate_array[num_arrival_rates-1];
+	recalibrated_fragment_arrival_rate =
+	  arrival_rate_array[(num_arrival_rates * 19) / 20];
+	prev_arrival_rate = min_10_local_arrival_rate;
+	max_diff_arrival_rate = 0.0;
+	for(i=num_arrival_rates / 10;i<median_index;i++){
+	  cur_arrival_rate = arrival_rate_array[i];
+	  diff_arrival_rate = cur_arrival_rate - prev_arrival_rate;
+	  prev_arrival_rate = cur_arrival_rate;
+	  if(diff_arrival_rate > max_diff_arrival_rate){
+	    max_diff_arrival_rate = diff_arrival_rate;
+	  }
+	}
+	max_diff_arrival_rate *= 2.0;
+	max_diff_index = num_arrival_rates - 1;
+	for(i=median_index;i<num_arrival_rates;i++){
+	  cur_arrival_rate = arrival_rate_array[i];
+	  diff_arrival_rate = cur_arrival_rate - prev_arrival_rate;
+	  prev_arrival_rate = cur_arrival_rate;
+	  if(diff_arrival_rate > max_diff_arrival_rate){
+	    max_diff_arrival_rate = diff_arrival_rate;
+	    max_diff_index = i - 1;
+	    break;
+	  }
+	}
+	max_diff_arrival_rate = arrival_rate_array[max_diff_index];
+	if((min_10_local_arrival_rate * 2.0) > (median_local_arrival_rate * 1.25)){
+	  tmp_fragment_arrival_rate = median_local_arrival_rate * 1.25;
+	}else{
+	  tmp_fragment_arrival_rate = min_10_local_arrival_rate * 2.0;
+	}
+	if(tmp_fragment_arrival_rate < recalibrated_fragment_arrival_rate){
+	  recalibrated_fragment_arrival_rate = tmp_fragment_arrival_rate;
+	}
+	if(max_diff_arrival_rate < recalibrated_fragment_arrival_rate){
+	  recalibrated_fragment_arrival_rate = max_diff_arrival_rate;
+	}
       }
-      if(tmp_fragment_arrival_rate > recalibrated_fragment_arrival_rate){
+      if(recalibrated_fragment_arrival_rate > best_global_fragment_arrival_rate){
 	best_global_fragment_arrival_rate = recalibrated_fragment_arrival_rate;
-      }else{
-	best_global_fragment_arrival_rate = tmp_fragment_arrival_rate;
+	if(NULL != fout) {
+	  fprintf(fout,"Used recalibrated global_fragment_arrival_rate=%f\n",
+		  (best_global_fragment_arrival_rate));
+	  fprintf(fout,"Used recalibrated global_fragment_arrival_distance=%f\n",
+		  ((best_global_fragment_arrival_rate) > 0.
+		   ? 1./(best_global_fragment_arrival_rate)
+		   : 0.));
+	  fprintf(fout,"Chunk arrival rates sorted at 1/100s\n");
+	  for(i=0;i<100;i++){
+	    fprintf(fout,"%f\n",arrival_rate_array[((num_arrival_rates * i) / 100)]);
+	  }
+	  fprintf(fout,"%f\n",max_local_arrival_rate);
+	}
       }
+      safe_free(arrival_rate_array);
     }
-    if(NULL != fout) {
-      fprintf(fout,"Used recalibrated global_fragment_arrival_rate=%f\n",
-	      (best_global_fragment_arrival_rate));
-      fprintf(fout,"Used recalibrated global_fragment_arrival_distance=%f\n",
-	      ((best_global_fragment_arrival_rate) > 0.
-	       ? 1./(best_global_fragment_arrival_rate)
-	       : 0.));
-      fprintf(fout,"Chunk arrival rates sorted at 1/10s\n");
-      for(i=0;i<10;i++){
-	fprintf(fout,"%f\n",arrival_rate_array[((num_arrival_rates * i) / 10)]);
-      }
-      fprintf(fout,"%f\n",max_local_arrival_rate);
-    }
-    safe_free(arrival_rate_array);
   }
   return best_global_fragment_arrival_rate;
 }
