@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore_build.c,v 1.9 2007-04-16 17:36:35 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore_build.c,v 1.10 2007-05-04 09:42:35 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -135,6 +135,10 @@ buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 nThreads, 
   }
 
   assert(numOverlaps > 0);
+
+  //  Small datasets die with the default maxIID; reset it to not die.
+  if (maxIID > numOverlaps)
+    maxIID = numOverlaps;
 
   uint64  overlapsPerBucket   = memoryLimit / sizeof(OVSoverlap);
   uint64  overlapsPerIID      = numOverlaps / maxIID;
