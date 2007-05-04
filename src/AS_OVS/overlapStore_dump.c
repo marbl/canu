@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore_dump.c,v 1.7 2007-04-16 17:36:35 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore_dump.c,v 1.8 2007-05-04 17:45:34 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,7 +70,8 @@ dumpStore(char *storeName, uint32 dumpBinary, double dumpERate, uint32 bgnIID, u
             AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(OVSoverlap), 1);
           else
             fprintf(stdout, "%7d %7d %c %4d %4d %4d %4d %4d %4d %5.2f\n",
-                    overlap.a_iid, overlap.b_iid,
+                    overlap.a_iid,
+                    overlap.b_iid,
                     overlap.dat.obt.fwd ? 'f' : 'r',
                     overlap.dat.obt.a_beg,
                     overlap.dat.obt.a_end,
@@ -83,6 +84,15 @@ dumpStore(char *storeName, uint32 dumpBinary, double dumpERate, uint32 bgnIID, u
       case AS_OVS_TYPE_MER:
         if (dumpBinary)
           AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(OVSoverlap), 1);
+        else
+          fprintf(stdout, "%7d %7d %c %4d %4d %4d %4d\n",
+                  overlap.a_iid,
+                  overlap.b_iid,
+                  overlap.dat.mer.palindrome ? 'p' : (overlap.dat.mer.fwd ? 'f' : 'r'),
+                  overlap.dat.mer.a_pos,
+                  overlap.dat.mer.b_pos,
+                  overlap.dat.mer.k_count,
+                  overlap.dat.mer.k_len);
         break;
       default:
         assert(0);
