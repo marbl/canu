@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.1 2007-05-01 22:53:09 adelcher Exp $
- * $Revision: 1.1 $
+ * $Id: OlapFromSeedsOVL.c,v 1.2 2007-05-04 17:46:33 brianwalenz Exp $
+ * $Revision: 1.2 $
 */
 
-static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.1 2007-05-01 22:53:09 adelcher Exp $";
+static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.2 2007-05-04 17:46:33 brianwalenz Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -1413,7 +1413,7 @@ static void  Output_Olap
       x = b_lo;
       y = b_hi;
      }
-   qual = (100.0 * errors) / OVL_Min_int (a_hi - a_lo, b_hi - b_lo);
+   qual = errors / (double)OVL_Min_int (a_hi - a_lo, b_hi - b_lo);
 
    switch (OVL_Output_Type)
      {
@@ -1422,7 +1422,7 @@ static void  Output_Olap
            pthread_mutex_lock (& Print_Mutex);
         fprintf (OVL_Output_fp, "%7d %7d  %c %4d %4d %4d  %4d %4d %4d  %5.2f\n",
              olap -> a_iid, olap -> b_iid, dir, a_lo, a_hi, a_len,
-             x, y, b_len, qual);
+             x, y, b_len, qual * 100.0);
         if (Num_PThreads > 0)
            pthread_mutex_unlock (& Print_Mutex);
         break;
