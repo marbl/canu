@@ -1,0 +1,6 @@
+This directory contains executables for interacting with
+AS_PER/AS_PER_asmStore.
+
+The code structure appears to be mostly very simple main() functions
+that process command line options (if any) and then make a single call
+to a function in ASMData.c.

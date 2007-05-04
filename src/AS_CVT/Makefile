@@ -21,45 +21,63 @@
 #
 ###########################################################################
 #
-# Makefile for AS_CVT
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-SOURCES = AS_CVT_hashtable.c AS_CVT_uid_interface.c \
-          make_cns_list.c make_range_file.c \
-	  ASMData.c asm2asmStore.c dumpClones.c \
-	  getMDIDataFromASM.c dumpFragScaffoldCoordinates.c loadAsmStore.c \
-	  dumpContigLengths.c dumpSurrogateFrags.c dumpMultiInstanceFrags.c \
-	  dumpSurrogateCoords.c dumpSurrogateSeqCoords.c \
-	  dumpUnreferencedFrags.c dumpMissingFrags.c dumpDeletedFrags.c \
-	  dumpScaffoldLengths.c dumpBadMPs.c buildMapStore.c \
-	  dumpMapStore.c dumpLibs.c dumpMappedMatePairs.c \
-	  dumpMappedMatePairsBinary.c scf2chrSimple.c \
+#
+#  These executables are for interacting with AS_PER_asmStore.
+#  Please do not add unrelated code here!  Thanks.
+#
+
+SOURCES = ASMData.c \
+          asm2asmStore.c \
+          buildMapStore.c \
+          dumpClones.c \
+          dumpFragScaffoldCoordinates.c \
+	  dumpContigLengths.c \
+          dumpSurrogateFrags.c \
+          dumpMultiInstanceFrags.c \
+	  dumpSurrogateCoords.c \
+          dumpSurrogateSeqCoords.c \
+	  dumpUnreferencedFrags.c \
+          dumpMissingFrags.c \
+          dumpDeletedFrags.c \
+	  dumpScaffoldLengths.c \
+          dumpBadMPs.c \
+	  dumpMapStore.c \
+          dumpLibs.c \
+          dumpMappedMatePairs.c \
+	  dumpMappedMatePairsBinary.c \
 	  dumpMappedElsewheres.c \
-	  concatRegions.c dumpElsewheres.c dumpForTampa.c \
+          dumpElsewheres.c \
+          dumpForTampa.c \
           generateReadsFiles.c
 OBJECTS = $(SOURCES:.c=.o)
 
 LIBRARIES = 
 
-PROGS = make_cns_list make_range_file \
-	asm2asmStore dumpClones \
-	getMDIDataFromASM dumpFragScaffCoords loadAsmStore \
-	dumpContigLengths dumpSurrogateFrags dumpMultiInstanceFrags \
-	dumpSurrogateCoords dumpSurrogateSeqCoords \
-	dumpUnreferencedFrags dumpMissingFrags dumpDeletedFrags \
-	dumpScaffoldLengths dumpBadMPs buildMapStore \
-	dumpMapStore dumpLibs dumpMappedMatePairs \
-	dumpMappedMatePairsBinary scf2chrSimple \
+PROGS = asm2asmStore \
+        buildMapStore \
+        dumpClones \
+	dumpFragScaffCoords \
+	dumpContigLengths \
+        dumpSurrogateFrags \
+        dumpMultiInstanceFrags \
+	dumpSurrogateCoords \
+        dumpSurrogateSeqCoords \
+	dumpUnreferencedFrags \
+        dumpMissingFrags \
+        dumpDeletedFrags \
+	dumpScaffoldLengths \
+        dumpBadMPs \
+	dumpMapStore \
+        dumpLibs \
+        dumpMappedMatePairs \
+	dumpMappedMatePairsBinary \
 	dumpMappedElsewheres \
-	concatRegions dumpElsewheres dumpForTampa \
+        dumpElsewheres \
+        dumpForTampa \
         generateReadsFiles
-
-SCRIPTS = run_components_thru_grande \
-          run_grande_on_component \
-          run_grande_on_frgs \
-          setup_status_file \
-	  mdi2ps.sh
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -73,9 +91,12 @@ all: $(PROGS) $(LIBRARIES) $(OBJECTS) $(SCRIPTS)
 	@test -n nop
 
 
-scf2chrSimple: scf2chrSimple.o libAS_UTL.a
+asm2asmStore: asm2asmStore.o ASMData.o \
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
-concatRegions: concatRegions.o
+buildMapStore: buildMapStore.o ASMData.o \
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
+
 
 dumpMappedMatePairsBinary: dumpMappedMatePairsBinary.o ASMData.o \
 	libAS_MSG.a libAS_PER.a libAS_UTL.a
@@ -89,9 +110,6 @@ dumpElsewheres: dumpElsewheres.o ASMData.o \
 dumpForTampa: dumpForTampa.o ASMData.o \
 	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
-generateReadsFiles: generateReadsFiles.o ASMData.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a
-
 dumpMappedElsewheres: dumpMappedElsewheres.o ASMData.o \
 	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
@@ -102,9 +120,6 @@ dumpLibs: dumpLibs.o ASMData.o \
 	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 dumpMapStore: dumpMapStore.o ASMData.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a
-
-buildMapStore: buildMapStore.o ASMData.o \
 	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 dumpDeletedFrags: dumpDeletedFrags.o ASMData.o \
@@ -122,20 +137,11 @@ dumpSurrogateCoords: dumpSurrogateCoords.o ASMData.o \
 dumpSurrogateSeqCoords: dumpSurrogateSeqCoords.o ASMData.o \
 	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
-loadAsmStore: loadAsmStore.o ASMData.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a
-
-asm2asmStore: asm2asmStore.o ASMData.o \
-	libAS_MSG.a libAS_PER.a libAS_UTL.a
-
 dumpClones: dumpClones.o ASMData.o \
 	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
 dumpFragScaffCoords: dumpFragScaffoldCoordinates.o ASMData.o \
 	libAS_MSG.a libAS_PER.a libAS_UTL.a
-
-getMDIDataFromASM: getMDIDataFromASM.o \
-	libCA.a
 
 dumpContigLengths: dumpContigLengths.o ASMData.o \
 	libAS_MSG.a libAS_PER.a libAS_UTL.a
@@ -149,29 +155,6 @@ dumpSurrogateFrags: dumpSurrogateFrags.o ASMData.o \
 dumpMultiInstanceFrags: dumpMultiInstanceFrags.o ASMData.o \
 	libAS_MSG.a libAS_PER.a libAS_UTL.a
 
-make_cns_list: make_cns_list.o \
-	libAS_MSG.a
 
-make_range_file: make_range_file.o \
-	libAS_UTL.a
-
-run_components_thru_grande:
-	@cp -f run_components_thru_grande.sh $(LOCAL_BIN)
-	@chmod 775 $(LOCAL_BIN)/run_components_thru_grande.sh
-
-run_grande_on_component:
-	@cp -f run_grande_on_component.sh $(LOCAL_BIN)
-	@chmod 775 $(LOCAL_BIN)/run_grande_on_component.sh
-
-run_grande_on_frgs:
-	@cp -f run_grande_on_frgs.sh $(LOCAL_BIN)
-	@chmod 775 $(LOCAL_BIN)/run_grande_on_frgs.sh
-
-setup_status_file:
-	@cp -f setup_status_file.sh $(LOCAL_BIN)
-	@chmod 775 $(LOCAL_BIN)/setup_status_file.sh
-
-mdi2ps.sh:
-	@cp -f mdi2ps.sh $(LOCAL_BIN)
-	@chmod 775 $(LOCAL_BIN)/mdi2ps.sh
-
+generateReadsFiles: generateReadsFiles.o ASMData.o \
+	libAS_MSG.a libAS_PER.a libAS_UTL.a
