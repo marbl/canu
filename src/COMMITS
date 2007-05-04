@@ -5982,8 +5982,8 @@ Fixes to make getSequence() return NULL when no more sequences exist.
 Seems to work, but doesn't output absolute coords.
 
 ----------------------------------------
-2007/03/23 06:05:41	1.1	brianwalenz	/cvsroot/wgs-assembler/src/CHANGES
-2007/03/23 06:05:41	1.1	brianwalenz	/cvsroot/wgs-assembler/src/COMMITS
+2007/03/23 06:05:41	1.1	brianwalenz	CHANGES
+2007/03/23 06:05:41	1.1	brianwalenz	COMMITS
 
 Add two documentation-like files, one with a description of the impact
 (predicted or observed) of any code change, the other listing the code
@@ -6364,4 +6364,801 @@ Significant rewrite of gatekeeper dump routines.  It's now useful!
 
 Update command-line help; allow dumping of only overlaps below
 some error rate.
+
+----------------------------------------
+2007/04/12 10:17:39	1.29	brianwalenz	AS_CGW/Input_CGW.c
+
+Add comment about non-critical assert.
+
+----------------------------------------
+2007/04/12 13:46:13	1.20	eliv	AS_CGW/Instrument_CGW.c
+
+Add check for sqrt(-variance), output a message and assert instead of generating a floating point error.
+
+----------------------------------------
+2007/04/12 18:17:52	1.18	brianwalenz	AS_RUN/runCA-OBT/runCAutil/unitigger.pl
+
+Update to use new gatekeeper interface, replaced -ofg with -dumpofg.
+
+----------------------------------------
+2007/04/12 18:54:44	1.10	brianwalenz	AS_CGB/Attic/AS_CGB_fom2uom.c
+2007/04/12 18:54:44	1.10	brianwalenz	AS_CGB/Attic/AS_CGB_iid2cid.c
+2007/04/12 18:54:44	1.13	brianwalenz	AS_CGB/AS_CGB_unitigger.c
+2007/04/12 18:54:44	1.16	brianwalenz	AS_CGB/AS_FGB_io.c
+2007/04/12 18:54:44	1.7	brianwalenz	AS_CGB/Attic/AS_FGB_io.h
+2007/04/12 18:54:44	1.11	brianwalenz	AS_CGB/AS_FGB_main.c
+2007/04/12 18:54:44	1.7	brianwalenz	AS_CGB/Attic/miniunitigger_test.c
+2007/04/12 18:54:45	1.5	brianwalenz	AS_CGW/Attic/CheckILK.c
+2007/04/12 18:54:45	1.30	brianwalenz	AS_CGW/Input_CGW.c
+2007/04/12 18:54:45	1.17	brianwalenz	AS_CGW/Makefile
+2007/04/12 18:54:45	1.15	brianwalenz	AS_CGW/ScaffoldGraph_CGW.h
+2007/04/12 18:54:45	1.37	brianwalenz	AS_MSG/AS_MSG_pmesg.c
+2007/04/12 18:54:45	1.39	brianwalenz	AS_MSG/AS_MSG_pmesg.h
+2007/04/12 18:54:45	1.3	brianwalenz	AS_MSG/AS_MSG_pmesg1.c
+2007/04/12 18:54:45	1.10	brianwalenz	AS_MSG/remove_fragment.c
+
+Remove the InternalLinkMessage.  Code to read/write existed, but it was
+never used.
+
+----------------------------------------
+2007/04/12 19:09:06	1.11	brianwalenz	AS_GKP/AS_GKP_dump.c
+2007/04/12 19:09:06	1.33	brianwalenz	AS_RUN/runCA-OBT/runCAutil/terminate.pl
+
+Update and re-enable the partially implemented gatekeeper dump to a frg
+format file, used by ca2ace.
+
+----------------------------------------
+2007/04/15 05:09:59	1.7	brianwalenz	AS_OBT/Attic/dumpFragStoreAsFasta.C
+
+Incorporated into gatekeeper (a long time ago).  Bye, bye!
+
+----------------------------------------
+2007/04/15 21:21:49	1.37	brianwalenz	AS_CGW/GraphCGW_T.c
+2007/04/15 21:21:49	1.22	brianwalenz	AS_CGW/Attic/dumpDistanceEstimates.c
+
+Replace stack array with malloc()'d heap array, search for "matePairs".
+Remove lots of little bits of dead code in GraphCGW_T.c
+
+----------------------------------------
+2007/04/16 15:28:23	1.10	brianwalenz	AS_CNS/Makefile
+2007/04/16 15:28:23	1.13	brianwalenz	AS_CVT/Makefile
+2007/04/16 15:28:23	1.13	brianwalenz	AS_MSG/Makefile
+2007/04/16 15:28:23	1.9	brianwalenz	AS_OVS/Makefile
+2007/04/16 15:28:23	1.12	brianwalenz	AS_REZ/Makefile
+2007/04/16 15:28:23	1.12	brianwalenz	AS_UTL/Makefile
+
+Replace individual libraries (eg libAS_UTL.a) with the main library,
+libCA.a; needed by a future commit that includes bits of AS_PER in
+AS_MSG.
+
+----------------------------------------
+2007/04/16 15:29:09	1.9	brianwalenz	AS_UTL/AS_UTL_fileIO.c
+2007/04/16 15:29:09	1.4	brianwalenz	AS_UTL/AS_UTL_fileIO.h
+
+Add AS_UTL_mkdir(), to create a directory, and return false if it existed
+already.
+
+----------------------------------------
+2007/04/16 15:35:39	1.13	brianwalenz	AS_global.h
+2007/04/16 15:35:40	1.11	brianwalenz	AS_CGB/Attic/AS_CGB_fom2uom.c
+2007/04/16 15:35:40	1.11	brianwalenz	AS_CGB/Attic/AS_CGB_io.c
+2007/04/16 15:35:40	1.31	brianwalenz	AS_CGW/Input_CGW.c
+2007/04/16 15:35:40	1.21	brianwalenz	AS_CGW/Instrument_CGW.c
+2007/04/16 15:35:40	1.22	brianwalenz	AS_CGW/Output_CGW.c
+2007/04/16 15:35:40	1.22	brianwalenz	AS_CGW/ScaffoldGraph_CGW.c
+2007/04/16 15:35:40	1.16	brianwalenz	AS_CGW/ScaffoldGraph_CGW.h
+2007/04/16 15:35:40	1.20	brianwalenz	AS_CGW/eCR.c
+2007/04/16 15:35:40	1.32	brianwalenz	AS_CNS/MultiAlignStore_CNS.c
+2007/04/16 15:35:40	1.138	brianwalenz	AS_CNS/MultiAlignment_CNS.c
+2007/04/16 15:35:40	1.38	brianwalenz	AS_MSG/AS_MSG_pmesg.c
+2007/04/16 15:35:40	1.40	brianwalenz	AS_MSG/AS_MSG_pmesg.h
+2007/04/16 15:35:41	1.4	brianwalenz	AS_MSG/AS_MSG_pmesg1.c
+2007/04/16 15:35:41	1.2	brianwalenz	AS_MSG/AS_MSG_pmesg2.c
+2007/04/16 15:35:41	1.2	brianwalenz	AS_MSG/AS_MSG_pmesg_internal.h
+2007/04/16 15:35:41	1.5	brianwalenz	AS_REZ/DataTypesREZ.h
+2007/04/16 15:35:41	1.22	brianwalenz	AS_REZ/GapFillREZ.c
+2007/04/16 15:35:41	1.10	brianwalenz	AS_REZ/GapWalkerREZ.c
+2007/04/16 15:35:41	1.8	brianwalenz	AS_REZ/MicroHetIUM.c
+2007/04/16 15:35:41	1.6	brianwalenz	AS_REZ/StatisticsREZ.c
+2007/04/16 15:35:41	1.5	brianwalenz	AS_REZ/StatisticsREZ.h
+2007/04/16 15:35:41	1.7	brianwalenz	AS_REZ/UtilsREZ.c
+2007/04/16 15:35:41	1.6	brianwalenz	AS_REZ/UtilsREZ.h
+2007/04/16 15:35:41	1.9	brianwalenz	AS_REZ/chunk_analyze.c
+
+1)  AS_MSG has a nearly complete frg2 format implementation.
+2)  AS_REZ now writes its logs and analysis files to the 'rezlog' directory.
+3)  Everything else had minor changes to allow undefining AS_ENABLE_SOURCE.
+
+----------------------------------------
+2007/04/16 17:34:15	1.8	brianwalenz	AS_REZ/ConsistencyChecksREZ.c
+2007/04/16 17:34:15	1.14	brianwalenz	AS_REZ/FbacREZ.c
+2007/04/16 17:34:15	1.10	brianwalenz	AS_REZ/GWDriversREZ.c
+2007/04/16 17:34:15	1.23	brianwalenz	AS_REZ/GapFillREZ.c
+2007/04/16 17:34:15	1.11	brianwalenz	AS_REZ/GapWalkerREZ.c
+2007/04/16 17:34:16	1.7	brianwalenz	AS_REZ/StatisticsREZ.c
+2007/04/16 17:34:16	1.6	brianwalenz	AS_REZ/StatisticsREZ.h
+2007/04/16 17:34:16	1.9	brianwalenz	AS_REZ/batchify.c
+2007/04/16 17:34:16	1.10	brianwalenz	AS_REZ/chunk_analyze.c
+
+*sigh* because cgw passes in a "name" with a full path, simply creating
+'rezlog/name' fails -- instead of 'rezlog/prefix' we got
+'rezlog//scratch/testasm/prefix'.  So, now we just make 'rezlog' and leave
+out the name.
+
+----------------------------------------
+2007/04/16 17:36:29	1.14	brianwalenz	AS_CGB/AS_CGB_all.h
+2007/04/16 17:36:29	1.6	brianwalenz	AS_CGB/Attic/AS_CGB_dfs.c
+2007/04/16 17:36:29	1.7	brianwalenz	AS_CGB/Attic/AS_CGB_store.c
+2007/04/16 17:36:29	1.6	brianwalenz	AS_CGB/AS_CGB_traversal.c
+2007/04/16 17:36:29	1.10	brianwalenz	AS_CGW/AS_CGW_EdgeDiagnostics.c
+2007/04/16 17:36:29	1.9	brianwalenz	AS_CGW/AS_CGW_LoadCheckpoint.c
+2007/04/16 17:36:29	1.12	brianwalenz	AS_CGW/AS_CGW_dataTypes.c
+2007/04/16 17:36:29	1.38	brianwalenz	AS_CGW/AS_CGW_main.c
+2007/04/16 17:36:29	1.10	brianwalenz	AS_CGW/CIEdgeT_CGW.c
+2007/04/16 17:36:29	1.10	brianwalenz	AS_CGW/CIScaffoldT_Biconnected_CGW.c
+2007/04/16 17:36:29	1.20	brianwalenz	AS_CGW/CIScaffoldT_CGW.c
+2007/04/16 17:36:29	1.23	brianwalenz	AS_CGW/CIScaffoldT_Cleanup_CGW.c
+2007/04/16 17:36:30	1.26	brianwalenz	AS_CGW/CIScaffoldT_Merge_CGW.c
+2007/04/16 17:36:30	1.15	brianwalenz	AS_CGW/Celamy_CGW.c
+2007/04/16 17:36:30	1.5	brianwalenz	AS_CGW/Checkpoint.c
+2007/04/16 17:36:30	1.10	brianwalenz	AS_CGW/ContigT_CGW.c
+2007/04/16 17:36:30	1.2	brianwalenz	AS_CGW/DemoteUnitigsWithRBP_CGW.c
+2007/04/16 17:36:30	1.10	brianwalenz	AS_CGW/DiagnosticsCGW.c
+2007/04/16 17:36:30	1.38	brianwalenz	AS_CGW/GraphCGW_T.c
+2007/04/16 17:36:30	1.32	brianwalenz	AS_CGW/Input_CGW.c
+2007/04/16 17:36:30	1.8	brianwalenz	AS_CGW/InstrumentCheckpoint.c
+2007/04/16 17:36:30	1.20	brianwalenz	AS_CGW/LeastSquaresGaps_CGW.c
+2007/04/16 17:36:30	1.12	brianwalenz	AS_CGW/MergeEdges_CGW.c
+2007/04/16 17:36:30	1.18	brianwalenz	AS_CGW/ProcessScaffolds_CGW.c
+2007/04/16 17:36:30	1.9	brianwalenz	AS_CGW/SEdgeT_CGW.c
+2007/04/16 17:36:31	1.23	brianwalenz	AS_CGW/ScaffoldGraph_CGW.c
+2007/04/16 17:36:31	1.17	brianwalenz	AS_CGW/SplitChunks_CGW.c
+2007/04/16 17:36:31	1.8	brianwalenz	AS_CGW/SplitScaffolds_CGW.c
+2007/04/16 17:36:31	1.12	brianwalenz	AS_CGW/Stats_CGW.c
+2007/04/16 17:36:31	1.5	brianwalenz	AS_CGW/Stats_CGW.h
+2007/04/16 17:36:31	1.7	brianwalenz	AS_CGW/TraceNodes.c
+2007/04/16 17:36:31	1.10	brianwalenz	AS_CGW/asmInfoForFrg.c
+2007/04/16 17:36:31	1.8	brianwalenz	AS_CGW/assemblyStructure.c
+2007/04/16 17:36:31	1.8	brianwalenz	AS_CGW/ckp_scflen.c
+2007/04/16 17:36:31	1.13	brianwalenz	AS_CGW/combineMates.c
+2007/04/16 17:36:31	1.14	brianwalenz	AS_CGW/countAssembledFrags.c
+2007/04/16 17:36:31	1.8	brianwalenz	AS_CGW/createFrgDeletes.c
+2007/04/16 17:36:31	1.11	brianwalenz	AS_CGW/dfsFragmentTiling.c
+2007/04/16 17:36:31	1.13	brianwalenz	AS_CGW/dumpBinaryUnitigMAs.c
+2007/04/16 17:36:32	1.15	brianwalenz	AS_CGW/dumpCloneMiddles.c
+2007/04/16 17:36:32	1.23	brianwalenz	AS_CGW/Attic/dumpDistanceEstimates.c
+2007/04/16 17:36:32	1.19	brianwalenz	AS_CGW/dumpSingletons.c
+2007/04/16 17:36:32	1.10	brianwalenz	AS_CGW/examineFragStore.c
+2007/04/16 17:36:32	1.9	brianwalenz	AS_CGW/exploreGapStructure.c
+2007/04/16 17:36:32	1.11	brianwalenz	AS_CGW/exploreMates.c
+2007/04/16 17:36:32	1.11	brianwalenz	AS_CGW/exploreScaffoldEnds.c
+2007/04/16 17:36:32	1.7	brianwalenz	AS_CGW/findAnEdge.c
+2007/04/16 17:36:32	1.11	brianwalenz	AS_CGW/findMissedOverlaps.c
+2007/04/16 17:36:32	1.11	brianwalenz	AS_CGW/fixECRCheckpoint.c
+2007/04/16 17:36:32	1.11	brianwalenz	AS_CGW/fixZLFContigs.c
+2007/04/16 17:36:32	1.11	brianwalenz	AS_CGW/fragmentPlacement.c
+2007/04/16 17:36:32	1.14	brianwalenz	AS_CGW/frgs2clones.c
+2007/04/16 17:36:32	1.21	brianwalenz	AS_CGW/greedyFragmentTiling.c
+2007/04/16 17:36:32	1.18	brianwalenz	AS_CGW/localUnitigging_CGW.c
+2007/04/16 17:36:32	1.14	brianwalenz	AS_CGW/resolveSurrogates.c
+2007/04/16 17:36:32	1.10	brianwalenz	AS_CGW/smallLargeScaffolds.c
+2007/04/16 17:36:32	1.13	brianwalenz	AS_CGW/testOverlapContigs.c
+2007/04/16 17:36:32	1.7	brianwalenz	AS_CGW/whereAreMyOverlaps.c
+2007/04/16 17:36:32	1.13	brianwalenz	AS_CNS/AS_CNS_asmReBaseCall.c
+2007/04/16 17:36:32	1.46	brianwalenz	AS_CNS/Consensus_CNS.c
+2007/04/16 17:36:32	1.13	brianwalenz	AS_CNS/RebuildMultiAlign_CNS.c
+2007/04/16 17:36:32	1.15	brianwalenz	AS_CNS/RebuildScaffolds_CNS.c
+2007/04/16 17:36:33	1.10	brianwalenz	AS_CNS/ScaffoldUnitigProfile_CNS.c
+2007/04/16 17:36:33	1.11	brianwalenz	AS_CNS/TestAlign_CNS.c
+2007/04/16 17:36:33	1.17	brianwalenz	AS_CNS/TestBaseCall_CNS.c
+2007/04/16 17:36:33	1.5	brianwalenz	AS_CVT/asm2asmStore.c
+2007/04/16 17:36:33	1.2	brianwalenz	AS_CVT/buildMapStore.c
+2007/04/16 17:36:33	1.4	brianwalenz	AS_CVT/dumpBadMPs.c
+2007/04/16 17:36:33	1.3	brianwalenz	AS_CVT/dumpClones.c
+2007/04/16 17:36:33	1.3	brianwalenz	AS_CVT/dumpContigLengths.c
+2007/04/16 17:36:33	1.2	brianwalenz	AS_CVT/dumpDeletedFrags.c
+2007/04/16 17:36:33	1.3	brianwalenz	AS_CVT/dumpElsewheres.c
+2007/04/16 17:36:33	1.4	brianwalenz	AS_CVT/dumpForTampa.c
+2007/04/16 17:36:33	1.2	brianwalenz	AS_CVT/dumpMapStore.c
+2007/04/16 17:36:33	1.2	brianwalenz	AS_CVT/dumpMappedElsewheres.c
+2007/04/16 17:36:33	1.2	brianwalenz	AS_CVT/dumpMappedFrags.c
+2007/04/16 17:36:33	1.3	brianwalenz	AS_CVT/dumpMappedMatePairs.c
+2007/04/16 17:36:33	1.3	brianwalenz	AS_CVT/dumpMappedMatePairsBinary.c
+2007/04/16 17:36:33	1.2	brianwalenz	AS_CVT/dumpMissingFrags.c
+2007/04/16 17:36:33	1.2	brianwalenz	AS_CVT/dumpMultiInstanceFrags.c
+2007/04/16 17:36:33	1.2	brianwalenz	AS_CVT/dumpScaffoldLengths.c
+2007/04/16 17:36:33	1.2	brianwalenz	AS_CVT/dumpSurrogateCoords.c
+2007/04/16 17:36:33	1.2	brianwalenz	AS_CVT/dumpSurrogateCoordsATAC.c
+2007/04/16 17:36:33	1.2	brianwalenz	AS_CVT/dumpSurrogateFrags.c
+2007/04/16 17:36:33	1.2	brianwalenz	AS_CVT/dumpSurrogateSeqCoords.c
+2007/04/16 17:36:33	1.2	brianwalenz	AS_CVT/dumpUnreferencedFrags.c
+2007/04/16 17:36:33	1.28	brianwalenz	AS_GKP/AS_GKP_main.c
+2007/04/16 17:36:34	1.5	brianwalenz	AS_ORA/dumpMatePairing.c
+2007/04/16 17:36:34	1.34	brianwalenz	AS_OVL/AS_OVL_overlap_common.h
+2007/04/16 17:36:34	1.11	brianwalenz	AS_OVL/AutoScreenOVL.c
+2007/04/16 17:36:34	1.8	brianwalenz	AS_OVL/CatCorrectsOVL.c
+2007/04/16 17:36:34	1.9	brianwalenz	AS_OVL/CatEratesOVL.c
+2007/04/16 17:36:34	1.8	brianwalenz	AS_OVL/CombineMUMsOVL.c
+2007/04/16 17:36:34	1.14	brianwalenz	AS_OVL/CorrectOlapsOVL.c
+2007/04/16 17:36:34	1.7	brianwalenz	AS_OVL/CorrectScriptOVL.c
+2007/04/16 17:36:34	1.10	brianwalenz	AS_OVL/DeleteOlapsOVL.c
+2007/04/16 17:36:34	1.10	brianwalenz	AS_OVL/FilterOlapsOVL.c
+2007/04/16 17:36:34	1.17	brianwalenz	AS_OVL/FragCorrectOVL.c
+2007/04/16 17:36:34	1.8	brianwalenz	AS_OVL/MakeScriptOVL.c
+2007/04/16 17:36:34	1.5	brianwalenz	AS_OVL/MatchListOVL.c
+2007/04/16 17:36:34	1.7	brianwalenz	AS_OVL/NewBactigScriptOVL.c
+2007/04/16 17:36:34	1.7	brianwalenz	AS_OVL/NewFragScriptOVL.c
+2007/04/16 17:36:34	1.7	brianwalenz	AS_OVL/ShowCorrectsOVL.c
+2007/04/16 17:36:34	1.2	brianwalenz	AS_OVL/fgbovlhits.c
+2007/04/16 17:36:34	1.9	brianwalenz	AS_OVL/Attic/frag-anomaly.c
+2007/04/16 17:36:34	1.5	brianwalenz	AS_OVL/get-degrees.c
+2007/04/16 17:36:35	1.10	brianwalenz	AS_OVL/Attic/get-iidgraph.c
+2007/04/16 17:36:35	1.8	brianwalenz	AS_OVL/Attic/get-subgraph.c
+2007/04/16 17:36:35	1.8	brianwalenz	AS_OVL/Attic/get-uid-olaps.c
+2007/04/16 17:36:35	1.6	brianwalenz	AS_OVL/iid2fastaOVL.c
+2007/04/16 17:36:35	1.4	brianwalenz	AS_OVL/olapcoverage.cc
+2007/04/16 17:36:35	1.10	brianwalenz	AS_OVS/AS_OVS_overlapStore.c
+2007/04/16 17:36:35	1.9	brianwalenz	AS_OVS/overlapStore_build.c
+2007/04/16 17:36:35	1.7	brianwalenz	AS_OVS/overlapStore_dump.c
+2007/04/16 17:36:35	1.3	brianwalenz	AS_OVS/overlapStore_stats.c
+2007/04/16 17:36:36	1.8	brianwalenz	AS_PER/AS_PER_asmStore.c
+2007/04/16 17:36:36	1.9	brianwalenz	AS_PER/AS_PER_asmStore.h
+2007/04/16 17:36:36	1.32	brianwalenz	AS_PER/AS_PER_gkpStore.c
+2007/04/16 17:36:36	1.30	brianwalenz	AS_PER/AS_PER_gkpStore.h
+2007/04/16 17:36:36	1.13	brianwalenz	AS_SDB/AS_SDB_SequenceDB.c
+2007/04/16 17:36:36	1.7	brianwalenz	AS_SDB/AS_SDB_SequenceDBPartition.c
+2007/04/16 17:36:36	1.13	brianwalenz	AS_SDB/PartitionSequenceDB1.c
+2007/04/16 17:36:36	1.9	brianwalenz	AS_SDB/PartitionSequenceDB2.c
+2007/04/16 17:36:36	1.17	brianwalenz	AS_TER/AS_TER_terminator.c
+2007/04/16 17:36:36	1.13	brianwalenz	AS_TER/asmProcessScaffolds_TER.c
+2007/04/16 17:36:36	1.8	brianwalenz	AS_UTL/AS_UTL_PHash.c
+2007/04/16 17:36:36	1.6	brianwalenz	AS_VWR/celamy.c
+2007/04/16 17:36:36	1.6	brianwalenz	AS_VWR/query_celamy.c
+
+Use AS_UTL_mkdir() instead of mkdir(2); the change here is probably just
+the removal of dirent.h or sys/types.h, which lots of files included even
+though they didn't need it.
+
+----------------------------------------
+2007/04/16 22:26:38	1.20	brianwalenz	AS_GKP/AS_GKP_checkFrag.c
+2007/04/16 22:26:39	1.5	brianwalenz	AS_GKP/AS_GKP_checkLibrary.c
+2007/04/16 22:26:39	1.6	brianwalenz	AS_GKP/AS_GKP_checkLink.c
+2007/04/16 22:26:39	1.18	brianwalenz	AS_GKP/AS_GKP_include.h
+2007/04/16 22:26:39	1.29	brianwalenz	AS_GKP/AS_GKP_main.c
+2007/04/16 22:26:39	1.41	brianwalenz	AS_MSG/AS_MSG_pmesg.h
+2007/04/16 22:26:39	1.5	brianwalenz	AS_MSG/AS_MSG_pmesg1.c
+2007/04/16 22:26:39	1.3	brianwalenz	AS_MSG/AS_MSG_pmesg2.c
+2007/04/16 22:26:39	1.1	brianwalenz	AS_MSG/convert-v1-to-v2.pl
+
+Just checkpointing frag format 2; it seems to build a store correctly, but
+is definitely missing some functionality (like writing library messages).
+
+----------------------------------------
+2007/04/17 16:06:09	1.3	brianwalenz	AS_MSG/AS_MSG_pmesg_internal.h
+
+Increase the size of "CallTable" by one.
+
+----------------------------------------
+2007/04/19 18:04:02	1.139	gdenisov	AS_CNS/MultiAlignment_CNS.c
+
+
+Raised the QV threshold for detection of variation from 50 to 60.
+
+----------------------------------------
+2007/04/20 08:57:35	1.12	brianwalenz	AS_GKP/AS_GKP_dump.c
+2007/04/20 08:57:36	1.19	brianwalenz	AS_GKP/AS_GKP_include.h
+2007/04/20 08:57:36	1.30	brianwalenz	AS_GKP/AS_GKP_main.c
+
+1)  Add labels to tables.
+2)  Allow dumping of objects based on a file of UIDs or IIDs.
+
+----------------------------------------
+2007/04/20 09:17:56	1.14	brianwalenz	AS_CGB/AS_CGB_unitigger.c
+
+Update "documentation" about the -L switch.  It used to be a file that
+contained a list of filenames to read as input.  It is now simply the
+single input file, which should be a list of OverlapFragMessages (OFGs),
+produced by "gatekeeper -ofg".
+
+----------------------------------------
+2007/04/23 15:20:10	1.31	brianwalenz	AS_GKP/AS_GKP_main.c
+
+Disable processing of batch (BAT) records.  They're still accepted as
+input, but not needed.
+
+----------------------------------------
+2007/04/23 15:27:26	1.3	brianwalenz	CHANGES
+2007/04/23 15:24:34	1.11	brianwalenz	AS_CGW/AS_CGW_EdgeDiagnostics.c
+2007/04/23 15:24:34	1.39	brianwalenz	AS_CGW/AS_CGW_main.c
+2007/04/23 15:24:34	1.39	brianwalenz	AS_CGW/GraphCGW_T.c
+2007/04/23 15:24:34	1.13	brianwalenz	AS_CGW/InputDataTypes_CGW.h
+2007/04/23 15:24:34	1.33	brianwalenz	AS_CGW/Input_CGW.c
+2007/04/23 15:24:34	1.22	brianwalenz	AS_CGW/Instrument_CGW.c
+2007/04/23 15:24:35	1.18	brianwalenz	AS_CGW/Makefile
+2007/04/23 15:24:35	1.23	brianwalenz	AS_CGW/Output_CGW.c
+2007/04/23 15:24:35	1.24	brianwalenz	AS_CGW/ScaffoldGraph_CGW.c
+2007/04/23 15:24:35	1.18	brianwalenz	AS_CGW/SplitChunks_CGW.c
+2007/04/23 15:24:35	1.24	brianwalenz	AS_CGW/Attic/dumpDistanceEstimates.c
+2007/04/23 15:24:35	1.12	brianwalenz	AS_CGW/fragmentPlacement.c
+2007/04/23 15:24:35	1.9	brianwalenz	AS_CNS/null_scaffolder.c
+2007/04/23 15:24:35	1.6	brianwalenz	AS_CVT/Attic/ofg2asm.c
+2007/04/23 15:24:35	1.42	brianwalenz	AS_MSG/AS_MSG_pmesg.h
+2007/04/23 15:24:35	1.24	brianwalenz	AS_REZ/GapFillREZ.c
+2007/04/23 15:24:35	1.17	brianwalenz	AS_RUN/runCA-OBT/doc.tex
+2007/04/23 15:24:35	1.29	brianwalenz	AS_RUN/runCA-OBT/runCAutil/scaffolder.pl
+2007/04/23 15:24:35	1.43	brianwalenz	AS_RUN/runCA-OBT/runCAutil/util.pl
+
+Fix internal CGW distances.
+
+Previously, CGW had two definitions of clone distance; (mean, stddev)
+and (mu, sigma).  I suspect that one of those was intended to be
+scratch space (mu, sigma) for calculating an updated distance to be
+placed into (mean, stddev).  Unfortunately, both of those were used
+throughout CGW, and they were not always the same.
+
+Now, there is only one distance: (mu, sigma).  If CGW doesn't start
+from a checkpoint, the distance is loaded from gatekeeper, and
+reestimated very soon using unitigs.  If started from a checkpoint,
+the values from the checkpoint are used.
+
+runCA-OBT no longer needs to compute 6-clonesize, and does not by
+default.
+
+THIS COMMIT BREAKS CHECKPOINT COMPATIBILITY!  Earlier checkpoints
+cannot be used.
+
+Some details:
+
+1) cgw now creates files stat/*.dst containing proto-io messages that
+can be used to update the fragstore with the correct distances.  Three
+files exist, one for unitigs, contigs and scaffolds.  The scaffold and
+contig estimates should be fed to gatekeeper in that order.
+
+2) The CIFragT in InputDataTypes_CGW.h changed.  mateStatus was
+removed -- it was never used.  Its type was MateStatusType, which
+narrowly missed MateStatType defined in AS_MSG_pmesg.h, leading to
+confusion.  Note that there is a mateStatus in Instrument_CGW.h; not
+the same thing.
+
+3) The DistT in InputDataTypes_CGW.h changed, removing mean, stddev
+and a temporary VA.  Note the ugly hack needed to read this in from
+disk, to clear out a pointer.
+
+4) The constant UNASSIGNED is now UNASSIGNED_MATE.
+
+----------------------------------------
+2007/04/23 18:50:10	1.15	brianwalenz	AS_OBT/chimera.C
+2007/04/23 18:50:10	1.7	brianwalenz	AS_OBT/consolidate.C
+2007/04/23 18:50:10	1.5	brianwalenz	AS_OBT/findDuplicateFragsInStore.C
+2007/04/23 18:50:11	1.9	brianwalenz	AS_OBT/initialTrim.C
+2007/04/23 18:50:11	1.4	brianwalenz	AS_OBT/maps.H
+2007/04/23 18:50:11	1.19	brianwalenz	AS_OBT/merge-trimming.C
+2007/04/23 18:50:11	1.5	brianwalenz	AS_OBT/trim.C
+2007/04/23 18:50:12	1.6	brianwalenz	AS_OBT/trim.H
+2007/04/23 18:50:12	1.2	brianwalenz	AS_OBT/util++.C
+2007/04/23 18:50:12	1.3	brianwalenz	AS_OBT/util++.H
+
+Rewrite the handling of vector-clear-ranges and do-not-modify
+information.  Get rid of STL.  The STL map was taking around
+15 minutes to deallocate -- three times longer than it takes
+initialTrim to do the trimming.
+
+Use the CA-standard type names (uint32) instead of Bri's names
+(u32bit).
+
+----------------------------------------
+2007/04/23 22:21:59	1.13	brianwalenz	AS_GKP/AS_GKP_dump.c
+2007/04/23 22:21:59	1.31	brianwalenz	AS_PER/AS_PER_gkpStore.h
+
+Prepare the GateKeeperLibraryRecord for feature support.  This breaks
+compatibility with previous gkpStores.  Hopefully, it'll be a very, very
+long time before that happens again.  Yeah, right.
+
+----------------------------------------
+2007/04/25 11:24:39	1.14	brianwalenz	AS_GKP/AS_GKP_dump.c
+2007/04/25 11:24:39	1.20	brianwalenz	AS_GKP/AS_GKP_include.h
+2007/04/25 11:24:39	1.32	brianwalenz	AS_GKP/AS_GKP_main.c
+
+Dump a store as frg format, suitable for input to another assembly.
+
+----------------------------------------
+2007/04/25 12:05:23	1.32	brianwalenz	AS_PER/AS_PER_gkpStore.h
+
+Add "latest" to the list of allowable clear range options.
+
+----------------------------------------
+2007/04/25 19:06:43	1.14	brianwalenz	AS_CVT/Makefile
+2007/04/25 19:06:43	1.11	brianwalenz	AS_CVT/Attic/extract_component.c
+2007/04/25 19:06:44	1.6	brianwalenz	AS_CVT/Attic/extract_fraction.c
+2007/04/25 19:06:45	1.10	brianwalenz	AS_CVT/Attic/extract_from_uids.c
+2007/04/25 19:06:45	1.9	brianwalenz	AS_CVT/Attic/extract_multiple.c
+
+Remove old frgStore extraction utilities.
+
+----------------------------------------
+2007/04/26 14:07:03	1.12	brianwalenz	AS_CGB/AS_FGB_main.c
+2007/04/26 14:07:03	1.18	brianwalenz	AS_CGB/Attic/check_breakers.c
+2007/04/26 14:07:03	1.19	brianwalenz	AS_CGW/localUnitigging_CGW.c
+2007/04/26 14:07:03	1.15	brianwalenz	AS_CNS/Array_CNS.c
+2007/04/26 14:07:03	1.140	brianwalenz	AS_CNS/MultiAlignment_CNS.c
+2007/04/26 14:07:03	1.6	brianwalenz	AS_GKP/AS_GKP_checkBatch.c
+2007/04/26 14:07:03	1.21	brianwalenz	AS_GKP/AS_GKP_checkFrag.c
+2007/04/26 14:07:03	1.6	brianwalenz	AS_GKP/AS_GKP_checkLibrary.c
+2007/04/26 14:07:03	1.7	brianwalenz	AS_GKP/AS_GKP_checkLink.c
+2007/04/26 14:07:03	1.15	brianwalenz	AS_GKP/AS_GKP_dump.c
+2007/04/26 14:07:03	1.21	brianwalenz	AS_GKP/AS_GKP_include.h
+2007/04/26 14:07:03	1.33	brianwalenz	AS_GKP/AS_GKP_main.c
+2007/04/26 14:07:03	1.39	brianwalenz	AS_MSG/AS_MSG_pmesg.c
+2007/04/26 14:07:03	1.43	brianwalenz	AS_MSG/AS_MSG_pmesg.h
+2007/04/26 14:07:03	1.6	brianwalenz	AS_MSG/AS_MSG_pmesg1.c
+2007/04/26 14:07:03	1.4	brianwalenz	AS_MSG/AS_MSG_pmesg2.c
+2007/04/26 14:07:03	1.4	brianwalenz	AS_MSG/AS_MSG_pmesg_internal.h
+2007/04/26 14:07:03	1.14	brianwalenz	AS_MSG/Makefile
+2007/04/26 14:07:03	1.6	brianwalenz	AS_MSG/Attic/proto_append.c
+2007/04/26 14:07:04	1.12	brianwalenz	AS_ORA/AS_ORA_main.c
+2007/04/26 14:07:04	1.33	brianwalenz	AS_PER/AS_PER_gkpStore.c
+2007/04/26 14:07:04	1.33	brianwalenz	AS_PER/AS_PER_gkpStore.h
+
+Update to the latest frg format 2 spec.
+1)  Remove Clear_*_Mesg() functions; completely unused.
+2)  Remove time fields from messages and stores, also unused.
+3)  Remove birth and death batch from stores, more unused.
+4)  Remove shadow libs, unused and painful.
+5)  Fix mates; version 1 was always INNIE, now it gets it from the lkg.
+6)  Finish version 2 library handing in gatekeeper.
+
+----------------------------------------
+2007/04/27 16:58:38	1.5	brianwalenz	AS_RUN/fragmentDepth.c
+
+Add option to allow reporting of mode, mean, median for all scaffolds.
+
+----------------------------------------
+2007/04/27 18:15:35	1.3	brianwalenz	AS_GKP/Attic/TestGKP.frg
+2007/04/27 18:15:35	1.4	brianwalenz	AS_GKP/Attic/TestGKP.inp
+2007/04/27 18:15:35	1.4	brianwalenz	AS_GKP/Attic/TestGKP.out
+
+Remove very stale test cases.
+
+----------------------------------------
+2007/04/27 19:38:35	1.34	brianwalenz	AS_GKP/AS_GKP_main.c
+2007/04/27 19:38:35	1.4	brianwalenz	AS_OBT/Attic/dumpRandomMatedFrags.C
+
+Add code to pick N random mates (2N frags) from a specific library,
+and dump them.
+
+----------------------------------------
+2007/04/27 20:26:01	1.16	brianwalenz	AS_OBT/Makefile
+
+Remove dumpRandomMatedFrags.
+
+----------------------------------------
+2007/04/28 07:14:12	1.19	brianwalenz	AS_CGB/Attic/check_breakers.c
+
+Fix a really dumb bug.
+
+----------------------------------------
+2007/04/28 07:15:13	1.20	brianwalenz	AS_CGB/Attic/check_breakers.c
+
+Deleted because it's clear this is dead.  The dumb bug would have
+crashed the most trivial of task, and it won't run on dros.
+
+----------------------------------------
+2007/04/28 08:46:21	1.15	brianwalenz	AS_CGB/AS_CGB_all.h
+2007/04/28 09:14:33	1.11	brianwalenz	AS_CGB/Attic/AS_CGB_branchpts.c
+2007/04/28 09:14:33	1.5	brianwalenz	AS_CGB/Attic/AS_CGB_branchpts.h
+2007/04/28 09:14:33	1.10	brianwalenz	AS_CGB/Attic/AS_CGB_breakers.c
+2007/04/28 09:14:33	1.6	brianwalenz	AS_CGB/Attic/AS_CGB_breakers.h
+2007/04/28 08:46:21	1.12	brianwalenz	AS_CGB/AS_CGB_cga.c
+2007/04/28 08:46:21	1.9	brianwalenz	AS_CGB/AS_CGB_cgb.c
+2007/04/28 08:46:21	1.8	brianwalenz	AS_CGB/AS_CGB_cgb.h
+2007/04/28 08:46:21	1.2	brianwalenz	AS_CGB/AS_CGB_chimeras.c
+2007/04/28 08:46:21	1.6	brianwalenz	AS_CGB/AS_CGB_classify.c
+2007/04/28 08:46:21	1.5	brianwalenz	AS_CGB/AS_CGB_count_fragment_and_edge_labels.c
+2007/04/28 09:14:33	1.7	brianwalenz	AS_CGB/Attic/AS_CGB_dfs.c
+2007/04/28 09:14:33	1.5	brianwalenz	AS_CGB/Attic/AS_CGB_dfs.h
+2007/04/28 08:46:21	1.6	brianwalenz	AS_CGB/AS_CGB_edgemate.c
+2007/04/28 09:14:33	1.5	brianwalenz	AS_CGB/Attic/AS_CGB_edgetrimmer.c
+2007/04/28 09:14:33	1.5	brianwalenz	AS_CGB/Attic/AS_CGB_edgetrimmer.h
+2007/04/28 08:46:21	1.9	brianwalenz	AS_CGB/AS_CGB_fga.c
+2007/04/28 08:46:21	1.10	brianwalenz	AS_CGB/AS_CGB_fgb.c
+2007/04/28 08:46:21	1.5	brianwalenz	AS_CGB/AS_CGB_fgb.h
+2007/04/28 08:46:21	1.12	brianwalenz	AS_CGB/Attic/AS_CGB_fom2uom.c
+2007/04/28 08:46:21	1.10	brianwalenz	AS_CGB/AS_CGB_histo.c
+2007/04/28 08:46:21	1.11	brianwalenz	AS_CGB/Attic/AS_CGB_iid2cid.c
+2007/04/28 08:46:21	1.12	brianwalenz	AS_CGB/Attic/AS_CGB_io.c
+2007/04/28 08:46:21	1.6	brianwalenz	AS_CGB/Attic/AS_CGB_io.h
+2007/04/28 08:46:21	1.8	brianwalenz	AS_CGB/AS_CGB_main.c
+2007/04/28 08:46:21	1.5	brianwalenz	AS_CGB/AS_CGB_methods.h
+2007/04/28 08:46:21	1.11	brianwalenz	AS_CGB/Attic/AS_CGB_miniunitigger.c
+2007/04/28 08:46:21	1.5	brianwalenz	AS_CGB/Attic/AS_CGB_miniunitigger.h
+2007/04/28 08:46:21	1.10	brianwalenz	AS_CGB/Attic/AS_CGB_repair_breakers.c
+2007/04/28 08:46:21	1.5	brianwalenz	AS_CGB/Attic/AS_CGB_repair_breakers.h
+2007/04/28 08:46:21	1.8	brianwalenz	AS_CGB/Attic/AS_CGB_store.c
+2007/04/28 08:46:21	1.7	brianwalenz	AS_CGB/AS_CGB_store.h
+2007/04/28 09:14:33	1.7	brianwalenz	AS_CGB/Attic/AS_CGB_testhisto.c
+2007/04/28 08:46:21	1.15	brianwalenz	AS_CGB/AS_CGB_unitigger.c
+2007/04/28 08:46:21	1.6	brianwalenz	AS_CGB/AS_CGB_unitigger_globals.h
+2007/04/28 08:46:21	1.5	brianwalenz	AS_CGB/AS_CGB_walk.h
+2007/04/28 08:46:21	1.5	brianwalenz	AS_CGB/AS_FGB_FragmentHash.h
+2007/04/28 09:14:33	1.5	brianwalenz	AS_CGB/Attic/AS_FGB_buddy.c
+2007/04/28 09:14:33	1.2	brianwalenz	AS_CGB/Attic/AS_FGB_buddy.h
+2007/04/28 08:46:21	1.6	brianwalenz	AS_CGB/AS_FGB_buildFragmentHash.c
+2007/04/28 08:46:21	1.2	brianwalenz	AS_CGB/AS_FGB_buildFragmentHash.h
+2007/04/28 08:46:21	1.5	brianwalenz	AS_CGB/AS_FGB_contained.c
+2007/04/28 08:46:21	1.3	brianwalenz	AS_CGB/AS_FGB_hanging_fragment.c
+2007/04/28 08:46:21	1.17	brianwalenz	AS_CGB/AS_FGB_io.c
+2007/04/28 08:46:21	1.8	brianwalenz	AS_CGB/Attic/AS_FGB_io.h
+2007/04/28 08:46:21	1.13	brianwalenz	AS_CGB/AS_FGB_main.c
+2007/04/28 08:46:22	1.12	brianwalenz	AS_CGB/Makefile
+2007/04/28 08:46:22	1.8	brianwalenz	AS_CGB/Attic/miniunitigger_test.c
+2007/04/28 08:46:22	1.34	brianwalenz	AS_CGW/Input_CGW.c
+2007/04/28 08:46:22	1.19	brianwalenz	AS_CGW/ProcessScaffolds_CGW.c
+2007/04/28 08:46:22	1.17	brianwalenz	AS_CGW/ScaffoldGraph_CGW.h
+2007/04/28 08:46:22	1.14	brianwalenz	AS_CNS/AS_CNS_asmReBaseCall.c
+2007/04/28 08:46:22	1.16	brianwalenz	AS_CNS/Array_CNS.c
+2007/04/28 08:46:22	1.47	brianwalenz	AS_CNS/Consensus_CNS.c
+2007/04/28 08:46:22	1.12	brianwalenz	AS_CNS/MultiAlignStore_CNS.h
+2007/04/28 08:46:22	1.141	brianwalenz	AS_CNS/MultiAlignment_CNS.c
+2007/04/28 08:46:22	1.14	brianwalenz	AS_CNS/RebuildMultiAlign_CNS.c
+2007/04/28 08:46:22	1.16	brianwalenz	AS_CNS/RebuildScaffolds_CNS.c
+2007/04/28 08:46:22	1.11	brianwalenz	AS_CNS/ScaffoldUnitigProfile_CNS.c
+2007/04/28 08:46:22	1.12	brianwalenz	AS_CNS/TestAlign_CNS.c
+2007/04/28 08:46:22	1.18	brianwalenz	AS_CNS/TestBaseCall_CNS.c
+2007/04/28 08:46:22	1.14	brianwalenz	AS_CNS/colCorr_CNS.c
+2007/04/28 08:46:22	1.6	brianwalenz	AS_CNS/colCorr_CNS.h
+2007/04/28 08:46:22	1.9	brianwalenz	AS_CNS/extract_gap_flanking.c
+2007/04/28 08:46:22	1.8	brianwalenz	AS_CNS/link_analysis.c
+2007/04/28 08:46:22	1.8	brianwalenz	AS_CNS/placed_contigs.c
+2007/04/28 08:46:22	1.15	brianwalenz	AS_CNS/post_analysis.c
+2007/04/28 08:46:22	1.6	brianwalenz	AS_CNS/quality_assess.c
+2007/04/28 08:46:22	1.44	brianwalenz	AS_MSG/AS_MSG_pmesg.h
+2007/04/28 08:46:22	1.7	brianwalenz	AS_MSG/AS_MSG_pmesg1.c
+2007/04/28 08:46:22	1.7	brianwalenz	AS_MSG/Attic/PrimitiveVA_MSG.h
+2007/04/28 08:46:22	1.8	brianwalenz	AS_OBT/consolidate.C
+2007/04/28 08:46:22	1.4	brianwalenz	AS_OBT/util++.H
+2007/04/28 08:46:22	1.15	brianwalenz	AS_OVL/CorrectOlapsOVL.c
+2007/04/28 08:46:22	1.9	brianwalenz	AS_REZ/MicroHetIUM.c
+2007/04/28 08:46:22	1.16	brianwalenz	AS_REZ/MicroHetREZ.c
+2007/04/28 08:46:22	1.19	brianwalenz	AS_RUN/runCA-OBT/runCAutil/unitigger.pl
+2007/04/28 08:46:22	1.14	brianwalenz	AS_TER/asmProcessScaffolds_TER.c
+2007/04/28 08:46:22	1.9	brianwalenz	AS_UTL/AS_UTL_Var.h
+
+Sigh.  This all started out so simple.  I just wanted to move the
+VA_DEF for some of the AS_MSG_pmesg.h structures into that file (out
+of PrimitiveVA_MSG.h).
+
+Unfortunately, it didn't take long until I was breaking my own rule of
+not hacking on unitigger:
+
+1)  Remove IBC, IBA and FOM messages.
+2)  De-spaghettify AS_CGB_unitigger.c (unitigger main()) and lots of
+    AS_FGB_io.c.
+3)  Remove all traces of the "fgbStore"
+4)  Stop writing the first (000) cgb output, with only an audit
+    message, and the last, which was ALWAYS empty.
+5)  Kill the "miniunitigger"
+6)  Remove TONS of dead and should-have-been-killed code from
+    unitigger; 20% faster on dros.
+7)  Repair Breakers?  Yeah, it was a NOP.
+8)  Fix unitigger Makefile so it doesn't put ALL of unitigger, yes,
+    even main(), into the libraries.
+
+POOF!  You just lost 5% (around 14243 lines) of your assembler.
+
+Unitigger was tested with 100% identical results on dros grimshawi.
+
+Beware of dog.  Slippery when wet.  Do not use while operating a motor
+vehicle or heavy equipment.  Et cetera, ad infinitum, YMMV.
+
+----------------------------------------
+2007/04/29 02:08:54	1.11	brianwalenz	AS_CGB/AS_CGB_Bubble_Popper.c
+
+Don't use the LATEST clear range, use OBT instead.  This guarantees
+that unitigger and overlapper agree on the clear range.
+
+----------------------------------------
+2007/04/29 06:25:27	1.8	brianwalenz	AS_CGB/AS_CGB_Bubble.c
+2007/04/29 06:25:27	1.3	brianwalenz	AS_CGB/AS_CGB_Bubble.h
+2007/04/29 06:25:27	1.2	brianwalenz	AS_CGB/Attic/AS_CGB_Bubble_GraphMethods.h
+2007/04/29 06:25:27	1.12	brianwalenz	AS_CGB/AS_CGB_Bubble_Popper.c
+2007/04/29 06:25:27	1.4	brianwalenz	AS_CGB/AS_CGB_Bubble_Popper.h
+2007/04/29 06:25:27	1.6	brianwalenz	AS_CGB/AS_CGB_Bubble_PopperMethods.c
+2007/04/29 06:25:27	1.7	brianwalenz	AS_CGB/AS_CGB_Bubble_VertexSet.c
+2007/04/29 06:25:27	1.6	brianwalenz	AS_CGB/AS_CGB_Bubble_dfs.c
+2007/04/29 06:25:27	1.2	brianwalenz	AS_CGB/Attic/AS_CGB_Bubble_log.h
+2007/04/29 06:25:27	1.5	brianwalenz	AS_CGB/Attic/AS_CGB_Bubble_top.c
+2007/04/29 06:25:27	1.13	brianwalenz	AS_CGB/Makefile
+
+Trivial noodlin'.  I was hoping to get rid of the 10-ish BubblePopping
+source files, but instead found nicely commented and engineered code.
+
+----------------------------------------
+2007/04/30 13:00:28	1.16	brianwalenz	AS_CGB/AS_CGB_all.h
+2007/04/30 13:00:28	1.13	brianwalenz	AS_CGB/AS_CGB_cga.c
+2007/04/30 13:00:28	1.7	brianwalenz	AS_CGB/AS_CGB_edgemate.c
+2007/04/30 13:00:29	1.13	brianwalenz	AS_CGB/Attic/AS_CGB_io.c
+2007/04/30 13:00:29	1.7	brianwalenz	AS_CGB/Attic/AS_CGB_io.h
+2007/04/30 13:00:29	1.9	brianwalenz	AS_CGB/AS_CGB_main.c
+2007/04/30 13:00:29	1.8	brianwalenz	AS_CGB/AS_CGB_store.h
+2007/04/30 13:00:29	1.16	brianwalenz	AS_CGB/AS_CGB_unitigger.c
+2007/04/30 13:00:29	1.7	brianwalenz	AS_CGB/AS_CGB_unitigger_globals.h
+2007/04/30 13:00:29	1.18	brianwalenz	AS_CGB/AS_FGB_io.c
+2007/04/30 13:00:29	1.9	brianwalenz	AS_CGB/Attic/AS_FGB_io.h
+2007/04/30 13:00:29	1.14	brianwalenz	AS_CGB/AS_FGB_main.c
+2007/04/30 13:00:29	1.14	brianwalenz	AS_CGB/Makefile
+2007/04/30 13:00:29	1.15	brianwalenz	AS_CVT/Makefile
+2007/04/30 13:00:29	1.7	brianwalenz	AS_CVT/Attic/ofg2asm.c
+2007/04/30 13:00:29	1.16	brianwalenz	AS_GKP/AS_GKP_dump.c
+2007/04/30 13:00:29	1.22	brianwalenz	AS_GKP/AS_GKP_include.h
+2007/04/30 13:00:29	1.35	brianwalenz	AS_GKP/AS_GKP_main.c
+2007/04/30 13:00:29	1.40	brianwalenz	AS_MSG/AS_MSG_pmesg.c
+2007/04/30 13:00:30	1.45	brianwalenz	AS_MSG/AS_MSG_pmesg.h
+2007/04/30 13:00:30	1.8	brianwalenz	AS_MSG/AS_MSG_pmesg1.c
+2007/04/30 13:00:30	1.5	brianwalenz	AS_MSG/AS_MSG_pmesg2.c
+2007/04/30 13:00:30	1.11	brianwalenz	AS_MSG/remove_fragment.c
+2007/04/30 13:00:30	1.17	brianwalenz	AS_OVL/Makefile
+2007/04/30 13:00:30	1.10	brianwalenz	AS_OVL/Attic/frag-anomaly.c
+2007/04/30 13:00:30	1.11	brianwalenz	AS_OVL/Attic/get-iidgraph.c
+2007/04/30 13:00:30	1.9	brianwalenz	AS_OVL/Attic/get-subgraph.c
+2007/04/30 13:00:30	1.9	brianwalenz	AS_OVL/Attic/get-uid-olaps.c
+2007/04/30 13:00:30	1.20	brianwalenz	AS_RUN/runCA-OBT/runCAutil/unitigger.pl
+
+Remove MESG_OFG and its main reason for existing -- make unitigger read
+fragments from the store.  The utilities removed from AS_OVL looked dead,
+as they all assumed OFG messages are in the overlapper output (they haven't
+been for a long time), but maybe frag-anomaly.c isn't.  In AS_CGB, only
+AS_FGB_main.c and AS_FGB_io.c have significant changes; the others are
+minor noodling.
+
+----------------------------------------
+2007/05/01 06:02:36	1.12	brianwalenz	AS_OVL/AutoScreenOVL.c
+2007/05/01 06:02:36	1.9	brianwalenz	AS_OVL/CatCorrectsOVL.c
+2007/05/01 06:02:36	1.10	brianwalenz	AS_OVL/CatEratesOVL.c
+2007/05/01 06:02:36	1.9	brianwalenz	AS_OVL/CombineMUMsOVL.c
+2007/05/01 06:02:36	1.16	brianwalenz	AS_OVL/CorrectOlapsOVL.c
+2007/05/01 06:02:36	1.8	brianwalenz	AS_OVL/CorrectScriptOVL.c
+2007/05/01 06:02:36	1.11	brianwalenz	AS_OVL/DeleteOlapsOVL.c
+2007/05/01 06:02:36	1.11	brianwalenz	AS_OVL/FilterOlapsOVL.c
+2007/05/01 06:02:36	1.18	brianwalenz	AS_OVL/FragCorrectOVL.c
+2007/05/01 06:02:36	1.9	brianwalenz	AS_OVL/MakeScriptOVL.c
+2007/05/01 06:02:36	1.8	brianwalenz	AS_OVL/NewBactigScriptOVL.c
+2007/05/01 06:02:36	1.8	brianwalenz	AS_OVL/NewFragScriptOVL.c
+2007/05/01 06:02:36	1.8	brianwalenz	AS_OVL/ShowCorrectsOVL.c
+2007/05/01 06:02:36	1.7	brianwalenz	AS_OVL/iid2fastaOVL.c
+2007/05/01 06:02:37	1.5	brianwalenz	AS_PER/Attic/AS_PER_distStore.h
+2007/05/01 06:02:37	1.17	brianwalenz	AS_REZ/MicroHetREZ.c
+
+Remove obsolete header AS_PER_distStore.h.
+
+----------------------------------------
+2007/05/01 14:41:42	1.14	granger_sutton	AS_CGB/AS_CGB_cga.c
+2007/05/01 14:41:43	1.5	granger_sutton	AS_CGB/AS_CGB_cga.h
+2007/05/01 14:41:43	1.10	granger_sutton	AS_CGB/AS_CGB_cgb.c
+2007/05/01 14:41:43	1.9	granger_sutton	AS_CGB/AS_CGB_cgb.h
+2007/05/01 14:41:43	1.10	granger_sutton	AS_CGB/AS_CGB_main.c
+2007/05/01 14:41:43	1.17	granger_sutton	AS_CGB/AS_CGB_unitigger.c
+2007/05/01 14:41:43	1.8	granger_sutton	AS_CGB/AS_CGB_unitigger_globals.h
+2007/05/01 14:41:43	1.3	granger_sutton	AS_CGW/DemoteUnitigsWithRBP_CGW.c
+2007/05/01 14:41:43	1.18	granger_sutton	AS_CGW/ScaffoldGraph_CGW.h
+2007/05/01 14:41:43	1.21	granger_sutton	AS_RUN/runCA-OBT/runCAutil/unitigger.pl
+2007/05/01 14:41:43	1.44	granger_sutton	AS_RUN/runCA-OBT/runCAutil/util.pl
+
+Modify the unitigger to calculate fragment arrival rates based on large unitigs
+instead of all unitigs when large unitigs are available. This should help with
+mixed samples having moderate levels of contamination and with genomes having
+large regions of cloning bias. This option is contolled with -k but is the
+default behavior now for runCA-OBT.
+
+----------------------------------------
+2007/05/01 22:53:09	1.18	adelcher	AS_OVL/Makefile
+2007/05/01 22:53:09	1.1	adelcher	AS_OVL/OlapFromSeedsOVL.c
+2007/05/01 22:53:09	1.1	adelcher	AS_OVL/OlapFromSeedsOVL.h
+2007/05/01 22:53:09	1.1	adelcher	AS_OVL/SharedOVL.c
+2007/05/01 22:53:09	1.1	adelcher	AS_OVL/SharedOVL.h
+
+Initial version of overlapper/correcter that reads kmer seeds
+and checks to see if they extend to an overlap, and uses those
+overlaps to correct reads.
+
+----------------------------------------
+2007/05/02 09:30:12	1.40	brianwalenz	AS_CGW/GraphCGW_T.c
+2007/05/02 09:30:13	1.35	brianwalenz	AS_CGW/Input_CGW.c
+2007/05/02 09:30:13	1.23	brianwalenz	AS_CGW/Instrument_CGW.c
+2007/05/02 09:30:13	1.25	brianwalenz	AS_CGW/ScaffoldGraph_CGW.c
+2007/05/02 09:30:13	1.14	brianwalenz	AS_CGW/combineMates.c
+2007/05/02 09:30:13	1.9	brianwalenz	AS_CGW/createFrgDeletes.c
+2007/05/02 09:30:14	1.12	brianwalenz	AS_CGW/dfsFragmentTiling.c
+2007/05/02 09:30:14	1.15	brianwalenz	AS_CGW/frgs2clones.c
+2007/05/02 09:30:15	1.22	brianwalenz	AS_CGW/greedyFragmentTiling.c
+2007/05/02 09:30:15	1.17	brianwalenz	AS_CVT/ASMData.c
+2007/05/02 09:30:15	1.4	brianwalenz	AS_GKP/AS_GKP_buildPartition.c
+2007/05/02 09:30:15	1.7	brianwalenz	AS_GKP/AS_GKP_checkBatch.c
+2007/05/02 09:30:15	1.22	brianwalenz	AS_GKP/AS_GKP_checkFrag.c
+2007/05/02 09:30:15	1.7	brianwalenz	AS_GKP/AS_GKP_checkLibrary.c
+2007/05/02 09:30:15	1.8	brianwalenz	AS_GKP/AS_GKP_checkLink.c
+2007/05/02 09:30:15	1.17	brianwalenz	AS_GKP/AS_GKP_dump.c
+2007/05/02 09:30:18	1.6	brianwalenz	AS_MSG/AS_MSG_pmesg2.c
+2007/05/02 09:30:18	1.2	brianwalenz	AS_MSG/convert-v1-to-v2.pl
+2007/05/02 09:30:18	1.10	brianwalenz	AS_OBT/initialTrim.C
+2007/05/02 09:30:18	1.18	brianwalenz	AS_PER/AS_PER_genericStore.c
+2007/05/02 09:30:18	1.34	brianwalenz	AS_PER/AS_PER_gkpStore.c
+2007/05/02 09:30:18	1.34	brianwalenz	AS_PER/AS_PER_gkpStore.h
+2007/05/02 09:30:18	1.35	brianwalenz	AS_TER/AS_TER_terminator_funcs.c
+
+1)  Add library features: isNotRandom, doNotOverlapTrim, doNotTrustHomopolymerRuns,
+hpsIsPeakSpacing and hpsIsFlowGram.  No support for these added to the assember;
+they're just parsed and set in the library record.
+2)  Cache library records in a loaded GateKeeperStore -- to provide quick
+access to library features.
+3)  Engineering.  Clean up the GateKeeperStore interface, removing a lot
+of the set/modify routines that should only be done by gatekeeper.
+Fragments can still be modified via setFrag().
+
+----------------------------------------
+2007/05/02 18:53:39	1.11	granger_sutton	AS_CGB/AS_CGB_cgb.c
+
+Tweaking recalibration of fragment arrival rate based on large unitigs to better deal
+with a few outliers.
+
+----------------------------------------
+2007/05/04 05:45:11	1.6	brianwalenz	AS_CVT/Attic/AS_CVT_hashtable.c
+2007/05/04 05:45:11	1.5	brianwalenz	AS_CVT/Attic/AS_CVT_hashtable.h
+2007/05/04 05:45:11	1.6	brianwalenz	AS_CVT/Attic/AS_CVT_uid_interface.c
+2007/05/04 05:45:11	1.5	brianwalenz	AS_CVT/Attic/AS_CVT_uid_interface.h
+2007/05/04 05:45:11	1.16	brianwalenz	AS_CVT/Makefile
+2007/05/04 05:45:11	1.1	brianwalenz	AS_CVT/README
+2007/05/04 05:45:11	1.2	brianwalenz	AS_CVT/Attic/concatRegions.c
+2007/05/04 05:45:11	1.4	brianwalenz	AS_CVT/Attic/getMDIDataFromASM.c
+2007/05/04 05:45:11	1.5	brianwalenz	AS_CVT/Attic/make_cns_list.c
+2007/05/04 05:45:11	1.5	brianwalenz	AS_CVT/Attic/make_range_file.c
+2007/05/04 05:45:11	1.2	brianwalenz	AS_CVT/Attic/mdi2ps.sh
+2007/05/04 05:45:11	1.5	brianwalenz	AS_CVT/Attic/run_components_thru_grande.sh
+2007/05/04 05:45:11	1.5	brianwalenz	AS_CVT/Attic/run_grande_on_component.sh
+2007/05/04 05:45:11	1.5	brianwalenz	AS_CVT/Attic/run_grande_on_frgs.sh
+2007/05/04 05:45:12	1.2	brianwalenz	AS_CVT/Attic/scf2chrSimple.c
+2007/05/04 05:45:12	1.5	brianwalenz	AS_CVT/Attic/setup_status_file.sh
+
+Remove ancient scripts for running the assembler and other misc crud,
+add a README that points out this directory supports the asmStore only.
+
+----------------------------------------
+2007/05/04 09:42:35	1.10	brianwalenz	AS_OVS/overlapStore_build.c
+
+Very small datasets would crash with the default parameters.
+
+----------------------------------------
+2007/05/04 17:45:34	1.8	brianwalenz	AS_OVS/overlapStore_dump.c
+
+Add ascii dump for AS_OVS_TYPE_MER.
+
+----------------------------------------
+2007/05/04 17:46:33	1.2	brianwalenz	AS_OVL/OlapFromSeedsOVL.c
+
+Bug fix: OVSoverlap needs error rates from 0 to 1, not 0 to 100.
+
+----------------------------------------
+2007/05/04 17:47:25	1.8	brianwalenz	AS_RUN/runCA-OBT/runCAutil/checkOverlap.pl
+2007/05/04 17:47:25	1.26	brianwalenz	AS_RUN/runCA-OBT/runCAutil/createOverlapJobs.pl
+2007/05/04 17:47:25	1.12	brianwalenz	AS_RUN/runCA-OBT/runCAutil/createOverlapStore.pl
+2007/05/04 17:47:25	1.27	brianwalenz	AS_RUN/runCA-OBT/runCAutil/overlapTrim.pl
+2007/05/04 17:47:25	1.45	brianwalenz	AS_RUN/runCA-OBT/runCAutil/util.pl
+
+Add some support for new overlapper / overmerry & olap-from-seeds.
+
+----------------------------------------
+2007/05/04 17:48:41	1.7	brianwalenz	AS_MER/AS_MER_gkpStore_to_FastABase.H
+
+Add a method to get the untrimmed length of a sequence, overmerry needs
+this.
+
+----------------------------------------
+2007/05/04 17:49:10	1.15	brianwalenz	AS_MER/Makefile
+
+overmerry needs OVS.
+
+----------------------------------------
+2007/05/04 17:50:08	1.7	brianwalenz	AS_MER/overmerry.C
+
+Big glaring error(s) in coordinates fixed.  LOTS of expensive debugging
+added.
 
