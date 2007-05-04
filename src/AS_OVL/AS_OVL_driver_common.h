@@ -26,8 +26,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_driver_common.h,v 1.18 2007-03-29 20:27:21 brianwalenz Exp $
- * $Revision: 1.18 $
+ * $Id: AS_OVL_driver_common.h,v 1.19 2007-05-04 18:55:37 brianwalenz Exp $
+ * $Revision: 1.19 $
 */
 
 
@@ -502,10 +502,11 @@ static void *  Choose_And_Process_Stream_Segment
           allDone = 1;
 
       //  BPW says we DEFINITELY need to mutex this!
-      resetFragStream (WA -> stream_segment, lo, hi);
+      if (allDone == 0)
+        resetFragStream (WA -> stream_segment, lo, hi);
 
       if  (Num_PThreads > 1)
-          pthread_mutex_unlock (& FragStore_Mutex);
+        pthread_mutex_unlock (& FragStore_Mutex);
 
       if (allDone == 0)
         Process_Overlaps (WA -> stream_segment, WA);
