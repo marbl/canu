@@ -76,8 +76,16 @@ public:
   bool         find(seqIID  iid);
   bool         find(char   *uid);
 
+  //  This must return the length of the sequence returned by
+  //  getSequenceInCore().
   u32bit       sequenceLength(seqIID iid) {
     return(_clrEnd[iid+1] - _clrBeg[iid+1]);
+  };
+
+  //  But overmerry needs to know the untrimmed length so it can
+  //  reverse-complement positions.
+  u32bit       sequenceLengthUntrimmed(seqIID iid) {
+    return(_seqLen[iid+1]);
   };
 
   u32bit       nameLength(seqIID iid) {
