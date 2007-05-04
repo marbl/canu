@@ -8,6 +8,11 @@ sub checkOverlap {
 
     return if (-d "$wrk/$asm.ovlStore");
 
+    if (getGlobal("merOverlap") != 0) {
+        print STDERR "checkOverlap()-- SKIPPED because merOverlap is defined.\n";
+        return;
+    }
+
     if (!defined($isTrim)) {
         die "checkOverlap()-- I need to know if I'm trimming or assembling!\n";
     }

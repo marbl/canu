@@ -46,12 +46,6 @@ sub overlapTrim {
 
     if (! -e "$wrk/$asm.obtStore") {
 
-        #  Run meryl on the now quality-trimmed frags.  This hopefully
-        #  will get around some sequencing centers' habit of having N's in
-        #  the low quality region, and is generally just a good idea.
-        #
-        meryl();
-
         createOverlapJobs("trim");
         checkOverlap("trim");
 
@@ -66,7 +60,7 @@ sub overlapTrim {
         my $cmd;
         $cmd  = "$bin/overlapStore ";
         $cmd .= " -c $wrk/$asm.obtStore ";
-        $cmd .= " -M " . getGlobal('ovlSortMemory') . " ";
+        $cmd .= " -M " . getGlobal('ovlSortMemory');
         $cmd .= " -m $numFrags ";
         $cmd .= " -L $wrk/0-overlaptrim/all-overlaps-trim.ovllist";
         $cmd .= " > $wrk/0-overlaptrim/$asm.overlapstore.err 2>&1";

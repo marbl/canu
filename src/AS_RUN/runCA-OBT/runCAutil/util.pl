@@ -157,6 +157,8 @@ sub setDefaults () {
     $global{"useBogUnitig"}                = 0;
     $global{"vectorIntersect"}             = undef;
 
+    $global{"merOverlap"}                  = 0;
+
     #  Undocumented!  Unimplemented
     $global{"metagenomics"}                = undef;   #  disable frgCorr, ....
     $global{"globalErrorRate"}             = 6;

@@ -1,7 +1,6 @@
 use strict;
 
 sub createOverlapStore {
-    my $ovlStoreMemory    = getGlobal("ovlStoreMemory");
 
     goto alldone if (-d "$wrk/$asm.ovlStore");
 
@@ -16,7 +15,7 @@ sub createOverlapStore {
     my $cmd;
     $cmd  = "$bin/overlapStore ";
     $cmd .= "-c $wrk/$asm.ovlStore ";
-    $cmd .= "-M $ovlStoreMemory ";
+    $cmd .= "-M " . getGlobal("ovlStoreMemory");
     $cmd .= "-m $numFrags ";
     $cmd .= "-L $wrk/1-overlapper/all-overlaps.ovllist ";
     $cmd .= "> $wrk/1-overlapper/grow-olap-store.err 2>&1";
