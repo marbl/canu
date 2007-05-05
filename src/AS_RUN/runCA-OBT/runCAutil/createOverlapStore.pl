@@ -14,11 +14,11 @@ sub createOverlapStore {
 
     my $cmd;
     $cmd  = "$bin/overlapStore ";
-    $cmd .= "-c $wrk/$asm.ovlStore ";
-    $cmd .= "-M " . getGlobal("ovlStoreMemory");
-    $cmd .= "-m $numFrags ";
-    $cmd .= "-L $wrk/1-overlapper/all-overlaps.ovllist ";
-    $cmd .= "> $wrk/1-overlapper/grow-olap-store.err 2>&1";
+    $cmd .= " -c $wrk/$asm.ovlStore ";
+    $cmd .= " -M " . getGlobal("ovlStoreMemory");
+    $cmd .= " -m $numFrags ";
+    $cmd .= " -L $wrk/1-overlapper/all-overlaps.ovllist ";
+    $cmd .= " > $wrk/1-overlapper/grow-olap-store.err 2>&1";
 
     if (runCommand("$wrk", $cmd)) {
         rename "$wrk/$asm.ovlStore", "$wrk/$asm.ovlStore.FAILED";
