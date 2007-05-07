@@ -101,7 +101,6 @@ submitScript("") if (!runningOnGrid());
 preoverlap(@fragFiles);
 
 overlapTrim();
-updateFragmentFiles(@fragFiles);
 
 createOverlapJobs("normal");
 checkOverlap("normal");
