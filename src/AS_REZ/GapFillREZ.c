@@ -34,7 +34,7 @@
 *
 *************************************************/
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.24 2007-04-23 15:24:35 brianwalenz Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.25 2007-05-07 19:40:43 granger_sutton Exp $";
 
 
 #include <stdio.h>
@@ -4188,7 +4188,7 @@ static void  Choose_Stones
                              "YOWZA!! Contig %d not unique but has two unitigs\n",
                              cid);
                 if  (problem || first_chunk -> info . CI . numFragments != 1)
-                    continue;
+		  continue;
                }
 
            if  (chunk -> info . Contig . AEndCI != chunk -> info . Contig . BEndCI)
@@ -4211,12 +4211,12 @@ static void  Choose_Stones
                          chunk -> info . Contig . AEndCI, (int) (unitig -> type));
                 continue;
                }
-           if  (Contained_Only_Switch && unitig -> info . CI . numInstances > 0)
+           /*if  (Contained_Only_Switch && unitig -> info . CI . numInstances > 0)
                {
                 fprintf (stderr, "SURPRISE:  contig %d has surrogates...skipping it\n",
                          chunk -> info . Contig . AEndCI);
                 continue;
-               }
+		}*/
 
            // Put edges from chunk to a unique chunk onto a stack
 
@@ -13047,7 +13047,7 @@ int  Toss_Contained_Stones
    if (Num_Scaffolds == 0)
      return 0;
 
-   Single_Fragment_Only = TRUE;
+   Single_Fragment_Only = FALSE /*was TRUE*/;
      
 #if  TEST_HOPELESS_SCAFFS
    Hopeless_False_Mask = '\373';
@@ -13152,7 +13152,7 @@ int  Toss_Contained_Stones
        Eliminate_Encumbered_Uniques (fill_stones);
 #endif
 
-   Verify_Single_Placement (fill_stones);
+       // Verify_Single_Placement (fill_stones);
 
    Sort_Insertions (fill_stones, By_Keep_And_Low_Position);
 
@@ -13167,7 +13167,7 @@ int  Toss_Contained_Stones
 #endif
 
    fprintf (stderr, "Set_Split_Flags\n");
-   Set_Split_Flags (fill_stones, ALL_FALSE);
+   Set_Split_Flags (fill_stones, FALSE_IFF_SINGLETON /* was ALL_FALSE */);
    fprintf (stderr, "After Set_Split_Flags\n");
 
 #if  VERBOSE
