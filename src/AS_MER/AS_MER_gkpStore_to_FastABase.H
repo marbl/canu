@@ -35,9 +35,12 @@ extern "C" {
 //  Transform a wgs-assembler gkpStore object into a kmer FastABase
 //  object.
 //
-//  About IIDs: gkpStore starts IIDs at 1, while kmer starts at 0.
-//  The _iid in gkpStoreSequence is a gkpStore IID.  All external iid
-//  references, e.g., find(iid), should be kmer IIDs.
+//  About IIDs:
+//    gkpStore IIDs start at 1
+//    kmer IIDs start at 0
+//
+//  This interface adds in a zero-length sequence to be kmer IID 0,
+//  and does not change the IID mapping.
 //
 //  The "name" in openFile() should refer to a gatekeeper store
 //  directory.  It can optionally include ":bgn-end:clr" to return a
@@ -71,7 +74,7 @@ public:
   seqInCore   *getSequenceInCore(void);
   seqOnDisk   *getSequenceOnDisk(void);
 
-  u32bit       currentIID(void) { return(_iid - 1); };
+  u32bit       currentIID(void) { return(_iid); };
 
   bool         find(seqIID  iid);
   bool         find(char   *uid);
@@ -79,13 +82,13 @@ public:
   //  This must return the length of the sequence returned by
   //  getSequenceInCore().
   u32bit       sequenceLength(seqIID iid) {
-    return(_clrEnd[iid+1] - _clrBeg[iid+1]);
+    return(_clrEnd[iid] - _clrBeg[iid]);
   };
 
   //  But overmerry needs to know the untrimmed length so it can
   //  reverse-complement positions.
   u32bit       sequenceLengthUntrimmed(seqIID iid) {
-    return(_seqLen[iid+1]);
+    return(_seqLen[iid]);
   };
 
   u32bit       nameLength(seqIID iid) {
@@ -93,7 +96,7 @@ public:
   };
 
   u32bit       getNumberOfSequences(void) {
-    return(getLastElemFragStore(_gkp));
+    return(getLastElemFragStore(_gkp) + 1);
   }
 
   char const  *getSourceName(void) {
@@ -109,8 +112,8 @@ public:
   bool         isSqueezed(void) { return(true); };
 
 public:
-  uint16       clrBeg(seqIID iid) { return(_clrBeg[iid+1]); };
-  uint16       clrEnd(seqIID iid) { return(_clrEnd[iid+1]); };
+  uint16       clrBeg(seqIID iid) { return(_clrBeg[iid]); };
+  uint16       clrEnd(seqIID iid) { return(_clrEnd[iid]); };
 
 private:
   bool         getSequence(uint32 &hLen, char *&h,

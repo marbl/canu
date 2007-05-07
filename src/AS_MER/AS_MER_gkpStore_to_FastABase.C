@@ -48,27 +48,30 @@ gkpStoreSequence::gkpStoreSequence(char const *gkpName,
             _bgn, _end);
   assert(_bgn <= _end);
 
-  //  even though, yes, we don't strictly need to be loading the
-  //  sequence lengths, and we could get them from the store, this
-  //  code is much simpler, and a whole lot faster, if we always load
-  //  them.
-  //
-  _seqLen = new uint16 [getNumberOfSequences() + 1];
-  _clrBeg = new uint16 [getNumberOfSequences() + 1];
-  _clrEnd = new uint16 [getNumberOfSequences() + 1];
+  uint32    max = getNumberOfSequences() + 1;
+
+  _seqLen = new uint16 [max];
+  _clrBeg = new uint16 [max];
+  _clrEnd = new uint16 [max];
+  
+  for (uint32 i=0; i<max; i++) {
+    _seqLen[i] = 0;
+    _clrBeg[i] = 0;
+    _clrEnd[i] = 0;
+  }
 
   FragStream *stm = openFragStream(_gkp, FRAG_S_INF);
+
+  if ((_bgn < max) && (end < max))
+    resetFragStream(stm, _bgn, _end);
+
   while (nextFragStream(stm, _frg)) {
-    uint32  iid = getFragRecordIID(_frg);
-
-    _clrBeg[iid] = getFragRecordClearRegionBegin(_frg, _clr);
-    _clrEnd[iid] = getFragRecordClearRegionEnd  (_frg, _clr);
-    _seqLen[iid] = getFragRecordSequenceLength  (_frg);
-
-    if (getFragRecordIsDeleted(_frg))
-      _clrBeg[iid] = _clrEnd[iid] = 0;
-    if ((getFragRecordIID(_frg) < _bgn) || (_end < getFragRecordIID(_frg)))
-      _clrBeg[iid] = _clrEnd[iid] = 0;
+    if (!getFragRecordIsDeleted(_frg)) {
+      uint32  iid = getFragRecordIID(_frg);
+      _clrBeg[iid] = getFragRecordClearRegionBegin(_frg, _clr);
+      _clrEnd[iid] = getFragRecordClearRegionEnd  (_frg, _clr);
+      _seqLen[iid] = getFragRecordSequenceLength  (_frg);
+    }
   }
 
   closeFragStream(stm);
@@ -90,7 +93,7 @@ gkpStoreSequence::openFile(const char *name) {
   char  *q;
   char   n[FILENAME_MAX + 32];
 
-  uint32 bgn = 1;
+  uint32 bgn = 0;
   uint32 end = ~(uint32)0;
   uint32 clr = AS_READ_CLEAR_LATEST;
 
@@ -135,8 +138,8 @@ gkpStoreSequence::getSequence(uint32 &hLen, char *&h,
   if (_iid > _end)
     return(false);
 
-  if (_iid != getFragRecordIID(_frg))
-    if (find(_iid - 1) == false)
+  if ((_iid > 0) && (_iid != getFragRecordIID(_frg)))
+    if (find(_iid) == false)
       return(false);
 
   h    = new char [65];
@@ -165,7 +168,7 @@ gkpStoreSequence::getSequenceInCore(void) {
   if (getSequence(hLen, h, sLen, s) == false)
     return(0L);
 
-  return(new seqInCore(_iid++ - 1, h, hLen, s, sLen));
+  return(new seqInCore(_iid++, h, hLen, s, sLen));
 }
 
 
@@ -177,26 +180,23 @@ gkpStoreSequence::getSequenceOnDisk(void) {
   if (getSequence(hLen, h, sLen, s) == false)
     return(0L);
 
-  return(new seqOnDisk(_iid++ - 1, h, hLen, s, sLen));
+  return(new seqOnDisk(_iid++, h, hLen, s, sLen));
 }
 
 
 
 bool
 gkpStoreSequence::find(seqIID  iid) {
-  iid++;
-  if (iid > getLastElemFragStore(_gkp)) {
+  if (iid == 0) {
+    return(false);
+  }
+  if (iid > getLastElemFragStore(_gkp) + 1) {
     _eof = true;
-    _iid = getLastElemFragStore(_gkp) + 1;
+    _iid = getLastElemFragStore(_gkp) + 2;
     return(false);
   }
   if ((iid < _bgn) || (_end < iid)) {
-    //  Not sure this is a useful warning.  Certainly, if we're in a
-    //  loop from iid=0 to iid=last, we'll get this LOTS.
-    //  
-    //fprintf(stderr, "gkpStoreSequence::find()--  WARNING: looked for gkp iid=%u, not in range [%u,%u]\n",
-    //        iid, _bgn, _end);
-    _iid = getLastElemFragStore(_gkp) + 1;
+    _iid = getLastElemFragStore(_gkp) + 2;
     return(false);
   }
   getFrag(_gkp, iid, _frg, FRAG_S_SEQ);
