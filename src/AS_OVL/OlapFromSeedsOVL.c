@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.2 2007-05-04 17:46:33 brianwalenz Exp $
- * $Revision: 1.2 $
+ * $Id: OlapFromSeedsOVL.c,v 1.3 2007-05-07 10:21:00 brianwalenz Exp $
+ * $Revision: 1.3 $
 */
 
-static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.2 2007-05-04 17:46:33 brianwalenz Exp $";
+static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.3 2007-05-07 10:21:00 brianwalenz Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -897,11 +897,12 @@ static void  Get_Seeds_From_Store
 
     while (AS_OVS_readOverlapFromStore (ovs, & ovl))
       {
-       (* olap) [num_read] . a_iid  = ovl . a_iid;
-       (* olap) [num_read] . b_iid  = ovl . b_iid;
-       (* olap) [num_read] . a_hang = ovl . dat . mer . a_pos;
-       (* olap) [num_read] . b_hang = ovl . dat . mer . b_pos;
-       (* olap) [num_read] . orient = (ovl . dat . mer . fwd ? NORMAL : INNIE);
+       (* olap) [num_read] . a_iid   = ovl . a_iid;
+       (* olap) [num_read] . b_iid   = ovl . b_iid;
+       (* olap) [num_read] . a_hang  = ovl . dat . mer . a_pos;
+       (* olap) [num_read] . b_hang  = ovl . dat . mer . b_pos;
+       (* olap) [num_read] . orient  = (ovl . dat . mer . fwd ? NORMAL : INNIE);
+       (* olap) [num_read] . k_count = ovl . dat . mer . k_count;
        num_read ++;
 
        if (Verbose_Level > 1)
@@ -1415,6 +1416,7 @@ static void  Output_Olap
      }
    qual = errors / (double)OVL_Min_int (a_hi - a_lo, b_hi - b_lo);
 
+
    switch (OVL_Output_Type)
      {
       case TEXT_FILE :
@@ -1429,20 +1431,19 @@ static void  Output_Olap
       case BINARY_FILE :
         overlap . a_iid = olap -> a_iid;
         overlap . b_iid = olap -> b_iid;
-        overlap . dat . ovl . seed_value = 0;   //**ALD what's this??
+        overlap . dat . ovl . seed_value = olap -> k_count;
         overlap . dat . ovl . flipped = (dir == 'f' ? 0 : 1);
+
         if (0 < a_lo)
           overlap . dat . ovl . a_hang = a_lo;
-        else if (dir == 'f')
-          overlap . dat . ovl . a_hang = - b_lo;         // is negative
         else
-          overlap . dat . ovl . a_hang = b_hi - b_len;   // is negative
+          overlap . dat . ovl . a_hang = - b_lo;
+
         if (a_hi < a_len)
-          overlap . dat . ovl . b_hang = a_hi - a_len;   // is negative
-        else if (dir == 'f')
-          overlap . dat . ovl . b_hang = b_len - b_hi;
+          overlap . dat . ovl . b_hang = a_hi - a_len;
         else
-          overlap . dat . ovl . b_hang =  b_lo;
+          overlap . dat . ovl . b_hang = b_len - b_hi;
+
         overlap . dat . ovl . orig_erate = overlap . dat . ovl . corr_erate
              = AS_OVS_encodeQuality (qual);
         overlap . dat . ovl . type = AS_OVS_TYPE_OVL;
@@ -2037,6 +2038,7 @@ static void  Read_Seeds
                Olap [ct] . orient = NORMAL;
             else
                Olap [ct] . orient = INNIE;
+            Olap [ct] . k_count = 0;
             ct ++;
            }
 

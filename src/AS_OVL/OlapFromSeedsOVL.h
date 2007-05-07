@@ -33,8 +33,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.h,v 1.1 2007-05-01 22:53:09 adelcher Exp $
- * $Revision: 1.1 $
+ * $Id: OlapFromSeedsOVL.h,v 1.2 2007-05-07 10:21:00 brianwalenz Exp $
+ * $Revision: 1.2 $
 */
 
 
@@ -198,6 +198,7 @@ typedef  struct
    signed int  a_hang : FRAG_LEN_BITS;
    signed int  b_hang : FRAG_LEN_BITS;
    signed int  orient : 2;
+   unsigned int k_count : 8;
   }  Olap_Info_t;
 
 typedef  struct
