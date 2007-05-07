@@ -247,6 +247,8 @@ chainedSequence::sequenceNumberOfPosition(u64bit p) {
     }
   }
 
+  //fprintf(stderr, "chainedSequence::sequenceNumberOfPosition()-- p="u64bitFMT" --> s="u32bitFMT"\n", p, sret);
+
   return(sret);
 }
 

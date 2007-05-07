@@ -66,6 +66,7 @@ public:
   u64bit       startOf(u32bit s);
   u64bit       IIDOf(u32bit s);
 
+  //  For a chain position p, returns the s (above) for that position.
   u32bit       sequenceNumberOfPosition(u64bit p);
 
   //  Move the file pointer back to the start of the chained sequence
