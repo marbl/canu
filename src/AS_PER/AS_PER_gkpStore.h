@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.34 2007-05-02 09:30:18 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.35 2007-05-08 17:46:18 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -46,8 +46,8 @@ typedef struct {
   char           name[AS_PER_NAME_LEN];
   char           comment[AS_PER_COMMENT_LEN];
 
-  unsigned int   deleted:1;
-  unsigned int   spare:31;
+  uint64         deleted:1;
+  uint64         spare:63;
 } GateKeeperBatchRecord;
 
 #define AS_READ_ORIENT_UNKNOWN    0x00
