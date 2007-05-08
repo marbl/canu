@@ -18,16 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.14 2007-04-16 17:36:32 brianwalenz Exp $";
-
-
-/*********************************************************************/
-
-//#define DEBUG 1
-//#define DEBUG_BUCIS 1
-//#define DEBUG_MERGE_SCAF 1
-
-#define MAX_SIGMA_SLOP 3.0
+static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.15 2007-05-08 15:12:30 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -164,16 +155,14 @@ int main( int argc, char *argv[])
 
     if((setPrefixName == FALSE) || (setGatekeeperStore == 0))
       {
-	fprintf(stderr,"* argc = %d optind = %d setGatekeeperStore = %d outputPath = %s\n",
-		argc, optind, setGatekeeperStore, outputPath);
-	fprintf (stderr, "USAGE:  %s -g <GatekeeperStoreName> -c <CkptFileName> -n <CkpPtNum> [-1]\n",argv[0]);
-	fprintf (stderr, "\t-1 option causes aggressive placement of fragments in singly-placed surrogates\n");
-	exit (EXIT_FAILURE);
+	fprintf(stderr, "usage: %s -g <gkp> -c <ckp> -n <num> opts\n",argv[0]);
+        fpritnf(stderr, "  -S x   place all frags in singly-placed surrogates if\n");
+        fprintf(stderr, "         at least fraction x can be placed.\n");
+	fprintf(stderr, "  -1     place all frags in singly-placed surrogates\n");
+        fprintf(stderr, "         aggressively; equivalent to -S 0.0\n");
+	exit(1);
       }
   }
-
-  fprintf(stderr,"Continuing ..\n");
-
 
   ScaffoldGraph = LoadScaffoldGraphFromCheckpoint( data->File_Name_Prefix, ckptNum, TRUE);
   GlobalData->aligner=Local_Overlap_AS_forCNS;
@@ -203,9 +192,6 @@ int main( int argc, char *argv[])
     // count fragments and positions
     numFragmentsInParent = GetNumIntMultiPoss(maParent->f_list);
 
-    //      fprintf(stderr, "parentChunk " F_CID " has %d fragments\n", 
-    //	      parentChunk->id, numFragmentsInParent);
-
     totalNumParentFrags += numFragmentsInParent;
 
     for(i=0;i<numInstances;i++){
@@ -216,26 +202,11 @@ int main( int argc, char *argv[])
       candidateChunk = GetGraphNode(ScaffoldGraph->CIGraph, index);
       AssertPtr (candidateChunk);
 
-      //  BPW
-      if (parentChunk->type != UNRESOLVEDCHUNK_CGW) {
-        //  ERROR!  We should be this type!
-        fprintf(stderr, "HELP!  parentChunk is not UNRESOLVEDCHUNK_CGW\n");
-        assert(0);
-      }
-      if (candidateChunk->type != RESOLVEDREPEATCHUNK_CGW) {
-        //  ERROR!  We should be this type!
-        fprintf(stderr, "HELP!  candidateChunk is not RESOLVEDREPEATCHUNK_CGW\n");
-        assert(0);
-      }
-      if (parentChunk == candidateChunk) {
-        fprintf(stderr, "HELP!  parentChunk == candidateChunk ???\n");
-        assert(0);
-      }
-
-      if ((parentChunk->type    != UNRESOLVEDCHUNK_CGW) ||
-          (candidateChunk->type != RESOLVEDREPEATCHUNK_CGW) ||
-          (parentChunk == candidateChunk))
-        continue;
+      //  These were historically problems that were not asserts, but
+      //  would just skip this instance.
+      assert(parentChunk->type == UNRESOLVEDCHUNK_CGW);
+      assert(candidateChunk->type == RESOLVEDREPEATCHUNK_CGW);
+      assert(parentChunk != candidateChunk);
 
       if(candidateChunk->info.CI.baseID != parentChunk->id){
 	if(candidateChunk==parentChunk){
@@ -244,7 +215,6 @@ int main( int argc, char *argv[])
 	  continue;
 	} else {
 	  assert(candidateChunk->info.CI.baseID == parentChunk->id);
-	  exit(-1);
 	}
       }
 
