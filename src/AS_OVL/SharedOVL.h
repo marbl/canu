@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: SharedOVL.h,v 1.1 2007-05-01 22:53:09 adelcher Exp $
- * $Revision: 1.1 $
+ * $Id: SharedOVL.h,v 1.2 2007-05-08 22:23:08 adelcher Exp $
+ * $Revision: 1.2 $
 */
 
 
@@ -48,8 +48,31 @@
 
 // Constants
 
-#define  MAX_ERRORS                  (1 + (int) (MAX_ERROR_RATE * MAX_FRAG_LEN))
-    //  Most errors in any edit distance computation
+#define  DEFAULT_CHAR_MATCH_VALUE  ERR_FRACTION_IN_AS_GLOBAL_H
+  //  Default value to add for a match in scoring alignments.
+  //  Corresponding error value is this value minus 1.0
+  //  Using integer values didn't make alignments faster on DEC Alphas.
+  //  An alignment with a matches and b mismatches scores
+  //  (a + b) * Match_Value - b = a * Match_Value + b (Match_Value - 1.0)
+  //     = a * Match_Value + b * Mismatch_Value
+  //  Letting x = Match_Value
+  //  a zero score occurs when 0 = ax + b(x-1) or
+  //  a/b = (1-x)/x
+  //  Defining p = b/(a+b) = Error_Rate gives
+  //  1/p = (a+b)/b = 1 + a/b = 1 + (1-x)/x = 1/x
+  //  whence p = x.
+
+#define  MIN_BRANCH_END_DIST      20
+  // Branch points must be at least this many bases from the
+  // end of the fragment to be reported
+#if ERR_MODEL_IN_AS_GLOBAL_H > 6
+  #define  MIN_BRANCH_TAIL_SLOPE  1.0
+#else
+  #define  MIN_BRANCH_TAIL_SLOPE  0.20
+#endif
+  // Branch point tails must fall off from the max by at least this rate
+#define  MAX_ERRORS               (1 + (int) (MAX_ERROR_RATE * MAX_FRAG_LEN))
+  // Most errors in any edit distance computation
 
 
 // Type definitions
@@ -89,7 +112,7 @@ int  Fwd_Prefix_Edit_Dist
   (char A [], int m, char T [], int n, int Error_Limit,
    int * A_End, int * T_End, int * Match_To_End,
    double match_value, int * Delta, int * Delta_Len, int * * edit_array,
-   int edit_match_limit [], int error_bound []);
+   int edit_match_limit [], int error_bound [], int doing_partial);
 int  OVL_Max_int
   (int a, int b);
 int  OVL_Min_int
@@ -98,7 +121,7 @@ int  Rev_Prefix_Edit_Dist
   (char a_string [], int m, char t_string [], int n, int error_limit,
    int * a_end, int * t_end, int * leftover, int * match_to_end,
    double match_value, int * delta, int * delta_len, int * * edit_array,
-   int edit_match_limit [], int error_bound []);
+   int edit_match_limit [], int error_bound [], int doing_partial);
 void  Set_Fwd_Delta
   (int delta [], int * delta_len, int * * edit_array,
    int e, int d);

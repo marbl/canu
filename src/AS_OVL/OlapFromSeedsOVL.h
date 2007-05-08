@@ -33,8 +33,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.h,v 1.2 2007-05-07 10:21:00 brianwalenz Exp $
- * $Revision: 1.2 $
+ * $Id: OlapFromSeedsOVL.h,v 1.3 2007-05-08 22:23:08 adelcher Exp $
+ * $Revision: 1.3 $
 */
 
 
@@ -75,14 +75,6 @@
 
 //  Constants
 
-#define  BRANCH_PT_MATCH_VALUE    0.272
-  //  Value to add for a match in finding branch points
-  //  1.20 was the calculated value for 6% vs 35% error discrimination
-  //  Converting to integers didn't make it faster
-#define  BRANCH_PT_ERROR_VALUE    -0.728
-  //  Value to add for a mismatch in finding branch points
-  //   -2.19 was the calculated value for 6% vs 35% error discrimination
-  //  Converting to integers didn't make it faster
 #define  DEFAULT_CORRECTION_FILENAME  "frag.cor"
   //  Default name of file where corrections are sent
 #define  DEFAULT_DEGREE_THRESHOLD    2
@@ -123,12 +115,6 @@
   //  Longest possible input line
 #define  MAX_VOTE                    255
   //  Highest number of votes before overflow
-#define  MIN_BRANCH_END_DIST         20
-  //  Branch points must be at least this many bases from the
-  //  end of the fragment to be reported
-#define  MIN_BRANCH_TAIL_SLOPE       0.20
-  //  Branch point tails must fall off from the max by at least
-  //  this rate
 #define  MIN_HAPLO_OCCURS            3
   //  This many or more votes at the same base indicate
   //  a separate haplotype
@@ -241,10 +227,20 @@ typedef enum
 
 static BinaryOverlapFile  * Binary_OVL_Output_fp = NULL;
   // Pointer for binary overlap outputs
+static double  Char_Match_Value = DEFAULT_CHAR_MATCH_VALUE;
+  // Positive score for matching characters in computing alignments
+  // Score for mismatching characters is (this value) - 1.0
 static char  * Correction_Filename = DEFAULT_CORRECTION_FILENAME;
   // Name of file to which correction information is sent
 static int  Degree_Threshold = DEFAULT_DEGREE_THRESHOLD;
   // Set keep flag on end of fragment if number of olaps < this value
+static int  Doing_Corrections = TRUE;
+  // Determines whether error-corrections of reads will be
+  // computed and output
+static int  Doing_Partial_Overlaps = FALSE;
+  // If set true by the G option (G for Granger)
+  // then allow overlaps that do not extend to the end
+  // of either read.
 static int  * Edit_Array [MAX_ERRORS];
   // Use for alignment calculation.  Points into  Edit_Space .
 static int  Edit_Match_Limit [MAX_ERRORS] = {0};
@@ -256,9 +252,11 @@ static int  End_Exclude_Len = DEFAULT_END_EXCLUDE_LEN;
   // Length of ends of exact-match regions not used in preventing
   // sequence correction
 static int  Error_Bound [MAX_FRAG_LEN + 1];
-  //  This array [i]  is the maximum number of errors allowed
-  //  in a match between sequences of length  i , which is
-  //  i * MAXERROR_RATE .
+  // This array [i]  is the maximum number of errors allowed
+  // in a match between sequences of length  i , which is
+  // i * MAXERROR_RATE .
+static double  Error_Rate = MAX_ERROR_RATE;
+  // Highest allowed error rate used in alignments
 static int  Extend_Fragments = FALSE;
   // If true, try to extend clear range of fragments.
   // Set by  -e  option
@@ -362,7 +360,7 @@ static Vote_Value_t  Matching_Vote
 static void  Output_Corrections
   (FILE * fp);
 static void  Output_Olap
-  (FILE * fp, Olap_Info_t * olap, int a_lo, int a_hi, int a_len,
+  (Olap_Info_t * olap, int a_lo, int a_hi, int a_len,
    int b_lo, int b_hi, int b_len, int errors);
 static void  Parse_Command_Line
   (int argc, char * argv []);

@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: SharedOVL.c,v 1.1 2007-05-01 22:53:09 adelcher Exp $
- * $Revision: 1.1 $
+ * $Id: SharedOVL.c,v 1.2 2007-05-08 22:23:08 adelcher Exp $
+ * $Revision: 1.2 $
 */
 
 
@@ -46,7 +46,7 @@ int  Fwd_Prefix_Edit_Dist
   (char a_string [], int m, char t_string [], int n, int error_limit,
    int * a_end, int * t_end, int * match_to_end,
    double match_value, int * delta, int * delta_len, int * * edit_array,
-   int edit_match_limit [], int error_bound [])
+   int edit_match_limit [], int error_bound [], int doing_partial)
 
 // Return the minimum number of changes (inserts, deletes, replacements)
 // needed to match prefixes of strings  a_string [0 .. (m-1)]  and
@@ -66,12 +66,14 @@ int  Fwd_Prefix_Edit_Dist
 // for this computation (including in a threaded environment).
 //  edit_match_limit [e]  is the minimum match length worth attempting to
 // extend containing  e  errors.   error_bound [i]  has the most errors
-// that can be tolerated in a match of length  i .
+// that can be tolerated in a match of length  i .  If  doing_partial
+// is true return the best match, whether it extends to the end of either
+// string or not.
 
   {
    double  score, max_score;
    int  max_score_len, max_score_best_d, max_score_best_e;
-   int  best_d, best_e, longest, row;
+   int  best_d, best_e, longest, row, tail_len;
    int  left, right;
    int  d, e, j, shorter;
 
@@ -128,30 +130,25 @@ int  Fwd_Prefix_Edit_Dist
             (* a_end) = row;           // One past last align position
             (* t_end) = row + d;
 
-#if 0
+#if 1
             //  Check for branch point here caused by uneven
             //  distribution of errors
-            {
-             int Tail_Len;
-
-             score = row * match_value - e;
-                       // Assumes  match_value - mismatch_value == 1.0
-             Tail_Len = row - max_score_len;
-//**ALD Need partial overlap check here
-             if (e > MIN_BRANCH_END_DIST / 2
-                  && Tail_Len >= MIN_BRANCH_END_DIST
-                  && (max_score - score) / Tail_Len >= MIN_BRANCH_TAIL_SLOPE)
-               {
-                (* a_end) = max_score_len;
-                (* t_end) = max_score_len + max_score_best_d;
-                Set_Fwd_Delta (delta, delta_len, edit_array,
-                     max_score_best_e, max_score_best_d);
-                (* match_to_end) = FALSE;
-                return max_score_best_e;
-               }
-            }
+            score = row * match_value - e;
+                 // Assumes  match_value - mismatch_value == 1.0
+            tail_len = row - max_score_len;
+            if ((doing_partial && score < max_score)
+                 || (e > MIN_BRANCH_END_DIST / 2
+                    && tail_len >= MIN_BRANCH_END_DIST
+                    && (max_score - score) / tail_len >= MIN_BRANCH_TAIL_SLOPE))
+              {
+               (* a_end) = max_score_len;
+               (* t_end) = max_score_len + max_score_best_d;
+               Set_Fwd_Delta (delta, delta_len, edit_array,
+                    max_score_best_e, max_score_best_d);
+               (* match_to_end) = FALSE;
+               return max_score_best_e;
+              }
 #endif
-
             Set_Fwd_Delta (delta, delta_len, edit_array, e, d);
             (* match_to_end) = TRUE;
             return e;
@@ -235,7 +232,7 @@ int  Rev_Prefix_Edit_Dist
   (char a_string [], int m, char t_string [], int n, int error_limit,
    int * a_end, int * t_end, int * leftover, int * match_to_end,
    double match_value, int * delta, int * delta_len, int * * edit_array,
-   int edit_match_limit [], int error_bound [])
+   int edit_match_limit [], int error_bound [], int doing_partial)
 
 // Return the minimum number of changes (inserts, deletes, replacements)
 // needed to match a prefix of string  a_string [0 .. (1-m)]  right-to-left
@@ -257,12 +254,14 @@ int  Rev_Prefix_Edit_Dist
 // for this computation (including in a threaded environment).
 //  edit_match_limit [e]  is the minimum match length worth attempting to
 // extend containing  e  errors.   error_bound [i]  has the most errors
-// that can be tolerated in a match of length  i .
+// that can be tolerated in a match of length  i .  If  doing_partial
+// is true return the best match, whether it extends to the end of either
+// string or not.
 
   {
    double  score, max_score;
    int  max_score_len, max_score_best_d, max_score_best_e;
-   int  best_d, best_e, longest, row;
+   int  best_d, best_e, longest, row, tail_len;
    int  left, right;
    int  d, e, j, shorter;
 
@@ -320,29 +319,24 @@ int  Rev_Prefix_Edit_Dist
             (* a_end) = - row;           // One past last align position
             (* t_end) = - row - d;
 
-#if 0
             //  Check for branch point here caused by uneven
             //  distribution of errors
-            {
-             int tail_len;
+            score = row * match_value - e;
+                      // Assumes  match_value - mismatch_value == 1.0
+            tail_len = row - max_score_len;
 
-             score = row * match_value - e;
-                       // Assumes  match_value - mismatch_value == 1.0
-             tail_len = row - max_score_len;
-//**ALD Need partial overlap check here
-             if (e > MIN_BRANCH_END_DIST / 2
-                  && tail_len >= MIN_BRANCH_END_DIST
-                  && (max_score - score) / tail_len >= MIN_BRANCH_TAIL_SLOPE)
-               {
-                (* a_end) = - max_score_len;
-                (* t_end) = - max_score_len - max_score_best_d;
-                Set_Rev_Delta (delta, delta_len, edit_array, max_score_best_e,
-                     max_score_best_d, leftover, t_end, n);
-                (* match_to_end) = FALSE;
-                return max_score_best_e;
-               }
-            }
-#endif
+            if ((doing_partial && score < max_score) ||
+                 (e > MIN_BRANCH_END_DIST / 2
+                   && tail_len >= MIN_BRANCH_END_DIST
+                   && (max_score - score) / tail_len >= MIN_BRANCH_TAIL_SLOPE))
+              {
+               (* a_end) = - max_score_len;
+               (* t_end) = - max_score_len - max_score_best_d;
+               Set_Rev_Delta (delta, delta_len, edit_array, max_score_best_e,
+                    max_score_best_d, leftover, t_end, n);
+               (* match_to_end) = FALSE;
+               return max_score_best_e;
+              }
 
             Set_Rev_Delta (delta, delta_len, edit_array, e, d,
                  leftover, t_end, n);

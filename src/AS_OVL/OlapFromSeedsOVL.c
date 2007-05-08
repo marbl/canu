@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.3 2007-05-07 10:21:00 brianwalenz Exp $
- * $Revision: 1.3 $
+ * $Id: OlapFromSeedsOVL.c,v 1.4 2007-05-08 22:23:07 adelcher Exp $
+ * $Revision: 1.4 $
 */
 
-static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.3 2007-05-07 10:21:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.4 2007-05-08 22:23:07 adelcher Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -58,6 +58,7 @@ int  main
    fprintf (stderr, "### Starting at  %s", ctime (& Now));
 
    Initialize_Globals ();
+   fprintf (stderr, "Error rate = %.3f\n", Error_Rate);
 
    gkpStore = openGateKeeperStore(gkpStore_Path, FALSE);
    assert (gkpStore != NULL);
@@ -94,36 +95,39 @@ int  main
 
    closeGateKeeperStore (gkpStore);
 
-   if  (Verbose_Level > 1)
-       {
-        int  i, j;
+   if (Doing_Corrections)
+     {
+      if  (Verbose_Level > 1)
+        {
+         int  i, j;
 
-        for  (i = 0;  i < Num_Frags;  i ++)
-          {
-           printf (">%d\n", Lo_Frag_IID + i);
-           for  (j = 0;  Frag [i] . sequence [j] != '\0';  j ++)
-             printf ("%3d: %c  %3d  %3d | %3d %3d %3d %3d | %3d %3d %3d %3d %3d\n",
-                     j,
-                     j >= Frag [i] . clear_len ?
-                         toupper (Frag [i] . sequence [j]) : Frag [i] . sequence [j],
-                     Frag [i] . vote [j] . confirmed,
-                     Frag [i] . vote [j] . deletes,
-                     Frag [i] . vote [j] . a_subst,
-                     Frag [i] . vote [j] . c_subst,
-                     Frag [i] . vote [j] . g_subst,
-                     Frag [i] . vote [j] . t_subst,
-                     Frag [i] . vote [j] . no_insert,
-                     Frag [i] . vote [j] . a_insert,
-                     Frag [i] . vote [j] . c_insert,
-                     Frag [i] . vote [j] . g_insert,
-                     Frag [i] . vote [j] . t_insert);
-          }
-       }
+         for  (i = 0;  i < Num_Frags;  i ++)
+           {
+            printf (">%d\n", Lo_Frag_IID + i);
+            for  (j = 0;  Frag [i] . sequence [j] != '\0';  j ++)
+              printf ("%3d: %c  %3d  %3d | %3d %3d %3d %3d | %3d %3d %3d %3d %3d\n",
+                   j,
+                   j >= Frag [i] . clear_len ?
+                       toupper (Frag [i] . sequence [j]) : Frag [i] . sequence [j],
+                   Frag [i] . vote [j] . confirmed,
+                   Frag [i] . vote [j] . deletes,
+                   Frag [i] . vote [j] . a_subst,
+                   Frag [i] . vote [j] . c_subst,
+                   Frag [i] . vote [j] . g_subst,
+                   Frag [i] . vote [j] . t_subst,
+                   Frag [i] . vote [j] . no_insert,
+                   Frag [i] . vote [j] . a_insert,
+                   Frag [i] . vote [j] . c_insert,
+                   Frag [i] . vote [j] . g_insert,
+                   Frag [i] . vote [j] . t_insert);
+           }
+        }
 
-   fprintf (stderr, "Before Output_Corrections  Num_Frags = %d\n", Num_Frags);
-   fp = File_Open (Correction_Filename, "wb");
-   Output_Corrections (fp);
-   fclose (fp);
+      fprintf (stderr, "Before Output_Corrections  Num_Frags = %d\n", Num_Frags);
+      fp = File_Open (Correction_Filename, "wb");
+      Output_Corrections (fp);
+      fclose (fp);
+     }
 
    Tidy_Up ();
 
@@ -983,8 +987,7 @@ static void  Initialize_Globals
        del += 2;
      }
 
-   assert (MAX_ERROR_RATE >= AS_READ_ERROR_RATE
-             && MAX_ERROR_RATE >= AS_GUIDE_ERROR_RATE);
+   Char_Match_Value = Error_Rate;
 
    for  (i = 0;  i <= ERRORS_FOR_FREE;  i ++)
      Edit_Match_Limit [i] = 0;
@@ -992,14 +995,14 @@ static void  Initialize_Globals
    start = 1;
    for  (e = ERRORS_FOR_FREE + 1;  e < MAX_ERRORS;  e ++)
      {
-      start = Binomial_Bound (e - ERRORS_FOR_FREE, MAX_ERROR_RATE,
+      start = Binomial_Bound (e - ERRORS_FOR_FREE, Error_Rate,
                   start, EDIT_DIST_PROB_BOUND);
       Edit_Match_Limit [e] = start - 1;
       assert (Edit_Match_Limit [e] >= Edit_Match_Limit [e - 1]);
      }
 
    for  (i = 0;  i <= MAX_FRAG_LEN;  i ++)
-     Error_Bound [i] = (int) (i * MAX_ERROR_RATE);
+     Error_Bound [i] = (int) (i * Error_Rate);
 
    Frag_List . ct = 0;
    Frag_List . size = 1000;
@@ -1256,7 +1259,7 @@ static void  Parse_Command_Line
    optarg = NULL;
 
    while  (! errflg
-             && ((ch = getopt (argc, argv, "bc:d:eF:hk:o:pS:t:v:V:x:")) != EOF))
+             && ((ch = getopt (argc, argv, "bc:d:eF:Ghk:o:pS:t:v:V:x:y:z")) != EOF))
      switch  (ch)
        {
         case  'b' :
@@ -1283,6 +1286,11 @@ static void  Parse_Command_Line
 
         case  'F' :
           Olap_Path = optarg;
+          break;
+
+        case  'G' :
+          Doing_Partial_Overlaps = TRUE;
+          Doing_Corrections = FALSE;
           break;
 
         case  'h' :
@@ -1337,6 +1345,21 @@ static void  Parse_Command_Line
               }
           break;
 
+        case  'y' :
+          Error_Rate = strtod (optarg, & p);
+          if  (p == optarg || MAX_ERROR_RATE < Error_Rate)
+              {
+               fprintf (stderr, "ERROR:  Bad error rate  %s\n", optarg);
+               fprintf (stderr, "Value must be between 0.0 and %.3f\n",
+                    MAX_ERROR_RATE);
+               errflg = TRUE;
+              }
+          break;
+
+        case  'z' :
+          Doing_Corrections = FALSE;
+          break;
+
         case  '?' :
           fprintf (stderr, "Unrecognized option -%c\n", optopt);
 
@@ -1388,10 +1411,10 @@ static void  Parse_Command_Line
 
 
 static void  Output_Olap
-  (FILE * fp, Olap_Info_t * olap, int a_lo, int a_hi, int a_len,
+  (Olap_Info_t * olap, int a_lo, int a_hi, int a_len,
    int b_lo, int b_hi, int b_len, int errors)
 
-// Output to  fp  the overlap between the reads in  olap
+// Output the overlap between the reads in  olap
 // where positions  a_lo .. a_hi  in read A match positions  b_lo .. b_hi
 // in read B.   a_len  and  b_len  are the lengths of reads A and B, respectively.
 //  errors  is the number of edits to make the match positions align.
@@ -1459,6 +1482,7 @@ static void  Output_Olap
   }
 
 
+#if 0   //**ALD Not used???
 static int  Prefix_Edit_Dist
     (char A [], int m, char T [], int n, int Error_Limit,
      int * A_End, int * T_End, int * Match_To_End,
@@ -1620,6 +1644,7 @@ static int  Prefix_Edit_Dist
 
    return  Max_Score_Best_e;
   }
+#endif
 
 
 
@@ -1658,6 +1683,7 @@ static void  Process_Olap
 
    sub = olap -> a_iid - Lo_Frag_IID;
 
+//**ALD This should be changed overlaps allowed but not for correction purposes
    if (shredded && Frag [sub] . shredded)
       return;
 
@@ -1744,8 +1770,9 @@ static void  Process_Olap
 
    right_errors = Fwd_Prefix_Edit_Dist (a_part + exact_len, a_part_len,
         b_part + exact_len, b_part_len, allowed_errors, & a_end, & b_end,
-        & match_to_end, BRANCH_PT_MATCH_VALUE, right_delta,
-        & right_delta_len, wa -> edit_array, Edit_Match_Limit, Error_Bound);
+        & match_to_end, Char_Match_Value, right_delta,
+        & right_delta_len, wa -> edit_array, Edit_Match_Limit, Error_Bound,
+        Doing_Partial_Overlaps);
 
    if (a_end < 0 || a_end > a_part_len || b_end < 0 || b_end > b_part_len)
      {
@@ -1780,13 +1807,10 @@ static void  Process_Olap
    // If we're trying to extend past the clear range, a match past that point
    // counts as a match to the end
    if (! match_to_end && a_end + a_offset + exact_len >= Frag [sub] . clear_len - 1)
-     {
-      olap_len = OVL_Min_int (a_end, b_end);
-      match_to_end = TRUE;
-     }
+     match_to_end = TRUE;
 
    remaining_errors = allowed_errors - right_errors;
-   if (! match_to_end || remaining_errors < 0)
+   if (! Doing_Partial_Overlaps && (! match_to_end || remaining_errors < 0))
      {
       wa -> failed_olaps ++;
       return;
@@ -1798,8 +1822,9 @@ static void  Process_Olap
 
    left_errors = Rev_Prefix_Edit_Dist (a_part - 1, a_offset,
         b_part - 1, b_offset, remaining_errors, & a_end, & b_end,
-        & leftover, & match_to_end, BRANCH_PT_MATCH_VALUE, left_delta,
-        & left_delta_len, wa -> edit_array, Edit_Match_Limit, Error_Bound);
+        & leftover, & match_to_end, Char_Match_Value, left_delta,
+        & left_delta_len, wa -> edit_array, Edit_Match_Limit, Error_Bound,
+        Doing_Partial_Overlaps);
 
    if (Verbose_Level > 1)
      {
@@ -1821,7 +1846,7 @@ static void  Process_Olap
          Show_Edit_Array (wa -> edit_array, left_errors);
      }
 
-   if (! match_to_end || remaining_errors < left_errors)
+   if (! Doing_Partial_Overlaps && (! match_to_end || remaining_errors < left_errors))
      {
       wa -> failed_olaps ++;
       return;
@@ -1845,6 +1870,7 @@ static void  Process_Olap
 
    a_match_len -= a_end;
    b_match_len -= b_end;
+   olap_len = OVL_Min_int (a_match_len, b_match_len);
    if (Verbose_Level > 0)
      {
       int  j;
@@ -1854,7 +1880,8 @@ static void  Process_Olap
            (0 < left_delta_len ? "Deltas:" : ""));
       for (j = 0; j < left_delta_len; j ++)
         printf (" %5d\n", left_delta [j]);
-      printf ("  match_to_end = %c\n", (match_to_end ? 'T' : 'F'));
+      printf ("  match_to_end = %c  olap_len = %d\n",
+           (match_to_end ? 'T' : 'F'), olap_len);
       printf ("  a_begin/match_len = %d/%d  b_begin/match_len = %d/%d\n",
            a_offset + a_end, a_match_len, b_offset + b_end, b_match_len);
       Display_Alignment (a_part + a_end, a_match_len, b_part + b_end,
@@ -1871,14 +1898,15 @@ static void  Process_Olap
       return;
      }
 
-   if (left_errors + right_errors <= Error_Bound [olap_len] && match_to_end)
+   if (left_errors + right_errors <= Error_Bound [olap_len]
+        && (Doing_Partial_Overlaps || match_to_end))
      {
-//**ALD  stdout is temporary
-      Output_Olap (stdout, olap, a_lo, a_hi, a_len, b_lo, b_hi, b_len,
+      Output_Olap (olap, a_lo, a_hi, a_len, b_lo, b_hi, b_len,
            left_errors + right_errors);
 
-      Analyze_Alignment (left_delta, left_delta_len, a_part + a_end, b_part + b_end,
-           a_match_len, b_match_len, a_lo, sub);
+      if (Doing_Corrections)
+        Analyze_Alignment (left_delta, left_delta_len, a_part + a_end, b_part + b_end,
+             a_match_len, b_match_len, a_lo, sub);
      }
    else
       wa -> failed_olaps ++;
@@ -2452,6 +2480,14 @@ static void  Usage
 //  invoke it.
 
   {
+   char  * p, * q = NULL;
+
+   for (p = command; * p != '\0'; p ++)
+     if (* p == '/' || * p == '\\')
+       q = p + 1;
+   if (q == NULL)
+     q = command;
+   
    fprintf (stderr,
         "USAGE:  %s [-behp] [-d DegrThresh] [-k ConfLen] [-x ExcludeLen]\n"
         "     [-F OlapFile|-S OlapStore] [-c CorrectFile] [-o OlapOutput]\n"
@@ -2472,10 +2508,11 @@ static void  Usage
         "        than <n> olaps\n"
         "-e      Extend fragments beyond 3' clear range\n"
         "-F <f>  Read seeds from sorted file <f>.  Format is:\n"
-        "        <a_iid> <b_iid> [f\r] <a_pos> <b_pos> <ct> <len>\n"
+        "        <a_iid> <b_iid> [f\\r] <a_pos> <b_pos> <ct> <len>\n"
         "        additional entries on line are ignored.\n"
         "        Entries are not reversed, i.e., a/b seed does NOT\n"
         "        automatically generate the b/a seed, too\n"
+        "-G      Do partial overlaps (i.e., local alignments)\n"
         "-h      Print this message\n"
         "-k <n>  Prevent correction when have an exact match of <n> bases\n"
         "-o <f>  Send overlaps to file or store <f>\n"
@@ -2486,8 +2523,11 @@ static void  Usage
         "-V <n>  Require <n> exact match bases around an error (combined count\n"
         "        on both sides) to vote to change a base\n"
         "-x <n>  Don't prevent correction on first and last <n> bp of exact match\n"
-        "        regions (whose length is set by -k option).\n",
-        command);
+        "        regions (whose length is set by -k option).\n"
+        "-y <x>  Allow max error rate of <x> in alignments (e.g., 0.03 for 3%% error)\n"
+        "        Value cannot exceed  %.3f\n"
+        "-z      Do NOT try to correct read errors\n",
+        q, MAX_ERROR_RATE);
 
    return;
   }
