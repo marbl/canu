@@ -67,6 +67,7 @@ typedef struct {
 
 OverlapStore      *AS_OVS_openOverlapStorePrivate(const char *name, int useBackup, int saveSpace);
 void               AS_OVS_closeOverlapStore(OverlapStore *ovs);
+void							 AS_OVS_restoreBackup(OverlapStore *ovs);
 
 #define            AS_OVS_openOverlapStore(N)  AS_OVS_openOverlapStorePrivate((N), FALSE, FALSE)
 

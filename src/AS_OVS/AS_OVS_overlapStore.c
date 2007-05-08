@@ -50,6 +50,22 @@ renameToBackup(char const *storeName, char const *name) {
   }
 }
 
+static
+void
+renameFromBackup(char const *storeName, char const *name) {
+  char   orig[FILENAME_MAX];
+  char   bkup[FILENAME_MAX];
+
+  sprintf(orig, "%s/%s", storeName, name);
+  sprintf(bkup, "%s/%s~", storeName, name);
+
+  errno = 0;
+  rename(bkup, orig);
+  if (errno) {
+    fprintf(stderr, "overlapStore: ERROR: failed to restore backup of '%s' into '%s': %s\n", bkup, orig, strerror(errno));
+    assert(0);
+  }
+}
 
 
 static
@@ -149,7 +165,22 @@ AS_OVS_openOverlapStorePrivate(const char *path, int useBackup, int saveSpace) {
   return(ovs);
 }
 
-
+void
+AS_OVS_restoreBackup(OverlapStore *ovs) {
+	char            name[FILENAME_MAX];
+	
+  //  Restore the backup for an overlap store.
+	//
+  if (ovs->useBackup) {
+    int i;
+    renameFromBackup(ovs->storePath, "ovs");
+    renameFromBackup(ovs->storePath, "idx");
+    for (i=1; i<=ovs->ovs.highestFileIndex; i++) {
+      sprintf(name, "%04d", i);
+      renameFromBackup(ovs->storePath, name);
+    }
+  }
+}
 
 int
 AS_OVS_readOverlapFromStore(OverlapStore *ovs, OVSoverlap *overlap) {

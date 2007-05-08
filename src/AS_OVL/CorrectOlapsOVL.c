@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CorrectOlapsOVL.c,v 1.16 2007-05-01 06:02:36 brianwalenz Exp $
- * $Revision: 1.16 $
+ * $Id: CorrectOlapsOVL.c,v 1.17 2007-05-08 21:08:26 skoren Exp $
+ * $Revision: 1.17 $
 */
 
-static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.16 2007-05-01 06:02:36 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.17 2007-05-08 21:08:26 skoren Exp $";
 
 
 //  System include files
@@ -226,7 +226,7 @@ static int32  Lo_Frag_IID;
     // Internal ID of first fragment in frag store to process
 static int  Num_Frags = 0;
     // Number of fragments being corrected
-static int  Num_Olaps;
+static uint64  Num_Olaps;
     // Number of overlaps being used
 static Olap_Info_t  * Olap = NULL;
     // Array of overlaps being used
@@ -274,7 +274,7 @@ static void  Display_Alignment
 static void  Display_Frags
     (void);
 static void  Dump_Erate_File
-    (char * path, int32 lo_id, int32 hi_id, Olap_Info_t * olap, int num);
+    (char * path, int32 lo_id, int32 hi_id, Olap_Info_t * olap, uint64 num);
 static void  Dump_Olap
     (Olap_Info_t * olap, double new_error_rate);
 static void  Fasta_Print
@@ -292,7 +292,7 @@ static int  Get_Celsim_Coords
 static void  Get_Celsim_String
     (char s [], int start, int end);
 static void  Get_Olaps_From_Store
-    (char * path, int32 lo_id, int32 hi_id, Olap_Info_t * * olap, int * num);
+    (char * path, int32 lo_id, int32 hi_id, Olap_Info_t * * olap, uint64 * num);
 static int  Hang_Adjust
     (int hang, Adjust_t adjust [], int adjust_ct);
 static void  Initialize_Globals
@@ -984,7 +984,7 @@ static void  Display_Frags
 
 
 static void  Dump_Erate_File
-    (char * path, int32 lo_id, int32 hi_id, Olap_Info_t * olap, int num)
+    (char * path, int32 lo_id, int32 hi_id, Olap_Info_t * olap, uint64 num)
 
 //  Create a binary file of new error rates in  path .  The format
 //  is  lo_id , then  hi_id , then  num , followed by an array of  num
@@ -992,16 +992,16 @@ static void  Dump_Erate_File
 
   {
    FILE  * fp;
-   int32  header [3];
+   uint32  header [2];   
    uint16  * erate = NULL;
    int  i;
 
    fp = File_Open (path, "wb");
 
    header [0] = lo_id;
-   header [1] = hi_id;
-   header [2] = num;
-   Safe_fwrite (header, sizeof (int32), 3, fp);
+   header [1] = hi_id;   
+   Safe_fwrite (header, sizeof (uint32), 2, fp);
+	 Safe_fwrite (&num, sizeof (uint64), 1, fp);   
 
    erate = (uint16 *) safe_malloc (num * sizeof(uint16));
    for  (i = 0;  i < num;  i ++)
@@ -1285,7 +1285,7 @@ static void  Get_Celsim_String
 
 
 static void  Get_Olaps_From_Store
-    (char * path, int32 lo_id, int32 hi_id, Olap_Info_t * * olap, int * num)
+    (char * path, int32 lo_id, int32 hi_id, Olap_Info_t * * olap, uint64 * num)
 
 //  Open overlap store  path  and read from it the overlaps for fragments
 //   lo_id .. hi_id , putting them in  (* olap)  for which space
@@ -1326,6 +1326,7 @@ static void  Get_Olaps_From_Store
       numread++;
     }
 
+		// numread is defined as uint64, we were assigning it to int before, which would truncate
     (*num) = numread;
   }
 
@@ -2278,7 +2279,6 @@ static void  Read_Olaps
    long int  olap_size;
    long int  ct = 0;
 
-
    if  (Olaps_From_Store)
        Get_Olaps_From_Store (Olap_Path, Lo_Frag_IID, Hi_Frag_IID,
                              & Olap, & Num_Olaps);
@@ -2349,7 +2349,7 @@ static void  Redo_Olaps
    fragRecord *frag_read;
    unsigned  clear_start, clear_end;
    int  lo_frag, hi_frag;
-   int  next_olap;
+   uint64  next_olap;
    Correction_Output_t  msg;
    Correction_t  correct [MAX_FRAG_LEN];
    Adjust_t  adjust [MAX_FRAG_LEN];

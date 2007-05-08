@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore_erates.c,v 1.2 2007-03-14 19:07:29 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore_erates.c,v 1.3 2007-05-08 21:08:26 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,9 +46,9 @@ updateErates(char *storeName, char *eratesName) {
   OverlapStore   *orig  = NULL;
   OVSoverlap      ovl;
 
-  int32          iFirst;
-  int32          iLast;
-  int32          iNum;
+  uint32          iFirst;
+  uint32          iLast;
+  uint64					iNum;
 
   FILE           *eF   = NULL;
   int             eLen = 0;
@@ -57,18 +57,18 @@ updateErates(char *storeName, char *eratesName) {
   uint16         *e    = NULL;
 
   //  Open the erates, read in the header.
-  //
+  //  
   errno = 0;
   eF = fopen(eratesName, "r");
   if (errno) {
     fprintf(stderr, "failed to open erates file '%s': %s\n", eratesName, strerror(errno));
     exit(1);
   }
-  AS_UTL_safeRead(eF, &iFirst, "updateErates read header 0", sizeof(int32), 1);
-  AS_UTL_safeRead(eF, &iLast,  "updateErates read header 1", sizeof(int32), 1);
-  AS_UTL_safeRead(eF, &iNum,   "updateErates read header 2", sizeof(int32), 1);
+  AS_UTL_safeRead(eF, &iFirst, "updateErates read header 0", sizeof(uint32), 1);
+  AS_UTL_safeRead(eF, &iLast,  "updateErates read header 1", sizeof(uint32), 1);
+  AS_UTL_safeRead(eF, &iNum,   "updateErates read header 2", sizeof(uint64), 1);
 
-  fprintf(stderr, "read first=%d last=%d num=%d\n", iFirst, iLast, iNum);
+  fprintf(stderr, "read first=%d last=%d num=%ld\n", iFirst, iLast, iNum);
 
 
   //  Open the two stores so we can read overlaps from them.  The
@@ -78,7 +78,14 @@ updateErates(char *storeName, char *eratesName) {
   //
   orig = AS_OVS_openOverlapStorePrivate(storeName, TRUE,  TRUE);
 
-  assert(iNum == orig->ovs.numOverlapsTotal);
+	// close before asserting otherwise the store is corrupted
+  if (iNum != orig->ovs.numOverlapsTotal) {
+		// The backup gets nuked by the close call, restore to avoid exiting with only backup store 
+  	AS_OVS_restoreBackup(orig);
+  	
+  	AS_OVS_closeOverlapStore(orig);
+  	assert(iNum == orig->ovs.numOverlapsTotal);
+  }
 
   //  Recreate a store in the same place as the original store.
   //
