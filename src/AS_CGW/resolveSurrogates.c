@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.15 2007-05-08 15:12:30 brianwalenz Exp $";
+static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.16 2007-05-08 15:17:21 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -117,8 +117,6 @@ int main( int argc, char *argv[])
 
   setbuf(stdout,NULL);
 
-  fprintf(stderr,"Starting ..\n");
-
   { /* Parse the argument list using "man 3 getopt". */ 
     int ch,errflg=0;
     optarg = NULL;
@@ -156,7 +154,7 @@ int main( int argc, char *argv[])
     if((setPrefixName == FALSE) || (setGatekeeperStore == 0))
       {
 	fprintf(stderr, "usage: %s -g <gkp> -c <ckp> -n <num> opts\n",argv[0]);
-        fpritnf(stderr, "  -S x   place all frags in singly-placed surrogates if\n");
+        fprintf(stderr, "  -S x   place all frags in singly-placed surrogates if\n");
         fprintf(stderr, "         at least fraction x can be placed.\n");
 	fprintf(stderr, "  -1     place all frags in singly-placed surrogates\n");
         fprintf(stderr, "         aggressively; equivalent to -S 0.0\n");
@@ -347,7 +345,6 @@ int main( int argc, char *argv[])
 
   }
 
-
   for(i=0;i<allocedImpLists;i++){
     DeleteVA_IntMultiPos(impLists[i]);
   }
@@ -356,8 +353,8 @@ int main( int argc, char *argv[])
 	  ScaffoldGraph->checkPointIteration);
   CheckpointScaffoldGraph(ScaffoldGraph, -1);
 
-  fprintf(data->stderrc,"Placed  %d surrogate fragments\n",numReallyPlaced);
-  fprintf(data->stderrc,"\tout of %d surrogate fragments\n",totalNumParentFrags);
+  fprintf(data->stderrc,"Placed %d surrogate fragments out of %d surrogate fragments\n",
+          numReallyPlaced, totalNumParentFrags);
 
   exit(0);
 }
