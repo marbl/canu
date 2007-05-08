@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_dump.c,v 1.17 2007-05-02 09:30:15 brianwalenz Exp $ */
+/* $Id: AS_GKP_dump.c,v 1.18 2007-05-08 17:14:20 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -122,25 +122,34 @@ dumpGateKeeperLibraries(char       *gkpStoreName,
     endIID = stat.lastElem;
 
   if (asTable)
-    fprintf(stdout, "UID\tIID\tisDeleted\tOrientation\tMean\tStdDev\n");
+    fprintf(stdout, "UID\tIID\tisDeleted\tOrientation\tMean\tStdDev\tNumFeatures\n");
 
   for (i=begIID; i<=endIID; i++) {
     if ((iidToDump == NULL) || (iidToDump[i])) {
       GateKeeperLibraryRecord *gkpl = getGateKeeperLibrary(gkp, i);
+      LibraryMesg              lmesg;
+      int                      nf;
+
+      AS_PER_encodeLibraryFeatures(gkpl, &lmesg);
+      nf = lmesg.num_features;
+      AS_PER_encodeLibraryFeaturesCleanup(&lmesg);
 
       if (asTable) {
-        fprintf(stdout, F_UID"\t"F_IID"\t%d\t%s\t%f\t%f\n",
+        fprintf(stdout, F_UID"\t"F_IID"\t%d\t%s\t%.3f\t%.3f\t%d\n",
                 gkpl->libraryUID, i,
                 gkpl->deleted,
                 AS_READ_ORIENT_NAMES[gkpl->orientation],
                 gkpl->mean,
-                gkpl->stddev);
+                gkpl->stddev,
+                nf);
       } else {
         fprintf(stdout, "libraryIdent         = "F_UID","F_IID"\n", gkpl->libraryUID, i);
         fprintf(stdout, "libraryDeleted       = %d\n", gkpl->deleted);
         fprintf(stdout, "libraryOrientation   = %s\n", AS_READ_ORIENT_NAMES[gkpl->orientation]);
-        fprintf(stdout, "libraryMean          = %f\n", gkpl->mean);
-        fprintf(stdout, "libraryStdDev        = %f\n", gkpl->stddev);
+        fprintf(stdout, "libraryMean          = %.3f\n", gkpl->mean);
+        fprintf(stdout, "libraryStdDev        = %.3f\n", gkpl->stddev);
+        fprintf(stdout, "libraryNumFeatures   = %d\n", nf);
+
         chomp(gkpl->comment);
         fprintf(stdout, "libraryComment\n");
         if (gkpl->comment[0] != 0)
