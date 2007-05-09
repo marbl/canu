@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore_erates.c,v 1.4 2007-05-09 11:42:51 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore_erates.c,v 1.5 2007-05-09 16:12:08 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,9 +46,9 @@ updateErates(char *storeName, char *eratesName) {
   OverlapStore   *orig  = NULL;
   OVSoverlap      ovl;
 
-  int32          iFirst;
-  int32          iLast;
-  int32          iNum;
+  int32           iFirst;
+  int32           iLast;
+  uint64          iNum;
 
   FILE           *eF   = NULL;
   int             eLen = 0;
@@ -67,8 +67,7 @@ updateErates(char *storeName, char *eratesName) {
   }
   AS_UTL_safeRead(eF, &iFirst, "updateErates read header 0", sizeof(int32), 1);
   AS_UTL_safeRead(eF, &iLast,  "updateErates read header 1", sizeof(int32), 1);
-  AS_UTL_safeRead(eF, &iNum,   "updateErates read header 2", sizeof(int32), 1);
-
+  AS_UTL_safeRead(eF, &iNum,   "updateErates read header 2", sizeof(uint64), 1);
 
   //  Open the two stores so we can read overlaps from them.  The
   //  store we're merging into is opened as a "copy".  The store we
