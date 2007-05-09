@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.hh,v 1.5 2007-04-02 21:00:16 eliv Exp $
- * $Revision: 1.5 $
+ * $Id: AS_BOG_MateChecker.hh,v 1.6 2007-05-09 19:35:22 eliv Exp $
+ * $Revision: 1.6 $
 */
 
 #ifndef INCLUDE_AS_BOG_MATECHEKER
@@ -36,6 +36,7 @@ extern "C" {
 
 namespace AS_BOG{
     typedef std::map<iuid,iuid> IdMap;
+    typedef IdMap::iterator IdMapIter;
     typedef IdMap::const_iterator IdMapConstIter;
     typedef std::vector<int> DistanceList;
     typedef DistanceList::const_iterator DistanceListCIter;
@@ -48,43 +49,7 @@ namespace AS_BOG{
     };
     typedef std::map<iuid,MateInfo> MateMap;
     static const MateInfo NULL_MATE_INFO = {0,0};
-
-    struct MateLocation {
-        SeqInterval pos1;
-        SeqInterval pos2;
-    };
-    /*
-    inline bool operator==(SeqInterval a, SeqInterval b) {
-        if (a.bgn == b.bgn && a.end == b.end ||
-            a.bgn == b.end && a.end == b.bgn)
-            return true;
-        else
-            return false;
-    };
-    inline bool operator<(SeqInterval a, SeqInterval b)
-    {
-        if ( isReverse(a) ) {
-            if ( isReverse(b) ) return a.end < b.end;
-            else                return a.end < b.bgn;
-        } else {
-            if ( isReverse(b) ) return a.bgn < b.end;
-            else                return a.bgn < b.bgn; 
-        }
-    };
-    inline bool operator==(MateLocation a, MateLocation b) {
-        if (a.pos1 == b.pos1 && a.pos2 == b.pos2)
-            return true;
-        else
-            return false;
-    };
-    inline bool operator<(MateLocation a, MateLocation b) {
-        if (a.pos1 < b.pos1) return true;
-        if (a.pos2 < b.pos2) return true;
-        else                 return false;
-    };
-    */
     static const SeqInterval NULL_MATE_LOC = {0,0};
-    typedef std::map<iuid,MateLocation> MateLocMap;
 
     struct DistanceCompute {
         double stddev;
@@ -115,5 +80,71 @@ namespace AS_BOG{
             MateMap _mates;
             LibraryDistances _dists; // all distances 
     };
+
+    struct MateLocationEntry {
+        SeqInterval pos1;
+        SeqInterval pos2;
+        iuid        id1;
+        iuid        id2;
+        iuid        unitig1;
+        iuid        unitig2; // in the future the table might be across unitigs
+    };
+    std::ostream& operator<< (std::ostream& os, MateLocationEntry&);
+
+    static const MateLocationEntry NULL_MATE_ENTRY =
+        {NULL_MATE_LOC,NULL_MATE_LOC,0,0,0,0};
+
+    typedef std::vector<MateLocationEntry> MateLocTable;
+    typedef MateLocTable::iterator MateLocIter;
+    typedef MateLocTable::const_iterator MateLocCIter;
+
+    class MateLocation {
+        public:
+
+        MateLocation(MateChecker* const check) : _checker(check) {};
+
+        bool startEntry( iuid, iuid, SeqInterval);
+        bool addMate( iuid, iuid, SeqInterval);
+        bool hasFrag( iuid );
+        MateLocationEntry getById( iuid );
+        void sort();         
+        MateLocIter begin() { return _table.begin(); }
+        MateLocIter end()   { return _table.end();   }
+
+        private:
+
+        MateLocTable _table;
+        IdMap _iidIndex;
+        MateChecker* _checker;
+    };
+    inline bool operator==(SeqInterval a, SeqInterval b) {
+        if (a.bgn == b.bgn && a.end == b.end ||
+            a.bgn == b.end && a.end == b.bgn)
+            return true;
+        else
+            return false;
+    };
+    inline bool operator<(SeqInterval a, SeqInterval b)
+    {
+        if ( isReverse(a) ) {
+            if ( isReverse(b) ) return a.end < b.end;
+            else                return a.end < b.bgn;
+        } else {
+            if ( isReverse(b) ) return a.bgn < b.end;
+            else                return a.bgn < b.bgn; 
+        }
+    };
+    inline bool operator==(MateLocationEntry a, MateLocationEntry b) {
+        if (a.pos1 == b.pos1 && a.pos2 == b.pos2)
+            return true;
+        else
+            return false;
+    };
+    inline bool operator<(MateLocationEntry a, MateLocationEntry b) {
+        if (a.pos1 < b.pos1)                     return true;
+        if (a.pos1 == b.pos1 && a.pos2 < b.pos2) return true;
+        else                                     return false;
+    };
+
 }
 #endif

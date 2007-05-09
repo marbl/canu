@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.12 2007-04-02 21:00:15 eliv Exp $
- * $Revision: 1.12 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.13 2007-05-09 19:35:22 eliv Exp $
+ * $Revision: 1.13 $
 */
 
 #include <math.h>
@@ -306,14 +306,13 @@ namespace AS_BOG{
     static const bool MATE_3PRIME_END = true;
     void MateChecker::computeMateCoverage( Unitig* tig, LibraryStats& globalStats )
     {
-        int max = std::numeric_limits<int>::max(); // Sentinel value
         int tigLen = tig->getLength();
         short goodGraph[tigLen]; 
         short  badGraph[tigLen];
         memset( goodGraph, 0, tigLen * sizeof(short));
         memset(  badGraph, 0, tigLen * sizeof(short));
         IdMap seenMates;
-        MateLocMap positions;
+        MateLocation positions(this);
         std::set<iuid> badMates;
         // Build mate position table
         DoveTailConstIter tigIter = tig->dovetail_path_ptr->begin();
@@ -325,18 +324,22 @@ namespace AS_BOG{
             iuid mateId = mateInfo.mate;
             if ( mateInfo.mate != NULL_FRAG_ID )
             {
-                if (positions.find( mateId ) != positions.end())
-                    positions[ mateId ].pos2  = frag.position;
-                else {
-                    MateLocation ml = { frag.position, NULL_MATE_LOC };
-                    positions[ fragId ] = ml;
-                }
+                if (positions.hasFrag( mateId ) )
+                    positions.addMate( tig->id(), fragId, frag.position );
+                else
+                    positions.startEntry( tig->id(), fragId, frag.position );
             }
         }
-        MateLocMap::const_iterator posIter  = positions.begin();
-        for(;                      posIter != positions.end(); posIter++) {
-            iuid fragId         =  posIter->first;
-            MateLocation loc    =  posIter->second;
+        positions.sort();
+        MateLocCIter posIter  = positions.begin();
+        for(;        posIter != positions.end(); posIter++) {
+            MateLocationEntry loc = *posIter;
+            std::cerr << loc << std::endl;
+        }
+                     posIter  = positions.begin();
+        for(;        posIter != positions.end(); posIter++) {
+            MateLocationEntry loc = *posIter;
+            iuid fragId         =  loc.id1;
             MateInfo mateInfo   =  getMateInfo( fragId );
             iuid mateId         =  mateInfo.mate;
             DistanceCompute *gdc = &(globalStats[ mateInfo.lib ]);
@@ -495,4 +498,87 @@ namespace AS_BOG{
             }
         }
     }
+
+    ///////////////////////////////////////////////////////////////////////////
+
+    bool MateLocation::startEntry(iuid unitigID, iuid fragID, SeqInterval fragPos)
+    {
+        if ( _iidIndex.find( fragID) != _iidIndex.end() )
+            return false; // Entry already exists, can't start new
+
+        MateLocationEntry entry;
+        entry.id1     = fragID;
+        entry.pos1    = fragPos;
+        entry.unitig1 = unitigID; 
+        entry.id2     = NULL_FRAG_ID;
+        entry.pos2    = NULL_MATE_LOC;
+        entry.unitig2 = NULL_FRAG_ID;; 
+
+        _table.push_back( entry );
+        _iidIndex[ fragID ] = _table.size()-1;
+        return true;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+
+    bool MateLocation::addMate(iuid unitigId, iuid fragId, SeqInterval fragPos)
+    {
+        iuid mateId = _checker->getMateInfo( fragId ).mate;
+        IdMapConstIter entryIndex = _iidIndex.find( mateId );
+        if ( _iidIndex.find( fragId ) != _iidIndex.end() ||
+                           entryIndex == _iidIndex.end() )
+            return false; // Missing mate or already added
+
+        iuid idx = entryIndex->second;
+        _table[ idx ].id2      = fragId;
+        _table[ idx ].pos2     = fragPos;
+        _table[ idx ].unitig2  = unitigId;
+        _iidIndex[ fragId ]    = idx;
+        return true;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+
+    MateLocationEntry MateLocation::getById( iuid fragId ) {
+        IdMapConstIter entryIndex = _iidIndex.find( fragId );
+        if ( entryIndex == _iidIndex.end() )
+            return NULL_MATE_ENTRY;
+        else
+            return _table[ entryIndex->second ];
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+
+    bool MateLocation::hasFrag(iuid fragId)
+    {
+        if ( _iidIndex.find( fragId ) == _iidIndex.end() )
+            return false;
+        else
+            return true;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+
+    void MateLocation::sort()
+    {
+        std::sort(begin(),end());
+        MateLocCIter iter = begin();
+        int i = 0;
+        for(; iter != end(); iter++, i++) {
+            MateLocationEntry entry = *iter;
+            _iidIndex[ entry.id1 ] = i;
+            _iidIndex[ entry.id2 ] = i;
+        }
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+
+    std::ostream& operator<< (std::ostream& os, MateLocationEntry& e)
+    {
+        os << e.pos1.end <<","<< e.pos1.bgn <<" -> "<< e.pos2.bgn <<","<< e.pos2.end
+           << " Frg " << e.id1 << " mate " << e.id2 ;
+        return os;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
 }
