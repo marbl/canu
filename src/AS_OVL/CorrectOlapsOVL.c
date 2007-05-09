@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CorrectOlapsOVL.c,v 1.17 2007-05-08 21:08:26 skoren Exp $
- * $Revision: 1.17 $
+ * $Id: CorrectOlapsOVL.c,v 1.18 2007-05-09 16:12:54 skoren Exp $
+ * $Revision: 1.18 $
 */
 
-static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.17 2007-05-08 21:08:26 skoren Exp $";
+static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.18 2007-05-09 16:12:54 skoren Exp $";
 
 
 //  System include files
@@ -992,7 +992,7 @@ static void  Dump_Erate_File
 
   {
    FILE  * fp;
-   uint32  header [2];   
+   int32   header [2];   
    uint16  * erate = NULL;
    int  i;
 
@@ -1000,8 +1000,8 @@ static void  Dump_Erate_File
 
    header [0] = lo_id;
    header [1] = hi_id;   
-   Safe_fwrite (header, sizeof (uint32), 2, fp);
-	 Safe_fwrite (&num, sizeof (uint64), 1, fp);   
+   Safe_fwrite (header, sizeof (int32), 2, fp);
+	Safe_fwrite (&num,   sizeof (uint64), 1, fp);   
 
    erate = (uint16 *) safe_malloc (num * sizeof(uint16));
    for  (i = 0;  i < num;  i ++)

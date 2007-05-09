@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CatEratesOVL.c,v 1.10 2007-05-01 06:02:36 brianwalenz Exp $
- * $Revision: 1.10 $
+ * $Id: CatEratesOVL.c,v 1.11 2007-05-09 16:12:54 skoren Exp $
+ * $Revision: 1.11 $
 */
 
-static char CM_ID[] = "$Id: CatEratesOVL.c,v 1.10 2007-05-01 06:02:36 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CatEratesOVL.c,v 1.11 2007-05-09 16:12:54 skoren Exp $";
 
 
 //  System include files
@@ -71,6 +71,8 @@ static char CM_ID[] = "$Id: CatEratesOVL.c,v 1.10 2007-05-01 06:02:36 brianwalen
 #define  INITIAL_FILE_LIST_LEN   100
     //  Number of entries in initial list of correction files
 
+// Max number of erates to read in at a time
+#define MAX_ERATES_TO_READ 512
 
 
 //  Type definitions
@@ -130,10 +132,10 @@ int  main
    int32  prev_id = -1;
    int  i, num_files;
    int16 *erate;
-   int32 header[3];
-   int32 low=999999999;
-   int32 high=-1;
-   int32 ttlNum=0;
+   int32  header[2];   
+   int32  low=999999999;
+   int32  high=-1;
+   uint64 ttlNum=0;
 
    Parse_Command_Line (argc, argv);
 
@@ -144,14 +146,15 @@ int  main
    for  (i = 0;  i < num_files;  i ++)
      {
       char  * filename;
-      int32 num,lo,hi;
+      int32 lo,hi;
+      uint64 num;
 
       filename = * GetVA_char_Ptr_t (File_List, i);
       fp = File_Open (filename, "rb");
-      Safe_fread (header, sizeof (int32), 3, fp);
+      Safe_fread (header, sizeof (int32), 2, fp);
+      Safe_fread (&num, sizeof (uint64), 1, fp);
       lo = header[0];
-      hi = header[1];
-      num = header [2];
+      hi = header[1];      
       if(lo<low)low=lo;
       if(hi>high)high=hi;
       ttlNum+=num;
@@ -161,26 +164,38 @@ int  main
      }
 
    header[0]=low;
-   header[1]=high;
-   header[2]=ttlNum;
+   header[1]=high;   
 
    fprintf(stderr,"total lo %d hi %d num %d\n",
 	   low,high,ttlNum);
 
-   Safe_fwrite(header,sizeof(int32),3,outfile);
+   Safe_fwrite(header,sizeof(int32),2,outfile);
+   Safe_fwrite(&ttlNum,sizeof(uint64),1,outfile);
 
    for  (i = 0;  i < num_files;  i ++)
      {
       char  * filename;
-      int32 num,lo,hi;
+      int32 lo,hi;
+      uint64 num;
+      uint64 totalToRead = MAX_ERATES_TO_READ;
 
       filename = * GetVA_char_Ptr_t (File_List, i);
       fp = File_Open (filename, "rb");
-      Safe_fread (header, sizeof (int32), 3, fp);
-      num = header[2];
-      erate = (int16 *) safe_malloc (num * sizeof (int16));
-      Safe_fread (erate, sizeof (int16), num, fp);
-      Safe_fwrite(erate, sizeof(int16),num,outfile);
+      Safe_fread (header, sizeof (int32),  2, fp);
+      Safe_fread (&num,   sizeof (uint64), 1, fp);      
+
+      erate = (int16 *) safe_malloc (MAX_ERATES_TO_READ * sizeof (int16));      
+ 
+      // stream the file through reading a subset at a time
+      while (num > 0) {
+         // when we have less to read than maximum, read whatever is left
+         if (num < totalToRead) { 
+            totalToRead = num; 
+         }
+         
+         num -= Safe_fread (erate, sizeof (int16), totalToRead, fp);
+         Safe_fwrite(erate, sizeof (int16), totalToRead, outfile);
+      }
       fclose (fp);
       safe_free(erate);
      }
