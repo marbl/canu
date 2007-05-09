@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_dump.c,v 1.18 2007-05-08 17:14:20 brianwalenz Exp $ */
+/* $Id: AS_GKP_dump.c,v 1.19 2007-05-09 19:00:11 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -131,8 +131,6 @@ dumpGateKeeperLibraries(char       *gkpStoreName,
       int                      nf;
 
       AS_PER_encodeLibraryFeatures(gkpl, &lmesg);
-      nf = lmesg.num_features;
-      AS_PER_encodeLibraryFeaturesCleanup(&lmesg);
 
       if (asTable) {
         fprintf(stdout, F_UID"\t"F_IID"\t%d\t%s\t%.3f\t%.3f\t%d\n",
@@ -143,12 +141,17 @@ dumpGateKeeperLibraries(char       *gkpStoreName,
                 gkpl->stddev,
                 nf);
       } else {
+        uint32 f;
+
         fprintf(stdout, "libraryIdent         = "F_UID","F_IID"\n", gkpl->libraryUID, i);
         fprintf(stdout, "libraryDeleted       = %d\n", gkpl->deleted);
         fprintf(stdout, "libraryOrientation   = %s\n", AS_READ_ORIENT_NAMES[gkpl->orientation]);
         fprintf(stdout, "libraryMean          = %.3f\n", gkpl->mean);
         fprintf(stdout, "libraryStdDev        = %.3f\n", gkpl->stddev);
-        fprintf(stdout, "libraryNumFeatures   = %d\n", nf);
+        fprintf(stdout, "libraryNumFeatures   = %d\n", lmesg.num_features);
+
+        for (f=0; f<lmesg.num_features; f++)
+          fprintf(stdout, "libraryFeature[%d]    = %s=%s\n", f, lmesg.features[f], lmesg.values[f]);
 
         chomp(gkpl->comment);
         fprintf(stdout, "libraryComment\n");
@@ -156,6 +159,8 @@ dumpGateKeeperLibraries(char       *gkpStoreName,
           fprintf(stdout, "%s\n", gkpl->comment);
         fprintf(stdout, "libraryCommentEnd\n");
       }
+
+      AS_PER_encodeLibraryFeaturesCleanup(&lmesg);
     }
   }       
 
