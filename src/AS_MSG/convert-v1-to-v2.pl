@@ -42,6 +42,8 @@ if ($err) {
 if (defined($vec)) {
     open(F, "< $vec") or die "Failed to open '$vec'\n";
     while (<F>) {
+        s/^\s+//;
+        s/\s$//;
         my @v = split '\s+', $_;
         $clv{$v[0]} = "$v[1],$v[2]";
     }
