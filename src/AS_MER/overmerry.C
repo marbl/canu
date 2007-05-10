@@ -34,11 +34,20 @@ extern "C" {
 #include "positionDB.H"
 
 
+//  using external mer counts - we'll need to extend the posDB to have
+//  more stuff in it, or construct another mer lookup hash.
+//
+//  parallel searching
+//
+//  subset of gkpstore
+//
+//  extend merstream with spaced, compressed, skips, transitions
+//
+//  M039 takes 134u total, 30u to build the table.
 
 
-
-
-
+#undef EXPENSIVE_CHECK
+#ifdef EXPENSIVE_CHECK
 
 //  For debug, swiped from AS_OVL
 /*  Return the DNA complement of  ch . */
@@ -70,6 +79,7 @@ static void  Rev_Complement (char * s) {
    if  (i == j) s [i] = Complement (s [i]); 
   }
 
+#endif
 
 
 
@@ -86,6 +96,7 @@ struct kmerhit {
   u64bit   cnt:8;                //  count of the kmer
   u64bit   pal:1;                //  palindromic ; 0 = nope,    1 = yup
   u64bit   fwd:1;                //  orientation ; 0 = reverse, 1 = forward
+  u64bit   pad:2;
 };
 
 
@@ -109,7 +120,7 @@ kmerhitcompare(const void *a, const void *b) {
 
 inline
 u64bit
-addHit(chainedSequence *CS, seqInCore *S, merStream *M,
+addHit(chainedSequence *CS, CDS_IID_t iid, merStream *M,
        kmerhit *&hits, u32bit &hitsLen, u32bit &hitsMax,
        u64bit pos, u64bit cnt,
        u64bit pal,
@@ -119,13 +130,25 @@ addHit(chainedSequence *CS, seqInCore *S, merStream *M,
   pos -= CS->startOf(seq);
   seq  = CS->IIDOf(seq);
 
-  if (S->getIID() == seq)
+  if (iid == seq)
     return(0);
 
-  if (S->getIID() < seq)
+  if (iid < seq)
     return(0);
 
-  assert(hitsLen < hitsMax);
+  if (hitsLen >= hitsMax) {
+    if (hitsMax == 0) {
+      hitsMax = 256;
+      hits    = new kmerhit [hitsMax];
+    } else {
+      hitsMax *= 2;
+      kmerhit *h = new kmerhit [hitsMax];
+      memcpy(h, hits, sizeof(kmerhit) * hitsLen);
+      delete [] hits;
+      hits = h;
+      fprintf(stderr, "reallocating to hitsMax "u32bitFMT"\n", hitsMax);
+    }
+  }
 
   hits[hitsLen].tseq = seq;
   hits[hitsLen].tpos = pos;
@@ -134,14 +157,16 @@ addHit(chainedSequence *CS, seqInCore *S, merStream *M,
   hits[hitsLen].pal  = pal;
   hits[hitsLen].fwd  = fwd;
 
-  if (((seq == 10) && (S->getIID() ==  1)) ||
-      ((seq ==  1) && (S->getIID() == 10)))
+#if 0
+  if (((seq == 10) && (iid ==  1)) ||
+      ((seq ==  1) && (iid == 10)))
     fprintf(stderr, "addHit: "u64bitFMT"\t"u64bitFMT"\t"u64bitFMT"\t"u64bitFMT"\t%c\n",
             hits[hitsLen].tseq,
             hits[hitsLen].tpos,
             hits[hitsLen].qpos,
             hits[hitsLen].cnt,
             hits[hitsLen].pal ? 'p' : (hits[hitsLen].fwd ? 'f' : 'r'));
+#endif
 
   hitsLen++;
 
@@ -154,6 +179,7 @@ main(int argc, char **argv) {
   char   *gkpPath    = 0L;
   char    gkpName[FILENAME_MAX + 64] = {0};
   u32bit  merSize    = 23;
+  u32bit  maxCount   = 40;
   char   *outputName = NULL;
 
   assert(sizeof(kmerhit) == 8);
@@ -178,10 +204,6 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-
-  //  XXXX  extend merstream with spaced, compressed, skips, transitions
-
-
   seqFactory::instance()->registerFile(new gkpStoreSequence());
 
   //  Open the gatekeeper store as a kmer seqFile.  We need to
@@ -195,36 +217,13 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-
-#if 1
-  u32bit i;
-  seqOnDisk *s;
-
-  i=0;
-  gkpseq->find(i);
-  s = gkpseq->getSequenceOnDisk();
-  fprintf(stderr, "%d: '%s'\n", i, s->sequence());
-
-  i=1;
-  gkpseq->find(i);
-  s = gkpseq->getSequenceOnDisk();
-  fprintf(stderr, "%d: '%s'\n", i, s->sequence());
-
-  i=2;
-  gkpseq->find(i);
-  s = gkpseq->getSequenceOnDisk();
-  fprintf(stderr, "%d: '%s'\n", i, s->sequence());
-#endif
-
-
-
   chainedSequence *CS = new chainedSequence;
   CS->setSeparatorLength(5);
   CS->setSource(gkpseq);
   CS->finish();
 
   merStream    *MS = new merStream(merSize, CS);
-  positionDB   *PS = new positionDB(MS, merSize, 0, 26, 0L, 0L, 100, true);
+  positionDB   *PS = new positionDB(MS, merSize, 0, 20, 0L, 0L, maxCount, true);
 
   u64bit  *posnF    = 0L;
   u64bit   posnFMax = 0;
@@ -238,18 +237,13 @@ main(int argc, char **argv) {
   u64bit  ovlfound = 0;
 
   u32bit     hitsLen = 0;
-  u32bit     hitsMax = 1048576;
-  kmerhit   *hits    = new kmerhit [hitsMax];
-
+  u32bit     hitsMax = 0;
+  kmerhit   *hits    = 0;
 
   BinaryOverlapFile *binout = AS_OVS_createBinaryOverlapFile(outputName, FALSE);
   OVSoverlap         overlap;
 
-  fragRecord       *fr  = new_fragRecord();
-  GateKeeperStore  *gkp = openGateKeeperStore(gkpPath, FALSE);
-  FragStream       *frs = openFragStream(gkp, FRAG_S_SEQ);
-
-#if 1
+#ifdef EXPENSIVE_CHECK
   GateKeeperStore  *dbggkp = openGateKeeperStore(gkpPath, FALSE);
   fragRecord       *dbgf1  = new_fragRecord();
   fragRecord       *dbgf2  = new_fragRecord();
@@ -257,35 +251,35 @@ main(int argc, char **argv) {
   char              dbgs2[AS_READ_MAX_LEN+1];
 #endif
 
+  fragRecord       *fr  = new_fragRecord();
+  GateKeeperStore  *gkp = openGateKeeperStore(gkpPath, FALSE);
+  FragStream       *frs = openFragStream(gkp, FRAG_S_SEQ);
+
+
   while (nextFragStream(frs, fr)) {
-    char        *seq = new char [getFragRecordSequenceLength(fr) + 1];
-    uint32       beg = getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBT);
-    uint32       end = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBT);
-    uint32       len = end - beg;
+    fprintf(stderr, "WORKING on "F_UID","F_IID"\r",
+            getFragRecordUID(fr), getFragRecordIID(fr));
 
     if (getFragRecordIsDeleted(fr))
       continue;
 
-    strncpy(seq, getFragRecordSequence(fr) + beg, len);
-    seq[len] = 0;
-
-    //fprintf(stderr, "WORKING ON IID="F_IID" of length %d-%d:%d\n", getFragRecordIID(fr), beg, end, len);
-
-    seqInCore  *S = new seqInCore(getFragRecordIID(fr), 0L, 0, seq, len);
-    merStream  *M = new merStream(merSize, S);
+    uint32       beg = getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBT);
+    uint32       end = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBT);
+    uint32       tln = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_UNTRIM);
+    CDS_IID_t    iid = getFragRecordIID(fr);
+    merStream   *M   = new merStream(merSize, getFragRecordSequence(fr), beg, end - beg);
 
     hitsLen = 0;
 
-    //  XXX We aren't doing anything with canonical mers.  Should we?
-    //  We can "simulate" that by getting the count for both forward
-    //  and reverse.
+    //  We can "simulate" a canonical mercount by getting the count
+    //  for both forward and reverse.
 
     while (M->nextMer()) {
       if (M->theFMer() == M->theRMer()) {
         PS->get(M->theFMer(), posnF, posnFMax, posnFLen);
         if (posnFLen > 1)
           for (u32bit i=0; i<posnFLen; i++)
-            merfound += addHit(CS, S, M, hits, hitsLen, hitsMax, posnF[i], posnFLen, 1, 0);
+            merfound += addHit(CS, getFragRecordIID(fr), M, hits, hitsLen, hitsMax, posnF[i], posnFLen, 1, 0);
       } else {
         PS->get(M->theFMer(), posnF, posnFMax, posnFLen);
         PS->get(M->theRMer(), posnR, posnRMax, posnRLen);
@@ -294,10 +288,10 @@ main(int argc, char **argv) {
 
         if (posnFLen > 1)
           for (u32bit i=0; i<posnFLen; i++)
-            merfound += addHit(CS, S, M, hits, hitsLen, hitsMax, posnF[i], totalLen, 0, 1);
+            merfound += addHit(CS, iid, M, hits, hitsLen, hitsMax, posnF[i], totalLen, 0, 1);
         if (posnRLen > 1)
           for (u32bit i=0; i<posnRLen; i++)
-            merfound += addHit(CS, S, M, hits, hitsLen, hitsMax, posnR[i], totalLen, 0, 0);
+            merfound += addHit(CS, iid, M, hits, hitsLen, hitsMax, posnR[i], totalLen, 0, 0);
       }
     }
 
@@ -310,10 +304,6 @@ main(int argc, char **argv) {
 
     qsort(hits, hitsLen, sizeof(kmerhit), kmerhitcompare);
 
-    assert(S->getIID() == getFragRecordIID(fr));
-
-
-
 #if 0
     //  Debug, I guess.  Generates lots of output, since frags with
     //  big identical overlaps will have lots and lots of mers in
@@ -323,7 +313,7 @@ main(int argc, char **argv) {
       if (i != hitsLen) {
         fprintf(stderr, u32bitFMT"\t"u64bitFMT"\t"u32bitFMT"\t"u64bitFMT"\t%c\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\tTAG\n",
                 hits[i].tseq, hits[i].tpos,
-                S->getIID(),  hits[i].qpos,
+                iid,  hits[i].qpos,
                 hits[i].pal ? 'p' : (hits[i].fwd ? 'f' : 'r'),
                 0,
                 hits[i].cnt,
@@ -344,15 +334,15 @@ main(int argc, char **argv) {
       //  Adjust coords to be relative to whole read
       //
       hits[i].tpos += gkpseq->clrBeg(hits[i].tseq);
-      hits[i].qpos += gkpseq->clrBeg(S->getIID());
+      hits[i].qpos += beg;
 
       //  Reverse if needed
       //
       if (hits[i].fwd == false)
-        hits[i].qpos = gkpseq->sequenceLengthUntrimmed(S->getIID()) - hits[i].qpos - merSize;
+        hits[i].qpos = tln - hits[i].qpos - merSize;
 
       overlap.a_iid                      = hits[i].tseq;
-      overlap.b_iid                      = S->getIID();
+      overlap.b_iid                      = iid;
       overlap.dat.mer.datpad             = 0;
       overlap.dat.mer.compression_length = 0;
       overlap.dat.mer.fwd                = hits[i].fwd;
@@ -376,7 +366,7 @@ main(int argc, char **argv) {
       AS_OVS_writeOverlap(binout, &overlap);
 
 
-#if 1
+#ifdef EXPENSIVE_CHECK
       getFrag(dbggkp, overlap.a_iid, dbgf1, FRAG_S_SEQ);
       getFrag(dbggkp, overlap.b_iid, dbgf2, FRAG_S_SEQ);
 
@@ -426,7 +416,6 @@ main(int argc, char **argv) {
     }  //  over all hits
 
     delete M;
-    delete S;
   }
 
   fprintf(stderr, "Found "u64bitFMT" mer hits.\n", merfound);
