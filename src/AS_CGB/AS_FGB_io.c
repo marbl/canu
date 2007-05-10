@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_FGB_io.c,v 1.18 2007-04-30 13:00:29 brianwalenz Exp $";
+= "$Id: AS_FGB_io.c,v 1.19 2007-05-10 15:52:19 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_FGB_io.c
@@ -726,7 +726,7 @@ void process_ovl_store(char * OVL_Store_Path,
   //  A degenerate overlap (a_hang==0)&&(b_hang==0)
   //  A_frag  >>>>>>>>>>
   //  B_frag  >>>>>>>>>>
-  while  (AS_OVS_readOverlapFromStore(ovs, &olap)) {
+  while  (AS_OVS_readOverlapFromStore(ovs, &olap, AS_OVS_TYPE_OVL)) {
     Aedge  e = {0};
 
     int improper = (((olap.dat.ovl.a_hang <  0) && (olap.dat.ovl.b_hang <  0)) ||

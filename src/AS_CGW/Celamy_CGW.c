@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* All of the CGW celamy stuff is here */
-static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.15 2007-04-16 17:36:30 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.16 2007-05-10 15:52:19 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -443,7 +443,7 @@ void compute_overlaps_off_ends(int id, int *offAEnd, int *offBEnd,char **AEstr, 
 
   AS_OVS_setRangeOverlapStore(ScaffoldGraph->frgOvlStore, id, id);
 
-  while  (AS_OVS_readOverlapFromStore(ScaffoldGraph->frgOvlStore, &olap)) {
+  while  (AS_OVS_readOverlapFromStore(ScaffoldGraph->frgOvlStore, &olap, AS_OVS_TYPE_OVL)) {
     //    print_olap(olap);
     if(olap.dat.ovl.corr_erate>CelamyOvlCutoff)continue; /* skip overlaps missing the default conditions for unitigging */
     if  (olap . dat.ovl.a_hang < 0){

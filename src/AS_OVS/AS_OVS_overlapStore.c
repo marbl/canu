@@ -183,7 +183,7 @@ AS_OVS_restoreBackup(OverlapStore *ovs) {
 }
 
 int
-AS_OVS_readOverlapFromStore(OverlapStore *ovs, OVSoverlap *overlap) {
+AS_OVS_readOverlapFromStore(OverlapStore *ovs, OVSoverlap *overlap, uint32 type) {
 
   assert(ovs->isOutput == FALSE);
 
@@ -191,6 +191,7 @@ AS_OVS_readOverlapFromStore(OverlapStore *ovs, OVSoverlap *overlap) {
   //  another a_iid.  If we hit EOF here, we're all done, no more
   //  overlaps.
   //
+ again:
   while (ovs->offset.numOlaps == 0)
     if (0 == AS_UTL_safeRead(ovs->offsetFile, &ovs->offset, "AS_OVS_readOverlap offset",
                              sizeof(OverlapStoreOffsetRecord), 1))
@@ -228,6 +229,25 @@ AS_OVS_readOverlapFromStore(OverlapStore *ovs, OVSoverlap *overlap) {
   overlap->a_iid   = ovs->offset.a_iid;
 
   ovs->offset.numOlaps--;
+
+  switch (type) {
+    case AS_OVS_TYPE_OVL:
+      if (overlap->dat.ovl.type != AS_OVS_TYPE_OVL)
+        goto again;
+      break;
+    case AS_OVS_TYPE_OBT:
+      if (overlap->dat.ovl.type != AS_OVS_TYPE_OBT)
+        goto again;
+      break;
+    case AS_OVS_TYPE_MER:
+      if (overlap->dat.ovl.type != AS_OVS_TYPE_MER)
+        goto again;
+      break;
+    case AS_OVS_TYPE_UNS:
+    case AS_OVS_TYPE_ANY:
+    default:
+      break;
+  }
 
   return(TRUE);
 }

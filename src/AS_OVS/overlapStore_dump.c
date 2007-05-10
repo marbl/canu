@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore_dump.c,v 1.8 2007-05-04 17:45:34 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore_dump.c,v 1.9 2007-05-10 15:52:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,37 +48,36 @@ dumpStore(char *storeName, uint32 dumpBinary, double dumpERate, uint32 bgnIID, u
 
   AS_OVS_setRangeOverlapStore(storeFile, bgnIID, endIID);
 
-  while (AS_OVS_readOverlapFromStore(storeFile, &overlap) == TRUE) {
+  while (AS_OVS_readOverlapFromStore(storeFile, &overlap, AS_OVS_TYPE_ANY) == TRUE) {
     switch (overlap.dat.ovl.type) {
       case AS_OVS_TYPE_OVL:
         if (overlap.dat.ovl.corr_erate <= erate)
           if (dumpBinary)
             AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(OVSoverlap), 1);
           else
-            fprintf(stdout, "%8d %8d %c %5d %5d %5.2f %5.2f\n",
+            fprintf(stdout, "%8d %8d %c %5d %5d %5.2f %5.2f %5d\n",
                     overlap.a_iid,
                     overlap.b_iid,
                     overlap.dat.ovl.flipped ? 'I' : 'N',
                     overlap.dat.ovl.a_hang,
                     overlap.dat.ovl.b_hang,
                     AS_OVS_decodeQuality(overlap.dat.ovl.orig_erate) * 100.0,
-                    AS_OVS_decodeQuality(overlap.dat.ovl.corr_erate) * 100.0);
+                    AS_OVS_decodeQuality(overlap.dat.ovl.corr_erate) * 100.0,
+                    overlap.dat.ovl.seed_value);
         break;
       case AS_OVS_TYPE_OBT:
         if (overlap.dat.obt.erate <= erate)
           if (dumpBinary)
             AS_UTL_safeWrite(stdout, &overlap, "dumpStore", sizeof(OVSoverlap), 1);
           else
-            fprintf(stdout, "%7d %7d %c %4d %4d %4d %4d %4d %4d %5.2f\n",
+            fprintf(stdout, "%7d %7d %c %4d %4d %4d %4d %5.2f\n",
                     overlap.a_iid,
                     overlap.b_iid,
                     overlap.dat.obt.fwd ? 'f' : 'r',
                     overlap.dat.obt.a_beg,
                     overlap.dat.obt.a_end,
-                    666,
                     overlap.dat.obt.b_beg,
                     overlap.dat.obt.b_end,
-                    666,
                     AS_OVS_decodeQuality(overlap.dat.obt.erate) * 100.0);
         break;
       case AS_OVS_TYPE_MER:

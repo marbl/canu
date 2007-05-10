@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore_erates.c,v 1.5 2007-05-09 16:12:08 skoren Exp $";
+static char CM_ID[] = "$Id: overlapStore_erates.c,v 1.6 2007-05-10 15:52:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -92,7 +92,7 @@ updateErates(char *storeName, char *eratesName) {
   //  Grab some space for our cache of erates
   e = (uint16 *)safe_malloc(sizeof(uint16) * eMax);
 
-  while (AS_OVS_readOverlapFromStore(orig, &ovl)) {
+  while (AS_OVS_readOverlapFromStore(orig, &ovl, AS_OVS_TYPE_OVL)) {
     if (eLen >= eNum) {
       eLen = 0;
       eNum = AS_UTL_safeRead(eF, e, "updateErates read erates", sizeof(uint16), eMax);

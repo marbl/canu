@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.4 2007-05-08 22:23:07 adelcher Exp $
- * $Revision: 1.4 $
+ * $Id: OlapFromSeedsOVL.c,v 1.5 2007-05-10 15:52:19 brianwalenz Exp $
+ * $Revision: 1.5 $
 */
 
-static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.4 2007-05-08 22:23:07 adelcher Exp $";
+static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.5 2007-05-10 15:52:19 brianwalenz Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -899,7 +899,7 @@ static void  Get_Seeds_From_Store
     * olap = (Olap_Info_t *) safe_realloc (* olap, num_olaps * sizeof (Olap_Info_t));
     * num  = 0;
 
-    while (AS_OVS_readOverlapFromStore (ovs, & ovl))
+    while (AS_OVS_readOverlapFromStore (ovs, & ovl, AS_OVS_TYPE_MER))
       {
        (* olap) [num_read] . a_iid   = ovl . a_iid;
        (* olap) [num_read] . b_iid   = ovl . b_iid;

@@ -171,7 +171,7 @@ main(int argc, char **argv) {
   uint32  *left        = new uint32 [MAX_OVERLAPS_PER_FRAG];
   uint32  *right       = new uint32 [MAX_OVERLAPS_PER_FRAG];
 
-  while (AS_OVS_readOverlapFromStore(ovs, &ovl)) {
+  while (AS_OVS_readOverlapFromStore(ovs, &ovl, AS_OVS_TYPE_OBT)) {
     uint64   wa, wb;
 
     //  If we see a different idA than we had last time, process

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore_merge.c,v 1.2 2007-03-09 22:00:02 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore_merge.c,v 1.3 2007-05-10 15:52:19 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,27 +67,27 @@ mergeStore(char *storeName, char *mergeName) {
   
   //  Now just add stuff to the new store.
   //
-  aValid = AS_OVS_readOverlapFromStore(a, &aovl);
-  bValid = AS_OVS_readOverlapFromStore(b, &bovl);
+  aValid = AS_OVS_readOverlapFromStore(a, &aovl, AS_OVS_TYPE_ANY);
+  bValid = AS_OVS_readOverlapFromStore(b, &bovl, AS_OVS_TYPE_ANY);
 
   while (aValid && bValid) {
     if (OVSoverlap_sort(&aovl, &bovl) < 0) {
       AS_OVS_writeOverlapToStore(store, &aovl);
-      aValid = AS_OVS_readOverlapFromStore(a, &aovl);
+      aValid = AS_OVS_readOverlapFromStore(a, &aovl, AS_OVS_TYPE_ANY);
     } else {
       AS_OVS_writeOverlapToStore(store, &bovl);
-      bValid = AS_OVS_readOverlapFromStore(b, &bovl);
+      bValid = AS_OVS_readOverlapFromStore(b, &bovl, AS_OVS_TYPE_ANY);
     }
   }
 
   while (aValid) {
     AS_OVS_writeOverlapToStore(store, &aovl);
-    aValid = AS_OVS_readOverlapFromStore(a, &aovl);
+    aValid = AS_OVS_readOverlapFromStore(a, &aovl, AS_OVS_TYPE_ANY);
   }
 
   while (bValid) {
     AS_OVS_writeOverlapToStore(store, &bovl);
-    bValid = AS_OVS_readOverlapFromStore(b, &bovl);
+    bValid = AS_OVS_readOverlapFromStore(b, &bovl, AS_OVS_TYPE_ANY);
   }
 
   //  ALL DONE!  Close the stores, nuke the backups and get outta here.

@@ -49,6 +49,7 @@
 #define AS_OVS_TYPE_OBT   0x01
 #define AS_OVS_TYPE_MER   0x02
 #define AS_OVS_TYPE_UNS   0x03
+#define AS_OVS_TYPE_ANY   0xff
 
 typedef union {
   uint64   dat;

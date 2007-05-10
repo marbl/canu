@@ -847,7 +847,7 @@ main(int argc, char **argv) {
   OverlapStore *ovs = AS_OVS_openOverlapStore(ovsStore);
   OVSoverlap    ovl;
 
-  while (AS_OVS_readOverlapFromStore(ovs, &ovl)) {
+  while (AS_OVS_readOverlapFromStore(ovs, &ovl, AS_OVS_TYPE_OBT)) {
     idA    = ovl.a_iid;
     idB    = ovl.b_iid;
     ori    = (ovl.dat.obt.fwd) ? 'f' : 'r';

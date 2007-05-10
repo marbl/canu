@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.36 2007-03-14 19:07:29 brianwalenz Exp $
- * $Revision: 1.36 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.37 2007-05-10 15:52:19 brianwalenz Exp $
+ * $Revision: 1.37 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.36 2007-03-14 19:07:29 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.37 2007-05-10 15:52:19 brianwalenz Exp $";
 
 //  System include files
 #include<iostream>
@@ -605,7 +605,7 @@ For debugging i386, alpha differences on float conversion
         // second pass builds the overlap graph, excluding contained frags
         
         OVSoverlap olap;
-        while  (AS_OVS_readOverlapFromStore(my_store, &olap))
+        while  (AS_OVS_readOverlapFromStore(my_store, &olap, AS_OVS_TYPE_OVL))
         {
             for(int j = 0; j < metrics.size(); j++)
                 metrics[j]->scoreContainment( olap );
@@ -618,7 +618,7 @@ For debugging i386, alpha differences on float conversion
 
         AS_OVS_resetRangeOverlapStore(my_store);
 
-        while  (AS_OVS_readOverlapFromStore(my_store, &olap))
+        while  (AS_OVS_readOverlapFromStore(my_store, &olap, AS_OVS_TYPE_OVL))
         {
             for(int j = 0; j < metrics.size(); j++) {
                 if (metrics[j]->isContained( olap.a_iid ) || 

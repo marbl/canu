@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CorrectOlapsOVL.c,v 1.18 2007-05-09 16:12:54 skoren Exp $
- * $Revision: 1.18 $
+ * $Id: CorrectOlapsOVL.c,v 1.19 2007-05-10 15:52:19 brianwalenz Exp $
+ * $Revision: 1.19 $
 */
 
-static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.18 2007-05-09 16:12:54 skoren Exp $";
+static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.19 2007-05-10 15:52:19 brianwalenz Exp $";
 
 
 //  System include files
@@ -1309,7 +1309,7 @@ static void  Get_Olaps_From_Store
     *olap = (Olap_Info_t *)safe_malloc(numolaps * sizeof(Olap_Info_t));
     *num  = 0;
 
-    while (AS_OVS_readOverlapFromStore(ovs, &ovl)) {
+    while (AS_OVS_readOverlapFromStore(ovs, &ovl, AS_OVS_TYPE_OVL)) {
       (*olap)[numread].a_iid  = ovl.a_iid;
       (*olap)[numread].b_iid  = ovl.b_iid;
       (*olap)[numread].a_hang = ovl.dat.ovl.a_hang;
