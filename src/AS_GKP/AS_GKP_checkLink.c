@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkLink.c,v 1.8 2007-05-02 09:30:15 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkLink.c,v 1.9 2007-05-11 16:00:55 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,8 +30,7 @@ static char CM_ID[] = "$Id: AS_GKP_checkLink.c,v 1.8 2007-05-02 09:30:15 brianwa
 #include "AS_PER_gkpStore.h"
 
 int
-Check_LinkMesg(LinkMesg *lkg_mesg,
-               int verbose) {
+Check_LinkMesg(LinkMesg *lkg_mesg) {
   PHashValue_AS              value;
   CDS_IID_t                  frag1IID;
   CDS_IID_t                  frag2IID;

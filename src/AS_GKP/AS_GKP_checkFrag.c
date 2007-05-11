@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.22 2007-05-02 09:30:15 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.23 2007-05-11 16:00:55 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,8 +42,7 @@ int
 CheckLengthsIntervals(FragMesg *frg_mesg,
                       int seqLength,
                       int quaLength,
-                      int assembler,
-                      int verbose) {
+                      int assembler) {
   int minlen = AS_FRAG_MIN_LEN;
   int maxlen = AS_FRAG_MAX_LEN;
 
@@ -236,8 +235,7 @@ double checkWindowQuality(FragMesg *frg_mesg, FILE *err) {
 int
 Check_FragMesg(FragMesg            *frg_mesg,  
                int                   check_qvs,
-               int                   assembler,
-               int                   verbose) {
+               int                   assembler) {
   static  uint32    libOrientationMax = 0;
   static  uint64   *libOrientation    = NULL;
 
@@ -316,8 +314,7 @@ Check_FragMesg(FragMesg            *frg_mesg,
     //
     if (GATEKEEPER_FAILURE == CheckLengthsIntervals(frg_mesg,
                                                     seqLength, quaLength,
-                                                    assembler,
-                                                    verbose)) {
+                                                    assembler)) {
       fprintf(stderr, "# Check_FragMessage: ID " F_U64 " lengths and intervals are incompatible\n",
               frg_mesg->eaccession);
       return GATEKEEPER_FAILURE;
@@ -495,9 +492,6 @@ Check_FragMesg(FragMesg            *frg_mesg,
     }      
 
     getGateKeeperFragment(gkpStore, value.IID, &gkf);
-
-    if(verbose)
-      fprintf(stderr,"* Deleting fragment...refcount = %d\n", value.refCount);
 
     if(HASH_SUCCESS == DeleteFromPHashTable_AS(gkpStore->phs_private, UID_NAMESPACE_AS, frg_mesg->eaccession)){
       //deleteGateKeeperFragment(gkpStore, value.IID);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.35 2007-04-30 13:00:29 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.36 2007-05-11 16:00:55 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -128,11 +128,15 @@ usage(char *filename) {
   fprintf(stderr, "  -a                     append to existing tore\n");
   fprintf(stderr, "  -e <errorThreshhold>   set error threshhold\n");
   fprintf(stderr, "  -o <gkpStore>          append to or create gkpStore\n");
-  fprintf(stderr, "  -v                     enable verbose mode\n");
   fprintf(stderr, "  -H                     print error messages\n");
   fprintf(stderr, "  -G                     gatekeeper for assembler Grande (default)\n");
   fprintf(stderr, "  -T                     gatekeeper for assembler Grande with Overlap Based Trimming\n");
   fprintf(stderr, "  -Q                     don't check quality-based data quality\n");
+  fprintf(stderr, "\n");
+  fprintf(stderr, "  -v <vector-info>       load vector clear ranges into each read.\n");
+  fprintf(stderr, "                         MUST be done on an existing, complete store.\n");
+  fprintf(stderr, "                         example: -a -v vectorfile -o that.gkpStore\n");
+  fprintf(stderr, "                         format: 'UID vec-clr-begin vec-clr-end'\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "The second usage will partition an existing store, allowing\n");
@@ -195,8 +199,8 @@ main(int argc, char **argv) {
   //
   int              append          = 0;
   int              outputExists    = 0;
-  int              verbose         = 0;
   int              check_qvs       = 1;
+  char            *vectorClearFile = NULL;
   int              assembler       = AS_ASSEMBLER_GRANDE;
   int              nerrs           = 0;   // Number of errors in current run
   int              maxerrs         = 1;   // Number of errors allowed before we punt
@@ -249,7 +253,7 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-o") == 0) {
       gkpStoreName = argv[++arg];
     } else if (strcmp(argv[arg], "-v") == 0) {
-      verbose = 1;
+      vectorClearFile = argv[++arg];
     } else if (strcmp(argv[arg], "-G") == 0) {
       assembler = AS_ASSEMBLER_GRANDE;
     } else if (strcmp(argv[arg], "-T") == 0) {
@@ -325,7 +329,7 @@ main(int argc, char **argv) {
 
     arg++;
   }
-  if ((err) || (gkpStoreName == NULL) || (firstFileArg == 0)) {
+  if ((err) || (gkpStoreName == NULL)) {
     usage(argv[0]);
     exit(1);
   }
@@ -520,10 +524,66 @@ main(int argc, char **argv) {
   }
 
 
+
+
+
+
   if (partitionFile) {
     Build_Partition(gkpStoreName, partitionFile, FRAG_S_ALL);
     exit(0);
   }
+
+
+
+
+
+  //  This sure is sloppy (and slow) but only used on format 1.
+  //  Load in any vector info.
+  //
+  if (vectorClearFile) {
+    errno = 0;
+    FILE   *v = fopen(vectorClearFile, "r");
+    if (errno) {
+      fprintf(stderr, "%s: couldn't open '%s' to read vector clear ranges: %s\n",
+              argv[0], vectorClearFile, strerror(errno));
+    } else {
+      CDS_UID_t     uid;
+      int           l, r, oldl, oldr;
+      fragRecord    fr;
+
+      gkpStore = openGateKeeperStore(gkpStoreName, TRUE);
+      
+      while (3 == fscanf(v, " "F_UID" %d %d ", &uid, &l, &r)) {
+        PHashValue_AS  value;
+
+        if (HASH_FAILURE != getGatekeeperUIDtoIID(gkpStore, uid, &value)) {
+          uint32 iid = value.IID;
+
+          getFrag(gkpStore, iid, &fr, FRAG_S_INF);
+
+          //  Assume they are base-based.
+          fr.gkfr.hasVectorClear = 1;
+          if (l < r) {
+            fr.gkfr.clearBeg[AS_READ_CLEAR_VEC] = l - 1;
+            fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] = r;
+          } else {
+            fr.gkfr.clearBeg[AS_READ_CLEAR_VEC] = r - 1;
+            fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] = l;
+          }
+
+          setFrag(gkpStore, iid, &fr);
+        }        
+      }
+
+      closeGateKeeperStore(gkpStore);
+
+      fclose(v);
+    }
+    exit(0);
+  }
+
+
+
    
 
   if ((append == 0) && (outputExists == 1)) {
@@ -573,31 +633,31 @@ main(int argc, char **argv) {
 
     while (EOF != ReadProtoMesg_AS(inFile, &pmesg)) {
       if (pmesg->t == MESG_BAT) {
-        if (GATEKEEPER_SUCCESS != Check_BatchMesg((BatchMesg *)pmesg->m, verbose)) {
+        if (GATEKEEPER_SUCCESS != Check_BatchMesg((BatchMesg *)pmesg->m)) {
           fprintf(stderr,"# Invalid BAT message at Line %d of input...exiting\n", GetProtoLineNum_AS());
           WriteProtoMesg_AS(stderr,pmesg);
           return GATEKEEPER_FAILURE;
         }
       } else if (pmesg->t == MESG_DST) {
-        if (GATEKEEPER_SUCCESS != Check_DistanceMesg((DistanceMesg *)pmesg->m, verbose)){
+        if (GATEKEEPER_SUCCESS != Check_DistanceMesg((DistanceMesg *)pmesg->m)){
           fprintf(stderr,"# Line %d of input\n", GetProtoLineNum_AS());
           WriteProtoMesg_AS(stderr,pmesg);
           nerrs++;
         }
       } else if (pmesg->t == MESG_LIB) {
-        if (GATEKEEPER_SUCCESS != Check_LibraryMesg((LibraryMesg *)pmesg->m, verbose)){
+        if (GATEKEEPER_SUCCESS != Check_LibraryMesg((LibraryMesg *)pmesg->m)){
           fprintf(stderr,"# Line %d of input\n", GetProtoLineNum_AS());
           WriteProtoMesg_AS(stderr,pmesg);
           nerrs++;
         }
       } else if (pmesg->t == MESG_FRG) {
-        if (GATEKEEPER_SUCCESS != Check_FragMesg((FragMesg *)pmesg->m, check_qvs, assembler, verbose)){
+        if (GATEKEEPER_SUCCESS != Check_FragMesg((FragMesg *)pmesg->m, check_qvs, assembler)){
           fprintf(stderr,"# Line %d of input\n", GetProtoLineNum_AS());
           WriteProtoMesg_AS(stderr,pmesg);
           nerrs++;
         }
       } else if (pmesg->t == MESG_LKG) {
-        if (GATEKEEPER_SUCCESS != Check_LinkMesg((LinkMesg *)pmesg->m, verbose)) {
+        if (GATEKEEPER_SUCCESS != Check_LinkMesg((LinkMesg *)pmesg->m)) {
           fprintf(stderr,"# Line %d of input\n", GetProtoLineNum_AS());
           WriteProtoMesg_AS(stderr,pmesg);
           nerrs++;

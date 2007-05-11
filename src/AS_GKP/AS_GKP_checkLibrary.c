@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.7 2007-05-02 09:30:15 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.8 2007-05-11 16:00:55 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,8 +31,7 @@ static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.7 2007-05-02 09:30:15 bria
 
 
 int
-Check_DistanceMesg(DistanceMesg    *dst_mesg,
-                   int              verbose) {
+Check_DistanceMesg(DistanceMesg    *dst_mesg) {
   LibraryMesg  lmesg;
 
   //  Upconvert to a real LibraryMesg, then pass it on to the library
@@ -50,13 +49,12 @@ Check_DistanceMesg(DistanceMesg    *dst_mesg,
   lmesg.features     = NULL;
   lmesg.values       = NULL;
 
-  return(Check_LibraryMesg(&lmesg, verbose));
+  return(Check_LibraryMesg(&lmesg));
 }
 
 
 int
-Check_LibraryMesg(LibraryMesg      *lib_mesg,
-                  int               verbose) {
+Check_LibraryMesg(LibraryMesg      *lib_mesg) {
 
   GateKeeperLibraryRecord  gkpl;
   PHashValue_AS            value;
@@ -83,15 +81,6 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
       return(GATEKEEPER_FAILURE);
     }
 
-    if ((lib_mesg->mean   <= 0.0) ||
-        (lib_mesg->stddev <= 0.0) ||
-        (lib_mesg->mean - 3.0 * lib_mesg->stddev < 0.0)) {
-      printGKPError(stderr, GKPError_DSTValues);
-      fprintf(stderr,"# Check_DistanceMessage:  Illegal Mean %g and/or Standard Deviation %g\n",
-	      lib_mesg->mean, lib_mesg->stddev);
-      return(GATEKEEPER_FAILURE);
-    }
-
     gkpl.libraryUID   = lib_mesg->eaccession;
     gkpl.comment[0]   = 0;
 
@@ -107,6 +96,17 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
     gkpl.deleted      = FALSE;
     gkpl.mean         = lib_mesg->mean;
     gkpl.stddev       = lib_mesg->stddev;
+
+    if (gkpl.orientation != AS_READ_ORIENT_UNKNOWN) {
+      if ((gkpl.mean   <= 0.0) ||
+          (gkpl.stddev <= 0.0) ||
+          (gkpl.mean - 3.0 * gkpl.stddev < 0.0)) {
+        printGKPError(stderr, GKPError_DSTValues);
+        fprintf(stderr,"# Check_DistanceMessage:  Illegal Mean %g and/or Standard Deviation %g\n",
+                gkpl.mean, gkpl.stddev);
+        return(GATEKEEPER_FAILURE);
+      }
+    }
 
 #ifdef AS_ENABLE_SOURCE
     if (lib_mesg->source)

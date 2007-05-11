@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkBatch.c,v 1.7 2007-05-02 09:30:15 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkBatch.c,v 1.8 2007-05-11 16:00:55 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,8 +29,7 @@ static char CM_ID[] = "$Id: AS_GKP_checkBatch.c,v 1.7 2007-05-02 09:30:15 brianw
 #include "AS_GKP_include.h"
 #include "AS_PER_gkpStore.h"
 
-int Check_BatchMesg(BatchMesg          *bat_mesg,
-		    int                 verbose){
+int Check_BatchMesg(BatchMesg          *bat_mesg){
   GateKeeperBatchRecord  gkpb;
   PHashValue_AS          value;
 
@@ -60,10 +59,6 @@ int Check_BatchMesg(BatchMesg          *bat_mesg,
   gkpb.batchUID       = bat_mesg->eaccession;
   strncpy(gkpb.name,    bat_mesg->name, 255);
   strncpy(gkpb.comment, bat_mesg->comment, 255);
-
-  if(verbose)
-    fprintf(stderr,"* Batch " F_IID "  name:%s  comment:%s\n",
-	  value.IID, gkpb.name, gkpb.comment);
 
   appendIndexStore(gkpStore->bat, &gkpb);
 

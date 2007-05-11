@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.22 2007-04-30 13:00:29 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.23 2007-05-11 16:00:55 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
@@ -47,26 +47,21 @@
 extern GateKeeperStore  *gkpStore;
 
 int
-Check_BatchMesg(BatchMesg           *bat_mesg,
-                int                  verbose);
+Check_BatchMesg(BatchMesg           *bat_mesg);
 
 int
-Check_DistanceMesg(DistanceMesg     *dst_mesg,
-                   int               verbose);
+Check_DistanceMesg(DistanceMesg     *dst_mesg);
 
 int
-Check_LibraryMesg(LibraryMesg       *dst_mesg,
-                  int                verbose);
+Check_LibraryMesg(LibraryMesg       *dst_mesg);
 
 int
 Check_FragMesg(FragMesg            *frg_mesg,  
                int                   check_qvs,
-               int                   assembler,
-               int                   verbose);
+               int                   assembler);
 
 int
-Check_LinkMesg(LinkMesg             *lkg_mesg,
-               int                   verbose);
+Check_LinkMesg(LinkMesg             *lkg_mesg);
 
 
 
