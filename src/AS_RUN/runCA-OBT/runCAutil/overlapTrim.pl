@@ -9,28 +9,16 @@ sub overlapTrim {
     system("mkdir $wrk/0-overlaptrim")         if (! -d "$wrk/0-overlaptrim");
     system("mkdir $wrk/0-overlaptrim-overlap") if (! -d "$wrk/0-overlaptrim-overlap");
 
-    #  We use this in a couple of places, so just make it more global.
-    #
-    my $im = getGlobal("immutableFrags");
-    die "immutableFrags '$im' supplied, but not found!\n" if (defined($im) && (! -e $im));
-
     #  Do an initial overly-permissive quality trimming, intersected
     #  with any known vector trimming.
     #
     if ((! -e "$wrk/0-overlaptrim/$asm.initialTrimLog") &&
         (! -e "$wrk/0-overlaptrim/$asm.initialTrimLog.bz2")) {
 
-        my $vi = getGlobal("vectorIntersect");
-        my $im = getGlobal("immutableFrags");
-        die "vectorIntersect '$vi' supplied, but not found!\n" if (defined($vi) && (! -e $vi));
-        die "immutableFrags '$im' supplied, but not found!\n" if (defined($im) && (! -e $im));
-
         backupFragStore("beforeInitialTrim");
 
         my $cmd;
         $cmd  = "$bin/initialTrim -update -q 12 ";
-        $cmd .= " -vector $vi "    if (defined($vi));
-        $cmd .= " -immutable $im " if (defined($im));
         $cmd .= " -log $wrk/0-overlaptrim/$asm.initialTrimLog ";
         $cmd .= " -frg $wrk/$asm.gkpStore ";
         $cmd .= " > $wrk/0-overlaptrim/initialTrim.err 2>&1";
@@ -101,7 +89,6 @@ sub overlapTrim {
 
         my $cmd;
         $cmd  = "$bin/merge-trimming ";
-        $cmd .= "-immutable $im " if (defined($im));
         $cmd .= "-log $wrk/0-overlaptrim/$asm.mergeLog ";
         $cmd .= "-frg $wrk/$asm.gkpStore ";
         $cmd .= "-ovl $wrk/0-overlaptrim/$asm.ovl.consolidated ";
@@ -126,7 +113,6 @@ sub overlapTrim {
         $cmd  = "$bin/chimera ";
         $cmd .= " -gkp $wrk/$asm.gkpStore ";
         $cmd .= " -ovs $wrk/$asm.obtStore ";
-        $cmd .= " -immutable $im " if (defined($im));
         $cmd .= " -summary $wrk/0-overlaptrim/$asm.chimera.summary ";
         $cmd .= " -report  $wrk/0-overlaptrim/$asm.chimera.report ";
         $cmd .= " > $wrk/0-overlaptrim/$asm.chimera.err 2>&1";

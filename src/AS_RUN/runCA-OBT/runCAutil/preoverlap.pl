@@ -45,6 +45,15 @@ sub preoverlap {
             }
         }
 
+        my $vi = getGlobal("vectorIntersect");
+        if ((defined($vi)) && (! -e "$wrk/0-preoverlap/$asm.vectorClearLoaded")) {
+            if (runCommand("$wrk/0-preoverlap", "$bin/gatekeeper -a -v $vi -o $wrk/$asm.gkpStore > $wrk/0-preoverlap/$asm.vectorClearLoaded.err 2>&1")) {
+                print STDERR "Failed.\n";
+                exit(1);
+            }
+            touch("$wrk/0-preoverlap/$asm.vectorClearLoaded");
+        }
+        
         $numFrags = getNumberOfFragsInStore($bin, $wrk, $asm);
     }
 

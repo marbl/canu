@@ -12,7 +12,6 @@ extern "C" {
 }
 
 #include "util++.H"
-#include "maps.H"
 
 
 //  WITH_REPORT will report spurs and chimera.  WITH_REPORT_FULL will
@@ -293,7 +292,6 @@ void
 process(uint32           iid,
         GateKeeperStore *gkp,
         bool             doUpdate,
-        vectorMap       &m,
         overlapList     *overlap,
         uint32           ola,
         uint32           ora) {
@@ -634,14 +632,8 @@ process(uint32           iid,
     }
 
 
-    //  If we don't have the uid in our map, we are allowed to
-    //  modify it.  We just reset the doUpdate flag to disallow
-    //  modification.  The flag is passed by value, so the change
-    //  is local to here.
-    //
-    //  And if we're not updating, we don't care anyway...
-    //
-    if ((doUpdate) && (m[iid].immutable))
+    GateKeeperLibraryRecord  *gklr = getGateKeeperLibrary(gkp, getFragRecordLibraryIID(fr));
+    if ((doUpdate) && (gklr) && (gklr->doNotOverlapTrim))
       doUpdate = false;
 
 
@@ -774,7 +766,6 @@ main(int argc, char **argv) {
   bool    doUpdate          = true;  //  set to false for testing
   char   *summaryName       = 0L;
   char   *reportName        = 0L;
-  char   *immutableFileName = 0L;
   bool    beVerbose         = false;
 
   uint32  overflow = 0;
@@ -787,8 +778,6 @@ main(int argc, char **argv) {
       gkpStore = argv[++arg];
     } else if (strncmp(argv[arg], "-ovs", 2) == 0) {
       ovsStore = argv[++arg];
-    } else if (strncmp(argv[arg], "-immutable", 2) == 0) {
-      immutableFileName = argv[++arg];
     } else if (strncmp(argv[arg], "-delete", 2) == 0) {
       fixChimera = false;
     } else if (strncmp(argv[arg], "-summary", 2) == 0) {
@@ -805,7 +794,6 @@ main(int argc, char **argv) {
   }
   if ((gkpStore == 0L) || (ovsStore == 0L) || (err)) {
     fprintf(stderr, "usage: %s [-1] -gkp <gkpStore> -ovs <ovsStore> [opts] < overlap-trim-results\n", argv[0]);
-    fprintf(stderr, "  -immutable I    don't modify the uids listed in I\n");
     fprintf(stderr, "  -update         do update the frag store\n");
     fprintf(stderr, "  -delete         instead of fixing chimera, delete them\n");
     fprintf(stderr, "  -summary S      write a summary of the fixes to S\n");
@@ -841,9 +829,6 @@ main(int argc, char **argv) {
   if (gkp == NULL)
     fprintf(stderr, "Failed to open gatekeeper store %s!\n", gkpStore), exit(1);
 
-  vectorMap  m(gkp);
-  m.readImmutableMap(immutableFileName);
-
   OverlapStore *ovs = AS_OVS_openOverlapStore(ovsStore);
   OVSoverlap    ovl;
 
@@ -873,7 +858,7 @@ main(int argc, char **argv) {
     error  = AS_OVS_decodeQuality(ovl.dat.obt.erate);
 
     if (idA != idAlast) {
-      process(idAlast, gkp, doUpdate, m, overlap, olalast, oralast);
+      process(idAlast, gkp, doUpdate, overlap, olalast, oralast);
       delete overlap;
       overlap = new overlapList;
     }
@@ -1063,7 +1048,7 @@ main(int argc, char **argv) {
     }  //  End of intersection test
   }
 
-  process(idAlast, gkp, doUpdate, m, overlap, olalast, oralast);
+  process(idAlast, gkp, doUpdate, overlap, olalast, oralast);
   delete overlap;
 
   closeGateKeeperStore(gkp);

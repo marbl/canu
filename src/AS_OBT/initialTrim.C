@@ -12,7 +12,6 @@ extern "C" {
 
 #include "util++.H"
 #include "trim.H"
-#include "maps.H"
 #include "constants.H"
 
 //  Read a fragStore, does quality trimming based on quality scores,
@@ -24,11 +23,9 @@ extern "C" {
 
 void
 usage(char *name) {
-  fprintf(stderr, "usage: %s [-q quality] [-v vectorlist] [-i uidlist] [-update] [-replace] [-log logfile] -frg some.gkpStore\n", name);
+  fprintf(stderr, "usage: %s [-q quality] [-update] [-replace] [-log logfile] -frg some.gkpStore\n", name);
   fprintf(stderr, "\n");
   fprintf(stderr, "  -q quality    Find quality trim points using 'quality' as the base.\n");
-  fprintf(stderr, "  -v vector     Intersect the quality trim with a vector trim.\n");
-  fprintf(stderr, "  -i uidlist    Never, ever modify these fragments.\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "  -update       Update the clear range in the fragStore.\n");
   fprintf(stderr, "\n");
@@ -45,8 +42,6 @@ usage(char *name) {
 int
 main(int argc, char **argv) {
   double  minQuality          = qual.lookupNumber(20);
-  char   *vectorFileName      = 0L;
-  char   *immutableFileName   = 0L;
   bool    doUpdate            = false;
   char   *gkpStore            = 0L;
   FILE   *logFile             = 0L;
@@ -55,10 +50,6 @@ main(int argc, char **argv) {
   while (arg < argc) {
     if        (strncmp(argv[arg], "-quality", 2) == 0) {
       minQuality = qual.lookupNumber(atoi(argv[++arg]));
-    } else if (strncmp(argv[arg], "-vector", 2) == 0) {
-      vectorFileName = argv[++arg];
-    } else if (strncmp(argv[arg], "-immutable", 2) == 0) {
-      immutableFileName = argv[++arg];
 
     } else if (strncmp(argv[arg], "-update", 2) == 0) {
       doUpdate = true;
@@ -90,11 +81,6 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  vectorMap  m(gkp);
-  m.readVectorMap(vectorFileName);
-  m.readImmutableMap(immutableFileName);
-
-
   uint32        firstElem = getFirstElemFragStore(gkp);
   uint32        lastElem  = getLastElemFragStore(gkp) + 1;
 
@@ -118,38 +104,41 @@ main(int argc, char **argv) {
 
     getFrag(gkp, iid, fr, FRAG_S_INF | FRAG_S_SEQ | FRAG_S_QLT);
 
+    GateKeeperLibraryRecord  *gklr = getGateKeeperLibrary(gkp, getFragRecordLibraryIID(fr));
+
     //  Bail now if we've been told to not modify this read.  We do
     //  not print a message in the log.
     //
-    if (m[iid].immutable) {
+    if ((gklr) && (gklr->doNotOverlapTrim)) {
       stat_immutable++;
       continue;
     }
 
     doTrim(fr, minQuality, qltL, qltR);
+
     vecL = qltL;
     vecR = qltR;
 
     //  Intersect with the vector clear range, if it exists
     //
-    if (m[iid].hasVec == 0) {
+    if (fr->gkfr.hasVectorClear == false) {
       //  iid not present in our input list, do nothing.
       stat_notPresent++;
-    } else if ((m[iid].vecL > vecR) || (m[iid].vecR < vecL)) {
-      //  don't intersect, we've already set vecL and vecR appropriately.
+    } else if ((fr->gkfr.clearBeg[AS_READ_CLEAR_VEC] > vecR) || (fr->gkfr.clearEnd[AS_READ_CLEAR_VEC] < vecL)) {
+      //  don't intersect; trust the quality clear
       stat_noIntersect++;
     } else {
       //  They intersect.  Pick the largest begin and the smallest end
 
       bool changed = false;
 
-      if (vecL < m[iid].vecL) {
+      if (vecL < fr->gkfr.clearBeg[AS_READ_CLEAR_VEC]) {
         changed = true;
-        vecL = m[iid].vecL;
+        vecL = fr->gkfr.clearBeg[AS_READ_CLEAR_VEC];
       }
-      if (m[iid].vecR < vecR) {
+      if (fr->gkfr.clearEnd[AS_READ_CLEAR_VEC] < vecR) {
         changed = true;
-        vecR = m[iid].vecR;
+        vecR = fr->gkfr.clearEnd[AS_READ_CLEAR_VEC];
       }
 
       if (changed)
@@ -167,8 +156,8 @@ main(int argc, char **argv) {
               getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_ORIG),
               qltL,
               qltR,
-              m[iid].vecL,
-              m[iid].vecR,
+              fr->gkfr.clearBeg[AS_READ_CLEAR_VEC],
+              fr->gkfr.clearEnd[AS_READ_CLEAR_VEC],
               vecL,
               vecR,
               ((vecL + AS_FRAG_MIN_LEN) > vecR) ? " (deleted)" : "");

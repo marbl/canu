@@ -1,6 +1,5 @@
 #include "trim.H"
 #include "constants.H"
-#include "maps.H"
 
 
 //  Reads the output of sort-overlap-trim, does the actual trim-point
@@ -79,13 +78,11 @@ main(int argc, char **argv) {
   char    *frgStore          = 0L;
   char    *ovlFile           = 0L;
   bool     doModify          = true;  //  Make this false for testing
-  char    *immutableFileName = 0L;
 
   line = new char [lineMax];
 
   if (argc < 5) {
-    fprintf(stderr, "usage: %s [-immutable uidlist] [-log log] -frg frgStore -ovl overlap-consolidated\n", argv[0]);
-    fprintf(stderr, "  -immutable uidlist    Never, ever modify these fragments.\n");
+    fprintf(stderr, "usage: %s [-log log] -frg frgStore -ovl overlap-consolidated\n", argv[0]);
     fprintf(stderr, "  -ovl o                Read consolidated overlaps from here.\n");
     fprintf(stderr, "  -log x                Write a record of changes to 'x', summary statistics to 'x.stats'\n");
     fprintf(stderr, "  -frg f                'f' is our frag store\n");
@@ -98,8 +95,6 @@ main(int argc, char **argv) {
       frgStore = argv[++arg];
     } else if (strncmp(argv[arg], "-ovl", 2) == 0) {
       ovlFile = argv[++arg];
-    } else if (strncmp(argv[arg], "-immutable", 2) == 0) {
-      immutableFileName = argv[++arg];
     } else if (strncmp(argv[arg], "-log", 2) == 0) {
       errno=0;
       logFile = fopen(argv[++arg], "w");
@@ -129,12 +124,6 @@ main(int argc, char **argv) {
   uint32      firstElem = getFirstElemFragStore(gkp);
   uint32      lastElem  = getLastElemFragStore(gkp) + 1;
   fragRecord *fr = new_fragRecord();
-
-
-  //  Build a list of the immutable fragments
-  //
-  vectorMap  immutable(gkp);
-  immutable.readImmutableMap(immutableFileName);
 
 
   //  Open the overlap file
@@ -234,9 +223,11 @@ main(int argc, char **argv) {
     uint32 qltRQ1 = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBT);
     uint64 uid    = getFragRecordUID(fr);
 
+    GateKeeperLibraryRecord  *gklr = getGateKeeperLibrary(gkp, getFragRecordLibraryIID(fr));
+
     //  Only proceed if we're mutable.
     //
-    if (immutable[iid].immutable) {
+    if ((gklr) && (gklr->doNotOverlapTrim)) {
       if (logFile)
         fprintf(logFile, F_U64"\t"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (immutable)\n",
                 uid, lid, qltLQ1, qltRQ1, qltLQ1, qltRQ1);

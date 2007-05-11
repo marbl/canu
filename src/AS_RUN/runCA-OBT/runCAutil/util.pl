@@ -104,7 +104,6 @@ sub setDefaults () {
     $global{"grid"}                        = "Linux-i686";
 
     $global{"help"}                        = 0;
-    $global{"immutableFrags"}              = undef;
 
     #  Undocumented!
     $global{"merylMemory"}                 = 800;
@@ -209,7 +208,6 @@ sub setParameters ($@) {
 
     #  Fiddle with filenames to make them absolute paths.
     #
-    makeAbsolute("immutableFrags");
     makeAbsolute("vectorIntersect");
 
     #  Decode on a set of binaries to use
