@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.36 2007-05-11 16:00:55 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.37 2007-05-14 09:15:21 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -512,7 +512,7 @@ main(int argc, char **argv) {
       case DUMP_LASTFRG:
         {
           GateKeeperStore *gkp = openGateKeeperStore(gkpStoreName, FALSE);
-          fprintf(stdout, "Last frag in store is iid = "F_IID"\n", getLastElemFragStore(gkp));
+          fprintf(stdout, "Last frag in store is iid = "F_S64"\n", getLastElemFragStore(gkp));
           closeGateKeeperStore(gkp);
         }
         break;
