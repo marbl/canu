@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.34 2007-05-02 09:30:18 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.35 2007-05-14 09:16:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -444,6 +444,8 @@ void       loadGateKeeperPartition(GateKeeperStore *gkp, uint32 partnum) {
   //  zip through the frg and build a map from iid to the frg record
 
   statsStore(gkp->partfrg, &stats);
+
+#warning CreateHashTable_int32_AS used instead of a true IID hash table
   gkp->partmap = CreateHashTable_int32_AS(stats.lastElem + 1);
 
   for(i = stats.firstElem; i <= stats.lastElem; i++){
@@ -451,7 +453,7 @@ void       loadGateKeeperPartition(GateKeeperStore *gkp, uint32 partnum) {
 
     if(InsertInHashTable_AS(gkp->partmap,
                             &p->readIID,
-                            sizeof(uint32),
+                            sizeof(CDS_IID_t),
                             p) != HASH_SUCCESS)
       assert(0);
   }
@@ -783,15 +785,15 @@ getFragData(GateKeeperStore *gkp, fragRecord *fr, int streamFlags) {
 }
 
 
-void    getFrag(GateKeeperStore *gkp, int64 iid, fragRecord *fr, int32 flags) {
+void    getFrag(GateKeeperStore *gkp, CDS_IID_t iid, fragRecord *fr, int32 flags) {
   if (gkp->partmap == NULL) {
     getIndexStore(gkp->frg, iid, &fr->gkfr);
   } else {
     GateKeeperFragmentRecord *gkfr;
 
-    gkfr = LookupInHashTable_AS(gkp->partmap, &iid, sizeof(int32));
+    gkfr = LookupInHashTable_AS(gkp->partmap, &iid, sizeof(CDS_IID_t));
     if (gkfr == NULL) {
-      fprintf(stderr, "getFrag()-- ERROR!  IID "F_S64" not in partition!\n", iid);
+      fprintf(stderr, "getFrag()-- ERROR!  IID "F_IID" not in partition!\n", iid);
       assert(0);
     }
 
@@ -802,12 +804,12 @@ void    getFrag(GateKeeperStore *gkp, int64 iid, fragRecord *fr, int32 flags) {
 }
 
 
-void    setFrag(GateKeeperStore *gkp, int64 iid, fragRecord *fr) {
+void    setFrag(GateKeeperStore *gkp, CDS_IID_t iid, fragRecord *fr) {
   assert(gkp->partmap == NULL);
   setIndexStore(gkp->frg, iid, &fr->gkfr);
 }
 
-void    delFrag(GateKeeperStore *gkp, int64 iid) {
+void    delFrag(GateKeeperStore *gkp, CDS_IID_t iid) {
   GateKeeperFragmentRecord   gkfr;
   CDS_IID_t                  miid;
 

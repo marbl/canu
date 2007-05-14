@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.35 2007-05-08 17:46:18 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.36 2007-05-14 09:16:26 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -549,9 +549,9 @@ void    clearGateKeeperBatchRecord(GateKeeperBatchRecord *g);
 void    clearGateKeeperLibraryRecord(GateKeeperLibraryRecord *g);
 void    clearGateKeeperFragmentRecord(GateKeeperFragmentRecord *g);
 
-void    getFrag(GateKeeperStore *gkp, int64 iid, fragRecord *fr, int32 flags);
-void    setFrag(GateKeeperStore *gkp, int64 iid, fragRecord *fr);
-void    delFrag(GateKeeperStore *gkp, int64 iid);
+void    getFrag(GateKeeperStore *gkp, CDS_IID_t iid, fragRecord *fr, int32 flags);
+void    setFrag(GateKeeperStore *gkp, CDS_IID_t iid, fragRecord *fr);
+void    delFrag(GateKeeperStore *gkp, CDS_IID_t iid);
 
 #define getFirstElemFragStore(GKP)  getFirstElemStore((GKP)->frg)
 #define getLastElemFragStore(GKP)   getLastElemStore((GKP)->frg)
