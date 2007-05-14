@@ -39,6 +39,7 @@ public:
   merStream(merStreamFileReader *merstreamfile);
   merStream(u32bit merSize, chainedSequence *cs);
   merStream(u32bit merSize, seqInCore *seq, u32bit offset=0, u32bit length=0);
+  merStream(u32bit merSize, char *seq, u32bit offset=0, u32bit length=0);
   ~merStream();
 
   u32bit                 theMerSize(void) { return(_merSize); };

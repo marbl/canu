@@ -82,6 +82,36 @@ merStream::merStream(u32bit merSize, seqInCore *seq, u32bit offset, u32bit lengt
   loadMer(_merSize - 1);
 }
 
+//  A specialization of the last constructor, used in wgs-assembler's
+//  overmerry to avoid a string allocation, copy and creation of a
+//  seqInCore.
+merStream::merStream(u32bit merSize, char *seq, u32bit offset, u32bit length) {
+  _ms_mers         = 0L;
+
+  _cs_chainedSeq   = 0L;
+
+  _st_string       = seq + offset;
+  _st_stringPos    = 0;
+  _st_stringLen    = length;
+  _st_posInSeq     = 0;
+  _st_posInStr     = 0;
+  _st_num          = 0;
+
+  _merSize         = merSize;
+  _timeUntilValid  = 0;
+
+  _fMer.setMerSize(_merSize);
+  _rMer.setMerSize(_merSize);
+
+  _fMer.clear();
+  _rMer.clear();
+
+  _fMerP = &_fMer;
+  _rMerP = &_rMer;
+
+  loadMer(_merSize - 1);
+}
+
 merStream::~merStream() {
 }
 
