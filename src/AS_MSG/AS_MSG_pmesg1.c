@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.8 2007-04-30 13:00:30 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.9 2007-05-14 13:40:55 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -38,21 +38,14 @@ static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.8 2007-04-30 13:00:30 brianwalenz
 
 /******************** INPUT ROUTINES ***************************/
 
-static void *Read_Dist_Mesg(FILE *fin, int external)
-{ static InternalDistMesg dmesg;
+static void *Read_DST_Mesg(FILE *fin)
+{ static DistanceMesg dmesg;
+  char ch;
 
-  if (external)
-    { char ch;
-      GET_TYPE(ch,"act:%c","action");
-      dmesg.action = (ActionType) ch;
-      GET_FIELD(dmesg.eaccession,"acc:"F_UID,"accession field")
-        }
-  else
-    { char ch;
-      GET_TYPE(ch,"act:%1[ADIUR]","action");  //  R, redefine, for compatibility; same as update
-      dmesg.action = (ActionType) ch;
-      GET_PAIR(dmesg.eaccession,dmesg.iaccession,"acc:("F_UID","F_IID")","accession field pair");
-    }
+  GET_TYPE(ch,"act:%c","action");
+  dmesg.action = (ActionType) ch;
+  GET_FIELD(dmesg.eaccession,"acc:"F_UID,"accession field");
+
   if (dmesg.action == 'R')
     dmesg.action = AS_UPDATE;
   if ((dmesg.action == AS_ADD) || (dmesg.action == AS_UPDATE) || (dmesg.action == AS_IGNORE))
@@ -63,11 +56,6 @@ static void *Read_Dist_Mesg(FILE *fin, int external)
   return ((void *) (&dmesg));
 }
 
-static void *Read_DST_Mesg(FILE *fin)
-{ return Read_Dist_Mesg(fin,1); }
-
-static void *Read_IDT_Mesg(FILE *fin)
-{ return Read_Dist_Mesg(fin,0); }
 
 // This is tricky, since we are trying to update the fields
 // of a structure that may be realloced.  Store offsets in
@@ -1287,27 +1275,18 @@ static void *Read_BAT_Mesg(FILE *fin){
 /*  Routine to output each type of proto-IO message. */
 
 
-static void Write_Dist_Mesg(FILE *fout, void *vmesg, int external)
-{ InternalDistMesg *mesg = (InternalDistMesg *) vmesg;
+static void Write_DST_Mesg(FILE *fout, void *vmesg)
+{ DistanceMesg *mesg = (DistanceMesg *) vmesg;
 
-  fprintf(fout,"{%s\n",(external?"DST":"IDT"));
+  fprintf(fout,"{DST\n");
   fprintf(fout,"act:%c\n",mesg->action);
-  if (external)
-    fprintf(fout,"acc:"F_UID"\n",mesg->eaccession);
-  else
-    fprintf(fout,"acc:("F_UID","F_IID")\n",mesg->eaccession,mesg->iaccession);
+  fprintf(fout,"acc:"F_UID"\n",mesg->eaccession);
   if (mesg->action != AS_DELETE)
     { fprintf(fout,"mea:%.3f\n",mesg->mean);
       fprintf(fout,"std:%.3f\n",mesg->stddev);
     }
   fprintf(fout,"}\n");
 }
-
-static void Write_DST_Mesg(FILE *fout, void *vmesg)
-{ Write_Dist_Mesg(fout,vmesg,1); }
-
-static void Write_IDT_Mesg(FILE *fout, void *vmesg)
-{ Write_Dist_Mesg(fout,vmesg,0); }
 
 static void Write_ADL_Struct(FILE *fout, AuditLine *mesg)
 { fprintf(fout,"{ADL\n");
@@ -1981,7 +1960,7 @@ static AS_MSG_callrecord CallTable1[NUM_OF_REC_TYPES + 1] = {
   {"{LKG", Read_LKG_Mesg, Write_LKG_Mesg, sizeof(LinkMesg) },
   {"", NULL, NULL, 0l },
   {"{DST", Read_DST_Mesg, Write_DST_Mesg, sizeof(DistanceMesg) },
-  {"{IDT", Read_IDT_Mesg, Write_IDT_Mesg, sizeof(InternalDistMesg) },
+  {"", NULL, NULL, 0l },
   {"RLIB", NULL, NULL, 0l },  //  RESERVED for Version 2's LIB message
   {"", NULL, NULL, 0l },
   {"", NULL, NULL, 0l },

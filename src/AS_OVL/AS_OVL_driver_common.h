@@ -26,8 +26,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_driver_common.h,v 1.19 2007-05-04 18:55:37 brianwalenz Exp $
- * $Revision: 1.19 $
+ * $Id: AS_OVL_driver_common.h,v 1.20 2007-05-14 13:40:55 brianwalenz Exp $
+ * $Revision: 1.20 $
 */
 
 
@@ -51,8 +51,6 @@ static int  Next_Fragment_Index;
 static int  IID_Lo, IID_Hi;
 static int  Frag_Segment_Lo;
 static int  Frag_Segment_Hi;
-static Batch_ID  Batch_Msg_UID = 0;
-static IntBatch_ID  Batch_Msg_IID = 0;
 static int  Batch_Num = 0;
 static time_t  Now;
 
@@ -117,7 +115,6 @@ int  OverlapDriver(int argc, char **argv)
    FragStream **new_stream_segment;
    FragStream **old_stream_segment;
    Work_Area_t  * thread_wa;
-   int64  first_new_frag = -1, last_new_frag = -1;
    int  i;
 
 fprintf (stderr, "### sizeof (Work_Area_t) = " F_SIZE_T "\n",
@@ -370,18 +367,6 @@ Output_High_Hit_Frags ();
 #if  DO_KMER_HITS_PROFILE
 Profile_Hits ();
 #endif
-
-   if  (first_new_frag >= 0)
-       {
-        FILE  * fp = File_Open ("new.range", "w");
-
-        fprintf (fp, "batch:" F_UID "\n", Batch_Msg_UID);
-        fprintf (fp, "lo:" F_S64 "  hi:" F_S64 "\n", first_new_frag, last_new_frag);
-        fclose (fp);
-       }
-
-   /* Handle the pathological case where we read ONLY distance records */
-   /* If we've added dst records, save them persistently */
 
 
    Cleanup_Work_Area (thread_wa);

@@ -41,7 +41,7 @@ int main(int argc, char ** argv)
 {
   char * asmStorePath = NULL;
   char * mapStorePath = NULL;
-  Scaffold_ID uid = 0;
+  CDS_UID_t uid = 0;
   VA_TYPE(CDS_UID_t) * uids = CreateVA_CDS_UID_t(10);
   
   // parse command line
@@ -128,7 +128,7 @@ int main(int argc, char ** argv)
       int32 i;
       for(i = 0; i < GetNumVA_CDS_UID_t(uids); i++)
       {
-        Scaffold_ID * uidp = GetVA_CDS_UID_t(uids, i);
+        CDS_UID_t * uidp = GetVA_CDS_UID_t(uids, i);
         cd = GetChromosomeCloneData(asmStore, mapStore, *uidp);
         PrintCloneData(*uidp, cd, flags, stdout);
         DeleteCloneData(cd);

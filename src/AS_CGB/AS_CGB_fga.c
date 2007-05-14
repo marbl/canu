@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_fga.c,v 1.9 2007-04-28 08:46:21 brianwalenz Exp $";
+= "$Id: AS_CGB_fga.c,v 1.10 2007-05-14 13:40:55 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_fga.c
@@ -387,11 +387,7 @@ void view_fgb_chkpnt
     for(iv0=0; iv0<nfrag; iv0++) {
       fprintf(foutv,
               //"%6d: "
-#ifndef OUTPUT_UID
               "iid %9" F_IIDP " "
-#else
-              "uid %16" F_UIDP " "
-#endif
               "%c%c%c "
               "raw: %2d %2d %2d %2d "
               //"src %10ld "
@@ -402,11 +398,7 @@ void view_fgb_chkpnt
               //"%8ld"
               "%5" F_S32P " %5" F_S32P " lab:%d\n",
               //iv0,
-#ifndef OUTPUT_UID
               get_iid_fragment(frags,iv0),
-#else
-              get_uid_fragment(frags,iv0),
-#endif	   
               (char)get_typ_fragment(frags,iv0),
               (get_con_fragment(frags,iv0) ? 'C' : ' '),
               (get_del_fragment(frags,iv0) ? 'D' : ' '),
@@ -430,13 +422,8 @@ void view_fgb_chkpnt
     for(ie0=0; ie0 < nedge; ie0++) {
       const IntFragment_ID avx = get_avx_edge(edges,ie0);
       const IntFragment_ID bvx = get_bvx_edge(edges,ie0);
-#ifndef OUTPUT_UID
       const IntFragment_ID afr = get_iid_fragment(frags,avx);
       const IntFragment_ID bfr = get_iid_fragment(frags,bvx);
-#else
-      const Fragment_ID afr = get_uid_fragment(frags,avx);
-      const Fragment_ID bfr = get_uid_fragment(frags,bvx);
-#endif
       const Tnes nes = get_nes_edge(edges,ie0);
       if(
 	 TRUE
@@ -447,20 +434,12 @@ void view_fgb_chkpnt
 	const int bhg = get_bhg_edge(edges,ie0);
 	const int invalid = get_inv_edge(edges,ie0);
 	fprintf(foute,
-#ifndef OUTPUT_UID
 		"%9" F_IIDP " "
-#else // OUTPUT_UID
-                "%16" F_UIDP " "
-#endif // OUTPUT_UID
                 "%2d "
 #ifndef HIDE_OVERHANGS
                 "%6d "
 #endif                
-#ifndef OUTPUT_UID
 		"%9" F_IIDP " "
-#else // OUTPUT_UID
-                "%16 " F_UIDP " "
-#endif // OUTPUT_UID
                 "%2d "
 #ifndef HIDE_OVERHANGS
                 "%6d "

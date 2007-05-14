@@ -40,7 +40,7 @@ VA_DEF(CDS_UID_t);
 int main(int argc, char ** argv)
 {
   char * asmStorePath = NULL;
-  Scaffold_ID uid = 0;
+  CDS_UID_t uid = 0;
   VA_TYPE(CDS_UID_t) * uids = CreateVA_CDS_UID_t(10);
   
   // parse command line

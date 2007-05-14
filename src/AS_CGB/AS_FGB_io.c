@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_FGB_io.c,v 1.19 2007-05-10 15:52:19 brianwalenz Exp $";
+= "$Id: AS_FGB_io.c,v 1.20 2007-05-14 13:40:55 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_FGB_io.c
@@ -627,7 +627,6 @@ process_gkp_store_for_fragments(char *gkpStoreName,
 
       set_vid_FragmentHash(afr_to_avx, iid, vid);
 
-      set_uid_fragment(frags, vid, getFragRecordUID(fr));
       set_iid_fragment(frags, vid, iid);
       set_cid_fragment(frags, vid, iid);
       set_typ_fragment(frags, vid, AS_READ);

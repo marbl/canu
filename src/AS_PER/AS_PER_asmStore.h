@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_PER_asmStore.h,v 1.10 2007-05-14 09:27:12 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_asmStore.h,v 1.11 2007-05-14 13:40:55 brianwalenz Exp $	 */
 #ifndef AS_PER_ASMSTORE_H
 #define AS_PER_ASMSTORE_H
 /*************************************************************************
@@ -73,7 +73,7 @@ typedef struct
 
 typedef struct
 {
-  Dist_ID  uid;
+  CDS_UID_t uid;
   float    inMean;
   float    inStddev;
   float    asmMean;
@@ -85,7 +85,7 @@ typedef struct
 
 typedef struct
 {
-  Fragment_ID    uid;
+  CDS_UID_t      uid;
   unsigned int   chaff:1;
   unsigned int   chimeric:1;
   unsigned int   inDegenerate:1;
@@ -108,7 +108,7 @@ typedef struct
 
 typedef struct
 {
-  Chunk_ID       uid;
+  CDS_UID_t      uid;
   float          coverageStat;
   unsigned int   inDegenerate:1;
   unsigned int   spare1:7;
@@ -125,7 +125,7 @@ typedef struct
 
 typedef struct
 {
-  Contig_ID      uid;
+  CDS_UID_t      uid;
   CDS_COORD_t    length;
   unsigned int   inDegenerate:1;
   unsigned int   numFrags:31;
@@ -139,7 +139,7 @@ typedef struct
 
 typedef struct
 {
-  Scaffold_ID  uid;
+  CDS_UID_t    uid;
   IntContig_ID contigIndex;
 } ASM_DSCRecord;
 
@@ -153,7 +153,7 @@ typedef struct
 
 typedef struct
 {
-  Scaffold_ID uid;
+  CDS_UID_t   uid;
   int32       numContigs;
   int32       firstContig;
   int32       firstGap;

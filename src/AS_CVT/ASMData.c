@@ -1481,7 +1481,7 @@ void PrintPartialMatePairs(VA_TYPE(ASM_MatePair) * mps,
 }
 
 
-void PrintBadCloneData(Scaffold_ID containerUID,
+void PrintBadCloneData(CDS_UID_t containerUID,
                        CloneData * cd, FILE * fo)
 {
   PrintMatePairs(cd->normal, AS_NORMAL, fo);
@@ -1490,7 +1490,7 @@ void PrintBadCloneData(Scaffold_ID containerUID,
 }
 
 
-void PrintMissingCloneData(Scaffold_ID containerUID,
+void PrintMissingCloneData(CDS_UID_t containerUID,
                            CloneData * cd, FILE * fo)
 {
   PrintPartialMatePairs(cd->elsewhere, 'E', fo);
@@ -1524,7 +1524,7 @@ void WriteBinaryMatePairs(char * fpref, char type,
 }
 
 
-void WriteBinaryCloneData(Scaffold_ID containerUID, CloneData * cd)
+void WriteBinaryCloneData(CDS_UID_t containerUID, CloneData * cd)
 {
   char fpref[4096];
   sprintf(fpref, F_UID, containerUID);
@@ -1535,7 +1535,7 @@ void WriteBinaryCloneData(Scaffold_ID containerUID, CloneData * cd)
 }
 
 
-void PrintIntraCloneData(Scaffold_ID containerUID, CloneData * cd, FILE * fo)
+void PrintIntraCloneData(CDS_UID_t containerUID, CloneData * cd, FILE * fo)
 {
   PrintInnieMatePairs(cd->innie, fo);
   PrintMatePairs(cd->normal, AS_NORMAL, fo);
@@ -1544,7 +1544,7 @@ void PrintIntraCloneData(Scaffold_ID containerUID, CloneData * cd, FILE * fo)
 }
 
 
-void PrintCloneData(Scaffold_ID containerUID,
+void PrintCloneData(CDS_UID_t containerUID,
                     CloneData * cd, char * which, FILE * fo)
 {
   if(which[AS_INNIE])
@@ -2583,7 +2583,7 @@ void PrintMapStore(AssemblyStore * asmStore,
 
 void PrintChromosomeElsewheres(AssemblyStore * asmStore,
                                MapStore * mapStore,
-                               Scaffold_ID containerUID,
+                               CDS_UID_t containerUID,
                                FILE * fo)
 {
   ASM_CHRRecord chr1;
@@ -2735,7 +2735,7 @@ void PrintScaffoldElsewheres(AssemblyStore * asmStore,
 
 CloneData * GetChromosomeCloneData(AssemblyStore * asmStore,
                                    MapStore * mapStore,
-                                   Scaffold_ID containerUID)
+                                   CDS_UID_t containerUID)
 {
   CloneData * cd;
   ASM_CHRRecord chr;

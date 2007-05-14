@@ -46,7 +46,7 @@ typedef enum
 
 typedef struct
 {
-  Fragment_ID leftUID;
+  CDS_UID_t   leftUID;
   SeqInterval pts[4];
 } ASM_Quad;
 VA_DEF(ASM_Quad)
@@ -54,10 +54,10 @@ VA_DEF(ASM_Quad)
 
 typedef struct
 {
-  Fragment_ID leftUID;
-  Fragment_ID rightUID;
-  Dist_ID     distUID;
-  Scaffold_ID containerUID;
+  CDS_UID_t   leftUID;
+  CDS_UID_t   rightUID;
+  CDS_UID_t   distUID;
+  CDS_UID_t   containerUID;
   SeqInterval fivePrimes;
   CDS_COORD_t basePairs;
   float       stddevs;
@@ -104,24 +104,24 @@ CloneData * CreateCloneData(void);
 CloneData * GetScaffoldCloneData(AssemblyStore * asmStore,
                                  int32 scaffoldIndex,
                                  int canonicalOnly, int isDegenerate);
-void PrintCloneData(Scaffold_ID containerUID,
+void PrintCloneData(CDS_UID_t containerUID,
                     CloneData * cd, char * which, FILE * fo);
-void PrintAsmStoreIntraTampaData(Scaffold_ID containerUID,
+void PrintAsmStoreIntraTampaData(CDS_UID_t containerUID,
                                  CloneData * cd,
                                  int includeSPS,
                                  FILE * fo);
 void PrintChromosomeElsewheres(AssemblyStore * asmStore,
                                MapStore * mapStore,
-                               Scaffold_ID containerUID,
+                               CDS_UID_t containerUID,
                                FILE * fo);
 void PrintScaffoldElsewheres(AssemblyStore * asmStore,
                              int32 scaffoldIndex,
                              int canonicalOnly,
                              int isDegenerate,
                              FILE * fo);
-void PrintBadCloneData(Scaffold_ID containerUID,
+void PrintBadCloneData(CDS_UID_t containerUID,
                        CloneData * cd, FILE * fo);
-void PrintMissingCloneData(Scaffold_ID containerUID,
+void PrintMissingCloneData(CDS_UID_t containerUID,
                            CloneData * cd, FILE * fo);
 
 void CopyGateKeeperLNKStore(AssemblyStore * asmStore);
@@ -163,10 +163,10 @@ void PrintMapStore(AssemblyStore * asmStore,
                    FILE * fo);
 CloneData * GetChromosomeCloneData(AssemblyStore * asmStore,
                                    MapStore * mapStore,
-                                   Scaffold_ID containerUID);
-void WriteBinaryCloneData(Scaffold_ID containerUID, CloneData * cd);
+                                   CDS_UID_t containerUID);
+void WriteBinaryCloneData(CDS_UID_t containerUID, CloneData * cd);
 
-void PrintIntraCloneData(Scaffold_ID containerUID, CloneData * cd, FILE * fo);
+void PrintIntraCloneData(CDS_UID_t containerUID, CloneData * cd, FILE * fo);
 
 void PrintATACScaffoldGenomicAxis(AssemblyStore * asmStore,
                                   int32 index,
@@ -183,7 +183,7 @@ void PrintATACSurrogates(AssemblyStore * asmStore,
 void InitializeATACFile(AssemblyStore * asmStore, FILE * fo);
 void PrintBACFragCloneIntervals(AssemblyStore * asmStore,
                                 MapStore * mapStore,
-                                Scaffold_ID containerUID);
+                                CDS_UID_t containerUID);
 void PrintFastaFragmentCoordinates(AssemblyStore * asmStore, FILE * fo);
 
 #endif // ASMDATA_H

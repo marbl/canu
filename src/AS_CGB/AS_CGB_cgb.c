@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_cgb.c,v 1.12 2007-05-14 09:27:10 brianwalenz Exp $";
+= "$Id: AS_CGB_cgb.c,v 1.13 2007-05-14 13:40:55 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_cgb.c
@@ -1226,10 +1226,8 @@ static void make_the_chunks
           if( container != 0 ) {
             fprintf(stderr,
                     "The first fragment in a chunk with container != 0 "
-                    " uid=" F_UID
                     " iid=" F_IID " vid=" F_IID " cid=" F_IID " type=%d label=%d"
                     " con=%d container=" F_IID "\n",
-                    get_uid_fragment(frags,vid),
                     get_iid_fragment(frags,vid),
                     vid,
                     get_cid_fragment(frags,vid),
@@ -1256,14 +1254,13 @@ static void make_the_chunks
   { IntFragment_ID vid; for(vid=0;vid<GetNumFragments(frags);vid++) { 
     if( (fragment_timesinchunks[vid] != 1) &&
         (AS_CGB_DELETED_FRAG != get_lab_fragment(frags,vid))) {
-      Fragment_ID uid = get_uid_fragment(frags,vid);
       IntFragment_ID iid = get_iid_fragment(frags,vid);
       IntChunk_ID cid = get_cid_fragment(frags,vid);
       Tlab lab = get_lab_fragment(frags,vid);
       fprintf(stderr,"make_the_chunks: Quality control\n"
-	      "uid=" F_UID " iid=" F_IID " vid=" F_IID " cid=" F_IID " lab=%d "
+	      "iid=" F_IID " vid=" F_IID " cid=" F_IID " lab=%d "
               "fragment_timesinchunks=%d\n",
-	      uid,iid,vid,cid,lab,fragment_timesinchunks[vid]);
+	      iid,vid,cid,lab,fragment_timesinchunks[vid]);
     }
 #if 0
     assert((fragment_timesinchunks[vid] == 0)|| 
@@ -1272,8 +1269,7 @@ static void make_the_chunks
     if( (fragment_timesinchunks[vid] == 0) &&
         (AS_CGB_DELETED_FRAG != get_lab_fragment(frags,vid))) {
       fprintf(stderr,"This fragment is not in any chunk -- Orphaned fragment "
-              "uid=" F_UID " iid=" F_IID " vid=" F_IID " cid=" F_IID " type=%d\n", 
-	      get_uid_fragment(frags,vid),
+              "iid=" F_IID " vid=" F_IID " cid=" F_IID " type=%d\n", 
 	      get_iid_fragment(frags,vid),
 	      vid,
 	      get_cid_fragment(frags,vid),

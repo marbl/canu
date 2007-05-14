@@ -54,8 +54,6 @@ typedef struct {
 
 
 typedef struct { 
-  Fragment_ID uid; /* The Celera Genomics UID for this for this 
-		       fragment read. */
   uint64  src; /* An index into the character array
                       "the_source_text" holding the simulator source
                       info. */
@@ -435,9 +433,6 @@ static int get_tied_dvt_edge(const Tedge * const edges,IntEdge_ID i)
 }
 
 
-#pragma inline set_uid_fragment
-static void set_uid_fragment(Tfragment frags[],IntFragment_ID i,Fragment_ID value)
-{ VAgetaccess(Afragment,frags,i,uid) = (Fragment_ID)value;}
 #pragma inline set_iid_fragment
 static void set_iid_fragment(Tfragment frags[],IntFragment_ID i,IntFragment_ID value)
 { VAgetaccess(Afragment,frags,i,iid) = (IntFragment_ID)value;}
@@ -483,7 +478,6 @@ static void set_spur_fragment(Tfragment frags[],IntFragment_ID i,int value)
 { VAgetaccess(Afragment,frags,i,spur) = value;}
 
 
-#pragma inline get_uid_fragment
 #pragma inline get_iid_fragment
 #pragma inline get_typ_fragment
 #pragma inline get_lab_fragment
@@ -498,8 +492,6 @@ static void set_spur_fragment(Tfragment frags[],IntFragment_ID i,int value)
 #pragma inline get_spur_fragment
 #pragma inline get_forward_fragment
 
-static Fragment_ID get_uid_fragment(const Tfragment * const frags,IntFragment_ID i)
-{ return (Fragment_ID) VAgetaccess(Afragment,frags,i,uid);}
 static IntFragment_ID get_iid_fragment(const Tfragment * const frags,IntFragment_ID i)
 { return (IntFragment_ID) VAgetaccess(Afragment,frags,i,iid);}
 static FragType get_typ_fragment(const Tfragment * const frags,IntFragment_ID i)
