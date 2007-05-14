@@ -36,7 +36,7 @@ VA_DEF(IEPish);
 typedef struct
 {
   CDS_CID_t id;
-  cds_int32 zlfUsFound;
+  int32 zlfUsFound;
   VA_TYPE(MultiAlignT) * zlfUMAs;
 } ZLFContig;
 VA_DEF(ZLFContig);
@@ -44,7 +44,7 @@ VA_DEF(ZLFContig);
 typedef struct
 {
   CDS_CID_t id;
-  cds_int32 zlfContigsFound;
+  int32 zlfContigsFound;
   VA_TYPE(ZLFContig) * zlfContigs;
 } ZLFScaffold;
 VA_DEF(ZLFScaffold);

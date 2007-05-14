@@ -27,59 +27,59 @@ class SYS_UIDclient {
  public:
 
    SYS_UIDclient();
-   SYS_UIDclient(cds_uint64 block_size);
+   SYS_UIDclient(uint64 block_size);
    ~SYS_UIDclient();
 
    void              Initialize(void);
-   cds_int32         GetMaxUIDSize(cds_uint64* size);
-   cds_int32         GetLastUIDInterval(cds_uint64* last_UID);
-   cds_int32         GetNewUIDInterval(cds_uint64* new_UID);
-   void              SetUIDSize(cds_uint64 block_size);
-   cds_int32         GetNextUID(cds_uint64* uid);
-   cds_int32         GetLastUID(cds_uint64* uid);
+   int32         GetMaxUIDSize(uint64* size);
+   int32         GetLastUIDInterval(uint64* last_UID);
+   int32         GetNewUIDInterval(uint64* new_UID);
+   void              SetUIDSize(uint64 block_size);
+   int32         GetNextUID(uint64* uid);
+   int32         GetLastUID(uint64* uid);
 
  private:
 
   // functions /////////////////////////////////////////////
   void               GetNewUIDFromServer(void);
   void               HandleConnectionError(void);
-  void               SetUIDInterval(cds_uint64 a, cds_uint64 a_size, 
-                                    cds_uint64 b, cds_uint64 b_size);
-  cds_int32          QueryServer(cds_int32 code, cds_uint64* interval);
+  void               SetUIDInterval(uint64 a, uint64 a_size, 
+                                    uint64 b, uint64 b_size);
+  int32          QueryServer(int32 code, uint64* interval);
 
   // regular types //////////////////////////////////////////
-  cds_uint64         interval_UID[4];
-  cds_int32          status;
-  cds_uint64         size_UID;
-  cds_uint64         increment_offset_UID;
-  cds_uint64         increment_max_UID;
+  uint64         interval_UID[4];
+  int32          status;
+  uint64         size_UID;
+  uint64         increment_offset_UID;
+  uint64         increment_max_UID;
 
   // communication-related - custom per OS ///////////////////
-  cds_int32          CreateConnection(void);
-  cds_int32          ConfigureConnection(void);
-  void               ReceiveServerMessage(cds_int32 code, cds_uint64* interval);
+  int32          CreateConnection(void);
+  int32          ConfigureConnection(void);
+  void               ReceiveServerMessage(int32 code, uint64* interval);
   void               CloseConnection(void);
-  cds_int32          GetServerHostInfo(void);
+  int32          GetServerHostInfo(void);
 
-  cds_int32           server_connection_id;
+  int32           server_connection_id;
   struct sockaddr_in  server_connection_data;
-  cds_int32           server_connection_data_size;
+  int32           server_connection_data_size;
   struct hostent*     server_host_info;
   char                server_host_name[300];
-  cds_int32           server_tcp_port;
+  int32           server_tcp_port;
 
-  cds_int32          CreateFailsafeConnection(void);
-  cds_int32          ConfigureFailsafeConnection(void);
-  void               ReceiveFailsafeServerMessage(cds_int32 code, cds_uint64* interval);
+  int32          CreateFailsafeConnection(void);
+  int32          ConfigureFailsafeConnection(void);
+  void               ReceiveFailsafeServerMessage(int32 code, uint64* interval);
   void               CloseFailsafeConnection(void);
-  cds_int32          GetFailsafeServerHostInfo(void);
+  int32          GetFailsafeServerHostInfo(void);
 
-  cds_int32           failsafe_server_connection_id;
+  int32           failsafe_server_connection_id;
   struct sockaddr_in  failsafe_server_connection_data;
-  cds_int32           failsafe_server_connection_data_size;
+  int32           failsafe_server_connection_data_size;
   struct hostent*     failsafe_server_host_info;
   char                failsafe_server_host_name[300];
-  cds_int32           failsafe_server_tcp_port;
+  int32           failsafe_server_tcp_port;
 
 };
 

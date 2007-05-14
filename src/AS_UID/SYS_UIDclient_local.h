@@ -24,48 +24,48 @@
 
 // local functions /////////
 
-static cds_int32                QueryServer(cds_int32 code, cds_uint64* interval);
+static int32                QueryServer(int32 code, uint64* interval);
 CDS_UID_t                       getGUIDBlock(int guidRequestSize);
 int                             findGuidStartFromHttpString(char* httpString);
 int                             findGuidEndFromHttpString(char* httpString);
-static cds_int32                CreateConnection(void);
-static cds_int32                ConfigureConnection(void);
-static void                     ReceiveServerMessage(cds_int32 code, cds_uint64* interval);
+static int32                CreateConnection(void);
+static int32                ConfigureConnection(void);
+static void                     ReceiveServerMessage(int32 code, uint64* interval);
 static void                     CloseConnection(void);
-static cds_int32                GetServerHostInfo(void);
+static int32                GetServerHostInfo(void);
 
-static cds_int32                CreateFailsafeConnection(void);
-static cds_int32                ConfigureFailsafeConnection(void);
-static void                     ReceiveFailsafeServerMessage(cds_int32 code, cds_uint64* interval);
+static int32                CreateFailsafeConnection(void);
+static int32                ConfigureFailsafeConnection(void);
+static void                     ReceiveFailsafeServerMessage(int32 code, uint64* interval);
 static void                     CloseFailsafeConnection(void);
-static cds_int32                GetFailsafeServerHostInfo(void);
+static int32                GetFailsafeServerHostInfo(void);
 
-static void                     SetUIDInterval(cds_uint64 a, cds_uint64 a_size, 
-                                               cds_uint64 b, cds_uint64 b_size);
+static void                     SetUIDInterval(uint64 a, uint64 a_size, 
+                                               uint64 b, uint64 b_size);
 static void                     Initialize(void);
 
 // local vars /////////
 
-static cds_uint64               interval_UID[4];
-static cds_int32                status                            = UID_CODE_START;
-static cds_int32                server_request_mode               = UID_CODE_OK;
+static uint64               interval_UID[4];
+static int32                status                            = UID_CODE_START;
+static int32                server_request_mode               = UID_CODE_OK;
 
-static cds_int32                server_connection_id              = 0;
+static int32                server_connection_id              = 0;
 static struct sockaddr_in       server_connection_data;
-static cds_int32                server_connection_data_size       = 0;
+static int32                server_connection_data_size       = 0;
 static struct hostent*          server_host_info                  = NULL;
-static cds_int32                server_tcp_port                   = 0;
+static int32                server_tcp_port                   = 0;
 char                            server_host_name[300];
 
-static cds_int32                failsafe_server_connection_id     = 0;
+static int32                failsafe_server_connection_id     = 0;
 static struct sockaddr_in       failsafe_server_connection_data;
-static cds_int32                failsafe_server_connection_data_size = 0;
+static int32                failsafe_server_connection_data_size = 0;
 static struct hostent*          failsafe_server_host_info         = NULL;
-static cds_int32                failsafe_server_tcp_port          = 0;
+static int32                failsafe_server_tcp_port          = 0;
 char                            failsafe_server_host_name[300];
 
-static cds_uint64               size_UID                          = 1L;
-static cds_uint64               increment_offset_UID              = 0L;
-static cds_uint64               increment_max_UID                 = 0L;
+static uint64               size_UID                          = 1L;
+static uint64               increment_offset_UID              = 0L;
+static uint64               increment_max_UID                 = 0L;
 
 #endif

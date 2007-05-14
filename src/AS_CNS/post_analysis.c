@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: post_analysis.c,v 1.15 2007-04-28 08:46:22 brianwalenz Exp $ */
+/* $Id: post_analysis.c,v 1.16 2007-05-14 09:27:11 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
  char *outputfile_prefix=NULL;
  ID_Arrayp  tig_iids;
  ID_Arrayp  tig_iids_found;
- cds_int64  this_id;
+ int64  this_id;
  int do_all = 1;
  int errflg=0;
  char ch;

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ContigT_CGW.c,v 1.10 2007-04-16 17:36:30 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ContigT_CGW.c,v 1.11 2007-05-14 09:27:11 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_EDGES
@@ -52,8 +52,8 @@ void CheckContigs()
   InitGraphNodeIterator(&CIs, ScaffoldGraph->ContigGraph, GRAPH_NODE_DEFAULT);
   while((contig = NextGraphNodeIterator(&CIs)) != NULL)
     {
-      float64 meanDelta = fabs(contig->offsetAEnd.mean - contig->offsetBEnd.mean);
-      float64 varianceDelta = fabs(contig->offsetAEnd.variance -
+      double meanDelta = fabs(contig->offsetAEnd.mean - contig->offsetBEnd.mean);
+      double varianceDelta = fabs(contig->offsetAEnd.variance -
                                    contig->offsetBEnd.variance);
       if(meanDelta + .5 < contig->bpLength.mean ||
          meanDelta - .5 > contig->bpLength.mean ||

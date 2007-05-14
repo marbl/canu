@@ -48,7 +48,7 @@ usage(char *name) {
 int
 main(int argc, char **argv) {
   int   startScaff   = 0;
-  int   endScaff     = CDS_INT32_MAX;
+  int   endScaff     = INT32_MAX;
   int   dumpScaffold = 1;
   int   ckptNum      = 0;
   char *ckptFileName = 0L;

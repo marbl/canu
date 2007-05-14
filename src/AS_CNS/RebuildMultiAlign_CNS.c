@@ -25,7 +25,7 @@
                  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: RebuildMultiAlign_CNS.c,v 1.14 2007-04-28 08:46:22 brianwalenz Exp $";
+static char CM_ID[] = "$Id: RebuildMultiAlign_CNS.c,v 1.15 2007-05-14 09:27:11 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -85,7 +85,7 @@ int main (int argc, char *argv[]) {
    UnitigData dat;
    FILE *tigs;
    int32 acc;
-   float32 stat;
+   float   stat;
    int32 len;
    int counter=0;
    int n_frags;

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.13 2007-02-28 13:53:08 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.14 2007-05-14 09:27:11 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -522,8 +522,8 @@ int InsertOverlapInHashTable(Overlap *tempOlap,
 void CollectChunkOverlap(GraphCGW_T *graph,
                          CDS_CID_t cidA, CDS_CID_t cidB,
                          ChunkOrientationType orientation, 
-                         float32 meanOverlap, float32 deltaOverlap,
-                         float32 quality, int bayesian,
+                         float   meanOverlap, float   deltaOverlap,
+                         float   quality, int bayesian,
                          int fromCGB, 
 			 int verbose){
   ChunkOverlapperT *chunkOverlapper = graph->overlapper;

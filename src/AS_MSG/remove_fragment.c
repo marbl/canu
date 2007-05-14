@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: remove_fragment.c,v 1.11 2007-04-30 13:00:30 brianwalenz Exp $ */
+/* $Id: remove_fragment.c,v 1.12 2007-05-14 09:27:12 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,7 +44,7 @@ int main( int argc, char ** argv )
   ID_Arrayp  frag_uids;
   ID_Arrayp  frag_uids_found;
   ID_Arrayp  frag_iids;
-  cds_int64  i;
+  int64  i;
   
   if( argc < 4 )
   {

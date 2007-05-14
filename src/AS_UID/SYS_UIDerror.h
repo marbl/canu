@@ -26,10 +26,10 @@
 extern "C" {
 #endif
 
-void        SYS_UIDhandleAcceptError(cds_int32 err_code);
-void        SYS_UIDhandleRegisterError(cds_int32 err_code);
-void        SYS_UIDhandleCreateError(cds_int32 err_code);
-void        SYS_UIDhandleActivateError(cds_int32 err_code);
+void        SYS_UIDhandleAcceptError(int32 err_code);
+void        SYS_UIDhandleRegisterError(int32 err_code);
+void        SYS_UIDhandleCreateError(int32 err_code);
+void        SYS_UIDhandleActivateError(int32 err_code);
 void        SYS_UIDerrorMsg(const char* err_str);
 
 #ifdef __cplusplus

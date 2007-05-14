@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_store.h,v 1.8 2007-04-30 13:00:29 brianwalenz Exp $
+ * $Id: AS_CGB_store.h,v 1.9 2007-05-14 09:27:10 brianwalenz Exp $
  *
  * Module: AS_CGB_store.h
  * Description: Header file for the code that reads and writes the 
@@ -64,9 +64,9 @@ static BPTYPE get_genend_fraginfo(const Tfraginfo * const fraginfo,IntFragment_I
 
 
 typedef struct { 
-  cds_int32       store_version;
-  cds_int32       state_of_the_store;
-  cds_int32       unused;
+  int32       store_version;
+  int32       state_of_the_store;
+  int32       unused;
 
   unsigned int    edges_sorted_by_fragment_end : 1;
   unsigned int    unmated_edges : 1;

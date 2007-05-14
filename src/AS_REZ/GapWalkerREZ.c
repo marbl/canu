@@ -39,7 +39,7 @@
  **********************************************************************/
 
 
-static char fileID[] = "$Id: GapWalkerREZ.c,v 1.11 2007-04-16 17:34:15 brianwalenz Exp $";
+static char fileID[] = "$Id: GapWalkerREZ.c,v 1.12 2007-05-14 09:27:12 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -1592,13 +1592,13 @@ int Find_Greedy_Path(chunk_subgraph * subgraph,
     hops,
     num_edges = 0,
     edge_start_index = 0;
-  float64
+  double
     neg_num_std_deviations,
     pos_num_std_deviations;
 #   if DEBUG_GAP_WALKER > 5
   int
     do_check_distance;
-  float64
+  double
     add_mean,
     add_variance;
 #endif
@@ -1758,8 +1758,8 @@ int Find_Greedy_Path(chunk_subgraph * subgraph,
     if( (e->idA == destination &&  e->idB != source)  
 	|| (e->idB == destination && e->idA != source) )
       {
-	float64 gap_estimate;
-	float64 lower_bound;
+	double gap_estimate;
+	double lower_bound;
 
 	if ( GlobalData->walkLevel == 1 )
 	  neg_num_std_deviations = 3.0;
@@ -1974,9 +1974,9 @@ int Find_Greedy_Path(chunk_subgraph * subgraph,
     // the end and we have travelled far enough and not too far.
     //
     {
-      float64 gap_estimate = travelled_distance.mean-to_chunk->bpLength.mean;
-      float64 upper_bound  = max_distance->mean + pos_num_std_deviations * sqrt(max_distance->variance);
-      float64 lower_bound  = max_distance->mean - neg_num_std_deviations * sqrt(max_distance->variance);
+      double gap_estimate = travelled_distance.mean-to_chunk->bpLength.mean;
+      double upper_bound  = max_distance->mean + pos_num_std_deviations * sqrt(max_distance->variance);
+      double lower_bound  = max_distance->mean - neg_num_std_deviations * sqrt(max_distance->variance);
 #   if DEBUG_GAP_WALKER > 2
       fprintf(gwlogfp,"gap estimate+SLOP = %f, upper bound = %f, lower bound = %f\n",gap_estimate+SLOP,upper_bound,lower_bound);
 #endif

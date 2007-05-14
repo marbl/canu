@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: GraphCGW_T.h,v 1.15 2007-03-04 02:06:21 brianwalenz Exp $	 */
+/* 	$Id: GraphCGW_T.h,v 1.16 2007-05-14 09:27:11 brianwalenz Exp $	 */
 
 /**************************************************************************
  *  GraphCGW
@@ -133,7 +133,7 @@ typedef struct {
   CDS_CID_t prevALink; // prev edge involving cidA, -1 if none
   CDS_CID_t prevBLink; // prev edge involving cidB, -1 if none
 
-  float32 minDistance;  /* negative implies potential overlap 
+  float   minDistance;  /* negative implies potential overlap 
                          * This Field is overloaded to store the distance.mean when
                          * the flag MeanChangedByWalk is true.  The function RestoreEdgeMeans
                          * restores the value and unsets the flag.
@@ -279,20 +279,20 @@ typedef struct{
       // All of this is redundant to what is incldued in the multiAlignment
       CDS_CID_t AEndCI;   //Index of Chunk Instance at A end of Contig
       CDS_CID_t BEndCI;   //Index of Chunk Instance at B end of Contig
-      cds_int32 numCI;    //Number of CI in contig
+      int32 numCI;    //Number of CI in contig
       CDS_COORD_t branchPointA;
       CDS_COORD_t branchPointB;    
     }Contig;
     struct CISCAFFOLD_TAG{
       CDS_CID_t AEndCI; // Index of Chunk Instance at A end of Scaffold
       CDS_CID_t BEndCI; // Index of Chunk Instance at B End of Scaffold
-      cds_int32 numElements; // If containsCIs, these are CIs, else they are Contigs
+      int32 numElements; // If containsCIs, these are CIs, else they are Contigs
       /*** Info computed by RecomputeScaffoldPositions ***/
-      float32 leastSquareError;   // Measure of chi-squared of computed positions
-      cds_int32 numLeastSquareClones; // Relates to degrees of freedom for chi-square calculation
+      float   leastSquareError;   // Measure of chi-squared of computed positions
+      int32 numLeastSquareClones; // Relates to degrees of freedom for chi-square calculation
       /*** Info computed by MarkInternaledges ***/
-      cds_int32 internalEdges;  // Number of merged edges (not including UNTRUSTED) that are internal to scaffold
-      cds_int32 confirmedInternalEdges; // Number of merged edges confirmed by current CI positions
+      int32 internalEdges;  // Number of merged edges (not including UNTRUSTED) that are internal to scaffold
+      int32 confirmedInternalEdges; // Number of merged edges confirmed by current CI positions
     }Scaffold;
   }info;
 
@@ -352,7 +352,7 @@ typedef struct{
 
   CDS_CID_t edgeHead;  // Pointer to linked list of edges  in edges;
 
-  float32 microhetScore; /* Score from Knut&Aaron's microhet detecter, valid for CIs only! Could be in union above, but CI
+  float   microhetScore; /* Score from Knut&Aaron's microhet detecter, valid for CIs only! Could be in union above, but CI
                             variant is biggest one.  So I reused an unused field at the top level SAK */
 
 
@@ -382,8 +382,8 @@ typedef struct{
   GraphType type;
   VA_TYPE(NodeCGW_T) *nodes;
   VA_TYPE(EdgeCGW_T) *edges;
-  cds_int32 numActiveNodes;
-  cds_int32 numActiveEdges;
+  int32 numActiveNodes;
+  int32 numActiveEdges;
   CDS_CID_t freeEdgeHead;
   CDS_CID_t tobeFreeEdgeHead; // staging area for edges waiting to be moved to the free list
   CDS_CID_t freeNodeHead;
@@ -501,8 +501,8 @@ static EdgeCGW_T *CreateNewGraphEdge(GraphCGW_T *graph ){
 }
 
 /* Constructor and Destructor */
-GraphCGW_T *CreateGraphCGW(GraphType type, cds_int32 numNodes,
-                           cds_int32 numEdges);
+GraphCGW_T *CreateGraphCGW(GraphType type, int32 numNodes,
+                           int32 numEdges);
 void DeleteGraphCGW(GraphCGW_T *graph);
 
 /* Persistence */
@@ -1288,7 +1288,7 @@ CDS_CID_t AddGraphEdge( GraphCGW_T *graph,
                         CDS_CID_t fidA, CDS_CID_t fidB,
                         CDS_CID_t dist,
                         LengthT distance,
-                        float32 quality,
+                        float   quality,
                         CDS_COORD_t fudgeDistance,
                         OrientType orientation,
                         int isInducedByUnknownOrientation,
@@ -1418,8 +1418,8 @@ int32  LargeOverlapExists(GraphCGW_T *graph,
 void CollectChunkOverlap(GraphCGW_T *graph,
                          CDS_CID_t cidA, CDS_CID_t cidB,
                          ChunkOrientationType orientation, 
-                         float32 meanOverlap, float32 deltaOverlap,
-                         float32 quality, int bayesian,
+                         float   meanOverlap, float   deltaOverlap,
+                         float   quality, int bayesian,
                          int fromCGB, int verbose);
 
 

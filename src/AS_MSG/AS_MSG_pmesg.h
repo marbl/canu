@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.45 2007-04-30 13:00:30 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.46 2007-05-14 09:27:12 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -162,8 +162,8 @@ typedef struct {
 typedef struct {
   ActionType   action;
   Library_ID   eaccession;
-  float32      mean;
-  float32      stddev;
+  float        mean;
+  float        stddev;
 #ifdef AS_ENABLE_SOURCE
   char        *source;
 #endif
@@ -178,8 +178,8 @@ typedef struct {
 typedef struct {
   ActionType   action;
   Distance_ID  eaccession;
-  float32      mean;
-  float32      stddev;
+  float        mean;
+  float        stddev;
 } DistanceMesg;
 
 /* IDT message */
@@ -187,8 +187,8 @@ typedef struct {
 typedef struct {
   ActionType   action;
   Distance_ID  eaccession;
-  float32      mean;
-  float32      stddev;
+  float        mean;
+  float        stddev;
   IntDist_ID   iaccession;
 } InternalDistMesg;
 
@@ -318,7 +318,7 @@ typedef struct {
   CDS_COORD_t      ahg,bhg;
   OrientType       orientation;
   OverlapType      overlap_type;
-  float32          quality;
+  float            quality;
   CDS_COORD_t      min_offset, max_offset;
   int32            polymorph_ct;
   signed char      *delta;
@@ -432,7 +432,7 @@ typedef struct {
   CDS_COORD_t           best_overlap_length;
   CDS_COORD_t           min_overlap_length;
   CDS_COORD_t           max_overlap_length;
-  float32               quality;
+  float                 quality;
 } UnitigOverlapMesg;
 
 
@@ -567,7 +567,7 @@ typedef struct {
 #ifdef AS_ENABLE_SOURCE
   char		  *source;
 #endif
-  float32         coverage_stat;
+  float           coverage_stat;
   UnitigStatus    status;
   CDS_COORD_t     a_branch_point;
   CDS_COORD_t     b_branch_point;
@@ -646,8 +646,8 @@ typedef struct {
   UnitigOverlapType	overlap_type;
   int32			is_possible_chimera;
   int32			includes_guide;
-  float32		mean_distance;
-  float32		std_deviation;
+  float  		mean_distance;
+  float  		std_deviation;
   int32			num_contributing;
   PlacementStatusType	status;
   IntMate_Pairs		*jump_list;
@@ -663,8 +663,8 @@ typedef struct {
   UnitigOverlapType	overlap_type;
   int32			is_possible_chimera;
   int32			includes_guide;
-  float32		mean_distance;
-  float32		std_deviation;
+  float  		mean_distance;
+  float  		std_deviation;
   int32			num_contributing;
   PlacementStatusType	status;
   IntMate_Pairs		*jump_list;
@@ -677,8 +677,8 @@ typedef struct {
   IntScaffold_ID	iscaffold2;
   ChunkOrientationType	orientation;
   int32			includes_guide;
-  float32		mean_distance;
-  float32		std_deviation;
+  float  		mean_distance;
+  float  		std_deviation;
   int32			num_contributing;
   IntMate_Pairs		*jump_list;
 } InternalScaffoldLinkMesg;
@@ -728,8 +728,8 @@ typedef struct {
 
 typedef struct {
   IntDist_ID  refines;
-  float32     mean;
-  float32     stddev;
+  float       mean;
+  float       stddev;
   int32	      min;
   int32	      max;
   int32	      num_buckets;
@@ -741,8 +741,8 @@ typedef struct {
 typedef struct {
   IntContig_ID		contig1;
   IntContig_ID		contig2;
-  float32		mean;
-  float32		stddev;
+  float  		mean;
+  float  		stddev;
   ChunkOrientationType	orient;
 } IntContigPairs;
 
@@ -788,7 +788,7 @@ typedef struct {
 #ifdef AS_ENABLE_SOURCE
   char		  *source;
 #endif
-  float32         coverage_stat;
+  float           coverage_stat;
   UnitigStatus    status;
   CDS_COORD_t     a_branch_point;
   CDS_COORD_t     b_branch_point;
@@ -815,8 +815,8 @@ typedef struct {
   UnitigOverlapType	overlap_type;
   int32			is_possible_chimera;
   int32			includes_guide;
-  float32		mean_distance;
-  float32		std_deviation;
+  float  		mean_distance;
+  float  		std_deviation;
   int32			num_contributing;
   PlacementStatusType	status;
   SnapMate_Pairs       *jump_list; // changed in comparison to internal message
@@ -847,8 +847,8 @@ typedef struct {
   UnitigOverlapType	overlap_type;
   int32			is_possible_chimera;
   int32			includes_guide;
-  float32		mean_distance;
-  float32		std_deviation;
+  float  		mean_distance;
+  float  		std_deviation;
   int32			num_contributing;
   PlacementStatusType	status;
   SnapMate_Pairs	*jump_list; // changed in comparison to internal message
@@ -860,8 +860,8 @@ typedef struct {
   Scaffold_ID           escaffold2;
   ChunkOrientationType	orientation;
   int32			includes_guide;
-  float32		mean_distance;
-  float32		std_deviation;
+  float  		mean_distance;
+  float  		std_deviation;
   int32			num_contributing;
   SnapMate_Pairs	*jump_list;
 } SnapScaffoldLinkMesg;
@@ -870,8 +870,8 @@ typedef struct {
 typedef struct {
   Contig_ID		econtig1; // changed in comparison to internal message
   Contig_ID		econtig2; // changed in comparison to internal message
-  float32		mean;
-  float32		stddev;
+  float  		mean;
+  float  		stddev;
   ChunkOrientationType	orient;
 } SnapContigPairs;
 

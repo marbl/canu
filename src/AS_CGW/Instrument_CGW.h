@@ -29,8 +29,7 @@
 #include "InputDataTypes_CGW.h"
 #include "ScaffoldGraph_CGW.h"
 
-VA_DEF(cds_float32);
-VA_DEF(cds_int32);
+VA_DEF(float);
 VA_DEF(IntContigPairs);
 
 /*
@@ -97,15 +96,15 @@ typedef enum
 */
 typedef struct
 {
-  cds_int32  numNegatives;
-  cds_int32  numPositives;
-  cds_int32  num;
-  cds_float32 sumOfSquares;
-  cds_float32 min;
-  cds_float32 minNegative;
-  cds_float32 max;
-  cds_float32 mean;
-  cds_float32 stddev;
+  int32  numNegatives;
+  int32  numPositives;
+  int32  num;
+  float sumOfSquares;
+  float min;
+  float minNegative;
+  float max;
+  float mean;
+  float stddev;
 } InstrumenterStatistics;
 
 
@@ -140,16 +139,16 @@ typedef enum
 typedef struct
 {
   CDS_CID_t   fragIID;
-  cds_float32 fragOffset5p;
+  float fragOffset5p;
   CDS_CID_t   fragChunkIID;
   CDS_CID_t   mateIID;
-  cds_float32 mateOffset5p;
+  float mateOffset5p;
   CDS_CID_t   mateChunkIID;
   CDS_CID_t   libIID;
   FragType    type;
 #ifdef TRACK_3P
-  cds_float32 fragOffset3p;
-  cds_float32 mateOffset3p;
+  float fragOffset3p;
+  float mateOffset3p;
 #endif
 } MateDetail;
 VA_DEF(MateDetail);
@@ -162,7 +161,7 @@ typedef struct
 {
   CDS_CID_t  iid;
   FragType    type;
-  cds_float32 offset5p;
+  float offset5p;
 } FragDetail;
 VA_DEF(FragDetail);
 
@@ -188,9 +187,9 @@ typedef struct
 
 typedef struct
 {
-  cds_int32 reads;
-  cds_int32 externalReads;
-  cds_int32 externalFrags;
+  int32 reads;
+  int32 externalReads;
+  int32 externalFrags;
 } MateStats;
 
 
@@ -208,7 +207,7 @@ typedef struct
 */
 typedef struct
 {
-  cds_uint32 options;
+  uint32 options;
   MateStatusPositionsSet * mateStatus;
   MateStatsSet intra;
   MateStatsSet inter;
@@ -223,8 +222,8 @@ typedef struct
 typedef struct
 {
   CDS_CID_t contig;
-  cds_float32 offset5p;
-  cds_float32 offset3p;
+  float offset5p;
+  float offset3p;
   CDS_CID_t nextIndex;
 } SurrogateFragLocation;
 
@@ -273,7 +272,7 @@ typedef struct
   //  FragOrient orient2;
   InstBreakpointType type;
   VA_TYPE(MateDetail *) mates;
-  cds_int32 pairs;
+  int32 pairs;
 } InstrumenterBreakpoint;
 VA_DEF(InstrumenterBreakpoint);
 
@@ -285,8 +284,8 @@ VA_DEF(InstrumenterBreakpoint);
 */
 typedef struct
 {
-  cds_int32   numPairs;
-  cds_float32 distPref;
+  int32   numPairs;
+  float distPref;
   ChunkOrientationType orientPref;
 } InstrumenterContigPair;
 VA_DEF(InstrumenterContigPair);
@@ -294,8 +293,8 @@ VA_DEF(InstrumenterContigPair);
 typedef struct
 {
   CDS_CID_t id;
-  cds_float32 offset;
-  cds_float32 length;
+  float offset;
+  float length;
   FragOrient orient;
 } ContigPlacement;
 VA_DEF(ContigPlacement);
@@ -305,7 +304,7 @@ typedef struct
   CDS_CID_t        contig1;
   CDS_COORD_t        size1;
   CDS_CID_t        contig2;
-  cds_float32      dist;
+  float      dist;
   ChunkOrientationType orient;
 } CP_Index;
 VA_DEF(CP_Index);
@@ -318,9 +317,9 @@ typedef struct
   // bookkeeping for the multiple positions of fragments in surrogate unitigs
   HashTable_AS * surrogateFragHT;
   // but DO NOT reallocate, because ht points to elements of locs
-  cds_int32 numAllocatedLocs;
+  int32 numAllocatedLocs;
   // number of loc elements in use - to keep track while adding on
-  cds_int32 numUsedLocs;
+  int32 numUsedLocs;
   // fixed size array of surrogate fragment locations
   // estimate (number of fragments in surrogates) * (instances of each surrogate)
   SurrogateFragLocation * surrogateFragLocs;
@@ -357,7 +356,7 @@ typedef struct
   int isSurrogate;
   
   // bit vector of instrumenting option switches
-  cds_uint32 options;
+  uint32 options;
   
   // unitig & above level of aggregation
   CDS_COORD_t leftEnd;
@@ -365,9 +364,9 @@ typedef struct
   int orientation;
 
   // simple counts of (some) fragment types
-  cds_int32 numReads;
-  cds_int32 numExtReads;
-  cds_int32 numExtFrags;
+  int32 numReads;
+  int32 numExtReads;
+  int32 numExtFrags;
 
   // mate status & positions for each library & no-mates list
   MateInstrumenter mates;
@@ -391,7 +390,7 @@ typedef struct
   CDS_CID_t id;
 
   // bit vector of instrumenting option switches
-  cds_uint32 options;
+  uint32 options;
   
   // contig & above level of aggregation
   CDS_COORD_t leftEnd;
@@ -399,17 +398,17 @@ typedef struct
   int orientation;
 
   // unitig counting/sizing
-  VA_TYPE(cds_float32) * unitigSizes;
+  VA_TYPE(float) * unitigSizes;
   InstrumenterStatistics unitigSizeStats;
 
   // surrogate counting/sizing
-  VA_TYPE(cds_float32) * surrogateSizes;
+  VA_TYPE(float) * surrogateSizes;
   InstrumenterStatistics surrogateSizeStats;
 
   // simple counts of (some) fragment types
-  cds_int32 numReads;
-  cds_int32 numExtReads;
-  cds_int32 numExtFrags;
+  int32 numReads;
+  int32 numExtReads;
+  int32 numExtFrags;
 
   // for instrumenting each unitig
   UnitigInstrumenter reusableUI;
@@ -439,21 +438,21 @@ typedef struct
   CDS_CID_t id;
   
   // bit vector of instrumenting option switches
-  cds_uint32 options;
+  uint32 options;
   
   // scaffold & above level of aggregation
-  cds_float32 size;
+  float size;
   
   // gap counting & sizes
-  VA_TYPE(cds_float32) * scaffoldGapSizes;
+  VA_TYPE(float) * scaffoldGapSizes;
   InstrumenterStatistics scaffoldGapSizeStats;
 
   // inferred edge stddevs to detect scaffold zippering problem
   // these will tend to increase/decrease
-  VA_TYPE(cds_float32) * inferredEdgeStddevs;
+  VA_TYPE(float) * inferredEdgeStddevs;
 
   // contig counting & sizes
-  VA_TYPE(cds_float32) * contigSizes;
+  VA_TYPE(float) * contigSizes;
   InstrumenterStatistics contigSizeStats;
 
   // for instrumenting each contig
@@ -489,29 +488,29 @@ typedef struct
 typedef struct
 {
   // bit vector of instrumenting option switches
-  cds_uint32 options;
+  uint32 options;
   
   // scaffold graph level of aggregation
-  cds_int32 numFragments;
-  cds_int32 numNotInUnitigs;
-  cds_int32 numNotInContigs;
-  cds_int32 numNotPlaced;
-  cds_int32 numChaff;
-  cds_int32 numInUnresolvedChunks;
+  int32 numFragments;
+  int32 numNotInUnitigs;
+  int32 numNotInContigs;
+  int32 numNotPlaced;
+  int32 numChaff;
+  int32 numInUnresolvedChunks;
   
   // singleton scaffold counting & sizes (single contig, multiple unitig)
-  VA_TYPE(cds_float32) * singletonScaffoldSizes;
+  VA_TYPE(float) * singletonScaffoldSizes;
   InstrumenterStatistics singletonScaffoldSizeStats;
-  VA_TYPE(cds_int32) * unitigsPerSingletonScaffold;
+  VA_TYPE(int32) * unitigsPerSingletonScaffold;
   InstrumenterStatistics unitigsPerSingletonStats;
 
   // degenerate scaffold counting & sizes (single contig, single unitig)
-  VA_TYPE(cds_float32) * degenerateScaffoldSizes;
+  VA_TYPE(float) * degenerateScaffoldSizes;
   InstrumenterStatistics degenerateScaffoldSizeStats;
-  cds_int32 numDegenerateScaffoldsWithoutReads;
+  int32 numDegenerateScaffoldsWithoutReads;
 
   // scaffold counting & sizes
-  VA_TYPE(cds_float32) * scaffoldSizes;
+  VA_TYPE(float) * scaffoldSizes;
   InstrumenterStatistics scaffoldSizeStats;
 
   // for aggregating scaffold-level data
@@ -545,7 +544,7 @@ void ResetMateInstrumenterCounts(MateInstrumenter * mi);
 
 void DestroyContigInstrumenter(ContigInstrumenter * ci);
 ContigInstrumenter * CreateContigInstrumenter(ScaffoldGraphT * graph,
-                                              cds_uint32 options);
+                                              uint32 options);
 int InitializeContigInstrumenter(ScaffoldGraphT * graph,
                                  ContigInstrumenter * ci);
 int InstrumentContig(ScaffoldGraphT * graph,
@@ -553,8 +552,8 @@ int InstrumentContig(ScaffoldGraphT * graph,
                      SurrogateTracker * st,
                      ChunkInstanceT * contig,
                      ContigInstrumenter * ci,
-                     cds_float32 aEnd,
-                     cds_float32 bEnd);
+                     float aEnd,
+                     float bEnd);
 void ComputeContigInstrumenterStats(ScaffoldGraphT * graph,
                                     ContigInstrumenter * ci);
 void PrintContigInstrumenter(ScaffoldGraphT * graph,
@@ -578,7 +577,7 @@ void PrintUnmatedDetails(ScaffoldInstrumenter * si,
 
 void DestroyScaffoldInstrumenter(ScaffoldInstrumenter * si);
 ScaffoldInstrumenter * CreateScaffoldInstrumenter(ScaffoldGraphT * graph,
-                                                  cds_uint32 options);
+                                                  uint32 options);
 int InitializeScaffoldInstrumenter(ScaffoldGraphT * graph,
                                    ScaffoldInstrumenter * si);
 int InstrumentScaffold(ScaffoldGraphT * graph,
@@ -602,7 +601,7 @@ void PrintScaffoldInstrumenter(ScaffoldGraphT * graph,
 void DestroyScaffoldGraphInstrumenter(ScaffoldGraphInstrumenter * sgi);
 ScaffoldGraphInstrumenter * CreateScaffoldGraphInstrumenter(
                                                             ScaffoldGraphT * graph,
-                                                            cds_uint32 options);
+                                                            uint32 options);
 int InitializeScaffoldGraphInstrumenter(ScaffoldGraphT * graph,
                                         ScaffoldGraphInstrumenter * sgi);
 int InstrumentScaffoldGraph(ScaffoldGraphT * graph,
@@ -626,7 +625,7 @@ int InstrumentContigEndPartial(ScaffoldGraphT * graph,
                                ScaffoldInstrumenter * si,
                                ChunkInstanceT * thisCI,
                                int end,
-                               cds_int32 numContigs);
+                               int32 numContigs);
 void GetMateInstrumenterFromScaffoldGraphInstrumenter(
                                                       MateInstrumenter * mi,
                                                       ScaffoldGraphInstrumenter * sgi);
@@ -639,10 +638,10 @@ int InstrumentContigPath(ScaffoldGraphT * graph,
                          CDS_CID_t lastID);
 
 int AdjustCIScaffoldLabels(ScaffoldGraphT * graph,
-                           cds_int32 * numScaffoldIDs);
+                           int32 * numScaffoldIDs);
 
-cds_int32 GetMateStatsBad(MateStatsSet * mss);
-cds_int32 GetMateStatsHappy(MateStatsSet * mss);
+int32 GetMateStatsBad(MateStatsSet * mss);
+int32 GetMateStatsHappy(MateStatsSet * mss);
 void PrintFragment(CIFragT * frag, CDS_CID_t index, FILE * printTo);
 void PrintBreakpoint(InstrumenterBreakpoint * bp,
                      char * prefix,

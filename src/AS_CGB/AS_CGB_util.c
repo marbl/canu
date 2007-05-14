@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_util.c,v 1.4 2005-03-22 19:48:32 jason_miller Exp $";
+= "$Id: AS_CGB_util.c,v 1.5 2007-05-14 09:27:10 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_util.c
@@ -63,9 +63,9 @@ size_t getDeltaLength (signed char * deltaCode) {
 // Safely cast these opaque types.
 // Note Tnes is specific to the CGB subsystem.
 // Later, change assert() to error reporting.
-Tnes AS_CGB_SafeCast_cdsInt8_to_Tnes (cds_int8 dataIn) {
+Tnes AS_CGB_SafeCast_cdsInt8_to_Tnes (int8 dataIn) {
     Tnes dataOut;
     dataOut = (Tnes) dataIn;
-    assert (dataIn == (cds_int8) dataOut);
+    assert (dataIn == (int8) dataOut);
     return dataOut;
 }

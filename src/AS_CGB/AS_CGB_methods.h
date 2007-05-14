@@ -38,7 +38,7 @@
 
 typedef struct {
   IntFragment_ID  avx,bvx;
-  cds_int16       ahg,bhg; 
+  int16       ahg,bhg; 
 
   uint32    quality : 16;  // zero is a perfect overlap
   uint32    nes : 8;      // The edge labeling.
@@ -56,7 +56,7 @@ typedef struct {
 typedef struct { 
   Fragment_ID uid; /* The Celera Genomics UID for this for this 
 		       fragment read. */
-  cds_uint64  src; /* An index into the character array
+  uint64  src; /* An index into the character array
                       "the_source_text" holding the simulator source
                       info. */
   IntFragment_ID  iid; /* The Celera Genomics Assembler Gatekeeper IID 
@@ -71,26 +71,26 @@ typedef struct {
 			   raw fragment overlaps to the prefix. */
   IntEdge_ID  segend_suffix;/* The ending location of a segment of 
 			   fragment overlaps to the suffix. */
-  cds_int32   nprefix_all;  /* The segment length of the prefix-only 
+  int32   nprefix_all;  /* The segment length of the prefix-only 
 			   fragment overlaps. */
-  cds_int32   nsuffix_all;  /* The segment length of the suffix-only 
+  int32   nsuffix_all;  /* The segment length of the suffix-only 
 			   fragment overlaps. */
-  cds_int32   nprefix_dvt; /* Recomputable */
+  int32   nprefix_dvt; /* Recomputable */
   // The segment length of the prefix-only fragment dovetail edges.
-  cds_int32   nsuffix_dvt; /* Recomputable */
+  int32   nsuffix_dvt; /* Recomputable */
   // The segment length of the suffix-only fragment dovetail edges.
-  cds_int32   nprefix_frc; /* Recomputable */
+  int32   nprefix_frc; /* Recomputable */
   // The segment length of the prefix-only fragment containment edges.
-  cds_int32   nsuffix_frc; /* Recomputable */
+  int32   nsuffix_frc; /* Recomputable */
   // The segment length of the suffix-only fragment containment edges.
 
 
-  cds_int32   raw_prefix_dvt_count;
+  int32   raw_prefix_dvt_count;
   // The segment length of the raw prefix-only fragment dovetail overlaps.
-  cds_int32   raw_suffix_dvt_count;
+  int32   raw_suffix_dvt_count;
   // The segment length of the raw suffix-only fragment dovetail overlaps.
-  cds_int32   raw_frc_count;
-  cds_int32   raw_toc_count;
+  int32   raw_frc_count;
+  int32   raw_toc_count;
   
   IntFragment_ID  container;  /* Recomputable */
   // A zero value means that the fragment is not contained by any
@@ -109,14 +109,14 @@ typedef struct {
   // AS_CGB_INTRACHUNK_FRAG, AS_CGB_CONTAINED_FRAG,
   // AS_CGB_DELETED_FRAG, etc ?
 
-  cds_int16   bp_length;
+  int16   bp_length;
   // The length of the fragment read in bp.
   
 #ifdef STORE_BRANCH_POINTS_AT_FRAGMENT
-  cds_int16       pre_br;  /* Recomputable */
-  cds_int16       suf_br;  /* Recomputable */
-  cds_int16       pre_end;  /* Recomputable */
-  cds_int16       suf_end;  /* Recomputable */
+  int16       pre_br;  /* Recomputable */
+  int16       suf_br;  /* Recomputable */
+  int16       pre_end;  /* Recomputable */
+  int16       suf_end;  /* Recomputable */
   /* URT branch point info. The non-existence of a branch point is
      signaled by (pre_br==0)&&(suf_br==0). */
 #endif 
@@ -159,28 +159,28 @@ typedef struct {
   IntChunk_ID   iaccession;
   // An arbitrary, but dense and non-negative enumeration of the
   // unitigs.
-  cds_float32       coverage_stat;
+  float       coverage_stat;
   // Gene^s coverage statistic.
   BranchType a_branch_type, b_branch_type; 
   // the branch point characterization: AS_INTO_REPEAT,
   // AS_INTO_UNIQUE, or AS_NO_BPOINT.
-  cds_int32         a_branch_point;  // a bp distance from the A chunk-end.
-  cds_int32         b_branch_point;  // a bp distance from the B chunk-end.
+  int32         a_branch_point;  // a bp distance from the A chunk-end.
+  int32         b_branch_point;  // a bp distance from the B chunk-end.
   // branch_point == 0 means AS_NO_BPOINT
   // branch_point >  0 means AS_INTO_UNIQUE
   // branch_point <  0 means AS_INTO_REPEAT
 
   IntFragment_ID    chunk_avx; /* The A and B vertices of the chunk. */
   IntFragment_ID    chunk_bvx;
-  cds_int32     chunk_asx;
-  cds_int32     chunk_bsx;
+  int32     chunk_asx;
+  int32     chunk_bsx;
   IntFragment_ID    num_frags;
   IntFragment_ID    f_list; /* The index into a TChunkFrag array. */
 
   // The following is not necessary. The info available from
   // fragment-end info, chunk_avx, chunk_asx, chunk_bvx, and chunk_bsx.
-  cds_int32         a_degree_raw; 
-  cds_int32         b_degree_raw;
+  int32         a_degree_raw; 
+  int32         b_degree_raw;
   IntEdge_ID        a_list_raw;
   IntEdge_ID        b_list_raw;
 
@@ -192,7 +192,7 @@ typedef struct {
   size_t        qua_len; // The length of the quality sequence of the chunk.
   size_t        isrc; /* An index into a character array that
 			 stores an annotation string about the chunk. */
-  cds_int8 asl,bsl; 
+  int8 asl,bsl; 
   // Flags indicating whether the A and B chunk-ends are probably
   // touching a tandem repeat region.
 } AChunkMesg;
@@ -250,19 +250,19 @@ static void set_bvx_edge
 { VAgetaccess(Aedge,edges,i,bvx) = (IntFragment_ID)value;}
 #pragma inline set_asx_edge
 static void set_asx_edge(Tedge edges[],IntEdge_ID i,int value)
-{ VAgetaccess(Aedge,edges,i,asx) = (cds_int8)value;}
+{ VAgetaccess(Aedge,edges,i,asx) = (int8)value;}
 #pragma inline set_bsx_edge
 static void set_bsx_edge(Tedge edges[],IntEdge_ID i,int value)
-{ VAgetaccess(Aedge,edges,i,bsx) = (cds_int8)value;}
+{ VAgetaccess(Aedge,edges,i,bsx) = (int8)value;}
 #pragma inline set_ahg_edge
 static void set_ahg_edge(Tedge edges[],IntEdge_ID i,int value)
-{ VAgetaccess(Aedge,edges,i,ahg) = (cds_int16)value;}
+{ VAgetaccess(Aedge,edges,i,ahg) = (int16)value;}
 #pragma inline set_bhg_edge
 static void set_bhg_edge(Tedge edges[],IntEdge_ID i,int value)
-{ VAgetaccess(Aedge,edges,i,bhg) = (cds_int16)value;}
+{ VAgetaccess(Aedge,edges,i,bhg) = (int16)value;}
 #pragma inline set_nes_edge
 static void set_nes_edge(Tedge edges[],IntEdge_ID i,Tnes value)
-{ VAgetaccess(Aedge,edges,i,nes) = (cds_int8)value;}
+{ VAgetaccess(Aedge,edges,i,nes) = (int8)value;}
 #pragma inline set_inv_edge
 static void set_inv_edge(Tedge edges[],IntEdge_ID i,int value)
 { VAgetaccess(Aedge,edges,i,invalid) = value;}
@@ -457,7 +457,7 @@ static void set_o5p_fragment(Tfragment frags[],IntFragment_ID i,BPTYPE value)
 
 #pragma inline set_length_fragment
 static void set_length_fragment(Tfragment frags[],IntFragment_ID i,int32 value)
-{ VAgetaccess(Afragment,frags,i,bp_length) = (cds_int16)value;}
+{ VAgetaccess(Afragment,frags,i,bp_length) = (int16)value;}
 
 #pragma inline set_src_fragment
 static void set_src_fragment(Tfragment frags[],IntFragment_ID i,size_t value)
@@ -558,32 +558,32 @@ static void set_segend_vertex
 }
 #pragma inline set_seglen_vertex
 static void set_seglen_vertex
-(Tfragment frags[],IntFragment_ID i,int flag,cds_int32 value)
+(Tfragment frags[],IntFragment_ID i,int flag,int32 value)
 { 
   if(flag) {
-    VAgetaccess(Afragment,frags,i,nsuffix_all) = (cds_int32)value;
+    VAgetaccess(Afragment,frags,i,nsuffix_all) = (int32)value;
   }else{
-    VAgetaccess(Afragment,frags,i,nprefix_all) = (cds_int32)value;
+    VAgetaccess(Afragment,frags,i,nprefix_all) = (int32)value;
   }
 }
 #pragma inline set_seglen_frc_vertex
 static void set_seglen_frc_vertex
-(Tfragment frags[],IntFragment_ID i,int flag,cds_int32 value)
+(Tfragment frags[],IntFragment_ID i,int flag,int32 value)
 { 
   if(flag) {
-    VAgetaccess(Afragment,frags,i,nsuffix_frc) = (cds_int32)value;
+    VAgetaccess(Afragment,frags,i,nsuffix_frc) = (int32)value;
   }else{
-    VAgetaccess(Afragment,frags,i,nprefix_frc) = (cds_int32)value;
+    VAgetaccess(Afragment,frags,i,nprefix_frc) = (int32)value;
   }
 }
 #pragma inline set_seglen_dvt_vertex
 static void set_seglen_dvt_vertex
-(Tfragment frags[],IntFragment_ID i,int flag,cds_int32 value)
+(Tfragment frags[],IntFragment_ID i,int flag,int32 value)
 { 
   if(flag) {
-    VAgetaccess(Afragment,frags,i,nsuffix_dvt) = (cds_int32)value;
+    VAgetaccess(Afragment,frags,i,nsuffix_dvt) = (int32)value;
   }else{
-    VAgetaccess(Afragment,frags,i,nprefix_dvt) = (cds_int32)value;
+    VAgetaccess(Afragment,frags,i,nprefix_dvt) = (int32)value;
   }
 }
 
@@ -600,19 +600,19 @@ static IntEdge_ID get_segend_vertex
 		       VAgetaccess(Afragment,frags,i,segend_suffix):
 		       VAgetaccess(Afragment,frags,i,segend_prefix));}
 #pragma inline get_seglen_vertex
-static cds_int32 get_seglen_vertex
+static int32 get_seglen_vertex
 (const Tfragment * const frags,IntFragment_ID i,int flag)
-{ return (cds_int32) (flag ? 
+{ return (int32) (flag ? 
 		      VAgetaccess(Afragment,frags,i,nsuffix_all) :
 		      VAgetaccess(Afragment,frags,i,nprefix_all));}
-static cds_int32 get_seglen_frc_vertex
+static int32 get_seglen_frc_vertex
 (const Tfragment * const frags,IntFragment_ID i,int flag)
-{ return (cds_int32) (flag ? 
+{ return (int32) (flag ? 
 		      VAgetaccess(Afragment,frags,i,nsuffix_frc) :
 		      VAgetaccess(Afragment,frags,i,nprefix_frc));}
-static cds_int32 get_seglen_dvt_vertex
+static int32 get_seglen_dvt_vertex
 (const Tfragment * const frags,IntFragment_ID i,int flag)
-{ return (cds_int32) (flag ? 
+{ return (int32) (flag ? 
 		      VAgetaccess(Afragment,frags,i,nsuffix_dvt) :
 		      VAgetaccess(Afragment,frags,i,nprefix_dvt) );}
 
@@ -657,13 +657,13 @@ static void set_blessed_vertex
 }
 
 #pragma inline get_best_ovl
-static cds_int32 get_best_ovl
+static int32 get_best_ovl
 (const Tfragment * const frags,
  const Tedge * const edges,
  IntEdge_ID ie)
 { IntFragment_ID iavx = get_avx_edge(edges,ie);
-  cds_int32  ilen = get_length_fragment(frags,iavx);
-  return (cds_int32) (ilen - get_ahg_edge(edges,ie));}
+  int32  ilen = get_length_fragment(frags,iavx);
+  return (int32) (ilen - get_ahg_edge(edges,ie));}
 
 
 #pragma inline get_chunk_index

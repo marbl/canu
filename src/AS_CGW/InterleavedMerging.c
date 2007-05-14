@@ -494,7 +494,7 @@ void PopulateScaffoldStuff(ScaffoldStuff * ss,
                       sqrt((double) sEdge->distance.variance));
   float osMin;
   float osMax;
-  float64 varDelta;
+  double varDelta;
 
 #ifdef DEBUG1
   fprintf(GlobalData->stderrc, "****PopulateScaffoldStuff:\n");
@@ -2006,9 +2006,9 @@ void AdjustForPureInterleaving(Scaffold_Tig * contigsA,
   // get at least one contig in each scaffold set then call other function
   int ia;
   int ib;
-  float64 edgeStddev = sqrt((double) sEdge->distance.variance);
-  float64 deltaAB;
-  float64 deltaBA;
+  double edgeStddev = sqrt((double) sEdge->distance.variance);
+  double deltaAB;
+  double deltaBA;
   double adjust =  -sEdge->distance.mean - (contigsA[numContigsA-1].lft_end +
                                             contigsA[numContigsA-1].length);
 

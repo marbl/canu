@@ -50,8 +50,8 @@ typedef struct{
   int32 numBuckets; // 4^bucketWidth
   int32 numSamples;
   int32 *buckets;
-  float32 *trate; // theoretical probability
-  float32 *arate; // actual probability
+  float   *trate; // theoretical probability
+  float   *arate; // actual probability
 }SequenceBucketT;
 
 
@@ -89,10 +89,10 @@ void ComputeBucketActualRates(SequenceBucketT *sequenceBucket);
    The mean and variance of the number of instances of this n-mer seen are according
    to the binomial distribution.
 */
-void ComputeBucketProbability(SequenceBucketT *sequenceBucket, int bucketNum, float32 *singleCharProbs);
+void ComputeBucketProbability(SequenceBucketT *sequenceBucket, int bucketNum, float   *singleCharProbs);
 
 /* Compute the theoretical probabilities for all buckets */
-void ComputeBucketTheoreticalRates(SequenceBucketT *sequenceBucket, float32 *singleCharProbs);
+void ComputeBucketTheoreticalRates(SequenceBucketT *sequenceBucket, float   *singleCharProbs);
 
 
 /**************************************************************/
@@ -116,12 +116,12 @@ void DeleteSequenceBucketArray(SequenceBucketArrayT *sba);
 void IncrementSequenceBucketArrayPrefix(SequenceBucketArrayT *sequenceBucketArray, char *actgSequence);
 
 /* Look for statistical anomolies in all of the SequenceBuckets */
-void CheckSequenceBucketArray(SequenceBucketArrayT *sequenceBucketArray, float32 *actgProbabilities, float32 num_sigma,
+void CheckSequenceBucketArray(SequenceBucketArrayT *sequenceBucketArray, float   *actgProbabilities, float   num_sigma,
 			      FILE *fout, char *label);
 
 /* Look for statistical anomolies in all of the SequenceBuckets.  bucket array 2 is the control */
 void CheckSequenceBucketArraySanity(SequenceBucketArrayT *sequenceBucketArray1, SequenceBucketArrayT *sequenceBucketArray2,
-				    float32 *actgProbabilities, float32 num_sigma, FILE *fout, char *label);
+				    float   *actgProbabilities, float   num_sigma, FILE *fout, char *label);
 
 
 

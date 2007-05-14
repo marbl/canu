@@ -126,12 +126,12 @@ extern char   SYS_UIDdebug_flag;
 
 /* functions */
 void       SYS_UIDperr(const char* message);
-cds_int32  SYS_UIDreadn(cds_int32 fd, char* ptr, cds_int32 nbytes);
-cds_int32  SYS_UIDwriten(cds_int32 fd, char* ptr, cds_int32 nbytes);
-cds_int32  SYS_UIDpackUIDMessageXdr(cds_uint64* uid, cds_int32 status);
-cds_int32  SYS_UIDunpackUIDMessageXdr(cds_uint64* uid, cds_int32* status);
-cds_int32  SYS_UIDpackUIDRequestXdr(char* writebuffer, cds_int32 status, cds_uint64 request_size);
-cds_int32  SYS_UIDunpackUIDRequestXdr(char* readbuffer, cds_int32* status, cds_uint64* request_size);
+int32  SYS_UIDreadn(int32 fd, char* ptr, int32 nbytes);
+int32  SYS_UIDwriten(int32 fd, char* ptr, int32 nbytes);
+int32  SYS_UIDpackUIDMessageXdr(uint64* uid, int32 status);
+int32  SYS_UIDunpackUIDMessageXdr(uint64* uid, int32* status);
+int32  SYS_UIDpackUIDRequestXdr(char* writebuffer, int32 status, uint64 request_size);
+int32  SYS_UIDunpackUIDRequestXdr(char* readbuffer, int32* status, uint64* request_size);
 void       SYS_UIDlogMessage(const char* message);
 
 #ifdef __cplusplus

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_cgb.c,v 1.11 2007-05-02 18:53:39 granger_sutton Exp $";
+= "$Id: AS_CGB_cgb.c,v 1.12 2007-05-14 09:27:10 brianwalenz Exp $";
 /* *******************************************************************
  *
  * Module: AS_CGB_cgb.c
@@ -64,7 +64,7 @@ static char CM_ID[]
 #undef COORDS_FROM_A_END
 #define COORDS_FROM_A_END
 
-#define AS_CGB_EDGE_NOT_VISITED     CDS_INT32_MAX
+#define AS_CGB_EDGE_NOT_VISITED     INT32_MAX
 
 
 static int comparefloats(const void * const a, const void * const b) 
@@ -1572,14 +1572,14 @@ void chunk_graph_build_1
   }
 
   if( chimeras_file ) {
-    cds_uint32 num_chimeras = 0;
+    uint32 num_chimeras = 0;
     num_chimeras = count_chimeras
       (chimeras_file, cgb_unique_cutoff, frags, edges, chunkfrags, thechunks);
     check_edge_trimming( frags, edges);
   }
     
   if( spurs_file ) {
-    cds_uint32 num_crappies = 0;
+    uint32 num_crappies = 0;
     num_crappies = count_crappies
       (spurs_file, cgb_unique_cutoff, frags, edges, chunkfrags, thechunks);
     check_edge_trimming( frags, edges);

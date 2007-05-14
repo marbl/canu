@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: findMPSets.cc,v 1.6 2006-10-08 08:47:39 brianwalenz Exp $ */
+/* $Id: findMPSets.cc,v 1.7 2007-05-14 09:27:12 brianwalenz Exp $ */
 #include <cstdio>  // for sscanf
 #include <iostream>
 #include <fstream>
@@ -42,7 +42,7 @@ using namespace std;
 #define ID_TYPE          int
 #define F_MPID   "%d"
 #else
-#define ID_TYPE          cds_uint64
+#define ID_TYPE          uint64
 #define F_MPID   F_U64
 #endif
 

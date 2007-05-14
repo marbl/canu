@@ -23,7 +23,7 @@
 
 
 int main(void){
-  float32 probs[]={0.25,0.25,0.25,0.25};
+  float   probs[]={0.25,0.25,0.25,0.25};
   
 #if 0
   SequenceBucketT *sb = CreateSequenceBucket(2);

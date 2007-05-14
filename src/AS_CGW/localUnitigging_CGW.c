@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.19 2007-04-26 14:07:03 brianwalenz Exp $";
+static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.20 2007-05-14 09:27:11 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -1202,7 +1202,7 @@ static void dumpFragsInChunk(FILE* stream, ChunkInstanceT* chunk){
     num_unitigs = GetNumIntUnitigPoss(contig->u_list);
     for(i=0;i<num_unitigs;i++){
       IntUnitigPos *u_list = GetIntUnitigPos(contig->u_list,0);
-      cds_int32 utgID = u_list[i].ident;
+      int32 utgID = u_list[i].ident;
       fprintf(stream,
 	      "  Chunk (contig) contains chunk (unitig) " F_CID " -- dump it\n", utgID);
       dumpFragsInCI(stream,GetGraphNode(ScaffoldGraph->CIGraph,utgID));

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.35 2007-05-02 09:30:13 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.36 2007-05-14 09:27:11 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -247,7 +247,7 @@ void ProcessUOM(UnitigOverlapMesg *uom_mesg, float transQualityCutoff){
   // For historical reasons, we prefer to insert edges in canonical form
   IntChunk_ID cidA = uom_mesg->chunk1;
   IntChunk_ID cidB = uom_mesg->chunk2;
-  float32  quality = uom_mesg->quality;
+  float    quality = uom_mesg->quality;
   ChunkOrientationType orient = uom_mesg->orient;
   UnitigOverlapType overlap_type = uom_mesg->overlap_type;
 
@@ -1081,7 +1081,7 @@ static int CompareEdgesByIdA_IdB_Orientation_Quality(const void *c1, const void 
   EdgeCGW_T *e1 = (EdgeCGW_T *)c1;
   EdgeCGW_T *e2 = (EdgeCGW_T *)c2;
   int diff;
-  float32 qualityDiff;
+  float   qualityDiff;
 
   diff = e1->idA - e2->idA;
   if(diff)
@@ -1132,7 +1132,7 @@ static int CompareEdgesByIdA_Quality(const void *c1, const void *c2){
   EdgeCGW_T *e1 = (EdgeCGW_T *)c1;
   EdgeCGW_T *e2 = (EdgeCGW_T *)c2;
   int diff;
-  float32 qualityDiff;
+  float   qualityDiff;
 
   diff = e1->idA - e2->idA;
   if(diff)
@@ -1150,7 +1150,7 @@ static int CompareEdgesByIdB_Quality(const void *c1, const void *c2){
   EdgeCGW_T *e1 = (EdgeCGW_T *)c1;
   EdgeCGW_T *e2 = (EdgeCGW_T *)c2;
   int diff;
-  float32 qualityDiff;
+  float   qualityDiff;
 
 
   diff = e1->idB - e2->idB;

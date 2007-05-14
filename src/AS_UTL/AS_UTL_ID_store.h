@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_UTL_ID_store.h,v 1.4 2005-03-22 19:49:28 jason_miller Exp $ */
+/* $Id: AS_UTL_ID_store.h,v 1.5 2007-05-14 09:27:12 brianwalenz Exp $ */
 
 /*
   This is a set of utility functions for managing a list of UIDS.
@@ -39,8 +39,8 @@
 typedef struct
 {
   CDS_UID_t * ids;
-  cds_uint32   num_ids;
-  cds_uint32   size;
+  uint32   num_ids;
+  uint32   size;
   CDS_UID_t   min_id;
   CDS_UID_t   max_id;
 } ID_Array;
@@ -51,10 +51,10 @@ int uid_compare( const CDS_UID_t * a, const CDS_UID_t * b );
 
 void FreeID_Array( ID_Arrayp array );
 
-ID_Arrayp AllocateID_Array( cds_uint32 num_ids );
+ID_Arrayp AllocateID_Array( uint32 num_ids );
 
 int AppendToID_Array( ID_Arrayp array, CDS_UID_t id, int sort );
 
-cds_int64 FindID_ArrayID( ID_Array * ids, CDS_UID_t id );
+int64 FindID_ArrayID( ID_Array * ids, CDS_UID_t id );
 
 #endif

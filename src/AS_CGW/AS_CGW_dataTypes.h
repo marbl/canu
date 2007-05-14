@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_CGW_dataTypes.h,v 1.9 2006-10-08 08:47:39 brianwalenz Exp $	 */
+/* 	$Id: AS_CGW_dataTypes.h,v 1.10 2007-05-14 09:27:10 brianwalenz Exp $	 */
 #ifndef AS_CGW_DATATYPES_H
 #define AS_CGW_DATATYPES_H
 
@@ -78,12 +78,12 @@ static double ComputeFudgeVariance(double length){
 // statistics from building sedges
 typedef struct
 {
-  cds_int32 edgesAttempted;
-  cds_int32 edgesSucceeded;
-  cds_int32 edgesInternal;
-  cds_int32 guidesAttempted;
-  cds_int32 guidesSucceeded;
-  cds_int32 guidesInternal;
+  int32 edgesAttempted;
+  int32 edgesSucceeded;
+  int32 edgesInternal;
+  int32 guidesAttempted;
+  int32 guidesSucceeded;
+  int32 guidesInternal;
 } SEdgeBuildStats;
 
 #endif

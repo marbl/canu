@@ -34,7 +34,7 @@
 
  **********************************************************************/
 
-static char fileID[] = "$Id: FbacREZ.c,v 1.14 2007-04-16 17:34:15 brianwalenz Exp $";
+static char fileID[] = "$Id: FbacREZ.c,v 1.15 2007-05-14 09:27:12 brianwalenz Exp $";
 
 #define FBACDEBUG 2
 
@@ -1898,10 +1898,10 @@ void CheckOrientation( ContigT* lchunk, ContigT* rchunk,
 void AdjustRightContigPos( ContigT* lchunk, ContigT* rchunk, LengthT rchunk_delta, CIScaffoldT* scaff)
 {
   LengthT rchunkNewAEndOffset, rchunkNewBEndOffset;
-  float64 lchunkMaxVariance = MAX( lchunk->offsetAEnd.variance, lchunk->offsetBEnd.variance);
-  float64 lchunkMaxMean     = MAX( lchunk->offsetAEnd.mean, lchunk->offsetBEnd.mean);
-  float64 rchunkMinVariance = MIN( rchunk->offsetAEnd.variance, rchunk->offsetBEnd.variance);
-  float64 rchunkMinMean     = MIN( rchunk->offsetAEnd.mean, rchunk->offsetBEnd.mean);
+  double lchunkMaxVariance = MAX( lchunk->offsetAEnd.variance, lchunk->offsetBEnd.variance);
+  double lchunkMaxMean     = MAX( lchunk->offsetAEnd.mean, lchunk->offsetBEnd.mean);
+  double rchunkMinVariance = MIN( rchunk->offsetAEnd.variance, rchunk->offsetBEnd.variance);
+  double rchunkMinMean     = MIN( rchunk->offsetAEnd.mean, rchunk->offsetBEnd.mean);
   int startingContigIndex, scaffoldIndex;
   
   // rchunk_delta.mean has already been computed
@@ -2194,10 +2194,10 @@ void InsertWalkedChunks( ChunkInsertInfoT* chunksWalked,
 	  // that is the amount we want to adjust the gap size by
 	{
 	  LengthT delta;	
-	  float64 lchunkMaxVariance = MAX( lchunk->offsetAEnd.variance, lchunk->offsetBEnd.variance);
-	  float64 lchunkMaxMean     = MAX( lchunk->offsetAEnd.mean, lchunk->offsetBEnd.mean);
-	  float64 rchunkMinVariance = MIN( rchunk->offsetAEnd.variance, rchunk->offsetBEnd.variance);
-	  float64 rchunkMinMean     = MIN( rchunk->offsetAEnd.mean, rchunk->offsetBEnd.mean);
+	  double lchunkMaxVariance = MAX( lchunk->offsetAEnd.variance, lchunk->offsetBEnd.variance);
+	  double lchunkMaxMean     = MAX( lchunk->offsetAEnd.mean, lchunk->offsetBEnd.mean);
+	  double rchunkMinVariance = MIN( rchunk->offsetAEnd.variance, rchunk->offsetBEnd.variance);
+	  double rchunkMinMean     = MIN( rchunk->offsetAEnd.mean, rchunk->offsetBEnd.mean);
 	  int currentChunkBegPos    = MIN( currentWalkedChunk->aEndOffset.mean, currentWalkedChunk->bEndOffset.mean);
 	  
 	  delta.mean = currentChunkBegPos - rchunkMinMean;
@@ -2794,7 +2794,7 @@ int GetFragInfo (ChunkInstanceT* chunk, int locale, unsigned int* minFragIid, un
   MultiAlignT *uma;
   IntMultiPos *ump;
   
-  *minFragIid = CDS_INT32_MAX;
+  *minFragIid = INT32_MAX;
   *maxFragIid = 0;
   
   // then get multi-align for the node

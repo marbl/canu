@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: InputDataTypes_CGW.h,v 1.13 2007-04-23 15:24:34 brianwalenz Exp $	 */
+/* 	$Id: InputDataTypes_CGW.h,v 1.14 2007-05-14 09:27:11 brianwalenz Exp $	 */
 /****************************************************************************
  *  InputDataTypes_CGW
  *  
@@ -34,8 +34,8 @@
 #include "AS_MSG_pmesg.h"
 
 typedef struct {
-  float64  mean;
-  float64 variance;
+  double  mean;
+  double variance;
 }LengthT;
 
 // Do the arithmetic and stats on two unordered pairs of LengthTs

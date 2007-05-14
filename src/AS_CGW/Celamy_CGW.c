@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* All of the CGW celamy stuff is here */
-static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.16 2007-05-10 15:52:19 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.17 2007-05-14 09:27:11 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -477,7 +477,7 @@ void draw_surroFrags_in_contig_for_CelamyScaffold(FILE *fout, ContigT *ctg, int 
   num_unitigs = GetNumIntUnitigPoss(contig->u_list);
   u_list = GetIntUnitigPos(contig->u_list,0);
   for (i=0;i<num_unitigs;i++) {
-    cds_int32 utgID = u_list[i].ident;
+    int32 utgID = u_list[i].ident;
     ChunkInstanceT *utg = GetChunkInstanceT(ScaffoldGraph->ChunkInstances,utgID);
     assert(utg!=NULL);
     if(utg->flags.bits.isStoneSurrogate ||
@@ -691,7 +691,7 @@ void CelamyScaffold(FILE *fout, CIScaffoldT *scaffold,
   CIScaffoldTIterator CIs;
   ChunkInstanceT *CI;
   int scaffoldReversed = (scaffoldAEndCoord > scaffoldBEndCoord);
-  int64 scaffoldMin = CDS_INT64_MAX;
+  int64 scaffoldMin = INT64_MAX;
 
   InitCIScaffoldTIterator(ScaffoldGraph, scaffold, TRUE, FALSE, &CIs);
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.26 2007-04-16 17:36:30 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.27 2007-05-14 09:27:11 brianwalenz Exp $";
 
 
 #undef ORIG_MERGE_EDGE_INVERT
@@ -218,10 +218,10 @@ int ContigCoordinatesOkay(CIScaffoldT * scaffold)
 }
 
 
-float64 GetVarianceOffset(CIScaffoldT * scaffold, float64 meanOffset, int isAB)
+double GetVarianceOffset(CIScaffoldT * scaffold, double meanOffset, int isAB)
 {
-  float64 lengthDelta = (isAB) ? 0.0 : scaffold->bpLength.mean;
-  float64 varDelta = (isAB) ? 0.0 : scaffold->bpLength.variance;
+  double lengthDelta = (isAB) ? 0.0 : scaffold->bpLength.mean;
+  double varDelta = (isAB) ? 0.0 : scaffold->bpLength.variance;
   CIScaffoldTIterator CIs;
   ChunkInstanceT * CI;
   LengthT lowerOffset = {-1, 0};
@@ -230,8 +230,8 @@ float64 GetVarianceOffset(CIScaffoldT * scaffold, float64 meanOffset, int isAB)
   InitCIScaffoldTIterator(ScaffoldGraph, scaffold, isAB, FALSE, &CIs);
   while((CI = NextCIScaffoldTIterator(&CIs)) != NULL)
     {
-      float64 aEnd = fabs(lengthDelta - CI->offsetAEnd.mean);
-      float64 bEnd = fabs(lengthDelta - CI->offsetBEnd.mean);
+      double aEnd = fabs(lengthDelta - CI->offsetAEnd.mean);
+      double bEnd = fabs(lengthDelta - CI->offsetBEnd.mean);
       if(aEnd > meanOffset || bEnd > meanOffset)
         {
           if(aEnd < meanOffset)
@@ -1664,9 +1664,9 @@ int ThereIsAStrongerEdgeToSameScaffold(CDS_CID_t scfIID, SEdgeT * curSEdge)
 {
   SEdgeTIterator SEdges;
   SEdgeT * sEdge;
-  cds_int32 orientValue;
+  int32 orientValue;
   CDS_CID_t otherScaffoldID;
-  cds_int32 retVal = 0;
+  int32 retVal = 0;
   
   otherScaffoldID = (scfIID == curSEdge->idA) ? curSEdge->idB : curSEdge->idA;
   orientValue =
@@ -3581,7 +3581,7 @@ int AbuttingWillWork(SEdgeT * curEdge,
                        PAIRWISECHI2THRESHOLD_CGW) ||
      LooseAbuttingCheck(curEdge, scaffoldA, scaffoldB))
     {
-      float64 originalMean = curEdge->distance.mean;
+      double originalMean = curEdge->distance.mean;
     
       curEdge->distance.mean = -CGW_MISSED_OVERLAP;
 
@@ -4761,7 +4761,7 @@ int MergeScaffolds(VA_TYPE(CDS_CID_t) * deadScaffoldIDs,
                 */
                 CIScaffoldTIterator CIs;
                 ChunkInstanceT * CI;
-                float64 variance = GetVarianceOffset(thisScaffold,
+                double variance = GetVarianceOffset(thisScaffold,
                                                      -currentOffset.mean,
                                                      orientCI == A_B);
           

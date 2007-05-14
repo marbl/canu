@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: link_analysis.c,v 1.8 2007-04-28 08:46:22 brianwalenz Exp $ */
+/* $Id: link_analysis.c,v 1.9 2007-05-14 09:27:11 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
       char   string[1000];
   ID_Arrayp  tig_iids;
   ID_Arrayp  tig_iids_found;
-  cds_int64  this_id;
+  int64  this_id;
   IntFragment_ID frag_id;
   IntFragment_ID linked_id;
   int    num_uids;
@@ -71,9 +71,9 @@ int main(int argc, char *argv[])
   tig_iids = AllocateID_Array( unitig->num_frags );
   tig_iids_found = AllocateID_Array( unitig->num_frags );
   for( i = 0; i < unitig->num_frags - 1; i++ ) {
-      AppendToID_Array( tig_iids, (cds_uint64) unitig->f_list[i].ident, 0 );
+      AppendToID_Array( tig_iids, (uint64) unitig->f_list[i].ident, 0 );
   }
-  AppendToID_Array( tig_iids, (cds_uint64) unitig->f_list[unitig->num_frags-1].ident, 1 );
+  AppendToID_Array( tig_iids, (uint64) unitig->f_list[unitig->num_frags-1].ident, 1 );
   frag_store = openFragStore(argv[1], "rb");
   gkp_store = openGateKeeperStore(argv[2],"r");
   gkpl_store = openGateKeeperLinkStore(argv[3],"r");

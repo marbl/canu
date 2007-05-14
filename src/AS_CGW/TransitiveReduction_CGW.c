@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: TransitiveReduction_CGW.c,v 1.10 2007-02-23 19:02:03 ahalpern Exp $";
+static char CM_ID[] = "$Id: TransitiveReduction_CGW.c,v 1.11 2007-05-14 09:27:11 brianwalenz Exp $";
 
 // This file contains the code for computing the candidate
 // chunks of scaffolds.
@@ -74,7 +74,7 @@ static int CompareCIEdgeTMeans (const void *c1, const void *c2)
   CIEdgeT *s2 = GetCIEdgeT(graphCIEdges, *(CDS_CID_t *)c2); 
   CDS_CID_t s1_contigA, s1_contigB, s2_contigA, s2_contigB; 
   CDS_CID_t s1_unsharedContig, s2_unsharedContig;
-  float64 s1_bpLength, s2_bpLength;
+  double s1_bpLength, s2_bpLength;
   
   s1_contigA = s1->idA; 
   s1_contigB = s1->idB;
@@ -529,7 +529,7 @@ void MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
     while((hop2Edge = NextGraphEdgeIterator(&hop2Edges))!= NULL){
       ChunkInstanceT *endCI;
       ChunkOrientationType combinedOrient;
-      float64 combinedMean, combinedVariance;
+      double combinedMean, combinedVariance;
       GraphEdgeIterator confirmEdges;
       CIEdgeT *confirmEdge;
       if(!hop2Edge->flags.bits.isActive ||
@@ -591,7 +591,7 @@ void MarkTwoHopConfirmedEdgesOneEnd(ScaffoldGraphT *graph,
 	while((confirmHop2Edge = NextGraphEdgeIterator(&confirmHop2Edges))!= NULL){
 	  ChunkInstanceT *confirmEndCI;
 	  ChunkOrientationType confirmOrient;
-	  float64 confirmMean, confirmVariance;
+	  double confirmMean, confirmVariance;
 	  float chiSquaredValue;
 	  if(!confirmHop2Edge->flags.bits.isActive ||
 	     !confirmHop2Edge->flags.bits.isUniquetoUnique){
@@ -809,7 +809,7 @@ void MarkRedundantUniqueToUniqueEdges(ScaffoldGraphT *graph, int verbose){
 EdgeCGW_T *FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
                                        ChunkInstanceT *sourceCI, CDS_CID_t targetId,
                                        ChunkOrientationType edgeOrient,
-                                       float64 inferredMean, float64 inferredVariance,
+                                       double inferredMean, double inferredVariance,
                                        float *returnChiSquaredValue,
                                        float chiSquareThreshold, int *isEssential,
                                        int verbose){
@@ -1022,7 +1022,7 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
   CIEdgeT *sourceEdge = NULL;
   ChunkOrientationType sourceEdgeOrient;
   ChunkInstanceT *sourceCI;
-  float64 sourceMean, sourceVariance;
+  double sourceMean, sourceVariance;
   int failedInfer;
   int numEssentialAdded;
   int numEssentialRemoved;
@@ -1085,8 +1085,8 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
     
 #ifdef INSTRUMENT_TRANS_REDUCED
     {
-      cds_float64 badMates;
-      cds_float64 allMates;
+      double badMates;
+      double allMates;
 
       InstrumentContigPath(graph, smoothed_si,
                            firstID, instFirstEnd, *lastID);
@@ -1312,7 +1312,7 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
       CIEdgeT *existingEdge;
       CIEdgeT *inferredEdge;
       CDS_CID_t inferredEdgeIndex;
-      float64 inferredMean, inferredVariance;
+      double inferredMean, inferredVariance;
       LengthT inferredDistance;
       float chiSquaredValue;
       ChunkOrientationType inferredEdgeOrient;
@@ -1375,7 +1375,7 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
       }
       if(inferredMean < - CGW_MISSED_OVERLAP){
         // adjust mean and variance so things don't get sloppy (dewim 09/12/01)
-        cds_float64 new_stddev = (inferredDistance.mean + CGW_MISSED_OVERLAP + 3. * sqrt(inferredDistance.variance)) / 3.;
+        double new_stddev = (inferredDistance.mean + CGW_MISSED_OVERLAP + 3. * sqrt(inferredDistance.variance)) / 3.;
         new_stddev = (new_stddev < 1.) ? 1. : new_stddev;
         inferredDistance.variance = new_stddev * new_stddev;
         inferredDistance.mean = - CGW_MISSED_OVERLAP;

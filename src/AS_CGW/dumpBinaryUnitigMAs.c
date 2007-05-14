@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: dumpBinaryUnitigMAs.c,v 1.13 2007-04-16 17:36:31 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpBinaryUnitigMAs.c,v 1.14 2007-05-14 09:27:11 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -464,8 +464,8 @@ int main(int argc, char *argv[]){
     {
     DistT *dptr;
     CDS_CID_t iid;
-    float32 mean;
-    float32 stddev;
+    float   mean;
+    float   stddev;
 
     fprintf(stderr, "line is : %s", line);
         

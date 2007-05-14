@@ -36,7 +36,7 @@ char   SYS_UIDdebug_flag = 0;
 
 static
 int
-xdr_u_hyper(XDR *xdrs, cds_uint64 *hp) {
+xdr_u_hyper(XDR *xdrs, uint64 *hp) {
   int res = 0;
 
   //  By definition of XDR, a 'long' is always 4 bytes, regardless of
@@ -77,10 +77,10 @@ void SYS_UIDperr(const char* message)
 Description: reads a specified number of bytes from a buffered input stream
 
 *******************************************************************************/
-cds_int32  SYS_UIDreadn(cds_int32 fd, char* ptr, cds_int32 nbytes)
+int32  SYS_UIDreadn(int32 fd, char* ptr, int32 nbytes)
 {
-   cds_int32 nleft;
-   cds_int32 nread;
+   int32 nleft;
+   int32 nread;
 
    nleft = nbytes;
    while (nleft > 0) 
@@ -101,10 +101,10 @@ cds_int32  SYS_UIDreadn(cds_int32 fd, char* ptr, cds_int32 nbytes)
 Description: writes a specified number of bytes to a buffered output stream
 
 *******************************************************************************/
-cds_int32  SYS_UIDwriten(cds_int32 fd, char* ptr, cds_int32 nbytes)
+int32  SYS_UIDwriten(int32 fd, char* ptr, int32 nbytes)
 {
-   cds_int32 nleft;
-   cds_int32 nwritten;
+   int32 nleft;
+   int32 nwritten;
 
    nleft = nbytes;
    while (nleft > 0) 
@@ -122,14 +122,14 @@ cds_int32  SYS_UIDwriten(cds_int32 fd, char* ptr, cds_int32 nbytes)
 
 /*******************************************************************************
 
-Description: unpacks the 8-byte cds_uint64 blocksize request
+Description: unpacks the 8-byte uint64 blocksize request
 
 *******************************************************************************/
-cds_int32 SYS_UIDunpackUIDRequestXdr(char* readbuffer, cds_int32* status, cds_uint64* request_size)
+int32 SYS_UIDunpackUIDRequestXdr(char* readbuffer, int32* status, uint64* request_size)
 {
    XDR xdr_stream;  
    char request_temp_array[12];
-   cds_int32 i;
+   int32 i;
 
    memcpy(request_temp_array, readbuffer, 12);
    xdrmem_create(&xdr_stream, request_temp_array, 12, XDR_DECODE);
@@ -149,14 +149,14 @@ cds_int32 SYS_UIDunpackUIDRequestXdr(char* readbuffer, cds_int32* status, cds_ui
 
 /*******************************************************************************
 
-Description: packs the 8-byte cds_uint64 blocksize request
+Description: packs the 8-byte uint64 blocksize request
 
 *******************************************************************************/
-cds_int32 SYS_UIDpackUIDRequestXdr(char* writebuffer, cds_int32 status, cds_uint64 request_size)
+int32 SYS_UIDpackUIDRequestXdr(char* writebuffer, int32 status, uint64 request_size)
 {
    XDR xdr_stream;
    char request_temp_array[12];
-   cds_int32 i;
+   int32 i;
 
    xdrmem_create(&xdr_stream, request_temp_array, 12, XDR_ENCODE);
    if (xdr_int(&xdr_stream, &status)==0)
@@ -178,14 +178,14 @@ cds_int32 SYS_UIDpackUIDRequestXdr(char* writebuffer, cds_int32 status, cds_uint
 /*******************************************************************************
 
 Description: unpacks the uid_interval array of 8-byte uint64s and also
-             unpacks the cds_int32 status code
+             unpacks the int32 status code
 
 *******************************************************************************/
-cds_int32 SYS_UIDunpackUIDMessageXdr(cds_uint64* uid_interval, cds_int32* status)
+int32 SYS_UIDunpackUIDMessageXdr(uint64* uid_interval, int32* status)
 {
    XDR xdr_stream;
    char uid_temp_array[UID_MESSAGE_SIZE];
-   cds_int32 i;
+   int32 i;
 
    memcpy(uid_temp_array, SYS_UIDmessage_array, UID_MESSAGE_SIZE);
    xdrmem_create(&xdr_stream, uid_temp_array, UID_MESSAGE_SIZE, XDR_DECODE);
@@ -221,14 +221,14 @@ cds_int32 SYS_UIDunpackUIDMessageXdr(cds_uint64* uid_interval, cds_int32* status
 /*******************************************************************************
 
 Description:   packs the uid_interval array of 8-byte uint64s and also
-               packs the cds_int32 status code
+               packs the int32 status code
 
 *******************************************************************************/
-cds_int32 SYS_UIDpackUIDMessageXdr(cds_uint64* uid_interval, cds_int32 status)
+int32 SYS_UIDpackUIDMessageXdr(uint64* uid_interval, int32 status)
 {
    XDR xdr_stream;
    char uid_temp_array[UID_MESSAGE_SIZE];
-   cds_int32 i;
+   int32 i;
 
    xdrmem_create(&xdr_stream, uid_temp_array, UID_MESSAGE_SIZE, XDR_ENCODE);
    if (xdr_u_hyper(&xdr_stream, &(uid_interval[0]))==0)

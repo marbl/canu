@@ -80,7 +80,7 @@ int main(int argc, char ** argv)
   char * inputStoreName = NULL;
   char fragTypes[256];
   int doDegenerates = FALSE;
-  float32 numStddevs = 3.0f;
+  float   numStddevs = 3.0f;
   int errflg=FALSE;
   char bpTypes[NumBreakpointTypes];
   int32 i;

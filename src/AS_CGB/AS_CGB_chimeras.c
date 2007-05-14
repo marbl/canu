@@ -103,7 +103,7 @@ static IntChunk_ID get_second_mate_index
   IntChunk_ID mate_index = sentinel;
   IntChunk_ID temp_index = sentinel;
   const int b_side = O2S(b_index);
-  const cds_int32 raw_degree =
+  const int32 raw_degree =
     (b_side == 1) ? chunk->b_degree_raw : chunk->a_degree_raw;
   const IntEdge_ID edge_id = (b_side == 1) ? chunk->b_list_raw : chunk->a_list_raw;
 
@@ -160,7 +160,7 @@ static IntChunk_ID get_lone_mate_index
   IntChunk_ID mate_index = sentinel;
   const AChunkMesg * chunk = GetVA_AChunkMesg( chunks, O2CI( b_index ) );
   const int b_side = O2S( b_index );
-  const cds_int32 raw_degree =
+  const int32 raw_degree =
     (b_side == 1) ? chunk->b_degree_raw : chunk->a_degree_raw;
   const IntEdge_ID edge_id = (b_side == 1) 
     ? chunk->b_list_raw : chunk->a_list_raw;
@@ -209,7 +209,7 @@ static int is_hanging_chunk_end
   int i;
   const AChunkMesg * chunk = GetVA_AChunkMesg( chunks, O2CI( b_index ) );
   const int b_side = O2S( b_index );
-  const cds_int32 raw_degree =
+  const int32 raw_degree =
     (b_side == 1) ? chunk->b_degree_raw : chunk->a_degree_raw;
   const IntEdge_ID edge_id = (b_side == 1) 
     ? chunk->b_list_raw : chunk->a_list_raw;
@@ -238,7 +238,7 @@ static int is_hanging_chunk_end
 }
 
 
-cds_uint32 count_chimeras
+uint32 count_chimeras
 (
  const char * const chimeras_report_filename,
  const float cgb_unique_cutoff,
@@ -248,7 +248,7 @@ cds_uint32 count_chimeras
  TChunkMesg       chunks[] 
 )
 {
-  cds_uint32         num_chimeras = 0;
+  uint32         num_chimeras = 0;
   const IntChunk_ID  num_chunks = GetNumVA_AChunkMesg( chunks );
   const IntChunk_ID  sentinel = CIS2O( num_chunks, 0 );
   IntChunk_ID        schunk;
@@ -409,7 +409,7 @@ cds_uint32 count_chimeras
 */
 
 
-cds_uint32 count_crappies
+uint32 count_crappies
 (
  const char * const crappies_report_filename,
  const float cgb_unique_cutoff,
@@ -419,7 +419,7 @@ cds_uint32 count_crappies
  TChunkMesg       chunks[] 
 )
 {
-  cds_uint32         num_crappies = 0;
+  uint32         num_crappies = 0;
   const IntChunk_ID  num_chunks = GetNumVA_AChunkMesg( chunks );
   const IntChunk_ID  sentinel = CIS2O( num_chunks, 0 );
   IntChunk_ID        schunk;

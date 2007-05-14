@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.40 2007-05-02 09:30:12 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.41 2007-05-14 09:27:11 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1315,7 +1315,7 @@ CDS_CID_t AddGraphEdge(GraphCGW_T *graph,
                        CDS_CID_t fragidA, CDS_CID_t fragidB, 
                        CDS_CID_t dist,
                        LengthT distance,
-                       float32 quality,
+                       float   quality,
                        CDS_COORD_t fudgeDistance,
                        OrientType orientation,
                        int isInducedByUnknownOrientation,
@@ -1509,7 +1509,7 @@ CDS_CID_t AddGraphEdge(GraphCGW_T *graph,
                             ciedge->idA, 
                             ciedge->idB,
                             ciedge->orient, 
-                            -ciedge->distance.mean, (float64) fudgeDistance,
+                            -ciedge->distance.mean, (double) fudgeDistance,
                             ciedge->quality,
                             ScaffoldGraph->alignOverlaps,
                             TRUE,

@@ -31,7 +31,7 @@
 Description: Utility func for setting interval message array.
 
 *******************************************************************************/
-void SetUIDInterval(cds_uint64 a, cds_uint64 a_size, cds_uint64 b, cds_uint64 b_size)
+void SetUIDInterval(uint64 a, uint64 a_size, uint64 b, uint64 b_size)
 {
    interval_UID[0]        = a;
    interval_UID[1]        = a_size;
@@ -46,7 +46,7 @@ void SetUIDInterval(cds_uint64 a, cds_uint64 a_size, cds_uint64 b, cds_uint64 b_
 Description: External function for setting current blocksize.
 
 *******************************************************************************/
-void SYS_UIDsetUIDSize(cds_uint64 block_size)
+void SYS_UIDsetUIDSize(uint64 block_size)
 {
    size_UID      = block_size;
 }
@@ -57,7 +57,7 @@ void SYS_UIDsetUIDSize(cds_uint64 block_size)
 Description: Gets maximum UID size
 
 *******************************************************************************/
-cds_int32  SYS_UIDgetMaxUIDSize(cds_uint64* size)
+int32  SYS_UIDgetMaxUIDSize(uint64* size)
 {
 
    if (size == NULL)
@@ -81,7 +81,7 @@ Description:
    pre-incremented value.
 
 *******************************************************************************/
-cds_int32   SYS_UIDgetNextUID(cds_uint64* uid)
+int32   SYS_UIDgetNextUID(uint64* uid)
 {
    // check limit
    if (increment_offset_UID >= increment_max_UID)
@@ -108,7 +108,7 @@ cds_int32   SYS_UIDgetNextUID(cds_uint64* uid)
 Description: External function for getting the last incremented UID
 
 *******************************************************************************/
-cds_int32   SYS_UIDgetLastUID(cds_uint64* uid)
+int32   SYS_UIDgetLastUID(uint64* uid)
 {
    // check to see if incrementer already called
    if (increment_offset_UID == 0)
@@ -132,7 +132,7 @@ cds_int32   SYS_UIDgetLastUID(cds_uint64* uid)
 Description: External function for getting the current UID interval
 
 *******************************************************************************/
-cds_int32 SYS_UIDgetLastUIDInterval(cds_uint64* interval)
+int32 SYS_UIDgetLastUIDInterval(uint64* interval)
 {
    if (interval == NULL)
       return UID_CODE_NULL_INTERVAL_PTR;
@@ -216,9 +216,9 @@ failsafe server host name\n");
 Description: External function for getting a new UID interval
 
 *******************************************************************************/
-cds_int32 SYS_UIDgetNewUIDInterval(cds_uint64* interval)
+int32 SYS_UIDgetNewUIDInterval(uint64* interval)
 {
-   cds_int32 result_status;
+   int32 result_status;
 
    if (interval == NULL)
       return UID_CODE_NULL_INTERVAL_PTR;
@@ -243,7 +243,7 @@ cds_int32 SYS_UIDgetNewUIDInterval(cds_uint64* interval)
 Description: Internal function for handling server communication
 
 *******************************************************************************/
-static cds_int32 QueryServer(cds_int32 code, cds_uint64* interval)
+static int32 QueryServer(int32 code, uint64* interval)
 {
    static char FirstTime     = 1;
    char        failsafe_flag = 0;
@@ -316,7 +316,7 @@ static cds_int32 QueryServer(cds_int32 code, cds_uint64* interval)
 Description: Utility func for creating a socket connection to server
 
 *******************************************************************************/
-static cds_int32  CreateConnection(void)
+static int32  CreateConnection(void)
 {
   struct timeval send_time_out;
   struct timeval recv_time_out;
@@ -362,7 +362,7 @@ static cds_int32  CreateConnection(void)
 Description: Utility func for creating a socket connection to failsafe server
 
 *******************************************************************************/
-static cds_int32  CreateFailsafeConnection(void)
+static int32  CreateFailsafeConnection(void)
 {
    if ( (failsafe_server_connection_id = socket(AF_INET, SOCK_STREAM, 0)) < 0)
    {
@@ -378,7 +378,7 @@ static cds_int32  CreateFailsafeConnection(void)
 Description: Utility func for setting up server host info
 
 *******************************************************************************/
-static cds_int32  GetServerHostInfo(void)
+static int32  GetServerHostInfo(void)
 {
    // uses the member var 'server_host_info' of type struct hostent
    if ( (server_host_info = gethostbyname(server_host_name)) == NULL)
@@ -396,7 +396,7 @@ static cds_int32  GetServerHostInfo(void)
 Description: Utility func for setting up failsafe server host info
 
 *******************************************************************************/
-static cds_int32  GetFailsafeServerHostInfo(void)
+static int32  GetFailsafeServerHostInfo(void)
 {
    // uses the member var 'failsafe_server_host_info' of type struct hostent
    if ( (failsafe_server_host_info = gethostbyname(failsafe_server_host_name)) == NULL)
@@ -415,7 +415,7 @@ static cds_int32  GetFailsafeServerHostInfo(void)
 Description: Utility func for configuring socket to server
 
 *******************************************************************************/
-static cds_int32  ConfigureConnection(void)
+static int32  ConfigureConnection(void)
 {
    if (5000 > server_tcp_port || server_tcp_port > 65535)
       {
@@ -438,7 +438,7 @@ static cds_int32  ConfigureConnection(void)
 Description: Utility func for configuring socket to failsafe server
 
 *******************************************************************************/
-static cds_int32  ConfigureFailsafeConnection(void)
+static int32  ConfigureFailsafeConnection(void)
 {
    if (5000 > failsafe_server_tcp_port || failsafe_server_tcp_port > 65535)
       {
@@ -464,7 +464,7 @@ static cds_int32  ConfigureFailsafeConnection(void)
 Description: Function for retrieving UID message from server
 
 *******************************************************************************/
-static void  ReceiveServerMessage(cds_int32 code, cds_uint64* interval)
+static void  ReceiveServerMessage(int32 code, uint64* interval)
 {
    char writebuffer[12];
    char logmessage[200];
@@ -530,7 +530,7 @@ static void  ReceiveServerMessage(cds_int32 code, cds_uint64* interval)
 Description: Function for retrieving UID message from failsafe server
 
 *******************************************************************************/
-static void  ReceiveFailsafeServerMessage(cds_int32 code, cds_uint64* interval)
+static void  ReceiveFailsafeServerMessage(int32 code, uint64* interval)
 {
    char writebuffer[12];
    char logmessage[200];

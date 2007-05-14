@@ -142,12 +142,12 @@ VA_TYPE(ASM_Quad) * IdentifyBadMateQuads(AssemblyStore * asmStore,
                                          CloneData * cd,
                                          char * fragTypes,
                                          BreakpointType bpType,
-                                         float32 numStddevs);
+                                         float   numStddevs);
 void CreateBMPFilename(char * fname,
                        CDS_UID_t uid,
                        char * fragTypes,
                        BreakpointType bpType,
-                       float32 numStddevs);
+                       float   numStddevs);
 void PrintScaffoldContigCoordinates(AssemblyStore * asmStore,
                                     uint32 index,
                                     int doGnuplotOutput,

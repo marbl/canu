@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: InstrumentCheckpoint.c,v 1.8 2007-04-16 17:36:30 brianwalenz Exp $";
+static char CM_ID[] = "$Id: InstrumentCheckpoint.c,v 1.9 2007-05-14 09:27:11 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
   InstrumenterVerbosity verbosity = InstrumenterVerbose3;
   VA_TYPE(CDS_CID_t) * scf_iids = NULL;
   VA_TYPE(CDS_CID_t) * ctg_iids = NULL;
-  cds_uint32 options = INST_OPT_ALL;
+  uint32 options = INST_OPT_ALL;
   CDS_CID_t lower_limit = 0;
   CDS_CID_t upper_limit = CDS_CID_MAX;
   int justGapSizes = 0;

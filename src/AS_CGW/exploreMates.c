@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: exploreMates.c,v 1.11 2007-04-16 17:36:32 brianwalenz Exp $";
+static char CM_ID[] = "$Id: exploreMates.c,v 1.12 2007-05-14 09:27:11 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -134,8 +134,8 @@ void DumpScaffoldGapSizes(CIScaffoldT * scaffold, FILE * fp)
 {
   CIScaffoldTIterator CIs;
   ContigT * contig;
-  float64 lastMax = -1;
-  float64  thisMin = -1;
+  double lastMax = -1;
+  double  thisMin = -1;
   CDS_CID_t lastID = NULLINDEX;
     
   InitCIScaffoldTIterator(ScaffoldGraph, scaffold, TRUE, FALSE, &CIs);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_chimeras.h,v 1.4 2005-03-22 19:48:24 jason_miller Exp $
+ * $Id: AS_CGB_chimeras.h,v 1.5 2007-05-14 09:27:10 brianwalenz Exp $
  *
  * Module: AS_CGB_chimeras.h
  *
@@ -32,7 +32,7 @@
 #ifndef AS_CGB_CHIMERAS_INCLUDE
 #define AS_CGB_CHIMERAS_INCLUDE
 
-cds_uint32 count_chimeras
+uint32 count_chimeras
 (
  const char  chimeras_report_filename[],
  const float cgb_unique_cutoff,
@@ -41,7 +41,7 @@ cds_uint32 count_chimeras
  TChunkFrag          chunk_frags[],
  TChunkMesg          chunks[] );
 
-cds_uint32 count_crappies
+uint32 count_crappies
 (
  const char  crappies_report_filename[],
  const float cgb_unique_cutoff,

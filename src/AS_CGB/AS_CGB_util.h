@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* *******************************************************************
- * $Id: AS_CGB_util.h,v 1.4 2005-03-22 19:48:32 jason_miller Exp $
+ * $Id: AS_CGB_util.h,v 1.5 2007-05-14 09:27:10 brianwalenz Exp $
  * Module: AS_CGB_util.h
  * 
  * Utility functions for the CGB (Unitigger)
@@ -34,7 +34,7 @@
 #include "AS_global.h"
 #include "AS_CGB_all.h"
 
-Tnes AS_CGB_SafeCast_cdsInt8_to_Tnes (cds_int8 dataIn) ;
+Tnes AS_CGB_SafeCast_cdsInt8_to_Tnes (int8 dataIn) ;
 
 size_t getDeltaLength (signed char * delta) ;
 

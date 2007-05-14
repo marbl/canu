@@ -30,12 +30,12 @@
 #include "AS_MSG_pmesg.h"
 
 
-void outputDST(Distance_ID acnum, float32 mean, float32 delta)
+void outputDST(Distance_ID acnum, float   mean, float   delta)
 {
   
   GenericMesg outMesg;
   DistanceMesg distanceMesg;
-  float32 stddev = delta/3.0;  // Use delta = 3 sigma relationship
+  float   stddev = delta/3.0;  // Use delta = 3 sigma relationship
 
   // fprintf(stderr,"acnum = " F_U64 " mean = %g std =%g\n", acnum, mean, stddev);
 

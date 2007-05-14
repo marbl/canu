@@ -28,7 +28,7 @@
 Description: error handling for "accept" socket step
 
 *******************************************************************************/
-void  SYS_UIDhandleAcceptError(cds_int32 err_code)
+void  SYS_UIDhandleAcceptError(int32 err_code)
 {
   switch(err_code)
     {
@@ -76,7 +76,7 @@ void  SYS_UIDhandleAcceptError(cds_int32 err_code)
 Description: error handling for "register" socket step
 
 *******************************************************************************/
-void  SYS_UIDhandleRegisterError(cds_int32 err_code)
+void  SYS_UIDhandleRegisterError(int32 err_code)
 {
   switch(err_code)
     {
@@ -139,7 +139,7 @@ void  SYS_UIDhandleRegisterError(cds_int32 err_code)
 Description: error handling for socket "create" step
 
 *******************************************************************************/
-void  SYS_UIDhandleCreateError(cds_int32 err_code)
+void  SYS_UIDhandleCreateError(int32 err_code)
 {
    switch(err_code)
      {
@@ -181,7 +181,7 @@ void  SYS_UIDhandleCreateError(cds_int32 err_code)
 Description: error handling for socket "activation" step
 
 *******************************************************************************/
-void  SYS_UIDhandleActivateError(cds_int32 err_code)
+void  SYS_UIDhandleActivateError(int32 err_code)
 {
    switch(err_code)
      {

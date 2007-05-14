@@ -30,7 +30,7 @@
 
 **********************************************************************/
 
-static char CM_ID[] = "$Id: ConsistencyChecksREZ.c,v 1.8 2007-04-16 17:34:15 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ConsistencyChecksREZ.c,v 1.9 2007-05-14 09:27:12 brianwalenz Exp $";
 
 
 /* ---------------------------------------------------- */
@@ -725,8 +725,8 @@ static void combine_two_distrib(LengthT dist1, LengthT dist2, LengthT *cDist){
   //  float v1 = dist1.stdDev*dist1.stdDev;
   //  float v2 = dist2.stdDev*dist2.stdDev;  // Bug was fixed by Saul
 
-  float64 v1 = dist1.variance;
-  float64 v2 = dist2.variance;
+  double v1 = dist1.variance;
+  double v2 = dist2.variance;
 
   if( v1 == 0.0)
     {

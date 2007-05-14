@@ -323,7 +323,7 @@ typedef struct {
 typedef struct {
   int32 ident;
   int32 length;
-  float32 coverage_stat;
+  float   coverage_stat;
   int32 left;
   int32 right;
   UnitigType type;

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_traversal.c,v 1.6 2007-04-16 17:36:29 brianwalenz Exp $";
+= "$Id: AS_CGB_traversal.c,v 1.7 2007-05-14 09:27:10 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_traversal.c
@@ -78,7 +78,7 @@ static char CM_ID[]
 #define MAXQUEUELEN   ((1 << 24)-1) // 0xffffff
 //#define MAX_ADJACENCY_FOLLOWED 5
 #undef MAX_ADJACENCY_FOLLOWED
-#define NOT_RANKED           (CDS_UINT32_MAX)
+#define NOT_RANKED           UINT32_MAX
 
 /*************************************************************************/
 /* Static Globals */

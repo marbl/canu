@@ -28,7 +28,7 @@
 int main (int argc, char** argv) {
   char *option = NULL; 
   char *service = NULL; 
-  cds_uint64 uid;
+  CDS_UID_t uid;
   CDS_UID_t interval_UID[4];
   int32 uidStatus;
 

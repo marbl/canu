@@ -25,20 +25,20 @@
 #include "SYS_UIDcommon.h"
 #include "SYS_UIDclient.h"
 
-cds_int32 main(cds_int32 argc, char** argv)
+int32 main(int32 argc, char** argv)
 {
-   cds_uint64             uid_interval[4];
-   cds_int32              uid_status;
-   cds_int32              msec_delay = 0;
-   cds_int32              count = 0;
-   cds_int32              print_flag = 0;
-   cds_int32              i;
-   cds_uint64             block_size;
-   cds_uint64             a_new_uid;
-   cds_int32              a_new_uid_status;
-   cds_int32              j;
+   uint64             uid_interval[4];
+   int32              uid_status;
+   int32              msec_delay = 0;
+   int32              count = 0;
+   int32              print_flag = 0;
+   int32              i;
+   uint64             block_size;
+   uint64             a_new_uid;
+   int32              a_new_uid_status;
+   int32              j;
    char               err_str[300];
-   cds_uint64             max_block_size = 0L;
+   uint64             max_block_size = 0L;
 
    // check
    if (argc < 2)

@@ -24,12 +24,12 @@
 
 //  The simple UID client interface, from AS_TER
 
-cds_int32    SYS_UIDgetLastUIDInterval(cds_uint64* interval);
-cds_int32    SYS_UIDgetNewUIDInterval(cds_uint64* interval);
-cds_int32    SYS_UIDgetMaxUIDSize(cds_uint64* size);
-void         SYS_UIDsetUIDSize(cds_uint64 block_size);
-cds_int32    SYS_UIDgetNextUID(cds_uint64* uid);
-cds_int32    SYS_UIDgetLastUID(cds_uint64* uid);
+int32    SYS_UIDgetLastUIDInterval(uint64* interval);
+int32    SYS_UIDgetNewUIDInterval(uint64* interval);
+int32    SYS_UIDgetMaxUIDSize(uint64* size);
+void         SYS_UIDsetUIDSize(uint64 block_size);
+int32    SYS_UIDgetNextUID(uint64* uid);
+int32    SYS_UIDgetLastUID(uint64* uid);
 void         SYS_UIDset_euid_server(const char * servers);
 void         SYS_UIDset_euid_namespace(const char * namespaceName);
 

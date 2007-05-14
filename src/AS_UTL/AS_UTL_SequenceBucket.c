@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_SequenceBucket.c,v 1.5 2007-02-14 07:20:15 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_UTL_SequenceBucket.c,v 1.6 2007-05-14 09:27:12 brianwalenz Exp $";
 /*************************************************************************
  Module:  AS_UTL_SequenceBucket
  Description:
@@ -53,10 +53,10 @@ SequenceBucketT *CreateSequenceBucket(int bucketWidth){
 #endif
   sequenceBucket->buckets = (int32 *)
     safe_calloc(sequenceBucket->numBuckets, sizeof(int32));
-  sequenceBucket->trate = (float32 *)
-    safe_malloc(sequenceBucket->numBuckets * sizeof(float32));
-  sequenceBucket->arate = (float32 *)
-    safe_malloc(sequenceBucket->numBuckets *sizeof(float32));
+  sequenceBucket->trate = (float   *)
+    safe_malloc(sequenceBucket->numBuckets * sizeof(float  ));
+  sequenceBucket->arate = (float   *)
+    safe_malloc(sequenceBucket->numBuckets *sizeof(float  ));
   for(i = 0; i < sequenceBucket->numBuckets; i++){
     sequenceBucket->trate[i] = 0.0;
     sequenceBucket->arate[i] = 0.0;
@@ -164,15 +164,15 @@ void ComputeBucketActualRates(SequenceBucketT *sequenceBucket){
   int i;
   for(i = 0; i < sequenceBucket->numBuckets; i++){
     if(sequenceBucket->numSamples > 0)
-      sequenceBucket->arate[i] = (float32)(sequenceBucket->buckets[i])/(float32)(sequenceBucket->numSamples);
+      sequenceBucket->arate[i] = (float  )(sequenceBucket->buckets[i])/(float  )(sequenceBucket->numSamples);
     else
       sequenceBucket->arate[i] = 0.0;
   }
 }
 
-void CheckBucketRates(SequenceBucketT *sequenceBucket, float32 nsigma, FILE *fout, char *label){
+void CheckBucketRates(SequenceBucketT *sequenceBucket, float   nsigma, FILE *fout, char *label){
   int i;
-  float32 delta, sigma;
+  float   delta, sigma;
   char buffer[256];
   for(i = 0; i < sequenceBucket->numBuckets; i++){
     // sigma = n * p (1-p)
@@ -206,9 +206,9 @@ else{
 
 void CheckBucketRatesSanity(SequenceBucketT *sequenceBucket,
 			    SequenceBucketT *sequenceBucket_sanity,
-			    float32 nsigma, FILE *fout, char *label){
+			    float   nsigma, FILE *fout, char *label){
   int i;
-  float32 delta, sigma;
+  float   delta, sigma;
   char buffer[256];
   for(i = 0; i < sequenceBucket->numBuckets; i++){
     // sigma = n * p (1-p)
@@ -241,9 +241,9 @@ else{
 }
 
 
-void ComputeBucketProbability(SequenceBucketT *sequenceBucket, int bucketNum, float32 *singleCharProbs){
+void ComputeBucketProbability(SequenceBucketT *sequenceBucket, int bucketNum, float   *singleCharProbs){
   int i;
-  float32 prob = 1.0;
+  float   prob = 1.0;
   int32 scratch = bucketNum;
   for(i = 0; i <  sequenceBucket->bucketWidth; i++){
       int index = scratch & 0x3;
@@ -257,7 +257,7 @@ void ComputeBucketProbability(SequenceBucketT *sequenceBucket, int bucketNum, fl
   sequenceBucket->trate[bucketNum] = prob;
 }
 
-void ComputeBucketTheoreticalRates(SequenceBucketT *sequenceBucket, float32 *singleCharProbs){
+void ComputeBucketTheoreticalRates(SequenceBucketT *sequenceBucket, float   *singleCharProbs){
   int i;
   for(i = 0; i < sequenceBucket->numBuckets; i++){
     if(sequenceBucket->numSamples > 0)
@@ -307,7 +307,7 @@ void IncrementSequenceBucketArrayPrefix(SequenceBucketArrayT *sequenceBucketArra
   }
 }
 
-void CheckSequenceBucketArray(SequenceBucketArrayT *sequenceBucketArray, float32 *actgProbabilities, float32 num_sigma,
+void CheckSequenceBucketArray(SequenceBucketArrayT *sequenceBucketArray, float   *actgProbabilities, float   num_sigma,
 			      FILE *fout, char *label){
   int i;
   for(i = 0; i < sequenceBucketArray->numSequenceBuckets; i++){
@@ -319,7 +319,7 @@ void CheckSequenceBucketArray(SequenceBucketArrayT *sequenceBucketArray, float32
 
 void CheckSequenceBucketArraySanity(SequenceBucketArrayT *sequenceBucketArray1,
 				    SequenceBucketArrayT *sequenceBucketArray2,
-				    float32 *actgProbabilities, float32 num_sigma,
+				    float   *actgProbabilities, float   num_sigma,
 				    FILE *fout, char *label){
   int i;
   for(i = 0; i < sequenceBucketArray1->numSequenceBuckets; i++){

@@ -530,8 +530,8 @@ void CreateNewContigsFromUnitigs(ContigT * oldContig,
               for(j = 0; j < GetNumVA_IntMultiPos(zlfUMA->f_list); j++)
                 {
                   IntMultiPos * imp = GetVA_IntMultiPos(zlfUMA->f_list, j);
-                  cds_uint32 preBgn, preEnd;
-                  cds_uint32 postBgn, postEnd;
+                  uint32 preBgn, preEnd;
+                  uint32 postBgn, postEnd;
           
                   getFrag(ScaffoldGraph->gkpStore,
                           imp->ident, fsread, FRAG_S_ALL);

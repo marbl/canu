@@ -1713,7 +1713,7 @@ void PrintDegenerateLength(AssemblyStore * asmStore, int32 index, FILE * fo)
 
 
 void getScaffoldLengths(AssemblyStore * asmStore, int32 index,
-                        CDS_COORD_t * fastaLength, float32 * assemblyLength)
+                        CDS_COORD_t * fastaLength, float   * assemblyLength)
 {
   ASM_SCFRecord scf;
   ASM_IIDRecord contigIndex;
@@ -1751,7 +1751,7 @@ void PrintScaffoldLength(AssemblyStore * asmStore, int32 index, FILE * fo)
 {
   ASM_SCFRecord scf;
   CDS_COORD_t fastaLength;
-  float32 assemblyLength;
+  float   assemblyLength;
 
   getASM_SCFStore(asmStore->scfStore, index, &scf);
   getScaffoldLengths(asmStore, index, &fastaLength, &assemblyLength);
@@ -1766,7 +1766,7 @@ VA_TYPE(ASM_Quad) * IdentifyBadMateQuads(AssemblyStore * asmStore,
                                          CloneData * cd,
                                          char * fragTypes,
                                          BreakpointType bpType,
-                                         float32 numStddevs)
+                                         float   numStddevs)
 {
   int32 i;
   PHashValue_AS value;
@@ -2151,7 +2151,7 @@ void CreateBMPFilename(char * fname,
                        CDS_UID_t uid,
                        char * fragTypes,
                        BreakpointType bpType,
-                       float32 numStddevs)
+                       float   numStddevs)
 {
   char fts[257];
   int i, j;
@@ -2196,7 +2196,7 @@ void CreateBMPFilename(char * fname,
 FILE * CreateGnuPlotFile(CDS_UID_t uid,
                          char * fragTypes,
                          BreakpointType bpType,
-                         float32 numStddevs)
+                         float   numStddevs)
 {
   FILE * fp;
   char fname[1024];
@@ -2337,7 +2337,7 @@ void PrintScaffoldContigCoordinates(AssemblyStore * asmStore,
   ASM_IIDRecord contigIndex;
   ASM_GapRecord gap;
   CDS_COORD_t fastaLength;
-  float32 assemblyLength;
+  float   assemblyLength;
 
   CDS_COORD_t offset = 0;
   int32 i, j;

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_global.h,v 1.13 2007-04-16 15:35:39 brianwalenz Exp $	 */
+/* 	$Id: AS_global.h,v 1.14 2007-05-14 09:27:10 brianwalenz Exp $	 */
 
 /* This is the global include file that all C files in the AS subsystem should
    include.
@@ -35,14 +35,8 @@
 #include <inttypes.h>
 #include <time.h>
 
-
 #include "AS_UTL_alloc.h"
 
-
-////////////////////////////////////////
-//
-//  This is CDS_H
-//
 
 #ifdef __alpha
 // used in AS_CNS/Array_CNS.h and AS_CNS/MultiAlignment_CNS.h
@@ -78,25 +72,6 @@
   typedef int bool;
 #endif // cplusplus
 
-#define CDS_INT8_MAX   CHAR_MAX
-#define CDS_INT8_MIN   CHAR_MIN
-#define CDS_INT16_MAX  SHRT_MAX
-#define CDS_INT16_MIN  SHRT_MIN
-#define CDS_INT32_MAX  INT_MAX
-#define CDS_INT32_MIN  INT_MIN
-
-#define CDS_UINT8_MAX  UCHAR_MAX
-#define CDS_UINT16_MAX USHRT_MAX
-#define CDS_UINT32_MAX UINT_MAX
-
-typedef int8_t  cds_int8;
-typedef int16_t cds_int16;
-typedef int32_t cds_int32;
-typedef int64_t cds_int64;
-typedef uint8_t  cds_uint8;
-typedef uint16_t cds_uint16;
-typedef uint32_t cds_uint32;
-typedef uint64_t cds_uint64;
 
 #ifndef _AIX
   typedef int8_t  int8;
@@ -110,11 +85,6 @@ typedef uint16_t uint16;
 typedef uint32_t uint32;
 typedef uint64_t uint64;
 
-typedef float  cds_float32;
-typedef double cds_float64;
-typedef float  float32;
-typedef double float64;
-
 typedef void *PtrT;
 
 #define F_L     "%ld"
@@ -123,22 +93,13 @@ typedef void *PtrT;
 #define F_ULL  "%llu"
 
 #if ULONG_MAX == 0xffffffff
-  // 64-bit architecture
+  // 32-bit architecture
 
   #define TRUE32BIT
 
-  /*  Newer gcc's know INT64_MAX, older ones don't.  */
-  #ifdef UINT64_MAX
-    #define CDS_INT64_MAX  INT64_MAX
-    #define CDS_UINT64_MAX UINT64_MAX
-  #else
-    #ifdef ULLONG_MAX
-      #define CDS_INT64_MAX  LLONG_MAX
-      #define CDS_UINT64_MAX ULLONG_MAX
-    #else
-      #define CDS_INT64_MAX  9223372036854775807LL
-      #define CDS_UINT64_MAX 18446744073709551615ULL
-    #endif
+  #ifndef UINT64_MAX
+    #define INT64_MAX  LLONG_MAX
+    #define UINT64_MAX ULLONG_MAX
   #endif
 
   #define F_S16     "%d"
@@ -208,9 +169,11 @@ typedef void *PtrT;
 
   #define TRUE64BIT
 
-  #define CDS_INT64_MAX LONG_MAX
-  #define CDS_UINT64_MAX ULONG_MAX
-    
+  #ifndef UINT64_MAX
+    #define INT64_MAX  LONG_MAX
+    #define UINT64_MAX ULONG_MAX
+  #endif
+ 
   // included here for downstream .c files
   // I don't know if this is needed anywhere else but on the alphas (MP)
   #ifdef _OSF_SOURCE
@@ -340,15 +303,15 @@ CDS_FSEEK(FILE *stream, off_t offset, int whence) {
 
 
 
+typedef uint64 CDS_UID_t;
+typedef uint32 CDS_IID_t;
+typedef int32  CDS_CID_t;
+typedef int32  CDS_COORD_t;
 
-typedef cds_uint64 CDS_UID_t;
-typedef cds_uint32 CDS_IID_t;
-typedef cds_int32  CDS_CID_t;
-typedef cds_int32  CDS_COORD_t;
-#define CDS_IID_MAX     CDS_UINT32_MAX
-#define CDS_CID_MAX     CDS_INT32_MAX
-#define CDS_COORD_MIN   CDS_INT32_MIN
-#define CDS_COORD_MAX   CDS_INT32_MAX
+#define CDS_IID_MAX     UINT32_MAX
+#define CDS_CID_MAX     INT32_MAX
+#define CDS_COORD_MIN   INT32_MIN
+#define CDS_COORD_MAX   INT32_MAX
 
 #define F_UID    F_U64
 #define F_UIDP   F_U64P
@@ -358,10 +321,6 @@ typedef cds_int32  CDS_COORD_t;
 #define F_CIDP   F_S32P
 #define F_COORD  F_S32
 #define F_COORDP F_S32P
-//
-//  End of CD_H
-//
-////////////////////////////////////////
 
 
 
@@ -399,10 +358,6 @@ typedef cds_int32  CDS_COORD_t;
 //  Errors per base allowed in matching regions involving BAC ends
 //  or other guides.
 
-#define AS_CGB_BPT_MIN_PREFIX   25
-#define AS_CGB_BPT_MIN_SUFFIX   25
-#define AS_CGB_BPT_ERROR_RATE    0.08
-#define AS_CGB_BPT_PROB_THOLD    1e-6
 
 // These macros are use to eliminate inter-platform differnces between 
 // calculated results

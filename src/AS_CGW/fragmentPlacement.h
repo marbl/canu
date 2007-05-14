@@ -75,7 +75,7 @@ typedef struct FragIterator{
   uint32 includeSurrogateFrgs:1;
   CDS_CID_t id;
   MultiAlignT *ma;
-  cds_int32 fOrder; /* which fragment within multialign is next */
+  int32 fOrder; /* which fragment within multialign is next */
   ContigTIterator subchunks;
   struct FragIterator *subchunkIterator;
 

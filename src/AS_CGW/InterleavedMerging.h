@@ -41,9 +41,9 @@ typedef struct
 {
   int index;
   CDS_CID_t id;
-  float64 length;
-  float64 minCoord;
-  float64 maxCoord;
+  double length;
+  double minCoord;
+  double maxCoord;
   NodeOrient orient;
 } ContigElement;
 

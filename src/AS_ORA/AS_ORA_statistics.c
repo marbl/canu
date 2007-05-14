@@ -20,7 +20,7 @@
  *************************************************************************/
 /**********************************************************************
 $Source: /work/NIGHTLY/wgs-assembler-cvs/src/AS_ORA/Attic/AS_ORA_statistics.c,v $
-$Revision: 1.6 $
+$Revision: 1.7 $
 **********************************************************************/
 
 
@@ -123,7 +123,7 @@ void FreeHistogram( Histogramp histo )
 */
 void InitializeStatistics( OverlapStatisticsp stats )
 {
-  stats->min_overlap = CDS_INT16_MAX;
+  stats->min_overlap = INT16_MAX;
   stats->max_overlap = 0;
   stats->num_seq_gaps = 0;
   stats->seq_gap_bases = 0;

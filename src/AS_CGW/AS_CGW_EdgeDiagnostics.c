@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.11 2007-04-23 15:24:34 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.12 2007-05-14 09:27:10 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -242,7 +242,7 @@ void PopulateChunkEdgeBasics(ScaffoldGraphT * graph,
   LengthT distFromAChunkEnd;
   LengthT distFromBChunkEnd;
   LengthT distBetweenChunks;
-  cds_float32 distVariance = dist->sigma * dist->sigma;
+  float distVariance = dist->sigma * dist->sigma;
   
   // determine distance from 5p of fragment to relevant end of CI
   ComputeFragToChunkEndForEdge(graph, fragA,
@@ -721,11 +721,11 @@ int CheckAllContigOrientationsInAllScaffolds(ScaffoldGraphT * graph,
 
 #define DIFFERENT_EDGE_FACTOR    0.1f
 
-int CompareEdgeFloats(float32 edgeFloat,
-                      float32 fragsFloat,
+int CompareEdgeFloats(float   edgeFloat,
+                      float   fragsFloat,
                       char * message)
 {
-  float32 delta = fabs(edgeFloat - fragsFloat);
+  float   delta = fabs(edgeFloat - fragsFloat);
   if(delta > 1.f &&
      (delta > fabs(edgeFloat) * DIFFERENT_EDGE_FACTOR ||
       delta > fabs(fragsFloat) * DIFFERENT_EDGE_FACTOR))
@@ -921,10 +921,10 @@ void ValidateAllContigEdges(ScaffoldGraphT * graph, int fixBadOnes)
 typedef struct
 {
   CDS_CID_t   scaffoldID;
-  cds_float32 minOffsetScaffoldB;
-  cds_float32 maxOffsetScaffoldB;
-  cds_float32 minOffset;
-  cds_float32 maxOffset;
+  float minOffsetScaffoldB;
+  float maxOffsetScaffoldB;
+  float minOffset;
+  float maxOffset;
   ChunkOrientationType orient;
   int         orientationsConsistent;
   int         weight;

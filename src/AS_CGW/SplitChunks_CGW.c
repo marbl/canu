@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.18 2007-04-23 15:24:35 brianwalenz Exp $";
+static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.19 2007-05-14 09:27:11 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -86,7 +86,7 @@ extern void CheckUnitigs(CDS_CID_t start, CDS_CID_t end);
 #define LN_2                      .693147f
 
 
-VA_DEF(cds_uint16);
+VA_DEF(uint16);
 VA_DEF(SeqInterval);
 
 
@@ -137,7 +137,7 @@ void PrintPositions(ScaffoldGraphT * graph, MultiAlignT * ma, int isUnitig)
 }
 
 
-static void IncrementMapInterval(VA_TYPE(cds_uint16) * map,
+static void IncrementMapInterval(VA_TYPE(uint16) * map,
                                  CDS_COORD_t minPos,
                                  CDS_COORD_t maxPos)
 {
@@ -145,18 +145,18 @@ static void IncrementMapInterval(VA_TYPE(cds_uint16) * map,
   
   for(i = minPos; i < maxPos; i++)
     {
-      cds_uint16 * temp = GetVA_cds_uint16(map, i);
+      uint16 * temp = GetVA_uint16(map, i);
       (*temp)++;
     }
 }
 
 
 static int CreateReadCoverageMap(ScaffoldGraphT * graph,
-                                 VA_TYPE(cds_uint16) * rc,
+                                 VA_TYPE(uint16) * rc,
                                  MultiAlignT * ma,
                                  int isUnitig)
 {
-  cds_uint32 i;
+  uint32 i;
   
   for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++)
     {
@@ -192,8 +192,8 @@ static int CreateReadCoverageMap(ScaffoldGraphT * graph,
 
 
 static int AddLinkToMaps(ScaffoldGraphT * graph,
-                         VA_TYPE(cds_uint16) * gcc,
-                         VA_TYPE(cds_uint16) * bcc,
+                         VA_TYPE(uint16) * gcc,
+                         VA_TYPE(uint16) * bcc,
                          CIFragT * frag,
                          CIFragT * mfrag,
                          OrientType orient,
@@ -456,12 +456,12 @@ static int AddLinkToMaps(ScaffoldGraphT * graph,
 
 
 static int CreateCloneCoverageMaps(ScaffoldGraphT * graph,
-                                   VA_TYPE(cds_uint16) * gcc,
-                                   VA_TYPE(cds_uint16) * bcc,
+                                   VA_TYPE(uint16) * gcc,
+                                   VA_TYPE(uint16) * bcc,
                                    MultiAlignT * ma,
                                    int isUnitig)
 {
-  cds_uint32 i;
+  uint32 i;
   IntMultiPos * imp;
   InfoByIID * info;
   CIFragT * frag;
@@ -493,7 +493,7 @@ static int CreateCloneCoverageMaps(ScaffoldGraphT * graph,
 }
 
 
-static int WriteMapToCelagramFile(VA_TYPE(cds_uint16) * map,
+static int WriteMapToCelagramFile(VA_TYPE(uint16) * map,
                                   CDS_COORD_t length,
                                   char * filestub,
                                   char * comment,
@@ -502,7 +502,7 @@ static int WriteMapToCelagramFile(VA_TYPE(cds_uint16) * map,
   char filename[1024];
   FILE * fp;
   CDS_COORD_t b;
-  cds_uint16 n;
+  uint16 n;
   
   sprintf(filename, "%s.%010" F_CIDP ".cgm", filestub, index);
   if((fp = fopen(filename, "w")) == NULL)
@@ -514,7 +514,7 @@ static int WriteMapToCelagramFile(VA_TYPE(cds_uint16) * map,
   fprintf(fp, "%s " F_CID "\n", comment, index);
   for(b = 0; b < length; b++)
     {
-      for(n = 0; n < *(GetVA_cds_uint16(map,b)); n++)
+      for(n = 0; n < *(GetVA_uint16(map,b)); n++)
         fprintf(fp, F_COORD "\n", b);
     }
   fclose(fp);
@@ -663,7 +663,7 @@ float EstimateGlobalFragmentArrivalRate(ChunkInstanceT * ci,
 {
   int i;
   int numRF = 0;
-  cds_int32 rho = 0;
+  int32 rho = 0;
 
   // estimate random fragments/bp
   for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++)
@@ -842,7 +842,7 @@ static int StoreIUMStruct(ScaffoldGraphT * graph,
                           int cgbType)
 {
   int i;
-  cds_int32 rho = 0;
+  int32 rho = 0;
   
   is->ium.iaccession = ((isUnitig) ? GetNumGraphNodes(graph->CIGraph) :
                         GetNumGraphNodes(graph->ContigGraph));
@@ -1223,17 +1223,17 @@ static int SplitChunkByIntervals(ScaffoldGraphT * graph,
 
 int SplitInputUnitigs(ScaffoldGraphT * graph)
 {
-  VA_TYPE(cds_uint16) * rc = NULL;   // read coverage map
-  VA_TYPE(cds_uint16) * gcc = NULL;  // good clone coverage
-  VA_TYPE(cds_uint16) * bcc = NULL;  // bad clone coverage
+  VA_TYPE(uint16) * rc = NULL;   // read coverage map
+  VA_TYPE(uint16) * gcc = NULL;  // good clone coverage
+  VA_TYPE(uint16) * bcc = NULL;  // bad clone coverage
   VA_TYPE(SeqInterval) * csis = NULL; // chimeric sequence intervals
   CDS_COORD_t minLength = CDS_COORD_MAX;
   int i;
   int numCIs = GetNumGraphNodes(graph->CIGraph);
 
-  rc = CreateVA_cds_uint16(10000);
-  gcc = CreateVA_cds_uint16(10000);
-  bcc = CreateVA_cds_uint16(10000);
+  rc = CreateVA_uint16(10000);
+  gcc = CreateVA_uint16(10000);
+  bcc = CreateVA_uint16(10000);
   csis = CreateVA_SeqInterval(100);
   assert(rc != NULL && gcc != NULL && bcc != NULL && csis != NULL);
 
@@ -1276,13 +1276,13 @@ int SplitInputUnitigs(ScaffoldGraphT * graph)
 
           // create read coverage map for unitig
           // function intended to work for either contig or unitig
-          ResetVA_cds_uint16(rc);
-          EnableRangeVA_cds_uint16(rc, GetMultiAlignLength(ma));
+          ResetVA_uint16(rc);
+          EnableRangeVA_uint16(rc, GetMultiAlignLength(ma));
 #ifdef DEBUG2
           fprintf(GlobalData->stderrc, "Unitig %10d, length %d\n",
                   i, (int) GetMultiAlignLength(ma));
           fprintf(GlobalData->stderrc, "\tVA_num = %d\n",
-                  (int) GetNumVA_cds_uint16(rc));
+                  (int) GetNumVA_uint16(rc));
 #endif
           CreateReadCoverageMap(graph, rc, ma, TRUE);
 
@@ -1296,16 +1296,16 @@ int SplitInputUnitigs(ScaffoldGraphT * graph)
           // i.e., ignore initial & trailing 0/1 values
           for(minBase = READ_TRIM_BASES;
               minBase < GetMultiAlignLength(ma) - READ_TRIM_BASES &&
-                *(GetVA_cds_uint16(rc,minBase)) <= 1;
+                *(GetVA_uint16(rc,minBase)) <= 1;
               minBase++);
           for(maxBase = GetMultiAlignLength(ma) - READ_TRIM_BASES;
               maxBase > READ_TRIM_BASES &&
-                *(GetVA_cds_uint16(rc,maxBase)) <= 1;
+                *(GetVA_uint16(rc,maxBase)) <= 1;
               maxBase--);
 
           // see if there is a candidate interval
           for( curBase = minBase; curBase < maxBase; curBase++)
-            if(*(GetVA_cds_uint16(rc,curBase)) <= MAX_SEQUENCE_COVERAGE)
+            if(*(GetVA_uint16(rc,curBase)) <= MAX_SEQUENCE_COVERAGE)
               break;
 
 #ifdef DEBUG2
@@ -1326,10 +1326,10 @@ int SplitInputUnitigs(ScaffoldGraphT * graph)
 #endif
         
               // create gcc & bcc maps for unitig
-              ResetVA_cds_uint16(gcc);
-              EnableRangeVA_cds_uint16(gcc, GetMultiAlignLength(ma));
-              ResetVA_cds_uint16(bcc);
-              EnableRangeVA_cds_uint16(bcc, GetMultiAlignLength(ma));
+              ResetVA_uint16(gcc);
+              EnableRangeVA_uint16(gcc, GetMultiAlignLength(ma));
+              ResetVA_uint16(bcc);
+              EnableRangeVA_uint16(bcc, GetMultiAlignLength(ma));
 
               // reset the number of splitting intervals to 0
               ResetVA_SeqInterval(csis);
@@ -1341,9 +1341,9 @@ int SplitInputUnitigs(ScaffoldGraphT * graph)
               // identify & count chimeric sequence intervals
               for(checkBase = curBase; checkBase < maxBase; checkBase++)
                 {
-                  if(*(GetVA_cds_uint16(rc,checkBase)) <= MAX_SEQUENCE_COVERAGE &&
-                     *(GetVA_cds_uint16(bcc,checkBase)) >= MIN_BAD_CLONE_COVERAGE &&
-                     *(GetVA_cds_uint16(gcc,checkBase)) <= MAX_GOOD_CLONE_COVERAGE)
+                  if(*(GetVA_uint16(rc,checkBase)) <= MAX_SEQUENCE_COVERAGE &&
+                     *(GetVA_uint16(bcc,checkBase)) >= MIN_BAD_CLONE_COVERAGE &&
+                     *(GetVA_uint16(gcc,checkBase)) <= MAX_GOOD_CLONE_COVERAGE)
                     {
                       if(inInterval)
                         {
@@ -1387,15 +1387,15 @@ int SplitInputUnitigs(ScaffoldGraphT * graph)
                 {
 #ifdef DEBUG2
                   WriteMapToCelagramFile(rc,
-                                         (cds_uint32) GetMultiAlignLength(ma),
+                                         (uint32) GetMultiAlignLength(ma),
                                          "rc",
                                          "Read coverage for unitig", i);
                   WriteMapToCelagramFile(gcc,
-                                         (cds_uint32) GetMultiAlignLength(ma),
+                                         (uint32) GetMultiAlignLength(ma),
                                          "gcc",
                                          "Good clone coverage for unitig", i);
                   WriteMapToCelagramFile(bcc,
-                                         (cds_uint32) GetMultiAlignLength(ma),
+                                         (uint32) GetMultiAlignLength(ma),
                                          "bcc",
                                          "Bad clone coverage for unitig", i);
 #endif
@@ -1410,9 +1410,9 @@ int SplitInputUnitigs(ScaffoldGraphT * graph)
     }
 
   DeleteVA_SeqInterval(csis);
-  DeleteVA_cds_uint16(rc);
-  DeleteVA_cds_uint16(gcc);
-  DeleteVA_cds_uint16(bcc);
+  DeleteVA_uint16(rc);
+  DeleteVA_uint16(gcc);
+  DeleteVA_uint16(bcc);
 
   //CheckUnitigs(0, GetNumGraphNodes(graph->CIGraph));
   
@@ -1491,8 +1491,8 @@ void ProcessLinkForChimeraDetection(ScaffoldGraphT * graph,
                                     MultiAlignT * ma,
                                     HashTable_AS * ht,
                                     VA_TYPE(ChunkEndLink) * cels,
-                                    VA_TYPE(cds_uint16) * gcc,
-                                    VA_TYPE(cds_uint16) * bcc)
+                                    VA_TYPE(uint16) * gcc,
+                                    VA_TYPE(uint16) * bcc)
 {
   if(mfrag->contigID == frag->contigID)
     {
@@ -1573,9 +1573,9 @@ VA_TYPE(SplitInterval) * DetectChimericChunksInGraph(ScaffoldGraphT * graph)
 {
   VA_TYPE(SplitInterval) * sis;
   int numCIs;
-  VA_TYPE(cds_uint16) * rc;   // read coverage
-  VA_TYPE(cds_uint16) * gcc;  // good clone coverage
-  VA_TYPE(cds_uint16) * bcc;  // bad clone coverage
+  VA_TYPE(uint16) * rc;   // read coverage
+  VA_TYPE(uint16) * gcc;  // good clone coverage
+  VA_TYPE(uint16) * bcc;  // bad clone coverage
   HashTable_AS * ht;
   VA_TYPE(ChunkEndLink) * cels;
   int i;
@@ -1591,9 +1591,9 @@ VA_TYPE(SplitInterval) * DetectChimericChunksInGraph(ScaffoldGraphT * graph)
               "No contigs in graph for chimera detection.\n");
       return NULL;
     }
-  rc = CreateVA_cds_uint16(10000);
-  gcc = CreateVA_cds_uint16(10000);
-  bcc = CreateVA_cds_uint16(10000);
+  rc = CreateVA_uint16(10000);
+  gcc = CreateVA_uint16(10000);
+  bcc = CreateVA_uint16(10000);
   sis = CreateVA_SplitInterval(100);
   ht = CreateHashTable_AS(numCIs * 2, CELHashFn, CELCompareFn);
   cels = CreateVA_ChunkEndLink(numCIs * 2);
@@ -1627,12 +1627,12 @@ VA_TYPE(SplitInterval) * DetectChimericChunksInGraph(ScaffoldGraphT * graph)
         continue;
 
       // create gcc & bcc maps for unitig
-      ResetVA_cds_uint16(rc);
-      EnableRangeVA_cds_uint16(rc, GetMultiAlignLength(ma));
-      ResetVA_cds_uint16(gcc);
-      EnableRangeVA_cds_uint16(gcc, GetMultiAlignLength(ma));
-      ResetVA_cds_uint16(bcc);
-      EnableRangeVA_cds_uint16(bcc, GetMultiAlignLength(ma));
+      ResetVA_uint16(rc);
+      EnableRangeVA_uint16(rc, GetMultiAlignLength(ma));
+      ResetVA_uint16(gcc);
+      EnableRangeVA_uint16(gcc, GetMultiAlignLength(ma));
+      ResetVA_uint16(bcc);
+      EnableRangeVA_uint16(bcc, GetMultiAlignLength(ma));
       ResetVA_ChunkEndLink(cels);
       ResetHashTable_AS(ht);
     
@@ -1699,9 +1699,9 @@ VA_TYPE(SplitInterval) * DetectChimericChunksInGraph(ScaffoldGraphT * graph)
              num1B >= CHIMERA_SET_THRESHOLD &&
              celp->leftCoord > maxRightCoord)
             {
-              cds_int32 c2Index;
-              cds_int32 num2A = 0;
-              cds_int32 num2B = 0;
+              int32 c2Index;
+              int32 num2A = 0;
+              int32 num2B = 0;
 
               for(c2Index = cIndex;
                   c2Index < GetNumVA_ChunkEndLink(cels);
@@ -1757,8 +1757,8 @@ VA_TYPE(SplitInterval) * DetectChimericChunksInGraph(ScaffoldGraphT * graph)
                       // check against good clone coverage
                       for(k = maxRightCoord; k < celp->leftCoord; k++)
                       {
-                      if(*(GetVA_cds_uint16(rc,k)) <= MAX_SEQUENCE_COVERAGE &&
-                      *(GetVA_cds_uint16(gcc, k)) <= MAX_GOOD_CLONE_COVERAGE)
+                      if(*(GetVA_uint16(rc,k)) <= MAX_SEQUENCE_COVERAGE &&
+                      *(GetVA_uint16(gcc, k)) <= MAX_GOOD_CLONE_COVERAGE)
                       {
                       if(inInterval)
                       {
@@ -1814,9 +1814,9 @@ VA_TYPE(SplitInterval) * DetectChimericChunksInGraph(ScaffoldGraphT * graph)
         }
     }
 
-  DeleteVA_cds_uint16(rc);
-  DeleteVA_cds_uint16(gcc);
-  DeleteVA_cds_uint16(bcc);
+  DeleteVA_uint16(rc);
+  DeleteVA_uint16(gcc);
+  DeleteVA_uint16(bcc);
   
   return sis;
 }

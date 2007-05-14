@@ -34,7 +34,7 @@ static void SYS_UIDsignalHandlerFunction(int signal);
 Description: main() for the UID server
 
 *******************************************************************************/
-cds_int32 main(cds_int32 argc, char** argv)
+int32 main(int32 argc, char** argv)
 {
   int i;
   struct sigaction sigact;

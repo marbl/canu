@@ -30,7 +30,7 @@
 Description: prints usage if args don't match
 
 *******************************************************************************/
-void Usage(cds_int32 argc, char** argv)
+void Usage(int32 argc, char** argv)
 {
 
 printf("\n                                                                 \n");
@@ -67,10 +67,10 @@ printf("usage: %s -k <port of server to kill>                            \n\n", 
 Description: Parses command line options
 
 *******************************************************************************/
-void SYS_UIDparseOptions(cds_int32 argc, char** argv)
+void SYS_UIDparseOptions(int32 argc, char** argv)
 {
-   cds_int32 i, j, k;
-   cds_int32 address_length;
+   int32 i, j, k;
+   int32 address_length;
 
    /* initial argc check */
    if (argc < 3) 
@@ -148,15 +148,15 @@ Description: Initializes alerts
 *******************************************************************************/
 void FillAddressList(const char*    option, 
                      char**         list, 
-                     cds_int32          argc, 
+                     int32          argc, 
                      char**         argv,
-                     cds_int32*         interval)
+                     int32*         interval)
 {
-   cds_int32 i = 0;
-   cds_int32 j = 0;
-   cds_int32 k = 0;
-   cds_int32 address_length = 0;
-   cds_int32 interval_offset = 0;
+   int32 i = 0;
+   int32 j = 0;
+   int32 k = 0;
+   int32 address_length = 0;
+   int32 interval_offset = 0;
 
    if (interval == NULL)
       interval_offset = 2;
@@ -225,8 +225,8 @@ Description: Activates MA alert if time requirement is met
 #ifndef NOT_IMPLEMENTED_JTC
 void TriggerMaAlert(void)
 {
-   cds_int32 hours_elapsed;
-   cds_int64 current_time;
+   int32 hours_elapsed;
+   int64 current_time;
    struct timespec tp;
    char emessage[800];
 
@@ -255,8 +255,8 @@ Description: Activates ME alert if time requirement is met
 #ifndef NOT_IMPLEMENTED_JTC
 void TriggerMeAlert(void)
 {
-   cds_int32 hours_elapsed;
-   cds_int64 current_time;
+   int32 hours_elapsed;
+   int64 current_time;
    struct timespec tp;
    char emessage[800];
 
@@ -317,7 +317,7 @@ void SendMailList(const char* subject, const char* emessage, const char* address
 Description: Sets the UID status and manages the unrecoverable_error_flag
 
 *******************************************************************************/
-void SetStatus(cds_int32 status, char flag)
+void SetStatus(int32 status, char flag)
 {
    status_code = status;
    if (unrecoverable_error_flag == UID_OK) // this is a one-way switch
@@ -329,7 +329,7 @@ void SetStatus(cds_int32 status, char flag)
 Description: initializes vars and parses arguments, branching appropriately
 
 *******************************************************************************/
-cds_int32 SYS_UIDserverInitialize(cds_int32 argc, char** argv)
+int32 SYS_UIDserverInitialize(int32 argc, char** argv)
 {
    // initialization of statics
    positionfile_name           = NULL;
@@ -430,7 +430,7 @@ Notes:
    function is called if this is the desired effect.
 
 *******************************************************************************/
-cds_int32  PositionWrite(cds_uint64 position)
+int32  PositionWrite(uint64 position)
 {
    FILE* write_fp;
 
@@ -448,7 +448,7 @@ cds_int32  PositionWrite(cds_uint64 position)
 	      current_position_UID);
       SYS_UIDerrorMsg(SYS_UIDerr_str);
    }    
-   fwrite(&position, sizeof(cds_uint64), 1, write_fp);
+   fwrite(&position, sizeof(uint64), 1, write_fp);
    fclose(write_fp);
    return UID_OK;
 }
@@ -461,7 +461,7 @@ Description:
    Should only be called once per program invocation.
 
 *******************************************************************************/
-cds_int32  PositionRead(void)
+int32  PositionRead(void)
 {
    FILE* read_fp;
 
@@ -473,7 +473,7 @@ cds_int32  PositionRead(void)
       SetStatus(UID_CODE_POS_CONFIG_ERROR, UID_FAILS);
       return UID_FAILS;
    }
-   fread(&current_UID, sizeof(cds_uint64), 1, read_fp);
+   fread(&current_UID, sizeof(uint64), 1, read_fp);
    if (SYS_UIDdebug_flag == 1)
    {
       sprintf(SYS_UIDerr_str,"UID Server: read position value %ld\n",
@@ -512,7 +512,7 @@ Output:
    Returns UID_OK or UID_FAILS
 
 *******************************************************************************/
-cds_int32  UpdateFromPositionFile(void)
+int32  UpdateFromPositionFile(void)
 {
 
    if (PositionRead() == UID_FAILS)
@@ -550,7 +550,7 @@ Notes:
    requests that trigger their release.
 
 *******************************************************************************/
-cds_int32 IncrementUpdatePositionFile()
+int32 IncrementUpdatePositionFile()
 {
    current_position_UID = current_UID + index_update_increment;
    if (PositionWrite(current_position_UID) == UID_FAILS)
@@ -566,7 +566,7 @@ Description:
 
 
 *******************************************************************************/
-cds_int32 SYS_UIDserverStart(void)
+int32 SYS_UIDserverStart(void)
 {
   /* This blocking function runs the server loop */
 
@@ -604,7 +604,7 @@ Description:
 
 
 *******************************************************************************/
-void  ReadClientRequest(cds_int32* client_status, cds_uint64* request_size)
+void  ReadClientRequest(int32* client_status, uint64* request_size)
 {
 
    char  readbuffer[12];
@@ -679,10 +679,10 @@ Description:
 *******************************************************************************/
 void  DebugClientMessage(void)
 {
-   cds_int32     i;
-   cds_int32     j;
+   int32     i;
+   int32     j;
    char      num_buffer[50];
-   cds_int32     length = 0;
+   int32     length = 0;
 
    // for each of the 5 lines it takes to print an outgoing message...
    for (i=0; i<5 ; i++)   
@@ -720,10 +720,10 @@ Description:
    Processes a UID block request from the client.
 
 *******************************************************************************/
-cds_int32  SendClientMessage(void)
+int32  SendClientMessage(void)
 {
-   cds_uint64 request_size;
-   cds_int32  client_status;
+   uint64 request_size;
+   int32  client_status;
 
    // safeguard against any client communication in fatal error state
    if (unrecoverable_error_flag != UID_OK)
@@ -793,10 +793,10 @@ Description:
    requests that are within bounds will work.
 
 *******************************************************************************/
-cds_int32  UIDIsValid(cds_uint64 block_size)
+int32  UIDIsValid(uint64 block_size)
 {
-   cds_uint64 end_of_block;
-   cds_uint64 max_ul = CDS_UINT64_MAX;
+   uint64 end_of_block;
+   uint64 max_ul = UINT64_MAX;
 
 
    // do 64-bit bounds check
@@ -831,7 +831,7 @@ Description:
    opens server socket for business
 
 *******************************************************************************/
-cds_int32  CreateConnection(void)
+int32  CreateConnection(void)
 {
   struct timeval send_time_out;
   struct timeval recv_time_out;
@@ -876,11 +876,11 @@ Description:
    configures server socket
 
 *******************************************************************************/
-cds_int32  RegisterConnection(void)
+int32  RegisterConnection(void)
 {
 
    struct sockaddr_in   connection_data;       
-   cds_int32                  connection_data_size;  
+   int32                  connection_data_size;  
 
    if (5000 > tcp_port || tcp_port > 65535)
       return UID_FAILS;
@@ -909,7 +909,7 @@ Description:
    Activates the server socket as listening.
 
 *******************************************************************************/
-cds_int32  ActivateConnection(void)
+int32  ActivateConnection(void)
 {
    // listen - activate the socket - use 1/2 the maximum buffer size.
    // The max size for the Dec Alpha is 1024 as of revision 4.2.34.5 
@@ -934,10 +934,10 @@ Notes:
 
 
 *******************************************************************************/
-cds_int32  AcceptClientConnection(void)
+int32  AcceptClientConnection(void)
 {
    struct sockaddr_in   client_connection_data;
-   cds_int32                client_connection_data_size;
+   int32                client_connection_data_size;
    static char          FirstTime = 1;
 
    if (FirstTime)
@@ -971,8 +971,8 @@ Description:
    Utility func for setting interval message array
 
 *******************************************************************************/
-void SetUIDInterval(cds_uint64 a, cds_uint64 a_size, 
-                         cds_uint64 b, cds_uint64 b_size)
+void SetUIDInterval(uint64 a, uint64 a_size, 
+                         uint64 b, uint64 b_size)
 {
    interval_UID[0] = a;
    interval_UID[1] = a_size;
@@ -1006,7 +1006,7 @@ Notes:
    generates an error, leaving any current status error still valid.
 
 *******************************************************************************/
-void GetNextUID(cds_uint64 size)
+void GetNextUID(uint64 size)
 {
 
    // First, check range validity of the size request
@@ -1050,7 +1050,7 @@ Description:
    but may be necessary in the future.
 
 *******************************************************************************/
-cds_int32 CleanConnectionPath(void)
+int32 CleanConnectionPath(void)
 {
     // INET version - automatically times out
     return UID_OK;
@@ -1069,11 +1069,11 @@ Returns:
    UID_OK if successful, otherwise UID_FAILS
 
 *******************************************************************************/
-cds_int32 IssueKillSignal(void)
+int32 IssueKillSignal(void)
 {
-   cds_int32                   server_connection_id;
+   int32                   server_connection_id;
    struct sockaddr_in      server_connection_data;
-   cds_int32                   server_connection_data_size;
+   int32                   server_connection_data_size;
    struct hostent*         server_host_info;
 
    char writebuffer[12];

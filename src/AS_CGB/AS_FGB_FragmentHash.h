@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_FGB_FragmentHash.h,v 1.5 2007-04-28 08:46:21 brianwalenz Exp $
+ * $Id: AS_FGB_FragmentHash.h,v 1.6 2007-05-14 09:27:10 brianwalenz Exp $
  *
  * Module:
  * Description:
@@ -32,7 +32,7 @@
 
 #include "AS_MSG_pmesg.h"
 
-#define AS_CGB_NOT_SEEN_YET  CDS_INT32_MAX
+#define AS_CGB_NOT_SEEN_YET  INT32_MAX
 
 
 typedef void FragmentHashObject;

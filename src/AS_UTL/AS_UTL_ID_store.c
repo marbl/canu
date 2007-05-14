@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_UTL_ID_store.c,v 1.7 2007-02-14 07:20:15 brianwalenz Exp $ */
+/* $Id: AS_UTL_ID_store.c,v 1.8 2007-05-14 09:27:12 brianwalenz Exp $ */
 
 /*
   This is a set of utility functions for managing a list of UIDS.
@@ -62,7 +62,7 @@ void FreeID_Array( ID_Arrayp array )
 }
 
 
-ID_Arrayp AllocateID_Array( cds_uint32 num_ids )
+ID_Arrayp AllocateID_Array( uint32 num_ids )
 {
   ID_Arrayp ret_array;
   ret_array = (ID_Arrayp) safe_calloc( 1, sizeof( ID_Array ) );
@@ -98,7 +98,7 @@ int AppendToID_Array( ID_Arrayp array, CDS_UID_t id, int sort )
 }
 
 
-cds_int64 FindID_ArrayID( ID_Array * ids, CDS_UID_t id )
+int64 FindID_ArrayID( ID_Array * ids, CDS_UID_t id )
 {
   double delta = ids->max_id - id;
   CDS_UID_t i = (CDS_UID_t) ( (ids->num_ids - 1) *

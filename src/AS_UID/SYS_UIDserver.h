@@ -22,8 +22,8 @@
 #ifndef UID_SERVER_H
 #define UID_SERVER_H
 
-cds_int32  SYS_UIDserverInitialize(cds_int32 argc, char** argv);
-cds_int32  SYS_UIDserverStart(void);
+int32  SYS_UIDserverInitialize(int32 argc, char** argv);
+int32  SYS_UIDserverStart(void);
 void       SYS_UIDparseOptions(int argc, char** argv);
 
 #endif
