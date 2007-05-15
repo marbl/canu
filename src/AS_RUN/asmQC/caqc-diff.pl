@@ -19,6 +19,10 @@ if (! -e $ARGV[1]) {
     die "Can't find old.qc '$ARGV[1]'\n";
 }
 
+system("ls -l $ARGV[0]");
+system("ls -l $ARGV[1]");
+print "\n";
+
 system("diff --side-by-side -W 84 -b $ARGV[0] $ARGV[1]");
 $diffs = $? >> 8;
 
