@@ -176,6 +176,7 @@ addHit(chainedSequence *CS, CDS_IID_t iid, merStream *M,
 
 int
 main(int argc, char **argv) {
+  bool  need_reverse_orientation_too = false;
   char   *gkpPath    = 0L;
   char    gkpName[FILENAME_MAX + 64] = {0};
   u32bit  merSize    = 23;
@@ -187,7 +188,9 @@ main(int argc, char **argv) {
   int arg=1;
   int err=0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-g") == 0) {
+    if (strcmp(argv[arg], "-2") == 0) {
+      need_reverse_orientation_too = true;
+    } else if (strcmp(argv[arg], "-g") == 0) {
       gkpPath = argv[++arg];
     } else if (strcmp(argv[arg], "-m") == 0) {
       merSize = atoi(argv[++arg]);
@@ -257,8 +260,8 @@ main(int argc, char **argv) {
 
 
   while (nextFragStream(frs, fr)) {
-    fprintf(stderr, "WORKING on "F_UID","F_IID"\r",
-            getFragRecordUID(fr), getFragRecordIID(fr));
+//    fprintf(stderr, "WORKING on "F_UID","F_IID"\r",
+//            getFragRecordUID(fr), getFragRecordIID(fr));
 
     if (getFragRecordIsDeleted(fr))
       continue;
@@ -406,6 +409,32 @@ main(int argc, char **argv) {
         assert(0);
       }
 #endif
+
+      if (need_reverse_orientation_too)
+        {
+         overlap . a_iid = iid;
+         overlap . b_iid = hits [i] . tseq;
+         if (overlap . dat . mer . fwd)
+           {
+            overlap . dat . mer . a_pos = hits [i] . qpos;
+            overlap . dat . mer . b_pos = hits [i] . tpos;
+           }
+         else
+           {
+            static fragRecord  * otherfr = NULL;
+            uint32  len;
+
+            if (otherfr == NULL)
+              otherfr = new_fragRecord();
+
+            getFrag (gkp, hits [i] . tseq, otherfr, 0);
+            len = getFragRecordClearRegionEnd (otherfr, AS_READ_CLEAR_UNTRIM);
+
+            overlap . dat . mer . a_pos = tln - hits [i] . qpos - merSize;
+            overlap . dat . mer . b_pos = len - hits [i] . tpos - merSize;
+           }
+         AS_OVS_writeOverlap(binout, &overlap);
+        }
 
       //  Now, skip ahead until we find the next pair.
       //
