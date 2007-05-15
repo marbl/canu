@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.5 2007-05-10 15:52:19 brianwalenz Exp $
- * $Revision: 1.5 $
+ * $Id: OlapFromSeedsOVL.c,v 1.6 2007-05-15 21:42:34 adelcher Exp $
+ * $Revision: 1.6 $
 */
 
-static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.5 2007-05-10 15:52:19 brianwalenz Exp $";
+static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.6 2007-05-15 21:42:34 adelcher Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -901,11 +901,11 @@ static void  Get_Seeds_From_Store
 
     while (AS_OVS_readOverlapFromStore (ovs, & ovl, AS_OVS_TYPE_MER))
       {
-       (* olap) [num_read] . a_iid   = ovl . a_iid;
-       (* olap) [num_read] . b_iid   = ovl . b_iid;
-       (* olap) [num_read] . a_hang  = ovl . dat . mer . a_pos;
-       (* olap) [num_read] . b_hang  = ovl . dat . mer . b_pos;
-       (* olap) [num_read] . orient  = (ovl . dat . mer . fwd ? NORMAL : INNIE);
+       (* olap) [num_read] . a_iid = ovl . a_iid;
+       (* olap) [num_read] . b_iid = ovl . b_iid;
+       (* olap) [num_read] . a_hang = ovl . dat . mer . a_pos;
+       (* olap) [num_read] . b_hang = ovl . dat . mer . b_pos;
+       (* olap) [num_read] . orient = (ovl . dat . mer . fwd ? NORMAL : INNIE);
        (* olap) [num_read] . k_count = ovl . dat . mer . k_count;
        num_read ++;
 
@@ -1451,25 +1451,41 @@ static void  Output_Olap
         if (Num_PThreads > 0)
            pthread_mutex_unlock (& Print_Mutex);
         break;
+
       case BINARY_FILE :
         overlap . a_iid = olap -> a_iid;
         overlap . b_iid = olap -> b_iid;
-        overlap . dat . ovl . seed_value = olap -> k_count;
-        overlap . dat . ovl . flipped = (dir == 'f' ? 0 : 1);
 
-        if (0 < a_lo)
-          overlap . dat . ovl . a_hang = a_lo;
+        if (Doing_Partial_Overlaps)
+          {
+           overlap . dat . obt . a_beg = a_lo;
+           overlap . dat . obt . a_end = a_hi;
+           overlap . dat . obt . fwd = (dir == 'f' ? 1 : 0);
+           overlap . dat . obt . b_beg = x;
+           overlap . dat . obt . b_end = y;
+           overlap . dat . obt . erate = AS_OVS_encodeQuality (qual);
+           overlap . dat . obt . type = AS_OVS_TYPE_OBT;
+          }
         else
-          overlap . dat . ovl . a_hang = - b_lo;
+          {
+           overlap . dat . ovl . seed_value = olap -> k_count;
+           overlap . dat . ovl . flipped = (dir == 'f' ? 0 : 1);
 
-        if (a_hi < a_len)
-          overlap . dat . ovl . b_hang = a_hi - a_len;
-        else
-          overlap . dat . ovl . b_hang = b_len - b_hi;
+           if (0 < a_lo)
+             overlap . dat . ovl . a_hang = a_lo;
+           else
+             overlap . dat . ovl . a_hang = - b_lo;   // negative a_hang
 
-        overlap . dat . ovl . orig_erate = overlap . dat . ovl . corr_erate
-             = AS_OVS_encodeQuality (qual);
-        overlap . dat . ovl . type = AS_OVS_TYPE_OVL;
+           if (a_hi < a_len)
+             overlap . dat . ovl . b_hang = a_hi - a_len;   // negative b_hang
+           else
+             overlap . dat . ovl . b_hang = b_len - b_hi;
+
+           overlap . dat . ovl . orig_erate = overlap . dat . ovl . corr_erate
+                = AS_OVS_encodeQuality (qual);
+           overlap . dat . ovl . type = AS_OVS_TYPE_OVL;
+          }
+
         if (Num_PThreads > 0)
            pthread_mutex_lock (& Print_Mutex);
         AS_OVS_writeOverlap (Binary_OVL_Output_fp, & overlap);
