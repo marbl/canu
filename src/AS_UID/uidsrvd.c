@@ -19,11 +19,78 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/stat.h>
 
 #include "SYS_UIDcommon.h"
 #include "SYS_UIDerror.h"
-#include "SYS_UIDserver.h"
-#include "SYS_UIDserver_local.h"
+
+static void    SYS_UIDsignalHandlerFunction(int signal);
+
+int32          SYS_UIDserverInitialize(int32 argc, char** argv);
+int32          SYS_UIDserverStart(void);
+void           SYS_UIDparseOptions(int argc, char** argv);
+
+static void    Usage(int32 argc, char** argv);
+static void    ParseOptions(int32 argc, char** argv);
+static int32   UpdateFromPositionFile(void);
+static int32   PositionWrite(uint64 position);
+static int32   PositionRead(void);
+static int32   IncrementUpdatePositionFile(void);
+static int32   UIDIsValid(uint64 block_size);
+static int32   CleanConnectionPath(void);
+static int32   CreateConnection(void);
+static int32   RegisterConnection(void);
+static int32   ActivateConnection(void);
+static int32   AcceptClientConnection(void);
+static int32   SendClientMessage(void);
+static void    ReadClientRequest(int32* client_status, uint64* request_size);
+static void    WriteClientRequest(void);
+static void    DebugClientMessage(void);
+static void    GetNextUID(uint64 size);
+static void    CloseConnection(void);
+static void    SetUIDInterval(uint64 a, uint64 a_size, uint64 b, uint64 b_size);
+static void    SetStatus(int32 status, char flag);
+static void    InitializeAlerts(void);
+static void    TriggerMaAlert(void);
+static void    TriggerMeAlert(void);
+static void    TriggerMfAlert(void);
+static void    SendMailList(const char* subject, const char* emessage, const char* address_list);
+static int32   IssueKillSignal(void);
+static void    ShutdownServer(void);
+static int     AttemptPortInitialization(void);
+
+static void    FillAddressList(const char*    option, 
+                               char**         list, 
+                               int32          argc, 
+                               char**         argv,
+                               int32*         interval);
+
+
+static char*   positionfile_name          = NULL;         
+static uint64  index_size                 = 1;                
+static uint64  index_update_increment     = 1;    
+static uint64  max_block_size             = 10000;            
+static int32   status_code                = UID_CODE_START;           
+static int32   client_connection_id;      
+static int32   connection_id;             
+static uint64  current_position_UID       = 0L;     
+static uint64  index_start_UID            = 0L;           
+static uint64  current_UID                = 0L;               
+static uint64  interval_UID[4];           
+static char    unrecoverable_error_flag   = UID_OK;
+static int32   tcp_port;
+static int64   ma_alert_time;
+static int64   me_alert_time;
+static int32   ma_alert_interval          = 0;
+static int32   me_alert_interval          = 0;
+static char*   ma_address_list            = NULL;
+static char*   me_address_list            = NULL;
+static char*   mf_address_list            = NULL;
+static char    kill_option_invoked_flag   = 0;
+
+
 
 /*******************************************************************************
 
@@ -1172,3 +1239,197 @@ int AttemptPortInitialization(void)
       return UID_OK;
 }
 
+
+/*******************************************************************************
+
+Description: main() for the UID server
+
+*******************************************************************************/
+int32 main(int32 argc, char** argv)
+{
+  int i;
+  struct sigaction sigact;
+  int startsignal = SIGHUP;
+  int endsignal = SIGUSR2;
+  int signalnum;
+
+   SYS_UIDtype = UID_SERVER_TYPE;
+
+   SYS_UIDparseOptions(argc, argv);
+
+  /* first, must test for run mode and handle daemon configuration *
+   * if necessary                                                  */
+
+   if (argc >= 8 && argv[1][1] == 'r')
+   {
+      if (fork() > 0)           /* fork to establish daemon as session leader */
+         exit(0);
+
+      if (setsid() == -1)
+	SYS_UIDerrorMsg("UID server: setsid ERROR");
+   }
+
+   /* this section taken straight from Steven's "UNIX Network Programming" */
+ 
+   signal(SIGHUP, SIG_IGN); /* prepare to ignore terminal disconnects */
+
+   if (fork() > 0) /* fork again for complete resetting of context */
+       exit(0);
+
+   chdir("/");
+
+   umask(0);
+
+   /* NOTE: shouldn't need this code b/c no file activity to this point in parent *
+    *   for (i=0;i<64;i++)                                                        *
+    *      close(i);                                                              *
+    */
+
+   /* past final fork - now set universal signal handling */
+
+   /* initialze data structure for using the            *
+    * sig_handler_function                              */
+   memset(&sigact, 0, sizeof(struct sigaction));
+   sigact.sa_handler = SYS_UIDsignalHandlerFunction;
+   sigact.sa_flags = 0;
+
+   /* next step is to register the signal handler with  *
+    * each of the signals of interest                   */
+   for (signalnum = startsignal; signalnum <= endsignal; signalnum++)
+   {
+     sigaction(signalnum, &sigact, NULL);
+   }
+
+   if (SYS_UIDserverInitialize(argc,argv) == UID_FAILS)  /* perform initialization */
+   {
+      SYS_UIDerrorMsg("Could not initialize UID Server\n");
+      exit(1);
+   }
+
+   if (SYS_UIDserverStart() == UID_FAILS) // should block indefinitely unless error
+   {
+      SYS_UIDerrorMsg("UID Server failure\n");
+      exit(1);
+   }
+
+   return(0);
+}
+
+/*******************************************************************************
+
+Description: catches signals and handles debug messages
+
+*******************************************************************************/
+static void
+SYS_UIDsignalHandlerFunction(int signal)
+{
+   if (SYS_UIDtype == UID_SERVER_TYPE)
+     {
+       switch(signal) {
+       case SIGHUP:
+         SYS_UIDerrorMsg("UID server: received SIGHUP signal");
+         break;
+       case SIGINT:
+         SYS_UIDerrorMsg("UID server: received SIGINT signal");
+         break;
+       case SIGQUIT:
+         SYS_UIDerrorMsg("UID server: received SIGQUIT signal");
+         break;
+       case SIGILL:
+         SYS_UIDerrorMsg("UID server: received SIGILL signal");
+         break;
+       case SIGTRAP:
+         SYS_UIDerrorMsg("UID server: received SIGTRAP signal");
+         break;
+       case SIGABRT:
+         SYS_UIDerrorMsg("UID server: received SIGABRT signal");
+         break;
+       /*
+       case SIGEMT:
+         SYS_UIDerrorMsg("UID server: received SIGEMT signal");
+         break;
+       */
+       case SIGFPE:
+         SYS_UIDerrorMsg("UID server: received SIGFPE signal");
+         break;
+       case SIGKILL:
+         SYS_UIDerrorMsg("UID server: received SIGKILL signal");
+         break;
+       case SIGBUS:
+         SYS_UIDerrorMsg("UID server: received SIGBUS signal");
+         break;
+       case SIGSEGV:
+         SYS_UIDerrorMsg("UID server: received SIGSEGV signal");
+         break;
+       case SIGSYS:
+         SYS_UIDerrorMsg("UID server: received SIGSYS signal");
+         break;
+       case SIGPIPE:
+         SYS_UIDerrorMsg("UID server: received SIGPIPE signal");
+         break;
+       case SIGALRM:
+         SYS_UIDerrorMsg("UID server: received SIGALRM signal");
+         break;
+       case SIGTERM:
+         SYS_UIDerrorMsg("UID server: received SIGTERM signal");
+         break;
+       case SIGURG:
+         SYS_UIDerrorMsg("UID server: received SIGURG signal");
+         break;
+       case SIGSTOP:
+         SYS_UIDerrorMsg("UID server: received SIGSTOP signal");
+         break;
+       case SIGTSTP:
+         SYS_UIDerrorMsg("UID server: received SIGTSTP signal");
+         break;
+       case SIGCONT:
+         SYS_UIDerrorMsg("UID server: received SIGCONT signal");
+         break;
+       case SIGCHLD:
+         SYS_UIDerrorMsg("UID server: received SIGCHLD signal");
+         break;
+       case SIGTTIN:
+         SYS_UIDerrorMsg("UID server: received SIGTTIN signal");
+         break;
+       case SIGTTOU:
+         SYS_UIDerrorMsg("UID server: received SIGTTOU signal");
+         break;
+#ifdef SIGPOLL
+       case SIGPOLL:
+         SYS_UIDerrorMsg("UID server: received SIGPOLL signal");
+         break;
+#endif
+       case SIGXCPU:
+         SYS_UIDerrorMsg("UID server: received SIGXCPU signal");
+         break;
+       case SIGXFSZ:
+         SYS_UIDerrorMsg("UID server: received SIGXFSZ signal");
+         break;
+       case SIGVTALRM:
+         SYS_UIDerrorMsg("UID server: received SIGVTALRM signal");
+         break;
+       case SIGPROF:
+         SYS_UIDerrorMsg("UID server: received SIGPROF signal");
+         break;
+       case SIGWINCH:
+         SYS_UIDerrorMsg("UID server: received SIGWINCH signal");
+         break;
+       /*
+       case SIGINFO:
+         SYS_UIDerrorMsg("UID server: received SIGINFO signal");
+         break;
+       */
+       case SIGUSR1:
+         SYS_UIDerrorMsg("UID server: received SIGUSR1 signal");
+         break;
+       case SIGUSR2:
+         SYS_UIDerrorMsg("UID server: received SIGUSR2 signal");
+         break;
+       default:
+         sprintf(SYS_UIDerr_str,"UID server: received signal %d", signal);
+         SYS_UIDerrorMsg(SYS_UIDerr_str);
+       }
+     } else {
+       ; /* do nothing */
+     }
+}

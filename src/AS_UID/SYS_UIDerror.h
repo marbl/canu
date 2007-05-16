@@ -22,19 +22,11 @@
 #ifndef UID_ERROR_H
 #define UID_ERROR_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 void        SYS_UIDhandleAcceptError(int32 err_code);
 void        SYS_UIDhandleRegisterError(int32 err_code);
 void        SYS_UIDhandleCreateError(int32 err_code);
 void        SYS_UIDhandleActivateError(int32 err_code);
 void        SYS_UIDerrorMsg(const char* err_str);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif
 

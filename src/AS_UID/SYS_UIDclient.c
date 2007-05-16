@@ -19,11 +19,55 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-
 #include "SYS_UIDcommon.h"
 #include "SYS_UIDerror.h"
 #include "SYS_UIDclient.h"
-#include "SYS_UIDclient_local.h"
+
+
+static int32                QueryServer(int32 code, uint64* interval);
+CDS_UID_t                   getGUIDBlock(int guidRequestSize);
+int                         findGuidStartFromHttpString(char* httpString);
+int                         findGuidEndFromHttpString(char* httpString);
+static int32                CreateConnection(void);
+static int32                ConfigureConnection(void);
+static void                 ReceiveServerMessage(int32 code, uint64* interval);
+static void                 CloseConnection(void);
+static int32                GetServerHostInfo(void);
+
+static int32                CreateFailsafeConnection(void);
+static int32                ConfigureFailsafeConnection(void);
+static void                 ReceiveFailsafeServerMessage(int32 code, uint64* interval);
+static void                 CloseFailsafeConnection(void);
+static int32                GetFailsafeServerHostInfo(void);
+
+static void                 SetUIDInterval(uint64 a, uint64 a_size, 
+                                           uint64 b, uint64 b_size);
+static void                 Initialize(void);
+
+// local vars /////////
+
+static uint64               interval_UID[4];
+static int32                status                            = UID_CODE_START;
+static int32                server_request_mode               = UID_CODE_OK;
+
+static int32                server_connection_id              = 0;
+static struct sockaddr_in   server_connection_data;
+static int32                server_connection_data_size       = 0;
+static struct hostent*      server_host_info                  = NULL;
+static int32                server_tcp_port                   = 0;
+char                        server_host_name[300];
+
+static int32                failsafe_server_connection_id     = 0;
+static struct sockaddr_in   failsafe_server_connection_data;
+static int32                failsafe_server_connection_data_size = 0;
+static struct hostent*      failsafe_server_host_info         = NULL;
+static int32                failsafe_server_tcp_port          = 0;
+char                        failsafe_server_host_name[300];
+
+static uint64               size_UID                          = 1L;
+static uint64               increment_offset_UID              = 0L;
+static uint64               increment_max_UID                 = 0L;
+
 
 
 /*******************************************************************************
@@ -203,8 +247,7 @@ void Initialize(void)
       }
       else
       {
-         SYS_UIDerrorMsg("UID Client: failsafe host name too long, using default \
-failsafe server host name\n");
+         SYS_UIDerrorMsg("UID Client: failsafe host name too long, using default failsafe server host name\n");
          strcpy(failsafe_server_host_name, UID_DEFAULT_FAILSAFE_SERVER_HOST_NAME);
       }   
    }

@@ -89,9 +89,6 @@
  */
 #define UID_MAX_REQUEST_SIZE            1000000
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #include <fcntl.h>
 #include <stdio.h>
@@ -116,26 +113,18 @@ extern "C" {
 #include <limits.h>
 
 
-/* structs *******************************************************/
-
-/* variables ********************************************************/
 extern char   SYS_UIDerr_str[UID_ERR_STR_SIZE];
 extern char   SYS_UIDmessage_array[UID_MESSAGE_SIZE];
 extern char   SYS_UIDtype;
 extern char   SYS_UIDdebug_flag;
 
-/* functions */
-void       SYS_UIDperr(const char* message);
+void   SYS_UIDperr(const char* message);
 int32  SYS_UIDreadn(int32 fd, char* ptr, int32 nbytes);
 int32  SYS_UIDwriten(int32 fd, char* ptr, int32 nbytes);
 int32  SYS_UIDpackUIDMessageXdr(uint64* uid, int32 status);
 int32  SYS_UIDunpackUIDMessageXdr(uint64* uid, int32* status);
 int32  SYS_UIDpackUIDRequestXdr(char* writebuffer, int32 status, uint64 request_size);
 int32  SYS_UIDunpackUIDRequestXdr(char* readbuffer, int32* status, uint64* request_size);
-void       SYS_UIDlogMessage(const char* message);
-
-#ifdef __cplusplus
-}
-#endif
+void   SYS_UIDlogMessage(const char* message);
 
 #endif
