@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpSingletons.c,v 1.19 2007-04-16 17:36:32 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpSingletons.c,v 1.20 2007-05-16 11:52:45 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,7 +35,6 @@ static char CM_ID[] = "$Id: dumpSingletons.c,v 1.19 2007-04-16 17:36:32 brianwal
 #include "Globals_CGW.h"
 #include "ScaffoldGraph_CGW.h"
 
-#include "SYS_UIDcommon.h"
 #include "SYS_UIDclient.h"
 
 
@@ -67,39 +66,12 @@ getFragmentClear(int    iid,
 
 
 
-CDS_UID_t
-getUID(int realUID) {
-  static uint64        blockSize = 0;
-  static int           UIDstart  = 1230000;
-  static CDS_UID_t     interval_UID[4];
-
-  CDS_UID_t            uid       = 0;;
-
-	// SK - was requesting block size 300 but only using the first one
-  if (blockSize == 0) {
-    blockSize = 1;
-    set_start_uid(UIDstart); /* used if realUID == FALSE */
-    get_uids(blockSize, interval_UID, realUID);
-  }
-
-  if (get_next_uid(&uid, realUID) != UID_CODE_OK) {
-    get_uids(blockSize, interval_UID, realUID);
-    if (get_next_uid(&uid, realUID) != UID_CODE_OK) {
-      fprintf(stderr, "Could not get UID!\n");
-      assert(0);
-    }
-  }
-
-  return(uid);
-}
-
-
-
 int
 main( int argc, char **argv) {
-  int ckptNum           = NULLINDEX;
-  int realUID           = 0;
-  int makeMiniScaffolds = 1;
+  int          ckptNum           = NULLINDEX;
+  int          makeMiniScaffolds = 1;
+  uint64       uidStart          = 1230000;
+  UIDserver   *uids              = NULL;
 
   GlobalData          = CreateGlobal_CGW();
   GlobalData->stderrc = stderr;
@@ -120,7 +92,7 @@ main( int argc, char **argv) {
     } else if (strcmp(argv[arg], "-n") == 0) {
       ckptNum = atoi(argv[++arg]);
     } else if (strcmp(argv[arg], "-U") == 0) {
-      realUID = 1;
+      uidStart = 0;
     } else if (strcmp(argv[arg], "-S") == 0) {
       makeMiniScaffolds = 0;
     } else {
@@ -141,6 +113,8 @@ main( int argc, char **argv) {
     fprintf(stderr, "  -S      Do NOT make mini scaffolds.\n");
     exit(1);
   }
+
+  uids = UIDserverInitialize(256, uidStart);
 
   char *toprint1   = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_LEN);
   char *toprint2   = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_LEN);
@@ -193,7 +167,7 @@ main( int argc, char **argv) {
       //  auto-annotation of environmental samples
 
       fprintf(stdout, ">"F_S64" /type=mini_scaffold /frgs=("F_S64","F_S64")\n%sNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN%s\n",
-              getUID(realUID),
+              getUID(uids),
               fUID, mUID, toprint1, toprint2);
     }
   }
