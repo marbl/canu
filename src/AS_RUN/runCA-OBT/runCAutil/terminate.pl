@@ -84,9 +84,9 @@ sub terminate ($) {
         $cmd  = "cat $cgwDir/$asm.cgw ";
         $cmd .= " $wrk/8-consensus/$asm.cns_contigs.*[0-9] ";
         $cmd .= " $cgwDir/$asm.cgw_scaffolds | ";
-        $cmd .= "$bin/terminator -s $fakeUIDs " if ($fakeUIDs != 0);
-        $cmd .= "$bin/terminator -u "           if ($fakeUIDs == 0);
-        $cmd .= " $uidServer "                     if (defined($uidServer));
+        $cmd .= "$bin/terminator ";
+        $cmd .= " -s $fakeUIDs "                if ($fakeUIDs != 0);
+        $cmd .= " $uidServer "                  if (defined($uidServer));
         $cmd .= " -g $wrk/$asm.gkpStore ";
         $cmd .= " -o $termDir/$asm.asm ";
         $cmd .= " -m $termDir/$asm.map ";

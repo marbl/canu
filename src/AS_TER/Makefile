@@ -26,17 +26,8 @@ LOCAL_WORK = $(shell cd ../../; pwd)
 
 include $(LOCAL_WORK)/src/site_name.as
 
-TERM_SRCS=AS_TER_terminator.c AS_TER_terminator_funcs.c
-TERM_OBJS=$(TERM_SRCS:.c=.o)
-
-PRCSCF_SRCS=asmProcessScaffolds_TER.c
-PRCSCF_OBJS=$(PRCSCF_SRCS:.c=.o)
-
-CTGOUT_SRCS=asmOutputContigsFasta.c
-CTGOUT_OBJS=$(CTGOUT_SRCS:.c=.o)
-
-SOURCES = $(TERM_SRCS) $(PRCSCF_SRCS) $(CTGOUT_SRCS)
-OBJECTS = $(TERM_OBJS)
+SOURCES = AS_TER_terminator.c asmProcessScaffolds_TER.c asmOutputContigsFasta.c
+OBJECTS = (SOURCES:.c=.o)
 PROGS   = terminator asmProcessScaffolds_TER asmOutputContigsFasta
 
 include $(LOCAL_WORK)/src/c_make.as
@@ -45,6 +36,6 @@ all: $(OBJECTS) $(LIBRARIES) $(PROGS)
 	@cp -f buildFragContigPosMap.pl $(LOCAL_BIN)
 	@chmod 775 $(LOCAL_BIN)/buildFragContigPosMap.pl
 
-terminator:              $(TERM_OBJS)    libCA.a
-asmProcessScaffolds_TER: $(PRCSCF_OBJS)  libCA.a
-asmOutputContigsFasta:   $(CTGOUT_OBJS)  libCA.a
+terminator:              AS_TER_terminator.o        libCA.a
+asmProcessScaffolds_TER: asmProcessScaffolds_TER.o  libCA.a
+asmOutputContigsFasta:   asmOutputContigsFasta.o    libCA.a
