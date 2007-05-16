@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.38 2007-05-16 08:22:26 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.39 2007-05-16 11:48:37 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -456,44 +456,62 @@ main(int argc, char **argv) {
   //  Load in any vector info.
   //
   if (vectorClearFile) {
+    char          line[256];
+    int           nlines  = 0;
+    int           nupdate = 0;
+
     errno = 0;
     FILE   *v = fopen(vectorClearFile, "r");
     if (errno) {
       fprintf(stderr, "%s: couldn't open '%s' to read vector clear ranges: %s\n",
               argv[0], vectorClearFile, strerror(errno));
-    } else {
-      CDS_UID_t     uid;
-      int           l, r, oldl, oldr;
-      fragRecord    fr;
+      exit(1);
+    }
 
-      gkpStore = openGateKeeperStore(gkpStoreName, TRUE);
-      
-      while (3 == fscanf(v, " "F_UID" %d %d ", &uid, &l, &r)) {
-        PHashValue_AS  value;
+    gkpStore = openGateKeeperStore(gkpStoreName, TRUE);
 
-        if (HASH_FAILURE != getGatekeeperUIDtoIID(gkpStore, uid, &value)) {
-          uint32 iid = value.IID;
+    fgets(line, 256, v);
+    while (!feof(v)) {
+      PHashValue_AS  value;
+      char          *pine = line;
 
-          getFrag(gkpStore, iid, &fr, FRAG_S_INF);
+      CDS_UID_t uid = STR_TO_UID(pine, &pine, 10);
+      int       l   = strtol(pine, &pine, 10);
+      int       r   = strtol(pine, &pine, 10);
 
-          //  Assume they are base-based.
-          fr.gkfr.hasVectorClear = 1;
-          if (l < r) {
-            fr.gkfr.clearBeg[AS_READ_CLEAR_VEC] = l - 1;
-            fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] = r;
-          } else {
-            fr.gkfr.clearBeg[AS_READ_CLEAR_VEC] = r - 1;
-            fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] = l;
-          }
+      if (uid == 0)
+        fprintf(stderr, "unexpected line: %s", line);
 
-          setFrag(gkpStore, iid, &fr);
-        }        
+      if (HASH_FAILURE != getGatekeeperUIDtoIID(gkpStore, uid, &value)) {
+        fragRecord    fr;
+        uint32        iid = value.IID;
+
+        getFrag(gkpStore, iid, &fr, FRAG_S_INF);
+
+        //  Assume they are base-based.
+        fr.gkfr.hasVectorClear = 1;
+        if (l < r) {
+          fr.gkfr.clearBeg[AS_READ_CLEAR_VEC] = l - 1;
+          fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] = r;
+        } else {
+          fr.gkfr.clearBeg[AS_READ_CLEAR_VEC] = r - 1;
+          fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] = l;
+        }
+
+        nupdate++;
+        setFrag(gkpStore, iid, &fr);
       }
 
-      closeGateKeeperStore(gkpStore);
-
-      fclose(v);
+      nlines++;
+      fgets(line, 256, v);
     }
+
+    closeGateKeeperStore(gkpStore);
+
+    fclose(v);
+
+    fprintf(stderr, "in %d lines, updated %d fragments.\n", nlines, nupdate);
+
     exit(0);
   }
 
