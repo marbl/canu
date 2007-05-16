@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.8 2007-05-11 16:00:55 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.9 2007-05-16 08:22:25 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -75,9 +75,8 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg) {
                                                   FALSE,
                                                   stderr,
                                                   &value)) {
-      printGKPError(stderr, GKPError_BadUniqueLIB);
-      fprintf(stderr,"# Check_DistanceMessage:  A message with UID " F_UID " exists %s!!! Can't reuse the UID... bye\n",
-	      lib_mesg->eaccession, (value.deleted?"and has been deleted":""));
+      fprintf(stderr, "LIB Error: Library "F_UID","F_IID" already exists; can't add it again.\n",
+              lib_mesg->eaccession, value.IID);
       return(GATEKEEPER_FAILURE);
     }
 
@@ -101,9 +100,8 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg) {
       if ((gkpl.mean   <= 0.0) ||
           (gkpl.stddev <= 0.0) ||
           (gkpl.mean - 3.0 * gkpl.stddev < 0.0)) {
-        printGKPError(stderr, GKPError_DSTValues);
-        fprintf(stderr,"# Check_DistanceMessage:  Illegal Mean %g and/or Standard Deviation %g\n",
-                gkpl.mean, gkpl.stddev);
+        fprintf(stderr, "LIB Error:  Library "F_UID" has lllegal mean (%g) and standard deviation (%g).\n",
+                gkpl.libraryUID, gkpl.mean, gkpl.stddev);
         return(GATEKEEPER_FAILURE);
       }
     }
@@ -133,18 +131,16 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg) {
                                                   FALSE,
                                                   stderr,
                                                   &value)) {
-      printGKPError(stderr, GKPError_MissingLIB);
-      fprintf(stderr,"# Check_DistanceMessage:  Distance " F_UID " does NOT exist %s!!! Can't update it...\n",
-	      lib_mesg->eaccession, (value.deleted?"and has been deleted":""));
+      fprintf(stderr, "LIB Error:  Library "F_UID" does not exist, can't update it.\n",
+	      lib_mesg->eaccession);
       return(GATEKEEPER_FAILURE);
     }
 
     if ((lib_mesg->mean   <= 0.0) ||
         (lib_mesg->stddev <= 0.0) ||
         (lib_mesg->mean - 3.0 * lib_mesg->stddev < 0.0)) {
-      printGKPError(stderr, GKPError_DSTValues);
-      fprintf(stderr,"# Check_DistanceMessage:  Illegal Mean %g and/or Standard Deviation %g\n",
-	      lib_mesg->mean, lib_mesg->stddev);
+      fprintf(stderr, "LIB Error:  Library "F_UID" has lllegal mean (%g) and standard deviation (%g).\n",
+              gkpl.libraryUID, gkpl.mean, gkpl.stddev);
       return(GATEKEEPER_FAILURE);
     }
 
@@ -162,25 +158,18 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg) {
 						 FALSE,
 						 stderr,
 						 &value)) {
-      printGKPError(stderr, GKPError_MissingLIB);
-      fprintf(stderr,"# Check_DistanceMessage:  Distance " F_UID " DOES NOT exist!!!" 
-	      "Can't delete it... bye\n", lib_mesg->eaccession);
+      fprintf(stderr, "LIB Error:  Library "F_UID" does not exist, can't delete it.\n",
+              lib_mesg->eaccession);
       return(GATEKEEPER_FAILURE);
     }
 
     if (value.refCount > 1) {
-      printGKPError(stderr, GKPError_DeleteLIB);
-      fprintf(stderr, "# Check_DistanceMessage: There are %d references outstanding to Distance "F_UID ".\n"
-	      "Can't delete it...\n", value.refCount, lib_mesg->eaccession);
+      fprintf(stderr, "LIB Error: Library "F_UID" has %d references, can't delete it.\n",
+              lib_mesg->eaccession, value.refCount);
       return(GATEKEEPER_FAILURE);
     }
 
     if(HASH_SUCCESS == DeleteFromPHashTable_AS(gkpStore->phs_private,UID_NAMESPACE_AS, lib_mesg->eaccession)) {
-      //  This isn't something we want to make easy for anyone to do,
-      //  so it's not a nice library function in AS_PER_gkpStore.
-      //
-      //  deleteGateKeeperLibraryStore(gkpStore->lib, value.IID);
-      //
       GateKeeperLibraryRecord dr;
       getIndexStore(gkpStore->lib, value.IID, &dr);
       dr.deleted = TRUE;
@@ -190,7 +179,7 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg) {
     }
 
   } else {
-    fprintf(stderr,"# Check_DistanceMessage: invalid action\n");
+    fprintf(stderr, "LiB Error: invalid action %c.\n", lib_mesg->action);
     return GATEKEEPER_FAILURE;
   }
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.37 2007-05-14 09:15:21 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.38 2007-05-16 08:22:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,84 +39,6 @@ static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.37 2007-05-14 09:15:21 brianwalenz
 
 GateKeeperStore *gkpStore;
 
-void
-printGKPError(FILE *fout, GKPErrorType type){
-
-  switch(type){
-    case GKPError_FirstMessageBAT:
-      fprintf(fout,"# GKP Error %d: First message MUST be BAT\n",(int)type);
-      break;
-    case GKPError_BadUniqueBAT:
-      fprintf(fout,"# GKP Error %d: UID of batch definition was previously seen\n",(int)type);
-      break;
-    case GKPError_BadUniqueFRG:
-      fprintf(fout,"# GKP Error %d: UID of fragment definition was previously seen\n",(int)type);
-      break;
-    case GKPError_BadUniqueLIB:
-      fprintf(fout,"# GKP Error %d: UID of library definition was previously seen\n",(int)type);
-      break;
-    case GKPError_MissingFRG:
-      fprintf(fout,"# GKP Error %d: Fragment not previously defined\n",(int)type);
-      break;
-    case GKPError_MissingLIB:
-      fprintf(fout,"# GKP Error %d: Library not previously defined\n",(int)type);
-      break;
-    case GKPError_DeleteFRG:
-      fprintf(fout,"# GKP Error %d: Can't delete Fragment\n",(int)type);
-      break;
-    case GKPError_DeleteLIB:
-      fprintf(fout,"# GKP Error %d: Can't delete Library\n",(int)type);
-      break;
-    case GKPError_DeleteLNK:
-      fprintf(fout,"# GKP Error %d: Can't delete Link\n",(int)type);
-      break;
-    case GKPError_Action:
-      fprintf(fout,"# GKP Error %d: Invalid action\n",(int)type);
-      break;
-    case GKPError_Scalar:
-      fprintf(fout,"# GKP Error %d: Invalid scalar\n",(int)type);
-      break;
-    case GKPError_FRGSequence:
-      fprintf(fout,"# GKP Error %d: Invalid fragment sequence characters\n",(int)type);
-      break;
-    case GKPError_FRGQuality:
-      fprintf(fout,"# GKP Error %d: Invalid fragment quality characters\n",(int)type);
-      break;
-    case GKPError_FRGLength:
-      fprintf(fout,"# GKP Error %d: Invalid fragment length\n",(int)type);
-      break;
-    case GKPError_FRGClrRange:
-      fprintf(fout,"# GKP Error %d: Invalid fragment clear range must be 0<=clr1<clr2<=length\n",(int)type);
-      break;
-    case GKPError_FRGLocalPos:
-      fprintf(fout,"# GKP Error %d: Invalid fragment locale pos\n",(int)type);
-      break;
-    case GKPError_FRGQualityWindow:
-      fprintf(fout,"# GKP Error %d: Bad fragment window quality\n",(int)type);
-      break;
-    case GKPError_FRGQualityGlobal:
-      fprintf(fout,"# GKP Error %d: Bad fragment global quality\n",(int)type);
-      break;
-    case GKPError_FRGQualityTail:
-      fprintf(fout,"# GKP Error %d: Bad fragment tail quality\n",(int)type);
-      break;
-    case GKPError_LNKFragLibMismatch:
-      fprintf(fout,"# GKP Error %d: Link fragment library mismatch\n",(int)type);
-      break;
-    case GKPError_LNKOneLink:
-      fprintf(fout,"# GKP Error %d: Violation of unique mate/bacend link per fragment\n",(int)type);
-      break;
-    case GKPError_DSTValues:
-      fprintf(fout,"# GKP Error %d: DST mean,stddev must be >0 and mean must be >= 3 * stddev\n",(int)type);
-      break;
-    default:
-      fprintf(stderr,"#### printGKPError: error type %d\n", (int)type);
-      break;
-  }
-}
-
-
-
 static
 void
 usage(char *filename) {
@@ -128,7 +50,6 @@ usage(char *filename) {
   fprintf(stderr, "  -a                     append to existing tore\n");
   fprintf(stderr, "  -e <errorThreshhold>   set error threshhold\n");
   fprintf(stderr, "  -o <gkpStore>          append to or create gkpStore\n");
-  fprintf(stderr, "  -H                     print error messages\n");
   fprintf(stderr, "  -G                     gatekeeper for assembler Grande (default)\n");
   fprintf(stderr, "  -T                     gatekeeper for assembler Grande with Overlap Based Trimming\n");
   fprintf(stderr, "  -Q                     don't check quality-based data quality\n");
@@ -244,12 +165,6 @@ main(int argc, char **argv) {
       endIID  = maxerrs;
     } else if (strcmp(argv[arg], "-h") == 0) {
       err++;
-    } else if (strcmp(argv[arg], "-H") == 0) {
-      int i;
-      fprintf(stderr,"The following failures are detected:\n");
-      for(i=1; i<=MAX_GKPERROR; i++)
-        printGKPError(stderr, (GKPErrorType)i);
-      exit(0);
     } else if (strcmp(argv[arg], "-o") == 0) {
       gkpStoreName = argv[++arg];
     } else if (strcmp(argv[arg], "-v") == 0) {
@@ -629,49 +544,40 @@ main(int argc, char **argv) {
     if (errno)
       fprintf(stderr, "%s: failed to open input '%s': %s\n", argv[0], argv[firstFileArg], strerror(errno)), exit(1);
     if (inFile == NULL)
-      fprintf(stderr, "%s: failed to open input '%s': (returned null pointer)\n", argv[0], argv[firstFileArg]);
+      fprintf(stderr, "%s: failed to open input '%s': (returned null pointer)\n", argv[0], argv[firstFileArg]), exit(1);
 
     while (EOF != ReadProtoMesg_AS(inFile, &pmesg)) {
+      int success = GATEKEEPER_SUCCESS;
+
       if (pmesg->t == MESG_BAT) {
-        if (GATEKEEPER_SUCCESS != Check_BatchMesg((BatchMesg *)pmesg->m)) {
-          fprintf(stderr,"# Invalid BAT message at Line %d of input...exiting\n", GetProtoLineNum_AS());
-          WriteProtoMesg_AS(stderr,pmesg);
-          return GATEKEEPER_FAILURE;
-        }
+        success = Check_BatchMesg((BatchMesg *)pmesg->m);
       } else if (pmesg->t == MESG_DST) {
-        if (GATEKEEPER_SUCCESS != Check_DistanceMesg((DistanceMesg *)pmesg->m)){
-          fprintf(stderr,"# Line %d of input\n", GetProtoLineNum_AS());
-          WriteProtoMesg_AS(stderr,pmesg);
-          nerrs++;
-        }
+        success = Check_DistanceMesg((DistanceMesg *)pmesg->m);
       } else if (pmesg->t == MESG_LIB) {
-        if (GATEKEEPER_SUCCESS != Check_LibraryMesg((LibraryMesg *)pmesg->m)){
-          fprintf(stderr,"# Line %d of input\n", GetProtoLineNum_AS());
-          WriteProtoMesg_AS(stderr,pmesg);
-          nerrs++;
-        }
+        success = Check_LibraryMesg((LibraryMesg *)pmesg->m);
       } else if (pmesg->t == MESG_FRG) {
-        if (GATEKEEPER_SUCCESS != Check_FragMesg((FragMesg *)pmesg->m, check_qvs, assembler)){
-          fprintf(stderr,"# Line %d of input\n", GetProtoLineNum_AS());
-          WriteProtoMesg_AS(stderr,pmesg);
-          nerrs++;
-        }
+        success = Check_FragMesg((FragMesg *)pmesg->m, check_qvs, assembler);
       } else if (pmesg->t == MESG_LKG) {
-        if (GATEKEEPER_SUCCESS != Check_LinkMesg((LinkMesg *)pmesg->m)) {
-          fprintf(stderr,"# Line %d of input\n", GetProtoLineNum_AS());
-          WriteProtoMesg_AS(stderr,pmesg);
-          nerrs++;
-        }
+        success = Check_LinkMesg((LinkMesg *)pmesg->m);
       } else if (pmesg->t == MESG_VER) {
         //  Ignore
       } else {
-        fprintf(stderr,"# ERROR: Read Message with type %s...skipping!\n", MessageTypeName[pmesg->t]);
+        fprintf(stderr,"GKP Error: Unknown message with type %s.\n", MessageTypeName[pmesg->t]);
+        success = GATEKEEPER_FAILURE;
+      }
+
+      if (success != GATEKEEPER_SUCCESS) {
+        fprintf(stderr,"GKP Error: at line %d:\n", GetProtoLineNum_AS());
         WriteProtoMesg_AS(stderr,pmesg);
+        if (pmesg->t == MESG_BAT) {
+          fprintf(stderr, "GKP Error: Invalid BAT message, can't continue.\n");
+          return(GATEKEEPER_FAILURE);
+        }
         nerrs++;
       }
 
       if (nerrs >= maxerrs) {
-        fprintf(stderr, "GateKeeper: max allowed errors reached %d > %d...bye\n", nerrs, maxerrs);
+        fprintf(stderr, "GKP Error: Too many errors (%d), can't continue.\n", nerrs);
         return(GATEKEEPER_FAILURE);
       }
     }
@@ -687,6 +593,8 @@ main(int argc, char **argv) {
   }
 
   closeGateKeeperStore(gkpStore);
+
+  fprintf(stderr, "GKP finished with %d errors.\n", nerrs);
 
   exit(0);
 }

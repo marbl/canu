@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_buildPartition.c,v 1.4 2007-05-02 09:30:15 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_buildPartition.c,v 1.5 2007-05-16 08:22:24 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,7 +67,7 @@ Build_Partition(char      *gatekeeperName,
   errno = 0;
   F = fopen(partitionFile, "r");
   if (errno) {
-    fprintf(stderr, "Build_Partition()-- failed to open '%s': %s\n", partitionFile, strerror(errno));
+    fprintf(stderr, "GKP Error: Build_Partition()-- failed to open '%s': %s\n", partitionFile, strerror(errno));
     exit(1);
   }
 
@@ -95,7 +95,7 @@ Build_Partition(char      *gatekeeperName,
   AS_PER_setBufferSize(512 * 1024);
 
   for (iid=1; iid<=maxPart; iid++) {
-    //fprintf(stderr, "Create partition %04d in %s\n", iid, gatekeeperName);
+    //fprintf(stderr, "GKP Error: Create partition %04d in %s\n", iid, gatekeeperName);
     gkpart[iid] = createGateKeeperPartition(gatekeeperName, iid);
   }
 

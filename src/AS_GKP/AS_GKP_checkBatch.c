@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkBatch.c,v 1.8 2007-05-11 16:00:55 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkBatch.c,v 1.9 2007-05-16 08:22:25 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,9 +42,7 @@ int Check_BatchMesg(BatchMesg          *bat_mesg){
                                                 FALSE,
                                                 stderr,
                                                 &value)) {
-    printGKPError(stderr, GKPError_BadUniqueBAT);
-    fprintf(stderr,"# Check_BatchMessage:  A message with UID " F_UID " exists %s!!! Can't reuse it... bye\n",
-	    bat_mesg->eaccession, (value.deleted?"and has been deleted":""));
+    fprintf(stderr, "BAT Error: Batch "F_UID" exists, can't add it again.\n", bat_mesg->eaccession);
     return(GATEKEEPER_FAILURE);
   }
 

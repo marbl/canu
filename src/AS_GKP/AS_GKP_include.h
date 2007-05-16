@@ -19,14 +19,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.23 2007-05-11 16:00:55 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.24 2007-05-16 08:22:25 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
-
-#define GATEKEEPER_SUCCESS 0
-#define GATEKEEPER_WARNING 1
-#define GATEKEEPER_FAILURE 2
 
 #include <stdio.h>
 #include <errno.h>
@@ -36,13 +32,15 @@
 #include "AS_MSG_pmesg.h"
 #include "AS_UTL_SequenceBucket.h"
 
-#define GATEKEEPER_SCREENER_MIN_LENGTH  40
 #define GATEKEEPER_MAX_ERROR_RATE        0.025 
 #define GATEKEEPER_QV_WINDOW_WIDTH      50
 #define GATEKEEPER_QV_WINDOW_THRESH      0.03
 
 #define AS_ASSEMBLER_GRANDE  ((int)'A')
 #define AS_ASSEMBLER_OBT     ((int)'T')
+
+#define GATEKEEPER_SUCCESS 0
+#define GATEKEEPER_FAILURE 1
 
 extern GateKeeperStore  *gkpStore;
 
@@ -62,8 +60,6 @@ Check_FragMesg(FragMesg            *frg_mesg,
 
 int
 Check_LinkMesg(LinkMesg             *lkg_mesg);
-
-
 
 
 
@@ -113,49 +109,10 @@ dumpGateKeeperAsFRG(char       *gkpStoreName,
 
 
 
-
 int
 Build_Partition(char      *gatekeeperName,
                 char      *partitionFile,
                 int32      flags);
 
-
-
-//
-//  Gatekeeper Errors
-//
-
-typedef enum GKPErrorType_tag{
-  GKPError_FirstMessageBAT = 0,
-  GKPError_BadUniqueBAT,
-  GKPError_BadUniqueFRG,
-  GKPError_BadUniqueLIB,
-  GKPError_MissingFRG,
-  GKPError_MissingLIB,
-  GKPError_DeleteFRG,
-  GKPError_DeleteLIB,
-  GKPError_DeleteLNK,
-  GKPError_Action,
-  GKPError_Scalar,
-  GKPError_FRGSequence,
-  GKPError_FRGQuality,
-  GKPError_FRGLength,
-  GKPError_FRGClrRange,
-  GKPError_FRGLocalPos,
-  GKPError_FRGQualityWindow,
-  GKPError_FRGQualityGlobal,
-  GKPError_FRGQualityTail,
-  GKPError_LNKFragLibMismatch,
-  GKPError_LNKOneLink,
-  GKPError_DSTValues,
-  GKPError_MAX
-} GKPErrorType;
-
-#define MAX_GKPERROR ((int)(GKPError_MAX )-1)
-
-void printGKPError(FILE *fout, GKPErrorType type);
-void printAllGKPErrors(FILE *fout);
-
-int32 CheckNmerProbabilities(FILE *, double threshhold);
 
 #endif
