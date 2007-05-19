@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: eCR.c,v 1.20 2007-04-16 15:35:40 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: eCR.c,v 1.21 2007-05-19 03:39:05 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -174,6 +174,7 @@ CheckNewUnitigMultiAlign_AppendFragToLocalStore(FragType type, int32 iid) {
     return -1;
   }
 
+  DeleteVA_int32(gapped_positions);
   return(0);
 }
 
@@ -1146,7 +1147,12 @@ main(int argc, char **argv) {
     //  to checkpoint the gkpstore Eventually, we'll just write a log
     //  of the gkpstore changes, and apply that when we're all done.
 
-  }
+    //  Clear out any cached multialigns.  We're all done with them.
+    //
+    ClearCacheSequenceDB(ScaffoldGraph->sequenceDB, TRUE);
+    ClearCacheSequenceDB(ScaffoldGraph->sequenceDB, FALSE);
+
+  }  //  over all scaffolds
 
 
 
@@ -1638,7 +1644,7 @@ int GetNewUnitigMultiAlign(NodeCGW_T *unitig, fragPositions *fragPoss, int exten
   IntUnitigMesg			ium_mesg;
   int i;
   int numCIs = GetNumGraphNodes(ScaffoldGraph->CIGraph);
-  MultiAlignT *ma = CreateEmptyMultiAlignT();
+  MultiAlignT *macopy = NULL;
   UnitigStatus   status;
 
 #ifdef USE_UNGAPPED_CONSENSUS_FOR_UNITIG
@@ -1687,11 +1693,16 @@ int GetNewUnitigMultiAlign(NodeCGW_T *unitig, fragPositions *fragPoss, int exten
       assert(0);
   }
 
-  ReLoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ma, unitig->id, TRUE);
+  //  ReLoad...() makes a copy of the multialign in the store.  This is needed
+  //  because at the end of this function, we delete the multialign in the store,
+  //  and insert a new one.  The new one is based on the copy.
+  //  
+  macopy = CreateEmptyMultiAlignT();
+  ReLoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, macopy, unitig->id, TRUE);
 
   if (debug.eCRmainLV > 0) {
-    fprintf(debug.eCRmainFP, "for unitig %d, before reforming, strlen(ma->consensus) = " F_SIZE_T "\n", unitig->id, strlen(Getchar(ma->consensus, 0)));
-    fprintf(debug.eCRmainFP, "for unitig %d, before reforming, consensus:\n%s\n", unitig->id, Getchar(ma->consensus, 0));
+    fprintf(debug.eCRmainFP, "for unitig %d, before reforming, strlen(macopy->consensus) = " F_SIZE_T "\n", unitig->id, strlen(Getchar(macopy->consensus, 0)));
+    fprintf(debug.eCRmainFP, "for unitig %d, before reforming, consensus:\n%s\n", unitig->id, Getchar(macopy->consensus, 0));
   }
 
   {
@@ -1708,24 +1719,24 @@ int GetNewUnitigMultiAlign(NodeCGW_T *unitig, fragPositions *fragPoss, int exten
     ium_mesg.b_branch_point = unitig->info.CI.branchPointB;
 
 #ifdef USE_UNGAPPED_CONSENSUS_FOR_UNITIG
-    GetMultiAlignUngappedConsensus(ma, ungappedSequence, ungappedQuality);
+    GetMultiAlignUngappedConsensus(macopy, ungappedSequence, ungappedQuality);
     ium_mesg.consensus = Getchar(ungappedSequence,0);
     ium_mesg.quality = Getchar(ungappedQuality,0);
-    ium_mesg.length = GetMultiAlignUngappedLength(ma);
+    ium_mesg.length = GetMultiAlignUngappedLength(macopy);
 #else
-    ium_mesg.length = GetMultiAlignLength(ma);
-    ium_mesg.consensus = Getchar(ma->consensus,0);
-    ium_mesg.quality = Getchar(ma->quality,0);
+    ium_mesg.length = GetMultiAlignLength(macopy);
+    ium_mesg.consensus = Getchar(macopy->consensus,0);
+    ium_mesg.quality = Getchar(macopy->quality,0);
 #endif
     ium_mesg.forced = 0;
-    ium_mesg.num_frags = GetNumIntMultiPoss(ma->f_list);
+    ium_mesg.num_frags = GetNumIntMultiPoss(macopy->f_list);
     ium_mesg.num_vars = 0;
 
     // replace the positions in the f_list with the adjusted positions
     extendedFragLeftward = FALSE;
 
-    for (i = 0; i < GetNumIntMultiPoss(ma->f_list); i++) {
-      IntMultiPos *tempPos = GetIntMultiPos(ma->f_list, i);
+    for (i = 0; i < GetNumIntMultiPoss(macopy->f_list); i++) {
+      IntMultiPos *tempPos = GetIntMultiPos(macopy->f_list, i);
 
 #if 0
       fprintf(stderr, "in GetNewUnitigMultiAlign, changing frag %10d from (%8d, %8d) to (%8d, %8d)\n",
@@ -1740,14 +1751,14 @@ int GetNewUnitigMultiAlign(NodeCGW_T *unitig, fragPositions *fragPoss, int exten
       tempPos->position.bgn = fragPoss[i].bgn;
       tempPos->position.end = fragPoss[i].end;
     }
-    ium_mesg.f_list = GetIntMultiPos(ma->f_list, 0);
+    ium_mesg.f_list = GetIntMultiPos(macopy->f_list, 0);
 
     if (extendedFragLeftward)
       // definitely reorder frags in f_list if we extended a frag leftward
-      leftShiftIUM(ium_mesg.f_list, GetNumIntMultiPoss(ma->f_list), extendedFragIid);
+      leftShiftIUM(ium_mesg.f_list, GetNumIntMultiPoss(macopy->f_list), extendedFragIid);
     else
       // might need to reorder frags in f_list if we extended a frag rightward
-      rightShiftIUM(ium_mesg.f_list, GetNumIntMultiPoss(ma->f_list), extendedFragIid);
+      rightShiftIUM(ium_mesg.f_list, GetNumIntMultiPoss(macopy->f_list), extendedFragIid);
 
     //  The Local_Overlap_AS_forCNS below also had a commented out
     //  DP_Compare.
@@ -1782,20 +1793,18 @@ int GetNewUnitigMultiAlign(NodeCGW_T *unitig, fragPositions *fragPoss, int exten
       fprintf(debug.eCRmainFP, "for unitig %d, after reforming, consensus:\n%s\n", unitig->id, Getchar(reformed_consensus, 0));
     }
 
-    {
+    UnloadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ium_mesg.iaccession, TRUE);
 
-      // "-2" tells CreateMultiAlignTFromIUM to copy over the source
-      // field in an IntMultiPos from the ium_mesg
-      //
-      MultiAlignT *new_ma = CreateMultiAlignTFromIUM(&ium_mesg, -2, FALSE);
-
-      // if (new_ma == NULL) ...   handle failure, but must always unload multialign since we changed it
-
-      // This adds a reference only if keepInCache is true...
-      UnloadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ium_mesg.iaccession, TRUE);
-      InsertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, ium_mesg.iaccession, TRUE, new_ma, FALSE);
-    }
+    //  Set the keepInCache flag, since CreateMultiAlignTFromIUM() is
+    //  returning an allocated multialign, and if we don't cache it,
+    //  we have a giant memory leak.
+    //
+    InsertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, ium_mesg.iaccession, TRUE,
+                                  CreateMultiAlignTFromIUM(&ium_mesg, -2, FALSE),
+                                  TRUE);
   }
+
+  DeleteMultiAlignT(macopy);
 
   return TRUE;
 }
@@ -2094,7 +2103,11 @@ void
 restoreFragAndUnitigData(int lFragIid, int rFragIid) {
   NodeCGW_T *unitig;
   CIFragT *leftFrag, *rightFrag;
-  
+
+  //  We do not own the saved*MA's that are inserted into the
+  //  SequenceDB; do not set the keepInCache flag to
+  //  InsertMultiAlignTInSequenceDB().
+
   // first the left frag
   if (lFragIid != -1) {
     InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, lFragIid);
