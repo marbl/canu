@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.141 2007-04-28 08:46:22 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.142 2007-05-19 01:29:05 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -694,8 +694,8 @@ int SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) 
    CNS_AlignedContigElement epos;
    PHashTable_AS *unitigFrags;
    int hash_rc;
-   PHashValue_AS value;
-   PHashValue_AS ovalue;
+   PHashValue_AS value = {0};
+   PHashValue_AS ovalue = {0};
 
    num_frags = GetNumIntMultiPoss(uma->f_list);
    num_unitigs = GetNumIntUnitigPoss(uma->u_list);
@@ -821,8 +821,8 @@ int SetGappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) {
    CNS_AlignedContigElement epos;
    PHashTable_AS *unitigFrags;
    int hash_rc;
-   PHashValue_AS value;
-   PHashValue_AS ovalue;
+   PHashValue_AS value = {0};
+   PHashValue_AS ovalue = {0};
 
    num_frags = GetNumIntMultiPoss(uma->f_list);
    num_unitigs = GetNumIntUnitigPoss(uma->u_list);
@@ -3037,7 +3037,7 @@ AllocateMemoryForAlleles(Allele **alleles, int32 nr, int32 *na)
       (*alleles)[j].id = -1;
       (*alleles)[j].weight = 0;
       (*alleles)[j].read_ids = (int *)safe_calloc(nr, sizeof(int));
-      (*alleles)[j].read_iids = (int32 *)safe_calloc(nr, sizeof(int));
+      (*alleles)[j].read_iids = (int32 *)safe_calloc(nr, sizeof(int32));
     }
 }
 
@@ -4654,7 +4654,7 @@ int GetMANodePositions(int32 mid, int mesg_n_frags, IntMultiPos *imps, int mesg_
         if ( n_unitigs==1 ) odlen=fump->delta_length;
         //fprintf(stderr,"Unitig %d, delta_length = %d\n", fump->ident,fump->delta_length);
       } else {
-        PHashValue_AS value;
+        PHashValue_AS value = {0};
         //fprintf(stderr,"INDEX %d, READ %d, id %d ",i,n_frags,fragment->iid);
         hash_rc = LookupInPHashTable_AS (fragmentMap, IDENT_NAMESPACE, fragment->iid, &value);
         if ( hash_rc == HASH_SUCCESS) {
@@ -4709,7 +4709,7 @@ int GetMANodePositions(int32 mid, int mesg_n_frags, IntMultiPos *imps, int mesg_
         delta_pos+= iups[n_unitigs].delta_length;
         n_unitigs++;
       } else {
-        PHashValue_AS value;
+        PHashValue_AS value = {0};
         hash_rc = LookupInPHashTable_AS (fragmentMap, IDENT_NAMESPACE, fragment->iid, &value);
         if ( hash_rc == HASH_SUCCESS) {
           // all of the contig's fragments should've had their refcounts incremented to 2 in previous block
@@ -6966,6 +6966,7 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
                 for (j=0; j<vreg.nr; j++)
                 {
                     safe_free(vreg.alleles[j].read_ids);
+                    safe_free(vreg.alleles[j].read_iids);
                     safe_free(vreg.dist_matrix[j]);
                     safe_free(vreg.reads[j].bases);
                     safe_free(vreg.reads[j].qvs);
@@ -6999,6 +7000,7 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
                 for (j=0; j<vreg.nr; j++)
                 {
                     safe_free(vreg.alleles[j].read_ids);
+                    safe_free(vreg.alleles[j].read_iids);
                     safe_free(vreg.dist_matrix[j]);
                     safe_free(vreg.reads[j].bases);
                     safe_free(vreg.reads[j].qvs);
@@ -7141,6 +7143,7 @@ int RefineWindow(MANode *ma, Column *start_column, int stab_bgn,
             for (j=0; j<vreg.nr; j++)
             {
                 safe_free(vreg.alleles[j].read_ids);
+                safe_free(vreg.alleles[j].read_iids);
                 safe_free(vreg.dist_matrix[j]);
                 safe_free(vreg.reads[j].bases);
                 safe_free(vreg.reads[j].qvs);
@@ -7551,7 +7554,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
           case AS_TRNR:
           {
              PHashTable_AS *thash=fragmentMap;
-             PHashValue_AS  value;
+             PHashValue_AS  value={0};
              int hash_rc;
      
              num_reads++;
@@ -8024,7 +8027,7 @@ int32 PlaceFragments(int32 fid, Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
      int containFound=0;
 
      PHashTable_AS *thash = fragmentMap;
-     PHashValue_AS value;
+     PHashValue_AS value = {0};
 
      int lookup_rc = LookupInPHashTable_AS
           (thash, IDENT_NAMESPACE, 
@@ -8053,14 +8056,14 @@ int32 PlaceFragments(int32 fid, Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
 
      afrag = GetFragment(fragmentStore,fid); 
      {  Fragment *tfrag=GetFragment(fragmentStore,blid);
-        PHashValue_AS value;
+        PHashValue_AS value = {0};
         value.IID = tfrag->lid;
         DeleteFromPHashTable_AS(thash, IDENT_NAMESPACE, (uint64) tfrag->iid);
         InsertInPHashTable_AS(&thash,IDENT_NAMESPACE, (uint64) tfrag->iid, &value, FALSE, FALSE); 
      }
 
      if ( bfrag->idx.fragment.frgContained > 0 ) {
-        PHashValue_AS value;
+        PHashValue_AS value = {0};
 
         if (HASH_SUCCESS != LookupInPHashTable_AS(fragmentMap, 
                                                   IDENT_NAMESPACE, 
@@ -8202,8 +8205,8 @@ int MultiAlignContig(IntConConMesg *contig,
      fragmentMap = CreatePHashTable_AS(2*(num_frags+num_unitigs),NULL);
      for (i=0;i<num_frags;i++) {
        PHashTable_AS *thash = fragmentMap;
-       PHashValue_AS value;
-       PHashValue_AS ovalue;
+       PHashValue_AS value = {0};
+       PHashValue_AS ovalue = {0};
        value.IID = contig->pieces[i].ident;
        hash_rc = LookupInPHashTable_AS (thash, IDENT_NAMESPACE, contig->pieces[i].ident, &ovalue);
        if ( hash_rc == HASH_SUCCESS) {
@@ -8838,7 +8841,7 @@ int ExamineConfirmedMMColumns(FILE *outFile,int32 sid, int32 mid, UnitigData *ti
     char base;
     char qv;
     int bid;
-    PHashValue_AS value;
+    PHashValue_AS value = {0};
     int hash_rc;
     int depth=0;
     column = GetColumn(columnStore,cid);
