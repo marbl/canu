@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.20 2007-04-16 17:36:30 brianwalenz Exp $";
+static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.21 2007-05-19 04:46:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -276,13 +276,13 @@ EdgeCGW_T *FindOverlapEdgeChiSquare(ScaffoldGraphT *graph,
     return(bestEdge);
 
   {
-    ChunkOverlapCheckT olap;
     CDS_COORD_t minOverlap, maxOverlap;
     minOverlap = MAX(CGW_MISSED_OVERLAP,
                      -(inferredMean + (3.0 * sqrt(inferredVariance))));
     maxOverlap = -(inferredMean - (3.0 * sqrt(inferredVariance)));
     if(maxOverlap >= CGW_MISSED_OVERLAP){
       float effectiveOlap;
+      ChunkOverlapCheckT olap;
       olap = OverlapChunks(graph->RezGraph,
                            sourceCI->id, targetId,    // handles suspicious
                            edgeOrient, minOverlap, maxOverlap,

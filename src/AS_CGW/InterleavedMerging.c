@@ -802,7 +802,7 @@ Overlap * LookForChunkOverlapFromContigElements(ContigElement * ceA,
   Overlap * retOverlap = NULL;
   CDS_COORD_t minOverlap;
   CDS_COORD_t maxOverlap;
-  ChunkOverlapCheckT chunkOverlap;
+  ChunkOverlapCheckT chunkOverlap = {0};
   ChunkOrientationType overlapOrient;
   ChunkInstanceT * contigA;
   ChunkInstanceT * contigB;

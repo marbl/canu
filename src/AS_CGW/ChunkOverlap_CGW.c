@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.14 2007-05-14 09:27:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.15 2007-05-19 04:46:57 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -173,7 +173,7 @@ ChunkOverlapperT *  LoadChunkOverlapperFromStream(FILE *stream){
   int64 numOverlaps;
   int status;
   int64 overlap;
-  ChunkOverlapCheckT olap;
+  ChunkOverlapCheckT olap = {0};
   ChunkOverlapperT *chunkOverlapper;
 
   // Allocate a chunkOverlapper
@@ -283,7 +283,7 @@ int InitCanonicalOverlapSpec(CDS_CID_t cidA, CDS_CID_t cidB,
 void CreateChunkOverlapFromEdge(GraphCGW_T *graph,
                                 EdgeCGW_T *edge,
                                 int bayesian){
-  ChunkOverlapCheckT olap;
+  ChunkOverlapCheckT olap = {0};
   double delta = sqrt(edge->distance.variance) * 3.0;
   InitCanonicalOverlapSpec(edge->idA, edge->idB, edge->orient, &olap.spec);
   olap.computed = TRUE;
@@ -462,7 +462,7 @@ int InsertOverlapInHashTable(Overlap *tempOlap,
                              CDS_CID_t cidA, CDS_CID_t cidB,
                              ChunkOrientationType orientation)
 {
-  ChunkOverlapCheckT olap;
+  ChunkOverlapCheckT olap = {0};
   CDS_CID_t edgeIndex;
   
   olap.spec.cidA = cidA;
@@ -527,7 +527,7 @@ void CollectChunkOverlap(GraphCGW_T *graph,
                          int fromCGB, 
 			 int verbose){
   ChunkOverlapperT *chunkOverlapper = graph->overlapper;
-  ChunkOverlapCheckT canOlap, *olap;
+  ChunkOverlapCheckT canOlap={0}, *olap;
   CDS_COORD_t delta;
   CDS_COORD_t minOverlap,maxOverlap;
 
@@ -1592,7 +1592,7 @@ int ComputeQualityOverlap(GraphCGW_T *graph,
 			  float* quality, FILE* fp){
   int isCanonical;
   ChunkOverlapSpecT spec;
-  ChunkOverlapCheckT lookup;
+  ChunkOverlapCheckT lookup = {0};
   OverlapMesg* omesg = NULL;
 
   CDS_CID_t cidA = edge->idA;
@@ -1731,7 +1731,7 @@ int ComputeUOMQualityOverlap(GraphCGW_T *graph,
 			     float* quality){
   int isCanonical;
   ChunkOverlapSpecT spec;
-  ChunkOverlapCheckT lookup;
+  ChunkOverlapCheckT lookup = {0};
 
   CDS_CID_t cidA = uom_mesg->chunk1;
   CDS_CID_t cidB = uom_mesg->chunk2;
@@ -2099,7 +2099,7 @@ BranchPointResult OverlapChunksWithBPDetection(GraphCGW_T *graph,
                                                CDS_COORD_t maxOverlap){
 
   BranchPointResult bpResult;
-  ChunkOverlapCheckT olap;
+  ChunkOverlapCheckT olap = {0};
   SeqInterval singleCoverageA, singleCoverageB;
   MultiAlignT *maA = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, cidA, graph->type == CI_GRAPH);
   MultiAlignT *maB = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, cidB, graph->type == CI_GRAPH);
@@ -2365,7 +2365,7 @@ ChunkOverlapCheckT OverlapChunks( GraphCGW_T *graph,
   ChunkOverlapCheckT *lookup;
   // This pointer holds the return value of LookupCanonicalOverlap
 
-  ChunkOverlapCheckT olap;
+  ChunkOverlapCheckT olap = {0};
   // This is a temporary variable. The return value will be in lookup
   // or the pointer returned by the lookup following the insert
 
@@ -2406,13 +2406,11 @@ ChunkOverlapCheckT OverlapChunks( GraphCGW_T *graph,
     olap.suspicious = FALSE;
 
     {
-      ChunkOverlapCheckT olap_copy;
-
-      olap_copy = olap;
-
 #ifdef USE_NEW_DP_COMPARE
       ComputeCanonicalOverlap_new(graph, &olap);
 #else
+      ChunkOverlapCheckT olap_copy = olap;
+
       ComputeCanonicalOverlap_new(graph, &olap_copy);
 	  
       // We compute the canonical overlap
@@ -2583,7 +2581,7 @@ Overlap* OverlapChunksNew( GraphCGW_T *graph,
   ChunkOverlapCheckT *lookup;
   // This pointer holds the return value of LookupCanonicalOverlap
 
-  ChunkOverlapCheckT olap;
+  ChunkOverlapCheckT olap = {0};
   // This is a temporary variable. The return value will be in lookup
   // or the pointer returned by the lookup following the insert
 

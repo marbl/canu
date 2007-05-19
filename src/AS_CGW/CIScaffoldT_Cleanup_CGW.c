@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.23 2007-04-16 17:36:29 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.24 2007-05-19 04:46:57 brianwalenz Exp $";
 
 #undef DEBUG_CHECKFORCTGS
 #undef DEBUG_DETAILED
@@ -247,7 +247,7 @@ void  PropagateContainmentOverlapsToNewContig(ContigT *newContig,
         newEdge->edgesContributing = 1;
 
         {
-          ChunkOverlapCheckT olap;
+          ChunkOverlapCheckT olap = {0};
           if(LookupOverlap(ScaffoldGraph->RezGraph, newEdge->idA, newEdge->idB, newEdge->orient, &olap)){
             FreeGraphEdgeByEID(ScaffoldGraph->RezGraph, eid);
             continue;
@@ -549,7 +549,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
       }
       // Add them to the graph, do NOT insert them.  Keep a list of such edges in collectedEdges
       {
-	ChunkOverlapCheckT olap;
+	ChunkOverlapCheckT olap = {0};
 	// If we don't find either of these edges already in the graph, proceed
 	if(!LookupOverlap(ScaffoldGraph->RezGraph, newContig->id, (edge->idA == contig->id? edge->idB: edge->idA), orient1, &olap) &&
 	   !LookupOverlap(ScaffoldGraph->RezGraph, newContig->id, (edge->idA == contig->id? edge->idB: edge->idA), orient2, &olap))
@@ -764,7 +764,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
 	CDS_CID_t eid= *GetCDS_CID_t(MergedEdges,i);
 	CDS_CID_t neid;
 	EdgeCGW_T *e = GetGraphEdge(ScaffoldGraph->RezGraph, eid);
-	ChunkOverlapCheckT olap;
+	ChunkOverlapCheckT olap = {0};
 	CDS_COORD_t delta = MIN((3 * sqrt(e->distance.variance)), 50);
 	CDS_CID_t idA, idB;
 	ChunkOrientationType orient;
@@ -784,7 +784,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
 
 	
 	{
-	  ChunkOverlapCheckT olap;
+	  ChunkOverlapCheckT olap = {0};
 	  if(LookupOverlap(ScaffoldGraph->RezGraph, e->idA, e->idB, e->orient, &olap)){
 	    if(verbose) {
 	      fprintf(GlobalData->stderrc,"* Overlap found already...skipping\n");
@@ -989,7 +989,7 @@ void PropagateExtremalOverlapsToNewContig(CDS_CID_t contigID, int contigEnd, Con
       }
 
       {
-        ChunkOverlapCheckT olap;
+        ChunkOverlapCheckT olap = {0};
         if(LookupOverlap(ScaffoldGraph->RezGraph, newEdge->idA, newEdge->idB, newEdge->orient, &olap)){
           fprintf(GlobalData->stderrc,"\t* Overlap already exists (" F_CID "," F_CID ",%c)...skip\n",
                   newEdge->idA, newEdge->idB, newEdge->orient);

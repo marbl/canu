@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Stats_CGW.c,v 1.12 2007-04-16 17:36:31 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Stats_CGW.c,v 1.13 2007-05-19 04:46:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -603,7 +603,7 @@ void GenerateLinkStats(GraphCGW_T *graph, char *label, int iteration){
 	if(!edge->flags.bits.hasTandemOverlap){
 	  fprintf(linkstd_w_overlap,"%d\n", std);
 	  if(graph->type == CONTIG_GRAPH){
-	    ChunkOverlapCheckT olap;
+	    ChunkOverlapCheckT olap = {0};
 	    int overlapFound = LookupOverlap(graph, edge->idA, edge->idB, edge->orient, &olap);
 	    if(overlapFound && olap.fromCGB){
 	      cgbOverlap++;

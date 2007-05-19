@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: TransitiveReduction_CGW.c,v 1.11 2007-05-14 09:27:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: TransitiveReduction_CGW.c,v 1.12 2007-05-19 04:46:57 brianwalenz Exp $";
 
 // This file contains the code for computing the candidate
 // chunks of scaffolds.
@@ -899,7 +899,6 @@ EdgeCGW_T *FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
 
   // If there isn't an overlap edge in the right orientation, look for one
   if(!overlapEdgeExists){
-    ChunkOverlapCheckT olap;
     CDS_COORD_t minOverlap, maxOverlap;
     CDS_COORD_t minVariance;
     CDS_COORD_t delta;
@@ -914,6 +913,8 @@ EdgeCGW_T *FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
 		     -(inferredMean + delta));
     maxOverlap = -(inferredMean - delta);
     if(maxOverlap >= CGW_MISSED_OVERLAP){
+      ChunkOverlapCheckT olap;
+
       // The following has side effect of adding an overlap edge to the graph if found
       // which can cause a realloc of the edge array and impact the calling
       // routine. In addition, currently an edge returned by this function

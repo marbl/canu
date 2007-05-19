@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.41 2007-05-14 09:27:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.42 2007-05-19 04:46:57 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1858,7 +1858,7 @@ void CheckEdgesAgainstOverlapper(GraphCGW_T *graph){
   GraphEdgeIterator edgeMates;
   GraphNodeIterator nodes;
   NodeCGW_T *node;
-  ChunkOverlapCheckT olap;
+  ChunkOverlapCheckT olap = {0};
   int count    = 0;
   int failures = 0;
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ChunkOverlap_CGW.h,v 1.5 2006-09-21 21:34:00 brianwalenz Exp $	 */
+/* 	$Id: ChunkOverlap_CGW.h,v 1.6 2007-05-19 04:46:57 brianwalenz Exp $	 */
 
 /* ChunkOverlap_CGW provides tools for invoking Gene's dpalign tool to compute
    overlaps between chunks.  Such overlaps are first 'collected' and then 'computed'.
@@ -101,18 +101,21 @@ typedef struct {
 
 typedef struct {
   ChunkOverlapSpecT spec;
-  CDS_COORD_t minOverlap;
-  CDS_COORD_t maxOverlap;
-  CDS_COORD_t cgbMinOverlap;
-  CDS_COORD_t cgbMaxOverlap;
-  float errorRate;
+
+  CDS_COORD_t  minOverlap;
+  CDS_COORD_t  maxOverlap;
+  CDS_COORD_t  cgbMinOverlap;
+  CDS_COORD_t  cgbMaxOverlap;
+  float        errorRate;
+
   // This is what we found
-  unsigned int computed:1;
-  unsigned int fromCGB:1;
-  unsigned int hasBayesianQuality:1;
-  unsigned int AContainsB:1;
-  unsigned int BContainsA:1;
-  unsigned int suspicious:1;
+  uint32       computed:1;
+  uint32       fromCGB:1;
+  uint32       hasBayesianQuality:1;
+  uint32       AContainsB:1;
+  uint32       BContainsA:1;
+  uint32       suspicious:1;
+  uint32       unused:26;
 
   CDS_COORD_t  overlap;  // The overlaplength if there is an overlap, 0 otherwise
   CDS_COORD_t  ahg;

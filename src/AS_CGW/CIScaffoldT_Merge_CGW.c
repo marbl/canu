@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.27 2007-05-14 09:27:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.28 2007-05-19 04:46:57 brianwalenz Exp $";
 
 
 #undef ORIG_MERGE_EDGE_INVERT
@@ -3389,7 +3389,7 @@ void SaveBadScaffoldMergeEdge(SEdgeT * edge,
   InitCanonicalOverlapSpec(edge->idA, edge->idB, edge->orient, &spec);
   if((lookup = LookupCanonicalOverlap(overlapper, &spec)) == NULL)
     {
-      ChunkOverlapCheckT olap;
+      ChunkOverlapCheckT olap = {0};
       // create
       FillChunkOverlapWithEdge(edge, &olap);
       olap.minOverlap = -edge->distance.mean - delta;
