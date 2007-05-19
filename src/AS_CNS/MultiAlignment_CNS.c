@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.142 2007-05-19 01:29:05 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.143 2007-05-19 02:51:16 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -3365,6 +3365,10 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
         safe_free(vreg.iids);
         safe_free(varf);
         safe_free(cids);
+        if (get_scores > 0) {
+          safe_free(prev_bases);
+          safe_free(prev_iids);
+        }
         return 1;
     }
 
