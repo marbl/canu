@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.42 2007-05-19 04:46:57 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.43 2007-05-22 17:04:25 granger_sutton Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -726,6 +726,75 @@ EdgeCGW_T *GetFreeGraphEdge(GraphCGW_T *graph){
   fprintf(GlobalData->stderrc,"* GetFreeGraphEdge returned edge " F_CID "\n", newEid);
 #endif
   return freeEdge;
+}
+
+
+// Repair the CI neighbors in a contig AEndNext and BEndNext when removing a surrogate copy
+void RepairContigNeighbors(ChunkInstanceT *surr){
+  ChunkInstanceT *AEndNeighbor = (surr->AEndNext >= 0) ?
+    GetGraphNode(ScaffoldGraph->CIGraph, surr->AEndNext) : NULL;
+  ChunkInstanceT *BEndNeighbor = (surr->BEndNext >= 0) ?
+    GetGraphNode(ScaffoldGraph->CIGraph, surr->BEndNext) : NULL;
+  ContigT *contig = GetGraphNode(ScaffoldGraph->ContigGraph, surr->info.CI.contigID);
+
+  assert(contig != NULL);
+  assert(surr->type == RESOLVEDREPEATCHUNK_CGW);
+  if(AEndNeighbor != NULL){
+    assert(AEndNeighbor->flags.bits.isCI);
+    if(AEndNeighbor->AEndNext == surr->id){
+      AEndNeighbor->AEndNext = surr->BEndNext;
+    }else{
+      assert(AEndNeighbor->BEndNext == surr->id);
+      AEndNeighbor->BEndNext = surr->BEndNext;
+    }
+  }else{
+    assert(contig->info.Contig.AEndCI == surr->id);
+    contig->info.Contig.AEndCI = surr->BEndNext;
+  }
+  if(BEndNeighbor != NULL){
+    assert(BEndNeighbor->flags.bits.isCI);
+    if(BEndNeighbor->AEndNext == surr->id){
+      BEndNeighbor->AEndNext = surr->AEndNext;
+    }else{
+      assert(BEndNeighbor->BEndNext == surr->id);
+      BEndNeighbor->BEndNext = surr->AEndNext;
+    }
+  }else{
+    assert(contig->info.Contig.BEndCI == surr->id);
+    contig->info.Contig.BEndCI = surr->AEndNext;
+  }
+  // For the contig containing the removed duplicate surrogate, update the SeqDB entry to delete
+  // the unitig position
+  // void PlaceFragmentsInMultiAlignT(CDS_CID_t toID, int isUnitig, VA_TYPE(IntMultiPos) *f_list)
+  {
+    MultiAlignT *ma;
+    int32 i, j;
+    int32 delete_index = -1;
+
+    //     1. get the old multialign from the seqDB
+    ma =  LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
+    //     2. delete surrogate from multialign
+
+    for(i = j = 0; i < GetNumIntUnitigPoss(ma->u_list); i++){
+      IntUnitigPos *pos = GetIntUnitigPos(ma->u_list,i);
+
+      if(surr->id == pos->ident){
+	delete_index = i;
+      }else{
+	SetIntUnitigPos(ma->u_list, j, GetIntUnitigPos(ma->u_list,i));
+	j++;
+      }
+    }
+    assert(delete_index >= 0);
+    assert((j + 1) == i);
+    ResetToRange_IntUnitigPos(ma->u_list,j);
+
+    //     3. update the multialign
+    UpdateMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE, ma, FALSE);
+  }
+
+
+  return;
 }
 
 

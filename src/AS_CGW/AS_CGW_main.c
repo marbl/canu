@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.39 2007-04-23 15:24:34 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.40 2007-05-22 17:04:25 granger_sutton Exp $";
 
 
 static const char *usage = 
@@ -145,6 +145,7 @@ static const char *usage =
 extern int allow_forced_frags;
 
 void DemoteUnitigsWithRBP(FILE *stream, GraphCGW_T *graph);
+void RemoveSurrogateDuplicates(void);
 
 FILE *  File_Open (const char * Filename, const char * Mode, int exitOnFailure);
 
@@ -1116,6 +1117,11 @@ int main(int argc, char *argv[]){
       ClearCacheSequenceDB (ScaffoldGraph -> sequenceDB, FALSE);
 
       fprintf (stderr, "Threw %d contained stones\n", contained_stones);
+
+      // Remove copies of surrogates which are placed multiple times in the same place in a contig
+
+      RemoveSurrogateDuplicates();
+
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
       fprintf(stderr,
               "---Checking contig orders after contained_stones\n\n");
@@ -1199,7 +1205,6 @@ int main(int argc, char *argv[]){
 
 
   Show_Reads_In_Gaps (GlobalData -> File_Name_Prefix);
-
 
   // now recompute mate pair statistics, once on scaffolds, once on contigs, with 
   // the results on contigs being the ones that are output in OutputMateDists
