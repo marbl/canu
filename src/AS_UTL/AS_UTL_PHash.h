@@ -18,45 +18,73 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_UTL_PHash.h,v 1.6 2007-01-29 00:32:34 brianwalenz Exp $	 */
+
+// $Id: AS_UTL_PHash.h,v 1.7 2007-05-22 20:42:25 brianwalenz Exp $
+
 #ifndef AS_UTL_PHASH_H
 #define AS_UTL_PHASH_H
-/*************************************************************************
- Module:  AS_UTL_PHash
- Description:
-     This module defines the interface and implementation of the persistent
- hash table used to associated UIDs (aka accessions) with the assembler's
- IIDs (internal IDs).
-     Persistent hash tables can either be created using a memory mapped file, or,
- transient tables can be created in memory.
-     This module is not intended to be general purpose (for that see AS_UTL_Hash), but
- rather specifically focussed on the needs of the assembler.
-     The hashing function used is from DDJ.  See AS_HashCommon.[hc].
 
- Assumptions:
-      None.
- Document:
-      PersistentHash.rtf
-
- *************************************************************************/
-
-/* RCS Info
- * $Id: AS_UTL_PHash.h,v 1.6 2007-01-29 00:32:34 brianwalenz Exp $
- * $Revision: 1.6 $
- *
- */
+//  Saul A. Kravitz
+//  January 21, 1999
+//  Version 2.0
+//
+//  This document describes the architecture and API for the assembler's
+//  mechanism of associating UIDs from DMS with internally generated IIDs.
+//  This mechanism uses a persistent hash table in a memory mapped file.
+//
+//  Persistent hash tables can either be created using a memory mapped
+//  file, or, transient tables can be created in memory.
+//
+//  This module is not intended to be general purpose (for that see
+//  AS_UTL_Hash), but rather specifically focussed on the needs of the
+//  assembler.
+//
+//  This module employs the hash function in AS_UTL_HashCommon.h and
+//  AS_UTL_HashCommon.c.  In contrast to AS_UTL_Hash, this is
+//  hardwired for the UID->IID mapping problem.
+//
+//  The hashing function used is from DDJ.  See AS_HashCommon.[hc].
+//  
+//  ** Requirements
+//
+//  Maintain a persistent association of 64-bit keys with 64-bit values.
+//
+//  Provide compatible implementations that are memory-based and
+//  memory-mapped file based.
+//
+//  Assign dense IIDs for each type of key, starting from 1.
+//
+//  Support multiple, orthogonal, namespaces within a single hash table.
+//
+//  ** Design 
+//
+//  This is a fairly standard open hash table.  The hashing algorithm is
+//  taken from an article in DDJ that compared the performance of several
+//  hashing algorithms.  It employs a power-of-2 sized hash tables.  Keys
+//  are mapped to buckets by computing their hash value, and then ANDing
+//  the hash value with an appropriate mask.
+//
+//  ** Memory Usage
+//
+//  All memory for a persistent hash table is either allocated as a single
+//  block of dynamically allocated memory, or mapped, in its entirety, to
+//  a memory-mapped file.  Inserting a (key,value) pair into the hash
+//  table copies the value.  When the hash table has filled up, it is
+//  reallocated.
+//
+//  ** Limitations
+//
+//  Not written to support multiple threads, although I see no significant
+//  obstacles in the way of such an extension.
+//
+//  ** Component Architecture and Unit Dependencies
+//
 
 #include <limits.h>
 
 /* If the following is defined, the hash table assigns the IIDs */
 #define COUNTS 1
 #include "AS_UTL_HashCommon.h"
-
-/***************** Persistent Hash Table Implementation ********************/
-/* In contrast to AS_UTL_Hash, this is hardwired for the UID->IID mapping  */
-/* problem.                                                                */
-/***************************************************************************/
-
 
 /* Lookup Failure Classes */
 
@@ -173,23 +201,19 @@ typedef struct{
 } PHashTable_AS;
 
 
-/* PHashTable_Iterator_AS
- *    Iterator for all allocated nodes in hashtable.
- *    In the absence of frees, values are returned in the order inserted
- *
- */
-
 typedef struct{
   int32 currentNodeIndex;
   PHashTable_AS *table;
 }PHashTable_Iterator_AS;
 
 
-
 /***********************************************************************************
- * Function: CreatePHashTable_AS
- * Description:
- *     Creates a PHashTable_AS
+ *
+ * A persistent hash table is created with the CreatePHashTable_AS
+ * function.  If the 2nd argument is NULL, the hashtable is created in
+ * memory and is not persistent.  This can be used to create interim
+ * hashtables that can later be concatenated with a persistent hashtable
+ * using ConcatPHashTableAS (bpw 20070522; doesn't seem to exist).
  *
  * Inputs:
  *     numItemsToHash   Used to compute the initial size of the hashtable
@@ -198,14 +222,14 @@ typedef struct{
  * Return Value:
  *     Pointer to newly allocated AS_PHashTable_AS. (NULL if failure)
  ***********************************************************************************/
-
 PHashTable_AS *CreatePHashTable_AS(int numItemsToHash, char *pathToHashTable);
 
 
 /***********************************************************************************
- * Function: OpenPHashTable_AS
- * Description:
- *     Opens an existing PHashTable_AS
+ *
+ * An existing persistent hash table can be opened with the
+ * OpenPHashTable_AS function. This opens the file, and maps it into the
+ * memory of the executing process.
  *
  * Inputs:
  *     pathToHashTable  Path to open for hashtable.  
@@ -256,6 +280,7 @@ void ClosePHashTable_AS(PHashTable_AS *table);
  * Return Value:
  *     None.
  ***********************************************************************************/
+
 #if COUNTS
 void ResetPHashTable_AS(PHashTable_AS *table, CDS_IID_t *counts);
 #else
@@ -318,11 +343,11 @@ CDS_IID_t AllocateCountPHashTable_AS(PHashTable_AS *table, unsigned int type);
  *     HASH_FAILURE if failure
  ***********************************************************************************/
 int InsertInPHashTable_AS(PHashTable_AS **table, 
-			 char nameSpace, 
-			 CDS_UID_t key, 
-			 PHashValue_AS *value,
-			 int useRefCount,
-			 int assignIID);
+                         char nameSpace, 
+                         CDS_UID_t key, 
+                         PHashValue_AS *value,
+                         int useRefCount,
+                         int assignIID);
 
 
 /***********************************************************************************
@@ -343,8 +368,8 @@ int InsertInPHashTable_AS(PHashTable_AS **table,
  *     HASH_FAILURE_FOUND_BUT_DELETED If the key is found, but marked deleted
  ***********************************************************************************/
 int AddRefPHashTable_AS(PHashTable_AS *table, 
-			 char nameSpace, 
-			 CDS_UID_t key);
+                         char nameSpace, 
+                         CDS_UID_t key);
 
 
 /***********************************************************************************
@@ -365,8 +390,8 @@ int AddRefPHashTable_AS(PHashTable_AS *table,
  *     HASH_FAILURE_FOUND_BUT_DELETED If the key is found, but marked deleted
  ***********************************************************************************/
 int UnRefPHashTable_AS(PHashTable_AS *table, 
-			 char nameSpace, 
-			 CDS_UID_t key);
+                         char nameSpace, 
+                         CDS_UID_t key);
 
 
 /***********************************************************************************
@@ -384,8 +409,8 @@ int UnRefPHashTable_AS(PHashTable_AS *table,
  *     HASH_FAILURE if failure
  ***********************************************************************************/
 int DeleteFromPHashTable_AS(PHashTable_AS *table, 
-			    char nameSpace, 
-			    CDS_UID_t key);
+                            char nameSpace, 
+                            CDS_UID_t key);
 
 
 /***********************************************************************************
@@ -403,8 +428,8 @@ int DeleteFromPHashTable_AS(PHashTable_AS *table,
  *     HASH_FAILURE if failure
  ***********************************************************************************/
 int MarkAsDeletedPHashTable_AS(PHashTable_AS *table, 
-			    char nameSpace, 
-			       CDS_UID_t key);
+                            char nameSpace, 
+                               CDS_UID_t key);
 
 /***********************************************************************************
  * Function: LookupInPHashTable_AS
@@ -448,12 +473,12 @@ int LookupInPHashTable_AS(PHashTable_AS *table, char nameSpace, CDS_UID_t key, P
  *     
  ***********************************************************************************/
 int LookupTypeInPHashTable_AS(PHashTable_AS *table, 
-			      char nameSpace,
-			      CDS_UID_t key, 
-			      int type, 
-			      int reportFailure, 
-			      FILE *msgFile,
-			      PHashValue_AS *value);
+                              char nameSpace,
+                              CDS_UID_t key, 
+                              int type, 
+                              int reportFailure, 
+                              FILE *msgFile,
+                              PHashValue_AS *value);
 
 
 
@@ -464,6 +489,11 @@ int LookupTypeInPHashTable_AS(PHashTable_AS *table,
  * Description:
  *     Reallocates target table, if adding numNodes entries will cause a realloc.
  *     This can be done preemptively, before adding or concating two tables.
+ *
+ * The persistent hash table reallocates itself, as needed.  However, if
+ * the user knows that a bunch of entries are about to be added to the
+ * hashtable, it is best to preemptively call MakeSpaceForPHashTable_AS.
+ * This can be considered strictly an optional performance enhancer.
  *
  * Input/Outputs
  *     target         ** to a PHashTable_AS. (May be reallocated as a result of operation )
@@ -480,6 +510,14 @@ int MakeSpacePHashTable_AS(PHashTable_AS **target, int numNodes);
  * Function: InitializePHashTable_Iterator_AS
  * Description:
  *     Initializes a PHashTable_Iterator_AS
+ *
+ * Often it is useful to know all of the key, value pairs in a hashtable.
+ * This iterator provides such easy access.  First the iterator is
+ * initialized, and subsequent calls to NextPHashTable_Iterator_AS return
+ * 1 until all key, value pairs have been enumerated.
+ *
+ * In the absence of frees, values are returned in the order inserted
+ * (bpw 20070522: not verified, stated in very old documentation!)
  *
  * Inputs:
  *     table         * to a PHashTable_AS.  
@@ -509,9 +547,9 @@ int InitializePHashTable_Iterator_AS(PHashTable_AS *table, PHashTable_Iterator_A
  *     HASH_FAILURE if failure
  ***********************************************************************************/
 int NextPHashTable_Iterator_AS(PHashTable_Iterator_AS *iterator, 
-			       char *nameSpace,
-			       CDS_UID_t *key, 
-			       PHashValue_AS *value);
+                               char *nameSpace,
+                               CDS_UID_t *key, 
+                               PHashValue_AS *value);
 #endif
 
 
