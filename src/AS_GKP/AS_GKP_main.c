@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.39 2007-05-16 11:48:37 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.40 2007-05-22 21:18:39 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,63 +41,111 @@ GateKeeperStore *gkpStore;
 
 static
 void
-usage(char *filename) {
-  fprintf(stderr, "usage1: %s -o gkpStore [append/create options] <input.frg> <input.frg> ...\n", filename);
-  fprintf(stderr, "usage2: %s -P partitionfile gkpStore\n", filename);
-  fprintf(stderr, "usage3: %s [dump-options] gkpStore\n", filename);
-  fprintf(stderr, "\n");
-  fprintf(stderr, "The first usage will append to or create a GateKeeper store:\n");
-  fprintf(stderr, "  -a                     append to existing tore\n");
-  fprintf(stderr, "  -e <errorThreshhold>   set error threshhold\n");
-  fprintf(stderr, "  -o <gkpStore>          append to or create gkpStore\n");
-  fprintf(stderr, "  -G                     gatekeeper for assembler Grande (default)\n");
-  fprintf(stderr, "  -T                     gatekeeper for assembler Grande with Overlap Based Trimming\n");
-  fprintf(stderr, "  -Q                     don't check quality-based data quality\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "  -v <vector-info>       load vector clear ranges into each read.\n");
-  fprintf(stderr, "                         MUST be done on an existing, complete store.\n");
-  fprintf(stderr, "                         example: -a -v vectorfile -o that.gkpStore\n");
-  fprintf(stderr, "                         format: 'UID vec-clr-begin vec-clr-end'\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "The second usage will partition an existing store, allowing\n");
-  fprintf(stderr, "the entire store partition to be loaded into memory.\n");
-  fprintf(stderr, "  -P <partitionfile>     a list of (partition fragiid)\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "The third usage will dump the contents of a GateKeeper store.\n");
-  fprintf(stderr, "  [selection of what objects to dump]\n");
-  fprintf(stderr, "  -b <begin-iid>         dump starting at this batch, library or read (1)\n");
-  fprintf(stderr, "  -e <ending-iid>        dump stopping after this iid (1)\n");
-  fprintf(stderr, "  -uid <uid-file>        dump only objects listed in 'uid-file' (1)\n");
-  fprintf(stderr, "  -iid <iid-file>        dump only objects listed in 'iid-file' (1)\n");
-  fprintf(stderr, "  -randommated <lib> <n> pick n mates (2n frags) at random from library lib,\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "  [how to dump it]\n");
-  fprintf(stderr, "  -tabular               dump info, batches, libraries or fragments in a tabular\n");
-  fprintf(stderr, "                         format (for -dumpinfo, -dumpbatch, -dumplibraries,\n");
-  fprintf(stderr, "                         and -dumpfragments, ignores -withsequence and -clear)\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "  [format of dump]\n");
-  fprintf(stderr, "  -dumpinfo              print information on the store\n");
-  fprintf(stderr, "    -lastfragiid         just print the last IID in the store\n");
-  fprintf(stderr, "  -dumpbatch             dump all batch records\n");
-  fprintf(stderr, "  -dumplibraries         dump all library records\n");
-  fprintf(stderr, "  -dumpfragments         dump fragment info, no sequence\n");
-  fprintf(stderr, "    -withsequence          ...and include sequence\n");
-  fprintf(stderr, "    -clear <clr>           ...in clear range <clr>, default=UNTRIM\n");
-  fprintf(stderr, "  -dumpfasta[seq|qlt]    dump fragment sequence or quality, as fasta format\n");
-  fprintf(stderr, "    -allreads              ...all reads, regardless of deletion status\n");
-  fprintf(stderr, "    -decoded               ...quality as integers ('20 21 19')\n");
-  fprintf(stderr, "    -clear <clr>           ...in clear range <clr>, default=LATEST\n");
-  fprintf(stderr, "  -dumpfrg               extract LIB, FRG and LKG messages\n");
-  fprintf(stderr, "    -donotfixmates         ...only extract the fragments given, do not add in\n");
-  fprintf(stderr, "                              missing mated reads\n");
-  fprintf(stderr, "    -clear <clr>           ...use clear range <clr>, default=ORIG\n");
-  fprintf(stderr, "    -format2               ...extract using frg format version 2\n");
-  fprintf(stderr, "\n");
-  fprintf(stderr, "  (1) - must have a -dump option, e.g., -uid file -tabular -dumpfragments some.gkpStore\n");
-  fprintf(stderr, "\n");
+usage(char *filename, int longhelp) {
+  fprintf(stdout, "usage1: %s -o gkpStore [append/create options] <input.frg> <input.frg> ...\n", filename);
+  fprintf(stdout, "usage2: %s -P partitionfile gkpStore\n", filename);
+  fprintf(stdout, "usage3: %s [dump-options] gkpStore\n", filename);
+  fprintf(stdout, "\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "The first usage will append to or create a GateKeeper store:\n");
+  fprintf(stdout, "  -a                     append to existing tore\n");
+  fprintf(stdout, "  -e <errorThreshhold>   set error threshhold\n");
+  fprintf(stdout, "  -o <gkpStore>          append to or create gkpStore\n");
+  fprintf(stdout, "  -G                     gatekeeper for assembler Grande (default)\n");
+  fprintf(stdout, "  -T                     gatekeeper for assembler Grande with Overlap Based Trimming\n");
+  fprintf(stdout, "  -Q                     don't check quality-based data quality\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "  -v <vector-info>       load vector clear ranges into each read.\n");
+  fprintf(stdout, "                         MUST be done on an existing, complete store.\n");
+  fprintf(stdout, "                         example: -a -v vectorfile -o that.gkpStore\n");
+  fprintf(stdout, "                         format: 'UID vec-clr-begin vec-clr-end'\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "The second usage will partition an existing store, allowing\n");
+  fprintf(stdout, "the entire store partition to be loaded into memory.\n");
+  fprintf(stdout, "  -P <partitionfile>     a list of (partition fragiid)\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "The third usage will dump the contents of a GateKeeper store.\n");
+  fprintf(stdout, "  [selection of what objects to dump]\n");
+  fprintf(stdout, "  -b <begin-iid>         dump starting at this batch, library or read (1)\n");
+  fprintf(stdout, "  -e <ending-iid>        dump stopping after this iid (1)\n");
+  fprintf(stdout, "  -uid <uid-file>        dump only objects listed in 'uid-file' (1)\n");
+  fprintf(stdout, "  -iid <iid-file>        dump only objects listed in 'iid-file' (1)\n");
+  fprintf(stdout, "  -randommated <lib> <n> pick n mates (2n frags) at random from library lib,\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "  [how to dump it]\n");
+  fprintf(stdout, "  -tabular               dump info, batches, libraries or fragments in a tabular\n");
+  fprintf(stdout, "                         format (for -dumpinfo, -dumpbatch, -dumplibraries,\n");
+  fprintf(stdout, "                         and -dumpfragments, ignores -withsequence and -clear)\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "  [format of dump]\n");
+  fprintf(stdout, "  -dumpinfo              print information on the store\n");
+  fprintf(stdout, "    -lastfragiid         just print the last IID in the store\n");
+  fprintf(stdout, "  -dumpbatch             dump all batch records\n");
+  fprintf(stdout, "  -dumplibraries         dump all library records\n");
+  fprintf(stdout, "  -dumpfragments         dump fragment info, no sequence\n");
+  fprintf(stdout, "    -withsequence          ...and include sequence\n");
+  fprintf(stdout, "    -clear <clr>           ...in clear range <clr>, default=UNTRIM\n");
+  fprintf(stdout, "  -dumpfasta[seq|qlt]    dump fragment sequence or quality, as fasta format\n");
+  fprintf(stdout, "    -allreads              ...all reads, regardless of deletion status\n");
+  fprintf(stdout, "    -decoded               ...quality as integers ('20 21 19')\n");
+  fprintf(stdout, "    -clear <clr>           ...in clear range <clr>, default=LATEST\n");
+  fprintf(stdout, "  -dumpfrg               extract LIB, FRG and LKG messages\n");
+  fprintf(stdout, "    -donotfixmates         ...only extract the fragments given, do not add in\n");
+  fprintf(stdout, "                              missing mated reads\n");
+  fprintf(stdout, "    -clear <clr>           ...use clear range <clr>, default=ORIG\n");
+  fprintf(stdout, "    -format2               ...extract using frg format version 2\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "  (1) - must have a -dump option, e.g., -uid file -tabular -dumpfragments some.gkpStore\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "\n");
+  if (longhelp == 0) {
+    fprintf(stdout, "Use '-h' to get a discussion of what gatekeeper is.\n");
+    fprintf(stdout, "\n");
+  } else {
+    fprintf(stdout, "The Gatekeeper ensures that data entering the assembly system meets\n");
+    fprintf(stdout, "the data specification (see GateKeeper design document).  It is also\n");
+    fprintf(stdout, "used for examining and partitioning the assembler data store.\n");
+    fprintf(stdout, "\n");
+    fprintf(stdout, "Each input message is checked for semantic consistency as described in\n");
+    fprintf(stdout, "the defining document for that stage.  Messages containing a UID are\n");
+    fprintf(stdout, "converted to a UID,IID pair -- the assembler modules require\n");
+    fprintf(stdout, "consecutive IID beginning at 1 for efficient indexing of internal and\n");
+    fprintf(stdout, "disk-based data structures; gatekeeper performs this task.  Finally,\n");
+    fprintf(stdout, "each message is inserted into the assembly data store.\n");
+    fprintf(stdout, "\n");
+    fprintf(stdout, "The GateKeeper succeeds if it consumes its entire input with less than\n");
+    fprintf(stdout, "a specified number of errors (the -e option).  Upon successful exit,\n");
+    fprintf(stdout, "the store reflects all of the records that were successfully read.\n");
+    fprintf(stdout, "Unsuccessful records are reported to stderr, along with a brief\n");
+    fprintf(stdout, "explanation of the problem.\n");
+    fprintf(stdout, "\n");
+    fprintf(stdout, "If unsuccessful, the store is partially updated.\n");
+    fprintf(stdout, "\n");
+    fprintf(stdout, "Resoure Requirements\n");
+    fprintf(stdout, "\n");
+    fprintf(stdout, "The key gatekeeper data structures are in-memory copies of its store.\n");
+    fprintf(stdout, "This store should scale linearly with the number of fragments.\n");
+    fprintf(stdout, "\n");
+    fprintf(stdout, "No formal benchmarking of the gatekeeper has been performed to date.\n");
+    fprintf(stdout, "However, each LKG message requires four random disk accesses -- two to\n");
+    fprintf(stdout, "read the linked fragment records, and two two write the updated\n");
+    fprintf(stdout, "fragment records.  This can cause problems when gatekeeper is run over\n");
+    fprintf(stdout, "low-performance or heavily used NFS mount points.\n");
+    fprintf(stdout, "\n");
+    fprintf(stdout, "3. General Pre Conditions\n");
+    fprintf(stdout, "\n");
+    fprintf(stdout, "a) Each input UID must be unique.  A new message with a duplicate UID\n");
+    fprintf(stdout, "will be rejected as an error.\n");
+    fprintf(stdout, "\n");
+    fprintf(stdout, "b) Any object referred to in a message must be defined:\n");
+    fprintf(stdout, "def-before-ref.  Likewise, before an object can be deleted, all\n");
+    fprintf(stdout, "references to it must be removed: unref-before-undef.\n");
+    fprintf(stdout, "\n");
+    fprintf(stdout, "c) The input specification is defined elsewhere.\n");
+    fprintf(stdout, "\n");
+  }
 }
 
 #define DUMP_NOTHING     0
@@ -155,6 +203,7 @@ main(int argc, char **argv) {
 
   int arg = 1;
   int err = 0;
+  int hlp = 0;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-a") == 0) {
       append = 1;
@@ -164,6 +213,7 @@ main(int argc, char **argv) {
       maxerrs = atoi(argv[++arg]);
       endIID  = maxerrs;
     } else if (strcmp(argv[arg], "-h") == 0) {
+      hlp++;
       err++;
     } else if (strcmp(argv[arg], "-o") == 0) {
       gkpStoreName = argv[++arg];
@@ -245,7 +295,7 @@ main(int argc, char **argv) {
     arg++;
   }
   if ((err) || (gkpStoreName == NULL)) {
-    usage(argv[0]);
+    usage(argv[0], hlp);
     exit(1);
   }
   
