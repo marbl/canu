@@ -1,0 +1,92 @@
+
+Assembler Message Routines and API
+
+Clark Mobarry & Gene Myers (original document, 1998, 1999)
+Brian Walenz (editing, updating, 2007)
+
+1	Introduction
+
+This document describes the architecture of the assembler message
+routines, and presents a data access API.  The primary purpose of the
+API is to provide an abstract interface to the assembler message
+streams from one assembler component to the next.
+
+The document /doc/BigPicture/ProtoDesign.rtf describes data streams of
+typed message records between the major components of the Celera
+Assembler.  (OBSOLETE)
+
+These message types are described in /doc/BigPicture/ProtoSpec.rtf.
+(OBSOLETE)
+
+2	Details
+
+The API attempts to present an object-oriented interface for all the
+current and future message types.  To implement this the API routines
+have a common structure.  A central dispatch table approach is used to
+call the appropriate routine for each message type.
+
+Messages returned by this API are allocated in a memory buffer reused
+by the API on each subsequent call.  Hence a previous message is
+destroyed each time a new message is read; one must copy the message
+if it is to be retained for a greater extent.  That is, all persistent
+memory required for message data must be provided by the client of the
+API.
+
+This library was not written to support multiple threads.  Extension
+to multithreading will not be straightforward.
+
+3	Assembler Message Routine API 
+
+The prototype assembler message library is file based.  This allows
+the components of the Celera assembler to be separate tasks on
+different computers.  It is anticipated that the time spent passing
+messages between the assembler components will be small compared to
+the time spent on computation and persistent store accesses.
+
+3.1	Generic Message Handle
+
+An opaque data structure, GenericMesg, is used to abstract the
+assembler messages.  The user's entire interaction with a generic
+message is through a set of "methods" for reading, writing,
+duplicating and freeing these objects.  This allows for opaque memory
+management as long as the only pointer to the specific message is
+through the generic message.
+
+typedef struct { 
+  void         *m;         // A pointer to the message object
+  MessageType  t;          // The message type
+  int32        s;          // The message size in bytes
+} GenericMesg;
+
+The m field points at a record of the type indicated by the t field.
+After coercing this pointer to the appropriate type, one may then
+access the fields of the given message.
+
+The s field gives the total amount of storage occupied by all the
+variable length data pointed to by the specific message record.  This
+data is currently guaranteed to be allocated in a contiguous block in
+order to assist in copying it.
+
+All the type definitions for the specific message records are
+documented in /doc/BigPicture/ProtoSpec.rtf and the definitions for
+all the messages are in AS_MSG/AS_MSG_pmesg.h.
+
+3.2	Message Reading
+
+ReadProtoMesg_AS(FILE *fin, GenericMesg **pmesg) reads the next
+message from the file "fin" and returns the memory location of a
+generic message.  This memory is managed by the routine.  This memory
+location and all of its variable data will go out of scope or be
+trashed by the next call to the routine.
+
+The return value is EOF if an end of file is encountered occurs,
+otherwise the return value is zero indicating success.
+
+3.3	Message Writing 
+
+WriteProtoMesg_AS(FILE *fout, GenericMesg *mesg) writes a generic mesg
+to the file 'fout', returning a negative value if an error occurred.
+
+gmeyers, December 14, 1998
+cmobarry, March 31, 1999
+bwalenz, Tue May 22 20:15:57 EDT 2007

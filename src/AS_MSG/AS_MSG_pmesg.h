@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.47 2007-05-14 13:40:55 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.48 2007-05-22 20:15:49 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -87,9 +87,9 @@ static char  *MessageTypeName[NUM_OF_REC_TYPES + 1] = {
 /*Generic message object handle */
 
 typedef struct { 
-  void         *m;          /* A pointer to a message. */
-  MessageType  t;          /* The message type discriminator. */
-  int32        s;          /* The message size in bytes. */
+  void         *m;         // A pointer to the message object
+  MessageType  t;          // The message type
+  int32        s;          // The message size in bytes
 } GenericMesg;
 
 /* BAT record */
@@ -893,61 +893,15 @@ typedef struct EndOfFileMesgTag {
 } EndOfFileMesg;
 
 
-//  External Routines
 
 
+//  Semi-External Routines -- need to be exported for use in AS_MSG,
+//  might be used and/or useful outside AS_MSG.
 
-FragType   AS_MSG_SafeConvert_charToFragType (const char input, bool strict);
-
-
-void       AS_MSG_setFormatVersion(int format);
-
-
-
-//  Functions: ReadProtoMesg_AS 
-//
-//  Description: Reads the next message from the file "fin" and a
-//  returns the memory location of a generic message.  This memory is
-//  managed by the routine only. This memory location and all of its
-//  variable data will go out of scope or be trashed by the next call
-//  to the routine.
-//  
-//  Return Value: The return value is EOF if an end of file is
-//  encountered occurs, otherwise the return value is zero indicating
-//  success.
-//  
-//  Outputs: mesg - A handle to a generic message.
-//  
-//  Input/Outputs: fin - A file openned for text reading. 
-//
-int ReadProtoMesg_AS(FILE *fin, GenericMesg **pmesg);
-
-
-//  Functions:  WriteProtoMesg_AS 
-//
-//  Description: Writes a generic message to the file "fout"
-//
-//  Return Value: The return value is negative if an error occured.
-//
-//  Inputs: mesg - A pointer to the generic message to be output. 
-//
-//  Input/Outputs: fout - A file openned for text writing.
-//
-int WriteProtoMesg_AS(FILE *fout, GenericMesg *mesg);
-
-
-
-void AppendAuditLine_AS(AuditMesg *adt_mesg,
-                        AuditLine *auditLine,
-                        time_t t, char *name,
-                        char *version, char *comment);
-
-
-//  Description: When reading in proto mode, this function will return
-//  the line number the input is currently on.  This function operates
-//  correctly only when a single input is being read.  The return value
-//  in all other cases is the sum of the number of lines read in all
-//  proto files thus far.
+//  This function will return the line number the input is currently
+//  on.  This function operates correctly only when a single input is
+//  being read.  The return value in all other cases is the sum of the
+//  number of lines read in all proto files thus far.
 //
 int GetProtoLineNum_AS(void);
 
@@ -957,10 +911,23 @@ int GetProtoLineNum_AS(void);
 //
 int GetMessageType(char *string);
 
-
 //   Returns a string as a function of message type
 //
 const char  *GetMessageName(int type);
+
+//  External Routines
+
+FragType   AS_MSG_SafeConvert_charToFragType (const char input, bool strict);
+
+void       AS_MSG_setFormatVersion(int format);
+
+int        ReadProtoMesg_AS(FILE *fin, GenericMesg **pmesg);
+int        WriteProtoMesg_AS(FILE *fout, GenericMesg *mesg);
+
+void       AppendAuditLine_AS(AuditMesg *adt_mesg,
+                              AuditLine *auditLine,
+                              time_t t, char *name,
+                              char *version, char *comment);
 
 
 #endif  /* AS_MSG_PMESG_INCLUDE */
