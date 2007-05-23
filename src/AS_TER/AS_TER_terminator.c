@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.18 2007-05-16 13:43:27 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.19 2007-05-23 15:32:56 skoren Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly
 //  pipeline and replaces internal accession numbers by external
@@ -698,7 +698,7 @@ int main (int argc, char *argv[]) {
         uidStart = strtoul(argv[++arg], NULL, 10);
 
     } else if (strcmp(argv[arg], "-n") == 0) {
-      SYS_UIDset_euid_namespace(argv[arg]);
+      SYS_UIDset_euid_namespace(argv[++arg]);
     } else if (strcmp(argv[arg], "-E") == 0) {
       SYS_UIDset_euid_server(argv[++arg]);
 
