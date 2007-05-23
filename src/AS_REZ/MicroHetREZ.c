@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.17 2007-05-01 06:02:37 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.18 2007-05-23 02:37:20 brianwalenz Exp $";
 
 #include <assert.h>
 #include <errno.h>
@@ -38,8 +38,6 @@ static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.17 2007-05-01 06:02:37 brianwalenz
 
 #include "UtilsREZ.h"
 
-VA_DEF(CDS_UID_t);
-VA_DEF(uint32);
 
 // The minimum length for which we test for Aarons MP score
 #define MIN_MPTEST_LENGTH_REZ 50
@@ -294,14 +292,29 @@ AS_REZ_count_columns(Alignment_t* a, Marker_t* m)
 
 
 
+#ifdef SHREDDED
+
+// These statics accumulate the information for each
+// fragment seen in this run of the Microhetrez tool
+// they will grow to the length of the number of frags
+// in the entire genome (not the number in this partition). SAK
+//
+VA_DEF(uint32);
+
+static  VA_TYPE(uint32)  *locales  = NULL;
+static  VA_TYPE(uint32)  *locbeg   = NULL;
+static  VA_TYPE(uint32)  *locend   = NULL;
+static  VA_TYPE(uint32)  *fragtype = NULL;
+
+
 static
 void
 AS_REZ_get_info(CDS_IID_t iid,
                      GateKeeperStore *frag_store,
-                     CDS_UID_t *locale,
+                     uint32 *locale,
                      uint32 *beg, uint32 *end,
                      FragType *type,
-                     VA_TYPE(CDS_UID_t) *locales,
+                     VA_TYPE(uint32) *locales,
                      VA_TYPE(uint32) *fragtype,
                      VA_TYPE(uint32) *locbeg,
                      VA_TYPE(uint32) *locend){
@@ -333,13 +346,13 @@ AS_REZ_get_info(CDS_IID_t iid,
 #endif
 
       // we store the locales for later lookup
-      SetCDS_UID_t(locales,iid,locale);
+      Setuint32(locales,iid,locale);
       Setuint32(locbeg,iid,beg);
       Setuint32(locend,iid,end);
       Setuint32(fragtype,iid,(uint32 *)type);
     }
     else{
-      *locale = *GetCDS_UID_t(locales,iid);
+      *locale = *Getuint32(locales,iid);
       *beg    = *Getuint32(locbeg,iid);	
       *end    = *Getuint32(locend,iid);	
       *type   = *Getuint32(fragtype,iid);
@@ -351,18 +364,9 @@ AS_REZ_get_info(CDS_IID_t iid,
   }
 }
 
+#endif  //  SHREDDED
 
 
-
-// These statics accumulate the information for each
-// fragment seen in this run of the Microhetrez tool
-// they will grow to the length of the number of frags
-// in the entire genome (not the number in this partition). SAK
-//
-static  VA_TYPE(CDS_UID_t)  *locales  = NULL;
-static  VA_TYPE(uint32)  *locbeg   = NULL;
-static  VA_TYPE(uint32)  *locend   = NULL;
-static  VA_TYPE(uint32)  *fragtype = NULL;
 
 /* This function compresses shredded fragments from the same location 
  * into basically a 1x coverage, such that there are no aritfical microhets;
@@ -375,15 +379,28 @@ void AS_REZ_compress_shreds_and_null_indels(int c,
                                             char **array,
                                             int **id_array,
                                             int verbose){
+#ifndef SHREDDED
+  int i, j;
+
+  //  Until the assembler (again) supports shredded data, _AND_ it
+  //  knows where that data belongs, all we can do here is remove
+  //  multibase gaps.
+  //
+  for(i=0; i<c-1; i++)
+    for(j=0; j<r; j++)
+      if(array[i][j]=='-'&&array[i+1][j]=='-')
+        array[i][j]=' ';
+
+#else  //  SHREDDED
   int i,j,k;
-  CDS_UID_t l1,l2;
+  uint32 l1,l2;
   uint32 b1,b2;
   uint32 e1,e2;
   CDS_IID_t iid1,iid2;
   FragType t1,t2;
 
   if(locales == NULL){
-    locales = CreateVA_CDS_UID_t(10000);
+    locales = CreateVA_uint32(10000);
     locbeg = CreateVA_uint32(10000);
     locend = CreateVA_uint32(10000);
     fragtype = CreateVA_uint32(10000);
@@ -408,7 +425,7 @@ void AS_REZ_compress_shreds_and_null_indels(int c,
 	if( iid1 != 0 ){ // blank positions have IID 0
 	  AS_REZ_get_info(iid1,frag_store,&l1,&b1,&e1,&t1,locales,fragtype,locbeg,locend);
 	  if( verbose > 0 )
-	    printf("(id,loc,beg,end,type) = (" F_IID "," F_UID ",%d,%d,%c)\n",
+	    printf("(id,loc,beg,end,type) = (" F_IID "," F_U32 ",%d,%d,%c)\n",
                    iid1,l1,b1,e1,t1);
 	  
 	  if(AS_FA_SHREDDED(t1)){ 
@@ -418,13 +435,13 @@ void AS_REZ_compress_shreds_and_null_indels(int c,
 	      iid2 = id_array[k][i];
 	      AS_REZ_get_info(iid2,frag_store,&l2,&b2,&e2,&t2,locales,fragtype,locbeg,locend);
 	      if( verbose > 0)
-		printf("(id2,loc2,beg2,end2,type2) = (" F_IID "," F_UID ",%d,%d,%c)\n",
+		printf("(id2,loc2,beg2,end2,type2) = (" F_IID "," F_U32 ",%d,%d,%c)\n",
                        iid2,l2,b2,e2,t2);
 	      
 	      if( t1 == t2  && l2 == l1 ){
 		uint32 min2,max1;
 		if( verbose > 0 )
-		  printf("changed position (%d,%d) from %c to blank, types (%c,%c), locales (" F_UID "," F_UID ")\n",i,k,array[i][k],t1,t2,l1,l2);
+		  printf("changed position (%d,%d) from %c to blank, types (%c,%c), locales (" F_U32 "," F_U32 ")\n",i,k,array[i][k],t1,t2,l1,l2);
 		min2 = ( b2 < e2 ? b2 : e2);
 		max1 = ( b1 > e1 ? b1 : e1);
 		
@@ -455,7 +472,7 @@ void AS_REZ_compress_shreds_and_null_indels(int c,
 	  if( iid1 != 0 ){ // blank positions have IID 0
 	    AS_REZ_get_info(iid1,frag_store,&l1,&b1,&e1,&t1,locales,fragtype,locbeg,locend);
 	    if( verbose > 0 )
-	      printf("(id,loc,beg,end,type) = (" F_IID "," F_UID ",%d,%d,%c)\n",
+	      printf("(id,loc,beg,end,type) = (" F_IID "," F_U32 ",%d,%d,%c)\n",
                      iid1,l1,b1,e1,t1);
 	    
 	    if(AS_FA_SHREDDED(t1)){ 
@@ -465,13 +482,13 @@ void AS_REZ_compress_shreds_and_null_indels(int c,
 		iid2 = id_array[k][i];
 		AS_REZ_get_info(iid2,frag_store,&l2,&b2,&e2,&t2,locales,fragtype,locbeg,locend);
 		if( verbose > 0)
-		  printf("(id2,loc2,beg2,end2,type2) = (" F_IID "," F_UID ",%d,%d,%c)\n",
+		  printf("(id2,loc2,beg2,end2,type2) = (" F_IID "," F_U32 ",%d,%d,%c)\n",
                          iid2,l2,b2,e2,t2);
 		
 		if( t1 == t2  && l2 == l1 ){
 		  uint32 min2,max1;
 		  if( verbose > 0 )
-		    printf("changed position (%d,%d) from %c to blank, types (%c,%c), locales (" F_UID "," F_UID ")\n",
+		    printf("changed position (%d,%d) from %c to blank, types (%c,%c), locales (" F_U32 "," F_U32 ")\n",
                            i,k,array[i][k],t1,t2,l1,l2);
 		  min2 = ( b2 < e2 ? b2 : e2);
 		  max1 = ( b1 > e1 ? b1 : e1);
@@ -490,6 +507,7 @@ void AS_REZ_compress_shreds_and_null_indels(int c,
       }
     }
   }
+#endif  //  SHREDDED
 }
 
 
