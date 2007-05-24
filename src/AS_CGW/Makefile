@@ -31,6 +31,7 @@ CGW_SOURCES =     AS_CGW_main.c \
                   resolveSurrogates.c \
                   fragmentPlacement.c \
                   dumpCloneMiddles.c \
+                  greedyFragmentTiling.c \
                   dumpSingletons.c
 
 #  Not all of these are external, most are probably private to cgw itself.
@@ -84,7 +85,6 @@ CRUD_SOURCES = \
                   fixECRCheckpoint.c \
                   fixZLFContigs.c \
                   frgs2clones.c \
-                  greedyFragmentTiling.c \
                   localUnitigging_CGW.c \
                   smallLargeScaffolds.c \
                   testSplitChunks.c \
@@ -97,7 +97,7 @@ CGW_LIB_OBJECTS = $(CGW_LIB_SOURCES:.c=.o)
 LIBRARIES     = libAS_CGW.a libCA.a
 LIBS          = libCA.a
 
-PROGS = cgw extendClearRanges resolveSurrogates dumpCloneMiddles dumpSingletons
+PROGS = cgw extendClearRanges resolveSurrogates dumpCloneMiddles dumpSingletons greedyFragmentTiling 
 
 CRUD =  Checkpoint process_scaffolds loadcgw \
         ScaffoldMap testSplitChunks instrumentCheckpoint \
@@ -107,7 +107,7 @@ CRUD =  Checkpoint process_scaffolds loadcgw \
 	exploreGapStructure exploreScaffoldEnds asmInfoForFrg \
 	whereAreMyOverlaps findAnEdge \
 	combineMates ckp_scflen frgs2clones createFrgDeletes \
-	greedyFragmentTiling dfsFragmentTiling
+	dfsFragmentTiling
 
 
 include $(LOCAL_WORK)/src/c_make.as

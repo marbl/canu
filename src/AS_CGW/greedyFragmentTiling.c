@@ -25,7 +25,8 @@
 #include "AS_ALN_forcns.h"
 #include "AS_UTL_Var.h"
 #include "AS_UTL_Hash.h"
-#include "OlapStoreOVL.h"
+// WAS: #include "OlapStoreOVL.h"
+#include "AS_OVS_overlapStore.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_PER_gkpStore.h"
 #include "UtilsREZ.h"
@@ -35,10 +36,12 @@
 HashTable_AS *CreateHashTable_AS(int numItemsToHash, HashFn_AS hash, HashCmpFn_AS cmp); /*);*/
 int StringHashFn_AS(const void *pointerToString, int length);
 
-static OVL_Store_t  * my_store = NULL;
-static OVL_Store_t  * my_second_store = NULL;
+// WAS: static OVL_Store_t  * my_store = NULL;
+static OverlapStore  * my_store = NULL;
+// WAS: static OVL_Store_t  * my_second_store = NULL;
+static OverlapStore  * my_second_store = NULL;
 static  GateKeeperStore *my_gkp_store;
-static ReadStructp fsread;
+static fragRecord fsread;
 static int useCorrectedErate=0;
 static int maxOvlsToConsider=-1;
 static int *IIDusability;
@@ -61,23 +64,27 @@ void setup_stores(char *OVL_Store_Path, char *Frg_Store_Path, char *Gkp_Store_Pa
   assert(Gkp_Store_Path!=NULL);
 
   assert(my_store==NULL);
-  my_store = New_OVL_Store ();
-  Open_OVL_Store (my_store, OVL_Store_Path);
+  //WAS:   my_store = New_OVL_Store ();
+  //WAS:  Open_OVL_Store (my_store, OVL_Store_Path);
+  my_store = AS_OVS_openOverlapStore(OVL_Store_Path);
 
   assert(my_second_store==NULL);
-  my_second_store = New_OVL_Store ();
-  Open_OVL_Store (my_second_store, OVL_Store_Path);
+  //WAS:  my_second_store = New_OVL_Store ();
+  //WAS:  Open_OVL_Store (my_second_store, OVL_Store_Path);
+  my_second_store = AS_OVS_openOverlapStore(OVL_Store_Path);
 
   my_gkp_store = openGateKeeperStore( Gkp_Store_Path, FALSE);
 }
 
-void print_olap(Long_Olap_Data_t olap){
+//WAS: void print_olap(Long_Olap_Data_t olap){
+void print_olap(OVSoverlap olap){
   printf ("    %8d %8d %c %5d %5d %4.1f %4.1f\n",
 	  olap . a_iid,
 	  olap . b_iid,
-	  olap . flipped ? 'I' : 'N',
-	  olap . a_hang, olap . b_hang,
-	  olap . orig_erate / 10.0, olap . corr_erate / 10.0);
+	  olap . dat . ovl . flipped ? 'I' : 'N',
+	  olap . dat . ovl . a_hang, olap . dat . ovl . b_hang,
+	  AS_OVS_decodeQuality(olap . dat . ovl . orig_erate)*100.0,
+	  AS_OVS_decodeQuality(olap . dat . ovl . corr_erate)*100.0);
 }
 
 
@@ -104,9 +111,9 @@ uint64 iid2uid(uint32 iid){
     return (uid[iid]);
   } else {
     GateKeeperFragmentRecord gkpFrag;
-    if(getGateKeeperFragment(&my_gkp_store,iid,&gkpFrag)!=0)
+    if(getGateKeeperFragment(my_gkp_store,iid,&gkpFrag)!=0)
       assert(0);
-    uid[iid] = gkpFrag.UID;
+    uid[iid] = gkpFrag.readUID;
   }
   return uid[iid];
 }
@@ -127,8 +134,10 @@ int get_clr_len(uint32 iid){
     return (len[iid]);
   } else {
     uint clr_bgn,clr_end;
-    getFrag(my_gkp_store,iid,fsread,FRAG_S_INF);
-    getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end, READSTRUCT_LATEST);
+    getFrag(my_gkp_store,iid,&fsread,FRAG_S_INF);
+    clr_bgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_LATEST);
+    clr_end = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_LATEST);
+
     len[iid]= clr_end-clr_bgn;
   }
   return len[iid];
@@ -136,7 +145,7 @@ int get_clr_len(uint32 iid){
 
 
 
-void olap_ref_swap(Long_Olap_Data_t *o){
+void olap_ref_swap(OVSoverlap *o){
 
   /*
     ---->  x
@@ -157,17 +166,17 @@ void olap_ref_swap(Long_Olap_Data_t *o){
   int t=o->a_iid;
   o->a_iid=o->b_iid;
   o->a_iid=t;
-  if(o->flipped){
-    t=o->a_hang;
-    o->a_hang=o->b_hang;
-    o->b_hang=t;
+  if(o-> dat . ovl . flipped){
+    t=o-> dat . ovl .a_hang;
+    o-> dat . ovl .a_hang=o-> dat . ovl .b_hang;
+    o-> dat . ovl .b_hang=t;
   } else {
-    o->a_hang*=-1;
-    o->b_hang*=-1;
+    o-> dat . ovl .a_hang*=-1;
+    o-> dat . ovl .b_hang*=-1;
   }
 }
 
-void olap_reverse(Long_Olap_Data_t *o){
+void olap_reverse(OVSoverlap *o){
 
   /* if we flip the orientation of a fragment then ...
 
@@ -188,10 +197,10 @@ void olap_reverse(Long_Olap_Data_t *o){
 
   so "flipped" gets inverted and we also have to let ah' <- -bh and bh' <- -ah
   */
-  int t=-o->a_hang;
-  o->a_hang=-o->b_hang;
-  o->b_hang=t;
-  o->flipped=1-o->flipped;
+  int t=-o-> dat . ovl . a_hang;
+  o-> dat . ovl .a_hang=-o-> dat . ovl .b_hang;
+  o-> dat . ovl .b_hang=t;
+  o-> dat . ovl .flipped = 1 - (o-> dat . ovl .flipped);
 }
 
 double binom(int i,int n,double p){
@@ -244,53 +253,54 @@ double get_95pct_upper(int L, double obsrate){
 
 int isDeadEnd(int frg, int offAEnd, double erate, int useCorrected, int skipContaining, int minlen,int frglen){
 
-  OVL_Stream_t  * my_stream = New_OVL_Stream ();
+  //WAS:  OVL_Stream_t  * my_stream = New_OVL_Stream ();
   int retval=0;
-  Long_Olap_Data_t  olap;
+  //WAS:  Long_Olap_Data_t  olap;
+  OVSoverlap  olap;
 
   assert(my_second_store!=NULL);
 
-  Init_OVL_Stream (my_stream, frg, frg, my_second_store);
+  //WAS:  Init_OVL_Stream (my_stream, frg, frg, my_second_store);
+  AS_OVS_setRangeOverlapStore(my_second_store,frg,frg);
 
-  while  (Next_From_OVL_Stream (& olap, my_stream)){
+
+  while  (AS_OVS_readOverlapFromStore (my_second_store, &olap, AS_OVS_TYPE_OVL )){
 
     // exclude too-sloppy overlaps
 
-    if(useCorrected&&olap.corr_erate>erate*1000)continue;
+    if(useCorrected && olap . dat . ovl . corr_erate >erate)continue;
 
-    if(!useCorrected&&olap.orig_erate>erate*1000)continue;
+    if(!useCorrected&&olap . dat . ovl.orig_erate>erate)continue;
 
     assert(olap.a_iid == frg);
 
     // exclude contained overlaps
-    if( olap.a_hang > 0 && olap.b_hang < 0)continue;
+    if( olap . dat . ovl .a_hang > 0 && olap . dat . ovl .b_hang < 0)continue;
 
     // exclude containing overlaps
-    if( skipContaining && olap.a_hang < 0 && olap.b_hang > 0)continue;
+    if( skipContaining && olap. dat . ovl.a_hang < 0 && olap. dat . ovl.b_hang > 0)continue;
 
-    if(frglen-MAX(0,olap.a_hang)+MIN(0,olap.b_hang) < minlen)continue;
+    if(frglen-MAX(0,olap. dat . ovl.a_hang)+MIN(0,olap. dat . ovl.b_hang) < minlen)continue;
 
     // if it's off the correct end ...
-    if( (offAEnd ? (olap . a_hang < 0) : (olap.b_hang > 0))){
-      Free_OVL_Stream (my_stream);
+    if( (offAEnd ? (olap. dat . ovl . a_hang < 0) : (olap. dat . ovl.b_hang > 0))){
       return 0;
     }
   } 
-  Free_OVL_Stream (my_stream);
   return 1;
 }
 
 
 
-Long_Olap_Data_t better_olap(Long_Olap_Data_t a, Long_Olap_Data_t b, int startingFrg, int offAEnd, BestMeasure bestType, int frglen, 
+OVSoverlap better_olap(OVSoverlap a, OVSoverlap b, int startingFrg, int offAEnd, BestMeasure bestType, int frglen, 
 			     int useCorrected, int skipContaining, int minlen, int avoidDeadEnds, double erate ){
 
   int aThick, bThick;
   int aMis, bMis;
   int aLen, bLen;
 
-  Long_Olap_Data_t copy_a =a;
-  Long_Olap_Data_t copy_b =b;
+  OVSoverlap copy_a =a;
+  OVSoverlap copy_b =b;
 
   if(avoidDeadEnds){ // check for extension off far end of other fragment
 
@@ -304,11 +314,11 @@ Long_Olap_Data_t better_olap(Long_Olap_Data_t a, Long_Olap_Data_t b, int startin
     assert(b.a_iid==startingFrg);
 
     if(offAEnd){
-      aOtherAEnd = !a.flipped;
-      bOtherAEnd = !b.flipped;
+      aOtherAEnd = !a . dat . ovl .flipped;
+      bOtherAEnd = !b . dat . ovl.flipped;
     } else {
-      aOtherAEnd = a.flipped;
-      bOtherAEnd = b.flipped;
+      aOtherAEnd = a . dat . ovl.flipped;
+      bOtherAEnd = b . dat . ovl.flipped;
     }
 
     aIsDead = isDeadEnd(a.b_iid,aOtherAEnd,erate,useCorrected,skipContaining,minlen,get_clr_len(a.b_iid));
@@ -323,13 +333,13 @@ Long_Olap_Data_t better_olap(Long_Olap_Data_t a, Long_Olap_Data_t b, int startin
 
     case BEST_MEANS_LOWEST_ERROR:
       if(useCorrected){ 
-        if(a.corr_erate>=b.corr_erate){
+        if(a.dat . ovl . corr_erate>=b.dat . ovl . corr_erate){
           return b;
         } else {
           return a;
         }
       } else {
-        if(a.orig_erate>=b.orig_erate){
+        if(a.dat . ovl . orig_erate>=b.dat . ovl . orig_erate){
           return b;
         } else {
           return a;
@@ -367,9 +377,9 @@ Long_Olap_Data_t better_olap(Long_Olap_Data_t a, Long_Olap_Data_t b, int startin
 
 
       // now, verify that the bhangs
-      assert(copy_a.b_hang >0 );
-      assert(copy_b.b_hang >0 );
-      if(copy_a.a_hang>=copy_b.a_hang){
+      assert(copy_a.dat . ovl . b_hang >0 );
+      assert(copy_b.dat . ovl . b_hang >0 );
+      if(copy_a. dat . ovl . a_hang>=copy_b. dat . ovl . a_hang){
         return b;
       } else {
         return a;
@@ -387,15 +397,15 @@ Long_Olap_Data_t better_olap(Long_Olap_Data_t a, Long_Olap_Data_t b, int startin
       double upperB,errorsB;
       // compute length of overlap
       // overlap = frglen - MAX(0,ahang) + MIN(0,bhang)
-      int  olenA = frglen - MAX(0,a.a_hang) + MIN(0,a.b_hang);
-      int  olenB = frglen - MAX(0,b.a_hang) + MIN(0,b.b_hang);
+      int  olenA = frglen - MAX(0,a. dat . ovl . a_hang) + MIN(0,a.dat . ovl . b_hang);
+      int  olenB = frglen - MAX(0,b. dat . ovl . a_hang) + MIN(0,b.dat . ovl . b_hang);
 
       if(useCorrected){
-        upperA = get_95pct_upper(olenA, (a.corr_erate+.9)/1000.);
-        upperB = get_95pct_upper(olenB, (b.corr_erate+.9)/1000.);
+        upperA = get_95pct_upper(olenA, (a.dat . ovl . corr_erate+.9)/1000.);
+        upperB = get_95pct_upper(olenB, (b.dat . ovl . corr_erate+.9)/1000.);
       } else {
-        upperA = get_95pct_upper(olenA, (a.orig_erate+.9)/1000.);
-        upperB = get_95pct_upper(olenB, (b.orig_erate+.9)/1000.);
+        upperA = get_95pct_upper(olenA, (a.dat . ovl . orig_erate+.9)/1000.);
+        upperB = get_95pct_upper(olenB, (b.dat . ovl . orig_erate+.9)/1000.);
       }
     
 
@@ -410,30 +420,30 @@ Long_Olap_Data_t better_olap(Long_Olap_Data_t a, Long_Olap_Data_t b, int startin
 }
 
 int lowestErrorSort(const void *A,const void *B){
-  Long_Olap_Data_t *a = (  Long_Olap_Data_t *) A;
-  Long_Olap_Data_t *b = (  Long_Olap_Data_t *) B;
+  OVSoverlap *a = (  OVSoverlap *) A;
+  OVSoverlap *b = (  OVSoverlap *) B;
   int thickA,thickB;
 
   // sort by error rate
   if(useCorrectedErate){
-    if(a->corr_erate!=b->corr_erate){
-      return a->corr_erate-b->corr_erate;
+    if(a->dat . ovl . corr_erate!=b->dat . ovl . corr_erate){
+      return a->dat . ovl . corr_erate-b->dat . ovl . corr_erate;
     }
   } else {
-    if(a->orig_erate!=b->orig_erate){
-      return a->orig_erate-b->orig_erate;
+    if(a->dat . ovl . orig_erate!=b->dat . ovl . orig_erate){
+      return a->dat . ovl . orig_erate-b->dat . ovl . orig_erate;
     }
     /* in case of a tie in uncorrected ... */
-    if(a->corr_erate!=b->corr_erate){
-      return a->corr_erate-b->corr_erate;
+    if(a->dat . ovl . corr_erate!=b->dat . ovl . corr_erate){
+      return a->dat . ovl . corr_erate-b->dat . ovl . corr_erate;
     }
   }
 
   { // sort by thickness
     int laa = get_clr_len(a->a_iid);
-    int  olenA = laa - MAX(0,a->a_hang) + MIN(0,a->b_hang);
+    int  olenA = laa - MAX(0,a-> dat . ovl . a_hang) + MIN(0,a->dat . ovl . b_hang);
     int lba = get_clr_len(b->a_iid);
-    int  olenB = lba - MAX(0,b->a_hang) + MIN(0,b->b_hang);
+    int  olenB = lba - MAX(0,b-> dat . ovl . a_hang) + MIN(0,b->dat . ovl . b_hang);
     if(olenA!=olenB)return olenA-olenB;
   }
 
@@ -444,19 +454,18 @@ int lowestErrorSort(const void *A,const void *B){
 // setupolaps() returns a count of usable olaps and sets *retolaps to point to
 // a block of memory containing them ... but the memory is static (i.e. the 
 // calling routine does not own the memory) and should not be freed!
-int setupolaps(int id, int offAEnd,BestMeasure bestType,double erate,int useCorrected,int skipContaining,int minlen, int frglen,int avoidDeadEnds,Long_Olap_Data_t **retolaps, double favorSameSample,double favorSameSampleAsSeed){
+int setupolaps(int id, int offAEnd,BestMeasure bestType,double erate,int useCorrected,int skipContaining,int minlen, int frglen,int avoidDeadEnds,OVSoverlap **retolaps, double favorSameSample,double favorSameSampleAsSeed){
 
-  OVL_Stream_t  * my_stream = New_OVL_Stream ();
-  static Long_Olap_Data_t  *olaps=NULL;
-  Long_Olap_Data_t  olap;
+  static OVSoverlap  *olaps=NULL;
+  OVSoverlap  olap;
   static int ovlsAlloced=0;
   int numOvls=0;
 
   assert(my_store!=NULL);
 
-  Init_OVL_Stream (my_stream, id, id, my_store);
+  AS_OVS_setRangeOverlapStore(my_store,id,id);
 
-  while  (Next_From_OVL_Stream (& olap, my_stream)){
+  while  (AS_OVS_readOverlapFromStore(my_store, & olap, AS_OVS_TYPE_OVL)){
 
     assert(olap.a_iid == id);
 
@@ -464,20 +473,20 @@ int setupolaps(int id, int offAEnd,BestMeasure bestType,double erate,int useCorr
     if( restrictIDs && IIDusability[olap.b_iid] != 1)continue;
 
     // exclude too-sloppy overlaps
-    if(useCorrected&&olap.corr_erate>erate*1000)continue;
-    if(!useCorrected&&olap.orig_erate>erate*1000)continue;
+    if(useCorrected&&olap.dat . ovl . corr_erate>erate*1000)continue;
+    if(!useCorrected&&olap.dat . ovl . orig_erate>erate*1000)continue;
 
     // exclude contained overlaps
-    if( olap.a_hang > 0 && olap.b_hang < 0)continue;
+    if( olap. dat . ovl . a_hang > 0 && olap.dat . ovl . b_hang < 0)continue;
 
     // exclude containing overlaps
-    if( skipContaining && olap.a_hang < 0 && olap.b_hang > 0)continue;
+    if( skipContaining && olap. dat . ovl . a_hang < 0 && olap.dat . ovl . b_hang > 0)continue;
 
     // exclude too-short overlaps
-    if(frglen-MAX(0,olap.a_hang)+MIN(0,olap.b_hang) < minlen)continue;
+    if(frglen-MAX(0,olap. dat . ovl . a_hang)+MIN(0,olap.dat . ovl . b_hang) < minlen)continue;
 
     // if it's off the correct end ...
-    if( (offAEnd ? (olap . a_hang < 0) : (olap.b_hang > 0))){
+    if( (offAEnd ? (olap .  dat . ovl . a_hang < 0) : (olap.dat . ovl . b_hang > 0))){
 
       //    print_olap(olap);
 
@@ -485,25 +494,25 @@ int setupolaps(int id, int offAEnd,BestMeasure bestType,double erate,int useCorr
       if(numOvls>ovlsAlloced){
 	ovlsAlloced+=50;
 	if(olaps==NULL){
-	  olaps=(Long_Olap_Data_t*)safe_malloc(sizeof(Long_Olap_Data_t)*ovlsAlloced);
+	  olaps=(OVSoverlap*)safe_malloc(sizeof(OVSoverlap)*ovlsAlloced);
 	} else {
-	  olaps=(Long_Olap_Data_t*)safe_realloc(olaps,
-						sizeof(Long_Olap_Data_t)*ovlsAlloced);
+	  olaps=(OVSoverlap*)safe_realloc(olaps,
+						sizeof(OVSoverlap)*ovlsAlloced);
 	}
       }
       if(bestType==BEST_MEANS_LOWEST_ERROR&&favorSameSample>0){
 	if(iid2sample[olap.a_iid]==iid2sample[olap.b_iid]){
 	  if(useCorrected){
-	    if( ((int)olap.corr_erate)-favorSameSample >= 0 ){
-	      olap.corr_erate-=favorSameSample;
+	    if( ((int)olap.dat . ovl . corr_erate)-favorSameSample >= 0 ){
+	      olap.dat . ovl . corr_erate-=favorSameSample;
 	    } else {
-	      olap.corr_erate=0;
+	      olap.dat . ovl . corr_erate=0;
 	    }
 	  } else {
-	    if( ((int)olap.orig_erate)-favorSameSample >= 0 ){
-	      olap.orig_erate-=favorSameSample;
+	    if( ((int)olap.dat . ovl . orig_erate)-favorSameSample >= 0 ){
+	      olap.dat . ovl . orig_erate-=favorSameSample;
 	    } else {
-	      olap.orig_erate=0;
+	      olap.dat . ovl . orig_erate=0;
 	    }
 	  }
 	}
@@ -511,29 +520,29 @@ int setupolaps(int id, int offAEnd,BestMeasure bestType,double erate,int useCorr
       if(bestType==BEST_MEANS_LOWEST_ERROR&&favorSameSampleAsSeed>0){
 	if(seedSample==iid2sample[olap.b_iid]){
 	  if(useCorrected){
-	    if( ((int)olap.corr_erate)-favorSameSampleAsSeed >= 0 ){
-	      olap.corr_erate-=favorSameSampleAsSeed;
+	    if( ((int)olap.dat . ovl . corr_erate)-favorSameSampleAsSeed >= 0 ){
+	      olap.dat . ovl . corr_erate-=favorSameSampleAsSeed;
 	    } else {
-	      olap.corr_erate=0;
+	      olap.dat . ovl . corr_erate=0;
 	    }
 	    if(seedSample!=iid2sample[olap.a_iid]){
-	      if( ((int)olap.corr_erate)-favorSameSampleAsSeed >= 0 ){
-		olap.corr_erate-=favorSameSampleAsSeed;
+	      if( ((int)olap.dat . ovl . corr_erate)-favorSameSampleAsSeed >= 0 ){
+		olap.dat . ovl . corr_erate-=favorSameSampleAsSeed;
 	      } else {
-		olap.corr_erate=0;
+		olap.dat . ovl . corr_erate=0;
 	      }
 	    }
 	  } else {
-	    if( ((int)olap.orig_erate)-favorSameSampleAsSeed >= 0 ){
-	      olap.orig_erate-=favorSameSampleAsSeed;
+	    if( ((int)olap.dat . ovl . orig_erate)-favorSameSampleAsSeed >= 0 ){
+	      olap.dat . ovl . orig_erate-=favorSameSampleAsSeed;
 	    } else {
-	      olap.orig_erate=0;
+	      olap.dat . ovl . orig_erate=0;
 	    }
 	    if(seedSample!=iid2sample[olap.a_iid]){
-	      if( ((int)olap.orig_erate)-favorSameSampleAsSeed >= 0 ){
-		olap.orig_erate-=favorSameSampleAsSeed;
+	      if( ((int)olap.dat . ovl . orig_erate)-favorSameSampleAsSeed >= 0 ){
+		olap.dat . ovl . orig_erate-=favorSameSampleAsSeed;
 	      } else {
-		olap.orig_erate=0;
+		olap.dat . ovl . orig_erate=0;
 	      }
 	    }
 	  }
@@ -546,15 +555,14 @@ int setupolaps(int id, int offAEnd,BestMeasure bestType,double erate,int useCorr
     }
 
   }
-  Free_OVL_Stream (my_stream);
 
-  qsort(olaps,numOvls,sizeof(Long_Olap_Data_t),lowestErrorSort);
+  qsort(olaps,numOvls,sizeof(OVSoverlap),lowestErrorSort);
   *retolaps=olaps;
   return numOvls;
 }
 
-int best_overlap_off_end(int id, int offAEnd,BestMeasure bestType,Long_Olap_Data_t *bestovl,double erate,int useCorrected,int skipContaining,int minlen, int frglen,int avoidDeadEnds,Long_Olap_Data_t *olaps, int numOvls){
-  Long_Olap_Data_t  olap, bestolap;
+int best_overlap_off_end(int id, int offAEnd,BestMeasure bestType,OVSoverlap *bestovl,double erate,int useCorrected,int skipContaining,int minlen, int frglen,int avoidDeadEnds,OVSoverlap *olaps, int numOvls){
+  OVSoverlap  olap, bestolap;
   int i;
   int goodOlap=0;
   int retval=0;
@@ -562,13 +570,13 @@ int best_overlap_off_end(int id, int offAEnd,BestMeasure bestType,Long_Olap_Data
   i=0;
   while(i<numOvls&&(maxOvlsToConsider == -1 
 		    || (i < maxOvlsToConsider)
-		    || (useCorrectedErate ? (olaps[i].corr_erate == olaps[maxOvlsToConsider].corr_erate) :  (olaps[i].orig_erate == olaps[maxOvlsToConsider].orig_erate)))){
+		    || (useCorrectedErate ? (olaps[i].dat . ovl . corr_erate == olaps[maxOvlsToConsider].dat . ovl . corr_erate) :  (olaps[i].dat . ovl . orig_erate == olaps[maxOvlsToConsider].dat . ovl . orig_erate)))){
 		    
     /*
       while(i<numOvls&&(maxOvlsToConsider == -1 || i<maxOvlsToConsider)){
     */
 
-    Long_Olap_Data_t olap = olaps[i];
+    OVSoverlap olap = olaps[i];
     
     if(goodOlap==0){
       goodOlap=1;
@@ -588,8 +596,8 @@ int best_overlap_off_end(int id, int offAEnd,BestMeasure bestType,Long_Olap_Data
 
 void finished_with_ovlStore(void){
 
-  Free_OVL_Store (my_store);
-  Free_OVL_Store (my_second_store);
+  AS_OVS_closeOverlapStore (my_store);
+  AS_OVS_closeOverlapStore (my_second_store);
 
 }
 
@@ -675,7 +683,7 @@ int uid2iid(uint64 uid){
   return (value.IID);
 }
 
-int ovlThickness(Long_Olap_Data_t o, int frglen, int afrg, int Aend){
+int ovlThickness(OVSoverlap o, int frglen, int afrg, int Aend){
 
   /* thickness is afrg's length minus
      bhang (from afrg's perspective) if Aend
@@ -687,20 +695,20 @@ int ovlThickness(Long_Olap_Data_t o, int frglen, int afrg, int Aend){
   int change;
 
   if(o.a_iid == afrg){
-    return frglen + (Aend ? o.b_hang : -o.a_hang);
+    return frglen + (Aend ? o.dat . ovl . b_hang : -o. dat . ovl . a_hang);
   } 
 
-  if(o.flipped){
+  if(o.dat . ovl . flipped){
     if(Aend){
-      change = o.a_hang;
+      change = o. dat . ovl . a_hang;
     } else {
-      change = -o.a_hang;
+      change = -o. dat . ovl . a_hang;
     }
   } else {
     if(Aend){
-      change = -o.b_hang;
+      change = -o.dat . ovl . b_hang;
     } else {
-      change = o.a_hang;
+      change = o. dat . ovl . a_hang;
     }
   }
   return frglen + change;
@@ -750,8 +758,6 @@ int main (int argc , char * argv[] ) {
   int skipContaining=1;
   int minlen=40;
   int avoidDeadEnds=1;
-  fsread = new_ReadStruct();
-
 
   GlobalData  = data = CreateGlobal_CGW();
   data->stderrc = stderr;
@@ -776,7 +782,7 @@ int main (int argc , char * argv[] ) {
           avoidDeadEnds=0;
           break;
         case 'e':
-          maxError = atof(optarg);
+          maxError = AS_OVS_encodeQuality(atof(optarg));
           break;
         case 'E':
           useCorrectedErate=1;
@@ -924,19 +930,19 @@ int main (int argc , char * argv[] ) {
     last_stored_frag=startingFrgNum;
   }
 
-  if(last_stored_frag>Last_Frag_In_OVL_Store(my_store)){
-    last_stored_frag=Last_Frag_In_OVL_Store(my_store);
+  if(last_stored_frag>AS_OVS_lastFragInStore(my_store)){
+    last_stored_frag=AS_OVS_lastFragInStore(my_store);
   }
 
   for(seediid=startingFrgNum;seediid<=last_stored_frag;seediid++){
     int numOvls=0,numFwdOvls=0;
-    Long_Olap_Data_t *olaps;
+    OVSoverlap *olaps;
 
 
 
     // skip deleted fragments
     GateKeeperFragmentRecord gkpFrag;
-    if(getGateKeeperFragment(&my_gkp_store,seediid,&gkpFrag)!=0)
+    if(getGateKeeperFragment(my_gkp_store,seediid,&gkpFrag)!=0)
       assert(0);
     if(gkpFrag.deleted)continue;
 
@@ -963,16 +969,17 @@ int main (int argc , char * argv[] ) {
     currFrg=seediid;
     seen[currFrg]='\1';
     ahang=0;
-    getFrag(my_gkp_store,currFrg,fsread,FRAG_S_INF);
+    getFrag(my_gkp_store,currFrg,&fsread,FRAG_S_INF);
 
-    getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end, READSTRUCT_LATEST);
+    clr_bgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_LATEST);
+    clr_end = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_LATEST);
     frglen=clr_end-clr_bgn;
     numFwdOvls = numOvls = setupolaps(currFrg, Aend, bestType,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds,&olaps,favorSameSample,favorSameSampleAsSeed);
     if(numOvls==0||threePonly){
       stillGoing=0;
     }
     while(stillGoing){
-      Long_Olap_Data_t o;
+      OVSoverlap o;
       if(printpid){
 	if(iid2sample!=NULL){
 	  printf("%d  %d %d %s %f %d\n",currFrg,ahang,ahang+frglen, Aend?"<--":"-->",pid/1000.,iid2sample[currFrg]);
@@ -986,7 +993,7 @@ int main (int argc , char * argv[] ) {
 	stillGoing = best_overlap_off_end(currFrg, Aend, bestType,&o,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds,olaps,numOvls);
 	if(stillGoing){
 
-	  pid=o.orig_erate;
+	  pid=o.dat . ovl . orig_erate;
 
 	  if(thickestOvlsCountAsSeen){
 	    int idx;
@@ -1008,39 +1015,40 @@ int main (int argc , char * argv[] ) {
 	    currFrg=o.b_iid;
 
 	    if(Aend){
-	      ahang+=-o.b_hang;
+	      ahang+=-o.dat . ovl . b_hang;
 	    } else {
-	      ahang+=o.a_hang;
+	      ahang+=o. dat . ovl . a_hang;
 	    }
 
 	  } else {
 	    currFrg=o.a_iid;
 
 	    if(Aend){
-	      if(o.flipped){
-		ahang+=-o.a_hang;
+	      if(o.dat . ovl . flipped){
+		ahang+=-o. dat . ovl . a_hang;
 	      } else {
-		ahang+=o.b_hang;
+		ahang+=o.dat . ovl . b_hang;
 	      }
 	    } else {
-	      if(o.flipped){
-		ahang+=o.b_hang;
+	      if(o.dat . ovl . flipped){
+		ahang+=o.dat . ovl . b_hang;
 	      } else {
-		ahang+=-o.b_hang;
+		ahang+=-o.dat . ovl . b_hang;
 	      }
 	    }
 	  }
 
 	  if(Aend){
-	    Aend=1-o.flipped;
+	    Aend=1-o.dat . ovl . flipped;
 	  } else {
-	    Aend=o.flipped;
+	    Aend=o.dat . ovl . flipped;
 	  }
 
 	}
 	if(!seen[currFrg]){
-	  getFrag(my_gkp_store,currFrg,fsread,FRAG_S_INF);
-	  getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end, READSTRUCT_LATEST);
+	  getFrag(my_gkp_store,currFrg,&fsread,FRAG_S_INF);
+	  clr_bgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_LATEST);
+	  clr_end = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_LATEST);
 	  frglen=clr_end-clr_bgn;
 	  numOvls = setupolaps(currFrg, Aend, bestType,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds,&olaps,favorSameSample,favorSameSampleAsSeed);
 	} else {
@@ -1066,8 +1074,9 @@ int main (int argc , char * argv[] ) {
     stillGoing=1;
     Aend=0;
     currFrg=seediid;
-    getFrag(my_gkp_store,currFrg,fsread,FRAG_S_INF);
-    getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end, READSTRUCT_LATEST);
+    getFrag(my_gkp_store,currFrg,&fsread,FRAG_S_INF);
+    clr_bgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_LATEST);
+    clr_end = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_LATEST);
     frglen=clr_end-clr_bgn;
 
     numOvls = setupolaps(currFrg, Aend, bestType,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds,&olaps,favorSameSample,favorSameSampleAsSeed);
@@ -1077,7 +1086,7 @@ int main (int argc , char * argv[] ) {
     leftEnd=0;
 
     while(stillGoing){
-      Long_Olap_Data_t o;
+      OVSoverlap o;
       if(currFrg!=seediid||firstExtend==-1){
 	if(printpid){
 	  if(iid2sample!=NULL){
@@ -1093,7 +1102,7 @@ int main (int argc , char * argv[] ) {
       if(numOvls>0){
 	stillGoing = best_overlap_off_end(currFrg, Aend, bestType,&o,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds,olaps,numOvls);
 	if(stillGoing){
-	  pid=o.orig_erate;
+	  pid=o.dat . ovl . orig_erate;
 
 	  if(thickestOvlsCountAsSeen){
 	    int idx;
@@ -1113,11 +1122,11 @@ int main (int argc , char * argv[] ) {
 	    currFrg=o.b_iid;
 
 	    if(Aend){
-	      rightEnd=leftEnd+frglen+o.b_hang;
-	      leftEnd+=o.a_hang;
+	      rightEnd=leftEnd+frglen+o.dat . ovl . b_hang;
+	      leftEnd+=o. dat . ovl . a_hang;
 	    } else {
-	      rightEnd=leftEnd+frglen+o.b_hang;
-	      leftEnd-=o.b_hang;
+	      rightEnd=leftEnd+frglen+o.dat . ovl . b_hang;
+	      leftEnd-=o.dat . ovl . b_hang;
 	    }
 
 	  } else {
@@ -1126,24 +1135,25 @@ int main (int argc , char * argv[] ) {
 
 	    currFrg=o.a_iid;
 
-	    if(Aend==o.flipped){
-	      rightEnd+=o.a_hang;
-	      leftEnd+=o.b_hang;
+	    if(Aend==o.dat . ovl . flipped){
+	      rightEnd+=o. dat . ovl . a_hang;
+	      leftEnd+=o.dat . ovl . b_hang;
 	    } else {
-	      rightEnd-=o.b_hang;
-	      leftEnd-=o.a_hang;
+	      rightEnd-=o.dat . ovl . b_hang;
+	      leftEnd-=o. dat . ovl . a_hang;
 	    }
 	  }
 	  if(Aend){
-	    Aend=1-o.flipped;
+	    Aend=1-o.dat . ovl . flipped;
 	  } else {
-	    Aend=o.flipped;
+	    Aend=o.dat . ovl . flipped;
 	  }
 	}
 	if(!seen[currFrg]){
 	  seen[currFrg]='\1';
-	  getFrag(my_gkp_store,currFrg,fsread,FRAG_S_INF);
-	  getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end, READSTRUCT_LATEST);
+	  getFrag(my_gkp_store,currFrg,&fsread,FRAG_S_INF);
+	  clr_bgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_LATEST);
+	  clr_end = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_LATEST);
 	  frglen=clr_end-clr_bgn;
 	  numOvls = setupolaps(currFrg, Aend, bestType,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds,&olaps,favorSameSample,favorSameSampleAsSeed);
 	} else {
