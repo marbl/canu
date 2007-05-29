@@ -26,6 +26,15 @@ LOCAL_WORK = $(shell cd ../..; pwd)
 
 #  KMER should point to a configured and compiled copy of
 #  http://sourceforge.net/projects/kmer/
+#
+#  We attempt to find it in the same place that our src/ directory is.
+#
+ifneq "$(origin KMER)" "environment"
+ifeq ($(shell ls -d $(LOCAL_WORK)/kmer 2> /dev/null), $(LOCAL_WORK)/kmer)
+  KMER = $(LOCAL_WORK)/kmer
+endif
+endif
+
 
 ifdef KMER
   MERYLSOURCE      = meryl.C
