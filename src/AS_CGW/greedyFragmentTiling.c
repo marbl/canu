@@ -54,10 +54,10 @@ static int seedSample=-1;
 
 #define DEFAULT_SAMPLE_ADVANTAGE .05
 
-void setup_stores(char *OVL_Store_Path, char *Frg_Store_Path, char *Gkp_Store_Path){
+void setup_stores(char *OVL_Store_Path, /*char *Frg_Store_Path, */char *Gkp_Store_Path){
 
   assert(OVL_Store_Path!=NULL);
-  assert(Frg_Store_Path!=NULL);
+  //assert(Frg_Store_Path!=NULL);
   assert(Gkp_Store_Path!=NULL);
 
   assert(my_store==NULL);
@@ -630,7 +630,7 @@ void setUpRestrictions(int last_stored_frag,char *listfile,int *usabilityArray){
 	usabilityArray[i]=1;
       }
     } else {
-      int i = atoi(range);
+      int i = atoi(range); 
       assert(i>0&&i<=last_stored_frag);
       usabilityArray[i]=1;
     }
@@ -783,10 +783,12 @@ int main (int argc , char * argv[] ) {
         case 'E':
           useCorrectedErate=1;
           break;
+          /*
         case 'f':
           strcpy( full_frgPath, argv[optind - 1]);
           setFullFrg = TRUE;
           break;
+          */
         case 'g':
           strcpy( full_gkpPath, argv[optind - 1]);
           setFullGkp = TRUE;
@@ -862,7 +864,7 @@ int main (int argc , char * argv[] ) {
       }
     }
 
-    if( (setFullFrg == 0) || !setFullGkp || !setFullOvl )
+    if( /*(setFullFrg == 0) || */!setFullGkp || !setFullOvl )
       {
 	usage(argv[0]);
 	exit (-1);
@@ -871,7 +873,7 @@ int main (int argc , char * argv[] ) {
   
   assert(! (fivePonly&&threePonly) );
 
-  setup_stores(full_ovlPath,full_frgPath,full_gkpPath);
+  setup_stores(full_ovlPath,/*full_frgPath,*/full_gkpPath);
   last_stored_frag = getLastElemFragStore (my_gkp_store);
 
   if(restrictIDs){
@@ -938,8 +940,10 @@ int main (int argc , char * argv[] ) {
 
     // skip deleted fragments
     GateKeeperFragmentRecord gkpFrag;
-    if(getGateKeeperFragment(my_gkp_store,seediid,&gkpFrag)!=0)
+//TODO: HACKHACK: SK - should this be 0 or 1?    
+    if(getGateKeeperFragment(my_gkp_store,seediid,&gkpFrag)!=1) {
       assert(0);
+    }
     if(gkpFrag.deleted)continue;
 
     // if this fragment is not in the select list(s) ... skip it
