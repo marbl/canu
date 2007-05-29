@@ -209,6 +209,7 @@ sub setParameters ($@) {
     #  Fiddle with filenames to make them absolute paths.
     #
     makeAbsolute("vectorIntersect");
+    makeAbsolute("scratch");
 
     #  Decode on a set of binaries to use
     #
@@ -462,8 +463,8 @@ sub submitScript ($) {
         $cmd = "qsub $sge $sgeScript -cwd -r y -N runCA_${asm} -j y -o $output -hold_jid \"$waitTag\" $script";
     }
 
+    system("chmod +x $script");
     system($cmd) and die "Failed to sumbit script.\n";
-    unlink("$script");
 
     exit(0);
 }
