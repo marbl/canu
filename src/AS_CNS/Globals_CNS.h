@@ -28,7 +28,6 @@
 #include "AS_UTL_Var.h"
 #include "AS_SDB_SequenceDB.h"
 #include "AS_SDB_SequenceDBPartition.h"
-#include "AS_UTL_PHash.h"
 
 //====================================================================
 // Input parameters for tuning BaseCall
@@ -62,7 +61,7 @@
    tSequenceDB *sequenceDB;
    tSequenceDBPartition *sequenceDB_part;
    int partitioned;
-   PHashTable_AS *fragmentMap;
+   HashTable_AS *fragmentMap;
 
 //====================================================================
 // Store for the multialignments of Unitigs (referenced by contigging)

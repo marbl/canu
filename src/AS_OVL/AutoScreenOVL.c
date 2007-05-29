@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AutoScreenOVL.c,v 1.12 2007-05-01 06:02:36 brianwalenz Exp $
- * $Revision: 1.12 $
+ * $Id: AutoScreenOVL.c,v 1.13 2007-05-29 10:54:29 brianwalenz Exp $
+ * $Revision: 1.13 $
 */
 
-static char CM_ID[] = "$Id: AutoScreenOVL.c,v 1.12 2007-05-01 06:02:36 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AutoScreenOVL.c,v 1.13 2007-05-29 10:54:29 brianwalenz Exp $";
 
 
 //  System include files
@@ -57,7 +57,6 @@ static char CM_ID[] = "$Id: AutoScreenOVL.c,v 1.12 2007-05-01 06:02:36 brianwale
 #include  "OlapStoreOVL.h"
 #include  "AS_PER_gkpStore.h"
 #include  "AS_PER_genericStore.h"
-#include  "AS_UTL_PHash.h"
 #include  "AS_MSG_pmesg.h"
 #include  "AS_UTL_version.h"
 #include  "AS_CGW_dataTypes.h"

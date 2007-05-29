@@ -22,63 +22,16 @@
 ###########################################################################
 #
 
-# gmake Makefile for AS_UTL
-
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-LIBRARIES = libAS_UTL.a libCA.a
-
-SCRIPTS = AS_UTL_extractMSG.awk extractMSG 
-
-PROGS = testVar \
-	queryPHashTable \
-	testRand \
-	testSkiplist \
-	testBuckets \
-	testHashTable
-# testhisto
-# testPHashTable
-# testfname
-
-LIB_SOURCES = AS_UTL_HashCommon.c AS_UTL_Hash.c AS_UTL_PHash.c \
-	AS_UTL_heap.c AS_UTL_Var.c AS_UTL_rand.c AS_UTL_version.c \
-	AS_UTL_interval.c UnionFind_AS.c AS_UTL_skiplist.c \
-        AS_UTL_ID_store.c AS_UTL_SequenceBucket.c \
-        getopt.c getopt1.c \
-	AS_UTL_alloc.c \
-	AS_UTL_fileIO.c \
-	AS_UTL_qsort_mt.c
+LIB_SOURCES = AS_UTL_Hash.c AS_UTL_heap.c AS_UTL_Var.c AS_UTL_rand.c AS_UTL_version.c AS_UTL_interval.c UnionFind_AS.c AS_UTL_skiplist.c AS_UTL_SequenceBucket.c getopt.c getopt1.c AS_UTL_alloc.c AS_UTL_fileIO.c AS_UTL_qsort_mt.c
 LIB_OBJECTS = $(LIB_SOURCES:.c=.o)
 
-SL_SOURCES = AS_UTL_skiplist_test.c
-SL_OBJECTS = $(SL_SOURCES:.c=.o)
-
-HASH_SOURCES = testHashTable.c 
-HASH_OBJECTS = $(HASH_SOURCES:.c=.o)
-
-VAR_SOURCES = testVar.c
-VAR_OBJECTS = $(VAR_SOURCES:.c=.o)
-
-PHASH_SOURCES = queryPHashTable.c
-PHASH_OBJECTS = $(PHASH_SOURCES:.c=.o)
-
-RAND_SOURCES = testRand.c
-RAND_OBJECTS = $(RAND_SOURCES:.c=.o)
-
-#HISTO_SOURCES = AS_UTL_testhisto.c
-#HISTO_OBJECTS = $(HISTO_SOURCES:.c=.o)
-
-BUCKET_SOURCES = testSequenceBucket.c
-BUCKET_OBJECTS = $(BUCKET_SOURCES:.c=.o)
-
-FNAME_SOURCES = AS_UTL_fileNames.c
-FNAME_OBJECTS = $(FNAME_SOURCES:.c=.o)
-
-SOURCES = $(LIB_SOURCES) $(HASH_SOURCES) $(PHASH_SOURCES) \
-	$(RAND_SOURCES) $(SL_SOURCES) $(VAR_SOURCES) $(BUCKET_SOURCES) 
-#$(FNAME_SOURCES)
-
-OBJECTS = $(SOURCES:.c=.o)
+SOURCES     = AS_UTL_skiplist_test.c testHashTable.c testVar.c testRand.c testSequenceBucket.c $(LIB_SOURCES)
+OBJECTS     = $(SOURCES:.c=.o)
+LIBRARIES   = libAS_UTL.a libCA.a
+SCRIPTS     = AS_UTL_extractMSG.awk extractMSG 
+PROGS       = testVar testRand testSkiplist testBuckets testHashTable
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -90,28 +43,13 @@ install: $(SCRIPTS)
 	@cp -f $(SCRIPTS) $(LOCAL_BIN)
 
 libAS_UTL.a: $(LIB_OBJECTS)
-
 libCA.a: $(LIB_OBJECTS)
 
-REQ_LIB = libCA.a
-
-testBuckets: $(BUCKET_OBJECTS) $(LIB_OBJECTS) $(REQ_LIB)
-
-#testfname: $(FNAME_OBJECTS) $(LIB_OBJECTS) $(REQ_LIB)
-
-testSkiplist: $(SL_OBJECTS) $(LIB_OBJECTS) $(REQ_LIB)
-
-testHashTable: $(HASH_OBJECTS) $(LIB_OBJECTS)  $(REQ_LIB)
-
-#testPHashTable: $(PHASH_OBJECTS) $(LIB_OBJECTS)  $(REQ_LIB)
-
-queryPHashTable: $(PHASH_OBJECTS) $(LIB_OBJECTS)  $(REQ_LIB)
-
-testRand: $(RAND_OBJECTS) $(LIB_OBJECTS)  $(REQ_LIB)
-
-testVar: $(VAR_OBJECTS) $(LIB_OBJECTS)  $(REQ_LIB)
-
-#testhisto: $(HISTO_OBJECTS) $(LIB_OBJECTS) $(REQ_LIB)
+testBuckets:    testSequenceBucket.o libAS_UTL.a
+testSkiplist:   AS_UTL_skiplist_test.o libAS_UTL.a
+testHashTable:  testHashTable.o AS_UTL_Hash.o libAS_UTL.a
+testRand:       testRand.o libAS_UTL.a
+testVar:        testVar.o libAS_UTL.a
 
 extractMSG: AS_UTL_extractMSG
 	cp -f AS_UTL_extractMSG extractMSG

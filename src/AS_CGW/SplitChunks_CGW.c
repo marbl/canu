@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.19 2007-05-14 09:27:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.20 2007-05-29 10:54:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -714,7 +714,7 @@ void AdjustContainedOrder(IntMultiPos * impList, int numIMPs)
   int numContainedLeft;
   int index;
   
-  containing = CreateHashTable_int32_AS(numIMPs);
+  containing = CreateScalarHashTable_AS(numIMPs);
   contained = (IntMultiPos *) safe_malloc(numIMPs * sizeof(IntMultiPos));
   assert(containing != NULL && contained != NULL);
   
@@ -729,10 +729,7 @@ void AdjustContainedOrder(IntMultiPos * impList, int numIMPs)
         {
           // move up and add to hashtable
           impList[numContaining] = impList[index];
-          InsertInHashTable_AS(containing,
-                               (void *) &(impList[numContaining].ident),
-                               sizeof(impList[numContaining].ident),
-                               (void *) &(impList[numContaining].ident));
+          InsertInHashTable_AS(containing, impList[numContaining].ident, 0, 0, 0);
           numContaining++;
         }
     }
@@ -757,18 +754,10 @@ void AdjustContainedOrder(IntMultiPos * impList, int numIMPs)
         {
           // if this imp hasn't moved & it's containing imp is in the hashtable
           // then move it to the end of the impList & put it in the hashtable
-          if(LookupInHashTable_AS(containing,
-                                  (void *) &(contained[index].contained),
-                                  sizeof(CDS_IID_t)))
+          if(ExistsInHashTable_AS(containing, contained[index].contained, 0))
             {
               impList[numContaining + totalMoved] = contained[index];
-              InsertInHashTable_AS(containing,
-                                   (void *) &(impList[numContaining +
-                                                      totalMoved].ident),
-                                   sizeof(impList[numContaining +
-                                                  totalMoved].ident),
-                                   (void *) &(impList[numContaining +
-                                                      totalMoved].ident));
+              InsertInHashTable_AS(containing, impList[numContaining + totalMoved].ident, 0, 0, 0);
               numMoved++;
               totalMoved++;
             }
@@ -1460,15 +1449,15 @@ typedef struct
 } ChunkEndLink;
 VA_DEF(ChunkEndLink);
   
-int CELHashFn(const void * item, int length)
+int CELHashFn(uint64 item, uint32 length)
 {
   return Hash_AS((uint8 *) item, length, 37);
 }
 
-int CELCompareFn(const void * item1, const void * item2)
+int CELCompareFn(uint64 item1, uint64 item2)
 {
-  const ChunkEndLink * cel1 = (const ChunkEndLink *) item1;
-  const ChunkEndLink * cel2 = (const ChunkEndLink *) item2;
+  ChunkEndLink * cel1 = (ChunkEndLink *) item1;
+  ChunkEndLink * cel2 = (ChunkEndLink *) item2;
 
   if(cel1->key.id == cel2->key.id)
     {
@@ -1507,7 +1496,7 @@ void ProcessLinkForChimeraDetection(ScaffoldGraphT * graph,
       cel.key.id = mfrag->contigID;
       cel.key.end = (frag->contigOffset3p.mean <
                      frag->contigOffset5p.mean) ? A_END : B_END;
-      celp = LookupInHashTable_AS(ht, (void *) &(cel.key), sizeof(CELKey));
+      celp = (ChunkEndLink *)LookupValueInHashTable_AS(ht, (uint64)&(cel.key), sizeof(CELKey));
       if(celp != NULL)
         {
           // update
@@ -1525,9 +1514,8 @@ void ProcessLinkForChimeraDetection(ScaffoldGraphT * graph,
           AppendVA_ChunkEndLink(cels, &cel);
           celp = GetVA_ChunkEndLink(cels, GetNumVA_ChunkEndLink(cels) - 1);
           InsertInHashTable_AS(ht,
-                               (void *) &(celp->key),
-                               sizeof(CELKey),
-                               (void *) celp);
+                               (uint64)&(celp->key), sizeof(CELKey),
+                               (uint64)celp, 0);
         }
     }
 }
@@ -1595,7 +1583,7 @@ VA_TYPE(SplitInterval) * DetectChimericChunksInGraph(ScaffoldGraphT * graph)
   gcc = CreateVA_uint16(10000);
   bcc = CreateVA_uint16(10000);
   sis = CreateVA_SplitInterval(100);
-  ht = CreateHashTable_AS(numCIs * 2, CELHashFn, CELCompareFn);
+  ht = CreateGenericHashTable_AS(numCIs * 2, CELHashFn, CELCompareFn);
   cels = CreateVA_ChunkEndLink(numCIs * 2);
   
   assert(cels != NULL &&

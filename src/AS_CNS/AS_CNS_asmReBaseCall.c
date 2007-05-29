@@ -19,12 +19,10 @@
 #include "AS_PER_genericStore.h"
 #include "AS_UTL_Var.h"
 #include "UtilsREZ.h"
-#include "AS_UTL_ID_store.h"
 #include "AS_UTL_version.h"
 #include "AS_PER_genericStore.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_UTL_Hash.h"
-#include "AS_UTL_PHash.h"
 #include "AS_UTL_version.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_GKP_include.h"
@@ -33,9 +31,9 @@
 #include "Globals_CNS.h"
 #include "PublicAPI_CNS.h"
 
-static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.14 2007-04-28 08:46:22 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.15 2007-05-29 10:54:27 brianwalenz Exp $";
 
-static UIDHashTable_AS *utgUID2IID;
+static HashTable_AS *utgUID2IID;
 
 
 #define DEBUG 0
@@ -52,12 +50,7 @@ int   CNS_CALL_PUBLIC = 0;   // Used to direct basecalling to favor public data
 
 
 static int fraguid2iid(uint64 uid){
-  PHashValue_AS value;
-  if(HASH_FAILURE == getGatekeeperUIDtoIID(gkpStore, uid, &value)){
-    fprintf(stderr,"Tried to look up iid of unknown uid: " F_UID " -- DIE!\n",uid);
-    exit (-1);
-  }
-  return (value.IID);
+  return(getGatekeeperUIDtoIID(gkpStore, uid, NULL));
 }
 
 
@@ -79,12 +72,12 @@ static IntUnitigMesg* convert_UTG_to_IUM(SnapUnitigMesg* utgMesg)
 #endif
 
   { // hash the uid to the iid
-    if(LookupInUID2IIDHashTable_AS(utgUID2IID,utgMesg->eaccession)!=NULL){
+    if(ExistsInHashTable_AS(utgUID2IID,utgMesg->eaccession, 0)){
       fprintf(stderr,"Encountered UTG UID " F_UID " more than once! DIE!\n",
 	      utgMesg->eaccession);
       exit(-1);
     }
-    InsertInUID2IIDHashTable_AS(utgUID2IID,utgMesg->eaccession,utgMesg->iaccession);
+    InsertInHashTable_AS(utgUID2IID, utgMesg->eaccession, 0, utgMesg->iaccession, 0);
   }
 
   /* Set all toplevel fields */
@@ -214,16 +207,14 @@ static IntConConMesg* convert_CCO_to_ICM(SnapConConMesg* ccoMesg)
     for(i=0; i<icmMesg->num_unitigs; i++){
       int32 *iid;
       icmMesg->unitigs[i].type  = ccoMesg->unitigs[i].type;
-      iid = LookupInUID2IIDHashTable_AS(utgUID2IID,ccoMesg->unitigs[i].eident);
-      if(iid==NULL){
-	char dummy[40];
+      if (!ExistsInHashTable_AS(utgUID2IID,ccoMesg->unitigs[i].eident,0)) {
 	fprintf(stderr,"Error: Reference before definition for unitig UID " F_UID " at %s:%d\n",
 		ccoMesg->pieces[i].eident,__FILE__,__LINE__);
 	exit(-1);
       }
-      icmMesg->unitigs[i].ident = *iid;
-      icmMesg->unitigs[i].position = ccoMesg->unitigs[i].position;
-      icmMesg->unitigs[i].delta = ccoMesg->unitigs[i].delta; /*** COPY BY REFERENCE ***/
+      icmMesg->unitigs[i].ident        = LookupValueInHashTable_AS(utgUID2IID, ccoMesg->unitigs[i].eident, 0);
+      icmMesg->unitigs[i].position     = ccoMesg->unitigs[i].position;
+      icmMesg->unitigs[i].delta        = ccoMesg->unitigs[i].delta; /*** COPY BY REFERENCE ***/
       icmMesg->unitigs[i].delta_length = ccoMesg->unitigs[i].delta_length;
     }
   }
@@ -412,7 +403,7 @@ int main (int argc, char *argv[]) {
       loadGateKeeperStorePartial(gkpStore, 0, 0, FRAG_S_QLT);
 
     /* initialize a unitig UID-to-IID hash table */
-    utgUID2IID = CreateUIDHashTable_AS(5000000);
+    utgUID2IID = CreateScalarHashTable_AS(5000000);
 
     /****************      Initialize reusable stores          ***********/
     sequenceStore = NULL;
@@ -438,7 +429,7 @@ int main (int argc, char *argv[]) {
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.14 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.15 $ processing. Started %s\n",
 	      ctime(&t));
       InitializeAlphTable();
 

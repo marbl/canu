@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.15 2007-05-19 04:46:57 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.16 2007-05-29 10:54:26 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -29,7 +29,7 @@ static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.15 2007-05-19 04:46:57 brianw
 
 #include "AS_global.h"
 #include "AS_UTL_fileIO.h"
-#include "AS_UTL_HashCommon.h"
+#include "AS_UTL_Hash.h"
 #include "AS_UTL_Var.h"
 #include "AS_CGW_dataTypes.h"
 #include "Globals_CGW.h"
@@ -82,7 +82,7 @@ static void prepare_overlap(ChunkOverlapCheckT *canOlap,
 /* v*** Functions supporting hash table ***v */
 
 /* Type of function to compare hash table entries */
-int CanOlapCmp(const void *cO1, const void *cO2){
+int CanOlapCmp(uint64 cO1, uint64 cO2){
   ChunkOverlapSpecT *c1 = (ChunkOverlapSpecT *)cO1;
   ChunkOverlapSpecT *c2 = (ChunkOverlapSpecT *)cO2;
   int diff;
@@ -98,11 +98,9 @@ int CanOlapCmp(const void *cO1, const void *cO2){
   if(c1->orientation == c2->orientation)
     return 0;
   else return (c1 - c2);
-  
-
 }
-int CanOlapHash(const void *cO, int length){
-  return  Hash_AS((uint8 *)cO, (uint32) length, 37);
+int CanOlapHash(uint64 cO, uint32 length){
+  return  Hash_AS((uint8 *)cO, length, 37);
 }
 
 /* ^*** Functions supporting hash table ***^ */
@@ -118,7 +116,7 @@ ChunkOverlapperT *CreateChunkOverlapper(void){
 
 
   // Create a symbol table for the sparse chunk-chunk overlap relationships
-  chunkOverlapper->hashTable = CreateHashTable_AS(1000, CanOlapHash, CanOlapCmp);
+  chunkOverlapper->hashTable = CreateGenericHashTable_AS(1000, CanOlapHash, CanOlapCmp);
 
   // Create the VA for the overlap results
   chunkOverlapper->ChunkOverlaps = AllocateChunkOverlapCheckTHeap(1000);
@@ -144,7 +142,7 @@ void  SaveChunkOverlapperToStream(ChunkOverlapperT *chunkOverlapper, FILE *strea
      we read the file.  In other words, we don't worry about hashTable persistence. */
 
   HashTable_Iterator_AS iterator;
-  void *key, *value;
+  uint64 key, value;
   int64 numOverlaps = 0;
 
   // Iterate over all hashtable elements, just to count them
@@ -162,8 +160,8 @@ void  SaveChunkOverlapperToStream(ChunkOverlapperT *chunkOverlapper, FILE *strea
   InitializeHashTable_Iterator_AS(chunkOverlapper->hashTable, &iterator);
 
   while(NextHashTable_Iterator_AS(&iterator, &key, &value)){
-    ChunkOverlapCheckT *olap = (ChunkOverlapCheckT*) value;    
-    
+    ChunkOverlapCheckT *olap = (ChunkOverlapCheckT*) value;
+
     AS_UTL_safeWrite(stream, olap, "SaveChunkOverlapperToStream", sizeof(ChunkOverlapCheckT), 1);
   }
 }
@@ -189,7 +187,7 @@ ChunkOverlapperT *  LoadChunkOverlapperFromStream(FILE *stream){
 
 
   // Create a symbol table for the sparse chunk-chunk overlap relationships
-  chunkOverlapper->hashTable = CreateHashTable_AS(1000, CanOlapHash, CanOlapCmp);
+  chunkOverlapper->hashTable = CreateGenericHashTable_AS(1000, CanOlapHash, CanOlapCmp);
 
   // Create the VA for the overlap results
   chunkOverlapper->ChunkOverlaps = AllocateChunkOverlapCheckTHeap(1000);
@@ -430,31 +428,23 @@ int LookupOverlap(GraphCGW_T *graph,
 
 ChunkOverlapCheckT *LookupCanonicalOverlap(ChunkOverlapperT *chunkOverlapper,
                                            ChunkOverlapSpecT *spec){
-  ChunkOverlapCheckT *olap;
-  
-  olap = (ChunkOverlapCheckT *)LookupInHashTable_AS(chunkOverlapper->hashTable,
-                                                    spec, sizeof(*spec));
-  
-  return olap;
+  return (ChunkOverlapCheckT *)LookupValueInHashTable_AS(chunkOverlapper->hashTable, (uint64)spec, sizeof(*spec));
 }
 
 /************************************************************************/
 int InsertChunkOverlap(ChunkOverlapperT *chunkOverlapper,
                        ChunkOverlapCheckT *olap){
-  ChunkOverlapCheckT *nolap =
-    GetChunkOverlapCheckTHeapItem(chunkOverlapper->ChunkOverlaps);
+  ChunkOverlapCheckT *nolap = GetChunkOverlapCheckTHeapItem(chunkOverlapper->ChunkOverlaps);
   *nolap = *olap;
   assert(nolap->overlap==0||nolap->errorRate >= 0.0);  
-  return InsertInHashTable_AS(chunkOverlapper->hashTable, &nolap->spec,
-                              sizeof(olap->spec), nolap);
+  return InsertInHashTable_AS(chunkOverlapper->hashTable, (uint64)&nolap->spec, sizeof(olap->spec), (uint64)nolap, 0);
 
 }
 
 /************************************************************************/
 int DeleteChunkOverlap(ChunkOverlapperT *chunkOverlapper,
                        ChunkOverlapCheckT *olap){
-  return DeleteFromHashTable_AS(chunkOverlapper->hashTable, &olap->spec,
-                                sizeof(olap->spec));
+  return DeleteFromHashTable_AS(chunkOverlapper->hashTable, (uint64)&olap->spec, sizeof(olap->spec));
 }
 
 // use this routine to put an overlap into hash table
@@ -1850,7 +1840,7 @@ int ComputeUOMQualityOverlap(GraphCGW_T *graph,
 //
 void DumpOverlaps(GraphCGW_T *graph){
   HashTable_Iterator_AS iterator;
-  void *key, *value;
+  uint64 key, value;
 
   StartTimerT(&GlobalData->OverlapTimer);
 
@@ -1883,7 +1873,7 @@ void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
 {
   int i = 0;
   HashTable_Iterator_AS iterator;
-  void *key, *value;
+  uint64 key, value;
   int sectionOuter, sectionOuterMin, sectionOuterMax;
   int sectionInner, sectionInnerMin, sectionInnerMax;
   int numOverlaps = 0;
@@ -2768,14 +2758,6 @@ Overlap* OverlapChunksNew( GraphCGW_T *graph,
     return(NULL);
 }
 #endif
-
-
-size_t ReportMemorySize_CO(ChunkOverlapperT *chunkOverlapper, FILE *stream){
-  size_t totalMemorySize  = 0;
-  totalMemorySize += ReportMemorySize_HT(chunkOverlapper->hashTable, "overlap",stream);
-  totalMemorySize += ReportMemorySize_HP(chunkOverlapper->ChunkOverlaps, "heap",stream);
-  return totalMemorySize;
-}
 
 
 /* This function takes two sequences, their orientation

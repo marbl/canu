@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: link_analysis.c,v 1.9 2007-05-14 09:27:11 brianwalenz Exp $ */
+/* $Id: link_analysis.c,v 1.10 2007-05-29 10:54:28 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,7 +27,6 @@
 #include "AS_UTL_Var.h"
 #include "MultiAlignStore_CNS.h"
 #include "Statistics_CNS.h"
-#include "AS_UTL_ID_store.h"
 #include "AS_PER_gkpStore.h"
 
 int main(int argc, char *argv[])

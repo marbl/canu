@@ -135,27 +135,26 @@ int main(int argc, char ** argv)
     {
       for(i = 0; i < GetNumVA_CDS_UID_t(uids); i++)
       {
-        PHashValue_AS value;
         CDS_UID_t * uidp = GetVA_CDS_UID_t(uids, i);
-        if(HASH_FAILURE == LookupInPHashTable_AS(asmStore->hashTable,
-                                                 ASM_UID_NAMESPACE,
-                                                 *uidp,
-                                                 &value))
+        uint64      iid = 0;
+        uint32      typ = 0;
+
+        if (HASH_FAILURE == LookupInHashTable_AS(asmStore->hashTable, *uidp, 0, &iid, &typ))
         {
           fprintf(stderr, "Failed to lookup " F_UID " in hashtable\n", *uidp);
           assert(0);
         }
-        if(value.type == AS_IID_SCF)
+        if(typ == AS_IID_SCF)
         {
-          cd = GetScaffoldCloneData(asmStore, value.IID, TRUE, FALSE);
-          getASM_SCFStore(asmStore->scfStore, value.IID, &scf);
+          cd = GetScaffoldCloneData(asmStore, iid, TRUE, FALSE);
+          getASM_SCFStore(asmStore->scfStore, iid, &scf);
           PrintCloneData(scf.uid, cd, flags, stdout);
           DeleteCloneData(cd);
         }
         else
         {
-          cd = GetScaffoldCloneData(asmStore, value.IID, TRUE, TRUE);
-          getASM_DSCStore(asmStore->dscStore, value.IID, &dsc);
+          cd = GetScaffoldCloneData(asmStore, iid, TRUE, TRUE);
+          getASM_DSCStore(asmStore->dscStore, iid, &dsc);
           PrintCloneData(dsc.uid, cd, flags, stdout);
           DeleteCloneData(cd);
         }

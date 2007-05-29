@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.24 2007-05-16 08:22:25 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.25 2007-05-29 10:54:28 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
@@ -28,7 +28,6 @@
 #include <errno.h>
 #include "AS_PER_gkpStore.h"
 #include "AS_UTL_Var.h"
-#include "AS_UTL_PHash.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_UTL_SequenceBucket.h"
 

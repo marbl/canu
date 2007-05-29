@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.35 2007-05-14 09:16:26 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.36 2007-05-29 10:54:30 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -111,7 +111,7 @@ testOpenGateKeeperStore(const char *path,
     sprintf(name,"%s/src", path);
     fileCount += fileExists(name, 0, writable);
 
-    sprintf(name,"%s/phs", path);
+    sprintf(name,"%s/map", path);
     fileCount += fileExists(name, 0, writable);
 
   }
@@ -140,7 +140,7 @@ openGateKeeperStore(const char *path,
   gkpStore->hps = NULLSTOREHANDLE;
   gkpStore->src = NULLSTOREHANDLE;
 
-  gkpStore->phs_private = NULL;
+  gkpStore->UIDtoIID = NULL;
   
   gkpStore->partnum = -1;
   gkpStore->partfrg = NULLSTOREHANDLE;
@@ -224,13 +224,9 @@ openGateKeeperStore(const char *path,
     }
 
     if (writable) {
-      sprintf(name,"%s/phs", gkpStore->storePath);
-      gkpStore->phs_private = OpenPHashTable_AS(name);
-
-      if (gkpStore->phs_private == NULL) {
-        fprintf(stderr,"**** Failed to open GateKeeper Persistent HashTable...\n");
-        assert(0);
-      }
+      char  name[FILENAME_MAX];
+      sprintf(name,"%s/map", gkpStore->storePath);
+      gkpStore->UIDtoIID = LoadUIDtoIIDHashTable_AS(name);
     }
   }
 
@@ -256,7 +252,7 @@ createGateKeeperStore(const char *path) {
   gkpStore->hps = NULLSTOREHANDLE;
   gkpStore->src = NULLSTOREHANDLE;
 
-  gkpStore->phs_private = NULL;
+  gkpStore->UIDtoIID = NULL;
 
   gkpStore->partnum = -1;
   gkpStore->partfrg = NULLSTOREHANDLE;
@@ -305,8 +301,9 @@ createGateKeeperStore(const char *path) {
   sprintf(name,"%s/src", path);
   gkpStore->src = createVLRecordStore(name, "src", MAX_SRC_LENGTH, 1);
 
-  sprintf(name,"%s/phs", path);
-  gkpStore->phs_private = CreatePHashTable_AS(32 * 1024, name);
+  sprintf(name,"%s/map", path);
+  gkpStore->UIDtoIID = CreateScalarHashTable_AS(32 * 1024);
+  SaveHashTable_AS(name, gkpStore->UIDtoIID);
 
   return(gkpStore);
 }
@@ -339,9 +336,8 @@ closeGateKeeperStore(GateKeeperStore *gkpStore) {
   if(gkpStore->src != NULLSTOREHANDLE)
     closeStore(gkpStore->src);
 
-  if(gkpStore->phs_private != NULL)
-    ClosePHashTable_AS(gkpStore->phs_private);
-
+  if(gkpStore->UIDtoIID != NULL)
+    DeleteHashTable_AS(gkpStore->UIDtoIID);
 
   if(gkpStore->partfrg != NULLSTOREHANDLE)
     closeStore(gkpStore->partfrg);
@@ -445,16 +441,14 @@ void       loadGateKeeperPartition(GateKeeperStore *gkp, uint32 partnum) {
 
   statsStore(gkp->partfrg, &stats);
 
-#warning CreateHashTable_int32_AS used instead of a true IID hash table
-  gkp->partmap = CreateHashTable_int32_AS(stats.lastElem + 1);
+  gkp->partmap = CreateScalarHashTable_AS(stats.lastElem + 1);
 
-  for(i = stats.firstElem; i <= stats.lastElem; i++){
+  for(i = stats.firstElem; i <= stats.lastElem; i++) {
     GateKeeperFragmentRecord *p = getIndexStorePtr(gkp->partfrg, i);
 
-    if(InsertInHashTable_AS(gkp->partmap,
-                            &p->readIID,
-                            sizeof(CDS_IID_t),
-                            p) != HASH_SUCCESS)
+    if (InsertInHashTable_AS(gkp->partmap,
+                             (uint64)p->readIID, 0,
+                             (uint64)p, 0) != HASH_SUCCESS)
       assert(0);
   }
 }
@@ -791,7 +785,7 @@ void    getFrag(GateKeeperStore *gkp, CDS_IID_t iid, fragRecord *fr, int32 flags
   } else {
     GateKeeperFragmentRecord *gkfr;
 
-    gkfr = LookupInHashTable_AS(gkp->partmap, &iid, sizeof(CDS_IID_t));
+    gkfr = (GateKeeperFragmentRecord *)LookupValueInHashTable_AS(gkp->partmap, iid, 0);
     if (gkfr == NULL) {
       fprintf(stderr, "getFrag()-- ERROR!  IID "F_IID" not in partition!\n", iid);
       assert(0);
@@ -814,7 +808,7 @@ void    delFrag(GateKeeperStore *gkp, CDS_IID_t iid) {
   CDS_IID_t                  miid;
 
   assert(gkp->partmap == NULL);
-  assert(gkp->phs_private != NULL);
+  assert(gkp->UIDtoIID != NULL);
 
   //  Delete fragment with iid from the store.  If the fragment has a
   //  mate, remove the mate relationship from both fragmentss.
@@ -826,13 +820,9 @@ void    delFrag(GateKeeperStore *gkp, CDS_IID_t iid) {
   setIndexStore(gkp->frg, iid, &gkfr);
 
   if (miid > 0) {
-    UnRefPHashTable_AS(gkp->phs_private, UID_NAMESPACE_AS, gkfr.readUID);
-
     getIndexStore(gkp->frg, miid, &gkfr);
     gkfr.mateIID = 0;
     setIndexStore(gkp->frg, miid, &gkfr);
-
-    UnRefPHashTable_AS(gkp->phs_private, UID_NAMESPACE_AS, gkfr.readUID);
   }
 }
 

@@ -127,19 +127,18 @@ int main(int argc, char ** argv)
     {
       for(i = 0; i < GetNumVA_CDS_UID_t(uids); i++)
       {
-        PHashValue_AS value;
         CDS_UID_t * uidp = GetVA_CDS_UID_t(uids, i);
-        if(HASH_FAILURE == LookupInPHashTable_AS(asmStore->hashTable,
-                                                 ASM_UID_NAMESPACE,
-                                                 *uidp,
-                                                 &value))
+        uint64      iid;
+        uint32      typ;
+
+        if(HASH_FAILURE == LookupInHashTable_AS(asmStore->hashTable, *uidp, 0, &iid, &typ))
         {
           fprintf(stderr, "Failed to lookup " F_UID " in hashtable\n", *uidp);
           assert(0);
         }
-        if(value.type == AS_IID_SCF)
+        if(typ == AS_IID_SCF)
         {
-          PrintScaffoldCloneData(asmStore, value.IID, assemblyName);
+          PrintScaffoldCloneData(asmStore, iid, assemblyName);
         }
         else
         {

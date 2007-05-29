@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.34 2007-04-16 17:36:34 brianwalenz Exp $
- * $Revision: 1.34 $
+ * $Id: AS_OVL_overlap_common.h,v 1.35 2007-05-29 10:54:29 brianwalenz Exp $
+ * $Revision: 1.35 $
 */
 
 
@@ -73,7 +73,6 @@
 
 #include  "AS_OVL_delcher.h"
 #include  "AS_PER_gkpStore.h"
-#include  "AS_UTL_PHash.h"
 #include  "AS_MSG_pmesg.h"
 #include  "AS_OVL_overlap.h"
 #include  "AS_UTL_version.h"

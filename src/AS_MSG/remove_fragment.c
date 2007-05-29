@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: remove_fragment.c,v 1.12 2007-05-14 09:27:12 brianwalenz Exp $ */
+/* $Id: remove_fragment.c,v 1.13 2007-05-29 10:54:29 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,7 +27,7 @@
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
-#include "AS_UTL_ID_store.h"
+#include "AS_UTL_Hash.h"
 
 CDS_UID_t a2UID( char * string )
 {
@@ -41,10 +41,9 @@ int main( int argc, char ** argv )
 {
   FILE       * fp_out;
   GenericMesg      * gen;
-  ID_Arrayp  frag_uids;
-  ID_Arrayp  frag_uids_found;
-  ID_Arrayp  frag_iids;
-  int64  i;
+  HashTable_AS  *frag_uids;
+  HashTable_AS  *frag_uids_found;
+  HashTable_AS  *frag_iids;
   
   if( argc < 4 )
   {
@@ -57,14 +56,16 @@ int main( int argc, char ** argv )
   if( argv[3][0] != '-' )
   {
     // read in from command line
-    frag_uids = AllocateID_Array( argc - 3 );
-    frag_uids_found = AllocateID_Array( argc - 3 );
-    frag_iids = AllocateID_Array( argc - 3 );
+    frag_uids       = CreateScalarHashTable_AS( argc - 3 );
+    frag_uids_found = CreateScalarHashTable_AS( argc - 3 );
+    frag_iids       = CreateScalarHashTable_AS( argc - 3 );
     if( frag_uids == NULL || frag_uids_found == NULL || frag_iids == NULL )
       return 1;
-    for( i = 0; i < argc - 4; i++ )
-      AppendToID_Array( frag_uids, a2UID( argv[i+3] ), 0 );
-    AppendToID_Array( frag_uids, a2UID( argv[i+3] ), 1 );
+    {
+      int i;
+      for( i = 0; i < argc - 3; i++ )
+        InsertInHashTable_AS(frag_uids, a2UID( argv[i+3] ), 0, 0, 0 );
+    }
   }
   else
   {
@@ -87,18 +88,18 @@ int main( int argc, char ** argv )
     }
     rewind( fp_list );
 
-    frag_uids = AllocateID_Array( num_uids );
-    frag_uids_found = AllocateID_Array( num_uids );
-    frag_iids = AllocateID_Array( num_uids );
+    frag_uids       = CreateScalarHashTable_AS( num_uids );
+    frag_uids_found = CreateScalarHashTable_AS( num_uids );
+    frag_iids       = CreateScalarHashTable_AS( num_uids );
     if( frag_uids == NULL || frag_uids_found == NULL || frag_iids == NULL )
       return 1;
-    for( i = 0; i < num_uids - 1; i++ )
     {
-      fgets( string, 1000, fp_list );
-      AppendToID_Array( frag_uids, a2UID( string ), 0 );
+      int i;
+      for( i = 0; i < num_uids; i++ ) {
+        fgets( string, 1000, fp_list );
+        InsertInHashTable_AS(frag_uids, a2UID( string ), 0, 0, 0 );
+      }
     }
-    fgets( string, 1000, fp_list );
-    AppendToID_Array( frag_uids, a2UID( string ), 1 );
 
     fclose( fp_list );
   }
@@ -118,9 +119,9 @@ int main( int argc, char ** argv )
       case MESG_FRG:
 	{
 	  FragMesg  * frg = (FragMesg *) gen->m;
-	  if( (i = FindID_ArrayID( frag_uids, frg->eaccession)) > -1 )
+	  if(ExistsInHashTable_AS( frag_uids, frg->eaccession, 0))
 	    {
-	      AppendToID_Array( frag_uids_found, frg->eaccession, 1 );
+              InsertInHashTable_AS(frag_uids_found, frg->eaccession, 0, 0, 0);
 	      WriteProtoMesg_AS( stdout, gen );
 	    }
 	  else
@@ -132,12 +133,11 @@ int main( int argc, char ** argv )
       case MESG_IFG:
 	{
 	  FragMesg * frg = (FragMesg *) gen->m;
-	  if( (i = FindID_ArrayID( frag_uids, frg->eaccession)) > -1 ||
-	      (i = FindID_ArrayID( frag_uids,
-				   (CDS_UID_t) frg->iaccession)) > -1 )
+	  if( ExistsInHashTable_AS( frag_uids, frg->eaccession, 0) ||
+	      ExistsInHashTable_AS( frag_uids, frg->iaccession, 0))
 	    {
-	      AppendToID_Array( frag_uids_found, frg->eaccession, 1 );
-	      AppendToID_Array( frag_iids, (CDS_UID_t) frg->iaccession, 1 );
+              InsertInHashTable_AS(frag_uids_found, frg->eaccession, 0, 0, 0);
+              InsertInHashTable_AS(frag_iids,       frg->iaccession, 0, 0, 0);
 	      WriteProtoMesg_AS( stdout, gen );
 	    }
 	  else
@@ -149,9 +149,8 @@ int main( int argc, char ** argv )
       case MESG_LKG:
 	{ 
 	  LinkMesg * lkg = (LinkMesg *) gen->m;
-	  if( frag_uids_found->num_ids == 0 ||
-	      (FindID_ArrayID( frag_uids_found, lkg->frag1) == -1 &&
-	       FindID_ArrayID( frag_uids_found, lkg->frag2) == -1) )
+	  if(ExistsInHashTable_AS( frag_uids_found, lkg->frag1, 0) &&
+             ExistsInHashTable_AS( frag_uids_found, lkg->frag2, 0))
 	    {
 	      WriteProtoMesg_AS( fp_out, gen );
 	    }
@@ -164,9 +163,8 @@ int main( int argc, char ** argv )
       case MESG_OVL:
 	{ 
 	  OverlapMesg  * ovl = (OverlapMesg *) gen->m;
-	  if( frag_iids->num_ids == 0 ||
-	      (FindID_ArrayID( frag_iids, (CDS_UID_t) ovl->aifrag) == -1 &&
-	       FindID_ArrayID( frag_iids, (CDS_UID_t) ovl->bifrag) == -1) )
+	  if(ExistsInHashTable_AS( frag_iids, ovl->aifrag, 0) &&
+             ExistsInHashTable_AS( frag_iids, ovl->bifrag, 0))
 	    {
 	      WriteProtoMesg_AS( fp_out, gen );
 	    }

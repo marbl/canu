@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.143 2007-05-19 02:51:16 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.144 2007-05-29 10:54:27 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -98,8 +98,7 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.143 2007-05-19 02:51:16 bri
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
-#include "AS_UTL_HashCommon.h"
-#include "AS_UTL_PHash.h"
+#include "AS_UTL_Hash.h"
 #include "AS_UTL_alloc.h"
 #include "AS_MSG_pmesg.h"
 
@@ -692,14 +691,12 @@ int SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) 
    IntMultiPos *frag;
    IntUnitigPos *unitig;
    CNS_AlignedContigElement epos;
-   PHashTable_AS *unitigFrags;
+   HashTable_AS *unitigFrags;
    int hash_rc;
-   PHashValue_AS value = {0};
-   PHashValue_AS ovalue = {0};
 
    num_frags = GetNumIntMultiPoss(uma->f_list);
    num_unitigs = GetNumIntUnitigPoss(uma->u_list);
-   unitigFrags = CreatePHashTable_AS(2*(num_frags+num_unitigs),NULL);
+   unitigFrags = CreateScalarHashTable_AS(2*(num_frags+num_unitigs));
    for (ifrag=0;ifrag<num_frags;ifrag++){
       frag = GetIntMultiPos(uma->f_list,ifrag);
       SetVA_int32(gapped_positions,frag->position.bgn,&frag->position.bgn);
@@ -732,14 +729,13 @@ int SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) 
      frag = GetIntMultiPos(uma->f_list,ifrag);
      epos.frg_or_utg = CNS_ELEMENT_IS_FRAGMENT;
      epos.idx.fragment.frgIdent = frag->ident;
-     hash_rc = InsertInPHashTable_AS(&unitigFrags,IDENT_NAMESPACE, (uint64) frag->ident, &value, FALSE,FALSE);
-     if ( hash_rc != HASH_SUCCESS) {
-       hash_rc = LookupInPHashTable_AS (unitigFrags, IDENT_NAMESPACE, frag->ident, &ovalue);
-       if (hash_rc == HASH_SUCCESS)
-         fprintf(cnslog,"Failure to insert ident %d in hashtable, entry already appears\n",frag->ident); 
-       else
-         fprintf(stderr,"SetUngappedFragmentPositions()-- Failure to insert ident %d in hashtable\n",frag->ident); 
-       assert(FALSE);
+     if (ExistsInHashTable_AS(unitigFrags, frag->ident, 0)) {
+       fprintf(stderr,"SetUngappedFragmentPositions()-- ident %d already in hashtable\n",frag->ident);
+       assert(0);
+     }
+     if (HASH_SUCCESS != InsertInHashTable_AS(unitigFrags, frag->ident, 0, 1, 0)) {
+       fprintf(stderr,"SetUngappedFragmentPositions()-- Failure to insert ident %d in hashtable\n",frag->ident); 
+       assert(0);
      }
      epos.idx.fragment.frgType = frag->type;
      epos.idx.fragment.frgContained = frag->contained;
@@ -795,8 +791,7 @@ int SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) 
         anchor_frag=GetCNS_AlignedContigElement(fragment_positions,anchor->components);
         for (ifrag=0;ifrag<anchor->n_components;ifrag++,anchor_frag++) { 
            if ( anchor_frag->frg_or_utg == CNS_ELEMENT_IS_FRAGMENT ) {
-             int lookup_rc = LookupInPHashTable_AS (unitigFrags, IDENT_NAMESPACE, anchor_frag->idx.fragment.frgIdent, &value);
-             if (lookup_rc == HASH_SUCCESS ) {
+             if (ExistsInHashTable_AS(unitigFrags, anchor_frag->idx.fragment.frgIdent, 0)) {
                anchor_frag->idx.fragment.frgInUnitig=uma->id;
                in_unitig_frags++;
              }
@@ -805,7 +800,7 @@ int SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) 
         fprintf(stderr,"SetUngappedFragmentPositions()-- Marked %d fragments as belonging to unitig %d\n",in_unitig_frags,uma->id);
     }
    }
-   ClosePHashTable_AS(unitigFrags);
+   DeleteHashTable_AS(unitigFrags);
    DeleteVA_int32(gapped_positions);
    return first_frag;
 }
@@ -819,14 +814,12 @@ int SetGappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) {
    IntMultiPos *frag;
    IntUnitigPos *unitig;
    CNS_AlignedContigElement epos;
-   PHashTable_AS *unitigFrags;
+   HashTable_AS *unitigFrags;
    int hash_rc;
-   PHashValue_AS value = {0};
-   PHashValue_AS ovalue = {0};
 
    num_frags = GetNumIntMultiPoss(uma->f_list);
    num_unitigs = GetNumIntUnitigPoss(uma->u_list);
-   unitigFrags = CreatePHashTable_AS(2*(num_frags+num_unitigs),NULL);
+   unitigFrags = CreateScalarHashTable_AS(2*(num_frags+num_unitigs));
    frag = GetIntMultiPos(uma->f_list,0);
    for (ifrag=0;ifrag<num_frags;ifrag++,frag++){
       SetVA_int32(gapped_positions,frag->position.bgn,&frag->position.bgn);
@@ -857,14 +850,13 @@ int SetGappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) {
    for (ifrag=0;ifrag<num_frags;ifrag++,frag++){
      epos.frg_or_utg = CNS_ELEMENT_IS_FRAGMENT;
      epos.idx.fragment.frgIdent = frag->ident;
-     hash_rc = InsertInPHashTable_AS(&unitigFrags,IDENT_NAMESPACE, (uint64) frag->ident, &value, FALSE,FALSE);
-     if ( hash_rc != HASH_SUCCESS) {
-       hash_rc = LookupInPHashTable_AS (unitigFrags, IDENT_NAMESPACE, frag->ident, &ovalue);
-       if (hash_rc == HASH_SUCCESS)
-         fprintf(cnslog,"Failure to insert ident %d in hashtable, entry already appears\n",frag->ident); 
-       else
-         fprintf(stderr,"Failure to insert ident %d in hashtable\n",frag->ident); 
-       assert(FALSE);
+     if (ExistsInHashTable_AS(unitigFrags, frag->ident, 0)) {
+       fprintf(stderr,"SetGappedFragmentPositions()-- ident %d already in hashtable\n",frag->ident);
+       assert(0);
+     }
+     if (HASH_SUCCESS != InsertInHashTable_AS(unitigFrags, frag->ident, 0, 1, 0)) {
+       fprintf(stderr,"SetGappedFragmentPositions()-- Failure to insert ident %d in hashtable\n",frag->ident); 
+       assert(0);
      }
      epos.idx.fragment.frgType = frag->type;
      epos.idx.fragment.frgContained = frag->contained;
@@ -920,8 +912,7 @@ int SetGappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) {
         anchor_frag=GetCNS_AlignedContigElement(fragment_positions,anchor->components);
         for (ifrag=0;ifrag<anchor->n_components;ifrag++,anchor_frag++) { 
            if ( anchor_frag->frg_or_utg == CNS_ELEMENT_IS_FRAGMENT ) {
-             int lookup_rc = LookupInPHashTable_AS (unitigFrags, IDENT_NAMESPACE, anchor_frag->idx.fragment.frgIdent, &value);
-             if (lookup_rc == HASH_SUCCESS ) {
+             if (ExistsInHashTable_AS(unitigFrags, anchor_frag->idx.fragment.frgIdent, 0)) {
                anchor_frag->idx.fragment.frgInUnitig=uma->id;
                in_unitig_frags++;
              }
@@ -930,7 +921,7 @@ int SetGappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) {
         fprintf(stderr,"Marked %d fragments as belonging to unitig %d\n",in_unitig_frags,uma->id);
     }
    }
-   ClosePHashTable_AS(unitigFrags);
+   DeleteHashTable_AS(unitigFrags);
    DeleteVA_int32(gapped_positions);
    return first_frag;
 }
@@ -4658,20 +4649,20 @@ int GetMANodePositions(int32 mid, int mesg_n_frags, IntMultiPos *imps, int mesg_
         if ( n_unitigs==1 ) odlen=fump->delta_length;
         //fprintf(stderr,"Unitig %d, delta_length = %d\n", fump->ident,fump->delta_length);
       } else {
-        PHashValue_AS value = {0};
         //fprintf(stderr,"INDEX %d, READ %d, id %d ",i,n_frags,fragment->iid);
-        hash_rc = LookupInPHashTable_AS (fragmentMap, IDENT_NAMESPACE, fragment->iid, &value);
-        if ( hash_rc == HASH_SUCCESS) {
-          if ( value.refCount == 1 ) {
-             // indicates that the fragment appears in the contig's f_list;
-             // and this is the first time it's been seen in the fragmentStore       
-             // mark that it's been seen by adding a ref to it
-             //fprintf(stderr,"Fragment %d (index %d) found in the contig fragmentMap\n",i,fragment->iid);
-             AddRefPHashTable_AS(fragmentMap, IDENT_NAMESPACE, (uint64) fragment->iid);
-           } else if ( value.refCount > 1 ) {
-             //fprintf(stderr,"Fragment %d (index %d) already seen in the fragmentStore\n",i,fragment->iid);
-             continue;
-           }
+        if (ExistsInHashTable_AS (fragmentMap, fragment->iid, 0)) {
+          uint64  count = LookupValueInHashTable_AS (fragmentMap, fragment->iid, 0);
+          assert((count == 1) || (count == 2));
+          if (count == 1) {
+            // indicates that the fragment appears in the contig's f_list;
+            // and this is the first time it's been seen in the fragmentStore       
+            // mark that it's been seen by adding a ref to it
+            //fprintf(stderr,"Fragment %d (index %d) found in the contig fragmentMap\n",i,fragment->iid);
+            ReplaceInHashTable_AS(fragmentMap, fragment->iid, 0, 2, 0);
+          } else {
+            //fprintf(stderr,"Fragment %d (index %d) already seen in the fragmentStore\n",i,fragment->iid);
+            continue;
+          }
         } else {
           //fprintf(stderr,"Fragment %d not in the contig's f_list\n",fragment->iid);
           continue; // this one is not in the contig's f_list (belongs to a surrogate unitig)
@@ -4680,13 +4671,6 @@ int GetMANodePositions(int32 mid, int mesg_n_frags, IntMultiPos *imps, int mesg_
         fimp = &imps[n_frags++];
         fimp->ident = fragment->iid;
         fimp->type = fragment->type;
-    //    if ( GetPtrT(fragment_source,fragment->lid)) {
-    //      fimp->source = *GetPtrT(fragment_source,fragment->lid);
-    //    } else {
-    //      fimp->source = NULL;
-    //    }
-    //    fimp->source = NULL;
-        //fimp->source = *GetPtrT(fragment_source,fragment->iid);
         fimp->position.bgn = (fragment->complement)?position.end:position.bgn;
         fimp->position.end = (fragment->complement)?position.bgn:position.end;
         fimp->delta = NULL;  // just for the moment; 
@@ -4713,20 +4697,17 @@ int GetMANodePositions(int32 mid, int mesg_n_frags, IntMultiPos *imps, int mesg_
         delta_pos+= iups[n_unitigs].delta_length;
         n_unitigs++;
       } else {
-        PHashValue_AS value = {0};
-        hash_rc = LookupInPHashTable_AS (fragmentMap, IDENT_NAMESPACE, fragment->iid, &value);
-        if ( hash_rc == HASH_SUCCESS) {
-          // all of the contig's fragments should've had their refcounts incremented to 2 in previous block
-          assert( value.refCount == 2); 
+        if (ExistsInHashTable_AS(fragmentMap, fragment->iid, 0)) {
+          // all of the contig's fragments should've had their value set to 2 in previous block
+          assert(2 == LookupValueInHashTable_AS(fragmentMap, fragment->iid, 0));
           // now, remove this guy from the hash_table;
-          UnRefPHashTable_AS(fragmentMap, IDENT_NAMESPACE, (uint64) fragment->iid);
-          DeleteFromPHashTable_AS(fragmentMap, IDENT_NAMESPACE, (uint64) fragment->iid);
+          DeleteFromHashTable_AS(fragmentMap, fragment->iid, 0);
         } else  { 
           continue;
         }
         imps[n_frags].delta = Getint32(deltas,delta_pos);
-        if (imps[n_frags].delta == NULL) {
-          assert(imps[n_frags].delta_length == 0 );
+        if (imps[n_frags].delta == NULL) { 
+         assert(imps[n_frags].delta_length == 0 );
         }
         delta_pos+= imps[n_frags].delta_length;
         n_frags++;
@@ -7547,7 +7528,8 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
       num_columns = ( positions[i].position.end>num_columns)? positions[i].position.end : num_columns;
     }
     ResetStores(num_frags,num_columns);
-         fragmentMap = CreatePHashTable_AS(2*(num_frags),NULL);
+
+    fragmentMap = CreateScalarHashTable_AS(2*(num_frags));
 
     for (i=0;i<num_frags;i++) {
       complement = (positions[i].position.bgn<positions[i].position.end)?0:1;
@@ -7557,16 +7539,8 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
           case AS_EXTR:
           case AS_TRNR:
           {
-             PHashTable_AS *thash=fragmentMap;
-             PHashValue_AS  value={0};
-             int hash_rc;
-     
              num_reads++;
-             value.IID = positions[i].ident;
-             hash_rc = InsertInPHashTable_AS(&thash,IDENT_NAMESPACE, 
-                           (uint64)positions[i].ident, &value, FALSE,FALSE);
-
-             if (hash_rc != HASH_SUCCESS) {
+             if (HASH_SUCCESS != InsertInHashTable_AS(fragmentMap,positions[i].ident, 0, 1, 0)) {
                fprintf(stderr,"Failure to insert ident %d in hashtable\n", positions[i].ident); 
                assert(0);
              }
@@ -7588,7 +7562,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
            {
                fprintf(stderr, "Failed to determine the type of fragment %d in unitig %d\n",
                    i, unitig->iaccession);
-               ClosePHashTable_AS(fragmentMap);
+               DeleteHashTable_AS(fragmentMap);
                DeleteMANode(ma->lid);
                return EXIT_FAILURE;
            }
@@ -7670,7 +7644,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
            fprintf(stderr,
                "none of fragments a (i=%d, id=%d) and b (i=%d, id=%d) is pre-aligned\n",
                i, positions[i].ident, align_to, positions[align_to].ident);
-           ClosePHashTable_AS(fragmentMap);
+           DeleteHashTable_AS(fragmentMap);
            DeleteMANode(ma->lid);
            return EXIT_FAILURE;        
        }
@@ -7827,7 +7801,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
             frag_forced = 1;
             unitig_forced = 1;
          } else {
-             ClosePHashTable_AS(fragmentMap);
+             DeleteHashTable_AS(fragmentMap);
              DeleteMANode(ma->lid);
              return EXIT_FAILURE;
              //CleanExit("",__LINE__,1);
@@ -7845,7 +7819,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
            fprintf(stderr, 
                "no fragment pointed to uncontained fragment %d.\n",
                positions[i].ident);
-           ClosePHashTable_AS(fragmentMap);
+           DeleteHashTable_AS(fragmentMap);
            DeleteMANode(ma->lid);
            return EXIT_FAILURE;         
        }
@@ -7946,7 +7920,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
         }
     }
 
-    ClosePHashTable_AS(fragmentMap);
+    DeleteHashTable_AS(fragmentMap);
     DeleteMANode(ma->lid);
     return EXIT_SUCCESS;
 }
@@ -8030,15 +8004,7 @@ int32 PlaceFragments(int32 fid, Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
      int align_failure=0;
      int containFound=0;
 
-     PHashTable_AS *thash = fragmentMap;
-     PHashValue_AS value = {0};
-
-     int lookup_rc = LookupInPHashTable_AS
-          (thash, IDENT_NAMESPACE, 
-	   (uint64) bfrag->idx.fragment.frgIdent, 
-	   &value);
-
-     if (lookup_rc != HASH_SUCCESS ) 
+     if (!ExistsInHashTable_AS(fragmentMap, bfrag->idx.fragment.frgIdent, 0))
        continue;
 
      bcomplement = 
@@ -8049,40 +8015,36 @@ int32 PlaceFragments(int32 fid, Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
      //if (  Getint32(fragment_indices,bfrag->ident) == NULL  ) continue;
      //if ( ! *Getint32(fragment_indices,bfrag->ident)) continue;
 
-     blid = AppendFragToLocalStore
-	  (bfrag->idx.fragment.frgType, 
-	   bfrag->idx.fragment.frgIdent, 
-	   (bcomplement != fcomplement),
-	   bfrag->idx.fragment.frgContained,
-	   NULL, // bfrag->idx.fragment.frgSource,
-	   AS_OTHER_UNITIG, ///ZERO,
-	   NULL);
+     blid = AppendFragToLocalStore (bfrag->idx.fragment.frgType, 
+                                    bfrag->idx.fragment.frgIdent, 
+                                    (bcomplement != fcomplement),
+                                    bfrag->idx.fragment.frgContained,
+                                    NULL,
+                                    AS_OTHER_UNITIG,
+                                    NULL);
 
      afrag = GetFragment(fragmentStore,fid); 
-     {  Fragment *tfrag=GetFragment(fragmentStore,blid);
-        PHashValue_AS value = {0};
-        value.IID = tfrag->lid;
-        DeleteFromPHashTable_AS(thash, IDENT_NAMESPACE, (uint64) tfrag->iid);
-        InsertInPHashTable_AS(&thash,IDENT_NAMESPACE, (uint64) tfrag->iid, &value, FALSE, FALSE); 
+
+#if 0
+     {
+        Fragment *tfrag=GetFragment(fragmentStore,blid);
+        ReplaceInHashTable_AS(fragmentMap, tfrag->iid, 0, tfrag->lid, 0);
      }
+#endif
 
      if ( bfrag->idx.fragment.frgContained > 0 ) {
-        PHashValue_AS value = {0};
-
-        if (HASH_SUCCESS != LookupInPHashTable_AS(fragmentMap, 
-                                                  IDENT_NAMESPACE, 
-                                                  (uint64) bfrag->idx.fragment.frgContained, 
-                                                  &value)) {
-          fprintf(stderr,
-                  "Could not find containing fragment %d in local store\n",
-                  bfrag->idx.fragment.frgContained);
+        if (!ExistsInHashTable_AS(fragmentMap, bfrag->idx.fragment.frgContained, 0)) {
 
 #define ALLOW_MISSING_CONTAINER_TO_HANDLE_SURROGATE_RESOLUTION
 #ifndef ALLOW_MISSING_CONTAINER_TO_HANDLE_SURROGATE_RESOLUTION
+          fprintf(stderr,
+                  "Could not find containing fragment %d in local store\n",
+                  bfrag->idx.fragment.frgContained);
           return EXIT_FAILURE;
 #else
           fprintf(stderr,
-                  "This might be due to surrogate resolution???\n");
+                  "Could not find containing fragment %d in local store -- due to surrogate resolution?\n",
+                  bfrag->idx.fragment.frgContained);
 #endif
         } else {
           containFound=1;
@@ -8206,19 +8168,14 @@ int MultiAlignContig(IntConConMesg *contig,
     //  SetVA_PtrT(fragment_source,contig->pieces[i].ident,(void *)&contig->pieces[i].source);
     //  Setint32(fragment_indices,contig->pieces[i].ident,&placed);
     // }
-     fragmentMap = CreatePHashTable_AS(2*(num_frags+num_unitigs),NULL);
+     fragmentMap = CreateScalarHashTable_AS(2*(num_frags+num_unitigs));
      for (i=0;i<num_frags;i++) {
-       PHashTable_AS *thash = fragmentMap;
-       PHashValue_AS value = {0};
-       PHashValue_AS ovalue = {0};
-       value.IID = contig->pieces[i].ident;
-       hash_rc = LookupInPHashTable_AS (thash, IDENT_NAMESPACE, contig->pieces[i].ident, &ovalue);
-       if ( hash_rc == HASH_SUCCESS) {
+       if (ExistsInHashTable_AS (fragmentMap, contig->pieces[i].ident, 0)) {
           // indicates that the fragment appears more than once in the f_list;
           fprintf(stderr,"Failure to insert ident %d in fragment hashtable, already present\n",contig->pieces[i].ident); 
           assert(FALSE);
        }
-       hash_rc = InsertInPHashTable_AS(&thash,IDENT_NAMESPACE, (uint64) contig->pieces[i].ident, &value, FALSE,FALSE);
+       InsertInHashTable_AS(fragmentMap, contig->pieces[i].ident, 0, 1, 0);
      }
      //if ( cnslog != NULL ) {
      // fprintf(cnslog,"Contigging ICM %d:\n",contig->iaccession);
@@ -8383,14 +8340,17 @@ int MultiAlignContig(IntConConMesg *contig,
         }
 
         if ( ! olap_success ) {
-           fprintf(stderr,"Could (really) not find overlap between %d (%c) and %d (%c), estimated ahang %d", 
+           fprintf(stderr,"Could (really) not find overlap between %d (%c) and %d (%c), estimated ahang %d\n", 
                    afrag->iid,afrag->type,bfrag->iid,bfrag->type, ahang);
-           fprintf(stderr,"You can force these to abut; see FORCE_UNITIG_ABUT in %s.\n", __FILE__);
 
            if (FORCE_UNITIG_ABUT == 0) {
+             fprintf(stderr,"You can force these to abut with '-D forceunitigabut'\n");
              safe_free(offsets);
              return EXIT_FAILURE;
            }
+
+           fprintf(stderr,"Forcing the alignment between %d (%c) and %d (%c)\n", 
+                   afrag->iid,afrag->type,bfrag->iid,bfrag->type);
 
            forced_contig = 1; 
 
@@ -8537,7 +8497,7 @@ int MultiAlignContig(IntConConMesg *contig,
      contig->forced = forced_contig;
 
      DeleteMANode(ma->lid);
-     ClosePHashTable_AS(fragmentMap);
+     DeleteHashTable_AS(fragmentMap);
   }
 
   safe_free(offsets);
@@ -8824,12 +8784,12 @@ int ExamineConfirmedMMColumns(FILE *outFile,int32 sid, int32 mid, UnitigData *ti
   Column *frag_start_column;
   static VA_TYPE(Bead) *shared_left=NULL;
   static VA_TYPE(Bead) *shared_right=NULL;
-  PHashTable_AS *bhash=NULL;
+  HashTable_AS *bhash=NULL;
   MANode *ma = GetMANode(manodeStore,mid);
   
   if (ma == NULL ) CleanExit("RefreshMANode ma==NULL",__LINE__,1);
   if ( ma->first == -1 ) return 1;
-  if ( bhash==NULL ) bhash = CreatePHashTable_AS(5000,NULL);
+  if ( bhash==NULL ) bhash = CreateScalarHashTable_AS(5000);
   if ( shared_left== NULL ) {
       shared_left = CreateVA_Bead(100);
       shared_right = CreateVA_Bead(100);
@@ -8845,8 +8805,6 @@ int ExamineConfirmedMMColumns(FILE *outFile,int32 sid, int32 mid, UnitigData *ti
     char base;
     char qv;
     int bid;
-    PHashValue_AS value = {0};
-    int hash_rc;
     int depth=0;
     column = GetColumn(columnStore,cid);
     if (column == NULL ) CleanExit("RefreshMANode column==NULL",__LINE__,1);
@@ -8866,7 +8824,7 @@ int ExamineConfirmedMMColumns(FILE *outFile,int32 sid, int32 mid, UnitigData *ti
             ColumnBeadIterator bi;
             ResetVA_Bead(shared_left);
             ResetVA_Bead(shared_right);
-            //ResetPHashTableAS(bhash,utl_counts); // couldn't resolve this at compile time...
+            ResetHashTable_AS(bhash);
             if(!CreateColumnBeadIterator(column->lid,&bi)){
                CleanExit("CreateAbacus CreateColumnBeadIterator failed",__LINE__,1);
             }
@@ -8877,8 +8835,7 @@ int ExamineConfirmedMMColumns(FILE *outFile,int32 sid, int32 mid, UnitigData *ti
               frag_start_column = GetColumn(columnStore,fbead->column_index);
               if ( column ->ma_index <= last_mm->ma_index ) {
                 // shared frag; 
-                value.IID = bid;
-                hash_rc = InsertInPHashTable_AS(&bhash,IDENT_NAMESPACE, (uint64) frag->lid, &value, FALSE,FALSE);
+                InsertInHashTable_AS(bhash, frag->lid, 0, bid, 0);
               }
             }
             if ( GetNumBeads(shared_right) > 0 ) {
@@ -8888,10 +8845,9 @@ int ExamineConfirmedMMColumns(FILE *outFile,int32 sid, int32 mid, UnitigData *ti
                while ( (bid = NextColumnBead(&bi)) != -1 ) {
                   cbead = GetBead(beadStore,bid);
                   frag = GetFragment(fragmentStore,cbead->frag_index);
-                  hash_rc = LookupInPHashTable_AS (bhash, IDENT_NAMESPACE, frag->lid, &value);
-                  if ( hash_rc == HASH_SUCCESS) {
+                  if (ExistsInHashTable_AS(bhash, frag->lid, 0)) {
                      AppendVA_Bead(shared_left,cbead); 
-                     cbead = GetBead(beadStore,value.IID);
+                     cbead = GetBead(beadStore, LookupValueInHashTable_AS(bhash, frag->lid, 0));
                      AppendVA_Bead(shared_right,cbead); 
                   }
                } 

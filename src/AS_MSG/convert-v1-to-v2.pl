@@ -19,8 +19,9 @@ my %clq;  #  Currently, we never have this info
 my $lib;
 
 my $noOBT = 0;
-my $is454 = 0;
-my $nft   = 0;
+
+sub printLIB($$$) {
+}
 
 my $err = 0;
 while (scalar(@ARGV) > 0) {
@@ -29,14 +30,12 @@ while (scalar(@ARGV) > 0) {
         $vec = shift @ARGV;
     } elsif ($arg eq "-noobt") {
         $noOBT = 1;
-    } elsif ($arg eq "-is454") {
-        $is454 = 1;
     } else {
         $err++;
     }
 }
 if ($err) {
-    die "usage: $0 [-v vector-clear-file] [-noobt] [-is454] < old.frg > new.frg\n";
+    die "usage: $0 [-v vector-clear-file] [-noobt] < old.frg > new.frg\n";
 }
 
 if (defined($vec)) {
@@ -53,7 +52,7 @@ if (defined($vec)) {
 
 
 sub readMultiLineDot {
-    #$_ = <STDIN>;                #  Read and discard the tag
+    #$_ = <STDIN>;               #  Read and discard the tag
     my $save = $/;  $/ = ".\n";  #  Prepare to read the whole thing
     my $src = <STDIN>;           #  Read it
     $/ = $save;                  #  Reset our end of line marker
@@ -113,10 +112,13 @@ while (!eof(STDIN)) {
         print "src:\n";
         print "convert-v1-to-v2\n";
         print ".\n";
-        print "nft:2\n";
+        print "nft:5\n";
         print "fea:\n";
-        print "is454=$is454\n";
+        print "doNotTrustHomopolymerRuns=0\n";
+        print "hpsIsFlowGram=0\n";
+        print "hpsIsPeakSpacing=0\n";
         print "doNotOverlapTrim=$noOBT\n";
+        print "isNotRandom=0\n";
         print ".\n";
         print "}\n";
         $lib = $acc;
@@ -146,6 +148,30 @@ while (!eof(STDIN)) {
             }
 
             $line = <STDIN>; chomp $line;
+        }
+
+        #  A bit of a hack, but needed for our existing shreds; if no
+        #  library has been printed, print one.
+        if (!defined($lib)) {
+            print "{LIB\n";
+            print "act:A\n";
+            print "acc:454\n";
+            print "ori:U\n";
+            print "mea:0.0\n";
+            print "std:0.0\n";
+            print "src:\n";
+            print "convert-v1-to-v2; forced 454\n";
+            print ".\n";
+            print "nft:5\n";
+            print "fea:\n";
+            print "doNotTrustHomopolymerRuns=0\n";
+            print "hpsIsFlowGram=0\n";
+            print "hpsIsPeakSpacing=0\n";
+            print "doNotOverlapTrim=1\n";
+            print "isNotRandom=0\n";
+            print ".\n";
+            print "}\n";
+            $lib = "454";
         }
         print "{FRG\n";
         print "act:A\n";

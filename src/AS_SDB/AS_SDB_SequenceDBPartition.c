@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_SDB_SequenceDBPartition.c,v 1.7 2007-04-16 17:36:36 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_SDB_SequenceDBPartition.c,v 1.8 2007-05-29 10:54:30 brianwalenz Exp $";
 
 /*************************************************************************
  Module:  AS_SDB_SequenceDBPartition
@@ -87,7 +87,7 @@ static void buildSequenceDBPartitionHash(tSequenceDBPartition *partition){
   int numMultiAligns;
 
   numMultiAligns = GetNumtMARecords(partition->multiAligns);
-  partition->index = CreateHashTable_int32_AS(numMultiAligns + 1);
+  partition->index = CreateScalarHashTable_AS(numMultiAligns + 1);
 
   for(i = 0; i < numMultiAligns; i++){
     tMARecord *maRecord = GettMARecord(partition->multiAligns, i);
@@ -96,8 +96,8 @@ static void buildSequenceDBPartitionHash(tSequenceDBPartition *partition){
     CDS_FSEEK(partition->datafp,maRecord->offset,SEEK_SET);
     ma = LoadMultiAlignTFromStream(partition->datafp,&reference);
     if(InsertInHashTable_AS(partition->index,
-                            (void *)(&maRecord->storeID),
-                            sizeof(int32), ma) != HASH_SUCCESS)
+                            (uint64)maRecord->storeID, 0,
+                            (uint64)ma, 0) != HASH_SUCCESS)
       assert(0);
   }
 }
@@ -144,14 +144,12 @@ void closeSequenceDBPartition(tSequenceDBPartition *partition){
 }
 
 int isMemberSequenceDBPartition(tSequenceDBPartition *partition, int32 indx){
-  MultiAlignT *ma = (MultiAlignT *)LookupInHashTable_AS(partition->index, (void *)&indx , sizeof(int32));
-
+  MultiAlignT *ma = (MultiAlignT *)LookupValueInHashTable_AS(partition->index, indx, 0);
   return (ma != NULL);
-
 }
 
 MultiAlignT *loadFromSequenceDBPartition(tSequenceDBPartition *partition, int32 indx){
-  MultiAlignT *ma = (MultiAlignT *)LookupInHashTable_AS(partition->index, (void *)&indx , sizeof(int32));
+  MultiAlignT *ma = (MultiAlignT *)LookupValueInHashTable_AS(partition->index, indx, 0);
 
   if(!ma){ // not in our partition, open the relevant stores, get the data, and close them
     fprintf(stderr,"* Multialign %d is NOT in this partition!   Exiting\n", indx);
@@ -164,7 +162,7 @@ MultiAlignT *loadFromSequenceDBPartition(tSequenceDBPartition *partition, int32 
 VA_TYPE(int32) *GetContentSequenceDBPartition(tSequenceDBPartition *partition){
   HashTable_Iterator_AS iterator;
   VA_TYPE(int32) *members = CreateVA_int32(100);
-  void *keyp, *valuep;
+  uint64 keyp, valuep;
   InitializeHashTable_Iterator_AS(partition->index, &iterator);
 
   while(NextHashTable_Iterator_AS(&iterator, &keyp, &valuep))

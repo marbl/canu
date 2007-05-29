@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.9 2007-05-16 08:22:25 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.10 2007-05-29 10:54:28 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,6 +29,9 @@ static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.9 2007-05-16 08:22:25 bria
 #include "AS_GKP_include.h"
 #include "AS_PER_gkpStore.h"
 
+//  Define this to allow libraries to be deleted from the store.  Not
+//  recommended.
+#undef ALLOW_LIBRARY_DELETE
 
 int
 Check_DistanceMesg(DistanceMesg    *dst_mesg) {
@@ -57,26 +60,17 @@ int
 Check_LibraryMesg(LibraryMesg      *lib_mesg) {
 
   GateKeeperLibraryRecord  gkpl;
-  PHashValue_AS            value;
-
 
   if (lib_mesg->action == AS_IGNORE)
     return GATEKEEPER_SUCCESS;
 
-
   clearGateKeeperLibraryRecord(&gkpl);
 
-
   if (lib_mesg->action == AS_ADD) {
-    if (HASH_FAILURE != LookupTypeInPHashTable_AS(gkpStore->phs_private, 
-                                                  UID_NAMESPACE_AS,
-                                                  lib_mesg->eaccession, 
-                                                  AS_IID_DST, 
-                                                  FALSE,
-                                                  stderr,
-                                                  &value)) {
+    CDS_IID_t  iid = getGatekeeperUIDtoIID(gkpStore, lib_mesg->eaccession, NULL);
+    if (iid) {
       fprintf(stderr, "LIB Error: Library "F_UID","F_IID" already exists; can't add it again.\n",
-              lib_mesg->eaccession, value.IID);
+              lib_mesg->eaccession, iid);
       return(GATEKEEPER_FAILURE);
     }
 
@@ -113,24 +107,13 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg) {
 
     AS_PER_decodeLibraryFeatures(&gkpl, lib_mesg);
 
-    value.type = AS_IID_DST;
-    InsertInPHashTable_AS(&gkpStore->phs_private,
-                          UID_NAMESPACE_AS,
-                          lib_mesg->eaccession,
-                          &value,
-                          FALSE,
-                          TRUE);
     appendIndexStore(gkpStore->lib, &gkpl);
+    setGatekeeperUIDtoIID(gkpStore, lib_mesg->eaccession, getLastElemStore(gkpStore->lib), AS_IID_LIB);
 
   } else if (lib_mesg->action == AS_UPDATE) {
+    CDS_IID_t  iid = getGatekeeperUIDtoIID(gkpStore, lib_mesg->eaccession, NULL);
 
-    if (HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore->phs_private, 
-                                                  UID_NAMESPACE_AS,
-                                                  lib_mesg->eaccession, 
-                                                  AS_IID_DST, 
-                                                  FALSE,
-                                                  stderr,
-                                                  &value)) {
+    if (iid == 0) {
       fprintf(stderr, "LIB Error:  Library "F_UID" does not exist, can't update it.\n",
 	      lib_mesg->eaccession);
       return(GATEKEEPER_FAILURE);
@@ -144,42 +127,37 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg) {
       return(GATEKEEPER_FAILURE);
     }
 
-    getIndexStore(gkpStore->lib, value.IID, &gkpl); 
+    getIndexStore(gkpStore->lib, iid, &gkpl); 
     gkpl.mean   = lib_mesg->mean;
     gkpl.stddev = lib_mesg->stddev;
-    setIndexStore(gkpStore->lib, value.IID, &gkpl);
+    setIndexStore(gkpStore->lib, iid, &gkpl);
 
   } else if (lib_mesg->action == AS_DELETE) {
+    CDS_IID_t  iid = getGatekeeperUIDtoIID(gkpStore, lib_mesg->eaccession, NULL);
 
-    if (HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore->phs_private, 
-						 UID_NAMESPACE_AS,
-						 lib_mesg->eaccession, 
-						 AS_IID_DST, 
-						 FALSE,
-						 stderr,
-						 &value)) {
+    if (iid == 0) {
       fprintf(stderr, "LIB Error:  Library "F_UID" does not exist, can't delete it.\n",
               lib_mesg->eaccession);
       return(GATEKEEPER_FAILURE);
     }
 
-    if (value.refCount > 1) {
-      fprintf(stderr, "LIB Error: Library "F_UID" has %d references, can't delete it.\n",
-              lib_mesg->eaccession, value.refCount);
-      return(GATEKEEPER_FAILURE);
-    }
-
-    if(HASH_SUCCESS == DeleteFromPHashTable_AS(gkpStore->phs_private,UID_NAMESPACE_AS, lib_mesg->eaccession)) {
+#ifdef ALLOW_LIBRARY_DELETE
+    if (HASH_SUCCESS == delGatekeeperUIDtoIID(gkpStore, lib_mesg->eaccession)) {
       GateKeeperLibraryRecord dr;
-      getIndexStore(gkpStore->lib, value.IID, &dr);
+      getIndexStore(gkpStore->lib, iid, &dr);
       dr.deleted = TRUE;
-      setIndexStore(gkpStore->lib, value.IID, &dr);
+      setIndexStore(gkpStore->lib, iid, &dr);
     } else {
       assert(0);
     }
+#else
+    fprintf(stderr, "LIB Error:  Library "F_UID" exists, but we don't allow libraries to be deleted.\n",
+            lib_mesg->eaccession);
+    return(GATEKEEPER_FAILURE);
+#endif
 
   } else {
-    fprintf(stderr, "LiB Error: invalid action %c.\n", lib_mesg->action);
+    fprintf(stderr, "LIB Error: invalid action %c.\n", lib_mesg->action);
     return GATEKEEPER_FAILURE;
   }
 

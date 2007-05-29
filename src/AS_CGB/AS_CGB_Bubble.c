@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_Bubble.c,v 1.8 2007-04-29 06:25:27 brianwalenz Exp $";
+= "$Id: AS_CGB_Bubble.c,v 1.9 2007-05-29 10:54:26 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -58,8 +58,8 @@ typedef struct BVSPair {
 
 #define AS_CGB_BUBBLE_ABS(x) (((x) < 0) ? (-(x)) : (x))
 
-int 
-_hash_vset_cmp(const void *vset1, const void *vset2)
+int
+_hash_vset_cmp(uint64 vset1, uint64 vset2)
 {
   BVSPair *v1 = (BVSPair *) vset1;
   BVSPair *v2 = (BVSPair *) vset2;
@@ -73,7 +73,7 @@ _hash_vset_cmp(const void *vset1, const void *vset2)
 
 
 int
-_hash_vset_hash(const void *vset, int length)
+_hash_vset_hash(uint64 vset, uint32 length)
 {
   BVSPair *v = (BVSPair *) vset;
 
@@ -108,9 +108,9 @@ _collect_bubbles(BubGraph_t bg, BubVertexSet *fwd, BubVertexSet *rvs,
   BVSPair *bp_ins_keys = NULL, bp_find_key;
 
   memset(&result,0,sizeof(AS_CGB_Bubble_List));
-  init_nodes  = CreateHashTable_AS(num_valid / 2, 
-				   _hash_vset_hash,
-				   _hash_vset_cmp);
+  init_nodes  = CreateGenericHashTable_AS(num_valid / 2, 
+                                          _hash_vset_hash,
+                                          _hash_vset_cmp);
   bp_ins_keys = (BVSPair *)safe_malloc(sizeof(BVSPair) * num_valid );
   result.next = NULL;
 
@@ -125,8 +125,7 @@ _collect_bubbles(BubGraph_t bg, BubVertexSet *fwd, BubVertexSet *rvs,
 #endif
       bp_ins_keys[f].f = &(fwd[top[f]]);
       bp_ins_keys[f].r = &(rvs[top[f]]);
-      InsertInHashTable_AS(init_nodes, (void *) (&(bp_ins_keys[f])), 
-			   sizeof(BVSPair), &(top[f]));
+      InsertInHashTable_AS(init_nodes, (uint64)(&(bp_ins_keys[f])), sizeof(BVSPair), (uint64)&(top[f]), 0);
     }
 
   for (f = 0; f < num_valid; ++f) 
@@ -140,9 +139,7 @@ _collect_bubbles(BubGraph_t bg, BubVertexSet *fwd, BubVertexSet *rvs,
 #endif
       bp_find_key.f = &(fwd[top[f]]);
       bp_find_key.r = &(rvs[top[f]]);
-      i_node = (IntFragment_ID *)
-	LookupInHashTable_AS(init_nodes, (void *) &(bp_find_key), 
-				    sizeof(BVSPair));
+      i_node = (IntFragment_ID *)LookupValueInHashTable_AS(init_nodes, (uint64)&(bp_find_key), sizeof(BVSPair));
 #if AS_CGB_BUBBLE_VERY_VERBOSE
       if (!i_node)
 	fprintf(BUB_LOG_G, "None found.\n");

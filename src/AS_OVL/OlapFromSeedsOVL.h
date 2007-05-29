@@ -33,8 +33,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.h,v 1.3 2007-05-08 22:23:08 adelcher Exp $
- * $Revision: 1.3 $
+ * $Id: OlapFromSeedsOVL.h,v 1.4 2007-05-29 10:54:30 brianwalenz Exp $
+ * $Revision: 1.4 $
 */
 
 
@@ -61,17 +61,6 @@
 #include  "AS_PER_gkpStore.h"
 #include  "AS_OVS_overlapStore.h"
 #include  "SharedOVL.h"
-
-#if 0
-#include  "AS_PER_ReadStruct.h"
-#include  "AS_PER_genericStore.h"
-#include  "AS_PER_distStore.h"
-#include  "AS_UTL_PHash.h"
-#include  "AS_MSG_pmesg.h"
-#include  "AS_UTL_version.h"
-#include  "OlapStoreOVL.h"
-#endif
-
 
 //  Constants
 

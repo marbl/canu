@@ -95,14 +95,14 @@ int main(int argc, char ** argv)
       for(i = 0; i < GetNumVA_CDS_UID_t(uids); i++)
       {
         CDS_UID_t * myUID = GetVA_CDS_UID_t(uids, i);
-        PHashValue_AS value;
-        if(HASH_FAILURE != LookupInPHashTable_AS(asmStore->hashTable,
-                                                 ASM_UID_NAMESPACE,
-                                                 *myUID, &value))
+        uint64      iid;
+        uint32      typ;
+
+        if (HASH_FAILURE != LookupInHashTable_AS(asmStore->hashTable, *myUID, 0, &iid, &typ))
         {
-          if(value.type == AS_IID_SCF)
+          if(typ == AS_IID_SCF)
           {
-            PrintScaffoldContigCoordinates(asmStore, value.IID,
+            PrintScaffoldContigCoordinates(asmStore, iid,
                                            doGnuplotOutput,
                                            doAssemblyCoords, stdout);
           }

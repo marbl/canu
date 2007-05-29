@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_asmStore.c,v 1.8 2007-04-16 17:36:36 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_asmStore.c,v 1.9 2007-05-29 10:54:30 brianwalenz Exp $";
 
 /*************************************************************************
  Module:  AS_PER_asmStore
@@ -269,19 +269,7 @@ AssemblyStore * OpenAssemblyStoreCommon(char * path, char *mode)
   }
 
   sprintf(name,"%s/asm.phash", asmStore->storePath);
-  if(mode && *mode == 'r' && *(mode + 1) == '\0')
-  {
-    asmStore->hashTable = OpenReadOnlyPHashTable_AS(name);
-  }
-  else
-  {
-    asmStore->hashTable = OpenPHashTable_AS(name);
-  }
-  if(asmStore->hashTable == NULL)
-  {
-    fprintf(stderr,"**** Failed to open Assembly Persistent HashTable...\n");
-    return NULL;
-  }
+  asmStore->hashTable = LoadUIDtoIIDHashTable_AS(name);
 
   asmStore->gkpStore = NULL;
 
@@ -322,19 +310,7 @@ MapStore * OpenMapStoreCommon(char * path, char *mode)
   }
 
   sprintf(name,"%s/map.phash", mapStore->storePath);
-  if(mode && *mode == 'r' && *(mode + 1) == '\0')
-  {
-    mapStore->hashTable = OpenReadOnlyPHashTable_AS(name);
-  }
-  else
-  {
-    mapStore->hashTable = OpenPHashTable_AS(name);
-  }
-  if(mapStore->hashTable == NULL)
-  {
-    fprintf(stderr,"**** Failed to open Map Store Persistent HashTable...\n");
-    return NULL;
-  }
+  mapStore->hashTable = LoadUIDtoIIDHashTable_AS(name);
   
   return mapStore;
 }
@@ -421,7 +397,8 @@ AssemblyStore * CreateAssemblyStore(char * path,
   asmStore->sccStore = createASM_IIDStore(name, "scc",1);
   
   sprintf(name,"%s/asm.phash", asmStore->storePath);
-  asmStore->hashTable = CreatePHashTable_AS(1024,name);
+  asmStore->hashTable = CreateScalarHashTable_AS(1024);
+  SaveHashTable_AS(name, asmStore->hashTable);
 
   if(gkpStorePath != NULL)
     OpenGateKeeperStoreAssemblyStore(asmStore, gkpStorePath);
@@ -455,7 +432,8 @@ MapStore * CreateMapStore(char * path)
   mapStore->finStore = createASM_InstanceStore(name, "fin",1);
   
   sprintf(name,"%s/map.phash", mapStore->storePath);
-  mapStore->hashTable = CreatePHashTable_AS(1024,name);
+  mapStore->hashTable = CreateScalarHashTable_AS(1024);
+  SaveHashTable_AS(name, mapStore->hashTable);
 
   return mapStore;
 }
@@ -507,7 +485,7 @@ void CloseAssemblyStore(AssemblyStore *asmStore)
     closeStore(asmStore->sccStore);
   
   if(asmStore->hashTable != NULL)
-    ClosePHashTable_AS(asmStore->hashTable);
+    DeleteHashTable_AS(asmStore->hashTable);
 }
 void CloseMapStore(MapStore *mapStore)
 {
@@ -523,7 +501,7 @@ void CloseMapStore(MapStore *mapStore)
 
   if(mapStore->finStore != NULLSTOREHANDLE)
     closeStore(mapStore->finStore);
-  
+
   if(mapStore->hashTable != NULL)
-    ClosePHashTable_AS(mapStore->hashTable);
+    DeleteHashTable_AS(mapStore->hashTable);
 }

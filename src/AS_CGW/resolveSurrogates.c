@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.16 2007-05-08 15:17:21 brianwalenz Exp $";
+static char CM_ID[] = "$Id: resolveSurrogates.c,v 1.17 2007-05-29 10:54:27 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -171,7 +171,7 @@ int main( int argc, char *argv[])
   while ((parentChunk = NextGraphNodeIterator(&CIGraphIterator))!=NULL){
 
     int numFrgsToPlace=0;
-    UIDHashTable_AS *fHash;
+    HashTable_AS *fHash;
     int numInstances = parentChunk->info.CI.numInstances;
     int i,index, numFragmentsInParent;
     MultiAlignT *maParent;
@@ -264,18 +264,14 @@ int main( int argc, char *argv[])
 
     if(numFrgsToPlace==0)continue;
 
-    fHash = CreateUIDHashTable_AS(numFrgsToPlace);
+    fHash = CreateScalarHashTable_AS(numFrgsToPlace);
 
     for(i=0;i<numInstances;i++){
       int j, numToPlace = GetNumIntMultiPoss(impLists[i]);
       for(j=0;j<numToPlace;j++){
 	CDS_CID_t iid = GetIntMultiPos(impLists[i],j)->ident;
-	int32 *count_so_far = LookupInUID2IIDHashTable_AS(fHash,(uint64)iid);
-	if(count_so_far==NULL){
-	  InsertInUID2IIDHashTable_AS(fHash,(uint64)iid,1);
-	} else {
-	  (*count_so_far)++;
-	}
+        ReplaceInHashTable_AS(fHash, iid, 0,
+                              LookupValueInHashTable_AS(fHash,iid,0) + 1, 0);
       }
     }
 
@@ -291,10 +287,10 @@ int main( int argc, char *argv[])
       //  Build the list of fragments to place
       for(j=0;j<numToPlace;j++){
 	CDS_CID_t iid = GetIntMultiPos(impLists[i],j)->ident;
-	int32 *count_so_far = LookupInUID2IIDHashTable_AS(fHash,(uint64)iid);
-	AssertPtr(count_so_far);
-	assert(*count_so_far>0);
-	if(*count_so_far>1){
+
+	int32 count_so_far = (int32)LookupValueInHashTable_AS(fHash,(uint64)iid,0);
+	assert(count_so_far>0);
+	if(count_so_far>1){
 	  continue;
 	}
 	AppendVA_CDS_CID_t(toplace,&iid);
@@ -341,7 +337,7 @@ int main( int argc, char *argv[])
       ResetVA_IntMultiPos(impLists[i]);
     }
 
-    DeleteUIDHashTable_AS(fHash);
+    DeleteHashTable_AS(fHash);
 
   }
 

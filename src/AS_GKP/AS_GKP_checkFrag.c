@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.24 2007-05-16 08:22:25 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.25 2007-05-29 10:54:28 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -184,12 +184,8 @@ Check_FragMesg(FragMesg            *frg_mesg,
   static  uint32    libOrientationMax = 0;
   static  uint64   *libOrientation    = NULL;
 
-  PHashValue_AS value;
-
-
   if (frg_mesg->action == AS_IGNORE)
     return GATEKEEPER_SUCCESS;
-
 
   if (checkfraginitialized == 0) {
     int i;
@@ -225,15 +221,9 @@ Check_FragMesg(FragMesg            *frg_mesg,
     //  Make sure we haven't seen this frag record before... if so
     //  it is a fatal error
     //
-    if (HASH_FAILURE != LookupTypeInPHashTable_AS(gkpStore->phs_private, 
-                                                  UID_NAMESPACE_AS,
-                                                  frg_mesg->eaccession, 
-                                                  AS_IID_FRG, 
-                                                  FALSE,
-                                                  stderr,
-                                                  &value)) {
-      fprintf(stderr, "FRG Error: Fragment "F_UID" exists with %d refs, can't add it again.\n",
-              frg_mesg->eaccession, value.refCount);
+    if (getGatekeeperUIDtoIID(gkpStore, frg_mesg->eaccession, NULL)) {
+      fprintf(stderr, "FRG Error: Fragment "F_UID" exists, can't add it again.\n",
+              frg_mesg->eaccession);
       return(GATEKEEPER_FAILURE);
     }
 
@@ -320,22 +310,13 @@ Check_FragMesg(FragMesg            *frg_mesg,
     gkf.orientation = AS_READ_ORIENT_UNKNOWN;
 
     if (frg_mesg->library_uid > 0) {
-      value.type = AS_IID_DST;
-      value.IID  = 0;
+      gkf.libraryIID = getGatekeeperUIDtoIID(gkpStore, frg_mesg->library_uid, NULL);
 
-      if (HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore->phs_private,
-                                                    UID_NAMESPACE_AS,
-                                                    frg_mesg->library_uid,
-                                                    AS_IID_DST,
-                                                    FALSE,
-                                                    stderr,
-                                                    &value)) {
+      if (gkf.libraryIID == 0) {
         fprintf(stderr, "FRG Error: Fragment "F_UID" references unknown library "F_UID"\n",
                 frg_mesg->eaccession, frg_mesg->library_uid);
         return(GATEKEEPER_FAILURE);
       }
-
-      gkf.libraryIID  = value.IID;
 
       //  Get the library orientation; cache values across invocations.
       //
@@ -386,18 +367,8 @@ Check_FragMesg(FragMesg            *frg_mesg,
 
     //  Now add the fragment to the store
     //
-    value.type = AS_IID_FRG;
-    value.IID  = 0;
-
-    InsertInPHashTable_AS(&gkpStore->phs_private,
-                          UID_NAMESPACE_AS,
-                          frg_mesg->eaccession,
-                          &value,
-                          FALSE,
-                          TRUE);
-
     gkf.readUID = frg_mesg->eaccession;
-    gkf.readIID = value.IID;
+    gkf.readIID = getLastElemStore(gkpStore->frg) + 1;
 
     gkf.seqLen = strlen(frg_mesg->sequence);
     gkf.hpsLen = 0;
@@ -419,6 +390,7 @@ Check_FragMesg(FragMesg            *frg_mesg,
       gkf.srcOffset = stats.lastElem;
     }
 
+    setGatekeeperUIDtoIID(gkpStore, gkf.readUID, gkf.readIID, AS_IID_LIB);
     appendIndexStore(gkpStore->frg, &gkf);
 
     appendVLRecordStore(gkpStore->seq, frg_mesg->sequence, gkf.seqLen);
@@ -432,40 +404,27 @@ Check_FragMesg(FragMesg            *frg_mesg,
   } else if (frg_mesg->action == AS_DELETE) {
 
     GateKeeperFragmentRecord gkf;
+    CDS_IID_t                iid = getGatekeeperUIDtoIID(gkpStore, frg_mesg->eaccession, NULL);
 
-    if(HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore->phs_private, 
-                                                 UID_NAMESPACE_AS,
-                                                 frg_mesg->eaccession, 
-                                                 AS_IID_FRG, 
-                                                 FALSE,
-                                                 stderr,
-                                                 &value)){
+    if (iid == 0) {
       fprintf(stderr, "FRG Error: Fragment "F_UID" does not exist, can't delete it.\n",
               frg_mesg->eaccession);
       return(GATEKEEPER_FAILURE);
     }
 
-    if (value.refCount > 1){
-      fprintf(stderr, "FRG Error: Fragment "F_UID" has %d references outstanding, can't delete it.\n",
-              frg_mesg->eaccession, value.refCount);
-      return(GATEKEEPER_FAILURE);
-    }
-
-    getGateKeeperFragment(gkpStore, value.IID, &gkf);
+    getGateKeeperFragment(gkpStore, iid, &gkf);
 
     if (gkf.mateIID > 0) {
-      fprintf(stderr, "FRG Error: Fragment "F_UID" has mate pair relationship; %d references, can't delete it.\n",
-              frg_mesg->eaccession, value.refCount);
+      fprintf(stderr, "FRG Error: Fragment "F_UID" has mate pair relationship, can't delete it.\n",
+              frg_mesg->eaccession);
       return(GATEKEEPER_FAILURE);
     }      
 
-    getGateKeeperFragment(gkpStore, value.IID, &gkf);
-
-    if(HASH_SUCCESS == DeleteFromPHashTable_AS(gkpStore->phs_private, UID_NAMESPACE_AS, frg_mesg->eaccession)){
+    if (HASH_SUCCESS == delGatekeeperUIDtoIID(gkpStore, frg_mesg->eaccession)) {
       GateKeeperFragmentRecord dr;
-      getIndexStore(gkpStore->frg, value.IID, &dr);
+      getIndexStore(gkpStore->frg, iid, &dr);
       dr.deleted = TRUE;
-      setIndexStore(gkpStore->frg, value.IID, &dr);
+      setIndexStore(gkpStore->frg, iid, &dr);
     }else{
       assert(0);
     }
@@ -476,6 +435,3 @@ Check_FragMesg(FragMesg            *frg_mesg,
   }
   return GATEKEEPER_SUCCESS;
 }
-
-
-

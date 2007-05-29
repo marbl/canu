@@ -34,6 +34,8 @@ CGW_SOURCES =     AS_CGW_main.c \
                   greedyFragmentTiling.c \
                   dumpSingletons.c
 
+#                  greedyFragmentTiling.c
+
 #  Not all of these are external, most are probably private to cgw itself.
 CGW_LIB_SOURCES = AS_CGW_dataTypes.c \
                   AS_CGW_EdgeDiagnostics.c \

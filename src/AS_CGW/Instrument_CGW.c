@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.24 2007-05-14 09:27:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.25 2007-05-29 10:54:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -214,69 +214,15 @@ int DoSimpleScaffoldGraphChecks(ScaffoldGraphT * graph,
           Functions for hashing, qsorting, et cetera
 ********************************************************************/
 
-/*
-  Function for comparing members in hashtable of contig placements
-*/
-int InstrumenterCPCompareFn(const void * item1, const void * item2)
-{
-  const ContigPlacement * cp1 = (const ContigPlacement *) item1;
-  const ContigPlacement * cp2 = (const ContigPlacement *) item2;
-
-  return(cp1->id - cp2->id);
-}
-
-
-/*
-  Function for comparing members in hashtable of locales
-*/
-int InstrumenterIDCompareFn(const void * item1, const void * item2)
-{
-  const CDS_CID_t * loc1 = (const CDS_CID_t *) item1;
-  const CDS_CID_t * loc2 = (const CDS_CID_t *) item2;
-
-  return(*loc2 - *loc1);
-}
-  
-
-/*
-  Function for comparing members of hashtable of fragments
-*/
-int InstrumenterFragCompareFn(const void * item1, const void * item2)
-{
-  const CIFragT * frag1 = (const CIFragT *) item1;
-  const CIFragT * frag2 = (const CIFragT *) item2;
-
-  return(frag2->iid - frag1->iid);
-}
-
-
-/*
-  Function for comparing members in hashtable of contig placements
-*/
-int InstrumenterMDCompareFn(const void * item1, const void * item2)
-{
-  const MateDetail * md1 = (const MateDetail *) item1;
-  const MateDetail * md2 = (const MateDetail *) item2;
-
-  return(md1->fragIID - md2->fragIID);
-}
-
-
-/*
-  Function for hashing
-*/
-int InstrumenterHashFn(const void * item, int length)
-{
-  return Hash_AS((uint8 *) item, length, 37);
-}
-
 
 /*
   qsort comparison function
   for mate detail order (sort mate pairs left 5p to right 5p)
 */
-static int md1Compare(const MateDetail * a, const MateDetail * b)
+static int md1Compare(const void * A, const void * B)
 {
+  const MateDetail *a = (const MateDetail *)A;
+  const MateDetail *b = (const MateDetail *)B;
   return(a->fragOffset5p - b->fragOffset5p);
 }
 
@@ -778,9 +724,7 @@ int InitializeSurrogateTracker(ScaffoldGraphT * graph,
     {
       // assume 1/10 # of frags?
       st->numAllocatedLocs = MAX(50, GetNumCIFragTs(graph->CIFrags) / 100);
-      st->surrogateFragHT = CreateHashTable_AS(st->numAllocatedLocs,
-                                               InstrumenterHashFn,
-                                               InstrumenterFragCompareFn);
+      st->surrogateFragHT = CreateScalarHashTable_AS(st->numAllocatedLocs);
       if(st->surrogateFragHT == NULL)
         {
           fprintf(stderr, "Failed to allocate surrogate fragment hashtable\n");
@@ -871,9 +815,7 @@ int InitializeInstrumenterBookkeeping(ScaffoldGraphT * graph,
 
   if(bk->fragHT == NULL)
     {
-      bk->fragHT = CreateHashTable_AS(numFrags,
-                                      InstrumenterHashFn,
-                                      InstrumenterFragCompareFn);
+      bk->fragHT = CreateScalarHashTable_AS(numFrags);
       if(bk->fragHT == NULL)
         {
           fprintf(stderr, "Failed to allocate fragment hashtable\n");
@@ -1135,9 +1077,7 @@ int InitializeScaffoldInstrumenter(ScaffoldGraphT * graph,
 
   if(si->cpHT == NULL)
     {
-      if((si->cpHT = CreateHashTable_AS(1000,
-                                        InstrumenterHashFn,
-                                        InstrumenterCPCompareFn)) == NULL)
+      if((si->cpHT = CreateScalarHashTable_AS(1000)) == NULL)
         {
           fprintf(stderr, "Failed to allocate contig pair hashtable\n");
           return 1;
@@ -1157,9 +1097,7 @@ int InitializeScaffoldInstrumenter(ScaffoldGraphT * graph,
 
   if(si->anchoredHT == NULL)
     {
-      if((si->anchoredHT = CreateHashTable_AS(1000,
-                                              InstrumenterHashFn,
-                                              InstrumenterIDCompareFn)) == NULL)
+      if((si->anchoredHT = CreateScalarHashTable_AS(1000)) == NULL)
         {
           fprintf(stderr, "Failed to allocate contig anchoring hashtable\n");
           return 1;
@@ -1660,7 +1598,7 @@ int DetectBreakpointType(ScaffoldGraphT * graph,
       qsort(GetVA_MateDetail(mda, 0),
             GetNumVA_MateDetail(mda),
             sizeof(MateDetail),
-            (int (*) (const void *, const void *)) md1Compare );
+            md1Compare );
 
       // loop over intervals
       for(i = 0, bp1.pairs = 0; i < GetNumVA_MateDetail(mda); i++)
@@ -2850,9 +2788,7 @@ void PrintUnanchoredContigIDs(ScaffoldInstrumenter * si,
   for(i = 0; i < GetNumVA_ContigPlacement(si->cpArray); i++)
     {
       ContigPlacement * cp = GetVA_ContigPlacement(si->cpArray, i);
-      if(LookupInHashTable_AS(si->anchoredHT,
-                              (void *) &(cp->id),
-                              sizeof(cp->id)) == NULL)
+      if(!ExistsInHashTable_AS(si->anchoredHT, (uint64)cp->id, 0))
         {
           PrintContigPlacement(cp, i, prefix, printTo);
         }
@@ -3133,15 +3069,10 @@ int AddInstrumenterBookkeeping(ScaffoldGraphT * graph,
         {
           CDS_CID_t * fragIID = GetVA_CDS_CID_t(src->fragArray, i);
       
-          if(! LookupInHashTable_AS(dest->fragHT,
-                                    fragIID,
-                                    sizeof(CDS_CID_t)))
+          if(!ExistsInHashTable_AS(dest->fragHT, (uint64)fragIID, 0))
             {
               CIFragT * frag = getFragByIID(graph, *fragIID);
-              InsertInHashTable_AS(dest->fragHT,
-                                   (void *) &(frag->iid),
-                                   sizeof(CDS_CID_t),
-                                   (void *) frag);
+              InsertInHashTable_AS(dest->fragHT, (uint64)frag->iid, 0, (uint64)frag, 0);
               AppendVA_CDS_CID_t(dest->fragArray, fragIID);
             }
         }
@@ -3159,17 +3090,12 @@ int AddInstrumenterBookkeeping(ScaffoldGraphT * graph,
         {
           MateDetail * md = GetVA_MateDetail(src->wExtMates, i);
       
-          if(! LookupInHashTable_AS(dest->fragHT,
-                                    (void *) &(md->fragIID),
-                                    sizeof(CDS_CID_t)))
+          if(!ExistsInHashTable_AS(dest->fragHT, (uint64)md->fragIID, 0))
             {
               // need to find the CIFragT - stable pointer
               CIFragT * frag = getFragByIID(graph, md->fragIID);
         
-              InsertInHashTable_AS(dest->fragHT,
-                                   (void *) &(frag->iid),
-                                   sizeof(CDS_CID_t),
-                                   (void *) frag);
+              InsertInHashTable_AS(dest->fragHT, (uint64)frag->iid, 0, (uint64)frag, 0);
               AppendVA_CDS_CID_t(dest->fragArray, &(md->fragIID));
             }
         }
@@ -3817,14 +3743,11 @@ int AddFragmentToUnitigInstrumenter(ScaffoldGraphT * graph,
 
           if(frag->mateOf != NULLINDEX)
             {
-              if(! LookupInHashTable_AS(ui->bookkeeping.fragHT,
-                                        (void *) &(frag->iid),
-                                        sizeof(CDS_CID_t)))
+              if(!ExistsInHashTable_AS(ui->bookkeeping.fragHT, (uint64)&(frag->iid), 0))
                 {
                   if(InsertInHashTable_AS(ui->bookkeeping.fragHT,
-                                          (void *) &(frag->iid),
-                                          sizeof(CDS_CID_t),
-                                          (void *) frag) == HASH_FAILURE)
+                                          (uint64)frag->iid, 0,
+                                          (uint64)frag, 0) == HASH_FAILURE)
                     {
                       fprintf(stderr, "Failed to insert frag into hashtable.\n");
                       return 1;
@@ -3883,9 +3806,8 @@ int AddFragmentToSurrogateTracker(ScaffoldGraphT * graph,
       add an entry to the array & change the NULL to point to it
       if not present, add to hashtable
     */
-    if((sflp = LookupInHashTable_AS(st->surrogateFragHT,
-                                    &(frag->iid),
-                                    sizeof(CDS_CID_t))))
+    if((sflp = (SurrogateFragLocation *)LookupValueInHashTable_AS(st->surrogateFragHT,
+                                                                  (uint64)frag->iid, 0)))
       {
         // found entry for fragment. follow linked list to the last one
         while(sflp->nextIndex != 0)
@@ -3926,9 +3848,8 @@ int AddFragmentToSurrogateTracker(ScaffoldGraphT * graph,
     if(addToHashTable)
       {
         if(InsertInHashTable_AS(st->surrogateFragHT,
-                                &(frag->iid),
-                                sizeof(CDS_CID_t),
-                                &(st->surrogateFragLocs[st->numUsedLocs]))
+                                (uint64)frag->iid, 0,
+                                (uint64)&st->surrogateFragLocs[st->numUsedLocs], 0)
            != HASH_SUCCESS)
           {
             fprintf(stderr,
@@ -3994,9 +3915,7 @@ int GetFragmentPositionInFauxScaffold(HashTable_AS * cpHT,
 {
   ContigPlacement * cp;
 
-  cp = LookupInHashTable_AS(cpHT,
-                            (void *) &(frag->contigID),
-                            sizeof(CDS_CID_t));
+  cp = (ContigPlacement *)LookupValueInHashTable_AS(cpHT, (uint64)frag->contigID, 0);
   if(cp == NULL)
     {
       fprintf(stderr, "Fragment " F_CID "'s contig " F_CID " is not in hashtable!\n",
@@ -4069,9 +3988,7 @@ int GetFragment5pPositionInFauxScaffoldGivenCtgPsn(HashTable_AS * cpHT,
   ContigPlacement * cp;
   static int firstTime=1;
 
-  cp = LookupInHashTable_AS(cpHT,
-                            &contigIID,
-                            sizeof(int32));
+  cp = (ContigPlacement *)LookupValueInHashTable_AS(cpHT, (uint64)contigIID, 0);
   if(cp == NULL)
     {
       fprintf(stderr, "Contig %u is not in hashtable!\n",
@@ -4127,9 +4044,7 @@ int GetSurrogatePositionInFauxScaffoldFromSFL(HashTable_AS * cpHT,
   CDS_COORD_t AEndOnCtg = *frag5p;
   CDS_COORD_t BEndOnCtg = *frag3p;
 
-  cp = LookupInHashTable_AS(cpHT,
-                            (void *) &(contigID),
-                            sizeof(int32));
+  cp = (ContigPlacement *)LookupValueInHashTable_AS(cpHT, (uint64)contigID, 0);
   if(cp == NULL)
     {
       fprintf(stderr, "A surrogate fragment's contig %u is not in hashtable!\n",
@@ -4210,7 +4125,7 @@ void PrintScaffoldMateDetail(HashTable_AS * cpHT,
       return;
   }
 
-  if(LookupInHashTable_AS(cpHT,&(tmpfrg->contigID),sizeof(int32))==NULL){
+  if(!ExistsInHashTable_AS(cpHT,(uint64)tmpfrg->contigID,0)){
     // this should apply only to surrogate fragments
 
     /* intra-ctg mate pair; coordinates are relative to the contig */
@@ -4232,7 +4147,7 @@ void PrintScaffoldMateDetail(HashTable_AS * cpHT,
   tmpfrg = GetCIFragT(ScaffoldGraph->CIFrags,
 		      GetInfoByIID(ScaffoldGraph->iidToFragIndex,
 				   md->mateIID)->fragIndex);
-  if(LookupInHashTable_AS(cpHT,&(tmpfrg->contigID),sizeof(int32))==NULL){
+  if(!ExistsInHashTable_AS(cpHT,(uint64)tmpfrg->contigID,0)){
     // this should apply only to surrogate fragments
 
     /* intra-ctg mate pair; coordinates are relative to the contig */
@@ -4566,16 +4481,13 @@ int CheckFragmentMatePairs(ScaffoldGraphT * graph,
       graphMate = GetCIFragT(graph->CIFrags, frag->mateOf);
 
       // see if the mate is in a unitig
-      if((lookupMate = LookupInHashTable_AS(bookkeeping->fragHT,
-                                            (void *) &(graphMate->iid),
-                                            sizeof(CDS_CID_t))) == NULL)
+      if((lookupMate = (CIFragT *)LookupValueInHashTable_AS(bookkeeping->fragHT, (uint64)graphMate->iid, 0)) == NULL)
         {
           // if here, mate is not in a non-surrogate unitig in this node
           // see if it's in the set of surrogate fragments
           SurrogateFragLocation * sflp;
-          if((sflp = LookupInHashTable_AS(st->surrogateFragHT,
-                                          &(graphMate->iid),
-                                          sizeof(CDS_CID_t))) != NULL
+          if((sflp = (SurrogateFragLocation *)LookupValueInHashTable_AS(st->surrogateFragHT,
+                                                                   (uint64)graphMate->iid, 0)) != NULL
              && (!doingContig /* i.e. working on scf */ || 
                  sflp->contig == chunkIID /* surrogate is in same contig */)
              )
@@ -4723,20 +4635,14 @@ int CheckFragmentMatePairs(ScaffoldGraphT * graph,
       
           if(anchoredHT && frag->contigID != lookupMate->contigID)
             {
-              if(LookupInHashTable_AS(anchoredHT,
-                                      (void *) &(frag->contigID),
-                                      sizeof(CDS_CID_t)) == NULL)
+              if(!ExistsInHashTable_AS(anchoredHT, (uint64)frag->contigID, 0))
                 InsertInHashTable_AS(anchoredHT,
-                                     (void *) &(frag->contigID),
-                                     sizeof(CDS_CID_t),
-                                     (void *) &(frag->contigID));
-              if(LookupInHashTable_AS(anchoredHT,
-                                      (void *) &(lookupMate->contigID),
-                                      sizeof(CDS_CID_t)) == NULL)
+                                     (uint64)frag->contigID, 0,
+                                     (uint64)frag->contigID, 0);
+              if(!ExistsInHashTable_AS(anchoredHT, (uint64)lookupMate->contigID, 0))
                 InsertInHashTable_AS(anchoredHT,
-                                     (void *) &(lookupMate->contigID),
-                                     sizeof(CDS_CID_t),
-                                     (void *) &(lookupMate->contigID));
+                                     (uint64)lookupMate->contigID, 0,
+                                     (uint64)lookupMate->contigID, 0);
             }
          
           if(orientShouldBe == orientIs)
@@ -5237,9 +5143,8 @@ int AddCPToHashTable(HashTable_AS * ht,
                      ContigPlacement * cp)
 {
   if(InsertInHashTable_AS(ht,
-                          (void *) &(cp->id),
-                          sizeof(CDS_CID_t),
-                          (void *) cp) == HASH_FAILURE)
+                          (uint64)cp->id, 0,
+                          (uint64)cp, 0) == HASH_FAILURE)
     {
       fprintf(stderr, "Failed to insert contig position into hashtable.\n");
       return 1;
@@ -5590,16 +5495,14 @@ int FinishMissingMateList(ScaffoldGraphInstrumenter * sgi)
 {
   MateDetail * wExtMates = GetVA_MateDetail(sgi->bookkeeping.wExtMates, 0);
   int32 numMatePairs = GetNumVA_MateDetail(sgi->bookkeeping.wExtMates);
-  HashTable_AS * ht;
+  HashTable_AS * mateDetailHT;
   CDS_CID_t i;
 
   if(numMatePairs == 0)
     return 0;
-  
-  ht = CreateHashTable_AS(numMatePairs,
-                          InstrumenterHashFn,
-                          InstrumenterMDCompareFn);
-  if(ht == NULL)
+
+  mateDetailHT = CreateScalarHashTable_AS(numMatePairs);
+  if(mateDetailHT == NULL)
     {
       fprintf(stderr, "Failed to allocate hashtable of %d elements\n",
               numMatePairs);
@@ -5610,18 +5513,15 @@ int FinishMissingMateList(ScaffoldGraphInstrumenter * sgi)
   for(i = 0; i < numMatePairs; i++)
     {
       MateDetail * mate;
-      if((mate = LookupInHashTable_AS(ht,
-                                      (void *) &(wExtMates[i].mateIID),
-                                      sizeof(CDS_CID_t))) == NULL)
+      if((mate = (MateDetail *)LookupValueInHashTable_AS(mateDetailHT, (uint64)wExtMates[i].mateIID, 0)) == NULL)
         {
           if(wExtMates[i].mateChunkIID != NULLINDEX)
             {
               // fragment pair listed more than twice
             }
-          InsertInHashTable_AS(ht,
-                               (void *) &(wExtMates[i].fragIID),
-                               sizeof(CDS_CID_t),
-                               (void *) &(wExtMates[i]));
+          InsertInHashTable_AS(mateDetailHT,
+                               (uint64)wExtMates[i].fragIID, 0,
+                               (uint64)&wExtMates[i], 0);
         }
       else
         {
@@ -5641,7 +5541,7 @@ int FinishMissingMateList(ScaffoldGraphInstrumenter * sgi)
     qsort(wExtMates, numMatePairs, sizeof(MateDetail),
           (int (*) (const void *, const void *)) md2Compare);
 
-  DeleteHashTable_AS(ht);
+  DeleteHashTable_AS(mateDetailHT);
   return 0;
 }
 

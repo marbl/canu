@@ -27,9 +27,8 @@
                  
  *********************************************************************/
 
-static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.48 2007-05-14 09:27:11 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.49 2007-05-29 10:54:27 brianwalenz Exp $";
 
-// Operating System includes:
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
@@ -45,7 +44,6 @@ static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.48 2007-05-14 09:27:11 bri
 #include <fpu_control.h>
 #endif
 
-// Celera Assembler includes:
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_PER_gkpStore.h"
@@ -53,12 +51,10 @@ static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.48 2007-05-14 09:27:11 bri
 #include "AS_UTL_Var.h"
 #include "AS_UTL_fileIO.h"
 #include "UtilsREZ.h"
-#include "AS_UTL_ID_store.h"
 #include "AS_UTL_version.h"
 #include "AS_SDB_SequenceDBPartition.h"
 #include "AS_ALN_forcns.h"
 
-// Consensus includes:
 #include "MultiAlignStore_CNS.h"
 #include "MultiAlignment_CNS.h"
 #include "Globals_CNS.h"
@@ -267,9 +263,10 @@ int main (int argc, char *argv[])
     FILE *failout;
     int sdb_version=-1;
     int sdb_partition=-1;
-    ID_Arrayp  tig_iids = NULL;
-    ID_Arrayp  tig_iids_found = NULL;
-    int64  this_id;
+    int64  i;
+
+    HashTable_AS  *tig_iids = NULL;
+    HashTable_AS  *tig_iids_found = NULL;
 
     /**************** Process Command Line Arguments *********************/
     /* Parse the argument list using "man 3 getopt". */
@@ -782,22 +779,16 @@ int main (int argc, char *argv[])
           num_uids++;
         }
         rewind( sublist );
-        tig_iids = AllocateID_Array( num_uids );
-        tig_iids_found = AllocateID_Array( num_uids );
+        tig_iids       = CreateScalarHashTable_AS( num_uids );
+        tig_iids_found = CreateScalarHashTable_AS( num_uids );
         if( tig_iids == NULL || tig_iids_found == NULL ) {
-#if 0
-            fprintf(stderr, "Leaving consensus \n");
-#endif
             return EXIT_FAILURE;
         }
-        for( this_id = 0; this_id < num_uids - 1; this_id++ )
+        for( i = 0; i < num_uids; i++ )
         {
           fgets( string, 1000, sublist );
-          AppendToID_Array( tig_iids, STR_TO_UID(string, NULL, 10), 0 );
+          InsertInHashTable_AS(tig_iids, STR_TO_UID(string, NULL, 10), 0, 0, 0);
         }
-        fgets( string, 1000, sublist );
-        AppendToID_Array( tig_iids, STR_TO_UID( string, NULL, 10), 1 );
-  
         fclose( sublist );
       }
       safe_free(extract_id);
@@ -842,7 +833,7 @@ int main (int argc, char *argv[])
       VA_TYPE(char) *quality=CreateVA_char(200000);
       time_t t;
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.48 $ processing. Started %s\n",
+      fprintf(stderr,"# Consensus $Revision: 1.49 $ processing. Started %s\n",
         ctime(&t));
       InitializeAlphTable();
       if ( ! align_ium && USE_SDB && extract > -1 ) 
@@ -949,11 +940,10 @@ int main (int argc, char *argv[])
               else {
                 beyond=1;
               }
-              if( process_sublist && 
-                 (this_id = FindID_ArrayID( tig_iids, iunitig->iaccession)) > -1 )
+              if (process_sublist && ExistsInHashTable_AS(tig_iids, iunitig->iaccession, 0))
               {
                 fprintf(stderr,"Processing IUM %d from sublist\n",iunitig->iaccession);
-                AppendToID_Array( tig_iids_found, iunitig->iaccession, 1 );
+                InsertInHashTable_AS(tig_iids_found, iunitig->iaccession, 0, 0, 0);
               } 
               else if (process_sublist) 
               {
@@ -1082,12 +1072,10 @@ int main (int argc, char *argv[])
             } else { 
               beyond=1;
             }
-            if( process_sublist && 
-               (this_id = FindID_ArrayID( tig_iids, pcontig->iaccession)) > -1 )
+            if (process_sublist && ExistsInHashTable_AS(tig_iids, iunitig->iaccession, 0))
             {
-              fprintf(stderr,"Processing ICM %d from sublist\n",
-                  pcontig->iaccession);
-              AppendToID_Array( tig_iids_found, pcontig->iaccession, 1 );
+              fprintf(stderr,"Processing ICM %d from sublist\n", pcontig->iaccession);
+              InsertInHashTable_AS(tig_iids_found, pcontig->iaccession, 0, 0, 0);
             } else if ( range == 1 && 
                        ( (!align_ium) && 
                         ( (pcontig->iaccession<tig_range.bgn) || 
@@ -1191,7 +1179,7 @@ int main (int argc, char *argv[])
             {
               AuditLine auditLine;
               AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                                 "Consensus", "$Revision: 1.48 $","(empty)");
+                                 "Consensus", "$Revision: 1.49 $","(empty)");
             }
 #endif
               VersionStampADT(adt_mesg,argc,argv);
@@ -1215,7 +1203,7 @@ int main (int argc, char *argv[])
       }
 
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.48 $ Finished %s\n",ctime(&t));
+      fprintf(stderr,"# Consensus $Revision: 1.49 $ Finished %s\n",ctime(&t));
       if (printcns) 
       {
         int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 

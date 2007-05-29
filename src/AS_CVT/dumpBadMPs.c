@@ -249,18 +249,18 @@ int main(int argc, char ** argv)
       for(i = 0; i < GetNumVA_CDS_UID_t(scaffolds); i++)
       {
         CDS_UID_t * myUID = GetVA_CDS_UID_t(scaffolds, i);
-        PHashValue_AS value;
-        if(HASH_FAILURE != LookupInPHashTable_AS(asmStore->hashTable,
-                                                 ASM_UID_NAMESPACE,
-                                                 *myUID, &value))
+        uint64      iid;
+        uint32      typ;
+
+        if(HASH_FAILURE != LookupInHashTable_AS(asmStore->hashTable, *myUID, 0, &iid, &typ))
         {
-          if(value.type == AS_IID_SCF)
+          if(typ == AS_IID_SCF)
           {
-            cd = GetScaffoldCloneData(asmStore, value.IID, TRUE, FALSE);
+            cd = GetScaffoldCloneData(asmStore, iid, TRUE, FALSE);
           }
-          else if(value.type == AS_IID_DSC)
+          else if(typ == AS_IID_DSC)
           {
-            cd = GetScaffoldCloneData(asmStore, value.IID, TRUE, TRUE);
+            cd = GetScaffoldCloneData(asmStore, iid, TRUE, TRUE);
           }
           else
           {

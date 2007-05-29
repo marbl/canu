@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_PER_asmStore.h,v 1.11 2007-05-14 13:40:55 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_asmStore.h,v 1.12 2007-05-29 10:54:30 brianwalenz Exp $	 */
 #ifndef AS_PER_ASMSTORE_H
 #define AS_PER_ASMSTORE_H
 /*************************************************************************
@@ -44,10 +44,8 @@
 #include "AS_MSG_pmesg.h"
 #include "AS_PER_genericStore.h"
 #include "AS_PER_gkpStore.h"
-#include "AS_UTL_PHash.h"
 #include "AS_UTL_fileIO.h"
-
-#define ASM_UID_NAMESPACE 'U'
+#include "AS_UTL_Hash.h"
 
 // overload some iid types for assembly store
 //
@@ -266,7 +264,7 @@ typedef struct
   ASM_GapStore     scgStore;
   ASM_IIDStore     sccStore;
   
-  PHashTable_AS * hashTable;
+  HashTable_AS *   hashTable;
 }AssemblyStore;
 
 
@@ -317,7 +315,7 @@ typedef struct
   ASM_MemberStore     cfmStore; // frags in each chromosome;
 #endif
   ASM_InstanceStore   finStore; // fragment instance store - ONE entry per frag
-  PHashTable_AS *     hashTable; // for looking up chromosome UIDs
+  HashTable_AS *      hashTable; // for looking up chromosome UIDs
 } MapStore;
 
 MapStore * CreateMapStore(char * path);

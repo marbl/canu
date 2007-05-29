@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.36 2007-05-14 09:27:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.37 2007-05-29 10:54:26 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -1052,6 +1052,25 @@ void ProcessFrags(void)
       }
     } else {
       //  Both guys are alive, and we're mated.  Throw some asserts
+
+      if (ciinfo->set == 0) {
+        fprintf(stderr, "ERROR: cifrag iid=%d ciinfo->set == 0; cifrag not in the assembly\n");
+      }
+      if (miinfo->set == 0) {
+        fprintf(stderr, "ERROR: mifrag iid=%d miinfo->set == 0; mifrag not in the assembly\n");
+      }
+      if (cifrag->dist   != mifrag->dist) {
+        fprintf(stderr, "ERROR: cifrag iid=%d mifrag iid=%d -- cifrag->dist=%d != mifrag->dist=%d; libraries not the same\n",
+                cifrag->iid, mifrag->iid, cifrag->dist, mifrag->dist);
+      }
+      if (cifrag->mateOf != miinfo->fragIndex) {
+        fprintf(stderr, "ERROR: cifrag iid=%d mifrag iid==%d -- cifrag->mateOf=%d != miinfo->fragIndex=%d; messed up mate index/iid\n",
+                cifrag->iid, mifrag->iid, cifrag->mateOf, miinfo->fragIndex);
+      }
+      if (mifrag->mateOf != ciinfo->fragIndex) {
+        fprintf(stderr, "ERROR: mifrag iid=%d cifrag iid==%d -- mifrag->mateOf=%d != ciinfo->fragIndex=%d; messed up mate index/iid\n",
+                mifrag->iid, cifrag->iid, mifrag->mateOf, ciinfo->fragIndex);
+      }
 
       assert(ciinfo->set);
       assert(miinfo->set);

@@ -29,6 +29,8 @@
 
 //#define DEBUG_ASMDATA
 
+#warning NOT tested after updating to new hash table
+
 void PopulateInstance(ASM_InstanceRecord * ins,
                       uint32 index,
                       SeqInterval pos)
@@ -419,7 +421,6 @@ void PrintReadsPlaced(AssemblyStore * asmStore,
 int AddMDI2Store(AssemblyStore * asmStore, SnapMateDistMesg * smdm)
 {
   ASM_MDIRecord mdi;
-  PHashValue_AS value;
   int i;
 
   // append buckets to bucketstore
@@ -435,27 +436,22 @@ int AddMDI2Store(AssemblyStore * asmStore, SnapMateDistMesg * smdm)
 
   if(asmStore->gkpStore != NULL)
   {
-    if(HASH_FAILURE == getGatekeeperUIDtoIID(asmStore->gkpStore,
-                                             mdi.uid,
-                                             &value))
-    {
+    CDS_IID_t  libiid = getGatekeeperUIDtoIID(asmStore->gkpStore, mdi.uid, NULL);
+    if (libiid == 0) {
       // look up original in gatekeeper store
       fprintf(stderr, "Failed to lookup " F_UID " in gatekeeper store hashtable\n",
               mdi.uid);
     }
     else
     {
-      GateKeeperLibraryRecord  *gklr = getGateKeeperLibrary(asmStore->gkpStore, value.IID);
+      GateKeeperLibraryRecord  *gklr = getGateKeeperLibrary(asmStore->gkpStore, libiid);
       mdi.inMean   = gklr->mean;
       mdi.inStddev = gklr->stddev;
     }
   }
   appendASM_MDIStore(asmStore->mdiStore, &mdi);
+  InsertInHashTable_AS(asmStore->hashTable, mdi.uid, 0, getLastElemStore(asmStore->mdiStore), AS_IID_MDI);
 
-  memset(&value, 0, sizeof(PHashValue_AS));
-  value.type = AS_IID_MDI;
-  InsertInPHashTable_AS(&(asmStore->hashTable), ASM_UID_NAMESPACE,
-                        mdi.uid, &value, FALSE, TRUE);
   return 0;
 }
 
@@ -463,7 +459,6 @@ int AddMDI2Store(AssemblyStore * asmStore, SnapMateDistMesg * smdm)
 int AddAFG2Store(AssemblyStore * asmStore, AugFragMesg * afg)
 {
   ASM_AFGRecord myAFG;
-  PHashValue_AS value;
   GateKeeperFragmentRecord gkfr;
   
   if(asmStore->gkpStore == NULL)
@@ -473,24 +468,17 @@ int AddAFG2Store(AssemblyStore * asmStore, AugFragMesg * afg)
     myAFG.uid = afg->eaccession;
     myAFG.deleted = FALSE;
     appendASM_AFGStore(asmStore->afgStore, &myAFG);
-    
-    memset(&value, 0, sizeof(PHashValue_AS));
-    value.type = AS_IID_AFG;
-    InsertInPHashTable_AS(&(asmStore->hashTable), ASM_UID_NAMESPACE,
-                          myAFG.uid, &value, FALSE, TRUE);
+    InsertInHashTable_AS(asmStore->hashTable, myAFG.uid, 0, getLastElemStore(asmStore->afgStore), AS_IID_AFG);
   }
 
-  if(HASH_FAILURE == LookupInPHashTable_AS(asmStore->hashTable,
-                                           ASM_UID_NAMESPACE,
-                                           afg->eaccession,
-                                           &value))
-  {
+  CDS_IID_t  iid = LookupValueInHashTable_AS(asmStore->hashTable, afg->eaccession, 0);
+  if (iid == 0) {
     fprintf(stderr, "Failed to lookup " F_UID " in hashtable\n",
             afg->eaccession);
     assert(0);
   }
-  getASM_AFGStore(asmStore->afgStore, value.IID, &myAFG);
-  
+  getASM_AFGStore(asmStore->afgStore, iid, &myAFG);
+
   myAFG.uid = afg->eaccession;
   myAFG.chaff = afg->chaff;
   myAFG.chimeric = afg->chimeric;
@@ -499,7 +487,7 @@ int AddAFG2Store(AssemblyStore * asmStore, AugFragMesg * afg)
   // get link fields and original clear range - 1:1 correspondence between AFGs & gkfrs
   if(asmStore->gkpStore != NULL)
   {
-    getGateKeeperFragment(asmStore->gkpStore, value.IID, &gkfr);
+    getGateKeeperFragment(asmStore->gkpStore, iid, &gkfr);
     myAFG.type    = AS_READ;
     myAFG.mate    = gkfr.mateIID;
     myAFG.library = gkfr.libraryIID;
@@ -507,7 +495,7 @@ int AddAFG2Store(AssemblyStore * asmStore, AugFragMesg * afg)
     myAFG.inClr.bgn = gkfr.clearBeg[AS_READ_CLEAR_ORIG];
     myAFG.inClr.end = gkfr.clearEnd[AS_READ_CLEAR_ORIG];
   }
-  setASM_AFGStore(asmStore->afgStore, value.IID, &myAFG);
+  setASM_AFGStore(asmStore->afgStore, iid, &myAFG);
   return 0;
 }
 
@@ -515,7 +503,6 @@ int AddAFG2Store(AssemblyStore * asmStore, AugFragMesg * afg)
 int AddUTG2Store(AssemblyStore * asmStore, SnapUnitigMesg * sum)
 {
   ASM_UTGRecord utg;
-  PHashValue_AS value;
   int i;
   IntChunk_ID unitigIndex = getNumASM_UTGs(asmStore->utgStore) + 1;
 
@@ -531,30 +518,27 @@ int AddUTG2Store(AssemblyStore * asmStore, SnapUnitigMesg * sum)
   for(i = 0; i < utg.numFrags; i++)
   {
     ASM_AFGRecord afg;
+    CDS_IID_t     iid;
 
-    if(HASH_FAILURE == LookupInPHashTable_AS(asmStore->hashTable,
-                                             ASM_UID_NAMESPACE,
-                                             sum->f_list[i].eident,
-                                             &value))
+    iid = LookupValueInHashTable_AS(asmStore->hashTable, sum->f_list[i].eident, 0);
+    if (iid == 0)
     {
       fprintf(stderr, "Failed to lookup " F_UID " in hashtable\n",
               sum->f_list[i].eident);
     }
-    appendASM_IIDStore(asmStore->utfStore, &(value.IID));
+    appendASM_IIDStore(asmStore->utfStore, &iid);
     
-    getASM_AFGStore(asmStore->afgStore, value.IID, &afg);
+    getASM_AFGStore(asmStore->afgStore, iid, &afg);
     afg.unitigIndex = unitigIndex;
     afg.type = sum->f_list[i].type;
     afg.inSurrogate = (utg.status == AS_SEP);
     afg.unitigPos = sum->f_list[i].position;
-    setASM_AFGStore(asmStore->afgStore, value.IID, &afg);
+    setASM_AFGStore(asmStore->afgStore, iid, &afg);
   }
+
   appendASM_UTGStore(asmStore->utgStore, &utg);
+  InsertInHashTable_AS(asmStore->hashTable, getLastElemStore(asmStore->utgStore), 0, AS_IID_UTG, 0);
   
-  memset(&value, 0, sizeof(PHashValue_AS));
-  value.type = AS_IID_UTG;
-  InsertInPHashTable_AS(&(asmStore->hashTable), ASM_UID_NAMESPACE,
-                        utg.uid, &value, FALSE, TRUE);
   return 0;
 }
 
@@ -565,7 +549,6 @@ int AddCCO2Store(AssemblyStore * asmStore, SnapConConMesg * sccm)
   ASM_UTGRecord utg;
   ASM_AFGRecord afg;
   ASM_InstanceRecord ins;
-  PHashValue_AS value;
   int i;
   IntContig_ID contigIndex = getNumASM_CCOs(asmStore->ccoStore) + 1;
   
@@ -585,51 +568,49 @@ int AddCCO2Store(AssemblyStore * asmStore, SnapConConMesg * sccm)
   
   for(i = 0; i < cco.numFrags; i++)
   {
+    CDS_IID_t  iid;
+
     // look up the afg & set contig fields
-    if(HASH_FAILURE == LookupInPHashTable_AS(asmStore->hashTable,
-                                             ASM_UID_NAMESPACE,
-                                             sccm->pieces[i].eident,
-                                             &value))
+    iid = LookupValueInHashTable_AS(asmStore->hashTable, sccm->pieces[i].eident, 0);
+    if (iid == 0)
     {
       fprintf(stderr, "Failed to lookup " F_UID " in hashtable\n",
               sccm->pieces[i].eident);
     }
-    appendASM_IIDStore(asmStore->ccfStore, &(value.IID));
+    appendASM_IIDStore(asmStore->ccfStore, &(iid));
 
     // each of these fragments should appear in only one contig
-    getASM_AFGStore(asmStore->afgStore, value.IID, &afg);
+    getASM_AFGStore(asmStore->afgStore, iid, &afg);
     afg.unreferenced = FALSE;
     PopulateInstance(&ins, contigIndex, sccm->pieces[i].position);
     AppendInstance(asmStore->aciStore, ins, &(afg.cInsIndex));
-    setASM_AFGStore(asmStore->afgStore, value.IID, &afg);
+    setASM_AFGStore(asmStore->afgStore, iid, &afg);
   }
   
   for(i = 0; i < cco.numUnitigs; i++)
   {
+    CDS_IID_t  iid;
+
     // look up the afg & set contig fields
-    if(HASH_FAILURE == LookupInPHashTable_AS(asmStore->hashTable,
-                                             ASM_UID_NAMESPACE,
-                                             sccm->unitigs[i].eident,
-                                             &value))
+    iid = LookupValueInHashTable_AS(asmStore->hashTable, sccm->unitigs[i].eident, 0);
+    if (iid == 0)
     {
       fprintf(stderr, "Failed to lookup " F_UID " in hashtable\n",
               sccm->unitigs[i].eident);
     }
-    appendASM_IIDStore(asmStore->ccuStore, &(value.IID));
+    appendASM_IIDStore(asmStore->ccuStore, &(iid));
 
     // some of these unitigs may appear in multiple contigs
-    getASM_UTGStore(asmStore->utgStore, value.IID, &utg);
+    getASM_UTGStore(asmStore->utgStore, iid, &utg);
     PopulateInstance(&ins, contigIndex, sccm->unitigs[i].position);
     AppendInstance(asmStore->uciStore, ins, &(utg.cInsIndex));
     utg.numInstances++;
-    setASM_UTGStore(asmStore->utgStore, value.IID, &utg);
+    setASM_UTGStore(asmStore->utgStore, iid, &utg);
   }
-  appendASM_CCOStore(asmStore->ccoStore, &cco);
 
-  memset(&value, 0, sizeof(PHashValue_AS));
-  value.type = AS_IID_CCO;
-  InsertInPHashTable_AS(&(asmStore->hashTable), ASM_UID_NAMESPACE,
-                        cco.uid, &value, FALSE, TRUE);
+  appendASM_CCOStore(asmStore->ccoStore, &cco);
+  InsertInHashTable_AS(asmStore->hashTable, cco.uid, 0, getLastElemStore(asmStore->ccoStore), AS_IID_CCO);
+
   return 0;
 }
 
@@ -872,38 +853,33 @@ int SetContigScaffoldFields(AssemblyStore * asmStore,
 int AddDSC2Store(AssemblyStore * asmStore, SnapDegenerateScaffoldMesg * sdsm)
 {
   ASM_DSCRecord dsc;
-  PHashValue_AS value;
   CDS_COORD_t offset = 0;
-  
+  CDS_IID_t    iid;
+
 #ifdef DEBUG_ASMDATA
   fprintf(stderr, "Adding DSC " F_UID "\n", sdsm->eaccession);
 #endif
   
   // look up the cco
-  if(HASH_FAILURE == LookupInPHashTable_AS(asmStore->hashTable,
-                                           ASM_UID_NAMESPACE,
-                                           sdsm->econtig,
-                                           &value))
+  iid = LookupValueInHashTable_AS(asmStore->hashTable, sdsm->econtig, 0);
+  if (iid == 0)
   {
     fprintf(stderr, "Failed to lookup " F_UID " in hashtable\n",
             sdsm->econtig);
   }
   dsc.uid = sdsm->eaccession;
-  dsc.contigIndex = value.IID;
+  dsc.contigIndex = iid;
 
   // set scaffold fields in contig, unitigs, & afgs
   SetContigScaffoldFields(asmStore,
                           getNumASM_DSCs(asmStore->dscStore) + 1,
-                          value.IID,
+                          iid,
                           TRUE,
                           &offset, AS_FORWARD);
   
   appendASM_DSCStore(asmStore->dscStore, &dsc);
+  InsertInHashTable_AS(asmStore->hashTable, dsc.uid, 0, getLastElemStore(asmStore->dscStore), AS_IID_DSC);
   
-  memset(&value, 0, sizeof(PHashValue_AS));
-  value.type = AS_IID_DSC;
-  InsertInPHashTable_AS(&(asmStore->hashTable), ASM_UID_NAMESPACE,
-                        dsc.uid, &value, FALSE, TRUE);
   return 0;
 }
 
@@ -914,8 +890,8 @@ int AddSCF2Store(AssemblyStore * asmStore, SnapScaffoldMesg * ssm)
   ASM_GapRecord gap;
   int i;
   CDS_COORD_t offset = 0;
-  PHashValue_AS value;
-  
+  CDS_IID_t  iid;
+
 #ifdef DEBUG_ASMDATA
   fprintf(stderr, "Adding SCF " F_UID "\n", ssm->eaccession);
 #endif
@@ -928,19 +904,17 @@ int AddSCF2Store(AssemblyStore * asmStore, SnapScaffoldMesg * ssm)
   for(i = 0; i < ssm->num_contig_pairs; i++)
   {
     // look up the cco
-    if(HASH_FAILURE == LookupInPHashTable_AS(asmStore->hashTable,
-                                             ASM_UID_NAMESPACE,
-                                             ssm->contig_pairs[i].econtig1,
-                                             &value))
+    iid = LookupValueInHashTable_AS(asmStore->hashTable, ssm->contig_pairs[i].econtig1, 0);
+    if (iid == 0)
     {
       fprintf(stderr, "Failed to lookup " F_UID " in hashtable\n",
               ssm->contig_pairs[i].econtig1);
     }
-    appendASM_IIDStore(asmStore->sccStore, &(value.IID));
+    appendASM_IIDStore(asmStore->sccStore, &(iid));
 
     SetContigScaffoldFields(asmStore,
                             getNumASM_SCFs(asmStore->scfStore) + 1,
-                            value.IID,
+                            iid,
                             FALSE,
                             &offset,
                             (ssm->contig_pairs[i].orient == AS_NORMAL ||
@@ -958,31 +932,26 @@ int AddSCF2Store(AssemblyStore * asmStore, SnapScaffoldMesg * ssm)
 
   i -= (i == 0) ? 0 : 1;
   // look up the cco
-  if(HASH_FAILURE == LookupInPHashTable_AS(asmStore->hashTable,
-                                           ASM_UID_NAMESPACE,
-                                           ssm->contig_pairs[i].econtig2,
-                                           &value))
+  iid = LookupValueInHashTable_AS(asmStore->hashTable, ssm->contig_pairs[i].econtig2, 0);
+  if (iid == 0)
   {
     fprintf(stderr, "Failed to lookup " F_UID " in hashtable\n",
             ssm->contig_pairs[i].econtig2);
 
   }
-  appendASM_IIDStore(asmStore->sccStore, &(value.IID));
-  
+  appendASM_IIDStore(asmStore->sccStore, &(iid));
+
   SetContigScaffoldFields(asmStore,
                           getNumASM_SCFs(asmStore->scfStore) + 1,
-                          value.IID,
+                          iid,
                           FALSE,
                           &offset,
                           (ssm->contig_pairs[i].orient == AS_NORMAL ||
                            ssm->contig_pairs[i].orient == AS_OUTTIE) ?
                           AS_FORWARD : AS_REVERSE);
+
   appendASM_SCFStore(asmStore->scfStore, &scf);
-  
-  memset(&value, 0, sizeof(PHashValue_AS));
-  value.type = AS_IID_SCF;
-  InsertInPHashTable_AS(&(asmStore->hashTable), ASM_UID_NAMESPACE,
-                        scf.uid, &value, FALSE, TRUE);
+  InsertInHashTable_AS(asmStore->hashTable, scf.uid, 0, getLastElemStore(asmStore->scfStore), AS_IID_SCF);
 
   {
     ASM_IIDRecord contigIID;
@@ -1125,7 +1094,6 @@ void InitializeAFGStore(AssemblyStore * asmStore)
   int32 numFRGs;
   GateKeeperFragmentRecord gkfr;
   ASM_AFGRecord afg;
-  PHashValue_AS value;
 
   if(asmStore->gkpStore == NULL)
     return;
@@ -1137,12 +1105,9 @@ void InitializeAFGStore(AssemblyStore * asmStore)
     getGateKeeperFragment(asmStore->gkpStore, i, &gkfr);
     afg.uid = gkfr.readUID;
     afg.deleted = gkfr.deleted;
+
     appendASM_AFGStore(asmStore->afgStore, &afg);
-    
-    memset(&value, 0, sizeof(PHashValue_AS));
-    value.type = AS_IID_AFG;
-    InsertInPHashTable_AS(&(asmStore->hashTable), ASM_UID_NAMESPACE,
-                          afg.uid, &value, FALSE, TRUE);
+    InsertInHashTable_AS(asmStore->hashTable, afg.uid, 0, getLastElemStore(asmStore->afgStore), AS_IID_AFG);
   }
 }
 
@@ -1769,7 +1734,6 @@ VA_TYPE(ASM_Quad) * IdentifyBadMateQuads(AssemblyStore * asmStore,
                                          float   numStddevs)
 {
   int32 i;
-  PHashValue_AS value;
   ASM_MatePair * mp;
   ASM_AFGRecord afg;
   ASM_MDIRecord mdi;
@@ -1800,16 +1764,16 @@ VA_TYPE(ASM_Quad) * IdentifyBadMateQuads(AssemblyStore * asmStore,
       */
       for(i = 0; i < GetNumVA_ASM_MatePair(cd->innie); i++)
       {
+        CDS_IID_t  iid;
+
         mp = GetVA_ASM_MatePair(cd->innie, i);
-        LookupInPHashTable_AS(asmStore->hashTable, ASM_UID_NAMESPACE,
-                              mp->leftUID, &value);
-        getASM_AFGStore(asmStore->afgStore, value.IID, &afg);
+        iid = LookupValueInHashTable_AS(asmStore->hashTable, mp->leftUID, 0);
+        getASM_AFGStore(asmStore->afgStore, iid, &afg);
         if(fragTypes[afg.type] == 0)
           continue;
         
-        LookupInPHashTable_AS(asmStore->hashTable, ASM_UID_NAMESPACE,
-                              mp->distUID, &value);
-        getASM_MDIStore(asmStore->mdiStore, value.IID, &mdi);
+        iid = LookupValueInHashTable_AS(asmStore->hashTable, mp->distUID, 0);
+        getASM_MDIStore(asmStore->mdiStore, iid, &mdi);
 
         if(mp->fivePrimes.end - mp->fivePrimes.bgn >
            mdi.asmMean + numStddevs * mdi.asmStddev)
@@ -1856,16 +1820,16 @@ VA_TYPE(ASM_Quad) * IdentifyBadMateQuads(AssemblyStore * asmStore,
       */
       for(i = 0; i < GetNumVA_ASM_MatePair(cd->innie); i++)
       {
+        CDS_IID_t  iid;
+
         mp = GetVA_ASM_MatePair(cd->innie, i);
-        LookupInPHashTable_AS(asmStore->hashTable, ASM_UID_NAMESPACE,
-                              mp->leftUID, &value);
-        getASM_AFGStore(asmStore->afgStore, value.IID, &afg);
+        iid = LookupValueInHashTable_AS(asmStore->hashTable, mp->leftUID, 0);
+        getASM_AFGStore(asmStore->afgStore, iid, &afg);
         if(fragTypes[afg.type] == 0)
           continue;
         
-        LookupInPHashTable_AS(asmStore->hashTable, ASM_UID_NAMESPACE,
-                              mp->distUID, &value);
-        getASM_MDIStore(asmStore->mdiStore, value.IID, &mdi);
+        iid = LookupValueInHashTable_AS(asmStore->hashTable, mp->distUID, 0);
+        getASM_MDIStore(asmStore->mdiStore, iid, &mdi);
 
         if(mp->fivePrimes.end - mp->fivePrimes.bgn <
            mdi.asmMean - numStddevs * mdi.asmStddev)
@@ -1912,16 +1876,16 @@ VA_TYPE(ASM_Quad) * IdentifyBadMateQuads(AssemblyStore * asmStore,
       */
       for(i = 0; i < GetNumVA_ASM_MatePair(cd->normal); i++)
       {
+        CDS_IID_t  iid;
+
         mp = GetVA_ASM_MatePair(cd->normal, i);
-        LookupInPHashTable_AS(asmStore->hashTable, ASM_UID_NAMESPACE,
-                              mp->leftUID, &value);
-        getASM_AFGStore(asmStore->afgStore, value.IID, &afg);
+        iid = LookupValueInHashTable_AS(asmStore->hashTable, mp->leftUID, 0);
+        getASM_AFGStore(asmStore->afgStore, iid, &afg);
         if(fragTypes[afg.type] == 0)
           continue;
         
-        LookupInPHashTable_AS(asmStore->hashTable, ASM_UID_NAMESPACE,
-                              mp->distUID, &value);
-        getASM_MDIStore(asmStore->mdiStore, value.IID, &mdi);
+        iid = LookupValueInHashTable_AS(asmStore->hashTable, mp->distUID, 0);
+        getASM_MDIStore(asmStore->mdiStore, iid, &mdi);
 
         {
           ASM_Quad q;
@@ -1966,16 +1930,16 @@ VA_TYPE(ASM_Quad) * IdentifyBadMateQuads(AssemblyStore * asmStore,
       */
       for(i = 0; i < GetNumVA_ASM_MatePair(cd->antinormal); i++)
       {
+        CDS_IID_t iid;
+
         mp = GetVA_ASM_MatePair(cd->antinormal, i);
-        LookupInPHashTable_AS(asmStore->hashTable, ASM_UID_NAMESPACE,
-                              mp->leftUID, &value);
-        getASM_AFGStore(asmStore->afgStore, value.IID, &afg);
+        iid = LookupValueInHashTable_AS(asmStore->hashTable, mp->leftUID, 0);
+        getASM_AFGStore(asmStore->afgStore, iid, &afg);
         if(fragTypes[afg.type] == 0)
           continue;
         
-        LookupInPHashTable_AS(asmStore->hashTable, ASM_UID_NAMESPACE,
-                              mp->distUID, &value);
-        getASM_MDIStore(asmStore->mdiStore, value.IID, &mdi);
+        iid = LookupValueInHashTable_AS(asmStore->hashTable, mp->distUID, 0);
+        getASM_MDIStore(asmStore->mdiStore, iid, &mdi);
 
         {
           ASM_Quad q;
@@ -2020,16 +1984,16 @@ VA_TYPE(ASM_Quad) * IdentifyBadMateQuads(AssemblyStore * asmStore,
       */
       for(i = 0; i < GetNumVA_ASM_MatePair(cd->outtie); i++)
       {
+        CDS_IID_t iid;
+
         mp = GetVA_ASM_MatePair(cd->outtie, i);
-        LookupInPHashTable_AS(asmStore->hashTable, ASM_UID_NAMESPACE,
-                              mp->leftUID, &value);
-        getASM_AFGStore(asmStore->afgStore, value.IID, &afg);
+        iid = LookupValueInHashTable_AS(asmStore->hashTable, mp->leftUID, 0);
+        getASM_AFGStore(asmStore->afgStore, iid, &afg);
         if(fragTypes[afg.type] == 0)
           continue;
         
-        LookupInPHashTable_AS(asmStore->hashTable, ASM_UID_NAMESPACE,
-                              mp->distUID, &value);
-        getASM_MDIStore(asmStore->mdiStore, value.IID, &mdi);
+        iid = LookupValueInHashTable_AS(asmStore->hashTable, mp->distUID, iid);
+        getASM_MDIStore(asmStore->mdiStore, iid, &mdi);
 
         {
           ASM_Quad q;
@@ -2073,10 +2037,11 @@ VA_TYPE(ASM_Quad) * IdentifyBadMateQuads(AssemblyStore * asmStore,
       */
       for(i = 0; i < GetNumVA_ASM_MatePair(cd->outtie); i++)
       {
+        CDS_IID_t iid;
+
         mp = GetVA_ASM_MatePair(cd->outtie, i);
-        LookupInPHashTable_AS(asmStore->hashTable, ASM_UID_NAMESPACE,
-                              mp->leftUID, &value);
-        getASM_AFGStore(asmStore->afgStore, value.IID, &afg);
+        iid = LookupValueInHashTable_AS(asmStore->hashTable, mp->leftUID, 0);
+        getASM_AFGStore(asmStore->afgStore, iid, &afg);
         if(fragTypes[afg.type] == 0)
           continue;
         
@@ -2443,10 +2408,7 @@ MapStore * CreateMapStoreFromFiles(AssemblyStore * asmStore,
   // read in the chromosome file
   {
     ASM_CHRRecord chr;
-    PHashValue_AS value;
     int numParsed;
-    
-    memset(&value, 0, sizeof(PHashValue_AS));
     
     while(fgets(line, 4095, chromFp))
     {
@@ -2457,11 +2419,9 @@ MapStore * CreateMapStoreFromFiles(AssemblyStore * asmStore,
                          &chr.uid, chr.chromosome, chr.arm, chr.description);
       assert(numParsed == 4);
       chr.firstFrag = chr.lastFrag = 0;
+
       appendASM_CHRStore(mapStore->chrStore, &chr);
-      
-      value.type = AS_IID_CHR;
-      InsertInPHashTable_AS(&(mapStore->hashTable), ASM_UID_NAMESPACE,
-                            chr.uid, &value, FALSE, TRUE);
+      InsertInHashTable_AS(mapStore->hashTable, chr.uid, 0, getLastElemStore(mapStore->chrStore), AS_IID_CHR);
     }
   }
 
@@ -2482,7 +2442,6 @@ MapStore * CreateMapStoreFromFiles(AssemblyStore * asmStore,
     CDS_UID_t chromUID;
     ASM_CHRRecord chr;
     ASM_InstanceRecord ins;
-    PHashValue_AS value;
     int numParsed;
     int fragIndex;
     int chrIndex;
@@ -2490,6 +2449,8 @@ MapStore * CreateMapStoreFromFiles(AssemblyStore * asmStore,
     
     while(fgets(line, 4095, fragFp))
     {
+      CDS_IID_t  iid;
+
       if(line[0] == '#') continue;
 
       // format: fragUID  chromosomeUID  5p  3p
@@ -2498,26 +2459,22 @@ MapStore * CreateMapStoreFromFiles(AssemblyStore * asmStore,
       assert(numParsed == 4);
 
       // look up frag IID
-      if(HASH_FAILURE == LookupInPHashTable_AS(asmStore->hashTable,
-                                               ASM_UID_NAMESPACE,
-                                               fragUID,
-                                               &value))
+      iid = LookupValueInHashTable_AS(asmStore->hashTable, fragUID, 0);
+      if (iid == 0)
       {
         fprintf(stderr, "Failed to lookup " F_UID " in hashtable\n", fragUID);
         assert(0);
       }
-      fragIndex = value.IID;
+      fragIndex = iid;
       
       // look up chr IID
-      if(HASH_FAILURE == LookupInPHashTable_AS(mapStore->hashTable,
-                                               ASM_UID_NAMESPACE,
-                                               chromUID,
-                                               &value))
+      iid = LookupValueInHashTable_AS(asmStore->hashTable, chromUID, 0);
+      if (iid == 0)
       {
         fprintf(stderr, "Failed to lookup " F_UID " in hashtable\n", chromUID);
         assert(0);
       }
-      chrIndex = value.IID;
+      chrIndex = iid;
       
       // update the chromosome's list of fragments
       getASM_CHRStore(mapStore->chrStore, chrIndex, &chr);
@@ -2590,19 +2547,17 @@ void PrintChromosomeElsewheres(AssemblyStore * asmStore,
   ASM_CHRRecord chr2;
   ASM_AFGRecord afg1;
   ASM_InstanceRecord ins1;
-  PHashValue_AS value;
   int nextIndex;
   int chrIndex;
+  CDS_IID_t iid;
 
-  if(HASH_FAILURE == LookupInPHashTable_AS(mapStore->hashTable,
-                                           ASM_UID_NAMESPACE,
-                                           containerUID,
-                                           &value))
+  iid = LookupValueInHashTable_AS(mapStore->hashTable, containerUID, 0);
+  if (iid == 0)
   {
     fprintf(stderr, "Failed to lookup " F_UID " in hashtable\n", containerUID);
     assert(0);
   }
-  chrIndex = value.IID;
+  chrIndex = iid;
   getASM_CHRStore(mapStore->chrStore, chrIndex, &chr1);
 
   nextIndex = chr1.firstFrag;
@@ -2741,21 +2696,19 @@ CloneData * GetChromosomeCloneData(AssemblyStore * asmStore,
   ASM_CHRRecord chr;
   ASM_AFGRecord afg1;
   ASM_InstanceRecord ins1;
-  PHashValue_AS value;
   int nextIndex;
   int chrIndex;
+  CDS_IID_t iid;
 
   cd = CreateCloneData();
 
-  if(HASH_FAILURE == LookupInPHashTable_AS(mapStore->hashTable,
-                                           ASM_UID_NAMESPACE,
-                                           containerUID,
-                                           &value))
+  iid = LookupValueInHashTable_AS(mapStore->hashTable, containerUID, 0);
+  if (iid == 0)
   {
     fprintf(stderr, "Failed to lookup " F_UID " in hashtable\n", containerUID);
     assert(0);
   }
-  chrIndex = value.IID;
+  chrIndex = iid;
   getASM_CHRStore(mapStore->chrStore, chrIndex, &chr);
 
   nextIndex = chr.firstFrag;
@@ -2844,16 +2797,13 @@ void PrintDeflineATACAxes(AssemblyStore * asmStore,
 {
   CDS_COORD_t offset = 0;
   char line[1024];
-  PHashValue_AS value;
   
   while(fgets(line, 1023, dfp))
   {
     CDS_UID_t uid = STR_TO_UID(&line[1], NULL, 10);
-    
-    if(HASH_SUCCESS == LookupInPHashTable_AS(asmStore->hashTable,
-                                             ASM_UID_NAMESPACE,
-                                             uid, &value))
-      PrintATACScaffoldGenomicAxis(asmStore, value.IID, parent, &offset, fo);
+    CDS_IID_t iid = LookupValueInHashTable_AS(asmStore->hashTable, uid, 0);
+    if (iid != 0)
+      PrintATACScaffoldGenomicAxis(asmStore, iid, parent, &offset, fo);
   }
 }
 

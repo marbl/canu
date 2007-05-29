@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.40 2007-05-22 21:18:39 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.41 2007-05-29 10:54:28 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,7 +32,6 @@ static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.40 2007-05-22 21:18:39 brianwalenz
 #include "AS_global.h"
 #include "AS_PER_genericStore.h"
 #include "AS_PER_gkpStore.h"
-#include "AS_UTL_PHash.h"
 #include "AS_UTL_version.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_GKP_include.h"
@@ -352,16 +351,15 @@ main(int argc, char **argv) {
       fgets(L, 1024, F);
       while (!feof(F)) {
         CDS_UID_t      uid = STR_TO_UID(L, 0L, 10);
-        PHashValue_AS  value;
+        CDS_IID_t      iid = getGatekeeperUIDtoIID(gkp, uid, NULL);
 
-        if (HASH_FAILURE == getGatekeeperUIDtoIID(gkp, uid, &value)) {
+        if (iid == 0)
           fprintf(stderr, "%s: UID "F_UID" doesn't exist, ignored.\n", argv[0], uid);
-        } else {
-          if (value.IID >= lastElem)
-            fprintf(stderr, "%s: UID "F_UID" is IID "F_IID", and that's too big, ignored.\n", argv[0], uid, value.IID);
-          else
-            iidToDump[value.IID]++;
-        }
+        else if (iid >= lastElem)
+          fprintf(stderr, "%s: UID "F_UID" is IID "F_IID", and that's too big, ignored.\n", argv[0], uid, iid);
+        else
+          iidToDump[iid]++;
+
         fgets(L, 1024, F);
       }
       if (F != stdin)
@@ -522,37 +520,37 @@ main(int argc, char **argv) {
 
     fgets(line, 256, v);
     while (!feof(v)) {
-      PHashValue_AS  value;
       char          *pine = line;
 
       CDS_UID_t uid = STR_TO_UID(pine, &pine, 10);
       int       l   = strtol(pine, &pine, 10);
       int       r   = strtol(pine, &pine, 10);
 
-      if (uid == 0)
+      if (uid == 0) {
         fprintf(stderr, "unexpected line: %s", line);
+      } else {
+        CDS_IID_t  iid = getGatekeeperUIDtoIID(gkpStore, uid, NULL);
+        if (iid) {
+          fragRecord    fr;
 
-      if (HASH_FAILURE != getGatekeeperUIDtoIID(gkpStore, uid, &value)) {
-        fragRecord    fr;
-        uint32        iid = value.IID;
+          getFrag(gkpStore, iid, &fr, FRAG_S_INF);
 
-        getFrag(gkpStore, iid, &fr, FRAG_S_INF);
+          //  Assume they are base-based.
+          fr.gkfr.hasVectorClear = 1;
+          if (l < r) {
+            fr.gkfr.clearBeg[AS_READ_CLEAR_VEC] = l - 1;
+            fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] = r;
+          } else {
+            fr.gkfr.clearBeg[AS_READ_CLEAR_VEC] = r - 1;
+            fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] = l;
+          }
 
-        //  Assume they are base-based.
-        fr.gkfr.hasVectorClear = 1;
-        if (l < r) {
-          fr.gkfr.clearBeg[AS_READ_CLEAR_VEC] = l - 1;
-          fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] = r;
-        } else {
-          fr.gkfr.clearBeg[AS_READ_CLEAR_VEC] = r - 1;
-          fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] = l;
+          nupdate++;
+          setFrag(gkpStore, iid, &fr);
         }
 
-        nupdate++;
-        setFrag(gkpStore, iid, &fr);
+        nlines++;
       }
-
-      nlines++;
       fgets(line, 256, v);
     }
 

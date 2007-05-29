@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ChunkOverlap_CGW.h,v 1.6 2007-05-19 04:46:57 brianwalenz Exp $	 */
+/* 	$Id: ChunkOverlap_CGW.h,v 1.7 2007-05-29 10:54:26 brianwalenz Exp $	 */
 
 /* ChunkOverlap_CGW provides tools for invoking Gene's dpalign tool to compute
    overlaps between chunks.  Such overlaps are first 'collected' and then 'computed'.
@@ -162,7 +162,5 @@ ChunkOverlapCheckT *LookupCanonicalOverlap(ChunkOverlapperT *chunkOverlapper,
 
 int InsertChunkOverlap(ChunkOverlapperT *chunkOverlapper,
                        ChunkOverlapCheckT *olap);
-
-size_t ReportMemorySize_CO(ChunkOverlapperT *chunkOverlapper, FILE *stream);
 
 #endif

@@ -21,159 +21,97 @@
 #ifndef AS_UTL_HASH_H
 #define AS_UTL_HASH_H
 
+#include "AS_global.h"
 #include "AS_UTL_heap.h"
-#include "AS_UTL_HashCommon.h"
-/***************** Hash Table Implementation ********************/
+#include "math_AS.h"
 
+#define HASH_FAILURE 0
+#define HASH_SUCCESS 1
 
-/* Type of function to compare hash table entries */
-typedef int (*HashCmpFn_AS)(const void *, const void *);
-typedef int (*HashFn_AS)(const void *, int length) ;
+//  The hash function takes a 64-bit key (either a scalar or a pointer
+//  to something) and associates it to a 64-bit value (again, scalar
+//  or pointer).
+//
+//  The hash and compare functions need to be smart enough (as does
+//  the client code) to know if the key/value is a pointer or a
+//  scalar.
 
-typedef struct HashNode_tag{
- void *key;
- uint32 keyLength;
-  unsigned int isFree:1;
- void *value;
- struct HashNode_tag *next;
+typedef int (*ASHashCompFn)(uint64 a, uint64 b);
+typedef int (*ASHashHashFn)(uint64 k, uint32 l);
+
+//  valueType is an annotation of the value present.  It is not used
+//  by the hash table -- in particular, it will not distinguish
+//  between identical keys.
+
+typedef struct HashNode_AS{
+  uint64               key;
+  uint64               value;
+  uint32               isFree:1;
+  uint32               keyLength:23;
+  uint32               valueType:8;
+  struct HashNode_AS  *next;
 }HashNode_AS;
 
 HEAP_DEF(HashNode_AS)
 
-typedef struct UIDHashNode_tag{
- uint64 key;
- uint32 keyLength;
-  unsigned int isFree:1;
- uint32 value;
- struct UIDHashNode_tag *next;
-}UIDHashNode_AS;
-
-HEAP_DEF(UIDHashNode_AS)
-
 typedef struct{
-  int32 numBuckets;
-  HashNode_AS **buckets;
-  HashNode_AS *freeList;
+  uint32                   numBuckets;
+  HashNode_AS            **buckets;
+  HashNode_AS             *freeList;
+
+  uint32                  numNodes;
+  uint32                  numNodesAllocated;
+
   HEAP_TYPE(HashNode_AS) *allocated;
-  //HashNode_AS *allocated;
-  int32 numNodes;
-  int32 numNodesAllocated;
-  int32 collisions;
-  HashCmpFn_AS compare;
-  HashFn_AS hash;
-  uint32 hashmask;
+
+  uint32                  hashmask;
+
+  uint32                  dirty;
+  char                    filename[FILENAME_MAX];
+
+  ASHashCompFn            compare;
+  ASHashHashFn            hash;
 } HashTable_AS;
 
-typedef struct{
-  int32 numBuckets;
-  UIDHashNode_AS **buckets;
-  UIDHashNode_AS *freeList;
-  HEAP_TYPE(UIDHashNode_AS) *allocated;
-  //UIDHashNode_AS *allocated;
-  int32 numNodes;
-  int32 numNodesAllocated;
-  int32 collisions;
-  HashCmpFn_AS compare;
-  HashFn_AS hash;
-  uint32 hashmask;
-} UIDHashTable_AS;
-
-
-int IntegerHashFn_AS(const void *pointerToInt, int length);
-int StringHashFn_AS(const void *pointerToString, int length);
-
-/********************* HashNodePool *********************/
-
-HashTable_AS *CreateHashTable_AS(int numItemsToHash, HashFn_AS hash, HashCmpFn_AS cmp); /*);*/
-
-HashTable_AS *CreateHashTable_int32_AS(int numItemsToHash);
-HashTable_AS *CreateHashTable_uint64_AS(int numItemsToHash);
-
-void ResetHashTable_AS(HashTable_AS *table);
-void DeleteHashTable_AS(HashTable_AS *table);
-
-static size_t ReportMemorySize_HT(HashTable_AS *ht,
-			       const char *name, FILE *stream){
-  size_t totalMemorySize = 0;
-  fprintf(stream,"*\tStats for HashTable %s buckets = %d  hashnodes = %d\n",
-	  name, ht->numBuckets, ht->numNodes);
-  totalMemorySize += ht->numBuckets * sizeof(HashNode_AS);
-  totalMemorySize += ReportMemorySize_HP(ht->allocated, "HashNodes", stream);
-  return totalMemorySize;
-}
-
-/**************************************************************************************
- *  Insert in HashTable 
- *
- *   NOTE:  The hashtable stores only POINTERS to the key and value.
- *          Make sure you allocate space to store them that persists for the lifetime
- *	  of the hashtable!!!  Otherwise, all bets are off.
- *	  The AS_UTL_Heap.h functionality is strongly recommended
- **************************************************************************************/
-int InsertInHashTable_AS(HashTable_AS *table, void *key, int keyLengthInBytes, void *value);
-
-
-/* Insert in HashTable */
-int DeleteFromHashTable_AS(HashTable_AS *table, void *key, int keyLengthInBytes);
-void *LookupInHashTable_AS(HashTable_AS *table, void *key, int keyLengthInBytes);
-
-/***********************************************************************************
- * HashTable_Iterator_AS
- *    Iterator for all allocated nodes in hashtable.
- *    In the absence of frees, values are returned in the order inserted
- *
- ***********************************************************************************/
 
 typedef struct{
-  HEAP_ITERATOR(HashNode_AS) iterator;
-  HashTable_AS *table;
+  HEAP_ITERATOR(HashNode_AS)   iterator;
+  HashTable_AS                *table;
 }HashTable_Iterator_AS;
 
-/***********************************************************************************
- * Function: InitializeHashTable_Iterator_AS
- * Description:
- *     Initializes a PHashTable_Iterator_AS
- *
- * Inputs:
- *     table         * to a HashTable_AS.  
- * Input/Outputs
- *     iterator      * to a HashTable_Iterator_AS allocated by client
- *
- * Return Value:
- *     HASH_SUCCESS if successful (value is valid)
- *     HASH_FAILURE if failure
- ***********************************************************************************/
-int InitializeHashTable_Iterator_AS(HashTable_AS *table, HashTable_Iterator_AS *iterator);
 
-/***********************************************************************************
- * Function: NextHashTable_Iterator_AS
- * Description:
- *     Retrieves next element of HashTable using iterator
- *
- * Inputs:
- *     iterator      * to a HashTable_Iterator_AS
- * Input/Outputs
- *     value         * to a HashValue_AS *  (buffer is updated)
- *     key           * to a void *         (buffer is updated)
- *
- * Return Value:
- *     HASH_SUCCESS if successful (value is valid)
- *     HASH_FAILURE if failure
- ***********************************************************************************/
-int NextHashTable_Iterator_AS(HashTable_Iterator_AS *iterator, 
-			       void **key, 
-			       void **value);
+uint32        Hash_AS(uint8 *k, uint32 length, uint32 initval);
+
+HashTable_AS *CreateGenericHashTable_AS(uint32 numItemsToHash, ASHashHashFn hash, ASHashCompFn comp);
+HashTable_AS *CreateScalarHashTable_AS(uint32 numItemsToHash);
+
+void          ResetHashTable_AS (HashTable_AS *table);
+void          DeleteHashTable_AS(HashTable_AS *table);
+
+int           InsertInHashTable_AS     (HashTable_AS *table, uint64 key, uint32 keylen, uint64 value, uint32 valuetype);
+int           DeleteFromHashTable_AS   (HashTable_AS *table, uint64 key, uint32 keylen);
+uint64        ReplaceInHashTable_AS    (HashTable_AS *table, uint64 key, uint32 keylen, uint64 value, uint32 valuetype);
+
+int           LookupInHashTable_AS     (HashTable_AS *table, uint64 key, uint32 keylen, uint64 *value, uint32 *valuetype);
+
+int           ExistsInHashTable_AS     (HashTable_AS *table, uint64 key, uint32 keylen);
+uint64        LookupValueInHashTable_AS(HashTable_AS *table, uint64 key, uint32 keylen);
+uint32        LookupTypeInHashTable_AS (HashTable_AS *table, uint64 key, uint32 keylen);
 
 
-UIDHashTable_AS *CreateUIDHashTable_AS(int numItemsToHash); 
-int InsertNodeInUIDHashBucket(UIDHashTable_AS *table, UIDHashNode_AS *newnode);
-int ReallocUIDHashTable_AS(UIDHashTable_AS *htable);
-UIDHashNode_AS *AllocUIDHashNode_AS(UIDHashTable_AS *table, 
-				    uint64 *key, uint keyLength, void *value);
-int InsertInUID2IIDHashTable_AS(UIDHashTable_AS *table, uint64 key, int32 value);
+void          SaveHashTable_AS(char *name, HashTable_AS *table);
 
-int32* LookupInUID2IIDHashTable_AS(UIDHashTable_AS *table, uint64 key);
-void DeleteUIDHashTable_AS(UIDHashTable_AS *table);
+HashTable_AS *LoadHashTable_AS(char *name,
+                               ASHashHashFn  hashfn,
+                               ASHashCompFn  compfn);
+HashTable_AS *LoadUIDtoIIDHashTable_AS(char *name);
+
+void          InitializeHashTable_Iterator_AS(HashTable_AS *table,
+                                              HashTable_Iterator_AS *iterator);
+
+int           NextHashTable_Iterator_AS(HashTable_Iterator_AS *iterator,
+                                        uint64 *key,
+                                        uint64 *value);
 
 #endif
 

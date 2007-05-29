@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: post_analysis.c,v 1.16 2007-05-14 09:27:11 brianwalenz Exp $ */
+/* $Id: post_analysis.c,v 1.17 2007-05-29 10:54:28 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,7 +28,6 @@
 #include "AS_UTL_Var.h"
 #include "MultiAlignStore_CNS.h"
 #include "MultiAlignment_CNS.h"
-#include "AS_UTL_ID_store.h"
 
 void usage (char *pgmname){
   fprintf(stderr,"USAGE: %s -f <frgStore> -o <outprefix> [-O] [-m <minlen>] [-l <iidlist>]\n"
@@ -59,8 +58,8 @@ int main(int argc, char *argv[])
  char *frgstore_name=NULL;
  char *sublist_file=NULL;
  char *outputfile_prefix=NULL;
- ID_Arrayp  tig_iids;
- ID_Arrayp  tig_iids_found;
+ HashTable_AS  *tig_iids;
+ HashTable_AS  *tig_iids_found;
  int64  this_id;
  int do_all = 1;
  int errflg=0;
@@ -120,16 +119,14 @@ int main(int argc, char *argv[])
        num_iids++;
      }
    rewind( sublist );
-   tig_iids = AllocateID_Array( num_iids );
-   tig_iids_found = AllocateID_Array( num_iids );
+   tig_iids       = CreateScalarHashTable_AS( num_iids );
+   tig_iids_found = CreateScalarHashTable_AS( num_iids );
    if( tig_iids == NULL || tig_iids_found == NULL ) return 1;
-   for( this_id = 0; this_id < num_iids - 1; this_id++ )
+   for( this_id = 0; this_id < num_iids; this_id++ )
      {
        fgets( string, 1000, sublist );
-       AppendToID_Array( tig_iids, atoi(string),1);
+       InsertInHashTable_AS(tig_iids, STR_TO_UID(string, NULL, 10), 0, 0, 0);
      }
-   fgets( string, 1000, sublist );
-   AppendToID_Array( tig_iids, atoi(string), 1 );
   
    fclose( sublist );
  }
@@ -138,8 +135,10 @@ int main(int argc, char *argv[])
    if (pmesg->t ==MESG_ICM)  {
      contig = (IntConConMesg *) pmesg->m;
      if(contig->length < min_len) continue;
-     if( do_all || (this_id = FindID_ArrayID( tig_iids, contig->iaccession)) > -1 ) {
-       if ( ! do_all ) AppendToID_Array( tig_iids_found, contig->iaccession, 1 );
+     if( do_all || ExistsInHashTable_AS(tig_iids, contig->iaccession, 0)) {
+       if ( ! do_all )
+         InsertInHashTable_AS(tig_iids_found, contig->iaccession, 0, 0, 0);
+
        ma = CreateMultiAlignTFromICM(contig, contig->iaccession,  0);
         
        if (contig->placed == AS_PLACED) {

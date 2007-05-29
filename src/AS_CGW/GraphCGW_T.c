@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.43 2007-05-22 17:04:25 granger_sutton Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.44 2007-05-29 10:54:26 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -215,10 +215,6 @@ size_t ReportMemorySizeGraphCGW(GraphCGW_T *graph, FILE *stream){
   }
   totalMemorySize += ReportMemorySize_VA(graph->nodes, nodeName, stream);
   totalMemorySize += ReportMemorySize_VA(graph->edges, edgeName, stream);
-  if(graph->type != SCAFFOLD_GRAPH){
-    //    totalMemorySize += StatsMultiAlignStore(graph->maStore, stream, /* CI_GRAPH always owns its contents */(graph->type == CI_GRAPH));
-    totalMemorySize += ReportMemorySize_CO(graph->overlapper, stream);
-  }
   return totalMemorySize;
 }
 
@@ -3638,7 +3634,7 @@ void ComputeMatePairDetailedStatus(void) {
   int foScaf = 0;
   int fsScaf = 0;
 
-  UIDHashTable_AS *surrHash = CreateUIDHashTable_AS( 262144 );
+  HashTable_AS *surrHash = CreateScalarHashTable_AS(262144);
 
   InitGraphNodeIterator(&nodes, graph, GRAPH_NODE_DEFAULT);
   
@@ -3772,9 +3768,10 @@ void ComputeMatePairDetailedStatus(void) {
         }
 
         if ( node->info.CI.numInstances > 1 || node->flags.bits.isStoneSurrogate ) {
-          int *frgAlready = LookupInUID2IIDHashTable_AS( surrHash, frag->iid );
-          int *mateAlready = LookupInUID2IIDHashTable_AS( surrHash, mate->iid );
-          if (frgAlready != NULL && mateAlready != NULL) {
+          int fragExists  = ExistsInHashTable_AS(surrHash, frag->iid, 0);
+          int mateExists  = ExistsInHashTable_AS(surrHash, mate->iid, 0);
+
+          if (fragExists && mateExists) {
             if (mate->flags.bits.mateDetail != BOTH_SURR_MATE) {
               numSurrogate-=1;
               numBothSurr+=2;
@@ -3783,16 +3780,14 @@ void ComputeMatePairDetailedStatus(void) {
               //fprintf(GlobalData->stderrc, "* Both surr %d,%d from chunks %d.\n",
               //        frag->iid, mate->iid, node->id, mchunk->id); 
             }
-            *frgAlready++;
-            *mateAlready++;
           } else {
             numSurrogate++;
             mate->flags.bits.mateDetail = SURR_MATE;
             frag->flags.bits.mateDetail = SURR_MATE;
-            if (frgAlready == NULL) {
+            if (!fragExists) {
               //fprintf(GlobalData->stderrc, "* Add frag %d from repeat chunk %d to surr hash, num: %d\n",
               //        frag->iid, node->id, node->info.CI.numInstances );
-              InsertInUID2IIDHashTable_AS( surrHash, frag->iid, 1);
+              InsertInHashTable_AS(surrHash, frag->iid, 0, 0, 0);
             }
           }
           continue;
@@ -3802,25 +3797,23 @@ void ComputeMatePairDetailedStatus(void) {
         }
       }
       if( mchunk->info.CI.numInstances > 1 || mchunk->flags.bits.isStoneSurrogate ) {
-        int *frgAlready = LookupInUID2IIDHashTable_AS( surrHash, frag->iid );
-        if (frgAlready != NULL) { // already seen
+        int fragExists = ExistsInHashTable_AS(surrHash, frag->iid, 0);
+
+        if (fragExists) { // already seen
           if (frag->flags.bits.mateDetail != BOTH_SURR_MATE) {
             numSurrogate-=1;
             numBothSurr+=2;
             mate->flags.bits.mateDetail = BOTH_SURR_MATE;
             frag->flags.bits.mateDetail = BOTH_SURR_MATE;
-            InsertInUID2IIDHashTable_AS( surrHash, mate->iid, 1);
+            InsertInHashTable_AS(surrHash, mate->iid, 0, 0, 0);
           }
-          *frgAlready++;
           continue;
         } 
-        int *mateAlready = LookupInUID2IIDHashTable_AS( surrHash, mate->iid );
-        if (mateAlready != NULL) { // already seen
-          *mateAlready++;
-        } else {
+        int mateExists = ExistsInHashTable_AS(surrHash, mate->iid, 0);
+        if (!mateExists) {
           //fprintf(GlobalData->stderrc, "* Add frag %d from chunk %d to surr hash, num: %d\n",
           //        mate->iid, mchunk->id, mchunk->info.CI.numInstances );
-          InsertInUID2IIDHashTable_AS( surrHash, mate->iid, 1);
+          InsertInHashTable_AS(surrHash, mate->iid, 0, 0, 0);
           numSurrogate++;
           mate->flags.bits.mateDetail = SURR_MATE;
           frag->flags.bits.mateDetail = SURR_MATE;
@@ -3979,7 +3972,7 @@ void ComputeMatePairDetailedStatus(void) {
   fprintf(GlobalData->stderrc,"* num SCRATCH_SCAFFOLD               %d\n", fsScaf);
   fprintf(GlobalData->stderrc,"\n");
 
-  DeleteUIDHashTable_AS( surrHash );
+  DeleteHashTable_AS(surrHash);
 }
 
 

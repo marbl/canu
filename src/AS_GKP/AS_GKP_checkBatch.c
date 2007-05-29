@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkBatch.c,v 1.9 2007-05-16 08:22:25 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkBatch.c,v 1.10 2007-05-29 10:54:28 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,34 +31,20 @@ static char CM_ID[] = "$Id: AS_GKP_checkBatch.c,v 1.9 2007-05-16 08:22:25 brianw
 
 int Check_BatchMesg(BatchMesg          *bat_mesg){
   GateKeeperBatchRecord  gkpb;
-  PHashValue_AS          value;
 
   clearGateKeeperBatchRecord(&gkpb);
 
-  if (HASH_FAILURE != LookupTypeInPHashTable_AS(gkpStore->phs_private, 
-                                                UID_NAMESPACE_AS,
-                                                bat_mesg->eaccession, 
-                                                AS_IID_BAT, 
-                                                FALSE,
-                                                stderr,
-                                                &value)) {
+  if (getGatekeeperUIDtoIID(gkpStore, bat_mesg->eaccession, NULL) != 0) {
     fprintf(stderr, "BAT Error: Batch "F_UID" exists, can't add it again.\n", bat_mesg->eaccession);
     return(GATEKEEPER_FAILURE);
   }
-
-  value.type = AS_IID_BAT;
-  InsertInPHashTable_AS(&gkpStore->phs_private,
-                        UID_NAMESPACE_AS,
-                        bat_mesg->eaccession,
-                        &value,
-                        FALSE,
-                        TRUE);
 
   gkpb.batchUID       = bat_mesg->eaccession;
   strncpy(gkpb.name,    bat_mesg->name, 255);
   strncpy(gkpb.comment, bat_mesg->comment, 255);
 
   appendIndexStore(gkpStore->bat, &gkpb);
+  setGatekeeperUIDtoIID(gkpStore, bat_mesg->eaccession, getLastElemStore(gkpStore->bat), AS_IID_BAT);
 
   return GATEKEEPER_SUCCESS;
 }

@@ -33,9 +33,6 @@
 #include "AS_GKP_include.h"
 
 
-HashTable_AS *CreateHashTable_AS(int numItemsToHash, HashFn_AS hash, HashCmpFn_AS cmp); /*);*/
-int StringHashFn_AS(const void *pointerToString, int length);
-
 // WAS: static OVL_Store_t  * my_store = NULL;
 static OverlapStore  * my_store = NULL;
 // WAS: static OVL_Store_t  * my_second_store = NULL;
@@ -669,18 +666,17 @@ void usage(char *pgm){
 }
 
 int uid2iid(uint64 uid){
-  PHashValue_AS value;
   static int firstFailure=1;
-  if(HASH_FAILURE == getGatekeeperUIDtoIID(my_gkp_store,
-                                           uid,
-                                           &value)){
-    if(firstFailure){
+  CDS_IID_t  iid;
+  iid = getGatekeeperUIDtoIID(my_gkp_store, uid, 0);
+  if (iid == 0) {
+    if (firstFailure) {
       fprintf(stderr,"Tried to look up iid of unknown uid: " F_UID "; this may reflect trying to use a deleted fragment; further instances will not be reported.\n",uid);
       firstFailure=0;
     }
     return (-1);
   }
-  return (value.IID);
+  return (iid);
 }
 
 int ovlThickness(OVSoverlap o, int frglen, int afrg, int Aend){

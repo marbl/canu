@@ -25,7 +25,7 @@
                  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: TestBaseCall_CNS.c,v 1.18 2007-04-28 08:46:22 brianwalenz Exp $";
+static char CM_ID[] = "$Id: TestBaseCall_CNS.c,v 1.19 2007-05-29 10:54:28 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -41,7 +41,6 @@ static char CM_ID[] = "$Id: TestBaseCall_CNS.c,v 1.18 2007-04-28 08:46:22 brianw
 #include "AS_PER_gkpStore.h"
 #include "AS_PER_genericStore.h"
 #include "AS_UTL_Var.h"
-#include "AS_UTL_ID_store.h"
 #include "AS_UTL_version.h"
 #include "AS_SDB_SequenceDBPartition.h"
 #include "AS_ALN_forcns.h"

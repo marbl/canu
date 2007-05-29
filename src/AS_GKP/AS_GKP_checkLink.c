@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkLink.c,v 1.10 2007-05-16 08:22:25 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkLink.c,v 1.11 2007-05-29 10:54:28 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +31,6 @@ static char CM_ID[] = "$Id: AS_GKP_checkLink.c,v 1.10 2007-05-16 08:22:25 brianw
 
 int
 Check_LinkMesg(LinkMesg *lkg_mesg) {
-  PHashValue_AS              value;
   CDS_IID_t                  frag1IID;
   CDS_IID_t                  frag2IID;
   GateKeeperFragmentRecord   gkFrag1;
@@ -52,29 +51,17 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
 
   //  Check that the two fragments are alive and well
   //
-  if (HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore->phs_private,
-                                                UID_NAMESPACE_AS,
-                                                lkg_mesg->frag1,
-                                                AS_IID_FRG,
-                                                FALSE,
-                                                stderr,
-                                                &value)) {
+  frag1IID = getGatekeeperUIDtoIID(gkpStore, lkg_mesg->frag1, NULL);
+  if (frag1IID == 0) {
     fprintf(stderr, "LKG Error: Fragment "F_UID" not previously defined.", lkg_mesg->frag1);
     return(GATEKEEPER_FAILURE);
   }
-  frag1IID = value.IID;
 
-  if (HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore->phs_private,
-                                                UID_NAMESPACE_AS,
-                                                lkg_mesg->frag2,
-                                                AS_IID_FRG,
-                                                FALSE,
-                                                stderr,
-                                                &value)){
+  frag2IID = getGatekeeperUIDtoIID(gkpStore, lkg_mesg->frag2, NULL);
+  if (frag2IID == 0) {
     fprintf(stderr, "LKG Error: Fragment "F_UID" not previously defined.", lkg_mesg->frag2);
     return(GATEKEEPER_FAILURE);
   }
-  frag2IID = value.IID;
 
 
   //  Now grab the reads, we'll need them soon enough anyway.
@@ -130,24 +117,15 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
     //  need to check that the library (from a distance record) is
     //  there, and get the library IID to set in the reads.
 
-    value.type = AS_IID_DST;
-    value.IID  = 0;
-    if (HASH_SUCCESS != LookupTypeInPHashTable_AS(gkpStore->phs_private,
-                                                  UID_NAMESPACE_AS,
-                                                  lkg_mesg->distance,
-                                                  AS_IID_DST,
-                                                  FALSE,
-                                                  stderr,
-                                                  &value)) {
+    gkFrag1.libraryIID = gkFrag2.libraryIID = getGatekeeperUIDtoIID(gkpStore, lkg_mesg->distance, NULL);
+
+    if (gkFrag1.libraryIID == 0) {
       fprintf(stderr, "LKG Error: Library "F_UID" not previously defined.", lkg_mesg->distance);
       return(GATEKEEPER_FAILURE);
     }
 
     //  One could also check that the two reads are version 1...but,
     //  heck, if they aren't, we're still good to go!
-
-    gkFrag1.libraryIID = value.IID;
-    gkFrag2.libraryIID = value.IID;
 
     gkFrag1.orientation = lkg_mesg->link_orient;
     gkFrag2.orientation = lkg_mesg->link_orient;
@@ -170,18 +148,12 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
 
     setIndexStore(gkpStore->frg, frag1IID, &gkFrag1);
     setIndexStore(gkpStore->frg, frag2IID, &gkFrag2);
-
-    AddRefPHashTable_AS(gkpStore->phs_private, UID_NAMESPACE_AS, gkFrag2.readUID);
-    AddRefPHashTable_AS(gkpStore->phs_private, UID_NAMESPACE_AS, gkFrag1.readUID);
   } else if (lkg_mesg->action == AS_DELETE) {
     gkFrag1.mateIID    = 0;
     gkFrag2.mateIID    = 0;
 
     setIndexStore(gkpStore->frg, frag1IID, &gkFrag1);
     setIndexStore(gkpStore->frg, frag2IID, &gkFrag2);
-
-    UnRefPHashTable_AS(gkpStore->phs_private, UID_NAMESPACE_AS, gkFrag2.readUID);
-    UnRefPHashTable_AS(gkpStore->phs_private, UID_NAMESPACE_AS, gkFrag1.readUID);
   } else {
     fprintf(stderr,"LKG Error: Unknown action %c\n", lkg_mesg->action);
     return GATEKEEPER_FAILURE;

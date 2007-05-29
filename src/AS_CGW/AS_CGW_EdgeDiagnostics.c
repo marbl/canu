@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.12 2007-05-14 09:27:10 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.13 2007-05-29 10:54:26 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -392,20 +392,6 @@ void DeleteOrientProcessor(OrientProcessor * op)
 }
 
 
-int OrientHashFunction(const void * item, int length)
-{
-  return Hash_AS((uint8 *) item, length, 37);
-}
-
-
-int OrientCompareFunction(const void * item1, const void * item2)
-{
-  const OrientHolder * oh1 = (const OrientHolder *) item1;
-  const OrientHolder * oh2 = (const OrientHolder *) item2;
-
-  return(oh2->keyID - oh1->keyID);
-}
-
 
 OrientProcessor * CreateOrientProcessor(void)
 {
@@ -413,9 +399,7 @@ OrientProcessor * CreateOrientProcessor(void)
   if(op)
     {
       op->array = CreateVA_OrientHolder(INITIAL_NUM_ORIENTS);
-      op->ht = CreateHashTable_AS(INITIAL_NUM_ORIENTS,
-                                  OrientHashFunction,
-                                  OrientCompareFunction);
+      op->ht = CreateScalarHashTable_AS(INITIAL_NUM_ORIENTS);
     }
   if(!op || !op->array || !op->ht)
     {
@@ -526,7 +510,7 @@ int PopulateOrientHTFromArray(HashTable_AS * ht, VA_TYPE(OrientHolder) * array)
   for(i = 0; i < GetNumVA_OrientHolder(array); i++)
     {
       OrientHolder * oh = GetVA_OrientHolder(array, i);
-      InsertInHashTable_AS(ht, &(oh->keyID), sizeof(oh->keyID), oh);
+      InsertInHashTable_AS(ht, (uint64)oh->keyID, 0, (uint64)oh, 0);
     }
   return 0;
 }
@@ -583,18 +567,16 @@ int CompareNewOrientationsForScaffold(ScaffoldGraphT * graph,
       lastContigID = contig->id;
     
       // see which scaffold this contig was in
-      if((contigOH = LookupInHashTable_AS(coc->contigs->ht,
-                                          &(contig->id),
-                                          sizeof(contig->id))) == NULL)
+      if((contigOH = (OrientHolder *)LookupValueInHashTable_AS(coc->contigs->ht,
+                                                               (uint64)contig->id, 0)) == NULL)
         {
           // don't want to barf if a contig was inserted but not in our set
           continue;
         }
 
       // see if any contigs from this contig's scaffold have been seen yet
-      if((scaffoldOH = LookupInHashTable_AS(coc->scaffolds->ht,
-                                            &(contigOH->secondID),
-                                            sizeof(contigOH->secondID))) == NULL)
+      if((scaffoldOH = (OrientHolder *)LookupValueInHashTable_AS(coc->scaffolds->ht,
+                                                                 (uint64)contigOH->secondID, 0)) == NULL)
         {
           fprintf(stderr, "Failed to lookup scaffold " F_CID " in hashtable\n",
                   contigOH->secondID);
@@ -932,19 +914,6 @@ typedef struct
 
 VA_DEF(ScfLink);
 
-int ScfLinkHashFn(const void * item, int length)
-{
-  return Hash_AS((uint8 *) item, length, 37);
-}
-
-int ScfLinkCompareFn(const void * item1, const void * item2)
-{
-  const ScfLink * scfl1 = (const ScfLink *) item1;
-  const ScfLink * scfl2 = (const ScfLink *) item2;
-
-  return(scfl1->scaffoldID - scfl2->scaffoldID);
-}
-
 void PrintFragPairAndEdge(CIFragT * fragA,
                           LengthT * offsetA,
                           FragOrient orientA,
@@ -1005,8 +974,7 @@ void PrintScaffoldConnectivity(ScaffoldGraphT * graph,
   if(scaffold->id == NULLINDEX)
     return;
   
-  linkHT = CreateHashTable_AS(GetNumGraphNodes(graph->ScaffoldGraph),
-                              ScfLinkHashFn, ScfLinkCompareFn);
+  linkHT = CreateScalarHashTable_AS(GetNumGraphNodes(graph->ScaffoldGraph));
   if(linkHT == NULL)
     {
       fprintf(stderr, "Failed to allocate scaffold hashtable!\n");
@@ -1101,9 +1069,8 @@ void PrintScaffoldConnectivity(ScaffoldGraphT * graph,
                                    &myEdge);
             }
           // see link to scaffoldB is already present
-          if((link = LookupInHashTable_AS(linkHT,
-                                          (void *) &(scaffoldB->id),
-                                          sizeof(scaffoldB->id))) == NULL)
+          if((link = (ScfLink *)LookupValueInHashTable_AS(linkHT,
+                                                          (uint64)scaffoldB->id, 0)) == NULL)
             {
               // start a new link
               newLink.scaffoldID = scaffoldB->id;
@@ -1115,9 +1082,8 @@ void PrintScaffoldConnectivity(ScaffoldGraphT * graph,
               AppendVA_ScfLink(links, &newLink);
               link = GetVA_ScfLink(links, GetNumVA_ScfLink(links) - 1);
               InsertInHashTable_AS(linkHT,
-                                   (void *) &(scaffoldB->id),
-                                   sizeof(scaffoldB->id),
-                                   (void *) link);
+                                   (uint64)scaffoldB->id, 0,
+                                   (uint64)link, 0);
             }
           else
             {
@@ -1137,17 +1103,16 @@ void PrintScaffoldConnectivity(ScaffoldGraphT * graph,
   if(otherScaffoldID == NULLINDEX)
     {
       HashTable_Iterator_AS iterator;
-      void * key;
-      void * value;
+      uint64 key;
+      uint64 value;
     
       fprintf(stdout, "*** Links from scaffold " F_CID ":\n", scaffold->id);
       InitializeHashTable_Iterator_AS(linkHT, &iterator);
       while(NextHashTable_Iterator_AS(&iterator, &key, &value) == HASH_SUCCESS)
         {
-          ScfLink * link;
-          if(key == NULL || value == NULL)
+          ScfLink * link = (ScfLink *) value;
+          if (link == NULL)
             continue;
-          link = (ScfLink *) value;
 
           fprintf(stdout,
                   "\tweight %d from (%.f,%.f) to scaffold " F_CID " (%.f,%.f) orient: ",

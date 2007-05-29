@@ -19,20 +19,28 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.36 2007-05-14 09:16:26 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.37 2007-05-29 10:54:30 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 #include <time.h>
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_PER_genericStore.h"
-#include "AS_UTL_PHash.h"
 #include "AS_UTL_Hash.h"
 
-#define NULL_LINK 0
+#define AS_IID_UNK     0
+#define AS_IID_BAT     1
+#define AS_IID_FRG     2
+#define AS_IID_LIB     3
+
+#define NULL_LINK      0
 
 #define AS_PER_NAME_LEN      256
 #define AS_PER_COMMENT_LEN   256
@@ -382,7 +390,7 @@ char       *getFragRecordSource(fragRecord *fr) {
 // 6  is quality
 // 7  is homopolymer spacing and etc
 // 8  is source
-// 9  is gkp.phash
+// 9  is uid to iid mapping
 
 typedef struct {
   uint64    gkpMagic;
@@ -414,7 +422,7 @@ typedef struct {
   //  blows the address space of grid-based jobs like overlap,
   //  consensus, etc.
   //
-  PHashTable_AS           *phs_private;
+  HashTable_AS            *UIDtoIID;
 
   //  We cache all the library records, for quick access.
   //
@@ -504,27 +512,41 @@ getGateKeeperLibrary(GateKeeperStore *gkp, int libiid) {
 
 
 //  The only public accessor for the persistent hash in the
-//  gatekeeper.
+//  gatekeeper.  Returns the IID, or 0 if the uid was not found.
 //
 static
-int
-getGatekeeperUIDtoIID(GateKeeperStore *gkp, CDS_UID_t key, PHashValue_AS *value) {
+CDS_IID_t
+getGatekeeperUIDtoIID(GateKeeperStore *gkp, CDS_UID_t uid, uint32 *type) {
+  uint64   iid = 0;
 
-  if (gkp->phs_private == NULL) {
-    char name[FILENAME_MAX];
-
-    sprintf(name,"%s/phs", gkp->storePath);
-    gkp->phs_private = OpenReadOnlyPHashTable_AS(name);
-    if (gkp->phs_private == NULL) {
-      fprintf(stderr,"**** Failed to open GateKeeper Persistent HashTable...\n");
-      assert(0);
-    }
+  if (gkp->UIDtoIID == NULL) {
+    char  name[FILENAME_MAX];
+    sprintf(name,"%s/map", gkp->storePath);
+    gkp->UIDtoIID = LoadUIDtoIIDHashTable_AS(name);
   }
 
-  return(LookupInPHashTable_AS(gkp->phs_private,
-                               UID_NAMESPACE_AS,
-                               key,
-                               value));
+  assert(uid != 0);
+  LookupInHashTable_AS(gkp->UIDtoIID, uid, 0, &iid, type);
+  return((CDS_IID_t)iid);
+}
+
+
+static
+int
+setGatekeeperUIDtoIID(GateKeeperStore *gkp, CDS_UID_t uid, CDS_IID_t iid, uint32 type) {
+  assert(gkp->UIDtoIID != NULL);
+  assert(uid != 0);
+  assert(iid != 0);
+  return(InsertInHashTable_AS(gkp->UIDtoIID, uid, 0, (uint64)iid, type));
+}
+
+
+static
+int
+delGatekeeperUIDtoIID(GateKeeperStore *gkp, CDS_UID_t uid) {
+  assert(gkp->UIDtoIID != NULL);
+  assert(uid != 0);
+  return(DeleteFromHashTable_AS(gkp->UIDtoIID, uid, 0));
 }
 
 

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* RCS info
- * $Id: quality_assess.c,v 1.6 2007-04-28 08:46:22 brianwalenz Exp $
+ * $Id: quality_assess.c,v 1.7 2007-05-29 10:54:28 brianwalenz Exp $
  */
 
 #include <stdio.h>
@@ -29,7 +29,6 @@
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
 #include "MultiAlignStore_CNS.h"
-#include "AS_UTL_ID_store.h"
 #include "AS_PER_gkpStore.h"
 
 int main(int argc, char *argv[])
