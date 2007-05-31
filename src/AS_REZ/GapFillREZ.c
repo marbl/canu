@@ -34,7 +34,7 @@
 *
 *************************************************/
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.25 2007-05-07 19:40:43 granger_sutton Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.26 2007-05-31 12:50:12 granger_sutton Exp $";
 
 
 #include <stdio.h>
@@ -11858,7 +11858,7 @@ fprintf (stderr, "Set_Longest_Path:\n");
                                            + 2.0 * node [pool [j] . to] -> len
                                            - pool [j] . progress));
                   error_band = NUM_STD_DEVS * std_dev;
-                  if  (test_position < desired_position . mean - error_band
+		  /*                  if  (test_position < desired_position . mean - error_band
                          || test_position > desired_position . mean + error_band)
                       {
 #if  SHOW_STONE_CONFIRM
@@ -11871,7 +11871,7 @@ fprintf (stderr, "Set_Longest_Path:\n");
 #endif
                        continue;
                       }
-
+		  */
 #if  SHOW_STONE_CONFIRM
                   fprintf (stderr,
                            "  %6.0f in [%6.0f,%6.0f]  %4.2f stdvs\n",
