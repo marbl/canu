@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.hh,v 1.6 2007-05-09 19:35:22 eliv Exp $
- * $Revision: 1.6 $
+ * $Id: AS_BOG_MateChecker.hh,v 1.7 2007-05-31 15:41:48 eliv Exp $
+ * $Revision: 1.7 $
 */
 
 #ifndef INCLUDE_AS_BOG_MATECHEKER
@@ -49,6 +49,11 @@ namespace AS_BOG{
     };
     typedef std::map<iuid,MateInfo> MateMap;
     static const MateInfo NULL_MATE_INFO = {0,0};
+    inline bool operator==(MateInfo a, MateInfo b) {
+        if (a.mate == b.mate)
+            return(a.lib == b.lib);
+        return false;
+    }
     static const SeqInterval NULL_MATE_LOC = {0,0};
 
     struct DistanceCompute {
