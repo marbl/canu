@@ -41,12 +41,15 @@ sub bogUnitigger {
 
         my $cmd;
         $cmd  = "$bin/buildUnitigs ";
-        $cmd .= " $wrk/$asm.ovlStore ";
-        $cmd .= " $wrk/$asm.gkpStore ";
+        $cmd .= " -O $wrk/$asm.ovlStore ";
+        $cmd .= " -G $wrk/$asm.gkpStore ";
 
         my $l = getGlobal("utgGenomeSize");
         $l ||= 0;
-        $cmd .= " $l ";
+        $cmd .= " -s $l ";
+
+        my $l = getGlobal("bogPromiscuous");
+        $cmd .= " -b " if !$l;
 
         $cmd .= " > unitigger.out ";
         $cmd .= " 2> unitigger.err ";

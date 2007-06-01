@@ -153,6 +153,7 @@ sub setDefaults () {
     $global{"utgRecalibrateGAR"}           = 1;
     $global{"useGrid"}                     = 0;
     $global{"useBogUnitig"}                = 0;
+    $global{"bogPromiscuous"}              = 0;
     $global{"vectorIntersect"}             = undef;
 
     $global{"merOverlap"}                  = 0;
