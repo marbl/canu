@@ -31,10 +31,7 @@ CGW_SOURCES =     AS_CGW_main.c \
                   resolveSurrogates.c \
                   fragmentPlacement.c \
                   dumpCloneMiddles.c \
-                  greedyFragmentTiling.c \
                   dumpSingletons.c
-
-#                  greedyFragmentTiling.c
 
 #  Not all of these are external, most are probably private to cgw itself.
 CGW_LIB_SOURCES = AS_CGW_dataTypes.c \
@@ -93,13 +90,15 @@ CRUD_SOURCES = \
                   whereAreMyOverlaps.c
 
 SOURCES         = $(CGW_SOURCES) $(CGW_LIB_SOURCES)
+SCRIPTS		= 
+
 OBJECTS         = $(SOURCES:.c=.o) 
 CGW_LIB_OBJECTS = $(CGW_LIB_SOURCES:.c=.o)
 
 LIBRARIES     = libAS_CGW.a libCA.a
 LIBS          = libCA.a
 
-PROGS = cgw extendClearRanges resolveSurrogates dumpCloneMiddles dumpSingletons greedyFragmentTiling 
+PROGS = cgw extendClearRanges resolveSurrogates dumpCloneMiddles dumpSingletons 
 
 CRUD =  Checkpoint process_scaffolds loadcgw \
         ScaffoldMap testSplitChunks instrumentCheckpoint \
@@ -174,8 +173,6 @@ asmInfoForFrg: asmInfoForFrg.o $(LIBS)
 assemblyStructure: assemblyStructure.o $(LIBS)
 
 exploreGapStructure: exploreGapStructure.o $(LIBS)
-
-greedyFragmentTiling: greedyFragmentTiling.o $(LIBS)
 
 dfsFragmentTiling: dfsFragmentTiling.o $(LIBS)
 

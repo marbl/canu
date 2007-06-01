@@ -54,10 +54,9 @@ static int seedSample=-1;
 
 #define DEFAULT_SAMPLE_ADVANTAGE .05
 
-void setup_stores(char *OVL_Store_Path, /*char *Frg_Store_Path, */char *Gkp_Store_Path){
+void setup_stores(char *OVL_Store_Path, char *Gkp_Store_Path){
 
   assert(OVL_Store_Path!=NULL);
-  //assert(Frg_Store_Path!=NULL);
   assert(Gkp_Store_Path!=NULL);
 
   assert(my_store==NULL);
@@ -722,14 +721,12 @@ int main (int argc , char * argv[] ) {
   char full_map[1000];
   char setSubsetMap=0;
   char setFullMap=0;
-  char full_ovlPath[1000];
-  char full_frgPath[1000];
+  char full_ovlPath[1000];  
   char full_gkpPath[1000];
   char sampleFileName[1000];
   double favorSameSample=0;
   double favorSameSampleAsSeed=0;
-  FILE *sampleFile;
-  int setFullFrg=0;
+  FILE *sampleFile;  
   int setFullGkp=0;
   int setFullOvl=0;
   int bestType = BEST_MEANS_THICKEST;
@@ -783,12 +780,6 @@ int main (int argc , char * argv[] ) {
         case 'E':
           useCorrectedErate=1;
           break;
-          /*
-        case 'f':
-          strcpy( full_frgPath, argv[optind - 1]);
-          setFullFrg = TRUE;
-          break;
-          */
         case 'g':
           strcpy( full_gkpPath, argv[optind - 1]);
           setFullGkp = TRUE;
@@ -864,7 +855,7 @@ int main (int argc , char * argv[] ) {
       }
     }
 
-    if( /*(setFullFrg == 0) || */!setFullGkp || !setFullOvl )
+    if( !setFullGkp || !setFullOvl )
       {
 	usage(argv[0]);
 	exit (-1);
@@ -873,7 +864,7 @@ int main (int argc , char * argv[] ) {
   
   assert(! (fivePonly&&threePonly) );
 
-  setup_stores(full_ovlPath,/*full_frgPath,*/full_gkpPath);
+  setup_stores(full_ovlPath, full_gkpPath);
   last_stored_frag = getLastElemFragStore (my_gkp_store);
 
   if(restrictIDs){
@@ -935,12 +926,12 @@ int main (int argc , char * argv[] ) {
   for(seediid=startingFrgNum;seediid<=last_stored_frag;seediid++){
     int numOvls=0,numFwdOvls=0;
     OVSoverlap *olaps;
+    int builtContig = 0;
 
 
 
     // skip deleted fragments
     GateKeeperFragmentRecord gkpFrag;
-//TODO: HACKHACK: SK - should this be 0 or 1?    
     if(getGateKeeperFragment(my_gkp_store,seediid,&gkpFrag)!=1) {
       assert(0);
     }
@@ -989,6 +980,8 @@ int main (int argc , char * argv[] ) {
       } else {
 	printf("%d  %d %d %s\n",currFrg,ahang,ahang+frglen, Aend?"<--":"-->");
       }
+      builtContig = 1;
+      
       if(numOvls>0){
 	stillGoing = best_overlap_off_end(currFrg, Aend, bestType,&o,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds,olaps,numOvls);
 	if(stillGoing){
@@ -1054,9 +1047,9 @@ int main (int argc , char * argv[] ) {
 	} else {
 	  printf("SEEN: %d  %d %d %s\n",currFrg,ahang,ahang+frglen, Aend?"<--":"-->");
 	  stillGoing=0;
-	}
+	}   
 	seen[currFrg]++;
-	assert(seen[currFrg]<(char)127);
+   assert(seen[currFrg]<(char)127);
       } else {
 	stillGoing=0;
       }
@@ -1087,7 +1080,8 @@ int main (int argc , char * argv[] ) {
 
     while(stillGoing){
       OVSoverlap o;
-      if(currFrg!=seediid||firstExtend==-1){
+      // when we had no overlaps on the 5' end, we need to also output the seed info or else it is never mentioned
+      if(currFrg!=seediid||firstExtend==-1||builtContig==0){
 	if(printpid){
 	  if(iid2sample!=NULL){
 	    printf("%d %d %d %s %f %d\n",currFrg,leftEnd,rightEnd,!Aend?"<--":"-->",pid/1000.,iid2sample[currFrg]);
@@ -1098,6 +1092,7 @@ int main (int argc , char * argv[] ) {
 	  printf("%d %d %d %s\n",currFrg,leftEnd,rightEnd,!Aend?"<--":"-->");
 	}
       }
+      builtContig = 1;
 
       if(numOvls>0){
 	stillGoing = best_overlap_off_end(currFrg, Aend, bestType,&o,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds,olaps,numOvls);
@@ -1166,6 +1161,11 @@ int main (int argc , char * argv[] ) {
 	stillGoing=0;
       }
     }
+     
+     // if the seed was part of a successfull contig, mark it as seen so it cannot be used again
+     if (builtContig !=0) {
+        seen[seediid]++;   
+     }
   }
 
   finished_with_ovlStore();  
