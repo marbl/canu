@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.50 2007-06-01 15:07:38 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.51 2007-06-01 22:56:14 gdenisov Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -79,7 +79,6 @@ extern int NumUnitigRetrySuccess;
 extern int DUMP_UNITIGS_IN_MULTIALIGNCONTIG;
 extern int VERBOSE_MULTIALIGN_OUTPUT;
 extern int FORCE_UNITIG_ABUT;
-extern int clear_range_to_use;
 
 
 float CNS_SEQUENCING_ERROR_EST = .02; // Used to calculate '-' probability
@@ -834,12 +833,11 @@ int main (int argc, char *argv[])
       VA_TYPE(char) *quality=CreateVA_char(200000);
       time_t t;
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.50 $ processing. Started %s\n",
+      fprintf(stderr,"# Consensus $Revision: 1.51 $ processing. Started %s\n",
         ctime(&t));
       InitializeAlphTable();
       if ( ! align_ium && USE_SDB && extract > -1 ) 
       {
-        clear_range_to_use = AS_READ_CLEAR_LATEST;
         IntConConMesg ctmp;
         if ( USE_SDB_PART ) {
           ma = loadFromSequenceDBPartition(sequenceDB_part, extract);
@@ -890,7 +888,7 @@ int main (int argc, char *argv[])
         {
            MultiAlignT *ma1 = CreateMultiAlignTFromICM(&ctmp,-1,0);
            PrintMultiAlignT(cnslog,ma1,gkpStore, 
-                            1, 0, clear_range_to_use);
+                            1, 0, AS_READ_CLEAR_LATEST);
            fflush(cnslog);
            DeleteVA_char(ma1->consensus);
            DeleteVA_char(ma1->quality);
@@ -915,7 +913,7 @@ int main (int argc, char *argv[])
         }
 
         exit(0); 
-      }  //  end of "if ( ! align_ium && USE_SDB && extract > -1 )"
+      }
 
       while ( (ReadProtoMesg_AS(cgwin,&pmesg) != EOF)
             ) 
@@ -925,7 +923,6 @@ int main (int argc, char *argv[])
           case MESG_IUM:
           {
             iunitig = (IntUnitigMesg *)(pmesg->m);
-            clear_range_to_use = AS_READ_CLEAR_OBT;
             if (align_ium) 
             {
        
@@ -1067,7 +1064,6 @@ int main (int argc, char *argv[])
           case MESG_ICM:
           {
             pcontig = (IntConConMesg *)(pmesg->m);
-            clear_range_to_use = AS_READ_CLEAR_LATEST;
             if (extract > -1 && pcontig->iaccession != extract) break;
             if (extract != -1 && align_ium) break;
             if (!beyond && continue_at > 0 && pcontig->iaccession < continue_at ) 
@@ -1127,7 +1123,7 @@ int main (int argc, char *argv[])
                  pcontig->num_pieces > 0)
             {
                 ma = CreateMultiAlignTFromICM(pcontig,-1,0);
-                PrintMultiAlignT(cnslog,ma,gkpStore, 1, 0, clear_range_to_use);
+                PrintMultiAlignT(cnslog,ma,gkpStore, 1, 0, AS_READ_CLEAR_LATEST);
             }
             output_lengths+=GetUngappedSequenceLength(pcontig->consensus);
             pmesg->t = MESG_ICM; 
@@ -1160,6 +1156,7 @@ int main (int argc, char *argv[])
                     safe_free(pcontig->v_list[i].nr_conf_alleles);
                     safe_free(pcontig->v_list[i].weights);
                     safe_free(pcontig->v_list[i].var_seq);
+                    safe_free(pcontig->v_list[i].conf_read_iids);
                 }
                 safe_free(pcontig->v_list);
             }
@@ -1183,7 +1180,7 @@ int main (int argc, char *argv[])
             {
               AuditLine auditLine;
               AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                                 "Consensus", "$Revision: 1.50 $","(empty)");
+                                 "Consensus", "$Revision: 1.51 $","(empty)");
             }
 #endif
               VersionStampADT(adt_mesg,argc,argv);
@@ -1207,7 +1204,7 @@ int main (int argc, char *argv[])
       }
 
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.50 $ Finished %s\n",ctime(&t));
+      fprintf(stderr,"# Consensus $Revision: 1.51 $ Finished %s\n",ctime(&t));
       if (printcns) 
       {
         int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 

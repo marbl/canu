@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.19 2007-05-23 15:32:56 skoren Exp $";
+static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.20 2007-06-01 22:55:45 gdenisov Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly
 //  pipeline and replaces internal accession numbers by external
@@ -323,6 +323,7 @@ convertICM(GenericMesg *pmesg,
       ccoMesg.vars[i].nr_conf_alleles  = icmMesg->v_list[i].nr_conf_alleles;
       ccoMesg.vars[i].weights          = icmMesg->v_list[i].weights;
       ccoMesg.vars[i].var_seq          = icmMesg->v_list[i].var_seq;
+      ccoMesg.vars[i].conf_read_iids   = icmMesg->v_list[i].conf_read_iids;
     }
   }
 

@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.146 2007-06-01 15:07:38 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.147 2007-06-01 22:56:14 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -73,13 +73,14 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.146 2007-06-01 15:07:38 bri
 #define MAX_EXTEND_LENGTH                2048
 #define MAX_WINDOW_FOR_ABACUS_REFINE      100
 #define SHOW_ABACUS                         0
+#define SHOW_ALLELES                        0
 #define SHOW_READS                          0
 #define SHOW_CONFIRMED_READS                0
 #define STABWIDTH                           6
 #define DEBUG_ABACUS                        0
 #define DEBUG_CONSENSUS_CALL                0
 #define DEBUG_VAR_RECORDS                   0
-
+#define OUTPUT_DISTANCE_MATRIX              0
 
 // Parameters used by Abacus processing code
 #define MSTRING_SIZE                        3
@@ -172,12 +173,6 @@ int VERBOSE_MULTIALIGN_OUTPUT = 0;
 //  unitigs -- certainly less than 20bp long.
 //
 int FORCE_UNITIG_ABUT = 0;
-
-//  Run-time selectable clear range; for unitigs, we use
-//  AS_READ_CLEAR_OBT (the same as unitigger); for contigs, we use
-//  AS_READ_CLEAR_LATEST.
-//
-int clear_range_to_use = AS_READ_CLEAR_LATEST;
 
 
 int isRead(FragType type){
@@ -962,8 +957,8 @@ int32 AppendFragToLocalStore(FragType type, int32 iid, int complement,int32 cont
   case AS_TRNR:
     getFrag(gkpStore,iid,fsread,FRAG_S_QLT);
 
-    clr_bgn = getFragRecordClearRegionBegin(fsread, clear_range_to_use);
-    clr_end = getFragRecordClearRegionEnd  (fsread, clear_range_to_use);
+    clr_bgn = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_LATEST);
+    clr_end = getFragRecordClearRegionEnd  (fsread, AS_READ_CLEAR_LATEST);
 
     strcpy(seqbuffer, getFragRecordSequence(fsread));
     strcpy(qltbuffer, getFragRecordQuality(fsread));
@@ -2844,14 +2839,15 @@ OutputAlleles(FILE *fout, VarRegion *vreg)
             fprintf(fout,   "    %d   ", read_id);
             for (k=0; k<len; k++)
                 fprintf(fout,   "%c", vreg->reads[read_id].bases[k]);
-            fprintf(fout,   "\n");
+            fprintf(fout,   "   %d\n", vreg->alleles[i].read_iids[j]);
         }
     }
 }
 
 static void
 PopulateVARRecord(int is_phased, int32 *cids, int32 *nvars, int32 *min_len_vlist,
-    IntMultiVar **v_list, VarRegion vreg, CNS_Options *opp, int get_scores)
+    IntMultiVar **v_list, VarRegion vreg, CNS_Options *opp, int get_scores,
+    int32 *conf_read_iids)
 {
     double fict_var;
     int   m;
@@ -2859,6 +2855,10 @@ PopulateVARRecord(int is_phased, int32 *cids, int32 *nvars, int32 *min_len_vlist
     char  cbase;
     char *base = (char*)safe_calloc(num_reported_alleles,sizeof(char));
     char  buf[10000];
+    int   tot_num_conf_reads = 0;
+
+    for (m=0; m<vreg.nca; m++)
+        tot_num_conf_reads += vreg.alleles[m].num_reads;
 
     if (!(*v_list)) {
        *v_list = (IntMultiVar *)safe_malloc(*min_len_vlist*
@@ -2869,9 +2869,7 @@ PopulateVARRecord(int is_phased, int32 *cids, int32 *nvars, int32 *min_len_vlist
        *v_list = (IntMultiVar *)safe_realloc(*v_list, *min_len_vlist*
             sizeof(IntMultiVar));
     }
-//  (*v_list)[*nvars].phs_id = is_phased ? vreg_id : -1;
     vreg_id++;
-//  (*v_list)[*nvars].id = vreg_id;
     (*v_list)[*nvars].position.bgn = vreg.beg;
     (*v_list)[*nvars].position.end = vreg.end+1;
     (*v_list)[*nvars].num_reads = (int32)vreg.nr;
@@ -2886,10 +2884,11 @@ PopulateVARRecord(int is_phased, int32 *cids, int32 *nvars, int32 *min_len_vlist
         (2+2)* sizeof(char));
     (*v_list)[*nvars].var_seq = (char*)safe_malloc(num_reported_alleles*
         (vreg.end-vreg.beg+2)* sizeof(char));
-
+    (*v_list)[*nvars].conf_read_iids= 
+            (char*)safe_calloc(vreg.nr, (15+2)*sizeof(char));
     NumVARRecords++;
     {
-        int al;
+        int al, rd;
         int32 shift   = vreg.end-vreg.beg+2;
         int distant_read_id = -42, distant_allele_id = -42;
         if (vreg.nca < 2)
@@ -2904,8 +2903,8 @@ PopulateVARRecord(int is_phased, int32 *cids, int32 *nvars, int32 *min_len_vlist
         OutputDistMatrix(stderr, &vreg);
         OutputAlleles(stderr, &vreg);
 #endif
-   
-        for (m=0; m<vreg.end-vreg.beg+1; m++)           
+
+        for (m=0; m<vreg.end-vreg.beg+1; m++)
         {
             for (al=num_reported_alleles-1; al >=0; al--)
             {
@@ -2963,27 +2962,32 @@ PopulateVARRecord(int is_phased, int32 *cids, int32 *nvars, int32 *min_len_vlist
                 "%d/" : "%d\0";
             char *format_num_reads = (al < num_reported_alleles-1) ?
                 "%d/" : "%d\0";
-            
+
             (*v_list)[*nvars].var_seq[-1+(al+1)*shift] =
                 (al < num_reported_alleles-1) ? '/' : '\0';
 
             sprintf(buf, format_weight, ROUND(weight));
             (*v_list)[*nvars].weights = strcat((*v_list)[*nvars].weights, buf);
-        
+
             sprintf(buf, format_num_reads, num_reads);
             (*v_list)[*nvars].nr_conf_alleles = strcat((*v_list)[*nvars].nr_conf_alleles, buf);
         }
 #if 0
-        fprintf(stderr, "In PolulateVarRecord: weights= %s , nr_conf_alleles= %s\n",
-            (*v_list)[*nvars].weights, (*v_list)[*nvars].nr_conf_alleles);
-#endif
-
-#if 0
         fprintf(stderr, "len= %d var_seq = %s\n", vreg.end-vreg.beg+1, (*v_list)[*nvars].var_seq);
-        
-#endif        
+
+#endif
+        sprintf((*v_list)[*nvars].conf_read_iids, "");
+        for (rd=0; rd < tot_num_conf_reads; rd++)
+        {
+            char *format_iids = (rd < tot_num_conf_reads-1) ?
+            "%d/" : "%d\0";
+            sprintf(buf, format_iids, conf_read_iids[rd]);
+            (*v_list)[*nvars].conf_read_iids =
+                strcat((*v_list)[*nvars].conf_read_iids, buf);
+        }
+
         for (al=0; al < num_reported_alleles; al++)
-        { 
+        {
             if ((*v_list)[*nvars].var_seq[al*shift]             == '-' &&
                 (*v_list)[*nvars].var_seq[al*shift + shift - 2] == '-')
             {
@@ -2997,6 +3001,7 @@ PopulateVARRecord(int is_phased, int32 *cids, int32 *nvars, int32 *min_len_vlist
 #endif
                 (*nvars)++;
 }
+
 
 
 // Allocate memrory for reads
@@ -3039,125 +3044,83 @@ AllocateMemoryForAlleles(Allele **alleles, int32 nr, int32 *na)
 }
 
 static int
-PhaseWithPrevVreg(int nca, Allele *alleles, Read *reads)
+PhaseWithPrevVreg(int32 nca, Allele *alleles, Read *reads, int32 **allele_map)
 {
-    int i, j, k, l;
-    int is_phased = 0;
-    int **allele_matrix;
-    int  *allele_map, *check;
+    int   i, j, k, l;
+    int   is_phased = 0;
+    int32 **allele_matrix;
+    int32  *check;
+    int   num_reads = 0;
 
-    if (prev_nca != nca)
-        return 0;
- 
-    allele_matrix = (int **)safe_calloc(prev_nca, sizeof(int *)); 
-    for (i=0; i<prev_nca; i++)
+    if (prev_nca == nca && nca >= 2)
     {
-        allele_matrix[i] = (int *)safe_calloc(nca, sizeof(int));
-    }
-
-    // Populate the matrix allele_matrix
-    for (i=0; i<nca; i++)   // i = allele id in current VAR record
-    {
-        for (j=0; j<alleles[i].num_reads; j++)
+       *allele_map = (int32 *)safe_calloc(nca, sizeof(int32));
+        check      = (int32 *)safe_calloc(nca, sizeof(int32));
+        allele_matrix = (int32 **)safe_calloc(prev_nca, sizeof(int32 *));
+        for (i=0; i<prev_nca; i++)
         {
-            int read_id=0;
-            l = 0; // allele id in the prev VAR record
-            for (k=0; k<prev_ncr; k++)
+            allele_matrix[i] = (int32 *)safe_calloc(nca, sizeof(int32));
+        }
+
+        /* Populate the allele_matrix:
+         *   columns  = confirmed alleles in the previous VAR record
+         *   rows     = confirmed alleles in the current  VAR record
+         *   elements = # of reads in the corresponding allele
+         */
+        for (i=0; i<nca; i++)   // i = allele id in current VAR record
+        {
+            for (j=0; j<alleles[i].num_reads; j++)
             {
-                if (read_id == prev_nrca[l])  // start of a new allele
+                int read_id=0;
+                l = 0; // allele id in the prev VAR record
+                for (k=0; k<prev_ncr; k++)
                 {
-                    l++;
-                    read_id = 0;
+                    if (read_id == prev_nrca[l])  // start of a new allele
+                    {
+                        l++;
+                        read_id = 0;
+                    }
+                    read_id++;
+
+                    if (prev_iidrca[k] == alleles[i].read_iids[j])
+                    {
+                        allele_matrix[l][i]++;
+                        num_reads++;
+                    }
                 }
-                read_id++;                
-    
-                if (prev_iidrca[k] == alleles[i].read_iids[j])
-                    allele_matrix[l][i]++;      
-            }    
-        }
-    }
-
-#if 0
-    fprintf(stderr, "Matrix allele_matrix =\n");
-    for (i=0; i<prev_nca; i++)
-    {
-        for (j=0; j<nca; j++)
-        {
-            fprintf(stderr, "%d ", allele_matrix[i][j]);
-        }
-        fprintf(stderr, "\n");
-    }
-    fprintf(stderr, "\n");
-#endif
-
-    // Check if alleles of previous VAR record map well on reads of current
-    // VAR record. They do, if:
-    // - maximal element in each row in allele_matrix is greater than half 
-    //   the sum of all elements, and 
-    // - maximal elements of different rows are located in different 
-    //   columns
-    allele_map = (int *)safe_calloc(nca, sizeof(int));
-    check      = (int *)safe_calloc(nca, sizeof(int));
-    for (i=0; i<nca; i++)
-    {
-        allele_map[i] = check[i] = -1;
-    }
-    for (i=0; i<nca; i++)
-    {
-        int sum = 0, max = -1, j_best = -1;
-        for (j=0; j<prev_nca; j++)
-        {
-            sum += allele_matrix[i][j];
-            if (max < allele_matrix[i][j])
-            {
-                max = allele_matrix[i][j];
-                j_best = j;
             }
         }
-        if (2*max > sum)
-        {
-            allele_map[i] = j_best;
-            check[j_best] = 1;
-        }
-    }
-    {
-        int product = 1;
-        for (i=0; i< nca; i++)
-            product *= (check[i]+1);
-        if (product > 0)
-            is_phased = 1;
-    }
-            
-    // Check if alleles of current  VAR record map well on reads of previous
-    // VAR record. They do, if:
-    // - maximal element in each col in the allele_matrix is greater than half
-    //   the sum of all elements, and
-    // - maximal elements of different cols are located in different
-    //   rows   
-    if (!is_phased)
-    {
+
+    /* Check if    alleles of previous VAR record
+     * map well on alleles of current  VAR record. They will do, if:
+     * - maximal element in each row in allele_matrix is greater than half
+     *   the sum of all elements, and
+     * - maximal elements of different rows are located in different
+     *   columns
+     */
         for (i=0; i<nca; i++)
         {
-            allele_map[i] = check[i] = -1;
+          (*allele_map)[i] = check[i] = -1;
         }
-        for (j=0; j<nca; j++) // loop through all columns
+        for (i=0; i<nca; i++)
         {
-            int sum = 0, max = -1, i_best = -1;
-            for (i=0; i<nca; i++)
+            int sum = 0, max = -1, j_best = -1;
+            for (j=0; j<prev_nca; j++)
             {
                 sum += allele_matrix[i][j];
                 if (max < allele_matrix[i][j])
                 {
                     max = allele_matrix[i][j];
-                    i_best = i;
+                    j_best = j;
                 }
             }
             if (2*max > sum)
             {
-                allele_map[i_best] = j;
-                check[i_best] = 1;
+              (*allele_map)[i] = j_best;
+                check[j_best] = 1;
             }
         }
+
         {
             int product = 1;
             for (i=0; i< nca; i++)
@@ -3165,57 +3128,115 @@ PhaseWithPrevVreg(int nca, Allele *alleles, Read *reads)
             if (product > 0)
                 is_phased = 1;
         }
-    }
 
-#if 0
-    fprintf(stderr, "is_phased = %d\n", is_phased);
-    fprintf(stderr, "allele_map= ");
-    for (i=0; i<nca; i++)
-    {
-        fprintf(stderr, "%d ", allele_map[i]);
-    }
-    fprintf(stderr, "\n\n");
-#endif
-
-    // Reorder alleles in accordance with allele_map
-    if (is_phased)
-    {
-        SortAllelesByMapping(alleles, nca, reads, allele_map);
-    }
-
-#if 0
-    {
-        fprintf(stderr, "Prev read iids= \n");
-        k = 0;
+    /* Check if    alleles of current  VAR record
+     * map well on alleles of previous VAR record. They will do, if:
+     * - maximal element in each col in allele_matrix is greater than half
+     *   the sum of all elements, and
+     * - maximal elements of different cols are located in different
+     *   rows
+     */
+        if (!is_phased)
+        {
+            for (i=0; i<nca; i++)
+            {
+              (*allele_map)[i] = check[i] = -1;
+            }
+            for (j=0; j<nca; j++) // loop through all columns
+            {
+                int sum = 0, max = -1, i_best = -1;
+                for (i=0; i<nca; i++)
+                {
+                    sum += allele_matrix[i][j];
+                    if (max < allele_matrix[i][j])
+                    {
+                        max = allele_matrix[i][j];
+                        i_best = i;
+                    }
+                }
+                if (2*max > sum)
+                {
+                  (*allele_map)[i_best] = j;
+                    check[i_best] = 1;
+                }
+            }
+            {
+                int product = 1;
+                for (i=0; i< nca; i++)
+                    product *= (check[i]+1);
+                if (product > 0)
+                    is_phased = 1;
+            }
+        }
         for (i=0; i<prev_nca; i++)
         {
-            fprintf(stderr, "    allele %d : ", i);
-            for (j= 0; j<prev_nrca[i]; j++)
-            {
-                fprintf(stderr, "%d ", prev_iidrca[k]);
-                k++;
-            }
-            fprintf(stderr, "\n");
+           safe_free(allele_matrix[i]);
         }
-        fprintf(stderr, "Curr read iids= \n");
-        for (i=0; i<nca; i++)
+        safe_free(allele_matrix);
+        safe_free(check);
+    } /* if (prev_nca == nca) */ 
+
+    return is_phased;
+}
+
+static void
+show_confirmed_reads(VarRegion *vreg)
+{
+    int j, l;
+    fprintf(stderr, "Confirmed reads=\n");
+    for (j=0; j<vreg->nr; j++)
+    {
+        if (vreg->reads[j].allele_id >= vreg->nca)
+            continue;
+
+        for (l=0; l< vreg->end-vreg->beg+1; l++)
         {
-            fprintf(stderr, "    allele %d : ", i);
-            for (j=0; j<alleles[i].num_reads; j++)
-                fprintf(stderr, "%d ", alleles[i].read_iids[j]);
-            fprintf(stderr, "\n");
+            fprintf(stderr, "%c", vreg->reads[j].bases[l]);
+        }
+        fprintf(stderr, " allele= %d iid= %d\n",
+             vreg->reads[j].allele_id, vreg->reads[j].iid);
+    }
+    fprintf(stderr, "\n");
+}
+static void
+show_reads_of_confirmed_alleles(VarRegion *vreg)
+{
+    int j, l;
+    fprintf(stderr, "Confirmed reads=\n");
+    for (j=0; j<vreg->nca; j++)
+    {
+        for (l=0; l< vreg->alleles[j].num_reads; l++)
+        {
+            fprintf(stderr, "%d  %d \n", vreg->alleles[j].read_ids[l],
+                vreg->alleles[j].read_iids[l]);
         }
     }
-#endif
+    fprintf(stderr, "\n");
+}
 
-    for (i=0; i<prev_nca; i++)
+
+static void
+show_reads(VarRegion *vreg)
+{
+    int j, l;
+
+    fprintf(stderr, "Num_reads= %d vreg.beg= %d vreg.end= %d\n",
+        vreg->nr, vreg->beg, vreg->end);
+
+    fprintf(stderr, "Reads=\n");
+    for (j=0; j<vreg->nr; j++)
     {
-       safe_free(allele_matrix[i]);
-    } 
-    safe_free(allele_matrix); 
-    safe_free(allele_map);
-    safe_free(check);
-    return is_phased;
+        for (l=0; l< vreg->end-vreg->beg+1; l++)
+        {
+            fprintf(stderr, "%c", vreg->reads[j].bases[l]);
+        }
+        fprintf(stderr, "\n");
+    }
+    fprintf(stderr, "Ave_qvs= \n");
+    for (j=0; j<vreg->nr; j++)
+        fprintf(stderr, "%f ", vreg->reads[j].ave_qv);
+
+    fprintf(stderr, "\n");
 }
 
 
@@ -3240,7 +3261,6 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
     char  **reads; 
     MANode *ma = GetMANode(manodeStore,mid);
     int32   min_len_vlist = 10;
-    int32   is_phased;
 
     //  Make sure that we have valid options here, we then reset the
     //  pointer to the freshly copied options, so that we can always
@@ -3392,12 +3412,16 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
         else 
         {
             // Process a region of variation
+            int32  is_phased = 0;
+            int32 *conf_read_iids = NULL;
             double fict_var;
+            int32 *allele_map;
+
             vreg.beg = vbeg = vend = i;
 
             while (DBL_EQ_DBL(varf[vreg.beg], (double)0.0))
                 vreg.beg++;
-            
+
             while ((vend < len_manode) && (svarf[vend] > ZERO_PLUS))
                 vend++;
 
@@ -3408,105 +3432,82 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
 
             // Store iids of all the reads in current region
             vreg.nr = 0;
-            for(l=0; l<vreg.max_nr; l++) 
+            for(l=0; l<vreg.max_nr; l++)
                 vreg.iids[l] = -1;
 
-            // Get all the read iids 
+            // Get all the read iids
             // Calculate the total number of reads, vreg.nr (corresponding to any allele)
-            for (j=vreg.beg; j<=vreg.end; j++) 
+            for (j=vreg.beg; j<=vreg.end; j++)
                 GetReadIidsAndNumReads(cids[j], &vreg);
-   
+
             // Allocate memrory for reads
-            AllocateMemoryForReads(&vreg.reads, vreg.nr, vreg.end - vreg.beg + 1, 
+            AllocateMemoryForReads(&vreg.reads, vreg.nr, vreg.end - vreg.beg + 1,
                 0);
 
-#if 0
-            fprintf(stderr, "Num_reads= %d vreg.beg= %d vreg.end= %d\n", vreg.nr, vreg.beg, vreg.end);
-            fprintf(stderr, "Reads=\n");
-            for (j=0; j<vreg.nr; j++)
-            {
-                for (l=0; l< vreg.end-vreg.beg+1; l++)
-                {
-                    fprintf(stderr, "%c", vreg.reads[j].bases[l]);
-                }
-                fprintf(stderr, "\n");
-            }
-#endif
-            GetReadsForVARRecord(vreg.reads, vreg.iids, vreg.nr, vreg.beg, 
+            GetReadsForVARRecord(vreg.reads, vreg.iids, vreg.nr, vreg.beg,
                 vreg.end, cids);
             // Calculate a sum of qvs for each read within a variation region
             // Populate the distance matrix
 
-#if SHOW_READS
-            fprintf(stderr, "Num_reads= %d vreg.beg= %d vreg.end= %d\n", vreg.nr, 
-                vreg.beg, vreg.end);
-            fprintf(stderr, "Reads=\n");
-            for (j=0; j<vreg.nr; j++)
-            {
-                for (l=0; l< vreg.end-vreg.beg+1; l++)
-                {
-                    fprintf(stderr, "%c", vreg.reads[j].bases[l]);
-                }
-                fprintf(stderr, "\n");
-            }
-            fprintf(stderr, "Ave_qvs= \n");
-            for (j=0; j<vreg.nr; j++)
-                fprintf(stderr, "%f ", vreg.reads[j].ave_qv);
-            fprintf(stderr, "\n");
-#endif
-            AllocateDistMatrix(&vreg, -1);
-            PopulateDistMatrix(vreg.reads, vreg.end-vreg.beg+1, &vreg);    
+            if (SHOW_READS) show_reads(&vreg);
 
-#if 0
-            OutputDistMatrix(stderr, &vreg);
-#endif
+            AllocateDistMatrix(&vreg, -1);
+            PopulateDistMatrix(vreg.reads, vreg.end-vreg.beg+1, &vreg);
+
+            if (OUTPUT_DISTANCE_MATRIX)
+                OutputDistMatrix(stderr, &vreg);
 
             // Allocate memory for alleles
             AllocateMemoryForAlleles(&vreg.alleles, vreg.nr, &vreg.na);
 
             // Populate vreg.alleles array
             // Determine the best allele and the number of reads in this allele
-            ClusterReads(vreg.reads, vreg.nr, vreg.alleles, &(vreg.na), 
+            ClusterReads(vreg.reads, vreg.nr, vreg.alleles, &(vreg.na),
                 &(vreg.nca), vreg.dist_matrix);
-#if 0
-            fprintf(stderr, "Total number of alleles after ClusterReads %d\n", vreg.na);
-            fprintf(stderr, "Allele weights= \n");
-            for (j=0; j<vreg.na; j++)
-                fprintf(stderr, "%d ", vreg.alleles[j].weight);
-            fprintf(stderr, "\n");
-#endif
-            is_phased = PhaseWithPrevVreg(vreg.nca, vreg.alleles, vreg.reads);
 
-            if (!is_phased)
+            is_phased = PhaseWithPrevVreg(vreg.nca, vreg.alleles, vreg.reads, &allele_map);
+
+            if (is_phased)
             {
+                SortAllelesByMapping(vreg.alleles, vreg.nca, vreg.reads, allele_map);
+                safe_free(allele_map);
+            }
+            else
                 SortAllelesByWeight(vreg.alleles, vreg.na, vreg.reads);
+
+            // Create a list of iids of confirmed reads
+            {
+                int start_num = 0, num_conf_reads = 0;
+
+                for (i=0; i<vreg.nca; i++)
+                    num_conf_reads += vreg.alleles[i].num_reads;
+
+                conf_read_iids = (int32 *)safe_calloc(num_conf_reads, sizeof(int32));
+
+                for (i=0; i<vreg.nca; i++)
+                {
+                    for (j=0; j<vreg.alleles[i].num_reads; j++)
+                    {
+                        conf_read_iids[start_num+j] = vreg.alleles[i].read_iids[j];
+                    }
+                    start_num += vreg.alleles[i].num_reads;
+                }
             }
 
+            
+            if (SHOW_CONFIRMED_READS) show_confirmed_reads(&vreg);
+            if (SHOW_CONFIRMED_READS) show_reads_of_confirmed_alleles(&vreg);
+
+            // Update the info about the previous VAR record :
+            // prev_nca, prev_nrca and prev_iidrca
             {
-                int iv, jv, kv = 0; 
-#if SHOW_CONFIRMED_READS
-                fprintf(stderr, "Confirmed reads=\n");
-                for (j=0; j<vreg.nr; j++)
-                {
-                    if (vreg.reads[j].allele_id >= vreg.nca)
-                        continue;
-    
-                    for (l=0; l< vreg.end-vreg.beg+1; l++)
-                    {
-                        fprintf(stderr, "%c", vreg.reads[j].bases[l]);
-                    }
-                    fprintf(stderr, " allele= %d iid= %d\n",
-                         vreg.reads[j].allele_id, vreg.reads[j].iid);
-                }
-                fprintf(stderr, "\n");
-#endif
-                // Update the info about the previous VAR record :
-                // prev_nca, prev_nrca and prev_iidrca
+                int iv, jv, kv = 0;
+
                 prev_nca = vreg.nca;
-                for (iv = 0; iv < vreg.nca && iv < 10; iv++)
+                for (iv = 0; iv < vreg.nca && iv < 100; iv++)
                 {
                     prev_nrca[iv] = vreg.alleles[iv].num_reads;
-                    for (jv = 0; jv < vreg.alleles[iv].num_reads && kv < 100;
+                    for (jv = 0; jv < vreg.alleles[iv].num_reads && kv < 1000;
                          jv++)
                     {
                         prev_iidrca[kv] = vreg.alleles[iv].read_iids[jv];
@@ -3514,14 +3515,14 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
                     }
                 }
                 prev_ncr = kv;
-#if 0            
-                OutputAlleles(stderr, &vreg);
-#endif
+
+                if (SHOW_ALLELES) OutputAlleles(stderr, &vreg);
+
                 /* Store variations in a v_list */
-                PopulateVARRecord(is_phased, cids, nvars, &min_len_vlist, v_list, 
-                    vreg, opp, get_scores); 
+                PopulateVARRecord(is_phased, cids, nvars, &min_len_vlist, v_list,
+                    vreg, opp, get_scores, conf_read_iids);
             }
-           
+
             i = vend;
 
             for (j=0; j<vreg.nr; j++)
@@ -3532,10 +3533,11 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
                 safe_free(vreg.alleles[j].read_ids);
                 safe_free(vreg.alleles[j].read_iids);
             }
-            safe_free(vreg.dist_matrix); 
+            safe_free(vreg.dist_matrix);
             safe_free(vreg.reads);
             safe_free(vreg.alleles);
             vreg.nr = 0;
+            safe_free(conf_read_iids);
         }
     }
     safe_free(vreg.curr_bases);
@@ -4753,8 +4755,8 @@ int PrintFrags(FILE *out, int accession, IntMultiPos *all_frags, int num_frags,
            fmesg.sequence = getFragRecordSequence(fsread);
            fmesg.quality  = getFragRecordQuality(fsread);
 
-           fmesg.clear_rng.bgn = getFragRecordClearRegionBegin(fsread, clear_range_to_use);
-           fmesg.clear_rng.end = getFragRecordClearRegionEnd  (fsread, clear_range_to_use);
+           fmesg.clear_rng.bgn = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_LATEST);
+           fmesg.clear_rng.end = getFragRecordClearRegionEnd  (fsread, AS_READ_CLEAR_LATEST);
 
            fmesg.iaccession = all_frags[i].ident;
            fmesg.type = all_frags[i].type;
@@ -6030,8 +6032,7 @@ int ApplyAbacus(Abacus *a, CNS_Options *opp)
   int32 bid,eid,i;
   char a_entry;
   double fict_var;   // variation is a column
-  int   beadIdx,  exch_beadIdx;
-  Bead *bead,    *exch_bead;
+  Bead *bead,*exch_bead;
   VarRegion  vreg;
 
   SetDefault(&vreg);
@@ -6046,58 +6047,52 @@ int ApplyAbacus(Abacus *a, CNS_Options *opp)
        while ( bid != -1 ) 
        {
          // Update all beads in a given column
-         beadIdx = bid;
-         bead    = GetBead(beadStore,beadIdx);
+         bead = GetBead(beadStore,bid);
          i =  *Getint32(abacus_indices,bead->frag_index) - 1;
          a_entry = *GetAbacus(a,i,columns);
          if ( a_entry == 'n') 
          {
-           exch_beadIdx = bead->up;
-           exch_bead    = GetBead(beadStore,exch_beadIdx);
+           exch_bead = GetBead(beadStore,bead->up);
            //fprintf(stderr,"Unaligning trailing gaps from %d.\n",bid);
            UnAlignTrailingGapBeads(bid);
          } 
          else if ( a_entry != *Getchar(sequenceStore,bead->soffset)) 
          {
            //  Look for matching bead in frag and exchange
-           exch_beadIdx = bead->boffset;
-           exch_bead    = GetBead(beadStore,exch_beadIdx);
+           exch_bead = GetBead(beadStore,bead->boffset);
            if ( NULL == exch_bead ) {
                //fprintf(stderr,"Uh-oh... out of beads in fragment. (LEFT_SHIFT)\n");
                eid = AppendGapBead(bead->boffset);
                //fprintf(stderr,"Adding gapbead %d\n",eid);
-               bead = GetBead(beadStore,beadIdx);
                AlignBead(GetColumn(columnStore,bead->column_index)->next,eid);
-               exch_beadIdx = eid;
-               exch_bead    = GetBead(beadStore,exch_beadIdx);
+               exch_bead = GetBead(beadStore,eid);
            }
            while (  a_entry != *Getchar(sequenceStore,exch_bead->soffset)) 
            {
              if (exch_bead->next == -1 ) {
                //fprintf(stderr,"Uh-oh... out of beads in fragment. (LEFT_SHIFT)\n");
                eid = AppendGapBead(exch_bead->boffset);
-               bead      = GetBead(beadStore,beadIdx);
-               exch_bead = GetBead(beadStore,exch_beadIdx);
                //fprintf(stderr,"Adding gapbead %d\n",eid);
                AlignBead(GetColumn(columnStore,exch_bead->column_index)->next,eid);
              } else if (exch_bead->column_index == a->end_column) {
                //fprintf(stderr,"Uh-oh... out of beads in window. (LEFT_SHIFT)\n");
                eid = AppendGapBead(exch_bead->boffset);
-               bead      = GetBead(beadStore,beadIdx);
-               exch_bead = GetBead(beadStore,exch_beadIdx);
-
                //fprintf(stderr,"Adding gapbead %d\n",eid);
-               {
+              // ColumnAppend(exch_bead->column_index,eid);
+               { // mods (ALH) to handle reallocation of columnStore
+                 int32 off   = 0;
                  int curridx = column->lid;
-                 ColumnAppend(exch_bead->column_index,eid);
-                 column=GetColumn(columnStore,curridx);
 
-                 exch_beadIdx = exch_bead->boffset;
-                 exch_bead    = GetBead(beadStore, exch_beadIdx);
+                 // remember bead offset in case realloc() moves the
+                 // memory and exch_bead becomes a stale pointer
+                 off = exch_bead->boffset; 
+                 ColumnAppend(exch_bead->column_index,eid);
+                 exch_bead = GetBead(beadStore, off);
+
+                 column=GetColumn(columnStore,curridx);
                } 
              }
-             exch_beadIdx = exch_bead->next;
-             exch_bead    = GetBead(beadStore,exch_beadIdx);
+             exch_bead = GetBead(beadStore,exch_bead->next);
            }
           /* 
              fprintf(stderr,"LeftShifting bead %d (%c) with bead %d (%c).\n",
@@ -6106,8 +6101,7 @@ int ApplyAbacus(Abacus *a, CNS_Options *opp)
          */ 
            LeftEndShiftBead(bid,exch_bead->boffset);
          } else {
-           exch_beadIdx = beadIdx;
-           exch_bead    = bead; // no exchange necessary;
+           exch_bead = bead; // no exchange necessary;
          }
          bid = exch_bead->down;
          /*
@@ -6129,27 +6123,23 @@ int ApplyAbacus(Abacus *a, CNS_Options *opp)
        char base;
        bid = GetBead(beadStore,column->call)->down;
        while ( bid != -1 ) {
-         beadIdx = bid;
-         bead    = GetBead(beadStore,beadIdx);
+         bead = GetBead(beadStore,bid);
          i =  *Getint32(abacus_indices,bead->frag_index) - 1;
          a_entry = *GetAbacus(a,i,a->columns-columns-1);
          if ( a_entry == 'n' ) {
-           exch_beadIdx = bead->up;
-           exch_bead    = GetBead(beadStore,exch_beadIdx);
+           exch_bead = GetBead(beadStore,bead->up);
            //fprintf(stderr,"Unaligning trailing gaps from %d.\n",bid);
            UnAlignTrailingGapBeads(bid);
          } else if ( a_entry != *Getchar(sequenceStore,bead->soffset)) {
            //  Look for matching bead in frag and exchange
-           exch_beadIdx = bead->boffset;
-           exch_bead    = GetBead(beadStore,exch_beadIdx);
+           exch_bead = GetBead(beadStore,bead->boffset);
            if ( NULL == exch_bead ) {
 	     //fprintf(stderr,"Uh-oh... out of beads in fragment. (RIGHT_SHIFT)\n");
 	     eid = PrependGapBead(bead->boffset);
 	     //fprintf(stderr,"Adding gapbead %d\n",eid);
-             bead      = GetBead(beadStore,beadIdx);
-     	     AlignBead(GetColumn(columnStore,bead->column_index)->prev,eid);
-             exch_beadIdx = eid;
-	     exch_bead    = GetBead(beadStore,exch_beadIdx);
+	     
+	     AlignBead(GetColumn(columnStore,bead->column_index)->prev,eid);
+	     exch_bead = GetBead(beadStore,eid);
 	   }
 
            while (  a_entry != *Getchar(sequenceStore,exch_bead->soffset)) {
@@ -6165,17 +6155,13 @@ int ApplyAbacus(Abacus *a, CNS_Options *opp)
                exchbeadprev = eid = AppendGapBead(exch_bead->prev);
                //fprintf(stderr,"Adding gapbead %d\n",eid);
 
-               bead      = GetBead(beadStore,beadIdx);
-               exch_bead = GetBead(beadStore,exch_beadIdx);
-
                {// ALH's change to fix reallocation of column store
 	         int curridx = column->lid;
 		 ColumnAppend(GetColumn(columnStore,exch_bead->column_index)->prev,eid);	         
                  column = GetColumn(columnStore, curridx);
 	       }
              }
-             exch_beadIdx = exchbeadprev;
-             exch_bead    = GetBead(beadStore, exch_beadIdx);
+             exch_bead = GetBead(beadStore, exchbeadprev);
            }
            /*
            fprintf(stderr,"RightShifting bead %d (%c) with bead %d (%c).\n",
@@ -6184,8 +6170,7 @@ int ApplyAbacus(Abacus *a, CNS_Options *opp)
            */
            RightEndShiftBead(exch_bead->boffset,bid);
          } else {
-           exch_beadIdx = beadIdx;
-           exch_bead    = bead; // no exchange necessary;
+           exch_bead = bead; // no exchange necessary;
          }
          bid = exch_bead->down;
          /*

@@ -25,7 +25,7 @@
    Assumptions:  libAS_UTL.a
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.32 2007-04-16 15:35:40 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.33 2007-06-01 22:56:14 gdenisov Exp $";
 
 
 #include <assert.h>
@@ -254,7 +254,8 @@ CopyMultiAlignT(MultiAlignT *newma, MultiAlignT *ma)
   newma->source_alloc = ma->source_alloc;
   {/* Adjust the delta pointers in the clone */
     int i;
-    char *old_source, *old_var_seq, *old_nr_conf_alleles, *old_weights;
+    char *old_source, *old_var_seq, *old_nr_conf_alleles, *old_weights,
+         *old_conf_read_iids;
     int src_len;
     int32 *oldbase = Getint32(ma->delta, 0);
     int32 *newbase = Getint32(newma->delta, 0);
@@ -271,13 +272,17 @@ CopyMultiAlignT(MultiAlignT *newma, MultiAlignT *ma)
       old_nr_conf_alleles = nvar->nr_conf_alleles;
       old_weights         = nvar->weights;
       old_var_seq         = nvar->var_seq;
-      nvar->var_seq = (char *) safe_malloc((strlen(old_var_seq)+1)*sizeof(char));
+      old_conf_read_iids = nvar->conf_read_iids;
       nvar->nr_conf_alleles = (char *) safe_malloc((strlen(old_nr_conf_alleles)+1)
            *sizeof(char));
       nvar->weights = (char *) safe_malloc((strlen(old_weights)+1)*sizeof(char));
+      nvar->var_seq = (char *) safe_malloc((strlen(old_var_seq)+1)*sizeof(char));
+      nvar->conf_read_iids = (char *) safe_malloc((strlen(old_conf_read_iids)+1)
+                            *sizeof(char));
       strcpy(nvar->nr_conf_alleles, old_nr_conf_alleles);
       strcpy(nvar->weights,         old_weights);
       strcpy(nvar->var_seq,         old_var_seq);
+      strcpy(nvar->conf_read_iids, old_conf_read_iids);
     }
   }
   {/* Adjust the delta pointers in the clone */
@@ -653,13 +658,16 @@ CreateMultiAlignTFromICM(IntConConMesg *icm, int localID, int sequenceOnly)
          tmp.nr_conf_alleles  = (char *) safe_malloc(4*sizeof(char)*na + 1);
          tmp.weights          = (char *) safe_malloc(7*sizeof(char)*na + 1);
          tmp.var_seq          = (char *) safe_malloc((cvr_mesg->var_length+1)*sizeof(char)*na + 1);
+         tmp.conf_read_iids = (char *) safe_malloc((15+2)*sizeof(char)*tmp.num_reads);
          strcpy(tmp.nr_conf_alleles, cvr_mesg->nr_conf_alleles);
          strcpy(tmp.weights, cvr_mesg->weights);
          strcpy(tmp.var_seq, cvr_mesg->var_seq);
+         strcpy(tmp.conf_read_iids, cvr_mesg->conf_read_iids);
          SetIntMultiVar(ma->v_list, cvr, &tmp);
          safe_free(tmp.nr_conf_alleles);
          safe_free(tmp.weights);
          safe_free(tmp.var_seq);
+         safe_free(tmp.conf_read_iids);
       }
     }
 
@@ -788,9 +796,11 @@ CreateMultiAlignTFromCCO(SnapConConMesg *cco, int localID, int sequenceOnly)
          tmp.nr_conf_alleles  = (char *) safe_malloc(4*sizeof(char)*na + 1);
          tmp.weights          = (char *) safe_malloc(7*sizeof(char)*na + 1);
          tmp.var_seq          = (char *) safe_malloc((cvr_mesg->var_length+1)*sizeof(char)*na + 1);
+         tmp.conf_read_iids   = (char *) safe_malloc((15+2)*sizeof(char)*tmp.num_reads);
          strcpy(tmp.nr_conf_alleles, cvr_mesg->nr_conf_alleles);
          strcpy(tmp.weights, cvr_mesg->weights);
          strcpy(tmp.var_seq, cvr_mesg->var_seq);
+         strcpy(tmp.conf_read_iids, cvr_mesg->conf_read_iids);
          SetIntMultiVar(ma->v_list, cvr, &tmp);
       }
     }
@@ -868,6 +878,7 @@ DeleteMultiAlignT(MultiAlignT *ma)
        if (v->nr_conf_alleles) safe_free(v->nr_conf_alleles);
        if (v->weights) safe_free(v->weights);
        if (v->var_seq) safe_free(v->var_seq);
+       if (v->conf_read_iids) safe_free(v->conf_read_iids);
        v++;
     }
   }   

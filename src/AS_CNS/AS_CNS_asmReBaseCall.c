@@ -31,7 +31,7 @@
 #include "Globals_CNS.h"
 #include "PublicAPI_CNS.h"
 
-static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.15 2007-05-29 10:54:27 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.16 2007-06-01 22:56:14 gdenisov Exp $";
 
 static HashTable_AS *utgUID2IID;
 
@@ -168,6 +168,7 @@ static IntConConMesg* convert_CCO_to_ICM(SnapConConMesg* ccoMesg)
         icmMesg->v_list[i].nr_conf_alleles=strdup(ccoMesg->vars[i].nr_conf_alleles);
         icmMesg->v_list[i].weights        = strdup(ccoMesg->vars[i].weights);
         icmMesg->v_list[i].var_seq        = strdup(ccoMesg->vars[i].var_seq);  
+        icmMesg->v_list[i].conf_read_iids = strdup(ccoMesg->vars[i].conf_read_iids);
      }
       
   } else {
@@ -429,7 +430,7 @@ int main (int argc, char *argv[]) {
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.15 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.16 $ processing. Started %s\n",
 	      ctime(&t));
       InitializeAlphTable();
 
@@ -484,6 +485,7 @@ int main (int argc, char *argv[]) {
                   safe_free(icontig->v_list[i].nr_conf_alleles);
                   safe_free(icontig->v_list[i].weights);
 		  safe_free(icontig->v_list[i].var_seq);
+                  safe_free(icontig->v_list[i].conf_read_iids);
 		}
 		safe_free(icontig->v_list);
 	      }
