@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.37 2007-05-29 10:54:26 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.38 2007-06-01 15:09:46 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -971,6 +971,7 @@ void ProcessFrags(void)
   CDS_CID_t i;
   int32 unmatedFrags = 0;
   GateKeeperFragmentRecord gkf;
+  int                      err = 0;
 
   //  Do one pass through, reading from the gatekeeper store to fill
   //  out the cifrag info.
@@ -1003,7 +1004,7 @@ void ProcessFrags(void)
         //  This is not a critical failure, but does indicate
         //  something amiss with either the store or the unitigs.
         //
-        assert(0);
+        err++;
       }
 
       //fprintf(stderr, "Frag: iid=%d,index=%d mateiid=%d,index=%d\n", i, ciinfo->fragIndex, gkf.mateIID, miinfo->fragIndex);
@@ -1012,6 +1013,9 @@ void ProcessFrags(void)
     if (cifrag->flags.bits.hasMate == FALSE)
       unmatedFrags++;
   }
+
+  if (err)
+    assert(err == 0);
 
   fprintf(stderr,"* Unmated fragments %d\n", unmatedFrags);
   fprintf(stderr,"* Total IIDs:       %d\n", (int)GetNumInfoByIIDs(ScaffoldGraph->iidToFragIndex));
