@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.16 2007-05-29 10:54:26 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.17 2007-06-01 15:08:52 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -44,7 +44,6 @@ static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.16 2007-05-29 10:54:26 brianw
 //#define DEBUG_CHUNKOVERLAP 
 
 #define GREEDYDEBUG 0
-#define USE_NEW_DP_COMPARE
 
 
 // this is the initial range we use to compute 
@@ -634,169 +633,10 @@ static VA_TYPE(char) *qualityA = NULL;
 static VA_TYPE(char) *qualityB = NULL;
 
 
-void ComputeCanonicalOverlap(GraphCGW_T *graph, 
-			     ChunkOverlapCheckT *canOlap){
-  CDS_COORD_t lengthA, lengthB;
-  CDS_COORD_t beg, end;
-  int opposite;
-  CDS_COORD_t intended;
-
-  if(consensusA == NULL){
-    fprintf(GlobalData->stderrc,"* Allocating static arrays in ComputeCanonicalOverlap \n");
-    consensusA = CreateVA_char(2048);
-    consensusB = CreateVA_char(2048);
-    qualityA = CreateVA_char(2048);
-    qualityB = CreateVA_char(2048);
-  }
-
-
-  // Get the consensus sequences for both chunks from the ChunkStore
-  lengthA = GetConsensus(graph, canOlap->spec.cidA, consensusA, qualityA);
-  lengthB = GetConsensus(graph, canOlap->spec.cidB, consensusB, qualityB);
-
-
-  prepare_overlap(canOlap,&intended, &beg,&end,&opposite,lengthA, lengthB);
-
-#ifdef DEBUG_CHUNKOVERLAP
-  fprintf(GlobalData->stderrc,"* ComputeOverlap " F_CID ", " F_CID " orient = %c min:" F_COORD " max:" F_COORD " beg:" F_COORD " end:" F_COORD " opposite:%d\n",
-          canOlap->spec.cidA, canOlap->spec.cidB, canOlap->spec.orientation,
-          canOlap->minOverlap, canOlap->maxOverlap,
-          beg, end, opposite);
-#endif
-  // Return value is length of chunk sequence/quality
-  // overlap 'em
-
-  {
-    InternalFragMesg AFR, BFR;
-    OverlapMesg     *O;
-    CDS_COORD_t where;
-    AFR.sequence   = Getchar(consensusA, 0);
-    AFR.quality    = Getchar(qualityA, 0);
-    AFR.eaccession = 0;
-    AFR.iaccession = canOlap->spec.cidA;
-    BFR.sequence   = Getchar(consensusB, 0);
-    BFR.quality    = Getchar(qualityB, 0);
-    BFR.eaccession = 0;
-    BFR.iaccession = canOlap->spec.cidB;
-
-#ifdef DEBUG_CHUNKOVERLAP
-    fprintf(GlobalData->stderrc,"* Calling DP_Compare with %s sequences lengths " F_SIZE_T "," F_SIZE_T " " F_COORD "," F_COORD " beg,end =[" F_COORD "," F_COORD "] %c %c\n",
-            (!strcmp(AFR.sequence, BFR.sequence)?"EQUAL":"DIFFERENT"),
-            strlen(AFR.sequence), strlen(BFR.sequence),
-            lengthA, lengthB,
-            beg, end, *AFR.sequence, *BFR.sequence);
-#endif
-    //CGW_DP_ERATE=0.1 changed parameter to canOlap->errRate
-    // a new field in ChunkOverlapCheckT
-    O = DP_Compare_AS(&AFR,&BFR, 
-                      beg, end, opposite,
-                      canOlap->errorRate,CGW_DP_THRESH, CGW_DP_MINLEN,
-#if 0
-                      AS_FIND_OVERLAP ,  // Faster, doesn't compute an alignment, slightly less accurate
-#else
-                      AS_FIND_ALIGN_NO_TRACE,    // Slower, computes an alignment, throw away delta encoding
-#endif
-                      &where);
-
-
-
-    if(O == NULL){  // Didn't find an overlap
-      if(canOlap->fromCGB){
-
-#ifdef DEBUG_CHUNKOVERLAP
-        fprintf(GlobalData->stderrc,
-                "**** MISSED **** No Overlap %c " F_CID " and " F_CID " looked on (" F_COORD "," F_COORD ") overlapper found (" F_COORD "," F_COORD ")\n",
-                canOlap->spec.orientation,
-                canOlap->spec.cidA, canOlap->spec.cidB,
-                canOlap->minOverlap, canOlap->maxOverlap,
-                canOlap->cgbMinOverlap, canOlap->cgbMaxOverlap );
-        PrintChunkOverlapSpec(GlobalData->stderrc, &canOlap->spec);
-#endif
-
-        DeleteGraphOverlapEdge(graph, canOlap->spec.cidA, canOlap->spec.cidB, canOlap->spec.orientation);
-
-      }
-      canOlap->computed = TRUE;
-      canOlap->overlap = FALSE;
-      canOlap->ahg = canOlap->bhg = 0;
-      canOlap->suspicious = FALSE;
-    }else{         // Found one....
-	    
-      adapt_overlap(O,canOlap,lengthA,lengthB,intended);
-#ifdef DEBUG_CHUNKOVERLAP
-      fprintf(GlobalData->stderrc,
-              "**** FOUND ****\n");
-#endif
-      // did we get the overlap we expected?
-      if( ! canOlap->suspicious ){	      
-        if(!canOlap->fromCGB){
-#if 0
-          //#ifdef DEBUG_CHUNKOVERLAP
-          fprintf(GlobalData->stderrc,"! %s OVERLAP %c between " F_CID " and " F_CID " overlap:" F_COORD " ahg:" F_COORD " bhg:" F_COORD " quality:%f (beg:" F_COORD " end:" F_COORD " opposite:%d)\n",
-                  (!canOlap->fromCGB?"****NEW****":"****CGB****"),
-                  canOlap->spec.orientation,
-                  canOlap->spec.cidA, canOlap->spec.cidB,
-                  canOlap->overlap, 
-                  ahg,bhg,
-                  O->quality,
-                  beg,end,opposite);
-#endif
-        }
-#ifdef DEBUG_CHUNKOVERLAP
-        // If we found an overlap that differs from what the overlapper found,
-        // flag it
-        if(canOlap->fromCGB && 
-           (canOlap->overlap < canOlap->cgbMinOverlap - 5  || canOlap->overlap > canOlap->cgbMaxOverlap + 5)){
-          ChunkInstanceT *a, *b;
-          a = GetGraphNode(graph, canOlap->spec.cidA);
-          b = GetGraphNode(graph, canOlap->spec.cidB);
-		
-          if(a->flags.bits.isUnique && b->flags.bits.isUnique){
-            fprintf(GlobalData->stderrc,"*** DIFFERS ** overlap " F_COORD " is outside [" F_COORD "," F_COORD "]\n",
-                    canOlap->overlap, canOlap->cgbMinOverlap,
-                    canOlap->cgbMaxOverlap);
-          }
-        }
-#endif
-        // If direct computation yields a smaller overlap, replace
-        // the cgb overlap.  dp_align is more aggressive than the overlapper, otherwise
-        // we should always update the mean.  We assume the variance won't change much.
-        if(canOlap->fromCGB &&
-           canOlap->overlap < (canOlap->cgbMinOverlap + canOlap->cgbMaxOverlap)/2){
-          EdgeCGW_T *edge = FindGraphOverlapEdge(graph, canOlap->spec.cidA, canOlap->spec.cidB, canOlap->spec.orientation);
-          AssertPtr(edge);
-          /*
-            PrintGraphEdge(GlobalData->stderrc,graph,
-            "\nUpdating Overlap * ", edge, edge->idA);
-            fprintf(GlobalData->stderrc,
-            "* New value is " F_COORD " (cgbmin:" F_COORD " cgbmax:" F_COORD "\n\n",
-            -canOlap->overlap,
-            canOlap->cgbMinOverlap,
-            canOlap->cgbMaxOverlap);
-          */
-          edge->distance.mean = -canOlap->overlap;
-        }
-	      
-        //	    Print_Overlap_AS(GlobalData->stderrc,&AFR,&BFR,O);
-        canOlap->computed = TRUE;
-        canOlap->ahg = O->ahg;
-        canOlap->bhg = O->bhg;
-        canOlap->quality = O->quality;
-        canOlap->min_offset = O->min_offset;
-        canOlap->max_offset = O->max_offset;
-      }
-    }
-  }
-  
-}
-
 void ComputeCanonicalOverlap_new(GraphCGW_T *graph,
                                  ChunkOverlapCheckT *canOlap)
 {
   CDS_COORD_t lengthA, lengthB;
-  // CDS_COORD_t beg, end;
-  // int opposite;
-  // CDS_COORD_t intended;
   ChunkOverlapperT *chunkOverlapper = graph->overlapper;
   Overlap * tempOlap1;
   ChunkOverlapSpecT inSpec;
@@ -804,7 +644,6 @@ void ComputeCanonicalOverlap_new(GraphCGW_T *graph,
 
   if(consensusA == NULL)
     {
-      fprintf(GlobalData->stderrc,"* Allocating static arrays in ComputeCanonicalOverlap \n");
       consensusA = CreateVA_char(2048);
       consensusB = CreateVA_char(2048);
       qualityA = CreateVA_char(2048);
@@ -909,17 +748,14 @@ void ComputeCanonicalOverlap_new(GraphCGW_T *graph,
       // not dealing with containments here - they can go in either way?
 
       if (canOlap->ahg < 0 && canOlap->bhg < 0){
-#ifndef USE_NEW_DP_COMPARE   // use new computecanonical in pseudo-emulation mode
-        // temp hack
-        canOlap->computed = TRUE;
-        canOlap->overlap = FALSE;
-        canOlap->ahg = canOlap->bhg = 0;
-#else
-        // Try to delete the overlap from the hashtable.  It may or may not
-        // be there.  We will (re)insert it later.  If we didn't do this,
-        // the hashtable would be corrupted, since the chains in the buckets
-        // are ordered by (ida,idb,orientation), so we can't screw around with
-        // these, without removing the entry and reinserting it.
+
+        // Try to delete the overlap from the hashtable.  It may or
+        // may not be there.  We will (re)insert it later.  If we
+        // didn't do this, the hashtable would be corrupted, since the
+        // chains in the buckets are ordered by (ida,idb,orientation),
+        // so we can't screw around with these, without removing the
+        // entry and reinserting it.
+
         if(HASH_SUCCESS != DeleteChunkOverlap(chunkOverlapper, canOlap)){
 #ifdef DEBUG_CHUNKOVERLAP
           fprintf(stderr,"* Couldn't delete (" F_CID "," F_CID ",%c)\n",
@@ -987,7 +823,6 @@ void ComputeCanonicalOverlap_new(GraphCGW_T *graph,
         }
 #endif
 
-#endif
       }
     }
   }
@@ -1962,7 +1797,6 @@ void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
 
                 numOverlaps++;
 
-#ifdef USE_NEW_DP_COMPARE
                 {
 		  ChunkOverlapSpecT inSpec;
 		  inSpec = olap->spec;
@@ -1980,9 +1814,6 @@ void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
                               lengthA,lengthB);
                     }
                 }
-#else
-                ComputeCanonicalOverlap(graph, olap);
-#endif
 		  
 #ifdef DEBUG_CHUNKOVERLAP
                 fprintf(GlobalData->stderrc,"* addEdgeMates = %d fromCGB = %d (" F_CID "," F_CID ",%c) olap:" F_COORD "\n",
@@ -2395,39 +2226,8 @@ ChunkOverlapCheckT OverlapChunks( GraphCGW_T *graph,
     olap.errorRate     = errorRate;
     olap.suspicious = FALSE;
 
-    {
-#ifdef USE_NEW_DP_COMPARE
-      ComputeCanonicalOverlap_new(graph, &olap);
-#else
-      ChunkOverlapCheckT olap_copy = olap;
+    ComputeCanonicalOverlap_new(graph, &olap);
 
-      ComputeCanonicalOverlap_new(graph, &olap_copy);
-	  
-      // We compute the canonical overlap
-      ComputeCanonicalOverlap(graph, &olap);
-	  
-      if (abs(olap.overlap - olap_copy.overlap) > 10 ||
-          abs(olap.ahg - olap_copy.ahg) > 10 ||
-          abs(olap.bhg - olap_copy.bhg) > 10)
-        {
-          char *seq1, *seq2;
-          seq1   = Getchar(consensusA, 0);
-          seq2   = Getchar(consensusB, 0);
-
-          fprintf(GlobalData->stderrc, "nodes: " F_CID ", " F_CID ", orientation: %c\n",
-                  olap.spec.cidA, olap.spec.cidB, orientation);
-          fprintf(GlobalData->stderrc, "minOverlap, maxOverlap: " F_COORD ", " F_COORD "\n",
-                  minOverlap, maxOverlap);
-          fprintf( GlobalData->stderrc, "olap: overlap, ahg, bhg: " F_COORD ", " F_COORD ", " F_COORD "\n",
-                   olap.overlap, olap.ahg, olap.bhg);
-          fprintf( GlobalData->stderrc, "olap_copy: overlap, ahg, bhg: " F_COORD ", " F_COORD ", " F_COORD "\n",
-                   olap_copy.overlap, olap_copy.ahg, olap_copy.bhg);
-        }
-
-      olap = olap_copy;
-#endif
-    }
-	
     if(insert)
       { // Insert new entries in hashtable, if requested
         //
