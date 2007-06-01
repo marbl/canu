@@ -926,9 +926,7 @@ int main (int argc , char * argv[] ) {
   for(seediid=startingFrgNum;seediid<=last_stored_frag;seediid++){
     int numOvls=0,numFwdOvls=0;
     OVSoverlap *olaps;
-    int builtContig = 0;
-
-
+    int built5End = 0;
 
     // skip deleted fragments
     GateKeeperFragmentRecord gkpFrag;
@@ -980,7 +978,7 @@ int main (int argc , char * argv[] ) {
       } else {
 	printf("%d  %d %d %s\n",currFrg,ahang,ahang+frglen, Aend?"<--":"-->");
       }
-      builtContig = 1;
+      built5End = 1;
       
       if(numOvls>0){
 	stillGoing = best_overlap_off_end(currFrg, Aend, bestType,&o,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds,olaps,numOvls);
@@ -1081,7 +1079,7 @@ int main (int argc , char * argv[] ) {
     while(stillGoing){
       OVSoverlap o;
       // when we had no overlaps on the 5' end, we need to also output the seed info or else it is never mentioned
-      if(currFrg!=seediid||firstExtend==-1||builtContig==0){
+      if(currFrg!=seediid||firstExtend==-1||built5End==0){
 	if(printpid){
 	  if(iid2sample!=NULL){
 	    printf("%d %d %d %s %f %d\n",currFrg,leftEnd,rightEnd,!Aend?"<--":"-->",pid/1000.,iid2sample[currFrg]);
@@ -1091,8 +1089,7 @@ int main (int argc , char * argv[] ) {
 	} else {
 	  printf("%d %d %d %s\n",currFrg,leftEnd,rightEnd,!Aend?"<--":"-->");
 	}
-      }
-      builtContig = 1;
+      }      
 
       if(numOvls>0){
 	stillGoing = best_overlap_off_end(currFrg, Aend, bestType,&o,maxError,useCorrectedErate,skipContaining,minlen,frglen,avoidDeadEnds,olaps,numOvls);
@@ -1162,10 +1159,8 @@ int main (int argc , char * argv[] ) {
       }
     }
      
-     // if the seed was part of a successfull contig, mark it as seen so it cannot be used again
-     if (builtContig !=0) {
-        seen[seediid]++;   
-     }
+     // mark seed as seen so it cannot be used again
+     seen[seediid]++;
   }
 
   finished_with_ovlStore();  
