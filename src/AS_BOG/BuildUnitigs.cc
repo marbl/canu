@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.19 2007-03-13 06:33:05 brianwalenz Exp $
- * $Revision: 1.19 $
+ * $Id: BuildUnitigs.cc,v 1.20 2007-06-01 18:32:34 eliv Exp $
+ * $Revision: 1.20 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.19 2007-03-13 06:33:05 brianwalenz Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.20 2007-06-01 18:32:34 eliv Exp $";
 
 //  System include files
 
@@ -59,11 +59,14 @@ using AS_BOG::BestOverlapGraph;
 
 //  Local include files
 extern "C" {
+#include "getopt.h"
 #include "AS_OVS_overlapStore.h"
 #include "AS_CGB_myhisto.h"
 }
 
 void outputHistograms(AS_BOG::UnitigGraph *);
+
+OptionMap bogOptions;
 
 int  main (int argc, char * argv [])
 
@@ -73,21 +76,40 @@ int  main (int argc, char * argv [])
 
    fprintf(stderr, "%s\n\n", BUILD_UNITIGS_MAIN_CM_ID);
 
-   if(argc !=4){
-      fprintf(stderr, "%s: <OVL Store Path> <GKP Store Path> <genome size>\n\n", argv[0]);
-      fprintf(stderr, "  If the genome size is set to 0, this will cause the unitigger\n");
-      fprintf(stderr, "  to try to estimate the genome size based on the constructed\n");
-      fprintf(stderr, "  unitig lengths.\n");
-      fprintf(stderr, " \n");
-      return(-1);
+   // Get path/names of olap and frg stores from command line
+   const char* OVL_Store_Path;
+   const char* GKP_Store_Path;
+
+   long genome_size=0;
+   int ch;
+   bool argsDone=false;
+   optarg = NULL;
+   while(!argsDone && (ch = getopt(argc, argv,"O:G:s:b"))) {
+       switch(ch) {
+           case -1: argsDone=true;break;
+           case 'G':
+               GKP_Store_Path = strdup(optarg);
+               assert( GKP_Store_Path != NULL ); break;
+           case 'O':
+               OVL_Store_Path = strdup(optarg);
+               assert( OVL_Store_Path != NULL ); break;
+           case 'b':
+               bogOptions["unitigIntersectBreaking"] = 1; break;
+           case 's':
+               genome_size = atol(optarg); break;
+           default:
+        fprintf(stderr,"Unrecognized option -%c optarg %s\n\n",optopt, optarg);
+        fprintf(stderr, "%s: -O <OVL Store Path> -G <GKP Store Path>\n", argv[0]);
+        fprintf(stderr, "[-s <genome size>]\n");
+        fprintf(stderr, "  If the genome size is set to 0, this will cause the unitigger\n");
+        fprintf(stderr, "  to try to estimate the genome size based on the constructed\n");
+        fprintf(stderr, "  unitig lengths.\n");
+        fprintf(stderr, "[-b] Break promisciuous unitigs at unitig intersection points\n");
+        fprintf(stderr, " \n");
+           exit(1);
+       }
    }
 
-   // Get path/names of olap and frg stores from command line
-   const char* OVL_Store_Path = argv[1];
-   const char* GKP_Store_Path = argv[2];
-
-   long genome_size;
-   genome_size=atol(argv[3]);
    std::cerr << "Genome Size: " << genome_size << std::endl;
 
    my_store = AS_OVS_openOverlapStore(OVL_Store_Path);

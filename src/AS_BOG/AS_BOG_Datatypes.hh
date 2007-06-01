@@ -33,8 +33,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_Datatypes.hh,v 1.13 2006-11-21 16:14:53 eliv Exp $
- * $Revision: 1.13 $
+ * $Id: AS_BOG_Datatypes.hh,v 1.14 2007-06-01 18:32:34 eliv Exp $
+ * $Revision: 1.14 $
 */
 
 #ifndef INCLUDE_AS_BOG_DATATYPES
@@ -42,9 +42,17 @@
 
 //  System include files
 
+#include <vector>
+#include <map>
+
 extern "C" {
 #include "AS_global.h"
+#include "AS_MSG_pmesg.h"
 }
+
+// For control of bog behaviour
+typedef std::map<const char*,int> OptionMap;
+extern OptionMap bogOptions;
 
 namespace AS_BOG{
 
@@ -96,6 +104,8 @@ namespace AS_BOG{
 
 	typedef CDS_IID_t iuid;
 	const iuid NULL_FRAG_ID=0;
+
+    typedef std::vector<SeqInterval> IntervalList;
 
     struct FragmentEnd {
         iuid id;

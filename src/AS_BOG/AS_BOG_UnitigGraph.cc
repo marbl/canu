@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.50 2007-05-15 20:09:08 eliv Exp $
- * $Revision: 1.50 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.51 2007-06-01 18:32:34 eliv Exp $
+ * $Revision: 1.51 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.50 2007-05-15 20:09:08 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.51 2007-06-01 18:32:34 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -199,8 +199,10 @@ namespace AS_BOG{
                 }
             }
         }
-        printUnitigBreaks();
-        breakUnitigs();
+        if (bogOptions.find("unitigIntersectBreaking") != bogOptions.end()) { 
+            printUnitigBreaks();
+            breakUnitigs();
+        }
 
         UnitigsConstIter uIter = unitigs->begin();
         for (; uIter != unitigs->end(); uIter++ ) {

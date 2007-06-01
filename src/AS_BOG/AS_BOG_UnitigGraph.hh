@@ -34,27 +34,21 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.24 2007-02-02 21:22:16 eliv Exp $
- * $Revision: 1.24 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.25 2007-06-01 18:32:34 eliv Exp $
+ * $Revision: 1.25 $
 */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.24 2007-02-02 21:22:16 eliv Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.25 2007-06-01 18:32:34 eliv Exp $";
 
-#include <vector>
 #include <list>
-#include <map>
 #include <set>
 #include <iostream>
 #include "AS_BOG_Datatypes.hh"
 #include "AS_BOG_ChunkGraph.hh"
-
-extern "C" {
-#include "AS_MSG_pmesg.h"
-}
 
 namespace AS_BOG{
 
