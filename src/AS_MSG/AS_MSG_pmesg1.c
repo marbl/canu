@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.9 2007-05-14 13:40:55 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.10 2007-06-01 22:49:52 gdenisov Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -365,7 +365,8 @@ static void Read_IMV_Mesg(FILE *fin, long indx)
   GET_FIELD(imv->phased_var_id,"pid:"F_S32,"phased VAR record id");
   imv->nr_conf_alleles = (char *)GetText("nra:",fin,FALSE);
   imv->weights         = (char *)GetText("wgt:",fin,FALSE);
-  imv->var_seq =         (char *)GetText("seq:",fin,FALSE);
+  imv->var_seq         = (char *)GetText("seq:",fin,FALSE);
+  imv->conf_read_iids  = (char *)GetText("rid:",fin,FALSE);
   GET_EOM;
   return;
 }
@@ -384,6 +385,7 @@ static void Read_VAR_Mesg(FILE *fin, long indx)
   smv->nr_conf_alleles = (char *)GetText("nra:",fin,FALSE);
   smv->weights         = (char *)GetText("wgt:",fin,FALSE);
   smv->var_seq         = (char *)GetText("seq:",fin,FALSE);
+  smv->conf_read_iids  = (char *)GetText("rid:",fin,FALSE);
   GET_EOM;
   return;
 }
@@ -1446,6 +1448,7 @@ static void Write_IMV_Mesg(FILE *fout, IntMultiVar *imv)
   PutText(fout,"nra:",imv->nr_conf_alleles,FALSE);
   PutText(fout,"wgt:",imv->weights,FALSE);
   PutText(fout,"seq:",imv->var_seq,FALSE);
+  PutText(fout,"rid:",imv->conf_read_iids,FALSE);
   fprintf(fout,"}\n");
   return;
 }
@@ -1463,6 +1466,7 @@ static void Write_VAR_Mesg(FILE *fout, IntMultiVar *smv)
   PutText(fout,"nra:",smv->nr_conf_alleles,FALSE);
   PutText(fout,"wgt:",smv->weights,FALSE);
   PutText(fout,"seq:",smv->var_seq,FALSE);
+  PutText(fout,"rid:",smv->conf_read_iids,FALSE);
   fprintf(fout,"}\n");
   return;
 }

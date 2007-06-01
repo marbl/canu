@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.48 2007-05-22 20:15:49 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.49 2007-06-01 22:49:52 gdenisov Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -503,9 +503,7 @@ typedef struct IntMultiVar {
   char           *nr_conf_alleles;
   char           *weights;
   char           *var_seq;
-  char           *phs_map;
-  char           *nr_phased_alleles;  // num reads in each phased allele
-  char           *phs_iids; // iids of phased reads
+  char           *conf_read_iids; // iids of phased reads
 } IntMultiVar;
 
 VA_DEF(IntMultiVar);
