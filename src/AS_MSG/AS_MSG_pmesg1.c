@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.10 2007-06-01 22:49:52 gdenisov Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.11 2007-06-03 04:12:49 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -755,6 +755,7 @@ static void *Read_ICM_Mesg(FILE *fin)
     mesg.v_list[i].nr_conf_alleles = AS_MSG_globals->MemBuffer + (long) mesg.v_list[i].nr_conf_alleles;
     mesg.v_list[i].weights = AS_MSG_globals->MemBuffer + (long) mesg.v_list[i].weights;
     mesg.v_list[i].var_seq = AS_MSG_globals->MemBuffer + (long) mesg.v_list[i].var_seq;
+    mesg.v_list[i].conf_read_iids = AS_MSG_globals->MemBuffer + (long) mesg.v_list[i].conf_read_iids;
   }
 
   if (mesg.num_pieces > 0)
@@ -1088,6 +1089,7 @@ static void *Read_CCO_Mesg(FILE *fin)
     mesg.vars[i].nr_conf_alleles = AS_MSG_globals->MemBuffer + (long) mesg.vars[i].nr_conf_alleles;
     mesg.vars[i].weights = AS_MSG_globals->MemBuffer + (long) mesg.vars[i].weights;
     mesg.vars[i].var_seq = AS_MSG_globals->MemBuffer + (long) mesg.vars[i].var_seq;
+    mesg.vars[i].conf_read_iids = AS_MSG_globals->MemBuffer + (long) mesg.vars[i].conf_read_iids;
   } 
 
   if (mesg.num_pieces > 0)
