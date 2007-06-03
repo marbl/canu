@@ -187,6 +187,7 @@ while (!eof(STDIN)) {
             my $nra = readMultiLineDot();
             my $wgt = readMultiLineDot();
             my $var = readMultiLineDot();
+            my $rid = readMultiLineDot();
             my $jnk = <STDIN>;  chomp $jnk;  #  closing bracket
 
             if ($pos =~ m/pos:(\d+),(\d+)$/) {
