@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_global.h,v 1.14 2007-05-14 09:27:10 brianwalenz Exp $	 */
+/* 	$Id: AS_global.h,v 1.15 2007-06-03 08:13:22 brianwalenz Exp $	 */
 
 /* This is the global include file that all C files in the AS subsystem should
    include.
@@ -132,6 +132,7 @@ typedef void *PtrT;
   #endif
 
   // off_t is 64-bit
+
   #define F_OFF_T   "%lld"
   #define F_OFF_TP   "lld"
 
@@ -260,47 +261,6 @@ typedef void *PtrT;
 int   fseeko(FILE *stream, off_t offset, int whence );
 off_t ftello(FILE *stream );
 #endif
-
-
-
-#if 1
-
-#define CDS_FTELL(F) ftello((F))
-
-#else
-
-static
-off_t
-CDS_FTELL(FILE *stream) {
-  off_t  r = ftello(stream);
-  fprintf(stderr, "CDS_FTELL() = "F_OFF_T"\n", r);
-  return(r);
-}
-
-#endif
-
-
-#if 1
-
-#define CDS_FSEEK(F,O,S) fseeko((F), (O), (S))
-
-#else
-
-static
-int
-CDS_FSEEK(FILE *stream, off_t offset, int whence) {
-  off_t  before = ftello(stream);
-  int    r      = fseek(stream, offset, whence);
-  off_t  after  = ftello(stream);
-
-  fprintf(stderr, "CDS_FSEEK() before="F_OFF_T"  after="F_OFF_T"\n", before, after);
-
-  return(r);
-}
-
-#endif
-
-
 
 
 typedef uint64 CDS_UID_t;

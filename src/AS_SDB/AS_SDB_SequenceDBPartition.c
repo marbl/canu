@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_SDB_SequenceDBPartition.c,v 1.8 2007-05-29 10:54:30 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_SDB_SequenceDBPartition.c,v 1.9 2007-06-03 08:13:22 brianwalenz Exp $";
 
 /*************************************************************************
  Module:  AS_SDB_SequenceDBPartition
@@ -38,6 +38,7 @@ static char CM_ID[] = "$Id: AS_SDB_SequenceDBPartition.c,v 1.8 2007-05-29 10:54:
 #include <string.h>
 
 #include "AS_global.h"
+#include "AS_UTL_fileIO.h"
 #include "AS_SDB_SequenceDBPartition.h"
 
 
@@ -93,7 +94,7 @@ static void buildSequenceDBPartitionHash(tSequenceDBPartition *partition){
     tMARecord *maRecord = GettMARecord(partition->multiAligns, i);
     MultiAlignT *ma;
     int reference;
-    CDS_FSEEK(partition->datafp,maRecord->offset,SEEK_SET);
+    AS_UTL_fseek(partition->datafp,maRecord->offset,SEEK_SET);
     ma = LoadMultiAlignTFromStream(partition->datafp,&reference);
     if(InsertInHashTable_AS(partition->index,
                             (uint64)maRecord->storeID, 0,

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: PartitionSequenceDB2.c,v 1.9 2007-04-16 17:36:36 brianwalenz Exp $";
+static char CM_ID[] = "$Id: PartitionSequenceDB2.c,v 1.10 2007-06-03 08:13:22 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -31,6 +31,7 @@ static char CM_ID[] = "$Id: PartitionSequenceDB2.c,v 1.9 2007-04-16 17:36:36 bri
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
+#include "AS_UTL_fileIO.h"
 #include "AS_SDB_SequenceDB.h"
 #include "AS_SDB_SequenceDBPartition.h"
 #include "AS_MSG_pmesg.h"
@@ -158,7 +159,7 @@ int main(int argc, char **argv){
       lastBin = binID;
       mar.flags.all = 0;
       mar.storeID = unitigID;
-      mar.offset = CDS_FTELL(fp);
+      mar.offset = AS_UTL_ftell(fp);
       AppendtMARecord(index, &mar);
       ReLoadMultiAlignTFromSequenceDB(sequenceDB, ma, unitigID, TRUE);    // This will load the ma from the disk file
       SaveMultiAlignTToStream(ma,fp);

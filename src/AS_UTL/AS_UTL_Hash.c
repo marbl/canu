@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_Hash.c,v 1.7 2007-05-29 10:54:31 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_UTL_Hash.c,v 1.8 2007-06-03 08:13:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -579,7 +579,7 @@ SaveHashTable_AS(char *name, HashTable_AS *table) {
     databufferlen = 0;
   }
 
-  CDS_FSEEK(fp, 0, SEEK_SET);
+  rewind(fp);
   AS_UTL_safeWrite(fp, &table->numBuckets,        "SaveHashTable_AS numBuckets",        sizeof(uint32), 1);
   AS_UTL_safeWrite(fp, &table->numNodes,          "SaveHashTable_AS numNodes",          sizeof(uint32), 1);
   AS_UTL_safeWrite(fp, &table->numNodesAllocated, "SaveHashTable_AS numNodesAllocated", sizeof(uint32), 1);

@@ -55,14 +55,14 @@ typedef enum { UnAllocatedStore = 0,
 /*  Structure returned by statStore */
 
 typedef struct{
-  unsigned int  isDeleted:1;
-  unsigned int  type:3;
-  unsigned int  p1:28;  // padding field
-  unsigned int  p2:32;  // padding field
+  uint32        isDeleted:1;
+  uint32        type:3;
+  uint32        p1:28;          // padding field
+  uint32        p2:32;          // padding field
   char          storeType[8];
-  int64         firstElem; /* Initially -1.  If >0, index of first allocated element */
-  int64         lastElem;  /* Initially -1.  If >0, index of last allocated element */
-  int32         version;        /* For user information only */
+  int64         firstElem;      // Initially -1.  If >0, index of first allocated element
+  int64         lastElem;       // Initially -1.  If >0, index of last allocated element
+  int32         version;        // For user information only
   int32         elementSize;  
   int64         creationTime;
   int64         lastUpdateTime;
@@ -216,11 +216,7 @@ StoreHandle resetVLRecordStore(StoreHandle sh);
  *     StoreHandle != NULLSTOREHANDLE on success
  *****************************************************************************/
 
-StoreHandle openStore
-( const char *StorePath, /* Path to file */
-  const char *rw         /* "r" or "rw" */
-);
-
+StoreHandle openStore(const char *StorePath, const char *rw);
 
 
 /******************************************************************************
@@ -236,22 +232,6 @@ StoreHandle openStore
  *****************************************************************************/
 
 int closeStore(StoreHandle sh);
-
-
-/******************************************************************************
- * Function: commitStore:
- * Description:
- *     Like closeStore, but store remains open.
- *
- * Inputs:
- *     sh    Handle to store we want to commit
- *
- * Return Value:
- *     Zero if success.
- *****************************************************************************/
-
-int commitStore(StoreHandle sh);
-
 
 
 /******************************************************************************
@@ -358,24 +338,6 @@ int setIndexStore(StoreHandle store, int64 indx, void *element);
  *****************************************************************************/
 int appendStringStore(StoreHandle s, char *string);
 
-
-
-#if 0
-/******************************************************************************
- * Function: deleteIndexStore
- * Description:
- *     Delete an element from an index store
- *
- * Inputs:
- *     store      Handle of index store
- *     index      Index of element to be deleted
- *
- * Return Value:
- *     Zero if success.
- *****************************************************************************/
-
-int deleteIndexStore(StoreHandle store, int64 indx);
-#endif
 
 /******************************************************************************
  * Function: statsStore

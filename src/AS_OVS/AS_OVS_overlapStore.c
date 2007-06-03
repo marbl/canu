@@ -271,7 +271,7 @@ AS_OVS_setRangeOverlapStore(OverlapStore *ovs, uint32 firstIID, uint32 lastIID) 
   //  If our range is invalid (firstIID > lastIID) we keep going, and
   //  let AS_OVS_readOverlapFromStore() deal with it.
 
-  CDS_FSEEK(ovs->offsetFile, (size_t)firstIID * sizeof(OverlapStoreOffsetRecord), SEEK_SET);
+  AS_UTL_fseek(ovs->offsetFile, (size_t)firstIID * sizeof(OverlapStoreOffsetRecord), SEEK_SET);
 
   //  Unfortunately, we need to actually read the record to figure out
   //  where to position the overlap stream.  If the read fails, we
@@ -558,9 +558,9 @@ AS_OVS_numOverlapsInRange(OverlapStore *ovs) {
   OverlapStoreOffsetRecord  *offsets = NULL;
   uint64                     numolap = 0;
 
-  originalposition = CDS_FTELL(ovs->offsetFile);
+  originalposition = AS_UTL_ftell(ovs->offsetFile);
 
-  CDS_FSEEK(ovs->offsetFile, (size_t)ovs->firstIIDrequested * sizeof(OverlapStoreOffsetRecord), SEEK_SET);
+  AS_UTL_fseek(ovs->offsetFile, (size_t)ovs->firstIIDrequested * sizeof(OverlapStoreOffsetRecord), SEEK_SET);
 
   //  Even if we're doing a whole human-size store, this allocation is
   //  (a) temporary and (b) only 512MB.  The only current consumer of
@@ -581,7 +581,7 @@ AS_OVS_numOverlapsInRange(OverlapStore *ovs) {
 
   safe_free(offsets);
 
-  CDS_FSEEK(ovs->offsetFile, originalposition, SEEK_SET);
+  AS_UTL_fseek(ovs->offsetFile, originalposition, SEEK_SET);
 
   return(numolap);
 }

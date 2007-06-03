@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.41 2007-05-29 10:54:28 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.42 2007-06-03 08:13:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,7 +36,8 @@ static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.41 2007-05-29 10:54:28 brianwalenz
 #include "AS_MSG_pmesg.h"
 #include "AS_GKP_include.h"
 
-GateKeeperStore *gkpStore;
+GateKeeperStore *gkpStore  = NULL;
+FILE            *errorFP   = NULL;
 
 static
 void
@@ -53,6 +54,7 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "  -G                     gatekeeper for assembler Grande (default)\n");
   fprintf(stdout, "  -T                     gatekeeper for assembler Grande with Overlap Based Trimming\n");
   fprintf(stdout, "  -Q                     don't check quality-based data quality\n");
+  fprintf(stdout, "  -E <error.frg>         write errors to this file\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "  -v <vector-info>       load vector clear ranges into each read.\n");
   fprintf(stdout, "                         MUST be done on an existing, complete store.\n");
@@ -173,6 +175,7 @@ main(int argc, char **argv) {
   int              nerrs           = 0;   // Number of errors in current run
   int              maxerrs         = 1;   // Number of errors allowed before we punt
   int              firstFileArg    = 0;
+  char            *errorFile       = NULL;
 
   //  Options for partitioning
   //
@@ -198,7 +201,8 @@ main(int argc, char **argv) {
   int              dumpRandMateNum   = 0;
   char            *iidToDump         = NULL;
 
-
+  gkpStore = NULL;
+  errorFP  = stdout;
 
   int arg = 1;
   int err = 0;
@@ -224,6 +228,8 @@ main(int argc, char **argv) {
       assembler = AS_ASSEMBLER_OBT;
     } else if (strcmp(argv[arg], "-Q") == 0) {
       check_qvs = 0;
+    } else if (strcmp(argv[arg], "-E") == 0) {
+      errorFile = argv[++arg];
 
     } else if (strcmp(argv[arg], "-P") == 0) {
       partitionFile = argv[++arg];
@@ -585,6 +591,15 @@ main(int argc, char **argv) {
   else
     gkpStore = createGateKeeperStore(gkpStoreName);
 
+  if (errorFile) {
+    errno = 0;
+    errorFP = fopen(errorFile, "w");
+    if (errno) {
+      fprintf(stderr, "%s: cannot open error file '%s': %s\n", errorFile, strerror(errno));
+      exit(1);
+    }
+  }
+
   for (; firstFileArg < argc; firstFileArg++) {
     FILE            *inFile            = NULL;
     GenericMesg     *pmesg             = NULL;
@@ -628,22 +643,22 @@ main(int argc, char **argv) {
       } else if (pmesg->t == MESG_VER) {
         //  Ignore
       } else {
-        fprintf(stderr,"GKP Error: Unknown message with type %s.\n", MessageTypeName[pmesg->t]);
+        fprintf(errorFP,"# GKP Error: Unknown message with type %s.\n", MessageTypeName[pmesg->t]);
         success = GATEKEEPER_FAILURE;
       }
 
       if (success != GATEKEEPER_SUCCESS) {
-        fprintf(stderr,"GKP Error: at line %d:\n", GetProtoLineNum_AS());
-        WriteProtoMesg_AS(stderr,pmesg);
+        fprintf(errorFP,"# GKP Error: at line %d:\n", GetProtoLineNum_AS());
+        WriteProtoMesg_AS(errorFP,pmesg);
         if (pmesg->t == MESG_BAT) {
-          fprintf(stderr, "GKP Error: Invalid BAT message, can't continue.\n");
+          fprintf(errorFP, "# GKP Error: Invalid BAT message, can't continue.\n");
           return(GATEKEEPER_FAILURE);
         }
         nerrs++;
       }
 
       if (nerrs >= maxerrs) {
-        fprintf(stderr, "GKP Error: Too many errors (%d), can't continue.\n", nerrs);
+        fprintf(errorFP, "# GKP Error: Too many errors (%d), can't continue.\n", nerrs);
         return(GATEKEEPER_FAILURE);
       }
     }
@@ -659,6 +674,9 @@ main(int argc, char **argv) {
   }
 
   closeGateKeeperStore(gkpStore);
+
+  if (errorFile)
+    fclose(errorFP);
 
   fprintf(stderr, "GKP finished with %d errors.\n", nerrs);
 

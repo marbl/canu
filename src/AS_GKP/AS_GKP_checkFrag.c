@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.25 2007-05-29 10:54:28 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.26 2007-06-03 08:13:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -112,7 +112,7 @@ checkOverallQuality(char *input, SeqInterval clearRange) {
 // Checks every window of width GATEKEEPER_QV_WINDOW_WIDTH 
 // We no longer do something special on the tails
 //
-double checkWindowQuality(FragMesg *frg_mesg, FILE *err) {
+double checkWindowQuality(FragMesg *frg_mesg) {
   char *input=frg_mesg->quality;
   SeqInterval clearRange=frg_mesg->clear_rng;
   int i;
@@ -146,10 +146,10 @@ double checkWindowQuality(FragMesg *frg_mesg, FILE *err) {
   }
   normError = cumError / (double)GATEKEEPER_QV_WINDOW_WIDTH;
   if (normError > (1.01 * GATEKEEPER_QV_WINDOW_THRESH))  { 
-    fprintf(err,"# Window quality failed: ID: " F_U64 " eprob: %g > %g in (" F_S32 "," F_S32 ") clr_rng: (" F_S32 "," F_S32 ")\n",
+    fprintf(errorFP, "# FRG Error: Fragment "F_UID" failed window quality; eprob: %g > %g in range (" F_S32 "," F_S32 ")\n",
 	    frg_mesg->eaccession,normError,
 	    GATEKEEPER_QV_WINDOW_THRESH,
-	    window.bgn,window.end,clearRange.bgn,clearRange.end);
+	    window.bgn,window.end);
     return normError; 
   }
   for(;window.end <clearRange.end;) {
@@ -159,11 +159,11 @@ double checkWindowQuality(FragMesg *frg_mesg, FILE *err) {
     window.end++;
     normError = cumError / (double)GATEKEEPER_QV_WINDOW_WIDTH;
     if (normError > (1.01 * GATEKEEPER_QV_WINDOW_THRESH))  { 
-      fprintf(err,"# Window quality failed: ID: " F_U64 " eprob: %g > %g in (" F_S32 "," F_S32 ") clr_rng: (" F_S32 "," F_S32 ")\n",
+      fprintf(errorFP, "# FRG Error: Fragment "F_UID" failed window quality; eprob: %g > %g in range (" F_S32 "," F_S32 ")\n",
               frg_mesg->eaccession,
               normError,
               GATEKEEPER_QV_WINDOW_THRESH,
-              window.bgn,window.end,clearRange.bgn,clearRange.end);
+              window.bgn,window.end);
       return normError; 
     }
   }
@@ -222,7 +222,7 @@ Check_FragMesg(FragMesg            *frg_mesg,
     //  it is a fatal error
     //
     if (getGatekeeperUIDtoIID(gkpStore, frg_mesg->eaccession, NULL)) {
-      fprintf(stderr, "FRG Error: Fragment "F_UID" exists, can't add it again.\n",
+      fprintf(errorFP, "# FRG Error: Fragment "F_UID" exists, can't add it again.\n",
               frg_mesg->eaccession);
       return(GATEKEEPER_FAILURE);
     }
@@ -231,13 +231,13 @@ Check_FragMesg(FragMesg            *frg_mesg,
     //  Check sequence and quality
     //
     if (GATEKEEPER_FAILURE == checkSequence(frg_mesg->sequence, &s, &seqLength)) {
-      fprintf(stderr, "FRG Error: Fragment "F_UID" invalid char %c at position "F_SIZE_T" in sequence.\n",
+      fprintf(errorFP, "# FRG Error: Fragment "F_UID" invalid char %c at position "F_SIZE_T" in sequence.\n",
               frg_mesg->eaccession, *s, s - frg_mesg->sequence);
       return GATEKEEPER_FAILURE;
     }
       
     if (GATEKEEPER_FAILURE == checkQuality(frg_mesg->quality, &s, &quaLength)) {
-      fprintf(stderr, "FRG Error: Fragment "F_UID" invalid char %c at position " F_SIZE_T " in quality.\n",
+      fprintf(errorFP, "# FRG Error: Fragment "F_UID" invalid char %c at position " F_SIZE_T " in quality.\n",
               frg_mesg->eaccession, *s, s - frg_mesg->quality);
       return GATEKEEPER_FAILURE;
     }
@@ -248,28 +248,28 @@ Check_FragMesg(FragMesg            *frg_mesg,
 
     //  Check sequence and quality are same length.
     if (quaLength != seqLength) {
-      fprintf(stderr, "FRG Error: Fragment "F_UID" sequence length %d != %d quality length\n",
+      fprintf(errorFP, "# FRG Error: Fragment "F_UID" sequence length %d != %d quality length\n",
               frg_mesg->eaccession, seqLength, quaLength);
       return GATEKEEPER_FAILURE;
     }
 
     //  Check that lengths are legit -- not too long */
     if (seqLength > AS_FRAG_MAX_LEN){
-      fprintf(stderr, "FRG Error: Fragment "F_UID" sequence length %d > %d max allowed sequence length\n",
+      fprintf(errorFP, "# FRG Error: Fragment "F_UID" sequence length %d > %d max allowed sequence length\n",
               frg_mesg->eaccession, seqLength, AS_FRAG_MAX_LEN);
       return GATEKEEPER_FAILURE;
     }
 
     //  Check that lengths are legit -- not too short */
     if (seqLength < AS_FRAG_MIN_LEN){
-      fprintf(stderr, "FRG Error: Fragment "F_UID" sequence length %d < %d min allowed sequence length\n",
+      fprintf(errorFP, "# FRG Error: Fragment "F_UID" sequence length %d < %d min allowed sequence length\n",
               frg_mesg->eaccession, seqLength, AS_FRAG_MIN_LEN);
       return GATEKEEPER_FAILURE;
     }
 
     //  Check clear range bounds
     if ((frg_mesg->clear_rng.bgn < 0) || (seqLength < frg_mesg->clear_rng.end)) {
-      fprintf(stderr, "FRG Error: Fragment "F_UID" invalid clear range (%d,%d) valid range is (0,%d)\n",
+      fprintf(errorFP, "# FRG Error: Fragment "F_UID" invalid clear range (%d,%d) valid range is (0,%d)\n",
               frg_mesg->eaccession, frg_mesg->clear_rng.bgn, frg_mesg->clear_rng.end, seqLength);
       return GATEKEEPER_FAILURE;
     }
@@ -277,7 +277,7 @@ Check_FragMesg(FragMesg            *frg_mesg,
     //  Check clear range length
     if ((assembler == AS_ASSEMBLER_GRANDE) &&
         ((frg_mesg->clear_rng.end - frg_mesg->clear_rng.bgn) < AS_FRAG_MIN_LEN)) {
-      fprintf(stderr, "FRG Error: Fragment "F_UID" clear range length %d < %d min allowed length\n",
+      fprintf(errorFP, "# FRG Error: Fragment "F_UID" clear range length %d < %d min allowed length\n",
               frg_mesg->eaccession, frg_mesg->clear_rng.end - frg_mesg->clear_rng.bgn, AS_FRAG_MIN_LEN);
       return GATEKEEPER_FAILURE;
     }
@@ -288,7 +288,7 @@ Check_FragMesg(FragMesg            *frg_mesg,
       double fractionError = checkOverallQuality(frg_mesg->quality, frg_mesg->clear_rng);
 
       if(fractionError > (1.01 * GATEKEEPER_MAX_ERROR_RATE)){
-        fprintf(stderr, "FRG Error: Fragment "F_UID" eprob: %g in (" F_S32 "," F_S32 ")\n",
+        fprintf(errorFP, "# FRG Error: Fragment "F_UID" eprob: %g in (" F_S32 "," F_S32 ")\n",
                 frg_mesg->eaccession,
                 fractionError,
                 frg_mesg->clear_rng.bgn,
@@ -296,7 +296,7 @@ Check_FragMesg(FragMesg            *frg_mesg,
         return GATEKEEPER_FAILURE;
       }
 
-      fractionError = checkWindowQuality(frg_mesg, stderr);
+      fractionError = checkWindowQuality(frg_mesg);
       if (fractionError > 0)
         return GATEKEEPER_FAILURE;
     }
@@ -313,7 +313,7 @@ Check_FragMesg(FragMesg            *frg_mesg,
       gkf.libraryIID = getGatekeeperUIDtoIID(gkpStore, frg_mesg->library_uid, NULL);
 
       if (gkf.libraryIID == 0) {
-        fprintf(stderr, "FRG Error: Fragment "F_UID" references unknown library "F_UID"\n",
+        fprintf(errorFP, "# FRG Error: Fragment "F_UID" references unknown library "F_UID"\n",
                 frg_mesg->eaccession, frg_mesg->library_uid);
         return(GATEKEEPER_FAILURE);
       }
@@ -407,7 +407,7 @@ Check_FragMesg(FragMesg            *frg_mesg,
     CDS_IID_t                iid = getGatekeeperUIDtoIID(gkpStore, frg_mesg->eaccession, NULL);
 
     if (iid == 0) {
-      fprintf(stderr, "FRG Error: Fragment "F_UID" does not exist, can't delete it.\n",
+      fprintf(errorFP, "# FRG Error: Fragment "F_UID" does not exist, can't delete it.\n",
               frg_mesg->eaccession);
       return(GATEKEEPER_FAILURE);
     }
@@ -415,7 +415,7 @@ Check_FragMesg(FragMesg            *frg_mesg,
     getGateKeeperFragment(gkpStore, iid, &gkf);
 
     if (gkf.mateIID > 0) {
-      fprintf(stderr, "FRG Error: Fragment "F_UID" has mate pair relationship, can't delete it.\n",
+      fprintf(errorFP, "# FRG Error: Fragment "F_UID" has mate pair relationship, can't delete it.\n",
               frg_mesg->eaccession);
       return(GATEKEEPER_FAILURE);
     }      
@@ -430,7 +430,7 @@ Check_FragMesg(FragMesg            *frg_mesg,
     }
 
   } else {
-    fprintf(stderr, "FRG Error: invalid action %c\n", frg_mesg->action);
+    fprintf(errorFP, "# FRG Error: invalid action %c\n", frg_mesg->action);
     return GATEKEEPER_FAILURE;
   }
   return GATEKEEPER_SUCCESS;

@@ -25,7 +25,7 @@
    Assumptions:  libAS_UTL.a
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.33 2007-06-01 22:56:14 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.34 2007-06-03 08:13:22 brianwalenz Exp $";
 
 
 #include <assert.h>
@@ -969,8 +969,6 @@ SaveMultiAlignTToStream(MultiAlignT *ma, FILE *stream)
   AS_UTL_safeWrite(stream, &ma->forced, "SaveMultiAlignTToStream", sizeof(int32), 1);
   AS_UTL_safeWrite(stream, &ma->id, "SaveMultiAlignTToStream", sizeof(int32), 1);
   AS_UTL_safeWrite(stream, &ma->source_alloc, "SaveMultiAlignTToStream", sizeof(int32), 1);
- //  fprintf(stderr,"* ma %d start:%ld total:%ld\n",
-  //	  ma->id, size, CDS_FTELL(stream) - size);
   // Restore the delta pointers since they were saved as offset from base of delta array
   //  fprintf(stderr,"* ma->delta = 0x%x\n", ma->delta);
   {

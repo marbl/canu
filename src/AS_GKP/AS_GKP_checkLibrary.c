@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.10 2007-05-29 10:54:28 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.11 2007-06-03 08:13:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -69,7 +69,7 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg) {
   if (lib_mesg->action == AS_ADD) {
     CDS_IID_t  iid = getGatekeeperUIDtoIID(gkpStore, lib_mesg->eaccession, NULL);
     if (iid) {
-      fprintf(stderr, "LIB Error: Library "F_UID","F_IID" already exists; can't add it again.\n",
+      fprintf(errorFP, "# LIB Error: Library "F_UID","F_IID" already exists; can't add it again.\n",
               lib_mesg->eaccession, iid);
       return(GATEKEEPER_FAILURE);
     }
@@ -94,7 +94,7 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg) {
       if ((gkpl.mean   <= 0.0) ||
           (gkpl.stddev <= 0.0) ||
           (gkpl.mean - 3.0 * gkpl.stddev < 0.0)) {
-        fprintf(stderr, "LIB Error:  Library "F_UID" has lllegal mean (%g) and standard deviation (%g).\n",
+        fprintf(errorFP, "# LIB Error:  Library "F_UID" has lllegal mean (%g) and standard deviation (%g).\n",
                 gkpl.libraryUID, gkpl.mean, gkpl.stddev);
         return(GATEKEEPER_FAILURE);
       }
@@ -114,7 +114,7 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg) {
     CDS_IID_t  iid = getGatekeeperUIDtoIID(gkpStore, lib_mesg->eaccession, NULL);
 
     if (iid == 0) {
-      fprintf(stderr, "LIB Error:  Library "F_UID" does not exist, can't update it.\n",
+      fprintf(errorFP, "# LIB Error:  Library "F_UID" does not exist, can't update it.\n",
 	      lib_mesg->eaccession);
       return(GATEKEEPER_FAILURE);
     }
@@ -122,7 +122,7 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg) {
     if ((lib_mesg->mean   <= 0.0) ||
         (lib_mesg->stddev <= 0.0) ||
         (lib_mesg->mean - 3.0 * lib_mesg->stddev < 0.0)) {
-      fprintf(stderr, "LIB Error:  Library "F_UID" has lllegal mean (%g) and standard deviation (%g).\n",
+      fprintf(errorFP, "# LIB Error:  Library "F_UID" has lllegal mean (%g) and standard deviation (%g).\n",
               gkpl.libraryUID, gkpl.mean, gkpl.stddev);
       return(GATEKEEPER_FAILURE);
     }
@@ -136,7 +136,7 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg) {
     CDS_IID_t  iid = getGatekeeperUIDtoIID(gkpStore, lib_mesg->eaccession, NULL);
 
     if (iid == 0) {
-      fprintf(stderr, "LIB Error:  Library "F_UID" does not exist, can't delete it.\n",
+      fprintf(errorFP, "# LIB Error:  Library "F_UID" does not exist, can't delete it.\n",
               lib_mesg->eaccession);
       return(GATEKEEPER_FAILURE);
     }
@@ -151,13 +151,13 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg) {
       assert(0);
     }
 #else
-    fprintf(stderr, "LIB Error:  Library "F_UID" exists, but we don't allow libraries to be deleted.\n",
+    fprintf(errorFP, "# LIB Error:  Library "F_UID" exists, but we don't allow libraries to be deleted.\n",
             lib_mesg->eaccession);
     return(GATEKEEPER_FAILURE);
 #endif
 
   } else {
-    fprintf(stderr, "LIB Error: invalid action %c.\n", lib_mesg->action);
+    fprintf(errorFP, "# LIB Error: invalid action %c.\n", lib_mesg->action);
     return GATEKEEPER_FAILURE;
   }
 

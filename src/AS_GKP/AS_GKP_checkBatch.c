@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkBatch.c,v 1.10 2007-05-29 10:54:28 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkBatch.c,v 1.11 2007-06-03 08:13:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,7 +35,7 @@ int Check_BatchMesg(BatchMesg          *bat_mesg){
   clearGateKeeperBatchRecord(&gkpb);
 
   if (getGatekeeperUIDtoIID(gkpStore, bat_mesg->eaccession, NULL) != 0) {
-    fprintf(stderr, "BAT Error: Batch "F_UID" exists, can't add it again.\n", bat_mesg->eaccession);
+    fprintf(errorFP, "# BAT Error: Batch "F_UID" exists, can't add it again.\n", bat_mesg->eaccession);
     return(GATEKEEPER_FAILURE);
   }
 

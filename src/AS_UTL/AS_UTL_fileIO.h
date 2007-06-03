@@ -35,4 +35,8 @@ size_t  AS_UTL_safeRead (FILE *file, void *buffer,       char *desc, size_t size
 
 int     AS_UTL_mkdir(const char *dirname);
 
+
+off_t   AS_UTL_ftell(FILE *stream);
+void    AS_UTL_fseek(FILE *stream, off_t offset, int whence);
+
 #endif  //  AS_UTL_FILEIO_H

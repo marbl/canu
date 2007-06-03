@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.13 2007-04-16 17:36:36 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.14 2007-06-03 08:13:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -272,7 +272,7 @@ void InsertMultiAlignTInSequenceDB(tSequenceDB *db,
   SetMultiAlignInStore(maStore,index,ma);
  }
  if(!db->positionedAtEnd)
-   CDS_FSEEK(file, db->offsetOfEOF, SEEK_SET);
+   AS_UTL_fseek(file, db->offsetOfEOF, SEEK_SET);
 
   if(maRecord){
     maRecord->storeID = fileID;
@@ -317,7 +317,7 @@ void UpdateMultiAlignTInSequenceDB(tSequenceDB *db,
   SetMultiAlignInStore(maStore,index,ma);
  }
  if(!db->positionedAtEnd)
-   CDS_FSEEK(file, db->offsetOfEOF, SEEK_SET);
+   AS_UTL_fseek(file, db->offsetOfEOF, SEEK_SET);
 
   if(maRecord){
     maRecord->storeID = fileID;
@@ -376,7 +376,7 @@ MultiAlignT *LoadMultiAlignTFromSequenceDB(tSequenceDB *db, int index, int isUni
  file = (FILE*) *GetPtrT(db->SubStores, maRecord->storeID);
 
  db->positionedAtEnd = 0;
- CDS_FSEEK(file,maRecord->offset,SEEK_SET);
+ AS_UTL_fseek(file,maRecord->offset,SEEK_SET);
  ma = LoadMultiAlignTFromStream(file,&reference);
  // AddReferenceMultiAlignT(ma);
 
@@ -416,7 +416,7 @@ int32 ReLoadMultiAlignTFromSequenceDB(tSequenceDB *db, MultiAlignT *reusema, int
  file = (FILE*) *GetPtrT(db->SubStores, maRecord->storeID);
 
  db->positionedAtEnd = 0;
- CDS_FSEEK(file,maRecord->offset,SEEK_SET);
+ AS_UTL_fseek(file,maRecord->offset,SEEK_SET);
  ReLoadMultiAlignTFromStream(file,reusema,&reference);
  return 0;
 }

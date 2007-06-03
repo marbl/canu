@@ -26,6 +26,7 @@
 #include <assert.h>
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
+#include "AS_UTL_fileIO.h"
 
 void
 usage(char *name) {
@@ -147,7 +148,7 @@ main(int argc, char **argv) {
   while (ReadProtoMesg_AS(stdin, &pmesg) != EOF) {
     assert(pmesg->t <= NUM_OF_REC_TYPES);
 
-    currPos = CDS_FTELL(stdin);
+    currPos = AS_UTL_ftell(stdin);
 
     if (outfile[pmesg->t] != NULL) {
       count[pmesg->t]++;

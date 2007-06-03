@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.25 2007-05-29 10:54:28 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.26 2007-06-03 08:13:22 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
@@ -42,6 +42,7 @@
 #define GATEKEEPER_FAILURE 1
 
 extern GateKeeperStore  *gkpStore;
+extern FILE             *errorFP;
 
 int
 Check_BatchMesg(BatchMesg           *bat_mesg);

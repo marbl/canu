@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_PER_asmStore.h,v 1.12 2007-05-29 10:54:30 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_asmStore.h,v 1.13 2007-06-03 08:13:22 brianwalenz Exp $	 */
 #ifndef AS_PER_ASMSTORE_H
 #define AS_PER_ASMSTORE_H
 /*************************************************************************
@@ -160,9 +160,6 @@ typedef struct
 
 #define ASMSTORE_DEF(type)\
 typedef StoreHandle type ## Store;\
-static int commit ## type ## Store(type ## Store sh){\
-  return commitStore(sh);\
-}\
 static type ## Store reset ## type ## Store(type ## Store sh, int firstID){\
   return resetIndexStore(sh, firstID);\
 }\

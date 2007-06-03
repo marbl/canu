@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: PartitionSDB.c,v 1.3 2007-01-29 20:41:22 brianwalenz Exp $";
+static char CM_ID[] = "$Id: PartitionSDB.c,v 1.4 2007-06-03 08:13:22 brianwalenz Exp $";
 
 //  Given a SequenceDB and a partition size, measured in number of
 //  fragments, produce the following:
@@ -53,6 +53,7 @@ static char CM_ID[] = "$Id: PartitionSDB.c,v 1.3 2007-01-29 20:41:22 brianwalenz
 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
+#include "AS_UTL_fileIO.h"
 #include "AS_SDB_SequenceDBPartition.h"
 #include "AS_MSG_pmesg.h"
 
@@ -306,7 +307,7 @@ main(int argc, char **argv) {
 
     mar.flags.all = 0;
     mar.storeID   = utgID;
-    mar.offset    = CDS_FTELL(pOutput[binID]);
+    mar.offset    = AS_UTL_ftell(pOutput[binID]);
 
     AppendtMARecord(pIndex[binID], &mar);
 

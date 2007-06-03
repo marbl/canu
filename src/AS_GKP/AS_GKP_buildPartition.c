@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_buildPartition.c,v 1.5 2007-05-16 08:22:24 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_buildPartition.c,v 1.6 2007-06-03 08:13:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -94,10 +94,8 @@ Build_Partition(char      *gatekeeperName,
 
   AS_PER_setBufferSize(512 * 1024);
 
-  for (iid=1; iid<=maxPart; iid++) {
-    //fprintf(stderr, "GKP Error: Create partition %04d in %s\n", iid, gatekeeperName);
+  for (iid=1; iid<=maxPart; iid++)
     gkpart[iid] = createGateKeeperPartition(gatekeeperName, iid);
-  }
 
   //  And, finally, add stuff to each partition.
   //
