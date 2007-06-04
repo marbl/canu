@@ -7,9 +7,11 @@ if [ ! -e Makefile ] ; then
   if [ -e ../build/Makefile ] ; then
     ln -s ../build/Make.rules .
     ln -s ../build/Makefile .
+    ln -s ../build/makepath.c .
   elif [ -e build/Makefile ] ; then
     ln -s build/Make.rules .
     ln -s build/Makefile .
+    ln -s build/makepath.c .
   else
     echo "Hey, couldn't find the Makefile"
     exit
