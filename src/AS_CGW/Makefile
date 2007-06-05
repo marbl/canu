@@ -46,6 +46,7 @@ CGW_LIB_SOURCES = AS_CGW_dataTypes.c \
                   ContigT_CGW.c \
 		  DemoteUnitigsWithRBP_CGW.c \
                   DiagnosticsCGW.c \
+                  exploreGapStructure.c \
                   GraphCGW_T.c \
                   Input_CGW.c \
                   Instrument_CGW.c \
@@ -76,7 +77,6 @@ CRUD_SOURCES = \
                   dumpBinaryUnitigMAs.c \
                   dumpCheckpointAsFasta.c \
                   examineFragStore.c \
-                  exploreGapStructure.c \
                   exploreMates.c \
                   exploreScaffoldEnds.c \
                   findAnEdge.c \
@@ -98,14 +98,14 @@ CGW_LIB_OBJECTS = $(CGW_LIB_SOURCES:.c=.o)
 LIBRARIES     = libAS_CGW.a libCA.a
 LIBS          = libCA.a
 
-PROGS = cgw extendClearRanges resolveSurrogates dumpCloneMiddles dumpSingletons 
+PROGS = cgw extendClearRanges resolveSurrogates dumpCloneMiddles dumpSingletons exploreGapStructure
 
 CRUD =  Checkpoint process_scaffolds loadcgw \
         ScaffoldMap testSplitChunks instrumentCheckpoint \
 	traceNodes findMissedOverlaps localUnitigging_CGW \
 	dumpCheckpointAsFasta examineFragStore exploreMates fixECRCheckpoint \
 	dumpBinaryUnitigMAs assemblyStructure \
-	exploreGapStructure exploreScaffoldEnds asmInfoForFrg \
+	exploreScaffoldEnds asmInfoForFrg \
 	whereAreMyOverlaps findAnEdge \
 	combineMates ckp_scflen frgs2clones createFrgDeletes \
 	dfsFragmentTiling
