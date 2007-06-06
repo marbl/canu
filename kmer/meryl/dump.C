@@ -56,29 +56,29 @@ plotHistogram(merylArgs *args) {
   u64bit   numHuge       = 0;
   u64bit   maxCount      = 0;
   u64bit   hugeCount     = 64 * 1024 * 1024;
-  u32bit  *H             = new u32bit [hugeCount];
-  u64bit   c             = 0;
+  u64bit  *hist          = new u64bit [hugeCount];
+  u64bit   count         = 0;
 
   for (u32bit i=0; i<hugeCount; i++)
-    H[i] = 0;
+    hist[i] = 0;
 
   merylStreamReader   *M = new merylStreamReader(args->inputFile);
 
   while (M->nextMer()) {
-    c = M->theCount();
+    count = M->theCount();
 
     numDistinct++;
-    if (c == 1)
+    if (count == 1)
       numUnique++;
-    numMers += c;
+    numMers += count;
 
-    if (c < hugeCount)
-      H[c]++;
+    if (count < hugeCount)
+      hist[count]++;
     else
       numHuge++;
 
-    if (maxCount < c)
-      maxCount = c;
+    if (maxCount < count)
+      maxCount = count;
   }
 
   fprintf(stderr, "Found "u64bitFMT" mers.\n", numMers);
@@ -87,11 +87,22 @@ plotHistogram(merylArgs *args) {
   fprintf(stderr, "Found "u64bitFMT" huge mers (count >= "u64bitFMT").\n", numHuge, hugeCount);
   fprintf(stderr, "Largest mercount is "u64bitFMT".\n", maxCount);
 
-  for (u32bit i=0; i<=maxCount; i++)
-    fprintf(stdout, u32bitFMT"\n", H[i]);
+  u64bit  distinct;
+  u64bit  total;
+
+  for (u32bit i=1; i<=maxCount; i++) {
+    distinct += hist[i];
+    total    += hist[i] * i;
+
+    fprintf(stdout, u32bitFMT"\t"u64bitFMT"\t%.4f\t%.4f\n",
+            i,
+            hist[i],
+            distinct / (double)numDistinct,
+            total / (double)numMers);
+  }
 
   delete    M;
-  delete [] H;
+  delete [] hist;
 }
 
 
