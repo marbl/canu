@@ -95,6 +95,7 @@ submitPrepareBatch(merylArgs *args) {
     fprintf(stderr, "Failed to open '%s': %s\n", nam, strerror(errno)), exit(1);
 
   fprintf(F, "#!/bin/sh\n\n");
+  fprintf(F, ". $SGE_ROOT/$SGE_CELL/common/settings.sh\n");
   fprintf(F, "%s -forcebuild %s\n", args->execName, args->options);
   fclose(F);
 
@@ -124,6 +125,7 @@ submitCountBatches(merylArgs *args) {
     fprintf(stderr, "Failed to open '%s': %s\n", nam, strerror(errno)), exit(1);
 
   fprintf(F, "#!/bin/sh\n\n");
+  fprintf(F, ". $SGE_ROOT/$SGE_CELL/common/settings.sh\n");
   fprintf(F, "batchnum=`expr $SGE_TASK_ID - 1`\n");
   fprintf(F, "%s -v -countbatch $batchnum -o %s\n", args->execName, args->outputFile);
   fclose(F);
@@ -148,6 +150,7 @@ submitCountBatches(merylArgs *args) {
     fprintf(stderr, "Failed to open '%s': %s\n", nam, strerror(errno)), exit(1);
 
   fprintf(F, "#!/bin/sh\n\n");
+  fprintf(F, ". $SGE_ROOT/$SGE_CELL/common/settings.sh\n");
   fprintf(F, "%s -mergebatch -o %s\n", args->execName, args->outputFile);
   fclose(F);
 
