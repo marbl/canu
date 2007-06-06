@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.26 2007-06-03 08:13:22 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.27 2007-06-06 18:47:21 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -390,7 +390,7 @@ Check_FragMesg(FragMesg            *frg_mesg,
       gkf.srcOffset = stats.lastElem;
     }
 
-    setGatekeeperUIDtoIID(gkpStore, gkf.readUID, gkf.readIID, AS_IID_LIB);
+    setGatekeeperUIDtoIID(gkpStore, gkf.readUID, gkf.readIID, AS_IID_FRG);
     appendIndexStore(gkpStore->frg, &gkf);
 
     appendVLRecordStore(gkpStore->seq, frg_mesg->sequence, gkf.seqLen);
