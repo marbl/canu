@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.51 2007-06-01 18:32:34 eliv Exp $
- * $Revision: 1.51 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.52 2007-06-06 19:56:26 eliv Exp $
+ * $Revision: 1.52 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.51 2007-06-01 18:32:34 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.52 2007-06-06 19:56:26 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -88,6 +88,8 @@ namespace AS_BOG{
             return 0;
         return _inUnitig[fragId];
     }
+
+    bool BogOptions::unitigIntersectBreaking = false;
 
 	void UnitigGraph::build(ChunkGraph *cg_ptr, long num_rand_frags, long genome_size){
 
@@ -199,7 +201,7 @@ namespace AS_BOG{
                 }
             }
         }
-        if (bogOptions.find("unitigIntersectBreaking") != bogOptions.end()) { 
+        if (BogOptions::unitigIntersectBreaking) { 
             printUnitigBreaks();
             breakUnitigs();
         }
@@ -213,11 +215,11 @@ namespace AS_BOG{
         }
         fprintf(stderr,"Max contain depth is %d\n",maxContainDepth);
         delete cntnrmap_ptr;
+        cntnrmap_ptr = NULL;
 
 		std::cerr << "Setting Global Arrival Rate.\n";
 		float globalARate = getGlobalArrivalRate(num_rand_frags, genome_size);
-		Unitig static_proxy;
-		static_proxy.setGlobalArrivalRate(globalARate);
+        Unitig::setGlobalArrivalRate(globalARate);
 
 		std::cerr << "Global Arrival Rate: " << globalARate << std::endl;
 		std::cerr << std::endl << "There were " << unitigs->size() << " unitigs generated.\n";
@@ -642,12 +644,37 @@ namespace AS_BOG{
         }
 	}
 	//////////////////////////////////////////////////////////////////////////////
+    void UnitigGraph::accumulateSplitUnitigs( UnitigsIter tig, FragmentEnds* breaks,
+            UnitigVector* splits)
+    {
+        UnitigVector* newUs = breakUnitigAt( *tig, *breaks );
+        if (newUs == NULL)
+            return;
+        if (!newUs->empty()) {
+            // we have some new split up unitigs
+            int frgCnt = 0;
+            UnitigsConstIter newIter = newUs->begin();
+            // Number of frags should stay the same
+            for(;newIter != newUs->end(); newIter++) {
+                Unitig* tigTmp = *newIter;
+                frgCnt += tigTmp->dovetail_path_ptr->size();
+            }
+            fprintf(stderr,"Num frgs after splits is %d\n",frgCnt);
+            // store new unitigs
+            splits->insert( splits->end(), newUs->begin(), newUs->end());
+            // remove old unsplit unitig
+            delete *tig;
+            *tig = NULL;
+        }
+        delete newUs;
+    }
+	//////////////////////////////////////////////////////////////////////////////
     void UnitigGraph::breakUnitigs() {
 
         const char * fiveP  = "5'";
         const char * threeP = "3'";
         UnitigVector* splits = new UnitigVector(); // save split locations
-        UnitigVector::iterator tigIter = unitigs->begin();
+        UnitigsIter  tigIter = unitigs->begin();
         for(;tigIter != unitigs->end(); tigIter++)
         {
             Unitig* tig = *tigIter;
@@ -758,25 +785,7 @@ namespace AS_BOG{
                 breakPoint.inSize     = std::numeric_limits<int>::max();
                 breaks.push_back( breakPoint );
 
-                // Perform the unitig split, requires breaks to be ordered begin->end
-                UnitigVector* newUs = breakUnitigAt( tig, breaks );
-                if (!newUs->empty()) {
-                    // we have some new split up unitigs
-                    int frgCnt = 0;
-                    UnitigsConstIter newIter = newUs->begin();
-                    // Number of frags should stay the same
-                    for(;newIter != newUs->end(); newIter++) {
-                        Unitig* tigTmp = *newIter;
-                        frgCnt += tigTmp->dovetail_path_ptr->size();
-                    }
-                    fprintf(stderr,"Num frgs after splits is %d\n",frgCnt);
-                    // store new unitigs
-                    splits->insert( splits->end(), newUs->begin(), newUs->end());
-                    // remove old unsplit unitig
-                    delete *tigIter;
-                    *tigIter = NULL;
-                }
-                delete newUs;
+                accumulateSplitUnitigs( tigIter, &breaks, splits );
             }
         }
         fprintf(stderr,"Num splits %d\n",splits->size());
@@ -935,7 +944,6 @@ namespace AS_BOG{
 
 	Unitig::Unitig(void){
 		// Initialize values to unlikely values
-		_globalArrivalRate=-1;
 		_localArrivalRate=-1;
 		_covStat=FLT_MAX;
 		_length=-1;
@@ -1011,7 +1019,7 @@ namespace AS_BOG{
 
 	//////////////////////////////////////////////////////////////////////////////
 
-	float Unitig::_globalArrivalRate;
+	float Unitig::_globalArrivalRate = -1;
 
 	void Unitig::setGlobalArrivalRate(float global_arrival_rate){
 		_globalArrivalRate=global_arrival_rate;
@@ -1458,7 +1466,9 @@ namespace AS_BOG{
     void UnitigGraph::filterBreakPoints(Unitig *tig, FragmentEnds &breaks)
     {
         UnitigBreakPoint fakeEnd = breaks.back();
-        breaks.pop_back();
+        // Check for sentinal at end, not needed by MateChecker
+        if (fakeEnd.inSize == std::numeric_limits<int>::max())
+            breaks.pop_back();
         FragmentEnds smallBPs, newBPs;
         bool hadBig = false;
         FragmentEnds::iterator iter = breaks.begin();
@@ -1483,7 +1493,8 @@ namespace AS_BOG{
 
                         iuid bid = nextBP.fragEnd.id;
                         int bContain = 0;
-                        if ( cntnrmap_ptr->find( bid ) != cntnrmap_ptr->end() )
+                        if ( cntnrmap_ptr != NULL &&
+                             cntnrmap_ptr->find( bid ) != cntnrmap_ptr->end() )
                             bContain = (*cntnrmap_ptr)[ bid ].size();
 
                         lastBPFragNum = nextBP.fragNumber;
@@ -1532,12 +1543,15 @@ namespace AS_BOG{
         DoveTailIter dtIter = tig->dovetail_path_ptr->begin();
         UnitigBreakPoint breakPoint = breaks.front();
         breaks.pop_front();
+        bool containedBreak = false;
         int frgCnt = 0;
         int offset = 0;
         for( ; dtIter != tig->dovetail_path_ptr->end(); dtIter++) {
             frgCnt++;
             DoveTailNode frg = *dtIter;
-            UnitigBreakPoint nextBP = breaks.front();
+            UnitigBreakPoint nextBP;
+            if (!breaks.empty())
+                nextBP = breaks.front();
             bool bothEnds = false;
             // reduce multiple breaks at the same fragment end down to one
             while ( !breaks.empty() && nextBP.fragEnd.id == breakPoint.fragEnd.id ) {
@@ -1548,6 +1562,11 @@ namespace AS_BOG{
             }
             bool reverse = isReverse(frg.position);
             if (breakPoint.fragEnd.id == frg.ident) {
+                if (frg.contained) {
+                    fprintf(stderr,"Breaking untig on contained frg %d\n",frg.ident);
+                    containedBreak = true;
+                    frg.contained = NULL_FRAG_ID;
+                }
                 // At a fragment to break on
                 if (bothEnds) {
                     // create singleton when breaking at both ends of a fragment
@@ -1605,6 +1624,12 @@ namespace AS_BOG{
                     offset = reverse ? -frg.position.end : -frg.position.bgn;
                     fprintf(stderr,"Offset is %d for frg %d %d,%d ",
                             offset,frg.ident,frg.position.bgn,frg.position.end);
+                }
+                if (frg.contained) {
+                    if (containedBreak)
+                        frg.contained = NULL_FRAG_ID;
+                } else {
+                    containedBreak = false;
                 }
                 newTig->addFrag( frg );
             }

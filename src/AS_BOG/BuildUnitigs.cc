@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.20 2007-06-01 18:32:34 eliv Exp $
- * $Revision: 1.20 $
+ * $Id: BuildUnitigs.cc,v 1.21 2007-06-06 19:56:26 eliv Exp $
+ * $Revision: 1.21 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.20 2007-06-01 18:32:34 eliv Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.21 2007-06-06 19:56:26 eliv Exp $";
 
 //  System include files
 
@@ -56,6 +56,7 @@ using std::map;
 using std::set;
 using std::vector;
 using AS_BOG::BestOverlapGraph;
+using AS_BOG::BogOptions;
 
 //  Local include files
 extern "C" {
@@ -65,8 +66,6 @@ extern "C" {
 }
 
 void outputHistograms(AS_BOG::UnitigGraph *);
-
-OptionMap bogOptions;
 
 int  main (int argc, char * argv [])
 
@@ -94,7 +93,7 @@ int  main (int argc, char * argv [])
                OVL_Store_Path = strdup(optarg);
                assert( OVL_Store_Path != NULL ); break;
            case 'b':
-               bogOptions["unitigIntersectBreaking"] = 1; break;
+               BogOptions::unitigIntersectBreaking = true; break;
            case 's':
                genome_size = atol(optarg); break;
            default:

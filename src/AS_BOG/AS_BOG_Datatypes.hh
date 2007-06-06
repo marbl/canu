@@ -33,8 +33,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_Datatypes.hh,v 1.14 2007-06-01 18:32:34 eliv Exp $
- * $Revision: 1.14 $
+ * $Id: AS_BOG_Datatypes.hh,v 1.15 2007-06-06 19:56:26 eliv Exp $
+ * $Revision: 1.15 $
 */
 
 #ifndef INCLUDE_AS_BOG_DATATYPES
@@ -49,10 +49,6 @@ extern "C" {
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
 }
-
-// For control of bog behaviour
-typedef std::map<const char*,int> OptionMap;
-extern OptionMap bogOptions;
 
 namespace AS_BOG{
 

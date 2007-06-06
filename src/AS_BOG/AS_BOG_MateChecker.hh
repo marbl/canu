@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.hh,v 1.7 2007-05-31 15:41:48 eliv Exp $
- * $Revision: 1.7 $
+ * $Id: AS_BOG_MateChecker.hh,v 1.8 2007-06-06 19:56:26 eliv Exp $
+ * $Revision: 1.8 $
 */
 
 #ifndef INCLUDE_AS_BOG_MATECHEKER
@@ -76,8 +76,8 @@ namespace AS_BOG{
 
         // Checks size of mates internal to unitig
         LibraryStats* checkUnitig( Unitig* );
-        // Compute good and bad coverage graphs for a unitig
-        void computeMateCoverage( Unitig*, LibraryStats &);
+        // Compute good and bad coverage graphs for a unitig, returns split points
+        FragmentEnds* computeMateCoverage( Unitig*, LibraryStats &);
         // Computes stddev and mate coverage over all unitigs
         void checkUnitigGraph( UnitigGraph& );
 
@@ -93,6 +93,7 @@ namespace AS_BOG{
         iuid        id2;
         iuid        unitig1;
         iuid        unitig2; // in the future the table might be across unitigs
+        bool        isBad;
     };
     std::ostream& operator<< (std::ostream& os, MateLocationEntry&);
 

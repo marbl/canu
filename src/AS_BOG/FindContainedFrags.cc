@@ -31,11 +31,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FindContainedFrags.cc,v 1.26 2007-06-01 18:32:34 eliv Exp $
- * $Revision: 1.26 $
+ * $Id: FindContainedFrags.cc,v 1.27 2007-06-06 19:56:26 eliv Exp $
+ * $Revision: 1.27 $
 */
 
-static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.26 2007-06-01 18:32:34 eliv Exp $";
+static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.27 2007-06-06 19:56:26 eliv Exp $";
 
 //  System include files
 
@@ -58,8 +58,6 @@ using AS_BOG::BestOverlapGraph;
 extern "C" {
 #include "AS_OVS_overlapStore.h"
 }
-
-OptionMap bogOptions;
 
 int  main
     (int argc, char * argv [])

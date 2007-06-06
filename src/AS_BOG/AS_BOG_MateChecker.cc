@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.14 2007-05-31 15:41:48 eliv Exp $
- * $Revision: 1.14 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.15 2007-06-06 19:56:26 eliv Exp $
+ * $Revision: 1.15 $
 */
 
 #include <math.h>
@@ -185,7 +185,7 @@ namespace AS_BOG{
     }
 
     ///////////////////////////////////////////////////////////////////////////
-
+    // main entry point into mate checking code
     void MateChecker::checkUnitigGraph( UnitigGraph& tigGraph )
     {
         LibraryStats globalStats;
@@ -285,14 +285,20 @@ namespace AS_BOG{
                     libId, size, median, third, twoThird, aproxStd, smallest, biggest,
                             gdc->numPairs, gdc->mean, gdc->stddev );
         }
-        tigIter = tigGraph.unitigs->begin();
-        for(; tigIter != tigGraph.unitigs->end(); tigIter++)
+        UnitigVector* splits = new UnitigVector(); // save split unitigs
+        UnitigsIter tigEditIter = tigGraph.unitigs->begin();
+        for(; tigEditIter != tigGraph.unitigs->end(); tigEditIter++)
         {
-            if (*tigIter == NULL ) 
+            if (*tigEditIter == NULL ) 
                 continue;
 
-            computeMateCoverage( *tigIter, globalStats );
+            FragmentEnds* breaks = computeMateCoverage( *tigEditIter, globalStats );
+            tigGraph.accumulateSplitUnitigs( tigEditIter, breaks, splits );
+            delete breaks;
         }
+        fprintf(stderr,"Num mate based splits %d\n",splits->size());
+        tigGraph.unitigs->insert( tigGraph.unitigs->end(), splits->begin(), splits->end());
+        delete splits;
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -303,10 +309,10 @@ namespace AS_BOG{
     }
     ///////////////////////////////////////////////////////////////////////////
 
-    void findPeakBad( short* badGraph, int tigLen, int &peakBegin, int &peakEnd);
+    IntervalList* findPeakBad( short* badGraph, int tigLen);
 
     static const bool MATE_3PRIME_END = true;
-    void MateChecker::computeMateCoverage( Unitig* tig, LibraryStats& globalStats )
+    FragmentEnds* MateChecker::computeMateCoverage( Unitig* tig, LibraryStats& globalStats )
     {
         int tigLen = tig->getLength();
         short goodGraph[tigLen]; 
@@ -317,7 +323,6 @@ namespace AS_BOG{
         memset(  badRevGraph, 0, tigLen * sizeof(short));
         IdMap seenMates;
         MateLocation positions(this);
-        std::set<iuid> badMates;
         // Build mate position table
         DoveTailConstIter tigIter = tig->dovetail_path_ptr->begin();
         for(;tigIter != tig->dovetail_path_ptr->end(); tigIter++)
@@ -335,12 +340,7 @@ namespace AS_BOG{
             }
         }
         positions.sort();
-        MateLocCIter posIter  = positions.begin();
-        for(;        posIter != positions.end(); posIter++) {
-            MateLocationEntry loc = *posIter;
-            std::cerr << loc << std::endl;
-        }
-                     posIter  = positions.begin();
+        MateLocIter  posIter  = positions.begin();
         for(;        posIter != positions.end(); posIter++) {
             MateLocationEntry loc = *posIter;
             iuid fragId         =  loc.id1;
@@ -357,7 +357,7 @@ namespace AS_BOG{
                     if ( frgBgn > badMax ) {
                         if (MATE_3PRIME_END) frgEnd = loc.pos1.bgn;
                         incrRange( badRevGraph, -1, frgBgn - badMax, frgEnd );
-                        badMates.insert( fragId );
+                        posIter->isBad = true;
                         fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
                                 fragId, frgBgn, loc.pos1.end, mateId, lib);
                     }
@@ -366,7 +366,7 @@ namespace AS_BOG{
                         iuid beg = frgBgn;
                         if (MATE_3PRIME_END) beg = frgEnd;
                         incrRange( badFwdGraph, -1, beg, frgBgn + badMax );
-                        badMates.insert( fragId );
+                        posIter->isBad = true;
                         fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
                                 fragId, frgBgn, frgEnd, mateId, lib);
                     }
@@ -379,7 +379,7 @@ namespace AS_BOG{
                     // 1st reversed, so bad 
                     iuid beg = MAX( 0, frgBgn - badMax );
                     incrRange( badRevGraph, -1, beg, frgEnd);
-                    badMates.insert( fragId );
+                    posIter->isBad = true;
                     fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
                                 fragId, frgBgn, frgEnd, mateId, lib);
                     iuid end;
@@ -398,7 +398,6 @@ namespace AS_BOG{
                             beg = mateEnd;
                         incrRange( badFwdGraph, -1, beg, end);
                     }
-                    badMates.insert( mateId );
                     fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
                                 mateId, mateBgn, mateEnd, fragId, lib);
 
@@ -420,7 +419,7 @@ namespace AS_BOG{
                                 end = mateEnd;
 
                             incrRange(badRevGraph, -1, beg, end);
-                            badMates.insert( mateId );
+                            posIter->isBad = true;
                             fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
                                     mateId, mateBgn, mateEnd, fragId, lib);
 
@@ -430,7 +429,6 @@ namespace AS_BOG{
                                 beg = frgEnd;
 
                             incrRange(badFwdGraph,-1, beg, end);
-                            badMates.insert( fragId );
                             fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
                                     fragId, frgBgn, frgEnd, mateId, lib);
                         }
@@ -442,7 +440,7 @@ namespace AS_BOG{
                             beg = frgEnd;
 
                         incrRange(badFwdGraph,-1, beg, end);
-                        badMates.insert( fragId );
+                        posIter->isBad = true;
 
                         fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
                                 fragId, frgBgn, frgEnd, mateId, lib);
@@ -454,14 +452,16 @@ namespace AS_BOG{
                             beg = mateEnd;
 
                         incrRange( badFwdGraph, -1, beg, end);
-                        badMates.insert( mateId );
                         fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
                                 mateId, mateBgn, mateEnd, fragId, lib);
                     }
                 }
             }
         }
-        fprintf(stderr,"Num bad mates %ld\n",badMates.size());
+        for(posIter = positions.begin(); posIter != positions.end(); posIter++){
+            MateLocationEntry loc = *posIter;
+            std::cerr << loc << std::endl;
+        }
         // do something with the good and bad graphs
         fprintf(stderr,"Per 300 bases good graph unitig %ld size %ld:\n",tig->id(),tigLen);
         long sum = 0;
@@ -472,16 +472,52 @@ namespace AS_BOG{
             }
             sum += goodGraph[ i ];
         }
+        IntervalList *fwdBads,*revBads;
         fprintf(stderr,"\nPer 300 bases bad fwd graph:\n");
-        int fwdBgn,fwdEnd,revBgn,revEnd;
-        findPeakBad( badFwdGraph, tigLen, fwdBgn, fwdEnd );
+        fwdBads = findPeakBad( badFwdGraph, tigLen );
         fprintf(stderr,"\nPer 300 bases bad rev graph:\n");
-        findPeakBad( badRevGraph, tigLen, revBgn, revEnd );
+        revBads = findPeakBad( badRevGraph, tigLen );
+
+        if (!fwdBads->empty()) {
+            fprintf(stderr,"Non empty fwdBads, should handle same as revBads\n");
+        }
+        FragmentEnds* breaks = new FragmentEnds(); // return value
+        posIter  = positions.begin();
+        fprintf(stderr,"Num revBads is %d\n",revBads->size());
+        IntervalList::const_iterator badIter = revBads->begin();
+        bool inBad = false;
+        for(; badIter != revBads->end(); badIter++) {
+            SeqInterval bad = *badIter;
+            fprintf(stderr,"Bad peak from %d to %d\n",bad.bgn,bad.end);
+            for(;        posIter != positions.end(); posIter++) {
+                MateLocationEntry loc = *posIter;
+                if ( !inBad && bad < loc.pos1 ) {
+                    fprintf(stderr,"First frg in peak bad range is %d\n", loc.id1);
+                    inBad = true;
+                }
+                if ( inBad && loc.isBad ) {
+                    fragment_end_type fragEndInTig = FIVE_PRIME;
+                    if (isReverse( loc.pos1 ))
+                        fragEndInTig = THREE_PRIME;
+                    UnitigBreakPoint bp( loc.id1, fragEndInTig );
+                    bp.position = loc.pos1;
+                    bp.inSize = 100000;
+                    bp.inFrags = 10;
+                    breaks->push_back( bp );
+                    fprintf(stderr,"First bad frg in peak bad range is %d\n", loc.id1);
+                    inBad = false;
+                    break;
+                }
+            }
+        }
+        delete fwdBads;
+        delete revBads;
+        return breaks;
     }
 
     ///////////////////////////////////////////////////////////////////////////
 
-    void findPeakBad( short* badGraph, int tigLen, int &peakBegin, int &peakEnd) {
+    IntervalList* findPeakBad( short* badGraph, int tigLen) {
         long sum = 0;
         for(int i=0; i < tigLen; i++) {
             if (i > 1 && i % 300 == 0) {
@@ -491,27 +527,32 @@ namespace AS_BOG{
             sum += badGraph[ i ];
         }
         fprintf(stderr,"\n");
+        IntervalList* peakBads = new IntervalList();
+        SeqInterval   peak = NULL_MATE_LOC;
         int badBegin, peakBad, lastBad;
-        peakBad = peakBegin = peakEnd = lastBad = badBegin = 0;
+        peakBad = lastBad = badBegin = 0;
         for(int i=0; i < tigLen; i++) {
             if( badGraph[ i ] < -3 ) {
                 if (badBegin == 0)  // start bad region
                     badBegin = i;
                 if(badGraph[i] < peakBad) {
                     peakBad   = badGraph[i];
-                    peakBegin = i;
+                    peak.bgn = i;
                 } else if (lastBad < 0 && lastBad == peakBad) {
-                    peakEnd = i;
+                    peak.end = i-1;
                 }
                 lastBad = badGraph[i];
             } else {
                 if (badBegin > 0) {  // end bad region
                     fprintf(stderr,"Bad mates >3 from %d to %d peak %d from %d to %d\n",
-                            badBegin,i-1,peakBad,peakBegin,peakEnd);
-                    peakBad = peakBegin = peakEnd = lastBad = badBegin = 0;
+                            badBegin,i-1,peakBad,peak.bgn,peak.end);
+                    peakBads->push_back( peak );
+                    peakBad = lastBad = badBegin = 0;
+                    peak = NULL_MATE_LOC;
                 }
             }
         }
+        return peakBads;
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -529,6 +570,7 @@ namespace AS_BOG{
         entry.id2     = NULL_FRAG_ID;
         entry.pos2    = NULL_MATE_LOC;
         entry.unitig2 = NULL_FRAG_ID;; 
+        entry.isBad   = false;
 
         _table.push_back( entry );
         _iidIndex[ fragID ] = _table.size()-1;
@@ -593,7 +635,7 @@ namespace AS_BOG{
     {
         int dist = e.pos2.bgn - e.pos1.bgn;
         os << e.pos1.bgn <<","<< e.pos1.end <<" -> "<< e.pos2.bgn <<","<< e.pos2.end
-           << " "<< dist << " Frg " << e.id1 << " mate " << e.id2 ;
+           << " "<< dist << " Frg " << e.id1 << " mate " << e.id2 << " isBad " << e.isBad ;
         return os;
     }
 

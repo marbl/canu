@@ -34,15 +34,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.25 2007-06-01 18:32:34 eliv Exp $
- * $Revision: 1.25 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.26 2007-06-06 19:56:26 eliv Exp $
+ * $Revision: 1.26 $
 */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.25 2007-06-01 18:32:34 eliv Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.26 2007-06-06 19:56:26 eliv Exp $";
 
 #include <list>
 #include <set>
@@ -115,7 +115,7 @@ namespace AS_BOG{
         void reverseComplement( int offset, BestOverlapGraph *);
 		// Accessor methods
 		float getAvgRho(void);
-		void setGlobalArrivalRate(float global_arrival_rate);
+		static void setGlobalArrivalRate(float global_arrival_rate);
 		void setLocalArrivalRate(float local_arrival_rate);
 		float getLocalArrivalRate(void);
 		float getCovStat(void);
@@ -212,6 +212,8 @@ namespace AS_BOG{
                                      const UnitigBreakPoint &);
 
         UnitigVector* breakUnitigAt( Unitig *, FragmentEnds &);
+        // Single call point for breakUnitigAt(), saves new unitigs in last arg
+        void accumulateSplitUnitigs( UnitigsIter, FragmentEnds *, UnitigVector *);
 
 		///////////////////////////////////////////////////////////////
 		// Member Variables
@@ -257,6 +259,10 @@ namespace AS_BOG{
 	};
 		
 	///////////////////////////////////////////////////////////////////////
+
+    struct BogOptions {
+        static bool unitigIntersectBreaking;
+    };
 
 };
 
