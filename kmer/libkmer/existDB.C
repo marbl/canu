@@ -30,6 +30,7 @@ existDB::existDB(char const    *filename,
 
   _compressedHash   = flags & existDBcompressHash;
   _compressedBucket = flags & existDBcompressBuckets;
+  _compressedCounts = flags & existDBcompressCounts;
 
   //  Try to read state from the filename.  If successful, make sure that
   //  the merSize and tblBits are correct.
@@ -76,6 +77,7 @@ existDB::existDB(char const    *filename,
 existDB::~existDB() {
   delete [] _hashTable;
   delete [] _buckets;
+  delete [] _counts;
 }
 
 
@@ -87,9 +89,9 @@ existDB::exists(u64bit mer) {
   u64bit h, st, ed;
 
   if (_compressedHash) {
-    h  = HASH(mer) * _hashWidth;
-    st = getDecodedValue(_hashTable, h,              _hashWidth);
-    ed = getDecodedValue(_hashTable, h + _hashWidth, _hashWidth);
+    h  = HASH(mer) * _hshWidth;
+    st = getDecodedValue(_hashTable, h,             _hshWidth);
+    ed = getDecodedValue(_hashTable, h + _hshWidth, _hshWidth);
   } else {
     h  = HASH(mer);
     st = _hashTable[h];
@@ -102,11 +104,11 @@ existDB::exists(u64bit mer) {
   u64bit  c = CHECK(mer);
 
   if (_compressedBucket) {
-    st *= _chckWidth;
-    ed *= _chckWidth;
+    st *= _chkWidth;
+    ed *= _chkWidth;
 
-    for (; st<ed; st += _chckWidth) {
-      if (getDecodedValue(_buckets, st, _chckWidth) == c)
+    for (; st<ed; st += _chkWidth) {
+      if (getDecodedValue(_buckets, st, _chkWidth) == c)
         return(true);
     }
   } else {
@@ -120,12 +122,58 @@ existDB::exists(u64bit mer) {
 }
 
 
+u64bit
+existDB::count(u64bit mer) {
+  u64bit h, st, ed;
+
+  if (_compressedHash) {
+    h  = HASH(mer) * _hshWidth;
+    st = getDecodedValue(_hashTable, h,             _hshWidth);
+    ed = getDecodedValue(_hashTable, h + _hshWidth, _hshWidth);
+  } else {
+    h  = HASH(mer);
+    st = _hashTable[h];
+    ed = _hashTable[h+1];
+  }
+
+  if (st == ed)
+    return(false);
+
+  u64bit  c = CHECK(mer);
+
+  if (_compressedBucket) {
+    st *= _chkWidth;
+    ed *= _chkWidth;
+
+    for (; st<ed; st += _chkWidth) {
+      if (getDecodedValue(_buckets, st, _chkWidth) == c)
+        goto returncount;
+    }
+  } else {
+    for (; st<ed; st++) {
+      if (_buckets[st] == c)
+        goto returncount;
+    }
+  }
+
+  return(0);
+
+ returncount:
+  if (_compressedCounts)
+    return(getDecodedValue(_counts, st, _cntWidth));
+  else
+    return(_counts[st]);
+}
+
+
+
+
 #if 0
 //  Special case used from inside the posDB.  Errrr, it _was_ used
 //  inside the posDB.
 //
 //  If:
-//    The existDB and posDB are built using the same hashWidth.
+//    The existDB and posDB are built using the same hshWidth.
 //    We know the bucket and check we want to find.
 //    The checks are in increasing order.
 //  Then we can bypass a lot of the overhead of checking for existence.
@@ -139,17 +187,17 @@ existDB::exists(u64bit b, u64bit c) {
     _es_bucket = b;
 
     if (_compressedHash) {
-      b      *= _hashWidth;
-      _es_st  = getDecodedValue(_hashTable, b,              _hashWidth);
-      _es_ed  = getDecodedValue(_hashTable, b + _hashWidth, _hashWidth);
+      b      *= _hshWidth;
+      _es_st  = getDecodedValue(_hashTable, b,             _hshWidth);
+      _es_ed  = getDecodedValue(_hashTable, b + _hshWidth, _hshWidth);
     } else {
       _es_st  = _hashTable[b];
       _es_ed  = _hashTable[b+1];
     }
 
     if (_compressedBucket) {
-      _es_st *= _chckWidth;
-      _es_ed *= _chckWidth;
+      _es_st *= _chkWidth;
+      _es_ed *= _chkWidth;
     }
   }
 
@@ -162,8 +210,8 @@ existDB::exists(u64bit b, u64bit c) {
 #ifdef ES_SORTED
   //  This would work great, except existDB isn't sorted.
   if (_compressedBucket) {
-    for (; _es_st<_es_ed; _es_st += _chckWidth) {
-      if (getDecodedValue(_buckets, _es_st, _chckWidth) == c)
+    for (; _es_st<_es_ed; _es_st += _chkWidth) {
+      if (getDecodedValue(_buckets, _es_st, _chkWidth) == c)
         return(true);
     }
   } else {
@@ -174,8 +222,8 @@ existDB::exists(u64bit b, u64bit c) {
   }
 #else
   if (_compressedBucket) {
-    for (u64bit st=_es_st; st<_es_ed; st += _chckWidth) {
-      if (getDecodedValue(_buckets, st, _chckWidth) == c)
+    for (u64bit st=_es_st; st<_es_ed; st += _chkWidth) {
+      if (getDecodedValue(_buckets, st, _chkWidth) == c)
         return(true);
     }
   } else {

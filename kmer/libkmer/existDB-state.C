@@ -39,16 +39,17 @@ existDB::saveState(char const *filename) {
   fwrite(&_shift2, sizeof(u32bit), 1, F);
   fwrite(&_mask1, sizeof(u64bit), 1, F);
   fwrite(&_mask2, sizeof(u64bit), 1, F);
-  fwrite(&_hashWidth, sizeof(u32bit), 1, F);  //  only valid if _compressedHash
-  fwrite(&_chckWidth, sizeof(u32bit), 1, F);  //  only valid if _compressedBucket
-  fwrite(&_hashMask, sizeof(u64bit), 1, F);
-  fwrite(&_chckMask, sizeof(u64bit), 1, F);
+  fwrite(&_hshWidth, sizeof(u32bit), 1, F);  //  only valid if _compressedHash
+  fwrite(&_chkWidth, sizeof(u32bit), 1, F);  //  only valid if _compressedBucket
+  fwrite(&_cntWidth, sizeof(u32bit), 1, F);  //  only valid if _compressedCounts
 
   fwrite(&_hashTableWords, sizeof(u64bit), 1, F);
   fwrite(&_bucketsWords,   sizeof(u64bit), 1, F);
+  fwrite(&_countsWords,    sizeof(u64bit), 1, F);
 
   fwrite(_hashTable, sizeof(u64bit), _hashTableWords, F);
   fwrite(_buckets,   sizeof(u64bit), _bucketsWords,   F);
+  fwrite(_counts,    sizeof(u64bit), _countsWords,    F);
 
   fclose(F);
 
@@ -117,14 +118,13 @@ existDB::loadState(char const *filename,
   fread(&_shift2, sizeof(u32bit), 1, F);
   fread(&_mask1, sizeof(u64bit), 1, F);
   fread(&_mask2, sizeof(u64bit), 1, F);
-  fread(&_hashWidth, sizeof(u32bit), 1, F);  //  only valid if _compressedHash
-  fread(&_chckWidth, sizeof(u32bit), 1, F);  //  only valid if _compressedBucket
-
-  fread(&_hashMask, sizeof(u64bit), 1, F);
-  fread(&_chckMask, sizeof(u64bit), 1, F);
+  fread(&_hshWidth, sizeof(u32bit), 1, F);  //  only valid if _compressedHash
+  fread(&_chkWidth, sizeof(u32bit), 1, F);  //  only valid if _compressedBucket
+  fread(&_cntWidth, sizeof(u32bit), 1, F);  //  only valid if _compressedCounts
 
   fread(&_hashTableWords, sizeof(u64bit), 1, F);
   fread(&_bucketsWords,   sizeof(u64bit), 1, F);
+  fread(&_countsWords,    sizeof(u64bit), 1, F);
 
   _hashTable = 0L;
   _buckets   = 0L;
@@ -132,9 +132,11 @@ existDB::loadState(char const *filename,
   if (loadData) {
     _hashTable = new u64bit [_hashTableWords];
     _buckets   = new u64bit [_bucketsWords];
+    _counts    = new u64bit [_countsWords];
 
     fread(_hashTable, sizeof(u64bit), _hashTableWords, F);
     fread(_buckets,   sizeof(u64bit), _bucketsWords,   F);
+    fread(_counts,    sizeof(u64bit), _countsWords,    F);
   }
 
   fclose(F);
@@ -156,6 +158,7 @@ existDB::printState(FILE *stream) {
   fprintf(stream, "-----------------\n");
   fprintf(stream, "_hashTableWords   "u64bitFMT" ("u64bitFMT" KB)\n", _hashTableWords, _hashTableWords >> 7);
   fprintf(stream, "_bucketsWords     "u64bitFMT" ("u64bitFMT" KB)\n", _bucketsWords, _bucketsWords >> 7);
+  fprintf(stream, "_countsWords      "u64bitFMT" ("u64bitFMT" KB)\n", _countsWords, _countsWords >> 7);
   fprintf(stream, "-----------------\n");
   fprintf(stream, "_shift1:          "u32bitFMT"\n", _shift1);
   fprintf(stream, "_shift2           "u32bitFMT"\n", _shift2);
@@ -164,21 +167,26 @@ existDB::printState(FILE *stream) {
 
   if (_compressedHash) {
     fprintf(stream, "_compressedHash   true\n");
-    fprintf(stream, "_hashWidth        "u32bitFMT"\n", _hashWidth);
+    fprintf(stream, "_hshWidth         "u32bitFMT"\n", _hshWidth);
   } else {
     fprintf(stream, "_compressedHash   false\n");
-    fprintf(stream, "_hashWidth        undefined\n");
+    fprintf(stream, "_hshWidth         undefined\n");
   }
 
   if (_compressedBucket) {
     fprintf(stream, "_compressedBucket true\n");
-    fprintf(stream, "_chckWidth        "u32bitFMT"\n", _chckWidth);
+    fprintf(stream, "_chkWidth         "u32bitFMT"\n", _chkWidth);
   } else {
     fprintf(stream, "_compressedBucket false\n");
-    fprintf(stream, "_chckWidth        undefined\n");
+    fprintf(stream, "_chkWidth         undefined\n");
   }
 
-  fprintf(stream, "_hashMask         "u64bitHEX"\n", _hashMask);
-  fprintf(stream, "_chckMask         "u64bitHEX"\n", _chckMask);
+  if (_compressedCounts) {
+    fprintf(stream, "_compressedCount  true\n");
+    fprintf(stream, "_cntWidth         "u32bitFMT"\n", _cntWidth);
+  } else {
+    fprintf(stream, "_compressedCount  false\n");
+    fprintf(stream, "_cntWidth         undefined\n");
+  }
 }
 

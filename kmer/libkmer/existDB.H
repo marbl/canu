@@ -19,8 +19,10 @@
 typedef u32bit existDBflags;
 const existDBflags  existDBcompressHash    = 0x0001;
 const existDBflags  existDBcompressBuckets = 0x0002;
+const existDBflags  existDBcompressCounts  = 0x0004;
 const existDBflags  existDBcanonical       = 0x0008;
 const existDBflags  existDBforward         = 0x0010;
+const existDBflags  existDBcounts          = 0x0020;
 
 class existDB {
 public:
@@ -46,7 +48,12 @@ public:
   bool        isCanonical(void)  { return(_isCanonical); };
 
   bool        exists(u64bit mer);
+  u64bit      count(u64bit mer);
+
+#if 0
   bool        exists(u64bit b, u64bit c);
+  u64bit      count(u64bit b, u64bit c);
+#endif
 
 private:
   bool        loadState(char const *filename, bool beNoisy=false, bool loadData=true);
@@ -68,16 +75,25 @@ private:
     return(k & _mask2);
   };
 
-  void         insertMer(u64bit h, u64bit c, u64bit *countingTable) {
+  void         insertMer(u64bit hsh, u64bit chk, u64bit cnt, u64bit *countingTable) {
+
     if (_compressedBucket)
-      setDecodedValue(_buckets, countingTable[h] * _chckWidth, _chckWidth, c);
+      setDecodedValue(_buckets, countingTable[hsh] * _chkWidth, _chkWidth, chk);
     else
-      _buckets[countingTable[h]] = c;
-    countingTable[h]++;
+      _buckets[countingTable[hsh]] = chk;
+
+    if (_counts)
+      if (_compressedCounts)
+        setDecodedValue(_counts, countingTable[hsh] * _cntWidth, _cntWidth, cnt);
+      else
+        _counts[countingTable[hsh]] = cnt;
+
+    countingTable[hsh]++;
   };
 
   bool        _compressedHash;
   bool        _compressedBucket;
+  bool        _compressedCounts;
   bool        _isForward;
   bool        _isCanonical;
 
@@ -88,16 +104,17 @@ private:
   u64bit      _mask1;
   u64bit      _mask2;
 
-  u32bit      _hashWidth;  //  Only for the compressed hash
-  u32bit      _chckWidth;  //  Only for the compressed bucket
-
-  u64bit      _hashMask;
-  u64bit      _chckMask;
+  u32bit      _hshWidth;  //  Only for the compressed hash
+  u32bit      _chkWidth;  //  Only for the compressed bucket
+  u32bit      _cntWidth;  //  Only for the compressed counts
 
   u64bit      _hashTableWords;
   u64bit      _bucketsWords;
+  u64bit      _countsWords;
+
   u64bit     *_hashTable;
   u64bit     *_buckets;
+  u64bit     *_counts;
 
   //  Used by the streaming exists interface
 #if 0

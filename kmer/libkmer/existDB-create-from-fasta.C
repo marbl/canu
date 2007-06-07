@@ -14,6 +14,7 @@ existDB::createFromFastA(char const  *filename,
 
   _hashTable = 0L;
   _buckets   = 0L;
+  _counts    = 0L;
 
   _merSizeInBases        = merSize;
 
@@ -22,11 +23,9 @@ existDB::createFromFastA(char const  *filename,
   _mask1                 = u64bitMASK(tblBits);
   _mask2                 = u64bitMASK(_shift1);
 
-  _hashWidth             = u32bitZERO;
-  _chckWidth             = 2 * merSize - tblBits;
-
-  _hashMask              = u64bitMASK(tblBits);
-  _chckMask              = u64bitMASK(2 * merSize - tblBits);
+  _hshWidth              = u32bitZERO;
+  _chkWidth              = 2 * merSize - tblBits;
+  _cntWidth              = 16;
 
   u64bit  tableSizeInEntries = u64bitONE << tblBits;
   u64bit  numberOfMers       = u64bitZERO;
@@ -37,6 +36,11 @@ existDB::createFromFastA(char const  *filename,
 
   _isCanonical = flags & existDBcanonical;
   _isForward   = flags & existDBforward;
+
+  if (flags & existDBcounts) {
+    fprintf(stderr, "existDB:createFromFastA()--  ERROR!  I don't support existDBcounts.\n");
+    exit(1);
+  }
 
   ////////////////////////////////////////////////////////////////////////////////
   //
@@ -91,9 +95,9 @@ existDB::createFromFastA(char const  *filename,
   //  position 2.
   //
   if (_compressedHash) {
-    _hashWidth = 1;
-    while ((numberOfMers+1) > (u64bitONE << _hashWidth))
-      _hashWidth++;
+    _hshWidth = 1;
+    while ((numberOfMers+1) > (u64bitONE << _hshWidth))
+      _hshWidth++;
   }
 
 
@@ -103,11 +107,11 @@ existDB::createFromFastA(char const  *filename,
   //
   _hashTableWords = tableSizeInEntries + 2;
   if (_compressedHash)
-    _hashTableWords = _hashTableWords * _hashWidth / 64 + 1;
+    _hashTableWords = _hashTableWords * _hshWidth / 64 + 1;
 
   _bucketsWords = numberOfMers + 2;
   if (_compressedBucket)
-    _bucketsWords = _bucketsWords * _chckWidth / 64 + 1;
+    _bucketsWords = _bucketsWords * _chkWidth / 64 + 1;
 
   _hashTable = new u64bit [_hashTableWords];
   _buckets   = new u64bit [_bucketsWords];
@@ -130,13 +134,13 @@ existDB::createFromFastA(char const  *filename,
       tmpPosition    = countingTable[i];
       countingTable[i] = begPosition;
 
-      setDecodedValue(_hashTable, ptr, _hashWidth, begPosition);
-      ptr         += _hashWidth;
+      setDecodedValue(_hashTable, ptr, _hshWidth, begPosition);
+      ptr         += _hshWidth;
 
       begPosition += tmpPosition;
     }
 
-    setDecodedValue(_hashTable, ptr, _hashWidth, begPosition);
+    setDecodedValue(_hashTable, ptr, _hshWidth, begPosition);
   } else {
     for (u64bit i=0; i<tableSizeInEntries; i++) {
       tmpPosition    = countingTable[i];
@@ -167,10 +171,10 @@ existDB::createFromFastA(char const  *filename,
 
   while (M->nextMer()) {
     if (_isForward)
-      insertMer(HASH(M->theFMer()), CHECK(M->theFMer()), countingTable);
+      insertMer(HASH(M->theFMer()), CHECK(M->theFMer()), 0, countingTable);
 
     if (_isCanonical)
-      insertMer(HASH(M->theCMer()), CHECK(M->theCMer()), countingTable);
+      insertMer(HASH(M->theCMer()), CHECK(M->theCMer()), 0, countingTable);
   }
 
   delete M;
