@@ -6,12 +6,17 @@
 #include "libmeryl.H"
 #include "existDB.H"
 
+#define FRAGSTATS
+#undef COVEREDREGIONS
+
 int
 main(int argc, char **argv) {
   u32bit    merSize    = 16;
   char     *merylFile  = 0L;
   char     *fastaFile  = 0L;
   bool      beVerbose  = false;
+  u32bit    loCount    = 0;
+  u32bit    hiCount    = ~u32bitZERO;
 
   int arg=1;
   while (arg < argc) {
@@ -23,6 +28,10 @@ main(int argc, char **argv) {
       fastaFile = argv[++arg];
     } else if (strcmp(argv[arg], "-v") == 0) {
       beVerbose = true;
+    } else if (strcmp(argv[arg], "-lo") == 0) {
+      loCount = strtou32bit(argv[++arg], 0L);
+    } else if (strcmp(argv[arg], "-hi") == 0) {
+      hiCount = strtou32bit(argv[++arg], 0L);
     } else {
       fprintf(stderr, "unknown option '%s'\n", argv[arg]);
     }
@@ -34,21 +43,37 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  existDB       *E = new existDB(merylFile, merSize, 16);
+  existDB       *E = new existDB(merylFile, merSize, 22, loCount, hiCount, existDBcounts | existDBcompressCounts | existDBcompressBuckets);
   seqFile       *F = openSeqFile(fastaFile);
   seqInCore     *S = F->getSequenceInCore();
+
+#ifdef FRAGSTATS
+  u32bit         Clen = 0;
+  u32bit         Cmax = 2048;
+  u32bit        *C    = new u32bit [2048];
+#endif
 
   while (S) {
     merStream  *MS = new merStream(merSize, S);
 
+#ifdef COVEREDREGIONS
     u64bit    beg = ~u64bitZERO;
     u64bit    end = ~u64bitZERO;
     u64bit    pos = ~u64bitZERO;
+#endif
+
+#ifdef FRAGSTATS
+    Clen = 0;
+    for (u32bit i=0; i<Cmax; i++)
+      C[i] = 0;
+#endif
 
     while (MS->nextMer()) {
 
-      //  Orientation tells us nothing, since the mers are probably canonical
+#ifdef COVEREDREGIONS
+      //  without counts, reports regions with mer coverage.
 
+      //  Orientation tells us nothing, since the mers are probably canonical
       if (E->exists(MS->theFMer()) || E->exists(MS->theRMer())) {
         pos = MS->thePositionInSequence();
 
@@ -62,10 +87,55 @@ main(int argc, char **argv) {
           beg = end = pos;
         }
       }
+#endif
+
+#ifdef FRAGSTATS
+      //  with counts, report mean, mode, median, min, max for each frag.
+
+      u64bit   cnt = E->count(MS->theFMer()) + E->count(MS->theRMer());
+
+      if (cnt > 0)
+        C[Clen++] = cnt;
+#endif
     }
 
+#ifdef COVEREDREGIONS
     if (beg != ~u64bitZERO)
       fprintf(stdout, "%s\t"u64bitFMT"\t"u64bitFMT"\t"u64bitFMT"\n", S->header(), beg, end+22, end+22 - beg);
+#endif
+
+#ifdef FRAGSTATS
+    u64bit         mean     = u64bitZERO;
+    u64bit         min      = ~u64bitZERO;
+    u64bit         max      = u64bitZERO;
+    u64bit         hist[16]  = { 0 };
+
+    //  Histogram values are powers of two, e.g., <=1, <=2, <=4, <=8, <=16, <=32, <=64, <=128, <=256, <=512, <=1024, <=4096, <=8192, <=328768
+
+    for (u32bit i=0; i<Clen; i++) {
+      mean += C[i];
+
+      if ((min > C[i]) && (C[i] > 1))
+        min = C[i];
+      if (max < C[i])
+        max = C[i];
+
+      hist[ logBaseTwo64(C[i]) ]++;
+    }
+
+    mean /= Clen;
+
+    fprintf(stdout,
+            "%s\t"
+            u64bitFMT"\t"u64bitFMT"\t"u64bitFMT"\t"
+            u64bitFMT"\t"u64bitFMT"\t"u64bitFMT"\t"u64bitFMT"\t"u64bitFMT"\t"u64bitFMT"\t"u64bitFMT"\t"u64bitFMT"\t"
+            u64bitFMT"\t"u64bitFMT"\t"u64bitFMT"\t"u64bitFMT"\t"u64bitFMT"\t"u64bitFMT"\t"u64bitFMT"\t"u64bitFMT"\n",
+            S->header(),
+            mean, min, max,
+            hist[ 0], hist[ 1], hist[ 2], hist[ 3], hist[ 4], hist[ 5], hist[ 6], hist[ 7],
+            hist[ 8], hist[ 9], hist[10], hist[11], hist[12], hist[13], hist[14], hist[15]);
+#endif
+
 
     delete MS;
     delete S;
