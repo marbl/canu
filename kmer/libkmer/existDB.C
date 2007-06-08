@@ -86,7 +86,7 @@ existDB::~existDB() {
 
 bool
 existDB::exists(u64bit mer) {
-  u64bit h, st, ed;
+  u64bit c, h, st, ed;
 
   if (_compressedHash) {
     h  = HASH(mer) * _hshWidth;
@@ -101,7 +101,7 @@ existDB::exists(u64bit mer) {
   if (st == ed)
     return(false);
 
-  u64bit  c = CHECK(mer);
+  c = CHECK(mer);
 
   if (_compressedBucket) {
     st *= _chkWidth;
@@ -124,22 +124,24 @@ existDB::exists(u64bit mer) {
 
 u64bit
 existDB::count(u64bit mer) {
-  u64bit h, st, ed;
+  u64bit c, h, st, ed, ct;
 
   if (_compressedHash) {
     h  = HASH(mer) * _hshWidth;
     st = getDecodedValue(_hashTable, h,             _hshWidth);
     ed = getDecodedValue(_hashTable, h + _hshWidth, _hshWidth);
+    ct = st;
   } else {
     h  = HASH(mer);
     st = _hashTable[h];
     ed = _hashTable[h+1];
+    ct = st;
   }
 
   if (st == ed)
     return(false);
 
-  u64bit  c = CHECK(mer);
+  c = CHECK(mer);
 
   if (_compressedBucket) {
     st *= _chkWidth;
@@ -160,9 +162,9 @@ existDB::count(u64bit mer) {
 
  returncount:
   if (_compressedCounts)
-    return(getDecodedValue(_counts, st, _cntWidth));
+    return(getDecodedValue(_counts, ct * _cntWidth, _cntWidth));
   else
-    return(_counts[st]);
+    return(_counts[ct]);
 }
 
 
