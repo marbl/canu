@@ -87,8 +87,8 @@ plotHistogram(merylArgs *args) {
   fprintf(stderr, "Found "u64bitFMT" huge mers (count >= "u64bitFMT").\n", numHuge, hugeCount);
   fprintf(stderr, "Largest mercount is "u64bitFMT".\n", maxCount);
 
-  u64bit  distinct;
-  u64bit  total;
+  u64bit  distinct = 0;
+  u64bit  total    = 0;
 
   for (u32bit i=1; i<=maxCount; i++) {
     distinct += hist[i];
