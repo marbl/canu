@@ -81,6 +81,9 @@ plotHistogram(merylArgs *args) {
       maxCount = count;
   }
 
+  if (hugeCount < maxCount)
+    maxCount = hugeCount;
+
   fprintf(stderr, "Found "u64bitFMT" mers.\n", numMers);
   fprintf(stderr, "Found "u64bitFMT" distinct mers.\n", numDistinct);
   fprintf(stderr, "Found "u64bitFMT" unique mers.\n", numUnique);
@@ -91,60 +94,18 @@ plotHistogram(merylArgs *args) {
   u64bit  total    = 0;
 
   for (u32bit i=1; i<=maxCount; i++) {
-    distinct += hist[i];
-    total    += hist[i] * i;
+    if (hist[i] > 0) {
+      distinct += hist[i];
+      total    += hist[i] * i;
 
-    fprintf(stdout, u32bitFMT"\t"u64bitFMT"\t%.4f\t%.4f\n",
-            i,
-            hist[i],
-            distinct / (double)numDistinct,
-            total / (double)numMers);
+      fprintf(stdout, u32bitFMT"\t"u64bitFMT"\t%.4f\t%.4f\n",
+              i,
+              hist[i],
+              distinct / (double)numDistinct,
+              total / (double)numMers);
+    }
   }
 
   delete    M;
   delete [] hist;
 }
-
-
-#ifdef PLOT_DISTANCE
-
-//  Can't do this with bigmers
-
-void
-plotDistanceBetweenMers(merylArgs *args) {
-  u32bit               hugeD = 16 * 1024 * 1024;
-  u32bit              *D = new u32bit [hugeD];
-  u32bit               numHuge = u32bitZERO;
-  u32bit               maxDist = u32bitZERO;
-  u64bit               lastMer = u64bitZERO;
-  u64bit               thisMer = u64bitZERO;
-  merylStreamReader   *M = new merylStreamReader(args->inputFile);
-
-  for (u32bit i=0; i<hugeD; i++)
-    D[i] = 0;
-
-  while (M->nextMer()) {
-    thisMer = M->theFMer();
-
-    if ((thisMer - lastMer) < hugeD) {
-      D[thisMer - lastMer]++;
-    } else {
-      numHuge++;
-      if (maxDist < thisMer - lastMer)
-        maxDist = thisMer - lastMer;
-    }
-
-    lastMer = thisMer;
-  }
-
-  fprintf(stdout, u32bitFMT" distances at least "u32bitFMT", largest is "u32bitFMT"\n",
-          numHuge,
-          hugeD, maxDist);
-  for (u32bit i=0; i< hugeD; i++)
-    fprintf(stdout, u32bitFMT"\n", D[i]);
-
-  delete    M;
-  delete [] D;
-}
-
-#endif
