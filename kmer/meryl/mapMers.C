@@ -6,8 +6,8 @@
 #include "libmeryl.H"
 #include "existDB.H"
 
-#define FRAGSTATS
-#undef COVEREDREGIONS
+#undef FRAGSTATS
+#define COVEREDREGIONS
 
 int
 main(int argc, char **argv) {
@@ -49,8 +49,8 @@ main(int argc, char **argv) {
 
 #ifdef FRAGSTATS
   u32bit         Clen = 0;
-  u32bit         Cmax = 2048;
-  u32bit        *C    = new u32bit [2048];
+  u32bit         Cmax = 4 * 1024 * 1024;
+  u32bit        *C    = new u32bit [Cmax];
 #endif
 
   while (S) {
@@ -60,6 +60,9 @@ main(int argc, char **argv) {
     u64bit    beg = ~u64bitZERO;
     u64bit    end = ~u64bitZERO;
     u64bit    pos = ~u64bitZERO;
+
+    u64bit    numCovReg = 0;
+    u64bit    lenCovReg = 0;
 #endif
 
 #ifdef FRAGSTATS
@@ -83,7 +86,9 @@ main(int argc, char **argv) {
         if (pos <= end + merSize) {
           end = pos;
         } else {
-          fprintf(stdout, "%s\t"u64bitFMT"\t"u64bitFMT"\t"u64bitFMT"\n", S->header(), beg, end+22, end+22 - beg);
+          fprintf(stdout, "%s\t"u64bitFMT"\t"u64bitFMT"\t"u64bitFMT"\n", S->header(), beg, end+merSize, end+merSize - beg);
+          numCovReg++;
+          lenCovReg += end+merSize - beg;
           beg = end = pos;
         }
       }
@@ -101,7 +106,10 @@ main(int argc, char **argv) {
 
 #ifdef COVEREDREGIONS
     if (beg != ~u64bitZERO)
-      fprintf(stdout, "%s\t"u64bitFMT"\t"u64bitFMT"\t"u64bitFMT"\n", S->header(), beg, end+22, end+22 - beg);
+      fprintf(stdout, "%s\t"u64bitFMT"\t"u64bitFMT"\t"u64bitFMT"\n", S->header(), beg, end+merSize, end+merSize - beg);
+
+    fprintf(stderr, "numCovReg: "u64bitFMT"\n", numCovReg);
+    fprintf(stderr, "lenCovReg: "u64bitFMT"\n", lenCovReg);
 #endif
 
 #ifdef FRAGSTATS
@@ -142,6 +150,8 @@ main(int argc, char **argv) {
 
     S = F->getSequenceInCore();
   }
+
+
 
   delete S;
   delete F;
