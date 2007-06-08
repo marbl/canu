@@ -18,6 +18,11 @@ struct _intervalDepth {
   u32bit            de;
 };
 
+struct intervalDepthRegions {
+  intervalNumber    pos;  //  Position of the change in depth
+  s32bit            cha;  //  The change in depth, e.g, +1, -1
+};
+
 
 class intervalList {
 public:
@@ -114,18 +119,21 @@ private:
 class intervalDepth {
 public:
   intervalDepth(intervalList &IL);
+  intervalDepth(intervalDepthRegions *id, u32bit idlen);
   ~intervalDepth();
 
   //  Returns the number of intervals
-  u32bit      numberOfIntervals(void) {
+  u32bit                     numberOfIntervals(void) {
     return(_listLen);
   };
 
-  intervalNumber      lo(u32bit i) { return(_list[i].lo); };
-  intervalNumber      hi(u32bit i) { return(_list[i].hi); };
-  u32bit              de(u32bit i) { return(_list[i].de); };
+  intervalNumber             lo(u32bit i) { return(_list[i].lo); };
+  intervalNumber             hi(u32bit i) { return(_list[i].hi); };
+  u32bit                     de(u32bit i) { return(_list[i].de); };
 
 private:
+  void                       computeIntervals(intervalDepthRegions *id, u32bit idlen);
+
   u32bit                    _listLen;
   u32bit                    _listMax;
   _intervalDepth           *_list;

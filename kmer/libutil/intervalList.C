@@ -373,36 +373,47 @@ intervalList::contained(intervalList &A,
 static
 int
 intervalDepth_sort_helper(const void *a, const void *b) {
-  _intervalDepth *A = (_intervalDepth *)a;
-  _intervalDepth *B = (_intervalDepth *)b;
+  intervalDepthRegions *A = (intervalDepthRegions *)a;
+  intervalDepthRegions *B = (intervalDepthRegions *)b;
 
-  if (A->lo < B->lo) return(-1);
-  if (A->lo > B->lo) return(1);
+  if (A->pos < B->pos) return(-1);
+  if (A->pos > B->pos) return(1);
   return(0);
 }
 
 
 intervalDepth::intervalDepth(intervalList &IL) {
-
-  u32bit           idlen = IL.numberOfIntervals() * 2;
-  _intervalDepth  *id    = new _intervalDepth [idlen];
+  u32bit                 idlen = IL.numberOfIntervals() * 2;
+  intervalDepthRegions  *id    = new intervalDepthRegions [idlen];
 
   for (u32bit i=0; i<IL.numberOfIntervals(); i++) {
-    id[2*i  ].lo = IL.lo(i);
-    id[2*i  ].hi = 0;
-    id[2*i  ].de = 1;
-    id[2*i+1].lo = IL.hi(i);
-    id[2*i+1].hi = 0;
-    id[2*i+1].de = 0;
+    id[2*i  ].pos = IL.lo(i);
+    id[2*i  ].cha = 1;
+    id[2*i+1].pos = IL.hi(i);
+    id[2*i+1].cha = -1;
   }
 
-  qsort(id, idlen, sizeof(_intervalDepth), intervalDepth_sort_helper);
+  qsort(id, idlen, sizeof(intervalDepthRegions), intervalDepth_sort_helper);
+  computeIntervals(id, idlen);
+
+  delete [] id;
+}
+
+
+intervalDepth::intervalDepth(intervalDepthRegions *id, u32bit idlen) {
+  qsort(id, idlen, sizeof(intervalDepthRegions), intervalDepth_sort_helper);
+  computeIntervals(id, idlen);
+}
+
+
+void
+intervalDepth::computeIntervals(intervalDepthRegions *id, u32bit idlen) {
 
   //  Scan the list, counting how many times we change depth.
   //
   _listMax = 1;
   for (u32bit i=1; i<idlen; i++) {
-    if (id[i-1].lo != id[i].lo)
+    if (id[i-1].pos != id[i].pos)
       _listMax++;
   }
 
@@ -415,9 +426,9 @@ intervalDepth::intervalDepth(intervalList &IL) {
   //
   //  Initialize the first interval
   //
-  _list[_listLen].lo = id[0].lo;
-  _list[_listLen].hi = id[0].lo;
-  _list[_listLen].de = 1;
+  _list[_listLen].lo = id[0].pos;
+  _list[_listLen].hi = id[0].pos;
+  _list[_listLen].de = id[0].cha;
 
   for (u32bit i=1; i<idlen; i++) {
 
@@ -425,29 +436,26 @@ intervalDepth::intervalDepth(intervalList &IL) {
       //  Update the start position if the current interval is at zero
       //  depth.
       //
-      _list[_listLen].lo = id[i].lo;
+      _list[_listLen].lo = id[i].pos;
     } else {
 
       //  If we are at a position different from the start, we need to
       //  close out the current interval and make a new one.
       //
-      if (id[i-1].lo != id[i].lo) {
-        _list[_listLen].hi = id[i].lo;
+      if (id[i-1].pos != id[i].pos) {
+        _list[_listLen].hi = id[i].pos;
 
         _listLen++;
 
-        _list[_listLen].lo = id[i].lo;
-        _list[_listLen].hi = id[i].lo;
+        _list[_listLen].lo = id[i].pos;
+        _list[_listLen].hi = id[i].pos;
         _list[_listLen].de = _list[_listLen-1].de;
       }
     }
 
     //  Finally, update the depth of the current interval
     //
-    if (id[i].de)
-      _list[_listLen].de++;
-    else
-      _list[_listLen].de--;
+    _list[_listLen].de += id[i].cha;
   }
 
   //  Toss out the last one if it's zero length -- I think it's always
@@ -455,8 +463,6 @@ intervalDepth::intervalDepth(intervalList &IL) {
   //
   if (_list[_listLen].lo == _list[_listLen].hi)
     _listLen--;
-
-  delete [] id;
 }
 
 intervalDepth::~intervalDepth() {
