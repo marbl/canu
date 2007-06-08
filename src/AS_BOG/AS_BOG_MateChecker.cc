@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.15 2007-06-06 19:56:26 eliv Exp $
- * $Revision: 1.15 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.16 2007-06-08 15:19:52 eliv Exp $
+ * $Revision: 1.16 $
 */
 
 #include <math.h>
@@ -349,6 +349,7 @@ namespace AS_BOG{
             iuid lib            =  mateInfo.lib;
             DistanceCompute *gdc = &(globalStats[ lib ]);
             int badMax = static_cast<int>(gdc->mean + 5 * gdc->stddev);
+            int badMin = static_cast<int>(gdc->mean - 5 * gdc->stddev);
             int frgBgn = loc.pos1.bgn;
             int frgEnd = loc.pos1.end;
             if ( loc.unitig1 != loc.unitig2) {
@@ -376,6 +377,12 @@ namespace AS_BOG{
                 int mateBgn =  loc.pos2.bgn;
                 int mateEnd =  loc.pos2.end;
                 if (isReverse( loc.pos1 )) {
+                    if (!isReverse( loc.pos2 )) {
+                        // reverse and forward, check for circular unitig
+                        int dist = frgEnd + tigLen - mateEnd; 
+                        if ( dist <= badMax || dist >= badMin)
+                            continue; // Good circular mates
+                    }
                     // 1st reversed, so bad 
                     iuid beg = MAX( 0, frgBgn - badMax );
                     incrRange( badRevGraph, -1, beg, frgEnd);
@@ -408,7 +415,6 @@ namespace AS_BOG{
                         uint16 mateLen = mateBgn - mateEnd;
                         int mateDist = mateBgn - frgBgn;  
 
-                        int badMin = static_cast<int>(gdc->mean - 5 * gdc->stddev);
                         if (mateDist >= badMin && mateDist <= badMax)
                             incrRange(goodGraph,2, frgBgn, mateEnd);
                         else {
