@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.147 2007-06-01 22:56:14 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.148 2007-06-10 18:26:23 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -1702,6 +1702,8 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
 
     int best_read_qv_count[CNS_NP] = {0};
     int other_read_qv_count[CNS_NP] = {0};
+    int highest_qv[CNS_NP] = {0};
+    int highest2_qv[CNS_NP] = {0};
 
     int b_read_depth=0, o_read_depth=0, guide_depth=0;
     int score=0;
@@ -1852,6 +1854,17 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
                     other_read_base_count[BaseToInt(cbase)]++;
                     other_read_qv_count[BaseToInt(cbase)] += qv;
                     AppendBead(o_reads, bead);
+                }
+
+                if (highest_qv[BaseToInt(cbase)] < qv)
+                {
+                    highest2_qv[BaseToInt(cbase)] = highest_qv[BaseToInt(cbase)];
+                    highest_qv[BaseToInt(cbase)] = qv;    
+                }   
+                else if (highest_qv[BaseToInt(cbase)] >= qv &&
+                    highest2_qv[BaseToInt(cbase)] < qv)
+                {
+                    highest2_qv[BaseToInt(cbase)] = qv;
                 }
             }
             else
@@ -2047,19 +2060,19 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
                 score += best_read_base_count[bi] + other_read_base_count[bi]
                       + guide_base_count[bi];
             }
-            /* To be considered, base should either have high enough quality
-             * or be confirmed by another base, also of reasonably high quality 
+            /* To be considered, varied base should be confirmed by another base 
+             * and either overall quality should be >= 60
              * (Granger's suggestion - GD)
              */
-            if (best_read_qv_count[bi]   >  1 &&
-                best_read_qv_count[bi]   >= MIN_SUM_QVS_FOR_VARIATION)
+            if (best_read_base_count[bi] >  1 &&
+                highest_qv[bi] + highest2_qv[bi] >= MIN_SUM_QVS_FOR_VARIATION)
             {
                 sum_qv_all += best_read_qv_count[bi];
                 if (IntToBase(bi) == cbase)
                     sum_qv_cbase = best_read_qv_count[bi];
             }
         }
-        if ((b_read_count == 1 ) || (sum_qv_all == 0))
+        if ((b_read_count <= 1 ) || (sum_qv_all == 0))
         {
            *var = 0.;
             if (cbase == '-')
