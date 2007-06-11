@@ -33,8 +33,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_Datatypes.hh,v 1.15 2007-06-06 19:56:26 eliv Exp $
- * $Revision: 1.15 $
+ * $Id: AS_BOG_Datatypes.hh,v 1.16 2007-06-11 20:59:42 eliv Exp $
+ * $Revision: 1.16 $
 */
 
 #ifndef INCLUDE_AS_BOG_DATATYPES
@@ -42,8 +42,9 @@
 
 //  System include files
 
-#include <vector>
 #include <map>
+#include <list>
+#include <vector>
 
 extern "C" {
 #include "AS_global.h"
@@ -101,7 +102,7 @@ namespace AS_BOG{
 	typedef CDS_IID_t iuid;
 	const iuid NULL_FRAG_ID=0;
 
-    typedef std::vector<SeqInterval> IntervalList;
+    typedef std::list<SeqInterval> IntervalList;
 
     struct FragmentEnd {
         iuid id;

@@ -19,14 +19,12 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.hh,v 1.8 2007-06-06 19:56:26 eliv Exp $
- * $Revision: 1.8 $
+ * $Id: AS_BOG_MateChecker.hh,v 1.9 2007-06-11 20:59:42 eliv Exp $
+ * $Revision: 1.9 $
 */
 
 #ifndef INCLUDE_AS_BOG_MATECHEKER
 #define INCLUDE_AS_BOG_MATECHEKER
-
-#include <map>
 
 #include "AS_BOG_UnitigGraph.hh"
 
@@ -54,7 +52,7 @@ namespace AS_BOG{
             return(a.lib == b.lib);
         return false;
     }
-    static const SeqInterval NULL_MATE_LOC = {0,0};
+    static const SeqInterval NULL_SEQ_LOC = {0,0};
 
     struct DistanceCompute {
         double stddev;
@@ -98,7 +96,7 @@ namespace AS_BOG{
     std::ostream& operator<< (std::ostream& os, MateLocationEntry&);
 
     static const MateLocationEntry NULL_MATE_ENTRY =
-        {NULL_MATE_LOC,NULL_MATE_LOC,0,0,0,0};
+        {NULL_SEQ_LOC,NULL_SEQ_LOC,0,0,0,0};
 
     typedef std::vector<MateLocationEntry> MateLocTable;
     typedef MateLocTable::iterator MateLocIter;
@@ -139,6 +137,10 @@ namespace AS_BOG{
             if ( isReverse(b) ) return a.bgn < b.end;
             else                return a.bgn < b.bgn; 
         }
+    };
+    inline bool SeqInterval_less(SeqInterval a, SeqInterval b)
+    {
+        return a < b;
     };
     inline bool operator==(MateLocationEntry a, MateLocationEntry b) {
         if (a.pos1 == b.pos1 && a.pos2 == b.pos2)

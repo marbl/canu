@@ -34,17 +34,16 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.26 2007-06-06 19:56:26 eliv Exp $
- * $Revision: 1.26 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.27 2007-06-11 20:59:42 eliv Exp $
+ * $Revision: 1.27 $
 */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.26 2007-06-06 19:56:26 eliv Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.27 2007-06-11 20:59:42 eliv Exp $";
 
-#include <list>
 #include <set>
 #include <iostream>
 #include "AS_BOG_Datatypes.hh"

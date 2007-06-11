@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.16 2007-06-08 15:19:52 eliv Exp $
- * $Revision: 1.16 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.17 2007-06-11 20:59:42 eliv Exp $
+ * $Revision: 1.17 $
 */
 
 #include <math.h>
@@ -308,8 +308,8 @@ namespace AS_BOG{
             graph[i] += val;
     }
     ///////////////////////////////////////////////////////////////////////////
-
     IntervalList* findPeakBad( short* badGraph, int tigLen);
+    void combineOverlapping( IntervalList *);
 
     static const bool MATE_3PRIME_END = true;
     FragmentEnds* MateChecker::computeMateCoverage( Unitig* tig, LibraryStats& globalStats )
@@ -484,15 +484,19 @@ namespace AS_BOG{
         fprintf(stderr,"\nPer 300 bases bad rev graph:\n");
         revBads = findPeakBad( badRevGraph, tigLen );
 
-        if (!fwdBads->empty()) {
-            fprintf(stderr,"Non empty fwdBads, should handle same as revBads\n");
-        }
+        fprintf(stderr,"Num fwdBads is %d\n",fwdBads->size());
+        fprintf(stderr,"Num revBads is %d\n",revBads->size());
+        // don't know why default operator< didn't work
+        fwdBads->merge(*revBads, SeqInterval_less );
+        combineOverlapping( fwdBads );
+        fprintf(stderr,"Num combined is %d\n",fwdBads->size());
+
         FragmentEnds* breaks = new FragmentEnds(); // return value
         posIter  = positions.begin();
-        fprintf(stderr,"Num revBads is %d\n",revBads->size());
-        IntervalList::const_iterator badIter = revBads->begin();
+
+        IntervalList::const_iterator badIter = fwdBads->begin();
         bool inBad = false;
-        for(; badIter != revBads->end(); badIter++) {
+        for(; badIter != fwdBads->end(); badIter++) {
             SeqInterval bad = *badIter;
             fprintf(stderr,"Bad peak from %d to %d\n",bad.bgn,bad.end);
             for(;        posIter != positions.end(); posIter++) {
@@ -534,7 +538,7 @@ namespace AS_BOG{
         }
         fprintf(stderr,"\n");
         IntervalList* peakBads = new IntervalList();
-        SeqInterval   peak = NULL_MATE_LOC;
+        SeqInterval   peak = NULL_SEQ_LOC;
         int badBegin, peakBad, lastBad;
         peakBad = lastBad = badBegin = 0;
         for(int i=0; i < tigLen; i++) {
@@ -554,11 +558,45 @@ namespace AS_BOG{
                             badBegin,i-1,peakBad,peak.bgn,peak.end);
                     peakBads->push_back( peak );
                     peakBad = lastBad = badBegin = 0;
-                    peak = NULL_MATE_LOC;
+                    peak = NULL_SEQ_LOC;
                 }
             }
         }
         return peakBads;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    SeqInterval intersection( SeqInterval a, SeqInterval b)
+    {
+        SeqInterval retVal = NULL_SEQ_LOC;
+        int aMin,aMax,bMin,bMax;
+        if (isReverse(a)) { aMin = a.end; aMax = a.bgn; }
+        else              { aMin = a.bgn; aMax = a.end; }
+        if (isReverse(b)) { bMin = b.end; bMax = b.bgn; }
+        else              { bMin = b.bgn; bMax = b.end; }
+
+        if (aMax < bMin || bMax < aMin)
+            return retVal;
+
+        // so now aMax > bMin && bMax > aMin, thus intersection
+        retVal.bgn = MAX( aMin, bMin );
+        retVal.end = MIN( aMax, bMax );
+        return retVal;
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    // Assumes list is already sorted
+    void combineOverlapping( IntervalList* list )
+    {
+        IntervalList::iterator iter = list->begin();
+        IntervalList::iterator a = iter++;
+        for(; iter != list->end() && iter != NULL; iter++) {
+            SeqInterval aIb = intersection( *a, *iter );
+            if (!(aIb == NULL_SEQ_LOC)) {
+                a->bgn = aIb.bgn;
+                a->end = aIb.end;
+                list->erase( iter ); 
+            }
+        }
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -574,7 +612,7 @@ namespace AS_BOG{
         entry.pos1    = fragPos;
         entry.unitig1 = unitigID; 
         entry.id2     = NULL_FRAG_ID;
-        entry.pos2    = NULL_MATE_LOC;
+        entry.pos2    = NULL_SEQ_LOC;
         entry.unitig2 = NULL_FRAG_ID;; 
         entry.isBad   = false;
 

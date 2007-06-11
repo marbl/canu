@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.52 2007-06-06 19:56:26 eliv Exp $
- * $Revision: 1.52 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.53 2007-06-11 20:59:42 eliv Exp $
+ * $Revision: 1.53 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.52 2007-06-06 19:56:26 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.53 2007-06-11 20:59:42 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -1543,7 +1543,6 @@ namespace AS_BOG{
         DoveTailIter dtIter = tig->dovetail_path_ptr->begin();
         UnitigBreakPoint breakPoint = breaks.front();
         breaks.pop_front();
-        bool containedBreak = false;
         int frgCnt = 0;
         int offset = 0;
         for( ; dtIter != tig->dovetail_path_ptr->end(); dtIter++) {
@@ -1564,7 +1563,6 @@ namespace AS_BOG{
             if (breakPoint.fragEnd.id == frg.ident) {
                 if (frg.contained) {
                     fprintf(stderr,"Breaking untig on contained frg %d\n",frg.ident);
-                    containedBreak = true;
                     frg.contained = NULL_FRAG_ID;
                 }
                 // At a fragment to break on
@@ -1626,10 +1624,8 @@ namespace AS_BOG{
                             offset,frg.ident,frg.position.bgn,frg.position.end);
                 }
                 if (frg.contained) {
-                    if (containedBreak)
+                    if (Unitig::fragIn(frg.contained) != newTig->id())
                         frg.contained = NULL_FRAG_ID;
-                } else {
-                    containedBreak = false;
                 }
                 newTig->addFrag( frg );
             }
