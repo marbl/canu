@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.18 2007-06-12 13:35:42 eliv Exp $
- * $Revision: 1.18 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.19 2007-06-12 13:40:46 eliv Exp $
+ * $Revision: 1.19 $
 */
 
 #include <math.h>
@@ -506,10 +506,8 @@ namespace AS_BOG{
                     inBad = true;
                 }
                 if ( inBad && loc.isBad ) {
-                    fragment_end_type fragEndInTig = FIVE_PRIME;
-                    if (isReverse( loc.pos1 ))
-                        fragEndInTig = THREE_PRIME;
-                    UnitigBreakPoint bp( loc.id1, fragEndInTig );
+                    // Always break at 5' end, since it's where mate points
+                    UnitigBreakPoint bp( loc.id1, FIVE_PRIME );
                     bp.position = loc.pos1;
                     bp.inSize = 100000;
                     bp.inFrags = 10;
@@ -542,7 +540,7 @@ namespace AS_BOG{
         int badBegin, peakBad, lastBad;
         peakBad = lastBad = badBegin = 0;
         for(int i=0; i < tigLen; i++) {
-            if( badGraph[ i ] < -3 ) {
+            if( badGraph[ i ] <= -3 ) {
                 if (badBegin == 0)  // start bad region
                     badBegin = i;
                 if(badGraph[i] < peakBad) {
