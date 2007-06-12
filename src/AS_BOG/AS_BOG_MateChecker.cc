@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.17 2007-06-11 20:59:42 eliv Exp $
- * $Revision: 1.17 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.18 2007-06-12 13:35:42 eliv Exp $
+ * $Revision: 1.18 $
 */
 
 #include <math.h>
@@ -589,7 +589,8 @@ namespace AS_BOG{
     {
         IntervalList::iterator iter = list->begin();
         IntervalList::iterator a = iter++;
-        for(; iter != list->end() && iter != NULL; iter++) {
+        for(; iter != list->end() && iter != static_cast<IntervalList::iterator>(NULL);
+              iter++) {
             SeqInterval aIb = intersection( *a, *iter );
             if (!(aIb == NULL_SEQ_LOC)) {
                 a->bgn = aIb.bgn;
