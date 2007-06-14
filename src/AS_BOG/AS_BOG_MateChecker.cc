@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.19 2007-06-12 13:40:46 eliv Exp $
- * $Revision: 1.19 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.20 2007-06-14 20:47:48 eliv Exp $
+ * $Revision: 1.20 $
 */
 
 #include <math.h>
@@ -311,6 +311,7 @@ namespace AS_BOG{
     IntervalList* findPeakBad( short* badGraph, int tigLen);
     void combineOverlapping( IntervalList *);
 
+    // hold over from testing if we should use 5' or 3' for range generation, now must use 3'
     static const bool MATE_3PRIME_END = true;
     FragmentEnds* MateChecker::computeMateCoverage( Unitig* tig, LibraryStats& globalStats )
     {
@@ -486,34 +487,48 @@ namespace AS_BOG{
 
         fprintf(stderr,"Num fwdBads is %d\n",fwdBads->size());
         fprintf(stderr,"Num revBads is %d\n",revBads->size());
-        // don't know why default operator< didn't work
-        fwdBads->merge(*revBads, SeqInterval_less );
-        combineOverlapping( fwdBads );
-        fprintf(stderr,"Num combined is %d\n",fwdBads->size());
-
         FragmentEnds* breaks = new FragmentEnds(); // return value
+
         posIter  = positions.begin();
 
-        IntervalList::const_iterator badIter = fwdBads->begin();
-        bool inBad = false;
-        for(; badIter != fwdBads->end(); badIter++) {
-            SeqInterval bad = *badIter;
+        IntervalList::const_iterator fwdIter = fwdBads->begin();
+        IntervalList::const_iterator revIter = revBads->begin();
+        while( fwdIter != fwdBads->end() || revIter != revBads->end() )
+        {
+            bool fwdBad = false;
+            SeqInterval bad;
+            if ( revIter == revBads->end() ||
+                 fwdIter != fwdBads->end() &&  *fwdIter < *revIter ) {
+                // forward bad group, break at 1st frag
+                fwdBad = true;
+                bad = *fwdIter;
+                fwdIter++;
+            } else {                     // reverse bad group, break at last frag
+                bad = *revIter;
+                revIter++;
+            }
             fprintf(stderr,"Bad peak from %d to %d\n",bad.bgn,bad.end);
             for(;        posIter != positions.end(); posIter++) {
                 MateLocationEntry loc = *posIter;
-                if ( !inBad && bad < loc.pos1 ) {
-                    fprintf(stderr,"First frg in peak bad range is %d\n", loc.id1);
-                    inBad = true;
+                bool breakNow = false;
+                if ( fwdBad && bad < loc.pos1 ) { // break now, put loc in new tig
+                    breakNow = true;
+                } else if ( !fwdBad && loc.pos1.bgn == bad.end ) {
+                    // reverse break now, put loc in new tig
+                    breakNow = true;
                 }
-                if ( inBad && loc.isBad ) {
-                    // Always break at 5' end, since it's where mate points
-                    UnitigBreakPoint bp( loc.id1, FIVE_PRIME );
+                if (breakNow) {
+                    fprintf(stderr,"Frg to break in peak bad range is %d fwd %d\n",
+                            loc.id1, fwdBad );
+                    fragment_end_type fragEndInTig = FIVE_PRIME;
+                    if (isReverse( loc.pos1 ))
+                        fragEndInTig = THREE_PRIME;
+                    UnitigBreakPoint bp( loc.id1, fragEndInTig );
                     bp.position = loc.pos1;
                     bp.inSize = 100000;
                     bp.inFrags = 10;
                     breaks->push_back( bp );
-                    fprintf(stderr,"First bad frg in peak bad range is %d\n", loc.id1);
-                    inBad = false;
+                    posIter++;
                     break;
                 }
             }
