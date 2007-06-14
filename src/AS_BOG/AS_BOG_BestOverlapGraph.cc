@@ -37,17 +37,16 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.37 2007-05-10 15:52:19 brianwalenz Exp $
- * $Revision: 1.37 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.38 2007-06-14 20:45:52 eliv Exp $
+ * $Revision: 1.38 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.37 2007-05-10 15:52:19 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.38 2007-06-14 20:45:52 eliv Exp $";
 
 //  System include files
 #include<iostream>
 #include<vector>
 #include<limits>
-#include<math.h>
 
 #include "AS_BOG_BestOverlapGraph.hh"
 //#include "AS_BOG_BestOverlapGraphVisitor.hh"
@@ -556,20 +555,10 @@ namespace AS_BOG{
     // Computes the score for a Longest Edge BOG based on overlap length but
     //   after applying an an error rate cutoff.
 
-        short olapLen = olapLength(olap);
-        float erate = AS_OVS_decodeQuality(olap.dat.ovl.corr_erate) * 10;
-/*        if ( olap.a_iid == 3771 && olap.b_iid == 5550 || olap.a_iid == 26784 && olap.b_iid == 11910 || olap.a_iid == 27570 && (olap.b_iid == 16509 || olap.b_iid == 26319) )
-            std::cerr << olap.a_iid << " " << olap.b_iid << " Erate " <<
-                olap.dat.ovl.corr_erate << " expanded " << erate << " cutoff " <<
-                mismatchCutoff * 10 << " greater " << (rint(erate) > mismatchCutoff * 10) 
-                << std::endl;
-For debugging i386, alpha differences on float conversion
-*/
-
-        // mismatchCuoff is specified in the constructor
-        // alpha and i386 frequently disagree on float conversions, so force the issue
-        if (rint(erate) > mismatchCutoff * 10)
+        if (olap.dat.ovl.corr_erate > mismatchCutoff )
             return 0;
+
+        short olapLen = olapLength(olap);
         return olapLen;
     }
 
