@@ -2,7 +2,7 @@
 /**************************************************************************
  * This file is part of Celera Assembler, a software program that 
  * assembles whole-genome shotgun reads into contigs and scaffolds.
- * Copyright (C) 2007, J. Craig Venter Institute. All rights reserved.
+ * Copyright (C) 2007, J. Craig Venter Institute.
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
