@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.21 2007-06-06 19:56:26 eliv Exp $
- * $Revision: 1.21 $
+ * $Id: BuildUnitigs.cc,v 1.22 2007-06-15 21:10:13 eliv Exp $
+ * $Revision: 1.22 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.21 2007-06-06 19:56:26 eliv Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.22 2007-06-15 21:10:13 eliv Exp $";
 
 //  System include files
 
@@ -149,7 +149,7 @@ int  main (int argc, char * argv [])
 	//std::cerr << er_cg << std::endl;
 	AS_BOG::UnitigGraph utg(bogRunner.metrics[i]);
 	std::cerr << "Building Unitigs.\n" << std::endl;
-	utg.build(cg, cg->getNumFragments(), genome_size);
+	utg.build(cg);
 
 	std::cerr << "Reporting.\n" << std::endl;
     mateChecker.checkUnitigGraph(utg);
@@ -166,6 +166,13 @@ int  main (int argc, char * argv [])
 		        fprintf(stderr, "Made unitigs at %.1f%% mismatch rate\n",scr3);
                 break;
 	}
+    std::cerr << "Setting Global Arrival Rate.\n";
+    // should be number of Random frags when that's supported
+    float globalARate = utg.getGlobalArrivalRate(cg->getNumFragments(), genome_size);
+    AS_BOG::Unitig::setGlobalArrivalRate(globalARate);
+    std::cerr << "Global Arrival Rate: " << globalARate << std::endl;
+    std::cerr << std::endl<< "There were " << utg.unitigs->size() << " unitigs generated.\n";
+
     utg.writeIUMtoFile(fileStr);
     outputHistograms( &utg );
 	std::cerr << "///////////////////////////////////////////////////////////\n" << std::endl;

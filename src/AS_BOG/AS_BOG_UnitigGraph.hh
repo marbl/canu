@@ -34,15 +34,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.27 2007-06-11 20:59:42 eliv Exp $
- * $Revision: 1.27 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.28 2007-06-15 21:10:13 eliv Exp $
+ * $Revision: 1.28 $
 */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.27 2007-06-11 20:59:42 eliv Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.28 2007-06-15 21:10:13 eliv Exp $";
 
 #include <set>
 #include <iostream>
@@ -191,7 +191,7 @@ namespace AS_BOG{
         ~UnitigGraph();
 
 		// Call this on a chunk graph pointer to build a unitig graph
-		void build(ChunkGraph *cg_ptr, long num_rand_frags, long genome_size);
+		void build(ChunkGraph *cg_ptr);
 
 		// Debugging output operator
 		friend std::ostream& operator<< (std::ostream& os, UnitigGraph& utgrph);

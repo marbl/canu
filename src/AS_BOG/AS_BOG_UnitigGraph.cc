@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.53 2007-06-11 20:59:42 eliv Exp $
- * $Revision: 1.53 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.54 2007-06-15 21:10:13 eliv Exp $
+ * $Revision: 1.54 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.53 2007-06-11 20:59:42 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.54 2007-06-15 21:10:13 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -91,7 +91,7 @@ namespace AS_BOG{
 
     bool BogOptions::unitigIntersectBreaking = false;
 
-	void UnitigGraph::build(ChunkGraph *cg_ptr, long num_rand_frags, long genome_size){
+	void UnitigGraph::build(ChunkGraph *cg_ptr) {
 
 		iuid num_frags=cg_ptr->getNumFragments();
         Unitig::setNextId( 1 );
@@ -216,13 +216,6 @@ namespace AS_BOG{
         fprintf(stderr,"Max contain depth is %d\n",maxContainDepth);
         delete cntnrmap_ptr;
         cntnrmap_ptr = NULL;
-
-		std::cerr << "Setting Global Arrival Rate.\n";
-		float globalARate = getGlobalArrivalRate(num_rand_frags, genome_size);
-        Unitig::setGlobalArrivalRate(globalARate);
-
-		std::cerr << "Global Arrival Rate: " << globalARate << std::endl;
-		std::cerr << std::endl << "There were " << unitigs->size() << " unitigs generated.\n";
 	}
     //////////////////////////////////////////////////////////////////////////////
     BestEdgeOverlap* UnitigGraph::nextJoiner( Unitig* tig, 
@@ -904,8 +897,9 @@ namespace AS_BOG{
 		//  If the genome size has not been specified, estimate the GAR.
 		if(genome_size == 0){
 
-			float total_rho=0;
+			float total_rho=0, avg_rho;
 			float total_arrival_frags=0;
+            size_t rho_gt_10000 = 0;
 
 			// Go through all the unitigs to sum rho and unitig arrival frags
 			UnitigVector::const_iterator iter;
@@ -917,8 +911,11 @@ namespace AS_BOG{
                 if (*iter == NULL)
                     continue;
 
-				float avg_rho = (*iter)->getAvgRho();
+				avg_rho = (*iter)->getAvgRho();
 				total_rho += avg_rho;
+                if (avg_rho > 10000.0)
+                    rho_gt_10000 += (size_t)avg_rho / 10000;
+            
 				float unitig_random_frags = (*iter)->getNumRandomFrags();
                 if (--unitig_random_frags < 0)
                     unitig_random_frags = 0;
@@ -926,11 +923,98 @@ namespace AS_BOG{
 				total_arrival_frags += unitig_random_frags;
                 (*iter)->setLocalArrivalRate( unitig_random_frags / avg_rho );
 			}
-
+            std::cerr << "Calculated Global Arrival rate " << _globalArrivalRate <<
+                std::endl;
 			// Estimate GAR
-			_globalArrivalRate = (total_rho > 0)?
-				(total_arrival_frags / total_rho):
-				0;
+            _globalArrivalRate = (total_rho > 0) ? (total_arrival_frags / total_rho): 0;
+            // Now recalculate based on big unitigs, copied from AS_CGB/AS_CGB_cgb.c
+            if (rho_gt_10000 * 20000 > total_rho) {
+                float min_10_local_arrival_rate          = _globalArrivalRate;
+                float median_local_arrival_rate          = _globalArrivalRate;
+                float max_local_arrival_rate             = _globalArrivalRate;
+                float recalibrated_fragment_arrival_rate = _globalArrivalRate;
+                size_t num_arrival_rates=0;
+                int median_index;
+                std::vector<float> arrival_rate_array(rho_gt_10000);
+                
+                for( iter=unitigs->begin(); iter!=unitigs->end(); iter++)
+                {
+                    if (*iter == NULL)
+                        continue;
+                    avg_rho = (*iter)->getAvgRho();
+                    if (avg_rho > 10000.0) {
+                        const int num_10000 = (size_t)avg_rho / 10000;
+                        const float local_arrival_rate =
+                            (*iter)->getNumRandomFrags() / avg_rho;
+                        assert(num_10000 > 0);
+                        int i;
+                        for(i=0;i<num_10000;i++){
+                            assert(i < rho_gt_10000);
+                            arrival_rate_array[i] = local_arrival_rate;
+                            num_arrival_rates++;
+                        }
+                        if(num_arrival_rates > 0){
+                            float tmp_fragment_arrival_rate, max_diff_arrival_rate;
+                            float prev_arrival_rate, cur_arrival_rate, diff_arrival_rate;
+                            int max_diff_index;
+                            std::sort(arrival_rate_array.begin(),arrival_rate_array.end());
+                            min_10_local_arrival_rate = arrival_rate_array[num_arrival_rates / 10];
+                            median_index = (num_arrival_rates * 5) / 10;
+                            median_local_arrival_rate = arrival_rate_array[median_index];
+                            max_local_arrival_rate = arrival_rate_array[num_arrival_rates-1];
+                            recalibrated_fragment_arrival_rate =
+                                arrival_rate_array[(num_arrival_rates * 19) / 20];
+                            prev_arrival_rate = min_10_local_arrival_rate;
+                            max_diff_arrival_rate = 0.0;
+                            for(i=num_arrival_rates / 10;i<median_index;i++){
+                                cur_arrival_rate = arrival_rate_array[i];
+                                diff_arrival_rate = cur_arrival_rate - prev_arrival_rate;
+                                prev_arrival_rate = cur_arrival_rate;
+                                if(diff_arrival_rate > max_diff_arrival_rate){
+                                    max_diff_arrival_rate = diff_arrival_rate;
+                                }
+                            }
+                            max_diff_arrival_rate *= 2.0;
+                            max_diff_index = num_arrival_rates - 1;
+                            for(i=median_index;i<num_arrival_rates;i++){
+                                cur_arrival_rate = arrival_rate_array[i];
+                                diff_arrival_rate = cur_arrival_rate - prev_arrival_rate;
+                                prev_arrival_rate = cur_arrival_rate;
+                                if(diff_arrival_rate > max_diff_arrival_rate){
+                                    max_diff_arrival_rate = diff_arrival_rate;
+                                    max_diff_index = i - 1;
+                                    break;
+                                }
+                            }
+                            max_diff_arrival_rate = arrival_rate_array[max_diff_index];
+                            tmp_fragment_arrival_rate =MIN(min_10_local_arrival_rate * 2.0,
+                                                           median_local_arrival_rate * 1.25);
+                            if(tmp_fragment_arrival_rate < recalibrated_fragment_arrival_rate){
+                                recalibrated_fragment_arrival_rate = tmp_fragment_arrival_rate;
+                            }
+                            if(max_diff_arrival_rate < recalibrated_fragment_arrival_rate){
+                                recalibrated_fragment_arrival_rate = max_diff_arrival_rate;
+                            }
+                        }
+                        if(recalibrated_fragment_arrival_rate > _globalArrivalRate){
+                            _globalArrivalRate = recalibrated_fragment_arrival_rate;
+                            std::cerr <<
+                                  "Used recalibrated global_fragment_arrival_rate="
+                                << _globalArrivalRate << std::endl
+                                << "Used recalibrated global_fragment_arrival_distance="
+                                <<((_globalArrivalRate > 0.) ? 1./(_globalArrivalRate) : 0.)
+                                << std::endl
+                                << "Chunk arrival rates sorted at 1/100s"
+                                << std::endl ;
+                            for(i=0;i<100;i++) {
+                               std::cerr<<arrival_rate_array[((num_arrival_rates * i) / 100)]
+                                        << std::endl;
+                            }
+                            std::cerr << max_local_arrival_rate << std::endl;
+                        }
+                    }
+                }
+            }
 		}else{
 			// Compute actual GAR
 			_globalArrivalRate = (float)total_random_frags_in_genome / (float)genome_size;
