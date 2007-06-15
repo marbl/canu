@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.43 2007-06-06 18:47:21 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.44 2007-06-15 14:22:38 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -281,13 +281,19 @@ main(int argc, char **argv) {
       doNotFixMates = 1;
 
       //  End of dump options
-
+    } else if (strcmp(argv[arg], "-rebuildmap") == 0) {
+      if ((arg + 2) == argc) {
+         fprintf(stderr, "Must input a gkpStore and map file name for map re-generation.\n");
+         exit(1);
+      }
+      
+      rebuildMap(argv[arg+1], argv[arg+2]);
+      exit(0);
     } else if (strcmp(argv[arg], "-rearrange") == 0) {
       //  Takes three args:  UID order file, oldStore, newStore
       //
       rearrangeStore(argv[arg+1], argv[arg+2], argv[arg+3]);
       exit(0);
-
     } else if (strcmp(argv[arg], "--") == 0) {
       firstFileArg = arg++;
       arg = argc;
@@ -305,6 +311,7 @@ main(int argc, char **argv) {
 
     arg++;
   }
+
   if ((err) || (gkpStoreName == NULL)) {
     usage(argv[0], hlp);
     exit(1);
@@ -497,10 +504,6 @@ main(int argc, char **argv) {
 
     exit(0);
   }
-
-
-
-
 
 
   if (partitionFile) {

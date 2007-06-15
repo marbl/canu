@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.27 2007-06-06 18:47:21 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.28 2007-06-15 14:22:38 skoren Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
@@ -113,6 +113,10 @@ int
 Build_Partition(char      *gatekeeperName,
                 char      *partitionFile,
                 int32      flags);
+             
+int
+rebuildMap(char *hashFileName,
+           char *gkpStoreName);
 
 void
 rearrangeStore(char *uidFile,
