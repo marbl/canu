@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.20 2007-06-14 20:47:48 eliv Exp $
- * $Revision: 1.20 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.21 2007-06-15 21:08:43 eliv Exp $
+ * $Revision: 1.21 $
 */
 
 #include <math.h>
@@ -491,6 +491,11 @@ namespace AS_BOG{
 
         posIter  = positions.begin();
 
+        iuid backBgn;
+        DoveTailNode backbone = tig->getLastBackboneNode(backBgn);
+        backBgn = isReverse( backbone.position ) ? backbone.position.end :
+                                                   backbone.position.bgn ;
+
         IntervalList::const_iterator fwdIter = fwdBads->begin();
         IntervalList::const_iterator revIter = revBads->begin();
         while( fwdIter != fwdBads->end() || revIter != revBads->end() )
@@ -515,6 +520,10 @@ namespace AS_BOG{
                     breakNow = true;
                 } else if ( !fwdBad && loc.pos1.bgn == bad.end ) {
                     // reverse break now, put loc in new tig
+                    breakNow = true;
+                } else if (bad.bgn > backBgn) {
+                // fun special case, keep contained frags at end of tig in container 
+                // instead of in their own new tig where they might not overlap
                     breakNow = true;
                 }
                 if (breakNow) {
