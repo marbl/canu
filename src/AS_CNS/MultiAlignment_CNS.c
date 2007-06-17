@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.149 2007-06-13 02:32:34 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.150 2007-06-17 20:59:59 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -2081,13 +2081,13 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
         if ((b_read_count <= 1 ) || (sum_qv_all == 0))
         {
            *var = 0.;
-            if (cbase == '-')
+            if (opp->smooth_win > 0 && cbase == '-')
               *var = -2;
         }
         else
         {
            *var = 1. - (double)sum_qv_cbase / (double)sum_qv_all;
-            if (cbase == '-')
+            if (opp->smooth_win > 0 && cbase == '-')
             {
                 *var = - (*var);
             }
@@ -2193,6 +2193,12 @@ SmoothenVariation(double *var, int len, int window)
 {
     int i;
     double *y = (double *)safe_malloc(len * sizeof(double));
+
+    if (window == 0)
+    {
+         safe_free(y);
+         return;
+    }
     for (i=0; i<len; i++)
     {
         int j, left_win=0, right_win=0;
@@ -3438,15 +3444,19 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
 
             vreg.beg = vbeg = vend = i;
 
-            while (DBL_EQ_DBL(varf[vreg.beg], (double)0.0))
+            /* Set beginning of unsmoothed VAR region */
+            while (vreg.beg < len_manode - 1 && 
+                   DBL_EQ_DBL(varf[vreg.beg], (double)0.0))
                 vreg.beg++;
 
-            while ((vend < len_manode) && (svarf[vend] > ZERO_PLUS))
+            /* Set end of smoothed VAR region */
+            while ((vend < len_manode-1) && (svarf[vend] > ZERO_PLUS))
                 vend++;
 
             vreg.end = vend;
 
-            while (varf[vreg.end] < ZERO_PLUS)
+            /* Set end of unsmoothed VAR region */
+            while (vreg.end >0 && varf[vreg.end] < ZERO_PLUS)
                 vreg.end--;
 
             // Store iids of all the reads in current region
