@@ -8,6 +8,7 @@ use vars qw($bin $gin $wrk $asm);
 use vars qw($numFrags);
 use vars qw(%global);
 use vars qw($commandLineOptions);
+use POSIX qw(ceil floor);
 
 #  Set some not reasonable defaults.
 $wrk = undef;

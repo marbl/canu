@@ -106,18 +106,19 @@ sub createPostUnitiggerConsensusJobs(@) {
         my $sgeConsensus = getGlobal("sgeConsensus");
 
         my $SGE;
-        $SGE  = "qsub $sge $sgeConsensus -r y -N cns1_$asm ";
-        $SGE .= "-t 1-$jobs ";
+        $SGE  = "qsub $sge $sgeConsensus -r y -N NAME ";
+        $SGE .= "-t MINMAX ";
         $SGE .= "-j y -o /dev/null ";
         $SGE .= "$wrk/5-consensus/consensus.sh\n";
 
+	my $numThreads = 1;
+        my $waitTag = submitBatchJobs("cns1", $SGE, $jobs, $numThreads);
+
         if (runningOnGrid()) {
             touch("$wrk/5-consensus/jobsCreated.success");
-            system($SGE) and die "Failed to submit consensus jobs.\n";
-            submitScript("cns1_$asm");
+            submitScript("$waitTag");
             exit(0);
         } else {
-            pleaseExecute($SGE);
             touch("$wrk/5-consensus/jobsCreated.success");
             exit(0);
         }

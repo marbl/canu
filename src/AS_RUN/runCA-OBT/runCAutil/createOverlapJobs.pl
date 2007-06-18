@@ -277,23 +277,26 @@ sub createOverlapJobs {
         my $sge        = getGlobal("sge");
         my $sgeOverlap = getGlobal("sgeOverlap");
 
+
         my $SGE;
-        $SGE .= "qsub $sge $sgeOverlap -r y -N ovl_$asm \\\n";
-        $SGE .= "  -t 1-$jobs \\\n";
+        $SGE .= "qsub $sge $sgeOverlap -r y -N NAME  \\\n";
+        $SGE .= "  -t MINMAX \\\n";
         $SGE .= "  -j y -o $wrk/$outDir/overlap.\\\$TASK_ID.out \\\n";
         $SGE .= "  -e $wrk/$outDir/overlap.\\\$TASK_ID.err \\\n";
         $SGE .= "  $wrk/$outDir/overlap.sh\n";
 
+	my $waitTag = submitBatchJobs("ovl", $SGE, $jobs, $ovlThreads);
+
         if (runningOnGrid()) {
             touch("$wrk/$outDir/jobsCreated.success");
-            system($SGE) and die "Failed to submit overlap jobs.\n";
-            submitScript("ovl_$asm");
+            submitScript("$waitTag");
             exit(0);
         } else {
-            pleaseExecute($SGE);
             touch("$wrk/$outDir/jobsCreated.success");
             exit(0);
         }
+
+
     } else {
         my $failures = 0;
         for (my $i=1; $i<=$jobs; $i++) {

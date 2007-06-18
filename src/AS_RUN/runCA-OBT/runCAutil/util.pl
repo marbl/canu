@@ -1,5 +1,58 @@
 use strict;
 
+# Submit batch jobs in groups. This function allows one to limit 
+# the maximum number of jobs submitted at once to the grid. The jobs are 
+# split into multiple submissions, dependent on each other.
+#
+# NOTE: inefficient because all jobs in a previous 
+# submission must finish for the next submission to be scheduled.
+#
+sub submitBatchJobs($$$$) {
+   my $id = shift @_;
+   my $sgeParam = shift @_;
+   my $jobs = shift @_;
+   my $jobsSubmitted = 0;
+   my $max = 1;
+   my $min = 1;
+   my $SGE = "";
+   my $numThreads = shift @_;
+
+   my $maxSize = getGlobal("maxGridJobSize");
+   if (defined($maxSize)) {
+      $maxSize = floor($maxSize / $numThreads);
+   }
+   else {
+      $maxSize = $jobs;
+   }
+
+   while ($jobsSubmitted < $jobs) {
+      my $max = $jobsSubmitted + $maxSize;
+      my $min = $jobsSubmitted + 1;
+
+      if ($max > $jobs) {
+         $max = $jobs;
+      }
+
+       $SGE = $sgeParam;
+       $SGE =~ s/NAME/"$id\_$asm\_$max"/e;
+       if ($jobsSubmitted != 0) {
+          $SGE =~ s/MINMAX/"$min-$max -hold_jid \"$id\_$asm\_$jobsSubmitted\" "/e;
+       }
+       else {
+          $SGE =~ s/MINMAX/"$min-$max"/e;
+       }
+
+       if (runningOnGrid()) {
+          system($SGE) and die "Failed to submit overlap jobs.\n";
+       } else {
+          pleaseExecute($SGE);
+       }
+       $jobsSubmitted = $max;
+   }
+
+   return "$id\_$asm\_$jobs";
+}
+
 
 #  Decide what host we are on, and the the bin directory
 #  appropriately
@@ -90,6 +143,7 @@ sub setDefaults () {
     $global{"delayInterleavedMerging"}     = 0;
     $global{"doBackupFragStore"}           = 1;
     $global{"doExtendClearRanges"}         = 2;
+    $global{"extendClearRangesStepSize"}   = 5000;
     $global{"doFragmentCorrection"}        = 1;
     $global{"doOverlapTrimming"}           = 1;
     $global{"doResolveSurrogates"}         = 1;
@@ -110,6 +164,8 @@ sub setDefaults () {
     $global{"merylObtThreshold"}           = 1000;
     $global{"merylOvlThreshold"}           = 500;
     $global{"merSize"}                     = 22;
+
+    $global{"maxGridJobSize"}		   = undef;
 
     $global{"ovlCorrBatchSize"}            = 175000;
     $global{"ovlCorrOnGrid"}               = 0;

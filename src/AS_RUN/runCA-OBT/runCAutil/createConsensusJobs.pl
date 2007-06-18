@@ -116,18 +116,19 @@ sub createPostScaffolderConsensusJobs ($) {
         my $sgeConsensus = getGlobal("sgeConsensus");
 
         my $SGE;
-        $SGE  = "qsub $sge $sgeConsensus -r y -N cns2_$asm ";
-        $SGE .= "-t 1-$jobs ";
+        $SGE  = "qsub $sge $sgeConsensus -r y -N NAME ";
+        $SGE .= "-t MINMAX ";
         $SGE .= "-j y -o /dev/null ";
         $SGE .= "$wrk/8-consensus/consensus.sh\n";
 
+	my $numThreads = 1;
+        my $waitTag = submitBatchJobs("cns2", $SGE, $jobs, $numThreads);
+
         if (runningOnGrid()) {
             touch("$wrk/8-consensus/jobsCreated.success");
-            system($SGE) and die "Failed to submit consensus jobs.\n";
-            submitScript("cns2_$asm");
+            submitScript("$waitTag");
             exit(0);
         } else {
-            pleaseExecute($SGE);
             touch("$wrk/8-consensus/jobsCreated.success");
             exit(0);
         }

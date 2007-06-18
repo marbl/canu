@@ -69,18 +69,19 @@ sub createOverlapCorrectionJobs {
         my $sgeOverlapCorrection  = getGlobal("sgeOverlapCorrection");
 
         my $SGE;
-        $SGE  = "qsub $sge $sgeOverlapCorrection -r y -N ovlcorr_$asm ";
-        $SGE .= "-t 1-$jobs ";
+        $SGE  = "qsub $sge $sgeOverlapCorrection -r y -N NAME ";
+        $SGE .= "-t MINMAX ";
         $SGE .= " -j y -o /dev/null ";
         $SGE .= "$wrk/3-ovlcorr/correct.sh\n";
 
+	my $numThreads = 1;
+        my $waitTag = submitBatchJobs("ovlcorr", $SGE, $jobs, $numThreads);
+
         if (runningOnGrid()) {
             touch("$wrk/3-ovlcorr/jobsCreated.success");
-            system($SGE) and die "Failed to submit overlap correction jobs.\n";
-            submitScript("ovlcorr_$asm");
+            submitScript("$waitTag");
             exit(0);
         } else {
-            pleaseExecute($SGE);
             touch("$wrk/3-ovlcorr/jobsCreated.success");
             exit(0);
         }

@@ -80,18 +80,19 @@ sub createFragmentCorrectionJobs {
         my $sgeFragmentCorrection = getGlobal("sgeFragmentCorrection");
 
         my $SGE;
-        $SGE  = "qsub $sge $sgeFragmentCorrection -r y -N frg_$asm ";
-        $SGE .= "-t 1-$jobs ";
+        $SGE  = "qsub $sge $sgeFragmentCorrection -r y -N NAME ";
+        $SGE .= "-t MINMAX ";
         $SGE .= " -j y -o /dev/null ";
         $SGE .= "$wrk/2-frgcorr/correct.sh\n";
 
+	my $numThreads = 2;
+        my $waitTag = submitBatchJobs("frg", $SGE, $jobs, $numThreads);
+
         if (runningOnGrid()) {
             touch("$wrk/2-frgcorr/jobsCreated.success");
-            system($SGE) and die "Failed to submit fragment correction jobs.\n";
-            submitScript("frg_$asm");
+            submitScript("$waitTag");
             exit(0);
         } else {
-            pleaseExecute($SGE);
             touch("$wrk/2-frgcorr/jobsCreated.success");
             exit(0);
         }
