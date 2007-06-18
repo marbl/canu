@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.25 2007-05-22 17:04:25 granger_sutton Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.26 2007-06-18 15:08:45 eliv Exp $";
 
 #undef DEBUG_CHECKFORCTGS
 #undef DEBUG_DETAILED
@@ -2641,71 +2641,89 @@ void RemoveSurrogateDuplicates(void){
   ChunkInstanceT *curChunk;
   
   InitGraphNodeIterator(&chunks, ScaffoldGraph->CIGraph, GRAPH_NODE_DEFAULT);
-  while((curChunk = NextGraphNodeIterator(&chunks)) != NULL){
-    if((curChunk->type == UNRESOLVEDCHUNK_CGW) && (curChunk->info.CI.numInstances > 1)){
-      if(curChunk->info.CI.numInstances == 2){
-	ChunkInstanceT *surr1 = GetGraphNode(ScaffoldGraph->CIGraph,
-					     curChunk->info.CI.instances.in_line.instance1);
-	ChunkInstanceT *surr2 = GetGraphNode(ScaffoldGraph->CIGraph,
-					     curChunk->info.CI.instances.in_line.instance2);
-	assert((surr1 != NULL));
-	assert((surr2 != NULL));
-	if((surr1->info.CI.contigID >= 0) && (surr1->info.CI.contigID == surr2->info.CI.contigID) &&
-	   (fabs(surr1->offsetAEnd.mean - surr2->offsetAEnd.mean) < 10.0) &&
-	   (fabs(surr1->offsetBEnd.mean - surr2->offsetBEnd.mean) < 10.0)){
-	  curChunk->info.CI.numInstances = 1;
-	  curChunk->info.CI.instances.in_line.instance2 = -1;
-	  RepairContigNeighbors(surr2);
-	  DeleteGraphNode(ScaffoldGraph->CIGraph, surr2);
-	}
-      }else{
-	assert(curChunk->info.CI.instances.va != NULL);
-	assert(curChunk->info.CI.numInstances == GetNumCDS_CID_ts(curChunk->info.CI.instances.va));
-	qsort((void *)GetCDS_CID_t(curChunk->info.CI.instances.va, 0), curChunk->info.CI.numInstances,
-	      sizeof(CDS_CID_t), CompareSurrogatePlacements);
-	{
-	  ChunkInstanceT *prevSurr = GetGraphNode(ScaffoldGraph->CIGraph,
-				  *GetCDS_CID_t(curChunk->info.CI.instances.va, 0));
-	  ChunkInstanceT *curSurr;
-	  int i, copyto;
+  while((curChunk = NextGraphNodeIterator(&chunks)) != NULL)
+  {
+      if((curChunk->type == UNRESOLVEDCHUNK_CGW) && (curChunk->info.CI.numInstances > 1))
+      {
+          if(curChunk->info.CI.numInstances == 2)
+          {
+              ChunkInstanceT *surr1 = GetGraphNode(ScaffoldGraph->CIGraph,
+                      curChunk->info.CI.instances.in_line.instance1);
+              ChunkInstanceT *surr2 = GetGraphNode(ScaffoldGraph->CIGraph,
+                      curChunk->info.CI.instances.in_line.instance2);
+              assert((surr1 != NULL));
+              assert((surr2 != NULL));
+              if( (surr1->info.CI.contigID >= 0) &&
+                  (surr1->info.CI.contigID == surr2->info.CI.contigID) &&
+                  (fabs(surr1->offsetAEnd.mean - surr2->offsetAEnd.mean) < 10.0) &&
+                  (fabs(surr1->offsetBEnd.mean - surr2->offsetBEnd.mean) < 10.0))
+              {
+                  curChunk->info.CI.numInstances = 1;
+                  curChunk->info.CI.instances.in_line.instance2 = -1;
+                  RepairContigNeighbors(surr2);
+                  DeleteGraphNode(ScaffoldGraph->CIGraph, surr2);
+              }
+          }else{
+              assert(curChunk->info.CI.instances.va != NULL);
+              if ( curChunk->info.CI.numInstances !=
+                   GetNumCDS_CID_ts(curChunk->info.CI.instances.va))
+              {
+                fprintf( stderr,
+                  "curChunk CI.numInstances %d, GetNumCDS_CID_ts curChunk instances.va %d\n",
+                   curChunk->info.CI.numInstances,
+                   GetNumCDS_CID_ts(curChunk->info.CI.instances.va)
+                );
+                assert(0);
+              }
+              qsort( (void *)GetCDS_CID_t(curChunk->info.CI.instances.va, 0),
+                      curChunk->info.CI.numInstances,
+                      sizeof(CDS_CID_t), CompareSurrogatePlacements
+                   );
+              {
+                  ChunkInstanceT *prevSurr = GetGraphNode(ScaffoldGraph->CIGraph,
+                          *GetCDS_CID_t(curChunk->info.CI.instances.va, 0));
+                  ChunkInstanceT *curSurr;
+                  int i, copyto;
 
-	  assert(prevSurr != NULL);
-	  for(i = 1, copyto = 1; i < curChunk->info.CI.numInstances; i++){
-	    curSurr = GetGraphNode(ScaffoldGraph->CIGraph,
-				   *GetCDS_CID_t(curChunk->info.CI.instances.va, i));
-	    assert(curSurr != NULL);
-	    if((prevSurr->info.CI.contigID >= 0) &&
-	       (prevSurr->info.CI.contigID == curSurr->info.CI.contigID) &&
-	       (fabs(prevSurr->offsetAEnd.mean - curSurr->offsetAEnd.mean) < 10.0) &&
-	       (fabs(prevSurr->offsetBEnd.mean - curSurr->offsetBEnd.mean) < 10.0)){
-	      RepairContigNeighbors(curSurr);
-	      DeleteGraphNode(ScaffoldGraph->CIGraph, curSurr);
-	    }else{
-	      SetCDS_CID_t(curChunk->info.CI.instances.va, copyto,
-			   GetCDS_CID_t(curChunk->info.CI.instances.va, i));
-	      prevSurr = curSurr;
-	      copyto++;
-	    }
-	  }
-	  curChunk->info.CI.numInstances = copyto;
-	  if(curChunk->info.CI.numInstances < 3){
-	    CDS_CID_t  a = *GetCDS_CID_t(curChunk->info.CI.instances.va, 0);
-	    CDS_CID_t  b = *GetCDS_CID_t(curChunk->info.CI.instances.va, 1);
-	    
-	    assert(curChunk->info.CI.numInstances > 0);
-	    DeleteVA_CDS_CID_t(curChunk->info.CI.instances.va);
-	    curChunk->info.CI.instances.in_line.instance1 = a;
-	    if(curChunk->info.CI.numInstances == 2){
-	      curChunk->info.CI.instances.in_line.instance2 = b;
-	    }else{
-	      curChunk->info.CI.instances.in_line.instance2 = -1;
-	    }
-	  }else{
-	    ResetToRange_CDS_CID_t(curChunk->info.CI.instances.va, copyto);
-	  }
-	}
+                  assert(prevSurr != NULL);
+                  for(i = 1, copyto = 1; i < curChunk->info.CI.numInstances; i++){
+                      curSurr = GetGraphNode( ScaffoldGraph->CIGraph,
+                               *GetCDS_CID_t( curChunk->info.CI.instances.va, i)
+                      );
+                      assert( curSurr != NULL );
+                      if(   (prevSurr->info.CI.contigID >= 0) &&
+                            (prevSurr->info.CI.contigID == curSurr->info.CI.contigID) &&
+                       (fabs(prevSurr->offsetAEnd.mean - curSurr->offsetAEnd.mean) < 10.0) &&
+                       (fabs(prevSurr->offsetBEnd.mean - curSurr->offsetBEnd.mean) < 10.0))
+                      {
+                          RepairContigNeighbors(curSurr);
+                          DeleteGraphNode(ScaffoldGraph->CIGraph, curSurr);
+                      }else{
+                          SetCDS_CID_t(curChunk->info.CI.instances.va, copyto,
+                                  GetCDS_CID_t(curChunk->info.CI.instances.va, i));
+                          prevSurr = curSurr;
+                          copyto++;
+                      }
+                  }
+                  curChunk->info.CI.numInstances = copyto;
+                  if(curChunk->info.CI.numInstances < 3){
+                      CDS_CID_t  a = *GetCDS_CID_t(curChunk->info.CI.instances.va, 0);
+                      CDS_CID_t  b = *GetCDS_CID_t(curChunk->info.CI.instances.va, 1);
+
+                      assert( curChunk->info.CI.numInstances > 0 );
+                      DeleteVA_CDS_CID_t( curChunk->info.CI.instances.va );
+                      curChunk->info.CI.instances.in_line.instance1 = a;
+                      if( curChunk->info.CI.numInstances == 2 ){
+                          curChunk->info.CI.instances.in_line.instance2 = b;
+                      }else{
+                          curChunk->info.CI.instances.in_line.instance2 = -1;
+                      }
+                  }else{
+                      ResetToRange_CDS_CID_t(curChunk->info.CI.instances.va, copyto);
+                  }
+              }
+          }
       }
-    }
   }
   return;
 }
