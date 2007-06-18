@@ -3,7 +3,7 @@
 ######################################################################
 # test_ca.rb
 # 
-# $Id: test_ca.rb,v 1.4 2007-02-23 21:27:59 catmandew Exp $
+# $Id: test_ca.rb,v 1.5 2007-06-18 19:31:59 skoren Exp $
 #
 # Terms:
 #   test spec - combination of version, run script, config file, recipe script,
@@ -340,7 +340,7 @@ class AssemblerTest
       end # end of check for test spec config file
       @command = "#{@test_spec.script} -C #{@config_file} -nowait -noedit -noinsert -nojoin -clean 1 #{@genome.dir}/#{@genome.name}.frg > #{@request_file}"
     when "carun"
-      @command = "#{@test_spec.script} -config #{@config_file} -noCopy -R #{@test_spec.recipe_script} -p CA_BIN=#{@test_spec.binary_path} #{@genome.dir}/#{@genome.name}.frg > #{@request_file}"
+      @command = "#{@test_spec.script} -config #{@config_file} -noCopy -R #{@test_spec.recipe_script} -p CA_BIN=#{@test_spec.binary_path} #{@test_spec.params} #{@genome.dir}/#{@genome.name}.frg > #{@request_file}"
     end # end of case check for carun/run_CA
     @status = "READY"
   end # end of set_up method
@@ -576,7 +576,7 @@ genome_files.each_key do |fn|
   open(fn).each do |line|
     next if(line =~ /^#/)
     line.gsub!(/[\r\n\cZ]/, '')
-    genome_name = genome.strip.split.compact[0].strip.downcase
+    genome_name = line.strip.split.compact[0].strip.downcase
     genomes[genome_name] ||= Genome.new(genome_name)
   end
 end ## end of loop over genome files
