@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: eCR.c,v 1.21 2007-05-19 03:39:05 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: eCR.c,v 1.22 2007-06-18 15:56:47 skoren Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -1782,7 +1782,7 @@ int GetNewUnitigMultiAlign(NodeCGW_T *unitig, fragPositions *fragPoss, int exten
                                  &options);
     }
 
-    if (aligned == -1) {
+    if (aligned == EXIT_FAILURE) {
       fprintf(stderr, "GetNewUnitigMultiAlign()-- MultiAlignUnitig failure on unitig %d\n", unitig->id);
       return FALSE;
       //assert(0);
