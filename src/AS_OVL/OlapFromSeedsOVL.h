@@ -33,13 +33,17 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.h,v 1.4 2007-05-29 10:54:30 brianwalenz Exp $
- * $Revision: 1.4 $
+ * $Id: OlapFromSeedsOVL.h,v 1.5 2007-06-18 13:16:05 adelcher Exp $
+ * $Revision: 1.5 $
 */
 
 
 #ifndef  __OLAPFROMSEEDS_H_INCLUDED
 #define  __OLAPFROMSEEDS_H_INCLUDED
+
+//**ALD determine if use new code to analyze true multialignments
+#define  USE_NEW_STUFF  0
+
 
 //  System include files
 
@@ -89,8 +93,6 @@
   //  calculations
 #define  EXPANSION_FACTOR            1.4
   //  Factor by which to grow memory in olap array when reading it
-#define  FRAG_LEN_BITS               15
-  //  Number of bits to store lengths and positions on fragments
 #define  FRAGS_PER_BATCH             100000
   //  Number of old fragments to read into memory-based fragment
   //  store at a time for processing
@@ -155,6 +157,10 @@ typedef  struct
   {
    char  * sequence;
    Vote_Tally_t  * vote;
+#if USE_NEW_STUFF
+   Sequence_Diff_t  * diff_list;
+   uint32  num_diffs;
+#endif
    unsigned  clear_len : FRAG_LEN_BITS;
    unsigned  trim_5p : FRAG_LEN_BITS;
    unsigned  trim_3p : FRAG_LEN_BITS;
@@ -205,6 +211,9 @@ typedef  struct
    int  rev_id;
    int  * edit_array [MAX_ERRORS];
    int  edit_space [(MAX_ERRORS + 4) * MAX_ERRORS];
+#if USE_NEW_STUFF
+   Diff_Entry_t  diff_list [MAX_ERRORS];
+#endif
   }  Thread_Work_Area_t;
 
 typedef enum
@@ -326,6 +335,9 @@ static char  Complement
 static void  Compute_Delta
   (int delta [], int * delta_len, int * edit_array [MAX_ERRORS],
    int e, int d, int row);
+static void  Convert_Delta_To_Diff
+    (int delta [], int delta_len, char * a_part, char * b_part,
+     int  a_len, int b_len, Sequence_Diff_t * diff);
 static void  Display_Alignment
   (char * a, int a_len, char * b, int b_len, int delta [], int delta_ct,
    int capitalize_start);

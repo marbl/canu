@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: SharedOVL.h,v 1.2 2007-05-08 22:23:08 adelcher Exp $
- * $Revision: 1.2 $
+ * $Id: SharedOVL.h,v 1.3 2007-06-18 13:16:05 adelcher Exp $
+ * $Revision: 1.3 $
 */
 
 
@@ -62,6 +62,8 @@
   //  1/p = (a+b)/b = 1 + a/b = 1 + (1-x)/x = 1/x
   //  whence p = x.
 
+#define  FRAG_LEN_BITS            15
+  //  Number of bits to store lengths and positions on fragments
 #define  MIN_BRANCH_END_DIST      20
   // Branch points must be at least this many bases from the
   // end of the fragment to be reported
@@ -104,6 +106,23 @@ typedef  union
    Frag_ID_t  frag;
    Correction_t  corr;
   }  Correction_Output_t;
+
+typedef struct
+  {
+   unsigned  len : 12;
+   unsigned  action : 2;   // 0,1,2,3 = insert,delete,substitute,noop resp.
+   unsigned  ch : 2;       // 0,1,2,3 = a,c,g,t resp.
+  }  Diff_Entry_t;
+
+typedef struct
+  {
+   unsigned  a_lo : FRAG_LEN_BITS;
+   unsigned  a_hi : FRAG_LEN_BITS;
+   unsigned  b_lo : FRAG_LEN_BITS;
+   unsigned  b_hi : FRAG_LEN_BITS;
+   uint32  diff_len;
+   Diff_Entry_t  * de;
+  }  Sequence_Diff_t;
 
 
 // Function prototypes

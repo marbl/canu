@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.6 2007-05-15 21:42:34 adelcher Exp $
- * $Revision: 1.6 $
+ * $Id: OlapFromSeedsOVL.c,v 1.7 2007-06-18 13:16:05 adelcher Exp $
+ * $Revision: 1.7 $
 */
 
-static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.6 2007-05-15 21:42:34 adelcher Exp $";
+static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.7 2007-06-18 13:16:05 adelcher Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -159,7 +159,8 @@ static void  Analyze_Alignment
 
    if  (a_len < 0 || b_len < 0)
        {
-        fprintf (stderr, "ERROR:  a_len = %d  b_len = %d  sub = %d\n",
+        fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
+        fprintf (stderr, "Negative length:  a_len = %d  b_len = %d  sub = %d\n",
                  a_len, b_len, sub);
         exit (-3);
        }
@@ -571,6 +572,157 @@ static void  Compute_Delta
      delta [k ++]
          = abs (delta_stack [i]) * Sign (delta_stack [i - 1]);
    (* delta_len) --;
+
+   return;
+  }
+
+
+
+static void  Convert_Delta_To_Diff
+  (int delta [], int delta_len, char * a_part, char * b_part,
+   int  a_len, int b_len, Sequence_Diff_t * diff)
+
+//  Convert the delta-encoded alignment in  delta [0 .. (delta_len - 1)]
+//  between  a_part  and  b_part  to a description of the differences
+//  between the sequences and store the result in  diff .
+//  Allocate new memory for the difference list.
+//   a_len  and  b_len  are the lengths of the prefixes of  a_part  and
+//   b_part , resp., that align.   wa  has
+
+  {
+   Diff_Entry_t  diff_list [MAX_ERRORS];
+   int  ct;
+   int  i, j, k, m, p;
+
+   if (a_len < 0 || b_len < 0)
+     {
+      fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
+      fprintf (stderr, "Negative length:  a_len = %d  b_len = %d\n",
+           a_len, b_len);
+      exit (-3);
+     }
+
+   i = j = ct = 0;
+
+   for (k = 0; k < delta_len; k ++)
+     {
+      p = 0;
+      for (m = 1; m < abs (delta [k]); m ++)
+        {
+         if (a_part [i] != b_part [j])
+           {
+            diff_list [ct] . len = p;     // length of exact match region
+            diff_list [ct] . action = 2;  // substitution
+            switch  (a_part [i])
+              {
+               case  'a' :
+                 diff_list [ct] . ch = 0;
+                 break;
+               case  'c' :
+                 diff_list [ct] . ch = 1;
+                 break;
+               case  'g' :
+                 diff_list [ct] . ch = 2;
+                 break;
+               case  't' :
+                 diff_list [ct] . ch = 3;
+                 break;
+               default :
+                 fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
+                 fprintf (stderr, "Bad sequence char \'%c\' (ASCII %d)\n",
+                      a_part [i], (int) a_part [i]);
+                 exit (EXIT_FAILURE);
+              }
+            ct ++;
+            p = 0;
+           }
+         else
+           p ++;
+         i ++;
+         j ++;
+        }
+      if (delta [k] < 0)
+        {
+         diff_list [ct] . len = p;     // length of exact match region
+         diff_list [ct] . action = 1;  // delete
+         diff_list [ct] . ch = 0;      // doesn't matter
+         ct ++;
+         j ++;
+        }
+      else
+        {
+         diff_list [ct] . len = p;     // length of exact match region
+         diff_list [ct] . action = 0;  // insert
+         switch  (a_part [i])
+           {
+            case  'a' :
+              diff_list [ct] . ch = 0;
+              break;
+            case  'c' :
+              diff_list [ct] . ch = 1;
+              break;
+            case  'g' :
+              diff_list [ct] . ch = 2;
+              break;
+            case  't' :
+              diff_list [ct] . ch = 3;
+              break;
+            default :
+              fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
+              fprintf (stderr, "Bad sequence char \'%c\' (ASCII %d)\n",
+                   a_part [i], (int) a_part [i]);
+              exit (EXIT_FAILURE);
+           }
+         ct ++;
+         i ++;
+        }
+     }
+
+   for (p = 0; i < a_len; i ++, j ++)
+     {
+      if (a_part [i] != b_part [j])
+        {
+         diff_list [ct] . len = p;     // length of exact match region
+         diff_list [ct] . action = 2;  // substitution
+         switch  (a_part [i])
+           {
+            case  'a' :
+              diff_list [ct] . ch = 0;
+              break;
+            case  'c' :
+              diff_list [ct] . ch = 1;
+              break;
+            case  'g' :
+              diff_list [ct] . ch = 2;
+              break;
+            case  't' :
+              diff_list [ct] . ch = 3;
+              break;
+            default :
+              fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
+              fprintf (stderr, "Bad sequence char \'%c\' (ASCII %d)\n",
+                   a_part [i], (int) a_part [i]);
+              exit (EXIT_FAILURE);
+           }
+         ct ++;
+         p = 0;
+        }
+      else
+        p ++;
+     }
+
+   if (0 < p)
+     {
+      diff_list [ct] . len = p;     // length of exact match region
+      diff_list [ct] . action = 3;  // noop
+      diff_list [ct] . ch = 0;      // doesn't really matter
+      ct ++;
+     }
+
+   diff -> diff_len = ct;
+   diff -> de = (Diff_Entry_t *) safe_malloc (ct * sizeof (Diff_Entry_t));
+   for (i = 0; i < ct; i ++)
+     diff -> de [i] = diff_list [i];
 
    return;
   }
@@ -1699,7 +1851,8 @@ static void  Process_Olap
 
    sub = olap -> a_iid - Lo_Frag_IID;
 
-//**ALD This should be changed overlaps allowed but not for correction purposes
+//**ALD This should be changed maybe so that the overlaps are allowed,
+//      but not for correction purposes
    if (shredded && Frag [sub] . shredded)
       return;
 
@@ -1917,12 +2070,29 @@ static void  Process_Olap
    if (left_errors + right_errors <= Error_Bound [olap_len]
         && (Doing_Partial_Overlaps || match_to_end))
      {
+#if USE_NEW_STUFF
+      Sequence_Diff_t  diff;
+      int  k;
+
+      diff . a_lo = a_lo;
+      diff . a_hi = a_hi;
+      diff . b_lo = b_lo;
+      diff . b_hi = b_hi;
+      Convert_Delta_To_Diff (left_delta, left_delta_len, a_part + a_end,
+           b_part + b_end, a_match_len, b_match_len, & diff);
+
+      k = Frag [sub] . num_diffs ++;
+      Frag [sub] . diff_list = safe_realloc (Frag [sub] . diff_list,
+           Frag [sub] . num_diffs * sizeof (Sequence_Diff_t));
+      Frag [sub] . diff_list [k] = diff;
+#else
       Output_Olap (olap, a_lo, a_hi, a_len, b_lo, b_hi, b_len,
            left_errors + right_errors);
 
       if (Doing_Corrections)
         Analyze_Alignment (left_delta, left_delta_len, a_part + a_end, b_part + b_end,
              a_match_len, b_match_len, a_lo, sub);
+#endif
      }
    else
       wa -> failed_olaps ++;
@@ -2021,6 +2191,11 @@ static void  Read_Frags
       Frag [i] . vote = (Vote_Tally_t *) safe_calloc (frag_len - clear_start,
            sizeof (Vote_Tally_t));
       Frag [i] . left_degree = Frag [i] . right_degree = 0;
+
+#if USE_NEW_STUFF
+      Frag [i] . num_diffs = 0;
+      Frag [i] . diff_list = NULL;
+#endif
      }
 
    closeFragStream (Frag_Stream);
