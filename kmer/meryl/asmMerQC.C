@@ -209,14 +209,14 @@ main(int argc, char **argv) {
   while (arg < argc) {
     if        (strcmp(argv[arg], "-af") == 0) {  //  All frags
       ++arg;
-      //AFmode = findMode(argv[arg]);
-      AFmode = 8;
+      AFmode = findMode(argv[arg]);
+      //AFmode = 8;
       AF = new merylStreamReader(argv[arg]);
       AF->nextMer();
     } else if (strcmp(argv[arg], "-tf") == 0) {  //  Trimmed frags
       ++arg;
-      //TFmode = findMode(argv[arg]);
-      TFmode = 8;
+      TFmode = findMode(argv[arg]);
+      //TFmode = 8;
       TF = new merylStreamReader(argv[arg]);
       TF->nextMer();
     } else if (strcmp(argv[arg], "-ac") == 0) {  //  All contigs
