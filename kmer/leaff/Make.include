@@ -3,14 +3,15 @@
 LIBUTL/     :=$(call MakePath,$/../libutil/)
 LIBBIO/     :=$(call MakePath,$/../libbio/)
 
-$/.CXX_SRCS  :=$/leaff.C $/fragmenter.C $/simseq.C $/percentLength.C
-$/.CXX_EXES  :=$/leaff $/fragmenter $/percentLength
+$/.CXX_SRCS  :=$/leaff.C $/fragmenter.C $/simseq.C $/percentLength.C $/percentGC.C
+$/.CXX_EXES  :=$/leaff   $/fragmenter              $/percentLength   $/percentGC
 
 $/.CLEAN  :=$/*.o
 
-$/leaff                : $/leaff.o $/simseq.o ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
-$/fragmenter           : $/fragmenter.o ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
-$/percentLength        : $/percentLength.o ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/leaff                : $/leaff.o $/simseq.o  ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/fragmenter           : $/fragmenter.o        ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/percentLength        : $/percentLength.o     ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/percentGC            : $/percentGC.o         ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
 $(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBBIO/} -I${LIBUTL/})
 $(eval $/%.d $/%.o:  CFLAGS  +=-I${LIBBIO/} -I${LIBUTL/})

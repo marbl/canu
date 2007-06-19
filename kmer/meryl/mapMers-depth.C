@@ -15,6 +15,8 @@ main(int argc, char **argv) {
   bool      beVerbose  = false;
   u32bit    loCount    = 0;
   u32bit    hiCount    = ~u32bitZERO;
+  u32bit    windowsize = 0;
+  u32bit    skipsize   = 0;
 
   int arg=1;
   while (arg < argc) {
@@ -30,6 +32,10 @@ main(int argc, char **argv) {
       loCount = strtou32bit(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-hi") == 0) {
       hiCount = strtou32bit(argv[++arg], 0L);
+    } else if (strcmp(argv[arg], "-w") == 0) {
+      windowsize = strtou32bit(argv[++arg], 0L);
+    } else if (strcmp(argv[arg], "-s") == 0) {
+      skipsize = strtou32bit(argv[++arg], 0L);
     } else {
       fprintf(stderr, "unknown option '%s'\n", argv[arg]);
     }
@@ -45,9 +51,6 @@ main(int argc, char **argv) {
   seqFile       *F = openSeqFile(fastaFile);
   seqInCore     *S = F->getSequenceInCore();
 
-  char           merstringf[256] = {0};
-  char           merstringr[256] = {0};
-
   while (S) {
     merStream             *MS = new merStream(merSize, S);
 
@@ -56,18 +59,6 @@ main(int argc, char **argv) {
 
     while (MS->nextMer()) {
       s32bit   cnt = (s32bit)E->count(MS->theFMer()) + (s32bit)E->count(MS->theRMer());
-
-#if 0
-      if (idlen < 150)
-        fprintf(stdout, "add %d %d %d %d %d %s %s\n",
-                (int)idlen,
-                (int)MS->thePositionInSequence(),
-                (int)cnt,
-                E->count(MS->theFMer()),
-                E->count(MS->theRMer()),
-                MS->theFMer().merToString(merstringf),
-                MS->theRMer().merToString(merstringr));
-#endif
 
       id[idlen].pos = MS->thePositionInSequence();
       id[idlen].cha = cnt;
@@ -79,10 +70,50 @@ main(int argc, char **argv) {
     }
 
     intervalDepth ID(id, idlen);
-    for (u32bit i=0; i<ID.numberOfIntervals(); i++)
-      for (u32bit x=ID.lo(i); x<ID.hi(i); x++)
-        //fprintf(stdout, u32bitFMTW(7)"\t"u64bitFMTW(7)"\t"u64bitFMTW(7)"\t"u32bitFMTW(6)"\n", i, ID.lo(i), ID.hi(i), ID.de(i));
-        fprintf(stdout, u32bitFMTW(7)"\t"u32bitFMTW(6)"\n", x, ID.de(i));
+    u32bit        x = 0;
+
+    u32bit        len = S->sequenceLength();
+
+    //  Default case, report un-averaged depth at every single location.
+    //
+    if ((windowsize == 0) && (skipsize == 0)) {
+      for (u32bit i=0; i < ID.numberOfIntervals(); i++) {
+        for (; x < ID.lo(i); x++)
+          fprintf(stdout, u32bitFMTW(7)"\t"u32bitFMTW(6)"\n", x, 0);
+        for (; x < ID.hi(i); x++)
+          fprintf(stdout, u32bitFMTW(7)"\t"u32bitFMTW(6)"\n", x, ID.de(i));
+      }
+      for (; x < len; x++)
+        fprintf(stdout, u32bitFMTW(7)"\t"u32bitFMTW(6)"\n", x, 0);
+
+    } else {
+      u32bit  *depth = new u32bit [len];
+      for (x=0; x < len; x++)
+        depth[x] = 0;
+
+      for (u32bit i=0; i < ID.numberOfIntervals(); i++)
+        for (x=ID.lo(i); x < ID.hi(i); x++)
+          depth[x] = ID.de(i);
+
+      u32bit   avedepth = 0;
+
+      for (x=0; x < windowsize; x++)
+        avedepth += depth[x];
+
+      while (x < len) {
+        u32bit  avepos = (x - 1) - (windowsize - 1) / 2;
+        if ((avepos % skipsize) == 0)
+          fprintf(stdout, u32bitFMT"\t%.4f\n",
+                  avepos,
+                  (double)avedepth / (double)windowsize);
+
+        avedepth = avedepth + depth[x] - depth[x-windowsize];
+
+        x++;
+      }
+
+      delete [] depth;
+    }
 
     delete [] id;
 

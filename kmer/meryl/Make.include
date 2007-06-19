@@ -16,7 +16,7 @@ merylsrc := $/args.C \
 
 $/.CXX_SRCS   := ${merylsrc} $/meryl.C $/merle.C $/asmMerQC.C $/mapMers.C $/mapMers-depth.C $/m.C
 $/.CXX_LIBS   := $/libmerylguts.a
-$/.CXX_EXES   := $/meryl $/merle $/asmMerQC $/mapMers $/mapMers-depth $/m
+$/.CXX_EXES   := $/meryl $/merle $/asmMerQC $/mapMers $/mapMers-depth $/m $/testPositionBias
 $/.CLEAN      := $/*.o
 
 $/libmerylguts.a : ${merylsrc:.C=.o}
@@ -27,6 +27,7 @@ $/asmMerQC       : $/asmMerQC.o                        ${LIBMERYL/}libmeryl.a ${
 $/mapMers        : $/mapMers.o    ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 $/mapMers-depth  : $/mapMers-depth.o    ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 $/m              : $/m.o          ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
+$/testPositionBias: $/testPositionBias.o ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 
 $(eval $/%.d $/%.o:  CXXFLAGS+=-I${LIBMERYL/} -I${LIBKMER/} -I${LIBBIO/} -I${LIBUTL/})
 
