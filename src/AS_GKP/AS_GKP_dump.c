@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_dump.c,v 1.19 2007-05-09 19:00:11 brianwalenz Exp $ */
+/* $Id: AS_GKP_dump.c,v 1.20 2007-06-21 15:05:38 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -198,7 +198,8 @@ dumpGateKeeperFragments(char       *gkpStoreName,
   resetFragStream(fs, begIID, endIID);
 
   if (asTable)
-    fprintf(stdout, "UID\tIID\tmateUID\tmateIID\tlibUID\tlibIID\tisDeleted\tisNonRandom\tStatus\tOrient\tLength\tclrBegin\tclrEnd\n");
+    fprintf(stdout, "UID\tIID\tmateUID\tmateIID\tlibUID\tlibIID\tisDeleted\tisNonRandom\tStatus\tOrient\tLength\tclrBegin%s\tclrEnd%s\n",
+            AS_READ_CLEAR_NAMES[dumpClear], AS_READ_CLEAR_NAMES[dumpClear]);
 
   while (nextFragStream(fs, fr)) {
     if ((iidToDump == NULL) || (iidToDump[getFragRecordIID(fr)])) {
@@ -212,8 +213,8 @@ dumpGateKeeperFragments(char       *gkpStoreName,
                 AS_READ_STATUS_NAMES[fr->gkfr.status],
                 AS_READ_ORIENT_NAMES[fr->gkfr.orientation],
                 getFragRecordSequenceLength(fr),
-                getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_LATEST),
-                getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_LATEST));
+                getFragRecordClearRegionBegin(fr, dumpClear),
+                getFragRecordClearRegionEnd  (fr, dumpClear));
       } else {
         fprintf(stdout, "fragmentIdent           = "F_UID","F_IID"\n", getFragRecordUID(fr), getFragRecordIID(fr));
         fprintf(stdout, "fragmentMate            = "F_UID","F_IID"\n", (CDS_UID_t)0, getFragRecordMateIID(fr));
