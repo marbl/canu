@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.29 2007-06-22 17:42:37 eliv Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.30 2007-06-22 20:14:39 eliv Exp $";
 
 
 #undef ORIG_MERGE_EDGE_INVERT
@@ -4365,8 +4365,8 @@ void ExamineUsableSEdges(VA_TYPE(PtrT) *sEdges,
       if ( maxWeightEdge/EDGE_WEIGHT_FACTOR < minWeightThreshold )
         {
           minWeightThreshold = maxWeightEdge / EDGE_WEIGHT_FACTOR;
-          minWeightThreshold = MAX( minWeightThreshold, EDGE_WEIGHT_FACTOR);
         }
+      minWeightThreshold = MAX( minWeightThreshold, EDGE_WEIGHT_FACTOR);
       fprintf(GlobalData->stderrc,
               "* Considering edges with weight >= %d (maxWeightEdge/%d: %d)\n",
               minWeightThreshold, (int) EDGE_WEIGHT_FACTOR,
