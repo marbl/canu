@@ -61,7 +61,7 @@ sub bogUnitigger {
 
         my $prevPwd = $ENV{PWD};
         chdir $workDir || die "chdir $workDir failed.";
-        link('len15.ium',"$asm.cgb") || die "link to $asm.cgb failed in $ENV{PWD}";
+        link('len150.ium',"$asm.cgb") || die "link to $asm.cgb failed in $ENV{PWD}";
         partitionCGB( "$asm.cgb", 250000 );
         unlink "$asm.cgb";
         chdir $prevPwd;
