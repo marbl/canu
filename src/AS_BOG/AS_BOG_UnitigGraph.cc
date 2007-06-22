@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.54 2007-06-15 21:10:13 eliv Exp $
- * $Revision: 1.54 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.55 2007-06-22 13:15:56 eliv Exp $
+ * $Revision: 1.55 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.54 2007-06-15 21:10:13 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.55 2007-06-22 13:15:56 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -1627,15 +1627,15 @@ namespace AS_BOG{
         DoveTailIter dtIter = tig->dovetail_path_ptr->begin();
         UnitigBreakPoint breakPoint = breaks.front();
         breaks.pop_front();
+        bool bothEnds = false;
+        UnitigBreakPoint nextBP;
+        if (!breaks.empty())
+            nextBP = breaks.front();
         int frgCnt = 0;
         int offset = 0;
         for( ; dtIter != tig->dovetail_path_ptr->end(); dtIter++) {
             frgCnt++;
             DoveTailNode frg = *dtIter;
-            UnitigBreakPoint nextBP;
-            if (!breaks.empty())
-                nextBP = breaks.front();
-            bool bothEnds = false;
             // reduce multiple breaks at the same fragment end down to one
             while ( !breaks.empty() && nextBP.fragEnd.id == breakPoint.fragEnd.id ) {
                 if (nextBP.fragEnd.end != breakPoint.fragEnd.end)
@@ -1661,6 +1661,7 @@ namespace AS_BOG{
                     frg.position.end = BestOverlapGraph::fragLen( frg.ident );
                     newTig->addFrag( frg );             // add frag to unitig
                     newTig = new Unitig();              // create next new unitig
+                    bothEnds = false;
                 }
                 else if (breakPoint.fragEnd.end ==  FIVE_PRIME && !reverse ||
                          breakPoint.fragEnd.end == THREE_PRIME && reverse)
@@ -1698,6 +1699,7 @@ namespace AS_BOG{
                 else {
                     breakPoint = breaks.front();
                     breaks.pop_front();
+                    nextBP = breaks.front();
                 }
             } else {
                 // not a unitig break point fragment, add to current new tig
