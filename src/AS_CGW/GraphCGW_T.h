@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: GraphCGW_T.h,v 1.16 2007-05-14 09:27:11 brianwalenz Exp $	 */
+/* 	$Id: GraphCGW_T.h,v 1.17 2007-06-22 18:23:49 eliv Exp $	 */
 
 /**************************************************************************
  *  GraphCGW
@@ -1626,6 +1626,9 @@ void InitGraphEdge(EdgeCGW_T *edge);
 void AssignFragsToResolvedCI(GraphCGW_T *graph,
                              CDS_CID_t fromID, CDS_CID_t toID,
                              VA_TYPE(CDS_CID_t) *fragments);
+
+// QC check on surrogate sanity
+void CheckSurrogateUnitigs();
 
 #endif
 

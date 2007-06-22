@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.44 2007-05-29 10:54:26 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.45 2007-06-22 18:22:11 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -4944,4 +4944,35 @@ void  CheckUnitigs(CDS_CID_t startUnitigID)
   
   fflush(NULL);
   DeleteMultiAlignT(ma);  
+}
+
+// Check on the sanity of the surrogate unitigs
+void  CheckSurrogateUnitigs()
+{
+    GraphNodeIterator Nodes;
+    NodeCGW_T *curChunk;
+
+    InitGraphNodeIterator( &Nodes, ScaffoldGraph->CIGraph, GRAPH_NODE_DEFAULT);
+    while(NULL != ( curChunk = NextGraphNodeIterator(&Nodes)))
+    {
+        if((curChunk->type == UNRESOLVEDCHUNK_CGW) && (curChunk->info.CI.numInstances > 1))
+        {
+            if(curChunk->info.CI.numInstances == 2)
+            {
+            } else {
+                int numVaInstances = GetNumCDS_CID_ts(curChunk->info.CI.instances.va);
+                assert(curChunk->info.CI.instances.va != NULL);
+                if (   curChunk->info.CI.numInstances !=
+                        GetNumCDS_CID_ts(curChunk->info.CI.instances.va))
+                {
+                    fprintf( stderr,
+                            "curChunk CI.numInstances %d, GetNumCDS_CID_ts curChunk instances.va %d\n",
+                            curChunk->info.CI.numInstances,
+                            GetNumCDS_CID_ts(curChunk->info.CI.instances.va)
+                           );
+                    //                assert(0);
+                }
+            }
+        }
+    }
 }
