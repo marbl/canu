@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.29 2007-06-14 20:45:52 eliv Exp $
- * $Revision: 1.29 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.30 2007-06-22 13:17:12 eliv Exp $
+ * $Revision: 1.30 $
 */
 
 //  System include files
@@ -128,6 +128,7 @@ namespace AS_BOG{
             void processOverlap(const OVSoverlap& olap);
             static overlap_type getType(const OVSoverlap & olap);
             virtual float scoreOverlap(const OVSoverlap& olap)=0;
+            virtual int getThreshold()=0;
 
             // FragStore related variables
         //These should be moved to protected
@@ -170,6 +171,7 @@ namespace AS_BOG{
         {
             mismatchCutoff = AS_OVS_encodeQuality( maxMismatch / 100.0 );
         }
+        int getThreshold() { return mismatchCutoff; }
         float scoreOverlap( const OVSoverlap& olap);
     };
 
@@ -177,6 +179,7 @@ namespace AS_BOG{
     struct BOG_Runner {
         BOG_Runner(int lastFrag) { BestOverlapGraph::lastFrg = lastFrag; }
         void push_back(BestOverlapGraph *bog) { metrics.push_back(bog); }
+        int  size() { return metrics.size(); }
         void processOverlapStream(OverlapStore *, const char*);
 
         std::vector<BestOverlapGraph *> metrics;

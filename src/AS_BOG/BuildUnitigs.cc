@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.22 2007-06-15 21:10:13 eliv Exp $
- * $Revision: 1.22 $
+ * $Id: BuildUnitigs.cc,v 1.23 2007-06-22 13:17:12 eliv Exp $
+ * $Revision: 1.23 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.22 2007-06-15 21:10:13 eliv Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.23 2007-06-22 13:17:12 eliv Exp $";
 
 //  System include files
 
@@ -136,7 +136,7 @@ int  main (int argc, char * argv [])
    ////////////////////////////////////////////////////////////////////////////
 
    int i;
-   for(i=0; i<3; i++){
+   for(i=0; i<bogRunner.size(); i++){
 //	AS_BOG::ChunkGraph *cg = new AS_BOG::ChunkGraph();
 	AS_BOG::PromiscuousChunkGraph *cg = new AS_BOG::PromiscuousChunkGraph();
 	//cg.checkInDegree(bogRunner.metrics[i]);
@@ -155,17 +155,9 @@ int  main (int argc, char * argv [])
     mateChecker.checkUnitigGraph(utg);
 	//std::cout<< utg << endl;
     char fileStr[16];
-	switch(i){
-		case 0: sprintf( fileStr, "len%d.ium",iscr1);
-		        fprintf(stderr, "Made unitigs at %.1f%% mismatch rate\n",scr1);
-                break;
-		case 1: sprintf( fileStr, "len%d.ium",iscr2);
-		        fprintf(stderr, "Made unitigs at %.1f%% mismatch rate\n",scr2);
-                break;
-		case 2: sprintf( fileStr, "len%d.ium",iscr3);
-		        fprintf(stderr, "Made unitigs at %.1f%% mismatch rate\n",scr3);
-                break;
-	}
+    int mismatch = bogRunner.metrics[i]->getThreshold();
+    sprintf( fileStr, "len%d.ium",mismatch);
+    fprintf( stderr, "Made unitigs at %d mismatch rate\n",mismatch);
     std::cerr << "Setting Global Arrival Rate.\n";
     // should be number of Random frags when that's supported
     float globalARate = utg.getGlobalArrivalRate(cg->getNumFragments(), genome_size);
