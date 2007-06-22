@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.40 2007-05-22 17:04:25 granger_sutton Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.41 2007-06-22 18:32:53 eliv Exp $";
 
 
 static const char *usage = 
@@ -668,6 +668,7 @@ int main(int argc, char *argv[]){
     ComputeOverlaps( ScaffoldGraph->CIGraph, TRUE, alignOverlaps);  
 
     CheckEdgesAgainstOverlapper(ScaffoldGraph->CIGraph);
+    CheckSurrogateUnitigs();
 #if 0
     PropagateTandemMarks(ScaffoldGraph->CIGraph);
     if(GlobalData->debugLevel > 0){
@@ -676,6 +677,7 @@ int main(int argc, char *argv[]){
 #endif
     MergeAllGraphEdges(ScaffoldGraph->CIGraph, FALSE);
     CheckEdgesAgainstOverlapper(ScaffoldGraph->CIGraph);
+    CheckSurrogateUnitigs();
 
     /* Mark some Unitigs/Chunks/CIs as repeats based on overlaps GRANGER 2/2/07 */
 
@@ -707,6 +709,7 @@ int main(int argc, char *argv[]){
     BuildInitialContigs(ScaffoldGraph);
     if(GlobalData->debugLevel){
       CheckEdgesAgainstOverlapper(ScaffoldGraph->ContigGraph);
+      CheckSurrogateUnitigs();
     }
     // Clear both sequence caches...they will reload as necessary
     fprintf(GlobalData->stderrc,"* Start Flushing sequenceDB caches!\n");
@@ -724,6 +727,7 @@ int main(int argc, char *argv[]){
     CheckCIScaffoldTs(ScaffoldGraph);
     if(GlobalData->debugLevel > 0){
       CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
+      CheckSurrogateUnitigs();
     }
 
   }  //  checkpoint < CHECKPOINT_AFTER_BUILDING_CIGRAPH
@@ -776,6 +780,7 @@ int main(int argc, char *argv[]){
         if(GlobalData->debugLevel > 0){
           DumpCIScaffolds(GlobalData->stderrc,ScaffoldGraph, FALSE);
           CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
+          CheckSurrogateUnitigs();
         }
         CheckCIScaffoldTs(ScaffoldGraph);
         StartTimerT(&data->GapWalkerTimer);
@@ -927,6 +932,7 @@ int main(int argc, char *argv[]){
       if(GlobalData->debugLevel > 0){
 	DumpCIScaffolds(GlobalData->stderrc,ScaffoldGraph, FALSE);
 	CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
+    CheckSurrogateUnitigs();
       }
       CheckCIScaffoldTs(ScaffoldGraph);
       
