@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.21 2007-06-15 21:08:43 eliv Exp $
- * $Revision: 1.21 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.22 2007-06-22 13:21:03 eliv Exp $
+ * $Revision: 1.22 $
 */
 
 #include <math.h>
@@ -308,8 +308,42 @@ namespace AS_BOG{
             graph[i] += val;
     }
     ///////////////////////////////////////////////////////////////////////////
+    SeqInterval intersection( SeqInterval a, SeqInterval b)
+    {
+        SeqInterval retVal = NULL_SEQ_LOC;
+        int aMin,aMax,bMin,bMax;
+        if (isReverse(a)) { aMin = a.end; aMax = a.bgn; }
+        else              { aMin = a.bgn; aMax = a.end; }
+        if (isReverse(b)) { bMin = b.end; bMax = b.bgn; }
+        else              { bMin = b.bgn; bMax = b.end; }
+
+        if (aMax < bMin || bMax < aMin)
+            return retVal;
+
+        // so now aMax > bMin && bMax > aMin, thus intersection
+        retVal.bgn = MAX( aMin, bMin );
+        retVal.end = MIN( aMax, bMax );
+        return retVal;
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    // Assumes list is already sorted
+    void combineOverlapping( IntervalList* list )
+    {
+        IntervalList::iterator iter = list->begin();
+        IntervalList::iterator a = iter++;
+        for(; iter != list->end() && iter != static_cast<IntervalList::iterator>(NULL);
+              iter++) {
+            SeqInterval aIb = intersection( *a, *iter );
+            if (!(aIb == NULL_SEQ_LOC) && aIb.end - aIb.bgn > 1000) {
+                a->bgn = aIb.bgn;
+                a->end = aIb.end;
+                list->erase( iter ); 
+            }
+        }
+    }
+    ///////////////////////////////////////////////////////////////////////////
+
     IntervalList* findPeakBad( short* badGraph, int tigLen);
-    void combineOverlapping( IntervalList *);
 
     // hold over from testing if we should use 5' or 3' for range generation, now must use 3'
     static const bool MATE_3PRIME_END = true;
@@ -496,6 +530,7 @@ namespace AS_BOG{
         backBgn = isReverse( backbone.position ) ? backbone.position.end :
                                                    backbone.position.bgn ;
 
+        bool combine = false;
         IntervalList::const_iterator fwdIter = fwdBads->begin();
         IntervalList::const_iterator revIter = revBads->begin();
         while( fwdIter != fwdBads->end() || revIter != revBads->end() )
@@ -510,6 +545,14 @@ namespace AS_BOG{
                 fwdIter++;
             } else {                     // reverse bad group, break at last frag
                 bad = *revIter;
+                if (fwdIter != fwdBads->end()     && fwdIter->bgn > bad.end &&
+                    fwdIter->bgn  - bad.end < 900 && fwdIter->end - bad.bgn < 2000)
+                {
+                    fprintf(stderr,"Combine bad ranges %d - %d with %d - %d\n",
+                            bad.bgn, bad.end, fwdIter->end, fwdIter->bgn);
+                    fwdIter++; // Combine if fwd and bad within 900 bases
+                    combine = true;
+                }
                 revIter++;
             }
             fprintf(stderr,"Bad peak from %d to %d\n",bad.bgn,bad.end);
@@ -518,9 +561,11 @@ namespace AS_BOG{
                 bool breakNow = false;
                 if ( fwdBad && bad < loc.pos1 ) { // break now, put loc in new tig
                     breakNow = true;
-                } else if ( !fwdBad && loc.pos1.bgn == bad.end ) {
+                } else if ( !fwdBad && (loc.pos1.bgn == bad.end) ||
+                            (combine && loc.pos1.end >  bad.bgn) ) {
                     // reverse break now, put loc in new tig
                     breakNow = true;
+                    combine = false;
                 } else if (bad.bgn > backBgn) {
                 // fun special case, keep contained frags at end of tig in container 
                 // instead of in their own new tig where they might not overlap
@@ -538,6 +583,19 @@ namespace AS_BOG{
                     bp.inFrags = 10;
                     breaks->push_back( bp );
                     posIter++;
+                    SeqInterval overlap = intersection(loc.pos1, posIter->pos1);
+                    if (NULL_SEQ_LOC == overlap) {
+                        // no overlap between this and the next frg, make singleton
+                        fragEndInTig = (fragEndInTig == FIVE_PRIME) ?
+                                          THREE_PRIME : FIVE_PRIME;
+                        UnitigBreakPoint bp( loc.id1, fragEndInTig );
+                        bp.position = loc.pos1;
+                        bp.inSize = 100001;
+                        bp.inFrags = 11;
+                        breaks->push_back( bp );
+                        fprintf(stderr,"Making frg %d singleton, end %d size %d\n",
+                                loc.id1, fragEndInTig, breaks->size());
+                    }
                     break;
                 }
             }
@@ -586,42 +644,6 @@ namespace AS_BOG{
         }
         return peakBads;
     }
-
-    ///////////////////////////////////////////////////////////////////////////
-    SeqInterval intersection( SeqInterval a, SeqInterval b)
-    {
-        SeqInterval retVal = NULL_SEQ_LOC;
-        int aMin,aMax,bMin,bMax;
-        if (isReverse(a)) { aMin = a.end; aMax = a.bgn; }
-        else              { aMin = a.bgn; aMax = a.end; }
-        if (isReverse(b)) { bMin = b.end; bMax = b.bgn; }
-        else              { bMin = b.bgn; bMax = b.end; }
-
-        if (aMax < bMin || bMax < aMin)
-            return retVal;
-
-        // so now aMax > bMin && bMax > aMin, thus intersection
-        retVal.bgn = MAX( aMin, bMin );
-        retVal.end = MIN( aMax, bMax );
-        return retVal;
-    }
-    ///////////////////////////////////////////////////////////////////////////
-    // Assumes list is already sorted
-    void combineOverlapping( IntervalList* list )
-    {
-        IntervalList::iterator iter = list->begin();
-        IntervalList::iterator a = iter++;
-        for(; iter != list->end() && iter != static_cast<IntervalList::iterator>(NULL);
-              iter++) {
-            SeqInterval aIb = intersection( *a, *iter );
-            if (!(aIb == NULL_SEQ_LOC)) {
-                a->bgn = aIb.bgn;
-                a->end = aIb.end;
-                list->erase( iter ); 
-            }
-        }
-    }
-
     ///////////////////////////////////////////////////////////////////////////
 
     bool MateLocation::startEntry(iuid unitigID, iuid fragID, SeqInterval fragPos)
