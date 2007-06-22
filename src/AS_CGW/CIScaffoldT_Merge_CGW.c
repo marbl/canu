@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.30 2007-06-22 20:14:39 eliv Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.31 2007-06-22 20:25:48 eliv Exp $";
 
 
 #undef ORIG_MERGE_EDGE_INVERT
@@ -4458,7 +4458,7 @@ int BuildSEdgesForMerging(ScaffoldGraphT * graph,
         *minWeightThreshold -= 0.2;
 
       // don't let it get to small and go negative
-      minWeightThreshold = MAX( minWeightThreshold, EDGE_WEIGHT_FACTOR);
+      *minWeightThreshold = MAX( *minWeightThreshold, EDGE_WEIGHT_FACTOR);
     }
 
   // loop over sEdges
@@ -5208,10 +5208,10 @@ int MergeScaffoldsExhaustively(ScaffoldGraphT * graph,
     mergedSomething = MergeScaffolds(deadScaffoldIDs, iSpec, verbose);
     totalMerged += mergedSomething;
     prevFirstNewScaffoldID = currFirstNewScaffoldID;
-    if(mergedSomething == 0 && minWeightThreshold > 2)
+    if(mergedSomething == 0 && minWeightThreshold > 2.0)
       {
         mergedSomething = 1;
-        minWeightThreshold -= 1;
+        minWeightThreshold -= 1.0;
       }
   }while(mergedSomething);
   return totalMerged;
