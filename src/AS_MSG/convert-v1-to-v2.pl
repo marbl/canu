@@ -95,10 +95,10 @@ while (!eof(STDIN)) {
             if ($line =~ m/^acc:(\d+)$/) {
                 $acc = $1;
             }
-            if ($line =~ m/^mea:(\d+\.\d+)$/) {
+            if ($line =~ m/^mea:(\d+\.*\d*)$/) {
                 $mea = $1;
             }
-            if ($line =~ m/^std:(\d+\.\d+)$/) {
+            if ($line =~ m/^std:(\d+\.*\d*)$/) {
                 $std = $1;
             }
             $line = <STDIN>; chomp $line;
