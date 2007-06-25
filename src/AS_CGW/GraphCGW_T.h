@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: GraphCGW_T.h,v 1.17 2007-06-22 18:23:49 eliv Exp $	 */
+/* 	$Id: GraphCGW_T.h,v 1.18 2007-06-25 15:43:41 eliv Exp $	 */
 
 /**************************************************************************
  *  GraphCGW
@@ -73,6 +73,8 @@ typedef struct {
       unsigned int isConfirmed:1; // Is this edge confirmed.
       unsigned int isContigConfirming:1; /* This edge indicates to the contigger that the two
                                             elements should be merged into a contig */
+      // 8 bits used
+
       unsigned int isUniquetoUnique:1; /* Is this edge from one unique CI
                                           to another unique CI. */
       unsigned int isTransitivelyRemoved:1; /* Has this edge been transitively removed */
@@ -89,6 +91,9 @@ typedef struct {
 
       unsigned int inducedByUnknownOrientation:1; /* One of 4 raw edges induced by a LKG with AS_UNKNOWN orientation */
       unsigned int hasContributingOverlap:1;  /* EdgeMate includes contribution from an overlap, not repeat only */
+
+      // 16 bits used
+
       unsigned int hasRepeatOverlap:1;        /* Has overlaps beyond branch points ==> repeat only */
       unsigned int hasTandemOverlap:1;  /* Overlapper reported a min-max range of overlaps */
       unsigned int aContainsB:1;        /* From CGB for multiply contained fragments */
@@ -97,6 +102,9 @@ typedef struct {
       unsigned int hasGuide:1;                /* Contains one or more guide edges */
       unsigned int XXXunusedXXX_hasSTSGuide:1;  /* EXTRA, UNUSED, was Contains an STS Guide */
       unsigned int hasMayJoin:1;             /* Contains a may join constraint */
+
+      // 24 bits used
+
       unsigned int hasMustJoin:1;             /* Contains a must join constraint */
       unsigned int hasTransChunk:1;           /* was a transitively removed edge in cgb */
       unsigned int hasContainmentOverlap:1;  /* Implies a containment */
@@ -107,12 +115,17 @@ typedef struct {
       unsigned int rangeTruncated:1;    /* TRUE if we looked for an overlap and didn't find any,
                                            and thus truncated the range of distances */
       unsigned int inAssembly:1;
+
+      // 32 bits used
+
       unsigned int isBogus:1;  // determined from simulator annotations, overloaded by scaffold merging code (see CIScaffold_Merge_CGW.c)
       unsigned int isProbablyBogus:1; // determined from distance and distIndex empirically, overloaded for one-sided edges in CIScaffold_Merge
       unsigned int hasConfirmingPath:1; // Has this edge another path that confirms its length & var (used in GapWalkerREZ.c)
 	    
 
       unsigned int edgeStatus:7; 
+
+      // 42 bits used
 	    
       unsigned int isMarkedForDeletion:1;   // We plan to delete this guy
       unsigned int MeanChangedByWalking:1;
@@ -121,6 +134,7 @@ typedef struct {
       unsigned int isSloppy:1;
       unsigned int isBridge:1;               // Bridge edge in a scaffold
 
+      // 48 bits used total
     }bits;
   }flags;
   //	
