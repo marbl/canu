@@ -1114,10 +1114,10 @@ int main (int argc , char * argv[] ) {
 	    currFrg=o.b_iid;
 
 	    if(Aend){
-	      rightEnd=leftEnd+frglen+o.dat . ovl . b_hang;
+	      rightEnd=leftEnd + frglen + o.dat . ovl . b_hang;
 	      leftEnd+=o. dat . ovl . a_hang;
 	    } else {
-	      rightEnd=leftEnd+frglen+o.dat . ovl . b_hang;
+	      rightEnd=leftEnd + frgleg - o.dat . ovl . a_hang;
 	      leftEnd-=o.dat . ovl . b_hang;
 	    }
 
