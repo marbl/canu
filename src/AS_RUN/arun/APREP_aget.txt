@@ -1,0 +1,12 @@
+scaff
+bcp
+contig
+fasta
+tasm
+feat
+seqs
+library
+context
+out
+log
+contigs

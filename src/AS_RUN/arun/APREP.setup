@@ -1,0 +1,2 @@
+alias assert_exists=ls
+COMMON_BIN=/usr/local/common
