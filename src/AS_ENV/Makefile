@@ -24,32 +24,26 @@
 
 LOCAL_WORK = $(shell cd ../../; pwd)
 
-CGW_SOURCES = greedyFragmentTiling.c
-CGW_LIB_SOURCES = 
+SOURCES         = greedyFragmentTiling.c \
+                  metagenomics_ovl_analyses.c
 
-SOURCES         = $(CGW_SOURCES) $(CGW_LIB_SOURCES)
-SCRIPTS		= \
-		  greedy_layout_to_IUM.pl \
+SCRIPTS		= greedy_layout_to_IUM.pl \
 		  utg2fasta.pl 		  \
 		  run_greedy.csh
 
 OBJECTS         = $(SOURCES:.c=.o) 
-CGW_LIB_OBJECTS = $(CGW_LIB_SOURCES:.c=.o)
-
-LIBRARIES     = 
-LIBS          = libCA.a
-
-PROGS = greedyFragmentTiling 
+LIBRARIES       = 
+PROGS           = greedyFragmentTiling metagenomics_ovl_analyses
 
 include $(LOCAL_WORK)/src/c_make.as
 
-all: $(OBJECTS) $(LIBRARIES) $(PROGS)
+all: $(OBJECTS) $(LIBRARIES) $(PROGS) $(SCRIPTS)
 	@cp -f greedy_layout_to_IUM.pl $(LOCAL_BIN)/greedy_layout_to_IUM
 	@chmod 775 $(LOCAL_BIN)/greedy_layout_to_IUM
 	@cp -f utg2fasta.pl $(LOCAL_BIN)/utg2fasta
 	@chmod 775 $(LOCAL_BIN)/utg2fasta
 	@cp -f run_greedy.csh $(LOCAL_BIN)/run_greedy.csh
 	@chmod 775 $(LOCAL_BIN)/run_greedy.csh
-	@test -n nop
 
-greedyFragmentTiling: greedyFragmentTiling.o $(LIBS)
+greedyFragmentTiling: greedyFragmentTiling.o libCA.a
+metagenomics_ovl_analyses: metagenomics_ovl_analyses.o libCA.a
