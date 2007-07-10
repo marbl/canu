@@ -1117,7 +1117,7 @@ int main (int argc , char * argv[] ) {
 	      rightEnd=leftEnd + frglen + o.dat . ovl . b_hang;
 	      leftEnd+=o. dat . ovl . a_hang;
 	    } else {
-	      rightEnd=leftEnd + frgleg - o.dat . ovl . a_hang;
+	      rightEnd=leftEnd + frglen - o.dat . ovl . a_hang;
 	      leftEnd-=o.dat . ovl . b_hang;
 	    }
 
