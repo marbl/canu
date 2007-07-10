@@ -1,16 +1,26 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <math.h>
+
 #include "AS_global.h"
 #include "AS_PER_gkpStore.h"
-#include  "AS_OVL_delcher.h"
-#include  "AS_PER_ReadStruct.h"
-#include  "AS_PER_genericStore.h"
-#include  "AS_PER_fragStore.h"
-#include  "AS_PER_distStore.h"
-#include  "AS_UTL_PHash.h"
-#include  "AS_MSG_pmesg.h"
-#include  "AS_OVL_overlap.h"
-#include  "OlapStoreOVL.h"
+#include "AS_OVS_overlapStore.h"
+
+#if 0
+#include "AS_PER_gkpStore.h"
+#include "AS_OVL_delcher.h"
+#include "AS_PER_ReadStruct.h"
+#include "AS_PER_genericStore.h"
+#include "AS_PER_fragStore.h"
+#include "AS_PER_distStore.h"
+
+#include "AS_UTL_PHash.h"
+#include "AS_MSG_pmesg.h"
+#include "AS_OVL_overlap.h"
+#include "OlapStoreOVL.h"
+#endif
+
 
 //static int cutoffs[10]={300,250,200,150,100,60,50,20,10,5};
 //static int ncuts=10;
@@ -22,7 +32,7 @@ static int prev;
 static int t;
 static int **cnt,**cln;
 static int maxsmp;
-static Long_Olap_Data_t  olap;
+static OVSoverlap  olap;
 static double ***self,***other,***clnself,***clnother;
 static int *smp;
 static int debug=0;
@@ -31,11 +41,11 @@ static int **allbeg,**allend,**otherbeg,**otherend,**selfbeg,**selfend;
 static int *alln,*othern,*selfn;
 static int maxovls=0;
 static int flen;
-static FragStoreHandle  my_frg_store;
-static GateKeeperStore my_gkp_store ; // See AS_PER_gkpStore.h
-static OVL_Store_t  * my_ovl_store;
-static OVL_Stream_t  * my_stream;
-static ReadStructp fsread;
+
+static GateKeeperStore *gkpStore;
+static OverlapStore    *ovlStore;
+static fragRecord       fsread;
+
 static int currmate;
 static int ***samesmpantiovlhistogram;
 static int ***alldepthhistogram;
@@ -46,27 +56,6 @@ static int *smpnfrgs;
 static int *smpbases;
 
 
-void usage(char *pgm){
-  fprintf(stderr,"Usage: %s [-A <diversity overlap histogram file>] [-B <binary coverages file>] [-C <depths of coverage file>] [-S <similarity scores file>] [-b startfrg] [-e endfrg] [-d] -f <frgStore> -g <gkpStore> -o <ovlStore> -s <samples>\n",pgm);
-  exit(-1);
-}
-
-void setup_stores(char *OVL_Store_Path, char *Frg_Store_Path, char *Gkp_Store_Path){
-
-  assert(OVL_Store_Path!=NULL);
-  assert(Frg_Store_Path!=NULL);
-  assert(Gkp_Store_Path!=NULL);
-
-  assert(my_ovl_store==NULL);
-  my_ovl_store = New_OVL_Store ();
-  my_stream = New_OVL_Stream ();
-  Open_OVL_Store (my_ovl_store, OVL_Store_Path);
-
-  InitGateKeeperStore(&my_gkp_store, Gkp_Store_Path);
-  OpenReadOnlyGateKeeperStore(&my_gkp_store);
-
-  my_frg_store = openFragStore( Frg_Store_Path, "r");
-}
 
 void init_frg(){
 
@@ -85,33 +74,11 @@ void init_frg(){
     othern[k]=selfn[k]=alln[k]=0;
   }
 
+  getFrag(gkpStore,prev,&fsread,FRAG_S_INF);
+  flen = (getFragRecordClearRegionEnd(&fsread, AS_READ_CLEAR_LATEST) -
+          getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_LATEST));
 
-  {
-    /*****************/
-    // get fragment length
-    /*****************/
-    uint clr_bgn,clr_end;
-    getFragStore(my_frg_store,prev,FRAG_S_ALL,fsread);
-    getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end, READSTRUCT_LATEST);
-    flen = clr_end-clr_bgn;
-  }
-
-  currmate=-1;
-  {
-    /*************************/
-    // check for an appropriate mate
-    /*************************/
-    GateKeeperFragmentRecord gkpFrag;
-    int rv1 = getGateKeeperFragmentStore(my_gkp_store.frgStore,prev,&gkpFrag);
-    assert(rv1==0);
-    if(gkpFrag.numLinks==1){
-      GateKeeperLinkRecordIterator iterator;
-      GateKeeperLinkRecord link;
-      CreateGateKeeperLinkRecordIterator(my_gkp_store.lnkStore, gkpFrag.linkHead,prev, &iterator);
-      while(NextGateKeeperLinkRecordIterator(&iterator, &link))
-	currmate = (link.frag1 == prev) ? link.frag2 : link.frag1;
-    }
-  }
+  currmate = getFragRecordMateIID(&fsread);
 
   if(debug>0){
     fprintf(stderr,"%d mate %d len %d smp %d\n",prev,currmate,flen,psmp);
@@ -313,12 +280,10 @@ void process_null_frg(int iid){
   int s = smp[iid];
   int k;
   int flen;
-  {
-    uint clr_bgn,clr_end;
-    getFragStore(my_frg_store,prev,FRAG_S_ALL,fsread);
-    getClearRegion_ReadStruct(fsread, &clr_bgn,&clr_end, READSTRUCT_LATEST);
-    flen=clr_end-clr_bgn;
-  }
+
+  getFrag(gkpStore,prev,&fsread,FRAG_S_INF);
+  flen = (getFragRecordClearRegionEnd(&fsread, AS_READ_CLEAR_LATEST) -
+          getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_LATEST));
 
   smpbases[s]+=flen;
   smpnfrgs[s]++;
@@ -329,7 +294,6 @@ void process_null_frg(int iid){
     selfdepthhistogram[s][k][0]+=flen;
     samesmpantiovlhistogram[s][k][0]++;
   }
-
 }
 
 void output_sim_matrix_info(FILE* simFile){
@@ -640,7 +604,6 @@ int main (int argc, char *argv[]){
   FILE *binaryCvgFile=NULL;
   FILE *depthCvgFile=NULL;
   FILE *antiOvlHistoFile=NULL;
-  fsread=new_ReadStruct();
 
   while  (! errflg
 	  && ((ch = getopt (argc, argv, "b:dDe:f:g:m:o:s:A:B:C:S:"))!=EOF)){
@@ -657,10 +620,6 @@ int main (int argc, char *argv[]){
 	break;
       case 'e':
 	endidx=atoi(optarg);
-	break;
-      case 'f':
-	strcpy( full_frgPath, argv[optind - 1]);
-	setFullFrg = TRUE;
 	break;
       case 'g':
 	strcpy( full_gkpPath, argv[optind - 1]);
@@ -695,16 +654,21 @@ int main (int argc, char *argv[]){
      setFullGkp!=1 ||
      setFullFrg!=1
      ){
-    usage(argv[0]);
+    fprintf(stderr,
+            "Usage: %s [-A <diversity overlap histogram file>] [-B <binary coverages file>] [-C <depths of coverage file>] [-S <similarity scores file>] [-b startfrg] [-e endfrg] [-d] -f <frgStore> -g <gkpStore> -o <ovlStore> -s <samples>\n",
+            argv[0]);
+    exit(1);
   }
 
-  setup_stores(full_ovlPath,full_frgPath,full_gkpPath);
-  lastfrag = getLastElemFragStore (my_frg_store);
+  ovlStore = AS_OVS_openOverlapStore(full_ovlPath);
+  gkpStore = openGateKeeperStore(full_gkpPath, FALSE);
+
+  lastfrag = getLastElemFragStore(gkpStore);
 
   assert(smpsFile!=NULL);
 
   if(begidx==-1)begidx=1;
-  lastovlfrg = Last_Frag_In_OVL_Store (my_ovl_store);
+  lastovlfrg = AS_OVS_lastFragInStore (ovlStore);
   if(endidx==-1)endidx=lastovlfrg;
   assert(begidx<=endidx);
   assert(endidx<=lastovlfrg);
@@ -731,16 +695,18 @@ int main (int argc, char *argv[]){
   
   prev=0;
 
-  Init_OVL_Stream (my_stream, begidx, endidx, my_ovl_store);
+  AS_OVS_setRangeOverlapStore(ovlStore, begidx, endidx);
 
-  while  (Next_From_OVL_Stream (& olap, my_stream)){
+  while  (AS_OVS_readOverlapFromStore(ovlStore, &olap, AS_OVS_TYPE_OVL)) {
     if(debug>0){
       fprintf (stderr,"    %8d %8d %c %5d %5d %4.1f %4.1f\n",
-              olap . a_iid, olap . b_iid,
-              olap . flipped ? 'I' : 'N',
-              olap . a_hang, olap . b_hang,
-              Expand_Quality (olap . orig_erate) * 100.0,
-              Expand_Quality (olap . corr_erate) * 100.0);
+               olap.a_iid,
+               olap.b_iid,
+               olap.dat.ovl.flipped ? 'I' : 'N',
+               olap.dat.ovl.a_hang,
+               olap.dat.ovl.b_hang,
+               AS_OVS_decodeQuality(olap.dat.ovl.orig_erate) * 100.0,
+               AS_OVS_decodeQuality(olap.dat.ovl.corr_erate) * 100.0);
     }
 
     if(olap.a_iid!=prev){
@@ -761,7 +727,7 @@ int main (int argc, char *argv[]){
 
     clean=0;
 
-    if( olap.flipped && olap.a_hang < 0 && olap.b_hang < 0 && currmate != olap.b_iid) {
+    if( olap.dat.ovl.flipped && olap.dat.ovl.a_hang < 0 && olap.dat.ovl.b_hang < 0 && currmate != olap.b_iid) {
       clean=1;
     }
 
@@ -769,7 +735,7 @@ int main (int argc, char *argv[]){
 
     for(k=0;k<ncuts;k++){
 
-      if(olap.orig_erate>cutoffs[k]){break;}
+      if(olap.dat.ovl.orig_erate>cutoffs[k]){break;}
 
       cnt[sb][k]++;
 
@@ -779,8 +745,8 @@ int main (int argc, char *argv[]){
 
       { 
 	int b,e;
-	b = ( olap.a_hang>0 ? olap.a_hang : 0 );
-	e = flen + ( olap.b_hang < 0 ? olap.b_hang : 0 );
+	b = ( olap.dat.ovl.a_hang>0 ? olap.dat.ovl.a_hang : 0 );
+	e = flen + ( olap.dat.ovl.b_hang < 0 ? olap.dat.ovl.b_hang : 0 );
 
 	assert(b<e);
 	assert(b>=0&&b<flen);
@@ -814,8 +780,8 @@ int main (int argc, char *argv[]){
     if(k>t)t=k;
 
   }
-  Free_OVL_Stream (my_stream);
-  Free_OVL_Store (my_ovl_store);
+
+  AS_OVS_closeOverlapStore(ovlStore);
 
 
   // handle last overlapped frag plus those following...
