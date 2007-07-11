@@ -297,14 +297,14 @@ sub runSGE (@) {
     open(L, "> tafrgL-$prefix.sh") or die;
     open(F, "> tafrgF-$prefix.sh") or die;
 
-    print X "$!/bin/sh\n";
+    print X "#!/bin/sh\n";
     print X "#\n";
     print X "#\$ -cwd\n";
     print X "#\$ -A assembly\n";
     print X "#\$ -j y\n";
     print X "#\n";
 
-    print L "$!/bin/sh\n";
+    print L "#!/bin/sh\n";
     print L "#\n";
     print L "#\$ -cwd\n";
     print L "#\$ -A assembly\n";
@@ -312,7 +312,7 @@ sub runSGE (@) {
     print L "#\n";
     print L "perl $0 -lib ";
 
-    print F "$!/bin/sh\n";
+    print F "#!/bin/sh\n";
     print F "#\n";
     print F "#\$ -cwd\n";
     print F "#\$ -A assembly\n";
