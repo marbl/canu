@@ -1,11 +1,12 @@
 #!/usr/local/bin/perl
 
-# $Id: caqc.pl,v 1.18 2007-01-29 20:18:19 brianwalenz Exp $
+# $Id: caqc.pl,v 1.19 2007-07-17 21:18:43 moweis Exp $
 #
 # This program reads a Celera .asm file and produces aggregate information
 # about the assembly
 #
 # Written by Mihai Pop, Martin Shumway
+
 #
 #
 
@@ -19,12 +20,150 @@ use IO::File;
 use File::Basename;
 use Statistics::Descriptive;
 use File::Copy;
+use Math::BigFloat;
+use FindBin qw($Bin);
 
-my $MY_VERSION = "caqc Version 2.11 (Build " . (qw/$Revision: 1.18 $/ )[1] . ")";
+my $MY_VERSION = "caqc Version 2.11 (Build " . (qw/$Revision: 1.19 $/ )[1] . ")";
 
 # Constants
 my $MINQUAL   = 20;
 my $MINCONTIG = 10000;
+my %help_text_map = (
+    totalscaffolds => "The total number of scaffolds in the assembly.",
+    totalcontigsinscaffolds => "the total number of contigs that made it into scaffolds. Contigs that do not belong to scaffolds are called degenerate and generally can be ignored.",
+    meancontigsperscaffold => "the average number of contigs in a scaffold.",
+    mincontigsperscaffold => "the minimum number of contigs in a scaffold.",
+    maxcontigsperscaffold => "the maximum number of contigs in a scaffold.",
+    totalbasesinscaffolds => "the sum of all contig sizes for the contigs in scaffolds.",
+    meanbasesinscaffolds => "the average scaffold size. The size of a scaffold is the sum of all contigs contained in that scaffold.",
+    minbasesinscaffolds => "the minimum size of a scaffold.",
+    maxbasesinscaffolds => "the maximum size of a scaffold.",
+    n50scaffoldbases => "the N50 scaffold size.",
+    totalspanofscaffolds => "the sum of all contig sizes and gaps in all scaffolds.",
+    meanspanofscaffolds => "the average span of a scaffold.",
+    minscaffoldspan => "the minimum span of a scaffold.",
+    maxscaffoldspan => "the maximum span of a scaffold.",
+    intrascaffoldgaps => "the number of sequencing gaps in all scaffolds.",
+    twokbscaffolds => "the count of scaffolds whose span >= 2kbp.",
+    twokbscaffoldspan => "the cummulative span of scaffolds whose span >= 2kbp.",
+    meansequencegapsize=> "the average size of a sequencing gap.",
+    top5scaffolds => "a listing of the 5 largest scaffolds. For each scaffold we report the number of contigs, size, and span as well as the average contig an average sequencing gap sizes.",
+    totalcontigsinscaffolds => "the total number of contigs",
+    totalvarrecords => "the total number of var records in the contigs.",
+    meancontigsize => "the average contig size.",
+    mincontigsize => "the minimum contig size.",
+    maxcontigsize => "the maximum contig size.",
+    n50contigbases => "the N50 contig size.",
+    totalbigcontigs => "the number of contigs bigger than 10kb.",
+    bigcontiglength => "the sum of the sizes of all contigs bigger than 10kb.",
+    meanbigcontigsize => "the average size of the contigs over 10kb.",
+    minbigcontig => "the minimum contig size in contigs over 10kb.",
+    maxbigcontig => "the maximum contig size in contigs over 10kb. Should be the same as MaxContigSize.",
+    bigcontigspercentbases => "the percentage of TotalBasesInScaffolds contained in contigs over 10kb.",
+    totalsmallcontigs => "the number of contigs smaller than 10kb.",
+    smallcontiglength => "the sum of the sizes of all contigs smaller than 10kb.",
+    meansmallcontigsize => "the average size of contigs under 10kb.",
+    minsmallcontig => "the minimum contig size in contigs under 10kb. Should be the same as MinContigSize.",
+    maxsmallcontig => "the maximum contig size in contigs under 10kb.",
+    smallcontigspercentbases => "the percentage of TotalBasesInScaffolds contained in contigs under 10kb.",
+    totaldegencontigs => "the number of degenerate contigs (contigs that do not appear in scaffolds).",
+    degencontiglength => "the sum of the sizes of all degenerate contigs.",
+    meandegencontigsize => "the average size of degenerate contigs.",
+    mindegencontig => "the minimum size of a degenerate contig.",
+    maxdegencontig => "the maximum size of a degenerate contig.",
+    degenpercentbases => "the ratio (as percentage points) between DegenContigLength and TotalBasesInScaffolds. Note that degenerate contigs are not counted as part of TotalBasesInScaffolds.",
+    top5contigs => "a listing of the 5 largest contigs. For each contig we report the number of reads and the size.",
+    totaluunitigs => "",
+    minuunitiglength => "",
+    maxuunitiglength => "",
+    meanuunitiglength => "",
+    sduunitiglength => "",
+    totalsurrogates => "",
+    surrogateinstances => "",
+    surrogatelength => "",
+    surrogateinstancelength => "",
+    unplacedsurrreadlen => "",
+    placedsurrreadlen => "",    
+    minsurrogatesize => "size of smallest surrogate.",
+    maxsurrogatesize => "size of largest surrogate.",
+    meansurrogatesize => "mean size of a surrogate.",
+    sdsurrogatesize => "standard deviation of surrogate sizes assuming a normal distribution.",
+    readswithnomate => "number of reads (out of TotalReads) that did not have a mate",
+    #readswithbadmate => "number of reads (out of TotalReads) that had a bad mate, i.e. a mate too far, too close, or with the incorrect orientation.",
+    readswithgoodmate => "number of reads (out of TotalReads) that had a good mate",
+    #readswithunusedmate => "number of reads (out of TotalReads) whose mate was not used in the assembly",
+    readswithbadshortmate => "",
+    readswithbadlongmate => "",
+    readswithsameorientmate => "",
+    readswithouttiemate => "",
+    readswithbothchaffmate => "",
+    readswithchaffmate => "",
+    readswithbothdegenmate => "",
+    readswithdegenmate => "",
+    readswithbothsurrmate => "",
+    readswithsurrogatemate => "",
+    readswithdiffscafmate => "",
+    readswithunassignedmate => "",
+    totalscaffoldlinks => "number of links between scaffolds. These represent linking information currently conflicting with the existing scaffolds. The lower this number the better.",
+    meanscaffoldlinkweight => "average weight (# of mate pairs) of links between scaffolds.",
+    totalreadsinput => "the total number of reads supplied to the assembler.",
+    totalusablereads => "the total number of reads included in the assembly.",
+    avgclearrange => "",
+    contigreads => "the number of reads that belong to contigs.",
+    bigcontigreads => "number of reads that belong to contigs over 10kb in size.",
+    smallcontigreads => "number of reads that belong to contigs under 10kb in size.",
+    degencontigreads => "number of reads in degenerate contigs.",
+    surrogatereads => "number of reads in surrogates - potentially repetitive or ambiguously placed contigs.",
+    placedsurrogatereads => "number of placed reads in surrogates.",
+    singletonreads => "number of reads that are neither in contigs, nor surrogates, nor degenerate contigs.",
+    contigsonly => "coverage (redundancy) of all contigs in scaffolds - length of all the reads in contigs or surrogates divided by the size of all scaffolds",
+    contigs_surrogates => "coverage of all contigs and surrogates - length of all the reads in contigs and surrogates divided by the size of all scaffolds.",
+    contigs_degens_surrogates => "coverage of all contigs, degenerates, and surrogates - length of all the reads in contigs, surrogates, and degenerates divided by the size of all scaffolds and degenerates.",
+    allreads => "",
+    basescount => "",
+    clearrangelengthfrg => "",
+    clearrangelengthasm => "",
+    surrogatebaselength => "",
+    contigbaselength => "",
+    degenbaselength => "",
+    singletonbaselength => "",
+    contig_surrogate_baselength => "",
+    content => "The percentage of gc content in all the scaffold contigs.",
+    allreads => "coverage you paid for - length of all the reads divided by the size of the scaffolds.",
+    library_initial => "the initial estimate of library size.",
+    library_final => "the final estimate of library size. This also contains the 'buc' field and the 'hist' fields. The 'buc' field is the number of buckets use to split the min-max insert range and the 'hist' field contains the number of inserts that have a size within the corresponding bucket range.",
+    contighistogram => "this lists the contig sizes.",
+    numcontigs => "number of contigs processed by the AutoEditor",
+    numreads => "number of reads in all processed contigs",
+    numcontigdiscrepancies => "number of contig positions with at least one discrepancy",
+    numcontigdiscrepanciescorrected => "number of contig positions with at least one discrepancy all of which have been corrected",
+    perccontigdiscrepanciescorrected => "percentage of completely corrected contig positions",
+    numcontigpositionshuman => "number of contig positions that woud have to be edited by a human (original) (qc >= 9 OR < 1kb from contig ends)",
+    numcontigpositionshumanaftered => "number of contig positions that woud have to be edited by a human (after) (qc >= 9 OR < 1kb from contig ends)",
+    numsinglecovpos => "number of single coverage positions",
+    numcontigpositionshumancorrected => "number of completely corrected contig positions that woud have to be edited by a human",
+    perccontigpositionshumancorrected => "percentage of completely corrected contig positions that would have to be edited by a human",
+    numdiscrepancies => "total Number of discrepancies",
+    numdiscrepanciescorrected => "number of corrected discrepancies",
+    percdiscrepanciescorrected => "percentage of corrected discrepancies",
+    numcorrectedgapslices => "number of corrected gap slices",
+    numsequencegaps => "The number of sequencing gaps examined by autoJoiner",
+    numjoined => "The number of sequencing gaps that were joined by autoJoiner",
+    numdoubleextend => "The number of sequencing gaps joined by double contig extension",
+    numsingleextend => "The number of sequencing gaps joined by single contig extension",
+    numnoextend => "The number of sequencing gaps due to preexisting overlap",
+    percjoin => "The percentage of sequencing gaps that were autoJoined",
+    expectedgap_range => "The range (min,max) of the expected size of the sequencing gaps joined as reported by the assembler",
+    expectedgap_mean => "The mean expected size of the sequencing gaps joined",
+    expectedgap_sd => "The standard deviation of the expected size of the sequencing gaps joined",
+    expectedgap_median => "The median of the expected size of the sequencing gaps joined",
+    expectedgap_mad => "The median absolute deviation of the expected size of the sequencing gaps joined",
+    actualgap_range => "The range (min,max) of the actual size of the sequencing gaps joined as found by the autoJoiner",
+    actualgap_mean => "The mean actual size of the sequencing gaps joined",
+    actualgap_sd => "The standard deviation of the actual size of the sequencing gaps joined",
+    actualgap_median => "The median of the actual size of the sequencing gaps joined",
+    actualgap_mad => "The median absolute deviation of the actual size of the sequencing gaps joined."
+);
 
 my $MY_HELPTEXT = qq~
 Generate quality statistics from the specified Celera assembly .asm file.  
@@ -41,7 +180,11 @@ caqc requires that the file be in the current directory.
                        (default $MINCONTIG) 
       -d <c>           Specify the record delimiter tag<c>value
       -s <c>           Specify the list delimiter el[<c>el ...]
+      -h               Display help information and exit
+      -h <term>        Display help on output qc term. Use 'all' for all qc terms.
+      -html            Output qc help as html
       -silent          Do not emit output to the stdout
+      -euid            Print EUIDs
       -g <n>           Genome size used in the calculation of N50 numbers
                        (default: TotalBasesInContigs for contigs and TotalBasesInScaffolds for scaffolds)
       -debug <level>   Set the debug <level>.
@@ -50,11 +193,10 @@ caqc requires that the file be in the current directory.
                        (default: 5)
       -frg             Computes frag related statistics: BasesCount and ClearRangeLengthFRG. 
       		       This option requires that a <prefix>.frg file exist in the current directory.
-      -metrics         Option to output a <prefix>.qc.metrics file which is inputted to ametrics.  This option
-      		       requires that a <prefix>.frg file exist in the current directory. 
+      -metrics         Option to output a <prefix>.qc.metrics file which is inputted to ametrics.  This 
+                       option requires that a <prefix>.frg file exist in the current directory. 
 		       [Note: -frg is a subset of -metrics]
-      -h	       Print out this help text.
-      -v	       Print out version.
+
 		       
     output files:
 	<prefix>.qc		Described below.
@@ -87,6 +229,7 @@ my $DEFAULT_TOP_COUNT   = 5;
 my $d                   = $DEFAULT_TAG_DELIM;      # tag-value delimiter
 my $s                   = $DEFAULT_FIELD_DELIM;    # list separator
 my $silent              = 0;
+my $euid				= 0;
 
 ##############################################
 
@@ -302,6 +445,21 @@ sub printl($$$)
 }
 
 # Emit the results to the terminal, and if prefix specified, to the
+# prefix.qc file, as a config-readable output.  Integer form.
+#
+sub printld($$$)
+{
+  my $tag      = shift;
+  my $rh_value = shift;
+  my $rfh      = shift;
+
+  my $s1 = sprintf( "%-32s", $tag );
+  print(STDERR  sprintf( "%s%-d", $s1, Math::BigFloat->new($$rh_value{$tag})->ffround(0) ) . "\n" ) if ( !$silent );
+  $rfh->print( "$tag=" . sprintf( "%d", Math::BigFloat->new($$rh_value{$tag})->ffround(0) ) . "\n" );
+}
+
+
+# Emit the results to the terminal, and if prefix specified, to the
 # prefix.qc file, as a config-readable output.  Float form.
 #
 sub printlf($$$)
@@ -414,6 +572,55 @@ sub getLibIID($) {
     return -1;
 }
 
+sub outputHtml() {
+    my $HTML_HEAD =
+      qq~
+    <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+    <html>
+    <head>
+      <title>Caqc Output Guide</title>
+      <meta http-equiv="Content-Type"
+     content="text/html; CHARSET=iso-iso-8859-1">
+      <style type="text/css"><!--
+    BODY { font-family: serif }
+    H1 { font-family: sans-serif }
+    H2 { font-family: sans-serif }
+    H3 { font-family: sans-serif }
+    H4 { font-family: sans-serif }
+    H5 { font-family: sans-serif }
+    H6 { font-family: sans-serif }
+    SUB { font-size: smaller }
+    SUP { font-size: smaller }
+    PRE { font-family: monospace }
+    --></style>
+    </head>
+    <body>
+    <center>
+    OUTPUT GUIDE
+    <h1>CAQC</h1>
+    A description of the outputs of qc output of the <a href="../../projects/CeleraAssembler/">Celera Assembler</a>.
+    </center>
+    <hr>
+    <h2>Fields</h2>
+    <ul>  
+    ~;
+    
+    my $HTML_TAIL =
+      qq~
+    </ul>
+    </body>
+    </html>
+    ~;
+    
+    print STDERR $HTML_HEAD;
+    foreach my $key (sort {$a cmp $b} keys %help_text_map) {
+        my $help_val=$help_text_map{lc($key)};
+        my $helpKey = ucfirst lc $key;
+        print STDERR "<li><b>$helpKey</b> - $help_val</li><br>";                
+    }
+    print STDERR $HTML_TAIL;     
+}
+
 MAIN:
 {
   my $infile;
@@ -425,6 +632,7 @@ MAIN:
   my $metrics = undef;
   my $helpflag = undef;
   my $version = undef;
+  my $html = undef;
 
   Getopt::Long::Configure('no_ignore_case');
   my $err = GetOptions(
@@ -434,20 +642,38 @@ MAIN:
     'd=s'         => \$delim,
     's=s'         => \$sep,
     'silent!'     => \$silent,
+    'euid!'       => \$euid,
     'g=i'         => \$genomesize,
     't=i'         => \$topCount,
     'metrics'	  => \$metrics,
     'frg'	  => \$frg,
-    'h'           => \$helpflag,
-    'v'		  => \$version
+    'help:s'      => \$helpflag,
+    'V|v'		  => \$version,
+    'html'	  => \$html,
+    
   );
 
   if ( $err == 0 ) {
       die "Try -h for help.\n";
   }
   if ( $helpflag ) {
-      print STDERR $MY_HELPTEXT;
-      exit(1);
+    if ( lc($helpflag) eq 'all' ) {
+        foreach my $key (sort {$a cmp $b} keys %help_text_map) {
+            my $help_val=$help_text_map{$key};
+            my $helpKey = ucfirst $key;
+            print STDERR "$helpKey - $help_val\n";
+        }
+    } else {
+      	my $help_val=$help_text_map{lc($helpflag)};
+      	if($help_val){
+      	    $helpflag = ucfirst lc $helpflag;
+      		print STDERR "$helpflag - $help_val\n";
+      	}
+      	else{
+      		print STDERR "Undefined term!\n";
+      	}
+    }
+    exit(1);
   }
 
   if ( $version ) {
@@ -455,6 +681,11 @@ MAIN:
       exit(1);
   }
 
+  if ( $html ) {
+      outputHtml();
+      exit(1);
+  }
+ 
   $d = ( defined $delim ) ? $delim : $d;
   $s = ( defined $sep )   ? $sep   : $s;
   $topCount = $DEFAULT_TOP_COUNT if ( !defined $topCount );
@@ -495,7 +726,7 @@ MAIN:
   my $catOpen = undef;
   if ( defined $frg or defined $metrics ) {
 	  $frgOpen = open( FRG, $frgfile )    or die("Cannot open $frgfile");
-	  $catOpen = open( CAT, $catmapfile ) or die("Cannot open $catmapfile");
+	  $catOpen = open( CAT, $catmapfile ) or warn("Cannot open $catmapfile");
   }
 
   
@@ -553,7 +784,7 @@ MAIN:
   $Results{ReadsWithSurrogateMate}  = 0;
   $Results{ReadsWithSameOrientMate} = 0;
   $Results{ReadsWithBothSurrMate}   = 0;
-  $Results{ReadsWithUnassigned}     = 0;
+  $Results{ReadsWithUnassignedMate}     = 0;
 
   my %readLen;
   my $scaffLinkWeights  = 0;    # sum of links connecting scaffolds
@@ -611,6 +842,7 @@ MAIN:
       foreach my $rec (@$recs) {
         my ( $sid, $sfs, $srecs ) = parseCARecord( $rec );
         if ( $sid eq 'MPS' ) {
+
           my $mid  = $$sfs{'mid'};
           my $rlen = $readLen{$mid};    #abs($r - $l);
           $readlens{$contig_euid} += $rlen;
@@ -658,6 +890,7 @@ MAIN:
         for ( my $rd = 0 ; $rd <= $#$recs ; $rd++ ) {
           my ( $sid, $sfs, $srecs ) = parseCARecord( $$recs[$rd] );
           if ( $sid eq 'MPS' ) {
+
               my $mid = $$sfs{'mid'};
               $surrReadLen += $readLen{ $mid };
               $utgFrags{$mid} = 1;
@@ -789,10 +1022,10 @@ MAIN:
         $Results{ReadsWithBothSurrMate}++;
       }
       elsif ( $mstField eq 'Z' ) {
-        $Results{ReadsWithUnassigned}++;
+        $Results{ReadsWithUnassignedMate}++;
       }
       else {
-        $Results{ReadsWithUnassigned}++;
+        $Results{ReadsWithUnassignedMate}++;
       }
 
       $numSingletons++ if $$fields{'cha'} == 1;
@@ -836,11 +1069,13 @@ MAIN:
 
   my $totalBases            = 'NA';
   my $totalCLRReadLengthFRG = 'NA'; # Aggregate length of CLR of input reads used in assembly from FRG File
+  my $totalReadsInFRG       = 'NA';  # Aggregate number of reads used in assembly from FRG File
 
   if ( $frgOpen or $metrics ) {
   
     $totalBases            = 0;
     $totalCLRReadLengthFRG = 0; 
+    $totalReadsInFRG       = 0;
       
     while ( $record = getCARecord( \*FRG ) ) {
       my $type;
@@ -876,6 +1111,7 @@ MAIN:
 	  my $clearRangeLen = $2 - $1 + 1;
 	  $totalCLRReadLengthFRG += $clearRangeLen;
 	}
+        $totalReadsInFRG++;
       }
     }
   }
@@ -888,7 +1124,7 @@ MAIN:
   $Results{ContigBaseLength}        = 0;
   $Results{DegenBaseLength}         = 0;
   $Results{SingletonBaseLength}     = 0;
-  $Results{ContigAndSurrBaseLength} = 0;
+  $Results{Contig_SurrBaseLength} = 0;
   $Results{TotalScaffolds}          = 0;
   $Results{TotalContigsInScaffolds} = 0;
   $Results{MeanContigsPerScaffold}  = 0.0;
@@ -903,45 +1139,46 @@ MAIN:
   $Results{MinScaffoldSpan}         = 0;
   $Results{MaxScaffoldSpan}         = 0;
   $Results{IntraScaffoldGaps}       = 0;
-  $Results{MeanSequenceGapSize}     = 0.0;
+  $Results{MeanSequenceGapLength}     = 0.0;
   $Results{'2KbScaffolds'}          = 0;
   $Results{'2KbScaffoldsSpan'}      = 0;
-  $Results{MeanContigSize}          = 0.0;
-  $Results{MinContigSize}           = 0;
-  $Results{MaxContigSize}           = 0;
+  $Results{MeanContigLength}          = 0.0;
+  $Results{MinContigLength}           = 0;
+  $Results{MaxContigLength}           = 0;
   $Results{TotalBigContigs}          = 0;
   $Results{BigContigLength}          = 0;
-  $Results{MeanBigContigSize}        = 0.0;
+  $Results{MeanBigContigLength}        = 0.0;
   $Results{MinBigContig}             = 0;
   $Results{MaxBigContig}             = 0;
   $Results{BigContigsPercentBases}   = 0.0;
   $Results{TotalSmallContigs}        = 0;
   $Results{SmallContigLength}        = 0;
-  $Results{MeanSmallContigSize}      = 0.0;
+  $Results{MeanSmallContigLength}      = 0.0;
   $Results{MinSmallContig}           = 0;
   $Results{MaxSmallContig}           = 0;
   $Results{SmallContigsPercentBases} = 0.0;
   $Results{TotalDegenContigs}        = 0;
   $Results{DegenContigLength}        = 0;
-  $Results{MeanDegenContigSize}      = 0.0;
+  $Results{MeanDegenContigLength}      = 0.0;
   $Results{MinDegenContig}           = 0;
   $Results{MaxDegenContig}           = 0;
   $Results{DegenPercentBases}        = 0.0;
-  $Results{TotalReads}               = 0;
+  $Results{TotalUsableReads}               = 0;
+  $Results{TotalReadsInput}        = $totalReadsInFRG;
   $Results{AvgClearRange}            = ($totalSeqs > 0) ? $totalCLRReadLengthASM / $totalSeqs : 0;
-  $Results{ReadsInContigs}           = 0;
+  $Results{ContigReads}           = 0;
   $Results{BigContigReads}           = 0;
   $Results{SmallContigReads}         = 0;
   $Results{DegenContigReads}         = 0;
-  $Results{ReadsInSurrogates}        = 0;
+  $Results{SurrogateReads}        = 0;
   $Results{SingletonReads}           = 0;
   $Results{SingletonPercentBases}    = 0.0;
   $Results{ChaffReads}               = $numSingletons;
-  $Results{TotalNumVarRecords}       = $numVarRecords;
+  $Results{TotalVarRecords}       = $numVarRecords;
   $Results{AllReads}                 = 0.0;
   $Results{ContigsOnly}              = 0.0;
-  $Results{ContigsAndSurrogates}     = 0.0;
-  $Results{ContigsAndDegensAndSurrogates}         = 0.0;
+  $Results{Contigs_Surrogates}     = 0.0;
+  $Results{Contigs_Degens_Surrogates}         = 0.0;
   $Results{TotalSurrogates}          = $nunitigs;
   $Results{SurrogatesPercentBases}   = 0.0;
   $Results{SurrogateInstances}       = $numPlacedSurrogates;
@@ -950,15 +1187,15 @@ MAIN:
   $Results{UnPlacedSurrReadLen}      = $surrReadLen - $lenPlacedSurrogateFrags;
   $Results{PlacedSurrReadLen}        = $lenPlacedSurrogateFrags;
   $Results{PlacedSurrogateReads}     = $numPlacedSurrogateFrags;
-  $Results{MeanSurrogateSize}        = $utgs->mean();
-  $Results{MinSurrogateSize}         = $utgs->min();
-  $Results{MaxSurrogateSize}         = $utgs->max();
-  $Results{SDSurrogateSize}          = $utgs->standard_deviation();
+  $Results{MeanSurrogateLength}        = $utgs->mean();
+  $Results{MinSurrogateLength}         = $utgs->min();
+  $Results{MaxSurrogateLength}         = $utgs->max();
+  $Results{SDSurrogateLength}          = $utgs->standard_deviation();
   $Results{TotalUUnitigs}            = $uunitigs;
-  $Results{MeanUUnitigSize}          = $uutgs->mean();
-  $Results{MinUUnitigSize}           = $uutgs->min();
-  $Results{MaxUUnitigSize}           = $uutgs->max();
-  $Results{SDUUnitigSize}            = $uutgs->standard_deviation();
+  $Results{MeanUUnitigLength}          = $uutgs->mean();
+  $Results{MinUUnitigLength}           = $uutgs->min();
+  $Results{MaxUUnitigLength}           = $uutgs->max();
+  $Results{SDUUnitigLength}            = $uutgs->standard_deviation();
   if ( !exists $Results{ReadsWithNoMate} ) {
     $Results{ReadsWithNoMate} = 0;
   }
@@ -978,30 +1215,30 @@ MAIN:
   
   #Begin Marwan 10-17-06: 
   #Statistics::Descriptive::Sparse->new() functions return undef if no value exists
-  if ( !defined $Results{MeanSurrogateSize} ) {
-    $Results{MeanSurrogateSize} = 0;
+  if ( !defined $Results{MeanSurrogateLength} ) {
+    $Results{MeanSurrogateLength} = 0;
   }
-  if ( !defined $Results{MinSurrogateSize} ) {
-    $Results{MinSurrogateSize} = 0;
+  if ( !defined $Results{MinSurrogateLength} ) {
+    $Results{MinSurrogateLength} = 0;
   }
-  if ( !defined $Results{MaxSurrogateSize} ) {
-    $Results{MaxSurrogateSize} = 0;
+  if ( !defined $Results{MaxSurrogateLength} ) {
+    $Results{MaxSurrogateLength} = 0;
   }
-  if ( !defined $Results{SDSurrogateSize} ) {
-    $Results{SDSurrogateSize} = 0;
+  if ( !defined $Results{SDSurrogateLength} ) {
+    $Results{SDSurrogateLength} = 0;
   }
 
-  if ( !defined $Results{MeanUUnitigSize} ) {
-    $Results{MeanUUnitigSize} = 0;
+  if ( !defined $Results{MeanUUnitigLength} ) {
+    $Results{MeanUUnitigLength} = 0;
   }
-  if ( !defined $Results{MinUUnitigSize} ) {
-    $Results{MinSurrogateSize} = 0;
+  if ( !defined $Results{MinUUnitigLength} ) {
+    $Results{MinSurrogateLength} = 0;
   }
-  if ( !defined $Results{MaxUUnitigSize} ) {
-    $Results{MaxSurrogateSize} = 0;
+  if ( !defined $Results{MaxUUnitigLength} ) {
+    $Results{MaxSurrogateLength} = 0;
   }
-  if ( !defined $Results{SDUUnitigSize} ) {
-    $Results{SDSurrogateSize} = 0;
+  if ( !defined $Results{SDUUnitigLength} ) {
+    $Results{SDSurrogateLength} = 0;
   }
   #End Marwan 10-17-06
 
@@ -1062,26 +1299,26 @@ MAIN:
   #This is the same thing as TotalBasesInScaffolds
   $Results{'TotalBasesInContigs'} =
     0 + $Results{'BigContigLength'} + $Results{'SmallContigLength'};
-  $Results{'MeanContigSize'} =
+  $Results{'MeanContigLength'} =
     ( $Results{'TotalContigs'} > 0 )
     ? $Results{'TotalBasesInContigs'} * 1.0 / $Results{'TotalContigs'}
     : 0;
 
-  $Results{'ReadsInContigs'} =
+  $Results{'ContigReads'} =
     0 + $Results{'BigContigReads'} + $Results{'SmallContigReads'};
   #How could this ever be MinBigContig?
-  $Results{'MinContigSize'} =
+  $Results{'MinContigLength'} =
     min( $Results{'MinSmallContig'}, $Results{'MinBigContig'} );
   #How could this ever be MaxBigContig?
-  $Results{'MaxContigSize'} =
+  $Results{'MaxContigLength'} =
     max( $Results{'MaxBigContig'}, $Results{'MaxSmallContig'} );
 
-  $Results{'MeanBigContigSize'} =
+  $Results{'MeanBigContigLength'} =
     ( $Results{'TotalBigContigs'} > 0 )
     ? $Results{'BigContigLength'} * 1.0 / $Results{'TotalBigContigs'}
     : 0;
 
-  $Results{'MeanSmallContigSize'} =
+  $Results{'MeanSmallContigLength'} =
     ( $Results{'TotalSmallContigs'} )
     ? $Results{'SmallContigLength'} * 1.0 / $Results{'TotalSmallContigs'}
     : 0;
@@ -1096,7 +1333,7 @@ MAIN:
     ? $Results{'SmallContigLength'} * 100.0 / $Results{'TotalBasesInContigs'}
     : 0;
 
-  $Results{'MeanDegenContigSize'} =
+  $Results{'MeanDegenContigLength'} =
     ( $Results{'TotalDegenContigs'} )
     ? $Results{'DegenContigLength'} * 1.0 / $Results{'TotalDegenContigs'}
     : 0;
@@ -1114,7 +1351,9 @@ MAIN:
   my $bases_tot = 0;
   for ( my $cc = 0 ; $cc <= $#sortContig && $cc < $topCount ; $cc++ ) {
     $top5contig .=
-      "$cc$d$seqs{$sortContig[$cc]}$s$lens{$sortContig[$cc]}$s$sortContig[$cc]\n";
+      "$cc$d$seqs{$sortContig[$cc]}$s$lens{$sortContig[$cc]}";
+    $top5contig .= "$s$sortContig[$cc]" if ( $euid ) ;
+    $top5contig .= "\n";
     $reads_tot += $seqs{ $sortContig[$cc] };
     $bases_tot += $lens{ $sortContig[$cc] };
   }
@@ -1158,7 +1397,7 @@ MAIN:
 	? $Results{'TotalSpanOfScaffolds'} * 1.0 
 	/ $Results{'TotalScaffolds'}      
     : 0.0;
-  $Results{'MeanSequenceGapSize'} =
+  $Results{'MeanSequenceGapLength'} =
       ( $Results{'IntraScaffoldGaps'} > 0 )
 	? ($Results{'TotalSpanOfScaffolds'} 
 	   - $Results{'TotalBasesInScaffolds'}) * 1.0 
@@ -1181,18 +1420,19 @@ MAIN:
     my $scf = $sortScaff[$ss];
     $top5scaff .=
         "$ss$d$scafcontig{$scf}$s$scaflen{$scf}$s$adjscaflen{$scf}$s"
-      . sprintf( '%.2f', $scaflen{$scf} * 1.0 / $scafcontig{$scf} )
+      . sprintf( '%d', Math::BigFloat->new($scaflen{$scf} * 1.0 / $scafcontig{$scf})->ffround(0) )
       . $s
       . sprintf(
-      '%.2f',
+      '%d',
       ( $scafcontig{$scf} - 1 > 0 )
       ? (
-        ( $adjscaflen{$scf} - $scaflen{$scf} ) * 1.0 / ( $scafcontig{$scf} - 1 )
-        )
-      : 0.0
+        Math::BigFloat->new(( $adjscaflen{$scf} - $scaflen{$scf} ) * 1.0 / ( $scafcontig{$scf} - 1 ))->ffround(0)
       )
-      . "$s$scf"
-      . "\n";
+      : 0
+      );
+  	
+    $top5scaff .=  "$s$scf" if($euid);
+  	$top5scaff .=  "\n";
 
     $contigs_tot += $scafcontig{$scf};
     $gaps_tot    += $scafcontig{$scf} - 1;
@@ -1225,13 +1465,12 @@ MAIN:
   else {
     $avgGap_tot = 0;
   }
-
-  $top5scaff .=
+  my $top5scaff_place_holder =
       "total$d$contigs_tot$s$size_tot$s$span_tot$s"
-    . sprintf( '%.2f', $avgContig_tot )
+    . sprintf( '%d', Math::BigFloat->new("$avgContig_tot")->ffround(0))
     . $s
-    . sprintf( '%.2f', $avgGap_tot ) . "\n";
-
+    . sprintf( '%d', Math::BigFloat->new("$avgGap_tot")->ffround(0) ) . "\n";
+  $top5scaff .= $top5scaff_place_holder;
   if ( !defined $genomesize ) {
     $gsz = $Results{'TotalBasesInScaffolds'};
 	} else {
@@ -1255,32 +1494,32 @@ MAIN:
   # Bases
   $Results{ContigBaseLength}        = $contigReadLen;
   $Results{DegenBaseLength}         = $degenReadLen;
-  $Results{ContigAndSurrBaseLength} = $Results{'UnPlacedSurrReadLen'} + $contigReadLen;
+  $Results{Contig_SurrBaseLength} = $Results{'UnPlacedSurrReadLen'} + $contigReadLen;
   $Results{SingletonBaseLength}     =
     $totalCLRReadLengthASM - $degenReadLen - $contigReadLen - $Results{'UnPlacedSurrReadLen'};
 
-  $Results{'ContigsAndDegensAndSurrogates'} =
+  $Results{'Contigs_Degens_Surrogates'} =
     ( $Results{'TotalBasesInScaffolds'} + $Results{'DegenContigLength'} > 0 )
     ? ( ( $Results{'UnPlacedSurrReadLen'} + $contigReadLen + $degenReadLen ) /
       ( $Results{'TotalBasesInScaffolds'} + $Results{'DegenContigLength'} ) )
     : 0.0;
 
-  $Results{'ContigsAndSurrogates'} =
+  $Results{'Contigs_Surrogates'} =
     ( $Results{'TotalBasesInScaffolds'} > 0 )
     ? (
-    $Results{'ContigAndSurrBaseLength'} / $Results{'TotalBasesInScaffolds'} )
+    $Results{'Contig_SurrBaseLength'} / $Results{'TotalBasesInScaffolds'} )
     : 0.0;
 
   # Surrogates
-  $Results{'ReadsInSurrogates'} = $utgSeqs;
+  $Results{'SurrogateReads'} = $utgSeqs;
 
   # Coverage
-    $Results{'TotalReads'}              = $totalSeqs;
-    $Results{'SingletonReads'}          = $Results{'TotalReads'} 
+    $Results{'TotalUsableReads'}              = $totalSeqs;
+    $Results{'SingletonReads'}          = $Results{'TotalUsableReads'} 
     - $Results{'BigContigReads'} 
     - $Results{'SmallContigReads'} 
     - $Results{'DegenContigReads'} 
-    - $Results{'ReadsInSurrogates'}
+    - $Results{'SurrogateReads'}
     + $Results{'PlacedSurrogateReads'}; # Should be in contigs
 
   # Parameter settings
@@ -1305,7 +1544,7 @@ MAIN:
   print STDERR "\n" if ( !$silent );
   $fh->print("\n");
   printl( 'TotalBasesInScaffolds', \%Results, $fh );
-  printlf( 'MeanBasesInScaffolds', \%Results, $fh );
+  printld( 'MeanBasesInScaffolds', \%Results, $fh );
   printl( 'MinBasesInScaffolds', \%Results, $fh );
   printl( 'MaxBasesInScaffolds', \%Results, $fh );
   for my $val ( @{ $Results{'NScaffoldBases'} } ) {
@@ -1319,32 +1558,33 @@ MAIN:
   print STDERR "\n" if ( !$silent );
   $fh->print("\n");
   printl( 'TotalSpanOfScaffolds', \%Results, $fh );
-  printlf( 'MeanSpanOfScaffolds', \%Results, $fh );
+  printld( 'MeanSpanOfScaffolds', \%Results, $fh );
   printl( 'MinScaffoldSpan',   \%Results, $fh );
   printl( 'MaxScaffoldSpan',   \%Results, $fh );
   printl( 'IntraScaffoldGaps', \%Results, $fh );
   printl( '2KbScaffolds',      \%Results, $fh );
   printl( '2KbScaffoldSpan',   \%Results, $fh );
-  printlf( 'MeanSequenceGapSize', \%Results, $fh );
+  printld( 'MeanSequenceGapLength', \%Results, $fh );
   print STDERR "\n" if ( !$silent );
   $fh->print("\n");
 
-  print STDERR
-"[Top${topCount}Scaffolds${d}contigs${s}size${s}span${s}avgContig${s}avgGap${s}EUID)]\n"
-    if ( !$silent );
-  $fh->print( '[Top'
-      . $topCount
-      . 'Scaffolds'
-      . $d
-      . 'contigs'
-      . $s . 'size'
-      . $s . 'span'
-      . $s . 'avgContig'
-      . $s . 'avgGap'
-      . $s . 'EUID'
-      ."]\n" );
-      
-  print STDERR $top5scaff if ( !$silent );
+  my $top5scaff_header = "[Top${topCount}Scaffolds${d}contigs${s}size${s}span${s}avgContig${s}avgGap";
+  
+  if(!$silent){
+  	if($euid){
+  		$top5scaff_header .= "${s}EUID]\n"; 
+  	}
+  	else{
+  		$top5scaff_header .= "]\n";
+  	}
+  	print STDERR $top5scaff_header;
+  }
+  $fh->print($top5scaff_header);
+        
+  if(!$silent){
+	print STDERR $top5scaff;
+  }
+  
   $fh->print($top5scaff);
   print STDERR "\n" if ( !$silent );
   $fh->print("\n");
@@ -1353,10 +1593,10 @@ MAIN:
   $fh->print("[Contigs]\n");
   printl( 'TotalContigsInScaffolds', \%Results, $fh );
   printl( 'TotalBasesInScaffolds',   \%Results, $fh );
-  printl( 'TotalNumVarRecords',      \%Results, $fh );
-  printlf( 'MeanContigSize', \%Results, $fh );
-  printl( 'MinContigSize', \%Results, $fh );
-  printl( 'MaxContigSize', \%Results, $fh );
+  printl( 'TotalVarRecords',      \%Results, $fh );
+  printld( 'MeanContigLength', \%Results, $fh );
+  printl( 'MinContigLength', \%Results, $fh );
+  printl( 'MaxContigLength', \%Results, $fh );
   for my $val ( @{ $Results{'NContigBases'} } ) {
     printf $fh "N%2d%s=%d\n", $val->[0] * 100, 'ContigBases', $val->[1];
     printf STDERR "N%2d%-29s%d\n", $val->[0] * 100, 'ContigBases', $val->[1];
@@ -1372,7 +1612,7 @@ MAIN:
   $fh->print("[BigContigs_greater_$MINCONTIG]\n");
   printl( 'TotalBigContigs', \%Results, $fh );
   printl( 'BigContigLength', \%Results, $fh );
-  printlf( 'MeanBigContigSize', \%Results, $fh );
+  printld( 'MeanBigContigLength', \%Results, $fh );
   printl( 'MinBigContig', \%Results, $fh );
   printl( 'MaxBigContig', \%Results, $fh );
   printlf( 'BigContigsPercentBases', \%Results, $fh );
@@ -1383,7 +1623,7 @@ MAIN:
   $fh->print("[SmallContigs]\n");
   printl( 'TotalSmallContigs', \%Results, $fh );
   printl( 'SmallContigLength', \%Results, $fh );
-  printlf( 'MeanSmallContigSize', \%Results, $fh );
+  printld( 'MeanSmallContigLength', \%Results, $fh );
   printl( 'MinSmallContig', \%Results, $fh );
   printl( 'MaxSmallContig', \%Results, $fh );
   printlf( 'SmallContigsPercentBases', \%Results, $fh );
@@ -1394,16 +1634,28 @@ MAIN:
   $fh->print("[DegenContigs]\n");
   printl( 'TotalDegenContigs', \%Results, $fh );
   printl( 'DegenContigLength', \%Results, $fh );
-  printlf( 'MeanDegenContigSize', \%Results, $fh );
+  printld( 'MeanDegenContigLength', \%Results, $fh );
   printl( 'MinDegenContig', \%Results, $fh );
   printl( 'MaxDegenContig', \%Results, $fh );
   printlf( 'DegenPercentBases', \%Results, $fh );
   print STDERR "\n" if ( !$silent );
   $fh->print("\n");
 
-  print STDERR "[Top${topCount}Contigs${d}reads${s}bases${s}EUID)]\n" if ( !$silent );
-  $fh->print( '[Top' . $topCount . 'Contigs' . $d . 'reads' . $s . 'bases' . $s . 'EUID' . "]\n" );
-  print STDERR $top5contig if ( !$silent );
+  my $top5contig_header = "[Top${topCount}Contigs${d}reads${s}bases";  
+  if(!$silent){
+  	if($euid){
+  		$top5contig_header .= "${s}EUID]\n"; 
+  	}
+  	else{
+  		$top5contig_header .= "]\n";
+  	}
+  	print STDERR $top5contig_header;
+  }
+  
+  $fh->print($top5contig_header);
+  if(!$silent){
+ 	print STDERR $top5contig;
+  }
   $fh->print($top5contig);
   print STDERR "\n" if ( !$silent );
   $fh->print("\n");
@@ -1411,10 +1663,10 @@ MAIN:
   print STDERR "[UniqueUnitigs]\n" if ( !$silent );
   $fh->print("[UniqueUnitigs]\n");
   printl( 'TotalUUnitigs',  \%Results, $fh );
-  printl( 'MinUUnitigSize', \%Results, $fh );
-  printl( 'MaxUUnitigSize', \%Results, $fh );
-  printlf( 'MeanUUnitigSize', \%Results, $fh );
-  printlf( 'SDUUnitigSize',   \%Results, $fh );
+  printl( 'MinUUnitigLength', \%Results, $fh );
+  printl( 'MaxUUnitigLength', \%Results, $fh );
+  printld( 'MeanUUnitigLength', \%Results, $fh );
+  printld( 'SDUUnitigLength',   \%Results, $fh );
   print STDERR "\n" if ( !$silent );
   $fh->print("\n");
 
@@ -1426,10 +1678,10 @@ MAIN:
   printl( 'SurrogateInstanceLength', \%Results, $fh );
   printl( 'UnPlacedSurrReadLen',     \%Results, $fh );
   printl( 'PlacedSurrReadLen',       \%Results, $fh );
-  printl( 'MinSurrogateSize',        \%Results, $fh );
-  printl( 'MaxSurrogateSize',        \%Results, $fh );
-  printlf( 'MeanSurrogateSize', \%Results, $fh );
-  printlf( 'SDSurrogateSize',   \%Results, $fh );
+  printl( 'MinSurrogateLength',        \%Results, $fh );
+  printl( 'MaxSurrogateLength',        \%Results, $fh );
+  printld( 'MeanSurrogateLength', \%Results, $fh );
+  printld( 'SDSurrogateLength',   \%Results, $fh );
   print STDERR "\n" if ( !$silent );
   $fh->print("\n");
 
@@ -1448,7 +1700,7 @@ MAIN:
   printp( 'ReadsWithBothSurrMate',   \%Results, $fh, $totalSeqs );
   printp( 'ReadsWithSurrogateMate',  \%Results, $fh, $totalSeqs );
   printp( 'ReadsWithDiffScafMate',   \%Results, $fh, $totalSeqs );
-  printp( 'ReadsWithUnassigned',     \%Results, $fh, $totalSeqs );
+  printp( 'ReadsWithUnassignedMate',     \%Results, $fh, $totalSeqs );
   printl( 'TotalScaffoldLinks', \%Results, $fh );
   printlf( 'MeanScaffoldLinkWeight', \%Results, $fh );
   print STDERR "\n" if ( !$silent );
@@ -1456,13 +1708,14 @@ MAIN:
 
   print STDERR "[Reads]\n" if ( !$silent );
   $fh->print("[Reads]\n");
-  printl( 'TotalReads', \%Results, $fh );
-  printlf( 'AvgClearRange', \%Results, $fh );
-  printp( 'ReadsInContigs',       \%Results, $fh, $totalSeqs );
+  printl( 'TotalReadsInput', \%Results, $fh );
+  printl( 'TotalUsableReads', \%Results, $fh );
+  printld( 'AvgClearRange', \%Results, $fh );
+  printp( 'ContigReads',       \%Results, $fh, $totalSeqs );
   printp( 'BigContigReads',       \%Results, $fh, $totalSeqs );
   printp( 'SmallContigReads',     \%Results, $fh, $totalSeqs );
   printp( 'DegenContigReads',     \%Results, $fh, $totalSeqs );
-  printp( 'ReadsInSurrogates',    \%Results, $fh, $totalSeqs );
+  printp( 'SurrogateReads',    \%Results, $fh, $totalSeqs );
   printp( 'PlacedSurrogateReads', \%Results, $fh, $totalSeqs );
   printp( 'SingletonReads',       \%Results, $fh, $totalSeqs );
   printp( 'ChaffReads',           \%Results, $fh, $totalSeqs );
@@ -1472,8 +1725,8 @@ MAIN:
   print STDERR "[Coverage]\n" if ( !$silent );
   $fh->print("[Coverage]\n");
   printlf( 'ContigsOnly',          \%Results, $fh );
-  printlf( 'ContigsAndSurrogates', \%Results, $fh );
-  printlf( 'ContigsAndDegensAndSurrogates',     \%Results, $fh );
+  printlf( 'Contigs_Surrogates', \%Results, $fh );
+  printlf( 'Contigs_Degens_Surrogates',     \%Results, $fh );
   printlf( 'AllReads',             \%Results, $fh );
   print STDERR "\n" if ( !$silent );
   $fh->print("\n");
@@ -1487,7 +1740,7 @@ MAIN:
   printl( 'ContigBaseLength',        \%Results, $fh );
   printl( 'DegenBaseLength',         \%Results, $fh );
   printl( 'SingletonBaseLength',     \%Results, $fh );
-  printl( 'ContigAndSurrBaseLength', \%Results, $fh );
+  printl( 'Contig_SurrBaseLength', \%Results, $fh );
   print STDERR "\n" if ( !$silent );
   $fh->print("\n");
 
