@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.23 2007-06-22 13:17:12 eliv Exp $
- * $Revision: 1.23 $
+ * $Id: BuildUnitigs.cc,v 1.24 2007-07-17 20:18:33 eliv Exp $
+ * $Revision: 1.24 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.23 2007-06-22 13:17:12 eliv Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.24 2007-07-17 20:18:33 eliv Exp $";
 
 //  System include files
 
@@ -44,6 +44,7 @@ static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.23 2007
 #include<cmath>   // for ceil and log10
 #include<cstdlib> // for abs(int)
 #include<iostream>
+#include<sstream>
 
 #include "AS_BOG_BestOverlapGraph.hh"
 #include "AS_BOG_ChunkGraph.hh"
@@ -79,11 +80,15 @@ int  main (int argc, char * argv [])
    const char* OVL_Store_Path;
    const char* GKP_Store_Path;
 
+   vector<float> erates;
+   erates.push_back(2.5);
+   erates.push_back(1.5);
+   erates.push_back(1.0);
    long genome_size=0;
    int ch;
    bool argsDone=false;
    optarg = NULL;
-   while(!argsDone && (ch = getopt(argc, argv,"O:G:s:b"))) {
+   while(!argsDone && (ch = getopt(argc, argv,"O:G:e:s:b"))) {
        switch(ch) {
            case -1: argsDone=true;break;
            case 'G':
@@ -94,6 +99,13 @@ int  main (int argc, char * argv [])
                assert( OVL_Store_Path != NULL ); break;
            case 'b':
                BogOptions::unitigIntersectBreaking = true; break;
+           case 'e': {
+               erates.clear();
+               std::string eOpt(optarg);
+               std::istringstream iStr(eOpt);
+               float t;
+               while (iStr >> t) erates.push_back(t);
+               } break;
            case 's':
                genome_size = atol(optarg); break;
            default:
@@ -104,6 +116,8 @@ int  main (int argc, char * argv [])
         fprintf(stderr, "  to try to estimate the genome size based on the constructed\n");
         fprintf(stderr, "  unitig lengths.\n");
         fprintf(stderr, "[-b] Break promisciuous unitigs at unitig intersection points\n");
+        fprintf(stderr, "[-e] Space separated list of erates to generate unitig for\n");
+        fprintf(stderr, "     default is -e '2.5 1.5 1.0'\n");
         fprintf(stderr, " \n");
            exit(1);
        }
@@ -116,26 +130,21 @@ int  main (int argc, char * argv [])
    AS_BOG::MateChecker mateChecker;
    mateChecker.readStore(GKP_Store_Path);
    // must be before creating the scoring objects, because it sets their size
+//   AS_BOG::BOG_Runner bogRunner(getLastElemFragStore() need to fix to get size of gkpStore;
    AS_BOG::BOG_Runner bogRunner(AS_OVS_lastFragInStore(my_store));
 
    // Initialize our three different types of Best Overlap Graphs
    //AS_BOG::ErateScore erScore;
    //AS_BOG::LongestEdge lenScore;
-   double scr1 = 2.5;
-   double scr2 = 1.5;
-   double scr3 = 1.0;
-   int iscr1 = static_cast<int>(scr1 * 10);
-   int iscr2 = static_cast<int>(scr2 * 10);
-   int iscr3 = static_cast<int>(scr3 * 10);
-   bogRunner.push_back( new AS_BOG::LongestHighIdent(scr1));
-   bogRunner.push_back( new AS_BOG::LongestHighIdent(scr2));
-   bogRunner.push_back( new AS_BOG::LongestHighIdent(scr3));
 
+   int i;
+   for(i=0; i < erates.size(); i++) {
+       bogRunner.push_back( new AS_BOG::LongestHighIdent( erates[i] ) );
+   }
    bogRunner.processOverlapStream(my_store, GKP_Store_Path);
 
    ////////////////////////////////////////////////////////////////////////////
 
-   int i;
    for(i=0; i<bogRunner.size(); i++){
 //	AS_BOG::ChunkGraph *cg = new AS_BOG::ChunkGraph();
 	AS_BOG::PromiscuousChunkGraph *cg = new AS_BOG::PromiscuousChunkGraph();
