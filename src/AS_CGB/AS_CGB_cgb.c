@@ -18,51 +18,19 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] 
-= "$Id: AS_CGB_cgb.c,v 1.13 2007-05-14 13:40:55 brianwalenz Exp $";
-/* *******************************************************************
- *
- * Module: AS_CGB_cgb.c
- * 
- * Description: This module builds the chunk graph from the fragment
- * essential overlap graph with contained fragments as an
- * augmentation, and writes the chunk graph using the assembler
- * message library.
- *
- * Author: Clark Mobarry
- *********************************************************************/
+
+static char CM_ID[] = "$Id: AS_CGB_cgb.c,v 1.14 2007-07-18 15:19:55 brianwalenz Exp $";
+
+//  Module: AS_CGB_cgb.c
+//  
+//  Description: This module builds the chunk graph from the fragment
+//  essential overlap graph with contained fragments as an
+//  augmentation, and writes the chunk graph using the assembler
+//  message library.
+// 
+//  Author: Clark Mobarry
 
 #include "AS_CGB_all.h"
-
-#define GNAT
-#undef DEBUG30
-#undef DEBUGGING
-#undef DEBUG71
-
-#undef USE_SUM_OF_BHG_FOR_CONTAINMENTS
-
-#define PROCESS_CHAFF
-
-#undef HANGING_BY_REDUCED_EDGES
-
-#undef DEBUG21
-
-#undef DEBUGGING
-#ifdef DEBUGGING
-#undef DEBUG_SHORTCUT1
-#undef DEBUG_SHORTCUT4
-#define DEBUG_SHORTCUT1
-#define DEBUG_SHORTCUT4
-#define DEBUG08
-#define DEBUG09
-#define DEBUG10
-#define DEBUG11
-#define DEBUG22
-#define DEBUG91
-#endif /*DEBUGGING*/
-
-#undef COORDS_FROM_A_END
-#define COORDS_FROM_A_END
 
 #define AS_CGB_EDGE_NOT_VISITED     INT32_MAX
 
@@ -193,6 +161,7 @@ static void add_fragment_to_chunk
   const Tlab ilabel = get_lab_fragment(frags,vid);
   const int ilen  = get_length_fragment(frags,vid);
   const BPTYPE ioffseta = sum_of_ahg;
+#undef USE_SUM_OF_BHG_FOR_CONTAINMENTS
 #ifdef USE_SUM_OF_BHG_FOR_CONTAINMENTS
   const BPTYPE ioffsetb = sum_of_bhg;
 #else 
@@ -496,21 +465,13 @@ static void make_a_chunk
   *nfrag_contained_in_chunk = 0;
   *nbase_contained_sampled_in_chunk = 0;
   
-#ifndef GNAT
-  assert(fragment_timesinchunks[vid] == 0);
-#else // GNAT  
-  if(!(fragment_timesinchunks[vid] == 0)) {
-    fprintf( stderr,
-             "GNAT1: iid=" F_IID " vid=" F_IID " lab=%d fragment_timesinchunks=%d pass=%d \n"
-             // "ibfr=%lu ibvx=%lu\n"
-             ,
-             get_iid_fragment(frags,vid), vid,
-             ilabel, fragment_timesinchunks[vid],
-             pass
-             // ,get_iid_fragment(frags,vid), vid,
-             );
-  }
-#endif // GNAT  
+ if(!(fragment_timesinchunks[vid] == 0))
+    fprintf(stderr,
+            "GNAT1: iid=" F_IID " vid=" F_IID " lab=%d fragment_timesinchunks=%d pass=%d \n",
+            get_iid_fragment(frags,vid), vid,
+            ilabel, fragment_timesinchunks[vid],
+            pass);
+
   
   if(
      (AS_CGB_SOLO_FRAG == ilabel) ||
@@ -809,16 +770,13 @@ static void make_a_chunk
 
   *chunk_bvx = ibvx;
   *chunk_bsx = ! ibsx;
+#define COORDS_FROM_A_END
 #ifndef COORDS_FROM_A_END
-  (*rho) = (sum_of_ahg+sum_of_bhg
-            +max_ahg_of_contained+max_bhg_of_contained)/2;
-  (*nbase_essential_in_chunk) = 
-    (*rho) + get_length_fragment(frags,(*chunk_bvx));
+  (*rho) = (sum_of_ahg+sum_of_bhg + max_ahg_of_contained+max_bhg_of_contained)/2;
 #else
   (*rho) = sum_of_ahg+max_ahg_of_contained;
-  (*nbase_essential_in_chunk) = 
-    (*rho) + get_length_fragment(frags,(*chunk_bvx));
 #endif
+  (*nbase_essential_in_chunk) = (*rho) + get_length_fragment(frags,(*chunk_bvx));
 }
 
 /*************************************************************************/
@@ -1156,42 +1114,41 @@ static void make_the_chunks
 
   fprintf(stderr,"End of chunk building passes.\n");
 
+#define PROCESS_CHAFF
 #ifdef PROCESS_CHAFF
-  {  // Process the chaff fragments...
+  // Process the chaff fragments...
     
-    // Assign a singleton chunk for each MULTICONT and ORPHAN contained
-    // fragment.  In addition if there is a circular chunk, do not
-    // crash.
+  // Assign a singleton chunk for each MULTICONT and ORPHAN contained
+  // fragment.  In addition if there is a circular chunk, do not
+  // crash.
 
-    IntFragment_ID vid;
-    IntFragment_ID nfrag=GetNumFragments(frags);
+  IntFragment_ID vid;
+  IntFragment_ID nfrag=GetNumFragments(frags);
 
-    for(vid=0;vid<nfrag;vid++) {
-      /* beginning loop through fragment */
-      const Tlab lab = get_lab_fragment(frags,vid);
-      if(lab == AS_CGB_UNPLACEDCONT_FRAG) {
-        set_lab_fragment(frags,vid,AS_CGB_ORPHANEDCONT_FRAG);
-      }
+  for(vid=0;vid<nfrag;vid++) {
+    /* beginning loop through fragment */
+    const Tlab lab = get_lab_fragment(frags,vid);
+    if(lab == AS_CGB_UNPLACEDCONT_FRAG) {
+      set_lab_fragment(frags,vid,AS_CGB_ORPHANEDCONT_FRAG);
     }
+  }
     
-    for(vid=0;vid<nfrag;vid++) {
-      /* beginning loop through fragment */
-      const Tlab lab = get_lab_fragment(frags,vid);
+  for(vid=0;vid<nfrag;vid++) {
+    const Tlab lab = get_lab_fragment(frags,vid);
 
-      if( (fragment_timesinchunks[vid] == 0) &&
-          (lab != AS_CGB_DELETED_FRAG) ) {
-        const int pass = num_passes; // CMM This is a HACK!!!!
-        // The remaining AS_CGB_UNPLACEDCONT_FRAG fragments are placed in a
-        // greedy fashion.
-	fill_a_chunk_starting_at
-	  ( pass, 
-            work_limit_placing_contained_fragments, vid,
-	    frags, edges,
-	    fragment_timesinchunks,
-	    chunkfrags, thechunks);
-      }
-    }} /* End of a loop over all fragments. */
-  fprintf(stderr," after pass=%d\n",num_passes);
+    if( (fragment_timesinchunks[vid] == 0) &&
+        (lab != AS_CGB_DELETED_FRAG) ) {
+      const int pass = num_passes; // CMM This is a HACK!!!!
+      // The remaining AS_CGB_UNPLACEDCONT_FRAG fragments are placed in a
+      // greedy fashion.
+      fill_a_chunk_starting_at
+        ( pass, 
+          work_limit_placing_contained_fragments, vid,
+          frags, edges,
+          fragment_timesinchunks,
+          chunkfrags, thechunks);
+    }
+  }
 #endif // PROCESS_CHAFF
   
   // Quality control!!!
@@ -1280,7 +1237,7 @@ static void make_the_chunks
 
 }
 
-/*************************************************************************/
+
 
 float compute_the_global_fragment_arrival_rate
 ( 
@@ -1583,162 +1540,3 @@ void chunk_graph_build_1
     
   safe_free(fragment_timesinchunks);
 }
-
-void chunk_graph_build_2
-(
- /* Input Only */
- const int use_consensus,
- const int dont_find_branch_points,
- const float cgb_unique_cutoff,
- const float global_fragment_arrival_rate,
- GateKeeperStore *gkpStore,
- /* Input/Output */
- Tfragment     frags[],     /* The internal representation of
-			       the fragment reads. I have one
-			       extra for the segstart field. */
- Tedge         edges[],     /* The internal representation of the
-			       overlaps. */
- /* Output Only */
- TChunkFrag    *chunkfrags,
- TChunkMesg    *thechunks,
- VA_TYPE(char) *chunkseqs,
- VA_TYPE(char) *chunkquas,
- VA_TYPE(char) *chunksrcs,
- FILE          *fbpts1,
- FILE          *fbpts2
- ) 
-{
-
-  /* In case the analysis flag is not set, just make sure that 
-     a few variable are initialized so the output routine
-     does not bomb. */
-  {
-    /* All the isrc fields of the chunks are initialized to zero. So
-       the simulator annotation at location zero must be
-       initialized. */
-    EnableRangeVA_char(chunksrcs,1);
-    *(Getchar(chunksrcs,0)) = '\0'; 
-    // Set the default chunk annotations to the empty string.
-  }
-
-#ifdef BRANCHPOINTS
-#error branchpoints defined
-  if( ! dont_find_branch_points ) {
-    find_the_branch_points
-      ( use_consensus, cgb_unique_cutoff, global_fragment_arrival_rate,
-        gkpStore, frags, edges, chunkfrags, 
-	chunkseqs, thechunks, fbpts1);
-
-#ifdef STORE_BRANCH_POINTS_AT_FRAGMENT
-    {
-      FILE * fout = fbpts2;
-      if(NULL != fout) {
-        const IntFragment_ID nfrag = GetNumFragments(frags);
-        IntFragment_ID vid;
-        fprintf(fout, "# fragment-iid fragment-suffix branch-point-type branch-point-offset\n");
-        for( vid=0; vid<nfrag; vid++) {
-          const IntFragment_ID iid = get_iid_fragment(frags,vid);
-          int vsx;
-          for( vsx=0; vsx<2; vsx++) {
-            int bpt = get_bpt_vertex(frags,vid,vsx);
-            if( bpt >0 ) {
-              fprintf(fout, F_IID " %d %d %d\n", iid, vsx, AS_INTO_UNIQUE, bpt);
-            }
-          }
-        }
-      }
-    }
-#endif // STORE_BRANCH_POINTS_AT_FRAGMENT
-    
-#ifndef STORE_BRANCH_POINTS_AT_FRAGMENT
-    chunk_end_edge_trimmer
-      ( /* input only */
-       cgb_unique_cutoff,
-       global_fragment_arrival_rate,
-       frags,
-       chunkfrags,
-       /* modify */
-       edges, thechunks);
-#else // STORE_BRANCH_POINTS_AT_FRAGMENT
-    fragment_end_edge_trimmer
-      (
-       /* input only */
-       frags,
-       /* modify */
-       edges);
-#endif // STORE_BRANCH_POINTS_AT_FRAGMENT
-    check_edge_trimming( frags, edges);
-
-#ifdef UNDIRECTED_DEBUG_2
-    check_edges1(frags, edges, FALSE);
-    check_edges2(frags, edges, FALSE);
-#endif /*UNDIRECTED_DEBUG_2*/
-  } // ! dont_find_branch_points
-#endif // BRANCHPOINTS
-
-  /* END CHUNK GRAPH BUILDING */
-}
-
-////////////////////////////////////////////////////////////////
-
-#ifdef DEBUG30
-    {
-      IntFragment_ID iid = get_iid_fragment(frags,vid);
-#if 1
-  const BPTYPE offset5p = (iforward ? ioffseta : ioffsetb);
-  const BPTYPE offset3p = (iforward ? ioffsetb : ioffseta);
-#endif
-      if( iid == 9334 ) {
-	fprintf(stderr,
-		"DEBUG xx iid=" F_IID " ichunk=" F_IID " " 
-		" ftic=%d\n"
-		"sumahg=" BPFORMAT " sumbhg=" BPFORMAT "\n"
-		"offset5p=" BPFORMAT " offset3p=" BPFORMAT "\n"
-		,
-		iid, ichunk, 
-		fragment_timesinchunks[vid],
-		sum_of_ahg, sum_of_bhg,
-		offset5p, offset3p
-		);
-      }
-    }
-#endif // DEBUG30
-
-#ifdef DEBUG30
-          {
-            IntFragment_ID aid = get_iid_fragment(frags,iavx);
-            IntFragment_ID bid = get_iid_fragment(frags,ibvx);
-            int asx = get_asx_edge(edges,irc);
-            int bsx = get_bsx_edge(edges,irc);
-            if( aid == 9334 || bid == 9334 ) {
-              fprintf(stderr,
-                      "DEBUG xa bid=" F_IID " ichunk=" F_IID " " 
-                      " %d " BPFORMAT " " BPFORMAT 
-                      " ftic=%d asx=%d bsx=%d ahg=%d bhg=%d\n"
-                      " aid=" F_IID " acid=" F_IID 
-                      " ao5p=" BPFORMAT " ao3p=" BPFORMAT "\n"
-                      " bid=" F_IID " bcid=" F_IID
-                      " bo5p=" BPFORMAT " bo3p=" BPFORMAT "\n"
-                      " ofe=" BPFORMAT "\n",
-                      bid, ichunk,
-                      jforward, joffseta, joffsetb,
-                      fragment_timesinchunks[ibvx],
-                      asx, bsx, iahg, ibhg,
-                      aid, get_cid_fragment(frags,iavx),
-                      get_o5p_fragment(frags,iavx),
-                      get_o3p_fragment(frags,iavx),
-                      bid, get_cid_fragment(frags,ibvx),
-                      get_o5p_fragment(frags,ibvx),
-                      get_o3p_fragment(frags,ibvx),
-                      offset_error);
-            }
-          }
-#endif
-          
-#ifdef DEBUG30
-          printf("Contained iafr,iavx,ibfr,ibvx,iforward,jbackward,\n"
-                 "ioffseta,ioffsetb,iahg,ibhg,joffseta,joffsetb=\n");
-          printf("%5" F_IIDP " %5" F_IIDP " %5" F_IIDP " %5" F_IIDP " %2d %2d \n " BPFORMAT5 " " BPFORMAT5 " %5d %5d " BPFORMAT5 " " BPFORMAT5 "\n",
-                 iafr,iavx,ibfr,ibvx,iforward,jforward,
-                 ioffseta,ioffsetb,iahg,ibhg,joffseta,joffsetb);
-#endif

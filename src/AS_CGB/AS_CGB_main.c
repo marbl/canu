@@ -18,8 +18,9 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] 
-= "$Id: AS_CGB_main.c,v 1.10 2007-05-01 14:41:43 granger_sutton Exp $";
+
+static char CM_ID[] = "$Id: AS_CGB_main.c,v 1.11 2007-07-18 15:19:55 brianwalenz Exp $";
+
 /*********************************************************************
  *
  * Module:  AS_CGB_main.c
@@ -74,37 +75,18 @@ static char CM_ID[]
  * 
  *********************************************************************/
 
-/*********************************************************************/
-
-/* Local include files */
 #include "AS_UTL_version.h"  
 #include "AS_CGB_all.h"
 #include "AS_CGB_unitigger_globals.h"
 
-/****************************************************************************/
-#define DEBUGGING
 
 #undef SWITCH_CONTAINMENT_DIRECTION_CGB
-#undef DEBUG_RISM
 
-/* These are optimization parameters. */
-
-/****************************************************************************/
-/* Globals */
 
 extern int REAPER_VALIDATION;
 
-/****************************************************************************/
 
-static void reflect_an_edge_in_place
-(
- Tedge * edges,
- IntEdge_ID iedge
-) 
-{
-  Aedge * the_edge = GetVA_Aedge(edges,iedge);
-  reflect_Aedge(the_edge,the_edge);
-}
+
 
 static IntEdge_ID get_the_thickest_dvt_overlap_from_vertex
 ( Tfragment * frags,
@@ -311,10 +293,16 @@ static void identify_essential_components
 }
 
 
-/****************************************************************************/
 
 
 #ifdef  SWITCH_CONTAINMENT_DIRECTION_CGB
+
+static void reflect_an_edge_in_place(Tedge * edges,
+                                     IntEdge_ID iedge) {
+  Aedge * the_edge = GetVA_Aedge(edges,iedge);
+  reflect_Aedge(the_edge,the_edge);
+}
+
 
 static void reflect_containment_direction_in_place
 (
@@ -450,260 +438,112 @@ static void maskout_overlaps_touching_crappy_fragments
 int main_cgb(TStateGlobals * gstate,
              THeapGlobals  * heapva,
              UnitiggerGlobals * rg) {
-  GateKeeperStore *gkpStore = NULL;
 
-  int status = 0; // Main program exit status.
-  int ierr = 0;
-
-  time_t tp1,tp2; 
-
-  if( NULL != rg->frag_store ) { 
-    gkpStore = openGateKeeperStore(rg->frag_store, FALSE);
-    assert(gkpStore != NULL);
-  }
+  GateKeeperStore *gkpStore = openGateKeeperStore(rg->frag_store, FALSE);
   
-  /* The remaining command line arguments are input Assembler
-     message files. */
-  
-  count_fragment_and_edge_labels( heapva->frags, heapva->edges,
-                                  "After reading the fragment graph store");
-  check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
+  //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "After reading the fragment graph store");
+  //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
 
   if(rg->aggressive_spur_fragment_marking) {
-    maskout_overlaps_touching_crappy_fragments
-      ( heapva->frags, heapva->edges, heapva->next_edge_obj );
-    count_fragment_and_edge_labels
-      ( heapva->frags, heapva->edges, "after maskout_overlaps_touching_crappy_fragments");
+    maskout_overlaps_touching_crappy_fragments ( heapva->frags, heapva->edges, heapva->next_edge_obj );
+
     // Do we need to patch up the graph here??
-#ifdef DEBUG_RISM
-    view_fgb_chkpnt( "maskout_overlaps_touching_crappy_fragments", heapva->frags, heapva->edges);
-#endif // DEBUG_RISM
-    check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
+
+    //count_fragment_and_edge_labels ( heapva->frags, heapva->edges, "after maskout_overlaps_touching_crappy_fragments");
+    //view_fgb_chkpnt( "maskout_overlaps_touching_crappy_fragments", heapva->frags, heapva->edges);
+    //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
   }
 
-
-  ///////////////////////////////////////////////////////////////////////////////////
   
   identify_thickest_overlaps( heapva->frags, heapva->edges, heapva->next_edge_obj );
-  count_fragment_and_edge_labels( heapva->frags, heapva->edges,
-                                  "After identify_thickest_edges");
-#ifdef DEBUG_RISM
-  view_fgb_chkpnt( "identify_thickest_overlaps", heapva->frags, heapva->edges);
-  check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
-#endif    
+  //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "After identify_thickest_edges");
+  //view_fgb_chkpnt( "identify_thickest_overlaps", heapva->frags, heapva->edges);
+  //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
 
   identify_essential_components( heapva->frags, heapva->edges, heapva->next_edge_obj );
-  count_fragment_and_edge_labels( heapva->frags, heapva->edges,
-                                  "After identify_essential_components");
-#ifdef DEBUG_RISM
-  view_fgb_chkpnt( "identify_essential_components", heapva->frags, heapva->edges);
-  check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
-#endif    
+  //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "After identify_essential_components");
+  //view_fgb_chkpnt( "identify_essential_components", heapva->frags, heapva->edges);
+  //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
 
- 
-  chunk_classification_dvt
-    ( heapva->frags, heapva->edges,
-      rg->walk_depth,
-      rg->remove_blizzard_overlaps
-      );
+  chunk_classification_dvt(heapva->frags, heapva->edges, rg->walk_depth);
   
-  count_fragment_and_edge_labels( heapva->frags, heapva->edges,
-                                  "In main after chunk_classification_dvt");
-  check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
-
-
-  //////////////////////////////////////////////////////////////////////
-    
+  //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "In main after chunk_classification_dvt");
+  //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
+   
 #ifdef SWITCH_CONTAINMENT_DIRECTION_CGB
-  convert_all_containment_overlaps_direction_TOC
-    ( heapva->frags, heapva->edges, heapva->next_edge_obj, TRUE);
-  count_fragment_and_edge_labels( heapva->frags, heapva->edges,
-                                  "After switching the containment direction");
+  convert_all_containment_overlaps_direction_TOC ( heapva->frags, heapva->edges, heapva->next_edge_obj, TRUE);
+  //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "After switching the containment direction");
 #endif // SWITCH_CONTAINMENT_DIRECTION_CGB
 
 
   { // beginning of the non-incremental phase
     
-    const IntFragment_ID nfrag = GetNumFragments(heapva->frags);
+    IntFragment_ID nfrag = GetNumFragments(heapva->frags);
+    IntFragment_ID ifrag;
+    IntFragment_ID num_of_guides_total = 0;
 
-    {
-      /* Count the total amount of guide fragments. */
-      IntFragment_ID ifrag;
-      IntFragment_ID num_of_guides_total = 0;
-      for(ifrag=0;ifrag<nfrag;ifrag++) { 
-	const FragType type = get_typ_fragment(heapva->frags,ifrag);
-	if((type != AS_READ) && 
-           (type != AS_EXTR)) {
-          num_of_guides_total++;
-        }
-	// Only AS_READ & AS_EXTR fragments are to be used in Gene
-	// Myers coverage statistic.
+    /* Count the total amount of guide fragments. */
 
-	set_cid_fragment(heapva->frags,ifrag,ifrag); // While we are here ....
-      }
-      fprintf(stderr,
-	      "Total number of guides counted: " F_IID " of " F_IID " fragments\n",
-	      num_of_guides_total, nfrag);
-      gstate->nfrag_randomly_sampled_in_genome
-        = (int)nfrag - (int)num_of_guides_total;
+    for(ifrag=0;ifrag<nfrag;ifrag++) { 
+      const FragType type = get_typ_fragment(heapva->frags,ifrag);
 
-    } 
+      // Only AS_READ & AS_EXTR fragments are to be used in Gene Myers
+      // coverage statistic.
+      //
+      if((type != AS_READ) && (type != AS_EXTR))
+        num_of_guides_total++;
+
+      set_cid_fragment(heapva->frags,ifrag,ifrag); // While we are here ....
+    }
+
+    fprintf(stderr, "Total number of guides counted: " F_IID " of " F_IID " fragments\n",
+            num_of_guides_total, nfrag);
 
     if(rg->nbase_in_genome > 0) { 
       gstate->nbase_in_genome = rg->nbase_in_genome;
-      gstate->global_fragment_arrival_rate 
-        = ((float)gstate->nfrag_randomly_sampled_in_genome)
-        / ((float)gstate->nbase_in_genome);
-      fprintf(stderr,"gstate->nbase_in_genome=" BPFORMAT "\n",
-            gstate->nbase_in_genome);
+      gstate->global_fragment_arrival_rate = ((float)(nfrag - num_of_guides_total) /
+                                              (float)gstate->nbase_in_genome);
     }
 
     // Check for a common error.  The error is trying to run CGB with
     // a fragment graph store that has no overlaps.
-    { 
-      IntEdge_ID numedge = GetNumEdges(heapva->edges);
-      if( numedge == 0 ) {
-	fprintf(stderr,
-		"CGB Error! You silly rabbit.\n"
-		"This fragment graph store has no fragment overlaps.\n"
-		"All unitigs would have been be singletons.\n");
-      }
-      assert(numedge > 0);
-    }
+    if (GetNumEdges(heapva->edges) == 0)
+      fprintf(stderr,
+              "CGB Error! You silly rabbit.\n"
+              "This fragment graph store has no fragment overlaps.\n"
+              "All unitigs would have been be singletons.\n");
+    assert(GetNumEdges(heapva->edges) > 0);
 
+    //view_fgb_chkpnt( "finished_marking_graph", heapva->frags, heapva->edges);
+    //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
+    //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "In main before build 1");
 
+    chunk_graph_build_1(rg->Output_Graph_Store_Prefix,
+                        rg->work_limit_placing_contained_fragments,		  
+                        rg->walk_depth,
+                        gstate->max_frag_iid,
+                        rg->nbase_in_genome,
+                        rg->chimeras_file,
+                        rg->spurs_file,
+                        rg->recalibrate_global_arrival_rate,
+                        rg->cgb_unique_cutoff,
+                        heapva->frags,
+                        heapva->edges,
+                        &(gstate->global_fragment_arrival_rate),
+                        heapva->chunkfrags,
+                        heapva->thechunks);
 
-#ifdef DEBUG_RISM
-  view_fgb_chkpnt( "finished_marking_graph", heapva->frags, heapva->edges);
-  check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
-#endif    
-    
-    count_fragment_and_edge_labels( heapva->frags, heapva->edges,
-                                    "In main before build 1");
-
-    chunk_graph_build_1
-      (
-       /* Input Only */
-       rg->Output_Graph_Store_Prefix,
-       rg->work_limit_placing_contained_fragments,		  
-       rg->walk_depth,
-       gstate->max_frag_iid,
-       rg->nbase_in_genome,
-       rg->chimeras_file,
-       rg->spurs_file,
-       rg->recalibrate_global_arrival_rate,
-       rg->cgb_unique_cutoff,
-       heapva->frags,     /* The internal representation of
-                              the fragment reads. I have one
-                              extra for the segstart field. */
-       heapva->edges,     /* The internal representation of the
-                              overlaps. */
-       &(gstate->global_fragment_arrival_rate),
-       heapva->chunkfrags,
-       heapva->thechunks
-       );
-
-    count_fragment_and_edge_labels( heapva->frags, heapva->edges,
-                                    "In main after build 1");
-
-
-  // BEGIN CGB ITERATION PHASE
-    {
-      int iterator;
-      for(iterator=0;iterator< rg->num_cgb_passes;iterator++) {
-
-	{
-	  char strtmp1[FILENAME_MAX];
-	  FILE * fbpts1 = fopen
-	    (strcat(strcpy(strtmp1,rg->Output_Graph_Store_Prefix),
-                    ".cgb_bpts1"),"a");
-	  FILE * fbpts2 = fopen
-	    (strcat(strcpy(strtmp1,rg->Output_Graph_Store_Prefix),
-                    ".cgb_bpts2"),"a");
-          assert(NULL != fbpts1);
-          assert(NULL != fbpts2);
-          
-	  chunk_graph_build_2
-	    (
-	     /* Input Only */
-	     rg->use_consensus,
-	     rg->dont_find_branch_points,
-             rg->cgb_unique_cutoff,
-             gstate->global_fragment_arrival_rate,
-             gkpStore,
-             /* Input/Output */
-	     heapva->frags,     /* The internal representation of
-				    the fragment reads. I have one
-				    extra for the segstart field. */
-	     heapva->edges,     /* The internal representation of the
-				    overlaps. */
-	     heapva->chunkfrags,
-	     heapva->thechunks,
-             /* Output Only */
-	     heapva->chunkseqs,
-	     heapva->chunkquas,
-	     heapva->chunksrcs,
-	     fbpts1,
-             fbpts2
-	     );
-          fclose(fbpts1);
-          fclose(fbpts2);
-        }
-
-
-        count_fragment_and_edge_labels( heapva->frags, heapva->edges,
-                                        "Before chunk_classification_dvt");
-
-        chunk_classification_dvt
-          ( heapva->frags, heapva->edges,
-            rg->walk_depth,
-            rg->remove_blizzard_overlaps
-            );
-    
-        count_fragment_and_edge_labels( heapva->frags, heapva->edges,
-                                        "After chunk_classification_dvt");
-
-        chunk_graph_build_1
-          (
-           /* Input Only */
-	   rg->Output_Graph_Store_Prefix,
-	   rg->work_limit_placing_contained_fragments,		  
-           rg->walk_depth,
-           gstate->max_frag_iid,
-           rg->nbase_in_genome,
-           rg->chimeras_file,
-           rg->spurs_file,
-	   rg->recalibrate_global_arrival_rate,
-           rg->cgb_unique_cutoff,
-           heapva->frags,     /* The internal representation of
-                                  the fragment reads. I have one
-                                  extra for the segstart field. */
-           heapva->edges,     /* The internal representation of the
-                                  overlaps. */
-           &(gstate->global_fragment_arrival_rate),
-           heapva->chunkfrags,
-           heapva->thechunks
-           );
-      }
-    } // END CGB ITERATION PHASE
-
-
-    count_fragment_and_edge_labels( heapva->frags, heapva->edges,
-                                  "Before save_the_chunk_graph");
+    //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "In main after build 1");
 
   } // end of non-incremental phase
 
 
 #ifdef SWITCH_CONTAINMENT_DIRECTION_CGB
-  convert_all_containment_overlaps_direction_TOC
-    ( heapva->frags, heapva->edges, heapva->next_edge_obj, FALSE);
-  count_fragment_and_edge_labels( heapva->frags, heapva->edges,
-                                  "After switching the containment direction");
+  convert_all_containment_overlaps_direction_TOC ( heapva->frags, heapva->edges, heapva->next_edge_obj, FALSE);
+  //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "After switching the containment direction");
 #endif // SWITCH_CONTAINMENT_DIRECTION_CGB
 
-  /**************** Finish Process Input  *********************/
-  
   closeGateKeeperStore(gkpStore);
-  
-  return( status);
+
+  return(0);
 }

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGB_cga.c,v 1.14 2007-05-01 14:41:42 granger_sutton Exp $";
+static char CM_ID[] = "$Id: AS_CGB_cga.c,v 1.15 2007-07-18 15:19:55 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_cga.c
@@ -355,13 +355,6 @@ static void exhale_term_rep
       if(fraginfo == NULL) {
 	sprintf(vs1,"a(\"OBJECT\",\"(" F_IID ":" F_IID ")\"),",
 		iafr,ifrag);
-      } else {
-#ifdef GENINFO
-	sprintf(vs1,"a(\"OBJECT\",\"[%d,%d] (" F_IID ":" F_IID ")\"),",
-		(int32)get_genbgn_fraginfo(fraginfo,ifrag),
-		(int32)get_genend_fraginfo(fraginfo,ifrag),
-		iafr,ifrag);
-#endif // GENINFO
       }
       
       switch(ilab) {
@@ -468,293 +461,6 @@ static void graph_diagnostics
 #endif  //  DEBUG_VISUAL
 
 
-static void annotate_the_chunks_with_coordinate_info
-(/*Input Only*/
- const IntFragment_ID max_frag_iid,
- const Tfragment frags[],
- const Tedge edges[],
- const Tfraginfo fraginfo[],
- const TChunkFrag chunkfrags[],
- const TChunkMesg thechunks[],
- /*Output Only*/
- ChunkAnnotation chunkinfo[])
-{ 
-  const IntFragment_ID nfrag = GetNumFragments(frags);
-  const IntChunk_ID nchunks = (IntChunk_ID)GetNumVA_AChunkMesg(thechunks);
-
-
-  IntChunk_ID ichunk;
-
-  assert((!0) == 1); /* Needed for the following bitwise XOR operator. */
-  for(ichunk=0;ichunk<nchunks;ichunk++)
-    /* beginning loop through fragment */ {
-    // Process the chunk-end fragments first.
-    const IntFragment_ID chunk_avx = GetVA_AChunkMesg(thechunks,ichunk)->chunk_avx;
-    const IntFragment_ID chunk_bvx = GetVA_AChunkMesg(thechunks,ichunk)->chunk_bvx;
-    const int chunk_asx = GetVA_AChunkMesg(thechunks,ichunk)->chunk_asx;
-    const int chunk_bsx = GetVA_AChunkMesg(thechunks,ichunk)->chunk_bsx;
-    const IntFragment_ID nfrag_in_chunk
-      = GetVA_AChunkMesg(thechunks,ichunk)->num_frags;
-    // const BPTYPE nbase_essential_in_chunk 
-    // = GetVA_AChunkMesg(thechunks,ichunk)->bp_length;
-    const IntFragment_ID irec_start_of_chunk
-      = GetVA_AChunkMesg(thechunks,ichunk)->f_list;
-
-#ifdef GENINFO
-    BPTYPE atip=0,btip=0;
-    BPTYPE lowest_genome_coordinate=0,highest_genome_coordinate=0;
-    int ivote_repeat_essential=0;
-    int ivote_repeat_contained=0;
-    int abforward=-1, direction_error = 0;
-#endif
-    int iavx=-1,ibvx=-1; 
-    int iasx=-1,ibsx=-1;
-
-#ifdef DEBUG07
-    fprintf(stderr,
-	    "Process ichunk,nchunks,nfrag_in_chunk,nbase_essential_in_chunk=\n"
-	   F_IID "," F_IID "," F_IID "," BPFORMAT "\n",
-	   ichunk,nchunks,nfrag_in_chunk,nbase_essential_in_chunk);
-#endif
-
-    { // Begin processing the A fragment of the chunk.
-      const IntFragment_ID vid = chunk_avx;
-      // Synthesize the original INTRACHUNK edge.
-      iavx = chunk_avx;
-      iasx = get_forward_fragment(frags,chunk_avx);
-#ifdef GENINFO
-      { /* shotgun simulator info */
-	const BPTYPE ibgn = get_genbgn_fraginfo(fraginfo,vid);
-	const BPTYPE iend = get_genend_fraginfo(fraginfo,vid);
-	const BPTYPE ilow = (ibgn < iend ? ibgn : iend);
-	const BPTYPE ihgh = (ibgn > iend ? ibgn : iend);
-	atip = (iasx ? ibgn : iend);
-
-	abforward = ((iend<ibgn) ^ iasx);
-	lowest_genome_coordinate  = ilow;
-	highest_genome_coordinate = ihgh;
-      }
-#endif // GENINFO
-    } // Finished processing the A fragment of the chunk.
-
-    { // Begin processing the B fragment of the chunk.
-      const IntFragment_ID vid = chunk_bvx;
-      ibvx = chunk_bvx;
-      ibsx = ! get_forward_fragment(frags,chunk_bvx);
-#ifdef GENINFO
-      { /* shotgun simulator info */
-	const BPTYPE ibgn = get_genbgn_fraginfo(fraginfo,vid);
-	const BPTYPE iend = get_genend_fraginfo(fraginfo,vid);
-	const BPTYPE ilow = (ibgn < iend ? ibgn : iend);
-	const BPTYPE ihgh = (ibgn > iend ? ibgn : iend);
-	btip = (ibsx ? ibgn : iend);
-	lowest_genome_coordinate = (lowest_genome_coordinate < ilow ?
-				    lowest_genome_coordinate : ilow);
-	highest_genome_coordinate = (highest_genome_coordinate > ihgh ?
-				     highest_genome_coordinate : ihgh);
-      }
-#endif
-    } // Finished processing the B fragment of the chunk.
-
-    if((chunk_avx == chunk_bvx)&&(chunk_asx != chunk_bsx) ) {
-      // A spanned chunk.
-    } else if ((chunk_avx == chunk_bvx)&&(chunk_asx == chunk_bsx) ) {
-      // A circular chunk?
-      fprintf(stderr,"A circular chunk???\n");
-      assert(FALSE);
-    }
-    
-    // Check if all of the essential edges in the chunk are valid
-    // overlaps.  Also check is the contained edges are valid
-    // overlaps.
-    { IntFragment_ID ifrag;
-    for(ifrag=0;ifrag<nfrag_in_chunk;ifrag++){
-      const IntFragment_ID ivc = irec_start_of_chunk + ifrag;
-      const IntFragment_ID vid = GetVA_AChunkFrag(chunkfrags,ivc)->vid;
-      const Tlab ilabel = get_lab_fragment(frags,vid);
-#ifdef GENINFO
-      /* shotgun simulator info */
-      const BPTYPE ibgn = get_genbgn_fraginfo(fraginfo,vid);
-      const BPTYPE iend = get_genend_fraginfo(fraginfo,vid);
-#endif
-      
-      // Synthesize the original INTRACHUNK edge.
-      ibvx = vid;
-      ibsx = ! get_forward_fragment(frags,vid);
-#ifdef GENINFO2
-      // Find the genome coordinate span of the essential fragments of
-      // the chunk.
-      if( ilabel != AS_CGB_SINGLECONT_FRAG ) // Work-around for H.Flu.
-      {
-	BPTYPE ilow,ihgh;
-	ilow = (ibgn < iend ? ibgn : iend);
-	ihgh = (ibgn < iend ? iend : ibgn);
-	if((ibgn == 0) && (iend == 0)) {
-	  lowest_genome_coordinate = ilow;
-	  highest_genome_coordinate = ihgh;
-	} else {
-	  lowest_genome_coordinate = (lowest_genome_coordinate < ilow ?
-				      lowest_genome_coordinate : ilow);
-	  highest_genome_coordinate = (highest_genome_coordinate > ihgh ?
-				       highest_genome_coordinate : ihgh);
-	}
-      }
-#endif
-      
-      switch(ilabel){
-      case AS_CGB_SOLO_FRAG:
-      case AS_CGB_HANGING_FRAG:
-      case AS_CGB_THRU_FRAG:
-      case AS_CGB_MULTICONT_FRAG:
-      case AS_CGB_BRANCHMULTICONT_FRAG:
-      case AS_CGB_HANGING_CHUNK_FRAG:
-      case AS_CGB_ORPHANEDCONT_FRAG:
-      case AS_CGB_INTERCHUNK_FRAG:
-      case AS_CGB_INTRACHUNK_FRAG:
-      case AS_CGB_HANGING_CRAPPY_FRAG:
-	{
-	  int invalid;
-	  assert(iavx != -1);
-	  assert(iasx != -1);
-#ifdef GENINFO
-	  assert(abforward != -1);
-	  direction_error += (abforward ^ ((iend>ibgn) ^ ibsx));
-	  invalid = check_overlap_with_simulator(nfrag,fraginfo,iavx,ibvx);
-	  if(invalid) {
-            const int acon = get_con_fragment(frags,iavx);
-            const int bcon = get_con_fragment(frags,ibvx);
-            const int alab = get_lab_fragment(frags,iavx);
-            const int blab = get_lab_fragment(frags,ibvx);
-            const IntFragment_ID aiid = get_iid_fragment(frags,iavx);
-            const IntFragment_ID biid = get_iid_fragment(frags,ibvx);
-            const IntChunk_ID acid = get_cid_fragment(frags,iavx);
-            const IntChunk_ID bcid = get_cid_fragment(frags,ibvx);
-            
-	    fprintf(stdout,"INVALID OVL: "
-                    "afr=" F_IID " asx=%d acon=%d alab=%d acid=" F_IID " bfr=" F_IID " bsx=%d bcon=%d blab=%d bcid=" F_IID "\n",
-		    aiid,iasx, acon, alab, acid,
-		    biid,ibsx, bcon, blab, bcid);
-	  }
-	  ivote_repeat_essential += invalid;
-#endif // GENINFO
-	}
-	break;
-      case AS_CGB_SINGLECONT_FRAG:
-	{
-#ifdef GENINFO
-	  assert(abforward != -1);
-	  assert(iavx != -1);
-	  assert(iasx != -1);
-	  {
-	    const int invalid
-	      = check_overlap_with_simulator(nfrag,fraginfo,iavx,ibvx);
-	    ivote_repeat_contained += invalid;
-
-	    // Should the contained fragments contribute to a
-	    // unique/repeat discrimination?
-#endif // GENINFO
-	  }
-	}
-	break;
-      default:
-	assert(FALSE);
-      }
-      if(ilabel != AS_CGB_SINGLECONT_FRAG) { 
-	// Set up for the next fragment.
-	assert(ibvx != -1);
-	assert(ibsx != -1);
-	iavx = ibvx; 
-	iasx = ! ibsx;
-      }
-    }}
-
-    chunkinfo[ichunk].atip    = 0;
-    chunkinfo[ichunk].btip    = 0;
-    chunkinfo[ichunk].abforward = abforward;
-    // chunkinfo[ichunk].gmin    = 0;
-    // chunkinfo[ichunk].gmax    = 0;
-    chunkinfo[ichunk].essential_type = '@';
-    chunkinfo[ichunk].contained_type = '@';
-#ifdef GENINFO
-    {
-
-#ifdef GENINFO3
-      const BPTYPE span_of_genome_coordinates
-	= highest_genome_coordinate - lowest_genome_coordinate;
-      const BPTYPE temp1 = ABS(span_of_genome_coordinates 
-			       - GetVA_AChunkMesg(thechunks,ichunk)->bp_length);
-      const int unique_in_genome 
-	=  temp1 < 0.04*(GetVA_AChunkMesg(thechunks,ichunk)->bp_length);
-#endif // GENINFO3
-
-      chunkinfo[ichunk].atip = atip;
-      chunkinfo[ichunk].btip = btip;
-
-      if( (ivote_repeat_essential == 0) &&
-	  ((MIN(atip,btip) != lowest_genome_coordinate) ||
-	   (MAX(atip,btip) != highest_genome_coordinate))) {
-	fprintf(stderr,"CGA simulator coordinate problem with ichunk=" F_IID "\n",ichunk);
-	fprintf(stderr,"    atip=" BPFORMAT ",btip=" BPFORMAT "\n", atip, btip);
-	fprintf(stderr,"    lowest_genome_coordinate=" BPFORMAT ",highest_genome_coordinate=" BPFORMAT "\n",
-		lowest_genome_coordinate, highest_genome_coordinate);
-      }
-
-
-      chunkinfo[ichunk].essential_type = 
-	( ivote_repeat_essential == 0 ? 'u' : 'r' );
-      chunkinfo[ichunk].contained_type = 
-	( ivote_repeat_contained == 0 ? 'u' : 'r' );
-
-#ifdef DEBUG77
-      if( (chunkinfo[ichunk].essential_type == 'r' ) && 
-	  (GetVA_AChunkMesg(thechunks,ichunk)->coverage_stat 
-	   >= cgb_unique_cutoff) ) {
-	fprintf(stderr,
-		"ichunk=" F_IID " "
-		"is an essential invalid unitig with coverage_stat=%f\n",
-		ichunk,
-		GetVA_AChunkMesg(thechunks,ichunk)->coverage_stat);
-      }
-      if( (chunkinfo[ichunk].contained_type == 'r' ) && 
-	  (GetVA_AChunkMesg(thechunks,ichunk)->coverage_stat 
-	   >= cgb_unique_cutoff) ) {
-	fprintf(stderr,
-		"ichunk=" F_IID " "
-		"is a contained invalid unitig with coverage_stat=%f\n",
-		ichunk,
-		GetVA_AChunkMesg(thechunks,ichunk)->coverage_stat);
-      }
-#endif/*DEBUG77*/
-#ifdef DEBUG78
-      if( ((!(ivote_repeat_essential==0))&&(unique_in_genome)) ||
-	  (((ivote_repeat_essential==0))&&(!unique_in_genome)) ) {
-	float diff = (float)(span_of_genome_coordinates 
-			     - GetVA_AChunkMesg(thechunks,ichunk)->bp_length)
-	  /(float)GetVA_AChunkMesg(thechunks,ichunk)->bp_length;
-	fprintf(stderr,
-		"ichunk=%8" F_IIDP ", unique_in_genome=%d, ivote_repeat_essential=%d, "
-		"low=" BPFORMAT15 
-		",high=" BPFORMAT15 " diff:%g\n",
-		ichunk,
-		unique_in_genome,ivote_repeat_essential,
-		lowest_genome_coordinate,highest_genome_coordinate, diff);
-      }
-#endif/*DEBUG78*/
-    }
-#endif
-  }
-
-#ifdef GENINFO
-#ifdef DEBUG08
-  fprintf(stderr,"direction_error_in_uniques=%d\n",direction_error_in_uniques);
-  fprintf(stderr,"direction_error_in_repeats=%d\n",direction_error_in_repeats);
-#endif
-#endif /*GENINFO*/
-
-}
-
-
-/*************************************************************************/
 
 static void analyze_the_fragment_overlap_graph
 (
@@ -1028,138 +734,6 @@ static void analyze_the_fragment_overlap_graph
 	      n_as_cgb_removed_by_duplicate_con/2
 	      );
     }
-#ifdef GENINFO
-    { // 
-      IntEdge_ID
-	iedge,
-	count_invalid_dovetail_edges=0,
-	count_invalid_thickest_edges=0,
-	count_invalid_interchunk_edges=0,
-	count_invalid_intrachunk_edges=0,
-	count_invalid_containment_edges=0,
-	count_invalid_touches_contained_edges=0,
-	count_invalid_between_contained_edges=0,
-	count_invalid_touches_crappy_dvt=0,
-	count_invalid_touches_crappy_con=0,
-	count_invalid_between_crappy_dvt=0,
-	count_invalid_between_crappy_con=0,
-	count_invalid_marked_by_branch_dvt_edges=0,
-	count_invalid_removed_by_transitivity_dvt_edges=0,
-	count_invalid_removed_by_transitivity_con_edges=0,
-	count_invalid_removed_by_threshold_dvt_edges=0,
-	count_invalid_removed_by_threshold_con_edges=0,
-	count_invalid_removed_by_duplicate_dvt_edges=0,
-	count_invalid_removed_by_duplicate_con_edges=0;
-
-      
-      for(iedge=0;iedge<nedge;iedge++){
-	const Tnes ines = get_nes_edge(edges,iedge);
-
-	const int invalid = get_inv_edge(edges,iedge);
-
-	if( invalid ) {
-	  switch(ines) {
-	  case AS_CGB_DOVETAIL_EDGE:
-	    count_invalid_dovetail_edges++; break;
-	  case AS_CGB_THICKEST_EDGE:
-	    count_invalid_thickest_edges++; break;
-	  case AS_CGB_INTERCHUNK_EDGE:
-	    count_invalid_interchunk_edges++; break;
-	  case AS_CGB_INTRACHUNK_EDGE:
-	    count_invalid_intrachunk_edges++; break;
-
-	  case AS_CGB_TOUCHES_CONTAINED_EDGE:
-	    count_invalid_touches_contained_edges++; break;
-	  case AS_CGB_BETWEEN_CONTAINED_EDGE:
-	    count_invalid_between_contained_edges++; break;
-          case AS_CGB_TOUCHES_CRAPPY_DVT:
-            count_invalid_touches_crappy_dvt++; break;
-          case AS_CGB_BETWEEN_CRAPPY_DVT:
-            count_invalid_between_crappy_dvt++; break;
-	  case AS_CGB_MARKED_BY_BRANCH_DVT:
-	    count_invalid_marked_by_branch_dvt_edges++; break;
-          case AS_CGB_REMOVED_BY_TRANSITIVITY_DVT:
-            count_invalid_removed_by_transitivity_dvt_edges++; break;
-	  case AS_CGB_REMOVED_BY_THRESHOLD_DVT:
-	    count_invalid_removed_by_threshold_dvt_edges++; break;
-	  case AS_CGB_REMOVED_BY_DUPLICATE_DVT:
-	    count_invalid_removed_by_duplicate_dvt_edges++; break;
-
-	  case AS_CGB_CONTAINED_EDGE:
-#ifdef DEBUGGING
-          {
-            const IntFragment_ID iavx = get_avx_edge(edges,iedge);
-            const IntFragment_ID ibvx = get_bvx_edge(edges,iedge);
-            const int iasx = get_asx_edge(edges,iedge);
-            const int ibsx = get_bsx_edge(edges,iedge);
-
-	    printf("invalid_containment_edges: %d,%d %d,%d\n",
-		   get_iid_fragment(frags,iavx),iasx,
-		   get_iid_fragment(frags,ibvx),ibsx);
-          }
-#endif // DEBUGGING
-	    count_invalid_containment_edges++; break;
-
-          case AS_CGB_TOUCHES_CRAPPY_CON:
-            count_invalid_touches_crappy_con++; break;
-          case AS_CGB_BETWEEN_CRAPPY_CON:
-            count_invalid_between_crappy_con++; break;
-          case AS_CGB_REMOVED_BY_TRANSITIVITY_CON:
-	    count_invalid_removed_by_transitivity_con_edges++; break;
-	  case AS_CGB_REMOVED_BY_THRESHOLD_CON:
-	    count_invalid_removed_by_threshold_con_edges++; break;
-	  case AS_CGB_REMOVED_BY_DUPLICATE_CON:
-	    count_invalid_removed_by_duplicate_con_edges++; break;
-
-	  default:
-	    fprintf(stderr,"Unsupported edge label nes=%d\n",ines);
-	    assert(FALSE);
-	  }
-	}
-      }
-      
-      fprintf(fout,"Fragment information from the simulator\n");
-      
-      fprintf(fout,
-	      "%15" F_IIDP " : number of invalid dovetail undistinguished overlaps.\n"
-	      "%15" F_IIDP " : number of invalid thickest undistinguished overlaps.\n"
-	      "%15" F_IIDP " : number of invalid inter-chunk overlaps.\n"
-	      "%15" F_IIDP " : number of invalid intra-chunk overlaps.\n"
-	      "%15" F_IIDP " : number of invalid containment overlaps.\n"
-	      "%15" F_IIDP " : number of invalid touches contained overlaps.\n"
-	      "%15" F_IIDP " : number of invalid between contained overlaps.\n"
-	      "%15" F_IIDP " : number of invalid touches spur dvt overlaps.\n"
-	      "%15" F_IIDP " : number of invalid between spur dvt overlaps.\n"
-	      "%15" F_IIDP " : number of invalid touches spur toc overlaps.\n"
-	      "%15" F_IIDP " : number of invalid between spur toc overlaps.\n"
-	      "%15" F_IIDP " : number of invalid marked_by_branch point dvt.\n"
-	      "%15" F_IIDP " : number of invalid removed_by_transitivity overlaps dvt.\n"
-	      "%15" F_IIDP " : number of invalid removed_by_transitivity overlaps con.\n"
-	      "%15" F_IIDP " : number of invalid removed_by_threshold overlaps dvt.\n"
-	      "%15" F_IIDP " : number of invalid removed_by_threshold overlaps con.\n"
-	      "%15" F_IIDP " : number of invalid removed_by_duplicate overlaps dvt.\n"
-	      "%15" F_IIDP " : number of invalid removed_by_duplicate overlaps con.\n",
-	      count_invalid_dovetail_edges/2,
-	      count_invalid_thickest_edges/2,
-	      count_invalid_interchunk_edges/2,
-	      count_invalid_intrachunk_edges/2,
-	      count_invalid_containment_edges/2,
-	      count_invalid_touches_contained_edges/2,
-	      count_invalid_between_contained_edges/2,
-              count_invalid_touches_crappy_dvt/2,
-              count_invalid_between_crappy_dvt/2,
-              count_invalid_touches_crappy_con/2,
-              count_invalid_between_crappy_con/2,
-	      count_invalid_marked_by_branch_dvt_edges/2,
-	      count_invalid_removed_by_transitivity_dvt_edges/2,
-	      count_invalid_removed_by_transitivity_con_edges/2,
-	      count_invalid_removed_by_threshold_dvt_edges/2,
-	      count_invalid_removed_by_threshold_con_edges/2,
-	      count_invalid_removed_by_duplicate_dvt_edges/2,
-	      count_invalid_removed_by_duplicate_con_edges/2
-	      );
-    }
-#endif // GENINFO
     
     
     {
@@ -1807,13 +1381,6 @@ static void analyze_the_chunks
   IntFragment_ID n_rs_frag_in_all_chunks = 0;
   IntFragment_ID n_nr_frag_in_all_chunks = 0;
 
-#ifdef GENINFO
-  BPTYPE
-    rho_in_true_unique=0, rho_in_true_repeat=0,
-    rho_in_true_unique_with_cpos=0, rho_in_true_repeat_with_cpos=0,
-    rho_in_true_unique_with_cneg=0, rho_in_true_repeat_with_cneg=0;
-#endif
-
   const int nsample=500;
   const int nbucket=500;
   MyHistoDataType zork;
@@ -1826,11 +1393,6 @@ static void analyze_the_chunks
   Histogram_t * length_of_unitigs_histogram
     = create_histogram(nsample,nbucket,0,TRUE);
 
-
-#ifdef GENINFO 
-  Histogram_t * true_uniques = create_histogram(nsample,nbucket,0,TRUE);
-  Histogram_t * true_repeats = create_histogram(nsample,nbucket,0,TRUE);
-#endif
   Histogram_t * rho_histogram 
     = create_histogram(nsample,nbucket,0,TRUE);
   Histogram_t * coverage_histogram 
@@ -1859,12 +1421,6 @@ static void analyze_the_chunks
 
   extend_histogram(length_of_unitigs_histogram, sizeof(MyHistoDataType),
 		   myindexdata,mysetdata,myaggregate,myprintdata);
-#ifdef GENINFO
-  extend_histogram(true_uniques,sizeof(MyHistoDataType),
-		   myindexdata,mysetdata,myaggregate,myprintdata);
-  extend_histogram(true_repeats,sizeof(MyHistoDataType),
-		   myindexdata,mysetdata,myaggregate,myprintdata);
-#endif /*GENINFO*/
 
   fragment_visited = (IntFragment_ID *)safe_malloc(nfrag*sizeof(IntFragment_ID));
   afr_to_avx = create_FragmentHash((max_frag_iid+1));
@@ -2052,27 +1608,6 @@ static void analyze_the_chunks
     add_to_histogram(length_of_unitigs_histogram,
                      nbase_essential_in_chunk,&zork);
 
-#ifdef GENINFO
-
-    if( ! (chunkinfo[ichunk].essential_type == 'r') ) { 
-      add_to_histogram(true_uniques, coverage_index, &zork);
-      rho_in_true_unique += rho;
-      if( coverage_statistic >= cgb_unique_cutoff ) {
-	rho_in_true_unique_with_cpos += rho;
-      } else {
-	rho_in_true_unique_with_cneg += rho;
-      }
-    }
-    if( (chunkinfo[ichunk].essential_type == 'r') ) { 
-      add_to_histogram(true_repeats, coverage_index, &zork);
-      rho_in_true_repeat += rho;
-      if( coverage_statistic >= cgb_unique_cutoff ) {
-	rho_in_true_repeat_with_cpos += rho;
-      } else {
-	rho_in_true_repeat_with_cneg += rho;
-      }
-    }
-#endif /*GENINFO*/
     add_to_histogram(labeled_unitig_histogram[chunk_label],
 		     coverage_index, &zork);
 
@@ -2270,37 +1805,6 @@ static void analyze_the_chunks
 	    " : Estimated number of base pairs in the genome.\n", 
 	    nbase_in_genome);
 
-#ifdef GENINFO
-    fprintf(fout,BPFORMAT15
-	    " : The sum of overhangs in the truly unique unitigs\n",
-	    rho_in_true_unique);
-    fprintf(fout,BPFORMAT15
-	    " : The sum of overhangs in the truly unique unitigs\n"
-	    "                  with the Unique/Repeat discriminator score"
-	    " >= %5.1f\n",
-	    rho_in_true_unique_with_cpos, cgb_unique_cutoff);
-    fprintf(fout,BPFORMAT15
-	    " : The sum of overhangs in the truly unique unitigs\n"
-	    "                  with the Unique/Repeat discriminator score"
-	    " <  %5.1f\n",
-	    rho_in_true_unique_with_cneg, cgb_unique_cutoff);
-    
-    /* fprintf(fout,"\n\n\n");*/
-    fprintf(fout,BPFORMAT15
-	    " : The sum of overhangs in the truly repeat unitigs\n",
-	    rho_in_true_repeat);
-    fprintf(fout,BPFORMAT15
-	    " : The sum of overhangs in the truly repeat unitigs\n"
-	    "                  with the Unique/Repeat discriminator score"
-	    " >= %5.1f\n",
-	    rho_in_true_repeat_with_cpos, cgb_unique_cutoff);
-    fprintf(fout,BPFORMAT15
-	    " : The sum of overhangs in the truly repeat unitigs\n"
-	    "                  with the Unique/Repeat discriminator score"
-	    " <  %5.1f\n",
-	    rho_in_true_repeat_with_cneg, cgb_unique_cutoff);
-#endif /*GENINFO*/
-
     {
       IntFragment_ID nfound = 0;
       IntFragment_ID ifrag;
@@ -2449,27 +1953,6 @@ static void analyze_the_chunks
 	    "     \t   \t sum       \t fraction\n"
 	    );
 
-
-#ifdef GENINFO
-    fprintf(fout,"\n\nHistogram of the Unique/Repeat discriminator score"
-	    " for valid unitigs\n");
-    print_histogram(fout,true_uniques, 0, 1);
-    fprintf(fout,"\n\nHistogram of the Unique/Repeat discriminator score"
-	    " for invalid unitigs\n");
-    print_histogram(fout,true_repeats, 0, 1);
-
-    {
-      int ii;
-      for(ii=0;ii<MAX_NUM_CHUNK_LABELS;ii++){
-	fprintf(fout,"\n\nHistogram of the "
-		"Unique/Repeat discriminator score for %s\n",
-		ChunkLabelDesc[ii]);
-	print_histogram(fout,labeled_unitig_histogram[ii],0,1);
-      }
-    }
-
-#endif /*GENINFO*/
-
   }
   free_histogram(nfrag_in_chunk_histogram);
   free_histogram(nfrag_essential_in_chunk_histogram);
@@ -2485,10 +1968,6 @@ static void analyze_the_chunks
   }
 
   free_histogram(length_of_unitigs_histogram);
-#ifdef GENINFO
-  free_histogram(true_uniques);
-  free_histogram(true_repeats);
-#endif
   safe_free(fragment_visited);
   safe_free(fragment_timesinchunks);
   destroy_FragmentHash(afr_to_avx);
@@ -2499,14 +1978,12 @@ static void analyze_the_chunks
 
 void chunk_graph_analysis
 (/* Input Only */
- const int        analysis_flag,
  const IntFragment_ID max_frag_iid,
  Tfragment        frags[],     /* The internal representation of
 			   the fragment reads. I have one
 			   extra for the segstart field. */
  Tedge            edges[],     /* The internal representation of the
 			   overlaps. */
- VA_TYPE(char)    frag_annotations[], /* Fragment annotations. */
  const BPTYPE     nbase_in_genome,
  const int        recalibrate_global_arrival_rate,
  const float      cgb_unique_cutoff,
@@ -2514,65 +1991,34 @@ void chunk_graph_analysis
  const char       bubble_boundaries_filename[],
  TChunkFrag       chunkfrags[],
 
- /* Modify the annotation,  by setting the "isrc" index into 
-	chunksrc array. */
  TChunkMesg       thechunks[],
- /* Output only */
- VA_TYPE(char) chunksrcs[], /* The character array used to store the annotations. */
  FILE    *fcga,
  FILE    *fcam,
  FILE    *fp_unitig_statistics,
  FILE    *fwrn
  ) 
 {
-  const int ProcessFragmentAnnotationsForSimulatorCoordinates = (analysis_flag > 1);
   const IntFragment_ID nfrag = GetNumFragments(frags);
-  //const IntEdge_ID nedge = GetNumEdges(edges);
   const IntChunk_ID nchunks = (IntChunk_ID)GetNumVA_AChunkMesg(thechunks);
 
-  ChunkAnnotation *chunkinfo
-    = (ChunkAnnotation *)safe_malloc((nchunks)*sizeof(ChunkAnnotation));
-
-  Tfraginfo     *fraginfo = NULL;
+  ChunkAnnotation *chunkinfo = (ChunkAnnotation *)safe_malloc((nchunks)*sizeof(ChunkAnnotation));
 
   assert(frags      != NULL);
   assert(edges      != NULL);
 
   assert(chunkfrags != NULL);
   assert(thechunks  != NULL);
-  assert(chunkinfo !=NULL);
+  assert(chunkinfo  != NULL);
 
-  if( ProcessFragmentAnnotationsForSimulatorCoordinates ) {
-    assert(NULL == fraginfo);
-    fraginfo   = CreateVA_Afraginfo(nfrag);
-    assert(NULL != fraginfo);
-    EnableRangeVA_Afraginfo(fraginfo,nfrag);
-    setup_fraginfo( max_frag_iid, frags, frag_annotations, fraginfo);
-    //  mark_invalid_edges( nfrag, fraginfo, edges);
-    
-    annotate_the_chunks_with_coordinate_info
-      (/*Input Only*/
-       max_frag_iid,
-       frags,
-       edges,
-       fraginfo,
-       chunkfrags,
-       thechunks,
-       /*Output Only*/
-       chunkinfo);
-    fprintf(stderr,"after annotate_the_chunks_with_coordinate_info\n");
-  } else {
-    const IntChunk_ID nchunks = (IntChunk_ID)GetNumVA_AChunkMesg(thechunks);
-    IntChunk_ID ichunk;
-    for(ichunk=0;ichunk<nchunks;ichunk++) {
-      chunkinfo[ichunk].atip    = 0;
-      chunkinfo[ichunk].btip    = 0;
-      chunkinfo[ichunk].abforward = -1; // unknown orientation
-      // chunkinfo[ichunk].gmin    = 0;
-      // chunkinfo[ichunk].gmax    = 0;
-      chunkinfo[ichunk].essential_type = '@';
-      chunkinfo[ichunk].contained_type = '@';
-    }
+  IntChunk_ID ichunk;
+  for(ichunk=0;ichunk<nchunks;ichunk++) {
+    chunkinfo[ichunk].atip    = 0;
+    chunkinfo[ichunk].btip    = 0;
+    chunkinfo[ichunk].abforward = -1; // unknown orientation
+    // chunkinfo[ichunk].gmin    = 0;
+    // chunkinfo[ichunk].gmax    = 0;
+    chunkinfo[ichunk].essential_type = '@';
+    chunkinfo[ichunk].contained_type = '@';
   }
 
   /******************************************************
@@ -2603,401 +2049,6 @@ void chunk_graph_analysis
        global_fragment_arrival_rate );
 
     fprintf(stderr,"End Statistical Graph Diagnostics " __FILE__ "\n");
-
-
-
-  if(NULL == fraginfo) {
-    IntChunk_ID ichunk;
-    for(ichunk=0;ichunk<nchunks; ichunk++) {
-      { 
-	size_t nchunksrc, nsource;
-	char source[1024];
-	sprintf(source,	"gen> @@ [0,0]\n");
-	nsource = strlen(source);
-	nchunksrc = GetNumVA_char(chunksrcs);
-	GetVA_AChunkMesg(thechunks,ichunk)->isrc = nchunksrc;
-	EnableRangeVA_char(chunksrcs,nchunksrc+nsource+1);
-	/* Remember the terminal null character for a char string. */
-	strcpy(GetVA_char(chunksrcs,nchunksrc),source);
-      }
-    }
-  }
-
-
-#ifdef GENINFO
-  else /* (NULL != fraginfo) */ {
-  /* 
-     genome location type:
-     '@'=no information (default)
-     'u'=true unique chunk (a.k.a. valid unitig)
-     'r'=true repeat chunk (a.k.a. invalid unitig)
-     
-     simulator annotation letter for repeat sequences:
-     '@'= no information (default)
-     'A'-'Z'=repeat sequence letter
-     
-     Proposed format for the first two line of the source text:
-     "%1[@ur] [%ld,%ld]\n%1[@-Z]%1[A-Z]*\n"
-     The first line gives information about the fragmentation of the
-     genome. The second line gives information about the annotation 
-     of the DNA sequence in the chunk.  
-  */
-  {
-    // FILE *fout=stdout;
-    IntChunk_ID ichunk;
-
-#define  NUM_COLOURS   16
-
-    enum {
-      UNUSED_COLOUR,
-
-      /* proper unitig colors */
-      UNIQUE_UNITIG_COLOUR,
-      CONSISTENT_UNITIG_COLOUR,
-      REPEAT_UNITIG_COLOUR,
-      BADUNIQUE_UNITIG_COLOUR,
-      CONT_BADUNIQUE_UNITIG_COLOUR,
-
-      /* singleton unitig colors */
-      ONE_FRAG_COLOUR,
-      SPANNING_FRAG_COLOUR,
-      MULTICONT_FRAG_COLOUR,
-      BRANCHMULTICONT_FRAG_COLOUR,
-      HANGING_CRAPPY_FRAG_COLOUR,
-      SOLO_FRAG_COLOUR,
-      HANGING_FRAG_COLOUR,
-      ORPHAN_FRAG_COLOUR,
-
-    /* branch point colors */
-      LEFTBP_COLOUR,
-      RIGHTBP_COLOUR
-    } CelamyColours;
-    
-    char  * Colour_String [NUM_COLOURS]
-      = {
-	"C000000 T2 S  # Unused",
-
-	"CFFFF00 T2 S  # UniqueUnitig",
-	"C00FF00 T2 S  # ConsistentUnitig",
-	"CFF0000 T2 S  # RepeatUnitig",
-	"CFF00FF T2 S  # BadUniqueUnitig",
-	"CFF9A11 T2 S  # ContBadUniqueUnitig",
-
-
-	"C0F0F0F T2 S  # OneFrag",
-        "C0000FF T2 S  # SpanningFrag",
-        "C00FFFF T2 S  # MultiContFrag",  // Cyan
-	"CE000A0 T2 S  # BranchMultiContFrag",
-        "CFF9A9A T2 S  # HangingSpurFrag",     
-        "C009A00 T2 S  # SoloFrag",
-        "CCF9A00 T2 S  # HangingFrag",
-        "C9A9A00 T2 S  # OrphanFrag",
-
-	"C00FF00 # LeftBP",
-	"CFF0000 # RightBP"
-      };
-
-    if(NULL != fcam) {
-      int icolour;
-      for(icolour=0; icolour<NUM_COLOURS; icolour++) {
-        fprintf(fcam,"%d: %s\n",icolour,Colour_String[icolour]);
-      }
-    }
-
-    if(bubble_boundaries_filename){
-      FILE * cgb_bubbles = NULL;
-      FragmentHashObject *afr_to_avx = NULL; 
-
-      cgb_bubbles = fopen(bubble_boundaries_filename,"r");
-      afr_to_avx = create_FragmentHash(max_frag_iid+1);
-
-      {
-	IntFragment_ID vid;
-	for(vid=0;vid<nfrag;vid++) { 
-	  const IntFragment_ID iid = get_iid_fragment(frags,vid);
-	  set_vid_FragmentHash(afr_to_avx,iid,vid);
-	}
-      }
-
-      fprintf(fcam, "8BubbleColor: C0A0A0A T7 # PossibleBubble\n");
-      if( cgb_bubbles != NULL ) {
-        int bubble_count=0;
-        IntFragment_ID start_iid;
-        IntFragment_ID end_iid;
-        int start_sx;
-        int end_sx;
-
-        clearerr( cgb_bubbles);
-        while ( ! feof(cgb_bubbles) ) {
-          int nitems;
-	  IntFragment_ID start_vid, end_vid;
-
-          nitems = fscanf(cgb_bubbles,
-                          F_IID " %d " F_IID " %d\n", 
-                          &start_iid, &start_sx, &end_iid, &end_sx);
-          if(nitems != 4 ) break;
-	  start_vid = get_vid_FragmentHash(afr_to_avx,start_iid);
-	  end_vid   = get_vid_FragmentHash(afr_to_avx,end_iid);
-	  assert(get_iid_fragment(frags,start_vid) == start_iid);
-	  assert(get_iid_fragment(frags,end_vid) == end_iid);
-
-          { 
-            const BPTYPE start_pos
-	      = ( !start_sx ?  // Include the whole start fragment.
-		  get_genend_fraginfo(fraginfo,start_vid) :
-		  get_genbgn_fraginfo(fraginfo,start_vid));
-            const BPTYPE end_pos
-	      = ( !end_sx ?    // Include the whole end fragment.
-		  get_genend_fraginfo(fraginfo,end_vid) :
-		  get_genbgn_fraginfo(fraginfo,end_vid));
-            const int forward_bubble = ( start_pos <  end_pos );
-            
-            const BPTYPE low_pos = (  forward_bubble ? start_pos : end_pos);
-            const BPTYPE hgh_pos = ( !forward_bubble ? start_pos : end_pos);
-            const IntFragment_ID low_iid = (  forward_bubble ? start_iid : end_iid);
-            const IntFragment_ID hgh_iid = ( !forward_bubble ? start_iid : end_iid);
-            const int low_sx  = (  forward_bubble ? start_sx : end_sx);
-            const int hgh_sx  = ( !forward_bubble ? start_sx : end_sx);
-            char comment[100];
-            
-	    if (hgh_pos - low_pos <= 10000) {
-
-	      sprintf(comment, F_IID ":%d " F_IID ":%d",
-		      low_iid, low_sx, hgh_iid, hgh_sx );
-	      
-	      fprintf(fcam, 
-		      "9Bubble%d: "
-		      BPFORMAT " A8BubbleColor " BPFORMAT " R0 # %s\n",
-		      bubble_count, low_pos, hgh_pos, comment);
-	    }
-          }
-          bubble_count++;
-        }
-        fclose(cgb_bubbles);
-      }
-      destroy_FragmentHash(afr_to_avx);
-    }
-
-    fprintf(stderr,"XXXXB\n");
-
-    for(ichunk=0;ichunk<nchunks; ichunk++) {
-      const int abforward = (chunkinfo[ichunk].abforward);
-      const BPTYPE gen_low_coord 
-	= (abforward ? chunkinfo[ichunk].atip : chunkinfo[ichunk].btip);
-      const BPTYPE gen_hgh_coord 
-	= (chunkinfo[ichunk].essential_type == 'u' ?
-	   (! abforward ? chunkinfo[ichunk].atip : chunkinfo[ichunk].btip) :
-	   (gen_low_coord + GetVA_AChunkMesg(thechunks,ichunk)->bp_length)    );
-      // Is this after consensus?  If so then this is wrong!!!
-
-      const BPTYPE rho 
-	= GetVA_AChunkMesg(thechunks,ichunk)->rho;
-      const int number_of_randomly_sampled_fragments_in_chunk
-	= count_the_randomly_sampled_fragments_in_a_chunk
-	( frags, chunkfrags, thechunks, ichunk);
-      const float coverage_statistic 
-	= compute_coverage_statistic
-	( rho,
-	  number_of_randomly_sampled_fragments_in_chunk,
-	  global_fragment_arrival_rate );
-
-      { 
-	size_t nchunksrc, nsource;
-	char source[1024];
-	sprintf(source,
-		"gen> %c%c [" BPFORMAT "," BPFORMAT "]\n",
-		chunkinfo[ichunk].essential_type,
-		chunkinfo[ichunk].contained_type,
-		(abforward ? gen_low_coord : gen_hgh_coord), 
-		(abforward ? gen_hgh_coord : gen_low_coord));
-	nsource = strlen(source);
-	nchunksrc = GetNumVA_char(chunksrcs);
-	GetVA_AChunkMesg(thechunks,ichunk)->isrc = nchunksrc;
-	EnableRangeVA_char(chunksrcs,nchunksrc+nsource+1);
-	/* Remember the terminal null character for a char string. */
-	strcpy(GetVA_char(chunksrcs,nchunksrc),source);
-      }
-
-
-      {
-	int ia,im_left,im_right;
-
-	int valid=TRUE, evalid=TRUE, cvalid=TRUE,
-	  unique=FALSE, singleton=TRUE;
-	BPTYPE pos_left_end,pos_right_end,pos_left_bpt,pos_right_bpt;
-	char chunk_name[1024] = {0};
-	char source[1024] = {0};
-
-	// assert(ichunk >= 0);
-	evalid = ( chunkinfo[ichunk].essential_type == 'u' );
-	cvalid = ( chunkinfo[ichunk].contained_type == 'u' );
-	valid  = evalid && cvalid;
-	unique = ( coverage_statistic >= cgb_unique_cutoff);
-	singleton = (GetVA_AChunkMesg(thechunks,ichunk)->num_frags == 1);
-	  
-	/* Set the color of each unitig for Gene^s genome visualizer */
-	ia = -1; // The default colour.
-
-	// override for discriminator unique chunks
-	ia = ( ( valid) && ( unique) ? UNIQUE_UNITIG_COLOUR : ia);
-	ia = ( ( valid) && (!unique) ? CONSISTENT_UNITIG_COLOUR : ia);
-
-	// override for non-discriminator unique chunks
-	ia = ( (!valid) && (!unique)
-               ? REPEAT_UNITIG_COLOUR : ia);
-	ia = ( (!valid) && ( unique) && ( evalid)
-               ? CONT_BADUNIQUE_UNITIG_COLOUR : ia);
-	ia = ( (!valid) && ( unique) && (!evalid)
-               ? BADUNIQUE_UNITIG_COLOUR : ia);
-
-	assert(ia != -1);
-
-	// override for singletons, they were CONSISTENT_UNIQUE_COLOUR.
-	if( singleton ) {
-	  ia = ( singleton ? ONE_FRAG_COLOUR : ia);
-
-	  // override for various singleton unitigs,
-	  // assuming the special frag is first in the list.
-	  { 
-	    IntFragment_ID ivc = GetVA_AChunkMesg(thechunks,ichunk)->f_list;
-	    IntFragment_ID vid = GetVA_AChunkFrag(chunkfrags,ivc)->vid;
-	    ia = (get_lab_fragment(frags,vid) == AS_CGB_SOLO_FRAG
-		  ? SOLO_FRAG_COLOUR : ia);
-	    ia = (get_lab_fragment(frags,vid) == AS_CGB_HANGING_FRAG
-		  ? HANGING_FRAG_COLOUR : ia);
-	    ia = (get_lab_fragment(frags,vid) == AS_CGB_THRU_FRAG
-		  ? SPANNING_FRAG_COLOUR : ia);
-	    ia = (get_lab_fragment(frags,vid) == AS_CGB_ORPHANEDCONT_FRAG 
-		  ? ORPHAN_FRAG_COLOUR : ia);
-	    ia = (get_lab_fragment(frags,vid) == AS_CGB_MULTICONT_FRAG
-		  ? MULTICONT_FRAG_COLOUR : ia);
-	    ia = (get_lab_fragment(frags,vid) == AS_CGB_BRANCHMULTICONT_FRAG
-		  ? BRANCHMULTICONT_FRAG_COLOUR : ia);
-	    ia = (get_lab_fragment(frags,vid) == AS_CGB_HANGING_CRAPPY_FRAG
-		  ? HANGING_CRAPPY_FRAG_COLOUR : ia);
-	  }
-	}
-
-	sprintf(chunk_name,F_IID "%c" F_IID "%c",
-		get_iid_fragment
-		(frags,GetVA_AChunkMesg(thechunks,ichunk)->chunk_avx),
-		(GetVA_AChunkMesg(thechunks,ichunk)->chunk_asx ? 'T' : 'F' ),
-		get_iid_fragment
-		(frags,GetVA_AChunkMesg(thechunks,ichunk)->chunk_bvx),
-		(GetVA_AChunkMesg(thechunks,ichunk)->chunk_bsx ? 'T' : 'F' ));
-		
-	sprintf(source,"unitig "
-		F_IID ",%c:"
-		F_IID ":%d " F_IID ":%d",
-		(ichunk), (abforward ? 'f' : 'r'),
-		get_iid_fragment
-		(frags,(abforward ? 
-			GetVA_AChunkMesg(thechunks,ichunk)->chunk_avx:
-			GetVA_AChunkMesg(thechunks,ichunk)->chunk_bvx)),
-		 (abforward ? 
-		 GetVA_AChunkMesg(thechunks,ichunk)->chunk_asx:
-		 GetVA_AChunkMesg(thechunks,ichunk)->chunk_bsx),
-		get_iid_fragment
-		(frags,(!abforward ? 
-		 GetVA_AChunkMesg(thechunks,ichunk)->chunk_avx:
-		 GetVA_AChunkMesg(thechunks,ichunk)->chunk_bvx)),
-		(!abforward ? 
-		 GetVA_AChunkMesg(thechunks,ichunk)->chunk_asx:
-		 GetVA_AChunkMesg(thechunks,ichunk)->chunk_bsx)
-		);
-
-	{
-	  BPTYPE bp_length = GetVA_AChunkMesg(thechunks,ichunk)->bp_length;
-	  // If this is after consensus, then this is wrong.
-
-	  BPTYPE a_branch_point 
-	    = GetVA_AChunkMesg(thechunks,ichunk)->a_branch_point;
-	  BPTYPE b_branch_point 
-	    = GetVA_AChunkMesg(thechunks,ichunk)->b_branch_point;
-	  assert(bp_length > 0);
-	  assert(a_branch_point >= 0);
-	  assert(b_branch_point >= 0);
-	  a_branch_point = MIN(a_branch_point,bp_length);
-	  b_branch_point = MIN(b_branch_point,bp_length);
-	  pos_left_end  = gen_low_coord;
-	  pos_right_end = pos_left_end + bp_length;
-
-          
-	  pos_left_bpt = pos_left_end 
-	    + (abforward ? a_branch_point : b_branch_point);
-	  pos_right_bpt = pos_right_end
-	    - (abforward ? b_branch_point : a_branch_point);
-	}
-	if( pos_left_bpt < pos_right_bpt ) {
-	  // The BLACK branch point is associated with the left chunk-end.
-	  im_left = LEFTBP_COLOUR;
-	  im_right = RIGHTBP_COLOUR;
-	} else { 
-	  BPTYPE tmp;
-	  tmp = pos_left_bpt; pos_left_bpt = pos_right_bpt; pos_right_bpt = tmp;
-	  // The BLACK branch point is associated with the left chunk-end.
-	  im_left = RIGHTBP_COLOUR;
-	  im_right = LEFTBP_COLOUR;
-	}
-	if( pos_left_end < pos_left_bpt && 
-	    pos_right_bpt < pos_right_end ) {
-	  fprintf(fcam,
-		  "%s: " BPFORMAT " A%d M" BPFORMAT " A%d M" BPFORMAT " A%d " BPFORMAT " #%s\n",
-		  chunk_name,
-		  // place the chunk in one of its valid locations.
-		  pos_left_end,
-		  im_left,
-		  pos_left_bpt,	
-		  im_right,
-		  pos_right_bpt,
-		  ia,
-		  pos_right_end,
-		  source
-		  );
-	} else if( pos_left_end >= pos_left_bpt && 
-		   pos_right_bpt < pos_right_end ) {
-	  fprintf(fcam,
-		  "%s: " BPFORMAT " A%d M" BPFORMAT " A%d " BPFORMAT " #%s\n",
-		  chunk_name,
-		  // place the chunk in one of its valid locations.
-		  pos_left_end,
-		  im_right,
-		  pos_right_bpt,
-		  ia,
-		  pos_right_end,
-		  source
-		  );
-	} else if( pos_left_end < pos_left_bpt && 
-		   pos_right_bpt >= pos_right_end ) {
-	  fprintf(fcam,
-		  "%s: " BPFORMAT " A%d M" BPFORMAT " A%d " BPFORMAT " #%s\n",
-		  chunk_name,
-		  // place the chunk in one of its valid locations.
-		  pos_left_end,
-		  im_left,
-		  pos_left_bpt,
-		  ia,
-		  pos_right_end,
-		  source
-		  );
-	} else if( pos_left_end >= pos_left_bpt && 
-		   pos_right_bpt >= pos_right_end ) {
-	  fprintf(fcam,
-		  "%s: " BPFORMAT " A%d " BPFORMAT " #%s\n",
-		  chunk_name,
-		  // place the chunk in one of its valid locations.
-		  pos_left_end,
-		  ia,
-		  pos_right_end,
-		  source
-		  );
-	} else { assert(FALSE);}
-      }
-
-    }
-  }
-  }
-#endif /* GENINFO) */
 
 
 #ifdef DEBUG_VISUAL
@@ -3044,7 +2095,4 @@ void chunk_graph_analysis
 #endif /*DEBUG_VISUAL*/
 
   safe_free(chunkinfo);
-
-  if( ProcessFragmentAnnotationsForSimulatorCoordinates )
-    DeleteVA_Afraginfo(fraginfo);
 }

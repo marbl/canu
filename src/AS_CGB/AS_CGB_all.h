@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- $Id: AS_CGB_all.h,v 1.16 2007-04-30 13:00:28 brianwalenz Exp $
+ $Id: AS_CGB_all.h,v 1.17 2007-07-18 15:19:55 brianwalenz Exp $
  Module: Chunk Graph Builder
  Description: A catch-all include file for the Chunk Graph Builder
  Assumptions:
@@ -160,18 +160,9 @@ typedef enum {
 //           dovetail 
 // \superset nonchordal
 // \superset nontransitive
-// \superset nonblizzard
 // \superset thickest (a directed edge concept)
 // \superset interchunk (essential edges for chunking.)
-// \superset buddychunk
 // \superset intrachunk
-
-// nonchordal-nonblizzard = nonchordal overlaps between two
-// fragment-ends that are not buddies of each other but do have buddy
-// overlaps.
-
-// Most of the repeat separation and terrible unitigging errors occurs
-// when the blizzard overlaps are discarded in reaping.
 
 
 typedef enum {
@@ -182,10 +173,6 @@ typedef enum {
   AS_CGB_THICKEST_EDGE=2,
   // A dovetail overlap edge that is the thickest from the proximal
   // fragment-end
-
-  AS_CGB_BUDDY_EDGE=3,
-  // A dovetail overlap that is (mutually) thickest from both
-  // fragment-ends.
 
   AS_CGB_BETWEEN_CONTAINED_EDGE=4,
   // A dovetail overlap between globally contained fragments.
@@ -201,9 +188,6 @@ typedef enum {
   AS_CGB_INTERCHUNK_EDGE=21,
   // A dovetail overlap exterior to a chunk.
 
-  AS_CGB_BUDDYCHUNK_EDGE=22,
-  // A dovetail overlap that qualifies as interchunk and is buddy.
-  
   AS_CGB_INTRACHUNK_EDGE=23,
   // A dovetail overlap interior to a chunk.
 

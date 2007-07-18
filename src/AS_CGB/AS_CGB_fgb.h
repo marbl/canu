@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_fgb.h,v 1.5 2007-04-28 08:46:21 brianwalenz Exp $
+ * $Id: AS_CGB_fgb.h,v 1.6 2007-07-18 15:19:55 brianwalenz Exp $
  *
  * Module: AS_CGB_fgb.h
  * Description: 
@@ -30,24 +30,19 @@
 #ifndef AS_CGB_FGB_INCLUDE
 #define AS_CGB_FGB_INCLUDE
 
-void transitive_edge_marking
-(
- TStateGlobals * gstate, // For time interval check pointing
- THeapGlobals  * heapva, // For time interval check pointing
- Tfragment     * frags,
- Tedge         * edges,
- TIntEdge_ID   * next_edge_obj,
- const int walk_depth,
- const int cutoff_fragment_end_degree,
- const int work_limit_per_candidate_edge,
- const IntFragment_ID iv_start,
- const int analysis_flag
- );
+void transitive_edge_marking(TStateGlobals * gstate,
+                             THeapGlobals  * heapva,
+                             Tfragment     * frags,
+                             Tedge         * edges,
+                             TIntEdge_ID   * next_edge_obj,
+                             const int walk_depth,
+                             const int cutoff_fragment_end_degree,
+                             const int work_limit_per_candidate_edge,
+                             const IntFragment_ID iv_start);
 
-void reorder_edges
-( Tfragment *frags,
-  Tedge *edges,
-  TIntEdge_ID *next_edge_obj);
+void reorder_edges(Tfragment *frags,
+                   Tedge *edges,
+                   TIntEdge_ID *next_edge_obj);
 
 #endif // AS_CGB_FGB_INCLUDE
 

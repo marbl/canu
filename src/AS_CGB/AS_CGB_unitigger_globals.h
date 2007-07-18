@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_unitigger_globals.h,v 1.8 2007-05-01 14:41:43 granger_sutton Exp $
+ * $Id: AS_CGB_unitigger_globals.h,v 1.9 2007-07-18 15:19:55 brianwalenz Exp $
  *
  * Module: AS_CGB_unitigger_globals.h
  * Description: A subroutine interface for the unitigger.
@@ -74,15 +74,12 @@ typedef struct
   IntFragment_ID iv_start;
   int            debug_level;
   int            verbosity_level;
-  int            analysis_level;
-  int            analysis_flag;
   float          cgb_unique_cutoff;
   IntFragment_ID as_cgb_max_frag_iid;
   IntFragment_ID maxfrags;
   IntEdge_ID     maxedges;
   size_t         maxtext;
   int            work_limit_per_candidate_edge;
-  int            remove_blizzard_overlaps;
   int            use_all_overlaps_in_reaper_pass;
   int            dvt_double_sided_threshold_fragment_end_degree;
   int            con_double_sided_threshold_fragment_end_degree;
@@ -101,7 +98,6 @@ typedef struct
   int dont_find_branch_points;
   int dont_count_chimeras;
   int fragment_count_target;
-  int num_cgb_passes;
 
 } UnitiggerGlobals;
 

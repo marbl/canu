@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_fga.h,v 1.4 2005-03-22 19:48:27 jason_miller Exp $
+ * $Id: AS_CGB_fga.h,v 1.5 2007-07-18 15:19:55 brianwalenz Exp $
  *
  * Module: AS_CGB_fga.h
  *
@@ -33,45 +33,13 @@
 #ifndef AS_CGB_FGA_INCLUDE
 #define AS_CGB_FGA_INCLUDE
 
-int check_overlap_with_simulator
-(/* Input only */
- const IntFragment_ID nfrag,
- const Tfraginfo * const fraginfo,
- const IntFragment_ID iavx,
- const IntFragment_ID ibvx);
+void view_fgb_chkpnt(char *Store_Path_Prefix,
+                     Tfragment frags[], 
+                     Tedge edges[]);
 
-void setup_fraginfo
-(
- IntFragment_ID max_frag_iid,
- // The maximum fragment IID assigned by the Celera assembler gatekeeper.
- Tfragment *frags,
- // The internal representation of the fragment reads.
- VA_TYPE(char) frag_annotations[], 
- // The simulator fragment annotations
- Tfraginfo *fraginfo
- // Internal fragment annotations
- );
-
-void view_fgb_chkpnt
-(
-  const char * const Store_Path_Prefix,
-  /* Input Only */
-  Tfragment frags[], 
-  Tedge edges[]);
-
-void fragment_graph_analysis
-(/* Input Only */
- const IntFragment_ID max_frag_iid,
- // The maximum fragment IID assigned by the Celera assembler gatekeeper.
- Tfragment frags[],
- // The internal representation of the fragment reads.
- Tedge     edges[],
- // The internal representation of the overlaps.
- VA_TYPE(char) frag_annotations[], 
- // The simulator fragment annotations
- const int ProcessFragmentAnnotationsForSimulatorCoordinates,
- /* Output only */
- FILE      *ffga
- );
+void fragment_graph_analysis(IntFragment_ID max_frag_iid,
+                             Tfragment frags[],
+                             Tedge     edges[],
+                             FILE      *ffga);
 
 #endif // AS_CGB_FGA_INCLUDE

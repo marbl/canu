@@ -18,32 +18,25 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] 
-= "$Id: AS_CGB_classify.c,v 1.6 2007-04-28 08:46:21 brianwalenz Exp $";
-/* *******************************************************************
- *
- * Module: AS_CGB_classify.c
- * 
- * Description: These routines classify the fragments and overlaps in
- * a local manner as to their status in chunks.
- *
- * Author: Clark Mobarry
- *********************************************************************/
+
+static char CM_ID[] = "$Id: AS_CGB_classify.c,v 1.7 2007-07-18 15:19:55 brianwalenz Exp $";
+
+//  Module: AS_CGB_classify.c
+// 
+//  Description: These routines classify the fragments and overlaps in
+//  a local manner as to their status in chunks.
+//
+//  Author: Clark Mobarry
 
 #include "AS_CGB_all.h"
 
 #undef DEBUGVIEW
-#undef USE_BUDDYCHUNK_EGDES
 
 
-static void maskout_overlaps_touching_crappy_fragments
-( Tfragment * frags,
-  Tedge     *edges
-)
-{
-  /*
-   * Label each dovetail edge to and from every crappy fragment.
-   */
+static void maskout_overlaps_touching_crappy_fragments(Tfragment * frags,
+                                                       Tedge     *edges) {
+  //  Label each dovetail edge to and from every crappy fragment.
+
   const IntEdge_ID nedge = GetNumEdges(edges);
   { IntEdge_ID ie; for(ie=0; ie<nedge; ie++) {
     const IntFragment_ID iavx = get_avx_edge(edges,ie);
@@ -121,7 +114,6 @@ static void maskout_overlaps_touching_crappy_fragments
 // thickest edges are a superset of
 // interchunk dovetail edges is a superset of
 // thickchunk dovetail edges is a superset of
-// buddychunk dovetail edges is a superset of
 // intrachunk dovetail edges.
 
 // all - non_chord = chord overlaps.
@@ -138,7 +130,6 @@ static int is_dovetail_for_chunk_classification
   int iret = FALSE;
   switch(ines) {
   case AS_CGB_INTERCHUNK_EDGE:
-  case AS_CGB_BUDDYCHUNK_EDGE:
   case AS_CGB_INTRACHUNK_EDGE:
     iret = TRUE;
     break;
@@ -169,99 +160,6 @@ static int is_dovetail_for_chunk_classification
   return iret;
 }
 
-#ifdef USE_BUDDYCHUNK_EGDES
-static void buddychunk_classification_of_overlaps
-(
-  Tfragment frags[],
-  Tedge edges[]
-)
-{
-  //const IntFragment_ID nfrag = GetNumFragments(frags);
-  const IntEdge_ID nedge = GetNumEdges(edges);
-  IntEdge_ID ie0;
-#ifdef DEBUG
-  IntEdge_ID buddy_edges_count = 0;
-  IntEdge_ID buddy_invalid_edges_count = 0;
-#endif  
-
-  for(ie0=0; ie0 < nedge; ie0++) {
-    // For each candidate dovetail overlap edge.
-    const IntFragment_ID b0_vid = get_avx_edge(edges,ie0);
-    const IntFragment_ID c0_vid = get_bvx_edge(edges,ie0);
-    const int b0_suf = get_asx_edge(edges,ie0);
-    const int c0_suf = get_bsx_edge(edges,ie0);
-    const Tnes nes0 = get_nes_edge(edges,ie0);
-
-    if( is_dovetail_for_chunk_classification(nes0) ) {
-      const IntEdge_ID ie1 =
-        find_thickest_dovetail_edge_for_buddy_classification
-	(frags,edges,b0_vid,b0_suf);
-      // This is edge B0-A0.
-      const IntEdge_ID ie2 =
-        find_thickest_dovetail_edge_for_buddy_classification
-	(frags,edges,c0_vid,c0_suf);
-      // This is edge C0-D0.
-
-      if( (ie1 != AS_CGB_EDGE_NOT_FOUND) &&
-	  (ie2 != AS_CGB_EDGE_NOT_FOUND) ) {
-	const IntFragment_ID a0_vid = get_bvx_edge(edges,ie1);
-	const IntFragment_ID d0_vid = get_bvx_edge(edges,ie2);
-	const int a0_suf = get_bsx_edge(edges,ie1);
-	const int d0_suf = get_bsx_edge(edges,ie2);
-	
-	//  --- A1-A0 ---- B0-B1 ---
-	//               /
-	//              /          
-	//             /
-	//            /
-	//  --- C1-C0 ---- D0-D1 ---
-	
-	if( (a0_vid == c0_vid) && (a0_suf == c0_suf) &&
-	    (d0_vid == b0_vid) && (d0_suf == b0_suf)
-	    ) {
-	  // The B0-C0 overlap is a mutually thickest overlap.
-	  
-	  buddy_edges_count ++;
-	  set_nes_edge(edges,ie0,AS_CGB_BUDDYCHUNK_EDGE);
-	  set_nes_edge(edges,ie1,AS_CGB_BUDDYCHUNK_EDGE);
-	  //fix_overlap_edge_mate(frags,edges,ie0);
-	  
-#ifdef DEBUG
-	  if( get_inv_edge(edges,ie0) ) {
-	    buddy_invalid_edges_count ++;
-	    fprintf(stdout,"BUDDYINV nes=%d\n",nes0);
-	    fprintf(stdout,
-		    "a0_iid=" F_IID " a0_suf=%d "
-		    "b0_iid=" F_IID " b0_suf=%d "
-		    "c0_iid=" F_IID " c0_suf=%d "
-		    "d0_iid=" F_IID " d0_suf=%d "
-		    "\n",
-		    get_iid_fragment(frags,a0_vid), a0_suf,
-		    get_iid_fragment(frags,b0_vid), b0_suf,
-		    get_iid_fragment(frags,c0_vid), c0_suf,
-		    get_iid_fragment(frags,d0_vid), d0_suf
-		    );
-	    
-	  } else {
-	    fprintf(stdout,"BUDDYVAL nes=%d\n",nes0);
-	  }
-#endif            
-	} else if( AS_CGB_BUDDYCHUNK_EDGE == nes0 ) {
-          assert(FALSE);
-	}
-      }
-    }
-  }
-
-    fprintf(stderr,"buddy_edges_count=" F_IID "\n",
-            buddy_edges_count);
-#ifdef DEBUG
-    fprintf(stderr,"buddy_invalid_edges_count=" F_IID "\n",
-            buddy_invalid_edges_count);
-#endif            
-
-}
-#endif // USE_BUDDYCHUNK_EGDES
 
 static void find_in_degree_of_essential_dovetails
 (
@@ -359,17 +257,10 @@ static void intrachunk_classification_of_overlaps
       assert( (ibsx == 0) || (ibsx == 1));
       assert( (iasx == 0) || (iasx == 1));
 
-      // If this buddychunk edge is the only essential dovetail
-      // overlap between two fragments, then it is an intra-chunk
-      // edge.
 
       switch(ines) {
       case AS_CGB_INTERCHUNK_EDGE:
       case AS_CGB_INTRACHUNK_EDGE:
-#ifdef USE_BUDDYCHUNK_EGDES
-        break;
-#endif // USE_BUDDYCHUNK_EGDES
-      case AS_CGB_BUDDYCHUNK_EDGE:
         {
           /* When the range of asx and bsx is known to be {0,1}, then
              we can simplify this calculation. */
@@ -512,7 +403,6 @@ static void chunk_classification_of_fragments
         }
         break;
       case AS_CGB_INTERCHUNK_EDGE:
-      case AS_CGB_BUDDYCHUNK_EDGE:
         {
           interchunk_npx[iavx] += 1-iasx;
           interchunk_nsx[iavx] +=   iasx;
@@ -646,40 +536,15 @@ static void chunk_classification_of_fragments
   safe_free(interchunk_nsx);
 }
 
-void chunk_classification_dvt
-(
- Tfragment frags[],
- Tedge edges[],
- const int walk_depth,
- const int remove_blizzard_overlaps
- )
-{
-  fprintf(stderr,"** Entered chunk_classification_dvt\n");
-  fprintf(stderr,"**   remove_blizzard_overlaps=%d\n",remove_blizzard_overlaps);
-  
-#ifdef USE_BUDDYCHUNK_EGDES
-    buddychunk_classification_of_overlaps
-      (frags, edges, walk_depth);
-    count_fragment_and_edge_labels( frags, edges,
-                                    "after buddychunk_classification_of_overlaps");
-#endif // USE_BUDDYCHUNK_EGDES
-    
-    intrachunk_classification_of_overlaps
-      (frags, edges,
-       walk_depth);
-    count_fragment_and_edge_labels( frags, edges,
-                                    "after intrachunk_classification_of_overlaps");
-#ifdef DEBUGVIEW
-    view_fgb_chkpnt( "chunk_classification_of_overlaps",
-                     frags, edges); 
-#endif
-    chunk_classification_of_fragments(frags, edges);
-    count_fragment_and_edge_labels( frags, edges,
-                                    "after chunk_classification_of_fragments");
-#ifdef DEBUGVIEW
-    view_fgb_chkpnt( "chunk_classification_of_fragments",
-                     frags, edges); 
-#endif
+void chunk_classification_dvt(Tfragment frags[],
+                              Tedge edges[],
+                              const int walk_depth) {
 
-  fprintf(stderr,"** Exit chunk_classification_dvt\n");
+  intrachunk_classification_of_overlaps(frags, edges, walk_depth);
+  //count_fragment_and_edge_labels( frags, edges, "after intrachunk_classification_of_overlaps");
+  //view_fgb_chkpnt( "chunk_classification_of_overlaps", frags, edges); 
+
+  chunk_classification_of_fragments(frags, edges);
+  //count_fragment_and_edge_labels( frags, edges, "after chunk_classification_of_fragments");
+  //view_fgb_chkpnt( "chunk_classification_of_fragments", frags, edges); 
 }

@@ -18,6 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
+
 /*********************************************************************
  * Module: AS_CGB_methods.h
  *
@@ -32,9 +33,7 @@
 #ifndef AS_CGB_METHODS_INCLUDE
 #define AS_CGB_METHODS_INCLUDE
 
-
 #include "AS_OVS_overlapStore.h"
-
 
 typedef struct {
   IntFragment_ID  avx,bvx;
@@ -406,18 +405,14 @@ static int is_a_dgn_edge(const Tedge * const edges,IntEdge_ID i)
 #pragma inline get_intrachunk_dvt_edge
 static int get_intrachunk_dvt_edge(const Tedge * const edges,IntEdge_ID i)
 { return (AS_CGB_INTRACHUNK_EDGE == get_nes_edge(edges,i)) ; }
-#pragma inline get_buddy_dvt_edge
-static int get_buddy_dvt_edge(const Tedge * const edges,IntEdge_ID i)
-{ return
-    get_intrachunk_dvt_edge(edges,i) ||
-    (AS_CGB_BUDDY_EDGE == get_nes_edge(edges,i));
-}
+
 #pragma inline get_interchunk_dvt_edge
 static int get_interchunk_dvt_edge(const Tedge * const edges,IntEdge_ID i)
 { return
-    get_buddy_dvt_edge(edges,i) ||
+    get_intrachunk_dvt_edge(edges,i) ||
     (AS_CGB_INTERCHUNK_EDGE == get_nes_edge(edges,i));
 }
+
 #pragma inline get_thickest_dvt_edge
 static int get_thickest_dvt_edge(const Tedge * const edges,IntEdge_ID i)
 { return

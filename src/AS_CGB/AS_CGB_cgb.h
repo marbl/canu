@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*********************************************************************
- * $Id: AS_CGB_cgb.h,v 1.9 2007-05-01 14:41:43 granger_sutton Exp $
+ * $Id: AS_CGB_cgb.h,v 1.10 2007-07-18 15:19:55 brianwalenz Exp $
  *
  * Module: AS_CGB_cgb.h
  *
@@ -33,10 +33,7 @@
  *   (2) a segmented array of type "TChunkOverlap" called chunkedges[]
  *   used to store the overlaps between chunks,
  *
- *   (3) an array of type "char" called chunksrc[] used to store
- *   annotation strings, and
- *
- *   (4) an array of type "TChunkMesg" thechunks[].
+ *   (3) an array of type "TChunkMesg" thechunks[].
  *
  *   The first three arrays are segmented to store variable length
  *   information for the chunks.  Each member of the last array has a
@@ -217,33 +214,6 @@ void chunk_graph_build_1
  // is between zero and one.
  TChunkFrag    *chunkfrags,
  TChunkMesg    *thechunks
- );
-
-void chunk_graph_build_2
-(
- /* Input Only */
- const int        use_consensus, 
- // Use the consensus sequence for the chunk to compute the branch points.
- const int        dont_find_branch_points, 
- // Don^t compute branch points at all.
- const float   cgb_unique_cutoff,
- const float   global_fragment_arrival_rate,
- // This rate is the number of fragments/bp, which in the design space
- // is between zero and one.
- GateKeeperStore *TheFragStore,
- /* Input/Output */
- Tfragment frags[],     /* The internal representation of
-			   the fragment reads. */
- Tedge     edges[],     /* The internal representation of the
-			 overlaps. */
- TChunkFrag    *chunkfrags,
- TChunkMesg    *thechunks,
- /* Output Only */
- VA_TYPE(char) *chunkseqs,
- VA_TYPE(char) *chunkquas,
- VA_TYPE(char) *chunksrcs,
- FILE          *fbpts1,
- FILE          *fbpts2
  );
 
 #endif /*AS_CGB_CGB_INCLUDE*/

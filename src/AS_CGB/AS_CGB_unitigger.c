@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.17 2007-05-01 14:41:43 granger_sutton Exp $";
+static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.18 2007-07-18 15:19:55 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_unitigger.c
@@ -45,13 +45,8 @@ extern int REAPER_VALIDATION;
 void
 output_the_chunks(const Tfragment frags[],
                   const Tedge     edges[],
-                  const VA_TYPE(char) * const fragsrc,
                   const TChunkFrag    chunkfrags[],
                   const TChunkMesg    thechunks[],
-                  const VA_TYPE(char) chunkseqs[],
-                  const VA_TYPE(char) chunkquas[],
-                  const VA_TYPE(char) chunksrc[],
-                  const int analysis_level,
                   const float global_fragment_arrival_rate,
                   const int fragment_count_target,
                   const char * const Graph_Store_File_Prefix) {
@@ -64,7 +59,6 @@ output_the_chunks(const Tfragment frags[],
   const IntFragment_ID  nfrag   = GetNumFragments(frags);
   
   size_t  * frag_source_index = NULL; 
-  VA_TYPE(char)  * newfragsrc = NULL;
 
   const int nsample=500;
   const int nbucket=500;
@@ -86,64 +80,6 @@ output_the_chunks(const Tfragment frags[],
     max_num_ovlps_per_chunk = MAX(max_num_ovlps_per_chunk,
 				  mychunk->a_degree_raw 
 				  + mychunk->b_degree_raw);
-  }
-
-  if(analysis_level > 1 && (fragsrc != NULL)) {
-
-    frag_source_index = safe_malloc(sizeof(size_t) * nfrag);
-    newfragsrc = CreateVA_char(2*GetNumVA_char(fragsrc));
-
-    // Append to the fragment source field.  This needs to be a separate
-    // pass since the Assembler I/O routines use pointers AND the
-    // variable length arrays are free to realloc the space for the
-    // character data.
-
-    for(chunk_index=0;chunk_index < nchunks; chunk_index++){
-      const AChunkMesg * const mychunk = GetVA_AChunkMesg(thechunks,chunk_index);
-      const IntFragment_ID num_frags = mychunk->num_frags;
-      IntFragment_ID ivc;
-      // assert(mychunk->f_list >= 0);
-      for(ivc=0; ivc<num_frags; ivc++) {
-	const IntFragment_ID ivn = mychunk->f_list + ivc; 
-	// Get the ivc-th fragment of the chunk.
-	// assert(ivn < nfrag);
-	// Get the next fragment in the chunk.
-	const IntFragment_ID vid     = GetVA_AChunkFrag(chunkfrags,ivn)->vid; 
-	const size_t isrc = get_src_fragment(frags,vid);
-
-	size_t offset, nsource;
-	char source[1024];
-	char clabel;
-	int iret = 0;
-
-	switch(get_lab_fragment(frags,vid)) {
-	case AS_CGB_SOLO_FRAG:            clabel = 'L'; break;
-	case AS_CGB_HANGING_FRAG:         clabel = 'H'; break;
-	case AS_CGB_HANGING_CHUNK_FRAG:   clabel = 'B'; break;
-	case AS_CGB_HANGING_CRAPPY_FRAG:  clabel = 'F'; break;
-	case AS_CGB_THRU_FRAG:            clabel = 'T'; break;
-	case AS_CGB_ORPHANEDCONT_FRAG:    clabel = 'O'; break;
-	case AS_CGB_MULTICONT_FRAG:       clabel = 'M'; break;
-	case AS_CGB_BRANCHMULTICONT_FRAG: clabel = 'P'; break;
-	case AS_CGB_INTERCHUNK_FRAG:      clabel = 'E'; break;
-	case AS_CGB_INTRACHUNK_FRAG:      clabel = 'I'; break;
-	case AS_CGB_SINGLECONT_FRAG:      clabel = 'C'; break;
-	case AS_CGB_DELETED_FRAG:         clabel = 'D'; break;
-	default:
-	  assert(FALSE);
-	}
-	iret = sprintf(source,"%slab>%c%c\n", 
-		       GetVA_char(fragsrc,isrc), clabel,
-		       (get_con_fragment(frags,vid) ? 'C' : 'E' ));
-	assert(iret > 0);
-	nsource = strlen(source);
-	offset  = GetNumVA_char(newfragsrc);
-	EnableRangeVA_char(newfragsrc,offset+nsource+1);
-	/* Remember the terminal null character for a char string. */
-	strcpy(GetVA_char(newfragsrc,offset),source);
-	frag_source_index[vid] = offset;
-      }
-    }
   }
 
   for(chunk_index=0;chunk_index < nchunks; chunk_index++) /* a */ {
@@ -188,9 +124,7 @@ output_the_chunks(const Tfragment frags[],
       
     // The ProtoSpec specifies that the first chunk id is ZERO.
     achunk.iaccession     = mychunk->iaccession;
-#ifdef AS_ENABLE_SOURCE
-    achunk.source         = GetVA_char(chunksrc,mychunk->isrc);
-#endif
+    achunk.source         = "gen> @@ [0,0]";
     achunk.coverage_stat  = coverage_statistic;
     achunk.status         = AS_UNASSIGNED;
     achunk.a_branch_point = mychunk->a_branch_point;
@@ -232,12 +166,6 @@ output_the_chunks(const Tfragment frags[],
 
   DeleteVA_IntMultiPos(the_imps);
 
-  if( NULL != frag_source_index ) {
-    assert(NULL != newfragsrc);
-    DeleteVA_char(newfragsrc); newfragsrc = NULL;
-    safe_free(frag_source_index);
-  }
-
   fclose(fcgb);
 }
 
@@ -259,8 +187,8 @@ ParseCommandLine(UnitiggerGlobals * rg,
 
   while (!errflg && 
          ((ch = getopt(argc, argv, 
-                       "A:B:C:D:E:F:G:H:I:J:K:L:M:N:O:PQ:R:S:V:U:W:XY:Z:"
-                       "ab:cd:e:fg:hi:j:kl:m:n:o:p:qr:st:u:v:w:x:y:z:"
+                       "A:B:C:D:E:F:G:H:I:K:L:M:N:O:PQ:R:S:V:U:W:XY:"
+                       "a:cd:e:fg:hi:j:kl:m:n:o:p:qr:st:u:v:w:x:y:z:"
                        "156:789"
                        )) != EOF)) {
 
@@ -275,10 +203,7 @@ ParseCommandLine(UnitiggerGlobals * rg,
     switch(ch) {
       /* The required command line options: */
       case 'A':
-        // -A <int> : Specify an analysis level.
-        rg->analysis_level = atoi(optarg);
-        //analysis_flag = (analysis_level > 0);
-        rg->analysis_flag = rg->analysis_level;
+        //  enabled by default
         break;
       case 'B':
         // -B <int> : Specifies a target number of fragments in IMP
@@ -314,10 +239,6 @@ ParseCommandLine(UnitiggerGlobals * rg,
         rg->OVL_Store_Path = optarg;
         fprintf(stderr,"* The input overlapper overlap store is <%s>.\n",
                 rg->OVL_Store_Path);
-        break;
-      case 'J':
-        // -J <boolean> : Remove the blizzard overlaps.
-        rg->remove_blizzard_overlaps = atoi(optarg);
         break;
       case 'L':
         rg->ovl_files_list_fname = optarg;
@@ -378,16 +299,7 @@ ParseCommandLine(UnitiggerGlobals * rg,
         // -Y 
         rg->dont_count_chimeras = atoi(optarg);
         break;
-      case 'Z':
-        // -Z <boolean> : Remove the blizzard overlaps
-        rg->remove_blizzard_overlaps = atoi( optarg );
-        break;
 
-      case 'b':
-        // -b <int>
-        rg->num_cgb_passes = atoi(optarg);
-        assert(rg->num_cgb_passes >= 0);
-        break;
       case 'd':
         // -d : De-chord the fragment overlap graph.
         rg->dechord_the_graph = atoi(optarg);
@@ -566,7 +478,6 @@ ParseCommandLine(UnitiggerGlobals * rg,
             "\t-G <file>       A file of fragment IIDs.\n"
             "\t-H <filename>   chimeras file.\n"
             "\t-I <directory>  Read the OVL store.\n"
-            "\t-J <boolean>    Remove blizzard overlaps in FGB.\n"
             "\t-K <filename>   File of known fragment-end based branch-points.\n"
             "\t-L <filename>   The input OverlapFragMesgs; asm.ofg.\n"
             "\t-N <maxIID>\n"
@@ -579,7 +490,6 @@ ParseCommandLine(UnitiggerGlobals * rg,
             "\t-V              Transitive edge reduction restarts at this VID.\n"
             "\t-W <int>        Limit in path length for graph walking.\n"
             "\t-Y <boolean>    Do not count chimera fragments.\n"
-            "\t-Z <boolean>    Remove the blizzard overlaps in CGB.\n"
             "\t-b <int>        Number of cgb passes for finding branch points.\n"
             "\t-d <int>        Enable/Disable de-chording of the fragment overlap graph.\n"
             "\t-e <n>          Overlaps with error rate about this are ignored on input.\n"
@@ -621,7 +531,6 @@ main(int argc, char **argv) {
 
   rg->program_name = argv[0];
   rg->work_limit_per_candidate_edge = 1000;
-  rg->remove_blizzard_overlaps = FALSE;
   rg->use_all_overlaps_in_reaper_pass = TRUE;
   rg->as_cgb_max_frag_iid = 100000 * CGB_MULTIPLIER;
   rg->dvt_double_sided_threshold_fragment_end_degree = 1;
@@ -651,23 +560,16 @@ main(int argc, char **argv) {
   //BasicUnitigger( argc, argv, gstate, heapva, rg);
 
  again:
-  gstate->store_version       = 1;
-  gstate->state_of_the_store  = 1; // Just initialized.
   gstate->min_frag_iid        = 0;
   gstate->max_frag_iid        = 0;
   gstate->nbase_in_genome     = 0;
 
   heapva->frags             = CreateVA_Afragment (rg->maxfrags);
   heapva->edges             = CreateVA_Aedge     (rg->maxedges); 
-  heapva->frag_annotations  = CreateVA_char      (rg->maxtext);
   heapva->next_edge_obj     = CreateVA_IntEdge_ID(rg->maxedges); 
 
   heapva->chunkfrags = CreateVA_AChunkFrag(0);
   heapva->thechunks  = CreateVA_AChunkMesg(0);
-
-  heapva->chunkseqs = CreateVA_char(0);
-  heapva->chunkquas = CreateVA_char(0);
-  heapva->chunksrcs = CreateVA_char(0);
 
   main_fgb(gstate, heapva, rg);
   main_cgb(gstate, heapva, rg);
@@ -735,58 +637,46 @@ main(int argc, char **argv) {
     Delete_VA(heapva->next_edge_obj);
     Delete_VA(heapva->chunkfrags);
     Delete_VA(heapva->thechunks);
-    Delete_VA(heapva->chunkseqs);
-    Delete_VA(heapva->chunkquas); 
-    Delete_VA(heapva->frag_annotations);
-    Delete_VA(heapva->chunksrcs);
 
     goto again;
   }
   
 
-  if(rg->analysis_level > 0) {
-    char strtmp2[FILENAME_MAX];
 
-    sprintf(strtmp2,"%s%s.%d",rg->Output_Graph_Store_Prefix, ".cga",rg->num_cgb_passes);
-    FILE *fcga = fopen(strtmp2, "w");
 
-    sprintf(strtmp2,"%s%s.%d",rg->Output_Graph_Store_Prefix,".cam",rg->num_cgb_passes);
-    FILE *fcam = fopen(strtmp2, "w");
+  char strtmp2[FILENAME_MAX];
 
-    sprintf(strtmp2,"%s%s.%d",rg->Output_Graph_Store_Prefix,".cus",rg->num_cgb_passes);
-    FILE *fstat = fopen(strtmp2, "w");
+  sprintf(strtmp2,"%s.cga.0",rg->Output_Graph_Store_Prefix);
+  FILE *fcga = fopen(strtmp2, "w");
 
-    chunk_graph_analysis(rg->analysis_level,
-                         gstate->max_frag_iid,
-                         heapva->frags,  /* The internal representation of the fragment reads. */
-                         heapva->edges,  /* The internal representation of the  overlaps. */
-                         heapva->frag_annotations,
-                         gstate->nbase_in_genome,
-                         rg->recalibrate_global_arrival_rate,
-                         rg->cgb_unique_cutoff,
-                         gstate->global_fragment_arrival_rate,
-                         rg->bubble_boundaries_filename,
-                         heapva->chunkfrags,
-                         /* Modify the chunk annotation, by setting the "isrc" index into 
-                            chunksrc array. */
-                         heapva->thechunks,
-                         heapva->chunksrcs, 
-                         fcga, fcam, fstat, stderr );
+  sprintf(strtmp2,"%s.cam.0",rg->Output_Graph_Store_Prefix);
+  FILE *fcam = fopen(strtmp2, "w");
 
-    fclose(fcga);
-    fclose(fcam);
-    fclose(fstat);
-  }
+  sprintf(strtmp2,"%s.cus.0",rg->Output_Graph_Store_Prefix);
+  FILE *fstat = fopen(strtmp2, "w");
+
+  chunk_graph_analysis(gstate->max_frag_iid,
+                       heapva->frags,
+                       heapva->edges,
+                       gstate->nbase_in_genome,
+                       rg->recalibrate_global_arrival_rate,
+                       rg->cgb_unique_cutoff,
+                       gstate->global_fragment_arrival_rate,
+                       rg->bubble_boundaries_filename,
+                       heapva->chunkfrags,
+                       heapva->thechunks,
+                       fcga, fcam, fstat, stderr );
+
+  fclose(fcga);
+  fclose(fcam);
+  fclose(fstat);
+
+
 
   output_the_chunks(heapva->frags,
                     heapva->edges,
-                    heapva->frag_annotations,
                     heapva->chunkfrags,
                     heapva->thechunks,
-                    heapva->chunkseqs,
-                    heapva->chunkquas,
-                    heapva->chunksrcs,
-                    rg->analysis_level,
                     gstate->global_fragment_arrival_rate,
                     rg->fragment_count_target,
                     rg->Output_Graph_Store_Prefix);
@@ -901,10 +791,6 @@ main(int argc, char **argv) {
   Delete_VA(heapva->next_edge_obj);
   Delete_VA(heapva->chunkfrags);
   Delete_VA(heapva->thechunks);
-  Delete_VA(heapva->chunkseqs);
-  Delete_VA(heapva->chunkquas); 
-  Delete_VA(heapva->frag_annotations);
-  Delete_VA(heapva->chunksrcs);
 
   fprintf(stderr, "All done.  Bye.\n");
 

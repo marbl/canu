@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_FGB_main.c,v 1.14 2007-04-30 13:00:29 brianwalenz Exp $";
+= "$Id: AS_FGB_main.c,v 1.15 2007-07-18 15:19:56 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module:  AS_FGB_main.c
@@ -131,53 +131,10 @@ process_ovl_store(char * OVL_Store_Path,
 
 
 
-static void output_mesgs
-(/* Input Only*/
- const Tfragment frags[],
- const Tedge     edges[],
- const VA_TYPE(char) fragsrc[],
- /* Read Only */
- /* Append Only*/
- FILE *fcgb)
-{
+static void output_mesgs(const Tfragment frags[],
+                         const Tedge     edges[],
+                         FILE *fcgb) {
 
-  // Output the OFG messages:
-#if 0
-
-  //  Not only is there no such thing as an OFGMesg now, but we also
-  //  require unitigger to run from a store.  Outputting a list of
-  //  fragments isn't terribly useful anymore.
-
-  const IntFragment_ID nfrag = GetNumFragments(frags);
-  IntFragment_ID iv;
-  for(iv=0;iv<nfrag;iv++){
-    OFGMesg ofg_mesg;
-
-    ofg_mesg.action     = (get_del_fragment(frags,iv)
-                           ? AS_DELETE : AS_ADD);
-    ofg_mesg.eaccession = get_uid_fragment(frags,iv);
-    ofg_mesg.iaccession = get_iid_fragment(frags,iv);
-    ofg_mesg.type       = get_typ_fragment(frags,iv);
-    ofg_mesg.clear_rng.bgn = 0;
-    ofg_mesg.clear_rng.end = get_length_fragment(frags,iv);
-    ofg_mesg.source = NULL;
-  
-    if(fragsrc != NULL) {
-      const size_t isrc = get_src_fragment(frags,iv);
-      ofg_mesg.source = Getchar(fragsrc,isrc);
-    } else {
-      ofg_mesg.source = "";
-    }
-      
-    {
-      GenericMesg pmesg;
-      pmesg.t = MESG_OFG;
-      pmesg.m = &ofg_mesg;
-      WriteProtoMesg_AS(fcgb,&pmesg);
-    }
-  }
-#endif
-  
   // Output the OVL messages:
 
   const IntEdge_ID  nedge = GetNumEdges(edges);
@@ -494,8 +451,7 @@ int main_fgb(TStateGlobals * gstate,
         rg->walk_depth,
         rg->cutoff_fragment_end_degree,
         rg->work_limit_per_candidate_edge,
-        rg->iv_start,
-        rg->analysis_flag);
+        rg->iv_start);
   }
   
   identify_early_spur_fragments( heapva->frags, heapva->edges);
@@ -509,23 +465,15 @@ int main_fgb(TStateGlobals * gstate,
       "After contained_fragment_marking_frc");
   
 
-  if(rg->analysis_flag) {
-    char  thePath[FILENAME_MAX];
-    FILE *ffga;
-
-    sprintf(thePath,"%s.%s",rg->Output_Graph_Store_Prefix,"fga.ckp");
-    ffga = fopen(thePath,"w");
+  char  thePath[FILENAME_MAX];
+  sprintf(thePath,"%s.fga.ckp",rg->Output_Graph_Store_Prefix);
+  FILE *ffga = fopen(thePath,"w");
     
-    fragment_graph_analysis (/* Input Only */
-                             gstate->max_frag_iid,
-                             heapva->frags,
-                             heapva->edges,
-                             heapva->frag_annotations,
-                             (rg->analysis_flag > 1),
-                             /* Output only */
-                             ffga);
-    fclose(ffga);
-  }
+  fragment_graph_analysis(gstate->max_frag_iid,
+                          heapva->frags,
+                          heapva->edges,
+                          ffga);
+  fclose(ffga);
     
 
   if( rg->create_dump_file ) {
@@ -542,7 +490,6 @@ int main_fgb(TStateGlobals * gstate,
 
     output_mesgs (heapva->frags,
                   heapva->edges,
-                  heapva->frag_annotations,
                   folp);
     fclose(folp);
   }

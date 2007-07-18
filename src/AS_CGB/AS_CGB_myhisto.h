@@ -21,8 +21,8 @@
 #ifndef _AS_CGB_MYHISTO_H_
 #define _AS_CGB_MYHISTO_H_
 
-static char CM_ID_H[] 
-= "$Id: AS_CGB_myhisto.h,v 1.3 2006-11-14 19:58:21 eliv Exp $";
+static char CM_ID_H[] = "$Id: AS_CGB_myhisto.h,v 1.4 2007-07-18 15:19:55 brianwalenz Exp $";
+
 /*********************************************************************
  *
  * Module: AS_CGB_cga.c
@@ -39,15 +39,9 @@ static char CM_ID_H[]
  * Author: Clark Mobarry
  ********************************************************************/
 
-/*************************************************************************/
-/* System include files */
-
-/*************************************************************************/
-/* Local include files */
 #include "AS_CGB_histo.h"
 #include "AS_CGB_all.h"
 
-/*************************************************************************/
 
 typedef struct {
   int nsamples;

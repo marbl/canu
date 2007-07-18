@@ -18,26 +18,14 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/*********************************************************************
- * $Id: AS_CGB_classify.h,v 1.4 2005-03-22 19:48:24 jason_miller Exp $
- *
- * Module: AS_CGB_classify.h
- *
- * Description: Classifies the overlaps and fragments by their local
- * status in the chunk graph.
- *
 
- *******************************************************************/
+// $Id: AS_CGB_classify.h,v 1.5 2007-07-18 15:19:55 brianwalenz Exp $
 
 #ifndef AS_CGB_CLASSIFY_INCLUDE
 #define AS_CGB_CLASSIFY_INCLUDE
 
-void chunk_classification_dvt
-(
- Tfragment frags[],
- Tedge edges[],
- const int walk_depth,
- const int remove_blizzard_overlaps
- );
+void chunk_classification_dvt(Tfragment frags[],
+                              Tedge edges[],
+                              const int walk_depth);
 
 #endif // AS_CGB_CLASSIFY_INCLUDE

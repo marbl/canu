@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 static char CM_ID[] 
-= "$Id: AS_CGB_fgb.c,v 1.10 2007-04-28 08:46:21 brianwalenz Exp $";
+= "$Id: AS_CGB_fgb.c,v 1.11 2007-07-18 15:19:55 brianwalenz Exp $";
 /*********************************************************************
  *
  * Module: AS_CGB_fgb.c
@@ -46,8 +46,6 @@ static char CM_ID[]
 /*************************************************************************/
 /* Local include files */
 #include "AS_CGB_all.h"
-//#include "AS_FGB_buddy.h"
-//#include "AS_CGB_blizzard.h"      
 #include "AS_FGB_hanging_fragment.h"
 #include "AS_FGB_contained.h"
 
@@ -383,7 +381,6 @@ static void pack_the_edges
     case AS_CGB_DOVETAIL_EDGE:
     case AS_CGB_THICKEST_EDGE:
     case AS_CGB_INTERCHUNK_EDGE:
-    case AS_CGB_BUDDYCHUNK_EDGE:
     case AS_CGB_INTRACHUNK_EDGE:
     case AS_CGB_TOUCHES_CONTAINED_EDGE:
     case AS_CGB_BETWEEN_CONTAINED_EDGE:
@@ -742,8 +739,7 @@ void transitive_edge_marking
  const int walk_depth,
  const int cutoff_fragment_end_degree,
  const int work_limit_per_candidate_edge,
- const IntFragment_ID iv_start,
- const int analysis_flag
+ const IntFragment_ID iv_start
  ) {
   const IntFragment_ID nfrag=GetNumFragments(frags);
 
