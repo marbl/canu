@@ -19,10 +19,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_classify.c,v 1.7 2007-07-18 15:19:55 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_classify.c,v 1.8 2007-07-19 09:50:27 brianwalenz Exp $";
 
-//  Module: AS_CGB_classify.c
-// 
 //  Description: These routines classify the fragments and overlaps in
 //  a local manner as to their status in chunks.
 //

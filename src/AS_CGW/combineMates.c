@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: combineMates.c,v 1.14 2007-05-02 09:30:13 brianwalenz Exp $";
+static char CM_ID[] = "$Id: combineMates.c,v 1.15 2007-07-19 09:50:32 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -391,8 +391,6 @@ int main( int argc, char *argv[])
     ium.forced = FALSE;
     ium.coverage_stat = 10; 
     ium.status = 'U';
-    ium.a_branch_point = 0;
-    ium.b_branch_point = 0;
     ium.num_frags = 2;
     ium.f_list = &(the_imps[0]);
     {

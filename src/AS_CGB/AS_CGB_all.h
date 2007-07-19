@@ -18,28 +18,20 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/*********************************************************************
- $Id: AS_CGB_all.h,v 1.17 2007-07-18 15:19:55 brianwalenz Exp $
- Module: Chunk Graph Builder
- Description: A catch-all include file for the Chunk Graph Builder
- Assumptions:
- Author: Clark M. Mobarry
- *********************************************************************/
+
+//  $Id: AS_CGB_all.h,v 1.18 2007-07-19 09:50:27 brianwalenz Exp $
 
 #ifndef AS_CGB_ALL_INCLUDE
 #define AS_CGB_ALL_INCLUDE
 
-#undef CONTAINMENT_STACKING
-#undef DONT_RUN_IN_SYMMETRIC_MODE    
-
-// Allow un-mated dovetail edges in CGB.
+#undef DONT_RUN_IN_SYMMETRIC_MODE      // Allow un-mated dovetail edges in CGB.  (??)
 
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <string.h>
-#include <unistd.h> /* man 3 getopt */
+#include <unistd.h>
 
 #include <fcntl.h>
 #include <assert.h>
@@ -49,45 +41,31 @@
 #include "AS_UTL_Var.h"
 #include "AS_UTL_param_proc.h"
 
-
-#define ABS(a) ((a)>= 0 ?(a):-(a))
-
-typedef int64 BPTYPE;
-
-# define BPFORMAT    F_S64
-# define BPFORMATS10 "% 10" F_S64P
-# define BPFORMAT6   "% 6" F_S64P
-# define BPFORMAT15  "% 15" F_S64P
-
-/* The Fancy formats */
-#define FRAG_FORMAT "%15" F_IIDP
-
-/* Exported constant definitions; Macro definitions; type definitions */
-#define AS_CGB_NO_MATE        0
-#define FRAGMENT_NOT_VISITED INT32_MAX
-#define CHUNK_NOT_VISITED    INT32_MAX
-
-typedef size_t IntRank;
 typedef uint32 IntEdge_ID;
 
+#define AS_CGB_NO_MATE          0
+#define FRAGMENT_NOT_VISITED   INT32_MAX
+#define CHUNK_NOT_VISITED      INT32_MAX
+#define AS_CGB_EDGE_NOT_FOUND  (~((IntEdge_ID)(0)))
 
-/* The transitive overlap inference slop is 
-   
-   abs(
-   (length of the middle fragment) 
-   + (length of the opposite overlap)
-   - (length of the righthand overlap)
-   - (length of the lefthand overlap)
-   )
-   <=  AS_CGB_TRANSITIVE_SLOP_ALPHA 
-   + AS_CGB_TRANSITIVE_SLOP_EPSILON*(overlap in bp)
-*/ 
+
+
+// The transitive overlap inference slop is 
+//
+// abs((length of the middle fragment) +
+//     (length of the opposite overlap) -
+//     (length of the righthand overlap) -
+//     (length of the lefthand overlap)))
+//
+//  <=  AS_CGB_TRANSITIVE_SLOP_ALPHA +
+//      AS_CGB_TRANSITIVE_SLOP_EPSILON*(overlap in bp)
+//
+//  These values allow for 40 bp slop in an average 512 bp
+//  containment overlap.
+//
 #define AS_CGB_TRANSITIVE_SLOP_ALPHA   20     // bp
 #define AS_CGB_TRANSITIVE_SLOP_EPSILON 0.07  // fraction 
-// These values allow for 40 bp slop in an average 512 bp
-// containment overlap.
 
-#undef UNDIRECTED_DEBUG
 
 typedef enum {
 
@@ -235,23 +213,254 @@ typedef enum {
 } Tnes;
 
 
-
-// The methods to access the vertex and edge data store.
+#include "AS_CGB_unitigger_globals.h"
 #include "AS_CGB_methods.h"
-#include "AS_CGB_store.h"
-#include "AS_FGB_FragmentHash.h"
 
-/* Prototypes for exported function definitions */
-#include "AS_CGB_walk.h"
-#include "AS_CGB_edgemate.h"
-#include "AS_CGB_fgb.h"
-#include "AS_CGB_cgb.h"
-#include "AS_CGB_fga.h"
-#include "AS_CGB_cga.h"
-#include "AS_CGB_histo.h"
-#include "AS_CGB_traversal.h"
-#include "AS_CGB_classify.h"
-#include "AS_CGB_chimeras.h"
-#include "AS_CGB_count_fragment_and_edge_labels.h"
+
+//  AS_CGB_util.c
+Tnes AS_CGB_SafeCast_cdsInt8_to_Tnes (int8 dataIn) ;
+
+
+
+//  AS_FGB_hanging_fragment.c
+void separate_fragments_as_solo_hanging_thru(Tfragment frags[], Tedge edges[]);
+void identify_early_spur_fragments(Tfragment frags[], Tedge edges[]);
+
+//  AS_FGB_contained.c
+void check_containment_edges(Tfragment frags[], Tedge edges[]);
+void contained_fragment_marking_frc(Tfragment frags[], Tedge edges[]);
+
+//  AS_FRG_fragmentHash.h
+#define AS_CGB_NOT_SEEN_YET  INT32_MAX
+
+typedef void FragmentHashObject;
+
+FragmentHashObject *create_FragmentHash(IntFragment_ID max_iid);
+int                 destroy_FragmentHash(FragmentHashObject *);
+
+void           set_vid_FragmentHash(FragmentHashObject *self, IntFragment_ID iid, IntFragment_ID vid);
+IntFragment_ID get_vid_FragmentHash(FragmentHashObject *self, IntFragment_ID iid);
+
+
+//  AS_FGB_buildFragmentHash.c
+FragmentHashObject * build_FragmentHash(const Tfragment * const frags,
+                                        const IntFragment_ID as_cgb_max_frag_iid);
+
+//  AS_CGB_traversal.c
+void as_graph_traversal(FILE *fout,
+			Tfragment frags[],
+			Tedge edges[], 
+			size_t fragment_visited[]);
+
+//  AS_CGB_fgb.c
+void view_fgb_chkpnt(char *Store_Path_Prefix,
+                     Tfragment frags[], 
+                     Tedge edges[]);
+
+
+//  AS_CGB_fgb.c
+void reorder_edges(Tfragment *frags,
+                   Tedge *edges,
+                   TIntEdge_ID *next_edge_obj);
+
+//  AS_CGB_count_fragment_and_edge_labels.c
+void count_fragment_and_edge_labels(Tfragment frags[],
+                                    Tedge     edges[],
+                                    char      comment[]);
+
+
+////////////////////////////////////////
+//  AS_CGB_cgb.c
+int count_the_randomly_sampled_fragments_in_a_chunk (const Tfragment   frags[],
+                                                     const TChunkFrag  chunkfrags[],
+                                                     const TChunkMesg  thechunks[],
+                                                     const IntChunk_ID chunk_index);
+
+
+float compute_the_global_fragment_arrival_rate ( 
+ const int           recalibrate, /* Boolean flag to recalibrate global arrival rate to max
+				     unique local arrival rate */
+ const float         cgb_unique_cutoff, /* threshold for unique chunks */
+ FILE               *fout,
+ /* Input Only */
+ const int64         nbase_in_genome,
+ /* Input/Output */
+ const Tfragment     frags[],
+ const Tedge         edges[],
+ const float         estimated_global_fragment_arrival_rate,
+ /* Output Only */
+ const TChunkFrag   *chunkfrags,
+ const TChunkMesg   *thechunks
+ );
+
+//  AS_CGB_cgb.c (end)
+////////////////////////////////////////
+
+
+////////////////////////////////////////
+//  AS_CGB_edgemate.c
+void reflect_Aedge( Aedge *new_edge, Aedge *old_edge);
+void granger_Aedge( Aedge *new_edge, Aedge *old_edge);
+
+void fix_overlap_edge_mate (const Tfragment frags[], 
+                            Tedge edges[],
+                            const IntEdge_ID ie0);
+
+IntEdge_ID check_symmetry_of_the_edge_mates (Tfragment frags[],
+                                             Tedge edges[],
+                                             TIntEdge_ID * next_edge_obj);
+
+//  AS_CGB_edgemate.c (end)
+////////////////////////////////////////
+
+
+////////////////////////////////////////
+//  AS_CGB_walk.c
+#undef WALK_DEPTH_DIAGNOSTICS
+#define MATCH_TARGET_EDGE
+
+int is_there_an_overlap_path(const Tfragment * const frags,
+                             const Tedge     * const edges,
+                             const IntFragment_ID target_avx,
+                             const int        target_asx,
+#ifdef MATCH_TARGET_EDGE
+                             const IntFragment_ID target_bvx,
+                             const int        target_bsx,
+                             const int        target_ahg,
+                             const int        target_bhg,
+                             const Tnes       target_nes,
+                             const int        target_is_dovetail,
+                             const int        target_is_from_contained,
+                             const int        target_is_to_contained,
+                             const int        target_is_dgn_contained,
+#endif // MATCH_TARGET_EDGE
+                             /* recursion variables: */
+                             const int        search_depth, // Use zero at the top level.
+                             const IntFragment_ID current_avx,  // Use target_avx at the top level.
+                             const int        current_asx,  // Use target_asx at the top level.
+                             const int        current_ahg,  // Use zero at the top level.
+                             const int        current_bhg,  // Use zero at the top level.
+                             const int        last_edge_was_contained, // From target_nes at the top level.
+                             /* search path limiting: */
+                             const int        walk_depth,   // The maximum depth of the stack.
+                             const int        tolerance,    // For the overlaps
+                             IntFragment_ID visited_a[],
+#ifdef MATCH_TARGET_EDGE
+                             IntFragment_ID visited_b[],
+#endif // MATCH_TARGET_EDGE
+                             // Was this fragment visited from the target overlap before? That is
+                             // by the same (target_avx, target_asx, target_bvx, target_bsx).
+                             const int        work_limit_per_candidate_edge,
+                             // Maximum number of edges to explore per candidate edge.
+                             int *            work_tally_per_candidate_edge,
+                             // Current number of edges explored per candidate edge.
+                             /* diagnostic variables: */
+#ifdef WALK_DEPTH_DIAGNOSTICS
+                             int64      search_depth_histogram[], // How many times this depth is visited.
+                             int64      search_path_histogram[],  // How many paths were this length.
+#endif // WALK_DEPTH_DIAGNOSTICS
+                             int64      *ntrans_test_fail // How many paths failed the last test.
+                             );
+//  AS_CGB_walk.c (end)
+////////////////////////////////////////
+
+
+
+
+
+
+
+// Rho is the number of bases in the chunk between the first fragment
+// arrival and the last fragment arrival.  It is the sum of the
+// fragment overhangs in the chunk. For intuitive purposes you can
+// think of it as the length of the chunk minus the length of the last
+// fragment. Thus a singleton chunk has a rho equal to zero.
+//
+// A singleton chunk provides no information as to its local fragment
+// arrival rate. We need at least two closely spaced fragments that
+// are randomly sampled from the chunk to get a local estimate of the
+// fragment arrival rate.
+//
+// The local arrival rate of fragments in the chunk is:
+//
+// arrival_rate_local = ((float)(nfrag_randomly_sampled_in_chunk-1))/(float)rho
+//
+// The arrival distance of fragments in the chunk is the reciprocal of
+// the last formula:
+//
+// arrival_distance_local = ((float)rho)/((float)(nfrag_randomly_sampled_in_chunk-1))
+//
+// Note a problem with this formula is that a singleton chunk has a
+// coverage discriminator statistic of 0/0.
+//
+// The formula for the coverage discriminator statistic for the chunk
+// is:
+//
+// (arrival_rate_global/arrival_rate_local - ln(2))*(nfrag_randomly_sampled_in_chunk-1)
+//
+// The division by zero singularity cancels out to give the formula:
+//
+// (arrival_rate_global*rho - ln(2)*(nfrag_randomly_sampled_in_chunk-1)
+//
+// Call fragments that are not randomly sampled in the genome as
+// "guide" fragments.  The modification for guides recognizes that
+// guides are not randomly spaced fragments in the genome.  Therefore
+// they should not contribute to the fragment count in the local
+// arrival rate discriminator statistic.
+//
+// Be careful of falsely creating a negative number while using
+// unsigned integer arthimetic.  The behavior is not what we want
+// here.
+//
+// The coverage discriminator statistic should be positive for single
+// coverage, negative for multiple coverage, and near zero for
+// indecisive.
+//
+// ADJUST_FOR_PARTIAL_EXCESS: The standard statistic gives log
+// likelihood ratio of expected depth vs.  twice expected depth; but
+// when enough fragments are present, we can actually test whether
+// depth exceeds expected even fractionally; in deeply sequenced
+// datasets (e.g. bacterial genomes), this has been observed for
+// repetitive segments.
+//
+static float compute_coverage_statistic(int64  rho,
+                                        int    number_of_randomly_sampled_fragments_in_chunk,
+                                        float  global_fragment_arrival_rate) {
+  
+ float ln2 = 0.693147f; // Logarithm base 2 of "e".
+ float sqrt2 = 1.414213f;
+
+ float coverage_statistic = 0.f;
+ if (global_fragment_arrival_rate > 0.f)
+   coverage_statistic = rho*global_fragment_arrival_rate - ln2*(number_of_randomly_sampled_fragments_in_chunk - 1);
+
+#undef ADJUST_FOR_PARTIAL_EXCESS
+#ifdef ADJUST_FOR_PARTIAL_EXCESS
+  if(rho>0&&global_fragment_arrival_rate>0.f){
+    float lambda = global_fragment_arrival_rate * rho;
+    float zscore = ((number_of_randomly_sampled_fragments_in_chunk -1)-lambda) / sqrt(lambda);
+    float p = .5 - erf(zscore/sqrt2)*.5;
+    if(coverage_statistic>5 && p < .001){
+      fprintf(stderr,"Standard unitigger a-stat is %f, but only %e chance of this great an excess of fragments: obs = %d, expect = %g rho = " F_S64 " Will reset a-stat to 1.5\n",
+	      coverage_statistic,p,
+	      number_of_randomly_sampled_fragments_in_chunk-1,
+	      lambda,rho);
+      return 1.5;
+    }
+  }
+#endif
+
+  return coverage_statistic;
+}
+
+
+
+
+
+
+
+
+extern int (*compare_edge_function)(const void *a, const void *b);
+
 
 #endif /*AS_CGB_ALL_INCLUDE*/

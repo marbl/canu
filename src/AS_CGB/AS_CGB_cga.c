@@ -18,462 +18,43 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGB_cga.c,v 1.15 2007-07-18 15:19:55 brianwalenz Exp $";
-/*********************************************************************
- *
- * Module: AS_CGB_cga.c
- * 
- * Description: A chunk graph analyzer. This functional unit computes
- * graph statistics, and writes the chunk graph in the term
- * representation which is suitable for "DaVinci".
- *
- * Assumptions: 
- * 
- * Dependencies: Fragment overlap store and the chunk graph builder
- * output.
- *
- * Author: Clark Mobarry
- ********************************************************************/
+
+static char CM_ID[] = "$Id: AS_CGB_cga.c,v 1.16 2007-07-19 09:50:27 brianwalenz Exp $";
+
+//  A chunk graph analyzer. This functional unit computes graph
+//  statistics, and writes the chunk graph in the term representation
+//  which is suitable for "DaVinci".
 
 #include "AS_CGB_all.h"
-#include "AS_CGB_myhisto.h"
-
-
-typedef struct {
-  BPTYPE atip,btip;    /* Coordinates from 0..(length of genome). */
-  int abforward;
-  // BPTYPE gmin,gmax;    /* Coordinates from 0..(length of genome). */
-  char essential_type; /* 'u'="true unique",'r'="repeat", '@'="unknown" */
-  char contained_type; /* 'u'="true unique",'r'="repeat", '@'="unknown" */
-} ChunkAnnotation;
-
+#include "AS_CGB_histo.h"
 
 typedef enum {
-  CGA_SINGLETON_CONTAINED,
-  // multiply contained and orphaned contained fragments that form
-  // singleton unitigs.
-  CGA_SINGLETON_NONCONTAINED,
-  // The rest of the singleton unitigs.
-  CGA_NONSINGLETON_SPANNED,
-  // The non-singleton unitigs that are spanned by one fragment.
+  CGA_SINGLETON_CONTAINED,    // multiply contained and orphaned contained fragments that form singleton unitigs.
+  CGA_SINGLETON_NONCONTAINED, // The rest of the singleton unitigs.
+  CGA_NONSINGLETON_SPANNED,   // The non-singleton unitigs that are spanned by one fragment.
   CGA_NONSINGLETON_NONSPANNED
 } ChunkLabel;
 
 #define MAX_NUM_CHUNK_LABELS 4
 
 char * ChunkLabelDesc[MAX_NUM_CHUNK_LABELS] = {
-  "singleton contained ",  
-  // Contained fragments that form singleton unitigs.
-  "singleton non-contained",
-  // The rest of the singleton unitigs.
-  "non-singleton spanned",
-  // The non-singleton unitigs that are spanned by one fragment.
-  "non-singleton non-spanned"
-  // The rest of the non-singleton unitigs.
+  "singleton contained ",      // Contained fragments that form singleton unitigs.
+  "singleton non-contained",   // The rest of the singleton unitigs.
+  "non-singleton spanned",     // The non-singleton unitigs that are spanned by one fragment.
+  "non-singleton non-spanned"  // The rest of the non-singleton unitigs.
 };
 
 
+static void analyze_the_fragment_overlap_graph(FILE *fout,
+                                               const IntFragment_ID max_frag_iid,
+                                               Tfragment frags[],
+                                               Tedge edges[]) {
 
-#ifdef DEBUG_VISUAL
-
-typedef struct {
-  int32 key;
-  int32 index;
-} Arec;
-
-static int compare1(const Arec * const a, const Arec * const b) 
-{
-  /* This comparison function is to be used with ANSI qsort() for
-     sorting the edges to form contiguous segments. */
-  int icom;
-  icom = (a->key - b->key);
-  return icom ;
-}
-
-static void plot_edges_from_vertex
-(
- FILE *                   fp, 
- const Tfragment * const  frags,
- const Tedge * const      edges,
- const IntFragment_ID * const fragment_visited,
- const Tlab               fragment_types_to_plot,
- const Tnes               edge_types_to_plot,
- const IntFragment_ID     ifrag, 
- const IntFragment_ID     iend, /* The vertex is a fragment and a suffix flag. */
- const int shortcut)
- 
-{	
-  IntEdge_ID ir;
-  const IntEdge_ID ir0  = get_segstart_vertex(frags,ifrag,iend);
-  const int       nnode = get_seglen_vertex(frags,ifrag,iend);
-  
-  for(ir=ir0; (ir<ir0+nnode); ir++) 
-    /* Begin plotting the edges from the vertex. */ {
-    IntFragment_ID icount=0;
-    IntFragment_ID iavx = get_avx_edge(edges,ir);
-    IntFragment_ID ibvx = get_bvx_edge(edges,ir);
-    int iasx = get_asx_edge(edges,ir);
-    int ibsx = get_bsx_edge(edges,ir);
-    Tlab inesvb = get_lab_fragment(frags,ibvx);
-    Tnes inese = get_nes_edge(edges,ir);
-
-#ifdef DEBUG01
-    if((ifrag != iavx) || (iend != iasx)) {
-      int ibhg = get_bhg_edge(edges,ir);
-      int iahg = get_ahg_edge(edges,ir);
-      printf(F_IID "," F_IID ", " F_IID " : " F_IID ",%d,%d, " F_IID ",%d,%d : %d\n",
-	     ifrag,iend,ir,iavx,iasx,iahg,ibvx,ibsx,ibhg,inese);
-    }
-#endif
-    assert(ifrag == iavx);
-    assert(iend == iasx);
-
-    if( shortcut &&
-	((get_lab_fragment(frags,iavx) == AS_CGB_INTERCHUNK_FRAG) ||
-	 (get_lab_fragment(frags,iavx) == AS_CGB_HANGING_CHUNK_FRAG) ) &&
-	(inese == AS_CGB_INTRACHUNK_EDGE) )
-      /* Begin shortcut to the end of a chunk. */ {
-      IntFragment_ID iv0;
-      int        is0;
-      IntEdge_ID ie1,ie0;
-      int        ne0;
-      FILE *     fout;
-      fout = stdout;
-#ifdef DEBUG_SHORTCUT
-      { 
-	const IntFragment_ID iafr = get_iid_fragment(frags,iavx);
-	const IntFragment_ID ibfr = get_iid_fragment(frags,ibvx);
-	fprintf(stderr,"Start shortcut "
-		"iafr=" F_IID ",iavx=" F_IID ",ibvx=" F_IID ",inese=%d=\n",
-		iafr,iavx,ibvx,inese);
-      }
-#endif
-      for(iv0=ibvx,is0= !ibsx;
-	    (get_lab_fragment(frags,iv0) == AS_CGB_INTRACHUNK_FRAG);)
-	/* We process the INTRACHUNK fragments here. */ {
-	
-	/* Search all vertices adjacent from "iv0" */
-	ie0 = get_segstart_vertex(frags,iv0,is0);
-	ne0 = get_seglen_vertex(frags,iv0,is0);
-#ifdef DEBUG_SHORTCUT
-	fprintf(fout,"shortcut: fragment " F_IID " " F_IID " %d \n",iv0,ie0,ne0);
-#endif
-	for(ie1=ie0; ie1 < ie0+ne0; ie1++) {
-	  const IntFragment_ID iv1 = get_bvx_edge(edges,ie1);
-	  const int        is1 = get_bsx_edge(edges,ie1);
-	  const Tnes       ines1 = get_nes_edge(edges,ie1);
-	  if((ines1 == AS_CGB_INTRACHUNK_EDGE)
-	     )
-	    { /* iv1 is unexplored */
-#ifdef DEBUG_SHORTCUT
-	      fprintf(fout,"shortcut: iv1=" F_IID ",ines1=%d\n",iv1,ines1);
-#endif
-	      ibvx = iv1; 
-	      ibsx = is1;
-	      iv0 = iv1; 
-	      is0 = ! is1; /* search from the other side of the fragment. */
-	      icount ++;
-	      /* break; */
-	    }
-	}
-      }
-      inesvb = get_lab_fragment(frags,ibvx);
-#ifdef DEBUG_SHORTCUT
-      { 
-	const IntFragment_ID iafr = get_iid_fragment(frags,iavx);
-	const IntFragment_ID ibfr = get_iid_fragment(frags,ibvx);
-	fprintf(stderr,"End shortcut "
-		"iafr=" F_IID ",iavx=" F_IID ",iasx=%d, ibfr=" F_IID ",ibvx=" F_IID ",ibsx=%d,"
-		"inesvb=%d\n",
-		iafr,iavx,iasx,get_iid_fragment(frags,ibvx),ibvx,ibsx,
-		inesvb);
-      }
-#endif
-      assert(inesvb==AS_CGB_INTERCHUNK_FRAG ||
-	     inesvb==AS_CGB_HANGING_CHUNK_FRAG );
-    } /* End shortcut to the end of a chunk. */
-	
-    /* LOGICAL START OF THE EDGE PLOTTING. */
-
-    if( ((inese <= edge_types_to_plot) ||
-         (inese == AS_CGB_TOUCHES_CONTAINED_EDGE)) &&
-        ((fragment_visited[ibvx] != FRAGMENT_NOT_VISITED) ||
-         ((inese == AS_CGB_CONTAINED_EDGE)&&
-          (inesvb <= fragment_types_to_plot))) )
-      /* Begin do we want to plot this edge? */ {
-      char color_string[80];
-      char essential_string[80];
-      char vs3[80];
-	  
-#ifdef ORDERING
-      // printf(" icount=" F_IID " iavx=" F_IID ",ibvx=" F_IID "\n",icount,iavx,ibvx);
-#endif	    
-#ifdef DEBUG_SHORTCUT
-      fprintf(stderr,"plot edge iavx=" F_IID ",ibvx=" F_IID "\n",iavx,ibvx);
-#endif
-      /* Format the bvx index to a string. */
-      sprintf(vs3,F_IID,ibvx);
-	      
-      sprintf(essential_string," ");
-      if( inese == AS_CGB_INTRACHUNK_EDGE ) 
-	{
-	  sprintf(essential_string,"a(\"EDGEPATTERN\",\"thick\"),");
-	  sprintf(essential_string,"a(\"EDGEPATTERN\",\"double\"),");
-	}
-	  
-
-      if(
-         inese == AS_CGB_CONTAINED_EDGE
-         ) /* Contained overlaps only */
-	{
-	  sprintf(essential_string,"a(\"EDGEPATTERN\",\"dashed\"),");
-	}
-	  
-      if(iasx && !ibsx ) /* Normal */
-	{
-	  sprintf(color_string,"a(\"EDGECOLOR\",\"blue\"),");
-	}
-      if( !iasx && ibsx ) /* Anti-normal */
-	{
-	  sprintf(color_string,
-		  "a(\"EDGECOLOR\",\"cyan\"),a(\"_DIR\",\"inverse\"),");
-	}
-      if( iasx && ibsx ) /* AS_INNIE */
-	{
-	  sprintf(color_string,
-		  "a(\"EDGECOLOR\",\"green\"),a(\"_DIR\",\"none\"),");
-	}
-      if( !iasx && !ibsx ) /* AS_OUTTIE */
-	{
-	  sprintf(color_string,
-		  "a(\"EDGECOLOR\",\"red\"),a(\"_DIR\",\"both\"),");
-	}
-      assert(NULL != fp);
-      fprintf(fp,
-	      "       e(\"\",[%s %s],r(\"%s\")),\n", 
-	      color_string, essential_string,vs3);
-    } /* End of do we plot this particular edge ? */
-  } /* End plotting the edges from the fragment. */
-}
-
-static void exhale_term_rep
-(FILE *fp, 
- const Tfragment * const frags,
- const Tedge * const edges,
- const Tlab fragment_types_to_plot,
- const Tnes edge_types_to_plot,
- const int shortcut,
- const Tfraginfo * const fraginfo)
-{
-  const IntFragment_ID nfrag = GetNumFragments(frags);
-
-  Arec * fragment_mapping = NULL;
-  IntFragment_ID * fragment_ranking = NULL;
-  IntFragment_ID * fragment_visited = NULL;
-
-  fragment_mapping = safe_malloc(sizeof(Arec) * nfrag);
-  fragment_ranking = safe_malloc(sizeof(IntFragment_ID) * nfrag);
-  fragment_visited = safe_malloc(sizeof(IntFragment_ID) * nfrag);
-
-  {
-    IntFragment_ID ifrag;
-    
-#ifdef DEBUGGING
-    fprintf(stderr,"Sort the fragments by genome position.\n");
-#endif
-    for(ifrag=0; ifrag<nfrag; ifrag++) {
-      if(fraginfo != NULL) {
-	fragment_mapping[ifrag].key = (int32) 
-	  get_genbgn_fraginfo(fraginfo,ifrag);
-      } else {
-	fragment_mapping[ifrag].key = ifrag;
-      }
-      fragment_mapping[ifrag].index = ifrag;
-    }
-    qsort(fragment_mapping,nfrag,sizeof(Arec),
-	  (int (*)(const void *,const void *))compare1); 
-    for(ifrag=0; ifrag<nfrag; ifrag++) {
-      fragment_ranking[fragment_mapping[ifrag].index] = ifrag;
-    }
-    
-    /* Check for a valid permutation. */
-    for(ifrag=0;ifrag<nfrag;ifrag++) 
-      { fragment_visited[ifrag] = 0;}
-    for(ifrag=0;ifrag<nfrag;ifrag++) 
-      { fragment_visited[fragment_ranking[ifrag]] ++;}
-    for(ifrag=0;ifrag<nfrag;ifrag++) 
-      { assert(fragment_visited[ifrag] == 1);}
-  }
-
-  /* Initialize a flag for chunk following. */
-  { 
-    IntFragment_ID ifrag;
-    for(ifrag=0;ifrag<nfrag;ifrag++) 
-      { fragment_visited[ifrag] = FRAGMENT_NOT_VISITED;}
-  }
-  
-  assert(NULL != fp);
-  { 
-    IntFragment_ID ifrag_raw;
-    int pass;
-    fprintf(fp,"[\n"); /* beginning the graph */
-
-    for(pass=0; pass<2; pass++) {
-    for(ifrag_raw=0;ifrag_raw<nfrag;ifrag_raw++)
-      /* beginning loop through fragments */ {
-      /* fragment strings */
-      char vs0[200], vs1[200], color_string[80];
-      const IntFragment_ID ifrag = fragment_mapping[ifrag_raw].index;
-      const IntFragment_ID iafr = get_iid_fragment(frags,ifrag);
-      const Tlab       ilab = get_lab_fragment(frags,ifrag);
-      
-    if(
-      (fragment_visited[ifrag] == FRAGMENT_NOT_VISITED) &&
-      ((ilab <= fragment_types_to_plot) ||
-       (ilab == AS_CGB_BRANCHMULTICONT_FRAG)) &&
-      (
-        ((pass==0)&&(
-          (!shortcut || ilab != AS_CGB_INTRACHUNK_FRAG) &&
-          (FALSE == get_con_fragment(frags,ifrag))
-          ))
-        ||
-        ((pass==1)&&(
-          (!shortcut || ilab != AS_CGB_SINGLECONT_FRAG) &&
-           (TRUE == get_con_fragment(frags,ifrag))
-          ))
-        )
-
-	)
-      /* begin do we plot this fragment ? */ {
-
-      fragment_visited[ifrag] = ifrag; 
-      /* mark this fragment unique to this pass */
-
-      /* Format the avx index into a string. */
-      sprintf(vs0,"\"" F_IID "\"",ifrag);
-      /* Format the afr index into a string. */
-      if(fraginfo == NULL) {
-	sprintf(vs1,"a(\"OBJECT\",\"(" F_IID ":" F_IID ")\"),",
-		iafr,ifrag);
-      }
-      
-      switch(ilab) {
-      case AS_CGB_SOLO_FRAG:
-	sprintf(color_string,"a(\"COLOR\",\"magenta\"),"); break;
-      case AS_CGB_HANGING_FRAG:
-	sprintf(color_string,"a(\"COLOR\",\"brown\"),"); break;
-      case AS_CGB_THRU_FRAG:
-	sprintf(color_string,"a(\"COLOR\",\"lightblue\"),"); break;
-
-      case AS_CGB_ORPHANEDCONT_FRAG:
-	sprintf(color_string, 
-		"a(\"COLOR\",\"brown\"),a(\"_GO\",\"ellipse\"),"); break;
-      case AS_CGB_BRANCHMULTICONT_FRAG:
-	sprintf(color_string,
-                "a(\"COLOR\",\"brown\"),a(\"_GO\",\"ellipse\"),"); break;
-      case AS_CGB_MULTICONT_FRAG:
-	sprintf(color_string, 
-		"a(\"COLOR\",\"lightblue\"),a(\"_GO\",\"ellipse\"),"); break;
-      case AS_CGB_SINGLECONT_FRAG:
-	sprintf(color_string, 
-		"a(\"COLOR\",\"lightgreen\"),a(\"_GO\",\"ellipse\"),"); break;
-
-      case AS_CGB_INTERCHUNK_FRAG:
-	sprintf(color_string,"a(\"COLOR\",\"green\"),"); break;
-      case AS_CGB_INTRACHUNK_FRAG:
-        sprintf(color_string,"a(\"COLOR\",\"lightgreen\"),"); break;
-      case AS_CGB_HANGING_CHUNK_FRAG:
-	sprintf(color_string,"a(\"COLOR\",\"yellow\"),"); break;
-
-      case AS_CGB_HANGING_CRAPPY_FRAG:
-	sprintf(color_string,"a(\"COLOR\",\"lightred\"),"); break;
-      case AS_CGB_DELETED_FRAG:
-	sprintf(color_string,"a(\"COLOR\",\"red\"),"); break;
-      default:
-	assert(FALSE); break;
-      }
-
-      fprintf(fp,
-	      "l(%s,n(\"\",[%s %s],\n",
-	      vs0,vs1,color_string);
-      fprintf(fp,"       [\n");
-      
-      plot_edges_from_vertex(
-			       fp, 
-			       frags,
-			       edges,
-			       fragment_visited,
-                               fragment_types_to_plot,
-			       edge_types_to_plot,
-			       ifrag, FALSE,
-			       shortcut);
-      
-      plot_edges_from_vertex(
-			       fp, 
-			       frags,
-			       edges,
-			       fragment_visited,
-                               fragment_types_to_plot,
-			       edge_types_to_plot,
-			       ifrag, TRUE,
-			       shortcut);
-    
-    fprintf(fp,"])),\n");  /* ending old fragment in term representation */
-    } /* end do we plot this fragment? */
-  } /* ending loop through fragments */
-    } /* ending loop through passes */
-  fprintf(fp,"]\n");    /* ending the graph */
-  }
-
-  safe_free(fragment_ranking);
-  safe_free(fragment_mapping);
-  safe_free(fragment_visited);
-}
-
-
-static void graph_diagnostics
-(
- const char root[],
- const Tfragment * const frags,
- const Tedge * const edges,
- const Tlab fragment_types_to_plot,
- const Tnes edge_types_to_plot,
- const int shortcut,
- const Tfraginfo * const fraginfo
- ) 
-{
-  char fname[80]={0};
-  { 
-    FILE  *fpg2 = NULL;
-    assert(NULL != root);
-    assert('\0' != root[0]);
-    sprintf(fname,"%s.daVinci",root);
-    fpg2 = fopen(fname,"w");
-    assert(fpg2 != NULL);
-    exhale_term_rep(fpg2, frags, edges, 
-		    fragment_types_to_plot, edge_types_to_plot,shortcut,
-		    fraginfo);
-    if(fclose(fpg2) == EOF)
-      assert(0);
-  }
-}
-
-#endif  //  DEBUG_VISUAL
-
-
-
-static void analyze_the_fragment_overlap_graph
-(
- FILE *fout,
- const IntFragment_ID max_frag_iid,
- Tfragment frags[],
- Tedge edges[]
-)
-{
   const IntFragment_ID nfrag = GetNumFragments(frags);
   const IntEdge_ID nedge = GetNumEdges(edges);
-  assert(NULL != fout);
+
   fprintf(fout,"FRAGMENT OVERLAP GRAPH INFORMATION\n\n");
+
   {
     IntFragment_ID 
       ifrag,
@@ -495,108 +76,108 @@ static void analyze_the_fragment_overlap_graph
     for(ifrag=0; ifrag<nfrag; ifrag++){
       const Tlab ilab = get_lab_fragment(frags,ifrag);
       switch(ilab) {
-      case AS_CGB_SOLO_FRAG: 
-	n_as_cgb_solo_frag++; break;
-      case AS_CGB_HANGING_FRAG: 
-	n_as_cgb_hanging_frag++; break;
-      case AS_CGB_THRU_FRAG: 
-	n_as_cgb_thru_frag++; break;
-      case AS_CGB_INTERCHUNK_FRAG:
-	n_as_cgb_interchunk_frag++; break;
-      case AS_CGB_INTRACHUNK_FRAG:
-	n_as_cgb_intrachunk_frag++; break;
-      case AS_CGB_UNPLACEDCONT_FRAG:
-	n_as_cgb_unplacedcont_frag++; break;
-      case AS_CGB_SINGLECONT_FRAG:
-	n_as_cgb_singlecont_frag++; break;
-      case AS_CGB_MULTICONT_FRAG:
-	n_as_cgb_multicont_frag++; break;
-      case AS_CGB_BRANCHMULTICONT_FRAG:
-	n_as_cgb_branchmulticont_frag++; break;
-      case AS_CGB_HANGING_CHUNK_FRAG:
-	n_as_cgb_hanging_chunk_frag++; break;
-      case AS_CGB_HANGING_CRAPPY_FRAG:
-	n_as_cgb_hanging_crappy_frag++; break;
-      case AS_CGB_ORPHANEDCONT_FRAG:
-	n_as_cgb_orphanedcont_frag++; break;
-      case AS_CGB_DELETED_FRAG:
-	n_as_cgb_deleted_frag++; break;
-      default:
-	fprintf(stderr,"ifrag=" F_IID ", Unknown fragment type %d\n",ifrag,ilab);
-	assert(FALSE);
+        case AS_CGB_SOLO_FRAG: 
+          n_as_cgb_solo_frag++; break;
+        case AS_CGB_HANGING_FRAG: 
+          n_as_cgb_hanging_frag++; break;
+        case AS_CGB_THRU_FRAG: 
+          n_as_cgb_thru_frag++; break;
+        case AS_CGB_INTERCHUNK_FRAG:
+          n_as_cgb_interchunk_frag++; break;
+        case AS_CGB_INTRACHUNK_FRAG:
+          n_as_cgb_intrachunk_frag++; break;
+        case AS_CGB_UNPLACEDCONT_FRAG:
+          n_as_cgb_unplacedcont_frag++; break;
+        case AS_CGB_SINGLECONT_FRAG:
+          n_as_cgb_singlecont_frag++; break;
+        case AS_CGB_MULTICONT_FRAG:
+          n_as_cgb_multicont_frag++; break;
+        case AS_CGB_BRANCHMULTICONT_FRAG:
+          n_as_cgb_branchmulticont_frag++; break;
+        case AS_CGB_HANGING_CHUNK_FRAG:
+          n_as_cgb_hanging_chunk_frag++; break;
+        case AS_CGB_HANGING_CRAPPY_FRAG:
+          n_as_cgb_hanging_crappy_frag++; break;
+        case AS_CGB_ORPHANEDCONT_FRAG:
+          n_as_cgb_orphanedcont_frag++; break;
+        case AS_CGB_DELETED_FRAG:
+          n_as_cgb_deleted_frag++; break;
+        default:
+          fprintf(stderr,"ifrag=" F_IID ", Unknown fragment type %d\n",ifrag,ilab);
+          assert(FALSE);
       }
     }
-      fprintf(fout,
-	      "%15" F_IIDP " : total number of fragment reads\n"
-	      "%15" F_IIDP " :   solo\n"
-	      "%15" F_IIDP " :   hanging    alone\n"
-	      "%15" F_IIDP " :   hanging    chunk-end\n"
-	      "%15" F_IIDP " :   hanging    spur\n"
-	      "%15" F_IIDP " :   thru       alone\n"
-	      "%15" F_IIDP " :   thru       chunk-end\n"
-	      "%15" F_IIDP " :   thru       intrachunk\n"
-	      "%15" F_IIDP " :   contained  unplaced\n"
-	      "%15" F_IIDP " :   contained  singly\n"
-	      "%15" F_IIDP " :   contained  multiply non-branch\n"
-	      "%15" F_IIDP " :   contained  multiply branch\n"
-	      "%15" F_IIDP " :   contained  orphaned\n"
-	      "%15" F_IIDP " :   deleted\n",
-	      nfrag,
-	      n_as_cgb_solo_frag,
-	      n_as_cgb_hanging_frag, 
-	      n_as_cgb_hanging_chunk_frag,
-	      n_as_cgb_hanging_crappy_frag,
-	      n_as_cgb_thru_frag, 
-	      n_as_cgb_interchunk_frag,
-	      n_as_cgb_intrachunk_frag, 
-	      n_as_cgb_unplacedcont_frag,
-	      n_as_cgb_singlecont_frag,
-	      n_as_cgb_multicont_frag,
-	      n_as_cgb_branchmulticont_frag,
-	      n_as_cgb_orphanedcont_frag,
-	      n_as_cgb_deleted_frag
-	      );
-    }
+    fprintf(fout,
+            "%15" F_IIDP " : total number of fragment reads\n"
+            "%15" F_IIDP " :   solo\n"
+            "%15" F_IIDP " :   hanging    alone\n"
+            "%15" F_IIDP " :   hanging    chunk-end\n"
+            "%15" F_IIDP " :   hanging    spur\n"
+            "%15" F_IIDP " :   thru       alone\n"
+            "%15" F_IIDP " :   thru       chunk-end\n"
+            "%15" F_IIDP " :   thru       intrachunk\n"
+            "%15" F_IIDP " :   contained  unplaced\n"
+            "%15" F_IIDP " :   contained  singly\n"
+            "%15" F_IIDP " :   contained  multiply non-branch\n"
+            "%15" F_IIDP " :   contained  multiply branch\n"
+            "%15" F_IIDP " :   contained  orphaned\n"
+            "%15" F_IIDP " :   deleted\n",
+            nfrag,
+            n_as_cgb_solo_frag,
+            n_as_cgb_hanging_frag, 
+            n_as_cgb_hanging_chunk_frag,
+            n_as_cgb_hanging_crappy_frag,
+            n_as_cgb_thru_frag, 
+            n_as_cgb_interchunk_frag,
+            n_as_cgb_intrachunk_frag, 
+            n_as_cgb_unplacedcont_frag,
+            n_as_cgb_singlecont_frag,
+            n_as_cgb_multicont_frag,
+            n_as_cgb_branchmulticont_frag,
+            n_as_cgb_orphanedcont_frag,
+            n_as_cgb_deleted_frag
+            );
+  }
 
-    count_fragment_and_edge_labels( frags, edges, "in cga");
+  count_fragment_and_edge_labels( frags, edges, "in cga");
 
-    {
-      IntEdge_ID
-	iedge,
+  {
+    IntEdge_ID
+      iedge,
 
-	n_as_cgb_dovetail=0,
-	n_as_cgb_thickest=0,
-	/* The inter-chunk skeleton overlaps: */
-	n_as_cgb_interchunk=0,
-	n_as_cgb_containment_interchunk=0,
-	n_as_cgb_touches_contained=0,
-	n_as_cgb_between_contained=0,
-	n_as_cgb_touches_crappy_dvt=0,
-	n_as_cgb_between_crappy_dvt=0,
-	n_as_cgb_touches_crappy_con=0,
-	n_as_cgb_between_crappy_con=0,
+      n_as_cgb_dovetail=0,
+      n_as_cgb_thickest=0,
+      /* The inter-chunk skeleton overlaps: */
+      n_as_cgb_interchunk=0,
+      n_as_cgb_containment_interchunk=0,
+      n_as_cgb_touches_contained=0,
+      n_as_cgb_between_contained=0,
+      n_as_cgb_touches_crappy_dvt=0,
+      n_as_cgb_between_crappy_dvt=0,
+      n_as_cgb_touches_crappy_con=0,
+      n_as_cgb_between_crappy_con=0,
 
-	/* The intra-chunk skeleton overlaps: */
-	n_as_cgb_intrachunk=0,
-	n_as_cgb_containment_intrachunk=0,
-	n_as_cgb_touches_singly_contained=0,
+      /* The intra-chunk skeleton overlaps: */
+      n_as_cgb_intrachunk=0,
+      n_as_cgb_containment_intrachunk=0,
+      n_as_cgb_touches_singly_contained=0,
 
-	/* The marked overlap family: */
-	n_as_cgb_marked_by_branch_dvt=0,
+      /* The marked overlap family: */
+      n_as_cgb_marked_by_branch_dvt=0,
         
-	/* The removed overlap family: */
-	n_as_cgb_removed_by_transitivity_dvt=0,
-	n_as_cgb_removed_by_threshold_dvt=0,
-	n_as_cgb_removed_by_transitivity_con=0,
-	n_as_cgb_removed_by_threshold_con=0,
+      /* The removed overlap family: */
+      n_as_cgb_removed_by_transitivity_dvt=0,
+      n_as_cgb_removed_by_threshold_dvt=0,
+      n_as_cgb_removed_by_transitivity_con=0,
+      n_as_cgb_removed_by_threshold_con=0,
 
-	n_as_cgb_removed_by_duplicate_dvt=0,
-	n_as_cgb_removed_by_duplicate_con=0;
+      n_as_cgb_removed_by_duplicate_dvt=0,
+      n_as_cgb_removed_by_duplicate_con=0;
 
-      fprintf(fout,"Overlap types\n");
-      for(iedge=0; iedge<nedge; iedge++){
-	Tnes ines = get_nes_edge(edges,iedge);
-	switch(ines) {
+    fprintf(fout,"Overlap types\n");
+    for(iedge=0; iedge<nedge; iedge++){
+      Tnes ines = get_nes_edge(edges,iedge);
+      switch(ines) {
 	case AS_CGB_DOVETAIL_EDGE: 
 	  n_as_cgb_dovetail++; break;
 	case AS_CGB_THICKEST_EDGE: 
@@ -620,8 +201,8 @@ static void analyze_the_fragment_overlap_graph
 		       get_con_fragment(frags,ibvx) ));
 
 	    if (
-	     !((AS_CGB_SINGLECONT_FRAG == get_lab_fragment(frags,iavx)) ||
-	       (AS_CGB_SINGLECONT_FRAG == get_lab_fragment(frags,ibvx)))
+                !((AS_CGB_SINGLECONT_FRAG == get_lab_fragment(frags,iavx)) ||
+                  (AS_CGB_SINGLECONT_FRAG == get_lab_fragment(frags,ibvx)))
 		) {
 	      n_as_cgb_touches_contained++;
 	    } else {
@@ -674,101 +255,101 @@ static void analyze_the_fragment_overlap_graph
 	  n_as_cgb_removed_by_duplicate_con++; break;
 	default:
 	  assert(FALSE);
-	}
       }
-
-      fprintf(fout,
-	      "%15" F_IIDP " : total number of fragment overlaps\n"
-	      "      The non-chunking overlaps:\n"
-	      "%15" F_IIDP " : dovetail non-chunking\n"
-	      "%15" F_IIDP " : thickest non-chunking\n"
-	      "      The inter-chunk skeleton overlaps:\n"
-	      "%15" F_IIDP " : dovetail inter-chunk (between non-contained)\n"
-	      "%15" F_IIDP " : dovetail non-contained touches contained\n"
-	      "%15" F_IIDP " : dovetail between contained\n"
-	      "%15" F_IIDP " : dovetail touches spur and non-spur\n"
-	      "%15" F_IIDP " : dovetail between spurs\n"
-	      "%15" F_IIDP " : containment to non-singly contained\n"
-	      "%15" F_IIDP " : containment touches spur and non-spur\n"
-	      "%15" F_IIDP " : containment between spurs\n"
-	      "      The intra-chunk skeleton overlaps:\n"
-	      "%15" F_IIDP " : dovetail intra-chunk (between non-contained)\n"
-	      "%15" F_IIDP " : dovetail non-contained touches singly contained\n"
-	      "%15" F_IIDP " : containment to singly contained\n"
-	      "      The marked overlaps:\n"
-	      "%15" F_IIDP " : dovetail marked by branch points\n"
-	      "      The removed overlaps:\n"
-	      "%15" F_IIDP " : dovetail removed by transitivity\n"
-	      "%15" F_IIDP " : dovetail removed by threshold\n"
-	      "%15" F_IIDP " : containment removed by transitivity\n"
-	      "%15" F_IIDP " : containment removed by containment\n"
-	      "%15" F_IIDP " : duplicate dvt\n"
-	      "%15" F_IIDP " : duplicate con\n"
-              ,
-	      nedge/2,
-	      n_as_cgb_dovetail/2,
-	      n_as_cgb_thickest/2,
-	      /* The inter-chunk skeleton overlaps: */
-	      n_as_cgb_interchunk/2,
-	      n_as_cgb_touches_contained/2,
-	      n_as_cgb_between_contained/2,
-              n_as_cgb_touches_crappy_dvt/2,
-              n_as_cgb_between_crappy_dvt/2,
-	      n_as_cgb_containment_interchunk/2,
-              n_as_cgb_touches_crappy_con/2,
-              n_as_cgb_between_crappy_con/2,
-              
-	      /* The intra-chunk skeleton overlaps: */
-	      n_as_cgb_intrachunk/2, 
-	      n_as_cgb_touches_singly_contained/2,
-	      n_as_cgb_containment_intrachunk/2,
-
-              /* The marked overlaps: */
-	      n_as_cgb_marked_by_branch_dvt/2,
-	      /* The removed overlaps: */
-	      n_as_cgb_removed_by_transitivity_dvt/2,
-	      n_as_cgb_removed_by_threshold_dvt/2,
-	      n_as_cgb_removed_by_transitivity_con/2,
-	      n_as_cgb_removed_by_threshold_con/2,
-	      n_as_cgb_removed_by_duplicate_dvt/2,
-	      n_as_cgb_removed_by_duplicate_con/2
-	      );
     }
-    
-    
-    {
-      IntFragment_ID ifrag;
-      const int nsample=500;
-      const int nbucket=500;
-      Histogram_t 
-	*solo_histogram 
-	= create_histogram(nsample,nbucket,TRUE,FALSE),
-	*hanging_alone_histogram 
-	= create_histogram(nsample,nbucket,TRUE,FALSE),
-	*hanging_chunk_histogram 
-	= create_histogram(nsample,nbucket,TRUE,FALSE),
-	*hanging_crappy_histogram 
-	= create_histogram(nsample,nbucket,TRUE,FALSE),
-	*thru_histogram 
-	= create_histogram(nsample,nbucket,TRUE,FALSE),
-	*interchunk_histogram 
-	= create_histogram(nsample,nbucket,TRUE,FALSE),
-	*intrachunk_histogram 
-	= create_histogram(nsample,nbucket,TRUE,FALSE),
-	*orphanedcont_histogram 
-	= create_histogram(nsample,nbucket,TRUE,FALSE),
-	*multicont_histogram 
-	= create_histogram(nsample,nbucket,TRUE,FALSE),
-	*branchmulticont_histogram 
-	= create_histogram(nsample,nbucket,TRUE,FALSE),
-	*singlecont_histogram 
-	= create_histogram(nsample,nbucket,TRUE,FALSE),
-	*unplacedcont_histogram 
-	= create_histogram(nsample,nbucket,TRUE,FALSE);
 
-      for(ifrag=0;ifrag<nfrag;ifrag++) {
-	const FragType type = get_typ_fragment(frags,ifrag);
-	switch(get_lab_fragment(frags,ifrag)) {
+    fprintf(fout,
+            "%15" F_IIDP " : total number of fragment overlaps\n"
+            "      The non-chunking overlaps:\n"
+            "%15" F_IIDP " : dovetail non-chunking\n"
+            "%15" F_IIDP " : thickest non-chunking\n"
+            "      The inter-chunk skeleton overlaps:\n"
+            "%15" F_IIDP " : dovetail inter-chunk (between non-contained)\n"
+            "%15" F_IIDP " : dovetail non-contained touches contained\n"
+            "%15" F_IIDP " : dovetail between contained\n"
+            "%15" F_IIDP " : dovetail touches spur and non-spur\n"
+            "%15" F_IIDP " : dovetail between spurs\n"
+            "%15" F_IIDP " : containment to non-singly contained\n"
+            "%15" F_IIDP " : containment touches spur and non-spur\n"
+            "%15" F_IIDP " : containment between spurs\n"
+            "      The intra-chunk skeleton overlaps:\n"
+            "%15" F_IIDP " : dovetail intra-chunk (between non-contained)\n"
+            "%15" F_IIDP " : dovetail non-contained touches singly contained\n"
+            "%15" F_IIDP " : containment to singly contained\n"
+            "      The marked overlaps:\n"
+            "%15" F_IIDP " : dovetail marked by branch points\n"
+            "      The removed overlaps:\n"
+            "%15" F_IIDP " : dovetail removed by transitivity\n"
+            "%15" F_IIDP " : dovetail removed by threshold\n"
+            "%15" F_IIDP " : containment removed by transitivity\n"
+            "%15" F_IIDP " : containment removed by containment\n"
+            "%15" F_IIDP " : duplicate dvt\n"
+            "%15" F_IIDP " : duplicate con\n"
+            ,
+            nedge/2,
+            n_as_cgb_dovetail/2,
+            n_as_cgb_thickest/2,
+            /* The inter-chunk skeleton overlaps: */
+            n_as_cgb_interchunk/2,
+            n_as_cgb_touches_contained/2,
+            n_as_cgb_between_contained/2,
+            n_as_cgb_touches_crappy_dvt/2,
+            n_as_cgb_between_crappy_dvt/2,
+            n_as_cgb_containment_interchunk/2,
+            n_as_cgb_touches_crappy_con/2,
+            n_as_cgb_between_crappy_con/2,
+              
+            /* The intra-chunk skeleton overlaps: */
+            n_as_cgb_intrachunk/2, 
+            n_as_cgb_touches_singly_contained/2,
+            n_as_cgb_containment_intrachunk/2,
+
+            /* The marked overlaps: */
+            n_as_cgb_marked_by_branch_dvt/2,
+            /* The removed overlaps: */
+            n_as_cgb_removed_by_transitivity_dvt/2,
+            n_as_cgb_removed_by_threshold_dvt/2,
+            n_as_cgb_removed_by_transitivity_con/2,
+            n_as_cgb_removed_by_threshold_con/2,
+            n_as_cgb_removed_by_duplicate_dvt/2,
+            n_as_cgb_removed_by_duplicate_con/2
+            );
+  }
+    
+    
+  {
+    IntFragment_ID ifrag;
+    const int nsample=500;
+    const int nbucket=500;
+    Histogram_t 
+      *solo_histogram 
+      = create_histogram(nsample,nbucket,TRUE,FALSE),
+      *hanging_alone_histogram 
+      = create_histogram(nsample,nbucket,TRUE,FALSE),
+      *hanging_chunk_histogram 
+      = create_histogram(nsample,nbucket,TRUE,FALSE),
+      *hanging_crappy_histogram 
+      = create_histogram(nsample,nbucket,TRUE,FALSE),
+      *thru_histogram 
+      = create_histogram(nsample,nbucket,TRUE,FALSE),
+      *interchunk_histogram 
+      = create_histogram(nsample,nbucket,TRUE,FALSE),
+      *intrachunk_histogram 
+      = create_histogram(nsample,nbucket,TRUE,FALSE),
+      *orphanedcont_histogram 
+      = create_histogram(nsample,nbucket,TRUE,FALSE),
+      *multicont_histogram 
+      = create_histogram(nsample,nbucket,TRUE,FALSE),
+      *branchmulticont_histogram 
+      = create_histogram(nsample,nbucket,TRUE,FALSE),
+      *singlecont_histogram 
+      = create_histogram(nsample,nbucket,TRUE,FALSE),
+      *unplacedcont_histogram 
+      = create_histogram(nsample,nbucket,TRUE,FALSE);
+
+    for(ifrag=0;ifrag<nfrag;ifrag++) {
+      const FragType type = get_typ_fragment(frags,ifrag);
+      switch(get_lab_fragment(frags,ifrag)) {
 	case AS_CGB_SOLO_FRAG:
 	  add_to_histogram(solo_histogram, (int)type, NULL); break;
 	case AS_CGB_HANGING_FRAG:
@@ -797,587 +378,587 @@ static void analyze_the_fragment_overlap_graph
 	  break;
 	default:
 	  assert(FALSE);
-	}
       }
-      fprintf(fout,"\n\nHistogram of the fragment type of "
-	      "solo fragments.\n");
-      print_histogram(fout,solo_histogram, 0, 1);
-      free_histogram(solo_histogram);
-
-      fprintf(fout,"\n\nHistogram of the fragment type of "
-	      "hanging alone fragments.\n");
-      print_histogram(fout,hanging_alone_histogram, 0, 1);
-      free_histogram(hanging_alone_histogram);
-
-      fprintf(fout,"\n\nHistogram of the fragment type of "
-	      "hanging chunk fragments.\n");
-      print_histogram(fout,hanging_chunk_histogram, 0, 1);
-      free_histogram(hanging_chunk_histogram);
-
-      fprintf(fout,"\n\nHistogram of the fragment type of "
-	      "hanging spur fragments.\n");
-      print_histogram(fout,hanging_crappy_histogram, 0, 1);
-      free_histogram(hanging_crappy_histogram);
-
-      fprintf(fout,"\n\nHistogram of the fragment type of "
-	      "thru fragments.\n");
-      print_histogram(fout,thru_histogram, 0, 1);
-      free_histogram(thru_histogram);
-
-      fprintf(fout,"\n\nHistogram of the fragment type of "
-	      "interchunk fragments.\n");
-      print_histogram(fout,interchunk_histogram, 0, 1);
-      free_histogram(interchunk_histogram);
-
-      fprintf(fout,"\n\nHistogram of the fragment type of "
-	      "intrachunk fragments.\n");
-      print_histogram(fout,intrachunk_histogram, 0, 1);
-      free_histogram(intrachunk_histogram);
-
-      fprintf(fout,"\n\nHistogram of the fragment type of "
-	      "orphaned contained fragments.\n");
-      print_histogram(fout,orphanedcont_histogram, 0, 1);
-      free_histogram(orphanedcont_histogram);
-
-      fprintf(fout,"\n\nHistogram of the fragment type of "
-	      "unplaced contained fragments.\n");
-      print_histogram(fout,unplacedcont_histogram, 0, 1);
-      free_histogram(unplacedcont_histogram);
-
-      fprintf(fout,"\n\nHistogram of the fragment type of "
-	      "singly contained fragments.\n");
-      print_histogram(fout,singlecont_histogram, 0, 1);
-      free_histogram(singlecont_histogram);
-
-      fprintf(fout,"\n\nHistogram of the fragment type of "
-	      "multiply contained fragments.\n");
-      print_histogram(fout,multicont_histogram, 0, 1);
-      free_histogram(multicont_histogram);
-
-      fprintf(fout,"\n\nHistogram of the fragment type of "
-	      "branch multiply contained fragments.\n");
-      print_histogram(fout,branchmulticont_histogram, 0, 1);
-      free_histogram(branchmulticont_histogram);
     }
-    
-    {
-      IntFragment_ID ifrag;
-      int isuff;
-      const int nsample=500;
-      const int nbucket=500;
-      Histogram_t 
-	*raw_edges_per_vertex_histogram
-	= create_histogram(nsample,nbucket,0,TRUE),
-	*work_edges_per_vertex_histogram
-	= create_histogram(nsample,nbucket,0,TRUE),
-	*reduced_edges_per_vertex_histogram
-	= create_histogram(nsample,nbucket,0,TRUE),
-	*dovetail_edges_per_vertex_histogram
-	= create_histogram(nsample,nbucket,0,TRUE),
-	*interchunk_edges_per_vertex_histogram
-	= create_histogram(nsample,nbucket,0,TRUE),
-	*intrachunk_edges_per_vertex_histogram
-	= create_histogram(nsample,nbucket,0,TRUE),
-	*singly_containment_edges_per_vertex_histogram
-	= create_histogram(nsample,nbucket,0,TRUE),
-	*multiply_containment_edges_per_vertex_histogram
-	= create_histogram(nsample,nbucket,0,TRUE),
-	*touches_edges_per_vertex_histogram
-	= create_histogram(nsample,nbucket,0,TRUE),
-	*between_edges_per_vertex_histogram
-	= create_histogram(nsample,nbucket,0,TRUE);
+    fprintf(fout,"\n\nHistogram of the fragment type of "
+            "solo fragments.\n");
+    print_histogram(fout,solo_histogram, 0, 1);
+    free_histogram(solo_histogram);
 
-      for(ifrag=0;ifrag<nfrag;ifrag++) { 
-	for(isuff=0;isuff<2;isuff++) {
-	  int count_dovetail_edges=0;
-	  int count_thickest_edges=0;
-	  int count_interchunk_edges=0;
-	  int count_intrachunk_edges=0;
-	  int count_touches_contained_edges=0;
-	  int count_between_contained_edges=0;
-	  int count_singly_containment_edges=0;
-	  int count_multiply_containment_edges=0;
-	  int count_touches_crappy_dvt=0;
-	  int count_touches_crappy_con=0;
-	  int count_between_crappy_dvt=0;
-	  int count_between_crappy_con=0;
-          // int count_marked_by_containment_dvt_edges=0;
-          // int count_marked_by_containment_con_edges=0;
-	  int count_removed_by_transitivity_dvt_edges=0;
-	  int count_removed_by_transitivity_con_edges=0;
-	  // int count_removed_by_containment_dvt_edges=0;
-	  // int count_removed_by_containment_con_edges=0;
-	  int count_removed_by_threshold_dvt_edges=0;
-	  int count_removed_by_threshold_con_edges=0;
-	  int count_marked_by_branch_dvt_edges=0;
-	  int count_removed_by_duplicate_dvt_edges=0;
-	  int count_removed_by_duplicate_con_edges=0;
-	  int count = 0;
-	  { 
-	    IntEdge_ID snode = get_segstart_vertex(frags,ifrag,isuff);
-	    int nnode = get_seglen_vertex(frags,ifrag,isuff);
-	    { IntEdge_ID ie; for(ie=snode;ie<snode+nnode;ie++) {
+    fprintf(fout,"\n\nHistogram of the fragment type of "
+            "hanging alone fragments.\n");
+    print_histogram(fout,hanging_alone_histogram, 0, 1);
+    free_histogram(hanging_alone_histogram);
+
+    fprintf(fout,"\n\nHistogram of the fragment type of "
+            "hanging chunk fragments.\n");
+    print_histogram(fout,hanging_chunk_histogram, 0, 1);
+    free_histogram(hanging_chunk_histogram);
+
+    fprintf(fout,"\n\nHistogram of the fragment type of "
+            "hanging spur fragments.\n");
+    print_histogram(fout,hanging_crappy_histogram, 0, 1);
+    free_histogram(hanging_crappy_histogram);
+
+    fprintf(fout,"\n\nHistogram of the fragment type of "
+            "thru fragments.\n");
+    print_histogram(fout,thru_histogram, 0, 1);
+    free_histogram(thru_histogram);
+
+    fprintf(fout,"\n\nHistogram of the fragment type of "
+            "interchunk fragments.\n");
+    print_histogram(fout,interchunk_histogram, 0, 1);
+    free_histogram(interchunk_histogram);
+
+    fprintf(fout,"\n\nHistogram of the fragment type of "
+            "intrachunk fragments.\n");
+    print_histogram(fout,intrachunk_histogram, 0, 1);
+    free_histogram(intrachunk_histogram);
+
+    fprintf(fout,"\n\nHistogram of the fragment type of "
+            "orphaned contained fragments.\n");
+    print_histogram(fout,orphanedcont_histogram, 0, 1);
+    free_histogram(orphanedcont_histogram);
+
+    fprintf(fout,"\n\nHistogram of the fragment type of "
+            "unplaced contained fragments.\n");
+    print_histogram(fout,unplacedcont_histogram, 0, 1);
+    free_histogram(unplacedcont_histogram);
+
+    fprintf(fout,"\n\nHistogram of the fragment type of "
+            "singly contained fragments.\n");
+    print_histogram(fout,singlecont_histogram, 0, 1);
+    free_histogram(singlecont_histogram);
+
+    fprintf(fout,"\n\nHistogram of the fragment type of "
+            "multiply contained fragments.\n");
+    print_histogram(fout,multicont_histogram, 0, 1);
+    free_histogram(multicont_histogram);
+
+    fprintf(fout,"\n\nHistogram of the fragment type of "
+            "branch multiply contained fragments.\n");
+    print_histogram(fout,branchmulticont_histogram, 0, 1);
+    free_histogram(branchmulticont_histogram);
+  }
+    
+  {
+    IntFragment_ID ifrag;
+    int isuff;
+    const int nsample=500;
+    const int nbucket=500;
+    Histogram_t 
+      *raw_edges_per_vertex_histogram
+      = create_histogram(nsample,nbucket,0,TRUE),
+      *work_edges_per_vertex_histogram
+      = create_histogram(nsample,nbucket,0,TRUE),
+      *reduced_edges_per_vertex_histogram
+      = create_histogram(nsample,nbucket,0,TRUE),
+      *dovetail_edges_per_vertex_histogram
+      = create_histogram(nsample,nbucket,0,TRUE),
+      *interchunk_edges_per_vertex_histogram
+      = create_histogram(nsample,nbucket,0,TRUE),
+      *intrachunk_edges_per_vertex_histogram
+      = create_histogram(nsample,nbucket,0,TRUE),
+      *singly_containment_edges_per_vertex_histogram
+      = create_histogram(nsample,nbucket,0,TRUE),
+      *multiply_containment_edges_per_vertex_histogram
+      = create_histogram(nsample,nbucket,0,TRUE),
+      *touches_edges_per_vertex_histogram
+      = create_histogram(nsample,nbucket,0,TRUE),
+      *between_edges_per_vertex_histogram
+      = create_histogram(nsample,nbucket,0,TRUE);
+
+    for(ifrag=0;ifrag<nfrag;ifrag++) { 
+      for(isuff=0;isuff<2;isuff++) {
+        int count_dovetail_edges=0;
+        int count_thickest_edges=0;
+        int count_interchunk_edges=0;
+        int count_intrachunk_edges=0;
+        int count_touches_contained_edges=0;
+        int count_between_contained_edges=0;
+        int count_singly_containment_edges=0;
+        int count_multiply_containment_edges=0;
+        int count_touches_crappy_dvt=0;
+        int count_touches_crappy_con=0;
+        int count_between_crappy_dvt=0;
+        int count_between_crappy_con=0;
+        // int count_marked_by_containment_dvt_edges=0;
+        // int count_marked_by_containment_con_edges=0;
+        int count_removed_by_transitivity_dvt_edges=0;
+        int count_removed_by_transitivity_con_edges=0;
+        // int count_removed_by_containment_dvt_edges=0;
+        // int count_removed_by_containment_con_edges=0;
+        int count_removed_by_threshold_dvt_edges=0;
+        int count_removed_by_threshold_con_edges=0;
+        int count_marked_by_branch_dvt_edges=0;
+        int count_removed_by_duplicate_dvt_edges=0;
+        int count_removed_by_duplicate_con_edges=0;
+        int count = 0;
+        { 
+          IntEdge_ID snode = get_segstart_vertex(frags,ifrag,isuff);
+          int nnode = get_seglen_vertex(frags,ifrag,isuff);
+          { IntEdge_ID ie; for(ie=snode;ie<snode+nnode;ie++) {
 	      Tnes nes = get_nes_edge(edges,ie);
 	      IntFragment_ID avx = get_avx_edge(edges,ie);
 	      IntFragment_ID bvx = get_bvx_edge(edges,ie);
 	      Tlab alab = get_lab_fragment(frags,avx);
 	      Tlab blab = get_lab_fragment(frags,bvx);
 	      switch(nes) {
-	      case AS_CGB_DOVETAIL_EDGE:
-		count_dovetail_edges++; break;
-	      case AS_CGB_THICKEST_EDGE:
-		count_thickest_edges++; break;
-	      case AS_CGB_INTERCHUNK_EDGE:
-		count_interchunk_edges++; break;
-	      case AS_CGB_INTRACHUNK_EDGE:
-		count_intrachunk_edges++; break;
+                case AS_CGB_DOVETAIL_EDGE:
+                  count_dovetail_edges++; break;
+                case AS_CGB_THICKEST_EDGE:
+                  count_thickest_edges++; break;
+                case AS_CGB_INTERCHUNK_EDGE:
+                  count_interchunk_edges++; break;
+                case AS_CGB_INTRACHUNK_EDGE:
+                  count_intrachunk_edges++; break;
 
-	      case AS_CGB_TOUCHES_CONTAINED_EDGE:
-		count_touches_contained_edges++; break;
-	      case AS_CGB_BETWEEN_CONTAINED_EDGE:
-		count_between_contained_edges++; break;
-              case AS_CGB_TOUCHES_CRAPPY_DVT:
-                count_touches_crappy_dvt++; break;
-              case AS_CGB_BETWEEN_CRAPPY_DVT:
-                count_between_crappy_dvt++; break;
-	      case AS_CGB_MARKED_BY_BRANCH_DVT:
-		count_marked_by_branch_dvt_edges++; break;
-       	      case AS_CGB_REMOVED_BY_TRANSITIVITY_DVT:
-		count_removed_by_transitivity_dvt_edges++; break;
-	      case AS_CGB_REMOVED_BY_THRESHOLD_DVT:
-		count_removed_by_threshold_dvt_edges++; break;
-	      case AS_CGB_REMOVED_BY_DUPLICATE_DVT:
-		count_removed_by_duplicate_dvt_edges++;
+                case AS_CGB_TOUCHES_CONTAINED_EDGE:
+                  count_touches_contained_edges++; break;
+                case AS_CGB_BETWEEN_CONTAINED_EDGE:
+                  count_between_contained_edges++; break;
+                case AS_CGB_TOUCHES_CRAPPY_DVT:
+                  count_touches_crappy_dvt++; break;
+                case AS_CGB_BETWEEN_CRAPPY_DVT:
+                  count_between_crappy_dvt++; break;
+                case AS_CGB_MARKED_BY_BRANCH_DVT:
+                  count_marked_by_branch_dvt_edges++; break;
+                case AS_CGB_REMOVED_BY_TRANSITIVITY_DVT:
+                  count_removed_by_transitivity_dvt_edges++; break;
+                case AS_CGB_REMOVED_BY_THRESHOLD_DVT:
+                  count_removed_by_threshold_dvt_edges++; break;
+                case AS_CGB_REMOVED_BY_DUPLICATE_DVT:
+                  count_removed_by_duplicate_dvt_edges++;
 
 
-	      case AS_CGB_CONTAINED_EDGE:
-		if((AS_CGB_SINGLECONT_FRAG == alab) ||
-		   (AS_CGB_SINGLECONT_FRAG == blab) ) {
-		  count_singly_containment_edges++; 
-		} else {
-		  count_multiply_containment_edges++; 
-		}
-		break;
+                case AS_CGB_CONTAINED_EDGE:
+                  if((AS_CGB_SINGLECONT_FRAG == alab) ||
+                     (AS_CGB_SINGLECONT_FRAG == blab) ) {
+                    count_singly_containment_edges++; 
+                  } else {
+                    count_multiply_containment_edges++; 
+                  }
+                  break;
 
-              case AS_CGB_TOUCHES_CRAPPY_CON:
-                count_touches_crappy_con++; break;
-              case AS_CGB_BETWEEN_CRAPPY_CON:
-                count_between_crappy_con++; break;
-	      case AS_CGB_REMOVED_BY_TRANSITIVITY_CON:
-		count_removed_by_transitivity_con_edges++; break;
-	      case AS_CGB_REMOVED_BY_THRESHOLD_CON:
-		count_removed_by_threshold_con_edges++; break;
-	      case AS_CGB_REMOVED_BY_DUPLICATE_CON:
-		count_removed_by_duplicate_con_edges++;
-		break;
+                case AS_CGB_TOUCHES_CRAPPY_CON:
+                  count_touches_crappy_con++; break;
+                case AS_CGB_BETWEEN_CRAPPY_CON:
+                  count_between_crappy_con++; break;
+                case AS_CGB_REMOVED_BY_TRANSITIVITY_CON:
+                  count_removed_by_transitivity_con_edges++; break;
+                case AS_CGB_REMOVED_BY_THRESHOLD_CON:
+                  count_removed_by_threshold_con_edges++; break;
+                case AS_CGB_REMOVED_BY_DUPLICATE_CON:
+                  count_removed_by_duplicate_con_edges++;
+                  break;
 
-	      default:
-		assert(FALSE);
+                default:
+                  assert(FALSE);
 	      }
 	    }}
-	  }
+        }
 
-	  count =
-	    count_dovetail_edges +
-	    count_thickest_edges +
-	    count_interchunk_edges +
-	    count_intrachunk_edges +
-	    count_singly_containment_edges +
-	    count_multiply_containment_edges +
-	    count_touches_contained_edges +
-	    count_between_contained_edges +
-            count_touches_crappy_dvt +
-	    count_marked_by_branch_dvt_edges +
-	    count_removed_by_transitivity_dvt_edges +
-	    count_removed_by_transitivity_con_edges +
-	    count_removed_by_threshold_dvt_edges +
-	    count_removed_by_threshold_con_edges;
-	  add_to_histogram(raw_edges_per_vertex_histogram, count, NULL);
+        count =
+          count_dovetail_edges +
+          count_thickest_edges +
+          count_interchunk_edges +
+          count_intrachunk_edges +
+          count_singly_containment_edges +
+          count_multiply_containment_edges +
+          count_touches_contained_edges +
+          count_between_contained_edges +
+          count_touches_crappy_dvt +
+          count_marked_by_branch_dvt_edges +
+          count_removed_by_transitivity_dvt_edges +
+          count_removed_by_transitivity_con_edges +
+          count_removed_by_threshold_dvt_edges +
+          count_removed_by_threshold_con_edges;
+        add_to_histogram(raw_edges_per_vertex_histogram, count, NULL);
 
-	  count =
-	    count_dovetail_edges +
-	    count_thickest_edges +
-	    count_interchunk_edges +
-	    count_intrachunk_edges +
-	    count_singly_containment_edges +
-	    count_multiply_containment_edges +
-	    count_touches_contained_edges +
-	    count_between_contained_edges +
-            count_touches_crappy_dvt +
-	    count_marked_by_branch_dvt_edges;
-	  add_to_histogram(work_edges_per_vertex_histogram, count, NULL);
+        count =
+          count_dovetail_edges +
+          count_thickest_edges +
+          count_interchunk_edges +
+          count_intrachunk_edges +
+          count_singly_containment_edges +
+          count_multiply_containment_edges +
+          count_touches_contained_edges +
+          count_between_contained_edges +
+          count_touches_crappy_dvt +
+          count_marked_by_branch_dvt_edges;
+        add_to_histogram(work_edges_per_vertex_histogram, count, NULL);
 
-	  count =
-	    count_dovetail_edges +
-	    count_thickest_edges +
-	    count_interchunk_edges +
-	    count_intrachunk_edges +
-	    count_singly_containment_edges +
-	    count_multiply_containment_edges +
-	    count_touches_contained_edges +
-	    count_between_contained_edges +
-            count_touches_crappy_dvt;
+        count =
+          count_dovetail_edges +
+          count_thickest_edges +
+          count_interchunk_edges +
+          count_intrachunk_edges +
+          count_singly_containment_edges +
+          count_multiply_containment_edges +
+          count_touches_contained_edges +
+          count_between_contained_edges +
+          count_touches_crappy_dvt;
 
-	  add_to_histogram(reduced_edges_per_vertex_histogram, count, NULL);
+        add_to_histogram(reduced_edges_per_vertex_histogram, count, NULL);
 
-	  count = count_dovetail_edges;
-	  add_to_histogram(dovetail_edges_per_vertex_histogram, count, NULL);
+        count = count_dovetail_edges;
+        add_to_histogram(dovetail_edges_per_vertex_histogram, count, NULL);
 
-	  count = count_thickest_edges;
-	  add_to_histogram(dovetail_edges_per_vertex_histogram, count, NULL);
+        count = count_thickest_edges;
+        add_to_histogram(dovetail_edges_per_vertex_histogram, count, NULL);
 
-	  count = count_interchunk_edges;
-	  add_to_histogram(interchunk_edges_per_vertex_histogram, count, NULL);
+        count = count_interchunk_edges;
+        add_to_histogram(interchunk_edges_per_vertex_histogram, count, NULL);
 
-	  count = count_touches_contained_edges;
-	  add_to_histogram(touches_edges_per_vertex_histogram, count, NULL);
+        count = count_touches_contained_edges;
+        add_to_histogram(touches_edges_per_vertex_histogram, count, NULL);
 
-	  count = count_between_contained_edges;
-	  add_to_histogram(between_edges_per_vertex_histogram, count, NULL);
+        count = count_between_contained_edges;
+        add_to_histogram(between_edges_per_vertex_histogram, count, NULL);
 
-	  count = count_multiply_containment_edges;
-	  add_to_histogram(multiply_containment_edges_per_vertex_histogram,
-			   count, NULL);
+        count = count_multiply_containment_edges;
+        add_to_histogram(multiply_containment_edges_per_vertex_histogram,
+                         count, NULL);
 
-	  count = count_intrachunk_edges;
-	  add_to_histogram(intrachunk_edges_per_vertex_histogram, count, NULL);
+        count = count_intrachunk_edges;
+        add_to_histogram(intrachunk_edges_per_vertex_histogram, count, NULL);
 
-	  count = count_singly_containment_edges;
-	  add_to_histogram(singly_containment_edges_per_vertex_histogram,
-			   count, NULL);
+        count = count_singly_containment_edges;
+        add_to_histogram(singly_containment_edges_per_vertex_histogram,
+                         count, NULL);
 
-	}
       }
-
-      fprintf(fout,"\n\nHistogram of the raw degree of the fragment-ends"
-	      " in the fragment overlap graph\n");
-      print_histogram(fout,raw_edges_per_vertex_histogram, 0, 1);
-      free_histogram(raw_edges_per_vertex_histogram);
-
-      fprintf(fout,"\n\nHistogram of the working degree of the fragment-ends"
-	      " in the fragment overlap graph\n");
-      print_histogram(fout,work_edges_per_vertex_histogram, 0, 1);
-      free_histogram(work_edges_per_vertex_histogram);
-
-      fprintf(fout,"\n\nHistogram of the reduced degree of the fragment-ends"
-	      " in the fragment overlap graph\n");
-      print_histogram(fout,reduced_edges_per_vertex_histogram, 0, 1);
-      free_histogram(reduced_edges_per_vertex_histogram);
-
-      fprintf(fout,"\n\nHistogram of the non-chunking dovetail degree of the fragment-ends"
-	      " in the fragment overlap graph\n");
-      print_histogram(fout,dovetail_edges_per_vertex_histogram, 0, 1);
-      free_histogram(dovetail_edges_per_vertex_histogram);
-
-      fprintf(fout,"\n\nHistogram of the interchunk degree of the fragment-ends"
-	      " in the fragment overlap graph\n");
-      print_histogram(fout,interchunk_edges_per_vertex_histogram, 0, 1);
-      free_histogram(interchunk_edges_per_vertex_histogram);
-
-      fprintf(fout,"\n\nHistogram of the touches-contained degree of the fragment-ends"
-	      " in the fragment overlap graph\n");
-      print_histogram(fout,touches_edges_per_vertex_histogram, 0, 1);
-      free_histogram(touches_edges_per_vertex_histogram);
-
-      fprintf(fout,"\n\nHistogram of the between-contained degree of the fragment-ends"
-	      " in the fragment overlap graph\n");
-      print_histogram(fout,between_edges_per_vertex_histogram, 0, 1);
-      free_histogram(between_edges_per_vertex_histogram);
-
-      fprintf(fout,"\n\nHistogram of the multiply contained degree of the fragment-ends"
-	      " in the fragment overlap graph\n");
-      print_histogram(fout,multiply_containment_edges_per_vertex_histogram, 0, 1);
-      free_histogram(multiply_containment_edges_per_vertex_histogram);
-
-
-      fprintf(fout,"\n\nHistogram of the intrachunk degree of the fragment-ends"
-	      " in the fragment overlap graph\n");
-      print_histogram(fout,intrachunk_edges_per_vertex_histogram, 0, 1);
-      free_histogram(intrachunk_edges_per_vertex_histogram);
-
-      fprintf(fout,"\n\nHistogram of the singly_contained degree of the fragment-ends"
-	      " in the fragment overlap graph\n");
-      print_histogram(fout,singly_containment_edges_per_vertex_histogram, 0, 1);
-      free_histogram(singly_containment_edges_per_vertex_histogram);
-
     }
 
-    {
-      IntFragment_ID ifrag;
-      const int nsample=500;
-      const int nbucket=500;
-      Histogram_t 
-	*edges_per_vertex_histogram 
-	= create_histogram(nsample,nbucket,0,TRUE);
-      for(ifrag=0;ifrag<nfrag;ifrag++) {
-	if( AS_CGB_SOLO_FRAG == get_lab_fragment(frags,ifrag)) {
-	  int nnode;
-	  nnode = get_seglen_vertex(frags,ifrag,FALSE);
-	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
-	  nnode = get_seglen_vertex(frags,ifrag,TRUE);
-	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
-	}
-      }
-      fprintf(fout,"\n\nHistogram of the degree of the fragment-ends "
-	      "in the fragment overlap graph\n"
-	      "for solo fragments.\n");
-      print_histogram(fout,edges_per_vertex_histogram, 0, 1);
-      free_histogram(edges_per_vertex_histogram);
-    }
+    fprintf(fout,"\n\nHistogram of the raw degree of the fragment-ends"
+            " in the fragment overlap graph\n");
+    print_histogram(fout,raw_edges_per_vertex_histogram, 0, 1);
+    free_histogram(raw_edges_per_vertex_histogram);
 
-    {
-      IntFragment_ID ifrag;
-      const int nsample=500;
-      const int nbucket=500;
-      Histogram_t 
-	*edges_per_vertex_histogram 
-	= create_histogram(nsample,nbucket,0,TRUE);
-      for(ifrag=0;ifrag<nfrag;ifrag++) {
-	if( AS_CGB_HANGING_FRAG == get_lab_fragment(frags,ifrag)) {
-	  int nnode;
-	  nnode = get_seglen_vertex(frags,ifrag,FALSE);
-	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
-	  nnode = get_seglen_vertex(frags,ifrag,TRUE);
-	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
-	}
-      }
-      fprintf(fout,"\n\nHistogram of the degree of the fragment-ends "
-	      "in the fragment overlap graph\n"
-	      "for hanging fragments.\n");
-      print_histogram(fout,edges_per_vertex_histogram, 0, 1);
-      free_histogram(edges_per_vertex_histogram);
-    }
+    fprintf(fout,"\n\nHistogram of the working degree of the fragment-ends"
+            " in the fragment overlap graph\n");
+    print_histogram(fout,work_edges_per_vertex_histogram, 0, 1);
+    free_histogram(work_edges_per_vertex_histogram);
 
-    {
-      IntFragment_ID ifrag;
-      const int nsample=500;
-      const int nbucket=500;
-      Histogram_t 
-	*edges_per_vertex_histogram 
-	= create_histogram(nsample,nbucket,0,TRUE);
-      for(ifrag=0;ifrag<nfrag;ifrag++) {
-	if( AS_CGB_THRU_FRAG == get_lab_fragment(frags,ifrag)) {
-	  int nnode;
-	  nnode = get_seglen_vertex(frags,ifrag,FALSE);
-	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
-	  nnode = get_seglen_vertex(frags,ifrag,TRUE);
-	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
-	}
-      }
-      fprintf(fout,"\n\nHistogram of the degree of the fragment-ends "
-	      "in the fragment overlap graph\n"
-	      "for thru fragments.\n");
-      print_histogram(fout,edges_per_vertex_histogram, 0, 1);
-      free_histogram(edges_per_vertex_histogram);
-    }
+    fprintf(fout,"\n\nHistogram of the reduced degree of the fragment-ends"
+            " in the fragment overlap graph\n");
+    print_histogram(fout,reduced_edges_per_vertex_histogram, 0, 1);
+    free_histogram(reduced_edges_per_vertex_histogram);
 
-    {
-      IntFragment_ID ifrag;
-      const int nsample=500;
-      const int nbucket=500;
-      Histogram_t 
-	*edges_per_vertex_histogram
-	= create_histogram(nsample,nbucket,0,TRUE);
-      for(ifrag=0;ifrag<nfrag;ifrag++) {
-	if( AS_CGB_ORPHANEDCONT_FRAG == get_lab_fragment(frags,ifrag)) {
-	  int nnode;
-	  nnode = get_seglen_vertex(frags,ifrag,FALSE);
-	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
-	  nnode = get_seglen_vertex(frags,ifrag,TRUE);
-	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
-	}
-      }
-      fprintf(fout,"\n\nHistogram of the degree of the fragment-ends "
-	      "in the fragment overlap graph\n"
-	      "for orphaned fragments.\n");
-      print_histogram(fout,edges_per_vertex_histogram, 0, 1);
-      free_histogram(edges_per_vertex_histogram);
-    }
+    fprintf(fout,"\n\nHistogram of the non-chunking dovetail degree of the fragment-ends"
+            " in the fragment overlap graph\n");
+    print_histogram(fout,dovetail_edges_per_vertex_histogram, 0, 1);
+    free_histogram(dovetail_edges_per_vertex_histogram);
 
-    {
-      IntFragment_ID ifrag;
-      const int nsample=500;
-      const int nbucket=500;
-      Histogram_t 
-	*edges_per_vertex_histogram
-	= create_histogram(nsample,nbucket,0,TRUE);
-      for(ifrag=0;ifrag<nfrag;ifrag++) {
-	if( AS_CGB_MULTICONT_FRAG == get_lab_fragment(frags,ifrag)) {
-	  int nnode;
-	  nnode = get_seglen_vertex(frags,ifrag,FALSE);
-	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
-	  nnode = get_seglen_vertex(frags,ifrag,TRUE);
-	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
-	}
-      }
-      fprintf(fout,"\n\nHistogram of the degree of the fragment-ends "
-	      "in the fragment overlap graph\n"
-	      "for multiply contained fragments.\n");
-      print_histogram(fout,edges_per_vertex_histogram, 0, 1);
-      free_histogram(edges_per_vertex_histogram);
-    }
+    fprintf(fout,"\n\nHistogram of the interchunk degree of the fragment-ends"
+            " in the fragment overlap graph\n");
+    print_histogram(fout,interchunk_edges_per_vertex_histogram, 0, 1);
+    free_histogram(interchunk_edges_per_vertex_histogram);
 
-    {
-      IntFragment_ID ifrag;
-      const int nsample=500;
-      const int nbucket=500;
-      Histogram_t 
-	*edges_per_vertex_histogram
-	= create_histogram(nsample,nbucket,0,TRUE);
-      for(ifrag=0;ifrag<nfrag;ifrag++) {
-	if( AS_CGB_BRANCHMULTICONT_FRAG == get_lab_fragment(frags,ifrag)) {
-	  int nnode;
-	  nnode = get_seglen_vertex(frags,ifrag,FALSE);
-	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
-	  nnode = get_seglen_vertex(frags,ifrag,TRUE);
-	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
-	}
-      }
-      fprintf(fout,"\n\nHistogram of the degree of the fragment-ends "
-	      "in the fragment overlap graph\n"
-	      "for branch multiply contained fragments.\n");
-      print_histogram(fout,edges_per_vertex_histogram, 0, 1);
-      free_histogram(edges_per_vertex_histogram);
-    }
+    fprintf(fout,"\n\nHistogram of the touches-contained degree of the fragment-ends"
+            " in the fragment overlap graph\n");
+    print_histogram(fout,touches_edges_per_vertex_histogram, 0, 1);
+    free_histogram(touches_edges_per_vertex_histogram);
 
-    {
-      IntFragment_ID ifrag;
-      const int nsample=500;
-      const int nbucket=500;
-      Histogram_t 
-	*edges_per_vertex_histogram
-	= create_histogram(nsample,nbucket,0,TRUE);
-      for(ifrag=0;ifrag<nfrag;ifrag++) {
-	if( AS_CGB_HANGING_CRAPPY_FRAG == get_lab_fragment(frags,ifrag)) {
-	  int nnode;
-	  nnode = get_seglen_vertex(frags,ifrag,FALSE);
-	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
-	  nnode = get_seglen_vertex(frags,ifrag,TRUE);
-	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
-	}
-      }
-      fprintf(fout,"\n\nHistogram of the degree of the fragment-ends "
-	      "in the fragment overlap graph\n"
-	      "for hanging crappy fragments.\n");
-      print_histogram(fout,edges_per_vertex_histogram, 0, 1);
-      free_histogram(edges_per_vertex_histogram);
-    }
+    fprintf(fout,"\n\nHistogram of the between-contained degree of the fragment-ends"
+            " in the fragment overlap graph\n");
+    print_histogram(fout,between_edges_per_vertex_histogram, 0, 1);
+    free_histogram(between_edges_per_vertex_histogram);
 
-    {
-      IntFragment_ID ifrag;
-      const int nsample=500;
-      const int nbucket=500;
-      Histogram_t 
-	*edges_per_vertex_histogram
-	= create_histogram(nsample,nbucket,0,TRUE);
-      for(ifrag=0;ifrag<nfrag;ifrag++) {
-	if( AS_CGB_INTERCHUNK_FRAG == get_lab_fragment(frags,ifrag)) {
-	  int nnode;
-	  nnode = get_seglen_vertex(frags,ifrag,FALSE);
-	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
-	  nnode = get_seglen_vertex(frags,ifrag,TRUE);
-	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
-	}
-      }
-      fprintf(fout,"\n\nHistogram of the degree of the fragment-ends "
-	      "in the fragment overlap graph\n"
-	      "for interchunk fragments.\n");
-      print_histogram(fout,edges_per_vertex_histogram, 0, 1);
-      free_histogram(edges_per_vertex_histogram);
-    }
+    fprintf(fout,"\n\nHistogram of the multiply contained degree of the fragment-ends"
+            " in the fragment overlap graph\n");
+    print_histogram(fout,multiply_containment_edges_per_vertex_histogram, 0, 1);
+    free_histogram(multiply_containment_edges_per_vertex_histogram);
 
-    {
-      IntFragment_ID ifrag;
-      const int nsample=500;
-      const int nbucket=500;
-      Histogram_t 
-	*edges_per_vertex_histogram
-	= create_histogram(nsample,nbucket,0,TRUE);
-      for(ifrag=0;ifrag<nfrag;ifrag++) {
-	if( AS_CGB_INTRACHUNK_FRAG == get_lab_fragment(frags,ifrag)) {
-	  int nnode;
-	  nnode = get_seglen_vertex(frags,ifrag,FALSE);
-	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
-	  nnode = get_seglen_vertex(frags,ifrag,TRUE);
-	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
-	}
-      }
-      fprintf(fout,"\n\nHistogram of the degree of the fragment-ends "
-	      "in the fragment overlap graph\n"
-	      "for intrachunk fragments.\n");
-      print_histogram(fout,edges_per_vertex_histogram, 0, 1);
-      free_histogram(edges_per_vertex_histogram);
-    }
 
-    {
-      IntFragment_ID ifrag;
-      const int nsample=500;
-      const int nbucket=500;
-      Histogram_t 
-	*edges_per_vertex_histogram
-	= create_histogram(nsample,nbucket,0,TRUE);
-      for(ifrag=0;ifrag<nfrag;ifrag++) {
-	if( AS_CGB_SINGLECONT_FRAG == get_lab_fragment(frags,ifrag)) {
-	  int nnode;
-	  nnode = get_seglen_vertex(frags,ifrag,FALSE);
-	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
-	  nnode = get_seglen_vertex(frags,ifrag,TRUE);
-	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
-	}
-      }
-      fprintf(fout,"\n\nHistogram of the degree of the fragment-ends "
-	      "in the fragment overlap graph\n"
-	      "for uniquely contained fragments.\n");
-      print_histogram(fout,edges_per_vertex_histogram, 0, 1);
-      free_histogram(edges_per_vertex_histogram);
-    }
+    fprintf(fout,"\n\nHistogram of the intrachunk degree of the fragment-ends"
+            " in the fragment overlap graph\n");
+    print_histogram(fout,intrachunk_edges_per_vertex_histogram, 0, 1);
+    free_histogram(intrachunk_edges_per_vertex_histogram);
 
-    {
-      IntFragment_ID ifrag;
-      const int nsample=500;
-      const int nbucket=500;
-      Histogram_t 
-	*edges_per_vertex_histogram
-	= create_histogram(nsample,nbucket,0,TRUE);
-      for(ifrag=0;ifrag<nfrag;ifrag++) {
-	if( AS_CGB_DELETED_FRAG == get_lab_fragment(frags,ifrag)) {
-	  int nnode;
-	  nnode = get_seglen_vertex(frags,ifrag,FALSE);
-	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
-	  nnode = get_seglen_vertex(frags,ifrag,TRUE);
-	  add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
-	}
+    fprintf(fout,"\n\nHistogram of the singly_contained degree of the fragment-ends"
+            " in the fragment overlap graph\n");
+    print_histogram(fout,singly_containment_edges_per_vertex_histogram, 0, 1);
+    free_histogram(singly_containment_edges_per_vertex_histogram);
+
+  }
+
+  {
+    IntFragment_ID ifrag;
+    const int nsample=500;
+    const int nbucket=500;
+    Histogram_t 
+      *edges_per_vertex_histogram 
+      = create_histogram(nsample,nbucket,0,TRUE);
+    for(ifrag=0;ifrag<nfrag;ifrag++) {
+      if( AS_CGB_SOLO_FRAG == get_lab_fragment(frags,ifrag)) {
+        int nnode;
+        nnode = get_seglen_vertex(frags,ifrag,FALSE);
+        add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
+        nnode = get_seglen_vertex(frags,ifrag,TRUE);
+        add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
       }
-      fprintf(fout,"\n\nHistogram of the degree of the fragment-ends "
-	      "in the fragment overlap graph\n"
-	      "for deleted fragments.\n");
-      print_histogram(fout,edges_per_vertex_histogram, 0, 1);
-      free_histogram(edges_per_vertex_histogram);
     }
+    fprintf(fout,"\n\nHistogram of the degree of the fragment-ends "
+            "in the fragment overlap graph\n"
+            "for solo fragments.\n");
+    print_histogram(fout,edges_per_vertex_histogram, 0, 1);
+    free_histogram(edges_per_vertex_histogram);
+  }
+
+  {
+    IntFragment_ID ifrag;
+    const int nsample=500;
+    const int nbucket=500;
+    Histogram_t 
+      *edges_per_vertex_histogram 
+      = create_histogram(nsample,nbucket,0,TRUE);
+    for(ifrag=0;ifrag<nfrag;ifrag++) {
+      if( AS_CGB_HANGING_FRAG == get_lab_fragment(frags,ifrag)) {
+        int nnode;
+        nnode = get_seglen_vertex(frags,ifrag,FALSE);
+        add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
+        nnode = get_seglen_vertex(frags,ifrag,TRUE);
+        add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
+      }
+    }
+    fprintf(fout,"\n\nHistogram of the degree of the fragment-ends "
+            "in the fragment overlap graph\n"
+            "for hanging fragments.\n");
+    print_histogram(fout,edges_per_vertex_histogram, 0, 1);
+    free_histogram(edges_per_vertex_histogram);
+  }
+
+  {
+    IntFragment_ID ifrag;
+    const int nsample=500;
+    const int nbucket=500;
+    Histogram_t 
+      *edges_per_vertex_histogram 
+      = create_histogram(nsample,nbucket,0,TRUE);
+    for(ifrag=0;ifrag<nfrag;ifrag++) {
+      if( AS_CGB_THRU_FRAG == get_lab_fragment(frags,ifrag)) {
+        int nnode;
+        nnode = get_seglen_vertex(frags,ifrag,FALSE);
+        add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
+        nnode = get_seglen_vertex(frags,ifrag,TRUE);
+        add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
+      }
+    }
+    fprintf(fout,"\n\nHistogram of the degree of the fragment-ends "
+            "in the fragment overlap graph\n"
+            "for thru fragments.\n");
+    print_histogram(fout,edges_per_vertex_histogram, 0, 1);
+    free_histogram(edges_per_vertex_histogram);
+  }
+
+  {
+    IntFragment_ID ifrag;
+    const int nsample=500;
+    const int nbucket=500;
+    Histogram_t 
+      *edges_per_vertex_histogram
+      = create_histogram(nsample,nbucket,0,TRUE);
+    for(ifrag=0;ifrag<nfrag;ifrag++) {
+      if( AS_CGB_ORPHANEDCONT_FRAG == get_lab_fragment(frags,ifrag)) {
+        int nnode;
+        nnode = get_seglen_vertex(frags,ifrag,FALSE);
+        add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
+        nnode = get_seglen_vertex(frags,ifrag,TRUE);
+        add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
+      }
+    }
+    fprintf(fout,"\n\nHistogram of the degree of the fragment-ends "
+            "in the fragment overlap graph\n"
+            "for orphaned fragments.\n");
+    print_histogram(fout,edges_per_vertex_histogram, 0, 1);
+    free_histogram(edges_per_vertex_histogram);
+  }
+
+  {
+    IntFragment_ID ifrag;
+    const int nsample=500;
+    const int nbucket=500;
+    Histogram_t 
+      *edges_per_vertex_histogram
+      = create_histogram(nsample,nbucket,0,TRUE);
+    for(ifrag=0;ifrag<nfrag;ifrag++) {
+      if( AS_CGB_MULTICONT_FRAG == get_lab_fragment(frags,ifrag)) {
+        int nnode;
+        nnode = get_seglen_vertex(frags,ifrag,FALSE);
+        add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
+        nnode = get_seglen_vertex(frags,ifrag,TRUE);
+        add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
+      }
+    }
+    fprintf(fout,"\n\nHistogram of the degree of the fragment-ends "
+            "in the fragment overlap graph\n"
+            "for multiply contained fragments.\n");
+    print_histogram(fout,edges_per_vertex_histogram, 0, 1);
+    free_histogram(edges_per_vertex_histogram);
+  }
+
+  {
+    IntFragment_ID ifrag;
+    const int nsample=500;
+    const int nbucket=500;
+    Histogram_t 
+      *edges_per_vertex_histogram
+      = create_histogram(nsample,nbucket,0,TRUE);
+    for(ifrag=0;ifrag<nfrag;ifrag++) {
+      if( AS_CGB_BRANCHMULTICONT_FRAG == get_lab_fragment(frags,ifrag)) {
+        int nnode;
+        nnode = get_seglen_vertex(frags,ifrag,FALSE);
+        add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
+        nnode = get_seglen_vertex(frags,ifrag,TRUE);
+        add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
+      }
+    }
+    fprintf(fout,"\n\nHistogram of the degree of the fragment-ends "
+            "in the fragment overlap graph\n"
+            "for branch multiply contained fragments.\n");
+    print_histogram(fout,edges_per_vertex_histogram, 0, 1);
+    free_histogram(edges_per_vertex_histogram);
+  }
+
+  {
+    IntFragment_ID ifrag;
+    const int nsample=500;
+    const int nbucket=500;
+    Histogram_t 
+      *edges_per_vertex_histogram
+      = create_histogram(nsample,nbucket,0,TRUE);
+    for(ifrag=0;ifrag<nfrag;ifrag++) {
+      if( AS_CGB_HANGING_CRAPPY_FRAG == get_lab_fragment(frags,ifrag)) {
+        int nnode;
+        nnode = get_seglen_vertex(frags,ifrag,FALSE);
+        add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
+        nnode = get_seglen_vertex(frags,ifrag,TRUE);
+        add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
+      }
+    }
+    fprintf(fout,"\n\nHistogram of the degree of the fragment-ends "
+            "in the fragment overlap graph\n"
+            "for hanging crappy fragments.\n");
+    print_histogram(fout,edges_per_vertex_histogram, 0, 1);
+    free_histogram(edges_per_vertex_histogram);
+  }
+
+  {
+    IntFragment_ID ifrag;
+    const int nsample=500;
+    const int nbucket=500;
+    Histogram_t 
+      *edges_per_vertex_histogram
+      = create_histogram(nsample,nbucket,0,TRUE);
+    for(ifrag=0;ifrag<nfrag;ifrag++) {
+      if( AS_CGB_INTERCHUNK_FRAG == get_lab_fragment(frags,ifrag)) {
+        int nnode;
+        nnode = get_seglen_vertex(frags,ifrag,FALSE);
+        add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
+        nnode = get_seglen_vertex(frags,ifrag,TRUE);
+        add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
+      }
+    }
+    fprintf(fout,"\n\nHistogram of the degree of the fragment-ends "
+            "in the fragment overlap graph\n"
+            "for interchunk fragments.\n");
+    print_histogram(fout,edges_per_vertex_histogram, 0, 1);
+    free_histogram(edges_per_vertex_histogram);
+  }
+
+  {
+    IntFragment_ID ifrag;
+    const int nsample=500;
+    const int nbucket=500;
+    Histogram_t 
+      *edges_per_vertex_histogram
+      = create_histogram(nsample,nbucket,0,TRUE);
+    for(ifrag=0;ifrag<nfrag;ifrag++) {
+      if( AS_CGB_INTRACHUNK_FRAG == get_lab_fragment(frags,ifrag)) {
+        int nnode;
+        nnode = get_seglen_vertex(frags,ifrag,FALSE);
+        add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
+        nnode = get_seglen_vertex(frags,ifrag,TRUE);
+        add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
+      }
+    }
+    fprintf(fout,"\n\nHistogram of the degree of the fragment-ends "
+            "in the fragment overlap graph\n"
+            "for intrachunk fragments.\n");
+    print_histogram(fout,edges_per_vertex_histogram, 0, 1);
+    free_histogram(edges_per_vertex_histogram);
+  }
+
+  {
+    IntFragment_ID ifrag;
+    const int nsample=500;
+    const int nbucket=500;
+    Histogram_t 
+      *edges_per_vertex_histogram
+      = create_histogram(nsample,nbucket,0,TRUE);
+    for(ifrag=0;ifrag<nfrag;ifrag++) {
+      if( AS_CGB_SINGLECONT_FRAG == get_lab_fragment(frags,ifrag)) {
+        int nnode;
+        nnode = get_seglen_vertex(frags,ifrag,FALSE);
+        add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
+        nnode = get_seglen_vertex(frags,ifrag,TRUE);
+        add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
+      }
+    }
+    fprintf(fout,"\n\nHistogram of the degree of the fragment-ends "
+            "in the fragment overlap graph\n"
+            "for uniquely contained fragments.\n");
+    print_histogram(fout,edges_per_vertex_histogram, 0, 1);
+    free_histogram(edges_per_vertex_histogram);
+  }
+
+  {
+    IntFragment_ID ifrag;
+    const int nsample=500;
+    const int nbucket=500;
+    Histogram_t 
+      *edges_per_vertex_histogram
+      = create_histogram(nsample,nbucket,0,TRUE);
+    for(ifrag=0;ifrag<nfrag;ifrag++) {
+      if( AS_CGB_DELETED_FRAG == get_lab_fragment(frags,ifrag)) {
+        int nnode;
+        nnode = get_seglen_vertex(frags,ifrag,FALSE);
+        add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
+        nnode = get_seglen_vertex(frags,ifrag,TRUE);
+        add_to_histogram(edges_per_vertex_histogram, nnode, NULL);
+      }
+    }
+    fprintf(fout,"\n\nHistogram of the degree of the fragment-ends "
+            "in the fragment overlap graph\n"
+            "for deleted fragments.\n");
+    print_histogram(fout,edges_per_vertex_histogram, 0, 1);
+    free_histogram(edges_per_vertex_histogram);
+  }
 }
 
-static void analyze_the_chunks
-(
- FILE *fout,
- FILE *fp_unitig_statistics,
- const IntFragment_ID max_frag_iid,
- Tfragment frags[],
- Tedge edges[],
- ChunkAnnotation chunkinfo[],
- TChunkFrag chunkfrags[],
- TChunkMesg thechunks[],
- const BPTYPE nbase_in_genome,
- const int recalibrate_global_arrival_rate,
- const float cgb_unique_cutoff,
- const float global_fragment_arrival_rate )
-{
+
+
+
+static void analyze_the_chunks(FILE *fout,
+                               FILE *fp_unitig_statistics,
+                               const IntFragment_ID max_frag_iid,
+                               Tfragment frags[],
+                               Tedge edges[],
+                               TChunkFrag chunkfrags[],
+                               TChunkMesg thechunks[],
+                               const int64  nbase_in_genome,
+                               const int recalibrate_global_arrival_rate,
+                               const float cgb_unique_cutoff,
+                               const float global_fragment_arrival_rate) {
+
   IntChunk_ID ichunk;
   IntFragment_ID num_of_chunks[MAX_NUM_CHUNK_LABELS]={0};
   IntFragment_ID nfrag_in_all_chunks=0;
   IntFragment_ID nfrag_essential_in_all_chunks=0;
   IntFragment_ID nfrag_contained_in_all_chunks=0;
-  BPTYPE nbase_essential_in_all_chunks=0;
-  BPTYPE rho_in_all_chunks = 0;
+  int64  nbase_essential_in_all_chunks=0;
+  int64  rho_in_all_chunks = 0;
   IntFragment_ID n_rs_frag_in_all_chunks = 0;
   IntFragment_ID n_nr_frag_in_all_chunks = 0;
 
@@ -1393,18 +974,12 @@ static void analyze_the_chunks
   Histogram_t * length_of_unitigs_histogram
     = create_histogram(nsample,nbucket,0,TRUE);
 
-  Histogram_t * rho_histogram 
-    = create_histogram(nsample,nbucket,0,TRUE);
-  Histogram_t * coverage_histogram 
-    = create_histogram(nsample,nbucket,0,TRUE);
-  Histogram_t * nfrag_in_chunk_histogram 
-    = create_histogram(nsample,nbucket,0,TRUE);
-  Histogram_t * nfrag_essential_in_chunk_histogram 
-    = create_histogram(nsample,nbucket,0,TRUE);
-  Histogram_t * nbase_essential_in_chunk_histogram 
-    = create_histogram(nsample,nbucket,0,TRUE);
-  Histogram_t * fragment_timesinchunks_histogram 
-    = create_histogram(nsample,nbucket,0,TRUE);
+  Histogram_t * rho_histogram = create_histogram(nsample,nbucket,0,TRUE);
+  Histogram_t * coverage_histogram = create_histogram(nsample,nbucket,0,TRUE);
+  Histogram_t * nfrag_in_chunk_histogram = create_histogram(nsample,nbucket,0,TRUE);
+  Histogram_t * nfrag_essential_in_chunk_histogram = create_histogram(nsample,nbucket,0,TRUE);
+  Histogram_t * nbase_essential_in_chunk_histogram = create_histogram(nsample,nbucket,0,TRUE);
+  Histogram_t * fragment_timesinchunks_histogram = create_histogram(nsample,nbucket,0,TRUE);
 
   Histogram_t * labeled_unitig_histogram[MAX_NUM_CHUNK_LABELS];
 
@@ -1446,21 +1021,18 @@ static void analyze_the_chunks
 
     const IntFragment_ID irec_start_of_chunk 
       = GetVA_AChunkMesg(thechunks,ichunk)->f_list;
-    const BPTYPE rho 
+    const int64  rho 
       = GetVA_AChunkMesg(thechunks,ichunk)->rho;
     const IntFragment_ID nfrag_in_chunk 
       = GetVA_AChunkMesg(thechunks,ichunk)->num_frags;
-    const BPTYPE nbase_essential_in_chunk 
+    const int64  nbase_essential_in_chunk 
       = GetVA_AChunkMesg(thechunks,ichunk)->bp_length;
 
     const int number_of_randomly_sampled_fragments_in_chunk
-      = count_the_randomly_sampled_fragments_in_a_chunk
-      ( frags, chunkfrags, thechunks,
- ichunk);
-    const float coverage_statistic = compute_coverage_statistic
-      ( rho,
-        number_of_randomly_sampled_fragments_in_chunk,
-        global_fragment_arrival_rate );
+      = count_the_randomly_sampled_fragments_in_a_chunk ( frags, chunkfrags, thechunks, ichunk);
+    const float coverage_statistic = compute_coverage_statistic ( rho,
+                                                                  number_of_randomly_sampled_fragments_in_chunk,
+                                                                  global_fragment_arrival_rate );
     const int number_of_non_randomly_sampled_fragments_in_chunk = 
       nfrag_in_chunk - number_of_randomly_sampled_fragments_in_chunk;
 
@@ -1476,17 +1048,17 @@ static void analyze_the_chunks
 
     IntFragment_ID nfrag_essential_in_chunk=0;
     IntFragment_ID nfrag_contained_in_chunk=0;
-    BPTYPE nbase_sampled_in_chunk=0;
-    BPTYPE nbase_essential_sampled_in_chunk=0;
-    BPTYPE nbase_contained_sampled_in_chunk=0;
+    int64  nbase_sampled_in_chunk=0;
+    int64  nbase_essential_sampled_in_chunk=0;
+    int64  nbase_contained_sampled_in_chunk=0;
 
     ChunkLabel chunk_label;
 
 #ifdef DEBUG07
     fprintf(stderr,
 	    "Process ichunk,nchunks,nfrag_in_chunk,nbase_essential_in_chunk=\n"
-	   F_IID "," F_IID "," F_IID "," BPFORMAT "\n",
-	   ichunk,nchunks,nfrag_in_chunk,nbase_essential_in_chunk);
+            F_IID "," F_IID "," F_IID "," F_S64 "\n",
+            ichunk,nchunks,nfrag_in_chunk,nbase_essential_in_chunk);
 #endif
 
     {
@@ -1526,44 +1098,44 @@ static void analyze_the_chunks
       IntFragment_ID ifrag;
       for(ifrag=0;ifrag<nfrag_in_chunk;ifrag++){
 	
-      const IntFragment_ID ivc = irec_start_of_chunk + ifrag;
-      const IntFragment_ID vid = GetVA_AChunkFrag(chunkfrags,ivc)->vid;
+        const IntFragment_ID ivc = irec_start_of_chunk + ifrag;
+        const IntFragment_ID vid = GetVA_AChunkFrag(chunkfrags,ivc)->vid;
 
-      const IntFragment_ID iid  = get_iid_fragment(frags,vid);
-      const Tlab ilabel = get_lab_fragment(frags,vid);
-      const int ilen = get_length_fragment(frags,vid);
-      const IntFragment_ID ibvx = get_vid_FragmentHash(afr_to_avx,iid);
+        const IntFragment_ID iid  = get_iid_fragment(frags,vid);
+        const Tlab ilabel = get_lab_fragment(frags,vid);
+        const int ilen = get_length_fragment(frags,vid);
+        const IntFragment_ID ibvx = get_vid_FragmentHash(afr_to_avx,iid);
 
-      fragment_visited[ibvx] = ichunk;
-      fragment_timesinchunks[ibvx] ++;
+        fragment_visited[ibvx] = ichunk;
+        fragment_timesinchunks[ibvx] ++;
       
-      switch(ilabel){
-      case AS_CGB_SOLO_FRAG:
-      case AS_CGB_HANGING_FRAG:
-      case AS_CGB_THRU_FRAG:
-      case AS_CGB_MULTICONT_FRAG:
-      case AS_CGB_BRANCHMULTICONT_FRAG:
-      case AS_CGB_HANGING_CHUNK_FRAG:
-      case AS_CGB_HANGING_CRAPPY_FRAG:
-      case AS_CGB_ORPHANEDCONT_FRAG:
-      case AS_CGB_INTERCHUNK_FRAG:
-      case AS_CGB_INTRACHUNK_FRAG:
-	{
-	  nfrag_essential_in_chunk++;
-	  nbase_essential_sampled_in_chunk += ilen;
-	}
-	break;
-      case AS_CGB_SINGLECONT_FRAG:
-	{
-	  assert(TRUE == get_con_fragment(frags,vid));
-	  nfrag_contained_in_chunk++;
-	  nbase_contained_sampled_in_chunk += ilen;
-	} 
-	break;
-      default:
-	assert(FALSE);
+        switch(ilabel){
+          case AS_CGB_SOLO_FRAG:
+          case AS_CGB_HANGING_FRAG:
+          case AS_CGB_THRU_FRAG:
+          case AS_CGB_MULTICONT_FRAG:
+          case AS_CGB_BRANCHMULTICONT_FRAG:
+          case AS_CGB_HANGING_CHUNK_FRAG:
+          case AS_CGB_HANGING_CRAPPY_FRAG:
+          case AS_CGB_ORPHANEDCONT_FRAG:
+          case AS_CGB_INTERCHUNK_FRAG:
+          case AS_CGB_INTRACHUNK_FRAG:
+            {
+              nfrag_essential_in_chunk++;
+              nbase_essential_sampled_in_chunk += ilen;
+            }
+            break;
+          case AS_CGB_SINGLECONT_FRAG:
+            {
+              assert(TRUE == get_con_fragment(frags,vid));
+              nfrag_contained_in_chunk++;
+              nbase_contained_sampled_in_chunk += ilen;
+            } 
+            break;
+          default:
+            assert(FALSE);
+        }
       }
-    }
     }
     
     assert(nfrag_in_chunk ==
@@ -1615,195 +1187,171 @@ static void analyze_the_chunks
       int 
 	num_as_overlap[2]={0},                   // O
 	num_as_touches_contained_overlap[2]={0}, // M
-	num_as_between_contained_overlap[2]={0}, // Y
-	num_as_1_contains_2_overlap[2]={0},      // C
-	num_as_2_contains_1_overlap[2]={0};      // I
+          num_as_between_contained_overlap[2]={0}, // Y
+            num_as_1_contains_2_overlap[2]={0},      // C
+              num_as_2_contains_1_overlap[2]={0};      // I
       
-      // Process the chunk-end fragments first to label the chunks.
-      const IntFragment_ID chunk_avx
-        = GetVA_AChunkMesg(thechunks,ichunk)->chunk_avx;
-      const IntFragment_ID chunk_bvx
-        = GetVA_AChunkMesg(thechunks,ichunk)->chunk_bvx;
-      const int chunk_asx = GetVA_AChunkMesg(thechunks,ichunk)->chunk_asx;
-      const int chunk_bsx = GetVA_AChunkMesg(thechunks,ichunk)->chunk_bsx;
-      const int chunk_spanned = (chunk_avx == chunk_bvx);
-      int chunk_contained = FALSE;
+              // Process the chunk-end fragments first to label the chunks.
+              const IntFragment_ID chunk_avx
+                = GetVA_AChunkMesg(thechunks,ichunk)->chunk_avx;
+              const IntFragment_ID chunk_bvx
+                = GetVA_AChunkMesg(thechunks,ichunk)->chunk_bvx;
+              const int chunk_asx = GetVA_AChunkMesg(thechunks,ichunk)->chunk_asx;
+              const int chunk_bsx = GetVA_AChunkMesg(thechunks,ichunk)->chunk_bsx;
+              const int chunk_spanned = (chunk_avx == chunk_bvx);
+              int chunk_contained = FALSE;
 
-      assert( nfrag_in_chunk > 0);
-      if(chunk_avx == chunk_bvx ) {
-	// This is a spanned chunk.
-	assert(chunk_asx != chunk_bsx);
-	if( nfrag_in_chunk == 1) {
-	  // This is a singleton chunk.
-	  const Tlab lab=get_lab_fragment(frags,chunk_avx);
-	  if( (AS_CGB_MULTICONT_FRAG == lab) ||
-              (AS_CGB_BRANCHMULTICONT_FRAG == lab) ||
-	      (AS_CGB_ORPHANEDCONT_FRAG == lab) ) {
-	    chunk_contained = TRUE;
-	  }
-	}
-      }
-      assert( (!chunk_contained)||(chunk_spanned) );
-
-      { 
-	int isuffix;
-	for(isuffix=0;isuffix<2;isuffix++) {
-	  {
-	    const AChunkMesg * chunk = GetVA_AChunkMesg( thechunks, ichunk);
-	    IntFragment_ID ifrag = (isuffix == 0 ? chunk->chunk_avx : chunk->chunk_bvx);
-	    int        isuff = (isuffix == 0 ? chunk->chunk_asx : chunk->chunk_bsx);
-	    IntEdge_ID ir;
-	    const IntEdge_ID ir0  = get_segstart_vertex(frags,ifrag,isuff);
-	    const int       nnode = get_seglen_vertex(frags,ifrag,isuff);
-	    for(ir=ir0; (ir<ir0+nnode); ir++) {
-	      Tnes nes = get_nes_edge(edges,ir);
-	      switch(nes) {
-	      case AS_CGB_INTERCHUNK_EDGE:
-	      case AS_CGB_MARKED_BY_BRANCH_DVT:
-              case AS_CGB_TOUCHES_CRAPPY_DVT:
-              case AS_CGB_BETWEEN_CRAPPY_DVT:
-		num_as_overlap[isuffix]++; break;
-
-              case AS_CGB_INTRACHUNK_EDGE:
-              case AS_CGB_DOVETAIL_EDGE:
-              case AS_CGB_THICKEST_EDGE:
-                break;
-	      case AS_CGB_TOUCHES_CONTAINED_EDGE:
-		num_as_touches_contained_overlap[isuffix]++; break;
-              case AS_CGB_BETWEEN_CONTAINED_EDGE:
-		num_as_between_contained_overlap[isuffix]++; break;
-	      case AS_CGB_CONTAINED_EDGE:
-	      case AS_CGB_TOUCHES_CRAPPY_CON:
-              case AS_CGB_BETWEEN_CRAPPY_CON:
-                if(is_a_frc_edge(edges,ir)) {
-                  num_as_2_contains_1_overlap[isuffix]++;
-                } else {
-                  num_as_1_contains_2_overlap[isuffix]++;
+              assert( nfrag_in_chunk > 0);
+              if(chunk_avx == chunk_bvx ) {
+                // This is a spanned chunk.
+                assert(chunk_asx != chunk_bsx);
+                if( nfrag_in_chunk == 1) {
+                  // This is a singleton chunk.
+                  const Tlab lab=get_lab_fragment(frags,chunk_avx);
+                  if( (AS_CGB_MULTICONT_FRAG == lab) ||
+                      (AS_CGB_BRANCHMULTICONT_FRAG == lab) ||
+                      (AS_CGB_ORPHANEDCONT_FRAG == lab) ) {
+                    chunk_contained = TRUE;
+                  }
                 }
-		break;
+              }
+              assert( (!chunk_contained)||(chunk_spanned) );
 
-	      default:
-                fprintf(stderr,"Unexpected overlap label nes=%d\n", nes);
-		assert(FALSE);
-		break;
-	      }
-	    }
-	  }
-	}
-      }
+              { 
+                int isuffix;
+                for(isuffix=0;isuffix<2;isuffix++) {
+                  {
+                    const AChunkMesg * chunk = GetVA_AChunkMesg( thechunks, ichunk);
+                    IntFragment_ID ifrag = (isuffix == 0 ? chunk->chunk_avx : chunk->chunk_bvx);
+                    int        isuff = (isuffix == 0 ? chunk->chunk_asx : chunk->chunk_bsx);
+                    IntEdge_ID ir;
+                    const IntEdge_ID ir0  = get_segstart_vertex(frags,ifrag,isuff);
+                    const int       nnode = get_seglen_vertex(frags,ifrag,isuff);
+                    for(ir=ir0; (ir<ir0+nnode); ir++) {
+                      Tnes nes = get_nes_edge(edges,ir);
+                      switch(nes) {
+                        case AS_CGB_INTERCHUNK_EDGE:
+                        case AS_CGB_MARKED_BY_BRANCH_DVT:
+                        case AS_CGB_TOUCHES_CRAPPY_DVT:
+                        case AS_CGB_BETWEEN_CRAPPY_DVT:
+                          num_as_overlap[isuffix]++; break;
 
-      if(NULL != fp_unitig_statistics) {
-      if(ichunk==0) {
-	fprintf(fp_unitig_statistics,
-		"# For each row:\n"
-		"#    chunk contained spanned nfrag_in_chunk \n"
-		"#    nbase_essential_in_chunk rho arrival_distance coverage_index\n"
-                "#    essential_valid_type(ur@) contained_valid_type(ur@)\n"
-		"#    prefix_O prefix_M prefix_C prefix_I prefix_Y\n"
-		"#    suffix_O suffix_M suffix_C suffix_I suffix_Y\n"
-		);
-      }
-      fprintf(fp_unitig_statistics,
-	      F_IID " %d %d " F_IID " " BPFORMAT " %d %d %d "
-              "%c %c "
-              "%d %d %d %d %d %d %d %d %d %d\n", 
-	      ichunk,            // An identity field
-	      (chunk_contained), // A selection field
-	      (chunk_spanned),
-	      nfrag_in_chunk, // A data field 
-	      nbase_essential_in_chunk,
-	      (int)rho,
-	      arrival_distance,
-	      coverage_index, // A selection field
+                        case AS_CGB_INTRACHUNK_EDGE:
+                        case AS_CGB_DOVETAIL_EDGE:
+                        case AS_CGB_THICKEST_EDGE:
+                          break;
+                        case AS_CGB_TOUCHES_CONTAINED_EDGE:
+                          num_as_touches_contained_overlap[isuffix]++; break;
+                        case AS_CGB_BETWEEN_CONTAINED_EDGE:
+                          num_as_between_contained_overlap[isuffix]++; break;
+                        case AS_CGB_CONTAINED_EDGE:
+                        case AS_CGB_TOUCHES_CRAPPY_CON:
+                        case AS_CGB_BETWEEN_CRAPPY_CON:
+                          if(is_a_frc_edge(edges,ir)) {
+                            num_as_2_contains_1_overlap[isuffix]++;
+                          } else {
+                            num_as_1_contains_2_overlap[isuffix]++;
+                          }
+                          break;
 
-              chunkinfo[ichunk].essential_type,
-              chunkinfo[ichunk].contained_type,
+                        default:
+                          fprintf(stderr,"Unexpected overlap label nes=%d\n", nes);
+                          assert(FALSE);
+                          break;
+                      }
+                    }
+                  }
+                }
+              }
 
-	      num_as_overlap[0],                   // O
-	      num_as_touches_contained_overlap[0], // M
-	      num_as_1_contains_2_overlap[0],      // C
-	      num_as_2_contains_1_overlap[0],      // I
-	      num_as_between_contained_overlap[0], // Y
-	      num_as_overlap[1],                   // O
-	      num_as_touches_contained_overlap[1], // M
-	      num_as_1_contains_2_overlap[1],      // C
-	      num_as_2_contains_1_overlap[1],      // I
-	      num_as_between_contained_overlap[1]  // Y
-	      );
-      }
+              if(NULL != fp_unitig_statistics) {
+                if(ichunk==0) {
+                  fprintf(fp_unitig_statistics,
+                          "# For each row:\n"
+                          "#    chunk contained spanned nfrag_in_chunk \n"
+                          "#    nbase_essential_in_chunk rho arrival_distance coverage_index\n"
+                          "#    essential_valid_type(ur@) contained_valid_type(ur@)\n"
+                          "#    prefix_O prefix_M prefix_C prefix_I prefix_Y\n"
+                          "#    suffix_O suffix_M suffix_C suffix_I suffix_Y\n"
+                          );
+                }
 
-    add_to_histogram(nfrag_in_chunk_histogram,
-		     nfrag_in_chunk, NULL);
-    add_to_histogram(nfrag_essential_in_chunk_histogram,
-		     nfrag_essential_in_chunk, NULL);
-    add_to_histogram(nbase_essential_in_chunk_histogram,
-		     nbase_essential_in_chunk, NULL);
-    add_to_histogram(rho_histogram,(int)rho, NULL);
-    add_to_histogram(coverage_histogram,
-		     (int)(nbase_essential_in_chunk/nfrag_in_chunk), NULL);
+                //  '@' -- essentia_type unknown -- no simulator
+                //  '@' -- contained_type unknown -- no simulator
+
+                fprintf(fp_unitig_statistics, F_IID" %d %d "F_IID" "F_S64" %d %d %d @ @ %d %d %d %d %d %d %d %d %d %d\n", 
+                        ichunk,            // An identity field
+                        (chunk_contained), // A selection field
+                        (chunk_spanned),
+                        nfrag_in_chunk, // A data field 
+                        nbase_essential_in_chunk,
+                        (int)rho,
+                        arrival_distance,
+                        coverage_index, // A selection field
+                        num_as_overlap[0],                   // O
+                        num_as_touches_contained_overlap[0], // M
+                        num_as_1_contains_2_overlap[0],      // C
+                        num_as_2_contains_1_overlap[0],      // I
+                        num_as_between_contained_overlap[0], // Y
+                        num_as_overlap[1],                   // O
+                        num_as_touches_contained_overlap[1], // M
+                        num_as_1_contains_2_overlap[1],      // C
+                        num_as_2_contains_1_overlap[1],      // I
+                        num_as_between_contained_overlap[1]  // Y
+                        );
+              }
+
+              add_to_histogram(nfrag_in_chunk_histogram,
+                               nfrag_in_chunk, NULL);
+              add_to_histogram(nfrag_essential_in_chunk_histogram,
+                               nfrag_essential_in_chunk, NULL);
+              add_to_histogram(nbase_essential_in_chunk_histogram,
+                               nbase_essential_in_chunk, NULL);
+              add_to_histogram(rho_histogram,(int)rho, NULL);
+              add_to_histogram(coverage_histogram,
+                               (int)(nbase_essential_in_chunk/nfrag_in_chunk), NULL);
     
-  }
+    }
   }
 
   assert(NULL != fout);
   {
     fprintf(fout,"\n\nUNITIG OVERLAP GRAPH INFORMATION\n\n");
-    fprintf(fout,FRAG_FORMAT
-	    " : Total number of unitigs\n",nchunks);
+    fprintf(fout,"%15"F_IIDP" : Total number of unitigs\n",nchunks);
     {
       int ii;
       for(ii=0;ii<MAX_NUM_CHUNK_LABELS;ii++){
 	switch(ii) {
-	case CGA_SINGLETON_CONTAINED:
-	  fprintf(fout,FRAG_FORMAT
-		  " : Total number of singleton, contained unitigs\n",
-		  num_of_chunks[ii]);
-	  break;
-	case CGA_SINGLETON_NONCONTAINED:
-	  fprintf(fout,FRAG_FORMAT
-		  " : Total number of singleton, non-contained unitigs\n",
-		  num_of_chunks[ii]);
-	  break;
-	case CGA_NONSINGLETON_SPANNED:
-	  fprintf(fout,FRAG_FORMAT
-		  " : Total number of non-singleton, spanned unitigs\n",
-		  num_of_chunks[ii]);
-	  break;
-	case CGA_NONSINGLETON_NONSPANNED:
-	  fprintf(fout,FRAG_FORMAT
-		  " : Total number of non-singleton, non-spanned unitigs\n",
-		  num_of_chunks[ii]);
-	  break;
-	default:
-	  break;
+          case CGA_SINGLETON_CONTAINED:
+            fprintf(fout,"%15"F_IIDP " : Total number of singleton, contained unitigs\n",
+                    num_of_chunks[ii]);
+            break;
+          case CGA_SINGLETON_NONCONTAINED:
+            fprintf(fout,"%15"F_IIDP" : Total number of singleton, non-contained unitigs\n",
+                    num_of_chunks[ii]);
+            break;
+          case CGA_NONSINGLETON_SPANNED:
+            fprintf(fout,"%15"F_IIDP" : Total number of non-singleton, spanned unitigs\n",
+                    num_of_chunks[ii]);
+            break;
+          case CGA_NONSINGLETON_NONSPANNED:
+            fprintf(fout,"%15"F_IIDP" : Total number of non-singleton, non-spanned unitigs\n",
+                    num_of_chunks[ii]);
+            break;
+          default:
+            break;
 	}
       }
     }
 
-    fprintf(fout,FRAG_FORMAT
-	    " : Total number of fragments\n",
-	    nfrag);
-    fprintf(fout,FRAG_FORMAT
-	    " : Total number of fragments in all unitigs\n",
-	    nfrag_in_all_chunks);
-    fprintf(fout,FRAG_FORMAT
-	    " : Total number of essential fragments in all unitigs\n",
-	    nfrag_essential_in_all_chunks);
-    fprintf(fout,FRAG_FORMAT
-	    " : Total number of contained fragments in all unitigs\n",
-	    nfrag_contained_in_all_chunks);
-    fprintf(fout,"% 15.10f"
-	    " : Randomly sampled fragment arrival rate per bp\n",
-	    global_fragment_arrival_rate);
-    fprintf(fout,BPFORMAT15
-	    " : The sum of overhangs in all the unitigs\n",
-	    rho_in_all_chunks);
-    fprintf(fout,BPFORMAT15
-	    " : Total number of bases in all unitigs\n",
-	    nbase_essential_in_all_chunks);
-    fprintf(fout,BPFORMAT15
-	    " : Estimated number of base pairs in the genome.\n", 
-	    nbase_in_genome);
+    fprintf(fout,"%15"F_IIDP" : Total number of fragments\n", nfrag);
+    fprintf(fout,"%15"F_IIDP" : Total number of fragments in all unitigs\n", nfrag_in_all_chunks);
+    fprintf(fout,"%15"F_IIDP" : Total number of essential fragments in all unitigs\n", nfrag_essential_in_all_chunks);
+    fprintf(fout,"%15"F_IIDP" : Total number of contained fragments in all unitigs\n", nfrag_contained_in_all_chunks);
+    fprintf(fout,"%15.10f"" : Randomly sampled fragment arrival rate per bp\n", global_fragment_arrival_rate);
+    fprintf(fout,"%15"F_S64P" : The sum of overhangs in all the unitigs\n", rho_in_all_chunks);
+    fprintf(fout,"%15"F_S64P" : Total number of bases in all unitigs\n", nbase_essential_in_all_chunks);
+    fprintf(fout,"%15"F_S64P" : Estimated number of base pairs in the genome.\n", nbase_in_genome);
 
     {
       IntFragment_ID nfound = 0;
@@ -1823,26 +1371,6 @@ static void analyze_the_chunks
     }
 
     {
-      int unitigger_bpt = 0;
-      for(ichunk=0;ichunk<nchunks; ichunk++) {
-        int branching, position;
-	
-        branching = GetVA_AChunkMesg(thechunks,ichunk)->a_branch_type;
-        position  = GetVA_AChunkMesg(thechunks,ichunk)->a_branch_point;
-        assert(branching != AS_INTO_REPEAT);
-        unitigger_bpt += (branching == AS_INTO_UNIQUE);
-        
-        branching = GetVA_AChunkMesg(thechunks,ichunk)->b_branch_type;
-        position  = GetVA_AChunkMesg(thechunks,ichunk)->b_branch_point;
-        assert(branching != AS_INTO_REPEAT);
-        unitigger_bpt += (branching == AS_INTO_UNIQUE);
-        
-      }
-      fprintf(fout,"%15d : Total number of branch points.\n",
-              unitigger_bpt);
-    }
-
-    {
       compute_the_global_fragment_arrival_rate
         ( recalibrate_global_arrival_rate, cgb_unique_cutoff, fout, nbase_in_genome, frags, edges,
           global_fragment_arrival_rate, chunkfrags, thechunks );
@@ -1858,7 +1386,6 @@ static void analyze_the_chunks
 	       ||(fragment_timesinchunks[ifrag]==1));
 	assert(!(ilab==AS_CGB_THRU_FRAG) 
 	       ||(fragment_timesinchunks[ifrag]==1));
-#if 1
 	if(!(!(ilab==AS_CGB_INTERCHUNK_FRAG)
 	     ||(fragment_timesinchunks[ifrag]==1))) {
 	  fprintf(stderr,"** iid=" F_IID " ifrag=" F_IID " ilab=%d fragment_timesinchunks=%d\n",
@@ -1867,7 +1394,6 @@ static void analyze_the_chunks
 		  fragment_timesinchunks[ifrag]
 		  );
 	}
-#endif
 	assert(!(ilab==AS_CGB_INTERCHUNK_FRAG)
 	       ||(fragment_timesinchunks[ifrag]==1));
 	if(!(!(ilab==AS_CGB_INTRACHUNK_FRAG)
@@ -1911,10 +1437,6 @@ static void analyze_the_chunks
     print_histogram(fout,fragment_timesinchunks_histogram,0,1);
 
 
-
-    /////////////////////////////////////////////////////////////
-
-
     fprintf(fout,"\n\nUnitig Length Extended Histograms\n");
     fprintf(fout,"  Legend for extended histograms\n"
 	    "length\t:  count\n"
@@ -1933,8 +1455,6 @@ static void analyze_the_chunks
 	    );
 
     print_histogram(fout,length_of_unitigs_histogram, 0, 1);
-
-    /////////////////////////////////////////////////////////////
 
     fprintf(fout,"\n\nUnique/Repeat Extended Histograms\n");
     fprintf(fout,"  Legend for extended histograms\n"
@@ -1975,124 +1495,39 @@ static void analyze_the_chunks
 
 
 
+void
+chunk_graph_analysis(THeapGlobals *heapva,
+                     TStateGlobals *gstate,
+                     UnitiggerGlobals *rg) {
+  char strtmp2[FILENAME_MAX];
 
-void chunk_graph_analysis
-(/* Input Only */
- const IntFragment_ID max_frag_iid,
- Tfragment        frags[],     /* The internal representation of
-			   the fragment reads. I have one
-			   extra for the segstart field. */
- Tedge            edges[],     /* The internal representation of the
-			   overlaps. */
- const BPTYPE     nbase_in_genome,
- const int        recalibrate_global_arrival_rate,
- const float      cgb_unique_cutoff,
- const float      global_fragment_arrival_rate,
- const char       bubble_boundaries_filename[],
- TChunkFrag       chunkfrags[],
+  sprintf(strtmp2,"%s.cga.0",rg->Output_Graph_Store_Prefix);
+  FILE *fcga = fopen(strtmp2, "w");
 
- TChunkMesg       thechunks[],
- FILE    *fcga,
- FILE    *fcam,
- FILE    *fp_unitig_statistics,
- FILE    *fwrn
- ) 
-{
-  const IntFragment_ID nfrag = GetNumFragments(frags);
-  const IntChunk_ID nchunks = (IntChunk_ID)GetNumVA_AChunkMesg(thechunks);
+  sprintf(strtmp2,"%s.cam.0",rg->Output_Graph_Store_Prefix);
+  FILE *fcam = fopen(strtmp2, "w");
 
-  ChunkAnnotation *chunkinfo = (ChunkAnnotation *)safe_malloc((nchunks)*sizeof(ChunkAnnotation));
+  sprintf(strtmp2,"%s.cus.0",rg->Output_Graph_Store_Prefix);
+  FILE *fcus = fopen(strtmp2, "w");
 
-  assert(frags      != NULL);
-  assert(edges      != NULL);
+  analyze_the_fragment_overlap_graph(fcga,
+                                     gstate->max_frag_iid,
+                                     heapva->frags,
+                                     heapva->edges);
 
-  assert(chunkfrags != NULL);
-  assert(thechunks  != NULL);
-  assert(chunkinfo  != NULL);
+  analyze_the_chunks(fcga,
+                     fcus,
+                     gstate->max_frag_iid,
+                     heapva->frags,
+                     heapva->edges,
+                     heapva->chunkfrags,
+                     heapva->thechunks,
+                     gstate->nbase_in_genome,
+                     rg->recalibrate_global_arrival_rate,
+                     rg->cgb_unique_cutoff,
+                     gstate->global_fragment_arrival_rate);
 
-  IntChunk_ID ichunk;
-  for(ichunk=0;ichunk<nchunks;ichunk++) {
-    chunkinfo[ichunk].atip    = 0;
-    chunkinfo[ichunk].btip    = 0;
-    chunkinfo[ichunk].abforward = -1; // unknown orientation
-    // chunkinfo[ichunk].gmin    = 0;
-    // chunkinfo[ichunk].gmax    = 0;
-    chunkinfo[ichunk].essential_type = '@';
-    chunkinfo[ichunk].contained_type = '@';
-  }
-
-  /******************************************************
-   * Statistical Graph Diagnostics
-   ******************************************************/
-
-    fprintf(stderr,"Begin Statistical Graph Diagnostics " __FILE__ "\n");
-    fprintf(stderr,"nbase_in_genome=" BPFORMAT "\n",nbase_in_genome);
-    fprintf(stderr, "global_fragment_arrival_rate=%f\n", global_fragment_arrival_rate);
-
-    analyze_the_fragment_overlap_graph
-      (fcga,
-       max_frag_iid,
-       frags,
-       edges);
-
-    analyze_the_chunks
-      (fcga, fp_unitig_statistics,
-       max_frag_iid,
-       frags,
-       edges,
-       chunkinfo,
-       chunkfrags,
-       thechunks,
-       nbase_in_genome,
-       recalibrate_global_arrival_rate,
-       cgb_unique_cutoff,
-       global_fragment_arrival_rate );
-
-    fprintf(stderr,"End Statistical Graph Diagnostics " __FILE__ "\n");
-
-
-#ifdef DEBUG_VISUAL
-  /******************************************************
-   * Visual Graph Diagnostics
-   ******************************************************/
-
-  if(NULL != fraginfo) {
-    char File_Prefix[] = "TMP";
-    char strtmp[1024]={0};
-    
-    strcpy(strtmp,File_Prefix);
-    strcat(strtmp,"graph0f");
-    graph_diagnostics(strtmp,
-		      frags, edges, 
-		      AS_CGB_SINGLECONT_FRAG,
-		      AS_CGB_MARKED_BY_BRANCH_DVT,
-		      FALSE,fraginfo);
-
-    strcpy(strtmp,File_Prefix);
-    strcat(strtmp,"graph1f");
-    graph_diagnostics(strtmp,
-		      frags, edges, 
-		      AS_CGB_MULTICONT_FRAG,
-		      AS_CGB_TO_CONTAINED_EDGE,
-		      FALSE,fraginfo);
-
-    strcpy(strtmp,File_Prefix);
-    strcat(strtmp,"graph2f");
-    graph_diagnostics(strtmp,
-		      frags, edges, 
-		      AS_CGB_MULTICONT_FRAG,
-		      AS_CGB_TO_CONTAINED_EDGE,
-		      TRUE,fraginfo);
-
-    strcpy(strtmp,File_Prefix);
-    strcat(strtmp,"graph3f");
-    graph_diagnostics(strtmp, frags, edges, 
-		      AS_CGB_INTERCHUNK_FRAG,
-		      AS_CGB_INTRACHUNK_EDGE,
-		      TRUE,fraginfo);
-  }
-
-#endif /*DEBUG_VISUAL*/
-
-  safe_free(chunkinfo);
+  fclose(fcga);
+  fclose(fcam);
+  fclose(fcus);
 }

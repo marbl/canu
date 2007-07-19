@@ -18,83 +18,36 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] 
-= "$Id: AS_FGB_main.c,v 1.15 2007-07-18 15:19:56 brianwalenz Exp $";
-/*********************************************************************
- *
- * Module:  AS_FGB_main.c
- * Description:
- *    Unitigger main
- * 
- *    Reference: FragmentGraphBuilder.rtf
- *
- *    Command Line Interface:
- *        $ fgb
- * -p <parameterPath>    If specified, parameters are loaded from this path
- * -i <inputStorePath>    The path of the input store
- * -o <outputStorePath>    The path of the output store
- * -c There is no input store, create a new store for output.
- *    No -i can be specified.
- * -a Append to the specified input store
- *    No -o can be specified).  Upon failure, the store should not be altered.
- * -f Overwrite the output store, if it exists
- *    (default is to fail if the output exists)
- * -X Enable developer's options.
- *    Any option not stated in the tool's SOP should require this flag
- * -P Output is ASCII (default is binary)
- * -D <level>  Specify debug level (only valid with -X)
- * -v <level>  Specify verbosity level (only valid with -X)
- * -A <level> Run the graph analyzer
- * -E <int>  The number of errors allowed.
- * -C <string> The check-pointing information.
- * -R <string> The restart information.
- * -T Output the chord overlaps as well.
- * -n <int> The expected number of fragment reads.
- * -m <int> The expected number of fragment overlaps.
- * -x <int> The dovetail double-sided degree threshold.
- * -y <int> The dovetail single-sided degree threshold.
- * -z <int> The containment degree threshold.
- * -r <int> Which global containment rule to use.
- * -w <int> Limit of search depth for fragment graph walking in 
- *          transitively inferable overlap removal.
- * <OverlapInputFile>*
- * 
- * Examples:
- * -c -o <outputStorePath>  creates a store to collect the output
- * -c -i   is an error condition
- * -a -i <inputStorePath>  appends the output to the input store
- * -a -o   is an error condition
- *
- *       GraphStorePath:  Used to read/write a fragment graph store.
- *       It must be named *.fgb.
- *      
- *       OverlapInputFile: The file with new OVL records to process. 
- *       It must be named <inputFile>.ovl.
- *
- *       Unitigger processes the input file, reporting errors and
- *       warnings.  Any message that causes an error warning is output
- *       to stderr, along with the associated warning/error messages.
- *       The fragment graph stage produces a <inputFile>.fgb file 
- *       and the UnitiggerStore is updated. The chunk graph builder stage
- *       reads the UnitiggerStore and produces a <inputFile>.cgb 
- *       In addition an optional <inputFile>.cga file is produced
- *       with diagnostic information about the fragment overlap graph
- *       and the unitig graph.
- *
- *       See documentation for descriptions of the checks
- *       performed.
- *
- *    Programmer:  C. M. Mobarry
- *       Written:  Jan 1999
- * 
- *********************************************************************/
+
+static char CM_ID[] = "$Id: AS_FGB_main.c,v 1.16 2007-07-19 09:50:32 brianwalenz Exp $";
 
 #include "AS_UTL_version.h"  
 #include "AS_CGB_all.h"
-#include "AS_FGB_hanging_fragment.h"
-#include "AS_FGB_contained.h"
-#include "AS_CGB_unitigger_globals.h"
-#include "AS_FGB_buildFragmentHash.h"
+
+int (*compare_edge_function)(const void *a, const void *b);
+
+//  AS_CGB_fga.c
+void fragment_graph_analysis(IntFragment_ID max_frag_iid,
+                             Tfragment frags[],
+                             Tedge     edges[],
+                             FILE      *ffga);
+
+
+//  AS_CGB_fgb.c
+void transitive_edge_marking(TStateGlobals * gstate,
+                             THeapGlobals  * heapva,
+                             Tfragment     * frags,
+                             Tedge         * edges,
+                             TIntEdge_ID   * next_edge_obj,
+                             const int walk_depth,
+                             const int cutoff_fragment_end_degree,
+                             const int work_limit_per_candidate_edge,
+                             const IntFragment_ID iv_start);
+
+//  AS_CGB_edgemate.c
+void append_the_edge_mates (Tfragment frags[],
+                            Tedge edges[],
+                            TIntEdge_ID * next_edge_obj);
 
 
 
@@ -264,8 +217,6 @@ static void delete_duplicate_edges
   const IntEdge_ID nedge = GetNumEdges(edges);
   IntEdge_ID ie1=0;
 
-  const QsortCompare compare_edge = get_compare_edge_function();
-
   IntEdge_ID count=0;
 
   for(ie1=1; ie1 < nedge; ie1++) {
@@ -277,19 +228,9 @@ static void delete_duplicate_edges
     edge0.reflected = FALSE;
     edge1.reflected = FALSE;
     {
-      const int icompare =
-        compare_edge(&edge1,&edge0);
-      // This comparison function must satisfy the UNIX qsort semantics.
-      
-      // The comparison function will be called with two parameters that
-      // point to the two elements to be compared. The comparison
-      // function must return an integer less than, equal to, or greater
-      // than zero, depending on whether the first element in the
-      // comparison is considered less than, equal to, or greater than
-      // the second element.
+      const int icompare = (*compare_edge_function)(&edge1,&edge0);
       
       assert(icompare >= 0);
-      // The edges must be sorted before running this routine.
       
       if( icompare == 0 ) {
         count++;
@@ -310,6 +251,83 @@ static void delete_duplicate_edges
 
 
 
+int compare_edge_weak(const void * const aa, const void * const bb) 
+{
+  // This comparison function is used with ANSI qsort() for sorting
+  // the edges to form contiguous segments.
+  
+  // The lesser edge is the one we keep in the Reaper.
+  int icom;
+  Aedge *a = (Aedge *)aa;
+  Aedge *b = (Aedge *)bb;
+
+  icom = ((a->avx) - (b->avx));
+  if( icom == 0 ) {
+    icom = ((a->asx) - (b->asx));
+    //if( icom == 0 ) {
+    //icom = (b->blessed - a->blessed);
+      if( icom == 0 ) {
+        icom = ((a->ahg) - (b->ahg));
+        // Favor the minimum ahg.
+        if( icom == 0 ) {
+          icom = ((b->bhg) - (a->bhg));
+          // Favor the maximum bhg.
+          
+          if( icom == 0 ) {
+            // The following is unnecessary, but useful for the binary
+            // search in the adjaceny lists and regression output.
+            icom = ((a->bvx) - (b->bvx));
+            if( icom == 0 )
+              icom = ((a->bsx) - (b->bsx));
+          }
+        } // End of regression stuff.
+      }
+      //}
+  } 
+  return icom ;
+}
+
+
+int compare_edge_strong(const void * const aa, const void * const bb) 
+{
+  // This comparison function is used with ANSI qsort() for sorting
+  // the edges to form contiguous segments.
+  
+  // The lesser edge is the one we keep in the Reaper.
+  int icom;
+  Aedge *a = (Aedge *)aa;
+  Aedge *b = (Aedge *)bb;
+
+  icom = ((a->avx) - (b->avx));
+  if( icom == 0 ) {
+    icom = ((a->asx) - (b->asx));
+    if( icom == 0 ) {
+      icom = (b->blessed - a->blessed);
+      if( icom == 0 ) {
+        icom = ((a->ahg) - (b->ahg));
+        // Favor the minimum ahg.
+        if( icom == 0 ) {
+          icom = ((b->bhg) - (a->bhg));
+          // Favor the maximum bhg.
+          
+          if( icom == 0 ) {
+            // The following is unnecessary, but useful for the binary
+            // search in the adjaceny lists and regression output.
+            icom = ((a->bvx) - (b->bvx));
+            if( icom == 0 ) {
+              icom = ((a->bsx) - (b->bsx));
+              if( icom == 0 )
+                icom = (a->reflected - b->reflected);
+            }
+          }
+        } // End of regression stuff.
+      }
+    }
+  }
+  return icom ;
+}
+
+
 
 int main_fgb(TStateGlobals * gstate,
              THeapGlobals  * heapva,
@@ -322,8 +340,7 @@ int main_fgb(TStateGlobals * gstate,
 
   int did_processing_phase_2 = FALSE;
 
-  set_compare_edge_function(compare_edge_strong);
-  // This is for the blessed overlaps.
+  compare_edge_function = compare_edge_strong;
 
   
   // Re-hash the fragment IID to fragment VID mapping using the
@@ -413,29 +430,29 @@ int main_fgb(TStateGlobals * gstate,
 
   /////////////////////////////////////////////////////////////////
 
-  count_fragment_and_edge_labels ( heapva->frags, heapva->edges, "Before separate_fragments_as_solo_hanging_thru");
+  //count_fragment_and_edge_labels ( heapva->frags, heapva->edges, "Before separate_fragments_as_solo_hanging_thru");
 
   separate_fragments_as_solo_hanging_thru(heapva->frags,heapva->edges);
 
-  set_compare_edge_function(compare_edge_weak);
+  compare_edge_function = compare_edge_weak;
 
   // Now do not distinguish the blessed overlaps.
 
   reorder_edges( heapva->frags, heapva->edges, heapva->next_edge_obj);
-  count_fragment_and_edge_labels( heapva->frags, heapva->edges, "RISM_reorder_edges");
-  check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
+  //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "RISM_reorder_edges");
+  //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
     
   append_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
 
   // Currently the spur finding and micro-bubble smoothing code
   // needs the dovetail edge mates to exist.
 
-  count_fragment_and_edge_labels( heapva->frags, heapva->edges, "RISM_append_the_edge_mates");
-  check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
+  //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "RISM_append_the_edge_mates");
+  //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
 
   delete_duplicate_edges( heapva->frags, heapva->edges, heapva->next_edge_obj);
-  count_fragment_and_edge_labels( heapva->frags, heapva->edges, "RISM_delete_duplicate_edges");
-  check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
+  //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "RISM_delete_duplicate_edges");
+  //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
 
   // Currently the spur finding code needs the dovetail edge mates to
   // exist.
@@ -456,13 +473,9 @@ int main_fgb(TStateGlobals * gstate,
   
   identify_early_spur_fragments( heapva->frags, heapva->edges);
   
-  count_fragment_and_edge_labels
-    ( heapva->frags, heapva->edges,
-      "Before contained_fragment_marking_frc");
+  //count_fragment_and_edge_labels ( heapva->frags, heapva->edges, "Before contained_fragment_marking_frc");
   contained_fragment_marking_frc( heapva->frags, heapva->edges);
-  count_fragment_and_edge_labels
-    ( heapva->frags, heapva->edges,
-      "After contained_fragment_marking_frc");
+  //count_fragment_and_edge_labels ( heapva->frags, heapva->edges, "After contained_fragment_marking_frc");
   
 
   char  thePath[FILENAME_MAX];

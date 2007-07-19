@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.38 2007-06-01 15:09:46 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.39 2007-07-19 09:50:32 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -590,8 +590,8 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
   CI.info.CI.headOfFragments = GetNumCIFragTs(ScaffoldGraph->CIFrags);
   CI.info.CI.numFragments = ium_mesg->num_frags;
   CI.info.CI.coverageStat = (ium_mesg->coverage_stat < -1000.0? -1000:ium_mesg->coverage_stat);
-  CI.info.CI.branchPointA = ium_mesg->a_branch_point;
-  CI.info.CI.branchPointB = ium_mesg->b_branch_point;
+  CI.info.CI.branchPointA = 0;  //  UNUSED
+  CI.info.CI.branchPointB = 0;  //  UNUSED
   CI.info.CI.contigID = NULLINDEX;
   CI.info.CI.numInstances = 0;
   CI.info.CI.instances.in_line.instance1 = 0;

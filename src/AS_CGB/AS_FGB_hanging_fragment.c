@@ -18,8 +18,8 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
+
 #include "AS_CGB_all.h"
-#include "AS_FGB_hanging_fragment.h"
 
 #undef USE_REAPERS_DVT_DEGREE
 

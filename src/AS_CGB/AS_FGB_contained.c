@@ -18,19 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] 
-= "$Id: AS_FGB_contained.c,v 1.5 2007-04-28 08:46:21 brianwalenz Exp $";
-/*********************************************************************
- *
- * Module: AS_FGB_contained.c
- * Description: Determines the contained status of the fragments.
- * Assumptions:
- * 
- * Author: Clark Mobarry
- *********************************************************************/
+
+static char CM_ID[]  = "$Id: AS_FGB_contained.c,v 1.6 2007-07-19 09:50:32 brianwalenz Exp $";
+
+// Determines the contained status of the fragments.
 
 #include "AS_CGB_all.h"
-
 
 void check_containment_edges
 (

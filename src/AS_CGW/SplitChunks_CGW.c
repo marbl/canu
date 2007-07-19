@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.20 2007-05-29 10:54:26 brianwalenz Exp $";
+static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.21 2007-07-19 09:50:32 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -870,7 +870,6 @@ static int StoreIUMStruct(ScaffoldGraphT * graph,
             is->ium.f_list[i].contained = 0;
         }
     }
-  is->ium.a_branch_point = is->ium.b_branch_point = 0;
 
 
   /* egfar is the estimated global fragment arrival rate based on the original

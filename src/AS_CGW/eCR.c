@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: eCR.c,v 1.22 2007-06-18 15:56:47 skoren Exp $";
+static const char CM_ID[] = "$Id: eCR.c,v 1.23 2007-07-19 09:50:33 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -1715,8 +1715,6 @@ int GetNewUnitigMultiAlign(NodeCGW_T *unitig, fragPositions *fragPoss, int exten
 #endif
     ium_mesg.coverage_stat  = unitig->info.CI.coverageStat;
     ium_mesg.status         = status;
-    ium_mesg.a_branch_point = unitig->info.CI.branchPointA;
-    ium_mesg.b_branch_point = unitig->info.CI.branchPointB;
 
 #ifdef USE_UNGAPPED_CONSENSUS_FOR_UNITIG
     GetMultiAlignUngappedConsensus(macopy, ungappedSequence, ungappedQuality);

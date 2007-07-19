@@ -18,8 +18,8 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] 
-= "$Id: AS_CGB_Bubble.c,v 1.9 2007-05-29 10:54:26 brianwalenz Exp $";
+
+static char CM_ID[] = "$Id: AS_CGB_Bubble.c,v 1.10 2007-07-19 09:50:26 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -31,19 +31,18 @@ static char CM_ID[]
 #include "AS_CGB_Bubble_Popper.h"
 #include "AS_UTL_Hash.h"
 
-
-/* This method uses a depth first search to mark all(*) fragments with
-   the AS_CGB_BUBBLE_V_VALID flag.  As part of the process, the position
-   and orientation of each fragment is set, and some edges become marked
-   as invalid if they represent back edges in the DFS tree.
-
-   (*) Not all fragments are marked.  Searches are only begun with
-   non-contained fragments, and only non-containment edges are used.
-   Contained fragments which are not touched by dovetail edges can
-   therefore be omitted.
-
-   Implemented in "AS_CGB_Bubble_dfs.c"
-*/
+// This method uses a depth first search to mark all(*) fragments with
+// the AS_CGB_BUBBLE_V_VALID flag.  As part of the process, the
+// position and orientation of each fragment is set, and some edges
+// become marked as invalid if they represent back edges in the DFS
+// tree.
+//
+// (*) Not all fragments are marked.  Searches are only begun with
+// non-contained fragments, and only non-containment edges are used.
+// Contained fragments which are not touched by dovetail edges can
+// therefore be omitted.
+//
+// Implemented in "AS_CGB_Bubble_dfs.c"
 
 void AS_CGB_Bubble_dfs(BubGraph_t bg);
 

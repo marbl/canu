@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.11 2007-06-03 04:12:49 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.12 2007-07-19 09:50:33 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -438,6 +438,10 @@ static void *Read_IUM_Mesg(FILE *fin)
 # endif
   char ch;
 
+  //  unused, needed so we don't change the format of the message
+  CDS_COORD_t     a_branch_point;
+  CDS_COORD_t     b_branch_point;
+
   GET_FIELD(mesg.iaccession,"acc:"F_IID,"accession field");
 # ifdef AS_ENABLE_SOURCE
   sindx = GetText("src:",fin,FALSE);
@@ -445,8 +449,11 @@ static void *Read_IUM_Mesg(FILE *fin)
   GET_FIELD(mesg.coverage_stat,"cov:%f","coverage stat");
   GET_TYPE(ch,"sta:%1[UCNSX]","status");
   mesg.status = (UnitigStatus) ch;
-  GET_FIELD(mesg.a_branch_point,"abp:"F_COORD,"a branch point");
-  GET_FIELD(mesg.b_branch_point,"bbp:"F_COORD,"b branch point");
+
+  //  Unused!
+  GET_FIELD(a_branch_point,"abp:"F_COORD,"a branch point");
+  GET_FIELD(b_branch_point,"bbp:"F_COORD,"b branch point");
+
   GET_FIELD(mesg.length,"len:"F_COORD,"length field");
   cindx = GetText("cns:",fin,TRUE);
   qindx = GetText("qlt:",fin,TRUE);
@@ -942,6 +949,10 @@ static void *Read_UTG_Mesg(FILE *fin)
 #endif
   char ch;
 
+  //  unused, needed so we don't change the format of the message
+  CDS_COORD_t     a_branch_point;
+  CDS_COORD_t     b_branch_point;
+
   GET_PAIR(mesg.eaccession,mesg.iaccession,"acc:("F_UID","F_IID")","accession field");
 #ifdef AS_ENABLE_SOURCE
   sindx = GetText("src:",fin,FALSE);
@@ -949,8 +960,11 @@ static void *Read_UTG_Mesg(FILE *fin)
   GET_FIELD(mesg.coverage_stat,"cov:%f","coverage stat");
   GET_TYPE(ch,"sta:%1[UCNSX]","status");
   mesg.status = (UnitigStatus) ch;
-  GET_FIELD(mesg.a_branch_point,"abp:"F_COORD,"a branch point");
-  GET_FIELD(mesg.b_branch_point,"bbp:"F_COORD,"b branch point");
+
+  //  Unused!
+  GET_FIELD(a_branch_point,"abp:"F_COORD,"a branch point");
+  GET_FIELD(b_branch_point,"bbp:"F_COORD,"b branch point");
+
   GET_FIELD(mesg.length,"len:"F_COORD,"length field");
   cindx = GetText("cns:",fin,TRUE);
   qindx = GetText("qlt:",fin,TRUE);
@@ -1505,8 +1519,8 @@ static void Write_IUM_Mesg(FILE *fout, void *vmesg)
 # endif
   fprintf(fout,"cov:%.3f\n",mesg->coverage_stat);
   fprintf(fout,"sta:%c\n",mesg->status);
-  fprintf(fout,"abp:"F_COORD"\n",mesg->a_branch_point);
-  fprintf(fout,"bbp:"F_COORD"\n",mesg->b_branch_point);
+  fprintf(fout,"abp:0\n");  //  Unused!
+  fprintf(fout,"bbp:0\n");  //  Unused!
   fprintf(fout,"len:"F_COORD"\n",mesg->length);
   PutText(fout,"cns:",mesg->consensus,TRUE);
   PutText(fout,"qlt:",mesg->quality,TRUE);
@@ -1749,8 +1763,8 @@ static void Write_UTG_Mesg(FILE *fout, void *vmesg)
 #endif
   fprintf(fout,"cov:%.3f\n",mesg->coverage_stat);
   fprintf(fout,"sta:%c\n",mesg->status);
-  fprintf(fout,"abp:"F_COORD"\n",mesg->a_branch_point);
-  fprintf(fout,"bbp:"F_COORD"\n",mesg->b_branch_point);
+  fprintf(fout,"abp:0\n");  //  Unused!
+  fprintf(fout,"bbp:0\n");  //  Unused!
   fprintf(fout,"len:"F_COORD"\n",mesg->length);
   PutText(fout,"cns:",mesg->consensus,TRUE);
   PutText(fout,"qlt:",mesg->quality,TRUE);

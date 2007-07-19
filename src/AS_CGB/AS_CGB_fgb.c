@@ -18,99 +18,31 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] 
-= "$Id: AS_CGB_fgb.c,v 1.11 2007-07-18 15:19:55 brianwalenz Exp $";
-/*********************************************************************
- *
- * Module: AS_CGB_fgb.c
- * Description: The fragment overlap graph builder.
- * Assumptions:
- * 
- * (1) A unique OVL record appears only once in the input stream.
- * 
- * (2) A unique OFG record appears only once in the input stream.
- * 
- * (3) If an edge is in a chunk, then it is in no other chunks.
- * 
- * (4) If an essential fragment is in a chunk, then it is in no other chunks.
- * 
- * (5) The graph traversal subroutine, as_graph_traversal(), assumes
- * that circular chunks do not occur.
- *
- * Author: Clark Mobarry
- *********************************************************************/
 
-/*************************************************************************/
-/* System include files */
+static char CM_ID[] = "$Id: AS_CGB_fgb.c,v 1.12 2007-07-19 09:50:30 brianwalenz Exp $";
 
-/*************************************************************************/
-/* Local include files */
+//  The fragment overlap graph builder.
+//
+//  Assumptions:
+//
+//  (1) A unique OVL record appears only once in the input stream.
+//  (2) A unique OFG record appears only once in the input stream.
+//  (3) If an edge is in a chunk, then it is in no other chunks.
+//  (4) If an essential fragment is in a chunk, then it is in no other chunks.
+//  (5) The graph traversal subroutine, as_graph_traversal(), assumes
+//      that circular chunks do not occur.
+
 #include "AS_CGB_all.h"
-#include "AS_FGB_hanging_fragment.h"
-#include "AS_FGB_contained.h"
+#include "AS_CGB_histo.h"
 
-/****************************************************************************/
-/* File Scope Globals */
-
-/* Conditional compilation */
-#define IN_PLACE_PERMUTATION
-#undef SKIP_DECORDING
-
-/* Some run time optimizations... */
-#undef SMALLER_ADJACENCY_LIST
-
-#undef REORDERING1
-
-#undef SELF_CHECKING_CODE
-#undef DEBUGGING
-
-#define CHECK92
-#ifdef SELF_CHECKING_CODE
-#define CHECK80
-#define CHECK90
-#define CHECK96
-#define CHECK97
-#define CHECK98
-#define CHECK99
-#endif // SELF_CHECKING_CODE
-
-#ifdef DEBUGGING
-#undef DEBUG_SHORTCUT1
-#undef DEBUG_SHORTCUT2
-#undef DEBUG_SHORTCUT3
-#define DEBUG_SHORTCUT4
-#define DEBUG_SHORTCUT5
-#undef DEBUG_INPUT
-#undef DEBUG21
-#undef DEBUG22
-#undef DEBUG23
-#undef DEBUG24
-#undef DEBUG25
-#define DEBUG26
-#undef DEBUG27
-#endif /*DEBUGGING*/
-
-/*************************************************************************/
-/* Constant definitions; Macro definitions; type definitions */
-
-#define FRAGMENT_NOT_FOUND (~((IntFragment_ID)(0)))
-
-/*************************************************************************/
-/* Static Globals */
-
-/*************************************************************************/
-/* Function prototypes for internal static functions */
-
-/**************************************************************/
-/* Utility functions */
-
+//  AS_CGB_edgemate.c
+int verify_that_the_edges_are_in_order(Tedge edges[]);
 
 static void in_place_permute
 (
  const size_t  ndata,  // The number of data records.
  const size_t  size,   // The size of the data records in bytes.
- const IntRank rank[], // The destination rank of each data record
- // (zero based) for a scatter-permutation.
+ const size_t  rank[], // The destination rank of each data record (zero based) for a scatter-permutation.
  void  *       data    // The data.
 )
 { // Inspired by Gene^s in-place permute ...
@@ -122,13 +54,9 @@ static void in_place_permute
   
   fprintf(stderr,"Permutation in-place " F_SIZE_T " items of " F_SIZE_T " bytes\n",
           ndata, size);
-#if 1
+
   memset(done,FALSE,ndata);
-#else
-  for( ii = 0; ii < ndata; ii++ ) {
-    done[ii] = FALSE;
-  }
-#endif  
+
   for( ii = 0; ii < ndata; ii++ ) {
     if( ! done[ii] ) { 
       size_t it;
@@ -454,13 +382,10 @@ static void rebuild_next_edge_obj
   //assert(FALSE);
 }
 
-static void reorder_edges_bin_and_qsort
-( Tfragment *frags,
-  Tedge *edges,
-  TIntEdge_ID *next_edge_obj
-)
-{
-  QsortCompare compare_edge = get_compare_edge_function();
+void reorder_edges(Tfragment *frags,
+                   Tedge *edges,
+                   TIntEdge_ID *next_edge_obj) {
+
   const IntFragment_ID nfrag = GetNumFragments(frags);
   const IntEdge_ID nedge = GetNumEdges(edges);
 
@@ -473,14 +398,14 @@ static void reorder_edges_bin_and_qsort
  
     IntEdge_ID * seglen = NULL;
     IntEdge_ID * segstart = NULL;
-    IntRank    * edge_rank = NULL;
+    size_t     * edge_rank = NULL;
 
     assert(nedge != 0);
     assert(max_nbins != 0);
 
     seglen    = safe_malloc(sizeof(IntEdge_ID) * max_nbins);
     segstart  = safe_malloc(sizeof(IntEdge_ID) * max_nbins);
-    edge_rank = safe_malloc(sizeof(IntRank) * nedge);
+    edge_rank = safe_malloc(sizeof(size_t) * nedge);
 
     { // FRAGMENT-END SORT
       { // Sort all of the edges ....
@@ -558,15 +483,8 @@ static void reorder_edges_bin_and_qsort
       }
 #endif // CHECK99
 
-#ifdef IN_PLACE_PERMUTATION
       // Now permute the edges by the rank.
-      in_place_permute
-	( nedge, sizeof(Aedge), 
-	  edge_rank, GetVA_Aedge(edges,0));
-#else
-      // Now permute the edges by the rank.
-      ScatterInPlace_VA( edges, nedge, edge_rank);
-#endif
+      in_place_permute(nedge, sizeof(Aedge), edge_rank, GetVA_Aedge(edges,0));
 
     } // FRAGMENT-END SORT
 
@@ -577,17 +495,13 @@ static void reorder_edges_bin_and_qsort
   
    { // Sort the edges (in fragment-end segments)
     
-#ifdef DEBUGGING
-     fprintf(stderr,"Sort the segment of edges by avx\n");
-#endif
      { IntFragment_ID iv0; int is0;
      for(iv0=0;iv0<nfrag;iv0++) for(is0=0;is0<2;is0++) {
-       const IntEdge_ID ie_start 
-	 = get_segstart_vertex(frags,iv0,is0);
-       const IntEdge_ID nnode 
-	 = get_seglen_vertex(frags,iv0,is0);
-       qsort(GetVA_Aedge(edges,ie_start),nnode,sizeof(Aedge),
-	     (int (*)(const void *,const void *))compare_edge); /* FIX this */
+       const IntEdge_ID ie_start = get_segstart_vertex(frags,iv0,is0);
+       const IntEdge_ID nnode = get_seglen_vertex(frags,iv0,is0);
+
+       qsort(GetVA_Aedge(edges,ie_start),nnode,sizeof(Aedge), compare_edge_function);
+
        /* The internal structure of the edges object of type Tedge is
 	  used here.  We are using the fact that the first address of the
 	  edges object is a pointer to an array of type Aedge and length
@@ -596,19 +510,10 @@ static void reorder_edges_bin_and_qsort
    }
 
   rebuild_next_edge_obj( edges, next_edge_obj);
-}
-
-void reorder_edges
-( Tfragment *frags,
-  Tedge *edges,
-  TIntEdge_ID *next_edge_obj
-)
-{
-  reorder_edges_bin_and_qsort( frags, edges, next_edge_obj);
   setup_segments(/* Modify */ frags, edges);
 }
 
-/////////////////////////////////////////////////////////////////////
+
 
 #define NBINS 100
 void graph_locality_diagnostic
@@ -839,22 +744,10 @@ void transitive_edge_marking
 	const Tnes ir2nes = get_nes_edge(edges,ir2);
 	const IntFragment_ID ir2bvx = get_bvx_edge(edges,ir2);
 	const int ir2bsx = get_bsx_edge(edges,ir2);
-#ifdef SMALLER_ADJACENCY_LIST
-	const int nnodeb = get_seglen_vertex(frags,ir2bvx,ir2bsx);
-#endif
-        
-	// num_of_edges_visited ++;
-
         const int ir2_is_dovetail = is_a_dvt_edge(edges,ir2);
         const int ir2_is_from_contained = is_a_frc_edge(edges,ir2);
         const int ir2_is_to_contained = is_a_toc_edge(edges,ir2);
         const int ir2_is_dgn_contained = is_a_dgn_edge(edges,ir2);
-
-#ifdef SMALLER_ADJACENCY_LIST
-	if((nnode > nnodeb) && ( ir2_is_dovetail )) continue;
-	// Limit the run time by pursuing the smaller adjacency list
-	// for transitively inferable overlap removal.
-#endif // SMALLER_ADJACENCY_LIST
 	
 	if(!(
              ir2_is_dovetail ||
@@ -1049,10 +942,8 @@ void transitive_edge_marking
     }}
   } /* End: Check each vertex in the fragment overlap graph. */
 
-#ifdef DEBUGGING
-  fprintf(stderr,"The transitive edge removal test failed " F_S64
-	  " times at the length comparison.\n",ntrans_test_fail);
-#endif
+  fprintf(stderr,"The transitive edge removal test failed "F_S64" times at the length comparison.\n",
+          ntrans_test_fail);
 
 
   check_symmetry_of_the_edge_mates( frags, edges, next_edge_obj);

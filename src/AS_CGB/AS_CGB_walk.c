@@ -18,104 +18,85 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] 
-= "$Id: AS_CGB_walk.c,v 1.4 2005-03-22 19:48:32 jason_miller Exp $";
-/*********************************************************************
- *
- * Module: AS_CGB_walk.c
- * Description: Walks the skeleton fragment overlap graph to determine
- * if an overlap is transitively inferable from the skeleton fragment 
- * overlap graph.
- * Assumptions:
- * TBD
- *
- * Author: Clark Mobarry
- *********************************************************************/
 
-/*************************************************************************/
-/* System include files */
+static char CM_ID[] = "$Id: AS_CGB_walk.c,v 1.5 2007-07-19 09:50:31 brianwalenz Exp $";
 
-/*************************************************************************/
-/* Local include files */
+//  Walks the skeleton fragment overlap graph to determine if an
+//  overlap is transitively inferable from the skeleton fragment
+//  overlap graph.
+
 #include "AS_CGB_all.h"
 
-/* Conditional compilation */
 #define JUST_OVERHANGS
 #define USE_MARKED_EDGES
 #undef PRINT_WALK
-#undef DEBUG
 
-#define O2CI(a)    ((a) >> 1) 
-// From the chunk-end, return the chunk index.
-#define O2S(a)     ((a) & 1)
-// From the chunk-end, return the chunk suffix.
-#define CIS2O(a,b) (((a) << 1) + ((b) & 1))
-// From the chunk index and suffix, return the chunk-end.
-#define O2O(a)     ((a) ^ 1)
-// From the chunk-end, return the mate chunk-end.
 
-int is_there_an_overlap_path
-(
-  const Tfragment *frags,
-  const Tedge     *edges,
-  const IntFragment_ID target_avx,
-  const int        target_asx,
+#define O2CI(a)    ((a) >> 1)                 // From the chunk-end, return the chunk index.
+#define O2S(a)     ((a) & 1)                  // From the chunk-end, return the chunk suffix.
+#define CIS2O(a,b) (((a) << 1) + ((b) & 1))   // From the chunk index and suffix, return the chunk-end.
+#define O2O(a)     ((a) ^ 1)                  // From the chunk-end, return the mate chunk-end.
+
+
+// Given an undirected (directed) graph G = (V,E) with n verticies and
+// an array visited(n) initially set to FALSE, this algorithm visits
+// all vertices reachable from v.  G and visited are global.  We
+// modifiy this to be a depth first search for each target overlap
+// edge.
+//
+// The arrays visited_a[] and visited_b[] must be initialized out of
+// the range [0,2*nfrag-1] before the rooted depth first search
+// begins.
+//
+// The return value is an non-negative integer. If the query overlap
+// is(is not) transitively inferable from a path in the skeleton
+// graph, then the return value is positive(zero).  A return value of
+// one is the normal status of an inferable edge. A return value of
+// two is stronger in that this edge is removable.
+
+int is_there_an_overlap_path(const Tfragment *frags,
+                             const Tedge     *edges,
+                             const IntFragment_ID target_avx,
+                             const int        target_asx,
 #ifdef MATCH_TARGET_EDGE
-  const IntFragment_ID target_bvx,
-  const int        target_bsx,
-  const int        target_ahg,
-  const int        target_bhg,
-  const Tnes       target_nes,
-  const int        target_is_dovetail,
-  const int        target_is_from_contained,
-  const int        target_is_to_contained,
-  const int        target_is_dgn_contained,
+                             const IntFragment_ID target_bvx,
+                             const int        target_bsx,
+                             const int        target_ahg,
+                             const int        target_bhg,
+                             const Tnes       target_nes,
+                             const int        target_is_dovetail,
+                             const int        target_is_from_contained,
+                             const int        target_is_to_contained,
+                             const int        target_is_dgn_contained,
 #endif // MATCH_TARGET_EDGE
-  /* recursion variables: */
-  const int        search_depth, // Use zero at the top level.
-  const IntFragment_ID current_avx,  // Use target_avx at the top level.
-  const int        current_asx,  // Use target_asx at the top level.
-  const int        current_ahg,  // Use zero at the top level.
-  const int        current_bhg,  // Use zero at the top level.
-  const int        last_edge_was_containment, // From target_nes at the top level.
-  /* search path limiting: */
-  const int        walk_depth,   // The maximum depth of the stack.
-  const int        tolerance,    // For the overlaps
-  IntFragment_ID visited_a[],
+                             /* recursion variables: */
+                             const int        search_depth, // Use zero at the top level.
+                             const IntFragment_ID current_avx,  // Use target_avx at the top level.
+                             const int        current_asx,  // Use target_asx at the top level.
+                             const int        current_ahg,  // Use zero at the top level.
+                             const int        current_bhg,  // Use zero at the top level.
+                             const int        last_edge_was_containment, // From target_nes at the top level.
+                             /* search path limiting: */
+                             const int        walk_depth,   // The maximum depth of the stack.
+                             const int        tolerance,    // For the overlaps
+                             IntFragment_ID visited_a[],
 #ifdef MATCH_TARGET_EDGE
-  IntFragment_ID visited_b[],
+                             IntFragment_ID visited_b[],
 #endif // MATCH_TARGET_EDGE
-  // Was this fragment visited from the target overlap edge before? That is
-  // by the same (target_avx, target_asx, target_bvx, target_bsx).
-  const int        work_limit_per_candidate_edge,
-  // Maximum number of edges to explore per candidate edge.
-  int *            work_tally_per_candidate_edge,
-  // Current number of edges explored per candidate edge.
-  /* diagnostic variables: */
+                             // Was this fragment visited from the target overlap edge before? That is
+                             // by the same (target_avx, target_asx, target_bvx, target_bsx).
+                             const int        work_limit_per_candidate_edge,
+                             // Maximum number of edges to explore per candidate edge.
+                             int *            work_tally_per_candidate_edge,
+                             // Current number of edges explored per candidate edge.
+                             /* diagnostic variables: */
 #ifdef WALK_DEPTH_DIAGNOSTICS
-  int64      search_depth_histogram[], // How many times this level is visited.
-  int64      search_path_histogram[],  // How many paths were this length.
+                             int64      search_depth_histogram[], // How many times this level is visited.
+                             int64      search_path_histogram[],  // How many paths were this length.
 #endif // WALK_DEPTH_DIAGNOSTICS
-  int64      *ntrans_test_fail // How many paths failed the last test.
-  )
+                             int64      *ntrans_test_fail // How many paths failed the last test.
+                             )
 {
-  // Given an undirected (directed) graph G = (V,E) with n verticies
-  // and an array visited(n) initially set to FALSE, this algorithm
-  // visits all vertices reachable from v.  G and visited are global.
-  // We modifiy this to be a depth first search for each target
-  // overlap edge.
-
-  // The arrays visited_a[] and visited_b[] must be initialized out of
-  // the range [0,2*nfrag-1] before the rooted depth first search
-  // begins.
-
-  // The return value is an non-negative integer. If the query overlap
-  // is(is not) transitively inferable from a path in the skeleton
-  // graph, then the return value is positive(zero).  A return value
-  // of one is the normal status of an inferable edge. A return value
-  // of two is stronger in that this edge is removable.
-
-
   const int tolerance_ahg = tolerance;
   const int tolerance_bhg = tolerance;
 
@@ -235,6 +216,8 @@ int is_there_an_overlap_path
 #endif // JUST_OVERHANGS
         ) continue;
       
+#define ABS(a) ((a)>= 0 ?(a):-(a))
+
       if(search_depth > 0) {
         if( (ir1bvx == target_bvx) &&
             (ir1bsx == target_bsx) ) {

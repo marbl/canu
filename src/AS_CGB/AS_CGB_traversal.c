@@ -18,47 +18,24 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] 
-= "$Id: AS_CGB_traversal.c,v 1.7 2007-05-14 09:27:10 brianwalenz Exp $";
-/*********************************************************************
- *
- * Module: AS_CGB_traversal.c
- *
- * Description: Graph traversal for the Chunk Graph Builder.
- * This module takes the current marked graph and returns
- * a best ranking of the verticies in fragment_rank[].
- *
- * Assumptions:
- *
- * 1. Overview
- * 
- * This functional unit transverses the current state of the marked graph
- * and returns a best ranking of the verticies.
- * 
- * 2. Memory Usage
- * 
- * There is one statically allocated first-in first-out queue of length
- * MAXQUEUELEN.  There is no dynamicly allocated memory.
- * 
- * 3. Interface
- * 
- * 4. Design
- * 
- * The graph is transversed in a breadth first manner, except over chunks
- * which are visisted in a depth first manner.
- * 
- * 5. Limitations
- * 
- * Currently it is a assumed that a chunk has two ends.  Thus a circular
- * chunk is not visited.
- * 
- * 6. Status
- * 
- * Author: Clark Mobarry
- ***********************************************************************/
 
-/*********************************************************************/
-/* System include files */
+static char CM_ID[] = "$Id: AS_CGB_traversal.c,v 1.8 2007-07-19 09:50:30 brianwalenz Exp $";
+
+//  Graph traversal for the Chunk Graph Builder.  This module takes the
+//  current marked graph and returns a best ranking of the verticies in
+//  fragment_rank[].
+//
+//  There is one statically allocated first-in first-out queue of
+//  length MAXQUEUELEN.  There is no dynamicly allocated memory.
+//
+//  The graph is transversed in a breadth first manner, except over
+//  chunks which are visisted in a depth first manner.
+//
+//  Currently it is a assumed that a chunk has two ends.  Thus a
+//  circular chunk is not visited.
+//
+//  Author: Clark Mobarry
+
 #include <assert.h>
 #include <errno.h>
 #include <stdio.h>
@@ -66,28 +43,13 @@ static char CM_ID[]
 #include <string.h>
 #include <sys/times.h>
 
-/*************************************************************************/
-/* Local include files */
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_CGB_all.h"
-#include "AS_CGB_traversal.h"
 
-/*************************************************************************/
-/* Constant definitions; Macro definitions; type definitions */
 #define MAXQUEUELEN   ((1 << 24)-1) // 0xffffff
-//#define MAX_ADJACENCY_FOLLOWED 5
-#undef MAX_ADJACENCY_FOLLOWED
 #define NOT_RANKED           UINT32_MAX
 
-/*************************************************************************/
-/* Static Globals */
-
-/*************************************************************************/
-/* Function prototypes for internal static functions */
-
-/*************************************************************************/
-/* Basic Queue Operations */
 
 static void as_addq
 (IntFragment_ID item,
@@ -174,12 +136,12 @@ static void as_diagq
 static void as_dfs_intrachunk
 (
  IntFragment_ID iv0, 
- IntRank   *nfound,
+ size_t    *nfound,
  IntFragment_ID nfrag, 
  Tfragment  frags[],
  IntEdge_ID nedge, 
  Tedge      edges[], 
- IntRank    fragment_rank[])
+ size_t     fragment_rank[])
 {
   int is0;
   IntFragment_ID iv1;
@@ -207,12 +169,12 @@ static void as_dfs_intrachunk
 
 static void as_dfs
 (IntFragment_ID iv0, 
- IntRank   *nfound,
+ size_t    *nfound,
  IntFragment_ID nfrag, 
  Tfragment  frags[],
  IntEdge_ID nedge, 
  Tedge      edges[], 
- IntRank    fragment_rank[])
+ size_t     fragment_rank[])
 {
   int is0;
   IntFragment_ID iv1;
@@ -246,12 +208,12 @@ static IntFragment_ID thequeue[MAXQUEUELEN];
 
 static void as_bfs
 (IntFragment_ID ivi, 
- IntRank   *nfound,
+ size_t    *nfound,
  IntFragment_ID nfrag, 
  Tfragment  frags[],
  IntEdge_ID nedge, 
  Tedge      edges[], 
- IntRank    fragment_rank[])
+ size_t     fragment_rank[])
 { /* Breadth First Search of the graph. 
      A breadth first search of the graph is carried out
      beginning at fragment, ivi.
@@ -264,18 +226,6 @@ static void as_bfs
   IntFragment_ID front,rear;
   IntEdge_ID ie1,ie0;
   int ne0;
-#ifdef DEBUG8
-  FILE *fout;
-  fout = stdout;
-  { 
-    IntFragment_ID iv2;
-    fprintf(fout,"as_bfs: nfound=" F_SIZE_T "\n",*nfound);
-    fprintf(fout,"as_bfs: iv2,fragment_rank[iv2]\n");
-    for(iv2=0;iv2<nfrag;iv2++) {
-      fprintf(fout,"%d, %d\n",iv2,fragment_rank[iv2]);
-    }
-  }
-#endif
 
   iv0 = ivi;
   /* Initialize the queue to be an empty queue. 
@@ -288,17 +238,6 @@ static void as_bfs
   fragment_rank[iv0] = (*nfound)++; /* Since the vertices indexes are zero based. */
   as_addq(iv0,thequeue,MAXQUEUELEN,&front,&rear);
 
-#ifdef DEBUG8
-  { 
-    IntFragment_ID iv2;
-    fprintf(fout,"as_bfs: nfound=" F_SIZE_T "\n",*nfound);
-    fprintf(fout,"as_bfs: iv2,fragment_rank[iv2]\n");
-    for(iv2=0;iv2<nfrag;iv2++) {
-      fprintf(fout,"%d, %d\n",iv2,fragment_rank[iv2]);
-    }
-  }
-  as_diagq(fout,thequeue,MAXQUEUELEN,front,rear);
-#endif
 
   for(; front != rear /* The queue is not empty. */; ) {
     int is0;
@@ -308,12 +247,6 @@ static void as_bfs
     for(is0=0;is0<2;is0++){
       ie0 = get_segstart_vertex(frags,iv0,is0);
       ne0 = get_seglen_vertex(frags,iv0,is0);
-#ifdef DEBUG8
-      fprintf(fout,"as_bfs: fragment %d\n",iv0,ie0,ne0);
-#endif
-#ifdef MAX_ADJACENCY_FOLLOWED
-      ne0 = MIN(ne0,MAX_ADJACENCY_FOLLOWED);
-#endif      
       /* Perform a Breadth First Search on the remaining edges. */
       for(ie1=ie0; ie1 < ie0+ne0; ie1++) {
 	iv1 = get_bvx_edge(edges,ie1);
@@ -327,23 +260,10 @@ static void as_bfs
 	  fragment_rank[iv1] = (*nfound)++;
 	  as_addq(iv1,thequeue,MAXQUEUELEN,&front,&rear);
 	}
-#ifdef DEBUG8
-	{ 
-	  IntFragment_ID iv2;
-	  fprintf(fout,"as_bfs: nfound=" F_SIZE_T "\n",*nfound);
-	  fprintf(fout,"as_bfs: iv2,fragment_rank[iv2]\n");
-	  for(iv2=0;iv2<nfrag;iv2++) {
-	    fprintf(fout,"%d, %d\n",iv2,fragment_rank[iv2]);
-	  }
-	}
-#endif
       }
     }
     // A fragment that has been ranked and is no longer in the queue
     // is BFS_BLACK. fragment_color[iv0] = BFS_BLACK;
-#ifdef DEBUG8
-    as_diagq(fout,thequeue,MAXQUEUELEN,front,rear);
-#endif    
   }
 }
 
@@ -352,12 +272,12 @@ void as_graph_traversal
  FILE *    fout,
  Tfragment frags[],
  Tedge     edges[], 
- IntRank   fragment_rank[]
+ size_t    fragment_rank[]
  )
 { /* A marked traversal of the graph. */
-  IntRank nconnected=0,nfound=0,ncontained=0,ncircl=0;
+  size_t  nconnected=0,nfound=0,ncontained=0,ncircl=0;
   IntFragment_ID ivi;
-  
+
   const IntFragment_ID nfrag = GetNumFragments(frags);
   const IntEdge_ID nedge = GetNumEdges(edges);
 

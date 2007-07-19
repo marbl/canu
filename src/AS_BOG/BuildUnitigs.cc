@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.24 2007-07-17 20:18:33 eliv Exp $
- * $Revision: 1.24 $
+ * $Id: BuildUnitigs.cc,v 1.25 2007-07-19 09:50:26 brianwalenz Exp $
+ * $Revision: 1.25 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.24 2007-07-17 20:18:33 eliv Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.25 2007-07-19 09:50:26 brianwalenz Exp $";
 
 //  System include files
 
@@ -63,7 +63,7 @@ using AS_BOG::BogOptions;
 extern "C" {
 #include "getopt.h"
 #include "AS_OVS_overlapStore.h"
-#include "AS_CGB_myhisto.h"
+#include "AS_CGB_histo.h"
 }
 
 void outputHistograms(AS_BOG::UnitigGraph *);

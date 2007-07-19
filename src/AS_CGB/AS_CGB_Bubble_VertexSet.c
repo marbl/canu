@@ -18,8 +18,8 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] 
-= "$Id: AS_CGB_Bubble_VertexSet.c,v 1.7 2007-04-29 06:25:27 brianwalenz Exp $";
+
+static char CM_ID[] = "$Id: AS_CGB_Bubble_VertexSet.c,v 1.8 2007-07-19 09:50:27 brianwalenz Exp $";
 
 #include <string.h>
 #include "AS_CGB_all.h"
@@ -29,20 +29,12 @@ static char CM_ID[]
 // CMM: Is this an arbitrary size that needs to be revisited?
 #define BVS_MEMSTACK_SIZE (2000 * CGB_MULTIPLIER)
 
-/* 
- * GLOBAL VARIABLES
- */
-
 int AS_CGB_BUBBLE_set_size_G = AS_CGB_BUBBLE_DEFAULT_SET_SIZE;
 int AS_CGB_BUBBLE_max_age_G = AS_CGB_BUBBLE_DEFAULT_MAX_AGE;
 int AS_CGB_BUBBLE_max_outdegree_G = AS_CGB_BUBBLE_DEFAULT_MAX_OUTDEGREE;
 
 static BubVertexEntry **BVS_memstack_G;
 static int BVS_memstack_top_G;
-
-/*
- * BVS PRIVATE UTILITY FUNCTIONS
- */
 
 static BubVertexEntry *
 BVS__alloc(void)

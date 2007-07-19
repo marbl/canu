@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.49 2007-06-01 22:49:52 gdenisov Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.50 2007-07-19 09:50:33 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -321,12 +321,6 @@ typedef enum {
   AS_CONTCHUNK    = (int)'C'
 } LabelType;
 
-typedef enum {
-  AS_INTO_REPEAT = (int) 'R',
-  AS_INTO_UNIQUE = (int) 'U',
-  AS_NO_BPOINT   = (int) 'N'
-} BranchType;
-
 
 /* UOM message */
 
@@ -419,14 +413,11 @@ typedef struct {
 } UnitigOverlapMesg;
 
 
+
 typedef struct {
   IntChunk_ID     iaccession;
   CDS_COORD_t     bp_length;
   float           coverage_stat;
-  BranchType      a_branch_type;
-  BranchType      b_branch_type;
-  CDS_COORD_t     a_branch_point;
-  CDS_COORD_t     b_branch_point;
   int32           num_frags;
   int32           a_degree;
   int32           b_degree;
@@ -550,8 +541,6 @@ typedef struct {
 #endif
   float           coverage_stat;
   UnitigStatus    status;
-  CDS_COORD_t     a_branch_point;
-  CDS_COORD_t     b_branch_point;
   CDS_COORD_t     length;
   char            *consensus;
   char            *quality;
@@ -771,8 +760,6 @@ typedef struct {
 #endif
   float           coverage_stat;
   UnitigStatus    status;
-  CDS_COORD_t     a_branch_point;
-  CDS_COORD_t     b_branch_point;
   CDS_COORD_t     length;
   char            *consensus;
   char            *quality;

@@ -31,7 +31,7 @@
 #include "Globals_CNS.h"
 #include "PublicAPI_CNS.h"
 
-static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.16 2007-06-01 22:56:14 gdenisov Exp $";
+static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.17 2007-07-19 09:50:33 brianwalenz Exp $";
 
 static HashTable_AS *utgUID2IID;
 
@@ -89,8 +89,6 @@ static IntUnitigMesg* convert_UTG_to_IUM(SnapUnitigMesg* utgMesg)
 #endif
   iumMesg->coverage_stat  = utgMesg->coverage_stat;
   iumMesg->status         = utgMesg->status;
-  iumMesg->a_branch_point = utgMesg->a_branch_point;
-  iumMesg->b_branch_point = utgMesg->b_branch_point;
   iumMesg->length         = utgMesg->length;
   iumMesg->consensus      = strdup(utgMesg->consensus);
   iumMesg->quality        = strdup(utgMesg->quality);
@@ -430,7 +428,7 @@ int main (int argc, char *argv[]) {
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.16 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.17 $ processing. Started %s\n",
 	      ctime(&t));
       InitializeAlphTable();
 

@@ -370,8 +370,6 @@ int main( int argc, char *argv[])
 	  ium.forced = FALSE;
 	  ium.coverage_stat = 10; 
 	  ium.status = 'U';
-	  ium.a_branch_point = 0;
-	  ium.b_branch_point = 0;
 	  ium.num_frags = 2;
 	  ium.f_list = &(the_imps[0]);
 	  {

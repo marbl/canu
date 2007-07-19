@@ -18,8 +18,8 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] 
-= "$Id: AS_CGB_Bubble_dfs.c,v 1.6 2007-04-29 06:25:27 brianwalenz Exp $";
+
+static char CM_ID[] = "$Id: AS_CGB_Bubble_dfs.c,v 1.7 2007-07-19 09:50:27 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>

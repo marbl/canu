@@ -18,11 +18,10 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGB_histo.c,v 1.10 2007-04-28 08:46:21 brianwalenz Exp $";
-/*********************************************************************
- * Module:  AS_CGB_histo.c
- * Description: A histogramming routine and auxillary functions.
- *********************************************************************/
+
+static char CM_ID[] = "$Id: AS_CGB_histo.c,v 1.11 2007-07-19 09:50:30 brianwalenz Exp $";
+
+//  A histogramming routine and auxillary functions.
 
 #include <stdio.h>
 #include <stdlib.h>

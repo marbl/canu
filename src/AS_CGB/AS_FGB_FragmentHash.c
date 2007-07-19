@@ -18,14 +18,8 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/*********************************************************************
- * $Id: AS_FGB_FragmentHash.c,v 1.7 2007-02-14 07:20:05 brianwalenz Exp $
- *
- * Module:
- * Description:
- * Assumptions: Too many to count.
- * Author: Clark Mobarry
- *********************************************************************/
+
+static char CM_ID[] = "$Id: AS_FGB_FragmentHash.c,v 1.8 2007-07-19 09:50:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,9 +27,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "AS_FGB_FragmentHash.h"
-
-//  Copied from AS_CGB_all.h
+#include "AS_CGB_all.h"
 
 typedef struct {
   IntFragment_ID * iid_to_vid;
@@ -102,9 +94,3 @@ int destroy_FragmentHash(FragmentHashObject * _self)
   safe_free(self);
   return 0;
 }
-
-//////////////////////////////////////////////////////////////////////
-
-// Re-hash the fragment IID to fragment VID mapping using the
-// fragments already in the store.
-

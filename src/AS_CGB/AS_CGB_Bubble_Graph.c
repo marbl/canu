@@ -18,14 +18,22 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] 
-= "$Id: AS_CGB_Bubble_Graph.c,v 1.5 2006-09-26 22:21:13 brianwalenz Exp $";
+
+static char CM_ID[] = "$Id: AS_CGB_Bubble_Graph.c,v 1.6 2007-07-19 09:50:26 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include "AS_global.h"
 #include "AS_CGB_all.h"
 #include "AS_CGB_methods.h"
 #include "AS_CGB_Bubble_Graph.h"
+
+
+//  AS_CGB_edgemate.c
+IntEdge_ID find_overlap_edge_mate(const Tfragment frags[], 
+ const Tedge edges[],
+ const IntEdge_ID ie0
+);
+
 
 void 
 BG_initialize(BubGraph_t bg, Tfragment *frags, Tedge *edges)

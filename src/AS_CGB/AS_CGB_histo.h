@@ -18,33 +18,26 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/*********************************************************************
- * $Id: AS_CGB_histo.h,v 1.4 2005-03-22 19:48:27 jason_miller Exp $
- *
- * Module: AS_CGB_histo.h
- * Description: The header file for the hitogramming routines.
- * Assumptions:
- *********************************************************************/
 
 #ifndef AS_CGB_HISTO_INCLUDE
 #define AS_CGB_HISTO_INCLUDE
 
+#include "AS_CGB_all.h"
+
 typedef void HistoDataType;
 typedef void Histogram_t;
 
-/* Create an initially empty histogram where buckets will be
-   selected so that "sync" will be the low end of some bucket.  */
+//  Create an initially empty histogram where buckets will be selected
+//  so that "sync" will be the low end of some bucket.
 
-extern Histogram_t *create_histogram(
-			    int nsample,
-			    int nbucket,
-			    //int sync0,
-			    int filled,
-			    int logarithmic);
+Histogram_t *create_histogram(int nsample,
+                              int nbucket,
+                              //int sync0,
+                              int filled,
+                              int logarithmic);
 
 
-extern void extend_histogram(  
-		      Histogram_t *h,
+void extend_histogram(Histogram_t *h,
 		      size_t nbytes,
 		      HistoDataType * (*indexdata)(HistoDataType *b,int ib),
 		      void (*setdata)(HistoDataType *a,int ib,HistoDataType *b),
@@ -52,33 +45,149 @@ extern void extend_histogram(
 		      void (*printdata)(FILE *fout,
 					HistoDataType *,
 					HistoDataType *,
-					HistoDataType *)
-	);
+					HistoDataType *));
 
-/* Free the data structure for histogram "h" */
+void free_histogram(Histogram_t *);
+void add_to_histogram(Histogram_t *, int thescore, HistoDataType *);
+void print_histogram(FILE *,Histogram_t *, int rez, int indent);
+double histogram_avg(Histogram_t *);
+double histogram_stdev(Histogram_t *);
 
-extern void free_histogram(Histogram_t *);
 
-/* Add data point "data" to histogram "h" */
 
-extern void add_to_histogram(Histogram_t *, int thescore, HistoDataType *);
+typedef struct {
+  int nsamples;
+  int min_frags;
+  int sum_frags;
+  int max_frags;
+  int min_rs_frags; // randomly sampled fragments
+  int sum_rs_frags;
+  int max_rs_frags;
+  int min_nr_frags; // non-randomly sampled fragments
+  int sum_nr_frags;
+  int max_nr_frags;
+  int64  min_bp;
+  int64  sum_bp;
+  int64  max_bp;
+  int64  min_rho;
+  int64  sum_rho;
+  int64  max_rho;
+  int min_arrival;
+  int sum_arrival;
+  int max_arrival;
+  int min_discr;
+  int sum_discr;
+  int max_discr;
+} MyHistoDataType;
 
-/* Print a histogram of "h" with approximately "rez" buckets and with
-   the  ":" of the output in column "indent".  If "rez" = 0 then histogram
-   is printed in the finest bucket resolution possible.  (N.B. A call
-   to print histogram has the effect of shifting it to bucket mode
-   regardless of how many samples have been added thus far.)  The
-   function returns the field width used to print the frequency (in
-   case one would like to add some aligned columns after the output). */
 
-extern void print_histogram(FILE *,Histogram_t *, int rez, int indent);
+static HistoDataType *myindexdata (HistoDataType *aa,int i) {
+  MyHistoDataType *a = (MyHistoDataType *)aa;
+  return (HistoDataType *)&(a[i]);
+}
 
-/* Return the average of the data points in histogram "h" */
+static void mysetdata (HistoDataType *aa,int i,HistoDataType *bb) {
+  MyHistoDataType *a = (MyHistoDataType *)aa;
+  MyHistoDataType *b = (MyHistoDataType *)bb;
+  a[i] = *b;
+}
 
-extern double histogram_avg(Histogram_t *);
+static void myaggregate (HistoDataType *aa,int i,HistoDataType *bb) {
+  MyHistoDataType *a = (MyHistoDataType *)aa;
+  MyHistoDataType *b = (MyHistoDataType *)bb;
+  a[i].nsamples  += b->nsamples;
+  a[i].sum_frags += b->sum_frags;
+  a[i].min_frags  = MIN(a[i].min_frags,b->min_frags);
+  a[i].max_frags  = MAX(a[i].max_frags,b->max_frags);
+  // Just the randomly sampled fragments:
+  a[i].sum_rs_frags += b->sum_rs_frags;
+  a[i].min_rs_frags  = MIN(a[i].min_rs_frags,b->min_rs_frags);
+  a[i].max_rs_frags  = MAX(a[i].max_rs_frags,b->max_rs_frags);
+  // Just the non-randomly sampled fragments:
+  a[i].sum_nr_frags += b->sum_nr_frags;
+  a[i].min_nr_frags  = MIN(a[i].min_nr_frags,b->min_nr_frags);
+  a[i].max_nr_frags  = MAX(a[i].max_nr_frags,b->max_nr_frags);
+  a[i].sum_bp    += b->sum_bp;
+  a[i].min_bp     = MIN(a[i].min_bp,b->min_bp);
+  a[i].max_bp     = MAX(a[i].max_bp,b->max_bp);
+  a[i].sum_rho   += b->sum_rho;
+  a[i].min_rho    = MIN(a[i].min_rho,b->min_rho);
+  a[i].max_rho    = MAX(a[i].max_rho,b->max_rho);
+  a[i].sum_arrival += b->sum_arrival;
+  a[i].min_arrival  = MIN(a[i].min_arrival,b->min_arrival);
+  a[i].max_arrival  = MAX(a[i].max_arrival,b->max_arrival);
+  a[i].sum_discr   += b->sum_discr;
+  a[i].min_discr    = MIN(a[i].min_discr,b->min_discr);
+  a[i].max_discr    = MAX(a[i].max_discr,b->max_discr);
+}
 
-/* Return the standard deviation of the data points in histogram "h" */
+static void myprintdata (FILE *fout,
+                         HistoDataType *d,
+                         HistoDataType *s,
+                         HistoDataType *a) {
+  MyHistoDataType *data      = (MyHistoDataType *) d;
+  MyHistoDataType *scan_data = (MyHistoDataType *) s;
+  MyHistoDataType *aggr_data = (MyHistoDataType *) a;
+  
+  fprintf(fout,"\n"
+	  "  frags   %10d %10d %10.5f   %6d %6d %6d\n"
+	  "  rs frag %10d %10d %10.5f   %6d %6d %6d\n"
+	  "  nr frag %10d %10d %10.5f   %6d %6d %6d\n"
+	  "  bases   %10"F_S64P " %10"F_S64P " %10.5f   %6"F_S64P" %6"F_S64P" %6"F_S64P"\n"
+	  "  rho     %10"F_S64P " %10"F_S64P " %10.5f   %6"F_S64P" %6"F_S64P" %6"F_S64P"\n"
+	  "  arrival %10d %10d %10.5f   %6d %6d %6d\n"
+	  "  discr   %10d %10d %10.5f   %6d %6d %6d\n",
+	  /* data->nsamples, */
 
-extern double histogram_stdev(Histogram_t *);
+	  data->sum_frags,
+	  scan_data->sum_frags,
+	  ( aggr_data->sum_frags > 0 ? ((float)scan_data->sum_frags)/ ((float)aggr_data->sum_frags) : 0.),
+	  data->min_frags,
+	  (data->nsamples > 0 ? data->sum_frags / data->nsamples : 0),
+	  data->max_frags,
+
+	  data->sum_rs_frags,
+	  scan_data->sum_rs_frags,
+	  ( aggr_data->sum_rs_frags > 0 ? ((float)scan_data->sum_rs_frags)/ ((float)aggr_data->sum_rs_frags) : 0.),
+	  data->min_rs_frags,
+	  (data->nsamples > 0 ? data->sum_rs_frags / data->nsamples : 0),
+	  data->max_rs_frags,
+
+	  data->sum_nr_frags,
+	  scan_data->sum_nr_frags,
+	  ( aggr_data->sum_nr_frags > 0 ? ((float)scan_data->sum_nr_frags)/ ((float)aggr_data->sum_nr_frags) : 0.),
+	  data->min_nr_frags,
+	  (data->nsamples > 0 ? data->sum_nr_frags / data->nsamples : 0),
+	  data->max_nr_frags,
+
+	  data->sum_bp,
+	  scan_data->sum_bp,
+	  ((float)scan_data->sum_bp)/((float)aggr_data->sum_bp),
+	  data->min_bp,
+	  (data->nsamples > 0 ? data->sum_bp / data->nsamples : 0),
+	  data->max_bp,
+
+	  data->sum_rho,
+	  scan_data->sum_rho,
+	  ( aggr_data->sum_rho > 0 ? ((float)scan_data->sum_rho)/ ((float)aggr_data->sum_rho) : 0.),
+	  data->min_rho,
+	  (data->nsamples > 0 ? data->sum_rho/data->nsamples : 0),
+	  data->max_rho,
+
+	  data->sum_arrival,
+	  scan_data->sum_arrival,
+	  ( aggr_data->sum_arrival > 0 ? ((float)scan_data->sum_arrival)/ ((float)aggr_data->sum_arrival) : 0.),
+	  data->min_arrival,
+	  (data->nsamples > 0 ? data->sum_arrival / data->nsamples : 0),
+	  data->max_arrival,
+
+	  data->sum_discr,
+	  scan_data->sum_discr,
+	  ( aggr_data->sum_discr > 0 ? ((float)scan_data->sum_discr)/ ((float)aggr_data->sum_discr) : 0.),
+	  data->min_discr,
+	  (data->nsamples > 0 ? data->sum_discr / data->nsamples : 0),
+	  data->max_discr);
+}
+
 
 #endif /*AS_CGB_HISTO_INCLUDE*/

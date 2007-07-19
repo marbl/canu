@@ -19,73 +19,41 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_main.c,v 1.11 2007-07-18 15:19:55 brianwalenz Exp $";
-
-/*********************************************************************
- *
- * Module:  AS_CGB_main.c
- * Description:
- *    Unitigger main
- * 
- *    Reference: ChunkGraphBuilder.rtf
- *
- *    Command Line Interface:
- *        $ cgb
- *
- * -p <parameterPath>    If specified, parameters are loaded from this path
- * -X Enable developer's options.
- *    Any option not stated in the tool's SOP should require this flag
- * -P Output is ASCII (default is binary)
- * -D <level>  Specify debug level (only valid with -X)
- * -v <level>  Specify verbosity level (only valid with -X)
- * -A <level> Run the graph analyzer
- * -E <int>  The number of errors allowed.
- * -C <string> The check-pointing information.
- * -R <string> The restart information.
- *
- *        -l the length of the genome
- *        -C Use a consensus sequence to compute the branch points
- *        -R <int> Which global containment rule to use.
- *        -W <int> Limit of search depth for fragment graph walking in 
- *           transitively inferable overlap removal.
- *        -Y Do not bother to count chimeras
- *
- *       gkpStorePath:   Used to find/create a directory that contains the
- *       fragment store 
- *
- *       GraphStorePath:  Used to read/write a fragment graph store.
- *      
- *       OverlapInputFile: The file with new OVL records to process. 
- *
- *       Unitigger processes the input file, reporting errors and
- *       warnings.  Any message that causes an error warning is output
- *       to stderr, along with the associated warning/error messages.
- *       The fragment graph stage produces a <inputFile>.fgb file 
- *       and the UnitiggerStore is updated. The chunk graph builder stage
- *       reads the UnitiggerStore and produces a <inputFile>.cgb 
- *       In addition an optional <inputFile>.cga file is produced
- *       with diagnostic information about the fragment overlap graph
- *       and the unitig graph.
- *
- *       See ChunkGraphBuilder.rtf for descriptions of the checks
- *       performed.
- *
- *    Programmer:  C. M. Mobarry
- *       Written:  Jan 1999
- * 
- *********************************************************************/
+static char CM_ID[] = "$Id: AS_CGB_main.c,v 1.12 2007-07-19 09:50:30 brianwalenz Exp $";
 
 #include "AS_UTL_version.h"  
 #include "AS_CGB_all.h"
 #include "AS_CGB_unitigger_globals.h"
 
-
 #undef SWITCH_CONTAINMENT_DIRECTION_CGB
-
 
 extern int REAPER_VALIDATION;
 
+//  AS_CGB_classify.c
+void chunk_classification_dvt(Tfragment frags[],
+                              Tedge edges[],
+                              const int walk_depth);
 
+//  AS_CGB_cgb.c
+void chunk_graph_build_1(const char * const Graph_Store_File_Prefix,
+                         const int work_limit_placing_contained_fragments,		  
+                         const int walk_depth,
+                         const IntFragment_ID max_frag_iid,
+                         const int64  nbase_in_genome,
+                         const char * chimeras_file,
+                         const char * spurs_file,
+                         const int recalibrate_global_arrival_rate,
+                         const float cgb_unique_cutoff,
+                         // Don't count chimeras
+                         /* Input/Output */
+                         Tfragment frags[],
+                         Tedge     edges[],
+                         /* Output Only */
+                         float         *global_fragment_arrival_rate,
+                         // This rate is the number of fragments/bp, which in the design space
+                         // is between zero and one.
+                         TChunkFrag    *chunkfrags,
+                         TChunkMesg    *thechunks);
 
 
 static IntEdge_ID get_the_thickest_dvt_overlap_from_vertex

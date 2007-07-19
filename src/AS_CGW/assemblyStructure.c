@@ -20,7 +20,7 @@
  *************************************************************************/
 
 
-static char CM_ID[] = "$Id: assemblyStructure.c,v 1.8 2007-04-16 17:36:31 brianwalenz Exp $";
+static char CM_ID[] = "$Id: assemblyStructure.c,v 1.9 2007-07-19 09:50:32 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -102,8 +102,6 @@ void process_frags_in_UTG(ChunkInstanceT *ci, int ciIsAtoB){
 
   ium_mesg.coverage_stat = ci->info.CI.coverageStat;
   ium_mesg.status = status;
-  ium_mesg.a_branch_point = ci->info.CI.branchPointA;
-  ium_mesg.b_branch_point = ci->info.CI.branchPointB;
   ium_mesg.length = GetMultiAlignLength(ma);
   ium_mesg.consensus = Getchar(ma->consensus,0);
   ium_mesg.quality = Getchar(ma->quality,0);

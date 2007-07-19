@@ -18,28 +18,19 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.18 2007-07-18 15:19:55 brianwalenz Exp $";
-/*********************************************************************
- *
- * Module: AS_CGB_unitigger.c
- * Description:
- *    Unitigger main
- * 
- *    Programmer:  C. M. Mobarry
- *       Written:  Dec 2001
- *     ReWritten:  Apr 2007, B.Walenz
- * 
- *********************************************************************/
 
-#include "AS_CGB_all.h"
+static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.19 2007-07-19 09:50:31 brianwalenz Exp $";
+
 #include "AS_UTL_version.h"
-#include "AS_CGB_unitigger_globals.h"
+#include "AS_CGB_all.h"
 #include "AS_CGB_Bubble.h"
 
 extern int REAPER_VALIDATION;
 
-
-
+void
+chunk_graph_analysis(THeapGlobals *heapva,
+                     TStateGlobals *gstate,
+                     UnitiggerGlobals *rg);
 
 
 void
@@ -127,8 +118,6 @@ output_the_chunks(const Tfragment frags[],
     achunk.source         = "gen> @@ [0,0]";
     achunk.coverage_stat  = coverage_statistic;
     achunk.status         = AS_UNASSIGNED;
-    achunk.a_branch_point = mychunk->a_branch_point;
-    achunk.b_branch_point = mychunk->b_branch_point;
 
     achunk.consensus      = "";
     achunk.quality        = "";
@@ -188,7 +177,7 @@ ParseCommandLine(UnitiggerGlobals * rg,
   while (!errflg && 
          ((ch = getopt(argc, argv, 
                        "A:B:C:D:E:F:G:H:I:K:L:M:N:O:PQ:R:S:V:U:W:XY:"
-                       "a:cd:e:fg:hi:j:kl:m:n:o:p:qr:st:u:v:w:x:y:z:"
+                       "a:cd:e:fg:hi:j:kl:m:n:o:p:r:st:u:v:w:x:y:z:"
                        "156:789"
                        )) != EOF)) {
 
@@ -355,9 +344,6 @@ ParseCommandLine(UnitiggerGlobals * rg,
         rg->Output_Graph_Store_Prefix = (char *)optarg;
         break;
 
-      case 'q':
-        rg->dont_find_branch_points = TRUE;
-        break;
       case 'r':
         // -r <filename> : identify iid file
         rg->iid_file = optarg;
@@ -501,7 +487,6 @@ ParseCommandLine(UnitiggerGlobals * rg,
             "\t-n <nFrag>      Pre-allocate memory\n"
             "\t-o <pfx>        output to this prefix.\n"
             "\t-p <file>       Specify the parameters file.\n"
-            "\t-q              Do not find branch points.\n"
             "\t-s              Disable early spur fragment removal.\n"
             "\t-u <filename>   Create a OVL compatible dump of the graph.\n"
             "\t-v <int>        Specify a verbosity level.\n"
@@ -640,38 +625,8 @@ main(int argc, char **argv) {
 
     goto again;
   }
-  
 
-
-
-  char strtmp2[FILENAME_MAX];
-
-  sprintf(strtmp2,"%s.cga.0",rg->Output_Graph_Store_Prefix);
-  FILE *fcga = fopen(strtmp2, "w");
-
-  sprintf(strtmp2,"%s.cam.0",rg->Output_Graph_Store_Prefix);
-  FILE *fcam = fopen(strtmp2, "w");
-
-  sprintf(strtmp2,"%s.cus.0",rg->Output_Graph_Store_Prefix);
-  FILE *fstat = fopen(strtmp2, "w");
-
-  chunk_graph_analysis(gstate->max_frag_iid,
-                       heapva->frags,
-                       heapva->edges,
-                       gstate->nbase_in_genome,
-                       rg->recalibrate_global_arrival_rate,
-                       rg->cgb_unique_cutoff,
-                       gstate->global_fragment_arrival_rate,
-                       rg->bubble_boundaries_filename,
-                       heapva->chunkfrags,
-                       heapva->thechunks,
-                       fcga, fcam, fstat, stderr );
-
-  fclose(fcga);
-  fclose(fcam);
-  fclose(fstat);
-
-
+  chunk_graph_analysis(heapva, gstate, rg);
 
   output_the_chunks(heapva->frags,
                     heapva->edges,

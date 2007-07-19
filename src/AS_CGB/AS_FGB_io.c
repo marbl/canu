@@ -18,19 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] 
-= "$Id: AS_FGB_io.c,v 1.20 2007-05-14 13:40:55 brianwalenz Exp $";
-/* *******************************************************************
- *
- * Module: AS_FGB_io.c
- * 
- * Description: Fragment Overlap Graph Builder file input and output.
- * This functional unit reads a *.ovl prototype i/o file
- * an massages it for the data structures in the chunk graph builder.
- *
- * Assumptions: 
- * Author: Clark M. Mobarry
- *********************************************************************/
+
+static char CM_ID[] = "$Id: AS_FGB_io.c,v 1.21 2007-07-19 09:50:32 brianwalenz Exp $";
+
+//  Fragment Overlap Graph Builder file input and output.  This
+//  functional unit reads a *.ovl prototype i/o file an massages it
+//  for the data structures in the chunk graph builder.
 
 #include <assert.h>
 #include <errno.h>
@@ -43,7 +36,6 @@ static char CM_ID[]
 #include "AS_UTL_version.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_CGB_all.h"
-#include "AS_CGB_util.h"
 #include "AS_OVS_overlapStore.h"
 
 
@@ -57,7 +49,7 @@ int REAPER_VALIDATION = FALSE;
 //  computed, and don't remove those overlaps.  You'll probably have
 //  trouble in CGW, so good luck!
 //
-#undef USE_FRAGMENT_SUBSET
+#define USE_FRAGMENT_SUBSET
 
 //  Define to print a message whenever we read an overlap
 //  that refers to a non-existent frag.
@@ -145,7 +137,6 @@ static void Insert_Aedge_into_the_edge_array_wrapper
  int           con_double_sided_threshold_fragment_end_degree
  )
 {
-  const QsortCompare compare_edge = get_compare_edge_function();
   const IntFragment_ID avx = the_edge->avx;
   const int asx = the_edge->asx;
   const int ahg = the_edge->ahg;
@@ -171,14 +162,14 @@ static void Insert_Aedge_into_the_edge_array_wrapper
             );
       set_segend_vertex(frags,avx,asx,iedge);
     }
-    keep_a_list_of_extreme_elements
-      ( the_edge,
-        GetVA_IntEdge_ID(next_edge_obj,0),
-        get_segend_vertex(frags,avx,asx),
-        GetVA_Aedge(edges,0),
-        sizeof(Aedge),
-        compare_edge,
-        -1);  // save the minimum ahg elements.
+    keep_a_list_of_extreme_elements(the_edge,
+                                    GetVA_IntEdge_ID(next_edge_obj,0),
+                                    get_segend_vertex(frags,avx,asx),
+                                    GetVA_Aedge(edges,0),
+                                    sizeof(Aedge),
+                                    compare_edge_function,
+                                    -1);  // save the minimum ahg elements.
+
   }else { // A containment overlap a.k.a. not a dovetail overlap.
     const int degree=get_seglen_frc_vertex(frags,avx,asx);
     assert( degree >= 0 );
@@ -199,19 +190,15 @@ static void Insert_Aedge_into_the_edge_array_wrapper
             );
       set_segstart_vertex(frags,avx,asx,iedge);
     }
-    keep_a_list_of_extreme_elements
-      ( the_edge,
-        GetVA_IntEdge_ID(next_edge_obj,0),
-        get_segstart_vertex(frags,avx,asx),
-        GetVA_Aedge(edges,0),
-        sizeof(Aedge),
-        compare_edge,
-#ifndef CONTAINMENT_STACKING
-        -1  // save the minimum ahg elements.
-#else // CONTAINMENT_STACKING
-        1   // save the minimum abs(ahg) elements.
-#endif // CONTAINMENT_STACKING
-        );
+
+    //  "CONTAINMENT_STACKING" changed the -1 below to a 1.
+    keep_a_list_of_extreme_elements(the_edge,
+                                    GetVA_IntEdge_ID(next_edge_obj,0),
+                                    get_segstart_vertex(frags,avx,asx),
+                                    GetVA_Aedge(edges,0),
+                                    sizeof(Aedge),
+                                    compare_edge_function,
+                                    -1);
 
     {
       const int degree=get_seglen_frc_vertex(frags,avx,asx);
@@ -286,7 +273,7 @@ static void add_overlap_to_graph
   const int ibsx = an_edge.bsx;
   const int ibhg = an_edge.bhg;
 
-  const Tnes ines = AS_CGB_SafeCast_cdsInt8_to_Tnes(an_edge.nes);
+  const Tnes ines = (Tnes)an_edge.nes;
   const uint32 qua = an_edge.quality;
   const int iinv = an_edge.invalid;
   //const int grangered = an_edge.grangered;
@@ -646,11 +633,6 @@ process_gkp_store_for_fragments(char *gkpStoreName,
       // fragment containing this one in a unitig layout graph.
       set_container_fragment(frags, vid,0); 
 
-#ifdef STORE_BRANCH_POINTS_AT_FRAGMENT
-      set_bpt_vertex(frags, vid, FALSE, 0); // Sentinal for no branch point.
-      set_bpt_vertex(frags, vid, TRUE, 0);
-#endif // STORE_BRANCH_POINTS_AT_FRAGMENT
-
       // Set the counts of raw overlaps seen to zero.
       set_raw_dvt_count_vertex(frags, vid, FALSE, 0);
       set_raw_dvt_count_vertex(frags, vid, TRUE, 0);
@@ -665,8 +647,6 @@ process_gkp_store_for_fragments(char *gkpStoreName,
 
       set_blessed_vertex(frags, vid, FALSE, FALSE);
       set_blessed_vertex(frags, vid, TRUE, FALSE);
-
-      set_src_fragment(frags, vid, 0);
 
       vid++;
     }
@@ -726,35 +706,43 @@ void process_ovl_store(char * OVL_Store_Path,
   //  A_frag  >>>>>>>>>>
   //  B_frag  >>>>>>>>>>
   while  (AS_OVS_readOverlapFromStore(ovs, &olap, AS_OVS_TYPE_OVL)) {
-    Aedge  e = {0};
 
-    int improper = (((olap.dat.ovl.a_hang <  0) && (olap.dat.ovl.b_hang <  0)) ||
-                    ((olap.dat.ovl.a_hang == 0) && (olap.dat.ovl.b_hang <  0)) ||
-                    ((olap.dat.ovl.a_hang <  0) && (olap.dat.ovl.b_hang == 0)));
+    //  If the overlap is good enough quality, and we've seen the
+    //  frags before (in case we deleted a few from the store after we
+    //  computed overlaps), process the overlap.
+    //
+    if ((olap.dat.ovl.corr_erate <= overlap_error_threshold) &&
+        (get_vid_FragmentHash(afr_to_avx, olap.a_iid) != AS_CGB_NOT_SEEN_YET) &&
+        (get_vid_FragmentHash(afr_to_avx, olap.b_iid) != AS_CGB_NOT_SEEN_YET)) {
 
-    e.avx = olap.a_iid;
-    e.asx = !improper;
-    e.ahg = (improper ? -olap.dat.ovl.b_hang : olap.dat.ovl.a_hang);
+      Aedge  e = {0};
+
+      int improper = (((olap.dat.ovl.a_hang <  0) && (olap.dat.ovl.b_hang <  0)) ||
+                      ((olap.dat.ovl.a_hang == 0) && (olap.dat.ovl.b_hang <  0)) ||
+                      ((olap.dat.ovl.a_hang <  0) && (olap.dat.ovl.b_hang == 0)));
+
+      e.avx = olap.a_iid;
+      e.asx = !improper;
+      e.ahg = (improper ? -olap.dat.ovl.b_hang : olap.dat.ovl.a_hang);
   
-    e.bvx = olap.b_iid;
-    e.bsx = (!improper) ^ (!olap.dat.ovl.flipped);
-    e.bhg = (improper ? -olap.dat.ovl.a_hang : olap.dat.ovl.b_hang);
+      e.bvx = olap.b_iid;
+      e.bsx = (!improper) ^ (!olap.dat.ovl.flipped);
+      e.bhg = (improper ? -olap.dat.ovl.a_hang : olap.dat.ovl.b_hang);
   
-    e.nes       = (is_a_dvt_simple(e.ahg, e.bhg) ? AS_CGB_DOVETAIL_EDGE : AS_CGB_CONTAINED_EDGE);
-    e.quality   = olap.dat.ovl.corr_erate;
-    e.invalid   = FALSE;
-    e.reflected = FALSE;
-    e.grangered = FALSE;
-    e.blessed   = FALSE;
+      e.nes       = (is_a_dvt_simple(e.ahg, e.bhg) ? AS_CGB_DOVETAIL_EDGE : AS_CGB_CONTAINED_EDGE);
+      e.quality   = olap.dat.ovl.corr_erate;
+      e.invalid   = FALSE;
+      e.reflected = FALSE;
+      e.grangered = FALSE;
+      e.blessed   = FALSE;
 
-    assert((e.ahg > 0) || (e.bhg > 0) || ((e.ahg == 0) && (e.bhg == 0)));
+      assert((e.ahg > 0) || (e.bhg > 0) || ((e.ahg == 0) && (e.bhg == 0)));
 
-    // Avoid entering the containment overlap twice.
-    if(((AS_CGB_CONTAINED_EDGE == e.nes) &&
-        (is_a_frc_simple(e.ahg,e.bhg))))
-      continue;
+      // Avoid entering the containment overlap twice.
+      if(((AS_CGB_CONTAINED_EDGE == e.nes) &&
+          (is_a_frc_simple(e.ahg,e.bhg))))
+        continue;
 
-    if (e.quality <= overlap_error_threshold)
       add_overlap_to_graph(e,
                            frags,
                            edges,
@@ -766,8 +754,8 @@ void process_ovl_store(char * OVL_Store_Path,
                            &novl_dovetail,
                            &novl_containment,
                            &nedges_delta);
+    }
   }
- 
   AS_OVS_closeOverlapStore(ovs);
 
   fprintf(stderr,"novl_dovetail    = " F_IID "\n", novl_dovetail);

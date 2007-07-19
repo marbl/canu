@@ -19,198 +19,16 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/*********************************************************************
- * Module: AS_CGB_methods.h
- *
- * Description: The methods to access the vertex and edge data store.
- *
- * Assumptions: That the user will be "good" and not access the data
- * without using the get_*, set_*, sum_*, and copy_* methods.
- *
- * Author: Clark Mobarry
- *********************************************************************/
+//  The methods to access the vertex and edge data store.
 
 #ifndef AS_CGB_METHODS_INCLUDE
 #define AS_CGB_METHODS_INCLUDE
 
 #include "AS_OVS_overlapStore.h"
 
-typedef struct {
-  IntFragment_ID  avx,bvx;
-  int16       ahg,bhg; 
-
-  uint32    quality : 16;  // zero is a perfect overlap
-  uint32    nes : 8;      // The edge labeling.
-  uint32    asx : 1;
-  uint32    bsx : 1;
-  uint32    reflected : 1; // Is this a direction mate edge.
-  uint32    grangered : 1;
-  uint32    invalid : 1; // Is this edge known to be invalid?
-  uint32    blessed : 1;
-  uint32    bit6 : 1;
-  uint32    bit7 : 1;
-} Aedge;
-
-
-typedef struct { 
-  uint64  src; /* An index into the character array
-                      "the_source_text" holding the simulator source
-                      info. */
-  IntFragment_ID  iid; /* The Celera Genomics Assembler Gatekeeper IID 
-		      for this fragment read. */
-  IntChunk_ID cid; /* The linkage to chunks. Needed due to the way
-                      that interchunk edges are made. */
-  IntEdge_ID  segbgn_prefix;/* The starting location of a segment of 
-			   raw fragment overlaps to the prefix. */
-  IntEdge_ID  segbgn_suffix;/* The starting location of a segment of 
-			   fragment overlaps to the suffix. */
-  IntEdge_ID  segend_prefix;/* The ending location of a segment of 
-			   raw fragment overlaps to the prefix. */
-  IntEdge_ID  segend_suffix;/* The ending location of a segment of 
-			   fragment overlaps to the suffix. */
-  int32   nprefix_all;  /* The segment length of the prefix-only 
-			   fragment overlaps. */
-  int32   nsuffix_all;  /* The segment length of the suffix-only 
-			   fragment overlaps. */
-  int32   nprefix_dvt; /* Recomputable */
-  // The segment length of the prefix-only fragment dovetail edges.
-  int32   nsuffix_dvt; /* Recomputable */
-  // The segment length of the suffix-only fragment dovetail edges.
-  int32   nprefix_frc; /* Recomputable */
-  // The segment length of the prefix-only fragment containment edges.
-  int32   nsuffix_frc; /* Recomputable */
-  // The segment length of the suffix-only fragment containment edges.
-
-
-  int32   raw_prefix_dvt_count;
-  // The segment length of the raw prefix-only fragment dovetail overlaps.
-  int32   raw_suffix_dvt_count;
-  // The segment length of the raw suffix-only fragment dovetail overlaps.
-  int32   raw_frc_count;
-  int32   raw_toc_count;
-  
-  IntFragment_ID  container;  /* Recomputable */
-  // A zero value means that the fragment is not contained by any
-  // other fragment.  A positive value is the fragment IID of the
-  // container fragment.  This scheme depends on the Assembler IO
-  // convention that Fragment IIDs are positive integers.
-
-  BPTYPE      offset3p;
-  BPTYPE      offset5p;
-  FragType    frag_type;
-  // The laboratory designation of the fragment type.
-
-  Tlab        label; /* Recomputable */
-  // The chunk labeling of fragments.
-  // AS_CGB_THRU_FRAG, AS_INTERCHUNK_FRAG,
-  // AS_CGB_INTRACHUNK_FRAG, AS_CGB_CONTAINED_FRAG,
-  // AS_CGB_DELETED_FRAG, etc ?
-
-  int16   bp_length;
-  // The length of the fragment read in bp.
-  
-#ifdef STORE_BRANCH_POINTS_AT_FRAGMENT
-  int16       pre_br;  /* Recomputable */
-  int16       suf_br;  /* Recomputable */
-  int16       pre_end;  /* Recomputable */
-  int16       suf_end;  /* Recomputable */
-  /* URT branch point info. The non-existence of a branch point is
-     signaled by (pre_br==0)&&(suf_br==0). */
-#endif 
-
-  /* FGB bit flags: */
-  unsigned int deleted : 1;
-  // A flag indicating if this fragment is deleted in the fragment
-  // graph.
-  unsigned int contained : 1;  /* Recomputable */
-  // A flag indicating if this fragment is contained in the fragment
-  // graph.
-  unsigned int spur : 1;
-
-  unsigned int prefix_blessed : 1;
-  unsigned int suffix_blessed : 1;
-  unsigned int bit05 : 1; // Unused
-  unsigned int bit06 : 1;
-  unsigned int bit07 : 1; // Unused
-  unsigned int bit08 : 1;
-  unsigned int bit09 : 1;
-  unsigned int bit10 : 1;
-  unsigned int bit11 : 1;
-  unsigned int bit12 : 1;
-  unsigned int bit13 : 1;
-  unsigned int bit14 : 1;
-  unsigned int bit15 : 1;
-
-} Afragment;
-
-/******************************************************************/
-
-typedef struct {
-  IntFragment_ID vid;
-} AChunkFrag;
-
-typedef struct {
-  BPTYPE        bp_length;  
-  // the length in base pairs of the chunk.
-  BPTYPE        rho;        
-  IntChunk_ID   iaccession;
-  // An arbitrary, but dense and non-negative enumeration of the
-  // unitigs.
-  float       coverage_stat;
-  // Gene^s coverage statistic.
-  BranchType a_branch_type, b_branch_type; 
-  // the branch point characterization: AS_INTO_REPEAT,
-  // AS_INTO_UNIQUE, or AS_NO_BPOINT.
-  int32         a_branch_point;  // a bp distance from the A chunk-end.
-  int32         b_branch_point;  // a bp distance from the B chunk-end.
-  // branch_point == 0 means AS_NO_BPOINT
-  // branch_point >  0 means AS_INTO_UNIQUE
-  // branch_point <  0 means AS_INTO_REPEAT
-
-  IntFragment_ID    chunk_avx; /* The A and B vertices of the chunk. */
-  IntFragment_ID    chunk_bvx;
-  int32     chunk_asx;
-  int32     chunk_bsx;
-  IntFragment_ID    num_frags;
-  IntFragment_ID    f_list; /* The index into a TChunkFrag array. */
-
-  // The following is not necessary. The info available from
-  // fragment-end info, chunk_avx, chunk_asx, chunk_bvx, and chunk_bsx.
-  int32         a_degree_raw; 
-  int32         b_degree_raw;
-  IntEdge_ID        a_list_raw;
-  IntEdge_ID        b_list_raw;
-
-  size_t        seq_loc; /* An index into a character array that
-			 stores a consensus sequence of the chunk. */
-  size_t        seq_len; // The length of the consensus sequence of the chunk.
-  size_t        qua_loc; /* An index into a character array that
-			 stores a quality sequence of the chunk. */
-  size_t        qua_len; // The length of the quality sequence of the chunk.
-  size_t        isrc; /* An index into a character array that
-			 stores an annotation string about the chunk. */
-  int8 asl,bsl; 
-  // Flags indicating whether the A and B chunk-ends are probably
-  // touching a tandem repeat region.
-} AChunkMesg;
-
-
-/* The following uses AS_UTL_Var.h. */
-VA_DEF(Aedge)
-VA_DEF(Afragment)
-typedef VA_TYPE(Aedge)   Tedge;
-typedef VA_TYPE(Afragment) Tfragment;
-VA_DEF(AChunkFrag)
-VA_DEF(AChunkMesg)
-typedef VA_TYPE(AChunkFrag) TChunkFrag;
-typedef VA_TYPE(AChunkMesg) TChunkMesg;
-VA_DEF(IntEdge_ID)
-typedef VA_TYPE(IntEdge_ID) TIntEdge_ID;
-
 #define VAgetaccess(Type,va,index,member)  (((Type *)GetElement_VA(va,index))->member)
 
 /* Object access functions */
-
 
 #pragma inline copy_one_fragment
 static void copy_one_fragment
@@ -439,19 +257,15 @@ static void set_lab_fragment(Tfragment frags[],IntFragment_ID i,Tlab value)
 { VAgetaccess(Afragment,frags,i,label) = value;}
 
 #pragma inline set_o3p_fragment
-static void set_o3p_fragment(Tfragment frags[],IntFragment_ID i,BPTYPE value)
-{ VAgetaccess(Afragment,frags,i,offset3p) = (BPTYPE) value;}
+static void set_o3p_fragment(Tfragment frags[],IntFragment_ID i,int64  value)
+{ VAgetaccess(Afragment,frags,i,offset3p) = (int64 ) value;}
 #pragma inline set_o5p_fragment
-static void set_o5p_fragment(Tfragment frags[],IntFragment_ID i,BPTYPE value)
-{ VAgetaccess(Afragment,frags,i,offset5p) = (BPTYPE) value;}
+static void set_o5p_fragment(Tfragment frags[],IntFragment_ID i,int64  value)
+{ VAgetaccess(Afragment,frags,i,offset5p) = (int64 ) value;}
 
 #pragma inline set_length_fragment
 static void set_length_fragment(Tfragment frags[],IntFragment_ID i,int32 value)
 { VAgetaccess(Afragment,frags,i,bp_length) = (int16)value;}
-
-#pragma inline set_src_fragment
-static void set_src_fragment(Tfragment frags[],IntFragment_ID i,size_t value)
-{ VAgetaccess(Afragment,frags,i,src) = (size_t)value;}
 
 #pragma inline set_cid_fragment
 static void set_cid_fragment(Tfragment frags[],IntFragment_ID i,IntChunk_ID value)
@@ -479,7 +293,6 @@ static void set_spur_fragment(Tfragment frags[],IntFragment_ID i,int value)
 #pragma inline get_o3p_fragment
 #pragma inline get_o5p_fragment
 #pragma inline get_length_fragment
-#pragma inline get_src_fragment
 #pragma inline get_cid_fragment
 #pragma inline get_container_fragment
 #pragma inline get_del_fragment
@@ -494,10 +307,10 @@ static FragType get_typ_fragment(const Tfragment * const frags,IntFragment_ID i)
 static Tlab get_lab_fragment(const Tfragment * const frags,IntFragment_ID i)
 { return (Tlab) VAgetaccess(Afragment,frags,i,label);}
 
-static BPTYPE get_o3p_fragment(const Tfragment * const frags,IntFragment_ID i)
-{ return (BPTYPE) VAgetaccess(Afragment,frags,i,offset3p);}
-static BPTYPE get_o5p_fragment(const Tfragment * const frags,IntFragment_ID i)
-{ return (BPTYPE) VAgetaccess(Afragment,frags,i,offset5p);}
+static int64  get_o3p_fragment(const Tfragment * const frags,IntFragment_ID i)
+{ return (int64 ) VAgetaccess(Afragment,frags,i,offset3p);}
+static int64  get_o5p_fragment(const Tfragment * const frags,IntFragment_ID i)
+{ return (int64 ) VAgetaccess(Afragment,frags,i,offset5p);}
 
 static int get_forward_fragment(const Tfragment * const frags,IntFragment_ID i)
 { return (VAgetaccess(Afragment,frags,i,offset3p) >
@@ -507,8 +320,6 @@ static int get_forward_fragment(const Tfragment * const frags,IntFragment_ID i)
 static int32 get_length_fragment(const Tfragment * const frags,IntFragment_ID i)
 { return (int32) VAgetaccess(Afragment,frags,i,bp_length);}
 
-static size_t get_src_fragment(const Tfragment * const frags,IntFragment_ID i)
-{ return (size_t) VAgetaccess(Afragment,frags,i,src);}
 static IntChunk_ID get_cid_fragment(const Tfragment * const frags,IntFragment_ID i)
 { return (IntChunk_ID) VAgetaccess(Afragment,frags,i,cid);}
 static IntFragment_ID get_container_fragment
@@ -611,26 +422,6 @@ static int get_blessed_vertex
                  VAgetaccess(Afragment,frags,vid,suffix_blessed) :
                  VAgetaccess(Afragment,frags,vid,prefix_blessed) ); }
 
-
-#ifdef STORE_BRANCH_POINTS_AT_FRAGMENT
-#pragma inline get_bpt_vertex
-static int get_bpt_vertex
-(const Tfragment * const frags,IntFragment_ID i,int flag)
-{ return (int) (flag ?
-		       VAgetaccess(Afragment,frags,i,suf_br):
-		       VAgetaccess(Afragment,frags,i,pre_br));}
-
-#pragma inline set_bpt_vertex
-static void set_bpt_vertex
-(const Tfragment * const frags,IntFragment_ID i,int flag,int value)
-{
-  if(flag) { 
-    VAgetaccess(Afragment,frags,i,suf_br) = value;
-  } else {
-    VAgetaccess(Afragment,frags,i,pre_br) = value;
-  }
-}
-#endif // STORE_BRANCH_POINTS_AT_FRAGMENT
 
 #pragma inline set_blessed_vertex
 static void set_blessed_vertex
@@ -770,80 +561,5 @@ static void inc_raw_toc_count_fragment
 
 #undef VAgetaccess
 
-static int compare_edge_weak(const void * const aa, const void * const bb) 
-{
-  // This comparison function is used with ANSI qsort() for sorting
-  // the edges to form contiguous segments.
-  
-  // The lesser edge is the one we keep in the Reaper.
-  int icom;
-  Aedge *a = (Aedge *)aa;
-  Aedge *b = (Aedge *)bb;
-
-  icom = ((a->avx) - (b->avx));
-  if( icom == 0 ) {
-    icom = ((a->asx) - (b->asx));
-    //if( icom == 0 ) {
-    //icom = (b->blessed - a->blessed);
-      if( icom == 0 ) {
-        icom = ((a->ahg) - (b->ahg));
-        // Favor the minimum ahg.
-        if( icom == 0 ) {
-          icom = ((b->bhg) - (a->bhg));
-          // Favor the maximum bhg.
-          
-          if( icom == 0 ) {
-            // The following is unnecessary, but useful for the binary
-            // search in the adjaceny lists and regression output.
-            icom = ((a->bvx) - (b->bvx));
-            if( icom == 0 )
-              icom = ((a->bsx) - (b->bsx));
-          }
-        } // End of regression stuff.
-      }
-      //}
-  } 
-  return icom ;
-}
-
-
-static int compare_edge_strong(const void * const aa, const void * const bb) 
-{
-  // This comparison function is used with ANSI qsort() for sorting
-  // the edges to form contiguous segments.
-  
-  // The lesser edge is the one we keep in the Reaper.
-  int icom;
-  Aedge *a = (Aedge *)aa;
-  Aedge *b = (Aedge *)bb;
-
-  icom = ((a->avx) - (b->avx));
-  if( icom == 0 ) {
-    icom = ((a->asx) - (b->asx));
-    if( icom == 0 ) {
-      icom = (b->blessed - a->blessed);
-      if( icom == 0 ) {
-        icom = ((a->ahg) - (b->ahg));
-        // Favor the minimum ahg.
-        if( icom == 0 ) {
-          icom = ((b->bhg) - (a->bhg));
-          // Favor the maximum bhg.
-          
-          if( icom == 0 ) {
-            // The following is unnecessary, but useful for the binary
-            // search in the adjaceny lists and regression output.
-            icom = ((a->bvx) - (b->bvx));
-            if( icom == 0 ) {
-              icom = ((a->bsx) - (b->bsx));
-              if( icom == 0 )
-                icom = (a->reflected - b->reflected);
-            }
-          }
-        } // End of regression stuff.
-      }
-    }
-  }
-  return icom ;
-}
 
 #endif /* AS_CGB_METHODS_INCLUDE */

@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.20 2007-06-01 22:55:45 gdenisov Exp $";
+static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.21 2007-07-19 09:50:33 brianwalenz Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly
 //  pipeline and replaces internal accession numbers by external
@@ -167,8 +167,6 @@ convertIUM(GenericMesg *pmesg,
 #endif
   utgMesg.coverage_stat  = iumMesg->coverage_stat;
   utgMesg.status         = iumMesg->status;
-  utgMesg.a_branch_point = iumMesg->a_branch_point;
-  utgMesg.b_branch_point = iumMesg->b_branch_point;
   utgMesg.length         = iumMesg->length;
   utgMesg.consensus      = strdup(iumMesg->consensus);
   utgMesg.quality        = strdup(iumMesg->quality);

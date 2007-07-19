@@ -18,8 +18,8 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] 
-= "$Id: AS_CGB_Bubble_PopperMethods.c,v 1.6 2007-04-29 06:25:27 brianwalenz Exp $";
+
+static char CM_ID[] = "$Id: AS_CGB_Bubble_PopperMethods.c,v 1.7 2007-07-19 09:50:27 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -243,7 +243,7 @@ BP_discriminator(BubblePopper_t bp)
 {
   IntFragment_ID start_bid, end_bid, i;
   IntChunk_ID start_c, end_c;
-  BPTYPE total_len;
+  int64 total_len;
   int num_rand_frags;
   FragType type;
 
@@ -274,7 +274,7 @@ BP_discriminator(BubblePopper_t bp)
   }
 
 #if AS_CGB_BUBBLE_VERY_VERBOSE
-  fprintf(BUB_LOG_G, "Computing discriminator with length = " BPFORMAT " and num frags = %d.\n", total_len, num_rand_frags);
+  fprintf(BUB_LOG_G, "Computing discriminator with length = "F_S64P" and num frags = %d.\n", total_len, num_rand_frags);
 #endif
 
   return compute_coverage_statistic(total_len, num_rand_frags,

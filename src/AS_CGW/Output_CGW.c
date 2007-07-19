@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Output_CGW.c,v 1.23 2007-04-23 15:24:35 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Output_CGW.c,v 1.24 2007-07-19 09:50:32 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -735,8 +735,6 @@ void OutputUnitigsFromMultiAligns(void){
 #endif
       ium_mesg.coverage_stat = ci->info.CI.coverageStat;
       ium_mesg.status = status;
-      ium_mesg.a_branch_point = ci->info.CI.branchPointA;
-      ium_mesg.b_branch_point = ci->info.CI.branchPointB;
       ium_mesg.length = GetMultiAlignLength(ma);
       ium_mesg.consensus = Getchar(ma->consensus,0);
       ium_mesg.quality = Getchar(ma->quality,0);

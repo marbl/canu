@@ -18,23 +18,22 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGB_fga.c,v 1.11 2007-07-18 15:19:55 brianwalenz Exp $";
+
+static char CM_ID[] = "$Id: AS_CGB_fga.c,v 1.12 2007-07-19 09:50:28 brianwalenz Exp $";
 
 // Module: AS_CGB_fga.c
 // 
-// Description: A fragment graph analyser. This functional unit computes
-// whether fragment overlaps are valid.
+// A fragment graph analyser. This functional unit computes whether
+// fragment overlaps are valid.
 //
 // Author: Clark M. Mobarry
 
 #include "AS_CGB_all.h"
+#include "AS_CGB_histo.h"
 
 #define OUTPUT_DERIVED_QUANTITIES
 #undef HIDE_OVERHANGS
 #define DOVETAIL_OR_CONTAINED_FLAG
-
-
-
 
 
 void view_fgb_chkpnt(char * Store_File_Prefix,
