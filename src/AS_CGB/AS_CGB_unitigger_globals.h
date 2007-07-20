@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_CGB_unitigger_globals.h,v 1.10 2007-07-19 09:50:31 brianwalenz Exp $
+//  $Id: AS_CGB_unitigger_globals.h,v 1.11 2007-07-20 07:22:41 brianwalenz Exp $
 
 #ifndef AS_CGB_UNITIGGER_GLOBALS_INCLUDE
 #define AS_CGB_UNITIGGER_GLOBALS_INCLUDE
@@ -195,11 +195,8 @@ typedef struct {
 typedef struct {
   char * frag_store;
   char * chimeras_file;
-  char * ovl_file;
   char * spurs_file;
-  char * iid_file;
-  char * bubble_overlaps_filename;
-  char * bubble_boundaries_filename;
+  char   bubble_overlaps_filename[FILENAME_MAX];
   char * blessed_overlaps_input_filename;
   char * blessed_overlaps_output_filename;
   
@@ -207,7 +204,6 @@ typedef struct {
   int     num_ovl_files;
   char ** the_ovl_files;
   
-  char * program_name;
   char * OVL_Store_Path;
   // The directory containing the overlap store.
 
@@ -218,27 +214,19 @@ typedef struct {
   // The file name of the output fragments and overlaps in OVL format.
 
   char * ovl_files_list_fname;
-  char * Fragment_Subset_IIDs_File_Name;
-  // A file that subsets the active fragments by intersection.
 
-  int            as_proto_output;
   int            recalibrate_global_arrival_rate;
   int            dechord_the_graph;
   int            create_dump_file;
-  int            check_point_level;
-  int            compress_the_graph;
   int            walk_depth;
-  int            reaper_pass;
-  IntFragment_ID iv_start;
-  int            debug_level;
-  int            verbosity_level;
+
   float          cgb_unique_cutoff;
-  IntFragment_ID as_cgb_max_frag_iid;
+
   IntFragment_ID maxfrags;
   IntEdge_ID     maxedges;
   size_t         maxtext;
+
   int            work_limit_per_candidate_edge;
-  int            use_all_overlaps_in_reaper_pass;
   int            dvt_double_sided_threshold_fragment_end_degree;
   int            con_double_sided_threshold_fragment_end_degree;
   int            intrude_with_non_blessed_overlaps_flag;

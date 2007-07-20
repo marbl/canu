@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_FGB_main.c,v 1.17 2007-07-20 04:47:37 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_FGB_main.c,v 1.18 2007-07-20 07:22:41 brianwalenz Exp $";
 
 #include "AS_UTL_version.h"  
 #include "AS_CGB_all.h"
@@ -34,15 +34,12 @@ void fragment_graph_analysis(IntFragment_ID max_frag_iid,
 
 
 //  AS_CGB_fgb.c
-void transitive_edge_marking(TStateGlobals * gstate,
-                             THeapGlobals  * heapva,
-                             Tfragment     * frags,
+void transitive_edge_marking(Tfragment     * frags,
                              Tedge         * edges,
                              TIntEdge_ID   * next_edge_obj,
                              const int walk_depth,
                              const int cutoff_fragment_end_degree,
-                             const int work_limit_per_candidate_edge,
-                             const IntFragment_ID iv_start);
+                             const int work_limit_per_candidate_edge);
 
 //  AS_CGB_edgemate.c
 void append_the_edge_mates (Tfragment frags[],
@@ -66,7 +63,6 @@ void
 process_gkp_store_for_fragments(char *gkpStoreName,
                                 Tfragment   *frags,
                                 Tedge       *edges,
-                                IntFragment_ID *afr_to_avx,
                                 IntFragment_ID    *min_frag_iid,
                                 IntFragment_ID    *max_frag_iid);
 
@@ -174,80 +170,27 @@ static void process_one_ovl_file(const char Batch_File_Name[],
                                  const int dvt_double_sided_threshold_fragment_end_degree,
                                  const int con_double_sided_threshold_fragment_end_degree,
                                  const int intrude_with_non_blessed_overlaps_flag,
-                                 const uint32 overlap_error_threshold,
-                                 const int check_point_level) {
+                                 const uint32 overlap_error_threshold) {
   
-  if( check_point_level == 0 ) {
-    FILE *fovl = fopen(Batch_File_Name,"r");
-    if(NULL == fovl){
-      fprintf(stderr,"* Can not open input file %s\n",Batch_File_Name);
-      exit(1);
-    }
-    
-    input_messages_from_a_file(fovl,
-                               heapva->frags,
-                               heapva->edges,
-                               afr_to_avx, 
-                               heapva->next_edge_obj,
-                               dvt_double_sided_threshold_fragment_end_degree,
-                               con_double_sided_threshold_fragment_end_degree,
-                               intrude_with_non_blessed_overlaps_flag,
-                               overlap_error_threshold);
-    
-    fclose(fovl);
+  FILE *fovl = fopen(Batch_File_Name,"r");
+  if(NULL == fovl){
+    fprintf(stderr,"* Can not open input file %s\n",Batch_File_Name);
+    exit(1);
   }
+    
+  input_messages_from_a_file(fovl,
+                             heapva->frags,
+                             heapva->edges,
+                             afr_to_avx, 
+                             heapva->next_edge_obj,
+                             dvt_double_sided_threshold_fragment_end_degree,
+                             con_double_sided_threshold_fragment_end_degree,
+                             intrude_with_non_blessed_overlaps_flag,
+                             overlap_error_threshold);
+    
+  fclose(fovl);
 }
 
-
-
-
-static void delete_duplicate_edges
-(/* Input Only */
- Tfragment frags[], 
- /* Modify */
- Tedge edges[],
- TIntEdge_ID *next_edge_obj
- )
-{
-  /* 
-     This routine marks duplicated edges for deletion.
-     It is only effective when the edges are fully sorted.
-  */
-  //const IntFragment_ID nfrag = GetNumFragments(frags);
-  const IntEdge_ID nedge = GetNumEdges(edges);
-  IntEdge_ID ie1=0;
-
-  IntEdge_ID count=0;
-
-  for(ie1=1; ie1 < nedge; ie1++) {
-    const IntEdge_ID ie0 = ie1 - 1;
-    Aedge edge0 = *GetVA_Aedge(edges,ie0);
-    Aedge edge1 = *GetVA_Aedge(edges,ie1);
-    edge0.blessed = FALSE;
-    edge1.blessed = FALSE;
-    edge0.reflected = FALSE;
-    edge1.reflected = FALSE;
-    {
-      const int icompare = (*compare_edge_function)(&edge1,&edge0);
-      
-      assert(icompare >= 0);
-      
-      if( icompare == 0 ) {
-        count++;
-
-        if( is_a_dvt_edge(edges,ie1) == TRUE )
-          set_nes_edge(edges,ie1,AS_CGB_REMOVED_BY_DUPLICATE_DVT);
-        else
-          set_nes_edge(edges,ie1,AS_CGB_REMOVED_BY_DUPLICATE_CON);
-      }
-    }
-  }
-
-  fprintf(stderr, " " F_IID " duplicate edges found.\n",count);
-
-  if(count > 0)
-    ResetToRangeVA_IntEdge_ID(next_edge_obj,0);
-}
 
 
 
@@ -341,11 +284,21 @@ int main_fgb(TStateGlobals * gstate,
 
   compare_edge_function = compare_edge_strong;
   
+  // WARNING do we need to rebuild the next_edge_obj here?
+
+  if((rg->frag_store) && (rg->frag_store[0] != '\0'))
+    process_gkp_store_for_fragments(rg->frag_store,
+                                    heapva->frags,
+                                    heapva->edges,
+                                    &(gstate->min_frag_iid),
+                                    &(gstate->max_frag_iid));
+
+
   // Re-hash the fragment IID to fragment VID mapping using the
   // fragments in the store.  (duplicated, search for BUILD_AFR_TO_AVX
   {
     IntFragment_ID  iv = 0;
-    IntFragment_ID  max_frag_iid = rg->as_cgb_max_frag_iid;
+    IntFragment_ID  max_frag_iid = 0;
     IntFragment_ID  nfrag        = GetNumFragments(heapva->frags);
 
     for (iv=0; iv<nfrag; iv++) {
@@ -357,22 +310,12 @@ int main_fgb(TStateGlobals * gstate,
 
     afr_to_avx = safe_calloc(max_frag_iid + 1, sizeof(IntFragment_ID));
 
+    fprintf(stderr, "afr_to_avx max_frag_iid = "F_IID"\n", max_frag_iid);
+
     for(iv=0; iv<nfrag; iv++)
       afr_to_avx[get_iid_fragment(heapva->frags,iv)] = iv;
   }
 
-
-
-
-  // WARNING do we need to rebuild the next_edge_obj here?
-
-  if((rg->frag_store) && (rg->frag_store[0] != '\0'))
-    process_gkp_store_for_fragments(rg->frag_store,
-                                    heapva->frags,
-                                    heapva->edges,
-                                    afr_to_avx,
-                                    &(gstate->min_frag_iid),
-                                    &(gstate->max_frag_iid));
 
   if (rg->ovl_files_list_fname != NULL)
     process_one_ovl_file(rg->ovl_files_list_fname,
@@ -382,8 +325,7 @@ int main_fgb(TStateGlobals * gstate,
                          rg->dvt_double_sided_threshold_fragment_end_degree,
                          rg->con_double_sided_threshold_fragment_end_degree,
                          rg->intrude_with_non_blessed_overlaps_flag,
-                         rg->overlap_error_threshold,
-                         rg->check_point_level);
+                         rg->overlap_error_threshold);
   
 
 
@@ -398,8 +340,7 @@ int main_fgb(TStateGlobals * gstate,
                          rg->dvt_double_sided_threshold_fragment_end_degree,
                          rg->con_double_sided_threshold_fragment_end_degree,
                          rg->intrude_with_non_blessed_overlaps_flag,
-                         AS_OVS_encodeQuality(1.0),
-                         rg->check_point_level);
+                         AS_OVS_encodeQuality(1.0));
 
     {
       const IntFragment_ID nfrag = GetNumFragments(heapva->frags);
@@ -418,7 +359,7 @@ int main_fgb(TStateGlobals * gstate,
   
 
   // Process the bubble smoothing ovl file.
-  if(rg->bubble_overlaps_filename)
+  if(rg->bubble_overlaps_filename[0])
     process_one_ovl_file(rg->bubble_overlaps_filename,
                          gstate,
                          heapva,
@@ -426,8 +367,7 @@ int main_fgb(TStateGlobals * gstate,
                          rg->dvt_double_sided_threshold_fragment_end_degree,
                          rg->con_double_sided_threshold_fragment_end_degree,
                          rg->intrude_with_non_blessed_overlaps_flag,
-                         rg->overlap_error_threshold,
-                         rg->check_point_level);
+                         rg->overlap_error_threshold);
 
 
   if ((rg->OVL_Store_Path) && (rg->OVL_Store_Path[0] != '\0'))
@@ -465,7 +405,43 @@ int main_fgb(TStateGlobals * gstate,
   //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "RISM_append_the_edge_mates");
   //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
 
-  delete_duplicate_edges( heapva->frags, heapva->edges, heapva->next_edge_obj);
+
+  //  This routine marks duplicated edges for deletion.
+  //  It is only effective when the edges are fully sorted.
+  //
+  {
+    IntEdge_ID nedge = GetNumEdges(heapva->edges);
+    IntEdge_ID ie1   = 0;
+    int64      count = 0;
+    int        icompare;
+
+    for (ie1=1; ie1<nedge; ie1++) {
+      Aedge edge0 = *GetVA_Aedge(heapva->edges,ie1-1);
+      Aedge edge1 = *GetVA_Aedge(heapva->edges,ie1);
+
+      edge0.blessed   = edge1.blessed   = FALSE;
+      edge0.reflected = edge1.reflected = FALSE;
+
+      icompare = (*compare_edge_function)(&edge1,&edge0);
+      assert(icompare >= 0);
+      
+      if (icompare == 0) {
+        count++;
+
+        if (is_a_dvt_edge(heapva->edges,ie1) == TRUE)
+          set_nes_edge(heapva->edges,ie1,AS_CGB_REMOVED_BY_DUPLICATE_DVT);
+        else
+          set_nes_edge(heapva->edges,ie1,AS_CGB_REMOVED_BY_DUPLICATE_CON);
+      }
+    }
+
+    fprintf(stderr, F_S64" duplicate edges found.\n", count);
+
+    if(count > 0)
+      ResetToRangeVA_IntEdge_ID(heapva->next_edge_obj,0);
+  }
+
+
   //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "RISM_delete_duplicate_edges");
   //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
 
@@ -479,11 +455,10 @@ int main_fgb(TStateGlobals * gstate,
       ) /* The FGB computations need a populated graph store. */ {
 
     transitive_edge_marking
-      ( gstate, heapva, heapva->frags, heapva->edges, heapva->next_edge_obj,
+      ( heapva->frags, heapva->edges, heapva->next_edge_obj,
         rg->walk_depth,
         rg->cutoff_fragment_end_degree,
-        rg->work_limit_per_candidate_edge,
-        rg->iv_start);
+        rg->work_limit_per_candidate_edge);
   }
   
   identify_early_spur_fragments( heapva->frags, heapva->edges);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.19 2007-07-19 09:50:31 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.20 2007-07-20 07:22:41 brianwalenz Exp $";
 
 #include "AS_UTL_version.h"
 #include "AS_CGB_all.h"
@@ -176,47 +176,21 @@ ParseCommandLine(UnitiggerGlobals * rg,
 
   while (!errflg && 
          ((ch = getopt(argc, argv, 
-                       "A:B:C:D:E:F:G:H:I:K:L:M:N:O:PQ:R:S:V:U:W:XY:"
-                       "a:cd:e:fg:hi:j:kl:m:n:o:p:r:st:u:v:w:x:y:z:"
-                       "156:789"
+                       "B:F:H:I:L:S:U:W:Y:"
+                       "d:e:h:j:kl:m:n:o:p:su:w:x:y:z:"
+                       "56:7"
                        )) != EOF)) {
-
-    // Used command line options:
-    // Supp. Assembler:               P          a c  f hi     op
-    // Unsup. Assem.  :  CDE            R     X                     t v
-    // FGB CGB common :A                  
-    // FGB specific   :      G IJ L N  Q    VW      de       mn        wxyz
-    // CGB specific   : B        K         U   YZ b       jkl    q s
-    // left-overs     :            M      T                             
 
     switch(ch) {
       /* The required command line options: */
-      case 'A':
-        //  enabled by default
-        break;
       case 'B':
         // -B <int> : Specifies a target number of fragments in IMP
         // records per cgb file.
         rg->fragment_count_target = atoi(optarg);
         break;
-      case 'C':
-        // -C <int> : The check pointing level.
-        rg->check_point_level = atoi(optarg);
-        assert(rg->check_point_level > 0);
-        fprintf(stderr,"* check_point_level <%d>\n", rg->check_point_level);
-        break;
-      case 'D':
-        // -D <int> : Specify a debugging level.
-        rg->debug_level = atoi(optarg);
-        break;
       case 'F':
         // -F <path> : identify fragment store
         rg->frag_store = optarg;
-        break;
-      case 'G':
-        // -G <file> : 
-        rg->Fragment_Subset_IIDs_File_Name = optarg;
-        fprintf(stderr,"* Fragment subset IIDs file set to <%s>.\n", rg->Fragment_Subset_IIDs_File_Name);
         break;
       case 'H':
         // -H <filename> : identify chimeras file
@@ -234,43 +208,10 @@ ParseCommandLine(UnitiggerGlobals * rg,
         fprintf(stderr,"*  ovl_files_list_fname <%s>\n",
                 rg->ovl_files_list_fname);
         break;
-      case 'N':
-        // -N <int> : max IID of the fragments.
-        rg->as_cgb_max_frag_iid = atol(optarg);
-        fprintf(stderr,"** as_cgb_max_frag_iid = " F_IID "\n",
-                rg->as_cgb_max_frag_iid);
-        break;
-      case 'O':
-        // -O <filename> : identify overlap file
-        rg->ovl_file = optarg;
-        fprintf( stderr, " * overlap file is %s\n", rg->ovl_file );
-        break;
-      case 'P':
-        // -P : Any "protoIO" messages will be in ASCII rather than
-        // binary.
-        fprintf(stderr,"** ASCII mode\n");
-        rg->as_proto_output = TRUE;
-        break;
-      case 'Q':
-        // -Q <int>: Specify Reaper pass.
-        rg->reaper_pass = atoi(optarg);
-        rg->use_all_overlaps_in_reaper_pass = (rg->reaper_pass == 0);
-        break;
       case 'S':
         // -S <filename> : identify spurs file
         rg->spurs_file = optarg;
         fprintf( stderr, " * spurs file is %s\n", rg->spurs_file );
-        break;
-      case 'T':
-        // -T :
-        fprintf(stderr,"* -T is no longer used\n");
-        break;
-      case 'V':
-        // -V int : The transitive edge reduction will restart at this
-        // fragment^s adjacency list.
-        rg->iv_start = atoi(optarg);
-        fprintf(stderr,"* iv_start set to " F_IID "\n",
-                rg->iv_start);
         break;
       case 'U':
         // -U 
@@ -344,11 +285,6 @@ ParseCommandLine(UnitiggerGlobals * rg,
         rg->Output_Graph_Store_Prefix = (char *)optarg;
         break;
 
-      case 'r':
-        // -r <filename> : identify iid file
-        rg->iid_file = optarg;
-        fprintf( stderr, " * iid file is %s\n", rg->iid_file );
-        break;
       case 's':
         // -s 
         rg->aggressive_spur_fragment_marking = FALSE;
@@ -361,10 +297,6 @@ ParseCommandLine(UnitiggerGlobals * rg,
         rg->Dump_File_Name = optarg;
         fprintf(stderr,"* OVL dump file set to <%s>.\n", rg->Dump_File_Name);
         rg->create_dump_file = (rg->Dump_File_Name[0] != '\0');
-        break;
-      case 'v':
-        // -v <int> : Specify a verbosity level.
-        rg->verbosity_level = atoi(optarg);
         break;
 
       case 'w':
@@ -420,15 +352,6 @@ ParseCommandLine(UnitiggerGlobals * rg,
   rg->num_ovl_files = argc - optind;
   rg->the_ovl_files = &(argv[optind]);
 
-  assert(rg->as_cgb_max_frag_iid < AS_CGB_NOT_SEEN_YET);
-  if(rg->as_cgb_max_frag_iid == 0) {
-    fprintf(stderr,
-            "UNITIGGER ERROR: Until I get around to implementing a hash table"
-            " for the encountered IIDs, the \"unitigger -N <max_iid>\""
-            " command line option is necessary.\n");
-    exit(1);
-  }
-
 
   if(rg->bubble_smoothing_flag && (NULL == rg->frag_store)) {
     fprintf(stderr,"Error: bubble smoothing needs a fragment store.\n");
@@ -455,41 +378,27 @@ ParseCommandLine(UnitiggerGlobals * rg,
  UsageStatement:
   if((illegal == TRUE)) {
     fprintf(stderr, "USAGE: %s <option>*\n"
-            "\t-A <int>        Run the fragment overlap graph analyzer.\n"
             "\t-B <int>        Specifies the target number of fragments per partition.\n"
-            "\t-C <int>        Check point level for restart. (not implemented)\n"
-            "\t-D <int>        Specify a debugging level. (not implemented)\n"
-            "\t-E <int>        Specify the maximum number of soft errors.\n"
             "\t-F <directory>  The fragment store name.\n"
-            "\t-G <file>       A file of fragment IIDs.\n"
             "\t-H <filename>   chimeras file.\n"
             "\t-I <directory>  Read the OVL store.\n"
-            "\t-K <filename>   File of known fragment-end based branch-points.\n"
             "\t-L <filename>   The input OverlapFragMesgs; asm.ofg.\n"
-            "\t-N <maxIID>\n"
-            "\t-P              Specify ASCII output for protoIO messages.\n"
-            "\t-Q <int>        Specify Reaper Pass.\n"
-            "\t-R <int>        Which containment rule to use. \n"
             "\t-S <filename>   Spurs file.\n"
-            "\t-T              Output transitively removeable overlaps.\n"
             "\t-U <boolean>    Find bubble smoothing overlaps.\n"
-            "\t-V              Transitive edge reduction restarts at this VID.\n"
             "\t-W <int>        Limit in path length for graph walking.\n"
             "\t-Y <boolean>    Do not count chimera fragments.\n"
-            "\t-b <int>        Number of cgb passes for finding branch points.\n"
             "\t-d <int>        Enable/Disable de-chording of the fragment overlap graph.\n"
             "\t-e <n>          Overlaps with error rate about this are ignored on input.\n"
             "\t\t                An integer value is in parts per thousand.\n"
             "\t-h              Help.\n"
             "\t-j <int>        Unique unitig cut-off\n"
+            "\t-k              Recalibrate the global arrival rate to be the max unique local arrival rate\n"
             "\t-l <int>        Specify length of the genome.\n"
             "\t-m <nEdge>      Pre-allocate memory\n"
             "\t-n <nFrag>      Pre-allocate memory\n"
             "\t-o <pfx>        output to this prefix.\n"
-            "\t-p <file>       Specify the parameters file.\n"
             "\t-s              Disable early spur fragment removal.\n"
             "\t-u <filename>   Create a OVL compatible dump of the graph.\n"
-            "\t-v <int>        Specify a verbosity level.\n"
             "\t-w <int>        The work limit per candidate edge for de-chording.\n"
             "\t-x <int>        Dovetail outgoing degree threshold per fragment-end.\n"
             "\t-y <int>        Ignore non-blessed overlap edges to blessed fragment ends.\n"
@@ -514,25 +423,18 @@ main(int argc, char **argv) {
   THeapGlobals     *heapva = (THeapGlobals      *)safe_calloc(sizeof(THeapGlobals), 1);
   UnitiggerGlobals *rg     = (UnitiggerGlobals  *)safe_calloc(sizeof(UnitiggerGlobals), 1);
 
-  rg->program_name = argv[0];
   rg->work_limit_per_candidate_edge = 1000;
-  rg->use_all_overlaps_in_reaper_pass = TRUE;
-  rg->as_cgb_max_frag_iid = 100000 * CGB_MULTIPLIER;
   rg->dvt_double_sided_threshold_fragment_end_degree = 1;
   rg->con_double_sided_threshold_fragment_end_degree = 1;
   rg->intrude_with_non_blessed_overlaps_flag = FALSE;
   rg->cutoff_fragment_end_degree = 1000000;
   rg->dechord_the_graph = TRUE;
-  rg->check_point_level = 0;
-  rg->compress_the_graph = TRUE;
   rg->cgb_unique_cutoff = CGB_UNIQUE_CUTOFF;
   rg->walk_depth = 100;
-  rg->iv_start = 0;
   rg->overlap_error_threshold = AS_OVS_encodeQuality(1.0);
   rg->recalibrate_global_arrival_rate = FALSE;
   rg->work_limit_placing_contained_fragments = 20;
   rg->walk_depth=100;
-  rg->iv_start=0;
   rg->output_iterations_flag = TRUE;
   rg->aggressive_spur_fragment_marking = TRUE;
 
@@ -576,45 +478,43 @@ main(int argc, char **argv) {
        AS_CGB_Bubble_Popper.h    - Alignment parameters. 
        AS_CGB_Bubble_VertexSet.h - Default parameters for bubble finding. */
 
-    AS_CGB_Bubble_List_t bubbles = NULL, bubbles_tmp = NULL;
-
-    static char bubble_boundaries_filename_tmp[500] = {0};
-    static char bubble_overlaps_filename_tmp[500] = {0};
-
-    rg->bubble_boundaries_filename = bubble_boundaries_filename_tmp;
-    rg->bubble_overlaps_filename   = bubble_overlaps_filename_tmp;
-
-    sprintf(rg->bubble_boundaries_filename,"%s.cgb_bubbles_txt",rg->Output_Graph_Store_Prefix);
-    sprintf(rg->bubble_overlaps_filename, "%s.bubble_edges.ovl", rg->Output_Graph_Store_Prefix);
+    AS_CGB_Bubble_List_t bubbles = NULL;
 
     // The OVL records needed to remove the bubbles
+    sprintf(rg->bubble_overlaps_filename, "%s.bubble_edges.ovl", rg->Output_Graph_Store_Prefix);
+    FILE *bfp = fopen(rg->bubble_overlaps_filename, "w");
+
     GateKeeperStore *gkpStore = openGateKeeperStore(rg->frag_store, FALSE);
-    FILE *bubble_overlaps_file = fopen(rg->bubble_overlaps_filename, "w");
     AS_CGB_Bubble_find_and_remove_bubbles(gkpStore,
                                           heapva->frags, heapva->edges,
                                           heapva->thechunks, heapva->chunkfrags, 
                                           gstate->global_fragment_arrival_rate,
-                                          bubble_overlaps_file,
+                                          bfp,
                                           stderr,
                                           rg->Output_Graph_Store_Prefix);
-    fclose(bubble_overlaps_file);
     closeGateKeeperStore(gkpStore);
+    fclose(bfp);
 
     /* NOTE: 0's in following call indicate use of defaults. */
   
-    bubbles_tmp = bubbles = AS_CGB_Bubble_find_bubbles(heapva->frags, heapva->edges, 0, 0, 0);    
+    bubbles = AS_CGB_Bubble_find_bubbles(heapva->frags, heapva->edges, 0, 0, 0);    
 
-    FILE *bubble_boundaries_file = fopen(rg->bubble_boundaries_filename, "w");
-    while (bubbles_tmp != NULL) {
-      fprintf(bubble_boundaries_file, F_IID " %d " F_IID " %d\n", 
-              get_iid_fragment(heapva->frags, bubbles_tmp->start),
-              bubbles_tmp->start_sx,
-              get_iid_fragment(heapva->frags, bubbles_tmp->end),
-              bubbles_tmp->end_sx);
-      bubbles_tmp = bubbles_tmp->next;
+    {
+      char bfn[500] = {0};
+      sprintf(bfn,"%s.cgb_bubbles_txt",rg->Output_Graph_Store_Prefix);
+      FILE *bfp = fopen(bfn, "w");
+      AS_CGB_Bubble_List_t bubbles_tmp = bubbles;
+
+      while (bubbles_tmp != NULL) {
+        fprintf(bfp, F_IID" %d "F_IID" %d\n", 
+                get_iid_fragment(heapva->frags, bubbles_tmp->start),
+                bubbles_tmp->start_sx,
+                get_iid_fragment(heapva->frags, bubbles_tmp->end),
+                bubbles_tmp->end_sx);
+        bubbles_tmp = bubbles_tmp->next;
+      }
+      fclose(bfp);
     }
-    fclose(bubble_boundaries_file);
-
 
     //  Like I said, redo all our work.
     Delete_VA(heapva->frags);

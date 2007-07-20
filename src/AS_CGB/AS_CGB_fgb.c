@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_fgb.c,v 1.12 2007-07-19 09:50:30 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_fgb.c,v 1.13 2007-07-20 07:22:41 brianwalenz Exp $";
 
 //  The fragment overlap graph builder.
 //
@@ -636,16 +636,13 @@ static void histogram_initialize
 
 void transitive_edge_marking
 (
- TStateGlobals * gstate, // For time interval check pointing
- THeapGlobals  * heapva, // For time interval check pointing
  Tfragment     * frags,
  Tedge         * edges,
  TIntEdge_ID   * next_edge_obj,
  const int walk_depth,
  const int cutoff_fragment_end_degree,
- const int work_limit_per_candidate_edge,
- const IntFragment_ID iv_start
- ) {
+ const int work_limit_per_candidate_edge
+) {
   const IntFragment_ID nfrag=GetNumFragments(frags);
 
   IntFragment_ID * visited_a = NULL;
@@ -680,9 +677,6 @@ void transitive_edge_marking
   int64 num_of_quads_visited = 0;
   int64 ntrans_test_fail = 0;
   
-  const int report_interval = 60; // one minute
-  const int check_point_interval = 4*60*60; // four hours
-
   visited_a = safe_malloc(sizeof(IntFragment_ID) * 2 * nfrag);
   visited_b = safe_malloc(sizeof(IntFragment_ID) * 2 * nfrag);
 
@@ -702,7 +696,7 @@ void transitive_edge_marking
   }
   check_symmetry_of_the_edge_mates( frags, edges, next_edge_obj);
   
-  { IntFragment_ID iv0; for(iv0=iv_start;iv0<nfrag;iv0++) {
+  { IntFragment_ID iv0; for(iv0=0;iv0<nfrag;iv0++) {
     int is0; for(is0=0;is0<2;is0++) {
       visited_a[2*iv0+is0] = 2*nfrag;
       visited_b[2*iv0+is0] = 2*nfrag;
@@ -732,7 +726,7 @@ void transitive_edge_marking
   /* Begin: Check each vertex in the fragment overlap graph. */
   {
     IntFragment_ID iv0;
-    for(iv0=iv_start;iv0<nfrag;iv0++) {
+    for(iv0=0;iv0<nfrag;iv0++) {
       int is0;
       for(is0=0;is0<2;is0++) {
         const IntEdge_ID ir0 = get_segstart_vertex(frags,iv0,is0);

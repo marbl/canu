@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_FGB_io.c,v 1.22 2007-07-20 04:47:37 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_FGB_io.c,v 1.23 2007-07-20 07:22:41 brianwalenz Exp $";
 
 //  Fragment Overlap Graph Builder file input and output.  This
 //  functional unit reads a *.ovl prototype i/o file an massages it
@@ -232,11 +232,6 @@ static void insert_dovetail_into_the_edge_array_Aedge
        // If the edge is blessed than keep it.
        // If the edge is not blessed and the target fragment-end is not blessed, then keep it.
        )
-    //( keep_dvt_overlaps_to_contained_fragments_in_reaper_pass ||
-    //(get_con_fragment(frags,the_edge->bvx) == FALSE)
-    // Only keep this dovetail edge if the distal fragment is
-    // non-contained.
-    
      ) {
           Insert_Aedge_into_the_edge_array_wrapper
             ( frags, edges, nedges_delta, next_edge_obj,
@@ -573,7 +568,6 @@ void
 process_gkp_store_for_fragments(char *gkpStoreName,
                                 Tfragment   *frags,
                                 Tedge       *edges,
-                                IntFragment_ID    *afr_to_avx,
                                 IntFragment_ID    *min_frag_iid,
                                 IntFragment_ID    *max_frag_iid) {
 
@@ -611,8 +605,6 @@ process_gkp_store_for_fragments(char *gkpStoreName,
       //  range of the VA being the number of fragments.
       //
       EnableRangeVA_Afragment(frags, vid + 1);
-
-      afr_to_avx[iid] = vid;
 
       set_iid_fragment(frags, vid, iid);
       set_cid_fragment(frags, vid, iid);
