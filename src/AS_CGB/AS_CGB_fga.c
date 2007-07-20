@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_fga.c,v 1.12 2007-07-19 09:50:28 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_fga.c,v 1.13 2007-07-20 08:41:43 brianwalenz Exp $";
 
 // Module: AS_CGB_fga.c
 // 
@@ -159,14 +159,10 @@ void view_fgb_chkpnt(char * Store_File_Prefix,
 
 
 
-static void analyze_the_fragment_overlap_graph
-(
- FILE *fout,
- const IntFragment_ID max_frag_iid,
- Tfragment frags[],
- Tedge edges[]
- )
-{
+static void analyze_the_fragment_overlap_graph(FILE *fout,
+                                               Tfragment frags[],
+                                               Tedge edges[]) {
+
   const IntFragment_ID nfrag = GetNumFragments(frags);
   const IntEdge_ID nedge = GetNumEdges(edges);
 
@@ -990,8 +986,7 @@ static void analyze_the_fragment_overlap_graph
 
 
 
-void fragment_graph_analysis(IntFragment_ID max_frag_iid,
-                             Tfragment frags[],
+void fragment_graph_analysis(Tfragment frags[],
                              Tedge     edges[],
                              FILE      *ffga) {
 
@@ -1000,7 +995,7 @@ void fragment_graph_analysis(IntFragment_ID max_frag_iid,
   assert(frags      != NULL);
   assert(edges      != NULL);
 
-  analyze_the_fragment_overlap_graph ( ffga, max_frag_iid, frags, edges);
+  analyze_the_fragment_overlap_graph ( ffga, frags, edges);
 
   IntEdge_ID ie1;
   const IntEdge_ID nedge = GetNumEdges(edges);

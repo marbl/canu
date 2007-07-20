@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_cgb.c,v 1.16 2007-07-20 04:47:37 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_cgb.c,v 1.17 2007-07-20 08:41:43 brianwalenz Exp $";
 
 //  This module builds the chunk graph from the fragment essential
 //  overlap graph with contained fragments as an augmentation, and
@@ -1444,87 +1444,56 @@ float compute_the_global_fragment_arrival_rate
 
 
 
-void chunk_graph_build_1
-(
- /* Input Only */
- const char * const Graph_Store_File_Prefix,
- const int work_limit_placing_contained_fragments,		  
- const int walk_depth,
- const IntFragment_ID max_frag_iid,
- const int64  nbase_in_genome,
- const char * chimeras_file,
- const char * spurs_file,
- const int recalibrate_global_arrival_rate,
- const float cgb_unique_cutoff,
- /* Input/Output */
- Tfragment     frags[],
- Tedge         edges[],
- /* Output Only */
- float         *global_fragment_arrival_rate,
- TChunkFrag    *chunkfrags,
- TChunkMesg    *thechunks
- ) 
-{
-  IntFragment_ID nfrag = GetNumFragments(frags);
-  // IntEdge_ID nedge = GetNumEdges(edges);
+void chunk_graph_build_1(const char * const Graph_Store_File_Prefix,
+                         const int work_limit_placing_contained_fragments,		  
+                         const int walk_depth,
+                         const int64  genome_length,
+                         const char * chimeras_file,
+                         const char * spurs_file,
+                         const int recalibrate_global_arrival_rate,
+                         const float cgb_unique_cutoff,
+                         Tfragment     frags[],
+                         Tedge         edges[],
+                         float         *global_fragment_arrival_rate,
+                         TChunkFrag    *chunkfrags,
+                         TChunkMesg    *thechunks) {
 
-  int *fragment_timesinchunks = NULL;
-
-  fragment_timesinchunks = safe_malloc(sizeof(int) * nfrag);
+  int *fragment_timesinchunks = safe_malloc(sizeof(int) * GetNumFragments(frags));
   
-  assert(chunkfrags != NULL);
-  assert(thechunks  != NULL);
-  assert(fragment_timesinchunks != NULL);
-
-
-#ifdef DEBUG71
-  view_fgb_chkpnt("AAA", frags, edges);
-#endif  
-
-  make_the_chunks(/*Input Only*/
-		  work_limit_placing_contained_fragments,		  
+  make_the_chunks(work_limit_placing_contained_fragments,		  
 		  frags,
 		  edges,
-		  /*Input/Output*/
-		  /*Output Only*/
 		  fragment_timesinchunks,
 		  chunkfrags,
-		  thechunks
-		  );
+		  thechunks);
   
+  safe_free(fragment_timesinchunks);
+
   check_edge_trimming( frags, edges);
 
-  if( nbase_in_genome == 0) {
+  if( genome_length == 0) {
     (*global_fragment_arrival_rate) 
       = compute_the_global_fragment_arrival_rate
-      ( recalibrate_global_arrival_rate, cgb_unique_cutoff, stderr, nbase_in_genome, frags, edges, *global_fragment_arrival_rate,
+      ( recalibrate_global_arrival_rate, cgb_unique_cutoff, stderr, genome_length, frags, edges, *global_fragment_arrival_rate,
         chunkfrags, thechunks );
   }
 
-  AssertPtr(frags);
-  AssertPtr(edges);
-  AssertPtr(thechunks);
-  AssertPtr(chunkfrags);
-    
-  {
-    // Now that the global fragment arrival rate is available, we set
-    // the coverage statistic.
-    const IntChunk_ID nchunks = (IntChunk_ID)GetNumVA_AChunkMesg(thechunks);
-    IntChunk_ID chunk_index;
+   
+  // Now that the global fragment arrival rate is available, we set
+  // the coverage statistic.
 
-    for(chunk_index=0; chunk_index < nchunks; chunk_index++) {
-      AChunkMesg * const mychunkptr = GetAChunkMesg( thechunks, chunk_index);
-      const int number_of_randomly_sampled_fragments_in_chunk
-        = count_the_randomly_sampled_fragments_in_a_chunk
-        ( frags, chunkfrags, thechunks, chunk_index);
-      const int64  rho = mychunkptr->rho;
-      const float coverage_stat = compute_coverage_statistic
-        ( rho,
-          number_of_randomly_sampled_fragments_in_chunk,
-          (*global_fragment_arrival_rate) );
-      mychunkptr->coverage_stat = coverage_stat;
-      // SetVA_AChunkMesg(thechunks,chunk_index,mychunkptr);
-    }
+  const IntChunk_ID nchunks = (IntChunk_ID)GetNumVA_AChunkMesg(thechunks);
+  IntChunk_ID chunk_index;
+
+  for(chunk_index=0; chunk_index < nchunks; chunk_index++) {
+    AChunkMesg *mychunkptr = GetAChunkMesg( thechunks, chunk_index);
+
+    mychunkptr->coverage_stat = compute_coverage_statistic(mychunkptr->rho,
+                                                           count_the_randomly_sampled_fragments_in_a_chunk(frags,
+                                                                                                           chunkfrags,
+                                                                                                           thechunks,
+                                                                                                           chunk_index),
+                                                           (*global_fragment_arrival_rate) );
   }
 
   if( chimeras_file ) {
@@ -1538,6 +1507,4 @@ void chunk_graph_build_1
     num_crappies = count_crappies(spurs_file, cgb_unique_cutoff, frags, edges, chunkfrags, thechunks);
     check_edge_trimming( frags, edges);
   }
-    
-  safe_free(fragment_timesinchunks);
 }

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_FGB_io.c,v 1.23 2007-07-20 07:22:41 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_FGB_io.c,v 1.24 2007-07-20 08:41:43 brianwalenz Exp $";
 
 //  Fragment Overlap Graph Builder file input and output.  This
 //  functional unit reads a *.ovl prototype i/o file an massages it
@@ -567,9 +567,7 @@ static void add_overlap_to_graph
 void
 process_gkp_store_for_fragments(char *gkpStoreName,
                                 Tfragment   *frags,
-                                Tedge       *edges,
-                                IntFragment_ID    *min_frag_iid,
-                                IntFragment_ID    *max_frag_iid) {
+                                Tedge       *edges) {
 
   fragRecord       *fr = new_fragRecord();
   FragStream       *fs = NULL;
@@ -585,9 +583,6 @@ process_gkp_store_for_fragments(char *gkpStoreName,
 
   assert(0 == GetNumFragments(frags));
 
-  *min_frag_iid = getLastElemFragStore(gkp) + 1;
-  *max_frag_iid = 0;
-
   fs = openFragStream(gkp, FRAG_S_INF);
 
   //unsigned int firstElem = getFirstElemFragStore(gkp);
@@ -598,9 +593,6 @@ process_gkp_store_for_fragments(char *gkpStoreName,
     if (getFragRecordIsDeleted(fr) == FALSE) {
       iid = getFragRecordIID(fr);
   
-      *min_frag_iid = MIN(*min_frag_iid, iid);
-      *max_frag_iid = MAX(*max_frag_iid, iid);
-
       //  Argh!  This needs to be here, other code depends on the
       //  range of the VA being the number of fragments.
       //

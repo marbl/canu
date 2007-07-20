@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_FGB_main.c,v 1.18 2007-07-20 07:22:41 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_FGB_main.c,v 1.19 2007-07-20 08:41:43 brianwalenz Exp $";
 
 #include "AS_UTL_version.h"  
 #include "AS_CGB_all.h"
@@ -27,8 +27,7 @@ static char CM_ID[] = "$Id: AS_FGB_main.c,v 1.18 2007-07-20 07:22:41 brianwalenz
 int (*compare_edge_function)(const void *a, const void *b);
 
 //  AS_CGB_fga.c
-void fragment_graph_analysis(IntFragment_ID max_frag_iid,
-                             Tfragment frags[],
+void fragment_graph_analysis(Tfragment frags[],
                              Tedge     edges[],
                              FILE      *ffga);
 
@@ -62,9 +61,7 @@ input_messages_from_a_file(FILE       *fovl,
 void
 process_gkp_store_for_fragments(char *gkpStoreName,
                                 Tfragment   *frags,
-                                Tedge       *edges,
-                                IntFragment_ID    *min_frag_iid,
-                                IntFragment_ID    *max_frag_iid);
+                                Tedge       *edges);
 
 void
 process_ovl_store(char * OVL_Store_Path,
@@ -164,7 +161,6 @@ static void output_mesgs(const Tfragment frags[],
 
 
 static void process_one_ovl_file(const char Batch_File_Name[],
-                                 TStateGlobals  * gstate,
                                  THeapGlobals   * heapva,
                                  IntFragment_ID * afr_to_avx,
                                  const int dvt_double_sided_threshold_fragment_end_degree,
@@ -272,8 +268,7 @@ int compare_edge_strong(const void * const aa, const void * const bb)
 
 
 
-int main_fgb(TStateGlobals * gstate,
-             THeapGlobals  * heapva,
+int main_fgb(THeapGlobals  * heapva,
              UnitiggerGlobals * rg) {
   int status = 0;
   int ierr = 0;
@@ -289,28 +284,24 @@ int main_fgb(TStateGlobals * gstate,
   if((rg->frag_store) && (rg->frag_store[0] != '\0'))
     process_gkp_store_for_fragments(rg->frag_store,
                                     heapva->frags,
-                                    heapva->edges,
-                                    &(gstate->min_frag_iid),
-                                    &(gstate->max_frag_iid));
+                                    heapva->edges);
 
 
   // Re-hash the fragment IID to fragment VID mapping using the
   // fragments in the store.  (duplicated, search for BUILD_AFR_TO_AVX
   {
-    IntFragment_ID  iv = 0;
-    IntFragment_ID  max_frag_iid = 0;
-    IntFragment_ID  nfrag        = GetNumFragments(heapva->frags);
+    IntFragment_ID  iv    = 0;
+    IntFragment_ID  im    = 0;
+    IntFragment_ID  nfrag = GetNumFragments(heapva->frags);
 
     for (iv=0; iv<nfrag; iv++) {
       IntFragment_ID iid = get_iid_fragment(heapva->frags,iv);
-      max_frag_iid = MAX(max_frag_iid, iid);
+      im = MAX(im, iid);
     }
 
-    assert(max_frag_iid < AS_CGB_NOT_SEEN_YET);
+    assert(im < AS_CGB_NOT_SEEN_YET);
 
-    afr_to_avx = safe_calloc(max_frag_iid + 1, sizeof(IntFragment_ID));
-
-    fprintf(stderr, "afr_to_avx max_frag_iid = "F_IID"\n", max_frag_iid);
+    afr_to_avx = safe_calloc(im + 1, sizeof(IntFragment_ID));
 
     for(iv=0; iv<nfrag; iv++)
       afr_to_avx[get_iid_fragment(heapva->frags,iv)] = iv;
@@ -319,7 +310,6 @@ int main_fgb(TStateGlobals * gstate,
 
   if (rg->ovl_files_list_fname != NULL)
     process_one_ovl_file(rg->ovl_files_list_fname,
-                         gstate,
                          heapva,
                          afr_to_avx,
                          rg->dvt_double_sided_threshold_fragment_end_degree,
@@ -334,7 +324,6 @@ int main_fgb(TStateGlobals * gstate,
     assert(0 == GetNumEdges(heapva->edges));
 
     process_one_ovl_file(rg->blessed_overlaps_input_filename,
-                         gstate,
                          heapva,
                          afr_to_avx,
                          rg->dvt_double_sided_threshold_fragment_end_degree,
@@ -361,7 +350,6 @@ int main_fgb(TStateGlobals * gstate,
   // Process the bubble smoothing ovl file.
   if(rg->bubble_overlaps_filename[0])
     process_one_ovl_file(rg->bubble_overlaps_filename,
-                         gstate,
                          heapva,
                          afr_to_avx,
                          rg->dvt_double_sided_threshold_fragment_end_degree,
@@ -471,9 +459,8 @@ int main_fgb(TStateGlobals * gstate,
   char  thePath[FILENAME_MAX];
   sprintf(thePath,"%s.fga.ckp",rg->Output_Graph_Store_Prefix);
   FILE *ffga = fopen(thePath,"w");
-    
-  fragment_graph_analysis(gstate->max_frag_iid,
-                          heapva->frags,
+
+  fragment_graph_analysis(heapva->frags,
                           heapva->edges,
                           ffga);
   fclose(ffga);

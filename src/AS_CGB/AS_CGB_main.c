@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_main.c,v 1.12 2007-07-19 09:50:30 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_main.c,v 1.13 2007-07-20 08:41:43 brianwalenz Exp $";
 
 #include "AS_UTL_version.h"  
 #include "AS_CGB_all.h"
@@ -38,20 +38,14 @@ void chunk_classification_dvt(Tfragment frags[],
 void chunk_graph_build_1(const char * const Graph_Store_File_Prefix,
                          const int work_limit_placing_contained_fragments,		  
                          const int walk_depth,
-                         const IntFragment_ID max_frag_iid,
-                         const int64  nbase_in_genome,
+                         const int64  genome_length,
                          const char * chimeras_file,
                          const char * spurs_file,
                          const int recalibrate_global_arrival_rate,
                          const float cgb_unique_cutoff,
-                         // Don't count chimeras
-                         /* Input/Output */
                          Tfragment frags[],
                          Tedge     edges[],
-                         /* Output Only */
                          float         *global_fragment_arrival_rate,
-                         // This rate is the number of fragments/bp, which in the design space
-                         // is between zero and one.
                          TChunkFrag    *chunkfrags,
                          TChunkMesg    *thechunks);
 
@@ -403,8 +397,7 @@ static void maskout_overlaps_touching_crappy_fragments
 }
 
 
-int main_cgb(TStateGlobals * gstate,
-             THeapGlobals  * heapva,
+int main_cgb(THeapGlobals  * heapva,
              UnitiggerGlobals * rg) {
 
   GateKeeperStore *gkpStore = openGateKeeperStore(rg->frag_store, FALSE);
@@ -467,10 +460,10 @@ int main_cgb(TStateGlobals * gstate,
     fprintf(stderr, "Total number of guides counted: " F_IID " of " F_IID " fragments\n",
             num_of_guides_total, nfrag);
 
-    if(rg->nbase_in_genome > 0) { 
-      gstate->nbase_in_genome = rg->nbase_in_genome;
-      gstate->global_fragment_arrival_rate = ((float)(nfrag - num_of_guides_total) /
-                                              (float)gstate->nbase_in_genome);
+    if(rg->genome_length > 0) { 
+      heapva->nbase_in_genome = rg->genome_length;
+      heapva->global_fragment_arrival_rate = ((float)(nfrag - num_of_guides_total) /
+                                              (float)heapva->nbase_in_genome);
     }
 
     // Check for a common error.  The error is trying to run CGB with
@@ -489,15 +482,14 @@ int main_cgb(TStateGlobals * gstate,
     chunk_graph_build_1(rg->Output_Graph_Store_Prefix,
                         rg->work_limit_placing_contained_fragments,		  
                         rg->walk_depth,
-                        gstate->max_frag_iid,
-                        rg->nbase_in_genome,
+                        rg->genome_length,
                         rg->chimeras_file,
                         rg->spurs_file,
                         rg->recalibrate_global_arrival_rate,
                         rg->cgb_unique_cutoff,
                         heapva->frags,
                         heapva->edges,
-                        &(gstate->global_fragment_arrival_rate),
+                        &(heapva->global_fragment_arrival_rate),
                         heapva->chunkfrags,
                         heapva->thechunks);
 

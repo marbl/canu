@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.20 2007-07-20 07:22:41 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.21 2007-07-20 08:41:43 brianwalenz Exp $";
 
 #include "AS_UTL_version.h"
 #include "AS_CGB_all.h"
@@ -29,7 +29,6 @@ extern int REAPER_VALIDATION;
 
 void
 chunk_graph_analysis(THeapGlobals *heapva,
-                     TStateGlobals *gstate,
                      UnitiggerGlobals *rg);
 
 
@@ -268,7 +267,7 @@ ParseCommandLine(UnitiggerGlobals * rg,
         break;
       case 'l':
         // -l <int> : the length of the genome
-        rg->nbase_in_genome = STR_TO_INT64(optarg, NULL, 10);
+        rg->genome_length = STR_TO_INT64(optarg, NULL, 10);
         break;
       case 'm':
         // -m <int> : Pre-allocate space to process this many additional
@@ -419,7 +418,6 @@ ParseCommandLine(UnitiggerGlobals * rg,
 
 int
 main(int argc, char **argv) {
-  TStateGlobals    *gstate = (TStateGlobals     *)safe_calloc(sizeof(TStateGlobals), 1);
   THeapGlobals     *heapva = (THeapGlobals      *)safe_calloc(sizeof(THeapGlobals), 1);
   UnitiggerGlobals *rg     = (UnitiggerGlobals  *)safe_calloc(sizeof(UnitiggerGlobals), 1);
 
@@ -447,19 +445,16 @@ main(int argc, char **argv) {
   //BasicUnitigger( argc, argv, gstate, heapva, rg);
 
  again:
-  gstate->min_frag_iid        = 0;
-  gstate->max_frag_iid        = 0;
-  gstate->nbase_in_genome     = 0;
-
   heapva->frags             = CreateVA_Afragment (rg->maxfrags);
   heapva->edges             = CreateVA_Aedge     (rg->maxedges); 
   heapva->next_edge_obj     = CreateVA_IntEdge_ID(rg->maxedges); 
+  heapva->chunkfrags        = CreateVA_AChunkFrag(0);
+  heapva->thechunks         = CreateVA_AChunkMesg(0);
+  heapva->nbase_in_genome              = 0;
+  heapva->global_fragment_arrival_rate = 0;
 
-  heapva->chunkfrags = CreateVA_AChunkFrag(0);
-  heapva->thechunks  = CreateVA_AChunkMesg(0);
-
-  main_fgb(gstate, heapva, rg);
-  main_cgb(gstate, heapva, rg);
+  main_fgb(heapva, rg);
+  main_cgb(heapva, rg);
 
   //  End of BasicUnitigger
 
@@ -488,7 +483,7 @@ main(int argc, char **argv) {
     AS_CGB_Bubble_find_and_remove_bubbles(gkpStore,
                                           heapva->frags, heapva->edges,
                                           heapva->thechunks, heapva->chunkfrags, 
-                                          gstate->global_fragment_arrival_rate,
+                                          heapva->global_fragment_arrival_rate,
                                           bfp,
                                           stderr,
                                           rg->Output_Graph_Store_Prefix);
@@ -526,13 +521,13 @@ main(int argc, char **argv) {
     goto again;
   }
 
-  chunk_graph_analysis(heapva, gstate, rg);
+  chunk_graph_analysis(heapva, rg);
 
   output_the_chunks(heapva->frags,
                     heapva->edges,
                     heapva->chunkfrags,
                     heapva->thechunks,
-                    gstate->global_fragment_arrival_rate,
+                    heapva->global_fragment_arrival_rate,
                     rg->fragment_count_target,
                     rg->Output_Graph_Store_Prefix);
 

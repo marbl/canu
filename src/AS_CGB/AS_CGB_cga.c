@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_cga.c,v 1.17 2007-07-20 04:47:37 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_cga.c,v 1.18 2007-07-20 08:41:43 brianwalenz Exp $";
 
 //  A chunk graph analyzer. This functional unit computes graph
 //  statistics, and writes the chunk graph in the term representation
@@ -46,7 +46,6 @@ char * ChunkLabelDesc[MAX_NUM_CHUNK_LABELS] = {
 
 
 static void analyze_the_fragment_overlap_graph(FILE *fout,
-                                               const IntFragment_ID max_frag_iid,
                                                Tfragment frags[],
                                                Tedge edges[]) {
 
@@ -482,12 +481,8 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
         int count_touches_crappy_con=0;
         int count_between_crappy_dvt=0;
         int count_between_crappy_con=0;
-        // int count_marked_by_containment_dvt_edges=0;
-        // int count_marked_by_containment_con_edges=0;
         int count_removed_by_transitivity_dvt_edges=0;
         int count_removed_by_transitivity_con_edges=0;
-        // int count_removed_by_containment_dvt_edges=0;
-        // int count_removed_by_containment_con_edges=0;
         int count_removed_by_threshold_dvt_edges=0;
         int count_removed_by_threshold_con_edges=0;
         int count_marked_by_branch_dvt_edges=0;
@@ -942,7 +937,6 @@ static void analyze_the_fragment_overlap_graph(FILE *fout,
 
 static void analyze_the_chunks(FILE *fout,
                                FILE *fp_unitig_statistics,
-                               const IntFragment_ID max_frag_iid,
                                Tfragment frags[],
                                Tedge edges[],
                                TChunkFrag chunkfrags[],
@@ -1008,18 +1002,18 @@ static void analyze_the_chunks(FILE *fout,
   // Re-hash the fragment IID to fragment VID mapping using the
   // fragments in the store.  (duplicated, search for BUILD_AFR_TO_AVX
   {
-    IntFragment_ID  iv = 0;
-    IntFragment_ID  max_frag_iid = 0;
-    IntFragment_ID  nfrag        = GetNumFragments(frags);
+    IntFragment_ID  iv    = 0;
+    IntFragment_ID  im    = 0;
+    IntFragment_ID  nfrag = GetNumFragments(frags);
 
     for (iv=0; iv<nfrag; iv++) {
       IntFragment_ID iid = get_iid_fragment(frags,iv);
-      max_frag_iid = MAX(max_frag_iid, iid);
+      im = MAX(im, iid);
     }
 
-    assert(max_frag_iid < AS_CGB_NOT_SEEN_YET);
+    assert(im < AS_CGB_NOT_SEEN_YET);
 
-    afr_to_avx = safe_calloc(max_frag_iid + 1, sizeof(IntFragment_ID));
+    afr_to_avx = safe_calloc(im + 1, sizeof(IntFragment_ID));
 
     for(iv=0; iv<nfrag; iv++)
       afr_to_avx[get_iid_fragment(frags,iv)] = iv;
@@ -1504,7 +1498,6 @@ static void analyze_the_chunks(FILE *fout,
 
 void
 chunk_graph_analysis(THeapGlobals *heapva,
-                     TStateGlobals *gstate,
                      UnitiggerGlobals *rg) {
   char strtmp2[FILENAME_MAX];
 
@@ -1518,21 +1511,19 @@ chunk_graph_analysis(THeapGlobals *heapva,
   FILE *fcus = fopen(strtmp2, "w");
 
   analyze_the_fragment_overlap_graph(fcga,
-                                     gstate->max_frag_iid,
                                      heapva->frags,
                                      heapva->edges);
 
   analyze_the_chunks(fcga,
                      fcus,
-                     gstate->max_frag_iid,
                      heapva->frags,
                      heapva->edges,
                      heapva->chunkfrags,
                      heapva->thechunks,
-                     gstate->nbase_in_genome,
+                     heapva->nbase_in_genome,
                      rg->recalibrate_global_arrival_rate,
                      rg->cgb_unique_cutoff,
-                     gstate->global_fragment_arrival_rate);
+                     heapva->global_fragment_arrival_rate);
 
   fclose(fcga);
   fclose(fcam);

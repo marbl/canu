@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_CGB_unitigger_globals.h,v 1.11 2007-07-20 07:22:41 brianwalenz Exp $
+//  $Id: AS_CGB_unitigger_globals.h,v 1.12 2007-07-20 08:41:43 brianwalenz Exp $
 
 #ifndef AS_CGB_UNITIGGER_GLOBALS_INCLUDE
 #define AS_CGB_UNITIGGER_GLOBALS_INCLUDE
@@ -174,21 +174,14 @@ typedef VA_TYPE(AChunkMesg) TChunkMesg;
 typedef VA_TYPE(IntEdge_ID) TIntEdge_ID;
 
 
-
 typedef struct { 
+  Tfragment      *frags;
+  Tedge          *edges;
+  TIntEdge_ID    *next_edge_obj;
+  TChunkFrag     *chunkfrags;
+  TChunkMesg     *thechunks;
   int64           nbase_in_genome;
   float           global_fragment_arrival_rate;
-  IntFragment_ID  min_frag_iid;
-  IntFragment_ID  max_frag_iid;
-} TStateGlobals;
-
-
-typedef struct { 
-  Tfragment     *frags;
-  Tedge         *edges;
-  TIntEdge_ID   *next_edge_obj;
-  TChunkFrag    *chunkfrags;
-  TChunkMesg    *thechunks;
 } THeapGlobals;
 
 
@@ -233,7 +226,7 @@ typedef struct {
   int            cutoff_fragment_end_degree;
   uint32         overlap_error_threshold;
 
-  int64          nbase_in_genome;
+  int64          genome_length;
 
   int            work_limit_placing_contained_fragments;
   int            output_iterations_flag;
@@ -245,12 +238,10 @@ typedef struct {
   int            fragment_count_target;
 } UnitiggerGlobals;
 
-int main_fgb (TStateGlobals * gstate,
-              THeapGlobals  * heapva,
+int main_fgb (THeapGlobals  * heapva,
               UnitiggerGlobals * rg);
 
-int main_cgb(TStateGlobals * gstate,
-             THeapGlobals  * heapva,
+int main_cgb(THeapGlobals  * heapva,
              UnitiggerGlobals * rg);
 
 #endif // AS_CGB_UNITIGGER_GLOBALS_INCLUDE
