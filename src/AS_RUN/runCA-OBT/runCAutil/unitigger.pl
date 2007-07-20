@@ -28,7 +28,7 @@ sub unitigger (@) {
         $cmd .= " -l $l " if defined($l);
         $cmd .= " -m $m " if defined($m);
         $cmd .= " -n $n " if defined($n);
-        $cmd .= " -A 1 -d 1 -x 1 -z 10 -j 5 -U $u -e $e ";
+        $cmd .= " -d 1 -x 1 -z 10 -j 5 -U $u -e $e ";
         $cmd .= " -F $wrk/$asm.gkpStore ";
         $cmd .= " -o $wrk/4-unitigger/$asm ";
         $cmd .= " -I $wrk/$asm.ovlStore ";
