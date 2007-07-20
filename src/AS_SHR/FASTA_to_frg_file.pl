@@ -22,7 +22,7 @@
 #
 ##########################################################################
 
-# $Id: FASTA_to_frg_file.pl,v 1.3 2007-05-11 16:11:20 brianwalenz Exp $
+# $Id: FASTA_to_frg_file.pl,v 1.4 2007-07-20 20:44:34 brianwalenz Exp $
 
 use strict;
 use Getopt::Std;
@@ -71,6 +71,9 @@ my $time=time;
 my $uidServ = new Annotation::UID(2, "seq454");
 my $libId   = $uidServ->incrUID;
 
+print STDOUT "{VER\n";
+print STDOUT "ver:2\n";
+print STDOUT "}\n";
 print STDOUT "{LIB\n";
 print STDOUT "act:A\n";
 print STDOUT "acc:$libId\n";
