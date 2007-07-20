@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_cgb.c,v 1.15 2007-07-19 09:50:27 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_cgb.c,v 1.16 2007-07-20 04:47:37 brianwalenz Exp $";
 
 //  This module builds the chunk graph from the fragment essential
 //  overlap graph with contained fragments as an augmentation, and
@@ -198,26 +198,19 @@ static void add_fragment_to_chunk
   const int64  ioffsetb = sum_of_ahg + ilen;
 #endif
 
-  {
-    if( (AS_CGB_UNPLACEDCONT_FRAG == ilabel) ||
-	 (AS_CGB_SINGLECONT_FRAG == ilabel) ||
-	 (AS_CGB_MULTICONT_FRAG == ilabel)
-	) {
-      (*nfrag_contained_in_chunk)++;
-      (*nbase_contained_sampled_in_chunk) += ilen;
-    } else {
-      (*nfrag_essential_in_chunk)++;
-      (*nbase_essential_sampled_in_chunk) += ilen;
-    }
-    {
-      //set_lab_fragment(frags,vid,ilabel);
-      const int64  offset5p = (iforward ? ioffseta : ioffsetb);
-      const int64  offset3p = (iforward ? ioffsetb : ioffseta);
-      set_o5p_fragment(frags,vid,offset5p);
-      set_o3p_fragment(frags,vid,offset3p);
-      set_cid_fragment(frags,vid,ichunk);
-    }
+  if( (AS_CGB_UNPLACEDCONT_FRAG == ilabel) ||
+      (AS_CGB_SINGLECONT_FRAG == ilabel) ||
+      (AS_CGB_MULTICONT_FRAG == ilabel)) {
+    (*nfrag_contained_in_chunk)++;
+    (*nbase_contained_sampled_in_chunk) += ilen;
+  } else {
+    (*nfrag_essential_in_chunk)++;
+    (*nbase_essential_sampled_in_chunk) += ilen;
   }
+
+  set_o5p_fragment(frags,vid,(iforward ? ioffseta : ioffsetb));
+  set_o3p_fragment(frags,vid,(iforward ? ioffsetb : ioffseta));
+  set_cid_fragment(frags,vid,ichunk);
 
   if(!( (pass == 0) && 
 	((AS_CGB_UNPLACEDCONT_FRAG == ilabel) ||
@@ -809,23 +802,19 @@ static void make_a_chunk
   (*nbase_essential_in_chunk) = (*rho) + get_length_fragment(frags,(*chunk_bvx));
 }
 
-/*************************************************************************/
 
 
-static void fill_a_chunk_starting_at
-  (
-   const int pass,
-   const int work_limit_placing_contained_fragments,
-   const IntFragment_ID vid,
-   Tfragment frags[],
-   /*Input Only*/
-   Tedge edges[],
-   /*Input/Output*/
-   /*Output Only*/
-   int fragment_timesinchunks[],
-   TChunkFrag chunkfrags[],
-   TChunkMesg thechunks[])
-{
+static void fill_a_chunk_starting_at(const int pass,
+                                     const int work_limit_placing_contained_fragments,
+                                     const IntFragment_ID vid,
+                                     Tfragment frags[],
+                                     /*Input Only*/
+                                     Tedge edges[],
+                                     /*Input/Output*/
+                                     /*Output Only*/
+                                     int fragment_timesinchunks[],
+                                     TChunkFrag chunkfrags[],
+                                     TChunkMesg thechunks[]) {
   // Get the next available chunk id.
   const IntChunk_ID ichunk = (IntChunk_ID)GetNumVA_AChunkMesg(thechunks);
 
@@ -835,10 +824,9 @@ static void fill_a_chunk_starting_at
   
   IntFragment_ID chunk_avx,chunk_bvx;
   int chunk_asx,chunk_bsx;
-  IntFragment_ID 
-    nfrag_in_chunk=0,
-    nfrag_essential_in_chunk=0,
-    nfrag_contained_in_chunk=0;
+  IntFragment_ID  nfrag_in_chunk=0;
+  IntFragment_ID  nfrag_essential_in_chunk=0;
+  IntFragment_ID  nfrag_contained_in_chunk=0;
   int64  nbase_essential_in_chunk=0;
   int64  nbase_essential_sampled_in_chunk=0;
   int64  nbase_sampled_in_chunk=0;
@@ -846,24 +834,16 @@ static void fill_a_chunk_starting_at
   int64  rho;
   AChunkMesg mychunk;
 
-#if 1
-  if(!((AS_CGB_UNPLACEDCONT_FRAG != lab) &&
-         (fragment_timesinchunks[vid] == 0)))
-  {
-    IntFragment_ID iid = get_iid_fragment(frags,vid);
-    {
-      fprintf(stderr,
-              "PIKACU: pass=%d iid=" F_IID " vid=" F_IID " cid=" F_IID " "
-              "con=%d lab=%d container=" F_IID " ftic=%d\n",
-              pass, iid, vid, ichunk,
-              get_con_fragment(frags,vid),
-              get_lab_fragment(frags,vid),
-              get_container_fragment(frags,vid),
-	      fragment_timesinchunks[vid]
-              );
-    }
-  }
-#endif
+  if ((AS_CGB_UNPLACEDCONT_FRAG == lab) || (fragment_timesinchunks[vid] != 0))
+    fprintf(stderr, "PIKACU: pass=%d iid="F_IID" vid="F_IID" cid="F_IID" con=%d lab=%d container="F_IID" ftic=%d\n",
+            pass,
+            get_iid_fragment(frags,vid),
+            vid,
+            ichunk,
+            get_con_fragment(frags,vid),
+            get_lab_fragment(frags,vid),
+            get_container_fragment(frags,vid),
+            fragment_timesinchunks[vid]);
 
   assert((!get_con_fragment(frags,vid)) ||
          (AS_CGB_UNPLACEDCONT_FRAG == lab) ||
@@ -872,46 +852,30 @@ static void fill_a_chunk_starting_at
          (AS_CGB_BRANCHMULTICONT_FRAG == lab) ||
          (AS_CGB_ORPHANEDCONT_FRAG == lab) );
 
-#ifndef GNAT  
-  assert(
-         (AS_CGB_UNPLACEDCONT_FRAG != lab) &&
-         (fragment_timesinchunks[vid] == 0)
-         );
-#else // GNAT  
-  if(!(
-       (AS_CGB_UNPLACEDCONT_FRAG != lab) &&
-       (fragment_timesinchunks[vid] == 0)
-       )) {
-    fprintf( stderr,
-             "GNAT2: iid=" F_IID " vid=" F_IID " lab=%d fragment_timesinchunks=%d"
-             " pass=%d\n",
-             get_iid_fragment(frags,vid), vid, lab, fragment_timesinchunks[vid],
-             pass );
-  }
-#endif // GNAT  
+  assert(AS_CGB_UNPLACEDCONT_FRAG != lab);
+  assert(fragment_timesinchunks[vid] == 0);
          
-  make_a_chunk
-    (/* Input only */
-     pass,
-     work_limit_placing_contained_fragments,
-     ichunk,
-     frags,
-     edges,
-     vid,
-     /* Input and output */
-     fragment_timesinchunks,
-     chunkfrags,
-     /* Output only */
-     &chunk_avx,
-     &chunk_asx,
-     &chunk_bvx,
-     &chunk_bsx,
-     &nfrag_essential_in_chunk,
-     &nbase_essential_in_chunk,
-     &nbase_essential_sampled_in_chunk,
-     &nfrag_contained_in_chunk,
-     &nbase_contained_sampled_in_chunk,
-     &rho);
+  make_a_chunk (/* Input only */
+                pass,
+                work_limit_placing_contained_fragments,
+                ichunk,
+                frags,
+                edges,
+                vid,
+                /* Input and output */
+                fragment_timesinchunks,
+                chunkfrags,
+                /* Output only */
+                &chunk_avx,
+                &chunk_asx,
+                &chunk_bvx,
+                &chunk_bsx,
+                &nfrag_essential_in_chunk,
+                &nbase_essential_in_chunk,
+                &nbase_essential_sampled_in_chunk,
+                &nfrag_contained_in_chunk,
+                &nbase_contained_sampled_in_chunk,
+                &rho);
 
   if(pass == 0) {
     // Build light chunks

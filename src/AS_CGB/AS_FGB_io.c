@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_FGB_io.c,v 1.21 2007-07-19 09:50:32 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_FGB_io.c,v 1.22 2007-07-20 04:47:37 brianwalenz Exp $";
 
 //  Fragment Overlap Graph Builder file input and output.  This
 //  functional unit reads a *.ovl prototype i/o file an massages it
@@ -255,7 +255,7 @@ static void add_overlap_to_graph
  Aedge  an_edge,
  Tfragment  frags[],
  Tedge      edges[],
- FragmentHashObject   *afr_to_avx,         // Part of a hash table replacement
+ IntFragment_ID   *afr_to_avx,
  TIntEdge_ID    *next_edge_obj,
  const int dvt_double_sided_threshold_fragment_end_degree,
  const int con_double_sided_threshold_fragment_end_degree,
@@ -281,8 +281,8 @@ static void add_overlap_to_graph
   
   const int is_dovetail = is_a_dvt_simple(iahg,ibhg) ;
 
-  const IntFragment_ID iavx = get_vid_FragmentHash(afr_to_avx,iafr);
-  const IntFragment_ID ibvx = get_vid_FragmentHash(afr_to_avx,ibfr);
+  const IntFragment_ID iavx = afr_to_avx[iafr];
+  const IntFragment_ID ibvx = afr_to_avx[ibfr];
 
 #ifdef USE_FRAGMENT_SUBSET
   if((iavx == AS_CGB_NOT_SEEN_YET) ||
@@ -573,7 +573,7 @@ void
 process_gkp_store_for_fragments(char *gkpStoreName,
                                 Tfragment   *frags,
                                 Tedge       *edges,
-                                FragmentHashObject *afr_to_avx,
+                                IntFragment_ID    *afr_to_avx,
                                 IntFragment_ID    *min_frag_iid,
                                 IntFragment_ID    *max_frag_iid) {
 
@@ -612,7 +612,7 @@ process_gkp_store_for_fragments(char *gkpStoreName,
       //
       EnableRangeVA_Afragment(frags, vid + 1);
 
-      set_vid_FragmentHash(afr_to_avx, iid, vid);
+      afr_to_avx[iid] = vid;
 
       set_iid_fragment(frags, vid, iid);
       set_cid_fragment(frags, vid, iid);
@@ -663,7 +663,7 @@ process_gkp_store_for_fragments(char *gkpStoreName,
 void process_ovl_store(char * OVL_Store_Path,
                        Tfragment  frags[],
                        Tedge      edges[],
-                       FragmentHashObject *afr_to_avx,
+                       IntFragment_ID *afr_to_avx,
                        TIntEdge_ID     next_edge_obj[],
                        const int dvt_double_sided_threshold_fragment_end_degree,
                        const int con_double_sided_threshold_fragment_end_degree,
@@ -712,8 +712,8 @@ void process_ovl_store(char * OVL_Store_Path,
     //  computed overlaps), process the overlap.
     //
     if ((olap.dat.ovl.corr_erate <= overlap_error_threshold) &&
-        (get_vid_FragmentHash(afr_to_avx, olap.a_iid) != AS_CGB_NOT_SEEN_YET) &&
-        (get_vid_FragmentHash(afr_to_avx, olap.b_iid) != AS_CGB_NOT_SEEN_YET)) {
+        (afr_to_avx[olap.a_iid] != AS_CGB_NOT_SEEN_YET) &&
+        (afr_to_avx[olap.b_iid] != AS_CGB_NOT_SEEN_YET)) {
 
       Aedge  e = {0};
 
@@ -768,7 +768,7 @@ void process_ovl_store(char * OVL_Store_Path,
 void input_messages_from_a_file(FILE       *fovl,
                                 Tfragment  frags[],
                                 Tedge      edges[],
-                                FragmentHashObject *afr_to_avx,
+                                IntFragment_ID *afr_to_avx,
                                 TIntEdge_ID       *next_edge_obj,
                                 const int dvt_double_sided_threshold_fragment_end_degree,
                                 const int con_double_sided_threshold_fragment_end_degree,

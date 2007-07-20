@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_FGB_main.c,v 1.16 2007-07-19 09:50:32 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_FGB_main.c,v 1.17 2007-07-20 04:47:37 brianwalenz Exp $";
 
 #include "AS_UTL_version.h"  
 #include "AS_CGB_all.h"
@@ -55,7 +55,7 @@ void
 input_messages_from_a_file(FILE       *fovl,
                            Tfragment  frags[],
                            Tedge      edges[],
-                           FragmentHashObject *afr_to_avx,
+                           IntFragment_ID *afr_to_avx,
                            TIntEdge_ID       *next_edge_obj,
                            const int dvt_double_sided_threshold_fragment_end_degree,
                            const int con_double_sided_threshold_fragment_end_degree,
@@ -66,7 +66,7 @@ void
 process_gkp_store_for_fragments(char *gkpStoreName,
                                 Tfragment   *frags,
                                 Tedge       *edges,
-                                FragmentHashObject *afr_to_avx,
+                                IntFragment_ID *afr_to_avx,
                                 IntFragment_ID    *min_frag_iid,
                                 IntFragment_ID    *max_frag_iid);
 
@@ -74,7 +74,7 @@ void
 process_ovl_store(char * OVL_Store_Path,
                   Tfragment  frags[],
                   Tedge      edges[],
-                  FragmentHashObject *afr_to_avx,
+                  IntFragment_ID *afr_to_avx,
                   TIntEdge_ID         next_edge_obj[],
                   const int dvt_double_sided_threshold_fragment_end_degree,
                   const int con_double_sided_threshold_fragment_end_degree,
@@ -170,7 +170,7 @@ static void output_mesgs(const Tfragment frags[],
 static void process_one_ovl_file(const char Batch_File_Name[],
                                  TStateGlobals  * gstate,
                                  THeapGlobals   * heapva,
-                                 FragmentHashObject * afr_to_avx,
+                                 IntFragment_ID * afr_to_avx,
                                  const int dvt_double_sided_threshold_fragment_end_degree,
                                  const int con_double_sided_threshold_fragment_end_degree,
                                  const int intrude_with_non_blessed_overlaps_flag,
@@ -335,19 +335,34 @@ int main_fgb(TStateGlobals * gstate,
   int status = 0;
   int ierr = 0;
 
-  /* The Store/Checkpoint */
-  FragmentHashObject *afr_to_avx = NULL;
+  IntFragment_ID *afr_to_avx = NULL;
 
   int did_processing_phase_2 = FALSE;
 
   compare_edge_function = compare_edge_strong;
-
   
   // Re-hash the fragment IID to fragment VID mapping using the
-  // fragments in the store.
-  assert(afr_to_avx == NULL);
-  afr_to_avx = build_FragmentHash(heapva->frags, rg->as_cgb_max_frag_iid );
-  assert(afr_to_avx != NULL);
+  // fragments in the store.  (duplicated, search for BUILD_AFR_TO_AVX
+  {
+    IntFragment_ID  iv = 0;
+    IntFragment_ID  max_frag_iid = rg->as_cgb_max_frag_iid;
+    IntFragment_ID  nfrag        = GetNumFragments(heapva->frags);
+
+    for (iv=0; iv<nfrag; iv++) {
+      IntFragment_ID iid = get_iid_fragment(heapva->frags,iv);
+      max_frag_iid = MAX(max_frag_iid, iid);
+    }
+
+    assert(max_frag_iid < AS_CGB_NOT_SEEN_YET);
+
+    afr_to_avx = safe_calloc(max_frag_iid + 1, sizeof(IntFragment_ID));
+
+    for(iv=0; iv<nfrag; iv++)
+      afr_to_avx[get_iid_fragment(heapva->frags,iv)] = iv;
+  }
+
+
+
 
   // WARNING do we need to rebuild the next_edge_obj here?
 
@@ -426,7 +441,7 @@ int main_fgb(TStateGlobals * gstate,
                       rg->intrude_with_non_blessed_overlaps_flag,
                       rg->overlap_error_threshold);
 
-  destroy_FragmentHash(afr_to_avx);
+  safe_free(afr_to_avx);
 
   /////////////////////////////////////////////////////////////////
 

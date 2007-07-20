@@ -27,7 +27,6 @@ LOCAL_WORK = $(shell cd ../..; pwd)
 AS_FGB_SRCS = AS_FGB_main.c AS_FGB_io.c 
 AS_OGB_SRCS = AS_CGB_histo.c \
               AS_CGB_fga.c AS_CGB_fgb.c AS_FGB_hanging_fragment.c AS_FGB_contained.c \
-              AS_FGB_FragmentHash.c AS_FGB_buildFragmentHash.c  \
               AS_CGB_traversal.c AS_CGB_walk.c \
               AS_CGB_edgemate.c
 AS_CGB_SRCS = AS_CGB_main.c AS_CGB_cgb.c AS_CGB_classify.c AS_CGB_chimeras.c

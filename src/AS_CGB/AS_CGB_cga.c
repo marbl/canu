@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_cga.c,v 1.16 2007-07-19 09:50:27 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_cga.c,v 1.17 2007-07-20 04:47:37 brianwalenz Exp $";
 
 //  A chunk graph analyzer. This functional unit computes graph
 //  statistics, and writes the chunk graph in the term representation
@@ -966,13 +966,12 @@ static void analyze_the_chunks(FILE *fout,
   const int nbucket=500;
   MyHistoDataType zork;
 
-  IntFragment_ID * fragment_visited = NULL;
-  int * fragment_timesinchunks = NULL;
-  FragmentHashObject  * afr_to_avx = NULL;
-  const IntFragment_ID  nfrag   = GetNumFragments(frags);
-  const IntChunk_ID nchunks = (IntChunk_ID)GetNumVA_AChunkMesg(thechunks);
-  Histogram_t * length_of_unitigs_histogram
-    = create_histogram(nsample,nbucket,0,TRUE);
+  IntFragment_ID *fragment_visited = NULL;
+  int            *fragment_timesinchunks = NULL;
+  IntFragment_ID *afr_to_avx = NULL;
+  IntFragment_ID  nfrag   = GetNumFragments(frags);
+  IntChunk_ID     nchunks = (IntChunk_ID)GetNumVA_AChunkMesg(thechunks);
+  Histogram_t    *length_of_unitigs_histogram = create_histogram(nsample,nbucket,0,TRUE);
 
   Histogram_t * rho_histogram = create_histogram(nsample,nbucket,0,TRUE);
   Histogram_t * coverage_histogram = create_histogram(nsample,nbucket,0,TRUE);
@@ -986,47 +985,55 @@ static void analyze_the_chunks(FILE *fout,
   {
     int ii;
     for(ii=0;ii<MAX_NUM_CHUNK_LABELS;ii++){
-      labeled_unitig_histogram[ii]
-	= create_histogram(nsample,nbucket,0,TRUE);
-      extend_histogram
-	(labeled_unitig_histogram[ii],sizeof(MyHistoDataType),
-	 myindexdata,mysetdata,myaggregate,myprintdata);
+      labeled_unitig_histogram[ii] = create_histogram(nsample,nbucket,0,TRUE);
+      extend_histogram(labeled_unitig_histogram[ii],sizeof(MyHistoDataType), myindexdata,mysetdata,myaggregate,myprintdata);
     }
   }
 
   extend_histogram(length_of_unitigs_histogram, sizeof(MyHistoDataType),
 		   myindexdata,mysetdata,myaggregate,myprintdata);
 
-  fragment_visited = (IntFragment_ID *)safe_malloc(nfrag*sizeof(IntFragment_ID));
-  afr_to_avx = create_FragmentHash((max_frag_iid+1));
-  fragment_timesinchunks = (int *)safe_malloc(nfrag*sizeof(int));
-
-  assert(fragment_visited != NULL);
-  assert(fragment_timesinchunks != NULL);
-  assert(afr_to_avx != NULL);
+  fragment_visited       = (IntFragment_ID *)safe_calloc(nfrag,     sizeof(IntFragment_ID));
+  fragment_timesinchunks = (int            *)safe_calloc(nfrag,     sizeof(int));
 
   /* Initialize a flag for chunk following. */
   {
     IntFragment_ID ifrag;
     for(ifrag=0;ifrag<nfrag;ifrag++) { 
-      const IntFragment_ID iid = get_iid_fragment(frags,ifrag);
-      fragment_visited[ifrag] = FRAGMENT_NOT_VISITED;
-      fragment_timesinchunks[ifrag] = 0;
-      set_vid_FragmentHash(afr_to_avx,iid,ifrag);
+      fragment_visited[ifrag]          = FRAGMENT_NOT_VISITED;
+      fragment_timesinchunks[ifrag]    = 0;
     }
   }
+
+  // Re-hash the fragment IID to fragment VID mapping using the
+  // fragments in the store.  (duplicated, search for BUILD_AFR_TO_AVX
+  {
+    IntFragment_ID  iv = 0;
+    IntFragment_ID  max_frag_iid = 0;
+    IntFragment_ID  nfrag        = GetNumFragments(frags);
+
+    for (iv=0; iv<nfrag; iv++) {
+      IntFragment_ID iid = get_iid_fragment(frags,iv);
+      max_frag_iid = MAX(max_frag_iid, iid);
+    }
+
+    assert(max_frag_iid < AS_CGB_NOT_SEEN_YET);
+
+    afr_to_avx = safe_calloc(max_frag_iid + 1, sizeof(IntFragment_ID));
+
+    for(iv=0; iv<nfrag; iv++)
+      afr_to_avx[get_iid_fragment(frags,iv)] = iv;
+  }
+
+
   
   assert((!0) == 1); /* Needed for the following bitwise XOR operator. */
   for(ichunk=0;ichunk<nchunks;ichunk++) {
 
-    const IntFragment_ID irec_start_of_chunk 
-      = GetVA_AChunkMesg(thechunks,ichunk)->f_list;
-    const int64  rho 
-      = GetVA_AChunkMesg(thechunks,ichunk)->rho;
-    const IntFragment_ID nfrag_in_chunk 
-      = GetVA_AChunkMesg(thechunks,ichunk)->num_frags;
-    const int64  nbase_essential_in_chunk 
-      = GetVA_AChunkMesg(thechunks,ichunk)->bp_length;
+    const IntFragment_ID irec_start_of_chunk = GetVA_AChunkMesg(thechunks,ichunk)->f_list;
+    const int64  rho = GetVA_AChunkMesg(thechunks,ichunk)->rho;
+    const IntFragment_ID nfrag_in_chunk = GetVA_AChunkMesg(thechunks,ichunk)->num_frags;
+    const int64  nbase_essential_in_chunk = GetVA_AChunkMesg(thechunks,ichunk)->bp_length;
 
     const int number_of_randomly_sampled_fragments_in_chunk
       = count_the_randomly_sampled_fragments_in_a_chunk ( frags, chunkfrags, thechunks, ichunk);
@@ -1104,7 +1111,7 @@ static void analyze_the_chunks(FILE *fout,
         const IntFragment_ID iid  = get_iid_fragment(frags,vid);
         const Tlab ilabel = get_lab_fragment(frags,vid);
         const int ilen = get_length_fragment(frags,vid);
-        const IntFragment_ID ibvx = get_vid_FragmentHash(afr_to_avx,iid);
+        const IntFragment_ID ibvx = afr_to_avx[iid];
 
         fragment_visited[ibvx] = ichunk;
         fragment_timesinchunks[ibvx] ++;
@@ -1490,7 +1497,7 @@ static void analyze_the_chunks(FILE *fout,
   free_histogram(length_of_unitigs_histogram);
   safe_free(fragment_visited);
   safe_free(fragment_timesinchunks);
-  destroy_FragmentHash(afr_to_avx);
+  safe_free(afr_to_avx);
 } 
 
 

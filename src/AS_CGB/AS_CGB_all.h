@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_CGB_all.h,v 1.18 2007-07-19 09:50:27 brianwalenz Exp $
+//  $Id: AS_CGB_all.h,v 1.19 2007-07-20 04:47:37 brianwalenz Exp $
 
 #ifndef AS_CGB_ALL_INCLUDE
 #define AS_CGB_ALL_INCLUDE
@@ -230,21 +230,9 @@ void identify_early_spur_fragments(Tfragment frags[], Tedge edges[]);
 void check_containment_edges(Tfragment frags[], Tedge edges[]);
 void contained_fragment_marking_frc(Tfragment frags[], Tedge edges[]);
 
-//  AS_FRG_fragmentHash.h
+//  AS_FGB_fragmentHash.h
 #define AS_CGB_NOT_SEEN_YET  INT32_MAX
 
-typedef void FragmentHashObject;
-
-FragmentHashObject *create_FragmentHash(IntFragment_ID max_iid);
-int                 destroy_FragmentHash(FragmentHashObject *);
-
-void           set_vid_FragmentHash(FragmentHashObject *self, IntFragment_ID iid, IntFragment_ID vid);
-IntFragment_ID get_vid_FragmentHash(FragmentHashObject *self, IntFragment_ID iid);
-
-
-//  AS_FGB_buildFragmentHash.c
-FragmentHashObject * build_FragmentHash(const Tfragment * const frags,
-                                        const IntFragment_ID as_cgb_max_frag_iid);
 
 //  AS_CGB_traversal.c
 void as_graph_traversal(FILE *fout,
