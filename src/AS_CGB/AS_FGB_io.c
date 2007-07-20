@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_FGB_io.c,v 1.24 2007-07-20 08:41:43 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_FGB_io.c,v 1.25 2007-07-20 17:17:08 brianwalenz Exp $";
 
 //  Fragment Overlap Graph Builder file input and output.  This
 //  functional unit reads a *.ovl prototype i/o file an massages it
@@ -62,76 +62,47 @@ int REAPER_VALIDATION = FALSE;
 #undef REPORT_DELETED_UNDEF_FRAGS
 
 
+VA_DEF(IntEdge_ID);
+static void keep_a_list_of_extreme_elements(Aedge       *newedge,
+                                            IntEdge_ID  *next_edge,
+                                            size_t       start_idx,
+                                            Aedge       *base) {
 
-static void keep_a_list_of_extreme_elements
-( 
- void const * const new_element, // A new edge record
- IntEdge_ID const * const next, // beginning of the array of next_edge pointers.
- size_t const start_idx,
- void * const base, // array of previously stored edge records.
- size_t const size, // size of an edge record
- int (*compar)(const void *, const void *),
- const int direction
- )
-{
-  // Using UNIX qsort conventions for the comparison function.
+  // The index of the first element saved in the list.
+  size_t ip = start_idx; 
+  size_t ipp;
+
   // The last element in each list must have (ip == next(ip)).
   // The last element in the list is the most extreme element.
 
-  size_t ip = start_idx; 
-  // The index of the first element saved in the list.
+  //  -compar() -- save the minimum elements
 
-  assert((direction == 1) || // save the maximum elements
-	 (direction == -1)); // save the minimum elements
-
-  if(!(direction*compar(new_element,((char*)base+ip*size)) >= 0)) {
-    // The equals case is to make sure that new records appended on to
-    // the list are processed since they may be there simply because
-    // the list was not full yet.
+  if (-compare_edge_function(newedge,base+ip) < 0)
     return;
-  }
 
-  while( ip != next[ip] ) {
+  while( ip != next_edge[ip] ) {
     // While not the last element in the list.
-    size_t ipp = next[ip]; 
+    ipp = next_edge[ip]; 
     // ipp = ip +/- 1 in an array
-    if(direction*compar(new_element,((char*)base+ipp*size)) > 0) {
-      memcpy(((char*)base+ip*size),((char*)base+ipp*size), size);
+    if(-compare_edge_function(newedge,base+ipp) > 0) {
+      memcpy(base+ip, base+ipp, sizeof(Aedge));
       ip = ipp;
     } else {
       break;
     }
   }
 
-  memcpy(((char*)base+ip*size), new_element, size);
-  return;
+  memcpy(base+ip, newedge, sizeof(Aedge));
 }
 
 
-static IntEdge_ID Insert_Aedge_into_the_edge_array_simple
-(
- Tfragment   * frags,
- Tedge       * edges,
- IntEdge_ID  * nedges_delta,
- TIntEdge_ID * next_edge_obj,
- Aedge       * the_edge
- )
-{
-  const IntEdge_ID iedge = GetNumEdges(edges); // The next available location.
-  (*nedges_delta)++;
-  EnableRangeVA_Aedge(edges,iedge+1);
-  EnableRangeVA_IntEdge_ID(next_edge_obj,iedge+1);
-  // Why do not we set the value?
-  memcpy( GetVA_Aedge(edges,iedge), the_edge, sizeof(Aedge));
-  return iedge;
-}
 
 static void Insert_Aedge_into_the_edge_array_wrapper
 (
  Tfragment   * frags,
  Tedge       * edges,
  IntEdge_ID  * nedges_delta,
- TIntEdge_ID * next_edge_obj,
+ VA_TYPE(IntEdge_ID)  * next_edge,
  Aedge       * the_edge,
  int           dvt_double_sided_threshold_fragment_end_degree,
  int           con_double_sided_threshold_fragment_end_degree
@@ -143,62 +114,65 @@ static void Insert_Aedge_into_the_edge_array_wrapper
   const int bhg = the_edge->bhg;
   
   if(is_a_dvt_simple(ahg,bhg)) {  // A dovetail overlap. See get_dvt_edge().
+
     const int degree=get_seglen_dvt_vertex(frags,avx,asx);
     assert( degree >= 0 );
     assert( degree <= dvt_double_sided_threshold_fragment_end_degree);
+
     if(degree < dvt_double_sided_threshold_fragment_end_degree) {
       // Not a full list. Add the new record to the array.
       // What about duplicates?
-      const IntEdge_ID iedge = Insert_Aedge_into_the_edge_array_simple
-        ( frags, edges, nedges_delta, next_edge_obj, the_edge);
-      // Added the edge to the edge array.
-      set_seglen_dvt_vertex(frags,avx,asx,(degree+1));
-      *GetVA_IntEdge_ID(next_edge_obj,iedge)
+
+      const IntEdge_ID iedge = GetNumEdges(edges);
+      (*nedges_delta)++;
+
+      EnableRangeVA_Aedge(edges,iedge+1);
+      memcpy( GetVA_Aedge(edges,iedge), the_edge, sizeof(Aedge));
+
+      EnableRangeVA_IntEdge_ID(next_edge,iedge+1);
+      *GetVA_IntEdge_ID(next_edge,iedge)
         = ( degree > 1
-            ? get_segend_vertex(frags,avx,asx)
-            // A reference to the old top of the list.
-            : iedge
-            // A reference to self is a sentinal for the end of the list.
-            );
+            ? get_segend_vertex(frags,avx,asx) // A reference to the old top of the list.
+            : iedge); // A reference to self is a sentinal for the end of the list.
+
+      set_seglen_dvt_vertex(frags,avx,asx,(degree+1));
       set_segend_vertex(frags,avx,asx,iedge);
     }
     keep_a_list_of_extreme_elements(the_edge,
-                                    GetVA_IntEdge_ID(next_edge_obj,0),
+                                    GetVA_IntEdge_ID(next_edge,0),
                                     get_segend_vertex(frags,avx,asx),
-                                    GetVA_Aedge(edges,0),
-                                    sizeof(Aedge),
-                                    compare_edge_function,
-                                    -1);  // save the minimum ahg elements.
+                                    GetVA_Aedge(edges,0));
 
   }else { // A containment overlap a.k.a. not a dovetail overlap.
+
     const int degree=get_seglen_frc_vertex(frags,avx,asx);
     assert( degree >= 0 );
     assert( degree <= con_double_sided_threshold_fragment_end_degree);
+
     if(degree < con_double_sided_threshold_fragment_end_degree) {
       // Not a full list. Add the new record to the array.
       // What about duplicates?
-      const IntEdge_ID iedge = Insert_Aedge_into_the_edge_array_simple
-        ( frags, edges, nedges_delta, next_edge_obj, the_edge);
-      // Added the edge to the edge array.
-      set_seglen_frc_vertex(frags,avx,asx,(degree+1));
-      *GetVA_IntEdge_ID(next_edge_obj,iedge)
+
+      const IntEdge_ID iedge = GetNumEdges(edges);
+      (*nedges_delta)++;
+
+      EnableRangeVA_Aedge(edges,iedge+1);
+      memcpy( GetVA_Aedge(edges,iedge), the_edge, sizeof(Aedge));
+
+      EnableRangeVA_IntEdge_ID(next_edge,iedge+1);
+      *GetVA_IntEdge_ID(next_edge,iedge)
         = ( degree > 1
-            ? get_segstart_vertex(frags,avx,asx)
-            // A reference to the old top of the list.
-            : iedge
-            // A reference to self is a sentinal for the end of the list.
-            );
+            ? get_segstart_vertex(frags,avx,asx) // A reference to the old top of the list.
+            : iedge); // A reference to self is a sentinal for the end of the list.
+
+      set_seglen_frc_vertex(frags,avx,asx,(degree+1));
       set_segstart_vertex(frags,avx,asx,iedge);
     }
 
-    //  "CONTAINMENT_STACKING" changed the -1 below to a 1.
     keep_a_list_of_extreme_elements(the_edge,
-                                    GetVA_IntEdge_ID(next_edge_obj,0),
+                                    GetVA_IntEdge_ID(next_edge,0),
                                     get_segstart_vertex(frags,avx,asx),
-                                    GetVA_Aedge(edges,0),
-                                    sizeof(Aedge),
-                                    compare_edge_function,
-                                    -1);
+                                    GetVA_Aedge(edges,0));
 
     {
       const int degree=get_seglen_frc_vertex(frags,avx,asx);
@@ -215,7 +189,7 @@ static void insert_dovetail_into_the_edge_array_Aedge
  Tfragment   * frags,
  Tedge       * edges,
  IntEdge_ID  * nedges_delta,
- TIntEdge_ID * next_edge_obj,
+ VA_TYPE(IntEdge_ID) * next_edge,
  const int dvt_double_sided_threshold_fragment_end_degree,
  const int con_double_sided_threshold_fragment_end_degree,
  const int intrude_with_non_blessed_overlaps_flag
@@ -234,7 +208,7 @@ static void insert_dovetail_into_the_edge_array_Aedge
        )
      ) {
           Insert_Aedge_into_the_edge_array_wrapper
-            ( frags, edges, nedges_delta, next_edge_obj,
+            ( frags, edges, nedges_delta, next_edge,
               the_edge,
               dvt_double_sided_threshold_fragment_end_degree,
               con_double_sided_threshold_fragment_end_degree
@@ -245,21 +219,18 @@ static void insert_dovetail_into_the_edge_array_Aedge
   }
 }
 
-static void add_overlap_to_graph
-(
- Aedge  an_edge,
- Tfragment  frags[],
- Tedge      edges[],
- IntFragment_ID   *afr_to_avx,
- TIntEdge_ID    *next_edge_obj,
- const int dvt_double_sided_threshold_fragment_end_degree,
- const int con_double_sided_threshold_fragment_end_degree,
- const int intrude_with_non_blessed_overlaps_flag,
- IntEdge_ID * novl_dovetail,
- IntEdge_ID * novl_containment,
- IntEdge_ID * nedges_delta
-)
-{
+static void add_overlap_to_graph(Aedge  an_edge,
+                                 Tfragment  frags[],
+                                 Tedge      edges[],
+                                 IntFragment_ID   *afr_to_avx,
+                                 VA_TYPE(IntEdge_ID)  *next_edge,
+                                 const int dvt_double_sided_threshold_fragment_end_degree,
+                                 const int con_double_sided_threshold_fragment_end_degree,
+                                 const int intrude_with_non_blessed_overlaps_flag,
+                                 IntEdge_ID * novl_dovetail,
+                                 IntEdge_ID * novl_containment,
+                                 IntEdge_ID * nedges_delta) {
+
   const IntFragment_ID iafr = an_edge.avx;
   const int iasx = an_edge.asx;
   const int iahg = an_edge.ahg;
@@ -340,6 +311,7 @@ static void add_overlap_to_graph
   assert((!(AS_CGB_DOVETAIL_EDGE == ines)) || is_a_dvt_simple(iahg,ibhg));
   // This is the definition of a dovetail overlap.  That is a dovetail
   // overlap has a positive a-hang and a positive b-hang.
+
   assert((!(AS_CGB_CONTAINED_EDGE == ines))
          || is_a_toc_simple(iahg,ibhg) || is_a_frc_simple(iahg,ibhg)
          || is_a_dgn_simple(iahg,ibhg) );
@@ -369,19 +341,19 @@ static void add_overlap_to_graph
   assert(ialn > -ibhg);
   assert(ibln > -iahg);
   
+  // If either of the fragments referenced in the overlap have
+  // been deleted, then ignore this overlap during input.
   if((get_del_fragment(frags,iavx) == TRUE) ||
-     (get_del_fragment(frags,ibvx) == TRUE) ) {
+     (get_del_fragment(frags,ibvx) == TRUE) )
     return;
-    // If either of the fragments referenced in the overlap have
-    // been deleted, then ignore this overlap during input.
-  }
   
+  // If either of the fragments referenced in the overlap has been
+  // marked as removed by breaker, set the edge label (well, no, just
+  // delete the overlap)
   if((get_lab_fragment(frags,iavx) == AS_CGB_REMOVED_BREAKER_FRAG) ||
      (get_lab_fragment(frags,ibvx) == AS_CGB_REMOVED_BREAKER_FRAG) ) {
     // ines=AS_CGB_REMOVED_BY_BREAKER;
     return;  // Remove the overlap from the graph.
-  // If either of the fragments referenced in the overlap has
-  // been marked as removed by breaker, set the edge label
   }
   
   // Note that we can not count overlaps to deleted and removed
@@ -403,37 +375,32 @@ static void add_overlap_to_graph
   {
     Aedge  the_raw_new_edge = {0};
 
-    {
-      the_raw_new_edge.avx = iavx;
-      the_raw_new_edge.asx = iasx;
-      the_raw_new_edge.ahg = iahg;
+    the_raw_new_edge.avx = iavx;
+    the_raw_new_edge.asx = iasx;
+    the_raw_new_edge.ahg = iahg;
       
-      the_raw_new_edge.bvx = ibvx;
-      the_raw_new_edge.bsx = ibsx;
-      the_raw_new_edge.bhg = ibhg;
+    the_raw_new_edge.bvx = ibvx;
+    the_raw_new_edge.bsx = ibsx;
+    the_raw_new_edge.bhg = ibhg;
       
-      the_raw_new_edge.nes = ines;
-      the_raw_new_edge.quality = qua;
-      the_raw_new_edge.invalid = iinv;
-      the_raw_new_edge.grangered = FALSE;
-      the_raw_new_edge.reflected = FALSE;
-    }
+    the_raw_new_edge.nes = ines;
+    the_raw_new_edge.quality = qua;
+    the_raw_new_edge.invalid = iinv;
+    the_raw_new_edge.grangered = FALSE;
+    the_raw_new_edge.reflected = FALSE;
     
     if( is_dovetail ) {
-      {
         Aedge the_edge = the_raw_new_edge;
 
-        insert_dovetail_into_the_edge_array_Aedge
-          (
-           & the_edge,
-           frags,
-           edges,
-           nedges_delta,
-           next_edge_obj,
-           dvt_double_sided_threshold_fragment_end_degree,
-           con_double_sided_threshold_fragment_end_degree,
-           intrude_with_non_blessed_overlaps_flag
-           );
+        insert_dovetail_into_the_edge_array_Aedge(&the_edge,
+                                                  frags,
+                                                  edges,
+                                                  nedges_delta,
+                                                  next_edge,
+                                                  dvt_double_sided_threshold_fragment_end_degree,
+                                                  con_double_sided_threshold_fragment_end_degree,
+                                                  intrude_with_non_blessed_overlaps_flag);
+
 #ifdef PRIOR_INC_COUNT_BLESSED
         inc_raw_dvt_count_vertex(frags,the_edge.avx,the_edge.asx);
 #endif // PRIOR_INC_COUNT_BLESSED
@@ -459,22 +426,19 @@ static void add_overlap_to_graph
           // because we assume that a bug-free ovlStore has both overlaps.
           // However the standard ovl file has only one OVL record per
           // overlap.
-          insert_dovetail_into_the_edge_array_Aedge
-            (
-             & the_edge,
-             frags,
-             edges,
-             nedges_delta,
-             next_edge_obj,
-             dvt_double_sided_threshold_fragment_end_degree,
-             con_double_sided_threshold_fragment_end_degree,
-             intrude_with_non_blessed_overlaps_flag
-             );
+          insert_dovetail_into_the_edge_array_Aedge(&the_edge,
+                                                    frags,
+                                                    edges,
+                                                    nedges_delta,
+                                                    next_edge,
+                                                    dvt_double_sided_threshold_fragment_end_degree,
+                                                    con_double_sided_threshold_fragment_end_degree,
+                                                    intrude_with_non_blessed_overlaps_flag);
+
 #ifdef PRIOR_INC_COUNT_BLESSED
           inc_raw_dvt_count_vertex(frags,the_edge.bvx,the_edge.bsx);
 #endif // PRIOR_INC_COUNT_BLESSED
         }
-      }
     } else { // A containment overlap 
       {
         Aedge the_edge_1, the_edge_2;
@@ -522,12 +486,10 @@ static void add_overlap_to_graph
              // then keep it.
              )
            ) {
-          Insert_Aedge_into_the_edge_array_wrapper
-            ( frags, edges, nedges_delta, next_edge_obj,
-              &the_edge_1,
-              dvt_double_sided_threshold_fragment_end_degree,
-              con_double_sided_threshold_fragment_end_degree
-              );
+          Insert_Aedge_into_the_edge_array_wrapper(frags, edges, nedges_delta, next_edge,
+                                                   &the_edge_1,
+                                                   dvt_double_sided_threshold_fragment_end_degree,
+                                                   con_double_sided_threshold_fragment_end_degree);
         }
         
         /* The overlapper guarantees that ahg>0 in the reported
@@ -550,12 +512,10 @@ static void add_overlap_to_graph
              // then keep it.
              )
            ) {
-          Insert_Aedge_into_the_edge_array_wrapper
-            ( frags, edges, nedges_delta, next_edge_obj,
-              &the_edge_2,
-              dvt_double_sided_threshold_fragment_end_degree,
-              con_double_sided_threshold_fragment_end_degree
-            );
+          Insert_Aedge_into_the_edge_array_wrapper(frags, edges, nedges_delta, next_edge,
+                                                   &the_edge_2,
+                                                   dvt_double_sided_threshold_fragment_end_degree,
+                                                   con_double_sided_threshold_fragment_end_degree);
         }
       }
     }
@@ -648,7 +608,7 @@ void process_ovl_store(char * OVL_Store_Path,
                        Tfragment  frags[],
                        Tedge      edges[],
                        IntFragment_ID *afr_to_avx,
-                       TIntEdge_ID     next_edge_obj[],
+                       VA_TYPE(IntEdge_ID) *next_edge,
                        const int dvt_double_sided_threshold_fragment_end_degree,
                        const int con_double_sided_threshold_fragment_end_degree,
                        const int intrude_with_non_blessed_overlaps_flag,
@@ -731,7 +691,7 @@ void process_ovl_store(char * OVL_Store_Path,
                            frags,
                            edges,
                            afr_to_avx,
-                           next_edge_obj,
+                           next_edge,
                            dvt_double_sided_threshold_fragment_end_degree,
                            con_double_sided_threshold_fragment_end_degree,
                            intrude_with_non_blessed_overlaps_flag,
@@ -753,7 +713,7 @@ void input_messages_from_a_file(FILE       *fovl,
                                 Tfragment  frags[],
                                 Tedge      edges[],
                                 IntFragment_ID *afr_to_avx,
-                                TIntEdge_ID       *next_edge_obj,
+                                VA_TYPE(IntEdge_ID)  *next_edge,
                                 const int dvt_double_sided_threshold_fragment_end_degree,
                                 const int con_double_sided_threshold_fragment_end_degree,
                                 const int intrude_with_non_blessed_overlaps_flag,
@@ -837,7 +797,7 @@ void input_messages_from_a_file(FILE       *fovl,
                              frags,
                              edges,
                              afr_to_avx,
-                             next_edge_obj,
+                             next_edge,
                              dvt_double_sided_threshold_fragment_end_degree,
                              con_double_sided_threshold_fragment_end_degree,
                              intrude_with_non_blessed_overlaps_flag,

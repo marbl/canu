@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_CGB_unitigger_globals.h,v 1.12 2007-07-20 08:41:43 brianwalenz Exp $
+//  $Id: AS_CGB_unitigger_globals.h,v 1.13 2007-07-20 17:17:08 brianwalenz Exp $
 
 #ifndef AS_CGB_UNITIGGER_GLOBALS_INCLUDE
 #define AS_CGB_UNITIGGER_GLOBALS_INCLUDE
@@ -165,19 +165,16 @@ VA_DEF(Aedge)
 VA_DEF(Afragment)
 VA_DEF(AChunkFrag)
 VA_DEF(AChunkMesg)
-VA_DEF(IntEdge_ID)
 
 typedef VA_TYPE(Aedge)      Tedge;
 typedef VA_TYPE(Afragment)  Tfragment;
 typedef VA_TYPE(AChunkFrag) TChunkFrag;
 typedef VA_TYPE(AChunkMesg) TChunkMesg;
-typedef VA_TYPE(IntEdge_ID) TIntEdge_ID;
 
 
 typedef struct { 
   Tfragment      *frags;
   Tedge          *edges;
-  TIntEdge_ID    *next_edge_obj;
   TChunkFrag     *chunkfrags;
   TChunkMesg     *thechunks;
   int64           nbase_in_genome;

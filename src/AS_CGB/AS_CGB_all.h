@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_CGB_all.h,v 1.19 2007-07-20 04:47:37 brianwalenz Exp $
+//  $Id: AS_CGB_all.h,v 1.20 2007-07-20 17:17:08 brianwalenz Exp $
 
 #ifndef AS_CGB_ALL_INCLUDE
 #define AS_CGB_ALL_INCLUDE
@@ -248,8 +248,7 @@ void view_fgb_chkpnt(char *Store_Path_Prefix,
 
 //  AS_CGB_fgb.c
 void reorder_edges(Tfragment *frags,
-                   Tedge *edges,
-                   TIntEdge_ID *next_edge_obj);
+                   Tedge *edges);
 
 //  AS_CGB_count_fragment_and_edge_labels.c
 void count_fragment_and_edge_labels(Tfragment frags[],
@@ -295,8 +294,7 @@ void fix_overlap_edge_mate (const Tfragment frags[],
                             const IntEdge_ID ie0);
 
 IntEdge_ID check_symmetry_of_the_edge_mates (Tfragment frags[],
-                                             Tedge edges[],
-                                             TIntEdge_ID * next_edge_obj);
+                                             Tedge edges[]);
 
 //  AS_CGB_edgemate.c (end)
 ////////////////////////////////////////

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_main.c,v 1.13 2007-07-20 08:41:43 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_main.c,v 1.14 2007-07-20 17:17:08 brianwalenz Exp $";
 
 #include "AS_UTL_version.h"  
 #include "AS_CGB_all.h"
@@ -53,7 +53,6 @@ void chunk_graph_build_1(const char * const Graph_Store_File_Prefix,
 static IntEdge_ID get_the_thickest_dvt_overlap_from_vertex
 ( Tfragment * frags,
   Tedge     * edges,
-  TIntEdge_ID * next_edge_obj, // If non-NULL do not assume an adjaceny representation.
   IntFragment_ID avx,
   int            asx
   ) {
@@ -61,40 +60,29 @@ static IntEdge_ID get_the_thickest_dvt_overlap_from_vertex
   const IntEdge_ID nedge = GetNumEdges(edges);
   IntEdge_ID ie_thickest = AS_CGB_EDGE_NOT_FOUND;
   
-  if(GetNumVA_IntEdge_ID(next_edge_obj) == 0) {
-    // Assume adjacency mode
-    const IntEdge_ID segstart = get_segstart_vertex(frags,avx,asx);
-    const int        seglen   = get_seglen_vertex(frags,avx,asx);
-    IntEdge_ID ie;
-    for( ie=segstart; ie < segstart+seglen; ie++) {
-      const Tnes nes = get_nes_edge(edges,ie);
-      assert(
-             (AS_CGB_DOVETAIL_EDGE == nes) || 
-             (AS_CGB_THICKEST_EDGE == nes) || 
-             (AS_CGB_INTERCHUNK_EDGE == nes) ||
-             (AS_CGB_TOUCHES_CRAPPY_DVT == nes) ||
-             (AS_CGB_BETWEEN_CRAPPY_DVT == nes) ||
-             (AS_CGB_CONTAINED_EDGE == nes) ||
-             (AS_CGB_TOUCHES_CRAPPY_CON == nes) ||
-             (AS_CGB_BETWEEN_CRAPPY_CON == nes) );
-      if(
-         (AS_CGB_DOVETAIL_EDGE == nes) || 
-         (AS_CGB_THICKEST_EDGE == nes) || 
-         (AS_CGB_INTERCHUNK_EDGE == nes) 
-         // get_dvt_edge(edges,ie)
-         ) {
-        ie_thickest = ie;
-        break;
-      }
-    }
-  } else {
-    // Assume hash mode
-    const int degree = get_seglen_dvt_vertex(frags,avx,asx);
-    assert(degree <= 1);
-    assert(FALSE);
-    // assert that "unitigger -x 1" was used.
-    if(degree == 1 ) { 
-      ie_thickest = get_segend_vertex(frags,avx,asx);
+  // Assume adjacency mode
+  const IntEdge_ID segstart = get_segstart_vertex(frags,avx,asx);
+  const int        seglen   = get_seglen_vertex(frags,avx,asx);
+  IntEdge_ID ie;
+  for( ie=segstart; ie < segstart+seglen; ie++) {
+    const Tnes nes = get_nes_edge(edges,ie);
+    assert(
+           (AS_CGB_DOVETAIL_EDGE == nes) || 
+           (AS_CGB_THICKEST_EDGE == nes) || 
+           (AS_CGB_INTERCHUNK_EDGE == nes) ||
+           (AS_CGB_TOUCHES_CRAPPY_DVT == nes) ||
+           (AS_CGB_BETWEEN_CRAPPY_DVT == nes) ||
+           (AS_CGB_CONTAINED_EDGE == nes) ||
+           (AS_CGB_TOUCHES_CRAPPY_CON == nes) ||
+           (AS_CGB_BETWEEN_CRAPPY_CON == nes) );
+    if(
+       (AS_CGB_DOVETAIL_EDGE == nes) || 
+       (AS_CGB_THICKEST_EDGE == nes) || 
+       (AS_CGB_INTERCHUNK_EDGE == nes) 
+       // get_dvt_edge(edges,ie)
+       ) {
+      ie_thickest = ie;
+      break;
     }
   }
 
@@ -105,56 +93,24 @@ static IntEdge_ID get_the_thickest_dvt_overlap_from_vertex
 
 static void identify_thickest_overlaps
 ( Tfragment * frags,
-  Tedge     * edges,
-  TIntEdge_ID * next_edge_obj 
+  Tedge     * edges
   ) 
 {
   const IntEdge_ID nedge = GetNumEdges(edges);
   const IntFragment_ID nfrag = GetNumFragments(frags);
   
-  if(GetNumVA_IntEdge_ID(next_edge_obj) > 0) {
-    // Assume hash mode
-    IntEdge_ID ie;
-    assert(FALSE);
-    for(ie=0; ie < nedge; ie++) {
-      const Tnes nes = get_nes_edge(edges,ie);
-      if((AS_CGB_DOVETAIL_EDGE == nes) ||
-         (AS_CGB_THICKEST_EDGE == nes)
-         ) {
-        const IntFragment_ID avx = get_avx_edge(edges,ie);
-        const IntFragment_ID asx = get_asx_edge(edges,ie);
-        const int degree = get_seglen_dvt_vertex(frags,avx,asx);
-        if( degree != 1 ) {
-          const IntFragment_ID bvx = get_bvx_edge(edges,ie);
-          const IntFragment_ID bsx = get_bsx_edge(edges,ie);
-          fprintf(stderr,"ERROR: afr= " F_IID " asx= %d bfr= " F_IID " bsx= %d nes= %d degree= %d\n",
-                  get_iid_fragment(frags,avx), asx,
-                  get_iid_fragment(frags,bvx), bsx,
-                  nes, degree);
-        }
-        assert(degree == 1); // assert that "unitigger -x 1" was used.
+  // Assume an adjaceny representation.
+  IntFragment_ID avx;
+  int asx;
+  for(avx=0; avx < nfrag; avx++) {
+    for(asx=0; asx < 2; asx++) {
+      const IntEdge_ID ie = get_the_thickest_dvt_overlap_from_vertex ( frags, edges, avx, asx );
+      if(AS_CGB_EDGE_NOT_FOUND != ie) {
+        const Tnes nes = get_nes_edge(edges,ie);
+        //assert((AS_CGB_DOVETAIL_EDGE == nes) || (AS_CGB_THICKEST_EDGE == nes));
         if((AS_CGB_DOVETAIL_EDGE == nes)) {
           set_nes_edge(edges,ie,AS_CGB_THICKEST_EDGE);
           fix_overlap_edge_mate(frags,edges,ie);
-        }
-      }
-    }
-  } else {
-    // Assume an adjaceny representation.
-    IntFragment_ID avx;
-    int asx;
-    for(avx=0; avx < nfrag; avx++) {
-      for(asx=0; asx < 2; asx++) {
-        const IntEdge_ID ie = get_the_thickest_dvt_overlap_from_vertex
-          ( frags, edges, next_edge_obj, // If non-NULL do not assume an adjacency representation.
-            avx, asx );
-        if(AS_CGB_EDGE_NOT_FOUND != ie) {
-          const Tnes nes = get_nes_edge(edges,ie);
-          //assert((AS_CGB_DOVETAIL_EDGE == nes) || (AS_CGB_THICKEST_EDGE == nes));
-          if((AS_CGB_DOVETAIL_EDGE == nes)) {
-            set_nes_edge(edges,ie,AS_CGB_THICKEST_EDGE);
-            fix_overlap_edge_mate(frags,edges,ie);
-          }
         }
       }
     }
@@ -164,7 +120,6 @@ static void identify_thickest_overlaps
 static void identify_bmpc_paths
 ( Tfragment * frags,
   Tedge     * edges,
-  TIntEdge_ID * next_edge_obj, // If non-NULL do not assume an adjaceny representation.
   IntEdge_ID ie_start
   ) {
 
@@ -199,9 +154,7 @@ static void identify_bmpc_paths
       // What if this fragment was labeled a spur?
       set_lab_fragment( frags, bvx, AS_CGB_BRANCHMULTICONT_FRAG);
 
-      ie_next =
-        get_the_thickest_dvt_overlap_from_vertex
-        (frags,edges,next_edge_obj,bvx,!bsx);
+      ie_next = get_the_thickest_dvt_overlap_from_vertex (frags,edges,bvx,!bsx);
       // Get the thickest dvt overlap from the fragment's other end.
 
       if( AS_CGB_EDGE_NOT_FOUND != ie_next ) {
@@ -220,8 +173,7 @@ static void identify_bmpc_paths
 
 static void identify_essential_components
 ( Tfragment * frags,
-  Tedge     * edges,
-  TIntEdge_ID * next_edge_obj 
+  Tedge     * edges
   ) {
   const IntEdge_ID nfrag = GetNumFragments(frags);
 
@@ -233,9 +185,7 @@ static void identify_essential_components
       const IntFragment_ID lab = get_lab_fragment(frags,avx);
       if( (!con) && ((AS_CGB_HANGING_FRAG == lab) || (AS_CGB_THRU_FRAG == lab)) ) {
         for(asx=0; asx < 2; asx++) {
-          const IntEdge_ID ie = get_the_thickest_dvt_overlap_from_vertex
-            ( frags, edges, next_edge_obj, // If non-NULL do not assume an adjaceny representation.
-              avx, asx );
+          const IntEdge_ID ie = get_the_thickest_dvt_overlap_from_vertex ( frags, edges, avx, asx );
           if(AS_CGB_EDGE_NOT_FOUND != ie) {
             const Tnes nes = get_nes_edge(edges,ie);
             assert((AS_CGB_THICKEST_EDGE == nes) || (AS_CGB_INTERCHUNK_EDGE == nes));
@@ -245,7 +195,7 @@ static void identify_essential_components
                 fix_overlap_edge_mate(frags,edges,ie);
               }
             } else {
-              identify_bmpc_paths( frags, edges, next_edge_obj, ie);
+              identify_bmpc_paths( frags, edges, ie);
             }
           }
         }
@@ -315,20 +265,18 @@ static void reflect_containment_direction_in_place
 static void convert_all_containment_overlaps_direction_TOC
 ( Tfragment * frags,
   Tedge     * edges,
-  TIntEdge_ID * next_edge_obj, // If non-NULL do not assume an adjaceny representation.
   const int become_to_contained
  )
 {
   time_t tp1, tp2;
   reflect_containment_direction_in_place( edges, become_to_contained);
-  reorder_edges( frags, edges, next_edge_obj);
+  reorder_edges( frags, edges);
 }
 #endif // SWITCH_CONTAINMENT_DIRECTION_CGB
 
 static void maskout_overlaps_touching_crappy_fragments
 ( Tfragment * frags,
-  Tedge     *edges,
-  TIntEdge_ID * next_edge_obj // If non-NULL do not assume an adjaceny representation.
+  Tedge     *edges
 )
 {
   /*
@@ -403,36 +351,36 @@ int main_cgb(THeapGlobals  * heapva,
   GateKeeperStore *gkpStore = openGateKeeperStore(rg->frag_store, FALSE);
   
   //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "After reading the fragment graph store");
-  //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
+  //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges);
 
   if(rg->aggressive_spur_fragment_marking) {
-    maskout_overlaps_touching_crappy_fragments ( heapva->frags, heapva->edges, heapva->next_edge_obj );
+    maskout_overlaps_touching_crappy_fragments ( heapva->frags, heapva->edges);
 
     // Do we need to patch up the graph here??
 
     //count_fragment_and_edge_labels ( heapva->frags, heapva->edges, "after maskout_overlaps_touching_crappy_fragments");
     //view_fgb_chkpnt( "maskout_overlaps_touching_crappy_fragments", heapva->frags, heapva->edges);
-    //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
+    //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges);
   }
 
   
-  identify_thickest_overlaps( heapva->frags, heapva->edges, heapva->next_edge_obj );
+  identify_thickest_overlaps( heapva->frags, heapva->edges);
   //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "After identify_thickest_edges");
   //view_fgb_chkpnt( "identify_thickest_overlaps", heapva->frags, heapva->edges);
-  //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
+  //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges);
 
-  identify_essential_components( heapva->frags, heapva->edges, heapva->next_edge_obj );
+  identify_essential_components( heapva->frags, heapva->edges );
   //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "After identify_essential_components");
   //view_fgb_chkpnt( "identify_essential_components", heapva->frags, heapva->edges);
-  //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
+  //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges);
 
   chunk_classification_dvt(heapva->frags, heapva->edges, rg->walk_depth);
   
   //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "In main after chunk_classification_dvt");
-  //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
+  //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges);
    
 #ifdef SWITCH_CONTAINMENT_DIRECTION_CGB
-  convert_all_containment_overlaps_direction_TOC ( heapva->frags, heapva->edges, heapva->next_edge_obj, TRUE);
+  convert_all_containment_overlaps_direction_TOC ( heapva->frags, heapva->edges, TRUE);
   //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "After switching the containment direction");
 #endif // SWITCH_CONTAINMENT_DIRECTION_CGB
 
@@ -476,7 +424,7 @@ int main_cgb(THeapGlobals  * heapva,
     assert(GetNumEdges(heapva->edges) > 0);
 
     //view_fgb_chkpnt( "finished_marking_graph", heapva->frags, heapva->edges);
-    //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges, heapva->next_edge_obj);
+    //check_symmetry_of_the_edge_mates( heapva->frags, heapva->edges);
     //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "In main before build 1");
 
     chunk_graph_build_1(rg->Output_Graph_Store_Prefix,
@@ -499,7 +447,7 @@ int main_cgb(THeapGlobals  * heapva,
 
 
 #ifdef SWITCH_CONTAINMENT_DIRECTION_CGB
-  convert_all_containment_overlaps_direction_TOC ( heapva->frags, heapva->edges, heapva->next_edge_obj, FALSE);
+  convert_all_containment_overlaps_direction_TOC ( heapva->frags, heapva->edges, FALSE);
   //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "After switching the containment direction");
 #endif // SWITCH_CONTAINMENT_DIRECTION_CGB
 

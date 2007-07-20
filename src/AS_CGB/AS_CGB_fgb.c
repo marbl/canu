@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_fgb.c,v 1.13 2007-07-20 07:22:41 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_fgb.c,v 1.14 2007-07-20 17:17:08 brianwalenz Exp $";
 
 //  The fragment overlap graph builder.
 //
@@ -219,8 +219,7 @@ static void setup_segments
 static void pack_the_edges
 (
  Tfragment *frags,
- Tedge     *edges,
- TIntEdge_ID *next_edge_obj
+ Tedge     *edges
 )
 {
   // Compress the removed edges from the graph.
@@ -344,10 +343,6 @@ static void pack_the_edges
     }
   }
   ResetToRange_Aedge(edges,idup);
-  if(nedge != idup) {
-    ResetToRangeVA_IntEdge_ID(next_edge_obj,0);
-    // The next_edge_obj data is invalidated.
-  }
   setup_segments(/* Modify */ frags, edges);
 
   fprintf(stderr,
@@ -372,26 +367,12 @@ static void pack_the_edges
           );
 }
 
-static void rebuild_next_edge_obj
-(
-  Tedge       * edges,
-  TIntEdge_ID * next_edge_obj
- )
-{
-  fprintf(stderr, "WARNING "__FILE__ " line %d : rebuild_next_edge_obj() is only a stub.\n", __LINE__ );
-  //assert(FALSE);
-}
-
 void reorder_edges(Tfragment *frags,
-                   Tedge *edges,
-                   TIntEdge_ID *next_edge_obj) {
+                   Tedge *edges) {
 
   const IntFragment_ID nfrag = GetNumFragments(frags);
   const IntEdge_ID nedge = GetNumEdges(edges);
 
-  ResetToRangeVA_IntEdge_ID(next_edge_obj,0);
-  // The next_edge_obj data is invalidated.
-  
   if( nedge > 0) { // Sort the edges ......
     const int max_frag_len = 2048;
     const IntEdge_ID max_nbins = MAX(max_frag_len,2*nfrag);
@@ -509,7 +490,6 @@ void reorder_edges(Tfragment *frags,
      }}
    }
 
-  rebuild_next_edge_obj( edges, next_edge_obj);
   setup_segments(/* Modify */ frags, edges);
 }
 
@@ -638,7 +618,6 @@ void transitive_edge_marking
 (
  Tfragment     * frags,
  Tedge         * edges,
- TIntEdge_ID   * next_edge_obj,
  const int walk_depth,
  const int cutoff_fragment_end_degree,
  const int work_limit_per_candidate_edge
@@ -682,19 +661,12 @@ void transitive_edge_marking
 
   // Was this fragment seen from the target overlap edge before?
   
-#ifdef DONT_RUN_IN_SYMMETRIC_MODE    
-  if(GetNumVA_IntEdge_ID(next_edge_obj) > 0) {
-    // We do not know if the graph is in adjacency list representation.
-    reorder_edges( frags, edges, next_edge_obj );
-  }
-#endif // DONT_RUN_IN_SYMMETRIC_MODE    
+  //check_symmetry_of_the_edge_mates( frags, edges);
 
-  check_symmetry_of_the_edge_mates( frags, edges, next_edge_obj);
-  {
-    /* Reduce the amount of memory used for the graph. */
-    pack_the_edges( frags, edges, next_edge_obj);
-  }
-  check_symmetry_of_the_edge_mates( frags, edges, next_edge_obj);
+  /* Reduce the amount of memory used for the graph. */
+  pack_the_edges( frags, edges);
+
+  //check_symmetry_of_the_edge_mates( frags, edges);
   
   { IntFragment_ID iv0; for(iv0=0;iv0<nfrag;iv0++) {
     int is0; for(is0=0;is0<2;is0++) {
@@ -940,12 +912,12 @@ void transitive_edge_marking
           ntrans_test_fail);
 
 
-  check_symmetry_of_the_edge_mates( frags, edges, next_edge_obj);
-  {
-    /* Reduce the amount of memory used for the graph. */
-    pack_the_edges( frags, edges, next_edge_obj);
-  }
-  check_symmetry_of_the_edge_mates( frags, edges, next_edge_obj);
+  //check_symmetry_of_the_edge_mates( frags, edges);
+
+  /* Reduce the amount of memory used for the graph. */
+  pack_the_edges( frags, edges);
+
+  //check_symmetry_of_the_edge_mates( frags, edges);
 
   safe_free(visited_a);
   safe_free(visited_b);

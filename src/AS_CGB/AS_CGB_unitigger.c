@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.21 2007-07-20 08:41:43 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.22 2007-07-20 17:17:08 brianwalenz Exp $";
 
 #include "AS_UTL_version.h"
 #include "AS_CGB_all.h"
@@ -447,7 +447,6 @@ main(int argc, char **argv) {
  again:
   heapva->frags             = CreateVA_Afragment (rg->maxfrags);
   heapva->edges             = CreateVA_Aedge     (rg->maxedges); 
-  heapva->next_edge_obj     = CreateVA_IntEdge_ID(rg->maxedges); 
   heapva->chunkfrags        = CreateVA_AChunkFrag(0);
   heapva->thechunks         = CreateVA_AChunkMesg(0);
   heapva->nbase_in_genome              = 0;
@@ -514,7 +513,6 @@ main(int argc, char **argv) {
     //  Like I said, redo all our work.
     Delete_VA(heapva->frags);
     Delete_VA(heapva->edges);
-    Delete_VA(heapva->next_edge_obj);
     Delete_VA(heapva->chunkfrags);
     Delete_VA(heapva->thechunks);
 
@@ -638,7 +636,6 @@ main(int argc, char **argv) {
   
   Delete_VA(heapva->frags);
   Delete_VA(heapva->edges);
-  Delete_VA(heapva->next_edge_obj);
   Delete_VA(heapva->chunkfrags);
   Delete_VA(heapva->thechunks);
 

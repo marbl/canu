@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_edgemate.c,v 1.8 2007-07-19 09:50:28 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_edgemate.c,v 1.9 2007-07-20 17:17:08 brianwalenz Exp $";
 
 //  Description: These routines find and access the mate directed edge
 //  for a given edge of an overlap.
@@ -249,8 +249,7 @@ verify_that_the_edges_are_in_order(Tedge edges[]) {
 
 
 void append_the_edge_mates(Tfragment frags[],
-                           Tedge edges[],
-                           TIntEdge_ID * next_edge_obj) {
+                           Tedge edges[]) {
 
   // Scan the current edges to find un-mated edges.  For each un-mated
   // edge, append the mate edge to the edge array.
@@ -274,13 +273,12 @@ void append_the_edge_mates(Tfragment frags[],
     }
   }
 
-  reorder_edges( frags, edges, next_edge_obj);
+  reorder_edges( frags, edges);
 }
 
 
 IntEdge_ID check_symmetry_of_the_edge_mates(Tfragment frags[],
-                                            Tedge edges[],
-                                            TIntEdge_ID * next_edge_obj) {
+                                            Tedge edges[]) {
 
   //  This was diagnostic code, used all over the place, but never did much.
   fprintf(stderr, "check_symmetry_of_the_edge_mates()--  Disabled.  (Was a NOP anyway)\n");
