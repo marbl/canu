@@ -22,7 +22,7 @@
 #
 ##########################################################################
 
-# $Id: FASTA_to_frg_file.pl,v 1.5 2007-07-23 17:23:41 brianwalenz Exp $
+# $Id: FASTA_to_frg_file.pl,v 1.6 2007-07-23 18:34:47 brianwalenz Exp $
 
 use strict;
 use Getopt::Std;
@@ -65,9 +65,6 @@ print STDERR "Default Quality Value: $DEFAULT_QUAL\n";
 my $filename=$opt_f;
 my $time=time;
 
-###############################################################################
-# Print Library Record
-
 my $uidServ = new Annotation::UID(2, "seq454");
 my $libId   = $uidServ->incrUID;
 
@@ -83,13 +80,12 @@ print STDOUT "std:0.0\n";
 print STDOUT "src:\n";
 print STDOUT ".\n";
 print STDOUT "nft:1\n";
+print STDOUT "fea:\n";
 print STDOUT "doNotOverlapTrim=1\n";
 print STDOUT ".\n";
 print STDOUT "}\n";
 
 my $frag_id_counter=1;
-
-###############################################################################
 
 my $fasta_fh=new FileHandle "<$filename";
 
@@ -113,15 +109,13 @@ process_record($prev_defline, $sequence);
 
 print STDERR "Completed.\n";
 
-###############################################################################
+
 
 sub process_record{
 	my $defline = shift;
 	my $sequence = shift;
 
 	my $starting_length=length($sequence);
-
-	####################################################################
 
 	# Generate quality values
 	my $qual_vals=chr($DEFAULT_QUAL + ord("0")) x $starting_length;
@@ -139,8 +133,6 @@ sub process_record{
 	$qual_vals=join "", @quals;
 	$sequence=join "", @nucs;
 
-	####################################################################
-
 	my $frag_id;
 	if($defline=~/^>(\S+)/){
 		$frag_id=$1;
@@ -155,40 +147,11 @@ sub process_record{
 	print STDOUT "pla:0\n";
 	print STDOUT "loc:0\n";
 	print STDOUT "src:\n.\n";
-
-	print STDOUT "seq:\n";
-	
-	# Output sequence
-	my $length=$starting_length;
-	my $width=70;
-	my $pos=0;
-	do{
-		my $out_width=($width>$length)?$length:$width;
-		print STDOUT lc(substr($sequence, $pos, $width)) . "\n";
-		$pos+=$width;
-		$length-=$width;
-	}while($length>0);
-
-	print STDOUT ".\n";
-	print STDOUT "qlt:\n";
-
-	# Output quality values
-	$length=$starting_length;
-	$pos=0;
-	do{
-		my $out_width=($width>$length)?$length:$width;
-		print STDOUT substr($qual_vals, $pos, $width) . "\n";
-		$pos+=$width;
-		$length-=$width;
-	}while($length>0);
-
+	print STDOUT "seq:\n$sequence\n.\n";
+	print STDOUT "qlt:\n$qual_vals\n.\n";
         print STDOUT "hps:\n.\n";
-
-	print STDOUT ".\n";
 	print STDOUT "clr:0,$starting_length\n";
 	print STDOUT "}\n";
 
 	$frag_id_counter++;
 }
-
-#------------------------------------------------------------------------------
