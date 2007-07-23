@@ -28,6 +28,7 @@
 #include <assert.h>
 
 #include "util++.H"
+#include "readOverlap.H"
 
 extern "C" {
 #include "AS_global.h"
@@ -167,48 +168,87 @@ sortAndOutput(uint32 fid, uint32 numOvl, uint32 *left, uint32 *right) {
 
 int
 main(int argc, char **argv) {
-  bool           beVerbose = false;
-  OverlapStore  *ovs = NULL;
-  OVSoverlap     ovl;
+  OverlapStore  *ovsprimary   = 0L;
+  OverlapStore  *ovssecondary = 0L;
 
   int arg=1;
   int err=0;
   while (arg < argc) {
-    if        (strcmp(argv[arg], "-v") == 0) {
-      beVerbose = true;
-    } else if (strcmp(argv[arg], "-ovs") == 0) {
-      ovs = AS_OVS_openOverlapStore(argv[++arg]);
+    if        (strcmp(argv[arg], "-ovs") == 0) {
+      if (ovsprimary == NULL)
+        ovsprimary = AS_OVS_openOverlapStore(argv[++arg]);
+      else if (ovssecondary == NULL)
+        ovssecondary = AS_OVS_openOverlapStore(argv[++arg]);
+      else {
+        fprintf(stderr, "Only two obtStores allowed.\n");
+        err++;
+      }
     } else {
       fprintf(stderr, "%s: unknown arg '%s'\n", argv[0], argv[arg]);
       err++;
     }
     arg++;
   }
-  if ((ovs == NULL) || err)
-    fprintf(stderr, "usage: %s [-v] -ovs obtStore > asm.ovl.consolidated\n", argv[0]), exit(1);
+  if ((ovsprimary == NULL) || err)
+    fprintf(stderr, "usage: %s -ovs obtStore > asm.ovl.consolidated\n", argv[0]), exit(1);
 
-  uint32   idAlast     = 0;
-  uint32   numOverlaps = 0;
-  uint32  *left        = new uint32 [MAX_OVERLAPS_PER_FRAG];
-  uint32  *right       = new uint32 [MAX_OVERLAPS_PER_FRAG];
+  CDS_IID_t    lastFrag    = AS_OVS_lastFragInStore(ovsprimary);
+  if ((ovssecondary) && (lastFrag < AS_OVS_lastFragInStore(ovssecondary))) {
+    lastFrag = AS_OVS_lastFragInStore(ovssecondary);
+  }
 
-  while (AS_OVS_readOverlapFromStore(ovs, &ovl, AS_OVS_TYPE_OBT)) {
-    uint64   wa, wb;
+  uint32       idAlast     = 0;
+  uint32       numOverlaps = 0;
+  uint32      *left        = new uint32    [MAX_OVERLAPS_PER_FRAG];
+  uint32      *right       = new uint32    [MAX_OVERLAPS_PER_FRAG];
+  CDS_IID_t   *biid        = new CDS_IID_t [MAX_OVERLAPS_PER_FRAG];
+  char        *bseen       = new char      [lastFrag + 1];
+
+  for (uint32 i=0; i<lastFrag+1; i++)
+    bseen[i] = 0;
+
+  OVSoverlap *ovl = readOverlap(ovsprimary, ovssecondary);
+
+  while (ovl) {
 
     //  If we see a different idA than we had last time, process
     //  the previous read.
     //
-    if ((idAlast != ovl.a_iid) &&
+    if ((idAlast != ovl->a_iid) &&
         (numOverlaps > 0)) {
-      assert(ovl.a_iid > idAlast);
+
+      //fprintf(stderr, "Found "F_U32" overlaps for a_iid "F_IID"\n", numOverlaps, idAlast);
+
+      assert(ovl->a_iid > idAlast);
       sortAndOutput(idAlast, numOverlaps, left, right);
+
+      for (uint32 i=0; i<numOverlaps; i++)
+        bseen[biid[i]] = 0;
+
       numOverlaps = 0;
     }
 
-    idAlast            = ovl.a_iid;
-    left[numOverlaps]  = ovl.dat.obt.a_beg;
-    right[numOverlaps] = ovl.dat.obt.a_end;
-    numOverlaps++;
+    //  Check that we don't already have this overlap -- we just check
+    //  that we've not seen the b_iid already.
+    //
+    //  We DO get duplicates in the normal partial overlap output.
+    //
+    if (bseen[ovl->b_iid] == 0) {
+      if (numOverlaps < MAX_OVERLAPS_PER_FRAG) {
+        idAlast            = ovl->a_iid;
+        left[numOverlaps]  = ovl->dat.obt.a_beg;
+        right[numOverlaps] = ovl->dat.obt.a_end;
+        biid[numOverlaps]  = ovl->b_iid;
+
+        numOverlaps++;
+
+        bseen[ovl->b_iid] = 1;
+      } else {
+        fprintf(stderr, "TOO MANY OVERLAPS for fragment a_iid "F_IID".\n", ovl->a_iid);
+      }
+    }
+
+    ovl = readOverlap(ovsprimary, ovssecondary);
   }
 
   //  Don't forget to do the last batch!

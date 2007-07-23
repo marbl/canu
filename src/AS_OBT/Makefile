@@ -33,6 +33,7 @@ SOURCES = acceptableOBToverlap.c \
           initialTrim.C \
           merge-trimming.C \
           trim.C \
+          readOverlap.C \
           util++.C
 
 OBJECTS = $(SOURCES:.C=.o) $(SOURCES:.c=.o)
@@ -50,16 +51,11 @@ include $(LOCAL_WORK)/src/c_make.as
 all: $(PROGS) $(SCRIPTS)
 	@test -n nop
 
-acceptableOBToverlap: acceptableOBToverlap.o -lAS_OVS -lAS_PER -lAS_UTL
-
-initialTrim: initialTrim.o trim.o -lAS_PER -lAS_UTL
-
-merge-trimming: merge-trimming.o trim.o -lAS_PER -lAS_UTL
-
-chimera: chimera.o util++.o -lAS_OVS -lAS_PER -lAS_UTL
-
-consolidate: consolidate.o util++.o -lAS_OVS -lAS_PER -lAS_UTL
-
+acceptableOBToverlap: acceptableOBToverlap.o                    -lAS_OVS -lAS_PER -lAS_UTL
+initialTrim:          initialTrim.o trim.o                               -lAS_PER -lAS_UTL
+consolidate:          consolidate.o util++.o readOverlap.o      -lAS_OVS -lAS_PER -lAS_UTL
+merge-trimming:       merge-trimming.o trim.o                            -lAS_PER -lAS_UTL
+chimera:              chimera.o util++.o readOverlap.o          -lAS_OVS -lAS_PER -lAS_UTL
 
 findDuplicateFragsInStore: findDuplicateFragsInStore.o -lAS_PER -lAS_UTL
 

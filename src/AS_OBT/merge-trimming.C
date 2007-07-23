@@ -22,20 +22,11 @@
 #include "trim.H"
 #include "constants.H"
 
-
 //  Reads the output of sort-overlap-trim, does the actual trim-point
 //  decision, updates the frgStore.
-//
-//  There is a great deal of overlap with qualityTrim -- we need to do
-//  exactly the same stuff as done there, and then some.
 
-
-
-//  XXX:  This is an ugly hack, someone should make it read variable
-//  length lines.  Possilby already in libutil....
 uint32         lineMax = 128 * 1024;
 char          *line    = 0L;
-
 
 void
 readLine(FILE *F) {
@@ -44,19 +35,18 @@ readLine(FILE *F) {
   assert(strlen(line) < (lineMax-1));
 }
 
-
 uint32
-findModeOfFivePrimeMode(GateKeeperStore *gkp, char *name) {
+findModeOfFivePrimeMode(GateKeeperStore *gkp, char *ovlFile) {
   uint32         mode5;
   uint32         iid;
   uint32         histo[2048] = {0};
 
-  fragRecord    *fr = new_fragRecord();
+  fragRecord     fr;
 
   errno = 0;
-  FILE *O = fopen(name, "r");
+  FILE *O = fopen(ovlFile, "r");
   if (errno)
-    fprintf(stderr, "Can't open overlap-trim file %s: %s\n", name, strerror(errno)), exit(1);
+    fprintf(stderr, "Can't open overlap-trim file %s: %s\n", ovlFile, strerror(errno)), exit(1);
 
   readLine(O);
   while (!feof(O)) {
@@ -66,9 +56,9 @@ findModeOfFivePrimeMode(GateKeeperStore *gkp, char *name) {
 
     //  Grab the fragment to get the clear range, so we can find the real mode5
     //
-    getFrag(gkp, iid, fr, FRAG_S_INF);
+    getFrag(gkp, iid, &fr, FRAG_S_INF);
 
-    mode5 += getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBT);
+    mode5 += getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBTINI);
 
     if (mode5 < 2047)
       histo[mode5]++;
@@ -186,8 +176,8 @@ main(int argc, char **argv) {
     while (lid < iid) {
       getFrag(gkp, lid, fr, FRAG_S_INF | FRAG_S_QLT);
 
-      uint32 qltL0 = getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBT);
-      uint32 qltR0 = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBT);
+      uint32 qltL0 = getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBTINI);
+      uint32 qltR0 = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBTINI);
       uint32 qltL1 = 0;
       uint32 qltR1 = 0;
       uint64 uid   = getFragRecordUID(fr);
@@ -240,8 +230,8 @@ main(int argc, char **argv) {
 
     getFrag(gkp, iid, fr, FRAG_S_INF | FRAG_S_QLT);
 
-    uint32 qltLQ1 = getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBT);
-    uint32 qltRQ1 = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBT);
+    uint32 qltLQ1 = getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBTINI);
+    uint32 qltRQ1 = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBTINI);
     uint64 uid    = getFragRecordUID(fr);
 
     GateKeeperLibraryRecord  *gklr = getGateKeeperLibrary(gkp, getFragRecordLibraryIID(fr));
@@ -352,9 +342,15 @@ main(int argc, char **argv) {
            ((min5 + OBT_CQO_OVERLAP > qltR) ||
             (qltL + OBT_CQO_OVERLAP > max3)))) {
         stats[1]++;  //  short quality
+
+#if 0
         if ((qltL  + OBT_CQ_SHORT > qltR) ||
             (mode5 + OBT_CQ_SHORT > qltR) ||
             (qltL  + OBT_CQ_SHORT > mode3)) {
+#else
+          // test granger email re ixodes
+        if ((qltL  + OBT_CQ_SHORT > qltR)) {
+#endif
           stats[2]++;
           left  = 0;
           right = 0;
