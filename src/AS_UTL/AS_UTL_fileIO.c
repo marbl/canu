@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//static char CM_ID[] = "$Id: AS_UTL_fileIO.c,v 1.10 2007-06-03 08:13:22 brianwalenz Exp $";
+//static char CM_ID[] = "$Id: AS_UTL_fileIO.c,v 1.11 2007-07-23 05:34:53 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,7 +52,9 @@ AS_UTL_safeWrite(FILE *file, const void *buffer, char *desc, size_t size, size_t
   size_t  written  = 0;
   size_t  nbytes   = size * nobj;
 
+#ifdef __FreeBSD__
   off_t   expectedposition = AS_UTL_ftell(file) + nobj * size;
+#endif
 
   while (position < nobj) {
     towrite = length;
@@ -75,11 +77,16 @@ AS_UTL_safeWrite(FILE *file, const void *buffer, char *desc, size_t size, size_t
   //  This catches a bizarre bug on FreeBSD (6.1 for sure, 4.10 too, I
   //  think) where we write at the wrong location; see fseek below.
   //
+  //  UNFORTUNATELY, Linux 2.6.9-42.0.3.ELsmp bombs if 'file' is
+  //  stdout here.
+  //
+#ifdef __FreeBSD__
   if (AS_UTL_ftell(file) != expectedposition) {
     fprintf(stderr, "safeWrite()-- EXPECTED "F_OFF_T", ended up at "F_OFF_T"\n",
             expectedposition, AS_UTL_ftell(file));
     assert(AS_UTL_ftell(file) == expectedposition);
   }
+#endif
 }
 
 
