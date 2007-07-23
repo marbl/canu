@@ -26,8 +26,8 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.20 2007-04-04 23:09:52 brianwalenz Exp $
- * $Revision: 1.20 $
+ * $Id: AS_OVL_overlap.h,v 1.21 2007-07-23 09:07:54 brianwalenz Exp $
+ * $Revision: 1.21 $
 */
 
 
@@ -400,16 +400,12 @@
     //  Amount by which k-mers can overlap a screen region and still
     //  be added to the hash table.
 
-#if ERR_MODEL_IN_AS_GLOBAL_H > 6
-  #define  WINDOW_SIZE             14
-#else
-  #define  WINDOW_SIZE             22
-#endif
+#define  WINDOW_SIZE KMER_LEN_IN_AS_GLOBAL_H
+#define  KMER_LEN    KMER_LEN_IN_AS_GLOBAL_H
     //  Length of segments hashed, i.e., the  k  value in k-mer.
     //  There must be an exact match of this length or more to
     //  find a match.
-#define  KMER_LEN  WINDOW_SIZE
-    //  A more descriptive alias
+
 #define  MAX_EXTRA_SUBCOUNT        (AS_FRAG_MAX_LEN / KMER_LEN)
 
 

@@ -24,6 +24,7 @@
 #include <string.h>
 
 extern "C" {
+#include "AS_global.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_PER_gkpStore.h"
 }
@@ -624,7 +625,7 @@ sortAndOutput(char   *outfilename,
 
 int
 main(int argc, char **argv) {
-  uint32            merSize          = 20;
+  uint32            merSize          = KMER_LEN_IN_AS_GLOBAL_H;
   char             *fragStore        = 0L;
   char             *outputFile       = 0L;
   uint64            minimumCount     = 0;
@@ -683,7 +684,7 @@ main(int argc, char **argv) {
           outputFile = argv[arg];
           break;
         case 'V':
-          fprintf(stdout, "version: CA $Id: AS_MER_meryl.cc,v 1.8 2007-03-20 13:56:56 brianwalenz Exp $\n");
+          fprintf(stdout, "version: CA $Id: AS_MER_meryl.cc,v 1.9 2007-07-23 09:07:54 brianwalenz Exp $\n");
           exit(0);
           break;
         default:

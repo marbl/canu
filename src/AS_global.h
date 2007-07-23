@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_global.h,v 1.15 2007-06-03 08:13:22 brianwalenz Exp $	 */
+/* 	$Id: AS_global.h,v 1.16 2007-07-23 09:07:54 brianwalenz Exp $	 */
 
 /* This is the global include file that all C files in the AS subsystem should
    include.
@@ -308,6 +308,7 @@ typedef int32  CDS_COORD_t;
 // for the allowed slop between the minimum overlap and maximum overlap before
 // calling an overlap definately a tandem repeat.
 
+
 #define ERR_MODEL_IN_AS_GLOBAL_H 6
 #define ERR_FRACTION_IN_AS_GLOBAL_H (ERR_MODEL_IN_AS_GLOBAL_H/100.)
 
@@ -317,6 +318,16 @@ typedef int32  CDS_COORD_t;
 #define AS_GUIDE_ERROR_RATE        ERR_FRACTION_IN_AS_GLOBAL_H
 //  Errors per base allowed in matching regions involving BAC ends
 //  or other guides.
+
+#define  KMER_LEN_IN_AS_GLOBAL_H 22
+//  The length of a mer, used in AS_OVL_overlap.h and AS_MER_meryl.cc
+
+#if ERR_MODEL_IN_AS_GLOBAL_H > 6
+  #undef   KMER_LEN_IN_AS_GLOBAL_H
+  #define  KMER_LEN_IN_AS_GLOBAL_H 14
+#endif
+
+
 
 
 // These macros are use to eliminate inter-platform differnces between 

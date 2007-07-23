@@ -63,9 +63,12 @@ sub meryl {
             $merylObtThreshold /= $merylSkip;
             $merylOvlThreshold /= $merylSkip;
 
+            #  CA meryl knows what the mersize is -- because it's
+            #  currently hardcoded in the assembler build.
+
             my $cmd;
             $cmd  = "$bin/meryl ";
-            $cmd .= " -m $merSize -s $wrk/$asm.gkpStore -n $merylOvlThreshold -K $merylSkip ";
+            $cmd .= "-s $wrk/$asm.gkpStore -n $merylOvlThreshold -K $merylSkip ";
             $cmd .= " -o $wrk/0-preoverlap/$asm.nmers.fasta";
             $cmd .= "> $wrk/0-preoverlap/meryl.out 2>&1";
 
