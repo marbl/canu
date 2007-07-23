@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_global.h,v 1.16 2007-07-23 09:07:54 brianwalenz Exp $	 */
+/* 	$Id: AS_global.h,v 1.17 2007-07-23 18:14:52 brianwalenz Exp $	 */
 
 /* This is the global include file that all C files in the AS subsystem should
    include.
@@ -267,6 +267,17 @@ typedef uint64 CDS_UID_t;
 typedef uint32 CDS_IID_t;
 typedef int32  CDS_CID_t;
 typedef int32  CDS_COORD_t;
+
+//  OSF1 doesn't know UINT32_MAX or INT32_MAX or INT32_MIN.
+#ifndef UINT32_MAX
+  #define UINT32_MAX UINT_MAX
+#endif
+#ifndef INT32_MAX
+  #define INT32_MAX INT_MAX
+#endif
+#ifndef INT32_MIN
+  #define INT32_MIN INT_MIN
+#endif
 
 #define CDS_IID_MAX     UINT32_MAX
 #define CDS_CID_MAX     INT32_MAX
