@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//static char CM_ID[] = "$Id: AS_UTL_fileIO.c,v 1.11 2007-07-23 05:34:53 brianwalenz Exp $";
+//static char CM_ID[] = "$Id: AS_UTL_fileIO.c,v 1.12 2007-07-23 08:00:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,6 +35,10 @@
 
 //  Report ALL attempts to seek somewhere.
 #undef DEBUG_SEEK
+
+//  Use ftell() to verify that we wrote the expected number of bytes,
+//  and that we ended up at the expected location.
+#define VERIFY_WRITE_POSITIONS
 
 //  Provides a safe and reliable mechanism for reading / writing
 //  binary data.
@@ -52,8 +56,11 @@ AS_UTL_safeWrite(FILE *file, const void *buffer, char *desc, size_t size, size_t
   size_t  written  = 0;
   size_t  nbytes   = size * nobj;
 
-#ifdef __FreeBSD__
+#ifdef VERIFY_WRITE_POSITIONS
   off_t   expectedposition = AS_UTL_ftell(file) + nobj * size;
+  if (errno)
+    //  If we return, and errno is set, the stream isn't seekable.
+    expectedposition = 0;
 #endif
 
   while (position < nobj) {
@@ -77,11 +84,11 @@ AS_UTL_safeWrite(FILE *file, const void *buffer, char *desc, size_t size, size_t
   //  This catches a bizarre bug on FreeBSD (6.1 for sure, 4.10 too, I
   //  think) where we write at the wrong location; see fseek below.
   //
-  //  UNFORTUNATELY, Linux 2.6.9-42.0.3.ELsmp bombs if 'file' is
-  //  stdout here.
+  //  UNFORTUNATELY, you can't ftell() on stdio.
   //
-#ifdef __FreeBSD__
-  if (AS_UTL_ftell(file) != expectedposition) {
+#ifdef VERIFY_WRITE_POSITIONS
+  if ((expectedposition > 0) &&
+      (AS_UTL_ftell(file) != expectedposition)) {
     fprintf(stderr, "safeWrite()-- EXPECTED "F_OFF_T", ended up at "F_OFF_T"\n",
             expectedposition, AS_UTL_ftell(file));
     assert(AS_UTL_ftell(file) == expectedposition);
@@ -165,6 +172,9 @@ AS_UTL_ftell(FILE *stream) {
   off_t  pos = 0;
   errno = 0;
   pos = ftello(stream);
+  if (errno == ESPIPE)
+    //  Not a seekable stream.  Return some goofy big number.
+    return(((off_t)1) < 42);
   if (errno) {
     fprintf(stderr, "AS_UTL_ftell()--  Failed with %s.\n", strerror(errno));
     assert(errno == 0);
