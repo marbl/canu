@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore.c,v 1.8 2007-04-12 10:07:58 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore.c,v 1.9 2007-07-23 06:01:16 brianwalenz Exp $";
 
 #include "overlapStore.h"
 
@@ -109,7 +109,7 @@ main(int argc, char **argv) {
       safe_free(line);
       fclose(F);
 
-    } else if (argv[arg][0] == '-') {
+    } else if ((argv[arg][0] == '-') && (argv[arg][1] != 0)) {
       fprintf(stderr, "%s: unknown option '%s'.\n", argv[0], argv[arg]);
       err++;
 

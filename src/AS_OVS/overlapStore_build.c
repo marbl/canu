@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore_build.c,v 1.10 2007-05-04 09:42:35 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore_build.c,v 1.11 2007-07-23 06:01:16 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -125,30 +125,40 @@ buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 nThreads, 
   //  to be flipped, and so mer overlaps count the true number.
   //  Maybe.
   //
-  uint64  numOverlaps    = 0;
-  for (i=0; i<fileListLen; i++) {
-    uint64  no = sizeOfFile(fileList[i]);
-    if (no == 0)
-      fprintf(stderr, "No overlaps found (or file not found) in '%s'.\n", fileList[i]);
-    assert(no > 0);
-    numOverlaps += 2 * no / sizeof(OVSoverlap);
+  uint64  numOverlaps         = 0;
+  uint64  overlapsPerIID      = 0;
+  uint64  iidPerBucket        = 0;
+
+  if (fileList[i][0] != '-') {
+    for (i=0; i<fileListLen; i++) {
+      uint64  no = sizeOfFile(fileList[i]);
+      if (no == 0)
+        fprintf(stderr, "No overlaps found (or file not found) in '%s'.\n", fileList[i]);
+      assert(no > 0);
+      numOverlaps += 2 * no / sizeof(OVSoverlap);
+    }
+
+    assert(numOverlaps > 0);
+
+    //  Small datasets die with the default maxIID; reset it to not die.
+    if (maxIID > numOverlaps)
+      maxIID = numOverlaps;
+
+    uint64  overlapsPerBucket   = memoryLimit / sizeof(OVSoverlap);
+    uint64  overlapsPerIID      = numOverlaps / maxIID;
+
+    iidPerBucket                = overlapsPerBucket / overlapsPerIID;
+
+    fprintf(stderr, "For %.3f million overlaps, in "F_U64"MB memory, I'll put "F_U64" IID's (approximately "F_U64" overlaps) per bucket.\n",
+            numOverlaps / 1000000.0,
+            memoryLimit / (uint64)1048576,
+            iidPerBucket,
+            overlapsPerBucket);
+  } else {
+    iidPerBucket = maxIID / 100;
+    fprintf(stderr, "Using stdin; cannot size buckets properly.  Using 100 buckets, "F_U64" IIDs per bucket.  Good luck!\n",
+            iidPerBucket);
   }
-
-  assert(numOverlaps > 0);
-
-  //  Small datasets die with the default maxIID; reset it to not die.
-  if (maxIID > numOverlaps)
-    maxIID = numOverlaps;
-
-  uint64  overlapsPerBucket   = memoryLimit / sizeof(OVSoverlap);
-  uint64  overlapsPerIID      = numOverlaps / maxIID;
-  uint64  iidPerBucket        = overlapsPerBucket / overlapsPerIID;
-
-  fprintf(stderr, "For %.3f million overlaps, in "F_U64"MB memory, I'll put "F_U64" IID's (approximately "F_U64" overlaps) per bucket.\n",
-          numOverlaps / 1000000.0,
-          memoryLimit / (uint64)1048576,
-          iidPerBucket,
-          overlapsPerBucket);
 
   int                      dumpFileMax = sysconf(_SC_OPEN_MAX);
   BinaryOverlapFile      **dumpFile    = (BinaryOverlapFile **)safe_calloc(sizeof(BinaryOverlapFile *), dumpFileMax);
@@ -214,6 +224,12 @@ buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 nThreads, 
     }
 
     AS_OVS_closeBinaryOverlapFile(inputFile);
+
+    {
+      char newname[1024];
+      sprintf(newname, "%s.loaded", fileList[i]);
+      rename(fileList[i], newname);
+    }
   }
 
   for (i=0; i<dumpFileMax; i++)
