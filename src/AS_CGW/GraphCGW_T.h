@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: GraphCGW_T.h,v 1.18 2007-06-25 15:43:41 eliv Exp $	 */
+/* 	$Id: GraphCGW_T.h,v 1.19 2007-07-23 09:39:41 brianwalenz Exp $	 */
 
 /**************************************************************************
  *  GraphCGW
@@ -1264,7 +1264,7 @@ CDS_CID_t FindGraphEdgeChain(GraphCGW_T *graph, CDS_CID_t eid,
                              int extractSingletons,
                              int includeGuides);
 
-int GraphEdgeSanity(GraphCGW_T *graph, CDS_CID_t eid);
+void GraphEdgeSanity(GraphCGW_T *graph, CDS_CID_t eid);
 
 static void SetGraphEdgeStatus(GraphCGW_T *graph, EdgeCGW_T *edge,
                                EdgeStatus status){

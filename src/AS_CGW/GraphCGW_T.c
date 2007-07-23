@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.45 2007-06-22 18:22:11 eliv Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.46 2007-07-23 09:39:40 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -231,10 +231,11 @@ int FindGraphEdgeChain(GraphCGW_T *graph, CDS_CID_t eid,
 
   edgeID = eid;
 
-  assert(head->idA <= head->idB); // Only interesting on canonical chains
+  // Only interesting on canonical chains
+  assert(head->idA <= head->idB);
 
   // Make sure this edge is correctly hooked into the graph
-  assert(GraphEdgeSanity(graph, eid));
+  GraphEdgeSanity(graph, eid);
 
   /* A chain is characterized by both the A and B links pointing to the next
      element in the chain */
@@ -342,9 +343,10 @@ int FindGraphEdgeChain(GraphCGW_T *graph, CDS_CID_t eid,
    - we find it when looking for it in both lists which it is supposed to be a member
    - we can walk backwards from the edge to the heads of the two lists
 */
-int GraphEdgeSanity(GraphCGW_T *graph, CDS_CID_t eid){
-  CIEdgeT *edge = GetGraphEdge(graph,eid);
-  CIEdgeT *edgeFromA, *edgeFromB;
+void GraphEdgeSanity(GraphCGW_T *graph, CDS_CID_t eid){
+  CIEdgeT  *edge = GetGraphEdge(graph,eid);
+  CIEdgeT  *edgeFromA = NULL;
+  CIEdgeT  *edgeFromB = NULL;
   GraphEdgeIterator edges;
   CDS_CID_t idA = edge->idA;
   CDS_CID_t idB = edge->idB;
@@ -355,11 +357,9 @@ int GraphEdgeSanity(GraphCGW_T *graph, CDS_CID_t eid){
     if(edgeFromA == edge)
       break;
   }
-#ifdef VERBOSE
   if(edgeFromA == NULL)
-    fprintf(GlobalData->stderrc,"* Couldn't find edge " F_CID " (" F_CID "," F_CID ") looking from " F_CID "\n",
+    fprintf(GlobalData->stderrc,"* Couldn't find edge " F_CID " (" F_CID "," F_CID ") looking from A " F_CID "\n",
 	    eid, idA, idB, idA);
-#endif
 
   InitGraphEdgeIterator(graph, idB, ALL_END, ALL_EDGES,
                         GRAPH_EDGE_DEFAULT , &edges);
@@ -367,19 +367,15 @@ int GraphEdgeSanity(GraphCGW_T *graph, CDS_CID_t eid){
     if(edgeFromB == edge)
       break;
   }
-#ifdef VERBOSE
   if(edgeFromB == NULL)
-    fprintf(GlobalData->stderrc,"* Couldn't find edge " F_CID " (" F_CID "," F_CID ") looking from " F_CID "\n",
+    fprintf(GlobalData->stderrc,"* Couldn't find edge " F_CID " (" F_CID "," F_CID ") looking from B " F_CID "\n",
             eid, idA, idB, idB);
-#endif
 
-  if(edgeFromB == NULL ||
-     edgeFromA == NULL){
+  if(edgeFromB == NULL || edgeFromA == NULL)
     PrintGraphEdge(GlobalData->stderrc,graph," ", edge, idA);
-    return FALSE;
-  }
 
-  return TRUE;
+  assert(edgeFromB != NULL);
+  assert(edgeFromA != NULL);
 }
 
 
@@ -448,7 +444,6 @@ void InsertGraphEdgeInList(GraphCGW_T *graph,
 
   isA = (newEdge->idA == cid);
 
-
   if(isA){
     newEdge->prevALink = NULLINDEX;
     newEdge->nextALink = NULLINDEX;
@@ -462,8 +457,14 @@ void InsertGraphEdgeInList(GraphCGW_T *graph,
   
   ci = GetGraphNode(graph, cid);
   AssertPtr(ci);
-  assert(!ci->flags.bits.isDead);
 
+  fprintf(stderr, "InsertGraphEdgeInList: CI="F_CID" dead=%d\n", cid, ci->flags.bits.isDead);
+
+  if (ci->flags.bits.isDead) {
+    fprintf(stderr, "InsertGraphEdgeInList()--  WARNING!  CI="F_CID" isDead!  Skipping it.\n", cid);
+    assert(!ci->flags.bits.isDead);
+    return;
+  }
   
   /* Should we insert at head? */
   flags = GRAPH_EDGE_DEFAULT;
@@ -1775,8 +1776,8 @@ void MergeNodeGraphEdges(GraphCGW_T *graph, NodeCGW_T *node,
     if(!head || 
        head->idA != edge->idA || 
        head->idB != edge->idB ||
-       head->orient != edge->orient // ){
-       || (!includeGuides && isSloppyEdge(edge))  /* don't merge guides */ ){
+       head->orient != edge->orient ||
+       (!includeGuides && isSloppyEdge(edge))  /* don't merge guides */ ){
       
       if(debug){
         fprintf(GlobalData->stderrc,"* Appending edge " F_CID " since (" F_CID "," F_CID ") is different than (" F_CID "," F_CID ")\n",
