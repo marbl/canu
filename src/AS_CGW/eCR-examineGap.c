@@ -364,13 +364,11 @@ examineGap(ContigT *lcontig, int lFragIid,
     LengthT gapSize;
     char *rcompBufferTrimmed = NULL;
 	
-    // erate, thresh and minlen were stolen from MultiAlignment_CNS.c
-
     beg    = -strlen (rcompBuffer);
     end    = strlen (lcompBuffer);
-    erate  = 0.12;   // was .20 during testing
-    thresh = 1e-6;
-    minlen = 30;
+    erate  = CGW_DP_ERATE + 0.02;  //  Historically, erate == 0.12.  This now will change for ERR_MODEL_IN_AS_GLOBAL_H > 0.10.
+    thresh = CGW_DP_THRESH;
+    minlen = CGW_DP_MINLEN + 10;   //  Historically, minlen == 30.  Not sure if we should hardcode 30 or offset from CGW_DP_MINLEN.
     what   = AS_FIND_LOCAL_ALIGN;
 
     if (debug.examineGapLV > 0)
