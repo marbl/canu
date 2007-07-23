@@ -153,7 +153,7 @@ AS_OVS_closeBinaryOverlapFile(BinaryOverlapFile *bof) {
 
   if (bof->isPopened)
     pclose(bof->file);
-  else
+  else if (bof->file != stdout)
     fclose(bof->file);
 
   safe_free(bof->buffer);
