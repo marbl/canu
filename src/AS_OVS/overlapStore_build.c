@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore_build.c,v 1.11 2007-07-23 06:01:16 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore_build.c,v 1.12 2007-07-23 08:40:09 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -106,8 +106,6 @@ writeToDumpFile(OVSoverlap          *overlap,
 
 void
 buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 nThreads, uint32 fileListLen, char **fileList) {
-  int   i;
-
 
   //  We create the store early, allowing it to fail if it already
   //  exists, or just cannot be created.
@@ -125,6 +123,7 @@ buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 nThreads, 
   //  to be flipped, and so mer overlaps count the true number.
   //  Maybe.
   //
+  uint32  i                   = 0;
   uint64  numOverlaps         = 0;
   uint64  overlapsPerIID      = 0;
   uint64  iidPerBucket        = 0;
@@ -225,11 +224,16 @@ buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 nThreads, 
 
     AS_OVS_closeBinaryOverlapFile(inputFile);
 
+#if 0
+    //  This was VERY useful for creating a VERY big store.  As each
+    //  file was finished, we could (manually) delete them.  (Yes, I
+    //  had an offline backup of what I deleted).
     {
       char newname[1024];
       sprintf(newname, "%s.loaded", fileList[i]);
       rename(fileList[i], newname);
     }
+#endif
   }
 
   for (i=0; i<dumpFileMax; i++)

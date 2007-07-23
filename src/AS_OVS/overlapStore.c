@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore.c,v 1.9 2007-07-23 06:01:16 brianwalenz Exp $";
+static char CM_ID[] = "$Id: overlapStore.c,v 1.10 2007-07-23 08:40:09 brianwalenz Exp $";
 
 #include "overlapStore.h"
 
@@ -158,7 +158,10 @@ main(int argc, char **argv) {
     fprintf(stderr, "\n");
     exit(1);
   }
-
+  if (fileListLen == 0) {
+    fprintf(stderr, "No input files?\n");
+    exit(1);
+  }
 
   switch (operation) {
     case OP_BUILD:
