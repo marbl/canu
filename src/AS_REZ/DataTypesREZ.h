@@ -35,8 +35,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: DataTypesREZ.h,v 1.5 2007-04-16 15:35:41 brianwalenz Exp $
- * $Revision: 1.5 $
+ * $Id: DataTypesREZ.h,v 1.6 2007-07-23 09:44:59 brianwalenz Exp $
+ * $Revision: 1.6 $
 */
 
 #ifndef DATA_TYPES_REZ_H
@@ -46,11 +46,6 @@
 #include "AS_CGW_dataTypes.h"
 #include "ScaffoldGraphIterator_CGW.h"
 #include "ChunkOverlap_CGW.h"
-
-
-#define  CHECK_CELSIM_COORDS    0
-    // If  1  use celsim coordinate info for checking
-
 
 //  A  Gap_Chunk_t  contains the information for a chunk that can
 //  be inserted in a particular gap in a particular scaffold
@@ -66,9 +61,6 @@ typedef  struct
    int  cover_stat, link_ct;
    int32  len;
    LengthT  start, end;      // Relative to scaffold coordinates
-#if  CHECK_CELSIM_COORDS
-   int  sim_start, sim_end;  // Celsim coordinates relative to beginning of scaffold
-#endif
    float  avg_edge_quality;  // Average quality of edge mates used to determine
                              // the start and  end positions of this chunk
    double  reference_variance;  // Variance to add back to  start  and  end

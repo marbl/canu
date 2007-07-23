@@ -30,7 +30,7 @@
 
 **********************************************************************/
 
-static char CM_ID[] = "$Id: ConsistencyChecksREZ.c,v 1.9 2007-05-14 09:27:12 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ConsistencyChecksREZ.c,v 1.10 2007-07-23 09:44:59 brianwalenz Exp $";
 
 
 /* ---------------------------------------------------- */
@@ -92,11 +92,6 @@ static void estimate_gap_distrib(const Gap_Chunk_t *,
 				 const Gap_Chunk_t *,
 				 LengthT *);
 
-
-
-#if  CHECK_CELSIM_COORDS
-static bool test_coordinates(const Gap_Chunk_t *);
-#endif
 
 /* ---------------------------------------------------- */
 /* local #defines and typedefs */
@@ -523,11 +518,6 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 	  }
 	
 	if( allSucceeded && tested1 ){
-#if DEBUG > 2 && CHECK_CELSIM_COORDS
-	  if( test_coordinates(&gapAssignment[i].gap[j].chunk[k]) == FALSE )
-	    fprintf(logFile,"!!! Should have not kept chunk %d !!!\n",
-		    gapAssignment[i].gap[j].chunk[k].chunk_id); 
-#endif
 	  round1Accepted++;
 	}
 	else{
@@ -610,11 +600,6 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 
 
 	    round2Accepted++;
-#if DEBUG > 1 && CHECK_CELSIM_COORDS
-	    if( test_coordinates(&gapAssignment[i].gap[j].chunk[k]) == FALSE )
-	      fprintf(logFile,"!!! Coordinates are bad for unitig %d !!!\n",
-		      gapAssignment[i].gap[j].chunk[k].chunk_id); 
-#endif
 	  }
 	  else
 	    if( noOverlaps == 1 ){
@@ -668,11 +653,6 @@ int check_consistency(Scaffold_Fill_t *gapAssignment, int noScaff, int iteration
 
 		gapAssignment[i].gap[j].chunk[k].keep = TRUE;
 		round2Accepted++;
-#if DEBUG > 2 && CHECK_CELSIM_COORDS
-		if( test_coordinates(&gapAssignment[i].gap[j].chunk[k]) == FALSE )
-		  fprintf(logFile,"!!! Coordinates are bad for unitig %d !!!\n",
-			  gapAssignment[i].gap[j].chunk[k].chunk_id); 
-#endif
 	      }
 	      else{
 #if DEBUG > 2
@@ -1131,25 +1111,3 @@ static bool left_of(const Gap_Chunk_t *cT1,
     return FALSE;
 
 }  	    
-
-
-
-
-#if  CHECK_CELSIM_COORDS
-static bool test_coordinates(const Gap_Chunk_t *ct1){
-#if DEBUG > 2
-  fprintf(logFile,"simulated (%d,%d), computed (%lf,%lf)\n",ct1->sim_start,ct1->sim_end,ct1->start.mean,ct1->end.mean);
-#endif
-
-  if( ct1->sim_start < ct1->start.mean-AS_REZ_SIMTEST)
-    return FALSE;
-  if( ct1->sim_start > ct1->start.mean+AS_REZ_SIMTEST)
-    return FALSE;
-  if( ct1->sim_end < ct1->end.mean-AS_REZ_SIMTEST)
-    return FALSE;
-  if( ct1->sim_end > ct1->end.mean+AS_REZ_SIMTEST)
-    return FALSE;
-
-  return TRUE;
-}
-#endif

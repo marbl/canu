@@ -34,7 +34,7 @@
 *
 *************************************************/
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.26 2007-05-31 12:50:12 granger_sutton Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.27 2007-07-23 09:44:59 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -213,9 +213,6 @@ typedef  enum
 
 typedef  struct
   {
-#if  CHECK_CELSIM_COORDS
-   int  celsim_left, celsim_right;
-#endif
    char  * annotation;
    int  calc_left, calc_right;
    int  scaff_id;
@@ -586,10 +583,6 @@ static void  Output_Cam_Files
     (Scaffold_Fill_t * fill);
 static void  Partition_Edges
     (int cid, Stack_Entry_t * stack, int stack_top, int min_good_links);
-#if  CHECK_CELSIM_COORDS
-static void  Print_Coverage
-    (FILE * fp);
-#endif
 void  Print_Fill_Info
     (FILE * fp, Scaffold_Fill_t * fill_chunks);
 void  Print_Fill_Info_One_Scaffold
@@ -984,156 +977,6 @@ static void  Adjust_Stone_Positions
 
    if  (! found_target)
        (* target_position) = (* max_position);
-
-   return;
-  }
-
-
-
-static void  Analyze_Placement
-    (FILE * fp, Scaffold_Fill_t * fill)
-
-//  List information about positions of entries in  fill  with
-//  respect to their celsim coordinates.  Output goes to  fp .
-
-  {
-#if  CHECK_CELSIM_COORDS
-   int  scaff_id;
-   
-   for  (scaff_id = 0;  scaff_id < Num_Scaffolds;  scaff_id ++)
-     {
-      int  j;
-
-      for  (j = 0;  j < fill [scaff_id] . num_gaps;  j ++)
-        {
-         Gap_Fill_t  * this_gap = fill [scaff_id] . gap + j;
-         ContigT  * contig;
-         double  ref_celsim, ref_calc, slope, intercept;
-         double  delta, denom;
-         double  calc_gap_start, calc_gap_end;
-         double  celsim_gap_start, celsim_gap_end;
-         double  hi, lo, next;
-         int  num_kept = 0;
-         int  k, m;
-
-         for  (k = 0;  k < this_gap -> num_chunks;  k ++)
-           {
-            Gap_Chunk_t  * this_chunk = this_gap -> chunk + k;
-
-            if  (this_chunk -> keep)
-                num_kept ++;
-           }
-
-         if  (num_kept == 0)
-             continue;
-
-         if  (j < fill [scaff_id] . num_gaps - 1)
-             {
-              contig
-                  = GetGraphNode(ScaffoldGraph->RezGraph, this_gap -> right_cid);
-
-              assert (contig != NULL);
-              delta = contig -> offsetBEnd . mean
-                        - contig -> offsetAEnd . mean;
-              if  (delta >= 0.0)
-                  {
-                   ref_calc = contig -> offsetAEnd . mean;
-                   ref_celsim = contig -> aEndCoord;
-                  }
-                else
-                  {
-                   ref_calc = contig -> offsetBEnd . mean;
-                   ref_celsim = contig -> bEndCoord;
-                  }
-              calc_gap_end = ref_calc;
-              celsim_gap_end = ref_celsim;
-             }
-         if  (j > 0)
-             {
-              contig
-                  = GetGraphNode(ScaffoldGraph->RezGraph, this_gap -> left_cid);
-
-              assert (contig != NULL);
-              delta = contig -> offsetBEnd . mean
-                        - contig -> offsetAEnd . mean;
-              if  (delta >= 0.0)
-                  {
-                   ref_calc = contig -> offsetBEnd . mean;
-                   ref_celsim = contig -> bEndCoord;
-                  }
-                else
-                  {
-                   ref_calc = contig -> offsetAEnd . mean;
-                   ref_celsim = contig -> aEndCoord;
-                  }
-              calc_gap_start = ref_calc;
-              celsim_gap_start = ref_celsim;
-             }
-         denom = contig -> bEndCoord - contig -> aEndCoord;
-         assert (denom != 0.0);
-         slope = rint (delta / denom);
-         if  (fabs (slope) != 1.0)
-             {
-              fprintf (stderr, "ERROR:  Unexpected slope = %.2f  scaff %d  gap %d\n",
-                       slope, scaff_id, j);
-              fprintf (stderr, "        delta = %.1f  denom = %.1f\n",
-                       delta, denom);
-              if  (slope >= 0.0)
-                  slope = 1.0;
-                else
-                  slope = -1.0;
-             }
-         intercept = ref_calc - slope * ref_celsim;
-
-         fprintf (fp, "Scaff %4d  Gap %3d", scaff_id, j);
-         if  (j > 0 && j < fill [scaff_id] . num_gaps - 1)
-             fprintf (fp,
-                      "  celsim: = [%8.0f,%8.0f] = %6.0f  calc: [%8.0f,%8.0f] = %6.0f",
-                      celsim_gap_start, celsim_gap_end, 
-                      slope * (celsim_gap_end - celsim_gap_start),
-                      calc_gap_start, calc_gap_end,
-                      calc_gap_end - calc_gap_start);
-         fprintf (fp, "\n");
-
-         hi = -1.0;
-         for  (k = 0;  k < this_gap -> num_chunks;  k ++)
-           {
-            Gap_Chunk_t  * this_chunk = this_gap -> chunk + k;
-
-            if  (this_chunk -> keep)
-                {
-                 contig
-                     = GetGraphNode(ScaffoldGraph->RezGraph, this_chunk -> chunk_id);
-
-                 assert (contig != NULL);
-
-                 lo = MIN (this_chunk -> start . mean,
-                                  this_chunk -> end . mean);
-                 if  (hi >= 0
-                        && lo >= hi - 5.0)
-                     fprintf (fp, "*** break ***\n");
-
-                 next = MAX (this_chunk -> start . mean,
-                                    this_chunk -> end . mean);
-                 if  (next > hi)
-                     hi = next;
-                 
-                 fprintf (fp,
-                 "  %6d  celsim: = [%8d,%8d]  calc: [%8.0f,%8.0f]"
-                 "  delta: [%8.0f,%8.0f]\n",
-                          this_chunk -> chunk_id,
-                          contig -> aEndCoord, contig -> bEndCoord,
-                          this_chunk -> start . mean,
-                          this_chunk -> end . mean,
-                          slope * contig -> aEndCoord + intercept
-                            - this_chunk -> start . mean,
-                          slope * contig -> bEndCoord + intercept
-                            - this_chunk -> end . mean);
-                }
-           }
-        }
-     }
-#endif
 
    return;
   }
@@ -1928,32 +1771,6 @@ fprintf (stderr, ">>> Adding cid = %d to gap %d in scaff %d\n",
         this_chunk -> end . mean = right_end . mean;
         this_chunk -> end . variance = right_end . variance;
        }
-
-#if  CHECK_CELSIM_COORDS
-   if  ((Scaffold_Start [scaff_id] <= Scaffold_End [scaff_id] && ! flipped)
-            || (Scaffold_Start [scaff_id] > Scaffold_End [scaff_id] && flipped))
-       {
-        this_chunk -> sim_start = Chunk_Info [cid] . celsim_left;
-        this_chunk -> sim_end = Chunk_Info [cid] . celsim_right;
-       }
-     else
-       {
-        this_chunk -> sim_start = Chunk_Info [cid] . celsim_right;
-        this_chunk -> sim_end = Chunk_Info [cid] . celsim_left;
-       }
-   if  (Scaffold_Start [scaff_id] <= Scaffold_End [scaff_id])
-       {
-        this_chunk -> sim_start -= Scaffold_Start [scaff_id];
-        this_chunk -> sim_end -= Scaffold_Start [scaff_id];
-       }
-     else
-       {
-        this_chunk -> sim_start
-            = Scaffold_Start [scaff_id] - this_chunk -> sim_start;
-        this_chunk -> sim_end
-            = Scaffold_Start [scaff_id] - this_chunk -> sim_end;
-       }
-#endif
 
    return  TRUE;
   }
@@ -3622,23 +3439,6 @@ static void  Choose_Safe_Chunks
       prev_contig = contig;
       prev_cid = cid;
 
-#if  CHECK_CELSIM_COORDS
-      if  (contig -> aEndCoord >=0 && contig -> bEndCoord >= 0)
-          {
-           if  (contig -> aEndCoord < contig -> bEndCoord)
-               {
-                Chunk_Info [cid] . celsim_left = contig -> aEndCoord;
-                Chunk_Info [cid] . celsim_right = contig -> bEndCoord;
-               }
-             else
-               {
-                Chunk_Info [cid] . celsim_left = contig -> bEndCoord;
-                Chunk_Info [cid] . celsim_right = contig -> aEndCoord;
-               }
-          }
-        else
-          Chunk_Info [cid] . celsim_left = Chunk_Info [cid] . celsim_right = 0;
-#endif
       Chunk_Info [cid] . calc_left = -1;
       Chunk_Info [cid] . calc_right = -1;
       cover_stat = GetCoverageStat (contig);
@@ -3875,10 +3675,6 @@ static void  Choose_Safe_Chunks
 
                 if  (consistent && good_total >= min_good_links)
                     {
-#if  CHECK_CELSIM_COORDS
-                     int  diff, this_offset;
-                     double  cutoff;
-#endif
 #if  MAKE_CAM_FILE && SHOW_CALC_COORDS
                      int64  left_coord, right_coord;
 #endif
@@ -3902,34 +3698,6 @@ static void  Choose_Safe_Chunks
                               right_end . mean, sqrt (right_end . variance),
                               cover_stat,
                               CGB_Type_As_String (contig -> flags . bits . cgbType));
-#endif
-#if  CHECK_CELSIM_COORDS
-                     if  (Scaffold_Flipped [REF (stack [0] . chunk_id) . scaff_id])
-                         this_offset
-                             = MAX (contig -> aEndCoord, contig -> bEndCoord)
-                                   + left_end . mean;
-                       else
-                         this_offset
-                             = MIN (contig -> aEndCoord, contig -> bEndCoord)
-                                   - left_end . mean;
-                     diff = abs (this_offset - stack [0] . celsim_offset);
-                     cutoff = MAX (6 * sqrt (stack [0] . edge
-                                                   -> distance . variance
-                                                   + stack [0] . source_variance),
-                                       100);
-
-                     if  (contig -> flags . bits . cgbType != UU_CGBTYPE)
-                         fprintf (stderr,
-                                  "### Placed confused chunk #%d  type = %s\n",
-                                  cid,
-                                  CGB_Type_As_String
-                                      (contig -> flags . bits . cgbType));
-                     else if  (diff > cutoff )
-                         {
-                          fprintf (stderr, "### Misplaced chunk #%d  diff = %d\n",
-                                   cid, diff);
-                          cam_colour = MISPLACED_COLOUR;
-                         }
 #endif
 #if  MAKE_CAM_FILE && SHOW_CALC_COORDS
                      scaff_id = REF (stack [0] . chunk_id) . scaff_id;
@@ -4085,23 +3853,6 @@ static void  Choose_Stones
      {
       cid = chunk->id;
 
-#if  CHECK_CELSIM_COORDS
-      if  (chunk -> aEndCoord >=0 && chunk -> bEndCoord >= 0)
-          {
-           if  (chunk -> aEndCoord < chunk -> bEndCoord)
-               {
-                Chunk_Info [cid] . celsim_left = chunk -> aEndCoord;
-                Chunk_Info [cid] . celsim_right = chunk -> bEndCoord;
-               }
-             else
-               {
-                Chunk_Info [cid] . celsim_left = chunk -> bEndCoord;
-                Chunk_Info [cid] . celsim_right = chunk -> aEndCoord;
-               }
-          }
-        else
-          Chunk_Info [cid] . celsim_left = Chunk_Info [cid] . celsim_right = 0;
-#endif
       Chunk_Info [cid] . calc_left = -1;
       Chunk_Info [cid] . calc_right = -1;
       cover_stat = GetCoverageStat (chunk);
@@ -6975,13 +6726,6 @@ fprintf (log_file, "\n>>> Fill before  Update_Scaffold_Graph <<<\n");
    fclose (log_file);
 
 
-#if  CHECK_CELSIM_COORDS
-   sprintf(filename, "rezlog/rez.i%02d.place", iteration);
-   log_file = file_open (filename, "w");
-   Analyze_Placement (log_file, fill_chunks);
-   fclose (log_file);
-#endif
-
    StartTimerT(&GlobalData->UpdateTimer);
    if  (level > 1)
        {
@@ -8069,10 +7813,6 @@ static void  Include_Good_Joins
          {
           ChunkInstanceT  * chunk;
           int  assign_succeeded;
-#if  CHECK_CELSIM_COORDS
-          double  this_offset, diff, cutoff;
-          int  cam_colour;
-#endif
 #if  MAKE_CAM_FILE && SHOW_CALC_COORDS
           char  annotation_string [MAX_STRING_LEN];
 #if SHOW_CALC_COORDS
@@ -8102,34 +7842,6 @@ static void  Include_Good_Joins
               safe_free (Chunk_Info [p [i] -> chunk_id] . annotation);
           Chunk_Info [p [i] -> chunk_id] . annotation
               = strdup (annotation_string);
-#endif
-#if  CHECK_CELSIM_COORDS
-          if  (Scaffold_Flipped [p [i] -> insert_scaff])
-              this_offset
-                  = MAX (chunk -> aEndCoord, chunk -> bEndCoord)
-                        + p [i] -> left_end . mean;
-            else
-              this_offset
-                  = MIN (chunk -> aEndCoord, chunk -> bEndCoord)
-                        - p [i] -> left_end . mean;
-          diff = fabs (this_offset - p [i] -> stack_val . celsim_offset);
-          cutoff = MAX (6 * sqrt (p [i] -> stack_val . edge
-                                        -> distance . variance
-                                        + p [i] -> stack_val . source_variance),
-                            100);
-
-          if  (chunk -> flags . bits . cgbType != UU_CGBTYPE)
-              fprintf (stderr,
-                       "### Placed confused join chunk #%d  type = %s\n",
-                       p [i] -> chunk_id,
-                       CGB_Type_As_String
-                           (chunk -> flags . bits . cgbType));
-          else if  (diff > cutoff )
-              {
-               fprintf (stderr, "### Misplaced join chunk #%d  diff = %.0f\n",
-                        p [i] -> chunk_id, diff);
-               cam_colour = MISPLACED_COLOUR;
-              }
 #endif
 #if  MAKE_CAM_FILE && SHOW_CALC_COORDS
           if  (Scaffold_Start [p [i] -> insert_scaff]
@@ -9109,11 +8821,6 @@ static void  Output_Cam_Files
 #if  MAKE_CAM_FILE
    double  scaff_start = 0.0, scaff_end = 0.0;
 #endif
-#if  CHECK_CELSIM_COORDS
-   ChunkInstanceT  * chunk;
-   GraphNodeIterator  nodes;
-   int cid;
-#endif
 
    if  (! MAKE_CAM_FILE)
        return;
@@ -9148,107 +8855,6 @@ static void  Output_Cam_Files
           }
        }
    
-
-#if  CHECK_CELSIM_COORDS
-   InitGraphNodeIterator(&nodes,ScaffoldGraph->RezGraph, GRAPH_NODE_DEFAULT);
-
-   fprintf(stderr,"* Output_Cam_Files: num_chunks = %d\n", Num_Chunks);
-
-   while  ((chunk = NextGraphNodeIterator (& nodes)) != NULL)
-     {
-      ContigT  * contig;
-      int  row, mid;
-
-      cid = chunk->id;
-
-      if  (chunk -> flags . bits . isStoneSurrogate)
-          continue;
-
-      if  (cid >= Num_Chunks)
-          {
-           fprintf (stderr, "cid = %d  too big, skipped\n", cid);
-           continue;
-          }
-
-      if  (Chunk_Info [cid] . celsim_left < 0
-             || Chunk_Info [cid] . celsim_right < 0)
-          continue;
-
-
-      contig = GetGraphNode (ScaffoldGraph -> RezGraph, cid);
-      assert (contig != NULL);
-
-      mid = (Chunk_Info [cid] . celsim_left
-              + Chunk_Info [cid] . celsim_right) / 2;
-      
-      switch  (Chunk_Info [cid] . colour)
-        {
-         case  UNIQUE_COLOUR :
-           row = 1;
-#if  0
-           chunk = GetGraphNode(ScaffoldGraph->RezGraph, cid);
-           if  (chunk -> type != DISCRIMINATORUNIQUECHUNK_CGW)
-               Chunk_Info [cid] . colour = INSERTED_COLOUR;
-#endif
-           fprintf (Cam_File, "%dCHUNKREZ: %d",
-                    cid, Chunk_Info [cid] . celsim_left);
-           if  (Chunk_Info [cid] . cgb_type != UU_CGBTYPE)
-               fprintf (Cam_File, " A%dREZ M%d",
-                        Repeat_Colour (Chunk_Info [cid] . cgb_type),
-                        mid);
-           fprintf (Cam_File,
-                    " A%dREZ %d R%d # chunk %d"
-                    "  Scaff #%d  rel pos #%d  start = <%.0f,%.0f>"
-                    "  end = <%.0f,%.0f>  cov = %d  typ = %s\n",
-                    Chunk_Info [cid] . colour,
-                    Chunk_Info [cid] . celsim_right, row, cid,
-                    REF (cid) . scaff_id, REF (cid) . rel_pos,
-                    contig -> offsetAEnd . mean,
-                    sqrt (contig -> offsetAEnd . variance),
-                    contig -> offsetBEnd . mean,
-                    sqrt (contig -> offsetBEnd . variance),
-                    GetCoverageStat (contig),
-                    CGB_Type_As_String (contig -> flags . bits . cgbType));
-           break;
-         case  PLACED_COLOUR :
-         case  MISPLACED_COLOUR :
-         case  REJECT_COLOUR :
-           row = 3;
-           fprintf (Cam_File, "%dCHUNKREZ: %d",
-                    cid, Chunk_Info [cid] . celsim_left);
-           if  (Chunk_Info [cid] . cgb_type != UU_CGBTYPE)
-               fprintf (Cam_File, " A%dREZ M%d",
-                        Repeat_Colour (Chunk_Info [cid] . cgb_type),
-                        mid);
-           fprintf (Cam_File,
-                    "A%dREZ %d R%d # chunk %d"
-                    "  %s  cov = %d  typ = %s\n",
-                    Chunk_Info [cid] . colour,
-                    Chunk_Info [cid] . celsim_right, row, cid,
-                    Chunk_Info [cid] . annotation,
-                    GetCoverageStat (contig),
-                    CGB_Type_As_String (contig -> flags . bits . cgbType));
-           break;
-         default :
-           row = 4;
-           fprintf (Cam_File, "%dCHUNKREZ: %d",
-                    cid, Chunk_Info [cid] . celsim_left);
-           if  (Chunk_Info [cid] . cgb_type != UU_CGBTYPE)
-               fprintf (Cam_File, " A%dREZ M%d",
-                        Repeat_Colour (Chunk_Info [cid] . cgb_type),
-                        mid);
-           fprintf (Cam_File,
-                    "A%dREZ %d R%d # chunk %d"
-                    "  %s  cov = %d  typ = %s\n",
-                    Chunk_Info [cid] . colour,
-                    Chunk_Info [cid] . celsim_right, row, cid,
-                    Chunk_Info [cid] . annotation,
-                    GetCoverageStat (contig),
-                    CGB_Type_As_String (contig -> flags . bits . cgbType));
-        }
-     }
-#endif
-
 
 #if  SHOW_CALC_COORDS
    for  (scaff_id = 0;  scaff_id < Num_Scaffolds;  scaff_id ++)
@@ -9358,24 +8964,15 @@ static void  Print_Scaffolds
 #if  MAKE_CAM_FILE && SHOW_CALC_COORDS
       int  seg_num = 0;
 #endif
-#if CHECK_CELSIM_COORDS
-      double  slope = 0.0, y_intercept;
-#endif
 
       scaff_id = scaffold -> id;
       if  (fp != NULL)
           {
            fprintf (fp, "Scaffold %3d:\n", scaff_id);
            fprintf (fp, "  %3s  %7s    (%8s, %8s)  (%8s, %8s)"
-#if  CHECK_CELSIM_COORDS
-           "  [%8s  %-8s]"
-#endif
            "  %7s\n",
                     "Idx",  "Chunk", "Start", "Variance",
                     "End", "Variance",
-#if  CHECK_CELSIM_COORDS
-                    "Celsim", "Coords",
-#endif
                     "Len");
           }
 
@@ -9386,23 +8983,6 @@ static void  Print_Scaffolds
 #endif
 #endif
 
-#if  CHECK_CELSIM_COORDS
-      chunk = GetGraphNode(ScaffoldGraph->RezGraph,
-                                 scaffold -> info.Scaffold.AEndCI);
-
-      assert(chunk->scaffoldID == scaff_id);
-
-      if  (chunk -> offsetAEnd . mean < chunk -> offsetBEnd . mean)
-          Scaffold_Start [scaff_id] = chunk -> aEndCoord;
-        else
-          Scaffold_Start [scaff_id] = chunk -> bEndCoord;
-      chunk = GetGraphNode(ScaffoldGraph->RezGraph,
-                                 scaffold -> info.Scaffold.BEndCI);
-      if  (chunk -> offsetAEnd . mean < chunk -> offsetBEnd . mean)
-          Scaffold_End [scaff_id] = chunk -> bEndCoord;
-        else
-          Scaffold_End [scaff_id] = chunk -> aEndCoord;
-#else
       last_coord_used += MAX_MATE_DISTANCE;
       Scaffold_Start [scaff_id] = last_coord_used;
       chunk = GetGraphNode(ScaffoldGraph->RezGraph,
@@ -9412,7 +8992,7 @@ static void  Print_Scaffolds
         else
           last_coord_used += (int) chunk -> offsetAEnd . mean;
       Scaffold_End [scaff_id] = last_coord_used;
-#endif
+
 
       InitCIScaffoldTIterator (ScaffoldGraph, scaffold, TRUE, FALSE,
                               & scaff_iterator);
@@ -9423,16 +9003,10 @@ static void  Print_Scaffolds
             scaff_index ++)
         {
          double  dip;
-#if CHECK_CELSIM_COORDS
-         double  denom;
-#endif
 
          if  (fp != NULL)
              fprintf (fp,
                   "  %3d: %7d    (%8.0f, %8.0f)  (%8.0f, %8.0f)"
-#if  CHECK_CELSIM_COORDS
-                  "  [%8ld, %8ld]"
-#endif
                   "  %7.0f\n",
                   scaff_index,
                   chunk -> id,
@@ -9440,10 +9014,6 @@ static void  Print_Scaffolds
                   chunk -> offsetAEnd . variance,
                   chunk -> offsetBEnd . mean,
                   chunk -> offsetBEnd . variance,
-#if  CHECK_CELSIM_COORDS
-                  chunk -> aEndCoord,
-                  chunk -> bEndCoord,
-#endif
                   chunk -> bpLength . mean
                  );
 
@@ -9456,8 +9026,10 @@ static void  Print_Scaffolds
                 || chunk -> offsetBEnd . variance < 0)
              {
               fprintf (stderr,
-                       "ERROR:  Negative variance for chunk %d in scaffold %d\n",
-                       chunk -> id, scaff_id);
+                       "ERROR:  Negative variance for chunk %d in scaffold %d (AEnd=%f BEnd=%f)\n",
+                       chunk -> id, scaff_id,
+                       chunk -> offsetAEnd . variance,
+                       chunk -> offsetBEnd . variance);
               if  (fp != NULL)
                   fclose (fp);
               assert (FALSE);
@@ -9466,68 +9038,15 @@ static void  Print_Scaffolds
                 || (dip = chunk -> offsetBEnd . variance - prev_variance) < 0.0)
              {
               fprintf (stderr,
-                       "ERROR:  Variance dip by %f for chunk %d in scaffold %d\n",
-                       dip, chunk -> id, scaff_id);
+                       "ERROR:  Variance dip by %f for chunk %d in scaffold %d (AEnd=%f BEnd=%f prev_variance=%f\n",
+                       dip, chunk -> id, scaff_id,
+                       chunk -> offsetAEnd . variance,
+                       chunk -> offsetBEnd . variance,
+                       prev_variance);
               if  (fp != NULL)
                   fclose (fp);
               assert (FALSE);
              }
-#if CHECK_CELSIM_COORDS
-         if  (scaff_index > 0)
-             {
-              double  delta, target, diff, tolerance;
-
-              delta = 3.0 * sqrt (chunk -> offsetAEnd . variance
-                                    - prev_variance);
-              target = slope * chunk -> offsetAEnd . mean + y_intercept;
-              diff = fabs (chunk -> aEndCoord - target);
-              tolerance = fabs (slope * delta);
-              if  (diff > tolerance && fp != NULL)
-                  fprintf (fp,
-                  "OOPS  AEnd:  dif = %.0f tol = %.0f slope = %.1f y_int = %.1f\n",
-                           diff, tolerance, slope, y_intercept);
-
-              delta = 5.0 * sqrt (chunk -> offsetBEnd . variance
-                                    - prev_variance);
-              target = slope * chunk -> offsetBEnd . mean + y_intercept;
-              diff = fabs (chunk -> bEndCoord - target);
-              tolerance = fabs (slope * delta);
-              if  (tolerance < 50.0)
-                  tolerance = 50.0;
-              if  (diff > tolerance && fp != NULL)
-                  fprintf (fp,
-                  "OOPS  BEnd:  dif = %.0f tol = %.0f slope = %.1f y_int = %.1f\n",
-                           diff, tolerance, slope, y_intercept);
-             }
-
-         prev_variance = MAX (chunk -> offsetAEnd . variance,
-                                     chunk -> offsetBEnd . variance);
-
-         denom = chunk -> offsetBEnd . mean - chunk -> offsetAEnd . mean;
-         if  (fabs (denom) < 1e-6)
-             {
-              fprintf (stderr, "\nERROR:  Zero denominator for chunk %d\n",
-                       chunk -> id);
-              fprintf (stderr, "        offsetA = %.0f  offsetB = %.0f\n",
-                       chunk -> offsetAEnd . mean,
-                       chunk -> offsetBEnd . mean);
-             }
-           else
-             {
-              slope = (chunk -> bEndCoord - chunk -> aEndCoord)
-                        / denom;
-              if  (fabs (fabs (slope) - 1.0) > 1.0)
-                  {
-                   if  (fp != NULL)
-                       fprintf (fp, "OOPS:  Bad slope = %.3f\n", slope);
-                  }
-              else if  (slope > 0.0)
-                  slope = 1.0;
-                else
-                  slope = -1.0;
-              y_intercept = chunk -> aEndCoord - slope * chunk -> offsetAEnd . mean;
-             }
-#endif
 
 #if  MAKE_CAM_FILE
 #if  SHOW_CALC_COORDS
@@ -9639,17 +9158,6 @@ static void  Print_Scaffolds
           }
      }
 
-#if  CHECK_CELSIM_COORDS
-   if  (fp != NULL)
-       {
-        fprintf (fp, "\nCelsim coordinates of scaffolds\n");
-
-        for  (scaff_id = 0;  scaff_id < Num_Scaffolds;  scaff_id ++)
-          fprintf (fp, "Scaffold %2d:  start = %7ld  end = %7ld\n",
-                   scaff_id, Scaffold_Start [scaff_id], Scaffold_End [scaff_id]);
-       }
-#endif
-
    return;
   }
 
@@ -9738,109 +9246,6 @@ fprintf (stderr, "  %3d  %3d .. %3d  total_mates = %3d\n",
 
 
 
-#if  CHECK_CELSIM_COORDS
-static void  Print_Coverage
-    (FILE * fp)
-
-//  Print to  fp  total coverage of genome by uniques, and by uniques
-//  together with placed's.
-
-  {
-   int64  * lo, * hi, sum;
-   int  i, j, n;
-
-   lo = (int64 *) safe_malloc (Num_Chunks * sizeof (int64));
-   hi = (int64 *) safe_malloc (Num_Chunks * sizeof (int64));
-
-   for  (i = n = 0;  i < Num_Chunks;  i ++)
-     if  (Chunk_Info [i] . colour == UNIQUE_COLOUR)
-         {
-          lo [n] = Chunk_Info [i] . celsim_left;
-          hi [n] = Chunk_Info [i] . celsim_right;
-          n ++;
-         }
-
-   for  (i = 0;  i < n - 1;  i ++)
-     for  (j = i + 1;  j < n;  j ++)
-       if  (lo [i] > lo [j])
-           {
-            int64  save;
-
-            save = lo [i];
-            lo [i] = lo [j];
-            lo [j] = save;
-
-            save = hi [i];
-            hi [i] = hi [j];
-            hi [j] = save;
-           }
-
-   j = 0;
-   for  (i = 1;  i < n;  i ++)
-     if  (lo [i] > hi [j])
-         {
-          j ++;
-          lo [j] = lo [i];
-          hi [j] = hi [i];
-         }
-     else if  (hi [j] < hi [i])
-          hi [j] = hi [i];
-
-   sum = 0;
-   for  (i = 0;  i <= j;  i ++)
-     sum += hi [i] - lo [i];
-
-   fprintf (fp, "Coverage by uniques = %ld bases\n", sum);
-
-   for  (i = 0, n = 0;  i < Num_Chunks;  i ++)
-     if  (Chunk_Info [i] . colour == UNIQUE_COLOUR
-             || Chunk_Info [i] . colour == PLACED_COLOUR)
-         {
-          lo [n] = Chunk_Info [i] . celsim_left;
-          hi [n] = Chunk_Info [i] . celsim_right;
-          n ++;
-         }
-
-   for  (i = 0;  i < n - 1;  i ++)
-     for  (j = i + 1;  j < n;  j ++)
-       if  (lo [i] > lo [j])
-           {
-            int64  save;
-
-            save = lo [i];
-            lo [i] = lo [j];
-            lo [j] = save;
-
-            save = hi [i];
-            hi [i] = hi [j];
-            hi [j] = save;
-           }
-
-   j = 0;
-   for  (i = 1;  i < n;  i ++)
-     if  (lo [i] > hi [j])
-         {
-          j ++;
-          lo [j] = lo [i];
-          hi [j] = hi [i];
-         }
-     else if  (hi [j] < hi [i])
-          hi [j] = hi [i];
-
-   sum = 0;
-   for  (i = 0;  i <= j;  i ++)
-     sum += hi [i] - lo [i];
-
-   fprintf (fp, "Coverage by uniques & placed = %ld bases\n", sum);
-
-   safe_free (lo);
-   safe_free (hi);
-
-   return;
-  }
-#endif
-
-
 
 void  Print_Fill_Info
     (FILE * fp, Scaffold_Fill_t * fill_chunks)
@@ -9912,9 +9317,6 @@ void  Print_Fill_Info_One_Scaffold
       ChunkInstanceT  * scaff_chunk;
       int  k;
       double ref_var;
-#if  CHECK_CELSIM_COORDS
-      double  slope = 0.0, intercept = 0.0;
-#endif
       
       if  (j > 0)
           {
@@ -9940,28 +9342,6 @@ void  Print_Fill_Info_One_Scaffold
                                  scaff_chunk -> offsetBEnd . variance);
           }
 
-#if  CHECK_CELSIM_COORDS
-      if  (scaff_chunk -> aEndCoord >= 0
-             && scaff_chunk -> bEndCoord >= 0)
-          {
-           assert (scaff_chunk -> offsetAEnd . mean
-                     != scaff_chunk -> offsetBEnd . mean);
-           slope = (scaff_chunk -> bEndCoord - scaff_chunk -> aEndCoord)
-                     / (scaff_chunk -> offsetBEnd . mean
-                          - scaff_chunk -> offsetAEnd . mean);
-           if  (fabs (fabs (slope) - 1.0) > 0.1)
-               fprintf (fp, "YIKES:  Bad slope = %.3f  [%7d,%7d]\n",
-                        slope, scaff_chunk -> aEndCoord,
-                        scaff_chunk -> bEndCoord);
-           else if  (slope > 0.0)
-               slope = 1.0;
-             else
-               slope = -1.0;
-
-           intercept = scaff_chunk -> bEndCoord
-                         - slope * scaff_chunk -> offsetBEnd . mean;
-          }
-#endif
 
       fprintf (fp,
                " Gap %3d:  (%8.0f,%7.0f)  (%8.0f,%7.0f)  <%6d,%6d>  len = %.0f"
@@ -10091,36 +9471,6 @@ fprintf (fp, "\n");
          if  (this_chunk -> keep)
              (* total_keep) ++;
 
-#if  CHECK_CELSIM_COORDS
-         if  (this_chunk -> keep)
-             {
-              ChunkInstanceT  * chunk
-                  = GetGraphNode (ScaffoldGraph->RezGraph,
-                                  this_chunk -> chunk_id);
-
-              if  (chunk -> aEndCoord >= 0 && chunk -> bEndCoord >= 0)
-                  {
-                    double  mid, delta;
-                   delta = 3.0 * sqrt (fabs (this_chunk -> start . variance
-                                         - ref_var))
-                             * fabs (slope);
-                   mid = slope * (this_chunk -> start . mean) + intercept;
-                   if  (fabs (chunk -> aEndCoord - mid) > delta)
-                       fprintf (fp,
-                           "YIKES:  A_End at %d  Should be in [%.0f, %.0f]\n",
-                           chunk -> aEndCoord, mid - delta, mid + delta);
-
-                   delta = 3.0 * sqrt (fabs (this_chunk -> end . variance
-                                         - ref_var))
-                             * fabs (slope);
-                   mid = slope * (this_chunk -> end . mean) + intercept;
-                   if  (fabs (chunk -> bEndCoord - mid) > delta)
-                       fprintf (fp,
-                           "YIKES:  B_End at %d  Should be in [%.0f, %.0f]\n",
-                           chunk -> bEndCoord, mid - delta, mid + delta);
-                  }
-             }
-#endif
          (* total_chunks) ++;
         }
      }
@@ -10305,16 +9655,9 @@ static void  Print_Potential_Fill_Chunks
 
                 fprintf (fp,
                     "Non-unique #%d (len = %.0f  frags = %d)"
-#if  CHECK_CELSIM_COORDS
-                    " [%7d,%7d] CGB_Type = %s"
-#endif
                     " Links to non-unique = %d  %s\n",
                     cid, chunk -> bpLength . mean,
                     ci -> info . CI . numFragments,
-#if  CHECK_CELSIM_COORDS
-                    chunk -> aEndCoord, chunk -> bEndCoord,
-                    CGB_Type_As_String (chunk -> flags . bits . cgbType)
-#endif
                     other_links,
                     Is_Unique (chunk) ? "*UNIQUE*" : "");
                 fprintf (fp,

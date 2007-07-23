@@ -27,8 +27,6 @@
 
 #define  MAKE_CAM_FILE         0
   // if  1  will create celamy file  rez.cam
-#define  SIMULATED_DATA        CHECK_CELSIM_COORDS
-  // if  1  assume celsim coordinates and info are available
 
 #define  NUM_COLOURS           14
 

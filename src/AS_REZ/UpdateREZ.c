@@ -33,7 +33,7 @@
 
  **********************************************************************/
 
-static char fileID[] = "$Id: UpdateREZ.c,v 1.9 2007-03-04 02:06:21 brianwalenz Exp $";
+static char fileID[] = "$Id: UpdateREZ.c,v 1.10 2007-07-23 09:44:59 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <assert.h>
@@ -643,13 +643,6 @@ int Update_Scaffold_Graph(ScaffoldGraphT *sgraph,
 		  // number of insertions
 		  //
 		  scaffold_modified = TRUE;
-#if  SIMULATED_DATA
-		  if  (chunk -> flags . bits . cgbType != UU_CGBTYPE)
-			fprintf (stderr,
-					 "### Inserted invalid chunk #%d  type = %s\n",
-					 chunk -> id,
-					 CGB_Type_As_String (chunk -> flags . bits . cgbType));
-#endif
 		  inserted++;
 	  
 
