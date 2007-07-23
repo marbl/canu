@@ -22,7 +22,7 @@
 #
 ##########################################################################
 
-# $Id: FASTA_to_frg_file.pl,v 1.4 2007-07-20 20:44:34 brianwalenz Exp $
+# $Id: FASTA_to_frg_file.pl,v 1.5 2007-07-23 17:23:41 brianwalenz Exp $
 
 use strict;
 use Getopt::Std;
@@ -84,6 +84,7 @@ print STDOUT "src:\n";
 print STDOUT ".\n";
 print STDOUT "nft:1\n";
 print STDOUT "doNotOverlapTrim=1\n";
+print STDOUT ".\n";
 print STDOUT "}\n";
 
 my $frag_id_counter=1;
