@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: convertOverlap.c,v 1.11 2007-03-29 20:23:50 brianwalenz Exp $";
+static char CM_ID[] = "$Id: convertOverlap.c,v 1.12 2007-07-23 05:57:47 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -262,15 +262,13 @@ void   convertOBTtoASCII(void) {
   BinaryOverlapFile  *input = AS_OVS_openBinaryOverlapFile(NULL, FALSE);
 
   while (AS_OVS_readOverlap(input, &olap)) {
-    fprintf(stdout, "%7d %7d  %c %4d %4d %4d  %4d %4d %4d  %5.2f\n",
+    fprintf(stdout, "%7d %7d  %c %4d %4d  %4d %4d  %5.2f\n",
             olap.a_iid, olap.b_iid,
             olap.dat.obt.fwd ? 'f' : 'r',
             olap.dat.obt.a_beg,
             olap.dat.obt.a_end,
-            666,
             olap.dat.obt.b_beg,
             olap.dat.obt.b_end,
-            666,
             AS_OVS_decodeQuality(olap.dat.obt.erate) * 100.0);
   }
 
