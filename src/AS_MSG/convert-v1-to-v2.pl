@@ -40,11 +40,12 @@ my $vec;
 my %clv;
 my %clq;  #  Currently, we never have this info
 my $lib;
+my $clvFound = 0;
+my $clvNotFound = 0;
+my $clqFound = 0;
+my $clqNotFound = 0;
 
 my $noOBT = 0;
-
-sub printLIB($$$) {
-}
 
 my $err = 0;
 while (scalar(@ARGV) > 0) {
@@ -70,7 +71,7 @@ if (defined($vec)) {
         $clv{$v[0]} = "$v[1],$v[2]";
     }
     close(F);
-    print STDERR "Read vector info for ", scalar(keys %clv), " reads.\n";
+    #print STDERR "Read vector info for ", scalar(keys %clv), " reads.\n";
 }
 
 
@@ -215,10 +216,16 @@ while (!eof(STDIN)) {
         print "hps:\n";
         print ".\n";
         if (defined($clv{$acc})) {
+            $clvFound++;
             print "clv:$clv{$acc}\n";
+        } else {
+            $clvNotFound++;
         }
         if (defined($clq{$acc})) {
+            $clqFound++;
             print "clq:$clq{$acc}\n";
+        } else {
+            $clqNotFound++;
         }
         print "clr:$clr\n";
         print "}\n";
@@ -243,3 +250,9 @@ while (!eof(STDIN)) {
         die "Unsupported line '$_'\n";
     }
 }
+
+if (defined(%clv) && ($clvNotFound > 0)) {
+    print STDERR "Updated $clvFound vector clear ranges ($clvNotFound NOT updated).\n";
+}
+
+#print STDERR "Updated $clqFound quality clear ranges ($clqNotFound NOT updated).\n";
