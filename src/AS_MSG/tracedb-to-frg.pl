@@ -130,7 +130,7 @@ sub readXML {
 
     $_ = <X>;
     while ($_ !~ m/^\s*<\/TRACE/i) {
-        if (m!^\s*<TI>(\d+)<!) {
+        if (m!^\s*<TI>(\d+)<!i) {
             $xid = $1;
         }
         if (m!^\s*<TRACE_TYPE_CODE>(.*)<!i) {
@@ -379,7 +379,8 @@ sub runXML ($) {
         $types{$type}++;
 
         if (($type eq "WGS") ||
-            ($type eq "SHOTGUN")) {
+            ($type eq "SHOTGUN") ||
+            ($type eq "454")) {
             print L "$xid\t$template\t$end\t$lib\t$libsize\t$libstddev\t$clr\t$clv\t$clq\n";
         }
     }
@@ -555,53 +556,55 @@ sub runLIB (@) {
             #  NOTE!  You can't use the extra sanity checking disabled
             #  below!
             #
-            ($template, undef) = split '-', $template;
+            #($template, undef) = split '-', $template;
 
-            if (defined($link{$template})) {
+            if ($template ne ".") {
+                if (defined($link{$template})) {
 
-                #  F -> 5'
-                #  R -> 3'
+                    #  F -> 5'
+                    #  R -> 3'
 
-                my $id1 = $id;
-                my ($id2, $end2) = split '\0', $link{$template};
+                    my $id1 = $id;
+                    my ($id2, $end2) = split '\0', $link{$template};
 
-                if ($end eq "R") {
-                    ($id1, $id2) = ($id2, $id1);
-                }
+                    if ($end eq "R") {
+                        ($id1, $id2) = ($id2, $id1);
+                    }
 
-                #  Check disabled because of Baylor sea urchin.
-                #if ($end2 eq $end) {
-                #    print STDERR "WARNING: template=$template has two $end reads.\n";
-                #}
+                    #  Check disabled because of Baylor sea urchin.
+                    #if ($end2 eq $end) {
+                    #    print STDERR "WARNING: template=$template has two $end reads.\n";
+                    #}
 
-                if ($version == 1) {
-                    print LKG "{LKG\n";
-                    print LKG "act:A\n";
-                    print LKG "typ:M\n";
-                    print LKG "fg1:$id1\n";
-                    print LKG "fg2:$id2\n";
-                    print LKG "etm:0\n";
-                    print LKG "dst:$dist{$lib}\n";
-                    print LKG "ori:I\n";
-                    print LKG "}\n";
+                    if ($version == 1) {
+                        print LKG "{LKG\n";
+                        print LKG "act:A\n";
+                        print LKG "typ:M\n";
+                        print LKG "fg1:$id1\n";
+                        print LKG "fg2:$id2\n";
+                        print LKG "etm:0\n";
+                        print LKG "dst:$dist{$lib}\n";
+                        print LKG "ori:I\n";
+                        print LKG "}\n";
+                    } else {
+                        print LKG "{LKG\n";
+                        print LKG "act:A\n";
+                        print LKG "frg:$id1\n";
+                        print LKG "frg:$id2\n";
+                        print LKG "}\n";
+                    }
+
+                    $numMate++;
+
+                    #  Uncomment this to do a little sanity checking here
+                    #  (uses lots of memory).  It will probably report if
+                    #  a template has more than two frags, because the end
+                    #  test above will fail.  ????????
+
+                    delete $link{$template}
                 } else {
-                    print LKG "{LKG\n";
-                    print LKG "act:A\n";
-                    print LKG "frg:$id1\n";
-                    print LKG "frg:$id2\n";
-                    print LKG "}\n";
+                    $link{$template} = "$id\0$end";
                 }
-
-                $numMate++;
-
-                #  Uncomment this to do a little sanity checking here
-                #  (uses lots of memory).  It will probably report if
-                #  a template has more than two frags, because the end
-                #  test above will fail.  ????????
-
-                delete $link{$template}
-            } else {
-                $link{$template} = "$id\0$end";
             }
 
             $numFrag++;
@@ -674,7 +677,7 @@ sub runFRG ($) {
         my ($sid, $seq) = readFasta();
         my ($qid, $qlt) = readQual();
 
-        if (($type eq "WGS") || ($type eq "SHOTGUN")) {
+        if (($type eq "WGS") || ($type eq "SHOTGUN") || ($type eq "454")) {
             my $lll = <L>;
             my $lid;
             ($lid, $lib) = split '\s+', $lll;
