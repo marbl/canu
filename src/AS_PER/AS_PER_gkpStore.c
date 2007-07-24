@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.36 2007-05-29 10:54:30 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.37 2007-07-24 07:00:07 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -645,6 +645,10 @@ void        del_fragRecord(fragRecord *fr) {
 
 void        clr_fragRecord(fragRecord *fr) {
   clearGateKeeperFragmentRecord(&fr->gkfr);
+  fr->hasSEQ = 0;
+  fr->hasQLT = 0;
+  fr->hasHPS = 0;
+  fr->hasSRC = 0;
   fr->seq[0] = 0;
   fr->qlt[0] = 0;
   fr->hps[0] = 0;
