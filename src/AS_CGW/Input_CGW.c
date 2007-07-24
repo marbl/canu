@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.39 2007-07-19 09:50:32 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.40 2007-07-24 06:41:24 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -990,7 +990,7 @@ void ProcessFrags(void)
     if (gkf.mateIID != 0) {
       InfoByIID *miinfo = GetInfoByIID(ScaffoldGraph->iidToFragIndex, gkf.mateIID);
 
-      if (miinfo->set) {
+      if (miinfo && miinfo->set) {
         cifrag->mateOf   = miinfo->fragIndex;
         cifrag->dist     = gkf.libraryIID;
         if (gkf.orientation == AS_READ_ORIENT_INNIE)
