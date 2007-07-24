@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg2.c,v 1.6 2007-05-02 09:30:18 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg2.c,v 1.7 2007-07-24 06:30:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -117,7 +117,7 @@ Read_LIB_Mesg(FILE *fin) {
         fn--;
       }
 
-      fprintf(stderr, "GOT:   fea'%s' val'%s'\n", lmesg.features[i], lmesg.values[i]);
+      //fprintf(stderr, "GOT:   fea'%s' val'%s'\n", lmesg.features[i], lmesg.values[i]);
     }
   }  //  num_features > 0
 
@@ -152,8 +152,8 @@ Write_LIB_Mesg(FILE *fout,void *mesg) {
     for (i=0; i<lmesg->num_features; i++)
       fprintf(fout,"%s=%s\n", lmesg->features[i], lmesg->values[i]);
     fprintf(fout,".\n");
-    fprintf(fout,"}\n");
   }
+  fprintf(fout,"}\n");
 }
 
 
@@ -383,6 +383,5 @@ void AS_MSG_setFormatVersion2(void) {
 
   ct[MESG_LKG].reader  = Read_LKG_Mesg;
   ct[MESG_LKG].writer  = Write_LKG_Mesg;
-
 }
 

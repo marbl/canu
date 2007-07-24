@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.46 2007-07-23 09:39:40 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.47 2007-07-24 06:30:02 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -458,10 +458,10 @@ void InsertGraphEdgeInList(GraphCGW_T *graph,
   ci = GetGraphNode(graph, cid);
   AssertPtr(ci);
 
-  fprintf(stderr, "InsertGraphEdgeInList: CI="F_CID" dead=%d\n", cid, ci->flags.bits.isDead);
+  //fprintf(stderr, "InsertGraphEdgeInList: CI="F_CID" dead=%d\n", cid, ci->flags.bits.isDead);
 
   if (ci->flags.bits.isDead) {
-    fprintf(stderr, "InsertGraphEdgeInList()--  WARNING!  CI="F_CID" isDead!  Skipping it.\n", cid);
+    fprintf(stderr, "InsertGraphEdgeInList()--  WARNING!  CI="F_CID" isDead!  Skipping it (or just asserting).\n", cid);
     assert(!ci->flags.bits.isDead);
     return;
   }
@@ -4597,22 +4597,46 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
     GateKeeperStore  *gkpStore = openGateKeeperStore(GlobalData->Gatekeeper_Store_Name, FALSE);
     FILE             *fout;
     char              filename[FILENAME_MAX];
+    GenericMesg       pmesg;
+    VersionMesg       vmesg;
+    LibraryMesg       lmesg;
 
     sprintf(filename, "stat/%s.distupdate.dst", instance_label);
 
     fout = fopen(filename, "w");
     AssertPtr(fout);
 
+    AS_MSG_setFormatVersion(2);
+
+    vmesg.version = 2;
+    pmesg.m = &vmesg;
+    pmesg.t = MESG_VER;
+    WriteProtoMesg_AS(fout, &pmesg);
+
     for (i=1; i<GetNumDistTs(ScaffoldGraph->Dists); i++) {
       DistT                         *dptr = GetDistT(ScaffoldGraph->Dists, i);
       GateKeeperLibraryRecord       *gkpl = getGateKeeperLibrary(gkpStore, i);
 
-      fprintf(fout, "{DST\n");
-      fprintf(fout, "act:R\n");
-      fprintf(fout, "acc:"F_UID"\n", gkpl->libraryUID);
-      fprintf(fout, "mea:%f\n", dptr->mu);
-      fprintf(fout, "std:%f\n", dptr->sigma);
-      fprintf(fout, "}\n");
+      lmesg.action     = AS_UPDATE;
+      lmesg.eaccession = gkpl->libraryUID;
+      lmesg.mean       = dptr->mu;
+      lmesg.stddev     = dptr->sigma;
+#ifdef AS_ENABLE_SOURCE
+      lmesg.source     = "";
+#endif
+      lmesg.link_orient  = 'X';    //  Not used for AS_UPDATE
+      lmesg.num_features = 0;      //  Not used for AS_UPDATE
+      lmesg.features     = NULL;   //  Not used for AS_UPDATE
+      lmesg.values       = NULL;   //  Not used for AS_UPDATE
+
+      fflush(fout);
+      fprintf(fout, "# LIB "F_UID" %f +- %f -> %f +- %f\n",
+              lmesg.eaccession, gkpl->mean, gkpl->stddev, dptr->mu, dptr->sigma);
+      fflush(fout);
+
+      pmesg.m = &lmesg;
+      pmesg.t = MESG_LIB;
+      WriteProtoMesg_AS(fout, &pmesg);
     }
 
     fclose(fout);

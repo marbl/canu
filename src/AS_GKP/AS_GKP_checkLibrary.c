@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.11 2007-06-03 08:13:22 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.12 2007-07-24 06:30:02 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -119,18 +119,24 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg) {
       return(GATEKEEPER_FAILURE);
     }
 
-    if ((lib_mesg->mean   <= 0.0) ||
-        (lib_mesg->stddev <= 0.0) ||
-        (lib_mesg->mean - 3.0 * lib_mesg->stddev < 0.0)) {
-      fprintf(errorFP, "# LIB Error:  Library "F_UID" has lllegal mean (%g) and standard deviation (%g).\n",
-              gkpl.libraryUID, gkpl.mean, gkpl.stddev);
-      return(GATEKEEPER_FAILURE);
-    }
-
     getIndexStore(gkpStore->lib, iid, &gkpl); 
-    gkpl.mean   = lib_mesg->mean;
-    gkpl.stddev = lib_mesg->stddev;
-    setIndexStore(gkpStore->lib, iid, &gkpl);
+
+    if ((gkpl.mean   != lib_mesg->mean) ||
+        (gkpl.stddev != lib_mesg->stddev)) {
+      gkpl.mean   = lib_mesg->mean;
+      gkpl.stddev = lib_mesg->stddev;
+ 
+      if ((gkpl.orientation != AS_READ_ORIENT_UNKNOWN) &&
+          ((gkpl.mean   <= 0.0) ||
+           (gkpl.stddev <= 0.0) ||
+           (gkpl.mean - 3.0 * gkpl.stddev < 0.0))) {
+        fprintf(errorFP, "# LIB Error:  Library "F_UID" has lllegal mean (%g) and standard deviation (%g).\n",
+                gkpl.libraryUID, gkpl.mean, gkpl.stddev);
+        return(GATEKEEPER_FAILURE);
+      }
+
+      setIndexStore(gkpStore->lib, iid, &gkpl);
+    }
 
   } else if (lib_mesg->action == AS_DELETE) {
     CDS_IID_t  iid = getGatekeeperUIDtoIID(gkpStore, lib_mesg->eaccession, NULL);
