@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.37 2007-05-29 10:54:30 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.38 2007-07-24 06:59:39 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -500,7 +500,7 @@ getGateKeeperLibrary(GateKeeperStore *gkp, int libiid) {
       getIndexStore(gkp->lib, i, &gkp->lib_cache[i]);
   }
 
-  if ((1 <= libiid) || (libiid <= n))
+  if ((1 <= libiid) && (libiid <= n))
     return(gkp->lib_cache + libiid);
 
   return(NULL);
