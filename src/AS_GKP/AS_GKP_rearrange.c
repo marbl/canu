@@ -100,12 +100,16 @@ rearrangeStore(char *uidFileName, char *gkpStoreName, char *newStoreName) {
   FILE            *F        = NULL;
   char             L[1024];
 
-  uint32           orderLen = 0;
-  CDS_IID_t       *order    = (CDS_IID_t *)safe_calloc(lastElem, sizeof(CDS_IID_t));
+  //  Wasteful...  Sigh.  order[] keeps a mapping of new iid -> old
+  //  iid.  If order[i]==0 then missing[i] will contain the uid (used
+  //  for UIDs that aren't in the original store, but are in the
+  //  list).
 
-  //
+  uint32           orderLen   = 0;
+  CDS_IID_t       *order      = (CDS_IID_t *)safe_calloc(lastElem, sizeof(CDS_IID_t));
+  CDS_UID_t       *missing    = (CDS_UID_t *)safe_calloc(lastElem, sizeof(CDS_UID_t));
+
   //  Read the list of UIDs, and generate a list of IIDs that we want to dump.
-  //
 
   errno = 0;
   if (strcmp(uidFileName, "-") == 0)
@@ -121,12 +125,21 @@ rearrangeStore(char *uidFileName, char *gkpStoreName, char *newStoreName) {
     CDS_UID_t      uid = STR_TO_UID(L, 0L, 10);
     CDS_IID_t      iid = getGatekeeperUIDtoIID(gkp, uid, NULL);
 
+    order[orderLen]   = iid;
+    missing[orderLen] = uid;
+
+    orderLen++;
+
     if (iid == 0)
-      fprintf(stderr, "UID "F_UID" doesn't exist, ignored.\n", uid);
-    else if (iid >= lastElem)
+      fprintf(stderr, "UID "F_UID" doesn't exist in original store, adding empty (deleted) fragment in it's place (new IID="F_IID").\n", uid, orderLen);
+
+    //  Not really sure how this could ever happen, but heck, worth
+    //  testing, I guess.
+    //
+    if (iid >= lastElem) {
       fprintf(stderr, "UID "F_UID" is IID "F_IID", and that's too big, ignored.\n", uid, iid);
-    else
-      order[orderLen++] = iid;
+      orderLen--;
+    }
 
     fgets(L, 1024, F);
   }
@@ -171,10 +184,25 @@ rearrangeStore(char *uidFileName, char *gkpStoreName, char *newStoreName) {
   //  Stuff in all the reads.
   //
   for (i=0; i<orderLen; i++) {
-    getFrag(gkp, order[i], &fr, FRAG_S_ALL);
+    if (order[i] > 0) {
+      //  A valid fragment iid pointer
+      getFrag(gkp, order[i], &fr, FRAG_S_ALL);
+    } else {
+      //  Nope, fragment in our UID list isn't in the source store,
+      //  add a deleted bogus fragment.
+      //
+      clr_fragRecord(&fr);
+      fr.gkfr.readUID = missing[i];
+      fr.gkfr.readIID = i;
+      fr.gkfr.deleted = 1;
+    }
 
-    if (i < 10)
-      fprintf(stderr, "order[%5d] = %5d (got %5d from old store)\n", i, order[i], fr.gkfr.readIID);
+    //  Too much of a bother to get the new IID, not worth the effort.
+    //
+    //fprintf(stderr, "Rewriting OLD "F_UID" IID "F_IID" -> "F_UID"\n",
+    //        getFragRecordUID(&fr), order[i], 
+
+    assert(fr.gkfr.readUID == missing[i]);
 
     addFragToStore(nst, &fr.gkfr, fr.seq, fr.qlt, fr.hps, fr.src);
   }
