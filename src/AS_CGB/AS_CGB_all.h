@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_CGB_all.h,v 1.20 2007-07-20 17:17:08 brianwalenz Exp $
+//  $Id: AS_CGB_all.h,v 1.21 2007-07-25 10:29:50 brianwalenz Exp $
 
 #ifndef AS_CGB_ALL_INCLUDE
 #define AS_CGB_ALL_INCLUDE
@@ -258,27 +258,24 @@ void count_fragment_and_edge_labels(Tfragment frags[],
 
 ////////////////////////////////////////
 //  AS_CGB_cgb.c
-int count_the_randomly_sampled_fragments_in_a_chunk (const Tfragment   frags[],
-                                                     const TChunkFrag  chunkfrags[],
-                                                     const TChunkMesg  thechunks[],
-                                                     const IntChunk_ID chunk_index);
+int count_the_randomly_sampled_fragments_in_a_chunk(Tfragment   frags[],
+                                                    TChunkFrag  chunkfrags[],
+                                                    TChunkMesg  thechunks[],
+                                                    IntChunk_ID chunk_index);
 
 
-float compute_the_global_fragment_arrival_rate ( 
- const int           recalibrate, /* Boolean flag to recalibrate global arrival rate to max
-				     unique local arrival rate */
- const float         cgb_unique_cutoff, /* threshold for unique chunks */
- FILE               *fout,
- /* Input Only */
- const int64         nbase_in_genome,
- /* Input/Output */
- const Tfragment     frags[],
- const Tedge         edges[],
- const float         estimated_global_fragment_arrival_rate,
- /* Output Only */
- const TChunkFrag   *chunkfrags,
- const TChunkMesg   *thechunks
- );
+//  recalibrate: boolean flag to recalibrate global arrival rate to
+//  max unique local arrival rate
+
+float compute_the_global_fragment_arrival_rate(int           recalibrate,
+                                               float         cgb_unique_cutoff,
+                                               FILE         *fout,
+                                               int64         nbase_in_genome,
+                                               Tfragment    *frags,
+                                               Tedge        *edges,
+                                               float         estimated_global_fragment_arrival_rate,
+                                               TChunkFrag   *chunkfrags,
+                                               TChunkMesg   *thechunks);
 
 //  AS_CGB_cgb.c (end)
 ////////////////////////////////////////

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_CGB_unitigger_globals.h,v 1.13 2007-07-20 17:17:08 brianwalenz Exp $
+//  $Id: AS_CGB_unitigger_globals.h,v 1.14 2007-07-25 10:29:50 brianwalenz Exp $
 
 #ifndef AS_CGB_UNITIGGER_GLOBALS_INCLUDE
 #define AS_CGB_UNITIGGER_GLOBALS_INCLUDE
@@ -118,9 +118,7 @@ typedef struct {
   unsigned int suffix_blessed : 1;
 } Afragment;
 
-typedef struct {
-  IntFragment_ID vid;
-} AChunkFrag;
+typedef   IntFragment_ID   AChunkFrag;
 
 typedef struct {
   int64         bp_length;  
@@ -225,7 +223,6 @@ typedef struct {
 
   int64          genome_length;
 
-  int            work_limit_placing_contained_fragments;
   int            output_iterations_flag;
   int            aggressive_spur_fragment_marking;
   int            bubble_smoothing_flag;

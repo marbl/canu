@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_cga.c,v 1.18 2007-07-20 08:41:43 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_cga.c,v 1.19 2007-07-25 10:29:50 brianwalenz Exp $";
 
 //  A chunk graph analyzer. This functional unit computes graph
 //  statistics, and writes the chunk graph in the term representation
@@ -1100,7 +1100,7 @@ static void analyze_the_chunks(FILE *fout,
       for(ifrag=0;ifrag<nfrag_in_chunk;ifrag++){
 	
         const IntFragment_ID ivc = irec_start_of_chunk + ifrag;
-        const IntFragment_ID vid = GetVA_AChunkFrag(chunkfrags,ivc)->vid;
+        const IntFragment_ID vid = *GetVA_AChunkFrag(chunkfrags,ivc);
 
         const IntFragment_ID iid  = get_iid_fragment(frags,vid);
         const Tlab ilabel = get_lab_fragment(frags,vid);
@@ -1139,17 +1139,16 @@ static void analyze_the_chunks(FILE *fout,
       }
     }
     
-    assert(nfrag_in_chunk ==
-	   nfrag_essential_in_chunk + nfrag_contained_in_chunk);
-    nbase_sampled_in_chunk = nbase_essential_sampled_in_chunk
-      + nbase_contained_sampled_in_chunk;
+    assert(nfrag_in_chunk == nfrag_essential_in_chunk + nfrag_contained_in_chunk);
+
+    nbase_sampled_in_chunk = nbase_essential_sampled_in_chunk + nbase_contained_sampled_in_chunk;
       
     nfrag_in_all_chunks += nfrag_in_chunk;
     n_rs_frag_in_all_chunks += number_of_randomly_sampled_fragments_in_chunk;
     n_nr_frag_in_all_chunks += number_of_non_randomly_sampled_fragments_in_chunk;
 
-    assert(nfrag_in_all_chunks == 
-	   n_rs_frag_in_all_chunks + n_nr_frag_in_all_chunks);
+    assert(nfrag_in_all_chunks == n_rs_frag_in_all_chunks + n_nr_frag_in_all_chunks);
+
     nfrag_essential_in_all_chunks += nfrag_essential_in_chunk;
     nfrag_contained_in_all_chunks += nfrag_contained_in_chunk;
     nbase_essential_in_all_chunks += nbase_essential_in_chunk;
@@ -1178,11 +1177,8 @@ static void analyze_the_chunks(FILE *fout,
     zork.min_discr = coverage_index;
     zork.max_discr = coverage_index;
 
-    add_to_histogram(length_of_unitigs_histogram,
-                     nbase_essential_in_chunk,&zork);
-
-    add_to_histogram(labeled_unitig_histogram[chunk_label],
-		     coverage_index, &zork);
+    add_to_histogram(length_of_unitigs_histogram, nbase_essential_in_chunk,&zork);
+    add_to_histogram(labeled_unitig_histogram[chunk_label], coverage_index, &zork);
 
     { // For Gene Myer^s Jan 2000 paper:
       int 
@@ -1357,25 +1353,29 @@ static void analyze_the_chunks(FILE *fout,
     {
       IntFragment_ID nfound = 0;
       IntFragment_ID ifrag;
-      for(ifrag=0;ifrag<nfrag;ifrag++) /* beginning loop through fragments */ {
+      for(ifrag=0;ifrag<nfrag;ifrag++) {
 	Tlab lab = get_lab_fragment(frags,ifrag);
+
 	if( (fragment_visited[ifrag] == FRAGMENT_NOT_VISITED) &&
 	    (AS_CGB_DELETED_FRAG != lab) ) {
-	  fprintf(stderr,"Not visited: fragment iid=" F_IID ",ifrag=" F_IID ",ilab=%d\n",
-		  get_iid_fragment(frags,ifrag),ifrag,lab);
+	  fprintf(stderr,"Not visited: fragment iid=" F_IID ",ifrag=" F_IID ",ilab=%d\n", get_iid_fragment(frags,ifrag),ifrag,lab);
 	  nfound++;
 	}
       }
-      fprintf(fout,"%15" F_IIDP " : Total number of contained fragments not connected\n"
-	      "                  by containment edges to essential fragments.\n",
-	      nfound);
+      fprintf(fout,
+              "%15"F_IIDP" : Total number of contained fragments not connected\n"
+              "                  by containment edges to essential fragments.\n", nfound);
     }
 
-    {
-      compute_the_global_fragment_arrival_rate
-        ( recalibrate_global_arrival_rate, cgb_unique_cutoff, fout, nbase_in_genome, frags, edges,
-          global_fragment_arrival_rate, chunkfrags, thechunks );
-    }
+    compute_the_global_fragment_arrival_rate(recalibrate_global_arrival_rate,
+                                             cgb_unique_cutoff,
+                                             fout,
+                                             nbase_in_genome,
+                                             frags,
+                                             edges,
+                                             global_fragment_arrival_rate,
+                                             chunkfrags,
+                                             thechunks);
     
     {
       IntFragment_ID ifrag;
@@ -1415,16 +1415,13 @@ static void analyze_the_chunks(FILE *fout,
       }
     }
 
-    fprintf(fout,"\n\nHistogram of the number of "
-	    "fragment reads in a chunk.\n");
+    fprintf(fout,"\n\nHistogram of the number of fragment reads in a chunk.\n");
     print_histogram(fout,nfrag_in_chunk_histogram, 0, 1);
 
-    fprintf(fout,"\n\nHistogram of the number of "
-	    "non-contained fragment reads in a chunk.\n");
+    fprintf(fout,"\n\nHistogram of the number of non-contained fragment reads in a chunk.\n");
     print_histogram(fout,nfrag_essential_in_chunk_histogram, 0, 1);
 
-    fprintf(fout,"\n\nHistogram of the number of "
-	    "base pairs in a chunk\n");
+    fprintf(fout,"\n\nHistogram of the number of base pairs in a chunk\n");
     print_histogram(fout,nbase_essential_in_chunk_histogram, 0, 1);
 
     fprintf(fout,"\n\nHistogram of the sum of overhangs for chunks\n");
@@ -1433,8 +1430,7 @@ static void analyze_the_chunks(FILE *fout,
     fprintf(fout,"\n\nHistogram of the average bps per fragment for chunks\n");
     print_histogram(fout,coverage_histogram, 0, 1);
     
-    fprintf(fout,"\n\nHistogram of the number of copies of"
-	    " a particular contained fragment.\n");
+    fprintf(fout,"\n\nHistogram of the number of copies of a particular contained fragment.\n");
     print_histogram(fout,fragment_timesinchunks_histogram,0,1);
 
 

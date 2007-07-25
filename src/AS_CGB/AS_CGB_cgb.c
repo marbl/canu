@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_cgb.c,v 1.17 2007-07-20 08:41:43 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_cgb.c,v 1.18 2007-07-25 10:29:50 brianwalenz Exp $";
 
 //  This module builds the chunk graph from the fragment essential
 //  overlap graph with contained fragments as an augmentation, and
@@ -64,44 +64,36 @@ uint32 count_crappies(const char  crappies_report_filename[],
                       TChunkMesg          chunks[]);
 
 
-
-static int comparefloats(const void * const a, const void * const b) 
-{
-  /* This comparison function is to be used with ANSI qsort() for
-     sorting local arrival rates. */
-  int icom;
-  float aa = *((float*)a);
-  float bb = *((float *)b);
-  icom = (int)(100000.0 * (aa - bb));
-  return icom ;
+static
+int
+comparefloats(const void * const a, const void * const b) {
+  return((int)(100000.0 * (*((float *)a) - *((float *)b))));
 }
 
-static void check_edge_trimming
-( 
- Tfragment frags[],
- Tedge     edges[])
-{
-  /* Check for overly aggressive transitive overlap trimming. That is,
-   * inform when edge trimming removes all the overlaps on a fragment
-   * end.  
-   */
 
-  const IntFragment_ID nfrag = GetNumFragments(frags);
-  IntEdge_ID ie;
+//  Check for overly aggressive transitive overlap trimming. That is,
+//  inform when edge trimming removes all the overlaps on a fragment
+//  end.
+//
+static
+void
+check_edge_trimming(Tfragment *frags, Tedge *edges) {
+  IntFragment_ID nfrag = GetNumFragments(frags);
+  IntEdge_ID     ie;
   IntFragment_ID ifrag;
-  int is; 
+  int            is; 
 
   for(ifrag=0; ifrag<nfrag; ifrag++) {
-    const Tlab ilab = get_lab_fragment(frags,ifrag);
+    Tlab ilab = get_lab_fragment(frags,ifrag);
     for(is=0; is<2; is++) {
-      const IntEdge_ID segstart = get_segstart_vertex(frags,ifrag,is);
-      const int seglength = get_seglen_vertex(frags,ifrag,is);
+      IntEdge_ID segstart = get_segstart_vertex(frags,ifrag,is);
+      int seglength = get_seglen_vertex(frags,ifrag,is);
       int new_count_dvt = 0;
       int old_count_dvt = 0;
       int new_count_con = 0;
       int old_count_con = 0;
       for(ie=segstart; ie<segstart+seglength; ie++) {
-	const Tnes ines = get_nes_edge(edges,ie);
+        Tnes ines = get_nes_edge(edges,ie);
 	switch(ines) {
 	  /* The containment overlaps... */
 	case AS_CGB_CONTAINED_EDGE:
@@ -144,8 +136,7 @@ static void check_edge_trimming
           (FALSE == get_con_fragment(frags,ifrag)) &&
           (AS_CGB_HANGING_CRAPPY_FRAG != ilab) &&
           (AS_CGB_DELETED_FRAG != ilab) ) {
-	fprintf(stderr,"Dovetail Disconnected (non-contained) fragment end"
-                " " F_IID " %d lab=%d old_count=%d new_count=%d\n",
+	fprintf(stderr,"Dovetail Disconnected (non-contained) fragment end "F_IID" %d lab=%d old_count=%d new_count=%d\n",
 		get_iid_fragment(frags,ifrag),
                 is, ilab, old_count_dvt, new_count_dvt);
       }
@@ -154,48 +145,43 @@ static void check_edge_trimming
 }
 
 
-/*************************************************************************/
 
-static void add_fragment_to_chunk
-( const int pass,
-  const int work_limit_placing_contained_fragments,
-  int * work_placing_contained_fragments,
-  /* input only */
-  Tfragment frags[],
-  Tedge edges[],
-  const IntChunk_ID ichunk,
-  const IntFragment_ID vid,
-  const int iforward,
-  //const Tlab ilabel,
-  int64  sum_of_ahg,
-  int64  sum_of_bhg,
-  /* input/output */
-  int fragment_timesinchunks[],
-  TChunkFrag chunkfrags[],
-  IntFragment_ID *nfrag_essential_in_chunk,
-  int64  *nbase_essential_sampled_in_chunk,
-  IntFragment_ID *nfrag_contained_in_chunk,
-  int64  *nbase_contained_sampled_in_chunk,
-  /* output only */
-  int64  *max_ahg_of_contained,
-  int64  *max_bhg_of_contained
-)
 
-{
-  /* This is a recursive routine. */
-  /* Given a undirected (directed) graph G = (V,E) with n-vertices and
-  an array PLACEMENT() initially set to a sentinal value, the algorithm
-  visits all vertices reachable from v using dovetail and to_contained
-  edges. */
+static
+void
+add_fragment_to_chunk(int pass,
+                      Tfragment frags[],
+                      Tedge edges[],
+                      IntChunk_ID ichunk,
+                      IntFragment_ID vid,
+                      int iforward,
+                      int64  sum_of_ahg,
+                      int64  sum_of_bhg,
+                      int fragment_timesinchunks[],
+                      TChunkFrag chunkfrags[],
+                      IntFragment_ID *nfrag_essential_in_chunk,
+                      int64  *nbase_essential_sampled_in_chunk,
+                      IntFragment_ID *nfrag_contained_in_chunk,
+                      int64  *nbase_contained_sampled_in_chunk,
+                      int64  *max_ahg_of_contained,
+                      int64  *max_bhg_of_contained) {
 
-  const Tlab ilabel = get_lab_fragment(frags,vid);
-  const int ilen  = get_length_fragment(frags,vid);
-  const int64  ioffseta = sum_of_ahg;
+  //  This is a recursive routine.
+
+  //  Given a undirected (directed) graph G = (V,E) with n-vertices
+  //  and an array PLACEMENT() initially set to a sentinal value, the
+  //  algorithm visits all vertices reachable from v using dovetail
+  //  and to_contained edges.
+
+ Tlab ilabel = get_lab_fragment(frags,vid);
+ int ilen  = get_length_fragment(frags,vid);
+ int64  ioffseta = sum_of_ahg;
+
 #undef USE_SUM_OF_BHG_FOR_CONTAINMENTS
 #ifdef USE_SUM_OF_BHG_FOR_CONTAINMENTS
-  const int64  ioffsetb = sum_of_bhg;
+ int64  ioffsetb = sum_of_bhg;
 #else 
-  const int64  ioffsetb = sum_of_ahg + ilen;
+ int64  ioffsetb = sum_of_ahg + ilen;
 #endif
 
   if( (AS_CGB_UNPLACEDCONT_FRAG == ilabel) ||
@@ -212,51 +198,50 @@ static void add_fragment_to_chunk
   set_o3p_fragment(frags,vid,(iforward ? ioffsetb : ioffseta));
   set_cid_fragment(frags,vid,ichunk);
 
-  if(!( (pass == 0) && 
-	((AS_CGB_UNPLACEDCONT_FRAG == ilabel) ||
-	 (AS_CGB_SINGLECONT_FRAG == ilabel) ||
-	 (AS_CGB_MULTICONT_FRAG == ilabel)
-	 )))
-  {
-    // Do not place any contained fragments on the first pass.
-    AChunkFrag mychunkfrag;
-    mychunkfrag.vid  = vid;
-    AppendAChunkFrag(chunkfrags,&mychunkfrag);
+  //  If it +is+ pass 0, and we're a contained fragment, do not do anything.
+  //
+  if (!((pass == 0) && 
+        ((AS_CGB_UNPLACEDCONT_FRAG == ilabel) ||
+         (AS_CGB_SINGLECONT_FRAG   == ilabel) ||
+         (AS_CGB_MULTICONT_FRAG    == ilabel)))) {
+    AppendAChunkFrag(chunkfrags,&vid);
     fragment_timesinchunks[vid]++;
   }
 
-  if((AS_CGB_UNLABELED_FRAG != ilabel) && 
-     (AS_CGB_HANGING_CRAPPY_FRAG != ilabel) &&
-     (AS_CGB_ORPHANEDCONT_FRAG != ilabel) &&
-     (AS_CGB_MARKED_BREAKER_FRAG != ilabel) &&
-     (AS_CGB_REMOVED_BREAKER_FRAG != ilabel) &&
-     (AS_CGB_MULTICONT_FRAG != ilabel) &&    // This is a paranoid restriction.
-     (AS_CGB_BRANCHMULTICONT_FRAG != ilabel) // This is a paranoid restriction.
-     ) {
-    // Then do not place any contained fragments into this chunk.
-    int ivsx; for(ivsx=0;ivsx<2;ivsx++) {
-      const IntFragment_ID iavx=vid;
-      const IntFragment_ID iasx=ivsx^(!iforward);
+  if ((AS_CGB_UNLABELED_FRAG        != ilabel) && 
+      (AS_CGB_HANGING_CRAPPY_FRAG   != ilabel) &&
+      (AS_CGB_ORPHANEDCONT_FRAG     != ilabel) &&
+      (AS_CGB_MARKED_BREAKER_FRAG   != ilabel) &&
+      (AS_CGB_REMOVED_BREAKER_FRAG  != ilabel) &&
+      (AS_CGB_MULTICONT_FRAG        != ilabel) &&    // This is a paranoid restriction.
+      (AS_CGB_BRANCHMULTICONT_FRAG  != ilabel)) {    // This is a paranoid restriction.
+
+    //  Then do not place any contained fragments into this chunk.
+    int ivsx;
+
+    for(ivsx=0;ivsx<2;ivsx++) {
+      IntFragment_ID iavx=vid;
+      IntFragment_ID iasx=ivsx^(!iforward);
       IntEdge_ID irc;
       int64  max_ahg = 0;
-      /* Set up to search from the essential vertex iavx/iasx . */
-      const IntEdge_ID ir0 = get_segstart_vertex(frags,iavx,iasx);
-      const IntEdge_ID ir1 = ir0 + get_seglen_vertex(frags,iavx,iasx);
+
+      //  Set up to search from the essential vertex iavx/iasx
+      IntEdge_ID ir0 = get_segstart_vertex(frags,iavx,iasx);
+      IntEdge_ID ir1 = ir0 + get_seglen_vertex(frags,iavx,iasx);
       
-      for(irc=ir0; irc<ir1; irc++)
-        /* Begin examining the edges from this vertex. */ {
+      for(irc=ir0; irc<ir1; irc++) {
+        //  Begin examining the edges from this vertex
 	
-        /* These are set for the coverage discriminator statistics.*/
-        const int iahg = get_ahg_edge(edges,irc); 
-        const int ibhg = get_bhg_edge(edges,irc);
+        //  These are set for the coverage discriminator statistics
+        int iahg = get_ahg_edge(edges,irc); 
+        int ibhg = get_bhg_edge(edges,irc);
 	
         // These are set for orienting the fragments to the chunk
         // coordinates.
-        const IntFragment_ID ibvx = get_bvx_edge(edges,irc);
-        const int ibsx = get_bsx_edge(edges,irc);
-        const Tnes inese = get_nes_edge(edges,irc);
-        
-        
+        IntFragment_ID ibvx = get_bvx_edge(edges,irc);
+        int ibsx            = get_bsx_edge(edges,irc);
+        Tnes inese          = get_nes_edge(edges,irc);
+
         // The dovetail edges are classified by whether the suffix
         // (3-prime end, graphicly represented by the arrow head) of
         // each fragment is in the overlap region.  Let iasx/ibsx be the
@@ -296,171 +281,145 @@ static void add_fragment_to_chunk
         // frag B       <-------...
         // Those dots (...) are to graphically represent a non-positive ibhg.
         
-        if( 
-           // Begin checking for the allowed overlap types.
-           (
-            (AS_CGB_CONTAINED_EDGE == inese)&&
-            ((is_a_toc_edge(edges,irc))
-             || (is_a_dgn_edge(edges,irc)&&(get_avx_edge(edges,irc) < get_bvx_edge(edges,irc)))
-             )
-            ) && (TRUE == get_con_fragment(frags,ibvx))
-           ) /* Found a containment edge. */ {
-          
-          const Tlab jlabel = get_lab_fragment(frags,ibvx);
-          const int  jlen = get_length_fragment(frags,ibvx);
-          int64  joffseta, joffsetb;
-          int64  offset_error;
-          
-          const IntFragment_ID iafr = get_iid_fragment(frags,iavx);
-          
-          /* iforward indicates if the essential fragment read (that is
-             fragment A) is parallel (TRUE) or antiparallel (FALSE) to 
-             the orientation of the chunk. */
-          
-          const int jforward = !((iforward ^ iasx) ^ ibsx);
-          /* jforward indicates if the contained fragment is parallel (or
-             anti-parallel) to the orientation of the chunk. */
-          
-          joffseta = ioffseta + (iforward^iasx ? -ibhg : iahg);
-          joffsetb = ioffsetb + (iforward^iasx ? -iahg : ibhg);
-          
-          offset_error = AS_CGB_TRANSITIVE_SLOP_ALPHA 
-            + (int)(AS_CGB_TRANSITIVE_SLOP_EPSILON*jlen);
-          
-          if( 
-             // During the first pass discover the number of times a
-             // fragment can be contained in different chunks.
-             (!((get_cid_fragment(frags,ibvx) == ichunk) &&
-               (abs(
-                    (jforward ?  joffseta : joffsetb ) // offset5p
-                    -get_o5p_fragment(frags,ibvx)) <= offset_error) &&
-               (abs( 
-                    (jforward ?  joffsetb : joffseta ) // offset3p
-                    -get_o3p_fragment(frags,ibvx)) <= offset_error)))
-             // Remember that the contained fragment must be fit into
-             // only one location within the chunk.
-	     &&
-	     ((AS_CGB_UNPLACEDCONT_FRAG == jlabel) ||
-	      (AS_CGB_SINGLECONT_FRAG == jlabel))
-             ) /* Follow the containment edge */ {
+        // Begin checking for the allowed overlap types.
 
-	    switch(jlabel) {
-	    case AS_CGB_UNPLACEDCONT_FRAG:
-	      set_lab_fragment(frags,ibvx,AS_CGB_SINGLECONT_FRAG);
-	      set_container_fragment(frags,ibvx,iafr);
-	      break;
-	    case AS_CGB_SINGLECONT_FRAG:
-	      set_lab_fragment(frags,ibvx,AS_CGB_MULTICONT_FRAG);
-	      set_container_fragment(frags,ibvx,iafr);
-	      //set_container_fragment(frags,ibvx,0);
-	      break;
-	    default:
-	      assert(FALSE);
-	      break;
-	    }
+        if (((AS_CGB_CONTAINED_EDGE == inese) &&
+             ((is_a_toc_edge(edges,irc)) ||
+              (is_a_dgn_edge(edges,irc) && (get_avx_edge(edges,irc) < get_bvx_edge(edges,irc))))) &&
+            (TRUE == get_con_fragment(frags,ibvx)))  {
 
-	    max_ahg = MAX(max_ahg,iahg);
-	    
-	    add_fragment_to_chunk
-	      ( pass,
-		work_limit_placing_contained_fragments,
-		work_placing_contained_fragments,
-		/* input only */
-		frags,
-		edges,
-		ichunk,
-		ibvx,
-		jforward,
-		//jlabel,
-		joffseta,
-		joffsetb,
-		/* input/output */
-		fragment_timesinchunks,
-		chunkfrags,
-		nfrag_essential_in_chunk,
-		nbase_essential_sampled_in_chunk,
-		nfrag_contained_in_chunk,
-		nbase_contained_sampled_in_chunk,
-		/* output only */
-		max_ahg_of_contained,
-		max_bhg_of_contained
-		);
+          //  Found a containment edge
 
-	  }  /* Follow the containment edge */
-        } // Found a containment edge.
+          int jlabel = get_lab_fragment(frags,ibvx);
+          
+          if ((AS_CGB_UNPLACEDCONT_FRAG == jlabel) ||
+              (AS_CGB_SINGLECONT_FRAG == jlabel)) {
+
+            //  iforward indicates if the essential fragment read (that
+            //  is fragment A) is parallel (TRUE) or antiparallel
+            //  (FALSE) to the orientation of the chunk.
+            //
+            int   jforward = !((iforward ^ iasx) ^ ibsx);
+            int64 joffseta = ioffseta + (iforward^iasx ? -ibhg : iahg);
+            int64 joffsetb = ioffsetb + (iforward^iasx ? -iahg : ibhg);
+            int64 offset_error = AS_CGB_TRANSITIVE_SLOP_ALPHA + (int)(AS_CGB_TRANSITIVE_SLOP_EPSILON * get_length_fragment(frags,ibvx));
+          
+            // During the first pass discover the number of times a
+            // fragment can be contained in different chunks.
+            //
+            // Remember that the contained fragment must be fit into
+            // only one location within the chunk.
+
+            int o5p = abs((jforward ? joffseta : joffsetb) - get_o5p_fragment(frags,ibvx));
+            int o3p = abs((jforward ? joffsetb : joffseta) - get_o3p_fragment(frags,ibvx));
+
+            if (!((get_cid_fragment(frags,ibvx) == ichunk) &&
+                  (o5p <= offset_error) &&
+                  (o3p <= offset_error))) {
+
+              //  Follow the containment edge
+
+              switch (jlabel) {
+                case AS_CGB_UNPLACEDCONT_FRAG:
+                  set_lab_fragment(frags,ibvx,AS_CGB_SINGLECONT_FRAG);
+                  set_container_fragment(frags,ibvx, get_iid_fragment(frags,iavx));
+                  break;
+                case AS_CGB_SINGLECONT_FRAG:
+                  set_lab_fragment(frags,ibvx,AS_CGB_MULTICONT_FRAG);
+                  set_container_fragment(frags,ibvx, get_iid_fragment(frags,iavx));
+                  break;
+                default:
+                  //  Do nothing.
+                  break;
+              }
+
+              max_ahg = MAX(max_ahg,iahg);
+
+              add_fragment_to_chunk(pass,
+                                    frags,
+                                    edges,
+                                    ichunk,
+                                    ibvx,
+                                    jforward,
+                                    joffseta,
+                                    joffsetb,
+                                    fragment_timesinchunks,
+                                    chunkfrags,
+                                    nfrag_essential_in_chunk,
+                                    nbase_essential_sampled_in_chunk,
+                                    nfrag_contained_in_chunk,
+                                    nbase_contained_sampled_in_chunk,
+                                    max_ahg_of_contained,
+                                    max_bhg_of_contained);
+            }  //  follow the edge
+	  }  //  label is contained
+        } //  Found a containment edge
       }
-      if(ivsx) {
+
+      if(ivsx)
         *max_bhg_of_contained = max_ahg;
-      } else {
+      else
         *max_ahg_of_contained = max_ahg;
-      }
-    }
+
+    }  //  over both ivsx (ends?)
   }
 }
   
 
-static IntEdge_ID find_intrachunk_edge
-(/*Input Only*/
- Tfragment frags[],
- Tedge edges[], 
- IntFragment_ID iavx,
- int iasx,
- /*Output Only*/
- IntFragment_ID *ibvx,
- int *ibsx)
-{ /* Find the AS_CGB_INTRACHUNK_EDGE edge
-     leaving the AS_CGB_INTERCHUNK_FRAG or AS_CGB_HANGING_CHUNK_FRAG fragment. 
-     Input:  iavx, iasx, frags, edges
-     Input/Output: ibvx, ibsx is the new b-fragment otherwise unchanged.
-     Return: iedge if found, AS_CGB_EDGE_NOT_VISITED if not found
-  */
-  
-  /* Search all vertices adjacent from vertex iavx/iasx
-   for a AS_CGB_INTRACHUNK_EDGE edge. */
-  const IntEdge_ID ie0 = get_segstart_vertex(frags,iavx,iasx);
-  const int ne0 = get_seglen_vertex(frags,iavx,iasx);
-  IntEdge_ID iedge = AS_CGB_EDGE_NOT_VISITED;
-  IntEdge_ID ie1;
 
-  for(ie1=ie0; ie1 < ie0+ne0; ie1++) {
-    const IntFragment_ID iv1 = get_bvx_edge(edges,ie1);
-    const int is1 = get_bsx_edge(edges,ie1);
-    const Tnes ines1 = get_nes_edge(edges,ie1);
-    if((ines1 == AS_CGB_INTRACHUNK_EDGE)) {
-      iedge = ie1;
-      *ibvx = iv1;
-      *ibsx = is1;
-      break;
+
+//  Find the AS_CGB_INTRACHUNK_EDGE edge leaving the
+//  AS_CGB_INTERCHUNK_FRAG or AS_CGB_HANGING_CHUNK_FRAG fragment.
+//
+//  Input:  iavx, iasx, frags, edges
+//  Input/Output: ibvx, ibsx is the new b-fragment otherwise unchanged.
+//  Return: iedge if found, AS_CGB_EDGE_NOT_VISITED if not found
+static
+IntEdge_ID
+find_intrachunk_edge(Tfragment frags[],
+                     Tedge edges[], 
+                     IntFragment_ID  iavx, int  iasx,
+                     IntFragment_ID *ibvx, int *ibsx) {
+
+  //  Search all vertices adjacent from vertex iavx/iasx for a
+  //  AS_CGB_INTRACHUNK_EDGE edge. */
+
+  IntEdge_ID ie0 = get_segstart_vertex(frags,iavx,iasx);
+  int        ne0 = ie0 + get_seglen_vertex(frags,iavx,iasx);
+
+  for (; ie0 < ne0; ie0++)
+    if (get_nes_edge(edges,ie0) == AS_CGB_INTRACHUNK_EDGE) {
+      *ibvx = get_bvx_edge(edges,ie0);
+      *ibsx = get_bsx_edge(edges,ie0);
+      return(ie0);
     }
-  }
-  /* Did not find an expected intra-chunk edge if iedge == AS_CGB_EDGE_NOT_VISITED. */
-  return iedge;
+
+  return(AS_CGB_EDGE_NOT_VISITED);
 }
 
 
-static void make_a_chunk
-(/* Input only */
- const int         pass,
- const int         work_limit_placing_contained_fragments,
- const IntChunk_ID ichunk,
- Tfragment         frags[], /* read-only EXCEPT lab and cid are modified */
- Tedge             edges[],
- const IntFragment_ID  vid,
- /* Input and output */
- int        fragment_timesinchunks[],
- TChunkFrag chunkfrags[],
- /* Output only */
- IntFragment_ID *chunk_avx,
- int        *chunk_asx,
- IntFragment_ID *chunk_bvx,
- int        *chunk_bsx,
- IntFragment_ID *nfrag_essential_in_chunk,
- int64      *nbase_essential_in_chunk,
- int64      *nbase_essential_sampled_in_chunk,
- IntFragment_ID *nfrag_contained_in_chunk,
- int64      *nbase_contained_sampled_in_chunk,
- int64      *rho)
-{
+
+
+static
+void
+make_a_chunk(const int         pass,
+             const IntChunk_ID ichunk,
+             Tfragment         frags[],
+             Tedge             edges[],
+             const IntFragment_ID  vid,
+             int        fragment_timesinchunks[],
+             TChunkFrag chunkfrags[],
+             IntFragment_ID *chunk_avx,
+             int        *chunk_asx,
+             IntFragment_ID *chunk_bvx,
+             int        *chunk_bsx,
+             IntFragment_ID *nfrag_essential_in_chunk,
+             int64      *nbase_essential_in_chunk,
+             int64      *nbase_essential_sampled_in_chunk,
+             IntFragment_ID *nfrag_contained_in_chunk,
+             int64      *nbase_contained_sampled_in_chunk,
+             int64      *rho) {
+
   /* 
      ichunk    is the label to give each fragment in the chunk.
      chunk_avx/chunk_asx is the fragment and port at 
@@ -469,6 +428,7 @@ static void make_a_chunk
                the B-tip of the chunk.
 
   */
+
   IntFragment_ID iavx = vid;
   int iasx;
   IntFragment_ID ibvx;
@@ -480,7 +440,6 @@ static void make_a_chunk
   int64  max_bhg_of_contained_last = 0;
   int64  max_ahg_of_contained = 0;
   int64  max_bhg_of_contained = 0;
-  int work_placing_contained_fragments = 0;
 
   *nfrag_essential_in_chunk = 0;
   *nbase_essential_in_chunk = 0;
@@ -488,48 +447,33 @@ static void make_a_chunk
   *nfrag_contained_in_chunk = 0;
   *nbase_contained_sampled_in_chunk = 0;
   
- if(!(fragment_timesinchunks[vid] == 0))
-    fprintf(stderr,
-            "GNAT1: iid=" F_IID " vid=" F_IID " lab=%d fragment_timesinchunks=%d pass=%d \n",
-            get_iid_fragment(frags,vid), vid,
-            ilabel, fragment_timesinchunks[vid],
-            pass);
+  if (fragment_timesinchunks[vid] != 0)
+    fprintf(stderr, "GNAT1: iid=" F_IID " vid=" F_IID " lab=%d fragment_timesinchunks=%d pass=%d \n",
+            get_iid_fragment(frags,vid), vid, ilabel, fragment_timesinchunks[vid], pass);
 
   
-  if(
-     (AS_CGB_SOLO_FRAG == ilabel) ||
+  if((AS_CGB_SOLO_FRAG == ilabel) ||
      (AS_CGB_HANGING_FRAG == ilabel) ||
      (AS_CGB_HANGING_CRAPPY_FRAG == ilabel) ||
      (AS_CGB_THRU_FRAG == ilabel) ||
      (AS_CGB_BRANCHMULTICONT_FRAG == ilabel) ||
      (AS_CGB_ORPHANEDCONT_FRAG == ilabel) ||
-     ((AS_CGB_MULTICONT_FRAG == ilabel) && (pass > 0))
-     ) {
-    //const Tlab jlabel=ilabel;
-    int iforward=TRUE;
-    
-    work_placing_contained_fragments = 0;
-    add_fragment_to_chunk
-      (/* input only */
-       pass,
-       work_limit_placing_contained_fragments,
-       &work_placing_contained_fragments,
-       frags, edges, ichunk, 
-       vid, iforward,
-       //jlabel,
-       sum_of_ahg,
-       sum_of_bhg,
-       /* input/output */
-       fragment_timesinchunks,
-       chunkfrags, 
-       nfrag_essential_in_chunk, 
-       nbase_essential_sampled_in_chunk,
-       nfrag_contained_in_chunk, 
-       nbase_contained_sampled_in_chunk,
-       /* output only */
-       &max_ahg_of_contained_first,
-       &max_bhg_of_contained_last
-       );
+     ((AS_CGB_MULTICONT_FRAG == ilabel) && (pass > 0))) {
+
+    add_fragment_to_chunk(pass,
+                          frags, edges, ichunk, 
+                          vid,
+                          TRUE,
+                          sum_of_ahg,
+                          sum_of_bhg,
+                          fragment_timesinchunks,
+                          chunkfrags, 
+                          nfrag_essential_in_chunk, 
+                          nbase_essential_sampled_in_chunk,
+                          nfrag_contained_in_chunk, 
+                          nbase_contained_sampled_in_chunk,
+                          &max_ahg_of_contained_first,
+                          &max_bhg_of_contained_last);
 
     *rho  = ( max_ahg_of_contained_first + max_bhg_of_contained_last )/2;
     *chunk_avx = vid;
@@ -557,12 +501,10 @@ static void make_a_chunk
     /* Find the first intra-chunk edge of the chunk. */
     
     /* First try iasx == FALSE, */
-    IntFragment_ID iedge_prefix =
-      find_intrachunk_edge(frags,edges,iavx,FALSE,&ibvx,&ibsx);
+    IntFragment_ID iedge_prefix = find_intrachunk_edge(frags,edges,iavx,FALSE,&ibvx,&ibsx);
 
     /* Second try iasx == TRUE, */
-    IntFragment_ID iedge_suffix =
-      find_intrachunk_edge(frags,edges,iavx,TRUE,&ibvx,&ibsx);
+    IntFragment_ID iedge_suffix = find_intrachunk_edge(frags,edges,iavx,TRUE,&ibvx,&ibsx);
     
     const Tlab alab = get_lab_fragment(frags,iavx);
 
@@ -648,28 +590,22 @@ static void make_a_chunk
     *chunk_avx = iavx;
     *chunk_asx = ! iasx;
 
-    work_placing_contained_fragments = 0;
-    add_fragment_to_chunk
-      (	/* input only */
-       pass,
-       work_limit_placing_contained_fragments,
-       &work_placing_contained_fragments,
-       frags, edges, ichunk, 
-       vid, iforward,
-       //ilabel,
-       sum_of_ahg,
-       sum_of_bhg,
-       /* input/output */
-       fragment_timesinchunks,
-       chunkfrags, 
-       nfrag_essential_in_chunk, 
-       nbase_essential_sampled_in_chunk,
-       nfrag_contained_in_chunk, 
-       nbase_contained_sampled_in_chunk,
-       /* output only */
-       &max_ahg_of_contained_first,
-       &max_bhg_of_contained
-       );
+    add_fragment_to_chunk(pass,
+                          frags, edges, ichunk, 
+                          vid, iforward,
+                          //ilabel,
+                          sum_of_ahg,
+                          sum_of_bhg,
+                          /* input/output */
+                          fragment_timesinchunks,
+                          chunkfrags, 
+                          nfrag_essential_in_chunk, 
+                          nbase_essential_sampled_in_chunk,
+                          nfrag_contained_in_chunk, 
+                          nbase_contained_sampled_in_chunk,
+                          /* output only */
+                          &max_ahg_of_contained_first,
+                          &max_bhg_of_contained);
   }
 
   /* Follow unvisited INTRACHUNK edges to the other end of a chunk and
@@ -700,28 +636,22 @@ static void make_a_chunk
 
 	assert(fragment_timesinchunks[ibvx] == 0);
 	
-        work_placing_contained_fragments = 0;
-	add_fragment_to_chunk
-	  ( /* input only */
-	   pass,
-	   work_limit_placing_contained_fragments,
-	   &work_placing_contained_fragments,
-	   frags, edges, ichunk, 
-	   ibvx, iforward,
-           //ilabel,
-           sum_of_ahg,
-	   sum_of_bhg,
-	   /* input/output */
-	   fragment_timesinchunks,
-	   chunkfrags, 
-	   nfrag_essential_in_chunk, 
-	   nbase_essential_sampled_in_chunk,
-	   nfrag_contained_in_chunk, 
-	   nbase_contained_sampled_in_chunk,
-	   /* output only */
-	   &max_ahg_of_contained,
-	   &max_bhg_of_contained
-	   );
+	add_fragment_to_chunk(pass,
+                              frags, edges, ichunk, 
+                              ibvx, iforward,
+                              //ilabel,
+                              sum_of_ahg,
+                              sum_of_bhg,
+                              /* input/output */
+                              fragment_timesinchunks,
+                              chunkfrags, 
+                              nfrag_essential_in_chunk, 
+                              nbase_essential_sampled_in_chunk,
+                              nfrag_contained_in_chunk, 
+                              nbase_contained_sampled_in_chunk,
+                              /* output only */
+                              &max_ahg_of_contained,
+                              &max_bhg_of_contained);
       }
       /* Find another intra-chunk edge from the other side of the fragment. */
       iavx = ibvx; iasx = ! ibsx;
@@ -746,28 +676,22 @@ static void make_a_chunk
 
 	assert(fragment_timesinchunks[ibvx] == 0);
 
-        work_placing_contained_fragments = 0;
-	add_fragment_to_chunk
-	  ( /* input only */
-	   pass,
-	   work_limit_placing_contained_fragments,
-	   &work_placing_contained_fragments,
-	   frags, edges, ichunk, 
-	   ibvx, iforward,
-           //ilabel,
-           sum_of_ahg,
-	   sum_of_bhg,
-	   /* input/output */
-	   fragment_timesinchunks,
-	   chunkfrags, 
-	   nfrag_essential_in_chunk, 
-	   nbase_essential_sampled_in_chunk,
-	   nfrag_contained_in_chunk, 
-	   nbase_contained_sampled_in_chunk,
-	   /* output only */
-	   &max_ahg_of_contained,
-	   &max_bhg_of_contained_last
-	   );
+	add_fragment_to_chunk(pass,
+                              frags, edges, ichunk, 
+                              ibvx, iforward,
+                              //ilabel,
+                              sum_of_ahg,
+                              sum_of_bhg,
+                              /* input/output */
+                              fragment_timesinchunks,
+                              chunkfrags, 
+                              nfrag_essential_in_chunk, 
+                              nbase_essential_sampled_in_chunk,
+                              nfrag_contained_in_chunk, 
+                              nbase_contained_sampled_in_chunk,
+                              /* output only */
+                              &max_ahg_of_contained,
+                              &max_bhg_of_contained_last);
       }
       /* End shortcut to the end of a chunk. */
       /* Check again that the chunk ended! */
@@ -804,24 +728,26 @@ static void make_a_chunk
 
 
 
-static void fill_a_chunk_starting_at(const int pass,
-                                     const int work_limit_placing_contained_fragments,
-                                     const IntFragment_ID vid,
-                                     Tfragment frags[],
-                                     /*Input Only*/
-                                     Tedge edges[],
-                                     /*Input/Output*/
-                                     /*Output Only*/
-                                     int fragment_timesinchunks[],
-                                     TChunkFrag chunkfrags[],
-                                     TChunkMesg thechunks[]) {
+static
+void
+fill_a_chunk_starting_at(const int pass,
+                         const IntFragment_ID vid,
+                         Tfragment frags[],
+                         /*Input Only*/
+                         Tedge edges[],
+                         /*Input/Output*/
+                         /*Output Only*/
+                         int fragment_timesinchunks[],
+                         TChunkFrag chunkfrags[],
+                         TChunkMesg thechunks[]) {
+
   // Get the next available chunk id.
-  const IntChunk_ID ichunk = (IntChunk_ID)GetNumVA_AChunkMesg(thechunks);
+  IntChunk_ID ichunk = (IntChunk_ID)GetNumVA_AChunkMesg(thechunks);
 
   // Get the next available index to put chunk fragments.
-  const IntFragment_ID irec_start_of_chunk = (IntFragment_ID)GetNumVA_AChunkFrag(chunkfrags);
-  const Tlab lab = get_lab_fragment(frags,vid);
-  
+  IntFragment_ID irec_start_of_chunk = (IntFragment_ID)GetNumVA_AChunkFrag(chunkfrags);
+  Tlab lab = get_lab_fragment(frags,vid);
+
   IntFragment_ID chunk_avx,chunk_bvx;
   int chunk_asx,chunk_bsx;
   IntFragment_ID  nfrag_in_chunk=0;
@@ -832,7 +758,9 @@ static void fill_a_chunk_starting_at(const int pass,
   int64  nbase_sampled_in_chunk=0;
   int64  nbase_contained_sampled_in_chunk=0;
   int64  rho;
-  AChunkMesg mychunk;
+
+  //  Historically, we didn't assert, but just complained.
+  //assert((AS_CGB_UNPLACEDCONT_FRAG != lab) && (fragment_timesinchunks[vid] == 0))
 
   if ((AS_CGB_UNPLACEDCONT_FRAG == lab) || (fragment_timesinchunks[vid] != 0))
     fprintf(stderr, "PIKACU: pass=%d iid="F_IID" vid="F_IID" cid="F_IID" con=%d lab=%d container="F_IID" ftic=%d\n",
@@ -845,144 +773,87 @@ static void fill_a_chunk_starting_at(const int pass,
             get_container_fragment(frags,vid),
             fragment_timesinchunks[vid]);
 
-  assert((!get_con_fragment(frags,vid)) ||
-         (AS_CGB_UNPLACEDCONT_FRAG == lab) ||
-         (AS_CGB_SINGLECONT_FRAG == lab) ||
-         (AS_CGB_MULTICONT_FRAG == lab) ||
+  assert((get_con_fragment(frags,vid) == FALSE) ||
+         (AS_CGB_UNPLACEDCONT_FRAG    == lab) ||
+         (AS_CGB_SINGLECONT_FRAG      == lab) ||
+         (AS_CGB_MULTICONT_FRAG       == lab) ||
          (AS_CGB_BRANCHMULTICONT_FRAG == lab) ||
-         (AS_CGB_ORPHANEDCONT_FRAG == lab) );
+         (AS_CGB_ORPHANEDCONT_FRAG    == lab));
 
-  assert(AS_CGB_UNPLACEDCONT_FRAG != lab);
-  assert(fragment_timesinchunks[vid] == 0);
-         
-  make_a_chunk (/* Input only */
-                pass,
-                work_limit_placing_contained_fragments,
-                ichunk,
-                frags,
-                edges,
-                vid,
-                /* Input and output */
-                fragment_timesinchunks,
-                chunkfrags,
-                /* Output only */
-                &chunk_avx,
-                &chunk_asx,
-                &chunk_bvx,
-                &chunk_bsx,
-                &nfrag_essential_in_chunk,
-                &nbase_essential_in_chunk,
-                &nbase_essential_sampled_in_chunk,
-                &nfrag_contained_in_chunk,
-                &nbase_contained_sampled_in_chunk,
-                &rho);
+  make_a_chunk(pass,
+               ichunk,
+               frags,
+               edges,
+               vid,
+               fragment_timesinchunks,
+               chunkfrags,
+               &chunk_avx,
+               &chunk_asx,
+               &chunk_bvx,
+               &chunk_bsx,
+               &nfrag_essential_in_chunk,
+               &nbase_essential_in_chunk,
+               &nbase_essential_sampled_in_chunk,
+               &nfrag_contained_in_chunk,
+               &nbase_contained_sampled_in_chunk,
+               &rho);
 
+  // Build light chunks on pass 0, otherwise, build heavy chunks.
   if(pass == 0) {
-    // Build light chunks
-    nfrag_in_chunk = nfrag_essential_in_chunk;
+    nfrag_in_chunk         = nfrag_essential_in_chunk;
     nbase_sampled_in_chunk = nbase_essential_sampled_in_chunk;
   } else {
-    // pass > 0
-    // Build heavy chunks
-    nfrag_in_chunk = nfrag_essential_in_chunk + nfrag_contained_in_chunk;
+    nfrag_in_chunk         = nfrag_essential_in_chunk         + nfrag_contained_in_chunk;
     nbase_sampled_in_chunk = nbase_essential_sampled_in_chunk + nbase_contained_sampled_in_chunk;
   }
+
   assert(GetNumVA_AChunkFrag(chunkfrags) == irec_start_of_chunk+nfrag_in_chunk);
+
+  assert(nfrag_in_chunk > 0);
     
-  mychunk.iaccession   = ichunk;
-  mychunk.bp_length    = nbase_essential_in_chunk;
-  mychunk.rho          = rho;
+  AChunkMesg ch = {0};
 
-  mychunk.num_frags    = nfrag_in_chunk;
-  mychunk.f_list       = irec_start_of_chunk;
+  ch.iaccession   = ichunk;
+  ch.bp_length    = nbase_essential_in_chunk;
+  ch.rho          = rho;
 
-  mychunk.chunk_avx    = chunk_avx;
-  mychunk.chunk_asx    = chunk_asx;
-  mychunk.chunk_bvx    = chunk_bvx;
-  mychunk.chunk_bsx    = chunk_bsx;
+  ch.num_frags    = nfrag_in_chunk;
+  ch.f_list       = irec_start_of_chunk;
 
-  mychunk.a_list_raw   = get_segstart_vertex(frags,chunk_avx,chunk_asx);
-  mychunk.a_degree_raw = get_seglen_vertex(frags,chunk_avx,chunk_asx);
-  mychunk.b_list_raw   = get_segstart_vertex(frags,chunk_bvx,chunk_bsx);
-  mychunk.b_degree_raw = get_seglen_vertex(frags,chunk_bvx,chunk_bsx);
+  ch.chunk_avx    = chunk_avx;
+  ch.chunk_asx    = chunk_asx;
+  ch.chunk_bvx    = chunk_bvx;
+  ch.chunk_bsx    = chunk_bsx;
 
-  assert(nfrag_in_chunk>0);
+  ch.a_list_raw   = get_segstart_vertex(frags,chunk_avx,chunk_asx);
+  ch.a_degree_raw = get_seglen_vertex(frags,chunk_avx,chunk_asx);
+  ch.b_list_raw   = get_segstart_vertex(frags,chunk_bvx,chunk_bsx);
+  ch.b_degree_raw = get_seglen_vertex(frags,chunk_bvx,chunk_bsx);
 
-#if 0
-  if(nbase_in_genome > 0) {
-    // Rho is the number of bases in the chunk for the purposes of the
-    // coverage discriminator statistic. It is the sum of the fragment
-    // overhangs in the chunk. Thus a singleton chunk has a rho equal
-    // to zero.
-
-    // A singleton chunk provides no information as to its local
-    // fragment arrival rate. We need at least two closely spaced
-    // fragments to get a local estimate of the fragment arrival rate.
-
-    // The arrival rate of fragments in the chunk is:
-    // {arrival_rate_local = ((float)(nfrag_in_chunk-1))/(float)rho}.
-    // The problem with this formula is that a singleton chunk has a
-    // coverage discriminator statistic of 0/0.
-	
-    // Now formula for the coverage discriminator statistic for the
-    // chunk is {(arrival_rate_global/arrival_rate_local - ln(2))
-    // *(nfrag_in_chunk-1)}.  The division by zero singularity cancels
-    // out to give the formula before a hack for guides:
-    // {(arrival_rate_global*rho - ln(2)*(nfrag_in_chunk-1)}.
-
-
-    // The hack for guides recognizes that guides are not randomly
-    // spaced fragments in the genome.  Therefore they can not
-    // contribute to the fragment count in the local arrival rate
-    // discriminator statistic.
-
-    const float ln_2 = 0.693147; // Natural logarithm of 2.
-    const float arrival_rate_global 
-      = ((float)(GetNumFragments(frags) - num_of_guides_total))
-      /((float)nbase_in_genome);
-    const float coverage_statistic 
-      = rho*arrival_rate_global
-      - ((float)(nfrag_in_chunk-1)-(float)(num_of_guides_in_chunk))
-	 *ln_2;
-    // Be careful of creating a negative number while using unsigned
-    // integer arthimetic.  The behavior is not what we want here.
-
-    /* The coverage discriminator statistic should be positive for
-       single coverage, negative for multiple coverage, and near zero
-       for indecisive. */
-    mychunk.coverage_stat= coverage_statistic;
-  } else {
-    mychunk.coverage_stat = 0.;
-  }
-#endif
-  
-  SetVA_AChunkMesg(thechunks,ichunk,&mychunk);
+  SetVA_AChunkMesg(thechunks, ichunk, &ch);
 }
 
 
 
 
-static void make_the_chunks
-( /*Input Only*/
- const int work_limit_placing_contained_fragments,
- Tfragment frags[],
- Tedge edges[],
- /*Input/Output*/
- /*Output Only*/
- int fragment_timesinchunks[],
- TChunkFrag chunkfrags[],
- TChunkMesg thechunks[]
- )
-{
-  const int num_passes=2;
-  // To implement the logic to eject multiply containable fragments.
+static
+void
+make_the_chunks(Tfragment frags[],
+                Tedge edges[],
+                TChunkFrag chunkfrags[],
+                TChunkMesg thechunks[]) {
 
-  count_fragment_and_edge_labels( frags, edges,
-                                  "before chunking passes");
+  int num_passes = 2;    // To implement the logic to eject multiply containable fragments.
+  int pass       = 0;
 
-  { int pass; for(pass=0; pass<num_passes; pass++) {
+  IntFragment_ID vid;
 
-    fprintf(stderr," before pass=%d\n",pass);
+  int *fragment_timesinchunks = safe_malloc(sizeof(int) * GetNumFragments(frags));
+
+  count_fragment_and_edge_labels( frags, edges, "before chunking passes");
+
+  for(pass=0; pass<num_passes; pass++) {
+
     // pass==0 is to form the light-chunks, that is chunks ignoring
     // all of the contained fragments.
 
@@ -992,279 +863,213 @@ static void make_the_chunks
 
     ResetVA_AChunkMesg(chunkfrags);
     ResetVA_AChunkMesg(thechunks);
+
     /* Initialize flags for chunk membership. */
 
-    { IntFragment_ID vid; for(vid=0;vid<GetNumFragments(frags);vid++) { 
+    for(vid=0;vid<GetNumFragments(frags);vid++) { 
       Tlab lab = get_lab_fragment(frags,vid);
       fragment_timesinchunks[vid] = 0;
-      set_cid_fragment(frags,vid,CHUNK_NOT_VISITED);
+
       // Just a sentinal chunk id to designate that a fragment has not
       // been placed in any chunks yet.  The contained fragments will
       // be check to see if they can be placed in multiple chunks.
-      set_o3p_fragment(frags,vid,0);
-      set_o5p_fragment(frags,vid,0);
+      set_cid_fragment(frags,vid,CHUNK_NOT_VISITED);
+
       // We need to check if a contained fragment is uniquely placed
       // in a light weight chunk by its coordinates as well.
+      set_o3p_fragment(frags,vid,0);
+      set_o5p_fragment(frags,vid,0);
 
       if((AS_CGB_UNPLACEDCONT_FRAG == lab) ||
-	 (AS_CGB_SINGLECONT_FRAG == lab) ) {
+	 (AS_CGB_SINGLECONT_FRAG == lab) )
 	set_lab_fragment(frags,vid,AS_CGB_UNPLACEDCONT_FRAG);
-      }
-      set_container_fragment(frags,vid,0); 
+
       // Zero is the sentinal fragment iid for no container fragment.
-    }}
+      set_container_fragment(frags,vid,0); 
+    }
 
     // Assign chunks to essential fragments at the ends of chunks.
-    { IntFragment_ID vid; for(vid=0;vid<GetNumFragments(frags);vid++) 
-      /* beginning loop through fragment */ {
-      const Tlab ilabv = get_lab_fragment(frags,vid);
-      // const IntFragment_ID iafr = get_iid_fragment(frags,vid);
-      if(
-	 (ilabv == AS_CGB_SOLO_FRAG) ||
+    for(vid=0;vid<GetNumFragments(frags);vid++) {
+      Tlab ilabv = get_lab_fragment(frags,vid);
+
+      if((ilabv == AS_CGB_SOLO_FRAG) ||
 	 (ilabv == AS_CGB_HANGING_FRAG) ||
 	 (ilabv == AS_CGB_HANGING_CRAPPY_FRAG) ||
          (ilabv == AS_CGB_BRANCHMULTICONT_FRAG) ||
 	 (ilabv == AS_CGB_THRU_FRAG) ||
-	 ((ilabv == AS_CGB_INTERCHUNK_FRAG)
-	  &&(fragment_timesinchunks[vid] == 0)) ||
-	 ((ilabv == AS_CGB_HANGING_CHUNK_FRAG)
-	  &&(fragment_timesinchunks[vid] == 0)) ||
-         ((ilabv == AS_CGB_MULTICONT_FRAG) && (pass > 0))
-	 ) {
-	fill_a_chunk_starting_at
-	  ( pass, 
-            work_limit_placing_contained_fragments, vid,
-	    frags, edges,
-	    fragment_timesinchunks,
-	    chunkfrags, thechunks);
-      }
-    }} /* End of a loop over all fragments. */
-    
-    count_fragment_and_edge_labels( frags, edges,
-                                    "In a chunking pass at A");
+	 ((ilabv == AS_CGB_INTERCHUNK_FRAG) &&(fragment_timesinchunks[vid] == 0)) ||
+	 ((ilabv == AS_CGB_HANGING_CHUNK_FRAG) &&(fragment_timesinchunks[vid] == 0)) ||
+         ((ilabv == AS_CGB_MULTICONT_FRAG) && (pass > 0)))
+	fill_a_chunk_starting_at(pass, vid,
+                                 frags, edges,
+                                 fragment_timesinchunks,
+                                 chunkfrags, thechunks);
+    }
+
+    //count_fragment_and_edge_labels( frags, edges, "In a chunking pass at A");
 
     // Assign chunks to Circular chunks.
-    { IntFragment_ID vid; for(vid=0;vid<GetNumFragments(frags);vid++) 
-      /* beginning loop through fragment */ {
-      const Tlab ilabv = get_lab_fragment(frags,vid);
-      if( (fragment_timesinchunks[vid] == 0)
-	  && (ilabv == AS_CGB_INTRACHUNK_FRAG) ) {
-        IntFragment_ID iid0 = get_iid_fragment(frags,vid);
-        fprintf(stderr,"Starting a possibly circular chunk with fragment IID="
-                F_IID "\n",
-                iid0);
-	fill_a_chunk_starting_at
-	  ( pass, 
-            work_limit_placing_contained_fragments, vid,
-	    frags, edges,
-	    fragment_timesinchunks,
-	    chunkfrags, thechunks);
-        fprintf(stderr,"Finished a possibly circular chunk with CID="
-                F_IID "\n",
-                get_cid_fragment(frags,vid));
+    for(vid=0;vid<GetNumFragments(frags);vid++)  {
+      Tlab ilabv = get_lab_fragment(frags,vid);
+      if( (fragment_timesinchunks[vid] == 0) && (ilabv == AS_CGB_INTRACHUNK_FRAG) ) {
+        fprintf(stderr,"Starting a possibly circular chunk with fragment IID="F_IID"\n", get_iid_fragment(frags,vid));
+
+	fill_a_chunk_starting_at(pass, vid,
+                                 frags, edges,
+                                 fragment_timesinchunks,
+                                 chunkfrags, thechunks);
+
+        fprintf(stderr,"Finished a possibly circular chunk with CID="F_IID"\n", get_cid_fragment(frags,vid));
       }
-    }} /* End of a loop over all fragments. */
+    }
 
-    count_fragment_and_edge_labels( frags, edges,
-                                    "In a chunking pass at B");
+    //count_fragment_and_edge_labels( frags, edges, "In a chunking pass at B");
 
-  { IntFragment_ID vid; for(vid=0;vid<GetNumFragments(frags);vid++) { 
-      const Tlab ilabv = get_lab_fragment(frags,vid);
-      if( (fragment_timesinchunks[vid] > 1) ) {
-
-        assert(TRUE == get_con_fragment(frags,vid));
+    for(vid=0;vid<GetNumFragments(frags);vid++) { 
+      if ((fragment_timesinchunks[vid] > 1)) {
 	// We have a multiply contained fragment.
 
-	if(!((ilabv == AS_CGB_UNPLACEDCONT_FRAG) ||
-             (ilabv == AS_CGB_MULTICONT_FRAG) )) {
-          const IntFragment_ID iid = get_iid_fragment(frags,vid);
-          fprintf(stderr,"ERROR: mis-labeled MULTICONT fragment iid=" F_IID " lab=%d \n",
-                  iid, ilabv);
-        }
-	assert( (ilabv == AS_CGB_UNPLACEDCONT_FRAG) ||
-	        (ilabv == AS_CGB_MULTICONT_FRAG)
-                );
+        Tlab ilabv = get_lab_fragment(frags,vid);
 
-	set_lab_fragment(frags,vid,AS_CGB_MULTICONT_FRAG);
+        if ((ilabv != AS_CGB_UNPLACEDCONT_FRAG) &&
+            (ilabv != AS_CGB_MULTICONT_FRAG))
+          fprintf(stderr,"ERROR: mis-labeled MULTICONT fragment iid=" F_IID " lab=%d \n", get_iid_fragment(frags,vid), ilabv);
+
+	assert((ilabv == AS_CGB_UNPLACEDCONT_FRAG) || (ilabv == AS_CGB_MULTICONT_FRAG));
+        assert(TRUE == get_con_fragment(frags,vid));
 
         // This field is used by the consensus phase to walk the
         // fragment overlap layout tree for each unitig.
+	set_lab_fragment(frags,vid,AS_CGB_MULTICONT_FRAG);
       }
-  }}
+    }
 
-  fprintf(stderr," after pass=%d\n",pass);
     // view_fgb_chkpnt( frags, edges);
-    count_fragment_and_edge_labels( frags, edges,
-                                    "after a chunking pass");
-  }} // End of chunk building passes.
+    //count_fragment_and_edge_labels( frags, edges, "after a chunking pass");
+  }
+
 
   fprintf(stderr,"End of chunk building passes.\n");
 
 #define PROCESS_CHAFF
 #ifdef PROCESS_CHAFF
-  // Process the chaff fragments...
-    
-  // Assign a singleton chunk for each MULTICONT and ORPHAN contained
-  // fragment.  In addition if there is a circular chunk, do not
-  // crash.
+  // Process the chaff fragments...  Assign a singleton chunk for each
+  // MULTICONT and ORPHAN contained fragment.  In addition if there is
+  // a circular chunk, do not crash.
 
-  IntFragment_ID vid;
   IntFragment_ID nfrag=GetNumFragments(frags);
 
-  for(vid=0;vid<nfrag;vid++) {
-    /* beginning loop through fragment */
-    const Tlab lab = get_lab_fragment(frags,vid);
-    if(lab == AS_CGB_UNPLACEDCONT_FRAG) {
+  for(vid=0;vid<nfrag;vid++)
+    if (get_lab_fragment(frags,vid) == AS_CGB_UNPLACEDCONT_FRAG)
       set_lab_fragment(frags,vid,AS_CGB_ORPHANEDCONT_FRAG);
-    }
-  }
     
-  for(vid=0;vid<nfrag;vid++) {
-    const Tlab lab = get_lab_fragment(frags,vid);
+  // The remaining AS_CGB_UNPLACEDCONT_FRAG fragments are placed in
+  // a greedy fashion.  CMM said using 'num_passes' below is a HACK
+  // (instead of using 'pass'?)
 
-    if( (fragment_timesinchunks[vid] == 0) &&
-        (lab != AS_CGB_DELETED_FRAG) ) {
-      const int pass = num_passes; // CMM This is a HACK!!!!
-      // The remaining AS_CGB_UNPLACEDCONT_FRAG fragments are placed in a
-      // greedy fashion.
-      fill_a_chunk_starting_at
-        ( pass, 
-          work_limit_placing_contained_fragments, vid,
-          frags, edges,
-          fragment_timesinchunks,
-          chunkfrags, thechunks);
-    }
-  }
+  for(vid=0;vid<nfrag;vid++)
+    if ((fragment_timesinchunks[vid] == 0) && (get_lab_fragment(frags,vid) != AS_CGB_DELETED_FRAG))
+      fill_a_chunk_starting_at(num_passes, vid,
+                               frags, edges,
+                               fragment_timesinchunks,
+                               chunkfrags, thechunks);
 #endif // PROCESS_CHAFF
   
-  // Quality control!!!
-  // Check that each fragment is refered to once and only once in all 
-  // of the unitigs.
-  fprintf(stderr,"make_the_chunks: Unitig quality control\n");
+  // Quality control!!!  Check that each fragment is refered to once
+  // and only once in all of the unitigs.
 
-  { IntFragment_ID vid; for(vid=0;vid<GetNumFragments(frags);vid++) { 
+  for(vid=0;vid<GetNumFragments(frags);vid++)
     fragment_timesinchunks[vid] = 0;
-  }}
 
-  { 
-    const IntChunk_ID nchunks 
-      = (IntChunk_ID)GetNumVA_AChunkMesg(thechunks);
-    IntChunk_ID ichunk;
-    for(ichunk=0;ichunk<nchunks;ichunk++){
-      IntFragment_ID iv, irec_start_of_chunk;
-      AChunkMesg * const mychunkptr = GetAChunkMesg(thechunks,ichunk);
-      assert(mychunkptr != NULL);
-      irec_start_of_chunk = mychunkptr->f_list;
+  IntChunk_ID nchunks = (IntChunk_ID)GetNumVA_AChunkMesg(thechunks);
+  IntChunk_ID ichunk;
 
-      for(iv=0; iv<(mychunkptr->num_frags); iv++) {
-	IntFragment_ID ivc,iid,vid;
-	AChunkFrag * mychunkfrag = NULL;
-	ivc = irec_start_of_chunk+iv;
-	mychunkfrag = GetAChunkFrag(chunkfrags,ivc);
-	vid = mychunkfrag->vid;
-	iid = get_iid_fragment(frags,vid);
-	
-        if(0 == iv) {
-          const int container = get_container_fragment(frags,vid);
-          if( container != 0 ) {
-            fprintf(stderr,
-                    "The first fragment in a chunk with container != 0 "
-                    " iid=" F_IID " vid=" F_IID " cid=" F_IID " type=%d label=%d"
-                    " con=%d container=" F_IID "\n",
-                    get_iid_fragment(frags,vid),
-                    vid,
-                    get_cid_fragment(frags,vid),
-                    get_typ_fragment(frags,vid),
-                    get_lab_fragment(frags,vid),
-                    get_con_fragment(frags,vid),
-                    get_container_fragment(frags,vid));
+  for(ichunk=0;ichunk<nchunks;ichunk++){
+    AChunkMesg      *ch = GetAChunkMesg(thechunks,ichunk);
+    IntFragment_ID   iv;
 
-#if 0
-            // Attempt a fix ....
-            set_container_fragment(frags,vid,0);
-            set_o5p_fragment(frags,vid,0);
-            set_o3p_fragment(frags,vid,get_length_fragment(frags,vid));
-            set_lab_fragment(frags,vid,AS_CGB_ORPHANEDCONT_FRAG);
-#endif
-            
-          }
-        }
-        fragment_timesinchunks[vid] ++;
+    for (iv=0; iv<ch->num_frags; iv++) {
+      IntFragment_ID vid = *GetAChunkFrag(chunkfrags, ch->f_list + iv);
+
+      if ((0 == iv) && (get_container_fragment(frags,vid) != 0)) {
+        fprintf(stderr, "The first fragment in a chunk with container != 0 iid="F_IID" vid="F_IID" cid="F_IID" type=%d label=%d con=%d container="F_IID"\n",
+                get_iid_fragment(frags,vid),
+                vid,
+                get_cid_fragment(frags,vid),
+                get_typ_fragment(frags,vid),
+                get_lab_fragment(frags,vid),
+                get_con_fragment(frags,vid),
+                get_container_fragment(frags,vid));
+
+        // Attempt a fix ....
+        //set_container_fragment(frags,vid,0);
+        //set_o5p_fragment(frags,vid,0);
+        //set_o3p_fragment(frags,vid,get_length_fragment(frags,vid));
+        //set_lab_fragment(frags,vid,AS_CGB_ORPHANEDCONT_FRAG);
       }
+
+      fragment_timesinchunks[vid] ++;
     }
   }
 
-  { IntFragment_ID vid; for(vid=0;vid<GetNumFragments(frags);vid++) { 
-    if( (fragment_timesinchunks[vid] != 1) &&
-        (AS_CGB_DELETED_FRAG != get_lab_fragment(frags,vid))) {
-      IntFragment_ID iid = get_iid_fragment(frags,vid);
-      IntChunk_ID cid = get_cid_fragment(frags,vid);
-      Tlab lab = get_lab_fragment(frags,vid);
-      fprintf(stderr,"make_the_chunks: Quality control\n"
-	      "iid=" F_IID " vid=" F_IID " cid=" F_IID " lab=%d "
-              "fragment_timesinchunks=%d\n",
-	      iid,vid,cid,lab,fragment_timesinchunks[vid]);
-    }
-#if 0
-    assert((fragment_timesinchunks[vid] == 0)|| 
-	   (fragment_timesinchunks[vid] == 1));
-#endif    
-    if( (fragment_timesinchunks[vid] == 0) &&
-        (AS_CGB_DELETED_FRAG != get_lab_fragment(frags,vid))) {
-      fprintf(stderr,"This fragment is not in any chunk -- Orphaned fragment "
-              "iid=" F_IID " vid=" F_IID " cid=" F_IID " type=%d\n", 
-	      get_iid_fragment(frags,vid),
-	      vid,
-	      get_cid_fragment(frags,vid),
-	      get_typ_fragment(frags,vid)
-	      );
-    }
-  }}
+  for(vid=0;vid<GetNumFragments(frags);vid++) {
+    if (AS_CGB_DELETED_FRAG != get_lab_fragment(frags,vid)) {
+      if (fragment_timesinchunks[vid] == 0)
+        fprintf(stderr,"make_the_chunks QC -- iid="F_IID" vid="F_IID" cid="F_IID" lab=%d ORPHANED FRAGMENT\n",
+                get_iid_fragment(frags,vid),
+                vid,
+                get_cid_fragment(frags,vid),
+                get_lab_fragment(frags,vid));
+      if (fragment_timesinchunks[vid] > 1)
+        fprintf(stderr,"make_the_chunks QC -- iid="F_IID" vid="F_IID" cid="F_IID" lab=%d fragment_timesinchunks=%d\n",
+                get_iid_fragment(frags,vid),
+                vid,
+                get_cid_fragment(frags,vid),
+                get_lab_fragment(frags,vid),
+                fragment_timesinchunks[vid]);
 
+      //assert((fragment_timesinchunks[vid] == 0) || (fragment_timesinchunks[vid] == 1));
+    }
+  }
+
+  safe_free(fragment_timesinchunks);
 }
 
 
 
-int count_the_randomly_sampled_fragments_in_a_chunk (const Tfragment   frags[],
-                                                     const TChunkFrag  chunkfrags[],
-                                                     const TChunkMesg  thechunks[],
-                                                     const IntChunk_ID chunk_index) { 
-  IntFragment_ID num_of_randomly_sampled_fragments_in_the_chunk = 0;
-  const AChunkMesg * const mychunk = GetAChunkMesg(thechunks,chunk_index);
-  const int num_frags = mychunk->num_frags;
-  IntFragment_ID ii = 0;
+int
+count_the_randomly_sampled_fragments_in_a_chunk(Tfragment   frags[],
+                                                TChunkFrag  chunkfrags[],
+                                                TChunkMesg  thechunks[],
+                                                IntChunk_ID chunk_index) { 
+  IntFragment_ID   nf = 0;
+  AChunkMesg      *ch = GetAChunkMesg(thechunks,chunk_index);
+  int              num_frags = ch->num_frags;
+  IntFragment_ID   ii = 0;
   
   for(ii=0;ii<num_frags;ii++) {
-    const IntFragment_ID ifrag = GetVA_AChunkFrag(chunkfrags,mychunk->f_list+ii)->vid;
-    const FragType type = get_typ_fragment(frags,ifrag);
+    FragType type = get_typ_fragment(frags, *GetVA_AChunkFrag(chunkfrags,ch->f_list+ii));
 
+    // Only AS_READ, and AS_EXTR fragments are to be used in Gene
+    // Myers coverage discriminator A-statistic.
+    //
     if (type == AS_READ || type == AS_EXTR)
-      // Only AS_READ, and AS_EXTR fragments are to be used in Gene
-      // Myers coverage discriminator A-statistic.
-      //
-      num_of_randomly_sampled_fragments_in_the_chunk ++;
+      nf++;
   }
-  return num_of_randomly_sampled_fragments_in_the_chunk;
+  return(nf);
 }
 
 
-float compute_the_global_fragment_arrival_rate
-( 
- const int           recalibrate, /* Boolean flag to recalibrate global arrival rate to max
-				     unique local arrival rate */
- const float         cgb_unique_cutoff, /* threshold for unique chunks */
- FILE               *fout,
- /* Input Only */
- const int64         nbase_in_genome,
- /* Input/Output */
- const Tfragment     frags[],
- const Tedge         edges[],
- const float         estimated_global_fragment_arrival_rate,
- /* Output Only */
- const TChunkFrag   *chunkfrags,
- const TChunkMesg   *thechunks
- )
-{ 
+float
+compute_the_global_fragment_arrival_rate(int           recalibrate,
+                                         float         cgb_unique_cutoff,
+                                         FILE         *fout,
+                                         int64         nbase_in_genome,
+                                         Tfragment    *frags,
+                                         Tedge        *edges,
+                                         float         estimated_global_fragment_arrival_rate,
+                                         TChunkFrag   *chunkfrags,
+                                         TChunkMesg   *thechunks) { 
   IntChunk_ID ichunk = 0;
   int64  total_rho = 0;
   IntFragment_ID total_nfrags = 0;
@@ -1273,39 +1078,24 @@ float compute_the_global_fragment_arrival_rate
   float best_global_fragment_arrival_rate;
   const IntChunk_ID nchunks = (IntChunk_ID)GetNumVA_AChunkMesg(thechunks);
   
-  /* if(NULL != fout){
-    fprintf(fout,"compute_the_global_fragment_arrival_rate(%d,%f,fout,%d,ptr,ptr,%f,ptr,ptr)\n",
-	    recalibrate,cgb_unique_cutoff,nbase_in_genome,estimated_global_fragment_arrival_rate);
-	    } */
   for(ichunk=0;ichunk<nchunks;ichunk++) {
-    const int64  rho 
-      = GetAChunkMesg(thechunks,ichunk)->rho; // The sum of overhangs ...
-    const int number_of_randomly_sampled_fragments_in_chunk
-      = count_the_randomly_sampled_fragments_in_a_chunk
-      ( frags, chunkfrags, thechunks, ichunk);
-    
-    total_rho += rho;
-    total_nfrags += ( number_of_randomly_sampled_fragments_in_chunk > 0 
-		      ? number_of_randomly_sampled_fragments_in_chunk - 1 
-		      : 0 );
-    total_randomly_sampled_fragments_in_genome +=
-      number_of_randomly_sampled_fragments_in_chunk;
+    int64  rho = GetAChunkMesg(thechunks,ichunk)->rho; // The sum of overhangs ...
+    int    nf  = count_the_randomly_sampled_fragments_in_a_chunk (frags, chunkfrags, thechunks, ichunk);
+
+    total_rho       += rho;
+    total_nfrags    += ( nf > 0 ? nf - 1 : 0 );
+    total_randomly_sampled_fragments_in_genome += nf;
   }
 
   if(NULL != fout) {
     fprintf(fout,"Total rho    = "F_S64"\n", total_rho);
     fprintf(fout,"Total nfrags = "F_IID"\n", total_nfrags);
-    computed_global_fragment_arrival_rate_tmp
-      = ( total_rho > 0 ? ((float)total_nfrags)/((float)total_rho) : 0.f );
+    computed_global_fragment_arrival_rate_tmp = ( total_rho > 0 ? ((float)total_nfrags)/((float)total_rho) : 0.f );
   
-    fprintf(fout,"Estimated genome length = "F_S64"\n",
-            nbase_in_genome);
-    fprintf(fout,"Estimated global_fragment_arrival_rate=%f\n",
-            (estimated_global_fragment_arrival_rate));
-    fprintf(fout,"Computed global_fragment_arrival_rate =%f\n",
-            computed_global_fragment_arrival_rate_tmp);
-    fprintf(fout,"Total number of randomly sampled fragments in genome = " F_IID "\n",
-            total_randomly_sampled_fragments_in_genome);
+    fprintf(fout,"Estimated genome length = "F_S64"\n", nbase_in_genome);
+    fprintf(fout,"Estimated global_fragment_arrival_rate=%f\n", (estimated_global_fragment_arrival_rate));
+    fprintf(fout,"Computed global_fragment_arrival_rate =%f\n", computed_global_fragment_arrival_rate_tmp);
+    fprintf(fout,"Total number of randomly sampled fragments in genome = " F_IID "\n", total_randomly_sampled_fragments_in_genome);
     fprintf(fout,"Computed genome length  = %f\n",
             ( computed_global_fragment_arrival_rate_tmp > 0.f
               ? (total_randomly_sampled_fragments_in_genome)
@@ -1326,6 +1116,9 @@ float compute_the_global_fragment_arrival_rate
              ? 1./(best_global_fragment_arrival_rate)
              : 0.));
   }
+
+  //  recalibrate: boolean flag to recalibrate global arrival rate to
+  //  max unique local arrival rate
 
   if(recalibrate && (nbase_in_genome == 0)){
     int i;
@@ -1349,22 +1142,15 @@ float compute_the_global_fragment_arrival_rate
 
       arrival_rate_ptr = arrival_rate_array = safe_malloc(sizeof(*arrival_rate_array) * arrival_rate_array_size);
       for(ichunk=0;ichunk<nchunks;ichunk++){
-	const int64  rho
-	  = GetAChunkMesg(thechunks,ichunk)->rho; // The sum of overhangs ...
-	/*      const int number_of_randomly_sampled_fragments_in_chunk
-		= count_the_randomly_sampled_fragments_in_a_chunk
-		( frags, chunkfrags, thechunks, ichunk);*/
-	
-	if((int)rho > 10000)/* &&
-			       (compute_coverage_statistic( rho, number_of_randomly_sampled_fragments_in_chunk,
-			       best_global_fragment_arrival_rate ) > cgb_unique_cutoff))*/{
-	  const int num_10000 = (int)rho / 10000;
-	  const int number_of_randomly_sampled_fragments_in_chunk
-	    = count_the_randomly_sampled_fragments_in_a_chunk
-	    (frags, chunkfrags, thechunks, ichunk);
-	  const float local_arrival_rate = ((float)(number_of_randomly_sampled_fragments_in_chunk-1)) /
-	    ((float)rho);
+	int64  rho = GetAChunkMesg(thechunks,ichunk)->rho; // The sum of overhangs ...
+
+	if ((int)rho > 10000) {
+          int num_10000 = (int)rho / 10000;
+          int nf = count_the_randomly_sampled_fragments_in_a_chunk (frags, chunkfrags, thechunks, ichunk);
+          float local_arrival_rate = ((float)(nf-1)) / ((float)rho);
+
 	  assert(num_10000 > 0);
+
 	  for(i=0;i<num_10000;i++){
 	    assert((size_t)(arrival_rate_ptr - arrival_rate_array) < arrival_rate_array_size);
 	    *arrival_rate_ptr++ = local_arrival_rate;
@@ -1376,9 +1162,7 @@ float compute_the_global_fragment_arrival_rate
 	float tmp_fragment_arrival_rate, max_diff_arrival_rate;
 	float prev_arrival_rate, cur_arrival_rate, diff_arrival_rate;
 	int max_diff_index;
-	qsort(arrival_rate_array, num_arrival_rates,
-	      sizeof(*arrival_rate_array),
-	      &comparefloats);
+	qsort(arrival_rate_array, num_arrival_rates, sizeof(*arrival_rate_array), comparefloats);
 	min_10_local_arrival_rate = arrival_rate_array[num_arrival_rates / 10];
 	median_index = (num_arrival_rates * 5) / 10;
 	median_local_arrival_rate = arrival_rate_array[median_index];
@@ -1445,7 +1229,6 @@ float compute_the_global_fragment_arrival_rate
 
 
 void chunk_graph_build_1(const char * const Graph_Store_File_Prefix,
-                         const int work_limit_placing_contained_fragments,		  
                          const int walk_depth,
                          const int64  genome_length,
                          const char * chimeras_file,
@@ -1458,26 +1241,23 @@ void chunk_graph_build_1(const char * const Graph_Store_File_Prefix,
                          TChunkFrag    *chunkfrags,
                          TChunkMesg    *thechunks) {
 
-  int *fragment_timesinchunks = safe_malloc(sizeof(int) * GetNumFragments(frags));
-  
-  make_the_chunks(work_limit_placing_contained_fragments,		  
-		  frags,
+  make_the_chunks(frags,
 		  edges,
-		  fragment_timesinchunks,
 		  chunkfrags,
 		  thechunks);
-  
-  safe_free(fragment_timesinchunks);
 
   check_edge_trimming( frags, edges);
 
-  if( genome_length == 0) {
-    (*global_fragment_arrival_rate) 
-      = compute_the_global_fragment_arrival_rate
-      ( recalibrate_global_arrival_rate, cgb_unique_cutoff, stderr, genome_length, frags, edges, *global_fragment_arrival_rate,
-        chunkfrags, thechunks );
-  }
-
+  if (genome_length == 0)
+    (*global_fragment_arrival_rate) = compute_the_global_fragment_arrival_rate(recalibrate_global_arrival_rate,
+                                                                               cgb_unique_cutoff,
+                                                                               stderr,
+                                                                               genome_length,
+                                                                               frags,
+                                                                               edges,
+                                                                               *global_fragment_arrival_rate,
+                                                                               chunkfrags,
+                                                                               thechunks);
    
   // Now that the global fragment arrival rate is available, we set
   // the coverage statistic.
@@ -1486,14 +1266,14 @@ void chunk_graph_build_1(const char * const Graph_Store_File_Prefix,
   IntChunk_ID chunk_index;
 
   for(chunk_index=0; chunk_index < nchunks; chunk_index++) {
-    AChunkMesg *mychunkptr = GetAChunkMesg( thechunks, chunk_index);
+    AChunkMesg *ch = GetAChunkMesg( thechunks, chunk_index);
 
-    mychunkptr->coverage_stat = compute_coverage_statistic(mychunkptr->rho,
-                                                           count_the_randomly_sampled_fragments_in_a_chunk(frags,
-                                                                                                           chunkfrags,
-                                                                                                           thechunks,
-                                                                                                           chunk_index),
-                                                           (*global_fragment_arrival_rate) );
+    ch->coverage_stat = compute_coverage_statistic(ch->rho,
+                                                   count_the_randomly_sampled_fragments_in_a_chunk(frags,
+                                                                                                   chunkfrags,
+                                                                                                   thechunks,
+                                                                                                   chunk_index),
+                                                   (*global_fragment_arrival_rate) );
   }
 
   if( chimeras_file ) {

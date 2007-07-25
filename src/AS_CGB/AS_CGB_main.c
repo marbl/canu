@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_main.c,v 1.14 2007-07-20 17:17:08 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_main.c,v 1.15 2007-07-25 10:29:50 brianwalenz Exp $";
 
 #include "AS_UTL_version.h"  
 #include "AS_CGB_all.h"
@@ -36,7 +36,6 @@ void chunk_classification_dvt(Tfragment frags[],
 
 //  AS_CGB_cgb.c
 void chunk_graph_build_1(const char * const Graph_Store_File_Prefix,
-                         const int work_limit_placing_contained_fragments,		  
                          const int walk_depth,
                          const int64  genome_length,
                          const char * chimeras_file,
@@ -428,7 +427,6 @@ int main_cgb(THeapGlobals  * heapva,
     //count_fragment_and_edge_labels( heapva->frags, heapva->edges, "In main before build 1");
 
     chunk_graph_build_1(rg->Output_Graph_Store_Prefix,
-                        rg->work_limit_placing_contained_fragments,		  
                         rg->walk_depth,
                         rg->genome_length,
                         rg->chimeras_file,

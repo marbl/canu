@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.22 2007-07-20 17:17:08 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.23 2007-07-25 10:29:50 brianwalenz Exp $";
 
 #include "AS_UTL_version.h"
 #include "AS_CGB_all.h"
@@ -33,26 +33,18 @@ chunk_graph_analysis(THeapGlobals *heapva,
 
 
 void
-output_the_chunks(const Tfragment frags[],
-                  const Tedge     edges[],
-                  const TChunkFrag    chunkfrags[],
-                  const TChunkMesg    thechunks[],
-                  const float global_fragment_arrival_rate,
-                  const int fragment_count_target,
-                  const char * const Graph_Store_File_Prefix) {
-
-  IntFragment_ID max_num_frags_per_chunk=0;
-  IntEdge_ID max_num_ovlps_per_chunk=0;
+output_the_chunks(Tfragment     *frags,
+                  Tedge         *edges,
+                  TChunkFrag    *chunkfrags,
+                  TChunkMesg    *thechunks,
+                  float          global_fragment_arrival_rate,
+                  int            fragment_count_target,
+                  char          *Graph_Store_File_Prefix) {
 
   IntChunk_ID       chunk_index;
-  const IntChunk_ID nchunks = (IntChunk_ID)GetNumVA_AChunkMesg(thechunks);
-  const IntFragment_ID  nfrag   = GetNumFragments(frags);
+  IntChunk_ID       nchunks = (IntChunk_ID)GetNumVA_AChunkMesg(thechunks);
+  IntFragment_ID    nfrag   = GetNumFragments(frags);
   
-  size_t  * frag_source_index = NULL; 
-
-  const int nsample=500;
-  const int nbucket=500;
-
   char filename[FILENAME_MAX];
   
   FILE *fcgb = NULL;
@@ -61,45 +53,19 @@ output_the_chunks(const Tfragment frags[],
 
   VA_TYPE(IntMultiPos) * the_imps = CreateVA_IntMultiPos(0);
   
-  // Determine the maximum sizes of the variant parts of a chunk message.
-  for(chunk_index=0;chunk_index < nchunks; chunk_index++){
-    const AChunkMesg * const mychunk = GetVA_AChunkMesg(thechunks,chunk_index);
-
-    max_num_frags_per_chunk = MAX(max_num_frags_per_chunk,
-				  mychunk->num_frags);
-    max_num_ovlps_per_chunk = MAX(max_num_ovlps_per_chunk,
-				  mychunk->a_degree_raw 
-				  + mychunk->b_degree_raw);
-  }
-
   for(chunk_index=0;chunk_index < nchunks; chunk_index++) /* a */ {
-    const AChunkMesg * const mychunk = GetVA_AChunkMesg(thechunks,chunk_index);
-    const IntFragment_ID num_frags = mychunk->num_frags;
-    GenericMesg   pmesg;
-    IntUnitigMesg achunk;
-    IntFragment_ID ivc;
-    int forced  = FALSE;
-
-    const int number_of_randomly_sampled_fragments_in_chunk
-      = count_the_randomly_sampled_fragments_in_a_chunk
-      ( frags, chunkfrags, thechunks, chunk_index);
-    const float coverage_statistic 
-      = compute_coverage_statistic
-      ( mychunk->rho,
-        number_of_randomly_sampled_fragments_in_chunk,
-        global_fragment_arrival_rate );
+    AChunkMesg     *ch   = GetVA_AChunkMesg(thechunks,chunk_index);
+    IntFragment_ID  num_frags = ch->num_frags;
+    GenericMesg     pmesg;
+    IntUnitigMesg   achunk;
+    IntFragment_ID  ivc;
 
     for(ivc=0; ivc<num_frags; ivc++) {
-      const IntFragment_ID ivn = mychunk->f_list + ivc; 
-      // Get the ivc-th fragment of the chunk.
-      // assert(ivn < nfrag);
-      // Get the next fragment in the chunk.
-      const IntFragment_ID vid = GetVA_AChunkFrag(chunkfrags,ivn)->vid; 
-      // const IntFragment_ID iid  = get_iid_fragment(frags,vid);
-      IntMultiPos a_frag;
+      IntFragment_ID vid    = *GetVA_AChunkFrag(chunkfrags, ch->f_list + ivc);
+      IntMultiPos    a_frag = {0};
 
-      a_frag.type   = get_typ_fragment(frags,vid);
-      a_frag.ident  = get_iid_fragment(frags,vid);
+      a_frag.type         = get_typ_fragment(frags,vid);
+      a_frag.ident        = get_iid_fragment(frags,vid);
       a_frag.contained  = get_container_fragment(frags,vid);
       a_frag.position.bgn = get_o5p_fragment(frags,vid);
       a_frag.position.end = get_o3p_fragment(frags,vid);
@@ -112,22 +78,27 @@ output_the_chunks(const Tfragment frags[],
     achunk.consensus = "";
     achunk.quality   = "";
       
-    // The ProtoSpec specifies that the first chunk id is ZERO.
-    achunk.iaccession     = mychunk->iaccession;
+    achunk.iaccession     = ch->iaccession;
     achunk.source         = "gen> @@ [0,0]";
-    achunk.coverage_stat  = coverage_statistic;
+    achunk.coverage_stat  = compute_coverage_statistic(ch->rho,
+                                                       count_the_randomly_sampled_fragments_in_a_chunk(frags,
+                                                                                                       chunkfrags,
+                                                                                                       thechunks,
+                                                                                                       chunk_index),
+                                                       global_fragment_arrival_rate);
     achunk.status         = AS_UNASSIGNED;
 
     achunk.consensus      = "";
     achunk.quality        = "";
-    achunk.length         = mychunk->bp_length;
+    achunk.length         = ch->bp_length;
 
-    achunk.forced         = forced;
-    achunk.num_frags      = mychunk->num_frags;
+    achunk.forced         = FALSE;
+    achunk.num_frags      = ch->num_frags;
     achunk.f_list         = GetVA_IntMultiPos(the_imps,0);
     achunk.num_vars       = 0;
 
-    fragment_count += mychunk->num_frags;
+    fragment_count += ch->num_frags;
+
     if(fragment_count_target > 0) {
       if((fragment_count >= fragment_count_target)) {
         if(NULL != fcgb) { fclose(fcgb); fcgb = NULL;}
@@ -431,7 +402,6 @@ main(int argc, char **argv) {
   rg->walk_depth = 100;
   rg->overlap_error_threshold = AS_OVS_encodeQuality(1.0);
   rg->recalibrate_global_arrival_rate = FALSE;
-  rg->work_limit_placing_contained_fragments = 20;
   rg->walk_depth=100;
   rg->output_iterations_flag = TRUE;
   rg->aggressive_spur_fragment_marking = TRUE;
@@ -553,12 +523,11 @@ main(int argc, char **argv) {
     Tnes nes = get_nes_edge(heapva->edges,ie);
     IntFragment_ID avx = get_avx_edge(heapva->edges,ie);
 
-    AChunkMesg *mychunk = GetVA_AChunkMesg(heapva->thechunks,
-                                           get_cid_fragment(heapva->frags,avx));
-
     assert(nfrag > avx);
 
-    if(mychunk->coverage_stat >= rg->cgb_unique_cutoff) {
+    AChunkMesg *ch = GetVA_AChunkMesg(heapva->thechunks, get_cid_fragment(heapva->frags,avx));
+
+    if(ch->coverage_stat >= rg->cgb_unique_cutoff) {
       if (AS_CGB_INTRACHUNK_EDGE == nes )
         set_blessed_edge(heapva->edges, ie, TRUE);
 
