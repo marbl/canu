@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_global.h,v 1.17 2007-07-23 18:14:52 brianwalenz Exp $	 */
+/* 	$Id: AS_global.h,v 1.18 2007-07-25 13:26:29 brianwalenz Exp $	 */
 
 /* This is the global include file that all C files in the AS subsystem should
    include.
@@ -115,8 +115,8 @@ typedef void *PtrT;
   #define F_X64   "%llx"
   #define F_X64P   "llx"
 
-  #define F_SIZE_T   "%d"
-  #define F_SIZE_TP   "d"
+  #define F_SIZE_T   "%u"
+  #define F_SIZE_TP   "u"
 
   #define F_TIME_T  "%ld"
   #define F_TIME_TP  "ld"
