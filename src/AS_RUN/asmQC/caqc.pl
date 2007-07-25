@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# $Id: caqc.pl,v 1.19 2007-07-17 21:18:43 moweis Exp $
+# $Id: caqc.pl,v 1.20 2007-07-25 22:51:25 moweis Exp $
 #
 # This program reads a Celera .asm file and produces aggregate information
 # about the assembly
@@ -23,116 +23,112 @@ use File::Copy;
 use Math::BigFloat;
 use FindBin qw($Bin);
 
-my $MY_VERSION = "caqc Version 2.11 (Build " . (qw/$Revision: 1.19 $/ )[1] . ")";
+my $MY_VERSION = "caqc Version 2.11 (Build " . (qw/$Revision: 1.20 $/ )[1] . ")";
 
 # Constants
 my $MINQUAL   = 20;
 my $MINCONTIG = 10000;
 my %help_text_map = (
-    totalscaffolds => "The total number of scaffolds in the assembly.",
-    totalcontigsinscaffolds => "the total number of contigs that made it into scaffolds. Contigs that do not belong to scaffolds are called degenerate and generally can be ignored.",
-    meancontigsperscaffold => "the average number of contigs in a scaffold.",
-    mincontigsperscaffold => "the minimum number of contigs in a scaffold.",
-    maxcontigsperscaffold => "the maximum number of contigs in a scaffold.",
-    totalbasesinscaffolds => "the sum of all contig sizes for the contigs in scaffolds.",
-    meanbasesinscaffolds => "the average scaffold size. The size of a scaffold is the sum of all contigs contained in that scaffold.",
-    minbasesinscaffolds => "the minimum size of a scaffold.",
-    maxbasesinscaffolds => "the maximum size of a scaffold.",
-    n50scaffoldbases => "the N50 scaffold size.",
-    totalspanofscaffolds => "the sum of all contig sizes and gaps in all scaffolds.",
-    meanspanofscaffolds => "the average span of a scaffold.",
-    minscaffoldspan => "the minimum span of a scaffold.",
-    maxscaffoldspan => "the maximum span of a scaffold.",
-    intrascaffoldgaps => "the number of sequencing gaps in all scaffolds.",
-    twokbscaffolds => "the count of scaffolds whose span >= 2kbp.",
-    twokbscaffoldspan => "the cummulative span of scaffolds whose span >= 2kbp.",
-    meansequencegapsize=> "the average size of a sequencing gap.",
-    top5scaffolds => "a listing of the 5 largest scaffolds. For each scaffold we report the number of contigs, size, and span as well as the average contig an average sequencing gap sizes.",
-    totalcontigsinscaffolds => "the total number of contigs",
-    totalvarrecords => "the total number of var records in the contigs.",
-    meancontigsize => "the average contig size.",
-    mincontigsize => "the minimum contig size.",
-    maxcontigsize => "the maximum contig size.",
-    n50contigbases => "the N50 contig size.",
-    totalbigcontigs => "the number of contigs bigger than 10kb.",
-    bigcontiglength => "the sum of the sizes of all contigs bigger than 10kb.",
-    meanbigcontigsize => "the average size of the contigs over 10kb.",
-    minbigcontig => "the minimum contig size in contigs over 10kb.",
-    maxbigcontig => "the maximum contig size in contigs over 10kb. Should be the same as MaxContigSize.",
-    bigcontigspercentbases => "the percentage of TotalBasesInScaffolds contained in contigs over 10kb.",
-    totalsmallcontigs => "the number of contigs smaller than 10kb.",
-    smallcontiglength => "the sum of the sizes of all contigs smaller than 10kb.",
-    meansmallcontigsize => "the average size of contigs under 10kb.",
-    minsmallcontig => "the minimum contig size in contigs under 10kb. Should be the same as MinContigSize.",
-    maxsmallcontig => "the maximum contig size in contigs under 10kb.",
-    smallcontigspercentbases => "the percentage of TotalBasesInScaffolds contained in contigs under 10kb.",
-    totaldegencontigs => "the number of degenerate contigs (contigs that do not appear in scaffolds).",
-    degencontiglength => "the sum of the sizes of all degenerate contigs.",
-    meandegencontigsize => "the average size of degenerate contigs.",
-    mindegencontig => "the minimum size of a degenerate contig.",
-    maxdegencontig => "the maximum size of a degenerate contig.",
-    degenpercentbases => "the ratio (as percentage points) between DegenContigLength and TotalBasesInScaffolds. Note that degenerate contigs are not counted as part of TotalBasesInScaffolds.",
-    top5contigs => "a listing of the 5 largest contigs. For each contig we report the number of reads and the size.",
-    totaluunitigs => "",
-    minuunitiglength => "",
-    maxuunitiglength => "",
-    meanuunitiglength => "",
-    sduunitiglength => "",
-    totalsurrogates => "",
-    surrogateinstances => "",
-    surrogatelength => "",
-    surrogateinstancelength => "",
-    unplacedsurrreadlen => "",
-    placedsurrreadlen => "",    
-    minsurrogatesize => "size of smallest surrogate.",
-    maxsurrogatesize => "size of largest surrogate.",
-    meansurrogatesize => "mean size of a surrogate.",
-    sdsurrogatesize => "standard deviation of surrogate sizes assuming a normal distribution.",
-    readswithnomate => "number of reads (out of TotalReads) that did not have a mate",
-    #readswithbadmate => "number of reads (out of TotalReads) that had a bad mate, i.e. a mate too far, too close, or with the incorrect orientation.",
-    readswithgoodmate => "number of reads (out of TotalReads) that had a good mate",
-    #readswithunusedmate => "number of reads (out of TotalReads) whose mate was not used in the assembly",
-    readswithbadshortmate => "",
-    readswithbadlongmate => "",
-    readswithsameorientmate => "",
-    readswithouttiemate => "",
-    readswithbothchaffmate => "",
-    readswithchaffmate => "",
-    readswithbothdegenmate => "",
-    readswithdegenmate => "",
-    readswithbothsurrmate => "",
-    readswithsurrogatemate => "",
-    readswithdiffscafmate => "",
-    readswithunassignedmate => "",
-    totalscaffoldlinks => "number of links between scaffolds. These represent linking information currently conflicting with the existing scaffolds. The lower this number the better.",
-    meanscaffoldlinkweight => "average weight (# of mate pairs) of links between scaffolds.",
-    totalreadsinput => "the total number of reads supplied to the assembler.",
-    totalusablereads => "the total number of reads included in the assembly.",
-    avgclearrange => "",
-    contigreads => "the number of reads that belong to contigs.",
-    bigcontigreads => "number of reads that belong to contigs over 10kb in size.",
-    smallcontigreads => "number of reads that belong to contigs under 10kb in size.",
-    degencontigreads => "number of reads in degenerate contigs.",
-    surrogatereads => "number of reads in surrogates - potentially repetitive or ambiguously placed contigs.",
-    placedsurrogatereads => "number of placed reads in surrogates.",
-    singletonreads => "number of reads that are neither in contigs, nor surrogates, nor degenerate contigs.",
-    contigsonly => "coverage (redundancy) of all contigs in scaffolds - length of all the reads in contigs or surrogates divided by the size of all scaffolds",
-    contigs_surrogates => "coverage of all contigs and surrogates - length of all the reads in contigs and surrogates divided by the size of all scaffolds.",
-    contigs_degens_surrogates => "coverage of all contigs, degenerates, and surrogates - length of all the reads in contigs, surrogates, and degenerates divided by the size of all scaffolds and degenerates.",
-    allreads => "",
-    basescount => "",
-    clearrangelengthfrg => "",
-    clearrangelengthasm => "",
-    surrogatebaselength => "",
-    contigbaselength => "",
-    degenbaselength => "",
-    singletonbaselength => "",
-    contig_surrogate_baselength => "",
-    content => "The percentage of gc content in all the scaffold contigs.",
-    allreads => "coverage you paid for - length of all the reads divided by the size of the scaffolds.",
+    TotalScaffolds => "The total number of scaffolds in the assembly.",
+    TotalContigsInScaffolds => "the total number of contigs that made it into scaffolds. Contigs that do not belong to scaffolds are called degenerate and generally can be ignored.",
+    MeanContigsPerScaffold => "the average number of contigs in a scaffold.",
+    MinContigsPerScaffold => "the minimum number of contigs in a scaffold.",
+    MaxContigsPerScaffold => "the maximum number of contigs in a scaffold.",
+    TotalBasesInScaffolds => "the sum of all contig lengths for the contigs in scaffolds.",
+    MeanBasesInScaffolds => "the average scaffold length. The length of a scaffold is the sum of all contigs contained in that scaffold (not including gaps).",
+    MinBasesInScaffolds => "the minimum length of a scaffold.",
+    MaxBasesInScaffolds => "the maximum length of a scaffold.",
+    N50ScaffoldBases => "the length of the largest scaffold for which the following is true: the sum of its length and the lengths of all larger scaffolds equals to 50% of the total assembly length",
+    TotalSpanOfScaffolds => "the sum of all contig lengths and gaps in all scaffolds.",
+    MeanSpanOfScaffolds => "the average span of a scaffold.",
+    MinScaffoldSpan => "the minimum span of a scaffold.",
+    MaxScaffoldSpan => "the maximum span of a scaffold.",
+    IntraScaffoldGaps => "the number of sequencing gaps in all scaffolds.",
+    '2KbScaffolds' => "the count of scaffolds whose span >= 2kbp.",
+    '2KbScaffoldSpan' => "the cummulative span of scaffolds whose span >= 2kbp.",
+    MeanSequenceGapLength => "the average length of a sequencing gap.",
+    Top5Scaffolds => "a listing of the 5 largest scaffolds. For each scaffold we report the number of contigs, length, and span as well as the average contig an average sequencing gap sizes.",
+    TotalVarRecords => "the total number of var records in the contigs.  Each var record indicates a possible SNP or high quality difference between the underlying reads.",
+    MeanContigLength => "the average contig length.",
+    MinContigLength => "the minimum contig length.",
+    MaxContigLength => "the maximum contig length.",
+    N50ContigBases => "the length of the largest contig for which the following is true: the sum of its length and the lengths of all larger contigs equals to 50% of the total contig length",
+    TotalBigContigs => "the number of contigs bigger than 10kb.",
+    BigContigLength => "the sum of the lengths of all contigs bigger than 10kb.",
+    MeanBigContigLength => "the average length of the contigs over 10kb.",
+    MinBigContig => "the minimum contig length in contigs over 10kb.",
+    MaxBigContig => "the maximum contig length in contigs over 10kb. Should be the same as MaxContigLength.",
+    BigContigsPercentBases => "the percentage of TotalBasesInScaffolds contained in contigs over 10kb.",
+    TotalSmallContigs => "the number of contigs smaller than 10kb.",
+    SmallContigLength => "the sum of the lengths of all contigs smaller than 10kb.",
+    MeanSmallContigLength => "the average length of contigs under 10kb.",
+    MinSmallContig => "the minimum contig length in contigs under 10kb. Should be the same as MinContigLength.",
+    MaxSmallContig => "the maximum contig length in contigs under 10kb.",
+    SmallContigsPercentBases => "the percentage of TotalBasesInScaffolds contained in contigs under 10kb.",
+    TotalDegenContigs => "the number of degenerate contigs (contigs that do not appear in scaffolds).",
+    DegenContigLength => "the sum of the lengths of all degenerate contigs.",
+    MeanDegenContigLength => "the average length of degenerate contigs.",
+    MinDegenContig => "the minimum length of a degenerate contig.",
+    MaxDegenContig => "the maximum length of a degenerate contig.",
+    DegenPercentBases => "the ratio (as percentage points) between DegenContigLength and TotalBasesInScaffolds. Note that degenerate contigs are not counted as part of TotalBasesInScaffolds.",
+    Top5Contigs => "a listing of the 5 largest contigs. For each contig we report the number of reads and the length.",
+    TotalUUnitigs => "total number of unitigs with A-stats higher than 5 (unique unitigs)",
+    MinUUnitigLength => "the minimum unique unitig length",
+    MaxUUnitigLength => "the maximum unique unitig length",
+    MeanUUnitigLength => "the average unique unitig length",
+    SDUUnitigLength => "the standard deviation unique unitig lengths",
+    TotalSurrogates => "total number of surrogates in the assembly.  A surrogate is a contig containing repetitive or ambiguous reads.",
+    SurrogateInstances => "number of instances in contigs where surrogate reads are placed",
+    SurrogateLength => "sum of all surrogate contig lengths",
+    SurrogateInstanceLength => "sum of all surrogate contig lengths",
+    UnPlacedSurrReadLen => "sum of all unplaced surrogate read lengths",
+    PlacedSurrReadLen => "sum of all placed surrogate read lengths",    
+    MinSurrogateLength => "size of smallest surrogate.",
+    MaxSurrogateLength => "size of largest surrogate.",
+    MeanSurrogateLength => "mean size of a surrogate.",
+    SDSurrogateLength => "standard deviation of surrogate sizes assuming a normal distribution.",
+    ReadsWithNoMate => "number of reads (out of TotalReads) that did not have a mate",
+    ReadsWithGoodMate => "number of reads (out of TotalReads) that had a good mate",
+    ReadsWithBadShortMate => "number of reads (out of TotalReads) that had a bad short mate, i.e. a mate too far, too close, or with the incorrect orientation",
+    ReadsWithBadLongMate => "number of reads (out of TotalReads) that had a bad long mate, i.e. a mate too far, too close, or with the incorrect orientation",
+    ReadsWithSameOrientMate => "number of reads where both reads point in the same direction",
+    ReadsWithOuttieMate => "number of reads where both reads point away from each other",
+    ReadsWithBothChaffMate => "number of reads where both reads are chaff (singleton)",
+    ReadsWithChaffMate => "number of reads where the mate is a chaff (singleton)",
+    ReadsWithBothDegenMate => "number of reads where both reads are degenerates",
+    ReadsWithDegenMate => "number of reads where the mate is a degenerate",
+    ReadsWithBothSurrMate => "number of reads where both reads are surrogates",
+    ReadsWithSurrogateMate => "number of reads where the mate is a surrogate",
+    ReadsWithDiffScafMate => "number of reads where the mate resides in a different scaffold",
+    ReadsWithUnassignedMate => "number of reads where the mate is unassigneds",
+    TotalScaffoldLinks => "number of links between scaffolds. These represent linking information currently conflicting with the existing scaffolds. The lower this number the better.",
+    MeanScaffoldLinkWeight => "average weight (# of mate pairs) of links between scaffolds.",
+    TotalReadsInput => "the total number of reads supplied to the assembler.",
+    TotalUsableReads => "the total number of reads included in the assembly.",
+    AvgClearRange => "the average read clear range (i.e. the usable portion of each read - clear of vector and bad quality bases",
+    ContigReads => "the number of reads that belong to contigs.",
+    BigContigReads => "number of reads that belong to contigs over 10kb in size.",
+    SmallContigReads => "number of reads that belong to contigs under 10kb in size.",
+    DegenContigReads => "number of reads in degenerate contigs.",
+    SurrogateReads => "number of reads in surrogates - potentially repetitive or ambiguously placed contigs.",
+    PlacedSurrogateReads => "number of placed reads in surrogates.",
+    SingletonReads => "number of reads that are neither in contigs, nor surrogates, nor degenerate contigs.",
+    ContigsOnly => "coverage (redundancy) of all contigs in scaffolds - length of all the reads in contigs or surrogates divided by the size of all scaffolds",
+    Contigs_Surrogates => "coverage of all contigs and surrogates - length of all the reads in contigs and surrogates divided by the size of all scaffolds.",
+    Contigs_Degens_Surrogates => "coverage of all contigs, degenerates, and surrogates - length of all the reads in contigs, surrogates, and degenerates divided by the size of all scaffolds and degenerates.",
+    BasesCount => "Total count of all bases for all reads (inclues vector and bad quality regions",
+    ClearRangeLengthFRG => "Total clear range for all input reads (from frg file)",
+    ClearRangeLengthASM => "Total clear range for all used reads (per asm file).  This excludes reads trimmed by OBT",
+    SurrogateBaseLength => "Total length of surrogate reads. (Same as UnPlacedSurrReadLen + PlacedSurrReadLen)",
+    ContigBaseLength => "Total length of contig reads.",
+    DegenBaseLength => "Total length of degenerate reads",
+    SingletonBaseLength => "Total length of singleton reads",
+    Contig_SurrBaseLength => "Total length of contig reads and unplaced surrogate reads. (Same as UnPlacedSurrReadLen + ContigBaseLength)",
+    Content => "The percentage of gc content in all the scaffold contigs.",
+    AllReads => "coverage you paid for - length of all the reads divided by the size of the scaffolds.",
     library_initial => "the initial estimate of library size.",
     library_final => "the final estimate of library size. This also contains the 'buc' field and the 'hist' fields. The 'buc' field is the number of buckets use to split the min-max insert range and the 'hist' field contains the number of inserts that have a size within the corresponding bucket range.",
-    contighistogram => "this lists the contig sizes.",
+    ContigHistogram => "this lists the contig sizes.",
     numcontigs => "number of contigs processed by the AutoEditor",
     numreads => "number of reads in all processed contigs",
     numcontigdiscrepancies => "number of contig positions with at least one discrepancy",
@@ -171,7 +167,7 @@ Generate quality statistics from the specified Celera assembly .asm file.
   caqc  <prefix>  [options]
 
     <prefix>   caqc reads the <prefix>.asm, which is the output file of the Celera Assembler. 
-caqc requires that the file be in the current directory.
+               caqc requires that the file be in the current directory.
     
     options:
       -minqual   <n>   Minimum quality value threshhold to report as bad 
@@ -192,10 +188,10 @@ caqc requires that the file be in the current directory.
       -t <count>       Specify the number of top scaffolds and contigs to use.
                        (default: 5)
       -frg             Computes frag related statistics: BasesCount and ClearRangeLengthFRG. 
-      		       This option requires that a <prefix>.frg file exist in the current directory.
+                       This option requires that a <prefix>.frg file exist in the current directory.
       -metrics         Option to output a <prefix>.qc.metrics file which is inputted to ametrics.  This 
                        option requires that a <prefix>.frg file exist in the current directory. 
-		       [Note: -frg is a subset of -metrics]
+                       [Note: -frg is a subset of -metrics]
 
 		       
     output files:
@@ -578,20 +574,12 @@ sub outputHtml() {
     <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
     <html>
     <head>
-      <title>Caqc Output Guide</title>
       <meta http-equiv="Content-Type"
      content="text/html; CHARSET=iso-iso-8859-1">
       <style type="text/css"><!--
     BODY { font-family: serif }
     H1 { font-family: sans-serif }
     H2 { font-family: sans-serif }
-    H3 { font-family: sans-serif }
-    H4 { font-family: sans-serif }
-    H5 { font-family: sans-serif }
-    H6 { font-family: sans-serif }
-    SUB { font-size: smaller }
-    SUP { font-size: smaller }
-    PRE { font-family: monospace }
     --></style>
     </head>
     <body>
@@ -614,9 +602,8 @@ sub outputHtml() {
     
     print STDERR $HTML_HEAD;
     foreach my $key (sort {$a cmp $b} keys %help_text_map) {
-        my $help_val=$help_text_map{lc($key)};
-        my $helpKey = ucfirst lc $key;
-        print STDERR "<li><b>$helpKey</b> - $help_val</li><br>";                
+        my $help_val = $help_text_map{$key};
+        print STDERR "<li><b>$key</b> - $help_val</li><br>";                
     }
     print STDERR $HTML_TAIL;     
 }
@@ -659,15 +646,18 @@ MAIN:
   if ( $helpflag ) {
     if ( lc($helpflag) eq 'all' ) {
         foreach my $key (sort {$a cmp $b} keys %help_text_map) {
-            my $help_val=$help_text_map{$key};
-            my $helpKey = ucfirst $key;
-            print STDERR "$helpKey - $help_val\n";
+            my $help_val=$help_text_map{$key};            
+            print STDERR "$key - $help_val\n";
         }
     } else {
-      	my $help_val=$help_text_map{lc($helpflag)};
-      	if($help_val){
-      	    $helpflag = ucfirst lc $helpflag;
-      		print STDERR "$helpflag - $help_val\n";
+        my %help_text_map_lc = ();
+        foreach my $key (keys %help_text_map) {
+            $help_text_map_lc{lc $key} = $key;
+        }
+      	if(exists $help_text_map_lc{lc $helpflag}){
+      	    $helpflag = $help_text_map_lc{lc $helpflag};
+      	    my $help_text = $help_text_map{$helpflag};
+      		print STDERR "$helpflag - $help_text\n";
       	}
       	else{
       		print STDERR "Undefined term!\n";
