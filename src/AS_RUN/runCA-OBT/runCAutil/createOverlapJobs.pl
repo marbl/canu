@@ -25,12 +25,10 @@ sub createOverlapJobs {
     }
 
     my $outDir = "1-overlapper";
-    my $merDir = "0-preoverlap";
     my $ovlOpt = "";
 
     if ($isTrim eq "trim") {
         $outDir = "0-overlaptrim-overlap";
-        $merDir = "0-overlaptrim-overlap";
         $ovlOpt = "-G";
     }
 
@@ -157,19 +155,19 @@ sub createOverlapJobs {
     print F "echo \\\n";
     print F "$gin/overlap $ovlOpt -M $ovlMemory -t $ovlThreads \\\n";
     print F "  \$opt \\\n";
-    print F "  -k $wrk/0-preoverlap/$asm.nmers.fasta \\\n"          if ($isTrim ne "trim");
-    print F "  -k $wrk/0-overlaptrim-overlap/$asm.nmers.fasta \\\n" if ($isTrim eq "trim");
-    print F "  -o $scratch/$asm.\$bat-\$job.\$jid.ovb \\\n"  if ($isTrim eq "trim");
-    print F "  -o $wrk/$outDir/\$bat/\$job.ovb \\\n"         if ($isTrim ne "trim");
+    print F "  -k $wrk/0-mercounts/$asm.nmers.obt.fasta \\\n" if ($isTrim eq "trim");
+    print F "  -k $wrk/0-mercounts/$asm.nmers.ovl.fasta \\\n" if ($isTrim ne "trim");
+    print F "  -o $scratch/$asm.\$bat-\$job.\$jid.ovb \\\n"   if ($isTrim eq "trim");
+    print F "  -o $wrk/$outDir/\$bat/\$job.ovb \\\n"          if ($isTrim ne "trim");
     print F "  $wrk/$asm.gkpStore\n";
     print F "\n";
     print F "\n";
     print F "$gin/overlap $ovlOpt -M $ovlMemory -t $ovlThreads \\\n";
     print F "  \$opt \\\n";
-    print F "  -k $wrk/0-overlaptrim-overlap/$asm.nmers.fasta \\\n" if ($isTrim eq "trim");
-    print F "  -k $wrk/0-preoverlap/$asm.nmers.fasta \\\n"          if ($isTrim ne "trim");
-    print F "  -o $scratch/$asm.\$bat-\$job.\$jid.ovb \\\n"  if ($isTrim eq "trim");
-    print F "  -o $wrk/$outDir/\$bat/\$job.ovb \\\n"         if ($isTrim ne "trim");
+    print F "  -k $wrk/0-mercounts/$asm.nmers.obt.fasta \\\n" if ($isTrim eq "trim");
+    print F "  -k $wrk/0-mercounts/$asm.nmers.ovl.fasta \\\n" if ($isTrim ne "trim");
+    print F "  -o $scratch/$asm.\$bat-\$job.\$jid.ovb \\\n"   if ($isTrim eq "trim");
+    print F "  -o $wrk/$outDir/\$bat/\$job.ovb \\\n"          if ($isTrim ne "trim");
     print F "  $wrk/$asm.gkpStore \\\n";
 
     if ($isTrim eq "trim") {

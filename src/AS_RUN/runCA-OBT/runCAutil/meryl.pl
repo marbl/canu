@@ -10,7 +10,7 @@ sub meryl {
     #  If we start from prepackaged frg and gkp stores, we don't have
     #  this directory.
     #
-    system("mkdir $wrk/0-preoverlap") if (! -d "$wrk/0-preoverlap");
+    system("mkdir $wrk/0-mercounts") if (! -d "$wrk/0-mercounts");
 
     #  What threshold to use?
     #
@@ -20,44 +20,38 @@ sub meryl {
     #  Use the better meryl, .....
     #
     if (merylVersion() eq "Mighty") {
-        if (! -e "$wrk/0-preoverlap/$asm.nmers.fasta") {
+        if (! -e "$wrk/0-mercounts/$asm.nmers.ovl.fasta") {
             my $merylMemory = getGlobal("merylMemory");
 
             my $cmd;
             $cmd .= "$bin/meryl ";
             $cmd .= " -B -C -v -m $merSize -memory $merylMemory ";
             $cmd .= " -s $wrk/$asm.gkpStore ";
-            $cmd .= " -o $wrk/0-preoverlap/$asm-ms$merSize ";
-            $cmd .= "> $wrk/0-preoverlap/meryl.out 2>&1";
+            $cmd .= " -o $wrk/0-mercounts/$asm-ms$merSize ";
+            $cmd .= "> $wrk/0-mercounts/meryl.out 2>&1";
 
-            if (runCommand("$wrk/0-preoverlap", $cmd)) {
+            if (runCommand("$wrk/0-mercounts", $cmd)) {
                 die "Failed.\n";
             }
 
-            $cmd = "$bin/meryl -Dt -n $merylOvlThreshold -s $wrk/0-preoverlap/$asm-ms$merSize > $wrk/0-preoverlap/$asm.nmers.fasta ";
-            if (runCommand("$wrk/0-preoverlap", $cmd)) {
-                rename "$wrk/$asm.nmers.fasta", "$wrk/$asm.nmers.fasta.FAILED";
+            $cmd = "$bin/meryl -Dt -n $merylOvlThreshold -s $wrk/0-mercounts/$asm-ms$merSize > $wrk/0-mercounts/$asm.nmers.ovl.fasta ";
+            if (runCommand("$wrk/0-mercounts", $cmd)) {
+                rename "$wrk/$asm.nmers.ovl.fasta", "$wrk/$asm.nmers.ovl.fasta.FAILED";
                 die "Failed.\n";
             }
         }
 
-        if ((! -e "$wrk/0-overlaptrim-overlap/$asm.nmers.fasta") && (getGlobal("doOverlapTrimming") != 0)) {
+        if ((! -e "$wrk/0-mercounts/$asm.nmers.obt.fasta") && (getGlobal("doOverlapTrimming") != 0)) {
             my $cmd;
-            $cmd = "$bin/meryl -Dt -n $merylObtThreshold -s $wrk/0-preoverlap/$asm-ms$merSize > $wrk/0-overlaptrim-overlap/$asm.nmers.fasta ";
+            $cmd = "$bin/meryl -Dt -n $merylObtThreshold -s $wrk/0-mercounts/$asm-ms$merSize > $wrk/0-mercounts/$asm.nmers.obt.fasta ";
             
-            if (runCommand("$wrk/0-overlaptrim-overlap", $cmd)) {
-                rename "$wrk/$asm.nmers.fasta", "$wrk/$asm.nmers.fasta.FAILED";
+            if (runCommand("$wrk/0-mercounts", $cmd)) {
+                rename "$wrk/$asm.nmers.obt.fasta", "$wrk/$asm.nmers.obt.fasta.FAILED";
                 die "Failed.\n";
             }
         }
     } elsif (merylVersion() eq "CA") {
-        if (! -e "$wrk/0-preoverlap/$asm.nmers.fasta") {
-
-            #  Meryl is run at the most resticted setting (the one used
-            #  for assembly); Overlap trimming is responsible for taking
-            #  the $asm.nmers.fasta and extracting mers that it cares
-            #  about (typically 2x the threshold here).
-
+        if (! -e "$wrk/0-mercounts/$asm.nmers.ovl.fasta") {
             my $merylSkip = 10;
 
             $merylObtThreshold /= $merylSkip;
@@ -69,18 +63,18 @@ sub meryl {
             my $cmd;
             $cmd  = "$bin/meryl ";
             $cmd .= "-s $wrk/$asm.gkpStore -n $merylOvlThreshold -K $merylSkip ";
-            $cmd .= " -o $wrk/0-preoverlap/$asm.nmers.fasta";
-            $cmd .= "> $wrk/0-preoverlap/meryl.out 2>&1";
+            $cmd .= " -o $wrk/0-mercounts/$asm.nmers.ovl.fasta";
+            $cmd .= "> $wrk/0-mercounts/meryl.out 2>&1";
 
-            if (runCommand("$wrk/0-preoverlap", $cmd)) {
-                rename "$wrk/$asm.nmers.fasta", "$wrk/$asm.nmers.fasta.FAILED";
+            if (runCommand("$wrk/0-mercounts", $cmd)) {
+                rename "$wrk/$asm.nmers.ovl.fasta", "$wrk/$asm.nmers.ovl.fasta.FAILED";
                 die "Failed.\n";
             }
         }
 
-        if ((! -e "$wrk/0-overlaptrim-overlap/$asm.nmers.fasta") && (getGlobal("doOverlapTrimming") != 0)) {
-            open(F, "< $wrk/0-preoverlap/$asm.nmers.fasta")  or die "Failed to open $wrk/0-preoverlap/$asm.nmers.fasta for reading.\n";
-            open(G, "> $wrk/0-overlaptrim-overlap/$asm.nmers.fasta") or die "Failed to open $wrk/0-overlaptrim-overlap/$asm.nmers.fasta for writing.\n";
+        if ((! -e "$wrk/0-mercounts/$asm.nmers.obt.fasta") && (getGlobal("doOverlapTrimming") != 0)) {
+            open(F, "< $wrk/0-mercounts/$asm.nmers.ovl.fasta") or die "Failed to open $wrk/0-mercounts/$asm.nmers.ovl.fasta for reading.\n";
+            open(G, "> $wrk/0-mercounts/$asm.nmers.obt.fasta") or die "Failed to open $wrk/0-mercounts/$asm.nmers.obt.fasta for writing.\n";
             while (!eof(F)) {
                 my $def = <F>;
                 my $mer = <F>;
