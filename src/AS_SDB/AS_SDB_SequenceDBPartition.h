@@ -39,15 +39,11 @@ typedef struct {
   HashTable_AS *index;
 } tSequenceDBPartition;
 
-int32 testOpenSequenceDBPartition(char *path, int32 revision, int32 partition);
 tSequenceDBPartition *openSequenceDBPartition(char *path, int32 revision, int32 partition);
 
 // Returns a reference to a multiAlignT from this partition
 //
 MultiAlignT *loadFromSequenceDBPartition(tSequenceDBPartition *partition, int32 indx);
 
-int isMemberSequenceDBPartition(tSequenceDBPartition *partition, int32 indx);
-
-VA_TYPE(int32) *GetContentSequenceDBPartition(tSequenceDBPartition *partition);
 
 #endif

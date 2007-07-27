@@ -18,18 +18,8 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_SDB_SequenceDBPartition.c,v 1.9 2007-06-03 08:13:22 brianwalenz Exp $";
 
-/*************************************************************************
- Module:  AS_SDB_SequenceDBPartition
- Description:
-   Access a partition of a partitioned frag store
-
- Assumptions:
-
- Document:
-
- *************************************************************************/
+static char CM_ID[] = "$Id: AS_SDB_SequenceDBPartition.c,v 1.10 2007-07-27 14:16:07 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -41,133 +31,69 @@ static char CM_ID[] = "$Id: AS_SDB_SequenceDBPartition.c,v 1.9 2007-06-03 08:13:
 #include "AS_UTL_fileIO.h"
 #include "AS_SDB_SequenceDBPartition.h"
 
-
-// The partition files for a given revision r of an SDB s are of the form:
-// s/db.r.n
-
-int testOpenSequenceDBPartition(char *sequenceDBPath, int32 revision, int32 partition){
+tSequenceDBPartition *
+openSequenceDBPartition(char *sequenceDBPath, int32 revision, int32 partition){
+  FILE *testfp;
   char buffer[FILENAME_MAX];
-  FILE *seqfp, *srcfp;
-  int32 count = 0;
+  tSequenceDBPartition *sdbp= NULL;
 
+  sdbp = (tSequenceDBPartition *)safe_malloc(sizeof(tSequenceDBPartition));
+  sdbp->sequenceDBPath = strdup(sequenceDBPath);
 
+  sprintf(buffer,"%s/seqDB.%d.%d", sequenceDBPath,revision,partition);
+  testfp = fopen(buffer,"r");
+  if(!testfp){
+    sprintf(buffer,"openSequenceDBPartition: couldn't open index file %s", buffer);
+    perror(buffer);
+    exit(1);
+  }    
+  sdbp->multiAligns = CreateFromFileVA_tMARecord(testfp,10);
+  fclose(testfp);
 
-  /* Open the specific partition we want loaded in its entirety */
-  sprintf(buffer,"%s/seqDB.%d.%d", sequenceDBPath,revision, partition);
-  if(!(srcfp = fopen(buffer,"r"))){
-    fprintf(stderr,"* openSequenceDBPartition: Couldn't open %s...\n",buffer);
-  }else{
-    fclose(srcfp);
-    count++;
-  }
   sprintf(buffer,"%s/seqDB.data.%d.%d", sequenceDBPath,revision,partition);
-  if(!(seqfp = fopen(buffer,"r"))){
-    fprintf(stderr,"* openSequenceDBPartition: Couldn't open %s...\n",buffer);
-  }else{
-    fclose(seqfp);
-    count++;
-  }
+  sdbp->datafp = fopen(buffer,"r");
 
-  switch(count){
-  case 2:
-    return 1;
+  //  Build a hash of storeID to ma pointer.
 
-  case 0:
-    return 0;
-
-  default:
-    //return -1;
-    break;
-  }
-  return -1;
-}
-
-
-static void buildSequenceDBPartitionHash(tSequenceDBPartition *partition){
   int i;
   int numMultiAligns;
 
-  numMultiAligns = GetNumtMARecords(partition->multiAligns);
-  partition->index = CreateScalarHashTable_AS(numMultiAligns + 1);
+  numMultiAligns = GetNumtMARecords(sdbp->multiAligns);
+  sdbp->index = CreateScalarHashTable_AS(numMultiAligns + 1);
 
   for(i = 0; i < numMultiAligns; i++){
-    tMARecord *maRecord = GettMARecord(partition->multiAligns, i);
+    tMARecord *maRecord = GettMARecord(sdbp->multiAligns, i);
     MultiAlignT *ma;
     int reference;
-    AS_UTL_fseek(partition->datafp,maRecord->offset,SEEK_SET);
-    ma = LoadMultiAlignTFromStream(partition->datafp,&reference);
-    if(InsertInHashTable_AS(partition->index,
+    AS_UTL_fseek(sdbp->datafp,maRecord->offset,SEEK_SET);
+    ma = LoadMultiAlignTFromStream(sdbp->datafp,&reference);
+    if(InsertInHashTable_AS(sdbp->index,
                             (uint64)maRecord->storeID, 0,
                             (uint64)ma, 0) != HASH_SUCCESS)
       assert(0);
   }
+
+  return(sdbp);
 }
 
 
-tSequenceDBPartition *openSequenceDBPartition(char *sequenceDBPath, int32 revision, int32 partition){
-  FILE *testfp;
-  char buffer[FILENAME_MAX];
-  tSequenceDBPartition *SequenceDBPartition= NULL;
-
-  SequenceDBPartition = (tSequenceDBPartition *)safe_malloc(sizeof(tSequenceDBPartition));
-  SequenceDBPartition->sequenceDBPath = strdup(sequenceDBPath);
-
-  if(1 != testOpenSequenceDBPartition(sequenceDBPath, revision, partition)){
-    return NULL;
-  }
-  
-  sprintf(buffer,"%s/seqDB.%d.%d", sequenceDBPath,revision,partition);
-  testfp = fopen(buffer,"r");
-  if(!testfp){
-	sprintf(buffer,"openSequenceDBPartition: couldn't open index file %s", buffer);
-	perror(buffer);
-	exit(1);
-  }    
-
-  SequenceDBPartition->multiAligns = CreateFromFileVA_tMARecord(testfp,10);
-  fclose(testfp);
-
-  sprintf(buffer,"%s/seqDB.data.%d.%d", sequenceDBPath,revision,partition);
-  SequenceDBPartition->datafp = fopen(buffer,"r");
-
-  buildSequenceDBPartitionHash(SequenceDBPartition);
-
-  return SequenceDBPartition;
-
-}
-
-
-void closeSequenceDBPartition(tSequenceDBPartition *partition){
+void
+closeSequenceDBPartition(tSequenceDBPartition *partition){
   fclose(partition->datafp);
   Delete_VA(partition->multiAligns);
   safe_free(partition->sequenceDBPath);
   safe_free(partition);
 }
 
-int isMemberSequenceDBPartition(tSequenceDBPartition *partition, int32 indx){
-  MultiAlignT *ma = (MultiAlignT *)LookupValueInHashTable_AS(partition->index, indx, 0);
-  return (ma != NULL);
-}
 
-MultiAlignT *loadFromSequenceDBPartition(tSequenceDBPartition *partition, int32 indx){
+MultiAlignT *
+loadFromSequenceDBPartition(tSequenceDBPartition *partition, int32 indx){
   MultiAlignT *ma = (MultiAlignT *)LookupValueInHashTable_AS(partition->index, indx, 0);
 
-  if(!ma){ // not in our partition, open the relevant stores, get the data, and close them
-    fprintf(stderr,"* Multialign %d is NOT in this partition!   Exiting\n", indx);
-    exit(1);
-  }
+  if (ma == NULL)
+    fprintf(stderr,"loadFromSequenceDBPartition()-- Multialign %d is NOT in this partition!\n", indx);
+  assert(ma != NULL);
+
   return ma;
 }
 
-
-VA_TYPE(int32) *GetContentSequenceDBPartition(tSequenceDBPartition *partition){
-  HashTable_Iterator_AS iterator;
-  VA_TYPE(int32) *members = CreateVA_int32(100);
-  uint64 keyp, valuep;
-  InitializeHashTable_Iterator_AS(partition->index, &iterator);
-
-  while(NextHashTable_Iterator_AS(&iterator, &keyp, &valuep))
-    Appendint32(members, (int32 *)keyp);
-
-  return members;
-}

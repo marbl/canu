@@ -141,14 +141,15 @@ dumpLength(char   *seqstore,
            int     version,
            int     partition) {
 
-  tSequenceDBPartition *SDBPartition = openSequenceDBPartition(seqstore, version, partition);
-  VA_TYPE(int32) *members = GetContentSequenceDBPartition(SDBPartition);
+  tSequenceDBPartition  *SDBPartition = openSequenceDBPartition(seqstore, version, partition);
+  HashTable_Iterator_AS  iterator;
+  uint64                 keyp   = 0;
+  uint64                 valuep = 0;
 
-  MultiAlignT *ma;
-  int i;
+  InitializeHashTable_Iterator_AS(SDBPartition->index, &iterator);
 
-  for (i=0; i<GetNumint32s(members); i++) {
-    CDS_CID_t    id = *Getint32(members,i);
+  while(NextHashTable_Iterator_AS(&iterator, &keyp, &valuep)) {
+    CDS_CID_t    id =  (CDS_CID_t)keyp;
     MultiAlignT *ma =  loadFromSequenceDBPartition(SDBPartition,id);
 
     fprintf(stderr, "id "F_CID" has "F_SIZE_T" fragments.\n", id, GetNumIntMultiPoss(ma->f_list));
