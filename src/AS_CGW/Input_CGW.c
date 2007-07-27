@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.40 2007-07-24 06:41:24 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.41 2007-07-27 20:24:12 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -83,7 +83,7 @@ static void ProcessEdges(int32 maxDegree, int32 maxDegreeUnique);
 
 
 static int32 msgCnt = 0;
-static int32 numIDT = 0, numIUM = 0, numUOM = 0, numJNC = 0;
+static int32 numIUM = 0, numUOM = 0;
 
 /****************************************************************************/
 int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
@@ -101,10 +101,6 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
 
       switch(pmesg->t){
 
-        case MESG_IDT:
-          //  We load these from the gatekeeper store
-          numIDT++;
-          break;
         case MESG_UOM:  // UnitigOverlapMesg
           if (ScaffoldGraph->ignoreUOMs == 0)
             {
@@ -154,10 +150,6 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
     fprintf(stderr,"Total edges read:%d != sum of types %d\n",
 	    numUOM ,(Containment + DoveTail + Tandem + TouchesContained + BetweenContained + ContainStack + TransChunk));
   }
-  if(numIDT)
-    fprintf(stderr,"\tIDT:%d  (ignored...read from the gatekeeper store)\n",  numIDT);
-  if(numJNC)
-    fprintf(stderr,"\tJNC:%d  \n",  numJNC);
   
   /***vvvvv********  Process UOMs **************************vvvvvvvvvvv******/
   ProcessEdges(data->maxDegree, data->maxDegreeUnique);
