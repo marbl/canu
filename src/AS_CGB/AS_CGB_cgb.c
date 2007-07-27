@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_cgb.c,v 1.20 2007-07-27 14:15:31 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_cgb.c,v 1.21 2007-07-27 20:25:45 brianwalenz Exp $";
 
 //  This module builds the chunk graph from the fragment essential
 //  overlap graph with contained fragments as an augmentation, and
@@ -195,12 +195,19 @@ add_fragment_to_chunk(int pass,
   set_o3p_fragment(frags,vid,(iforward ? ioffsetb : ioffseta));
   set_cid_fragment(frags,vid,ichunk);
 
-  //  If it +is+ pass 0, and we're a contained fragment, don't do this block.
+  //  Add this fragment to the chunk, unless:
+  //    it is pass 0 and we're contained
+  //    it is pass 1 and we're multiply contained
   //
-  if (!((pass == 0) && 
-        ((AS_CGB_UNPLACEDCONT_FRAG == ilabel) ||
-         (AS_CGB_SINGLECONT_FRAG   == ilabel) ||
-         (AS_CGB_MULTICONT_FRAG    == ilabel)))) {
+  int  skipadd = FALSE;
+  if ((pass == 0) && ((AS_CGB_UNPLACEDCONT_FRAG == ilabel) ||
+                      (AS_CGB_SINGLECONT_FRAG   == ilabel) ||
+                      (AS_CGB_MULTICONT_FRAG    == ilabel)))
+    skipadd = TRUE;
+  if ((pass == 1) && (AS_CGB_MULTICONT_FRAG    == ilabel))
+    skipadd = TRUE;
+
+  if (!skipadd) {
     AppendAChunkFrag(chunkfrags,&vid);
     ftic[vid]++;
   }
@@ -212,8 +219,8 @@ add_fragment_to_chunk(int pass,
       (AS_CGB_ORPHANEDCONT_FRAG     == ilabel) ||
       (AS_CGB_MARKED_BREAKER_FRAG   == ilabel) ||
       (AS_CGB_REMOVED_BREAKER_FRAG  == ilabel) ||
-      (AS_CGB_MULTICONT_FRAG        == ilabel) ||    // This is a paranoid restriction.
-      (AS_CGB_BRANCHMULTICONT_FRAG  == ilabel))      // This is a paranoid restriction.
+      (AS_CGB_MULTICONT_FRAG        == ilabel) ||
+      (AS_CGB_BRANCHMULTICONT_FRAG  == ilabel))
     return;
 
 
@@ -451,7 +458,8 @@ make_a_chunk(const int         pass,
      (AS_CGB_THRU_FRAG            == ilabel) ||
      (AS_CGB_BRANCHMULTICONT_FRAG == ilabel) ||
      (AS_CGB_ORPHANEDCONT_FRAG    == ilabel) ||
-     ((AS_CGB_MULTICONT_FRAG      == ilabel) && (pass > 0))) {
+     ((AS_CGB_SINGLECONT_FRAG     == ilabel) && (pass >= 1)) ||
+     ((AS_CGB_MULTICONT_FRAG      == ilabel) && (pass >= 2))) {
 
     add_fragment_to_chunk(pass,
                           frags, edges, ichunk, 
@@ -771,53 +779,54 @@ make_the_chunks(Tfragment frags[],
                 TChunkFrag chunkfrags[],
                 TChunkMesg thechunks[]) {
 
-  int num_passes = 2;    // To implement the logic to eject multiply containable fragments.
-  int pass       = 0;
-
   IntFragment_ID vid;
+  int            pass;
+
 
   //  Counts the number of times a fragment occurs in the chunks.
   //
   int *ftic = safe_malloc(sizeof(int) * GetNumFragments(frags));
 
-  count_fragment_and_edge_labels( frags, edges, "before chunking passes");
 
-  for(pass=0; pass<num_passes; pass++) {
-
-    // pass==0 is to form the light-chunks, that is chunks ignoring
-    // all of the contained fragments.
-
-    // pass==1 is to form the heavy-chunks, that is the light chunks
-    // with the uniquely contained fragments accreted onto the light
-    // chunks.
-
+  // pass==0 is to form the light-chunks, that is chunks ignoring
+  // all of the contained fragments.
+  //
+  // pass==1 is to form the heavy-chunks, that is the light chunks
+  // with the uniquely contained fragments accreted onto the light
+  // chunks.
+  //
+  for(pass=0; pass<2; pass++) {
     ResetVA_AChunkMesg(chunkfrags);
     ResetVA_AChunkMesg(thechunks);
 
-    //  Initialize flags for chunk membership
-
+    // Initialize flags for chunk membership:
+    //
+    // Assign a sentinal chunk id to designate that the fragment has
+    // not been placed in any chunks yet.  The contained fragments
+    // will be check to see if they can be placed in multiple chunks.
+    //
+    // We need to check if a contained fragment is uniquely placed in
+    // a light weight chunk by its coordinates as well; we clear the
+    // coordinates.
+    //
+    // Clear the container fragment IID.
+    //
     for(vid=0;vid<GetNumFragments(frags);vid++) { 
-
       ftic[vid] = 0;
 
-      // Just a sentinal chunk id to designate that a fragment has not
-      // been placed in any chunks yet.  The contained fragments will
-      // be check to see if they can be placed in multiple chunks.
       set_cid_fragment(frags,vid,CHUNK_NOT_VISITED);
-
-      // We need to check if a contained fragment is uniquely placed
-      // in a light weight chunk by its coordinates as well.
       set_o3p_fragment(frags,vid,0);
       set_o5p_fragment(frags,vid,0);
 
+      set_container_fragment(frags,vid,0); 
+
       if (AS_CGB_SINGLECONT_FRAG == get_lab_fragment(frags,vid))
 	set_lab_fragment(frags,vid,AS_CGB_UNPLACEDCONT_FRAG);
-
-      // Zero is the sentinal fragment iid for no container fragment.
-      set_container_fragment(frags,vid,0); 
     }
 
+
     // Assign chunks to essential fragments at the ends of chunks.
+    //
     for(vid=0;vid<GetNumFragments(frags);vid++) {
       Tlab lab = get_lab_fragment(frags,vid);
 
@@ -834,10 +843,11 @@ make_the_chunks(Tfragment frags[],
                                  chunkfrags, thechunks);
     }
 
-
     //count_fragment_and_edge_labels( frags, edges, "In a chunking pass at A");
 
+
     // Assign chunks to Circular chunks.
+    //
     for(vid=0;vid<GetNumFragments(frags);vid++)  {
       if ((ftic[vid] == 0) &&
           (get_lab_fragment(frags,vid) == AS_CGB_INTRACHUNK_FRAG)) {
@@ -852,36 +862,38 @@ make_the_chunks(Tfragment frags[],
 
     //count_fragment_and_edge_labels( frags, edges, "In a chunking pass at B");
 
+
+    //  Check that fragments used more than once are labeled properly.
+    //
     for(vid=0;vid<GetNumFragments(frags);vid++) { 
       if ((ftic[vid] > 1)) {
-	// We have a multiply contained fragment.
-
         Tlab lab = get_lab_fragment(frags,vid);
-
         if ((lab != AS_CGB_UNPLACEDCONT_FRAG) &&
             (lab != AS_CGB_MULTICONT_FRAG))
           fprintf(stderr,"ERROR: mis-labeled MULTICONT fragment iid=" F_IID " lab=%d \n", get_iid_fragment(frags,vid), lab);
+
 	assert((lab == AS_CGB_UNPLACEDCONT_FRAG) || (lab == AS_CGB_MULTICONT_FRAG));
         assert(TRUE == get_con_fragment(frags,vid));
 
-        // This field is used by the consensus phase to walk the
-        // fragment overlap layout tree for each unitig.
 	set_lab_fragment(frags,vid,AS_CGB_MULTICONT_FRAG);
       }
     }
 
-    // view_fgb_chkpnt( frags, edges);
+    //view_fgb_chkpnt( frags, edges);
     //count_fragment_and_edge_labels( frags, edges, "after a chunking pass");
   }
 
 
   fprintf(stderr,"End of chunk building passes.\n");
 
-#define PROCESS_CHAFF
-#ifdef PROCESS_CHAFF
+
+
   // Process the chaff fragments...  Assign a singleton chunk for each
   // MULTICONT and ORPHAN contained fragment.  In addition if there is
   // a circular chunk, do not crash.
+  //
+  // The remaining AS_CGB_UNPLACEDCONT_FRAG fragments are placed in a
+  // greedy fashion.
 
   IntFragment_ID nfrag=GetNumFragments(frags);
 
@@ -889,18 +901,15 @@ make_the_chunks(Tfragment frags[],
     if (get_lab_fragment(frags,vid) == AS_CGB_UNPLACEDCONT_FRAG)
       set_lab_fragment(frags,vid,AS_CGB_ORPHANEDCONT_FRAG);
     
-  // The remaining AS_CGB_UNPLACEDCONT_FRAG fragments are placed in
-  // a greedy fashion.  CMM said using 'num_passes' below is a HACK
-  // (instead of using 'pass'?)
-
   for(vid=0;vid<nfrag;vid++)
     if ((ftic[vid] == 0) && (get_lab_fragment(frags,vid) != AS_CGB_DELETED_FRAG))
-      fill_a_chunk_starting_at(num_passes, vid,
+      fill_a_chunk_starting_at(2, vid,
                                frags, edges,
                                ftic,
                                chunkfrags, thechunks);
-#endif // PROCESS_CHAFF
   
+
+
   // Quality control!!!  Check that each fragment is refered to once
   // and only once in all of the unitigs.
 
@@ -917,8 +926,8 @@ make_the_chunks(Tfragment frags[],
     for (iv=0; iv<ch->num_frags; iv++) {
       IntFragment_ID vid = *GetAChunkFrag(chunkfrags, ch->f_list + iv);
 
-      if ((0 == iv) && (get_container_fragment(frags,vid) != 0)) {
-        fprintf(stderr, "The first fragment in a chunk with container != 0 iid="F_IID" vid="F_IID" cid="F_IID" type=%d label=%d con=%d container="F_IID"\n",
+      if ((iv == 0) && (get_container_fragment(frags,vid) != 0))
+        fprintf(stderr, "The first fragment in a chunk is contained!   iid="F_IID" vid="F_IID" cid="F_IID" type=%d label=%d con=%d container="F_IID"\n",
                 get_iid_fragment(frags,vid),
                 vid,
                 get_cid_fragment(frags,vid),
@@ -926,15 +935,9 @@ make_the_chunks(Tfragment frags[],
                 get_lab_fragment(frags,vid),
                 get_con_fragment(frags,vid),
                 get_container_fragment(frags,vid));
+      assert(!((iv == 0) && (get_container_fragment(frags,vid) != 0)));
 
-        // Attempt a fix ....
-        //set_container_fragment(frags,vid,0);
-        //set_o5p_fragment(frags,vid,0);
-        //set_o3p_fragment(frags,vid,get_length_fragment(frags,vid));
-        //set_lab_fragment(frags,vid,AS_CGB_ORPHANEDCONT_FRAG);
-      }
-
-      ftic[vid] ++;
+      ftic[vid]++;
     }
   }
 
@@ -954,7 +957,7 @@ make_the_chunks(Tfragment frags[],
                 get_lab_fragment(frags,vid),
                 ftic[vid]);
 
-      //assert((ftic[vid] == 0) || (ftic[vid] == 1));
+      assert((ftic[vid] == 0) || (ftic[vid] == 1));
     }
   }
 
@@ -1170,6 +1173,7 @@ void chunk_graph_build_1(const char * const Graph_Store_File_Prefix,
                          TChunkMesg    *thechunks) {
 
   make_the_chunks(frags, edges, chunkfrags, thechunks);
+
   check_edge_trimming( frags, edges);
 
   if (genome_length == 0)
