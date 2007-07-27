@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_cgb.c,v 1.19 2007-07-27 12:17:23 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_cgb.c,v 1.20 2007-07-27 14:15:31 brianwalenz Exp $";
 
 //  This module builds the chunk graph from the fragment essential
 //  overlap graph with contained fragments as an augmentation, and
@@ -194,10 +194,6 @@ add_fragment_to_chunk(int pass,
   set_o5p_fragment(frags,vid,(iforward ? ioffseta : ioffsetb));
   set_o3p_fragment(frags,vid,(iforward ? ioffsetb : ioffseta));
   set_cid_fragment(frags,vid,ichunk);
-
-  if (vid == 1113272)
-    fprintf(stderr, "ERP1: iid="F_IID" vid="F_IID" lab=%d ftic=%d pass=%d\n",
-            get_iid_fragment(frags,vid), vid, ilabel, ftic[vid], pass);
 
   //  If it +is+ pass 0, and we're a contained fragment, don't do this block.
   //
@@ -443,10 +439,6 @@ make_a_chunk(const int         pass,
   *nbase_essential_sampled_in_chunk = 0;
   *nfrag_contained_in_chunk = 0;
   *nbase_contained_sampled_in_chunk = 0;
-
-  if (vid == 1113272)
-    fprintf(stderr, "ERP2: iid="F_IID" vid="F_IID" lab=%d ftic=%d pass=%d\n",
-            get_iid_fragment(frags,vid), vid, ilabel, ftic[vid], pass);
 
   if (ftic[vid] != 0)
     fprintf(stderr, "GNAT1: iid="F_IID" vid="F_IID" lab=%d ftic=%d pass=%d\n",
@@ -695,12 +687,8 @@ fill_a_chunk_starting_at(const int pass,
   int64           nbase_contained_sampled_in_chunk=0;
   int64           rho;
 
-  if (vid == 1113272)
-    fprintf(stderr, "ERP3: iid="F_IID" vid="F_IID" ftic=%d\n",
-            get_iid_fragment(frags,vid), vid, ftic[vid]);
-
   //  If we're unplaced, it's an error.
-  //  If we're placed ??
+  //
   if ((AS_CGB_UNPLACEDCONT_FRAG == lab) || (ftic[vid] != 0))
     fprintf(stderr, "PIKACU: pass=%d iid="F_IID" vid="F_IID" cid="F_IID" con=%d lab=%d container="F_IID" ftic=%d\n",
             pass,
@@ -713,14 +701,12 @@ fill_a_chunk_starting_at(const int pass,
             ftic[vid]);
   assert((AS_CGB_UNPLACEDCONT_FRAG != lab) && (ftic[vid] == 0));
 
-#if 1
   assert((get_con_fragment(frags,vid) == 0) ||
          (AS_CGB_UNPLACEDCONT_FRAG    == lab) ||
          (AS_CGB_SINGLECONT_FRAG      == lab) ||
          (AS_CGB_MULTICONT_FRAG       == lab) ||
          (AS_CGB_BRANCHMULTICONT_FRAG == lab) ||
          (AS_CGB_ORPHANEDCONT_FRAG    == lab));
-#endif
 
   make_a_chunk(pass,
                ichunk,
@@ -835,30 +821,17 @@ make_the_chunks(Tfragment frags[],
     for(vid=0;vid<GetNumFragments(frags);vid++) {
       Tlab lab = get_lab_fragment(frags,vid);
 
-      if((lab == AS_CGB_SOLO_FRAG) ||
-	 (lab == AS_CGB_HANGING_FRAG) ||
-	 (lab == AS_CGB_HANGING_CRAPPY_FRAG) ||
-         (lab == AS_CGB_BRANCHMULTICONT_FRAG) ||
-	 (lab == AS_CGB_THRU_FRAG) ||
-	 ((lab == AS_CGB_INTERCHUNK_FRAG)    && (ftic[vid] == 0)) ||
-	 ((lab == AS_CGB_HANGING_CHUNK_FRAG) && (ftic[vid] == 0)) ||
-         ((lab == AS_CGB_MULTICONT_FRAG)    && (pass > 0))) {
-
-#if 0
-         ((lab == AS_CGB_SINGLECONT_FRAG)    && (pass > 0))) {
-
-#warning not placing AS_CGB_MULTICONT_FRAG anymore -- are placing SINGLECONT now
-#endif
-
-        if (vid == 1113272)
-          fprintf(stderr, "ERP4: iid="F_IID" vid="F_IID" ftic=%d\n",
-                  get_iid_fragment(frags,vid), vid, ftic[vid]);
-
+      if ((lab == AS_CGB_SOLO_FRAG) ||
+          (lab == AS_CGB_HANGING_FRAG) ||
+          (lab == AS_CGB_HANGING_CRAPPY_FRAG) ||
+          (lab == AS_CGB_BRANCHMULTICONT_FRAG) ||
+          (lab == AS_CGB_THRU_FRAG) ||
+          ((lab == AS_CGB_INTERCHUNK_FRAG)    && (ftic[vid] == 0)) ||
+          ((lab == AS_CGB_HANGING_CHUNK_FRAG) && (ftic[vid] == 0)))
 	fill_a_chunk_starting_at(pass, vid,
                                  frags, edges,
                                  ftic,
                                  chunkfrags, thechunks);
-      }
     }
 
 
