@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_CGB_all.h,v 1.21 2007-07-25 10:29:50 brianwalenz Exp $
+//  $Id: AS_CGB_all.h,v 1.22 2007-07-27 12:17:38 brianwalenz Exp $
 
 #ifndef AS_CGB_ALL_INCLUDE
 #define AS_CGB_ALL_INCLUDE
@@ -67,149 +67,186 @@ typedef uint32 IntEdge_ID;
 #define AS_CGB_TRANSITIVE_SLOP_EPSILON 0.07  // fraction 
 
 
+// Initial non-contained fragment types
+//
+// AS_CGB_SOLO_FRAG -- A non-contained fragment with no raw dovetail
+// overlaps at all. This could be because of crappy sequencing, hard
+// repetitive sequence screening on both fragment ends, or a physical
+// sequencing gap.
+//
+// AS_CGB_HANGING_FRAG -- A non-contained fragment with no raw
+// dovetail overlaps on one side. This could be because of crappy
+// sequencing, hard repetitive sequence screening on one fragment end,
+// or a physical sequencing gap.
+//
+// AS_CGB_THRU_FRAG -- A non-contained fragment with raw dovetail
+// overlaps on both fragment ends.
+//
+// Modified non-contained fragment types
+//
+// AS_CGB_HANGING_CRAPPY_FRAG -- A formerly hanging fragment that
+// needs to be treated like a contained unitig so that it does not
+// inhibit chunking.
+//
+// AS_CGB_HANGING_CHUNK_FRAG -- A formerly hanging fragment that
+// terminates a non-singleton light chunk. This could be due to crappy
+// sequencing or hard repetitive sequence screening.
+//
+// AS_CGB_INTERCHUNK_FRAG -- A formerly thru fragment that terminates
+// a light chunk and has essentail non-containment overlaps to more
+// than one light chunk.
+//
+// AS_CGB_INTRACHUNK_FRAG -- A formerly thru fragment that is interior
+// to a light chunk.
+//
+// Initial contained fragment type
+//
+// AS_CGB_ORPHANEDCONT_FRAG -- A contained fragment that needs to be
+// singleton unitig because it was not placed into a unitig by a
+// containment edge.
+//
+// Modified contained fragment types
+//
+// AS_CGB_MULTICONT_FRAG -- A contained fragment that needs to be
+// singleton unitig because it could be placed in multiple unitigs by
+// containment edges.
+//
+// AS_CGB_SINGLECONT_FRAG -- A contained fragment that has essential
+// containment overlaps to only one light chunk.
+//
+// spur & chimera & other bad fragments
+//
+// AS_CGB_MARKED_BREAKER_FRAG -- soft, marked
+//
+// AS_CGB_REMOVED_BREAKER_FRAG -- hard, removed
+//  
+// AS_CGB_UNPLACEDCONT_FRAG -- A contained fragment that has not yet
+// been placed into a chunk.
+//
+// AS_CGB_BRANCHMULTICONT_FRAG -- A contained fragment that even after
+// transitive overlap removal still has a dovetail overlap to a
+// non-contained fragment. Many of these contained fragments are in
+// repetitive regions near a branch-point.
+//
+// AS_CGB_ESSENTIAL_CONT_FRAG -- ?
+//
+// Other fragment types
+//
+// AS_CGB_DELETED_FRAG -- ?
+//
 typedef enum {
-
   AS_CGB_UNLABELED_FRAG=0,
-  
-  /* Initial non-contained fragment types */
   AS_CGB_SOLO_FRAG=1, 
-  // A non-contained fragment with no raw dovetail overlaps at
-  // all. This could be because of crappy sequencing, hard repetitive
-  // sequence screening on both fragment ends, or a physical
-  // sequencing gap.
   AS_CGB_HANGING_FRAG=2, 
-  // A non-contained fragment with no raw dovetail overlaps on one
-  // side. This could be because of crappy sequencing, hard repetitive
-  // sequence screening on one fragment end, or a physical sequencing
-  // gap.
   AS_CGB_THRU_FRAG=3, 
-  // A non-contained fragment with raw dovetail overlaps on both
-  // fragment ends. 
-
-  /* Modified non-contained fragment types */
   AS_CGB_HANGING_CRAPPY_FRAG=4,    
-  // A formerly hanging fragment that needs to be treated like a
-  // contained unitig so that it does not inhibit chunking.
   AS_CGB_HANGING_CHUNK_FRAG=5, 
-  // A formerly hanging fragment that terminates a non-singleton light
-  // chunk. This could be due to crappy sequencing or hard repetitive
-  // sequence screening.
   AS_CGB_INTERCHUNK_FRAG=6, 
-  // A formerly thru fragment that terminates a light chunk and
-  // has essentail non-containment overlaps to more than one light
-  // chunk.
   AS_CGB_INTRACHUNK_FRAG=7, 
-  // A formerly thru fragment that is interior to a light chunk. 
-
-  /* Initial contained fragment type */
   AS_CGB_ORPHANEDCONT_FRAG=8,
-  // A contained fragment that needs to be singleton unitig because it
-  // was not placed into a unitig by a containment edge.
-
-  /* Modified contained fragment types */
   AS_CGB_MULTICONT_FRAG=9, 
-  // A contained fragment that needs to be singleton unitig because it
-  // could be placed in multiple unitigs by containment edges.
   AS_CGB_SINGLECONT_FRAG=10, 
-  // A contained fragment that has essential containment overlaps to
-  // only one light chunk.
-
-  /* spur & chimera & other bad fragments */
   AS_CGB_MARKED_BREAKER_FRAG=11,
-  // soft - marked
   AS_CGB_REMOVED_BREAKER_FRAG=12,
-  // hard - removed
-  
   AS_CGB_UNPLACEDCONT_FRAG=13,
-  // A contained fragment that has not yet been placed into a chunk.
   AS_CGB_BRANCHMULTICONT_FRAG=14,
-  // A contained fragment that even after transitive overlap removal
-  // still has a dovetail overlap to a non-contained fragment. Many of
-  // these contained fragments are in repetitive regions near a
-  // branch-point.
   AS_CGB_ESSENTIAL_CONT_FRAG=15,
-  
-  /* Other fragment types */
   AS_CGB_DELETED_FRAG=127
-
 } Tlab;
 
 
+
+
+// AS_CGB_UNUSED_EDGE
+//
+// AS_CGB_DOVETAIL_EDGE
+//
+// AS_CGB_THICKEST_EDGE -- A dovetail overlap edge that is the
+// thickest from the proximal
+// fragment-end
+//
+// AS_CGB_BETWEEN_CONTAINED_EDGE -- A dovetail overlap between
+// globally contained fragments.
+//
+// AS_CGB_TOUCHES_CONTAINED_EDGE -- A dovetail overlap touching a
+// globally contained fragment and a non-contained fragment.
+//
+// Containment Overlap types (asymmetric edges)
+//
+// AS_CGB_CONTAINED_EDGE -- 
+//
+// Dovetail Overlap types (symmetric edges)
+//
+// AS_CGB_INTERCHUNK_EDGE -- A dovetail overlap exterior to a chunk.
+//
+// AS_CGB_INTRACHUNK_EDGE -- A dovetail overlap interior to a chunk.
+//
+// AS_CGB_TOUCHES_CRAPPY_DVT -- A dovetail overlap touching a crappy
+// fragment and a non-crappy fragment.
+//
+// AS_CGB_BETWEEN_CRAPPY_DVT -- 
+// AS_CGB_TOUCHES_CRAPPY_CON -- 
+// AS_CGB_BETWEEN_CRAPPY_CON -- A dovetail overlap between crappy
+// fragments.
+//
+// AS_CGB_MARKED_BY_BRANCH_DVT -- An dovetail overlap removed by being
+// on the repeat side of a branch point.
+//
+// AS_CGB_MARKED_BY_BREAKER -- 
+// AS_CGB_MARKED_BY_DELETED_DVT -- 
+// AS_CGB_MARKED_BY_DELETED_CON -- An edge to spur, chimera & other
+// bad fragment
+//
+// AS_CGB_REMOVED_BY_TRANSITIVITY_DVT -- An dovetail overlap that is
+// inferrable by the dovetail chain overlap transivity rules.
+//
+// AS_CGB_REMOVED_BY_TRANSITIVITY_CON -- An containment overlap that
+// is inferrable by the overlap transivity rules.
+//
+// AS_CGB_REMOVED_BY_THRESHOLD_DVT -- An dovetail overlap that is
+// beyond the adjacency degree threshold.
+//
+// AS_CGB_REMOVED_BY_THRESHOLD_CON -- An containment overlap that is
+// beyond the adjacency degree threshold.
+//
+// AS_CGB_REMOVED_BY_BREAKER -- An edge to spur, chimera & other bad
+// fragment
+//
+// AS_CGB_REMOVED_BY_DUPLICATE_DVT -- 
+// AS_CGB_REMOVED_BY_DUPLICATE_CON -- An edge removed because it was a duplicate.
+//
+//
 //           dovetail 
 // \superset nonchordal
 // \superset nontransitive
 // \superset thickest (a directed edge concept)
 // \superset interchunk (essential edges for chunking.)
 // \superset intrachunk
-
-
+//
 typedef enum {
   AS_CGB_UNUSED_EDGE=0,
-
   AS_CGB_DOVETAIL_EDGE=1,
-  
   AS_CGB_THICKEST_EDGE=2,
-  // A dovetail overlap edge that is the thickest from the proximal
-  // fragment-end
-
   AS_CGB_BETWEEN_CONTAINED_EDGE=4,
-  // A dovetail overlap between globally contained fragments.
-
   AS_CGB_TOUCHES_CONTAINED_EDGE=6,
-  // A dovetail overlap touching a globally contained fragment and a
-  // non-contained fragment.
-
-  /* Containment Overlap types (asymmetric edges) */
   AS_CGB_CONTAINED_EDGE=12,
-
-  /* Dovetail Overlap types (symmetric edges) */
   AS_CGB_INTERCHUNK_EDGE=21,
-  // A dovetail overlap exterior to a chunk.
-
   AS_CGB_INTRACHUNK_EDGE=23,
-  // A dovetail overlap interior to a chunk.
-
-
   AS_CGB_TOUCHES_CRAPPY_DVT=32,
-  // A dovetail overlap touching a crappy fragment and a non-crappy
-  // fragment.
   AS_CGB_BETWEEN_CRAPPY_DVT=33,
-  // A dovetail overlap between crappy fragments.
   AS_CGB_TOUCHES_CRAPPY_CON=38,
   AS_CGB_BETWEEN_CRAPPY_CON=39,
-
-
   AS_CGB_MARKED_BY_BRANCH_DVT=57,
-  // An dovetail overlap removed by being on the repeat side of a
-  // branch point.
-
   AS_CGB_MARKED_BY_BREAKER=58,
-  // An edge to spur, chimera & other bad fragment
-  
   AS_CGB_MARKED_BY_DELETED_DVT=61,
   AS_CGB_MARKED_BY_DELETED_CON=64,
-
   AS_CGB_REMOVED_BY_TRANSITIVITY_DVT=101,
-  // An dovetail overlap that is inferrable by the dovetail chain overlap transivity
-  // rules.
   AS_CGB_REMOVED_BY_TRANSITIVITY_CON=104,
-  // An containment overlap that is inferrable by the overlap
-  // transivity rules.
-
   AS_CGB_REMOVED_BY_THRESHOLD_DVT=111,
-  // An dovetail overlap that is beyond the adjacency degree
-  // threshold.
   AS_CGB_REMOVED_BY_THRESHOLD_CON=114,
-  // An containment overlap that is beyond the adjacency degree
-  // threshold.
-
   AS_CGB_REMOVED_BY_BREAKER=114,
-  // An edge to spur, chimera & other bad fragment
-  
   AS_CGB_REMOVED_BY_DUPLICATE_DVT=116,
   AS_CGB_REMOVED_BY_DUPLICATE_CON=119
-  // An edge removed because it was a duplicate.
-
 } Tnes;
 
 
