@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_cgb.c,v 1.21 2007-07-27 20:25:45 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_cgb.c,v 1.22 2007-07-28 00:17:07 brianwalenz Exp $";
 
 //  This module builds the chunk graph from the fragment essential
 //  overlap graph with contained fragments as an augmentation, and
@@ -181,19 +181,7 @@ add_fragment_to_chunk(int pass,
   //  If, instead, ioffsetb = sum_of_bhg, that would have been the
   //  USE_SUM_OF_BHG_FOR_CONTAINMENTS conditional compilation.
 
-  if ((AS_CGB_UNPLACEDCONT_FRAG == ilabel) ||
-      (AS_CGB_SINGLECONT_FRAG   == ilabel) ||
-      (AS_CGB_MULTICONT_FRAG    == ilabel)) {
-    (*nfrag_contained_in_chunk)++;
-    (*nbase_contained_sampled_in_chunk) += get_length_fragment(frags,vid);
-  } else {
-    (*nfrag_essential_in_chunk)++;
-    (*nbase_essential_sampled_in_chunk) += get_length_fragment(frags,vid);
-  }
 
-  set_o5p_fragment(frags,vid,(iforward ? ioffseta : ioffsetb));
-  set_o3p_fragment(frags,vid,(iforward ? ioffsetb : ioffseta));
-  set_cid_fragment(frags,vid,ichunk);
 
   //  Add this fragment to the chunk, unless:
   //    it is pass 0 and we're contained
@@ -209,8 +197,26 @@ add_fragment_to_chunk(int pass,
 
   if (!skipadd) {
     AppendAChunkFrag(chunkfrags,&vid);
+
+    if ((AS_CGB_UNPLACEDCONT_FRAG == ilabel) ||
+        (AS_CGB_SINGLECONT_FRAG   == ilabel) ||
+        (AS_CGB_MULTICONT_FRAG    == ilabel)) {
+      (*nfrag_contained_in_chunk)++;
+      (*nbase_contained_sampled_in_chunk) += get_length_fragment(frags,vid);
+    } else {
+      (*nfrag_essential_in_chunk)++;
+      (*nbase_essential_sampled_in_chunk) += get_length_fragment(frags,vid);
+    }
+
     ftic[vid]++;
   }
+
+  //  Everybody gets updated, regardless.  MULTICONT needs to know the
+  //  o5p and o3p, probably doesn't hurt to set the chunk id either.
+  //
+  set_o5p_fragment(frags,vid,(iforward ? ioffseta : ioffsetb));
+  set_o3p_fragment(frags,vid,(iforward ? ioffsetb : ioffseta));
+  set_cid_fragment(frags,vid,ichunk);
 
   //  If we're a bad fragment type, don't continue
   //
@@ -743,7 +749,7 @@ fill_a_chunk_starting_at(const int pass,
     nbase_sampled_in_chunk = nbase_essential_sampled_in_chunk + nbase_contained_sampled_in_chunk;
   }
 
-  assert(GetNumVA_AChunkFrag(chunkfrags) == irec_start_of_chunk+nfrag_in_chunk);
+  assert(GetNumVA_AChunkFrag(chunkfrags) == irec_start_of_chunk + nfrag_in_chunk);
 
   assert(nfrag_in_chunk > 0);
     
