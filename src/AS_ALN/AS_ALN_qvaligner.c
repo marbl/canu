@@ -714,7 +714,7 @@ AnalyzeAffineAlign(int prefix, int suffix,
         }
         lastindel=c;
         c = -c;
-        while (i != c) {
+        while (i < c) {
           if (a[i++] != b[j++])
             subtit += 1;
           alength += 1;
@@ -733,7 +733,7 @@ AnalyzeAffineAlign(int prefix, int suffix,
               *biggestBlock = blockcount;
         }
         lastindel=c;
-        while (j != c) {
+        while (j < c) {
           if (a[i++] != b[j++])
             subtit += 1;
           alength += 1;
