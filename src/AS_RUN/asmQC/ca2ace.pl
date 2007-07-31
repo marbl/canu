@@ -1,7 +1,7 @@
 #!/usr/local/bin/perl
 
 
-# $Id: ca2ace.pl,v 1.5 2007-07-31 20:04:46 eliv Exp $
+# $Id: ca2ace.pl,v 1.6 2007-07-31 20:51:20 eliv Exp $
 #
 # Converts from a Celera .asm file to a new .ace file
 #
@@ -21,7 +21,7 @@ if (! defined $base){
     die ("Foundation cannot be created.  FATAL!\n");
 }
 
-my $VERSION = '$Revision: 1.5 $ ';
+my $VERSION = '$Revision: 1.6 $ ';
 $base->setVersionInfo($VERSION);
 
 my $HELPTEXT = q~
@@ -414,7 +414,7 @@ while (my $record = getCARecord(\*IN)){
 #                       print "GE $gapindex\n";
 		    }
 		    
-		    push $outseqA, substr($sequence, $j, 1);
+		    push @outseqA, substr($sequence, $j, 1);
 		}
 		my $outseq = join '',@outseqA;
 
