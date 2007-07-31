@@ -1,7 +1,7 @@
 #!/usr/local/bin/perl
 
 
-# $Id: ca2ace.pl,v 1.4 2007-03-06 15:16:57 eliv Exp $
+# $Id: ca2ace.pl,v 1.5 2007-07-31 20:04:46 eliv Exp $
 #
 # Converts from a Celera .asm file to a new .ace file
 #
@@ -21,7 +21,7 @@ if (! defined $base){
     die ("Foundation cannot be created.  FATAL!\n");
 }
 
-my $VERSION = '$Revision: 1.4 $ ';
+my $VERSION = '$Revision: 1.5 $ ';
 $base->setVersionInfo($VERSION);
 
 my $HELPTEXT = q~
@@ -395,7 +395,7 @@ while (my $record = getCARecord(\*IN)){
 		    $left = length($sequence) - $seql;
 		}
 		# now we add gaps to the sequence
-		my $outseq = "";
+        my @outseqA;
 		my $gapindex = 0;
 		for (my $j = 0; $j < length($sequence); $j++){
 		    my $seqj = $j - $left;# + $seql{$id} - 1; # index in untrimmed sequence
@@ -409,12 +409,14 @@ while (my $record = getCARecord(\*IN)){
 		    while ($gapindex <= $#gaps && $seqj == $gaps[$gapindex]){
 #                       print "GS $gapindex $#gaps $seqj $gaps[$gapindex] ",
 #			length($sequence), "\n";
-			$outseq .= "*";
+			push @outseqA,'*';
 			$gapindex++;
 #                       print "GE $gapindex\n";
 		    }
-		    $outseq .= substr($sequence, $j, 1);
+		    
+		    push $outseqA, substr($sequence, $j, 1);
 		}
+		my $outseq = join '',@outseqA;
 
 #		print "Adding seq ($seqName) = ", length($sequence), " outseq = ",
 #		length($outseq), " gaps = ", $#gaps + 1, "\n";
