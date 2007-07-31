@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.45 2007-07-19 07:01:17 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.46 2007-07-31 13:58:40 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -316,7 +316,7 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  if ((err) || (gkpStoreName == NULL)) {
+  if ((err) || (gkpStoreName == NULL) || (firstFileArg == 0)) {
     usage(argv[0], hlp);
     exit(1);
   }
