@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MergeEdges_CGW.c,v 1.12 2007-04-16 17:36:30 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MergeEdges_CGW.c,v 1.13 2007-08-01 14:30:34 eliv Exp $";
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -230,6 +230,7 @@ float gammq(float a, float x)
  float gamser,gammcf;
 
  if (x < 0.0 || a <= 0.0) {
+   fprintf(stderr,"gammq assert: a %f x %f\n",a,x);
    assert(0);
  }
  if (x < (a+1.0)) {
