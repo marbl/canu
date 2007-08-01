@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.46 2007-07-31 13:58:40 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.47 2007-08-01 17:35:30 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -222,6 +222,7 @@ main(int argc, char **argv) {
       gkpStoreName = argv[++arg];
     } else if (strcmp(argv[arg], "-v") == 0) {
       vectorClearFile = argv[++arg];
+      firstFileArg    = 1;  // gets us around the input file sanity check, unused otherwise
     } else if (strcmp(argv[arg], "-G") == 0) {
       assembler = AS_ASSEMBLER_GRANDE;
     } else if (strcmp(argv[arg], "-T") == 0) {
