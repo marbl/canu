@@ -124,6 +124,12 @@ sub getGlobal ($) {
 sub setGlobal ($$) {
     my $var = shift @_;
     my $val = shift @_;
+    #  Special case -- merSize sets both merSizeObt and merSizeOvl.
+    if ($var eq "merSize") {
+        setGlobal("merSizeObt", $val);
+        setGlobal("merSizeOvl", $val);
+        return;
+    }
     die "ERROR: $var is not a valid option.\n" if (!exists($global{$var}));
     $global{$var} = $val;
 }
@@ -163,7 +169,8 @@ sub setDefaults () {
     $global{"merylMemory"}                 = 800;
     $global{"merylObtThreshold"}           = 1000;
     $global{"merylOvlThreshold"}           = 500;
-    $global{"merSize"}                     = 22;
+    $global{"merSizeObt"}                  = 22;
+    $global{"merSizeOvl"}                  = 22;
 
     $global{"maxGridJobSize"}		   = undef;
 
@@ -215,7 +222,6 @@ sub setDefaults () {
     $global{"merOverlap"}                  = 0;
 
     #  Undocumented!  Unimplemented
-    $global{"metagenomics"}                = undef;   #  disable frgCorr, ....
     $global{"globalErrorRate"}             = 6;
 }
 

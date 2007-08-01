@@ -24,12 +24,14 @@ sub createOverlapJobs {
         die "createOverlapJobs()-- I need to know if I'm trimming or assembling!\n";
     }
 
-    my $outDir = "1-overlapper";
-    my $ovlOpt = "";
+    my $outDir  = "1-overlapper";
+    my $ovlOpt  = "";
+    my $merSize = getGlobal("merSizeOvl");
 
     if ($isTrim eq "trim") {
-        $outDir = "0-overlaptrim-overlap";
-        $ovlOpt = "-G";
+        $outDir  = "0-overlaptrim-overlap";
+        $ovlOpt  = "-G";
+        $merSize = getGlobal("merSizeObt");
     }
 
     system("mkdir $wrk/$outDir") if (! -d "$wrk/$outDir");
@@ -155,6 +157,7 @@ sub createOverlapJobs {
     print F "echo \\\n";
     print F "$gin/overlap $ovlOpt -M $ovlMemory -t $ovlThreads \\\n";
     print F "  \$opt \\\n";
+    print F "  -k $merSize \\\n";
     print F "  -k $wrk/0-mercounts/$asm.nmers.obt.fasta \\\n" if ($isTrim eq "trim");
     print F "  -k $wrk/0-mercounts/$asm.nmers.ovl.fasta \\\n" if ($isTrim ne "trim");
     print F "  -o $scratch/$asm.\$bat-\$job.\$jid.ovb \\\n"   if ($isTrim eq "trim");
@@ -164,6 +167,7 @@ sub createOverlapJobs {
     print F "\n";
     print F "$gin/overlap $ovlOpt -M $ovlMemory -t $ovlThreads \\\n";
     print F "  \$opt \\\n";
+    print F "  -k $merSize \\\n";
     print F "  -k $wrk/0-mercounts/$asm.nmers.obt.fasta \\\n" if ($isTrim eq "trim");
     print F "  -k $wrk/0-mercounts/$asm.nmers.ovl.fasta \\\n" if ($isTrim ne "trim");
     print F "  -o $scratch/$asm.\$bat-\$job.\$jid.ovb \\\n"   if ($isTrim eq "trim");

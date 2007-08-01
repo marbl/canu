@@ -26,8 +26,8 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.21 2007-07-23 09:07:54 brianwalenz Exp $
- * $Revision: 1.21 $
+ * $Id: AS_OVL_overlap.h,v 1.22 2007-08-01 17:29:26 brianwalenz Exp $
+ * $Revision: 1.22 $
 */
 
 
@@ -400,22 +400,9 @@
     //  Amount by which k-mers can overlap a screen region and still
     //  be added to the hash table.
 
-#define  WINDOW_SIZE KMER_LEN_IN_AS_GLOBAL_H
-#define  KMER_LEN    KMER_LEN_IN_AS_GLOBAL_H
-    //  Length of segments hashed, i.e., the  k  value in k-mer.
-    //  There must be an exact match of this length or more to
-    //  find a match.
-
-#define  MAX_EXTRA_SUBCOUNT        (AS_FRAG_MAX_LEN / KMER_LEN)
+#define  MAX_EXTRA_SUBCOUNT        (AS_FRAG_MAX_LEN / Kmer_Len)
 
 
-#define  HSF1                    (WINDOW_SIZE - (Hash_Mask_Bits / 2))
-    //  First shift value for HASH_FUNCTION
-#define  HSF2                    (2 * WINDOW_SIZE - Hash_Mask_Bits)
-    //  Second shift value for HASH_FUNCTION
-#define  SV1                     (HSF1 + 2)
-#define  SV2                     ((HSF1 + HSF2) / 2)
-#define  SV3                     (HSF2 - 2)
 #define  HASH_FUNCTION(k)        (((k) ^ ((k) >> HSF1) ^ ((k) >> HSF2)) & HASH_MASK)
     //  Gives subscript in hash table for key  k
 #define  HASH_CHECK_FUNCTION(k)  (((k) ^ ((k) >> SV1) ^ ((k) >> SV2)) & HASH_CHECK_MASK)
@@ -567,6 +554,15 @@ typedef  struct Work_Area
 
   }  Work_Area_t;
 
+//  Hash function variables -- these get set when Hash_Mask_Bits gets
+//  set.
+//
+extern int64  Kmer_Len;
+extern int64  HSF1;
+extern int64  HSF2;
+extern int64  SV1;
+extern int64  SV2;
+extern int64  SV3;
 
 extern int  Hash_Mask_Bits;
 extern int  Max_Hash_Data_Len;

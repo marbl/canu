@@ -277,8 +277,6 @@ consensus as they execute.  This is {\tt /scratch} by default.
 
 \end{longtable}
 
-
-
 \subsection{Overlap Based Trimming Options}
 \label{sec:obtopts}
 
@@ -390,6 +388,30 @@ ovlStoreMemory={\it integer} &
 The amount of memory, in megabytes, to use for building the overlap
 store.  It is critical that this value be as large as possible,
 especially with large assemblies.  The default is 1024MB memory.
+\\
+
+merSize={\it integer} &
+Sets both {\it merSizeObt} and {\it merSizeOvl}.
+\\
+
+merSizeObt={\it integer} &
+Sets the overlapper and meryl k-mer size used when computing overlaps
+for Overlap Based Trimming.
+\\
+
+merSizeOvl={\it integer} &
+Sets the overlapper and meryl k-mer size used when computing normal
+overlaps.
+\\
+
+merylObtThreshold={\tt integer} &
+Mers with count larger than this value will not be used to seed
+overlaps for Overlap Based Trimming.
+\\
+
+merylOvlThreshold={\tt integer} &
+Mers with count larger than this value will not be used to seed
+normal overlaps.
 \\
 \end{longtable}
 

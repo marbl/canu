@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.35 2007-05-29 10:54:29 brianwalenz Exp $
- * $Revision: 1.35 $
+ * $Id: AS_OVL_overlap_common.h,v 1.36 2007-08-01 17:29:26 brianwalenz Exp $
+ * $Revision: 1.36 $
 */
 
 
@@ -321,8 +321,15 @@ Align_Entry_t  * Align_P;
 /* External Global Definitions */
 /*************************************************************************/
 
+int64  Kmer_Len = KMER_LEN_IN_AS_GLOBAL_H;
+int64  HSF1     = 666;
+int64  HSF2     = 666;
+int64  SV1      = 666;
+int64  SV2      = 666;
+int64  SV3      = 666;
+
 int  Hash_Mask_Bits            = 666;
-double  Max_Hash_Load          = 0.1;
+double  Max_Hash_Load          = MAX_HASH_LOAD;
 int  Max_Hash_Strings          = 0;
 int  Max_Hash_Data_Len         = 0;
 int  Max_Frags_In_Memory_Store = 0;
@@ -510,14 +517,7 @@ int  main  (int argc, char * argv [])
    int  illegal;
    char  * p;
 
-   assert (8 * sizeof (uint64) > 2 * WINDOW_SIZE);
-
-   // Set default hash-table parameters: MUST be set by -M option
-   Hash_Mask_Bits            = 666;
-   Max_Hash_Load             = MAX_HASH_LOAD;
-   Max_Hash_Strings          = 0;
-   Max_Hash_Data_Len         = 0;
-   Max_Frags_In_Memory_Store = 0;
+   assert (8 * sizeof (uint64) > 2 * Kmer_Len);
 
    fprintf(stderr, "Version: %s\n",CM_ID);
 #ifdef CONTIG_OVERLAPPER_VERSION
@@ -588,7 +588,12 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
             strcpy(iidlist_file_name, optarg);
             break;
           case  'k' :
-            Kmer_Skip_File = File_Open (optarg, "r");
+            if ((isdigit(optarg[0]) && (optarg[1] == 0)) ||
+                (isdigit(optarg[0]) && isdigit(optarg[1]) && (optarg[2] == 0))) {
+              Kmer_Len = atoi(optarg);
+            } else {
+              Kmer_Skip_File = File_Open (optarg, "r");
+            }
             break;
           case  'K' :
             if  (optarg [0] == '[')
@@ -802,8 +807,9 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
                   "            Implies LSF mode (no changes to frag store)\n"
                   "-I          designate a file of frag iids to limit olaps to\n"
                   "            (Contig mode only)\n"
-                  "-k          specify a filename containing a list of kmers\n"
-                  "            to ignore in the hash table\n"
+                  "-k          if one or two digits, the length of a kmer, otherwise\n"
+                  "            the filename containing a list of kmers to ignore in\n"
+                  "            the hash table\n"
                   "-K          to designate limit on repetitive kmer hits to\n"
                   "            ignore in hash table\n"
                   "            [g,c,p] is special format to set K value automatically\n"
@@ -903,11 +909,19 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
    Total_Screen_File = File_Open (TOTAL_SCREEN_FILE_NAME, "w");
 #endif
 
+   //  We know enough now to set the hash function variables.
+   //
+   HSF1 = Kmer_Len - (Hash_Mask_Bits / 2);
+   HSF2 = 2 * Kmer_Len - Hash_Mask_Bits;
+   SV1  = HSF1 + 2;
+   SV2  = (HSF1 + HSF2) / 2;
+   SV3  = HSF2 - 2;
+
    fprintf (stderr, "    Hash_Mask_Bits = %d\n", Hash_Mask_Bits);
    fprintf (stderr, "  Max_Hash_Strings = %d\n", Max_Hash_Strings);
    fprintf (stderr, " Max_Hash_Data_Len = %d\n", Max_Hash_Data_Len);
    fprintf (stderr, "     Max_Hash_Load = %f\n", Max_Hash_Load);
-   fprintf (stderr, "       Kmer Length = %d\n", WINDOW_SIZE);
+   fprintf (stderr, "       Kmer Length = %d\n", Kmer_Len);
    fprintf (stderr, "Min Overlap Length = %d\n", Min_Olap_Len);
 
    Initialize_Globals ();
@@ -1135,7 +1149,7 @@ static String_Ref_t  Add_Extra_Hash_String
    size_t  new_len;
    int  len, sub;
 
-   new_len = Used_Data_Len + KMER_LEN;
+   new_len = Used_Data_Len + Kmer_Len;
    if  (Extra_String_Subcount < MAX_EXTRA_SUBCOUNT)
        sub = String_Ct + Extra_String_Ct - 1;
      else
@@ -1162,8 +1176,8 @@ static String_Ref_t  Add_Extra_Hash_String
             Extra_Data_Len = new_len;
         Data = (char *) safe_realloc (Data, Extra_Data_Len);
        }
-   strncpy (Data + String_Start [sub] + KMER_LEN * Extra_String_Subcount,
-        s, KMER_LEN + 1);
+   strncpy (Data + String_Start [sub] + Kmer_Len * Extra_String_Subcount,
+        s, Kmer_Len + 1);
    Used_Data_Len = new_len;
 
    ref . String_Num = sub;
@@ -1174,7 +1188,7 @@ static String_Ref_t  Add_Extra_Hash_String
              "Exiting\n");
         exit (EXIT_FAILURE);
        }
-   ref . Offset = Extra_String_Subcount * KMER_LEN;
+   ref . Offset = Extra_String_Subcount * Kmer_Len;
    ref . Last = TRUE;
    ref . Empty = TRUE;
    Extra_String_Subcount ++;
@@ -1207,7 +1221,7 @@ Kmer_Hits_Ct ++;
      {
       expected_start = wa -> Match_Node_Space [(* p)] . Start
                          + wa -> Match_Node_Space [(* p)] . Len
-                         - WINDOW_SIZE + 1 + HASH_KMER_SKIP;
+                         - Kmer_Len + 1 + HASH_KMER_SKIP;
 //  Added  HASH_KMER_SKIP here --------------^^^^^^^^^^^^^^
       diag = wa -> Match_Node_Space [(* p)] . Offset
                - wa -> Match_Node_Space [(* p)] . Start;
@@ -1248,7 +1262,7 @@ Kmer_Hits_Ct ++;
    if  ((* start) != 0
           && (num_checked > 0
                 || abs (diag - new_diag) > 3
-                || offset < expected_start + WINDOW_SIZE - 2))
+                || offset < expected_start + Kmer_Len - 2))
        (* consistent) = FALSE;
 
    save = (* start);
@@ -1256,7 +1270,7 @@ Kmer_Hits_Ct ++;
    wa -> Next_Avail_Match_Node ++;
 
    wa -> Match_Node_Space [(* start)] . Offset = ref . Offset;
-   wa -> Match_Node_Space [(* start)] . Len = WINDOW_SIZE;
+   wa -> Match_Node_Space [(* start)] . Len = Kmer_Len;
    wa -> Match_Node_Space [(* start)] . Start = offset;
    wa -> Match_Node_Space [(* start)] . Next = save;
 
@@ -1424,7 +1438,7 @@ int  Build_Hash_Index
     (FragStream *stream, int32 first_frag_id, fragRecord *myRead)
 
 /* Read the next batch of strings from  stream  and create a hash
-*  table index of their  WINDOW_SIZE -mers.  Return  1  if successful;
+*  table index of their  Kmer_Len -mers.  Return  1  if successful;
 *  0 otherwise.  The batch ends when either end-of-file is encountered
 *  or  Max_Hash_Strings  have been read in.   first_frag_id  is the
 *  internal ID of the first fragment in the hash table. */
@@ -1606,9 +1620,9 @@ Align_Ct [String_Ct] = (Align_Entry_t *)
         double  genome_kmers;
 
         avg_frag_kmers
-            = ((double) total_len / String_Ct - WINDOW_SIZE)
+            = ((double) total_len / String_Ct - Kmer_Len)
                  / (1 + HASH_KMER_SKIP);
-        genome_kmers = 2 * (Genome_Len - (WINDOW_SIZE - 1));
+        genome_kmers = 2 * (Genome_Len - (Kmer_Len - 1));
         Hi_Hit_Limit
             = 1 + Binomial_Hit_Limit (Kmer_Freq_Bound * avg_frag_kmers/genome_kmers,
                                       String_Ct - 1, Kmer_Prob_Limit);
@@ -2293,7 +2307,7 @@ static void  Find_Overlaps
    WA -> Next_Avail_String_Olap = STRING_OLAP_MODULUS;
    WA -> Next_Avail_Match_Node = 1;
 
-   assert (Frag_Len >= WINDOW_SIZE);
+   assert (Frag_Len >= Kmer_Len);
 
    Offset = 0;
    P = Window = Frag;
@@ -2307,20 +2321,20 @@ static void  Find_Overlaps
        }
 
    Key = 0;
-   for  (j = 0;  j < WINDOW_SIZE;  j ++)
+   for  (j = 0;  j < Kmer_Len;  j ++)
      Key |= (uint64) (Bit_Equivalent [(int) * (P ++)]) << (2 * j);
 
    Sub = HASH_FUNCTION (Key);
    Shift = HASH_CHECK_FUNCTION (Key);
    Next_Key = (Key >> 2);
    Next_Key |= ((uint64)
-                 (Bit_Equivalent [(int) * P])) << (2 * (WINDOW_SIZE - 1));
+                 (Bit_Equivalent [(int) * P])) << (2 * (Kmer_Len - 1));
    Next_Sub = HASH_FUNCTION (Next_Key);
    Next_Shift = HASH_CHECK_FUNCTION (Next_Key);
    Next_Check = Hash_Check_Array [Next_Sub];
 
    if  ((Hash_Check_Array [Sub] & (((Check_Vector_t) 1) << Shift)) != 0
-          && Offset <= screen_lo - WINDOW_SIZE + WINDOW_SCREEN_OLAP)
+          && Offset <= screen_lo - Kmer_Len + WINDOW_SCREEN_OLAP)
        {
         Ref = Hash_Find (Key, Sub, Window, & Where, & hi_hits);
         if  (hi_hits)
@@ -2371,20 +2385,20 @@ Match_Ct ++;
       P ++;
       Next_Key = (Key >> 2);
       Next_Key |= ((uint64)
-                    (Bit_Equivalent [(int) * P])) << (2 * (WINDOW_SIZE - 1));
+                    (Bit_Equivalent [(int) * P])) << (2 * (Kmer_Len - 1));
       Next_Sub = HASH_FUNCTION (Next_Key);
       Next_Shift = HASH_CHECK_FUNCTION (Next_Key);
       Next_Check = Hash_Check_Array [Next_Sub];
 
       if  ((This_Check & (((Check_Vector_t) 1) << Shift)) != 0
-             && Offset <= screen_lo - WINDOW_SIZE + WINDOW_SCREEN_OLAP)
+             && Offset <= screen_lo - Kmer_Len + WINDOW_SCREEN_OLAP)
           {
            Ref = Hash_Find (Key, Sub, Window, & Where, & hi_hits);
            if  (hi_hits)
                {
                 if  (Offset < HOPELESS_MATCH)
                     WA -> screen_info . left_end_screened = TRUE;
-                if  (Frag_Len - Offset - WINDOW_SIZE + 1 < HOPELESS_MATCH)
+                if  (Frag_Len - Offset - Kmer_Len + 1 < HOPELESS_MATCH)
                     WA -> screen_info . right_end_screened = TRUE;
                }
            if  (! Ref . Empty)
@@ -2569,7 +2583,7 @@ Hash_Find_Ct ++;
                   H_Ref = Extra_Ref_Space [(* Where)];
                  }
              T = Data + String_Start [H_Ref . String_Num] + H_Ref . Offset;
-             if  (strncmp (S, T, WINDOW_SIZE) == 0)
+             if  (strncmp (S, T, Kmer_Len) == 0)
                  {
 #if  ANALYZE_HITS && ! DO_KMER_HITS_PROFILE
                   if  (Hash_Table [Sub] . Hits [i] < 255)
@@ -2635,7 +2649,7 @@ static int  Hash_Hits
                              [(h_ref . String_Num << OFFSET_BITS) + h_ref . Offset];
 
              t = Data + String_Start [h_ref . String_Num] + h_ref . Offset;
-             if  (strncmp (s, t, WINDOW_SIZE) == 0)
+             if  (strncmp (s, t, Kmer_Len) == 0)
                  return  Hash_Table [sub] . Hits [i];
             }
 
@@ -2724,7 +2738,7 @@ static void  Hash_Insert
             {
              H_Ref = Hash_Table [Sub] . Entry [i];
              T = Data + String_Start [H_Ref . String_Num] + H_Ref . Offset;
-             if  (strncmp (S, T, WINDOW_SIZE) == 0)
+             if  (strncmp (S, T, Kmer_Len) == 0)
                  {
                   if  (H_Ref . Last)
                       Extra_Ref_Ct ++;
@@ -2805,7 +2819,7 @@ static void  Hash_Mark_Empty
             {
              h_ref = Hash_Table [sub] . Entry [i];
              t = Data + String_Start [h_ref . String_Num] + h_ref . Offset;
-             if  (strncmp (s, t, WINDOW_SIZE) == 0)
+             if  (strncmp (s, t, Kmer_Len) == 0)
                  {
                   if  (! Hash_Table [sub] . Entry [i] . Empty)
                       Mark_Screened_Ends_Chain (Hash_Table [sub] . Entry [i]);
@@ -3225,7 +3239,7 @@ static void  Mark_Screened_Ends_Single
 
    if  (ref . Offset < HOPELESS_MATCH)
        String_Info [s_num] . left_end_screened = TRUE;
-   if  (len - ref . Offset - WINDOW_SIZE + 1 < HOPELESS_MATCH)
+   if  (len - ref . Offset - Kmer_Len + 1 < HOPELESS_MATCH)
        String_Info [s_num] . right_end_screened = TRUE;
 
    return;
@@ -3267,7 +3281,7 @@ static void  Mark_Skip_Kmers
           }
       ct ++;
       len = strlen (line) - 1;
-      if  (len != WINDOW_SIZE || line [len] != '\n')
+      if  (len != Kmer_Len || line [len] != '\n')
           {
            fprintf (stderr, "ERROR:  Bad line %d in kmer skip file\n", ct);
            fputs (line, stderr);
@@ -3426,7 +3440,7 @@ void  Output_High_Hit_Frags
       uint64  key, key_is_bad;
       int  frag_hits [AS_READ_MAX_LEN + 1];
 
-      if  (String_Info [i] . length < WINDOW_SIZE)
+      if  (String_Info [i] . length < Kmer_Len)
           continue;
 
       curr_sub = Screen_Sub [i];
@@ -3441,7 +3455,7 @@ void  Output_High_Hit_Frags
       p = window = Data + String_Start [i];
       key = key_is_bad = 0;
       offset = 0;
-      for  (j = 0;  j < WINDOW_SIZE;  j ++)
+      for  (j = 0;  j < Kmer_Len;  j ++)
         {
          key_is_bad |= (uint64) (Char_Is_Bad [* p]) << j;
          key |= (uint64) (Bit_Equivalent [* (p ++)]) << (2 * j);
@@ -3449,7 +3463,7 @@ void  Output_High_Hit_Frags
 
       while  ((* p) != '\0')
         {
-         if  (offset <= screen_lo - WINDOW_SIZE + WINDOW_SCREEN_OLAP
+         if  (offset <= screen_lo - Kmer_Len + WINDOW_SCREEN_OLAP
                   && ! key_is_bad)
              frag_hits [offset] = Hash_Hits (key, window);
            else
@@ -3474,10 +3488,10 @@ void  Output_High_Hit_Frags
          offset ++;
 
          key_is_bad >>= 1;
-         key_is_bad |= (uint64) (Char_Is_Bad [* p]) << (WINDOW_SIZE - 1);
+         key_is_bad |= (uint64) (Char_Is_Bad [* p]) << (Kmer_Len - 1);
          key >>= 2;
          key |= (uint64)
-                    (Bit_Equivalent [* (p ++)]) << (2 * (WINDOW_SIZE - 1));
+                    (Bit_Equivalent [* (p ++)]) << (2 * (Kmer_Len - 1));
         }
 
       if  (high_hits >= MIN_HI_HIT_KMERS)
@@ -3491,10 +3505,10 @@ void  Output_High_Hit_Frags
                  {
                   if  (lo == -1)
                       lo = j;
-                  hi = j + WINDOW_SIZE - 1;
+                  hi = j + Kmer_Len - 1;
                  }
            sum = 0;
-           for  (j = lo;  j < hi - WINDOW_SIZE;  j ++)
+           for  (j = lo;  j < hi - Kmer_Len;  j ++)
              sum += frag_hits [j];
            avg = (double) sum / (1 + hi - lo);
            fprintf (High_Hits_File,
@@ -4525,7 +4539,7 @@ Dump_Screen_Info (Curr_String_Num, & (WA -> screen_info), 'f');
  p = window = Frag;
  key = 0;
 
- for  (j = 0;  j < WINDOW_SIZE - 1;  j ++)
+ for  (j = 0;  j < Kmer_Len - 1;  j ++)
    {
     key |= (uint64) (Bit_Equivalent [* (p ++)]) << (2 * j);
     printf ("%c %6s\n", * (p - 1), "-");
@@ -4533,7 +4547,7 @@ Dump_Screen_Info (Curr_String_Num, & (WA -> screen_info), 'f');
 
  while  ((* p) != '\0')
    {
-    key |= (uint64) (Bit_Equivalent [* (p ++)]) << (2 * (WINDOW_SIZE - 1));
+    key |= (uint64) (Bit_Equivalent [* (p ++)]) << (2 * (Kmer_Len - 1));
     printf ("%c %6d\n", * (p - 1), Hash_Hits (key, window ++));
     key >>= 2;
    }
@@ -4826,7 +4840,7 @@ void  Profile_Hits
             p = window = frag;
             key = 0;
 
-            for  (j = 0;  j < WINDOW_SIZE - 1;  j ++)
+            for  (j = 0;  j < Kmer_Len - 1;  j ++)
               {
                ct [j] = -1;
                key |= (uint64) (Bit_Equivalent [* (p ++)]) << (2 * j);
@@ -4834,7 +4848,7 @@ void  Profile_Hits
 
             while  ((* p) != '\0')
               {
-               key |= (uint64) (Bit_Equivalent [* (p ++)]) << (2 * (WINDOW_SIZE - 1));
+               key |= (uint64) (Bit_Equivalent [* (p ++)]) << (2 * (Kmer_Len - 1));
                ct [j ++] = Hash_Hits (key, window ++);
                key >>= 2;
               }
@@ -4846,7 +4860,7 @@ void  Profile_Hits
             p = window = rev_frag;
             key = 0;
 
-            for  (j = 0;  j < WINDOW_SIZE - 1;  j ++)
+            for  (j = 0;  j < Kmer_Len - 1;  j ++)
               {
                rev_ct [j] = -1;
                key |= (uint64) (Bit_Equivalent [* (p ++)]) << (2 * j);
@@ -4854,7 +4868,7 @@ void  Profile_Hits
 
             while  ((* p) != '\0')
               {
-               key |= (uint64) (Bit_Equivalent [* (p ++)]) << (2 * (WINDOW_SIZE - 1));
+               key |= (uint64) (Bit_Equivalent [* (p ++)]) << (2 * (Kmer_Len - 1));
                rev_ct [j ++] = Hash_Hits (key, window ++);
                key >>= 2;
               }
@@ -4864,13 +4878,13 @@ void  Profile_Hits
             printf ("%8s   %8s\n", "Forward", "Reverse");
             for  (j = 0;  j < len;  j ++)
               {
-               if  (j >= WINDOW_SIZE - 1)
+               if  (j >= Kmer_Len - 1)
                    printf ("%c %6d", frag [j], ct [j]);
                  else
                    printf ("%c %6s", frag [j], "-");
-               if  (j >= WINDOW_SIZE - 1)
+               if  (j >= Kmer_Len - 1)
                    printf ("     %c %6d\n",
-                           rev_frag [len - 1 - j], rev_ct [len - 1 - j + WINDOW_SIZE - 1]);
+                           rev_frag [len - 1 - j], rev_ct [len - 1 - j + Kmer_Len - 1]);
                  else
                    printf ("     %c %6s\n", rev_frag [len - 1 - j], "-");
               }
@@ -4977,7 +4991,7 @@ static void  Put_String_In_Hash
    uint64  key, key_is_bad;
    int  j;
 
-   if  (String_Info [i] . length < WINDOW_SIZE)
+   if  (String_Info [i] . length < Kmer_Len)
        return;
 
    screen_sub = Screen_Sub [i];
@@ -4991,7 +5005,7 @@ static void  Put_String_In_Hash
 
    p = window = Data + String_Start [i];
    key = key_is_bad = 0;
-   for  (j = 0;  j < WINDOW_SIZE;  j ++)
+   for  (j = 0;  j < Kmer_Len;  j ++)
      {
       key_is_bad |= (uint64) (Char_Is_Bad [(int) * p]) << j;
       key |= (uint64) (Bit_Equivalent [(int) * (p ++)]) << (2 * j);
@@ -5007,7 +5021,7 @@ static void  Put_String_In_Hash
    skip_ct = 0;
    ref . Empty = FALSE;
 
-   if  ((int) (ref . Offset) <= screen_lo - WINDOW_SIZE + WINDOW_SCREEN_OLAP
+   if  ((int) (ref . Offset) <= screen_lo - Kmer_Len + WINDOW_SCREEN_OLAP
             && ! key_is_bad)
        {
 #if  ! SCREEN_CHECK_ONLY
@@ -5040,14 +5054,14 @@ static void  Put_String_In_Hash
           skip_ct = 0;
 
       key_is_bad >>= 1;
-      key_is_bad |= (uint64) (Char_Is_Bad [(int) * p]) << (WINDOW_SIZE - 1);
+      key_is_bad |= (uint64) (Char_Is_Bad [(int) * p]) << (Kmer_Len - 1);
       key >>= 2;
       key |= (uint64)
-                 (Bit_Equivalent [(int) * (p ++)]) << (2 * (WINDOW_SIZE - 1));
+                 (Bit_Equivalent [(int) * (p ++)]) << (2 * (Kmer_Len - 1));
 
       if  (skip_ct == 0
                && (int) (ref . Offset)
-                     <= screen_lo - WINDOW_SIZE + WINDOW_SCREEN_OLAP
+                     <= screen_lo - Kmer_Len + WINDOW_SCREEN_OLAP
                && ! key_is_bad)
           {
 #if  ! SCREEN_CHECK_ONLY
