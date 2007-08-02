@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: SharedOVL.h,v 1.3 2007-06-18 13:16:05 adelcher Exp $
- * $Revision: 1.3 $
+ * $Id: SharedOVL.h,v 1.4 2007-08-02 21:23:52 adelcher Exp $
+ * $Revision: 1.4 $
 */
 
 
@@ -62,6 +62,9 @@
   //  1/p = (a+b)/b = 1 + a/b = 1 + (1-x)/x = 1/x
   //  whence p = x.
 
+#define  DIFF_LEN_BITS            29
+  //  Number of bits to store number of potential alignments to a
+  //  sequence in  Sequence_Diff_t
 #define  FRAG_LEN_BITS            15
   //  Number of bits to store lengths and positions on fragments
 #define  MIN_BRANCH_END_DIST      20
@@ -75,6 +78,17 @@
   // Branch point tails must fall off from the max by at least this rate
 #define  MAX_ERRORS               (1 + (int) (MAX_ERROR_RATE * MAX_FRAG_LEN))
   // Most errors in any edit distance computation
+#define  SEED_LEN_BITS            16
+  //  Number of bits to store seed value (which has something to do
+  //  with kmer occurrence frequency of seed) in  Sequence_Diff_t
+
+// Scores for homopolymer alignment
+#define  HP_INDEL_SCORE            1
+  // Error in homopolymer run count
+#define  NON_HP_INDEL_SCORE        3
+  // Other indel
+#define  HP_SUBST_SCORE            5
+  // Substitution
 
 
 // Type definitions
@@ -116,17 +130,35 @@ typedef struct
 
 typedef struct
   {
+   int32  b_iid;
    unsigned  a_lo : FRAG_LEN_BITS;
    unsigned  a_hi : FRAG_LEN_BITS;
    unsigned  b_lo : FRAG_LEN_BITS;
    unsigned  b_hi : FRAG_LEN_BITS;
-   uint32  diff_len;
+   unsigned  b_len : FRAG_LEN_BITS;
+   uint32  seed_value : SEED_LEN_BITS;
+   unsigned  diff_len : DIFF_LEN_BITS;
+   unsigned  disregard : 1;
+   unsigned  is_homopoly_type : 1;
+        // true means a 454-type read with homopolymer errors
+   unsigned  flipped : 1;
    Diff_Entry_t  * de;
   }  Sequence_Diff_t;
+
+typedef struct
+  {
+   unsigned int  len : 16;
+   int  score : 15;
+   unsigned int  at_end : 1;
+  }  Homopoly_Match_Entry_t;
 
 
 // Function prototypes
 
+int  Fwd_Homopoly_Prefix_Match
+  (const char * A, int m, const char * T, int n, int error_limit,
+   int * a_end, int * t_end, int * match_to_end, int * delta,
+   int * delta_len, Homopoly_Match_Entry_t * * edit_array);
 int  Fwd_Prefix_Edit_Dist
   (char A [], int m, char T [], int n, int Error_Limit,
    int * A_End, int * T_End, int * Match_To_End,

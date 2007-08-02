@@ -34,12 +34,134 @@
 *************************************************/
 
 /* RCS info
- * $Id: SharedOVL.c,v 1.2 2007-05-08 22:23:08 adelcher Exp $
- * $Revision: 1.2 $
+ * $Id: SharedOVL.c,v 1.3 2007-08-02 21:23:52 adelcher Exp $
+ * $Revision: 1.3 $
 */
 
 
 #include  "SharedOVL.h"
+
+
+int  Fwd_Homopoly_Prefix_Match
+  (const char * A, int m, const char * T, int n, int error_limit,
+   int * a_end, int * t_end, int * match_to_end, int * delta,
+   int * delta_len, Homopoly_Match_Entry_t * * edit_array)
+
+// Return the minimum number of non-homopoly insertions and substitutions
+// needed to match a prefix of string  A  of length  m  with a
+// prefix of string  T  of length  n , extending to the end of
+// one of those strings if possible without exceeding  error_limit
+// differences.  Homopolymer-type insertions/deletions do not count.
+// Set  a_end  and  b_end  to where the match ends (each is the number
+// of characters aligned in the respective string).  Set
+//  match_to_end  true iff the alignment reached the end.
+// Return the delta-coded alignment in  delta  with  delta_len  set
+// to the number of entries in  delta .  Use  edit_array  to store
+// intermediate values in computing the alignment (in the Vishkin-Schieber
+// style of a pyrimidal array).
+
+  {
+   int  score, shorter;
+   int  row, left, right;
+   int  d, e, j, k, s;
+
+   (* delta_len) = 0;
+
+   shorter = OVL_Min_int (m, n);
+   for (row = 0; row < shorter && A [row] == T [row]; row ++)
+     ;
+   edit_array [0] [0] . len = row;
+   edit_array [0] [0] . score = 0;
+   edit_array [0] [0] . at_end = (row == shorter);
+
+   if (row == shorter)     // Exact match to end
+     {
+      (* a_end) = (* t_end) = row;
+      (* match_to_end) = TRUE;
+      return 0;
+     }
+
+   left = right = 0;
+   for (e = 1; e <= error_limit; e ++)
+     {
+      left = OVL_Max_int (left - 1, -e);
+      right = OVL_Min_int (right + 1, e);
+
+      for (d = left; d <= right; d ++)
+        {
+         // first find the best score in the preceding row
+         row = 0;
+         score = INT_MAX;
+
+         // check cell directly above
+         if (left < row && row < right && ! edit_array [e - 1] [d] . at_end)
+           {
+            row = 1 + edit_array [e - 1] [d] . len;
+            score = edit_array [e - 1] [d] . score + HP_SUBST_SCORE;
+           }
+
+         // check upper left cell
+         if (left + 1 < row && ! edit_array [e - 1] [d - 1] . at_end)
+           {
+            k = edit_array [e - 1] [d - 1] . len + d - 1;
+            if (k > 0 && T [k - 1] == T [k])
+              s = edit_array [e - 1] [d - 1] . score + HP_INDEL_SCORE;
+                  // homopoly insert in T
+            else
+              s = edit_array [e - 1] [d - 1] . score + NON_HP_INDEL_SCORE;
+                  // non-homopoly insert in T
+            if (s < score)   // low scores are better
+              {
+               row = edit_array [e - 1] [d - 1] . len;
+               score = s;
+              }
+           }
+
+         // check upper right cell
+         if (row < right - 1 && ! edit_array [e - 1] [d + 1] . at_end)
+           {
+            k = edit_array [e - 1] [d + 1] . len;
+            if (k > 0 && A [k - 1] == A [k])
+              s = edit_array [e - 1] [d + 1] . score + HP_INDEL_SCORE;
+                   // homopoly insert in A
+            else
+              s = edit_array [e - 1] [d + 1] . score + NON_HP_INDEL_SCORE;
+                   // non-homopoly insert in A
+            if (s < score)   // low scores are better
+              {
+               row = edit_array [e - 1] [d - 1] . len + 1;
+               score = s;
+              }
+           }
+
+         // now extend as far as matches allow
+         while (row < m && row + d < n && A [row] == T [row + d])
+            row ++;
+
+         edit_array [e] [d] . len = row;
+         edit_array [e] [d] . score = score;
+         edit_array [e] [d] . at_end = (row == m || row + d == n);
+        }
+
+      //**ALD  left off here
+      // stop and return best at_end score if all other scores are
+      // worse than it.
+
+      // shrink left..right range here based on hopelessly bad scores
+
+      assert (left <= right);
+     }
+
+   // For failed alignments just return the exact match at the beginning
+   (* a_end) = edit_array [0] [0] . len;
+   (* t_end) = edit_array [0] [0] . len;
+//**ALD  need new version of this
+//   Set_Fwd_Delta (delta, delta_len, edit_array, 0, 0);
+   (* match_to_end) = FALSE;
+
+   return 0;
+  }
+
 
 
 int  Fwd_Prefix_Edit_Dist

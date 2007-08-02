@@ -33,8 +33,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.h,v 1.5 2007-06-18 13:16:05 adelcher Exp $
- * $Revision: 1.5 $
+ * $Id: OlapFromSeedsOVL.h,v 1.6 2007-08-02 21:23:52 adelcher Exp $
+ * $Revision: 1.6 $
 */
 
 
@@ -42,7 +42,7 @@
 #define  __OLAPFROMSEEDS_H_INCLUDED
 
 //**ALD determine if use new code to analyze true multialignments
-#define  USE_NEW_STUFF  0
+#define  USE_NEW_STUFF  1
 
 
 //  System include files
@@ -85,6 +85,8 @@
 #define  EDIT_DIST_PROB_BOUND        1e-4
   //  Probability limit to "band" edit-distance calculation
   //  Determines  NORMAL_DISTRIB_THOLD
+#define  EPSILON                     1e-8
+  //  Small value to correct floating-point rounding errors
 #define  ERATE_BITS                  16
   //  Number of bits to store integer versions of error rates
 #define  ERRORS_FOR_FREE             1
@@ -97,6 +99,8 @@
   //  Number of old fragments to read into memory-based fragment
   //  store at a time for processing
 #define  MAX_ERROR_RATE              AS_GUIDE_ERROR_RATE
+//**ALD  Use this value for testing homopolymer errors
+//#define  MAX_ERROR_RATE              0.120
   //  The largest error allowed in overlaps
 #define  MAX_FRAG_LEN                2048
   //  The longest fragment allowed
@@ -131,19 +135,39 @@
 
 //  Type definitions
 
+typedef struct
+  {
+   unsigned int  a_ct : 16;
+   unsigned int  c_ct : 16;
+   unsigned int  g_ct : 16;
+   unsigned int  t_ct : 16;
+   unsigned int  gap_ct : 16;
+   unsigned int  homopoly_ct : 16;
+   unsigned int  non_hp_ct : 16;
+   unsigned int  mutable : 1;
+   double  homopoly_sum;
+   double  non_hp_sum;
+  }  New_Vote_t;
+
 typedef  struct
   {
-   unsigned  int confirmed : 8;
-   unsigned  int deletes : 8;
-   unsigned  int a_subst : 8;
-   unsigned  int c_subst : 8;
-   unsigned  int g_subst : 8;
-   unsigned  int t_subst : 8;
-   unsigned  int no_insert : 8;
-   unsigned  int a_insert : 8;
-   unsigned  int c_insert : 8;
-   unsigned  int g_insert : 8;
-   unsigned  int t_insert : 8;
+   unsigned int  confirmed : 8;
+   unsigned int  deletes : 8;
+   unsigned int  a_subst : 8;
+   unsigned int  c_subst : 8;
+   unsigned int  g_subst : 8;
+   unsigned int  t_subst : 8;
+   unsigned int  no_insert : 8;
+   unsigned int  a_insert : 8;
+   unsigned int  c_insert : 8;
+   unsigned int  g_insert : 8;
+   unsigned int  t_insert : 8;
+   // homopoly values are associated with the first base of a
+   // consecutive run of the same base (i.e., a homopolymer run)
+   // homopoly_ct is the number of reads with a matching run
+   // homopoly_sum is the sum of the lengths of those runs
+   unsigned int  homopoly_ct : 8;
+   uint32  homopoly_sum;
   }  Vote_Tally_t;
 
 typedef  struct
@@ -162,12 +186,13 @@ typedef  struct
    uint32  num_diffs;
 #endif
    unsigned  clear_len : FRAG_LEN_BITS;
+   unsigned  len : FRAG_LEN_BITS;
    unsigned  trim_5p : FRAG_LEN_BITS;
    unsigned  trim_3p : FRAG_LEN_BITS;
    unsigned  left_degree : FRAG_LEN_BITS;
-   unsigned  right_degree : FRAG_LEN_BITS;
    unsigned  shredded : 1;    // True if shredded read
-   unsigned  unused : 1;
+   unsigned  right_degree : FRAG_LEN_BITS;
+   unsigned  is_homopoly_type : 1;
   }  Frag_Info_t;
 
 const int  INNIE = 0;
@@ -184,10 +209,12 @@ typedef  struct
 
 typedef  struct
   {
-   unsigned  id : 31;
-   unsigned  shredded : 1;
+   int32  id;
    unsigned  trim_5p : FRAG_LEN_BITS;
    unsigned  trim_3p : FRAG_LEN_BITS;
+   unsigned  len : FRAG_LEN_BITS;
+   unsigned  shredded : 1;
+   unsigned  is_homopoly_type : 1;
    int  start;              // position of beginning of sequence in  buffer
   }  Frag_List_Entry_t;
 
@@ -223,6 +250,9 @@ typedef enum
 
 //  Static Globals
 
+static int  Asymmetric_Olaps = FALSE;
+  // If set true by the -a option, then only output overlaps
+  // where a_iid < b_iid
 static BinaryOverlapFile  * Binary_OVL_Output_fp = NULL;
   // Pointer for binary overlap outputs
 static double  Char_Match_Value = DEFAULT_CHAR_MATCH_VALUE;
@@ -274,7 +304,7 @@ static char  * gkpStore_Path;
   // Name of directory containing fragment store from which to get fragments
 static int32  Hi_Frag_IID;
   // Internal ID of last fragment in frag store to process
-static GateKeeperStore  *Internal_gkpStore;
+static GateKeeperStore  * Internal_gkpStore;
   // Holds partial frag store to be processed simultanously by
   // multiple threads
 static int  Kmer_Len = DEFAULT_KMER_LEN;
@@ -324,25 +354,62 @@ static int  Vote_Qualify_Len = DEFAULT_VOTE_QUALIFY_LEN;
 static void  Analyze_Alignment
   (int delta [], int delta_len, char * a_part, char * b_part,
    int a_len, int b_len, int a_offset, int sub);
+static void  Analyze_Frag
+    (FILE * fp, int sub);
+static void  Analyze_Diffs
+    (void);
 static int  Binomial_Bound
   (int, double, int, double);
+static int  By_A_Lo
+  (const void * a, const void * b);
 static int  By_B_IID
   (const void * a, const void * b);
+static void  Cast_Confirmation_Vote
+  (Vote_Tally_t * vote);
+static void  Cast_Delete_Vote
+  (Vote_Tally_t * vote);
+static void  Cast_Insert_Vote
+  (Vote_Tally_t * vote, unsigned ch);
+static void  Cast_New_Vote_Char
+  (New_Vote_t * vp, char ch);
+static void  Cast_New_Vote_Code
+  (New_Vote_t * vp, unsigned code);
+static void  Cast_No_Insert_Vote
+  (Vote_Tally_t * vote);
+static void  Cast_Substitution_Vote
+  (Vote_Tally_t * vote, unsigned ch);
 static void  Cast_Vote
   (Vote_Value_t val, int p, int sub);
+static int  Char_Matches
+  (char ch, unsigned code);
 static char  Complement
   (char);
 static void  Compute_Delta
   (int delta [], int * delta_len, int * edit_array [MAX_ERRORS],
    int e, int d, int row);
 static void  Convert_Delta_To_Diff
-    (int delta [], int delta_len, char * a_part, char * b_part,
-     int  a_len, int b_len, Sequence_Diff_t * diff);
+  (int delta [], int delta_len, char * a_part, char * b_part,
+   int  a_len, int b_len, Sequence_Diff_t * diff, int errors,
+   Thread_Work_Area_t * wa);
+static void  Determine_Homopoly_Corrections
+    (FILE * fp, int sub, New_Vote_t * vote, char * seq,
+     char * correct, int len);
+static void  Determine_Standard_Corrections
+    (FILE * fp, int sub, char * correct);
 static void  Display_Alignment
   (char * a, int a_len, char * b, int b_len, int delta [], int delta_ct,
    int capitalize_start);
+static void  Display_Diffs
+  (const Sequence_Diff_t * dp, const char * a, int a_len);
 static void  Display_Frags
   (void);
+static void  Display_Multialignment
+  (FILE * fp, int sub, const char * ref, const char * anno, int ref_len,
+   const Sequence_Diff_t * dp, int dp_ct);
+static void  Display_Partial_Diff
+  (FILE * fp, const Sequence_Diff_t * dp, int lo, int hi, const char * a);
+static void  Eliminate_Correlated_Diff_Olaps
+  (int sub, int frag_len, const short insert_size []);
 static void  Extract_Needed_Frags
   (GateKeeperStore *store, int32 lo_frag, int32 hi_frag,
    Frag_List_t * list, int * next_olap);
@@ -350,32 +417,71 @@ static char  Filter
   (char ch);
 static void  Get_Seeds_From_Store
   (char * path, int32 lo_id, int32 hi_id, Olap_Info_t * * olap, int * num);
+static char  Homopoly_Should_Be
+  (char curr, New_Vote_t * vp, int * ch_ct, int * tot);
 static void  Init_Frag_List
   (Frag_List_t * list);
 static void  Initialize_Globals
   (void);
 static void  Init_Thread_Work_Area
   (Thread_Work_Area_t * wa, int id);
+static char *  Insert_Gaps
+  (char * seq, const short insert_size [], int n);
+static int  Is_Homopoly_Type
+  (fragRecord * fr, GateKeeperStore * gkp);
 static Vote_Value_t  Matching_Vote
   (char ch);
+static void  Modify_For_Inserts
+  (Sequence_Diff_t * mod_dp, Sequence_Diff_t * dp, const short insert_size []);
+static void  Output_Correction_Header
+  (FILE * fp, int sub);
 static void  Output_Corrections
   (FILE * fp);
 static void  Output_Olap
   (Olap_Info_t * olap, int a_lo, int a_hi, int a_len,
    int b_lo, int b_hi, int b_len, int errors);
+static void  Output_Olap_From_Diff
+  (const Sequence_Diff_t * dp, int32 a_iid);
 static void  Parse_Command_Line
   (int argc, char * argv []);
 static void  Process_Olap
   (Olap_Info_t * olap, char * b_seq, unsigned b_len, char * rev_seq, int * rev_id,
-   int shredded, Thread_Work_Area_t * wa);
+   int shredded, int is_homopoly, Thread_Work_Area_t * wa);
 static void  Read_Frags
   (void);
 static void  Read_Seeds
   (void);
 static void  Rev_Complement
   (char * s);
+static void  Set_Diff_Entry
+  (Diff_Entry_t * * de, int * pos, int * size, unsigned len, unsigned action,
+   unsigned ch);
+static void  Set_Homopoly_Votes_From_Diffs
+  (int sub, Sequence_Diff_t * dp);
+static void  Set_Insert_Sizes
+  (short unsigned * insert_size, const Sequence_Diff_t * dp);
+static void  Set_New_Homopoly_Votes
+  (New_Vote_t * vote, const char * seq, int len, const Sequence_Diff_t * dp);
+static void  Set_New_Self_Homopoly_Votes
+  (New_Vote_t * vote, const char * seq, int len);
+static void  Set_New_Standard_Votes
+  (New_Vote_t * vote, int len, const Sequence_Diff_t * dp);
+static void  Set_Self_Homopoly_Votes
+  (int sub, int frag_len);
+static void  Set_Self_Votes
+  (int sub, int frag_len);
+static void  Set_Votes_From_Diffs
+  (int sub, Sequence_Diff_t * dp);
+static void  Show_Corrections
+  (FILE * fp, const char * seq, const char * corr, int len);
 static void  Show_Edit_Array
   (int * * ea, int errs);
+static void  Show_Frag_Votes
+  (FILE * fp, int sub);
+static void  Show_New_Votes
+  (FILE * fp, const char * seq, const New_Vote_t * vp, int n);
+static void  Show_Votes
+  (FILE * fp);
 static void  Stream_Old_Frags
   (void);
 void *  Threaded_Process_Stream
@@ -386,6 +492,8 @@ static void  Tidy_Up
   (void);
 static void  Usage
   (char * command);
+static int  Votes_For
+  (char ch, const New_Vote_t * vp);
 
 
 #endif
