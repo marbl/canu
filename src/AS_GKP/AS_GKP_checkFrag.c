@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.27 2007-06-06 18:47:21 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkFrag.c,v 1.28 2007-08-02 20:31:49 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -221,6 +221,10 @@ Check_FragMesg(FragMesg            *frg_mesg,
     //  Make sure we haven't seen this frag record before... if so
     //  it is a fatal error
     //
+    if (frg_mesg->eaccession == 0) {
+      fprintf(errorFP, "# FRG Error: Fragment has zero or no UID; can't add it.\n");
+      return(GATEKEEPER_FAILURE);
+    }
     if (getGatekeeperUIDtoIID(gkpStore, frg_mesg->eaccession, NULL)) {
       fprintf(errorFP, "# FRG Error: Fragment "F_UID" exists, can't add it again.\n",
               frg_mesg->eaccession);

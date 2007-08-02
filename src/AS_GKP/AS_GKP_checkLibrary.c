@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.12 2007-07-24 06:30:02 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.13 2007-08-02 20:31:49 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -71,6 +71,10 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg) {
     if (iid) {
       fprintf(errorFP, "# LIB Error: Library "F_UID","F_IID" already exists; can't add it again.\n",
               lib_mesg->eaccession, iid);
+      return(GATEKEEPER_FAILURE);
+    }
+    if (lib_mesg->eaccession == 0) {
+      fprintf(errorFP, "# LIB Error: Library has zero or no UID; can't add it.\n");
       return(GATEKEEPER_FAILURE);
     }
 
