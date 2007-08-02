@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CorrectOlapsOVL.c,v 1.20 2007-05-29 10:54:29 brianwalenz Exp $
- * $Revision: 1.20 $
+ * $Id: CorrectOlapsOVL.c,v 1.21 2007-08-02 21:06:20 adelcher Exp $
+ * $Revision: 1.21 $
 */
 
-static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.20 2007-05-29 10:54:29 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.21 2007-08-02 21:06:20 adelcher Exp $";
 
 
 //  System include files
@@ -362,7 +362,8 @@ int  main
    fprintf (stderr, "Starting Correct_Frags ()\n");
    Correct_Frags ();
 
-//   Display_Frags ();
+//**ALD  removed "//"
+   Display_Frags ();
 
    fprintf (stderr, "Starting Read_Olaps ()\n");
    Read_Olaps ();
@@ -438,7 +439,7 @@ static void  Apply_Seq_Corrects
      Correction_t correct [], int n, int fixed)
 
 //  Apply the corrections in  correct [0 .. (n - 1)]  to
-//   sequence (* seq) .  Set  (* hang_adjust)  to values
+//   sequence (* seq) .  Set  (* adjust)  to values
 //  needed to adjust offsets for overlaps because of indels
 //  in corrections.  If  fixed  is true, then apply corrections
 //  in existing sequence space (which is assumed to be large enough);
