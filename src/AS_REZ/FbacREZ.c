@@ -34,7 +34,7 @@
 
  **********************************************************************/
 
-static char fileID[] = "$Id: FbacREZ.c,v 1.15 2007-05-14 09:27:12 brianwalenz Exp $";
+static char fileID[] = "$Id: FbacREZ.c,v 1.16 2007-08-03 20:45:04 brianwalenz Exp $";
 
 #define FBACDEBUG 2
 
@@ -1459,7 +1459,7 @@ int CheckWalkOverlaps( ChunkInsertInfoT *walkedContigs,
 		seq1 = Getchar(consensus1, 0);
 		seq2 = Getchar(consensus2, 0);
 		
-		erate = 2 * CGW_DP_ERATE;
+		erate = 2 * AS_CGW_ERROR_RATE;
 		thresh = CGW_DP_THRESH;
 		minlen = CGW_DP_MINLEN;
 		
@@ -1640,7 +1640,7 @@ int CheckWalkOverlaps( ChunkInsertInfoT *walkedContigs,
 // 		seq1 = Getchar(consensus1, 0);
 // 		seq2 = Getchar(consensus2, 0);
 // 		
-// 		erate = 2 * CGW_DP_ERATE;
+// 		erate = 2 * AS_CGW_ERROR_RATE;
 // 		thresh = CGW_DP_THRESH;
 // 		minlen = CGW_DP_MINLEN;
 // 		
@@ -2422,7 +2422,7 @@ Overlap* OverlapContainingContigs(CIFragT *frag1, CIFragT *frag2, ChunkOrientati
   seq1 = Getchar(consensus1, 0);
   seq2 = Getchar(consensus2, 0);
 
-  erate = CGW_DP_ERATE;
+  erate = AS_CGW_ERROR_RATE;
   thresh = CGW_DP_THRESH;
   minlen = CGW_DP_MINLEN;
 
@@ -3975,7 +3975,7 @@ void CheckScaffoldOverlaps( void )
 		seq1 = Getchar(consensus1, 0);
 		seq2 = Getchar(consensus2, 0);
 		
-		erate = CGW_DP_ERATE;
+		erate = AS_CGW_ERROR_RATE;
 		thresh = CGW_DP_THRESH;
 		minlen = CGW_DP_MINLEN;
 		

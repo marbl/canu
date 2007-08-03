@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.150 2007-06-17 20:59:59 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.151 2007-08-03 20:45:04 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -54,18 +54,9 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.150 2007-06-17 20:59:59 gde
 #undef  ALIGN_TO_CONSENSUS
 #define PRINTUIDS
 
-#define CNS_DP_RANGE                       40
 #define CNS_DP_THRESH                       1e-6
 #define CNS_DP_MINLEN                      30
-#define CNS_DP_THIN_MINLEN                 10
-#if ERR_MODEL_IN_AS_GLOBAL_H > 6
-  #define CNS_TIGHTSEMIBANDWIDTH          100
-  #define CNS_DP_ERATE                    ERR_FRACTION_IN_AS_GLOBAL_H
-#else
-  #define CNS_TIGHTSEMIBANDWIDTH            6
-  #define CNS_DP_ERATE                       .06
-#endif
-#define CNS_LOOSESEMIBANDWIDTH            100
+
 #define CNS_NEG_AHANG_CUTOFF               -5
 #define CNS_MAX_ALIGN_SLIP                 20
 #define INITIAL_NR                        100
@@ -3730,7 +3721,6 @@ int minlen;
 int what;
 } CNS_AlignParams;
 
-CNS_AlignParams LOCAL_DEFAULT_PARAMS = {0,0,0,0,0,CNS_DP_ERATE,CNS_DP_THRESH,CNS_DP_MINLEN,AS_FIND_ALIGN};
 
 Overlap *Compare(char *a, int alen,char *b, int blen,Overlap *(*COMPARE_FUNC)(COMPARE_ARGS), CNS_AlignParams *params) {
   Overlap *O;
@@ -3910,11 +3900,20 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang,
   int *tmp;
   Overlap *O;
   Bead *call;
-  double CNS_ERATE=CNS_DP_ERATE;
+  double CNS_ERATE=AS_CNS_ERROR_RATE;
   CNS_AlignTrick trick=CNS_ALN_NONE;
   int align_to_consensus=0;
   CNS_AlignParams params;
-  
+
+  CNS_AlignParams LOCAL_DEFAULT_PARAMS = {0,0,0,0,0,AS_CNS_ERROR_RATE,CNS_DP_THRESH,CNS_DP_MINLEN,AS_FIND_ALIGN};
+
+  int     CNS_TIGHTSEMIBANDWIDTH = 6;
+  int     CNS_LOOSESEMIBANDWIDTH = 100;
+  int     CNS_DP_THIN_MINLEN     = 10;
+
+  if (AS_CNS_ERROR_RATE > 0.06)
+    CNS_TIGHTSEMIBANDWIDTH = 100;
+
   if (afid < 0  ) { 
     // copy CNS sequence into cnstmpseq, then set a to start
     int ic; 
@@ -3975,7 +3974,7 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang,
   }
   LOCAL_DEFAULT_PARAMS.bandBgn=ahang_input-CNS_TIGHTSEMIBANDWIDTH;
   LOCAL_DEFAULT_PARAMS.bandEnd=ahang_input+CNS_TIGHTSEMIBANDWIDTH;
-  if ( bfrag->type == AS_UNITIG ) LOCAL_DEFAULT_PARAMS.erate = 2*CNS_DP_ERATE;
+  if ( bfrag->type == AS_UNITIG ) LOCAL_DEFAULT_PARAMS.erate = 2*AS_CNS_ERROR_RATE;
 
   // Compare with the default parameters:
 
@@ -3991,7 +3990,7 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang,
   }
   if ( O == NULL && ( strchr(a,'N') != NULL || strchr(b,'N') != NULL || bfrag->type==AS_UNITIG )) {
     // there are N's in the sequence, or they are consensus sequences, loosen the erate to compensate
-    params.erate=2*CNS_DP_ERATE;
+    params.erate=2*AS_CNS_ERROR_RATE;
     O = Compare(a,alen,b,blen,COMPARE_FUNC,&params);
     if (O!=NULL) trick=CNS_ALN_HIGH_ERATE;
       else params = LOCAL_DEFAULT_PARAMS;
@@ -4001,7 +4000,7 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang,
     // don't do this for normal unitig or contig alignments, which should be accurately placed
     params.bandBgn=ahang_input-2*CNS_LOOSESEMIBANDWIDTH;
     params.bandEnd=ahang_input+2*CNS_LOOSESEMIBANDWIDTH;
-    params.erate =2*CNS_DP_ERATE;
+    params.erate =2*AS_CNS_ERROR_RATE;
     O = Compare(a,alen,b,blen,COMPARE_FUNC,&params);
     if (O!=NULL) trick=CNS_ALN_WIDE;
       else params=LOCAL_DEFAULT_PARAMS;

@@ -34,7 +34,7 @@
 *
 *************************************************/
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.27 2007-07-23 09:44:59 brianwalenz Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.28 2007-08-03 20:45:04 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -2513,7 +2513,7 @@ static void  Check_Olaps
              olap = OverlapSequences
                         (j_seq, i_seq, orient, min_ahang - (int) (3.0 * allowed_error),
                          max_ahang + (int) (3.0 * allowed_error),
-                         CGW_DP_ERATE, CGW_DP_THRESH, CGW_DP_MINLEN,
+                         AS_CGW_ERROR_RATE, CGW_DP_THRESH, CGW_DP_MINLEN,
                          AS_FIND_ALIGN);			 
 #else
              olap = OverlapChunks                 // debug code does NOT handle suspicious
@@ -2522,7 +2522,7 @@ static void  Check_Olaps
                          orient,
                          (int) (how_much - allowed_error),
                          (int) (how_much + allowed_error),
-                         CGW_DP_ERATE, FALSE);
+                         AS_CGW_ERROR_RATE, FALSE);
 
              olap_found = (olap . overlap > 0);
 #endif
@@ -2590,7 +2590,7 @@ if  (olap_found)
                  place [i] . id, place [j] . id,
                  new_orient,
                  0, MAX (i_len, j_len),
-                 CGW_DP_ERATE, FALSE);
+                 AS_CGW_ERROR_RATE, FALSE);
 
      rev_olap_found = (rev_olap . overlap > 0);
      fprintf (stderr, "  Didn't find expected overlap between %d and %d",
@@ -7192,7 +7192,7 @@ static Overlap *  Get_Chunk_Overlap
             (* b_seq) = Get_Contig_Sequence (b -> chunk_id);
         result = OverlapSequences
                     ((* a_seq), (* b_seq), orient, min_ahang, max_ahang,
-                     CGW_DP_ERATE, CGW_DP_THRESH, CGW_DP_MINLEN,
+                     AS_CGW_ERROR_RATE, CGW_DP_THRESH, CGW_DP_MINLEN,
                      AS_FIND_ALIGN);
 #if  SHOW_OLAP_DETAILS
         fprintf (fp, "  min_ahang = %4d  max_ahang = %4d  orient = %s\n",
@@ -10224,14 +10224,14 @@ static void  Restore_Best_Rocks
                               (ScaffoldGraph -> RezGraph,
                                this_gap -> left_cid, best_chunk -> chunk_id,
                                orient, 0, how_much,
-                               CGW_DP_ERATE, FALSE);
+                               AS_CGW_ERROR_RATE, FALSE);
 #else
 //  Replace with call to Mike's function.
 
                    scaff_seq = Get_Contig_Sequence (this_gap -> left_cid);
                    olap = OverlapSequences
                               (scaff_seq, rock_seq, orient, min_ahang, max_ahang,
-                               CGW_DP_ERATE, CGW_DP_THRESH, CGW_DP_MINLEN,
+                               AS_CGW_ERROR_RATE, CGW_DP_THRESH, CGW_DP_MINLEN,
                                AS_FIND_ALIGN);
 #if  VERBOSE
 fprintf (stderr, "Restore_Best olapping rock %d with left scaff_contig %d\n"
@@ -10309,7 +10309,7 @@ if  (olap == NULL)
                    scaff_seq = Get_Contig_Sequence (this_gap -> right_cid);
                    olap = OverlapSequences
                               (rock_seq, scaff_seq, orient, min_ahang, max_ahang,
-                               CGW_DP_ERATE, CGW_DP_THRESH, CGW_DP_MINLEN,
+                               AS_CGW_ERROR_RATE, CGW_DP_THRESH, CGW_DP_MINLEN,
                                AS_FIND_ALIGN);
 #if  VERBOSE
 fprintf (stderr, "Restore_Best olapping rock %d with right scaff_contig %d\n"

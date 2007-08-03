@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: testChunkOverlap.c,v 1.6 2007-02-18 14:04:48 brianwalenz Exp $	 */
+/* 	$Id: testChunkOverlap.c,v 1.7 2007-08-03 20:45:03 brianwalenz Exp $	 */
 
 #include <assert.h>
 #include <stdio.h>
@@ -58,13 +58,9 @@ void ComputeOverlap(CDS_CID_t cidA, char *consensusA,
           (!strcmp(AFR.sequence, BFR.sequence)?"EQUAL":"DIFFERENT"),
           beg, end, *AFR.sequence, *BFR.sequence);
 
-#define CGW_DP_ERATE .10
-#define CGW_DP_THRESH 1e-6
-#define CGW_DP_MINLEN 20
-
   O = DP_Compare_AS(&AFR,&BFR, 
                     beg, end, FALSE,
-                    CGW_DP_ERATE,CGW_DP_THRESH, CGW_DP_MINLEN,
+                    0.10, 1e-6, 20,
 #if 0
                     AS_FIND_OVERLAP,  // Slower but more accurate?
 #else

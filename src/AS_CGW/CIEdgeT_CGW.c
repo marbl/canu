@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIEdgeT_CGW.c,v 1.11 2007-05-19 04:46:57 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIEdgeT_CGW.c,v 1.12 2007-08-03 20:45:03 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -350,7 +350,7 @@ int CheckImplicitOverlaps_(GraphCGW_T *graph, CDS_CID_t cid, int end){
                                sourceTargetOrient, 
                                minOverlap,
                                maxOverlap,
-                               CGW_DP_ERATE,
+                               AS_CGW_ERROR_RATE,
                                TRUE);
           
           if(olap.overlap > 0){

@@ -22,19 +22,22 @@
 ###########################################################################
 #
 
-## Enable verbose mode in c_make.as
+LOCAL_WORK = $(shell cd ..; pwd)
 
-## Make all is equivalent to 'make objs libs progs all' in each subdir
+SOURCES   = AS_global.c
+OBJECTS   = AS_global.o
+LIBRARIES = libCA.a
+
+# Include for AS project rules
+include $(LOCAL_WORK)/src/c_make.as
+
 all: objs libs progs version
 	@ $(dosubdirs)
 
 objs libs progs install clean tester regression:
 	@ $(dosubdirs)
 
-
-# Include for AS project rules
-LOCAL_WORK = $(shell cd ..; pwd)
-include $(LOCAL_WORK)/src/c_make.as
+libCA.a:     $(OBJECTS)
 
 .PHONY: version
 version:

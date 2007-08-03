@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: eCR.c,v 1.23 2007-07-19 09:50:33 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: eCR.c,v 1.24 2007-08-03 20:45:03 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -316,7 +316,7 @@ main(int argc, char **argv) {
   debug.examineGapFP = stderr;
   debug.diagnosticFP = stderr;
 
-
+  argc = AS_configure(argc, argv);
 
   // save off whatever the rest of the world has for default values
   // for Local_Overlap_AS_forCNS

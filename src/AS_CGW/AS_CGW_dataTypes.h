@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_CGW_dataTypes.h,v 1.10 2007-05-14 09:27:10 brianwalenz Exp $	 */
+/* 	$Id: AS_CGW_dataTypes.h,v 1.11 2007-08-03 20:45:03 brianwalenz Exp $	 */
 #ifndef AS_CGW_DATATYPES_H
 #define AS_CGW_DATATYPES_H
 
@@ -26,9 +26,6 @@
 #include <assert.h>
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
-#ifdef NEVER
-#include "AS_UTL_histo.h"
-#endif
 #include "math.h"
 
 /*** Constants ***/
@@ -37,14 +34,8 @@
 #define CGW_MIN_READS_IN_UNIQUE  2
 
 #define CGW_FUDGE_FACTOR (0.026)
-#if ERR_MODEL_IN_AS_GLOBAL_H > 10
-#define CGW_DP_ERATE ERR_FRACTION_IN_AS_GLOBAL_H
-#else
-#define CGW_DP_ERATE 0.10
-#endif
 #define CGW_DP_THRESH 1e-6
 #define CGW_DP_MINLEN 20
-#define CGW_DP_TRY_HARDER_MINLEN 20
 #define CGW_DP_DESPERATION_MINLEN 10
 
 // Due to the FBAC fragments, we get some pathologically short U-Unitigs

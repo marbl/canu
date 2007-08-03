@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.21 2007-05-19 04:46:57 brianwalenz Exp $";
+static char CM_ID[] = "$Id: LeastSquaresGaps_CGW.c,v 1.22 2007-08-03 20:45:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -286,7 +286,7 @@ EdgeCGW_T *FindOverlapEdgeChiSquare(ScaffoldGraphT *graph,
       olap = OverlapChunks(graph->RezGraph,
                            sourceCI->id, targetId,    // handles suspicious
                            edgeOrient, minOverlap, maxOverlap,
-                           CGW_DP_ERATE, FALSE);
+                           AS_CGW_ERROR_RATE, FALSE);
       effectiveOlap = -olap.overlap;
       if(olap.suspicious){
         fprintf(stderr,"* FOEXS: SUSPICIOUS Overlap found! Looked for (" F_CID "," F_CID ",%c)[" F_COORD "," F_COORD "] found (" F_CID "," F_CID ",%c) " F_COORD "\n",

@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.52 2007-06-13 02:32:34 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.53 2007-08-03 20:45:03 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -342,6 +342,8 @@ int main (int argc, char *argv[])
     NumGapsInContigs = 0;
     NumAAMismatches = 0;
     NumUnitigRetrySuccess = 0;
+
+    argc = AS_configure(argc, argv);
 
     while ( !errflg && 
            ( (ch = getopt(argc, argv, 
@@ -834,7 +836,7 @@ int main (int argc, char *argv[])
       VA_TYPE(char) *quality=CreateVA_char(200000);
       time_t t;
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.52 $ processing. Started %s\n",
+      fprintf(stderr,"# Consensus $Revision: 1.53 $ processing. Started %s\n",
         ctime(&t));
       InitializeAlphTable();
       if ( ! align_ium && USE_SDB && extract > -1 ) 
@@ -1184,7 +1186,7 @@ int main (int argc, char *argv[])
             {
               AuditLine auditLine;
               AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                                 "Consensus", "$Revision: 1.52 $","(empty)");
+                                 "Consensus", "$Revision: 1.53 $","(empty)");
             }
 #endif
               VersionStampADT(adt_mesg,argc,argv);
@@ -1208,7 +1210,7 @@ int main (int argc, char *argv[])
       }
 
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.52 $ Finished %s\n",ctime(&t));
+      fprintf(stderr,"# Consensus $Revision: 1.53 $ Finished %s\n",ctime(&t));
       if (printcns) 
       {
         int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 

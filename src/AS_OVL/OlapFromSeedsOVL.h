@@ -33,8 +33,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.h,v 1.6 2007-08-02 21:23:52 adelcher Exp $
- * $Revision: 1.6 $
+ * $Id: OlapFromSeedsOVL.h,v 1.7 2007-08-03 20:45:04 brianwalenz Exp $
+ * $Revision: 1.7 $
 */
 
 
@@ -98,10 +98,6 @@
 #define  FRAGS_PER_BATCH             100000
   //  Number of old fragments to read into memory-based fragment
   //  store at a time for processing
-#define  MAX_ERROR_RATE              AS_GUIDE_ERROR_RATE
-//**ALD  Use this value for testing homopolymer errors
-//#define  MAX_ERROR_RATE              0.120
-  //  The largest error allowed in overlaps
 #define  MAX_FRAG_LEN                2048
   //  The longest fragment allowed
 #define  MAX_DEGREE                  32767
@@ -236,10 +232,10 @@ typedef  struct
    Frag_List_t  * frag_list;
    char  rev_seq [AS_READ_MAX_LEN + 1];
    int  rev_id;
-   int  * edit_array [MAX_ERRORS];
-   int  edit_space [(MAX_ERRORS + 4) * MAX_ERRORS];
+    int  ** edit_array;
+   int  * edit_space;
 #if USE_NEW_STUFF
-   Diff_Entry_t  diff_list [MAX_ERRORS];
+   Diff_Entry_t  diff_list [AS_READ_MAX_LEN];  //  only MAX_ERRORS needed
 #endif
   }  Thread_Work_Area_t;
 
@@ -255,9 +251,10 @@ static int  Asymmetric_Olaps = FALSE;
   // where a_iid < b_iid
 static BinaryOverlapFile  * Binary_OVL_Output_fp = NULL;
   // Pointer for binary overlap outputs
-static double  Char_Match_Value = DEFAULT_CHAR_MATCH_VALUE;
+static double  Char_Match_Value = 0.0;
   // Positive score for matching characters in computing alignments
   // Score for mismatching characters is (this value) - 1.0
+  // This is set at runtime.
 static char  * Correction_Filename = DEFAULT_CORRECTION_FILENAME;
   // Name of file to which correction information is sent
 static int  Degree_Threshold = DEFAULT_DEGREE_THRESHOLD;
@@ -269,12 +266,12 @@ static int  Doing_Partial_Overlaps = FALSE;
   // If set true by the G option (G for Granger)
   // then allow overlaps that do not extend to the end
   // of either read.
-static int  * Edit_Array [MAX_ERRORS];
+static int  * Edit_Array [AS_READ_MAX_LEN];  //  only MAX_ERRORS needed
   // Use for alignment calculation.  Points into  Edit_Space .
-static int  Edit_Match_Limit [MAX_ERRORS] = {0};
+static int  Edit_Match_Limit [AS_READ_MAX_LEN] = {0};  //  only MAX_ERRORS needed
   // This array [e] is the minimum value of  Edit_Array [e] [d]
   // to be worth pursuing in edit-distance computations between guides
-static int  Edit_Space [(MAX_ERRORS + 4) * MAX_ERRORS];
+static int  Edit_Space [(AS_READ_MAX_LEN + 4) * AS_READ_MAX_LEN];  // only (MAX_ERRORS + 4) * MAX_ERRORS needed
   // Memory used by alignment calculation
 static int  End_Exclude_Len = DEFAULT_END_EXCLUDE_LEN;
   // Length of ends of exact-match regions not used in preventing
@@ -283,8 +280,9 @@ static int  Error_Bound [MAX_FRAG_LEN + 1];
   // This array [i]  is the maximum number of errors allowed
   // in a match between sequences of length  i , which is
   // i * MAXERROR_RATE .
-static double  Error_Rate = MAX_ERROR_RATE;
+static double  Error_Rate = 0.0;
   // Highest allowed error rate used in alignments
+  // This is set at run time.
 static int  Extend_Fragments = FALSE;
   // If true, try to extend clear range of fragments.
   // Set by  -e  option
@@ -385,7 +383,7 @@ static int  Char_Matches
 static char  Complement
   (char);
 static void  Compute_Delta
-  (int delta [], int * delta_len, int * edit_array [MAX_ERRORS],
+  (int delta [], int * delta_len, int ** edit_array,
    int e, int d, int row);
 static void  Convert_Delta_To_Diff
   (int delta [], int delta_len, char * a_part, char * b_part,

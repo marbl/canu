@@ -366,9 +366,9 @@ examineGap(ContigT *lcontig, int lFragIid,
 	
     beg    = -strlen (rcompBuffer);
     end    = strlen (lcompBuffer);
-    erate  = CGW_DP_ERATE + 0.02;  //  Historically, erate == 0.12.  This now will change for ERR_MODEL_IN_AS_GLOBAL_H > 0.10.
+    erate  = AS_CGW_ERROR_RATE + 0.02;  //  Historically, erate == 0.12.
     thresh = CGW_DP_THRESH;
-    minlen = CGW_DP_MINLEN + 10;   //  Historically, minlen == 30.  Not sure if we should hardcode 30 or offset from CGW_DP_MINLEN.
+    minlen = CGW_DP_MINLEN + 10;        //  Historically, minlen == 30.  Not sure if we should hardcode 30 or offset from CGW_DP_MINLEN.
     what   = AS_FIND_LOCAL_ALIGN;
 
     if (debug.examineGapLV > 0)

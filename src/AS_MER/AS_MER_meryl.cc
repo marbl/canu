@@ -625,7 +625,7 @@ sortAndOutput(char   *outfilename,
 
 int
 main(int argc, char **argv) {
-  uint32            merSize          = KMER_LEN_IN_AS_GLOBAL_H;
+  uint32            merSize          = 0;
   char             *fragStore        = 0L;
   char             *outputFile       = 0L;
   uint64            minimumCount     = 0;
@@ -684,7 +684,7 @@ main(int argc, char **argv) {
           outputFile = argv[arg];
           break;
         case 'V':
-          fprintf(stdout, "version: CA $Id: AS_MER_meryl.cc,v 1.9 2007-07-23 09:07:54 brianwalenz Exp $\n");
+          fprintf(stdout, "version: CA $Id: AS_MER_meryl.cc,v 1.10 2007-08-03 20:45:04 brianwalenz Exp $\n");
           exit(0);
           break;
         default:
@@ -701,6 +701,11 @@ main(int argc, char **argv) {
 
   if (outputFile == 0L) {
     fprintf(stderr, "ERROR - no output file specified.\n");
+    exit(1);
+  }
+
+  if (merSize == 0) {
+    fprintf(stderr, "ERROR - no merSize specified.\n");
     exit(1);
   }
 

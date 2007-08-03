@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: testOverlapContigs.c,v 1.13 2007-04-16 17:36:32 brianwalenz Exp $";
+static char CM_ID[] = "$Id: testOverlapContigs.c,v 1.14 2007-08-03 20:45:03 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -215,7 +215,7 @@ Overlap* OverlapContigs_test(NodeCGW_T *contig1, NodeCGW_T *contig2,
     fprintf( GlobalData->stderrc, "orientation is %c\n", (char) *overlapOrientation);
   */
   
-  erate = CGW_DP_ERATE;
+  erate = AS_CGW_ERROR_RATE;
   thresh = CGW_DP_THRESH;
   minlen = CGW_DP_MINLEN;
 
@@ -324,7 +324,7 @@ int straight_test(int waste)
   // Complement_Seq( seq0 );
   // Complement_Seq( seq1 );
 
-  erate = CGW_DP_ERATE;
+  erate = AS_CGW_ERROR_RATE;
   thresh = CGW_DP_THRESH;
   minlen = CGW_DP_MINLEN;
   

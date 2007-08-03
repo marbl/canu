@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: SharedOVL.h,v 1.4 2007-08-02 21:23:52 adelcher Exp $
- * $Revision: 1.4 $
+ * $Id: SharedOVL.h,v 1.5 2007-08-03 20:45:04 brianwalenz Exp $
+ * $Revision: 1.5 $
 */
 
 
@@ -48,7 +48,7 @@
 
 // Constants
 
-#define  DEFAULT_CHAR_MATCH_VALUE  ERR_FRACTION_IN_AS_GLOBAL_H
+#define  DEFAULT_CHAR_MATCH_VALUE  AS_OVL_ERROR_RATE
   //  Default value to add for a match in scoring alignments.
   //  Corresponding error value is this value minus 1.0
   //  Using integer values didn't make alignments faster on DEC Alphas.
@@ -70,14 +70,10 @@
 #define  MIN_BRANCH_END_DIST      20
   // Branch points must be at least this many bases from the
   // end of the fragment to be reported
-#if ERR_MODEL_IN_AS_GLOBAL_H > 6
-  #define  MIN_BRANCH_TAIL_SLOPE  1.0
-#else
-  #define  MIN_BRANCH_TAIL_SLOPE  0.20
-#endif
+#define  MIN_BRANCH_TAIL_SLOPE  ((AS_OVL_ERROR_RATE > 0.06) ? 1.0 : 0.20)
   // Branch point tails must fall off from the max by at least this rate
-#define  MAX_ERRORS               (1 + (int) (MAX_ERROR_RATE * MAX_FRAG_LEN))
-  // Most errors in any edit distance computation
+#define  MAX_ERRORS               (1 + (int) (AS_OVL_ERROR_RATE * MAX_FRAG_LEN))
+  // Most errors in any edit distance computation // 0.40
 #define  SEED_LEN_BITS            16
   //  Number of bits to store seed value (which has something to do
   //  with kmer occurrence frequency of seed) in  Sequence_Diff_t

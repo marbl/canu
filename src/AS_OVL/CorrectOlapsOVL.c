@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CorrectOlapsOVL.c,v 1.22 2007-08-03 14:47:53 brianwalenz Exp $
- * $Revision: 1.22 $
+ * $Id: CorrectOlapsOVL.c,v 1.23 2007-08-03 20:45:04 brianwalenz Exp $
+ * $Revision: 1.23 $
 */
 
-static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.22 2007-08-03 14:47:53 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.23 2007-08-03 20:45:04 brianwalenz Exp $";
 
 
 //  System include files
@@ -94,8 +94,9 @@ static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.22 2007-08-03 14:47:53 brianwa
     //  Longest name allowed for a file in the overlap store
 #define  MAX_FRAG_LEN                2048
     //  The longest fragment allowed
-#define  MAX_ERRORS                  (1 + (int) (MAX_ERROR_RATE * MAX_FRAG_LEN))
-    //  Most errors in any edit distance computation
+#define  MAX_ERRORS                  (1 + (int) (AS_OVL_ERROR_RATE * MAX_FRAG_LEN))
+    //  Most errors in any edit distance computation // 0.40
+    //  KNOWN ONLY AT RUN TIME
 #define  MAX_SOURCE_LENGTH           4096
     //  Most bytes allowed in fragment source comment string
 #define  EXPANSION_FACTOR            1.4
@@ -171,13 +172,16 @@ static char  * DNA_String = NULL;
     // Set by  -d  option
 static FILE  * Dump_Olap_fp = NULL;
     // File to show true vs repeat-induced olaps before and after correction
-static int  * Edit_Array [MAX_ERRORS];
+static int  * Edit_Array [AS_FRAG_MAX_LEN];
     // Use for alignment calculation.  Points into  Edit_Space .
-static int  Edit_Match_Limit [MAX_ERRORS] = {0};
+    // (only MAX_ERRORS needed)
+static int  Edit_Match_Limit [AS_FRAG_MAX_LEN] = {0};
     // This array [e] is the minimum value of  Edit_Array [e] [d]
     // to be worth pursuing in edit-distance computations between guides
-static int  Edit_Space [(MAX_ERRORS + 4) * MAX_ERRORS];
+    // (only MAX_ERRORS needed)
+static int  Edit_Space [(AS_FRAG_MAX_LEN + 4) * AS_FRAG_MAX_LEN];
     // Memory used by alignment calculation
+    // (only (MAX_ERRORS + 4) * MAX_ERRORS needed)
 static int  End_Exclude_Len = DEFAULT_END_EXCLUDE_LEN;
     // Length of ends of exact-match regions not used in preventing
     // sequence correction
@@ -317,7 +321,7 @@ static void  Parse_Command_Line
 static int  Prefix_Edit_Dist
     (char A [], int m, char T [], int n, int Error_Limit,
      int * A_End, int * T_End, int * Match_To_End,
-     int Delta [MAX_ERRORS], int * Delta_Len);
+     int * Delta, int * Delta_Len);
 static void  Process_Olap
     (Olap_Info_t * olap, char * b_seq, Adjust_t forw_adj [], int adj_ct,
      int frag_len);
@@ -334,7 +338,7 @@ static void  Rev_Complement
 static int  Rev_Prefix_Edit_Dist
     (char A [], int m, char T [], int n, int Error_Limit,
      int * A_End, int * T_End, int * Match_To_End,
-     int Delta [MAX_ERRORS], int * Delta_Len);
+     int * Delta, int * Delta_Len);
 static int  Sign
     (int a);
 static int  Union
@@ -704,7 +708,7 @@ static int  Compare_Frags
 //  Display alignment between strings  a  and  b .
 
   {
-   int delta [MAX_ERRORS];
+   int delta [AS_FRAG_MAX_LEN];  //  only MAX_ERRORS needed
    int  a_end, b_end, delta_len, olap_len, match_to_end;
    int  a_len, b_len, errors;
 
@@ -1681,6 +1685,8 @@ static void  Parse_Command_Line
    int  ch, errflg = FALSE;
    char  * p;
 
+   argc = AS_configure(argc, argv);
+
    optarg = NULL;
 
    while  (! errflg
@@ -1786,7 +1792,7 @@ static void  Parse_Command_Line
 static int  Prefix_Edit_Dist
     (char A [], int m, char T [], int n, int Error_Limit,
      int * A_End, int * T_End, int * Match_To_End,
-     int Delta [MAX_ERRORS], int * Delta_Len)
+     int * Delta, int * Delta_Len)
 
 //  Return the minimum number of changes (inserts, deletes, replacements)
 //  needed to match string  A [0 .. (m-1)]  with a prefix of string
@@ -1801,7 +1807,7 @@ static int  Prefix_Edit_Dist
 //  a branch point.
 
   {
-   int  Delta_Stack [MAX_ERRORS];
+   int  Delta_Stack [AS_FRAG_MAX_LEN];  //  only MAX_ERRORS needed
    double  Score, Max_Score;
    int  Max_Score_Len, Max_Score_Best_d, Max_Score_Best_e;
    int  Best_d, Best_e, From, Last, Longest, Max, Row;
@@ -1987,7 +1993,7 @@ static void  Process_Olap
    char  * a_part, * b_part, * a_seq;
    double  denom, quality;
    int  a_part_len, b_part_len, a_end, b_end, olap_len;
-   int  match_to_end, delta [MAX_ERRORS], delta_len, errors;
+   int  match_to_end, delta [AS_FRAG_MAX_LEN], delta_len, errors;  //  only MAX_ERRORS needed
    int  sub;
 
    if  (Verbose_Level > 0)
@@ -2480,7 +2486,7 @@ static void  Rev_Complement
 static int  Rev_Prefix_Edit_Dist
     (char A [], int m, char T [], int n, int Error_Limit,
      int * A_End, int * T_End, int * Match_To_End,
-     int Delta [MAX_ERRORS], int * Delta_Len)
+     int * Delta, int * Delta_Len)
 
 //  Return the minimum number of changes (inserts, deletes, replacements)
 //  needed to match string  A [0 .. -(m-1)]  with a prefix of string
@@ -2496,7 +2502,7 @@ static int  Rev_Prefix_Edit_Dist
 //  a branch point.
 
   {
-   int  Delta_Stack [MAX_ERRORS];
+   int  Delta_Stack [AS_FRAG_MAX_LEN];  //  only MAX_ERRORS needed
    double  Score, Max_Score;
    int  Max_Score_Len, Max_Score_Best_d, Max_Score_Best_e;
    int  Best_d, Best_e, From, Last, Longest, Max, Row;

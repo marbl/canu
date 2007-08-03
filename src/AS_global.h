@@ -18,11 +18,12 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_global.h,v 1.18 2007-07-25 13:26:29 brianwalenz Exp $	 */
 
-/* This is the global include file that all C files in the AS subsystem should
-   include.
-*/
+//  $Id: AS_global.h,v 1.19 2007-08-03 20:45:03 brianwalenz Exp $
+
+//  This is the global include file that all C files in the AS
+//  subsystem should include.
+
 #ifndef AS_GLOBAL_H
 #define AS_GLOBAL_H
 
@@ -295,14 +296,6 @@ typedef int32  CDS_COORD_t;
 
 
 
-// Constants that SHOULD be included
-#ifndef  EXIT_SUCCESS
-#define  EXIT_SUCCESS  0
-#endif
-#ifndef  EXIT_FAILURE
-#define  EXIT_FAILURE  -1
-#endif
-
 #define CGB_INVALID_CUTOFF           -12.0f
 // A threshold value for Gene^s coverage statistic. Values BELOW this value
 // have never been known to associated with unitigs with fragments that ARE
@@ -320,24 +313,21 @@ typedef int32  CDS_COORD_t;
 // calling an overlap definately a tandem repeat.
 
 
-#define ERR_MODEL_IN_AS_GLOBAL_H 6
-#define ERR_FRACTION_IN_AS_GLOBAL_H (ERR_MODEL_IN_AS_GLOBAL_H/100.)
+#define AS_FRAG_MAX_LEN 2048
+#define AS_FRAG_MIN_LEN 64
 
-#define AS_READ_ERROR_RATE         ERR_FRACTION_IN_AS_GLOBAL_H
-//  Errors per base allowed in matching regions between frag reads
+#define AS_READ_MAX_LEN AS_FRAG_MAX_LEN
+#define AS_READ_MIN_LEN AS_FRAG_MIN_LEN
 
-#define AS_GUIDE_ERROR_RATE        ERR_FRACTION_IN_AS_GLOBAL_H
-//  Errors per base allowed in matching regions involving BAC ends
-//  or other guides.
+extern double AS_OVL_ERROR_RATE;
+extern double AS_CGW_ERROR_RATE;  //  former CGW_DP_ERATE
+extern double AS_CNS_ERROR_RATE;  //  former CNS_DP_ERATE
+extern double AS_MAX_ERROR_RATE;
 
-#define  KMER_LEN_IN_AS_GLOBAL_H 22
-//  The length of a mer, used in AS_OVL_overlap.h and AS_MER_meryl.cc
+#define AS_READ_ERROR_RATE         AS_OVL_ERROR_RATE
+#define AS_GUIDE_ERROR_RATE        AS_OVL_ERROR_RATE
 
-#if ERR_MODEL_IN_AS_GLOBAL_H > 6
-  #undef   KMER_LEN_IN_AS_GLOBAL_H
-  #define  KMER_LEN_IN_AS_GLOBAL_H 14
-#endif
-
+int AS_configure(int argc, char **argv);
 
 
 
@@ -359,16 +349,6 @@ typedef int32  CDS_COORD_t;
 // A convenient assert for testing whether ptrs are null
 // without bothering lint
 #define AssertPtr(ptr) (assert((ptr) != NULL))
-
-
-
-//  Really for lack of a better location in this file....
-//
-#define AS_FRAG_MAX_LEN (2048)
-#define AS_FRAG_MIN_LEN (64)
-
-#define AS_READ_MAX_LEN AS_FRAG_MAX_LEN
-#define AS_READ_MIN_LEN AS_FRAG_MIN_LEN
 
 
 #endif

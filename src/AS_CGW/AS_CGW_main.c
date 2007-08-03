@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.41 2007-06-22 18:32:53 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.42 2007-08-03 20:45:03 brianwalenz Exp $";
 
 
 static const char *usage = 
@@ -227,6 +227,8 @@ int main(int argc, char *argv[]){
   GlobalData  = data = CreateGlobal_CGW();
   GlobalData->stderrc = stderr;
   GlobalData->aligner=DP_Compare;
+
+  argc = AS_configure(argc, argv);
 
   { /* Parse the argument list using "man 3 getopt". */ 
     int ch,errflg=0;

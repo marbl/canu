@@ -109,7 +109,7 @@ cat-erates:  CatEratesOVL.o AS_OVL_delcher.o $(LIBS)
 
 combine-mums:  CombineMUMsOVL.o AS_OVL_delcher.o $(LIBS)
 
-correct-frags:  FragCorrectOVL.o AS_OVL_delcher.o $(LIBS) $(PTHREADS_LIBS)
+correct-frags:  FragCorrectOVL.o AS_OVL_delcher.o $(LIBS)
 
 correct-olaps:  CorrectOlapsOVL.o AS_OVL_delcher.o $(LIBS)
 
@@ -123,7 +123,7 @@ hit-limit:  Hit_Limit_OVL.o
 
 olapcoverage:  olapcoverage.o
 
-olap-from-seeds:  OlapFromSeedsOVL.o AS_OVL_delcher.o $(LIBS) $(PTHREADS_LIBS)
+olap-from-seeds:  OlapFromSeedsOVL.o AS_OVL_delcher.o $(LIBS)
 
 fgbovlhits:  fgbovlhits.o
 
@@ -139,6 +139,6 @@ update-erates:  UpdateEratesOVL.o AS_OVL_delcher.o $(LIBS)
 
 force-erates:  ForceEratesOVL.o AS_OVL_delcher.o $(LIBS)
 
-overlap: $(AS_OVL_OBJS) $(AS_OVL_CMN_OBJS) $(LIBS) $(PTHREADS_LIBS)
+overlap: $(AS_OVL_OBJS) $(AS_OVL_CMN_OBJS) $(LIBS)
 
-overlap_ca: $(AS_OVL_CA_OBJS) $(AS_OVL_CMN_OBJS) $(LIBS) $(PTHREADS_LIBS)
+overlap_ca: $(AS_OVL_CA_OBJS) $(AS_OVL_CMN_OBJS) $(LIBS)

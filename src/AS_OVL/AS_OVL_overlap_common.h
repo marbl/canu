@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.36 2007-08-01 17:29:26 brianwalenz Exp $
- * $Revision: 1.36 $
+ * $Id: AS_OVL_overlap_common.h,v 1.37 2007-08-03 20:45:04 brianwalenz Exp $
+ * $Revision: 1.37 $
 */
 
 
@@ -93,7 +93,7 @@ typedef  struct Olap_Info
   {
    int  s_lo, s_hi, t_lo, t_hi;
    double  quality;
-   int  delta [MAX_ERRORS];
+   int  delta [AS_FRAG_MAX_LEN];  //  needs only MAX_ERRORS
    int  delta_ct;
    int  s_left_boundary, s_right_boundary;
    int  t_left_boundary, t_right_boundary;
@@ -168,10 +168,11 @@ static int64  Bad_Short_Window_Ct = 0;
 static int64  Bad_Long_Window_Ct = 0;
     //  The number of overlaps rejected because of too many errors in
     //  a long window
-static double  Branch_Match_Value = DEFAULT_BRANCH_MATCH_VAL;
-static double  Branch_Error_Value = DEFAULT_BRANCH_MATCH_VAL - 1.0;
+static double  Branch_Match_Value = 0.0;
+static double  Branch_Error_Value = 0.0;
     //  Scores of matches and mismatches in alignments.  Alignment
     //  ends at maximum score.
+    //  THESE VALUES CAN BE SET ONLY AT RUN TIME (search for them below)
 static char  * Data = NULL;
     //  Stores sequence data of fragments in hash table
 static char  * Quality_Data = NULL;
@@ -240,11 +241,7 @@ static size_t  Used_Data_Len = 0;
     //  Number of bytes of Data currently occupied, including
     //  regular strings and extra kmer screen strings
 
-#if ERR_MODEL_IN_AS_GLOBAL_H > 6
-static int  Use_Hopeless_Check = FALSE;
-#else
 static int  Use_Hopeless_Check = TRUE;
-#endif
     //  Determines whether check for absence of kmer matches
     //  at the end of a read is used to abort the overlap before
     //  the extension from a single kmer match is attempted.
@@ -253,12 +250,14 @@ static int  Use_Window_Filter = FALSE;
     //  Determines whether check for a window containing too many
     //  errors is used to disqualify overlaps.
 
-static int  Read_Edit_Match_Limit [MAX_ERRORS] = {0};
+static int  Read_Edit_Match_Limit [AS_FRAG_MAX_LEN] = {0};
     //  This array [e] is the minimum value of  Edit_Array [e] [d]
     //  to be worth pursuing in edit-distance computations between reads
-static int  Guide_Edit_Match_Limit [MAX_ERRORS] = {0};
+    //  (only MAX_ERRORS needed)
+static int  Guide_Edit_Match_Limit [AS_FRAG_MAX_LEN] = {0};
     //  This array [e] is the minimum value of  Edit_Array [e] [d]
     //  to be worth pursuing in edit-distance computations between guides
+    //  (only MAX_ERRORS needed)
 static int  Read_Error_Bound [AS_READ_MAX_LEN + 1];
     //  This array [i]  is the maximum number of errors allowed
     //  in a match between reads of length  i , which is
@@ -321,7 +320,7 @@ Align_Entry_t  * Align_P;
 /* External Global Definitions */
 /*************************************************************************/
 
-int64  Kmer_Len = KMER_LEN_IN_AS_GLOBAL_H;
+int64  Kmer_Len = 0;
 int64  HSF1     = 666;
 int64  HSF2     = 666;
 int64  SV1      = 666;
@@ -517,8 +516,6 @@ int  main  (int argc, char * argv [])
    int  illegal;
    char  * p;
 
-   assert (8 * sizeof (uint64) > 2 * Kmer_Len);
-
    fprintf(stderr, "Version: %s\n",CM_ID);
 #ifdef CONTIG_OVERLAPPER_VERSION
 fprintf (stderr, "Running Contig version, AS_READ_MAX_LEN = %d\n",
@@ -528,14 +525,16 @@ fprintf (stderr, "Running Fragment version, AS_READ_MAX_LEN = %d\n",
          AS_READ_MAX_LEN);
 #endif
 
-{
- time_t  now = time (NULL);
- fprintf (stderr, "### Starting at  %s\n", ctime (& now));
-}
+   argc = AS_configure(argc, argv);
 
-fprintf (stderr, "### Bucket size = " F_SIZE_T " bytes\n", sizeof (Hash_Bucket_t));
-fprintf (stderr, "### Read error rate = %.2f%%\n", 100.0 * AS_READ_ERROR_RATE);
-fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE);
+   {
+     time_t  now = time (NULL);
+     fprintf (stderr, "### Starting at  %s\n", ctime (& now));
+   }
+
+   fprintf (stderr, "### Bucket size = " F_SIZE_T " bytes\n", sizeof (Hash_Bucket_t));
+   fprintf (stderr, "### Read error rate = %.2f%%\n", 100.0 * AS_READ_ERROR_RATE);
+   fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE);
 
    illegal = 0;
 
@@ -578,8 +577,6 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
             break;
           case  'G' :
             Doing_Partial_Overlaps = TRUE;
-            Branch_Match_Value = PARTIAL_BRANCH_MATCH_VAL;
-            Branch_Error_Value = Branch_Match_Value - 1.0;
             break;
           case  'h' :
             Get_Range (optarg, ch, & Lo_Hash_Frag, & Hi_Hash_Frag);
@@ -761,12 +758,7 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
             Min_Olap_Len = (int) strtol (optarg, & p, 10);
             break;
           case  'w' :
-            #if ERR_MODEL_IN_AS_GLOBAL_H > 6
-	      Use_Window_Filter = TRUE;
-            #else
-              Use_Window_Filter = FALSE;
-	      fprintf(stderr,"This overlap executable looks for high-error overlaps -- window-filter turned off despite -w flag!\n");
-           #endif
+            Use_Window_Filter = TRUE;
             break;
           case  'x' :
             Ignore_Clear_Range = TRUE;
@@ -780,8 +772,23 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
             errflg++;
          }
 
+     //  Fix up some flags if we're allowing high error rates.
+     //
+     if (AS_OVL_ERROR_RATE > 0.06) {
+       if (Use_Window_Filter)
+         fprintf(stderr, "High error rates requested -- window-filter turned off despite -w flag!\n");
+
+       Use_Window_Filter  = FALSE;
+       Use_Hopeless_Check = FALSE;
+     }
+
      if (Max_Hash_Strings == 0) {
        fprintf(stderr, "* No memory model supplied; -M needed!\n");
+       illegal = 1;
+     }
+
+     if (Kmer_Len == 0) {
+       fprintf(stderr, "* No kmer length supplied; -k needed!\n");
        illegal = 1;
      }
 
@@ -909,7 +916,8 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
    Total_Screen_File = File_Open (TOTAL_SCREEN_FILE_NAME, "w");
 #endif
 
-   //  We know enough now to set the hash function variables.
+   //  We know enough now to set the hash function variables, and some
+   //  other random variables.
    //
    HSF1 = Kmer_Len - (Hash_Mask_Bits / 2);
    HSF2 = 2 * Kmer_Len - Hash_Mask_Bits;
@@ -917,12 +925,17 @@ fprintf (stderr, "### Guide error rate = %.2f%%\n", 100.0 * AS_GUIDE_ERROR_RATE)
    SV2  = (HSF1 + HSF2) / 2;
    SV3  = HSF2 - 2;
 
+   Branch_Match_Value = (Doing_Partial_Overlaps) ? PARTIAL_BRANCH_MATCH_VAL : DEFAULT_BRANCH_MATCH_VAL;
+   Branch_Error_Value = Branch_Match_Value - 1.0;
+
    fprintf (stderr, "    Hash_Mask_Bits = %d\n", Hash_Mask_Bits);
    fprintf (stderr, "  Max_Hash_Strings = %d\n", Max_Hash_Strings);
    fprintf (stderr, " Max_Hash_Data_Len = %d\n", Max_Hash_Data_Len);
    fprintf (stderr, "     Max_Hash_Load = %f\n", Max_Hash_Load);
    fprintf (stderr, "       Kmer Length = %d\n", Kmer_Len);
    fprintf (stderr, "Min Overlap Length = %d\n", Min_Olap_Len);
+
+   assert (8 * sizeof (uint64) > 2 * Kmer_Len);
 
    Initialize_Globals ();
 
@@ -2862,9 +2875,6 @@ static void  Initialize_Globals
   {
    int  e, i, Start;
 
-   assert (MAX_ERROR_RATE >= AS_READ_ERROR_RATE
-             && MAX_ERROR_RATE >= AS_GUIDE_ERROR_RATE);
-
    for  (i = 0;  i <= ERRORS_FOR_FREE;  i ++)
      Read_Edit_Match_Limit [i] = 0;
 
@@ -3051,12 +3061,16 @@ void  Initialize_Work_Area
   {
    int  i, Offset, Del;
 
+   WA -> Left_Delta  = (int *)safe_malloc (MAX_ERRORS * sizeof (int));
+   WA -> Right_Delta = (int *)safe_malloc (MAX_ERRORS * sizeof (int));
+
+   WA -> Edit_Space = (int *)safe_malloc ((MAX_ERRORS + 4) * MAX_ERRORS * sizeof (int));
+   WA -> Edit_Array = (int **)safe_malloc (MAX_ERRORS * sizeof (int *));
+
    WA -> String_Olap_Size = INIT_STRING_OLAP_SIZE;
-   WA -> String_Olap_Space = (String_Olap_t *) safe_malloc
-           (WA -> String_Olap_Size * sizeof (String_Olap_t));
+   WA -> String_Olap_Space = (String_Olap_t *) safe_malloc (WA -> String_Olap_Size * sizeof (String_Olap_t));
    WA -> Match_Node_Size = INIT_MATCH_NODE_SIZE;
-   WA -> Match_Node_Space = (Match_Node_t *) safe_malloc
-           (WA -> Match_Node_Size * sizeof (Match_Node_t));
+   WA -> Match_Node_Space = (Match_Node_t *) safe_malloc (WA -> Match_Node_Size * sizeof (Match_Node_t));
 
    Offset = 2;
    Del = 6;
@@ -3070,8 +3084,7 @@ void  Initialize_Work_Area
    WA -> status = 0;
    WA -> myRead = new_fragRecord ();
 
-   WA -> screen_info . range = (Screen_Range_t *) safe_malloc
-                                   (INIT_SCREEN_MATCHES * sizeof (Screen_Range_t));
+   WA -> screen_info . range = (Screen_Range_t *) safe_malloc (INIT_SCREEN_MATCHES * sizeof (Screen_Range_t));
    WA -> screen_info . match_len = INIT_SCREEN_MATCHES;
    WA -> screen_info . num_matches = 0;
 

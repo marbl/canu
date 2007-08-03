@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: findMissedOverlaps.c,v 1.11 2007-04-16 17:36:32 brianwalenz Exp $";
+static char CM_ID[] = "$Id: findMissedOverlaps.c,v 1.12 2007-08-03 20:45:03 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -95,10 +95,6 @@ int evalGap( CDS_CID_t sid,
 	     ContigT *rcontig,
 	     int gapNumber,int dumpSeqs)
 {
-#define CNS_DP_ERATE .06
-#define CNS_DP_THRESH 1e-6
-#define CNS_DP_MINLEN 30
-
   char *lSequence, *rSequence;
   NodeOrient lContigOrientation, rContigOrientation;
   int mean;
@@ -111,9 +107,9 @@ int evalGap( CDS_CID_t sid,
   LengthT gapSize=FindGapLength( lcontig, rcontig, FALSE);
   CDS_COORD_t lLen, rLen;
 
-  erate = CNS_DP_ERATE;
-  thresh = CNS_DP_THRESH;
-  minlen = CNS_DP_MINLEN;
+  erate  = 0.06;
+  thresh = 1e-6;
+  minlen = 30;
 
   if (lcontig->offsetAEnd.mean < lcontig->offsetBEnd.mean){
     lContigOrientation = A_B;

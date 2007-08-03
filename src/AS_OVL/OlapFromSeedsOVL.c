@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.9 2007-08-03 14:47:53 brianwalenz Exp $
- * $Revision: 1.9 $
+ * $Id: OlapFromSeedsOVL.c,v 1.10 2007-08-03 20:45:04 brianwalenz Exp $
+ * $Revision: 1.10 $
 */
 
-static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.9 2007-08-03 14:47:53 brianwalenz Exp $";
+static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.10 2007-08-03 20:45:04 brianwalenz Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -932,7 +932,7 @@ static char  Complement
 
 
 static void  Compute_Delta
-    (int delta [], int * delta_len, int * edit_array [MAX_ERRORS],
+    (int delta [], int * delta_len, int ** edit_array,
      int e, int d, int row)
 
 //  Set  delta  to the entries indicating the insertions/deletions
@@ -942,7 +942,7 @@ static void  Compute_Delta
 //  the number of entries in  delta .
 
   {
-   int  delta_stack [MAX_ERRORS];
+    int  delta_stack [AS_READ_MAX_LEN];  //  only MAX_ERRORS needed
    int  from, last, max;
    int  i, j, k;
 
@@ -1009,7 +1009,7 @@ static void  Convert_Delta_To_Diff
 //  and deletes are characters that should be deleted from A.
 
   {
-   Diff_Entry_t  diff_list [MAX_ERRORS];
+   Diff_Entry_t  diff_list [AS_READ_MAX_LEN];  //  only MAX_ERRORS needed
    int  ct;
    int  i, j, k, m, p;
 
@@ -2084,6 +2084,9 @@ static void  Init_Thread_Work_Area
    wa -> frag_read = new_fragRecord ();
    strcpy (wa -> rev_seq, "acgt");
 
+   wa -> edit_array = (int **) safe_malloc(MAX_ERRORS * sizeof(int *));
+   wa -> edit_space = (int *) safe_malloc((MAX_ERRORS + 4) * MAX_ERRORS * sizeof(int));
+
    offset = 2;
    del = 6;
    for  (i = 0;  i < MAX_ERRORS;  i ++)
@@ -2561,11 +2564,11 @@ static void  Parse_Command_Line
 
         case  'y' :
           Error_Rate = strtod (optarg, & p);
-          if  (p == optarg || MAX_ERROR_RATE < Error_Rate)
+          if  (p == optarg || AS_GUIDE_ERROR_RATE < Error_Rate)
               {
                fprintf (stderr, "ERROR:  Bad error rate  %s\n", optarg);
                fprintf (stderr, "Value must be between 0.0 and %.3f\n",
-                    MAX_ERROR_RATE);
+                    AS_GUIDE_ERROR_RATE);
                errflg = TRUE;
               }
           break;
@@ -2619,6 +2622,12 @@ static void  Parse_Command_Line
         Usage (argv [0]);
         exit (EXIT_FAILURE);
        }
+
+   //  Set, finally, the global variables that are based on
+   //  environment variables.
+   //
+   Char_Match_Value = DEFAULT_CHAR_MATCH_VALUE;
+   Error_Rate       = AS_GUIDE_ERROR_RATE;
 
    return;
   }
@@ -2814,7 +2823,7 @@ static void  Output_Olap_From_Diff
 static int  Prefix_Edit_Dist
     (char A [], int m, char T [], int n, int Error_Limit,
      int * A_End, int * T_End, int * Match_To_End,
-     int Delta [MAX_ERRORS], int * Delta_Len, Thread_Work_Area_t * wa)
+     int *Delta, int * Delta_Len, Thread_Work_Area_t * wa)
 
 //  Return the minimum number of changes (inserts, deletes, replacements)
 //  needed to match string  A [0 .. (m-1)]  with a prefix of string
@@ -2997,8 +3006,8 @@ static void  Process_Olap
   {
    char  * a_part, * b_part;
    unsigned  a_len;
-   int  right_delta [MAX_ERRORS], right_delta_len;
-   int  left_delta [MAX_ERRORS], left_delta_len;
+   int  right_delta [AS_READ_MAX_LEN], right_delta_len;  //  both right_ and left_delta only MAX_ERRORS needed
+   int  left_delta [AS_READ_MAX_LEN], left_delta_len;
    int  a_part_len, b_part_len, a_end, b_end, olap_len;
    int  a_lo, a_hi, a_match_len, b_lo, b_hi, b_match_len;
    int  left_errors, right_errors, leftover, match_to_end;
@@ -3242,7 +3251,7 @@ static void  Process_Olap
      {
 #if USE_NEW_STUFF
       Sequence_Diff_t  diff;
-      int  new_delta [MAX_ERRORS];
+      int  new_delta [AS_READ_MAX_LEN];  // only MAX_ERRORS needed
       int  new_errors, new_a_end, new_b_end, new_delta_len, new_match_to_end;
       int  k;
 
@@ -4606,7 +4615,7 @@ static void  Usage
         "-y <x>  Allow max error rate of <x> in alignments (e.g., 0.03 for 3%% error)\n"
         "        Value cannot exceed  %.3f\n"
         "-z      Do NOT try to correct read errors\n",
-        q, MAX_ERROR_RATE);
+        q, AS_GUIDE_ERROR_RATE);
 
    return;
   }

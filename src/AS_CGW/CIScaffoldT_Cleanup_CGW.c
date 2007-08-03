@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.26 2007-06-18 15:08:45 eliv Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.27 2007-08-03 20:45:03 brianwalenz Exp $";
 
 #undef DEBUG_CHECKFORCTGS
 #undef DEBUG_DETAILED
@@ -265,7 +265,7 @@ void  PropagateContainmentOverlapsToNewContig(ContigT *newContig,
                           newEdge->orient, // handle suspicious
                           -newEdge->distance.mean - delta, 
                           -newEdge->distance.mean + delta, 
-                          CGW_DP_ERATE, FALSE);
+                          AS_CGW_ERROR_RATE, FALSE);
           
           if(olap.overlap == 0 || olap.suspicious){
             if(olap.suspicious){
@@ -800,7 +800,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
                              idA, idB, orient, // handles suspicious
 			     -e->distance.mean - delta, 
 			     -e->distance.mean + delta, 
-			     CGW_DP_ERATE, FALSE);
+			     AS_CGW_ERROR_RATE, FALSE);
         
 
 
@@ -1008,7 +1008,7 @@ void PropagateExtremalOverlapsToNewContig(CDS_CID_t contigID, int contigEnd, Con
                         newEdge->orient, // handles suspicious
                         -newEdge->distance.mean - delta, 
                         -newEdge->distance.mean + delta, 
-                        CGW_DP_ERATE, FALSE);
+                        AS_CGW_ERROR_RATE, FALSE);
           
         if(olap.overlap == 0 || olap.suspicious){
           if(olap.suspicious){
@@ -1025,7 +1025,7 @@ void PropagateExtremalOverlapsToNewContig(CDS_CID_t contigID, int contigEnd, Con
                                FlipEdgeOrient(newEdge->orient), // handles suspicious
                                -newEdge->distance.mean - delta, 
                                -newEdge->distance.mean + delta, 
-                               CGW_DP_ERATE, FALSE);
+                               AS_CGW_ERROR_RATE, FALSE);
             
           if(olap.overlap > 0 && !olap.suspicious)
             fprintf(GlobalData->stderrc,"*** DUMMY, you got the orientation backwards!!!! ****\n");
@@ -1558,7 +1558,7 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
 	 // this makes the following tempting ... but since failed overlap gaps are set to -CGW_DP_MINLEN
 	 // it seems to be a bad idea in the end ... [ALH, 09/04]
 #ifdef ALLOW_SHORT_PERFECT
-	 actual> (CGW_DP_MINLEN-(int)ceil( CGW_DP_ERATE *(double)CGW_DP_MINLEN )) ){ /*  || (lookForSmallOverlaps && SmallOverlapExists(ScaffoldGraph->RezGraph, prevCI, currCI, pairwiseOrient))){ */
+	 actual> (CGW_DP_MINLEN-(int)ceil( AS_CGW_ERROR_RATE *(double)CGW_DP_MINLEN )) ){ /*  || (lookForSmallOverlaps && SmallOverlapExists(ScaffoldGraph->RezGraph, prevCI, currCI, pairwiseOrient))){ */
 #else
         actual> CGW_DP_MINLEN ){ /*  || (lookForSmallOverlaps && SmallOverlapExists(ScaffoldGraph->RezGraph, prevCI, currCI, pairwiseOrient))){ */
 #endif

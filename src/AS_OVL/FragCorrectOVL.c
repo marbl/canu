@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FragCorrectOVL.c,v 1.21 2007-08-03 14:47:53 brianwalenz Exp $
- * $Revision: 1.21 $
+ * $Id: FragCorrectOVL.c,v 1.22 2007-08-03 20:45:04 brianwalenz Exp $
+ * $Revision: 1.22 $
 */
 
-static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.21 2007-08-03 14:47:53 brianwalenz Exp $";
+static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.22 2007-08-03 20:45:04 brianwalenz Exp $";
 
 
 //  System include files
@@ -98,14 +98,13 @@ static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.21 2007-08-03 14:47:53 brianwal
 #define  FRAGS_PER_BATCH             100000
     //  Number of old fragments to read into memory-based fragment
     //  store at a time for processing
-#define  MAX_ERROR_RATE              AS_GUIDE_ERROR_RATE
-    //  The largest error allowed in overlaps
 #define  MAX_FILENAME_LEN            1000
     //  Longest name allowed for a file in the overlap store
 #define  MAX_FRAG_LEN                2048
     //  The longest fragment allowed
-#define  MAX_ERRORS                  (1 + (int) (MAX_ERROR_RATE * MAX_FRAG_LEN))
+#define  MAX_ERRORS                  (1 + (int) (AS_OVL_ERROR_RATE * MAX_FRAG_LEN))
     //  Most errors in any edit distance computation
+    //  KNOWN ONLY AT RUN TIME
 #define  MAX_DEGREE                  32767
     //  Highest number of votes before overflow
 #define  MAX_VOTE                    255
@@ -208,8 +207,8 @@ typedef  struct
    Frag_List_t  * frag_list;
    char  rev_seq [AS_READ_MAX_LEN + 1];
    int  rev_id;
-   int  * edit_array [MAX_ERRORS];
-   int  edit_space [(MAX_ERRORS + 4) * MAX_ERRORS];
+   int  ** edit_array;
+   int  * edit_space;
   }  Thread_Work_Area_t;
 
 
@@ -220,13 +219,16 @@ static char  * Correction_Filename = DEFAULT_CORRECTION_FILENAME;
     // Name of file to which correction information is sent
 static int  Degree_Threshold = DEFAULT_DEGREE_THRESHOLD;
     // Set keep flag on end of fragment if number of olaps < this value
-static int  * Edit_Array [MAX_ERRORS];
+static int  * Edit_Array [AS_FRAG_MAX_LEN];
     // Use for alignment calculation.  Points into  Edit_Space .
-static int  Edit_Match_Limit [MAX_ERRORS] = {0};
+    // (only MAX_ERRORS needed)
+static int  Edit_Match_Limit [AS_FRAG_MAX_LEN] = {0};
     // This array [e] is the minimum value of  Edit_Array [e] [d]
     // to be worth pursuing in edit-distance computations between guides
-static int  Edit_Space [(MAX_ERRORS + 4) * MAX_ERRORS];
+    // (only MAX_ERRORS needed)
+static int  Edit_Space [(AS_FRAG_MAX_LEN + 4) * AS_FRAG_MAX_LEN];
     // Memory used by alignment calculation
+    // (only (MAX_ERRORS + 4) * MAX_ERRORS needed)
 static int  End_Exclude_Len = DEFAULT_END_EXCLUDE_LEN;
     // Length of ends of exact-match regions not used in preventing
     // sequence correction
@@ -301,7 +303,7 @@ static void  Cast_Vote
 static char  Complement
     (char);
 static void  Compute_Delta
-    (int delta [], int * delta_len, int * edit_array [MAX_ERRORS],
+    (int delta [], int * delta_len, int ** edit_array,
      int e, int d, int row);
 static void  Display_Alignment
     (char * a, int a_len, char * b, int b_len, int delta [], int delta_ct,
@@ -820,7 +822,7 @@ static char  Complement
 
 
 static void  Compute_Delta
-    (int delta [], int * delta_len, int * edit_array [MAX_ERRORS],
+    (int delta [], int * delta_len, int ** edit_array,
      int e, int d, int row)
 
 //  Set  delta  to the entries indicating the insertions/deletions
@@ -830,7 +832,7 @@ static void  Compute_Delta
 //  the number of entries in  delta .
 
   {
-   int  delta_stack [MAX_ERRORS];
+    int  delta_stack [AS_FRAG_MAX_LEN];  //  only MAX_ERRORS needed
    int  from, last, max;
    int  i, j, k;
 
@@ -1240,23 +1242,20 @@ static void  Initialize_Globals
        del += 2;
      }
 
-   assert (MAX_ERROR_RATE >= AS_READ_ERROR_RATE
-             && MAX_ERROR_RATE >= AS_GUIDE_ERROR_RATE);
-
    for  (i = 0;  i <= ERRORS_FOR_FREE;  i ++)
      Edit_Match_Limit [i] = 0;
 
    start = 1;
    for  (e = ERRORS_FOR_FREE + 1;  e < MAX_ERRORS;  e ++)
      {
-      start = Binomial_Bound (e - ERRORS_FOR_FREE, MAX_ERROR_RATE,
+      start = Binomial_Bound (e - ERRORS_FOR_FREE, AS_OVL_ERROR_RATE,
                   start, EDIT_DIST_PROB_BOUND);
       Edit_Match_Limit [e] = start - 1;
       assert (Edit_Match_Limit [e] >= Edit_Match_Limit [e - 1]);
      }
 
    for  (i = 0;  i <= MAX_FRAG_LEN;  i ++)
-     Error_Bound [i] = (int) (i * MAX_ERROR_RATE);
+     Error_Bound [i] = (int) (i * AS_OVL_ERROR_RATE);
 
    Frag_List . ct = 0;
    Frag_List . size = 1000;
@@ -1283,6 +1282,9 @@ static void  Init_Thread_Work_Area
    wa -> thread_id = id;
    wa -> frag_read = new_fragRecord ();
    strcpy (wa -> rev_seq, "acgt");
+
+   wa -> edit_array = (int **) safe_malloc(MAX_ERRORS * sizeof(int *));
+   wa -> edit_space = (int *) safe_malloc((MAX_ERRORS + 4) * MAX_ERRORS * sizeof(int));
 
    offset = 2;
    del = 6;
@@ -1536,6 +1538,8 @@ static void  Parse_Command_Line
   {
    int  ch, errflg = FALSE;
    char  * p;
+
+   argc = AS_configure(argc, argv);
 
    optarg = NULL;
 

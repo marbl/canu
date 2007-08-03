@@ -26,8 +26,8 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.22 2007-08-01 17:29:26 brianwalenz Exp $
- * $Revision: 1.22 $
+ * $Id: AS_OVL_overlap.h,v 1.23 2007-08-03 20:45:04 brianwalenz Exp $
+ * $Revision: 1.23 $
 */
 
 
@@ -187,8 +187,7 @@
     //  cannot initiate an overlap.  Can be changed on the command
     //  line with  -K  option
 
-
-#define  DEFAULT_BRANCH_MATCH_VAL    ( ERR_FRACTION_IN_AS_GLOBAL_H / (1.+ERR_FRACTION_IN_AS_GLOBAL_H) )
+#define  DEFAULT_BRANCH_MATCH_VAL    ( AS_OVL_ERROR_RATE / (1.+AS_OVL_ERROR_RATE) )
 #define  PARTIAL_BRANCH_MATCH_VAL    DEFAULT_BRANCH_MATCH_VAL
     //  Value to add for a match in finding branch points.
     //  ALH: Note that AS_READ_ERROR_RATE also affects what overlaps get found
@@ -268,12 +267,11 @@
     //  just shifts from periodic regions) between 2 fragments
     //  in a given orientation.  For fragments of approximately
     //  same size, should never be more than 2.
-#define  MAX_ERROR_RATE          AS_GUIDE_ERROR_RATE
-    //  The largest error allowed in overlaps
 #define  MAX_FRAG_LEN            2048
     //  The longest fragment allowed
-#define  MAX_ERRORS              (1 + (int) (MAX_ERROR_RATE * MAX_FRAG_LEN))
+#define  MAX_ERRORS              (1 + (int) (AS_OVL_ERROR_RATE * MAX_FRAG_LEN))
     //  Most errors in any edit distance computation
+    //  THIS VALUE IS KNOWN ONLY AT RUN TIME!
 #define  MAX_FRAGS_PER_THREAD    500
     //  The number of fragments each parallel thread tries to
     //  process in a "round"
@@ -312,7 +310,6 @@
 #define  OFFSET_MASK             ((1 << OFFSET_BITS) - 1)
     //  Mask used to extract bits to put in  Offset  field
 
-//  xxxx constants were here
 
 #ifdef  CONTIG_OVERLAPPER_VERSION
 #define  EXPECTED_STRING_LEN     (AS_READ_MAX_LEN / 2)
@@ -335,13 +332,11 @@
 #define  MIN_BRANCH_END_DIST     20
     //  Branch points must be at least this many bases from the
     //  end of the fragment to be reported
-#if ERR_MODEL_IN_AS_GLOBAL_H > 6
-  #define  MIN_BRANCH_TAIL_SLOPE   1.0
-#else
-  #define  MIN_BRANCH_TAIL_SLOPE   0.20
-#endif
+
+#define  MIN_BRANCH_TAIL_SLOPE   ((AS_OVL_ERROR_RATE > 0.06) ? 1.0 : 0.20)
     //  Branch point tails must fall off from the max by at least
     //  this rate
+    //  THIS VALUE IS KNOWN ONLY AT RUN TIME!
 #define  MIN_CALC_KMER           4
     //  When calculating the  Hi_Hit_Limit  based on genome length, etc,
     //  don't set it below this
@@ -512,11 +507,11 @@ typedef  struct
 typedef  struct Work_Area
   {
    int  Left_Delta_Len;
-   int  Left_Delta [MAX_ERRORS];
-   int  Right_Delta_Len;
-   int  Right_Delta [MAX_ERRORS];
-   int  Edit_Space [(MAX_ERRORS + 4) * MAX_ERRORS];
-   int  * Edit_Array [MAX_ERRORS];
+   int  * Left_Delta;
+   int    Right_Delta_Len;
+   int  * Right_Delta;
+   int  * Edit_Space;
+   int  ** Edit_Array;
    int  * Edit_Match_Limit;
    int  * Error_Bound;
    String_Olap_t  * String_Olap_Space;
@@ -553,16 +548,6 @@ typedef  struct Work_Area
     int32         Multi_Overlap_Ct;
 
   }  Work_Area_t;
-
-//  Hash function variables -- these get set when Hash_Mask_Bits gets
-//  set.
-//
-extern int64  Kmer_Len;
-extern int64  HSF1;
-extern int64  HSF2;
-extern int64  SV1;
-extern int64  SV2;
-extern int64  SV3;
 
 extern int  Hash_Mask_Bits;
 extern int  Max_Hash_Data_Len;

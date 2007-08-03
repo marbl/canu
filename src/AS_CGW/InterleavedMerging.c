@@ -883,7 +883,7 @@ Overlap * LookForChunkOverlapFromContigElements(ContigElement * ceA,
       chunkOverlap = OverlapChunks(ScaffoldGraph->RezGraph,
                                    ceA->id, ceB->id, overlapOrient,
                                    minOverlap, maxOverlap,
-                                   CGW_DP_ERATE, FALSE);
+                                   AS_CGW_ERROR_RATE, FALSE);
     
 #ifdef PRINT_OVERLAPS    
       fprintf(stderr,"A_B: Trying to find overlap between " F_CID " and "
@@ -953,7 +953,7 @@ Overlap * LookForChunkOverlapFromContigElements(ContigElement * ceA,
       chunkOverlap = OverlapChunks(ScaffoldGraph->RezGraph,
                                    ceA->id, ceB->id, overlapOrient,
                                    minOverlap, maxOverlap,
-                                   CGW_DP_ERATE, FALSE);
+                                   AS_CGW_ERROR_RATE, FALSE);
 
 #ifdef PRINT_OVERLAPS    
       fprintf(stderr,"B_A: Trying to find overlap between " F_CID " and "

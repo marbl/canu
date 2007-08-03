@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.17 2007-06-01 15:08:52 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.18 2007-08-03 20:45:03 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -291,7 +291,7 @@ void CreateChunkOverlapFromEdge(GraphCGW_T *graph,
   olap.cgbMinOverlap = 0;
   olap.cgbMaxOverlap = 0;
   olap.hasBayesianQuality = bayesian;
-  olap.errorRate = CGW_DP_ERATE;
+  olap.errorRate = AS_CGW_ERROR_RATE;
   olap.quality = edge->quality;
   olap.ahg = olap.bhg = 0;
   olap.min_offset = olap.max_offset = 0;
@@ -324,7 +324,7 @@ void FillChunkOverlapWithEdge(EdgeCGW_T *edge, ChunkOverlapCheckT *olap){
   olap->cgbMinOverlap = 0;
   olap->cgbMaxOverlap = 0;
   olap->hasBayesianQuality = FALSE;
-  olap->errorRate = CGW_DP_ERATE;
+  olap->errorRate = AS_CGW_ERROR_RATE;
   olap->quality = edge->quality;
   olap->ahg = olap->bhg = 0;
   olap->min_offset = olap->max_offset = 0;
@@ -340,7 +340,7 @@ void FillChunkOverlapWithUOM(ChunkOverlapCheckT *olap, UnitigOverlapMesg *uom_me
   olap->minOverlap = uom_mesg->min_overlap_length;
   olap->maxOverlap = uom_mesg->max_overlap_length;
   olap->hasBayesianQuality = !ScaffoldGraph->alignOverlaps;
-  olap->errorRate = CGW_DP_ERATE;
+  olap->errorRate = AS_CGW_ERROR_RATE;
   olap->quality = uom_mesg->quality;
   olap->ahg = olap->bhg = 0;
   olap->min_offset = olap->max_offset = 0;
@@ -458,7 +458,7 @@ int InsertOverlapInHashTable(Overlap *tempOlap,
   olap.spec.cidB = cidB;
   olap.spec.orientation = orientation;
   
-  olap.errorRate = CGW_DP_ERATE;
+  olap.errorRate = AS_CGW_ERROR_RATE;
   olap.computed = 1;
   olap.fromCGB = 0;
   olap.hasBayesianQuality = 0;
@@ -566,7 +566,7 @@ void CollectChunkOverlap(GraphCGW_T *graph,
     }
     canOlap.cgbMinOverlap = minOverlap;
     canOlap.cgbMaxOverlap = maxOverlap;
-    canOlap.errorRate = CGW_DP_ERATE;
+    canOlap.errorRate = AS_CGW_ERROR_RATE;
 
     // Add it to the symbol table
     if(InsertChunkOverlap(chunkOverlapper, &canOlap) != HASH_SUCCESS)
@@ -1154,8 +1154,6 @@ OverlapMesg *ComputeCanonicalOverlapWithTrace(GraphCGW_T *graph,
             lengthA, lengthB,
 	    beg, end);
 #endif
-    //CGW_DP_ERATE=0.1 changed parameter to canOlap->errRate
-    // a new field in ChunkOverlapCheckT
 
     if( ! iterate )
       O = DP_Compare_AS(AFR,BFR, 
@@ -1778,7 +1776,7 @@ void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
                 ChunkOrientationType orientation = olap->spec.orientation;
 		  
                 // set errRate to old value
-                olap->errorRate = CGW_DP_ERATE;
+                olap->errorRate = AS_CGW_ERROR_RATE;
 		  
                 // first we trust that overlap
                 olap->suspicious = FALSE;
@@ -1893,7 +1891,7 @@ CDS_COORD_t SmallOverlapExists(GraphCGW_T *graph,
   ChunkOverlapCheckT olap;
 
   olap = OverlapChunks(graph, cidA, cidB, orientation,
-                       minOverlap, CGW_DP_MINLEN + 5, CGW_DP_ERATE, FALSE);
+                       minOverlap, CGW_DP_MINLEN + 5, AS_CGW_ERROR_RATE, FALSE);
 
   return olap.overlap;
 
@@ -1907,7 +1905,7 @@ CDS_COORD_t  LargeOverlapExists(GraphCGW_T *graph,
   ChunkOverlapCheckT olap;
 
   olap = OverlapChunks(graph, cidA, cidB, orientation,
-                       minOverlap, maxOverlap, CGW_DP_ERATE, FALSE);
+                       minOverlap, maxOverlap, AS_CGW_ERROR_RATE, FALSE);
 
   return olap.overlap;
 
@@ -2141,12 +2139,12 @@ BranchPointResult OverlapChunksWithBPDetection(GraphCGW_T *graph,
 	    strlen(AFR.sequence), strlen(BFR.sequence),
 	    beg, end);
 #endif
-    //CGW_DP_ERATE=0.1 changed parameter to canOlap->errRate
-    // a new field in ChunkOverlapCheckT
 
+    //  Aug 1, 2007 -- This used to be a hardcoded 0.10 instead of AS_CGW_ERROR_RATE.
+    //
     BPResult = BPnt_Compare_AS(&AFR,&BFR, 
 			       beg, end, opposite,
-			       0.10,CGW_DP_THRESH, 
+			       AS_CGW_ERROR_RATE,CGW_DP_THRESH, 
 			       25,25);
     if(BPResult){
       bpResult = *BPResult;
@@ -2625,7 +2623,7 @@ Overlap* OverlapContigs(NodeCGW_T *contig1, NodeCGW_T *contig2,
      fprintf( GlobalData->stderrc, "orientation is %c\n", (char) *overlapOrientation);
   */
 
-  erate = CGW_DP_ERATE;
+  erate = AS_CGW_ERROR_RATE;
   thresh = CGW_DP_THRESH;
   minlen = CGW_DP_MINLEN;
 
@@ -2698,7 +2696,7 @@ Overlap* OverlapContigsLocal(NodeCGW_T *contig1, NodeCGW_T *contig2,
   double erate, thresh;
   CDS_COORD_t minlen;
 
-  erate = CGW_DP_ERATE;
+  erate = AS_CGW_ERROR_RATE;
   thresh = CGW_DP_THRESH;
   minlen = CGW_DP_MINLEN;
 

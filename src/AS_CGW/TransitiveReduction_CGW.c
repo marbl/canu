@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: TransitiveReduction_CGW.c,v 1.12 2007-05-19 04:46:57 brianwalenz Exp $";
+static char CM_ID[] = "$Id: TransitiveReduction_CGW.c,v 1.13 2007-08-03 20:45:03 brianwalenz Exp $";
 
 // This file contains the code for computing the candidate
 // chunks of scaffolds.
@@ -923,7 +923,7 @@ EdgeCGW_T *FindEdgeBetweenCIsChiSquare(GraphCGW_T *graph,
       olap = OverlapChunks(graph,
                            sourceCI->id, targetId, // handles suspicious
 			   edgeOrient, minOverlap, maxOverlap,
-                           CGW_DP_ERATE, TRUE);
+                           AS_CGW_ERROR_RATE, TRUE);
       // We found an overlap between source and target in the right orientation
       if(olap.suspicious){
         fprintf(stderr,"* TR: SUSPICIOUS Overlap found! Looked for ("
