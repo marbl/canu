@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FragCorrectOVL.c,v 1.20 2007-05-29 10:54:29 brianwalenz Exp $
- * $Revision: 1.20 $
+ * $Id: FragCorrectOVL.c,v 1.21 2007-08-03 14:47:53 brianwalenz Exp $
+ * $Revision: 1.21 $
 */
 
-static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.20 2007-05-29 10:54:29 brianwalenz Exp $";
+static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.21 2007-08-03 14:47:53 brianwalenz Exp $";
 
 
 //  System include files
@@ -989,21 +989,24 @@ static void  Display_Frags
 
    for  (i = 0;  i < Num_Frags;  i ++)
      {
-      int  j, ct;
-
-      printf (">%d\n", Lo_Frag_IID + i);
-      ct = 0;
-      for  (j = 0;  Frag [i] . sequence [j] != '\0';  j ++)
+      if (Frag [i] . sequence != NULL)
         {
-         if  (ct == 60)
-             {
-              putchar ('\n');
-              ct = 0;
-             }
-         putchar (Frag [i] . sequence [j]);
-         ct ++;
+          int  j, ct;
+
+          printf (">%d\n", Lo_Frag_IID + i);
+          ct = 0;
+          for  (j = 0;  Frag [i] . sequence [j] != '\0';  j ++)
+            {
+              if  (ct == 60)
+                {
+                  putchar ('\n');
+                  ct = 0;
+                }
+              putchar (Frag [i] . sequence [j]);
+              ct ++;
+            }
+          putchar ('\n');
         }
-      putchar ('\n');
      }
 
    return;

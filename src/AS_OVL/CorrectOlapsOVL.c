@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CorrectOlapsOVL.c,v 1.21 2007-08-02 21:06:20 adelcher Exp $
- * $Revision: 1.21 $
+ * $Id: CorrectOlapsOVL.c,v 1.22 2007-08-03 14:47:53 brianwalenz Exp $
+ * $Revision: 1.22 $
 */
 
-static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.21 2007-08-02 21:06:20 adelcher Exp $";
+static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.22 2007-08-03 14:47:53 brianwalenz Exp $";
 
 
 //  System include files
@@ -362,8 +362,7 @@ int  main
    fprintf (stderr, "Starting Correct_Frags ()\n");
    Correct_Frags ();
 
-//**ALD  removed "//"
-   Display_Frags ();
+//   Display_Frags ();
 
    fprintf (stderr, "Starting Read_Olaps ()\n");
    Read_Olaps ();
@@ -961,21 +960,24 @@ static void  Display_Frags
 
    for  (i = 0;  i < Num_Frags;  i ++)
      {
-      int  j, ct;
-
-      printf (">%d\n", Lo_Frag_IID + i);
-      ct = 0;
-      for  (j = 0;  Frag [i] . sequence [j] != '\0';  j ++)
+      if (Frag [i] . sequence != NULL)
         {
-         if  (ct == 60)
-             {
-              putchar ('\n');
-              ct = 0;
-             }
-         putchar (Frag [i] . sequence [j]);
-         ct ++;
+          int  j, ct;
+
+          printf (">%d\n", Lo_Frag_IID + i);
+          ct = 0;
+          for  (j = 0;  Frag [i] . sequence [j] != '\0';  j ++)
+            {
+              if  (ct == 60)
+                {
+                  putchar ('\n');
+                  ct = 0;
+                }
+              putchar (Frag [i] . sequence [j]);
+              ct ++;
+            }
+          putchar ('\n');
         }
-      putchar ('\n');
      }
 
    return;

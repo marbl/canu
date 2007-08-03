@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.8 2007-08-02 21:23:52 adelcher Exp $
- * $Revision: 1.8 $
+ * $Id: OlapFromSeedsOVL.c,v 1.9 2007-08-03 14:47:53 brianwalenz Exp $
+ * $Revision: 1.9 $
 */
 
-static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.8 2007-08-02 21:23:52 adelcher Exp $";
+static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.9 2007-08-03 14:47:53 brianwalenz Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -1495,21 +1495,24 @@ static void  Display_Frags
 
    for  (i = 0;  i < Num_Frags;  i ++)
      {
-      int  j, ct;
-
-      printf (">%d\n", Lo_Frag_IID + i);
-      ct = 0;
-      for  (j = 0;  Frag [i] . sequence [j] != '\0';  j ++)
+      if (Frag [i] . sequence != NULL)
         {
-         if  (ct == 60)
-             {
-              putchar ('\n');
-              ct = 0;
-             }
-         putchar (Frag [i] . sequence [j]);
-         ct ++;
+          int  j, ct;
+
+          printf (">%d\n", Lo_Frag_IID + i);
+          ct = 0;
+          for  (j = 0;  Frag [i] . sequence [j] != '\0';  j ++)
+            {
+              if  (ct == 60)
+                {
+                  putchar ('\n');
+                  ct = 0;
+                }
+              putchar (Frag [i] . sequence [j]);
+              ct ++;
+            }
+          putchar ('\n');
         }
-      putchar ('\n');
      }
 
    return;
