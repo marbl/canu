@@ -34,7 +34,7 @@
 
  **********************************************************************/
 
-static char fileID[] = "$Id: FbacREZ.c,v 1.16 2007-08-03 20:45:04 brianwalenz Exp $";
+static char fileID[] = "$Id: FbacREZ.c,v 1.17 2007-08-04 22:27:35 brianwalenz Exp $";
 
 #define FBACDEBUG 2
 
@@ -1459,6 +1459,7 @@ int CheckWalkOverlaps( ChunkInsertInfoT *walkedContigs,
 		seq1 = Getchar(consensus1, 0);
 		seq2 = Getchar(consensus2, 0);
 		
+                assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
 		erate = 2 * AS_CGW_ERROR_RATE;
 		thresh = CGW_DP_THRESH;
 		minlen = CGW_DP_MINLEN;
@@ -1516,192 +1517,6 @@ int CheckWalkOverlaps( ChunkInsertInfoT *walkedContigs,
   return 0;
 }
 
-// // walkedContigs is an array as well as a linked list here
-// int CheckWalkOverlaps_old( ChunkInsertInfoT *walkedContigs) // , ChunkInsertInfoT *lastWalkedContig)
-// {
-//   Overlap *tempOlap1;
-//   ChunkInsertInfoT *firstContig = walkedContigs;
-//   ChunkInsertInfoT *walkedContig1, *walkedContig2;;
-//   ChunkInstanceT *contig1, *contig2;
-//   ChunkOrientationType overlapOrientation;
-//   int computedAhang, negativeBhang;
-//   char *seq1, *seq2;
-//   int min_ahang, max_ahang;
-//   double erate, thresh;
-//   int minlen;
-//   double computedOverlap;
-//   int fixStackOverlapFailure = TRUE;
-//   int numChunks = 1;
-//   
-//   while (walkedContigs->next != NULL)
-//   {
-// 	numChunks++;
-// 	walkedContigs = walkedContigs->next;
-//   }
-// 
-//   walkedContig1 = firstContig;
-// 
-//   // check all overlaps
-//   // while ( walkedContig1->next != lastWalkedContig )
-//   while ( walkedContig1 != NULL )
-//   {
-//     contig1 = GetGraphNode(ScaffoldGraph->ContigGraph, walkedContig1->contigID);
-// 	if (walkedContig1->next == NULL)
-// 	  break;
-// 	
-//     fprintf( stderr, "\n*****\nCheckWalkOverlaps: contig1: %d (%f, %f)\n", 
-// 			 contig1->id, walkedContig1->aEndOffset.mean, walkedContig1->bEndOffset.mean);
-// 	
-//     // have already done pairwise so skip ahead one if contigs are adjacent as indicated by insertOrder
-//     walkedContig2 = walkedContig1->next;
-// 	if (walkedContig1->insertOrder == walkedContig2->insertOrder - 1)
-// 	{
-// 	  if (walkedContig2->next == NULL)
-// 		break;
-// 	  walkedContig2 = walkedContig2->next;
-// 	}
-// 
-// 	// did we move walkedContig1 to the right of walkedContig2?  if so, skip walkedContig2
-// 	while (MIN (walkedContig1->aEndOffset.mean, walkedContig1->bEndOffset.mean) > 
-// 		   MIN (walkedContig2->aEndOffset.mean, walkedContig2->bEndOffset.mean))
-// 	{
-// 	  if (walkedContig2->next == NULL)
-// 		break;
-// 	  walkedContig2 = walkedContig2->next;
-// 	}
-// 	if (MIN (walkedContig1->aEndOffset.mean, walkedContig1->bEndOffset.mean) > 
-// 		MIN (walkedContig2->aEndOffset.mean, walkedContig2->bEndOffset.mean))
-// 	  break;
-// 
-//     contig2 = GetGraphNode(ScaffoldGraph->ContigGraph, walkedContig2->contigID);
-// 	
-//     // determine if bhang is positive
-//     computedOverlap = MAX ( walkedContig1->aEndOffset.mean, walkedContig1->bEndOffset.mean) -
-//       MIN ( walkedContig2->aEndOffset.mean, walkedContig2->bEndOffset.mean);
-//     if (computedOverlap < (int) contig2->bpLength.mean)
-//       negativeBhang = FALSE;
-//     else
-//       negativeBhang = TRUE;
-// 	
-//     fprintf( stderr, "CheckWalkOverlaps: outer loop, contig2: %d (%f, %f)\n", 
-// 			 contig2->id, walkedContig2->aEndOffset.mean, walkedContig2->bEndOffset.mean);
-//     fprintf( stderr, "computedOverlap: %f, contig2->bpLength.mean: %d, negativeBhang: %d\n", 
-// 			 computedOverlap, (int) contig2->bpLength.mean, negativeBhang);
-//     do
-//     {
-//       // determine if contigs overlap
-//       computedOverlap = MAX ( walkedContig1->aEndOffset.mean, walkedContig1->bEndOffset.mean) -
-// 		MIN ( walkedContig2->aEndOffset.mean, walkedContig2->bEndOffset.mean);
-// 	  
-//       fprintf( stderr, "CheckWalkOverlaps: inner loop, contig2: %d, computedOverlap: %d\n", 
-// 			   contig2->id, computedOverlap);
-// 
-//       if (computedOverlap < (int) contig2->bpLength.mean)
-// 		negativeBhang = FALSE;
-//       else
-// 		negativeBhang = TRUE;
-// 	  
-//       if ( computedOverlap > 60 )
-//       {      
-// 		// figure out orientation
-// 		if ( walkedContig1->aEndOffset.mean < walkedContig1->bEndOffset.mean)
-// 		{
-// 		  if ( walkedContig2->aEndOffset.mean < walkedContig2->bEndOffset.mean)
-// 			overlapOrientation = AB_AB;
-// 		  else
-// 			overlapOrientation = AB_BA;
-// 		}
-// 		else
-// 		{
-// 		  if ( walkedContig2->aEndOffset.mean < walkedContig2->bEndOffset.mean)
-// 			overlapOrientation = BA_AB;
-// 		  else
-// 			overlapOrientation = BA_BA;
-// 		}
-// 		
-// 		// compute expected ahang
-// 		computedAhang = MIN ( walkedContig2->aEndOffset.mean, walkedContig2->bEndOffset.mean) -
-// 		  MIN (walkedContig1->aEndOffset.mean, walkedContig1->bEndOffset.mean);
-// 		min_ahang = computedAhang - 60;
-// 		max_ahang = computedAhang + 60;
-// 		
-// 		if(consensus1 == NULL)
-// 		{
-// 		  consensus1 = CreateVA_char(2048);
-// 		  consensus2 = CreateVA_char(2048);
-// 		  quality1 = CreateVA_char(2048);
-// 		  quality2 = CreateVA_char(2048);
-// 		}
-// 		
-// 		// Get the consensus sequences for both contigs from the Store
-// 		GetConsensus(ScaffoldGraph->RezGraph, contig1->id, consensus1, quality1);
-// 		GetConsensus(ScaffoldGraph->RezGraph, contig2->id, consensus2, quality2);
-// 		
-// 		seq1 = Getchar(consensus1, 0);
-// 		seq2 = Getchar(consensus2, 0);
-// 		
-// 		erate = 2 * AS_CGW_ERROR_RATE;
-// 		thresh = CGW_DP_THRESH;
-// 		minlen = CGW_DP_MINLEN;
-// 		
-// 		fprintf( stderr, "CheckWalkOverlaps: contig1: %d, contig2: %d, computedAhang: %d, orientation: %c\n",
-// 				 contig1->id, contig2->id, computedAhang, (char) overlapOrientation);
-// 		
-// 		// tempOlap1 points to a static down inside of DP_Compare
-// 		tempOlap1 = OverlapSequences( seq1, seq2, overlapOrientation, min_ahang, max_ahang, 
-// 									  erate, thresh, minlen, AS_FIND_ALIGN);
-// 		
-// 		if (tempOlap1 == NULL && fixStackOverlapFailure == TRUE)
-// 		{
-// 		  int newPos, delta;
-// 		  ChunkInsertInfoT *tempContig = walkedContig2;
-// 
-// 		  fprintf( stderr, "fixing stack overlap failure\n");
-// 
-// 		  // set the position of walkedContig2 so there's a 20 base pair overlap with walkedContig1
-// 		  newPos = MAX( walkedContig1->aEndOffset.mean,  walkedContig1->bEndOffset.mean) - 20;
-// 		  delta = newPos - MIN( tempContig->aEndOffset.mean, tempContig->bEndOffset.mean);
-// 		  fprintf( stderr, "moving contig %d from (%f, %f) to (%f, %f)\n",
-// 				   tempContig->contigID,
-// 				   tempContig->aEndOffset.mean, tempContig->bEndOffset.mean,
-// 				   tempContig->aEndOffset.mean + delta, tempContig->bEndOffset.mean + delta);			
-// 		  tempContig->aEndOffset.mean += delta;
-// 		  tempContig->bEndOffset.mean += delta;
-// 		  // also have to adjust the postion of everybody else in the walk
-// 		  do
-// 		  {
-// 			tempContig = tempContig->next;
-//             // only move the chunks inserted after walkedContig2, not all those to the right of it
-// 			if (tempContig->insertOrder > walkedContig2->insertOrder)  
-// 			{
-// 			  fprintf( stderr, "moving contig %d from (%f, %f) to (%f, %f)\n",
-// 					   tempContig->contigID,
-// 					   tempContig->aEndOffset.mean, tempContig->bEndOffset.mean,
-// 					   tempContig->aEndOffset.mean + delta, tempContig->bEndOffset.mean + delta);			
-// 			  tempContig->aEndOffset.mean += delta;
-// 			  tempContig->bEndOffset.mean += delta;
-// 			}
-// 		  } while (tempContig->next != NULL);
-// 		}
-// 		else if (tempOlap1 == NULL)
-// 		{
-// 		  // dumpContigInfo(contig1);
-// 		  // dumpContigInfo(contig2);
-// 		  return 1;
-// 		}
-//       }
-// 	  if (walkedContig2->next != NULL)
-// 	  {
-// 		walkedContig2 = walkedContig2->next;
-// 		contig2 = GetGraphNode(ScaffoldGraph->ContigGraph, walkedContig2->contigID);
-// 	  }
-// 	  else
-// 		negativeBhang = FALSE;
-//     } while (negativeBhang);
-//     walkedContig1 = walkedContig1->next;
-//   }
-//   return 0;
-// }
 
 
 
@@ -2422,6 +2237,7 @@ Overlap* OverlapContainingContigs(CIFragT *frag1, CIFragT *frag2, ChunkOrientati
   seq1 = Getchar(consensus1, 0);
   seq2 = Getchar(consensus2, 0);
 
+  assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
   erate = AS_CGW_ERROR_RATE;
   thresh = CGW_DP_THRESH;
   minlen = CGW_DP_MINLEN;
@@ -3975,6 +3791,7 @@ void CheckScaffoldOverlaps( void )
 		seq1 = Getchar(consensus1, 0);
 		seq2 = Getchar(consensus2, 0);
 		
+                assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
 		erate = AS_CGW_ERROR_RATE;
 		thresh = CGW_DP_THRESH;
 		minlen = CGW_DP_MINLEN;

@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AutoScreenOVL.c,v 1.14 2007-08-03 20:45:04 brianwalenz Exp $
- * $Revision: 1.14 $
+ * $Id: AutoScreenOVL.c,v 1.15 2007-08-04 22:27:35 brianwalenz Exp $
+ * $Revision: 1.15 $
 */
 
-static char CM_ID[] = "$Id: AutoScreenOVL.c,v 1.14 2007-08-03 20:45:04 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AutoScreenOVL.c,v 1.15 2007-08-04 22:27:35 brianwalenz Exp $";
 
 
 //  System include files
@@ -2571,6 +2571,7 @@ static void  Traverse
 
       if  (Verbose > 0)
           printf ("Find_Overlap %d -> %d\n", iid, best_iid);
+      assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
       result = Find_Overlap
                   (cum_buff, seq_buff, AB_AB, min_ahang, max_ahang,
                    AS_CGW_ERROR_RATE, CGW_DP_THRESH, CGW_DP_MINLEN,

@@ -102,7 +102,9 @@ Overlap *Local_Overlap_AS_forCNS(char *a, char *b,
   int AFFINEBLOCKSIZE=4;
   static Overlap o;
   int where=0;
-  
+
+  assert((0.0 <= erate) && (erate <= AS_MAX_ERROR_RATE));
+
   A.quality = NULL;
   B.quality = NULL;
   A.sequence = safe_copy_Astring_with_preceding_null(a);
@@ -217,7 +219,9 @@ Overlap *Affine_Overlap_AS_forCNS(char *a, char *b,
   int AFFINEBLOCKSIZE=4;
   int where=0;
   static Overlap o;
-  
+
+  assert((0.0 <= erate) && (erate <= AS_MAX_ERROR_RATE));
+
   orig_TEST_NUM_INDELS = AS_ALN_TEST_NUM_INDELS;
   AS_ALN_TEST_NUM_INDELS = 0;
 

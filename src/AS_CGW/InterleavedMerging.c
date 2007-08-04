@@ -879,7 +879,7 @@ Overlap * LookForChunkOverlapFromContigElements(ContigElement * ceA,
       // we allow overlap up to the length of the longer of A or B.
       maxOverlap = MIN(MAX(maxLengthA,maxLengthB),ceA->maxCoord-ceB->minCoord+.5);
       maxOverlap = MAX(CGW_MISSED_OVERLAP, maxOverlap);
-
+      assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
       chunkOverlap = OverlapChunks(ScaffoldGraph->RezGraph,
                                    ceA->id, ceB->id, overlapOrient,
                                    minOverlap, maxOverlap,
@@ -949,7 +949,7 @@ Overlap * LookForChunkOverlapFromContigElements(ContigElement * ceA,
       // max length of A or B
       maxOverlap = MIN(MAX(maxLengthA,maxLengthB),ceA->maxCoord-ceB->minCoord+.5);
       maxOverlap = MAX(CGW_MISSED_OVERLAP, maxOverlap);
-    
+      assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
       chunkOverlap = OverlapChunks(ScaffoldGraph->RezGraph,
                                    ceA->id, ceB->id, overlapOrient,
                                    minOverlap, maxOverlap,

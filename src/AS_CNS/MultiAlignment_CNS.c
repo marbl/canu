@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.151 2007-08-03 20:45:04 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.152 2007-08-04 22:27:35 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -3910,6 +3910,8 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang,
   int     CNS_TIGHTSEMIBANDWIDTH = 6;
   int     CNS_LOOSESEMIBANDWIDTH = 100;
   int     CNS_DP_THIN_MINLEN     = 10;
+
+  assert((0.0 <= AS_CNS_ERROR_RATE) && (AS_CNS_ERROR_RATE <= AS_MAX_ERROR_RATE));
 
   if (AS_CNS_ERROR_RATE > 0.06)
     CNS_TIGHTSEMIBANDWIDTH = 100;

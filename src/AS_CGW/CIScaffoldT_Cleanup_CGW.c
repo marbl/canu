@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.27 2007-08-03 20:45:03 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.28 2007-08-04 22:27:35 brianwalenz Exp $";
 
 #undef DEBUG_CHECKFORCTGS
 #undef DEBUG_DETAILED
@@ -258,6 +258,8 @@ void  PropagateContainmentOverlapsToNewContig(ContigT *newContig,
         {
           CDS_COORD_t delta =
             (CDS_COORD_t) MIN((3 * sqrt(newEdge->distance.variance)), 50);
+
+          assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
 
           ChunkOverlapCheckT olap =
             OverlapChunks(ScaffoldGraph->RezGraph,
@@ -795,6 +797,7 @@ void PropagateInternalOverlapsToNewContig(ContigT *newContig,
 	  }
 	}
 
+        assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
 
 	olap = OverlapChunks(ScaffoldGraph->RezGraph,
                              idA, idB, orient, // handles suspicious
@@ -1001,6 +1004,8 @@ void PropagateExtremalOverlapsToNewContig(CDS_CID_t contigID, int contigEnd, Con
 
       {
         CDS_COORD_t delta = MIN((3 * sqrt(newEdge->distance.variance)), 50);
+
+        assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
 
         ChunkOverlapCheckT olap =
           OverlapChunks(ScaffoldGraph->RezGraph,
@@ -1551,6 +1556,8 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
 #endif
       actual = IntervalsOverlap(contig.minOffset.mean, contig.maxOffset.mean,
 				currCI->offsetAEnd.mean, currCI->offsetBEnd.mean, -15000);
+
+      assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
 
       if(((maxContigsInMerge == NULLINDEX) || (contig.count < maxContigsInMerge)) &&  // artificially break longs merges if != NULLINDEX
 

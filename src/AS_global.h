@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_global.h,v 1.19 2007-08-03 20:45:03 brianwalenz Exp $
+//  $Id: AS_global.h,v 1.20 2007-08-04 22:27:35 brianwalenz Exp $
 
 //  This is the global include file that all C files in the AS
 //  subsystem should include.
@@ -318,6 +318,8 @@ typedef int32  CDS_COORD_t;
 
 #define AS_READ_MAX_LEN AS_FRAG_MAX_LEN
 #define AS_READ_MIN_LEN AS_FRAG_MIN_LEN
+
+//  AS_OVL controls both overlapper and bubble popping
 
 extern double AS_OVL_ERROR_RATE;
 extern double AS_CGW_ERROR_RATE;  //  former CGW_DP_ERATE

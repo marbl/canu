@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_Bubble_Popper.c,v 1.13 2007-07-19 09:50:26 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_Bubble_Popper.c,v 1.14 2007-08-04 22:27:35 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -234,6 +234,8 @@ BP_findOverlap(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2)
   fprintf(BUB_LOG_G, "Overlapping " F_IID " (" F_IID " , " F_IID ") and " F_IID " (" F_IID " , " F_IID ") ... ",
 	  bid1, bp->bubFrags[bid1], id1, bid2, bp->bubFrags[bid2], id2);
 #endif
+
+  assert((0.0 <= POPPER_ALN_ERATE) && (POPPER_ALN_ERATE <= AS_MAX_ERROR_RATE));
 
   /* Compute overlap */
   orientation = FALSE;

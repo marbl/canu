@@ -19,10 +19,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_global.c,v 1.1 2007-08-03 20:45:03 brianwalenz Exp $
+//  $Id: AS_global.c,v 1.2 2007-08-04 22:27:35 brianwalenz Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 
 //  Nonsense values, mostly for making sure everybody that uses an
 //  error rate calls AS_configure() at startup.

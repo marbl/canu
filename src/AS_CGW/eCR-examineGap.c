@@ -366,6 +366,7 @@ examineGap(ContigT *lcontig, int lFragIid,
 	
     beg    = -strlen (rcompBuffer);
     end    = strlen (lcompBuffer);
+    assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
     erate  = AS_CGW_ERROR_RATE + 0.02;  //  Historically, erate == 0.12.
     thresh = CGW_DP_THRESH;
     minlen = CGW_DP_MINLEN + 10;        //  Historically, minlen == 30.  Not sure if we should hardcode 30 or offset from CGW_DP_MINLEN.

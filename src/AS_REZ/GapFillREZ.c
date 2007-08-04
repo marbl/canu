@@ -34,7 +34,7 @@
 *
 *************************************************/
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.28 2007-08-03 20:45:04 brianwalenz Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.29 2007-08-04 22:27:35 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -2506,6 +2506,8 @@ static void  Check_Olaps
              Overlap  * olap;
              char  * i_seq, * j_seq;
 
+             assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
+
 #if  1
              i_seq = Get_Contig_Sequence (place [i] . id);
              j_seq = Get_Contig_Sequence (place [j] . id);
@@ -2585,6 +2587,7 @@ if  (olap_found)
 
      i_len = (int) fabs (place [i] . A_end . mean - place [i] . B_end . mean);
      j_len = (int) fabs (place [j] . A_end . mean - place [j] . B_end . mean);
+     assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
      rev_olap = OverlapChunks      // debug code does NOT handle suspicious
                 (ScaffoldGraph -> RezGraph,
                  place [i] . id, place [j] . id,
@@ -7190,6 +7193,7 @@ static Overlap *  Get_Chunk_Overlap
             (* a_seq) = Get_Contig_Sequence (a -> chunk_id);
         if  ((* b_seq) == NULL)
             (* b_seq) = Get_Contig_Sequence (b -> chunk_id);
+        assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
         result = OverlapSequences
                     ((* a_seq), (* b_seq), orient, min_ahang, max_ahang,
                      AS_CGW_ERROR_RATE, CGW_DP_THRESH, CGW_DP_MINLEN,
@@ -10212,6 +10216,7 @@ static void  Restore_Best_Rocks
                            5.0 * sqrt (best_chunk -> start . variance),
                            & orient, & min_ahang, & max_ahang))
                   {
+                    assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
 #if  0
                    how_much
                      = (int) rint (MIN
@@ -10307,6 +10312,7 @@ if  (olap == NULL)
                   {
 //  Using Mike's function.
                    scaff_seq = Get_Contig_Sequence (this_gap -> right_cid);
+                   assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
                    olap = OverlapSequences
                               (rock_seq, scaff_seq, orient, min_ahang, max_ahang,
                                AS_CGW_ERROR_RATE, CGW_DP_THRESH, CGW_DP_MINLEN,
