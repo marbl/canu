@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.23 2007-07-25 10:29:50 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.24 2007-08-04 22:26:58 brianwalenz Exp $";
 
 #include "AS_UTL_version.h"
 #include "AS_CGB_all.h"
@@ -143,6 +143,8 @@ ParseCommandLine(UnitiggerGlobals * rg,
   
   int ch,errflg=0;
   optarg = NULL;
+
+  argc = AS_configure(argc, argv);
 
   while (!errflg && 
          ((ch = getopt(argc, argv, 
