@@ -146,7 +146,7 @@ int main( int argc, char *argv[])
     int ch,errflg=0;
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,
-				    "f:g:NUC")) != EOF)){
+				    "g:NUC")) != EOF)){
       switch(ch) {
         case 'C':
           runConsensus=1;
