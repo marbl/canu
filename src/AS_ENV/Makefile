@@ -25,6 +25,7 @@
 LOCAL_WORK = $(shell cd ../../; pwd)
 
 SOURCES         = greedyFragmentTiling.c \
+		  chimChe.c \
                   metagenomics_ovl_analyses.c
 
 SCRIPTS		= greedy_layout_to_IUM.pl \
@@ -33,7 +34,7 @@ SCRIPTS		= greedy_layout_to_IUM.pl \
 
 OBJECTS         = $(SOURCES:.c=.o) 
 LIBRARIES       = 
-PROGS           = greedyFragmentTiling metagenomics_ovl_analyses
+PROGS           = greedyFragmentTiling metagenomics_ovl_analyses chimChe
 
 include $(LOCAL_WORK)/src/c_make.as
 
@@ -46,4 +47,7 @@ all: $(OBJECTS) $(LIBRARIES) $(PROGS) $(SCRIPTS)
 	@chmod 775 $(LOCAL_BIN)/run_greedy.csh
 
 greedyFragmentTiling: greedyFragmentTiling.o libCA.a
+
 metagenomics_ovl_analyses: metagenomics_ovl_analyses.o libCA.a
+
+chimChe: chimChe.o libCA.a
