@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.10 2007-08-03 20:45:04 brianwalenz Exp $
- * $Revision: 1.10 $
+ * $Id: OlapFromSeedsOVL.c,v 1.11 2007-08-06 05:40:59 brianwalenz Exp $
+ * $Revision: 1.11 $
 */
 
-static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.10 2007-08-03 20:45:04 brianwalenz Exp $";
+static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.11 2007-08-06 05:40:59 brianwalenz Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -498,9 +498,9 @@ if (0)
 
 
    for (i = 0; i < n; i ++)
-     free (mod_dp [i] . de);
-   free (mod_dp);
-   free (vote);
+     safe_free (mod_dp [i] . de);
+   safe_free (mod_dp);
+   safe_free (vote);
 
    return;
   }
