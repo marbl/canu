@@ -31,6 +31,8 @@ CGW_SOURCES =     AS_CGW_main.c \
                   resolveSurrogates.c \
                   fragmentPlacement.c \
                   dumpCloneMiddles.c \
+                  frgs2clones.c \
+                  createFrgDeletes.c \
                   dumpSingletons.c
 
 #  Not all of these are external, most are probably private to cgw itself.
@@ -72,7 +74,6 @@ CRUD_SOURCES = \
                   assemblyStructure.c \
                   ckp_scflen.c \
                   combineMates.c \
-                  createFrgDeletes.c \
                   dfsFragmentTiling.c \
                   dumpBinaryUnitigMAs.c \
                   dumpCheckpointAsFasta.c \
@@ -83,7 +84,6 @@ CRUD_SOURCES = \
                   findMissedOverlaps.c \
                   fixECRCheckpoint.c \
                   fixZLFContigs.c \
-                  frgs2clones.c \
                   localUnitigging_CGW.c \
                   smallLargeScaffolds.c \
                   testSplitChunks.c \
@@ -98,7 +98,7 @@ CGW_LIB_OBJECTS = $(CGW_LIB_SOURCES:.c=.o)
 LIBRARIES     = libAS_CGW.a libCA.a
 LIBS          = libCA.a
 
-PROGS = cgw extendClearRanges resolveSurrogates dumpCloneMiddles dumpSingletons exploreGapStructure
+PROGS = cgw extendClearRanges resolveSurrogates dumpCloneMiddles dumpSingletons exploreGapStructure frgs2clones createFrgDeletes
 
 CRUD =  Checkpoint process_scaffolds loadcgw \
         ScaffoldMap testSplitChunks instrumentCheckpoint \
@@ -107,7 +107,7 @@ CRUD =  Checkpoint process_scaffolds loadcgw \
 	dumpBinaryUnitigMAs assemblyStructure \
 	exploreScaffoldEnds asmInfoForFrg \
 	whereAreMyOverlaps findAnEdge \
-	combineMates ckp_scflen frgs2clones createFrgDeletes \
+	combineMates ckp_scflen \
 	dfsFragmentTiling
 
 

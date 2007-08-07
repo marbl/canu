@@ -32,7 +32,7 @@
 
 #include "AS_PER_gkpStore.h"
 
-#include "SYS_UIDcommon.h"
+//#include "SYS_UIDcommon.h"
 #include "SYS_UIDclient.h"
 
 #include "Globals_CNS.h"
@@ -111,7 +111,7 @@ int main( int argc, char *argv[])
 
   int setGatekeeperStore = FALSE;
   int fragIID,mateIID;
-  Fragment_ID fragUID,mateUID;
+  CDS_UID_t fragUID,mateUID;
   char GKP_Store_Name[2000];
   GateKeeperStore *gkpStore;
   GateKeeperFragmentRecord gkpFrag,gkpMate;
@@ -122,12 +122,14 @@ int main( int argc, char *argv[])
   int alloclen1=5000;
   int alloclen2=5000;
   int len1,len2,lastfrg;
-  ReadStructp fsread=new_ReadStruct();
-  ReadStructp fsmate=new_ReadStruct();
-  int realUID=0;
+  //  ReadStructp fsread=new_ReadStruct();
+  fragRecord fsread;
+  //  ReadStructp fsmate=new_ReadStruct();
+  fragRecord fsmate;
   CDS_UID_t UIDstart=1230000;
-  int firstUID=1;
-  CDS_UID_t       interval_UID[4];
+  UIDserver   *uids              = NULL;
+
+  //  CDS_UID_t       interval_UID[4];
   Overlap *ovl;
   IntUnitigMesg ium;
   IntMultiPos the_imps[2];
@@ -159,7 +161,7 @@ int main( int argc, char *argv[])
           Ngaps=1;
           break;
         case 'U':
-          realUID=1;
+          UIDstart=0;
           break;
         case '?':
           fprintf(stderr,"Unrecognized option -%c",optopt);
@@ -182,17 +184,17 @@ int main( int argc, char *argv[])
 
   gkpStore = openGateKeeperStore(GKP_Store_Name, FALSE);
 
-  seq1=(char*)malloc(sizeof(char)*alloclen1);
-  qul1=(char*)malloc(sizeof(char)*alloclen1);
+  //  seq1=(char*)malloc(sizeof(char)*alloclen1);
+  //  qul1=(char*)malloc(sizeof(char)*alloclen1);
   clear1=(char*)malloc(sizeof(char)*alloclen1);
-  assert(seq1!=NULL);
-  assert(qul1!=NULL);
+  //  assert(seq1!=NULL);
+  //  assert(qul1!=NULL);
   assert(clear1!=NULL);
-  seq2=(char*)malloc(sizeof(char)*alloclen2);
-  qul2=(char*)malloc(sizeof(char)*alloclen2);
+  //  seq2=(char*)malloc(sizeof(char)*alloclen2);
+  //  qul2=(char*)malloc(sizeof(char)*alloclen2);
   clear2=(char*)malloc(sizeof(char)*alloclen2);
-  assert(seq2!=NULL);
-  assert(qul2!=NULL);
+  //  assert(seq2!=NULL);
+  //  assert(qul2!=NULL);
   assert(clear2!=NULL);
 
 
@@ -201,29 +203,10 @@ int main( int argc, char *argv[])
   /*************************/
   {
 
-    {
-    	// SK - was requesting block size 300 but only using the first one
-      uint64 blockSize = 1;
-      int32  uidStatus;
-      CDS_UID_t interval_UID[4];
-      if(firstUID){
-	firstUID=0;
-	set_start_uid(UIDstart); /* used if readUID == FALSE */
-	get_uids(blockSize,&(interval_UID[0]),realUID);
-      }
+    uids = UIDserverInitialize(256, UIDstart);
 
-      uidStatus = get_next_uid(&mergeUid,realUID);
-      if( uidStatus != UID_CODE_OK )
-	{
-	  get_uids(blockSize,&(interval_UID[0]),realUID);
-	  uidStatus = get_next_uid(&mergeUid,realUID);
-	}	  
-      if( UID_CODE_OK != uidStatus )
-	{ 
-          fprintf(stderr, "Could not get UID \n");
-          assert(0);
-	}
-    }
+    assert(uids!=NULL);
+
   }
 
   /*************************/
@@ -238,22 +221,26 @@ int main( int argc, char *argv[])
     // get the fragment
     /*************************/
 
-    rv1 = getGateKeeperFragment(&gkpStore,fragIID,&gkpFrag);
+    rv1 = getGateKeeperFragment(gkpStore,fragIID,&gkpFrag);
     if(gkpFrag.deleted)continue;
-    assert(rv1==0);
-    fragUID = gkpFrag.UID;
 
-    if(getFrag(gkpStore,fragIID,fsread,FRAG_S_ALL)!=0){
-      fprintf(stderr,"Couldn't get fragment from gkpStore for iid %d\n",fragIID);
-      assert(0);
-    }
-    getClearRegion_ReadStruct(fsread, &clr_bgn1,&clr_end1, READSTRUCT_LATEST);
-    while(getSequence_ReadStruct(fsread,seq1,qul1,alloclen1)!=0){
+    fragUID = gkpFrag.readUID;
+
+      //    if(getFrag(gkpStore,fragIID,fsread,FRAG_S_ALL)!=0){
+      //      fprintf(stderr,"Couldn't get fragment from gkpStore for iid %d\n",fragIID);
+      //      assert(0);
+      //    }
+    getFrag(gkpStore,fragIID,&fsread,FRAG_S_ALL);
+    //    getClearRegion_ReadStruct(fsread, &clr_bgn1,&clr_end1, READSTRUCT_LATEST);
+    clr_bgn1 = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_LATEST);
+    clr_end1 = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_LATEST);
+
+    while(alloclen1<=getFragRecordSequenceLength(&fsread)){
       alloclen1*=2;
-      seq1=(char*)realloc(seq1,alloclen1*sizeof(char));
-      qul1=(char*)realloc(qul1,alloclen1*sizeof(char));
       clear1=(char*)realloc(clear1,alloclen1*sizeof(char));
     }
+    seq1 = getFragRecordSequence(&fsread);
+    qul1 = getFragRecordQuality(&fsread);
     strcpy(clear1,seq1+clr_bgn1);
     len1=clr_end1-clr_bgn1;
     clear1[len1]='\0';
@@ -275,23 +262,26 @@ int main( int argc, char *argv[])
       // get (clear) sequence of mate
       /*************************/
 
-      rv2 = getGateKeeperFragment(&gkpStore,mateIID,&gkpFrag);
-      assert(rv2==0);
-      mateUID = gkpFrag.UID;
+      rv2 = getGateKeeperFragment(gkpStore,mateIID,&gkpFrag);
+
+      mateUID = gkpFrag.readUID;
 	
       if(mateIID<fragIID&&gkpFrag.deleted!=1)continue;
 
-      if(getFrag(gkpStore,mateIID,fsmate,FRAG_S_ALL)!=0){
-	fprintf(stderr,"Couldn't get fragment from gkpStore for iid %d\n",mateIID);
-	assert(0);
-      }
-      getClearRegion_ReadStruct(fsmate, &clr_bgn2,&clr_end2, READSTRUCT_LATEST);
-      while(getSequence_ReadStruct(fsmate,seq2,qul2,alloclen2)!=0){
+      //      if(getFrag(gkpStore,mateIID,fsmate,FRAG_S_ALL)!=0){
+      //	fprintf(stderr,"Couldn't get fragment from gkpStore for iid %d\n",mateIID);
+      //	assert(0);
+      //      }
+      getFrag(gkpStore,mateIID,&fsmate,FRAG_S_ALL);
+      //      getClearRegion_ReadStruct(fsmate, &clr_bgn2,&clr_end2, READSTRUCT_LATEST);
+      clr_bgn2 = getFragRecordClearRegionBegin(&fsmate, AS_READ_CLEAR_LATEST);
+      clr_end2 = getFragRecordClearRegionEnd  (&fsmate, AS_READ_CLEAR_LATEST);
+      while(alloclen2<=getFragRecordSequenceLength(&fsmate)){
 	alloclen2*=2;
-	seq2=(char*)realloc(seq2,alloclen2*sizeof(char));
-	qul2=(char*)realloc(qul2,alloclen2*sizeof(char));
 	clear2=(char*)realloc(clear2,alloclen2*sizeof(char));
       }
+      seq2 = getFragRecordSequence(&fsmate);
+      qul2 = getFragRecordQuality(&fsmate);
       strcpy(clear2,seq2+clr_bgn2);
       len2=clr_end2-clr_bgn2;
       clear2[len2]='\0';
@@ -306,30 +296,7 @@ int main( int argc, char *argv[])
       // Create a UID for the clone
       /*********************************************/
 
-      {	
-				// SK - was requesting block size 300 but only using the first one
-	uint64 blockSize = 1;
-	int32  uidStatus;
-	CDS_UID_t interval_UID[4];
-	if(firstUID){
-	  firstUID=0;
-	  set_start_uid(UIDstart); /* used if readUID == FALSE */
-	  get_uids(blockSize,&(interval_UID[0]),realUID);
-	}
-
-	uidStatus = get_next_uid(&mergeUid,realUID);
-	if( uidStatus != UID_CODE_OK )
-	  {
-	    get_uids(blockSize,&(interval_UID[0]),realUID);
-	    uidStatus = get_next_uid(&mergeUid,realUID);
-	  }
-	if( UID_CODE_OK != uidStatus )
-	  { 
-            fprintf(stderr, "Could not get UID \n");
-            assert(0);
-	  }
-      }
-
+      mergeUid = getUID(uids);
 
       /*************************/
       // check for an overlap

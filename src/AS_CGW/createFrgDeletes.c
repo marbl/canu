@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: createFrgDeletes.c,v 1.9 2007-05-02 09:30:13 brianwalenz Exp $";
+static char CM_ID[] = "$Id: createFrgDeletes.c,v 1.10 2007-08-07 05:31:38 ahalpern Exp $";
 
 
 /*********************************************************************/
@@ -37,7 +37,6 @@ static char CM_ID[] = "$Id: createFrgDeletes.c,v 1.9 2007-05-02 09:30:13 brianwa
 
 #include "AS_PER_gkpStore.h"
 
-#include "SYS_UIDcommon.h"
 #include "SYS_UIDclient.h"
 
 #include "MultiAlignment_CNS.h"
@@ -55,22 +54,18 @@ int main( int argc, char *argv[])
   int setGatekeeperStore = FALSE;
   int fragIID,mateIID;
   FILE *iidlist;
-  Fragment_ID fragUID,mateUID;
+  CDS_UID_t fragUID,mateUID;
   char iidlist_name[2000];
   char GKP_Store_Name[2000];
-  GateKeeperStore gkpStore;
+  GateKeeperStore *gkpStore;
   GateKeeperFragmentRecord gkpFrag,gkpMate;
   uint64 uid, mateuid;
-  ReadStructp fsread=new_ReadStruct();
-  ReadStructp fsmate=new_ReadStruct();
-  int realUID=1;
-  int UIDstart=1230000;
-  int firstUID=1;
-  CDS_UID_t       interval_UID[4];
+  int UIDstart=0;
+  UIDserver   *uids              = NULL;
   Overlap *ovl;
   IntUnitigMesg ium;
   IntMultiPos the_imps[2];
-  CDS_UID_t mergeUid;
+  CDS_UID_t batchUid;
   char seq[MAXSEQLEN], qlt[MAXSEQLEN];
   int clr_bgn,clr_end;
   int iid;
@@ -109,49 +104,26 @@ int main( int argc, char *argv[])
 
   }
 
-  initGateKeeperStore(&gkpStore,GKP_Store_Name);
-  openReadOnlyGateKeeperStore(&gkpStore);
+  gkpStore = openGateKeeperStore(GKP_Store_Name, FALSE);
 
   iidlist = fopen(iidlist_name,"r");
+
+  uids = UIDserverInitialize(256, UIDstart);
 
   /*************************/
   // Construct a BAT message
   /*************************/
   {
 
-    /*************************/
-    // Get a UID to use
-    /*************************/
-    {
-    	// SK - was requesting block size 300 but only using the first one
-      int32 blockSize = 1;
-      int32  uidStatus;
-      CDS_UID_t interval_UID[4];
-      if(firstUID){
-	firstUID=0;
-	set_start_uid(UIDstart); /* used if readUID == FALSE */
-	get_uids(blockSize,interval_UID,realUID);
-      }
+    batchUid = getUID(uids);
 
-      uidStatus = get_next_uid(&mergeUid,realUID);
-      if( uidStatus != UID_CODE_OK )
-	{
-	  get_uids(blockSize,interval_UID,realUID);
-	  uidStatus = get_next_uid(&mergeUid,realUID);
-	}	  
-      if( UID_CODE_OK != uidStatus )
-	{ 
-          fprintf(stderr, "Could not get UID \n");
-          assert(0);
-	}
-    }
     /***********************/
     // Print a BAT message
     /***********************/
     printf("{BAT\n");
     printf("bna:(Batch name)\n");
     printf("crt:" F_TIME_T "\n",time(NULL));
-    printf("acc:" F_UID "\n",mergeUid);
+    printf("acc:" F_UID "\n",batchUid);
     printf("com:\nCreated by %s\n.\n",__FILE__);
     printf("}\n");
   }
@@ -169,10 +141,10 @@ int main( int argc, char *argv[])
     /*************************/
 
     //fprintf(stderr,"Working on frgIID %d\n",fragIID);
-    rv1 = getGateKeeperFragment(&gkpStore,fragIID,&gkpFrag);
+    rv1 = getGateKeeperFragment(gkpStore,fragIID,&gkpFrag);
+    //    assert(rv1==0);
 
-    assert(rv1==0);
-    fragUID = gkpFrag.UID;
+    fragUID = gkpFrag.readUID;
 
     /*************************/
     // check for an appropriate mate
@@ -181,9 +153,9 @@ int main( int argc, char *argv[])
     if(gkpFrag.mateIID != 0){
       mateIID = gkpFrag.mateIID;
       {
-	rv2 = getGateKeeperFragment(&gkpStore,mateIID,&gkpFrag);
-	assert(rv2==0);
-	mateUID = gkpFrag.UID;
+	rv2 = getGateKeeperFragment(gkpStore,mateIID,&gkpFrag);
+	//	assert(rv2==0);
+	mateUID = gkpFrag.readUID;
 	printf("{LKG\n");
 	printf("act:D\n");
 	printf("typ:M\n");
