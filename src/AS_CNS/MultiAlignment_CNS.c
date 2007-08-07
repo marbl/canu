@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.152 2007-08-04 22:27:35 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.153 2007-08-07 22:01:52 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -692,23 +692,72 @@ int SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) 
    HashTable_AS *unitigFrags;
    int hash_rc;
 
+   int max_column = 0;
+
    num_frags = GetNumIntMultiPoss(uma->f_list);
    num_unitigs = GetNumIntUnitigPoss(uma->u_list);
+
    unitigFrags = CreateScalarHashTable_AS(2*(num_frags+num_unitigs));
+
    for (ifrag=0;ifrag<num_frags;ifrag++){
       frag = GetIntMultiPos(uma->f_list,ifrag);
       SetVA_int32(gapped_positions,frag->position.bgn,&frag->position.bgn);
       SetVA_int32(gapped_positions,frag->position.end,&frag->position.end);
+
+      if (max_column < frag->position.bgn)
+        max_column = frag->position.bgn;
+      if (max_column < frag->position.end)
+        max_column = frag->position.end;
    }
    for (ifrag=0;ifrag<num_unitigs;ifrag++){
       unitig = GetIntUnitigPos(uma->u_list,ifrag);
       SetVA_int32(gapped_positions,unitig->position.bgn,&unitig->position.bgn);
       SetVA_int32(gapped_positions,unitig->position.end,&unitig->position.end);
+
+      if (max_column < unitig->position.bgn)
+        max_column = unitig->position.bgn;
+      if (max_column < unitig->position.end)
+        max_column = unitig->position.end;
    }
+
+#undef BODGE_POSITIONS
+#ifdef BODGE_POSITIONS
+   //  Ixodes suffered lots from, BPW suspects, eCR and CGW
+   //  disagreeing on what alignments exist.  The symptom was
+   //  multialigns that were longer than the underlying fragment
+   //  coverage.  It actually works -- but might be doing bad things
+   //  -- to basically ignore this error.  That's what we do here.
+
    if ( Getint32(gapped_positions,num_columns) == NULL ) {
       fprintf(stderr,"SetUngappedFragmentPositions()-- Misformed Multialign... fragment positions only extend to bp %d out of %d\n",
               (int) GetNumint32s(gapped_positions),num_columns+1);
+      for (ifrag=0;ifrag<num_frags;ifrag++){
+        frag = GetIntMultiPos(uma->f_list,ifrag);
+        fprintf(stderr, "fragment %4d (%9d): %6d -> %6d\n", ifrag, frag->ident, frag->position.bgn, frag->position.end);
+      }
+      for (ifrag=0;ifrag<num_unitigs;ifrag++){
+        unitig = GetIntUnitigPos(uma->u_list,ifrag);
+        fprintf(stderr, "unitig   %4d (%9d): %6d -> %6d\n", ifrag, unitig->ident, unitig->position.bgn, unitig->position.end);
+      }
+     fprintf(stderr, "DANGER!  Bodging num_columns to reflect a Misformed MultiAlign!\n");
+     num_columns = max_column;
+   }
+#endif
+
+   if ( Getint32(gapped_positions,num_columns) == NULL ) {
+      fprintf(stderr,"SetUngappedFragmentPositions()-- Misformed Multialign... fragment positions only extend to bp %d out of %d\n",
+              (int) GetNumint32s(gapped_positions),num_columns+1);
+      fprintf(stderr,"SetUngappedFragmentPositions()-- Misformed Multialign... see BODGE_POSITIONS in MultiAlignment_CNS.c\n");
+      for (ifrag=0;ifrag<num_frags;ifrag++){
+        frag = GetIntMultiPos(uma->f_list,ifrag);
+        fprintf(stderr, "fragment %4d (%9d): %6d -> %6d\n", ifrag, frag->ident, frag->position.bgn, frag->position.end);
+      }
+      for (ifrag=0;ifrag<num_unitigs;ifrag++){
+        unitig = GetIntUnitigPos(uma->u_list,ifrag);
+        fprintf(stderr, "unitig   %4d (%9d): %6d -> %6d\n", ifrag, unitig->ident, unitig->position.bgn, unitig->position.end);
+      }
       DeleteVA_int32(gapped_positions);
+
       return -1;
    }
 
