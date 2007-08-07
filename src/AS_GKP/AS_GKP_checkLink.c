@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkLink.c,v 1.12 2007-06-03 08:13:22 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkLink.c,v 1.13 2007-08-07 19:53:01 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,6 +45,14 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
   //
   if (lkg_mesg->frag1 == lkg_mesg->frag2) {
     fprintf(errorFP, "# LKG Error: Can't make a link from fragment "F_UID" to itself.\n" , lkg_mesg->frag1);
+    return(GATEKEEPER_FAILURE);
+  }
+
+  //  Check that it's a currently supported link type
+  //
+  if (lkg_mesg->type != AS_MATE) {
+    fprintf(errorFP, "# LKG Error: Unsupported LKG type '%c' for frags "F_UID","F_UID" in library "F_UID"\n",
+            lkg_mesg->type, lkg_mesg->frag1, lkg_mesg->frag2, lkg_mesg->distance);
     return(GATEKEEPER_FAILURE);
   }
 
