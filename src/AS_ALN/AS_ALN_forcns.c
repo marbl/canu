@@ -95,7 +95,7 @@ Overlap *Local_Overlap_AS_forCNS(char *a, char *b,
                     double erate, double thresh, int minlen,
 				 CompareOptions what){
 
-  InternalFragMesg  A, B;
+  InternalFragMesg  A = {0}, B = {0};
   OverlapMesg  *O;
   int alen,blen,del,sub,ins,affdel,affins,blockdel,blockins;
   double errRate,errRateAffine;
@@ -109,8 +109,6 @@ Overlap *Local_Overlap_AS_forCNS(char *a, char *b,
   B.quality = NULL;
   A.sequence = safe_copy_Astring_with_preceding_null(a);
   B.sequence = safe_copy_Bstring_with_preceding_null(b);
-  //A.sequence = a;
-  //B.sequence = b;
   A.iaccession = A.eaccession = 1;
   B.iaccession = B.eaccession = 2;
   O = Local_Overlap_AS(&A,&B,beg,end,
