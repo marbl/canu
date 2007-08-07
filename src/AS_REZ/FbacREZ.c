@@ -34,7 +34,7 @@
 
  **********************************************************************/
 
-static char fileID[] = "$Id: FbacREZ.c,v 1.17 2007-08-04 22:27:35 brianwalenz Exp $";
+static char fileID[] = "$Id: FbacREZ.c,v 1.18 2007-08-07 21:59:30 brianwalenz Exp $";
 
 #define FBACDEBUG 2
 
@@ -2647,131 +2647,105 @@ static VA_TYPE(char) *quality = NULL;
 
 void dumpContigInfo(ChunkInstanceT *contig)
 {
-  int 
-	offset, contigLeftEnd, contigRightEnd, contigOrientation;
-  MultiAlignT 
-	*ma;
-  char *seq1;
+  int           contigOrientation;
+  MultiAlignT  *ma;
+  char         *seq1;
+  int           len1;
 
-  // return;
-  
   fprintf( stderr, "*********************** contig analysis **************************\n");
   fprintf( stderr, "analyzing contig: %d\n", contig->id);
-  fflush(stderr);
 
   if (contig->offsetAEnd.mean < contig->offsetBEnd.mean)
-	contigOrientation = 0;
+    contigOrientation = 0;
   else
-	contigOrientation = 1;
+    contigOrientation = 1;
 
-  fprintf( stderr, "contig orientation: %d\t length: %d  ", contigOrientation, (int) contig->bpLength.mean);
-  fprintf( stderr, "contig offsetAEnd: %d\t offsetBEnd: %d\n", (int) contig->offsetAEnd.mean, (int) contig->offsetBEnd.mean);
+  fprintf(stderr, "contig orientation: %d\t length: %d  contig offsetAEnd: %d\t offsetBEnd: %d\n",
+          contigOrientation,
+          (int)contig->bpLength.mean,
+          (int)contig->offsetAEnd.mean,
+          (int)contig->offsetBEnd.mean);
 
-  offset = contigLeftEnd = MIN( (int) contig->offsetAEnd.mean, (int) contig->offsetBEnd.mean);
-  contigRightEnd = MAX( (int) contig->offsetAEnd.mean, (int) contig->offsetBEnd.mean);
-
-  // now some contig info
   ma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, ScaffoldGraph->RezGraph->type == CI_GRAPH); 
-  // ma = GetMultiAlignInStore(ScaffoldGraph->RezGraph->maStore, contig->id);
 
-  if(consensus == NULL)
-  {
+  if(consensus == NULL) {
     consensus = CreateVA_char(2048);
-    quality = CreateVA_char(2048);
+    quality   = CreateVA_char(2048);
   }
-		
+
   // Get the consensus sequences for the contig from the Store
   GetConsensus(ScaffoldGraph->ContigGraph, contig->id, consensus, quality);
+
   seq1 = Getchar(consensus, 0);
+  len1 = strlen(seq1);
 
   if (contigOrientation == 1)
-	SequenceComplement(seq1, NULL);
+    SequenceComplement(seq1, NULL);
   
-  fprintf( stderr, "> contig %d consensus seq (flipped to reflect scaff orientation)\n", contig->id);
-  fprintf( stderr, "%s\n", seq1);
+  if (len1 < 5000) {
+    fprintf( stderr, ">contig%d consensus seq (flipped to reflect scaff orientation)\n", contig->id);
+    fprintf( stderr, "%s\n", seq1);
+  } else {
+    char tmpchar = seq1[2500];
+    seq1[2500] = '\0';
 
-  {
-	char tempChar;
-	
-	tempChar = seq1[2500];
-	seq1[2500] = '\0';
-	
-	fprintf( stderr, "> contig %d left end\n", contig->id);
-	fprintf( stderr, "%s\n", seq1);
+    fprintf( stderr, ">contig%d left end\n", contig->id);
+    fprintf( stderr, "%s\n", seq1);
 
-	seq1[2500] = tempChar;
+    seq1[2500] = tmpchar;
+
+    fprintf( stderr, ">contig%d right end\n", contig->id);
+    fprintf( stderr, "%s\n", seq1 + len1 - 2501);
   }
 
-  contigRightEnd = strlen(seq1) - 2501;
-  fprintf( stderr, "> contig %d right end\n", contig->id);
-  fprintf( stderr, "%s\n", &seq1[contigRightEnd]);
-
-#if 0
-  numUnitigs = GetNumIntUnitigPoss(ma->u_list);
+#if 1
+  int numUnitigs = GetNumIntUnitigPoss(ma->u_list);
   fprintf( stderr, "number unitigs: %d\n", numUnitigs);
 
-  for (i = 0; i < numUnitigs; i++)
-  {
-	IntUnitigPos *upos = GetIntUnitigPos( ma->u_list, i);
-	ChunkInstanceT *unitig = GetGraphNode( ScaffoldGraph->CIGraph, upos->ident);
-	MultiAlignT *uma;
-	IntMultiPos *ump;
-	int icntfrag;
-	ChunkInstanceT *surrogateUnitig;
+  int i;
+  for (i = 0; i < numUnitigs; i++) {
+    IntUnitigPos *upos = GetIntUnitigPos( ma->u_list, i);
+    ChunkInstanceT *unitig = GetGraphNode( ScaffoldGraph->CIGraph, upos->ident);
+    MultiAlignT *uma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, ScaffoldGraph->CIGraph->type == CI_GRAPH);
+    IntMultiPos *ump;
+    int icntfrag;
 
-	uma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, ScaffoldGraph->CIGraph->type == CI_GRAPH); 
-	// uma = GetMultiAlignInStore(ScaffoldGraph->CIGraph->maStore, unitig->id);
-	fprintf( stderr, "  unitig: %d\t num frags: %ld surrogate: %d\n", unitig->id, GetNumIntMultiPoss(uma->f_list),
-		 (unitig->flags.bits.isStoneSurrogate || unitig->flags.bits.isWalkSurrogate));
+    fprintf( stderr, "  unitig: %d\t num frags: %ld surrogate: %d\n", unitig->id, GetNumIntMultiPoss(uma->f_list),
+             (unitig->flags.bits.isStoneSurrogate || unitig->flags.bits.isWalkSurrogate));
 
-	surrogateUnitig = unitig;
-	if (unitig->flags.bits.isStoneSurrogate || unitig->flags.bits.isWalkSurrogate)
-	{
-	  fprintf ( stderr, "  surrogate unitig offsetAEnd: %f, offsetBEnd: %f\n", 
-		    unitig->offsetAEnd.mean, unitig->offsetBEnd.mean);
-	  unitig = GetGraphNode( ScaffoldGraph->CIGraph, unitig->info.CI.baseID);
-	  fprintf ( stderr, "  using original unitig: %d\n", unitig->id);
-	  uma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, 
-					      ScaffoldGraph->CIGraph->type == CI_GRAPH); 
-	}
+    if (unitig->flags.bits.isStoneSurrogate ||
+        unitig->flags.bits.isWalkSurrogate) {
+      fprintf (stderr, "  surrogate unitig offsetAEnd: %f, offsetBEnd: %f\n", unitig->offsetAEnd.mean, unitig->offsetBEnd.mean);
 
-	// now print out info on the frags in the unitig
-	for (icntfrag = 0; icntfrag < GetNumIntMultiPoss(uma->f_list); icntfrag++)
-	{
-	  CIFragT *frag;  //
-	  IntMultiPos *imp = GetIntMultiPos(uma->f_list, icntfrag);
-	  InfoByIID *info;
+      unitig = GetGraphNode( ScaffoldGraph->CIGraph, unitig->info.CI.baseID);
+      fprintf ( stderr, "  using original unitig: %d\n", unitig->id);
+      uma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, 
+                                          ScaffoldGraph->CIGraph->type == CI_GRAPH); 
+    }
 
-	  // get frags position in contig	
-	  info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, imp->ident);
-	  assert(info->set);
-	  frag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
+    // now print out info on the frags in the unitig
+    for (icntfrag = 0; icntfrag < GetNumIntMultiPoss(uma->f_list); icntfrag++) {
+      IntMultiPos *imp = GetIntMultiPos(uma->f_list, icntfrag);
+      InfoByIID   *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, imp->ident);
+      CIFragT     *frag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
+
+      assert(info->set);
 	  
-	  fprintf( stderr, "    frag: %6d\t contig pos (5p, 3p): %6d, %6d", 
-			   imp->ident, (int) frag->contigOffset5p.mean, (int) frag->contigOffset3p.mean);	  
-	  fprintf( stderr, "   real pos (a, b): %6d, %6d, type: %c\n",
-			   frag->aEndCoord, frag->bEndCoord, frag->type);
-	}
+      fprintf(stderr, "    frag: %6d\t contig pos (5p, 3p): %6d, %6d  type: %c\n",
+              imp->ident, (int) frag->contigOffset5p.mean, (int) frag->contigOffset3p.mean, frag->type);
+    }
   }
 #endif
-  // now get some edge info
-  if (0)
-  {
-	CIEdgeT
-	  * e;
-	GraphEdgeIterator
-	  edges;
 
-	InitGraphEdgeIterator(ScaffoldGraph->RezGraph, contig->id,
-                              ALL_END, ALL_EDGES, ITERATOR_VERBOSE, &edges);
-	while((e = NextGraphEdgeIterator(&edges)) != NULL)
-	{
-	  assert(e != NULL);
-	  
-	  // fprintf( stderr, "edge: %d to %d, orient: %c, length: %f\n", e->idA, e->idB, (char) e->orient, e->distance.mean);
-	  PrintGraphEdge( stderr, ScaffoldGraph->RezGraph, "Analyzing edge", e, 0);
-	}
-  }
+
+#if 1
+  CIEdgeT * e;
+  GraphEdgeIterator edges;
+
+  InitGraphEdgeIterator(ScaffoldGraph->RezGraph, contig->id, ALL_END, ALL_EDGES, ITERATOR_VERBOSE, &edges);
+  while((e = NextGraphEdgeIterator(&edges)) != NULL)
+    PrintGraphEdge( stderr, ScaffoldGraph->RezGraph, "Analyzing edge", e, 0);
+#endif
 }
 
 void dumpGapInfo(ChunkInstanceT *leftContig, ChunkInstanceT *rightContig)
