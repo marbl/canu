@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.47 2007-08-01 17:35:30 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.48 2007-08-08 19:15:43 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,6 +33,7 @@ static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.47 2007-08-01 17:35:30 brianwalenz
 #include "AS_PER_genericStore.h"
 #include "AS_PER_gkpStore.h"
 #include "AS_UTL_version.h"
+#include "AS_UTL_fileIO.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_GKP_include.h"
 
@@ -527,6 +528,8 @@ main(int argc, char **argv) {
     char          line[256];
     int           nlines  = 0;
     int           nupdate = 0;
+    FILE         *F = NULL;
+    char          N[FILENAME_MAX] = {0};
 
     errno = 0;
     FILE   *v = fopen(vectorClearFile, "r");
@@ -537,6 +540,23 @@ main(int argc, char **argv) {
     }
 
     gkpStore = openGateKeeperStore(gkpStoreName, TRUE);
+
+    //  Suck in the whole frg info file, rather than doing random access all over the place.
+    //
+    uint32                     nfrg = getNumGateKeeperFragments(gkpStore);
+    GateKeeperFragmentRecord  *frg  = (GateKeeperFragmentRecord *)safe_malloc(nfrg * sizeof(GateKeeperFragmentRecord));
+
+    sprintf(N, "%s/frg", gkpStoreName);
+    errno = 0;
+    F = fopen(N, "r");
+    if (errno) {
+      fprintf(stderr, "%s: couldn't open '%s' to read fragment info: %s\n",
+              argv[0], vectorClearFile, strerror(errno));
+      exit(1);
+    }
+    fprintf(stderr, "Loading "F_U32" fragment info's from '%s'\n", nfrg, N);
+    AS_UTL_safeRead(F, frg, "GKPvectorLoaderHack", sizeof(getNumGateKeeperFragments), nfrg);
+    fclose(F);
 
     fgets(line, 256, v);
     while (!feof(v)) {
@@ -551,34 +571,37 @@ main(int argc, char **argv) {
       } else {
         CDS_IID_t  iid = getGatekeeperUIDtoIID(gkpStore, uid, NULL);
         if (iid) {
-          fragRecord    fr;
-
-          getFrag(gkpStore, iid, &fr, FRAG_S_INF);
-
-          //  Assume they are base-based.
-          fr.gkfr.hasVectorClear = 1;
+          frg[iid].hasVectorClear = 1;
           if (l < r) {
-            fr.gkfr.clearBeg[AS_READ_CLEAR_VEC] = l - 1;
-            fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] = r;
+            frg[iid].clearBeg[AS_READ_CLEAR_VEC] = l - 1;  //  Assume they are base-based.
+            frg[iid].clearEnd[AS_READ_CLEAR_VEC] = r;
           } else {
-            fr.gkfr.clearBeg[AS_READ_CLEAR_VEC] = r - 1;
-            fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] = l;
+            frg[iid].clearBeg[AS_READ_CLEAR_VEC] = r - 1;
+            frg[iid].clearEnd[AS_READ_CLEAR_VEC] = l;
           }
-
           nupdate++;
-          setFrag(gkpStore, iid, &fr);
         }
-
         nlines++;
       }
       fgets(line, 256, v);
     }
 
-    closeGateKeeperStore(gkpStore);
-
     fclose(v);
 
+    closeGateKeeperStore(gkpStore);
+
     fprintf(stderr, "in %d lines, updated %d fragments.\n", nlines, nupdate);
+
+    errno = 0;
+    F = fopen(N, "w");
+    if (errno) {
+      fprintf(stderr, "%s: couldn't open '%s' to write fragment info: %s\n",
+              argv[0], vectorClearFile, strerror(errno));
+      exit(1);
+    }
+    fprintf(stderr, "Writing "F_U32" fragment info's from '%s'\n", nfrg, N);
+    AS_UTL_safeWrite(F, frg, "GKPvectorLoaderHack", sizeof(getNumGateKeeperFragments), nfrg);
+    fclose(F);
 
     exit(0);
   }
