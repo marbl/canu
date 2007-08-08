@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.48 2007-08-08 19:15:43 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.49 2007-08-08 21:15:27 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -541,12 +541,19 @@ main(int argc, char **argv) {
 
     gkpStore = openGateKeeperStore(gkpStoreName, TRUE);
 
-    //  Suck in the whole frg info file, rather than doing random access all over the place.
-    //
+    //  Suck in the whole frg info file, rather than doing random
+    //  access all over the place.  Don't forget that there is a heder
+    //  on said file.  XXX -- really, someone should improve the
+    //  GenericStore interface so that one could loadPartialStore()
+    //  and dump it back.
+#warning Violating genericStore encapsulation.
+
     uint32                     nfrg = getNumGateKeeperFragments(gkpStore);
+    uint32                     nfrr = 0;
     GateKeeperFragmentRecord  *frg  = (GateKeeperFragmentRecord *)safe_malloc(nfrg * sizeof(GateKeeperFragmentRecord));
 
     sprintf(N, "%s/frg", gkpStoreName);
+
     errno = 0;
     F = fopen(N, "r");
     if (errno) {
@@ -555,7 +562,11 @@ main(int argc, char **argv) {
       exit(1);
     }
     fprintf(stderr, "Loading "F_U32" fragment info's from '%s'\n", nfrg, N);
-    AS_UTL_safeRead(F, frg, "GKPvectorLoaderHack", sizeof(getNumGateKeeperFragments), nfrg);
+    AS_UTL_fseek(F, sizeof(StoreStat), SEEK_SET);
+    nfrr = AS_UTL_safeRead(F, frg, "GKPvectorLoaderHack", sizeof(GateKeeperFragmentRecord), nfrg);
+    if (nfrr != nfrg)
+      fprintf(stderr, "ERROR:  Read only "F_U32" records instead of "F_U32".\n", nfrr, nfrg);
+    assert(nfrr == nfrg);
     fclose(F);
 
     fgets(line, 256, v);
@@ -593,14 +604,15 @@ main(int argc, char **argv) {
     fprintf(stderr, "in %d lines, updated %d fragments.\n", nlines, nupdate);
 
     errno = 0;
-    F = fopen(N, "w");
+    F = fopen(N, "r+");
     if (errno) {
       fprintf(stderr, "%s: couldn't open '%s' to write fragment info: %s\n",
               argv[0], vectorClearFile, strerror(errno));
       exit(1);
     }
     fprintf(stderr, "Writing "F_U32" fragment info's from '%s'\n", nfrg, N);
-    AS_UTL_safeWrite(F, frg, "GKPvectorLoaderHack", sizeof(getNumGateKeeperFragments), nfrg);
+    AS_UTL_fseek(F, sizeof(StoreStat), SEEK_SET);
+    AS_UTL_safeWrite(F, frg, "GKPvectorLoaderHack", sizeof(GateKeeperFragmentRecord), nfrg);
     fclose(F);
 
     exit(0);
