@@ -606,7 +606,7 @@ int main (int argc, char *argv[]){
   FILE *antiOvlHistoFile=NULL;
 
   while  (! errflg
-	  && ((ch = getopt (argc, argv, "b:dDe:f:g:m:o:s:A:B:C:S:"))!=EOF)){
+	  && ((ch = getopt (argc, argv, "b:dDe:g:m:o:s:A:B:C:S:"))!=EOF)){
     switch  (ch)
       {
       case 'b':
@@ -655,7 +655,7 @@ int main (int argc, char *argv[]){
      setFullFrg!=1
      ){
     fprintf(stderr,
-            "Usage: %s [-A <diversity overlap histogram file>] [-B <binary coverages file>] [-C <depths of coverage file>] [-S <similarity scores file>] [-b startfrg] [-e endfrg] [-d] -f <frgStore> -g <gkpStore> -o <ovlStore> -s <samples>\n",
+            "Usage: %s [-A <diversity overlap histogram file>] [-B <binary coverages file>] [-C <depths of coverage file>] [-S <similarity scores file>] [-b startfrg] [-e endfrg] [-d] -g <gkpStore> -o <ovlStore> -s <samples>\n",
             argv[0]);
     exit(1);
   }
