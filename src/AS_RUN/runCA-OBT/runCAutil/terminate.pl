@@ -170,9 +170,9 @@ sub terminate ($) {
     if (defined($ruby) && (! -e "$termDir/mateLinkIIDRanges.txt")) {
         my $cmd;
         $cmd = "$bin/mateLinkIIDRanges.rb $wrk/$asm.gkpStore $bin > $termDir/mateLinkIIDRanges.txt";
-        if (runCommand($termDir, $cmd)) {
-            rename "$termDir/mateLinkIIDRanges.txt", "$termDir/mateLinkIIDRanges.txt.FAILED";
-        }
+#        if (runCommand($termDir, $cmd)) {
+#            rename "$termDir/mateLinkIIDRanges.txt", "$termDir/mateLinkIIDRanges.txt.FAILED";
+#        }
     }
 
     if (! -e "$termDir/$asm.qc") {
