@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: createFrgDeletes.c,v 1.10 2007-08-07 05:31:38 ahalpern Exp $";
+static char CM_ID[] = "$Id: createFrgDeletes.c,v 1.11 2007-08-08 17:21:28 ahalpern Exp $";
 
 
 /*********************************************************************/
@@ -74,7 +74,7 @@ int main( int argc, char *argv[])
   VA_TYPE(char) *quality=CreateVA_char(200000);
 
   //  setbuf(stdout,NULL);
-
+  argc = AS_configure(argc, argv);
   { /* Parse the argument list using "man 3 getopt". */ 
     int ch,errflg=0;
     optarg = NULL;
