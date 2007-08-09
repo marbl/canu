@@ -18,45 +18,11 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.40 2007-04-30 13:00:29 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.41 2007-08-09 16:55:34 brianwalenz Exp $";
 
 #include "AS_MSG_pmesg_internal.h"
 
 AS_MSG_global_t *AS_MSG_globals = NULL;
-
-
-
-////////////////////////////////////////
-//
-//  For lack of a better place, this is here...
-//
-//
-/* ---------------------------------------------------
- * Convert values of type: char
- * to the enumerated type: FragType
- *
- * This violates the abstraction provided by enumerated types.
- * But our storage requirements demand this byte-saving step.
- *
- * Param 'strict' controls behavior on bad input.
- * If strict, function dies when input is not valid.
- * Else, function returns AS_EXTR when input is not valid.
- ----------------------------------------------------*/
-FragType
-AS_MSG_SafeConvert_charToFragType (const char input, bool strict) {
-  FragType output = AS_EXTR;
-
-  // The vast majority of data will satisfy the first test.
-
-  if      (input=='R') output=AS_READ;
-  else if (input=='X') output=AS_EXTR;
-  else if (input=='T') output=AS_TRNR;
-  else if (strict)     assert(FALSE);
-
-  return output;
-}
-
-
 
 
 

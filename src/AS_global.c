@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_global.c,v 1.2 2007-08-04 22:27:35 brianwalenz Exp $
+//  $Id: AS_global.c,v 1.3 2007-08-09 16:55:34 brianwalenz Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,6 +74,9 @@ AS_configure(int argc, char **argv) {
     }
     fprintf(stderr, "%s: AS_configure()-- AS_CNS_ERROR_RATE set to %0.2f\n", argv[0], AS_CNS_ERROR_RATE);
   }
+
+  //  Consensus will sometimes try to find alignments up to 4 times the error rate given.
+  AS_MAX_ERROR_RATE *= 4;
 
   return(argc);
 }

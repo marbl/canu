@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.47 2007-07-24 06:30:02 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.48 2007-08-09 16:55:34 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3161,19 +3161,21 @@ void AssignFragsToResolvedCI(GraphCGW_T *graph,
   /* Then, assign it to the new node and create a degenerate MultiAlignT */
   for(i = 0; i < numFrags; i++){
     CDS_CID_t fragID = *GetCDS_CID_t(fragments,i);
-    CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, fragID);
+    CIFragT  *frag   = GetCIFragT(ScaffoldGraph->CIFrags, fragID);
+
     assert(frag->CIid == fromID);
-    assert(frag->cid == fromID);
-    frag->CIid = toID;              // Assign the fragment to the surrogate
+    assert(frag->cid  == fromID);
+
+    frag->CIid     = toID;          // Assign the fragment to the surrogate
     frag->contigID = toContig->id;  // Assign the fragment to the contig
     
-    //fragPos.type = frag->type;
-    fragPos.type = AS_MSG_SafeConvert_charToFragType(frag->type,TRUE);
-    
-    fragPos.sourceInt = fragID;
+    fragPos.type         = frag->type;
+    fragPos.sourceInt    = fragID;
     fragPos.position.bgn = frag->offset5p.mean;
     fragPos.position.end = frag->offset3p.mean;
+
     AppendIntMultiPos(f_list_CI, &fragPos);
+
     // Now figure out fragment position in target contig
     if(flipped){
       fragPos.position.bgn = surrogateAOffset - frag->offset5p.mean;

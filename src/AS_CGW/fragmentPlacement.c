@@ -546,8 +546,8 @@ void ReallyAssignFragsToResolvedCI(GraphCGW_T *graph,
     assert(frag->cid == fromID);
     frag->CIid = toID;              // Assign the fragment to the surrogate
     frag->contigID = toContig->id;  // Assign the fragment to the contig
-    
-    fragPos.type = AS_MSG_SafeConvert_charToFragType(frag->type,TRUE);
+
+    fragPos.type  = frag->type;
     fragPos.ident = fragID;
     fragPos.sourceInt = frgIdx;
     fragPos.position.bgn = frag->offset5p.mean;

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.50 2007-07-19 09:50:33 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.51 2007-08-09 16:55:34 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -196,7 +196,6 @@ typedef enum {
   AS_CONTIG  = (int)'C'   //  Assembled contig
 } FragType;
 
-FragType AS_MSG_SafeConvert_charToFragType (const char inch, bool strict) ;
 
 /* Extended Granger's comment to fragment types
 
@@ -901,8 +900,6 @@ int GetMessageType(char *string);
 const char  *GetMessageName(int type);
 
 //  External Routines
-
-FragType   AS_MSG_SafeConvert_charToFragType (const char input, bool strict);
 
 void       AS_MSG_setFormatVersion(int format);
 
