@@ -11,7 +11,7 @@ sub runMeryl ($$$) {
         #  Use the better meryl!  This is straightforward.  We count,
         #  then we dump.
 
-        if (! -e "wrk/0-mercounts/$asm-ms$merSize.mcdat") {
+        if (! -e "$wrk/0-mercounts/$asm-ms$merSize.mcdat") {
             my $merylMemory = getGlobal("merylMemory");
 
             $cmd .= "$bin/meryl ";
