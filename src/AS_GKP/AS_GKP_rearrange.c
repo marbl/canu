@@ -193,9 +193,14 @@ rearrangeStore(char *uidFileName, char *gkpStoreName, char *newStoreName) {
       //
       clr_fragRecord(&fr);
       fr.gkfr.readUID = missing[i];
-      fr.gkfr.readIID = i;
       fr.gkfr.deleted = 1;
     }
+
+    //  Everybody gets a new IID.  Which is obvious once one remembers
+    //  that we're adding new frags (deleted, yes, but still new) to
+    //  our new store.
+    //
+    fr.gkfr.readIID = i + 1;
 
     //  Too much of a bother to get the new IID, not worth the effort.
     //
