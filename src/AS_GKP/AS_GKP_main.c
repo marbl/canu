@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.49 2007-08-08 21:15:27 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.50 2007-08-09 12:48:44 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -582,6 +582,7 @@ main(int argc, char **argv) {
       } else {
         CDS_IID_t  iid = getGatekeeperUIDtoIID(gkpStore, uid, NULL);
         if (iid) {
+          iid--;  // because an iid is not an index into an array
           frg[iid].hasVectorClear = 1;
           if (l < r) {
             frg[iid].clearBeg[AS_READ_CLEAR_VEC] = l - 1;  //  Assume they are base-based.
