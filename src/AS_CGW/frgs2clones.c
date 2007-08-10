@@ -186,15 +186,15 @@ int main( int argc, char *argv[])
 
   gkpStore = openGateKeeperStore(GKP_Store_Name, FALSE);
 
-  //  seq1=(char*)malloc(sizeof(char)*alloclen1);
-  //  qul1=(char*)malloc(sizeof(char)*alloclen1);
-  clear1=(char*)malloc(sizeof(char)*alloclen1);
+  //  seq1=(char*)safe_malloc(sizeof(char)*alloclen1);
+  //  qul1=(char*)safe_malloc(sizeof(char)*alloclen1);
+  clear1=(char*)safe_malloc(sizeof(char)*alloclen1);
   //  assert(seq1!=NULL);
   //  assert(qul1!=NULL);
   assert(clear1!=NULL);
-  //  seq2=(char*)malloc(sizeof(char)*alloclen2);
-  //  qul2=(char*)malloc(sizeof(char)*alloclen2);
-  clear2=(char*)malloc(sizeof(char)*alloclen2);
+  //  seq2=(char*)safe_malloc(sizeof(char)*alloclen2);
+  //  qul2=(char*)safe_malloc(sizeof(char)*alloclen2);
+  clear2=(char*)safe_malloc(sizeof(char)*alloclen2);
   //  assert(seq2!=NULL);
   //  assert(qul2!=NULL);
   assert(clear2!=NULL);
@@ -239,7 +239,7 @@ int main( int argc, char *argv[])
 
     while(alloclen1<=getFragRecordSequenceLength(&fsread)){
       alloclen1*=2;
-      clear1=(char*)realloc(clear1,alloclen1*sizeof(char));
+      clear1=(char*)safe_realloc(clear1,alloclen1*sizeof(char));
     }
     seq1 = getFragRecordSequence(&fsread);
     qul1 = getFragRecordQuality(&fsread);
@@ -280,7 +280,7 @@ int main( int argc, char *argv[])
       clr_end2 = getFragRecordClearRegionEnd  (&fsmate, AS_READ_CLEAR_LATEST);
       while(alloclen2<=getFragRecordSequenceLength(&fsmate)){
 	alloclen2*=2;
-	clear2=(char*)realloc(clear2,alloclen2*sizeof(char));
+	clear2=(char*)safe_realloc(clear2,alloclen2*sizeof(char));
       }
       seq2 = getFragRecordSequence(&fsmate);
       qul2 = getFragRecordQuality(&fsmate);
