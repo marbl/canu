@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_OVS_overlap.c,v 1.3 2007-07-24 06:50:32 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_OVS_overlap.c,v 1.4 2007-08-10 06:47:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -125,7 +125,7 @@ AS_OVS_convertOVLdumpToOVSoverlap(char *line, OVSoverlap *olap) {
   if (items == 7) {
     olap->a_iid              = atoi(ptrs[0]);
     olap->b_iid              = atoi(ptrs[1]);
-    olap->dat.ovl.flipped    = (ptrs[2][0] == 'n') || (ptrs[2][0] == 'N');
+    olap->dat.ovl.flipped    = (ptrs[2][0] == 'i') || (ptrs[2][0] == 'I');
     olap->dat.ovl.a_hang     = atoi(ptrs[3]);
     olap->dat.ovl.b_hang     = atoi(ptrs[4]);
     olap->dat.ovl.orig_erate = AS_OVS_encodeQuality(atof(ptrs[5]) / 100.0);
