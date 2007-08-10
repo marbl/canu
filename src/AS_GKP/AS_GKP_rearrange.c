@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: ";
+static char CM_ID[] = "$Id: AS_GKP_rearrange.c,v 1.4 2007-08-10 06:49:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
