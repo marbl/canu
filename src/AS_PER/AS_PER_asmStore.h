@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_PER_asmStore.h,v 1.13 2007-06-03 08:13:22 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_asmStore.h,v 1.14 2007-08-10 06:53:03 brianwalenz Exp $	 */
 #ifndef AS_PER_ASMSTORE_H
 #define AS_PER_ASMSTORE_H
 /*************************************************************************
@@ -158,11 +158,9 @@ typedef struct
 } ASM_SCFRecord;
 
 
+
 #define ASMSTORE_DEF(type)\
-typedef StoreHandle type ## Store;\
-static type ## Store reset ## type ## Store(type ## Store sh, int firstID){\
-  return resetIndexStore(sh, firstID);\
-}\
+typedef StoreStruct* type ## Store;\
 static int close ## type ## Store(type ## Store sh){\
   return closeStore(sh);\
 }\
@@ -173,7 +171,7 @@ static int set ## type ## Store(type ## Store fs, int index, type ## Record *dr)
   return setIndexStore(fs,index,dr); \
 }\
 static type ## Store create ## type ## Store(char *StorePath, char *ext, int firstID){\
-  type ## Store s = createIndexStore(StorePath,ext, sizeof(type ## Record), 1, firstID);\
+  type ## Store s = createIndexStore(StorePath,ext, sizeof(type ## Record), firstID);\
   return s;\
 }\
 static type ## Store open ## type ## Store(char *StorePath, char *rw){\

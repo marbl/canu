@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.41 2007-07-27 20:24:12 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.42 2007-08-10 06:53:03 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -895,9 +895,10 @@ void LoadDistData(void){ // Load the distance record info from the gkpStore
   for(i = 1; i <= numDists; i++){
     DistT dist;
     GateKeeperLibraryRecord  *gkpl = getGateKeeperLibrary(ScaffoldGraph->gkpStore, i);
-    
-    if (gkpl->deleted)
-      continue;
+
+    //  We don't allow libraries to be deleted from gatekeeper anymore.
+    //if (gkpl->deleted)
+    //  continue;
 
     dist.mu             = gkpl->mean;
     dist.sigma          = gkpl->stddev;

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.13 2007-08-02 20:31:49 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.14 2007-08-10 06:53:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,10 +28,6 @@ static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.13 2007-08-02 20:31:49 bri
 #include "AS_global.h"
 #include "AS_GKP_include.h"
 #include "AS_PER_gkpStore.h"
-
-//  Define this to allow libraries to be deleted from the store.  Not
-//  recommended.
-#undef ALLOW_LIBRARY_DELETE
 
 int
 Check_DistanceMesg(DistanceMesg    *dst_mesg) {
@@ -90,7 +86,6 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg) {
       default:  gkpl.orientation = AS_READ_ORIENT_UNKNOWN;    break;
     }
 
-    gkpl.deleted      = FALSE;
     gkpl.mean         = lib_mesg->mean;
     gkpl.stddev       = lib_mesg->stddev;
 
@@ -151,20 +146,9 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg) {
       return(GATEKEEPER_FAILURE);
     }
 
-#ifdef ALLOW_LIBRARY_DELETE
-    if (HASH_SUCCESS == delGatekeeperUIDtoIID(gkpStore, lib_mesg->eaccession)) {
-      GateKeeperLibraryRecord dr;
-      getIndexStore(gkpStore->lib, iid, &dr);
-      dr.deleted = TRUE;
-      setIndexStore(gkpStore->lib, iid, &dr);
-    } else {
-      assert(0);
-    }
-#else
     fprintf(errorFP, "# LIB Error:  Library "F_UID" exists, but we don't allow libraries to be deleted.\n",
             lib_mesg->eaccession);
     return(GATEKEEPER_FAILURE);
-#endif
 
   } else {
     fprintf(errorFP, "# LIB Error: invalid action %c.\n", lib_mesg->action);

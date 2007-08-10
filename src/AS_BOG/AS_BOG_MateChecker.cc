@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.22 2007-06-22 13:21:03 eliv Exp $
- * $Revision: 1.22 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.23 2007-08-10 06:53:03 brianwalenz Exp $
+ * $Revision: 1.23 $
 */
 
 #include <math.h>
@@ -33,7 +33,7 @@ namespace AS_BOG{
     void MateChecker::readStore(const char* gkpStorePath) {
         GateKeeperStore *gkpStore = openGateKeeperStore(gkpStorePath, FALSE);
 
-        StreamHandle frags = openStream(gkpStore->frg, NULL, 0);
+        StreamStruct *frags = openStream(gkpStore->frg, NULL, 0);
         resetStream(frags, STREAM_FROMSTART, STREAM_UNTILEND);
 
         GateKeeperFragmentRecord gkpf;

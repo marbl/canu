@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_PER_asmStore.c,v 1.9 2007-05-29 10:54:30 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_asmStore.c,v 1.10 2007-08-10 06:53:03 brianwalenz Exp $";
 
 /*************************************************************************
  Module:  AS_PER_asmStore
@@ -247,22 +247,22 @@ AssemblyStore * OpenAssemblyStoreCommon(char * path, char *mode)
   sprintf(name, "%s/asm.scc", asmStore->storePath);
   asmStore->sccStore = openASM_IIDStore(name, mode);
   
-  if(NULLSTOREHANDLE == asmStore->mdiStore ||
-     NULLSTOREHANDLE == asmStore->bktStore ||
-     NULLSTOREHANDLE == asmStore->afgStore ||
-     NULLSTOREHANDLE == asmStore->aciStore ||
-     NULLSTOREHANDLE == asmStore->asiStore ||
-     NULLSTOREHANDLE == asmStore->utgStore ||
-     NULLSTOREHANDLE == asmStore->utfStore ||
-     NULLSTOREHANDLE == asmStore->uciStore ||
-     NULLSTOREHANDLE == asmStore->usiStore ||
-     NULLSTOREHANDLE == asmStore->ccoStore ||
-     NULLSTOREHANDLE == asmStore->ccfStore ||
-     NULLSTOREHANDLE == asmStore->ccuStore ||
-     NULLSTOREHANDLE == asmStore->dscStore ||
-     NULLSTOREHANDLE == asmStore->scfStore ||
-     NULLSTOREHANDLE == asmStore->scgStore ||
-     NULLSTOREHANDLE == asmStore->sccStore)
+  if(NULL == asmStore->mdiStore ||
+     NULL == asmStore->bktStore ||
+     NULL == asmStore->afgStore ||
+     NULL == asmStore->aciStore ||
+     NULL == asmStore->asiStore ||
+     NULL == asmStore->utgStore ||
+     NULL == asmStore->utfStore ||
+     NULL == asmStore->uciStore ||
+     NULL == asmStore->usiStore ||
+     NULL == asmStore->ccoStore ||
+     NULL == asmStore->ccfStore ||
+     NULL == asmStore->ccuStore ||
+     NULL == asmStore->dscStore ||
+     NULL == asmStore->scfStore ||
+     NULL == asmStore->scgStore ||
+     NULL == asmStore->sccStore)
   {
     fprintf(stderr,"**** Failure to open Assembly Store ...\n");
     return NULL;
@@ -299,11 +299,11 @@ MapStore * OpenMapStoreCommon(char * path, char *mode)
   sprintf(name, "%s/map.fin", mapStore->storePath);
   mapStore->finStore = openASM_InstanceStore(name, mode);
   
-  if(NULLSTOREHANDLE == mapStore->chrStore ||
+  if(NULL == mapStore->chrStore ||
 #ifdef NEVER
-     NULLSTOREHANDLE == mapStore->cfmStore ||
+     NULL == mapStore->cfmStore ||
 #endif
-     NULLSTOREHANDLE == mapStore->finStore)
+     NULL == mapStore->finStore)
   {
     fprintf(stderr,"**** Failure to open Map Store ...\n");
     return NULL;
@@ -446,42 +446,42 @@ void CloseAssemblyStore(AssemblyStore *asmStore)
   closeGateKeeperStore(asmStore->gkpStore);
   asmStore->gkpStore = NULL;
 
-  if(asmStore->mdiStore != NULLSTOREHANDLE)
+  if(asmStore->mdiStore != NULL)
     closeStore(asmStore->mdiStore);
-  if(asmStore->bktStore != NULLSTOREHANDLE)
+  if(asmStore->bktStore != NULL)
     closeStore(asmStore->bktStore);
   
-  if(asmStore->afgStore != NULLSTOREHANDLE)
+  if(asmStore->afgStore != NULL)
     closeStore(asmStore->afgStore);
-  if(asmStore->aciStore != NULLSTOREHANDLE)
+  if(asmStore->aciStore != NULL)
     closeStore(asmStore->aciStore);
-  if(asmStore->asiStore != NULLSTOREHANDLE)
+  if(asmStore->asiStore != NULL)
     closeStore(asmStore->asiStore);
   
-  if(asmStore->utgStore != NULLSTOREHANDLE)
+  if(asmStore->utgStore != NULL)
     closeStore(asmStore->utgStore);
-  if(asmStore->utfStore != NULLSTOREHANDLE)
+  if(asmStore->utfStore != NULL)
     closeStore(asmStore->utfStore);
-  if(asmStore->uciStore != NULLSTOREHANDLE)
+  if(asmStore->uciStore != NULL)
     closeStore(asmStore->uciStore);
-  if(asmStore->usiStore != NULLSTOREHANDLE)
+  if(asmStore->usiStore != NULL)
     closeStore(asmStore->usiStore);
   
-  if(asmStore->ccoStore != NULLSTOREHANDLE)
+  if(asmStore->ccoStore != NULL)
     closeStore(asmStore->ccoStore);
-  if(asmStore->ccfStore != NULLSTOREHANDLE)
+  if(asmStore->ccfStore != NULL)
     closeStore(asmStore->ccfStore);
-  if(asmStore->ccuStore != NULLSTOREHANDLE)
+  if(asmStore->ccuStore != NULL)
     closeStore(asmStore->ccuStore);
   
-  if(asmStore->dscStore != NULLSTOREHANDLE)
+  if(asmStore->dscStore != NULL)
     closeStore(asmStore->dscStore);
   
-  if(asmStore->scfStore != NULLSTOREHANDLE)
+  if(asmStore->scfStore != NULL)
     closeStore(asmStore->scfStore); 
-  if(asmStore->scgStore != NULLSTOREHANDLE)
+  if(asmStore->scgStore != NULL)
     closeStore(asmStore->scgStore); 
-  if(asmStore->sccStore != NULLSTOREHANDLE)
+  if(asmStore->sccStore != NULL)
     closeStore(asmStore->sccStore);
   
   if(asmStore->hashTable != NULL)
@@ -491,15 +491,15 @@ void CloseMapStore(MapStore *mapStore)
 {
   fprintf(stderr,"*** Close directory %s\n", mapStore->storePath);
 
-  if(mapStore->chrStore != NULLSTOREHANDLE)
+  if(mapStore->chrStore != NULL)
     closeStore(mapStore->chrStore);
 
 #ifdef NEVER
-  if(mapStore->cfmStore != NULLSTOREHANDLE)
+  if(mapStore->cfmStore != NULL)
     closeStore(mapStore->cfmStore);
 #endif
 
-  if(mapStore->finStore != NULLSTOREHANDLE)
+  if(mapStore->finStore != NULL)
     closeStore(mapStore->finStore);
 
   if(mapStore->hashTable != NULL)

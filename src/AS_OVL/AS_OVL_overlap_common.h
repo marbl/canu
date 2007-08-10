@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.37 2007-08-03 20:45:04 brianwalenz Exp $
- * $Revision: 1.37 $
+ * $Id: AS_OVL_overlap_common.h,v 1.38 2007-08-10 06:53:03 brianwalenz Exp $
+ * $Revision: 1.38 $
 */
 
 
@@ -4473,7 +4473,7 @@ void  Process_Overlaps
   {
    char  Frag [AS_READ_MAX_LEN + 1];
    char  quality [AS_READ_MAX_LEN + 1];
-   Int_Frag_ID_t  Curr_String_Num, start_string_num;
+   Int_Frag_ID_t  Curr_String_Num;
    uint32  last_old_frag_read;
    int  frag_status;
    int  Len;
@@ -4489,33 +4489,15 @@ void  Process_Overlaps
    WA->Multi_Overlap_Ct           = 0;
 
 
-   //  BPW says we don't need to mutex this.
-   start_string_num = Curr_String_Num = getStartIndexFragStream(stream);
-
    while  ((frag_status
               = Read_Next_Frag (Frag, quality, stream, WA -> myRead,
                                 & (WA -> screen_info), & last_old_frag_read)))
      {
 
-#if  SHOW_PROGRESS
-if  (Curr_String_Num % 10000 == 0)
-    {
-     Stop_Time = clock ();
-     fprintf (stderr, "Matching string %6d\n", Curr_String_Num);
-     fprintf (stderr, 
-              "%7.1f sec %7" F_S64P " olaps\n",
-              (double) (Stop_Time - Start_Time) / CLOCKS_PER_SEC,
-              Olap_Ct);
-     Olap_Ct = 0;
-     Start_Time = clock ();
-    }
-#endif
-
       if  (frag_status == DELETED_FRAG)
-          {
-           Curr_String_Num ++;
            continue;
-          }
+
+      Curr_String_Num = getFragRecordIID (WA -> myRead);
 
       //getReadType_ReadStruct (WA -> myRead, & (WA -> curr_frag_type));
       WA -> curr_frag_type = AS_READ;
@@ -4588,14 +4570,7 @@ Incr_Distrib (& Kmer_Hits_Dist, Kmer_Hits_Ct);
 #endif
 
           }
-
-      Curr_String_Num ++;
      }
-
-#if  SHOW_THREAD_PROGRESS
-fprintf (stderr, "### Thread #%d processed overlaps for frags %ld .. %ld\n",
-         WA -> thread_id, start_string_num, Curr_String_Num - 1);
-#endif
 
 
  if  (Num_PThreads > 1)

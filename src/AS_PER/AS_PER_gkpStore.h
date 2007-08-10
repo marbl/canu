@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.38 2007-07-24 06:59:39 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.39 2007-08-10 06:53:04 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -92,7 +92,7 @@ typedef struct {
   uint64         isNotRandom:1;                //  Default 0 == is random
 
   uint64         orientation:3;                //  Default 0 == AS_READ_ORIENT_UNKNOWN
-  uint64         deleted:1;                    //  Default 0 == not deleted
+  uint64         ZZZdeleted:1;                 //  UNUSED.  Needed for compatibility.
 
   double         mean;
   double         stddev;
@@ -407,15 +407,15 @@ typedef struct {
 
   GateKeeperStoreInfo      gkp;
 
-  StoreHandle              bat;
-  StoreHandle              frg;
-  StoreHandle              lib;    
+  StoreStruct             *bat;
+  StoreStruct             *frg;
+  StoreStruct             *lib;    
 
-  StoreHandle              seq;
-  StoreHandle              qlt;
-  StoreHandle              hps;
+  StoreStruct             *seq;
+  StoreStruct             *qlt;
+  StoreStruct             *hps;
 
-  StoreHandle              src;
+  StoreStruct             *src;
 
   //  This is now a _private_ member.  It is not allocated when the
   //  gatekeeper is initially loaded -- because on big assemblies, it
@@ -442,10 +442,10 @@ typedef struct {
   //
   int32                    partnum;
 
-  StoreHandle              partfrg;
-  StoreHandle              partqlt;
-  StoreHandle              parthps;
-  StoreHandle              partsrc;
+  StoreStruct             *partfrg;
+  StoreStruct             *partqlt;
+  StoreStruct             *parthps;
+  StoreStruct             *partsrc;
 
   HashTable_AS            *partmap;
 } GateKeeperStore;
@@ -583,11 +583,11 @@ void    delFrag(GateKeeperStore *gkp, CDS_IID_t iid);
 
 typedef struct {
   GateKeeperStore   *gkp;
-  StreamHandle       frg;
-  StreamHandle       seq;
-  StreamHandle       qlt;
-  StreamHandle       hps;
-  StreamHandle       src;
+  StreamStruct      *frg;
+  StreamStruct      *seq;
+  StreamStruct      *qlt;
+  StreamStruct      *hps;
+  StreamStruct      *src;
 
   char              *frgBuffer;
   char              *seqBuffer;
@@ -605,8 +605,6 @@ void             closeFragStream(FragStream *fs);
 int64            getStartIndexFragStream(FragStream *fs);
 
 int              nextFragStream(FragStream *fs, fragRecord *fr);
-
-
 
 
 #endif

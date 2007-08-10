@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_global.h,v 1.20 2007-08-04 22:27:35 brianwalenz Exp $
+//  $Id: AS_global.h,v 1.21 2007-08-10 06:53:03 brianwalenz Exp $
 
 //  This is the global include file that all C files in the AS
 //  subsystem should include.
@@ -137,8 +137,9 @@ typedef void *PtrT;
   #define F_OFF_T   "%lld"
   #define F_OFF_TP   "lld"
 
-  #define STR_TO_UID     strtoull
-  #define STR_TO_UINT64  strtoull
+  #define STR_TO_UID      strtoull
+  #define STR_TO_IID      strtoul
+  #define STR_TO_UINT64   strtoull
   #define STR_TO_INT64    strtoll
 
   #define FILEID_MASK       0xffff000000000000ULL
@@ -230,6 +231,7 @@ typedef void *PtrT;
   #endif
     
   #define STR_TO_UID     strtoul
+  #define STR_TO_IID     strtoul
   #define STR_TO_UINT64  strtoul
   #define STR_TO_INT64    strtol
     
