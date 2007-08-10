@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.50 2007-08-09 12:48:44 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.51 2007-08-10 06:50:40 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -394,6 +394,11 @@ main(int argc, char **argv) {
     closeGateKeeperStore(gkp);
   }
 
+  if (vectorClearFile) {
+    updateVectorClear(vectorClearFile, gkpStoreName);
+    exit(0);
+  }
+
   if (dumpRandMateNum > 0) {
     GateKeeperStore *gkp        = openGateKeeperStore(gkpStoreName, FALSE);
     CDS_IID_t        lastElem   = getLastElemFragStore(gkp) + 1;
@@ -517,111 +522,6 @@ main(int argc, char **argv) {
     exit(0);
   }
 
-
-
-
-
-  //  This sure is sloppy (and slow) but only used on format 1.
-  //  Load in any vector info.
-  //
-  if (vectorClearFile) {
-    char          line[256];
-    int           nlines  = 0;
-    int           nupdate = 0;
-    FILE         *F = NULL;
-    char          N[FILENAME_MAX] = {0};
-
-    errno = 0;
-    FILE   *v = fopen(vectorClearFile, "r");
-    if (errno) {
-      fprintf(stderr, "%s: couldn't open '%s' to read vector clear ranges: %s\n",
-              argv[0], vectorClearFile, strerror(errno));
-      exit(1);
-    }
-
-    gkpStore = openGateKeeperStore(gkpStoreName, TRUE);
-
-    //  Suck in the whole frg info file, rather than doing random
-    //  access all over the place.  Don't forget that there is a heder
-    //  on said file.  XXX -- really, someone should improve the
-    //  GenericStore interface so that one could loadPartialStore()
-    //  and dump it back.
-#warning Violating genericStore encapsulation.
-
-    uint32                     nfrg = getNumGateKeeperFragments(gkpStore);
-    uint32                     nfrr = 0;
-    GateKeeperFragmentRecord  *frg  = (GateKeeperFragmentRecord *)safe_malloc(nfrg * sizeof(GateKeeperFragmentRecord));
-
-    sprintf(N, "%s/frg", gkpStoreName);
-
-    errno = 0;
-    F = fopen(N, "r");
-    if (errno) {
-      fprintf(stderr, "%s: couldn't open '%s' to read fragment info: %s\n",
-              argv[0], vectorClearFile, strerror(errno));
-      exit(1);
-    }
-    fprintf(stderr, "Loading "F_U32" fragment info's from '%s'\n", nfrg, N);
-    AS_UTL_fseek(F, sizeof(StoreStat), SEEK_SET);
-    nfrr = AS_UTL_safeRead(F, frg, "GKPvectorLoaderHack", sizeof(GateKeeperFragmentRecord), nfrg);
-    if (nfrr != nfrg)
-      fprintf(stderr, "ERROR:  Read only "F_U32" records instead of "F_U32".\n", nfrr, nfrg);
-    assert(nfrr == nfrg);
-    fclose(F);
-
-    fgets(line, 256, v);
-    while (!feof(v)) {
-      char          *pine = line;
-
-      CDS_UID_t uid = STR_TO_UID(pine, &pine, 10);
-      int       l   = strtol(pine, &pine, 10);
-      int       r   = strtol(pine, &pine, 10);
-
-      if (uid == 0) {
-        fprintf(stderr, "unexpected line: %s", line);
-      } else {
-        CDS_IID_t  iid = getGatekeeperUIDtoIID(gkpStore, uid, NULL);
-        if (iid) {
-          iid--;  // because an iid is not an index into an array
-          frg[iid].hasVectorClear = 1;
-          if (l < r) {
-            frg[iid].clearBeg[AS_READ_CLEAR_VEC] = l - 1;  //  Assume they are base-based.
-            frg[iid].clearEnd[AS_READ_CLEAR_VEC] = r;
-          } else {
-            frg[iid].clearBeg[AS_READ_CLEAR_VEC] = r - 1;
-            frg[iid].clearEnd[AS_READ_CLEAR_VEC] = l;
-          }
-          nupdate++;
-        }
-        nlines++;
-      }
-      fgets(line, 256, v);
-    }
-
-    fclose(v);
-
-    closeGateKeeperStore(gkpStore);
-
-    fprintf(stderr, "in %d lines, updated %d fragments.\n", nlines, nupdate);
-
-    errno = 0;
-    F = fopen(N, "r+");
-    if (errno) {
-      fprintf(stderr, "%s: couldn't open '%s' to write fragment info: %s\n",
-              argv[0], vectorClearFile, strerror(errno));
-      exit(1);
-    }
-    fprintf(stderr, "Writing "F_U32" fragment info's from '%s'\n", nfrg, N);
-    AS_UTL_fseek(F, sizeof(StoreStat), SEEK_SET);
-    AS_UTL_safeWrite(F, frg, "GKPvectorLoaderHack", sizeof(GateKeeperFragmentRecord), nfrg);
-    fclose(F);
-
-    exit(0);
-  }
-
-
-
-   
 
   if ((append == 0) && (outputExists == 1)) {
     fprintf(stderr,"* Gatekeeper Store %s exists and append flag not supplied.  Exit.\n", gkpStoreName);
