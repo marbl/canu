@@ -26,8 +26,8 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_driver_common.h,v 1.21 2007-08-12 04:50:47 brianwalenz Exp $
- * $Revision: 1.21 $
+ * $Id: AS_OVL_driver_common.h,v 1.22 2007-08-12 04:57:19 brianwalenz Exp $
+ * $Revision: 1.22 $
  */
 
 
@@ -105,7 +105,6 @@ int  OverlapDriver(int argc, char **argv)
 //  This is the main control loop for the overlapper.
 
 {
-  FragStream  *HashFragStream = NULL;
   pthread_attr_t  attr;
   pthread_t  * thread_id;
   FragStream **new_stream_segment;
@@ -187,6 +186,8 @@ int  OverlapDriver(int argc, char **argv)
       GateKeeperStore  *hash_frag_store;
       int  highest_old_frag, lowest_old_frag;
       int  status;
+
+      FragStream  *HashFragStream = NULL;
 
       if  (Contig_Mode)
         {
@@ -380,8 +381,6 @@ int  OverlapDriver(int argc, char **argv)
 #if  USE_SOURCE_FIELD
   fclose (Source_Log_File);
 #endif
-
-  closeFragStream (HashFragStream);
 
   fprintf (stderr, "Total fragments read = " F_S64 "\n", Total_Frags_Read);
 
