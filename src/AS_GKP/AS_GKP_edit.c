@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_edit.c,v 1.1 2007-08-10 06:50:40 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_edit.c,v 1.2 2007-08-13 05:48:47 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,19 +34,26 @@ static char CM_ID[] = "$Id: AS_GKP_edit.c,v 1.1 2007-08-10 06:50:40 brianwalenz 
 
 
 //  perl's chomp is pretty nice
-#define chomp(S) { char *t=(S); while (*t) t++; t--; while (isspace(*t)) *t--=0; }
-#define munch(S) { while (*(S) && isspace(*(S))) (S)++; }
+#define chomp(S)  { char *t=(S); while (*t) t++; t--; while (isspace(*t)) *t--=0; }
+#define munch(S)  { while (*(S) &&  isspace(*(S))) (S)++; }
+#define crunch(S) { while (*(S) && !isspace(*(S))) (S)++; }
 
 
 
 static
 void
-setClear(GateKeeperFragmentRecord *gkfr, char *E, uint32 which) {
+setClear(GateKeeperFragmentRecord *gkfr, char *E, uint32 which, int update) {
+  int b = gkfr->clearBeg[which];
+  int e = gkfr->clearEnd[which];
   gkfr->clearBeg[which] = strtoul(E, &E, 10);
   munch(E);
   gkfr->clearEnd[which] = strtoul(E, &E, 10);
+  if (update)
+    fprintf(stdout, "frg uid "F_UID" %s %d %d -> %d %d\n",
+            gkfr->readUID, AS_READ_CLEAR_NAMES[which],
+            b, e,
+            gkfr->clearBeg[which], gkfr->clearEnd[which]);
 }
-
 
 
 void
@@ -149,26 +156,26 @@ updateVectorClear(char *vectorClearFile, char *gkpStoreName) {
 
 
 void
-editStore(char *editsFileName, char *gkpStoreName) {
+editStore(char *editsFileName, char *gkpStoreName, int update) {
+  FILE            *F        = NULL;
+  char             L[1024]  = {0};
+  char            *E        = NULL;
+
+  int              errors   = 0;
 
   if (testOpenGateKeeperStore(gkpStoreName, FALSE) == 0) {
     fprintf(stderr, "failed to open store '%s', exit.\n", gkpStoreName);
     exit(1);
   }
 
-  GateKeeperStore *gkp      = NULL;
-  fragRecord       fr       = {0};
-
-  gkp = openGateKeeperStore(gkpStoreName, FALSE);
-  if (gkp == NULL) {
+  gkpStore = openGateKeeperStore(gkpStoreName, update);
+  if (gkpStore == NULL) {
     fprintf(stderr, "Failed to open %s\n", gkpStoreName);
     exit(1);
   }
 
-  CDS_IID_t        lastElem = getLastElemFragStore(gkp) + 1;
-  FILE            *F        = NULL;
-  char             L[1024];
-  char            *E;
+  CDS_IID_t        lastElem = getLastElemFragStore(gkpStore) + 1;
+
 
   //  "frg uid UID THING DATA"
   //  "frg iid IID THING DATA"
@@ -192,20 +199,27 @@ editStore(char *editsFileName, char *gkpStoreName) {
   }
   fgets(L, 1024, F);
   while (!feof(F)) {
-    int        isFRG = 0;
-    int        isLIB = 0;
-    CDS_UID_t  UID   = 0;
-    CDS_IID_t  IID   = 0;
-    char      *ACT   = NULL;
+    int        isFRG     = 0;
+    int        isLIB     = 0;
+    CDS_UID_t  UID       = 0;
+    CDS_IID_t  IID       = 0;
+    char       ACT[1024] = {0};
 
     chomp(L);
     E = L;
+    munch(E);
 
-    if        (strncmp("frg", E, 3) == 0) {
+    if ((E[0] == '#') || (E[0] == ';') || (E[0] == 0)) {
+      if (update)
+        fprintf(stdout, "%s\n", L);
+      goto nextline;
+    }
+
+    if        (strncasecmp("frg", E, 3) == 0) {
       E += 3;
       munch(E);
       isFRG = 1;
-    } else if (strncmp("lib", E, 3) == 0) {
+    } else if (strncasecmp("lib", E, 3) == 0) {
       E += 3;
       munch(E);
       isLIB = 1;
@@ -214,12 +228,12 @@ editStore(char *editsFileName, char *gkpStoreName) {
       goto nextline;
     }
 
-    if        (strncmp("uid", E, 3) == 0) {
+    if        (strncasecmp("uid", E, 3) == 0) {
       E += 3;
       munch(E);
       UID = STR_TO_UID(E, &E, 10);
-      IID = getGatekeeperUIDtoIID(gkp, UID, NULL);
-    } else if (strncmp("iid", E, 3) == 0) {
+      IID = getGatekeeperUIDtoIID(gkpStore, UID, NULL);
+    } else if (strncasecmp("iid", E, 3) == 0) {
       E += 3;
       munch(E);
       UID = 0;
@@ -231,107 +245,294 @@ editStore(char *editsFileName, char *gkpStoreName) {
 
     if (IID == 0) {
       fprintf(stderr, "invalid id (UID="F_UID", IID="F_IID") in edit line: '%s'\n", UID, IID, L);
+      errors++;
       goto nextline;
     }
 
+    //  Stripped out thing-type and id-type.
     munch(E);
-    ACT = E;
 
-    while (*E && !isspace(*E))
-      E++;
-    *E++ = 0;
+    //  Copy the action to ACT, then terminate after the first word.
+    //
+    strcpy(ACT, E);
+    {
+      char *t = ACT;
+      crunch(t);
+      *t = 0;
+    }
+
+    //  Advance E past the action.
+    //
+    crunch(E);
     munch(E);
+
+    //fprintf(stderr, "ACT='%s' E='%s'\n", ACT, E);
 
     if (isFRG) {
-      GateKeeperFragmentRecord gkfr;
+      GateKeeperFragmentRecord gkfr = {0};
 
       getIndexStore(gkpStore->frg, IID, &gkfr);
 
-      if        (strcmp(ACT, "orig") == 0) {
-        setClear(&gkfr, E, AS_READ_CLEAR_ORIG);
-      } else if (strcmp(ACT, "qlt") == 0) {
-        setClear(&gkfr, E, AS_READ_CLEAR_QLT);
-      } else if (strcmp(ACT, "vec") == 0) {
-        setClear(&gkfr, E, AS_READ_CLEAR_VEC);
-      } else if (strcmp(ACT, "obtini") == 0) {
-        setClear(&gkfr, E, AS_READ_CLEAR_OBTINI);
-      } else if (strcmp(ACT, "obt") == 0) {
-        setClear(&gkfr, E, AS_READ_CLEAR_OBT);
-      } else if (strcmp(ACT, "utg") == 0) {
-        setClear(&gkfr, E, AS_READ_CLEAR_UTG);
-      } else if (strcmp(ACT, "ecr1") == 0) {
-        setClear(&gkfr, E, AS_READ_CLEAR_ECR1);
-      } else if (strcmp(ACT, "ecr2") == 0) {
-        setClear(&gkfr, E, AS_READ_CLEAR_ECR2);
-      } else if (strcmp(ACT, "mate") == 0) {
-        gkfr.mateIID = getGatekeeperUIDtoIID(gkp, STR_TO_UID(E, &E, 10), NULL);
-      } else if (strcmp(ACT, "uid") == 0) {
+      if        (strcasecmp(ACT, AS_READ_CLEAR_NAMES[AS_READ_CLEAR_ORIG]) == 0) {
+        setClear(&gkfr, E, AS_READ_CLEAR_ORIG, update);
+      } else if (strcasecmp(ACT, AS_READ_CLEAR_NAMES[AS_READ_CLEAR_QLT]) == 0) {
+        setClear(&gkfr, E, AS_READ_CLEAR_QLT, update);
+      } else if (strcasecmp(ACT, AS_READ_CLEAR_NAMES[AS_READ_CLEAR_VEC]) == 0) {
+        setClear(&gkfr, E, AS_READ_CLEAR_VEC, update);
+      } else if (strcasecmp(ACT, AS_READ_CLEAR_NAMES[AS_READ_CLEAR_OBTINI]) == 0) {
+        setClear(&gkfr, E, AS_READ_CLEAR_OBTINI, update);
+      } else if (strcasecmp(ACT, AS_READ_CLEAR_NAMES[AS_READ_CLEAR_OBT]) == 0) {
+        setClear(&gkfr, E, AS_READ_CLEAR_OBT, update);
+      } else if (strcasecmp(ACT, AS_READ_CLEAR_NAMES[AS_READ_CLEAR_UTG]) == 0) {
+        setClear(&gkfr, E, AS_READ_CLEAR_UTG, update);
+      } else if (strcasecmp(ACT, AS_READ_CLEAR_NAMES[AS_READ_CLEAR_ECR1]) == 0) {
+        setClear(&gkfr, E, AS_READ_CLEAR_ECR1, update);
+      } else if (strcasecmp(ACT, AS_READ_CLEAR_NAMES[AS_READ_CLEAR_ECR2]) == 0) {
+        setClear(&gkfr, E, AS_READ_CLEAR_ECR2, update);
+      } else if (strcasecmp(ACT, "mateiid") == 0) {
+        CDS_IID_t o = gkfr.mateIID;
+        gkfr.mateIID = STR_TO_IID(E, &E, 10);
+        if (update)
+          fprintf(stdout, "frg uid "F_UID" mateiid "F_IID" -> mateiid "F_IID"\n",
+                  gkfr.readUID, o, gkfr.mateIID);
+      } else if (strcasecmp(ACT, "mateuid") == 0) {
+        CDS_IID_t o = gkfr.mateIID;
+        CDS_UID_t n = STR_TO_UID(E, &E, 10);
+        gkfr.mateIID = getGatekeeperUIDtoIID(gkpStore, n, NULL);
+        if (update)
+          fprintf(stdout, "frg uid "F_UID" mateiid "F_IID" -> mateiid "F_IID" mateuid "F_UID"\n",
+                  gkfr.readUID, o, gkfr.mateIID, n);
+      } else if (strcasecmp(ACT, "readuid") == 0) {
+        CDS_UID_t o = gkfr.readUID;
         gkfr.readUID = STR_TO_UID(E, &E, 10);  //  I _really_ hope you know what you're doing
-      } else if (strcmp(ACT, "lib") == 0) {
-        gkfr.libraryIID = getGatekeeperUIDtoIID(gkp, STR_TO_UID(E, &E, 10), NULL);
-      } else if (strcmp(ACT, "plate") == 0) {
+        if (update)
+          fprintf(stdout, "frg iid "F_IID" readuid "F_UID" -> "F_UID"\n",
+                  gkfr.readIID, o, gkfr.readUID);
+      } else if (strcasecmp(ACT, "libiid") == 0) {
+        CDS_IID_t o = gkfr.libraryIID;
+        gkfr.libraryIID = STR_TO_UID(E, &E, 10);
+        if (update)
+          fprintf(stdout, "frg uid "F_UID" libiid "F_IID" -> libiid "F_IID"\n",
+                  gkfr.readUID, o, gkfr.libraryIID);
+      } else if (strcasecmp(ACT, "libuid") == 0) {
+        CDS_IID_t o = gkfr.libraryIID;
+        CDS_UID_t n = STR_TO_UID(E, &E, 10);
+        gkfr.libraryIID = getGatekeeperUIDtoIID(gkpStore, n, NULL);
+        if (update)
+          fprintf(stdout, "frg uid "F_UID" libiid "F_IID" -> libiid "F_IID" libuid "F_UID"\n",
+                  gkfr.readUID, o, gkfr.libraryIID, n);
+      } else if (strcasecmp(ACT, "plate") == 0) {
+        CDS_UID_t o = gkfr.plateUID;
         gkfr.plateUID = STR_TO_UID(E, &E, 10);
-      } else if (strcmp(ACT, "plateloc") == 0) {
+        if (update)
+          fprintf(stdout, "frg uid "F_UID" plate "F_UID" -> "F_UID"\n",
+                  gkfr.readUID, o, gkfr.plateUID);
+      } else if (strcasecmp(ACT, "platelocation") == 0) {
+        uint32 o = gkfr.plateLocation;
         gkfr.plateLocation = strtoul(E, &E, 10);
-      } else if (strcmp(ACT, "isnonrandom") == 0) {
-        gkfr.nonrandom = (strtoul(E, &E, 10) == 0) ? 0 : 1;
-      } else if (strcmp(ACT, "isdeleted") == 0) {
-        gkfr.deleted = (strtoul(E, &E, 10) == 0) ? 0 : 1;
-      } else if (strcmp(ACT, "status") == 0) {
-        gkfr.status = strtoul(E, &E, 10);
-      } else if (strcmp(ACT, "orient") == 0) {
-        gkfr.orientation = STR_TO_UID(E, &E, 10);
+        if (update)
+          fprintf(stdout, "frg uid "F_UID" platelocation "F_U32" -> "F_U32"\n",
+                  gkfr.readUID, o, gkfr.plateLocation);
+      } else if (strcasecmp(ACT, "isnonrandom") == 0) {
+        uint32 o = gkfr.nonrandom;
+        if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))
+          gkfr.nonrandom = 1;
+        else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F'))
+          gkfr.nonrandom = 0;
+        else {
+          fprintf(stderr, "invalid frg isnonrandom flag in edit line: '%s'\n", L);
+          errors++;
+          goto nextline;
+        }
+        if (update)
+          fprintf(stdout, "frg uid "F_UID" isnonrandom "F_U32" -> "F_U32"\n",
+                  gkfr.readUID, o, gkfr.nonrandom);
+      } else if (strcasecmp(ACT, "isdeleted") == 0) {
+        uint32 o = gkfr.deleted;
+        if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))
+          gkfr.deleted = 1;
+        else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F'))
+          gkfr.deleted = 0;
+        else {
+          fprintf(stderr, "invalid frg isdeleted flag in edit line: '%s'\n", L);
+          errors++;
+          goto nextline;
+        }
+        if (update)
+          fprintf(stdout, "frg uid "F_UID" isdeleted "F_U32" -> "F_U32"\n",
+                  gkfr.readUID, o, gkfr.deleted);
+      } else if (strcasecmp(ACT, "status") == 0) {
+        uint32 o = gkfr.status;
+        uint32 i;
+        for (i=0; i<9; i++) {
+          if (tolower(AS_READ_STATUS_NAMES[i][0]) == tolower(E[0])) {
+            gkfr.status = i;
+            break;
+          }
+        }
+        if (i == 9) {
+          fprintf(stderr, "invalid frg status in edit line: '%s'\n", L);
+          errors++;
+          goto nextline;
+        }
+        if (update)
+          fprintf(stdout, "frg uid "F_UID" status %s -> %s\n",
+                  gkfr.readUID, AS_READ_STATUS_NAMES[o], AS_READ_STATUS_NAMES[gkfr.status]);
+      } else if (strcasecmp(ACT, "orientation") == 0) {
+        uint32 o = gkfr.orientation;
+        uint32 i;
+        for (i=0; i<5; i++)
+          if (tolower(AS_READ_ORIENT_NAMES[i][0]) == tolower(E[0])) {
+            gkfr.orientation = i;
+            break;
+          }
+        if (i == 5) {
+          fprintf(stderr, "invalid frg orientation in edit line: '%s'\n", L);
+          errors++;
+          goto nextline;
+        }
+        if (update)
+          fprintf(stdout, "frg uid "F_UID" orientation %s -> %s\n",
+                  gkfr.readUID, AS_READ_ORIENT_NAMES[o], AS_READ_ORIENT_NAMES[gkfr.orientation]);
       } else {
         fprintf(stderr, "invalid frg action in edit line: '%s'\n", L);
+        errors++;
         goto nextline;
       }
 
-      setIndexStore(gkpStore->frg, IID, &gkfr);
+      if (update)
+        setIndexStore(gkpStore->frg, IID, &gkfr);
     }
 
     if (isLIB) {
-      GateKeeperLibraryRecord  gklr;
+      GateKeeperLibraryRecord  gklr = {0};
 
       getIndexStore(gkpStore->lib, IID, &gklr);
 
-      if        (strcmp(ACT, "mean") == 0) {
+      if        (strcasecmp(ACT, "mean") == 0) {
+        double m = gklr.mean;
         gklr.mean   = atof(E);
-      } else if (strcmp(ACT, "stddev") == 0) {
+        fprintf(stdout, "lib uid "F_UID" mean %f -> %f\n",
+                gklr.libraryUID, m, gklr.mean);
+      } else if (strcasecmp(ACT, "stddev") == 0) {
+        double s = gklr.stddev;
         gklr.stddev = atof(E);
-      } else if (strcmp(ACT, "distance") == 0) {
+        fprintf(stdout, "lib uid "F_UID" mean %f -> %f\n",
+                gklr.libraryUID, s, gklr.stddev);
+      } else if (strcasecmp(ACT, "distance") == 0) {
+        double m = gklr.mean;
+        double s = gklr.stddev;
         gklr.mean   = atof(E);
-        while (*E && !isspace(*E))
-          E++;
+        crunch(E);
         munch(E);
         gklr.stddev = atof(E);
-      } else if (strcmp(ACT, "comment") == 0) {
+        fprintf(stdout, "lib uid "F_UID" distance %f %f -> %f %f\n",
+                gklr.libraryUID, m, s, gklr.mean, gklr.stddev);
+      } else if (strcasecmp(ACT, "comment") == 0) {
+        fprintf(stdout, "lib uid "F_UID" comment \"%s\" -> \"%s\"\n",
+                gklr.libraryUID, gklr.comment, E);
         memset(gklr.comment, 0, AS_PER_COMMENT_LEN);
         strncpy(gklr.comment, E, AS_PER_COMMENT_LEN);
 
-      } else if (strcmp(ACT, "hpsisflowgram") == 0) {
-        gklr.hpsIsFlowGram = (strtoul(E, &E, 10) == 0) ? 0 : 1;
-      } else if (strcmp(ACT, "hpsispeakspacing") == 0) {
-        gklr.hpsIsPeakSpacing = (strtoul(E, &E, 10) == 0) ? 0 : 1;
-      } else if (strcmp(ACT, "donottrusthomopolymerruns") == 0) {
-        gklr.doNotTrustHomopolymerRuns = (strtoul(E, &E, 10) == 0) ? 0 : 1;
-      } else if (strcmp(ACT, "donotoverlaptrim") == 0) {
-        gklr.doNotOverlapTrim = (strtoul(E, &E, 10) == 0) ? 0 : 1;
+      //  Lots of boilerplate here for T/F flags.  Sigh.
 
-      } else if (strcmp(ACT, "isnotrandom") == 0) {
-        gklr.isNotRandom = (strtoul(E, &E, 10) == 0) ? 0 : 1;
-      } else if (strcmp(ACT, "orientation") == 0) {
-        gklr.orientation = (strtoul(E, &E, 10) == 0) ? 0 : 1;
+      } else if (strcasecmp(ACT, "hpsisflowgram") == 0) {
+        uint32 o = gklr.hpsIsFlowGram;
+        if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))
+          gklr.hpsIsFlowGram = 1;
+        else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F'))
+          gklr.hpsIsFlowGram = 0;
+        else {
+          fprintf(stderr, "invalid lib hpsisflowgram flag in edit line: '%s'\n", L);
+          errors++;
+          goto nextline;
+        }
+        fprintf(stdout, "lib uid "F_UID" hpsisflowgram %c -> %c\n",
+                gklr.libraryUID, (o) ? 'T' : 'F', (gklr.hpsIsFlowGram) ? 'T' : 'F');
+      } else if (strcasecmp(ACT, "hpsispeakspacing") == 0) {
+        uint32 o = gklr.hpsIsPeakSpacing;
+        if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))
+          gklr.hpsIsPeakSpacing = 1;
+        else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F'))
+          gklr.hpsIsPeakSpacing = 0;
+        else {
+          fprintf(stderr, "invalid lib hpsispeakspacing flag in edit line: '%s'\n", L);
+          errors++;
+          goto nextline;
+        }
+        fprintf(stdout, "lib uid "F_UID" hpsispeakspacing %c -> %c\n",
+                gklr.libraryUID, (o) ? 'T' : 'F', (gklr.hpsIsPeakSpacing) ? 'T' : 'F');
+      } else if (strcasecmp(ACT, "donottrusthomopolymerruns") == 0) {
+        uint32 o = gklr.doNotTrustHomopolymerRuns;
+        if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))
+          gklr.doNotTrustHomopolymerRuns = 1;
+        else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F'))
+          gklr.doNotTrustHomopolymerRuns = 0;
+        else {
+          fprintf(stderr, "invalid lib donottrushhomopolymerruns flag in edit line: '%s'\n", L);
+          errors++;
+          goto nextline;
+        }
+        fprintf(stdout, "lib uid "F_UID" donottrushhomopolymerruns %c -> %c\n",
+                gklr.libraryUID, (o) ? 'T' : 'F', (gklr.doNotTrustHomopolymerRuns) ? 'T' : 'F');
+      } else if (strcasecmp(ACT, "donotoverlaptrim") == 0) {
+        uint32 o = gklr.doNotOverlapTrim;
+        if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))
+          gklr.doNotOverlapTrim = 1;
+        else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F'))
+          gklr.doNotOverlapTrim = 0;
+        else {
+          fprintf(stderr, "invalid lib donotoverlaptrim flag in edit line: '%s'\n", L);
+          errors++;
+          goto nextline;
+        }
+        fprintf(stdout, "lib uid "F_UID" donotoverlaptrim %c -> %c\n",
+                gklr.libraryUID, (o) ? 'T' : 'F', (gklr.doNotOverlapTrim) ? 'T' : 'F');
 
-      } else if (strcmp(ACT, "allfragsdeleted") == 0) {
-      } else if (strcmp(ACT, "allfragsnonrandom") == 0) {
-      } else if (strcmp(ACT, "allfragsunmated") == 0) {
+      } else if (strcasecmp(ACT, "isnotrandom") == 0) {
+        uint32 o = gklr.isNotRandom;
+        if      ((E[0] == '1') || (E[0] == 't') || (E[0] == 'T'))
+          gklr.isNotRandom = 1;
+        else if ((E[0] == '0') || (E[0] == 'f') || (E[0] == 'F'))
+          gklr.isNotRandom = 0;
+        else {
+          fprintf(stderr, "invalid lib isnotrandom flag in edit line: '%s'\n", L);
+          errors++;
+          goto nextline;
+        }
+        fprintf(stdout, "lib uid "F_UID" isnotrandom %c -> %c\n",
+                gklr.libraryUID, (o) ? 'T' : 'F', (gklr.isNotRandom) ? 'T' : 'F');
+      } else if (strcasecmp(ACT, "orientation") == 0) {
+        uint32 o = gklr.orientation;
+        uint32 i;
+        for (i=0; i<5; i++)
+          if (tolower(AS_READ_ORIENT_NAMES[i][0]) == tolower(E[0])) {
+            gklr.orientation = i;
+            break;
+          }
+        if (i == 5) {
+          fprintf(stderr, "invalid lkg orientation in edit line: '%s'\n", L);
+          errors++;
+          goto nextline;
+        }
+        if (update)
+          fprintf(stdout, "lkg uid "F_UID" orientation %s -> %s\n",
+                  gklr.libraryUID, AS_READ_ORIENT_NAMES[o], AS_READ_ORIENT_NAMES[gklr.orientation]);
+      } else if (strcasecmp(ACT, "allfragsdeleted") == 0) {
+        assert(0);
+      } else if (strcasecmp(ACT, "allfragsnonrandom") == 0) {
+        assert(0);
+      } else if (strcasecmp(ACT, "allfragsunmated") == 0) {
+        assert(0);
 
       } else {
         fprintf(stderr, "invalid lib action in edit line: '%s'\n", L);
+        errors++;
         goto nextline;
       }
 
-      setIndexStore(gkpStore->lib, IID, &gklr);
+      if (update)
+        setIndexStore(gkpStore->lib, IID, &gklr);
     }
 
 
@@ -339,5 +540,8 @@ editStore(char *editsFileName, char *gkpStoreName) {
     fgets(L, 1024, F);
   }
 
-  exit(0);
+  if (errors)
+    fprintf(stderr, "%d errors detected.\n", errors);
+
+  exit(errors != 0);
 }
