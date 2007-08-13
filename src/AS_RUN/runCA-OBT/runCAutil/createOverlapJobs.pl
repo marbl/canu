@@ -141,12 +141,12 @@ sub createOverlapJobs {
     print F "  mkdir $wrk/$outDir/\$bat\n";
     print F "fi\n";
     print F "\n";
-    print F "echo bat = \$bat\n";
-    print F "echo job = \$job\n";
-    print F "echo opt = \$opt\n";
-    print F "\n";
-    print F "echo out = $scratch/\$bat-\$job.\$jid.ovl\n";
-    print F "echo out = $wrk/$outDir/\$bat/\$job.ovl";
+    #print F "echo bat = \$bat\n";
+    #print F "echo job = \$job\n";
+    #print F "echo opt = \$opt\n";
+    #print F "\n";
+    #print F "echo out = $scratch/\$bat-\$job.\$jid.ovl\n";
+    #print F "echo out = $wrk/$outDir/\$bat/\$job.ovl";
     print F "\n";
     print F "if [ -e $wrk/$outDir/\$bat/\$job.success ]; then\n";
     print F "  echo Job previously completed successfully.\n";
