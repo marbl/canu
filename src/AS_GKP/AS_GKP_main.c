@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.51 2007-08-10 06:50:40 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.52 2007-08-13 05:47:17 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -296,6 +296,13 @@ main(int argc, char **argv) {
       //  Takes three args:  UID order file, oldStore, newStore
       //
       rearrangeStore(argv[arg+1], argv[arg+2], argv[arg+3]);
+      exit(0);
+
+    } else if ((strcmp(argv[arg], "--edit") == 0) ||
+               (strcmp(argv[arg], "--testedit") == 0)) {
+      //  Takes two args:  edit file, gkpStore
+      //
+      editStore(argv[arg+1], argv[arg+2], (strcmp(argv[arg], "--edit") == 0));
       exit(0);
 
       //  End of SECRET options
