@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.28 2007-06-15 14:22:38 skoren Exp $ */
+/* $Id: AS_GKP_include.h,v 1.29 2007-08-13 05:46:41 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
@@ -122,5 +122,11 @@ void
 rearrangeStore(char *uidFile,
                char *gkpStore,
                char *newStore);
+
+void
+updateVectorClear(char *vectorClearFile, char *gkpStoreName);
+
+void
+editStore(char *editsFileName, char *gkpStoreName, int update);
 
 #endif
