@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.20 2007-05-14 09:27:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.21 2007-08-14 22:54:45 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -63,8 +63,28 @@ VA_DEF(OverlapMesg);
 VA_DEF(IntUnitigMesg);
 
 #include "AS_CGB_miniunitigger.h"
-#include "localUnitigging_CGW.h"
 #include "fragmentPlacement.h"
+
+typedef enum {
+  CGW_IN_SCAFFOLD = (int) 'S',
+  CGW_PLACED =      (int) 'P',
+  CGW_UNPLACED =    (int) 'U'
+} CIStatus; 
+
+typedef struct ChunkPlacement {
+  CDS_CID_t     ident;
+  int32         order;
+  CDS_CID_t     AEndCI;
+  CDS_CID_t     BEndCI;
+  CIEdgeT       *edge;
+  CIStatus      status;
+  CDS_CID_t     scaff_id;
+  CDS_COORD_t   scaff_bpLength;
+  CDS_CID_t     scaff_numCI;
+  DirectionType orient;
+  FragType      type;  
+} ChunkPlacement;
+
 
 void OutputMergedMetaUnitig(CDS_CID_t sid,MultiAlignT *ma);
 

@@ -190,36 +190,6 @@ sub updateDistanceRecords ($) {
 }
 
 
-sub resolveSurrogates ($$) {
-    my $thisDir = shift @_;
-    my $lastDir = shift @_;
-
-    return $thisDir if (-e "$wrk/$thisDir/resolveSurrogates.success");
-
-    my $lastckp = findLastCheckpoint($lastDir);
-
-    system("mkdir $wrk/$thisDir")  if (! -d "$wrk/$thisDir");
-
-    system("ln -s ../$lastDir/$asm.ckp.$lastckp $wrk/$thisDir/$asm.ckp.$lastckp")  if (! -e "$wrk/$thisDir/$asm.ckp.$lastckp");
-    system("ln -s ../$asm.SeqStore              $wrk/$thisDir/$asm.SeqStore")      if (! -e "$wrk/$thisDir/$asm.SeqStore");
-
-    my $cmd;
-    $cmd  = "$bin/resolveSurrogates ";
-    $cmd .= " -g $wrk/$asm.gkpStore ";
-    $cmd .= " -c $asm ";
-    $cmd .= " -n $lastckp ";
-    $cmd .= " -S 0.666 ";
-    $cmd .= " > $wrk/$thisDir/resolveSurrogates.err 2>&1";
-    if (runCommand("$wrk/$thisDir", $cmd)) {
-        die "Failed.\n";
-    }
-
-    touch("$wrk/$thisDir/resolveSurrogates.success");
-
-    return $thisDir;
-}
-
-
 sub scaffolder ($) {
     my $cgiFile    = shift @_;
     my $lastDir    = undef;
@@ -269,28 +239,13 @@ sub scaffolder ($) {
             $lastDir = eCR("7-$thisDir-ECR", $lastDir, $iteration);
             $thisDir++;
         }
-
-        #  If we aren't resolving surrogates, then this is the last
-        #  CGW, and we should output stuff.
-        #
-        my $isLast = getGlobal("doResolveSurrogates") ? 0 : 1;
-
-        #  Then another scaffolder, chucking stones into the big holes.
-        #
-        $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, $stoneLevel, 3, $isLast);
-        $thisDir++;
     }
 
-    #  Then resolve surrogates.  And yet another scaffolder, this time
-    #  to just do output
+    #  Then another scaffolder, chucking stones into the big holes,
+    #  filling in surrogates, and writing output.
     #
-    if (getGlobal("doResolveSurrogates")) {
-        $lastDir = resolveSurrogates("7-$thisDir-resolveSurrogates", $lastDir);
-        $thisDir++;
-        
-        $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, $stoneLevel, 14, 1);
-        $thisDir++;
-    }
+    $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, $stoneLevel, 3, 1);
+    $thisDir++;
 
 
     #  And, finally, hold on, we're All Done!  Point to the correct output directory.

@@ -29,7 +29,6 @@ CGW_SOURCES =     AS_CGW_main.c \
                   eCR-examineGap.c \
                   eCR-diagnostic.c \
                   resolveSurrogates.c \
-                  fragmentPlacement.c \
                   dumpCloneMiddles.c \
                   frgs2clones.c \
                   createFrgDeletes.c \
@@ -49,6 +48,7 @@ CGW_LIB_SOURCES = AS_CGW_dataTypes.c \
 		  DemoteUnitigsWithRBP_CGW.c \
                   DiagnosticsCGW.c \
                   exploreGapStructure.c \
+                  fragmentPlacement.c \
                   GraphCGW_T.c \
                   Input_CGW.c \
                   Instrument_CGW.c \
@@ -126,7 +126,7 @@ cgw: AS_CGW_main.o $(LIBS)
 
 extendClearRanges: eCR.o eCR-examineGap.o eCR-diagnostic.o $(LIBS)
 
-resolveSurrogates: resolveSurrogates.o fragmentPlacement.o $(LIBS)
+resolveSurrogates: resolveSurrogates.o $(LIBS)
 
 dumpCloneMiddles: dumpCloneMiddles.o $(LIBS)
 

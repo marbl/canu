@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.42 2007-08-03 20:45:03 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.43 2007-08-14 22:54:45 brianwalenz Exp $";
 
 
 static const char *usage = 
@@ -70,24 +70,8 @@ static const char *usage =
 "   [-X <Estimated number of nodes>]\n"
 "   [-Y <Estimated number of edges>]\n"
 "   [-Z]           Don't demote singleton scaffolds\n"
-"   [-4]           Allow forced fragments inside consensus ... useful for high-error runs\n"
-"\n"
-"CGBInputFiles: The file with new IUM,OUM, etc records to process.\n"
-"\n"
-"Checkpoint File: File named <outputName>.ckp.n\n"
-"\n"
-"The Chunk Graph Walker processes the input file, reporting errors and\n"
-"warnings.  Any message that causes an error warning is output\n"
-"to stderr, along with the associated warning/error messages.\n"
-"\n"
-"Copious log info is sent to <inputFile>.cgwlog\n"
-"Celamy output is sent to <inputFile>.cam\n"
-"\n"
-"Opens ALL [<InputFileName>.<ext>]* to read input\n"
-"\n"
-"Writes diagnostic output to <OutputPath>.cgwlog\n"
-"Writes multiAlignments to <OutputPath>.SeqStore\n"
-"Writes output to <OutputPath>.cgw\n";
+"   [-4]           Allow forced fragments inside consensus ... useful for high-error runs\n";
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -141,6 +125,7 @@ static const char *usage =
 #include "Instrument_CGW.h"
 #include "AS_CGW_EdgeDiagnostics.h"
 #include "Checkpoints_CGW.h"
+#include "fragmentPlacement.h"  //  for resolveSurrogates()
 
 extern int allow_forced_frags;
 
@@ -199,6 +184,8 @@ int main(int argc, char *argv[]){
   char *outputPath = NULL;
   int dumpScaffoldSnapshots = 0;
   int checkpointChecker = 1;
+  int    placeAllFragsInSinglePlacedSurros = 0;      //  resolveSurrogates
+  double cutoffToInferSingleCopyStatus     = 0.666;  //  resolveSurrogates
  
 #ifdef X86_GCC_LINUX
   /*
@@ -1210,6 +1197,20 @@ int main(int argc, char *argv[]){
       }
     }
   }
+
+
+  if(immediateOutput == 0 && 
+     (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_RESOLVE_SURROGATES) &&
+     (GlobalData->stoneLevel > 0)) {
+    fprintf(GlobalData->stderrc,"* Before resolveSurrogates\n");
+
+    resolveSurrogates(placeAllFragsInSinglePlacedSurros, cutoffToInferSingleCopyStatus);
+
+    fprintf(GlobalData->timefp, "Checkpoint %d written after resolveSurrogates\n", ScaffoldGraph->checkPointIteration);
+    CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_BEFORE_RESOLVE_SURROGATES);
+  }
+
+
 
 
   Show_Reads_In_Gaps (GlobalData -> File_Name_Prefix);
