@@ -760,6 +760,8 @@ int main (int argc , char * argv[] ) {
 
   sampleFileName[0]='\0';
 
+  argc = AS_configure(argc, argv);
+
   { /* Parse the argument list using "man 3 getopt". */ 
     int ch,errflg=0;
     optarg = NULL;

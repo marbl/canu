@@ -605,6 +605,8 @@ int main (int argc, char *argv[]){
   FILE *depthCvgFile=NULL;
   FILE *antiOvlHistoFile=NULL;
 
+  argc = AS_configure(argc, argv);
+
   while  (! errflg
 	  && ((ch = getopt (argc, argv, "b:dDe:g:m:o:s:A:B:C:S:"))!=EOF)){
     switch  (ch)
