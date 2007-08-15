@@ -1,5 +1,5 @@
 #!/usr/local/bin/perl
-# $Id: arun.pl,v 1.1 2007-07-03 19:44:35 moweis Exp $
+# $Id: arun.pl,v 1.2 2007-08-15 22:30:50 moweis Exp $
 #
 # Given input from STDIN, generates and runs shell script
 # on the grid or on the local machine with AserverConsole support.
@@ -9,7 +9,7 @@
 
 # Program configuration
 my @MY_DEPENDS = ( "TIGR::Foundation", "TIGR::ConfigFile" );
-my $MY_VERSION = " 1.7 (Build " . (qw/$Revision: 1.1 $/)[1] . ")";
+my $MY_VERSION = " 1.7 (Build " . (qw/$Revision: 1.2 $/)[1] . ")";
 my $HELPTEXT =
   qq~
 Given input from STDIN, generates and runs shell script
@@ -161,7 +161,12 @@ sub initializeConfig($) {
       or bail("Could not initialize the config file: '$configFile'");
     $tf_object->logLocal( "Using config file: $configFile", 2 );
 
-    $jcvi = 1   if( $arun_cf->getOption('jcvi') == 1);
+    if( $arun_cf->getOption('jcvi') == 1) {
+        $jcvi = 1;
+        $tf_object->logLocal( "Running at JCVI (GRID available)", 1 );
+    } else {
+        $tf_object->logLocal( "Running offsite", 1 );
+    }
 
     # logging for the generated executing script
     $CMD_LOG          = $arun_cf->getOption('command_log');
