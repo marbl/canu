@@ -1,5 +1,5 @@
 #!/usr/local/bin/perl -w
-# $Id: carun.pl,v 1.1 2007-07-03 19:44:35 moweis Exp $
+# $Id: carun.pl,v 1.2 2007-08-15 22:33:09 moweis Exp $
 #
 # Celera Assembler front-end script calls runs assembly pipline 
 # recipes on the grid or on the local host.
@@ -9,7 +9,7 @@
 
 # Program configuration
 my @MY_DEPENDS = ( "TIGR::Foundation", "TIGR::ConfigFile" );
-my $MY_VERSION = " 1.5 (Build " . (qw/$Revision: 1.1 $/)[1] . ")";
+my $MY_VERSION = " 1.5 (Build " . (qw/$Revision: 1.2 $/)[1] . ")";
 my $HELPTEXT =
   qq~Request a whole-genome shotgun assembly using Celera Assembler.
 
@@ -94,6 +94,7 @@ my $install_dir = $ENV{'ARUN_INSTALL_DIR'};
 # The carun Config file object
 my $carun_cf = undef;
 my $arun_cf  = undef;
+my $timestamp = time();
 
 # when Cntl-C is used to cancel carun
 my $cancel_track = 0;
@@ -239,9 +240,8 @@ sub filterByStartEnd($$$) {
     #The new set of lines to execute
     my @lines = @recipeLines[ $start .. $end ];
     
-    #Open Temporary file for recipe
-    my $timestamp = time();
-    my $tmprecipe_file = "/tmp/.carun.$timestamp";
+    #Open Temporary file for recipe    
+    my $tmprecipe_file = "/tmp/carun.$timestamp.recipe";
     my $tmprecipe_fh = new IO::File ">$tmprecipe_file"
         or $tf_object->bail("Could not open temp recipe file: '$tmprecipe_file'. Error code: $!");
     foreach (@lines) {
@@ -292,8 +292,7 @@ sub passThroughSetup ($$) {
 }
 
 sub setPostRecipeFile () {
-    print "Inside setPostRecipeFile  - print\n";
-    $tf_object->logLocal( "Inside setPostRecipeFile", 0 );
+    $tf_object->logLocal( "Inside setPostRecipeFile", 1 );
     
     my $pr_str = q~
 #> Upload Metrics
@@ -304,13 +303,13 @@ cd $WORKDIR
 rm $WORKDIR/$PREFIX.cgi $WORKDIR/$PREFIX.frg
 ~;
 
-    my $prFileName = "/tmp/.carun.pr.sh";
+    my $prFileName = "/tmp/carun.$timestamp.pr.sh";
     my $pr_fh = new IO::File ">$prFileName"    
       or $tf_object->bail("Could not create post recipe file: '$prFileName'. Error Code: $!");    
     print $pr_fh $pr_str;
     close $pr_fh;    
  
-#    push @filesToClean, $prFileName;    
+    push @filesToClean, $prFileName;    
  
     return $prFileName;         
     
@@ -323,7 +322,7 @@ sub generateSessionFile($$) {
     my @passThroughArray = @$passThroughCommands_ref;
     my $caOptionsStr = join('',@caOptionsArray);     
     my $passThroughStr = join('',@passThroughArray);     
-    my $sessionFileName = "/tmp/.carun.options.sh";
+    my $sessionFileName = "/tmp/carun.$timestamp.options.sh";
     my $session_fh = new IO::File ">$sessionFileName"    
       or $tf_object->bail("Could not open recipe file: '$sessionFileName'. Error Code: $!");    
     print $session_fh "#CA Options:\n$caOptionsStr\n\n";
@@ -386,8 +385,10 @@ sub caOptionsSetup($$$$$) {
     push @caOptionsArray, "echo ASTATHIGH=\$ASTATHIGH\n";
     
     if ( defined $genomeSize ) {
-        push @caOptionsArray, "GENOMELENGTH=\"-l $genomeSize\"\n";
-        push @caOptionsArray, "echo GENOMELENGTH=\$GENOMELENGTH\n";
+        push @caOptionsArray, "GENOMELENGTH_L=\"-l $genomeSize\"\n";
+        push @caOptionsArray, "echo GENOMELENGTH_L=\$GENOMELENGTH_L\n";
+        push @caOptionsArray, "GENOMELENGTH_G=\"-g $genomeSize\"\n";
+        push @caOptionsArray, "echo GENOMELENGTH_G=\$GENOMELENGTH_G\n";
     }
     
     $jcvi = $arun_cf->getOption('jcvi'); 
