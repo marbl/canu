@@ -35,19 +35,19 @@
 
 int
 main(int argc , char **argv) {
-  Global_CGW *data;
 
-  GlobalData = data = CreateGlobal_CGW();
-  data->stderrc  = stderr;
-  data->timefp   = stderr;
-  data->aligner  = DP_Compare;
-
+  argc = AS_configure(argc, argv);
   if (argc != 4) {
     fprintf(stderr, "usage: %s gkpStore cgw-checkpoint-prefix checkpoint-number\n", argv[0]);
     exit(1);
   }
 
-  strcpy(data->Gatekeeper_Store_Name, argv[1]);
+  GlobalData = CreateGlobal_CGW();
+  GlobalData->stderrc  = stderr;
+  GlobalData->timefp   = stderr;
+  GlobalData->aligner  = DP_Compare;
+
+  strcpy(GlobalData->Gatekeeper_Store_Name, argv[1]);
   ScaffoldGraph = LoadScaffoldGraphFromCheckpoint(argv[2], atoi(argv[3]), FALSE);
   fprintf(stdout, "%d\n", GetNumGraphNodes(ScaffoldGraph->ScaffoldGraph));
 
