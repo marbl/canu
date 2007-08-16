@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# $Id: caqc.pl,v 1.21 2007-08-16 03:12:15 moweis Exp $
+# $Id: caqc.pl,v 1.22 2007-08-16 14:50:09 moweis Exp $
 #
 # This program reads a Celera .asm file and produces aggregate information
 # about the assembly
@@ -23,7 +23,7 @@ use File::Copy;
 use Math::BigFloat;
 use FindBin qw($Bin);
 
-my $MY_VERSION = "caqc Version 2.12 (Build " . (qw/$Revision: 1.21 $/ )[1] . ")";
+my $MY_VERSION = "caqc Version 2.12 (Build " . (qw/$Revision: 1.22 $/ )[1] . ")";
 
 # Constants
 my $MINQUAL   = 20;
@@ -439,6 +439,69 @@ sub getLibIID($) {
     return -1;
 }
 
+sub outputHelp($) {
+    my $helpflag = shift;
+    if ( lc($helpflag) eq 'all' ) {
+        foreach (@help_lines) {
+            print;
+        }
+    }
+    elsif ( $helpflag eq '' ) {
+        print STDERR $MY_HELPTEXT;
+    }
+    else {
+        my %help_text_headers    = ();
+        my %help_text_headers_lc = ();
+        my %help_text_map        = ();
+        my %help_text_map_lc     = ();
+
+        my $current_header = undef;
+        my @current_array  = undef;
+        foreach my $line (@help_lines) {
+            if ( $line =~ /^\[(.*)\]/ ) {    #Section
+                if ( defined $current_header ) {
+                    $help_text_headers{$current_header} = [@current_array];
+                    my @fields = @{ $help_text_headers{$current_header} };
+                    @current_array = ();
+                }
+                $current_header = $1;
+            }
+            elsif ( $line =~ /^(\S+)\s*-\s*(.*)$/ ) {
+                $help_text_map{$1} = $2;
+                if ( defined $current_header ) {
+                    push @current_array, $1;
+                }
+            }
+        }
+        foreach my $key ( keys %help_text_map ) {
+            $help_text_map_lc{ lc $key } = $key;
+        }
+        foreach my $key ( keys %help_text_headers ) {
+            $help_text_headers_lc{ lc $key } = $key;
+        }
+
+        if ( exists $help_text_headers_lc{ lc $helpflag } ) {
+            $helpflag = $help_text_headers_lc{ lc $helpflag };
+            print STDOUT "[$helpflag]\n";
+            my @fields = @{ $help_text_headers{$helpflag} };
+            foreach my $field (@fields) {
+                my $value = undef;
+                $value = $help_text_map{$field} if ( defined $field );
+                print STDOUT "$field - $value\n" if ( defined $value );
+            }
+        }
+        elsif ( exists $help_text_map_lc{ lc $helpflag } ) {
+            $helpflag = $help_text_map_lc{ lc $helpflag };
+            my $help_text = $help_text_map{$helpflag};
+            print STDOUT "$helpflag - $help_text\n";
+        }
+        else {
+            print STDOUT
+"Term '$helpflag' is not a valid help search.  To see all terms type use '-help all'.\n";
+        }
+    }
+}
+
 sub outputHtml() {
     my $HTML_HEAD =
       qq~
@@ -527,70 +590,14 @@ MAIN:
       exit(1);
   }
   
-  if ( defined $helpflag or defined $html ) {
-    readHelpFile();
-  }
-  
   if ( defined $helpflag ) {
-    if ( lc($helpflag) eq 'all' ) {
-        foreach (@help_lines) {
-            print;
-        }
-    } elsif ( $helpflag eq '' ) {
-	print STDERR $MY_HELPTEXT;
-    } else {
-        my %help_text_headers = ();
-	my %help_text_headers_lc = ();
-	my %help_text_map = ();
-        my %help_text_map_lc = ();
-
-	my $current_header = undef;
-	my @current_array = undef;
-    	foreach my $line (@help_lines) {
-       	  if ($line =~ /^\[(.*)\]/ ) { #Section
-		if ( defined $current_header ) {
-			$help_text_headers{$current_header} = [@current_array];
-			my @fields = @{$help_text_headers{$current_header}};
-			@current_array = ();
-		}
-		$current_header = $1;
-          } elsif ( $line =~ /^(\S+)\s*-\s*(.*)$/ ) {
-         	$help_text_map{$1} = $2;
-		if ( defined $current_header ) {
-			push @current_array, $1;
-		} 
-	  }        
-        }
-        foreach my $key (keys %help_text_map) {
-            $help_text_map_lc{lc $key} = $key;
-        }
-	foreach my $key (keys %help_text_headers) {
-	    $help_text_headers_lc{lc $key} = $key;
-	}
-
-      	if(exists $help_text_headers_lc{lc $helpflag}){
-	    $helpflag = $help_text_headers_lc{lc $helpflag};
-	    print STDOUT "[$helpflag]\n";
-            my @fields = @{$help_text_headers{$helpflag}};
-	    foreach my $field (@fields) {
-		my $value = undef;
-		$value = $help_text_map{$field} if(defined $field);
-		print STDOUT "$field - $value\n" if(defined $value);
-	    }
-	}
-      	elsif(exists $help_text_map_lc{lc $helpflag}){
-      	    $helpflag = $help_text_map_lc{lc $helpflag};
-      	    my $help_text = $help_text_map{$helpflag};
-      		print STDOUT "$helpflag - $help_text\n";
-      	}
-      	else{
-      		print STDOUT "Term '$helpflag' is not a valid help search.  To see all terms type use '-help all'.\n";
-      	}
-    }
-    exit(1);
+      readHelpFile();
+      outputHelp($helpflag);
+      exit(1);
   }
 
-  if ( $html ) {
+  if ($html) {
+      readHelpFile();
       outputHtml();
       exit(1);
   }
