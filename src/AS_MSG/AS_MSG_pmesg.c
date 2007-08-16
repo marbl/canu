@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.41 2007-08-09 16:55:34 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg.c,v 1.42 2007-08-16 03:10:06 brianwalenz Exp $";
 
 #include "AS_MSG_pmesg_internal.h"
 
@@ -424,7 +424,9 @@ WriteProtoMesg_AS(FILE *fout, GenericMesg *pmesg) {
 
   errno = 0;
   AS_MSG_globals->CallTable[pmesg->t].writer(fout,pmesg->m);
-  if (errno) {
+  //  This is a quirk with printf; redirecting output to /dev/null
+  //  generates ENOTTY.
+  if ((errno) && (errno != ENOTTY)) {
     fprintf(stderr, "ERROR: Write Failure: %s\n", strerror(errno));
     exit(1);
   }
