@@ -575,7 +575,8 @@ int main(int argc, char *argv[])
       {
 	Overlap *ovl=NULL;
 	double erate=0.02;
-	int minovl=simplescore;
+	// below, .9 fudge factor may be necessary to handle cases where some matching kmers are random out of order matches
+	int minovl=simplescore *.9;
 	while(erate<.4){
 	  ovl = DP_Compare(Seqs[i],SeqsB[bestsimple],-lenB[bestsimple]+minovl,len[i]-minovl,0,erate,1e-6,maxim(minlen,minovl),AS_FIND_LOCAL_ALIGN_NO_TRACE);
 	  if(ovl!=NULL)break;
@@ -636,7 +637,8 @@ int main(int argc, char *argv[])
 
 	Overlap *ovl=NULL;
 	double erate=0.02;
-	int minovl=hitCounts[ilenlessone][bestfront];
+	// below, .9 fudge factor may be necessary to handle cases where some matching kmers are random out of order matches
+	int minovl=hitCounts[bestloc][bestfront]*.9;
 	if(bestfront!=bestsimple){
 	  while(erate<.4){
 	    ovl = DP_Compare(Seqs[i],SeqsB[bestfront],-lenB[bestfront]+minovl,len[i]-minovl,0,erate,1e-6,maxim(minlen,minovl),AS_FIND_LOCAL_ALIGN_NO_TRACE);
@@ -660,11 +662,15 @@ int main(int argc, char *argv[])
 	  }
 	}
 	erate=0.02;
-	minovl=hitCounts[ilenlessone][bestback];
+	// below, .9 fudge factor may be necessary to handle cases where some matching kmers are random out of order matches
+	minovl=(hitCounts[ilenlessone][bestback]-hitCounts[bestloc][bestback])*.9; 
+	//	fprintf(stderr,"DEBUG: minovl = %d\n",hitCounts[ilenlessone][bestback]);
 	ovl=NULL;
 	if(bestback!=bestsimple){
+	  //	  fprintf(stderr,"initial settings: backstart, backend to %d %d\n",backstart,backend);
 	  while(erate<.4){
 	    ovl = DP_Compare(Seqs[i],SeqsB[bestback],-lenB[bestback],len[i],0,erate,1e-6,maxim(minlen,minovl),AS_FIND_LOCAL_ALIGN_NO_TRACE);
+	    //ovl = DP_Compare(Seqs[i],SeqsB[bestback],-lenB[bestback],len[i],0,erate,1e-6,40,AS_FIND_LOCAL_ALIGN_NO_TRACE);
 	    if(ovl!=NULL)break;
 	    erate*=2.;
 	  }
@@ -682,20 +688,24 @@ int main(int argc, char *argv[])
 	      // update 
 	      backstart=maxim(backstart,ovl->begpos);
 	      backend=minim(backend,len[i]+ovl->endpos);
+	      //	      fprintf(stderr,"Updating backstart, backend to %d %d\n",backstart,backend);
 	    }
 	  }
 	}
 	
-	// things are clearly a problem if the overlap is to a region that is not in the best-match section
-	if(frontstart<bestloc&&frontend>bestloc){
+	// things are problematic if the overlap is to a region that doesn't come close to the implied breakpoint (bestloc);
+	// however, partial sequence issues can make an absolute test fail, hence the constant 100 below:
+	if(frontstart<bestloc+100&&frontend>bestloc-100){
 	  startbestmatch= (startbestmatch > frontstart ? startbestmatch : frontstart);
 	  endbestmatch= (endbestmatch < frontend ? endbestmatch : frontend);
 	}
-	if(backstart<bestloc&&backend>bestloc){
+	if(backstart<bestloc+100&&backend>bestloc-100){
 	  startbestmatch= (startbestmatch > backstart ? startbestmatch : backstart);
 	  endbestmatch= (endbestmatch < backend ? endbestmatch : backend);
 	}
 
+	//	fprintf(stderr,"Final bestmatch start %d end %d\n",startbestmatch,endbestmatch);
+	
 	simplescore=hitCounts[endbestmatch][bestsimple]-hitCounts[startbestmatch+ksize-2][bestsimple];
 	bestscore=
 	  hitCounts[endbestmatch][bestback]-hitCounts[bestloc][bestback]+
@@ -707,17 +717,19 @@ int main(int argc, char *argv[])
       //      printf("startbestmatch final at %d\n",startbestmatch);
       //      printf("endbestmatch final at %d\n",endbestmatch);
 
-      assert(startbestmatch<=bestloc&&endbestmatch>bestloc);
+      assert(startbestmatch<=bestloc+100&&endbestmatch>bestloc-100);
 
 
       if(simplescore <= hitCounts[endbestmatch][bestfront]-hitCounts[startbestmatch+ksize-2][bestfront]){
 	bestsimple=bestfront;
 	simplescore=hitCounts[endbestmatch][bestfront]-hitCounts[startbestmatch+ksize-2][bestfront];
+	//	fprintf(stderr,"Resetting best simple, presumably due to trimming (now bestfront)\n");
       }
 
       if( simplescore <= hitCounts[endbestmatch][bestback]-hitCounts[startbestmatch+ksize-2][bestback]){
 	bestsimple=bestback;
 	simplescore=hitCounts[endbestmatch][bestback]-hitCounts[startbestmatch+ksize-2][bestback];
+	//	fprintf(stderr,"Resetting best simple, presumably due to trimming (now bestback)\n");
       }
 
       if(bestscore>simplescore){
@@ -728,8 +740,8 @@ int main(int argc, char *argv[])
 	       hitCounts[endbestmatch][bestback]-hitCounts[startbestmatch+ksize-2][bestback],
 	       NamesB[bestsimple],simplescore);
       } else {
-	printf("%s (len=%d): best match = %s (score = %d )\n",
-	       Names[i],ilen,NamesB[bestsimple],simplescore);
+	printf("%s (len=%d): best match = %s (from %d to %d, score = %d )\n",
+	       Names[i],ilen,NamesB[bestsimple],startbestmatch,endbestmatch,simplescore);
       }
 
     }
