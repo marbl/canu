@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# $Id: caqc.pl,v 1.23 2007-08-16 15:06:40 moweis Exp $
+# $Id: caqc.pl,v 1.24 2007-08-17 20:15:40 moweis Exp $
 #
 # This program reads a Celera .asm file and produces aggregate information
 # about the assembly
@@ -10,8 +10,6 @@
 #
 #
 
-use FindBin;
-use lib "$FindBin::Bin";
 use warnings;
 use strict;
 use Getopt::Long;
@@ -22,14 +20,13 @@ use File::Copy;
 use Math::BigFloat;
 use FindBin qw($Bin);
 
-my $MY_VERSION = "caqc Version 2.12 (Build " . (qw/$Revision: 1.23 $/)[1] . ")";
+my $MY_VERSION = "caqc Version 2.13 (Build " . (qw/$Revision: 1.24 $/)[1] . ")";
 
 # Constants
 my $MINQUAL    = 20;
 my $MINCONTIG  = 10000;
 my @help_lines = undef;
-my $COMMON_DIR = '/usr/local/devel/SE/work/moweis/CA_Latest/src/AS_RUN/asmQC/';
-my $help_file  = $COMMON_DIR . 'caqc_help.ini';
+my $help_file  = $Bin . '/caqc_help.ini';
 
 my $MY_HELPTEXT = qq~
 Generate quality statistics from the specified Celera assembly .asm file.  
