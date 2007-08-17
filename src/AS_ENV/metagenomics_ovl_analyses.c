@@ -35,6 +35,7 @@ static int maxsmp;
 static OVSoverlap  olap;
 static double ***self,***other,***clnself,***clnother;
 static int *smp;
+static int *deletionStatus;
 static int debug=0;
 static int psmp;
 static int **allbeg,**allend,**otherbeg,**otherend,**selfbeg,**selfend;
@@ -45,6 +46,7 @@ static int flen;
 static GateKeeperStore *gkpStore;
 static OverlapStore    *ovlStore;
 static fragRecord       fsread;
+static GateKeeperFragmentRecord gkpread;
 
 static int currmate;
 static int ***samesmpantiovlhistogram;
@@ -54,7 +56,6 @@ static int ***selfdepthhistogram;
 static int maxdepth=500;
 static int *smpnfrgs;
 static int *smpbases;
-
 
 
 void init_frg(){
@@ -579,13 +580,24 @@ void realloc_ends(int newmax){
   maxovls=newmax;
 }
 
+void   deletionStatus_setup(int lastfrag){
+  int i;
+  deletionStatus = (int *) safe_malloc( sizeof(char*)*(lastfrag+1));
+  for(i=1; i<=lastfrag;i++){
+    getGateKeeperFragment(gkpStore,i,&gkpread);
+    assert(gkpread.readIID==i);
+    deletionStatus[i]=gkpread.deleted;
+  }
+  fprintf(stderr,"Deletion status checked for all reads\n");
+  return;
+}
+
 int main (int argc, char *argv[]){
 
   char full_ovlPath[1000];
   char full_frgPath[1000];
   char full_gkpPath[1000];
   char sampleFileName[1000];
-  int setFullFrg=0;
   int setFullGkp=0;
   int setFullOvl=0;
   uint32  lastfrag,lastovlfrg;
@@ -653,8 +665,7 @@ int main (int argc, char *argv[]){
 
   if(errflg ||
      setFullOvl!=1 ||
-     setFullGkp!=1 ||
-     setFullFrg!=1
+     setFullGkp!=1
      ){
     fprintf(stderr,
             "Usage: %s [-A <diversity overlap histogram file>] [-B <binary coverages file>] [-C <depths of coverage file>] [-S <similarity scores file>] [-b startfrg] [-e endfrg] [-d] -g <gkpStore> -o <ovlStore> -s <samples>\n",
@@ -687,6 +698,7 @@ int main (int argc, char *argv[]){
   fclose(smps);
   fprintf( stderr, "read IID2SMP -- maxsmp = %d\n",maxsmp);
 
+  deletionStatus_setup(lastfrag);
 
   alloc_sim_arrays();
 
@@ -725,6 +737,19 @@ int main (int argc, char *argv[]){
       }
       init_frg();
     }
+    if(deletionStatus[olap.a_iid]||deletionStatus[olap.b_iid]){
+      fprintf (stderr,"Deleted(%d,%d):    %8d %8d %c %5d %5d %4.1f %4.1f\n",
+	       deletionStatus[olap.a_iid],
+	       deletionStatus[olap.b_iid],
+               olap.a_iid,
+               olap.b_iid,
+               olap.dat.ovl.flipped ? 'I' : 'N',
+               olap.dat.ovl.a_hang,
+               olap.dat.ovl.b_hang,
+               AS_OVS_decodeQuality(olap.dat.ovl.orig_erate) * 100.0,
+               AS_OVS_decodeQuality(olap.dat.ovl.corr_erate) * 100.0);
+      continue;
+    }
     if (currmate == olap.b_iid) continue;
 
     clean=0;
@@ -737,7 +762,7 @@ int main (int argc, char *argv[]){
 
     for(k=0;k<ncuts;k++){
 
-      if(olap.dat.ovl.orig_erate>cutoffs[k]){break;}
+      if(AS_OVS_decodeQuality(olap.dat.ovl.orig_erate)*1000.>cutoffs[k]){break;}
 
       cnt[sb][k]++;
 
