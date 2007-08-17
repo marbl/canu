@@ -168,6 +168,13 @@ of if the fragment was deleted and why.
 There are four configurable error rates.  $utg \le ovl \le cns \le
 cgw$.  Usually, $ovl = cns$.
 
+Error rates set via environment variables (AS\_OVL\_ERROR\_RATE,
+AS\_CGW\_ERROR\_RATE and AS\_CNS\_ERROR\_RATE) will be used, unless they are
+changed via the spec file or command line options.
+
+Note that the unitigger error rate cannot be set via the environment.
+
+
 \begin{longtable}{lp{3.0in}}
 
 ovlErrorRate={\it float} &
