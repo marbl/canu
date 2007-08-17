@@ -427,7 +427,7 @@ public:
   char            *_logmsgFileName;
   char            *_statsFileName;
 
-  chainedSequence  _useList;
+  seqStream        _useList;
 
   //  Wall clock times
   //

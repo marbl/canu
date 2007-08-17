@@ -35,10 +35,8 @@ main(int argc, char **argv) {
   fprintf(stderr, "BUILDING INCLUDE\n");
   include = new existDB(incName, MERSIZE, TBLSIZE);
 
-  chainedSequence *F       = new chainedSequence();
-  F->setSource(seqName);
-  F->finish();
-  merStream       *T       = new merStream(MERSIZE, F);
+  seqStream *F = new seqStream(seqName, true);
+  merStream *T = new merStream(MERSIZE, F);
 
   fprintf(stderr, "BUILDING FULL\n");
   full = new positionDB(T, MERSIZE, 0, TBLSIZE,      0L,      0L, 0, true);

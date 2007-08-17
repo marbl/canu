@@ -94,7 +94,7 @@ public:
   char            *_tableFileName;
   bool             _tableBuildOnly;
 
-  chainedSequence  _useList;
+  seqStream        _useList;
 
 #ifdef __APPLE__
   void            *_pad1;

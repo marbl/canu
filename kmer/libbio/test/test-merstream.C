@@ -128,9 +128,7 @@ main(int argc, char **argv) {
 
   merStreamFileReader   *MS1r = new merStreamFileReader("test-merstream.merstreamfile1.junk");
 
-  chainedSequence  *CS = new chainedSequence();
-  CS->setSource(argv[1]);
-  CS->finish();
+  seqStream             *CS   = new seqStream(argv[1], true);
 
   seqFile  *SF = openSeqFile(argv[1]);
   SF->openIndex();

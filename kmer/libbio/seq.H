@@ -11,8 +11,6 @@ class seqFile;
 class seqStream;
 class seqFactory;
 
-class chainedSequence;
-
 typedef  u32bit  seqIID;
 
 class seqInCore {
@@ -228,31 +226,102 @@ public:
 
 class seqStream {
 private:
-  void              clearGuts(void);
+  void          clearGuts(void);
 public:
-  seqStream(const char *filename);
-  seqStream(chainedSequence *S);
-  seqStream(seqFile *S);
+  seqStream();
+  seqStream(const char *filename, bool finishMe);
+  seqStream(seqFile *S, bool finishMe);
   ~seqStream();
 
-  bool              rewind(void);
-  unsigned char     nextSymbol(void);
+  void          setFile(const char *filename);
+  void          setFile(seqFile *S);
 
-  u64bit            thePositionInSequence(void) { return(_positionInSequence); };
-  u64bit            thePositionInStream(void)   { return(_positionInStream);   };
-  u64bit            theSequenceNumber(void)     { return(_theSequenceNumber);  };
+  void          setSeparator(char sep, u32bit len) {
+    _separator = sep;
+    if (len == 0)
+      fprintf(stderr, "seqStream::setSeparator()-- ERROR: the separator length must be at least one.\n"), exit(1);
+    _separatorLength = len - 1;    
+  };
+  char          getSeparator(void) {
+    return(_separator);
+  };
+
+  //  Adds sequences to the useList.  For parse(), sequences are
+  //  specified in a character string, e.g., "10,20,30-40,50".  add()
+  //  pushes one sequence iid onto the list.  Multiple calls to
+  //  parse() and add() are allowed.  There is (currently) no way to
+  //  remove sequences from the useList.  Once you're all done adding
+  //  sequences, call finish().
+  //
+  void          parse(char *line);
+  void          add(u32bit v);
+  void          finish(void);
+
+  bool          rewind(void);
+  bool          eof(void)                   { return(_eof); };
+  unsigned char get(void);         //  unfiltered
+  unsigned char nextSymbol(void);  //  filters out runs of invalid
+
+  u64bit        thePositionInSequence(void) { return(_positionInSequence); };
+  u64bit        thePositionInStream(void)   { return(_positionInStream);   };
+  u64bit        theSequenceNumber(void)     { return(_theSequenceNumber);  };
+
+  //  Return the length of, position of (in the chain) and IID of the
+  //  (s)th sequence in the chain.
+  //
+  u32bit        numberOfSequences(void) { return(_useListLen); };
+  u64bit        lengthOfSequences(void) { return(_lengthOfSequences); };
+  u64bit        lengthOf(u32bit s) { return((s >= _useListLen) ? ~u32bitZERO : _useList[s].length); };
+  u64bit        startOf(u32bit s)  { return((s >= _useListLen) ? ~u32bitZERO : _useList[s].start);  };
+  u64bit        IIDOf(u32bit s)    { return((s >= _useListLen) ? ~u32bitZERO : _useList[s].iid);    };
+
+  //  For a chain position p, returns the s (above) for that position.
+  u32bit        sequenceNumberOfPosition(u64bit p);
+
 private:
-  chainedSequence  *_cs;
-  seqFile          *_sf;
 
-  u64bit            _positionInSequence;
-  u64bit            _positionInStream;
-  u64bit            _theSequenceNumber;
+  struct use_s {
+    u32bit   iid;
+    u32bit   length;
+    u32bit   start;
+  };
 
-  bool              _deleteCS;
-  bool              _deleteSF;
-  bool              _useInCore;
-  bool              _useOnDisk;
+  char                 *_filename;
+  seqFile              *_file;
+  seqFile              *_fileToDelete;
+  seqOnDisk            *_sequence;
+
+  u32bit                _useListLen;
+  u32bit                _useListMax;
+  use_s                *_useList;
+
+  //  The position we are at in the stream -- each sequence knows
+  //  where it is at, so we just need to remember which sequence we
+  //  are at.
+  //
+  u32bit                _currentSeq;
+
+  //  Various things the user will find useful
+  //
+  u64bit                _positionInSequence;
+  u64bit                _positionInStream;
+  u64bit                _theSequenceNumber;
+  u64bit                _lengthOfSequences;
+
+  //  Geez, very obnoxiously, we can tell if the _next_ get()
+  //  is going to return EOF, but we cannot tell if the _last_
+  //  get() was an eof.  So we set a flag.
+  //
+  bool                  _eof;
+
+  //  If _separatorPosition is positive, we are sending
+  //  _separatorLength _separator's out.
+  //
+  bool                  _separatorDone;
+  u32bit                _separatorLength;
+  u32bit                _separatorPosition;
+
+  char                  _separator;
 };
 
 

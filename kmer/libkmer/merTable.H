@@ -3,6 +3,8 @@
 
 //  The obvious simple small mer table, appropriate for large sequences
 
+#error merTable should be unused
+
 class merTable {
 public:
   merTable() {
@@ -12,7 +14,7 @@ public:
     delete [] positions;
   };
 
-  void         build(chainedSequence *CS, u32bit merSize, u32bit merSkip=0) {
+  void         build(seqStream *CS, u32bit merSize, u32bit merSkip=0) {
 
     //  Allocate the mer table
     //

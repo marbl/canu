@@ -31,7 +31,7 @@ public:
 
 private:
   u32bit                _merSize;
-  chainedSequence      *_chainedSeq;
+  seqStream            *_seqStream;
   merStream            *_merStream;
   const char           *_outputFile;
 };

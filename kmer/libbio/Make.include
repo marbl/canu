@@ -6,8 +6,6 @@ src    := $/alphabet.c \
           $/alphabet.h \
           $/bio++.H \
           $/bio.h \
-          $/chainedSequence.C \
-          $/chainedSequence.H \
           $/fasta-c.C \
           $/fasta-c.h \
           $/fasta-cache.C \

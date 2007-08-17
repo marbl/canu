@@ -17,8 +17,8 @@
 //
 //  N.B. white-space in the source (applies to seqStream and char*
 //  only) result in an incorrect positionInStream().  If this troubles
-//  you, use a chainedSequence instead of a seqStream, or squeeze
-//  the sequences.
+//  you, use a seqStream instead of a seqStream, or squeeze the
+//  sequences.
 //
 //  The merstream has many modes of operation, depending
 //  on what the input format is.  We could:
@@ -37,7 +37,7 @@
 class merStream {
 public:
   merStream(merStreamFileReader *merstreamfile);
-  merStream(u32bit merSize, chainedSequence *cs);
+  merStream(u32bit merSize, seqStream *cs);
   merStream(u32bit merSize, seqInCore *seq, u32bit offset=0, u32bit length=0);
   merStream(u32bit merSize, char *seq, u32bit offset=0, u32bit length=0);
   ~merStream();
@@ -82,7 +82,7 @@ private:
   u64bit                 nextSymbol(void);
 
   merStreamFileReader  *_ms_mers;
-  chainedSequence      *_cs_chainedSeq;
+  seqStream            *_cs_chainedSeq;
   char const           *_st_string;
   u64bit                _st_stringPos;
   u64bit                _st_stringLen;
@@ -157,7 +157,7 @@ inline
 u64bit
 merStream::nextSymbol(void) {
 
-  //  This is called only for seqStreams, chainedSequences and char* input.
+  //  This is called only for seqStreams, seqStream and char* input.
 
   if (_cs_chainedSeq)
     return(_cs_chainedSeq->get());

@@ -57,7 +57,7 @@ public:
 
   bool             _binaryOutput;
 
-  chainedSequence  _useList;
+  seqStream        _useList;
 
   //  Running state
   //

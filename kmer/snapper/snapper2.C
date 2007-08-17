@@ -255,8 +255,8 @@ main(int argc, char **argv) {
 
   //  Complete the configuration
   //
-  config._useList.setSource(config._dbFileName);
-  config._useList.setSeparatorLength(1);
+  config._useList.setFile(config._dbFileName);
+  config._useList.setSeparator('.', 1);
   config._useList.finish();
 
 

@@ -108,7 +108,7 @@ public:
     //  We're given hits for exactly one id2 and all id1, forward hits
     //  followed by reverse hits.  Which means that id1 makes two
     //  passes through, both passes are increasing (enforced by the
-    //  chainedSequence used in seatac).
+    //  seqStream used in seatac).
     //
     //  A linked list of strand pairs is kept (the links are built
     //  into StrandPair for convenience), each strand pair knows it's

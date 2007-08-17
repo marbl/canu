@@ -7,6 +7,7 @@
 int
 main(int argc, char **argv) {
 
+#if 0
   if (argc < 2) {
     fprintf(stderr, "usage: %s some.merStreamFile\n", argv[0]);
     exit(1);
@@ -15,6 +16,9 @@ main(int argc, char **argv) {
   merStreamFileReader *MSFR = new merStreamFileReader(argv[1]);
   fprintf(stdout, u64bitFMT"\n", MSFR->numberOfMers());
   delete MSFR;
+#endif
+
+#warning I AM BROKEN
 
   exit(0);
 }

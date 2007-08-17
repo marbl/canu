@@ -46,10 +46,8 @@ existDB::createFromFastA(char const  *filename,
   //
   //  1)  Count bucket sizes
   //
-  chainedSequence  *CS = new chainedSequence();
-  CS->setSource(filename);
-  CS->finish();
-  merStream        *M  = new merStream(_merSizeInBases, CS);
+  seqStream  *CS = new seqStream(filename, true);
+  merStream   *M = new merStream(_merSizeInBases, CS);
 
   while (M->nextMer()) {
     if (_isForward) {
@@ -164,9 +162,7 @@ existDB::createFromFastA(char const  *filename,
   //
   //  3)  Build list of mers, placed into buckets
   //
-  CS = new chainedSequence();
-  CS->setSource(filename);
-  CS->finish();
+  CS = new seqStream(filename, true);
   M  = new merStream(_merSizeInBases, CS);
 
   while (M->nextMer()) {

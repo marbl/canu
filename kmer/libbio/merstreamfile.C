@@ -19,24 +19,26 @@ merStreamFileExists(const char *i) {
 
 
 merStreamFileBuilder::merStreamFileBuilder(u32bit m, const char *i, const char *o) {
+#if 0
   _merSize     = m;
-  _chainedSeq = new chainedSequence();
-  _chainedSeq->setSource(i);
-  _chainedSeq->finish();
-  _merStream   = new merStream(m, _chainedSeq);
+  _seqStream = new seqStream(i);
+  _seqStream->finish();
+  _merStream   = new merStream(m, _seqStream);
   _outputFile  = o;
+#endif
+#warning MSFB from char* disabled
 }
 
 merStreamFileBuilder::merStreamFileBuilder(merStream *MS, const char *o) {
   _merSize     = MS->theMerSize();
-  _chainedSeq  = 0L;
+  _seqStream   = 0L;
   _merStream   = MS;
   _outputFile  = o;
 }
 
 merStreamFileBuilder::~merStreamFileBuilder() {
-  if (_chainedSeq) {
-    delete _chainedSeq;
+  if (_seqStream) {
+    delete _seqStream;
     delete _merStream;
   }
 }

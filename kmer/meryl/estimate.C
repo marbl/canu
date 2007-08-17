@@ -140,10 +140,8 @@ void
 estimate(merylArgs *args) {
 
   if (args->inputFile) {
-    chainedSequence    CS;
-    CS.setSource(args->inputFile);
-    CS.finish();
-    merStream          M(args->merSize, &CS);
+    seqStream         *SS = new seqStream(args->inputFile, true);
+    merStream          M(args->merSize, SS);
     speedCounter       C(" %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, args->beVerbose);
 
     if (args->beVerbose)

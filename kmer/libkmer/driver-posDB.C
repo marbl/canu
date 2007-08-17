@@ -55,9 +55,7 @@ char const *usage =
 
 int
 test1(char *filename) {
-  chainedSequence   *C       = new chainedSequence();
-  C->setSource(filename);
-  C->finish();
+  seqStream         *C       = new seqStream(filename, true);
   merStream         *T       = new merStream(MERSIZE, C);
   positionDB        *M       = new positionDB(T, MERSIZE, 0, TBLSIZE, 0L, 0L, 0, true);
   u64bit            *posn    = new u64bit [1024];
@@ -116,9 +114,7 @@ test1(char *filename) {
 
 int
 test2(char *filename, char *query) {
-  chainedSequence   *C       = new chainedSequence();
-  C->setSource(filename);
-  C->finish();
+  seqStream         *C       = new seqStream(filename, true);
   merStream         *T       = new merStream(MERSIZE, C);
   positionDB        *M       = new positionDB(T, MERSIZE, 0, TBLSIZE, 0L, 0L, 0, true);
   u64bit            *posn    = new u64bit [1024];
@@ -129,9 +125,7 @@ test2(char *filename, char *query) {
   delete T;
   delete C;
 
-  C = new chainedSequence();
-  C->setSource(query);
-  C->finish();
+  C = new seqStream(query, true);
   T = new merStream(MERSIZE, C);
 
   while (T->nextMer()) {
@@ -181,7 +175,7 @@ main(int argc, char **argv) {
   u32bit           merskip = 0;
   u32bit           tblsize = 0;
 
-  chainedSequence  useList;
+  seqStream        SS;
   u64bit           merBegin = ~u64bitZERO;
   u64bit           merEnd   = ~u64bitZERO;
 
@@ -196,31 +190,23 @@ main(int argc, char **argv) {
   int arg = 1;
   while (arg < argc) {
     if        (strncmp(argv[arg], "-mersize", 6) == 0) {
-      arg++;
-      mersize = strtou32bit(argv[arg], 0L);
+      mersize = strtou32bit(argv[++arg], 0L);
     } else if (strncmp(argv[arg], "-merskip", 6) == 0) {
-      arg++;
-      merskip = strtou32bit(argv[arg], 0L);
+      merskip = strtou32bit(argv[++arg], 0L);
     } else if (strncmp(argv[arg], "-tablesize", 3) == 0) {
-      arg++;
-      tblsize = strtou32bit(argv[arg], 0L);
+      tblsize = strtou32bit(argv[++arg], 0L);
 
     } else if (strncmp(argv[arg], "-use", 2) == 0) {
-      arg++;
-      useList.parse(argv[arg]);
+      SS.parse(argv[++arg]);
     } else if (strncmp(argv[arg], "-merbegin", 5) == 0) {
-      arg++;
-      merBegin = strtou64bit(argv[arg], 0L);
+      merBegin = strtou64bit(argv[++arg], 0L);
     } else if (strncmp(argv[arg], "-merend", 5) == 0) {
-      arg++;
-      merEnd = strtou64bit(argv[arg], 0L);
+      merEnd = strtou64bit(argv[++arg], 0L);
 
     } else if (strncmp(argv[arg], "-sequence", 2) == 0) {
-      arg++;
-      inputFile = argv[arg];
+      SS.setFile(argv[++arg]);
     } else if (strncmp(argv[arg], "-output", 2) == 0) {
-      arg++;
-      outputFile = argv[arg];
+      outputFile = argv[++arg];
 
     } else if (strncmp(argv[arg], "-dump", 2) == 0) {
       positionDB *e = new positionDB(argv[argc-1], false);
@@ -245,15 +231,13 @@ main(int argc, char **argv) {
     exit(0);
   }
 
-  useList.setSource(inputFile);
-  useList.setSeparatorLength(1);
-  useList.finish();
+  SS.finish();
 
-  merStream *MS      = new merStream(mersize, &useList);
+  merStream *MS      = new merStream(mersize, &SS);
 
   //  Approximate the number of mers in the sequences.
   //
-  u64bit     numMers = useList.lengthOfSequences();
+  u64bit     numMers = SS.lengthOfSequences();
 
   //  Reset the limits.
   //
@@ -263,7 +247,7 @@ main(int argc, char **argv) {
   //  though we shouldn't.
   //
   if (merBegin == ~u64bitZERO)   merBegin = 0;
-  if (merEnd   == ~u64bitZERO)   merEnd   = useList.lengthOfSequences();
+  if (merEnd   == ~u64bitZERO)   merEnd   = SS.lengthOfSequences();
 
   if (merBegin >= merEnd) {
     fprintf(stderr, "ERROR: merbegin="u64bitFMT" and merend="u64bitFMT" are incompatible.\n",

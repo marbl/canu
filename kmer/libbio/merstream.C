@@ -25,7 +25,7 @@ merStream::merStream(merStreamFileReader *msf) {
   _rMerP           = &_ms_mers->theRMer();
 }
 
-merStream::merStream(u32bit merSize, chainedSequence *cs) {
+merStream::merStream(u32bit merSize, seqStream *cs) {
   _ms_mers         = 0L;
 
   _cs_chainedSeq   = cs;

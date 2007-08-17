@@ -1,12 +1,16 @@
+
+
 PROG    = test-chainedSequence \
           test-fasta-accessor \
-          test-merstream \
-          test-merstreamfile \
-          test-merstream-speed \
           test-setbits \
-          test-bigmer-msf \
           dump-merstreamfile \
           halign-test
+
+DEAD =    test-merstream \
+          test-merstreamfile \
+          test-merstream-speed \
+          test-bigmer-msf \
+
 
 INCLUDE = -I.. -I../../libutil
 LIBS    = -L.. -L../../libutil -lbio -lutil -lm

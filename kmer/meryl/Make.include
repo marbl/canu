@@ -14,14 +14,13 @@ merylsrc := $/args.C \
             $/merge.C \
             $/unaryOp.C
 
-$/.CXX_SRCS   := ${merylsrc} $/meryl.C $/merle.C $/asmMerQC.C $/mapMers.C $/mapMers-depth.C $/m.C
+$/.CXX_SRCS   := ${merylsrc} $/meryl.C $/asmMerQC.C $/mapMers.C $/mapMers-depth.C $/m.C
 $/.CXX_LIBS   := $/libmerylguts.a
-$/.CXX_EXES   := $/meryl $/merle $/asmMerQC $/mapMers $/mapMers-depth $/m $/testPositionBias
+$/.CXX_EXES   := $/meryl $/asmMerQC $/mapMers $/mapMers-depth $/m $/testPositionBias
 $/.CLEAN      := $/*.o
 
 $/libmerylguts.a : ${merylsrc:.C=.o}
 
-$/merle          : $/merle.o                                                  ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 $/meryl          : $/meryl.o      $/libmerylguts.a     ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 $/asmMerQC       : $/asmMerQC.o                        ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a
 $/mapMers        : $/mapMers.o    ${LIBKMER/}libkmer.a ${LIBMERYL/}libmeryl.a ${LIBBIO/}libbio.a ${LIBUTL/}libutil.a

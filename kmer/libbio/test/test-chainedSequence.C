@@ -47,11 +47,14 @@ const char *sequence =
 #endif
 
 
+#if 0  //  redundant, nothing here
+
+
 
 int
 main(int argc, char **argv) {
-  chainedSequence *CS  = 0L;
-  chainedSequence *CT  = 0L;
+  seqStream       *CS  = 0L;
+  seqStream       *CT  = 0L;
   seqStream       *F1  = 0L;
   seqStream       *F2  = 0L;
   seqStream       *F3  = 0L;
@@ -76,9 +79,8 @@ main(int argc, char **argv) {
   }
 
 #if 0
-    CS = new chainedSequence();
-    CS->setSource("test.junk");
-    CS->finish();
+    CS = new seqStream();
+    CS->setFile("test.junk", true);
   
     char x = CS->get();
     while (x) {
@@ -91,17 +93,22 @@ main(int argc, char **argv) {
     delete CS;
 #endif
 
-  CS = new chainedSequence();
-  CS->setSource(filename);
-  CS->finish();
+#if 0
+  //  We don't do saveState/loadState anymore
+  CS = new seqStream(filename, true);
 
-  CS->saveState("junk.chainedSequence");
+  CS->saveState("junk.seqStream");
 
-  CT = new chainedSequence();
-  CT->loadState("junk.chainedSequence");
-  CT->saveState("junk.copied.chainedSequence");
+  CT = new seqStream();
+  CT->loadState("junk.seqStream");
+  CT->saveState("junk.copied.seqStream");
+#else
+  //  Which makes this test kind of pointless
+  CS = new seqStream(filename, true);
+  CT = new seqStream(filename, true);
+#endif
 
-  F1 = new seqStream(filename);
+  F1 = new seqStream(filename, true);
   F2 = new seqStream(CS);
   F3 = new seqStream(CT);
 
@@ -128,9 +135,9 @@ main(int argc, char **argv) {
   if (a)
     fprintf(stderr, "seqStream(filename) has more stuff (%d %c)!\n", a, a), err=1;
   if (b)
-    fprintf(stderr, "seqSstream(chainedSequence) original has more stuff (%d %c)!\n", b, b), err=1;
+    fprintf(stderr, "seqSstream(seqStream) original has more stuff (%d %c)!\n", b, b), err=1;
   if (c)
-    fprintf(stderr, "seqStream(chainedSequence) restored has more stuff (%d %c)!\n", c, c), err=1;
+    fprintf(stderr, "seqStream(seqStream) restored has more stuff (%d %c)!\n", c, c), err=1;
 
   delete F2;
   delete F1;
@@ -142,9 +149,17 @@ main(int argc, char **argv) {
   else
     fprintf(stderr, "Test passed.\n");
 
-  unlink("junk.chainedSequence");
-  unlink("junk.copied.chainedSequence");
+  unlink("junk.seqStream");
+  unlink("junk.copied.seqStream");
 
   return(err);
 }
 
+
+#else  //  redundant, nothing here
+
+int main(int argc, char **argv) {
+  return(0);
+}
+
+#endif  //  redundant, nothing here

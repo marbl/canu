@@ -57,9 +57,7 @@ testFiles(char *filename, char *prefix, u32bit merSize, u32bit tblSize) {
 int
 testExistence(char *filename, u32bit merSize, u32bit tblSize) {
   existDB         *E      = new existDB(filename, merSize, tblSize);
-  chainedSequence *C      = new chainedSequence();
-  C->setSource(filename);
-  C->finish();
+  seqStream       *C      = new seqStream(filename, true);
   merStream       *M      = new merStream(merSize, C);
   u64bit           tried  = 0;
   u64bit           lost   = 0;
