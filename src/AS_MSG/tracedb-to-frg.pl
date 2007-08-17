@@ -35,6 +35,15 @@
 #                   Writes CA LIB and LKG messages.
 #  3)  (parallel)   scan the fasta/qual files, write FRG messages.
 #
+#  If you have SGE installed, you can run all three stages, parallel if
+#  appropriate with:
+#    tracedb-to-frg.pl -sge xml*
+#
+#  Otherwise, you'll need to run (sequentially) with:
+#    tracedb-to-frg.pl -xml xml*
+#    tracedb-to-frg.pl -lib xml*
+#    tracedb-to-frg.pl -frg xml*
+#
 #  Output goes in the CURRENT DIRECTORY.
 #
 #  Script diagnostic output from steps 1 and 3 should be empty; output
@@ -42,10 +51,10 @@
 #
 #  The output is:
 #
-#  hypocrea_jecorina.1.lib.frg
-#  hypocrea_jecorina.2.001.frg
-#  hypocrea_jecorina.2.002.frg
-#  hypocrea_jecorina.3.lkg.frg
+#  hypocrea_jecorina.1.lib.frg -- all library info
+#  hypocrea_jecorina.2.001.frg -- fragment data
+#  hypocrea_jecorina.2.002.frg --   one per input fasta/qual pair
+#  hypocrea_jecorina.3.lkg.frg -- mate info
 #  
 #
 #  Other output:
@@ -92,7 +101,8 @@ while (scalar(@ARGV) > 0) {
     }
 }
 if (!defined(@sgefiles) && !defined($xmlfile) && !defined(@libfiles) && !defined($frgfile)) {
-    print STDERR "usage: $0 [-sge xml*] [-xml xmlfile] [-lib *lib] [-frg xmlfile]\n";
+    print STDERR "usage: $0 [-sge xml*]                          //  All steps on SGE\n";
+    print STDERR "       $0 [-xml xml*] [-lib xml*] [-frg xml*]  //  Each stage independently\n";
     exit(1);
 }
 
