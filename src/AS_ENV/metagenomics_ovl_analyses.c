@@ -216,6 +216,10 @@ void depth_of_coverage( int *begs, int *ends, int n, int *depthhistogram , char 
 void process_frg(){
   int i,j,k;
 
+  if(deletionStatus[prev]){
+    return;
+  }
+
   smpnfrgs[psmp]++;
   smpbases[psmp]+=flen;
 
@@ -281,6 +285,10 @@ void process_null_frg(int iid){
   int s = smp[iid];
   int k;
   int flen;
+
+  if(deletionStatus[iid]){
+    return;
+  }
 
   getFrag(gkpStore,prev,&fsread,FRAG_S_INF);
   flen = (getFragRecordClearRegionEnd(&fsread, AS_READ_CLEAR_LATEST) -
@@ -375,6 +383,9 @@ void output_sim_matrix_info(FILE* simFile){
 void output_binary_cvg_info(FILE *binaryCvgFile){
   int i,j,k;
   for(i=1;i<=maxsmp;i++){
+    if(smpbases[i]==0){
+      next;
+    }
     fprintf(binaryCvgFile,"Sample %d binary coverage:\n",i);
     for(k=0;k<ncuts;k++){
       int nonzeroA=0;
@@ -413,6 +424,9 @@ void output_binary_cvg_info(FILE *binaryCvgFile){
 void output_depth_of_cvg_info(FILE *depthCvgFile){
   int i,j,k;
   for(i=1;i<=maxsmp;i++){
+    if(smpbases[i]==0){
+      next;
+    }
     fprintf(depthCvgFile,"Sample %d depth of coverage:\n",i);
     for(k=0;k<ncuts;k++){
       fprintf(depthCvgFile,"\t%d:\n",cutoffs[k]);
