@@ -221,8 +221,9 @@ sub setDefaults () {
 
     $global{"merOverlap"}                  = 0;
 
-    #  Undocumented!  Unimplemented
-    $global{"globalErrorRate"}             = 6;
+    $global{"ovlErrorRate"}                = 0.06;
+    $global{"cgwErrorRate"}                = 0.10;
+    $global{"cnsErrorRate"}                = 0.06;
 }
 
 sub makeAbsolute ($) {
@@ -238,6 +239,16 @@ sub makeAbsolute ($) {
 sub setParameters ($@) {
     my $specFile = shift @_;
     my @specOpts = @_;
+
+    if (exists($ENV{'AS_OVL_ERROR_RATE'})) {
+        setGlobal("ovlErrorRate", $ENV{'AS_OVL_ERROR_RATE'});
+    }
+    if (exists($ENV{'AS_CGW_ERROR_RATE'})) {
+        setGlobal("cgwErrorRate", $ENV{'AS_CGW_ERROR_RATE'});
+    }
+    if (exists($ENV{'AS_CNS_ERROR_RATE'})) {
+        setGlobal("cnsErrorRate", $ENV{'AS_CNS_ERROR_RATE'});
+    }
 
     if (defined($specFile)) {
         open(F, "< $specFile") or die "Failed to open '$specFile'\n";
@@ -291,6 +302,38 @@ sub setParameters ($@) {
 
     die "Can't find local bin/gatekeeper in $bin\n" if (! -e "$bin/gatekeeper");
     die "Can't find grid bin/gatekeeper in $gin\n"  if (! -e "$gin/gatekeeper");
+
+    #  Set the globally accessible error rates.  Adjust them
+    #  if they look strange.
+    #
+    #  We must have:     ovl <= cns <= cgw
+    #  We usually have:  ovl == cns <= cgw
+    #
+    my $ovlER = getGlobal("ovlErrorRate");
+    my $cgwER = getGlobal("cgwErrorRate");
+    my $cnsER = getGlobal("cnsErrorRate");
+
+    if (($ovlER < 0.0) || (0.25 < $ovlER)) {
+        die "ovlErrorRate is $ovlER, this MUST be between 0.0 and 0.25.\n";
+    }
+    if (($cgwER < 0.0) || (0.25 < $cgwER)) {
+        die "cgwErrorRate is $cgwER, this MUST be between 0.0 and 0.25.\n";
+    }
+    if (($cnsER < 0.0) || (0.25 < $cnsER)) {
+        die "cnsErrorRate is $cnsER, this MUST be between 0.0 and 0.25.\n";
+    }
+    if ($ovlER > $cnsER) {
+        die "ovlErrorRate is $ovlER, this MUST be <= cnsErrorRate ($cnsER)\n";
+    }
+    if ($ovlER > $cgwER) {
+        die "ovlErrorRate is $ovlER, this MUST be <= cgwErrorRate ($cgwER)\n";
+    }
+    if ($cnsER > $cgwER) {
+        die "cnsErrorRate is $cnsER, this MUST be <= cgwErrorRate ($cgwER)\n";
+    }
+    $ENV{'AS_OVL_ERROR_RATE'} = $ovlER;
+    $ENV{'AS_CGW_ERROR_RATE'} = $cgwER;
+    $ENV{'AS_CNS_ERROR_RATE'} = $cnsER;
 }
 
 

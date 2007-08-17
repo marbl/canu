@@ -30,7 +30,7 @@
 \normalem
 
 \title{runCA-OBT\\
-{\small or, how to run the Celera Assembler with Overlap Based Trimming in 54 easy steps}}
+{\small or, how to run the Celera Assembler with Overlap Based Trimming in 54 easy steps while standing on your head}}
 \author{Brian P. Walenz\thanks{bwalenz@venterinstitute.org}}
 
 \maketitle
@@ -70,7 +70,7 @@ perl $ASMBIN/runCA-OBT.pl \
   -d /home/work/assembly/bigfoot-v1 \
   -p bigfoot \
   useGrid=1 \
-  ovlMemory=''2GB --hashload 0.8 --hashstrings 110000'' \
+  ovlMemory="2GB --hashload 0.8 --hashstrings 110000" \
   ovlHashBlockSize=600000 \
   ovlRefBlockSize=7630000 \
   frgCorrBatchSize=1000000 \
@@ -162,6 +162,35 @@ of if the fragment was deleted and why.
 
 \section{Options}
 
+\subsection{Error Rates}
+\label{sec:obtopts}
+
+There are four configurable error rates.  $utg \le ovl \le cns \le
+cgw$.  Usually, $ovl = cns$.
+
+\begin{longtable}{lp{3.0in}}
+
+ovlErrorRate={\it float} &
+For both Overlap Based Trimming and normal overlaps, expressed as a fraction error, $0.0 \le error \le 0.25$.
+The default is 0.06 (6\% error).
+\\
+
+utgErrorRate={\it integer} &
+The error rate above which unitigger discards overlaps, expressed as errors per thousand.
+The default is 15 (1.5\% error).
+\\
+
+cnsErrorRate={\it float} &
+Error rate for consensus, expressed as a fraction error, $0.0 \le error \le 0.25$.
+The default is 0.06 (6\% error).
+\\
+
+cgwErrorRate={\it float} &
+Error rate for scaffolder, expressed as a fraction error, $0.0 \le error \le 0.25$.
+The default is 0.10 (10\% error).
+\\
+
+\end{longtable}
 
 
 \subsection{Stopping Options}
@@ -265,7 +294,7 @@ An unfortunate quirk:  Some commands are implemented as a pipeline,
 e.g., ``cat file1 file2 | dosomething''.  The wrapper is executed
 using perl's system() function:
 
-system(``cd somewhere && wrapper cat file1 file2 | dosomething'').
+system(``cd somewhere \&\& wrapper cat file1 file2 | dosomething'').
 
 This means that the wrapper only ``sees'' ``cat file1 file2''.
 \\
@@ -502,7 +531,7 @@ might help.  Otherwise, do not use.
 
 utgErrorRate={\it integer} &
 The error rate above which unitigger discards overlaps, expressed as errors per thousand.
-The default is 15, or 1.5\% error.
+The default is 15 (1.5\% error).
 \\
 
 utgFragments={\it integer} &
@@ -514,7 +543,7 @@ Otherwise, do not use.
 
 utgBubblePopping={\it integer} &
 If zero, do not pop bubbles in unitigger.  If one, pop bubbles.  Default is to pop bubbles.
-//
+\\
 \end{longtable}
 
 
@@ -525,7 +554,7 @@ If zero, do not pop bubbles in unitigger.  If one, pop bubbles.  Default is to p
 
 cgwOutputIntermediate={\it integer} &
 if non-zero, intermediate CGW runs will output the .cgw,
-.cgw_scaffolds and .cgw_contigs files.  The default is to not output
+.cgw\_scaffolds and .cgw\_contigs files.  The default is to not output
 these files.
 \\
 
