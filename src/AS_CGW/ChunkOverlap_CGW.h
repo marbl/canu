@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ChunkOverlap_CGW.h,v 1.7 2007-05-29 10:54:26 brianwalenz Exp $	 */
+/* 	$Id: ChunkOverlap_CGW.h,v 1.8 2007-08-18 11:42:07 brianwalenz Exp $	 */
 
 /* ChunkOverlap_CGW provides tools for invoking Gene's dpalign tool to compute
    overlaps between chunks.  Such overlaps are first 'collected' and then 'computed'.
@@ -125,18 +125,10 @@ typedef struct {
   CDS_COORD_t  max_offset;
 }ChunkOverlapCheckT;
 
-HEAP_DEF(ChunkOverlapCheckT)
-
-
-
-     typedef struct {
-       // This is the symbol table supporting database access
-       HashTable_AS *hashTable;
-  
-       // This is the heap of values
-       HEAP_TYPE(ChunkOverlapCheckT) *ChunkOverlaps; 
-     }ChunkOverlapperT;
-
+typedef struct {
+  HashTable_AS *hashTable;
+  Heap_AS      *ChunkOverlaps;  //  Heap of ChunkOverlapCheckT
+}ChunkOverlapperT;
 
 // Constructor
 ChunkOverlapperT *CreateChunkOverlapper(void);

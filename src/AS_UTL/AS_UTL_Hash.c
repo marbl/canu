@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_Hash.c,v 1.8 2007-06-03 08:13:22 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_UTL_Hash.c,v 1.9 2007-08-18 11:42:07 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -244,7 +244,7 @@ ReallocHashTable_AS(HashTable_AS *htable) {
   int           i;
   HashNode_AS  *node;
 
-  HEAP_ITERATOR(HashNode_AS) iterator;
+  HeapIterator_AS iterator;
 
   htable->freeList            = NULL;
   htable->numBuckets         *= 2;
@@ -254,8 +254,8 @@ ReallocHashTable_AS(HashTable_AS *htable) {
   safe_free(htable->buckets);
   htable->buckets = (HashNode_AS **)safe_calloc(htable->numBuckets, sizeof(HashNode_AS *));
 
-  InitHashNode_ASHeapIterator(htable->allocated, &iterator);
-  while (NULL != (node = NextHashNode_ASHeapIterator(&iterator)))
+  InitHeapIterator_AS(htable->allocated, &iterator);
+  while (NULL != (node = (HashNode_AS *)NextHeapIterator_AS(&iterator)))
     if (node->isFree == 0)
       InsertNodeInHashBucket(htable, node);
 }
@@ -274,7 +274,7 @@ CreateGenericHashTable_AS(uint32        numItemsToHash,
   table->freeList          = NULL;
   table->numNodes          = 0;
   table->numNodesAllocated = hashsize(ceil_log2(numItemsToHash));
-  table->allocated         = AllocateHashNode_ASHeap(table->numNodesAllocated);
+  table->allocated         = AllocateHeap_AS(table->numNodesAllocated, sizeof(HashNode_AS));
   table->hashmask          = hashmask(ceil_log2(numItemsToHash * 2));
   table->dirty             = 0;
   table->filename[0]       = 0;
@@ -311,10 +311,11 @@ CreateScalarHashTable_AS(uint32 numItemsToHash) {
 void
 ResetHashTable_AS(HashTable_AS *table) {
   memset(table->buckets, 0, table->numBuckets * sizeof(HashNode_AS *));
-  table->freeList = NULL;
-  table->numNodes = 0;
-  table->dirty = 1;
-  WipeHashNode_ASHeap(table->allocated);
+  table->freeList   = NULL;
+  table->numNodes   = 0;
+  table->dirty      = 1;
+  FreeHeap_AS(table->allocated);
+  table->allocated  = AllocateHeap_AS(table->numNodesAllocated, sizeof(HashNode_AS));
 }
 
 
@@ -325,7 +326,7 @@ DeleteHashTable_AS(HashTable_AS *table) {
     SaveHashTable_AS(table->filename, table);
 
   safe_free(table->buckets);
-  FreeHashNode_ASHeap(table->allocated);
+  FreeHeap_AS(table->allocated);
   safe_free(table);
 }
 
@@ -350,7 +351,7 @@ InsertInHashTable_AS(HashTable_AS  *table,
   } else {
     if (table->numNodes++ >= table->numNodesAllocated)
       ReallocHashTable_AS(table);
-    node = GetHashNode_ASHeapItem(table->allocated);
+    node = (HashNode_AS *)GetHeapItem_AS(table->allocated);
   }
 
   node->key          = key;
@@ -534,7 +535,7 @@ LookupTypeInHashTable_AS(HashTable_AS *table,
 
 void
 SaveHashTable_AS(char *name, HashTable_AS *table) {
-  HEAP_ITERATOR(HashNode_AS)  iterator;
+  HeapIterator_AS             iterator;
   HashNode_AS                *node;
 
   uint32                  databufferlen = 0;
@@ -560,8 +561,8 @@ SaveHashTable_AS(char *name, HashTable_AS *table) {
   AS_UTL_safeWrite(fp, &table->hashmask,          "SaveHashTable_AS hashmask",          sizeof(uint32), 1);
   AS_UTL_safeWrite(fp, &actualNodes,              "SaveHashTable_AS header",            sizeof(uint32), 1);
 
-  InitHashNode_ASHeapIterator(table->allocated, &iterator);
-  while (NULL != (node = NextHashNode_ASHeapIterator(&iterator))) {
+  InitHeapIterator_AS(table->allocated, &iterator);
+  while (NULL != (node = (HashNode_AS *)NextHeapIterator_AS(&iterator))) {
     if (node->isFree == 0) {
       if (databufferlen >= databuffermax) {
         AS_UTL_safeWrite(fp, databuffer, "SaveHashTable_AS writedata", sizeof(HashNode_AS), databufferlen);
@@ -623,10 +624,13 @@ LoadHashTable_AS(char *name,
 
   table->buckets           = (HashNode_AS **)safe_calloc(table->numBuckets, sizeof(HashNode_AS *));
   table->freeList          = NULL;
-  table->allocated         = AllocateHashNode_ASHeap(table->numNodesAllocated);
+  table->allocated         = AllocateHeap_AS(table->numNodesAllocated, sizeof(HashNode_AS));
   table->dirty             = 0;
   table->compare           = compfn;
   table->hash              = hashfn;
+
+  //  The table has no nodes in it; we add them now.
+  table->numNodes = 0;
 
   strcpy(table->filename, name);
 
@@ -667,7 +671,7 @@ void
 InitializeHashTable_Iterator_AS(HashTable_AS *table,
                                 HashTable_Iterator_AS *iterator) {
   iterator->table = table;
-  InitHashNode_ASHeapIterator(table->allocated, &(iterator->iterator));
+  InitHeapIterator_AS(table->allocated, &(iterator->iterator));
 }
 
 int
@@ -675,10 +679,10 @@ NextHashTable_Iterator_AS(HashTable_Iterator_AS *iterator,
                           uint64                *key, 
                           uint64                *value){
 
-  HashNode_AS *node = NextHashNode_ASHeapIterator(&iterator->iterator);
+  HashNode_AS *node = (HashNode_AS *)NextHeapIterator_AS(&iterator->iterator);
 
   while (node && node->isFree)
-    node = NextHashNode_ASHeapIterator(&iterator->iterator);
+    node = (HashNode_AS *)NextHeapIterator_AS(&iterator->iterator);
 
   if (node == NULL) {
     *key   = 0;

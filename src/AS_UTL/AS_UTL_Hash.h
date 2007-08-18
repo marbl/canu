@@ -52,7 +52,6 @@ typedef struct HashNode_AS{
   struct HashNode_AS  *next;
 }HashNode_AS;
 
-HEAP_DEF(HashNode_AS)
 
 typedef struct{
   uint32                   numBuckets;
@@ -62,7 +61,7 @@ typedef struct{
   uint32                  numNodes;
   uint32                  numNodesAllocated;
 
-  HEAP_TYPE(HashNode_AS) *allocated;
+  Heap_AS                *allocated;
 
   uint32                  hashmask;
 
@@ -75,9 +74,9 @@ typedef struct{
 
 
 typedef struct{
-  HEAP_ITERATOR(HashNode_AS)   iterator;
+  HeapIterator_AS              iterator;
   HashTable_AS                *table;
-}HashTable_Iterator_AS;
+} HashTable_Iterator_AS;
 
 
 uint32        Hash_AS(uint8 *k, uint32 length, uint32 initval);

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.19 2007-08-04 22:27:35 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.20 2007-08-18 11:42:07 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -107,30 +107,17 @@ int CanOlapHash(uint64 cO, uint32 length){
 /************************************************************************/
 
 ChunkOverlapperT *CreateChunkOverlapper(void){
-  ChunkOverlapperT *chunkOverlapper;
-  
-  // Allocate a chunkOverlapper
-  chunkOverlapper = (ChunkOverlapperT *)safe_malloc(sizeof(ChunkOverlapperT));
-  AssertPtr(chunkOverlapper);
-
-
-  // Create a symbol table for the sparse chunk-chunk overlap relationships
+  ChunkOverlapperT *chunkOverlapper = (ChunkOverlapperT *)safe_malloc(sizeof(ChunkOverlapperT));
   chunkOverlapper->hashTable = CreateGenericHashTable_AS(1000, CanOlapHash, CanOlapCmp);
-
-  // Create the VA for the overlap results
-  chunkOverlapper->ChunkOverlaps = AllocateChunkOverlapCheckTHeap(1000);
-
+  chunkOverlapper->ChunkOverlaps = AllocateHeap_AS(1024, sizeof(ChunkOverlapCheckT));
   return chunkOverlapper;
 }
 
 /************************************************************************/
 
 void DestroyChunkOverlapper(ChunkOverlapperT *chunkOverlapper){
-  // Blow away the symbol table
   DeleteHashTable_AS(chunkOverlapper->hashTable);
-  // Free the chunkOverlapper
-  FreeChunkOverlapCheckTHeap(chunkOverlapper->ChunkOverlaps);
-
+  FreeHeap_AS(chunkOverlapper->ChunkOverlaps);
 }
 
 /************************************************************************/
@@ -173,23 +160,13 @@ ChunkOverlapperT *  LoadChunkOverlapperFromStream(FILE *stream){
   ChunkOverlapCheckT olap = {0};
   ChunkOverlapperT *chunkOverlapper;
 
-  // Allocate a chunkOverlapper
-  chunkOverlapper = (ChunkOverlapperT *)safe_malloc(sizeof(ChunkOverlapperT));
-  AssertPtr(chunkOverlapper);
-
-
-  // open the chunkStore at chunkStorepath
-  
-
+  // open the chunkStore at chunkStorepath  
   status = AS_UTL_safeRead(stream, &numOverlaps, "LoadChunkOverlapperFromStream", sizeof(int64), 1);
   assert(status == 1);
 
-
-  // Create a symbol table for the sparse chunk-chunk overlap relationships
+  chunkOverlapper = (ChunkOverlapperT *)safe_malloc(sizeof(ChunkOverlapperT));
   chunkOverlapper->hashTable = CreateGenericHashTable_AS(1000, CanOlapHash, CanOlapCmp);
-
-  // Create the VA for the overlap results
-  chunkOverlapper->ChunkOverlaps = AllocateChunkOverlapCheckTHeap(1000);
+  chunkOverlapper->ChunkOverlaps = AllocateHeap_AS(1000, sizeof(ChunkOverlapCheckT));
 
   for(overlap = 0; overlap < numOverlaps; overlap++){
     status = AS_UTL_safeRead(stream, &olap, "LoadChunkOverlapperFromStream", sizeof(ChunkOverlapCheckT), 1);
@@ -199,7 +176,6 @@ ChunkOverlapperT *  LoadChunkOverlapperFromStream(FILE *stream){
   }
 
   return chunkOverlapper;
-
 }
 
 
@@ -435,11 +411,10 @@ ChunkOverlapCheckT *LookupCanonicalOverlap(ChunkOverlapperT *chunkOverlapper,
 /************************************************************************/
 int InsertChunkOverlap(ChunkOverlapperT *chunkOverlapper,
                        ChunkOverlapCheckT *olap){
-  ChunkOverlapCheckT *nolap = GetChunkOverlapCheckTHeapItem(chunkOverlapper->ChunkOverlaps);
+  ChunkOverlapCheckT *nolap = (ChunkOverlapCheckT *)GetHeapItem_AS(chunkOverlapper->ChunkOverlaps);
   *nolap = *olap;
   assert(nolap->overlap==0||nolap->errorRate >= 0.0);  
   return InsertInHashTable_AS(chunkOverlapper->hashTable, (uint64)&nolap->spec, sizeof(olap->spec), (uint64)nolap, 0);
-
 }
 
 /************************************************************************/

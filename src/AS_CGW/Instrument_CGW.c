@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.25 2007-05-29 10:54:26 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.26 2007-08-18 11:42:07 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -670,50 +670,6 @@ MateInstrumenter * CreateMateInstrumenter(ScaffoldGraphT * graph,
       return NULL;
     }
   return mi;
-}
-
-
-int32 GetHashTableNumItems(HashTable_AS * ht, int justFirstArray)
-{
-  int32 totalItems = 0;
-  GenericHeap * heap = ht->allocated;
-  
-  if( heap != NULL )
-    {
-      // walk through linked list of overlap arrays & free them
-      GenericArrayp temp_array = heap->first;
-    
-      totalItems += temp_array->num_items;
-      for(temp_array = temp_array->next;
-          !justFirstArray && temp_array != (GenericArrayp) NULL;
-          temp_array = temp_array->next)
-        {
-          totalItems += temp_array->num_items;
-        }
-    }
-  return totalItems;
-}
-
-
-size_t GetHashTableSize(HashTable_AS * ht, int justFirstArray)
-{
-  size_t totalMemorySize = 0;
-  GenericHeap * heap = ht->allocated;
-  
-  if( heap != NULL )
-    {
-      // walk through linked list of overlap arrays & free them
-      GenericArrayp temp_array = heap->first;
-    
-      totalMemorySize += temp_array->num_items * temp_array->item_size;
-      for(temp_array = temp_array->next;
-          !justFirstArray && temp_array != (GenericArrayp) NULL;
-          temp_array = temp_array->next)
-        {
-          totalMemorySize += temp_array->num_items * temp_array->item_size;
-        }
-    }
-  return totalMemorySize;
 }
 
 
