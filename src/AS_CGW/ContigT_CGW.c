@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ContigT_CGW.c,v 1.11 2007-05-14 09:27:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ContigT_CGW.c,v 1.12 2007-08-18 13:13:20 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_EDGES
@@ -38,6 +38,7 @@ static char CM_ID[] = "$Id: ContigT_CGW.c,v 1.11 2007-05-14 09:27:11 brianwalenz
 #include "Globals_CGW.h"
 #include "ScaffoldGraph_CGW.h"
 #include "ScaffoldGraphIterator_CGW.h"
+#include "MultiAlignment_CNS.h"  //  What a waste, only for SequenceComplement()
 
 #ifdef TRY_IANS_SEDGES
 #include "AS_CGW_EdgeDiagnostics.h"
@@ -68,6 +69,176 @@ void CheckContigs()
     }
   
 }
+
+void
+dumpContigInfo(ChunkInstanceT *contig) {
+  int           contigOrientation;
+  MultiAlignT  *ma;
+  char         *seq1;
+  int           len1;
+
+  VA_TYPE(char) *consensus = CreateVA_char(2048);
+  VA_TYPE(char) *quality   = CreateVA_char(2048);
+
+  fprintf( stderr, "*********************** contig analysis **************************\n");
+  fprintf( stderr, "analyzing contig: %d\n", contig->id);
+
+  if (contig->offsetAEnd.mean < contig->offsetBEnd.mean)
+    contigOrientation = 0;
+  else
+    contigOrientation = 1;
+
+  fprintf(stderr, "contig orientation: %d\t length: %d  contig offsetAEnd: %d\t offsetBEnd: %d\n",
+          contigOrientation,
+          (int)contig->bpLength.mean,
+          (int)contig->offsetAEnd.mean,
+          (int)contig->offsetBEnd.mean);
+
+  ma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, ScaffoldGraph->RezGraph->type == CI_GRAPH); 
+
+  // Get the consensus sequences for the contig from the Store
+  GetConsensus(ScaffoldGraph->ContigGraph, contig->id, consensus, quality);
+
+  seq1 = Getchar(consensus, 0);
+  len1 = strlen(seq1);
+
+  if (contigOrientation == 1)
+    SequenceComplement(seq1, NULL);
+  
+  if (len1 < 5000) {
+    fprintf( stderr, ">contig%d consensus seq (flipped to reflect scaff orientation)\n", contig->id);
+    fprintf( stderr, "%s\n", seq1);
+  } else {
+    char tmpchar = seq1[2500];
+    seq1[2500] = '\0';
+
+    fprintf( stderr, ">contig%d left end\n", contig->id);
+    fprintf( stderr, "%s\n", seq1);
+
+    seq1[2500] = tmpchar;
+
+    fprintf( stderr, ">contig%d right end\n", contig->id);
+    fprintf( stderr, "%s\n", seq1 + len1 - 2501);
+  }
+
+#if 1
+  int numUnitigs = GetNumIntUnitigPoss(ma->u_list);
+  fprintf( stderr, "number unitigs: %d\n", numUnitigs);
+
+  int i;
+  for (i = 0; i < numUnitigs; i++) {
+    IntUnitigPos *upos = GetIntUnitigPos( ma->u_list, i);
+    ChunkInstanceT *unitig = GetGraphNode( ScaffoldGraph->CIGraph, upos->ident);
+    MultiAlignT *uma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, ScaffoldGraph->CIGraph->type == CI_GRAPH);
+    IntMultiPos *ump;
+    int icntfrag;
+
+    fprintf( stderr, "  unitig: %d\t num frags: %ld surrogate: %d\n", unitig->id, GetNumIntMultiPoss(uma->f_list),
+             (unitig->flags.bits.isStoneSurrogate || unitig->flags.bits.isWalkSurrogate));
+
+    if (unitig->flags.bits.isStoneSurrogate ||
+        unitig->flags.bits.isWalkSurrogate) {
+      fprintf (stderr, "  surrogate unitig offsetAEnd: %f, offsetBEnd: %f\n", unitig->offsetAEnd.mean, unitig->offsetBEnd.mean);
+
+      unitig = GetGraphNode( ScaffoldGraph->CIGraph, unitig->info.CI.baseID);
+      fprintf ( stderr, "  using original unitig: %d\n", unitig->id);
+      uma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, 
+                                          ScaffoldGraph->CIGraph->type == CI_GRAPH); 
+    }
+
+    // now print out info on the frags in the unitig
+    for (icntfrag = 0; icntfrag < GetNumIntMultiPoss(uma->f_list); icntfrag++) {
+      IntMultiPos *imp = GetIntMultiPos(uma->f_list, icntfrag);
+      InfoByIID   *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, imp->ident);
+      CIFragT     *frag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
+
+      //assert(info->set);
+
+      fprintf(stderr, "    frag: %6d\t contig pos (5p, 3p): %6d, %6d  type: %c\n",
+              imp->ident, (int) frag->contigOffset5p.mean, (int) frag->contigOffset3p.mean, frag->type);
+    }
+  }
+#endif
+
+
+#if 1
+  CIEdgeT * e;
+  GraphEdgeIterator edges;
+
+  //  FALSE == ITERATOR_VERBOSE
+
+  InitGraphEdgeIterator(ScaffoldGraph->RezGraph, contig->id, ALL_END, ALL_EDGES, FALSE, &edges);
+  while((e = NextGraphEdgeIterator(&edges)) != NULL)
+    PrintGraphEdge( stderr, ScaffoldGraph->RezGraph, "Analyzing edge", e, 0);
+#endif
+
+  DeleteVA_char(consensus);
+  DeleteVA_char(quality);
+}
+
+
+void
+GetContigPositionInScaffold(ChunkInstanceT *contig, int *left_end, int *right_end, 
+                            int *contigScaffoldOrientation) {  
+  if (contig->offsetAEnd.mean <= contig->offsetBEnd.mean) {
+    *left_end = contig->offsetAEnd.mean;
+    *right_end = contig->offsetBEnd.mean;
+    *contigScaffoldOrientation = 0;
+  } else {
+    *left_end = contig->offsetBEnd.mean;
+    *right_end = contig->offsetAEnd.mean;
+    *contigScaffoldOrientation = 1;
+  }
+}
+
+
+static
+void
+GetFragmentPositionInScaffoldFromContig(CIFragT *frag, int *left_end, int *right_end, 
+                                        int *fragmentScaffoldOrientation, 
+                                        int contigLeftEnd, int contigRightEnd, int contigScaffoldOrientation) {
+  if (contigScaffoldOrientation == 0) {
+    // contig is direct in scaffold
+    if (frag->contigOffset5p.mean < frag->contigOffset3p.mean) {
+      // frag is direct in contig
+      *left_end = contigLeftEnd + frag->contigOffset5p.mean;
+      *right_end = contigLeftEnd + frag->contigOffset3p.mean;
+      *fragmentScaffoldOrientation = 0;
+    } else {
+      // frag is reversed in contig
+      *left_end = contigLeftEnd + frag->contigOffset3p.mean;
+      *right_end = contigLeftEnd + frag->contigOffset5p.mean;
+      *fragmentScaffoldOrientation = 1;
+    }
+  } else {
+    // contig is reversed in scaffold
+    if (frag->contigOffset5p.mean < frag->contigOffset3p.mean) {
+      // frag is direct in contig
+      *left_end = contigRightEnd - frag->contigOffset3p.mean;
+      *right_end = contigRightEnd - frag->contigOffset5p.mean;
+      *fragmentScaffoldOrientation = 1;
+    } else {
+      // frag is reversed in contig
+      *left_end = contigRightEnd - frag->contigOffset5p.mean;
+      *right_end = contigRightEnd - frag->contigOffset3p.mean;
+      *fragmentScaffoldOrientation = 0;
+    }
+  }
+}
+
+
+void
+GetFragmentPositionInScaffold(CIFragT *frag, int *left_end, int *right_end, 
+                                   int *fragmentScaffoldOrientation) {
+  ContigT *containingContig = GetGraphNode(ScaffoldGraph->ContigGraph, frag->contigID);
+  int contigLeftEnd, contigRightEnd, contigScaffoldOrientation;
+  
+  GetContigPositionInScaffold( containingContig, &contigLeftEnd, &contigRightEnd, &contigScaffoldOrientation);
+
+  GetFragmentPositionInScaffoldFromContig( frag, left_end, right_end, fragmentScaffoldOrientation,
+                                           contigLeftEnd, contigRightEnd, contigScaffoldOrientation);
+}
+
 
 void DumpContig(FILE *stream, ScaffoldGraphT *graph, ContigT *contig, int raw){
   int numCI;

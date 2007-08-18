@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: GraphCGW_T.h,v 1.19 2007-07-23 09:39:41 brianwalenz Exp $	 */
+/* 	$Id: GraphCGW_T.h,v 1.20 2007-08-18 13:13:21 brianwalenz Exp $	 */
 
 /**************************************************************************
  *  GraphCGW
@@ -1596,6 +1596,8 @@ int32 SplitUnresolvedContig(GraphCGW_T *graph, CDS_CID_t nodeID,
 /* existsContainmentRelationship */
 UnitigOverlapType existsContainmentRelationship(NodeCGW_T *ci,
                                                 NodeCGW_T *otherCI);
+
+
 
 /*
   ComputeMatePairStatistics:

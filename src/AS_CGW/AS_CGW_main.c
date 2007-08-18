@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.43 2007-08-14 22:54:45 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.44 2007-08-18 13:13:20 brianwalenz Exp $";
 
 
 static const char *usage = 
@@ -46,7 +46,6 @@ static const char *usage =
 "   [-u]           don't ignore UOM containments     (default)\n"
 "   [-U]           ignore UOM containments\n"
 "   [-v]           verbose\n"
-"   [-w <walkLevel> ]\n"
 "   [-x]           Dump stats on checkpoint load\n"
 "   [-y]           Turn off Check for -R < -N, for restarting small assemblies\n"
 "   [-z]           Turn on Check for Repeat Branch Pattern (demotes some unique unitigs to repeat)\n"
@@ -65,7 +64,6 @@ static const char *usage =
 "   [-O [icC]]     i = immediate, c = continue, C = celamy output only\n"
 "   [-P]                            Proto Output\n"
 "   [-R <ckp>]     restart from checkpoint file ckp\n"
-"   [-S]           Walk scaffolds smallest to biggest (biggest first is default)\n"
 "   [-W <startWalkFromScaffold> ]\n"
 "   [-X <Estimated number of nodes>]\n"
 "   [-Y <Estimated number of edges>]\n"
@@ -119,7 +117,6 @@ static const char *usage =
 #include "GreedyOverlapREZ.h"
 #include "CommonREZ.h"
 #include "RepeatRez.h"
-#include "FbacREZ.h"
 #include "Stats_CGW.h"
 #include "AS_ALN_forcns.h"
 #include "Instrument_CGW.h"
@@ -146,8 +143,6 @@ int main(int argc, char *argv[]){
   int stoneLevel = 0;
   int startScaffoldWalkFrom = NULLINDEX;
   int starting_stone_scaffold = 0;
-  int walkScaffoldsBiggestFirst = TRUE;
-  int walkLevel = 0;
   int numNodes = 1024;
   int numEdges = 1024;
   int minSamplesForOverride = 1000;
@@ -379,14 +374,6 @@ int main(int argc, char *argv[]){
           stoneLevel = atoi(optarg);
           fprintf(GlobalData->stderrc,"* stoneLevel set to %d\n", stoneLevel);
           break;
-        case 'S':
-          walkScaffoldsBiggestFirst = FALSE;
-          fprintf(GlobalData->stderrc,"* walkScaffoldsBiggestFirst set to FALSE\n");
-          break;
-        case 'w':
-          walkLevel = atoi(optarg);
-          fprintf(GlobalData->stderrc,"* walkLevel set to %d\n", walkLevel);
-          break;
         case 'W':
           startScaffoldWalkFrom = atoi(optarg);
           fprintf(GlobalData->stderrc,"* startScaffoldWalkFrom scaffold %d\n", startScaffoldWalkFrom);
@@ -484,10 +471,8 @@ int main(int argc, char *argv[]){
       data->repeatRezLevel = repeatRezLevel;
     }
     data->stoneLevel     = stoneLevel;
-    data->walkLevel      = walkLevel;
     data->debugLevel     = debugLevel;
     data->failOn_NoOverlapFound = failOn_NoOverlapFound;
-    data->walkScaffoldsBiggestFirst = walkScaffoldsBiggestFirst;
     data->ignoreChaffUnitigs = ignoreChaffUnitigs;
     data->performCleanupScaffolds = performCleanupScaffolds;
     data->cgbUniqueCutoff = cgbUniqueCutoff;
@@ -532,7 +517,7 @@ int main(int argc, char *argv[]){
     /* End of command line parsing */
   }
 
-  if(!doRezOnContigs && (walkLevel > 0 || stoneLevel > 0)){
+  if(!doRezOnContigs && (stoneLevel > 0)){
     fprintf(GlobalData->stderrc,"#### Stone Throwing and Gap Walking can only be run in conjunction with the -C option ####\n");
     fprintf(GlobalData->stderrc,".....exiting.....\n");
     exit(1);
@@ -757,47 +742,6 @@ int main(int argc, char *argv[]){
 
   }
 
-  //#include obsolete/compute_new_dist_estimates
-
-  // Conservative external gap walking
-
-  if((immediateOutput == -1) || (immediateOutput <= 1 &&
-                                 (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_CONSERVATIVE_WALKING))){
-    if( GlobalData->walkLevel > 0 )
-      {
-        fprintf(GlobalData->stderrc,"**** Running Conservative Walking level %d ****\n",GlobalData->walkLevel);
-        if(GlobalData->debugLevel > 0){
-          DumpCIScaffolds(GlobalData->stderrc,ScaffoldGraph, FALSE);
-          CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
-          CheckSurrogateUnitigs();
-        }
-        CheckCIScaffoldTs(ScaffoldGraph);
-        StartTimerT(&data->GapWalkerTimer);
-        Walk_Gaps(GlobalData, GlobalData->File_Name_Prefix, GlobalData->walkLevel, startScaffoldWalkFrom, 
-                  CONSERVATIVE_WALKING_STD_DEVS);
-        StopTimerT(&data->GapWalkerTimer);
-        ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
-        CheckCIScaffoldTs(ScaffoldGraph);
-
-
-        fprintf(GlobalData->stderrc,"**** Finished Conservative Walking level %d ****\n",GlobalData->walkLevel);
-        if(GlobalData->debugLevel > 0)
-          DumpCIScaffolds(GlobalData->stderrc,ScaffoldGraph, FALSE);
-
-#if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
-        fprintf(stderr,
-                "---Checking contig orders after Walk_Gaps (1)\n\n");
-        CheckAllContigOrientationsInAllScaffolds(ScaffoldGraph, coc, POPULATE_COC_HASHTABLE);
-#endif
-#ifdef CHECK_CONTIG_ORDERS_INCREMENTAL
-        ResetContigOrientChecker(coc);
-        AddAllScaffoldsToContigOrientChecker(ScaffoldGraph, coc);
-#endif
-
-        fprintf(data->timefp,"Checkpoint %d written after Conservative Walking\n",ScaffoldGraph->checkPointIteration);
-        CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_BEFORE_CONSERVATIVE_WALKING+1);
-      }
-  }
 
   if((immediateOutput == -1) || (immediateOutput <= 1 &&
                                  (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_1ST_SCAFF_MERGE))){
@@ -903,85 +847,11 @@ int main(int argc, char *argv[]){
   }
 
 
-  // More aggressive external gap walking
-
-  if((immediateOutput == -1) || (immediateOutput <= 1 &&
-                                 (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_AGGRESSIVE_WALKING))){
-
-#ifdef INSTRUMENT_CGW
-    MateInstrumenter mi_before;
-    ScaffoldGraphInstrumenter * sg_inst;
-    
-    sg_inst =
-      CreateScaffoldGraphInstrumenter(ScaffoldGraph, INST_OPT_ALL_MATES);
-#endif
-  
-    if( GlobalData->walkLevel > 0 ){
-      fprintf(GlobalData->stderrc,"**** Running Aggressive Walking level %d ****\n",GlobalData->walkLevel);
-      if(GlobalData->debugLevel > 0){
-	DumpCIScaffolds(GlobalData->stderrc,ScaffoldGraph, FALSE);
-	CheckEdgesAgainstOverlapper(ScaffoldGraph->RezGraph);
-    CheckSurrogateUnitigs();
-      }
-      CheckCIScaffoldTs(ScaffoldGraph);
-      
-#ifdef INSTRUMENT_CGW
-      InstrumentScaffoldGraph(ScaffoldGraph, sg_inst,
-                              30000, CDS_UINT32_MAX,
-                              InstrumenterVerbose1, GlobalData->stderrc);
-      GetMateInstrumenterFromScaffoldGraphInstrumenter(&mi_before, sg_inst);
-#endif
-        
-      StartTimerT(&data->GapWalkerTimer);
-      Walk_Gaps(GlobalData, GlobalData->File_Name_Prefix, GlobalData->walkLevel, startScaffoldWalkFrom, 
-		AGGRESSIVE_WALKING_STD_DEVS);
-      StopTimerT(&data->GapWalkerTimer);
-
-#ifdef INSTRUMENT_CGW
-      InstrumentScaffoldGraph(ScaffoldGraph, sg_inst,
-                              30000, CDS_UINT32_MAX,
-                              InstrumenterVerbose1, GlobalData->stderrc);
-      CompareMateInstrumenters(&(mi_before),
-                               &(sg_inst->scaffold.mates),
-                               InstrumenterVerbose1,
-                               GlobalData->stderrc);
-      DestroyScaffoldGraphInstrumenter(sg_inst);
-#endif
-
-      ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
-      CheckCIScaffoldTs(ScaffoldGraph);
-
-
-      fprintf(GlobalData->stderrc,"**** Finished Aggressive Walking level %d ****\n",GlobalData->walkLevel);
-      if(GlobalData->debugLevel > 0)
-	DumpCIScaffolds(GlobalData->stderrc,ScaffoldGraph, FALSE);
-
-#if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
-      fprintf(stderr,
-              "---Checking contig orders after Walk_Gaps (2)\n\n");
-      CheckAllContigOrientationsInAllScaffolds(ScaffoldGraph, coc, POPULATE_COC_HASHTABLE);
-#endif
-#ifdef CHECK_CONTIG_ORDERS_INCREMENTAL
-      ResetContigOrientChecker(coc);
-      AddAllScaffoldsToContigOrientChecker(ScaffoldGraph, coc);
-#endif
-      fprintf (data -> timefp, "Checkpoint %d written after Aggressive Walking\n",
-               ScaffoldGraph->checkPointIteration);
-      CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_BEFORE_AGGRESSIVE_WALKING+1);
-    }
-  }
-
 
   if(immediateOutput == 0 && 
      (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_2ND_SCAFF_MERGE)){
     fprintf(GlobalData->stderrc,"* Before Final MergeScaffoldsAggressive\n");
     CheckCIScaffoldTs(ScaffoldGraph);
-
-#if 0
-    if(GlobalData->dumpScaffoldSnapshots){
-      DumpScaffoldSnapshot("PreScafMerge");
-    }
-#endif
 
     MergeScaffoldsAggressive(ScaffoldGraph, CHECKPOINT_BEFORE_2ND_SCAFF_MERGE, DEBUG_MERGE_SCAF);
 
@@ -1135,39 +1005,6 @@ int main(int argc, char *argv[]){
       GeneratePlacedContigGraphStats ("CStones", 0);
       GenerateLinkStats(ScaffoldGraph -> ContigGraph, "CStones", 0);
       GenerateScaffoldGraphStats ("CStones", 0);
-    }
-
-
-  if(immediateOutput == 0 && GlobalData->walkLevel > 0 &&
-     (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_INTER_SCAFFOLD_WALKING))
-    {
-      int mergedScaffolds = TRUE, round = 0;
-      char middleName[32];
-
-      fprintf(GlobalData->stderrc,"* Before Inter_Scaffold_Walking\n");
-	
-      while ( mergedScaffolds && round < 10)
-	{
-	  mergedScaffolds = Inter_Scaffold_Walking();
-	  if (mergedScaffolds)
-            {
-              sprintf( middleName, "rnd_%d", round++);
-              localeCam( middleName );
-            }
-	}
-#if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
-      fprintf(stderr,
-              "---Checking contig orders after Inter_Scaffold_Walking\n\n");
-      CheckAllContigOrientationsInAllScaffolds(ScaffoldGraph, coc, POPULATE_COC_HASHTABLE);
-#endif
-#ifdef CHECK_CONTIG_ORDERS_INCREMENTAL
-      ResetContigOrientChecker(coc);
-      AddAllScaffoldsToContigOrientChecker(ScaffoldGraph, coc);
-#endif
-      ValidateAllContigEdges(ScaffoldGraph, FIX_CONTIG_EDGES);
-      fprintf(data->timefp,"Checkpoint %d written after Inter_Scaffold_Walking\n", 
-              ScaffoldGraph->checkPointIteration);
-      CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_BEFORE_INTER_SCAFFOLD_WALKING+1);
     }
 
 

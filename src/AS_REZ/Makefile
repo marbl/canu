@@ -32,13 +32,10 @@ LIN_ALG_LIB = libAS_LIN.a
 
 LIBSOURCES = \
              ConsistencyChecksREZ.c \
-             FbacREZ.c \
-             GWDriversREZ.c \
              GapFillREZ.c \
              GapWalkerREZ.c \
              GreedyOverlapREZ.c \
              StatisticsREZ.c \
-             SubgraphREZ.c \
              UpdateREZ.c \
              UtilsREZ.c \
              MicroHetREZ.c

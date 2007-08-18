@@ -41,7 +41,6 @@
 #include "GreedyOverlapREZ.h"
 #include "CommonREZ.h"
 #include "RepeatRez.h"
-#include "FbacREZ.h"
 #include "PublicAPI_CNS.h"
 #include "AS_ALN_aligners.h"
 #include "AS_ALN_forcns.h"

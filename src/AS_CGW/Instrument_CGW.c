@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.26 2007-08-18 11:42:07 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.27 2007-08-18 13:13:21 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,7 +31,6 @@ static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.26 2007-08-18 11:42:07 brianwal
 #include "Instrument_CGW.h"
 #include "ScaffoldGraph_CGW.h"
 #include "ScaffoldGraphIterator_CGW.h"
-#include "FbacREZ.h"
 #include "UtilsREZ.h"
 #include "GraphCGW_T.h"
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.28 2007-08-04 22:27:35 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.29 2007-08-18 13:13:20 brianwalenz Exp $";
 
 #undef DEBUG_CHECKFORCTGS
 #undef DEBUG_DETAILED
@@ -48,7 +48,6 @@ static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.28 2007-08-04 22:27:35
 #include "DataTypesREZ.h"
 #include "CommonREZ.h"
 #include "Stats_CGW.h"   // for collecting scaffold merging stats
-#include "FbacREZ.h"
 #include <time.h>
 
 

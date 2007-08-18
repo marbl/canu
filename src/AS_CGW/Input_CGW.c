@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.42 2007-08-10 06:53:03 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.43 2007-08-18 13:13:21 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -790,10 +790,6 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
           cifrag.flags.bits.isSingleton = TRUE;
           cifrag.flags.bits.isChaff     = TRUE;
 	}
-
-        cifrag.locale         = NULLINDEX;
-        cifrag.localePos.bgn  = 0;
-        cifrag.localePos.end  = 0;
 
 	info.fragIndex   = fragid;
 	info.set         = TRUE;

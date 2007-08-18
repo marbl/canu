@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: Globals_CGW.h,v 1.12 2007-02-12 22:16:55 brianwalenz Exp $	 */
+/* 	$Id: Globals_CGW.h,v 1.13 2007-08-18 13:13:20 brianwalenz Exp $	 */
 #ifndef GLOBALS_CGW_H
 #define GLOBALS_CGW_H
 
@@ -43,9 +43,7 @@ typedef struct Global_CGW_tag {
   int outputCalculatedOffsets;
   int saveCheckPoints;
   int repeatRezLevel;
-  int walkLevel;   // a variable that contains different alternatives of gap walking
   int stoneLevel;  // a variable that contains different alternatives of stone throwing //
-  int walkScaffoldsBiggestFirst;
   int ignoreChaffUnitigs;
   int performCleanupScaffolds;
   int debugLevel;

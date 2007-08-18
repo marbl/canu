@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: InputDataTypes_CGW.h,v 1.14 2007-05-14 09:27:11 brianwalenz Exp $	 */
+/* 	$Id: InputDataTypes_CGW.h,v 1.15 2007-08-18 13:13:21 brianwalenz Exp $	 */
 /****************************************************************************
  *  InputDataTypes_CGW
  *  
@@ -96,11 +96,13 @@ typedef struct {
   } bits;
   } flags;
 
-  // Used only by Finished BAC Fragments -- this is now dead data, and
-  // should be removed.  It's used heavily in FbacREZ.c though.
+  // Enable this to restore compatibility with checkpoints created
+  // before Aug 18, 2007.
   //
-  CDS_CID_t locale;
-  SeqInterval localePos;
+#if 0
+  CDS_CID_t   DEAD_locale;
+  SeqInterval DEAD_localePos;
+#endif
 
 }CIFragT;
 

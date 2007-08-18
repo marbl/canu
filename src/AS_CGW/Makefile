@@ -77,7 +77,6 @@ CRUD_SOURCES = \
                   dfsFragmentTiling.c \
                   dumpBinaryUnitigMAs.c \
                   dumpCheckpointAsFasta.c \
-                  examineFragStore.c \
                   exploreMates.c \
                   exploreScaffoldEnds.c \
                   findAnEdge.c \
@@ -103,7 +102,7 @@ PROGS = cgw extendClearRanges resolveSurrogates dumpCloneMiddles dumpSingletons 
 CRUD =  Checkpoint process_scaffolds loadcgw \
         ScaffoldMap testSplitChunks instrumentCheckpoint \
 	traceNodes findMissedOverlaps localUnitigging_CGW \
-	dumpCheckpointAsFasta examineFragStore exploreMates fixECRCheckpoint \
+	dumpCheckpointAsFasta exploreMates fixECRCheckpoint \
 	dumpBinaryUnitigMAs assemblyStructure \
 	exploreScaffoldEnds asmInfoForFrg \
 	whereAreMyOverlaps findAnEdge \
@@ -145,8 +144,6 @@ fixECRCheckpoint: fixECRCheckpoint.o $(LIBS)
 exploreMates: exploreMates.o $(LIBS)
 
 dumpCheckpointAsFasta: dumpCheckpointAsFasta.o $(LIBS)
-
-examineFragStore: examineFragStore.o $(LIBS)
 
 findMissedOverlaps: findMissedOverlaps.o $(LIBS)
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.21 2007-08-14 22:54:45 brianwalenz Exp $";
+static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.22 2007-08-18 13:13:21 brianwalenz Exp $";
 
 
 /*********************************************************************
@@ -52,7 +52,6 @@ static char CM_ID[] = "$Id: localUnitigging_CGW.c,v 1.21 2007-08-14 22:54:45 bri
 #include "GreedyOverlapREZ.h"
 #include "CommonREZ.h"
 #include "RepeatRez.h"
-#include "FbacREZ.h"
 #include "PublicAPI_CNS.h"
 
 #define CNS_DP_THRESH 1e-6

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: StatisticsREZ.c,v 1.7 2007-04-16 17:34:16 brianwalenz Exp $	 */
+/* 	$Id: StatisticsREZ.c,v 1.8 2007-08-18 13:13:22 brianwalenz Exp $	 */
 
 /****************************************************************************************
  *  StatisticsRez.c
@@ -41,7 +41,6 @@
 #include "GraphCGW_T.h"
 #include "ScaffoldGraph_CGW.h"
 #include "DataTypesREZ.h"
-#include "GWDriversREZ.h"
 #include "UtilsREZ.h"
 
 /* ------------------------------------------------------------ */
@@ -49,6 +48,8 @@
    This struct is the atomic piece of information that is also 
    stored on disk. From it all other statistics can be computed */
 /* ------------------------------------------------------------ */
+
+#define SWITCH_THRESHOLD 2000
 
 
 void init_gap_stat_struct(GapStatisticsT* g)

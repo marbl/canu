@@ -30,12 +30,8 @@
 
 **********************************************************************/
 
-static char CM_ID[] = "$Id: ConsistencyChecksREZ.c,v 1.10 2007-07-23 09:44:59 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ConsistencyChecksREZ.c,v 1.11 2007-08-18 13:13:21 brianwalenz Exp $";
 
-
-/* ---------------------------------------------------- */
-/* standard includes */
-/* ---------------------------------------------------- */
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -44,21 +40,12 @@ static char CM_ID[] = "$Id: ConsistencyChecksREZ.c,v 1.10 2007-07-23 09:44:59 br
 #include <string.h>
 #include <unistd.h>
 
-
-/* ---------------------------------------------------- */
-/* REZ includes */
-/* ---------------------------------------------------- */
 #include "ConsistencyChecksREZ.h"
 #include "DataTypesREZ.h"
 #include "CommonREZ.h"
 #include "UtilsREZ.h"
 #include "GapWalkerREZ.h"
-#include "SubgraphREZ.h"
-#include "GWDriversREZ.h"
 
-/* ---------------------------------------------------- */
-/* AS includes */
-/* ---------------------------------------------------- */
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
 #include "UnionFind_AS.h"
@@ -68,10 +55,6 @@ static char CM_ID[] = "$Id: ConsistencyChecksREZ.c,v 1.10 2007-07-23 09:44:59 br
 
 
 extern int  Global_Debug_Flag;
-
-/* ---------------------------------------------------- */
-/* static function and variable declaration */
-/* ---------------------------------------------------- */
 
 static void combine_two_distrib(LengthT dist1, LengthT dist2, LengthT *cDist);
 
@@ -93,17 +76,10 @@ static void estimate_gap_distrib(const Gap_Chunk_t *,
 				 LengthT *);
 
 
-/* ---------------------------------------------------- */
-/* local #defines and typedefs */
-/* ---------------------------------------------------- */
-
 
 #define DEBUG 0
 // Define Level of debugging. 0 Means no debug information
 
-/* ---------------------------------------------------- */
-/* variable declarations */
-/* ---------------------------------------------------- */
 
 #if DEBUG > 1
 extern char * Filename_Prefix;

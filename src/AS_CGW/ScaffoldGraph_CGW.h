@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ScaffoldGraph_CGW.h,v 1.18 2007-05-01 14:41:43 granger_sutton Exp $	 */
+/* 	$Id: ScaffoldGraph_CGW.h,v 1.19 2007-08-18 13:13:21 brianwalenz Exp $	 */
 /***************************************************************************
  *  ScaffoldGraph
  *  
@@ -266,6 +266,18 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
 
 
 void CheckContigs(void);
+
+void
+dumpContigInfo(ChunkInstanceT *contig);
+
+void
+GetContigPositionInScaffold(ChunkInstanceT *contig, int *left_end, int *right_end, 
+                            int *contigScaffoldOrientation);
+
+void
+GetFragmentPositionInScaffold(CIFragT *frag,
+                              int *left_end, int *right_end, 
+                              int *fragmentScaffoldOrientation);
 
 void DumpContig(FILE *stream, ScaffoldGraphT *graph, ContigT *contig, int raw);
 

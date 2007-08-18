@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: findMissedOverlaps.c,v 1.12 2007-08-03 20:45:03 brianwalenz Exp $";
+static char CM_ID[] = "$Id: findMissedOverlaps.c,v 1.13 2007-08-18 13:13:21 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -47,7 +47,6 @@ static char CM_ID[] = "$Id: findMissedOverlaps.c,v 1.12 2007-08-03 20:45:03 bria
 #include "GreedyOverlapREZ.h"
 #include "CommonREZ.h"
 #include "RepeatRez.h"
-#include "FbacREZ.h"
 #include "PublicAPI_CNS.h"
 #include "AS_ALN_aligners.h"
 #include "AS_ALN_forcns.h"

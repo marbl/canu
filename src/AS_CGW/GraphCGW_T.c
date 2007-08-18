@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.48 2007-08-09 16:55:34 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.49 2007-08-18 13:13:21 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,7 +39,6 @@ static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.48 2007-08-09 16:55:34 brianwalenz 
 #include "ChunkOverlap_CGW.h"
 #include "Instrument_CGW.h"
 #include "MultiAlignment_CNS.h"
-#include "FbacREZ.h"
 #include "UtilsREZ.h"
 
 void InitializeChunkInstance(ChunkInstanceT *ci, ChunkInstanceType type){
@@ -3564,15 +3563,9 @@ int compDists( const void *s1, const void *s2)
 
 
 
-
-int compareInt (const void * a, const void * b)
-{
+int compareInt (const void * a, const void * b) {
   return ( *(int*)a - *(int*)b );
 }
-
-
-
-
 
 
 
@@ -4242,7 +4235,7 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
           scaff = GetGraphNode( ScaffoldGraph->ScaffoldGraph, fragContig->scaffoldID);
           extremeContig = GetGraphNode( ScaffoldGraph->ContigGraph, scaff->info.Scaffold.BEndCI);
           GetContigPositionInScaffold ( extremeContig, &contigLeftEnd, &contigRightEnd, &contigScaffoldOrientation);
-          
+
           if ( fragLeftEnd + dorig->mu + CGW_CUTOFF * dorig->sigma > contigRightEnd) {
             numNot5stddev++;
             continue;

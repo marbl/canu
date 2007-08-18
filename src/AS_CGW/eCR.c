@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: eCR.c,v 1.24 2007-08-03 20:45:03 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: eCR.c,v 1.25 2007-08-18 13:13:21 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -1270,7 +1270,6 @@ findFirstExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
     frag = GetCIFragT(ScaffoldGraph->CIFrags, (int32) mp->sourceInt);
 
     if (frag->contigOffset3p.mean < 100.0 &&      // frag is within a cutoff of the low end of the contig
-        frag->locale == -1 &&                     // and is a read
         frag->contigOffset3p.mean < frag->contigOffset5p.mean &&  // and points in the right direction
         frag->cid == firstUnitigID) { // and is in the first unitig
       unsigned int clr_bgn, clr_end, seq_len;
@@ -1409,7 +1408,6 @@ findLastExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
     frag = GetCIFragT(ScaffoldGraph->CIFrags, (int32) mp->sourceInt);
 
     if (frag->contigOffset3p.mean > maxContigPos - 100.0 &&      // frag is within a cutoff of the high end of the contig
-        frag->locale == -1 &&                                    // and is a read
         frag->contigOffset5p.mean < frag->contigOffset3p.mean && // and points in the right direction
         frag->cid == lastUnitigID) {                             // and is in the last unitig
       unsigned int clr_bgn, clr_end, seq_len;

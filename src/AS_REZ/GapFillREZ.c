@@ -34,7 +34,7 @@
 *
 *************************************************/
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.29 2007-08-04 22:27:35 brianwalenz Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.30 2007-08-18 13:13:22 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -46,33 +46,23 @@ static char fileID[] = "$Id: GapFillREZ.c,v 1.29 2007-08-04 22:27:35 brianwalenz
 #include "AS_UTL_Var.h"
 #include "AS_UTL_timer.h"
 #include "AS_UTL_fileIO.h"
-//#include "dpc_CNS.h"
 
-//
-// AS_CGW
-//
 #include "AS_CGW_dataTypes.h"
 #include "Globals_CGW.h"
 #include "ScaffoldGraph_CGW.h"
 #include "ChiSquareTest_CGW.h"
 
-//
-// AS_REZ
-//
 #include "DataTypesREZ.h"
 #include "UtilsREZ.h"
 #include "CommonREZ.h"
 #include "ConsistencyChecksREZ.h"
 #include "GapWalkerREZ.h"
-#include "SubgraphREZ.h"
-#include "GWDriversREZ.h"
 #include "RepeatRez.h"
+#include "UpdateREZ.h"
 
                             
-//#define  REF(i)   (Ref [i])   // Macro to reference chunk_ref data
 #define  REF(i)   (Ref_Data [Ref_Index [i]])   // Macro to reference chunk_ref data
 
-// #define  GAPS_TO_ADJUST  1;  j < fill_chunks [scaff_id] . num_gaps - 1;  j ++
 #define  GAPS_TO_ADJUST  0;  j < fill_chunks [scaff_id] . num_gaps;  j ++
 
 #define  DEBUG1                 0

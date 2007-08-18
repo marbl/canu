@@ -33,7 +33,7 @@
 
  **********************************************************************/
 
-static char fileID[] = "$Id: UpdateREZ.c,v 1.10 2007-07-23 09:44:59 brianwalenz Exp $";
+static char fileID[] = "$Id: UpdateREZ.c,v 1.11 2007-08-18 13:13:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <assert.h>
@@ -41,21 +41,16 @@ static char fileID[] = "$Id: UpdateREZ.c,v 1.10 2007-07-23 09:44:59 brianwalenz 
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
 #include "UnionFind_AS.h"
-//
-// AS_CGW
-//
+
 #include "AS_CGW_dataTypes.h"
 #include "Globals_CGW.h"
 #include "ScaffoldGraph_CGW.h"
 #include "ChiSquareTest_CGW.h"
-//
-// AS_REZ
-//
+
 #include "DataTypesREZ.h"
 #include "UtilsREZ.h"
 #include "CommonREZ.h"
 #include "GapWalkerREZ.h"
-#include "SubgraphREZ.h"
 #include "UpdateREZ.h"
 #include "ConsistencyChecksREZ.h"
 
