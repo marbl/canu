@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.44 2007-08-18 13:13:20 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.45 2007-08-20 17:24:24 brianwalenz Exp $";
 
 
 static const char *usage = 
@@ -64,7 +64,11 @@ static const char *usage =
 "   [-O [icC]]     i = immediate, c = continue, C = celamy output only\n"
 "   [-P]                            Proto Output\n"
 "   [-R <ckp>]     restart from checkpoint file ckp\n"
-"   [-W <startWalkFromScaffold> ]\n"
+"   [-S <t>]       place all frags in singly-placed surrogates if at least fraction\n"
+"                  <t> can be placed; two special cases:\n"
+"                    if <t> = -1, place all frags in singly-placed surrogates aggressively\n"
+"                                 (which really mean t = 0.0, but triggers a better algorithm)\n"
+"                    if <t> =  0, do not resolve surrogate fragments\n"
 "   [-X <Estimated number of nodes>]\n"
 "   [-Y <Estimated number of edges>]\n"
 "   [-Z]           Don't demote singleton scaffolds\n"
@@ -141,7 +145,6 @@ int main(int argc, char *argv[]){
   int debugLevel = 0;
   int repeatRezLevel = 0;
   int stoneLevel = 0;
-  int startScaffoldWalkFrom = NULLINDEX;
   int starting_stone_scaffold = 0;
   int numNodes = 1024;
   int numEdges = 1024;
@@ -179,6 +182,7 @@ int main(int argc, char *argv[]){
   char *outputPath = NULL;
   int dumpScaffoldSnapshots = 0;
   int checkpointChecker = 1;
+  int    doResolveSurrogates               = 1;      //  resolveSurrogates
   int    placeAllFragsInSinglePlacedSurros = 0;      //  resolveSurrogates
   double cutoffToInferSingleCopyStatus     = 0.666;  //  resolveSurrogates
  
@@ -199,7 +203,7 @@ int main(int argc, char *argv[]){
   _FPU_SETCW( fpu_cw );
 #endif
  
-  fprintf( stderr, "Version: %s",CM_ID);
+  fprintf( stderr, "Version: %s\n",CM_ID);
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
   ContigOrientChecker * coc;
   coc = CreateContigOrientChecker();
@@ -218,8 +222,8 @@ int main(int argc, char *argv[]){
 
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,
-                                    "abcde:f:g:hi:j:k:l:m:n:o:p:q:r:s:tuvw:xyz"
-                                    "ABCD:EFGHIJK:L:N:MO:PQR:STUV:W:X:Y:Z"
+                                    "abcde:f:g:hi:j:k:l:m:n:o:p:q:r:s:tuvxyz"
+                                    "ABCD:EFGHIJK:L:N:MO:PQR:S:TUV:X:Y:Z"
 				    "4" )) != EOF)){
       switch(ch) {
         case 'O':
@@ -374,9 +378,23 @@ int main(int argc, char *argv[]){
           stoneLevel = atoi(optarg);
           fprintf(GlobalData->stderrc,"* stoneLevel set to %d\n", stoneLevel);
           break;
-        case 'W':
-          startScaffoldWalkFrom = atoi(optarg);
-          fprintf(GlobalData->stderrc,"* startScaffoldWalkFrom scaffold %d\n", startScaffoldWalkFrom);
+        case 'S':
+          doResolveSurrogates               = 1;
+          cutoffToInferSingleCopyStatus     = atof(optarg);
+          placeAllFragsInSinglePlacedSurros = 0;
+
+          if (cutoffToInferSingleCopyStatus == 0.0)
+            doResolveSurrogates               = 0;
+
+          if (cutoffToInferSingleCopyStatus < 0) {
+            cutoffToInferSingleCopyStatus     = 0.0;
+            placeAllFragsInSinglePlacedSurros = 1;
+          }
+          if (doResolveSurrogates)
+            fprintf(GlobalData->stderrc,"* resolveSurrogates: -S %f%s\n",
+                    cutoffToInferSingleCopyStatus, placeAllFragsInSinglePlacedSurros ? " -1" : "");
+          else
+            fprintf(GlobalData->stderrc,"* resolveSurrogates: DISABLED\n");
           break;
         case 'D':
           debugLevel = atoi(optarg);
@@ -520,6 +538,11 @@ int main(int argc, char *argv[]){
   if(!doRezOnContigs && (stoneLevel > 0)){
     fprintf(GlobalData->stderrc,"#### Stone Throwing and Gap Walking can only be run in conjunction with the -C option ####\n");
     fprintf(GlobalData->stderrc,".....exiting.....\n");
+    exit(1);
+  }
+
+  if (cutoffToInferSingleCopyStatus > 1.0) {
+    fprintf(GlobalData->stderrc,"#### -S must be between 0.0 and 1.0.\n");
     exit(1);
   }
 
@@ -1038,8 +1061,9 @@ int main(int argc, char *argv[]){
 
   if(immediateOutput == 0 && 
      (restartFromLogicalCheckpoint <= CHECKPOINT_BEFORE_RESOLVE_SURROGATES) &&
-     (GlobalData->stoneLevel > 0)) {
-    fprintf(GlobalData->stderrc,"* Before resolveSurrogates\n");
+     (doResolveSurrogates > 0)) {
+    fprintf(GlobalData->stderrc,"* Before resolveSurrogates (-S=%f -1=%d)\n",
+            cutoffToInferSingleCopyStatus, placeAllFragsInSinglePlacedSurros);
 
     resolveSurrogates(placeAllFragsInSinglePlacedSurros, cutoffToInferSingleCopyStatus);
 

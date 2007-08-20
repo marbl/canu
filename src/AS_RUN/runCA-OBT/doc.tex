@@ -392,6 +392,11 @@ an advantage to telling each job to use N threads -- when one jobs
 does I/O, the other jobs will use the now mostly idle CPU.  The default is 2 threads.
 \\
 
+ovlStart={\it integer} &
+The fragment IID at which to begin overlaps.  Only useful if you have
+added fragments to an existing store and wish to compute the new
+overlaps.  You should probably also use {\it stopAfter=overlapper}.
+
 ovlHashBlockSize={\it integer} &
 The number of fragments to use for hash table construction.
 Overlapper will, internally, fragment this range so as to not exceed

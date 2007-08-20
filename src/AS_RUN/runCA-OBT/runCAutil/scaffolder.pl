@@ -3,12 +3,12 @@ use strict;
 #  Don't do interleaved merging unless we are throwing stones.
 
 sub CGW ($$$$$$) {
-    my $thisDir    = shift @_;
-    my $lastDir    = shift @_;
-    my $cgiFile    = shift @_;
-    my $stoneLevel = shift @_;
-    my $logickp    = shift @_;
-    my $finalRun   = shift @_;
+    my $thisDir     = shift @_;
+    my $lastDir     = shift @_;
+    my $cgiFile     = shift @_;
+    my $stoneLevel  = shift @_;
+    my $logickp     = shift @_;
+    my $finalRun    = shift @_;
 
     return($thisDir) if (-e "$wrk/$thisDir/cgw.success");
 
@@ -51,9 +51,10 @@ sub CGW ($$$$$$) {
 
     my $cmd;
     $cmd  = "$bin/cgw $ckp -c -j 1 -k 5 -r 5 -s $stoneLevel -T ";
-    $cmd .= " -G " if (($finalRun == 0) && (getGlobal("cgwOutputIntermediate") == 0));
-    $cmd .= " -M " if (($stoneLevel == 0) && (getGlobal("delayInterleavedMerging") == 1));
-    $cmd .= " -z " if (getGlobal("cgwDemoteRBP") == 1);
+    $cmd .= " -S 0 " if (($finalRun == 0)   || (getGlobal("doResolveSurrogates") == 0));
+    $cmd .= " -G "   if (($finalRun == 0)   && (getGlobal("cgwOutputIntermediate") == 0));
+    $cmd .= " -M "   if (($stoneLevel == 0) && (getGlobal("delayInterleavedMerging") == 1));
+    $cmd .= " -z "   if (getGlobal("cgwDemoteRBP") == 1);
     $cmd .= " -g $wrk/$asm.gkpStore ";
     $cmd .= " -o $wrk/$thisDir/$asm ";
     $cmd .= " $wrk/$thisDir/$asm.cgi ";
@@ -213,7 +214,7 @@ sub scaffolder ($) {
     #  get the heck outta here!  OK, we'll do resolveSurrogates(), maybe.
     #
     if (getGlobal("doExtendClearRanges") == 0) {
-        $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, $stoneLevel, undef, 0);
+        $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, $stoneLevel, undef, 1);
         $thisDir++;
     } else {
 
@@ -239,13 +240,13 @@ sub scaffolder ($) {
             $lastDir = eCR("7-$thisDir-ECR", $lastDir, $iteration);
             $thisDir++;
         }
-    }
 
-    #  Then another scaffolder, chucking stones into the big holes,
-    #  filling in surrogates, and writing output.
-    #
-    $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, $stoneLevel, 3, 1);
-    $thisDir++;
+        #  Then another scaffolder, chucking stones into the big holes,
+        #  filling in surrogates, and writing output.
+        #
+        $lastDir = CGW("7-$thisDir-CGW", $lastDir, $cgiFile, $stoneLevel, 3, 1);
+        $thisDir++;
+    }
 
 
     #  And, finally, hold on, we're All Done!  Point to the correct output directory.

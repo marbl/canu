@@ -15,8 +15,6 @@ sub createOverlapJobs {
     return if (-d "$wrk/$asm.ovlStore");
 
     my $ovlThreads        = getGlobal("ovlThreads");
-    my $ovlHashBlockSize  = getGlobal("ovlHashBlockSize");
-    my $ovlRefBlockSize   = getGlobal("ovlRefBlockSize");
     my $ovlMemory         = getGlobal("ovlMemory");
     my $scratch           = getGlobal("scratch");
 
@@ -195,7 +193,10 @@ sub createOverlapJobs {
     #  and the stream into $numFrags / $ovlRefBlockSize pieces.  Put
     #  all runs for the same hash into a subdirectory.
 
-    my ($hashBeg, $hashEnd, $refBeg, $refEnd) = (1, 0, 1, 0);
+    my ($hashBeg, $hashEnd, $refBeg, $refEnd) = (getGlobal("ovlStart"), 0, 1, 0);
+
+    my $ovlHashBlockSize  = getGlobal("ovlHashBlockSize");
+    my $ovlRefBlockSize   = getGlobal("ovlRefBlockSize");
 
     #  Saved for output to ovlopts.pl
     my @bat;

@@ -6,6 +6,11 @@ sub runMeryl ($$$) {
     my $merType   = shift @_;
     my $cmd;
 
+    if (getGlobal("doMeryl") == 0) {
+        touch "$wrk/0-mercounts/$asm.nmers.$merType.fasta";
+        return;
+    }
+
     if (merylVersion() eq "Mighty") {
 
         #  Use the better meryl!  This is straightforward.  We count,
@@ -65,6 +70,7 @@ sub runMeryl ($$$) {
 
 sub meryl {
     system("mkdir $wrk/0-mercounts") if (! -d "$wrk/0-mercounts");
+
     runMeryl(getGlobal('merSizeOvl'), getGlobal("merylOvlThreshold"), "ovl");
     runMeryl(getGlobal('merSizeObt'), getGlobal("merylObtThreshold"), "obt");
 }

@@ -166,6 +166,7 @@ sub setDefaults () {
     $global{"help"}                        = 0;
 
     #  Undocumented!
+    $global{"doMeryl"}                     = 1;
     $global{"merylMemory"}                 = 800;
     $global{"merylObtThreshold"}           = 1000;
     $global{"merylOvlThreshold"}           = 500;
@@ -178,6 +179,7 @@ sub setDefaults () {
     $global{"ovlCorrOnGrid"}               = 0;
     $global{"ovlCorrConcurrency"}          = 4;
     $global{"ovlHashBlockSize"}            = 40000;   # 150000
+    $global{"ovlStart"}                    = 1;
     $global{"ovlMemory"}                   = "1GB";   # 2GB
     $global{"ovlRefBlockSize"}             = 2000000; # 5000000
     $global{"ovlSortMemory"}               = 1024;
