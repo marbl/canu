@@ -13,16 +13,23 @@ set inputfile=`echo $inputlist | awk -F/ '{print $NF}'`
 set prefix=$3
 
 
-## N.B. You probably want to have build the overlap store with the
-## "metagenomic" setting of ERR_MODEL_IN_AS_GLOBAL_H -- i.e. set this
-## to 10 or 15 or 20; above 25 not recommended.
-## If you build your binaries this way, and then build an ovlStore
-## you will have overlaps of up to 10%, 15% etc.
+## N.B. You probably want to have built an overlap store from
+## overlap runs with "metagenomics" settings of the error rate and kmer size;
+## currently, this is done by specifying  "-k <kmersize>" on the command line
+## and setting the environment variable AS_OVL_ERROR_RATE to the maximal fractional
+## mismatch rate to be allowed.  kmersize=14 and values of AS_OVL_ERROR_RATE in
+## the range of 10-15% seem to give interesting results.  Values of kmersize much
+## below 14 are expected to give unacceptably slow computes, and values of
+## AS_OVL_ERROR_RATE above 25% give rise to an unacceptable number of spurious
+## overlaps
 
 # maximal overlap error to follow; 0.15 = 15%
 set cutoff=$4
 if( $cutoff == "" ) then
   set cutoff=0.15
+endif
+if($noFrgStore)then
+  setenv AS_CNS_ERROR_RATE $cutoff
 endif
 
 set restrictToList=$5
@@ -83,8 +90,10 @@ cat  ${inputfile}_e${cutoff}_m50_Q_N40.layout |\
 
 ### compute consensus sequence
 if ( $noFrgStore == 1 ) then
+  # AS_CNS_ERROR_RATE should be set to <cutoff>
   $asmBin/consensus -P -U -G ${prefix}.gkpStore ${inputfile}_e${cutoff}_m50_Q_N40.cgb
 else
+  # your binaries need to have been built to allow up to <cutoff> error rates
   $asmBin/consensus -P -U -G ${prefix}.frgStore ${inputfile}_e${cutoff}_m50_Q_N40.cgb
 endif
 

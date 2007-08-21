@@ -395,11 +395,11 @@ OVSoverlap better_olap(OVSoverlap a, OVSoverlap b, int startingFrg, int offAEnd,
       int  olenB = frglen - MAX(0,b. dat . ovl . a_hang) + MIN(0,b.dat . ovl . b_hang);
 
       if(useCorrected){
-        upperA = get_95pct_upper(olenA, (a.dat . ovl . corr_erate+.9)/1000.);
-        upperB = get_95pct_upper(olenB, (b.dat . ovl . corr_erate+.9)/1000.);
+        upperA = get_95pct_upper(olenA, AS_OVS_decodeQuality(a.dat . ovl . corr_erate)+.0009);
+        upperB = get_95pct_upper(olenB, AS_OVS_decodeQuality(b.dat . ovl . corr_erate)+.0009);
       } else {
-        upperA = get_95pct_upper(olenA, (a.dat . ovl . orig_erate+.9)/1000.);
-        upperB = get_95pct_upper(olenB, (b.dat . ovl . orig_erate+.9)/1000.);
+        upperA = get_95pct_upper(olenA, AS_OVS_decodeQuality(a.dat . ovl . orig_erate)+.0009);
+        upperB = get_95pct_upper(olenB, AS_OVS_decodeQuality(b.dat . ovl . orig_erate)+.0009);
       }
     
 
@@ -467,8 +467,8 @@ int setupolaps(int id, int offAEnd,BestMeasure bestType,double erate,int useCorr
     if( restrictIDs && IIDusability[olap.b_iid] != 1)continue;
 
     // exclude too-sloppy overlaps
-    if(useCorrected&&olap.dat . ovl . corr_erate>erate*1000)continue;
-    if(!useCorrected&&olap.dat . ovl . orig_erate>erate*1000)continue;
+    if(useCorrected&&olap.dat . ovl . corr_erate>erate)continue;
+    if(!useCorrected&&olap.dat . ovl . orig_erate>erate)continue;
 
     // exclude contained overlaps
     if( olap. dat . ovl . a_hang > 0 && olap.dat . ovl . b_hang < 0)continue;
@@ -654,7 +654,7 @@ void usage(char *pgm){
            "\t\tnot extensions\n"
            "\t-P causes error rate to be printed\n"
            "\t-R specifies that fragments involved in thicker overlaps than the one chosen at a given extension will count as used\n"
-           "\t-s species the name of a file containing a uid to sample (integer) mapping\n"
+           "\t-s species the name of a file containing a uid to sample (integer) mapping; this implicitly has the effect\n"
            "\t-S specifies the amount (in percent error) that a same-sample overlap is preferred to a different-sample overlap\n"
            "\t-T specifies the amount (in percent error) that an overlap is preferred if it is to a fragment whose sample matches that of the seed\n"
            "\t-5 specifies that only the 5' end of the seed be extended\n"
@@ -835,11 +835,11 @@ int main (int argc , char * argv[] ) {
           assert(strlen(sampleFileName)<=999);
           break;
         case 'S':
-          favorSameSample=atof(argv[optind-1]);
+          favorSameSample=AS_OVS_encodeQuality(atof(argv[optind-1]));
           assert(favorSameSample>0);
           break;
         case 'T':
-          favorSameSampleAsSeed=atof(argv[optind-1]);
+          favorSameSampleAsSeed=AS_OVS_encodeQuality(atof(argv[optind-1]));
           assert(favorSameSampleAsSeed>0);
           break;
         case '3':
@@ -863,6 +863,8 @@ int main (int argc , char * argv[] ) {
   }
   
   assert(! (fivePonly&&threePonly) );
+
+  assert(AS_CNS_ERROR_RATE >= AS_OVS_decodeQuality(maxError));
 
   setup_stores(full_ovlPath, full_gkpPath);
   last_stored_frag = getLastElemFragStore (my_gkp_store);
@@ -899,7 +901,9 @@ int main (int argc , char * argv[] ) {
       if(iid>0) iid2sample[iid]=smp;
     }
     if(favorSameSample==0&&favorSameSampleAsSeed==0){
-      favorSameSample=DEFAULT_SAMPLE_ADVANTAGE;
+      //      favorSameSample=AS_OVS_encodeQuality(DEFAULT_SAMPLE_ADVANTAGE); 
+      fprintf(stderr,"Unexpected settings in %s :  -s <read UID to sample file> specified without positive value for -S or -T -- abort!\n",argv[0]);
+      exit(-1);
     }
   }
 
@@ -971,9 +975,9 @@ int main (int argc , char * argv[] ) {
       OVSoverlap o;
       if(printpid){
 	if(iid2sample!=NULL){
-	  printf("%d  %d %d %s %f %d\n",currFrg,ahang,ahang+frglen, Aend?"<--":"-->",pid/1000.,iid2sample[currFrg]);
+	  printf("%d  %d %d %s %f %d\n",currFrg,ahang,ahang+frglen, Aend?"<--":"-->",AS_OVS_decodeQuality(pid),iid2sample[currFrg]);
 	} else {
-	  printf("%d  %d %d %s %f\n",currFrg,ahang,ahang+frglen, Aend?"<--":"-->",pid/1000.);
+	  printf("%d  %d %d %s %f\n",currFrg,ahang,ahang+frglen, Aend?"<--":"-->",AS_OVS_decodeQuality(pid));
 	}
       } else {
 	printf("%d  %d %d %s\n",currFrg,ahang,ahang+frglen, Aend?"<--":"-->");
@@ -1082,9 +1086,9 @@ int main (int argc , char * argv[] ) {
       if(currFrg!=seediid||firstExtend==-1||built5End==0){
 	if(printpid){
 	  if(iid2sample!=NULL){
-	    printf("%d %d %d %s %f %d\n",currFrg,leftEnd,rightEnd,!Aend?"<--":"-->",pid/1000.,iid2sample[currFrg]);
+	    printf("%d %d %d %s %f %d\n",currFrg,leftEnd,rightEnd,!Aend?"<--":"-->",AS_OVS_decodeQuality(pid),iid2sample[currFrg]);
 	  } else {
-	    printf("%d %d %d %s %f\n",currFrg,leftEnd,rightEnd,!Aend?"<--":"-->",pid/1000.);
+	    printf("%d %d %d %s %f\n",currFrg,leftEnd,rightEnd,!Aend?"<--":"-->",AS_OVS_decodeQuality(pid));
 	  }
 	} else {
 	  printf("%d %d %d %s\n",currFrg,leftEnd,rightEnd,!Aend?"<--":"-->");
