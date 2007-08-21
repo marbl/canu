@@ -384,7 +384,7 @@ void output_binary_cvg_info(FILE *binaryCvgFile){
   int i,j,k;
   for(i=1;i<=maxsmp;i++){
     if(smpbases[i]==0){
-      next;
+      continue;
     }
     fprintf(binaryCvgFile,"Sample %d binary coverage:\n",i);
     for(k=0;k<ncuts;k++){
@@ -425,7 +425,7 @@ void output_depth_of_cvg_info(FILE *depthCvgFile){
   int i,j,k;
   for(i=1;i<=maxsmp;i++){
     if(smpbases[i]==0){
-      next;
+      continue;
     }
     fprintf(depthCvgFile,"Sample %d depth of coverage:\n",i);
     for(k=0;k<ncuts;k++){
