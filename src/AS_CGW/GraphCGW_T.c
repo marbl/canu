@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.49 2007-08-18 13:13:21 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.50 2007-08-22 21:09:55 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1947,7 +1947,7 @@ void CheckEdgesAgainstOverlapper(GraphCGW_T *graph){
     }
   }
 
-  assert(failures == 0);
+//  assert(failures == 0);
 
   fprintf(GlobalData->stderrc,"**** Survived CheckEdgesAgainstOverlapper with %d failures****\n", failures);
 }
@@ -2043,6 +2043,10 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
 
   ma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, cid,
                                      graph->type == CI_GRAPH);
+  if (ma == NULL) {
+      fprintf(stderr,"NULL multialign for %ld graph type %d\n",cid, graph->type);
+      return;
+  }
   GetMultiAlignUngappedOffsets(ma, ungappedOffsets);
   
   /* Determine extremal fragments so we can label the fragments */

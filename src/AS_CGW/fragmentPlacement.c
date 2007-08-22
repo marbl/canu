@@ -585,6 +585,9 @@ void PlaceFragmentsInMultiAlignT(CDS_CID_t toID, int isUnitig,
   ma =  LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, toID, isUnitig);
   //     2. add fragments to the f_list
 
+  if (ma == NULL)
+      return; // probably not good
+
   ConcatVA_IntMultiPos(ma->f_list,f_list);
 
   /* It might be a good idea to recompute consensus! */

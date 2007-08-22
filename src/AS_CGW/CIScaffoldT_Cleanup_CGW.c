@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.29 2007-08-18 13:13:20 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.30 2007-08-22 21:09:55 eliv Exp $";
 
 #undef DEBUG_CHECKFORCTGS
 #undef DEBUG_DETAILED
@@ -2670,8 +2670,9 @@ void RemoveSurrogateDuplicates(void){
                   DeleteGraphNode(ScaffoldGraph->CIGraph, surr2);
               }
           }else{
+              int numVaInstances = GetNumCDS_CID_ts(curChunk->info.CI.instances.va);
               assert(curChunk->info.CI.instances.va != NULL);
-              if ( curChunk->info.CI.numInstances !=
+              if (   curChunk->info.CI.numInstances !=
                    GetNumCDS_CID_ts(curChunk->info.CI.instances.va))
               {
                 fprintf( stderr,
@@ -2679,54 +2680,53 @@ void RemoveSurrogateDuplicates(void){
                    curChunk->info.CI.numInstances,
                    GetNumCDS_CID_ts(curChunk->info.CI.instances.va)
                 );
-                assert(0);
+//                assert(0);
               }
               qsort( (void *)GetCDS_CID_t(curChunk->info.CI.instances.va, 0),
-                      curChunk->info.CI.numInstances,
+//                      curChunk->info.CI.numInstances,
+                      numVaInstances,
                       sizeof(CDS_CID_t), CompareSurrogatePlacements
                    );
-              {
-                  ChunkInstanceT *prevSurr = GetGraphNode(ScaffoldGraph->CIGraph,
-                          *GetCDS_CID_t(curChunk->info.CI.instances.va, 0));
-                  ChunkInstanceT *curSurr;
-                  int i, copyto;
+              ChunkInstanceT *prevSurr = GetGraphNode(ScaffoldGraph->CIGraph,
+                             *GetCDS_CID_t(curChunk->info.CI.instances.va, 0));
+              ChunkInstanceT *curSurr;
+              int i, copyto;
 
-                  assert(prevSurr != NULL);
-                  for(i = 1, copyto = 1; i < curChunk->info.CI.numInstances; i++){
-                      curSurr = GetGraphNode( ScaffoldGraph->CIGraph,
-                               *GetCDS_CID_t( curChunk->info.CI.instances.va, i)
-                      );
-                      assert( curSurr != NULL );
-                      if(   (prevSurr->info.CI.contigID >= 0) &&
-                            (prevSurr->info.CI.contigID == curSurr->info.CI.contigID) &&
-                       (fabs(prevSurr->offsetAEnd.mean - curSurr->offsetAEnd.mean) < 10.0) &&
-                       (fabs(prevSurr->offsetBEnd.mean - curSurr->offsetBEnd.mean) < 10.0))
-                      {
-                          RepairContigNeighbors(curSurr);
-                          DeleteGraphNode(ScaffoldGraph->CIGraph, curSurr);
-                      }else{
-                          SetCDS_CID_t(curChunk->info.CI.instances.va, copyto,
-                                  GetCDS_CID_t(curChunk->info.CI.instances.va, i));
-                          prevSurr = curSurr;
-                          copyto++;
-                      }
-                  }
-                  curChunk->info.CI.numInstances = copyto;
-                  if(curChunk->info.CI.numInstances < 3){
-                      CDS_CID_t  a = *GetCDS_CID_t(curChunk->info.CI.instances.va, 0);
-                      CDS_CID_t  b = *GetCDS_CID_t(curChunk->info.CI.instances.va, 1);
-
-                      assert( curChunk->info.CI.numInstances > 0 );
-                      DeleteVA_CDS_CID_t( curChunk->info.CI.instances.va );
-                      curChunk->info.CI.instances.in_line.instance1 = a;
-                      if( curChunk->info.CI.numInstances == 2 ){
-                          curChunk->info.CI.instances.in_line.instance2 = b;
-                      }else{
-                          curChunk->info.CI.instances.in_line.instance2 = -1;
-                      }
+              assert(prevSurr != NULL);
+              for(i = 1, copyto = 1; i < numVaInstances; i++){
+                  curSurr = GetGraphNode( ScaffoldGraph->CIGraph,
+                          *GetCDS_CID_t( curChunk->info.CI.instances.va, i)
+                          );
+                  assert( curSurr != NULL );
+                  if( (prevSurr->info.CI.contigID >= 0) &&
+                      (prevSurr->info.CI.contigID == curSurr->info.CI.contigID) &&
+                      (fabs(prevSurr->offsetAEnd.mean - curSurr->offsetAEnd.mean) < 10.0) &&
+                      (fabs(prevSurr->offsetBEnd.mean - curSurr->offsetBEnd.mean) < 10.0))
+                  {
+                      RepairContigNeighbors(curSurr);
+                      DeleteGraphNode(ScaffoldGraph->CIGraph, curSurr);
                   }else{
-                      ResetToRange_CDS_CID_t(curChunk->info.CI.instances.va, copyto);
+                      SetCDS_CID_t(curChunk->info.CI.instances.va, copyto,
+                              GetCDS_CID_t(curChunk->info.CI.instances.va, i));
+                      prevSurr = curSurr;
+                      copyto++;
                   }
+              }
+              curChunk->info.CI.numInstances = copyto;
+              if(curChunk->info.CI.numInstances < 3){
+                  CDS_CID_t  a = *GetCDS_CID_t(curChunk->info.CI.instances.va, 0);
+                  CDS_CID_t  b = *GetCDS_CID_t(curChunk->info.CI.instances.va, 1);
+
+                  assert( curChunk->info.CI.numInstances > 0 );
+                  DeleteVA_CDS_CID_t( curChunk->info.CI.instances.va );
+                  curChunk->info.CI.instances.in_line.instance1 = a;
+                  if( curChunk->info.CI.numInstances == 2 ){
+                      curChunk->info.CI.instances.in_line.instance2 = b;
+                  }else{
+                      curChunk->info.CI.instances.in_line.instance2 = -1;
+                  }
+              }else{
+                  ResetToRange_CDS_CID_t(curChunk->info.CI.instances.va, copyto);
               }
           }
       }
