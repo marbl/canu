@@ -105,7 +105,7 @@ ls -1 *.ofg > $PREFIX.ofgList
 # The -e 15 parameter equates to 1.5% assumed sequencing error.
 # This generates $PREFIX.cgb file.
 cd $WORKDIR/4-unitigger 
-$CA_BIN/unitigger -c -P -d 1 -x 1 -z 10 -j 5 $GENOMELENGTH_L -U $BUBBLE -e $ERATE -f \
+$CA_BIN/unitigger -c -P -A 1 -d 1 -x 1 -z 10 -j 5 $GENOMELENGTH_L -U $BUBBLE -e $ERATE -f \
   -F $WORKDIR/$PREFIX.frgStore  -o $PREFIX.fgbStore  \
   -L $PREFIX.ofgList  -I $WORKDIR/$PREFIX.ovlStore  \
   > unitigger.out  2> unitigger.err 
