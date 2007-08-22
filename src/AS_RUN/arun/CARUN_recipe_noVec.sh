@@ -144,7 +144,7 @@ $CA_BIN/correct-olaps \
   $WORKDIR/$PREFIX.frgStore  $WORKDIR/2-frgcorr/$PREFIX.corr  \
   1  $HIFRAGID  > correct-olaps.err 2>&1 
 # In single-partition mode, move file to simulate cat-erates
-cd $WORKDIR/3-ovlcorr && mv $PREFIX.erate $PREFIX.erates
+cd $WORKDIR/3-ovlcorr && mv -f $PREFIX.erate $PREFIX.erates
 
 #> Update overlap error rates
 
@@ -170,7 +170,7 @@ ls -1 *.ofg > $PREFIX.ofgList
 # The -e 15 parameter equates to 1.5% assumed sequencing error.
 # This generates $PREFIX.cgb file.
 cd $WORKDIR/4-unitigger 
-$CA_BIN/unitigger -c -P P -d 1 -x 1 -z 10 -j 5 $GENOMELENGTH_L -U $BUBBLE -e $ERATE -f \
+$CA_BIN/unitigger -c -P -d 1 -x 1 -z 10 -j 5 $GENOMELENGTH_L -U $BUBBLE -e $ERATE -f \
   -F $WORKDIR/$PREFIX.frgStore  -o $PREFIX.fgbStore  \
   -L $PREFIX.ofgList  -I $WORKDIR/$PREFIX.ovlStore  \
   > unitigger.out  2> unitigger.err 
@@ -184,7 +184,7 @@ mkdir -p $WORKDIR/5-consensus && cd $WORKDIR/5-consensus
 $CA_BIN/consensus -P -m -U   -o $PREFIX.cgi \
   $WORKDIR/$PREFIX.frgStore  $WORKDIR/4-unitigger/$PREFIX.cgb  \
   > consensus.err 2>&1
-mv $PREFIX.cgi $WORKDIR
+mv -f $PREFIX.cgi $WORKDIR
 ln -s $WORKDIR/$PREFIX.cgi .
 
 #> Preliminary scaffolds, estimate mate distances, build SeqStore
@@ -198,7 +198,7 @@ $CA_BIN/cgw  -c -j $ASTATLOW -k $ASTATHIGH -r 5 -s 2 -w 0 -T -P    \
   -f $WORKDIR/$PREFIX.frgStore  -g $WORKDIR/$PREFIX.gkpStore  \
   -o $PREFIX  $WORKDIR/$PREFIX.cgi  > cgw.out 2>&1 
 # SeqStore needed by subsequent cgw calls. Move it up one level.
-mv $PREFIX.SeqStore $WORKDIR
+mv -f $PREFIX.SeqStore $WORKDIR
 ln -s $WORKDIR/$PREFIX.SeqStore .
 
 # Begin : determine max checkpoint number
@@ -377,7 +377,7 @@ assert_exists $WORKDIR/7-6-scaffold/$PREFIX.cgw  \
 cat $WORKDIR/7-6-scaffold/$PREFIX.cgw  \
     $WORKDIR/8-consensus/$PREFIX.cns_contigs   \
     $WORKDIR/7-6-scaffold/$PREFIX.cgw_scaffolds  \
-  | $CA_BIN/terminator -P $EUIDSERVICE    \
+  | $CA_BIN/terminator -P $EUIDSERVICE \
   -f $WORKDIR/$PREFIX.frgStore  -g $WORKDIR/$PREFIX.gkpStore  \
   -o $PREFIX.asm  -m $PREFIX.map  > terminator.err 2>&1 
 cd $WORKDIR
