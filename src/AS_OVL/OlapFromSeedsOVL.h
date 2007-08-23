@@ -33,8 +33,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.h,v 1.7 2007-08-03 20:45:04 brianwalenz Exp $
- * $Revision: 1.7 $
+ * $Id: OlapFromSeedsOVL.h,v 1.8 2007-08-23 15:06:26 adelcher Exp $
+ * $Revision: 1.8 $
 */
 
 
@@ -85,8 +85,6 @@
 #define  EDIT_DIST_PROB_BOUND        1e-4
   //  Probability limit to "band" edit-distance calculation
   //  Determines  NORMAL_DISTRIB_THOLD
-#define  EPSILON                     1e-8
-  //  Small value to correct floating-point rounding errors
 #define  ERATE_BITS                  16
   //  Number of bits to store integer versions of error rates
 #define  ERRORS_FOR_FREE             1
@@ -232,7 +230,8 @@ typedef  struct
    Frag_List_t  * frag_list;
    char  rev_seq [AS_READ_MAX_LEN + 1];
    int  rev_id;
-    int  ** edit_array;
+   int  ** edit_array;
+   Homopoly_Match_Entry_t  ** homopoly_edit_array;
    int  * edit_space;
 #if USE_NEW_STUFF
    Diff_Entry_t  diff_list [AS_READ_MAX_LEN];  //  only MAX_ERRORS needed
@@ -282,7 +281,7 @@ static int  Error_Bound [MAX_FRAG_LEN + 1];
   // i * MAXERROR_RATE .
 static double  Error_Rate = 0.0;
   // Highest allowed error rate used in alignments
-  // This is set at run time.
+  // Can be set at run time.
 static int  Extend_Fragments = FALSE;
   // If true, try to extend clear range of fragments.
   // Set by  -e  option
@@ -340,8 +339,6 @@ static pthread_mutex_t  Print_Mutex;
 static int  Use_Haplo_Ct = TRUE;
   // Set false by  -h  option to ignore haplotype counts
   // when correcting
-static int  Verbose_Level = 0;
-  // Determines number of extra outputs
 static int  Vote_Qualify_Len = DEFAULT_VOTE_QUALIFY_LEN;
   // Number of bases surrounding a SNP to vote for change
 
@@ -398,7 +395,7 @@ static void  Display_Alignment
   (char * a, int a_len, char * b, int b_len, int delta [], int delta_ct,
    int capitalize_start);
 static void  Display_Diffs
-  (const Sequence_Diff_t * dp, const char * a, int a_len);
+  (FILE * fp, const Sequence_Diff_t * dp, const char * a, int a_len);
 static void  Display_Frags
   (void);
 static void  Display_Multialignment
@@ -414,7 +411,7 @@ static void  Extract_Needed_Frags
 static char  Filter
   (char ch);
 static void  Get_Seeds_From_Store
-  (char * path, int32 lo_id, int32 hi_id, Olap_Info_t * * olap, int * num);
+  (char * path, int32 lo_id, int32 hi_id, Olap_Info_t ** olap, int * num);
 static char  Homopoly_Should_Be
   (char curr, New_Vote_t * vp, int * ch_ct, int * tot);
 static void  Init_Frag_List
@@ -452,7 +449,7 @@ static void  Read_Seeds
 static void  Rev_Complement
   (char * s);
 static void  Set_Diff_Entry
-  (Diff_Entry_t * * de, int * pos, int * size, unsigned len, unsigned action,
+  (Diff_Entry_t ** de, int * pos, int * size, unsigned len, unsigned action,
    unsigned ch);
 static void  Set_Homopoly_Votes_From_Diffs
   (int sub, Sequence_Diff_t * dp);
@@ -473,7 +470,7 @@ static void  Set_Votes_From_Diffs
 static void  Show_Corrections
   (FILE * fp, const char * seq, const char * corr, int len);
 static void  Show_Edit_Array
-  (int * * ea, int errs);
+  (FILE * fp, int ** ea, int errs);
 static void  Show_Frag_Votes
   (FILE * fp, int sub);
 static void  Show_New_Votes

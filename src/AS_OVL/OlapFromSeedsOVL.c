@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.12 2007-08-06 05:46:12 brianwalenz Exp $
- * $Revision: 1.12 $
+ * $Id: OlapFromSeedsOVL.c,v 1.13 2007-08-23 15:06:26 adelcher Exp $
+ * $Revision: 1.13 $
 */
 
-static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.12 2007-08-06 05:46:12 brianwalenz Exp $";
+static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.13 2007-08-23 15:06:26 adelcher Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -59,6 +59,42 @@ int  main
 
    Initialize_Globals ();
    fprintf (stderr, "Error rate = %.3f\n", Error_Rate);
+
+//**ALD
+if (0)
+{
+ Alignment_Cell_t  ea [1000];
+ Homopoly_Match_Entry_t  hp_space [40 * 40];
+ Homopoly_Match_Entry_t  * hp_array [40];
+// char  a [] = "gttaaggctaggggtcatccgacttaccaaccttgcaaac";
+// char  b [] = "gttaaggctagggggcatcccgacttaccaacccttgcaaac";
+ char  a [] = "gttaaggctaggggtcatccgacttaccaact";
+ char  b [] = "ttaaggctagggggcatcccgacttaccaacccttaca";
+ int  errors, score;
+ int  a_end, b_end, match_to_end, delta [200], delta_len;
+ int  i;
+
+ for (i = 0; i < 40;  i ++)
+   hp_array [i] = hp_space + i * (i + 1);
+ printf ("Homopoly alignment:  a_lo/hi=%d/%d  b_lo/hi=%d/%d\n", 0,
+      strlen (a), 0, strlen (b));
+ errors = Fwd_Banded_Homopoly_Prefix_Match (a, strlen (a), b, strlen (b), 15, & score,
+      & a_end, & b_end, & match_to_end, delta, & delta_len, ea);
+ printf ("errors=%d  score=%d  delta_len=%d\n", errors, score, delta_len);
+ for (i = 0; i < delta_len; i ++)
+   printf ("%3d: %6d\n", i, delta [i]);
+ Display_Alignment (a, a_end, b, b_end, delta, delta_len, a_end);
+
+ errors = Fwd_Homopoly_Prefix_Match (a, strlen (a), b, strlen (b), 15, & score,
+      & a_end, & b_end, & match_to_end, delta, & delta_len, hp_array);
+ printf ("errors=%d  score=%d  delta_len=%d\n", errors, score, delta_len);
+ for (i = 0; i < delta_len; i ++)
+   printf ("%3d: %6d\n", i, delta [i]);
+ Display_Alignment (a, a_end, b, b_end, delta, delta_len, a_end);
+ Show_Homopoly_Match_Array (stdout, hp_array, errors);
+
+ exit (-12);
+}
 
    gkpStore = openGateKeeperStore(gkpStore_Path, FALSE);
    assert (gkpStore != NULL);
@@ -364,7 +400,7 @@ static void  Analyze_Diffs
    if (Doing_Corrections)
      fp = File_Open (Correction_Filename, "wb");
 
-   fprintf (stderr, "Start analyzing alignments  Num_Frags = %d\n", Num_Frags);
+   fprintf (stderr, "Start analyzing multi-alignments  Num_Frags = %d\n", Num_Frags);
    for (i = 0; i < Num_Frags; i ++)
      Analyze_Frag (fp, i);
 
@@ -392,6 +428,9 @@ static void  Analyze_Frag
    int  frag_len, mod_len;
    int  i, n;
 
+//**ALD
+//printf ("Analyze read %d\n", sub + Lo_Frag_IID);
+
    if (Frag [sub] . sequence == NULL || Frag [sub] . num_diffs == 0)
      {  // deleted read or read with no overlaps
       if (Doing_Corrections)
@@ -408,10 +447,12 @@ static void  Analyze_Frag
      {
       Set_Insert_Sizes (insert_size, Frag [sub] . diff_list + i);
 
+//**ALD
       if (Verbose_Level > 2)
         {
-         printf ("Alignment #%d:\n", i + 1);
-         Display_Diffs (Frag [sub] . diff_list + i, Frag [sub] . sequence,
+         printf ("\nAlignment:  i = %d  b_iid = %d\n", i,
+              Frag [sub] . diff_list [i] . b_iid);
+         Display_Diffs (fp, Frag [sub] . diff_list + i, Frag [sub] . sequence,
               frag_len);
         }
      }
@@ -439,6 +480,15 @@ static void  Analyze_Frag
 
 //**ALD
    if (Verbose_Level > 0)
+   for (i = 0; i < n; i ++)
+     {
+      printf ("\nModified alignment:  i = %d  b_iid = %d\n", i,
+        mod_dp [i] . b_iid);
+      Display_Diffs (stdout, mod_dp + i, mod_seq, mod_len);
+     }
+
+//**ALD
+   if (Verbose_Level > 0)
      Display_Multialignment (stdout, sub, mod_seq, NULL, mod_len, mod_dp, n);
 
 //**ALD
@@ -462,7 +512,15 @@ if (0)
        {
         if (mod_dp [i] . is_homopoly_type)
 //          Set_Homopoly_Votes_From_Diffs (sub, Frag [sub] . diff_list + i);
+//**ALD
+{
+// printf ("Set_New_Homopoly_Votes for i=%d b_iid=%d\n", i,
+//      Frag [sub] . diff_list [i] . b_iid);
+// if (Frag [sub] . diff_list [i] . b_iid == 421078)
+//   Global_Debug_Flag = TRUE;
           Set_New_Homopoly_Votes (vote, mod_seq, mod_len, mod_dp + i);
+ Global_Debug_Flag = FALSE;
+}
         else
 //          Set_Votes_From_Diffs (sub, Frag [sub] . diff_list + i);
           Set_New_Standard_Votes (vote, mod_len, mod_dp + i);
@@ -718,7 +776,7 @@ static void  Cast_New_Vote_Char
         break;
       default :
         fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
-        fprintf (stderr, "Bad character '%c'\n", ch);
+        fprintf (stderr, "Bad character '%c' (%d)\n", ch, (int) ch);
         exit (EXIT_FAILURE);
      }
 
@@ -1171,7 +1229,7 @@ static void  Determine_Homopoly_Corrections
       ch = Homopoly_Should_Be (seq [i], vote + i, & ch_ct, & tot);
       if (ch != hp_ch && ch != '-')
         {  // end of prior homopoly run--adjust length if necessary
-         if (i > 0)
+         if (i > 0 && hp_ch != 'x')
            {
             new_hp_len = rint (EPSILON + (1.0 * hp_sum) / hp_ct);
             diff = new_hp_len - hp_len;
@@ -1415,9 +1473,9 @@ static void  Display_Alignment
 
 
 static void  Display_Diffs
-  (const Sequence_Diff_t * dp, const char * a, int a_len)
+  (FILE * fp, const Sequence_Diff_t * dp, const char * a, int a_len)
 
-//  Show (to  stdout ) the differences encoded in  dp
+//  Show (to  fp ) the differences encoded in  dp
 //  to string  a [0 .. (a_len - 1)] .
 
   {
@@ -1847,7 +1905,7 @@ static char  Filter
 
 
 static void  Get_Seeds_From_Store
-    (char * path, int32 lo_id, int32 hi_id, Olap_Info_t * * olap, int * num)
+    (char * path, int32 lo_id, int32 hi_id, Olap_Info_t ** olap, int * num)
 
 //  Open overlap store  path  and read from it the overlaps for fragments
 //   lo_id .. hi_id , putting them in  (* olap)  for which space
@@ -2085,6 +2143,9 @@ static void  Init_Thread_Work_Area
    strcpy (wa -> rev_seq, "acgt");
 
    wa -> edit_array = (int **) safe_malloc(MAX_ERRORS * sizeof(int *));
+   // use the same space for the regular and homopoly edit arrays
+   assert (sizeof (int) == sizeof (Homopoly_Match_Entry_t));
+   wa -> homopoly_edit_array = (Homopoly_Match_Entry_t **) wa -> edit_array;
    wa -> edit_space = (int *) safe_malloc((MAX_ERRORS + 4) * MAX_ERRORS * sizeof(int));
 
    offset = 2;
@@ -2181,6 +2242,7 @@ static void  Modify_For_Inserts
    unsigned  ct;
    int  d_size, d_pos, alloc_size;
    int  leftover_inserts, sum;
+   int  is_initial_insert = TRUE;
    int  i, j, k, m, q;
 
    d_size = 2 * dp -> diff_len + 5;
@@ -2208,6 +2270,7 @@ static void  Modify_For_Inserts
          ct ++;
          leftover_inserts = insert_size [j];
          j ++;  // position in A string
+         is_initial_insert = FALSE;
         }
 
       switch (dp -> de [k] . action)
@@ -2215,7 +2278,21 @@ static void  Modify_For_Inserts
          case 0 :    // insert becomes substitution
            Set_Diff_Entry (& (mod_dp -> de), & d_pos, & d_size, ct, 2,
                 dp -> de [k] . ch);
-           leftover_inserts --;
+           if (is_initial_insert)
+             // push back the start position in mod_dp for insertions at the
+             // beginning of the alignment
+             {
+              if (mod_dp -> a_lo == 0)
+                {
+                 fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
+                 fprintf (stderr, "Insertions before start of reference sequence\n");
+                 exit (EXIT_FAILURE);
+                }
+              else
+                mod_dp -> a_lo --;
+             }
+           else
+             leftover_inserts --;
            break;
          case 1 :    // delete
            for (q = 0; q < leftover_inserts; q ++)
@@ -2227,17 +2304,26 @@ static void  Modify_For_Inserts
            Set_Diff_Entry (& (mod_dp -> de), & d_pos, & d_size, ct, 1, 0);
            leftover_inserts = insert_size [j];
            j ++;
+           is_initial_insert = FALSE;
            break;
          case 2 :    // substitute
+           for (q = 0; q < leftover_inserts; q ++)
+             {
+              Set_Diff_Entry (& (mod_dp -> de), & d_pos, & d_size, ct, 1, 0);
+                   // character 0 doesn't matter
+              ct = 0;
+             }
            Set_Diff_Entry (& (mod_dp -> de), & d_pos, & d_size, ct, 2,
                 dp -> de [k] . ch);
            leftover_inserts = insert_size [j];
            j ++;
+           is_initial_insert = FALSE;
            break;
          case 3 :    // noop
            // should be end of alignment
            Set_Diff_Entry (& (mod_dp -> de), & d_pos, & d_size, ct, 3, 0);
            j ++;
+           is_initial_insert = FALSE;
            break;
         }
       ct = 0;
@@ -2466,8 +2552,12 @@ static void  Parse_Command_Line
 //  arguments in  argv [0 .. (argc - 1)] .
 
   {
+   int  error_rate_set = FALSE;
    int  ch, errflg = FALSE;
    char  * p;
+
+   // set environment variables
+   argc = AS_configure (argc, argv);
 
    optarg = NULL;
 
@@ -2565,12 +2655,14 @@ static void  Parse_Command_Line
         case  'y' :
           Error_Rate = strtod (optarg, & p);
           if  (p == optarg || AS_GUIDE_ERROR_RATE < Error_Rate)
-              {
-               fprintf (stderr, "ERROR:  Bad error rate  %s\n", optarg);
-               fprintf (stderr, "Value must be between 0.0 and %.3f\n",
-                    AS_GUIDE_ERROR_RATE);
-               errflg = TRUE;
-              }
+            {
+             fprintf (stderr, "ERROR:  Bad error rate  %s\n", optarg);
+             fprintf (stderr, "Value must be between 0.0 and %.3f\n",
+                  AS_GUIDE_ERROR_RATE);
+             errflg = TRUE;
+            }
+          else
+            error_rate_set = TRUE;
           break;
 
         case  'z' :
@@ -2626,8 +2718,9 @@ static void  Parse_Command_Line
    //  Set, finally, the global variables that are based on
    //  environment variables.
    //
-   Char_Match_Value = DEFAULT_CHAR_MATCH_VALUE;
-   Error_Rate       = AS_GUIDE_ERROR_RATE;
+
+   if (! error_rate_set)
+     Error_Rate = AS_GUIDE_ERROR_RATE;
 
    return;
   }
@@ -3004,15 +3097,21 @@ static void  Process_Olap
 // containing space for the process to use in case of multi-threading.
 
   {
+   Sequence_Diff_t  diff;
    char  * a_part, * b_part;
    unsigned  a_len;
-   int  right_delta [AS_READ_MAX_LEN], right_delta_len;  //  both right_ and left_delta only MAX_ERRORS needed
+   int  right_delta [AS_READ_MAX_LEN], right_delta_len;
    int  left_delta [AS_READ_MAX_LEN], left_delta_len;
+          //  both right_ and left_delta only MAX_ERRORS needed
+   int  new_delta [AS_READ_MAX_LEN];  // only MAX_ERRORS needed
+   int  new_errors, new_a_end, new_b_end, new_delta_len, new_match_to_end;
+   int  raw_errors, score;
    int  a_part_len, b_part_len, a_end, b_end, olap_len;
    int  a_lo, a_hi, a_match_len, b_lo, b_hi, b_match_len;
    int  left_errors, right_errors, leftover, match_to_end;
    int  a_offset, b_offset, allowed_errors, remaining_errors, sub;
-   int  i;
+   int  use_homopoly_type_alignments, re_do;
+   int  i, k;
 
    if (Verbose_Level > 0)
       printf ("Process_Olap:  %8d %8d %5d %5d  %c\n",
@@ -3107,49 +3206,210 @@ static void  Process_Olap
       exit (EXIT_FAILURE);
      }
 
-   // Try to extend the alignment forward from the exact match
+   // 
    a_part_len = strlen (a_part);
    b_part_len = strlen (b_part);
    a_len = a_offset + a_part_len;
    olap_len = OVL_Min_int (a_part_len, b_part_len)
         + OVL_Min_int (a_offset, b_offset);
    allowed_errors = Error_Bound [olap_len];
+   use_homopoly_type_alignments = (! Doing_Partial_Overlaps
+        && (is_homopoly || Frag [sub] . is_homopoly_type));
 
+   // First extend backward to get the starting alignment position.
+   // This allows the entire alignment to be computed in one direction
+   // which makes homopolymer run differences all occur on the same end of the
+   // run (i.e., the right).
+   if (use_homopoly_type_alignments)
+     {
+      raw_errors = Rev_Homopoly_Match_Start (a_part - 1, a_offset,
+           b_part - 1, b_offset,
+           HOMOPOLY_SCORE_MULTIPLIER * allowed_errors, & score,
+           & a_end, & b_end, & match_to_end, wa -> homopoly_edit_array);
+      // adjust errors to equivalent non-homopoly error number
+      left_errors = (int) ceil ((double) score / HOMOPOLY_SCORE_MULTIPLIER);
+//**ALD
+      if (Verbose_Level > 1)
+        {
+         printf ("Rev_Homopoly_Match_Start:  b_iid = %d  a/b_offset = %d/%d"
+              "  allowed_errors=%d\n",
+              olap -> b_iid, a_offset, b_offset, allowed_errors);
+         printf ("  a/b_end=%d/%d  score=%d  match_to_end=%c  raw_errors=%d\n",
+              a_end, b_end, score, (match_to_end ? 'T' : 'F'), raw_errors);
+        }
+     }
+   else
+     left_errors = Rev_Prefix_Edit_Dist (a_part - 1, a_offset,
+          b_part - 1, b_offset, remaining_errors, & a_end, & b_end,
+          & leftover, & match_to_end, Char_Match_Value, left_delta,
+          & left_delta_len, wa -> edit_array, Edit_Match_Limit, Error_Bound,
+          Doing_Partial_Overlaps);
+
+   // make sure nothing terrible happened
+   if (a_end > 0 || - a_end > a_offset || b_end > 0 || - b_end > b_offset)
+     {
+      fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
+      fprintf (stderr, "Bad reverse match\n");
+      fprintf (stderr, "errors = %d  a_end = %d  b_end = %d\n",
+               left_errors, a_end, b_end);
+      fprintf (stderr, "a_offset = %d  b_offset = %d\n",
+               a_offset, b_offset);
+      fprintf (stderr, "a/b_iid = %d/%d  a/b_is_homopoly=%c/%c  match_to_end = %c\n",
+               olap -> a_iid, olap -> b_iid,
+               (Frag [sub] . is_homopoly_type ? 'T' : 'F'),
+               (is_homopoly ? 'T' : 'F'),
+               match_to_end ? 'T' : 'F');
+      exit (EXIT_FAILURE);
+     }
+
+   remaining_errors = allowed_errors - left_errors;
+   if (! Doing_Partial_Overlaps && (! match_to_end || remaining_errors < 0))
+     {
+      wa -> failed_olaps ++;
+      return;
+     }
+
+   // Now try to extend the alignment forward from the left-end
+   // position we've found
+   do
+     {
+      re_do = FALSE;
+      if (use_homopoly_type_alignments)
+        {
+   #if  0
+         raw_errors = Fwd_Homopoly_Prefix_Match (a_part + a_end, a_part_len - a_end,
+              b_part + b_end, b_part_len - b_end,
+              HOMOPOLY_SCORE_MULTIPLIER * allowed_errors, & score,
+              & new_a_end, & new_b_end, & new_match_to_end, new_delta,
+              & new_delta_len, wa -> homopoly_edit_array);
+   #else
+         Alignment_Cell_t  ea [10 * AS_READ_MAX_LEN];
+
+         raw_errors = Fwd_Banded_Homopoly_Prefix_Match (a_part + a_end, a_part_len - a_end,
+              b_part + b_end, b_part_len - b_end,
+              HOMOPOLY_SCORE_MULTIPLIER * allowed_errors, & score,
+              & new_a_end, & new_b_end, & new_match_to_end, new_delta,
+              & new_delta_len, ea);
+   #endif
+         // adjust errors to equivalent non-homopoly error number
+         new_errors = (int) ceil ((double) score / HOMOPOLY_SCORE_MULTIPLIER);
+        }
+      else
+        new_errors = Fwd_Prefix_Edit_Dist (a_part + a_end, a_part_len - a_end,
+             b_part + b_end, b_part_len - b_end, allowed_errors,
+             & new_a_end, & new_b_end, & new_match_to_end, Char_Match_Value, new_delta,
+             & new_delta_len, wa -> edit_array, Edit_Match_Limit, Error_Bound,
+             Doing_Partial_Overlaps);
+
+        // Check for any inserts before the start of the a string.
+        // These are rare but can happen when the reverse alignment
+        // used to set the starting points disagrees with the forward
+        // alignment.  Remove them and re-align if found.
+        if (- a_end == a_offset)
+          {
+           for (i = 0; i < new_delta_len && new_delta [i] == -1; i ++)
+             ;
+           if (0 < i)
+             {
+              b_end += i;
+              re_do = TRUE;
+             }
+          }
+     } while (re_do);
+
+//**ALD
+   if (Verbose_Level > 1)
+     {
+      int  j;
+
+      printf ("Fwd alignment:  b_iid = %d  raw_errors/allowed = %d/%d"
+           "  score = %d  delta_len = %d  %s\n",
+           olap -> b_iid, raw_errors, allowed_errors, score, new_delta_len,
+           (0 < new_delta_len ? "Deltas:" : ""));
+      for (j = 0; j < new_delta_len; j ++)
+        printf (" %5d\n", new_delta [j]);
+      printf ("  match_to_end = %c\n", (match_to_end ? 'T' : 'F'));
+      printf ("  a_align_end/len = %d/%d  b_align_end/len = %d/%d\n",
+           new_a_end, a_part_len - a_end, new_b_end, b_part_len - b_end);
+      Display_Alignment (a_part + a_end, new_a_end, b_part + b_end,
+           new_b_end, new_delta, new_delta_len, a_part_len - a_end);
+//**ALD
+      if (Verbose_Level > 2)
+        {
+         if (use_homopoly_type_alignments)
+           Show_Homopoly_Match_Array (stdout, wa -> homopoly_edit_array, raw_errors);
+         else
+           Show_Edit_Array (stdout, wa -> edit_array, new_errors);
+        }
+     }
+
+   // If we're trying to extend past the clear range, a match past that point
+   // counts as a match to the end
+   if (! match_to_end && new_a_end + a_end + a_offset >= Frag [sub] . clear_len - 1)
+     match_to_end = TRUE;
+
+   // recalculate based on actual alignment--original was just estimated
+   olap_len = OVL_Min_int (new_a_end, new_b_end);
+   allowed_errors = Error_Bound [olap_len];
+
+   if ((! Doing_Partial_Overlaps && (! match_to_end || allowed_errors < new_errors))
+         || olap_len < Min_Olap_Len)
+     {
+      wa -> failed_olaps ++;
+      return;
+     }
+
+   a_lo = a_offset + a_end;
+   a_hi = a_lo + new_a_end;
+   b_lo = b_offset + b_end;
+   b_hi = b_lo + new_b_end;
+
+#if USE_NEW_STUFF
+   diff . a_lo = a_lo;
+   diff . a_hi = a_hi;
+   diff . b_lo = b_lo;
+   diff . b_hi = b_hi;
+   Convert_Delta_To_Diff (new_delta, new_delta_len, a_part + a_end,
+        b_part + b_end, new_a_end, new_b_end, & diff,
+        new_errors, wa);
+
+   k = Frag [sub] . num_diffs ++;
+   Frag [sub] . diff_list = safe_realloc (Frag [sub] . diff_list,
+        Frag [sub] . num_diffs * sizeof (Sequence_Diff_t));
+   Frag [sub] . diff_list [k] = diff;
+   Frag [sub] . diff_list [k] . b_iid = olap -> b_iid;
+   Frag [sub] . diff_list [k] . disregard = 0;
+   Frag [sub] . diff_list [k] . is_homopoly_type = is_homopoly;
+   Frag [sub] . diff_list [k] . b_len = b_len;
+   Frag [sub] . diff_list [k] . flipped = (olap -> orient == INNIE);
+   Frag [sub] . diff_list [k] . seed_value = olap -> k_count;
+
+//**ALD
+   if (Verbose_Level > 1)
+     {
+      printf ("Diffs:\n");
+      for (i = 0; i < diff . diff_len; i ++)
+        printf ("%3d: %5u %2u %2u\n", i, diff . de [i] . len,
+             diff . de [i] . action, diff . de [i] . ch);
+     }
+#else   // Old Stuff
+   Output_Olap (olap, a_lo, a_hi, a_len, b_lo, b_hi, b_len,
+        new_errors);
+
+   if (Doing_Corrections)
+     Analyze_Alignment (new_delta, new_delta_len, a_part + a_end, b_part + b_end,
+          new_a_end, new_b_end, a_lo, sub);
+#endif
+
+  return;
+
+#if 0   //**ALD  rest is superfluous, I think
+   // Try to extend the alignment forward from the exact match
    right_errors = Fwd_Prefix_Edit_Dist (a_part, a_part_len,
         b_part, b_part_len, allowed_errors, & a_end, & b_end,
         & match_to_end, Char_Match_Value, right_delta,
         & right_delta_len, wa -> edit_array, Edit_Match_Limit, Error_Bound,
         Doing_Partial_Overlaps);
-
-   if (a_end < 0 || a_end > a_part_len || b_end < 0 || b_end > b_part_len)
-     {
-      fprintf (stderr, "ERROR:  Bad edit distance\n");
-      fprintf (stderr, "errors = %d  a_end = %d  b_end = %d\n",
-               right_errors, a_end, b_end);
-      fprintf (stderr, "a_part_len = %d  b_part_len = %d\n",
-               a_part_len, b_part_len);
-      fprintf (stderr, "a_iid = %d  b_iid = %d  match_to_end = %c\n",
-               olap -> a_iid, olap -> b_iid, match_to_end ? 'T' : 'F');
-      exit (-3);
-     }
-
-   if (Verbose_Level > 1)
-     {
-      int  j;
-
-      printf ("Fwd:  errors/allowed = %d/%d  right_delta_len = %d  %s\n",
-           right_errors, allowed_errors, right_delta_len,
-           (0 < right_delta_len ? "Deltas:" : ""));
-      for (j = 0; j < right_delta_len; j ++)
-        printf (" %5d\n", right_delta [j]);
-      printf ("  match_to_end = %c\n", (match_to_end ? 'T' : 'F'));
-      printf ("  a_align = %d/%d  b_align = %d/%d\n", a_end, a_part_len,
-           b_end, b_part_len);
-      Display_Alignment (a_part, a_end, b_part,
-           b_end, right_delta, right_delta_len, a_len - a_offset);
-      if (Verbose_Level > 2)
-         Show_Edit_Array (wa -> edit_array, right_errors);
-     }
 
    // If we're trying to extend past the clear range, a match past that point
    // counts as a match to the end
@@ -3190,7 +3450,7 @@ static void  Process_Olap
            b_part + b_end, - b_end, left_delta,
            left_delta_len, - a_end);
       if (Verbose_Level > 2)
-         Show_Edit_Array (wa -> edit_array, left_errors);
+         Show_Edit_Array (stdout, wa -> edit_array, left_errors);
      }
 
    if (! Doing_Partial_Overlaps && (! match_to_end || remaining_errors < left_errors))
@@ -3261,23 +3521,27 @@ static void  Process_Olap
       // run will sometimes be on the left of the run and sometimes on the
       // right.  We want them all on the same end.
 //**ALD
-if (0)
+if (1)
 {
  Homopoly_Match_Entry_t  hp_space [40 * 40];
  Homopoly_Match_Entry_t  * hp_array [40];
  int  i;
 
  for (i = 0; i < 40;  i ++)
-   hp_array [i] = hp_space + i * i;
- new_errors = Fwd_Homopoly_Prefix_Match (a_part + a_end, a_part_len - a_end,
-      b_part + b_end, b_part_len - b_end, left_errors + right_errors + 1,
+   hp_array [i] = hp_space + i * (i + 1);
+ raw_errors = Fwd_Homopoly_Prefix_Match (a_part + a_end, a_part_len - a_end,
+      b_part + b_end, b_part_len - b_end,
+      HOMOPOLY_SCORE_MULTIPLIER * (left_errors + right_errors), & score,
       & new_a_end, & new_b_end, & new_match_to_end, new_delta,
       & new_delta_len, hp_array);
+ // adjust errors to equivalent non-homopoly error number
+ new_errors = (int) ceil ((double) score / HOMOPOLY_SCORE_MULTIPLIER);
  printf ("Homopoly alignment:  a_lo/hi=%d/%d  b_lo/hi=%d/%d\n", a_lo, a_lo + new_a_end,
       b_lo, b_lo + new_b_end);
-// Display_Alignment (a_part + a_end, new_a_end, b_part + b_end, new_b_end,
-//      new_delta, new_delta_len, new_a_end);
+ Display_Alignment (a_part + a_end, new_a_end, b_part + b_end, new_b_end,
+      new_delta, new_delta_len, new_a_end);
 }
+else
       new_errors = Fwd_Prefix_Edit_Dist (a_part + a_end, a_part_len - a_end,
            b_part + b_end, b_part_len - b_end, left_errors + right_errors + 1,
            & new_a_end, & new_b_end, & new_match_to_end, Char_Match_Value, new_delta,
@@ -3302,7 +3566,7 @@ printf ("New alignment:  a_lo/hi=%d/%d  b_lo/hi=%d/%d\n", a_lo, a_lo + new_a_end
      b_lo, b_lo + new_b_end);
 Display_Alignment (a_part + a_end, new_a_end, b_part + b_end, new_b_end,
      new_delta, new_delta_len, new_a_end);
-Show_Edit_Array (wa -> edit_array, new_errors);
+Show_Edit_Array (stdout, wa -> edit_array, new_errors);
 #endif
 
       
@@ -3346,6 +3610,7 @@ Show_Edit_Array (wa -> edit_array, new_errors);
       wa -> failed_olaps ++;
                       
    return;
+#endif  // superfluous
   }
 
 
@@ -3559,7 +3824,7 @@ static void  Rev_Complement
 
 
 static void  Set_Diff_Entry
-  (Diff_Entry_t * * de, int * pos, int * size, unsigned len, unsigned action,
+  (Diff_Entry_t ** de, int * pos, int * size, unsigned len, unsigned action,
    unsigned ch)
 
 // Set entry  (* de) [* pos]  to  <len,action,ch>  and increment  (* pos)
@@ -3711,7 +3976,7 @@ static void  Set_Insert_Sizes
   (short unsigned * insert_size, const Sequence_Diff_t * dp)
 
 // Set values in  insert_size  to be at least large enough to accommodate
-// insertitions in  dp .
+// insertions in  dp .
 
   {
    int  j, k, i_ct;
@@ -3729,10 +3994,10 @@ static void  Set_Insert_Sizes
       switch (dp -> de [k] . action)
         {
          case 0 :    // insert
-           if (j == dp -> a_lo)
+           if (j == 0)
              {
               fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
-              fprintf (stderr, "Insertion at beginning of alignment\n");
+              fprintf (stderr, "Insertion before beginning of ref string\n");
               exit (-1);
              }
            if (++ i_ct > insert_size [j - 1])
@@ -3768,6 +4033,11 @@ static void  Set_New_Homopoly_Votes
    int  first_j, last_j;
    int  hp_len = 0;      // length of current homopoly run
    int  j, k, m;
+
+//**ALD
+if (Global_Debug_Flag)
+  printf ("a_lo/hi=%d/%d  b_lo/hi=%d/%d\n", dp -> a_lo, dp -> a_hi,
+       dp -> b_lo, dp -> b_hi);
 
    j = dp -> a_lo;
 
@@ -3813,7 +4083,12 @@ static void  Set_New_Homopoly_Votes
       for (m = 0; m < dp -> de [k] . len; m ++)
         {
          if (first_j <= j && j <= last_j)
+//**ALD
+{
+ if (Global_Debug_Flag)
+   printf ("j=%d  seq[%d]=%c (%d)\n", j, j, seq [j], (int) seq [j]);
            Cast_New_Vote_Char (vote + j, seq [j]);
+}
          if (seq [j] == hp_ch)
            hp_len ++;
          else
@@ -4125,19 +4400,19 @@ static void  Show_Corrections
 
 
 static void  Show_Edit_Array
-  (int * * ea, int errs)
+  (FILE * fp, int ** ea, int errs)
 
-// Display the values of  ea  in rows  0 .. errs .
+// Display to  fp  the values of  ea  in rows  0 .. errs .
 
   {
    int  i, j;
 
    for (i = 0; i <= errs; i ++)
      {
-      printf ("%2d: ", i);
+      fprintf (fp, "%2d: ", i);
       for (j = -i; j <= i; j ++)
-         printf (" %3d", ea [i] [j]);
-      putchar ('\n');
+         fprintf (fp, " %3d", ea [i] [j]);
+      fputc ('\n', fp);
      }
 
    return;
