@@ -70,6 +70,7 @@ test1(merStream *S, char *id, int offset) {
 int
 test2(merStream *MS1,
       merStream *MS2) {
+  static char  stra[256], strb[256], strc[256], strd[256];
   int e = 0;
 
   speedCounter C(" %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, true);
@@ -90,11 +91,11 @@ test2(merStream *MS1,
         (MS1->thePositionInSequence() != MS2->thePositionInSequence()) ||
         (MS1->thePositionInStream()   != MS2->thePositionInStream())   ||
         (MS1->theSequenceNumber()     != MS2->theSequenceNumber())) {
-      fprintf(stderr, "OOPS: MS1: "u64bitHEX","u64bitHEX"@"u64bitFMT"/"u64bitFMT","u64bitFMT"  MS2: "u64bitHEX","u64bitHEX"@"u64bitFMT"/"u64bitFMT","u64bitFMT"\n",
-              (u64bit)MS1->theFMer(), (u64bit)MS1->theRMer(), MS1->thePositionInSequence(), MS1->thePositionInStream(), MS1->theSequenceNumber(),
-              (u64bit)MS2->theFMer(), (u64bit)MS2->theRMer(), MS2->thePositionInSequence(), MS2->thePositionInStream(), MS2->theSequenceNumber());
-      fprintf(stderr, "MS1:\n"); MS1->theFMer().dump(stderr);
-      fprintf(stderr, "MS2:\n"); MS2->theFMer().dump(stderr);
+      fprintf(stderr, "OOPS: MS1: %s/%s @ "u64bitFMT"/"u64bitFMT","u64bitFMT"  MS2: %s/%s @ "u64bitFMT"/"u64bitFMT","u64bitFMT"\n",
+              MS1->theFMer().merToString(stra), MS1->theRMer().merToString(strb), MS1->thePositionInSequence(), MS1->thePositionInStream(), MS1->theSequenceNumber(),
+              MS2->theFMer().merToString(strc), MS2->theRMer().merToString(strd), MS2->thePositionInSequence(), MS2->thePositionInStream(), MS2->theSequenceNumber());
+      //fprintf(stderr, "MS1:\n"); MS1->theFMer().dump(stderr);
+      //fprintf(stderr, "MS2:\n"); MS2->theFMer().dump(stderr);
     }
     C.tick();
   }
@@ -122,54 +123,54 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  merStreamFileBuilder  *MS1b = new merStreamFileBuilder(27, argv[1], "test-merstream.merstreamfile1.junk");
-  MS1b->build();
-  delete MS1b;
+  seqStore   *SS = new seqStore(argv[1], new seqStream(argv[1], true));
+  seqStream  *CS = new seqStream(argv[1], true);
 
-  merStreamFileReader   *MS1r = new merStreamFileReader("test-merstream.merstreamfile1.junk");
+  merStream   *MS1 = new merStream(27, SS);
+  merStream   *MS2 = new merStream(27, CS);
 
-  seqStream             *CS   = new seqStream(argv[1], true);
+  //MS1->rewind();
+  //MS2->rewind();
+
+  fprintf(stderr, "test2()-- pass 1\n");
+  e += test2(MS1, MS2);
+
+  MS1->rewind();
+  MS2->rewind();
+
+  fprintf(stderr, "test2()-- pass 2\n");
+  e += test2(MS1, MS2);
 
   seqFile  *SF = openSeqFile(argv[1]);
   SF->openIndex();
 
-  seqInCore  *SC = SF->getSequenceInCore();
-
-  merStream   *MS1 = new merStream(MS1r);
-  merStream   *MS2 = new merStream(27, CS);
-  merStream   *MS3 = new merStream(27, SC);
-
-  MS1->rewind();
-  MS2->rewind();
-
-  e += test2(MS1, MS2);
-
-  MS1->rewind();
-  MS2->rewind();
-
-  e += test2(MS1, MS2);
-
   if (SF->getNumberOfSequences() == 1) {
+    seqInCore  *SC  = SF->getSequenceInCore();
+    merStream  *MS3 = new merStream(27, SC);
+
     MS1->rewind();
     MS2->rewind();
     MS3->rewind();
 
+    fprintf(stderr, "test2()-- pass 3\n");
     e += test2(MS1, MS3);
 
     MS1->rewind();
     MS2->rewind();
     MS3->rewind();
 
+    fprintf(stderr, "test2()-- pass 4\n");
     e += test2(MS2, MS3);
+
+    delete MS3;
+    delete SC;
   }
 
-  delete MS3;
   delete MS2;
   delete MS1;
-  delete SC;
   delete SF;
   delete CS;
-  delete MS1r;
+  delete SS;
 
   return(e);
 }

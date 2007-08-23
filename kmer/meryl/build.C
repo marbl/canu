@@ -212,36 +212,33 @@ prepareBatch(merylArgs *args) {
     }
   }
 
-  //  Everybody needs to dump the mers to a merStreamFile.  The only
-  //  one that doesn't is "sequential, no memory limit", but
+  //  Everybody needs to dump the mers to a merStreamFile.
+  //
+  //  The only one that doesn't is "sequential, no memory limit", but
   //  optimizing for just that case makes the code too complex.
   //
-  //  If the stream already exists, skip this step.
-  //
-  if (merStreamFileExists(args->outputFile)) {
-    merStreamFileReader *R = new merStreamFileReader(args->outputFile, args->merSize);
-    args->numMersActual = R->numberOfMers();
-    delete R;
-  } else {
-    //  If we are running on the grid (as decided by merylArgs)
-    //  really build the merStreamFile, regardless.
-    //
-    if ((args->isOnGrid) || (args->sgeJobName == 0L)) {
-      merStreamFileBuilder   *B = new merStreamFileBuilder(args->merSize,
-                                                           args->inputFile,
-                                                           args->outputFile);
+  {
+    seqStream *seqstr = new seqStream(args->inputFile, true);
+    seqStore  *seqsto = new seqStore(args->outputFile, seqstr);
 
-      args->numMersActual = B->build(args->beVerbose);
+    args->numMersActual = seqsto->numberOfACGT();
 
-      delete B;
-    } else {
-      //  Shucks, we need to build the merstream file.  Lets do it
-      //  on the grid!
-      //
-      submitPrepareBatch(args);
-      exit(0);
-    }
+    delete seqsto;
+    delete seqstr;
   }
+
+#warning not submitting prepareBatch to grid
+#if 0
+  if ((args->isOnGrid) || (args->sgeJobName == 0L)) {
+  } else {
+
+    //  Shucks, we need to build the merstream file.  Lets do it
+    //  on the grid!
+    //
+    submitPrepareBatch(args);
+    exit(0);
+  }
+#endif
 
 
   //  If there is a memory limit, ignore the total number of mers and
@@ -318,7 +315,8 @@ prepareBatch(merylArgs *args) {
 
 void
 runSegment(merylArgs *args, u64bit segment) {
-  merStreamFileReader *R = 0L;
+  seqStore            *R = 0L;
+  merStream           *M = 0L;
   merylStreamWriter   *W = 0L;
   speedCounter        *C = 0L;
   u32bit              *bucketSizes = 0L;
@@ -387,37 +385,45 @@ runSegment(merylArgs *args, u64bit segment) {
   //  everybody else does args->mersPerBatch mers.
 
   C = new speedCounter(" Counting mers in buckets: %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, args->beVerbose);
-  R = new merStreamFileReader(args->outputFile, args->merSize);
+  R = new seqStore;
+
+  if (R->loadStore(args->outputFile) == false) {
+    fprintf(stderr, "Failed to load seqStore '%s'.\n", args->outputFile);
+    exit(1);
+  }
+
   R->setIterationStart(args->mersPerBatch * segment);
   R->setIterationLimit(args->mersPerBatch);
 
+  M = new merStream(args->merSize, R);
+
   if (args->doForward) {
-    while (R->nextMer()) {
-      bucketSizes[ args->hash(R->theFMer()) ]++;
+    while (M->nextMer()) {
+      bucketSizes[ args->hash(M->theFMer()) ]++;
       C->tick();
     }
   }
 
   if (args->doReverse) {
-    while (R->nextMer()) {
-      bucketSizes[ args->hash(R->theRMer()) ]++;
+    while (M->nextMer()) {
+      bucketSizes[ args->hash(M->theRMer()) ]++;
       C->tick();
     }
   }
 
   if (args->doCanonical) {
-    while (R->nextMer()) {
-      if (R->theFMer() <= R->theRMer())
-        bucketSizes[ args->hash(R->theFMer()) ]++;
+    while (M->nextMer()) {
+      if (M->theFMer() <= M->theRMer())
+        bucketSizes[ args->hash(M->theFMer()) ]++;
       else
-        bucketSizes[ args->hash(R->theRMer()) ]++;
+        bucketSizes[ args->hash(M->theRMer()) ]++;
       C->tick();
     }
   }
 
   delete C;
   delete R;
-
+  delete M;
 
   //  Create the hash index using the counts.  The hash points
   //  to the end of the bucket; when we add a word, we move the
@@ -455,16 +461,24 @@ runSegment(merylArgs *args, u64bit segment) {
 
 
   C = new speedCounter(" Filling mers into list:   %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, args->beVerbose);
-  R = new merStreamFileReader(args->outputFile, args->merSize);
+  R = new seqStore;
+
+  if (R->loadStore(args->outputFile) == false) {
+    fprintf(stderr, "Failed to load seqStore '%s'.\n", args->outputFile);
+    exit(1);
+  }
+
   R->setIterationStart(args->mersPerBatch * segment);
   R->setIterationLimit(args->mersPerBatch);
 
-  while (R->nextMer()) {
+  M = new merStream(args->merSize, R);
 
-    kMer const &m =  ((args->doReverse) || (args->doCanonical && (R->theFMer() > R->theRMer()))) ?
-      R->theRMer()
+  while (M->nextMer()) {
+
+    kMer const &m =  ((args->doReverse) || (args->doCanonical && (M->theFMer() > M->theRMer()))) ?
+      M->theRMer()
       :
-      R->theFMer();
+      M->theFMer();
 
     //  additionally, we can use the real bitPackedArray here, since everything
     //  is fixed size.
@@ -502,7 +516,7 @@ runSegment(merylArgs *args, u64bit segment) {
 
   delete C;
   delete R;
-
+  delete M;
 
   char *batchOutputFile = new char [strlen(args->outputFile) + 33];
   sprintf(batchOutputFile, "%s.batch"u64bitFMT, args->outputFile, segment);

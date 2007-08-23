@@ -40,16 +40,13 @@ main(int argc, char **argv) {
   outName = new char [strlen(inName) + 1];
   strcpy(outName, inName);
 
-  if (!merStreamFileExists(inName)) {
-    fprintf(stderr, "Building merStream.\n");
+  seqStream  *seqstr = new seqStream(inName, true);
+  seqStore   *seqsto = new seqStore(outName, seqstr);
 
-    merStreamFileBuilder  *MSFB = new merStreamFileBuilder(merSize, inName, outName);
-    MSFB->build();
-  }
+  u64bit      memUsed = seqsto->loadStoreInCore();
+  u64bit      numMers = seqsto->numberOfACGT();
 
-  merStreamFileReader  *MSFR = new merStreamFileReader(outName, merSize);
-  u64bit      memUsed = MSFR->loadInCore();
-  u64bit      numMers = MSFR->numberOfMers();
+#warning needed exact number of mers here
 
   fprintf(stderr, "Found "u64bitFMT" mers in file of size "u64bitFMT"\n", numMers, memUsed);
 
@@ -67,7 +64,7 @@ main(int argc, char **argv) {
   //  about the block size.
   //
   u64bit   pointerWidth = logBaseTwo64(numMers);
-  bitPackedMerHeap  *heap = new bitPackedMerHeap(MSFR, pointerWidth, 8 * 1024);
+  bitPackedMerHeap  *heap = new bitPackedMerHeap(seqsto, pointerWidth, 8 * 1024);
 
   speedCounter *S;
 
@@ -77,15 +74,9 @@ main(int argc, char **argv) {
   fprintf(stderr, "Can store "u64bitFMT" mer pointers of size "u64bitFMT" in the heap.\n", N, pointerWidth);
 
   kMer mer;
-  char str[1024];
 
   if (N > numMers)
     N = numMers;
-
-
-  //  XXXXXXX: The MSFR is arguably broken.  The seek() function needs
-  //  a nextMer() after it to load the mer.
-
 
   //  Initialize the heap with some numbers
   //

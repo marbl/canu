@@ -25,6 +25,7 @@ public:
   void       putBits(u64bit pos, u64bit bits, u32bit size);
   void       putNumber(u64bit val);
 
+  u64bit     tell(void)       { return((_pos << 6) + _bit); };
   void       seek(u64bit pos);
 
   u64bit     loadInCore(void);

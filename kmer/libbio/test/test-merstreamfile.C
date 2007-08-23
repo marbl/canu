@@ -7,7 +7,7 @@
 //  Build a merStreamFile using small mers, read it back using bigger mers.
 
 //  Also report the correct stuff.
-//#define SHOW_CORRECT
+#undef SHOW_CORRECT
 
 #define BUILD_SIZE   14
 #define TEST_SIZE    31
@@ -19,7 +19,7 @@
 
 
 int
-test(u64bit compared, merStream *M, merStreamFileReader *R) {
+test(u64bit compared, merStream *M, merStream *R) {
   static char  stra[256], strb[256], strc[256], strd[256];
 
   if ((M->theFMer()                != R->theFMer()) ||
@@ -54,38 +54,63 @@ streamingTest(char *msfile, bool inCore) {
 
   int                  errors = 0;
   u64bit               compared = 0;
-  merStreamFileReader *R = new merStreamFileReader("junk", TEST_SIZE);
-  chainedSequence     *F = new chainedSequence();
-  F->setSource(msfile);
-  F->finish();
-  merStream           *M = new merStream(TEST_SIZE, F);
+
+  merStream    *merstr = new merStream(TEST_SIZE, new seqStream(msfile, true));
+  seqStore     *seqsto = new seqStore(msfile, new seqStream(msfile, true));
 
   if (inCore)
-    R->loadInCore();
+    seqsto->loadStoreInCore();
+
+  if (0) {
+    char stra[256];
+
+    while (merstr->nextMer()) {
+      fprintf(stderr, "seqpos:"u64bitFMT" seqiid:"u64bitFMT" strpos:"u64bitFMT" %s\n",
+              merstr->thePositionInSequence(), merstr->theSequenceNumber(), merstr->thePositionInStream(),
+              merstr->theFMer().merToString(stra));
+    }
+    delete merstr;
+    merstr = new merStream(TEST_SIZE, new seqStream(msfile, true));
+    exit(1);
+  }
+
+  //  Just dump the sequence
+  if (0) {
+    char ch;
+    char st[1024] = {0};
+    int  i = 0;
+    while (ch = seqsto->get()) {
+      st[i++] = ch;
+    }
+    printf("%s\n", st);
+
+    seqsto->rewind();
+  }
+
+  merStream    *mersto = new merStream(TEST_SIZE, seqsto);
 
   double startTime = getTime();
 
   fprintf(stderr, "Testing streaming access.\n");
-  while (M->nextMer() && R->nextMer()) {
+  while (merstr->nextMer() && mersto->nextMer()) {
     compared++;
-    errors += test(compared, M, R);
+    errors += test(compared, merstr, mersto);
   }
 
   fprintf(stderr, "Compared "u64bitFMT" mers. (%f seconds)\n", compared, getTime() - startTime);
 
-  if (M->nextMer()) {
+  if (merstr->nextMer()) {
     fprintf(stderr, "ERROR: Extra mers in the merStream!\n");
     errors++;
   }
 
-  if (R->nextMer()) {
-    fprintf(stderr, "ERROR: Extra mers in the merStreamFile!\n");
+  if (mersto->nextMer()) {
+    fprintf(stderr, "ERROR: Extra mers in the merStore!\n");
     errors++;
   }
 
-  delete M;
-  delete F;
-  delete R;
+  delete mersto;
+  delete merstr;
 
   return(errors);
 }
@@ -94,27 +119,29 @@ streamingTest(char *msfile, bool inCore) {
 
 int
 randomAccessTest(char *msfile, bool inCore) {
+  int                  errors = 0;
 
+  fprintf(stderr, "randomAccessTest skipped until it gets rewritten.\n");
+
+#if 0
   fprintf(stderr, "randomAccessTest -- %s %s\n", msfile, (inCore) ? "inCore" : "disk-based");
 
-  int                  errors = 0;
   u64bit               merNum   = 0;
-  merStreamFileReader *R = new merStreamFileReader("junk", TEST_SIZE);
-  chainedSequence     *F = new chainedSequence();
-  F->setSource(msfile);
-  F->finish();
-  merStream           *M = new merStream(TEST_SIZE, F);
+
+  merStream           *merstr = new merStream(TEST_SIZE, new seqStream(msfile, true));
+  seqStore            *seqsto = new seqStore(msfile, new seqStream(msfile, true));
+  merStream           *mersto = new merStream(TEST_SIZE, seqsto);
 
   if (inCore)
-    R->loadInCore();
+    seqsto->loadStoreInCore();
 
-  u64bit numMers = R->numberOfMers();
+  u64bit numMers = seqsto->numberOfACGT();
 
   double startTime = 0.0;
   double seekTime  = 0.0;
 
   //  Load the first mer from the stream.
-  M->nextMer();
+  merstr->nextMer();
 
   //  How many seeks?  At most 100, but we'll decrease if the seeks
   //  are less than 1000 bases.
@@ -128,23 +155,26 @@ randomAccessTest(char *msfile, bool inCore) {
     //  Skip 'skipSize' mers in M
     //
     for (u32bit loop=0; loop < numMers / numSeeks; loop++, merNum++)
-      M->nextMer();
+      merstr->nextMer();
 
     //  Seek to the proper spot in R
     //
     startTime = getTime();
-    R->setIterationStart(merNum);
-    R->nextMer();
+    mersto->seek(merNum);
     seekTime += getTime() - startTime;
 
-    errors += test(merNum, M, R);
+    errors += test(merNum, merstr, mersto);
+
+    if (errors > 20)
+      exit(1);
   }
 
   fprintf(stderr, "(%f seconds)\n", seekTime);
 
-  delete M;
-  delete F;
-  delete R;
+  delete mersto;
+  delete merstr;
+  delete seqsto;
+#endif
 
   return(errors);
 }
@@ -164,11 +194,13 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "Building merStreamFile.\n");
 
-  merStreamFileBuilder   *B = new merStreamFileBuilder(BUILD_SIZE, argv[1], "junk");
-  u64bit numMers = B->build(true);
-  delete B;
+  seqStream *seqstr = new seqStream(argv[1], true);
+  seqStore  *seqsto = new seqStore(argv[1], seqstr);
 
-  fprintf(stderr, "Found "u64bitFMT" mers in %s at mersize %d\n", numMers, argv[1], BUILD_SIZE);
+  fprintf(stderr, "Found "u64bitFMT" ACGT in %s\n", seqsto->numberOfACGT(), argv[1]);
+
+  delete seqsto;
+  delete seqstr;
 
   u32bit errors = 0;
   errors += streamingTest(argv[1], false);
@@ -181,7 +213,8 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  unlink("junk.merStream");
+  unlink("junk.seqStream.blocks");
+  unlink("junk.seqStream.sequence");
 
   exit(0);
 }

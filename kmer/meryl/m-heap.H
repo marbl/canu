@@ -13,11 +13,11 @@
 
 class bitPackedMerHeap {
 public:
-  bitPackedMerHeap(merStreamFileReader *MSFR, u32bit width, u64bit size=16) {
+  bitPackedMerHeap(seqStore *SS, u32bit width, u64bit size=16) {
     _array    = new bitPackedArray(width, size);
     _array->set(0, 0);
     _lastVal  = 0;
-    _mers     = MSFR;
+    _mers     = SS;
   };
 
   ~bitPackedMerHeap() {
@@ -145,7 +145,7 @@ public:
 private:
   bitPackedArray       *_array;
   u64bit                _lastVal;
-  merStreamFileReader  *_mers;
+  seqStore             *_mers;
 };
 
 

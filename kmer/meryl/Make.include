@@ -14,9 +14,11 @@ merylsrc := $/args.C \
             $/merge.C \
             $/unaryOp.C
 
-$/.CXX_SRCS   := ${merylsrc} $/meryl.C $/asmMerQC.C $/mapMers.C $/mapMers-depth.C $/m.C
+#  Removed m.C from SRCS. and m from EXES -- what's it do??
+
+$/.CXX_SRCS   := ${merylsrc} $/meryl.C $/asmMerQC.C $/mapMers.C $/mapMers-depth.C
 $/.CXX_LIBS   := $/libmerylguts.a
-$/.CXX_EXES   := $/meryl $/asmMerQC $/mapMers $/mapMers-depth $/m $/testPositionBias
+$/.CXX_EXES   := $/meryl $/asmMerQC $/mapMers $/mapMers-depth $/testPositionBias
 $/.CLEAN      := $/*.o
 
 $/libmerylguts.a : ${merylsrc:.C=.o}

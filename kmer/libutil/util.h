@@ -232,8 +232,9 @@ off_t     stat_getSize(stat_s *sb);
 
 //  Convenience functions
 //
-int   fileExists(const char *path);
-off_t sizeOfFile(const char *path);
+int       fileExists(const char *path);
+off_t     sizeOfFile(const char *path);
+u64bit    timeOfFile(const char *path);
 
 //  Open a file, read/write, using compression based on the file name
 //

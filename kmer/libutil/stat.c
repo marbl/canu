@@ -181,3 +181,12 @@ sizeOfFile(const char *path) {
   stat_onPath(path, &s);
   return(s.st_size);
 }
+
+
+u64bit
+timeOfFile(const char *path) {
+  struct stat s;
+
+  stat_onPath(path, &s);
+  return(s.st_mtime);
+}

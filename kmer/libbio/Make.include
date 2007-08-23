@@ -19,8 +19,6 @@ src    := $/alphabet.c \
           $/mers.h \
           $/merstream.C \
           $/merstream.H \
-          $/merstreamfile.C \
-          $/merstreamfile.H \
           $/reversecomplement.c \
           $/seq.C
 

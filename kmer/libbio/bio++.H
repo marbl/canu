@@ -16,13 +16,13 @@
 
 #include "mers.h"
 #include "seq.H"
-#include "fasta.H"
 
+#include "fasta.H"
 #include "fasta-cache.H"
 #include "fasta-accessor.H"
 
 #include "kmer.H"
-#include "merstreamfile.H"
+//#include "merstreamfile.H"
 #include "merstream.H"
 #include "merCovering.H"
 #include "merList.H"

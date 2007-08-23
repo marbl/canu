@@ -179,6 +179,9 @@ main(int argc, char **argv) {
   u64bit           merBegin = ~u64bitZERO;
   u64bit           merEnd   = ~u64bitZERO;
 
+  merStream       *MS = 0L;
+  seqStore        *seqsto = 0L;
+
   char            *inputFile  = 0L;
   char            *outputFile = 0L;
 
@@ -233,8 +236,6 @@ main(int argc, char **argv) {
 
   SS.finish();
 
-  merStream *MS      = new merStream(mersize, &SS);
-
   //  Approximate the number of mers in the sequences.
   //
   u64bit     numMers = SS.lengthOfSequences();
@@ -259,31 +260,15 @@ main(int argc, char **argv) {
   //  seekToMer()) and -merend (using setIterationLimit()).
   //
   if ((merBegin > 0) || (merEnd < numMers)) {
-    char  *merStreamFile = new char [1024];
-    sprintf(merStreamFile, "%s.merStream", outputFile);
-
-    if (fileExists(merStreamFile)) {
-      fprintf(stderr, "Using existing merStreamFile '%s'\n", merStreamFile);
-    } else {
-      fprintf(stderr, "Building a merStreamFile to support a mer subrange.\n");
-      merStreamFileBuilder *MSFB = new merStreamFileBuilder(MS, outputFile);
-      numMers = MSFB->build();
-      delete MSFB;
-    }
-
-    delete MS;
-
-    merStreamFileReader *MSFR = new merStreamFileReader(outputFile);
-    MSFR->setIterationStart(merBegin);
-    MSFR->setIterationLimit(merEnd - merBegin);
-    MS = new merStream(MSFR);
+    seqsto = new seqStore(outputFile, &SS);
+    MS     = new merStream(mersize, seqsto);
+  } else {
+    MS = new merStream(mersize, &SS);
   }
 
 
-
-  //  Figure out a nice size of the hash.
-  //
-  //  XXX:  This probably should be tuned.
+  //  Figure out a nice size of the hash.  XXX: This probably should
+  //  be tuned.
   //
   if (tblsize == 0) {
     tblsize = 25;
@@ -304,6 +289,7 @@ main(int argc, char **argv) {
   positions->saveState(outputFile);
 
   delete MS;
+  delete seqsto;
   delete positions;
 
   exit(0);

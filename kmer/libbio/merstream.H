@@ -35,8 +35,10 @@
 //  will remove the overhead of the if tests.
 
 class merStream {
+private:
+  void initialize(u32bit merSize);
 public:
-  merStream(merStreamFileReader *merstreamfile);
+  merStream(u32bit merSize, seqStore *ss);
   merStream(u32bit merSize, seqStream *cs);
   merStream(u32bit merSize, seqInCore *seq, u32bit offset=0, u32bit length=0);
   merStream(u32bit merSize, char *seq, u32bit offset=0, u32bit length=0);
@@ -44,45 +46,35 @@ public:
 
   u32bit                 theMerSize(void) { return(_merSize); };
 
-  kMer const &           theFMer(void)    { return(*_fMerP); };
-  kMer const &           theRMer(void)    { return(*_rMerP); };
-  kMer const &           theCMer(void)    { return((_fMerP < _rMerP) ? *_fMerP : *_rMerP); };
+  kMer const &           theFMer(void)    { return(_fMer); };
+  kMer const &           theRMer(void)    { return(_rMer); };
+  kMer const &           theCMer(void)    { return((_fMer < _rMer) ? _fMer : _rMer); };
 
   bool                   nextMer(u32bit skip=0);
   bool                   rewind(void);
 
-  //  The position in the sequence is relative to the start of the
-  //  sequence.  The sequence MUST be squeezed.
-  //
-  //  The position in the stream is relative to the start of the
-  //  source.  It is a _byte_ position.  No squeezing.  If you give it
-  //  a fasta file, it includes any deflines and white space.
-  //
+  //  'pos' is the N'th ACGT in the file, not the N'th mer in the file!
+  bool                   seek(u64bit pos) {
+    if (_ss_file) {
+      _ss_file->setIterationStart(pos);
+      loadMer(_merSize - 1);
+      return(nextMer());
+    }
+    return(false);
+  };
+
   u64bit                 thePositionInSequence(void);
   u64bit                 thePositionInStream(void);
   u64bit                 theSequenceNumber(void);
-  char const            *theDefLine(void);
-
-  //  Return a guess on the number of mers in the input.  Our guess
-  //  will never be too small.  Returns ~u64bitZERO if no guess is
-  //  possible.
-  //
-  u64bit                 approximateNumberOfMers(void) {
-    if (_ms_mers)
-      return(_ms_mers->numberOfMers());
-    if (_cs_chainedSeq)
-      return(_cs_chainedSeq->lengthOfSequences());
-    if (_st_string)
-      return(_st_stringLen);
-    return(~u64bitZERO);
-  };
+  u64bit                 approximateNumberOfMers(void);
 
 private:
   void                   loadMer(u32bit s);
-  u64bit                 nextSymbol(void);
+  u64bit                 nextSym(void);
 
-  merStreamFileReader  *_ms_mers;
-  seqStream            *_cs_chainedSeq;
+private:
+  seqStore             *_ss_file;
+  seqStream            *_cs_stream;
   char const           *_st_string;
   u64bit                _st_stringPos;
   u64bit                _st_stringLen;
@@ -95,31 +87,22 @@ private:
 
   kMer                  _fMer;
   kMer                  _rMer;
-
-  //  Pointers to which ever kMer we are using.  If our source is the
-  //  merStreamFile, then these are pointers to the kMer in the
-  //  merStreamFile, otherwise, they are pointers to the two kMers
-  //  above.
-  //
-  kMer const           *_fMerP;
-  kMer const           *_rMerP;
 };
 
 
 
 
+//  Why the +1?  seqStream->seqPos() returns the position that the
+//  last character retrieved is at.  We need to go back _merSize-1
+//  positions to get to the start of the mer.
+
 inline
 u64bit
 merStream::thePositionInSequence(void) {
-
-  //  Why the +1?  seqStream->thePositionInSequence() returns the
-  //  position that the last character retrieved is at.  We need to go
-  //  back _merSize-1 positions to get to the start of the mer.
-
-  if      (_ms_mers)
-    return(_ms_mers->thePositionInSequence());
-  else if (_cs_chainedSeq)
-    return(_cs_chainedSeq->thePositionInSequence() - _merSize + 1);
+  if      (_ss_file)
+    return(_ss_file->seqPos() + 1 - _merSize);
+  else if (_cs_stream)
+    return(_cs_stream->seqPos() + 1 - _merSize);
   else
     return(_st_posInSeq - _merSize);
 }
@@ -127,40 +110,52 @@ merStream::thePositionInSequence(void) {
 inline
 u64bit
 merStream::thePositionInStream(void) {
-  if      (_ms_mers)
-    return(_ms_mers->thePositionInStream());
-  else if (_cs_chainedSeq)
-    return(_cs_chainedSeq->thePositionInStream() - _merSize + 1);
+  if      (_ss_file)
+    return(_ss_file->strPos() + 1 - _merSize);
+  else if (_cs_stream)
+    return(_cs_stream->strPos() + 1 - _merSize);
   else
-    return(_st_stringPos - _merSize);  //  was _st_posInStr
+    return(_st_stringPos - _merSize);
 }
 
 inline
 u64bit
 merStream::theSequenceNumber(void) {
-  if      (_ms_mers)
-    return(_ms_mers->theSequenceNumber());
-  else if (_cs_chainedSeq)
-    return(_cs_chainedSeq->theSequenceNumber());
+  if      (_ss_file)
+    return(_ss_file->seqIID());
+  else if (_cs_stream)
+    return(_cs_stream->seqIID());
   else
     return(_st_num);
 }
 
+//  Return a guess on the number of mers in the input.  Our guess will
+//  never be too small.  Returns ~u64bitZERO if no guess is possible.
+//
 inline
-char const *
-merStream::theDefLine(void) {
-  return(">not-available");
+u64bit
+merStream::approximateNumberOfMers(void) {
+  if (_ss_file)
+    return(_ss_file->numberOfACGT());
+  if (_cs_stream)
+    return(_cs_stream->lengthOfSequences());
+  if (_st_string)
+    return(_st_stringLen);
+  return(~u64bitZERO);
 }
 
 
 inline
 u64bit
-merStream::nextSymbol(void) {
+merStream::nextSym(void) {
 
   //  This is called only for seqStreams, seqStream and char* input.
 
-  if (_cs_chainedSeq)
-    return(_cs_chainedSeq->get());
+  if (_ss_file)
+    return(_ss_file->get());
+
+  if (_cs_stream)
+    return(_cs_stream->get());
 
   //  See also the constructor for character strings -- it skips
   //  white space and the first defline.
@@ -206,8 +201,6 @@ merStream::nextSymbol(void) {
 
 
 
-
-
 //  We have a problem; at the start of a stream, we want to
 //  initialize the mer with merSize-1 bases.  In the middle of the
 //  stream, we need to load the mer with merSize bases.
@@ -234,7 +227,7 @@ merStream::loadMer(u32bit s) {
   //  count is updated if we hit an invalid base.
   //
   while ((_timeUntilValid > 0) && (ch != 0)) {
-    ch = nextSymbol();
+    ch = nextSym();
     cf = validCompressedSymbol[ch];
 
     //  Rather than take the chance of generating a cache miss accessing
@@ -279,50 +272,39 @@ inline
 bool
 merStream::nextMer(u32bit skip) {
 
-  if (_ms_mers) {
-    bool ret = _ms_mers->nextMer(skip);
+  do {
+    u64bit  ch = nextSym();
+    u64bit  cf = validCompressedSymbol[ch];
+    u64bit  cr = validCompressedSymbol[complementSymbol[ch]] & 0x03;
 
-    //  Arguably a hack -- we grab a pointer to the merStreamFile mer,
-    //  and return that from here.
+    //  EOF?
+    if (ch == 0)
+      return(false);
+
+    //  Push the ch onto the mer.
     //
-    _fMerP = &_ms_mers->theFMer();
-    _rMerP = &_ms_mers->theRMer();
+    _fMer += cf;
+    _rMer -= cr;
 
-    return(ret);
-  } else {
-    do {
-      u64bit  ch = nextSymbol();
-      u64bit  cf = validCompressedSymbol[ch];
-      u64bit  cr = validCompressedSymbol[complementSymbol[ch]] & 0x03;
-
-      //  EOF?
-      if (ch == 0)
-        return(false);
-
-      //  Push the ch onto the mer.
-      //
-      _fMer += cf;
-      _rMer -= cr;
-
-      //  If the ch is invalid, we need to make a whole new mer.
-      //  This also implies that we're done skipping.
-      //
-      if (cf & (unsigned char)0xfc) {
-        loadMer(_merSize);
-        skip = 0;
-      }
-    } while (skip--);
-
-    _fMer.mask(true);
-    _rMer.mask(false);
-
-    //  Still need to check if we are valid -- we could
-    //  have run off the end of the sequence before a valid
-    //  mer was created.
+    //  If the ch is invalid, we need to make a whole new mer.
+    //  This also implies that we're done skipping.
     //
-    return(_timeUntilValid <= 0);
-  }
+    if (cf & (unsigned char)0xfc) {
+      loadMer(_merSize);
+      skip = 0;
+    }
+  } while (skip--);
+
+  _fMer.mask(true);
+  _rMer.mask(false);
+
+  //  Still need to check if we are valid -- we could
+  //  have run off the end of the sequence before a valid
+  //  mer was created.
+  //
+  return(_timeUntilValid <= 0);
 }
 
 
 #endif  //  MERSTREAM_H
+

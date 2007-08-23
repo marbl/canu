@@ -19,6 +19,8 @@ main(int argc, char **argv) {
     exit(1);
   }
 
+#warning does nothing
+#if 0
   merStreamFileBuilder   *B = new merStreamFileBuilder(BUILD_SIZE, argv[1], "junk");
   u64bit numMers = B->build(true);
   delete B;
@@ -35,6 +37,7 @@ main(int argc, char **argv) {
             M->thePositionInSequence(),
             M->thePositionInStream(),
             M->theDefLine());
+#endif
 
   exit(0);
 }
