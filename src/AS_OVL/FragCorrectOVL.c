@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FragCorrectOVL.c,v 1.22 2007-08-03 20:45:04 brianwalenz Exp $
- * $Revision: 1.22 $
+ * $Id: FragCorrectOVL.c,v 1.23 2007-08-23 15:00:00 adelcher Exp $
+ * $Revision: 1.23 $
 */
 
-static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.22 2007-08-03 20:45:04 brianwalenz Exp $";
+static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.23 2007-08-23 15:00:00 adelcher Exp $";
 
 
 //  System include files
@@ -282,8 +282,6 @@ static pthread_mutex_t  Print_Mutex;
 static int  Use_Haplo_Ct = TRUE;
     // Set false by  -h  option to ignore haplotype counts
     // when correcting
-static int  Verbose_Level = 0;
-    // Determines number of extra outputs
 static int  Vote_Qualify_Len = DEFAULT_VOTE_QUALIFY_LEN;
     // Number of bases surrounding a SNP to vote for change
 

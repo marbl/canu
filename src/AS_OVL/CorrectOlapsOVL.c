@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CorrectOlapsOVL.c,v 1.23 2007-08-03 20:45:04 brianwalenz Exp $
- * $Revision: 1.23 $
+ * $Id: CorrectOlapsOVL.c,v 1.24 2007-08-23 15:00:00 adelcher Exp $
+ * $Revision: 1.24 $
 */
 
-static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.23 2007-08-03 20:45:04 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.24 2007-08-23 15:00:00 adelcher Exp $";
 
 
 //  System include files
@@ -248,8 +248,7 @@ static int  Total_Alignments_Ct = 0;
     // Count the number of alignments attempted
 static int  * UF = NULL;
     // For Union-Find data structure for sets of fragments.
-static int  Verbose_Level = 0;
-    // Determines number of extra outputs
+
 
 //  Static Functions
 
