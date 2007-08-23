@@ -25,17 +25,23 @@
       Definitions of functions declared in  delcher.h
    Assumptions:  Input meets specifications in the ProtoIO documents
  *********************************************************************/
-static char fileID[] = "$Id: AS_OVL_delcher.c,v 1.5 2006-09-26 21:07:45 brianwalenz Exp $";
+static char fileID[] = "$Id: AS_OVL_delcher.c,v 1.6 2007-08-23 14:57:26 adelcher Exp $";
 
 
 /* RCS info
- * $Id: AS_OVL_delcher.c,v 1.5 2006-09-26 21:07:45 brianwalenz Exp $
- * $Revision: 1.5 $
+ * $Id: AS_OVL_delcher.c,v 1.6 2007-08-23 14:57:26 adelcher Exp $
+ * $Revision: 1.6 $
 */
 
 
 
 #include  "AS_OVL_delcher.h"
+
+
+int  Global_Debug_Flag = FALSE;
+  // Flag for debugging
+int  Verbose_Level = 0;
+  // Determines amount of diagnostic printout
 
 
 

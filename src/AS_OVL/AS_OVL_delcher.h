@@ -28,8 +28,8 @@
 
 
 /* RCS info
- * $Id: AS_OVL_delcher.h,v 1.5 2006-09-26 21:07:45 brianwalenz Exp $
- * $Revision: 1.5 $
+ * $Id: AS_OVL_delcher.h,v 1.6 2007-08-23 14:57:26 adelcher Exp $
+ * $Revision: 1.6 $
 */
 
 
@@ -59,6 +59,11 @@
 #endif
 
 #define  FILE_OPEN_FAILURE   134
+
+extern int  Global_Debug_Flag;
+  // Flag for debugging
+extern int  Verbose_Level;
+  // Determines amount of diagnostic printout
 
 int  All_White_Space
     (const char *);
