@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: createFrgDeletes.c,v 1.11 2007-08-08 17:21:28 ahalpern Exp $";
+static char CM_ID[] = "$Id: createFrgDeletes.c,v 1.12 2007-08-24 15:29:48 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -134,15 +134,12 @@ int main( int argc, char *argv[])
   
   while(fscanf(iidlist,F_S32,&fragIID)==1){
 
-    int rv1,rv2;
-
     /*************************/
     // get the fragment
     /*************************/
 
     //fprintf(stderr,"Working on frgIID %d\n",fragIID);
-    rv1 = getGateKeeperFragment(gkpStore,fragIID,&gkpFrag);
-    //    assert(rv1==0);
+    getGateKeeperFragment(gkpStore,fragIID,&gkpFrag);
 
     fragUID = gkpFrag.readUID;
 
@@ -153,8 +150,7 @@ int main( int argc, char *argv[])
     if(gkpFrag.mateIID != 0){
       mateIID = gkpFrag.mateIID;
       {
-	rv2 = getGateKeeperFragment(gkpStore,mateIID,&gkpFrag);
-	//	assert(rv2==0);
+	getGateKeeperFragment(gkpStore,mateIID,&gkpFrag);
 	mateUID = gkpFrag.readUID;
 	printf("{LKG\n");
 	printf("act:D\n");

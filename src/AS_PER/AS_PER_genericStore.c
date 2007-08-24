@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.20 2007-08-10 06:53:03 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.21 2007-08-24 15:29:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,23 +37,24 @@ static int WRITING_BUFFER     = 8 * 1024;
 
 #define  computeOffset(S, I)  (((I) - (S)->header.firstElem) * (int64)((S)->header.elementSize) + sizeof(StoreStat))
 
-static void
+static
+void
 writeHeader(StoreStruct *s){
-
   s->header.lastUpdateTime = time(0);
-
-  if(s->isMemoryStore){
+  if (s->isMemoryStore) {
     memcpy(s->buffer,&s->header, sizeof(StoreStat));
-  }else{
+  } else {
     rewind(s->fp);
-    AS_UTL_safeWrite(s->fp,(void *)&s->header,"writeHeader",sizeof(StoreStat), 1);
+    AS_UTL_safeWrite(s->fp, &s->header, "writeHeader", sizeof(StoreStat), 1);
+    //fwrite(&s->header, sizeof(StoreStat), 1, s->fp);
   }
 }
 
 
 static
-StoreStruct  *allocateStore(void){
-  StoreStruct *ss = (StoreStruct *)safe_malloc(sizeof(StoreStruct));
+StoreStruct  *
+allocateStore(void){
+  StoreStruct *ss = (StoreStruct *)safe_calloc(sizeof(StoreStruct), 1);
 
   ss->fp                    = NULL;
   ss->buffer                = NULL;
@@ -91,8 +92,9 @@ StoreStruct  *allocateStore(void){
 
 
 static
-StreamStruct  *allocateStream(StoreStruct *s, void *buffer, int32 bufferSize  ){
-  StreamStruct *ss = (StreamStruct *)safe_malloc(sizeof(StreamStruct));
+StreamStruct  *
+allocateStream(StoreStruct *s, void *buffer, int32 bufferSize  ){
+  StreamStruct *ss = (StreamStruct *)safe_calloc(sizeof(StreamStruct), 1);
 
   ss->store       = s;
   ss->status      = ActiveStore;
@@ -105,66 +107,73 @@ StreamStruct  *allocateStream(StoreStruct *s, void *buffer, int32 bufferSize  ){
 }
 
 
-void AS_PER_setBufferSize(int wb) {
+void
+AS_PER_setBufferSize(int wb) {
   WRITING_BUFFER = wb;
 }
 
 
-StoreStruct *openStore(const char *path, const char *rw) {
+StoreStruct *
+openStore(const char *path, const char *rw) {
   StoreStruct *s = allocateStore();
-  errno = 0;
-  s->fp = fopen(path,rw);
-  if(errno){
-    fprintf(stderr,"openStore()-- Failure opening Store %s for %s: %s\n", path, rw, strerror(errno));
-    return(NULL);
-  }
 
+  errno = 0;
+  s->fp     = fopen(path,rw);
   s->status = ActiveStore;
 
-  if (1 != AS_UTL_safeRead(s->fp, (void *)&s->header, "openStore", sizeof(StoreStat), 1))
-    assert(0);
+  if(errno){
+    fprintf(stderr,"openStore()-- Failed to open store %s (%s): %s\n",
+            path, rw, strerror(errno));
+    exit(1);
+  }
+
+  if (1 != AS_UTL_safeRead(s->fp, (void *)&s->header, "openStore", sizeof(StoreStat), 1)) {
+    fprintf(stderr, "openStore()-- Failed to read the header for store %s.\n");
+    exit(1);
+  }
 
   return s;
 }
 
 
-int statsStore(StoreStruct *s, StoreStat *stats){
-  /*** HACK!!!! This should be done properly  */
+void
+statsStore(StoreStruct *s, StoreStat *stats){
   *(stats) = s->header;
-  return(0);
 }
 
 
-int closeStore(StoreStruct *s){
-
+void
+closeStore(StoreStruct *s){
   assert(s->status == ActiveStore);
-
-  if(s->isMemoryStore){
+  if (s->isMemoryStore){
     s->allocatedSize = 0;
-    safe_free(s->buffer);
-  }else{
-    if(s->isDirty)
+  } else {
+    if (s->isDirty)
       writeHeader(s);
-    if(fclose(s->fp) != 0)
-      assert(0);
-    safe_free(s->buffer);
+    if (fclose(s->fp) != 0) {
+      fprintf(stderr, "Failed to close the store; this usually means your disk is full.\n");
+      exit(1);
+    }
   }
+  safe_free(s->buffer);
   s->status = UnAllocatedStore;
-  return 0;
 }
 
 
-int64 getLastElemStore(StoreStruct *s){
+int64
+getLastElemStore(StoreStruct *s){
   return s->header.lastElem;
 }
 
 
-int64 getFirstElemStore(StoreStruct *s){
+int64
+getFirstElemStore(StoreStruct *s){
   return s->header.firstElem;
 }
 
 
-StoreStruct *createIndexStore(const char *path, const char *storeType, int32 elementSize, int64 firstID) {
+StoreStruct *
+createIndexStore(const char *path, const char *storeType, int32 elementSize, int64 firstID) {
   StoreStruct *s = allocateStore();
 
   s->header.type = INDEX_STORE;
@@ -188,13 +197,13 @@ StoreStruct *createIndexStore(const char *path, const char *storeType, int32 ele
     s->buffer = NULL;
     if (WRITING_BUFFER > 0) {
       //fprintf(stderr, "createIndexStore()--  Allocating fp buffer of "F_SIZE_T" bytes for '%s'.\n", WRITING_BUFFER, path);
-      s->buffer = (char *)safe_malloc(WRITING_BUFFER);
+      s->buffer = (char *)safe_calloc(sizeof(char), WRITING_BUFFER);
       setbuffer(s->fp, s->buffer, WRITING_BUFFER);
     }
     s->isMemoryStore = 0;
   }else{
     s->allocatedSize = INITIAL_ALLOCATION * elementSize;
-    s->buffer = (char *)safe_malloc(s->allocatedSize);
+    s->buffer = (char *)safe_calloc(sizeof(char), s->allocatedSize);
     s->isMemoryStore = 1;
     s->fp = NULL;
   }
@@ -204,7 +213,8 @@ StoreStruct *createIndexStore(const char *path, const char *storeType, int32 ele
 }
 
 
-int getIndexStore(StoreStruct *s, int64 index, void *buffer){
+void
+getIndexStore(StoreStruct *s, int64 index, void *buffer){
   int64 offset;
 
   assert(s->status == ActiveStore);
@@ -212,7 +222,7 @@ int getIndexStore(StoreStruct *s, int64 index, void *buffer){
 
   if(s->isMemoryStore){
     memcpy(buffer, s->buffer + offset, s->header.elementSize);
-    return(0);
+    //return(0);
   }else{
     AS_UTL_fseek(s->fp, (off_t) offset, SEEK_SET);
 
@@ -220,12 +230,13 @@ int getIndexStore(StoreStruct *s, int64 index, void *buffer){
       fflush(s->fp);
     s->lastWasRead = 1;
 
-    return(1 == AS_UTL_safeRead(s->fp,buffer,"getIndexStore",s->header.elementSize, 1));
+    assert(1 == AS_UTL_safeRead(s->fp,buffer,"getIndexStore",s->header.elementSize, 1));
   }
 }
 
 
-void *getIndexStorePtr(StoreStruct *s, int64 index) {
+void *
+getIndexStorePtr(StoreStruct *s, int64 index) {
 
   assert(s->status == ActiveStore);
   assert(s->isMemoryStore);
@@ -234,7 +245,8 @@ void *getIndexStorePtr(StoreStruct *s, int64 index) {
 }
 
 
-int setIndexStore(StoreStruct *s, int64 index, void *element){
+void
+setIndexStore(StoreStruct *s, int64 index, void *element){
   int64 offset;
 
   assert(s->status == ActiveStore);
@@ -245,9 +257,9 @@ int setIndexStore(StoreStruct *s, int64 index, void *element){
 
   offset = computeOffset(s, index);
 
-  if(s->isMemoryStore){
+  if (s->isMemoryStore) {
     memcpy(s->buffer + offset, element, s->header.elementSize);
-  }else{
+  } else {
     if (s->lastWasRead)
       fflush(s->fp);
     s->lastWasRead = 0;
@@ -255,12 +267,11 @@ int setIndexStore(StoreStruct *s, int64 index, void *element){
     AS_UTL_fseek(s->fp, (off_t) offset, SEEK_SET);
     AS_UTL_safeWrite(s->fp, element, "setIndexStore", s->header.elementSize, 1);
   }
-
-  return(0);
 }
 
 
-int appendIndexStore(StoreStruct *s, void *element){
+void
+appendIndexStore(StoreStruct *s, void *element){
   int64 offset;
 
   assert(s->status == ActiveStore);
@@ -281,13 +292,12 @@ int appendIndexStore(StoreStruct *s, void *element){
   s->header.lastElem++;
 
   setIndexStore(s, s->header.lastElem, element);
-
-  return(0);
 }
 
 
-StoreStruct *createVLRecordStore(const char *path, const char *storeType, 
-                                int32 expectedVLRecordSize) {
+StoreStruct *
+createVLRecordStore(const char *path, const char *storeType, 
+                    int32 expectedVLRecordSize) {
   StoreStruct *s = allocateStore();
 
   s->header.type = VLRECORD_STORE;
@@ -313,12 +323,12 @@ StoreStruct *createVLRecordStore(const char *path, const char *storeType,
     s->buffer = NULL;
     if (WRITING_BUFFER > 0) {
       //fprintf(stderr, "createVLRecordStore()--  Allocating fp buffer of "F_SIZE_T" bytes for '%s'.\n", WRITING_BUFFER, path);
-      s->buffer = (char *)safe_malloc(WRITING_BUFFER);
+      s->buffer = (char *)safe_calloc(sizeof(char), WRITING_BUFFER);
       setbuffer(s->fp, s->buffer, WRITING_BUFFER);
     }
   }else{
     s->allocatedSize = expectedVLRecordSize;
-    s->buffer = (char *)safe_malloc(s->allocatedSize);
+    s->buffer = (char *)safe_calloc(sizeof(char), s->allocatedSize);
     AssertPtr(s->buffer);
     s->isMemoryStore = 1;
     s->fp = NULL;
@@ -332,16 +342,16 @@ StoreStruct *createVLRecordStore(const char *path, const char *storeType,
 }
 
 
-int getVLRecordStore(StoreStruct *s, int64 offset, void *buffer, VLSTRING_SIZE_T maxLength, VLSTRING_SIZE_T *actualLength){
+void
+getVLRecordStore(StoreStruct *s, int64 offset, void *buffer, VLSTRING_SIZE_T maxLength, VLSTRING_SIZE_T *actualLength){
   VLSTRING_SIZE_T length = 0;
   int64 actualOffset;
 
   assert(s->header.type == VLRECORD_STORE);
-  if(offset > s->header.lastElem){
+  if (offset > s->header.lastElem)
     fprintf(stderr," ERROR: VLRecordStoreGet at offset "F_S64"...lastElem = "F_S64"\n",
 	    offset, s->header.lastElem);
-    return(1);
-  }
+  assert(offset <= s->header.lastElem);
   
   actualOffset = offset - s->header.firstElem;
 
@@ -371,8 +381,10 @@ int getVLRecordStore(StoreStruct *s, int64 offset, void *buffer, VLSTRING_SIZE_T
       fflush(s->fp);
     s->lastWasRead = 1;
 
-    if (1 != AS_UTL_safeRead(s->fp,&length,"getVLRecordStore",sizeof(VLSTRING_SIZE_T), 1))
-      assert(0);
+    if (1 != AS_UTL_safeRead(s->fp,&length,"getVLRecordStore",sizeof(VLSTRING_SIZE_T), 1)) {
+      fprintf(stderr, "getVLRecordStore()-- Failed to read the length of the record.  Incomplete store?\n");
+      exit(1);
+    }
 
     if(!(length + offset + sizeof(VLSTRING_SIZE_T) <= s->header.lastElem &&
 	 length <= maxLength)){
@@ -382,15 +394,17 @@ int getVLRecordStore(StoreStruct *s, int64 offset, void *buffer, VLSTRING_SIZE_T
       assert(0);
     }
 
-    if (length != AS_UTL_safeRead(s->fp,buffer,"getVLRecordStore",sizeof(char), length))
-      assert(0);
+    if (length != AS_UTL_safeRead(s->fp,buffer,"getVLRecordStore",sizeof(char), length)) {
+      fprintf(stderr, "getVLRecordStore()-- Failed to read all "F_VLS" bytes.  Incomplete store?\n", length);
+      exit(1);
+    }
   }
   *actualLength = length;
-  return(0);
 }
 
 
-int appendVLRecordStore(StoreStruct *s, void *vlr, VLSTRING_SIZE_T length){
+void
+appendVLRecordStore(StoreStruct *s, void *vlr, VLSTRING_SIZE_T length){
   int64 offset;
 
   assert(s->status == ActiveStore);
@@ -424,19 +438,19 @@ int appendVLRecordStore(StoreStruct *s, void *vlr, VLSTRING_SIZE_T length){
 
   s->header.lastElem += length + sizeof(VLSTRING_SIZE_T);
   s->isDirty = 1;
-
-  return(0);
 }
 
 
-StreamStruct *openStream(StoreStruct *fs,
-                        void *buffer,
-                        int32 bufferSize) {
+StreamStruct *
+openStream(StoreStruct *fs,
+           void *buffer,
+           int32 bufferSize) {
   return(allocateStream(fs,buffer,bufferSize));
 }
 
 
-int resetStream(StreamStruct *ss, int64 startIndex, int64 endIndex){
+void
+resetStream(StreamStruct *ss, int64 startIndex, int64 endIndex){
 
   if(startIndex == STREAM_FROMSTART)
     ss->startIndex = ss->store->header.firstElem;
@@ -446,20 +460,15 @@ int resetStream(StreamStruct *ss, int64 startIndex, int64 endIndex){
     ss->endIndex = ss->store->header.lastElem;
   else
     ss->endIndex = endIndex;
-
-  return(0);
 }
 
 
-int nextStream(StreamStruct *ss, void *buffer){
+int
+nextStream(StreamStruct *ss, void *buffer){
 
-  if(ss->status != ActiveStore){
-    fprintf(stderr,"nextStream: status = %d start = "F_S64" >= end = "F_S64" .... bailing out\n", 
-	    ss->status,ss->startIndex, ss->endIndex);
-    assert(0);
-  }
+  assert(ss->status == ActiveStore);
 
-  if(ss->startIndex >  ss->endIndex)
+  if (ss->startIndex > ss->endIndex)
     return(0);
 
   getIndexStore(ss->store, ss->startIndex++, buffer);
@@ -467,22 +476,22 @@ int nextStream(StreamStruct *ss, void *buffer){
 }
 
 
-int closeStream(StreamStruct *ss){
+void
+closeStream(StreamStruct *ss){
   safe_free(ss);
-  return 0;
 }
 
 
-int nextVLRecordStream(StreamStruct *ss, void *buffer, VLSTRING_SIZE_T maxLength, VLSTRING_SIZE_T *actualLength){
+int
+nextVLRecordStream(StreamStruct *ss, void *buffer, VLSTRING_SIZE_T maxLength, VLSTRING_SIZE_T *actualLength){
   int result;
 
   assert(ss->status == ActiveStore);
 
-  if(ss->startIndex >  ss->endIndex)
+  if (ss->startIndex >  ss->endIndex)
     return(0);
 
-  result = getVLRecordStore(ss->store, ss->startIndex, buffer, maxLength, actualLength);
-  assert(result == 0);
+  getVLRecordStore(ss->store, ss->startIndex, buffer, maxLength, actualLength);
   ss->startIndex += (*actualLength + sizeof(VLSTRING_SIZE_T));
 
   return(1);
@@ -491,9 +500,10 @@ int nextVLRecordStream(StreamStruct *ss, void *buffer, VLSTRING_SIZE_T maxLength
 
 
 
-StoreStruct *convertStoreToPartialMemoryStore(StoreStruct *source,
-                                             int64         firstElem,
-                                             int64         lastElem) {
+StoreStruct *
+convertStoreToPartialMemoryStore(StoreStruct *source,
+                                 int64         firstElem,
+                                 int64         lastElem) {
   StoreStruct *target         = NULL;
   int64        sourceOffset    = 0;
   int64        sourceMaxOffset = 0;
@@ -516,7 +526,7 @@ StoreStruct *convertStoreToPartialMemoryStore(StoreStruct *source,
   *target = *source;
 
   target->allocatedSize    = sizeof(StoreStat) + sourceMaxOffset - sourceOffset;
-  target->buffer           = (char *)safe_malloc(target->allocatedSize);
+  target->buffer           = (char *)safe_calloc(sizeof(char), target->allocatedSize);
   target->isMemoryStore    = 1;
   target->fp               = NULL;
   target->header.firstElem = firstElem;
@@ -532,7 +542,7 @@ StoreStruct *convertStoreToPartialMemoryStore(StoreStruct *source,
     fflush(source->fp);
   source->lastWasRead = 1;
 
-  fprintf(stderr, "reading %d bytes\n", (int)(sourceMaxOffset - sourceOffset));
+  fprintf(stderr, "reading "F_S64" bytes\n", sourceMaxOffset - sourceOffset);
 
   if (sourceMaxOffset - sourceOffset != AS_UTL_safeRead(source->fp, target->buffer + sizeof(StoreStat),
                                                         "convertStoreToPartialMemoryStore",

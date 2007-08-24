@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.38 2007-08-10 06:53:04 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.39 2007-08-24 15:29:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -158,7 +158,10 @@ openGateKeeperStore(const char *path,
     exit(1);
   }
 
-  fread(&gkpStore->gkp, sizeof(GateKeeperStoreInfo), 1, gkpinfo);
+  if (1 != AS_UTL_safeRead(gkpinfo, &gkpStore->gkp, "openGateKeeperStore:header", sizeof(GateKeeperStoreInfo), 1)) {
+    fprintf(stderr, "failed to open gatekeeper store '%s': couldn't read the header (%s)\n", name, strerror(errno));
+    exit(1);
+  }
   fclose(gkpinfo);
 
   if (gkpStore->gkp.gkpMagic != 1) {
@@ -277,8 +280,11 @@ createGateKeeperStore(const char *path) {
     exit(1);
   }
 
-  fwrite(&gkpStore->gkp, sizeof(GateKeeperStoreInfo), 1, gkpinfo);
-  fclose(gkpinfo);
+  AS_UTL_safeWrite(gkpinfo, &gkpStore->gkp, "createGateKeeperStore:header", sizeof(GateKeeperStoreInfo), 1);
+  if (fclose(gkpinfo)) {
+    fprintf(stderr, "failed to create gatekeeper store '%s': %s\n", name, strerror(errno));
+    exit(1);
+  }
 
   sprintf(name,"%s/bat", path);
   gkpStore->bat = createIndexStore(name, "bat", sizeof(GateKeeperBatchRecord), 1);

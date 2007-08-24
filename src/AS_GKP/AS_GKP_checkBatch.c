@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkBatch.c,v 1.12 2007-08-02 20:31:49 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkBatch.c,v 1.13 2007-08-24 15:29:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,7 +30,7 @@ static char CM_ID[] = "$Id: AS_GKP_checkBatch.c,v 1.12 2007-08-02 20:31:49 brian
 #include "AS_PER_gkpStore.h"
 
 int Check_BatchMesg(BatchMesg          *bat_mesg){
-  GateKeeperBatchRecord  gkpb;
+  GateKeeperBatchRecord  gkpb = {0};
 
   clearGateKeeperBatchRecord(&gkpb);
 

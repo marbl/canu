@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.39 2007-08-10 06:53:04 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.40 2007-08-24 15:29:48 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -478,14 +478,14 @@ getNumGateKeeperFragments(GateKeeperStore *gkp) {
 
 
 static
-int
+void
 getGateKeeperBatch(GateKeeperStore *gkp, int index, GateKeeperBatchRecord *dr) {
-  return(getIndexStore(gkp->bat, index, dr));
+  getIndexStore(gkp->bat, index, dr);
 }
 static
-int
+void
 getGateKeeperFragment(GateKeeperStore *gkp, int index, GateKeeperFragmentRecord *dr) {
-  return(getIndexStore(gkp->frg, index, dr));
+  getIndexStore(gkp->frg, index, dr);
 }
 static
 GateKeeperLibraryRecord *

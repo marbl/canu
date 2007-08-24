@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_Hash.c,v 1.9 2007-08-18 11:42:07 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_UTL_Hash.c,v 1.10 2007-08-24 15:29:48 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -546,7 +546,8 @@ SaveHashTable_AS(char *name, HashTable_AS *table) {
 
   FILE                   *fp;
 
-  strcpy(table->filename, name);
+  if (table->filename != name)
+    strcpy(table->filename, name);
 
   errno = 0;
   fp = fopen(table->filename, "w");
@@ -587,7 +588,11 @@ SaveHashTable_AS(char *name, HashTable_AS *table) {
   AS_UTL_safeWrite(fp, &table->hashmask,          "SaveHashTable_AS hashmask",          sizeof(uint32), 1);
   AS_UTL_safeWrite(fp, &actualNodes,              "SaveHashTable_AS actualNodes",       sizeof(uint32), 1);
 
-  fclose(fp);
+  if (fclose(fp)) {
+    fprintf(stderr, "SaveHashTable_AS()-- failed to close the hash table file '%s': %s\n", name, strerror(errno));
+    exit(1);
+  }
+
   safe_free(databuffer);
 
   table->dirty = 0;

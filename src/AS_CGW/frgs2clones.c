@@ -217,13 +217,12 @@ int main( int argc, char *argv[])
   
   lastfrg = getLastElemFragStore (gkpStore) ;
   for (fragIID = 1; fragIID <= lastfrg; fragIID++){
-    int rv1,rv2;
 
     /*************************/
     // get the fragment
     /*************************/
 
-    rv1 = getGateKeeperFragment(gkpStore,fragIID,&gkpFrag);
+    getGateKeeperFragment(gkpStore,fragIID,&gkpFrag);
     if(gkpFrag.deleted)continue;
 
     fragUID = gkpFrag.readUID;
@@ -264,8 +263,7 @@ int main( int argc, char *argv[])
       // get (clear) sequence of mate
       /*************************/
 
-      rv2 = getGateKeeperFragment(gkpStore,mateIID,&gkpFrag);
-
+      getGateKeeperFragment(gkpStore,mateIID,&gkpFrag);
       mateUID = gkpFrag.readUID;
 	
       if(mateIID<fragIID&&gkpFrag.deleted!=1)continue;

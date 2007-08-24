@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_PER_asmStore.h,v 1.14 2007-08-10 06:53:03 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_asmStore.h,v 1.15 2007-08-24 15:29:48 brianwalenz Exp $	 */
 #ifndef AS_PER_ASMSTORE_H
 #define AS_PER_ASMSTORE_H
 /*************************************************************************
@@ -161,14 +161,14 @@ typedef struct
 
 #define ASMSTORE_DEF(type)\
 typedef StoreStruct* type ## Store;\
-static int close ## type ## Store(type ## Store sh){\
-  return closeStore(sh);\
+static void close ## type ## Store(type ## Store sh){\
+  closeStore(sh);\
 }\
-static int get ## type ## Store(type ## Store fs, int index, type ## Record *dr){\
-  return getIndexStore(fs,index,dr); \
+static void get ## type ## Store(type ## Store fs, int index, type ## Record *dr){\
+  getIndexStore(fs,index,dr);\
 }\
-static int set ## type ## Store(type ## Store fs, int index, type ## Record *dr){\
-  return setIndexStore(fs,index,dr); \
+static void set ## type ## Store(type ## Store fs, int index, type ## Record *dr){\
+  setIndexStore(fs,index,dr); \
 }\
 static type ## Store create ## type ## Store(char *StorePath, char *ext, int firstID){\
   type ## Store s = createIndexStore(StorePath,ext, sizeof(type ## Record), firstID);\
@@ -177,8 +177,8 @@ static type ## Store create ## type ## Store(char *StorePath, char *ext, int fir
 static type ## Store open ## type ## Store(char *StorePath, char *rw){\
   return openStore(StorePath, rw);\
 }\
-static int append ## type ## Store(type ## Store store, type ## Record *element){\
-  return appendIndexStore(store,element);\
+static void append ## type ## Store(type ## Store store, type ## Record *element){\
+  appendIndexStore(store,element);\
 }\
 static int32 getNum ## type ## s(type ## Store store){\
   StoreStat stat;\

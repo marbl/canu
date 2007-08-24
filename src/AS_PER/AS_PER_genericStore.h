@@ -95,26 +95,26 @@ typedef struct{
 void          AS_PER_setBufferSize(int wb);
 
 StoreStruct  *openStore(const char *StorePath, const char *rw);
-int           statsStore(StoreStruct *store, StoreStat *stats);
-int           closeStore(StoreStruct *sh);
+void          statsStore(StoreStruct *store, StoreStat *stats);
+void          closeStore(StoreStruct *sh);
 
 int64         getLastElemStore(StoreStruct *store);
 int64         getFirstElemStore(StoreStruct *store);
 
 StoreStruct  *createIndexStore(const char *StorePath, const char *storeType, int32 elementSize, int64 firstID);
-int           getIndexStore(StoreStruct *fs, int64 indx, void *buffer);
+void          getIndexStore(StoreStruct *fs, int64 indx, void *buffer);
 void         *getIndexStorePtr(StoreStruct *fs, int64 indx);
-int           setIndexStore(StoreStruct *store, int64 indx, void *element);
-int           appendIndexStore(StoreStruct *store, void *element);
+void          setIndexStore(StoreStruct *store, int64 indx, void *element);
+void          appendIndexStore(StoreStruct *store, void *element);
 
 StoreStruct  *createVLRecordStore(const char *StorePath, const char *storeType, int32 expectedRecordSize);
-int           getVLRecordStore(StoreStruct *s, int64 offset, void *buffer, VLSTRING_SIZE_T maxLength, VLSTRING_SIZE_T *actualLength);
-int           appendVLRecordStore(StoreStruct *store, void *element, VLSTRING_SIZE_T length);
+void          getVLRecordStore(StoreStruct *s, int64 offset, void *buffer, VLSTRING_SIZE_T maxLength, VLSTRING_SIZE_T *actualLength);
+void          appendVLRecordStore(StoreStruct *store, void *element, VLSTRING_SIZE_T length);
 
 StreamStruct *openStream(StoreStruct *sh, void *buffer, int32 bufferSize);
-int           resetStream(StreamStruct *sh, int64 startIndex, int64 endIndex);
+void          resetStream(StreamStruct *sh, int64 startIndex, int64 endIndex);
 int           nextStream(StreamStruct *sh, void *buffer);
-int           closeStream(StreamStruct *sh);
+void          closeStream(StreamStruct *sh);
 
 int           nextVLRecordStream(StreamStruct *sh, void *buffer, VLSTRING_SIZE_T maxLength, VLSTRING_SIZE_T *actualLength);
 
