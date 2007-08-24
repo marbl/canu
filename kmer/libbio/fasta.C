@@ -40,6 +40,8 @@ fastaFile::fastaFile(char const *filename) {
   _isIndexed             = false;
   _isRandomAccessOpt     = false;
 
+  _fileTimeStamp         = time(NULL);
+
   if ((filename == 0L) || (strcmp(filename, "-") == 0)) {
     strcpy(_filename, "stdin");
 
@@ -62,6 +64,8 @@ fastaFile::fastaFile(char const *filename) {
     strcat(_indexname, ".fastaidx");
 
   _filebuffer    = new readBuffer(_filename);
+
+  _fileTimeStamp = timeOfFile(_filename);
 }
 
 

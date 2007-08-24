@@ -55,6 +55,8 @@ public:
   seqInCore       *getSequenceInCore(void);
   seqOnDisk       *getSequenceOnDisk(void);
 
+  u64bit           timeStamp(void) { return(_fileTimeStamp); };
+
   u32bit           currentIID(void) { return(_curIID); };
 
   bool             find(seqIID  iid);
@@ -88,6 +90,8 @@ private:
   void             optimizeRandomAccess(void);
 
   _idxfa_global   _theDesc;
+
+  u64bit          _fileTimeStamp;
 
   u32bit          _numSeqs;  //  for create
   u32bit          _maxSeqs;  //  for create

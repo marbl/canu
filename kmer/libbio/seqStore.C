@@ -43,9 +43,12 @@ seqStore::~seqStore() {
 //  Otherwise, return false.
 //
 bool
-seqStore::loadStore(const char *filename) {
+seqStore::loadStore(const char *filename, seqStream *ss) {
   char    cigam[16] = {0};
   char    magic[16] = {0};
+
+  if (ss)
+    ss->rewind();
 
   if ((filename == 0L) || (filename[0] == 0) || (filename[0] == '-'))
     return(false);
@@ -64,13 +67,16 @@ seqStore::loadStore(const char *filename) {
   //  If 'filename' exists, assume it's the source fasta file.  We
   //  want to ensure that our seqStream is at least as current as
   //  that.
-  if (fileExists(filename)) {
-    u64bit  timeOfOriginal = timeOfFile(filename);
-    if ((timeOfOriginal > timeOfFile(streamName)) ||
-        (timeOfOriginal > timeOfFile(streamName))) {
-      fprintf(stderr, "seqStore::loadStore()-- WARNING: source '%s' is newer than the existing store!  Can't load!\n", filename);
-      return(false);
-    }
+  //
+  //  Meryl, in the guts of it, wants to open a new store, but doesn't
+  //  have the original seqStream.  We allow that, just because we
+  //  know that meryl checked before.
+  //
+  if ((ss) &&
+      ((ss->timeStamp() > timeOfFile(streamName)) ||
+       (ss->timeStamp() > timeOfFile(streamName)))) {
+    fprintf(stderr, "seqStore::loadStore()-- WARNING: source '%s' is newer than the existing store!  Can't load!\n", filename);
+    return(false);
   }
 #endif
 
@@ -121,6 +127,8 @@ seqStore::buildStore(const char *filename, seqStream *ss) {
   u64bit  numBlocks         = 0;
   u64bit  numACGT           = 0;
 
+  ss->rewind();
+
   //  Open the output files
   //
   char *streamName = new char [strlen(filename) + 32];
@@ -133,26 +141,23 @@ seqStore::buildStore(const char *filename, seqStream *ss) {
   //  If 'filename' exists, assume it's the source fasta file.  We
   //  want to ensure that our seqStream is at least as current as
   //  that.
-  if ((fileExists(streamName)) &&
-      (fileExists(blocksName)) &&
-      (fileExists(filename))) {
-    u64bit  timeOfOriginal = timeOfFile(filename);
-    if ((timeOfOriginal > timeOfFile(streamName)) ||
-        (timeOfOriginal > timeOfFile(streamName))) {
+  if (fileExists(streamName) && fileExists(blocksName)) {
+
+    if ((ss->timeStamp() > timeOfFile(streamName)) ||
+        (ss->timeStamp() > timeOfFile(streamName))) {
       fprintf(stderr, "seqStore::buildStore()-- WARNING: source '%s' is newer than the existing store; rebuilding.\n", filename);
       unlink(streamName);
       unlink(blocksName);
+    } else if (loadStore(filename, ss)) {
+      return;
     }
   }
 #endif
 
-  if ((fileExists(streamName)) ||
-      (fileExists(blocksName))) {
-    if (loadStore(filename))
-      return;
-    unlink(streamName);
-    unlink(blocksName);
-  }
+  //  Otherwise, we either have no input files, or one, but not the
+  //  other.  Delete whatever is there.
+  unlink(streamName);
+  unlink(blocksName);
 
   bitPackedFile *STREAM = new bitPackedFile(streamName);
   errno = 0;
@@ -285,7 +290,7 @@ seqStore::buildStore(const char *filename, seqStream *ss) {
   fclose(BLOCKS);
   delete STREAM;
 
-  loadStore(filename);
+  loadStore(filename, ss);
 }
 
 
@@ -301,18 +306,13 @@ seqStore::get(void) {
 
     if (_blockInfo[_thisBlock]._isACGT == 0)
       assert(_blockInfo[_thisBlock]._posInBPF == _streamFile->tell());
-
-    //fprintf(stderr, "seqStore::get()-- NEW BLOCK thisBlock="u32bitFMT" numBlocks="u32bitFMT"\n", _thisBlock, _numBlocks);
   }
 
-  if (_thisBlock >= _numBlocks) {
-    //fprintf(stderr, "seqStore::get()-- EOF thisBlock="u32bitFMT" numBlocks="u32bitFMT"\n", _thisBlock, _numBlocks);
+  if (_thisBlock >= _numBlocks)
     return(0);
-  }
 
   if (_blockInfo[_thisBlock]._isACGT == 0) {
     _thisBlockPosition++;
-    //fprintf(stderr, "seqStore::get()-- N thisBlock="u32bitFMT" numBlocks="u32bitFMT"\n", _thisBlock, _numBlocks);
     return('n');
   }
 
@@ -320,16 +320,10 @@ seqStore::get(void) {
 
   _iteration++;
 
-  if (_iteration >= _iterationLimit) {
-    //fprintf(stderr, "seqStore::get()-- ITERS  thisBlock="u32bitFMT" numBlocks="u32bitFMT"\n", _thisBlock, _numBlocks);
+  if (_iteration >= _iterationLimit)
     return(0);
-  }
 
   _thisBlockPosition++;
-
-  //char ch = decompressSymbol[_streamFile->getBits(2)];
-  //fprintf(stderr, "seqStore::get()-- OK return %c  thisBlock="u32bitFMT" numBlocks="u32bitFMT"\n", ch, _thisBlock, _numBlocks);
-  //return(ch);
 
   return(decompressSymbol[_streamFile->getBits(2)]);
 }

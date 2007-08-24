@@ -112,10 +112,8 @@ main(int argc, char **argv) {
     //  STEP 2:  Stream the original file, decrementing the count
     //
     fprintf(stderr, "STEP 2 BATCH "u32bitFMTW(2)":  Stream fasta\n", batch);
-    chainedSequence  *CS = new chainedSequence();
-    CS->setSource(fastaName);
-    CS->finish();
-    merStream        *MS = new merStream(merSize, CS);
+    seqStream    *CS = new seqStream(fastaName, true);
+    merStream    *MS = new merStream(merSize, CS);
 
     kMerLite       mer;
     dnode_t       *nod;

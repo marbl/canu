@@ -43,9 +43,11 @@ test-rebuild: test-rebuild.C ../positionDB.H
 position-passed: position-passed1 position-passed2 exist-fast-passed
 	touch position-passed
 xp.fasta: ../../leaff/leaff
-	../../leaff/leaff -G 1000 5000 8000 > xp.fasta
+	#../../leaff/leaff -G 1000 5000 8000 > xp.fasta
+	../../leaff/leaff -G 1 500 800 > xp.fasta
 yp.fasta: ../../leaff/leaff
-	../../leaff/leaff -G 100 500 1000 > yp.fasta
+	#../../leaff/leaff -G 100 500 1000 > yp.fasta
+	../../leaff/leaff -G 1 50 100 > yp.fasta
 position-passed1: testerp xp.fasta
 	./testerp -test1 xp.fasta
 	touch position-passed1
@@ -64,7 +66,8 @@ exist-fast-passed: ../existDB xe.fasta
 exist-passed: exist-passed1 exist-passed2 exist-passed3
 	touch exist-passed
 xe.fasta: ../../leaff/leaff
-	../../leaff/leaff -G 1000 5000 8000 > xe.fasta
+	#../../leaff/leaff -G 1000 5000 8000 > xe.fasta
+	../../leaff/leaff -G 1 500 800 > xe.fasta
 exist-passed1: ../existDB xe.fasta
 	../existDB -mersize 17 -tblsize 23 -testfiles xe.fasta junk
 	rm -f junk*

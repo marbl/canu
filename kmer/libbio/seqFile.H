@@ -18,6 +18,8 @@ public:
   virtual seqInCore   *getSequenceInCore(void) = 0;
   virtual seqOnDisk   *getSequenceOnDisk(void) = 0;
 
+  virtual u64bit       timeStamp(void) = 0;
+
   virtual u32bit       currentIID(void) = 0;
 
   virtual bool         find(seqIID  iid) = 0;

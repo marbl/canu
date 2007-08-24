@@ -1,16 +1,6 @@
 #include "bio++.H"
 #include "seq.H"
 
-#include "alphabet.c"
-
-#include "fasta.C"
-
-#include "seqInCore.C"
-#include "seqOnDisk.C"
-#include "seqStream.C"
-//#include "seqStore.C"
-#include "seqFactory.C"
-
 int
 main(int argc, char **argv) {
   seqStream    A;
@@ -56,6 +46,24 @@ main(int argc, char **argv) {
   }
   printf("\n");
 
+  A.rewind();
+
+  merStream *MS = new merStream(24, &A);
+  while (MS->nextMer()) {
+    char  mstr[1024];
+
+    u64bit sp = MS->thePositionInSequence();
+    u64bit si = MS->theSequenceNumber();
+    u64bit st = MS->thePositionInStream();
+
+    printf("%s -- seqPos:"u64bitFMT" seqIID:"u64bitFMT" strPos:"u64bitFMT"\n",
+           MS->theFMer().merToString(mstr),
+           sp, si, st);
+
+  }
+
   delete C;
   delete B;
+
+  return(0);
 }

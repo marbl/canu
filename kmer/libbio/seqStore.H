@@ -44,8 +44,14 @@ public:
   };
 
 
-  bool   loadStore(const char *filename);
-  void   buildStore(const char *filename, seqStream *s);
+  //  Why does loadStore need the seqStream?  It really doesn't, but
+  //  we can then check that the source file is older than our stream
+  //  file.  Otherwise, it is all too easy, especially when testing
+  //  :-), to have the wrong seqStore for the test.fasta you are
+  //  trying to use.
+  //
+  bool   loadStore(const char *filename, seqStream *ss);
+  void   buildStore(const char *filename, seqStream *ss);
 
   bool   loadStoreInCore(void) { return(_streamFile->loadInCore()); };
 

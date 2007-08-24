@@ -90,18 +90,35 @@ testExhaustive(char *filename, char *merylname, u32bit merSize, u32bit tblSize) 
   u64bit             found    = u64bitZERO;
   u64bit             expected = u64bitZERO;
 
-  while (M->nextMer())
-    if (E->exists(M->theFMer()))
+  FILE              *DUMP     = 0L;
+
+  DUMP = fopen("testExhaustive.ms.dump", "w");
+
+  while (M->nextMer()) {
+    if (E->exists(M->theFMer())) {
       expected++;
+      fprintf(DUMP, "0x%016lx\n", (u64bit)M->theFMer());
+    } else {
+      fprintf(DUMP, "0x%016lx MISSED!\n", (u64bit)M->theFMer());
+    }
+  }
+
+  fclose(DUMP);
 
   fprintf(stderr, "Found "u64bitFMT" mers in the meryl database.\n", expected);
   fprintf(stderr, "Need to iterate over %7.2f Mmers.\n", (u64bitMASK(2 * merSize) + 1) / 1000000.0);
 
+  DUMP = fopen("testExhaustive.ck.dump", "w");
+
   for (u64bit m = u64bitMASK(2 * merSize); m--; ) {
-    if (E->exists(m))
+    if (E->exists(m)) {
       found++;
+      fprintf(DUMP, "0x%016lx\n", m);
+    }
     C->tick();
   }
+
+  fclose(DUMP);
 
   delete C;
   delete E;

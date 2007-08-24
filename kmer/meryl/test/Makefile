@@ -38,4 +38,4 @@ test:
 	../meryl -B -s      test-seq1.fasta -o t -m 20
 
 clean:
-	rm -f $(PROG) *.o
+	rm -f $(PROG) *.o *.mc??? test-reduce *.seqStore* g.fasta 2.reduce.fasta *.fastaidx

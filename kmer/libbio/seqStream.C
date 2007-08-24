@@ -5,6 +5,7 @@ seqStream::clearGuts(void) {
   _filename           = 0L;
   _file               = 0L;
   _fileToDelete       = 0L;
+  _fileTimeStamp      = time(NULL);
 
   _currentSeq         = 0;
   _currentPos         = 0;
@@ -33,6 +34,7 @@ seqStream::seqStream(const char *filename, bool finishMe) {
   setFile(filename);
   if (finishMe)
     finish();
+  _fileTimeStamp = timeOfFile(filename);
 }
 
 seqStream::seqStream(seqFile *S, bool finishMe) {
@@ -40,6 +42,7 @@ seqStream::seqStream(seqFile *S, bool finishMe) {
   setFile(S);
   if (finishMe)
     finish();
+  _fileTimeStamp = S->timeStamp();
 }
 
 seqStream::~seqStream() {
@@ -53,6 +56,7 @@ void
 seqStream::setFile(const char *filename) {
   _fileToDelete = openSeqFile(filename);
   setFile(_fileToDelete);
+  _fileTimeStamp = _fileToDelete->timeStamp();
 }
 
 void
@@ -61,6 +65,7 @@ seqStream::setFile(seqFile *S) {
   _file->openIndex();
   _filename = new char [strlen(_file->getSourceName()) + 1];
   strcpy(_filename, _file->getSourceName());
+  _fileTimeStamp = _file->timeStamp();
 }
 
 void

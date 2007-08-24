@@ -25,9 +25,9 @@ all: $(PROG)
 test-seqStream: test-seqStream.C
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-seqStream.o test-seqStream.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-seqStream test-seqStream.o $(LIBS)
-	../../leaff/leaff -G 10 100 300 > junk2.fasta
+	../../leaff/leaff -G 3 30 40 > junk2.fasta
 	./test-seqStream junk2.fasta
-	unlink junk2.fasta
+	#unlink junk2.fasta
 
 test-chainedSequence: test-chainedSequence.C
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-chainedSequence.o test-chainedSequence.C $(INCLUDE)

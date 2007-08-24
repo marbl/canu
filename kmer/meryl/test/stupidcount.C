@@ -24,9 +24,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  chainedSequence *CS = new chainedSequence();
-  CS->setSource(seqName);
-  CS->finish();
+  seqStream       *CS = new seqStream(seqName, true);
   merStream       *MS = new merStream(merSize, CS);
   char             str[1024];
 

@@ -9,6 +9,8 @@ public:
   seqStream(seqFile *S, bool finishMe);
   ~seqStream();
 
+  u64bit        timeStamp(void) { return(_fileTimeStamp); };
+
   //  Adds sequences to the useList.  For parse(), sequences are
   //  specified in a character string, e.g., "10,20,30-40,50".  add()
   //  pushes one sequence iid onto the list.  Multiple calls to
@@ -50,6 +52,7 @@ public:
   //  For a chain position p, returns the s (above) for that position.
   u32bit        sequenceNumberOfPosition(u64bit p);
 
+
 private:
   struct use_s {
     u32bit   iid;
@@ -60,6 +63,7 @@ private:
   char        *_filename;
   seqFile     *_file;
   seqFile     *_fileToDelete;
+  u64bit       _fileTimeStamp;
 
   u32bit       _currentSeq;  //  index into useList of the current sequence
   u32bit       _currentPos;  //  position in the current sequence

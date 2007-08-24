@@ -221,7 +221,7 @@ prepareBatch(merylArgs *args) {
     seqStream *seqstr = new seqStream(args->inputFile, true);
     seqStore  *seqsto = new seqStore(args->outputFile, seqstr);
 
-    args->numMersActual = seqsto->numberOfACGT();
+    args->numMersActual = seqsto->numberOfACGT() + 1;
 
     delete seqsto;
     delete seqstr;
@@ -387,7 +387,7 @@ runSegment(merylArgs *args, u64bit segment) {
   C = new speedCounter(" Counting mers in buckets: %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, args->beVerbose);
   R = new seqStore;
 
-  if (R->loadStore(args->outputFile) == false) {
+  if (R->loadStore(args->outputFile, 0L) == false) {
     fprintf(stderr, "Failed to load seqStore '%s'.\n", args->outputFile);
     exit(1);
   }
@@ -463,7 +463,7 @@ runSegment(merylArgs *args, u64bit segment) {
   C = new speedCounter(" Filling mers into list:   %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, args->beVerbose);
   R = new seqStore;
 
-  if (R->loadStore(args->outputFile) == false) {
+  if (R->loadStore(args->outputFile, 0L) == false) {
     fprintf(stderr, "Failed to load seqStore '%s'.\n", args->outputFile);
     exit(1);
   }
