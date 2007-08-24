@@ -28,12 +28,11 @@ set cutoff=$4
 if( $cutoff == "" ) then
   set cutoff=0.15
 endif
-if($noFrgStore)then
-  setenv AS_CNS_ERROR_RATE $cutoff
-endif
+
+### set up consensus error rate environment variable
+setenv AS_CNS_ERROR_RATE $cutoff
 
 set restrictToList=$5
-
 
 set minasmlen=5000
 
@@ -57,11 +56,9 @@ if($restrictToList != "") then
   > ${inputfile}.restrictediid2uid
 
   awk '{print $1}' ${inputfile}.restrictediid2uid > ${inputfile}.restrictediids
-  set restriction="-i ${intputfile}.restrictediids"
+  set restriction="-i ${inputfile}.restrictediids"
 else
   set restriction=""
-endif
-
 endif
 
 
