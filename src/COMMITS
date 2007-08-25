@@ -7847,6 +7847,8 @@ Add in the confirmed read iid field, rid.
 2007/06/03 08:13:22	1.10	brianwalenz	AS_UTL/AS_UTL_fileIO.c
 2007/06/03 08:13:22	1.5	brianwalenz	AS_UTL/AS_UTL_fileIO.h
 
+TAG: IXODES_SCAPULARIS_20070604 (BPW thinks, anyway)
+
 Yet another merged commit caused by a bizarre FreeBSD-specific IO bug.
 
 1) AS_UTL_fileIO: Replace the CDS_FSEEK and CDS_FTELL macros with real
@@ -8448,4 +8450,853 @@ Remove a bunch of simulator-checking stuff.  Improve two whole error messages.
 2007/07/23 09:53:53	1.13	brianwalenz	AS_CGW/eCR-examineGap.c
 
 Synchronize erate with CGW_DP_ERATE.
+
+----------------------------------------
+2007/07/23 17:23:41	1.5	brianwalenz	AS_SHR/FASTA_to_frg_file.pl
+
+Another stupid bug.  I really should have tested this, eh?
+
+----------------------------------------
+2007/07/23 18:14:52	1.17	brianwalenz	AS_global.h
+
+Define UINT32_MAX INT32_MAX and INT32_MIN if not defined.
+
+----------------------------------------
+2007/07/23 18:34:47	1.6	brianwalenz	AS_SHR/FASTA_to_frg_file.pl
+
+I quit.  How many more stupid mistakes can I make here?
+
+----------------------------------------
+2007/07/24 06:30:02	1.47	brianwalenz	AS_CGW/GraphCGW_T.c
+2007/07/24 06:30:02	1.12	brianwalenz	AS_GKP/AS_GKP_checkLibrary.c
+2007/07/24 06:30:03	1.7	brianwalenz	AS_MSG/AS_MSG_pmesg2.c
+
+Libraries for shreds (with distance = 0) were kinda broken.  Writing the
+LIB message was broken.  CGW was outputting format1's DST message to
+update library distance in GKP; it now outputs a format2 LIB.  CGW's
+stat/*dst now has a comment telling the old and new distance for each
+library.
+
+----------------------------------------
+2007/07/24 06:41:24	1.40	brianwalenz	AS_CGW/Input_CGW.c
+
+Don't crash if mate info not found.
+
+----------------------------------------
+2007/07/24 06:49:22	1.2	brianwalenz	AS_GKP/AS_GKP_rearrange.c
+
+If the UID order list has a fragUID that isn't in the source store, insert
+an empty and deleted frag into the dest store for that UID.
+
+----------------------------------------
+2007/07/24 06:50:32	1.3	brianwalenz	AS_OVS/AS_OVS_overlap.c
+
+Encode the erates properly when converting ovl dump to binary.
+
+----------------------------------------
+2007/07/24 06:52:48	1.7	brianwalenz	AS_MSG/convert-v1-to-v2.pl
+
+Keep track of the number of times we fail to find vector trim
+points, and report on stderr.
+
+----------------------------------------
+2007/07/24 06:57:21	1.3	brianwalenz	AS_MSG/tracedb-to-frg.pl
+
+Add type "454" as an allowed type; if no template is supplied, really don't
+output a LKG.
+
+----------------------------------------
+2007/07/24 06:59:39	1.38	brianwalenz	AS_PER/AS_PER_gkpStore.h
+
+Faulty logic in sanity check..
+
+----------------------------------------
+2007/07/24 07:00:07	1.37	brianwalenz	AS_PER/AS_PER_gkpStore.c
+
+Clear the fragRecord better.
+
+----------------------------------------
+2007/07/25 10:29:50	1.21	brianwalenz	AS_CGB/AS_CGB_all.h
+2007/07/25 10:29:50	1.19	brianwalenz	AS_CGB/AS_CGB_cga.c
+2007/07/25 10:29:50	1.18	brianwalenz	AS_CGB/AS_CGB_cgb.c
+2007/07/25 10:29:50	1.15	brianwalenz	AS_CGB/AS_CGB_main.c
+2007/07/25 10:29:50	1.23	brianwalenz	AS_CGB/AS_CGB_unitigger.c
+2007/07/25 10:29:50	1.14	brianwalenz	AS_CGB/AS_CGB_unitigger_globals.h
+
+Refactoring while looking for the "a frag gets placed multiply times" bug.
+
+----------------------------------------
+2007/07/25 13:26:29	1.18	brianwalenz	AS_global.h
+
+printf format for size_t was incorrect
+
+----------------------------------------
+2007/07/25 22:51:25	1.20	moweis	AS_RUN/asmQC/caqc.pl
+
+Updated help text
+
+----------------------------------------
+2007/07/26 16:05:06	1.9	brianwalenz	AS_SDB/Makefile
+2007/07/26 16:05:06	1.14	brianwalenz	AS_SDB/Attic/PartitionSequenceDB1.c
+2007/07/26 16:05:06	1.11	brianwalenz	AS_SDB/Attic/PartitionSequenceDB2.c
+
+Remove the obsolete two-step partitioning (PartitionSequenceDB1 and
+PartitionSequenceDB2).  PartitionSDB, around for almost a year now,
+does both steps.
+
+----------------------------------------
+2007/07/27 12:17:23	1.19	brianwalenz	AS_CGB/AS_CGB_cgb.c
+
+Snapshot.  Mostly refactoring, seems to be ok.
+
+----------------------------------------
+2007/07/27 12:17:38	1.22	brianwalenz	AS_CGB/AS_CGB_all.h
+
+Move comments out of enum definition.
+
+----------------------------------------
+2007/07/27 13:05:50	1.28	brianwalenz	AS_RUN/runCA-OBT/runCAutil/createOverlapJobs.pl
+2007/07/27 13:05:50	1.11	brianwalenz	AS_RUN/runCA-OBT/runCAutil/meryl.pl
+2007/07/27 13:05:50	1.18	brianwalenz	AS_RUN/runCA-OBT/runCAutil/preoverlap.pl
+
+Move mercounting to 0-mercounts from 0-preoverlap.
+
+----------------------------------------
+2007/07/27 14:15:31	1.20	brianwalenz	AS_CGB/AS_CGB_cgb.c
+
+Bug fix.  Multiply placed contained frags are not eligible for placement
+in a unitig.
+
+----------------------------------------
+2007/07/27 14:16:07	1.10	brianwalenz	AS_SDB/AS_SDB_SequenceDBPartition.c
+2007/07/27 14:16:07	1.6	brianwalenz	AS_SDB/AS_SDB_SequenceDBPartition.h
+2007/07/27 14:16:07	1.5	brianwalenz	AS_SDB/SDButil.c
+
+Dead code.
+
+----------------------------------------
+2007/07/27 20:24:12	1.41	brianwalenz	AS_CGW/Input_CGW.c
+
+Remove minor code to recognize IDT messages.
+
+----------------------------------------
+2007/07/27 20:25:45	1.21	brianwalenz	AS_CGB/AS_CGB_cgb.c
+
+Another stab at the previous bug fix.  MultiCont fragments were still
+getting placed.
+
+----------------------------------------
+2007/07/28 00:17:07	1.22	brianwalenz	AS_CGB/AS_CGB_cgb.c
+
+Bug fix for the broken bug fix that tried to fix the original broken bug
+fix.
+
+----------------------------------------
+2007/07/30 14:58:32	1.8	brianwalenz	AS_ALN/AS_ALN_qvaligner.c
+
+Replace unsafe "while (i != c)" with "while (i < c)"
+
+----------------------------------------
+2007/07/31 13:58:40	1.46	brianwalenz	AS_GKP/AS_GKP_main.c
+
+Error if no files given on command line.
+
+----------------------------------------
+2007/07/31 20:04:46	1.5	eliv	AS_RUN/asmQC/ca2ace.pl
+
+Never append to a string in a loop, performance sucks. Append to an array and join after loop.
+
+----------------------------------------
+2007/07/31 20:51:20	1.6	eliv	AS_RUN/asmQC/ca2ace.pl
+
+Fix typo in last commit.
+
+----------------------------------------
+2007/08/01 14:30:34	1.13	eliv	AS_CGW/MergeEdges_CGW.c
+
+Print some info before asserting.
+
+----------------------------------------
+2007/08/01 17:29:26	1.22	brianwalenz	AS_OVL/AS_OVL_overlap.h
+2007/08/01 17:29:26	1.36	brianwalenz	AS_OVL/AS_OVL_overlap_common.h
+2007/08/01 17:29:26	1.19	brianwalenz	AS_RUN/runCA-OBT/doc.tex
+2007/08/01 17:29:26	1.29	brianwalenz	AS_RUN/runCA-OBT/runCAutil/createOverlapJobs.pl
+2007/08/01 17:29:26	1.12	brianwalenz	AS_RUN/runCA-OBT/runCAutil/meryl.pl
+2007/08/01 17:29:26	1.51	brianwalenz	AS_RUN/runCA-OBT/runCAutil/util.pl
+
+Make the kmer size in overlapper a command line option.  The default value
+is still set in AS_global.h, but runCA-OBT will always override that value.
+
+----------------------------------------
+2007/08/01 17:35:30	1.47	brianwalenz	AS_GKP/AS_GKP_main.c
+
+Vector clear range loader (-v) was failing the input file sanity check.
+
+----------------------------------------
+2007/08/01 21:11:18	1.15	brianwalenz	c_make.gen
+
+Don't include the directory in our lists of dependencies.
+
+----------------------------------------
+2007/08/02 18:07:35	1.11	brianwalenz	AS_OVS/overlapStore.c
+
+Alert Reader Eli noticed that overlapStore usage was broken w.r.t. -d.
+
+----------------------------------------
+2007/08/02 20:31:49	1.12	brianwalenz	AS_GKP/AS_GKP_checkBatch.c
+2007/08/02 20:31:49	1.28	brianwalenz	AS_GKP/AS_GKP_checkFrag.c
+2007/08/02 20:31:49	1.13	brianwalenz	AS_GKP/AS_GKP_checkLibrary.c
+
+Be a little more forgiving of the invalid UID 0.
+
+----------------------------------------
+2007/08/02 21:06:20	1.21	adelcher	AS_OVL/CorrectOlapsOVL.c
+
+Just changed an erroneous comment
+
+----------------------------------------
+2007/08/02 21:23:52	1.8	adelcher	AS_OVL/OlapFromSeedsOVL.c
+2007/08/02 21:23:52	1.6	adelcher	AS_OVL/OlapFromSeedsOVL.h
+2007/08/02 21:23:52	1.3	adelcher	AS_OVL/SharedOVL.c
+2007/08/02 21:23:52	1.4	adelcher	AS_OVL/SharedOVL.h
+
+Complete redesign to create a true multialignment for correcting
+reads.  Correction scheme assumes homopolymer-type runs for now.
+Changes are all controlled by #define USE_NEW_STUFF in OlapFromSeedsOVL.h
+Will only work in single-thread mode (-t0)
+
+----------------------------------------
+2007/08/03 14:47:53	1.22	brianwalenz	AS_OVL/CorrectOlapsOVL.c
+2007/08/03 14:47:53	1.21	brianwalenz	AS_OVL/FragCorrectOVL.c
+2007/08/03 14:47:53	1.9	brianwalenz	AS_OVL/OlapFromSeedsOVL.c
+
+Disable debug statememt (in CorrectOlapsOVL.c); make Display_Frags ignore
+deleted fragments.
+
+----------------------------------------
+2007/08/03 20:45:03	1.1	brianwalenz	AS_global.c
+2007/08/03 20:45:03	1.19	brianwalenz	AS_global.h
+2007/08/03 20:45:03	1.3	brianwalenz	Makefile
+2007/08/03 20:45:03	1.46	brianwalenz	c_make.as
+2007/08/03 20:45:03	1.11	brianwalenz	AS_CGW/AS_CGW_dataTypes.h
+2007/08/03 20:45:03	1.42	brianwalenz	AS_CGW/AS_CGW_main.c
+2007/08/03 20:45:03	1.12	brianwalenz	AS_CGW/CIEdgeT_CGW.c
+2007/08/03 20:45:03	1.27	brianwalenz	AS_CGW/CIScaffoldT_Cleanup_CGW.c
+2007/08/03 20:45:03	1.18	brianwalenz	AS_CGW/ChunkOverlap_CGW.c
+2007/08/03 20:45:03	1.15	brianwalenz	AS_CGW/InterleavedMerging.c
+2007/08/03 20:45:03	1.22	brianwalenz	AS_CGW/LeastSquaresGaps_CGW.c
+2007/08/03 20:45:03	1.13	brianwalenz	AS_CGW/TransitiveReduction_CGW.c
+2007/08/03 20:45:03	1.14	brianwalenz	AS_CGW/eCR-examineGap.c
+2007/08/03 20:45:03	1.24	brianwalenz	AS_CGW/eCR.c
+2007/08/03 20:45:03	1.12	brianwalenz	AS_CGW/findMissedOverlaps.c
+2007/08/03 20:45:03	1.7	brianwalenz	AS_CGW/testChunkOverlap.c
+2007/08/03 20:45:03	1.14	brianwalenz	AS_CGW/testOverlapContigs.c
+2007/08/03 20:45:03	1.53	brianwalenz	AS_CNS/Consensus_CNS.c
+2007/08/03 20:45:04	1.151	brianwalenz	AS_CNS/MultiAlignment_CNS.c
+2007/08/03 20:45:04	1.10	brianwalenz	AS_MER/AS_MER_meryl.cc
+2007/08/03 20:45:04	1.23	brianwalenz	AS_OVL/AS_OVL_overlap.h
+2007/08/03 20:45:04	1.37	brianwalenz	AS_OVL/AS_OVL_overlap_common.h
+2007/08/03 20:45:04	1.14	brianwalenz	AS_OVL/AutoScreenOVL.c
+2007/08/03 20:45:04	1.23	brianwalenz	AS_OVL/CorrectOlapsOVL.c
+2007/08/03 20:45:04	1.22	brianwalenz	AS_OVL/FragCorrectOVL.c
+2007/08/03 20:45:04	1.19	brianwalenz	AS_OVL/Makefile
+2007/08/03 20:45:04	1.10	brianwalenz	AS_OVL/OlapFromSeedsOVL.c
+2007/08/03 20:45:04	1.7	brianwalenz	AS_OVL/OlapFromSeedsOVL.h
+2007/08/03 20:45:04	1.5	brianwalenz	AS_OVL/SharedOVL.h
+2007/08/03 20:45:04	1.16	brianwalenz	AS_REZ/Attic/FbacREZ.c
+2007/08/03 20:45:04	1.28	brianwalenz	AS_REZ/GapFillREZ.c
+
+Add run-time selection of error rates.
+
+----------------------------------------
+2007/08/04 22:26:58	1.24	brianwalenz	AS_CGB/AS_CGB_unitigger.c
+
+Add call to AS_configure().
+
+----------------------------------------
+2007/08/04 22:27:35	1.2	brianwalenz	AS_global.c
+2007/08/04 22:27:35	1.20	brianwalenz	AS_global.h
+2007/08/04 22:27:35	1.4	brianwalenz	AS_ALN/AS_ALN_forcns.c
+2007/08/04 22:27:35	1.9	brianwalenz	AS_ALN/AS_ALN_loverlapper.c
+2007/08/04 22:27:35	1.14	brianwalenz	AS_CGB/AS_CGB_Bubble_Popper.c
+2007/08/04 22:27:35	1.13	brianwalenz	AS_CGW/CIEdgeT_CGW.c
+2007/08/04 22:27:35	1.28	brianwalenz	AS_CGW/CIScaffoldT_Cleanup_CGW.c
+2007/08/04 22:27:35	1.19	brianwalenz	AS_CGW/ChunkOverlap_CGW.c
+2007/08/04 22:27:35	1.15	brianwalenz	AS_CGW/eCR-examineGap.c
+2007/08/04 22:27:35	1.15	brianwalenz	AS_CGW/testOverlapContigs.c
+2007/08/04 22:27:35	1.152	brianwalenz	AS_CNS/MultiAlignment_CNS.c
+2007/08/04 22:27:35	1.15	brianwalenz	AS_OVL/AutoScreenOVL.c
+2007/08/04 22:27:35	1.17	brianwalenz	AS_REZ/Attic/FbacREZ.c
+2007/08/04 22:27:35	1.29	brianwalenz	AS_REZ/GapFillREZ.c
+
+Add asserts to check error rate is valid.
+
+----------------------------------------
+2007/08/04 22:27:35	1.14	brianwalenz	AS_CGW/TransitiveReduction_CGW.c
+
+branches:  1.14.2;
+Add asserts to check error rate is valid.
+
+----------------------------------------
+2007/08/04 22:27:35	1.16	brianwalenz	AS_CGW/InterleavedMerging.c
+
+branches:  1.16.2;
+Add asserts to check error rate is valid.
+
+----------------------------------------
+2007/08/04 22:27:35	1.23	brianwalenz	AS_CGW/LeastSquaresGaps_CGW.c
+
+branches:  1.23.2;
+Add asserts to check error rate is valid.
+
+----------------------------------------
+2007/08/06 05:40:59	1.11	brianwalenz	AS_OVL/OlapFromSeedsOVL.c
+
+free() -> safe_free()
+
+----------------------------------------
+2007/08/06 05:46:12	1.12	brianwalenz	AS_OVL/OlapFromSeedsOVL.c
+
+free() -> safe_free() (again)
+
+----------------------------------------
+2007/08/06 06:34:46	1.52	brianwalenz	AS_RUN/runCA-OBT/runCAutil/util.pl
+
+Disable AGP, ACE and PosMap generation.  Yeah?  *You* make it faster.
+
+----------------------------------------
+2007/08/06 17:19:08	1.1	ahalpern	AS_ENV/chimChe.c
+2007/08/06 17:19:08	1.1	ahalpern	AS_ENV/kmer_utils.h
+
+chimChe[.c], which depends on kmer_utils.h, tests each of a query set
+of sequences for signs of chimerism by comparing it against a set of
+other sequences.  The "other" sequences may be either the query set or
+a separate database of sequences.  Primary application is to
+evaluation of PCR-derived 16S sequences from environmental samples.
+The central scoring function is like that of the Chimera Detection
+program by Niels Larsen, part of the SimRank 2.7 package (see
+http://rdp8.cme.msu.edu/cgis/chimera.cgi?su=SSU).  However, chimChe
+offers a few differences, notably: a) the ability to do an internal
+comparison (i.e. comparison within a user's set of sequences); b)
+reporting of scores can be based on only a "trimmed" region that is
+common to a query and its putative parental strains, which can avoid
+spuriously high scores in the presence of partial sequences in the
+comparison set.  Implementation is based on pieces of the Celera
+Assembler code.
+
+----------------------------------------
+2007/08/06 17:19:42	1.3	ahalpern	AS_ENV/Makefile
+
+Add chimChe source and target
+
+----------------------------------------
+2007/08/06 20:32:49	1.17	ahalpern	AS_CGW/frgs2clones.c
+
+Remove outdated "f:" option from getopt()
+
+----------------------------------------
+2007/08/07 05:31:37	1.23	ahalpern	AS_CGW/Makefile
+2007/08/07 05:31:38	1.10	ahalpern	AS_CGW/createFrgDeletes.c
+2007/08/07 05:31:38	1.18	ahalpern	AS_CGW/frgs2clones.c
+
+Resurrecting utility pgms createFrgDeletes frgs2clones from the "crud" list
+
+----------------------------------------
+2007/08/07 19:53:01	1.13	brianwalenz	AS_GKP/AS_GKP_checkLink.c
+
+Allow ONLY type M link messages (that's "standard mate" to be added.
+
+----------------------------------------
+2007/08/07 21:59:30	1.18	brianwalenz	AS_REZ/Attic/FbacREZ.c
+
+dumpContigInfo() minor bugfixes, better dumping.
+
+----------------------------------------
+2007/08/07 22:01:52	1.153	brianwalenz	AS_CNS/MultiAlignment_CNS.c
+
+BODGE_POSITIONS: if a multialign is screwed up by not having fragment
+coverage at the end, one can enable this to "fix" it.
+
+----------------------------------------
+2007/08/07 22:03:57	1.5	brianwalenz	AS_ALN/AS_ALN_forcns.c
+
+Clear InternalFragMesg before using; not a bug, just paranoia.
+
+----------------------------------------
+2007/08/08 02:01:20	1.3	ahalpern	AS_ENV/metagenomics_ovl_analyses.c
+
+fix now-bogus usage and getopt references to frgStore
+
+----------------------------------------
+2007/08/08 15:21:44	1.35	eliv	AS_RUN/runCA-OBT/runCAutil/terminate.pl
+
+Comment out mateLinkIIDRanges call, it parsed dumpGatekeeper output so needs work.
+
+----------------------------------------
+2007/08/08 17:21:28	1.11	ahalpern	AS_CGW/createFrgDeletes.c
+2007/08/08 17:21:28	1.19	ahalpern	AS_CGW/frgs2clones.c
+
+Added "argc = AS_configure(argc, argv);" before getopt to handle global alignment cutoff environment variables
+
+----------------------------------------
+2007/08/08 19:15:43	1.48	brianwalenz	AS_GKP/AS_GKP_main.c
+
+Instead of updating vector clear ranges one at a time, suck in the whole
+'frg' info file, update in bulk, and write it out (-v option; format1 only)
+
+----------------------------------------
+2007/08/08 21:15:27	1.49	brianwalenz	AS_GKP/AS_GKP_main.c
+
+Yeah.  There's a header on the file (see last commit) that screws
+everything up.  Skip the header.
+
+----------------------------------------
+2007/08/09 02:52:41	1.13	brianwalenz	AS_RUN/runCA-OBT/runCAutil/meryl.pl
+
+Evil; omitted a dollarsign on a variable in a string!
+
+----------------------------------------
+2007/08/09 12:48:44	1.50	brianwalenz	AS_GKP/AS_GKP_main.c
+
+An iid is not an array index.
+
+----------------------------------------
+2007/08/09 16:50:35	1.3	brianwalenz	AS_GKP/AS_GKP_rearrange.c
+
+Always reset the read IID.
+
+----------------------------------------
+2007/08/09 16:55:34	1.3	brianwalenz	AS_global.c
+2007/08/09 16:55:34	1.48	brianwalenz	AS_CGW/GraphCGW_T.c
+2007/08/09 16:55:34	1.13	brianwalenz	AS_CGW/fragmentPlacement.c
+2007/08/09 16:55:34	1.41	brianwalenz	AS_MSG/AS_MSG_pmesg.c
+2007/08/09 16:55:34	1.51	brianwalenz	AS_MSG/AS_MSG_pmesg.h
+
+Remove a char-to-char "conversion" function.  All it did was copy a byte.
+
+----------------------------------------
+2007/08/10 06:31:54	1.20	brianwalenz	AS_CGW/frgs2clones.c
+
+Use safe_malloc functions.
+
+----------------------------------------
+2007/08/10 06:47:14	1.4	brianwalenz	AS_OVS/AS_OVS_overlap.c
+
+Stupid error reading ovldump format input. Got the orientation wrong. :-(
+
+----------------------------------------
+2007/08/10 06:49:31	1.4	brianwalenz	AS_GKP/AS_GKP_rearrange.c
+
+Maybe now we'll get CVS ID
+
+----------------------------------------
+2007/08/10 06:50:40	1.1	brianwalenz	AS_GKP/AS_GKP_edit.c
+2007/08/10 06:50:40	1.51	brianwalenz	AS_GKP/AS_GKP_main.c
+
+Super great interface for "editing" a store.  DANGER!  Don't use it!!
+
+----------------------------------------
+2007/08/10 06:53:03	1.21	brianwalenz	AS_global.h
+2007/08/10 06:53:03	1.23	brianwalenz	AS_BOG/AS_BOG_MateChecker.cc
+2007/08/10 06:53:03	1.42	brianwalenz	AS_CGW/Input_CGW.c
+2007/08/10 06:53:03	1.14	brianwalenz	AS_GKP/AS_GKP_checkLibrary.c
+2007/08/10 06:53:03	1.21	brianwalenz	AS_GKP/AS_GKP_dump.c
+2007/08/10 06:53:03	1.13	brianwalenz	AS_GKP/Makefile
+2007/08/10 06:53:03	1.38	brianwalenz	AS_OVL/AS_OVL_overlap_common.h
+2007/08/10 06:53:03	1.10	brianwalenz	AS_PER/AS_PER_asmStore.c
+2007/08/10 06:53:03	1.14	brianwalenz	AS_PER/AS_PER_asmStore.h
+2007/08/10 06:53:03	1.20	brianwalenz	AS_PER/AS_PER_genericStore.c
+2007/08/10 06:53:03	1.1	brianwalenz	AS_PER/AS_PER_genericStore.doc.txt
+2007/08/10 06:53:04	1.14	brianwalenz	AS_PER/AS_PER_genericStore.h
+2007/08/10 06:53:04	1.38	brianwalenz	AS_PER/AS_PER_gkpStore.c
+2007/08/10 06:53:04	1.39	brianwalenz	AS_PER/AS_PER_gkpStore.h
+
+Mucking around in the generic store.  Dead stuff removed, got rid of the
+"handles" replaced with pointers to structs.  Much simpler.
+
+----------------------------------------
+2007/08/10 11:46:19	1.112	gdenisov	AS_CNS/MultiAlignment_CNS.c
+
+
+1. Allowed the anchor size to be = 0.
+2. When the number of confirmed alleles is <= 1, the second allele
+   will be an allele of the highest weight, rather than the one
+   which is the most distant from the main (first) allele
+
+----------------------------------------
+2007/08/12 04:36:11	1.5	brianwalenz	AS_GKP/AS_GKP_rearrange.c
+
+Wow, like, mates were, like, totally messed up, ya?  This version good!
+
+----------------------------------------
+2007/08/12 04:50:47	1.21	brianwalenz	AS_OVL/AS_OVL_driver_common.h
+
+Reindent.  Had to be done, sorry (well, not really).
+
+----------------------------------------
+2007/08/12 04:57:19	1.22	brianwalenz	AS_OVL/AS_OVL_driver_common.h
+
+Yow!  We were closing HashFragStream twice.
+
+----------------------------------------
+2007/08/13 02:50:30	1.30	brianwalenz	AS_RUN/runCA-OBT/runCAutil/createOverlapJobs.pl
+
+Disable diag output.
+
+----------------------------------------
+2007/08/13 05:46:41	1.29	brianwalenz	AS_GKP/AS_GKP_include.h
+
+OK, I forgot a prototype or two, wooo.
+
+----------------------------------------
+2007/08/13 05:47:17	1.52	brianwalenz	AS_GKP/AS_GKP_main.c
+
+--edit and --testedit.
+
+----------------------------------------
+2007/08/13 05:48:47	1.2	brianwalenz	AS_GKP/AS_GKP_edit.c
+
+Report the edits made, bunch of other fixes.
+
+----------------------------------------
+2007/08/14 02:35:50	1.3	brianwalenz	AS_GKP/AS_GKP_edit.c
+
+Handle libraries, do stuff to "allfrags".
+
+----------------------------------------
+2007/08/14 21:20:13	1.2	brianwalenz	AS_ENV/chimChe.c
+2007/08/14 21:20:13	1.5	brianwalenz	AS_ENV/greedyFragmentTiling.c
+2007/08/14 21:20:13	1.4	brianwalenz	AS_ENV/metagenomics_ovl_analyses.c
+
+Add AS_configure() calls.
+
+----------------------------------------
+2007/08/14 22:54:45	1.43	brianwalenz	AS_CGW/AS_CGW_main.c
+2007/08/14 22:54:45	1.4	brianwalenz	AS_CGW/Checkpoints_CGW.h
+2007/08/14 22:54:45	1.24	brianwalenz	AS_CGW/Makefile
+2007/08/14 22:54:45	1.14	brianwalenz	AS_CGW/fragmentPlacement.c
+2007/08/14 22:54:45	1.8	brianwalenz	AS_CGW/fragmentPlacement.h
+2007/08/14 22:54:45	1.21	brianwalenz	AS_CGW/localUnitigging_CGW.c
+2007/08/14 22:54:45	1.4	brianwalenz	AS_CGW/Attic/localUnitigging_CGW.h
+2007/08/14 22:54:45	1.18	brianwalenz	AS_CGW/resolveSurrogates.c
+2007/08/14 22:54:45	1.31	brianwalenz	AS_RUN/runCA-OBT/runCAutil/scaffolder.pl
+
+Inline 'resolveSurrogates' into cgw.  Currently, resolveSurrogates is
+enabled with stone level > 0, and the default cutoff is 2/3.  These
+will both be fixed as soon as I free up a command line option or two.
+'resolveSurrogates' the program still exists; I don't know what would
+happen if you apply the algorithm twice, just Don't Do It.
+
+----------------------------------------
+2007/08/15 22:29:50	1.2	moweis	AS_RUN/arun/ARUN.conf
+
+Update servername and added qsub option for project
+
+----------------------------------------
+2007/08/15 22:30:50	1.2	moweis	AS_RUN/arun/arun.pl
+
+Add log statement for JCVI/offsite
+
+----------------------------------------
+2007/08/15 22:31:39	1.3	moweis	AS_RUN/arun/CARUN_recipe_OBT.sh
+2007/08/15 22:31:39	1.3	moweis	AS_RUN/arun/CARUN_recipe_hybrid.sh
+2007/08/15 22:31:39	1.3	moweis	AS_RUN/arun/CARUN_recipe_noOBT.sh
+2007/08/15 22:31:39	1.3	moweis	AS_RUN/arun/CARUN_recipe_noVec.sh
+
+Readded back -A option for unitigger.  Not sure why it was removed.
+
+----------------------------------------
+2007/08/15 22:33:09	1.2	moweis	AS_RUN/arun/carun.pl
+
+Added timestamp to temp files to avoid overlap of users on the same machine.
+
+----------------------------------------
+2007/08/16 03:10:06	1.42	brianwalenz	AS_MSG/AS_MSG_pmesg.c
+
+printf() quirk; redirecting the output to /dev/null sets errno to
+ENOTTY, which we then caught and failed.
+
+----------------------------------------
+2007/08/16 03:12:15	1.21	moweis	AS_RUN/asmQC/caqc.pl
+2007/08/16 03:12:15	1.1	moweis	AS_RUN/asmQC/caqc_help.ini
+
+Updated help text.  Output format is same as that of the qc file (sections, ordering, etc...)
+
+----------------------------------------
+2007/08/16 05:27:06	1.6	brianwalenz	AS_OBT/getNumScaffolds.c
+
+Add AS_configure().
+
+----------------------------------------
+2007/08/16 14:50:09	1.22	moweis	AS_RUN/asmQC/caqc.pl
+
+Cleanup help code.
+
+----------------------------------------
+2007/08/16 15:06:40	1.23	moweis	AS_RUN/asmQC/caqc.pl
+
+No new code, only formatting update.
+
+----------------------------------------
+2007/08/17 04:06:00	1.20	brianwalenz	AS_RUN/runCA-OBT/doc.tex
+2007/08/17 04:06:00	1.53	brianwalenz	AS_RUN/runCA-OBT/runCAutil/util.pl
+
+Add ovl, cgw and cns error rate setting.  It should pick up values from
+the environment, and override those with anything set on the command
+line or spec file.
+
+----------------------------------------
+2007/08/17 04:33:03	1.21	brianwalenz	AS_RUN/runCA-OBT/doc.tex
+
+Add blurb about erates & envvar.
+
+----------------------------------------
+2007/08/17 06:33:42	1.4	brianwalenz	AS_MSG/tracedb-to-frg.pl
+
+Add useful comments.
+
+----------------------------------------
+2007/08/17 13:53:37	1.4	moweis	AS_RUN/arun/CARUN_recipe_OBT.sh
+2007/08/17 13:53:37	1.4	moweis	AS_RUN/arun/CARUN_recipe_hybrid.sh
+2007/08/17 13:53:37	1.4	moweis	AS_RUN/arun/CARUN_recipe_noOBT.sh
+2007/08/17 13:53:37	1.4	moweis	AS_RUN/arun/CARUN_recipe_noVec.sh
+
+Removed -A option from call to unitigger.  (Removed from untigger)
+
+----------------------------------------
+2007/08/17 17:37:31	1.3	ahalpern	AS_ENV/chimChe.c
+
+modifications and debugging messages to better handle partial sequence trimming issues
+
+----------------------------------------
+2007/08/17 17:41:12	1.5	ahalpern	AS_ENV/metagenomics_ovl_analyses.c
+
+Bug fixes to finish migration to new store formats (no frgStore
+anymore) and also addition of logic to handle deleted fragments
+properly (i.e. ignore them and overlaps to them!).
+
+----------------------------------------
+2007/08/17 17:51:11	1.6	ahalpern	AS_ENV/metagenomics_ovl_analyses.c
+
+Further correct treatment of deleted fragments.  Also prevent division
+by 0 in case no undeleted fragments exist for a given sample.
+
+----------------------------------------
+2007/08/17 20:15:40	1.24	moweis	AS_RUN/asmQC/caqc.pl
+
+Er...using \$Bin instead of cwd
+
+----------------------------------------
+2007/08/18 11:42:07	1.8	brianwalenz	AS_CGW/ChunkOverlap_CGW.h
+2007/08/18 11:42:07	1.26	brianwalenz	AS_CGW/Instrument_CGW.c
+2007/08/18 11:42:07	1.9	brianwalenz	AS_UTL/AS_UTL_Hash.c
+2007/08/18 11:42:07	1.5	brianwalenz	AS_UTL/AS_UTL_Hash.h
+2007/08/18 11:42:07	1.7	brianwalenz	AS_UTL/AS_UTL_heap.c
+2007/08/18 11:42:07	1.5	brianwalenz	AS_UTL/AS_UTL_heap.h
+
+Rewrite the heap.  Easier than tracking down memory corruption in the old one.
+
+----------------------------------------
+2007/08/18 11:42:07	1.20	brianwalenz	AS_CGW/ChunkOverlap_CGW.c
+
+branches:  1.20.2;
+Rewrite the heap.  Easier than tracking down memory corruption in the old one.
+
+----------------------------------------
+2007/08/18 13:13:20	1.44	brianwalenz	AS_CGW/AS_CGW_main.c
+2007/08/18 13:13:20	1.29	brianwalenz	AS_CGW/CIScaffoldT_Cleanup_CGW.c
+2007/08/18 13:13:20	1.5	brianwalenz	AS_CGW/Checkpoints_CGW.h
+2007/08/18 13:13:20	1.12	brianwalenz	AS_CGW/ContigT_CGW.c
+2007/08/18 13:13:20	1.13	brianwalenz	AS_CGW/Globals_CGW.h
+2007/08/18 13:13:21	1.49	brianwalenz	AS_CGW/GraphCGW_T.c
+2007/08/18 13:13:21	1.20	brianwalenz	AS_CGW/GraphCGW_T.h
+2007/08/18 13:13:21	1.15	brianwalenz	AS_CGW/InputDataTypes_CGW.h
+2007/08/18 13:13:21	1.43	brianwalenz	AS_CGW/Input_CGW.c
+2007/08/18 13:13:21	1.27	brianwalenz	AS_CGW/Instrument_CGW.c
+2007/08/18 13:13:21	1.25	brianwalenz	AS_CGW/Makefile
+2007/08/18 13:13:21	1.19	brianwalenz	AS_CGW/ScaffoldGraph_CGW.h
+2007/08/18 13:13:21	1.15	brianwalenz	AS_CGW/Attic/countAssembledFrags.c
+2007/08/18 13:13:21	1.25	brianwalenz	AS_CGW/eCR.c
+2007/08/18 13:13:21	1.11	brianwalenz	AS_CGW/Attic/examineFragStore.c
+2007/08/18 13:13:21	1.12	brianwalenz	AS_CGW/exploreScaffoldEnds.c
+2007/08/18 13:13:21	1.8	brianwalenz	AS_CGW/findAnEdge.c
+2007/08/18 13:13:21	1.13	brianwalenz	AS_CGW/findMissedOverlaps.c
+2007/08/18 13:13:21	1.22	brianwalenz	AS_CGW/localUnitigging_CGW.c
+2007/08/18 13:13:21	1.8	brianwalenz	AS_CGW/whereAreMyOverlaps.c
+2007/08/18 13:13:21	1.6	brianwalenz	AS_ENV/greedyFragmentTiling.c
+2007/08/18 13:13:21	1.11	brianwalenz	AS_REZ/ConsistencyChecksREZ.c
+2007/08/18 13:13:21	1.19	brianwalenz	AS_REZ/Attic/FbacREZ.c
+2007/08/18 13:13:21	1.6	brianwalenz	AS_REZ/Attic/FbacREZ.h
+2007/08/18 13:13:21	1.11	brianwalenz	AS_REZ/Attic/GWDriversREZ.c
+2007/08/18 13:13:21	1.6	brianwalenz	AS_REZ/Attic/GWDriversREZ.h
+2007/08/18 13:13:22	1.30	brianwalenz	AS_REZ/GapFillREZ.c
+2007/08/18 13:13:22	1.13	brianwalenz	AS_REZ/GapWalkerREZ.c
+2007/08/18 13:13:22	1.13	brianwalenz	AS_REZ/Makefile
+2007/08/18 13:13:22	1.8	brianwalenz	AS_REZ/StatisticsREZ.c
+2007/08/18 13:13:22	1.11	brianwalenz	AS_REZ/Attic/SubgraphREZ.c
+2007/08/18 13:13:22	1.5	brianwalenz	AS_REZ/Attic/SubgraphREZ.h
+2007/08/18 13:13:22	1.11	brianwalenz	AS_REZ/UpdateREZ.c
+2007/08/18 13:13:22	1.32	brianwalenz	AS_RUN/runCA-OBT/runCAutil/scaffolder.pl
+
+Remove AS_REZ/Fbac.c, code that would use finished BACs to join
+scaffolds.  We have now, finally, removed all references to locales
+(except for comments and MicroHetREZ, which is there to remind us of
+future problems with shreds).  This reduces CGW checkpoints by about
+10%, which also means that CGW CHECKPOINTS CHANGED.  See CIFragT in
+InputDataTypes_CGW.h if compatibility is an issue.
+
+----------------------------------------
+2007/08/19 05:35:24	1.19	moweis	AS_RUN/Makefile
+
+Added caqc_help.ini to be copied to bin
+
+----------------------------------------
+2007/08/19 07:54:12	1.1	brianwalenz	AS_RUN/runCA-OBT/all-microbe.sh
+
+Simple script I use to run all microbes.  Paths will be wrong.  Feel free
+to generalize.
+
+----------------------------------------
+2007/08/20 17:24:24	1.22	brianwalenz	AS_RUN/runCA-OBT/doc.tex
+2007/08/20 17:24:24	1.31	brianwalenz	AS_RUN/runCA-OBT/runCAutil/createOverlapJobs.pl
+2007/08/20 17:24:24	1.14	brianwalenz	AS_RUN/runCA-OBT/runCAutil/meryl.pl
+2007/08/20 17:24:24	1.33	brianwalenz	AS_RUN/runCA-OBT/runCAutil/scaffolder.pl
+2007/08/20 17:24:24	1.54	brianwalenz	AS_RUN/runCA-OBT/runCAutil/util.pl
+
+Metagenomc related script fixes from Aaron.  Add in resolve surrogate
+option -S to cgw; make the script support that.
+
+----------------------------------------
+2007/08/20 17:24:24	1.45	brianwalenz	AS_CGW/AS_CGW_main.c
+
+branches:  1.45.2;
+Metagenomc related script fixes from Aaron.  Add in resolve surrogate
+option -S to cgw; make the script support that.
+
+----------------------------------------
+2007/08/21 05:48:30	1.7	ahalpern	AS_ENV/metagenomics_ovl_analyses.c
+
+syntax bugs fixed
+
+----------------------------------------
+2007/08/21 06:19:48	1.7	ahalpern	AS_ENV/greedyFragmentTiling.c
+2007/08/21 06:19:48	1.2	ahalpern	AS_ENV/run_greedy.csh
+
+Changes to reconcile with mismatch rate representation in new ovlStore
+(AS_OVS version) and new AS_CNS_ERROR_RATE control of max mismatch
+rate within consensus
+
+----------------------------------------
+2007/08/22 13:21:16	1.5	moweis	AS_RUN/arun/CARUN_recipe_hybrid.sh
+2007/08/22 13:21:16	1.5	moweis	AS_RUN/arun/CARUN_recipe_noOBT.sh
+2007/08/22 13:21:16	1.5	moweis	AS_RUN/arun/CARUN_recipe_noVec.sh
+
+Removed erroneous P in unitigger call. (There was a -P P, removed the 2nd P)
+
+----------------------------------------
+2007/08/22 17:52:48	1.5	moweis	AS_RUN/arun/CARUN_recipe_OBT.sh
+2007/08/22 17:52:48	1.6	moweis	AS_RUN/arun/CARUN_recipe_hybrid.sh
+2007/08/22 17:52:48	1.6	moweis	AS_RUN/arun/CARUN_recipe_noOBT.sh
+2007/08/22 17:52:48	1.6	moweis	AS_RUN/arun/CARUN_recipe_noVec.sh
+
+Reverting back to 3.30 support, supporting the latest tip is a bigger effort than just removing a few unitigger options
+
+----------------------------------------
+2007/08/22 21:09:55	1.15	eliv	AS_CGW/fragmentPlacement.c
+
+Paper around sourceforge bug 1758898, use the va size not the count.
+
+----------------------------------------
+2007/08/22 21:09:55	1.30	eliv	AS_CGW/CIScaffoldT_Cleanup_CGW.c
+
+branches:  1.30.2;
+Paper around sourceforge bug 1758898, use the va size not the count.
+
+----------------------------------------
+2007/08/22 21:09:55	1.50	eliv	AS_CGW/GraphCGW_T.c
+
+branches:  1.50.2;
+Paper around sourceforge bug 1758898, use the va size not the count.
+
+----------------------------------------
+2007/08/23 14:34:03	1.45	eliv	AS_CGW/AS_CGW_main.c
+2007/08/23 14:34:03	1.20	eliv	AS_CGW/CIScaffoldT_CGW.c
+2007/08/23 14:34:03	1.30	eliv	AS_CGW/CIScaffoldT_Cleanup_CGW.c
+2007/08/23 14:34:04	1.31	eliv	AS_CGW/CIScaffoldT_Merge_CGW.c
+2007/08/23 14:34:04	1.20	eliv	AS_CGW/ChunkOverlap_CGW.c
+2007/08/23 14:34:04	1.50	eliv	AS_CGW/GraphCGW_T.c
+2007/08/23 14:34:04	1.16	eliv	AS_CGW/InterleavedMerging.c
+2007/08/23 14:34:05	1.23	eliv	AS_CGW/LeastSquaresGaps_CGW.c
+2007/08/23 14:34:06	1.25	eliv	AS_CGW/ScaffoldGraph_CGW.c
+2007/08/23 14:34:06	1.8	eliv	AS_CGW/SplitScaffolds_CGW.c
+2007/08/23 14:34:07	1.14	eliv	AS_CGW/TransitiveReduction_CGW.c
+
+Some work to fix the negative variance issues, still work in progress. Made it through aggressive scaffold merging on dros.
+
+----------------------------------------
+2007/08/23 14:57:26	1.6	adelcher	AS_OVL/AS_OVL_delcher.c
+2007/08/23 14:57:26	1.6	adelcher	AS_OVL/AS_OVL_delcher.h
+
+Add global debugging flags
+
+----------------------------------------
+2007/08/23 15:00:00	1.24	adelcher	AS_OVL/CorrectOlapsOVL.c
+2007/08/23 15:00:00	1.23	adelcher	AS_OVL/FragCorrectOVL.c
+
+Use Verbose_Level in AS_OVL_delcher
+
+----------------------------------------
+2007/08/23 15:06:26	1.13	adelcher	AS_OVL/OlapFromSeedsOVL.c
+2007/08/23 15:06:26	1.8	adelcher	AS_OVL/OlapFromSeedsOVL.h
+
+Use separate alignment routines for homopoly-type reads
+
+----------------------------------------
+2007/08/23 15:09:06	1.4	adelcher	AS_OVL/SharedOVL.c
+2007/08/23 15:09:06	1.6	adelcher	AS_OVL/SharedOVL.h
+
+Separate alignment routines for homopoly-type reads including
+new banded version
+
+----------------------------------------
+2007/08/23 18:17:27	1.14	eliv	AS_CGW/TransitiveReduction_CGW.c
+
+Slightly more general plus add a print.
+
+----------------------------------------
+2007/08/24 15:27:27	1.12	brianwalenz	AS_UTL/AS_UTL_version.c
+2007/08/24 15:27:27	1.5	brianwalenz	AS_UTL/AS_UTL_version.h
+
+Rewrite VersionStampADT.
+
+----------------------------------------
+2007/08/24 15:29:48	1.28	brianwalenz	AS_CGW/Instrument_CGW.c
+2007/08/24 15:29:48	1.12	brianwalenz	AS_CGW/createFrgDeletes.c
+2007/08/24 15:29:48	1.21	brianwalenz	AS_CGW/frgs2clones.c
+2007/08/24 15:29:48	1.13	brianwalenz	AS_GKP/AS_GKP_checkBatch.c
+2007/08/24 15:29:48	1.29	brianwalenz	AS_GKP/AS_GKP_checkFrag.c
+2007/08/24 15:29:48	1.15	brianwalenz	AS_PER/AS_PER_asmStore.h
+2007/08/24 15:29:48	1.21	brianwalenz	AS_PER/AS_PER_genericStore.c
+2007/08/24 15:29:48	1.15	brianwalenz	AS_PER/AS_PER_genericStore.h
+2007/08/24 15:29:48	1.39	brianwalenz	AS_PER/AS_PER_gkpStore.c
+2007/08/24 15:29:48	1.40	brianwalenz	AS_PER/AS_PER_gkpStore.h
+2007/08/24 15:29:48	1.10	brianwalenz	AS_UTL/AS_UTL_Hash.c
+2007/08/24 15:29:48	1.13	brianwalenz	AS_UTL/AS_UTL_fileIO.c
+
+Catch errors on fclose() -- these are our only reliable indication of out
+of disk errors.  Some valgrind cleanup and other minor crud.  Change the
+prototypes of functions in AS_PER_genericStore so they have no return
+value if they always returned the same value; lots of these routines
+wanted to return success/fail, but could never, ever, fail.
+
+----------------------------------------
+2007/08/24 19:59:44	1.3	ahalpern	AS_ENV/run_greedy.csh
+
+Fix typo/syntax error bugs
+
+----------------------------------------
+2007/08/25 10:39:18	1.53	brianwalenz	AS_GKP/AS_GKP_main.c
+
+Reset to version 1 on every file.  Be forgiving of invalid BAT messages -- they're
+now Just Another Error instead of Total Failure.  Close the store when too many errors.
 
