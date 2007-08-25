@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.52 2007-08-13 05:47:17 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.53 2007-08-25 10:39:18 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -562,6 +562,10 @@ main(int argc, char **argv) {
     GenericMesg     *pmesg             = NULL;
     int              fileIsCompressed  = 0;
 
+    fprintf(stderr, "Starting file '%s' at line %d.\n", argv[firstFileArg], GetProtoLineNum_AS());
+
+    AS_MSG_setFormatVersion(1);
+
     if        (strcmp(argv[firstFileArg] + strlen(argv[firstFileArg]) - 3, ".gz") == 0) {
       char  cmd[1024];
       sprintf(cmd, "gzip -dc %s", argv[firstFileArg]);
@@ -607,16 +611,12 @@ main(int argc, char **argv) {
       if (success != GATEKEEPER_SUCCESS) {
         fprintf(errorFP,"# GKP Error: at line %d:\n", GetProtoLineNum_AS());
         WriteProtoMesg_AS(errorFP,pmesg);
-        if (pmesg->t == MESG_BAT) {
-          fprintf(errorFP, "# GKP Error: Invalid BAT message, can't continue.\n");
-          return(GATEKEEPER_FAILURE);
-        }
         nerrs++;
       }
 
       if (nerrs >= maxerrs) {
         fprintf(errorFP, "# GKP Error: Too many errors (%d), can't continue.\n", nerrs);
-        return(GATEKEEPER_FAILURE);
+        goto done;
       }
     }
 
@@ -630,6 +630,7 @@ main(int argc, char **argv) {
     }
   }
 
+ done:
   closeGateKeeperStore(gkpStore);
 
   if (errorFile)
@@ -637,5 +638,5 @@ main(int argc, char **argv) {
 
   fprintf(stderr, "GKP finished with %d errors.\n", nerrs);
 
-  exit(0);
+  return(0);
 }
