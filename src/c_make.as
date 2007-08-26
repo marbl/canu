@@ -319,5 +319,3 @@ SUBDIRS = AS_RUN \
           AS_VWR \
           AS_MPA
 
-D=\
-          AS_ORA \
