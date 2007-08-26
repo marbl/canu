@@ -94,34 +94,11 @@ Overlap *Copy_Overlap(Overlap *ovl);
 
 /* Make a copy of overlap ovl, allocating memory for the copy. */
 
-
-
-
-
-
 #define AS_ANALYZE_ALL           0
 #define AS_ANALYZE_DELETES       1
 #define AS_ANALYZE_INSERTS       2
 #define AS_ANALYZE_SUBSTITUTIONS 3
 
-#if 0
-
-//  2005-oct-19, BPW, dead code.
-
-int *Analyze_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
-                        OverlapMesg *align, int amode,
-                        int *alen, int *blen, int *del, int *sub, int *ins);
-
-/* Analyze the overlap between fragments a and b.
-   Returns a -1 terminated list of the positions in the a sequences at
-   which an error of type "amode" occurs, as well as:
-     alen - # of a symbols in overlap,
-     blen - # of b symbols in overlap,
-     del  - # of unaligned symbols in a,
-     sub  - # of substitutions,
-     ins  - # of unaligned symbols in b.                                 */
-
-#endif
 
 void Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
                                OverlapMesg *align, int amode,
@@ -251,73 +228,6 @@ OverlapMesg *DP_Compare_AS(InternalFragMesg *a, InternalFragMesg *b,
 
 
 
-typedef struct {
-  int apnt, bpnt;  /* A branchpoint occurs at matrix position (apnt,bpnt)
-                      in a comparision between two sequences A and B.  That is,
-                      theres is a b.p. between the apnt'th and (apnt+1)'st
-                      symbol of A and the bpnt'th and (bpnt+1)'st symbo of B.
-                      To within first order the length of the matching part of
-                      the overlap is MIN(apnt,bpnt) and the length of the
-                      non-matching part is MIN(|A|-apnt,|B|-bpnt).         */
-  float ascent;    /* The ratio the score of the matching part of the overlap
-                      to its length.  If the two sequences match at (1-e)%
-                      then this ratio should be about BP_RATIO - e where
-                      BP_RATIO is a defined constant in AS_ALN_dpaligners.c
-                      currently set to .25.  Thus this number gives one a
-                      sense of the fidelity of the match between the two
-                      sequences before the branch point.                   */
-  float descent;   /* The ratio of the score of the longest extension of the
-                      matching part of the overlap into the non-matching part
-                      divided by its length.  For random sequences this ratio
-                      should be about .5-BP_RATIO.  This number gives one an
-                      idea of how divergent the sequences are after the
-                      branchpoint, if they don't diverge enough it may be
-                      that this is just a more highly variable region within
-                      a repeat.                                             */
-} BranchPointResult;
-
-BranchPointResult *BPnt_Compare_AS(InternalFragMesg *a, InternalFragMesg *b,
-                                   int beg, int end, int opposite,
-                                   double erate, double thresh,
-                                   int prefix, int suffix);
-
-/* Given fragments a and b, determine if there is a branchpoint between
-   them subject to the parameters beg, end, opposite, erate, and thresh as
-   for DP_Compare_AS above.  Typically one should use twice the prevailing
-   sequencing error rate for erate.  Moreover the branchpoint must occur
-   at least minprefix symbols into the overlap and involve at least
-   minsuffix symbols beyond the branch.  If there is insufficient memory
-   then a NULL pointer is returned, otherwise a branchpoint record is
-   returned.  The position of the branchpoint is returned as (-1,-1) if
-   a branchpoint satisfying the given constraints was not found.  Otherwise
-   a complete record as described with the typedef of the b.p. record
-   is returned.  *This record is reused every time the routine is called.* */
-
-
-BranchPointResult *  BPnt_Seq_Comp_AS
-    (char * aseq, int alen,  char * bseq, int blen,
-     int beg, int end, double erate, double thresh,
-     int minprefix, int minsuffix);
-
-/* Identical to previous except that sequences  aseq  and  bseq  
-*  have already been extracted, complemented if necessary,
-*  and shifted so that the first characters
-*  of each are  aseq [1]  and  bseq [1] , respectively.
-*  Their lengths also have been determined to be  alen  and  blen . */
-
-#define MICROMX  6  /* Largest length of a micro-sat to be detected. */
-
-int MicroFinder_AS(char *seq, int ispref, void (*handler)(char *));
-
-/* Find micro-sats of length up to MICROMX(6) that matches a prefix
-   (iff "ispref" != 0) or suffix of length MICROTESTLEN(40) of "seq" with
-   not more than MICROERRORS(6) errors and call "handler" with each one
-   (if any).  Return the first level filter cutoff value (good for
-   testing only)
-*/
-
-
-
 
 /*****************************************************************/
 /* New prototypes for bubble overlap detectors                   */
@@ -382,11 +292,10 @@ OverlapMesg *AS_ALN_affine_overlap(InternalFragMesg *a, InternalFragMesg *b,
                .....ACAGTAGACGAGATAGGATAGATAGAGTAGACAGATAGTTGACTAAC
 	            ||||||||||||||||||||||         ||| ||
                .....ACAGTAGACGAGATAGGATAGA---------CAGTTA
-
-	 
-
  
-*/ /*end comments for AS_ALN_affine_overlap */
+*/
+/*end comments for AS_ALN_affine_overlap */
+
 
 
 #include "CA_ALN_local.h"

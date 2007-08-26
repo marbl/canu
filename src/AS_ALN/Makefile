@@ -35,9 +35,6 @@ LIB_OBJECTS = $(LIB_SOURCES:.c=.o)
 TEST1_SOURCES = AS_ALN_testdriver1.c
 TEST1_OBJECTS = $(TEST1_SOURCES:.c=.o)
 
-TEST2_SOURCES = AS_ALN_testdriver2.c
-TEST2_OBJECTS = $(TEST2_SOURCES:.c=.o)
-
 TEST4_SOURCES = AS_ALN_testdriver4.c
 TEST4_OBJECTS = $(TEST4_SOURCES:.c=.o)
 
@@ -58,7 +55,7 @@ OBJECTS = $(SOURCES:.c=.o)
 
 LIBRARIES = libAS_ALN.a libCA.a
 
-PROGS = AS_ALN_testdriver1 AS_ALN_testdriver2 AS_ALN_testdriver4\
+PROGS = AS_ALN_testdriver1 AS_ALN_testdriver4\
 	AS_ALN_testdriver5 AS_ALN_revcompl\
 	AS_ALN_boxfiller
 
@@ -73,8 +70,6 @@ libAS_ALN.a: $(LIB_OBJECTS)
 libCA.a: $(LIB_OBJECTS)
 
 AS_ALN_testdriver1: $(TEST1_OBJECTS) $(LIBRARIES) libCA.a
-
-AS_ALN_testdriver2: $(TEST2_OBJECTS) $(LIB_OBJECTS) libCA.a
 
 AS_ALN_testdriver4: $(TEST4_OBJECTS) $(LIBRARIES) libCA.a
 

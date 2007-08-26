@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Output_CGW.c,v 1.24 2007-07-19 09:50:32 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Output_CGW.c,v 1.25 2007-08-26 10:11:03 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -421,8 +421,6 @@ void OutputContigLinks(ScaffoldGraphT *graph, int outputOverlapOnlyContigEdges)
       clm.orientation = edge->orient;
       if(!isOverlapEdge(edge)){
 	clm.overlap_type = AS_NO_OVERLAP;
-      }else if (edge->flags.bits.hasTandemOverlap){
-	clm.overlap_type = AS_TANDEM_OVERLAP;
       }else {
 	clm.overlap_type = AS_OVERLAP;
       }
@@ -447,7 +445,7 @@ void OutputContigLinks(ScaffoldGraphT *graph, int outputOverlapOnlyContigEdges)
       }
 
       clm.is_possible_chimera = edge->flags.bits.isPossibleChimera;
-      clm.includes_guide = edge->flags.bits.hasGuide;
+      clm.includes_guide = FALSE;
       clm.mean_distance = edge->distance.mean;
       clm.std_deviation = sqrt(edge->distance.variance);
       edgeTotal = clm.num_contributing = edge->edgesContributing;
@@ -475,15 +473,7 @@ void OutputContigLinks(ScaffoldGraphT *graph, int outputOverlapOnlyContigEdges)
 	  assert(outputOverlapOnlyContigEdges);
 	  imp.type = 'X';
 	}else{
-	  if(edge->flags.bits.hasGuide)
-            //imp.type = AS_BAC_GUIDE;
-            assert(0);
-	  else if(edge->flags.bits.hasMayJoin)
-	    imp.type = AS_MAY_JOIN;
-	  else if(edge->flags.bits.hasMustJoin)
-	    imp.type = AS_MUST_JOIN;
-	  else
-	    imp.type = AS_MATE;
+          imp.type = AS_MATE;
 	  AppendIntMate_Pairs(JumpList, &imp);
 	}
       }
@@ -505,15 +495,7 @@ void OutputContigLinks(ScaffoldGraphT *graph, int outputOverlapOnlyContigEdges)
 	  frag->flags.bits.edgeStatus = GetEdgeStatus(edge);
 	  imp.in2 = frag->iid;
           assert(!isOverlapEdge(redge));
-          if(redge->flags.bits.hasGuide)
-            //imp.type = AS_BAC_GUIDE;
-            assert(0);
-          else if(redge->flags.bits.hasMayJoin)
-            imp.type = AS_MAY_JOIN;
-          else if(redge->flags.bits.hasMustJoin)
-            imp.type = AS_MUST_JOIN;
-          else
-            imp.type = AS_MATE;
+          imp.type = AS_MATE;
           AppendIntMate_Pairs(JumpList, &imp);
 	}
 	assert(GetNumIntMate_Pairss(JumpList) == edgeTotal);
@@ -558,7 +540,7 @@ static void OutputScaffoldLink(ScaffoldGraphT * graph,
   slm.orientation = edge->orient;
   assert(!isOverlapEdge(edge));
   
-  slm.includes_guide = edge->flags.bits.hasGuide;
+  slm.includes_guide = FALSE;
   slm.mean_distance = edge->distance.mean;
   slm.std_deviation = sqrt(edge->distance.variance);
   edgeTotal = slm.num_contributing = edge->edgesContributing;
@@ -572,25 +554,15 @@ static void OutputScaffoldLink(ScaffoldGraphT * graph,
     assert(edgeTotal <= 1);		// sanity check
     if(edgeTotal == 1){
       frag = GetCIFragT(ScaffoldGraph->CIFrags, edge->fragA);
-      //	  frag->outMateStat = mstat;
       frag->flags.bits.edgeStatus = GetEdgeStatus(edge);
       imp.in1 = frag->iid;
       frag = GetCIFragT(ScaffoldGraph->CIFrags, edge->fragB);
       frag->flags.bits.edgeStatus = GetEdgeStatus(edge);
-      //	  frag->outMateStat = mstat;
       imp.in2 = frag->iid;
     }else{
       imp.in1 = imp.in2 = 0;
     }
-    if(edge->flags.bits.hasGuide)
-      //imp.type = AS_BAC_GUIDE;
-      assert(0);
-    else if(edge->flags.bits.hasMayJoin)
-      imp.type = AS_MAY_JOIN;
-    else if(edge->flags.bits.hasMustJoin)
-      imp.type = AS_MUST_JOIN;
-    else
-      imp.type = AS_MATE;
+    imp.type = AS_MATE;
     AppendIntMate_Pairs(JumpList, &imp);
     edgeCount = 1;
   }else{
@@ -611,15 +583,7 @@ static void OutputScaffoldLink(ScaffoldGraphT * graph,
       frag = GetCIFragT(ScaffoldGraph->CIFrags, redge->fragB);
       frag->flags.bits.edgeStatus = GetEdgeStatus(edge);
       imp.in2 = frag->iid;
-      if(redge->flags.bits.hasGuide)
-        //imp.type = AS_BAC_GUIDE;
-        assert(0);
-      else if(redge->flags.bits.hasMayJoin)
-        imp.type = AS_MAY_JOIN;
-      else if(redge->flags.bits.hasMustJoin)
-        imp.type = AS_MUST_JOIN;
-      else
-        imp.type = AS_MATE;
+      imp.type = AS_MATE;
       AppendIntMate_Pairs(JumpList, &imp);
     }
   }
@@ -806,14 +770,12 @@ void OutputUnitigLinksFromMultiAligns(void){
       ulm.orientation = edge->orient;
       if(!isOverlapEdge(edge)){
         ulm.overlap_type = AS_NO_OVERLAP;
-      }else if (edge->flags.bits.hasTandemOverlap){
-        ulm.overlap_type = AS_TANDEM_OVERLAP;
       }else {
         ulm.overlap_type = AS_OVERLAP;
       }
 
       ulm.is_possible_chimera = edge->flags.bits.isPossibleChimera;
-      ulm.includes_guide = edge->flags.bits.hasGuide;
+      ulm.includes_guide = FALSE;
       ulm.mean_distance = edge->distance.mean;
       ulm.std_deviation = sqrt(edge->distance.variance);
       edgeTotal = ulm.num_contributing = edge->edgesContributing;
@@ -884,15 +846,7 @@ void OutputUnitigLinksFromMultiAligns(void){
         imp.in2 = frag->iid;
         AssertPtr(frag);
         assert(!isOverlapEdge(edge));
-        if(edge->flags.bits.hasGuide)
-          //imp.type = AS_BAC_GUIDE;
-          assert(0);
-        else if(edge->flags.bits.hasMayJoin)
-          imp.type = AS_MAY_JOIN;
-        else if(edge->flags.bits.hasMustJoin)
-          imp.type = AS_MUST_JOIN;
-        else
-          imp.type = AS_MATE;
+        imp.type = AS_MATE;
         AppendIntMate_Pairs(JumpList,&imp);
       } else { // not raw
         redge = edge;
@@ -913,15 +867,7 @@ void OutputUnitigLinksFromMultiAligns(void){
           AssertPtr(frag);
           imp.in2 = frag->iid;
           assert(!isOverlapEdge(redge));
-          if(redge->flags.bits.hasGuide)
-            //imp.type = AS_BAC_GUIDE;
-            assert(0);
-          else if(redge->flags.bits.hasMayJoin)
-            imp.type = AS_MAY_JOIN;
-          else if(redge->flags.bits.hasMustJoin)
-            imp.type = AS_MUST_JOIN;
-          else
-            imp.type = AS_MATE;
+          imp.type = AS_MATE;
 
           AppendIntMate_Pairs(JumpList,&imp);
         }

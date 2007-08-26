@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: TransitiveReduction_CGW.c,v 1.14 2007-08-04 22:27:35 brianwalenz Exp $";
+static char CM_ID[] = "$Id: TransitiveReduction_CGW.c,v 1.15 2007-08-26 10:11:03 brianwalenz Exp $";
 
 // This file contains the code for computing the candidate
 // chunks of scaffolds.
@@ -1408,7 +1408,6 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
       }
       targetEdge->flags.bits.isInferredRemoved = TRUE;
       setEssentialEdgeStatus(targetEdge, FALSE);
-      //    targetEdge->flags.bits.isEssential = FALSE;
       if(targetEdge->flags.bits.isInferred && targetEdge->flags.bits.isTentative){
         DeleteGraphEdge(graph->RezGraph, targetEdge);
       }
@@ -1420,15 +1419,10 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
                                        1.0, // quality
                                        inferredEdgeOrient,
                                        FALSE, // not unknown orientation
-                                       FALSE, // not a guide
-                                       FALSE, // not isMayJoin
-                                       FALSE, // not isMustJoin
                                        isOverlapInferred,
-                                       FALSE, // repeatOverlap???
-                                       FALSE, // tandemOverlap???
-                                       FALSE,                        // isAContainsB
-                                       FALSE,                        // isBContainsA
-                                       FALSE,                        // isTransChunk
+                                       FALSE, // isAContainsB
+                                       FALSE, // isBContainsA
+                                       FALSE, // isTransChunk
                                        FALSE, // not extremalA
                                        FALSE, // not extremalB
                                        UNKNOWN_EDGE_STATUS,
@@ -1442,7 +1436,6 @@ int RecursiveSmoothWithInferredEdges(ScaffoldGraphT *graph,
       inferredEdge->flags.bits.isInferred = TRUE;
       inferredEdge->flags.bits.isTentative = TRUE;
       setEssentialEdgeStatus(inferredEdge, TRUE);
-      //    inferredEdge->flags.bits.isEssential = TRUE;
 
 #if 0
       fprintf(GlobalData->stderrc,"* Added inferred GraphEdge v2 (%d,%d,%c) isAContainsB:%d isBContainsA:%d fragA %d fragB %d isInferred %d isRaw %d\n",
@@ -2736,15 +2729,10 @@ void AddScaffoldInferredEdges(ScaffoldGraphT *graph,  int verbose){
                                          1.0, // quality
                                          inferredEdgeOrient,
                                          FALSE, // not unknown orientation
-                                         FALSE, // not a guide
-                                         FALSE, // not isMayJoin
-                                         FALSE, // not isMustJoin
                                          isOverlapInferred,
-                                         FALSE, // repeatOverlap???
-                                         FALSE, // tandemOverlap???
-                                         FALSE,                        // isAContainsB
-                                         FALSE,                        // isBContainsA
-                                         FALSE,                        // isTransChunk
+                                         FALSE, // isAContainsB
+                                         FALSE, // isBContainsA
+                                         FALSE, // isTransChunk
                                          FALSE, // not extremalA
                                          FALSE, // not extremalB
                                          UNKNOWN_EDGE_STATUS,

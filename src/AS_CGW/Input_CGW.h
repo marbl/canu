@@ -18,16 +18,19 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: Input_CGW.h,v 1.5 2006-09-21 21:34:00 brianwalenz Exp $  */
+/* 	$Id: Input_CGW.h,v 1.6 2007-08-26 10:11:02 brianwalenz Exp $  */
 /****************************************************************************
 
 ***************************************************************************/
 #ifndef INPUT_CGW_H
 #define INPUT_CGW_H
 
+int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]);
+
 void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg,
                               CDS_COORD_t length,
                               int sequenceOnly);
 
+void  LoadDistData(void);
 
 #endif

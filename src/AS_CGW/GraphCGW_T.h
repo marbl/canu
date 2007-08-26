@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: GraphCGW_T.h,v 1.20 2007-08-18 13:13:21 brianwalenz Exp $	 */
+/* 	$Id: GraphCGW_T.h,v 1.21 2007-08-26 10:11:02 brianwalenz Exp $	 */
 
 /**************************************************************************
  *  GraphCGW
@@ -94,18 +94,18 @@ typedef struct {
 
       // 16 bits used
 
-      unsigned int hasRepeatOverlap:1;        /* Has overlaps beyond branch points ==> repeat only */
-      unsigned int hasTandemOverlap:1;  /* Overlapper reported a min-max range of overlaps */
+      unsigned int XXXunusedXXX_hasRepeatOverlap:1;        /* Has overlaps beyond branch points ==> repeat only */
+      unsigned int XXXunusedXXX_hasTandemOverlap:1;  /* Overlapper reported a min-max range of overlaps */
       unsigned int aContainsB:1;        /* From CGB for multiply contained fragments */
       unsigned int bContainsA:1;        /* From CGB for multiply contained fragments */
       unsigned int mustOverlap:1;       /* Marked on merged edges when mate-link variance is signficantly less than overlap length */
-      unsigned int hasGuide:1;                /* Contains one or more guide edges */
+      unsigned int XXXunusedXXX_hasGuide:1;                /* Contains one or more guide edges */
       unsigned int XXXunusedXXX_hasSTSGuide:1;  /* EXTRA, UNUSED, was Contains an STS Guide */
-      unsigned int hasMayJoin:1;             /* Contains a may join constraint */
+      unsigned int XXXunusedXXX_hasMayJoin:1;             /* Contains a may join constraint */
 
       // 24 bits used
 
-      unsigned int hasMustJoin:1;             /* Contains a must join constraint */
+      unsigned int XXXunusedXXX_hasMustJoin:1;             /* Contains a must join constraint */
       unsigned int hasTransChunk:1;           /* was a transitively removed edge in cgb */
       unsigned int hasContainmentOverlap:1;  /* Implies a containment */
       unsigned int isRaw:1;                   /* True for raw edges, false for merged edges */
@@ -273,8 +273,8 @@ typedef struct{
                                     These will be linked together.  */
       int32 numFragments;
       /* ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^*/
-      CDS_COORD_t  branchPointA;
-      CDS_COORD_t  branchPointB;    
+      CDS_COORD_t  XXXunusedXXX_branchPointA;
+      CDS_COORD_t  XXXunusedXXX_branchPointB;    
       int32        coverageStat;
       CDS_CID_t    baseID;    /* If this is a  RESOLVEDREPEAT, the id of the original 
                                  CI from which it was spawned */
@@ -294,8 +294,8 @@ typedef struct{
       CDS_CID_t AEndCI;   //Index of Chunk Instance at A end of Contig
       CDS_CID_t BEndCI;   //Index of Chunk Instance at B end of Contig
       int32 numCI;    //Number of CI in contig
-      CDS_COORD_t branchPointA;
-      CDS_COORD_t branchPointB;    
+      CDS_COORD_t XXXunusedXXX_branchPointA;
+      CDS_COORD_t XXXunusedXXX_branchPointB;    
     }Contig;
     struct CISCAFFOLD_TAG{
       CDS_CID_t AEndCI; // Index of Chunk Instance at A end of Scaffold
@@ -333,7 +333,7 @@ typedef struct{
 	 BEND_TANDEM_OVERLAP
 	 BOTH_END_TANDEM_OVERLAP = AEND_TANDEM_OVERLAP | BEND_TANDEM_OVERLAP
       */
-      unsigned int tandemOverlaps:2;
+      unsigned int XXXunusedXXX_tandemOverlaps:2;
       unsigned int isCI:1;
       unsigned int isContig:1;
       unsigned int isScaffold:1;
@@ -470,7 +470,6 @@ static NodeCGW_T *CreateNewGraphNode(GraphCGW_T *graph){
       node.info.CI.contigID = NULLINDEX;
       node.info.CI.headOfFragments = NULLINDEX;
       node.info.CI.numFragments = 0;
-      node.info.CI.branchPointA = node.info.CI.branchPointB = 0;
       node.microhetScore = -1.0;
       node.info.CI.coverageStat = 0;
       node.info.CI.numInstances = 0;
@@ -735,10 +734,6 @@ static ChunkOrientationType GetChunkPairOrientation(ChunkOrient orientA,
 
 
 
-static unsigned int GetNodeTandemOverlaps(NodeCGW_T *ci){
-  return ((unsigned int)ci->flags.bits.tandemOverlaps);
-}
-
 static ChunkInstanceType GetNodeType(NodeCGW_T *ci){
   return ci->type;
 }
@@ -813,12 +808,8 @@ static void SetNodeType(NodeCGW_T *ci, ChunkInstanceType type){
   ci->type = type;
 }
 
-/* isBacOnlyEdge:  true if all of the non-overlap edges are from BACs */
-int isBacOnlyEdge(GraphCGW_T *graph, EdgeCGW_T *edge);
-
 /* EdgeDegree: */
-void EdgeDegree(GraphCGW_T *graph, EdgeCGW_T *edge,
-                int32 *totalDegree, int32 *noBacDegree);
+int32 EdgeDegree(GraphCGW_T *graph, EdgeCGW_T *edge);
 
 static int isContainmentEdge(EdgeCGW_T *edge){
   return edge->flags.bits.hasContainmentOverlap;
@@ -834,8 +825,6 @@ static int isInferredEdge(EdgeCGW_T *edge){
 
 static int isOverlapEdge(EdgeCGW_T *edge){
   return (edge->flags.bits.hasContributingOverlap || 
-          edge->flags.bits.hasRepeatOverlap || 
-          edge->flags.bits.hasTandemOverlap ||
           edge->flags.bits.aContainsB ||
           edge->flags.bits.bContainsA);
 }
@@ -865,14 +854,10 @@ static int isTransChunkEdge(EdgeCGW_T *edge){
 // #define SLOPPY_EDGE_VARIANCE_THRESHHOLD (4.0e+6)    // sigma = 2000
 
 static int isSloppyEdge(EdgeCGW_T *edge){
-  if(edge->flags.bits.isInferred){
+  if(edge->flags.bits.isInferred)
     return 0;
-  }
-  if(edge->flags.bits.hasGuide || 
-     edge->flags.bits.isSloppy){
+  if(edge->flags.bits.isSloppy)
     return 1;
-  }
-     
   // for older files
   return (edge->distance.variance > SLOPPY_EDGE_VARIANCE_THRESHHOLD);  
 }
@@ -1306,12 +1291,7 @@ CDS_CID_t AddGraphEdge( GraphCGW_T *graph,
                         CDS_COORD_t fudgeDistance,
                         OrientType orientation,
                         int isInducedByUnknownOrientation,
-                        int isGuide,    // Add it to GuideMates and flag it
-                        int isMayJoin,
-                        int isMustJoin,
                         int isOverlap,
-                        int isRepeatOverlap,
-                        int isTandemOverlap,
                         int isTransChunk,
                         int isAContainsB,
                         int isBContainsA,
@@ -1374,9 +1354,6 @@ void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
 // Dump Overlaps
 void DumpOverlaps(GraphCGW_T *graph);
 
-int IsRepeatOverlap(GraphCGW_T *graph,
-                    CDS_CID_t cid1, CDS_CID_t cid2,
-                    ChunkOrientationType orient, LengthT overlap);
 
 /* Check that edge with index eid is properly wired in the graph:
    - we find it when looking for it in both lists which it is supposed
@@ -1404,20 +1381,6 @@ Overlap* OverlapContigs(NodeCGW_T *contig1, NodeCGW_T *contig2,
                         ChunkOrientationType *overlapOrientation,
                         CDS_COORD_t minAhang, CDS_COORD_t maxAhang,
                         int computeAhang);
-/*
-  Overlap* OverlapContigsLocal(NodeCGW_T *contig1, NodeCGW_T *contig2, 
-  ChunkOrientationType overlapOrientation,
-  int minAhang, int maxAhang, int computeAhang);
-*/
-
-/* OverlapChunksWithMultipleCoverage:
-   This is a special version of OverlapChunks that lops off the
-   single coverage ends of the chunks prior to overlapping */
-BranchPointResult OverlapChunksWithBPDetection(GraphCGW_T *graph,
-                                               CDS_CID_t cidA, CDS_CID_t cidB,
-                                               ChunkOrientationType orientation, 
-                                               CDS_COORD_t minOverlap,
-                                               CDS_COORD_t maxOverlap);
 
 int32  SmallOverlapExists(GraphCGW_T *graph,
                           CDS_CID_t cidA, CDS_CID_t cidB,
@@ -1548,16 +1511,6 @@ void    UpdateScaffoldSimCoordinates(NodeCGW_T *scaffold);
 
 void    UpdateContigSimCoordinates(NodeCGW_T *contig);
 
-
-// We want tandem overlaps to have large variances, roughly the
-// twoce variance of a 10k mate link.
-// Sigma of a 10k link is 1/3 of 20% of 10000
-#define TANDEM_OVERLAP_STDDEV (2.0 * 0.20 * 10000.0/3.0)
-#define TANDEM_OVERLAP_VARIANCE (TANDEM_OVERLAP_STDDEV * TANDEM_OVERLAP_STDDEV)
-
-void PropagateTandemMarks(GraphCGW_T *graph);
-
-int  MarkTandemEdge(GraphCGW_T *graph, EdgeCGW_T *edge);
 
 
 

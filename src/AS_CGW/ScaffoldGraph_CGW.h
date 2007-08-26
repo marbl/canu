@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ScaffoldGraph_CGW.h,v 1.19 2007-08-18 13:13:21 brianwalenz Exp $	 */
+/* 	$Id: ScaffoldGraph_CGW.h,v 1.20 2007-08-26 10:11:03 brianwalenz Exp $	 */
 /***************************************************************************
  *  ScaffoldGraph
  *  
@@ -112,13 +112,8 @@ typedef struct{
   VA_TYPE(CIEdgeT)        *ContigEdges;
   VA_TYPE(SEdgeT)         *SEdges;
   char                    name[256];
-  int32                   ignoreUOMTranschunk; // 
   int32                   doRezOnContigs; // This should go away, just a hack to enable smooth transition to new code
   int16                   alignOverlaps;  // If true, inputs are non-bayesisan, if false, inputs are bayseian quality
-  int16                   ignoreUOMs;
-  int16                   ignoreUOMContains;
-  int16                   ignoreUOMContainStack;
-  int32                   ignoreUOMBetweenContained;
   int32                   checkPointIteration; // Index of next checkpoint
   int32                   numContigs;  // Number of contigs...they may be interspersed
   int32                   numOriginalCIs;
@@ -142,11 +137,10 @@ ScaffoldGraphT *CreateScaffoldGraph(int rezOnContigs, char *name,
                                     int32 numNodes, int32 numEdges);
 void InsertRepeatCIsInScaffolds(ScaffoldGraphT *sgraph);
 void BuildCIEdges(ScaffoldGraphT *graph);
-int BuildSEdgesForScaffold(ScaffoldGraphT * graph,
-                           CIScaffoldT * scaffold,
-                           int canonicalOnly,
-                           int includeNegativeEdges,
-                           SEdgeBuildStats * stats);
+void BuildSEdgesForScaffold(ScaffoldGraphT * graph,
+                            CIScaffoldT * scaffold,
+                            int canonicalOnly,
+                            int includeNegativeEdges);
 void BuildSEdges(ScaffoldGraphT *graph, int includeNegativeEdges);
 
 /* Destructor */
@@ -573,21 +567,6 @@ void AddDeltaToScaffoldOffsets(ScaffoldGraphT *graph,
                                int verbose,
                                LengthT delta);
 
-
-#ifdef RAT_RUN_2
-void NullifyNodeEdges(NodeCGW_T * node);
-void NullifyAllNodeEdges(GraphCGW_T * graph);
-void ActivateLBACMatePairs(void);
-#endif
-
-// Handle all but ADT
-int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]);
-
-// Handle ADT only
-int ProcessInputADT(Global_CGW *data, FILE *infp, int argc, char **argv);
-
-// Load dist info from gkpStore
-void  LoadDistData(void);
 
 void BuildScaffoldsFromFirstPriniciples(ScaffoldGraphT *ScaffoldGraph,
                                         int skipInitialScaffolding);

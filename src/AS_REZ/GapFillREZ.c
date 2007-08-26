@@ -34,7 +34,7 @@
 *
 *************************************************/
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.30 2007-08-18 13:13:22 brianwalenz Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.31 2007-08-26 10:11:03 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -4172,12 +4172,6 @@ float  CIEdge_Quality
        val -= 0.2;
    if  (edge -> flags . bits . hasContributingOverlap)
        val -= 1.0;
-   if  (edge -> flags . bits . hasRepeatOverlap)
-       val -= 2.0;
-   if  (edge -> flags . bits . hasTandemOverlap)
-       val -= 3.0;
-   if  (edge -> flags . bits . hasGuide)
-       val -= 0.5;
 
    return  val;
   }
@@ -4684,7 +4678,6 @@ static void  Confirm_Stones
               found = Find_Olap_Path
                         (from, from_end, to, num_targets, target, bound,
                          & first, & max_hits, & max_first, & to_position,
-//                         SKIP_TANDEM_OLAPS);
                          SKIP_TANDEM_OLAPS | SKIP_CONTAINMENT_OLAPS);
               if  (found && max_hits > 0)
                   {
@@ -4990,20 +4983,18 @@ if  (Global_Debug_Flag)
       int  next_id, progress;
 
 if  (Global_Debug_Flag)
-    fprintf (stderr, ">>> Trying edge idA = %d  idB = %d  mean = %.0f  %s %s %s %s\n",
+    fprintf (stderr, ">>> Trying edge idA = %d  idB = %d  mean = %.0f  %s %s %s\n",
              edge -> idA, edge -> idB,
              edge -> distance . mean,
              isOverlapEdge (edge) ? "" : "NotOlap",
              isProbablyBogusEdge (edge) ? "Bogus" : "",
-             edge -> flags . bits . hasTandemOverlap ? "Tandem" : "",
              edge -> flags . bits . hasContainmentOverlap ? "Contain" : "");
 
       if  (! isOverlapEdge (edge)
              || isProbablyBogusEdge (edge))
           continue;
       if  ((edge_mask & SKIP_TANDEM_OLAPS)
-             && (edge -> flags . bits . hasTandemOverlap
-                 || edge -> distance . mean > 0))  // Probably a tandem repeat overlap
+             && (edge -> distance . mean > 0))  // Probably a tandem repeat overlap
           continue;
 
       if  (edge -> idA == from -> id)
@@ -9677,10 +9668,6 @@ static void  Print_Potential_Fill_Chunks
                        fprintf (fp, " Chim");
                    if  (stack [i] . edge -> flags . bits . hasContributingOverlap)
                        fprintf (fp, " U-lap");
-                   if  (stack [i] . edge -> flags . bits . hasTandemOverlap)
-                       fprintf (fp, " T-lap");
-                   if  (stack [i] . edge -> flags . bits . hasRepeatOverlap)
-                       fprintf (fp, " r-lap");
                    if  (stack [i] . edge -> flags . bits . rangeTruncated)
                        fprintf (fp, " Trunc");
                    if  (isProbablyBogusEdge (stack [i] . edge))
@@ -10919,10 +10906,6 @@ static int  Select_Good_Edges
           {
            if  (stack [i] . edge -> flags . bits . hasContributingOverlap)
                stack [i] . num_ulaps = 1;
-           if  (stack [i] . edge -> flags . bits . hasTandemOverlap)
-               stack [i] . num_tlaps = 1;
-           if  (stack [i] . edge -> flags . bits . hasRepeatOverlap)
-               stack [i] . num_rlaps = 1;
            if  (isOverlapEdge (stack [i] . edge))
                stack [i] . num_good_mates --;
           }

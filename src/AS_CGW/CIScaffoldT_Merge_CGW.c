@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.31 2007-06-22 20:25:48 eliv Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.32 2007-08-26 10:11:01 brianwalenz Exp $";
 
 
 #undef ORIG_MERGE_EDGE_INVERT
@@ -5072,33 +5072,24 @@ void BuildNewScaffoldEdges(ScaffoldGraphT * graph,
                            CDS_CID_t firstScaffoldID)
 {
   CDS_CID_t i;
-  SEdgeBuildStats buildStats;
   
   // Reset scaffold edge heads
-  for(i = firstScaffoldID; i < GetNumGraphNodes(graph->ScaffoldGraph); i++)
-    {
-      CIScaffoldT * newScaffold = GetCIScaffoldT(graph->CIScaffolds, i);
-      newScaffold->edgeHead = NULLINDEX;
-    }
+  for(i = firstScaffoldID; i < GetNumGraphNodes(graph->ScaffoldGraph); i++) {
+    CIScaffoldT * newScaffold = GetCIScaffoldT(graph->CIScaffolds, i);
+    newScaffold->edgeHead = NULLINDEX;
+  }
   
   // build raw edges
-  memset(&buildStats, 0, sizeof(buildStats));
-  for(i = firstScaffoldID; i < GetNumGraphNodes(graph->ScaffoldGraph); i++)
-    {
-      CIScaffoldT * newScaffold = GetCIScaffoldT(graph->CIScaffolds, i);
+  for(i = firstScaffoldID; i < GetNumGraphNodes(graph->ScaffoldGraph); i++) {
+    CIScaffoldT * newScaffold = GetCIScaffoldT(graph->CIScaffolds, i);
     
-      assert(newScaffold != NULL);
+    if ((newScaffold->flags.bits.isDead) ||
+        (newScaffold->type != REAL_SCAFFOLD))
+      continue;
 
-      if ((newScaffold->flags.bits.isDead) ||
-          (newScaffold->type != REAL_SCAFFOLD))
-        continue;
-    
-      BuildSEdgesForScaffold(graph, newScaffold, FALSE,
-                             GlobalData->doInterleavedScaffoldMerging,
-                             &buildStats);
-      MergeNodeGraphEdges(graph->ScaffoldGraph, newScaffold, TRUE, TRUE, FALSE);
-    }
-  fprintf(stderr, "Added %d raw scaffold edges\n", buildStats.edgesSucceeded);
+    BuildSEdgesForScaffold(graph, newScaffold, FALSE, GlobalData->doInterleavedScaffoldMerging);
+    MergeNodeGraphEdges(graph->ScaffoldGraph, newScaffold, TRUE, TRUE, FALSE);
+  }
 }
 
 

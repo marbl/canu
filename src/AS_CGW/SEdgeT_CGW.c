@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: SEdgeT_CGW.c,v 1.9 2007-04-16 17:36:30 brianwalenz Exp $";
+static char CM_ID[] = "$Id: SEdgeT_CGW.c,v 1.10 2007-08-26 10:11:03 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_SEDGES
@@ -78,14 +78,7 @@ void PrintSEdgeT(FILE *fp, ScaffoldGraphT *graph, char *label, SEdgeT *edge, CDS
       flag = "$C";
     else 
       flag = "$O";
-  }else if(edge->flags.bits.hasRepeatOverlap){
-    flag = "$R";
-  }else if(edge->flags.bits.hasTandemOverlap){
-    flag = "$T";
-  }else if(edge->flags.bits.hasGuide){
-    flag = "$G";
   }
-
 
   fprintf(fp,"\t  cidA:" F_CID " cidB:" F_CID " weight:%d %s ori:%c con:%d distance:%d stddev:%g %s (" F_CID "," F_CID ")\n",
           edge->idA, edge->idB, 
@@ -115,52 +108,31 @@ void PrintSEdgeT(FILE *fp, ScaffoldGraphT *graph, char *label, SEdgeT *edge, CDS
   fprintf(fp, "\t\twasEssential:%d\n", edge->flags.bits.wasEssential);
   fprintf(fp, "\t\tisActive:%d\n", edge->flags.bits.isActive);
   fprintf(fp, "\t\tisConfirmed:%d\n", edge->flags.bits.isConfirmed);
-  fprintf(fp, "\t\tisContigConfirming:%d\n",
-          edge->flags.bits.isContigConfirming);
-  fprintf(fp, "\t\tisUniquetoUnique:%d\n",
-          edge->flags.bits.isUniquetoUnique);
-  fprintf(fp, "\t\tisTransitivelyRemoved:%d\n",
-          edge->flags.bits.isTransitivelyRemoved);
-  fprintf(fp, "\t\tisInferredRemoved:%d\n",
-          edge->flags.bits.isInferredRemoved);
-  fprintf(fp, "\t\tisRedundantRemoved:%d\n",
-          edge->flags.bits.isRedundantRemoved);
+  fprintf(fp, "\t\tisContigConfirming:%d\n", edge->flags.bits.isContigConfirming);
+  fprintf(fp, "\t\tisUniquetoUnique:%d\n", edge->flags.bits.isUniquetoUnique);
+  fprintf(fp, "\t\tisTransitivelyRemoved:%d\n", edge->flags.bits.isTransitivelyRemoved);
+  fprintf(fp, "\t\tisInferredRemoved:%d\n", edge->flags.bits.isInferredRemoved);
+  fprintf(fp, "\t\tisRedundantRemoved:%d\n", edge->flags.bits.isRedundantRemoved);
   fprintf(fp, "\t\tisDeleted:%d\n", edge->flags.bits.isDeleted);
-  fprintf(fp, "\t\tisPossibleChimera:%d\n",
-          edge->flags.bits.isPossibleChimera);
-  fprintf(fp, "\t\tinducedByUnknownOrientation:%d\n",
-          edge->flags.bits.inducedByUnknownOrientation);
-  fprintf(fp, "\t\thasContributingOverlap:%d\n",
-          edge->flags.bits.hasContributingOverlap);
-  fprintf(fp, "\t\thasRepeatOverlap:%d\n",
-          edge->flags.bits.hasRepeatOverlap);
-  fprintf(fp, "\t\thasTandemOverlap:%d\n",
-          edge->flags.bits.hasTandemOverlap);
+  fprintf(fp, "\t\tisPossibleChimera:%d\n", edge->flags.bits.isPossibleChimera);
+  fprintf(fp, "\t\tinducedByUnknownOrientation:%d\n", edge->flags.bits.inducedByUnknownOrientation);
+  fprintf(fp, "\t\thasContributingOverlap:%d\n", edge->flags.bits.hasContributingOverlap);
   fprintf(fp, "\t\taContainsB:%d\n", edge->flags.bits.aContainsB);
   fprintf(fp, "\t\tbContainsA:%d\n", edge->flags.bits.bContainsA);
   fprintf(fp, "\t\tmustOverlap:%d\n", edge->flags.bits.mustOverlap);
-  fprintf(fp, "\t\thasGuide:%d\n", edge->flags.bits.hasGuide);
-  fprintf(fp, "\t\thasMayJoin:%d\n", edge->flags.bits.hasMayJoin);
-  fprintf(fp, "\t\thasMustJoin:%d\n", edge->flags.bits.hasMustJoin);
   fprintf(fp, "\t\thasTransChunk:%d\n", edge->flags.bits.hasTransChunk);
-  fprintf(fp, "\t\thasContainmentOverlap:%d\n",
-          edge->flags.bits.hasContainmentOverlap);
+  fprintf(fp, "\t\thasContainmentOverlap:%d\n", edge->flags.bits.hasContainmentOverlap);
   fprintf(fp, "\t\tisRaw:%d\n", edge->flags.bits.isRaw);
-  fprintf(fp, "\t\thasExtremalAFrag:%d\n",
-          edge->flags.bits.hasExtremalAFrag);
-  fprintf(fp, "\t\thasExtremalBFrag:%d\n",
-          edge->flags.bits.hasExtremalBFrag);
+  fprintf(fp, "\t\thasExtremalAFrag:%d\n", edge->flags.bits.hasExtremalAFrag);
+  fprintf(fp, "\t\thasExtremalBFrag:%d\n", edge->flags.bits.hasExtremalBFrag);
   fprintf(fp, "\t\trangeTruncated:%d\n", edge->flags.bits.rangeTruncated);
   fprintf(fp, "\t\tinAssembly:%d\n", edge->flags.bits.inAssembly);
   fprintf(fp, "\t\tisBogus:%d\n", edge->flags.bits.isBogus);
   fprintf(fp, "\t\tisProbablyBogus:%d\n", edge->flags.bits.isProbablyBogus);
-  fprintf(fp, "\t\thasConfirmingPath:%d\n",
-          edge->flags.bits.hasConfirmingPath);
+  fprintf(fp, "\t\thasConfirmingPath:%d\n", edge->flags.bits.hasConfirmingPath);
   fprintf(fp, "\t\tedgeStatus:%d\n", edge->flags.bits.edgeStatus);
-  fprintf(fp, "\t\tisMarkedForDeletion:%d\n",
-          edge->flags.bits.isMarkedForDeletion);
-  fprintf(fp, "\t\tMeanChangedByWalking:%d\n",
-          edge->flags.bits.MeanChangedByWalking);
+  fprintf(fp, "\t\tisMarkedForDeletion:%d\n", edge->flags.bits.isMarkedForDeletion);
+  fprintf(fp, "\t\tMeanChangedByWalking:%d\n", edge->flags.bits.MeanChangedByWalking);
   fprintf(fp, "\t\thighQualityA:%d\n", edge->flags.bits.highQualityA);
   fprintf(fp, "\t\thighQualityB:%d\n", edge->flags.bits.highQualityB);
   fprintf(fp, "\t\tisSloppy:%d\n", edge->flags.bits.isSloppy);
@@ -414,9 +386,8 @@ int BuildSEdgeFromChunkEdge(ScaffoldGraphT * graph,
   orient = ((edgeOrient == AB_BA || edgeOrient == AB_AB)?A_B:B_A);
 
 #ifdef DEBUG_SEDGE
-  fprintf(stderr,"* Edge %s %s (" F_CID "," F_CID ") %c dist: %d in scaffolds (" F_CID "," F_CID ") orient = %c\n",
+  fprintf(stderr,"* Edge %s (" F_CID "," F_CID ") %c dist: %d in scaffolds (" F_CID "," F_CID ") orient = %c\n",
           (edge->flags.bits.isBogus?"*Bogus*":"     "),
-          (edge->flags.bits.hasGuide?"*G*":"  "),
           thisCI->id, otherCI->id, edgeOrient, (int)edge->distance.mean, 
           thisCI->scaffoldID, otherCI->scaffoldID, orient);
 #endif
@@ -608,11 +579,10 @@ int BuildSEdgeFromChunkEdge(ScaffoldGraphT * graph,
 }
 
   
-int BuildSEdgesForScaffold(ScaffoldGraphT * graph,
-                           CIScaffoldT * scaffold,
-                           int canonicalOnly,
-                           int includeNegativeEdges,
-                           SEdgeBuildStats * stats)
+void BuildSEdgesForScaffold(ScaffoldGraphT * graph,
+                            CIScaffoldT * scaffold,
+                            int canonicalOnly,
+                            int includeNegativeEdges)
 {
   CIScaffoldTIterator CIs;
   GraphEdgeIterator edges;
@@ -621,18 +591,11 @@ int BuildSEdgesForScaffold(ScaffoldGraphT * graph,
     
   if(isDeadCIScaffoldT(scaffold) || 
      scaffold->type != REAL_SCAFFOLD)
-    return 0;
+    return;
 
-  //#define DEBUG_SEDGE
-#ifdef DEBUG_SEDGE
-  fprintf(stderr,"* Building SEdges incident on scaffold " F_CID "\n", scaffold->id);
-#endif
   InitCIScaffoldTIterator(graph, scaffold, TRUE, FALSE, &CIs);
 
   while((thisCI = NextCIScaffoldTIterator(&CIs)) != NULL){
-    //      fprintf(stderr,"* Scaffold " F_CID " CI " F_CID "\n",
-    //      sid, thisCI->cid);
-
     InitGraphEdgeIterator(graph->RezGraph,  thisCI->id,   ALL_END,   ALL_EDGES, GRAPH_EDGE_RAW_ONLY, &edges);// ONLY RAW
 
     while((edge = NextGraphEdgeIterator(&edges)) != NULL){
@@ -642,10 +605,6 @@ int BuildSEdgesForScaffold(ScaffoldGraphT * graph,
 
       // RAW EDGES ONLY
       assert(edge->flags.bits.isRaw);
-
-      stats->edgesAttempted++;
-      if(edge->flags.bits.hasGuide)
-        stats->guidesAttempted++;
 
       // Only non-overlap  edges (i,j) s.t. i < j are interesting
       if(isOverlapEdge(edge) ||
@@ -665,23 +624,12 @@ int BuildSEdgesForScaffold(ScaffoldGraphT * graph,
             continue;
         }
 
-      if(otherCI->scaffoldID == thisCI->scaffoldID){
-        stats->edgesInternal++;
-        if(edge->flags.bits.hasGuide)
-          stats->guidesInternal++;
+      if(otherCI->scaffoldID == thisCI->scaffoldID)  // internal
         continue;
-      }
 
-      if(BuildSEdgeFromChunkEdge(graph, thisCI, otherCI, edge,
-                                 canonicalOnly) == TRUE)
-        {
-          stats->edgesSucceeded++;
-          if(edge->flags.bits.hasGuide)
-            stats->guidesSucceeded++;
-        }
+      BuildSEdgeFromChunkEdge(graph, thisCI, otherCI, edge, canonicalOnly);
     }
   }
-  return 0;
 }      
 
 
@@ -788,17 +736,8 @@ void PrintSEdgesForScaffold(ScaffoldGraphT * graph,
 void BuildSEdges(ScaffoldGraphT *graph, int includeNegativeEdges)
 {
   CDS_CID_t sid;
-  time_t t;
-  SEdgeBuildStats stats;
   
-  t = time(0);
-  fprintf(stderr,"*Entering BuildSEdges (%d edges) at %s*\n", 
-          (int) GetNumGraphEdges(graph->ScaffoldGraph), ctime(&t));
-  fflush(stderr);
-
   StartTimerT(&GlobalData->BuildSEdgesTimer);
-
-  memset(&stats, 0, sizeof(SEdgeBuildStats));
 
   /* Recycle the SEdge VA */
   ResetEdgeCGW_T(graph->ScaffoldGraph->edges);
@@ -819,27 +758,12 @@ void BuildSEdges(ScaffoldGraphT *graph, int includeNegativeEdges)
   for(sid = 0; sid < GetNumGraphNodes(graph->ScaffoldGraph); sid++)
     BuildSEdgesForScaffold(graph,
                            GetGraphNode(graph->ScaffoldGraph, sid),
-                           TRUE, includeNegativeEdges, &stats);
+                           TRUE, includeNegativeEdges);
 
-  fprintf(stderr,"* BuildSEdges *\n* Attempted %d edges of which %d were internal and %d were successful\n",
-	  stats.edgesAttempted, stats.edgesInternal, stats.edgesSucceeded);
-  fprintf(stderr,"* Attempted %d guides of which %d were internal and %d were successful\n",
-	  stats.guidesAttempted, stats.guidesInternal, stats.guidesSucceeded);
-  fflush(stderr);
-  fprintf(GlobalData->stderrc,"* BuildSEdges *\n");
-  fprintf(GlobalData->stderrc,"* Attempted %d edges of which %d were internal and %d were successful\n",
-	  stats.edgesAttempted, stats.edgesInternal, stats.edgesSucceeded);
-  fprintf(GlobalData->stderrc,"* Attempted %d guides of which %d were internal and %d were successful\n",
-	  stats.guidesAttempted, stats.guidesInternal, stats.guidesSucceeded);
   fprintf(GlobalData->stderrc,"* BuildSEdges: %d edges on completion\n",
           (int) GetNumGraphEdges(graph->ScaffoldGraph));
 
-  t = time(0);
-  fprintf(stderr,"*Exiting BuildSEdges at %s*\n", ctime(&t));
-  fflush(GlobalData->stderrc);
-
   StopTimerT(&GlobalData->BuildSEdgesTimer);
-
 }
 
 

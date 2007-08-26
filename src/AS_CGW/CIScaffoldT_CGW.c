@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.20 2007-04-16 17:36:29 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.21 2007-08-26 10:11:00 brianwalenz Exp $";
 
 #undef DEBUG
 #undef DEBUG_INSERT
@@ -56,8 +56,6 @@ void PrintCINodeFields(FILE * stream, NodeCGW_T * node)
   fprintf(stream, "\t\tcontigID:" F_CID "\n", node->info.CI.contigID);
   fprintf(stream, "\t\theadOfFragments:" F_CID "\n", node->info.CI.headOfFragments);
   fprintf(stream, "\t\tnumFragments:%d\n", node->info.CI.numFragments);
-  fprintf(stream, "\t\tbranchPointA:" F_COORD "\n", node->info.CI.branchPointA);
-  fprintf(stream, "\t\tbranchPointB:" F_COORD "\n", node->info.CI.branchPointB);
   fprintf(stream, "\t\tcoverageStat:%d\n", node->info.CI.coverageStat);
   fprintf(stream, "\t\tbaseID:" F_CID "\n", node->info.CI.baseID);
   fprintf(stream, "\t\tnumInstances:%d\n", node->info.CI.numInstances);
@@ -68,8 +66,6 @@ void PrintContigNodeFields(FILE * stream, NodeCGW_T * node)
   fprintf(stream, "\t\tAEndCI:" F_CID ", BEndCI:" F_CID ", numCI:%d\n",
           node->info.Contig.AEndCI, node->info.Contig.BEndCI,
           node->info.Contig.numCI);
-  fprintf(stream, "\t\tbranchPointA:" F_COORD ", branchPointB:" F_COORD "\n",
-          node->info.Contig.branchPointA, node->info.Contig.branchPointB);
 }
 
 void PrintScaffoldNodeFields(FILE * stream, NodeCGW_T * node)
@@ -93,8 +89,8 @@ void PrintNodeFlagBits(FILE * stream, NodeCGW_T * node)
           node->flags.bits.cgbType, node->flags.bits.isDead,
           node->flags.bits.isFree, node->flags.bits.containsCIs);
   fprintf(stream,
-          "\t\ttandemOverlaps:%d, isCI:%d, isContig:%d, isScaffold:%d\n",
-          node->flags.bits.tandemOverlaps, node->flags.bits.isCI,
+          "\t\tisCI:%d, isContig:%d, isScaffold:%d\n",
+          node->flags.bits.isCI,
           node->flags.bits.isContig, node->flags.bits.isScaffold);
   fprintf(stream, "\t\tisSurrogate:%d, beingContigged:%d\n",
           node->flags.bits.isSurrogate, node->flags.bits.beingContigged);

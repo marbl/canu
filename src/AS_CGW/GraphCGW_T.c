@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.50 2007-08-22 21:09:55 eliv Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.51 2007-08-26 10:11:02 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1098,20 +1098,12 @@ void PrintGraphEdge(FILE *fp, GraphCGW_T *graph,
               actual,delta, (edge->flags.bits.isProbablyBogus?"*PB*":""));
   }
 
-  assert(!(edge->flags.bits.hasContributingOverlap &&
-           edge->flags.bits.hasTandemOverlap));
-
   strcpy(flagbuf,"");
   if(edge->flags.bits.hasContributingOverlap){
     if(edge->flags.bits.isPossibleChimera)
       strcat(flagbuf,"$?");
     else 
       strcat(flagbuf,"$0");
-  }else if(edge->flags.bits.hasRepeatOverlap){
-    strcat(flagbuf,"$R");
-
-  }else if(edge->flags.bits.hasTandemOverlap){
-    strcat(flagbuf,"$T");
   }
   if(edge->flags.bits.hasTransChunk){
     strcat(flagbuf,"$t");
@@ -1120,9 +1112,6 @@ void PrintGraphEdge(FILE *fp, GraphCGW_T *graph,
     strcat(flagbuf,"$C");
   }else if(edge->flags.bits.bContainsA){
     strcat(flagbuf,"$I");
-  }
-  if(edge->flags.bits.hasGuide){
-    strcat(flagbuf,"$G");
   }
   if(edge->flags.bits.MeanChangedByWalking){
     strcat(flagbuf,"@M");
@@ -1295,20 +1284,12 @@ void PrintContigEdgeInScfContext(FILE *fp, GraphCGW_T *graph,
               actual,delta, (edge->flags.bits.isProbablyBogus?"*PB*":""));
   }
 
-  assert(!(edge->flags.bits.hasContributingOverlap &&
-           edge->flags.bits.hasTandemOverlap));
-
   strcpy(flagbuf,"");
   if(edge->flags.bits.hasContributingOverlap){
     if(edge->flags.bits.isPossibleChimera)
       strcat(flagbuf,"$?");
     else 
       strcat(flagbuf,"$0");
-  }else if(edge->flags.bits.hasRepeatOverlap){
-    strcat(flagbuf,"$R");
-
-  }else if(edge->flags.bits.hasTandemOverlap){
-    strcat(flagbuf,"$T");
   }
   if(edge->flags.bits.hasTransChunk){
     strcat(flagbuf,"$t");
@@ -1317,9 +1298,6 @@ void PrintContigEdgeInScfContext(FILE *fp, GraphCGW_T *graph,
     strcat(flagbuf,"$C");
   }else if(edge->flags.bits.bContainsA){
     strcat(flagbuf,"$I");
-  }
-  if(edge->flags.bits.hasGuide){
-    strcat(flagbuf,"$G");
   }
   if(edge->flags.bits.MeanChangedByWalking){
     strcat(flagbuf,"@M");
@@ -1384,12 +1362,7 @@ CDS_CID_t AddGraphEdge(GraphCGW_T *graph,
                        CDS_COORD_t fudgeDistance,
                        OrientType orientation,
                        int isInducedByUnknownOrientation,
-                       int isGuide,   
-                       int isMayJoin,
-                       int isMustJoin,
                        int isOverlap,
-                       int isRepeatOverlap,
-                       int isTandemOverlap,
                        int isAContainsB,
                        int isBContainsA,
                        int isTransChunk,
@@ -1398,7 +1371,6 @@ CDS_CID_t AddGraphEdge(GraphCGW_T *graph,
                        EdgeStatus status,
                        int collectOverlap, 
                        int insert){
-
   CIEdgeT *ciedge = GetFreeGraphEdge(graph);
   CDS_CID_t ciedgeIndex = GetVAIndex_EdgeCGW_T(graph->edges, ciedge);
   CDS_CID_t idA, idB;
@@ -1449,7 +1421,6 @@ CDS_CID_t AddGraphEdge(GraphCGW_T *graph,
   CIa = GetGraphNode(graph, idA);
   CIb = GetGraphNode(graph, idB);
   
-  assert(! (isTandemOverlap  && isOverlap));
   assert(distance.variance >= 0.0);
   
   ciedge->idA = idA;
@@ -1470,12 +1441,7 @@ CDS_CID_t AddGraphEdge(GraphCGW_T *graph,
   ciedge->referenceEdge = NULLINDEX;
   ciedge->topLevelEdge = ciedgeIndex;
   ciedge->flags.bits.inducedByUnknownOrientation = isInducedByUnknownOrientation;
-  ciedge->flags.bits.hasGuide = isGuide;
-  ciedge->flags.bits.hasMayJoin = isMayJoin;
-  ciedge->flags.bits.hasMustJoin = isMustJoin;
   ciedge->flags.bits.hasContributingOverlap = isOverlap;
-  ciedge->flags.bits.hasRepeatOverlap = isRepeatOverlap;
-  ciedge->flags.bits.hasTandemOverlap = isTandemOverlap;
   ciedge->flags.bits.mustOverlap = isOverlap ; /// TEMPORARY
   ciedge->flags.bits.aContainsB = aContainsB;
   ciedge->flags.bits.bContainsA = bContainsA;
@@ -1483,38 +1449,11 @@ CDS_CID_t AddGraphEdge(GraphCGW_T *graph,
   ciedge->flags.bits.hasExtremalAFrag = extremalA;
   ciedge->flags.bits.hasExtremalBFrag = extremalB;
   ciedge->flags.bits.hasContainmentOverlap = aContainsB | bContainsA;
-  ciedge->flags.bits.isSloppy = isGuide ||
-    (distance.variance > SLOPPY_EDGE_VARIANCE_THRESHHOLD);
-  
-  
-  SetGraphEdgeStatus(graph, ciedge, status);
-  
-#if 0 // DEBUG_CIEDGES
-  fprintf(GlobalData->stderrc,"* Add %c Edge (" F_CID "," F_CID ") orient:%c distance:%g +/- %g guide:%d overlap:%d tandem:%d repeat:%d extremeA:%d B:%d\n",
-          graph->type,
-          idA, idB,
-          orient,
-          distance.mean,
-          sqrt(distance.variance),
-          isGuide,
-          isOverlap,
-          isTandemOverlap,
-          isRepeatOverlap,
-          isExtremalA,
-          isExtremalB);
-  fprintf(GlobalData->stderrc,"* ... isIndByUnkOri %d isMayJoin %d isMustJoin %d isAContainsB %d isBContainsA %d isTransChunk %d\n",
-          isInducedByUnknownOrientation,
-          isMayJoin,
-          isMustJoin,
-          isAContainsB,
-          isBContainsA,
-          isTransChunk);
-#endif
-  
+  ciedge->flags.bits.isSloppy = (distance.variance > SLOPPY_EDGE_VARIANCE_THRESHHOLD);
 
+  SetGraphEdgeStatus(graph, ciedge, status);
 
   ciedge->flags.bits.isProbablyBogus = FALSE;
-
 
   //  Determine whether this is potentally bogus edge
   //
@@ -1555,42 +1494,35 @@ CDS_CID_t AddGraphEdge(GraphCGW_T *graph,
 #endif
   }
 
-
-
-
-
-  
-  assert(!(ciedge->flags.bits.hasContributingOverlap &&
-           ciedge->flags.bits.hasTandemOverlap));
   if(insert)
     InsertGraphEdge(graph, ciedgeIndex, FALSE);
   
   if(collectOverlap &&
      CIa->flags.bits.isPotentialRock &&
      CIb->flags.bits.isPotentialRock){ 
-    if(!isGuide){
-      if(isOverlapEdge(ciedge)){ // Add an entry to the overlapper's table
-        CollectChunkOverlap(graph,
-                            ciedge->idA, 
-                            ciedge->idB,
-                            ciedge->orient, 
-                            -ciedge->distance.mean, (double) fudgeDistance,
-                            ciedge->quality,
-                            ScaffoldGraph->alignOverlaps,
-                            TRUE,
-                            FALSE);
-      }else{
-        CollectChunkOverlap(graph,
-                            ciedge->idA, 
-                            ciedge->idB,
-                            ciedge->orient, 
-                            -ciedge->distance.mean, 
-                            sqrt(distance.variance),
-                            ciedge->quality, // bad quality
-                            FALSE, // not bayesian
-                            FALSE,
-                            FALSE);
-      }
+
+    if(isOverlapEdge(ciedge)){ // Add an entry to the overlapper's table
+      CollectChunkOverlap(graph,
+                          ciedge->idA, 
+                          ciedge->idB,
+                          ciedge->orient, 
+                          -ciedge->distance.mean,
+                          (double) fudgeDistance,
+                          ciedge->quality,
+                          ScaffoldGraph->alignOverlaps,
+                          TRUE,
+                          FALSE);
+    }else{
+      CollectChunkOverlap(graph,
+                          ciedge->idA, 
+                          ciedge->idB,
+                          ciedge->orient, 
+                          -ciedge->distance.mean, 
+                          sqrt(distance.variance),
+                          ciedge->quality, // bad quality
+                          FALSE, // not bayesian
+                          FALSE,
+                          FALSE);
     }
   }
   
@@ -1860,55 +1792,6 @@ void MergeAllGraphEdges(GraphCGW_T *graph, int includeGuides){
 
 
 
-
-/* isRepeatOverlap
-   Check whether an overlap penetrates into the Unique meat of a chunks, or is simply
-   a repeat overlap.
-*/
-
-#define AS_CGW_MIN_REPEAT_OVERLAP 20
-
-int IsRepeatOverlap(GraphCGW_T *graph,
-                    CDS_CID_t cid1, CDS_CID_t cid2,
-                    ChunkOrientationType orient, LengthT overlap){
-  ChunkInstanceT *chunk1 = GetGraphNode(graph, cid1);
-  ChunkInstanceT *chunk2 = GetGraphNode(graph, cid2);
-  CDS_COORD_t branchPoint1, branchPoint2;
-  int ret;
-  assert(chunk1 && chunk1);
-  
-  branchPoint1 = -1;
-  branchPoint2 = -1;
-  
-  switch(orient){
-    case AB_BA:
-      branchPoint1 = chunk1->info.CI.branchPointB;
-      branchPoint2 = chunk2->info.CI.branchPointB;
-      break;
-    case AB_AB:
-      branchPoint1 = chunk1->info.CI.branchPointB;
-      branchPoint2 = chunk2->info.CI.branchPointA;
-      break;
-    case BA_BA:
-      branchPoint1 = chunk1->info.CI.branchPointA;
-      branchPoint2 = chunk2->info.CI.branchPointB;
-      break;
-    case BA_AB:
-      branchPoint1 = chunk1->info.CI.branchPointA;
-      branchPoint2 = chunk2->info.CI.branchPointA;
-      break;
-    default:
-      assert(0);
-  }
-  
-  ret = FALSE;
-  if(-overlap.mean  - branchPoint1 < AS_CGW_MIN_REPEAT_OVERLAP  ||
-     -overlap.mean  - branchPoint2 < AS_CGW_MIN_REPEAT_OVERLAP)
-    ret = TRUE;
-  
-  return ret;
-  
-}
 
 
 /* CheckEdgesAgainstOverlapper
@@ -2669,12 +2552,7 @@ int CreateGraphEdge(GraphCGW_T *graph,
                (int)sqrt(ciOffset.variance + mciOffset.variance), // This is used by collectOverlap as the fudge distance
                ciEdgeOrient,
                inducedByUnknownOrientation,
-               FALSE,     // type == AS_BAC_GUIDE, // isGuide
-               type == AS_MAY_JOIN,  // isMayJoin
-               type == AS_MUST_JOIN,  // isMustJoin
                FALSE,                        // isOverlap
-               FALSE,                        // isRepeatOverlap
-               FALSE,                        // isTandemOverlap
                FALSE,                        // isAContainsB
                FALSE,                        // isBContainsA
                FALSE,                        // isTransChunk
@@ -2856,25 +2734,6 @@ void  BuildGraphEdgesFromMultiAlign(GraphCGW_T *graph, NodeCGW_T *node,
 
 
 
-#if 0
-/*** Insert all of the Guide edges into the graph.  Initially they are added to the CIEdge array,
-     but not inserted, so that they do not get merged
-***/
-
-void InsertGuideEdges(GraphCGW_T *graph){
-  CDS_CID_t edgeID;
-  
-  for(edgeID = 0; edgeID < GetNumGraphEdges(graph); edgeID++){
-    CIEdgeT *edge = GetGraphEdge(graph, edgeID);
-    
-    if(edge->flags.bits.hasGuide || 
-       edge->flags.bits.hasMayJoin || 
-       edge->flags.bits.hasMustJoin )
-      InsertGraphEdge(graph, edgeID ,FALSE);      
-  }
-}
-#endif
-
 
 
 /* PropagateRawEdgeStatusToFrag */
@@ -2933,189 +2792,6 @@ void PropagateEdgeStatusToFrag(GraphCGW_T *graph, EdgeCGW_T *edge){
 
 
 
-// MarkTandemEdge
-//   Propagate tandem repeat marks between edges<->CIs.
-//   Returns TRUE if something was marked, FALSE otherwise
-int  MarkTandemEdge(GraphCGW_T *graph, EdgeCGW_T *edge){
-  ChunkInstanceT *chunkA = GetGraphNode(graph, edge->idA);
-  ChunkInstanceT *chunkB = GetGraphNode(graph, edge->idB);
-  int isTandemA = FALSE;
-  int isTandemB = FALSE;
-  int setOverlaps = FALSE;
-  int edgePenetratesBranchPointA = FALSE;
-  int edgePenetratesBranchPointB = FALSE;
-  
-  if(!isOverlapEdge(edge) ||
-     isContainmentEdge(edge))  // Dangerous to propagate through containments
-    return FALSE;
-  
-  switch(edge->orient){
-    
-    case AB_AB:
-      isTandemA = chunkA->flags.bits.tandemOverlaps & BEND_TANDEM_OVERLAP;
-      isTandemB = chunkB->flags.bits.tandemOverlaps & AEND_TANDEM_OVERLAP;
-      if(!edge->flags.bits.hasTandemOverlap && !isContainmentEdge(edge) && chunkA->flags.bits.isUnique && chunkB->flags.bits.isUnique ){
-	if(chunkA->info.CI.branchPointB > 0 && ((-edge->distance.mean) > chunkA->info.CI.branchPointB + 10)){
-	  edgePenetratesBranchPointA = TRUE;
-	}
-	if(chunkB->info.CI.branchPointA > 0 && ((-edge->distance.mean) > chunkB->info.CI.branchPointA + 10)){
-	  edgePenetratesBranchPointB = TRUE;
-	}
-      }
-      
-      break;
-    case BA_AB:
-      isTandemA = chunkA->flags.bits.tandemOverlaps & AEND_TANDEM_OVERLAP;
-      isTandemB = chunkB->flags.bits.tandemOverlaps & AEND_TANDEM_OVERLAP;
-      if(!edge->flags.bits.hasTandemOverlap && !isContainmentEdge(edge) && chunkA->flags.bits.isUnique && chunkB->flags.bits.isUnique ){
-	if(chunkA->info.CI.branchPointA > 0 && ((-edge->distance.mean) > chunkA->info.CI.branchPointA + 10 )){
-	  edgePenetratesBranchPointA = TRUE;
-	}
-	if(chunkB->info.CI.branchPointA > 0 && ((-edge->distance.mean) > chunkB->info.CI.branchPointA + 10 )){
-	  edgePenetratesBranchPointB = TRUE;
-	}
-      }
-      break;
-    case AB_BA:
-      isTandemA = chunkA->flags.bits.tandemOverlaps & BEND_TANDEM_OVERLAP;
-      isTandemB = chunkB->flags.bits.tandemOverlaps & BEND_TANDEM_OVERLAP;
-      if(!edge->flags.bits.hasTandemOverlap && !isContainmentEdge(edge) && chunkA->flags.bits.isUnique && chunkB->flags.bits.isUnique ){
-	if(chunkA->info.CI.branchPointB > 0 && ((-edge->distance.mean) > chunkA->info.CI.branchPointB + 10)){
-	  edgePenetratesBranchPointA = TRUE;
-	}
-	if(chunkB->info.CI.branchPointB > 0 && ((-edge->distance.mean) > chunkB->info.CI.branchPointB + 10)){
-	  edgePenetratesBranchPointB = TRUE;
-	}
-      }
-      break;
-    case BA_BA:
-      isTandemA = chunkA->flags.bits.tandemOverlaps & AEND_TANDEM_OVERLAP;
-      isTandemB = chunkB->flags.bits.tandemOverlaps & BEND_TANDEM_OVERLAP;
-      if(!edge->flags.bits.hasTandemOverlap && !isContainmentEdge(edge) && chunkA->flags.bits.isUnique && chunkB->flags.bits.isUnique ){
-	if(chunkA->info.CI.branchPointA > 0 && ((-edge->distance.mean) > chunkA->info.CI.branchPointA + 10)){
-	  edgePenetratesBranchPointA = TRUE;
-	}
-	if(chunkB->info.CI.branchPointB > 0 && ((-edge->distance.mean) > chunkB->info.CI.branchPointB + 10 )){
-	  edgePenetratesBranchPointB = TRUE;
-	}
-      }
-      break;
-    default:
-      break;
-  }
-  
-  if(edgePenetratesBranchPointA &&
-     edgePenetratesBranchPointB ){
-    
-    PrintGraphEdge(GlobalData->stderrc, graph, "Pentrates Branch Points ", edge, edge->idA);
-  }
-  // If the edge doesn't think it's tandem, and it is, mark it, and the chunks
-  // If either chunks has a tandem mark on the appropriate end, they both should have it.
-  if((edge->flags.bits.hasTandemOverlap == FALSE) && 
-     (isTandemA || isTandemB)  &&
-     !(edgePenetratesBranchPointA && edgePenetratesBranchPointB)){
-    setOverlaps = TRUE;
-#ifdef DEBUG_TANDEM1
-    fprintf(GlobalData->stderrc,"* Edge (" F_CID "," F_CID ",%c) not marked as tandem, chunks (" F_CID ",%d) (" F_CID ",%d)\n",
-            edge->idA, edge->idB, edge->orient, chunkA->id, chunkA->flags.bits.tandemOverlaps,
-            chunkB->id, chunkB->flags.bits.tandemOverlaps);
-#endif
-  }else if ((edge->flags.bits.hasTandemOverlap == TRUE) && !(isTandemA && isTandemB)){
-    setOverlaps = TRUE;
-#ifdef DEBUG_TANDEM
-    fprintf(GlobalData->stderrc,"* Edge (" F_CID "," F_CID ",%c) marked as tandem, chunks NOT (" F_CID ",%d) (" F_CID ",%d)\n",
-            edge->idA, edge->idB, edge->orient, chunkA->id, chunkA->flags.bits.tandemOverlaps,
-            chunkB->id, chunkB->flags.bits.tandemOverlaps);
-#endif
-  }
-  
-  if(setOverlaps){
-    edge->distance.variance = TANDEM_OVERLAP_VARIANCE;
-    edge->flags.bits.hasTandemOverlap = TRUE;    
-    edge->flags.bits.hasContributingOverlap = FALSE;
-    edge->flags.bits.hasRepeatOverlap = FALSE;
-    edge->flags.bits.mustOverlap = FALSE;
-    
-    assert(!(edge->flags.bits.hasContributingOverlap && edge->flags.bits.hasTandemOverlap));
-    
-    switch(edge->orient){
-      case AB_AB:
-        chunkA->flags.bits.tandemOverlaps |= BEND_TANDEM_OVERLAP;
-        chunkB->flags.bits.tandemOverlaps |= AEND_TANDEM_OVERLAP;
-        break;
-      case BA_AB:
-        chunkA->flags.bits.tandemOverlaps |= AEND_TANDEM_OVERLAP;
-        chunkB->flags.bits.tandemOverlaps |= AEND_TANDEM_OVERLAP;
-        break;
-      case AB_BA:
-        chunkA->flags.bits.tandemOverlaps |= BEND_TANDEM_OVERLAP;
-        chunkB->flags.bits.tandemOverlaps |= BEND_TANDEM_OVERLAP;
-        break;
-      case BA_BA:
-        chunkA->flags.bits.tandemOverlaps |= AEND_TANDEM_OVERLAP;
-        chunkB->flags.bits.tandemOverlaps |= BEND_TANDEM_OVERLAP;
-        break;
-      default:
-        assert(0);
-    }
-    
-    /*
-      fprintf(GlobalData->stderrc,"* Edge (" F_CID "," F_CID ",%c) marked as tandem, chunks Marked (" F_CID ",%d) (" F_CID ",%d)\n",
-      edge->idA, edge->idB, edge->orient, chunkA->id, chunkA->flags.bits.tandemOverlaps,
-      chunkB->id, chunkB->flags.bits.tandemOverlaps);
-    */
-  }
-  return(setOverlaps);
-}
-
-/* PropagateTandemMarks
-   This should be replaced with a UnionFind algorithm to mark all of the CI ends that
-   are tandem repeats, followed by one pass over the edges to mark any edge that touches
-   a tandem repeat.
-*/
-void PropagateTandemMarks(GraphCGW_T *graph){
-  int iterations;
-  int todo ;
-  int i;
-  int numTandemEdges = 0;
-  
-  for(i = 0;i < GetNumGraphEdges(graph); i++){
-    CIEdgeT *edge = GetGraphEdge(graph, i);
-    if(edge->flags.bits.hasTandemOverlap)
-      numTandemEdges++;
-    //      MarkTandemHighWaterMark(graph,edge);
-  }
-  
-  fprintf(GlobalData->stderrc,"**** Initially %d/%d tandem edges \n",
-          numTandemEdges, (int) GetNumGraphEdges(graph));
-  
-  for(iterations = 0, todo = 1; iterations < 20 && todo>0; iterations++){
-    todo = 0;
-    numTandemEdges = 0;
-    for(i = 0; i < GetNumGraphEdges(graph); i++){
-      CIEdgeT *edge = GetGraphEdge(graph, i);
-      
-      if(edge->flags.bits.hasTandemOverlap)
-	numTandemEdges++;
-      
-      if(edge->flags.bits.isMarkedForDeletion ||
-	 edge->flags.bits.isDeleted)
-	continue;
-      
-      todo += MarkTandemEdge(graph, edge);
-    }
-    fprintf(GlobalData->stderrc,"* Propagate: iteration %d todo = %d\n",iterations,todo);
-  }
-  if(todo>0){
-    fprintf(GlobalData->stderrc,"* PropagateTandemMarks couldn't converge after %d iterations -- marked %d edges\n",
-	    iterations, todo);
-  }else{
-    fprintf(GlobalData->stderrc,"* PropagateTandemMarks converged after %d iterations\n",
-	    iterations);
-  }
-  fprintf(GlobalData->stderrc,"**** Finally %d/%d tandem edges \n", numTandemEdges, (int) GetNumGraphEdges(graph));
-  
-}
 
 #if 1
 static VA_TYPE(IntMultiPos) *f_list_CI = NULL;
@@ -4818,59 +4494,19 @@ void RestoreEdgeMeans(GraphCGW_T *graph){
 
 
 
-int isBacOnlyEdge(GraphCGW_T *graph, EdgeCGW_T *edge){
+int32 EdgeDegree(GraphCGW_T *graph, EdgeCGW_T *edge) {
   EdgeCGW_T *e = edge;
-  int bacOnly;
-  
-  if(edge->flags.bits.isRaw){
-    if(edge->flags.bits.hasGuide)
-      return TRUE;
-    else
-      return FALSE;
-  }
-  
-  bacOnly = TRUE;
-  for(e = GetGraphEdge(graph, edge->nextRawEdge);
-      e != NULL;
-      e = GetGraphEdge(graph, e->nextRawEdge)){
-    if(!edge->flags.bits.hasGuide){
-      bacOnly = FALSE;
-      break;
-    }
-  }
-  
-  return bacOnly;
-}
-
-
-void EdgeDegree(GraphCGW_T *graph, EdgeCGW_T *edge,
-                int32 *totalDegree, int32 *noBacDegree){
-  EdgeCGW_T *e = edge;
-  int32
-    tdegree = 0, 
-    ndegree = 0;
+  int32 tdegree = 0;
   
   if(edge->flags.bits.isRaw){
     tdegree = 1;
-    if(edge->flags.bits.hasGuide){
-      ndegree = 0;
-    }else{
-      ndegree = 1;
-    }
   }else{
-    
     for(e = GetGraphEdge(graph, edge->nextRawEdge);
         e != NULL;
-        e = GetGraphEdge(graph, e->nextRawEdge)){
+        e = GetGraphEdge(graph, e->nextRawEdge))
       tdegree++;
-      if(!edge->flags.bits.hasGuide){
-	ndegree++;
-      }
-    }
   }
-  *noBacDegree = ndegree;
-  *totalDegree = tdegree;
-  
+  return(tdegree);
 }
 
 

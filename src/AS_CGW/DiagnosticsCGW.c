@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: DiagnosticsCGW.c,v 1.10 2007-04-16 17:36:30 brianwalenz Exp $";
+static char CM_ID[] = "$Id: DiagnosticsCGW.c,v 1.11 2007-08-26 10:11:01 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -232,20 +232,6 @@ void CheckSmallScaffoldGaps(ScaffoldGraphT *graph){
 	      continue;
 	    PrintGraphEdge(stderr, graph->RezGraph, "\t", edge, edge->idA);
 	  }
-	}
-
-#if 1
-	{
-	  BranchPointResult bpResult;
-          bpResult = OverlapChunksWithBPDetection(ScaffoldGraph->RezGraph, curr->id, next->id, pairwiseOrient, CGW_DP_MINLEN, 1000);
-          if(bpResult.apnt != NULLINDEX &&
-             bpResult.bpnt != NULLINDEX){
-            fprintf(stderr,"* >>><<>>><<< YES Branchpoint found! gap mean:%g std:%g\n",
-                    gap.mean, sqrt(gap.variance));
-          }else{
-            fprintf(stderr,"* >>>###>>>### NO Branchpoint found! gap mean:%g std:%g\n", gap.mean, sqrt(gap.variance));
-          }
-#endif
 	}
       }
       curr = next;

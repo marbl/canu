@@ -18,14 +18,15 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.45 2007-08-20 17:24:24 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.46 2007-08-26 10:11:00 brianwalenz Exp $";
+
+
 
 
 static const char *usage = 
 "usage: %s [options] -g <GatekeeperStoreName> -o <OutputPath> <InputCGB.ext>\n"
 "\n"
 "   [-a]           align overlaps  (default)\n"
-"   [-b]           don't ignore UOM between contained     (default)\n"
 "   [-c]           Generate checkpoints\n"
 "   [-d]           DumpGraphs\n"
 "   [-e <thresh>]  Microhet score probability cutoff\n"
@@ -41,17 +42,12 @@ static const char *usage =
 "   [-q <cutoff>]  Transquality cutoff\n"
 "   [-r <repeatRezlevel>]\n"
 "   [-s <stoneLevel> ]\n"
-"   [-t]           Don't ignore UOM Transchunks\n"
-"   [-T]           ignore UOM transchunks\n"
-"   [-u]           don't ignore UOM containments     (default)\n"
-"   [-U]           ignore UOM containments\n"
 "   [-v]           verbose\n"
 "   [-x]           Dump stats on checkpoint load\n"
 "   [-y]           Turn off Check for -R < -N, for restarting small assemblies\n"
 "   [-z]           Turn on Check for Repeat Branch Pattern (demotes some unique unitigs to repeat)\n"
 "\n"
 "   [-A]           don't align overlaps (quality values reflect bayesian)\n"
-"   [-B]           ignore UOM between contained\n"
 "   [-C]           Don't cleanup scaffolds\n"
 "   [-D <debugLevel>]\n"
 "   [-E]           output overlap only contig edges\n"
@@ -116,6 +112,7 @@ static const char *usage =
 #include "ScaffoldGraphIterator_CGW.h"
 #include "Globals_CGW.h"
 #include "ScaffoldGraph_CGW.h"
+#include "Input_CGW.h"
 #include "Output_CGW.h"
 #include "SplitChunks_CGW.h"
 #include "GreedyOverlapREZ.h"
@@ -149,11 +146,6 @@ int main(int argc, char *argv[]){
   int numNodes = 1024;
   int numEdges = 1024;
   int minSamplesForOverride = 1000;
-  int ignoreUOMs = 1;
-  int ignoreUOMContainments = 0; // -u -- turn off with -U
-  int ignoreUOMContainStack = 1; //
-  int ignoreUOMBetweenContained = 1; // -b turn off with -B
-  int ignoreUOMTranschunk = 1; // -t turn off with -T
   int ignoreChaffUnitigs = 0;
   int failOn_NoOverlapFound = 0; 
   int geneOutput = 1;  // output simulated coordinates
@@ -222,8 +214,8 @@ int main(int argc, char *argv[]){
 
     optarg = NULL;
     while (!errflg && ((ch = getopt(argc, argv,
-                                    "abcde:f:g:hi:j:k:l:m:n:o:p:q:r:s:tuvxyz"
-                                    "ABCD:EFGHIJK:L:N:MO:PQR:S:TUV:X:Y:Z"
+                                    "acde:f:g:hi:j:k:l:m:n:o:p:q:r:s:vxyz"
+                                    "ACD:EFGHIJK:L:N:MO:PQR:S:V:X:Y:Z"
 				    "4" )) != EOF)){
       switch(ch) {
         case 'O':
@@ -281,33 +273,9 @@ int main(int argc, char *argv[]){
         case 'M':
           doInterleavedScaffoldMerging = 0;
           break;
-        case 'v':
-          ignoreUOMs = 0;
-          break;
-        case 'V':
-          ignoreUOMs = 1;
-          break;
         case 'Q':
           fprintf(stderr,"* -Q  dumpScaffoldSnapshots == 1\n");
           dumpScaffoldSnapshots = 1;;
-          break;
-        case 'u':
-          ignoreUOMContainments = 0;
-          break;
-        case 'U':
-          ignoreUOMContainments = 1;
-          break;
-        case 't':
-          ignoreUOMTranschunk = 0;
-          break;
-        case 'T':
-          ignoreUOMTranschunk = 1;
-          break;
-        case 'b':
-          ignoreUOMBetweenContained = 0;
-          break;
-        case 'B':
-          ignoreUOMBetweenContained = 1;
           break;
         case 'K':
           switch(optarg[0]) {
@@ -556,23 +524,6 @@ int main(int argc, char *argv[]){
   fprintf(GlobalData->stderrc,"* Scaffolding will be performed on %s\n",
 	  (doRezOnContigs?"Contigs":"CIs"));
 
-  if(ignoreUOMs)
-    fprintf(GlobalData->stderrc,"* UOMs will be ignored *\n");
-  if(ignoreUOMContainments)
-    fprintf(GlobalData->stderrc,"* UOMs specifying containment will be ignored *\n");
-  if(ignoreUOMBetweenContained)
-    fprintf(GlobalData->stderrc,"* UOMs specifying BetweenContained will be ignored *\n");
-  if(ignoreUOMTranschunk)
-    fprintf(GlobalData->stderrc,"* UOMs specifying Transchunk will be ignored *\n");
-  if(ignoreUOMContainStack)
-    fprintf(GlobalData->stderrc,"* UOMs specifying ContainStack will be ignored *\n");
-  if(alignOverlaps)
-    fprintf(GlobalData->stderrc,"* UOMs will be recomputed within cgw *\n");
-  else
-    fprintf(GlobalData->stderrc,"* UOMs in .cgb file contain quality value alignments and will NOT be recomputed *\n");
-
-  ProcessInputADT(data, infp, argc, argv); // Handle ADT
-
   data->saveCheckPoints = checkPoint;
   data->outputCalculatedOffsets = (geneOutput == 0);
 
@@ -591,13 +542,6 @@ int main(int argc, char *argv[]){
     // create the checkpoint from scratch
     ScaffoldGraph = CreateScaffoldGraph(doRezOnContigs, data->File_Name_Prefix, numNodes, numEdges);
     
-    // If we are ingoring these, just return, don't add any edges
-    ScaffoldGraph->ignoreUOMs = ignoreUOMs;
-    ScaffoldGraph->ignoreUOMContains = ignoreUOMContainments;
-    ScaffoldGraph->ignoreUOMBetweenContained = ignoreUOMBetweenContained;
-    ScaffoldGraph->ignoreUOMTranschunk = ignoreUOMTranschunk;
-    ScaffoldGraph->ignoreUOMContainStack = ignoreUOMContainStack;
-
     ScaffoldGraph->alignOverlaps = alignOverlaps;
     ScaffoldGraph->doRezOnContigs = doRezOnContigs;
     ScaffoldGraph->checkPointIteration = 0;
@@ -1107,8 +1051,8 @@ int main(int argc, char *argv[]){
 
   /************* Output ***************/
 
-  if(GlobalData->debugLevel > 0)
-    CheckSmallScaffoldGaps(ScaffoldGraph);
+  //  This was a debug.  Lets see what it does.
+  CheckSmallScaffoldGaps(ScaffoldGraph);
 
   if(generateOutput){
     StartTimerT(&data->OutputTimer);

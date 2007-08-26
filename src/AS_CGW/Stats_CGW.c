@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Stats_CGW.c,v 1.13 2007-05-19 04:46:57 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Stats_CGW.c,v 1.14 2007-08-26 10:11:03 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -412,7 +412,7 @@ void GenerateScaffoldGraphStats(char *label, int iteration){
 	}
 	if(edge->edgesContributing > 1){
           edges++;
-          EdgeDegree(graph,edge, &totalDegree, &noBacDegree);
+          totalDegree = EdgeDegree(graph,edge);
           assert(edge->edgesContributing == totalDegree);
           if(totalDegree && (totalDegree == noBacDegree))
             bacOnlyEdges++;
@@ -431,7 +431,7 @@ void GenerateScaffoldGraphStats(char *label, int iteration){
       if(edge->idA == node->id){
 	if( edge->edgesContributing > 1){
           edges++;
-          EdgeDegree(graph,edge, &totalDegree, &noBacDegree);
+          totalDegree = EdgeDegree(graph,edge);
           assert(edge->edgesContributing == totalDegree);
           if(totalDegree && (totalDegree == noBacDegree))
             bacOnlyEdges++;
@@ -582,9 +582,7 @@ void GenerateLinkStats(GraphCGW_T *graph, char *label, int iteration){
     NodeCGW_T *nodeA, *nodeB;
     CDS_CID_t eid = GetVAIndex_EdgeCGW_T(graph->edges, edge);
     int std = (edge->distance.variance > 0.0 ? (int)sqrt(edge->distance.variance):-1);
-    if(edge->flags.bits.isDeleted ||
-       edge->topLevelEdge != eid  ||
-       (edge->flags.bits.isRaw && edge->flags.bits.hasGuide))
+    if(edge->flags.bits.isDeleted || edge->topLevelEdge != eid)
       continue;
 
     mates = edge->edgesContributing;
@@ -600,20 +598,16 @@ void GenerateLinkStats(GraphCGW_T *graph, char *label, int iteration){
       mates--;
       
       if(mates){  // we only want edges that are NOT overlap only
-	if(!edge->flags.bits.hasTandemOverlap){
-	  fprintf(linkstd_w_overlap,"%d\n", std);
-	  if(graph->type == CONTIG_GRAPH){
-	    ChunkOverlapCheckT olap = {0};
-	    int overlapFound = LookupOverlap(graph, edge->idA, edge->idB, edge->orient, &olap);
-	    if(overlapFound && olap.fromCGB){
-	      cgbOverlap++;
-	    }else{
-	      nonCGBOverlap++;
-	    }
-	  }
-	}else{
-	  fprintf(linkstd_no_overlap,"%d\n", std); // tandems don't count
-	}
+        fprintf(linkstd_w_overlap,"%d\n", std);
+        if(graph->type == CONTIG_GRAPH){
+          ChunkOverlapCheckT olap = {0};
+          int overlapFound = LookupOverlap(graph, edge->idA, edge->idB, edge->orient, &olap);
+          if(overlapFound && olap.fromCGB){
+            cgbOverlap++;
+          }else{
+            nonCGBOverlap++;
+          }
+        }
       }
     }else{
       fprintf(linkstd_no_overlap,"%d\n", std);

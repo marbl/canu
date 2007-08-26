@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ContigT_CGW.c,v 1.12 2007-08-18 13:13:20 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ContigT_CGW.c,v 1.13 2007-08-26 10:11:01 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_EDGES
@@ -249,25 +249,6 @@ void DumpContig(FILE *stream, ScaffoldGraphT *graph, ContigT *contig, int raw){
   MultiAlignT *ma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
   //    MultiAlignT *ma = GetMultiAlignInStore(graph->ContigGraph->maStore, contig->id);
   int flags = GRAPH_EDGE_DEFAULT;
-  char *tandem;
-  unsigned int tandems = GetNodeTandemOverlaps(contig);
-
-  switch(tandems){
-    case NO_TANDEM_OVERLAP:
-      tandem = "  ";
-      break;
-    case BOTH_END_TANDEM_OVERLAP:
-      tandem = "AB";
-      break;
-    case AEND_TANDEM_OVERLAP:
-      tandem = "A ";
-      break;
-    case BEND_TANDEM_OVERLAP:
-      tandem = " B";
-      break;
-    default:
-      assert(0);
-  }
 
   AssertPtr(ma);
   assert(contig->type == CONTIG_CGW);
@@ -275,17 +256,14 @@ void DumpContig(FILE *stream, ScaffoldGraphT *graph, ContigT *contig, int raw){
   if(raw)
     flags |= GRAPH_EDGE_RAW_ONLY;
 
-  fprintf(stream, "* Contig " F_CID " tan:%s sc:" F_CID " [" F_COORD "," F_COORD "] aoff:%d boff:%d ANext:" F_CID " BNext:" F_CID " bp:[" F_COORD "," F_COORD "] len:%d AEnd:" F_CID " BEnd:" F_CID " numCI:%d\nCIs:\n",
+  fprintf(stream, "* Contig " F_CID " sc:" F_CID " [" F_COORD "," F_COORD "] aoff:%d boff:%d ANext:" F_CID " BNext:" F_CID " len:%d AEnd:" F_CID " BEnd:" F_CID " numCI:%d\nCIs:\n",
           contig->id, 
-          tandem,
           contig->scaffoldID,
           contig->aEndCoord,
           contig->bEndCoord,
           (int)contig->offsetAEnd.mean,
           (int)contig->offsetBEnd.mean,
           contig->AEndNext, contig->BEndNext, 
-          contig->info.Contig.branchPointA,
-          contig->info.Contig.branchPointB,
           (int)contig->bpLength.mean,
           contig->info.Contig.AEndCI,
           contig->info.Contig.BEndCI,
@@ -357,32 +335,8 @@ void DumpContigInScfContext(FILE *stream, ScaffoldGraphT *graph,
   ContigTIterator CIs;
   ChunkInstanceT *CI;
   CIEdgeT *edge;
-  MultiAlignT *ma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB,
-                                                  contig->id, FALSE);
-  /*
-    MultiAlignT *ma = GetMultiAlignInStore(graph->ContigGraph->maStore,
-    contig->id);
-  */
+  MultiAlignT *ma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
   int flags = GRAPH_EDGE_DEFAULT;
-  char *tandem;
-  unsigned int tandems = GetNodeTandemOverlaps(contig);
-
-  switch(tandems){
-    case NO_TANDEM_OVERLAP:
-      tandem = "  ";
-      break;
-    case BOTH_END_TANDEM_OVERLAP:
-      tandem = "AB";
-      break;
-    case AEND_TANDEM_OVERLAP:
-      tandem = "A ";
-      break;
-    case BEND_TANDEM_OVERLAP:
-      tandem = " B";
-      break;
-    default:
-      assert(0);
-  }
 
   AssertPtr(ma);
   assert(contig->type == CONTIG_CGW);
@@ -390,9 +344,8 @@ void DumpContigInScfContext(FILE *stream, ScaffoldGraphT *graph,
   if(raw)
     flags |= GRAPH_EDGE_RAW_ONLY;
 
-  fprintf(stream, "* Contig " F_CID " tan:%s sc:" F_CID " [" F_COORD "," F_COORD "] aoff:(%d,%e) boff:(%d,%e) ANext:" F_CID " BNext:" F_CID " bp:[" F_COORD "," F_COORD "] len:%d AEnd:" F_CID " BEnd:" F_CID " numCI:%d\nCIs:\n",
+  fprintf(stream, "* Contig " F_CID " sc:" F_CID " [" F_COORD "," F_COORD "] aoff:(%d,%e) boff:(%d,%e) ANext:" F_CID " BNext:" F_CID " len:%d AEnd:" F_CID " BEnd:" F_CID " numCI:%d\nCIs:\n",
           contig->id, 
-          tandem,
           contig->scaffoldID,
           contig->aEndCoord,
           contig->bEndCoord,
@@ -401,8 +354,6 @@ void DumpContigInScfContext(FILE *stream, ScaffoldGraphT *graph,
           (int32)contig->offsetBEnd.mean,
           contig->offsetBEnd.variance,
           contig->AEndNext, contig->BEndNext, 
-          contig->info.Contig.branchPointA,
-          contig->info.Contig.branchPointB,
           (int)contig->bpLength.mean,
           contig->info.Contig.AEndCI,
           contig->info.Contig.BEndCI,
@@ -635,7 +586,7 @@ int BuildContigEdges(ScaffoldGraphT *graph){
   ChunkOrientationType contigEdgeOrient;
   LengthT ciOffset, mciOffset;
   LengthT distance;
-  int edgesSucceeded = 0, guidesSucceeded = 0;
+  int edgesSucceeded = 0;
   CIEdgeT contigEdge;
 
   /* Recycle the SEdge VA */
@@ -715,8 +666,7 @@ int BuildContigEdges(ScaffoldGraphT *graph){
 	    orient = ((edgeOrient == AB_BA || edgeOrient == AB_AB)?A_B:B_A);
 
 #if 0
-            fprintf(stderr,"* Edge %s (" F_CID "," F_CID ") %c dist: %g in scaffolds (" F_CID "," F_CID ") orient = %c\n",
-		    (edge->flags.bits.hasGuide?"*G*":"  "),
+            fprintf(stderr,"* Edge (" F_CID "," F_CID ") %c dist: %g in scaffolds (" F_CID "," F_CID ") orient = %c\n",
 		    thisCID, otherCID, edgeOrient, edge->distance.mean, 
 		    thisCI->scaffoldID, otherCI->scaffoldID, orient);
 #endif	    
@@ -836,8 +786,6 @@ int BuildContigEdges(ScaffoldGraphT *graph){
                                     &contigEdge);
 #endif
 	    edgesSucceeded++;
-	    if(edge->flags.bits.hasGuide)
-	      guidesSucceeded++;
 	
 	    contigEdge.referenceEdge = (CDS_CID_t)GetVAIndex_CIEdgeT(graph->CIEdges, edge);
 	    contigEdge.idA = thisCI->info.CI.contigID;
@@ -892,8 +840,6 @@ void CreateInitialContig(ScaffoldGraphT *graph, CDS_CID_t cid){
   contig.essentialEdgeA = contig.essentialEdgeB = NULLINDEX;
   contig.info.Contig.AEndCI = contig.info.Contig.BEndCI = cid;
   contig.info.Contig.numCI = 1;
-  contig.info.Contig.branchPointA = CI->info.CI.branchPointA;
-  contig.info.Contig.branchPointB = CI->info.CI.branchPointB;
   contig.indexInScaffold = NULLINDEX;
   contig.flags.bits.isCI = FALSE;
   contig.flags.bits.isContig = TRUE;

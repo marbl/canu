@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.20 2007-08-18 11:42:07 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.21 2007-08-26 10:11:01 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -814,7 +814,6 @@ CDS_CID_t InsertComputedOverlapEdge(GraphCGW_T *graph,
                                     ChunkOverlapCheckT *olap){
   CDS_CID_t eid;
   int fudge;
-  int isRepeatOverlap = FALSE; 
   int isDoveTail = FALSE;
   LengthT overlap;
   ChunkOrientationType orient = olap->spec.orientation;
@@ -826,14 +825,6 @@ CDS_CID_t InsertComputedOverlapEdge(GraphCGW_T *graph,
   fudge = sqrt(overlap.variance);
 
   isDoveTail = !(olap->AContainsB || olap->BContainsA);
-  if(isDoveTail){
-    isRepeatOverlap = IsRepeatOverlap(graph,
-                                      olap->spec.cidA, 
-                                      olap->spec.cidB,
-                                      orient, 
-                                      overlap);
-    isDoveTail = !isRepeatOverlap;
-  }
 
 
   // If there is an existing overlap edge, don't insert this one!
@@ -860,12 +851,7 @@ CDS_CID_t InsertComputedOverlapEdge(GraphCGW_T *graph,
                      fudge,
                      orient, 
                      FALSE, // inducedByUnknownOrientation
-                     FALSE, // isGuide
-                     FALSE, // isMayJoin
-                     FALSE, // isMustJoin
                      isDoveTail,  // isOverlap
-                     isRepeatOverlap, // isRepeatOverlap
-                     FALSE,           // is tandem
                      olap->AContainsB,                 // isAContainsB
                      olap->BContainsA,                 // isBContainsA
                      FALSE,                        // isTransChunk
@@ -874,11 +860,9 @@ CDS_CID_t InsertComputedOverlapEdge(GraphCGW_T *graph,
                      FALSE,
                      TRUE /* insert*/ );
 
-  {
+  if (verbose) {
     EdgeCGW_T *e = GetGraphEdge(graph, eid);
-
-    if(verbose)PrintGraphEdge(GlobalData->stderrc,graph, " Added  ", e, e->idA);
-
+    PrintGraphEdge(GlobalData->stderrc,graph, " Added  ", e, e->idA);
   }
   return eid;
 }
@@ -1272,18 +1256,11 @@ int LookupQualityOverlap(GraphCGW_T *graph,
         static OverlapMesg omesgBuffer;
         CDS_COORD_t length;
         float normalQuality;
-        // float QVQuality;
+
         // Compute the DP_Compare alignment and fill the IFG1 and IFG2 with the overlapping
         // pieces of the two chunks (resp. the quality values
-        // if the edge has the tandem bit set we try different error rates
-        if( edge->flags.bits.hasTandemOverlap)
-          {
-            omesg = ComputeCanonicalOverlapWithTrace(graph, lookup, &IFG1, &IFG2, fp, TRUE);
-          }
-        else
-          {
-            omesg = ComputeCanonicalOverlapWithTrace(graph, lookup, &IFG1, &IFG2, fp, FALSE);
-          }
+
+        omesg = ComputeCanonicalOverlapWithTrace(graph, lookup, &IFG1, &IFG2, fp, FALSE);
 
         if( omesg == NULL )
           return FALSE;
@@ -1421,18 +1398,11 @@ int ComputeQualityOverlap(GraphCGW_T *graph,
         static OverlapMesg omesgBuffer;
         CDS_COORD_t length;
         float normalQuality;
-        // float QVQuality;
+
         // Compute the DP_Compare alignment and fill the IFG1 and IFG2 with the overlapping
         // pieces of the two chunks (resp. the quality values
-        // if the edge has the tandem bit set we try different error rates
-        if( edge->flags.bits.hasTandemOverlap)
-          {
-            omesg = ComputeCanonicalOverlapWithTrace(graph, &lookup, &IFG1, &IFG2, fp, TRUE);
-          }
-        else
-          {
-            omesg = ComputeCanonicalOverlapWithTrace(graph, &lookup, &IFG1, &IFG2, fp, FALSE);
-          }
+
+        omesg = ComputeCanonicalOverlapWithTrace(graph, &lookup, &IFG1, &IFG2, fp, FALSE);
 
         if( omesg == NULL )
           return FALSE;
@@ -1801,26 +1771,18 @@ void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
                         olap->spec.orientation, olap->overlap);
 #endif
                 if(addEdgeMates && !olap->fromCGB && olap->overlap)
-		  {
-                    //fprintf(GlobalData->stderrc,"* Calling AddGraphEdge$\n");
-                    InsertComputedOverlapEdge(graph, olap);
-		  }	  
+                  InsertComputedOverlapEdge(graph, olap);
               }
             }
 	}
     }
   
   StopTimerT(&GlobalData->OverlapTimer);
-
   fprintf(GlobalData->stderrc,"* CGW Overlapper took %g seconds to compute %d overlaps\n",
 	  TotalTimerT(&GlobalData->OverlapTimer, NULL), numOverlaps);
-
-
 }
 
 
-/* Added by Knut Reinert 05/26/99 */
-/* Bug fixed by Knut Reinert 07/28/99 */
 
 static int checkChunkOverlapCheckTOld(ChunkOverlapCheckT *co1,
                                       CDS_COORD_t minOverlap,
@@ -1891,253 +1853,6 @@ CDS_COORD_t  LargeOverlapExists(GraphCGW_T *graph,
                        minOverlap, maxOverlap, AS_CGW_ERROR_RATE, FALSE);
 
   return olap.overlap;
-
-}
-
-BranchPointResult OverlapChunksWithBPDetection(GraphCGW_T *graph,
-                                               CDS_CID_t cidA, CDS_CID_t cidB,
-                                               ChunkOrientationType orientation, 
-                                               CDS_COORD_t minOverlap,
-                                               CDS_COORD_t maxOverlap){
-
-  BranchPointResult bpResult;
-  ChunkOverlapCheckT olap = {0};
-  SeqInterval singleCoverageA, singleCoverageB;
-  MultiAlignT *maA = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, cidA, graph->type == CI_GRAPH);
-  MultiAlignT *maB = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, cidB, graph->type == CI_GRAPH);
-  //  MultiAlignT *maA = GetMultiAlignInStore(graph->maStore, cidA);
-  //  MultiAlignT *maB = GetMultiAlignInStore(graph->maStore, cidB);
-  int endA, endB;
-  CDS_COORD_t lengthA, lengthB;
-  CDS_COORD_t singleLengthA, singleLengthB;
-  CDS_COORD_t beg, end;
-  int opposite;
-#if 0
-  int hasMultiCoverageA, hasMultiCoverageB;
-  SeqInterval multiCoverageA, multiCoverageB;
-  CDS_COORD_t multiLengthA, multiLengthB;
-#endif
-
-  InitCanonicalOverlapSpec(cidA,cidB,orientation,&olap.spec);
-  
-  /* Create consensusA,B and qualityA,B, if necessary */
-  if(consensusA == NULL){
-    consensusA = CreateVA_char(2048);
-    consensusB = CreateVA_char(2048);
-    qualityA = CreateVA_char(2048);
-    qualityB = CreateVA_char(2048);
-  }else{
-    ResetVA_char(consensusA);
-    ResetVA_char(consensusB);
-    ResetVA_char(qualityA);
-    ResetVA_char(qualityB);
-  }
-
-  // This is a waste, but get the length of the two contigs
-  // Get the consensus sequences for both chunks from the ChunkStore
-  lengthA = strlen(Getchar(maA->consensus,0));
-  lengthB = strlen(Getchar(maB->consensus,0));
-
-  bpResult.apnt = NULLINDEX;
-  bpResult.bpnt = NULLINDEX;
-
-  /* We have to deal with the orientation of the chunks */
-  switch(olap.spec.orientation){
-    case BA_BA:
-      assert(0);
-      break;
-    case AB_AB:
-      /* We use the chunks as retrieved from the chunk store */
-      opposite = FALSE;
-      endA = B_END;
-      endB = A_END;
-      break;
-    case AB_BA:
-      /* We need to reverse chunk B */
-      opposite = TRUE;
-      endA = B_END;
-      endB = B_END;
-      break;
-    case BA_AB:
-      /* We need to reverse both chunks, and then reverse chunk B ==> reverse chunkB */
-      opposite = TRUE;
-      endA = A_END;
-      endB = A_END;
-      break;
-    default:
-      assert(0);
-  }
-
-#if 0
-  /* Identify the multiple coverage portions of the two contigs */
-  hasMultiCoverageA = GetGappedMultipleCoverageInterval(graph, cidA, &multiCoverageA, endA);
-  if(!hasMultiCoverageA){
-    fprintf(GlobalData->stderrc,"# Contig " F_CID " has NO multi-coverage region...returning\n", cidA);
-    return bpResult;
-  }
-  hasMultiCoverageB = GetGappedMultipleCoverageInterval(graph, cidB, &multiCoverageB, endB);
-  if(!hasMultiCoverageB){
-    fprintf(GlobalData->stderrc,"# Contig " F_CID " has NO multi-coverage region...returning\n", cidB);
-    return bpResult;
-  }
-
-  multiLengthA = multiCoverageA.end - multiCoverageA.bgn;  
-  multiLengthB = multiCoverageB.end - multiCoverageB.bgn;
-  fprintf(GlobalData->stderrc,"* MultiCoverageA [" F_COORD "," F_COORD "]\n",
-	  multiCoverageA.bgn, multiCoverageA.end);
-  fprintf(GlobalData->stderrc,"* MultiCoverageB [" F_COORD "," F_COORD "]\n",
-	  multiCoverageB.bgn, multiCoverageB.end);
-#endif
-  
-  /* Output fasta records for single coverage portion of contig */
-  if(endA == A_END){
-    singleCoverageA.bgn = 0;
-    singleCoverageA.end = MIN(500, lengthA);
-  }else{
-    singleCoverageA.bgn = MAX(0,lengthA - 500);
-    singleCoverageA.end = lengthA;
-  }
-  if(endB == A_END){
-    singleCoverageB.bgn = 0;
-    singleCoverageB.end = MIN(500, lengthB);
-  }else{
-    singleCoverageB.bgn = MAX(0,lengthB - 500);
-    singleCoverageB.end = lengthB;
-  }
-  
-#if 0
-  // Extract relative portions of consensus sequence 
-  GetMultiAlignUngappedConsensusFromInterval(maA,multiCoverageA,consensusA, qualityA);
-  GetMultiAlignUngappedConsensusFromInterval(maB,multiCoverageB,consensusB, qualityB);
-
-  fprintf(GlobalData->stderrc,"* OverlapChunksWithMultipleCoverage A: " F_CID " [" F_COORD "," F_COORD "] of [" F_COORD "," F_COORD "]   B: " F_CID "  [" F_COORD "," F_COORD "] of [" F_COORD "," F_COORD "]\n",
-	  cidA, multiCoverageA.bgn, multiCoverageA.end,0, lengthA,
-	  cidB, multiCoverageB.bgn, multiCoverageB.end,0, lengthB);
-
-  fflush(NULL);
-  olap.overlap = 0;
-  olap.minOverlap = minOverlap;
-  olap.maxOverlap = MAX(multiLengthA, multiLengthB);
-
-  /* Set up the beg,end, opposite arguments for the call to dp_compare */
-  switch(olap.spec.orientation){
-    case BA_BA:
-      assert(0);
-      break;
-    case AB_AB:
-      /* We use the chunks as retrieved from the chunk store */
-      beg = multiLengthA - olap.maxOverlap;
-      end = multiLengthA - olap.minOverlap;
-      opposite = FALSE;
-      break;
-    case AB_BA:
-      /* We need to reverse chunk B */
-      beg = multiLengthA - olap.maxOverlap;
-      end = multiLengthA - olap.minOverlap;
-      opposite = TRUE;
-      break;
-    case BA_AB:
-      /* We need to reverse both chunks, and then reverse chunk B ==> reverse chunkB */
-      beg = -(multiLengthB - olap.minOverlap );
-      end = -(multiLengthB - olap.maxOverlap );
-      opposite = TRUE;
-      break;
-    default:
-      assert(0);
-  }
-  // Add some slop
-  beg -= 20;
-  end += 20;
-#else
-
-  // Extract relative portions of consensus sequence 
-  GetMultiAlignUngappedConsensusFromInterval(maA,singleCoverageA,consensusA, qualityA);
-  GetMultiAlignUngappedConsensusFromInterval(maB,singleCoverageB,consensusB, qualityB);
-
-  fprintf(GlobalData->stderrc,"* OverlapChunksWithBPDetection A: " F_CID " [" F_COORD "," F_COORD "] of [" F_COORD "," F_COORD "]   B: " F_CID "  [" F_COORD "," F_COORD "] of [" F_COORD "," F_COORD "]\n",
-	  cidA, singleCoverageA.bgn, singleCoverageA.end,0, lengthA,
-	  cidB, singleCoverageB.bgn, singleCoverageB.end,0, lengthB);
-
-  fflush(NULL);
-
-  singleLengthA = singleCoverageA.end - singleCoverageA.bgn;
-  singleLengthB = singleCoverageB.end - singleCoverageB.bgn;
-  olap.overlap = 0;
-  olap.minOverlap = minOverlap;
-  olap.maxOverlap = MAX(singleCoverageA.end - singleCoverageA.bgn, 
-			singleCoverageB.end - singleCoverageB.bgn);
-
-  /* Set up the beg,end, opposite arguments for the call to dp_compare */
-  switch(olap.spec.orientation){
-    case BA_BA:
-      assert(0);
-      break;
-    case AB_AB:
-      /* We use the chunks as retrieved from the chunk store */
-      beg = singleLengthA - olap.maxOverlap;
-      end = singleLengthA - olap.minOverlap;
-      opposite = FALSE;
-      break;
-    case AB_BA:
-      /* We need to reverse chunk B */
-      beg = singleLengthA - olap.maxOverlap;
-      end = singleLengthA - olap.minOverlap;
-      opposite = TRUE;
-      break;
-    case BA_AB:
-      /* We need to reverse both chunks, and then reverse chunk B ==> reverse chunkB */
-      beg = -(singleLengthB - olap.minOverlap );
-      end = -(singleLengthB - olap.maxOverlap );
-      opposite = TRUE;
-      break;
-    default:
-      assert(0);
-  }
-  // Add some slop
-  beg -= 20;
-  end += 20;
-
-#endif  
-  
-  // Return value is length of chunk sequence/quality
-  // **consensus will point to consensus data
-  // **quality   will point to quality data
-  // overlap 'em
-  
-  {
-    BranchPointResult *BPResult = NULL;
-    InternalFragMesg AFR,BFR;
-    AFR.sequence   =  Getchar(consensusA, 0);
-    AFR.quality    =  Getchar(qualityA, 0);
-    AFR.eaccession = 0;
-    AFR.iaccession = olap.spec.cidA;
-    BFR.sequence   =  Getchar(consensusB, 0);
-    BFR.quality    =  Getchar(qualityB, 0);
-    BFR.eaccession = 0;
-    BFR.iaccession = olap.spec.cidB;
-    
-#if 1
-    fprintf(GlobalData->stderrc,"* Calling BPnt_Compare  with %s sequences lengths " F_SIZE_T "," F_SIZE_T " beg,end =[" F_COORD "," F_COORD "]\n",
-	    (!strcmp(AFR.sequence, BFR.sequence)?"EQUAL":"DIFFERENT"),
-	    strlen(AFR.sequence), strlen(BFR.sequence),
-	    beg, end);
-#endif
-
-    //  Aug 1, 2007 -- This used to be a hardcoded 0.10 instead of AS_CGW_ERROR_RATE.
-    //
-    assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
-    BPResult = BPnt_Compare_AS(&AFR,&BFR, 
-			       beg, end, opposite,
-			       AS_CGW_ERROR_RATE,CGW_DP_THRESH, 
-			       25,25);
-    if(BPResult){
-      bpResult = *BPResult;
-    }
-
-
-    return bpResult;
-
-  }
 }
 
 

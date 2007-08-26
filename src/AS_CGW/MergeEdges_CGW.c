@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MergeEdges_CGW.c,v 1.13 2007-08-01 14:30:34 eliv Exp $";
+static char CM_ID[] = "$Id: MergeEdges_CGW.c,v 1.14 2007-08-26 10:11:03 brianwalenz Exp $";
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -370,13 +370,7 @@ static void InitializeMergedEdge(CIEdgeT *newEdge, CIEdgeT *overlapEdgeAll,
     newEdge->flags.bits.isPossibleChimera = TRUE;
   }
 
-  /* We want to differentiate between "may" and "must" overlap merged edges.
-     If an edge includes an overlap such that the variance from non-overlap raw edges 
-     is significantly less than the overlap length, we say they must overlap.
-     For now, exclude tandem overlaps, and include all others */
-  if(overlapEdge){
-    newEdge->flags.bits.mustOverlap = !(overlapEdge->flags.bits.hasTandemOverlap);
-  }
+  newEdge->flags.bits.mustOverlap = TRUE;
       
   newEdge->edgesContributing = numEdges;
   {

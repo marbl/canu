@@ -18,22 +18,29 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_CGW_dataTypes.h,v 1.11 2007-08-03 20:45:03 brianwalenz Exp $	 */
+/* 	$Id: AS_CGW_dataTypes.h,v 1.12 2007-08-26 10:11:00 brianwalenz Exp $	 */
 #ifndef AS_CGW_DATATYPES_H
 #define AS_CGW_DATATYPES_H
 
-#undef DEBUG
 #include <assert.h>
 #include "AS_global.h"
 #include "AS_UTL_Var.h"
 #include "math.h"
 
-/*** Constants ***/
 #define CHECK_CONNECTIVITY TRUE
 
 #define CGW_MIN_READS_IN_UNIQUE  2
 
-#define CGW_FUDGE_FACTOR (0.026)
+//  We've moved to a linear model of variance as a function of length.
+//  We chose the FUDGE_FACTOR as follows:
+//
+//  3 * sqrt(variance(600bp fragment)) = 2% of 600bp
+//  3-sigma = 2% of 600bp
+//  variance(600bp fragment) = (.02 * 600)^2 /3 = FUDGE_FACTOR * 600
+//
+#define CGW_FUDGE_FACTOR           (0.026)
+#define ComputeFudgeVariance(L)    (fabs(L) * CGW_FUDGE_FACTOR)
+
 #define CGW_DP_THRESH 1e-6
 #define CGW_DP_MINLEN 20
 #define CGW_DP_DESPERATION_MINLEN 10
@@ -42,39 +49,9 @@
 // Set the following threshhold to eliminate the really short ones
 #define CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH 1000
 
-
 #define NO_END 0
 #define A_END 1
 #define B_END 2
 #define ALL_END (A_END | B_END)
-
-/* We've moved to a linear model of variance as a function of length.
-   We chose the FUDGE_FACTOR as follows:
-   3 * sqrt(variance(600bp fragment)) = 2% of 600bp   3-sigma = 2% of 600bp
-   variance(600bp fragment) = (.02 * 600)^2 /3 = FUDGE_FACTOR * 600
-*/
-
-static double ComputeFudgeVariance(double length){
-  //  double variance = length * CGW_FUDGE_FACTOR/3.0;
-  //  variance *= variance;
-  // return variance;
-
-  return fabs(length) * CGW_FUDGE_FACTOR;
-
-}
-
-#define ALIGNER_FUNC Overlap *(*)(char *, char *, int, int, int, double, \
-                                 double, int, CompareOptions)
-
-// statistics from building sedges
-typedef struct
-{
-  int32 edgesAttempted;
-  int32 edgesSucceeded;
-  int32 edgesInternal;
-  int32 guidesAttempted;
-  int32 guidesSucceeded;
-  int32 guidesInternal;
-} SEdgeBuildStats;
 
 #endif

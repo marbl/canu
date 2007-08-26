@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.30 2007-08-22 21:09:55 eliv Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.31 2007-08-26 10:11:01 brianwalenz Exp $";
 
 #undef DEBUG_CHECKFORCTGS
 #undef DEBUG_DETAILED
@@ -1090,33 +1090,6 @@ void PropagateOverlapsToNewContig(ContigT *contig,
   //
   aContig = GetGraphNode(ScaffoldGraph->ContigGraph, aEndID);
   bContig = GetGraphNode(ScaffoldGraph->ContigGraph, bEndID);
-
-
-  // First propagate tandem marks and branch opints to the new contig
-  if(aEndEnd == A_END){
-    if(aContig->flags.bits.tandemOverlaps & AEND_TANDEM_OVERLAP){
-      contig->flags.bits.tandemOverlaps |= AEND_TANDEM_OVERLAP;
-    }
-    contig->info.Contig.branchPointA = aContig->info.Contig.branchPointA;
-  }else if(aEndEnd == B_END){
-    if(aContig->flags.bits.tandemOverlaps & BEND_TANDEM_OVERLAP){
-      contig->flags.bits.tandemOverlaps |= AEND_TANDEM_OVERLAP;
-    }
-    contig->info.Contig.branchPointA = aContig->info.Contig.branchPointB;
-  }else assert(0 /* Should be A_END or B_END */);
-
-
-  if(bEndEnd == A_END){
-    if(bContig->flags.bits.tandemOverlaps & AEND_TANDEM_OVERLAP){
-      contig->flags.bits.tandemOverlaps |= BEND_TANDEM_OVERLAP;
-    }
-    contig->info.Contig.branchPointB = bContig->info.Contig.branchPointA;
-  }else if(bEndEnd == B_END){
-    if(bContig->flags.bits.tandemOverlaps & BEND_TANDEM_OVERLAP){
-      contig->flags.bits.tandemOverlaps |= BEND_TANDEM_OVERLAP;
-    }
-    contig->info.Contig.branchPointB = bContig->info.Contig.branchPointB;
-  }else assert(0 /* Should be A_END or B_END */);
 
 
 

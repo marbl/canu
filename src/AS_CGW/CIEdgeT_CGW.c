@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIEdgeT_CGW.c,v 1.13 2007-08-04 22:27:35 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIEdgeT_CGW.c,v 1.14 2007-08-26 10:11:00 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -72,20 +72,11 @@ void PrintCIEdgeT(FILE *fp, ScaffoldGraphT *graph,
               actual,delta, (edge->flags.bits.isProbablyBogus?"*PB*":""));
   }
 
-  assert(!(edge->flags.bits.hasContributingOverlap &&
-           edge->flags.bits.hasTandemOverlap));
-
   if(edge->flags.bits.hasContributingOverlap){
     if(edge->flags.bits.isPossibleChimera)
       flag = "$C";
     else 
       flag = "$O";
-  }else if(edge->flags.bits.hasRepeatOverlap){
-    flag = "$R";
-  }else if(edge->flags.bits.hasTandemOverlap){
-    flag = "$T";
-  }else if(edge->flags.bits.hasGuide){
-    flag = "$G";
   }
   if(edge->flags.bits.isEssential){
     if(edge->flags.bits.isInferred){
@@ -123,29 +114,8 @@ void PrintCIEdgeT(FILE *fp, ScaffoldGraphT *graph,
 
 void PrintChunkInstanceHeader(FILE *stream, ScaffoldGraphT *graph,
                               ChunkInstanceT *chunk){
-  char *tandem;
-  unsigned int tandems = GetNodeTandemOverlaps(chunk);
-
-  switch(tandems){
-    case NO_TANDEM_OVERLAP:
-      tandem = "  ";
-      break;
-    case BOTH_END_TANDEM_OVERLAP:
-      tandem = "AB";
-      break;
-    case AEND_TANDEM_OVERLAP:
-      tandem = "A ";
-      break;
-    case BEND_TANDEM_OVERLAP:
-      tandem = " B";
-      break;
-    default:
-      assert(0);
-  }
-  fprintf(stream,"\n* CI " F_CID "  tan:%s(%d) cov:%d len:%d frags:%d interval: [" F_COORD "," F_COORD "]\n",
+  fprintf(stream,"\n* CI " F_CID " cov:%d len:%d frags:%d interval: [" F_COORD "," F_COORD "]\n",
           chunk->id, 
-          tandem,
-          tandems,
           chunk->info.CI.coverageStat,
           (int)chunk->bpLength.mean,
           chunk->info.CI.numFragments,
