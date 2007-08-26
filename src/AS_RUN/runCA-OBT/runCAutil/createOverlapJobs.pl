@@ -151,6 +151,9 @@ sub createOverlapJobs {
     print F "  exit\n";
     print F "fi\n";
     print F "\n";
+    print F "export AS_OVL_ERROR_RATE=", getGlobal("ovlErrorRate"), "\n";
+    print F "export AS_CNS_ERROR_RATE=", getGlobal("cnsErrorRate"), "\n";
+    print F "export AS_CGW_ERROR_RATE=", getGlobal("cgwErrorRate"), "\n";
     print F "\n";
     print F "echo \\\n";
     print F "$gin/overlap $ovlOpt -M $ovlMemory -t $ovlThreads \\\n";
