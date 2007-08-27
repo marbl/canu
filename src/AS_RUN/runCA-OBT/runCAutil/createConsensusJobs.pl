@@ -82,9 +82,10 @@ sub createPostScaffolderConsensusJobs ($) {
     print F "  exit 0\n";
     print F "fi\n";
     print F "\n";
-    print F "export AS_OVL_ERROR_RATE=", getGlobal("ovlErrorRate"), "\n";
-    print F "export AS_CNS_ERROR_RATE=", getGlobal("cnsErrorRate"), "\n";
-    print F "export AS_CGW_ERROR_RATE=", getGlobal("cgwErrorRate"), "\n";
+    print F "AS_OVL_ERROR_RATE=", getGlobal("ovlErrorRate"), "\n";
+    print F "AS_CNS_ERROR_RATE=", getGlobal("cnsErrorRate"), "\n";
+    print F "AS_CGW_ERROR_RATE=", getGlobal("cgwErrorRate"), "\n";
+    print F "export AS_OVL_ERROR_RATE AS_CNS_ERROR_RATE AS_CGW_ERROR_RATE\n";
     print F "\n";
     print F "echo \\\n";
     print F "$gin/consensus \\\n";
