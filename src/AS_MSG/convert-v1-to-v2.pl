@@ -33,7 +33,6 @@
 #  If you give it "-v vecFile" it'll also populate the vector clear
 #  range.
 
-
 use strict;
 
 my $vec;
@@ -85,12 +84,9 @@ sub readMultiLineDot {
     return($src);
 }
 
-
-
 print "{VER\n";
 print "ver:2\n";
 print "}\n";
-
 
 while (!eof(STDIN)) {
     my $line = <STDIN>; chomp $line;
@@ -250,6 +246,10 @@ while (!eof(STDIN)) {
         die "Unsupported line '$_'\n";
     }
 }
+
+print "{VER\n";
+print "ver:1\n";
+print "}\n";
 
 if (defined(%clv) && ($clvNotFound > 0)) {
     print STDERR "Updated $clvFound vector clear ranges ($clvNotFound NOT updated).\n";
