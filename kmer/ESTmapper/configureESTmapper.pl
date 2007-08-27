@@ -32,8 +32,8 @@ require "run.pl";
 my $exechome  = "$FindBin::Bin";
 my $leaff     = "$exechome/leaff";
 my $posdb     = "$exechome/positionDB";
-my $mimsf     = "$exechome/mersInMerStreamFile";
 my $meryl     = "$exechome/meryl";
+my $mimsf     = "$exechome/mersInMerStreamFile";
 
 my $genome    = undef;
 my $genomedir = undef;
@@ -128,56 +128,51 @@ if (! -f "$genomedir/genome.fastaidx") {
 }
 
 
-#  Build the merStreamFile so that we can run the positionDB builders
-#  in parallel...it also lets us know exactly how many mers are in the
-#  input so we can precisely partition the genome.
+#  Build a seqStore so that we can run the positionDB builders in
+#  parallel...from here, we can guesstimate an optimal partitioning,
+#  though that will be impossible without actually contstructing every
+#  mer (consider spaced and/or compressed mers) and so we live with
+#  it.
+#
 
 print STDERR "configureESTmapper-- Initializing positionDB creation.\n";
 
-if (! -e "$genomedir/genome.merStream") {
-    my $cmd;
-    $cmd  = "$posdb";
-    $cmd .= " -mersize $mersize";
-    $cmd .= " -merskip $merskip";
-    $cmd .= " -merbegin 1 -merend 100";
-    $cmd .= " -sequence $genomedir/genome.fasta";
-    $cmd .= " -output $genomedir/genome";
-    $cmd .= " > $genomedir/genome.merStream.out 2>&1";
-    if (runCommand($cmd)) {
+if ((! -e "$genomedir/genome.seqStore.blocks") ||
+    (! -e "$genomedir/genome.seqStore.sequence") ||
+    (! -e "$genomedir/genome.seqStore.out")) {
+    if (runCommand("$mimsf $genomedir/genome.fasta > $genomedir/genome.seqStore.out 2>&1")) {
         die "Failed.\n";
     }
-
-    unlink("$genomedir/genome");
 }
 
-
-
-#  Figure out how many mers are in our sequence, then decide on a
-#  partitioning.
-
-#  mersPerSegment - the _actual_ number of mers we can stuff into a
-#  segment.  We then overlap each segment by 1,000,000 mers.
-
-my $mersInFile     = int(`$mimsf $genomedir/genome`);
-my $mersPerSegment = 0;
+my $acgtInFile     = 0;
+my $acgtPerSegment = 0;
 my $segmentOverlap = 10000000;
 
-print STDERR "Found $mersInFile mers in the input.\n";
-die "No mers found?\n" if ($mersInFile <= 0);
+open(F, "< $genomedir/genome.seqStore.out") or die;
+while (<F>) {
+    if (m/^Found\s+(\d+)\s+ACGT/) {
+        $acgtInFile = $1;
+    }
+}
+close(F);
+
+print STDERR "Found $acgtInFile ACGT in the input.\n";
+die "No mers found?\n" if ($acgtInFile <= 0);
 
 #  XXX:  Magic Number!  12 bytes per base!
 
 if ($memory > 0) {
-    $mersPerSegment = int($memory / 12 * 1000000) + 1;
-    print STDERR "configureESTmapper-- packing to preserve ${memory}MB memory limit ($mersPerSegment mers per segment)\n";
+    $acgtPerSegment = int($memory / 12 * 1000000) + 1;
+    print STDERR "configureESTmapper-- packing to preserve ${memory}MB memory limit ($acgtPerSegment mers per segment)\n";
 }
 
 if ($segments > 0) {
-    $mersPerSegment = int($mersInFile / $segments + $segmentOverlap) + 1;
-    print STDERR "configureESTmapper-- packing to preserve $segments processor limit ($mersPerSegment mers per segment)\n";
+    $acgtPerSegment = int($acgtInFile / $segments + $segmentOverlap) + 1;
+    print STDERR "configureESTmapper-- packing to preserve $segments processor limit ($acgtPerSegment mers per segment)\n";
 }
 
-$memory = int($mersPerSegment * 12 / 1000000);
+$memory = int($acgtPerSegment * 12 / 1000000);
 
 open(F, "> $genomedir/memoryLimit") or die "Can't write $genomedir/memoryLimit\n";
 print F "$memory\n";
@@ -190,13 +185,13 @@ my $segId  = "000";
 
 open(F, "> $genomedir/segments");
 open(S, "> $genomedir/create.dat");
-while ($merBeg < $mersInFile) {
-    $merEnd  = $merBeg + $mersPerSegment;
+while ($merBeg < $acgtInFile) {
+    $merEnd  = $merBeg + $acgtPerSegment;
 
     print F "$segId\n";
     print S "$segId $merBeg $merEnd\n";
 
-    $merBeg += $mersPerSegment - $segmentOverlap;
+    $merBeg += $acgtPerSegment - $segmentOverlap;
     $segId++;
 }
 close(F);
@@ -240,12 +235,13 @@ print F "seg=`echo \$jobp | awk '{ print \$1 }'`\n";
 print F "beg=`echo \$jobp | awk '{ print \$2 }'`\n";
 print F "end=`echo \$jobp | awk '{ print \$3 }'`\n";
 print F "\n";
-print F "if [ ! -e \"$genomedir/genome.merStream\" ] ; then\n";
-print F "  echo \"Didn't find the merStreamFile!\"\n";
+print F "if [ ! -e \"$genomedir/genome.seqStore.sequence\" ] ; then\n";
+print F "  echo \"Didn't find the seqStore!\"\n";
 print F "  exit 1\n";
 print F "fi\n";
 print F "\n";
-print F "ln -s \"$genomedir/genome.merStream\" \"$genomedir/seg\$seg.building.posDB.merStream\"\n";
+print F "ln -s \"$genomedir/genome.seqStore.blocks\"   \"$genomedir/seg\$seg.building.posDB.seqStore.blocks\"\n";
+print F "ln -s \"$genomedir/genome.seqStore.sequence\" \"$genomedir/seg\$seg.building.posDB.seqStore.sequence\"\n";
 print F "\n";
 print F "$posdb \\\n";
 print F "  -mersize $mersize \\\n";
@@ -261,7 +257,8 @@ print F "$meryl -countbatch `expr \$jobid - 1` -o \"$genomedir/genome\" \\\n";
 print F "|| \\\n";
 print F "rm -f dddd\n";
 print F "\n";
-print F "rm -f \"$genomedir/seg\$seg.building.posDB.merStream\"\n";
+print F "rm -f \"$genomedir/seg\$seg.building.posDB.seqStore.blocks\"\n";
+print F "rm -f \"$genomedir/seg\$seg.building.posDB.seqStore.sequence\"\n";
 close(F);
 
 

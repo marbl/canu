@@ -2,23 +2,24 @@
 #include <stdlib.h>
 #include "bio++.H"
 
-//  Prints the number of mers in a merStreamFile.
+//  Constructs a seqStore, and counts the number of ACGT in it.
 
 int
 main(int argc, char **argv) {
 
-#if 0
   if (argc < 2) {
-    fprintf(stderr, "usage: %s some.merStreamFile\n", argv[0]);
+    fprintf(stderr, "usage: %s some.fasta\n", argv[0]);
     exit(1);
   }
 
-  merStreamFileReader *MSFR = new merStreamFileReader(argv[1]);
-  fprintf(stdout, u64bitFMT"\n", MSFR->numberOfMers());
-  delete MSFR;
-#endif
+  seqStream *ST = new seqStream(argv[1], true);
+  seqStore  *SS = new seqStore(argv[1], ST);
 
-#warning I AM BROKEN
+  fprintf(stdout, "Found "u64bitFMT" ACGT in '%s'\n",
+          SS->numberOfACGT(), argv[1]);
+
+  delete SS;
+  delete ST;
 
   exit(0);
 }
