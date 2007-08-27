@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.51 2007-08-09 16:55:34 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.52 2007-08-27 18:04:56 eliv Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -70,7 +70,7 @@ typedef enum {
 
 #define NUM_OF_REC_TYPES MESG_EOF
 
-static char  *MessageTypeName[NUM_OF_REC_TYPES + 1] = {
+static const char  *MessageTypeName[NUM_OF_REC_TYPES + 1] = {
   "NUL",
   "ADT", "VER", "FRG", "IFG", "SPo", // 5
   "LKG", "SPg", "DST", "IDT", "LIB", // 10
