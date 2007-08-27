@@ -25,7 +25,7 @@
    Assumptions:  libAS_UTL.a
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.35 2007-08-27 18:02:57 eliv Exp $";
+static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.36 2007-08-27 19:14:15 eliv Exp $";
 
 
 #include <assert.h>
@@ -1250,14 +1250,13 @@ GetMultiAlignUngappedConsensusFromInterval(MultiAlignT *ma,
 void 
 GetMultiAlignUngappedOffsets(MultiAlignT *ma, VA_TYPE(int32) *ungappedOffsets)
 {
+  Resetint32(ungappedOffsets);
   if (ma == NULL)
       return;
+
   char *consensus = Getchar(ma->consensus,0);
-  // char *quality = Getchar(ma->quality,0);
   char *c;
   int ungapped = 0;
-
-  Resetint32(ungappedOffsets);
 
   for(c = consensus;
       *c != '\0';
