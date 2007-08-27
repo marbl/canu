@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.38 2007-08-10 06:53:03 brianwalenz Exp $
- * $Revision: 1.38 $
+ * $Id: AS_OVL_overlap_common.h,v 1.39 2007-08-27 14:40:10 skoren Exp $
+ * $Revision: 1.39 $
 */
 
 
@@ -306,8 +306,6 @@ static int  Global_Hi_Qual_Bin [20] = {0};
 static int  Global_Olap_Ct = 0;
 static int  Global_Unscreened_Ct = 0;
 #endif
-
-static int  Global_Debug_Flag = FALSE;
 
 #if  DO_OLAP_ALIGN_PROFILE
 Align_Ct_t  * Align_Ct = NULL;
@@ -3279,7 +3277,7 @@ static void  Mark_Skip_Kmers
       int  i, len;
 
       ct ++;
-      len = strlen (line) - 1;
+      len = strlen (line) - 1;      
       if  (line [0] != '>' || line [len] != '\n')
           {
            fprintf (stderr, "ERROR:  Bad line %d in kmer skip file\n", ct);
