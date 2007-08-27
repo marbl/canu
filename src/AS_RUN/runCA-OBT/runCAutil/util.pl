@@ -253,7 +253,15 @@ sub setParameters ($@) {
     }
 
     if (defined($specFile)) {
-        open(F, "< $specFile") or die "Failed to open '$specFile'\n";
+        my $binRoot = "$FindBin::Bin";
+
+        if (-e "$specFile") {
+            open(F, "< $specFile") or die "Couldn't open '$specFile'\n"
+        } elsif (-e "$binRoot/$specFile") {
+            open(F, "< $binRoot/$specFile") or die "Couldn't open '$binRoot/$specFile'\n"
+        } else {
+            die "Didn't find '$specFile' or '$binRoot/$specFile'\n";
+        }
         while (<F>) {
             chomp;
             next if (m/^\s*\#/);
