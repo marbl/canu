@@ -105,8 +105,8 @@ uint64 iid2uid(uint32 iid){
     return (uid[iid]);
   } else {
     GateKeeperFragmentRecord gkpFrag;
-    if(getGateKeeperFragment(my_gkp_store,iid,&gkpFrag)!=0)
-      assert(0);
+    getGateKeeperFragment(my_gkp_store,iid,&gkpFrag);
+    assert(gkpFrag.readIID);
     uid[iid] = gkpFrag.readUID;
   }
   return uid[iid];
@@ -934,10 +934,9 @@ int main (int argc , char * argv[] ) {
 
     // skip deleted fragments
     GateKeeperFragmentRecord gkpFrag;
-    if(getGateKeeperFragment(my_gkp_store,seediid,&gkpFrag)!=1) {
-      assert(0);
-    }
+    getGateKeeperFragment(my_gkp_store,seediid,&gkpFrag);
     if(gkpFrag.deleted)continue;
+    assert(gkpFrag.readIID);
 
     // if this fragment is not in the select list(s) ... skip it
     if(restrictSeeds&& SeedUsability[seediid]==0){continue;}
