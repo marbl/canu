@@ -10,7 +10,7 @@
 //  N.B. any read() / write() pair (either order) must have a seek (or
 //  a fflush) in between.
 
-bitPackedFile::bitPackedFile(char const *name, u64bit offset) {
+bitPackedFile::bitPackedFile(char const *name, u64bit offset, bool forceTruncate) {
 
   _file = 0;
   _name = new char [strlen(name) + 1];
@@ -46,9 +46,17 @@ bitPackedFile::bitPackedFile(char const *name, u64bit offset) {
   //  files for rewrite.  We just fail with a can't open message.
   //
   //  To get read/write and create we have to use open(2), as mode
-  //  "r+" of fopen(3) will not create.
+  //  "r+" of fopen(3) will not create.  (Yes, but w+ does, sigh.)
   //
-  if (fileExists(_name)) {
+  if (forceTruncate) {
+    errno = 0;
+    _file = open(_name,
+                 O_RDWR | O_CREAT | O_TRUNC | O_LARGEFILE,
+                 S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+    if (errno)
+      fprintf(stderr, "bitPackedFile::bitPackedFile()-- failed to open and truncate '%s': %s\n",
+              _name, strerror(errno)), exit(1);
+  } else if (fileExists(_name)) {
     errno = 0;
     _file = open(_name,
                  O_RDONLY | O_LARGEFILE,

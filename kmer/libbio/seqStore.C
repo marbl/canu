@@ -10,9 +10,9 @@ seqStore::seqStore() {
 
   _streamFile       = 0L;
 
-  _iterationStart =  u64bitZERO;
-  _iterationLimit = ~u64bitZERO;
-  _iteration      =  u64bitZERO;
+  _iterationBeg     =  u64bitZERO;
+  _iterationEnd     = ~u64bitZERO;
+  _iteration        =  u64bitZERO;
 }
 
 seqStore::seqStore(const char *filename, seqStream *s) {
@@ -26,9 +26,9 @@ seqStore::seqStore(const char *filename, seqStream *s) {
 
   _streamFile       = 0L;
 
-  _iterationStart =  u64bitZERO;
-  _iterationLimit = ~u64bitZERO;
-  _iteration      =  u64bitZERO;
+  _iterationBeg     =  u64bitZERO;
+  _iterationEnd     = ~u64bitZERO;
+  _iteration        =  u64bitZERO;
 
   buildStore(filename, s);
 }
@@ -127,8 +127,6 @@ seqStore::buildStore(const char *filename, seqStream *ss) {
   u64bit  numBlocks         = 0;
   u64bit  numACGT           = 0;
 
-  ss->rewind();
-
   //  Open the output files
   //
   char *streamName = new char [strlen(filename) + 32];
@@ -137,14 +135,14 @@ seqStore::buildStore(const char *filename, seqStream *ss) {
   sprintf(streamName, "%s.seqStore.sequence", filename);
   sprintf(blocksName, "%s.seqStore.blocks",   filename);
   
-#if 1
   //  If 'filename' exists, assume it's the source fasta file.  We
   //  want to ensure that our seqStream is at least as current as
   //  that.
   if (fileExists(streamName) && fileExists(blocksName)) {
-
-    if ((ss->timeStamp() > timeOfFile(streamName)) ||
-        (ss->timeStamp() > timeOfFile(streamName))) {
+    u64bit  ts = 0;
+    if (ss)
+      ts = ss->timeStamp();
+    if ((ts > timeOfFile(streamName)) || (ts > timeOfFile(streamName))) {
       fprintf(stderr, "seqStore::buildStore()-- WARNING: source '%s' is newer than the existing store; rebuilding.\n", filename);
       unlink(streamName);
       unlink(blocksName);
@@ -152,7 +150,6 @@ seqStore::buildStore(const char *filename, seqStream *ss) {
       return;
     }
   }
-#endif
 
   //  Otherwise, we either have no input files, or one, but not the
   //  other.  Delete whatever is there.
@@ -174,6 +171,8 @@ seqStore::buildStore(const char *filename, seqStream *ss) {
 
   delete [] blocksName;
   delete [] streamName;
+
+  ss->rewind();
 
   u64bit          thisBase = validCompressedSymbol[ss->get()];
   seqStoreBlock   b = {0};
@@ -295,6 +294,7 @@ seqStore::buildStore(const char *filename, seqStream *ss) {
 
 
 
+#undef DEBUG_GET
 
 unsigned char
 seqStore::get(void) {
@@ -304,28 +304,50 @@ seqStore::get(void) {
     _thisBlock++;
     _thisBlockPosition = 0;
 
-    if (_blockInfo[_thisBlock]._isACGT == 0)
+    if (_blockInfo[_thisBlock]._isACGT)
       assert(_blockInfo[_thisBlock]._posInBPF == _streamFile->tell());
   }
 
-  if (_thisBlock >= _numBlocks)
+  if (_thisBlock >= _numBlocks) {
+#ifdef DEBUG_GET
+    fprintf(stderr, "seqStore::get()-- ALL DONE; return 0\n");
+#endif
     return(0);
+  }
 
   if (_blockInfo[_thisBlock]._isACGT == 0) {
+#ifdef DEBUG_GET
+    fprintf(stderr, "seqStore::get()-- GAP BLOCK thisBlockPos "u64bitFMT" out of blockSize "u64bitFMT"\n",
+            _thisBlockPosition, _blockInfo[_thisBlock]._len);
+#endif
     _thisBlockPosition++;
     return('n');
   }
 
   //  Ah, now in real sequence!
 
+  if (_iteration > _iterationEnd) {
+#ifdef DEBUG_GET
+    fprintf(stderr, "seqStore::get()-- ITERATION LIMIT; return 0\n");
+#endif
+    return(0);
+  }
+
   _iteration++;
 
-  if (_iteration >= _iterationLimit)
-    return(0);
+#ifdef DEBUG_GET
+  char ret = decompressSymbol[_streamFile->getBits(2)];
+
+  fprintf(stderr, "seqStore::get()-- ACGT %c thisBlockPos "u64bitFMT" out of blockSize "u64bitFMT"\n",
+          ret, _thisBlockPosition, _blockInfo[_thisBlock]._len);
 
   _thisBlockPosition++;
 
+  return(ret);
+#else
+  _thisBlockPosition++;
   return(decompressSymbol[_streamFile->getBits(2)]);
+#endif
 }
 
 
@@ -349,8 +371,32 @@ seqStore::seek(u64bit pos) {
 
   //  Use a binary search if there are lots of blocks, otherwise, linear search.
 
+#if 0
+  fprintf(stderr, "seqStore::seek()-- looking for posInBPF "u64bitFMT"\n", pos);
+  for (u32bit i=0; i<_numBlocks; i++)
+    fprintf(stderr, "block["u32bitFMT"]: acgt:"u64bitFMT" iid:"u64bitFMT" posInSeq:"u64bitFMT" posInStrOff:"u64bitFMT" posInBPF:"u64bitFMT" len:"u64bitFMT"\n",
+            i,
+            _blockInfo[i]._isACGT,
+            _blockInfo[i]._seqIID,
+            _blockInfo[i]._posInSeq,
+            _blockInfo[i]._posInStrOff,
+            _blockInfo[i]._posInBPF,
+            _blockInfo[i]._len);
+#endif
+
+
   if (_numBlocks < 128) {
-    while ((_blockInfo[block]._posInBPF <= pos) && (_blockInfo[block+1]._posInBPF < pos))
+    //  Blocks of non-ACGT have their position set to the same as the
+    //  next block of ACGT -- we don't add anything to the file and so
+    //  the position doesn't change.  If our position is after the
+    //  current block, both conditions are satisfied.  If our position
+    //  is the start of the block, we'll skip the gap block, because
+    //  the position of the gap block and the next (acgt) block are
+    //  the same as the position.  We'll then move to the next block,
+    //  pos == posInBPF, but the next posInBPF is not <= pos and we
+    //  stop.
+    //
+    while ((_blockInfo[block]._posInBPF <= pos) && (_blockInfo[block+1]._posInBPF <= pos))
       block++;
   } else {
     u32bit  lo = 0;
@@ -376,10 +422,11 @@ seqStore::seek(u64bit pos) {
   }
 
 #if 0
-  fprintf(stderr, "seqStore::seek("u64bitFMT" / 2) found block="u32bitFMT" posInBPF: "u64bitFMT" "u64bitFMT"\n",
-          pos, block, _blockInfo[block]._posInBPF, _blockInfo[block+1]._posInBPF);
+  fprintf(stderr, "seqStore::seek()--  found block="u32bitFMT" posInBPF: "u64bitFMT" nextBlock: "u64bitFMT"\n",
+          block, _blockInfo[block]._posInBPF, _blockInfo[block+1]._posInBPF);
 #endif
 
+  assert(_blockInfo[block]._isACGT);
   assert((_blockInfo[block]._posInBPF <= pos) && (pos < _blockInfo[block+1]._posInBPF));
 
   _thisBlock         = block;

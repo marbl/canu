@@ -8,12 +8,13 @@ public:
   unsigned char get(void);
   bool          eof(void)          { return(_thisBlock >= _numBlocks); };
 
-  bool          rewind(void)       { return(setIterationStart(_iterationStart)); };
+  bool          rewind(void)       { return(setRange(_iterationBeg, _iterationEnd)); };
 
   u64bit        seqPos(void)       { return(_blockInfo[_thisBlock]._posInSeq + _thisBlockPosition - 1); };
   u64bit        seqIID(void)       { return(_blockInfo[_thisBlock]._seqIID); };
 
   u64bit        strPos(void)       { return(_blockInfo[_thisBlock]._posInBPF / 2 + _blockInfo[_thisBlock]._posInStrOff + _thisBlockPosition - 1); };
+  u64bit        acgtPos(void)      { return(_blockInfo[_thisBlock]._posInBPF / 2 + _thisBlockPosition - 1); };
 
   u64bit        numberOfACGT(void) { return(_numberOfACGT); };
 
@@ -27,20 +28,22 @@ private:
   bool   seek(u64bit pos);
 
 public:
-  //  This will limit the number of mers returned to 'limit'.  The
-  //  seek*() methods do not reset the count or the limit.  The
-  //  current count is reset when this function is called.  Set to
-  //  ~u64bitZERO for an infinite limit.  Zero really does mean zero,
-  //  not infinity.
+
+  //  Set the range of ACGT sequence we will return.  Coordinates are
+  //  space-based.  Example:
   //
-  bool                   setIterationStart(u64bit s) {
-    _iterationStart = s;
-    _iteration      = u64bitZERO;
-    return(seek(_iterationStart));
-  };
-  void                   setIterationLimit(u64bit l) {
-    _iterationLimit = l;
-    _iteration      = u64bitZERO;
+  //      012...3...456
+  //      AAAnnnCnnnGGG
+  //
+  //  range(0,0) -> nothing
+  //  range(0,1) -> A
+  //  range(0,5) -> AAAnnnCnnnG
+  //
+  bool                   setRange(u64bit beg, u64bit end) {
+    _iterationBeg = beg;
+    _iterationEnd = end;
+    _iteration    = beg;
+    return(seek(_iterationBeg));
   };
 
 
@@ -86,7 +89,7 @@ private:
 
   bitPackedFile        *_streamFile;
 
-  u64bit                _iterationStart;
-  u64bit                _iterationLimit;
+  u64bit                _iterationBeg;
+  u64bit                _iterationEnd;
   u64bit                _iteration;
 };

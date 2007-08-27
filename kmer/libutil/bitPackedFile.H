@@ -14,7 +14,7 @@
 
 class bitPackedFile {
 public:
-  bitPackedFile(char const *name, u64bit offset=0);
+  bitPackedFile(char const *name, u64bit offset=0, bool forceTruncate=false);
   ~bitPackedFile();
 
   u64bit     getBits(u32bit size);

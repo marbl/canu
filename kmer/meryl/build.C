@@ -385,17 +385,10 @@ runSegment(merylArgs *args, u64bit segment) {
   //  everybody else does args->mersPerBatch mers.
 
   C = new speedCounter(" Counting mers in buckets: %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, args->beVerbose);
-  R = new seqStore;
 
-  if (R->loadStore(args->outputFile, 0L) == false) {
-    fprintf(stderr, "Failed to load seqStore '%s'.\n", args->outputFile);
-    exit(1);
-  }
-
-  R->setIterationStart(args->mersPerBatch * segment);
-  R->setIterationLimit(args->mersPerBatch);
-
+  R = new seqStore(args->outputFile, 0L);
   M = new merStream(args->merSize, R);
+  M->setRange(args->mersPerBatch * segment, args->mersPerBatch * segment + args->mersPerBatch);
 
   if (args->doForward) {
     while (M->nextMer()) {
@@ -461,17 +454,10 @@ runSegment(merylArgs *args, u64bit segment) {
 
 
   C = new speedCounter(" Filling mers into list:   %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, args->beVerbose);
-  R = new seqStore;
 
-  if (R->loadStore(args->outputFile, 0L) == false) {
-    fprintf(stderr, "Failed to load seqStore '%s'.\n", args->outputFile);
-    exit(1);
-  }
-
-  R->setIterationStart(args->mersPerBatch * segment);
-  R->setIterationLimit(args->mersPerBatch);
-
+  R = new seqStore(args->outputFile, 0L);
   M = new merStream(args->merSize, R);
+  M->setRange(args->mersPerBatch * segment, args->mersPerBatch * segment + args->mersPerBatch);
 
   while (M->nextMer()) {
 

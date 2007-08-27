@@ -51,18 +51,22 @@ public:
   kMer const &           theCMer(void)    { return((_fMer < _rMer) ? _fMer : _rMer); };
 
   bool                   nextMer(u32bit skip=0);
+
+public:
+
+  //  Everyone can rewind back to the start, and it's boring.
+  //  Slightly more efficient than just opening a new stream.
+  //
+  //  If we're backed by a seqStore, we can reposition the merstream
+  //  anywhere we like to.  The positions refer to the N'th ACGT in
+  //  the file, not the N'th mer in the file!  Note that rewind()ing a
+  //  file with a range set rewinds to the beginning of the _range_
+  //  not the file.
+  //
   bool                   rewind(void);
+  bool                   setRange(u64bit beg, u64bit end);
 
-  //  'pos' is the N'th ACGT in the file, not the N'th mer in the file!
-  bool                   seek(u64bit pos) {
-    if (_ss_file) {
-      _ss_file->setIterationStart(pos);
-      loadMer(_merSize - 1);
-      return(nextMer());
-    }
-    return(false);
-  };
-
+public:
   u64bit                 thePositionInSequence(void);
   u64bit                 thePositionInStream(void);
   u64bit                 theSequenceNumber(void);
@@ -74,7 +78,12 @@ private:
 
 private:
   seqStore             *_ss_file;
+  u64bit                _ss_beg;
+  u64bit                _ss_end;
+  u64bit                _ss_pos;
+
   seqStream            *_cs_stream;
+
   char const           *_st_string;
   u64bit                _st_stringPos;
   u64bit                _st_stringLen;
@@ -149,19 +158,12 @@ inline
 u64bit
 merStream::nextSym(void) {
 
-  //  This is called only for seqStreams, seqStream and char* input.
-
   if (_ss_file)
     return(_ss_file->get());
 
   if (_cs_stream)
     return(_cs_stream->get());
 
-  //  See also the constructor for character strings -- it skips
-  //  white space and the first defline.
-  
-  //  Skip any whitespace
-  //
   while (whitespaceSymbol[_st_string[_st_stringPos]] &&
          (_st_string[_st_stringPos]) &&
          (_st_stringPos < _st_stringLen))
@@ -184,9 +186,8 @@ merStream::nextSym(void) {
     return(254);
   }
 
-  //  Are we at the EOF?
-  //
   if ((_st_string[_st_stringPos] == 0) || (_st_stringPos >= _st_stringLen))
+    //  EOF
     return(0);
 
   //  Update the position of the character in this sequence, and
@@ -298,6 +299,16 @@ merStream::nextMer(u32bit skip) {
   _fMer.mask(true);
   _rMer.mask(false);
 
+  //  Compute if we've hit our iteration limit.
+  //
+#if 0
+  if (_ss_file)
+    fprintf(stderr, "acgtPos: "u64bitFMT" - "u32bitFMT" + 1 == "u64bitFMT";  _ss_end "u64bitFMT"\n",
+            _ss_file->acgtPos(), _merSize, _ss_file->acgtPos() - _merSize + 1, _ss_end);
+#endif
+  if ((_ss_file) && (_ss_end <= _ss_file->acgtPos() - _merSize + 1))
+    return(0);
+
   //  Still need to check if we are valid -- we could
   //  have run off the end of the sequence before a valid
   //  mer was created.
@@ -305,6 +316,4 @@ merStream::nextMer(u32bit skip) {
   return(_timeUntilValid <= 0);
 }
 
-
 #endif  //  MERSTREAM_H
-

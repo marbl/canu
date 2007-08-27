@@ -99,15 +99,13 @@ merylStreamWriter::merylStreamWriter(const char *fn,
                                      u32bit merSize,
                                      u32bit prefixSize) {
 
-  //  Open the files
-  //
   char *outpath = new char [strlen(fn) + 17];
 
   sprintf(outpath, "%s.mcidx", fn);
-  _IDX = new bitPackedFile(outpath);
+  _IDX = new bitPackedFile(outpath, 0, true);
 
   sprintf(outpath, "%s.mcdat", fn);
-  _DAT = new bitPackedFile(outpath);
+  _DAT = new bitPackedFile(outpath, 0, true);
 
   delete [] outpath;
 

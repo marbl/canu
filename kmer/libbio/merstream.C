@@ -3,6 +3,9 @@
 void
 merStream::initialize(u32bit merSize) {
   _ss_file         = 0L;
+  _ss_beg          =  u64bitZERO;
+  _ss_end          = ~u64bitZERO;
+  _ss_pos          =  u64bitZERO;
   _cs_stream       = 0L;
   _st_string       = 0L;
   _st_stringPos    = 0;
@@ -77,4 +80,22 @@ merStream::rewind(void) {
   }
 
   return(ret);
+}
+
+bool
+merStream::setRange(u64bit beg, u64bit end) {
+  if (_ss_file) {
+    //  We can't tell the seqStore when to stop; while we could
+    //  compute the span of a spaced seed, we cannot compute it for a
+    //  compressed seed.  We need to stop iterating when the beginning
+    //  of the mer reaches the requested end.
+    //
+    _ss_file->setRange(beg, ~u64bitZERO);
+    _ss_beg = beg;
+    _ss_end = end;
+    _ss_pos = beg;
+    loadMer(_merSize - 1);
+    return(true);
+  }
+  return(false);
 }
