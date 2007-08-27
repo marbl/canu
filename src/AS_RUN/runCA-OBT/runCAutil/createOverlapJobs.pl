@@ -113,13 +113,7 @@ sub createOverlapJobs {
     open(F, "> $wrk/$outDir/overlap.sh") or die "Can't open '$wrk/$outDir/overlap.sh'\n";
     print F "#!/bin/sh\n";
     print F "\n";
-    print F "perl=perl\n";
-    print F "if [ -e /usr/bin/perl ]; then\n";
-    print F "  perl=/usr/bin/perl\n";
-    print F "fi\n";
-    print F "if [ -e /usr/local/bin/perl ]; then\n";
-    print F "  perl=/usr/local/bin/perl\n";
-    print F "fi\n";
+    print F "perl='/usr/bin/env perl'\n";
     print F "\n";
     print F "jobid=\$SGE_TASK_ID\n";
     print F "if [ x\$jobid = x -o x\$jobid = xundefined ]; then\n";
@@ -248,7 +242,7 @@ sub createOverlapJobs {
     }
 
     open(SUB, "> $wrk/$outDir/ovlopts.pl") or die "Failed to open '$wrk/$outDir/ovlopts.pl'\n";
-    print SUB "#!/usr/bin/perl\n";
+    print SUB "#!/usr/bin/env perl\n";
     print SUB "use strict;\n";
     print SUB "my \@bat = (\n";  foreach my $b (@bat) { print SUB "\"$b\",\n"; }  print SUB ");\n";
     print SUB "my \@job = (\n";  foreach my $b (@job) { print SUB "\"$b\",\n"; }  print SUB ");\n";
