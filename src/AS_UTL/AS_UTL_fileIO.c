@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//static char CM_ID[] = "$Id: AS_UTL_fileIO.c,v 1.13 2007-08-24 15:29:48 brianwalenz Exp $";
+//static char CM_ID[] = "$Id: AS_UTL_fileIO.c,v 1.14 2007-08-27 18:12:56 eliv Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -203,7 +203,7 @@ AS_UTL_fseek(FILE *stream, off_t offset, int whence) {
   //  safeWrite()-- wrote nobj=1x104 = 104 bytes position now 164000
   //  safeWrite()-- EXPECTED 160008, ended up at 164000
   //
-#ifndef __FreeBSD__
+#if !defined __FreeBSD__ && !defined __osf__
   if ((whence == SEEK_SET) && (beginpos == offset)) {
 #ifdef DEBUG_SEEK
     //  This isn't terribly informative, and adds a lot of clutter.
