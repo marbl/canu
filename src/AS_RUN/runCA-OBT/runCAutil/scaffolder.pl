@@ -50,7 +50,7 @@ sub CGW ($$$$$$) {
     system("ln -s ../$lastDir/$asm.ckp.$lastckp $wrk/$thisDir/$asm.ckp.$lastckp") if (defined($lastDir));
 
     my $cmd;
-    $cmd  = "$bin/cgw $ckp -c -j 1 -k 5 -r 5 -s $stoneLevel -T ";
+    $cmd  = "$bin/cgw $ckp -c -j 1 -k 5 -r 5 -s $stoneLevel ";
     $cmd .= " -S 0 " if (($finalRun == 0)   || (getGlobal("doResolveSurrogates") == 0));
     $cmd .= " -G "   if (($finalRun == 0)   && (getGlobal("cgwOutputIntermediate") == 0));
     $cmd .= " -M "   if (($stoneLevel == 0) && (getGlobal("delayInterleavedMerging") == 1));
