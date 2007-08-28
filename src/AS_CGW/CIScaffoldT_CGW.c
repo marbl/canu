@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.21 2007-08-26 10:11:00 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.22 2007-08-28 21:19:54 brianwalenz Exp $";
 
 #undef DEBUG
 #undef DEBUG_INSERT
@@ -282,7 +282,7 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
                        int AEndToBend, int contigNow){
 
   CIScaffoldT *ciScaffold = GetGraphNode(sgraph->ScaffoldGraph, sid);
-  ChunkInstanceT *chunkInstance = GetGraphNode(sgraph->RezGraph, ci);    
+  ChunkInstanceT *chunkInstance = GetGraphNode(sgraph->RezGraph, ci);
   int32 reversed;
   LengthT *maxOffset, *minOffset;
 
@@ -346,39 +346,31 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
   chunkInstance->offsetAEnd = aEndOffset;
   chunkInstance->offsetBEnd = bEndOffset;
 
-#ifndef DEBUG_INSERT
-  if(GlobalData->debugLevel > 0){
-#endif
-    fprintf(stderr,"*&&& BEFORE inserting ci " F_CID " in scaffold " F_CID " at (%g,%g) (%g,%g)\n",
-	    ci,sid, 
-	    aEndOffset.mean, aEndOffset.variance,
-	    bEndOffset.mean, bEndOffset.variance);
-    DumpCIScaffold(stderr, sgraph, ciScaffold, FALSE);
-#ifndef DEBUG_INSERT
-  }
+#ifdef DEBUG_INSERT
+  fprintf(stderr,"*&&& BEFORE inserting ci " F_CID " in scaffold " F_CID " at (%g,%g) (%g,%g)\n",
+          ci,sid, 
+          aEndOffset.mean, aEndOffset.variance,
+          bEndOffset.mean, bEndOffset.variance);
+  DumpCIScaffold(stderr, sgraph, ciScaffold, FALSE);
 #endif
 
 #if 0
   if(contigNow & CONTAINMENT_CONTIGGING){
     if( CheckForContainmentContigs(sgraph, ci, sid, aEndOffset, bEndOffset)){
 
-#ifndef DEBUG_INSERT
-      if(GlobalData->debugLevel > 0){
-#endif
-        fprintf(stderr,"* InsertCI " F_CID " InScaffold  " F_CID " returned after CheckForContigs\n", ci, sid);
-        fprintf(stderr,"* AFTER\n");
-        DumpCIScaffold(stderr,sgraph, ciScaffold, FALSE);
-#ifndef DEBUG_INSERT
-      }
+#ifdef DEBUG_INSERT
+      fprintf(stderr,"* InsertCI " F_CID " InScaffold  " F_CID " returned after CheckForContigs\n", ci, sid);
+      fprintf(stderr,"* AFTER\n");
+      DumpCIScaffold(stderr,sgraph, ciScaffold, FALSE);
 #endif
       return 0; // we did it already
-    }else{
 #ifdef DEBUG_INSERT
+    }else{
       fprintf(stderr,"* InsertCI " F_CID " InScaffold  " F_CID " *Old Fashioned way *\n", ci, sid);
 #endif
     }
   }
-#endif
+#endif  //  if 0
     
   if(contigNow & DOVETAIL_CONTIGGING){
     if(CheckForContigs(sgraph, ci, sid, aEndOffset, bEndOffset)){
@@ -388,12 +380,16 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
       DumpCIScaffold(stderr,sgraph, ciScaffold, FALSE);
 #endif
       return 0; // we did it already
-    }else{
 #ifdef DEBUG_INSERT
+    }else{
       fprintf(stderr,"* InsertCI " F_CID " InScaffold  " F_CID " *Old Fashioned way *\n", ci, sid);
 #endif
     }
   }
+
+  //  Reget the pointers.
+  ciScaffold    = GetGraphNode(sgraph->ScaffoldGraph, sid);
+  chunkInstance = GetGraphNode(sgraph->RezGraph, ci);
 
   assert(!chunkInstance->flags.bits.isDead);
   MarkCIElementsForScaffoldMembership(chunkInstance, sid);
@@ -1363,9 +1359,9 @@ int32 CheckScaffoldConnectivityAndSplit(ScaffoldGraphT *graph, CDS_CID_t scaffol
     // contigs
     for(component = 0; component < numComponents; component++){
       LengthT NullLength = {0.0, 0.0};
-      LengthT firstOffset;
+      LengthT firstOffset = {0.0, 0.0};
       int seenFirstOffset;
-      CIScaffoldT CIScaffold;
+      CIScaffoldT CIScaffold = {0};
       CDS_CID_t newScaffoldID;
 
       InitializeScaffold(&CIScaffold, REAL_SCAFFOLD);
