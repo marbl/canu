@@ -25,7 +25,7 @@
    Assumptions:  libAS_UTL.a
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.36 2007-08-27 19:14:15 eliv Exp $";
+static char CM_ID[] = "$Id: MultiAlignStore_CNS.c,v 1.37 2007-08-28 22:49:14 brianwalenz Exp $";
 
 
 #include <assert.h>
@@ -1069,6 +1069,7 @@ ReLoadMultiAlignTFromStream(FILE *stream, MultiAlignT *ma, int32 *reference)
   char isPresent; 
 
   AssertPtr(ma);
+
   ResetVA_char(ma->consensus);
   ResetVA_char(ma->quality);
   ResetVA_int32(ma->delta);
@@ -1092,14 +1093,15 @@ ReLoadMultiAlignTFromStream(FILE *stream, MultiAlignT *ma, int32 *reference)
   if(*reference != NULLINDEX){
     return;
   }
-  
-  LoadFromFileVA_char(stream,ma->consensus,0);
-  LoadFromFileVA_char(stream,ma->quality,0);
-  LoadFromFileVA_int32(stream,ma->delta,0);
-  LoadFromFileVA_IntMultiPos(stream,ma->f_list,0);
-  LoadFromFileVA_IntMultiVar(stream,ma->v_list,0);
-  LoadFromFileVA_int32(stream,ma->udelta,0);
-  LoadFromFileVA_IntUnitigPos(stream,ma->u_list,0);
+
+  LoadFromFileVA_char(stream,ma->consensus);
+  LoadFromFileVA_char(stream,ma->quality);
+  LoadFromFileVA_int32(stream,ma->delta);
+  LoadFromFileVA_IntMultiPos(stream,ma->f_list);
+  LoadFromFileVA_IntMultiVar(stream,ma->v_list);
+  LoadFromFileVA_int32(stream,ma->udelta);
+  LoadFromFileVA_IntUnitigPos(stream,ma->u_list);
+
   status  = AS_UTL_safeRead(stream, &ma->forced, "ReLoadMultiAlignTFromStream", sizeof(int32), 1);
   status += AS_UTL_safeRead(stream, &ma->id, "ReLoadMultiAlignTFromStream", sizeof(int32), 1);
   status += AS_UTL_safeRead(stream, &ma->source_alloc, "ReLoadMultiAlignTFromStream", sizeof(int32), 1);

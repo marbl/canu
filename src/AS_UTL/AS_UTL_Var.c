@@ -18,7 +18,9 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.18 2007-02-28 13:53:10 brianwalenz Exp $";
+
+static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.19 2007-08-28 22:49:14 brianwalenz Exp $";
+
 /********************************************************************/
 /* Variable Length C Array Package 
  * 
@@ -30,11 +32,6 @@ static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.18 2007-02-28 13:53:10 brianwalenz 
  * It defines a basic set of operations, and provides a set of
  * macros that expand to support typesafe manipulation of the
  * arrays.
- * Revision: $Revision: 1.18 $
- * Date:     $Date: 2007-02-28 13:53:10 $
- * CMM, 1999/03/29:  Ported to large arrays on the Digital systems by declaring
- * array sizes using size_t, rather than unit32.
- *
  */
 
 #include <stdlib.h>
@@ -64,36 +61,15 @@ typedef struct {
   uint64 sizeofElement;
   uint64 numElements;
   uint64 allocatedElements;
-  char typeofElement[VA_TYPENAMELEN];
+  char   typeofElement[VA_TYPENAMELEN];
 } FileVarArrayType;
 
 
-  
-// Re-allocations are rounded up to a power of two number of bytes
-// when the EnableRange functionality is used.  This can be avoided by
-// using Initialize_VA with the number of elements to pre-allocate.
 
-#undef DEBUG
-
-// *******************************************************************
-//
-// The routines that directly allocate or free array memory are
-// MakeRoom_VA and Clear_VA.
-//
-
-int MakeRoom_VA
-(VarArrayType * const va,
- const size_t         maxElements,
- const int            pad_to_a_power_of_two
-)
-{
-  /* CMM 1999/03/29
-     The return value is a flag that indicates whether
-     a reallocation occurred. 
-
-     PREVIOUSLY, maxElements was the index of the maximum
-     element.  Now, it is the maximum number of elements.
-  */
+int
+MakeRoom_VA(VarArrayType * const va,
+            const size_t         maxElements,
+            const int            pad_to_a_power_of_two) {
 
   size_t newElements, newSize, tentativeNewSize, oldSize;
   char *mem = NULL;
@@ -136,7 +112,7 @@ int MakeRoom_VA
     // Only allocate a power of 2 number of bytes.
     tentativeNewSize = (((size_t)1) << ceil_log2(newSize));
 
-    // Cap malloc size at 512MB to decrease failure rate
+    // Cap alloc'd size at 512MB to decrease failure rate
     if ( tentativeNewSize - newSize > (2 << 28) )
         tentativeNewSize = oldSize + (2 << 28);
     
@@ -165,32 +141,28 @@ int MakeRoom_VA
 #endif
 
   if( NULL == va->Elements ) {
-    mem = (char *)safe_malloc(newSize);
+    mem = (char *)safe_calloc(newSize, sizeof(char));
   } else {
 #ifdef ALWAYS_MOVE_VA_ON_MAKEROOM
-    mem = (char *)safe_malloc(newSize);
+    mem = (char *)safe_calloc(newSize, sizeof(char));
     memcpy(mem, va->Elements, oldSize);
     memset(va->Elements, 0xff, oldSize);
     safe_free(va->Elements);
 #else
     mem = (char *)safe_realloc(va->Elements, newSize);
+    memset(mem + oldSize, 0, newSize - oldSize);
+
+    if (0) {
+      int i=0, j=0;
+      for (i=0; i<newSize; i++)
+        j += mem[i];
+      fprintf(stderr, "realloc'd VA (i=%d) with sum %d\n", i, j);
+    }
 #endif
   }
 
-  if (mem == NULL) {
-    fprintf(stderr, "AS_UTL_Var::MakeRoom_VA()-- Likely out of memory.  Tried to expand from "F_SIZE_T" bytes to "F_SIZE_T" bytes.\n",
-            oldSize, newSize);
-  }
-  assert(mem != NULL);
   va->Elements = mem;
   va->allocatedElements = newElements;
-
-  // Initialize the new memory space to zero.
-  mem = va->Elements + oldSize;
-  if (newSize - oldSize > 0)
-    memset(mem,0,newSize - oldSize);
-
-  assert(va->Elements != NULL);
 
 #ifdef ALWAYS_MOVE_VA_ON_MAKEROOM
   if (oldSize > 0)
@@ -200,370 +172,195 @@ int MakeRoom_VA
   return TRUE;
 }
 
-void Clear_VA(VarArrayType * const va){
-  if(NULL == va)
-    return;
-  if( NULL != va->Elements )
-    safe_free(va->Elements);
+
+VarArrayType *
+Create_VA(const size_t numElements,
+          const size_t sizeofElement,
+          const char * const thetype) {
+  VarArrayType * const va = (VarArrayType *)safe_calloc(1, sizeof(VarArrayType));
+
+  va->Elements          = NULL;
+  va->sizeofElement     = sizeofElement;
+  va->numElements       = 0;
   va->allocatedElements = 0;
-  va->numElements = 0;
-  va->sizeofElement = 0;
-  va->Elements = NULL;
-  va->typeofElement[0] = 0; // A zero length string.
-}
 
-
-#ifdef NEVER
-// Use the Init_VA routine with caution!
-// The data in Elements is assumed to have been allocated from the heap.
-//
-static VarArrayType Init_VA
-(
- const void * Elements,
- const size_t sizeofElement,
- const size_t numElements,
- const size_t allocatedElements,
- const char * const typeofElement
- ) {
-  static VarArrayType va;
-  va.Elements = Elements;
-  va.sizeofElement = sizeofElement;
-  va.numElements = numElements;
-  va.allocatedElements = MAX(allocatedElements,numElements);
-  strncpy(va.typeofElement,typeofElement,VA_TYPENAMELEN);
-  /* Now make sure that the character string is zero terminated. */
-  assert(VA_TYPENAMELEN > 0);
+  strncpy(va->typeofElement,thetype,VA_TYPENAMELEN);
   va->typeofElement[VA_TYPENAMELEN-1] = (char)0;
 
+  MakeRoom_VA(va, numElements, FALSE);
+
   return va;
-};
-#endif
-
-
-
-// *******************************************************************
-//
-// Utility functions
-//
-
-void Concat_VA(VarArrayType * const va,const VarArrayType * const vb){
-  char *aoffset;
-  size_t asize, bsize;
-
-  assert( NULL != va );
-  assert( NULL != vb );
-  assert( va != vb );
-  
-  /* Compute the size of a */
-  asize = va->numElements * (size_t) va->sizeofElement;
-  /* Compute the size of b */
-  bsize = vb->numElements * (size_t) vb->sizeofElement;
-
-  /* Make sure we have enough space */
-  MakeRoom_VA(va, va->numElements + vb->numElements, FALSE);
-
-  /* Update the number of elements in va */
-  va->numElements += vb->numElements;
-
-  if( asize + bsize > 0) {
-    /* We also assume that the elements of va and vb are not aliased.
-       Since memcpy would fail.*/
-    assert(va->Elements != vb->Elements);
-    
-    /* Append vb's data onto va */
-    if( bsize > 0 ) {
-      memcpy(va->Elements + asize, vb->Elements, bsize);
-    }
-  }
-
-  return;
-
 }
 
-void ResetToRange_VA(VarArrayType * const va, const size_t indx){
-  size_t oldSize;
-  char *oldSuffix;
-  assert(va != NULL);
 
-  /* Resetting to a larger array is equivalent to EnableRange */
-  if(indx > va->numElements){
+void
+Clear_VA(VarArrayType * const va){
+  if(NULL == va)
+    return;
+  safe_free(va->Elements);
+  memset(va, 0, sizeof(VarArrayType));
+}
+
+
+//  Append vb's data onto va
+void
+Concat_VA(VarArrayType * const va,
+          const VarArrayType * const vb){
+
+  assert(NULL != va);
+  assert(NULL != vb);
+  assert(va != vb);
+
+  size_t asize = va->numElements * va->sizeofElement;
+  size_t bsize = vb->numElements * vb->sizeofElement;
+
+  if ((asize + bsize == 0) || (bsize == 0))
+    return;
+
+  MakeRoom_VA(va, va->numElements + vb->numElements, FALSE);
+  va->numElements += vb->numElements;
+  memcpy(va->Elements + asize, vb->Elements, bsize);
+}
+
+
+void
+ResetToRange_VA(VarArrayType * const va, const size_t indx){
+
+  //  Resetting to a larger array is equivalent to EnableRange
+  //
+  if (indx > va->numElements) {
     EnableRange_VA(va,indx);
     return;
   }
 
-  if(indx == va->numElements) {
-    // va->sizeofElement could be NULL if va->numElements == 0.
+  if (indx == va->numElements)
     return;
-  }
 
-  assert( indx < va->numElements );
-  assert( NULL != va->Elements );
-  
-  /* Resetting to a smaller array, zeros out the old suffix and
-     resets numElements.
-  */
+  // Resetting to a smaller array, zeros out the unused elements and
+  // resets numElements.
 
-  oldSize = (size_t) va->sizeofElement * (va->numElements - indx);
-  oldSuffix = va->Elements + ((size_t)va->sizeofElement * indx);
-
-  /* Zero out previously used elements of va */
-  memset(oldSuffix,0,oldSize);
+  memset(va->Elements + (va->sizeofElement * indx), 0, va->sizeofElement * (va->numElements - indx));
 
   va->numElements = indx;
-
-  return;
 }
 
-void EnableRange_VA(VarArrayType * const va, const size_t maxElements){
-  assert(va != NULL);
 
-#ifdef DEBUG
-  fprintf(stderr,"* EnableRange " F_SIZE_T " before (" F_SIZE_T ") %p\n",
-	  maxElements, va->numElements, va->Elements);
-#endif
-  if(maxElements >  va->allocatedElements){  /* Allocate more space */
+void
+EnableRange_VA(VarArrayType * const va, const size_t maxElements){
+
+  if (maxElements > va->allocatedElements)
     MakeRoom_VA(va,maxElements,TRUE);
-  } 
-#ifdef DEBUG 
-    fprintf(stderr,"* EnableRange " F_SIZE_T " after (" F_SIZE_T ") %p\n",
-	    maxElements, va->allocatedElements, va->Elements);
-#endif
+
   assert(maxElements == 0 || va->Elements != NULL);
 
-  if(maxElements >= va->numElements) { va->numElements = maxElements;}
+  if(maxElements >= va->numElements)
+    va->numElements = maxElements;
 }
 
-void SetElement_VA(VarArrayType * const va,
-		   const size_t indx, 
-		   const void * const data){
-  size_t indexOffset;
 
-  assert(va != NULL);
+void
+SetElement_VA(VarArrayType * const va,
+              const size_t indx, 
+              const void * const data){
   EnableRange_VA(va, (indx+1));
-
-  /* Copy the data, overwriting what was there before */
-  indexOffset = indx * (size_t) va->sizeofElement;
-  assert( NULL != va->Elements );
-  memcpy(va->Elements + indexOffset, (char *)data, (size_t)va->sizeofElement);
-
-  return ;
+  memcpy(va->Elements + indx * va->sizeofElement, (char *)data, va->sizeofElement);
 }
 
-void SetRange_VA(VarArrayType * const va,
-		   const size_t indx, 
-		   const size_t num_elements, 
-		   const void * const data){
-  size_t indexOffset;
 
-  assert(va != NULL);
-  EnableRange_VA(va, (indx+num_elements));
-
-  /* Copy the data, overwriting what was there before */
-  indexOffset = indx * (size_t) va->sizeofElement;
-  assert( NULL != va->Elements );
-  memcpy(va->Elements + indexOffset, (char *)data,
-         (size_t)va->sizeofElement*num_elements);
-
-  return ;
+void
+SetRange_VA(VarArrayType * const va,
+            const size_t indx, 
+            const size_t numElements, 
+            const void * const data){
+  EnableRange_VA(va, indx + numElements);
+  memcpy(va->Elements + indx * va->sizeofElement, (char *)data, va->sizeofElement * numElements);
 }
 
-void Initialize_VA
-( VarArrayType * const va,
-  const size_t arraySize,
-  const size_t sizeofElement,
-  const char * const thetype)
-{
-  /* 
-     Initialize new variable length array handle.
-     
-     arraySize: The initial number of elements. This can be zero.
-     sizeofElement: The size in bytes of the elements.
-     thetype: A character string identifying the type.
-  */
-     
-  assert(va != NULL);
-  va->Elements = NULL;
-  va->sizeofElement = sizeofElement;
-  va->numElements = 0;
-  va->allocatedElements = 0;
-  strncpy(va->typeofElement,thetype,VA_TYPENAMELEN);
-  /* Now make sure that the character string is zero terminated. */
-  assert(VA_TYPENAMELEN > 0);
-  va->typeofElement[VA_TYPENAMELEN-1] = (char)0;
 
-  MakeRoom_VA(va,arraySize,FALSE);
+VarArrayType *
+Clone_VA(const VarArrayType *fr){
+  VarArrayType *to = (VarArrayType *)safe_calloc(1, sizeof(VarArrayType));
+
+  to->Elements          = NULL;
+  to->sizeofElement     = fr->sizeofElement;
+  to->numElements       = 0;
+  to->allocatedElements = 0;
+
+  strncpy(to->typeofElement, fr->typeofElement, VA_TYPENAMELEN);
+
+  MakeRoom_VA(to, fr->numElements, FALSE);
+  EnableRange_VA(to, fr->numElements);
+
+  if (fr->numElements > 0)
+    memcpy(to->Elements, fr->Elements, fr->sizeofElement * fr->numElements);
+
+  return(to);
 }
 
-/*************************************************/
-void ReInitialize_VA
-( VarArrayType * const va,
-  const size_t arraySize,
-  const size_t sizeofElement,
-  const char * const thetype)
-{
-  /* 
-     Initialize new variable length array handle.
-     
-     arraySize: The initial number of elements. This can be zero.
-     sizeofElement: The size in bytes of the elements.
-     thetype: A character string identifying the type.
-  */
-     
-  assert(va != NULL);
-  if(va->sizeofElement != sizeofElement ||
-     strcmp(va->typeofElement, thetype)){
-    safe_free(va->Elements);
-    va->sizeofElement = sizeofElement;
-    va->numElements = 0;
-    va->allocatedElements = 0;
-    strncpy(va->typeofElement,thetype,VA_TYPENAMELEN);
-    /* Now make sure that the character string is zero terminated. */
-    assert(VA_TYPENAMELEN > 0);
-    va->typeofElement[VA_TYPENAMELEN-1] = (char)0;
-  }else{
-    ResetToRange_VA(va,0);
+void
+ReuseClone_VA(VarArrayType *to, const VarArrayType *fr){
+
+  if ((fr->sizeofElement != to->sizeofElement) ||
+      (strcmp(fr->typeofElement, to->typeofElement) != 0)) {
+
+    safe_free(to->Elements);
+
+    to->sizeofElement      = fr->sizeofElement;
+    to->numElements        = 0;
+    to->allocatedElements  = 0;
+
+    strncpy(to->typeofElement, fr->typeofElement, VA_TYPENAMELEN);
+  } else {
+    ResetToRange_VA(to, 0);
   }
-  MakeRoom_VA(va,arraySize,FALSE);
+
+  MakeRoom_VA(to, fr->numElements, FALSE);
+  EnableRange_VA(to, fr->numElements);
+
+  if (fr->numElements > 0)
+    memcpy(to->Elements, fr->Elements, fr->sizeofElement * fr->numElements);
 }
 
-void InitializeFromArray_VA
-( VarArrayType * const va,
-  const size_t arraySize,
-  const size_t sizeofElement,
-  const char * const thetype,
-  const void * const data
-  )
-{
-  /* 
-     Take a variable length array and initialize
-     with a copy of the input array 'data'.
-     
-     arraySize: The initial number of elements. This can be zero.
-     sizeofElement: The size in bytes of the elements.
-     thetype: A character string identifying the type.
-  */
-     
-  Initialize_VA( va, arraySize, sizeofElement, thetype);
-  if(arraySize > 0){
-    EnableRange_VA(va,arraySize);
-    assert( NULL != va->Elements );
-    memcpy(va->Elements,data,sizeofElement*arraySize);
-  }
-}
+void
+LoadFromFile_VA(FILE *fp,
+                VarArrayType *va) {
 
-void ReInitializeFromArray_VA
-( VarArrayType * const va,
-  const size_t arraySize,
-  const size_t sizeofElement,
-  const char * const thetype,
-  const void * const data
-  )
-{
-  /* 
-     Take a variable length array and initialize
-     with a copy of the input array 'data'.
-     
-     arraySize: The initial number of elements. This can be zero.
-     sizeofElement: The size in bytes of the elements.
-     thetype: A character string identifying the type.
-  */
-     
-  ReInitialize_VA( va, arraySize, sizeofElement, thetype);
-  if(arraySize > 0){
-    EnableRange_VA(va,arraySize);
-    assert( NULL != va->Elements );
-    memcpy(va->Elements,data,sizeofElement*arraySize);
-  }
-}
+  FileVarArrayType    vat = {0};
 
-void ReInitializeFromFile_VA
-( FILE *fp,
-  VarArrayType * const va,
-  const char * const thetype,
-  const size_t allocate_additional_elements
-  ){
-  FileVarArrayType vat;
-  size_t nitems=0;
-  assert(fp != NULL);
-  /* we should use the safe read and write routines here. */
-  nitems = fread(&vat,sizeof(FileVarArrayType),1,fp);
-  assert(1 == nitems);
+  AS_UTL_safeRead(fp, &vat, "CreateFromFile_VA (vat)", sizeof(FileVarArrayType), 1);
+
   assert(vat.numElements <= vat.allocatedElements);
-  if(strncmp(vat.typeofElement,thetype,VA_TYPENAMELEN)){
-    fprintf(stderr,"* Expecting array of type <%s> read array of type <%s>\n",
-	    thetype, vat.typeofElement);
+
+  if(strncmp(va->typeofElement, vat.typeofElement, VA_TYPENAMELEN)){
+    fprintf(stderr,"* Expecting array of type <%s> but read array of type <%s>\n",
+            va->typeofElement, vat.typeofElement);
     assert(0);
   }
-  // We construct a VA big enough to hold numElements.  This will
-  // 'compress' the VA, if it was initially allocated much larger than
-  // necessary.  Initialize_VA will actually allocate the next power of
-  // two size necessary to hold numElements.
-  //
-  ReInitialize_VA( va, vat.numElements + allocate_additional_elements, 
-		 vat.sizeofElement, vat.typeofElement);
-  assert(va != NULL);
-  EnableRange_VA(va,vat.numElements);
-  {  
-    char * elems = va->Elements;
-    const size_t nsize = va->sizeofElement;
-    const size_t nelem = va->numElements;
 
-    assert(vat.numElements == 0 || (NULL != elems));
-    assert(vat.sizeofElement == nsize);
-    assert(vat.numElements == nelem);
-    assert(nsize > 0);
+  MakeRoom_VA(va, vat.numElements, FALSE);
+  EnableRange_VA(va, vat.numElements);
 
-    AS_UTL_safeRead(fp, elems, "ReInitializeFromFile_VA", nsize, nelem);
-  }
-}
+  assert((vat.numElements == 0) || (va->Elements != NULL));
+  assert(vat.numElements == va->numElements);
+  assert(vat.sizeofElement == va->sizeofElement);
+  assert(vat.sizeofElement > 0);
 
-void LoadFromFile_VA (FILE * const fp, 
-		      VarArrayType *va, 
-		      const char * const typetype, 
-		      size_t growth_space){
-    ReInitializeFromFile_VA( fp, va,typetype, growth_space);
+  AS_UTL_safeRead(fp, va->Elements, "CreateFromFile_VA", va->sizeofElement, va->numElements);
 }
 
 
+VarArrayType *
+CreateFromFile_VA(FILE *fp,
+                  const char * const thetype,
+                  size_t additional_elements) {
 
-void InitializeFromFile_VA
-( FILE *fp,
-  VarArrayType * const va,
-  const char * const thetype,
-  const size_t allocate_additional_elements
-  ){
-  FileVarArrayType vat;
-  size_t nitems=0;
-  assert(fp != NULL);
-#ifdef DEBUG3
-  fprintf(stderr,"sizeof(VarArrayType)=" F_SIZE_T " sizeof(FileVarArrayType)=" F_SIZE_T "\n",
-          sizeof(VarArrayType), sizeof(FileVarArrayType));
-#endif  
-  /* we should use the safe read and write routines here. */
-#if 0
-  nitems = fread(&vat,sizeof(FileVarArrayType),1,fp);
-  assert(1 == nitems);
-#else
-  nitems = fread(&vat.Elements,sizeof(uint64),1,fp);
-  assert(1 == nitems);
-  nitems = fread(&vat.sizeofElement,sizeof(uint64),1,fp);
-  assert(1 == nitems);
-  nitems = fread(&vat.numElements,sizeof(uint64),1,fp);
-  assert(1 == nitems);
-  nitems = fread(&vat.allocatedElements,sizeof(uint64),1,fp);
-  assert(1 == nitems);
-  nitems = fread(&vat.typeofElement,sizeof(char),VA_TYPENAMELEN,fp);
-  assert(VA_TYPENAMELEN == nitems);
-#ifdef DEBUG  
-  fprintf(stderr,"vat.Elements=%p vat.sizeofElement=" F_SIZE_T " "
-          "vat.numElements=" F_SIZE_T " vat.allocatedElements=" F_SIZE_T " "
-          "vat.typeofElement=<%s>\n",
-          vat.Elements, vat.sizeofElement,
-          vat.numElements, vat.allocatedElements,
-          vat.typeofElement );
-#endif  
-#endif
+  FileVarArrayType    vat = {0};
+  VarArrayType       *va  = (VarArrayType *)safe_calloc(1, sizeof(VarArrayType));
+
+  AS_UTL_safeRead(fp, &vat, "CreateFromFile_VA (vat)", sizeof(FileVarArrayType), 1);
+
   assert(vat.numElements <= vat.allocatedElements);
+
   if(strncmp(vat.typeofElement,thetype,VA_TYPENAMELEN)){
     fprintf(stderr,"* Expecting array of type <%s> but read array of type <%s>\n",
 	    thetype, vat.typeofElement);
@@ -572,166 +369,49 @@ void InitializeFromFile_VA
 
   // We construct a VA big enough to hold numElements.  This will
   // 'compress' the VA, if it was initially allocated much larger than
-  // necessary.  Initialize_VA will actually allocate the next power of
-  // two size necessary to hold numElements.
-  //
-  Initialize_VA( va, vat.numElements + allocate_additional_elements, 
-		 vat.sizeofElement, vat.typeofElement);
-  assert(va != NULL);
-  EnableRange_VA(va,vat.numElements);
-  {  
-    char * elems = va->Elements;
-    const size_t nsize = va->sizeofElement;
-    const size_t nelem = va->numElements;
+  // necessary.
 
-    assert(vat.numElements == 0 || (NULL != elems));
-    assert(vat.numElements == va->numElements);
-    assert(vat.sizeofElement == va->sizeofElement);
-    assert(nsize > 0);
+  va->Elements          = NULL;
+  va->sizeofElement     = vat.sizeofElement;
+  va->numElements       = 0;
+  va->allocatedElements = 0;
 
-    AS_UTL_safeRead(fp, elems, "InitializeFromFile_VA", nsize, nelem);
-  }
+  strncpy(va->typeofElement, vat.typeofElement, VA_TYPENAMELEN);
+  va->typeofElement[VA_TYPENAMELEN-1] = 0;
+
+  MakeRoom_VA(va, vat.numElements + additional_elements, FALSE);
+
+  EnableRange_VA(va, vat.numElements);
+
+  assert(vat.numElements == 0 || (va->Elements != NULL));
+  assert(vat.numElements == va->numElements);
+  assert(vat.sizeofElement == va->sizeofElement);
+  assert(vat.sizeofElement > 0);
+
+  AS_UTL_safeRead(fp, va->Elements, "CreateFromFile_VA", va->sizeofElement, va->numElements);
+
+  return(va);
 }
+
+
 
 size_t CopyToFile_VA(const VarArrayType * const va,FILE *fp){
-  FileVarArrayType vat;
-  size_t totalSize = 0;
-  size_t nitems = 0;
+  FileVarArrayType vat = {0};
+
   assert(fp != NULL);
   assert(va != NULL);
+  assert(va->numElements == 0 || va->Elements != NULL);
+  assert(va->sizeofElement > 0);
 
-  /* Make a handle suitable for regression testing. */
-  vat.Elements = 0;
-  vat.sizeofElement = va->sizeofElement;
-  vat.numElements = va->numElements;
-  vat.allocatedElements = va->allocatedElements;
-  strncpy(vat.typeofElement,va->typeofElement,VA_TYPENAMELEN);
+  vat.Elements           = 0;
+  vat.sizeofElement      = va->sizeofElement;
+  vat.numElements        = va->numElements;
+  vat.allocatedElements  = va->allocatedElements;
 
-  /* we should use the safe read and write routines here. */
-  nitems = fwrite(&vat,sizeof(FileVarArrayType),1,fp);
-  totalSize += sizeof(FileVarArrayType);
-  assert(1 == nitems);
-  { 
-    const char * elems = va->Elements;
-    const size_t nsize = va->sizeofElement;
-    const size_t nelem = va->numElements;
-    
-    assert(nelem == 0 || NULL != elems);
-    assert(nsize > 0);
-    
-    totalSize += nsize * nelem;
+  strncpy(vat.typeofElement, va->typeofElement, VA_TYPENAMELEN);
 
-    AS_UTL_safeWrite(fp, elems, "CopyToFile_VA", nsize, nelem);
-  }
-  //  fprintf(stderr,"* CopyFileToVa appended " F_SIZE_T " bytes\n", totalSize);
-  return totalSize;
+  AS_UTL_safeWrite(fp, &vat,         "CopyToFile_VA (vat)", sizeof(FileVarArrayType), 1);
+  AS_UTL_safeWrite(fp, va->Elements, "CopyToFile_VA (dat)", va->sizeofElement,        va->numElements);
+
+  return(sizeof(FileVarArrayType) + va->sizeofElement * va->numElements);
 }
-
-void CheckFile_VA
-(
- const VarArrayType * const va,
- FILE *fp
- ){
-  // Check the contents of the variable length array with the contents
-  // of the file based check point.
-  FileVarArrayType vat;
-  size_t nitems=0;
-  assert(fp != NULL);
-  assert(va != NULL);
-  /* We should use the safe read and write routines here. */
-  nitems = fread(&vat,sizeof(FileVarArrayType),1,fp);
-  assert(1 == nitems);
-  assert(vat.numElements <= vat.allocatedElements);
-  nitems = strncmp(vat.typeofElement,va->typeofElement,VA_TYPENAMELEN);
-  assert(nitems == 0);
-
-  { 
-    const char * const elems = va->Elements;
-    const size_t nsize = va->sizeofElement;
-    const size_t nelem = va->numElements;
-    
-    assert((nelem == 0) || (NULL != elems));
-    assert(vat.sizeofElement == nsize);
-    assert(vat.numElements == nelem);
-    assert(nelem <= va->allocatedElements);
-    assert(nsize > 0);
-
-    //  XXX: This should read in pieces at a time, rather than the
-    //  whole thing!
-    //
-    //  XXX: Better, we should convince ourselves that this does
-    //  nothing when the writer properly catches errors.
-
-    {
-      char *tmp = (char *)safe_malloc(nelem * nsize);
-      size_t ii; 
-
-      AS_UTL_safeRead(fp, tmp, "CheckFile_VA", nsize, nelem);
-
-      for(ii=0;ii<nelem*nsize;ii++)
-        assert(elems[ii] == tmp[ii]);
-
-      safe_free(tmp);
-    }
-  }
-  return;
-}
-
-#if 0
-
-void ScatterInPlace_VA
-(
- VarArrayType * const va,
- const size_t         nrange, // The length of the image of rank[].
- const size_t * const rank    // The rank of each item
- ){
-  // Written by Clark Mobarry, 1999 Oct 14. 
-
-  // This routine has the problem that it assumes that rank[] is a
-  // correct permutation!!
-  size_t  num        = va->numElements;
-  size_t  mitems     = MAX(nrange,(va->allocatedElements));
-  size_t  size       = va->sizeofElement;
-  char   *old_array  = va->Elements;
-  char   *new_array  = (char *)safe_calloc(mitems,size);
-  size_t io,in;
-  assert(nrange >= num); // Allow an unpack operation.
-  for(io=0;io<num;io++) {
-    in = rank[io];
-    //assert(in >= 0);
-    assert(in < nrange);
-    memmove(new_array+in*size,old_array+io*size,size);
-  }
-  va->numElements = nrange;
-  va->Elements    = new_array;
-  safe_free(old_array);
-}
-
-void GatherInPlace_VA
-(
- VarArrayType * const va,
- const size_t         nitems, // the length of indx[]
- const size_t * const indx    // the list of the new order
- ){
-  // Written by Clark Mobarry, 1999 Oct 14. 
-
-  // This routine has the problem that it assumes that indx[] is a
-  // correct permutation!!
-  size_t  num       = va->numElements;
-  size_t  size      = va->sizeofElement;
-  char   *old_array = va->Elements;
-  char   *new_array = (char *)safe_calloc((va->allocatedElements),size);
-  size_t io,in;
-  assert(num >= nitems);
-  for(in=0;in<nitems;in++) {
-    io = indx[in];
-    //assert(io >= 0);
-    assert(io < num);
-    memmove(new_array+in*size,old_array+io*size,size);
-  }
-  va->numElements = nitems;
-  va->Elements    = new_array;
-  safe_free(old_array);
-}
-
-#endif
