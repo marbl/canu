@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.47 2007-08-28 22:50:10 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.48 2007-08-28 22:55:15 brianwalenz Exp $";
 
 
 
@@ -1053,7 +1053,8 @@ int main(int argc, char *argv[]){
   /************* Output ***************/
 
   //  This was a debug.  Lets see what it does.
-  CheckSmallScaffoldGaps(ScaffoldGraph);
+  //  OK, it makes lots of output.
+  //CheckSmallScaffoldGaps(ScaffoldGraph);
 
   if(generateOutput){
     StartTimerT(&data->OutputTimer);
