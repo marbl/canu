@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ContigT_CGW.c,v 1.13 2007-08-26 10:11:01 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ContigT_CGW.c,v 1.14 2007-08-28 22:50:10 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_EDGES
@@ -828,7 +828,7 @@ int BuildContigEdges(ScaffoldGraphT *graph){
 
 void CreateInitialContig(ScaffoldGraphT *graph, CDS_CID_t cid){
   ChunkInstanceT *CI = GetGraphNode (graph->CIGraph, cid);
-  ContigT contig;
+  ContigT contig = {0};
 
   CI->AEndNext = CI->BEndNext = NULLINDEX;
   contig = *CI;

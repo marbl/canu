@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.51 2007-08-26 10:11:02 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.52 2007-08-28 22:50:10 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -127,7 +127,7 @@ void SaveGraphCGWToStream(GraphCGW_T *graph, FILE *stream){
 GraphCGW_T *LoadGraphCGWFromStream(FILE *stream){
   CDS_CID_t i;
   int       status = 0;
-  GraphCGW_T *graph = (GraphCGW_T *)safe_malloc(sizeof(GraphCGW_T));
+  GraphCGW_T *graph = (GraphCGW_T *)safe_calloc(1, sizeof(GraphCGW_T));
 
   graph->nodes =        CreateFromFileVA_NodeCGW_T(stream,0);
 
@@ -3131,7 +3131,7 @@ CDS_CID_t SplitUnresolvedContig(GraphCGW_T *graph,
     {
       GraphEdgeIterator edges;
       EdgeCGW_T *edge;
-      EdgeCGW_T copyOfEdge;
+      EdgeCGW_T copyOfEdge = {0};
     
       // copyOfEdge - Bug fix by Jason Miller, 5/26/06.
       // The call to GetFreeGraphEdge can realloc the graph.

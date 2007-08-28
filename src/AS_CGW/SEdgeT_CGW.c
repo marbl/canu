@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: SEdgeT_CGW.c,v 1.10 2007-08-26 10:11:03 brianwalenz Exp $";
+static char CM_ID[] = "$Id: SEdgeT_CGW.c,v 1.11 2007-08-28 22:50:10 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_SEDGES
@@ -367,7 +367,7 @@ int BuildSEdgeFromChunkEdge(ScaffoldGraphT * graph,
   ChunkOrientationType sedgeOrient;
   LengthT ciOffset, ciFlipOffset, mciOffset, mciFlipOffset;
   LengthT distance, flipDistance;
-  SEdgeT sedge;
+  SEdgeT sedge = {0};
   ChunkOrientationType edgeOrient;
   FragOrient orient;
   int CIok, mCIok;
@@ -560,7 +560,7 @@ int BuildSEdgeFromChunkEdge(ScaffoldGraphT * graph,
   
   if(sedge.idA > sedge.idB)
     {
-      SEdgeT reverseEdge;
+      SEdgeT reverseEdge = {0};
     
       assert(canonicalOnly == FALSE);
       PopulateReverseEdge(&reverseEdge, &sedge);
@@ -694,7 +694,7 @@ void PrintSEdgesForScaffold(ScaffoldGraphT * graph,
 
 
   {
-    SEdgeTIterator SEdges;
+    SEdgeTIterator SEdges = {0};
     SEdgeT * sEdge;
     
     fprintf(fp,

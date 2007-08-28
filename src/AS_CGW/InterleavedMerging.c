@@ -2218,7 +2218,7 @@ SEdgeT * MakeScaffoldAlignmentAdjustments(CIScaffoldT * scaffoldA,
   CDS_CID_t idA;
   CDS_CID_t idB;
   ChunkOrientationType orient;
-  static SEdgeT mySEdge;
+  static SEdgeT mySEdge = {0};
   double newEdgeMean;
 
   idA = sEdge->idA;

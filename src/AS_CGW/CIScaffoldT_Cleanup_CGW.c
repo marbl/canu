@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.31 2007-08-26 10:11:01 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.32 2007-08-28 22:50:10 brianwalenz Exp $";
 
 #undef DEBUG_CHECKFORCTGS
 #undef DEBUG_DETAILED
@@ -1243,7 +1243,7 @@ void ReScaffoldPseudoDegenerates(void)
              utg->info.CI.numInstances == 0)
             {
               // if here, we've got one
-              CIScaffoldT CIScaffold;
+              CIScaffoldT CIScaffold = {0};
 
               InitializeScaffold(&CIScaffold, REAL_SCAFFOLD);
               CIScaffold.info.Scaffold.AEndCI = NULLINDEX;

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.13 2007-05-29 10:54:26 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.14 2007-08-28 22:50:10 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -797,7 +797,7 @@ int CheckAllEdgesForChunk(ScaffoldGraphT * graph,
 {
   GraphEdgeIterator edges;
   CIEdgeT * edge;
-  EdgeCGW_T myEdge;
+  EdgeCGW_T myEdge = {0};
   int retVal = 0;
   
   switch(chunk->type)

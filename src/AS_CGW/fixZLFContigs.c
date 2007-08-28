@@ -216,7 +216,7 @@ int ReadMAFromFile(MultiAlignT * ma, FILE * fp)
 void ReplaceOldScaffoldWithNew(CIScaffoldT * oldScaffold,
                                VA_TYPE(IEPish) * cCoords)
 {
-  CIScaffoldT newScaffoldO;
+  CIScaffoldT newScaffoldO = {0};
   CIScaffoldT * newScaffoldR;
   int32 i;
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.46 2007-08-26 10:11:00 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.47 2007-08-28 22:50:10 brianwalenz Exp $";
 
 
 
@@ -1012,13 +1012,14 @@ int main(int argc, char *argv[]){
     resolveSurrogates(placeAllFragsInSinglePlacedSurros, cutoffToInferSingleCopyStatus);
 
     fprintf(GlobalData->timefp, "Checkpoint %d written after resolveSurrogates\n", ScaffoldGraph->checkPointIteration);
-    CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_BEFORE_RESOLVE_SURROGATES);
+    CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_BEFORE_RESOLVE_SURROGATES+1);
   }
 
-
-
-
-  Show_Reads_In_Gaps (GlobalData -> File_Name_Prefix);
+  //  This generates the 'rezlog/gapreads' file.  It's hugely
+  //  expensive, usually dies on a negative variance assert, and as
+  //  far as BPW knows, unused.
+  //
+  //Show_Reads_In_Gaps (GlobalData -> File_Name_Prefix);
 
   // now recompute mate pair statistics, once on scaffolds, once on contigs, with 
   // the results on contigs being the ones that are output in OutputMateDists

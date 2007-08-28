@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: eCR.c,v 1.25 2007-08-18 13:13:21 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: eCR.c,v 1.26 2007-08-28 22:50:11 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -465,8 +465,8 @@ main(int argc, char **argv) {
       int        lunitigID           = 0;
       int        runitigID           = 0;
 
-      ContigT    lcontigBackup;
-      ContigT    rcontigBackup;
+      ContigT    lcontigBackup = {0};
+      ContigT    rcontigBackup = {0};
 
       int        leftFragIndex       = 0;
       int        rightFragIndex      = 0;

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: GraphCGW_T.h,v 1.21 2007-08-26 10:11:02 brianwalenz Exp $	 */
+/* 	$Id: GraphCGW_T.h,v 1.22 2007-08-28 22:50:10 brianwalenz Exp $	 */
 
 /**************************************************************************
  *  GraphCGW
@@ -457,6 +457,8 @@ static void AppendGraphEdge(GraphCGW_T *graph, EdgeCGW_T *edge){
 /* Create New */
 static NodeCGW_T *CreateNewGraphNode(GraphCGW_T *graph){
   NodeCGW_T node;
+  memset(&node, 0, sizeof(NodeCGW_T));
+
   node.id = GetNumGraphNodes(graph);
   node.flags.all = 0;
   node.flags.bits.cgbType = XX_CGBTYPE;
@@ -509,6 +511,7 @@ static NodeCGW_T *CreateNewGraphNode(GraphCGW_T *graph){
 }
 static EdgeCGW_T *CreateNewGraphEdge(GraphCGW_T *graph ){
   EdgeCGW_T edge;
+  memset(&edge, 0, sizeof(EdgeCGW_T));
   AppendEdgeCGW_T(graph->edges, &edge);
   return(GetGraphEdge(graph, GetNumGraphEdges(graph) - 1));
 }

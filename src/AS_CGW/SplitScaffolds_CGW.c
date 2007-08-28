@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: SplitScaffolds_CGW.c,v 1.8 2007-04-16 17:36:31 brianwalenz Exp $";
+static char CM_ID[] = "$Id: SplitScaffolds_CGW.c,v 1.9 2007-08-28 22:50:11 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -90,9 +90,9 @@ void SplitScaffolds(ScaffoldGraphT *graph){
     scaffold->flags.bits.isDead = TRUE;  // Mark the old scaffold dead
     for(component = 0; component < 2; component++){
       LengthT NullLength = {0.0, 0.0};
-      LengthT firstOffset;
+      LengthT firstOffset = {0.0, 0.0};
       int seenFirstOffset;
-      CIScaffoldT CIScaffold;
+      CIScaffoldT CIScaffold = {0};
       CDS_CID_t newScaffoldID;
       InitializeScaffold(&CIScaffold, REAL_SCAFFOLD);
       CIScaffold.info.Scaffold.AEndCI = NULLINDEX;

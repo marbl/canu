@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.28 2007-08-24 15:29:48 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.29 2007-08-28 22:50:10 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -4991,7 +4991,7 @@ int BuildFauxIntScaffoldMesgFromScaffold(ScaffoldGraphT * graph,
       ContigT * lContig;
       ContigT * rContig;
       EdgeCGW_T * edge;
-      EdgeCGW_T myEdge;
+      EdgeCGW_T myEdge = {0};
       CDS_CID_t thisID;
       int thisEnd;
 
@@ -5077,7 +5077,7 @@ int BuildFauxIntScaffoldMesgFromScaffold(ScaffoldGraphT * graph,
   // At this point, if there are no contig pairs, need to create one
   if(GetNumVA_IntContigPairs(icps) == 0)
     {
-      EdgeCGW_T myEdge;
+      EdgeCGW_T myEdge = {0};
       IntContigPairs icp;
     
       myEdge.idA = myEdge.idB = CIsTemp.curr;

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.44 2007-08-26 10:11:02 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.45 2007-08-28 22:50:10 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -251,7 +251,7 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
 void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, CDS_COORD_t length, int sequenceOnly){
   CDS_CID_t cfr;
   CDS_COORD_t simLength;
-  ChunkInstanceT CI;
+  ChunkInstanceT CI = {0};
 
   CI.id = ium_mesg->iaccession;
   CI.bpLength.mean = length;

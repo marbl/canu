@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.25 2007-05-02 09:30:13 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.26 2007-08-28 22:50:10 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -47,6 +47,7 @@ ScaffoldGraphT *ScaffoldGraph = NULL;
 tSequenceDB *SequenceDB = NULL;
 
 void ClearChunkInstance(ChunkInstanceT *ci){
+  memset(ci, 0, sizeof(ChunkInstanceT));
   ci->id = ci->scaffoldID = NULLINDEX;
   ci->info.CI.contigID = NULLINDEX;
   ci->flags.all = 0;
@@ -303,8 +304,8 @@ void InsertRepeatCIsInScaffolds(ScaffoldGraphT *sgraph){
   CDS_CID_t cid;
   int scaffolded = 0;
   LengthT NullLength = {0,0.0};
-  CIScaffoldT CIScaffold;
-  GraphNodeIterator nodes;
+  CIScaffoldT CIScaffold = {0};
+  GraphNodeIterator nodes = {0};
   NodeCGW_T *CI;
 
   CIScaffold.info.Scaffold.AEndCI = NULLINDEX;
