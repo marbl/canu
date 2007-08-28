@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.52 2007-08-28 22:50:10 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.53 2007-08-28 22:51:51 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -777,7 +777,8 @@ void RepairContigNeighbors(ChunkInstanceT *surr){
       if(surr->id == pos->ident){
 	delete_index = i;
       }else{
-	SetIntUnitigPos(ma->u_list, j, GetIntUnitigPos(ma->u_list,i));
+        if (i != j)
+          SetIntUnitigPos(ma->u_list, j, GetIntUnitigPos(ma->u_list,i));
 	j++;
       }
     }
