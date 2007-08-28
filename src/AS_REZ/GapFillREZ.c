@@ -34,7 +34,7 @@
 *
 *************************************************/
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.31 2007-08-26 10:11:03 brianwalenz Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.32 2007-08-28 15:46:33 eliv Exp $";
 
 
 #include <stdio.h>
@@ -11038,8 +11038,9 @@ static int  Select_Good_Edges
                 assert (FALSE);
              }
            stack [i] . is_bad = FALSE;
-	   assert (good_ct < STACK_SIZE);
-           stack [good_ct ++] = stack [i];
+           assert (good_ct < STACK_SIZE);
+           if (good_ct != i)
+               stack [good_ct ++] = stack [i];
           }
      }
 
