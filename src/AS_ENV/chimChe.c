@@ -91,8 +91,7 @@ char *get_sequence(FILE *input, char **seq, char **name )
 		    newname);
 	    exit(-2);
 	  }
-	  newname = (char *)realloc(newname,strlen(newname)+1);
-	  assert(newname!=NULL);
+	  newname = (char *)safe_realloc(newname,strlen(newname)+1);
 	  *name = newname;
 	}   
 
@@ -129,8 +128,7 @@ char *get_sequence(FILE *input, char **seq, char **name )
 	  fprintf(stderr,"identifier %s too long -- abort!\n",
 		  newname);
 	}
-	newname = (char *)realloc(newname,strlen(newname)+1);
-	assert(newname!=NULL);
+	newname = (char *)safe_realloc(newname,strlen(newname)+1);
 	*name = newname;
       }   
     }
@@ -167,7 +165,7 @@ char *get_sequence(FILE *input, char **seq, char **name )
               newbuf = (char *) safe_malloc(sizeof(char)*top);
               seqbuf[e] = '\0';
               strcpy(newbuf,seqbuf);
-              free(seqbuf);
+              safe_free(seqbuf);
               seqbuf = newbuf;
             }
           strcpy(seqbuf+e,linebuf);
@@ -220,8 +218,8 @@ void get_sequences(FILE *input, int *nseq,char ***seqs,char ***names)
         seqn[k] = seqa[k];
         namen[k] = namea[k];
       }
-      free(seqa);
-      free(namea);
+      safe_free(seqa);
+      safe_free(namea);
       seqa = seqn;
       namea = namen;
       maxl *= 2;
@@ -363,15 +361,6 @@ int hit_compare(const void *a, const void *b){
 }
 
 
-void *myrealloc(void *ptr, size_t size)
-{
-  /* There might be a realloc() out there that doesn't like reallocing
-     NULL pointers, so we take care of it here */
-  if(ptr)
-    return realloc(ptr, size);
-  else
-    return malloc(size);
-}
 
 
 int main(int argc, char *argv[])
