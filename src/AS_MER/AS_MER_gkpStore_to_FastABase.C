@@ -29,6 +29,7 @@ gkpStoreSequence::gkpStoreSequence() {
   _clr = AS_READ_CLEAR_LATEST;
   _iid = 0;
   _eof = false;
+  _tst = 0;
 }
 
 gkpStoreSequence::gkpStoreSequence(char const *gkpName,
@@ -42,6 +43,21 @@ gkpStoreSequence::gkpStoreSequence(char const *gkpName,
   _clr = clr;
   _iid = _bgn;
   _eof = false;
+  _tst = 0;
+
+  {
+    char    pt[FILENAME_MAX];
+    stat_s  st;
+
+    sprintf(pt, "%s/frg", gkpName);
+
+    if (stat(pt, &st) != 0) {
+      fprintf(stderr, "Couldn't stat() '%s'\n%s\n", pt, strerror(errno));
+      exit(1);
+    }
+
+    _tst = st.st_mtime;
+  }
 
   if (_end < _bgn)
     fprintf(stderr, "gkpStoreSequence()--  ERROR:  begin IID = %u > end IID = %u\n",

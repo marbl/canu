@@ -74,6 +74,8 @@ public:
   seqInCore   *getSequenceInCore(void);
   seqOnDisk   *getSequenceOnDisk(void);
 
+  u64bit       timeStamp(void) { return(_tst); };
+
   u32bit       currentIID(void) { return(_iid); };
 
   bool         find(seqIID  iid);
@@ -130,6 +132,8 @@ private:
   uint16           *_seqLen;
   uint16           *_clrBeg;
   uint16           *_clrEnd;
+
+  uint64            _tst;
 };
 
 

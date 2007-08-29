@@ -120,15 +120,15 @@ kmerhitcompare(const void *a, const void *b) {
 
 inline
 u64bit
-addHit(chainedSequence *CS, CDS_IID_t iid, merStream *M,
+addHit(seqStream *SS, CDS_IID_t iid, merStream *M,
        kmerhit *&hits, u32bit &hitsLen, u32bit &hitsMax,
        u64bit pos, u64bit cnt,
        u64bit pal,
        u64bit fwd) {
-  u32bit  seq = CS->sequenceNumberOfPosition(pos);
+  u32bit  seq = SS->sequenceNumberOfPosition(pos);
 
-  pos -= CS->startOf(seq);
-  seq  = CS->IIDOf(seq);
+  pos -= SS->startOf(seq);
+  seq  = SS->IIDOf(seq);
 
   if (iid == seq)
     return(0);
@@ -220,12 +220,8 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  chainedSequence *CS = new chainedSequence;
-  CS->setSeparatorLength(5);
-  CS->setSource(gkpseq);
-  CS->finish();
-
-  merStream    *MS = new merStream(merSize, CS);
+  seqStream    *SS = new seqStream(gkpseq, true);
+  merStream    *MS = new merStream(merSize, SS);
   positionDB   *PS = new positionDB(MS, merSize, 0, 20, 0L, 0L, maxCount, true);
 
   u64bit  *posnF    = 0L;
@@ -282,7 +278,7 @@ main(int argc, char **argv) {
         PS->get(M->theFMer(), posnF, posnFMax, posnFLen);
         if (posnFLen > 1)
           for (u32bit i=0; i<posnFLen; i++)
-            merfound += addHit(CS, getFragRecordIID(fr), M, hits, hitsLen, hitsMax, posnF[i], posnFLen, 1, 0);
+            merfound += addHit(SS, getFragRecordIID(fr), M, hits, hitsLen, hitsMax, posnF[i], posnFLen, 1, 0);
       } else {
         PS->get(M->theFMer(), posnF, posnFMax, posnFLen);
         PS->get(M->theRMer(), posnR, posnRMax, posnRLen);
@@ -291,10 +287,10 @@ main(int argc, char **argv) {
 
         if (posnFLen > 1)
           for (u32bit i=0; i<posnFLen; i++)
-            merfound += addHit(CS, iid, M, hits, hitsLen, hitsMax, posnF[i], totalLen, 0, 1);
+            merfound += addHit(SS, iid, M, hits, hitsLen, hitsMax, posnF[i], totalLen, 0, 1);
         if (posnRLen > 1)
           for (u32bit i=0; i<posnRLen; i++)
-            merfound += addHit(CS, iid, M, hits, hitsLen, hitsMax, posnR[i], totalLen, 0, 0);
+            merfound += addHit(SS, iid, M, hits, hitsLen, hitsMax, posnR[i], totalLen, 0, 0);
       }
     }
 
@@ -457,7 +453,7 @@ main(int argc, char **argv) {
 
   delete PS;
   delete MS;
-  delete CS;
+  delete SS;
 
   delete gkpseq;
 }
