@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.33 2007-08-29 07:06:48 brianwalenz Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.34 2007-08-29 11:30:32 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -190,11 +190,8 @@ const double  MIN_VARIANCE = 3.0;
 const int  STONES_PER_CHECKPOINT = 25000;
 // The number of stones to throw before writing a checkpoint
 
-const int  STACK_SIZE = 1000;
-// *** Make this dynamic eventually ***
-// Needs to be large enough to hold the most edges that any
-// chunk can can have to another
-//const double  VARIANCE_FUDGE_FACTOR = CGW_FUDGE_FACTOR;
+const int  STACK_SIZE = 32;
+// Initial stack size allocation
 
 const double  VARIANCE_FUDGE_FACTOR = 3.0 * CGW_FUDGE_FACTOR;
 // Multiply this by total overlap length to estimate variance
@@ -350,6 +347,8 @@ typedef  struct
   // creating multiple copies of a stone.
 }  Stack_Entry_t;
 
+VA_DEF(Stack_Entry_t);
+
 
 typedef  struct
 {
@@ -371,7 +370,6 @@ typedef  struct
   unsigned int  flipped : 1;
   unsigned int  violated : 1;
 }  Scaff_Join_t;
-
 
 VA_DEF(Scaff_Join_t)
 
@@ -472,9 +470,9 @@ static void  Check_Other_Links_One_Scaffold(Scaffold_Fill_t * fill_chunks, int s
                                             int * have_bad_ct, int * no_bad_ct, int * keep_ct, int * reject_ct);
 static void  Check_Rock_Olaps(Gap_Fill_t * gap);
 static void  Check_Rocks(FILE * fp, Scaffold_Fill_t * fill_chunks);
-static int  Check_Scaffold_and_Orientation(int cid, Stack_Entry_t * stack, int stack_top, int * good_total,
+static int  Check_Scaffold_and_Orientation(int cid, VA_TYPE(Stack_Entry_t) * stackva, int * good_total,
                                            Scaffold_Fill_t * fill_chunks, int * bad_links, int min_good_links);
-static void  Check_Scaffold_Join(int cid, Stack_Entry_t * stack, int stack_top, int scaff_id [],
+static void  Check_Scaffold_Join(int cid, VA_TYPE(Stack_Entry_t) * stackva, int scaff_id [],
                                  int scaff_links [], Scaffold_Fill_t * fill_chunks, int bad_links);
 static int  Choose_Best_Stones(int start_id, int target_id, Gap_Chunk_t * node [], int num_nodes,
                                int edge [], Stone_Edge_t pool [], double ref_position, double factor,
@@ -506,7 +504,7 @@ static void  Doublecheck_Positions(Scaffold_Fill_t * fill_chunks, int make_adjus
 static void  Doublecheck_Positions_One_Scaffold(Scaffold_Fill_t * fill_chunks, int make_adjustments, int scaff_id);
 static void  Eliminate_Encumbered_Uniques(Scaffold_Fill_t * fill);
 static void  Eliminate_Encumbered_Uniques_One_Scaffold(Scaffold_Fill_t * fill, int scaff_id);
-static int  Estimate_Chunk_Ends(Stack_Entry_t * stack, int stack_top,
+static int  Estimate_Chunk_Ends(VA_TYPE(Stack_Entry_t) * stackva, int stack_beg, int stack_end,
                                 LengthT * left_end, LengthT * right_end, ChunkInstanceT * chunk,
                                 float * edge_quality, Scaffold_Fill_t * fill_chunks,
                                 int * gap, int * scaff_id, int * allowed_bad_links);
@@ -539,7 +537,7 @@ static void  New_Confirm_Stones(FILE * fp, Scaffold_Fill_t * fill_chunks, int us
 static void  New_Confirm_Stones_One_Scaffold(FILE * fp, Scaffold_Fill_t * fill_chunks, int use_all, int scaff_id);
 static int  Num_Keep_Entries(Scaffold_Fill_t * fill, int scaff_id);
 static void  Output_Cam_Files(Scaffold_Fill_t * fill);
-static void  Partition_Edges(int cid, Stack_Entry_t * stack, int stack_top, int min_good_links);
+static void  Partition_Edges(int cid, VA_TYPE(Stack_Entry_t) * stackva, int min_good_links);
 void  Print_Fill_Info(FILE * fp, Scaffold_Fill_t * fill_chunks);
 void  Print_Fill_Info_One_Scaffold(FILE * fp, Scaffold_Fill_t * fill_chunks, int scaff_id,
                                    int * total_chunks, int * total_keep);
@@ -559,7 +557,7 @@ static ChunkOrientationType  Reverse_Orientation(ChunkOrientationType orient);
 static void  Reverse_Positions(Gap_Fill_t * this_gap);
 static int  Scaff_Join_Cmp(const void *, const void *);
 Scaffold_Fill_t *  Scan_Gaps(void);
-static int  Select_Good_Edges(Stack_Entry_t * stack, int stack_top, ChunkInstanceT * chunk);
+static int  Select_Good_Edges(VA_TYPE(Stack_Entry_t) * stackva, ChunkInstanceT * chunk);
 static void  Set_Is_Hopeless(Scaffold_Fill_t * fill);
 static int  Set_Longest_Path(int list [], int num_list, Gap_Chunk_t * node [], int num_nodes,
                              int target_sub, int edge [], Stone_Edge_t pool [], double ref_position,
@@ -2012,13 +2010,13 @@ static int  By_Scaff_Flipped_And_Left_End
 
 
 static void  Calc_End_Coords
-(Stack_Entry_t * stack, int stack_top,
+(VA_TYPE(Stack_Entry_t) * stackva, int stack_beg, int stack_end,
  LengthT * left_end, LengthT * right_end, ChunkInstanceT * chunk,
  double ref_variance)
 
 //  Set  (* left_end)  and  (* right_end)  to best estimates of
 //  the ends  (* chunk)  based on the edges in
-//  stack [0 .. (stack_top - 1)]  with variances scaled down to
+//  stack [stack_beg .. (stack_end - 1)]  with variances scaled down to
 //  ref_variance .
 
 {
@@ -2032,8 +2030,9 @@ static void  Calc_End_Coords
   right_numerator_sum = 0.0;
   right_denom_sum = 0.0;
 
-  assert (stack_top < STACK_SIZE);
-  for  (i = 0;  i < stack_top;  i ++)
+  Stack_Entry_t   *stack = GetVA_Stack_Entry_t(stackva, stack_beg);
+
+  for  (i = 0;  i < stack_end;  i ++)
     {
       if  (stack [i] . is_bad)
         continue;
@@ -2847,11 +2846,11 @@ static void  Check_Rocks
 
 
 static int  Check_Scaffold_and_Orientation
-(int cid, Stack_Entry_t * stack, int stack_top, int * good_total,
+(int cid, VA_TYPE(Stack_Entry_t) * stackva, int * good_total,
  Scaffold_Fill_t * fill_chunks, int * bad_links,
  int  min_good_links)
 
-//  Check if edges in  stack [0 .. (stack_top - 1)] all go to
+//  Check if edges in  stack [0 .. (stacktop - 1)] all go to
 //  same scaffold and have same orientation.  Return  TRUE  if they
 //  do,  FALSE  otherwise.  Set  (* good_total)  to the number
 //  of mate_links included in all the edges.
@@ -2868,14 +2867,16 @@ static int  Check_Scaffold_and_Orientation
   int  flipped_ct, non_flipped_ct;
   int  i, j, num_scaffs;
 
+  Stack_Entry_t   *stack    = GetVA_Stack_Entry_t(stackva, 0);
+  int              stacktop = GetNumVA_Stack_Entry_t(stackva);
+
   (* good_total) = 0;
   (* bad_links) = 0;
-
 
   // Count number of links to each scaffold
 
   num_scaffs = 0;
-  for  (i = 0;  i < stack_top;  i ++)
+  for  (i = 0;  i < stacktop;  i ++)
     {
       for  (j = 0;  j < num_scaffs;  j ++)
         if  (REF (stack [i] . chunk_id) . scaff_id == scaff_id [j])
@@ -2932,7 +2933,7 @@ static int  Check_Scaffold_and_Orientation
              && scaff_links [1] >= min_good_links)
           {
             Check_Scaffold_Join
-              (cid, stack, stack_top, scaff_id, scaff_links,
+              (cid, stackva, scaff_id, scaff_links,
                fill_chunks, (* bad_links));
           }
 #endif
@@ -2948,7 +2949,7 @@ static int  Check_Scaffold_and_Orientation
           {
             (* bad_links) = 0;
             Check_Scaffold_Join
-              (cid, stack, stack_top, scaff_id, scaff_links,
+              (cid, stackva, scaff_id, scaff_links,
                fill_chunks, (* bad_links));
           }
 #endif
@@ -2963,7 +2964,7 @@ static int  Check_Scaffold_and_Orientation
   (* good_total) = scaff_links [0];
 
   // Mark good entries in stack
-  for  (i = 0;  i < stack_top;  i ++)
+  for  (i = 0;  i < stacktop;  i ++)
     if  (REF (stack [i] . chunk_id) . scaff_id != scaff_id [0])
       stack [i] . is_bad = TRUE;
 
@@ -2973,11 +2974,11 @@ static int  Check_Scaffold_and_Orientation
   // with fewer than max good mates as bad
   // Must be same contig if is good and rel_pos is same
   // This should help prevent collapsed tandems.
-  for  (i = 0;  i < stack_top - 1;  i ++)
+  for  (i = 0;  i < stacktop - 1;  i ++)
     {
       if  (stack [i] . is_bad)
         continue;
-      for  (j = i + 1;  j < stack_top;  j ++)
+      for  (j = i + 1;  j < stacktop;  j ++)
         if  (! stack [j] . is_bad
              && REF (stack [i] . chunk_id) . rel_pos
              == REF (stack [i] . chunk_id) . rel_pos)
@@ -2998,7 +2999,7 @@ static int  Check_Scaffold_and_Orientation
    
   // Check for orientation discrepancy
   flipped_ct = non_flipped_ct = 0;
-  for  (i = 0;  i < stack_top;  i ++)
+  for  (i = 0;  i < stacktop;  i ++)
     {
       if  (stack [i] . is_bad)
         continue;
@@ -3015,7 +3016,7 @@ static int  Check_Scaffold_and_Orientation
     {
       if  ((* bad_links) > 0)
         return  FALSE;
-      for  (i = 0;  i < stack_top;  i ++)
+      for  (i = 0;  i < stacktop;  i ++)
         if  (stack [i] . flipped)
           stack [i] . is_bad = TRUE;
       (* bad_links) = 1;
@@ -3025,7 +3026,7 @@ static int  Check_Scaffold_and_Orientation
     {
       if  ((* bad_links) > 0)
         return  FALSE;
-      for  (i = 0;  i < stack_top;  i ++)
+      for  (i = 0;  i < stacktop;  i ++)
         if  (! stack [i] . flipped)
           stack [i] . is_bad = TRUE;
       (* bad_links) = 1;
@@ -3040,11 +3041,11 @@ static int  Check_Scaffold_and_Orientation
 
 
 static void  Check_Scaffold_Join
-(int cid, Stack_Entry_t * stack, int stack_top, int scaff_id [],
+(int cid, VA_TYPE(Stack_Entry_t) * stackva, int scaff_id [],
  int scaff_links [], Scaffold_Fill_t * fill_chunks, int bad_links)
 
 //  See if chunk  cid  has evidence of joining scaffolds in
-//  scaff_id [0 .. 1] .  Evidence is edges on  stack [0 .. (stack_top - 1)] .
+//  scaff_id [0 .. 1] .  Evidence is edges on  stack [0 .. (stacktop - 1)] .
 //  scaff_links [0 .. 1]  are the number of mate links to respective
 //  scaffolds.  If there is enough evidence, store the connection to
 //  allow checking for later inconsistencies, i.e., if some other
@@ -3065,9 +3066,12 @@ static void  Check_Scaffold_Join
   int  group1, group2, cover_stat, link_ct;
   int  i, j;
 
+  Stack_Entry_t   *stack    = GetVA_Stack_Entry_t(stackva, 0);
+  int              stacktop = GetNumVA_Stack_Entry_t(stackva);
+
   // Move  scaff_id [0]  edges to front of stack
 
-  for  (i = j = 0;  j < stack_top;  j ++)
+  for  (i = j = 0;  j < stacktop;  j ++)
     {
       if  (REF (stack [j] . chunk_id) . scaff_id == scaff_id [0])
         {
@@ -3084,7 +3088,7 @@ static void  Check_Scaffold_Join
 
   // Move  scaff_id [1]  edges in back of them
 
-  for  (j = i;  j < stack_top;  j ++)
+  for  (j = i;  j < stacktop;  j ++)
     {
       if  (REF (stack [j] . chunk_id) . scaff_id == scaff_id [1])
         {
@@ -3147,7 +3151,7 @@ static void  Check_Scaffold_Join
 
   bad_allowed = MAX (0, 1 - bad_links);
   consistent = Estimate_Chunk_Ends
-    (stack, group1, & left_end1,
+    (stackva, 0, group1, & left_end1,
      & right_end1, contig, & edge_quality1,
      fill_chunks, & gap1, & new_scaff1, & bad_allowed);
   if  (! consistent)
@@ -3166,7 +3170,7 @@ static void  Check_Scaffold_Join
 
   bad_allowed = MAX (0, bad_allowed);
   consistent = Estimate_Chunk_Ends
-    (stack + group1, group2 - group1, & left_end2,
+    (stackva, group1, group2 - group1, & left_end2,
      & right_end2, contig, & edge_quality2,
      fill_chunks, & gap2, & new_scaff2, & bad_allowed);
   if  (! consistent)
@@ -3433,13 +3437,14 @@ static void  Choose_Safe_Chunks
       else
         {
           int  gap;
-          Stack_Entry_t  stack [STACK_SIZE];
-          int  stack_top = 0;
+          VA_TYPE(Stack_Entry_t)  *stackva;
           int  is_lacto_rock = FALSE;
           GraphEdgeIterator  ci_edges;
           ChunkInstanceT  * unitig;
           CIEdgeT  * edge;
-           
+
+          stackva = CreateVA_Stack_Entry_t(STACK_SIZE);
+
           non_unique_ct ++;
 #if  MAKE_CAM_FILE
           cam_colour = NO_CONNECT_COLOUR;
@@ -3471,27 +3476,28 @@ static void  Choose_Safe_Chunks
               
               if  (Is_Unique (other_chunk) && !IsSurrogate(other_chunk))
                 {
-                  assert (stack_top < STACK_SIZE);
                   assert (other_chunk -> scaffoldID > NULLINDEX);
-                  stack [stack_top] . chunk_id = other_chunk -> id;
-                  stack [stack_top] . edge = edge;
-                  stack_top ++;
+                  Stack_Entry_t  nobj  = {0};
+                  nobj . chunk_id = other_chunk -> id;
+                  nobj . edge     = edge;
+                  //ADDTOVA
+                  AppendVA_Stack_Entry_t(stackva, &nobj);
                 }
             }
 
           // Move "good" edges to front of stack
 
-          if  (stack_top > 0)
+          if  (GetNumVA_Stack_Entry_t(stackva) > 0)
             {
               unique_connect_ct ++;
 #if  MAKE_CAM_FILE
               cam_colour = CONNECT_COLOUR;
               sprintf (annotation_string,
                        "  %d mate edges to uniques  cov = %d  typ = %s",
-                       stack_top, cover_stat,
+                       GetNumVA_Stack_Entry_t(stackva), cover_stat,
                        CGB_Type_As_String (contig -> flags . bits . cgbType));
 #endif
-              stack_top = Select_Good_Edges (stack, stack_top, contig);
+              Select_Good_Edges (stackva, contig);
             }
 
           // Special temporary hack for Lactobacillus
@@ -3501,15 +3507,15 @@ static void  Choose_Safe_Chunks
             int  hi_ct = -1, best_lo, best_hi;
             int  i, j;
 
-            Partition_Edges  (cid, stack, stack_top, 0);
+            Partition_Edges  (cid, stackva, 0);
 
-            for  (i = 0;  i < stack_top;  i = j)
+            for  (i = 0;  i < GetNumVA_Stack_Entry_t(stackva);  i = j)
               {
                 int  link_ct;
 
                 link_ct = stack [i] . num_good_mates;
                 for  (j = i + 1;
-                      j < stack_top
+                      j < GetNumVA_Stack_Entry_t(stackva)
                         && stack [j] . partition == stack [i] . partition;
                       j ++)
                   link_ct += stack [j] . num_good_mates;
@@ -3537,12 +3543,12 @@ static void  Choose_Safe_Chunks
                 is_lacto_rock = TRUE;
 
                 if  (best_lo == 0)
-                  stack_top = best_hi;
+                  ResetToRangeVA_Stack_Entry_t(stackva, best_hi);
                 else
                   {
                     for  (k = best_lo;  k < best_hi;  k ++)
                       stack [k - best_lo] = stack [k];
-                    stack_top = k - best_lo;
+                    ResetToRangeVA_Stack_Entry_t(stackva, k - best_lo);
                   }
               }
 
@@ -3565,14 +3571,14 @@ static void  Choose_Safe_Chunks
               cam_colour = LO_COVERSTAT_COLOUR;
 #endif
             }
-          else if  (stack_top > 0)
+          else if  (GetNumVA_Stack_Entry_t(stackva) > 0)
             {
               int  bad_allowed, bad_links, consistent, good_total;
               LengthT  left_end, right_end;
               float  edge_quality;
 
               consistent = Check_Scaffold_and_Orientation
-                (cid, stack, stack_top, & good_total,
+                (cid, stackva, & good_total,
                  fill_chunks, & bad_links, min_good_links);
 
               if  (consistent)
@@ -3582,7 +3588,7 @@ static void  Choose_Safe_Chunks
                   cam_colour = CONSISTENT_COLOUR;
                   sprintf (annotation_string,
                            "  %d mate links (in %d edges) to uniques  low = <%.0f, %.0f>  high = <%.0f, %.0f>  cov = %d  typ = %s",
-                           good_total, stack_top,
+                           good_total, GetNumVA_Stack_Entry_t(stackva),
                            left_end . mean, sqrt (left_end . variance),
                            right_end . mean, sqrt (right_end . variance),
                            cover_stat,
@@ -3593,7 +3599,7 @@ static void  Choose_Safe_Chunks
               bad_allowed = MAX (0, 1 - bad_links);
               if  (consistent && good_total >= min_good_links)
                 consistent = Estimate_Chunk_Ends
-                  (stack, stack_top, & left_end,
+                  (stackva, 0, GetNumVA_Stack_Entry_t(stackva), & left_end,
                    & right_end, contig, & edge_quality,
                    fill_chunks, & gap, & scaff_id,
                    & bad_allowed);
@@ -3607,7 +3613,7 @@ static void  Choose_Safe_Chunks
                   assign_succeeded
                     = Assign_To_Gap (cid, left_end, right_end,
                                      gap, scaff_id,
-                                     stack [0] . flipped, fill_chunks,
+                                     GetVA_Stack_Entry_t(stackva, 0) -> flipped, fill_chunks,
                                      edge_quality, cover_stat, good_total,
                                      ' ');
 
@@ -3618,14 +3624,14 @@ static void  Choose_Safe_Chunks
                     cam_colour = PLACED_COLOUR;
                   sprintf (annotation_string,
                            "  %d mate links (in %d edges) to uniques  low = <%.0f, %.0f>  high = <%.0f, %.0f>  cov = %d  typ = %s",
-                           good_total, stack_top,
+                           good_total, GetNumVA_Stack_Entry_t(stackva),
                            left_end . mean, sqrt (left_end . variance),
                            right_end . mean, sqrt (right_end . variance),
                            cover_stat,
                            CGB_Type_As_String (contig -> flags . bits . cgbType));
 #endif
 #if  MAKE_CAM_FILE && SHOW_CALC_COORDS
-                  scaff_id = REF (stack [0] . chunk_id) . scaff_id;
+                  scaff_id = REF (GetVA_Stack_Entry_t(stackva, 0) -> chunk_id) . scaff_id;
                   if  (Scaffold_Start [scaff_id] < Scaffold_End [scaff_id])
                     {
                       left_coord = left_end . mean + Scaffold_Start [scaff_id];
@@ -3646,6 +3652,8 @@ static void  Choose_Safe_Chunks
 #endif
                 }
             }
+
+          DeleteVA_Stack_Entry_t(stackva); 
         }
 
 #if  MAKE_CAM_FILE
@@ -3830,13 +3838,14 @@ static void  Choose_Stones
       else
         {
           int  gap;
-          Stack_Entry_t  stack [STACK_SIZE];
-          int  stack_top = 0;
+          VA_TYPE(Stack_Entry_t)  *stackva;
           GraphEdgeIterator  ci_edges;
           ChunkInstanceT  * unitig;
           int  problem;
           CIEdgeT  * edge;
-           
+
+          stackva = CreateVA_Stack_Entry_t(STACK_SIZE);
+
           non_unique_ct ++;
 #if  MAKE_CAM_FILE
           cam_colour = NO_CONNECT_COLOUR;
@@ -3916,33 +3925,34 @@ static void  Choose_Stones
 
               if  (Is_Unique (other_chunk))
                 {
-                  assert (stack_top < STACK_SIZE);
                   assert(other_chunk->scaffoldID > NULLINDEX);
-                  stack [stack_top] . chunk_id = other_chunk -> id;
-                  stack [stack_top] . edge = edge;
-                  stack_top ++;
+                  Stack_Entry_t  nobj  = {0};
+                  nobj . chunk_id = other_chunk -> id;
+                  nobj . edge     = edge;
+                  //ADDTOVA
+                  AppendVA_Stack_Entry_t(stackva, &nobj);
                 }
             }
 #if  VERBOSE
-          if  (! Maybe_Stone (unitig) && stack_top > 0)
+          if  (! Maybe_Stone (unitig) && GetNumVA_Stack_Entry_t(stackva) > 0)
             fprintf (stderr, "cid = %d  Not potential stone but stack = %d\n",
-                     cid, stack_top);
+                     cid, GetNumVA_Stack_Entry_t(stackva));
 #endif
 
           // Move "good" edges to front of stack
 
-          if  (stack_top > 0)
+          if  (GetNumVA_Stack_Entry_t(stackva) > 0)
             {
               unique_connect_ct ++;
 #if  MAKE_CAM_FILE
               cam_colour = CONNECT_COLOUR;
               sprintf (annotation_string,
                        "  %d mate edges to uniques  cov = %d  typ = %s",
-                       stack_top, 
+                       GetNumVA_Stack_Entry_t(stackva), 
                        cover_stat,
                        CGB_Type_As_String (chunk -> flags . bits . cgbType));
 #endif
-              stack_top = Select_Good_Edges (stack, stack_top, chunk);
+              Select_Good_Edges (stackva, chunk);
             }
 
           if  (cover_stat < min_cover_stat)
@@ -3951,7 +3961,7 @@ static void  Choose_Stones
               cam_colour = LO_COVERSTAT_COLOUR;
 #endif
             }
-          else if  (stack_top > 0)
+          else if  (GetNumVA_Stack_Entry_t(stackva) > 0)
             {
               LengthT  left_end, right_end;
               float  edge_quality;
@@ -3959,36 +3969,40 @@ static void  Choose_Stones
               int  bad_allowed, consistent;
               int  i, j;
 
-              Partition_Edges  (cid, stack, stack_top, min_good_links);
+              Partition_Edges  (cid, stackva, min_good_links);
 
-              for  (i = 0;  i < stack_top;  i = j)
+              for  (i = 0;  i < GetNumVA_Stack_Entry_t(stackva);  i = j)
                 {
                   int  link_ct, assign_succeeded;
 #if  MAKE_CAM_FILE && SHOW_CALC_COORDS
                   int64  left_coord, right_coord;
 #endif
+                  {
+                    Stack_Entry_t *stack = GetVA_Stack_Entry_t(stackva, 0);
 
-                  link_ct = stack [i] . num_good_mates;
-                  for  (j = i + 1;
-                        j < stack_top
-                          && stack [j] . partition == stack [i] . partition;
-                        j ++)
-                    link_ct += stack [j] . num_good_mates;
+                    link_ct = stack [i] . num_good_mates;
+                    for  (j = i + 1;
+                          j < GetNumVA_Stack_Entry_t(stackva)
+                            && stack [j] . partition == stack [i] . partition;
+                          j ++)
+                      link_ct += stack [j] . num_good_mates;
+                  }
 
-                  if  (stack [i] . is_bad)
+                  if  (GetVA_Stack_Entry_t(stackva, i) -> is_bad)
                     continue;
 
                   bad_allowed = 0;
                   consistent = Estimate_Chunk_Ends
-                    (stack + i, j - i, & left_end,
+                    (stackva, i, j - i, & left_end,
                      & right_end, chunk, & edge_quality,
                      fill_chunks, & gap, & scaff_id,
                      & bad_allowed);
 
-                  if  (! consistent)   // Come back here and add partition refinement
-                    continue;        //   for case where there are alternative
-                  //   positions in the same scaffold with the
-                  //   same orientation.
+                  //  Come back here and add partition refinement for
+                  //  case where there are alternative positions in
+                  //  the same scaffold with the same orientation.
+                  if  (! consistent)
+                    continue;
 
                   num_stones ++;
 
@@ -4006,14 +4020,14 @@ static void  Choose_Stones
                   assign_succeeded
                     = Assign_To_Gap (cid, left_end, right_end,
                                      gap, scaff_id,
-                                     stack [i] . flipped, fill_chunks,
+                                     GetVA_Stack_Entry_t(stackva, i) -> flipped, fill_chunks,
                                      edge_quality, cover_stat, link_ct,
                                      copy_letter);
                   if  (! assign_succeeded)
                     cam_colour = REJECT_COLOUR;
 
 #if  MAKE_CAM_FILE && SHOW_CALC_COORDS
-                  scaff_id = REF (stack [0] . chunk_id) . scaff_id;
+                  scaff_id = REF (GetVA_Stack_Entry_t(stackva, 0) -> chunk_id) . scaff_id;
                   if  (Scaffold_Start [scaff_id] < Scaffold_End [scaff_id])
                     {
                       left_coord = left_end . mean + Scaffold_Start [scaff_id];
@@ -4033,8 +4047,9 @@ static void  Choose_Stones
                   Chunk_Info [cid] . calc_right = right_coord;
 #endif
                   copy_letter ++;
-                }
+                }  //  end for
             }
+          DeleteVA_Stack_Entry_t(stackva);
         }
 
 #if  MAKE_CAM_FILE
@@ -6121,13 +6136,13 @@ static void  Eliminate_Encumbered_Uniques_One_Scaffold
 
 
 static int  Estimate_Chunk_Ends
-(Stack_Entry_t * stack, int stack_top,
+(VA_TYPE(Stack_Entry_t) * stackva, int stack_beg, int stack_end,
  LengthT * left_end, LengthT * right_end, ChunkInstanceT * chunk,
  float * edge_quality, Scaffold_Fill_t * fill_chunks,
  int * gap, int * scaff_id, int * allowed_bad_links)
 
 //  Set  (* left_end)  and  (* right_end)  to best estimates of
-//  the ends  (* chunk)  based on the edges in  stack [0 .. (stack_top - 1)] .
+//  the ends  (* chunk)  based on the edges in  stackva [stack_beg .. (stack_end - 1)] .
 //  Variances and standard deviations are relative to the highest relative
 //  position unique chunk in  stack  that is to the left of this chunk.
 //  If none, then variances are relative to the lowest relative position
@@ -6151,12 +6166,17 @@ static int  Estimate_Chunk_Ends
   int  got_new_bad_links;
   int  i, is_OK, bad_links, closest, edge_ct, good_links;
 
+  //
+  //  DANGER!  This function operates on a subset of the stackva!
+  //
+  Stack_Entry_t   *stack = GetVA_Stack_Entry_t(stackva, stack_beg);
+
   max_left_variance = - 1.0;
   min_right_variance = DBL_MAX;
   min_variance = DBL_MAX;
   max_variance = - 1.0;
 
-  assert (0 < stack_top && stack_top < STACK_SIZE);
+  assert (0 < stack_end);
 
   bad_links = 0;
   do
@@ -6164,7 +6184,7 @@ static int  Estimate_Chunk_Ends
       int  good_edge = -1;
 
       edge_ct = 0;
-      for  (i = 0;  i < stack_top;  i ++)
+      for  (i = 0;  i < stack_end;  i ++)
         {
           if  (stack [i] . is_bad)
             continue;
@@ -6214,7 +6234,7 @@ static int  Estimate_Chunk_Ends
 
       assert (0.0 <= ref_variance && ref_variance <= FLT_MAX);
 
-      Calc_End_Coords (stack, stack_top, left_end, right_end, chunk,
+      Calc_End_Coords (stackva, stack_beg, stack_end, left_end, right_end, chunk,
                        ref_variance);
 
       (* edge_quality) = 0.0;
@@ -6238,7 +6258,7 @@ static int  Estimate_Chunk_Ends
 
       got_new_bad_links = FALSE;
       good_links = 0;
-      for  (i = 0;  i < stack_top;  i ++)
+      for  (i = 0;  i < stack_end;  i ++)
         {
           Gap_Chunk_t  scaff_chunk;
 
@@ -6309,7 +6329,7 @@ static int  Estimate_Chunk_Ends
   new_ref_variance = g [closest] . ref_variance;
 
   if  (new_ref_variance != ref_variance)
-    Calc_End_Coords (stack, stack_top, left_end, right_end, chunk,
+    Calc_End_Coords (stackva, stack_beg, stack_end, left_end, right_end, chunk,
                      new_ref_variance);
 
   Fixup_Chunk_End_Variances (left_end, right_end, chunk -> bpLength . variance);
@@ -9081,9 +9101,9 @@ static void  Print_Scaffolds
 
 
 static void  Partition_Edges
-(int cid, Stack_Entry_t * stack, int stack_top, int min_good_links)
+(int cid, VA_TYPE(Stack_Entry_t) * stackva, int min_good_links)
 
-//  Partition entries in  stack [0 .. (stack_top - 1)]  based on
+//  Partition entries in  stack [0 .. (stacktop - 1)]  based on
 //  which scaffold and orientation they connect with.  Mark as
 //  bad all edges whose partition set collectively does not contain
 //  at least min_good_links  mate links .
@@ -9092,11 +9112,14 @@ static void  Partition_Edges
   int  i, j;
   int  partition;
 
+  Stack_Entry_t   *stack    = GetVA_Stack_Entry_t(stackva, 0);
+  int              stacktop = GetNumVA_Stack_Entry_t(stackva);
+
   // Sort by scaffold id and  whether flipped w.r.t. that
   // scaffold
 
-  //   qsort (stack, stack_top, sizeof (Stack_Entry_t), By_Scaff_And_Flipped);
-  qsort (stack, stack_top, sizeof (Stack_Entry_t), By_Scaff_Flipped_And_Left_End);
+  //   qsort (stack, stacktop, sizeof (Stack_Entry_t), By_Scaff_And_Flipped);
+  qsort (stack, stacktop, sizeof (Stack_Entry_t), By_Scaff_Flipped_And_Left_End);
 
   // Mark good entries in stack
 
@@ -9105,33 +9128,29 @@ static void  Partition_Edges
 #endif
 
   partition = 0;
-  for  (i = 0;  i < stack_top;  i = j)
+  for  (i = 0;  i < stacktop;  i = j)
     {
       int  k, total_mates = 0;
       double  right_extent;
       double  new_left, new_right;
 
-      new_left = stack [i] . left_end . mean
-        - 3.0 * sqrt (stack [i]  . left_end . variance);
-      right_extent = stack [i] . right_end . mean
-        + 3.0 * sqrt (stack [i] . right_end . variance);
+      new_left = stack [i] . left_end . mean - 3.0 * sqrt (stack [i]  . left_end . variance);
+      right_extent = stack [i] . right_end . mean + 3.0 * sqrt (stack [i] . right_end . variance);
 #if  VERBOSE
       fprintf (stderr, "   1st_left = %8.0f  1st_right = %8.0f\n",
                new_left, right_extent);
 #endif
 
       for  (j = i + 1;
-            j < stack_top
+            j < stacktop
               && stack [j] . scaff_id == stack [i] . scaff_id
               && stack [j] . flipped == stack [i] . flipped;  j ++)
         {
-          new_left = stack [j] . left_end . mean
-            - 3.0 * sqrt (stack [j]  . left_end . variance);
+          new_left = stack [j] . left_end . mean - 3.0 * sqrt (stack [j]  . left_end . variance);
           if  (new_left > right_extent)
             break;
 
-          new_right = stack [j] . right_end . mean
-            + 3.0 * sqrt (stack [j]  . right_end . variance);
+          new_right = stack [j] . right_end . mean + 3.0 * sqrt (stack [j]  . right_end . variance);
           if  (new_right > right_extent)
             right_extent = new_right;
 #if  VERBOSE
@@ -9524,12 +9543,13 @@ static void  Print_Potential_Fill_Chunks
            && (! Is_Unique (chunk)
                || (REF (cid) . is_singleton && UNIQUES_CAN_BE_STONES)))
         {  // show mate edges
-          Stack_Entry_t  stack [STACK_SIZE];
-          int  stack_top = 0;
+          VA_TYPE(Stack_Entry_t)  *stackva;
           int  other_links = 0;
           GraphEdgeIterator  ci_edges;
           CIEdgeT  * edge;
-           
+
+          stackva = CreateVA_Stack_Entry_t(STACK_SIZE);
+
           InitGraphEdgeIterator (ScaffoldGraph->RezGraph, cid,
                                  ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT, & ci_edges);
           while  ((edge = NextGraphEdgeIterator (& ci_edges)) != NULL)
@@ -9549,11 +9569,12 @@ static void  Print_Potential_Fill_Chunks
 
               if  (Is_Unique (other_chunk))
                 {
-                  assert (stack_top < STACK_SIZE);
                   assert(other_chunk->scaffoldID > NULLINDEX);
-                  stack [stack_top] . chunk_id = other_chunk -> id;
-                  stack [stack_top] . edge = edge;
-                  stack_top ++;
+                  Stack_Entry_t  nobj  = {0};
+                  nobj . chunk_id = other_chunk -> id;
+                  nobj . edge     = edge;
+                  //ADDTOVA
+                  AppendVA_Stack_Entry_t(stackva, &nobj);
                 }
               else
                 {
@@ -9564,7 +9585,7 @@ static void  Print_Potential_Fill_Chunks
                   
             }
 
-          if  (fp != NULL && stack_top > 0)
+          if  (fp != NULL && GetNumVA_Stack_Entry_t(stackva) > 0)
             {
               ChunkInstanceT  * ci = GetGraphNode (ScaffoldGraph -> CIGraph,
                                                    chunk -> info . Contig . AEndCI);
@@ -9582,29 +9603,30 @@ static void  Print_Potential_Fill_Chunks
                        "To Chunk", "Scaff", "RelPos", "Gap Len", "Orient",
                        "Items", "Quality", "Flags");
 
-              assert (stack_top < STACK_SIZE);
-              for  (i = 0;  i < stack_top;  i ++)
+              for  (i = 0;  i < GetNumVA_Stack_Entry_t(stackva);  i ++)
                 {
+                  Stack_Entry_t *se = GetVA_Stack_Entry_t(stackva, i);
+
                   fprintf (fp, "  %8d %6d %6d %8.0f %6s %6d %7.1f  ",
-                           stack [i] . chunk_id,
-                           REF (stack [i] . chunk_id) . scaff_id,
-                           REF (stack [i] . chunk_id) . rel_pos,
-                           stack [i] . edge -> distance . mean,
+                           se -> chunk_id,
+                           REF (se -> chunk_id) . scaff_id,
+                           REF (se -> chunk_id) . rel_pos,
+                           se -> edge -> distance . mean,
                            Orientation_As_String
-                           (GetEdgeOrientationWRT (stack [i] . edge, cid)),
-                           stack [i] . edge -> edgesContributing,
-                           CIEdge_Quality (stack [i] . edge));
-                  if  (isOverlapEdge (stack [i] . edge))
+                           (GetEdgeOrientationWRT (se -> edge, cid)),
+                           se -> edge -> edgesContributing,
+                           CIEdge_Quality (se -> edge));
+                  if  (isOverlapEdge (se -> edge))
                     fprintf (fp, " Olap");
-                  if  (stack [i] . edge -> flags . bits . isPossibleChimera)
+                  if  (se -> edge -> flags . bits . isPossibleChimera)
                     fprintf (fp, " Chim");
-                  if  (stack [i] . edge -> flags . bits . hasContributingOverlap)
+                  if  (se -> edge -> flags . bits . hasContributingOverlap)
                     fprintf (fp, " U-lap");
-                  if  (stack [i] . edge -> flags . bits . rangeTruncated)
+                  if  (se -> edge -> flags . bits . rangeTruncated)
                     fprintf (fp, " Trunc");
-                  if  (isProbablyBogusEdge (stack [i] . edge))
+                  if  (isProbablyBogusEdge (se -> edge))
                     fprintf (fp, " Bogus");
-                  if  (isSloppyEdge (stack [i] . edge))
+                  if  (isSloppyEdge (se -> edge))
                     fprintf (fp, " Sloppy");
 #if  VERBOSE
                   fprintf (fp, " numInstances=%d", ci -> info . CI . numInstances);
@@ -9615,6 +9637,8 @@ static void  Print_Potential_Fill_Chunks
               Print_Frag_Info (fp, cid);
 #endif
             }
+
+          DeleteVA_Stack_Entry_t(stackva);
         }
     }
 
@@ -9821,11 +9845,12 @@ static void  Re_Check_Inserted_Rocks
                  //                  && this_chunk -> copy_letter != JOINER_ROCK_CHAR
                  )
               {
-                Stack_Entry_t  stack [STACK_SIZE];
+                VA_TYPE(Stack_Entry_t)  *stackva;
                 int  cid;
-                int  stack_top = 0;
                 GraphEdgeIterator  ci_edges;
                 CIEdgeT  * edge;
+
+                stackva = CreateVA_Stack_Entry_t(STACK_SIZE);
 
                 cid = this_chunk -> chunk_id;
 
@@ -9849,15 +9874,16 @@ static void  Re_Check_Inserted_Rocks
 
                     if  (Is_Unique (other_chunk))
                       {
-                        assert (stack_top < STACK_SIZE);
                         assert (other_chunk -> scaffoldID > NULLINDEX);
-                        stack [stack_top] . chunk_id = other_chunk -> id;
-                        stack [stack_top] . edge = edge;
-                        stack_top ++;
+                        Stack_Entry_t  nobj  = {0};
+                        nobj . chunk_id = other_chunk -> id;
+                        nobj . edge     = edge;
+                        //ADDTOVA
+                        AppendVA_Stack_Entry_t(stackva, &nobj);
                       }
                   }
 
-                if  (stack_top == 0)
+                if  (GetNumVA_Stack_Entry_t(stackva) == 0)
                   fprintf (stderr, "WHOOAH! no links for rock %d\n",
                            cid);
                 else
@@ -9871,14 +9897,14 @@ static void  Re_Check_Inserted_Rocks
                     contig
                       = GetGraphNode
                       (ScaffoldGraph -> RezGraph, cid);
-                    stack_top = Select_Good_Edges (stack, stack_top, contig);
+                    Select_Good_Edges (stackva, contig);
                     consistent = Check_Scaffold_and_Orientation
-                      (cid, stack, stack_top, & good_total,
+                      (cid, stackva, & good_total,
                        fill, & bad_links, min_good_links);
                     bad_allowed = MAX (0, 1 - bad_links);
                     if  (consistent && good_total >= min_good_links)
                       consistent = Estimate_Chunk_Ends
-                        (stack, stack_top, & left_end,
+                        (stackva, 0, GetNumVA_Stack_Entry_t(stackva), & left_end,
                          & right_end, contig, & edge_quality,
                          fill, & gap, & scaff_id,
                          & bad_allowed);
@@ -9894,6 +9920,7 @@ static void  Re_Check_Inserted_Rocks
                         this_chunk -> keep = FALSE;
                       }
                   }
+                DeleteVA_Stack_Entry_t(stackva);
               }
           }
       }
@@ -10763,44 +10790,14 @@ Scaffold_Fill_t *  Scan_Gaps_In_Scaffold (int target_scaffold)
             }
         }
 
-      fill -> gap [scaff_index] . start
-        = prev_end;
-      fill -> gap [scaff_index] . end . mean
-        = prev_end . mean + MAX_MATE_DISTANCE;
-      fill -> gap [scaff_index] . end . variance
-        = prev_end . variance;
-      fill -> gap [scaff_index] . ref_variance
-        = prev_end . variance;
-      fill -> gap [scaff_index] . has_path = FALSE;
-      fill -> gap [scaff_index] . left_cid
-        = fill -> gap [scaff_index - 1] . right_cid;
-      fill -> gap [scaff_index] . right_cid
-        = -1;
-
-#if  0
-      // No longer needed since we now use the  ref_variance  field
-      // in the gap structure to adjust variances to a local value.
-
-      // Now shrink variances to what's induced by previous 3 chunks
-      // so that large values at end of scaffolds aren't used.  Should be
-      // OK since calculations are done based on local chunks.
-
-      for  (scaff_index = num_chunks;  scaff_index >= 3;  scaff_index --)
-        {
-          double  smaller;
-          Gap_Fill_t  * g = fill -> gap + scaff_index;
-
-          if  ((g - 3) -> end . variance < (g - 3) -> start . variance)
-            smaller = (g - 3) -> end . variance;
-          else
-            smaller = (g - 3) -> start . variance;
-          g -> end . variance -= smaller;
-          g -> start . variance -= smaller;
-        }
-#endif
-
+      fill -> gap [scaff_index] . start          = prev_end;
+      fill -> gap [scaff_index] . end . mean     = prev_end . mean + MAX_MATE_DISTANCE;
+      fill -> gap [scaff_index] . end . variance = prev_end . variance;
+      fill -> gap [scaff_index] . ref_variance   = prev_end . variance;
+      fill -> gap [scaff_index] . has_path       = FALSE;
+      fill -> gap [scaff_index] . left_cid       = fill -> gap [scaff_index - 1] . right_cid;
+      fill -> gap [scaff_index] . right_cid      = -1;
     }
-
 
   return  fill;
 }
@@ -10808,9 +10805,9 @@ Scaffold_Fill_t *  Scan_Gaps_In_Scaffold (int target_scaffold)
 
 
 static int  Select_Good_Edges
-(Stack_Entry_t * stack, int stack_top, ChunkInstanceT * chunk)
+(VA_TYPE(Stack_Entry_t) * stackva, ChunkInstanceT * chunk)
 
-//  Move the "good" edges in  stack [0 .. (stack_top - 1)]  to the
+//  Move the "good" edges in  stack [0 .. (stacktop - 1)]  to the
 //  front of stack and return how many there are.  Edges go from the
 //  chunk pointed to by  chunk .  Also calculate and store on the stack
 //  the orientation and scaffold position information of the chunk
@@ -10821,28 +10818,28 @@ static int  Select_Good_Edges
 //  have been put on the stack in the first place.
 
 {
-  int  good_ct, i;
+  int  good_ct = 0;
+  int  i;
+  int  stacktop = GetNumVA_Stack_Entry_t(stackva);
 
-  good_ct = 0;
-  assert (stack_top < STACK_SIZE);	   
-  for  (i = 0;  i < stack_top;  i ++)
+  for  (i = 0;  i < stacktop;  i ++)
     {
-      stack [i] . num_good_mates
-        = stack [i] . edge -> edgesContributing;
-      stack [i] . num_ulaps = stack [i] . num_tlaps
-        = stack [i] . num_rlaps = 0 ;
-      if  (stack [i] . edge -> flags . bits . isPossibleChimera)
-        stack [i] . num_good_mates = 1;   // Discount the overlap but
-      //   count the mate
+      Stack_Entry_t   *se = GetVA_Stack_Entry_t(stackva, i);
+
+      se -> num_good_mates = se -> edge -> edgesContributing;
+      se -> num_ulaps = se -> num_tlaps = se -> num_rlaps = 0 ;
+
+      if  (se -> edge -> flags . bits . isPossibleChimera)
+        se -> num_good_mates = 1;   // Discount the overlap but count the mate
       else
         {
-          if  (stack [i] . edge -> flags . bits . hasContributingOverlap)
-            stack [i] . num_ulaps = 1;
-          if  (isOverlapEdge (stack [i] . edge))
-            stack [i] . num_good_mates --;
+          if  (se -> edge -> flags . bits . hasContributingOverlap)
+            se -> num_ulaps = 1;
+          if  (isOverlapEdge (se -> edge))
+            se -> num_good_mates --;
         }
 
-      if  (stack [i] . num_good_mates > 0)
+      if  (se -> num_good_mates > 0)
         {
           int  scaff_id;
           ChunkInstanceT  * scaffold_chunk;
@@ -10852,17 +10849,17 @@ static int  Select_Good_Edges
           ChunkOrientationType  orientation;
 
           scaffold_chunk = GetGraphNode(ScaffoldGraph->RezGraph,
-                                        stack [i] . chunk_id);
-          a_side = & (REF (stack [i] . chunk_id) . a_end);
-          b_side = & (REF (stack [i] . chunk_id) . b_end);
-          scaff_id = REF (stack [i] . chunk_id) . scaff_id;
+                                        se -> chunk_id);
+          a_side = & (REF (se -> chunk_id) . a_end);
+          b_side = & (REF (se -> chunk_id) . b_end);
+          scaff_id = REF (se -> chunk_id) . scaff_id;
 
-          stack [i] . scaff_id = scaff_id;
+          se -> scaff_id = scaff_id;
 
-          if  (stack [i] . edge -> idB == stack [i] . chunk_id)
-            orientation = stack [i] . edge -> orient;
+          if  (se -> edge -> idB == se -> chunk_id)
+            orientation = se -> edge -> orient;
           else
-            orientation = Reverse_Orientation (stack [i] . edge -> orient);
+            orientation = Reverse_Orientation (se -> edge -> orient);
 
           // Find position in scaffold
           switch  (orientation)
@@ -10870,97 +10867,60 @@ static int  Select_Good_Edges
               case  AB_AB :
               case  BA_AB :
                 if  (Scaffold_Flipped [scaff_id])
-                  stack [i] . celsim_offset
+                  se -> celsim_offset
                     = scaffold_chunk -> aEndCoord + a_side -> mean;
                 else
-                  stack [i] . celsim_offset
+                  se -> celsim_offset
                     = scaffold_chunk -> aEndCoord - a_side -> mean;
                 if  (a_side -> mean
                      <= b_side -> mean)
                   {
-                    stack [i] . right_end . mean
-                      = a_side -> mean
-                      - stack [i] . edge -> distance . mean;
-                    stack [i] . right_end . variance
-                      = a_side -> variance
-                      + stack [i] . edge -> distance . variance;
-                    stack [i] . left_end . mean
-                      = stack [i] . right_end . mean
-                      - chunk -> bpLength . mean;
-                    stack [i] . left_end . variance
-                      = stack [i] . right_end . variance
-                      + chunk -> bpLength . variance;
-                    stack [i] . flipped
-                      = (orientation == BA_AB);
-                    stack [i] . source_variance = a_side -> variance;
-                    stack [i] . left_link = FALSE;
+                    se -> right_end . mean     = a_side -> mean - se -> edge -> distance . mean;
+                    se -> right_end . variance = a_side -> variance + se -> edge -> distance . variance;
+                    se -> left_end . mean      = se -> right_end . mean - chunk -> bpLength . mean;
+                    se -> left_end . variance  = se -> right_end . variance + chunk -> bpLength . variance;
+                    se -> flipped              = (orientation == BA_AB);
+                    se -> source_variance      = a_side -> variance;
+                    se -> left_link            = FALSE;
                   }
                 else
                   {
-                    stack [i] . left_end . mean
-                      = a_side -> mean
-                      + stack [i] . edge -> distance . mean;
-                    stack [i] . left_end . variance
-                      = a_side -> variance
-                      + stack [i] . edge -> distance . variance;
-                    stack [i] . right_end . mean
-                      = stack [i] . left_end . mean
-                      + chunk -> bpLength . mean;
-                    stack [i] . right_end . variance
-                      = stack [i] . left_end . variance
-                      + chunk -> bpLength . variance;
-                    stack [i] . flipped
-                      = (orientation == AB_AB);
-                    stack [i] . source_variance = a_side -> variance;
-                    stack [i] . left_link = TRUE;
+                    se -> left_end . mean      = a_side -> mean + se -> edge -> distance . mean;
+                    se -> left_end . variance  = a_side -> variance + se -> edge -> distance . variance;
+                    se -> right_end . mean     = se -> left_end . mean + chunk -> bpLength . mean;
+                    se -> right_end . variance = se -> left_end . variance + chunk -> bpLength . variance;
+                    se -> flipped              = (orientation == AB_AB);
+                    se -> source_variance      = a_side -> variance;
+                    se -> left_link = TRUE;
                   }
                 break;
               case  AB_BA :
               case  BA_BA :
                 if  (Scaffold_Flipped [scaff_id])
-                  stack [i] . celsim_offset
-                    = scaffold_chunk -> bEndCoord + b_side -> mean;
+                  se -> celsim_offset = scaffold_chunk -> bEndCoord + b_side -> mean;
                 else
-                  stack [i] . celsim_offset
+                  se -> celsim_offset
                     = scaffold_chunk -> bEndCoord - b_side -> mean;
                 if  (a_side -> mean
                      <= b_side -> mean)
                   {
-                    stack [i] . left_end . mean
-                      = b_side -> mean
-                      + stack [i] . edge -> distance . mean;
-                    stack [i] . left_end . variance
-                      = b_side -> variance
-                      + stack [i] . edge -> distance . variance;
-                    stack [i] . right_end . mean
-                      = stack [i] . left_end . mean
-                      + chunk -> bpLength . mean;
-                    stack [i] . right_end . variance
-                      = stack [i] . left_end . variance
-                      + chunk -> bpLength . variance;
-                    stack [i] . flipped
-                      = (orientation == AB_BA);
-                    stack [i] . source_variance = b_side -> variance;
-                    stack [i] . left_link = TRUE;
+                    se -> left_end . mean      = b_side -> mean + se -> edge -> distance . mean;
+                    se -> left_end . variance  = b_side -> variance + se -> edge -> distance . variance;
+                    se -> right_end . mean     = se -> left_end . mean + chunk -> bpLength . mean;
+                    se -> right_end . variance = se -> left_end . variance + chunk -> bpLength . variance;
+                    se -> flipped              = (orientation == AB_BA);
+                    se -> source_variance      = b_side -> variance;
+                    se -> left_link            = TRUE;
                   }
                 else
                   {
-                    stack [i] . right_end . mean
-                      = b_side -> mean
-                      - stack [i] . edge -> distance . mean;
-                    stack [i] . right_end . variance
-                      = b_side -> variance
-                      + stack [i] . edge -> distance . variance;
-                    stack [i] . left_end . mean
-                      = stack [i] . right_end . mean
-                      - chunk -> bpLength . mean;
-                    stack [i] . left_end . variance
-                      = stack [i] . right_end . variance
-                      + chunk -> bpLength . variance;
-                    stack [i] . flipped
-                      = (orientation == BA_BA);
-                    stack [i] . source_variance = b_side -> variance;
-                    stack [i] . left_link = FALSE;
+                    se -> right_end . mean     = b_side -> mean - se -> edge -> distance . mean;
+                    se -> right_end . variance = b_side -> variance + se -> edge -> distance . variance;
+                    se -> left_end . mean      = se -> right_end . mean - chunk -> bpLength . mean;
+                    se -> left_end . variance  = se -> right_end . variance + chunk -> bpLength . variance;
+                    se -> flipped              = (orientation == BA_BA);
+                    se -> source_variance      = b_side -> variance;
+                    se -> left_link            = FALSE;
                   }
                 break;
               case  XX_XX :
@@ -10969,13 +10929,17 @@ static int  Select_Good_Edges
                          __LINE__);
                 assert (FALSE);
             }
-          stack [i] . is_bad = FALSE;
-          assert (good_ct < STACK_SIZE);
+          se -> is_bad = FALSE;
+
           if (good_ct != i)
-            stack [good_ct ++] = stack [i];
+            SetVA_Stack_Entry_t(stackva,
+                                good_ct,
+                                GetVA_Stack_Entry_t(stackva, i));
+          good_ct++;
         }
     }
 
+  ResetToRangeVA_Stack_Entry_t(stackva, good_ct);
   return  good_ct;
 }
 
