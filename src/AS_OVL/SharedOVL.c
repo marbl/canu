@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: SharedOVL.c,v 1.4 2007-08-23 15:09:06 adelcher Exp $
- * $Revision: 1.4 $
+ * $Id: SharedOVL.c,v 1.5 2007-08-30 14:09:05 adelcher Exp $
+ * $Revision: 1.5 $
 */
 
 
@@ -227,9 +227,11 @@ int  Fwd_Banded_Homopoly_Prefix_Match
       last_row = i;
 
       // stop if best score on the row is no better than the best end
-      // alignment score
-      if (global_best <= best_score)
+      // alignment score; or if the best score on the row is worse than
+      // the limit, the it's hopeless
+      if (global_best <= best_score || score_limit < best_score)
         break;
+
      }
 
    if (Verbose_Level > 2)
@@ -965,6 +967,19 @@ int  Rev_Prefix_Edit_Dist
    int  best_d, best_e, longest, row, tail_len;
    int  left, right;
    int  d, e, j, shorter;
+
+   if (Verbose_Level > 2)
+     {
+      int  i;
+      printf ("Rev_Prefix_Edit_Dist:\n");
+      printf ("a_string=%-.10s  len=%d  t_string=%-.10s  len=%d\n",
+           a_string, m, t_string, n);
+      printf ("error_limit=%d  match_value=%.3f  doing_partial=%d\n",
+           error_limit, match_value, doing_partial);
+      for (i = 0; i <= error_limit; i ++)
+        printf ("edit_match_limit [%2d] = %3d  error_bound [%2d] = %3d\n",
+             i, edit_match_limit [i], i, error_bound [i]);
+     }
 
    best_d = best_e = longest = 0;
    (* delta_len) = 0;

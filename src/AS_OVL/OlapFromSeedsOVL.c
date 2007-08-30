@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.13 2007-08-23 15:06:26 adelcher Exp $
- * $Revision: 1.13 $
+ * $Id: OlapFromSeedsOVL.c,v 1.14 2007-08-30 14:09:05 adelcher Exp $
+ * $Revision: 1.14 $
 */
 
-static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.13 2007-08-23 15:06:26 adelcher Exp $";
+static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.14 2007-08-30 14:09:05 adelcher Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -445,7 +445,8 @@ static void  Analyze_Frag
    n = Frag [sub] . num_diffs;
    for (i = 0; i < n; i ++)
      {
-      Set_Insert_Sizes (insert_size, Frag [sub] . diff_list + i);
+      Set_Insert_Sizes (insert_size, Frag [sub] . diff_list + i,
+           Frag [sub] . sequence, frag_len);
 
 //**ALD
       if (Verbose_Level > 2)
@@ -510,27 +511,29 @@ if (0)
    for (i = 0; i < n; i ++)
      if (! Frag [sub] . diff_list [i] . disregard)
        {
+//**ALD
+if (0)
+  {
+   printf ("Set_New_Homopoly_Votes for i=%d b_iid=%d\n", i,
+        Frag [sub] . diff_list [i] . b_iid);
+   if (Frag [sub] . diff_list [i] . b_iid == 421078)
+     Global_Debug_Flag = TRUE;
+  }
         if (mod_dp [i] . is_homopoly_type)
 //          Set_Homopoly_Votes_From_Diffs (sub, Frag [sub] . diff_list + i);
-//**ALD
-{
-// printf ("Set_New_Homopoly_Votes for i=%d b_iid=%d\n", i,
-//      Frag [sub] . diff_list [i] . b_iid);
-// if (Frag [sub] . diff_list [i] . b_iid == 421078)
-//   Global_Debug_Flag = TRUE;
           Set_New_Homopoly_Votes (vote, mod_seq, mod_len, mod_dp + i);
- Global_Debug_Flag = FALSE;
-}
         else
 //          Set_Votes_From_Diffs (sub, Frag [sub] . diff_list + i);
-          Set_New_Standard_Votes (vote, mod_len, mod_dp + i);
+          Set_New_Standard_Votes (vote, mod_seq, mod_len, mod_dp + i);
+ Global_Debug_Flag = FALSE;
        }
 
    if (Frag [sub] . is_homopoly_type)
 //     Set_Self_Homopoly_Votes (sub, frag_len);
      Set_New_Self_Homopoly_Votes (vote, mod_seq, mod_len);
    else
-     Set_Self_Votes (sub, frag_len);
+//     Set_Self_Votes (sub, frag_len);
+     Set_New_Self_Votes (vote, mod_seq, mod_len);
 
 //**ALD
    if (Verbose_Level > 1)
@@ -547,7 +550,7 @@ if (0)
       if (Frag [sub] . is_homopoly_type)
         Determine_Homopoly_Corrections (fp, sub, vote, mod_seq, correct, mod_len);
       else
-        Determine_Standard_Corrections (fp, sub, correct);
+        Determine_Standard_Corrections (fp, sub, vote, mod_seq, correct, mod_len);
 
 //**ALD
       if (Verbose_Level > 0)
@@ -752,27 +755,27 @@ static void  Cast_Insert_Vote
 
 
 static void  Cast_New_Vote_Char
-  (New_Vote_t * vp, char ch)
+  (New_Vote_t * vp, char ch, int num)
 
-// Add 1 to the count corresponding to  ch  in  vp .
+// Add  num  to the count corresponding to  ch  in  vp .
 
   {
    switch (tolower (ch))
      {
       case 'a' :
-        vp -> a_ct ++;
+        vp -> a_ct += num;
         break;
       case 'c' :
-        vp -> c_ct ++;
+        vp -> c_ct += num;
         break;
       case 'g' :
-        vp -> g_ct ++;
+        vp -> g_ct += num;
         break;
       case 't' :
-        vp -> t_ct ++;
+        vp -> t_ct += num;
         break;
       case '-' :
-        vp -> gap_ct ++;
+        vp -> gap_ct += num;
         break;
       default :
         fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
@@ -786,24 +789,24 @@ static void  Cast_New_Vote_Char
 
 
 static void  Cast_New_Vote_Code
-  (New_Vote_t * vp, unsigned code)
+  (New_Vote_t * vp, unsigned code, int num)
 
-// Add 1 to the count corresponding to the character with code  code  in  vp .
+// Add  num  to the count corresponding to the character with code  code  in  vp .
 
   {
    switch (code)
      {
       case 0 :
-        vp -> a_ct ++;
+        vp -> a_ct += num;
         break;
       case 1 :
-        vp -> c_ct ++;
+        vp -> c_ct += num;
         break;
       case 2 :
-        vp -> g_ct ++;
+        vp -> g_ct += num;
         break;
       case 3 :
-        vp -> t_ct ++;
+        vp -> t_ct += num;
         break;
       default :
         fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
@@ -1353,17 +1356,149 @@ if (0)
 
 
 static void  Determine_Standard_Corrections
-    (FILE * fp, int sub, char * correct)
+    (FILE * fp, int sub, New_Vote_t * vote, char * seq,
+     char * correct, int len)
 
-// Determine the corrections for  Frag [sub]  based on its votes
-// and output the corrections to  fp .  Assume  Frag [sub]  is
-// a normal read with trusted homopolymer run lengths.
-// Put the corrected sequence into  correct .
+// Determine the corrections for  Frag [sub]  based on the votes in
+//  vote  corresponding to the sequence in  seq , both of length  len .
+// Put the corrected string in  correct .  Output corrections to  fp .
+// Assume  Frag [sub]  is a normal read with trusted homopolymer run lengths.
 
   {
-   int  i, j;
+   const double  DIFF_CUTOFF = 0.75;   // homopoly length difference to make change
+   Correction_Output_t  out;
+   char  ch, hp_ch = 'x';
+   double  diff, new_hp_len;
+   int  hp_width = 0;   // number of consecutive positions in seq for
+                        // the current homopolymer
+   int  hp_len, ch_ct, tot;
+   int  hp_ct = 0, hp_sum = 0;
+   int  i, j, k;
 
-   //**ALD  Not done yet
+   for (i = 0; i < len; i ++)
+     {
+      correct [i] = ' ';
+      ch = Standard_Should_Be (seq [i], vote + i, & ch_ct, & tot);
+      if (ch != hp_ch && ch != '-')
+        {  // end of prior homopoly run--adjust length if necessary
+         if (i > 0 && hp_ch != 'x')
+           {
+            new_hp_len = (1.0 * hp_sum) / hp_ct;
+            diff = new_hp_len - hp_len;
+//**ALD
+if (0)
+{
+ double  x = (1.0 * hp_sum) / hp_ct;
+ printf ("%3d:  %c  hp_ct=%d  hp_sum=%d  hp_len=%d  diff=%.2f  hp_width=%d  x=%.3f\n",
+      j, seq [j], hp_ct, hp_sum, hp_len, diff, hp_width, x);
+}
+            if (diff < - DIFF_CUTOFF && hp_width > 1
+                  && (new_hp_len > 0 || vote [j] . mutable))
+              {  // delete (- diff) copies of hp_ch preceding here
+//**ALD
+//printf (" .. delete %d copies of %c in %d..%d\n", - diff, hp_ch, j, i - 1);
+               for (k = i - 1; k >= j && diff < - DIFF_CUTOFF; k --)
+                 if (seq [k] == hp_ch && correct [k] == ' ')
+                   {
+                    correct [k] = '-';
+                    diff += 1.0;
+                   }
+              }
+            else if (diff > DIFF_CUTOFF && hp_width > 1)
+              {  // insert diff copies of hp_ch after j
+//**ALD
+//printf (" .. insert %d copies of %c int %d..%d\n", diff, hp_ch, j, i - 1);
+               for (k = j; k < i && diff > DIFF_CUTOFF; k ++)
+                 if (seq [k] == '-' && correct [k] == ' ')
+                   {
+                    correct [k] = hp_ch;
+                    diff -= 1.0;
+                   }
+              }
+           }
+         // new homopoly run starts here
+         hp_len = hp_width = 0;
+         hp_ch = ch;
+         hp_ct = hp_sum = 0;
+         j = i;
+        }
+      hp_sum += Votes_For (hp_ch, vote + i);
+//**ALD
+//printf ("... i=%d  %c  hp_ch=%c  votes_for=%d  hp_sum=%d\n", i, seq [i], hp_ch,
+//     Votes_For (hp_ch, vote + i), hp_sum);
+      if (hp_ct < tot)   // use maximum coverage depth
+        hp_ct = tot;
+      if (seq [i] == hp_ch)
+        hp_len ++;
+      if (seq [i] == hp_ch || seq [i] == '-')
+        hp_width ++;
+
+      if (ch != seq [i])
+        {
+         correct [i] = ch;
+         if (ch == hp_ch)
+           hp_len ++;
+         else if (seq [i] == hp_ch)
+           hp_len --;   // decrease homopoly count so don't re-delete later
+        }
+     }
+
+//**ALD
+   if (Verbose_Level > 1)
+     Show_Corrections (stdout, seq, correct, len);
+
+   // Output corrections
+   Output_Correction_Header (fp, sub);
+   for (i = j = 0; i < len; i ++)
+     {
+      if (seq [i] != '-')
+        j ++;
+      if (correct [i] != ' ')
+        {
+         assert (correct [i] != seq [i]);
+         out . corr . is_ID = FALSE;
+         out . corr . pos = j - 1;
+         if (correct [i] == '-')
+           out . corr . type = DELETE;
+         else if (seq [i] == '-')
+           {
+            switch (correct [i])
+              {
+               case 'a' :
+                 out . corr . type = A_INSERT;
+                 break;
+               case 'c' :
+                 out . corr . type = C_INSERT;
+                 break;
+               case 'g' :
+                 out . corr . type = G_INSERT;
+                 break;
+               case 't' :
+                 out . corr . type = T_INSERT;
+                 break;
+              }
+           }
+         else
+           {
+            switch (correct [i])
+              {
+               case 'a' :
+                 out . corr . type = A_SUBST;
+                 break;
+               case 'c' :
+                 out . corr . type = C_SUBST;
+                 break;
+               case 'g' :
+                 out . corr . type = G_SUBST;
+                 break;
+               case 't' :
+                 out . corr . type = T_SUBST;
+                 break;
+              }
+           }
+         fwrite (& out, sizeof (Correction_Output_t), 1, fp);
+        }
+     }
 
    return;
   }
@@ -1803,7 +1938,7 @@ static void  Extract_Needed_Frags
           goto  Advance_Next_Olap;
 
       shredded = FALSE;
-        // Used in Process_Olap to ignore overlaps between two "shredded" reads
+        // Used in Process_Seed to ignore overlaps between two "shredded" reads
         // Perhaps should check for external reads now
 
       clear_start = getFragRecordClearRegionBegin (frag_read, AS_READ_CLEAR_OBT);
@@ -3078,7 +3213,7 @@ static int  Prefix_Edit_Dist
 
 
 
-static void  Process_Olap
+static void  Process_Seed
   (Olap_Info_t * olap, char * b_seq, unsigned b_len, char * rev_seq,
    int * rev_id, int shredded, int is_homopoly, Thread_Work_Area_t * wa)
 
@@ -3113,8 +3248,9 @@ static void  Process_Olap
    int  use_homopoly_type_alignments, re_do;
    int  i, k;
 
+//**ALD
    if (Verbose_Level > 0)
-      printf ("Process_Olap:  %8d %8d %5d %5d  %c\n",
+      printf ("Process_Seed:  %8d %8d %5d %5d  %c\n",
            olap -> a_iid, olap -> b_iid,
            olap -> a_hang, olap -> b_hang,
            olap -> orient == INNIE ? 'I' : 'N');
@@ -3234,16 +3370,28 @@ static void  Process_Olap
          printf ("Rev_Homopoly_Match_Start:  b_iid = %d  a/b_offset = %d/%d"
               "  allowed_errors=%d\n",
               olap -> b_iid, a_offset, b_offset, allowed_errors);
-         printf ("  a/b_end=%d/%d  score=%d  match_to_end=%c  raw_errors=%d\n",
-              a_end, b_end, score, (match_to_end ? 'T' : 'F'), raw_errors);
+         printf ("  a/b_end=%d/%d  score=%d  match_to_end=%c  raw/left_errors=%d/%d\n",
+              a_end, b_end, score, (match_to_end ? 'T' : 'F'), raw_errors,
+              left_errors);
         }
      }
    else
-     left_errors = Rev_Prefix_Edit_Dist (a_part - 1, a_offset,
-          b_part - 1, b_offset, remaining_errors, & a_end, & b_end,
-          & leftover, & match_to_end, Char_Match_Value, left_delta,
-          & left_delta_len, wa -> edit_array, Edit_Match_Limit, Error_Bound,
-          Doing_Partial_Overlaps);
+     {
+      left_errors = Rev_Prefix_Edit_Dist (a_part - 1, a_offset,
+           b_part - 1, b_offset, allowed_errors, & a_end, & b_end,
+           & leftover, & match_to_end, Char_Match_Value, left_delta,
+           & left_delta_len, wa -> edit_array, Edit_Match_Limit, Error_Bound,
+           Doing_Partial_Overlaps);
+//**ALD
+      if (Verbose_Level > 1)
+        {
+         printf ("Rev_Prefix_Edit_Dist:  b_iid = %d  a/b_offset = %d/%d"
+              "  allowed_errors=%d\n",
+              olap -> b_iid, a_offset, b_offset, allowed_errors);
+         printf ("  a/b_end=%d/%d  score=%d  match_to_end=%c  left_errors=%d\n",
+              a_end, b_end, score, (match_to_end ? 'T' : 'F'), left_errors);
+        }
+     }
 
    // make sure nothing terrible happened
    if (a_end > 0 || - a_end > a_offset || b_end > 0 || - b_end > b_offset)
@@ -3283,7 +3431,7 @@ static void  Process_Olap
               & new_a_end, & new_b_end, & new_match_to_end, new_delta,
               & new_delta_len, wa -> homopoly_edit_array);
    #else
-         Alignment_Cell_t  ea [10 * AS_READ_MAX_LEN];
+         Alignment_Cell_t  * ea = (Alignment_Cell_t *) wa -> homopoly_edit_array;
 
          raw_errors = Fwd_Banded_Homopoly_Prefix_Match (a_part + a_end, a_part_len - a_end,
               b_part + b_end, b_part_len - b_end,
@@ -3670,7 +3818,7 @@ static void  Read_Frags
         }
 
       Frag [i] . shredded = FALSE;
-        // Used in Process_Olap to ignore overlaps between two "shredded" reads
+        // Used in Process_Seed to ignore overlaps between two "shredded" reads
         // Perhaps should check for external reads now
 
 
@@ -3702,7 +3850,7 @@ static void  Read_Frags
       seq_buff [frag_len - clear_start] = '\0';
 
       Frag [i] . sequence = strdup (seq_buff);
-      Frag [i] . len = frag_len;
+      Frag [i] . len = frag_len - clear_start;
       Frag [i] . vote = (Vote_Tally_t *) safe_calloc (frag_len - clear_start,
            sizeof (Vote_Tally_t));
       Frag [i] . left_degree = Frag [i] . right_degree = 0;
@@ -3973,10 +4121,12 @@ static void  Set_Homopoly_Votes_From_Diffs
 
 
 static void  Set_Insert_Sizes
-  (short unsigned * insert_size, const Sequence_Diff_t * dp)
+  (short unsigned * insert_size, const Sequence_Diff_t * dp, const char * seq,
+   int seq_len)
 
 // Set values in  insert_size  to be at least large enough to accommodate
-// insertions in  dp .
+// insertions in  dp , whose reference sequence is  seq  of length
+//  seq_len .
 
   {
    int  j, k, i_ct;
@@ -4036,8 +4186,11 @@ static void  Set_New_Homopoly_Votes
 
 //**ALD
 if (Global_Debug_Flag)
-  printf ("a_lo/hi=%d/%d  b_lo/hi=%d/%d\n", dp -> a_lo, dp -> a_hi,
+  {
+   printf ("a_lo/hi=%d/%d  b_lo/hi=%d/%d\n", dp -> a_lo, dp -> a_hi,
        dp -> b_lo, dp -> b_hi);
+   Display_Diffs (stdout, dp, seq, len);
+  }
 
    j = dp -> a_lo;
 
@@ -4048,13 +4201,31 @@ if (Global_Debug_Flag)
      }
    else
      first_de = last_de = NULL;
+
    // if alignment starts in middle don't allow votes for first hp run
    // because it could be truncated because the fragment boundary
    // split the run
    if (0 < j && first_de != NULL && first_de -> len > 0)
      {
-      for (k = 1; k < first_de -> len && seq [j + k] == seq [j]; k ++)
+      char  ch = seq [j];
+      for (k = 1; k < first_de -> len && ch == seq [j + k]; k ++)
         ;
+      // homopoly run extends to include indels, should be no inserts here
+      if (k == first_de -> len
+            && ((first_de -> action == 1  // delete
+                     && (seq [j + k] == ch || seq [j + k] == '-'))
+                 || (first_de -> action == 2  // subst
+                       && Char_Matches (ch, first_de -> ch))))
+        {
+         Diff_Entry_t  * p;
+         k ++;
+         for (p = first_de + 1; p < last_de && p -> len == 0; p ++)
+           if ((p -> action == 1 && (seq [j + k] == ch || seq [j + k] == '-'))
+                 || (p -> action == 2 && Char_Matches (ch, first_de -> ch)))
+             k ++;
+           else
+             break;
+        }
       first_j = j + k;
      }
    else
@@ -4077,6 +4248,9 @@ if (Global_Debug_Flag)
       skip_last = FALSE;
      }
    
+//**ALD
+if (Global_Debug_Flag)
+  printf ("first_j=%d  last_j=%d\n", first_j, last_j);
 
    for (k = 0; k < dp -> diff_len; k ++)
      {
@@ -4087,7 +4261,7 @@ if (Global_Debug_Flag)
 {
  if (Global_Debug_Flag)
    printf ("j=%d  seq[%d]=%c (%d)\n", j, j, seq [j], (int) seq [j]);
-           Cast_New_Vote_Char (vote + j, seq [j]);
+           Cast_New_Vote_Char (vote + j, seq [j], HOMOPOLY_VOTE_NUM);
 }
          if (seq [j] == hp_ch)
            hp_len ++;
@@ -4140,7 +4314,8 @@ if (Global_Debug_Flag)
                hp_ch = seq [j];
                hp_len = 0;
               }
-           Cast_New_Vote_Char (vote + j, '-');
+           if (first_j <= j)
+             Cast_New_Vote_Char (vote + j, '-', HOMOPOLY_VOTE_NUM);
            j ++;
            break;
          case 2 :    // substitute
@@ -4167,7 +4342,8 @@ if (Global_Debug_Flag)
                hp_ch = seq [j];
                hp_len = 0;
               }
-           Cast_New_Vote_Code (vote + j, dp -> de [k] . ch);
+           if (first_j <= j)
+             Cast_New_Vote_Code (vote + j, dp -> de [k] . ch, HOMOPOLY_VOTE_NUM);
            j ++;
            break;
          case 3 :    // noop
@@ -4226,7 +4402,7 @@ static void  Set_New_Self_Homopoly_Votes
          hp = vote + j;
          hp_ch = seq [j];
         }
-      Cast_New_Vote_Char (vote + j, seq [j]);
+      Cast_New_Vote_Char (vote + j, seq [j], 1);
      }
 
    if (hp != NULL)
@@ -4240,14 +4416,244 @@ static void  Set_New_Self_Homopoly_Votes
 
 
 
+static void  Set_New_Self_Votes
+  (New_Vote_t * vote, const char * seq, int len)
+
+// Set standard-type votes in  vote  based on the sequence  seq
+// of length  len .
+
+  {
+   New_Vote_t  * hp;   // keeps track of first base of homopoly run
+   char  hp_ch = 'x';
+   int  hp_len = 0;      // length of current homopoly run
+   int  j;
+
+   hp = NULL;
+
+   for (j = 0; j < len; j ++)
+     {
+      if (seq [j] == hp_ch)
+        hp_len ++;
+      else
+        {
+         if (hp != NULL)
+           {
+            hp -> non_hp_ct ++;
+            hp -> non_hp_sum += hp_len;
+           }
+         hp_len = 1;
+         hp = vote + j;
+         hp_ch = seq [j];
+        }
+      Cast_New_Vote_Char (vote + j, seq [j], 1);
+     }
+
+   if (hp != NULL)
+     {
+      hp -> non_hp_ct ++;
+      hp -> non_hp_sum += hp_len;
+     }
+
+   return;
+  }
+
+
+
 static void  Set_New_Standard_Votes
-  (New_Vote_t * vote, int len, const Sequence_Diff_t * dp)
+  (New_Vote_t * vote, const char * seq, int len, const Sequence_Diff_t * dp)
 
 // Set entries in  vote  of length  len  for differences
 // in  dp  that correspond to a conventional-type (non-homopolymer) read.
 
   {
-   //**ALD  not done yet
+   New_Vote_t  * hp = NULL;     // pointer to start of current homopoly run
+   Diff_Entry_t  * first_de, * last_de;
+   char  hp_ch = 'x';
+   int  skip_last;
+   int  first_j, last_j;
+   int  hp_len = 0;      // length of current homopoly run
+   int  j, k, m;
+
+//**ALD
+if (Global_Debug_Flag)
+  printf ("a_lo/hi=%d/%d  b_lo/hi=%d/%d\n", dp -> a_lo, dp -> a_hi,
+       dp -> b_lo, dp -> b_hi);
+
+   j = dp -> a_lo;
+
+   if (dp -> diff_len > 0)
+     {
+      first_de = dp -> de;
+      last_de = dp -> de + dp -> diff_len - 1;
+     }
+   else
+     first_de = last_de = NULL;
+
+   // if alignment starts in middle don't allow votes for first hp run
+   // because it could be truncated because the fragment boundary
+   // split the run
+   if (0 < j && first_de != NULL && first_de -> len > 0)
+     {
+      char  ch = seq [j];
+      for (k = 1; k < first_de -> len && ch == seq [j + k] ; k ++)
+        ;
+      // homopoly run extends to include indels, should be no inserts here
+      if (k == first_de -> len
+            && ((first_de -> action == 1  // delete
+                     && (seq [j + k] == ch || seq [j + k] == '-'))
+                 || (first_de -> action == 2  // subst
+                       && Char_Matches (ch, first_de -> ch))))
+        {
+         Diff_Entry_t  * p;
+         k ++;
+         for (p = first_de + 1; p < last_de && p -> len == 0; p ++)
+           if ((p -> action == 1 && (seq [j + k] == ch || seq [j + k] == '-'))
+                 || (p -> action == 2 && Char_Matches (ch, first_de -> ch)))
+             k ++;
+           else
+             break;
+        }
+      first_j = j + k;
+     }
+   else
+     first_j = j;
+
+   // similarly, if the alignment ends before the end of seq, don't
+   // allow votes for the last matching hp run
+   if (dp -> a_hi < len && last_de != NULL
+          && last_de -> len > 0 && last_de -> action == 3)
+     {
+      char  ch = seq [dp -> a_hi - 1];
+      for (k = 2; k <= last_de -> len && seq [dp -> a_hi - k] == ch ; k ++)
+        ;
+      last_j = dp -> a_hi - k;
+      skip_last = TRUE;
+     }
+   else
+     {
+      last_j = dp -> a_hi;
+      skip_last = FALSE;
+     }
+   
+//**ALD
+if (Global_Debug_Flag)
+  printf ("first_j=%d  last_j=%d\n", first_j, last_j);
+
+   for (k = 0; k < dp -> diff_len; k ++)
+     {
+      for (m = 0; m < dp -> de [k] . len; m ++)
+        {
+         if (first_j <= j && j <= last_j)
+//**ALD
+{
+ if (Global_Debug_Flag)
+   printf ("j=%d  seq[%d]=%c (%d)\n", j, j, seq [j], (int) seq [j]);
+           Cast_New_Vote_Char (vote + j, seq [j], STANDARD_VOTE_NUM);
+}
+         if (seq [j] == hp_ch)
+           hp_len ++;
+         else
+           {
+            if (hp != NULL && first_j < j)
+              {
+               hp -> non_hp_ct ++;
+               hp -> non_hp_sum += hp_len;
+              }
+            hp_len = 1;
+            hp = vote + j;
+            hp_ch = seq [j];
+           }
+         j ++;
+        }
+
+      switch (dp -> de [k] . action)
+        {
+         case 0 :    // insert
+           if (Char_Matches (hp_ch, dp -> de [k] . ch))
+              hp_len ++;
+           else
+             {
+              if (hp != NULL && first_j < j)
+                {
+                 hp -> non_hp_ct ++;
+                 hp -> non_hp_sum += hp_len;
+                }
+              hp = NULL;
+              hp_len = 0;
+              hp_ch = 'x';
+             }
+           break;
+         case 1 :    // delete
+           if (hp != NULL && first_j < j)
+                {
+                 hp -> non_hp_ct ++;
+                 hp -> non_hp_sum += hp_len;
+                }
+           if (hp_ch == seq [j])
+              {
+               hp = NULL;
+               hp_len = 0;
+               hp_ch = 'x';
+              }
+            else
+              {
+               hp = vote + j;
+               hp_ch = seq [j];
+               hp_len = 0;
+              }
+           if (first_j <= j)
+             Cast_New_Vote_Char (vote + j, '-', STANDARD_VOTE_NUM);
+           j ++;
+           break;
+         case 2 :    // substitute
+           if (Char_Matches (hp_ch, dp -> de [k] . ch))
+             {
+              // allow overlap of 1 for homopolymer runs
+              // shouldn't be necessary if alignments are done correctly
+              hp_len ++;
+             }
+           if (hp != NULL && first_j < j)
+                {
+                 hp -> non_hp_ct ++;
+                 hp -> non_hp_sum += hp_len;
+                }
+           if (hp_ch == seq [j])
+              {
+               hp = NULL;
+               hp_len = 0;
+               hp_ch = 'x';
+              }
+            else
+              {
+               hp = vote + j;
+               hp_ch = seq [j];
+               hp_len = 0;
+              }
+           if (first_j <= j)
+             Cast_New_Vote_Code (vote + j, dp -> de [k] . ch, STANDARD_VOTE_NUM);
+           j ++;
+           break;
+         case 3 :    // noop
+           // should be end of alignment
+           // cast vote at end also--requires homopoly-type alignment
+           // or else may unduly shorten run
+           if (hp != NULL && first_j < j && ! skip_last)
+              {
+               hp -> non_hp_ct ++;
+               hp -> non_hp_sum += hp_len;
+              }
+           hp = NULL;    // following are just in case alignment doesn't end here
+           hp_len = 0;
+           hp_ch = 'x';
+           break;
+        }
+     }
+
+   if (hp != NULL)
+      {
+       hp -> non_hp_ct ++;
+       hp -> non_hp_sum += hp_len;
+      }
 
    return;
   }
@@ -4497,6 +4903,83 @@ static void  Show_Votes
 
 
 
+static char  Standard_Should_Be
+  (char curr, New_Vote_t * vp, int * ch_ct, int * tot)
+
+// Return the character that should be at this column of
+// a multialignment with counts in  vp  and the current
+// character in the reference string being  curr .
+// Set  ch_ct  to the number of votes for the returned character,
+// and set  tot  to the total number of votes.  Assume the
+// reference is a non-homopoly-type read.
+
+  {
+   char  mx_ch;
+   int  curr_ct, mx_ct;
+
+   mx_ch = 'a';
+   mx_ct = vp -> a_ct;
+   if (mx_ct < vp -> c_ct)
+     {
+      mx_ch = 'c';
+      mx_ct = vp -> c_ct;
+     }
+   if (mx_ct < vp -> g_ct)
+     {
+      mx_ch = 'g';
+      mx_ct = vp -> g_ct;
+     }
+   if (mx_ct < vp -> t_ct)
+     {
+      mx_ch = 't';
+      mx_ct = vp -> t_ct;
+     }
+   if (mx_ct < vp -> gap_ct)
+     {
+      mx_ch = '-';
+      mx_ct = vp -> gap_ct;
+     }
+
+   * tot = vp -> a_ct + vp -> c_ct + vp -> g_ct + vp -> t_ct + vp -> gap_ct;
+   * ch_ct = mx_ct;
+
+   if (mx_ch == curr)
+     {
+      vp -> mutable = FALSE;
+      return  mx_ch;   // no change
+     }
+
+   switch (tolower (curr))
+     {
+      case 'a' :
+        curr_ct = vp -> a_ct;
+        break;
+      case 'c' :
+        curr_ct = vp -> c_ct;
+        break;
+      case 'g' :
+        curr_ct = vp -> g_ct;
+        break;
+      case 't' :
+        curr_ct = vp -> t_ct;
+        break;
+     }
+
+   if ((mx_ct > 1 && * tot - mx_ct <= 1)
+         || (* tot - mx_ct <= 2 && mx_ct >= 0.8 * (* tot))
+         || (curr_ct == 1 && mx_ct > 1)
+         || (curr_ct == 2 && mx_ct >= 0.9 * (* tot)))
+     {
+      vp -> mutable = TRUE;
+      return  mx_ch;
+     }
+
+   vp -> mutable = FALSE;
+   return  curr;
+  }
+
+
+
 static void  Stream_Old_Frags
     (void)
 
@@ -4542,7 +5025,7 @@ static void  Stream_Old_Frags
           continue;
 
       shredded = FALSE;
-        // Used in Process_Olap to ignore overlaps between two "shredded" reads
+        // Used in Process_Seed to ignore overlaps between two "shredded" reads
         // Perhaps should check for external reads now
 
       clear_start = getFragRecordClearRegionBegin (frag_read, AS_READ_CLEAR_OBT);
@@ -4576,7 +5059,7 @@ static void  Stream_Old_Frags
             else
                Olap [next_olap] . b_hang -= (raw_len - clear_end);
            }
-         Process_Olap (Olap + next_olap, seq_buff, seq_len,
+         Process_Seed (Olap + next_olap, seq_buff, seq_len,
               rev_seq, & rev_id, shredded, is_homopoly, & wa);
          next_olap ++;
         }
@@ -4649,7 +5132,7 @@ void *  Threaded_Process_Stream
                   Olap [wa -> next_olap] . b_hang
                        -= wa -> frag_list -> entry [i] . trim_3p;
               }
-            Process_Olap (Olap + wa -> next_olap,
+            Process_Seed (Olap + wa -> next_olap,
                  wa -> frag_list -> buffer + wa -> frag_list -> entry [i] . start,
                  b_len, wa -> rev_seq, & (wa -> rev_id),
                  wa -> frag_list -> entry [i] . shredded,

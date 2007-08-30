@@ -33,8 +33,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.h,v 1.8 2007-08-23 15:06:26 adelcher Exp $
- * $Revision: 1.8 $
+ * $Id: OlapFromSeedsOVL.h,v 1.9 2007-08-30 14:09:05 adelcher Exp $
+ * $Revision: 1.9 $
 */
 
 
@@ -366,9 +366,9 @@ static void  Cast_Delete_Vote
 static void  Cast_Insert_Vote
   (Vote_Tally_t * vote, unsigned ch);
 static void  Cast_New_Vote_Char
-  (New_Vote_t * vp, char ch);
+  (New_Vote_t * vp, char ch, int num);
 static void  Cast_New_Vote_Code
-  (New_Vote_t * vp, unsigned code);
+  (New_Vote_t * vp, unsigned code, int num);
 static void  Cast_No_Insert_Vote
   (Vote_Tally_t * vote);
 static void  Cast_Substitution_Vote
@@ -390,7 +390,8 @@ static void  Determine_Homopoly_Corrections
     (FILE * fp, int sub, New_Vote_t * vote, char * seq,
      char * correct, int len);
 static void  Determine_Standard_Corrections
-    (FILE * fp, int sub, char * correct);
+    (FILE * fp, int sub, New_Vote_t * vote, char * seq,
+     char * correct, int len);
 static void  Display_Alignment
   (char * a, int a_len, char * b, int b_len, int delta [], int delta_ct,
    int capitalize_start);
@@ -439,7 +440,7 @@ static void  Output_Olap_From_Diff
   (const Sequence_Diff_t * dp, int32 a_iid);
 static void  Parse_Command_Line
   (int argc, char * argv []);
-static void  Process_Olap
+static void  Process_Seed
   (Olap_Info_t * olap, char * b_seq, unsigned b_len, char * rev_seq, int * rev_id,
    int shredded, int is_homopoly, Thread_Work_Area_t * wa);
 static void  Read_Frags
@@ -454,13 +455,16 @@ static void  Set_Diff_Entry
 static void  Set_Homopoly_Votes_From_Diffs
   (int sub, Sequence_Diff_t * dp);
 static void  Set_Insert_Sizes
-  (short unsigned * insert_size, const Sequence_Diff_t * dp);
+  (short unsigned * insert_size, const Sequence_Diff_t * dp, const char * seq,
+   int seq_len);
 static void  Set_New_Homopoly_Votes
   (New_Vote_t * vote, const char * seq, int len, const Sequence_Diff_t * dp);
 static void  Set_New_Self_Homopoly_Votes
   (New_Vote_t * vote, const char * seq, int len);
+static void  Set_New_Self_Votes
+  (New_Vote_t * vote, const char * seq, int len);
 static void  Set_New_Standard_Votes
-  (New_Vote_t * vote, int len, const Sequence_Diff_t * dp);
+  (New_Vote_t * vote, const char * seq, int len, const Sequence_Diff_t * dp);
 static void  Set_Self_Homopoly_Votes
   (int sub, int frag_len);
 static void  Set_Self_Votes
@@ -477,6 +481,8 @@ static void  Show_New_Votes
   (FILE * fp, const char * seq, const New_Vote_t * vp, int n);
 static void  Show_Votes
   (FILE * fp);
+static char  Standard_Should_Be
+  (char curr, New_Vote_t * vp, int * ch_ct, int * tot);
 static void  Stream_Old_Frags
   (void);
 void *  Threaded_Process_Stream
