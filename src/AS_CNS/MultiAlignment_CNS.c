@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.155 2007-08-30 02:51:39 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.156 2007-08-30 13:06:02 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -48,7 +48,7 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.155 2007-08-30 02:51:39 bri
 #define ALT_QV_THRESH                      30
 #define IDENT_NAMESPACE                     1
 #define DONT_SHOW_OLAP                      0
-#define MIN_SUM_QVS_FOR_VARIATION          60
+#define MIN_AVE_QV_FOR_VARIATION           21
 #define QV_FOR_MULTI_GAP                   14
 #define SHOW_OLAP                           1
 #undef  ALIGN_TO_CONSENSUS
@@ -1747,8 +1747,6 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
 
     int best_read_qv_count[CNS_NP] = {0};
     int other_read_qv_count[CNS_NP] = {0};
-    int highest_qv[CNS_NP] = {0};
-    int highest2_qv[CNS_NP] = {0};
 
     int b_read_depth=0, o_read_depth=0, guide_depth=0;
     int score=0;
@@ -1899,17 +1897,6 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
                     other_read_base_count[BaseToInt(cbase)]++;
                     other_read_qv_count[BaseToInt(cbase)] += qv;
                     AppendBead(o_reads, bead);
-                }
-
-                if (highest_qv[BaseToInt(cbase)] < qv)
-                {
-                    highest2_qv[BaseToInt(cbase)] = highest_qv[BaseToInt(cbase)];
-                    highest_qv[BaseToInt(cbase)] = qv;    
-                }   
-                else if (highest_qv[BaseToInt(cbase)] >= qv &&
-                    highest2_qv[BaseToInt(cbase)] < qv)
-                {
-                    highest2_qv[BaseToInt(cbase)] = qv;
                 }
             }
             else
@@ -2110,7 +2097,8 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
              * (Granger's suggestion - GD)
              */
             if (best_read_base_count[bi] >  1 &&
-                highest_qv[bi] + highest2_qv[bi] >= MIN_SUM_QVS_FOR_VARIATION)
+                (float)best_read_qv_count[bi]/(float)best_read_base_count[bi] 
+                 >= MIN_AVE_QV_FOR_VARIATION)
             {
                 sum_qv_all += best_read_qv_count[bi];
                 if (IntToBase(bi) == cbase)
@@ -9295,29 +9283,28 @@ MultiAlignT *MergeMultiAlignsFast_new( tSequenceDB *sequenceDBp,
 
   static VA_TYPE(IntMultiPos) *mpositions=NULL;
   static IntMultiPos mpos;
-  IntElementPos *epos = GetIntElementPos(positions,0);
+  IntElementPos *epos=GetIntElementPos(positions,0);
+  int npos=GetNumIntElementPoss(positions);
   int i;
 
-  if (mpositions == NULL )
-    mpositions = CreateVA_IntMultiPos(32);
-
-  ResetVA_IntMultiPos(mpositions);
-
-  mpos.contained    = 0;
-  mpos.delta_length = 0;
-  mpos.delta        = NULL;
-
-  for (i=0; i<GetNumIntElementPoss(positions); i++, epos++) {
-    mpos.type     = epos->type;
-    mpos.ident    = epos->ident;
-    mpos.position = epos->position;
-
+  allow_neg_hang=0;
+  mpos.contained=0;
+  mpos.delta_length=0;
+  mpos.delta=NULL;
+  if (mpositions == NULL ) {
+       mpositions = CreateVA_IntMultiPos(npos);
+  } else {
+       ResetVA_IntMultiPos(mpositions);
+      // EnableRangeVA_IntMultiPos(mpositions,npos); // this doesn't work
+  }
+  for (i=0;i<npos;i++,epos++) {
+    mpos.type=epos->type;
+    mpos.ident=epos->ident;
+    mpos.position=epos->position;
     AppendVA_IntMultiPos(mpositions,&mpos);
   } 
-
-  allow_neg_hang = 0;
-
-  return(MergeMultiAligns(sequenceDBp, frag_store, mpositions, quality, verbose, COMPARE_FUNC, opp));
+  return MergeMultiAligns( sequenceDBp, frag_store, mpositions, quality, 
+      verbose, COMPARE_FUNC, opp);
 }
 
 MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
