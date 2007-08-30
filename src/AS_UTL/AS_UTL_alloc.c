@@ -48,6 +48,8 @@ safe_calloc(size_t num, size_t len) {
    if (p == NULL) {
      fprintf(stderr, "Could not calloc memory ("F_SIZE_T" * "F_SIZE_T" bytes = "F_SIZE_T")\n",
              num, len, num*len);
+     if (num == 0 || len == 0)
+         return(NULL);
      assert(p != NULL);
    }
    return(p);
