@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.154 2007-08-29 22:22:26 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.155 2007-08-30 02:51:39 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -9295,28 +9295,29 @@ MultiAlignT *MergeMultiAlignsFast_new( tSequenceDB *sequenceDBp,
 
   static VA_TYPE(IntMultiPos) *mpositions=NULL;
   static IntMultiPos mpos;
-  IntElementPos *epos=GetIntElementPos(positions,0);
-  int npos=GetNumIntElementPoss(positions);
+  IntElementPos *epos = GetIntElementPos(positions,0);
   int i;
 
-  allow_neg_hang=0;
-  mpos.contained=0;
-  mpos.delta_length=0;
-  mpos.delta=NULL;
-  if (mpositions == NULL ) {
-       mpositions = CreateVA_IntMultiPos(npos);
-  } else {
-       ResetVA_IntMultiPos(mpositions);
-      // EnableRangeVA_IntMultiPos(mpositions,npos); // this doesn't work
-  }
-  for (i=0;i<npos;i++,epos++) {
-    mpos.type=epos->type;
-    mpos.ident=epos->ident;
-    mpos.position=epos->position;
+  if (mpositions == NULL )
+    mpositions = CreateVA_IntMultiPos(32);
+
+  ResetVA_IntMultiPos(mpositions);
+
+  mpos.contained    = 0;
+  mpos.delta_length = 0;
+  mpos.delta        = NULL;
+
+  for (i=0; i<GetNumIntElementPoss(positions); i++, epos++) {
+    mpos.type     = epos->type;
+    mpos.ident    = epos->ident;
+    mpos.position = epos->position;
+
     AppendVA_IntMultiPos(mpositions,&mpos);
   } 
-  return MergeMultiAligns( sequenceDBp, frag_store, mpositions, quality, 
-      verbose, COMPARE_FUNC, opp);
+
+  allow_neg_hang = 0;
+
+  return(MergeMultiAligns(sequenceDBp, frag_store, mpositions, quality, verbose, COMPARE_FUNC, opp));
 }
 
 MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
