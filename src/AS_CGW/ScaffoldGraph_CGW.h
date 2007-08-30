@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ScaffoldGraph_CGW.h,v 1.20 2007-08-26 10:11:03 brianwalenz Exp $	 */
+/* 	$Id: ScaffoldGraph_CGW.h,v 1.21 2007-08-30 02:59:05 brianwalenz Exp $	 */
 /***************************************************************************
  *  ScaffoldGraph
  *  
@@ -450,15 +450,6 @@ void CelamyAssembly(char *name);
 void FindScaffoldComponents(ScaffoldGraphT *graph, int findPaths);
 int MergeScaffoldPaths(ScaffoldGraphT *sgraph);
 
-
-/* Check Chunk Instance Types and Flags */
-void CheckCITypes(ScaffoldGraphT *sgraph);
- 
-/* Dump Stuff for Scaffold Building Debug */
-void DumpSuspiciousCI(ChunkInstanceT *CI);
-
-/* Check Chunk Instance Types only */
-void CheckAllowedCITypes(ScaffoldGraphT *sgraph);
 
 /* Check that all trusted edges are intra-scaffold,
    generates output to log file

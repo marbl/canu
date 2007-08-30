@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: SEdgeT_CGW.c,v 1.11 2007-08-28 22:50:10 brianwalenz Exp $";
+static char CM_ID[] = "$Id: SEdgeT_CGW.c,v 1.12 2007-08-30 02:59:05 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_SEDGES
@@ -765,77 +765,3 @@ void BuildSEdges(ScaffoldGraphT *graph, int includeNegativeEdges)
 
   StopTimerT(&GlobalData->BuildSEdgesTimer);
 }
-
-
-
-
-void CheckCITypes(ScaffoldGraphT *sgraph){
-  NodeCGW_T *CI;
-  GraphNodeIterator nodes;
-
-  InitGraphNodeIterator(&nodes, sgraph->ContigGraph, GRAPH_NODE_DEFAULT);
-  while((CI = NextGraphNodeIterator(&nodes)) != NULL){
-    if(CI->flags.bits.isUnique ){
-      if(CI->scaffoldID == NULLINDEX){
-        DumpChunkInstance(stderr, ScaffoldGraph, CI, FALSE, FALSE, FALSE, FALSE);
-        // DumpSuspiciousCI(CI);
-	assert(0);
-      }
-    }else{
-      assert( !(CI->type == DISCRIMINATORUNIQUECHUNK_CGW || CI->type == UNIQUECHUNK_CGW));
-      assert(CI->scaffoldID == NULLINDEX);
-    }
-  }
-}
-
-
-void CheckAllowedCITypes(ScaffoldGraphT *sgraph){
-  int32 numCIs = (int32) GetNumGraphNodes(sgraph->RezGraph);
-  CDS_CID_t i;
-  for(i = 0; i < numCIs; i++){
-    ChunkInstanceT *CI = GetGraphNode(sgraph->RezGraph,i);
-    if(CI->flags.bits.isUnique )
-      assert( CI->type == DISCRIMINATORUNIQUECHUNK_CGW );
-    else
-      assert( CI->type == UNRESOLVEDCHUNK_CGW);
-  }
-}
-
-
-#if 0
-void DumpSuspiciousCI(ChunkInstanceT *CI){
-  CIEdgeT *nA = NULL, *nB = NULL;
-  CDS_CID_t nidA = NULLINDEX, nidB = NULLINDEX;
-  ChunkInstanceT *CIa = NULL, *CIb = NULL;
-  fprintf(stderr,"* Dump SuspiciousCI " F_CID " of type %d**\n", CI->id, CI->type);
-  DumpChunkInstance(stderr, ScaffoldGraph, CI, FALSE, FALSE, FALSE, FALSE);
-  fprintf(stderr,"* numEssentialA:%d essentialA:" F_CID "  numEssentialB:%d essentialB:" F_CID "\n",
-	  CI->numEssentialA, CI->essentialEdgeA,
-	  CI->numEssentialB, CI->essentialEdgeB);
-  fprintf(stderr,"* Essential Edges *\n");
-  if(CI->essentialEdgeA != NULLINDEX){
-    nA = GetCIEdgeT(ScaffoldGraph->CIEdges, CI->essentialEdgeA);
-    nidA = (nA->idA == CI->id? nA->idB: nA->idA);
-    CIa = GetChunkInstanceT (ScaffoldGraph->ChunkInstances, nidA);
-    PrintCIEdgeT(stderr, ScaffoldGraph, " ", nA , nidA);
-  }
-  if(CI->essentialEdgeB != NULLINDEX){
-    nB = GetCIEdgeT(ScaffoldGraph->CIEdges, CI->essentialEdgeB);
-    nidB = (nB->idA == CI->id? nB->idB: nB->idA);
-    CIb = GetChunkInstanceT (ScaffoldGraph->ChunkInstances, nidB);
-    PrintCIEdgeT(stderr, ScaffoldGraph, " ", nB, nidB);
-  }
-  fprintf(stderr,"* Essential Neighbors *\n");
-  if(CIa){
-    fprintf(stderr,"* Chunk " F_CID " in Scaffold " F_CID " of type %d\n", CIa->id, CIa->scaffoldID, CIa->type);
-    DumpChunkInstance(stderr,ScaffoldGraph, CIa, FALSE, FALSE, FALSE, FALSE);
-  }    
-  if(CIb){
-    fprintf(stderr,"* Chunk " F_CID " in Scaffold " F_CID " type %d\n", CIb->id, CIb->scaffoldID, CIb->type);
-    DumpChunkInstance(stderr, ScaffoldGraph, CIb, FALSE, FALSE, FALSE, FALSE);
-  }    
-  fflush(stderr);
-}
-#endif
-
-
