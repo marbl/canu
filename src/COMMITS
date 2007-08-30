@@ -7738,7 +7738,14 @@ Removed references to frg store (since it is joined with gkp store)
 2007/05/31 12:50:12	1.26	granger_sutton	AS_REZ/GapFillREZ.c
 
 
-Commented out a test that a set of stones which span a gap must be within 5 std devs of the expected size of the gap. I found looking at examples that this test was too harsh and/or the gap estimates were skewed. We are only using mate pair indicated stones that possibly fall into the gap to start with so this test seems unnecessary. When we start allowing a stone to be placed multiple times in the same gap for tandem repeats we might want to look for the best sized gap filling possibility.
+Commented out a test that a set of stones which span a gap must be
+within 5 std devs of the expected size of the gap. I found looking at
+examples that this test was too harsh and/or the gap estimates were
+skewed. We are only using mate pair indicated stones that possibly
+fall into the gap to start with so this test seems unnecessary. When
+we start allowing a stone to be placed multiple times in the same gap
+for tandem repeats we might want to look for the best sized gap
+filling possibility.
 
 ----------------------------------------
 2007/05/31 15:41:48	1.14	eliv	AS_BOG/AS_BOG_MateChecker.cc
@@ -9300,3 +9307,233 @@ Fix typo/syntax error bugs
 Reset to version 1 on every file.  Be forgiving of invalid BAT messages -- they're
 now Just Another Error instead of Total Failure.  Close the store when too many errors.
 
+----------------------------------------
+2007/08/26 09:36:18	1.21	brianwalenz	AS_RUN/runCA-OBT/runCAutil/createConsensusJobs.pl
+2007/08/26 09:36:18	1.16	brianwalenz	AS_RUN/runCA-OBT/runCAutil/createFragmentCorrectionJobs.pl
+2007/08/26 09:36:18	1.32	brianwalenz	AS_RUN/runCA-OBT/runCAutil/createOverlapJobs.pl
+2007/08/26 09:36:18	1.19	brianwalenz	AS_RUN/runCA-OBT/runCAutil/createPostUnitiggerConsensus.pl
+
+Grid executed jobs were not getting the error rates updated from environment
+variables.
+
+----------------------------------------
+2007/08/26 10:04:45	1.47	brianwalenz	c_make.as
+2007/08/26 10:04:45	1.9	brianwalenz	AS_ORA/Attic/AS_ORA_fragments.c
+2007/08/26 10:04:45	1.5	brianwalenz	AS_ORA/Attic/AS_ORA_fragments.h
+2007/08/26 10:04:45	1.7	brianwalenz	AS_ORA/Attic/AS_ORA_inlines.h
+2007/08/26 10:04:45	1.13	brianwalenz	AS_ORA/Attic/AS_ORA_main.c
+2007/08/26 10:04:45	1.7	brianwalenz	AS_ORA/Attic/AS_ORA_overlaps.c
+2007/08/26 10:04:45	1.5	brianwalenz	AS_ORA/Attic/AS_ORA_overlaps.h
+2007/08/26 10:04:45	1.5	brianwalenz	AS_ORA/Attic/AS_ORA_repeats.c
+2007/08/26 10:04:45	1.5	brianwalenz	AS_ORA/Attic/AS_ORA_repeats.h
+2007/08/26 10:04:45	1.8	brianwalenz	AS_ORA/Attic/AS_ORA_statistics.c
+2007/08/26 10:04:45	1.5	brianwalenz	AS_ORA/Attic/AS_ORA_statistics.h
+2007/08/26 10:04:45	1.9	brianwalenz	AS_ORA/Attic/Makefile
+2007/08/26 10:04:45	1.7	brianwalenz	AS_ORA/Attic/compare-canonical.c
+2007/08/26 10:04:45	1.6	brianwalenz	AS_ORA/Attic/dumpMatePairing.c
+2007/08/26 10:04:45	1.9	brianwalenz	AS_ORA/Attic/get-olaps.c
+2007/08/26 10:04:45	1.9	brianwalenz	AS_ORA/Attic/get-perfect-olaps.c
+2007/08/26 10:04:45	1.7	brianwalenz	AS_ORA/Attic/make-canonical.c
+2007/08/26 10:04:45	1.9	brianwalenz	AS_ORA/Attic/nodups.c
+
+Remove the overlap regessor.  It doesn't compile and nobody uses it.  G'bye.
+
+----------------------------------------
+2007/08/26 10:11:00	1.10	brianwalenz	AS_ALN/AS_ALN_aligners.h
+2007/08/26 10:11:00	1.8	brianwalenz	AS_ALN/AS_ALN_dpaligner.c
+2007/08/26 10:11:00	1.3	brianwalenz	AS_ALN/Attic/AS_ALN_testdriver2.c
+2007/08/26 10:11:00	1.8	brianwalenz	AS_ALN/Makefile
+2007/08/26 10:11:00	1.12	brianwalenz	AS_CGW/AS_CGW_dataTypes.h
+2007/08/26 10:11:00	1.46	brianwalenz	AS_CGW/AS_CGW_main.c
+2007/08/26 10:11:00	1.14	brianwalenz	AS_CGW/CIEdgeT_CGW.c
+2007/08/26 10:11:00	1.21	brianwalenz	AS_CGW/CIScaffoldT_CGW.c
+2007/08/26 10:11:01	1.31	brianwalenz	AS_CGW/CIScaffoldT_Cleanup_CGW.c
+2007/08/26 10:11:01	1.32	brianwalenz	AS_CGW/CIScaffoldT_Merge_CGW.c
+2007/08/26 10:11:01	1.21	brianwalenz	AS_CGW/ChunkOverlap_CGW.c
+2007/08/26 10:11:01	1.13	brianwalenz	AS_CGW/ContigT_CGW.c
+2007/08/26 10:11:01	1.11	brianwalenz	AS_CGW/DiagnosticsCGW.c
+2007/08/26 10:11:02	1.51	brianwalenz	AS_CGW/GraphCGW_T.c
+2007/08/26 10:11:02	1.21	brianwalenz	AS_CGW/GraphCGW_T.h
+2007/08/26 10:11:02	1.44	brianwalenz	AS_CGW/Input_CGW.c
+2007/08/26 10:11:02	1.6	brianwalenz	AS_CGW/Input_CGW.h
+2007/08/26 10:11:03	1.14	brianwalenz	AS_CGW/MergeEdges_CGW.c
+2007/08/26 10:11:03	1.25	brianwalenz	AS_CGW/Output_CGW.c
+2007/08/26 10:11:03	1.10	brianwalenz	AS_CGW/SEdgeT_CGW.c
+2007/08/26 10:11:03	1.20	brianwalenz	AS_CGW/ScaffoldGraph_CGW.h
+2007/08/26 10:11:03	1.14	brianwalenz	AS_CGW/Stats_CGW.c
+2007/08/26 10:11:03	1.15	brianwalenz	AS_CGW/TransitiveReduction_CGW.c
+2007/08/26 10:11:03	1.31	brianwalenz	AS_REZ/GapFillREZ.c
+
+Dead code.  CGB/CGW do nothing with branch points, tandem overlaps,
+or repeat overlaps.
+
+----------------------------------------
+2007/08/27 07:48:13	1.34	brianwalenz	AS_RUN/runCA-OBT/runCAutil/scaffolder.pl
+
+Remove obsolete option -T from cgw.
+
+----------------------------------------
+2007/08/27 14:40:10	1.39	skoren	AS_OVL/AS_OVL_overlap_common.h
+
+Removed duplicate static definition of Global_Debug_Flag, it is already defined as an extern in AS_OVL_delcher.h
+
+----------------------------------------
+2007/08/27 14:44:28	1.8	skoren	AS_ENV/greedyFragmentTiling.c
+
+Modified greedyFragmentTiling.c to comply with new getGateKeeperFragment signature
+
+----------------------------------------
+2007/08/27 14:45:45	1.48	skoren	c_make.as
+
+added extreme assembly to build list
+
+----------------------------------------
+2007/08/27 18:02:57	1.35	eliv	AS_CNS/MultiAlignStore_CNS.c
+
+Don't crash on NULL pointer dereference, though not good that a null is passed in.
+
+----------------------------------------
+2007/08/27 18:04:56	1.52	eliv	AS_MSG/AS_MSG_pmesg.h
+
+Add const qualifier on MSG type array, makes some compilers happier.
+
+----------------------------------------
+2007/08/27 18:11:05	1.3	eliv	AS_RUN/runCA-OBT/runCA.pl.head
+2007/08/27 18:11:05	1.33	eliv	AS_RUN/runCA-OBT/runCAutil/createOverlapJobs.pl
+2007/08/27 18:11:06	1.36	eliv	AS_RUN/runCA-OBT/runCAutil/terminate.pl
+2007/08/27 18:11:06	1.55	eliv	AS_RUN/runCA-OBT/runCAutil/util.pl
+
+Make running on different setups easier, like our alpha.
+
+----------------------------------------
+2007/08/27 18:12:56	1.14	eliv	AS_UTL/AS_UTL_fileIO.c
+
+Alpha seems to display the same strange seek error as Brian found on BSD.
+
+----------------------------------------
+2007/08/27 18:28:55	1.56	brianwalenz	AS_RUN/runCA-OBT/runCAutil/util.pl
+
+Look in the bin directory for specfiles.
+
+----------------------------------------
+2007/08/27 18:33:39	1.22	eliv	AS_RUN/runCA-OBT/runCAutil/createConsensusJobs.pl
+2007/08/27 18:33:39	1.17	eliv	AS_RUN/runCA-OBT/runCAutil/createFragmentCorrectionJobs.pl
+2007/08/27 18:33:39	1.34	eliv	AS_RUN/runCA-OBT/runCAutil/createOverlapJobs.pl
+2007/08/27 18:33:40	1.20	eliv	AS_RUN/runCA-OBT/runCAutil/createPostUnitiggerConsensus.pl
+
+Move export to it's own line to work with old bourne shells.
+
+----------------------------------------
+2007/08/27 19:14:15	1.36	eliv	AS_CNS/MultiAlignStore_CNS.c
+
+Move reset of vararray in hope of crashing less.
+
+----------------------------------------
+2007/08/27 22:25:13	1.1	brianwalenz	AS_MSG/convert-fasta-to-v2.pl
+2007/08/27 22:25:13	1.8	brianwalenz	AS_MSG/convert-v1-to-v2.pl
+
+New util to convert from fasta seq+qlt to frg2; reset back to frg1
+at the end of conversion.
+
+----------------------------------------
+2007/08/28 15:46:33	1.32	eliv	AS_REZ/GapFillREZ.c
+
+Prevent memcpy() with src & dst the same.
+
+----------------------------------------
+2007/08/28 21:19:54	1.22	brianwalenz	AS_CGW/CIScaffoldT_CGW.c
+
+Bug 1773874; yet another VA reallocation destroying a pointer.  (with
+some debug statement refactoring)
+
+----------------------------------------
+2007/08/28 22:49:14	1.37	brianwalenz	AS_CNS/MultiAlignStore_CNS.c
+2007/08/28 22:49:14	1.19	brianwalenz	AS_UTL/AS_UTL_Var.c
+2007/08/28 22:49:14	1.10	brianwalenz	AS_UTL/AS_UTL_Var.h
+
+Just your basic refactor of VarArray.  Lots of crud removed, less spaghetti.
+
+----------------------------------------
+2007/08/28 22:50:10	1.14	brianwalenz	AS_CGW/AS_CGW_EdgeDiagnostics.c
+2007/08/28 22:50:10	1.47	brianwalenz	AS_CGW/AS_CGW_main.c
+2007/08/28 22:50:10	1.32	brianwalenz	AS_CGW/CIScaffoldT_Cleanup_CGW.c
+2007/08/28 22:50:10	1.33	brianwalenz	AS_CGW/CIScaffoldT_Merge_CGW.c
+2007/08/28 22:50:10	1.14	brianwalenz	AS_CGW/ContigT_CGW.c
+2007/08/28 22:50:10	1.52	brianwalenz	AS_CGW/GraphCGW_T.c
+2007/08/28 22:50:10	1.22	brianwalenz	AS_CGW/GraphCGW_T.h
+2007/08/28 22:50:10	1.45	brianwalenz	AS_CGW/Input_CGW.c
+2007/08/28 22:50:10	1.29	brianwalenz	AS_CGW/Instrument_CGW.c
+2007/08/28 22:50:10	1.17	brianwalenz	AS_CGW/InterleavedMerging.c
+2007/08/28 22:50:10	1.11	brianwalenz	AS_CGW/SEdgeT_CGW.c
+2007/08/28 22:50:10	1.26	brianwalenz	AS_CGW/ScaffoldGraph_CGW.c
+2007/08/28 22:50:11	1.9	brianwalenz	AS_CGW/SplitScaffolds_CGW.c
+2007/08/28 22:50:11	1.16	brianwalenz	AS_CGW/TransitiveReduction_CGW.c
+2007/08/28 22:50:11	1.26	brianwalenz	AS_CGW/eCR.c
+2007/08/28 22:50:11	1.13	brianwalenz	AS_CGW/fixZLFContigs.c
+
+Clear many of the stack-allocated structures before copying them to
+the ScaffoldGraph VarArrays.  Not doing this causes valgrind grief.
+
+----------------------------------------
+2007/08/28 22:51:51	1.53	brianwalenz	AS_CGW/GraphCGW_T.c
+
+Avoid copying an element to itself.
+
+----------------------------------------
+2007/08/28 22:55:15	1.48	brianwalenz	AS_CGW/AS_CGW_main.c
+
+Remove 'debug' CheckSmallScaffoldGaps() before output.
+
+----------------------------------------
+2007/08/29 07:06:48	1.33	brianwalenz	AS_REZ/GapFillREZ.c
+
+Badly needed reindent.
+
+----------------------------------------
+2007/08/29 11:30:32	1.34	brianwalenz	AS_REZ/GapFillREZ.c
+
+Fix bug introduced in v1.32.
+Replace stack-based array with variable array.
+
+TAG: VERSION-4_00
+
+----------------------------------------
+2007/08/29 20:31:51	1.4	brianwalenz	AS_ENV/chimChe.c
+
+Use safe_*alloc() routines from AS_UTL.
+
+----------------------------------------
+2007/08/29 22:22:26	1.154	gdenisov	AS_CNS/MultiAlignment_CNS.c
+
+Dynamically re-allocated memory for arrays used for phasing of VAR
+records.
+
+----------------------------------------
+2007/08/29 22:34:21	1.9	brianwalenz	AS_MER/AS_MER_gkpStore_to_FastABase.C
+2007/08/29 22:34:21	1.9	brianwalenz	AS_MER/AS_MER_gkpStore_to_FastABase.H
+2007/08/29 22:34:21	1.11	brianwalenz	AS_MER/overmerry.C
+
+Update to kmer revision 1529, with reworked mer sources.
+
+----------------------------------------
+2007/08/30 02:51:39	1.155	brianwalenz	AS_CNS/MultiAlignment_CNS.c
+
+Minor prettiness.
+
+----------------------------------------
+2007/08/30 02:57:53	1.33	brianwalenz	AS_CGW/CIScaffoldT_Cleanup_CGW.c
+
+Pretty up some stderr messages.  If ContigContainment() fails to
+CreateAContigInScaffold() (implicitly using DP_Compare), it will try
+again using Local_Overlap_AS_forCNS().  Previous behavior was to
+assert and fail.
+
+----------------------------------------
+2007/08/30 02:59:05	1.12	brianwalenz	AS_CGW/SEdgeT_CGW.c
+2007/08/30 02:59:05	1.27	brianwalenz	AS_CGW/ScaffoldGraph_CGW.c
+2007/08/30 02:59:05	1.21	brianwalenz	AS_CGW/ScaffoldGraph_CGW.h
+
+Move 'alive' code from SEdgeT_CGW.c to replace similar but 'dead' code
+in ScaffoldGraph_CGW.c, where it is used.  Function CheckCITypes().
+
+TAG: VERSION-4_01
