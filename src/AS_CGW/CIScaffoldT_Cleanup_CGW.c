@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.32 2007-08-28 22:50:10 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.33 2007-08-30 02:57:53 brianwalenz Exp $";
 
 #undef DEBUG_CHECKFORCTGS
 #undef DEBUG_DETAILED
@@ -2528,10 +2528,10 @@ void ContigContainment(CIScaffoldT  *scaffold,
     actualOverlapOrientation = overlapOrientation;
   }
 
-  fprintf(stderr, "* Containing contig is " F_CID " contained contig is " F_CID " ahg:%d bhg:%d orient:%c\n",
+  fprintf(stderr, "* Containing contig is "F_CID" contained contig is "F_CID" ahg:%d bhg:%d orient:%c\n",
           leftContig->id, rightContig->id, contigOverlap->begpos, contigOverlap->endpos, actualOverlapOrientation);
 
-  fprintf(stderr, "* Initial Positions:\n\t" F_CID " [%g,%g]\n\t" F_CID " [%g,%g]\n",
+  fprintf(stderr, "* Initial Positions:  left:"F_CID" [%g,%g]  right:"F_CID" [%g,%g]\n",
           leftContig->id,  leftContig->offsetAEnd.mean,  leftContig->offsetBEnd.mean,
           rightContig->id, rightContig->offsetAEnd.mean, rightContig->offsetBEnd.mean);
 
@@ -2569,7 +2569,7 @@ void ContigContainment(CIScaffoldT  *scaffold,
   contigPos.position.end = rightContig->offsetBEnd.mean;
   AppendIntElementPos(ContigPositions, &contigPos);
 
-  fprintf(stderr,"* Final Positions:\n\t" F_CID " [%g,%g]\n\t" F_CID " [%g,%g]\n",
+  fprintf(stderr, "* Final   Positions:  left:"F_CID" [%g,%g]  right:"F_CID" [%g,%g]\n",
           leftContig->id,  leftContig->offsetAEnd.mean,  leftContig->offsetBEnd.mean,
           rightContig->id, rightContig->offsetAEnd.mean, rightContig->offsetBEnd.mean);
 
@@ -2580,6 +2580,24 @@ void ContigContainment(CIScaffoldT  *scaffold,
                                           ContigPositions,
                                           flip ? leftContig->offsetBEnd : leftContig->offsetAEnd,
                                           flip ? leftContig->offsetAEnd : leftContig->offsetBEnd);
+
+    //  Very occasionally, we fail there.  This seems to get around at
+    //  least some of the failures.  How many?  At least one.  Seems
+    //  like we find an overlap with DP_Compare(), but then cannot
+    //  MergeMultiAligns with it, and we need to use
+    //  Local_Overlap_AS_forCNS instead.
+    //
+    if (mergeStatus == FALSE) {
+      fprintf(stderr, "* Retrying with Local_Overlap_AS_forCNS\n");
+
+      GlobalData->aligner = Local_Overlap_AS_forCNS;
+      mergeStatus = CreateAContigInScaffold(scaffold,
+                                            ContigPositions,
+                                            flip ? leftContig->offsetBEnd : leftContig->offsetAEnd,
+                                            flip ? leftContig->offsetAEnd : leftContig->offsetBEnd);
+      GlobalData->aligner = DP_Compare;
+    }
+
     assert(mergeStatus == TRUE);
   }
 }
