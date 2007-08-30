@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.156 2007-08-30 13:06:02 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.157 2007-08-30 18:55:06 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -2097,7 +2097,7 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
              * (Granger's suggestion - GD)
              */
             if (best_read_base_count[bi] >  1 &&
-                (float)best_read_qv_count[bi]/(float)best_read_base_count[bi] 
+                (float)best_read_qv_count[bi]/(float)best_read_base_count[bi]
                  >= MIN_AVE_QV_FOR_VARIATION)
             {
                 sum_qv_all += best_read_qv_count[bi];
@@ -9283,28 +9283,29 @@ MultiAlignT *MergeMultiAlignsFast_new( tSequenceDB *sequenceDBp,
 
   static VA_TYPE(IntMultiPos) *mpositions=NULL;
   static IntMultiPos mpos;
-  IntElementPos *epos=GetIntElementPos(positions,0);
-  int npos=GetNumIntElementPoss(positions);
+  IntElementPos *epos = GetIntElementPos(positions,0);
   int i;
 
-  allow_neg_hang=0;
-  mpos.contained=0;
-  mpos.delta_length=0;
-  mpos.delta=NULL;
-  if (mpositions == NULL ) {
-       mpositions = CreateVA_IntMultiPos(npos);
-  } else {
-       ResetVA_IntMultiPos(mpositions);
-      // EnableRangeVA_IntMultiPos(mpositions,npos); // this doesn't work
-  }
-  for (i=0;i<npos;i++,epos++) {
-    mpos.type=epos->type;
-    mpos.ident=epos->ident;
-    mpos.position=epos->position;
+  if (mpositions == NULL )
+    mpositions = CreateVA_IntMultiPos(32);
+
+  ResetVA_IntMultiPos(mpositions);
+
+  mpos.contained    = 0;
+  mpos.delta_length = 0;
+  mpos.delta        = NULL;
+
+  for (i=0; i<GetNumIntElementPoss(positions); i++, epos++) {
+    mpos.type     = epos->type;
+    mpos.ident    = epos->ident;
+    mpos.position = epos->position;
+
     AppendVA_IntMultiPos(mpositions,&mpos);
   } 
-  return MergeMultiAligns( sequenceDBp, frag_store, mpositions, quality, 
-      verbose, COMPARE_FUNC, opp);
+
+  allow_neg_hang = 0;
+
+  return(MergeMultiAligns(sequenceDBp, frag_store, mpositions, quality, verbose, COMPARE_FUNC, opp));
 }
 
 MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
