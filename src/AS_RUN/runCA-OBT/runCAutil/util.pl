@@ -137,9 +137,12 @@ sub setGlobal ($$) {
 sub setDefaults () {
     $global{"binRoot"}                     = undef;
 
+    $global{"gkpBelieveInputStdDev"}           = 0;
+    
     $global{"cgwOutputIntermediate"}       = 0;
     $global{"cgwPurgeCheckpoints"}         = 1;
     $global{"cgwDemoteRBP"}                = 1;
+    $global{"cgwDistanceSampleSize"}       = 100;
 
     $global{"cnsPartitions"}               = 128;
     $global{"cnsMinFrags"}                 = 75000;
