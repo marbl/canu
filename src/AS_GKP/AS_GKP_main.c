@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.53 2007-08-25 10:39:18 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_main.c,v 1.54 2007-08-31 15:47:02 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,6 +56,7 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "  -T                     gatekeeper for assembler Grande with Overlap Based Trimming\n");
   fprintf(stdout, "  -Q                     don't check quality-based data quality\n");
   fprintf(stdout, "  -E <error.frg>         write errors to this file\n");
+  fprintf(stdout, "  -D                     do NOT limit insert size stddev to 10% of the mean\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "  -v <vector-info>       load vector clear ranges into each read.\n");
   fprintf(stdout, "                         MUST be done on an existing, complete store.\n");
@@ -168,15 +169,16 @@ main(int argc, char **argv) {
 
   //  Options for appending or creating:
   //
-  int              append          = 0;
-  int              outputExists    = 0;
-  int              check_qvs       = 1;
-  char            *vectorClearFile = NULL;
-  int              assembler       = AS_ASSEMBLER_GRANDE;
-  int              nerrs           = 0;   // Number of errors in current run
-  int              maxerrs         = 1;   // Number of errors allowed before we punt
-  int              firstFileArg    = 0;
-  char            *errorFile       = NULL;
+  int              append             = 0;
+  int              outputExists       = 0;
+  int              check_qvs          = 1;
+  char            *vectorClearFile    = NULL;
+  int              assembler          = AS_ASSEMBLER_GRANDE;
+  int              nerrs              = 0;   // Number of errors in current run
+  int              maxerrs            = 1;   // Number of errors allowed before we punt
+  int              firstFileArg       = 0;
+  char            *errorFile          = NULL;
+  int              believeInputStdDev = 0;
 
   //  Options for partitioning
   //
@@ -232,6 +234,8 @@ main(int argc, char **argv) {
       check_qvs = 0;
     } else if (strcmp(argv[arg], "-E") == 0) {
       errorFile = argv[++arg];
+    } else if (strcmp(argv[arg], "-D") == 0) {
+      believeInputStdDev = 1;
 
     } else if (strcmp(argv[arg], "-P") == 0) {
       partitionFile = argv[++arg];
@@ -591,12 +595,14 @@ main(int argc, char **argv) {
     while (EOF != ReadProtoMesg_AS(inFile, &pmesg)) {
       int success = GATEKEEPER_SUCCESS;
 
-      if (pmesg->t == MESG_BAT) {
+      if (pmesg->t == MESG_ADT) {
+        //  Ignore
+      } else if (pmesg->t == MESG_BAT) {
         success = Check_BatchMesg((BatchMesg *)pmesg->m);
       } else if (pmesg->t == MESG_DST) {
-        success = Check_DistanceMesg((DistanceMesg *)pmesg->m);
+        success = Check_DistanceMesg((DistanceMesg *)pmesg->m, believeInputStdDev);
       } else if (pmesg->t == MESG_LIB) {
-        success = Check_LibraryMesg((LibraryMesg *)pmesg->m);
+        success = Check_LibraryMesg((LibraryMesg *)pmesg->m, believeInputStdDev);
       } else if (pmesg->t == MESG_FRG) {
         success = Check_FragMesg((FragMesg *)pmesg->m, check_qvs, assembler);
       } else if (pmesg->t == MESG_LKG) {

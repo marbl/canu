@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.14 2007-08-10 06:53:03 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.15 2007-08-31 15:47:02 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,7 +30,8 @@ static char CM_ID[] = "$Id: AS_GKP_checkLibrary.c,v 1.14 2007-08-10 06:53:03 bri
 #include "AS_PER_gkpStore.h"
 
 int
-Check_DistanceMesg(DistanceMesg    *dst_mesg) {
+Check_DistanceMesg(DistanceMesg    *dst_mesg,
+                   int              believeInputStdDev) {
   LibraryMesg  lmesg;
 
   //  Upconvert to a real LibraryMesg, then pass it on to the library
@@ -48,12 +49,13 @@ Check_DistanceMesg(DistanceMesg    *dst_mesg) {
   lmesg.features     = NULL;
   lmesg.values       = NULL;
 
-  return(Check_LibraryMesg(&lmesg));
+  return(Check_LibraryMesg(&lmesg, believeInputStdDev));
 }
 
 
 int
-Check_LibraryMesg(LibraryMesg      *lib_mesg) {
+Check_LibraryMesg(LibraryMesg      *lib_mesg,
+                  int                believeInputStdDev) {
 
   GateKeeperLibraryRecord  gkpl;
 
@@ -61,6 +63,24 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg) {
     return GATEKEEPER_SUCCESS;
 
   clearGateKeeperLibraryRecord(&gkpl);
+
+  if (lib_mesg->link_orient != 'U') {
+    if ((believeInputStdDev == 0) &&
+        (lib_mesg->stddev < 0.10 * lib_mesg->mean)) {
+      fprintf(errorFP, "# LIB Error:  Library "F_UID" has suspicious mean (%g) and standard deviation (%g); reset stddev to 0.10 * mean = %g.\n",
+              lib_mesg->eaccession, lib_mesg->mean, lib_mesg->stddev, 0.10 * lib_mesg->mean);
+      lib_mesg->stddev = 0.10 * lib_mesg->mean;
+      believeInputStdDev = 2;
+    }
+
+    if ((lib_mesg->mean   <= 0.0) ||
+        (lib_mesg->stddev <= 0.0) ||
+        (lib_mesg->mean - 3.0 * lib_mesg->stddev < 0.0)) {
+      fprintf(errorFP, "# LIB Error:  Library "F_UID" has lllegal mean (%g) and standard deviation (%g); one of mean, stddev, mean - 3*stddev is negative.\n",
+              lib_mesg->eaccession, lib_mesg->mean, lib_mesg->stddev);
+      return(GATEKEEPER_FAILURE);
+    }
+  }
 
   if (lib_mesg->action == AS_ADD) {
     CDS_IID_t  iid = getGatekeeperUIDtoIID(gkpStore, lib_mesg->eaccession, NULL);
@@ -89,16 +109,6 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg) {
     gkpl.mean         = lib_mesg->mean;
     gkpl.stddev       = lib_mesg->stddev;
 
-    if (gkpl.orientation != AS_READ_ORIENT_UNKNOWN) {
-      if ((gkpl.mean   <= 0.0) ||
-          (gkpl.stddev <= 0.0) ||
-          (gkpl.mean - 3.0 * gkpl.stddev < 0.0)) {
-        fprintf(errorFP, "# LIB Error:  Library "F_UID" has lllegal mean (%g) and standard deviation (%g).\n",
-                gkpl.libraryUID, gkpl.mean, gkpl.stddev);
-        return(GATEKEEPER_FAILURE);
-      }
-    }
-
 #ifdef AS_ENABLE_SOURCE
     if (lib_mesg->source)
       strncpy(gkpl.comment, lib_mesg->source, AS_PER_COMMENT_LEN);
@@ -125,15 +135,6 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg) {
       gkpl.mean   = lib_mesg->mean;
       gkpl.stddev = lib_mesg->stddev;
  
-      if ((gkpl.orientation != AS_READ_ORIENT_UNKNOWN) &&
-          ((gkpl.mean   <= 0.0) ||
-           (gkpl.stddev <= 0.0) ||
-           (gkpl.mean - 3.0 * gkpl.stddev < 0.0))) {
-        fprintf(errorFP, "# LIB Error:  Library "F_UID" has lllegal mean (%g) and standard deviation (%g).\n",
-                gkpl.libraryUID, gkpl.mean, gkpl.stddev);
-        return(GATEKEEPER_FAILURE);
-      }
-
       setIndexStore(gkpStore->lib, iid, &gkpl);
     }
 
@@ -154,6 +155,11 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg) {
     fprintf(errorFP, "# LIB Error: invalid action %c.\n", lib_mesg->action);
     return GATEKEEPER_FAILURE;
   }
+
+  //  We return failure if we needed to muck with the std.dev -- the
+  //  library is still added though.
+  if (believeInputStdDev == 2)
+    return GATEKEEPER_FAILURE;
 
   return GATEKEEPER_SUCCESS;
 }
