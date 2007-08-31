@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.48 2007-08-28 22:55:15 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.49 2007-08-31 16:04:29 skoren Exp $";
 
 
 
@@ -145,7 +145,7 @@ int main(int argc, char *argv[]){
   int starting_stone_scaffold = 0;
   int numNodes = 1024;
   int numEdges = 1024;
-  int minSamplesForOverride = 1000;
+  int minSamplesForOverride = 100;
   int ignoreChaffUnitigs = 0;
   int failOn_NoOverlapFound = 0; 
   int geneOutput = 1;  // output simulated coordinates
