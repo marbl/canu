@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_GKP_checkBatch.c,v 1.13 2007-08-24 15:29:48 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkBatch.c,v 1.14 2007-08-31 21:06:16 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
