@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.157 2007-08-30 18:55:06 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.158 2007-08-31 16:52:29 gdenisov Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -49,6 +49,7 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.157 2007-08-30 18:55:06 gde
 #define IDENT_NAMESPACE                     1
 #define DONT_SHOW_OLAP                      0
 #define MIN_AVE_QV_FOR_VARIATION           21
+#define MIN_SUM_QVS_FOR_VARIATION          60
 #define QV_FOR_MULTI_GAP                   14
 #define SHOW_OLAP                           1
 #undef  ALIGN_TO_CONSENSUS
@@ -1744,9 +1745,12 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
     int best_read_base_count[CNS_NP]  = {0};
     int other_read_base_count[CNS_NP] = {0};
     int guide_base_count[CNS_NP]      = {0};
-
+ 
+    char bases[CNS_NALPHABET] = {'-', 'A', 'C', 'G', 'T', 'N'};
     int best_read_qv_count[CNS_NP] = {0};
     int other_read_qv_count[CNS_NP] = {0};
+    int highest_qv[CNS_NP] = {0};
+    int highest2_qv[CNS_NP] = {0};
 
     int b_read_depth=0, o_read_depth=0, guide_depth=0;
     int score=0;
@@ -1897,6 +1901,17 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
                     other_read_base_count[BaseToInt(cbase)]++;
                     other_read_qv_count[BaseToInt(cbase)] += qv;
                     AppendBead(o_reads, bead);
+                }
+
+                if (highest_qv[BaseToInt(cbase)] < qv)
+                {
+                    highest2_qv[BaseToInt(cbase)] = highest_qv[BaseToInt(cbase)];
+                    highest_qv[BaseToInt(cbase)] = qv;
+                }
+                else if (highest_qv[BaseToInt(cbase)] >= qv &&
+                    highest2_qv[BaseToInt(cbase)] < qv)
+                {
+                    highest2_qv[BaseToInt(cbase)] = qv;
                 }
             }
             else
@@ -2096,7 +2111,8 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
              * and either overall quality should be >= 60
              * (Granger's suggestion - GD)
              */
-            if (best_read_base_count[bi] >  1 &&
+            if (*cons_base != '-' && bases[bi] != '-' &&
+                best_read_base_count[bi] >  1 &&
                 (float)best_read_qv_count[bi]/(float)best_read_base_count[bi]
                  >= MIN_AVE_QV_FOR_VARIATION)
             {
@@ -2104,6 +2120,14 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
                 if (IntToBase(bi) == cbase)
                     sum_qv_cbase = best_read_qv_count[bi];
             }
+            else if ((*cons_base == '-' || bases[bi] == '-') &&
+                best_read_base_count[bi] >  1 &&
+                highest_qv[bi] + highest2_qv[bi] >= MIN_SUM_QVS_FOR_VARIATION)
+            {
+                sum_qv_all += best_read_qv_count[bi];
+                if (IntToBase(bi) == cbase)
+                    sum_qv_cbase = best_read_qv_count[bi];
+            } 
         }
         if ((b_read_count <= 1 ) || (sum_qv_all == 0))
         {
