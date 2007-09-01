@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.158 2007-08-31 16:52:29 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.159 2007-09-01 05:01:09 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -113,10 +113,6 @@ VA_DEF(int16);
 
 // Variables used to phase VAR records
 static int32 vreg_id  = -1; // id of a VAR record
-static int32 prev_nca =  0; // size of array prev_nrca 
-static int32 prev_ncr =  0; // size ogft array prev_iidrca 
-static int32 max_prev_nca = 10;
-static int32 max_prev_ncr = 1000;
 
 // Variables used to compute general statistics
 
@@ -3121,7 +3117,8 @@ AllocateMemoryForAlleles(Allele **alleles, int32 nr, int32 *na)
 
 static int
 PhaseWithPrevVreg(int32 nca, Allele *alleles, Read *reads, int32 **allele_map,
-    int32 **prev_nrca, int32 **prev_iidrca)
+                  int32 prev_nca, int32 *prev_nca_iid, int32 prev_nca_iid_max,
+                  int32 prev_ncr, int32 *prev_ncr_iid, int32 prev_ncr_iid_max)
 {
     int   i, j, k, l;
     int   is_phased = 0;
@@ -3133,11 +3130,13 @@ PhaseWithPrevVreg(int32 nca, Allele *alleles, Read *reads, int32 **allele_map,
     {
        *allele_map = (int32 *)safe_calloc(nca, sizeof(int32));
         check      = (int32 *)safe_calloc(nca, sizeof(int32));
-        allele_matrix = (int32 **)safe_calloc(prev_nca, sizeof(int32 *));
-        for (i=0; i<prev_nca; i++)
-        {
-            allele_matrix[i] = (int32 *)safe_calloc(nca, sizeof(int32));
-        }
+        allele_matrix    = (int32 **)safe_calloc(prev_nca, sizeof(int32 *));
+        allele_matrix[0] = (int32  *)safe_calloc(prev_nca * nca, sizeof(int32));
+        for (i=1; i<prev_nca; i++)
+          allele_matrix[i] = allele_matrix[i-1] + nca;
+
+        assert(prev_ncr < prev_ncr_iid_max);
+        assert(prev_nca < prev_nca_iid_max);
 
         /* Populate the allele_matrix:
          *   columns  = confirmed alleles in the previous VAR record
@@ -3150,29 +3149,21 @@ PhaseWithPrevVreg(int32 nca, Allele *alleles, Read *reads, int32 **allele_map,
             {
                 int read_id=0;
                 l = 0; // allele id in the prev VAR record
-                if (max_prev_ncr < prev_ncr)
-                {
-                    max_prev_ncr = prev_ncr+1000;
-                   *prev_iidrca = (int32 *)safe_realloc(*prev_iidrca, 
-                                   max_prev_ncr*sizeof(int32));
-                }
+
                 for (k=0; k<prev_ncr; k++)
                 {
-                    if (max_prev_nca <= l)
-                    {
-                        max_prev_nca = l+10;
-                       *prev_nrca = (int32 *)safe_realloc(*prev_nrca, 
-                                     max_prev_nca*sizeof(int32));
-                    }
-                    if (read_id == (*prev_nrca)[l])  // start of a new allele
+                    assert (l < prev_nca);  //  data in prev_nca_iid only valid up to prev_nca!
+
+                    if (read_id == prev_nca_iid[l])  // start of a new allele
                     {
                         l++;
                         read_id = 0;
                     }
                     read_id++;
 
-                    if ((*prev_iidrca)[k] == alleles[i].read_iids[j])
+                    if (prev_ncr_iid[k] == alleles[i].read_iids[j])
                     {
+                        assert(l < prev_nca);  //  matrix only allocated up to prev_nca
                         allele_matrix[l][i]++;
                         num_reads++;
                     }
@@ -3257,10 +3248,7 @@ PhaseWithPrevVreg(int32 nca, Allele *alleles, Read *reads, int32 **allele_map,
                     is_phased = 1;
             }
         }
-        for (i=0; i<prev_nca; i++)
-        {
-           safe_free(allele_matrix[i]);
-        }
+        safe_free(allele_matrix[0]);
         safe_free(allele_matrix);
         safe_free(check);
     } /* if (prev_nca == nca) */ 
@@ -3338,25 +3326,26 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
 {
     // refresh columns from cid to end
     // if quality == -1, don't recall the consensus base
-    int     i, j, l, index=0, len_manode = MIN_SIZE_OF_MANODE;
-    int32   cid, *cids, *prev_iids;
-    int     window, vbeg, vend, max_prev_nr=INITIAL_NR,
+    int     i=0, j=0, l=0, index=0, len_manode = MIN_SIZE_OF_MANODE;
+    int32   cid=0, *cids=NULL, *prev_iids=NULL;
+    int     window=0, vbeg=0, vend=0, max_prev_nr=INITIAL_NR,
             prev_nr=0;
-    char    cbase, abase, *prev_bases;
+    char    cbase=0, abase=0, *prev_bases = NULL;
     char   *var_seq=NULL;
     double *varf=NULL, *svarf=NULL;
-    Column *column;
-    VarRegion  vreg;
-    char  **reads; 
+    Column *column = NULL;
+    VarRegion  vreg = {0};
+    char  **reads = NULL;
     MANode *ma = GetMANode(manodeStore,mid);
     int32   min_len_vlist = 10;
 
     // Variables used to phase VAR records
-    int32 *prev_nrca;           // number of reads in 10 first confirmed alleles
-    int32 *prev_iidrca;         // iids of the first 100 reads, rev. sorted by allele
-
-    prev_nrca   = safe_calloc(max_prev_nca, sizeof(int32));
-    prev_iidrca = safe_calloc(max_prev_ncr, sizeof(int32));
+    int32  prev_nca          = 0;     // valid size of array prev_nca_iid 
+    int32  prev_ncr          = 0;     // valid size of array prev_ncr_iid 
+    int32  prev_nca_iid_max  = 4096;  // allocated size of arrays; err on the large side
+    int32  prev_ncr_iid_max  = 4096;  //   hopefully avoiding reallocs.
+    int32 *prev_nca_iid      = NULL;  // number of reads in 10 first confirmed alleles
+    int32 *prev_ncr_iid      = NULL;  // iids of the first 100 reads, rev. sorted by allele
 
     //  Make sure that we have valid options here, we then reset the
     //  pointer to the freshly copied options, so that we can always
@@ -3500,6 +3489,9 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
     }
     SmoothenVariation(svarf, len_manode, window);
 
+    prev_nca_iid = safe_calloc(prev_nca_iid_max, sizeof(int32));
+    prev_ncr_iid = safe_calloc(prev_ncr_iid_max, sizeof(int32));
+
     for (i=0; i<len_manode; i++) 
     { 
         if (svarf[i] == 0) {
@@ -3566,7 +3558,9 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
                 &(vreg.nca), vreg.dist_matrix);
 
             is_phased = PhaseWithPrevVreg(vreg.nca, vreg.alleles, vreg.reads, 
-                            &allele_map, &prev_nrca, &prev_iidrca);
+                                          &allele_map,
+                                          prev_nca, prev_nca_iid, prev_nca_iid_max,
+                                          prev_ncr, prev_ncr_iid, prev_ncr_iid_max);
 
             if (is_phased)
             {
@@ -3600,32 +3594,40 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
             if (SHOW_CONFIRMED_READS) show_reads_of_confirmed_alleles(&vreg);
 
             // Update the info about the previous VAR record :
-            // prev_nca, prev_nrca and prev_iidrca
+            // prev_nca, prev_nca_iid and prev_ncr_iid
             {
                 int iv, jv, kv = 0;
 
+                //  we should have space enough for these, right?  If
+                //  not, count and reallocate new space -- be sure to
+                //  clear it!
+
                 prev_nca = vreg.nca;
-                if (max_prev_nca < vreg.nca)
-                {
-                    max_prev_nca = vreg.nca+10;
-                    prev_nrca = (int32 *)safe_realloc(prev_nrca, max_prev_nca*sizeof(int32));
-                }
+                prev_ncr = 0;
                 for (iv = 0; iv < vreg.nca; iv++)
-                {
-                    prev_nrca[iv] = vreg.alleles[iv].num_reads;
-                    for (jv = 0; jv < vreg.alleles[iv].num_reads; jv++)
-                    {
-                        if (max_prev_ncr <= kv)
-                        {
-                            max_prev_ncr = kv+1000;
-                            prev_iidrca  = (int32 *)safe_realloc(prev_iidrca,
-                                                    max_prev_ncr*sizeof(int32)); 
-                        }
-                        prev_iidrca[kv] = vreg.alleles[iv].read_iids[jv];
-                        kv++;
-                    }
+                  prev_ncr += vreg.alleles[iv].num_reads;
+
+                if (prev_nca_iid_max < prev_nca) {
+                  while (prev_nca_iid_max < prev_nca)
+                    prev_nca_iid_max *= 2;
+                  safe_free(prev_nca_iid);
+                  prev_nca_iid = safe_calloc(prev_nca_iid_max, sizeof(int32));
                 }
-                prev_ncr = kv;
+                if (prev_ncr_iid_max < prev_ncr) {
+                  while (prev_ncr_iid_max < prev_ncr)
+                    prev_ncr_iid_max *= 2;
+                  safe_free(prev_ncr_iid);
+                  prev_ncr_iid = safe_calloc(prev_ncr_iid_max, sizeof(int32));
+                }
+
+                memset(prev_nca_iid, 0, sizeof(int32) * prev_nca_iid_max);
+                memset(prev_ncr_iid, 0, sizeof(int32) * prev_ncr_iid_max);
+
+                for (iv = 0; iv < vreg.nca; iv++) {
+                  prev_nca_iid[iv] = vreg.alleles[iv].num_reads;
+                  for (jv = 0; jv < vreg.alleles[iv].num_reads; jv++)
+                    prev_ncr_iid[kv++] = vreg.alleles[iv].read_iids[jv];
+                }
 
                 if (SHOW_ALLELES) OutputAlleles(stderr, &vreg);
 
@@ -3660,8 +3662,8 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
         safe_free(prev_bases);
         safe_free(prev_iids);
     }
-    safe_free(prev_nrca); 
-    safe_free(prev_iidrca); 
+    safe_free(prev_nca_iid); 
+    safe_free(prev_ncr_iid); 
     return 1;
 }
 
