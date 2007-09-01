@@ -25,7 +25,7 @@
                  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: TestBaseCall_CNS.c,v 1.19 2007-05-29 10:54:28 brianwalenz Exp $";
+static char CM_ID[] = "$Id: TestBaseCall_CNS.c,v 1.20 2007-09-01 05:09:49 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -53,8 +53,6 @@ static char CM_ID[] = "$Id: TestBaseCall_CNS.c,v 1.19 2007-05-29 10:54:28 brianw
 float CNS_SEQUENCING_ERROR_EST = .02; // Used to calculate '-' probability
 float CNS_SNP_RATE   = 0.0003; // Used to calculate BIAS
 int   CNS_HAPLOTYPES = 1;   // Used to calculate BIAS
-int   CNS_USE_PUBLIC = 0;   // Used to direct basecalling to include public data
-int   CNS_CALL_PUBLIC = 0;   // Used to direct basecalling to favor public data
 int   CNS_USE_QVS = 1;   // Used to direct basecalling to use quality value (versus strict majority rule)
 
 void print_keys(void);
@@ -75,7 +73,7 @@ int main (int argc, char *argv[])
    vr.nr = 0;       
    InitializeAlphTable();
    optarg = NULL;
-   while (!errflg && ((ch = getopt(argc, argv, "q:d:hPim")) != EOF)) {
+   while (!errflg && ((ch = getopt(argc, argv, "q:him")) != EOF)) {
         switch(ch) {
         case 'q':
           sscanf(optarg,"%f:%d:%f",&CNS_SEQUENCING_ERROR_EST,&CNS_HAPLOTYPES,&CNS_SNP_RATE);
@@ -95,17 +93,6 @@ int main (int argc, char *argv[])
             illegal_use = 1;
           }
           iflags++;
-          iflags++;
-          break;
-        case 'd': // depth of coverage at which to start using public data, 0 == alway include public
-          {
-            CNS_USE_PUBLIC = atoi(optarg);
-          }
-          iflags++;
-          iflags++;
-          break;
-        case 'P': // favor the public data, call public if discrepant with Celera reads
-          CNS_CALL_PUBLIC = 1;
           iflags++;
           break;
         case 'm': // use majority rule (rather than Bayesian evaluation of quality values)
@@ -128,16 +115,11 @@ int main (int argc, char *argv[])
    if ( illegal_use ) {
         fprintf(stderr,"  Usage:\n\n");
         fprintf(stderr,"  %s [-d int] [-q string] [-P] [-h] [-i] < formatted_column_input_file\n",argv[0]);
-        fprintf(stderr,"    -d int       Depth of Celera coverage below which to include external data in basecalling\n");
-        fprintf(stderr,"                    0 (default) indicates that external data should always be used\n");
-        fprintf(stderr,"                    1 yields the traditional behavior, which uses external only in absence of Celera\n");
-        fprintf(stderr,"                  > 1 will include publice data is the Celera depth falls below the given value\n");
         fprintf(stderr,"    -q string    Override default quality call parameters\n");
         fprintf(stderr,"                    string is colon separated list of the form '%%f:%%d:%%f'\n");
         fprintf(stderr,"                    where first field is estimated sequencing error rate (default: .015)\n");
         fprintf(stderr,"                         second field is number of sequenced haplotypes (default: 1)\n");
         fprintf(stderr,"                          third field is estimated SNP rate (default: 1/1000)\n");
-        fprintf(stderr,"    -P           Call public data if is conflicts with Celera reads\n");
         fprintf(stderr,"    -h           print usage statement\n");
         fprintf(stderr,"    -i           print QV conversion + polymorphism key\n\n");
         exit(1);
@@ -156,8 +138,6 @@ int main (int argc, char *argv[])
    fprintf(stdout,"CNS_SEQUENCING_ERROR_EST = %4.2f\n",CNS_SEQUENCING_ERROR_EST);
    fprintf(stdout,"            CNS_SNP_RATE = %6.4f\n",CNS_SNP_RATE);
    fprintf(stdout,"          CNS_HAPLOTYPES = %d\n",CNS_HAPLOTYPES);  
-   fprintf(stdout,"          CNS_USE_PUBLIC = %d\n",CNS_USE_PUBLIC); 
-   fprintf(stdout,"         CNS_CALL_PUBLIC = %d\n",CNS_CALL_PUBLIC); 
    return 0;
 }
 

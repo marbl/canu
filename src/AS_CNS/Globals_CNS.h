@@ -36,8 +36,6 @@
    float CNS_SEQUENCING_ERROR_EST;// Used to calculate '-' probability
    float CNS_SNP_RATE;            // Used to calculate BIAS
    int   CNS_HAPLOTYPES;          // Used to calculate BIAS
-   int   CNS_USE_PUBLIC;          // Used to include public data in basecalling
-   int   CNS_CALL_PUBLIC;         // Used to favor public data in basecalling
 
 //====================================================================
 // Output file:

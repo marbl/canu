@@ -24,7 +24,7 @@
    Assumptions:  
  *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.159 2007-09-01 05:01:09 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.160 2007-09-01 05:09:49 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -2060,27 +2060,6 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
                     qv++;
             }
             cqv = QVInRange(qv);
-        }
-      // if (CNS_CALL_PUBLIC), then check whether call disagrees with guide data.
-      //    if so, call the public base
-
-        if ( CNS_CALL_PUBLIC && (num_guides=GetNumBeads(guides)) > 0 )
-        {
-            int i;
-            char gbase=(char) 0;
-            for (i=0;i<num_guides;i++) {
-                Bead *gbead = GetBead(guides,i);
-                type = GetFragment(fragmentStore, gbead->frag_index)->type;
-                if ( type != AS_UNITIG) {
-                    gbase = toupper( *Getchar(sequenceStore,gbead->soffset));
-                    break;
-                }
-            }
-            if ( gbase != (char) 0  && gbase != cbase ) {
-                // override the Celera call with the guide call
-                cbase = gbase;
-                cqv = 0 + '0';
-            }
         }
 
 
@@ -7606,7 +7585,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     // The function will return 0 if successful, and -1 if unsuccessful 
     // (due to overlap failure)
     int32 fid,i,align_to;
-    int32 num_reads=0,num_guides=0,num_columns=0;
+    int32 num_reads=0,num_columns=0;
 #ifdef ALIGN_TO_CONSENSUS
     int32 aoffset;
 #endif 
@@ -9362,7 +9341,6 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
    num_contigs = GetNumIntMultiPoss(positions);
    cpositions = GetIntMultiPos(positions,0);
    allow_neg_hang=0;
-   CNS_CALL_PUBLIC = 0;
    std_output=1;
    std_error_log=1;
    USE_SDB=1;

@@ -31,7 +31,7 @@
 #include "Globals_CNS.h"
 #include "PublicAPI_CNS.h"
 
-static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.17 2007-07-19 09:50:33 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.18 2007-09-01 05:09:49 brianwalenz Exp $";
 
 static HashTable_AS *utgUID2IID;
 
@@ -40,8 +40,6 @@ static HashTable_AS *utgUID2IID;
 
 float CNS_SNP_RATE   = 0.0003; // Used to calculate BIAS
 int   CNS_HAPLOTYPES = 1;   // Used to calculate BIAS
-int   CNS_USE_PUBLIC = 0;   // Used to direct basecalling to include public data
-int   CNS_CALL_PUBLIC = 0;   // Used to direct basecalling to favor public data
 
 
 /***********************/
@@ -290,16 +288,9 @@ int main (int argc, char *argv[]) {
     
     while ( !errflg && 
            ( (ch = getopt(argc, argv, 
-                 "d:f:g:G?hKM:mq:w:X")) != EOF))
+                 "f:g:hKM:mq:w:X")) != EOF))
     {
         switch(ch) {
-        case 'd':
-          {
-            CNS_USE_PUBLIC = atoi(optarg);
-          }
-          iflags++;
-          iflags++;
-          break;
 	case 'f':
 	  frgStorePath=optarg;
           iflags++;
@@ -310,16 +301,6 @@ int main (int argc, char *argv[]) {
           iflags++;
           iflags++;
 	  break;
-        case 'G':
-          if ( ! expert ) {
-             fprintf(stderr,"Command line switch %c requires -X; try adding -X...\n",
-                  ch); 
-             illegal_use = 1;
-          } else {
-            CNS_CALL_PUBLIC = 1;
-          }
-          iflags++;
-          break;
         case '?':
         case 'h':
           help_flag = 1;
@@ -428,7 +409,7 @@ int main (int argc, char *argv[]) {
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.17 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.18 $ processing. Started %s\n",
 	      ctime(&t));
       InitializeAlphTable();
 

@@ -27,7 +27,7 @@
                  
  *********************************************************************/
 
-static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.53 2007-08-03 20:45:03 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: Consensus_CNS.c,v 1.54 2007-09-01 05:09:49 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -85,8 +85,6 @@ extern int clear_range_to_use;
 float CNS_SEQUENCING_ERROR_EST = .02; // Used to calculate '-' probability
 float CNS_SNP_RATE   = 0.0003; // Used to calculate BIAS
 int   CNS_HAPLOTYPES = 1;   // Used to calculate BIAS
-int   CNS_USE_PUBLIC = 0;   // Used to direct basecalling to include public data
-int   CNS_CALL_PUBLIC = 0;   // Used to direct basecalling to favor public data
 
 int IntUnitigPositionCmpLeft( const IntUnitigPos *l, const IntUnitigPos *m) {
   int ltmp,mtmp;
@@ -140,7 +138,6 @@ help_message(int argc, char *argv[])
     fprintf(stderr,"  Usage:\n\n"
     "  %s [-P] [-v level] [-I] [-a [DLA]] [-X expert_options] GateKeeperStoreDir [CGWStream]\n"
     "\n Standard option flags:\n"
-    "    -P           Force ASCII .cns output \n"
     "    -v [0-4]     Verbose:  0 = verbose off \n"
     "                           1 = horizontal multi-alignment print in .clg\n"
     "                           2 = 'dots'     multi-alignment print in .clg\n"
@@ -167,10 +164,6 @@ help_message(int argc, char *argv[])
     "                 L = Local_Aligner (default)\n"
     "                 D = standard DP_Compare (will cause failed overlaps to terminate the run)\n"
     "                 A = Affine_Aligner\n"
-    "    -d int       Depth of Celera coverage below which to include external data in basecalling\n"
-    "                    0 (default) indicates that external data should always be used\n"
-    "                    1 yields the traditional behavior, which uses external only in absence of Celera\n"
-    "                  > 1 will include publice data is the Celera depth falls below the given value\n"
     "    -X           Allow 'expert' options (following)\n"
     "\n Expert option flags:\n"
     "    -D opt       Enable debugging option 'opt'.  One of 'dumpunitigs', 'verbosemultialign',\n"
@@ -347,7 +340,7 @@ int main (int argc, char *argv[])
 
     while ( !errflg && 
            ( (ch = getopt(argc, argv, 
-                 "a:d:e:fghil:mno:p:q:r:s:t:v:w:D:GIKM:NO:PR:S:T:UV:X")) != EOF))
+                 "a:e:fghil:mno:p:q:r:s:t:v:w:D:GIKM:NO:R:S:T:UV:X")) != EOF))
     {
         switch(ch) {
         case 'n':
@@ -364,10 +357,6 @@ int main (int argc, char *argv[])
           break;
         case 'G':
           allow_neg_hang_retry = 1;
-          iflags++;
-          break;
-        case 'P':
-          fprintf(stderr, "-P is depricated; protoIO is default.\n");
           iflags++;
           break;
         case 'K':
@@ -504,13 +493,6 @@ int main (int argc, char *argv[])
           } else {
             align_ium = 1;
            }
-          iflags++;
-          break;
-        case 'd':
-          {
-            CNS_USE_PUBLIC = atoi(optarg);
-          }
-          iflags++;
           iflags++;
           break;
         case 'q':
@@ -836,7 +818,7 @@ int main (int argc, char *argv[])
       VA_TYPE(char) *quality=CreateVA_char(200000);
       time_t t;
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.53 $ processing. Started %s\n",
+      fprintf(stderr,"# Consensus $Revision: 1.54 $ processing. Started %s\n",
         ctime(&t));
       InitializeAlphTable();
       if ( ! align_ium && USE_SDB && extract > -1 ) 
@@ -1100,12 +1082,6 @@ int main (int argc, char *argv[])
         //qsort(pcontig->unitigs, pcontig->num_unitigs, sizeof(IntUnitigPos),
         //      (int (*)(const void *,const void *))IntUnitigPositionCmpLeft);
             if ( ! noop > 0 ) {
-             
-//             if (pcontig->num_vars == 0)
-//              {
-//                  pcontig->num_vars = 1;
-//                  pcontig->v_list = safe_malloc(sizeof(IntMultiVar));
-//              }
                 pcontig->num_vars == 0;
                 pcontig->v_list == NULL;
                 if (MultiAlignContig(pcontig, sequence, quality, deltas, printwhat,
@@ -1186,7 +1162,7 @@ int main (int argc, char *argv[])
             {
               AuditLine auditLine;
               AppendAuditLine_AS(adt_mesg, &auditLine, t,
-                                 "Consensus", "$Revision: 1.53 $","(empty)");
+                                 "Consensus", "$Revision: 1.54 $","(empty)");
             }
 #endif
               VersionStampADT(adt_mesg,argc,argv);
@@ -1210,7 +1186,7 @@ int main (int argc, char *argv[])
       }
 
       t = time(0);
-      fprintf(stderr,"# Consensus $Revision: 1.53 $ Finished %s\n",ctime(&t));
+      fprintf(stderr,"# Consensus $Revision: 1.54 $ Finished %s\n",ctime(&t));
       if (printcns) 
       {
         int unitig_length = (unitig_count>0)? (int) input_lengths/unitig_count: 0; 

@@ -78,7 +78,7 @@ echo 53 | rebuildscaffolds -f oct01.fStore -s oct01.sStore -V 23 -c oct01.cStore
 
  *********************************************************************/
 
-static char CM_ID[] = "$Id: RebuildScaffolds_CNS.c,v 1.17 2007-05-29 10:54:28 brianwalenz Exp $";
+static char CM_ID[] = "$Id: RebuildScaffolds_CNS.c,v 1.18 2007-09-01 05:09:49 brianwalenz Exp $";
 
 // Operating System includes:
 #include <stdlib.h>
@@ -107,8 +107,6 @@ static char CM_ID[] = "$Id: RebuildScaffolds_CNS.c,v 1.17 2007-05-29 10:54:28 br
 float CNS_SEQUENCING_ERROR_EST = .02; // Used to calculate '-' probability
 float CNS_SNP_RATE   = 0.0003; // Used to calculate BIAS
 int   CNS_HAPLOTYPES = 1;   // Used to calculate BIAS
-int   CNS_USE_PUBLIC = 0;   // Used to direct basecalling to include public data
-int   CNS_CALL_PUBLIC = 0;   // Used to direct basecalling to favor public data
 int   CNS_USE_QVS = 1;   // Used to direct basecalling to use quality value (versus strict majority rule)
 
 VA_DEF(IntContigPairs)
