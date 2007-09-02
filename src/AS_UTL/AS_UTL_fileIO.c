@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//static char CM_ID[] = "$Id: AS_UTL_fileIO.c,v 1.14 2007-08-27 18:12:56 eliv Exp $";
+//static char CM_ID[] = "$Id: AS_UTL_fileIO.c,v 1.15 2007-09-02 22:56:56 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -224,6 +224,8 @@ AS_UTL_fseek(FILE *stream, off_t offset, int whence) {
   fprintf(stderr, "AS_UTL_fseek()--  seek to "F_OFF_T" (requested "F_OFF_T", whence=%d) from "F_OFF_T"\n",
           AS_UTL_ftell(stream), offset, whence, beginpos);
 #endif
-  assert(AS_UTL_ftell(stream) == offset);
+
+  if (whence == SEEK_SET)
+    assert(AS_UTL_ftell(stream) == offset);
 }
 
