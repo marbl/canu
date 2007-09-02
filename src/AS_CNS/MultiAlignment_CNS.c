@@ -24,7 +24,7 @@
    Assumptions:  
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.161 2007-09-02 20:43:56 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.162 2007-09-02 20:46:03 brianwalenz Exp $";
 
 /* Controls for the DP_Compare and Realignment schemes */
 #include "AS_global.h"
@@ -309,7 +309,8 @@ int IncBaseCount(BaseCount *b, char c) {
   if (c == 'N' || c == 'n' ) i=5;
   b->depth++;
   if( i<0 || i>5 ){
-    CleanExit("IncBaseCount i out of range (possibly non ACGTN letter?)",__LINE__,1);
+    fprintf(stderr, "IncBaseCount i out of range (possibly non ACGTN letter?)");
+    assert(0);
   }
   return b->count[i]++;
 }
@@ -319,7 +320,8 @@ int DecBaseCount(BaseCount *b, char c) {
   if (c == 'N' || c == 'n' ) i=5;
   b->depth--;
   if( i<0 || i>5 ){
-    CleanExit("DecBaseCount i out of range",__LINE__,1);
+    fprintf(stderr, "DecBaseCount i out of range");
+    assert(0);
   }
   return b->count[i]--;
 }
@@ -612,7 +614,8 @@ int32 AppendGapBead(int32 bid) {
   char qv;
 
   if (prev == NULL ) {
-    CleanExit("AppendGapBead prev==NULL",__LINE__,1);
+    fprintf(stderr, "AppendGapBead prev==NULL");
+    assert(0);
   }
   bead.boffset = GetNumBeads(beadStore);
   bead.soffset = GetNumchars(sequenceStore);
@@ -648,7 +651,7 @@ int32 PrependGapBead(int32 bid) {
   char base='-';
   char qv;
 
-  if (next == NULL ) CleanExit("PrependGapBead next==NULL",__LINE__,1);
+  assert(next != NULL);
   bead.boffset = GetNumBeads(beadStore);
   bead.soffset = GetNumchars(sequenceStore);
   bead.foffset = next->foffset;
@@ -1116,7 +1119,8 @@ int32 AppendFragToLocalStore(FragType type, int32 iid, int complement,int32 cont
       }
     default:
       {
-        CleanExit("AppendFragToLocalStore invalid FragType",__LINE__,1);
+        fprintf(stderr, "AppendFragToLocalStore invalid FragType");
+        assert(0);
       }
   }
   if (complement) {
@@ -1171,13 +1175,13 @@ int32 AppendArtificialFragToLocalStore(FragType type, int32 iid, int complement,
 int32 AlignBead(int32 cid, int32 bid) {
   Column *column=GetColumn(columnStore,cid);
   Bead *call, *first, *align;
-  if (column == NULL ) CleanExit("AlignBead column==NULL",__LINE__,1);
+  assert(column != NULL );
   call = GetBead(beadStore,column->call);
+  assert(call != NULL);
   first = GetBead(beadStore,call->down);
+  assert(first != NULL);
   align = GetBead(beadStore,bid);
-  if (call == NULL ) CleanExit("AlignBead call==NULL",__LINE__,1);
-  if (first == NULL ) CleanExit("AlignBead first==NULL",__LINE__,1);
-  if (align == NULL ) CleanExit("AlignBead align==NULL",__LINE__,1);
+  assert(align != NULL);
   align->down = first->boffset;
   align->up = call->boffset;
   call->down = align->boffset;
@@ -1193,7 +1197,7 @@ int32 UnAlignBead(int32 bid) {
   Bead *upbead;
   Column *column;
   char bchar;
-  if (bead == NULL ) CleanExit("UnAlignBead bead==NULL",__LINE__,1);
+  assert(bead != NULL);
   if (bead->column_index == -1 ) return -1;
   column = GetColumn(columnStore,bead->column_index);
   upbead = GetBead(beadStore,bead->up);
@@ -1214,7 +1218,7 @@ int32 RemoveBeadFromFragment(int32 bid) {
   Bead *bead = GetBead(beadStore,bid);
   Bead *nextbead;
   Bead *prevbead;
-  if (bead == NULL ) CleanExit("RemoveBeadFromFragment bead==NULL",__LINE__,1);
+  assert(bead != NULL);
   if ( bead->next > -1) {
     nextbead = GetBead(beadStore,bead->next);
     nextbead->prev = bead->prev;
@@ -1230,9 +1234,9 @@ int32 UnAlignFragment(int32 fid) {
   Fragment *frag=GetFragment(fragmentStore,fid);
   Bead *bead; 
   int32 next_bid;
-  if (frag == NULL ) CleanExit("UnAlignFragment frag==NULL",__LINE__,1);
+  assert(frag != NULL);
   bead = GetBead(beadStore,frag->beads);    
-  if (bead == NULL ) CleanExit("UnAlignFragment bead==NULL",__LINE__,1);
+  assert(bead != NULL);
   next_bid = bead->next;  
   while (next_bid > 0 ) {
     UnAlignBead(bead->boffset);
@@ -1256,7 +1260,7 @@ int32 UnAlignTrailingGapBeads(int32 bid) {
   int32 anchor;
   Column *column;
   char bchar;
-  if (bead == NULL ) CleanExit("UnAlignTrailingGaps bead==NULL",__LINE__,1);
+  assert(bead != NULL);
   // find direction to remove
   anchor = bead->prev;
   while ( bead->next != -1 && *Getchar(sequenceStore,(GetBead(beadStore,bead->next))->soffset) == '-' ) {
@@ -1273,7 +1277,8 @@ int32 UnAlignTrailingGapBeads(int32 bid) {
     upbead = GetBead(beadStore,bead->up);
     bchar = *Getchar(sequenceStore,bead->soffset);
     if( bchar != '-'){
-      CleanExit("UnAlignTrailingGapBead bchar is not a gap",__LINE__,1);
+      fprintf(stderr, "UnAlignTrailingGapBead bchar is not a gap");
+      assert(0);
     }
     upbead->down = bead->down;
     if (bead->down != -1 ) {
@@ -1306,12 +1311,12 @@ int32 LateralExchangeBead(int32 lid, int32 rid) {
   char leftchar, rightchar;
   leftbead = GetBead(beadStore,lid);
   rightbead = GetBead(beadStore,rid);
-  if (leftbead == NULL ) CleanExit("LateralExchangeBead leftbead==NULL",__LINE__,1);
-  if (rightbead == NULL ) CleanExit("LateralExchangeBead rightbead==NULL",__LINE__,1);
+  assert(leftbead != NULL);
+  assert(rightbead != NULL);
   leftcolumn = GetColumn(columnStore,leftbead->column_index);
   rightcolumn = GetColumn(columnStore,rightbead->column_index);
-  if (leftcolumn == NULL ) CleanExit("LateralExchangeBead leftcolumn==NULL",__LINE__,1);
-  if (rightcolumn == NULL ) CleanExit("LateralExchangeBead rightcolumn==NULL",__LINE__,1);
+  assert(leftcolumn != NULL);
+  assert(rightcolumn != NULL);
   leftchar = *Getchar(sequenceStore,leftbead->soffset);
   rightchar = *Getchar(sequenceStore,rightbead->soffset);
 
@@ -1323,7 +1328,8 @@ int32 LateralExchangeBead(int32 lid, int32 rid) {
     if (ibead->boffset == rid ) break;
   
     if( *Getchar(sequenceStore,ibead->soffset) != '-') {
-      CleanExit("LateralExchangeBead exchangebead!='-'",__LINE__,1);
+      fprintf(stderr, "LateralExchangeBead exchangebead!='-'");
+      assert(0);
     }
   }
   rtmp = *rightbead;
@@ -1377,7 +1383,7 @@ int32 LeftEndShiftBead(int32 bid, int32 eid) {
 
   Bead *shift = GetBead(beadStore,eid);
   int32 aid = (GetBead(beadStore,bid))->prev;
-  if (shift == NULL ) CleanExit("LeftEndShift shift==NULL",__LINE__,1);
+  assert(shift != NULL);
   if ( *Getchar(sequenceStore,shift->soffset) != '-' ) {
     // assume first and internal characters are gaps
     LateralExchangeBead(bid, eid);
@@ -1408,7 +1414,7 @@ int32 RightEndShiftBead(int32 bid, int32 eid) {
   Bead *shift = GetBead(beadStore,bid);
   int32 aid = (GetBead(beadStore,eid))->next;
   int32 rid; 
-  if (shift == NULL ) CleanExit("RightEndShift shift==NULL",__LINE__,1);
+  assert(shift != NULL);
   if ( *Getchar(sequenceStore,shift->soffset) != '-' ) {
     // assume last and internal characters are gaps
     LateralExchangeBead(bid, eid);
@@ -1480,10 +1486,10 @@ int32 ColumnAppend(int32 cid, int32 bid) {
   Bead *bead = GetBead(beadStore,bid);
   Bead *call,*prevcall,*nextcall;
   // make sure this bead exists before continuing
-  if (bead == NULL ) CleanExit("ColumnAppend bead==NULL",__LINE__,1);
+  assert(bead != NULL);
   column = CreateColumn(bid);
   // make sure this column exists before continuing
-  if (column == NULL ) CleanExit("ColumnAppend column==NULL",__LINE__,1);
+  assert(column != NULL);
   call = GetBead(beadStore,column->call);
   prev = GetColumn(columnStore,cid);
   prevcall = GetBead(beadStore,prev->call);
@@ -1502,7 +1508,8 @@ int32 ColumnAppend(int32 cid, int32 bid) {
     nextcall->prev = call->boffset;
   }
   if(! CreateColumnBeadIterator(cid,&ci)){
-    CleanExit("ColumnAppend CreateColumnBeadIterator failed",__LINE__,1);
+    fprintf(stderr, "ColumnAppend CreateColumnBeadIterator failed");
+    assert(0);
   }
   while ( (nid = NextColumnBead(&ci)) != -1 ) {
     bead = GetBead(beadStore,nid);
@@ -1526,10 +1533,10 @@ int32 ColumnPrepend(int32 cid, int32 bid) {
   Bead *bead = GetBead(beadStore,bid);
   Bead *call,*prevcall,*nextcall;
   // make sure this bead exists before continuing
-  if (bead == NULL ) CleanExit("ColumnPrepend bead==NULL",__LINE__,1);
+  assert(bead != NULL);
   column = CreateColumn(bid);
   // make sure this column exists before continuing
-  if (column == NULL ) CleanExit("ColumnPrepend column==NULL",__LINE__,1);
+  assert(column != NULL);
   call = GetBead(beadStore,column->call);
   next = GetColumn(columnStore,cid);
   nextcall = GetBead(beadStore,next->call);
@@ -1548,7 +1555,8 @@ int32 ColumnPrepend(int32 cid, int32 bid) {
     prevcall->next = call->boffset;
   }
   if(! CreateColumnBeadIterator(cid,&ci)){
-    CleanExit("ColumnPrepend CreateColumnBeadIterator failed",__LINE__,1);
+    fprintf(stderr, "ColumnPrepend CreateColumnBeadIterator failed");
+    assert(0);
   }
   while ( (nid = NextColumnBead(&ci)) != -1 ) {
     bead = GetBead(beadStore,nid);
@@ -1570,9 +1578,9 @@ int32 FirstColumn(int32 mid, int32 bid) {
   Column *column;
   Bead *bead = GetBead(beadStore,bid);
   AssertPtr(bead);
-  if (bead == NULL ) CleanExit("FirstColumn bead==NULL",__LINE__,1);
+  assert(bead != NULL);
   column = CreateColumn(bid);
-  if (column == NULL ) CleanExit("FirstColumn column==NULL",__LINE__,1);
+  assert(column != NULL);
   column->ma_id =  mid;
   column->ma_index =  0;
   AddColumnToMANode(mid,*column);
@@ -1589,10 +1597,10 @@ int MergeCompatible(int32 cid) {
   int32 mid; // id of bead to merge
   int mergeok = 1;
   column = GetColumn(columnStore,cid);
-  if (column == NULL ) CleanExit("MergeCompatible column==NULL",__LINE__,1);
+  assert(column != NULL);
   if (column->next == -1) return 0;
   merge_column = GetColumn(columnStore,column->next);
-  if (merge_column == NULL ) CleanExit("MergeCompatible merge_column==NULL",__LINE__,1);
+  assert(merge_column != NULL);
   cbead = GetBead(beadStore,column->call);
   while (mergeok && cbead->down != - 1) {
     cbead = GetBead(beadStore,cbead->down);
@@ -1629,7 +1637,8 @@ int MergeCompatible(int32 cid) {
           break;
         }
         if(GetDepth(merge_column) <= 0){
-          CleanExit("MergeCompatible empty column",__LINE__,1);
+          fprintf(stderr, "MergeCompatible empty column");
+          assert(0);
         }
       }
     }
@@ -1643,7 +1652,8 @@ int AverageDepth(int32 bgn, int32 end) {
   ColumnIterator ci; 
   int nid;
   if ( !CreateColumnIterator(bgn,&ci)) {
-    CleanExit("AverageDepth CreateColumnIterator failed",__LINE__,1);
+    fprintf(stderr, "AverageDepth CreateColumnIterator failed");
+    assert(0);
   }
   while ( (nid = NextColumn(&ci)) != -1 ) {
     if (nid == end) break;
@@ -1663,7 +1673,8 @@ void ShowColumn(int32 cid) {
   ColumnBeadIterator ci;
   int32 bid;
   if(!CreateColumnBeadIterator(cid,&ci)){
-    CleanExit("ShowColumn CreateColumnBeadIterator failed",__LINE__,1);
+    fprintf(stderr, "ShowColumn CreateColumnBeadIterator failed");
+    assert(0);
   }
   call = GetBead(beadStore,column->call);
   fprintf(stderr,"\nstore_index: %-20d ( prev: %d next: %d)\n",column->lid,column->prev,column->next);
@@ -1780,7 +1791,8 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
 
 
   if(!CreateColumnBeadIterator(cid, &ci)){
-    CleanExit("BaseCall CreateColumnBeadIterator failed",__LINE__,1);
+    fprintf(stderr, "BaseCall CreateColumnBeadIterator failed");
+    assert(0);
   }
 
   *var = 0.;
@@ -2127,7 +2139,8 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
       int tie_breaker, max_tie, i;
 
       if(!CreateColumnBeadIterator(cid,&ci)) {
-        CleanExit("BaseCount CreateColumnBeadIterator failed",__LINE__,1);
+        fprintf(stderr, "BaseCount CreateColumnBeadIterator failed");
+        assert(0);
       }
       while ( (bid = NextColumnBead(&ci)) != -1 ) {
         bead = GetBead(beadStore,bid);
@@ -2281,8 +2294,8 @@ GetReadIidsAndNumReads(int cid, VarRegion  *vreg)
   int32 *column_iid_list = (int32 *)safe_malloc(max_nr*sizeof(int32));
 
   if(!CreateColumnBeadIterator(cid, &ci)){
-    CleanExit("GetReadIidsAndNumReads CreateColumnBeadIterator failed",
-              __LINE__,1);
+    fprintf(stderr, "GetReadIidsAndNumReads CreateColumnBeadIterator failed");
+    assert(0);
   }
   while ( (bid = NextColumnBead(&ci)) != -1 )
     {
@@ -2643,8 +2656,8 @@ GetReadsForVARRecord(Read *reads, int32 *iids, int32 nvr,
       int32 *column_iid_list = (int32 *)safe_malloc(max_nr*sizeof(int32));
 
       if(!CreateColumnBeadIterator(cids[k], &ci)){
-        CleanExit("GetReadsForVARRecord CreateColumnBeadIterator failed",
-                  __LINE__,1);
+        fprintf(stderr, "GetReadsForVARRecord CreateColumnBeadIterator failed");
+        assert(0);
       }
 
       // Collect bases and usids in the coluimn
@@ -2974,12 +2987,10 @@ PopulateVARRecord(int is_phased, int32 *cids, int32 *nvars, int32 *min_len_vlist
                              vreg.alleles[al].id, &cbase, 0, 0, opp);
                     if (cbase != base[al])
                       {
-                        fprintf(cnslog, "Error setting the consensus base #%d  %c/%c\n",
-                                m, cbase, base[al]);
-                        OutputReads(cnslog, vreg.reads, vreg.nr, vreg.end-vreg.beg+1);
-                        OutputDistMatrix(cnslog, &vreg);
-                        OutputAlleles(cnslog, &vreg);
-                        fprintf(stderr, "Error setting the consensus base\n");
+                        fprintf(stderr, "Error setting the consensus base #%d  %c/%c\n", m, cbase, base[al]);
+                        OutputReads(stderr, vreg.reads, vreg.nr, vreg.end-vreg.beg+1);
+                        OutputDistMatrix(stderr, &vreg);
+                        OutputAlleles(stderr, &vreg);
                         exit(-1);
                       }
 #endif
@@ -3341,8 +3352,8 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
   window = opp->smooth_win;
   *nvars = 0;
 
-  if (ma == NULL ) 
-    CleanExit("RefreshMANode ma==NULL",__LINE__,1);
+  assert(ma != NULL);
+
   if ( ma->first == -1 ) 
     return 1;
 
@@ -3366,8 +3377,7 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
   while ( cid  > -1 ) 
     {
       column = GetColumn(columnStore, cid);
-      if (column == NULL ) 
-        CleanExit("RefreshMANode column==NULL",__LINE__,1);
+      assert(column != NULL);
       if ( quality != -2 ) 
         {
           if (index >= len_manode)
@@ -3390,7 +3400,8 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
         Column *pcol= GetColumn(columnStore, prev);
         if( prev != column->prev ||  pcol->next != column->lid)
           {
-            CleanExit("RefreshMANode column relationships violated",__LINE__,1);
+            fprintf(stderr, "RefreshMANode column relationships violated");
+            assert(0);
           }
       }
 
@@ -3656,10 +3667,11 @@ int SeedMAWithFragment(int32 mid, int32 fid, int quality,
   int32 bid;
 
   ma = GetMANode(manodeStore, mid);
-  if (ma == NULL ) CleanExit("SeedMAWithFragment ma==NULL",__LINE__,1);
-  if (fragment == NULL ) CleanExit("SeedMAWithFragment fragment==NULL",__LINE__,1);
+  assert(ma != NULL);
+  assert(fragment != NULL);
   if(!CreateFragmentBeadIterator(fid,&fi)){
-    CleanExit("SeedMAWithFragment CreateFragmentBeadIterator failed",__LINE__,1);
+    fprintf(stderr, "SeedMAWithFragment CreateFragmentBeadIterator failed");
+    assert(0);
   }
   bid = NextFragmentBead(&fi);
   cid = FirstColumn(mid,bid);
@@ -4036,8 +4048,8 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang,
   biid = bfrag->iid;
   btype = bfrag->type;
   b = Getchar(sequenceStore,bfrag->sequence);
-  if (a == NULL ) CleanExit("GetAlignmentTrace a==NULL",__LINE__,1);
-  if (b == NULL ) CleanExit("GetAlignmentTrace b==NULL",__LINE__,1);
+  assert(a != NULL);
+  assert(b != NULL);
   alen = strlen(a); 
   blen = strlen(b);
   LOCAL_DEFAULT_PARAMS.maxBegGap = MaxBegGap;
@@ -4046,7 +4058,7 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang,
   if ( allow_big_endgaps > 0 ) {
     LOCAL_DEFAULT_PARAMS.maxBegGap = allow_big_endgaps;
     LOCAL_DEFAULT_PARAMS.maxEndGap = allow_big_endgaps;
-    PrintAlarm(cnslog,"NOTE: Looking for local alignment with large endgaps.\n");
+    PrintAlarm(stderr,"NOTE: Looking for local alignment with large endgaps.\n");
   }
   LOCAL_DEFAULT_PARAMS.bandBgn=ahang_input-CNS_TIGHTSEMIBANDWIDTH;
   LOCAL_DEFAULT_PARAMS.bandEnd=ahang_input+CNS_TIGHTSEMIBANDWIDTH;
@@ -4221,15 +4233,15 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang,
     utl_showstring(stderr,a,100);
     fprintf(stderr,"B frag %d sequence:\n",biid);
     utl_showstring(stderr,b,100);
-    if ( cnslog != NULL ) {
-      fprintf(cnslog,"Could not find overlap between %d (%c) and %d (%c) estimated ahang: %d\n",
-              aiid,atype,biid,btype,ahang_input);
-      // show sequences being compared
-      fprintf(cnslog,"A frag %d sequence:\n",aiid);
-      utl_showstring(cnslog,a,100);
-      fprintf(cnslog,"B frag %d sequence:\n",biid);
-      utl_showstring(cnslog,b,100);
-    }
+
+    fprintf(stderr,"Could not find overlap between %d (%c) and %d (%c) estimated ahang: %d\n",
+            aiid,atype,biid,btype,ahang_input);
+    // show sequences being compared
+    fprintf(stderr,"A frag %d sequence:\n",aiid);
+    utl_showstring(stderr,a,100);
+    fprintf(stderr,"B frag %d sequence:\n",biid);
+    utl_showstring(stderr,b,100);
+
     return 0;
   }
 
@@ -4243,16 +4255,16 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang,
     // this is an undesirable situation... by construction, we anticipate all 
     // ahangs to be non-negative
     if (show_olap) {
-      ReportTrick(cnslog,trick);
-      ReportOverlap(cnslog,COMPARE_FUNC,params,aiid,atype,biid,btype,O,ahang_input);
+      ReportTrick(stderr,trick);
+      ReportOverlap(stderr,COMPARE_FUNC,params,aiid,atype,biid,btype,O,ahang_input);
     }
 
     if ( O->begpos < CNS_NEG_AHANG_CUTOFF && ! allow_neg_hang)  {
       if (show_olap) {
         if (O->begpos > -12) 
           fprintf(stderr," DIAGNOSTIC: would have accepted bad olap with %d bp slip\n",ahang_input-O->begpos); // diagnostic - remove soon!
-        PrintOverlap(cnslog, a, b, O);
-        PrintAlarm(cnslog,"NOTE: Negative ahang is unacceptably large. Will not use this overlap.\n");
+        PrintOverlap(stderr, a, b, O);
+        PrintAlarm(stderr,"NOTE: Negative ahang is unacceptably large. Will not use this overlap.\n");
       }
       if ( O->begpos < -10 ) //added to get lsat 3 human partitions through
         return 0;
@@ -4262,10 +4274,10 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang,
   if (slip < 0 ) slip *=-1;
   if ( ALIGNMENT_CONTEXT != AS_MERGE && bfrag->type != AS_UNITIG && slip > CNS_TIGHTSEMIBANDWIDTH && COMPARE_FUNC == DP_Compare ) {  
     if (show_olap) {
-      ReportTrick(cnslog,trick);
-      ReportOverlap(cnslog,COMPARE_FUNC,params,aiid,atype,biid,btype,O,ahang_input);
-      PrintOverlap(cnslog, a, b, O);
-      PrintAlarm(cnslog,"NOTE: Slip is unacceptably large. Will not use this overlap.\n");
+      ReportTrick(stderr,trick);
+      ReportOverlap(stderr,COMPARE_FUNC,params,aiid,atype,biid,btype,O,ahang_input);
+      PrintOverlap(stderr, a, b, O);
+      PrintAlarm(stderr,"NOTE: Slip is unacceptably large. Will not use this overlap.\n");
       fprintf(stderr," DIAGNOSTIC: would have accepted bad olap with %d bp slip\n",slip); // diagnostic - remove soon!
     }
     //     if (O->begpos < 0 && slip < 15 ) {} //added to get last 3 human partitions through
@@ -4276,9 +4288,9 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang,
   if (show_olap) {
     if (trick != CNS_ALN_NONE) {
       // write something to the logs to show that heroic efforts were made
-      ReportTrick(cnslog,trick);
-      ReportOverlap(cnslog,COMPARE_FUNC,params,aiid,atype,biid,btype,O,ahang_input);
-      PrintOverlap(cnslog, a, b, O);
+      ReportTrick(stderr,trick);
+      ReportOverlap(stderr,COMPARE_FUNC,params,aiid,atype,biid,btype,O,ahang_input);
+      PrintOverlap(stderr, a, b, O);
     }
   }
 
@@ -4355,14 +4367,14 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang,
 
 int MarkAsContained(int32 fid) {
   Fragment *frag = GetFragment(fragmentStore,fid);
-  if (frag == NULL ) CleanExit("MarkAsContained frag==NULL",__LINE__,1);
+  assert(frag != NULL);
   frag->contained = 1;
   return 1;
 }
 
 int IsContained(int32 fid) {
   Fragment *frag = GetFragment(fragmentStore,fid);
-  if (frag == NULL ) CleanExit("IsContained frag==NULL",__LINE__,1);
+  assert(frag != NULL);
   return frag->contained;
 }
 
@@ -4380,9 +4392,9 @@ int32 ApplyIMPAlignment(int32 afid, int32 bfid, int32 ahang, int32 *trace) {
   Bead *abead;
   int binsert;
   afrag= GetFragment(fragmentStore,afid);
-  if (afrag == NULL ) CleanExit("ApplyIMPAlignment afrag==NULL",__LINE__,1);
+  assert(afrag != NULL);
   bfrag= GetFragment(fragmentStore,bfid);
-  if (bfrag == NULL ) CleanExit("ApplyIMPAlignment bfrag==NULL",__LINE__,1);
+  assert(bfrag != NULL);
   aboffset = afrag->beads;
   blen = bfrag->length;
   bboffset = bfrag->beads;
@@ -4442,7 +4454,7 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
     }
   } else {
     afrag= GetFragment(fragmentStore,afid);
-    if (afrag == NULL ) CleanExit("ApplyAlignment afrag==NULL",__LINE__,1);
+    assert(afrag != NULL);
     alen = afrag->length;
     aboffset = afrag->beads;
   }
@@ -4461,7 +4473,7 @@ int32 ApplyAlignment(int32 afid, int32 aoffset,int32 bfid, int32 ahang, int32 *t
     }
   }
   bfrag= GetFragment(fragmentStore,bfid);
-  if (bfrag == NULL ) CleanExit("ApplyAlignment bfrag==NULL",__LINE__,1);
+  assert(bfrag != NULL);
   blen = bfrag->length;
   bboffset = bfrag->beads;
   last_a_aligned = -1;
@@ -4685,7 +4697,8 @@ int GetMANodeConsensus(int32 mid, VA_TYPE(char) *sequence, VA_TYPE(char) *qualit
   ResetVA_char(quality);
   EnableRangeVA_char(quality,length+1);
   if(!CreateConsensusBeadIterator(mid,&bi)){
-    CleanExit("GetMANodeConsensus CreateConsensusBeadIterator failed",__LINE__,1);
+    fprintf(stderr, "GetMANodeConsensus CreateConsensusBeadIterator failed");
+    assert(0);
   }
   while ( (bid = NextConsensusBead(&bi)) != -1 ) {
     bead = GetBead(beadStore,bid);
@@ -4703,7 +4716,8 @@ int32 *GetFragmentDeltas(int32 fid, VA_TYPE(int32) *deltas, int length) {
   FragmentBeadIterator fi;
   int32 index=0;
   if(!CreateFragmentBeadIterator(fid,&fi)){
-    CleanExit("GetFragmentDeltas CreateFragmentBeadIterator failed",__LINE__,1);
+    fprintf(stderr, "GetFragmentDeltas CreateFragmentBeadIterator failed");
+    assert(0);
   }
   while ( (bid = NextFragmentBead(&fi)) != -1 && index < length) { // the index < length eliminates any endgaps from the delta list KAR, 09/19/02
     if ( *Getchar(sequenceStore,GetBead(beadStore,bid)->soffset) == '-' ) {
@@ -4727,7 +4741,7 @@ int GetMANodePositions(int32 mid, int mesg_n_frags, IntMultiPos *imps, int mesg_
   int32 n_frags=0,n_unitigs=0;
   int32 i,delta_pos,prev_num_deltas;
   int hash_rc;
-  if (ma == NULL ) CleanExit("GetMANodePositions ma==NULL",__LINE__,1);
+  assert(ma != NULL);
   if ( deltas == NULL ) {
     deltas = CreateVA_int32(gaps_in_alignment);
   } else {
@@ -4750,7 +4764,8 @@ int GetMANodePositions(int32 mid, int mesg_n_frags, IntMultiPos *imps, int mesg_
       assert( n_unitigs<mesg_n_unitigs ); // don't overwrite end of iup list from protomsg.
       fump = &iups[n_unitigs++];
       if(fump->ident != fragment->iid){
-        CleanExit("GetMANodePositions UnitigPos id mismatch",__LINE__,1);
+        fprintf(stderr, "GetMANodePositions UnitigPos id mismatch");
+        assert(0);
       }
       fump->position.bgn = (fragment->complement)?position.end:position.bgn;
       fump->position.end = (fragment->complement)?position.bgn:position.end;
@@ -4947,7 +4962,8 @@ void PrintAlignment(FILE *print, int32 mid, int32 from, int32 to, CNS_PrintKey w
     to = ma_length;
   }
   if(from < 0 || from > to || to > ma_length){
-    CleanExit("PrintAlignment column range invalid",__LINE__,1);
+    fprintf(stderr, "PrintAlignment column range invalid");
+    assert(0);
   }
   // now, adjust from column so that start is divisible by 100
   // (purely for convenience in viewing)
@@ -5015,7 +5031,8 @@ void PrintAlignment(FILE *print, int32 mid, int32 from, int32 to, CNS_PrintKey w
         if ( IsNULLIterator(&read_it[i]) ) {
           if ( positions[i].bgn < wi && positions[i].end > wi ) {
             if(!CreateFragmentBeadIterator(i,&read_it[i])){
-              CleanExit("PrintAlignment CreateFragmentBeadIterator failed",__LINE__,1);
+              fprintf(stderr, "PrintAlignment CreateFragmentBeadIterator failed");
+              assert(0);
             }
             bid = NextFragmentBead(&read_it[i]);
             while ( GetColumn(columnStore,(bead=GetBead(beadStore,bid))->column_index)->ma_index < wi ) {
@@ -5034,7 +5051,8 @@ void PrintAlignment(FILE *print, int32 mid, int32 from, int32 to, CNS_PrintKey w
             } 
           } else if ( positions[i].bgn ==  wi ) {
             if(!CreateFragmentBeadIterator(i,&read_it[i])){
-              CleanExit("PrintAlignment CreateFragmentBeadIterator failed",__LINE__,1);
+              fprintf(stderr, "PrintAlignment CreateFragmentBeadIterator failed");
+              assert(0);
             }
           } else if ( positions[i].bgn > window_start &&  positions[i].bgn < window_start+ALNPAGEWIDTH) {
             fprintf(print," ");
@@ -5082,9 +5100,10 @@ int RemoveNullColumn(int32 nid) {
   Bead *call;
   Bead *bead;
   
-  if (null_column == NULL ) CleanExit("RemoveNullColumn null_column==NULL",__LINE__,1);
+  assert(null_column != NULL);
   if(GetDepth(null_column) != GetBaseCount(&null_column->base_count,'-')){
-    CleanExit("RemoveNullColumn depth(null_column)!=gap basecount",__LINE__,1);
+    fprintf(stderr, "RemoveNullColumn depth(null_column)!=gap basecount");
+    assert(0);
   }
   call = GetBead(beadStore,null_column->call);
   while ( call->down != -1 ) {
@@ -5119,7 +5138,7 @@ int32 MergeRefine(int32 mid, IntMultiVar **v_list, int32 *num_vars,
   Column *column,*next_column;
 
   ma = GetMANode(manodeStore,mid);
-  if (ma == NULL ) CleanExit("MergeRefine ma==NULL",__LINE__,1);
+  assert(ma != NULL);
   for (cid=ma->first;cid!=-1;){
     column = GetColumn(columnStore,cid);
     merged = MergeCompatible(cid);
@@ -5189,14 +5208,15 @@ int32 AlternateDiscriminator(int32 mid, int32 *allmismatches,int32 *hqmismatches
   int hqtab=0;
   int alltab=0;
 
-  if (ma == NULL ) CleanExit("MergeRefine ma==NULL",__LINE__,1);
+  assert(ma != NULL);
   for (i=0;i<60;i++) qvtab[i] = 0;
   
   for (cid=ma->first;cid!=-1;){
     column = GetColumn(columnStore,cid);
     call = Getchar(sequenceStore, GetBead(beadStore,column->call)->soffset);
     if(! CreateColumnBeadIterator(cid,&ci)){
-      CleanExit("AlternateDiscriminator CreateColumnBeadIterator failed",__LINE__,1);
+      fprintf(stderr, "AlternateDiscriminator CreateColumnBeadIterator failed");
+      assert(0);
     }
     while ( (nid = NextColumnBead(&ci)) != -1 ) {
       beadcount++;
@@ -5237,11 +5257,13 @@ void SetAbacus(Abacus *a, int32 i, int32 j, char c)
   int32 offset = i*(a->columns+2)+j+1;
   if(i<0 || i>a->rows-1){
     fprintf(stderr, "i=%d j=%d a->rows=%d\n", i, j, a->rows);
-    CleanExit("SetAbacus attempt to write beyond row range",__LINE__,1);
+    fprintf(stderr, "SetAbacus attempt to write beyond row range");
+    assert(0);
   }
   if(j<0 || j>a->columns-1){
     fprintf(stderr, "i=%d j=%d a->columns=%d\n", i, j, a->columns);
-    CleanExit("SetAbacus attempt to write beyond column range",__LINE__,1);
+    fprintf(stderr, "SetAbacus attempt to write beyond column range");
+    assert(0);
   }
   a->beads[offset] = c; 
 }
@@ -5301,12 +5323,11 @@ Abacus *CreateAbacus(int32 mid, int32 from, int32 end)
 #endif
 
   ma = GetMANode(manodeStore, mid);
-  if (ma == NULL ) CleanExit("CreateAbacus ma==NULL",__LINE__,1);
-
   column = GetColumn(columnStore, from);
-  if (column == NULL ) CleanExit("CreateAbacus column==NULL",__LINE__,1);
 
-  if (abacus_indices == NULL ) CleanExit("CreateAbacus abacus_indices==NULL",__LINE__,1);
+  assert(ma != NULL);
+  assert(column != NULL);
+  assert(abacus_indices != NULL);
 
   ResetIndex(abacus_indices,GetNumFragments(fragmentStore));
 
@@ -5346,7 +5367,8 @@ Abacus *CreateAbacus(int32 mid, int32 from, int32 end)
   column = GetColumn(columnStore, from);
 
   if(!CreateColumnBeadIterator(column->lid,&bi)){
-    CleanExit("CreateAbacus CreateColumnBeadIterator failed",__LINE__,1);
+    fprintf(stderr, "CreateAbacus CreateColumnBeadIterator failed");
+    assert(0);
   }
   while ( (bid = NextColumnBead(&bi)) != -1 ) {
     bead = GetBead(beadStore,bid);
@@ -5355,7 +5377,8 @@ Abacus *CreateAbacus(int32 mid, int32 from, int32 end)
   }
 
   if(!CreateColumnBeadIterator(last->lid,&bi)){
-    CleanExit("CreateAbacus CreateColumnBeadIterator failed",__LINE__,1);
+    fprintf(stderr, "CreateAbacus CreateColumnBeadIterator failed");
+    assert(0);
   }
   while ( (bid = NextColumnBead(&bi)) != -1 ) {
     bead = GetBead(beadStore,bid);
@@ -5377,9 +5400,10 @@ Abacus *CreateAbacus(int32 mid, int32 from, int32 end)
   //
   for (i=0; i<max_mid_columns; i++) {
     if (mid_column[i] != NULL) {
-      if(!CreateColumnBeadIterator(mid_column[i]->lid,&bi))
-        CleanExit("CreateAbacus CreateColumnBeadIterator failed",__LINE__,1);
-
+      if(!CreateColumnBeadIterator(mid_column[i]->lid,&bi)) {
+        fprintf(stderr, "CreateAbacus CreateColumnBeadIterator failed");
+        assert(0);
+      }
       while ((bid = NextColumnBead(&bi)) != -1) {
         bead = GetBead(beadStore,bid);
         if ( *Getint32(abacus_indices,bead->frag_index) == 0 ) {
@@ -5409,7 +5433,8 @@ Abacus *CreateAbacus(int32 mid, int32 from, int32 end)
   columns = 0;
   while( column->lid != end  && column->lid != -1) {
     if(!CreateColumnBeadIterator(column->lid,&bi)){
-      CleanExit("CreateAbacus CreateColumnBeadIterator failed",__LINE__,1);
+      fprintf(stderr, "CreateAbacus CreateColumnBeadIterator failed");
+      assert(0);
     }
     set_column = columns+orig_columns;
     while ( (bid = NextColumnBead(&bi)) != -1 ) {
@@ -6143,7 +6168,7 @@ int ApplyAbacus(Abacus *a, CNS_Options *opp)
   if ( a->shift == LEFT_SHIFT) 
     {
       column = GetColumn(columnStore,a->start_column);
-      if (column == NULL ) CleanExit("ApplyAbacus column==NULL",__LINE__,1);
+      assert(column != NULL);
       while (columns<a->window_width) 
         {
           char base;
@@ -6222,7 +6247,7 @@ int ApplyAbacus(Abacus *a, CNS_Options *opp)
   else if ( a->shift == RIGHT_SHIFT)
     {
       column = GetColumn(columnStore,a->end_column);
-      if (column == NULL ) CleanExit("ApplyAbacus column==NULL",__LINE__,1);
+      assert(column != NULL);
       while (columns<a->window_width) {
         char base;
         bid = GetBead(beadStore,column->call)->down;
@@ -6486,7 +6511,8 @@ base2int(char b)
   if (b == 'g' || b == 'G') return 3;
   if (b == 't' || b == 'T') return 4;
   if (b == 'n' || b == 'N') return 5;
-  CleanExit("base2int b out of range",__LINE__,1);
+  fprintf(stderr, "base2int b out of range");
+  assert(0);
 }
 
 static void
@@ -7276,11 +7302,13 @@ int AbacusRefine(MANode *ma, int32 from, int32 to, CNS_RefineLevel level,
   int i;
  
   if(from < 0 || from > ma_length-1){
-    CleanExit("AbacusRefine range (from) invalid",__LINE__,1);
+    fprintf(stderr, "AbacusRefine range (from) invalid");
+    assert(0);
   }
   if ( to == -1 ) to = ma_length-1;
   if(to <= from || to > ma_length-1){
-    CleanExit("AbacusRefine range (to) invalid",__LINE__,1);
+    fprintf(stderr, "AbacusRefine range (to) invalid");
+    assert(0);
   }
 
   ResetIndex(abacus_indices,GetNumFragments(fragmentStore));
@@ -7440,7 +7468,8 @@ int MANode2Array(MANode *ma, int *depth, char ***array, int ***id_array,
         fb = GetBead(beadStore,frag->beads);
         bcolumn =  GetColumn(columnStore,fb->column_index);
         if(!CreateFragmentBeadIterator(fid,&fi)){
-          CleanExit("MANode2Array CreateFragmentBeadIterator failed",__LINE__,1);
+          fprintf(stderr, "MANode2Array CreateFragmentBeadIterator failed");
+          assert(0);
         }
         while ( (bid = NextFragmentBead(&fi)) != -1 ) {
           fb = GetBead(beadStore,bid);
@@ -7589,7 +7618,9 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
 #ifdef ALIGN_TO_CONSENSUS
   int32 aoffset;
 #endif 
-  int do_rez=1; // command line arg that is now obsolete
+
+  int do_rez=1;
+  // command line arg that is now obsolete
   // mark_contains is used in the case where post-unitigging processes 
   // (SplitUnitig, extendClearRange,e.g.) are used to re-align unitigs after 
   // fragments have been altered... With an extended clear range, 
@@ -7601,6 +7632,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
   // which are not properly aligned, and which will appear as block indels 
   // (large gap-blocks) which will foil future overlaps involving
   // the consensus sequence of this "reformed" unitig
+
   int score_reduction;
   int complement;
   MANode *ma;
@@ -8175,7 +8207,7 @@ int32 PlaceFragments(int32 fid, Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
         fprintf(stderr,
                 "Lookup failure in CNS: attempting to align %d with %d, but aligned frag %d could not be found\n",
                 bfrag->idx.fragment.frgIdent,afid,afid);
-        assert(FALSE);
+        assert(0);
       }
       ovl = GetFragment(fragmentStore,blid)->length;
       if ( fcomplement && bcomplement) {
@@ -8284,7 +8316,7 @@ int MultiAlignContig(IntConConMesg *contig,
       if (ExistsInHashTable_AS (fragmentMap, contig->pieces[i].ident, 0)) {
         // indicates that the fragment appears more than once in the f_list;
         fprintf(stderr,"Failure to insert ident %d in fragment hashtable, already present\n",contig->pieces[i].ident); 
-        assert(FALSE);
+        assert(0);
       }
       InsertInHashTable_AS(fragmentMap, contig->pieces[i].ident, 0, 1, 0);
     }
@@ -8531,7 +8563,7 @@ int MultiAlignContig(IntConConMesg *contig,
                     afrag->iid, afrag->type,
                     bfrag->iid, bfrag->type);
 
-          assert(afrag);
+          assert(afrag != NULL);
 
           //  If our ahang is too big, force a 20bp overlap.
           //
@@ -8555,7 +8587,6 @@ int MultiAlignContig(IntConConMesg *contig,
         last_b_aligned=ApplyAlignment(afrag->lid,0,bfrag->lid,ahang,Getint32(trace,0));
 
         PlaceFragments(bfrag->lid,COMPARE_FUNC, opp);
-        //assert( GetNumFragments(fragmentStore) < total_aligned_elements);
       }
     //   contig->num_vars = 20;     // affect .cns/ICM
     {
@@ -8840,7 +8871,7 @@ int ExamineMANode(FILE *outFile,int32 sid, int32 mid, UnitigData *tigData,int nu
   char base;
 
   SetDefault(&vreg);
-  if (ma == NULL ) CleanExit("RefreshMANode ma==NULL",__LINE__,1);
+  assert(ma != NULL);
   if ( ma->first == -1 ) return 1;
   cid = ma->first;
   while ( cid  > -1 ) {
@@ -8850,7 +8881,7 @@ int ExamineMANode(FILE *outFile,int32 sid, int32 mid, UnitigData *tigData,int nu
     double var;
 
     column = GetColumn(columnStore,cid);
-    if (column == NULL ) CleanExit("RefreshMANode column==NULL",__LINE__,1);
+    assert(column != NULL);
     cbead = GetBead(beadStore,column->call); 
     base = *Getchar(sequenceStore,cbead->soffset);
     qv = *Getchar(qualityStore,cbead->soffset);
@@ -8898,7 +8929,7 @@ int ExamineConfirmedMMColumns(FILE *outFile,int32 sid, int32 mid, UnitigData *ti
   HashTable_AS *bhash=NULL;
   MANode *ma = GetMANode(manodeStore,mid);
   
-  if (ma == NULL ) CleanExit("RefreshMANode ma==NULL",__LINE__,1);
+  assert(ma != NULL);
   if ( ma->first == -1 ) return 1;
   if ( bhash==NULL ) bhash = CreateScalarHashTable_AS(5000);
   if ( shared_left== NULL ) {
@@ -8918,7 +8949,7 @@ int ExamineConfirmedMMColumns(FILE *outFile,int32 sid, int32 mid, UnitigData *ti
     int bid;
     int depth=0;
     column = GetColumn(columnStore,cid);
-    if (column == NULL ) CleanExit("RefreshMANode column==NULL",__LINE__,1);
+    assert(column != NULL);
     cbead = GetBead(beadStore,column->call); 
     base = *Getchar(sequenceStore,cbead->soffset);
     qv = *Getchar(qualityStore,cbead->soffset);
@@ -8937,7 +8968,8 @@ int ExamineConfirmedMMColumns(FILE *outFile,int32 sid, int32 mid, UnitigData *ti
           ResetVA_Bead(shared_right);
           ResetHashTable_AS(bhash);
           if(!CreateColumnBeadIterator(column->lid,&bi)){
-            CleanExit("CreateAbacus CreateColumnBeadIterator failed",__LINE__,1);
+            fprintf(stderr, "CreateAbacus CreateColumnBeadIterator failed");
+            assert(0);
           }
           while ( (bid = NextColumnBead(&bi)) != -1 ) {
             cbead = GetBead(beadStore,bid);
@@ -8951,7 +8983,8 @@ int ExamineConfirmedMMColumns(FILE *outFile,int32 sid, int32 mid, UnitigData *ti
           }
           if ( GetNumBeads(shared_right) > 0 ) {
             if(!CreateColumnBeadIterator(last_mm->lid,&bi)){
-              CleanExit("CreateAbacus CreateColumnBeadIterator failed",__LINE__,1);
+              fprintf(stderr, "CreateAbacus CreateColumnBeadIterator failed");
+              assert(0);
             }
             while ( (bid = NextColumnBead(&bi)) != -1 ) {
               cbead = GetBead(beadStore,bid);
@@ -8982,33 +9015,6 @@ int ExamineConfirmedMMColumns(FILE *outFile,int32 sid, int32 mid, UnitigData *ti
 
 
 
-int TestFragmentPositions(MultiAlignT *ma) {
-  int length =  GetMultiAlignLength(ma);
-  VA_TYPE(int) *ungapped_positions = CreateVA_int(length + 1);
-  IntMultiPos *imps=GetIntMultiPos(ma->f_list,0);
-  int num_frags = GetNumIntMultiPoss(ma->f_list);
-  int ungapped =0;
-  int i,iu;
-  char *consensus = Getchar(ma->consensus,0);
-  for (iu=0;iu<length;iu++) {
-    SetVA_int(ungapped_positions,iu,&ungapped);
-    if ( consensus[iu] != '-' ) ungapped++;
-  }
-  SetVA_int(ungapped_positions, length, &ungapped);
-  for (i=0;i<num_frags;i++) {
-    int p1 = *Getint(ungapped_positions,imps[i].position.bgn);
-    int p2 = *Getint(ungapped_positions,imps[i].position.end);
-    if ( (p1 - p2) == 0 ) {
-      fprintf(stderr,"Found suspicious IMP positions in multialign %d, fragment %d (%d,%d)\n",
-              ma->id, imps[i].ident,imps[i].position.bgn,imps[i].position.end);
-      assert(FALSE);
-    }
-  }
-  DeleteVA_int(ungapped_positions);
-  fprintf(stderr,"IMP positions okay in multialign %d\n",ma->id);
-
-  return 1;  
-}
 
 MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
                                        GateKeeperStore *frag_store,
@@ -9694,7 +9700,8 @@ int32 AppendArtificialFragToLocalStore(FragType type, int32 iid, int complement,
   Fragment fragment;
   
   if ( len > AS_READ_MAX_LEN ) {
-    CleanExit("AppendArtificialFragToLocalStore: input too long for buffer",__LINE__,1);
+    fprintf(stderr, "AppendArtificialFragToLocalStore: input too long for buffer");
+    assert(0);
   }
   for (i=0;i<len;i++) {
     seqbuffer[i]=*seq++; 
