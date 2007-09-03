@@ -63,31 +63,6 @@ CGW_LIB_SOURCES = AS_CGW_dataTypes.c \
                   Stats_CGW.c \
                   TransitiveReduction_CGW.c
 
-CRUD_SOURCES = \
-                  AS_CGW_LoadCheckpoint.c \
-                  Checkpoint.c \
-                  InstrumentCheckpoint.c \
-                  ProcessScaffolds_CGW.c \
-                  ScaffoldMap.c \
-                  TraceNodes.c \
-                  asmInfoForFrg.c \
-                  assemblyStructure.c \
-                  ckp_scflen.c \
-                  combineMates.c \
-                  dfsFragmentTiling.c \
-                  dumpBinaryUnitigMAs.c \
-                  dumpCheckpointAsFasta.c \
-                  exploreMates.c \
-                  exploreScaffoldEnds.c \
-                  findAnEdge.c \
-                  findMissedOverlaps.c \
-                  fixECRCheckpoint.c \
-                  fixZLFContigs.c \
-                  localUnitigging_CGW.c \
-                  smallLargeScaffolds.c \
-                  testSplitChunks.c \
-                  whereAreMyOverlaps.c
-
 SOURCES         = $(CGW_SOURCES) $(CGW_LIB_SOURCES)
 SCRIPTS		= 
 
@@ -98,16 +73,6 @@ LIBRARIES     = libAS_CGW.a libCA.a
 LIBS          = libCA.a
 
 PROGS = cgw extendClearRanges resolveSurrogates dumpCloneMiddles dumpSingletons exploreGapStructure frgs2clones createFrgDeletes
-
-CRUD =  Checkpoint process_scaffolds loadcgw \
-        ScaffoldMap testSplitChunks instrumentCheckpoint \
-	traceNodes findMissedOverlaps localUnitigging_CGW \
-	dumpCheckpointAsFasta exploreMates fixECRCheckpoint \
-	dumpBinaryUnitigMAs assemblyStructure \
-	exploreScaffoldEnds asmInfoForFrg \
-	whereAreMyOverlaps findAnEdge \
-	combineMates ckp_scflen \
-	dfsFragmentTiling
 
 
 include $(LOCAL_WORK)/src/c_make.as
@@ -130,59 +95,3 @@ resolveSurrogates: resolveSurrogates.o $(LIBS)
 dumpCloneMiddles: dumpCloneMiddles.o $(LIBS)
 
 dumpSingletons: dumpSingletons.o $(LIBS)
-
-
-
-splitutgs: UnitigSplitter.o $(LIBS)
-
-loadcgw: AS_CGW_LoadCheckpoint.o $(LIBS)
-
-dumpBinaryUnitigMAs: dumpBinaryUnitigMAs.o $(LIBS)
-
-fixECRCheckpoint: fixECRCheckpoint.o $(LIBS)
-
-exploreMates: exploreMates.o $(LIBS)
-
-dumpCheckpointAsFasta: dumpCheckpointAsFasta.o $(LIBS)
-
-findMissedOverlaps: findMissedOverlaps.o $(LIBS)
-
-localUnitigging_CGW: localUnitigging_CGW.o $(LIBS)
-
-GetDregsStats: GetDregsStats.o $(LIBS)
-
-findFragments: FindFragments.o $(LIBS)
-
-Checkpoint: Checkpoint.o $(LIBS)
-
-process_scaffolds: ProcessScaffolds_CGW.o $(LIBS)
-
-ScaffoldMap: ScaffoldMap.o $(LIBS)
-
-testSplitChunks: testSplitChunks.o $(LIBS)
-
-instrumentCheckpoint: InstrumentCheckpoint.o $(LIBS)
-
-traceNodes: TraceNodes.o $(LIBS)
-
-asmInfoForFrg: asmInfoForFrg.o $(LIBS)
-
-assemblyStructure: assemblyStructure.o $(LIBS)
-
-exploreGapStructure: exploreGapStructure.o $(LIBS)
-
-dfsFragmentTiling: dfsFragmentTiling.o $(LIBS)
-
-exploreScaffoldEnds: exploreScaffoldEnds.o $(LIBS)
-
-ckp_scflen: ckp_scflen.o $(LIBS)
-
-findAnEdge: findAnEdge.o $(LIBS)
-
-whereAreMyOverlaps: whereAreMyOverlaps.o $(LIBS)
-
-combineMates: combineMates.o $(LIBS)
-
-createFrgDeletes: createFrgDeletes.o $(LIBS)
-
-frgs2clones: frgs2clones.o $(LIBS)
