@@ -44,53 +44,56 @@ typedef struct {
 
 
 int
-MakeRoom_VA(VarArrayType * const va,
-            const size_t         maxElements,
-            const int            pad_to_a_power_of_two);
+MakeRoom_VA(VarArrayType *va,
+            size_t        maxElements,
+            int           pad_to_a_power_of_two);
 
 
 VarArrayType *
-Create_VA(const size_t arraySize,
-          const size_t sizeofElement,
-          const char * const thetype);
+Create_VA(size_t arraySize,
+          size_t sizeofElement,
+          char *thetype);
 
 void
-Clear_VA(VarArrayType * const va);
+Clear_VA(VarArrayType *va);
 
 void
-Concat_VA(VarArrayType * const va, const VarArrayType * const vb);
+Trash_VA(VarArrayType *va);
 
 void
-ResetToRange_VA(VarArrayType * const va, const size_t index);
+Concat_VA(VarArrayType *va, VarArrayType *vb);
 
 void
-EnableRange_VA(VarArrayType * const va, const size_t index);
+ResetToRange_VA(VarArrayType *va, size_t index);
 
 void
-SetElement_VA(VarArrayType * const va, const size_t index, const void * const data);
+EnableRange_VA(VarArrayType *va, size_t index);
 
 void
-SetRange_VA(VarArrayType * const va, const size_t index, const size_t num_elements, const void * const data);
+SetElement_VA(VarArrayType *va, size_t index, void *data);
+
+void
+SetRange_VA(VarArrayType *va, size_t index, size_t num_elements, void *data);
 
 VarArrayType *
-Clone_VA(const VarArrayType *fr);
+Clone_VA(VarArrayType *fr);
 
 void
-ReuseClone_VA(VarArrayType *to, const VarArrayType *fr);
+ReuseClone_VA(VarArrayType *to, VarArrayType *fr);
 
 void
-LoadFromFile_VA(FILE * const fp, VarArrayType *va);
+LoadFromFile_VA(FILE *fp, VarArrayType *va);
 
 VarArrayType *
 CreateFromFile_VA(FILE *fp,
-                  const char * const thetype,
+                  char *thetype,
                   size_t space_in_elements_for_growth);
 
 size_t
-CopyToFile_VA(const VarArrayType * const va, FILE *fp);
+CopyToFile_VA(VarArrayType *va, FILE *fp);
 
 
-#define Delete_VA(V)         { Clear_VA(V); safe_free(V); }
+#define Delete_VA(V)         { Trash_VA(V); (V) = NULL; }
 
 #define GetMemorySize_VA(V)   (size_t)(((V) ? (V)->allocatedElements * (V)->sizeofElement : 0))
 
@@ -102,8 +105,8 @@ CopyToFile_VA(const VarArrayType * const va, FILE *fp);
 
 static
 size_t
-ReportMemorySize_VA(VarArrayType * const va,
-                    const char * const name,
+ReportMemorySize_VA(VarArrayType *va,
+                    char *name,
                     FILE * stream ) {
   size_t numElements       = (NULL == va ? 0 : va->numElements);
   size_t allocatedElements = (NULL == va ? 0 : va->allocatedElements);
@@ -143,91 +146,91 @@ ReportMemorySize_VA(VarArrayType * const va,
 
 #define VA_DEF(Type)\
 typedef VarArrayType VarArray ## Type ;\
-static void ClearVA_ ## Type (VA_TYPE(Type) * const va){\
+static void ClearVA_ ## Type (VA_TYPE(Type) *va){\
      Clear_VA(va);}\
-static VA_TYPE(Type) * CreateVA_ ## Type (const size_t numElements){\
+static VA_TYPE(Type) * CreateVA_ ## Type (size_t numElements){\
      return ( (VA_TYPE(Type) *)Create_VA(numElements, sizeof(Type), #Type)); }\
 static void DeleteVA_ ## Type (VA_TYPE(Type) *va){\
      Delete_VA(va); }\
-static void ConcatVA_ ## Type ( VA_TYPE(Type) *va, const VA_TYPE(Type) * const vb){\
+static void ConcatVA_ ## Type ( VA_TYPE(Type) *va, VA_TYPE(Type) *vb){\
      Concat_VA(va,vb); }\
-static Type *GetVA_ ## Type (const VA_TYPE(Type) * const va, size_t index){\
+static Type *GetVA_ ## Type (VA_TYPE(Type) *va, size_t index){\
      return ( (Type *)GetElement_VA(va,index));\
 }\
-static size_t GetVAIndex_ ## Type (const VA_TYPE(Type) * const va, Type *elem){\
+static size_t GetVAIndex_ ## Type (VA_TYPE(Type) *va, Type *elem){\
      size_t index = (size_t)(elem - GetVA_ ## Type (va, 0));\
      assert((size_t)elem >= (size_t)GetVA_##Type (va,0));\
      assert(index <= va->numElements);\
      return index;\
 }\
-static void ResetVA_ ## Type (VA_TYPE(Type) * const va){\
+static void ResetVA_ ## Type (VA_TYPE(Type) *va){\
       ResetToRange_VA(va, 0);\
 }\
-static void ResetToRangeVA_ ## Type (VA_TYPE(Type) * const va, size_t index){\
+static void ResetToRangeVA_ ## Type (VA_TYPE(Type) *va, size_t index){\
       ResetToRange_VA(va,index);\
 }\
-static void EnableRangeVA_ ## Type (VA_TYPE(Type) * const va, size_t index){\
+static void EnableRangeVA_ ## Type (VA_TYPE(Type) *va, size_t index){\
       EnableRange_VA(va,index);\
 }\
-static void SetVA_ ## Type (VA_TYPE(Type) * const va, \
-			 const size_t index, \
-			 const Type * const data){\
+static void SetVA_ ## Type (VA_TYPE(Type) *va, \
+			 size_t index, \
+			 Type *data){\
       SetElement_VA(va,index,data);\
 }\
-static void SetRangeVA_ ## Type (VA_TYPE(Type) * const va, \
-			 const size_t index, \
-			 const size_t num_elements, \
-			 const Type * const data){\
+static void SetRangeVA_ ## Type (VA_TYPE(Type) *va, \
+			 size_t index, \
+			 size_t num_elements, \
+			 Type *data){\
       SetRange_VA(va,index,num_elements,data);\
 }\
-static void AppendVA_ ## Type (VA_TYPE(Type) * const va, \
-			       const Type * const data){ \
+static void AppendVA_ ## Type (VA_TYPE(Type) *va, \
+			       Type *data){ \
       SetElement_VA(va,GetNumElements_VA(va),data);\
 }\
-static void AppendRangeVA_ ## Type (VA_TYPE(Type) * const va, \
-			       const size_t num_elements, const Type * const data){ \
+static void AppendRangeVA_ ## Type (VA_TYPE(Type) *va, \
+			       size_t num_elements, Type *data){ \
       SetRange_VA(va,GetNumElements_VA(va),num_elements,data);\
 }\
-static size_t GetNumVA_ ## Type (const VA_TYPE(Type) * const va){\
+static size_t GetNumVA_ ## Type (VA_TYPE(Type) *va){\
   return GetNumElements_VA(va);\
 }\
-static size_t GetAllocatedVA_ ## Type (const VA_TYPE(Type) * const va){\
+static size_t GetAllocatedVA_ ## Type (VA_TYPE(Type) *va){\
   return GetAllocatedElements_VA(va);\
 }\
-static VA_TYPE(Type) * CreateFromFileVA_ ## Type (FILE * const fp,size_t growth_space){\
+static VA_TYPE(Type) * CreateFromFileVA_ ## Type (FILE *fp,size_t growth_space){\
  return (VA_TYPE(Type) *)CreateFromFile_VA(fp, #Type, growth_space);\
 }\
-static void LoadFromFileVA_ ## Type (FILE * const fp,VA_TYPE(Type) *va){\
+static void LoadFromFileVA_ ## Type (FILE *fp,VA_TYPE(Type) *va){\
  LoadFromFile_VA(fp, va);\
 }\
-static size_t CopyToFileVA_ ## Type (const VA_TYPE(Type) * const va,FILE *fp){\
+static size_t CopyToFileVA_ ## Type (VA_TYPE(Type) *va,FILE *fp){\
  return CopyToFile_VA(va,fp);\
 }\
-static Type *Get ## Type (const VA_TYPE(Type) * const va, size_t index){\
+static Type *Get ## Type (VA_TYPE(Type) *va, size_t index){\
      return ( (Type *)GetElement_VA(va,index));\
 }\
-static void Reset ## Type (VA_TYPE(Type) * const va){\
+static void Reset ## Type (VA_TYPE(Type) *va){\
       ResetToRange_VA(va, 0);\
 }\
-static void ResetToRange_ ## Type (VA_TYPE(Type) * const va, size_t index){\
+static void ResetToRange_ ## Type (VA_TYPE(Type) *va, size_t index){\
       ResetToRange_VA(va,index);\
 }\
-static void Set ## Type (VA_TYPE(Type) * const va, \
-			 const size_t index, \
-			 const Type * const data){\
+static void Set ## Type (VA_TYPE(Type) *va, \
+			 size_t index, \
+			 Type *data){\
       SetElement_VA(va,index,data);\
 }\
-static void Append ## Type (VA_TYPE(Type) * const va, const Type * const data){\
+static void Append ## Type (VA_TYPE(Type) *va, Type *data){\
       SetElement_VA(va,GetNumElements_VA(va),data);\
 }\
-static void AppendRange ## Type (VA_TYPE(Type) * const va, \
-                          const size_t num_elements, const Type * const data){\
+static void AppendRange ## Type (VA_TYPE(Type) *va, \
+                          size_t num_elements, Type *data){\
       SetRange_VA(va,GetNumElements_VA(va),num_elements,data);\
 }\
-static size_t GetNum ## Type ##s(const VA_TYPE(Type) * const va){\
+static size_t GetNum ## Type ##s(VA_TYPE(Type) *va){\
   return GetNumElements_VA(va);\
 }\
-static size_t GetAllocated ## Type ##s(const VA_TYPE(Type) * const va){\
+static size_t GetAllocated ## Type ##s(VA_TYPE(Type) *va){\
   return GetAllocatedElements_VA(va);\
 }
 

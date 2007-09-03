@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.19 2007-08-28 22:49:14 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.20 2007-09-03 02:29:28 brianwalenz Exp $";
 
 /********************************************************************/
 /* Variable Length C Array Package 
@@ -67,9 +67,9 @@ typedef struct {
 
 
 int
-MakeRoom_VA(VarArrayType * const va,
-            const size_t         maxElements,
-            const int            pad_to_a_power_of_two) {
+MakeRoom_VA(VarArrayType *va,
+            size_t         maxElements,
+            int            pad_to_a_power_of_two) {
 
   size_t newElements, newSize, tentativeNewSize, oldSize;
   char *mem = NULL;
@@ -174,10 +174,10 @@ MakeRoom_VA(VarArrayType * const va,
 
 
 VarArrayType *
-Create_VA(const size_t numElements,
-          const size_t sizeofElement,
-          const char * const thetype) {
-  VarArrayType * const va = (VarArrayType *)safe_calloc(1, sizeof(VarArrayType));
+Create_VA(size_t numElements,
+          size_t sizeofElement,
+          char *thetype) {
+  VarArrayType *va = (VarArrayType *)safe_calloc(1, sizeof(VarArrayType));
 
   va->Elements          = NULL;
   va->sizeofElement     = sizeofElement;
@@ -194,18 +194,29 @@ Create_VA(const size_t numElements,
 
 
 void
-Clear_VA(VarArrayType * const va){
-  if(NULL == va)
+Clear_VA(VarArrayType *va){
+  if (NULL == va)
     return;
   safe_free(va->Elements);
   memset(va, 0, sizeof(VarArrayType));
 }
 
 
+void
+Trash_VA(VarArrayType *va){
+  if (NULL == va)
+    return;
+  memset(va->Elements, 0xff, va->allocatedElements * va->sizeofElement);
+  safe_free(va->Elements);
+  memset(va, 0xff, sizeof(VarArrayType));
+  safe_free(va);
+}
+
+
 //  Append vb's data onto va
 void
-Concat_VA(VarArrayType * const va,
-          const VarArrayType * const vb){
+Concat_VA(VarArrayType *va,
+          VarArrayType *vb){
 
   assert(NULL != va);
   assert(NULL != vb);
@@ -224,7 +235,7 @@ Concat_VA(VarArrayType * const va,
 
 
 void
-ResetToRange_VA(VarArrayType * const va, const size_t indx){
+ResetToRange_VA(VarArrayType *va, size_t indx){
 
   //  Resetting to a larger array is equivalent to EnableRange
   //
@@ -246,7 +257,7 @@ ResetToRange_VA(VarArrayType * const va, const size_t indx){
 
 
 void
-EnableRange_VA(VarArrayType * const va, const size_t maxElements){
+EnableRange_VA(VarArrayType *va, size_t maxElements){
 
   if (maxElements > va->allocatedElements)
     MakeRoom_VA(va,maxElements,TRUE);
@@ -259,26 +270,26 @@ EnableRange_VA(VarArrayType * const va, const size_t maxElements){
 
 
 void
-SetElement_VA(VarArrayType * const va,
-              const size_t indx, 
-              const void * const data){
+SetElement_VA(VarArrayType *va,
+              size_t indx, 
+              void *data){
   EnableRange_VA(va, (indx+1));
-  memcpy(va->Elements + indx * va->sizeofElement, (char *)data, va->sizeofElement);
+  memcpy(va->Elements + indx * va->sizeofElement, data, va->sizeofElement);
 }
 
 
 void
-SetRange_VA(VarArrayType * const va,
-            const size_t indx, 
-            const size_t numElements, 
-            const void * const data){
+SetRange_VA(VarArrayType *va,
+            size_t indx, 
+            size_t numElements, 
+            void *data){
   EnableRange_VA(va, indx + numElements);
-  memcpy(va->Elements + indx * va->sizeofElement, (char *)data, va->sizeofElement * numElements);
+  memcpy(va->Elements + indx * va->sizeofElement, data, va->sizeofElement * numElements);
 }
 
 
 VarArrayType *
-Clone_VA(const VarArrayType *fr){
+Clone_VA(VarArrayType *fr){
   VarArrayType *to = (VarArrayType *)safe_calloc(1, sizeof(VarArrayType));
 
   to->Elements          = NULL;
@@ -298,7 +309,7 @@ Clone_VA(const VarArrayType *fr){
 }
 
 void
-ReuseClone_VA(VarArrayType *to, const VarArrayType *fr){
+ReuseClone_VA(VarArrayType *to, VarArrayType *fr){
 
   if ((fr->sizeofElement != to->sizeofElement) ||
       (strcmp(fr->typeofElement, to->typeofElement) != 0)) {
@@ -351,7 +362,7 @@ LoadFromFile_VA(FILE *fp,
 
 VarArrayType *
 CreateFromFile_VA(FILE *fp,
-                  const char * const thetype,
+                  char *thetype,
                   size_t additional_elements) {
 
   FileVarArrayType    vat = {0};
@@ -395,7 +406,7 @@ CreateFromFile_VA(FILE *fp,
 
 
 
-size_t CopyToFile_VA(const VarArrayType * const va,FILE *fp){
+size_t CopyToFile_VA(VarArrayType *va,FILE *fp){
   FileVarArrayType vat = {0};
 
   assert(fp != NULL);

@@ -43,12 +43,12 @@ static void copy_one_edge
 { *GetAedge(destination,idest) = *GetAedge(source,isrc);}
 
 #pragma inline GetNumEdges
-static IntEdge_ID GetNumEdges(const Tedge * const edges) {
+static IntEdge_ID GetNumEdges(Tedge *edges) {
   return (IntEdge_ID) GetNumVA_Aedge(edges);
 }
 
 #pragma inline GetNumFragments
-static IntFragment_ID GetNumFragments(const Tfragment * const frags) {
+static IntFragment_ID GetNumFragments(Tfragment *frags) {
   return (IntFragment_ID) GetNumVA_Afragment(frags);
 }
 
