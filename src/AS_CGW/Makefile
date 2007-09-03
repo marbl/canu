@@ -95,3 +95,9 @@ resolveSurrogates: resolveSurrogates.o $(LIBS)
 dumpCloneMiddles: dumpCloneMiddles.o $(LIBS)
 
 dumpSingletons: dumpSingletons.o $(LIBS)
+
+exploreGapStructure: exploreGapStructure.o $(LIBS)
+
+frgs2clones: frgs2clones.o $(LIBS)
+
+createFrgDeletes: createFrgDeletes.o $(LIBS)
