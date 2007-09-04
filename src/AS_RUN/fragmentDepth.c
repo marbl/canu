@@ -32,6 +32,7 @@
 #define HISTMAX     (8192)
 #define DEPTHSIZE   (128 * 1024 * 1024)
 #define FRAGMAX     (1024 * 1024)
+#define DEFAULT_MEMORY_LIMIT 128
 
 
 typedef struct {
@@ -98,7 +99,12 @@ computeStuff(uint32 *V, uint32 N,
 
   //  Find the mean
   //
-  *mean = *mean / meanCount;
+  if (meanCount == 0) {
+   *mean = 0;
+  }
+  else {
+   *mean = *mean / meanCount;
+  }
 
 
   //  Find the median
@@ -141,6 +147,8 @@ main(int argc, char **argv) {
   int              maxSize = DEPTHSIZE;
 
   int              doScaffold = 0;
+  int              stepSize = 0;
+  uint32           memLimit = DEFAULT_MEMORY_LIMIT;
 
   int arg=1;
   int err=0;
@@ -151,6 +159,10 @@ main(int argc, char **argv) {
       maxSize = atoi(argv[++arg]);
     } else if (strcmp(argv[arg], "-scaffold") == 0) {
       doScaffold = 1;
+    } else if (strcmp(argv[arg], "-stepSize") == 0) {
+      stepSize = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-memLimit") == 0) {
+      memLimit = atoi(argv[++arg]);
     } else {
       fprintf(stderr, "unknown option '%s'\n", argv[arg]);
       err++;
@@ -158,11 +170,13 @@ main(int argc, char **argv) {
     arg++;
   }
   if (err) {
-    fprintf(stderr, "usage: %s [-min N] [-max N] [-scaffold] < x.posmap.frgscf", argv[0]);
+    fprintf(stderr, "usage: %s [-min N] [-max N] [-scaffold] [-stepSize N] [-memLimit N] < x.posmap.frgscf", argv[0]);
     fprintf(stderr, "  Default is to compute a histogram of the number of bases at some\n");
     fprintf(stderr, "  depth of coverage.  Options for this are:\n");
     fprintf(stderr, "    -min N     use scaffolds at least N bases long.\n");
     fprintf(stderr, "    -max N     use scaffolds at most N bases long.\n");
+    fprintf(stderr, "    -stepSize N     Used together with -scaffold, compute stats per stepSize per scaffold.\n");
+    fprintf(stderr, "    -memLimit N     Used to limit the maximum memory to be used while running. Default = %dMB.\n", DEFAULT_MEMORY_LIMIT);
     fprintf(stderr, "\n");
     fprintf(stderr, "  The -scaffold switch disables the default output, and instead reports\n");
     fprintf(stderr, "  the mode, mean, median per scaffold.\n");
@@ -170,14 +184,12 @@ main(int argc, char **argv) {
   }
 
   uint32   inlen = 0;
-  uint32   inmax = 1048576;
-  intDep  *in    = (intDep *)safe_malloc(sizeof(intDep) * inmax);
-
+  uint32     inmax = (((uint64) memLimit) * 1024 * 1024) / (sizeof(intDep));
+  intDep    *in    = (intDep *)safe_malloc(sizeof(intDep) * inmax);
   if (doScaffold)
-    fprintf(stdout, "uid\tlength\tmode\tmean\tmedian\n");
+    fprintf(stdout, "uid\tstart\tend\tmode\tmean\tmedian\n");
 
   while (4 == fscanf(stdin, " "F_UID" "F_UID" %d %d %*d ", &uidjunk, &uid, &beg, &end)) {
-
     if (lastuid == 0)
       lastuid = uid;
 
@@ -289,18 +301,31 @@ main(int argc, char **argv) {
           uint32  mode   = 0;
           double  mean   = 0.0;
           uint32  median = 0;
+          uint32  currStep = 0;
 
           for (i=0; i<idlen; i++) {
             int j;
-            for (j=id[i].lo; j<id[i].hi; j++)
-              V[i] = id[i].de;
+            for (j=id[i].lo; j<id[i].hi; j++) {
+              V[j] = id[i].de;
+            }
           }
-
-          computeStuff(V, N, 0, N, &mode, &mean, &median);
-          fprintf(stdout, F_UID"\t"F_U32"\t"F_U32"\t%f\t"F_U32"\n", lastuid, N, mode, mean, median);
+         
+          if (stepSize == 0) { 
+            currStep = N; 
+          } 
+          else {
+            currStep = stepSize;
+          }
+          
+          for (i = 0; i < N; i+=currStep) {                    
+            int E  = i+currStep;            
+            if (E > N) { E = N; }
+            
+            computeStuff(V, N, i, E, &mode, &mean, &median);
+            fprintf(stdout, F_UID"\t"F_U32"\t"F_U32"\t"F_U32"\t%f\t"F_U32"\n", lastuid, i, E, mode, mean, median);
+          }
           safe_free(V);
         }
-
         safe_free(id);
       }  //  scaffold is correct size
 
@@ -318,6 +343,11 @@ main(int argc, char **argv) {
     in[inlen].hi = end;
     inlen++;
 
+    if (inlen >= inmax) {
+      fprintf(stderr, "The maxmimum limit of fragments per scaffold is %d and have already read %d\n", inmax, inlen);
+      exit(1);
+    }
+
     if (lastend < end)
       lastend = end;
   }
@@ -325,7 +355,6 @@ main(int argc, char **argv) {
   if (doScaffold == 0)
     for (i=0; i<=histmax; i++)
       fprintf(stdout, "%d\t%d\n", i, histogram[i]);
-
   safe_free(in);
 
   exit(0);
