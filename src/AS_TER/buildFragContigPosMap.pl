@@ -491,7 +491,8 @@ close(CTGSCF);
 
 # could do stuff to get surrogate frags by scaffold, but join works to
 #
-system "join -1 3 -2 1 -o '1.1 1.2 1.3 2.2' $prefix.frgsurr $prefix.ctgscf > $prefix.surrscf";
+system "sort -n $prefix.ctgscf > $prefix.ctgscf.sorted"; 
+system "join -1 3 -2 1 -o '1.1 1.2 1.3 2.2' $prefix.frgsurr $prefix.ctgscf.sorted > $prefix.surrscf";
 
 
 open(FRGCTG, "< $prefix.frgctg");
