@@ -18,40 +18,23 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/*********************************************************************
-   CVS_ID:  $Id: Array_CNS.h,v 1.8 2007-03-06 01:02:44 brianwalenz Exp $
- *********************************************************************/
+
 #ifndef AS_CNS_ARRAY_INCLUDE
 #define AS_CNS_ARRAY_INCLUDE
-#include <stdlib.h>
-#include <stdio.h>
-#include <assert.h>
-#include <string.h>
-#include <ctype.h>
-#include <time.h>
 
 #include "AS_global.h"
-//#include "AS_MSG_pmesg.h"
-//#include "AS_PER_gkpStore.h"
-//#include "AS_UTL_Var.h"
 #include "MultiAlignStore_CNS.h"
 
-#define ESTDEPTH 32
+int 
+IMP2Array(IntMultiPos *frags, 
+          int num_frags, 
+          int length, 
+          GateKeeperStore *frag_store, 
+          int *depth, 
+          char ***multia, 
+          int ***id_array, 
+          int ***ori_array,
+          int show_cel_status,
+          uint32 clrrng_flag);
 
-int IMP2Array(IntMultiPos *frags, 
-	      int num_frags, 
-	      int length, 
-	      GateKeeperStore *frag_store, 
-	      int *depth, 
-	      char ***multia, 
-	      int ***id_array, 
-	      int ***ori_array,
-	      int show_cel_status,uint32 clrrng_flag);
-
-int MultiAlignT2Array(MultiAlignT *ma, 
-		      GateKeeperStore *frag_store, 
-		      int *depth, 
-		      char ***multia, 
-		      int ***id_array,
-		      int ***ori_array,uint32 clrrng_flag);
 #endif

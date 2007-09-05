@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: GraphCGW_T.h,v 1.22 2007-08-28 22:50:10 brianwalenz Exp $	 */
+/* 	$Id: GraphCGW_T.h,v 1.23 2007-09-05 11:22:11 brianwalenz Exp $	 */
 
 /**************************************************************************
  *  GraphCGW
@@ -36,7 +36,6 @@
 #include "InputDataTypes_CGW.h"
 #include "ChunkOverlap_CGW.h"
 #include "AS_ALN_aligners.h"
-#include "dpc_CNS.h"
 
 typedef enum {
   INVALID_EDGE_STATUS = 0,
@@ -404,8 +403,6 @@ typedef struct{
   CDS_CID_t tobeFreeNodeHead; // staging area for nodes waiting to be moved to the free list
   CDS_CID_t deadNodeHead;
   ChunkOverlapperT *overlapper;
-  // Storage for consensus
-  //  MultiAlignStoreT *maStore;
 }GraphCGW_T;
 
 
@@ -1401,10 +1398,6 @@ void CollectChunkOverlap(GraphCGW_T *graph,
                          float   meanOverlap, float   deltaOverlap,
                          float   quality, int bayesian,
                          int fromCGB, int verbose);
-
-
-int32 GetGappedMultipleCoverageInterval(GraphCGW_T *graph, CDS_CID_t cid,
-                                        SeqInterval *interval, int end);
 
 
 void CheckEdgesAgainstOverlapper(GraphCGW_T *graph);

@@ -32,14 +32,15 @@
 
 //  The number of significant characters used to distinguish a array
 //  element type.
+//
 #define VA_TYPENAMELEN 32
 
 typedef struct {
-  char      *Elements;        // The Data pointer. Must be cast to the appropriate type
-  size_t     sizeofElement;   // The size in bytes of the appropriate type
-  size_t     numElements;     
-  size_t     allocatedElements;
-  char typeofElement[VA_TYPENAMELEN]; // The name of the data type of each element
+  char      *Elements;                      // The Data pointer. Must be cast to the appropriate type
+  size_t     sizeofElement;                 // The size in bytes of the appropriate type
+  size_t     numElements;                   // Number of elts in Elements
+  size_t     allocatedElements;             // Number of elts that can be stored in Elements
+  char       typeofElement[VA_TYPENAMELEN]; // The name of the data type of each element
 } VarArrayType;
 
 
@@ -70,10 +71,7 @@ void
 EnableRange_VA(VarArrayType *va, size_t index);
 
 void
-SetElement_VA(VarArrayType *va, size_t index, void *data);
-
-void
-SetRange_VA(VarArrayType *va, size_t index, size_t num_elements, void *data);
+SetElements_VA(VarArrayType *va, size_t index, void *data, size_t nume);
 
 VarArrayType *
 Clone_VA(VarArrayType *fr);
@@ -93,14 +91,12 @@ size_t
 CopyToFile_VA(VarArrayType *va, FILE *fp);
 
 
-#define Delete_VA(V)         { Trash_VA(V); (V) = NULL; }
+#define Delete_VA(V)                { Trash_VA(V); (V) = NULL; }
 
-#define GetMemorySize_VA(V)   (size_t)(((V) ? (V)->allocatedElements * (V)->sizeofElement : 0))
+#define GetMemorySize_VA(V)         (size_t)(((V) ? (V)->allocatedElements * (V)->sizeofElement : 0))
 
 #define GetElement_VA(V, I)         ((I) < (V)->numElements ? ((V)->Elements + ((size_t)(I) * (size_t)((V)->sizeofElement))) : NULL)
 #define GetNumElements_VA(V)        ((V)->numElements)
-#define GetAllocatedElements_VA(V)  ((V)->allocatedElements)
-#define GetsizeofElement_VA(V)      ((V)->sizeofElement)
 
 
 static
@@ -112,25 +108,11 @@ ReportMemorySize_VA(VarArrayType *va,
   size_t allocatedElements = (NULL == va ? 0 : va->allocatedElements);
   size_t sizeofElement     = (NULL == va ? 0 : va->sizeofElement);
   size_t memorySize        = allocatedElements * sizeofElement;
-
   assert(NULL != name);
   assert(NULL != stream);
-
-  fprintf(stream,
-          "VA"
-          " %10" F_SIZE_TP " bytes "
-          " %10" F_SIZE_TP " elements active"
-          " %10" F_SIZE_TP " elements allocated"
-          " %5" F_SIZE_TP " bytes per element"
-          " for %s\n"
-          ,memorySize
-          ,numElements
-          ,allocatedElements
-          ,sizeofElement
-          ,name
-          );
-
-  return memorySize;
+  fprintf(stream, "VA %10"F_SIZE_TP" bytes; elements: %10"F_SIZE_TP" active; %10"F_SIZE_TP" allocated; %5" F_SIZE_TP" bytes; '%s'\n",
+          memorySize, numElements, allocatedElements, sizeofElement, name);
+  return(memorySize);
 }
 
 
@@ -141,8 +123,6 @@ ReportMemorySize_VA(VarArrayType *va,
 //
 
 #define VA_TYPE(Type) VarArray ## Type
-
-
 
 #define VA_DEF(Type)\
 typedef VarArrayType VarArray ## Type ;\
@@ -175,37 +155,31 @@ static void EnableRangeVA_ ## Type (VA_TYPE(Type) *va, size_t index){\
 static void SetVA_ ## Type (VA_TYPE(Type) *va, \
 			 size_t index, \
 			 Type *data){\
-      SetElement_VA(va,index,data);\
+      SetElements_VA(va,index,data,1);    \
 }\
 static void SetRangeVA_ ## Type (VA_TYPE(Type) *va, \
 			 size_t index, \
 			 size_t num_elements, \
 			 Type *data){\
-      SetRange_VA(va,index,num_elements,data);\
+      SetElements_VA(va,index,data,num_elements);    \
 }\
 static void AppendVA_ ## Type (VA_TYPE(Type) *va, \
 			       Type *data){ \
-      SetElement_VA(va,GetNumElements_VA(va),data);\
+      SetElements_VA(va,GetNumElements_VA(va),data,1);       \
 }\
 static void AppendRangeVA_ ## Type (VA_TYPE(Type) *va, \
 			       size_t num_elements, Type *data){ \
-      SetRange_VA(va,GetNumElements_VA(va),num_elements,data);\
+      SetElements_VA(va,GetNumElements_VA(va),data,num_elements);  \
 }\
 static size_t GetNumVA_ ## Type (VA_TYPE(Type) *va){\
   return GetNumElements_VA(va);\
 }\
 static size_t GetAllocatedVA_ ## Type (VA_TYPE(Type) *va){\
-  return GetAllocatedElements_VA(va);\
+  return va->allocatedElements;\
 }\
-static VA_TYPE(Type) * CreateFromFileVA_ ## Type (FILE *fp,size_t growth_space){\
- return (VA_TYPE(Type) *)CreateFromFile_VA(fp, #Type, growth_space);\
-}\
-static void LoadFromFileVA_ ## Type (FILE *fp,VA_TYPE(Type) *va){\
- LoadFromFile_VA(fp, va);\
-}\
-static size_t CopyToFileVA_ ## Type (VA_TYPE(Type) *va,FILE *fp){\
- return CopyToFile_VA(va,fp);\
-}\
+\
+\
+\
 static Type *Get ## Type (VA_TYPE(Type) *va, size_t index){\
      return ( (Type *)GetElement_VA(va,index));\
 }\
@@ -218,21 +192,34 @@ static void ResetToRange_ ## Type (VA_TYPE(Type) *va, size_t index){\
 static void Set ## Type (VA_TYPE(Type) *va, \
 			 size_t index, \
 			 Type *data){\
-      SetElement_VA(va,index,data);\
+      SetElements_VA(va,index,data,1);    \
 }\
 static void Append ## Type (VA_TYPE(Type) *va, Type *data){\
-      SetElement_VA(va,GetNumElements_VA(va),data);\
+      SetElements_VA(va,GetNumElements_VA(va),data,1);          \
 }\
 static void AppendRange ## Type (VA_TYPE(Type) *va, \
                           size_t num_elements, Type *data){\
-      SetRange_VA(va,GetNumElements_VA(va),num_elements,data);\
+      SetElements_VA(va,GetNumElements_VA(va),data,num_elements); \
 }\
 static size_t GetNum ## Type ##s(VA_TYPE(Type) *va){\
   return GetNumElements_VA(va);\
 }\
 static size_t GetAllocated ## Type ##s(VA_TYPE(Type) *va){\
-  return GetAllocatedElements_VA(va);\
-}
+  return va->allocatedElements;\
+}\
+\
+\
+\
+static VA_TYPE(Type) * CreateFromFileVA_ ## Type (FILE *fp,size_t growth_space){\
+ return (VA_TYPE(Type) *)CreateFromFile_VA(fp, #Type, growth_space);\
+}\
+static void LoadFromFileVA_ ## Type (FILE *fp,VA_TYPE(Type) *va){\
+ LoadFromFile_VA(fp, va);\
+}\
+static size_t CopyToFileVA_ ## Type (VA_TYPE(Type) *va,FILE *fp){\
+ return CopyToFile_VA(va,fp);\
+}\
+
 
 
 /*** Parametrized Stack Type Implemented with VAs ***/

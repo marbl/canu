@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ScaffoldGraph_CGW.h,v 1.21 2007-08-30 02:59:05 brianwalenz Exp $	 */
+/* 	$Id: ScaffoldGraph_CGW.h,v 1.22 2007-09-05 11:22:12 brianwalenz Exp $	 */
 /***************************************************************************
  *  ScaffoldGraph
  *  
@@ -149,7 +149,11 @@ void DestroyScaffoldGraph(ScaffoldGraphT *sgraph);
 /* Maintentance */
 
 static void CheckScaffoldGraphCache(ScaffoldGraphT *sgraph){
-  ClearCacheSequenceDBConditionally(sgraph->sequenceDB, GlobalData->maxSequencedbCacheSize);
+  //#warning not flushing sequenceDB cache
+#if 0
+  if (sgraph->sequenceDB->totalCacheSize > MAX_SEQUENCEDB_CACHE_SIZE)
+    clearCacheSequenceDB(sgraph->sequenceDB);
+#endif
 }
 
 /* Dump a Celamy snapshot */

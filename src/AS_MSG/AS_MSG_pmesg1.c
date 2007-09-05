@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.12 2007-07-19 09:50:33 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.13 2007-09-05 11:22:16 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -330,6 +330,7 @@ static void Read_IMP_Mesg(FILE *fin, long indx)
   GET_FIELD(imp->delta_length,"dln:"F_S32,"delta length");
   if (strncmp(GetLine(fin,TRUE),"del:",4) != 0)
     MgenError("Missing del: field");
+  imp->delta = NULL;
   if (imp->delta_length > 0) {
     tindx = MoreSpace(sizeof(int32)*imp->delta_length,8);
     imp = (IntMultiPos *) (AS_MSG_globals->MemBuffer + indx);	// in case of realloc
@@ -346,8 +347,6 @@ static void Read_IMP_Mesg(FILE *fin, long indx)
       }
     }
   } 
-  else
-    imp->delta = NULL;
   GET_EOM;
   return;
 }
@@ -407,6 +406,7 @@ static void Read_IUP_Mesg(FILE *fin, long indx)
   GET_FIELD(iup->delta_length,"dln:"F_S32,"delta length");
   if (strncmp(GetLine(fin,TRUE),"del:",4) != 0)
     MgenError("Missing del: field");
+  iup->delta = NULL;
   if (iup->delta_length > 0) {
     tindx = MoreSpace(sizeof(int32)*iup->delta_length,8);
     iup = (IntUnitigPos *) (AS_MSG_globals->MemBuffer + indx);	// in case of realloc
@@ -423,8 +423,6 @@ static void Read_IUP_Mesg(FILE *fin, long indx)
       }
     }
   } 
-  else
-    iup->delta = NULL;
   GET_EOM;
   return;
 }
@@ -480,6 +478,7 @@ static void *Read_IUM_Mesg(FILE *fin)
   assert((strlen(mesg.consensus) == mesg.length) ||
 	 (strlen(mesg.consensus) == 0) );
 
+  //  Adjust all the delta offsets into pointers
   for (i=0; i < mesg.num_frags; ++i) {
     if (mesg.f_list[i].delta_length > 0)
       mesg.f_list[i].delta = (int32 *) (AS_MSG_globals->MemBuffer+(long) mesg.f_list[i].delta);
@@ -765,6 +764,8 @@ static void *Read_ICM_Mesg(FILE *fin)
     mesg.v_list[i].conf_read_iids = AS_MSG_globals->MemBuffer + (long) mesg.v_list[i].conf_read_iids;
   }
 
+  //  Adjust all the delta offsets into pointers
+
   if (mesg.num_pieces > 0)
     mesg.pieces = (IntMultiPos *) (AS_MSG_globals->MemBuffer + mpindx);
   for (i=0; i < mesg.num_pieces; ++i) {
@@ -903,6 +904,7 @@ static void Read_UPS_Mesg(FILE *fin, long indx)
   GET_FIELD(iup->delta_length,"dln:"F_S32,"delta length");
   if (strncmp(GetLine(fin,TRUE),"del:",4) != 0)
     MgenError("Missing del: field");
+  iup->delta = NULL;
   if (iup->delta_length > 0) {
     tindx = MoreSpace(sizeof(int32)*iup->delta_length,8);
     iup = (UnitigPos *) (AS_MSG_globals->MemBuffer + indx);	// in case of realloc
@@ -919,8 +921,6 @@ static void Read_UPS_Mesg(FILE *fin, long indx)
       }
     }
   } 
-  else
-    iup->delta = NULL;
   GET_EOM;
   return;
 }
@@ -986,6 +986,9 @@ static void *Read_UTG_Mesg(FILE *fin)
   GET_EOM;
   mesg.consensus = AS_MSG_globals->MemBuffer + cindx;
   mesg.quality  = AS_MSG_globals->MemBuffer + qindx;
+
+  //  Adjust all the delta offsets into pointers
+  
   for (i=0; i < mesg.num_frags; ++i) {
 #ifdef AS_ENABLE_SOURCE
     mesg.f_list[i].source = AS_MSG_globals->MemBuffer + (long) mesg.f_list[i].source;
@@ -1105,6 +1108,8 @@ static void *Read_CCO_Mesg(FILE *fin)
     mesg.vars[i].var_seq = AS_MSG_globals->MemBuffer + (long) mesg.vars[i].var_seq;
     mesg.vars[i].conf_read_iids = AS_MSG_globals->MemBuffer + (long) mesg.vars[i].conf_read_iids;
   } 
+
+  //  Adjust all the delta offsets into pointers
 
   if (mesg.num_pieces > 0)
     mesg.pieces = (SnapMultiPos *) (AS_MSG_globals->MemBuffer + mpindx);

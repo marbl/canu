@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: SplitChunks_CGW.h,v 1.5 2006-09-21 21:34:00 brianwalenz Exp $ */
+/* $Id: SplitChunks_CGW.h,v 1.6 2007-09-05 11:22:12 brianwalenz Exp $ */
 
 #ifndef SPLITCHUNKS_H
 #define SPLITCHUNKS_H
@@ -26,18 +26,6 @@
 #include "AS_UTL_Var.h"
 #include "ScaffoldGraph_CGW.h"
 
-// number of contigs off A/B end with links before/after chimeric interval
-#define CHIMERA_SET_THRESHOLD 1
-
-typedef struct
-{
-  CDS_CID_t id;
-  SeqInterval interval;
-} SplitInterval;
-
-VA_DEF(SplitInterval);
-  
 int SplitInputUnitigs(ScaffoldGraphT * graph);
-VA_TYPE(SplitInterval) * DetectChimericChunksInGraph(ScaffoldGraphT * graph);
 
 #endif

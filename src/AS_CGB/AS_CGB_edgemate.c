@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_edgemate.c,v 1.9 2007-07-20 17:17:08 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_edgemate.c,v 1.10 2007-09-05 11:22:10 brianwalenz Exp $";
 
 //  Description: These routines find and access the mate directed edge
 //  for a given edge of an overlap.
@@ -117,9 +117,9 @@ void granger_Aedge( Aedge *new_edge, Aedge *old_edge) {
 
 IntEdge_ID find_overlap_edge_mate
 (/* Input Only */
- const Tfragment frags[], 
- const Tedge edges[],
- const IntEdge_ID ie0
+ Tfragment frags[], 
+ Tedge edges[],
+ IntEdge_ID ie0
  )
 {
   // Find the other directed edge of the overlap and return the index.
@@ -190,21 +190,20 @@ IntEdge_ID find_overlap_edge_mate
 
 void fix_overlap_edge_mate
 (/* Input Only */
- const Tfragment frags[], 
-       Tedge edges[],
- const IntEdge_ID ie0)
+ Tfragment frags[], 
+ Tedge edges[],
+ IntEdge_ID ie0)
 {
-  const IntEdge_ID ie1 =
-    find_overlap_edge_mate( frags, edges, ie0);
+  IntEdge_ID ie1 = find_overlap_edge_mate( frags, edges, ie0);
   // The index of the other half of the undirected edge.
-  const Tnes ines0 = get_nes_edge(edges,ie0);
+  Tnes ines0 = get_nes_edge(edges,ie0);
   Tnes ines1 = ines0; // This will be the "fix".
 
   if(AS_CGB_EDGE_NOT_FOUND == ie1) {
-    const IntFragment_ID avx = get_avx_edge(edges,ie0);
-    const IntFragment_ID bvx = get_bvx_edge(edges,ie0);
-    const IntFragment_ID aid = get_iid_fragment(frags,avx);
-    const IntFragment_ID bid = get_iid_fragment(frags,bvx);
+    IntFragment_ID avx = get_avx_edge(edges,ie0);
+    IntFragment_ID bvx = get_bvx_edge(edges,ie0);
+    IntFragment_ID aid = get_iid_fragment(frags,avx);
+    IntFragment_ID bid = get_iid_fragment(frags,bvx);
     fprintf(stderr,"ERROR: AS_CGB_EDGE_NOT_FOUND == ie1\n");
     fprintf(stderr,"ie0=" F_IID "\n",ie0);
     fprintf(stderr,"aid=" F_IID "\n",aid);

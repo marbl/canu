@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.50 2007-08-31 17:22:49 skoren Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.51 2007-09-05 11:22:10 brianwalenz Exp $";
 
 
 
@@ -446,7 +446,6 @@ int main(int argc, char *argv[]){
     data->doInterleavedScaffoldMerging = doInterleavedScaffoldMerging;
     data->dumpScaffoldSnapshots = dumpScaffoldSnapshots;
     data->maxSequencedbSize = MAX_SEQUENCEDB_SIZE;
-    data->maxSequencedbCacheSize = MAX_SEQUENCEDB_CACHE_SIZE;
     data->maxDegreeUnique = maxDegreeUnique;
     data->maxDegree = maxDegree;
     data->transQualityCutoff = transQualityCutoff;
@@ -579,7 +578,6 @@ int main(int argc, char *argv[]){
       CheckpointScaffoldGraph(ScaffoldGraph, CHECKPOINT_AFTER_UNITIG_SPLITTING);
     }
 
-    //    StatsMultiAlignStore(ScaffoldGraph->CIGraph->maStore, stderr);
     if(restartFromLogicalCheckpoint < CHECKPOINT_AFTER_BUILDING_EDGES){
       fprintf(GlobalData->stderrc,"* Calling ComputeMatePairStatisticsRestricted (UNITIG_OPERATIONS)\n");
       fflush(stderr);
@@ -645,19 +643,16 @@ int main(int argc, char *argv[]){
       ScaffoldGraph->CIGraph->overlapper = tmp;
       ScaffoldGraph->RezGraph = ScaffoldGraph->ContigGraph;
     }
-    /* Construct the Contigs and Contig Edges from the Chunk Instances */
-    ClearCacheSequenceDB(ScaffoldGraph->sequenceDB, TRUE);
+
+    clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
+
     BuildInitialContigs(ScaffoldGraph);
     if(GlobalData->debugLevel){
       CheckEdgesAgainstOverlapper(ScaffoldGraph->ContigGraph);
       CheckSurrogateUnitigs();
     }
-    // Clear both sequence caches...they will reload as necessary
-    fprintf(GlobalData->stderrc,"* Start Flushing sequenceDB caches!\n");
-    ClearCacheSequenceDB(ScaffoldGraph->sequenceDB, TRUE);
-    ClearCacheSequenceDB(ScaffoldGraph->sequenceDB, FALSE);
-    fprintf(GlobalData->stderrc,"* Done Flushing sequenceDB caches!\n");
 
+    clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
 
     if(checkPoint){
       fprintf(GlobalData->timefp," Dumping checkpoint %d after BuildInitialContigs\n",
@@ -898,7 +893,7 @@ int main(int argc, char *argv[]){
       //  We used to CleanupScaffolds() here, but Throw_Stones now
       //  does that inline.
 
-      ClearCacheSequenceDB (ScaffoldGraph -> sequenceDB, FALSE);
+      clearCacheSequenceDB (ScaffoldGraph -> sequenceDB);
 
       fprintf (stderr, "Threw %d partial stones\n", partial_stones);
 #if defined(CHECK_CONTIG_ORDERS) || defined(CHECK_CONTIG_ORDERS_INCREMENTAL)
@@ -946,7 +941,7 @@ int main(int argc, char *argv[]){
                GlobalData -> stoneLevel);
       
       CleanupScaffolds (ScaffoldGraph, FALSE, NULLINDEX, FALSE);
-      ClearCacheSequenceDB (ScaffoldGraph -> sequenceDB, FALSE);
+      clearCacheSequenceDB (ScaffoldGraph -> sequenceDB);
 
       fprintf (stderr, "Threw %d contained stones\n", contained_stones);
 

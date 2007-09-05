@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: DiagnosticsCGW.c,v 1.11 2007-08-26 10:11:01 brianwalenz Exp $";
+static char CM_ID[] = "$Id: DiagnosticsCGW.c,v 1.12 2007-09-05 11:22:11 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -86,10 +86,8 @@ void CheckSmallScaffoldGaps(ScaffoldGraphT *graph){
       if(actual >= CGW_DP_MINLEN)
         continue;
 
-      currMA = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, curr->id, ScaffoldGraph->RezGraph->type == CI_GRAPH);
-      nextMA = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, next->id, ScaffoldGraph->RezGraph->type == CI_GRAPH);
-      //	currMA = GetMultiAlignInStore(ScaffoldGraph->RezGraph->maStore, curr->id);
-      //	nextMA = GetMultiAlignInStore(ScaffoldGraph->RezGraph->maStore, next->id);
+      currMA = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, curr->id, ScaffoldGraph->RezGraph->type == CI_GRAPH);
+      nextMA = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, next->id, ScaffoldGraph->RezGraph->type == CI_GRAPH);
 
       gapsChecked++;
       if(actual > 0)
@@ -148,13 +146,6 @@ void CheckSmallScaffoldGaps(ScaffoldGraphT *graph){
         }
       }
 
-#if 0
-      // Sequence is reverse complemented so coordinate 0 is the end in the gap
-      reverseCurr = (currEnd == B_END);
-      reverseNext = (nextEnd == A_END);
-      DumpNodeEndUngappedToFasta(fastaFile, ScaffoldGraph->RezGraph, curr->id, currEnd, reverseCurr);
-      DumpNodeEndUngappedToFasta(fastaFile, ScaffoldGraph->RezGraph, next->id, nextEnd, reverseNext);
-#endif
       fprintf(stderr,"\n\n\n########### sc:" F_CID " (" F_CID "," F_CID ",%c) gap = (%g +/- %g)\n",
               scaffold->id,curr->id, next->id, pairwiseOrient, gap.mean, sqrt(gap.variance + 0.1));
       fprintf(stderr,"* Scaffold " F_CID " Contigs " F_CID " and " F_CID " oriented %c overlap in scaffold coordinates by " F_COORD "\n",
@@ -236,7 +227,6 @@ void CheckSmallScaffoldGaps(ScaffoldGraphT *graph){
       }
       curr = next;
     }
-
   }
   fprintf(stderr,"* Gaps Checked %d Overlaps checked %d confirmed %d (avg " F_COORD ")    Overlaps found %d (avg " F_COORD ")\n",
           gapsChecked, overlapsChecked, overlapsConfirmed,  (overlapsConfirmed?overlapDistances/overlapsConfirmed:0), overlapsFound, (overlapsFound?gapDistances/overlapsFound:0));

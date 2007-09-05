@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.20 2007-09-03 02:29:28 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.21 2007-09-05 11:22:16 brianwalenz Exp $";
 
 /********************************************************************/
 /* Variable Length C Array Package 
@@ -51,6 +51,10 @@ static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.20 2007-09-03 02:29:28 brianwalenz 
 //  to always invalidate pointers.
 //
 #undef ALWAYS_MOVE_VA_ON_MAKEROOM
+
+//  Trash the memory used by a deleted VA.  Very, very slow.
+//
+#undef TRASH_DELETED_VA
 
 
 //  We write a VarArrayType as a known-size structure -- The size of a
@@ -206,9 +210,16 @@ void
 Trash_VA(VarArrayType *va){
   if (NULL == va)
     return;
-  memset(va->Elements, 0xff, va->allocatedElements * va->sizeofElement);
+#ifdef TRASH_DELETED_VA
+  if (va->allocatedElements * va->sizeofElement < 1024) {
+    int i;
+    for (i=0; i<va->allocatedElements * va->sizeofElement; i++)
+      va->Elements[i] = 0xff;
+  } else {
+    memset(va->Elements, 0xff, va->allocatedElements * va->sizeofElement);
+  }
+#endif
   safe_free(va->Elements);
-  memset(va, 0xff, sizeof(VarArrayType));
   safe_free(va);
 }
 
@@ -230,6 +241,7 @@ Concat_VA(VarArrayType *va,
 
   MakeRoom_VA(va, va->numElements + vb->numElements, FALSE);
   va->numElements += vb->numElements;
+  assert(va->Elements + asize != vb->Elements);
   memcpy(va->Elements + asize, vb->Elements, bsize);
 }
 
@@ -270,21 +282,13 @@ EnableRange_VA(VarArrayType *va, size_t maxElements){
 
 
 void
-SetElement_VA(VarArrayType *va,
-              size_t indx, 
-              void *data){
-  EnableRange_VA(va, (indx+1));
-  memcpy(va->Elements + indx * va->sizeofElement, data, va->sizeofElement);
-}
-
-
-void
-SetRange_VA(VarArrayType *va,
-            size_t indx, 
-            size_t numElements, 
-            void *data){
-  EnableRange_VA(va, indx + numElements);
-  memcpy(va->Elements + indx * va->sizeofElement, data, va->sizeofElement * numElements);
+SetElements_VA(VarArrayType *va,
+               size_t        indx, 
+               void         *data,
+               size_t       nume){
+  EnableRange_VA(va, (indx+nume));
+  if (va->Elements + indx * va->sizeofElement != data)
+    memcpy(va->Elements + indx * va->sizeofElement, data, va->sizeofElement * nume);
 }
 
 
@@ -311,11 +315,14 @@ Clone_VA(VarArrayType *fr){
 void
 ReuseClone_VA(VarArrayType *to, VarArrayType *fr){
 
+  assert(to != fr);
+
   if ((fr->sizeofElement != to->sizeofElement) ||
       (strcmp(fr->typeofElement, to->typeofElement) != 0)) {
 
     safe_free(to->Elements);
 
+    to->Elements           = NULL;
     to->sizeofElement      = fr->sizeofElement;
     to->numElements        = 0;
     to->allocatedElements  = 0;

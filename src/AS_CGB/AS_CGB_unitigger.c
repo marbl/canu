@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.24 2007-08-04 22:26:58 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.25 2007-09-05 11:22:10 brianwalenz Exp $";
 
 #include "AS_UTL_version.h"
 #include "AS_CGB_all.h"
@@ -66,7 +66,7 @@ output_the_chunks(Tfragment     *frags,
 
       a_frag.type         = get_typ_fragment(frags,vid);
       a_frag.ident        = get_iid_fragment(frags,vid);
-      a_frag.contained  = get_container_fragment(frags,vid);
+      a_frag.contained    = get_container_fragment(frags,vid);
       a_frag.position.bgn = get_o5p_fragment(frags,vid);
       a_frag.position.end = get_o3p_fragment(frags,vid);
       a_frag.delta_length = 0;
@@ -95,7 +95,6 @@ output_the_chunks(Tfragment     *frags,
     achunk.forced         = FALSE;
     achunk.num_frags      = ch->num_frags;
     achunk.f_list         = GetVA_IntMultiPos(the_imps,0);
-    achunk.num_vars       = 0;
 
     fragment_count += ch->num_frags;
 

@@ -35,7 +35,6 @@
 //#include "SYS_UIDcommon.h"
 #include "SYS_UIDclient.h"
 
-#include "Globals_CNS.h"
 #include "MultiAlignment_CNS.h"
 
 #define MAXSEQLEN 20000

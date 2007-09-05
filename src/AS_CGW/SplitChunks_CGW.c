@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.21 2007-07-19 09:50:32 brianwalenz Exp $";
+static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.22 2007-09-05 11:22:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,13 +36,8 @@ static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.21 2007-07-19 09:50:32 brianwa
 #include "Globals_CGW.h"
 #include "ScaffoldGraph_CGW.h"
 #include "Input_CGW.h"
-#include "Globals_CNS.h"
 #include "MultiAlignment_CNS.h"
 #include "SplitChunks_CGW.h"
-
-
-//#define DEBUG
-extern void CheckUnitigs(CDS_CID_t start, CDS_CID_t end);
 
 
 /*
@@ -78,6 +73,23 @@ extern void CheckUnitigs(CDS_CID_t start, CDS_CID_t end);
 */
 
 
+
+//#define DEBUG
+extern void CheckUnitigs(CDS_CID_t start, CDS_CID_t end);
+
+
+// number of contigs off A/B end with links before/after chimeric interval
+#define CHIMERA_SET_THRESHOLD 1
+
+typedef struct
+{
+  CDS_CID_t id;
+  SeqInterval interval;
+} SplitInterval;
+
+VA_DEF(SplitInterval);
+
+
 // in creating coverage maps, trim bases off each end of fragment
 #define READ_TRIM_BASES         30
 #define MAX_SEQUENCE_COVERAGE    1
@@ -108,7 +120,7 @@ typedef struct
 } IUMStruct;
 
 
-void PrintPositions(ScaffoldGraphT * graph, MultiAlignT * ma, int isUnitig)
+static void PrintPositions(ScaffoldGraphT * graph, MultiAlignT * ma, int isUnitig)
 {
   int i;
   for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++)
@@ -493,33 +505,6 @@ static int CreateCloneCoverageMaps(ScaffoldGraphT * graph,
 }
 
 
-static int WriteMapToCelagramFile(VA_TYPE(uint16) * map,
-                                  CDS_COORD_t length,
-                                  char * filestub,
-                                  char * comment,
-                                  CDS_CID_t index)
-{
-  char filename[1024];
-  FILE * fp;
-  CDS_COORD_t b;
-  uint16 n;
-  
-  sprintf(filename, "%s.%010" F_CIDP ".cgm", filestub, index);
-  if((fp = fopen(filename, "w")) == NULL)
-    {
-      fprintf(GlobalData->stderrc, "Failed to open file %s for writing.\n",
-              filename);
-      return 1;
-    }
-  fprintf(fp, "%s " F_CID "\n", comment, index);
-  for(b = 0; b < length; b++)
-    {
-      for(n = 0; n < *(GetVA_uint16(map,b)); n++)
-        fprintf(fp, F_COORD "\n", b);
-    }
-  fclose(fp);
-  return 0;
-}
 
 
 static IUMStruct * CreateIUMStruct(void)
@@ -658,8 +643,8 @@ static int AddIMPToIUMStruct(IUMStruct * is, IntMultiPos * imp)
 }
 
 
-float EstimateGlobalFragmentArrivalRate(ChunkInstanceT * ci,
-                                        MultiAlignT * ma)
+static float EstimateGlobalFragmentArrivalRate(ChunkInstanceT * ci,
+                                               MultiAlignT * ma)
 {
   int i;
   int numRF = 0;
@@ -675,11 +660,6 @@ float EstimateGlobalFragmentArrivalRate(ChunkInstanceT * ci,
           numRF++;
         }
     }
-#ifdef DEBUG
-  fprintf(GlobalData->stderrc,
-          "EGFAR: rho = %d, numRandomFrags = %d, CI coverageStat = %d\n",
-          rho, numRF, ci->info.CI.coverageStat);
-#endif
 
   return((ci->info.CI.coverageStat + LN_2 * (numRF - 1)) / rho);
 }
@@ -703,7 +683,7 @@ float EstimateGlobalFragmentArrivalRate(ChunkInstanceT * ci,
    Move orphaned contained imps up to a position where they should
    overlap the preceding imp
 */   
-void AdjustContainedOrder(IntMultiPos * impList, int numIMPs)
+static void AdjustContainedOrder(IntMultiPos * impList, int numIMPs)
 {
   HashTable_AS * containing;
   IntMultiPos * contained;
@@ -771,18 +751,6 @@ void AdjustContainedOrder(IntMultiPos * impList, int numIMPs)
     }
   DeleteHashTable_AS(containing);
 
-  // if numContainedLeft != 0, there is a contained missing its containing
-  /*
-    for(index = 0; index < numContainedLeft; index++)
-    {
-    fprintf(GlobalData->stderrc,
-    "Contained imp " F_IID " will be in separate unitig from containing imp " F_IID "\n",
-    contained[index].ident,
-    contained[index].contained);
-    contained[index].contained = 0;
-    impList[numContaining + totalMoved + index] = contained[index];
-    }
-  */
   safe_free(contained);
 
   assert(numContainedLeft == 0);
@@ -882,14 +850,6 @@ static int StoreIUMStruct(ScaffoldGraphT * graph,
                             (is->numRandomFragments - 1)) :
                            0.f);
 
-#ifdef DEBUG
-  fprintf(GlobalData->stderrc, "accession = %d\n", is -> ium . iaccession);
-  fprintf(GlobalData->stderrc, "length = " F_COORD ", egfar = %f, rho = %d, num random frags = %d, coverage stat = %f\n",
-          is->ium.length,
-          egfar, rho, is->numRandomFragments,
-          is->ium.coverage_stat);
-#endif
-  
   is->ium.forced = 0;
 
   // get the multi-alignment - this fills in some unitig fields
@@ -915,9 +875,7 @@ static int StoreIUMStruct(ScaffoldGraphT * graph,
   
   // add ium to the system
   {
-    MultiAlignT *ma = CreateMultiAlignTFromIUM(&(is->ium),
-                                               GetNumCIFragTs(graph->CIFrags),
-                                               FALSE);
+    MultiAlignT *ma = CreateMultiAlignTFromIUM(&(is->ium), GetNumCIFragTs(graph->CIFrags), FALSE);
     CDS_COORD_t length = GetMultiAlignUngappedLength(ma);
     ChunkInstanceT * ci;
     
@@ -935,21 +893,18 @@ static int StoreIUMStruct(ScaffoldGraphT * graph,
 #endif
       }
     
-    // This adds a reference only if keepInCache is true...
-    InsertMultiAlignTInSequenceDB(graph->sequenceDB, is->ium.iaccession,
-                                  TRUE, ma, TRUE);
-    DuplicateEntryInSequenceDB(graph->sequenceDB,
-                               is->ium.iaccession, TRUE,
-                               is->ium.iaccession, FALSE, FALSE);
+    //  Insert both a unitig and a contig
+
+    insertMultiAlignTInSequenceDB(graph->sequenceDB, is->ium.iaccession, TRUE,
+                                  ma,
+                                  TRUE);
+    insertMultiAlignTInSequenceDB(graph->sequenceDB, is->ium.iaccession, FALSE,
+                                  CopyMultiAlignT(NULL, ma),
+                                  FALSE);
+
     ProcessIUM_ScaffoldGraph(&(is->ium), length, TRUE);
-    /*
-      ma = LoadMultiAlignTFromSequenceDB(graph->sequenceDB,
-      is->ium.iaccession,
-      TRUE);
-    */
     
-    ci = GetGraphNode((isUnitig ? graph->CIGraph : graph->ContigGraph),
-                      is->ium.iaccession);
+    ci = GetGraphNode((isUnitig ? graph->CIGraph : graph->ContigGraph), is->ium.iaccession);
     ci->flags.bits.cgbType = cgbType;
     ci->aEndCoord = ci->bEndCoord = 0;
 
@@ -957,9 +912,6 @@ static int StoreIUMStruct(ScaffoldGraphT * graph,
                         is->ium.iaccession,
                         ci->type == DISCRIMINATORUNIQUECHUNK_CGW,
                         TRUE);
-    
-    UnloadMultiAlignTFromSequenceDB(graph->sequenceDB,
-                                    is->ium.iaccession, TRUE);
   }
 
   return 0;
@@ -1004,23 +956,21 @@ static int SplitChunkByIntervals(ScaffoldGraphT * graph,
   // fprintf(stdout, "%10" F_IIDP ": Final\n", ma->id);
   // PrintPositions(graph, ma, 1);
   
-#ifdef DEBUG
-  fprintf(GlobalData->stderrc, "egfar = %f\n", egfar);
-#endif
   
+#if 0
   // feedback for log file
   fprintf(GlobalData->stderrc,
-          "Splitting %s " F_CID " into as many as %d %s at intervals:\n",
+          "Splitting %s " F_CID " into as many as %d %s at intervals:",
           (isUnitig ? "unitig" : "contig"), ma->id,
           (int) (2 * GetNumVA_SeqInterval(csis) + 1),
           (isUnitig ? "unitigs" : "contigs"));
 
-  for(currI = 0; currI < GetNumVA_SeqInterval(csis); currI++)
-    {
-      currInterval = GetVA_SeqInterval(csis, currI);
-      fprintf(GlobalData->stderrc, "\t" F_COORD "," F_COORD "\n",
-              currInterval->bgn, currInterval->end);
-    }
+  for(currI = 0; currI < GetNumVA_SeqInterval(csis); currI++) {
+    currInterval = GetVA_SeqInterval(csis, currI);
+    fprintf(GlobalData->stderrc, "\t" F_COORD "," F_COORD,
+            currInterval->bgn, currInterval->end);
+  }
+#endif
 
   /*
     loop over fragments, placing them in different chunks
@@ -1048,15 +998,6 @@ static int SplitChunkByIntervals(ScaffoldGraphT * graph,
         ((isUnitig) ?
          MAX(frag->offset5p.mean, frag->offset3p.mean) :
          MAX(frag->contigOffset5p.mean, frag->contigOffset3p.mean));
-
-#ifdef DEBUG
-      fprintf(GlobalData->stderrc, "Interval: " F_COORD ", " F_COORD "\tfragment(" F_IID "): " F_COORD ", " F_COORD " (" F_COORD ", " F_COORD ")\n",
-              currInterval->bgn, currInterval->end, imp->ident,
-              minPos, maxPos, imp->position.bgn, imp->position.end);
-#endif
-      fprintf(stderr, "Interval: " F_COORD ", " F_COORD "\tfragment(" F_IID "): " F_COORD ", " F_COORD " (" F_COORD ", " F_COORD ")\n",
-              currInterval->bgn, currInterval->end, imp->ident,
-              minPos, maxPos, imp->position.bgn, imp->position.end);
 
       /* keep contained with containing - avoids problem of consensus failures
          if overlap of contained & next fragment is very short
@@ -1225,10 +1166,6 @@ int SplitInputUnitigs(ScaffoldGraphT * graph)
   csis = CreateVA_SeqInterval(100);
   assert(rc != NULL && gcc != NULL && bcc != NULL && csis != NULL);
 
-  // set terminate_cond to 1 - this is needed so that if MultiAlignUnitig()
-  // fails, the program will exit with a non-zero
-  terminate_cond = 1;
-  
   // determine minimum unitig length of interest
   // NOTE: consider adding a multipler to dptr->upper
   for(i = 0; i < GetNumDistTs(graph->Dists); i++)
@@ -1237,24 +1174,12 @@ int SplitInputUnitigs(ScaffoldGraphT * graph)
       minLength = MIN(minLength,dptr->mu + CGW_CUTOFF * dptr->sigma);
     }
 
-#ifdef DEBUG
-  fprintf(GlobalData->stderrc, "%10d unitigs.\n", numCIs);
-  fprintf(GlobalData->stderrc, "minimum length: " F_COORD "\n", minLength);
-  minLength = MAX(minLength, 2000 + CGW_CUTOFF * 200);
-#endif
-  
   // loop over number of original unitigs - not new ones being generated
   // otherwise would use an iterator
   for(i = 0; i < numCIs; i++)
     {
       ChunkInstanceT * ci = GetGraphNode(graph->CIGraph, i);
-      MultiAlignT * ma = LoadMultiAlignTFromSequenceDB(graph->sequenceDB,
-                                                       ci->id,
-                                                       TRUE);
-#ifdef DEBUG2
-      if(i > 0 && i % 1000 == 0)
-        fprintf(GlobalData->stderrc, "%d\r", i);
-#endif
+      MultiAlignT * ma = loadMultiAlignTFromSequenceDB(graph->sequenceDB, ci->id, TRUE);
     
       // NOTE: add discriminator statistic checks?
       if(GetMultiAlignLength(ma) >= minLength)
@@ -1266,19 +1191,8 @@ int SplitInputUnitigs(ScaffoldGraphT * graph)
           // function intended to work for either contig or unitig
           ResetVA_uint16(rc);
           EnableRangeVA_uint16(rc, GetMultiAlignLength(ma));
-#ifdef DEBUG2
-          fprintf(GlobalData->stderrc, "Unitig %10d, length %d\n",
-                  i, (int) GetMultiAlignLength(ma));
-          fprintf(GlobalData->stderrc, "\tVA_num = %d\n",
-                  (int) GetNumVA_uint16(rc));
-#endif
           CreateReadCoverageMap(graph, rc, ma, TRUE);
 
-#ifdef DEBUG3
-          // abuse the celagram file concept
-          WriteMapToCelagramFile(rc, (CDS_COORD_t) GetMultiAlignLength(ma),
-                                 "rc", "Read coverage for unitig", i);
-#endif
       
           // locate region within which to look for possible chimeric points
           // i.e., ignore initial & trailing 0/1 values
@@ -1296,23 +1210,13 @@ int SplitInputUnitigs(ScaffoldGraphT * graph)
             if(*(GetVA_uint16(rc,curBase)) <= MAX_SEQUENCE_COVERAGE)
               break;
 
-#ifdef DEBUG2
-          fprintf(GlobalData->stderrc,
-                  "minBase = " F_COORD ", maxBase = " F_COORD ", curBase = " F_COORD "\n",
-                  minBase, maxBase, curBase);
-#endif
-      
           // see if above loop ended in a candidate interval
           if(curBase < maxBase)
             {
               CDS_COORD_t checkBase;
               SeqInterval interval;
               int inInterval = 0;
-        
-#ifdef DEBUG2
-              fprintf(GlobalData->stderrc, "Candidate interval found!\n");
-#endif
-        
+
               // create gcc & bcc maps for unitig
               ResetVA_uint16(gcc);
               EnableRangeVA_uint16(gcc, GetMultiAlignLength(ma));
@@ -1373,28 +1277,13 @@ int SplitInputUnitigs(ScaffoldGraphT * graph)
 
               if(GetNumVA_SeqInterval(csis) > 0)
                 {
-#ifdef DEBUG2
-                  WriteMapToCelagramFile(rc,
-                                         (uint32) GetMultiAlignLength(ma),
-                                         "rc",
-                                         "Read coverage for unitig", i);
-                  WriteMapToCelagramFile(gcc,
-                                         (uint32) GetMultiAlignLength(ma),
-                                         "gcc",
-                                         "Good clone coverage for unitig", i);
-                  WriteMapToCelagramFile(bcc,
-                                         (uint32) GetMultiAlignLength(ma),
-                                         "bcc",
-                                         "Bad clone coverage for unitig", i);
-#endif
                   // compute global fragment arrival rate
                   SplitChunkByIntervals(graph, ci->id, ma, csis, TRUE);
                   // refresh ci, since the VarArray may have been resized
                   ci = GetGraphNode(graph->CIGraph, i);
                 }
             }
-        }    
-      UnloadMultiAlignTFromSequenceDB(graph->sequenceDB, ci->id, TRUE);
+        }
     }
 
   DeleteVA_SeqInterval(csis);
@@ -1405,405 +1294,4 @@ int SplitInputUnitigs(ScaffoldGraphT * graph)
   //CheckUnitigs(0, GetNumGraphNodes(graph->CIGraph));
   
   return 0;
-}
-
-
-/*
-  Operate on contigs.
-  Create variable array with 2*numContig entries
-  Create hashtable with 2*numContig entries
-  key is contigID, contigEnd pair
-  value is pointer into array
-  Create variable array for satisfied mate interval map
-  Iterate over contigs
-  reset array & hashtable
-  iterate over fragments in contig
-  access mate of this fragment
-  if(in same contig)
-  if fragIID < mateIID, add link to clone coverage map
-  else
-  determine if edge extends off AEnd or BEnd of contig
-  lookup other contigID, end pair in hashtable
-  create/update entry with 3' end of fragment
-  sort elements in array by left offset
-  iterate over entries in sorted array
-  track A) 
-
-        
-  Should return variable array of contig/interval objects
-*/
-
-typedef struct
-{
-  CDS_CID_t id;
-  int end;
-} CELKey;
-
-typedef struct
-{
-  CELKey      key;
-  int32       numEdges;
-  CDS_COORD_t leftCoord;
-  CDS_COORD_t rightCoord;
-} ChunkEndLink;
-VA_DEF(ChunkEndLink);
-  
-int CELHashFn(uint64 item, uint32 length)
-{
-  return Hash_AS((uint8 *) item, length, 37);
-}
-
-int CELCompareFn(uint64 item1, uint64 item2)
-{
-  ChunkEndLink * cel1 = (ChunkEndLink *) item1;
-  ChunkEndLink * cel2 = (ChunkEndLink *) item2;
-
-  if(cel1->key.id == cel2->key.id)
-    {
-      if(cel1->key.id == cel2->key.id)
-        return 0;
-      else
-        return (cel1->key.end == A_END) ? -1 : 1;
-    }
-  else
-    return cel1->key.id - cel2->key.id;
-}
-
-                                             
-void ProcessLinkForChimeraDetection(ScaffoldGraphT * graph,
-                                    CIFragT * frag,
-                                    CIFragT * mfrag,
-                                    OrientType orient,
-                                    CDS_CID_t distID,
-                                    ChunkInstanceT * ci,
-                                    MultiAlignT * ma,
-                                    HashTable_AS * ht,
-                                    VA_TYPE(ChunkEndLink) * cels,
-                                    VA_TYPE(uint16) * gcc,
-                                    VA_TYPE(uint16) * bcc)
-{
-  if(mfrag->contigID == frag->contigID)
-    {
-      AddLinkToMaps(graph, gcc, bcc, frag, mfrag,
-                    orient, distID, GetMultiAlignLength(ma), FALSE);
-    }
-  else
-    {
-      // ChunkEndLink
-      ChunkEndLink cel;
-      ChunkEndLink * celp;
-      cel.key.id = mfrag->contigID;
-      cel.key.end = (frag->contigOffset3p.mean <
-                     frag->contigOffset5p.mean) ? A_END : B_END;
-      celp = (ChunkEndLink *)LookupValueInHashTable_AS(ht, (uint64)&(cel.key), sizeof(CELKey));
-      if(celp != NULL)
-        {
-          // update
-          celp->numEdges++;
-          celp->leftCoord = MIN(celp->leftCoord,
-                                frag->contigOffset3p.mean);
-          celp->rightCoord = MAX(celp->rightCoord,
-                                 frag->contigOffset3p.mean);
-        }
-      else
-        {
-          cel.numEdges = 1;
-          cel.leftCoord = frag->contigOffset3p.mean;
-          cel.rightCoord = frag->contigOffset3p.mean;
-          AppendVA_ChunkEndLink(cels, &cel);
-          celp = GetVA_ChunkEndLink(cels, GetNumVA_ChunkEndLink(cels) - 1);
-          InsertInHashTable_AS(ht,
-                               (uint64)&(celp->key), sizeof(CELKey),
-                               (uint64)celp, 0);
-        }
-    }
-}
-
-
-static int CELCompare(const ChunkEndLink * a, const ChunkEndLink * b)
-{
-  if(a->numEdges >= 2 && b->numEdges >= 2)
-    {
-      if(a->leftCoord == b->leftCoord)
-        return a->rightCoord - b->rightCoord;
-      else
-        return a->leftCoord - b->leftCoord;
-    }
-  else
-    {
-      if(a->numEdges < 2 && b->numEdges < 2)
-        return 0;
-      else
-        return (b->numEdges < 2) ? -1 : 1;
-    }
-}
-
-
-void PrintChunkEndLinks(CDS_CID_t id,
-                        VA_TYPE(ChunkEndLink) * cels,
-                        FILE * fp)
-{
-  int i;
-  fprintf(fp, F_CID " chunk end links:\n", id);
-  for(i = 0; i < GetNumVA_ChunkEndLink(cels); i++)
-    {
-      ChunkEndLink * celp = GetVA_ChunkEndLink(cels, i);
-      if(celp->numEdges >= 2)
-        fprintf(fp, "\t" F_CID "-%c: (" F_COORD "," F_COORD "), %d edges\n",
-                celp->key.id,
-                (celp->key.end == A_END) ? 'A' : 'B',
-                celp->leftCoord, celp->rightCoord, celp->numEdges);
-    }
-}
-
-VA_TYPE(SplitInterval) * DetectChimericChunksInGraph(ScaffoldGraphT * graph)
-{
-  VA_TYPE(SplitInterval) * sis;
-  int numCIs;
-  VA_TYPE(uint16) * rc;   // read coverage
-  VA_TYPE(uint16) * gcc;  // good clone coverage
-  VA_TYPE(uint16) * bcc;  // bad clone coverage
-  HashTable_AS * ht;
-  VA_TYPE(ChunkEndLink) * cels;
-  int i;
-  ChunkEndLink * celp;
-  CDS_COORD_t maxRightCoord;
-  int num1A = 0;
-  int num1B = 0;
-  
-  if(graph->RezGraph == NULL ||
-     (numCIs = GetNumGraphNodes(graph->RezGraph)) == 0)
-    {
-      fprintf(GlobalData->stderrc,
-              "No contigs in graph for chimera detection.\n");
-      return NULL;
-    }
-  rc = CreateVA_uint16(10000);
-  gcc = CreateVA_uint16(10000);
-  bcc = CreateVA_uint16(10000);
-  sis = CreateVA_SplitInterval(100);
-  ht = CreateGenericHashTable_AS(numCIs * 2, CELHashFn, CELCompareFn);
-  cels = CreateVA_ChunkEndLink(numCIs * 2);
-  
-  assert(cels != NULL &&
-         ht != NULL &&
-         sis != NULL &&
-         gcc != NULL &&
-         bcc != NULL &&
-         rc != NULL);
-
-  // loop over contigs to find chimeric ones
-  for(i = 0; i < numCIs; i++)
-    {
-      ChunkInstanceT * ci = GetGraphNode(graph->RezGraph, i);
-      MultiAlignT * ma;
-      int fIndex;
-      int cIndex;
-
-      if(ci->flags.bits.isDead)
-        continue;
-
-      /*
-        if(i != 0 && i % 10 == 0)
-        fprintf(stderr, F_CID "\r", i);
-      */
- 
-      ma = LoadMultiAlignTFromSequenceDB(graph->sequenceDB, ci->id, FALSE);
-    
-      if(GetMultiAlignLength(ma) < 2000)
-        continue;
-
-      // create gcc & bcc maps for unitig
-      ResetVA_uint16(rc);
-      EnableRangeVA_uint16(rc, GetMultiAlignLength(ma));
-      ResetVA_uint16(gcc);
-      EnableRangeVA_uint16(gcc, GetMultiAlignLength(ma));
-      ResetVA_uint16(bcc);
-      EnableRangeVA_uint16(bcc, GetMultiAlignLength(ma));
-      ResetVA_ChunkEndLink(cels);
-      ResetHashTable_AS(ht);
-    
-      // iterate over fragments to find inter-contig mates
-      for(fIndex = 0; fIndex < GetNumIntMultiPoss(ma->f_list); fIndex++)
-        {
-          IntMultiPos * imp = GetIntMultiPos(ma->f_list, fIndex);
-          InfoByIID * info = GetInfoByIID(graph->iidToFragIndex,
-                                          imp->ident);
-          CIFragT   * frag = GetCIFragT(graph->CIFrags,
-                                        info->fragIndex);
-
-          assert(frag->contigID == ci->id);
-          if(frag->flags.bits.hasMate)
-            {
-              // get lone mate fragment
-              if(frag->mateOf != NULLINDEX && frag->flags.bits.linkType != AS_REREAD)
-                {
-                  ProcessLinkForChimeraDetection(graph, frag,
-                                                 GetCIFragT(graph->CIFrags,
-                                                            frag->mateOf),
-                                                 (frag->flags.bits.innieMate) ?
-                                                 AS_INNIE : AS_OUTTIE,
-                                                 frag->dist,
-                                                 ci, ma, ht, cels, gcc, bcc);
-                }
-            }
-        }
-
-      // process the cels array - sort, step through
-      if(GetNumVA_ChunkEndLink(cels) < 2)
-        continue;
-
-      qsort(GetVA_ChunkEndLink(cels, 0),
-            GetNumVA_ChunkEndLink(cels),
-            sizeof(ChunkEndLink),
-            (int (*) (const void *, const void *)) CELCompare);
-
-      /*
-        if(GetMultiAlignLength(ma) > 10000)
-        PrintChunkEndLinks(ci->id, cels, GlobalData->stderrc);
-      */
-    
-      celp = GetVA_ChunkEndLink(cels, 0);
-      maxRightCoord = celp->rightCoord;
-      if(celp->key.end == A_END)
-        {
-          num1A = 1;
-          num1B = 0;
-        }
-      else
-        {
-          num1A = 0;
-          num1B = 1;
-        }
-
-      // iterate left to right through chunk end links
-      for(cIndex = 1; cIndex < GetNumVA_ChunkEndLink(cels); cIndex++)
-        {
-          celp = GetVA_ChunkEndLink(cels, cIndex);
-          if(celp->numEdges < 2)
-            break;
-          if(num1A >= CHIMERA_SET_THRESHOLD &&
-             num1B >= CHIMERA_SET_THRESHOLD &&
-             celp->leftCoord > maxRightCoord)
-            {
-              int32 c2Index;
-              int32 num2A = 0;
-              int32 num2B = 0;
-
-              for(c2Index = cIndex;
-                  c2Index < GetNumVA_ChunkEndLink(cels);
-                  c2Index++)
-                {
-                  ChunkEndLink * cel2p = GetVA_ChunkEndLink(cels, c2Index);
-                  if(cel2p->numEdges < 2)
-                    break;
-                  if(cel2p->key.end == A_END)
-                    num2A++;
-                  else
-                    num2B++;
-                  if(num2A >= CHIMERA_SET_THRESHOLD &&
-                     num2B >= CHIMERA_SET_THRESHOLD)
-                    {
-                      // maybe append an interval...
-                      // CDS_COORD_t k;
-                      SeqInterval interval;
-                      int inInterval = FALSE;
-            
-                      CreateReadCoverageMap(graph, rc, ma, TRUE);
-
-                      interval.bgn = maxRightCoord;
-                      interval.end = celp->leftCoord;
-                      {
-                        SplitInterval si;
-              
-                        PrintChunkEndLinks(ci->id, cels, GlobalData->stderrc);
-                        WriteMapToCelagramFile(rc,
-                                               (CDS_COORD_t) GetMultiAlignLength(ma),
-                                               "rc",
-                                               "Read coverage for unitig", i);
-                        WriteMapToCelagramFile(gcc,
-                                               (CDS_COORD_t) GetMultiAlignLength(ma),
-                                               "gcc",
-                                               "Good clone coverage for unitig", i);
-                        WriteMapToCelagramFile(bcc,
-                                               (CDS_COORD_t) GetMultiAlignLength(ma),
-                                               "bcc",
-                                               "Bad clone coverage for unitig", i);
-              
-                        si.id = ci->id;
-                        si.interval = interval;
-                        AppendVA_SplitInterval(sis, &si);
-                        fprintf(GlobalData->stderrc,
-                                "Chimeric interval in contig " F_CID ": (" F_COORD "," F_COORD ")\n",
-                                si.id, si.interval.bgn, si.interval.end);
-                        inInterval = FALSE;
-                        break;
-                      }
-
-                      /*
-                      // check against good clone coverage
-                      for(k = maxRightCoord; k < celp->leftCoord; k++)
-                      {
-                      if(*(GetVA_uint16(rc,k)) <= MAX_SEQUENCE_COVERAGE &&
-                      *(GetVA_uint16(gcc, k)) <= MAX_GOOD_CLONE_COVERAGE)
-                      {
-                      if(inInterval)
-                      {
-                      interval.end = k;
-                      }
-                      else
-                      {
-                      interval.bgn = interval.end = k;
-                      inInterval = TRUE;
-                      }
-                      }
-                      else
-                      {
-                      if(inInterval)
-                      {
-                      SplitInterval si;
-                  
-                      WriteMapToCelagramFile(rc,
-                      (CDS_COORD_t) GetMultiAlignLength(ma),
-                      "rc",
-                      "Read coverage for unitig", i);
-                      WriteMapToCelagramFile(gcc,
-                      (CDS_COORD_t) GetMultiAlignLength(ma),
-                      "gcc",
-                      "Good clone coverage for unitig", i);
-                      WriteMapToCelagramFile(bcc,
-                      (CDS_COORD_t) GetMultiAlignLength(ma),
-                      "bcc",
-                      "Bad clone coverage for unitig", i);
-          
-                      si.id = ci->id;
-                      si.interval = interval;
-                      AppendVA_SplitInterval(sis, &si);
-                      fprintf(GlobalData->stderrc,
-                      "Chimeric interval in contig " F_CID ": (" F_COORD "," F_COORD ")\n",
-                      si.id, si.interval.bgn, si.interval.end);
-                      inInterval = FALSE;
-                      }
-                      }
-                      }
-                      */
-                    }
-                }
-            }
-      
-          if(celp->key.end == A_END)
-            num1A++;
-          else
-            num1B++;
-      
-          // always adjust this, so that we don't get overlapping intervals
-          maxRightCoord = MAX(maxRightCoord, celp->rightCoord);
-        }
-    }
-
-  DeleteVA_uint16(rc);
-  DeleteVA_uint16(gcc);
-  DeleteVA_uint16(bcc);
-  
-  return sis;
 }

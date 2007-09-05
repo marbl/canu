@@ -27,7 +27,6 @@
 #include "AS_global.h"
 #include "AS_ALN_aligners.h"
 #include "AS_ALN_forcns.h"
-#include "dpc_CNS.h"
 
 /* 
    Wrappers for finding fragment overlaps with moderate sized indels

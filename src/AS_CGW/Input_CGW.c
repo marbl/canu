@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.45 2007-08-28 22:50:10 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.46 2007-09-05 11:22:11 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -117,9 +117,6 @@ ProcessFrags(void) {
   if (err)
     assert(err == 0);
 
-  fprintf(stderr,"* Unmated fragments %d\n", unmatedFrags);
-  fprintf(stderr,"* Total IIDs:       %d\n", (int)GetNumInfoByIIDs(ScaffoldGraph->iidToFragIndex));
-
   //  Do a second pass to clean up mates.  We don't need to access the
   //  gatekeeper here, since everything is already populated.  If we
   //  put this stuff in the first loop, we'll be randomly accessing
@@ -157,24 +154,19 @@ ProcessFrags(void) {
     } else {
       //  Both guys are alive, and we're mated.  Throw some asserts
 
-      if (ciinfo->set == 0) {
+      if (ciinfo->set == 0)
         fprintf(stderr, "ERROR: cifrag iid=%d ciinfo->set == 0; cifrag not in the assembly\n");
-      }
-      if (miinfo->set == 0) {
+      if (miinfo->set == 0)
         fprintf(stderr, "ERROR: mifrag iid=%d miinfo->set == 0; mifrag not in the assembly\n");
-      }
-      if (cifrag->dist   != mifrag->dist) {
+      if (cifrag->dist   != mifrag->dist)
         fprintf(stderr, "ERROR: cifrag iid=%d mifrag iid=%d -- cifrag->dist=%d != mifrag->dist=%d; libraries not the same\n",
                 cifrag->iid, mifrag->iid, cifrag->dist, mifrag->dist);
-      }
-      if (cifrag->mateOf != miinfo->fragIndex) {
+      if (cifrag->mateOf != miinfo->fragIndex)
         fprintf(stderr, "ERROR: cifrag iid=%d mifrag iid==%d -- cifrag->mateOf=%d != miinfo->fragIndex=%d; messed up mate index/iid\n",
                 cifrag->iid, mifrag->iid, cifrag->mateOf, miinfo->fragIndex);
-      }
-      if (mifrag->mateOf != ciinfo->fragIndex) {
+      if (mifrag->mateOf != ciinfo->fragIndex)
         fprintf(stderr, "ERROR: mifrag iid=%d cifrag iid==%d -- mifrag->mateOf=%d != ciinfo->fragIndex=%d; messed up mate index/iid\n",
                 mifrag->iid, cifrag->iid, mifrag->mateOf, ciinfo->fragIndex);
-      }
 
       assert(ciinfo->set);
       assert(miinfo->set);
@@ -182,12 +174,12 @@ ProcessFrags(void) {
       assert(cifrag->mateOf == miinfo->fragIndex);
       assert(mifrag->mateOf == ciinfo->fragIndex);
     }
-
   }  //  for each frag
 
-  fprintf(stderr,"* Found %d unmated frags (%g %%)\n",
-          unmatedFrags,
-          100.0 * unmatedFrags / GetNumCIFragTs(ScaffoldGraph->CIFrags));
+  fprintf(stderr,"* Found %d frags, %g%% unmated (%d frags\n",
+          GetNumCIFragTs(ScaffoldGraph->CIFrags),
+          100.0 * unmatedFrags / GetNumCIFragTs(ScaffoldGraph->CIFrags),
+          unmatedFrags);
 }
 
 
@@ -209,32 +201,42 @@ int ProcessInput(Global_CGW *data, int optind, int argc, char *argv[]){
     while ((EOF != ReadProtoMesg_AS(infp, &pmesg))) {
       if (pmesg->t == MESG_IUM) {
         IntUnitigMesg *ium_mesg = (IntUnitigMesg *)pmesg->m;
-        MultiAlignT   *ma       = CreateMultiAlignTFromIUM(ium_mesg, GetNumCIFragTs(ScaffoldGraph->CIFrags),FALSE);
-        CDS_COORD_t   length    = GetMultiAlignUngappedLength(ma);
+        MultiAlignT   *uma      = NULL;
+        MultiAlignT   *cma      = NULL;
 
-        InsertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, ium_mesg->iaccession, TRUE, ma, TRUE);
-        DuplicateEntryInSequenceDB(ScaffoldGraph->sequenceDB, ium_mesg->iaccession, TRUE, ium_mesg->iaccession, FALSE, FALSE);
-        ProcessIUM_ScaffoldGraph(ium_mesg, length, FALSE);
-        UnloadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ium_mesg->iaccession, TRUE);
+        //  Insert both a unitig and a contig -- these MUST be saved
+        //  in the cache, else a huge memory leak.
+
+        uma = CreateMultiAlignTFromIUM(ium_mesg, GetNumCIFragTs(ScaffoldGraph->CIFrags), FALSE);
+        cma = CopyMultiAlignT(NULL, uma),
+
+        insertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, ium_mesg->iaccession, TRUE,  uma, TRUE);
+        insertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, ium_mesg->iaccession, FALSE, cma, TRUE);
+
+        ProcessIUM_ScaffoldGraph(ium_mesg, GetMultiAlignUngappedLength(uma), FALSE);
 
         numIUM++;
+        if ((numIUM % 10000) == 0)
+          fprintf(stderr, "processed "F_S32" IUM messages.\n", numIUM);
       }
     }
     fclose(infp);
   }
-  
-  ScaffoldGraph->numLiveCIs = ScaffoldGraph->numOriginalCIs = GetNumGraphNodes(ScaffoldGraph->CIGraph);
 
-  fprintf(stderr,"* cgw read the following messages:\n");
-  fprintf(stderr,"\tIUM:%d  (max IUM acc = %d) with %d fragments\n",
+  
+  fprintf(stderr,"Processed %d IUM messages (max IUM acc = %d) with %d fragments\n",
           numIUM,
           (int)GetNumGraphNodes(ScaffoldGraph->CIGraph),
 	  (int)GetNumCIFragTs(ScaffoldGraph->CIFrags));
-  
+
+  ScaffoldGraph->numLiveCIs     = GetNumGraphNodes(ScaffoldGraph->CIGraph);
+  ScaffoldGraph->numOriginalCIs = GetNumGraphNodes(ScaffoldGraph->CIGraph);
+
   ProcessFrags();
 
   fprintf(stderr,"* Total Long Discriminator Uniques : %d   Short Uniques: %d\n",
-	  DiscriminatorUniques, ShortDiscriminatorUniques);
+          DiscriminatorUniques,
+          ShortDiscriminatorUniques);
   fprintf(stderr,"* Total Reads:%d in discriminator unique:%d in other:%d ; in teeny: %d in singles:%d on ends:%d\n",
 	  totalReadFrags, inUniqueReadFrags, inRepeatReadFrags, inTeenyUnitigReadFrags, inSingletonUnitigReadFrags,
 	  onEndReadFrags);
@@ -365,16 +367,16 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, CDS_COORD_t length, int s
       // Falling below threshhold makes something a repeat.
       if( CI.microhetScore < GlobalData->cgbMicrohetProb){
 	if(ium_mesg->coverage_stat < GlobalData->cgbApplyMicrohetCutoff){
-	  fprintf(stderr,"* CI " F_CID " with astat: %g classified as repeat based on microhet unique prob of %g < %g\n",
-		  CI.id, ium_mesg->coverage_stat, CI.microhetScore, GlobalData->cgbMicrohetProb);
+	  //fprintf(stderr,"* CI " F_CID " with astat: %g classified as repeat based on microhet unique prob of %g < %g\n",
+          //        CI.id, ium_mesg->coverage_stat, CI.microhetScore, GlobalData->cgbMicrohetProb);
 	  isUnique = FALSE;
 	  if(CI.flags.bits.cgbType == XX_CGBTYPE)
 	    CI.flags.bits.cgbType = RR_CGBTYPE;
 	  CI.type = UNRESOLVEDCHUNK_CGW;
 	}else{
 	  isUnique = TRUE;
-	  fprintf(stderr,"* WARNING: CI " F_CID " with coverage %g WOULD HAVE BEEN classified as repeat based on microhet unique prob of %g < %g\n",
-		  CI.id, ium_mesg->coverage_stat, CI.microhetScore, GlobalData->cgbMicrohetProb);
+	  //fprintf(stderr,"* WARNING: CI " F_CID " with coverage %g WOULD HAVE BEEN classified as repeat based on microhet unique prob of %g < %g\n",
+          //        CI.id, ium_mesg->coverage_stat, CI.microhetScore, GlobalData->cgbMicrohetProb);
 	}
       }else{
 	isUnique = TRUE;

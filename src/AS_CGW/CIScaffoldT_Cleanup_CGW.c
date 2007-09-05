@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.33 2007-08-30 02:57:53 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.34 2007-09-05 11:22:10 brianwalenz Exp $";
 
 #undef DEBUG_CHECKFORCTGS
 #undef DEBUG_DETAILED
@@ -1291,7 +1291,7 @@ int CleanupScaffolds(ScaffoldGraphT *sgraph, int lookForSmallOverlaps,
       fflush(GlobalData->stderrc);
     }
 
-    if(GetSizeOfCurrentSequenceDB(ScaffoldGraph->sequenceDB) > GlobalData->maxSequencedbSize){
+    if(getSizeOfCurrentSequenceDB(ScaffoldGraph->sequenceDB) > GlobalData->maxSequencedbSize){
       fprintf(GlobalData->timefp, "\n\nCheckpoint %d written during CleanupScaffolds after scaffold " F_CID "\n",
               ScaffoldGraph->checkPointIteration, scaffold->id);
       fprintf(GlobalData->timefp, "Sorry, no way to know which logical checkpoint this really is!\n");
@@ -1389,8 +1389,7 @@ int  DeleteAllSurrogateContigsFromFailedMerges(CIScaffoldT *scaffold,
     return FALSE;
 
   numSurrogates = 0;
-  ma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
-  //ma = GetMultiAlignInStore(ScaffoldGraph->ContigGraph->maStore, contig->id);
+  ma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
 
   for(i = 0; i < GetNumIntUnitigPoss(ma->u_list); i++){
     IntUnitigPos *pos = GetIntUnitigPos(ma->u_list,i);
@@ -1425,7 +1424,7 @@ int  DeleteAllSurrogateContigsFromFailedMerges(CIScaffoldT *scaffold,
       DeleteGraphNode(ScaffoldGraph->CIGraph, node);
     }
   }
-    
+
   return didSomething;
 }
 
@@ -2091,7 +2090,7 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
 
   StopTimerT(&GlobalData->ConsensusTimer);
 
-  if(!newMultiAlign){
+  if (newMultiAlign == NULL) {
     int32 i;
 
     for(i = 0; i < GetNumIntElementPoss(ContigPositions); i++) {
@@ -2111,21 +2110,21 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
     DumpCIScaffold(GlobalData->stderrc, ScaffoldGraph, scaffold, FALSE);
 
     fprintf(GlobalData->stderrc,"* MergeMultiAligns failed....bye\n");
-    fflush(NULL);
 
     if(GlobalData->failOn_NoOverlapFound)
       assert(0 /* No overlap found error in merge multialignments */);
 
-    //	  SetMultiAlignInStore(ScaffoldGraph->ContigGraph->maStore, contig->id, newMultiAlign); // DeleteGraphNode expects this
+    //  DeleteGraphNode wants to delete a multi-align, so we insert a bogus one.
+    //
+    //insertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE, NULL, FALSE);
 
-    // NOTE: we do not keep the new multi-align in the cache, newMultiAlign is NULL anyways
-    InsertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE, newMultiAlign, FALSE);
     DeleteGraphNode(ScaffoldGraph->ContigGraph, contig);
+
     return FALSE;
   }
 
-  newMultiAlign->refCnt = 0;
-  newMultiAlign->id = contig->id;
+  newMultiAlign->maID = contig->id;
+
   contig->bpLength.mean = GetMultiAlignUngappedLength(newMultiAlign);
   contig->bpLength.variance = ComputeFudgeVariance(contig->bpLength.mean);
 
@@ -2209,39 +2208,11 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
     fprintf(GlobalData->stderrc,"* Merged Contig " F_CID " has ungapped length %d\n",
             contig->id, (int)contig->bpLength.mean);
 
-#ifdef DEBUG_MERGE
-  {
-    int32 i,j;
-    int32 numElements = GetNumIntUnitigPoss(newMultiAlign->u_list);
-    int32 numFrags = GetNumIntMultiPoss(newMultiAlign->f_list);
-    for(j = 0; j <numFrags ; j++){
-      IntMultiPos *fpos = GetIntMultiPos(newMultiAlign->f_list, j);
-      fprintf(GlobalData->stderrc,"* Fragment " F_CID " [" F_COORD "," F_COORD "]\n",(CDS_CID_t)fpos->sourceInt, fpos->position.bgn, fpos->position.end);
-    }
-
-    for(j = 0; j < numElements ; j++){
-      IntUnitigPos *upos = GetIntUnitigPos(newMultiAlign->u_list,j);
-      MultiAlignT *uma = GetMultiAlignInStore(ScaffoldGraph->CIGraph->maStore, upos->ident);
-      fprintf(GlobalData->stderrc,"\t* u" F_CID " [" F_COORD "," F_COORD "] ungapped length:%d\n",
-              upos->ident, upos->position.bgn, upos->position.end, (int) GetMultiAlignUngappedLength(uma));
-    }
-  }
-#endif
-
-
-  assert(newMultiAlign->refCnt == 0);
-
   // Sort the Unitigs from left to right
   MakeCanonicalMultiAlignT(newMultiAlign);
 
-  assert(newMultiAlign->refCnt == 0);
-
-  //	SetMultiAlignInStore(ScaffoldGraph->ContigGraph->maStore, contig->id, newMultiAlign);
   // NOTE: we keep the new multi-align in the cache for a bit, but free it at the end of this routine
-  InsertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, contig->id,FALSE, newMultiAlign, TRUE);
-
-  assert(newMultiAlign->refCnt == 1);
-  AddReferenceMultiAlignT(newMultiAlign); // this makes sure we survive any cache flushes
+  insertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, contig->id,FALSE, newMultiAlign, TRUE);
 
   // Propagate Overlaps, Tandem Marks and Branch Points to the new Contig
   PropagateOverlapsToNewContig(contig, ContigPositions, aEndID, aEndEnd, bEndID, bEndEnd, scaffold->id, FALSE);
@@ -2261,9 +2232,6 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
   // Create the raw link-based edges
   { 
     GraphEdgeStatT stats;
-    // This will get reclaimed when we flush the cache
-    //
-    //	  MultiAlignT *ma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);	  
     BuildGraphEdgesFromMultiAlign(ScaffoldGraph->ContigGraph, contig, newMultiAlign, &stats, TRUE);
   }
 
@@ -2276,19 +2244,10 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
   MergeNodeGraphEdges(ScaffoldGraph->ContigGraph, contig, FALSE, TRUE, FALSE);
 
 #ifdef DEBUG_DETAILED
-  fprintf(GlobalData->stderrc,"*  >>> NEW CONTIG " F_CID " (multiAlign size = " F_SIZE_T ") <<< *\n", contig->id,
-          GetMemorySize(newMultiAlign));
+  fprintf(GlobalData->stderrc,"*  >>> NEW CONTIG "F_CID" <<< *\n", contig->id);
   DumpContig(GlobalData->stderrc,ScaffoldGraph, contig,FALSE);
 #endif
 
-  RemoveReferenceMultiAlignT(newMultiAlign); // we added a reference previously
-
-  if(newMultiAlign->refCnt == 0){// we are the owner
-    DeleteMultiAlignT(newMultiAlign);
-  }else{ // the cache owns the memory
-    // Free up the cache space from the new multiAlignT
-    UnloadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
-  }
   return TRUE;
 }
 

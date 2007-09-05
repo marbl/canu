@@ -25,7 +25,7 @@
 void
 DumpContigMultiAlignInfo (char *label, MultiAlignT *cma, int contigID) {
   int           i, j;
-  MultiAlignT  *uma;
+  int           deletecma = 0;
 
   if (label) {
     fprintf(debug.diagnosticFP, "\n%s\n", label);
@@ -34,7 +34,7 @@ DumpContigMultiAlignInfo (char *label, MultiAlignT *cma, int contigID) {
   }
 
   if (cma == NULL)
-    cma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contigID, FALSE);
+    cma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contigID, FALSE);
 
   fprintf(debug.diagnosticFP, "  contig %8d, strlen(consensus): %9ld\n",
           contigID, strlen(Getchar(cma->consensus, 0)));
@@ -49,7 +49,7 @@ DumpContigMultiAlignInfo (char *label, MultiAlignT *cma, int contigID) {
     IntUnitigPos *pos = GetIntUnitigPos(cma->u_list, i);
     NodeCGW_T *unitig = GetGraphNode(ScaffoldGraph->CIGraph, pos->ident);
 
-    uma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, TRUE);
+    MultiAlignT  *uma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, TRUE);
 
     fprintf(debug.diagnosticFP, "  unitig %8d, bgn: %10d, end: %10d, length: %10d (consensus: %10d)\n", 
             unitig->id, pos->position.bgn, pos->position.end,
@@ -79,7 +79,7 @@ DumpUnitigInfo(char *label, NodeCGW_T *unitig) {
     fprintf(debug.diagnosticFP, "in DumpUnitigInfo, dumping info on unitig %8d\n", unitig->id);
   }
 
-  uma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, TRUE);
+  uma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, TRUE);
   pos = GetIntUnitigPos(uma->u_list, i);
 
   fprintf(debug.diagnosticFP, "  unitig %8d, bgn: %10d, end: %10d, length: %10d (consensus: %10d)\n", 
@@ -116,7 +116,7 @@ DumpContigUngappedOffsets(char *label, int contigID) {
     UngappedOffsets = CreateVA_int32(1000);
   }
   
-  cma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contigID, FALSE);
+  cma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contigID, FALSE);
   GetMultiAlignUngappedOffsets(cma, UngappedOffsets);
   offsets = Getint32(UngappedOffsets, 0);
 

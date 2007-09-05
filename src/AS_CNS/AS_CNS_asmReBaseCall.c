@@ -28,23 +28,15 @@
 #include "AS_GKP_include.h"
 #include "MultiAlignStore_CNS.h"
 #include "MultiAlignment_CNS.h"
-#include "Globals_CNS.h"
-#include "PublicAPI_CNS.h"
 
-static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.18 2007-09-01 05:09:49 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.19 2007-09-05 11:22:13 brianwalenz Exp $";
 
 static HashTable_AS *utgUID2IID;
 
 
 #define DEBUG 0
 
-float CNS_SNP_RATE   = 0.0003; // Used to calculate BIAS
-int   CNS_HAPLOTYPES = 1;   // Used to calculate BIAS
 
-
-/***********************/
-/* conversion routines */
-/***********************/
 
 
 static int fraguid2iid(uint64 uid){
@@ -92,9 +84,6 @@ static IntUnitigMesg* convert_UTG_to_IUM(SnapUnitigMesg* utgMesg)
   iumMesg->quality        = strdup(utgMesg->quality);
   iumMesg->forced         = utgMesg->forced;
   iumMesg->num_frags      = utgMesg->num_frags;
-  iumMesg->num_vars       = utgMesg->num_vars; 
-
-  assert(iumMesg->num_vars==0);
 
   if( iumMesg->num_frags > 0 ){
     iumMesg->f_list = (IntMultiPos*) safe_malloc(iumMesg->num_frags*sizeof(IntMultiPos));
@@ -318,37 +307,6 @@ int main (int argc, char *argv[]) {
           in_memory = 1;
           iflags++;
           break;
-        case 'q':
-          if ( ! expert ) {
-             fprintf(stderr,"Command line switch %c requires -X; try adding -X...\n",
-                  ch); 
-             illegal_use = 1;
-          } else {
-            sscanf(optarg,"%f:%d:%f",&CNS_SEQUENCING_ERROR_EST,&CNS_HAPLOTYPES,
-                &CNS_SNP_RATE);
-            if (!(CNS_SEQUENCING_ERROR_EST > 0) || 
-                CNS_SEQUENCING_ERROR_EST > .10 ) 
-            {
-              fprintf(stderr,"ERROR: Sequencing error estimate (-q flag) should be "
-                  "within (0,.10) (%4f was specified\n",
-                  CNS_SEQUENCING_ERROR_EST);
-              illegal_use = 1;
-            }
-            if (CNS_HAPLOTYPES < 1) {
-              fprintf(stderr,"ERROR: Haplotypes sampled (-h flag) must be > 0 "
-                             "(%d was specified\n",CNS_HAPLOTYPES);
-              illegal_use = 1;
-            }
-            if ((CNS_SNP_RATE < 0) || CNS_SNP_RATE > .10 ) {
-              fprintf(stderr,
-                  "ERROR: SNP rate estimate (-s flag) should be within [0,.10) "
-                  "(%4f was specified\n",CNS_SNP_RATE);
-              illegal_use = 1;
-            }
-          }
-          iflags++;
-          iflags++;
-          break;
         case 'w':
           options.smooth_win = atoi(optarg);
           iflags++;
@@ -392,12 +350,9 @@ int main (int argc, char *argv[]) {
     columnStore = NULL;
     manodeStore = NULL;
 
-    cnslog = stderr;
-    cnsout = stderr;
-
 
     /**************** Prepare Unitig Store ****************************/
-    unitigStore = CreateMultiAlignStoreT(0);
+    unitigStore = CreateMultiAlignStoreT();
 
     /**************** Loop on Input Messages **************************/
     {
@@ -409,7 +364,7 @@ int main (int argc, char *argv[]) {
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.18 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.19 $ processing. Started %s\n",
 	      ctime(&t));
       InitializeAlphTable();
 
@@ -423,7 +378,7 @@ int main (int argc, char *argv[]) {
 	    IntUnitigMesg *iunitig;
             eunitig = (SnapUnitigMesg *)(pmesg->m);
 	    iunitig = convert_UTG_to_IUM(eunitig);
-	    ma = CreateMultiAlignTFromIUM(iunitig,-1,0);
+	    ma = CreateMultiAlignTFromIUM(iunitig, iunitig->iaccession, 0);
 #ifdef AS_ENABLE_SOURCE
 	    safe_free(iunitig->source);
 #endif
@@ -431,7 +386,7 @@ int main (int argc, char *argv[]) {
 	    safe_free(iunitig->consensus);
 	    safe_free(iunitig->quality);
 	    safe_free(iunitig);
-	    SetMultiAlignInStore(unitigStore,ma->id,ma);
+	    SetMultiAlignInStore(unitigStore,ma->maID,ma);
 	    WriteProtoMesg_AS(stdout,pmesg); // write out the unitig message
 	    break;
           }
@@ -441,7 +396,7 @@ int main (int argc, char *argv[]) {
 	    IntConConMesg *icontig;
             econtig = (SnapConConMesg *)(pmesg->m);
 	    icontig = convert_CCO_to_ICM(econtig);
-	    ma = CreateMultiAlignTFromICM(icontig,-1,0);
+	    ma = CreateMultiAlignTFromICM(icontig, icontig->iaccession, 0);
 	    MultiAlignContig_ReBasecall(ma,recalled_sequence,recalled_quality,&options);
 	    { 
 	      char *ptr;
@@ -488,8 +443,6 @@ int main (int argc, char *argv[]) {
           default:
             WriteProtoMesg_AS(stdout,pmesg);
         }
-        fflush(cnsout);
-        fflush(cnslog);
       }
     }
 

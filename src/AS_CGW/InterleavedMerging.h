@@ -79,6 +79,8 @@ typedef struct
 } ScaffoldAlignmentInterface;
 
 
+VA_DEF(PtrT);
+
 typedef struct
 {
   ScaffoldAlignmentInterface * sai;

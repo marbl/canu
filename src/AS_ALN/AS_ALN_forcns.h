@@ -21,7 +21,6 @@
 #ifndef AS_ALN_FORCNS_H
 #define AS_ALN_FORCNS_H
 
-#include "dpc_CNS.h"
 #include "AS_ALN_aligners.h"
 
 /* 

@@ -105,7 +105,7 @@ main (int argc , char * argv[] ) {
       MultiAlignT  *newma = NULL;
 
       VA_TYPE(IntElementPos) *positions = CreateVA_IntElementPos(5000);
-      MultiAlignT *ma =  LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
+      MultiAlignT *ma =  loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
       int num_tigs = GetNumIntUnitigPoss(ma->u_list);
       int i;
       for (i=0;i<num_tigs;i++) {

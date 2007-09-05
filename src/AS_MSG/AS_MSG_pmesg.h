@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.52 2007-08-27 18:04:56 eliv Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.53 2007-09-05 11:22:16 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -440,15 +440,6 @@ typedef enum {
   AS_UNASSIGNED = (int)'X'
 } UnitigStatus;
 
-/* This will eventually be Replaced by IntMultiPos */
-typedef struct MultiPos {
-  FragType        type;
-  IntFragment_ID  ident;
-  SeqInterval     position;
-  int32           delta_length;
-  int32           *delta;
-} MultiPos;
-
 /* IMP message */
 
 typedef struct IntMultiPos {
@@ -546,13 +537,10 @@ typedef struct {
   int32		  forced;
   int32           num_frags;
   IntMultiPos    *f_list;
-  int32           num_vars; 
-  IntMultiVar    *v_list;
 } IntUnitigMesg;
 
 VA_DEF(IntUnitigMesg);  //  Used by unitigger.
 
-/* The following message type will eventually be Removed */
 typedef struct {
   CDS_UID_t       eaccession;
   UnitigStatus    status;
@@ -564,8 +552,6 @@ typedef struct {
   int32           num_reads;
   int32           num_guides;
   int32           sum_delta_lengths;
-  MultiPos        *reads;
-  MultiPos        *guides;
 } UnitigMesg;
 
 

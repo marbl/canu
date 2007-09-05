@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* All of the CGW celamy stuff is here */
-static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.17 2007-05-14 09:27:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.18 2007-09-05 11:22:10 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -472,7 +472,7 @@ void draw_surroFrags_in_contig_for_CelamyScaffold(FILE *fout, ContigT *ctg, int 
     contig = CreateEmptyMultiAlignT();
     unitig = CreateEmptyMultiAlignT();
   }
-  ReLoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB,contig,ctg->id,FALSE);
+  copyMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB,contig,ctg->id,FALSE);
 
   num_unitigs = GetNumIntUnitigPoss(contig->u_list);
   u_list = GetIntUnitigPos(contig->u_list,0);
@@ -487,7 +487,7 @@ void draw_surroFrags_in_contig_for_CelamyScaffold(FILE *fout, ContigT *ctg, int 
       utg = GetGraphNode(ScaffoldGraph->CIGraph, utg->info.CI.baseID);
       utgAEnd = u_list[i].position.bgn;
       utgBEnd = u_list[i].position.end;
-      ReLoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB,unitig,utg->id,TRUE);
+      copyMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB,unitig,utg->id,TRUE);
       num_frags = GetNumIntMultiPoss(unitig->f_list);
       f_list = GetIntMultiPos(unitig->f_list,0);
       for(j=0;j<num_frags;j++){
@@ -595,7 +595,7 @@ void draw_frags_in_contig_for_CelamyScaffold(FILE *fout, ContigT *ctg, int globa
     contig = CreateEmptyMultiAlignT();
   }
 
-  ReLoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB,contig,ctg->id,FALSE);
+  copyMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB,contig,ctg->id,FALSE);
   num_frags=GetNumIntMultiPoss(contig->f_list);
 
   f_list = GetIntMultiPos(contig->f_list,0);
@@ -764,9 +764,6 @@ void CelamyScaffold(FILE *fout, CIScaffoldT *scaffold,
       int64 ciACoord, ciBCoord;
       CDS_CID_t cid = ci->id;
       int color = ComputeCIColor(ci,scaffold);
-#ifdef ANNOTATED_CELAMY_OUTPUT
-      MultiAlignT *ci_ma = NULL;
-#endif
       IntMultiPos *frag;
       CIFragT *ci_frag;
       int num_frags;
@@ -814,14 +811,6 @@ void CelamyScaffold(FILE *fout, CIScaffoldT *scaffold,
                 baseCI->id, baseCI->info.CI.numInstances, ComputeCIUUCode(ci), baseCI->info.CI.coverageStat);
 
       }
-#ifdef ANNOTATED_CELAMY_OUTPUT
-      if(GlobalData->annotateUnitigs && num_frags > 0 && ci_ma){
-        frag = GetIntMultiPos(ci_ma->f_list,0); 
-        if(ci_ma){ // if we loaded it, unload it...
-          UnloadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, cid, TRUE);
-        }
-      }
-#endif
       fprintf(fout,"\n");
     }
     if(do_draw_frags_in_CelamyScaffold){

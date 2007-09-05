@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char fileID[] = "$Id: GapFillREZ.c,v 1.34 2007-08-29 11:30:32 brianwalenz Exp $";
+static char fileID[] = "$Id: GapFillREZ.c,v 1.35 2007-09-05 11:22:16 brianwalenz Exp $";
 
 /*************************************************
  * Module:  GapFillREZ.c
@@ -587,36 +587,6 @@ static void  Adjust_By_Ref_Variance_One_Scaffol(Scaffold_Fill_t * fill_chunks, i
 
 int  Global_Debug_Flag = FALSE;
 
-
-static void Check_Loads
-(void)
-
-//  Load multialignments of all chunks not yet in scaffolds.
-//  Just for debugging--was seg faulting on this.
-
-{
-  GraphNodeIterator  contig_iterator;
-  ContigT  * chunk;
-
-  InitGraphNodeIterator (& contig_iterator, ScaffoldGraph -> RezGraph,
-                         GRAPH_NODE_DEFAULT);
-  while  ((chunk = NextGraphNodeIterator (& contig_iterator)) != NULL)
-    {
-      if  (! Is_Unique (chunk))
-        {
-          MultiAlignT  * ma;
-   
-          fprintf (stderr, "### Check LoadMultiAlignTFromSequenceDB chunk = %d\n",
-                   chunk -> id);
-          ma = LoadMultiAlignTFromSequenceDB
-            (ScaffoldGraph -> sequenceDB, chunk -> id,
-             ScaffoldGraph -> RezGraph -> type == CI_GRAPH);
-          fprintf (stderr, "### LoadMultiAlignTFromSequenceDB succeeded\n");
-        }
-    }
-
-  return;
-}
 
 
 static void  Add_Gap_Ends
@@ -6598,15 +6568,6 @@ int  Fill_Gaps
       fprintf (stderr, "Before Restore_Best_Rocks\n");
       Restore_Best_Rocks (fill_chunks);
 
-#if  0
-      fprintf (stderr, "\n### Check_Loads after Restore_Best_Rocks\n");
-      Check_Loads ();
-      fprintf (stderr, "Flushing CacheSequenceDB\n");
-      ClearCacheSequenceDB(ScaffoldGraph->sequenceDB, TRUE);
-      ClearCacheSequenceDB(ScaffoldGraph->sequenceDB, FALSE);
-      Check_Loads ();
-#endif
-
 #if  VERBOSE
       fprintf (log_file, "\n>>> Fill after  Restore_Best_Rocks <<<\n");
       Print_Fill_Info (log_file, fill_chunks);
@@ -7162,16 +7123,12 @@ static char *  Get_Contig_Sequence
 //  be freed by the customer.
 
 {
-  static MultiAlignT  * ma = NULL;
-  char  * p, * gapped_seq, * ungapped_seq;
-  int  ct, len;
-
-  if  (ma == NULL)
-    ma = CreateEmptyMultiAlignT ();
-
-  ReLoadMultiAlignTFromSequenceDB
-    (ScaffoldGraph -> sequenceDB, ma, id,
-     ScaffoldGraph -> RezGraph -> type == CI_GRAPH);
+  char         * p, * gapped_seq, * ungapped_seq;
+  int            ct;
+  int            len;
+  MultiAlignT  * ma = loadMultiAlignTFromSequenceDB (ScaffoldGraph -> sequenceDB,
+                                                     id,
+                                                     ScaffoldGraph -> RezGraph -> type == CI_GRAPH);
 
   gapped_seq = Getchar (ma -> consensus, 0);
   len = strlen (gapped_seq);
@@ -7189,8 +7146,6 @@ static char *  Get_Contig_Sequence
     if  (isalpha (* p))
       ungapped_seq [ct ++] = * p;
   ungapped_seq [ct] = '\0';
-
-  //   safe_free (gapped_seq);
 
   return  ungapped_seq;
 }
@@ -9319,8 +9274,6 @@ void  Print_Fill_Info_One_Scaffold
           Gap_Chunk_t  * this_chunk = this_gap -> chunk + k;
           ChunkInstanceT  * contig;
           ChunkInstanceT  * chunk;
-          //            MultiAlignT  * ma;
-          //            int  ma_count;
 
           if  (REF (this_chunk -> chunk_id) . scaff_id != NULLINDEX
                && this_chunk -> copy_letter != GAP_END_CHAR
@@ -9361,22 +9314,9 @@ void  Print_Fill_Info_One_Scaffold
               continue;
             }
 
-          chunk = GetGraphNode
-            (ScaffoldGraph -> CIGraph, contig -> info . Contig . AEndCI);
-#if  0
-          ma = LoadMultiAlignTFromSequenceDB
-            (ScaffoldGraph -> sequenceDB, this_chunk -> chunk_id,
-             ScaffoldGraph -> RezGraph -> type == CI_GRAPH);
-          //            ma = GetMultiAlignInStore
-          //                   (ScaffoldGraph -> RezGraph -> maStore, this_chunk -> chunk_id);
-          ma_count = GetNumIntMultiPoss (ma -> f_list);
-#endif
+          chunk = GetGraphNode(ScaffoldGraph -> CIGraph, contig -> info . Contig . AEndCI);
 
           fprintf (fp,
-#if  0
-                   "   Chunk %6d%c  <%7.0f,%7.0f>  <%7.0f,%7.0f>  %3d,%2d  [%+7.0f] %2d %-4s %-4s %-4s\n",
-                   "   Chunk %6d%c  <%7.0f,%7.0f>  <%7.0f,%7.0f>  %3d,%2d,%7.0f,%3d[%3d,%3d]  %2d %s %s %s %s\n",
-#endif
                    "   Chunk %6d%c  <%7.0f,%7.0f>  <%7.0f,%7.0f>  %3d,%2d,%7.0f,%3d,%3d  %2d %s %s %s %s\n",
                    this_chunk -> chunk_id,
                    this_chunk -> copy_letter,
@@ -9384,18 +9324,13 @@ void  Print_Fill_Info_One_Scaffold
                    this_chunk -> start . variance,
                    this_chunk -> end . mean,
                    this_chunk -> end . variance,
-                   //                     this_chunk -> avg_edge_quality,
+
                    this_chunk -> cover_stat,
                    this_chunk -> link_ct,
-#if  0
-                   this_chunk -> start . mean
-                   - this_chunk -> sim_start,
-#else
                    contig -> bpLength . mean,
                    chunk -> info . CI . numFragments,
                    contig -> info . Contig . numCI,
-                   //                     ma_count,
-#endif
+
                    this_chunk -> index,
                    this_chunk -> keep ? "Keep" : "Rej",
                    this_chunk -> best ? "Best" : " ",
@@ -9436,9 +9371,8 @@ static void  Print_Frag_Info
   //   assert (contig -> info . Contig . AEndCI
   //             == contig -> info . Contig . BEndCI);
 
-  ma = LoadMultiAlignTFromSequenceDB
-    (ScaffoldGraph -> sequenceDB, cid,
-     ScaffoldGraph -> RezGraph -> type == CI_GRAPH);
+  ma = loadMultiAlignTFromSequenceDB (ScaffoldGraph -> sequenceDB, cid,
+                                      ScaffoldGraph -> RezGraph -> type == CI_GRAPH);
   assert (ma != NULL);
 
   // cycle through fragments 
@@ -11454,15 +11388,9 @@ static void  Set_Split_Flags_One_Scaffold
                     break;
                   case  FALSE_IFF_SINGLETON :
                     {
-                      MultiAlignT  * ma
-                        = LoadMultiAlignTFromSequenceDB
-                        (ScaffoldGraph -> sequenceDB,
-                         this_chunk -> chunk_id,
-                         ScaffoldGraph -> RezGraph -> type == CI_GRAPH);
-                      //                            = GetMultiAlignInStore
-                      //                                  (ScaffoldGraph -> RezGraph -> maStore,
-                      //        this_chunk -> chunk_id);
-
+                      MultiAlignT  * ma = loadMultiAlignTFromSequenceDB (ScaffoldGraph -> sequenceDB,
+                                                                         this_chunk -> chunk_id,
+                                                                         ScaffoldGraph -> RezGraph -> type == CI_GRAPH);
 
                       this_chunk -> split = (GetNumIntMultiPoss (ma -> f_list) != 1);
                       break;
@@ -11639,9 +11567,8 @@ static void  Show_Read_Info
   chunk = GetGraphNode (ScaffoldGraph -> CIGraph, chunk_id);
   cover_stat = GetCoverageStat (chunk);
 
-  ma = LoadMultiAlignTFromSequenceDB
-    (ScaffoldGraph -> sequenceDB, cid,
-     ScaffoldGraph -> RezGraph -> type == CI_GRAPH);
+  ma = loadMultiAlignTFromSequenceDB (ScaffoldGraph -> sequenceDB, cid,
+                                      ScaffoldGraph -> RezGraph -> type == CI_GRAPH);
   assert (ma != NULL);
 
   // cycle through fragments 

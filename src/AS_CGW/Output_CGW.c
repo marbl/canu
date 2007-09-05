@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Output_CGW.c,v 1.25 2007-08-26 10:11:03 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Output_CGW.c,v 1.26 2007-09-05 11:22:12 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -219,7 +219,6 @@ void OutputContigsFromMultiAligns(void){
   GraphCGW_T *graph = ScaffoldGraph->ContigGraph;
   GraphNodeIterator     nodes;
   ContigT		*ctg;
-  MultiAlignT *ma = CreateEmptyMultiAlignT();
   int32 ubufSize = 100;
   
   pmesg.m = &icm_mesg;
@@ -243,8 +242,9 @@ void OutputContigsFromMultiAligns(void){
       CDS_IID_t numUnitig;
       IntMultiPos *mp;
       IntUnitigPos *up;
-      //    MultiAlignT *ma = GetMultiAlignInStore(graph->maStore, ctg->id);
-      ReLoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ma, ctg->id, FALSE);
+
+      MultiAlignT *ma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ctg->id, FALSE);
+
       numFrag = GetNumIntMultiPoss(ma->f_list);
       mp = GetIntMultiPos(ma->f_list,0);
       numUnitig = GetNumIntUnitigPoss(ma->u_list);
@@ -327,12 +327,9 @@ void OutputContigsFromMultiAligns(void){
             WriteProtoMesg_AS(GlobalData->ctgfp,&pmesg); // write the contig
         }
       }
-      
-      //    UnloadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ctg->id, FALSE);
     }
   }
   safe_free(icm_mesg.unitigs);
-  DeleteMultiAlignT(ma);
 }
 
 static int SurrogatedSingleUnitigContig( NodeCGW_T* contig)
@@ -638,7 +635,6 @@ void OutputUnitigsFromMultiAligns(void){
   GraphNodeIterator nodes;
   int numCIs = (int) GetNumGraphNodes(ScaffoldGraph->CIGraph);
   CDS_CID_t cid = 0;
-  MultiAlignT *ma = CreateEmptyMultiAlignT();
 
   pmesg.m = &ium_mesg;
   pmesg.t = MESG_IUM;
@@ -646,7 +642,6 @@ void OutputUnitigsFromMultiAligns(void){
   InitGraphNodeIterator(&nodes, ScaffoldGraph->CIGraph, GRAPH_NODE_DEFAULT);
   while((ci = NextGraphNodeIterator(&nodes)) != NULL){
     UnitigStatus   status;
-    //    MultiAlignT *ma = GetMultiAlignInStore(ScaffoldGraph->CIGraph->maStore, ci->id);
 
     assert(ci->id>=0 && ci->id< numCIs);
 
@@ -685,8 +680,9 @@ void OutputUnitigsFromMultiAligns(void){
       default:
         assert(0);
     }
-    ReLoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ma, ci->id, TRUE);
+
     {
+      MultiAlignT *ma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ci->id, TRUE);
       CDS_IID_t numFrag = GetNumIntMultiPoss(ma->f_list);
       assert (ci->type != CONTIG_CGW);
 
@@ -705,14 +701,11 @@ void OutputUnitigsFromMultiAligns(void){
       ium_mesg.forced = 0;
       ium_mesg.num_frags = GetNumIntMultiPoss(ma->f_list);
       ium_mesg.f_list = GetIntMultiPos(ma->f_list,0);
-      ium_mesg.num_vars = GetNumIntMultiVars(ma->v_list); // affects .cns
-      ium_mesg.v_list = GetIntMultiVar(ma->v_list,0);
 
       if (GlobalData->cgwfp)
         WriteProtoMesg_AS(GlobalData->cgwfp,&pmesg);  //  write the unitig
     }
   }	// while NextGraphNode
-  DeleteMultiAlignT(ma);
 }
 
 

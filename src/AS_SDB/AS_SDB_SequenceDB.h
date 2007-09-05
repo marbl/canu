@@ -18,194 +18,111 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_SDB_SequenceDB.h,v 1.4 2005-03-22 19:49:26 jason_miller Exp $	 */
-/*
-  This SequenceDB is a more sophisticated version of the MultiAlignStore idea.
-  We have the following design requirements:
-  1) Keep unitig and contig multi-alignments on disk, loading into memory as needed
-  2) For contigs containing a single unitig, simply reference the unitig multi-alignment
-  3) Incrementally generate multi-alignments as needed, storing the the new multi-alignments in
-     a new file.  This reduces the I/O requirements of cgw, and makes it difficult to corrupt stores,
-     since most are opened read only.
-  4) Compress the sequence and quality of the multi-alignments to consume a single byte per seq/quality pair.
-     This is accomplished by upgrading the streaming of MultiAlignT data structure.
-  5) Maintain a limited cache of multi-alignments, and flush as required to meet memory budget
-
-  The stores in this SequenceDB are names:
-      SequenceDB.index.i    // The cumulative index of stores 0-i
-      SequenceDB.data.i
-
-      Where i is the index of the substore, starting from 0.
-      The 0-th substore holds Unitigs only.
-      The 1-st substore holds the contigs produced the first set of contigs.
-*/
-
 
 #ifndef AS_SEB_SEQUENCEDB_H
 #define AS_SEB_SEQUENCEDB_H
 
+#include "AS_global.h"
+#include "AS_UTL_Var.h"
+#include "AS_UTL_fileIO.h"
+
 #include "MultiAlignStore_CNS.h"
 
-/* MARecord records the location of each Unitig/Contig in the Assembly */
-typedef struct MARecord_tag {
-  int32 storeID;   // in a sequenceDB this is the index of a file, in a sequenceDBPartition it is overloaded as the id of a multiAlignment
-  
-   union{
-   struct{
-     unsigned int deleted:1;
-     unsigned int spare:31;
-   }bits;
-     int32 all;
-   }flags;
-  off_t offset;   // offset in store from which to load this multi-alignment
-}tMARecord;
+//  File structure is:
+//    utg -> tMARecord Unitigs
+//    ctg -> tMARecord Contigs
+//    dat -> MultiAlignT data for both unitigs and contigs
 
 
+typedef struct {
+  uint64       storeID:12;
+  uint64       multiAlignID:28;
+  uint64       isDeleted:1;
+  off_t        offset;   // offset in store from which to load this multi-alignment
+} tMARecord;
 VA_DEF(tMARecord)
 
+typedef struct {
+  char                *path;
+  int32                currentRevision;
 
-typedef struct SequenceDB_tag{
-  char *path;      
-#ifdef i386
-  int32 ptrPad1;
-#endif
+  VA_TYPE(tMARecord)  *Unitigs;
+  VA_TYPE(tMARecord)  *Contigs;
 
-  VA_TYPE(tMARecord) *Unitigs;
-#ifdef i386
-  int32 ptrPad2;
-#endif
+  MultiAlignStoreT    *UnitigStore;  // cache of loaded MultiAligns
+  MultiAlignStoreT    *ContigStore;
 
-  VA_TYPE(tMARecord) *Contigs;
-#ifdef i386
-  int32 ptrPad3;
-#endif
+  //  VA's of pointers are awkward, and we have a reasonably good feel
+  //  for the upper limit here, since we want to keep files open.
+  //
+  int32                dataFileLen;
+  int32                dataFileMax;
+  FILE               **dataFile;
 
-  // The following are caches of MultiAlignTs.
-  MultiAlignStoreT *UnitigStore;
-#ifdef i386
-  int32 ptrPad4;
-#endif
-
-  MultiAlignStoreT *ContigStore;
-#ifdef i386
-  int32 ptrPad5;
-#endif
-
-  // All but the last store are opened read only
-  // The last store is opened r/w
-  VA_TYPE(PtrT) *SubStores;
-#ifdef i386
-  int32 ptrPad6;
-#endif
-
-  int32 currentRevision;
-  int positionedAtEnd;
-
-  size_t totalCacheSize;
-#ifdef i386
-  int32 sztPad1;
-#endif
-
-  size_t totalCacheLimit;
-#ifdef i386
-  int32 sztPad2;
-#endif
-
-  off_t offsetOfEOF;
-}tSequenceDB;
+  //  Data for partitioned seqDB
+  VA_TYPE(tMARecord)  *multiAligns;
+  HashTable_AS        *multiAlignLookup;
+} tSequenceDB;
 
 
-/* CreateSequenceDB:
-   Create a SequenceDB with a single data file, and the index in memory..
-   If force = true, this will remove an existing store with the same path.
-   Fails if cannot open both the data and index files.
-*/
-tSequenceDB *CreateSequenceDB(char *path, int initialSize, int force);
+tSequenceDB *createSequenceDB(char *path);
+tSequenceDB *openSequenceDB(char *path, int readWrite, int revision);
+void         openSequenceDBPartition(tSequenceDB *db, int32 partition);
+void         saveSequenceDB(tSequenceDB *db);  // Save the current revision of the indices
+void         deleteSequenceDB(tSequenceDB *db);
 
-/* DeleteSequenceDB:
-   Destructor.
-*/
-void DeleteSequenceDB(tSequenceDB *db);
 
-static int32 GetRevisionSequenceDB(tSequenceDB *db){
-  return db->currentRevision;
+
+//  update() requires that the thing already be there.
+//
+//  insert() requires that the thing isn't there, or, it was there,
+//  but has been deleted.
+//
+//  If keepInCache, we keep a pointer to the MultiAlignT.  THE STORE
+//  NOW OWNS THE MULTIALIGN.
+//
+void         updateMultiAlignTInSequenceDB(tSequenceDB *db, int index, int isUnitig, MultiAlignT *ma, int keepInCache);
+void         insertMultiAlignTInSequenceDB(tSequenceDB *db, int index, int isUnitig, MultiAlignT *ma, int keepInCache);
+
+//  Remove a multialign from the sequenceDB, and delete any cached
+//  copies.  You should have no pointers to that multialign.
+//
+void         deleteMultiAlignTFromSequenceDB(tSequenceDB *db, int index, int isUnitig);
+
+//  load() will load and cache the multialign.  THE STORE OWNS THIS MULTIALIGN.
+//  DO NOT DeleteMultiAlignT() it.
+//
+//  copy() will load and copy the multialign into the provided ma.  It
+//  will not cache, YOU OWN THE MULTIALIGN.
+//
+MultiAlignT *loadMultiAlignTFromSequenceDB(tSequenceDB *db, int index, int isUnitig);
+void         copyMultiAlignTFromSequenceDB(tSequenceDB *db, MultiAlignT *ma, int index, int isUnitig);
+
+
+static
+void
+clearCacheSequenceDB(tSequenceDB *db) {
+  fprintf(stderr, "Clearing the SequenceDB cache.\n");
+  ClearMultiAlignStoreT(db->UnitigStore);
+  ClearMultiAlignStoreT(db->ContigStore);
 }
 
+static
+off_t
+getSizeOfCurrentSequenceDB(tSequenceDB *db) {
+  return(AS_UTL_ftell(db->dataFile[db->currentRevision]));
+}
 
-/* OpenSequenceDB:
-   Opens an existing SequenceDB.  The index file that will be opened corresponds
-   to revision.  If this does not exist, failure.  If successful, the files
-   corresponding to revisions 0,revision are opened read-only, and the files
-   for revision+1 is opened r/w.
-*/
-tSequenceDB *OpenSequenceDB(char *path, int readWrite, int revision);
-
-/* SaveSequenceDB
-   Save the current revision of the indices.  Used by the checkpointing code.
-   The indicies are maintained in memory.
-*/
-void SaveSequenceDB(tSequenceDB *db);  // Save the current revision of the indices
-
-/* InsertMultiAlignTInSequenceDB
-   Inserts a new MultiAlignT into the appropriate cache and indices and
-   appends it to the data file.
-*/
-void InsertMultiAlignTInSequenceDB(tSequenceDB *db, int index, int isUnitig, MultiAlignT *ma, int keepInCache);
-
-/* UpdateMultiAlignTInSequenceDB
-   Inserts a new MultiAlignT for a given chunk that will replace an old MultiAlignT.  The old data is actually
-   left on disk, but the substore and offset indicators for the chunk index portion of the (latest version of)
-   the SDB will be updated to point to the new ma.
-*/
-void UpdateMultiAlignTInSequenceDB(tSequenceDB *db, int index, int isUnitig, MultiAlignT *ma, int keepInCache);
-
-/* DuplicateEntryInSequenceDB
-*/
-void DuplicateEntryInSequenceDB(tSequenceDB *db, int fromIndex, int fromIsUnitig, int toIndex, int toIsUnitig, int keepInCache);
-
-/* DeleteMultiAlignTFromSequenceDB
-   Mark the appropriate entry as deleted in an index.  This does not change the data file
-*/
-void DeleteMultiAlignTFromSequenceDB(tSequenceDB *db, int index, int isUnitig);
-
-/* LoadMultiAlignTFromSequenceDB
-   Loads a MultiAlignT into the cache (unless it is already present.
-   On Failure, returns NULL.
-*/
-MultiAlignT *LoadMultiAlignTFromSequenceDB(tSequenceDB *db, int index, int isUnitig);
-
-/* ReLoadMultiAlignTFromSequenceDB
-   Loads a MultiAlignT into an existing ma
-   Does not load cache
-   Returns 0 on success, returns 1 if index is deleted or not present.
-*/
-int32 ReLoadMultiAlignTFromSequenceDB(tSequenceDB *db, MultiAlignT *ma, int index, int isUnitig);
-
-/* UnLoadMultiAlignTFromSequenceDB
-   Unloads a MultiAlignT from a cache.
-*/
-void UnloadMultiAlignTFromSequenceDB(tSequenceDB *db, int index, int isUnitig);
-
-/* ClearCacheSequenceDB
-   Clears all the entries from a cache.
-*/
-void ClearCacheSequenceDB(tSequenceDB *db, int isUnitig);
-
-/* ClearCacheSequenceDBConditionally
-   Clears all the entries from a cache if it is bigger than a certain size
-*/
-void ClearCacheSequenceDBConditionally(tSequenceDB *db, size_t maxSize);
-
-/* Return the size of the current data file being written for the sequence DB */
-size_t GetSizeOfCurrentSequenceDB(tSequenceDB *db);
-
-static int32 NumUnitigsInSequenceDB(tSequenceDB *db){
+static
+int32
+numUnitigsInSequenceDB(tSequenceDB *db){
   return GetNumtMARecords(db->Unitigs);
 }
 
-static int32 NumContigsInSequenceDB(tSequenceDB *db){
+static
+int32
+numContigsInSequenceDB(tSequenceDB *db){
   return GetNumtMARecords(db->Contigs);
 }
-
 
 #endif

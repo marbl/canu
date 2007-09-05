@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MergeEdges_CGW.c,v 1.14 2007-08-26 10:11:03 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MergeEdges_CGW.c,v 1.15 2007-09-05 11:22:11 brianwalenz Exp $";
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -76,8 +76,7 @@ static int ConfirmAnotherFragmentOverlap(GraphCGW_T *graph,
     CDS_CID_t fragID;
     int i;
     CIFragT *frag;
-    MultiAlignT *ma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, CI->id, graph->type == CI_GRAPH);
-    //    MultiAlignT *ma = GetMultiAlignInStore(graph->maStore, CI->id);
+    MultiAlignT *ma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, CI->id, graph->type == CI_GRAPH);
 
     CDS_COORD_t overlap;
     for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++){
@@ -97,12 +96,11 @@ static int ConfirmAnotherFragmentOverlap(GraphCGW_T *graph,
       }
       if((overlap = IntervalsOverlap(frag->offset3p.mean, 
                                      frag->offset5p.mean, minOffset,
-                                     maxOffset,  CGW_DP_MINLEN)) != 0){
+                                     maxOffset,  CGW_DP_MINLEN)) != 0)
 	return TRUE;
-      }
     }
-    return FALSE;
   }
+  return FALSE;
 }
 
 

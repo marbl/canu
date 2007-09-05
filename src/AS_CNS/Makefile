@@ -21,36 +21,33 @@
 #
 ###########################################################################
 
-LIB_SOURCES = MultiAlignment_CNS.c MultiAlignStore_CNS.c Array_CNS.c
+LIB_SOURCES = Array_CNS.c \
+              MultiAlign.c \
+              MultiAlignFromCCO.c \
+              MultiAlignFromICM.c \
+              MultiAlignFromIUM.c \
+              MultiAlignPrint.c \
+              MultiAlignStore_CNS.c \
+              MultiAlignment_CNS.c
+
 LIB_OBJECTS = $(LIB_SOURCES:.c=.o)
-LIBRARIES = libAS_CNS.a libCA.a
-LOCAL_WORK = $(shell cd ../..; pwd)
 
+LOCAL_WORK  = $(shell cd ../..; pwd)
 
-AS_CNS_SRCS = $(LIB_SOURCES) Consensus_CNS.c null_scaffolder.c quality_assess.c \
-              placed_contigs.c TestBaseCall_CNS.c TestAlign_CNS.c \
-		RebuildMultiAlign_CNS.c RebuildScaffolds_CNS.c ScaffoldUnitigProfile_CNS.c \
-	      colCorr_CNS.c post_analysis.c AS_CNS_asmReBaseCall.c dumpUnitigConsensusFromIUM.c
-# AlignStats_CNS.c
+AS_CNS_SRCS = $(LIB_SOURCES) \
+              Consensus_CNS.c \
+              AS_CNS_asmReBaseCall.c \
+              dumpUnitigConsensusFromIUM.c
 
 AS_CNS_OBJS = $(AS_CNS_SRCS:.c=.o)
 
-SOURCES = $(AS_CNS_SRCS)
-OBJECTS = $(AS_CNS_OBJS)
+SOURCES   = $(AS_CNS_SRCS)
+OBJECTS   = $(AS_CNS_OBJS)
+LIBRARIES = libAS_CNS.a libCA.a
 
 PROGS = consensus \
-        null_scaffolder \
-        quality_assess \
-        placed_contigs \
-        testbasecall \
-        testalignment \
-        rebuildalignment \
-        rebuildscaffolds \
-        scaffoldunitigs \
-        post_analysis \
         asmReBaseCall \
         dumpUnitigConsensusFromIUM
-
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -59,41 +56,10 @@ all: $(LIB_OBJECTS) $(LIBRARIES) $(OBJECTS) $(PROGS)
 	@test -n nop
 
 libAS_CNS.a: $(LIB_OBJECTS)
-
-libCA.a: $(LIB_OBJECTS)
+libCA.a:     $(LIB_OBJECTS)
 
 LIBS =  libCA.a
 
-consensus: Consensus_CNS.o  MultiAlignment_CNS.o MultiAlignStore_CNS.o \
-	Array_CNS.o $(LIBS) 
-
-testbasecall: TestBaseCall_CNS.o  MultiAlignment_CNS.o MultiAlignStore_CNS.o \
-	Array_CNS.o $(LIBS)
-
-testalignment: TestAlign_CNS.o  MultiAlignment_CNS.o MultiAlignStore_CNS.o \
-	Array_CNS.o $(LIBS)
-
-rebuildalignment: RebuildMultiAlign_CNS.o  MultiAlignment_CNS.o MultiAlignStore_CNS.o \
-	Array_CNS.o $(LIBS)
-
-rebuildscaffolds: RebuildScaffolds_CNS.o  MultiAlignment_CNS.o MultiAlignStore_CNS.o \
-	Array_CNS.o colCorr_CNS.o $(LIBS)
-
-scaffoldunitigs: ScaffoldUnitigProfile_CNS.o  MultiAlignment_CNS.o MultiAlignStore_CNS.o \
-	Array_CNS.o $(LIBS)
-
-post_analysis: post_analysis.o \
-         $(LIBS)
-
-asmReBaseCall: AS_CNS_asmReBaseCall.o \
-         $(LIBS)
-
-dumpUnitigConsensusFromIUM: dumpUnitigConsensusFromIUM.o \
-         $(LIBS)
-
-
-placed_contigs: placed_contigs.o $(LIBS)
-
-quality_assess: quality_assess.o $(LIBS)
-
-null_scaffolder: null_scaffolder.o libCA.a
+consensus:                    Consensus_CNS.o                $(LIBS)
+asmReBaseCall:                AS_CNS_asmReBaseCall.o         $(LIBS)
+dumpUnitigConsensusFromIUM:   dumpUnitigConsensusFromIUM.o   $(LIBS)

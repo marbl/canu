@@ -54,7 +54,6 @@ VA_TYPE(char)  *quality_sequence  = NULL;
 
 MultiAlignStoreT *cstore;
 
-VA_DEF(MultiPos);
 VA_DEF(UnitigPos);
 VA_DEF(SnapContigLinkMesg);
 
@@ -314,7 +313,7 @@ int main(int argc, char *argv[]) {
   int32  unplaced=0;
   char   ch;
 
-  cstore       = CreateMultiAlignStoreT(0);
+  cstore       = CreateMultiAlignStoreT();
   is_placed    = CreateVA_int32(0);
 
   optarg       = NULL;
@@ -404,7 +403,7 @@ int main(int argc, char *argv[]) {
       InsertInHashTable_AS(uid2iid,contig->eaccession,0,contig->iaccession,0);
       assert ( strlen(contig->consensus) == contig->length);
       ma = CreateMultiAlignTFromCCO(contig, -1,  0);
-      SetMultiAlignInStore(cstore,ma->id,ma);
+      SetMultiAlignInStore(cstore,ma->maID,ma);
     }
     if (pmesg->t ==MESG_SCF)  {
       FastaScaffold(fastaFile, fastaQualsFile, (SnapScaffoldMesg *)pmesg->m);

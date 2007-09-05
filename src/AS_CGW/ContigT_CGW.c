@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ContigT_CGW.c,v 1.14 2007-08-28 22:50:10 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ContigT_CGW.c,v 1.15 2007-09-05 11:22:11 brianwalenz Exp $";
 
 //#define DEBUG 1
 //#define TRY_IANS_EDGES
@@ -94,7 +94,7 @@ dumpContigInfo(ChunkInstanceT *contig) {
           (int)contig->offsetAEnd.mean,
           (int)contig->offsetBEnd.mean);
 
-  ma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, ScaffoldGraph->RezGraph->type == CI_GRAPH); 
+  ma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, ScaffoldGraph->RezGraph->type == CI_GRAPH); 
 
   // Get the consensus sequences for the contig from the Store
   GetConsensus(ScaffoldGraph->ContigGraph, contig->id, consensus, quality);
@@ -129,7 +129,7 @@ dumpContigInfo(ChunkInstanceT *contig) {
   for (i = 0; i < numUnitigs; i++) {
     IntUnitigPos *upos = GetIntUnitigPos( ma->u_list, i);
     ChunkInstanceT *unitig = GetGraphNode( ScaffoldGraph->CIGraph, upos->ident);
-    MultiAlignT *uma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, ScaffoldGraph->CIGraph->type == CI_GRAPH);
+    MultiAlignT *uma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, ScaffoldGraph->CIGraph->type == CI_GRAPH);
     IntMultiPos *ump;
     int icntfrag;
 
@@ -142,7 +142,7 @@ dumpContigInfo(ChunkInstanceT *contig) {
 
       unitig = GetGraphNode( ScaffoldGraph->CIGraph, unitig->info.CI.baseID);
       fprintf ( stderr, "  using original unitig: %d\n", unitig->id);
-      uma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, 
+      uma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, 
                                           ScaffoldGraph->CIGraph->type == CI_GRAPH); 
     }
 
@@ -246,11 +246,8 @@ void DumpContig(FILE *stream, ScaffoldGraphT *graph, ContigT *contig, int raw){
   ContigTIterator CIs;
   ChunkInstanceT *CI;
   CIEdgeT *edge;
-  MultiAlignT *ma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
-  //    MultiAlignT *ma = GetMultiAlignInStore(graph->ContigGraph->maStore, contig->id);
   int flags = GRAPH_EDGE_DEFAULT;
 
-  AssertPtr(ma);
   assert(contig->type == CONTIG_CGW);
 
   if(raw)
@@ -313,8 +310,7 @@ void DumpContig(FILE *stream, ScaffoldGraphT *graph, ContigT *contig, int raw){
     fflush(stderr);
 #endif
   }
-  //    assert(!ScaffoldGraph->doRezOnContigs || GetNumIntElementPoss(ma->u_list) == numCI);
-  //    assert(numCI == contig->info.Contig.numCI);
+
   fprintf(stream,"\t%s Edges from A End:\n", (raw?" Raw ":" Merged "));
 
   InitGraphEdgeIterator(graph->ContigGraph, contig->id, A_END, ALL_EDGES, flags, &edges);
@@ -335,10 +331,8 @@ void DumpContigInScfContext(FILE *stream, ScaffoldGraphT *graph,
   ContigTIterator CIs;
   ChunkInstanceT *CI;
   CIEdgeT *edge;
-  MultiAlignT *ma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
   int flags = GRAPH_EDGE_DEFAULT;
 
-  AssertPtr(ma);
   assert(contig->type == CONTIG_CGW);
 
   if(raw)
@@ -405,8 +399,6 @@ void DumpContigInScfContext(FILE *stream, ScaffoldGraphT *graph,
     fflush(stderr);
 #endif
   }
-  //    assert(!ScaffoldGraph->doRezOnContigs || GetNumIntElementPoss(ma->u_list) == numCI);
-  //    assert(numCI == contig->info.Contig.numCI);
   fprintf(stream,"\t%s Edges from A End:\n", (raw?" Raw ":" Merged "));
 
   InitGraphEdgeIterator(graph->ContigGraph, contig->id, A_END, ALL_EDGES, flags, &edges);
@@ -852,12 +844,6 @@ void CreateInitialContig(ScaffoldGraphT *graph, CDS_CID_t cid){
   contig.edgeHead = NULLINDEX;
   
   SetNodeCGW_T(graph->ContigGraph->nodes, cid, &contig);
-
-  // 6/21/2000  We now mark these in Input_CGW.c to save loading the multi-alignment here
-  // Mark all frags as being members of this Contig, and set their offsets
-  //  UpdateNodeFragments(ScaffoldGraph->ContigGraph,contig.id, CI->type == DISCRIMINATORUNIQUECHUNK_CGW, FALSE);
-  //  UnloadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig.id, FALSE);
-
 }
 
 
@@ -1010,15 +996,14 @@ int GetConsensus(GraphCGW_T *graph, CDS_CID_t CIindex,
   ResetVA_char(qualityVA);
   if(CI->flags.bits.isCI){
     // Get it from the store of Unitig multi alignments
-    MA = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, CIindex, TRUE);
-    //      MA = GetMultiAlignInStore(ScaffoldGraph->CIGraph->maStore, CIindex);
+    MA = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, CIindex, TRUE);
   }else if(CI->flags.bits.isContig){// Get it from the store of Contig multi alignments
     assert(graph->type == CONTIG_GRAPH);
-    MA = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, CIindex, FALSE);
-    //      MA = GetMultiAlignInStore(ScaffoldGraph->ContigGraph->maStore, CIindex);
+    MA = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, CIindex, FALSE);
   }else assert(0);
 
   GetMultiAlignUngappedConsensus(MA, consensusVA, qualityVA);
+
   return GetNumchars(consensusVA);
 }
 
@@ -1027,7 +1012,7 @@ void SetCIScaffoldIds(ChunkInstanceT *CI, CDS_CID_t scaffoldID){
   // Set the scaffold ID of this CI
   CI->scaffoldID = scaffoldID;
   if(CI->flags.bits.isChaff){ // This can only happen once
-    MultiAlignT *ma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, CI->id, TRUE);
+    MultiAlignT *ma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, CI->id, TRUE);
     CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags,  (int)GetIntMultiPos(ma->f_list,0)->sourceInt);
     assert(frag->flags.bits.isSingleton);
     frag->flags.bits.isChaff = FALSE;
@@ -1036,9 +1021,6 @@ void SetCIScaffoldIds(ChunkInstanceT *CI, CDS_CID_t scaffoldID){
       fprintf(stderr,"* SetCIScaffoldIDs ci " F_CID " and frag " F_CID " are NOT chaff\n",
 	      CI->id, frag->iid);
   }
-  /*  if(!CI->flags.bits.isUnique)
-      SetNodeType(CI, UNIQUECHUNK_CGW);
-  */
 }
 
 void SetCIContigIds(ChunkInstanceT *CI, CDS_CID_t contigID){
@@ -1332,8 +1314,7 @@ void CheckAllContigFragments(void){
 
   InitGraphNodeIterator(&contigs, ScaffoldGraph->ContigGraph, GRAPH_NODE_DEFAULT);
   while((contig = NextGraphNodeIterator(&contigs)) != NULL){
-    MultiAlignT *ma  = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
-    //     MultiAlignT *ma = GetMultiAlignInStore(ScaffoldGraph->ContigGraph->maStore, contig->id);
+    MultiAlignT *ma  = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
     int i;
     if(!ma){
       fprintf(stderr,"*CheckAllContigFragments -- Contig " F_CID " is missing\n", contig->id);
@@ -1345,9 +1326,7 @@ void CheckAllContigFragments(void){
       CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags,fragID);
       assert(frag->contigID == contig->id);
     }
-
   }
-
 }
 
 CDS_CID_t GetOriginalContigID(CDS_CID_t contigID){

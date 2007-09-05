@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.33 2007-08-28 22:50:10 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.34 2007-09-05 11:22:10 brianwalenz Exp $";
 
 
 #undef ORIG_MERGE_EDGE_INVERT
@@ -1981,11 +1981,11 @@ int FindAllMergeCandidates(VA_TYPE(PtrT) *sEdges,
       if(overlapSEdges &&
          curSEdge->edgesContributing >= CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD)
         
-        AppendPtrT(overlapSEdges, (const void *)&curSEdge);
+        AppendPtrT(overlapSEdges, (void *)&curSEdge);
       continue;
     }
     
-    AppendPtrT(sEdges, (const void *)&curSEdge);
+    AppendPtrT(sEdges, (void *)&curSEdge);
     if(verbose){
       PrintGraphEdge(GlobalData->stderrc, ScaffoldGraph->ScaffoldGraph, "\t", curSEdge, fromScaffold->id);
       fflush(GlobalData->stderrc);
@@ -2850,7 +2850,7 @@ int  AssignEdgeWeights(VA_TYPE(PtrT) *mergedEdges,
           if(edge->quality +0.1 >= (float)CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD){
             
 	    //AppendPtrT(mergedEdges, (void *)&edge);
-            AppendPtrT(mergedEdges, (const void *) &edge);
+            AppendPtrT(mergedEdges, (void *) &edge);
           }
           
         }else{
@@ -2859,11 +2859,11 @@ int  AssignEdgeWeights(VA_TYPE(PtrT) *mergedEdges,
           if(edge->quality + 0.1 >= (float)CONFIRMED_SCAFFOLD_EDGE_THRESHHOLD){
             
 	    //AppendPtrT(mergedEdges, (void *)&edge);
-            AppendPtrT(mergedEdges, (const void *) &edge);
+            AppendPtrT(mergedEdges, (void *) &edge);
           }
           
 	  //AppendPtrT(mergedEdges, (void *)&edgeB);
-          AppendPtrT(mergedEdges, (const void *)&edgeB);
+          AppendPtrT(mergedEdges, (void *)&edgeB);
         }
       }else{
         if(verbose)
@@ -2878,7 +2878,7 @@ int  AssignEdgeWeights(VA_TYPE(PtrT) *mergedEdges,
         continue;
       
       //AppendPtrT(mergedEdges, (void *)&edge);
-      AppendPtrT(mergedEdges, (const void *) &edge);
+      AppendPtrT(mergedEdges, (void *) &edge);
       
       edge->quality = edge->edgesContributing;
       edge->flags.bits.isProbablyBogus = TRUE; // overloaded for one-sided
@@ -2913,7 +2913,7 @@ int  AssignEdgeWeights(VA_TYPE(PtrT) *mergedEdges,
     
     
     //AppendPtrT(mergedEdges, (void *)&edge);
-    AppendPtrT(mergedEdges, (const void *) &edge);
+    AppendPtrT(mergedEdges, (void *) &edge);
     
     edge->quality = edge->edgesContributing;
     edge->flags.bits.isProbablyBogus = TRUE; // overloaded for one-sided

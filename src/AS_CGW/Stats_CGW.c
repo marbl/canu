@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Stats_CGW.c,v 1.14 2007-08-26 10:11:03 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Stats_CGW.c,v 1.15 2007-09-05 11:22:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,6 +34,9 @@ static char CM_ID[] = "$Id: Stats_CGW.c,v 1.14 2007-08-26 10:11:03 brianwalenz E
 #include "AS_UTL_interval.h"
 #include "AS_UTL_fileIO.h"
 #include "ChunkOverlap_CGW.h"
+#include "MultiAlignment_CNS.h"
+
+VA_DEF(int);
 
 /* Generate statistics on the U-Unitig induced subgraph of
    the CIGraph */
@@ -632,9 +635,8 @@ void GenerateLinkStats(GraphCGW_T *graph, char *label, int iteration){
 int32 ApproximateUnitigCoverage(NodeCGW_T *unitig){
   CDS_COORD_t length=0;
   int i;
-  // Set up the MultiAlignT
-  //  MultiAlignT *ma = GetMultiAlignInStore(ScaffoldGraph->CIGraph->maStore, unitig->id);
-  MultiAlignT *ma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, TRUE);
+  MultiAlignT *ma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, TRUE);
+
   for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++){
     IntMultiPos *pos = GetIntMultiPos(ma->f_list, i);
     length += abs(pos->position.bgn - pos->position.end);
@@ -734,6 +736,202 @@ void GenerateSurrogateStats(char *phase){
   fclose(surrogFrags);
 }
 
+////////////////////////////////////////////////////////////////////////////////
+
+typedef enum {
+  CNS_INSERT = (int) 'I',
+  CNS_DELETE = (int) 'D',    
+  CNS_SUBSTITUTE = (int) 'S'
+}ErrorType;
+
+typedef struct{
+  int position;
+  ErrorType type;
+}ErrorStruct;
+
+VA_DEF(ErrorStruct)
+
+static
+void 
+CollectStats(MultiAlignT *ma,
+             GateKeeperStore *frag_store, 
+             FILE *column_stats, 
+             FILE *frag_stats,
+             uint32 clrrng_flag)
+{
+  /*  
+      Need to append to column_stats and frag_stats the following:
+      To column_stats:
+      Foreach column in multialignment, print contigID, column index, coverage, quality value
+
+      To frag_stats:
+      Foreach fragment in multialignment, print fragIID, fragUID,  clr_bgn, clr_end, errors (in apos,type pairs)
+  */
+  int32 readptr;
+  int32 delptr;
+  int32 left;
+  int32 right;
+  int32 flen;
+  int32 ungapped=0;
+  uint clrbgn;
+  uint clrend;
+  CDS_UID_t accession;
+  IntMultiPos *reads=GetIntMultiPos(ma->f_list,0);
+  int i; // tracks reads
+  int j; // tracks columns
+  int32 ma_len = GetMultiAlignLength(ma);
+  int num_reads = GetNumIntMultiPoss(ma->f_list);
+  int *column_cov;
+  int *column_mm;
+  char column_call;
+  int num_errors;
+  VA_TYPE(ErrorStruct) *errors; 
+  ErrorStruct frag_error;
+  char seqdata[AS_READ_MAX_LEN+2];
+  char qvdata[AS_READ_MAX_LEN+2];
+  fragRecord *rsp = new_fragRecord();
+    
+  column_cov = (int *) safe_malloc(ma_len*sizeof(int));
+  column_mm = (int *) safe_malloc(ma_len*sizeof(int));
+  errors = CreateVA_ErrorStruct(250);
+
+  assert(column_cov && column_mm);
+
+  // special case for singletons
+  if (num_reads == 1) {
+    getFrag(frag_store,reads[0].ident,rsp,FRAG_S_QLT);
+    clrbgn = getFragRecordClearRegionBegin(rsp, clrrng_flag);
+    clrend = getFragRecordClearRegionEnd  (rsp, clrrng_flag);
+    fprintf(frag_stats,F_IID "  " F_UID " %c %d %d\n",
+            reads[0].ident,accession,
+            reads[0].type,(int) clrbgn,(int) clrend);
+    flen = clrend - clrbgn;
+    // capture only the clear range for analysis
+    // reverse complement if necessary:
+    memcpy(seqdata, getFragRecordSequence(rsp) + clrbgn, (flen+1)*sizeof(char));
+    memcpy(qvdata,  getFragRecordQuality(rsp)  + clrbgn, (flen+1)*sizeof(char));
+    seqdata[flen] = '\0';
+    qvdata[flen] = '\0';
+    for (j=0;j<ma_len;j++) {
+      fprintf(column_stats,"%d %d %d %d %d %c %d %d %d\n",ma->maID,j,1,
+              0,
+              (reads[0].type != AS_READ &&
+               reads[0].type != AS_EXTR &&
+               reads[0].type != AS_TRNR)?1:0, 
+              seqdata[j],qvdata[j] - '0',0,j);
+    }
+  } else {
+        
+    // initialize column coverage to zero
+    for ( j=0;j<ma_len;j++) {
+      column_cov[j]=0;
+      column_mm[j]=0;
+    }
+
+    for(i=0;i<num_reads;i++) {
+      left = (reads[i].position.bgn < reads[i].position.end)? reads[i].position.bgn : reads[i].position.end;
+      right= (reads[i].position.bgn > reads[i].position.end)?reads[i].position.bgn:reads[i].position.end;
+      getFrag(frag_store,reads[i].ident,rsp,FRAG_S_QLT);
+      clrbgn = getFragRecordClearRegionBegin(rsp, clrrng_flag);
+      clrend = getFragRecordClearRegionEnd  (rsp, clrrng_flag);
+      flen = clrend - clrbgn;
+      assert(flen < AS_READ_MAX_LEN);
+      assert(flen > 0);
+      // capture only the clear range for analysis
+      // reverse complement if necessary:
+      memcpy(seqdata, getFragRecordSequence(rsp) + clrbgn, (flen+1)*sizeof(char));
+      memcpy(qvdata,  getFragRecordQuality(rsp)  + clrbgn, (flen+1)*sizeof(char));
+      seqdata[flen] = '\0';
+      qvdata[flen] = '\0';
+      if (reads[i].position.bgn > reads[i].position.end) {
+        SequenceComplement(seqdata,qvdata);
+      }
+      accession = getFragRecordUID(rsp);
+      ResetErrorStruct(errors);
+      
+      readptr= 0;
+      delptr = 0;
+      for ( j=left;j<right;j++) {
+        assert (j < ma_len );
+        column_call=*Getchar(ma->consensus,j);
+        if ( delptr < reads[i].delta_length ) {
+          if ( readptr != *(reads[i].delta + delptr)) {
+            // non gap coverage for this fragment in this column
+            // compare base at readptr[i] in frag sequence to column_call
+            if ( seqdata[readptr] != column_call ) {
+              // record the error
+              frag_error.position = readptr;
+              if (column_call == '-') { // insertion
+                frag_error.type = CNS_INSERT; 
+              } else {
+                frag_error.type = CNS_SUBSTITUTE; 
+              } 
+              AppendErrorStruct(errors,&frag_error);
+              column_mm[j]+=1;
+            }
+            readptr++;  column_cov[j]+=1;
+          } else {
+            // gap for this fragment in this column
+            if ( '-' != column_call ) {
+              // record the error
+              frag_error.position = readptr;
+              frag_error.type = CNS_DELETE;
+              AppendErrorStruct(errors,&frag_error);
+              column_mm[j]+=1;
+              column_cov[j]+=1; //adding this so that intra-fragment gaps count as coverage
+            }
+            delptr++;
+          }
+        } else {
+          // non gap coverage for this fragment in this column
+          // compare base at readptr[i] in frag sequence to column_call
+          if ( seqdata[readptr] != column_call ) {
+            // record the error
+            frag_error.position = readptr;
+            if (column_call == '-') { // insertion
+              frag_error.type = CNS_INSERT; 
+            } else {
+              frag_error.type = CNS_SUBSTITUTE; 
+            } 
+            AppendErrorStruct(errors,&frag_error);
+            column_mm[j]+=1;
+          }
+          readptr++;  column_cov[j]+=1;
+        }
+      }
+      fprintf(frag_stats,F_IID " " F_UID " %c %d %d",
+              reads[i].ident,accession,
+              reads[i].type,(int) clrbgn,(int) clrend);
+      num_errors = 0;
+      if ( GetNumErrorStructs(errors) > 75 ) {
+        fprintf(frag_stats," misaligned fragment with %d mismatches\n",
+                (int) GetNumErrorStructs(errors));
+      } else {
+        while ( GetErrorStruct(errors,num_errors) ) {
+          frag_error = *GetErrorStruct(errors,num_errors);
+          fprintf(frag_stats," %d %c",frag_error.position, frag_error.type);
+          num_errors++;
+        }
+        fprintf(frag_stats,"\n"); 
+      }
+    }
+    for (j=0;j<ma_len;j++) {
+      fprintf(column_stats,"%d %d %d %c %d %d %d\n",ma->maID,j,
+              column_cov[j],
+              *Getchar(ma->consensus,j),
+              (int) *Getchar(ma->quality,j) - '0',
+              column_mm[j],ungapped);
+      if (*Getchar(ma->consensus,j) != '-') ungapped++;
+    }
+  }
+  fflush(column_stats);
+  fflush(frag_stats);
+  safe_free(column_cov);
+  safe_free(column_mm);
+  DeleteVA_ErrorStruct(errors);
+  del_fragRecord(rsp);
+}
+
 void GenerateContigAlignmentStats(char *phase){
   GraphCGW_T *graph = ScaffoldGraph->ContigGraph;
   FILE *pcs = NULL;
@@ -756,8 +954,7 @@ void GenerateContigAlignmentStats(char *phase){
   /* 1st get min and max values */
   while(NULL != (ctg = NextGraphNodeIterator(&nodes))){
     CIScaffoldT *scaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, ctg->scaffoldID);
-    MultiAlignT *ma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ctg->id, graph->type == CI_GRAPH);
-    //    MultiAlignT *ma = GetMultiAlignInStore(graph->maStore, ctg->id);
+    MultiAlignT *ma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ctg->id, graph->type == CI_GRAPH);
     if (scaffold && (scaffold->type == REAL_SCAFFOLD)) { // contig is placed
       CollectStats(ma, ScaffoldGraph->gkpStore, pcs, pfs, AS_READ_CLEAR_LATEST);
     } else {

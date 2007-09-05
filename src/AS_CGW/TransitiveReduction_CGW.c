@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: TransitiveReduction_CGW.c,v 1.16 2007-08-28 22:50:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: TransitiveReduction_CGW.c,v 1.17 2007-09-05 11:22:12 brianwalenz Exp $";
 
 // This file contains the code for computing the candidate
 // chunks of scaffolds.
@@ -2840,9 +2840,6 @@ void BuildUniqueCIScaffolds(ScaffoldGraphT *graph,
   // off_on
   markShakyBifurcations = TRUE;  // ALH, 6/20/2004: why turn this on?
   
-  /*  if(verbose)
-      DumpScaffoldGraph(graph);*/
-
   // Mark essential edges, and look for shaky bifurcations
   // Iterate, until there are no shaky bifucations left
   //
@@ -2864,15 +2861,7 @@ void BuildUniqueCIScaffolds(ScaffoldGraphT *graph,
 
   DeleteInferredEdges(graph, verbose);
 
-  // Clear both sequence caches...they will reload as necessary
-  fprintf(stderr,"* Start Flushing sequenceDB caches!\n");
-  ClearCacheSequenceDB(ScaffoldGraph->sequenceDB, TRUE);
-  ClearCacheSequenceDB(ScaffoldGraph->sequenceDB, FALSE);
-  fprintf(stderr,"* Done Flushing sequenceDB caches!\n");
-
-  /*  if(verbose)
-      DumpScaffoldGraph(graph);*/
-  return;
+  clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
 }
 
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.27 2007-08-30 02:59:05 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.28 2007-09-05 11:22:12 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -61,7 +61,7 @@ ScaffoldGraphT *LoadScaffoldGraphFromCheckpoint( char *name,
   ScaffoldGraphT *graph;
 
   sprintf(buffer,"%s.SeqStore", name);
-  SequenceDB = OpenSequenceDB(buffer, readWrite, checkPointNum);
+  SequenceDB = openSequenceDB(buffer, readWrite, checkPointNum);
 
   sprintf(buffer,"%s.ckp.%d",name,checkPointNum);
   inStream = File_Open(buffer,"r",TRUE);
@@ -196,7 +196,7 @@ void SaveScaffoldGraphToStream(ScaffoldGraphT *sgraph, FILE *stream){
   SaveGraphCGWToStream(sgraph->ContigGraph,stream);
   SaveGraphCGWToStream(sgraph->ScaffoldGraph,stream);
 
-  SaveSequenceDB(sgraph->sequenceDB);
+  saveSequenceDB(sgraph->sequenceDB);
 
   AS_UTL_safeWrite(stream, &sgraph->doRezOnContigs, "SaveScaffoldGraphToStream", sizeof(int32), 1);
   AS_UTL_safeWrite(stream, &sgraph->checkPointIteration, "SaveScaffoldGraphToStream", sizeof(int32), 1);
@@ -359,7 +359,7 @@ ScaffoldGraphT *CreateScaffoldGraph(int rezOnContigs, char *name,
   fprintf(GlobalData->stderrc,"* Created scaffold graph %s\n", sgraph->name);
 
   sprintf(buffer,"%s.SeqStore", name);
-  sgraph->sequenceDB = CreateSequenceDB(buffer, numNodes, TRUE);
+  sgraph->sequenceDB = createSequenceDB(buffer);
 
 #ifdef AS_ENABLE_SOURCE
   sgraph->SourceFields = CreateVA_char(1024);
@@ -416,7 +416,7 @@ ScaffoldGraphT *CreateScaffoldGraph(int rezOnContigs, char *name,
 void DestroyScaffoldGraph(ScaffoldGraphT *sgraph){
   int i;
 
-  DeleteSequenceDB(sgraph->sequenceDB);
+  deleteSequenceDB(sgraph->sequenceDB);
 
   DeleteGraphCGW(sgraph->CIGraph);
   DeleteGraphCGW(sgraph->ContigGraph);
@@ -904,27 +904,15 @@ void  TidyUpScaffolds(ScaffoldGraphT *ScaffoldGraph)
   LeastSquaresGapEstimates(ScaffoldGraph, TRUE, FALSE, TRUE,
 			   CHECK_CONNECTIVITY, FALSE);
   
-  if(GlobalData->debugLevel > 0){
+  if(GlobalData->debugLevel > 0)
     CheckAllContigFragments();
-  }
+
   CheckAllTrustedEdges(ScaffoldGraph);
   
-  /*** Build the scaffold edges from the raw edges in the graph of CIEdges **/
   BuildSEdges(ScaffoldGraph, FALSE);
-    
-#ifdef DEBUG_CGW
-  DumpCIScaffolds(GlobalData->stderrc,ScaffoldGraph, TRUE);
-#endif
-  /* Merge the SEdges */
-  MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE);// Merge 'em
+  MergeAllGraphEdges(ScaffoldGraph->ScaffoldGraph, TRUE);
 
-#ifdef DEBUG_CGW
-  fprintf(GlobalData->stderrc,"**** AFTER MERGESEdges ****\n");
-  fflush(GlobalData->stderrc);
-  DumpCIScaffolds(GlobalData->stderrc,ScaffoldGraph, FALSE);
-#endif
-
-  ClearCacheSequenceDB(ScaffoldGraph->sequenceDB, FALSE);
+  clearCacheSequenceDB(ScaffoldGraph->sequenceDB);
 }
 
 

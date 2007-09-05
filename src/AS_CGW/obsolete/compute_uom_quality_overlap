@@ -1,0 +1,121 @@
+
+/************************************************************************/
+// Returns FALSE if none found
+// Returns TRUE  if found and sets quality bit if necessary
+
+int ComputeUOMQualityOverlap(GraphCGW_T *graph, 
+			     UnitigOverlapMesg *uom_mesg,
+			     ChunkOverlapCheckT *olap,
+			     float* quality){
+  int isCanonical;
+  ChunkOverlapSpecT spec;
+  ChunkOverlapCheckT lookup = {0};
+
+  CDS_CID_t cidA = uom_mesg->chunk1;
+  CDS_CID_t cidB = uom_mesg->chunk2;
+  OverlapMesg* omesg;
+
+#if GREEDYDEBUG > 1
+  fprintf(GlobalData->stderrc,"\nENTERING ComputeUOMQualityOverlap to compute overlap between cidA = " F_CID " and cidB = " F_CID " orient = %c\n",
+          cidA,cidB,uom_mesg->orient);
+#endif
+
+
+  isCanonical = InitCanonicalOverlapSpec(cidA, cidB, uom_mesg->orient, &spec);
+ 
+  FillChunkOverlapWithUOM(&lookup,uom_mesg);
+  *olap = lookup;
+
+  // if we are here we have to recompute the alignment 
+  // and invoke the appropriate
+  // quality function
+  {
+    InternalFragMesg IFG1,IFG2;
+    static OverlapMesg omesgBuffer;
+    CDS_COORD_t length;
+    float normalQuality;
+    // Compute the DP_Compare alignment and fill the IFG1 and IFG2 with the overlapping
+    // pieces of the two chunks (resp. the quality values
+    // if the edge has the tandem bit set we try different error rates
+
+    if( uom_mesg->min_overlap_length != uom_mesg->max_overlap_length)
+      {
+	omesg = ComputeCanonicalOverlapWithTrace(graph, &lookup, &IFG1, &IFG2, NULL, TRUE);
+      }
+    else
+      {
+	omesg = ComputeCanonicalOverlapWithTrace(graph, &lookup, &IFG1, &IFG2, NULL, FALSE);
+      }
+    
+    if( omesg == NULL )
+      {
+#if GREEDYDEBUG > 1
+	fprintf(GlobalData->stderrc,"FAILED to find overlap for type %c\n",
+                uom_mesg->overlap_type);
+#endif
+	return FALSE;
+      }    
+    
+    omesgBuffer.aifrag       = omesg->aifrag;
+    omesgBuffer.bifrag       = omesg->bifrag;
+    omesgBuffer.ahg          = omesg->ahg;
+    omesgBuffer.bhg          = omesg->bhg;
+    omesgBuffer.orientation  = omesg->orientation;
+    omesgBuffer.overlap_type = omesg->overlap_type;
+    omesgBuffer.quality      = omesg->quality;
+    omesgBuffer.min_offset   = omesg->min_offset;
+    omesgBuffer.max_offset   = omesg->max_offset;
+    omesgBuffer.polymorph_ct = omesg->polymorph_ct;
+    
+    omesgBuffer.delta = (signed char*) safe_calloc(sizeof(signed char),strlen((char*)omesg->delta)+1);
+    strcpy((char*)omesgBuffer.delta,(char*)omesg->delta);
+    // compute the quality value and
+    // set the quality and the bit in the ChunkOverlapCheckT
+    // we do this with and without quality realigning
+
+    compute_bayesian_quality(&IFG1,&IFG2,&omesgBuffer,0,&length,NULL);
+    normalQuality = omesgBuffer.quality;
+
+    *quality = omesgBuffer.quality;
+    lookup.quality = *quality;
+    lookup.hasBayesianQuality = TRUE;
+    *olap = lookup;
+  }
+
+  if(  lookup.suspicious  )
+    {
+#if GREEDYDEBUG > 1
+      fprintf(GlobalData->stderrc,"SUSPICIOUS OVERLAP omesg cidA = " F_CID " , canOlap " F_CID " cidA = " F_CID ", omesg Orientation = %c\n",
+              omesg->aifrag,olap->spec.cidA,cidA,omesg->orientation);
+#endif
+      return FALSE;
+    }
+  else
+    {
+#if GREEDYDEBUG > 1
+      fprintf(GlobalData->stderrc,"OVERLAP omesg cidA = " F_CID " , canOlap " F_CID " cidA = " F_CID ", omesg Orientation = %c\n",
+              omesg->aifrag,olap->spec.cidA,cidA,omesg->orientation);
+#endif
+    }
+  
+
+  if(isCanonical){  // we're done
+    return TRUE;
+  }
+  // Otherwise we have to fix up the retrieved canonical overlap for the non-canonical query
+  //
+  olap->spec.orientation = uom_mesg->orient;
+  olap->spec.cidA = cidA;
+  olap->spec.cidB = cidB;
+  {
+    int swap;
+    swap = olap->BContainsA;
+    olap->BContainsA = olap->AContainsB;
+    olap->AContainsB = swap;
+  }
+  return TRUE;
+  
+}
+
+
+

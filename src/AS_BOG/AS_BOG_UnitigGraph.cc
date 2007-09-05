@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.56 2007-07-19 09:50:26 brianwalenz Exp $
- * $Revision: 1.56 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.57 2007-09-05 11:22:10 brianwalenz Exp $
+ * $Revision: 1.57 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.56 2007-07-19 09:50:26 brianwalenz Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.57 2007-09-05 11:22:10 brianwalenz Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -1805,8 +1805,6 @@ namespace AS_BOG{
         /*int32*/		ium_mesg_ptr->forced=0;
         /*int32*/		ium_mesg_ptr->num_frags=getNumFrags();
         /*IntMultiPos* */	ium_mesg_ptr->f_list=imp_msg_arr;
-        /*int32*/		ium_mesg_ptr->num_vars=0;
-        /*IntMultiVar* */	ium_mesg_ptr->v_list=NULL;
 
         return(ium_mesg_ptr);
     }

@@ -24,10 +24,19 @@
    Assumptions:  
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.163 2007-09-02 21:20:25 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.164 2007-09-05 11:22:14 brianwalenz Exp $";
+
+#include <stdlib.h>
+#include <stdio.h>
+#include <assert.h>
+#include <math.h>
+#include <ctype.h>
+
+#include "MultiAlignment_CNS.h"
+#include "MicroHetREZ.h"
+
 
 /* Controls for the DP_Compare and Realignment schemes */
-#include "AS_global.h"
 //#define USE_AFFINE_OVERLAP
 //#define USE_LOCAL_OVERLAP
 #ifdef USE_AFFINE_OVERLAP
@@ -79,29 +88,61 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.163 2007-09-02 21:20:25 bri
 #define MAX_SIZE_OF_ADJUSTED_REGION         5
 
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <assert.h>
-#include <string.h>
-#include <ctype.h>
-#include <math.h>
-#include <unistd.h>
 
-#define ZERO 0 // The integer form of NULL.
+//====================================================================
+// Persistent store of the fragment data (produced upstream)
+//
+GateKeeperStore       *gkpStore    = NULL;
+tSequenceDB           *sequenceDB  = NULL;
+HashTable_AS          *fragmentMap = NULL;
+MultiAlignStoreT      *unitigStore = NULL;
 
-#include "AS_global.h"
-#include "AS_UTL_Var.h"
-#include "AS_UTL_Hash.h"
-#include "AS_UTL_alloc.h"
-#include "AS_MSG_pmesg.h"
 
-#include "Globals_CNS.h"
-#include "PublicAPI_CNS.h"
-#include "MultiAlignment_CNS.h"
-#include "dpc_CNS.h"
-#include "Array_CNS.h"
+//====================================================================
+// Stores for the sequence/quality/alignment information
+// (reset after each multialignment)
+//
+VA_TYPE(char) *sequenceStore = NULL;
+VA_TYPE(char) *qualityStore  = NULL;
+VA_TYPE(Bead) *beadStore     = NULL;
 
-#include "MicroHetREZ.h"
+//====================================================================
+// Local stores for 
+//      fragment information: 
+//                indices into sequence/quality stores
+//                index into "bead" store for alignment information
+//      column information: 
+//                basecall, profile, index in multialignment
+//                indexed pointers to next and previous columns
+//      multialignment information: 
+//                first and last column, profile, index in multialignment
+//                VA of all component columns
+//
+// (All are reset after each multialignment)
+//
+VA_TYPE(Fragment) *fragmentStore = NULL;
+VA_TYPE(Column)   *columnStore   = NULL;
+VA_TYPE(MANode)   *manodeStore   = NULL;
+
+ALIGN_TYPE ALIGNMENT_CONTEXT = AS_NOALIGNTYPE;
+
+int USE_SDB = 0;
+
+
+//====================================================================
+// Convenience arrays for misc. fragment information
+// (All are reset after each multialignment)
+//
+VA_DEF(PtrT)
+
+VA_TYPE(int32) *fragment_indices  = NULL;
+VA_TYPE(int32) *abacus_indices    = NULL;
+VA_TYPE(PtrT) *fragment_positions = NULL;
+
+int64 gaps_in_alignment = 0;
+
+int allow_forced_frags   = 0;
+int allow_neg_hang       = 0;
 
 
 extern int MaxBegGap;       // [ init value is 200; this could be set to the amount you extend the clear
@@ -112,37 +153,36 @@ extern int MaxEndGap;       // [ init value is 200; this could be set to the amo
 VA_DEF(int16);
 
 // Variables used to phase VAR records
-static int32 vreg_id  = -1; // id of a VAR record
+int32 vreg_id  = -1; // id of a VAR record
 
 // Variables used to compute general statistics
 
-int NumColumnsInUnitigs;
-int NumRunsOfGapsInUnitigReads;
-int NumGapsInUnitigs;
-int NumColumnsInContigs;
-int NumRunsOfGapsInContigReads;
-int NumGapsInContigs;
-int NumAAMismatches; // mismatches b/w consensi of two different alleles
-int NumVARRecords;
-int NumVARStringsWithFlankingGaps;
-int NumUnitigRetrySuccess;
-int contig_id;
+int NumColumnsInUnitigs = 0;
+int NumRunsOfGapsInUnitigReads = 0;
+int NumGapsInUnitigs = 0;
+int NumColumnsInContigs = 0;
+int NumRunsOfGapsInContigReads = 0;
+int NumGapsInContigs = 0;
+int NumAAMismatches = 0; // mismatches b/w consensi of two different alleles
+int NumVARRecords = 0;
+int NumVARStringsWithFlankingGaps = 0;
+int NumUnitigRetrySuccess = 0;
+int contig_id = 0;
 
 //*********************************************************************************
 //  Tables to facilitate SNP Basecalling
 //*********************************************************************************
 
-static double EPROB[CNS_MAX_QV-CNS_MIN_QV+1]; // prob of error for each quality value
-static double PROB[CNS_MAX_QV-CNS_MIN_QV+1];  // prob of correct call for each quality value (1-eprob)
-static int RINDEX[128];
-static fragRecord *fsread=NULL;
+double EPROB[CNS_MAX_QV-CNS_MIN_QV+1] = {0};  // prob of error for each quality value
+double PROB[CNS_MAX_QV-CNS_MIN_QV+1]  = {0};  // prob of correct call for each quality value (1-eprob)
+int    RINDEX[128] = {0};
 
 #ifdef AS_ENABLE_SOURCE
-char SRCBUFFER[2048];
+char SRCBUFFER[2048] = {0};
 #endif
 
 // Utility variable to control width of "pages" of PrintAlignment output
-static int ALNPAGEWIDTH=100;
+int ALNPAGEWIDTH=100;
 
 //  Define this to dump multifasta to stderr of the unitigs
 //  we try to align in MultiAlignContig().  Was useful for
@@ -199,31 +239,6 @@ int InitializeAlphTable(void) {
     count=sizeof(RALPHABET)/sizeof(char);
     for(i=0;i<count;i++) { 
       RINDEX[(int)RALPHABET[i]] = i;
-    }
-    switch (CNS_HAPLOTYPES){
-      case 1:
-        {
-          for (i=5;i<CNS_NP;i++) COMP_BIAS[i] = 0.0;
-          break;
-        }
-      case 2:
-        {
-          for (i=5;i<15;i++) COMP_BIAS[i] = CNS_SNP_RATE;
-          for (i=15;i<CNS_NP;i++) COMP_BIAS[i] = 0.0;
-          break;
-        }
-      case 3:
-        {
-          for (i=5;i<25;i++) COMP_BIAS[i] = CNS_SNP_RATE;
-          for (i=25;i<CNS_NP;i++) COMP_BIAS[i] = 0.0;
-          break;
-        }
-      case 4:
-      default:
-        {
-          for (i=5;i<CNS_NP;i++) COMP_BIAS[i] = CNS_SNP_RATE;
-          break;
-        }
     }
 
     { int qv=CNS_MIN_QV;
@@ -460,13 +475,6 @@ void ResetStores(int32 num_frags, int32 num_columns) {
   } else {
     ResetVA_CNS_AlignedContigElement(fragment_positions);
     MakeRoom_VA(fragment_positions,2*num_frags,FALSE);
-  }
-   
-  if ( fragment_source == NULL ) {
-    fragment_source = CreateVA_PtrT(num_frags);
-  } else {
-    ResetVA_PtrT(fragment_source);
-    MakeRoom_VA(fragment_source,num_frags,FALSE);
   }
    
   if ( sequenceStore == NULL ) {
@@ -785,7 +793,7 @@ int SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) 
     }
     epos.idx.fragment.frgType = frag->type;
     epos.idx.fragment.frgContained = frag->contained;
-    epos.idx.fragment.frgInUnitig = (type == AS_CONTIG)?-1:uma->id;
+    epos.idx.fragment.frgInUnitig = (type == AS_CONTIG)?-1:uma->maID;
     epos.idx.fragment.frgSource = frag->sourceInt;
     epos.position.bgn = *Getint32(gapped_positions,frag->position.bgn);
     epos.position.end = *Getint32(gapped_positions,frag->position.end);
@@ -838,12 +846,12 @@ int SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) 
       for (ifrag=0;ifrag<anchor->n_components;ifrag++,anchor_frag++) { 
         if ( anchor_frag->frg_or_utg == CNS_ELEMENT_IS_FRAGMENT ) {
           if (ExistsInHashTable_AS(unitigFrags, anchor_frag->idx.fragment.frgIdent, 0)) {
-            anchor_frag->idx.fragment.frgInUnitig=uma->id;
+            anchor_frag->idx.fragment.frgInUnitig=uma->maID;
             in_unitig_frags++;
           }
         }
       }
-      fprintf(stderr,"SetUngappedFragmentPositions()-- Marked %d fragments as belonging to unitig %d\n",in_unitig_frags,uma->id);
+      fprintf(stderr,"SetUngappedFragmentPositions()-- Marked %d fragments as belonging to unitig %d\n",in_unitig_frags,uma->maID);
     }
   }
   DeleteHashTable_AS(unitigFrags);
@@ -906,7 +914,7 @@ int SetGappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) {
     }
     epos.idx.fragment.frgType = frag->type;
     epos.idx.fragment.frgContained = frag->contained;
-    epos.idx.fragment.frgInUnitig = (type == AS_CONTIG)?-1:uma->id;
+    epos.idx.fragment.frgInUnitig = (type == AS_CONTIG)?-1:uma->maID;
     epos.idx.fragment.frgSource = frag->sourceInt;
     epos.position.bgn = *Getint32(gapped_positions,frag->position.bgn);
     epos.position.end = *Getint32(gapped_positions,frag->position.end);
@@ -959,12 +967,12 @@ int SetGappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) {
       for (ifrag=0;ifrag<anchor->n_components;ifrag++,anchor_frag++) { 
         if ( anchor_frag->frg_or_utg == CNS_ELEMENT_IS_FRAGMENT ) {
           if (ExistsInHashTable_AS(unitigFrags, anchor_frag->idx.fragment.frgIdent, 0)) {
-            anchor_frag->idx.fragment.frgInUnitig=uma->id;
+            anchor_frag->idx.fragment.frgInUnitig=uma->maID;
             in_unitig_frags++;
           }
         }
       }
-      fprintf(stderr,"Marked %d fragments as belonging to unitig %d\n",in_unitig_frags,uma->id);
+      fprintf(stderr,"Marked %d fragments as belonging to unitig %d\n",in_unitig_frags,uma->maID);
     }
   }
   DeleteHashTable_AS(unitigFrags);
@@ -984,11 +992,8 @@ int32 AppendFragToLocalStore(FragType type, int32 iid, int complement,int32 cont
   static VA_TYPE(char) *ungappedSequence=NULL,*ungappedQuality=NULL;
   Fragment fragment;
   uint clr_bgn, clr_end;
-  // int srclen;
+  static fragRecord fsread;  //  static for performance only
 
-  if (fsread==NULL) {
-    fsread  = new_fragRecord();
-  }
   if (ungappedSequence== NULL ) {
     ungappedSequence = CreateVA_char(0);
     ungappedQuality = CreateVA_char(0);
@@ -1000,16 +1005,16 @@ int32 AppendFragToLocalStore(FragType type, int32 iid, int complement,int32 cont
     case AS_READ:
     case AS_EXTR:
     case AS_TRNR:
-      getFrag(gkpStore,iid,fsread,FRAG_S_QLT);
+      getFrag(gkpStore,iid,&fsread,FRAG_S_QLT);
 
-      clr_bgn = getFragRecordClearRegionBegin(fsread, clear_range_to_use);
-      clr_end = getFragRecordClearRegionEnd  (fsread, clear_range_to_use);
+      clr_bgn = getFragRecordClearRegionBegin(&fsread, clear_range_to_use);
+      clr_end = getFragRecordClearRegionEnd  (&fsread, clear_range_to_use);
 
-      strcpy(seqbuffer, getFragRecordSequence(fsread));
-      strcpy(qltbuffer, getFragRecordQuality(fsread));
+      strcpy(seqbuffer, getFragRecordSequence(&fsread));
+      strcpy(qltbuffer, getFragRecordQuality(&fsread));
 
-      fragment.uid = getFragRecordUID(fsread);
-      //getReadType_ReadStruct(fsread, &fragment.type);
+      fragment.uid = getFragRecordUID(&fsread);
+      //getReadType_ReadStruct(&fsread, &fragment.type);
       fragment.type = AS_READ;
       fragment.source = source;
       seqbuffer[clr_end] = '\0';
@@ -1023,24 +1028,16 @@ int32 AppendFragToLocalStore(FragType type, int32 iid, int complement,int32 cont
     case AS_UNITIG:
     case AS_CONTIG:
       {
-        MultiAlignT *uma;
-        if ( USE_SDB) {
-          if ( USE_SDB_PART ) {
-            uma = loadFromSequenceDBPartition(sequenceDB_part, iid);
-          } else {
-            uma =  LoadMultiAlignTFromSequenceDB(sequenceDB, iid, type == AS_UNITIG);
-          }
-          if ( uma == NULL ) {
-            fprintf(stderr,"Lookup failure in CNS: Unitig %d could not be found in sequenceDB.\n",iid);
-            assert(FALSE);
-          }
+        MultiAlignT *uma = NULL;
+        if (USE_SDB) {
+          assert(sequenceDB != NULL);
+          uma = loadMultiAlignTFromSequenceDB(sequenceDB, iid, type == AS_UNITIG);
         } else { 
           uma = GetMultiAlignInStore(multialignStore,iid); 
-          if ( uma == NULL ) {
-            fprintf(stderr,"Lookup failure in CNS: Unitig %d could not be found in multialignStore.\n",iid);
-            assert(FALSE);
-          }
         }
+        if (uma == NULL)
+          fprintf(stderr,"Lookup failure in CNS: Unitig %d could not be found in multiAlignStore / unitigStore.\n",iid);
+        assert(uma != NULL);
         if (type == AS_CONTIG  && ALIGNMENT_CONTEXT != AS_MERGE) {
           sequence = Getchar(uma->consensus,0);
           quality = Getchar(uma->quality,0);
@@ -1936,7 +1933,6 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
       b_read_depth = GetNumBeads(b_reads);
       o_read_depth = GetNumBeads(o_reads);
       guide_depth  = GetNumBeads(guides);
-      //COMP_BIAS[0] = (read_depth+other_depth) * CNS_SEQUENCING_ERROR_EST;
 
       // For each base, calculate tau
       // It will be used to calculate cw
@@ -2011,49 +2007,60 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
           }
         }
 
-      for (bi=0; bi<CNS_NP; bi++) {
-        cw[bi] = tau[bi] *COMP_BIAS[bi];
+      max_ind = 0;      // consensus is gap
+      max_cw  = 0.0;
+
+      //  This is gross.
+
+      for (bi=0; bi<5; bi++) {
+        cw[bi]     = tau[bi] * 0.2;
         normalize += cw[bi];
       }
+
       if (normalize)
         normalize = 1./normalize;
 
       // Calculate max_ind as {i | cw[i] -> max_cw}
       // Store all other indexes { i | cw[i] == max_cw } in VA Array tied
-      for (bi=0; bi<CNS_NP; bi++)
-        {
-          cw[bi] *= normalize;
-          if (cw[bi] > max_cw + ZERO_PLUS) {
-            max_ind = bi;
-            max_cw = cw[bi];
-            Resetint16(tied);
-          } else if (DBL_EQ_DBL(cw[bi], max_cw)) {
-            Appendint16(tied,&bi);
-          }
-        }
+      for (bi=0; bi<5; bi++) {
+        cw[bi] *= normalize;
 
-      // If max_cw == 0, then consensus base call will be a gap (max_ind==0)
-      // Otherwise, it will be selected RANDOMLY (!!!) from all {i|cw[i]==max_cw}
+        if (cw[bi] > max_cw + ZERO_PLUS) {
+          max_ind = bi;
+          max_cw = cw[bi];
+          Resetint16(tied);
+        } else if (DBL_EQ_DBL(cw[bi], max_cw)) {
+          Appendint16(tied,&bi);
+        }
+      }
+
+      // If max_cw == 0, then consensus base call will be a gap
+      // (max_ind==0)
+      //
+      // Otherwise, it will be selected RANDOMLY (!!!) from all
+      // {i|cw[i]==max_cw}
+
       if (DBL_EQ_DBL(max_cw, (double)0.0)) {
         max_ind = 0;      // consensus is gap
-      }
-      else
-        {
-          if (GetNumint16s(tied)> 0)
-            {
-              Appendint16(tied, &max_ind);
-              max_ind = *Getint16(tied,1);
-              max_cw = cw[max_ind];
-            }
+      } else {
+        if (GetNumint16s(tied)> 0) {
+          Appendint16(tied, &max_ind);
+          max_ind = *Getint16(tied,1);
+          max_cw = cw[max_ind];
         }
+      }
+
+
+
+
+
+
+
+
       if ( verbose ) {
         fprintf(stdout,"calculated probabilities:\n");
-        //          for (bi=0;bi<CNS_NP;bi++) {
-        //              fprintf(stdout,"%c = %16.8f",RALPHABET[bi],cw[bi]);
-        //              if ( bi == max_ind )
-        //                  fprintf(stdout," *");
-        //              fprintf(stdout,"\n");
-        //          }
+        for (bi=0;bi<CNS_NP;bi++)
+          fprintf(stdout,"%c = %16.8f %c\n", RALPHABET[bi],cw[bi], (bi == max_ind) ? '*' : ' ');
       }
 
       // Set the consensus base quality value
@@ -3350,7 +3357,9 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
   }
 
   window = opp->smooth_win;
-  *nvars = 0;
+
+  if (nvars)
+    *nvars = 0;
 
   assert(ma != NULL);
 
@@ -3463,6 +3472,9 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
       }
       return 1;
     }
+
+  assert(nvars  != NULL);
+  assert(v_list != NULL);
 
   // Proceed further only if accurate base calls are needed
   // Smoothen variation 
@@ -4847,10 +4859,8 @@ int PrintFrags(FILE *out, int accession, IntMultiPos *all_frags, int num_frags,
   int num_matches;
   GenericMesg pmesg;  
   FragMesg fmesg;
+  fragRecord fsread;
 
-  if(fsread == NULL){
-    fsread = new_fragRecord();
-  }
   for (i=0;i<num_frags;i++) {
     isread = (all_frags[i].type == AS_READ ||
               all_frags[i].type == AS_EXTR ||
@@ -4865,19 +4875,19 @@ int PrintFrags(FILE *out, int accession, IntMultiPos *all_frags, int num_frags,
       isforward = 0;
     }
 
-    getFrag(gkpStore,all_frags[i].ident,fsread,FRAG_S_ALL);
+    getFrag(gkpStore,all_frags[i].ident,&fsread,FRAG_S_ALL);
 
-    fmesg.sequence = getFragRecordSequence(fsread);
-    fmesg.quality  = getFragRecordQuality(fsread);
+    fmesg.sequence = getFragRecordSequence(&fsread);
+    fmesg.quality  = getFragRecordQuality(&fsread);
 
-    fmesg.clear_rng.bgn = getFragRecordClearRegionBegin(fsread, clear_range_to_use);
-    fmesg.clear_rng.end = getFragRecordClearRegionEnd  (fsread, clear_range_to_use);
+    fmesg.clear_rng.bgn = getFragRecordClearRegionBegin(&fsread, clear_range_to_use);
+    fmesg.clear_rng.end = getFragRecordClearRegionEnd  (&fsread, clear_range_to_use);
 
     fmesg.iaccession = all_frags[i].ident;
     fmesg.type = all_frags[i].type;
-    fmesg.eaccession = getFragRecordUID(fsread);
+    fmesg.eaccession = getFragRecordUID(&fsread);
     fmesg.action = AS_ADD;
-    fmesg.source = getFragRecordSource(fsread);
+    fmesg.source = getFragRecordSource(&fsread);
 
     pmesg.t = MESG_IFG;
     pmesg.m = &fmesg;
@@ -6428,7 +6438,8 @@ int IdentifyWindow(Column **start_column, int *stab_bgn, CNS_RefineLevel level)
             stab_width++;
           }
           if ( stab_bases == 0 ) break;
-          while( (double)stab_mm/(double)stab_bases >  CNS_SEQUENCING_ERROR_EST  || 
+          //  Floating point 'instability' here?
+          while( (double)stab_mm/(double)stab_bases > 0.02 ||  //  CNS_SEQUENCING_ERROR_EST
                  (double)stab_gaps/(double)stab_bases > .25  ){
             int mm=ColumnMismatch(stab);
             int gp=GetColumnBaseCount(stab,'-');
@@ -7668,7 +7679,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
                                          complement,
                                          positions[i].contained,
                                          NULL,
-                                         AS_OTHER_UNITIG, ///ZERO,
+                                         AS_OTHER_UNITIG,
                                          NULL);
 
             offsets[fid].bgn = complement ? positions[i].position.end : positions[i].position.bgn;
@@ -7961,12 +7972,8 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
   safe_free(is_aligned);
 #endif
 
-  unitig->num_vars = 0;
-  {
-    IntMultiVar *vl=NULL;
-    int32 nv=0;
-    RefreshMANode(ma->lid, 0, opp, &nv, &vl, 0, 0);
-  }
+  RefreshMANode(ma->lid, 0, opp, NULL, NULL, 0, 0);
+
   safe_free(offsets);
 
   if (printwhat == CNS_VERBOSE) 
@@ -8089,11 +8096,9 @@ int32 PlaceFragments(int32 fid, Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
   OverlapType otype;
   static VA_TYPE(int32) *trace = NULL;
   Fragment *afrag=GetFragment(fragmentStore,fid);
-
-  CNS_AlignedContigElement *bfrag=GetCNS_AlignedContigElement
-    (fragment_positions,afrag->components);
-
+  CNS_AlignedContigElement *bfrag=GetCNS_AlignedContigElement(fragment_positions,afrag->components);
   MultiAlignT *ma;
+
   fcomplement = afrag->complement;
   n_frags = 0;
   if ( afrag->n_components == 0 ) return 0;
@@ -8103,11 +8108,8 @@ int32 PlaceFragments(int32 fid, Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
     ResetVA_int32(trace);
   }
   if ( USE_SDB ) {
-    if ( USE_SDB_PART ) {
-      ma = loadFromSequenceDBPartition(sequenceDB_part, afrag->iid);
-    } else {
-      ma =  LoadMultiAlignTFromSequenceDB(sequenceDB, afrag->iid, TRUE);
-    }
+    assert(sequenceDB != NULL);
+    ma = loadMultiAlignTFromSequenceDB(sequenceDB, afrag->iid, TRUE);
   } else {
     ma = GetMultiAlignInStore(unitigStore,afrag->iid);
   }
@@ -8271,12 +8273,8 @@ int MultiAlignContig(IntConConMesg *contig,
   ResetStores(num_unitigs,num_columns);
 
   {
-    // int placed = 1;
     int hash_rc;
-    // for (i=0;i<num_frags;i++) {
-    //  SetVA_PtrT(fragment_source,contig->pieces[i].ident,(void *)&contig->pieces[i].source);
-    //  Setint32(fragment_indices,contig->pieces[i].ident,&placed);
-    // }
+
     fragmentMap = CreateScalarHashTable_AS(2*(num_frags+num_unitigs));
     for (i=0;i<num_frags;i++) {
       if (ExistsInHashTable_AS (fragmentMap, contig->pieces[i].ident, 0)) {
@@ -8629,7 +8627,7 @@ int MultiAlignContig_ReBasecall(MultiAlignT *cma, VA_TYPE(char) *sequence, VA_TY
 {
   MANode *ma; // this is to build, for purposes of ascii printout or analysis
   MultiAlignStoreT *contigStore;
-  int contigID=cma->id;
+  int contigID=cma->maID;
   int num_unitigs,num_frags;
   int32 num_columns=0;
   int32 fid,i;
@@ -8653,8 +8651,8 @@ int MultiAlignContig_ReBasecall(MultiAlignT *cma, VA_TYPE(char) *sequence, VA_TY
   } 
 
   ResetStores(num_unitigs,num_columns);
-  contigStore = CreateMultiAlignStoreT(0);
-  SetMultiAlignInStore(contigStore,cma->id,cma);
+  contigStore = CreateMultiAlignStoreT();
+  SetMultiAlignInStore(contigStore,cma->maID,cma);
 
   ma = CreateMANode(contigID);
   fid = AppendFragToLocalStore(AS_CONTIG, contigID, 0, 0, 0, 
@@ -8676,7 +8674,7 @@ int MultiAlignContig_ReBasecall(MultiAlignT *cma, VA_TYPE(char) *sequence, VA_TY
                                   fcomplement,
                                   0,
                                   NULL, // bfrag->idx.fragment.frgSource,
-                                  AS_OTHER_UNITIG, ///ZERO,
+                                  AS_OTHER_UNITIG,
                                   NULL);
     assert ( imp->delta_length < AS_READ_MAX_LEN );
     memcpy(tracep,imp->delta,imp->delta_length*sizeof(int32));
@@ -8720,7 +8718,7 @@ int MultiAlignContig_NoCompute(FILE *outFile,
 {
   MANode *ma; // this is to build, for purposes of ascii printout or analysis
   MultiAlignStoreT *contigStore;
-  int contigID=cma->id;
+  int contigID=cma->maID;
   int num_unitigs,num_frags;
   int32 num_columns=0;
   int32 fid,i;
@@ -8740,8 +8738,8 @@ int MultiAlignContig_NoCompute(FILE *outFile,
   } 
 
   ResetStores(num_unitigs,num_columns);
-  contigStore = CreateMultiAlignStoreT(0);
-  SetMultiAlignInStore(contigStore,cma->id,cma);
+  contigStore = CreateMultiAlignStoreT();
+  SetMultiAlignInStore(contigStore,cma->maID,cma);
 
   ma = CreateMANode(contigID);
   fid = AppendFragToLocalStore(AS_CONTIG, contigID, 0, 0, 0, 
@@ -8763,7 +8761,7 @@ int MultiAlignContig_NoCompute(FILE *outFile,
                                   fcomplement,
                                   imp->contained,
                                   NULL, // bfrag->idx.fragment.frgSource,
-                                  AS_OTHER_UNITIG, ///ZERO,
+                                  AS_OTHER_UNITIG,
                                   NULL);
     assert ( imp->delta_length < AS_READ_MAX_LEN );
     memcpy(tracep,imp->delta,imp->delta_length*sizeof(int32));
@@ -8781,11 +8779,9 @@ int MultiAlignContig_NoCompute(FILE *outFile,
   //PrintAlignment(stdout,ma->lid,0,-1,CNS_CONSENSUS);
   { 
     UnitigData *gatheredUnitigData=(UnitigData *) safe_malloc(num_unitigs*sizeof(UnitigData));
-    MultiAlignT *uma;
     for (i=0;i<num_unitigs;i++) {
       int left,right;
       IntUnitigPos *tig=GetIntUnitigPos(cma->u_list,i);
-      uma =  LoadMultiAlignTFromSequenceDB(sequenceDBp,tig->ident, TRUE);
       gatheredUnitigData[i]=*GetUnitigData(unitigData,tig->ident);
       if ( tig->position.bgn < tig->position.end ) {
         left = tig->position.bgn;
@@ -8996,12 +8992,16 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
 
   //ALIGNMENT_CONTEXT=AS_CONSENSUS;
   ALIGNMENT_CONTEXT=AS_MERGE;
-   
-  USE_SDB=1;
+
+  //  We need to reset the global sequenceDB pointer -- if we call
+  //  this from anything but consensus, the global pointer isn't set.
+  //
   sequenceDB = sequenceDBp;
+
+  USE_SDB=1;
   RALPH_INIT = InitializeAlphTable();
   gkpStore = frag_store;
-  oma =  LoadMultiAlignTFromSequenceDB(sequenceDB, contig_iid, FALSE);
+  oma =  loadMultiAlignTFromSequenceDB(sequenceDBp, contig_iid, FALSE);
   ResetStores(2,GetNumchars(oma->consensus)+MAX_EXTEND_LENGTH);
   num_unitigs=GetNumIntUnitigPoss(oma->u_list);
   num_frags=GetNumIntMultiPoss(oma->f_list);
@@ -9111,14 +9111,12 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
   cma = CreateMultiAlignT();
   cma->consensus = CreateVA_char(GetMANodeLength(ma->lid)+1);
   cma->quality = CreateVA_char(GetMANodeLength(ma->lid)+1);
-  cma->forced = 0;
-  cma->refCnt = 0;
-  cma->source_alloc = oma->source_alloc;
+
   GetMANodeConsensus(ma->lid, cma->consensus, cma->quality);
   // no deltas required at this stage 
   // merge the f_lists and u_lists by cloning and concating
   cma->f_list = Clone_VA(oma->f_list);
-  cma->delta = CreateVA_int32(0);
+  cma->fdelta = CreateVA_int32(0);
   cma->u_list = Clone_VA(oma->u_list);
   cma->udelta = CreateVA_int32(0);
   cma->v_list = Clone_VA(oma->v_list);
@@ -9299,14 +9297,16 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
   SeqInterval *offsets;
   static VA_TYPE(int32) *trace=NULL;
 
+  //  We need to reset the global sequenceDB pointer -- if we call
+  //  this from anything but consensus, the global pointer isn't set.
+  //
+  sequenceDB = sequenceDBp;
+
   num_contigs = GetNumIntMultiPoss(positions);
   cpositions = GetIntMultiPos(positions,0);
   allow_neg_hang=0;
-  std_output=1;
-  std_error_log=1;
   USE_SDB=1;
   ALIGNMENT_CONTEXT = AS_MERGE;
-  sequenceDB = sequenceDBp;
    
   RALPH_INIT = InitializeAlphTable();
 
@@ -9320,8 +9320,7 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
   ResetStores(num_contigs,num_columns);
 
   if (num_contigs == 1) {
-    cma = LoadMultiAlignTFromSequenceDB(sequenceDB, cpositions[0].ident, FALSE);
-    //      cma = GetMultiAlignInStore(contig_store,cpositions[0].ident); 
+    cma = loadMultiAlignTFromSequenceDB(sequenceDBp, cpositions[0].ident, FALSE);
     safe_free(offsets);
     return cma;
   } else {
@@ -9334,7 +9333,7 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
                                    complement,
                                    0,
                                    0,
-                                   AS_OTHER_UNITIG, ///ZERO,
+                                   AS_OTHER_UNITIG,
                                    NULL);
       offsets[fid].bgn = complement?cpositions[i].position.end:cpositions[i].position.bgn;
       offsets[fid].end = complement?cpositions[i].position.bgn:cpositions[i].position.end;
@@ -9458,69 +9457,40 @@ MultiAlignT *MergeMultiAligns( tSequenceDB *sequenceDBp,
     int iunitig;
     IntMultiPos *imp;
     IntUnitigPos *iup;
-    MultiAlignT *multiAlign;
 
     cma = CreateMultiAlignT();
     cma->consensus = CreateVA_char(GetMANodeLength(ma->lid)+1);
     cma->quality = CreateVA_char(GetMANodeLength(ma->lid)+1);
-    cma->forced = 0;
-    cma->refCnt = 0;
-    cma->source_alloc = 0; /* need to update this below */
+
     GetMANodeConsensus(ma->lid, cma->consensus, cma->quality);
+
     // no deltas required at this stage 
-    cma->delta = CreateVA_int32(0);
+    cma->fdelta = CreateVA_int32(0);
     cma->udelta = CreateVA_int32(0);
   
     if( isChunk(cpositions[0].type) ){
-
-      multiAlign = LoadMultiAlignTFromSequenceDB(sequenceDB, cpositions[0].ident, cpositions[0].type == AS_UNITIG);
-
-      cma->source_alloc = multiAlign->source_alloc;
-
-      // init the f_lists and u_lists by cloning
-      cma->f_list = Clone_VA(multiAlign->f_list);
-      cma->v_list = Clone_VA(multiAlign->v_list);
-      cma->u_list = Clone_VA(multiAlign->u_list);
-
+      MultiAlignT *ma = loadMultiAlignTFromSequenceDB(sequenceDBp, cpositions[0].ident, cpositions[0].type == AS_UNITIG);
+      cma->f_list = Clone_VA(ma->f_list);
+      cma->v_list = Clone_VA(ma->v_list);
+      cma->u_list = Clone_VA(ma->u_list);
     } else {
-    
       assert(isRead(cpositions[0].type));
-
       cma->f_list = CreateVA_IntMultiPos(0);
       cma->v_list = CreateVA_IntMultiVar(0);
       cma->u_list = CreateVA_IntUnitigPos(0);
-
-#if 0 // stupid, we don't need to recreate cpositions, do we?    
-      IntMultiPos imp;
-      imp.type = cpositions[0].type;
-      imp.ident = cpositions[0].ident;
-      imp.position.bgn = offsets[0].bgn;
-      imp.position.end = offsets[0].end;
-      imp.contained = cpositions[0].???;
-      imp.delta_length=0;
-      imp.delta=NULL;
-#endif
       AppendVA_IntMultiPos(cma->f_list,cpositions+0);
     }
 
     for (i=1;i<num_contigs;i++) {
 
       if( isChunk(cpositions[i].type) ){
-
-        multiAlign = LoadMultiAlignTFromSequenceDB(sequenceDB, cpositions[i].ident, cpositions[i].type == AS_UNITIG);
-        ConcatVA_IntMultiPos(cma->f_list,multiAlign->f_list);
-        ConcatVA_IntMultiPos(cma->v_list,multiAlign->v_list);
-        ConcatVA_IntUnitigPos(cma->u_list,multiAlign->u_list);
-
-        if(cma->source_alloc == 0){
-          cma->source_alloc = multiAlign->source_alloc;
-        }
-
+        MultiAlignT *ma = loadMultiAlignTFromSequenceDB(sequenceDBp, cpositions[i].ident, cpositions[i].type == AS_UNITIG);
+        ConcatVA_IntMultiPos(cma->f_list,ma->f_list);
+        ConcatVA_IntMultiPos(cma->v_list,ma->v_list);
+        ConcatVA_IntUnitigPos(cma->u_list,ma->u_list);
       } else {
-
         assert(isRead(cpositions[i].type));
         AppendVA_IntMultiPos(cma->f_list,cpositions+i);
-
       }
     }
 

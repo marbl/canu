@@ -24,14 +24,14 @@
 
 LOCAL_WORK = $(shell cd ../../; pwd)
 
-LIB_SOURCES     = AS_SDB_SequenceDBPartition.c AS_SDB_SequenceDB.c
+LIB_SOURCES     = AS_SDB_SequenceDB.c
 LIB_OBJECTS     = $(LIB_SOURCES:.c=.o)
 
-SOURCES = $(LIB_SOURCES) SDButil.c PartitionSDB.c
+SOURCES = $(LIB_SOURCES) PartitionSDB.c
 OBJECTS = $(SOURCES:.c=.o)
 
 LIBRARIES = libAS_SDB.a libCA.a
-PROGS     = SDButil PartitionSDB
+PROGS     = PartitionSDB
 
 include $(LOCAL_WORK)/src/c_make.as
 
@@ -41,5 +41,4 @@ all: $(OBJECTS) $(LIBRARIES) $(PROGS)
 libAS_SDB.a: $(LIB_OBJECTS)
 libCA.a:     $(LIB_OBJECTS)
 
-SDButil:                      SDButil.o                       libCA.a
 PartitionSDB:                 PartitionSDB.o                  libCA.a

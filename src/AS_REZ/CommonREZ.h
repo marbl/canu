@@ -23,7 +23,6 @@
 #define COMMONREZ_H
 
 #include "DataTypesREZ.h"
-#include "dpc_CNS.h"
 
 #define  MAKE_CAM_FILE         0
   // if  1  will create celamy file  rez.cam

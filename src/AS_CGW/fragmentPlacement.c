@@ -76,7 +76,7 @@ typedef struct FragIterator{
   uint32 isCtg:1;
   uint32 includeSurrogateFrgs:1;
   CDS_CID_t id;
-  MultiAlignT *ma;
+  MultiAlignT *fragiterma;
   int32 fOrder; /* which fragment within multialign is next */
   ContigTIterator subchunks;
   struct FragIterator *subchunkIterator;
@@ -89,60 +89,6 @@ typedef struct  {
   NodeCGW_T *node;
   uint32     external_only:1;
 } CGWMateIterator;
-
-
-
-
-#if 0
-
-//  Lots of these are probably used in localUnitigging_CGW, which nobody uses anymore.
-
-void GetRelationBetweenFragsOnChunks(CIFragT *frag,ChunkInstanceT*fragChunk,
-				     CIFragT *mate,ChunkInstanceT*mateChunk,
-				     LengthT*separation,OrientType* edgeOri);
-
-
-/* FragAndMateAreCompatible() is based partly on PlaceFragmentBasedOnMate()
-   from AS_REZ/PlaceFragments.c */
-int FragAndMateAreCompatible(CIFragT *frag, ChunkInstanceT *fragChunk, 
-			     CIFragT *mate, ChunkInstanceT *mateChunk,
-			     OrientType expectedOri);
-
-
-
-void InitCIFragTInChunkIterator(CGWFragIterator* frags,NodeCGW_T *chunk, int includeSurrogates);
-int NextCIFragTInChunkIterator(CGWFragIterator* frags, CIFragT**nextfrg);
-void CleanupCIFragTInChunkIterator(CGWFragIterator* frags);
-
-
-// set up iterator
-void InitCGWMateIterator(CGWMateIterator* mates,CDS_CID_t fragIID, int external_only,ChunkInstanceT *node);
-// determine whether a fragment is internal to a node
-static int check_internal(NodeCGW_T *node,CDS_CID_t frgIID);
-// return the next link (external only as appropriate)
-int NextCGWMateIterator(CGWMateIterator* mates,CDS_CID_t * linkIID);
-
-
-// returns true if frg has a mate in scaffold sid
-int matePlacedIn(CIFragT *frg, CDS_CID_t sid);
-
-// returns true if all of frg's placed mates are in scaffold sid; mate and mateChunk point to 
-// the last found mate and its chunk
-int matePlacedOnlyIn(CIFragT *frg, CDS_CID_t sid, CIFragT **mate, ChunkInstanceT **mateChunk);
-
-// returns the scaffold containing a given fragment
-int scaffoldOf(CDS_CID_t fiid);
-
-// append f_list to a  multialignt's f_list and update seqdb entry
-void PlaceFragmentsInMultiAlignT(CDS_CID_t toID, int isUnitig,
-				 VA_TYPE(IntMultiPos) *f_list);
-
-// based on AssignFragsToResolvedCI() from GraphCGW_T; make adjustments 
-// to everything  to reflect assignment of fragments to a surrogate CI
-void ReallyAssignFragsToResolvedCI(GraphCGW_T *graph,
-				   CDS_CID_t fromID, CDS_CID_t toID,
-				   VA_TYPE(CDS_CID_t) *fragments);
-#endif
 
 
 
@@ -281,14 +227,15 @@ void InitCIFragTInChunkIterator(CGWFragIterator* frags,NodeCGW_T *chunk, int inc
   }
 
   frags->subchunkIterator = NULL;
-  frags->ma = NULL;
+  frags->fragiterma = NULL;
 
   frags->includeSurrogateFrgs = includeSurrogates;
 
 
   if(frags->isCtg && frags->includeSurrogateFrgs){
 
-    // if a contig and we want surrogate frags, then we need to get all frags out of all constituent unitigs,
+    // if a contig and we want surrogate frags, then we need to get
+    // all frags out of all constituent unitigs,
 
     NodeCGW_T *ci;
     InitContigTIterator(ScaffoldGraph, chunk->id, TRUE, FALSE, &(frags->subchunks));
@@ -296,7 +243,7 @@ void InitCIFragTInChunkIterator(CGWFragIterator* frags,NodeCGW_T *chunk, int inc
     assert(ci != NULL);
     if(frags->subchunkIterator == NULL){
       frags->subchunkIterator = (CGWFragIterator*) safe_malloc(sizeof(CGWFragIterator));
-      frags->subchunkIterator->ma=NULL;
+      frags->subchunkIterator->fragiterma=NULL;
       frags->subchunkIterator->subchunkIterator=NULL;
     }
     assert(frags->subchunkIterator != NULL);
@@ -304,15 +251,11 @@ void InitCIFragTInChunkIterator(CGWFragIterator* frags,NodeCGW_T *chunk, int inc
 
   } else {
 
-    // otherwise (either we have a unitig or we want only nonsurrogate fragments), we can use the fragments already in the multialignment
+    // otherwise (either we have a unitig or we want only nonsurrogate
+    // fragments), we can use the fragments already in the
+    // multialignment
 
-    int rv;
-    if(frags->ma==NULL){
-      frags->ma = CreateEmptyMultiAlignT();
-    } 
-    rv = ReLoadMultiAlignTFromSequenceDB( ScaffoldGraph->sequenceDB, frags->ma, chunk->id, frags->isUtg);
-    assert(rv==0);
-
+    frags->fragiterma = loadMultiAlignTFromSequenceDB( ScaffoldGraph->sequenceDB, chunk->id, frags->isUtg);
   }
 
   frags->id = chunk->id;
@@ -322,15 +265,15 @@ void InitCIFragTInChunkIterator(CGWFragIterator* frags,NodeCGW_T *chunk, int inc
 static
 int NextCIFragTInChunkIterator(CGWFragIterator* frags, CIFragT**nextfrg){
 
-  if(frags->ma!=NULL){
+  if(frags->fragiterma!=NULL){
 
     assert(frags->isUtg || ! frags->includeSurrogateFrgs);
 
-    if(frags->fOrder >= GetNumIntMultiPoss(frags->ma->f_list)){
+    if(frags->fOrder >= GetNumIntMultiPoss(frags->fragiterma->f_list)){
       *nextfrg=NULL;
       return FALSE;
     } else {
-      CDS_CID_t fiid = GetIntMultiPos(frags->ma->f_list,(frags->fOrder)++)->ident;
+      CDS_CID_t fiid = GetIntMultiPos(frags->fragiterma->f_list,(frags->fOrder)++)->ident;
       *nextfrg = GetCIFragT(ScaffoldGraph->CIFrags,GetInfoByIID(ScaffoldGraph->iidToFragIndex,fiid)->fragIndex);
       return TRUE;
     }
@@ -359,15 +302,12 @@ int NextCIFragTInChunkIterator(CGWFragIterator* frags, CIFragT**nextfrg){
 
 static
 void CleanupCIFragTInChunkIterator(CGWFragIterator* frags){
-  if(frags->isCtg && frags->includeSurrogateFrgs){
+  if(frags->isCtg && frags->includeSurrogateFrgs)
     CleanupCIFragTInChunkIterator(frags->subchunkIterator);
-    frags->subchunkIterator=NULL;
-  } else {
-    if(frags->ma!=NULL){
-      DeleteMultiAlignT(frags->ma);
-      frags->ma=NULL;
-    }
-  }
+
+  frags->subchunkIterator=NULL;
+  frags->fragiterma=NULL;
+
   return;
 }
 
@@ -582,7 +522,7 @@ void PlaceFragmentsInMultiAlignT(CDS_CID_t toID, int isUnitig,
   MultiAlignT *ma;
 
   //     1. get the old multialign from the seqDB
-  ma =  LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, toID, isUnitig);
+  ma =  loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, toID, isUnitig);
   //     2. add fragments to the f_list
 
   if (ma == NULL)
@@ -598,10 +538,7 @@ void PlaceFragmentsInMultiAlignT(CDS_CID_t toID, int isUnitig,
   }  
 
   //     3. update the multialign
-  UpdateMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB,toID,isUnitig,ma,FALSE);
-  
-  return;
-
+  updateMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB,toID,isUnitig,ma,TRUE);
 }
 
 
@@ -624,11 +561,6 @@ void ReallyAssignFragsToResolvedCI(GraphCGW_T *graph,
   NodeCGW_T *toCI = GetGraphNode(graph, toID);
   ContigT *toContig = GetGraphNode(ScaffoldGraph->ContigGraph, toCI->info.CI.contigID);
 
-  MultiAlignT *toCIMA = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, toID, graph->type == CI_GRAPH);
-
-  MultiAlignT *contigMA = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, toContig->id, FALSE);
-
-  // GetMultiAlignInStore(ScaffoldGraph->ContigGraph->maStore, toContig->id);
   CDS_COORD_t surrogateAOffset = toCI->offsetAEnd.mean;
   CDS_COORD_t surrogateBOffset = toCI->offsetBEnd.mean;
   int flipped = (surrogateAOffset > surrogateBOffset);
@@ -708,15 +640,15 @@ void ReallyAssignFragsToResolvedCI(GraphCGW_T *graph,
   
 
   /* Copy IntMultiPos records from the source to destination CI, adjusting consensus sequence */
-  //  PlaceFragmentsInMultiAlignT(toCIMA, f_list_CI);
   PlaceFragmentsInMultiAlignT(toID, TRUE, f_list_CI);
   UpdateNodeFragments(ScaffoldGraph->CIGraph, toID, FALSE,FALSE);
   
   /* Copy IntMultiPos records to destination Contig, adjusting consensus sequence */
   PlaceFragmentsInMultiAlignT(toContig->id, FALSE, f_list_Contig);
   UpdateNodeFragments(ScaffoldGraph->ContigGraph, toContig->id,FALSE,FALSE);
-  UpdateNodeUnitigs(contigMA, toContig);
-  
+
+  UpdateNodeUnitigs(loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, toContig->id, FALSE),
+                    toContig);
   
   /* Do not Rebuild the Mate Edges of the target CI to reflect the changes in fragment membership */
   
@@ -785,7 +717,6 @@ resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
     HashTable_AS *fHash;
     int numInstances = parentChunk->info.CI.numInstances;
     int i,index, numFragmentsInParent;
-    MultiAlignT *maParent;
 
     assert(numInstances <= allocedImpLists);
 
@@ -793,11 +724,11 @@ resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
     if(numInstances==0)
       continue;
 
-    maParent = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, parentChunk->id, TRUE);
-    AssertPtr (maParent);
-
     // count fragments and positions
-    numFragmentsInParent = GetNumIntMultiPoss(maParent->f_list);
+    {
+      MultiAlignT *maParent = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, parentChunk->id, TRUE);
+      numFragmentsInParent = GetNumIntMultiPoss(maParent->f_list);
+    }
 
     totalNumParentFrags += numFragmentsInParent;
 

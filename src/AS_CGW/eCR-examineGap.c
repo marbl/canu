@@ -20,8 +20,8 @@
 
 #include "eCR.h"
 
-#include "PublicAPI_CNS.h"
 #include "GapWalkerREZ.h"  //  FindGapLength
+#include "MultiAlignment_CNS.h"  //  Sequence_Complement
 
 
 
@@ -111,6 +111,8 @@ examineGap(ContigT *lcontig, int lFragIid,
   int rFragContigOverlapLength = 0;
   int i;
 
+  static fragRecord fsread;  //  static for performance only
+
   static VA_TYPE(char)           *lContigConsensus = NULL;
   static VA_TYPE(char)           *rContigConsensus = NULL;
   static VA_TYPE(char)           *lContigQuality = NULL;
@@ -189,30 +191,30 @@ examineGap(ContigT *lcontig, int lFragIid,
   switch (iterNumber) {
     case 1:
       if (lFragIid != -1) {
-        getFrag(ScaffoldGraph->gkpStore, lFragIid, fsread, FRAG_S_SEQ);
-        lclr_bgn = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_ECR1 - 1);
-        lclr_end = getFragRecordClearRegionEnd  (fsread, AS_READ_CLEAR_ECR1 - 1);
-        strcpy(lFragSeqBuffer, getFragRecordSequence(fsread));
+        getFrag(ScaffoldGraph->gkpStore, lFragIid, &fsread, FRAG_S_SEQ);
+        lclr_bgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_ECR1 - 1);
+        lclr_end = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_ECR1 - 1);
+        strcpy(lFragSeqBuffer, getFragRecordSequence(&fsread));
       }
       if (rFragIid != -1) {
-        getFrag(ScaffoldGraph->gkpStore, rFragIid, fsread, FRAG_S_SEQ);
-        rclr_bgn = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_ECR1 - 1);
-        rclr_end = getFragRecordClearRegionEnd  (fsread, AS_READ_CLEAR_ECR1 - 1);
-        strcpy(rFragSeqBuffer, getFragRecordSequence(fsread));
+        getFrag(ScaffoldGraph->gkpStore, rFragIid, &fsread, FRAG_S_SEQ);
+        rclr_bgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_ECR1 - 1);
+        rclr_end = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_ECR1 - 1);
+        strcpy(rFragSeqBuffer, getFragRecordSequence(&fsread));
       }
       break;
     case 2:
       if (lFragIid != -1) {
-        getFrag(ScaffoldGraph->gkpStore, lFragIid, fsread, FRAG_S_SEQ);
-        lclr_bgn = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_ECR2 - 1);
-        lclr_end = getFragRecordClearRegionEnd  (fsread, AS_READ_CLEAR_ECR2 - 1);
-        strcpy(lFragSeqBuffer, getFragRecordSequence(fsread));
+        getFrag(ScaffoldGraph->gkpStore, lFragIid, &fsread, FRAG_S_SEQ);
+        lclr_bgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_ECR2 - 1);
+        lclr_end = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_ECR2 - 1);
+        strcpy(lFragSeqBuffer, getFragRecordSequence(&fsread));
       }
       if (rFragIid != -1) {
-        getFrag(ScaffoldGraph->gkpStore, rFragIid, fsread, FRAG_S_SEQ);
-        rclr_bgn = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_ECR2 - 1);
-        rclr_end = getFragRecordClearRegionEnd  (fsread, AS_READ_CLEAR_ECR2 - 1);
-        strcpy(rFragSeqBuffer, getFragRecordSequence(fsread));
+        getFrag(ScaffoldGraph->gkpStore, rFragIid, &fsread, FRAG_S_SEQ);
+        rclr_bgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_ECR2 - 1);
+        rclr_end = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_ECR2 - 1);
+        strcpy(rFragSeqBuffer, getFragRecordSequence(&fsread));
       }
       break;
     default:

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_CGB_all.h,v 1.22 2007-07-27 12:17:38 brianwalenz Exp $
+//  $Id: AS_CGB_all.h,v 1.23 2007-09-05 11:22:10 brianwalenz Exp $
 
 #ifndef AS_CGB_ALL_INCLUDE
 #define AS_CGB_ALL_INCLUDE
@@ -323,9 +323,9 @@ float compute_the_global_fragment_arrival_rate(int           recalibrate,
 void reflect_Aedge( Aedge *new_edge, Aedge *old_edge);
 void granger_Aedge( Aedge *new_edge, Aedge *old_edge);
 
-void fix_overlap_edge_mate (const Tfragment frags[], 
+void fix_overlap_edge_mate (Tfragment frags[], 
                             Tedge edges[],
-                            const IntEdge_ID ie0);
+                            IntEdge_ID ie0);
 
 IntEdge_ID check_symmetry_of_the_edge_mates (Tfragment frags[],
                                              Tedge edges[]);

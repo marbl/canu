@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.53 2007-08-28 22:51:51 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.54 2007-09-05 11:22:11 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,6 +40,8 @@ static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.53 2007-08-28 22:51:51 brianwalenz 
 #include "Instrument_CGW.h"
 #include "MultiAlignment_CNS.h"
 #include "UtilsREZ.h"
+
+VA_DEF(PtrT);
 
 void InitializeChunkInstance(ChunkInstanceT *ci, ChunkInstanceType type){
   ClearChunkInstance(ci);
@@ -76,11 +78,8 @@ GraphCGW_T *CreateGraphCGW(GraphType type,
   graph->nodes = CreateVA_NodeCGW_T((size_t) MAX(1024, numNodes));
   graph->edges = CreateVA_EdgeCGW_T((size_t) MAX(1024, numNodes));
   if(graph->type == SCAFFOLD_GRAPH){
-    //    graph->maStore = NULL;
     graph->overlapper = NULL;
   }else{
-    //    graph->maStore =   CreateMultiAlignStoreT();
-    //    AssertPtr(graph->maStore);
     graph->overlapper = CreateChunkOverlapper();
   }
 
@@ -115,12 +114,8 @@ void SaveGraphCGWToStream(GraphCGW_T *graph, FILE *stream){
   AS_UTL_safeWrite(stream, &graph->tobeFreeNodeHead, "SaveGraphCGWToStream", sizeof(CDS_CID_t), 1);
   AS_UTL_safeWrite(stream, &graph->deadNodeHead,     "SaveGraphCGWToStream", sizeof(CDS_CID_t), 1);
 
-  // Save the multiAlignStore
-  if(graph->type != SCAFFOLD_GRAPH){
-    //    SaveMultiAlignStoreTToStream(graph->maStore, stream, (graph->type == CI_GRAPH));
+  if(graph->type != SCAFFOLD_GRAPH)
     SaveChunkOverlapperToStream(graph->overlapper,stream);
-  }
-
 }
 
 
@@ -138,7 +133,6 @@ GraphCGW_T *LoadGraphCGWFromStream(FILE *stream){
       continue;
     if(node->info.CI.numInstances < 3)
       continue;
-    //fprintf(GlobalData->stderrc,"* Loading instance list for CI " F_CID " of length %d from VA\n", i,node->info.CI.numInstances);
     node->info.CI.instances.va = CreateFromFileVA_CDS_CID_t(stream,0);
   }
 
@@ -154,19 +148,11 @@ GraphCGW_T *LoadGraphCGWFromStream(FILE *stream){
   status += AS_UTL_safeRead(stream, &graph->deadNodeHead,     "LoadGraphCGWFromStream", sizeof(CDS_CID_t), 1);
   assert(status == 8);
 
-  // Load the multiAlignStore
-  if(graph->type == CI_GRAPH){
-    //    graph->maStore = LoadMultiAlignStoreTFromStream(stream);
-  }else if(graph->type == CONTIG_GRAPH){
-    //    graph->maStore = LoadMultiAlignStoreTFromStreamWithReferences(stream, ScaffoldGraph->CIGraph->maStore);
-  }// else graph->maStore = NULL;
-
   graph->overlapper = NULL;
   if(graph->type != SCAFFOLD_GRAPH)
     graph->overlapper = LoadChunkOverlapperFromStream(stream);
 
   return graph;
-
 }
 
 
@@ -768,7 +754,7 @@ void RepairContigNeighbors(ChunkInstanceT *surr){
     int32 delete_index = -1;
 
     //     1. get the old multialign from the seqDB
-    ma =  LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
+    ma =  loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE);
     //     2. delete surrogate from multialign
 
     for(i = j = 0; i < GetNumIntUnitigPoss(ma->u_list); i++){
@@ -787,11 +773,8 @@ void RepairContigNeighbors(ChunkInstanceT *surr){
     ResetToRange_IntUnitigPos(ma->u_list,j);
 
     //     3. update the multialign
-    UpdateMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE, ma, FALSE);
+    updateMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, contig->id, FALSE, ma, TRUE);
   }
-
-
-  return;
 }
 
 
@@ -802,12 +785,10 @@ void DeleteGraphNode(GraphCGW_T *graph, NodeCGW_T *node){
   int i;
   VA_TYPE(PtrT) *edgeList = CreateVA_PtrT(100);
 
-
-
   InitGraphEdgeIterator(graph, node->id,
                         ALL_END, ALL_EDGES, GRAPH_EDGE_DEFAULT , &edges);
   while(NULL != (edge = NextGraphEdgeIterator(&edges)))
-    AppendPtrT(edgeList, (const void *) &edge);
+    AppendPtrT(edgeList, (void *)&edge);
 
   for(i = 0; i < GetNumPtrTs(edgeList); i++){
     EdgeCGW_T *edge = *(EdgeCGW_T **)GetPtrT(edgeList,i);
@@ -822,11 +803,9 @@ void DeleteGraphNode(GraphCGW_T *graph, NodeCGW_T *node){
   graph->deadNodeHead = node->id;
 
   // Unreference the consensus for this contig
-  if(graph->type != SCAFFOLD_GRAPH){
-    DeleteMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB,
-                                    node->id, graph->type == CI_GRAPH);
-    //    RemoveMultiAlignFromStore(graph->maStore, node->id);
-  }
+  if(graph->type != SCAFFOLD_GRAPH)
+    deleteMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, node->id, graph->type == CI_GRAPH);
+
   DeleteVA_PtrT(edgeList);
 }
 
@@ -1925,12 +1904,9 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
   if(ungappedOffsets == NULL)
     ungappedOffsets = CreateVA_CDS_COORD_t(10);
 
-  ma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, cid,
-                                     graph->type == CI_GRAPH);
-  if (ma == NULL) {
-      fprintf(stderr,"NULL multialign for %ld graph type %d\n",cid, graph->type);
-      return;
-  }
+  ma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, cid, graph->type == CI_GRAPH);
+  assert(ma != NULL);
+
   GetMultiAlignUngappedOffsets(ma, ungappedOffsets);
   
   /* Determine extremal fragments so we can label the fragments */
@@ -1970,28 +1946,26 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
     }
 
     if(bgn>=ungappedOffsets->numElements){
-      //fprintf(stderr,"WARNING: fragment %d falls off end of multialignment %d; fudging ...\n", mp->ident,ma->id);
+      fprintf(stderr,"WARNING: fragment %d falls off end of multialignment %d; fudging ...\n", mp->ident,ma->maID);
       bgn=ungappedOffsets->numElements-1;
     }
     ubgn = *GetCDS_COORD_t(ungappedOffsets, bgn);
     if(end>=ungappedOffsets->numElements){
-      //fprintf(stderr,"WARNING: fragment %d falls off end of multialignment %d; fudging ...\n", mp->ident,ma->id);
+      fprintf(stderr,"WARNING: fragment %d falls off end of multialignment %d; fudging ...\n", mp->ident,ma->maID);
       end=ungappedOffsets->numElements-1;
     }
     uend = *GetCDS_COORD_t(ungappedOffsets, end);
     
     if(ubgn == uend){
-      //fprintf(GlobalData->stderrc,"* Fragment " F_CID " now has ungapped length = %d (" F_COORD "," F_COORD ")...from gapped (" F_COORD "," F_COORD ")...either bad multi-alignment\n"
-      //        "* or a fragment fully contained within a gap in the consensus due to a bubble\n",
-      //        mp->ident,(int)abs(ubgn-uend), ubgn, uend, bgn,end);
-      if(!markUnitigAndContig){
-	//fprintf(GlobalData->stderrc,"* Details: fragment in CI " F_CID " [" F_COORD "," F_COORD "] CtgID " F_CID " [" F_COORD "," F_COORD "]\n",
-	//        frag->cid,(int)(frag->offset5p.mean),(int)(frag->offset3p.mean),
-	//        frag->contigID,(int)(frag->contigOffset5p.mean),(int)(frag->contigOffset3p.mean));
-      }
-      fprintf(GlobalData->stderrc,"* More details: graph node " F_CID "\n",cid);
+      fprintf(GlobalData->stderrc,"* Fragment " F_CID " now has ungapped length = %d (" F_COORD "," F_COORD ")...from gapped (" F_COORD "," F_COORD ")...either bad multi-alignment or a fragment fully contained within a gap in the consensus due to a bubble\n",
+              mp->ident,(int)abs(ubgn-uend), ubgn, uend, bgn,end);
 
-      fprintf(GlobalData->stderrc,"* Setting length to ONE for now...\n");
+      if(!markUnitigAndContig){
+	fprintf(GlobalData->stderrc,"* Details: fragment in CI " F_CID " [" F_COORD "," F_COORD "] CtgID " F_CID " [" F_COORD "," F_COORD "]\n",
+	        frag->cid,(int)(frag->offset5p.mean),(int)(frag->offset3p.mean),
+	        frag->contigID,(int)(frag->contigOffset5p.mean),(int)(frag->contigOffset3p.mean));
+      }
+
       if(bgn < end){
 	if(ubgn<1){
 	  uend++;
@@ -2048,9 +2022,7 @@ void UpdateNodeFragments(GraphCGW_T *graph, CDS_CID_t cid,
     }else{
       frag->label = AS_INTRACHUNK; 
     }
-    
   }
-  
 }
 
 
@@ -2576,10 +2548,8 @@ void  BuildGraphEdgesDirectly(GraphCGW_T *graph){
   GraphEdgeStatT stat;
   GraphNodeIterator Nodes;
   NodeCGW_T *node;
-  MultiAlignT *ma = CreateEmptyMultiAlignT();
   
   fprintf(stderr,"* BuildGraphEdgesDirectly\n");
-  fflush(NULL);
   
   InitGraphEdgeStatT(&stat);
   
@@ -2588,12 +2558,11 @@ void  BuildGraphEdgesDirectly(GraphCGW_T *graph){
     if(node->flags.bits.isChaff && GlobalData->ignoreChaffUnitigs)
       continue;
     
-    if((node->id % 100000) == 0){
-      fprintf(stderr,"* Node " F_CID "\n", node->id);
-      fflush(NULL);
-    }
-    ReLoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ma, node->id, graph->type == CI_GRAPH);    // This will load the ma from the disk file
-    BuildGraphEdgesFromMultiAlign(graph, node, ma, &stat, FALSE);
+    BuildGraphEdgesFromMultiAlign(graph,
+                                  node,
+                                  loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, node->id, graph->type == CI_GRAPH),
+                                  &stat,
+                                  FALSE);
   }
   
   fprintf(GlobalData->stderrc,"*** BuildGraphEdgesDirectly Operated on %d fragments\n",
@@ -2605,10 +2574,6 @@ void  BuildGraphEdgesDirectly(GraphCGW_T *graph){
             stat.totalExternalMatePairs, 
             stat.totalMatePairs, 100.* (double)stat.totalExternalMatePairs/(double)(stat.totalMatePairs));
   }
-  
-  fflush(NULL);
-  DeleteMultiAlignT(ma);
-  
 }
 
 
@@ -2618,8 +2583,6 @@ void  BuildGraphEdgesFromMultiAlign(GraphCGW_T *graph, NodeCGW_T *node,
                                     MultiAlignT *ma, GraphEdgeStatT *stat,
                                     int buildAll){
   int i;
-  //  MultiAlignT *ma = GetMultiAlignInStore(graph->maStore, node->id);
-  //  MultiAlignT *ma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, node->id, graph->type == CI_GRAPH);
   int32 numFrags;
   DistT *dist = NULL;
   
@@ -2811,12 +2774,6 @@ void AssignFragsToResolvedCI(GraphCGW_T *graph,
   NodeCGW_T *fromCI = GetGraphNode(graph, fromID);
   NodeCGW_T *toCI = GetGraphNode(graph, toID);
   ContigT *toContig = GetGraphNode(ScaffoldGraph->ContigGraph, toCI->info.CI.contigID);
-#if 0
-  MultiAlignT *toCIMA = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, toID, graph->type == CI_GRAPH);
-  //                        GetMultiAlignInStore(ScaffoldGraph->CIGraph->maStore, toID);
-  MultiAlignT *contigMA = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, toContig->id, graph->type == CI_GRAPH);
-#endif
-  // GetMultiAlignInStore(ScaffoldGraph->ContigGraph->maStore, toContig->id);
   CDS_COORD_t surrogateAOffset = toCI->offsetAEnd.mean;
   CDS_COORD_t surrogateBOffset = toCI->offsetBEnd.mean;
   int flipped = (surrogateAOffset > surrogateBOffset);
@@ -2907,8 +2864,7 @@ CDS_CID_t SplitUnresolvedCI(GraphCGW_T *graph,
   NodeCGW_T *newNode = CreateNewGraphNode(graph);
   NodeCGW_T *node = GetGraphNode(graph, nodeID);
   int numFrags = (fragments == NULL?0:GetNumCDS_CID_ts(fragments));
-  MultiAlignT *oldMA = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, node->id, graph->type == CI_GRAPH);
-  //                   GetMultiAlignInStore(graph->maStore, node->id);
+  MultiAlignT *oldMA = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, node->id, TRUE);
   MultiAlignT *newMA;
   int verbose = FALSE;
   
@@ -2962,11 +2918,13 @@ CDS_CID_t SplitUnresolvedCI(GraphCGW_T *graph,
 	  node->id, node->info.CI.numInstances);
 #endif
   
-  /* Create Surrogate MultiAlignT */
+  //  Create Surrogate MultiAlignT -- immediately after the clone, we
+  //  own the multialign, but then we hand it over to the store, and
+  //  we no longer own it.
+  //
   newMA = CloneSurrogateOfMultiAlignT(oldMA, newNode->id);
-  //  SetMultiAlignInStore(graph->maStore, newNode->id, newMA);
-  InsertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, newNode->id, graph->type == CI_GRAPH,newMA, TRUE);
-  
+  insertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, newNode->id, graph->type == CI_GRAPH,newMA, TRUE);
+
   newNode->bpLength.mean = GetMultiAlignUngappedLength(newMA);
   newNode->bpLength.variance = ComputeFudgeVariance(newNode->bpLength.mean);
   
@@ -2976,10 +2934,9 @@ CDS_CID_t SplitUnresolvedCI(GraphCGW_T *graph,
             (int) GetMultiAlignLength(newMA), newNode->bpLength.mean);
   }
   assert(GetMultiAlignLength(newMA) == newNode->bpLength.mean);
-  
+
   /* Copy all of the overlap edges from the original node to the surrogate */
-  
-  
+
   {
 #if 0 
     // There is no need to copy the edges on the surrogate unitig
@@ -3043,25 +3000,24 @@ CDS_CID_t SplitUnresolvedContig(GraphCGW_T *graph,
   NodeCGW_T *newNode = CreateNewGraphNode(graph);
   NodeCGW_T *node = GetGraphNode(graph, nodeID);
   int numFrags = (fragments == NULL?0:GetNumCDS_CID_ts(fragments));
-  MultiAlignT *oldMA = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, node->id, graph->type == CI_GRAPH); 
-  //  GetMultiAlignInStore(graph->maStore, node->id);
-  MultiAlignT *newCIMA;
+  MultiAlignT *oldMA = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, node->id, FALSE); 
   IntUnitigPos *u = GetIntUnitigPos(oldMA->u_list,0);
   CDS_CID_t newCIid;
   NodeCGW_T *baseCI = GetGraphNode(ScaffoldGraph->CIGraph, u->ident);
   NodeCGW_T *newCI;
   int verbose = FALSE;
   
+  assert(graph->type == CONTIG_GRAPH);
+  assert(node->flags.bits.isContig);
+  assert(node->scaffoldID == NULLINDEX);
+  assert(GetNumIntUnitigPoss(oldMA->u_list) == 1);
+
   if(verbose){
     fprintf(GlobalData->stderrc,
             "* Splitting Contig " F_CID " (%s Copy Overlaps)\n",
             node->id, (copyAllOverlaps?"":"DON'T"));
     DumpContig(GlobalData->stderrc,ScaffoldGraph, node, FALSE);
   }
-  assert(graph->type == CONTIG_GRAPH);
-  assert(node->flags.bits.isContig);
-  assert(node->scaffoldID == NULLINDEX);
-  assert(GetNumIntUnitigPoss(oldMA->u_list) == 1);
   
   node = GetGraphNode(graph, nodeID);
   
@@ -3085,18 +3041,29 @@ CDS_CID_t SplitUnresolvedContig(GraphCGW_T *graph,
   newCI->info.CI.contigID = newNode->id; // Set the contig id
   
   // Set up the MultiAlignT
-  //  newCIMA = GetMultiAlignInStore(ScaffoldGraph->CIGraph->maStore, newCIid);
-  DuplicateEntryInSequenceDB(ScaffoldGraph->sequenceDB, newCIid, TRUE, newNode->id, FALSE, TRUE);
-  newCIMA = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, newCIid, TRUE);
+  //
+  //  duplicateEntryInSequenceDB(ScaffoldGraph->sequenceDB, newCIid, TRUE, newNode->id, FALSE, TRUE);
+  //
+  //  What this does: We load unitig 'newCIid', make a copy of it, and
+  //  insert it as contig newNode->id.  Yeah, I liked lisp too.
+  //
+  insertMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB,
+                                newNode->id, FALSE,
+                                CopyMultiAlignT(NULL,
+                                                loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB,
+                                                                              newCIid,
+                                                                              TRUE)),
+                                TRUE);
+                                                
   
   fprintf(GlobalData->stderrc,"* Inserting split CI " F_CID " (new = " F_CID ") multiAlign for new Contig " F_CID "\n",
 	  baseCI->id, newCIid, newNode->id);
-  //  SetMultiAlignInStore(ScaffoldGraph->ContigGraph->maStore, newNode->id, newCIMA);
   
   // Create the new surrogate contig
   newNode->bpLength = newCI->bpLength; // length of new CI may differ from length of original due to gapped vs ungapped
   
   {
+    MultiAlignT *newCIMA = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, newCIid, TRUE);
     int32 newLength = (int32) GetMultiAlignUngappedLength(newCIMA);
     assert(newNode->bpLength.mean == newLength);
     assert(newCI->bpLength.mean == newLength);
@@ -3187,6 +3154,7 @@ CDS_CID_t SplitUnresolvedContig(GraphCGW_T *graph,
             newNode->id);
     DumpContig(GlobalData->stderrc,ScaffoldGraph, newNode, FALSE);
   }
+
   return newNode->id;
 }
 
@@ -3332,7 +3300,7 @@ void ComputeMatePairDetailedStatus(void) {
         assert(0);
     }
 
-    ReLoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ma, node->id, graph->type == CI_GRAPH);
+    copyMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ma, node->id, graph->type == CI_GRAPH);
 
     //  BPW isn't sure what's going on here.  The original was
     //  checking this condition, then printing the message.  The
@@ -3587,6 +3555,7 @@ void ComputeMatePairDetailedStatus(void) {
     }
   }
 
+#if 0
   fprintf(GlobalData->stderrc,"\n");
   fprintf(GlobalData->stderrc,"* Mate counts from ComputeMatePairDetailedStatus()\n");
   fprintf(GlobalData->stderrc,"* num Frags                          %d\n",numTotalFrags);
@@ -3648,6 +3617,7 @@ void ComputeMatePairDetailedStatus(void) {
   fprintf(GlobalData->stderrc,"* num OUTPUT_SCAFFOLD                %d\n", foScaf);
   fprintf(GlobalData->stderrc,"* num SCRATCH_SCAFFOLD               %d\n", fsScaf);
   fprintf(GlobalData->stderrc,"\n");
+#endif
 
   DeleteHashTable_AS(surrHash);
 }
@@ -3660,8 +3630,6 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
   GraphCGW_T *graph = NULL;
   GraphNodeIterator nodes;
   NodeCGW_T *node;
-
-  MultiAlignT *ma = CreateEmptyMultiAlignT();
 
   int numPotentialRocks = 0;
   int numPotentialStones = 0;
@@ -3677,7 +3645,7 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
 
   AS_UTL_mkdir("stat");
 
-  fprintf(stderr, "ComputeMatePairStatisticsRestricted()-- on %s\n", instance_label);
+  //fprintf(stderr, "ComputeMatePairStatisticsRestricted()-- on %s\n", instance_label);
 
   if (operateOnNodes == UNITIG_OPERATIONS)
     graph = ScaffoldGraph->CIGraph;
@@ -3739,11 +3707,17 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
       numChaff++;
       continue;
     }
-    
-    ReLoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ma, node->id, graph->type == CI_GRAPH);
+
+    //  Yow!  This is a lot of work just to count the number of
+    //  frags.  The copy() is used instead of load() just to keep
+    //  the cache from filling up.
+    //
+    MultiAlignT *ma = CreateEmptyMultiAlignT();
+    copyMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ma, node->id, graph->type == CI_GRAPH);
+
     numFrags  = GetNumIntMultiPoss(ma->f_list);
     numTotalFrags += numFrags;
-    
+
     if (numFrags < 2) {
       numSingle++;
       continue;
@@ -3935,9 +3909,9 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
             dist = mateRightEnd - fragLeftEnd;
         }
         
-        if (dist < 0)
-          fprintf( stderr, "frag, mate: " F_CID ", " F_CID " have negative dist: "F_COORD"\n",
-                   frag->iid, mate->iid, dist);
+        //if (dist < 0)
+        //  fprintf( stderr, "frag, mate: " F_CID ", " F_CID " have negative dist: "F_COORD"\n",
+        //           frag->iid, mate->iid, dist);
       }  //  end of operateOnNodes if..elseif..elseif block
       
       if (dist > 0 && dist < dfrg->min)
@@ -3968,6 +3942,8 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
       }
     }  //  over all frags
 
+    DeleteMultiAlignT(ma);  //  We own it.
+
     // Mark unitigs as potential Rocks and Stones
     if (operateOnNodes == UNITIG_OPERATIONS) {
       int rock = FALSE;
@@ -3992,7 +3968,8 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
       node->flags.bits.isPotentialStone = stone;
     }
   }  //  over all graph nodes
-  
+
+#if 0
   fprintf(GlobalData->stderrc, "* ComputeMatePairStats some mate data:\n");
   fprintf(GlobalData->stderrc, "* num total - chaff                 %d\n",numTotalFrags);
   fprintf(GlobalData->stderrc, "* num chaff nodes                   %d\n",numChaff);
@@ -4006,13 +3983,16 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
   fprintf(GlobalData->stderrc, "* num different scaffold            %d\n",numDiffScaf);
   fprintf(GlobalData->stderrc, "* num mate != sourceInt             %d\n",numMateNotSource);
   fprintf(GlobalData->stderrc, "* num NULL mate                     %d\n",numNullMate);
+#endif
 
+#if 0
   if (operateOnNodes == UNITIG_OPERATIONS)
     fprintf(GlobalData->stderrc,
             "* ComputeMatePairStats has marked %d/%d unitigs as potential rocks +  %d/%d as potential stones\n",
             numPotentialRocks, (int) GetNumGraphNodes(graph),
             numPotentialStones, (int) GetNumGraphNodes(graph));
-  
+#endif
+
   // now sort the samples, mates, and frags arrays, based on samples
   for (i = 1; i < GetNumDistTs(ScaffoldGraph->Dists); i++) {
     MateInfoT   *matePairs  = NULL;
@@ -4049,6 +4029,7 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
     if (newLower < 0)
       newLower = 0;
 
+#if 0
     {
       DistT       *dorig      = GetDistT(ScaffoldGraph->Dists, i);  //  only for an output
       double       mu         = dfrg->mu / dfrg->numSamples;
@@ -4067,6 +4048,7 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
       fprintf( stderr, "lowerSigma : " F_COORD "  upperSigma : " F_COORD "\n", lowerSigma, upperSigma);						  
       fprintf( stderr, "newLower   : " F_COORD "  newUpper   : " F_COORD "\n", newLower, newUpper);
     }
+#endif
 
     // now reset the trusted flag if necessary
     // first see if there are edges marked untrusted that are now considered trusted
@@ -4181,9 +4163,11 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
     if (dfrg->numSamples > minSamplesForOverride) {
       DistT  *dupd       = GetDistT(ScaffoldGraph->Dists, i);
 
+#if 0
       //  only used for an stderr message
       double  origmu     = dupd->mu;
       double  origsigma  = dupd->sigma;
+#endif
 
       dupd->mu             = dfrg->mu / dfrg->numSamples;
       dupd->sigma          = sqrt((dfrg->sigma - dfrg->mu * dfrg->mu / dfrg->numSamples) / (dfrg->numSamples - 1));
@@ -4203,6 +4187,7 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
 
       dupd->bsize /= dupd->bnum;
 
+#if 0
       fprintf(GlobalData->stderrc, "distance record %3d: updated from %g +/- %g  to  %g +/- %g  based on %d samples (%d bad, %d references)\n",
               i,
               origmu,
@@ -4214,6 +4199,7 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
               dupd->numReferences);
       fprintf(GlobalData->stderrc, "distance record %3d: min:"F_COORD" max:"F_COORD"\n",
               i, dupd->min, dupd->max);
+#endif
 
       // output a histogram file for each library
 
@@ -4237,12 +4223,14 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
           dupd->histogram[binNum]++;
         }
 
+#if 0
         for (j=0; j<dupd->bnum; j++)
           if (dupd->histogram[j] > 0)
             fprintf(GlobalData->stderrc,"* [%5d,%5d]\t%d\n",
                     (int32)(dupd->min + j * dupd->bsize),
                     (int32)(dupd->min + (j + 1) * dupd->bsize),
                     dupd->histogram[j]);
+#endif
 
         qsort(samples, numSamples, sizeof(CDS_COORD_t), &compareInt);
 
@@ -4319,8 +4307,6 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
 
     closeGateKeeperStore(gkpStore);
   }
-
-  DeleteMultiAlignT(ma);
 }
 
 
@@ -4358,70 +4344,6 @@ void RecycleDeletedGraphElements(GraphCGW_T *graph){
 }
 
 
-int32 GetGappedMultipleCoverageInterval(GraphCGW_T *graph,
-                                        CDS_CID_t cid,
-                                        SeqInterval *interval,
-                                        int end){
-  
-  MultiAlignT *ma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB,
-                                                  cid,
-                                                  graph->type == CI_GRAPH);
-  //  MultiAlignT *ma = GetMultiAlignInStore(graph->maStore, cid);
-  CDS_COORD_t length = (CDS_COORD_t) GetNumchars(ma->consensus);
-  VA_TYPE(int) *coverageVA = CreateVA_int(GetNumchars(ma->consensus));
-  int *coverage;
-  SeqInterval range;
-  int i;
-  int found = FALSE;
-  
-  if(end == A_END){
-    interval->end = range.end = MIN(500,length);
-    interval->bgn = range.bgn = 0;
-  }else{
-    interval->bgn = range.bgn = MAX(0, length - 500);
-    interval->end = range.end = length;
-  }
-  fprintf(GlobalData->stderrc,"Calling GetCoverageInMultiAlignT end %c range [" F_COORD "," F_COORD "] of [0," F_COORD "]\n",
-	  (end == A_END?'A':'B'),
-	  range.bgn, range.end,
-	  length);
-  fflush(NULL);
-  GetCoverageInMultiAlignT(ma, range, coverageVA, TRUE);
-  fprintf(GlobalData->stderrc,"Returned from GetCoverageInMultiAlignT length of coverageVA = %d\n", (int) GetNumints(coverageVA));
-  fflush(NULL);
-  
-  coverage = Getint(coverageVA,0);
-  
-  
-  if(end == A_END){
-    fprintf(GlobalData->stderrc,"* A_END %d\n", (int) GetNumints(coverageVA) );
-    for(i = 0; i < GetNumints(coverageVA); i++){
-      if(coverage[i] > 1){
-	interval->bgn = (CDS_COORD_t) i;
-	found = TRUE;
-	break;
-      }
-    }
-    
-  }else{
-    found = FALSE;
-    fprintf(GlobalData->stderrc,"* B_END %d\n", (int) GetNumints(coverageVA) );
-    
-    for(i = GetNumints(coverageVA) -1; i > 0; i--){
-      if(coverage[i] > 1){
-	interval->end = length - (CDS_COORD_t) i;
-	fprintf(GlobalData->stderrc,"* BEnd interval end = " F_COORD " length = " F_COORD " i = %d\n", interval->end, length, i);
-	found = TRUE;
-	break;
-      }
-    }
-  }
-  DeleteVA_int(coverageVA);
-  
-  return found;
-  
-}
-
 
 
 #define SEGLEN 50
@@ -4439,42 +4361,6 @@ static void dumpFastaRecord(FILE *stream, char *header, char *sequence){
 
 
 
-void   DumpNodeEndUngappedToFasta(FILE *fastaFile,
-                                  GraphCGW_T *graph,
-                                  CDS_CID_t cid,
-                                  int nodeEnd,
-                                  int reverseComplement){
-  MultiAlignT *ma = LoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB,
-                                                  cid,
-                                                  graph->type == CI_GRAPH);
-  //    MultiAlignT *ma = GetMultiAlignInStore(graph->maStore, cid);
-  NodeCGW_T *node = GetGraphNode(graph,cid);
-  VA_TYPE(char) *consensus = CreateVA_char(1024);
-  VA_TYPE(char) *quality = CreateVA_char(1024);
-  char buffer[1024];
-  char dataBuffer[2048];
-  CDS_COORD_t length = (CDS_COORD_t) strlen(Getchar(ma->consensus,0));
-  SeqInterval interval;
-  if(nodeEnd == A_END){
-    interval.bgn = 0;
-    interval.end = MIN(500, length);
-  }else{
-    interval.bgn = MAX(0,length - 500);
-    interval.end = length;
-  }
-  sprintf(buffer,
-          " Scaffold " F_CID " %s " F_CID " %s [" F_COORD "," F_COORD "]", 
-          node->scaffoldID, 
-          (graph->type == CONTIG_GRAPH? "Contig":"Unitig"), 
-          node->id, 
-          (nodeEnd == A_END? "A_END": "B_END"),
-          interval.bgn, interval.end);
-  GetMultiAlignUngappedConsensusFromInterval(ma,interval,consensus, quality);
-  strcat(dataBuffer,"");
-  dumpFastaRecord(fastaFile, buffer, Getchar(consensus,0));
-  DeleteVA_char(consensus);
-  DeleteVA_char(quality);
-}
 
 
 
@@ -4551,89 +4437,63 @@ EdgeStatus AS_CGW_SafeConvert_uintToEdgeStatus(unsigned int input) {
   return output;
 }
 
+
+
 // some checks on unitigs and their frags
-void  CheckUnitigs(CDS_CID_t startUnitigID)
-{
-  // GraphEdgeStatT stat;
+void  CheckUnitigs(CDS_CID_t startUnitigID) {
   GraphNodeIterator Nodes;
   NodeCGW_T *node;
-  MultiAlignT *ma = CreateEmptyMultiAlignT();
-  int32 i, numFrags;
+  int32 i;
   int totalUnitigs = (int) GetNumGraphNodes( ScaffoldGraph->CIGraph );  
-  
-  fprintf( stderr,"* CheckUnitigs starting at unitig " F_CID "\n",
-           startUnitigID);
-  fflush( NULL );
-  
-  InitGraphNodeIterator( &Nodes, ScaffoldGraph->CIGraph, GRAPH_NODE_DEFAULT);
-  while(NULL != ( node = NextGraphNodeIterator(&Nodes)))
-    {
-      if (node->id < startUnitigID)
-        continue;
-    
-      if (node->flags.bits.isChaff && GlobalData->ignoreChaffUnitigs)
-        continue;
-    
-      if((node->id % 100000) == 0)
-        {
-          fprintf( stderr,"* CheckUnitigs Node " F_CID " out of %d\n",
-                   node->id, totalUnitigs);
-          fflush( NULL );
-        }
-      // This will load the ma from the disk file
-      ReLoadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ma, node->id, TRUE);    
-      // BuildGraphEdgesFromMultiAlign(graph, node, ma, &stat, FALSE);
-    
-      assert(ma && node);
-      numFrags = GetNumIntMultiPoss(ma->f_list);
+  MultiAlignT *ma = CreateEmptyMultiAlignT();
 
-      for(i = 0; i < numFrags; i++)
-        {
-          IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
-          CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags,
-                                     (CDS_CID_t)mp->sourceInt);
-          CDS_CID_t fragID = (CDS_CID_t) mp->sourceInt;
+  InitGraphNodeIterator( &Nodes, ScaffoldGraph->CIGraph, GRAPH_NODE_DEFAULT);
+  while(NULL != ( node = NextGraphNodeIterator(&Nodes))) {
+    if (node->id < startUnitigID)
+      continue;
+    
+    if (node->flags.bits.isChaff && GlobalData->ignoreChaffUnitigs)
+      continue;
+    
+    copyMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ma, node->id, TRUE);    
+
+    for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++) {
+      IntMultiPos *mp = GetIntMultiPos(ma->f_list, i);
+      CIFragT *frag = GetCIFragT(ScaffoldGraph->CIFrags, (CDS_CID_t)mp->sourceInt);
+      CDS_CID_t fragID = (CDS_CID_t) mp->sourceInt;
       
-          if(frag->cid != node->id)
-            {
-              fprintf(GlobalData->stderrc, "* CheckUnitigs: frag " F_CID " with iid " F_CID " of cid " F_CID " has ci = " F_CID "!!!\n",
-                      fragID,	frag->iid, node->id, frag->cid);
-              // assert(0);
-            }
-        }
+      if (frag->cid != node->id) {
+        fprintf(GlobalData->stderrc, "* CheckUnitigs: frag " F_CID " with iid " F_CID " of cid " F_CID " has ci = " F_CID "!!!\n",
+                fragID,	frag->iid, node->id, frag->cid);
+        //assert(0);
+      }
     }
-  
-  fflush(NULL);
-  DeleteMultiAlignT(ma);  
+  }
+  DeleteMultiAlignT(ma);  //  We own it.
 }
+
 
 // Check on the sanity of the surrogate unitigs
-void  CheckSurrogateUnitigs()
-{
-    GraphNodeIterator Nodes;
-    NodeCGW_T *curChunk;
+void  CheckSurrogateUnitigs() {
+  GraphNodeIterator Nodes;
+  NodeCGW_T *curChunk;
 
-    InitGraphNodeIterator( &Nodes, ScaffoldGraph->CIGraph, GRAPH_NODE_DEFAULT);
-    while(NULL != ( curChunk = NextGraphNodeIterator(&Nodes)))
-    {
-        if((curChunk->type == UNRESOLVEDCHUNK_CGW) && (curChunk->info.CI.numInstances > 1))
-        {
-            if(curChunk->info.CI.numInstances == 2)
-            {
-            } else {
-                int numVaInstances = GetNumCDS_CID_ts(curChunk->info.CI.instances.va);
-                assert(curChunk->info.CI.instances.va != NULL);
-                if (   curChunk->info.CI.numInstances !=
-                        GetNumCDS_CID_ts(curChunk->info.CI.instances.va))
-                {
-                    fprintf( stderr,
-                            "curChunk CI.numInstances %d, GetNumCDS_CID_ts curChunk instances.va %d\n",
-                            curChunk->info.CI.numInstances,
-                            GetNumCDS_CID_ts(curChunk->info.CI.instances.va)
-                           );
-                    //                assert(0);
-                }
-            }
+  InitGraphNodeIterator( &Nodes, ScaffoldGraph->CIGraph, GRAPH_NODE_DEFAULT);
+  while(NULL != ( curChunk = NextGraphNodeIterator(&Nodes))) {
+    if((curChunk->type == UNRESOLVEDCHUNK_CGW) && (curChunk->info.CI.numInstances > 1)) {
+      if(curChunk->info.CI.numInstances == 2) {
+      } else {
+        int numVaInstances = GetNumCDS_CID_ts(curChunk->info.CI.instances.va);
+        assert(curChunk->info.CI.instances.va != NULL);
+        if (curChunk->info.CI.numInstances != GetNumCDS_CID_ts(curChunk->info.CI.instances.va)) {
+          fprintf(stderr,
+                   "curChunk CI.numInstances %d, GetNumCDS_CID_ts curChunk instances.va %d\n",
+                   curChunk->info.CI.numInstances,
+                   GetNumCDS_CID_ts(curChunk->info.CI.instances.va));
+          //assert(0);
         }
+      }
     }
+  }
 }
+

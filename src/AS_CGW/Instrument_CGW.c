@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.29 2007-08-28 22:50:10 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.30 2007-09-05 11:22:11 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -2551,7 +2551,7 @@ void PrintUnitigInstrumenter(ScaffoldGraphT * graph,
         }
       else
         {
-          MultiAlignT * cma = LoadMultiAlignTFromSequenceDB(graph->sequenceDB,
+          MultiAlignT * cma = loadMultiAlignTFromSequenceDB(graph->sequenceDB,
                                                             unitig->id, FALSE);
           if(cma == NULL)
             {
@@ -2563,7 +2563,6 @@ void PrintUnitigInstrumenter(ScaffoldGraphT * graph,
           fprintf(printTo, "\n%sGapped sequence:\n", prefix);
           fprintf(printTo, "\n>Unitig " F_CID "\n", unitig->id);
           PrintConsensus(cma->consensus, printTo);
-          UnloadMultiAlignTFromSequenceDB(graph->sequenceDB, unitig->id, FALSE);
         }
 
       fprintf(printTo, "\n%sConstituent fragments:\n", prefix);
@@ -2631,7 +2630,7 @@ void PrintContigInstrumenter(ScaffoldGraphT * graph,
         }
       else
         {
-          MultiAlignT * cma = LoadMultiAlignTFromSequenceDB(graph->sequenceDB,
+          MultiAlignT * cma = loadMultiAlignTFromSequenceDB(graph->sequenceDB,
                                                             contig->id, FALSE);
           if(cma == NULL)
             {
@@ -2643,7 +2642,6 @@ void PrintContigInstrumenter(ScaffoldGraphT * graph,
           fprintf(printTo, "\n%sGapped sequence:\n", prefix);
           fprintf(printTo, "\n>Contig " F_CID "\n", contig->id);
           PrintConsensus(cma->consensus, printTo);
-          UnloadMultiAlignTFromSequenceDB(graph->sequenceDB, contig->id, FALSE);
         }
 
       fprintf(printTo, "\n%sConstituent fragments:\n", prefix);
@@ -4676,7 +4674,7 @@ int InstrumentUnitig(ScaffoldGraphT * graph,
     }
 
   // get the multialignment - lists fragments
-  uma = LoadMultiAlignTFromSequenceDB(graph->sequenceDB, unitig->id, TRUE);
+  uma = loadMultiAlignTFromSequenceDB(graph->sequenceDB, unitig->id, TRUE);
   if(uma == NULL)
     {
       fprintf(stderr, "Failed to load MultiAlignT of unitig " F_CID "\n", unitig->id);
@@ -4750,9 +4748,6 @@ int InstrumentUnitig(ScaffoldGraphT * graph,
 #endif
     }
 
-  // unload the multialignment
-  UnloadMultiAlignTFromSequenceDB(graph->sequenceDB, unitig->id, TRUE);
-
   CheckFragmentMatePairs(graph,
                          &(ui->bookkeeping),
                          st,
@@ -4764,7 +4759,7 @@ int InstrumentUnitig(ScaffoldGraphT * graph,
                          &numFar,
                          &numClose,
                          ui->id);
-  
+
   return 0;
 }
 

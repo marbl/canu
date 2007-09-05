@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: Globals_CGW.h,v 1.13 2007-08-18 13:13:20 brianwalenz Exp $	 */
+/* 	$Id: Globals_CGW.h,v 1.14 2007-09-05 11:22:11 brianwalenz Exp $	 */
 #ifndef GLOBALS_CGW_H
 #define GLOBALS_CGW_H
 
@@ -36,7 +36,6 @@ typedef struct Global_CGW_tag {
 
   float transQualityCutoff; // quality cutoff for TransChunkEdges
   uint64 maxSequencedbSize; // maximum size of a sequencedb between checkpoints
-  uint64 maxSequencedbCacheSize; // maximum size of cache before flushing
   int32 dumpScaffoldSnapshots;
   int32 maxDegree; // maximum edges to keep for 'nonUnique' nodes
   int32 maxDegreeUnique; // maximum edges to keep for 'Unique' nodes

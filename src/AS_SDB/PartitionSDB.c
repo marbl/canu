@@ -18,7 +18,17 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: PartitionSDB.c,v 1.4 2007-06-03 08:13:22 brianwalenz Exp $";
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
+
+#include "AS_global.h"
+#include "AS_UTL_Var.h"
+#include "AS_UTL_fileIO.h"
+#include "AS_MSG_pmesg.h"
+#include "AS_SDB_SequenceDB.h"
 
 //  Given a SequenceDB and a partition size, measured in number of
 //  fragments, produce the following:
@@ -46,16 +56,11 @@ static char CM_ID[] = "$Id: PartitionSDB.c,v 1.4 2007-06-03 08:13:22 brianwalenz
 //  unitig assignment list.  The second phase will read the unitigs
 //  and partition them according the the assignment list.
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
-
-#include "AS_global.h"
-#include "AS_UTL_Var.h"
-#include "AS_UTL_fileIO.h"
-#include "AS_SDB_SequenceDBPartition.h"
-#include "AS_MSG_pmesg.h"
+typedef struct {
+  int elemID;
+  int partitionID;
+} tPartitionElement;
+VA_DEF(tPartitionElement)
 
 
 FILE *
@@ -145,18 +150,18 @@ main(int argc, char **argv) {
 
   FILE         *inputFile         = openInputFile(inputFileName);
   FILE         *outputPartition   = openOutputPartition(inputFileName, currentPartition);
-  tSequenceDB  *sequenceDB        = OpenSequenceDB(storeName, FALSE, storeVersion);
+  tSequenceDB  *sequenceDB        = openSequenceDB(storeName, FALSE, storeVersion);
 
-  if (((NumContigsInSequenceDB(sequenceDB) == 0) && (includeAllUnitigs == 0)) ||
-      ((NumUnitigsInSequenceDB(sequenceDB) == 0))) {
+  if (((numContigsInSequenceDB(sequenceDB) == 0) && (includeAllUnitigs == 0)) ||
+      ((numUnitigsInSequenceDB(sequenceDB) == 0))) {
     fprintf(stderr, "Nothing to do: %d unitigs, %d contigs.\n",
-            NumUnitigsInSequenceDB(sequenceDB),
-            NumContigsInSequenceDB(sequenceDB));
+            numUnitigsInSequenceDB(sequenceDB),
+            numContigsInSequenceDB(sequenceDB));
     exit(0);
   }
 
-  utgPartitionElems = CreateVA_tPartitionElement(NumUnitigsInSequenceDB(sequenceDB) + 100);
-  frgPartitionElems = CreateVA_tPartitionElement(NumUnitigsInSequenceDB(sequenceDB) * 5);
+  utgPartitionElems = CreateVA_tPartitionElement(numUnitigsInSequenceDB(sequenceDB) + 100);
+  frgPartitionElems = CreateVA_tPartitionElement(numUnitigsInSequenceDB(sequenceDB) * 5);
 
   ////////////////////////////////////////////////////////////////////////////////
   //
@@ -172,6 +177,8 @@ main(int argc, char **argv) {
 
       if ((includeAllUnitigs) || (nunitigs > 1)) {
         int u, f;
+
+
 
         for (u=0; u<nunitigs; u++) {
           tPartitionElement partElem;
@@ -226,10 +233,6 @@ main(int argc, char **argv) {
     FILE *output = NULL;
     int i;
 
-#if 1
-    //  Not used anymore, maybe useful for debugging.  OK, used by the
-    //  script to decide if consensus needs to run.
-    //
     errno = 0;
     output = fopen("UnitigPartition.txt", "w");
     if (errno)
@@ -239,7 +242,6 @@ main(int argc, char **argv) {
       tPartitionElement *pElem = GettPartitionElement(utgPartitionElems,i);
       fprintf(output, "%d %d\n", pElem->elemID, pElem->partitionID);
     }
-#endif
 
     errno = 0;
     output = fopen("FragPartition.txt", "w");
@@ -253,8 +255,8 @@ main(int argc, char **argv) {
   }
 
   fprintf(stderr, "Fragments:  %8d skipped   %8d partitioned\n", skippedFragments, totalFragments);
-  fprintf(stderr, "Unitigs:    %8d skipped   %8d partitioned   %8d input\n", skippedUnitigs, totalUnitigs, NumUnitigsInSequenceDB(sequenceDB));
-  fprintf(stderr, "Contigs:    %8d skipped   %8d partitioned   %8d input\n", skippedContigs, totalContigs, NumContigsInSequenceDB(sequenceDB));
+  fprintf(stderr, "Unitigs:    %8d skipped   %8d partitioned   %8d input\n", skippedUnitigs, totalUnitigs, numUnitigsInSequenceDB(sequenceDB));
+  fprintf(stderr, "Contigs:    %8d skipped   %8d partitioned   %8d input\n", skippedContigs, totalContigs, numContigsInSequenceDB(sequenceDB));
 
 
   ////////////////////////////////////////////////////////////////////////////////
@@ -273,7 +275,7 @@ main(int argc, char **argv) {
   for (i=1; i<currentPartition; i++) {
     char  N[1024];
 
-    sprintf(N, "%s/seqDB.data.%d.%d", storeName, storeVersion, i);
+    sprintf(N, "%s/seqDB.v%03d.dat.p%03d", storeName, storeVersion, i);
 
     errno = 0;
     pOutput[i] = fopen(N, "w");
@@ -303,15 +305,16 @@ main(int argc, char **argv) {
     assert(binID > 0);
     assert(binID < currentPartition);
 
-    tMARecord mar;
+    tMARecord mar = {0};
 
-    mar.flags.all = 0;
-    mar.storeID   = utgID;
-    mar.offset    = AS_UTL_ftell(pOutput[binID]);
+    mar.storeID      = 0;
+    mar.multiAlignID = utgID;
+    mar.isDeleted    = 0;
+    mar.offset       = AS_UTL_ftell(pOutput[binID]);
 
     AppendtMARecord(pIndex[binID], &mar);
 
-    ReLoadMultiAlignTFromSequenceDB(sequenceDB, ma, utgID, TRUE);
+    copyMultiAlignTFromSequenceDB(sequenceDB, ma, utgID, TRUE);
     SaveMultiAlignTToStream(ma, pOutput[binID]);
 
     lastUtg = utgID;
@@ -322,7 +325,7 @@ main(int argc, char **argv) {
   for (i=1; i<currentPartition; i++) {
     char N[1024];
 
-    sprintf(N, "%s/seqDB.%d.%d", storeName, storeVersion, i);
+    sprintf(N, "%s/seqDB.v%03d.dat.i%03d", storeName, storeVersion, i);
     errno = 0;
     FILE *F = fopen(N, "w");
     if (errno)
@@ -332,7 +335,6 @@ main(int argc, char **argv) {
 
     fclose(pOutput[i]);
   }
-
 
   return(0);
 }

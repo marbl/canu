@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_FGB_main.c,v 1.20 2007-07-20 17:17:08 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_FGB_main.c,v 1.21 2007-09-05 11:22:10 brianwalenz Exp $";
 
 #include "AS_UTL_version.h"  
 #include "AS_CGB_all.h"
@@ -77,8 +77,8 @@ process_ovl_store(char * OVL_Store_Path,
 
 
 
-static void output_mesgs(const Tfragment frags[],
-                         const Tedge     edges[],
+static void output_mesgs(Tfragment frags[],
+                         Tedge     edges[],
                          FILE *fcgb) {
 
   // Output the OVL messages:

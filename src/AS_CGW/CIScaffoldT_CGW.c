@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.22 2007-08-28 21:19:54 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.23 2007-09-05 11:22:10 brianwalenz Exp $";
 
 #undef DEBUG
 #undef DEBUG_INSERT
@@ -49,6 +49,7 @@ static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.22 2007-08-28 21:19:54 brianwa
 #include "CommonREZ.h"
 #include "Stats_CGW.h"   // for collecting scaffold merging stats
 
+VA_DEF(PtrT);
 
 
 void PrintCINodeFields(FILE * stream, NodeCGW_T * node)
@@ -1835,7 +1836,7 @@ void CheckCIScaffoldT(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold){
         fprintf(GlobalData->stderrc,"* Screwed up scaffold " F_CID ": Chunk " F_CID " has bad mean\n",
                 sid, chunk->id);
 
-        AppendPtrT(chunksToBeRemoved, (const void *) &chunk);
+        AppendPtrT(chunksToBeRemoved, (void *) &chunk);
 
       }else{
         // Only update the mean if we are moving along as expected
