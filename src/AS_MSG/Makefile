@@ -39,6 +39,9 @@ PROGS = AS_MSG_pmesg_test \
         remove_fragment   \
 	extractmessages
 
+SCRIPTS = convert-fasta-to-v2 \
+	  convert-v1-to-v2
+
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
 
@@ -54,6 +57,14 @@ AS_MSG_pmesg_test: AS_MSG_pmesg_test.o libCA.a
 remove_fragment:   remove_fragment.o   libCA.a
 
 extractmessages:   ExtractMessages.o   libCA.a
+
+convert-fasta-to-v2: convert-fasta-to-v2.pl
+	@cp $< $(LOCAL_BIN)/$@
+	@chmod 775 $(LOCAL_BIN)/$@
+
+convert-v1-to-v2: convert-v1-to-v2.pl
+	@cp $< $(LOCAL_BIN)/$@
+	@chmod 775 $(LOCAL_BIN)/$@
 
 tester: AS_MSG_pmesg_test AS_MSG_testfile.in
 	AS_MSG_pmesg_test -d < AS_MSG_testfile.in > testfile.out
