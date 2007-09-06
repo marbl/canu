@@ -45,6 +45,7 @@ my $clqFound = 0;
 my $clqNotFound = 0;
 
 my $noOBT = 0;
+my $mateStatus = "I";
 
 my $err = 0;
 while (scalar(@ARGV) > 0) {
@@ -53,12 +54,14 @@ while (scalar(@ARGV) > 0) {
         $vec = shift @ARGV;
     } elsif ($arg eq "-noobt") {
         $noOBT = 1;
+    } elsif ($arg eq "-unmated") {
+        $mateStatus = "U";
     } else {
         $err++;
     }
 }
 if ($err) {
-    die "usage: $0 [-v vector-clear-file] [-noobt] < old.frg > new.frg\n";
+    die "usage: $0 [-v vector-clear-file] [-noobt] [-unmated] < old.frg > new.frg\n";
 }
 
 if (defined($vec)) {
@@ -126,7 +129,7 @@ while (!eof(STDIN)) {
         print "{LIB\n";
         print "act:A\n";
         print "acc:$acc\n";
-        print "ori:I\n";
+        print "ori:$mateStatus\n";
         print "mea:$mea\n";
         print "std:$std\n";
         print "src:\n";
