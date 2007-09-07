@@ -22,7 +22,7 @@
 #
 ##########################################################################
 
-# $Id: Shred_Contigs.pl,v 1.2 2006-01-11 20:58:00 eliv Exp $
+# $Id: Shred_Contigs.pl,v 1.3 2007-09-07 18:51:56 eliv Exp $
 
 use strict;
 use Getopt::Std;
@@ -163,49 +163,49 @@ sub shred{
 	#            [$center_increments]
 	#
 
-	if($seq_len>=$read_len){
+    my $shred_len = $read_len;
+    $shred_len = $seq_len - 50 if $seq_len < $read_len;
 
-		my $num_reads=int($seq_len*$target_coverage/$read_len);
-		my $center_range_width=$seq_len-$read_len;
-		if($num_reads==1){
-			push @begins, 0;
-			push @ends, $read_len;
-		}else{
-			my $center_increments=$center_range_width/($num_reads-1);
+    my $num_reads=int($seq_len*$target_coverage/$shred_len);
+    my $center_range_width=$seq_len-$shred_len;
+    if($num_reads==1){
+        push @begins, 0;
+        push @ends, $shred_len;
+    }else{
+        my $center_increments=$center_range_width/($num_reads-1);
 
-			# Cap the number of reads we will make so that we don't get
-			# redundant reads
+# Cap the number of reads we will make so that we don't get
+# redundant reads
 
-			my $i;
-			my ($prev_begin, $prev_end)=(-1,-1);
-			for($i=0; $i<$num_reads; $i++){
-				my $begin=$center_increments*$i;
-				my $end=$begin+$read_len;
+        my $i;
+        my ($prev_begin, $prev_end)=(-1,-1);
+        for($i=0; $i<$num_reads; $i++){
+            my $begin=$center_increments*$i;
+            my $end=$begin+$shred_len;
 
-				$begin=int($begin);
-				$end=int($end);
-				#print "$begin-$end\n";
+            $begin=int($begin);
+            $end=int($end);
+#print "$begin-$end\n";
 
-				if($begin!=$prev_begin || $end!=$prev_end){
-					push @begins, $begin;
-					push @ends, $end;
-					$prev_begin=$begin;
-					$prev_end=$end;
-				}
-			}
-		}
-	}
+            if($begin!=$prev_begin || $end!=$prev_end){
+                push @begins, $begin;
+                push @ends, $end;
+                $prev_begin=$begin;
+                $prev_end=$end;
+            }
+        }
+    }
 
-	return(\@begins, \@ends);
+    return(\@begins, \@ends);
 }
 
 
 #------------------------------------------------------------------------------
 
 sub grab_from_defline{
-	my $defline=shift;
-	my $key=shift;
-	my $value;
+    my $defline=shift;
+    my $key=shift;
+    my $value;
 
 	$defline=~/\/$key=(\S+)/;
 	$value=$1;
