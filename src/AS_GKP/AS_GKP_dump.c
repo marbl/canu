@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.22 2007-08-31 21:06:16 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.23 2007-09-10 19:44:41 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -222,6 +222,10 @@ dumpGateKeeperFragments(char       *gkpStoreName,
         fprintf(stdout, "fragmentIsNonRandom     = %d\n", getFragRecordIsNonRandom(fr));
         fprintf(stdout, "fragmentStatus          = %s\n", AS_READ_STATUS_NAMES[fr->gkfr.status]);
         fprintf(stdout, "fragmentOrientation     = %s\n", AS_READ_ORIENT_NAMES[fr->gkfr.orientation]);
+
+        fprintf(stdout, "fragmentHasVectorClear  = %d\n", fr->gkfr.hasVectorClear);
+        fprintf(stdout, "fragmentHasQualityClear = %d\n", fr->gkfr.hasQualityClear);
+
         fprintf(stdout, "fragmentPlate           = "F_UID"\n", fr->gkfr.plateUID);
         fprintf(stdout, "fragmentPlateLocation   = %d\n", fr->gkfr.plateLocation);
 
