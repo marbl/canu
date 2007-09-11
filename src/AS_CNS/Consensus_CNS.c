@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char rcsid[] = "$Id: Consensus_CNS.c,v 1.55 2007-09-05 11:22:14 brianwalenz Exp $";
+static const char rcsid[] = "$Id: Consensus_CNS.c,v 1.56 2007-09-11 15:19:18 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -85,10 +85,10 @@ main (int argc, char **argv) {
   int    sdbVers = -1;
   int    sdbPart = -1;
 
-  int extract    = -1;
+  int    gkpPart     = 0;
+  int    gkpInMemory = 0;
 
-  int partition  = 0;
-  int in_memory  = 0;
+  int extract              = -1;
 
   int allow_neg_hang_retry = 0;
 
@@ -163,13 +163,13 @@ main (int argc, char **argv) {
     } else if (strcmp(argv[arg], "-o") == 0) {
       outName = argv[++arg];
     } else if (strcmp(argv[arg], "-S") == 0) {
-      partition   = atoi(argv[++arg]);
+      gkpPart = atoi(argv[++arg]);
     } else if (strcmp(argv[arg], "-w") == 0) {
       options.smooth_win = atoi(argv[++arg]);
     } else if (strcmp(argv[arg], "-M") == 0) {
       options.max_num_alleles = atoi(argv[++arg]);
     } else if (strcmp(argv[arg], "-m") == 0) {
-      in_memory = 1;
+      gkpInMemory = 1;
     } else if (strcmp(argv[arg], "-s") == 0) {
       USE_SDB = 1;
       sdbName = argv[++arg];
@@ -249,7 +249,7 @@ main (int argc, char **argv) {
     fprintf(stderr, "    -w win_size  specify the size of the 'smoothing window' that will be used in consensus calling\n");
     fprintf(stderr, "                 If two SNPs are located win_size or less bases apart one from another,\n");
     fprintf(stderr, "                 then they will be treated as one block\n");
-    fprintf(stderr, "    -S partition Use gkpStorePartition partition\n");
+    fprintf(stderr, "    -S partition Use gkpStorePartition partition, loaded into memory\n");
     fprintf(stderr, "    -m           Load gkpStorePartition into memory (default reads from disk)\n");
     fprintf(stderr, "    -a [DLA]     Specify aligner to use should DP_Compare fail\n");
     fprintf(stderr, "                 L = Local_Aligner (default)\n");
@@ -280,15 +280,15 @@ main (int argc, char **argv) {
   gkpStore = openGateKeeperStore(gkpName, FALSE);
 
   if (USE_SDB) {
-    loadGateKeeperPartition(gkpStore, partition);
-
     sequenceDB = openSequenceDB(sdbName, FALSE, sdbVers);
     openSequenceDBPartition(sequenceDB, sdbPart);
   } else {
     unitigStore = CreateMultiAlignStoreT();
   }
 
-  if (in_memory && !USE_SDB)
+  if (gkpPart)
+    loadGateKeeperPartition(gkpStore, gkpPart);
+  else if (gkpInMemory)
     loadGateKeeperStorePartial(gkpStore, 0, 0, FRAG_S_QLT);
 
   //
