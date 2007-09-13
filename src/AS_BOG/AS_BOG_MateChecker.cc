@@ -19,12 +19,13 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.23 2007-08-10 06:53:03 brianwalenz Exp $
- * $Revision: 1.23 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.24 2007-09-13 18:29:13 eliv Exp $
+ * $Revision: 1.24 $
 */
 
 #include <math.h>
 #include "AS_BOG_MateChecker.hh"
+#include "AS_OVL_overlap.h"  // For DEFAULT_MIN_OLAP_LEN
 
 namespace AS_BOG{
     MateChecker::~MateChecker() {
@@ -375,6 +376,7 @@ namespace AS_BOG{
             }
         }
         positions.sort();
+        // Build good and bad mate graphs
         MateLocIter  posIter  = positions.begin();
         for(;        posIter != positions.end(); posIter++) {
             MateLocationEntry loc = *posIter;
@@ -499,6 +501,7 @@ namespace AS_BOG{
                 }
             }
         }
+        // For debugging purposes output the table
         for(posIter = positions.begin(); posIter != positions.end(); posIter++){
             MateLocationEntry loc = *posIter;
             std::cerr << loc << std::endl;
@@ -525,14 +528,17 @@ namespace AS_BOG{
 
         posIter  = positions.begin();
 
-        iuid backBgn;
+        iuid backBgn; // Start position of final backbone unitig
         DoveTailNode backbone = tig->getLastBackboneNode(backBgn);
         backBgn = isReverse( backbone.position ) ? backbone.position.end :
                                                    backbone.position.bgn ;
 
         bool combine = false;
+        CDS_COORD_t currBackboneEnd = 0;
+        CDS_COORD_t lastBreakBBEnd = 0;
         IntervalList::const_iterator fwdIter = fwdBads->begin();
         IntervalList::const_iterator revIter = revBads->begin();
+        // Go through the peak bad ranges looking for reads to break on
         while( fwdIter != fwdBads->end() || revIter != revBads->end() )
         {
             bool fwdBad = false;
@@ -556,46 +562,70 @@ namespace AS_BOG{
                 revIter++;
             }
             fprintf(stderr,"Bad peak from %d to %d\n",bad.bgn,bad.end);
-            for(;        posIter != positions.end(); posIter++) {
-                MateLocationEntry loc = *posIter;
+            tigIter = tig->dovetail_path_ptr->begin();
+            for(;tigIter != tig->dovetail_path_ptr->end(); tigIter++)
+            {
+                DoveTailNode frag = *tigIter;
+                SeqInterval loc = frag.position;
+                // keep track of current and previous uncontained contig end
+                // so that we can split apart contained reads that don't overlap each other
+                if ( !frag.contained )
+                    currBackboneEnd = MAX(loc.bgn, loc.end);
+
                 bool breakNow = false;
-                if ( fwdBad && bad < loc.pos1 ) { // break now, put loc in new tig
-                    breakNow = true;
-                } else if ( !fwdBad && (loc.pos1.bgn == bad.end) ||
-                            (combine && loc.pos1.end >  bad.bgn) ) {
-                    // reverse break now, put loc in new tig
-                    breakNow = true;
-                    combine = false;
-                } else if (bad.bgn > backBgn) {
-                // fun special case, keep contained frags at end of tig in container 
-                // instead of in their own new tig where they might not overlap
-                    breakNow = true;
+                MateLocationEntry mloc = positions.getById( frag.ident );
+                if (mloc.id1 != 0 && mloc.isBad) { // only break on bad mates
+
+                    if ( fwdBad && bad < loc ) { // break now, put frag in new tig
+                        breakNow = true;
+                    } else if ( !fwdBad && (loc.bgn == bad.end) ||
+                            (combine && loc.end >  bad.bgn) ) {
+                        // reverse break now, put frag in new tig
+                        breakNow = true;
+                    } else if (bad.bgn > backBgn) {
+                        // fun special case, keep contained frags at end of tig in container 
+                        // instead of in their own new tig where they might not overlap
+                        breakNow = true;
+                    }
                 }
                 if (breakNow) {
+                    combine = false;
+                    lastBreakBBEnd = currBackboneEnd;
                     fprintf(stderr,"Frg to break in peak bad range is %d fwd %d\n",
-                            loc.id1, fwdBad );
+                            frag.ident, fwdBad );
                     fragment_end_type fragEndInTig = FIVE_PRIME;
-                    if (isReverse( loc.pos1 ))
+                    if (isReverse( frag.position ))
                         fragEndInTig = THREE_PRIME;
-                    UnitigBreakPoint bp( loc.id1, fragEndInTig );
-                    bp.position = loc.pos1;
+                    UnitigBreakPoint bp( frag.ident, fragEndInTig );
+                    bp.position = frag.position;
                     bp.inSize = 100000;
                     bp.inFrags = 10;
                     breaks->push_back( bp );
-                    posIter++;
-                    SeqInterval overlap = intersection(loc.pos1, posIter->pos1);
-                    if (NULL_SEQ_LOC == overlap) {
-                        // no overlap between this and the next frg, make singleton
-                        fragEndInTig = (fragEndInTig == FIVE_PRIME) ?
-                                          THREE_PRIME : FIVE_PRIME;
-                        UnitigBreakPoint bp( loc.id1, fragEndInTig );
-                        bp.position = loc.pos1;
-                        bp.inSize = 100001;
-                        bp.inFrags = 11;
-                        breaks->push_back( bp );
-                        fprintf(stderr,"Making frg %d singleton, end %d size %d\n",
-                                loc.id1, fragEndInTig, breaks->size());
+                }
+                if ( lastBreakBBEnd != 0 && lastBreakBBEnd > MAX(loc.bgn,loc.end))
+                {
+                    DoveTailConstIter nextPos = tigIter+1;
+                    if (nextPos != tig->dovetail_path_ptr->end())  {
+                        SeqInterval overlap = intersection(loc, nextPos->position);
+                        int diff = abs( overlap.end - overlap.bgn);
+                        if (NULL_SEQ_LOC == overlap || diff < DEFAULT_MIN_OLAP_LEN) {
+                            // no overlap between this and the next frg, break after frg
+                            fragment_end_type fragEndInTig = THREE_PRIME;
+                            if (isReverse( loc ))
+                                fragEndInTig = FIVE_PRIME;
+
+                            UnitigBreakPoint bp( frag.ident, fragEndInTig );
+                            bp.position = loc;
+                            bp.inSize = 100001;
+                            bp.inFrags = 11;
+                            breaks->push_back( bp );
+                            fprintf(stderr,"Might make frg %d singleton, end %d size %d\n",
+                                    frag.ident, fragEndInTig, breaks->size());
+                        }
                     }
+                }
+                if (breakNow) { // Move to next breakpoint
+                    tigIter++;  // make sure to advance past curr frg
                     break;
                 }
             }
