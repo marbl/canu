@@ -36,7 +36,7 @@ main(int argc, char **argv) {
   include = new existDB(incName, MERSIZE, TBLSIZE);
 
   seqStream *F = new seqStream(seqName, true);
-  merStream *T = new merStream(MERSIZE, F);
+  merStream *T = new merStream(new kMerBuilder(MERSIZE), F);
 
   fprintf(stderr, "BUILDING FULL\n");
   full = new positionDB(T, MERSIZE, 0, TBLSIZE,      0L,      0L, 0, true);

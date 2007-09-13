@@ -151,7 +151,8 @@ main(int argc, char **argv) {
       onlyDB = new existDB(config._onlyFileName, config._merSize, tblSize, 0, ~u32bitZERO, existDBcanonical | existDBcompressHash | existDBcompressBuckets);
     }
 
-    merStream *MS = new merStream(config._merSize, &config._useList);
+    kMerBuilder KB(config._merSize);
+    merStream  *MS = new merStream(&KB, &config._useList);
 
     positions = new positionDB(MS, config._merSize, config._merSkip, tblSize, maskDB, onlyDB, 0, config._beVerbose);
 

@@ -23,7 +23,7 @@ main(int argc, char **argv) {
   fprintf(stderr, "C: numSeqs "u32bitFMT" len "u64bitFMT"\n", C->numberOfSequences(), C->lengthOfSequences());
 
   for (u32bit i=0; i<A.numberOfSequences(); i++) {
-    printf("seq:"u32bitFMT" len:"u32bitFMT" start:"u32bitFMT" iid:"u32bitFMT"\n",
+    printf("seq:"u32bitFMT" len:"u64bitFMT" start:"u64bitFMT" iid:"u64bitFMT"\n",
            i, A.lengthOf(i), A.startOf(i), A.IIDOf(i));
   }
 
@@ -48,7 +48,9 @@ main(int argc, char **argv) {
 
   A.rewind();
 
-  merStream *MS = new merStream(24, &A);
+  kMerBuilder  KB(24);
+  merStream   *MS = new merStream(&KB, &A);
+
   while (MS->nextMer()) {
     char  mstr[1024];
 

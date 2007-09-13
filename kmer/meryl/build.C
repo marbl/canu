@@ -315,10 +315,11 @@ prepareBatch(merylArgs *args) {
 
 void
 runSegment(merylArgs *args, u64bit segment) {
-  seqStore            *R = 0L;
-  merStream           *M = 0L;
-  merylStreamWriter   *W = 0L;
-  speedCounter        *C = 0L;
+  seqStore            *R  = 0L;
+  kMerBuilder          KB(args->merSize);
+  merStream           *M  = 0L;
+  merylStreamWriter   *W  = 0L;
+  speedCounter        *C  = 0L;
   u32bit              *bucketSizes = 0L;
   u64bit              *bucketPointers = 0L;
   u64bit              *merDataArray[SORTED_LIST_WIDTH] = { 0L };
@@ -387,7 +388,7 @@ runSegment(merylArgs *args, u64bit segment) {
   C = new speedCounter(" Counting mers in buckets: %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, args->beVerbose);
 
   R = new seqStore(args->outputFile, 0L);
-  M = new merStream(args->merSize, R);
+  M = new merStream(&KB, R);
   M->setRange(args->mersPerBatch * segment, args->mersPerBatch * segment + args->mersPerBatch);
 
   if (args->doForward) {
@@ -456,7 +457,7 @@ runSegment(merylArgs *args, u64bit segment) {
   C = new speedCounter(" Filling mers into list:   %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, args->beVerbose);
 
   R = new seqStore(args->outputFile, 0L);
-  M = new merStream(args->merSize, R);
+  M = new merStream(&KB, R);
   M->setRange(args->mersPerBatch * segment, args->mersPerBatch * segment + args->mersPerBatch);
 
   while (M->nextMer()) {

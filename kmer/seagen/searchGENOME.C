@@ -62,7 +62,8 @@ main(int argc, char **argv) {
       config._positions = new positionDB(config._tableFileName, true);
     }
   } else {
-    merStream *MS = new merStream(config._merSize, &config._useList);
+    kMerBuilder KB(config._merSize);
+    merStream  *MS = new merStream(&KB, &config._useList);
     config._positions = new positionDB(MS, config._merSize, config._merSkip, 0, 0L, 0L, 0, config._beVerbose);
     delete    MS;
 

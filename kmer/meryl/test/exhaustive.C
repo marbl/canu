@@ -23,8 +23,8 @@
 //
 int
 kMerLiteSort(void const *a, void const *b) {
-  kMerLite const *A = *((kMerLite const **)a);
-  kMerLite const *B = *((kMerLite const **)b);
+  kMerLite const *A = *((kMerLite * const *)a);
+  kMerLite const *B = *((kMerLite * const *)b);
 
   if (*A < *B) return(-1);
   if (*A > *B) return(1);
@@ -113,11 +113,10 @@ main(int argc, char **argv) {
     //
     fprintf(stderr, "STEP 2 BATCH "u32bitFMTW(2)":  Stream fasta\n", batch);
     seqStream    *CS = new seqStream(fastaName, true);
-    merStream    *MS = new merStream(merSize, CS);
+    merStream    *MS = new merStream(new kMerBuilder(merSize), CS);
 
     kMerLite       mer;
     dnode_t       *nod;
-    kMerLite      *nodmer;
 
     while (MS->nextMer()) {
       mer = MS->theFMer();
@@ -148,8 +147,8 @@ main(int argc, char **argv) {
     fprintf(stderr, "STEP 3 BATCH "u32bitFMTW(2)":  Check\n", batch);
     nod = dict_first(merDict);
     while (nod) {
-      s32bit val = (s32bit)dnode_get(nod);
-      nodmer = (kMerLite *)dnode_getkey(nod);
+      s32bit           val = (s32bit)dnode_get(nod); 
+      kMerLite const  *nodmer = (kMerLite const *)dnode_getkey(nod);
 
       if (val != 0) {
         char str[1024];

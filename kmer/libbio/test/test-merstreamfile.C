@@ -55,7 +55,7 @@ streamingTest(char *msfile, bool inCore) {
   int                  errors = 0;
   u64bit               compared = 0;
 
-  merStream    *merstr = new merStream(TEST_SIZE, new seqStream(msfile, true));
+  merStream    *merstr = new merStream(new kMerBuilder(TEST_SIZE), new seqStream(msfile, true));
   seqStore     *seqsto = new seqStore(msfile, new seqStream(msfile, true));
 
   if (inCore)
@@ -70,7 +70,7 @@ streamingTest(char *msfile, bool inCore) {
               merstr->theFMer().merToString(stra));
     }
     delete merstr;
-    merstr = new merStream(TEST_SIZE, new seqStream(msfile, true));
+    merstr = new merStream(new kMerBuilder(TEST_SIZE), new seqStream(msfile, true));
     exit(1);
   }
 
@@ -87,7 +87,7 @@ streamingTest(char *msfile, bool inCore) {
     seqsto->rewind();
   }
 
-  merStream    *mersto = new merStream(TEST_SIZE, seqsto);
+  merStream    *mersto = new merStream(new kMerBuilder(TEST_SIZE), seqsto);
 
   double startTime = getTime();
 
@@ -128,9 +128,9 @@ randomAccessTest(char *msfile, bool inCore) {
 
   u64bit               merNum   = 0;
 
-  merStream           *merstr = new merStream(TEST_SIZE, new seqStream(msfile, true));
+  merStream           *merstr = new merStream(new kMerBuilder(TEST_SIZE), new seqStream(msfile, true));
   seqStore            *seqsto = new seqStore(msfile, new seqStream(msfile, true));
-  merStream           *mersto = new merStream(TEST_SIZE, seqsto);
+  merStream           *mersto = new merStream(new kMerBuilder(TEST_SIZE), seqsto);
 
   if (inCore)
     seqsto->loadStoreInCore();

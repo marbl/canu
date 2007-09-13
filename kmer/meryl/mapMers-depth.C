@@ -51,8 +51,10 @@ main(int argc, char **argv) {
   seqFile       *F = openSeqFile(fastaFile);
   seqInCore     *S = F->getSequenceInCore();
 
+  kMerBuilder KB(merSize);
+
   while (S) {
-    merStream             *MS = new merStream(merSize, S);
+    merStream             *MS = new merStream(&KB, S);
 
     u32bit                 idlen = 0;
     intervalDepthRegions  *id    = new intervalDepthRegions [S->sequenceLength() * 2 + 2];

@@ -53,8 +53,10 @@ main(int argc, char **argv) {
   u32bit        *C    = new u32bit [Cmax];
 #endif
 
+  kMerBuilder KB(merSize);
+
   while (S) {
-    merStream  *MS = new merStream(merSize, S);
+    merStream  *MS = new merStream(&KB, S);
 
 #ifdef COVEREDREGIONS
     u64bit    beg = ~u64bitZERO;

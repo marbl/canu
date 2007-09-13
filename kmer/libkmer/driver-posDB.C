@@ -56,7 +56,8 @@ char const *usage =
 int
 test1(char *filename) {
   seqStream         *C       = new seqStream(filename, true);
-  merStream         *T       = new merStream(MERSIZE, C);
+  kMerBuilder        KB(MERSIZE);
+  merStream         *T       = new merStream(&KB, C);
   positionDB        *M       = new positionDB(T, MERSIZE, 0, TBLSIZE, 0L, 0L, 0, true);
   u64bit            *posn    = new u64bit [1024];
   u64bit             posnMax = 1024;
@@ -115,7 +116,8 @@ test1(char *filename) {
 int
 test2(char *filename, char *query) {
   seqStream         *C       = new seqStream(filename, true);
-  merStream         *T       = new merStream(MERSIZE, C);
+  kMerBuilder        KB(MERSIZE);
+  merStream         *T       = new merStream(&KB, C);
   positionDB        *M       = new positionDB(T, MERSIZE, 0, TBLSIZE, 0L, 0L, 0, true);
   u64bit            *posn    = new u64bit [1024];
   u64bit             posnMax = 1024;
@@ -126,7 +128,7 @@ test2(char *filename, char *query) {
   delete C;
 
   C = new seqStream(query, true);
-  T = new merStream(MERSIZE, C);
+  T = new merStream(&KB, C);
 
   while (T->nextMer()) {
     if (M->get(T->theFMer(),
@@ -256,14 +258,17 @@ main(int argc, char **argv) {
     exit(1);
   }
 
+
+  kMerBuilder        KB(mersize);
+
   //  We need a merStreamFile to implement -merbegin (using
   //  seekToMer()) and -merend (using setIterationLimit()).
   //
   if ((merBegin > 0) || (merEnd < numMers)) {
     seqsto = new seqStore(outputFile, &SS);
-    MS     = new merStream(mersize, seqsto);
+    MS     = new merStream(&KB, seqsto);
   } else {
-    MS = new merStream(mersize, &SS);
+    MS = new merStream(&KB, &SS);
   }
 
 

@@ -27,7 +27,8 @@ main(int argc, char **argv) {
   speedCounter          SC(" %8f frags (%8.5f frags/sec)\r", 1, 1000, true);
 
   while (S) {
-    merStream     *MS = new merStream(22, S);
+    kMerBuilder    KB(22);
+    merStream     *MS = new merStream(&KB, S);
 
     IL.clear();
 

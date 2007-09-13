@@ -102,21 +102,20 @@ multipleOperations(merylArgs *args) {
     //  Load thisMer with the first valid mer
     for (u32bit i=0; i<args->mergeFilesLen && !moreInput; i++)
       if (R[i]->validMer()) {
-        moreInput     = true;
-        thisCount     = R[i]->theCount();
-        thisFile      = i;
-        thisMer.copy(R[i]->theFMer());
+        moreInput = true;
+        thisCount = R[i]->theCount();
+        thisFile  = i;
+        thisMer   = R[i]->theFMer();
       }
 
     //  Now find the smallest one
     if (moreInput) {
       for (u32bit i=thisFile+1; i<args->mergeFilesLen; i++)
         if ((R[i]->validMer()) && (R[i]->theFMer()) < thisMer) {
-          moreInput     = true;
-          thisCount     = R[i]->theCount();
-          thisFile      = i;
-
-          thisMer.copy(R[i]->theFMer());
+          moreInput = true;
+          thisCount = R[i]->theCount();
+          thisFile  = i;
+          thisMer   = R[i]->theFMer();
         }
     }
 
@@ -155,7 +154,7 @@ multipleOperations(merylArgs *args) {
           break;
       }
 
-      currentMer.copy(thisMer);
+      currentMer = thisMer;
 
       currentCount = u32bitZERO;
       currentTimes = u32bitZERO;

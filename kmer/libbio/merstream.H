@@ -36,23 +36,19 @@
 
 class merStream {
 private:
-  void initialize(u32bit merSize);
+  void initialize(kMerBuilder *kb);
 public:
-  merStream(u32bit merSize, seqStore *ss);
-  merStream(u32bit merSize, seqStream *cs);
-  merStream(u32bit merSize, seqInCore *seq, u32bit offset=0, u32bit length=0);
-  merStream(u32bit merSize, char *seq, u32bit offset=0, u32bit length=0);
+  merStream(kMerBuilder *kb, seqStore *ss);
+  merStream(kMerBuilder *kb, seqStream *cs);
+  merStream(kMerBuilder *kb, seqInCore *seq, u32bit offset=0, u32bit length=0);
+  merStream(kMerBuilder *kb, char *seq, u32bit offset=0, u32bit length=0);
   ~merStream();
 
-  u32bit                 theMerSize(void) { return(_merSize); };
-
-  kMer const &           theFMer(void)    { return(_fMer); };
-  kMer const &           theRMer(void)    { return(_rMer); };
-  kMer const &           theCMer(void)    { return((_fMer < _rMer) ? _fMer : _rMer); };
+  kMer const &           theFMer(void)    { return(_kb->theFMer()); };
+  kMer const &           theRMer(void)    { return(_kb->theRMer()); };
+  kMer const &           theCMer(void)    { return(_kb->theCMer()); };
 
   bool                   nextMer(u32bit skip=0);
-
-public:
 
   //  Everyone can rewind back to the start, and it's boring.
   //  Slightly more efficient than just opening a new stream.
@@ -66,17 +62,17 @@ public:
   bool                   rewind(void);
   bool                   setRange(u64bit beg, u64bit end);
 
-public:
   u64bit                 thePositionInSequence(void);
   u64bit                 thePositionInStream(void);
   u64bit                 theSequenceNumber(void);
   u64bit                 approximateNumberOfMers(void);
 
 private:
-  void                   loadMer(u32bit s);
   u64bit                 nextSym(void);
 
 private:
+  kMerBuilder          *_kb;
+
   seqStore             *_ss_file;
   u64bit                _ss_beg;
   u64bit                _ss_end;
@@ -92,10 +88,6 @@ private:
   u32bit                _st_num;
 
   u32bit                _merSize;
-  s64bit                _timeUntilValid;
-
-  kMer                  _fMer;
-  kMer                  _rMer;
 };
 
 
@@ -201,103 +193,20 @@ merStream::nextSym(void) {
 
 
 
-
-//  We have a problem; at the start of a stream, we want to
-//  initialize the mer with merSize-1 bases.  In the middle of the
-//  stream, we need to load the mer with merSize bases.
-//
-//  loadMer will push s bases onto the mer, restarting if it hits a
-//  mer break.
-//
-//  No masking of the mer is performed.
-//
-inline
-void
-merStream::loadMer(u32bit s) {
-  u64bit   ch = 255;
-  u64bit   cf = 0;
-  u64bit   cr = 0;
-
-  _fMer.clear();
-  _rMer.clear();
-
-  _timeUntilValid = s;
-
-  //  While we are invalid, and still in the sequence
-  //  push characters onto the mer.  The valid
-  //  count is updated if we hit an invalid base.
-  //
-  while ((_timeUntilValid > 0) && (ch != 0)) {
-    ch = nextSym();
-    cf = validCompressedSymbol[ch];
-
-    //  Rather than take the chance of generating a cache miss accessing
-    //  another array, we just mask out the upper bits of validCompressedSymbol[];
-    //  this is exactly the same as using compressSymbol[].
-    //
-    //  We need to mask the upper bits for reverse (but not for forward)
-    //  because, in reverse, we shift to the right.  If we don't mask theseq
-    //  out, we will have extra bits set in the mer.
-    //
-    //  Example: Consider placing 255 (== 11111111, the invalid symbol returned
-    //  from validCompressedSymbol) at the fourth base in a four mer:
-    //    000000**xxxxxx -- the ** are is the fourth base.
-    //
-    //  Without masking, we'd set all the 0's and all the *'s to one, in effect,
-    //  preloading the next three bases of the mer.
-    //
-    cr = validCompressedSymbol[complementSymbol[ch]] & 0x03;
-
-    _timeUntilValid--;
-
-    //  If we get a break, reset the counter a re-clear the mer
-    //
-    if (cf & 0xfc) {
-      _timeUntilValid = s;
-      _fMer.clear();
-      _rMer.clear();
-    }
-
-    //  If the ch is valid, we can obviously add it to the mer.
-    //  If it is invalid, we don't care; by the time the mer is valid
-    //  all bits of any invalid mers are removed.  Sure, we could
-    //  put this into the else, but I suspect that it will be faster outside.
-    //
-    _fMer += cf;
-    _rMer -= cr;
-  }
-}
-
-
 inline
 bool
 merStream::nextMer(u32bit skip) {
+  bool    needMore = true;
 
   do {
-    u64bit  ch = nextSym();
-    u64bit  cf = validCompressedSymbol[ch];
-    u64bit  cr = validCompressedSymbol[complementSymbol[ch]] & 0x03;
-
-    //  EOF?
+    char ch = nextSym();
     if (ch == 0)
       return(false);
 
-    //  Push the ch onto the mer.
-    //
-    _fMer += cf;
-    _rMer -= cr;
+    needMore = _kb->addBase(ch);
+  } while ((needMore == true) || (skip-- > 0));
 
-    //  If the ch is invalid, we need to make a whole new mer.
-    //  This also implies that we're done skipping.
-    //
-    if (cf & (unsigned char)0xfc) {
-      loadMer(_merSize);
-      skip = 0;
-    }
-  } while (skip--);
-
-  _fMer.mask(true);
-  _rMer.mask(false);
+  _kb->mask();
 
   //  Compute if we've hit our iteration limit.
   //
@@ -307,13 +216,9 @@ merStream::nextMer(u32bit skip) {
             _ss_file->acgtPos(), _merSize, _ss_file->acgtPos() - _merSize + 1, _ss_end);
 #endif
   if ((_ss_file) && (_ss_end <= _ss_file->acgtPos() - _merSize + 1))
-    return(0);
+    return(false);
 
-  //  Still need to check if we are valid -- we could
-  //  have run off the end of the sequence before a valid
-  //  mer was created.
-  //
-  return(_timeUntilValid <= 0);
+  return(true);
 }
 
 #endif  //  MERSTREAM_H

@@ -58,7 +58,8 @@ main(int argc, char **argv) {
 
     //  Build the initial masking
     //
-    merStream  *MS = new merStream(merSize, S);
+    kMerBuilder   KB(merSize);
+    merStream    *MS = new merStream(&KB, S);
     while (MS->nextMer())
       if (exist->exists(MS->theFMer()) || exist->exists(MS->theRMer()))
         mask[MS->thePositionInSequence()] = true;

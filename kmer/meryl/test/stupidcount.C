@@ -25,7 +25,7 @@ main(int argc, char **argv) {
   }
 
   seqStream       *CS = new seqStream(seqName, true);
-  merStream       *MS = new merStream(merSize, CS);
+  merStream       *MS = new merStream(new kMerBuilder(merSize), CS);
   char             str[1024];
 
   while (MS->nextMer())

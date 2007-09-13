@@ -141,7 +141,8 @@ estimate(merylArgs *args) {
 
   if (args->inputFile) {
     seqStream         *SS = new seqStream(args->inputFile, true);
-    merStream          M(args->merSize, SS);
+    kMerBuilder        KB(args->merSize);
+    merStream          M(&KB, SS);
     speedCounter       C(" %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, args->beVerbose);
 
     if (args->beVerbose)

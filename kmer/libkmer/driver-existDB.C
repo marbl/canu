@@ -58,7 +58,8 @@ int
 testExistence(char *filename, u32bit merSize, u32bit tblSize) {
   existDB         *E      = new existDB(filename, merSize, tblSize);
   seqStream       *C      = new seqStream(filename, true);
-  merStream       *M      = new merStream(merSize, C);
+  kMerBuilder      KB(merSize);
+  merStream       *M      = new merStream(&KB, C);
   u64bit           tried  = 0;
   u64bit           lost   = 0;
 

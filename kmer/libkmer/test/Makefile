@@ -5,7 +5,7 @@ include ../../Make.compilers
 
 all: test-maskonly-passed position-passed
 	@echo "existDB has expensive tests.  They take:"
-	@echo "  70 minutes on 2.0GHz G5 (old)"
+	@echo "  17 minutes on 1.8GHz Quadxeon (with KMER=1)"
 	@echo "  60 minutes on 2.8GHz P4 (with KMER=1)"
 	@echo " 120 minutes on 2.0GHz G5 (with KMER=8)"
 	@echo "If you really want to run them, do 'make exist-passed'."

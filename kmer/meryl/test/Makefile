@@ -6,7 +6,7 @@ MERSIZE = 26
 
 include ../../Make.compilers
 
-all:  $(PROG)
+all:  $(PROG) test-reduce
 
 stupidcount: stupidcount.C
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o stupidcount.o stupidcount.C $(INCLUDE)

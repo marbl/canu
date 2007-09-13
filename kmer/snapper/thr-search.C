@@ -113,7 +113,11 @@ doSearch(searcherState       *state,
       seqInCore            *GENseq = cache->getSequenceInCore(theHits[h]._dsIdx);
       u32bit                GENlo  = theHits[h]._dsLo;
       u32bit                GENhi  = theHits[h]._dsHi;
-      merStream            *MS     = new merStream(config._merSize, GENseq, GENlo, GENhi - GENlo);
+
+#warning this kMerBuilder should be in config
+      kMerBuilder           KB(config._merSize);
+
+      merStream            *MS     = new merStream(&KB, GENseq, GENlo, GENhi - GENlo);
       positionDB           *PS     = new positionDB(MS, config._merSize, 0, 20, 0L, 0L, 0, false);
       hitMatrix            *HM     = new hitMatrix(seq->sequenceLength(), qMers, idx);
 

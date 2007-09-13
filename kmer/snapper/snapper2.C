@@ -318,7 +318,8 @@ main(int argc, char **argv) {
     if (config._useList.lengthOfSequences() <  2 * 1024 * 1024) tblSize = 21;
     if (config._useList.lengthOfSequences() <  1 * 1024 * 1024) tblSize = 20;
 
-    merStream *MS = new merStream(config._merSize, &config._useList);
+    kMerBuilder KB(config._merSize);
+    merStream  *MS = new merStream(&KB, &config._useList);
 
     positions = new positionDB(MS, config._merSize, config._merSkip, tblSize,
                                maskDB, onlyDB, config._ignoreThreshold, config._beVerbose);

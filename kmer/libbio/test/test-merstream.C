@@ -68,8 +68,8 @@ test1(merStream *S, char *id, int offset) {
 
 
 int
-test2(merStream *MS1,
-      merStream *MS2) {
+test2(merStream *MSa,
+      merStream *MSb) {
   static char  stra[256], strb[256], strc[256], strd[256];
   int e = 0;
 
@@ -77,34 +77,34 @@ test2(merStream *MS1,
 
   //  Run through all the mers, making sure they are all the same
   //
-  while (MS1->nextMer() && MS2->nextMer()) {
+  while (MSa->nextMer() && MSb->nextMer()) {
 
 #if 0
     //  If you're curious that things are actually non-zero...
-    fprintf(stderr, "STAT: MS1: "u64bitHEX","u64bitHEX"@"u64bitFMT"/"u64bitFMT","u64bitFMT"  MS2: "u64bitHEX","u64bitHEX"@"u64bitFMT"/"u64bitFMT","u64bitFMT"\n",
-            (u64bit)MS1->theFMer(), (u64bit)MS1->theRMer(), MS1->thePositionInSequence(), MS1->thePositionInStream(), MS1->theSequenceNumber(),
-            (u64bit)MS2->theFMer(), (u64bit)MS2->theRMer(), MS2->thePositionInSequence(), MS2->thePositionInStream(), MS2->theSequenceNumber(),
+    fprintf(stderr, "STAT: MSa: "u64bitHEX","u64bitHEX"@"u64bitFMT"/"u64bitFMT","u64bitFMT"  MSb: "u64bitHEX","u64bitHEX"@"u64bitFMT"/"u64bitFMT","u64bitFMT"\n",
+            (u64bit)MSa->theFMer(), (u64bit)MSa->theRMer(), MSa->thePositionInSequence(), MSa->thePositionInStream(), MSa->theSequenceNumber(),
+            (u64bit)MSb->theFMer(), (u64bit)MSb->theRMer(), MSb->thePositionInSequence(), MSb->thePositionInStream(), MSb->theSequenceNumber(),
 #endif
 
-    if ((MS1->theFMer()               != MS2->theFMer())               ||
-        (MS1->theRMer()               != MS2->theRMer())               ||
-        (MS1->thePositionInSequence() != MS2->thePositionInSequence()) ||
-        (MS1->thePositionInStream()   != MS2->thePositionInStream())   ||
-        (MS1->theSequenceNumber()     != MS2->theSequenceNumber())) {
-      fprintf(stderr, "OOPS: MS1: %s/%s @ "u64bitFMT"/"u64bitFMT","u64bitFMT"  MS2: %s/%s @ "u64bitFMT"/"u64bitFMT","u64bitFMT"\n",
-              MS1->theFMer().merToString(stra), MS1->theRMer().merToString(strb), MS1->thePositionInSequence(), MS1->thePositionInStream(), MS1->theSequenceNumber(),
-              MS2->theFMer().merToString(strc), MS2->theRMer().merToString(strd), MS2->thePositionInSequence(), MS2->thePositionInStream(), MS2->theSequenceNumber());
-      //fprintf(stderr, "MS1:\n"); MS1->theFMer().dump(stderr);
-      //fprintf(stderr, "MS2:\n"); MS2->theFMer().dump(stderr);
+    if ((MSa->theFMer()               != MSb->theFMer())               ||
+        (MSa->theRMer()               != MSb->theRMer())               ||
+        (MSa->thePositionInSequence() != MSb->thePositionInSequence()) ||
+        (MSa->thePositionInStream()   != MSb->thePositionInStream())   ||
+        (MSa->theSequenceNumber()     != MSb->theSequenceNumber())) {
+      fprintf(stderr, "OOPS: MSa: %s/%s @ "u64bitFMT"/"u64bitFMT","u64bitFMT"  MSb: %s/%s @ "u64bitFMT"/"u64bitFMT","u64bitFMT"\n",
+              MSa->theFMer().merToString(stra), MSa->theRMer().merToString(strb), MSa->thePositionInSequence(), MSa->thePositionInStream(), MSa->theSequenceNumber(),
+              MSb->theFMer().merToString(strc), MSb->theRMer().merToString(strd), MSb->thePositionInSequence(), MSb->thePositionInStream(), MSb->theSequenceNumber());
+      //fprintf(stderr, "MSa:\n"); MSa->theFMer().dump(stderr);
+      //fprintf(stderr, "MSb:\n"); MSb->theFMer().dump(stderr);
     }
     C.tick();
   }
   C.finish();
 
-  if (MS1->nextMer())
-    fprintf(stderr, "merStream(msfr): Still has mers!\n"), e++;
-  if (MS2->nextMer())
-    fprintf(stderr, "merStream(file): Still has mers!\n"), e++;
+  if (MSa->nextMer())
+    fprintf(stderr, "merStream MSa still has mers!\n"), e++;
+  if (MSb->nextMer())
+    fprintf(stderr, "merStream MSb still has mers!\n"), e++;
 
   fprintf(stderr, "test2() finished.\n");
 
@@ -126,11 +126,11 @@ main(int argc, char **argv) {
   seqStore   *SS = new seqStore(argv[1], new seqStream(argv[1], true));
   seqStream  *CS = new seqStream(argv[1], true);
 
-  merStream   *MS1 = new merStream(27, SS);
-  merStream   *MS2 = new merStream(27, CS);
+  kMerBuilder  KB1(27);
+  merStream   *MS1 = new merStream(&KB1, SS);
 
-  //MS1->rewind();
-  //MS2->rewind();
+  kMerBuilder  KB2(27);
+  merStream   *MS2 = new merStream(&KB2, CS);
 
   fprintf(stderr, "test2()-- pass 1\n");
   e += test2(MS1, MS2);
@@ -146,7 +146,9 @@ main(int argc, char **argv) {
 
   if (SF->getNumberOfSequences() == 1) {
     seqInCore  *SC  = SF->getSequenceInCore();
-    merStream  *MS3 = new merStream(27, SC);
+
+    kMerBuilder  KB3(27);
+    merStream  *MS3 = new merStream(&KB3, SC);
 
     MS1->rewind();
     MS2->rewind();
