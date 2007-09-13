@@ -73,7 +73,10 @@ if [ x$python = x ] ; then
 fi
 python=`dirname $python`
 python=`dirname $python`
-if [ -e $python/include/python2.4/Python.h ]
+if [ -e $python/include/python2.5/Python.h ]
+then
+  CFLAGS_PYTHON="-I$python/include/python2.5"
+elif [ -e $python/include/python2.4/Python.h ]
 then
   CFLAGS_PYTHON="-I$python/include/python2.4"
 elif [ -e $python/include/python2.3/Python.h ]
@@ -82,6 +85,9 @@ then
 elif [ -e $python/include/python2.2/Python.h ]
 then
   CFLAGS_PYTHON="-I$python/include/python2.2"
+elif [ -e /usr/local/include/python2.5/Python.h ]
+then
+  CFLAGS_PYTHON="-I/usr/local/include/python2.5"
 elif [ -e /usr/local/include/python2.4/Python.h ]
 then
   CFLAGS_PYTHON="-I/usr/local/include/python2.4"
@@ -230,13 +236,13 @@ THREADS           := -D_THREAD_SAFE -pthread
 THREADL           := -pthread
 CC                := cc
 SHLIB_FLAGS       := -shared
-CFLAGS_COMPILE    := -g \$(THREADS) -Wall -Wno-char-subscripts -Wshadow -Wpointer-arith -Wcast-qual \
+CFLAGS_COMPILE    := -g \$(THREADS) -fPIC -Wall -Wno-char-subscripts -Wshadow -Wpointer-arith -Wcast-qual \
   -Wcast-align -Wwrite-strings -Wconversion -Wstrict-prototypes -Wmissing-prototypes \
   -Wmissing-declarations -Wnested-externs  
 CLDFLAGS          := -L/usr/local/lib
 CLIBS             := \$(THREADL)
 CXX               := g++
-CXXFLAGS_COMPILE  := -g \$(THREADS) -Wall -Wno-char-subscripts -Wshadow -Wpointer-arith -Wcast-qual \
+CXXFLAGS_COMPILE  := -g \$(THREADS) -fPIC -Wall -Wno-char-subscripts -Wshadow -Wpointer-arith -Wcast-qual \
   -Wcast-align -Wwrite-strings -Wconversion
 CXXLDFLAGS        := -L/usr/local/lib
 CXXLIBS           := \$(THREADL)
