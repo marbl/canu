@@ -79,11 +79,14 @@ test2(merStream *MSa,
   //
   while (MSa->nextMer() && MSb->nextMer()) {
 
-#if 0
+#if 1
     //  If you're curious that things are actually non-zero...
-    fprintf(stderr, "STAT: MSa: "u64bitHEX","u64bitHEX"@"u64bitFMT"/"u64bitFMT","u64bitFMT"  MSb: "u64bitHEX","u64bitHEX"@"u64bitFMT"/"u64bitFMT","u64bitFMT"\n",
-            (u64bit)MSa->theFMer(), (u64bit)MSa->theRMer(), MSa->thePositionInSequence(), MSa->thePositionInStream(), MSa->theSequenceNumber(),
-            (u64bit)MSb->theFMer(), (u64bit)MSb->theRMer(), MSb->thePositionInSequence(), MSb->thePositionInStream(), MSb->theSequenceNumber(),
+    fprintf(stderr, "STAT: MSa: %s/%s @ "u64bitFMT"/"u64bitFMT","u64bitFMT"  MSb: %s/%s @ "u64bitFMT"/"u64bitFMT","u64bitFMT"\n",
+            MSa->theFMer().merToString(stra), MSa->theRMer().merToString(strb), MSa->thePositionInSequence(), MSa->thePositionInStream(), MSa->theSequenceNumber(),
+            MSb->theFMer().merToString(strc), MSb->theRMer().merToString(strd), MSb->thePositionInSequence(), MSb->thePositionInStream(), MSb->theSequenceNumber());
+    //fprintf(stderr, "STAT: MSa: "u64bitHEX","u64bitHEX"@"u64bitFMT"/"u64bitFMT","u64bitFMT"  MSb: "u64bitHEX","u64bitHEX"@"u64bitFMT"/"u64bitFMT","u64bitFMT"\n",
+    //        (u64bit)MSa->theFMer(), (u64bit)MSa->theRMer(), MSa->thePositionInSequence(), MSa->thePositionInStream(), MSa->theSequenceNumber(),
+    //        (u64bit)MSb->theFMer(), (u64bit)MSb->theRMer(), MSb->thePositionInSequence(), MSb->thePositionInStream(), MSb->theSequenceNumber());
 #endif
 
     if ((MSa->theFMer()               != MSb->theFMer())               ||

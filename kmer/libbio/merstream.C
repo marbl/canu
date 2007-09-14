@@ -16,8 +16,6 @@ merStream::initialize(kMerBuilder *kb) {
   _st_posInStr     = 0;
   _st_num          = 0;
 
-  _merSize         = kb->theFMer().getMerSize();
-
   _kb->clear();
 }
 

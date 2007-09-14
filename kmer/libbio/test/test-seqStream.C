@@ -48,7 +48,8 @@ main(int argc, char **argv) {
 
   A.rewind();
 
-  kMerBuilder  KB(24);
+  //  24,3
+  kMerBuilder  KB(8, 3);
   merStream   *MS = new merStream(&KB, &A);
 
   while (MS->nextMer()) {

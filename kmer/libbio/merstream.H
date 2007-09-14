@@ -86,37 +86,34 @@ private:
   u64bit                _st_posInSeq;
   u64bit                _st_posInStr;
   u32bit                _st_num;
-
-  u32bit                _merSize;
 };
 
 
 
-
 //  Why the +1?  seqStream->seqPos() returns the position that the
-//  last character retrieved is at.  We need to go back _merSize-1
+//  last character retrieved is at.  We need to go back getMerSpan()
 //  positions to get to the start of the mer.
 
 inline
 u64bit
 merStream::thePositionInSequence(void) {
   if      (_ss_file)
-    return(_ss_file->seqPos() + 1 - _merSize);
+    return(_ss_file->seqPos() + 1 - theFMer().getMerSpan());
   else if (_cs_stream)
-    return(_cs_stream->seqPos() + 1 - _merSize);
+    return(_cs_stream->seqPos() + 1 - theFMer().getMerSpan());
   else
-    return(_st_posInSeq - _merSize);
+    return(_st_posInSeq - theFMer().getMerSpan());
 }
 
 inline
 u64bit
 merStream::thePositionInStream(void) {
   if      (_ss_file)
-    return(_ss_file->strPos() + 1 - _merSize);
+    return(_ss_file->strPos() + 1 - theFMer().getMerSpan());
   else if (_cs_stream)
-    return(_cs_stream->strPos() + 1 - _merSize);
+    return(_cs_stream->strPos() + 1 - theFMer().getMerSpan());
   else
-    return(_st_stringPos - _merSize);
+    return(_st_stringPos - theFMer().getMerSpan());
 }
 
 inline
@@ -213,9 +210,9 @@ merStream::nextMer(u32bit skip) {
 #if 0
   if (_ss_file)
     fprintf(stderr, "acgtPos: "u64bitFMT" - "u32bitFMT" + 1 == "u64bitFMT";  _ss_end "u64bitFMT"\n",
-            _ss_file->acgtPos(), _merSize, _ss_file->acgtPos() - _merSize + 1, _ss_end);
+            _ss_file->acgtPos(), theFMer().getMerSpan(), _ss_file->acgtPos() - theFMer().getMerSpan() + 1, _ss_end);
 #endif
-  if ((_ss_file) && (_ss_end <= _ss_file->acgtPos() - _merSize + 1))
+  if ((_ss_file) && (_ss_end <= _ss_file->acgtPos() - theFMer().getMerSpan() + 1))
     return(false);
 
   return(true);

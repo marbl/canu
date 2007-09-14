@@ -10,6 +10,9 @@ public:
   void    setMerSize(u32bit ms);
   u32bit  getMerSize(void) const { return(_merSize); };
 
+  void    setMerSpan(u32bit ms)  { _merSpan = ms; };
+  u32bit  getMerSpan(void) const { return(_merSpan); };
+
   kMerTiny  &reverseComplement(void) {
     _md = reverseComplementMer(_merSize, _md);
     return(*this);
@@ -93,6 +96,7 @@ private:
   //  are a spaced seed, it is the weight.
   //
   u32bit   _merSize;
+  u32bit   _merSpan;
 
   //  The mask is used to make sure the mer has only _merSize bases
   //  set -- we can get more than that if we shift to the left.  The
@@ -113,6 +117,7 @@ inline
 void
 kMerTiny::setMerSize(u32bit ms) {
   _merSize   = ms;
+  _merSpan   = ms;
   _lastShift = (2 * ms - 2) % 64;
   _mask      = u64bitMASK(_merSize  << 1);
 }
