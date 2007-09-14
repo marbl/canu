@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.57 2007-09-05 11:22:10 brianwalenz Exp $
- * $Revision: 1.57 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.58 2007-09-14 20:32:15 eliv Exp $
+ * $Revision: 1.58 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.57 2007-09-05 11:22:10 brianwalenz Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.58 2007-09-14 20:32:15 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -923,10 +923,11 @@ namespace AS_BOG{
 				total_arrival_frags += unitig_random_frags;
                 (*iter)->setLocalArrivalRate( unitig_random_frags / avg_rho );
 			}
-            std::cerr << "Calculated Global Arrival rate " << _globalArrivalRate <<
-                std::endl;
 			// Estimate GAR
             _globalArrivalRate = (total_rho > 0) ? (total_arrival_frags / total_rho): 0;
+
+            std::cerr << "Calculated Global Arrival rate " << _globalArrivalRate <<
+                std::endl;
             // Now recalculate based on big unitigs, copied from AS_CGB/AS_CGB_cgb.c
             if (rho_gt_10000 * 20000 > total_rho) {
                 float min_10_local_arrival_rate          = _globalArrivalRate;
