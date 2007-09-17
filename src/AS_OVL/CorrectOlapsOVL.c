@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CorrectOlapsOVL.c,v 1.24 2007-08-23 15:00:00 adelcher Exp $
- * $Revision: 1.24 $
+ * $Id: CorrectOlapsOVL.c,v 1.25 2007-09-17 15:09:11 adelcher Exp $
+ * $Revision: 1.25 $
 */
 
-static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.24 2007-08-23 15:00:00 adelcher Exp $";
+static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.25 2007-09-17 15:09:11 adelcher Exp $";
 
 
 //  System include files
@@ -365,6 +365,7 @@ int  main
    fprintf (stderr, "Starting Correct_Frags ()\n");
    Correct_Frags ();
 
+//**ALD
 //   Display_Frags ();
 
    fprintf (stderr, "Starting Read_Olaps ()\n");
