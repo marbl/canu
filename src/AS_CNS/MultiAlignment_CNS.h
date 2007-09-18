@@ -356,8 +356,7 @@ void ResetBaseCount(BaseCount *b);
 int IncBaseCount(BaseCount *b,char c);
 char GetConfMM(BaseCount *b,int mask);
 int BaseToInt(char c);
-int32 AppendFragToLocalStore(FragType, int32, int , int32 ,
-                             char *, UnitigType , MultiAlignStoreT *);
+
 int GetAlignmentTrace(int32 , int32 , int32 , int32 *, int32 , 
                       VA_TYPE(int32) *, OverlapType *,
                       Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
