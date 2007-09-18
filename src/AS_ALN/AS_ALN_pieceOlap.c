@@ -638,8 +638,7 @@ fprintf(stdout,"init bestbeg2:%d %d\n",bestbeg2a,bestbeg2b);
   assert(O->chain[piece1].agap==0||O->chain[piece1].bgap==0);
 
   // now, adjust the segments to trim off any mismatches at trimmed ends
-  while(pair_align1->aseg[bestinto1]!=pair_align1->bseg[bestinto1]&&
-	bestinto1>=0){
+  while ((bestinto1 >= 0) && (pair_align1->aseg[bestinto1] != pair_align1->bseg[bestinto1])) {
     bestend1a -= ( pair_align1->aseg[bestinto1]!='-'  ? 1 : 0 );
     bestend1b -= ( pair_align1->bseg[bestinto1]!='-'  ? 1 : 0 );
 #ifdef DEBUG_FIX_OLAP
