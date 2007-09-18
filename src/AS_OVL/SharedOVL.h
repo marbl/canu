@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: SharedOVL.h,v 1.7 2007-08-30 14:09:05 adelcher Exp $
- * $Revision: 1.7 $
+ * $Id: SharedOVL.h,v 1.8 2007-09-18 14:39:23 adelcher Exp $
+ * $Revision: 1.8 $
 */
 
 
@@ -100,7 +100,7 @@
   // Substitution
 #define  HOMOPOLY_SCORE_BITS      13
   // Number of bits to store scores in  Homopoly_Match_Entry_t
-#define  HOMOPOLY_VOTE_NUM         1
+#define  HOMOPOLY_VOTE_FACTOR      1
   // Number of votes for each occurrence of a character in a homopoly-type read
 #define  MAX_HOMOPOLY_SCORE       ((1 << HOMOPOLY_SCORE_BITS) - 1)
 //**ALD temporary for printouts
@@ -109,7 +109,7 @@
 #define  HOMOPOLY_SCORE_MULTIPLIER  4
   // Multiply the number of allowed errors by this to get the
   // score limit for alignments
-#define  STANDARD_VOTE_NUM         5
+#define  STANDARD_VOTE_FACTOR      5
   // Number of votes for each occurrence of a character in a non-homopoly-type read
 
 

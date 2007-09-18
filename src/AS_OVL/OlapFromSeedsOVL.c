@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.14 2007-08-30 14:09:05 adelcher Exp $
- * $Revision: 1.14 $
+ * $Id: OlapFromSeedsOVL.c,v 1.15 2007-09-18 14:39:23 adelcher Exp $
+ * $Revision: 1.15 $
 */
 
-static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.14 2007-08-30 14:09:05 adelcher Exp $";
+static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.15 2007-09-18 14:39:23 adelcher Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -501,7 +501,21 @@ if (0)
  putchar ('\n');
 }
 
-   Eliminate_Correlated_Diff_Olaps (sub, frag_len, insert_size);
+//**ALD
+   if (Check_Correlated_Differences)
+     {
+      int  eliminated;
+
+      eliminated = Eliminate_Correlated_Diff_Olaps (sub, mod_seq, mod_len,
+           mod_dp, n);
+
+      if (0 < eliminated)
+        {
+         // need to adjust mod_seq, mod_len and mod_dp here because of
+         // eliminated reads
+         ;
+        }
+     }
 
    // Output the overlaps
    for (i = 0; i < n; i ++)
@@ -528,12 +542,18 @@ if (0)
  Global_Debug_Flag = FALSE;
        }
 
+//**ALD
+// no longer include reference read in votes because of correlated
+// differences checking
+#if 0
    if (Frag [sub] . is_homopoly_type)
 //     Set_Self_Homopoly_Votes (sub, frag_len);
      Set_New_Self_Homopoly_Votes (vote, mod_seq, mod_len);
    else
 //     Set_Self_Votes (sub, frag_len);
      Set_New_Self_Votes (vote, mod_seq, mod_len);
+#endif
+
 
 //**ALD
    if (Verbose_Level > 1)
@@ -688,6 +708,30 @@ static int  By_B_IID
 
 
 
+static int  By_Diffs_And_Alpha
+  (const void * a, const void * b)
+
+//  Compare the values in  a  and  b  as  Difference_Signature_t 's
+//  first by  diff_ct  and then lexicographically
+//  Return  -1  if  a < b ,  0  if  a == b , and  1  if  a > b .
+//  Used for  qsort .
+
+  {
+   Difference_Signature_t  * x, * y;
+
+   x = (Difference_Signature_t *) a;
+   y = (Difference_Signature_t *) b;
+
+   if (x -> diff_ct < y -> diff_ct)
+     return -1;
+   else if (x -> diff_ct > y -> diff_ct)
+     return 1;
+   else
+     return strcmp (x -> seq, y -> seq);
+  }
+
+
+
 static void  Cast_Confirmation_Vote
   (Vote_Tally_t * vote)
 
@@ -755,27 +799,49 @@ static void  Cast_Insert_Vote
 
 
 static void  Cast_New_Vote_Char
-  (New_Vote_t * vp, char ch, int num)
+  (New_Vote_t * vp, char ch, Vote_Kind_t type)
 
-// Add  num  to the count corresponding to  ch  in  vp .
+// Increment the count corresponding to  ch  in  vp  for  type  kind
+// of sequence
 
   {
+   unsigned char  * p;
+
+   switch (type)
+     {
+      case  HOMOPOLY :
+        p = vp -> hp_char_ct;
+        break;
+      case  STANDARD :
+        p = vp -> nonhp_char_ct;
+        break;
+      default :
+        fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
+        fprintf (stderr, "Bad type %d\n", (int) type);
+        exit (EXIT_FAILURE);
+     }
+
    switch (tolower (ch))
      {
       case 'a' :
-        vp -> a_ct += num;
+        if (p [0] < MAX_VOTE)
+          p [0] ++;
         break;
       case 'c' :
-        vp -> c_ct += num;
+        if (p [1] < MAX_VOTE)
+          p [1] ++;
         break;
       case 'g' :
-        vp -> g_ct += num;
+        if (p [2] < MAX_VOTE)
+          p [2] ++;
         break;
       case 't' :
-        vp -> t_ct += num;
+        if (p [3] < MAX_VOTE)
+          p [3] ++;
         break;
       case '-' :
-        vp -> gap_ct += num;
+        if (p [4] < MAX_VOTE)
+          p [4] ++;
         break;
       default :
         fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
@@ -789,29 +855,38 @@ static void  Cast_New_Vote_Char
 
 
 static void  Cast_New_Vote_Code
-  (New_Vote_t * vp, unsigned code, int num)
+  (New_Vote_t * vp, unsigned code, Vote_Kind_t type)
 
-// Add  num  to the count corresponding to the character with code  code  in  vp .
+// Increment the count corresponding to the character with code  code  in  vp
+// for  type  kind of sequence
 
   {
-   switch (code)
+   unsigned char  * p;
+
+   switch (type)
      {
-      case 0 :
-        vp -> a_ct += num;
+      case  HOMOPOLY :
+        p = vp -> hp_char_ct;
         break;
-      case 1 :
-        vp -> c_ct += num;
-        break;
-      case 2 :
-        vp -> g_ct += num;
-        break;
-      case 3 :
-        vp -> t_ct += num;
+      case  STANDARD :
+        p = vp -> nonhp_char_ct;
         break;
       default :
         fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
-        fprintf (stderr, "Bad character code '%u\n", code);
+        fprintf (stderr, "Bad type %d\n", (int) type);
         exit (EXIT_FAILURE);
+     }
+
+   if (code < 4)
+     {
+      if (p [code] < MAX_VOTE)
+        p [code] ++;
+     }
+   else
+     {
+      fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
+      fprintf (stderr, "Bad character code '%u\n", code);
+      exit (EXIT_FAILURE);
      }
 
    return;
@@ -960,6 +1035,48 @@ static int  Char_Matches
      }
 
    return (x == code);
+  }
+
+
+
+static int  Char_To_Code
+  (char ch)
+
+// Return a value 0..4 corresponding to a,c,g,t,- respectively
+
+  {
+   char  * s = "acgt-";
+   char  * p;
+
+   p = strchr (s, tolower (ch));
+   if (p == NULL)
+     {
+      fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
+      fprintf (stderr, "Bad character %c (%d) not A,C,G,T,-\n", ch, (int) ch);
+      exit (EXIT_FAILURE);
+     }
+
+   return (p - s);
+  }
+
+
+
+static int  Code_To_Char
+  (unsigned int code)
+
+// Return character a,c,g,t,- corresponding to codes 0..4 respectively
+
+  {
+   char  * s = "acgt-";
+
+   if (code < 0 || 4 < code)
+     {
+      fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
+      fprintf (stderr, "Bad code %u\n", code);
+      exit (EXIT_FAILURE);
+     }
+
+   return s [code];
   }
 
 
@@ -1209,6 +1326,50 @@ static void  Convert_Delta_To_Diff
 
 
 
+static void  Count_From_Diff
+  (short int count [MAX_FRAG_LEN] [5], const char * seq, int seq_len,
+   const Sequence_Diff_t * dp)
+
+// Increment the values in  count  corresponding to the characters represented
+// by the diffs in  dp  to the reference sequence  seq  of length  seq_len .
+
+  {
+   int  j, k, m, sub;
+
+   j = dp -> a_lo;
+
+   for (k = 0; k < dp -> diff_len; k ++)
+     {
+      for (m = 0; m < dp -> de [k] . len; m ++)
+        {
+         sub = Char_To_Code (seq [j]);
+         count [j] [sub] ++;
+         j ++;
+        }
+
+      switch (dp -> de [k] . action)
+        {
+         case 0 :    // insert--shouldn't happen
+           break;
+         case 1 :    // delete
+           count [j] [4] ++;
+           j ++;
+           break;
+         case 2 :    // substitute
+           count [j] [dp -> de [k] . ch] ++;
+           j ++;
+           break;
+         case 3 :    // noop
+           // should be end of alignment
+           break;
+        }
+     }
+
+   return;
+  }
+
+
+
 static void  Determine_Homopoly_Corrections
     (FILE * fp, int sub, New_Vote_t * vote, char * seq,
      char * correct, int len)
@@ -1234,7 +1395,9 @@ static void  Determine_Homopoly_Corrections
         {  // end of prior homopoly run--adjust length if necessary
          if (i > 0 && hp_ch != 'x')
            {
-            new_hp_len = rint (EPSILON + (1.0 * hp_sum) / hp_ct);
+            new_hp_len = rint (EPSILON + (1.0 * hp_sum + hp_len) / (hp_ct + 1));
+              // add hp_len and 1 to account for reference sequence which is
+              // not included in the votes
             diff = new_hp_len - hp_len;
 //**ALD
 if (0)
@@ -1392,6 +1555,8 @@ if (0)
  printf ("%3d:  %c  hp_ct=%d  hp_sum=%d  hp_len=%d  diff=%.2f  hp_width=%d  x=%.3f\n",
       j, seq [j], hp_ct, hp_sum, hp_len, diff, hp_width, x);
 }
+//**ALD  Skip for now--maybe put back when have correlated diffs
+#if 0
             if (diff < - DIFF_CUTOFF && hp_width > 1
                   && (new_hp_len > 0 || vote [j] . mutable))
               {  // delete (- diff) copies of hp_ch preceding here
@@ -1415,6 +1580,7 @@ if (0)
                     diff -= 1.0;
                    }
               }
+#endif
            }
          // new homopoly run starts here
          hp_len = hp_width = 0;
@@ -1766,10 +1932,11 @@ for (i = 0; i < dp_ct; i ++)
       if (ref_len < hi)
         hi = ref_len;
       for (i = 0; i < dp_ct; i ++)
-        {
-         fprintf (fp, "%7d:  ", mod_dp [i] . b_iid);
-         Display_Partial_Diff (fp, mod_dp + i, lo, hi, ref);
-        }
+        if (! mod_dp [i] . disregard)
+          {
+           fprintf (fp, "%7d:  ", mod_dp [i] . b_iid);
+           Display_Partial_Diff (fp, mod_dp + i, lo, hi, ref);
+          }
 
       fputc ('\n', fp);
       fprintf (fp, "%7s:  ", "ref");
@@ -1856,25 +2023,180 @@ static void  Display_Partial_Diff
    for ( ; p < hi; p ++)
      fputc (' ', fp);
 
-   fprintf (fp, " <\n");  // so can see the end of the line
+   fprintf (fp, " < %s\n", (dp -> disregard ? "xxx" : ""));
+      // '<' is so can see the end of the line
 
    return;
   }
 
 
 
-static void  Eliminate_Correlated_Diff_Olaps
-  (int sub, int frag_len, const short insert_size [])
+static int  Eliminate_Correlated_Diff_Olaps
+  (int sub, const char * ref, int ref_len, Sequence_Diff_t * dp, int dp_ct)
 
 // Set the  disregard  flag true for entries in  Frag [sub] . diff_list
 // that have sufficiently many confirmed differences to the reference
-// fragment.   frag_len  is the length of the reference fragment and
-//  insert_size  [i]  is the number of insertions each position in
-// the reference needed to make a multialignment.
+// fragment.   ref  has the reference fragment with '-'s inserted for
+// the multialignment and  ref_len  is its length.
+//  dp  [i]  is the differences of sequence i to  ref  and  dp_ct
+// is the number of entries in  dp .  Return the number of reads
+// eliminated.
 
   {
-   //**ALD To be filled in
-   return;
+   const int  variation_ct = 3;
+     // need this many occurrences of each variant to be a significant column
+   const int  column_ct = 2;
+     // need this many columns of correlated difference to be disqualified
+   short int  count [MAX_FRAG_LEN] [5];
+   short int  diff_col [MAX_FRAG_LEN];
+   char  * space;
+   Difference_Signature_t  * signature;
+   int  num_diff_cols, num_eliminated = 0;
+   int  ct, lo;
+   int  i, j, k, q;
+
+   for (i = 0; i < ref_len; i ++)
+     {
+      for (j = 0; j < 5; j ++)
+        count [i] [j] = 0;
+      j = Char_To_Code (ref [i]);
+      count [i] [j] ++;
+     }
+
+   for (i = 0; i < dp_ct; i ++)
+     Count_From_Diff (count, ref, ref_len, dp + i);
+
+   num_diff_cols = 0;
+   for (i = 0; i < ref_len; i ++)
+     {
+      ct = 0;
+      for (j = 0; j < 5; j ++)
+        if (variation_ct <= count [i] [j])
+          ct ++;
+      j = Char_To_Code (ref [i]);
+      if (1 < ct && variation_ct <= count [i] [j])
+        diff_col [num_diff_cols ++] = i;
+     }
+
+   // no point continuing if there are not enough columns with
+   // differences
+   if (num_diff_cols < column_ct)
+     return;
+
+   if (Verbose_Level > 1)
+     {
+      printf ("Difference columns:\n");
+      for (i = 0; i < num_diff_cols; i ++)
+        printf ("%3d %4d\n", i, diff_col [i]);
+     }
+
+   space = (char *) safe_malloc ((1 + num_diff_cols) * dp_ct);
+   signature = (Difference_Signature_t *) safe_calloc (dp_ct,
+        sizeof (Difference_Signature_t));
+   for (i = 0; i < dp_ct; i ++)
+     {
+      signature [i] . sub = i;
+      signature [i] . disregard = FALSE;
+      signature [i] . seq = space + i * (1 + num_diff_cols);
+      signature [i] . seq [num_diff_cols] = '\0';
+     }
+
+   for (i = 0; i < dp_ct; i ++)
+     Set_Signature (signature + i, diff_col, num_diff_cols, dp + i,
+          ref, ref_len);
+
+   qsort (signature, dp_ct, sizeof (Difference_Signature_t), By_Diffs_And_Alpha);
+
+   for (lo = 0; lo < dp_ct && signature [lo] . diff_ct < column_ct; lo ++)
+     ;
+   if (dp_ct - lo < variation_ct)
+     lo = dp_ct;
+
+   for (i = lo; i < dp_ct; i ++)
+     {
+      int  done = FALSE;
+
+      if (signature [i] . disregard)
+        continue;
+
+      for (j = 0; j < num_diff_cols && ! done; j ++)
+        {
+         if (signature [i] . seq [j] == ' ')
+           continue;
+
+         if (column_ct == 1)
+           {
+            ct = 0;
+            for (q = lo; q < dp_ct && ct < variation_ct; q ++)
+              if (signature [q] . seq [j] == signature [i] . seq [j])
+                ct ++;
+            if (ct == variation_ct)
+              {
+               // entries with q < i have already been tagged as disregard if possible
+               signature [i] . disregard = TRUE;
+               for (q = i + 1; q < dp_ct; q ++)
+                 if (! signature [q] . disregard
+                      && signature [q] . seq [j] == signature [i] . seq [j])
+                   signature [q] . disregard = TRUE;
+
+               done = TRUE;
+              }
+           }
+         else if (column_ct == 2)
+           {
+            for (k = j + 1; k < num_diff_cols && ! done; k ++)
+              {
+               if (signature [i] . seq [k] == ' ')
+                 continue;
+
+               ct = 0;
+               for (q = lo; q < dp_ct && ct < variation_ct; q ++)
+                 if (signature [q] . seq [j] == signature [i] . seq [j]
+                      && signature [q] . seq [k] == signature [i] . seq [k])
+                   ct ++;
+               if (ct == variation_ct)
+                 {
+                  // entries with q < i have already been tagged as disregard if possible
+                  signature [i] . disregard = TRUE;
+                  for (q = i + 1; q < dp_ct; q ++)
+                    if (! signature [q] . disregard
+                         && signature [q] . seq [j] == signature [i] . seq [j]
+                         && signature [q] . seq [k] == signature [i] . seq [k])
+                      signature [q] . disregard = TRUE;
+
+                  done = TRUE;
+                 }
+              }
+           }
+        }
+     }
+
+   if (Verbose_Level > 1)
+     {
+      printf ("Signatures:  lo=%d\n", lo);
+      for (i = 0; i < dp_ct; i ++)
+        {
+         j = signature [i] . sub;
+         printf ("%3d:  %3d %7d %7d %3d  %s  %s\n", i, j,
+              Frag [sub] . diff_list [j] . b_iid, dp [j] . b_iid, 
+              signature [i] . diff_ct, signature [i] . seq,
+              (signature [i] . disregard ? "xxx" : ""));
+        }
+     }
+
+   for (i = lo; i < dp_ct; i ++)
+     {
+      j = signature [i] . sub;
+      dp [j] . disregard = Frag [sub] . diff_list [j] . disregard
+           = signature [i] . disregard;
+      if (signature [i] . disregard)
+        num_eliminated ++;
+     }
+
+   free (space);
+   free (signature);
+
+   return num_eliminated;
   }
 
 
@@ -2109,36 +2431,57 @@ static char  Homopoly_Should_Be
 // character in the reference string being  curr .
 // Set  ch_ct  to the number of votes for the returned character,
 // and set  tot  to the total number of votes
+// NOTE:  votes do NOT include character  curr  itself.
 
   {
    char  mx_ch;
-   int  curr_ct, mx_ct;
+   int  curr_ct, mx_ct, curr_score, mx_score, mx_sub;
+   int  i;
 
-   mx_ch = 'a';
-   mx_ct = vp -> a_ct;
-   if (mx_ct < vp -> c_ct)
+   // mx_ch will be character with the highest score in this column
+   // the score is weighted to favour standard sequences over homopoly sequences
+   // mx_ct will be the number of votes (homopoly & standard combined) for
+   // the high-scoring character
+
+   mx_sub = 0;
+   * tot = mx_ct = vp -> hp_char_ct [0] + vp -> nonhp_char_ct [0];
+   mx_score = HOMOPOLY_VOTE_FACTOR * vp -> hp_char_ct [0]
+        + STANDARD_VOTE_FACTOR * vp -> nonhp_char_ct [0];
+
+   for (i = 1; i < 5; i ++)
      {
-      mx_ch = 'c';
-      mx_ct = vp -> c_ct;
-     }
-   if (mx_ct < vp -> g_ct)
-     {
-      mx_ch = 'g';
-      mx_ct = vp -> g_ct;
-     }
-   if (mx_ct < vp -> t_ct)
-     {
-      mx_ch = 't';
-      mx_ct = vp -> t_ct;
-     }
-   if (mx_ct < vp -> gap_ct)
-     {
-      mx_ch = '-';
-      mx_ct = vp -> gap_ct;
+      int  score;
+
+      score = HOMOPOLY_VOTE_FACTOR * vp -> hp_char_ct [i]
+          + STANDARD_VOTE_FACTOR * vp -> nonhp_char_ct [i];
+      if (mx_score < score)
+        {
+         mx_score = score;
+         mx_sub = i;
+         mx_ct = vp -> hp_char_ct [i] + vp -> nonhp_char_ct [i];
+        }
+      * tot += vp -> hp_char_ct [i] + vp -> nonhp_char_ct [i];
      }
 
-   * tot = vp -> a_ct + vp -> c_ct + vp -> g_ct + vp -> t_ct + vp -> gap_ct;
    * ch_ct = mx_ct;
+   switch (mx_sub)
+     {
+      case 0 :
+        mx_ch = 'a';
+        break;
+      case 1 :
+        mx_ch = 'c';
+        break;
+      case 2 :
+        mx_ch = 'g';
+        break;
+      case 3 :
+        mx_ch = 't';
+        break;
+      case 4 :
+        mx_ch = '-';
+        break;
+     }
 
    if (mx_ch == curr)
      {
@@ -2149,23 +2492,30 @@ static char  Homopoly_Should_Be
    switch (tolower (curr))
      {
       case 'a' :
-        curr_ct = vp -> a_ct;
+        curr_ct = vp -> hp_char_ct [0] + vp -> nonhp_char_ct [0];
         break;
       case 'c' :
-        curr_ct = vp -> c_ct;
+        curr_ct = vp -> hp_char_ct [1] + vp -> nonhp_char_ct [1];
         break;
       case 'g' :
-        curr_ct = vp -> g_ct;
+        curr_ct = vp -> hp_char_ct [2] + vp -> nonhp_char_ct [2];
         break;
       case 't' :
-        curr_ct = vp -> t_ct;
+        curr_ct = vp -> hp_char_ct [3] + vp -> nonhp_char_ct [3];
         break;
+      case '-' :
+        curr_ct = vp -> hp_char_ct [4] + vp -> nonhp_char_ct [4];
+        break;
+      default :
+        fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
+        fprintf (stderr, "Bad current char \'%c\' (ASCII %d)\n", curr, (int) curr);
+        exit (EXIT_FAILURE);
      }
 
-   if ((mx_ct > 1 && * tot - mx_ct <= 1)
-         || (* tot - mx_ct <= 2 && mx_ct >= 0.8 * (* tot))
-         || (curr_ct == 1 && mx_ct > 1)
-         || (curr_ct == 2 && mx_ct >= 0.9 * (* tot)))
+   if ((mx_ct > 1 && * tot == mx_ct)      // unanimous
+         || (curr_ct == 0 && mx_ct > 2)   // no confirming votes, > 2 votes to change
+         || (curr_ct == 1 && mx_ct > 5)   // one confirming vote, > 5 votes to change
+         || (curr_ct == 2 && mx_ct > 9))  // two confirming votes, > 9 votes to change
      {
       vp -> mutable = TRUE;
       return  mx_ch;
@@ -2282,6 +2632,8 @@ static void  Init_Thread_Work_Area
    assert (sizeof (int) == sizeof (Homopoly_Match_Entry_t));
    wa -> homopoly_edit_array = (Homopoly_Match_Entry_t **) wa -> edit_array;
    wa -> edit_space = (int *) safe_malloc((MAX_ERRORS + 4) * MAX_ERRORS * sizeof(int));
+   wa -> banded_space = (Alignment_Cell_t *) safe_calloc (20 * MAX_FRAG_LEN,
+        sizeof (Alignment_Cell_t));
 
    offset = 2;
    del = 6;
@@ -2338,7 +2690,10 @@ static int  Is_Homopoly_Type
    
    libp = getGateKeeperLibrary (gkp, getFragRecordLibraryIID (fr));
 
-   return (libp -> doNotTrustHomopolymerRuns);
+   if (libp == NULL)
+     return  FALSE;
+   else
+     return (libp -> doNotTrustHomopolymerRuns);
   }
 
 
@@ -3431,13 +3786,11 @@ static void  Process_Seed
               & new_a_end, & new_b_end, & new_match_to_end, new_delta,
               & new_delta_len, wa -> homopoly_edit_array);
    #else
-         Alignment_Cell_t  * ea = (Alignment_Cell_t *) wa -> homopoly_edit_array;
-
          raw_errors = Fwd_Banded_Homopoly_Prefix_Match (a_part + a_end, a_part_len - a_end,
               b_part + b_end, b_part_len - b_end,
               HOMOPOLY_SCORE_MULTIPLIER * allowed_errors, & score,
               & new_a_end, & new_b_end, & new_match_to_end, new_delta,
-              & new_delta_len, ea);
+              & new_delta_len, wa -> banded_space);
    #endif
          // adjust errors to equivalent non-homopoly error number
          new_errors = (int) ceil ((double) score / HOMOPOLY_SCORE_MULTIPLIER);
@@ -4261,7 +4614,7 @@ if (Global_Debug_Flag)
 {
  if (Global_Debug_Flag)
    printf ("j=%d  seq[%d]=%c (%d)\n", j, j, seq [j], (int) seq [j]);
-           Cast_New_Vote_Char (vote + j, seq [j], HOMOPOLY_VOTE_NUM);
+           Cast_New_Vote_Char (vote + j, seq [j], HOMOPOLY);
 }
          if (seq [j] == hp_ch)
            hp_len ++;
@@ -4315,7 +4668,7 @@ if (Global_Debug_Flag)
                hp_len = 0;
               }
            if (first_j <= j)
-             Cast_New_Vote_Char (vote + j, '-', HOMOPOLY_VOTE_NUM);
+             Cast_New_Vote_Char (vote + j, '-', HOMOPOLY);
            j ++;
            break;
          case 2 :    // substitute
@@ -4343,7 +4696,7 @@ if (Global_Debug_Flag)
                hp_len = 0;
               }
            if (first_j <= j)
-             Cast_New_Vote_Code (vote + j, dp -> de [k] . ch, HOMOPOLY_VOTE_NUM);
+             Cast_New_Vote_Code (vote + j, dp -> de [k] . ch, HOMOPOLY);
            j ++;
            break;
          case 3 :    // noop
@@ -4402,7 +4755,7 @@ static void  Set_New_Self_Homopoly_Votes
          hp = vote + j;
          hp_ch = seq [j];
         }
-      Cast_New_Vote_Char (vote + j, seq [j], 1);
+      Cast_New_Vote_Char (vote + j, seq [j], HOMOPOLY);
      }
 
    if (hp != NULL)
@@ -4445,7 +4798,7 @@ static void  Set_New_Self_Votes
          hp = vote + j;
          hp_ch = seq [j];
         }
-      Cast_New_Vote_Char (vote + j, seq [j], 1);
+      Cast_New_Vote_Char (vote + j, seq [j], STANDARD);
      }
 
    if (hp != NULL)
@@ -4548,7 +4901,7 @@ if (Global_Debug_Flag)
 {
  if (Global_Debug_Flag)
    printf ("j=%d  seq[%d]=%c (%d)\n", j, j, seq [j], (int) seq [j]);
-           Cast_New_Vote_Char (vote + j, seq [j], STANDARD_VOTE_NUM);
+           Cast_New_Vote_Char (vote + j, seq [j], STANDARD);
 }
          if (seq [j] == hp_ch)
            hp_len ++;
@@ -4602,7 +4955,7 @@ if (Global_Debug_Flag)
                hp_len = 0;
               }
            if (first_j <= j)
-             Cast_New_Vote_Char (vote + j, '-', STANDARD_VOTE_NUM);
+             Cast_New_Vote_Char (vote + j, '-', STANDARD);
            j ++;
            break;
          case 2 :    // substitute
@@ -4630,7 +4983,7 @@ if (Global_Debug_Flag)
                hp_len = 0;
               }
            if (first_j <= j)
-             Cast_New_Vote_Code (vote + j, dp -> de [k] . ch, STANDARD_VOTE_NUM);
+             Cast_New_Vote_Code (vote + j, dp -> de [k] . ch, STANDARD);
            j ++;
            break;
          case 3 :    // noop
@@ -4713,6 +5066,80 @@ static void  Set_Self_Votes
         Cast_No_Insert_Vote (Frag [sub] . vote + j - 1);
       Cast_Confirmation_Vote (Frag [sub] . vote + j);
      }
+
+   return;
+  }
+
+
+
+static void  Set_Signature
+  (Difference_Signature_t * signature, short int diff_col [], int num_diff_cols,
+   const Sequence_Diff_t * dp, const char * seq, int seq_len)
+
+// Put characters in  signature -> seq  corresponding to the differences
+// between  dp  and  seq  at the column positions in  diff_col .
+// Put spaces into positions that are not different or are not
+// covered by the alignment.   seq_len  is the length of  seq .
+// Also set  signature -> diff_ct  to the number of non-space characters
+
+  {
+   int  i, j, k, m, ct, sub;
+
+   j = dp -> a_lo;
+   for (i = 0; i < num_diff_cols && diff_col [i] < j; i ++)
+     signature -> seq [i] = ' ';
+
+   ct = 0;
+   for (k = 0; k < dp -> diff_len; k ++)
+     {
+      for (m = 0; m < dp -> de [k] . len; m ++)
+        {
+         if (i < num_diff_cols && j == diff_col [i])
+           signature -> seq [i ++] = ' ';
+         j ++;
+        }
+
+      switch (dp -> de [k] . action)
+        {
+         case 0 :    // insert--shouldn't happen
+           break;
+         case 1 :    // delete
+           if (i < num_diff_cols && j == diff_col [i])
+             {
+              if (seq [j] == '-')
+                signature -> seq [i ++] = ' ';
+              else
+                {
+                 signature -> seq [i ++] = '-';
+                 ct ++;
+                }
+             }
+           j ++;
+           break;
+         case 2 :    // substitute
+           if (i < num_diff_cols && j == diff_col [i])
+             {
+              char ch = Code_To_Char (dp -> de [k] . ch);
+              if (ch == seq [j])
+                signature -> seq [i ++] = ' ';
+              else
+                {
+                 signature -> seq [i ++] = ch;
+                 ct ++;
+                }
+             }
+           j ++;
+           break;
+         case 3 :    // noop
+           // should be end of alignment
+           break;
+        }
+     }
+
+   for ( ; i < num_diff_cols; i ++)
+     signature -> seq [i] = ' ';
+
+   signature -> diff_ct = ct;
 
    return;
   }
@@ -4874,10 +5301,14 @@ static void  Show_New_Votes
    int  i;
 
    for (i = 0; i < n; i ++)
-     fprintf (fp, "%3d: %c  %4d %4d %4d %4d %4d  %4d %5.1f  %4d %5.1f\n",
+     fprintf (fp, "%3d: %c  %3u %3u %3u %3u %3u  %3u %3u %3u %3u %3u  %4d %5.1f  %4d %5.1f\n",
           i, seq [i],
-          vp [i] . a_ct, vp [i] . c_ct, vp [i] . g_ct, vp [i] . t_ct,
-          vp [i] . gap_ct, vp [i] . homopoly_ct,
+          vp [i] . hp_char_ct [0], vp [i] . hp_char_ct [1], vp [i] . hp_char_ct [2],
+          vp [i] . hp_char_ct [3], vp [i] . hp_char_ct [4], 
+          vp [i] . nonhp_char_ct [0], vp [i] . nonhp_char_ct [1],
+          vp [i] . nonhp_char_ct [2], vp [i] . nonhp_char_ct [3],
+          vp [i] . nonhp_char_ct [4], 
+          vp [i] . homopoly_ct,
           (vp [i] . homopoly_ct == 0 ? 0.0
              : vp [i] . homopoly_sum / vp [i] . homopoly_ct),
           vp [i] . non_hp_ct,
@@ -4912,36 +5343,57 @@ static char  Standard_Should_Be
 // Set  ch_ct  to the number of votes for the returned character,
 // and set  tot  to the total number of votes.  Assume the
 // reference is a non-homopoly-type read.
+// NOTE:  votes do NOT include character  curr  itself.
 
   {
    char  mx_ch;
-   int  curr_ct, mx_ct;
+   int  curr_ct, mx_ct, curr_score, mx_score, mx_sub;
+   int  i;
 
-   mx_ch = 'a';
-   mx_ct = vp -> a_ct;
-   if (mx_ct < vp -> c_ct)
+   // mx_ch will be character with the highest score in this column
+   // the score is weighted to favour standard sequences over homopoly sequences
+   // mx_ct will be the number of votes (homopoly & standard combined) for
+   // the high-scoring character
+
+   mx_sub = 0;
+   * tot = mx_ct = vp -> hp_char_ct [0] + vp -> nonhp_char_ct [0];
+   mx_score = HOMOPOLY_VOTE_FACTOR * vp -> hp_char_ct [0]
+        + STANDARD_VOTE_FACTOR * vp -> nonhp_char_ct [0];
+
+   for (i = 1; i < 5; i ++)
      {
-      mx_ch = 'c';
-      mx_ct = vp -> c_ct;
-     }
-   if (mx_ct < vp -> g_ct)
-     {
-      mx_ch = 'g';
-      mx_ct = vp -> g_ct;
-     }
-   if (mx_ct < vp -> t_ct)
-     {
-      mx_ch = 't';
-      mx_ct = vp -> t_ct;
-     }
-   if (mx_ct < vp -> gap_ct)
-     {
-      mx_ch = '-';
-      mx_ct = vp -> gap_ct;
+      int  score;
+
+      score = HOMOPOLY_VOTE_FACTOR * vp -> hp_char_ct [i]
+          + STANDARD_VOTE_FACTOR * vp -> nonhp_char_ct [i];
+      if (mx_score < score)
+        {
+         mx_score = score;
+         mx_sub = i;
+         mx_ct = vp -> hp_char_ct [i] + vp -> nonhp_char_ct [i];
+        }
+      * tot += vp -> hp_char_ct [i] + vp -> nonhp_char_ct [i];
      }
 
-   * tot = vp -> a_ct + vp -> c_ct + vp -> g_ct + vp -> t_ct + vp -> gap_ct;
    * ch_ct = mx_ct;
+   switch (mx_sub)
+     {
+      case 0 :
+        mx_ch = 'a';
+        break;
+      case 1 :
+        mx_ch = 'c';
+        break;
+      case 2 :
+        mx_ch = 'g';
+        break;
+      case 3 :
+        mx_ch = 't';
+        break;
+      case 4 :
+        mx_ch = '-';
+        break;
+     }
 
    if (mx_ch == curr)
      {
@@ -4952,23 +5404,31 @@ static char  Standard_Should_Be
    switch (tolower (curr))
      {
       case 'a' :
-        curr_ct = vp -> a_ct;
+        curr_ct = vp -> hp_char_ct [0] + vp -> nonhp_char_ct [0];
         break;
       case 'c' :
-        curr_ct = vp -> c_ct;
+        curr_ct = vp -> hp_char_ct [1] + vp -> nonhp_char_ct [1];
         break;
       case 'g' :
-        curr_ct = vp -> g_ct;
+        curr_ct = vp -> hp_char_ct [2] + vp -> nonhp_char_ct [2];
         break;
       case 't' :
-        curr_ct = vp -> t_ct;
+        curr_ct = vp -> hp_char_ct [3] + vp -> nonhp_char_ct [3];
         break;
+      case '-' :
+        curr_ct = vp -> hp_char_ct [4] + vp -> nonhp_char_ct [4];
+        break;
+      default :
+        fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
+        fprintf (stderr, "Bad current char \'%c\' (ASCII %d)\n", curr, (int) curr);
+        exit (EXIT_FAILURE);
      }
 
-   if ((mx_ct > 1 && * tot - mx_ct <= 1)
-         || (* tot - mx_ct <= 2 && mx_ct >= 0.8 * (* tot))
-         || (curr_ct == 1 && mx_ct > 1)
-         || (curr_ct == 2 && mx_ct >= 0.9 * (* tot)))
+//**ALD
+// Maybe need to change this to use scores instead of just counts
+   if ((mx_ct > 1 && * tot == mx_ct)      // unanimous
+         || (curr_ct == 0 && mx_ct > 2)   // no confirming votes, > 2 votes to change
+         || (curr_ct == 1 && mx_ct > 5))  // one confirming vote, > 5 votes to change
      {
       vp -> mutable = TRUE;
       return  mx_ch;
@@ -5388,15 +5848,15 @@ static int  Votes_For
    switch (tolower (ch))
      {
       case 'a' :
-        return  vp -> a_ct;
+        return  vp -> hp_char_ct [0] + vp -> nonhp_char_ct [0];
       case 'c' :
-        return  vp -> c_ct;
+        return  vp -> hp_char_ct [1] + vp -> nonhp_char_ct [1];
       case 'g' :
-        return  vp -> g_ct;
+        return  vp -> hp_char_ct [2] + vp -> nonhp_char_ct [2];
       case 't' :
-        return  vp -> t_ct;
+        return  vp -> hp_char_ct [3] + vp -> nonhp_char_ct [3];
       case '-' :
-        return  vp -> gap_ct;
+        return  vp -> hp_char_ct [4] + vp -> nonhp_char_ct [4];
      }
 
    return  0;

@@ -33,8 +33,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.h,v 1.9 2007-08-30 14:09:05 adelcher Exp $
- * $Revision: 1.9 $
+ * $Id: OlapFromSeedsOVL.h,v 1.10 2007-09-18 14:39:23 adelcher Exp $
+ * $Revision: 1.10 $
 */
 
 
@@ -96,7 +96,7 @@
 #define  FRAGS_PER_BATCH             100000
   //  Number of old fragments to read into memory-based fragment
   //  store at a time for processing
-#define  MAX_FRAG_LEN                2048
+#define  MAX_FRAG_LEN                AS_READ_MAX_LEN
   //  The longest fragment allowed
 #define  MAX_DEGREE                  32767
   //  Highest number of votes before overflow
@@ -131,11 +131,19 @@
 
 typedef struct
   {
-   unsigned int  a_ct : 16;
-   unsigned int  c_ct : 16;
-   unsigned int  g_ct : 16;
-   unsigned int  t_ct : 16;
-   unsigned int  gap_ct : 16;
+   short int  sub;    // subscript of aligned sequence
+   short int  diff_ct;
+   unsigned  disregard : 1;
+   char * seq;
+  }  Difference_Signature_t;
+
+typedef enum
+  {HOMOPOLY, STANDARD}  Vote_Kind_t;
+
+typedef struct
+  {
+   unsigned char  hp_char_ct [5];  // a,c,g,t,gap respectively for homopoly reads
+   unsigned char  nonhp_char_ct [5];  // a,c,g,t,gap respectively for standard reads
    unsigned int  homopoly_ct : 16;
    unsigned int  non_hp_ct : 16;
    unsigned int  mutable : 1;
@@ -235,6 +243,7 @@ typedef  struct
    int  * edit_space;
 #if USE_NEW_STUFF
    Diff_Entry_t  diff_list [AS_READ_MAX_LEN];  //  only MAX_ERRORS needed
+   Alignment_Cell_t  * banded_space;
 #endif
   }  Thread_Work_Area_t;
 
@@ -254,6 +263,9 @@ static double  Char_Match_Value = 0.0;
   // Positive score for matching characters in computing alignments
   // Score for mismatching characters is (this value) - 1.0
   // This is set at runtime.
+static int  Check_Correlated_Differences = FALSE;
+  // If set true by the -w option then check for confirmed differences
+  // in columns to eliminate overlaps
 static char  * Correction_Filename = DEFAULT_CORRECTION_FILENAME;
   // Name of file to which correction information is sent
 static int  Degree_Threshold = DEFAULT_DEGREE_THRESHOLD;
@@ -359,6 +371,8 @@ static int  By_A_Lo
   (const void * a, const void * b);
 static int  By_B_IID
   (const void * a, const void * b);
+static int  By_Diffs_And_Alpha
+  (const void * a, const void * b);
 static void  Cast_Confirmation_Vote
   (Vote_Tally_t * vote);
 static void  Cast_Delete_Vote
@@ -366,15 +380,17 @@ static void  Cast_Delete_Vote
 static void  Cast_Insert_Vote
   (Vote_Tally_t * vote, unsigned ch);
 static void  Cast_New_Vote_Char
-  (New_Vote_t * vp, char ch, int num);
+  (New_Vote_t * vp, char ch, Vote_Kind_t type);
 static void  Cast_New_Vote_Code
-  (New_Vote_t * vp, unsigned code, int num);
+  (New_Vote_t * vp, unsigned code, Vote_Kind_t type);
 static void  Cast_No_Insert_Vote
   (Vote_Tally_t * vote);
 static void  Cast_Substitution_Vote
   (Vote_Tally_t * vote, unsigned ch);
 static void  Cast_Vote
   (Vote_Value_t val, int p, int sub);
+static int  Char_To_Code
+  (char ch);
 static int  Char_Matches
   (char ch, unsigned code);
 static char  Complement
@@ -386,6 +402,9 @@ static void  Convert_Delta_To_Diff
   (int delta [], int delta_len, char * a_part, char * b_part,
    int  a_len, int b_len, Sequence_Diff_t * diff, int errors,
    Thread_Work_Area_t * wa);
+static void  Count_From_Diff
+  (short int count [MAX_FRAG_LEN] [5], const char * seq, int seq_len,
+   const Sequence_Diff_t * dp);
 static void  Determine_Homopoly_Corrections
     (FILE * fp, int sub, New_Vote_t * vote, char * seq,
      char * correct, int len);
@@ -404,8 +423,8 @@ static void  Display_Multialignment
    const Sequence_Diff_t * dp, int dp_ct);
 static void  Display_Partial_Diff
   (FILE * fp, const Sequence_Diff_t * dp, int lo, int hi, const char * a);
-static void  Eliminate_Correlated_Diff_Olaps
-  (int sub, int frag_len, const short insert_size []);
+static int  Eliminate_Correlated_Diff_Olaps
+  (int sub, const char * ref, int ref_len, Sequence_Diff_t * dp, int dp_ct);
 static void  Extract_Needed_Frags
   (GateKeeperStore *store, int32 lo_frag, int32 hi_frag,
    Frag_List_t * list, int * next_olap);
@@ -469,6 +488,9 @@ static void  Set_Self_Homopoly_Votes
   (int sub, int frag_len);
 static void  Set_Self_Votes
   (int sub, int frag_len);
+static void  Set_Signature
+  (Difference_Signature_t * signature, short int diff_col [], int num_diff_cols,
+   const Sequence_Diff_t * dp, const char * seq, int seq_len);
 static void  Set_Votes_From_Diffs
   (int sub, Sequence_Diff_t * dp);
 static void  Show_Corrections
