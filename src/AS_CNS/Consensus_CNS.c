@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char rcsid[] = "$Id: Consensus_CNS.c,v 1.56 2007-09-11 15:19:18 brianwalenz Exp $";
+static const char rcsid[] = "$Id: Consensus_CNS.c,v 1.57 2007-09-18 19:34:45 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -294,6 +294,13 @@ main (int argc, char **argv) {
   //
   //  INPUT and OUTPUT
   //
+
+  //  Remove any existing failed file.  If we don't, and we are doing
+  //  a rerun, we still look like there is a failure.
+  //
+  sprintf(tmpName, "%s.failed", outName);
+  unlink(tmpName);
+  unlink(outName);
 
   sprintf(tmpName, "%s_tmp", outName);
 
