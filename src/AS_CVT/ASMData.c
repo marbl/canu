@@ -29,8 +29,6 @@
 
 //#define DEBUG_ASMDATA
 
-#warning NOT tested after updating to new hash table
-
 void PopulateInstance(ASM_InstanceRecord * ins,
                       uint32 index,
                       SeqInterval pos)
@@ -537,7 +535,7 @@ int AddUTG2Store(AssemblyStore * asmStore, SnapUnitigMesg * sum)
   }
 
   appendASM_UTGStore(asmStore->utgStore, &utg);
-  InsertInHashTable_AS(asmStore->hashTable, getLastElemStore(asmStore->utgStore), 0, AS_IID_UTG, 0);
+  InsertInHashTable_AS(asmStore->hashTable, utg.uid, 0, getLastElemStore(asmStore->utgStore), AS_IID_UTG);
   
   return 0;
 }
