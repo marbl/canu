@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.14 2007-09-10 19:46:46 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.15 2007-09-19 20:55:35 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -444,9 +444,13 @@ static void *Read_IUM_Mesg(FILE *fin)
 # ifdef AS_ENABLE_SOURCE
   sindx = GetText("src:",fin,FALSE);
 # endif
-  GET_FIELD(mesg.coverage_stat,"cov:%f","coverage stat");
+  GET_FIELD(mesg.coverage_stat,"cov:%f","coverage stat");  
   GET_TYPE(ch,"sta:%1[UCNSX]","status");
   mesg.status = (UnitigStatus) ch;
+
+  // flag for handling unitig
+  GET_TYPE(ch,"fur:%1[XUR]","unique_rept");
+  mesg.unique_rept = (UnitigFUR) ch;
 
   //  Unused!
   GET_FIELD(a_branch_point,"abp:"F_COORD,"a branch point");
@@ -1524,6 +1528,7 @@ static void Write_IUM_Mesg(FILE *fout, void *vmesg)
 # endif
   fprintf(fout,"cov:%.3f\n",mesg->coverage_stat);
   fprintf(fout,"sta:%c\n",mesg->status);
+  fprintf(fout,"fur:%c\n",mesg->unique_rept);
   fprintf(fout,"abp:0\n");  //  Unused!
   fprintf(fout,"bbp:0\n");  //  Unused!
   fprintf(fout,"len:"F_COORD"\n",mesg->length);

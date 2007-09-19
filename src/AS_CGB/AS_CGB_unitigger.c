@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.25 2007-09-05 11:22:10 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.26 2007-09-19 20:57:16 skoren Exp $";
 
 #include "AS_UTL_version.h"
 #include "AS_CGB_all.h"
@@ -87,7 +87,7 @@ output_the_chunks(Tfragment     *frags,
                                                                                                        chunk_index),
                                                        global_fragment_arrival_rate);
     achunk.status         = AS_UNASSIGNED;
-
+    achunk.unique_rept    = AS_FORCED_NONE;
     achunk.consensus      = "";
     achunk.quality        = "";
     achunk.length         = ch->bp_length;

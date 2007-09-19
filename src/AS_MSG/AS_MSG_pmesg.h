@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.53 2007-09-05 11:22:16 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.54 2007-09-19 20:55:35 skoren Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -238,7 +238,6 @@ typedef enum {
   AS_OTHER_UNITIG    = (int)'X'   // Unspecified surrogate unitig
 } UnitigType;
 
-
 /* Fragment messages, FRG, IFG */
 
 typedef struct {
@@ -440,6 +439,12 @@ typedef enum {
   AS_UNASSIGNED = (int)'X'
 } UnitigStatus;
 
+typedef enum {
+  AS_FORCED_NONE    = (int)'X',
+  AS_FORCED_UNIQUE  = (int)'U',
+  AS_FORCED_REPEAT  = (int)'R'
+} UnitigFUR;
+
 /* IMP message */
 
 typedef struct IntMultiPos {
@@ -531,6 +536,7 @@ typedef struct {
 #endif
   float           coverage_stat;
   UnitigStatus    status;
+  UnitigFUR       unique_rept;
   CDS_COORD_t     length;
   char            *consensus;
   char            *quality;

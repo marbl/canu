@@ -35,16 +35,21 @@ AS_BUB_SRCS = AS_CGB_Bubble.c AS_CGB_Bubble_Graph.c \
               AS_CGB_Bubble_VertexSet.c \
               AS_CGB_Bubble_dfs.c AS_CGB_Bubble_Popper.c \
               AS_CGB_Bubble_PopperMethods.c
+AS_EDT_SRC = adjustAStat.c
+AS_EDT_OBJECTS = $(AS_EDT_SRC:.c=.o)
 
-SOURCES = AS_CGB_unitigger.c $(AS_FGB_SRCS) $(AS_OGB_SRCS) $(AS_CGB_SRCS) $(AS_CGA_SRCS) $(AS_BUB_SRCS)
-OBJECTS = $(SOURCES:.c=.o)
+AS_UTG_SRC = AS_CGB_unitigger.c $(AS_FGB_SRCS) $(AS_OGB_SRCS) $(AS_CGB_SRCS) $(AS_CGA_SRCS) $(AS_BUB_SRCS)
+AS_UTG_OBJECTS = $(AS_UTG_SRC:.c=.o)
+
+SOURCES = $(AS_UTG_SRC) $(AS_EDT_SRC)
+OBJECTS = $(AS_UTG_SRC:.c=.o)
 
 #  This only for BOG
 LIB_OBJECTS   = AS_CGB_histo.o
 
 LIBRARIES = libAS_CGB.a libCA.a
 
-PROGS = unitigger
+PROGS = unitigger adjustAStat
 
 include $(LOCAL_WORK)/src/c_make.as
 
@@ -60,4 +65,7 @@ all: $(OBJECTS) $(LIBRARIES) $(PROGS)
 libAS_CGB.a:     $(LIB_OBJECTS)
 libCA.a:         $(LIB_OBJECTS)
 
-unitigger:       $(OBJECTS) libCA.a
+unitigger:       $(AS_UTG_OBJECTS) libCA.a
+
+adjustAStat:     $(AS_EDT_OBJECTS) libCA.a
+
