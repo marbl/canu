@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: eCR.c,v 1.27 2007-09-05 11:22:13 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: eCR.c,v 1.28 2007-09-19 21:16:44 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -28,8 +28,6 @@ static const char CM_ID[] = "$Id: eCR.c,v 1.27 2007-09-05 11:22:13 brianwalenz E
 
 #define MAX_EXTENDABLE_FRAGS   100
 #define NUM_STDDEV_CUTOFF        5.0
-
-#define  USE_UNGAPPED_CONSENSUS_FOR_UNITIG
 
 
 typedef struct extendableFragT {
@@ -41,16 +39,10 @@ typedef struct extendableFragT {
   int unitigID;
 } extendableFrag;
 
-
 typedef struct fragPositionsT {
   int bgn;
   int end;
 } fragPositions;
-
-
-typedef struct eCRstats {
-} eCRstats;
-
 
 
 int findFirstExtendableFrags(ContigT *contig, extendableFrag *extFragsArray);
@@ -123,6 +115,14 @@ debugflags_t             debug = {0, 0L, 0, 0L, 0, 0L};
 
 
 
+//  Our call in eCR that we need to check is:
+//
+//  success = CreateAContigInScaffold(scaff, ContigPositions, newOffsetAEnd, newOffsetBEnd);
+//
+//  CreateAContigInScaffold does nothing interesting at the start,
+//  it says it normalizes positions, but the actual normalization is
+//  commented out.
+//
 //  Returns TRUE if the new unitig will cause problems in CreateAContigInScaffold().
 //
 //  This function is based on the failure in the following stack trace:
@@ -133,116 +133,45 @@ debugflags_t             debug = {0, 0L, 0, 0L, 0, 0L};
 //    main()
 //
 int
-CheckNewUnitigMultiAlign_AppendFragToLocalStore(FragType type, int32 iid) {
-  int num_columns = 0;
-  int num_frags   = 0;
-  int num_unitigs = 0;
+CheckNewUnitigMultiAlign(VA_TYPE(IntElementPos) *ContigPositions) {
 
-  VA_TYPE(int32) *gapped_positions = CreateVA_int32(num_columns+1);
-  int32 ifrag;
+  assert(GetNumIntElementPoss(ContigPositions) > 1);
 
-  IntMultiPos  *frag;
-  IntUnitigPos *unitig;
+  int c;
+  for (c=0; c<GetNumIntElementPoss(ContigPositions); c++) {
+    MultiAlignT *uma =  loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB,
+                                                      GetIntElementPos(ContigPositions,c)->ident,
+                                                      GetIntElementPos(ContigPositions,c)->type == AS_UNITIG);
+    int          m = 0;
+    int32        i;
 
-  MultiAlignT *uma =  loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, iid, type == AS_UNITIG);
-
-  num_columns = GetMultiAlignLength(uma);
-  num_frags   = GetNumIntMultiPoss(uma->f_list);
-  num_unitigs = GetNumIntUnitigPoss(uma->u_list);
-
-  frag = GetIntMultiPos(uma->f_list,0);
-
-  for (ifrag=0;ifrag<num_frags;ifrag++,frag++){
-    SetVA_int32(gapped_positions,frag->position.bgn,&frag->position.bgn);
-    SetVA_int32(gapped_positions,frag->position.end,&frag->position.end);
-  }
-
-  unitig = GetIntUnitigPos(uma->u_list,0);
-
-  for (ifrag=0;ifrag<num_unitigs;ifrag++,unitig++){
-    SetVA_int32(gapped_positions,unitig->position.bgn,&unitig->position.bgn);
-    SetVA_int32(gapped_positions,unitig->position.end,&unitig->position.end);
-  }
-
-  if ( Getint32(gapped_positions,num_columns) == NULL ) {
-    fprintf(stderr,"Misformed Multialign... fragment positions only extend to bp %d out of %d\n",
-            (int) GetNumint32s(gapped_positions),num_columns+1);
-    DeleteVA_int32(gapped_positions);
-    return -1;
-  }
-
-  DeleteVA_int32(gapped_positions);
-  return(0);
-}
-
-
-
-int
-CheckNewUnitigMultiAlign(CIScaffoldT *scaffold,
-                         VA_TYPE(IntElementPos) *ContigPositions) {
-
-  //  Our call in eCR that we need to check is:
-  //
-  //  success = CreateAContigInScaffold(scaff, ContigPositions, newOffsetAEnd, newOffsetBEnd);
-  //
-
-  //  CreateAContigInScaffold does nothing interesting at the start,
-  //  it says it normalizes positions, but the actual normalization is
-  //  commented out.
-
-  //  MergeMultiAlignsFast_new
-
-
-  static VA_TYPE(IntMultiPos)  *positions = NULL;
-  static IntMultiPos            mpos;
-
-  IntElementPos                *epos = GetIntElementPos(ContigPositions,0);
-  int                           npos = GetNumIntElementPoss(ContigPositions);
-  int                           i;
-
-  int                           num_contigs;
-  IntMultiPos                  *cpositions; 
-  int                           num_columns = 0;
-
-  mpos.contained    = 0;
-  mpos.delta_length = 0;
-  mpos.delta        = NULL;
-
-  if (positions == NULL ) {
-    positions = CreateVA_IntMultiPos(npos);
-  } else {
-    ResetVA_IntMultiPos(positions);
-  }
-
-  for (i=0; i<npos; i++,epos++) {
-    mpos.type=epos->type;
-    mpos.ident=epos->ident;
-    mpos.position=epos->position;
-    AppendVA_IntMultiPos(positions,&mpos);
-  }
-
-  num_contigs = GetNumIntMultiPoss(positions);
-  cpositions  = GetIntMultiPos(positions,0);
-
-  USE_SDB           = 1;
-  ALIGNMENT_CONTEXT = AS_MERGE;
-
-  for (i=0;i<num_contigs;i++) {
-    num_columns = (cpositions[i].position.bgn>num_columns) ? cpositions[i].position.bgn : num_columns;
-    num_columns = (cpositions[i].position.end>num_columns) ? cpositions[i].position.end : num_columns;
-  }
-
-  if (num_contigs == 1) {
-    //  Shouldn't happen!
-    assert(0);
-  } else {
-    for (i=0;i<num_contigs;i++) {
-      if (CheckNewUnitigMultiAlign_AppendFragToLocalStore(cpositions[i].type, 
-                                                          cpositions[i].ident))
-        return(TRUE);
+    for (i=0; i<GetNumIntMultiPoss(uma->f_list); i++){
+      IntMultiPos  *frag = GetIntMultiPos(uma->f_list,i);
+      if (m < frag->position.bgn)
+        m = frag->position.bgn;
+      if (m < frag->position.end)
+        m = frag->position.end;
     }
+
+    for (i=0; i<GetNumIntUnitigPoss(uma->u_list); i++){
+      IntUnitigPos *unitig = GetIntUnitigPos(uma->u_list,i);
+      if (m < unitig->position.bgn)
+        m = unitig->position.bgn;
+      if (m < unitig->position.end)
+        m = unitig->position.end;
+    }
+
+    if (m != GetMultiAlignLength(uma)) {
+      fprintf(stderr,"CheckNewUnitigMultiAlign()-- Misformed Multialign... fragment positions only extend to bp %d out of %d\n",
+              m, GetMultiAlignLength(uma));
+      return(TRUE);
+    }
+
+    //fprintf(stderr,"CheckNewUnitigMultiAlign()-- multialign "F_IID" ok (ma %d out of %d)\n",
+    //        GetIntElementPos(ContigPositions,c)->ident, c, GetNumIntElementPoss(ContigPositions));
   }
-     
+
+  //  All OK!
   return(FALSE);
 }
 
@@ -368,7 +297,10 @@ main(int argc, char **argv) {
     fprintf(stderr, "  -i iterNum   The iteration of ECR; either 1 or 2\n");
     exit(1);
   }
-  
+  if (scaffoldBegin == scaffoldEnd) {
+    fprintf(stderr, "%s: Nothing to do, no scaffolds selected: -b == -e\n", argv[0]);
+    exit(0);
+  }
 
   //  LoadScaffoldGraphFromCheckpoint wants to CheckCIScaffoldT()
   //  which can RecomputeOffsetsInScaffold(), which can eventually,
@@ -474,7 +406,13 @@ main(int argc, char **argv) {
       int        leftFragFlapLength  = 0;
       int        rightFragFlapLength = 0;
 
-
+#if 0
+      if (gapNumber > 303) {
+        debug.eCRmainLV    = 1;
+        debug.examineGapLV = 1;
+        debug.diagnosticLV = 1;
+      }
+#endif
 
       numGaps++;
 
@@ -597,8 +535,15 @@ main(int argc, char **argv) {
       for (leftFragIndex = 0; leftFragIndex < numLeftFrags && closedGap == FALSE; leftFragIndex++) {
         for (rightFragIndex = 0; rightFragIndex < numRightFrags && closedGap == FALSE; rightFragIndex++) {
 
+          lFragIid = leftExtFragsArray[leftFragIndex].fragIid;
+          rFragIid = rightExtFragsArray[rightFragIndex].fragIid;
+          closedGap = FALSE;
+
+          //fprintf(stderr, "attempting to close gap %d, contigs %d and %d, fragIids %9d and %9d\n", gapNumber, lcontig->id, rcontig->id, lFragIid, rFragIid);
+
           if (debug.eCRmainLV > 0)
-            fprintf(debug.eCRmainFP, "examining frags %d and %d\n", leftExtFragsArray[leftFragIndex].fragIid, 
+            fprintf(debug.eCRmainFP, "examining frags %d and %d\n",
+                    leftExtFragsArray[leftFragIndex].fragIid, 
                     rightExtFragsArray[rightFragIndex].fragIid);
 
           if ((gapSize.mean - leftExtFragsArray[leftFragIndex].extension - rightExtFragsArray[rightFragIndex].extension) > (NUM_STDDEV_CUTOFF * sqrt(gapSize.variance)) &&
@@ -611,18 +556,12 @@ main(int argc, char **argv) {
 
             if (debug.eCRmainLV > 0)
               fprintf(debug.eCRmainFP, "gap variance too large (gapSize - extensions: %.2f, %.1f * sqrt(gapSize.variance): %.2f\n",
-                      gapSize.mean - leftExtFragsArray[leftFragIndex].extension - 
-                      rightExtFragsArray[rightFragIndex].extension, 
+                      gapSize.mean - leftExtFragsArray[leftFragIndex].extension - rightExtFragsArray[rightFragIndex].extension, 
                       NUM_STDDEV_CUTOFF, NUM_STDDEV_CUTOFF * sqrt(gapSize.variance));
 
             numGapsVarTooSmall++;
-            closedGap = FALSE;
-
             continue;
           }
-
-          lFragIid = leftExtFragsArray[leftFragIndex].fragIid;
-          rFragIid = rightExtFragsArray[rightFragIndex].fragIid;
 
           // have to check and make sure that the frags belong to the correct unitig
           if (lFragIid != -1) {
@@ -661,6 +600,27 @@ main(int argc, char **argv) {
 
             int        keepGap             = TRUE;
 
+
+            if (CONTIG_BASES < 2000) {
+              if ((ahang + currLength + bhang - 1000) > (MIN(CONTIG_BASES, (int) lcontig->bpLength.mean) +
+                                                         MIN(CONTIG_BASES, (int) rcontig->bpLength.mean)))
+                keepGap = FALSE;
+				
+              if ((ahang + currLength + bhang + 700) < (MIN(CONTIG_BASES, (int) lcontig->bpLength.mean) +
+                                                        MIN(CONTIG_BASES, (int) rcontig->bpLength.mean)))
+                keepGap = FALSE;
+            }
+
+
+            // save off copies of everything we might alter so we can
+            // restore if gap closing fails
+            //
+            saveFragAndUnitigData(lFragIid, rFragIid);
+
+
+            totalBasesInClosedGaps += (int) gapSize.mean;
+				
+
             int        lextension          = 0;
             int        rextension          = 0;
 
@@ -669,38 +629,6 @@ main(int argc, char **argv) {
             double     maxRContigOffset;
             int32      nextContigIndex;
 
-
-
-            // save off copies of everything we might alter so we can
-            // restore if gap closing fails
-            //
-            saveFragAndUnitigData(lFragIid, rFragIid);
-
-            totalBasesInClosedGaps += (int) gapSize.mean;
-				
-            if (CONTIG_BASES < 2000) {
-              if ((ahang + currLength + bhang - 1000) > (MIN(CONTIG_BASES, (int) lcontig->bpLength.mean) +
-                                                         MIN(CONTIG_BASES, (int) rcontig->bpLength.mean))) {
-
-                if (debug.eCRmainLV > 0)
-                  fprintf(debug.eCRmainFP, "at gapNumber %d, ahang + currLength + bhang - 1000 = %d, back(A) + back(B) = %d\n",
-                          gapNumber, ahang + currLength + bhang - 1000,
-                          MIN(CONTIG_BASES, (int) lcontig->bpLength.mean) + MIN(CONTIG_BASES, (int) rcontig->bpLength.mean));
-
-                keepGap = FALSE;
-              }
-				
-              if ((ahang + currLength + bhang + 700) < (MIN(CONTIG_BASES, (int) lcontig->bpLength.mean) +
-                                                        MIN(CONTIG_BASES, (int) rcontig->bpLength.mean))) {
-
-                if (debug.eCRmainLV > 0)
-                  fprintf(debug.eCRmainFP, "at gapNumber %d, ahang + currLength + bhang + 500 = %d, back(A) + back(B) = %d\n",
-                          gapNumber, ahang + currLength + bhang + 500,
-                          MIN(CONTIG_BASES, (int) lcontig->bpLength.mean) + MIN(CONTIG_BASES, (int) rcontig->bpLength.mean));
-
-                keepGap = FALSE;
-              }
-            }
 
             // extend the clear ranges of the frags
             //
@@ -751,7 +679,6 @@ main(int argc, char **argv) {
               CIFragT        *frag                = NULL;
               NodeCGW_T      *unitig              = NULL;
               MultiAlignT    *new_cma             = NULL;
-              fragPositions  *fragPoss            = NULL;
 				  
               if (debug.diagnosticLV > 0) {
                 DumpContigMultiAlignInfo ("before anything (left)", NULL, lcontig->id);
@@ -790,16 +717,16 @@ main(int argc, char **argv) {
 
                 InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, lFragIid);
                 assert(info->set);
+
                 frag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
-
                 unitig = GetGraphNode(ScaffoldGraph->CIGraph, frag->CIid);
-                //extendUnitigs(unitig, lFragIid, leftExtFragsArray[leftFragIndex], TRUE);
-                getAlteredFragPositions(unitig, &fragPoss, lFragIid, 
-                                        leftExtFragsArray[leftFragIndex].extension - leftFragFlapLength);
 
-                gotNewLeftMA = GetNewUnitigMultiAlign(unitig, fragPoss, lFragIid);
-
-                safe_free(fragPoss);  // inefficient, let's just do a big array once that get's reused
+                {
+                  fragPositions  *fragPoss = NULL;
+                  getAlteredFragPositions(unitig, &fragPoss, lFragIid, leftExtFragsArray[leftFragIndex].extension - leftFragFlapLength);
+                  gotNewLeftMA = GetNewUnitigMultiAlign(unitig, fragPoss, lFragIid);
+                  safe_free(fragPoss);
+                }
 
                 if (!gotNewLeftMA)
                   unitigMultiAlignFailures++;
@@ -839,6 +766,7 @@ main(int argc, char **argv) {
                     gotNewLeftMA = FALSE;
                   }
 
+                  //  Why does this belong here?
                   if (lcontigOrientation == A_B)
                     extendContig(lcontig, FALSE);
                   else
@@ -850,17 +778,16 @@ main(int argc, char **argv) {
               if (rFragIid != -1) {
                 InfoByIID *info = GetInfoByIID(ScaffoldGraph->iidToFragIndex, rFragIid);
                 assert(info->set);
+
                 frag = GetCIFragT(ScaffoldGraph->CIFrags, info->fragIndex);
-					
                 unitig = GetGraphNode(ScaffoldGraph->CIGraph, frag->CIid);
-                //extendUnitigs(unitig, rFragIid, rightExtFragsArray[rightFragIndex], FALSE);
-					
-                getAlteredFragPositions(unitig, &fragPoss, rFragIid, 
-                                        rightExtFragsArray[rightFragIndex].extension- rightFragFlapLength);
 
-                gotNewRightMA = GetNewUnitigMultiAlign(unitig, fragPoss, rFragIid);
-
-                safe_free(fragPoss);  // inefficient, let's just do a big array once that get's reused
+                {
+                  fragPositions  *fragPoss = NULL;
+                  getAlteredFragPositions(unitig, &fragPoss, rFragIid, rightExtFragsArray[rightFragIndex].extension- rightFragFlapLength);
+                  gotNewRightMA = GetNewUnitigMultiAlign(unitig, fragPoss, rFragIid);
+                  safe_free(fragPoss);
+                }
 
                 if (!gotNewRightMA)
                   unitigMultiAlignFailures++;
@@ -895,12 +822,12 @@ main(int argc, char **argv) {
                       DumpContigMultiAlignInfo ("after updating store (right)", NULL, rcontig->id);
 
                   } else {
-                    fprintf(stderr, "WARNING:  Failed to align the new and old contigs.  Will not use this extension.\n");
+                    fprintf(stderr, "WARNING:  Failed to align the new and old (right) contigs.  Will not use this extension.\n");
                     replaceEndUnitigFailures++;
                     gotNewRightMA = FALSE;
                   }
 
-                  // updateIntUnitigPoss(rcontig);
+                  //  Why does this belong here?
                   if (rcontigOrientation == A_B)
                     extendContig(rcontig, TRUE);
                   else
@@ -992,7 +919,7 @@ main(int argc, char **argv) {
 
               // have to call this routine with normalized positions
 
-              if (CheckNewUnitigMultiAlign(scaff, ContigPositions)) {
+              if (CheckNewUnitigMultiAlign(ContigPositions)) {
                 fprintf(stderr, "CheckNewUnitigMultiAlign()-- The new unitig multialignment is messed up, will not close this gap.\n");
                 unitigToContigFailures++;
                 success = FALSE;
@@ -1005,22 +932,18 @@ main(int argc, char **argv) {
                 // now we have to unwind everything we've done up above???
 
                 keepGap = FALSE;
-                fprintf(stderr, "overlap found in extendClearRanges but not by CNS!\n");
+                fprintf(stderr, "CheckNewUnitigMultiAlign()-- overlap found in extendClearRanges but not by CNS!\n");
 
                 createAContigFailures++;
               }
 
-              //  XXX: BPW - why are these here?  is this an
-              //  attempt to undo stuff?  just making sure they
-              //  are up to date?
+              //  We might have reallocated the contig graph; lookup
+              //  the contig pointers again.
               //
               rcontig = GetGraphNode(ScaffoldGraph->ContigGraph, rcontigID);
               lcontig = GetGraphNode(ScaffoldGraph->ContigGraph, lcontigID);
 
               if (keepGap) {
-                fprintf(stderr, "closed gap %8d, contigs %8d and %8d, fragIids %9d and %9d\n",
-                        gapNumber, lcontig->id, rcontig->id, lFragIid, rFragIid);
-					
                 closedGap = TRUE;
 					
                 numGapsClosed++;
@@ -1040,19 +963,23 @@ main(int argc, char **argv) {
                   }
                 }
 					
+                //  Print before we reassign to get the new contig
+                fprintf(stderr, "closed gap %d, contigs %d and %d, fragIids %9d and %9d\n", gapNumber, lcontig->id, rcontig->id, lFragIid, rFragIid);
+
                 // The new contig takes place of what was the right contig.
                 //
                 rcontig = GetGraphNode(ScaffoldGraph->ContigGraph, GetNumGraphNodes(ScaffoldGraph->ContigGraph) - 1);
                 //adjustUnitigCoords(rcontig);
 
                 // now we need to adjust contigs past the new contig, if not on end
+                //
                 if (nextContigIndex != NULLINDEX) {
                   LengthT scaffoldDelta;
 					  
                   scaffoldDelta.mean = MAX(rcontig->offsetAEnd.mean, rcontig->offsetBEnd.mean) - maxRContigOffset;
                   scaffoldDelta.variance = ComputeFudgeVariance(scaffoldDelta.mean);
-                  AddDeltaToScaffoldOffsets(ScaffoldGraph, scaff->id, nextContigIndex,
-                                            TRUE, FALSE, scaffoldDelta);
+
+                  AddDeltaToScaffoldOffsets(ScaffoldGraph, scaff->id, nextContigIndex, TRUE, FALSE, scaffoldDelta);
                 }
               }  //  keep gap
             }  //  keep gap
@@ -1252,7 +1179,8 @@ findFirstExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
   firstUnitigID = GetIntUnitigPos(ma->u_list, 0)->ident;
 
   if (debug.eCRmainLV > 0)
-    fprintf(debug.eCRmainFP, "in findFirstExtendableFrags, firstUnitigID: %d\n", firstUnitigID);
+    fprintf(debug.eCRmainFP, "in findFirstExtendableFrags, contig->bpLength.mean: %f, firstUnitigID: %d\n",
+            contig->bpLength.mean, firstUnitigID);
   
   for (i = 0; i < numFrags; i++) {
     mp = GetIntMultiPos(ma->f_list, i);
@@ -1280,8 +1208,6 @@ findFirstExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
           break;
       }
 
-      seq_len = getFragRecordSequenceLength(&fsread);
-
       //                 <--------------------------------------------------------------------------- contig
       // 3p <------------------|---------------------------------------------|----- 5p frag
       //                    clr_end                                       clr_bgn
@@ -1294,17 +1220,16 @@ findFirstExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
       //             |------|
       //               extension (negative)
 
-      if (debug.eCRmainLV > 0) {
-        fprintf(debug.eCRmainFP, "contig->bpLength.mean: %f\n", contig->bpLength.mean);
-        fprintf(debug.eCRmainFP, "frag iid: %d, frag->contigOffset5p.mean: %f, frag->contigOffset3p.mean: %f\n",
-                frag->iid, frag->contigOffset5p.mean, frag->contigOffset3p.mean);
-        fprintf(debug.eCRmainFP, "frag length: " F_SIZE_T ", 3p past clr_end length: " F_SIZE_T "\n", seq_len, 
-                seq_len - clr_end);
-        fprintf(debug.eCRmainFP, "extension: " F_SIZE_T "\n", seq_len - clr_end - (int) frag->contigOffset3p.mean);
-      }
-	  
+      seq_len = getFragRecordSequenceLength(&fsread);
       frag3pExtra = seq_len - clr_end;
       extension = frag3pExtra - frag->contigOffset3p.mean;
+
+      if (debug.eCRmainLV > 0)
+        fprintf(debug.eCRmainFP, "frstExt: in contig %d, frag %d is at %f -> %f (5p->3p) -- extension %d, frag3pExtra %d -- extension ratio: %.2f\n", 
+                contig->id, frag->iid,
+                frag->contigOffset5p.mean, frag->contigOffset3p.mean,
+                extension, frag3pExtra,
+                extension / (float) (1.0 + frag3pExtra - extension));
 
       // ask Granger what min extension we should accept
       if (extension > 30) {
@@ -1312,28 +1237,17 @@ findFirstExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
         extFragsArray[extendableFragCount].extension = extension;
         extFragsArray[extendableFragCount].addedBases = frag3pExtra;
 
-        if (debug.eCRmainLV > 0)
-          fprintf(debug.eCRmainFP, "for frag %d, extension: %8d, frag3pExtra: %8d\n",
-                  frag->iid, extension, frag3pExtra);
-
         if (frag->contigOffset3p.mean == 0)
           extFragsArray[extendableFragCount].fragOnEnd = TRUE;
         else
           extFragsArray[extendableFragCount].fragOnEnd = FALSE;
 
-        if (debug.eCRmainLV > 0) {
-          fprintf(debug.eCRmainFP, "in contig %d, frag %d is at %f -> %f (5p->3p) \n", 
-                  contig->id, frag->iid,
-                  frag->contigOffset5p.mean, frag->contigOffset3p.mean);
-          fprintf(debug.eCRmainFP, "extension ratio: %.2f\n", extension / (float) (1.0 + frag3pExtra - extension));
-        }
-
         extendableFragCount++;
-        if (extendableFragCount > MAX_EXTENDABLE_FRAGS) {
+
+        if (extendableFragCount >= MAX_EXTENDABLE_FRAGS)
           fprintf(stderr, "extendableFragCount (%d) is greater than MAX_EXTENDABLE_FRAGS, aborting...\n",
                   extendableFragCount);
-          assert(0);
-        }
+        assert(extendableFragCount < MAX_EXTENDABLE_FRAGS);
       }
     }
 
@@ -1351,9 +1265,6 @@ findFirstExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
 
   // now sort the extendable frags by their extendability
   qsort(extFragsArray, extendableFragCount, sizeof(extendableFrag), compExtendableFrags);
-
-  if (debug.eCRmainLV > 0)
-    fprintf(debug.eCRmainFP, "extendableFragCount: %d\n", extendableFragCount);
 
   for (i = 0; i < extendableFragCount; i++) {
     if (extFragsArray[i].fragOnEnd == TRUE)
@@ -1419,51 +1330,39 @@ findLastExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
           break;
       }
 
-      seq_len = getFragRecordSequenceLength(&fsread);
-
       //    contig ----------------------------------------------------------------------------------->
       //                                  5p -------|---------------------------------------------|------------> 3p 
       //                                         clr_bgn                                       clr_end
       //                                                                                               |-------|
       //                                                                                             extension
+
+      seq_len = getFragRecordSequenceLength(&fsread);
       frag3pExtra = seq_len - clr_end;
       extension = frag3pExtra - (int) (contig->bpLength.mean - frag->contigOffset3p.mean);
 
-      if (debug.eCRmainLV > 0) {
-        fprintf(debug.eCRmainFP, "contig->bpLength.mean: %f\n", contig->bpLength.mean);
-        fprintf(debug.eCRmainFP, "frag iid: %d, frag->contigOffset5p.mean: %f, frag->contigOffset3p.mean: %f\n",
-                frag->iid, frag->contigOffset5p.mean, frag->contigOffset3p.mean);
-        fprintf(debug.eCRmainFP, "frag length: " F_SIZE_T ", 3p past clr_end length: %d\n", seq_len, frag3pExtra);
-        fprintf(debug.eCRmainFP, "extension: %d\n", extension);
-      }
-	  
+      if (debug.eCRmainLV > 0)
+        fprintf(debug.eCRmainFP, "lastExt: in contig %d, frag %d is at %f -> %f (5p->3p) -- extension %d, frag3pExtra %d -- extension ratio: %.2f\n", 
+                contig->id, frag->iid,
+                frag->contigOffset5p.mean, frag->contigOffset3p.mean,
+                extension, frag3pExtra,
+                extension / (float) (1.0 + frag3pExtra - extension));
+
       if (extension > 30) {
         extFragsArray[extendableFragCount].fragIid = frag->iid;
         extFragsArray[extendableFragCount].extension = extension;
         extFragsArray[extendableFragCount].addedBases = frag3pExtra;
-
-        if (debug.eCRmainLV > 0)
-          fprintf(debug.eCRmainFP, "for frag %d, extension: %8d, frag3pExtra: %8d\n",
-                  frag->iid, extension, frag3pExtra);
 
         if (frag->contigOffset3p.mean == contig->bpLength.mean)
           extFragsArray[extendableFragCount].fragOnEnd = TRUE;
         else
           extFragsArray[extendableFragCount].fragOnEnd = FALSE;
 
-        if (debug.eCRmainLV > 0) {
-          fprintf(debug.eCRmainFP, "in contig %d, frag %d is at %f -> %f (5p->3p) maxContigPos: %f\n", 
-                  contig->id, frag->iid,
-                  frag->contigOffset5p.mean, frag->contigOffset3p.mean, maxContigPos);
-          fprintf(debug.eCRmainFP, "extension ratio: %.2f\n", extension / (float) (1.0 + frag3pExtra - extension));
-        }
-
         extendableFragCount++;
-        if (extendableFragCount > MAX_EXTENDABLE_FRAGS) {
+
+        if (extendableFragCount >= MAX_EXTENDABLE_FRAGS)
           fprintf(stderr, "extendableFragCount (%d) is greater than MAX_EXTENDABLE_FRAGS, aborting...\n",
                   extendableFragCount);
-          assert(0);
-        }
+        assert(extendableFragCount < MAX_EXTENDABLE_FRAGS);
       }
     }
 
@@ -1481,9 +1380,6 @@ findLastExtendableFrags(ContigT *contig, extendableFrag *extFragsArray) {
 
   // now sort the extendable frags by their extendability
   qsort(extFragsArray, extendableFragCount, sizeof(extendableFrag), compExtendableFrags);
-
-  if (debug.eCRmainLV > 0)
-    fprintf(debug.eCRmainFP, "extendableFragCount: %d\n", extendableFragCount);
 
   for (i = 0; i < extendableFragCount; i++) {
     if (extFragsArray[i].fragOnEnd == TRUE)
@@ -1628,15 +1524,14 @@ void extendContig(ContigT *contig, int extendAEnd) {
 // stole most of this from OutputUnitigsFromMultiAligns
 /********************************************************************************/
 int GetNewUnitigMultiAlign(NodeCGW_T *unitig, fragPositions *fragPoss, int extendedFragIid) {
-  GenericMesg			pmesg;
-  IntUnitigMesg			ium_mesg = {0};
-  int i;
-  int numCIs = GetNumGraphNodes(ScaffoldGraph->CIGraph);
-  MultiAlignT *macopy = NULL;
-  UnitigStatus   status;
+  GenericMesg	    pmesg;
+  IntUnitigMesg	    ium_mesg = {0};
+  int               i;
+  MultiAlignT      *macopy = NULL;
 
-#ifdef USE_UNGAPPED_CONSENSUS_FOR_UNITIG
-  static VA_TYPE(char) *ungappedSequence=NULL,*ungappedQuality=NULL;
+  static VA_TYPE(char) *ungappedSequence = NULL;
+  static VA_TYPE(char) *ungappedQuality  = NULL;
+
   if (ungappedSequence== NULL) {
     ungappedSequence = CreateVA_char(0);
     ungappedQuality = CreateVA_char(0);
@@ -1644,59 +1539,27 @@ int GetNewUnitigMultiAlign(NodeCGW_T *unitig, fragPositions *fragPoss, int exten
     ResetVA_char(ungappedSequence);
     ResetVA_char(ungappedQuality);
   }
-#endif
 
   pmesg.m = &ium_mesg;
   pmesg.t = MESG_IUM;
 
-  assert(unitig->id>=0 && unitig->id< numCIs);
+  assert((unitig->id >= 0) && (unitig->id < GetNumGraphNodes(ScaffoldGraph->CIGraph)));
 
-  switch(unitig->type) {
-    case DISCRIMINATORUNIQUECHUNK_CGW:
-      status = AS_UNIQUE;
-      //fprintf(GlobalData->stderrc,"* Unitig %d is UNIQUE: DISCRIMINATOR output %d \n",unitig->id, cid);
-      break;
-    case UNIQUECHUNK_CGW:
-      status = AS_UNIQUE;
-      //fprintf(GlobalData->stderrc,"* Unitig %d is UNIQUE: output %d \n",unitig->id, cid);
-      break;
-    case UNRESOLVEDCHUNK_CGW:
-      if (unitig->info.CI.numInstances > 0) {
-        //fprintf(GlobalData->stderrc, "* Unitig %d has %d instances--- output %d SEP\n",unitig->id, unitig->info.CI.numInstances,cid);
-        status = AS_SEP;
-        assert(!unitig->flags.bits.isUnique);
-      } else if (unitig->scaffoldID != NULLINDEX) {
-        //fprintf(GlobalData->stderrc, "* Unitig %d has %d instances--- output %d UNIQUE\n",unitig->id, unitig->info.CI.numInstances,cid);
-        status = AS_UNIQUE;
-      } else {
-        //fprintf(GlobalData->stderrc, "* Unitig %d has %d instances--- output %d NOTREZ\n",unitig->id, unitig->info.CI.numInstances,cid);
-        status = AS_NOTREZ;
-      }
-      break;
-    case RESOLVEDREPEATCHUNK_CGW:
-      /* SKIP THESE */
-      //fprintf(GlobalData->stderrc,"* Skipping unitig %d --- RESOLVEDREPEAT\n",unitig->id);
-      //continue;
-    default:
-      assert(0);
-  }
-
-  //  ReLoad...() makes a copy of the multialign in the store.  This
-  //  is needed because at the end of this function, we delete the
-  //  multialign in the store, and insert a new one.  The new one is
-  //  based on the copy....the construction of the new one uses an IUM
-  //  message, and the IUM message uses pieces of macopy.
+  //  Make a copy of the multialign in the store.  This is needed
+  //  because at the end of this function, we delete the multialign in
+  //  the store, and insert a new one.  The new one is based on the
+  //  copy....the construction of the new one uses an IUM message, and
+  //  the IUM message uses pieces of macopy.
   //  
   macopy = CreateEmptyMultiAlignT();
   copyMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, macopy, unitig->id, TRUE);
 
   if (debug.eCRmainLV > 0) {
+    //PrintMultiAlignT(stderr, loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, TRUE), ScaffoldGraph->gkpStore, 0, 0, AS_READ_CLEAR_ECR1);
     fprintf(debug.eCRmainFP, "for unitig %d, before reforming, strlen(macopy->consensus) = " F_SIZE_T "\n", unitig->id, strlen(Getchar(macopy->consensus, 0)));
     fprintf(debug.eCRmainFP, "for unitig %d, before reforming, consensus:\n%s\n", unitig->id, Getchar(macopy->consensus, 0));
   }
 
-  {
-    int extendedFragLeftward, aligned;
     assert (unitig->type != CONTIG_CGW);
 
     ium_mesg.iaccession     = unitig->id;
@@ -1704,91 +1567,100 @@ int GetNewUnitigMultiAlign(NodeCGW_T *unitig, fragPositions *fragPoss, int exten
     ium_mesg.source         = NULL;
 #endif
     ium_mesg.coverage_stat  = unitig->info.CI.coverageStat;
-    ium_mesg.status         = status;
 
-#ifdef USE_UNGAPPED_CONSENSUS_FOR_UNITIG
-    GetMultiAlignUngappedConsensus(macopy, ungappedSequence, ungappedQuality);
-    ium_mesg.consensus = Getchar(ungappedSequence,0);
-    ium_mesg.quality = Getchar(ungappedQuality,0);
-    ium_mesg.length = GetMultiAlignUngappedLength(macopy);
-#else
-    ium_mesg.length = GetMultiAlignLength(macopy);
-    ium_mesg.consensus = Getchar(macopy->consensus,0);
-    ium_mesg.quality = Getchar(macopy->quality,0);
-#endif
-    ium_mesg.forced = 0;
-    ium_mesg.num_frags = GetNumIntMultiPoss(macopy->f_list);
-
-    // replace the positions in the f_list with the adjusted positions
-    extendedFragLeftward = FALSE;
-
-    for (i = 0; i < GetNumIntMultiPoss(macopy->f_list); i++) {
-      IntMultiPos *tempPos = GetIntMultiPos(macopy->f_list, i);
-
-#if 0
-      fprintf(stderr, "in GetNewUnitigMultiAlign, changing frag %10d from (%8d, %8d) to (%8d, %8d)\n",
-              tempPos->ident, tempPos->position.bgn, tempPos->position.end, fragPoss[i].bgn, fragPoss[i].end);
-#endif
-
-      if (tempPos->ident == extendedFragIid) {
-        tempPos->contained = 0;    // the extended frag is no longer contained by any other frag
-        if (fragPoss[i].bgn == 0 || fragPoss[i].end == 0)
-          extendedFragLeftward = TRUE;  // if at the beginning of the unitig have to reorder frags
+  switch(unitig->type) {
+    case DISCRIMINATORUNIQUECHUNK_CGW:
+      ium_mesg.status = AS_UNIQUE;
+      break;
+    case UNIQUECHUNK_CGW:
+      ium_mesg.status = AS_UNIQUE;
+      break;
+    case UNRESOLVEDCHUNK_CGW:
+      if (unitig->info.CI.numInstances > 0) {
+        ium_mesg.status = AS_SEP;
+        assert(!unitig->flags.bits.isUnique);
+      } else if (unitig->scaffoldID != NULLINDEX) {
+        ium_mesg.status = AS_UNIQUE;
+      } else {
+        ium_mesg.status = AS_NOTREZ;
       }
-      tempPos->position.bgn = fragPoss[i].bgn;
-      tempPos->position.end = fragPoss[i].end;
-    }
-    ium_mesg.f_list = GetIntMultiPos(macopy->f_list, 0);
-
-    if (extendedFragLeftward)
-      // definitely reorder frags in f_list if we extended a frag leftward
-      leftShiftIUM(ium_mesg.f_list, GetNumIntMultiPoss(macopy->f_list), extendedFragIid);
-    else
-      // might need to reorder frags in f_list if we extended a frag rightward
-      rightShiftIUM(ium_mesg.f_list, GetNumIntMultiPoss(macopy->f_list), extendedFragIid);
-
-    //  The Local_Overlap_AS_forCNS below also had a commented out
-    //  DP_Compare.
-    //
-    {
-      CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
-                              CNS_OPTIONS_SMOOTH_WIN_DEFAULT,
-                              CNS_OPTIONS_MAX_NUM_ALLELES };
-      ALIGNMENT_CONTEXT=AS_CONSENSUS;
-
-
-      aligned = MultiAlignUnitig(&ium_mesg, 
-                                 ScaffoldGraph->gkpStore,
-                                 reformed_consensus,
-                                 reformed_quality,
-                                 reformed_deltas,
-                                 CNS_QUIET,  //  CNS_VERBOSE, CNS_STATS_ONLY
-                                 1,
-                                 Local_Overlap_AS_forCNS,
-                                 &options);
-    }
-
-    if (aligned == EXIT_FAILURE) {
-      fprintf(stderr, "GetNewUnitigMultiAlign()-- MultiAlignUnitig failure on unitig %d\n", unitig->id);
-      return FALSE;
-      //assert(0);
-    }
-
-    if (debug.eCRmainLV > 0) {
-      fprintf(debug.eCRmainFP, "for unitig %d, after reforming, strlen(reformed_consensus) = " F_SIZE_T "\n", unitig->id, strlen(Getchar(reformed_consensus, 0)));
-      fprintf(debug.eCRmainFP, "for unitig %d, after reforming, consensus:\n%s\n", unitig->id, Getchar(reformed_consensus, 0));
-    }
-
-    //  Set the keepInCache flag, since CreateMultiAlignTFromIUM() is
-    //  returning an allocated multialign, and if we don't cache it,
-    //  we have a giant memory leak.
-    //
-    updateMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, ium_mesg.iaccession, TRUE,
-                                  CreateMultiAlignTFromIUM(&ium_mesg, -2, FALSE),
-                                  TRUE);
+      break;
+    default:
+      assert(0);
   }
 
+  GetMultiAlignUngappedConsensus(macopy, ungappedSequence, ungappedQuality);
+  ium_mesg.consensus  = Getchar(ungappedSequence,0);
+  ium_mesg.quality    = Getchar(ungappedQuality,0);
+  ium_mesg.length     = GetMultiAlignUngappedLength(macopy);
+  ium_mesg.forced     = 0;
+  ium_mesg.num_frags  = GetNumIntMultiPoss(macopy->f_list);
+
+  // replace the positions in the f_list with the adjusted positions
+  int extendedFragLeftward = FALSE;
+
+  for (i = 0; i < GetNumIntMultiPoss(macopy->f_list); i++) {
+    IntMultiPos *tempPos = GetIntMultiPos(macopy->f_list, i);
+
+#if 0
+    fprintf(stderr, "in GetNewUnitigMultiAlign, changing frag %10d from (%8d, %8d) to (%8d, %8d)\n",
+            tempPos->ident, tempPos->position.bgn, tempPos->position.end, fragPoss[i].bgn, fragPoss[i].end);
+#endif
+
+    if (tempPos->ident == extendedFragIid) {
+      tempPos->contained = 0;    // the extended frag is no longer contained by any other frag
+      if (fragPoss[i].bgn == 0 || fragPoss[i].end == 0)
+        extendedFragLeftward = TRUE;  // if at the beginning of the unitig have to reorder frags
+    }
+    tempPos->position.bgn = fragPoss[i].bgn;
+    tempPos->position.end = fragPoss[i].end;
+  }
+  ium_mesg.f_list = GetIntMultiPos(macopy->f_list, 0);
+
+  if (extendedFragLeftward)
+    // definitely reorder frags in f_list if we extended a frag leftward
+    leftShiftIUM(ium_mesg.f_list, GetNumIntMultiPoss(macopy->f_list), extendedFragIid);
+  else
+    // might need to reorder frags in f_list if we extended a frag rightward
+    rightShiftIUM(ium_mesg.f_list, GetNumIntMultiPoss(macopy->f_list), extendedFragIid);
+
+  //  The Local_Overlap_AS_forCNS below also had a commented out
+  //  DP_Compare.
+  //
+  CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
+                          CNS_OPTIONS_SMOOTH_WIN_DEFAULT,
+                          CNS_OPTIONS_MAX_NUM_ALLELES };
+  ALIGNMENT_CONTEXT=AS_CONSENSUS;
+
+  if (EXIT_FAILURE == MultiAlignUnitig(&ium_mesg, 
+                                       ScaffoldGraph->gkpStore,
+                                       reformed_consensus,
+                                       reformed_quality,
+                                       reformed_deltas,
+                                       CNS_QUIET,  //  CNS_VERBOSE, CNS_STATS_ONLY
+                                       1,
+                                       Local_Overlap_AS_forCNS,
+                                       &options)) {
+    fprintf(stderr, "GetNewUnitigMultiAlign()-- MultiAlignUnitig failure on unitig %d\n", unitig->id);
+    DeleteMultiAlignT(macopy);  //  We own this.
+    return FALSE;
+  }
+
+  //  Set the keepInCache flag, since CreateMultiAlignTFromIUM() is
+  //  returning an allocated multialign, and if we don't cache it,
+  //  we have a giant memory leak.
+  //
+  updateMultiAlignTInSequenceDB(ScaffoldGraph->sequenceDB, ium_mesg.iaccession, TRUE,
+                                CreateMultiAlignTFromIUM(&ium_mesg, -2, FALSE),
+                                TRUE);
+
   DeleteMultiAlignT(macopy);  //  We own this.
+
+  if (debug.eCRmainLV > 0) {
+    //PrintMultiAlignT(stderr, loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, TRUE), ScaffoldGraph->gkpStore, 0, 0, AS_READ_CLEAR_ECR1);
+    fprintf(debug.eCRmainFP, "for unitig %d, after reforming, strlen(reformed_consensus) = " F_SIZE_T "\n", unitig->id, strlen(Getchar(reformed_consensus, 0)));
+    fprintf(debug.eCRmainFP, "for unitig %d, after reforming, consensus:\n%s\n", unitig->id, Getchar(reformed_consensus, 0));
+  }
 
   return TRUE;
 }
@@ -1826,7 +1698,9 @@ extendClearRange(int fragIid, int frag3pDelta) {
     setFrag(ScaffoldGraph->gkpStore, fragIid, &fsread);
 
     fprintf(stderr, "extendClearRange()-- changed frag %d clr_end from %d to %d\n",
-            fragIid, clr_end, clr_end + frag3pDelta);
+            fragIid, clr_end, clr_end + frag3pDelta, clr_bgn);
+    //fprintf(stderr, "extendClearRange()-- changed frag %d clr_end from %d to %d (clr_beg = %d)\n",
+    //        fragIid, clr_end, clr_end + frag3pDelta, clr_bgn);
   }
 }
 
@@ -1874,7 +1748,7 @@ getAlteredFragPositions(NodeCGW_T *unitig, fragPositions **fragPoss, int altered
 
   MultiAlignT *uma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, unitig->id, TRUE);
 
-  localFragPoss = (fragPositions *) safe_malloc( GetNumIntMultiPoss(uma->f_list) * sizeof(fragPositions));
+  localFragPoss = *fragPoss = (fragPositions *) safe_malloc( GetNumIntMultiPoss(uma->f_list) * sizeof(fragPositions));
 
   // get the current positions
   for (i = 0; i < GetNumIntMultiPoss(uma->f_list); i++) {
@@ -1937,8 +1811,6 @@ getAlteredFragPositions(NodeCGW_T *unitig, fragPositions **fragPoss, int altered
       }
     }
   }
-
-  *fragPoss = localFragPoss;
 }
 
 
