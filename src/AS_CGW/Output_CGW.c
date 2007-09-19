@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Output_CGW.c,v 1.26 2007-09-05 11:22:12 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Output_CGW.c,v 1.27 2007-09-19 21:54:24 skoren Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -649,6 +649,7 @@ void OutputUnitigsFromMultiAligns(void){
       //      fprintf(GlobalData->stderrc,"* # Unitig " F_CID " is CHAFF\n", ci->id);
       continue;
     }
+         
     switch(ci->type){
       case DISCRIMINATORUNIQUECHUNK_CGW:
         status = AS_UNIQUE;
@@ -695,6 +696,7 @@ void OutputUnitigsFromMultiAligns(void){
 #endif
       ium_mesg.coverage_stat = ci->info.CI.coverageStat;
       ium_mesg.status = status;
+      ium_mesg.unique_rept = ci->unique_rept;
       ium_mesg.length = GetMultiAlignLength(ma);
       ium_mesg.consensus = Getchar(ma->consensus,0);
       ium_mesg.quality = Getchar(ma->quality,0);

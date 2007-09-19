@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: GraphCGW_T.h,v 1.23 2007-09-05 11:22:11 brianwalenz Exp $	 */
+/* 	$Id: GraphCGW_T.h,v 1.24 2007-09-19 21:54:24 skoren Exp $	 */
 
 /**************************************************************************
  *  GraphCGW
@@ -186,6 +186,7 @@ typedef enum {
   SCRATCH_SCAFFOLD    // a temporary scaffold 
 } ChunkInstanceType;
 
+typedef UnitigFUR ChunkFUR;
 
 /* This enum is used to encode the classification of unitigs based on the
    simulator coordinates of the fragments */
@@ -235,6 +236,8 @@ VA_DEF(CDS_CID_t);
         
 typedef struct{
   ChunkInstanceType type; //
+  ChunkFUR unique_rept; //
+  
   CDS_CID_t id;        // Instance ID
   CDS_CID_t outputID;  // InstanceID (dense encoding over LIVE instances)
   CDS_CID_t scaffoldID; // scaffold ID

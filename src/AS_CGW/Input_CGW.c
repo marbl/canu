@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.46 2007-09-05 11:22:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.47 2007-09-19 21:54:24 skoren Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -357,7 +357,7 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, CDS_COORD_t length, int s
   }
 
   
-  {
+  {   
     int isUnique = FALSE;
     if(ium_mesg->coverage_stat >= GlobalData->cgbUniqueCutoff &&
        length >= CGW_MIN_DISCRIMINATOR_UNIQUE_LENGTH &&
@@ -383,6 +383,15 @@ void ProcessIUM_ScaffoldGraph(IntUnitigMesg *ium_mesg, CDS_COORD_t length, int s
       }
     }else{
       isUnique = FALSE;
+    }
+    
+    // allow flag to overwrite what the default behavior for a chunk and force it to be unique or repeat
+    CI.unique_rept = ium_mesg->unique_rept;
+    if (ium_mesg->unique_rept == AS_FORCED_UNIQUE) {
+       isUnique = TRUE;       
+    }
+    else if (ium_mesg->unique_rept == AS_FORCED_REPEAT) {
+       isUnique = FALSE;
     }
 
     if(isUnique){

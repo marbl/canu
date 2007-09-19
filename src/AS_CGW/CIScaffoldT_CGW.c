@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.23 2007-09-05 11:22:10 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.24 2007-09-19 21:54:24 skoren Exp $";
 
 #undef DEBUG
 #undef DEBUG_INSERT
@@ -2041,7 +2041,12 @@ void DemoteSmallSingletonScaffolds(void) {
     CI = GetGraphNode(ScaffoldGraph->CIGraph, contig->info.Contig.AEndCI);
 
     numSingletonScaffolds++;
-    if ((CI->info.CI.coverageStat > GlobalData->cgbDefinitelyUniqueCutoff) ||
+
+    if (CI->unique_rept == AS_FORCED_UNIQUE) {
+      continue;
+    }    
+
+    if ((CI->unique_rept != AS_FORCED_REPEAT && CI->info.CI.coverageStat > GlobalData->cgbDefinitelyUniqueCutoff) ||
         (CI->bpLength.mean > 2000.0))
       continue;
 
