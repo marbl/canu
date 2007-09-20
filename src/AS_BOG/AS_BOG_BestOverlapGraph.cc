@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.38 2007-06-14 20:45:52 eliv Exp $
- * $Revision: 1.38 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.39 2007-09-20 16:27:13 eliv Exp $
+ * $Revision: 1.39 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.38 2007-06-14 20:45:52 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.39 2007-09-20 16:27:13 eliv Exp $";
 
 //  System include files
 #include<iostream>
@@ -163,6 +163,18 @@ namespace AS_BOG{
         }
     }
 
+    void BestOverlapGraph::addContainEdge( iuid contain, iuid otherRead ) {
+        _best_containments[ contain ].overlaps.insert( otherRead );
+    }
+    bool BestOverlapGraph::containHaveEdgeTo( iuid contain, iuid otherRead ) {
+        bool ret = false;
+        if (_best_containments.find( contain ) != _best_containments.end())
+            if (_best_containments[ contain ].overlaps.find( otherRead ) !=
+                _best_containments[ contain ].overlaps.end() )
+                ret = true;
+        return ret;
+    }
+
     void BestOverlapGraph::setBestContainer(const OVSoverlap& olap, float newScr) {
 
         BestContainment newBest;
@@ -174,7 +186,7 @@ namespace AS_BOG{
         newBest.b_hang =  olap.dat.ovl.b_hang;
         _best_containments[ olap.b_iid ] = newBest;
     }
-    inline bool BestOverlapGraph::isContained(const iuid fragIID) {
+    bool BestOverlapGraph::isContained(const iuid fragIID) {
         std::map<iuid,BestContainment>::const_iterator i =
                                 _best_containments.find( fragIID ); 
         if ( i != _best_containments.end() ) 
@@ -473,6 +485,17 @@ namespace AS_BOG{
         //   determines whether the overlap is containment or dovetailing,
         //   then stores the overlap in the BestOverlapGraph member variables.
 
+        // store real edges from contained frags to help with unhappy mate splitting
+        if (isContained( olap.a_iid ) ) {
+            if ( ( olap.dat.ovl.a_hang < 0 && olap.dat.ovl.b_hang < 0) ||
+                 ( olap.dat.ovl.a_hang > 0 && olap.dat.ovl.b_hang > 0) )
+                addContainEdge( olap.a_iid, olap.b_iid );
+            return;
+        }
+
+        if (isContained( olap.b_iid ) )
+            return;
+
         // Compute the score for this overlap based on the virtual score function
         float newScr = scoreOverlap(olap);
 
@@ -599,24 +622,13 @@ namespace AS_BOG{
             for(int j = 0; j < metrics.size(); j++)
                 metrics[j]->scoreContainment( olap );
         }
-/*
-        for(int j = 0; j < metrics.size(); j++) {
-            metrics[j]->removeTransitiveContainment();
-        }
-*/
 
         AS_OVS_resetRangeOverlapStore(my_store);
 
         while  (AS_OVS_readOverlapFromStore(my_store, &olap, AS_OVS_TYPE_OVL))
         {
-            for(int j = 0; j < metrics.size(); j++) {
-                if (metrics[j]->isContained( olap.a_iid ) || 
-                    metrics[j]->isContained( olap.b_iid ) ) {
-                    continue; // no contained frags in BestOverlapGraph
-                }
-
+            for(int j = 0; j < metrics.size(); j++)
                 metrics[j]->scoreEdge( olap );
-            }
         }
         // Update degree on final frag
         for(int j = 0; j < metrics.size(); j++) {

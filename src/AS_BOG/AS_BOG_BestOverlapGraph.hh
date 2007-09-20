@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.30 2007-06-22 13:17:12 eliv Exp $
- * $Revision: 1.30 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.31 2007-09-20 16:27:13 eliv Exp $
+ * $Revision: 1.31 $
 */
 
 //  System include files
@@ -43,8 +43,7 @@
 #ifndef INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 #define INCLUDE_AS_BOG_BESTOVERLAPGRAPH
 
-#include <map>
-//#include <vector>
+#include <set>
 
 #include "AS_BOG_Datatypes.hh"
 
@@ -88,6 +87,7 @@ namespace AS_BOG{
         short b_hang;
         bool sameOrientation;
         bool isPlaced;
+        std::set<iuid> overlaps;
     };
 
     typedef std::map<iuid, BestContainment> BestContainmentMap;
@@ -120,6 +120,8 @@ namespace AS_BOG{
             iuid getNumFragments() { return lastFrg; }
             bool isContained(const iuid);
             BestContainment *getBestContainer(iuid frag_id);
+            void addContainEdge( iuid, iuid);
+            bool containHaveEdgeTo( iuid, iuid);
             void printFrom(iuid begin, iuid end=0);
 
             // Graph building methods
