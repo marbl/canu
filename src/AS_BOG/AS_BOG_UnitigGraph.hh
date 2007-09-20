@@ -34,15 +34,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.28 2007-06-15 21:10:13 eliv Exp $
- * $Revision: 1.28 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.29 2007-09-20 16:14:54 eliv Exp $
+ * $Revision: 1.29 $
 */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.28 2007-06-15 21:10:13 eliv Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.29 2007-09-20 16:14:54 eliv Exp $";
 
 #include <set>
 #include <iostream>
@@ -223,6 +223,7 @@ namespace AS_BOG{
 		// Overlaps are unitig overlaps
 		std::vector<UnitigOverlap*> overlaps;
 
+        BestOverlapGraph *bog_ptr;
 
 		private:
 			// Given a fragment, it will follow it's overlaps until 
@@ -252,7 +253,6 @@ namespace AS_BOG{
 			// Compute the global arrival rate based on the unitig rho's.
 			float _compute_global_arrival_rate(void);
 
-            BestOverlapGraph *bog_ptr;
             FragmentEdgeList *unitigIntersect;
 			ContainerMap *cntnrmap_ptr;
 	};
