@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.24 2007-09-13 18:29:13 eliv Exp $
- * $Revision: 1.24 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.25 2007-09-20 16:34:48 eliv Exp $
+ * $Revision: 1.25 $
 */
 
 #include <math.h>
@@ -293,7 +293,8 @@ namespace AS_BOG{
             if (*tigEditIter == NULL ) 
                 continue;
 
-            FragmentEnds* breaks = computeMateCoverage( *tigEditIter, globalStats );
+            FragmentEnds* breaks = computeMateCoverage( *tigEditIter, globalStats,
+                                                              tigGraph.bog_ptr );
             tigGraph.accumulateSplitUnitigs( tigEditIter, breaks, splits );
             delete breaks;
         }
@@ -307,6 +308,18 @@ namespace AS_BOG{
     inline void incrRange( short graph[], short val, iuid n, iuid m ) {
         for(iuid i=n; i <=m ; i++)
             graph[i] += val;
+    }
+    bool contains( SeqInterval a, SeqInterval b)
+    {
+        int aMin,aMax,bMin,bMax;
+        if (isReverse(a)) { aMin = a.end; aMax = a.bgn; }
+        else              { aMin = a.bgn; aMax = a.end; }
+        if (isReverse(b)) { bMin = b.end; bMax = b.bgn; }
+        else              { bMin = b.bgn; bMax = b.end; }
+        if (aMin <= bMin && aMax >= bMax)
+            return true;
+        else
+            return false;
     }
     ///////////////////////////////////////////////////////////////////////////
     SeqInterval intersection( SeqInterval a, SeqInterval b)
@@ -348,7 +361,8 @@ namespace AS_BOG{
 
     // hold over from testing if we should use 5' or 3' for range generation, now must use 3'
     static const bool MATE_3PRIME_END = true;
-    FragmentEnds* MateChecker::computeMateCoverage( Unitig* tig, LibraryStats& globalStats )
+    FragmentEnds* MateChecker::computeMateCoverage( Unitig* tig, LibraryStats& globalStats,
+                                                    BestOverlapGraph* bog_ptr )
     {
         int tigLen = tig->getLength();
         short goodGraph[tigLen]; 
@@ -538,6 +552,7 @@ namespace AS_BOG{
         CDS_COORD_t lastBreakBBEnd = 0;
         IntervalList::const_iterator fwdIter = fwdBads->begin();
         IntervalList::const_iterator revIter = revBads->begin();
+        tigIter = tig->dovetail_path_ptr->begin();
         // Go through the peak bad ranges looking for reads to break on
         while( fwdIter != fwdBads->end() || revIter != revBads->end() )
         {
@@ -562,7 +577,6 @@ namespace AS_BOG{
                 revIter++;
             }
             fprintf(stderr,"Bad peak from %d to %d\n",bad.bgn,bad.end);
-            tigIter = tig->dovetail_path_ptr->begin();
             for(;tigIter != tig->dovetail_path_ptr->end(); tigIter++)
             {
                 DoveTailNode frag = *tigIter;
@@ -576,11 +590,10 @@ namespace AS_BOG{
                 MateLocationEntry mloc = positions.getById( frag.ident );
                 if (mloc.id1 != 0 && mloc.isBad) { // only break on bad mates
 
-                    if ( fwdBad && bad < loc ) { // break now, put frag in new tig
+                    if ( fwdBad && bad < loc ) {
                         breakNow = true;
                     } else if ( !fwdBad && (loc.bgn == bad.end) ||
                             (combine && loc.end >  bad.bgn) ) {
-                        // reverse break now, put frag in new tig
                         breakNow = true;
                     } else if (bad.bgn > backBgn) {
                         // fun special case, keep contained frags at end of tig in container 
@@ -591,8 +604,8 @@ namespace AS_BOG{
                 if (breakNow) {
                     combine = false;
                     lastBreakBBEnd = currBackboneEnd;
-                    fprintf(stderr,"Frg to break in peak bad range is %d fwd %d\n",
-                            frag.ident, fwdBad );
+                    fprintf(stderr,"Frg to break in peak bad range is %d fwd %d pos (%d,%d) backbone %d\n",
+                            frag.ident, fwdBad, loc.bgn, loc.end, currBackboneEnd );
                     fragment_end_type fragEndInTig = FIVE_PRIME;
                     if (isReverse( frag.position ))
                         fragEndInTig = THREE_PRIME;
@@ -606,9 +619,15 @@ namespace AS_BOG{
                 {
                     DoveTailConstIter nextPos = tigIter+1;
                     if (nextPos != tig->dovetail_path_ptr->end())  {
-                        SeqInterval overlap = intersection(loc, nextPos->position);
-                        int diff = abs( overlap.end - overlap.bgn);
-                        if (NULL_SEQ_LOC == overlap || diff < DEFAULT_MIN_OLAP_LEN) {
+//                        if ((NULL_SEQ_LOC == overlap || diff < DEFAULT_MIN_OLAP_LEN) || 
+                        if ( contains( loc, nextPos->position ) ) {
+                            // Contains the next one, so skip it
+                        } else {
+                            SeqInterval overlap = intersection(loc, nextPos->position);
+                            int diff = abs( overlap.end - overlap.bgn);
+                            if ((NULL_SEQ_LOC == overlap || diff < DEFAULT_MIN_OLAP_LEN) || 
+                                (bog_ptr->isContained( frag.ident ) &&
+                                !bog_ptr->containHaveEdgeTo( frag.ident, nextPos->ident))) {
                             // no overlap between this and the next frg, break after frg
                             fragment_end_type fragEndInTig = THREE_PRIME;
                             if (isReverse( loc ))
@@ -619,8 +638,9 @@ namespace AS_BOG{
                             bp.inSize = 100001;
                             bp.inFrags = 11;
                             breaks->push_back( bp );
-                            fprintf(stderr,"Might make frg %d singleton, end %d size %d\n",
-                                    frag.ident, fragEndInTig, breaks->size());
+                            fprintf(stderr,"Might make frg %d singleton, end %d size %d pos %d,%d\n",
+                                    frag.ident, fragEndInTig, breaks->size(),loc.bgn,loc.end);
+                            }
                         }
                     }
                 }

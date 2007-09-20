@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.hh,v 1.9 2007-06-11 20:59:42 eliv Exp $
- * $Revision: 1.9 $
+ * $Id: AS_BOG_MateChecker.hh,v 1.10 2007-09-20 16:34:48 eliv Exp $
+ * $Revision: 1.10 $
 */
 
 #ifndef INCLUDE_AS_BOG_MATECHEKER
@@ -75,7 +75,7 @@ namespace AS_BOG{
         // Checks size of mates internal to unitig
         LibraryStats* checkUnitig( Unitig* );
         // Compute good and bad coverage graphs for a unitig, returns split points
-        FragmentEnds* computeMateCoverage( Unitig*, LibraryStats &);
+        FragmentEnds* computeMateCoverage( Unitig*, LibraryStats &, BestOverlapGraph *);
         // Computes stddev and mate coverage over all unitigs
         void checkUnitigGraph( UnitigGraph& );
 
