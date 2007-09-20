@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.22 2007-09-05 11:22:12 brianwalenz Exp $";
+static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.23 2007-09-20 17:38:12 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -795,16 +795,18 @@ static int StoreIUMStruct(ScaffoldGraphT * graph,
                           IUMStruct * is,
                           int isUnitig,
                           UnitigStatus status,
+                          UnitigFUR unique_rept,
                           float egfar,
                           int cgbType)
 {
   int i;
   int32 rho = 0;
-  
+
   is->ium.iaccession = ((isUnitig) ? GetNumGraphNodes(graph->CIGraph) :
                         GetNumGraphNodes(graph->ContigGraph));
 
   is->ium.status = status;
+  is->ium.unique_rept = unique_rept;
 
   // re-position fragments & compute (estimated) coverage statistic
   is->ium.length = 0;
@@ -955,8 +957,7 @@ static int SplitChunkByIntervals(ScaffoldGraphT * graph,
                        GetNumIntMultiPoss(ma->f_list));
   // fprintf(stdout, "%10" F_IIDP ": Final\n", ma->id);
   // PrintPositions(graph, ma, 1);
-  
-  
+
 #if 0
   // feedback for log file
   fprintf(GlobalData->stderrc,
@@ -1031,7 +1032,7 @@ static int SplitChunkByIntervals(ScaffoldGraphT * graph,
                   // old bad & old good are done
                   if(good->ium.num_frags > 0)
                     {
-                      StoreIUMStruct(graph, good, isUnitig, AS_UNASSIGNED, egfar,
+                      StoreIUMStruct(graph, good, isUnitig, AS_UNASSIGNED, AS_FORCED_NONE, egfar,
                                      ci->flags.bits.cgbType);
                       // refresh ci, since the VarArray may have been resized
                       ci = GetGraphNode(graph->CIGraph, ciID);
@@ -1039,7 +1040,7 @@ static int SplitChunkByIntervals(ScaffoldGraphT * graph,
             
                   if(bad->ium.num_frags > 0)
                     {
-                      StoreIUMStruct(graph, bad, isUnitig, AS_UNASSIGNED, egfar,
+                      StoreIUMStruct(graph, bad, isUnitig, AS_UNASSIGNED, AS_FORCED_NONE, egfar,
                                      ci->flags.bits.cgbType);
                       // refresh ci, since the VarArray may have been resized
                       ci = GetGraphNode(graph->CIGraph, ciID);
@@ -1121,7 +1122,7 @@ static int SplitChunkByIntervals(ScaffoldGraphT * graph,
   // now make the last good chunk a chunk
   if(good->ium.num_frags > 0)
     {
-      StoreIUMStruct(graph, good, isUnitig, AS_UNASSIGNED, egfar,
+      StoreIUMStruct(graph, good, isUnitig, AS_UNASSIGNED, AS_FORCED_NONE, egfar,
                      ci->flags.bits.cgbType);
       // refresh ci, since the VarArray may have been resized
       ci = GetGraphNode(graph->CIGraph, ciID);
@@ -1130,7 +1131,7 @@ static int SplitChunkByIntervals(ScaffoldGraphT * graph,
   // if the last bad section went to the end, it's still here
   if(bad->ium.num_frags > 0)
     {
-      StoreIUMStruct(graph, bad, isUnitig, AS_UNASSIGNED, egfar,
+      StoreIUMStruct(graph, bad, isUnitig, AS_UNASSIGNED, AS_FORCED_NONE, egfar,
                      ci->flags.bits.cgbType);
       // refresh ci, since the VarArray may have been resized
       ci = GetGraphNode(graph->CIGraph, ciID);
