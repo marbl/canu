@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.25 2007-09-20 16:34:48 eliv Exp $
- * $Revision: 1.25 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.26 2007-09-20 17:41:37 eliv Exp $
+ * $Revision: 1.26 $
 */
 
 #include <math.h>
@@ -583,7 +583,7 @@ namespace AS_BOG{
                 SeqInterval loc = frag.position;
                 // keep track of current and previous uncontained contig end
                 // so that we can split apart contained reads that don't overlap each other
-                if ( !frag.contained )
+                if ( !bog_ptr->isContained(frag.ident) )
                     currBackboneEnd = MAX(loc.bgn, loc.end);
 
                 bool breakNow = false;
