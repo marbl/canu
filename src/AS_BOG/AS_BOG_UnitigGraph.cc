@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.58 2007-09-14 20:32:15 eliv Exp $
- * $Revision: 1.58 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.59 2007-09-20 17:24:05 skoren Exp $
+ * $Revision: 1.59 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.58 2007-09-14 20:32:15 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.59 2007-09-20 17:24:05 skoren Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -1800,6 +1800,7 @@ namespace AS_BOG{
 #endif
         /*float  */		ium_mesg_ptr->coverage_stat=getCovStat();
         /*UnitigStatus*/	ium_mesg_ptr->status=AS_UNASSIGNED;
+        /*UnitigFUR*/   ium_mesg_ptr->unique_rept=AS_FORCED_NONE;
         /*CDS_COORD_t*/		ium_mesg_ptr->length=getLength();
         /*char* */		ium_mesg_ptr->consensus="";
         /*char* */		ium_mesg_ptr->quality="";
