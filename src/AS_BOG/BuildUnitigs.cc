@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.25 2007-07-19 09:50:26 brianwalenz Exp $
- * $Revision: 1.25 $
+ * $Id: BuildUnitigs.cc,v 1.26 2007-09-20 16:17:41 eliv Exp $
+ * $Revision: 1.26 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.25 2007-07-19 09:50:26 brianwalenz Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.26 2007-09-20 16:17:41 eliv Exp $";
 
 //  System include files
 
@@ -81,9 +81,9 @@ int  main (int argc, char * argv [])
    const char* GKP_Store_Path;
 
    vector<float> erates;
-   erates.push_back(2.5);
+//   erates.push_back(2.5);
    erates.push_back(1.5);
-   erates.push_back(1.0);
+//   erates.push_back(1.0);
    long genome_size=0;
    int ch;
    bool argsDone=false;
@@ -155,14 +155,13 @@ int  main (int argc, char * argv [])
 	std::cout << "Num Containees: " << bogRunner.metrics[i]->_best_containments.size() << std::endl;
 	std::cout << std::endl;
 
-	//std::cerr << er_cg << std::endl;
 	AS_BOG::UnitigGraph utg(bogRunner.metrics[i]);
 	std::cerr << "Building Unitigs.\n" << std::endl;
 	utg.build(cg);
 
 	std::cerr << "Reporting.\n" << std::endl;
     mateChecker.checkUnitigGraph(utg);
-	//std::cout<< utg << endl;
+
     char fileStr[16];
     int mismatch = bogRunner.metrics[i]->getThreshold();
     sprintf( fileStr, "len%d.ium",mismatch);
