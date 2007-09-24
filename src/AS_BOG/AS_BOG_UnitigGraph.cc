@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.59 2007-09-20 17:24:05 skoren Exp $
- * $Revision: 1.59 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.60 2007-09-24 18:24:52 eliv Exp $
+ * $Revision: 1.60 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.59 2007-09-20 17:24:05 skoren Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.60 2007-09-24 18:24:52 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -1700,7 +1700,8 @@ namespace AS_BOG{
                 else {
                     breakPoint = breaks.front();
                     breaks.pop_front();
-                    nextBP = breaks.front();
+                    if (!breaks.empty())
+                        nextBP = breaks.front();
                 }
             } else {
                 // not a unitig break point fragment, add to current new tig
