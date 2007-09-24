@@ -19,13 +19,14 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.27 2007-09-24 12:11:17 eliv Exp $
- * $Revision: 1.27 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.28 2007-09-24 18:26:51 eliv Exp $
+ * $Revision: 1.28 $
 */
 
 #include <math.h>
 #include "AS_BOG_MateChecker.hh"
 #include "AS_OVL_overlap.h"  // For DEFAULT_MIN_OLAP_LEN
+#include "AS_UTL_alloc.h"    // For safe_calloc
 
 namespace AS_BOG{
     MateChecker::~MateChecker() {
@@ -308,10 +309,9 @@ namespace AS_BOG{
 
     ///////////////////////////////////////////////////////////////////////////
 
-    void incrRange( std::vector<short> graph, short val, iuid n, iuid m )
+    void incrRange( short* graph, short val, iuid n, iuid m )
     {
         if (n < 0) n = 0;
-        if (m >= graph.size()) m = graph.size() - 1;
 
         for(iuid i=n; i <=m ; i++)
             graph[i] += val;
@@ -364,7 +364,7 @@ namespace AS_BOG{
     }
     ///////////////////////////////////////////////////////////////////////////
 
-    IntervalList* findPeakBad( std::vector<short>& badGraph);
+    IntervalList* findPeakBad( short* badGraph, int tigLen);
 
     // hold over from testing if we should use 5' or 3' for range generation, now must use 3'
     static const bool MATE_3PRIME_END = true;
@@ -397,9 +397,9 @@ namespace AS_BOG{
         }
         IntervalList *fwdBads,*revBads;
         fprintf(stderr,"\nPer 300 bases bad fwd graph:\n");
-        fwdBads = findPeakBad( positions.badFwdGraph );
+        fwdBads = findPeakBad( positions.badFwdGraph, tigLen );
         fprintf(stderr,"\nPer 300 bases bad rev graph:\n");
-        revBads = findPeakBad( positions.badRevGraph );
+        revBads = findPeakBad( positions.badRevGraph, tigLen );
 
         fprintf(stderr,"Num fwdBads is %d\n",fwdBads->size());
         fprintf(stderr,"Num revBads is %d\n",revBads->size());
@@ -522,9 +522,8 @@ namespace AS_BOG{
 
     ///////////////////////////////////////////////////////////////////////////
 
-    IntervalList* findPeakBad( std::vector<short>& badGraph ) {
+    IntervalList* findPeakBad( short* badGraph, int tigLen ) {
         long sum = 0;
-        int tigLen = badGraph.size();
         for(int i=0; i < tigLen; i++) {
             if (i > 1 && i % 300 == 0) {
                 fprintf(stderr,"%d ", sum / 300);
@@ -586,12 +585,9 @@ namespace AS_BOG{
     
     void MateLocation::buildHappinessGraphs( int tigLen, LibraryStats& globalStats )
     {
-        goodGraph.reserve( tigLen );
-        badFwdGraph.reserve( tigLen );
-        badRevGraph.reserve( tigLen );
-        for (int i=0; i < tigLen; i++) 
-            goodGraph[i] = badFwdGraph[i] = badRevGraph[i] = 0;
-
+        goodGraph   = (short *)safe_calloc( tigLen+1, sizeof(short) );
+        badFwdGraph = (short *)safe_calloc( tigLen+1, sizeof(short) );
+        badRevGraph = (short *)safe_calloc( tigLen+1, sizeof(short) );
 
         MateLocIter  posIter  = begin();
         for(;        posIter != end(); posIter++) {
@@ -739,6 +735,14 @@ namespace AS_BOG{
         _table.push_back( entry );
         _iidIndex[ fragID ] = _table.size()-1;
         return true;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    MateLocation::~MateLocation()
+    {
+        safe_free( goodGraph );
+        safe_free( badFwdGraph );
+        safe_free( badRevGraph );
     }
 
     ///////////////////////////////////////////////////////////////////////////

@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.hh,v 1.11 2007-09-24 12:11:17 eliv Exp $
- * $Revision: 1.11 $
+ * $Id: AS_BOG_MateChecker.hh,v 1.12 2007-09-24 18:26:51 eliv Exp $
+ * $Revision: 1.12 $
 */
 
 #ifndef INCLUDE_AS_BOG_MATECHEKER
@@ -106,6 +106,7 @@ namespace AS_BOG{
         public:
 
         MateLocation(MateChecker* const check) : _checker(check) {};
+        ~MateLocation();
 
         bool startEntry( iuid, iuid, SeqInterval);
         bool addMate( iuid, iuid, SeqInterval);
@@ -118,9 +119,9 @@ namespace AS_BOG{
         void buildTable( Unitig *);
         void buildHappinessGraphs( int tigLen, LibraryStats &);
         
-        std::vector<short> goodGraph;
-        std::vector<short> badFwdGraph;
-        std::vector<short> badRevGraph;
+        short* goodGraph;
+        short* badFwdGraph;
+        short* badRevGraph;
 
         private:
 
