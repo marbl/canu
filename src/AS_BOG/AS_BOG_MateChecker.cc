@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.26 2007-09-20 17:41:37 eliv Exp $
- * $Revision: 1.26 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.27 2007-09-24 12:11:17 eliv Exp $
+ * $Revision: 1.27 $
 */
 
 #include <math.h>
@@ -138,6 +138,8 @@ namespace AS_BOG{
                 }
             }
         }
+        if (tig->dovetail_path_ptr->size() > 1 )
+        {
         fprintf(stderr,"Num frags in tig %ld\n",tig->dovetail_path_ptr->size());
         fprintf(stderr,"Num frags with mate %d\n",numWithMate);
         fprintf(stderr,"Num with mate in unitig %d\n",numInTig);
@@ -147,6 +149,7 @@ namespace AS_BOG{
             iuid libId = histIter->first;
             iuid cnt   = histIter->second;
             fprintf(stderr,"Num mates to unitig %ld is %ld.\n",libId,cnt);
+        }
         }
 
         // Calculate the unitig local mean
@@ -305,7 +308,11 @@ namespace AS_BOG{
 
     ///////////////////////////////////////////////////////////////////////////
 
-    inline void incrRange( short graph[], short val, iuid n, iuid m ) {
+    void incrRange( std::vector<short> graph, short val, iuid n, iuid m )
+    {
+        if (n < 0) n = 0;
+        if (m >= graph.size()) m = graph.size() - 1;
+
         for(iuid i=n; i <=m ; i++)
             graph[i] += val;
     }
@@ -357,7 +364,7 @@ namespace AS_BOG{
     }
     ///////////////////////////////////////////////////////////////////////////
 
-    IntervalList* findPeakBad( short* badGraph, int tigLen);
+    IntervalList* findPeakBad( std::vector<short>& badGraph);
 
     // hold over from testing if we should use 5' or 3' for range generation, now must use 3'
     static const bool MATE_3PRIME_END = true;
@@ -365,37 +372,232 @@ namespace AS_BOG{
                                                     BestOverlapGraph* bog_ptr )
     {
         int tigLen = tig->getLength();
-        short goodGraph[tigLen]; 
-        short  badFwdGraph[tigLen];
-        short  badRevGraph[tigLen];
-        memset( goodGraph, 0, tigLen * sizeof(short));
-        memset(  badFwdGraph, 0, tigLen * sizeof(short));
-        memset(  badRevGraph, 0, tigLen * sizeof(short));
-        IdMap seenMates;
         MateLocation positions(this);
         // Build mate position table
+        positions.buildTable( tig );
+        // Build good and bad mate graphs
+        positions.buildHappinessGraphs( tigLen, globalStats );
+
+        // For debugging purposes output the table
+        MateLocIter posIter = positions.begin();
+        for(posIter = positions.begin(); posIter != positions.end(); posIter++){
+            MateLocationEntry loc = *posIter;
+            std::cerr << loc << std::endl;
+        }
+
+        // do something with the good and bad graphs
+        fprintf(stderr,"Per 300 bases good graph unitig %ld size %ld:\n",tig->id(),tigLen);
+        long sum = 0;
+        for(int i=0; i < tigLen; i++) {
+            if (i > 1 && i % 300 == 0) {
+                fprintf(stderr,"%d ", sum / 300);
+                sum = 0;
+            }
+            sum += positions.goodGraph[ i ];
+        }
+        IntervalList *fwdBads,*revBads;
+        fprintf(stderr,"\nPer 300 bases bad fwd graph:\n");
+        fwdBads = findPeakBad( positions.badFwdGraph );
+        fprintf(stderr,"\nPer 300 bases bad rev graph:\n");
+        revBads = findPeakBad( positions.badRevGraph );
+
+        fprintf(stderr,"Num fwdBads is %d\n",fwdBads->size());
+        fprintf(stderr,"Num revBads is %d\n",revBads->size());
+        FragmentEnds* breaks = new FragmentEnds(); // return value
+
+        posIter  = positions.begin();
+
+        iuid backBgn; // Start position of final backbone unitig
+        DoveTailNode backbone = tig->getLastBackboneNode(backBgn);
+        backBgn = isReverse( backbone.position ) ? backbone.position.end :
+                                                   backbone.position.bgn ;
+
+        bool combine = false;
+        CDS_COORD_t currBackboneEnd = 0;
+        CDS_COORD_t lastBreakBBEnd = 0;
+        IntervalList::const_iterator fwdIter = fwdBads->begin();
+        IntervalList::const_iterator revIter = revBads->begin();
+        DoveTailConstIter tigIter = tig->dovetail_path_ptr->begin();
+        // Go through the peak bad ranges looking for reads to break on
+        while( fwdIter != fwdBads->end() || revIter != revBads->end() )
+        {
+            bool fwdBad = false;
+            SeqInterval bad;
+            if ( revIter == revBads->end() ||
+                 fwdIter != fwdBads->end() &&  *fwdIter < *revIter ) {
+                // forward bad group, break at 1st frag
+                fwdBad = true;
+                bad = *fwdIter;
+                fwdIter++;
+            } else {                     // reverse bad group, break at last frag
+                bad = *revIter;
+                if (fwdIter != fwdBads->end()     && fwdIter->bgn > bad.end &&
+                    fwdIter->bgn  - bad.end < 900 && fwdIter->end - bad.bgn < 2000)
+                {
+                    fprintf(stderr,"Combine bad ranges %d - %d with %d - %d\n",
+                            bad.bgn, bad.end, fwdIter->end, fwdIter->bgn);
+                    fwdIter++; // Combine if fwd and bad within 900 bases
+                    combine = true;
+                }
+                revIter++;
+            }
+            fprintf(stderr,"Bad peak from %d to %d\n",bad.bgn,bad.end);
+            for(;tigIter != tig->dovetail_path_ptr->end(); tigIter++)
+            {
+                DoveTailNode frag = *tigIter;
+                SeqInterval loc = frag.position;
+                // keep track of current and previous uncontained contig end
+                // so that we can split apart contained reads that don't overlap each other
+                if ( !bog_ptr->isContained(frag.ident) )
+                    currBackboneEnd = MAX(loc.bgn, loc.end);
+
+                bool breakNow = false;
+                MateLocationEntry mloc = positions.getById( frag.ident );
+                if (mloc.id1 != 0 && mloc.isBad) { // only break on bad mates
+
+                    if ( fwdBad && bad < loc ) {
+                        breakNow = true;
+                    } else if ( !fwdBad && (loc.bgn == bad.end) ||
+                            (combine && loc.end >  bad.bgn) ) {
+                        breakNow = true;
+                    } else if (bad.bgn > backBgn) {
+                        // fun special case, keep contained frags at end of tig in container 
+                        // instead of in their own new tig where they might not overlap
+                        breakNow = true;
+                    }
+                }
+                if (breakNow) {
+                    combine = false;
+                    lastBreakBBEnd = currBackboneEnd;
+                    fprintf(stderr,"Frg to break in peak bad range is %d fwd %d pos (%d,%d) backbone %d\n",
+                            frag.ident, fwdBad, loc.bgn, loc.end, currBackboneEnd );
+                    fragment_end_type fragEndInTig = FIVE_PRIME;
+                    if (isReverse( frag.position ))
+                        fragEndInTig = THREE_PRIME;
+                    UnitigBreakPoint bp( frag.ident, fragEndInTig );
+                    bp.position = frag.position;
+                    bp.inSize = 100000;
+                    bp.inFrags = 10;
+                    breaks->push_back( bp );
+                }
+                if ( lastBreakBBEnd != 0 && lastBreakBBEnd > MAX(loc.bgn,loc.end))
+                {
+                    DoveTailConstIter nextPos = tigIter+1;
+                    if (nextPos != tig->dovetail_path_ptr->end())  {
+//                        if ((NULL_SEQ_LOC == overlap || diff < DEFAULT_MIN_OLAP_LEN) || 
+                        if ( contains( loc, nextPos->position ) ) {
+                            // Contains the next one, so skip it
+                        } else {
+                            SeqInterval overlap = intersection(loc, nextPos->position);
+                            int diff = abs( overlap.end - overlap.bgn);
+                            if ((NULL_SEQ_LOC == overlap || diff < DEFAULT_MIN_OLAP_LEN) || 
+                                (bog_ptr->isContained( frag.ident ) &&
+                                !bog_ptr->containHaveEdgeTo( frag.ident, nextPos->ident))) {
+                            // no overlap between this and the next frg, break after frg
+                            fragment_end_type fragEndInTig = THREE_PRIME;
+                            if (isReverse( loc ))
+                                fragEndInTig = FIVE_PRIME;
+
+                            UnitigBreakPoint bp( frag.ident, fragEndInTig );
+                            bp.position = loc;
+                            bp.inSize = 100001;
+                            bp.inFrags = 11;
+                            breaks->push_back( bp );
+                            fprintf(stderr,"Might make frg %d singleton, end %d size %d pos %d,%d\n",
+                                    frag.ident, fragEndInTig, breaks->size(),loc.bgn,loc.end);
+                            }
+                        }
+                    }
+                }
+                if (breakNow) { // Move to next breakpoint
+                    tigIter++;  // make sure to advance past curr frg
+                    break;
+                }
+            }
+        }
+        delete fwdBads;
+        delete revBads;
+        return breaks;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+
+    IntervalList* findPeakBad( std::vector<short>& badGraph ) {
+        long sum = 0;
+        int tigLen = badGraph.size();
+        for(int i=0; i < tigLen; i++) {
+            if (i > 1 && i % 300 == 0) {
+                fprintf(stderr,"%d ", sum / 300);
+                sum = 0;
+            }
+            sum += badGraph[ i ];
+        }
+        fprintf(stderr,"\n");
+        IntervalList* peakBads = new IntervalList();
+        SeqInterval   peak = NULL_SEQ_LOC;
+        int badBegin, peakBad, lastBad;
+        peakBad = lastBad = badBegin = 0;
+        for(int i=0; i < tigLen; i++) {
+            if( badGraph[ i ] <= -3 ) {
+                if (badBegin == 0)  // start bad region
+                    badBegin = i;
+                if(badGraph[i] < peakBad) {
+                    peakBad   = badGraph[i];
+                    peak.bgn = i;
+                } else if (lastBad < 0 && lastBad == peakBad) {
+                    peak.end = i-1;
+                }
+                lastBad = badGraph[i];
+            } else {
+                if (badBegin > 0) {  // end bad region
+                    fprintf(stderr,"Bad mates >3 from %d to %d peak %d from %d to %d\n",
+                            badBegin,i-1,peakBad,peak.bgn,peak.end);
+                    peakBads->push_back( peak );
+                    peakBad = lastBad = badBegin = 0;
+                    peak = NULL_SEQ_LOC;
+                }
+            }
+        }
+        return peakBads;
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+    
+    void MateLocation::buildTable( Unitig *tig)
+    {
         DoveTailConstIter tigIter = tig->dovetail_path_ptr->begin();
         for(;tigIter != tig->dovetail_path_ptr->end(); tigIter++)
         {
             DoveTailNode frag = *tigIter;
             iuid fragId = frag.ident;
-            MateInfo mateInfo = getMateInfo( fragId );
+            MateInfo mateInfo = _checker->getMateInfo( fragId );
             iuid mateId = mateInfo.mate;
             if ( mateInfo.mate != NULL_FRAG_ID )
             {
-                if (positions.hasFrag( mateId ) )
-                    positions.addMate( tig->id(), fragId, frag.position );
+                if (hasFrag( mateId ) )
+                    addMate( tig->id(), fragId, frag.position );
                 else
-                    positions.startEntry( tig->id(), fragId, frag.position );
+                    startEntry( tig->id(), fragId, frag.position );
             }
         }
-        positions.sort();
-        // Build good and bad mate graphs
-        MateLocIter  posIter  = positions.begin();
-        for(;        posIter != positions.end(); posIter++) {
+        sort();
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    
+    void MateLocation::buildHappinessGraphs( int tigLen, LibraryStats& globalStats )
+    {
+        goodGraph.reserve( tigLen );
+        badFwdGraph.reserve( tigLen );
+        badRevGraph.reserve( tigLen );
+        for (int i=0; i < tigLen; i++) 
+            goodGraph[i] = badFwdGraph[i] = badRevGraph[i] = 0;
+
+
+        MateLocIter  posIter  = begin();
+        for(;        posIter != end(); posIter++) {
             MateLocationEntry loc = *posIter;
             iuid fragId         =  loc.id1;
-            MateInfo mateInfo   =  getMateInfo( fragId );
+            MateInfo mateInfo   =  _checker->getMateInfo( fragId );
             iuid mateId         =  mateInfo.mate;
             iuid lib            =  mateInfo.lib;
             DistanceCompute *gdc = &(globalStats[ lib ]);
@@ -515,185 +717,8 @@ namespace AS_BOG{
                 }
             }
         }
-        // For debugging purposes output the table
-        for(posIter = positions.begin(); posIter != positions.end(); posIter++){
-            MateLocationEntry loc = *posIter;
-            std::cerr << loc << std::endl;
-        }
-        // do something with the good and bad graphs
-        fprintf(stderr,"Per 300 bases good graph unitig %ld size %ld:\n",tig->id(),tigLen);
-        long sum = 0;
-        for(int i=0; i < tigLen; i++) {
-            if (i > 1 && i % 300 == 0) {
-                fprintf(stderr,"%d ", sum / 300);
-                sum = 0;
-            }
-            sum += goodGraph[ i ];
-        }
-        IntervalList *fwdBads,*revBads;
-        fprintf(stderr,"\nPer 300 bases bad fwd graph:\n");
-        fwdBads = findPeakBad( badFwdGraph, tigLen );
-        fprintf(stderr,"\nPer 300 bases bad rev graph:\n");
-        revBads = findPeakBad( badRevGraph, tigLen );
-
-        fprintf(stderr,"Num fwdBads is %d\n",fwdBads->size());
-        fprintf(stderr,"Num revBads is %d\n",revBads->size());
-        FragmentEnds* breaks = new FragmentEnds(); // return value
-
-        posIter  = positions.begin();
-
-        iuid backBgn; // Start position of final backbone unitig
-        DoveTailNode backbone = tig->getLastBackboneNode(backBgn);
-        backBgn = isReverse( backbone.position ) ? backbone.position.end :
-                                                   backbone.position.bgn ;
-
-        bool combine = false;
-        CDS_COORD_t currBackboneEnd = 0;
-        CDS_COORD_t lastBreakBBEnd = 0;
-        IntervalList::const_iterator fwdIter = fwdBads->begin();
-        IntervalList::const_iterator revIter = revBads->begin();
-        tigIter = tig->dovetail_path_ptr->begin();
-        // Go through the peak bad ranges looking for reads to break on
-        while( fwdIter != fwdBads->end() || revIter != revBads->end() )
-        {
-            bool fwdBad = false;
-            SeqInterval bad;
-            if ( revIter == revBads->end() ||
-                 fwdIter != fwdBads->end() &&  *fwdIter < *revIter ) {
-                // forward bad group, break at 1st frag
-                fwdBad = true;
-                bad = *fwdIter;
-                fwdIter++;
-            } else {                     // reverse bad group, break at last frag
-                bad = *revIter;
-                if (fwdIter != fwdBads->end()     && fwdIter->bgn > bad.end &&
-                    fwdIter->bgn  - bad.end < 900 && fwdIter->end - bad.bgn < 2000)
-                {
-                    fprintf(stderr,"Combine bad ranges %d - %d with %d - %d\n",
-                            bad.bgn, bad.end, fwdIter->end, fwdIter->bgn);
-                    fwdIter++; // Combine if fwd and bad within 900 bases
-                    combine = true;
-                }
-                revIter++;
-            }
-            fprintf(stderr,"Bad peak from %d to %d\n",bad.bgn,bad.end);
-            for(;tigIter != tig->dovetail_path_ptr->end(); tigIter++)
-            {
-                DoveTailNode frag = *tigIter;
-                SeqInterval loc = frag.position;
-                // keep track of current and previous uncontained contig end
-                // so that we can split apart contained reads that don't overlap each other
-                if ( !bog_ptr->isContained(frag.ident) )
-                    currBackboneEnd = MAX(loc.bgn, loc.end);
-
-                bool breakNow = false;
-                MateLocationEntry mloc = positions.getById( frag.ident );
-                if (mloc.id1 != 0 && mloc.isBad) { // only break on bad mates
-
-                    if ( fwdBad && bad < loc ) {
-                        breakNow = true;
-                    } else if ( !fwdBad && (loc.bgn == bad.end) ||
-                            (combine && loc.end >  bad.bgn) ) {
-                        breakNow = true;
-                    } else if (bad.bgn > backBgn) {
-                        // fun special case, keep contained frags at end of tig in container 
-                        // instead of in their own new tig where they might not overlap
-                        breakNow = true;
-                    }
-                }
-                if (breakNow) {
-                    combine = false;
-                    lastBreakBBEnd = currBackboneEnd;
-                    fprintf(stderr,"Frg to break in peak bad range is %d fwd %d pos (%d,%d) backbone %d\n",
-                            frag.ident, fwdBad, loc.bgn, loc.end, currBackboneEnd );
-                    fragment_end_type fragEndInTig = FIVE_PRIME;
-                    if (isReverse( frag.position ))
-                        fragEndInTig = THREE_PRIME;
-                    UnitigBreakPoint bp( frag.ident, fragEndInTig );
-                    bp.position = frag.position;
-                    bp.inSize = 100000;
-                    bp.inFrags = 10;
-                    breaks->push_back( bp );
-                }
-                if ( lastBreakBBEnd != 0 && lastBreakBBEnd > MAX(loc.bgn,loc.end))
-                {
-                    DoveTailConstIter nextPos = tigIter+1;
-                    if (nextPos != tig->dovetail_path_ptr->end())  {
-//                        if ((NULL_SEQ_LOC == overlap || diff < DEFAULT_MIN_OLAP_LEN) || 
-                        if ( contains( loc, nextPos->position ) ) {
-                            // Contains the next one, so skip it
-                        } else {
-                            SeqInterval overlap = intersection(loc, nextPos->position);
-                            int diff = abs( overlap.end - overlap.bgn);
-                            if ((NULL_SEQ_LOC == overlap || diff < DEFAULT_MIN_OLAP_LEN) || 
-                                (bog_ptr->isContained( frag.ident ) &&
-                                !bog_ptr->containHaveEdgeTo( frag.ident, nextPos->ident))) {
-                            // no overlap between this and the next frg, break after frg
-                            fragment_end_type fragEndInTig = THREE_PRIME;
-                            if (isReverse( loc ))
-                                fragEndInTig = FIVE_PRIME;
-
-                            UnitigBreakPoint bp( frag.ident, fragEndInTig );
-                            bp.position = loc;
-                            bp.inSize = 100001;
-                            bp.inFrags = 11;
-                            breaks->push_back( bp );
-                            fprintf(stderr,"Might make frg %d singleton, end %d size %d pos %d,%d\n",
-                                    frag.ident, fragEndInTig, breaks->size(),loc.bgn,loc.end);
-                            }
-                        }
-                    }
-                }
-                if (breakNow) { // Move to next breakpoint
-                    tigIter++;  // make sure to advance past curr frg
-                    break;
-                }
-            }
-        }
-        delete fwdBads;
-        delete revBads;
-        return breaks;
     }
 
-    ///////////////////////////////////////////////////////////////////////////
-
-    IntervalList* findPeakBad( short* badGraph, int tigLen) {
-        long sum = 0;
-        for(int i=0; i < tigLen; i++) {
-            if (i > 1 && i % 300 == 0) {
-                fprintf(stderr,"%d ", sum / 300);
-                sum = 0;
-            }
-            sum += badGraph[ i ];
-        }
-        fprintf(stderr,"\n");
-        IntervalList* peakBads = new IntervalList();
-        SeqInterval   peak = NULL_SEQ_LOC;
-        int badBegin, peakBad, lastBad;
-        peakBad = lastBad = badBegin = 0;
-        for(int i=0; i < tigLen; i++) {
-            if( badGraph[ i ] <= -3 ) {
-                if (badBegin == 0)  // start bad region
-                    badBegin = i;
-                if(badGraph[i] < peakBad) {
-                    peakBad   = badGraph[i];
-                    peak.bgn = i;
-                } else if (lastBad < 0 && lastBad == peakBad) {
-                    peak.end = i-1;
-                }
-                lastBad = badGraph[i];
-            } else {
-                if (badBegin > 0) {  // end bad region
-                    fprintf(stderr,"Bad mates >3 from %d to %d peak %d from %d to %d\n",
-                            badBegin,i-1,peakBad,peak.bgn,peak.end);
-                    peakBads->push_back( peak );
-                    peakBad = lastBad = badBegin = 0;
-                    peak = NULL_SEQ_LOC;
-                }
-            }
-        }
-        return peakBads;
-    }
     ///////////////////////////////////////////////////////////////////////////
 
     bool MateLocation::startEntry(iuid unitigID, iuid fragID, SeqInterval fragPos)
