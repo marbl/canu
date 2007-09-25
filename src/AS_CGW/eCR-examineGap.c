@@ -288,8 +288,6 @@ examineGap(ContigT *lcontig, int lFragIid,
   MaxEndGap = 100;
 
   if (lFragIid != -1) {
-    // if (lcontigBasesUsed < lFragContigOverlapLength)  // this means that the frag and contig overlap by
-    // lFragContigOverlapLength = lcontigBasesUsed;    // more bases than we are using from the contig
 
     // basesToNextFrag is the number of bases back to the first frag that gets us to 2x
     //
@@ -357,188 +355,181 @@ examineGap(ContigT *lcontig, int lFragIid,
 
   // now lcompBuffer and rcompBuffer hold the sequence of the fragments in the correct strand
   // now prepare for call to Local_Overlap_AS_forCNS
-  {
-    int beg, end, opposite = FALSE;
-    double erate, thresh, minlen;
-    CompareOptions what;
-    Overlap *overlap;
-    int basesAdded;
-    LengthT gapSize;
-    char *rcompBufferTrimmed = NULL;
-	
-    beg    = -strlen (rcompBuffer);
-    end    = strlen (lcompBuffer);
-    assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
-    erate  = AS_CGW_ERROR_RATE + 0.02;  //  Historically, erate == 0.12.
-    thresh = CGW_DP_THRESH;
-    minlen = CGW_DP_MINLEN + 10;        //  Historically, minlen == 30.  Not sure if we should hardcode 30 or offset from CGW_DP_MINLEN.
-    what   = AS_FIND_LOCAL_ALIGN;
 
+  int beg, end, opposite = FALSE;
+  double erate, thresh, minlen;
+  CompareOptions what;
+  Overlap *overlap;
+  LengthT gapSize;
+  char *rcompBufferTrimmed = NULL;
+	
+  beg    = -strlen (rcompBuffer);
+  end    = strlen (lcompBuffer);
+  assert((0.0 <= AS_CGW_ERROR_RATE) && (AS_CGW_ERROR_RATE <= AS_MAX_ERROR_RATE));
+  erate  = AS_CGW_ERROR_RATE + 0.02;  //  Historically, erate == 0.12.
+  thresh = CGW_DP_THRESH;
+  minlen = CGW_DP_MINLEN + 10;        //  Historically, minlen == 30.  Not sure if we should hardcode 30 or offset from CGW_DP_MINLEN.
+  what   = AS_FIND_LOCAL_ALIGN;
+
+  if (debug.examineGapLV > 0)
+    fprintf(debug.examineGapFP, "MaxBegGap: %d  MaxEndGap: %d", MaxBegGap, MaxEndGap);
+
+  overlap = Local_Overlap_AS_forCNS(lcompBuffer,
+                                    rcompBuffer,
+                                    -strlen(rcompBuffer),
+                                    strlen(lcompBuffer),
+                                    opposite,
+                                    erate,
+                                    thresh,
+                                    minlen,
+                                    what);
+
+  // not interested in overlaps with negative ahangs or bhangs
+  //
+  if ((overlap == NULL) || (overlap->begpos <= 0) || (overlap->endpos <= 0)) {
     if (debug.examineGapLV > 0)
-      fprintf(debug.examineGapFP, "MaxBegGap: %d  MaxEndGap: %d", MaxBegGap, MaxEndGap);
+      fprintf(debug.examineGapFP, "no overlap found between frags %d and %d\n", lFragIid, rFragIid);
+    restoreDefaultLocalAlignerVariables();
+    return 0;
+  }
 
-    overlap = Local_Overlap_AS_forCNS(lcompBuffer,
-                                      rcompBuffer,
-                                      -strlen(rcompBuffer),
-                                      strlen(lcompBuffer),
-                                      opposite,
-                                      erate,
-                                      thresh,
-                                      minlen,
-                                      what);
 
-    if ((debug.examineGapLV > 0) && (overlap != NULL)) {
-      fprintf(debug.examineGapFP, "initial ahang: %d, bhang:%d, length: %d, diffs: %d, diffs / length %%: %f\n",
-              overlap->begpos, overlap->endpos, overlap->length, overlap->diffs, 
-              100.0 * overlap->diffs / overlap->length);
-      Print_Overlap(debug.examineGapFP, lcompBuffer, rcompBuffer, overlap);
-    }
+  if (debug.examineGapLV > 0) {
+    fprintf(debug.examineGapFP, "initial ahang: %d, bhang:%d, length: %d, diffs: %d, diffs / length %%: %f\n",
+            overlap->begpos, overlap->endpos, overlap->length, overlap->diffs, 
+            100.0 * overlap->diffs / overlap->length);
+    Print_Overlap(debug.examineGapFP, lcompBuffer, rcompBuffer, overlap);
+  }
 
-    // not interested in overlaps with negative ahangs or bhangs
-    if (overlap != NULL && overlap->begpos > 0 && overlap->endpos > 0) {
-      /*
-        \
-        \
-        \  left flap, right frag
-        \  
-        -------------------
-        -------------------
-        \   right flap, left frag
-        \
-        \
-      */
+  /*
+    \
+    \
+    \  left flap, right frag
+    \  
+    -------------------
+    -------------------
+    \   right flap, left frag
+    \
+    \
+  */
           
-      // do flap trimming
-      // left flap, right frag
-      *rightFragFlapLength = 0;
-      if (overlap->begpos == abs(overlap->trace[0]) - 1 && overlap->trace[0] < 0) {
-        while (overlap->begpos == abs(overlap->trace[ *rightFragFlapLength ]) - 1 && 
-               overlap->trace[ *rightFragFlapLength ] < 0)
-          (*rightFragFlapLength)++;
-      }
+  // do flap trimming
+  // left flap, right frag
+  *rightFragFlapLength = 0;
+  if (overlap->begpos == abs(overlap->trace[0]) - 1 && overlap->trace[0] < 0) {
+    while (overlap->begpos == abs(overlap->trace[ *rightFragFlapLength ]) - 1 && 
+           overlap->trace[ *rightFragFlapLength ] < 0)
+      (*rightFragFlapLength)++;
+  }
 	  
-      // right flap, left frag
-      {
-        // first find the number of elements in trace
-        int numTraceElements = 0, icnt = 0, rcompLength = 0;
-        while (overlap->trace[ icnt++ ] != 0)
-          numTraceElements++;
-
-        *leftFragFlapLength = 0;
-        if ((numTraceElements > 0) &&
-            (overlap->endpos > 0) &&
-            (overlap->trace[ numTraceElements - 1 ] > 0)) {
-          icnt = numTraceElements - 1;
-          rcompLength = strlen(rcompBuffer) - overlap->endpos + 1;
-          while ((icnt >= 0) &&
-                 (overlap->trace[icnt] == rcompLength)) {
-            (*leftFragFlapLength)++;
-            icnt--;
-          }
-        }
+  // right flap, left frag
+  {
+    // first find the number of elements in trace
+    int numTraceElements = 0, icnt = 0, rcompLength = 0;
+    while (overlap->trace[ icnt++ ] != 0)
+      numTraceElements++;
+      
+    *leftFragFlapLength = 0;
+    if ((numTraceElements > 0) &&
+        (overlap->endpos > 0) &&
+        (overlap->trace[ numTraceElements - 1 ] > 0)) {
+      icnt = numTraceElements - 1;
+      rcompLength = strlen(rcompBuffer) - overlap->endpos + 1;
+      while ((icnt >= 0) &&
+             (overlap->trace[icnt] == rcompLength)) {
+        (*leftFragFlapLength)++;
+        icnt--;
       }
-	
-      lcompBuffer[ strlen(lcompBuffer) - *leftFragFlapLength ] = 0;
-      rcompBufferTrimmed = &rcompBuffer[ *rightFragFlapLength ];
-
-      // MaxEndGap -= *leftFragFlapLength;
-      // MaxBegGap = *rightFragFlapLength;
-
-      // now do overlap again after trimming to make sure it is still
-      // there, sometimes trimming makes them go away
-
-      overlap = Local_Overlap_AS_forCNS(lcompBuffer,
-                                        rcompBufferTrimmed,
-                                        -strlen(rcompBufferTrimmed),
-                                        strlen(lcompBuffer),
-                                        opposite,
-                                        erate,
-                                        thresh,
-                                        minlen,
-                                        what);
-      if (!overlap)
-        fprintf(stderr, "examineGap()-- WARNING!  Lost overlap to flap trimming!\n");
-    }
-
-    if ((debug.examineGapLV > 0) && (overlap != NULL) && (overlap->begpos > 0) && (overlap->endpos > 0)) {
-      fprintf(debug.examineGapFP, "post-flap trimming ahang: %d, bhang:%d, length: %d, diffs: %d, diffs / length %%: %f\n",
-              overlap->begpos, overlap->endpos, overlap->length, overlap->diffs, 
-              100.0 * overlap->diffs / overlap->length);
-      Print_Overlap(debug.examineGapFP, lcompBuffer, rcompBufferTrimmed, overlap);
-    }
-	
-    // not interested in overlaps with negative ahangs or bhangs
-    if (overlap != NULL && overlap->begpos > 0 && overlap->endpos > 0) {
-      int baseChangeLeftContig, baseChangeRightContig;
-
-      if (debug.examineGapLV > 0) {
-        fprintf(debug.examineGapFP, "found overlap between frags %d and %d, length = %d\n", 
-                lFragIid, rFragIid, overlap->length);
-        fprintf(debug.examineGapFP, "ahang + overlap->length: %d, strlen(lcompBuffer): " F_SIZE_T ", diff: " F_SIZE_T "\n",
-                overlap->begpos + overlap->length, strlen(lcompBuffer),
-                overlap->begpos + overlap->length - strlen(lcompBuffer));
-        fprintf(debug.examineGapFP, "overlap->length + bhang: %d, strlen(rcompBufferTrimmed): " F_SIZE_T ", diff: " F_SIZE_T "\n",
-                overlap->length + overlap->endpos, strlen(rcompBufferTrimmed), 
-                overlap->length + overlap->endpos - strlen(rcompBufferTrimmed));
-      }
-	  
-      *lcontigBasesIntact = lcontigBaseStart;
-      *ahang = MAX (0, overlap->begpos);
-      *olapLengthOut = overlap->length;
-      *bhang = MAX (0, overlap->endpos);
-      *currDiffs = overlap->diffs;
-      *rcontigBasesIntact = MAX((int) rcontig->bpLength.mean - CONTIG_BASES, 0);
-
-      // calculate how many bases would be changed if gap was closed
-      // take the whole lcompBuffer, subtract lcontigBasesUsed and lFragContigOverlapLength from ahang
-      // and add in the length of the overlap
-      // take the whole rcompBuffer, subtract rcontigBasesUsed and rFragContigOverlapLength from bhang
-
-      baseChangeLeftContig  = overlap->begpos - lcontigBasesUsed - lFragContigOverlapLength;
-      baseChangeRightContig = overlap->endpos - rcontigBasesUsed - rFragContigOverlapLength;
-
-      if (debug.examineGapLV > 0) {
-        fprintf(debug.examineGapFP, "lcontigBasesIntact: %d\n", *lcontigBasesIntact);
-        fprintf(debug.examineGapFP, "overlap->begpos: %d\n", overlap->begpos);
-        fprintf(debug.examineGapFP, "overlap->length: %d\n", overlap->length);
-        fprintf(debug.examineGapFP, "overlap->endpos: %d\n", overlap->endpos);
-        fprintf(debug.examineGapFP, "rcontigBasesIntact: %d\n", *rcontigBasesIntact);
-
-        fprintf(debug.examineGapFP, "base change  left contig: %d\n", baseChangeLeftContig);
-        fprintf(debug.examineGapFP, "base change right contig: %d\n", baseChangeRightContig);
-      }
-
-      basesAdded = baseChangeLeftContig + overlap->length + baseChangeRightContig;
-
-      gapSize = FindGapLength(lcontig, rcontig, FALSE);
-
-      totalContigsBaseChange += basesAdded;
-
-      *closedGapDelta = basesAdded - (int) gapSize.mean;
-	  
-      if (debug.examineGapLV > 0) {
-        fprintf(debug.examineGapFP, "would fill gap %d of size %d with %d bases, net change: %d\n",
-                gapNumber, (int) gapSize.mean, basesAdded, basesAdded - (int) gapSize.mean);
-        fprintf(debug.examineGapFP, "lcontig->bpLength.mean: %f, baseChangeLeftContig: %d\n",
-                lcontig->bpLength.mean, baseChangeLeftContig);
-        fprintf(debug.examineGapFP, "rcontig->bpLength.mean: %f, baseChangeRightContig: %d\n",
-                rcontig->bpLength.mean, baseChangeRightContig);
-
-        fprintf(debug.examineGapFP, "new contig size: %d\n", 
-                (int) lcontig->bpLength.mean + baseChangeLeftContig + 
-                (int) rcontig->bpLength.mean + baseChangeRightContig + overlap->length);
-        fprintf(debug.examineGapFP, "totalContigsBaseChange: %d\n", totalContigsBaseChange);
-      }
-
-      // *closedGapSizeDiff = basesAdded - (int) gapSize.mean;
-
-      restoreDefaultLocalAlignerVariables();
-      return 1;
-    } else {
-      if (debug.examineGapLV > 0)
-        fprintf(debug.examineGapFP, "no overlap found between frags %d and %d\n", lFragIid, rFragIid);
-      restoreDefaultLocalAlignerVariables();
-      return 0;
     }
   }
+	
+  lcompBuffer[ strlen(lcompBuffer) - *leftFragFlapLength ] = 0;
+  rcompBufferTrimmed = &rcompBuffer[ *rightFragFlapLength ];
+
+  // now do overlap again after trimming to make sure it is still
+  // there, sometimes trimming makes them go away
+
+  overlap = Local_Overlap_AS_forCNS(lcompBuffer,
+                                    rcompBufferTrimmed,
+                                    -strlen(rcompBufferTrimmed),
+                                    strlen(lcompBuffer),
+                                    opposite,
+                                    erate,
+                                    thresh,
+                                    minlen,
+                                    what);
+
+
+  // not interested in overlaps with negative ahangs or bhangs
+  //
+  if ((overlap == NULL) || (overlap->begpos <= 0) || (overlap->endpos <= 0)) {
+    if (debug.examineGapLV > 0)
+      fprintf(debug.examineGapFP, "no overlap found between frags %d and %d (lost after flap trimming)\n", lFragIid, rFragIid);
+    restoreDefaultLocalAlignerVariables();
+    return 0;
+  }
+
+
+  if (debug.examineGapLV > 0) {
+    fprintf(debug.examineGapFP, "post-flap trimming ahang: %d, bhang:%d, length: %d, diffs: %d, diffs / length %%: %f\n",
+            overlap->begpos, overlap->endpos, overlap->length, overlap->diffs, 
+            100.0 * overlap->diffs / overlap->length);
+    Print_Overlap(debug.examineGapFP, lcompBuffer, rcompBufferTrimmed, overlap);
+  }
+
+  if (debug.examineGapLV > 0) {
+    fprintf(debug.examineGapFP, "found overlap between frags %d and %d, length = %d\n", 
+            lFragIid, rFragIid, overlap->length);
+    fprintf(debug.examineGapFP, "ahang + overlap->length: %d, strlen(lcompBuffer): %d, diff: %d\n",
+            overlap->begpos + overlap->length,
+            strlen(lcompBuffer),
+            overlap->begpos + overlap->length - strlen(lcompBuffer));
+    fprintf(debug.examineGapFP, "overlap->length + bhang: %d, strlen(rcompBufferTrimmed): %d, diff: %d\n",
+            overlap->length + overlap->endpos,
+            strlen(rcompBufferTrimmed), 
+            overlap->length + overlap->endpos - strlen(rcompBufferTrimmed));
+  }
+	  
+  *lcontigBasesIntact = lcontigBaseStart;
+  *ahang              = MAX (0, overlap->begpos);
+  *olapLengthOut      = overlap->length;
+  *bhang              = MAX (0, overlap->endpos);
+  *currDiffs          = overlap->diffs;
+  *rcontigBasesIntact = MAX((int) rcontig->bpLength.mean - CONTIG_BASES, 0);
+
+  // calculate how many bases would be changed if gap was closed
+  // take the whole lcompBuffer, subtract lcontigBasesUsed and lFragContigOverlapLength from ahang
+  // and add in the length of the overlap
+  // take the whole rcompBuffer, subtract rcontigBasesUsed and rFragContigOverlapLength from bhang
+
+  int baseChangeLeftContig  = overlap->begpos - lcontigBasesUsed - lFragContigOverlapLength;
+  int baseChangeRightContig = overlap->endpos - rcontigBasesUsed - rFragContigOverlapLength;
+
+  int basesAdded = baseChangeLeftContig + overlap->length + baseChangeRightContig;
+
+  gapSize = FindGapLength(lcontig, rcontig, FALSE);
+
+  totalContigsBaseChange += basesAdded;
+
+  *closedGapDelta = basesAdded - (int) gapSize.mean;
+
+  if (debug.examineGapLV > 0) {
+    fprintf(debug.examineGapFP, "lcontigBasesIntact: %d\n", *lcontigBasesIntact);
+    fprintf(debug.examineGapFP, "overlap->begpos:    %d\n", overlap->begpos);
+    fprintf(debug.examineGapFP, "overlap->length:    %d\n", overlap->length);
+    fprintf(debug.examineGapFP, "overlap->endpos:    %d\n", overlap->endpos);
+    fprintf(debug.examineGapFP, "rcontigBasesIntact: %d\n", *rcontigBasesIntact);
+
+    fprintf(debug.examineGapFP, "lcontig->bpLength.mean: %f (%d change)\n", lcontig->bpLength.mean, baseChangeLeftContig);
+    fprintf(debug.examineGapFP, "rcontig->bpLength.mean: %f (%d change)\n", rcontig->bpLength.mean, baseChangeRightContig);
+
+    fprintf(debug.examineGapFP, "would fill gap %d of size %d with %d bases, net change: %d\n", gapNumber, (int) gapSize.mean, basesAdded, basesAdded - (int) gapSize.mean);
+
+    fprintf(debug.examineGapFP, "new contig size:        %f\n", lcontig->bpLength.mean + baseChangeLeftContig + rcontig->bpLength.mean + baseChangeRightContig + overlap->length);
+    fprintf(debug.examineGapFP, "totalContigsBaseChange: %d\n", totalContigsBaseChange);
+  }
+
+  restoreDefaultLocalAlignerVariables();
+
+  return 1;
 }
