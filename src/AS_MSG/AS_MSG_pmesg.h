@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.54 2007-09-19 20:55:35 skoren Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.55 2007-09-25 01:39:41 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -490,6 +490,9 @@ typedef struct IntMultiVar {
   char           *weights;
   char           *var_seq;
   char           *conf_read_iids; // iids of phased reads
+#ifdef i386
+  int32           ptrPad[4];
+#endif
 } IntMultiVar;
 
 VA_DEF(IntMultiVar);
