@@ -9537,3 +9537,690 @@ Move 'alive' code from SEdgeT_CGW.c to replace similar but 'dead' code
 in ScaffoldGraph_CGW.c, where it is used.  Function CheckCITypes().
 
 TAG: VERSION-4_01
+
+----------------------------------------
+2007/08/30 13:06:02	1.156	gdenisov	AS_CNS/MultiAlignment_CNS.c
+2007/08/30 19:25:09	1.112	gdenisov	AS_CNS/MultiAlignment_CNS.c
+
+
+Implemented a new criterion for detection of variation in a column of
+multiply aligned read:
+1) the minority allele should be confirmed by at least two reads and
+2) the average quality value of bases in the minority allele should 8
+be at least 21.
+
+This criterion has been optimized and tested on SNPs from the Human
+assembly, where it results in the FP rate = 9.1% much lower than provided
+by previous criterion (~50%) and FN rate = 6.3%.
+
+----------------------------------------
+2007/08/30 14:09:05	1.14	adelcher	AS_OVL/OlapFromSeedsOVL.c
+2007/08/30 14:09:05	1.9	adelcher	AS_OVL/OlapFromSeedsOVL.h
+2007/08/30 14:09:05	1.5	adelcher	AS_OVL/SharedOVL.c
+2007/08/30 14:09:05	1.7	adelcher	AS_OVL/SharedOVL.h
+
+Add routines to make corrections in standard (i.e., non-homopoly-type)
+reads
+
+----------------------------------------
+2007/08/30 16:57:30	1.11	eliv	AS_UTL/AS_UTL_alloc.c
+
+Return NULL pointer if zero memory requested.
+
+----------------------------------------
+2007/08/30 18:55:06	1.157	gdenisov	AS_CNS/MultiAlignment_CNS.c
+
+
+Recovered Brian's changes from version 1.155 which I unintentially deleted
+with my previous commit.
+
+----------------------------------------
+2007/08/31 15:47:02	1.15	brianwalenz	AS_GKP/AS_GKP_checkLibrary.c
+2007/08/31 15:47:02	1.30	brianwalenz	AS_GKP/AS_GKP_include.h
+2007/08/31 15:47:02	1.54	brianwalenz	AS_GKP/AS_GKP_main.c
+
+Limit the stddev of distances to be 10% of the mean, unless forced to use
+the input values.
+
+----------------------------------------
+2007/08/31 16:04:29	1.49	skoren	AS_CGW/AS_CGW_main.c
+
+Modified default # samples required to update library stats from 1000 to 100
+
+----------------------------------------
+2007/08/31 16:52:29	1.158	gdenisov	AS_CNS/MultiAlignment_CNS.c
+
+
+The new criteria for variants detection will only apply to SNPs.
+For INDELs, the "old" criteria (as of version 1.155) will be used,
+since the optimization analysis for indels has not yet been finished.
+
+----------------------------------------
+2007/08/31 17:12:15	1.19	skoren	AS_RUN/runCA-OBT/runCAutil/preoverlap.pl
+2007/08/31 17:12:15	1.35	skoren	AS_RUN/runCA-OBT/runCAutil/scaffolder.pl
+2007/08/31 17:12:15	1.57	skoren	AS_RUN/runCA-OBT/runCAutil/util.pl
+
+Added option to control whether GKP adjusts stddevs and size of sample required for CGW to update library stats
+
+----------------------------------------
+2007/08/31 17:22:49	1.50	skoren	AS_CGW/AS_CGW_main.c
+
+modified help text to match new defaults
+
+----------------------------------------
+2007/08/31 17:28:51	1.14	brianwalenz	AS_GKP/AS_GKP_checkLibrary.c
+2007/08/31 17:28:51	1.29	brianwalenz	AS_GKP/AS_GKP_include.h
+2007/08/31 17:28:51	1.53	brianwalenz	AS_GKP/AS_GKP_main.c
+
+backport: Limit the stddev of distances to be 10% of the mean, unless forced
+to use the input values.
+
+----------------------------------------
+2007/08/31 17:32:14	1.48	skoren	AS_CGW/AS_CGW_main.c
+
+Modified default sample size of library restat to be 100 instead of 1000
+
+----------------------------------------
+2007/08/31 17:33:06	1.18	skoren	AS_RUN/runCA-OBT/runCAutil/preoverlap.pl
+2007/08/31 17:33:06	1.34	skoren	AS_RUN/runCA-OBT/runCAutil/scaffolder.pl
+2007/08/31 17:33:07	1.56	skoren	AS_RUN/runCA-OBT/runCAutil/util.pl
+
+Added options to control sample size for cgw recomputing library stats and to force GKP to accept supplied library stddevs
+
+----------------------------------------
+2007/09/04 11:41:18	1.36	skoren	AS_RUN/runCA-OBT/runCAutil/scaffolder.pl
+2007/08/31 20:05:32	1.34	skoren	AS_RUN/runCA-OBT/runCAutil/scaffolder.pl
+
+always trust the supplied stddev estimates when updating distances after CGW
+
+----------------------------------------
+2007/08/31 21:04:57	1.13	brianwalenz	AS_UTL/AS_UTL_version.c
+
+Completely remove the 'ident' capability.  It was compiler specific and of
+limited use since audit messages aren't tracked through the assembly process.
+
+----------------------------------------
+2007/08/31 21:06:16	1.7	brianwalenz	AS_GKP/AS_GKP_buildPartition.c
+2007/08/31 21:06:16	1.14	brianwalenz	AS_GKP/AS_GKP_checkBatch.c
+2007/08/31 21:06:16	1.30	brianwalenz	AS_GKP/AS_GKP_checkFrag.c
+2007/08/31 21:06:16	1.16	brianwalenz	AS_GKP/AS_GKP_checkLibrary.c
+2007/08/31 21:06:16	1.14	brianwalenz	AS_GKP/AS_GKP_checkLink.c
+2007/08/31 21:06:16	1.22	brianwalenz	AS_GKP/AS_GKP_dump.c
+2007/08/31 21:06:16	1.4	brianwalenz	AS_GKP/AS_GKP_edit.c
+2007/08/31 21:06:16	1.55	brianwalenz	AS_GKP/AS_GKP_main.c
+2007/08/31 21:06:16	1.6	brianwalenz	AS_GKP/AS_GKP_rearrange.c
+2007/08/31 21:06:16	1.2	brianwalenz	AS_GKP/AS_GKP_rebuildMap.c
+
+Play with the rcsid lines, trying to get 'ident' working.  Of no use now,
+but already done, why not?
+
+----------------------------------------
+2007/09/01 05:01:09	1.159	brianwalenz	AS_CNS/MultiAlignment_CNS.c
+
+Version 1.154 looked suspicious -- we were reallocating some memory, but
+not everything; we were not clearing memory we reallocated, then assumed
+it was clear; memory leak if we exited RefreshMANode() early.  This version
+uses a large initial allocation which will probably make all the reallocation
+unnecessary, and places lots of asserts to make sure some of the reallocations
+that were removed are still OK.
+
+----------------------------------------
+2007/09/01 05:09:49	1.18	brianwalenz	AS_CNS/AS_CNS_asmReBaseCall.c
+2007/09/01 05:09:49	1.54	brianwalenz	AS_CNS/Consensus_CNS.c
+2007/09/01 05:09:49	1.13	brianwalenz	AS_CNS/Attic/Globals_CNS.h
+2007/09/01 05:09:49	1.160	brianwalenz	AS_CNS/MultiAlignment_CNS.c
+2007/09/01 05:09:49	1.17	brianwalenz	AS_CNS/Attic/RebuildMultiAlign_CNS.c
+2007/09/01 05:09:49	1.18	brianwalenz	AS_CNS/Attic/RebuildScaffolds_CNS.c
+2007/09/01 05:09:49	1.13	brianwalenz	AS_CNS/Attic/ScaffoldUnitigProfile_CNS.c
+2007/09/01 05:09:49	1.14	brianwalenz	AS_CNS/Attic/TestAlign_CNS.c
+2007/09/01 05:09:49	1.20	brianwalenz	AS_CNS/Attic/TestBaseCall_CNS.c
+
+Remove switches, flags and one tiny bit of code to use 'public' data.
+
+----------------------------------------
+2007/09/02 20:43:56	1.161	brianwalenz	AS_CNS/MultiAlignment_CNS.c
+
+Reindent.  I wish I didn't need to do this, but later changes are all on
+a reindented version, and I think nobody is actively working here.
+
+----------------------------------------
+2007/09/02 20:46:03	1.162	brianwalenz	AS_CNS/MultiAlignment_CNS.c
+
+Replace CleanExit() with good ol' assert().  CleanExit() would prevent
+the debugger from debugging crashes, since it would exit, umm, cleanly.
+
+----------------------------------------
+2007/09/02 21:20:25	1.163	brianwalenz	AS_CNS/MultiAlignment_CNS.c
+
+Fix indenting for NEW_UNITIGGER_INTERFACE, catch some more cnslog, other
+minor bits.
+
+----------------------------------------
+2007/09/02 22:56:56	1.15	brianwalenz	AS_UTL/AS_UTL_fileIO.c
+
+Unless we are SEEK_SET, we can't check that we ended up at the correct
+position in AS_UTL_ftell().
+
+----------------------------------------
+2007/09/03 02:29:28	1.10	brianwalenz	AS_CGB/AS_CGB_methods.h
+2007/09/03 02:29:28	1.20	brianwalenz	AS_UTL/AS_UTL_Var.c
+2007/09/03 02:29:28	1.11	brianwalenz	AS_UTL/AS_UTL_Var.h
+
+Remove const qualifiers from VarArrays, resulting in lots of compiler
+warnings that I can't fix yet.
+
+----------------------------------------
+2007/09/03 04:50:44	1.10	brianwalenz	AS_CGW/Attic/AS_CGW_LoadCheckpoint.c
+2007/09/03 04:50:44	1.6	brianwalenz	AS_CGW/Attic/Checkpoint.c
+2007/09/03 04:50:44	1.10	brianwalenz	AS_CGW/Attic/InstrumentCheckpoint.c
+2007/09/03 04:50:45	1.26	brianwalenz	AS_CGW/Makefile
+2007/09/03 04:50:44	1.21	brianwalenz	AS_CGW/Attic/ProcessScaffolds_CGW.c
+2007/09/03 04:50:44	1.8	brianwalenz	AS_CGW/Attic/ScaffoldMap.c
+2007/09/03 04:50:44	1.9	brianwalenz	AS_CGW/Attic/TraceNodes.c
+2007/09/03 04:50:44	1.11	brianwalenz	AS_CGW/Attic/asmInfoForFrg.c
+2007/09/03 04:50:44	1.10	brianwalenz	AS_CGW/Attic/assemblyStructure.c
+2007/09/03 04:50:44	1.9	brianwalenz	AS_CGW/Attic/ckp_scflen.c
+2007/09/03 04:50:44	1.16	brianwalenz	AS_CGW/Attic/combineMates.c
+2007/09/03 04:50:44	1.13	brianwalenz	AS_CGW/Attic/dfsFragmentTiling.c
+2007/09/03 04:50:44	1.15	brianwalenz	AS_CGW/Attic/dumpBinaryUnitigMAs.c
+2007/09/03 04:50:44	1.5	brianwalenz	AS_CGW/Attic/dumpCheckpointAsFasta.c
+2007/09/03 04:50:44	1.13	brianwalenz	AS_CGW/Attic/exploreMates.c
+2007/09/03 04:50:44	1.13	brianwalenz	AS_CGW/Attic/exploreScaffoldEnds.c
+2007/09/03 04:50:45	1.9	brianwalenz	AS_CGW/Attic/findAnEdge.c
+2007/09/03 04:50:45	1.14	brianwalenz	AS_CGW/Attic/findMissedOverlaps.c
+2007/09/03 04:50:45	1.12	brianwalenz	AS_CGW/Attic/fixECRCheckpoint.c
+2007/09/03 04:50:45	1.14	brianwalenz	AS_CGW/Attic/fixZLFContigs.c
+2007/09/03 04:50:45	1.23	brianwalenz	AS_CGW/Attic/localUnitigging_CGW.c
+2007/09/03 04:50:45	1.11	brianwalenz	AS_CGW/Attic/smallLargeScaffolds.c
+2007/09/03 04:50:45	1.7	brianwalenz	AS_CGW/Attic/testSplitChunks.c
+2007/09/03 04:50:45	1.9	brianwalenz	AS_CGW/Attic/whereAreMyOverlaps.c
+
+Remvoe the crud.  Nobody missed it in the half-year-plus that it's
+been on the crud list.
+
+----------------------------------------
+2007/09/03 06:08:42	1.27	brianwalenz	AS_CGW/Makefile
+
+Restore link lines for three recently de-crudified programs.
+
+----------------------------------------
+2007/09/04 11:48:55	1.6	skoren	AS_TER/buildFragContigPosMap.pl
+
+sort on the join fields before using join
+
+----------------------------------------
+2007/09/04 11:59:25	1.6	skoren	AS_RUN/fragmentDepth.c
+
+added options for memory and running interval for coverage computation. Bug fix with -scaffold option.
+
+----------------------------------------
+2007/09/04 15:24:02	1.1	moweis	AS_RUN/arun/CARUN.conf
+2007/09/04 15:24:02	1.1	moweis	AS_RUN/arun/CARUN.setup
+2007/09/04 15:24:02	1.5	moweis	AS_RUN/arun/CARUN_recipe_OBT.sh
+2007/09/04 15:24:02	1.6	moweis	AS_RUN/arun/CARUN_recipe_noOBT.sh
+2007/09/04 15:24:02	1.6	moweis	AS_RUN/arun/CARUN_recipe_noVec.sh
+
+Updates for Release 4.00 from Sergey with some minor modifications.
+
+----------------------------------------
+2007/09/05 11:22:10	1.6	brianwalenz	AS_ALN/AS_ALN_forcns.c
+2007/09/05 11:22:10	1.2	brianwalenz	AS_ALN/AS_ALN_forcns.h
+2007/09/05 11:22:10	1.57	brianwalenz	AS_BOG/AS_BOG_UnitigGraph.cc
+2007/09/05 11:22:10	1.23	brianwalenz	AS_CGB/AS_CGB_all.h
+2007/09/05 11:22:10	1.10	brianwalenz	AS_CGB/AS_CGB_edgemate.c
+2007/09/05 11:22:10	1.25	brianwalenz	AS_CGB/AS_CGB_unitigger.c
+2007/09/05 11:22:10	1.21	brianwalenz	AS_CGB/AS_FGB_main.c
+2007/09/05 11:22:10	1.51	brianwalenz	AS_CGW/AS_CGW_main.c
+2007/09/05 11:22:10	1.11	brianwalenz	AS_CGW/CIScaffoldT_Biconnected_CGW.c
+2007/09/05 11:22:10	1.23	brianwalenz	AS_CGW/CIScaffoldT_CGW.c
+2007/09/05 11:22:10	1.34	brianwalenz	AS_CGW/CIScaffoldT_Cleanup_CGW.c
+2007/09/05 11:22:10	1.34	brianwalenz	AS_CGW/CIScaffoldT_Merge_CGW.c
+2007/09/05 11:22:10	1.18	brianwalenz	AS_CGW/Celamy_CGW.c
+2007/09/05 11:22:10	1.22	brianwalenz	AS_CGW/ChunkOverlap_CGW.c
+2007/09/05 11:22:11	1.15	brianwalenz	AS_CGW/ContigT_CGW.c
+2007/09/05 11:22:11	1.12	brianwalenz	AS_CGW/DiagnosticsCGW.c
+2007/09/05 11:22:11	1.14	brianwalenz	AS_CGW/Globals_CGW.h
+2007/09/05 11:22:11	1.54	brianwalenz	AS_CGW/GraphCGW_T.c
+2007/09/05 11:22:11	1.23	brianwalenz	AS_CGW/GraphCGW_T.h
+2007/09/05 11:22:11	1.46	brianwalenz	AS_CGW/Input_CGW.c
+2007/09/05 11:22:11	1.30	brianwalenz	AS_CGW/Instrument_CGW.c
+2007/09/05 11:22:11	1.6	brianwalenz	AS_CGW/InterleavedMerging.h
+2007/09/05 11:22:11	1.15	brianwalenz	AS_CGW/MergeEdges_CGW.c
+2007/09/05 11:22:12	1.26	brianwalenz	AS_CGW/Output_CGW.c
+2007/09/05 11:22:12	1.28	brianwalenz	AS_CGW/ScaffoldGraph_CGW.c
+2007/09/05 11:22:12	1.22	brianwalenz	AS_CGW/ScaffoldGraph_CGW.h
+2007/09/05 11:22:12	1.22	brianwalenz	AS_CGW/SplitChunks_CGW.c
+2007/09/05 11:22:12	1.6	brianwalenz	AS_CGW/SplitChunks_CGW.h
+2007/09/05 11:22:12	1.15	brianwalenz	AS_CGW/Stats_CGW.c
+2007/09/05 11:22:12	1.17	brianwalenz	AS_CGW/TransitiveReduction_CGW.c
+2007/09/05 11:22:13	1.4	brianwalenz	AS_CGW/eCR-diagnostic.c
+2007/09/05 11:22:13	1.16	brianwalenz	AS_CGW/eCR-examineGap.c
+2007/09/05 11:22:13	1.27	brianwalenz	AS_CGW/eCR.c
+2007/09/05 11:22:13	1.11	brianwalenz	AS_CGW/exploreGapStructure.c
+2007/09/05 11:22:13	1.16	brianwalenz	AS_CGW/fragmentPlacement.c
+2007/09/05 11:22:13	1.22	brianwalenz	AS_CGW/frgs2clones.c
+2007/09/05 11:22:13	1.1	brianwalenz	AS_CGW/obsolete/compute_quality_overlap
+2007/09/05 11:22:13	1.1	brianwalenz	AS_CGW/obsolete/compute_uom_quality_overlap
+2007/09/05 11:22:13	1.1	brianwalenz	AS_CGW/obsolete/lookup_quality_overlap
+2007/09/05 11:22:13	1.1	brianwalenz	AS_CGW/obsolete/overlap_chunks_new
+2007/09/05 11:22:13	1.19	brianwalenz	AS_CNS/AS_CNS_asmReBaseCall.c
+2007/09/05 11:22:13	1.17	brianwalenz	AS_CNS/Array_CNS.c
+2007/09/05 11:22:13	1.9	brianwalenz	AS_CNS/Array_CNS.h
+2007/09/05 11:22:14	1.55	brianwalenz	AS_CNS/Consensus_CNS.c
+2007/09/05 11:22:14	1.14	brianwalenz	AS_CNS/Attic/Globals_CNS.h
+2007/09/05 11:22:14	1.11	brianwalenz	AS_CNS/Makefile
+2007/09/05 11:22:14	1.1	brianwalenz	AS_CNS/MultiAlign.c
+2007/09/05 11:22:14	1.1	brianwalenz	AS_CNS/MultiAlign.h
+2007/09/05 11:22:14	1.1	brianwalenz	AS_CNS/MultiAlignFromCCO.c
+2007/09/05 11:22:14	1.1	brianwalenz	AS_CNS/MultiAlignFromICM.c
+2007/09/05 11:22:14	1.1	brianwalenz	AS_CNS/MultiAlignFromIUM.c
+2007/09/05 11:22:14	1.1	brianwalenz	AS_CNS/MultiAlignPrint.c
+2007/09/05 11:22:14	1.38	brianwalenz	AS_CNS/MultiAlignStore_CNS.c
+2007/09/05 11:22:14	1.13	brianwalenz	AS_CNS/MultiAlignStore_CNS.h
+2007/09/05 11:22:14	1.164	brianwalenz	AS_CNS/MultiAlignment_CNS.c
+2007/09/05 11:22:14	1.28	brianwalenz	AS_CNS/MultiAlignment_CNS.h
+2007/09/05 11:22:14	1.9	brianwalenz	AS_CNS/Attic/PublicAPI_CNS.h
+2007/09/05 11:22:14	1.18	brianwalenz	AS_CNS/Attic/RebuildMultiAlign_CNS.c
+2007/09/05 11:22:14	1.19	brianwalenz	AS_CNS/Attic/RebuildScaffolds_CNS.c
+2007/09/05 11:22:15	1.14	brianwalenz	AS_CNS/Attic/ScaffoldUnitigProfile_CNS.c
+2007/09/05 11:22:15	1.15	brianwalenz	AS_CNS/Attic/TestAlign_CNS.c
+2007/09/05 11:22:15	1.21	brianwalenz	AS_CNS/Attic/TestBaseCall_CNS.c
+2007/09/05 11:22:15	1.15	brianwalenz	AS_CNS/Attic/colCorr_CNS.c
+2007/09/05 11:22:15	1.7	brianwalenz	AS_CNS/Attic/colCorr_CNS.h
+2007/09/05 11:22:15	1.2	brianwalenz	AS_CNS/Attic/dpc_CNS.h
+2007/09/05 11:22:15	1.10	brianwalenz	AS_CNS/Attic/extract_gap_flanking.c
+2007/09/05 11:22:15	1.11	brianwalenz	AS_CNS/Attic/link_analysis.c
+2007/09/05 11:22:15	1.10	brianwalenz	AS_CNS/Attic/null_scaffolder.c
+2007/09/05 11:22:15	1.5	brianwalenz	AS_CNS/Attic/parse_raw_frag_stats.awk
+2007/09/05 11:22:15	1.10	brianwalenz	AS_CNS/Attic/placed_contigs.c
+2007/09/05 11:22:15	1.18	brianwalenz	AS_CNS/Attic/post_analysis.c
+2007/09/05 11:22:15	1.8	brianwalenz	AS_CNS/Attic/quality_assess.c
+2007/09/05 11:22:16	1.9	brianwalenz	AS_ENV/greedyFragmentTiling.c
+2007/09/05 11:22:16	1.53	brianwalenz	AS_MSG/AS_MSG_pmesg.h
+2007/09/05 11:22:16	1.13	brianwalenz	AS_MSG/AS_MSG_pmesg1.c
+2007/09/05 11:22:16	1.7	brianwalenz	AS_REZ/CommonREZ.h
+2007/09/05 11:22:16	1.35	brianwalenz	AS_REZ/GapFillREZ.c
+2007/09/05 11:22:16	1.15	brianwalenz	AS_SDB/AS_SDB_SequenceDB.c
+2007/09/05 11:22:16	1.5	brianwalenz	AS_SDB/AS_SDB_SequenceDB.h
+2007/09/05 11:22:16	1.11	brianwalenz	AS_SDB/Attic/AS_SDB_SequenceDBPartition.c
+2007/09/05 11:22:16	1.7	brianwalenz	AS_SDB/Attic/AS_SDB_SequenceDBPartition.h
+2007/09/05 11:22:16	1.10	brianwalenz	AS_SDB/Makefile
+2007/09/05 11:22:16	1.5	brianwalenz	AS_SDB/PartitionSDB.c
+2007/09/05 11:22:16	1.6	brianwalenz	AS_SDB/Attic/SDButil.c
+2007/09/05 11:22:16	1.16	brianwalenz	AS_TER/asmProcessScaffolds_TER.c
+2007/09/05 11:22:16	1.21	brianwalenz	AS_UTL/AS_UTL_Var.c
+2007/09/05 11:22:16	1.12	brianwalenz	AS_UTL/AS_UTL_Var.h
+
+Make due on my threat to rewrite AS_SDB.  A LOT bigger than I wanted.
+
+1) Remove the old SNP calling (the -q option) from consensus.  This
+causes minor differences in gap location, caused by, believe it or
+not, using a constant value instead of a float variable -- at line
+MultiAlignment_CNS.c:6442, comparing "stab_mm/stab_bases > 0.02".
+
+2) Remove VAR variables from IntUnitigPos; unitigs don't have VARs.
+
+3a) Rewrite consensus main.  It's now understandable.  The log file
+*.clg is not generated anymore (-l option), output goes to stderr --
+this is a Good Thing, it fixes a few instances where one needed both
+stderr and the log to diagnose a problem.
+
+3b) The -r and -R options are gonem and -e changed.  -r allowed one to
+process only a range of input IIDs, and -R let one restart from a
+specific IID, appending to existing output.  -e still will process a
+single IID, but no longer reads IIDs from a file.  These all added a
+LOT of complexity, and can be done fairly easily by editing the input
+file.
+
+4) Move some data that was global, to make it static to
+MultiAlignment_CNS.c.  Lots of header files were removed, this is
+probably what changed in most of AS_CGW.
+
+5) Rewrite AS_CNS/MultiAlignStore and AS_SDB.  AS_CNS/MultiAlignStore
+was an array, but buried in a lot of useless complexity, caused by
+using a VarArray to store a pointer.  Numerous flaws were found: (a)
+reference counting of stored MultiAlignT's was broken; (b) delta
+values on initial contigs were completely screwed up.
+
+6) Lots and lots of engineering.  Lots of paranoia and asserts added.
+
+DANGER!  There might be memory problems in CGW.  I'm not sure if the
+cache of MultiAligns is being flushed enough...then again, I'm not
+sure it was ever being flushed.
+
+----------------------------------------
+2007/09/05 13:17:21	1.3	brianwalenz	AS_ENV/chimChe.c
+
+safe_*() fixes from the tip.
+
+----------------------------------------
+2007/09/06 16:31:19	1.6	skoren	AS_RUN/arun/CARUN_recipe_noOBT.sh
+
+modified noOBT recipe to turn on GKP quality checks for consistency with runCA
+
+----------------------------------------
+2007/09/06 16:32:48	1.9	skoren	AS_MSG/convert-v1-to-v2.pl
+2007/09/06 16:32:05	1.8	skoren	AS_MSG/convert-v1-to-v2.pl
+
+added option -unmated to force output to be an unmated library
+
+----------------------------------------
+2007/09/06 17:02:02	1.6	moweis	AS_SHR/FASTA_to_frg_file.pl
+2007/09/06 17:02:02	1.5	moweis	AS_SHR/Generate_NonShallow_Contigs.pl
+2007/09/06 17:02:02	1.2	moweis	AS_SHR/Shred_Contigs.pl
+2007/09/06 17:02:02	1.1	moweis	AS_SHR/Attic/shred_454.sh
+
+Added Annotation/UID.pm module and shredder script
+
+----------------------------------------
+2007/09/06 17:02:02	1.1	moweis	AS_SHR/Attic/shred_454.sh
+
+branches:  1.1.2;
+file shred_454.sh was initially added on branch VERSION-4_00.
+
+----------------------------------------
+2007/09/06 17:27:35	1.19	skoren	AS_RUN/Makefile
+2007/09/06 17:27:54	1.1	skoren	AS_RUN/Attic/OBT.specFile
+2007/09/06 17:27:54	1.1	skoren	AS_RUN/Attic/noOBT.specFile
+2007/09/06 17:27:54	1.1	skoren	AS_RUN/Attic/noVec.specFile
+
+added spec files for carun compatibility
+
+----------------------------------------
+2007/09/06 17:27:54	1.1	skoren	AS_RUN/Attic/OBT.specFile
+
+branches:  1.1.2;
+file OBT.specFile was initially added on branch VERSION-4_00.
+
+----------------------------------------
+2007/09/06 17:27:54	1.1	skoren	AS_RUN/Attic/noOBT.specFile
+
+branches:  1.1.2;
+file noOBT.specFile was initially added on branch VERSION-4_00.
+
+----------------------------------------
+2007/09/06 17:27:54	1.1	skoren	AS_RUN/Attic/noVec.specFile
+
+branches:  1.1.2;
+file noVec.specFile was initially added on branch VERSION-4_00.
+
+----------------------------------------
+2007/09/06 17:28:31	1.14	skoren	AS_MSG/Makefile
+
+modified Makefile to copy converter scripts to bin directory
+
+----------------------------------------
+2007/09/06 17:29:10	1.15	skoren	AS_MSG/Makefile
+
+modified makefile to copy conversion scripts to bin directory
+
+----------------------------------------
+2007/09/06 19:35:26	1.48	moweis	c_make.as
+2007/09/06 19:35:26	1.19	moweis	AS_RUN/Makefile
+2007/09/06 19:35:27	1.1	moweis	AS_SHR/Attic/Makefile
+
+Updates to install shredder and carun-related code
+
+----------------------------------------
+2007/09/06 19:35:27	1.1	moweis	AS_SHR/Attic/Makefile
+
+branches:  1.1.2;
+file Makefile was initially added on branch VERSION-4_00.
+
+----------------------------------------
+2007/09/07 13:54:21	1.1	moweis	AS_SHR/Attic/Makefile
+
+Change UID to UID.pm
+
+----------------------------------------
+2007/09/07 13:55:11	1.19	skoren	AS_RUN/Makefile
+
+copy all the spec files to the bin directory, not just OBT
+
+----------------------------------------
+2007/09/07 18:51:56	1.3	eliv	AS_SHR/Shred_Contigs.pl
+
+Don't skip small 454 reads.
+
+----------------------------------------
+2007/09/10 18:39:01	1.1	moweis	AS_SHR/Attic/shred_454.sh
+
+Option update
+
+----------------------------------------
+2007/09/10 19:46:46	1.14	brianwalenz	AS_MSG/AS_MSG_pmesg1.c
+2007/09/10 19:42:26	1.12	brianwalenz	AS_MSG/AS_MSG_pmesg1.c
+
+Reads loaded as format 1 that did not have their vector clear range
+loaded, were being deleted due to a bug in the message reader.
+
+----------------------------------------
+2007/09/10 19:44:41	1.23	brianwalenz	AS_GKP/AS_GKP_dump.c
+
+Dump 'hasVectorClear' and 'hasQualityClear'
+
+----------------------------------------
+2007/09/11 15:19:18	1.56	brianwalenz	AS_CNS/Consensus_CNS.c
+
+Unitig consensus was not loading the gkpStore partition -- it was loading
+the entire store, causing memory issues.
+
+----------------------------------------
+2007/09/11 19:25:59	1.2	moweis	version.c.tmpl
+
+Version 4.0
+
+----------------------------------------
+2007/09/11 19:35:26	1.5	moweis	AS_RUN/arun/CARUN_recipe_OBT.sh
+2007/09/11 19:35:26	1.6	moweis	AS_RUN/arun/CARUN_recipe_noOBT.sh
+2007/09/11 19:35:26	1.6	moweis	AS_RUN/arun/CARUN_recipe_noVec.sh
+
+Added call to CA_BIN/version
+
+----------------------------------------
+2007/09/12 16:50:21	1.1	brianwalenz	AS_TER/buildFragLengthChange.pl
+
+Quick hack to compare the final frag clear length vs the span in contigs.
+
+----------------------------------------
+2007/09/13 18:29:13	1.24	eliv	AS_BOG/AS_BOG_MateChecker.cc
+
+Fix the problem with discontinuous unitigs caused by splitting on or around a contained read
+that doesn't intersect it's neighbors. However, we still have a problem in that
+two contained reads coordinates might overlap but they don't have an overlap edge between
+them because it would exceed the overlap threshold. Consensus will fail such unitigs.
+I saw three of these on D. erecta. The two apparent solutions are either trying to
+reposition unhappy contained mates, or keeping track of edges off a contained mate.
+
+----------------------------------------
+2007/09/13 19:24:17	1.2	moweis	AS_RUN/arun/carun.pl
+
+Removed hybrid recipe from help text
+
+----------------------------------------
+2007/09/14 12:25:43	1.1	skoren	AS_SHR/Attic/shred_454.sh
+
+fixed path to other shred executables
+
+----------------------------------------
+2007/09/14 20:32:15	1.58	eliv	AS_BOG/AS_BOG_UnitigGraph.cc
+
+Move arate output to after its calculation.
+
+----------------------------------------
+2007/09/17 15:09:11	1.25	adelcher	AS_OVL/CorrectOlapsOVL.c
+
+Mark line used to output corrected reads as multi-fasta file.
+
+----------------------------------------
+2007/09/18 14:39:23	1.15	adelcher	AS_OVL/OlapFromSeedsOVL.c
+2007/09/18 14:39:23	1.10	adelcher	AS_OVL/OlapFromSeedsOVL.h
+2007/09/18 14:39:23	1.8	adelcher	AS_OVL/SharedOVL.h
+
+Add function to eliminate overlaps based on correlated differences
+(currently commented out)
+Add code to make corrections combining info from 454 and standard
+reads
+
+----------------------------------------
+2007/09/18 15:08:59	1.21	skoren	AS_CVT/ASMData.c
+
+updated asm2asmStore and tested after the new hash table changes
+
+----------------------------------------
+2007/09/18 19:33:28	1.5	brianwalenz	AS_ALN/AS_ALN_pieceOlap.c
+
+Minor bug fix; check >=0 before accessing the array, not after.
+
+----------------------------------------
+2007/09/18 19:34:45	1.57	brianwalenz	AS_CNS/Consensus_CNS.c
+
+Unlink the output and the failed file before starting.
+
+----------------------------------------
+2007/09/18 21:13:21	1.165	brianwalenz	AS_CNS/MultiAlignment_CNS.c
+
+1)  Don't _EVER_ allow an alignment to be found, or even tried, with more
+than 30% error.  Line 3722.
+
+2)  Move the "your multialign is screwed up" assert to where it actually
+occurs.  Line 783.
+
+3)  Too much messing around with debug statements.
+
+----------------------------------------
+2007/09/18 21:21:34	1.29	brianwalenz	AS_CNS/MultiAlignment_CNS.h
+
+Function isn't exported; get rid of it.
+
+----------------------------------------
+2007/09/20 17:24:05	1.59	skoren	AS_BOG/AS_BOG_UnitigGraph.cc
+2007/09/19 20:57:16	1.26	skoren	AS_CGB/AS_CGB_unitigger.c
+2007/09/19 20:57:16	1.17	skoren	AS_CGB/Makefile
+2007/09/19 20:57:16	1.1	skoren	AS_CGB/adjustAStat.c
+2007/09/19 21:54:24	1.24	skoren	AS_CGW/CIScaffoldT_CGW.c
+2007/09/19 21:54:24	1.16	skoren	AS_CGW/ContigT_CGW.c
+2007/09/19 21:54:24	1.24	skoren	AS_CGW/GraphCGW_T.h
+2007/09/19 21:54:24	1.47	skoren	AS_CGW/Input_CGW.c
+2007/09/19 21:54:24	1.27	skoren	AS_CGW/Output_CGW.c
+2007/09/20 17:38:12	1.23	skoren	AS_CGW/SplitChunks_CGW.c
+2007/09/19 21:54:24	1.30	skoren	AS_CGW/eCR.c
+2007/09/19 20:55:35	1.54	skoren	AS_MSG/AS_MSG_pmesg.h
+2007/09/19 20:55:35	1.15	skoren	AS_MSG/AS_MSG_pmesg1.c
+
+added field to IUM message for forcing unitigs to repeat/unique status
+
+----------------------------------------
+2007/09/19 21:16:44	1.28	brianwalenz	AS_CGW/eCR.c
+
+Refactoring during debugging.  Nothing (should have) changed algorithmically.
+
+----------------------------------------
+2007/09/19 21:44:12	1.29	brianwalenz	AS_CGW/eCR.c
+
+Remove the giant chain of if(keepGap).  If diffing, be sure to ignore
+whitespace!
+
+----------------------------------------
+2007/09/20 16:14:54	1.29	eliv	AS_BOG/AS_BOG_UnitigGraph.hh
+
+Make bog_ptr public so MateChecker can use it for isContain()
+
+----------------------------------------
+2007/09/20 16:17:41	1.26	eliv	AS_BOG/BuildUnitigs.cc
+
+Make single run of 1.5% erate the default to speed up development.
+
+----------------------------------------
+2007/09/20 16:27:13	1.39	eliv	AS_BOG/AS_BOG_BestOverlapGraph.cc
+2007/09/20 16:27:13	1.31	eliv	AS_BOG/AS_BOG_BestOverlapGraph.hh
+
+Store non contained edges for contained fragments. Memory hit, but it
+allows us to determine if a contained frag overlaps another contained frag
+during the bad mate splitting phase.
+
+----------------------------------------
+2007/09/20 16:34:48	1.25	eliv	AS_BOG/AS_BOG_MateChecker.cc
+2007/09/20 16:34:48	1.10	eliv	AS_BOG/AS_BOG_MateChecker.hh
+
+When splitting a unitig try an make sure that reads that have common coordinates
+actually have sequence overlap. Otherwise, split them into seperate unitigs.
+
+----------------------------------------
+2007/09/20 17:41:37	1.26	eliv	AS_BOG/AS_BOG_MateChecker.cc
+
+Use isContained() instead.
+
+----------------------------------------
+2007/09/24 12:11:17	1.27	eliv	AS_BOG/AS_BOG_MateChecker.cc
+2007/09/24 12:11:17	1.11	eliv	AS_BOG/AS_BOG_MateChecker.hh
+
+Some refactoring, getting ready for additional mate checking passes.
+
+----------------------------------------
+2007/09/24 18:24:52	1.60	eliv	AS_BOG/AS_BOG_UnitigGraph.cc
+
+Check to make sure break list isn't now empty.
+
+----------------------------------------
+2007/09/24 18:26:51	1.28	eliv	AS_BOG/AS_BOG_MateChecker.cc
+2007/09/24 18:26:51	1.12	eliv	AS_BOG/AS_BOG_MateChecker.hh
+
+Switch to an array.
+
+----------------------------------------
+2007/09/25 01:21:00	1.39	brianwalenz	AS_CNS/MultiAlignStore_CNS.c
+
+Don't clear the store, if FreeBSD.
+
+----------------------------------------
+2007/09/25 01:22:01	1.2	brianwalenz	AS_RUN/runCA-OBT/all-microbe.sh
+
+Run once with an old code, once with a new code.
+
+----------------------------------------
+2007/09/25 01:22:33	1.23	brianwalenz	AS_RUN/runCA-OBT/doc.tex
+
+Fix incorrect list format (a TeX problem).
+
+----------------------------------------
+2007/09/25 01:37:31	1.55	brianwalenz	AS_CGW/GraphCGW_T.c
+2007/09/25 01:37:31	1.29	brianwalenz	AS_CGW/ScaffoldGraph_CGW.c
+2007/09/25 01:37:31	1.9	brianwalenz	AS_REZ/StatisticsREZ.c
+2007/09/25 01:37:31	1.16	brianwalenz	AS_SDB/AS_SDB_SequenceDB.c
+2007/09/25 01:37:31	1.22	brianwalenz	AS_UTL/AS_UTL_Var.c
+2007/09/25 01:37:31	1.13	brianwalenz	AS_UTL/AS_UTL_Var.h
+
+Move an assert in AS_UTL_Var.c; remove useless argument to CreateFromFileVA().
+
+----------------------------------------
+2007/09/25 01:39:41	1.55	brianwalenz	AS_MSG/AS_MSG_pmesg.h
+
+Pad pointers to 64-bits (IntMultiVar) if 32-bit pointers.
+
+----------------------------------------
+2007/09/25 01:41:05	1.58	brianwalenz	AS_CNS/Consensus_CNS.c
+
+Remove command line help for -q, removed earlier.
+
+----------------------------------------
+2007/09/25 04:40:33	1.166	brianwalenz	AS_CNS/MultiAlignment_CNS.c
+2007/09/25 04:40:34	1.30	brianwalenz	AS_CNS/MultiAlignment_CNS.h
+
+In SetUngappedFragmentPositions(), remove the overly paranoid assert
+that the last base in a contig is where a fragment or unitig end.  This
+is not true when we are called from ReplaceEndUnitigInContig().
+
+----------------------------------------
+2007/09/25 05:01:05	1.17	brianwalenz	AS_CGW/eCR-examineGap.c
+
+Readability.  Un-nest if-else-if-else constructions, returning from the
+function immediately after we fail (instead of "if (!failed) ...").
+
+----------------------------------------
+
+2007/09/25 05:46:28     1.31    brianwalenz     AS_CGW/eCR.c
+
+Among LOTS of refactoring, code simplifications, etc, etc, remove a
+bunch of hacks for aborting an extension if we could detect that
+MultiAlignment_CNS.c would fail.
