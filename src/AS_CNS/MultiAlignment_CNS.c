@@ -24,7 +24,7 @@
    Assumptions:  
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.165 2007-09-18 21:13:21 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.166 2007-09-25 04:40:33 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -690,103 +690,46 @@ int32 PrependGapBead(int32 bid) {
 //  The corresponding SetGappedFragmentPositions exists in version
 //  1.64, from mid-September 2007.
 
+static
 int
 SetUngappedFragmentPositions(FragType type,int32 n_frags, MultiAlignT *uma) {
-  int num_columns = GetMultiAlignLength(uma);
-  char *consensus=Getchar(uma->consensus,0);
-  VA_TYPE(int32) *gapped_positions = CreateVA_int32(num_columns+1);
-  int num_frags,num_unitigs,ungapped_pos=0;
-  int32 ifrag,ipos,first_frag,last_frag;
+  char *consensus                  = Getchar(uma->consensus,0);
+  VA_TYPE(int32) *gapped_positions = NULL;
+
+  int num_frags;
+  int num_unitigs;
+  int32 ifrag,first_frag,last_frag;
   IntMultiPos *frag;
   IntUnitigPos *unitig;
   CNS_AlignedContigElement epos;
   HashTable_AS *unitigFrags;
   int hash_rc;
 
-  int max_column = 0;
-
-  num_frags = GetNumIntMultiPoss(uma->f_list);
+  num_frags   = GetNumIntMultiPoss(uma->f_list);
   num_unitigs = GetNumIntUnitigPoss(uma->u_list);
 
-  unitigFrags = CreateScalarHashTable_AS(2*(num_frags+num_unitigs));
+  unitigFrags = CreateScalarHashTable_AS(2 * (num_frags + num_unitigs));
 
-  for (ifrag=0;ifrag<num_frags;ifrag++){
-    frag = GetIntMultiPos(uma->f_list,ifrag);
-    SetVA_int32(gapped_positions,frag->position.bgn,&frag->position.bgn);
-    SetVA_int32(gapped_positions,frag->position.end,&frag->position.end);
+  //  Earlier versions of this routine were extremely paranoid, and
+  //  checked that a fragment/unitig ended at the end of the conitg --
+  //  the thinking being that then the contig is covered by fragments.
+  //  At least, that's the best I can guess from the bizarre code.
+  //  This test was occasionally false, if we are called from
+  //  ReplaceEndUnitigInContig.
 
-    if (max_column < frag->position.bgn)
-      max_column = frag->position.bgn;
-    if (max_column < frag->position.end)
-      max_column = frag->position.end;
-  }
-  for (ifrag=0;ifrag<num_unitigs;ifrag++){
-    unitig = GetIntUnitigPos(uma->u_list,ifrag);
-    SetVA_int32(gapped_positions,unitig->position.bgn,&unitig->position.bgn);
-    SetVA_int32(gapped_positions,unitig->position.end,&unitig->position.end);
+  {
+    int num_columns   = GetMultiAlignLength(uma);
+    int ungapped_pos  = 0;
+    int i;
 
-    if (max_column < unitig->position.bgn)
-      max_column = unitig->position.bgn;
-    if (max_column < unitig->position.end)
-      max_column = unitig->position.end;
-  }
+    gapped_positions = CreateVA_int32(num_columns+1);
 
-#undef BODGE_POSITIONS
-#ifdef BODGE_POSITIONS
-  //  Ixodes suffered lots from, BPW suspects, eCR and CGW
-  //  disagreeing on what alignments exist.  The symptom was
-  //  multialigns that were longer than the underlying fragment
-  //  coverage.  It actually works -- but might be doing bad things
-  //  -- to basically ignore this error.  That's what we do here.
+    for (i=0; i<num_columns+1;i++) {
+      SetVA_int32(gapped_positions, i, &ungapped_pos);
 
-  if ( Getint32(gapped_positions,num_columns) == NULL ) {
-    fprintf(stderr,"SetUngappedFragmentPositions()-- Misformed Multialign... fragment positions only extend to bp %d out of %d\n",
-            (int) GetNumint32s(gapped_positions),num_columns+1);
-    for (ifrag=0;ifrag<num_frags;ifrag++){
-      frag = GetIntMultiPos(uma->f_list,ifrag);
-      fprintf(stderr, "fragment %4d (%9d): %6d -> %6d\n", ifrag, frag->ident, frag->position.bgn, frag->position.end);
+      if (consensus[i] != '-')
+        ungapped_pos++; 
     }
-    for (ifrag=0;ifrag<num_unitigs;ifrag++){
-      unitig = GetIntUnitigPos(uma->u_list,ifrag);
-      fprintf(stderr, "unitig   %4d (%9d): %6d -> %6d\n", ifrag, unitig->ident, unitig->position.bgn, unitig->position.end);
-    }
-    fprintf(stderr, "DANGER!  Bodging num_columns to reflect a Misformed MultiAlign!\n");
-    num_columns = max_column;
-  }
-#endif
-
-  if (Getint32(gapped_positions,num_columns) == NULL) {
-    //  extendClearRanges can (and does) generate new unitigs that
-    //  trigger this condition.  When aligning the new unitig to the
-    //  old contig, we see that the new unitig's unextended end has
-    //  changed.  If the change resulted in the new unitig being
-    //  shorter, there are now uncovered bases in the alignment.
-    //
-    //  ------------------------------------  old contig
-    //                          ------------  old unitig
-    //                   ------------------   new unitig (extended to the left by eCR).
-
-    fprintf(stderr,"SetUngappedFragmentPositions()-- Misformed Multialign... fragment positions only extend to bp %d out of %d\n", (int) GetNumint32s(gapped_positions), num_columns+1);
-    fprintf(stderr,"SetUngappedFragmentPositions()-- Misformed Multialign... see BODGE_POSITIONS in MultiAlignment_CNS.c\n");
-    fprintf(stderr,"SetUngappedFragmentPositions()-- Misformed Multialign... extendClearRanges should have caught this error\n");
-
-    for (ifrag=0;ifrag<num_frags;ifrag++){
-      frag = GetIntMultiPos(uma->f_list,ifrag);
-      fprintf(stderr, "fragment %4d (%9d): %6d -> %6d\n", ifrag, frag->ident, frag->position.bgn, frag->position.end);
-    }
-
-    for (ifrag=0;ifrag<num_unitigs;ifrag++){
-      unitig = GetIntUnitigPos(uma->u_list,ifrag);
-      fprintf(stderr, "unitig   %4d (%9d): %6d -> %6d\n", ifrag, unitig->ident, unitig->position.bgn, unitig->position.end);
-    }
-  }
-  assert(Getint32(gapped_positions,num_columns) != NULL);
-
-  for (ipos=0;ipos<num_columns+1;ipos++) {
-    if ( *Getint32(gapped_positions,ipos) > 0)
-      SetVA_int32(gapped_positions,ipos,&ungapped_pos);
-    if (consensus[ipos] != '-')
-      ungapped_pos++; 
   }
 
   first_frag=GetNumCNS_AlignedContigElements(fragment_positions);
@@ -910,12 +853,13 @@ void PrintIUPInfo(FILE *print, int32 nfrags, IntUnitigPos *iups) {
 //*********************************************************************************
 
 static
-int32 AppendFragToLocalStore(FragType type,
-                             int32 iid,
-                             int complement,
-                             int32 contained,
-                             UnitigType utype,
+int32 AppendFragToLocalStore(FragType          type,
+                             int               iid,
+                             int               complement,
+                             int               contained,
+                             UnitigType        utype,
                              MultiAlignStoreT *multialignStore) {
+
   char seqbuffer[AS_READ_MAX_LEN+1];
   char qltbuffer[AS_READ_MAX_LEN+1];
   char *sequence = NULL,*quality = NULL;
@@ -8417,25 +8361,6 @@ int MultiAlignContig(IntConConMesg *contig,
   return EXIT_SUCCESS; 
 }
 
-int UnitigDataCmp( const void *l, const void *m) {
-  UnitigData *u1= (UnitigData *)l;
-  UnitigData *u2= (UnitigData *)m;
-  int diff;
-  int left1,left2,right1,right2;
-
-  left1=u1->left;
-  left2=u2->left;
-  diff = left1-left2; 
-  if (diff) 
-    return diff;
- 
-  right1=u1->right;
-  right2=u2->right;
-  diff = right2-right1;
-  if (diff) 
-    return diff;
-  return TRUE; 
-}
 
 
 int MultiAlignContig_ReBasecall(MultiAlignT *cma, VA_TYPE(char) *sequence, VA_TYPE(char) *quality, 
@@ -8523,103 +8448,6 @@ int MultiAlignContig_ReBasecall(MultiAlignT *cma, VA_TYPE(char) *sequence, VA_TY
   return 0; 
 }
 
-int MultiAlignContig_NoCompute(FILE *outFile, 
-                               int scaffoldID,MultiAlignT *cma,
-                               tSequenceDB *sequenceDBp, 
-                               VA_TYPE(UnitigData) *unitigData,
-                               CNS_Options *opp) 
-{
-  MANode *ma; // this is to build, for purposes of ascii printout or analysis
-  MultiAlignStoreT *contigStore;
-  int contigID=cma->maID;
-  int num_unitigs,num_frags;
-  int32 num_columns=0;
-  int32 fid,i;
-  IntMultiPos *fpositions; 
-
-  // static VA_TYPE(int32) *trace=NULL;
-  static int32 *tracep=NULL;
-   
-  num_frags=GetNumIntMultiPoss(cma->f_list);
-  num_unitigs=GetNumIntUnitigPoss(cma->u_list);
-  fpositions=GetIntMultiPos(cma->f_list,0);
-
-  RALPH_INIT = InitializeAlphTable();
-
-  if ( tracep == NULL ) {
-    tracep = safe_malloc(sizeof(int32)*(AS_READ_MAX_LEN+1));
-  } 
-
-  ResetStores(num_unitigs,num_columns);
-  contigStore = CreateMultiAlignStoreT();
-  SetMultiAlignInStore(contigStore,cma->maID,cma);
-
-  ma = CreateMANode(contigID);
-  fid = AppendFragToLocalStore(AS_CONTIG,
-                               contigID,
-                               0,
-                               0,
-                               AS_OTHER_UNITIG, contigStore);
-  SeedMAWithFragment(ma->lid, GetFragment(fragmentStore,0)->lid,-1, opp);
-     
-  // Now, loop on the fragments, applying the computed alignment from the InMultiPos:
-  for (i=0;i<num_frags;i++) {
-    IntMultiPos *imp=fpositions +i;
-    int ahang;
-    int32 blid;
-    Fragment *afrag=GetFragment(fragmentStore,0); // always align to the contig consensus
-    int fcomplement=(imp->position.bgn<imp->position.end)?0:1;
-        
-    ahang=(fcomplement)?imp->position.end:imp->position.bgn;
-    blid = AppendFragToLocalStore(imp->type,
-                                  imp->ident,
-                                  fcomplement,
-                                  imp->contained,
-                                  AS_OTHER_UNITIG, NULL);
-    assert ( imp->delta_length < AS_READ_MAX_LEN );
-    memcpy(tracep,imp->delta,imp->delta_length*sizeof(int32));
-    tracep[imp->delta_length]=0;
-    ApplyIMPAlignment(afrag->lid,blid,ahang,tracep);
-  }
-  {
-    IntMultiVar *vl;
-    int32 nv;
-    RefreshMANode(ma->lid, -2, opp, &nv, &vl, 0, 0);
-  }
-  UnAlignFragment(0); // remove the consensus string from the multialignment
-
-  //PrintAlignment(stdout,ma->lid,0,-1,CNS_DOTS);
-  //PrintAlignment(stdout,ma->lid,0,-1,CNS_CONSENSUS);
-  { 
-    UnitigData *gatheredUnitigData=(UnitigData *) safe_malloc(num_unitigs*sizeof(UnitigData));
-    for (i=0;i<num_unitigs;i++) {
-      int left,right;
-      IntUnitigPos *tig=GetIntUnitigPos(cma->u_list,i);
-      gatheredUnitigData[i]=*GetUnitigData(unitigData,tig->ident);
-      if ( tig->position.bgn < tig->position.end ) {
-        left = tig->position.bgn;
-        right = tig->position.end;
-      } else {
-        left = tig->position.end;
-        right = tig->position.bgn;
-      }
-      gatheredUnitigData[i].left=left; 
-      gatheredUnitigData[i].right=right; 
-      gatheredUnitigData[i].type=tig->type; 
-    }
-    qsort((void *)gatheredUnitigData, num_unitigs, sizeof(UnitigData), 
-          UnitigDataCmp);
-    ExamineMANode(outFile, scaffoldID, ma->lid,gatheredUnitigData, num_unitigs,
-                  opp);
-    safe_free(gatheredUnitigData);
-    // Now, must find fragments in regions of overlapping unitigs, and adjust 
-    // their alignments as needed
-  } 
-  // DeleteVA_int32(trace);
-  DeleteMANode(ma->lid);
-  if ( contigStore ) DeleteMultiAlignStoreT(contigStore);
-  return 0; 
-}
 
 
 int ExamineMANode(FILE *outFile,int32 sid, int32 mid, UnitigData *tigData,int num_unitigs,
@@ -8840,34 +8668,30 @@ MultiAlignT *ReplaceEndUnitigInContig( tSequenceDB *sequenceDBp,
   fprintf(stderr,"ReplaceEndUnitigInContig()-- contig %d unitig %d isLeft(%d)\n",
           contig_iid,unitig_iid,extendingLeft);   
 
-  /*
-    The only real value-added from ReplaceUnitigInContig is a new consensus sequence for the contig
-    some adjustments to positions go along with this, but the real compute is an alignment
-    between the old contig consensus and the updated unitig
+  //  The only real value-added from ReplaceUnitigInContig is a new consensus sequence for the contig
+  //  some adjustments to positions go along with this, but the real compute is an alignment
+  //  between the old contig consensus and the updated unitig
+  //
+  //  first we want to determine whether unitig is on left or right of contig,
+  //  so that alignment can be done with a positive ahang
+  //  if u is at left, i.e.:
+  //
+  //  C---------------C
+  //  u------u
+  //  then initialize new alignment with unitig, and add contig, else
+  //
+  //  if u is at right, i.e.:
+  //
+  //  C---------------C
+  //           u------u
+  //  then initialize new alignment with contig, and add unitig, else
 
-    firt we want to determine whether unitig is on left or right of contig,
-    so that alignment can be done with a positive ahang
-    if u is at left, i.e.:
-
-    C---------------C
-    u------u
-    then initialize new alignment with unitig, and add contig, else
-
-    if u is at right, i.e.:
-
-    C---------------C
-    u------u
-    then initialize new alignment with contig, and add unitig, else
-
-
-
-  */
   ma = CreateMANode(0);
-  if ( trace == NULL ) {
+
+  if ( trace == NULL )
     trace = CreateVA_int32(AS_READ_MAX_LEN);
-  } else {
-    ResetVA_int32(trace);
-  }
+  ResetVA_int32(trace);
+
   {
     int ahang,ovl,pos_offset=0;  
     int tigs_adjusted_pos=0;

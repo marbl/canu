@@ -347,9 +347,6 @@ int BaseCall(int32 , int , double *, VarRegion  *, int, char *, int, int,
              CNS_Options *);
 void ShowColumn(int32 cid);
 
-int MultiAlignUnitig(IntUnitigMesg *, GateKeeperStore *, VA_TYPE(char) *,
-                     VA_TYPE(char) *, VA_TYPE(int32) *, CNS_PrintKey , int, 
-                     Overlap *(*COMPARE_FUNC)(COMPARE_ARGS), CNS_Options *opp);
 
 int ExamineMANode(FILE *, int32 , int32 , UnitigData *, int , CNS_Options *opp);
 void ResetBaseCount(BaseCount *b);
@@ -362,12 +359,6 @@ int GetAlignmentTrace(int32 , int32 , int32 , int32 *, int32 ,
                       Overlap *(*COMPARE_FUNC)(COMPARE_ARGS),
                       int , int );
 
-int MultiAlignContig_ReBasecall(MultiAlignT *, VA_TYPE(char) *, VA_TYPE(char) *, CNS_Options *);
-int MultiAlignContig_NoCompute(FILE *, int, MultiAlignT *, tSequenceDB *, VA_TYPE(UnitigData) *, CNS_Options *opp);
-
-
-
-
 
 // 'Public' functions that other subsystems are invited to link to.
 //
@@ -378,6 +369,7 @@ int MultiAlignUnitig(IntUnitigMesg *, GateKeeperStore *, VA_TYPE(char) *,
 int MultiAlignContig(IntConConMesg *, VA_TYPE(char) *, VA_TYPE(char) *, 
     VA_TYPE(int32) *, CNS_PrintKey , Overlap *(*)(COMPARE_ARGS), CNS_Options *opp);
 
+int MultiAlignContig_ReBasecall(MultiAlignT *, VA_TYPE(char) *, VA_TYPE(char) *, CNS_Options *);
 
 
 
