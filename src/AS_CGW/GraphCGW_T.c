@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.54 2007-09-05 11:22:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.55 2007-09-25 01:37:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -124,7 +124,7 @@ GraphCGW_T *LoadGraphCGWFromStream(FILE *stream){
   int       status = 0;
   GraphCGW_T *graph = (GraphCGW_T *)safe_calloc(1, sizeof(GraphCGW_T));
 
-  graph->nodes =        CreateFromFileVA_NodeCGW_T(stream,0);
+  graph->nodes =        CreateFromFileVA_NodeCGW_T(stream);
 
   // Save lists of indicies, if they exist
   for(i = 0; i < GetNumGraphNodes(graph); i++){
@@ -133,10 +133,10 @@ GraphCGW_T *LoadGraphCGWFromStream(FILE *stream){
       continue;
     if(node->info.CI.numInstances < 3)
       continue;
-    node->info.CI.instances.va = CreateFromFileVA_CDS_CID_t(stream,0);
+    node->info.CI.instances.va = CreateFromFileVA_CDS_CID_t(stream);
   }
 
-  graph->edges =          CreateFromFileVA_EdgeCGW_T( stream,0);
+  graph->edges =          CreateFromFileVA_EdgeCGW_T( stream);
 
   status  = AS_UTL_safeRead(stream, &graph->type,             "LoadGraphCGWFromStream", sizeof(int32),     1);
   status += AS_UTL_safeRead(stream, &graph->numActiveNodes,   "LoadGraphCGWFromStream", sizeof(int32),     1);

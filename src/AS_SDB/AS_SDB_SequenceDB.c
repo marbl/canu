@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.15 2007-09-05 11:22:16 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.16 2007-09-25 01:37:31 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -105,7 +105,7 @@ openSequenceDB(char *path, int readWrite, int revision){
   if (errno)
     fprintf(stderr, "OpenSequenceDB()-- Failed to open '%s' for reading: %s\n",
             N, strerror(errno)), exit(1);
-  db->Unitigs = CreateFromFileVA_tMARecord(F,10);
+  db->Unitigs = CreateFromFileVA_tMARecord(F);
   fclose(F);
 
   sprintf(N,"%s/seqDB.v%03d.ctg", db->path, revision);
@@ -114,7 +114,7 @@ openSequenceDB(char *path, int readWrite, int revision){
   if (errno)
     fprintf(stderr, "OpenSequenceDB()-- Failed to open '%s' for reading: %s\n",
             N, strerror(errno)), exit(1);
-  db->Contigs = CreateFromFileVA_tMARecord(F,10);
+  db->Contigs = CreateFromFileVA_tMARecord(F);
   fclose(F);
 
 
@@ -159,7 +159,7 @@ openSequenceDBPartition(tSequenceDB *db, int32 partition){
     exit(1);
   }    
 
-  db->multiAligns      = CreateFromFileVA_tMARecord(F, 10);
+  db->multiAligns      = CreateFromFileVA_tMARecord(F);
   db->multiAlignLookup = CreateScalarHashTable_AS(GetNumtMARecords(db->multiAligns) + 1);
 
   fclose(F);

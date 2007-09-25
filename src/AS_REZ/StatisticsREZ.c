@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: StatisticsREZ.c,v 1.8 2007-08-18 13:13:22 brianwalenz Exp $	 */
+/* 	$Id: StatisticsREZ.c,v 1.9 2007-09-25 01:37:31 brianwalenz Exp $	 */
 
 /****************************************************************************************
  *  StatisticsRez.c
@@ -418,7 +418,7 @@ int read_scaffold_walk_statistics(ScaffoldWalkStatisticsT *s)
       return FALSE;
     }
   else
-    s->GapStats = CreateFromFileVA_GapStatisticsT(input,0);
+    s->GapStats = CreateFromFileVA_GapStatisticsT(input);
   fclose(input);
   
   sprintf(filename,"stats/scaffold.%d.stat",s->scaffoldID);

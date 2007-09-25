@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.28 2007-09-05 11:22:12 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ScaffoldGraph_CGW.c,v 1.29 2007-09-25 01:37:31 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -230,12 +230,12 @@ ScaffoldGraphT * LoadScaffoldGraphFromStream(FILE *stream){
   fprintf(GlobalData->stderrc,"* Reading graph %s *\n", sgraph->name);
 
 
-  sgraph->iidToFragIndex = CreateFromFileVA_InfoByIID(stream, 0);
-  sgraph->CIFrags        = CreateFromFileVA_CIFragT(stream, 0);
+  sgraph->iidToFragIndex = CreateFromFileVA_InfoByIID(stream);
+  sgraph->CIFrags        = CreateFromFileVA_CIFragT(stream);
 #ifdef AS_ENABLE_SOURCE
-  sgraph->SourceFields   = CreateFromFileVA_char(stream, 0);
+  sgraph->SourceFields   = CreateFromFileVA_char(stream);
 #endif
-  sgraph->Dists          = CreateFromFileVA_DistT(stream, 0);
+  sgraph->Dists          = CreateFromFileVA_DistT(stream);
 
   sgraph->CIGraph       = LoadGraphCGWFromStream(stream);
   sgraph->ContigGraph   = LoadGraphCGWFromStream(stream);

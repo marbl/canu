@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.21 2007-09-05 11:22:16 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.22 2007-09-25 01:37:31 brianwalenz Exp $";
 
 /********************************************************************/
 /* Variable Length C Array Package 
@@ -339,13 +339,31 @@ ReuseClone_VA(VarArrayType *to, VarArrayType *fr){
     memcpy(to->Elements, fr->Elements, fr->sizeofElement * fr->numElements);
 }
 
+static
+void
+ReadVA(FILE *fp, VarArrayType *va, FileVarArrayType *vat) {
+  MakeRoom_VA(va, vat->numElements, FALSE);
+  EnableRange_VA(va, vat->numElements);
+
+  if (vat->numElements > 0) {
+    assert(va->Elements != NULL);
+    assert(vat->sizeofElement == va->sizeofElement);
+
+    //  Unless we read elements from disk, it is overly paranoid to
+    //  check the size of the on-disk and in-core elements agree.  Yes,
+    //  it masks a problem that should be fixed.
+
+    AS_UTL_safeRead(fp, va->Elements, "LoadFromFile_VA", va->sizeofElement, va->numElements);
+  }
+}
+
 void
 LoadFromFile_VA(FILE *fp,
                 VarArrayType *va) {
 
   FileVarArrayType    vat = {0};
 
-  AS_UTL_safeRead(fp, &vat, "CreateFromFile_VA (vat)", sizeof(FileVarArrayType), 1);
+  AS_UTL_safeRead(fp, &vat, "LoadFromFile_VA (vat)", sizeof(FileVarArrayType), 1);
 
   assert(vat.numElements <= vat.allocatedElements);
 
@@ -355,22 +373,13 @@ LoadFromFile_VA(FILE *fp,
     assert(0);
   }
 
-  MakeRoom_VA(va, vat.numElements, FALSE);
-  EnableRange_VA(va, vat.numElements);
-
-  assert((vat.numElements == 0) || (va->Elements != NULL));
-  assert(vat.numElements == va->numElements);
-  assert(vat.sizeofElement == va->sizeofElement);
-  assert(vat.sizeofElement > 0);
-
-  AS_UTL_safeRead(fp, va->Elements, "CreateFromFile_VA", va->sizeofElement, va->numElements);
+  ReadVA(fp, va, &vat);
 }
 
 
 VarArrayType *
 CreateFromFile_VA(FILE *fp,
-                  char *thetype,
-                  size_t additional_elements) {
+                  char *thetype) {
 
   FileVarArrayType    vat = {0};
   VarArrayType       *va  = (VarArrayType *)safe_calloc(1, sizeof(VarArrayType));
@@ -385,9 +394,7 @@ CreateFromFile_VA(FILE *fp,
     assert(0);
   }
 
-  // We construct a VA big enough to hold numElements.  This will
-  // 'compress' the VA, if it was initially allocated much larger than
-  // necessary.
+  // We construct a VA just big enough to hold all the elements on disk.
 
   va->Elements          = NULL;
   va->sizeofElement     = vat.sizeofElement;
@@ -397,16 +404,7 @@ CreateFromFile_VA(FILE *fp,
   strncpy(va->typeofElement, vat.typeofElement, VA_TYPENAMELEN);
   va->typeofElement[VA_TYPENAMELEN-1] = 0;
 
-  MakeRoom_VA(va, vat.numElements + additional_elements, FALSE);
-
-  EnableRange_VA(va, vat.numElements);
-
-  assert(vat.numElements == 0 || (va->Elements != NULL));
-  assert(vat.numElements == va->numElements);
-  assert(vat.sizeofElement == va->sizeofElement);
-  assert(vat.sizeofElement > 0);
-
-  AS_UTL_safeRead(fp, va->Elements, "CreateFromFile_VA", va->sizeofElement, va->numElements);
+  ReadVA(fp, va, &vat);
 
   return(va);
 }

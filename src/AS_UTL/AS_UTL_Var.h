@@ -83,9 +83,7 @@ void
 LoadFromFile_VA(FILE *fp, VarArrayType *va);
 
 VarArrayType *
-CreateFromFile_VA(FILE *fp,
-                  char *thetype,
-                  size_t space_in_elements_for_growth);
+CreateFromFile_VA(FILE *fp, char *thetype);
 
 size_t
 CopyToFile_VA(VarArrayType *va, FILE *fp);
@@ -210,8 +208,8 @@ static size_t GetAllocated ## Type ##s(VA_TYPE(Type) *va){\
 \
 \
 \
-static VA_TYPE(Type) * CreateFromFileVA_ ## Type (FILE *fp,size_t growth_space){\
- return (VA_TYPE(Type) *)CreateFromFile_VA(fp, #Type, growth_space);\
+static VA_TYPE(Type) * CreateFromFileVA_ ## Type (FILE *fp){\
+ return (VA_TYPE(Type) *)CreateFromFile_VA(fp, #Type);\
 }\
 static void LoadFromFileVA_ ## Type (FILE *fp,VA_TYPE(Type) *va){\
  LoadFromFile_VA(fp, va);\
