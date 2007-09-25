@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char rcsid[] = "$Id: Consensus_CNS.c,v 1.57 2007-09-18 19:34:45 brianwalenz Exp $";
+static const char rcsid[] = "$Id: Consensus_CNS.c,v 1.58 2007-09-25 01:41:05 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -258,11 +258,7 @@ main (int argc, char **argv) {
     fprintf(stderr, "\n");
     fprintf(stderr, "    -D opt       Enable debugging option 'opt'.  One of 'dumpunitigs', 'verbosemultialign',\n");
     fprintf(stderr, "                    and 'forceunitigabut'.  (-X not needed).\n");
-    fprintf(stderr, "    -q string    Override default quality call parameters\n");
-    fprintf(stderr, "                    string is colon separated list of the form '%%f:%%d:%%f'\n");
-    fprintf(stderr, "                    where first field is estimated sequencing error rate (default: .015)\n");
-    fprintf(stderr, "                         second field is number of sequenced haplotypes (default: 1)\n");
-    fprintf(stderr, "                          third field is estimated SNP rate (default: 1/1000)\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "    -e #%%d      Extract only a single ICM/IUM by internal id\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "Arguments:\n");
