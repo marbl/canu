@@ -41,12 +41,20 @@ CreateMultiAlignStoreT(void) {
 void
 ClearMultiAlignStoreT(MultiAlignStoreT *mas) {
   int    i;
-  //fprintf(stderr, "ClearMultiAlignT()--\n");
-  for (i=0; i<mas->maMax; i++) {
-    //if ((i % 128 * 1024) == 0)
-    //  fprintf(stderr, "ClearMultiAlignT()--  %d\n", i);
+#ifdef __FreeBSD__
+  //  BPW has had problems with ClearMultiAlignStoreT on FreeBSD --
+  //  it's just slow.
+  int    u=0;
+  for (i=0; i<mas->maMax; i++)
+    if (mas->maPtr[i])
+      u++;
+  fprintf(stderr, "ClearMultiAlignT()-- %d used out of max %d.\n",
+          u, mas->maMax);
+  fprintf(stderr, "ClearMultiAlignT()-- Bypassing!\n");
+  return;
+#endif
+  for (i=0; i<mas->maMax; i++)
     DeleteMultiAlignT(mas->maPtr[i]);
-  }
   memset(mas->maPtr, 0, mas->maMax * sizeof(MultiAlignT *));
 }
 
