@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.28 2007-09-24 18:26:51 eliv Exp $
- * $Revision: 1.28 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.29 2007-09-26 20:29:06 eliv Exp $
+ * $Revision: 1.29 $
 */
 
 #include <math.h>
@@ -305,6 +305,95 @@ namespace AS_BOG{
         fprintf(stderr,"Num mate based splits %d\n",splits->size());
         tigGraph.unitigs->insert( tigGraph.unitigs->end(), splits->begin(), splits->end());
         delete splits;
+
+        // Now we'll chuck out the contained frags that have unhappy mates
+        UnitigVector* singletons = new UnitigVector(); // save singleton unitigs
+        tigEditIter = tigGraph.unitigs->begin();
+        for(; tigEditIter != tigGraph.unitigs->end(); tigEditIter++)
+        {
+            if (*tigEditIter == NULL ) 
+                continue;
+
+            Unitig* tig = *tigEditIter;
+            int tigLen  = tig->getLength();
+            MateLocation positions(this);
+            // Build mate position table
+            positions.buildTable( tig );
+            // Build good and bad mate graphs
+            positions.buildHappinessGraphs( tigLen, globalStats );
+
+            // save position of singleton tig for case of a contain contain
+            IdMap singleIds;
+            // save original path to iterate through
+            DoveTailPath *old = tig->dovetail_path_ptr;
+
+            DoveTailConstIter tigIter = old->begin();
+            int bgnShift = 0;
+            // make sure 1st and 2nd frag overlap, otherwise make 1st singleton
+            bool overlapFound = false;
+            while (!overlapFound)
+            {
+            if (old->size() > 1 && tigIter != old->end()) {
+                DoveTailNode first  = *(tigIter);
+                DoveTailNode second = *(tigIter+1);
+                if ( tigGraph.bog_ptr->isContained( first.ident ) &&
+                    !tigGraph.bog_ptr->containHaveEdgeTo( first.ident, second.ident))
+                {
+                    Unitig* singleton = new Unitig;
+                    singleton->addFrag( first );
+                    singleIds[ first.ident ] = singletons->size();
+                    singletons->push_back( singleton );
+                    tigIter++;
+                    bgnShift = MIN( second.position.bgn, second.position.end );
+                    fprintf(stderr,"Non overlap start %d %d\n",first.ident,second.ident);
+                }
+                else overlapFound = true;
+            }
+            else overlapFound = true;
+            }
+            // Create new one to add reads back to
+            tig->dovetail_path_ptr = new DoveTailPath;
+            for(; tigIter != old->end(); tigIter++)
+            {
+                DoveTailNode frag = *tigIter;
+                frag.position.bgn -= bgnShift;
+                frag.position.end -= bgnShift;
+                SeqInterval loc = frag.position;
+                if ( frag.contained ) {
+                    MateLocationEntry mloc = positions.getById( frag.ident );
+                    if (mloc.id1 != 0 && mloc.isBad ) // make contain bad a singleton unitig
+                    {
+                        Unitig* singleton = new Unitig;
+                        singleton->addFrag( frag );
+                        singleIds[ frag.ident ] = singletons->size();
+                        singletons->push_back( singleton );
+                    }
+                    else // contained, but not bad mate what to do with it?
+                    {    
+                        IdMapConstIter found = singleIds.find( frag.contained );
+                        if ( found != singleIds.end() ) { // contained in unhappy singleton
+                            if (mloc.id1 == 0) { // unmated, so follow container
+                                iuid offset = found->second;
+                                (*singletons)[ offset ]->addFrag( frag );
+                                singleIds[ frag.ident ] = offset;
+                                fprintf(stderr,"Contain placed in singleton frg %d off %d tig %d",
+                                        frag.ident, offset, (*singletons)[ offset ]->id());
+                            } else { // happy mate leave in place
+                                frag.contained = 0; // Might pick something else
+                                tig->addFrag( frag );
+                            }
+                        } else { // mated, so good mate
+                            tig->addFrag( frag );
+                        }
+                    }
+                } else { // non-contained, just add back to dovetail path
+                    tig->addFrag( frag );
+                }
+            }
+            delete old;
+        }
+        tigGraph.unitigs->insert( tigGraph.unitigs->end(), singletons->begin(),
+                                                           singletons->end() );
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -482,7 +571,10 @@ namespace AS_BOG{
                 }
                 if ( lastBreakBBEnd != 0 && lastBreakBBEnd > MAX(loc.bgn,loc.end))
                 {
-                    DoveTailConstIter nextPos = tigIter+1;
+                    // change use ++ & -- instead of +1 so we can use list
+                    tigIter++;
+                    DoveTailConstIter nextPos = tigIter;
+                    tigIter--;
                     if (nextPos != tig->dovetail_path_ptr->end())  {
 //                        if ((NULL_SEQ_LOC == overlap || diff < DEFAULT_MIN_OLAP_LEN) || 
                         if ( contains( loc, nextPos->position ) ) {
