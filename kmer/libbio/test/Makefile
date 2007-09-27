@@ -2,13 +2,13 @@
 
 #PROG    = test-merstream-from-seqstore
 
-PROG    = test-seqStream \
+PROG    = dump-merstreamfile \
+          test-seqStream \
           test-chainedSequence \
           test-fasta-accessor \
           test-merstream \
           test-merstreamfile \
           test-setbits \
-          dump-merstreamfile \
           halign-test
 
 DEAD =    test-merstream-speed \
@@ -23,6 +23,10 @@ include ../../Make.compilers
 
 all: $(PROG)
 	@echo Tests passed!
+
+dump-merstreamfile: dump-merstreamfile.C
+	$(CXX) $(CXXFLAGS_COMPILE) -c -o dump-merstreamfile.o dump-merstreamfile.C $(INCLUDE)
+	$(CXX) $(CXXLDFLAGS) -o dump-merstreamfile dump-merstreamfile.o $(LIBS)
 
 test-merstream-from-seqstore: test-merstream-from-seqstore.C
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-merstream-from-seqstore.o test-merstream-from-seqstore.C $(INCLUDE)
@@ -85,10 +89,6 @@ test-bigmer-msf: test-bigmer-msf.C
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-bigmer-msf.o test-bigmer-msf.C $(INCLUDE)
 	$(CXX) $(CXXLDFLAGS) -o test-bigmer-msf test-bigmer-msf.o $(LIBS)
 	./test-bigmer-msf
-
-dump-merstreamfile: dump-merstreamfile.C
-	$(CXX) $(CXXFLAGS_COMPILE) -c -o dump-merstreamfile.o dump-merstreamfile.C $(INCLUDE)
-	$(CXX) $(CXXLDFLAGS) -o dump-merstreamfile dump-merstreamfile.o $(LIBS)
 
 halign-test: halign-test.C
 	$(CXX) $(CXXFLAGS_COMPILE) -c -o halign-test.o halign-test.C $(INCLUDE)

@@ -14,7 +14,18 @@ public:
   u64bit        seqIID(void)       { return(_blockInfo[_thisBlock]._seqIID); };
 
   u64bit        strPos(void)       { return(_blockInfo[_thisBlock]._posInBPF / 2 + _blockInfo[_thisBlock]._posInStrOff + _thisBlockPosition - 1); };
-  u64bit        acgtPos(void)      { return(_blockInfo[_thisBlock]._posInBPF / 2 + _thisBlockPosition - 1); };
+
+  u64bit        acgtPosForMerStream(u32bit span) {
+    u64bit  r = 0;
+
+    if (span > _thisBlockPosition) {
+      if (_thisBlock > 0)
+        r = _blockInfo[_thisBlock - 1]._posInBPF / 2 + _thisBlockPosition - span;
+    } else {
+      r = _blockInfo[_thisBlock]._posInBPF / 2 + _thisBlockPosition - span;
+    }
+    return(r);
+  };
 
   u64bit        numberOfACGT(void) { return(_numberOfACGT); };
 

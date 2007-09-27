@@ -41,36 +41,43 @@ typedef kMerHuge kMer;
 class kMerBuilder {
 public:
   kMerBuilder(u32bit ms=0, u32bit cm=0, char *tm=0L) {
-    _fMer          = 0L;
-    _rMer          = 0L;
+    _style            = 0;
 
-    _currentMer    = 0;
-    _fmers         = 0L;
-    _rmers         = 0L;
+    _merSize          = 0;
+    _merSizeValid     = 0L;
+    _merSizeValidIs   = 0;
+    _merSizeValidZero = 0;
 
-    _merSizeValid  = 0;
+    _merStorage       = 0L;
+    _fMer             = 0L;
+    _rMer             = 0L;
 
-    _style         = 0;
-
-    _merSize       = ms;
-
-   _compression               = cm;
+   _compression               = 0;
    _compressionIndex          = 0;
    _compressionFirstIndex     = 0;
    _compressionLength         = 0L;
    _compressionCurrentLength  = 0;
 
-   _templateSize   = 0;
-   _templateSpan   = 0;
-   _template       = 0L;
+   _templateSpan    = 0;
+   _templateLength  = 0;
+   _template        = 0L;
+   _templatePos     = 0;
+   _templateMer     = 0;
+   _templateFirst   = 0;
 
    if (ms) {
-     _style = 0;
-     _merSize = ms;
+     _style            = 0;
+     _merSize          = ms;
+     _merSizeValidIs   = _merSize + _merSize;
+     _merSizeValidZero = _merSize;
    }
 
    if (cm) {
      _style = 1;
+
+     _merSize          = ms;
+     _merSizeValidIs   = _merSize + _merSize;
+     _merSizeValidZero = _merSize;
 
      _compression              = cm;
      _compressionIndex         = 0;
@@ -85,80 +92,117 @@ public:
    }
 
    if (tm) {
-     _style        = 2;
-     _merSize      = 0;
-     _templateSize = strlen(tm);
-     _templateSpan = 0;
+     _style           = 2;
+     _merSize         = 0;
+     _templateSpan    = strlen(tm);
+     _templateLength  = 0;
+     _template        = new char [_templateSpan + 1];
+     _templatePos     = 0;
+     _templateMer     = 0;
+     _templateFirst   = 1;
 
-     _template     = new char [_templateSpan + 1];
-     strcpy(_template, tm);
+     //  Templates cannot begin or end in zero -- they MUST begin/end
+     //  with a letter.  We silently fix these problems.  Unless there
+     //  are no 1's in the string, then we bail.
 
-     for (u32bit i=0; i<_templateSize; i++)
-       if (_template[i] == '1')
+     u32bit i=0, t=0;
+     while ((i < _templateSpan) && (tm[i] == '0'))
+       i++;
+
+     if (i == _templateSpan) {
+       fprintf(stderr, "invalid kMerBuilder template '%s' -- its empty!\n", tm);
+       exit(1);
+     }
+
+     while (i < _templateSpan) {
+       _template[t] = 0;
+       
+       if (tm[i] == '1') {
+         _template[t] = 1;
          _merSize++;
+       }
 
-     //  Look for patterns in the template, set templateSpan to be the
+       i++;
+       t++;
+     }
+
+     while (_template[--t] == 0)
+       ;
+
+     _templateSpan = t + 1;
+
+     for (i=0; i<_templateSpan; i++)
+       fprintf(stderr, "%d", _template[i]);
+     fprintf(stderr, " -- %d\n", _templateSpan);
+
+     //  Look for patterns in the template, set templateLength to be the
      //  size of the pattern.
 
-     _templateSpan = _templateSize;
+     _templateLength = _templateSpan;
+
+     //  Finally, we can set what valid and zero mersizes are.
+     _merSizeValidIs   = _templateLength + _merSize;
+     _merSizeValidZero = _templateLength;
    }
 
    if (cm && tm) {
      _style = 3;
+     assert(0);
    }
 
    if (tm) {
-     _merStorage = new kMer [2 * _templateSpan];
+     _merStorage   = new kMer   [_templateLength * 2];
+     _merSizeValid = new u32bit [_templateLength];
 
-     for (u32bit i=0; i<_templateSpan; i++) {
-       _fmers = new kMer* [_templateSpan];
-       _rmers = new kMer* [_templateSpan];
-
-       _fmers[i] = _merStorage + 2 * i;
-       _rmers[i] = _merStorage + 2 * i + 1;
-
-       _fmers[i]->setMerSize(_merSize);
-       _rmers[i]->setMerSize(_merSize);
-
-       _fmers[i]->setMerSpan(_templateSize);
-       _rmers[i]->setMerSpan(_templateSize);
+     for (u32bit i=0; i<2*_templateLength; i++) {
+       _merStorage[i].setMerSize(_merSize);
+       _merStorage[i].setMerSpan(_templateSpan);
      }
-     _fMer = _fmers[_currentMer];
-     _rMer = _rmers[_currentMer];
+
+     //  VERY IMPORTANT!  Offset the valid length to adjust for the
+     //  template that every mer except the first is starting in the
+     //  middle of.
+     //
+     for (u32bit i=0; i<_templateLength; i++)
+       _merSizeValid[i] = _merSize - i;
    } else {
-     _merStorage = new kMer [2];
+     _merStorage   = new kMer   [2];
+     _merSizeValid = new u32bit [1];
 
-     _fMer = _merStorage + 0;
-     _rMer = _merStorage + 1;
+     _merStorage[0].setMerSize(_merSize);
+     _merStorage[1].setMerSize(_merSize);
 
-     _fMer->setMerSize(_merSize);
-     _rMer->setMerSize(_merSize);
+     _merSizeValid[0] = _merSize;
 
      if (cm) {
-       _fMer->setMerSpan(0);
-       _rMer->setMerSpan(0);
+       _merStorage[0].setMerSpan(0);
+       _merStorage[1].setMerSpan(0);
      }
    }
+
+   _fMer = _merStorage + 0;
+   _rMer = _merStorage + 1;
   };
 
 
   ~kMerBuilder() {
     delete [] _merStorage;
+    delete [] _merSizeValid;
   };
 
 
   //  Clear all mer data
   void    clear(void) {
     if (_template) {
-      for (u32bit i=0; i<_templateSpan; i++) {
-        _fmers[i]->clear();
-        _rmers[i]->clear();
+      for (u32bit i=0; i<2*_templateLength; i++) {
+        _merStorage[i].clear();
+        _merSizeValid[i] = _merSizeValidZero;
       }
     } else {
       _fMer->clear();
       _rMer->clear();
+      _merSizeValid[0] = _merSizeValidZero;
     }
-    _merSizeValid = 0;
   };
 
   //  Returns true if we need another base to finish the mer.  This
@@ -168,26 +212,31 @@ public:
     u64bit  cf = validCompressedSymbol[ch];
     u64bit  cr = validCompressedSymbol[complementSymbol[ch]] & 0x03;
 
+    ////////////////////////////////////////
+    //
     //  Normal contiguous mers
+    //
     if (_style == 0) {
 
       if (cf & (unsigned char)0xfc) {
-        _merSizeValid = 0;
+        _merSizeValid[0] = _merSizeValidZero;
         return(true);
       }
 
       *_fMer += cf;
       *_rMer -= cr;
 
-      if (_merSizeValid + 1 < _merSize) {
-        _merSizeValid++;
+      if (_merSizeValid[0] + 1 < _merSizeValidIs) {
+        _merSizeValid[0]++;
         return(true);
       }
       return(false);  //  Good!  Don't need another letter.
     }
 
-
+    ////////////////////////////////////////
+    //
     //  Compressed mers
+    //
     if (_style == 1) {
 
       //  If it's an invalid letter, get the heck outta here, reset stuff
@@ -207,7 +256,7 @@ public:
         _fMer->setMerSpan(0);
         _rMer->setMerSpan(0);
 
-        _merSizeValid = 0;
+        _merSizeValid[0] = _merSizeValidZero;
 
         return(true);
       }
@@ -227,7 +276,7 @@ public:
       //  remember we've seen another letter in the run, and don't add
       //  it.  Request another letter.
       //
-      if ((_merSizeValid > 0) &&
+      if ((_merSizeValid[0] > _merSizeValidIs) &&
           (lb == cf) &&
           (_compressionCurrentLength > _compression)) {
         _compressionLength[_compressionIndex]++;
@@ -289,8 +338,8 @@ public:
       _fMer->setMerSpan(ms + 1);
       _rMer->setMerSpan(ms + 1);
 
-      if (_merSizeValid + 1 < _merSize) {
-        _merSizeValid++;
+      if (_merSizeValid[0] + 1 < _merSizeValidIs) {
+        _merSizeValid[0]++;
         return(true);
       }
 
@@ -299,12 +348,119 @@ public:
       return(false);  //  Good!  Don't need another letter.
     }
 
+    ////////////////////////////////////////
+    //
     //  Spaced mers
+    //
     if (_style == 2) {
-      assert(0);
+
+#undef DEBUGSPACE
+#ifdef DEBUGSPACE
+      fprintf(stderr, "add %c templatePos=%u templateMer=%u\n", ch, _templatePos, _templateMer);
+#endif
+
+      //  We always advance the templatePos, unfortunately, we need to
+      //  use the current value throughout this function.  If there
+      //  was a single return point, we could advance immediately
+      //  before returning.
+      //
+      u32bit tp = _templatePos;
+      _templatePos = (_templatePos + 1) % _templateLength;
+
+      //  If we get an invalid letter, set all mers that would have
+      //  had a letter added to be broken.
+      //
+      if (cf & (unsigned char)0xfc) {
+
+        for (u32bit m=0; m<_templateLength; m++) {
+          u32bit tppos = (tp + _templateLength - m) % _templateLength;
+
+          if (_template[tppos] == 1) {
+
+            //  Reset to 'zero', but make it skip over any remaining
+            //  positions in the current template.
+            //
+            _merSizeValid[m]  = _merSizeValidZero + tppos - _templateLength + 1;
+
+#ifdef DEBUGSPACE
+            fprintf(stderr, "-- invalid letter, reset mer %u to valid %u (mersizevalidzero=%u ttpos=%u templatelength=%u)\n",
+                    m, _merSizeValid[m], _merSizeValidZero, tppos, _templateLength);
+#endif
+          }
+        }
+
+        if (_templateFirst == 0)
+          _templateMer = (_templateMer + 1) % _templateLength;
+
+        return(true);
+      }
+
+      //  We have a valid letter, and add it to all the mers that the
+      //  template allows.
+      //
+      for (u32bit m=0; m<_templateLength; m++) {
+        u32bit  tppos = (tp + _templateLength - m) % _templateLength;
+
+        if (_template[tppos] == 1) {
+          _merStorage[2*m+0] += cf;
+          _merStorage[2*m+1] -= cr;
+
+          if (_merSizeValid[m] < _merSizeValidIs)
+            _merSizeValid[m]++;
+
+#ifdef DEBUGSPACE
+          fprintf(stderr, "push %c onto %d (at template %u)  length = %u  %s\n",
+                  ch, m, (tp + _templateLength - m) % _templateLength,
+                  _merSizeValid[m],
+                  (_merSizeValid[m] >= _merSizeValidIs) ? "complete" : "");
+#endif
+        } else if (_merSizeValid[m] <= _merSizeValidZero) {
+
+          //  The template doesn't want us to add a letter to the mer,
+          //  but we're adjusting for an aborted template, and we're
+          //  counting template positions (not just non-zero template
+          //  positions) when adjusting.
+          //
+          _merSizeValid[m]++;
+        }
+      }
+
+      //  If the current mer isn't long enough, we move to the next mer,
+      //  and request another letter.
+      //
+      if (_merSizeValid[_templateMer] < _merSizeValidIs) {
+        if (_templateFirst == 0)
+          _templateMer = (_templateMer + 1) % _templateLength;
+#ifdef DEBUGSPACE
+        fprintf(stderr, "-- too short -- need more templateMer=%u templateFirst=%u\n", _templateMer, _templateFirst);
+#endif
+        return(true);
+      }
+
+      //  On startup, _templateMer is always 0 (the first mer) until
+      //  it is long enough to be a valid mer.  Then, we clear
+      //  _templateFirst so that we can start advancing through mers.
+
+      //  Update the f and r pointers to the correct mers, advance our
+      //  template to the next, and terminate.
+      //
+      _fMer = _merStorage + 2 * _templateMer + 0;
+      _rMer = _merStorage + 2 * _templateMer + 1;
+
+#ifdef DEBUGSPACE
+      fprintf(stderr, "-- valid!  (templateMer = %u)\n", _templateMer);
+#endif
+
+      _templateFirst = 0;
+      _templateMer   = (_templateMer + 1) % _templateLength;
+
+      return(false);  //  Good!  Don't need another letter.
     }
 
+    ////////////////////////////////////////
+    //
     //  Spaced mers, using compression
+    //
     if (_style == 3) {
       assert(0);
     }
@@ -324,25 +480,46 @@ public:
 
 private:
 
+  //  Style of builder we are
+  u32bit   _style;
+
+  //  Amount of the mer that has valid sequence.  Sigh.  I really
+  //  needed a signed value here -- where negative values mean that we
+  //  first have to get to the end of the template that was invalid,
+  //  then we need to build a new mer.
+  //
+  //  And, yes, just simply making it signed leads to all sortes of
+  //  compiler warnings about comparing signed and unsigned.  And I've
+  //  been here before, and those warnings just propate endlessly.
+  //  Just go away, Mr. Smartypants.
+  //
+  //  Details: when building spaced seeds, if we hit an N in the
+  //  middle of the template, we need to invalidate the mer, but not
+  //  start building a new mer until we exhaust the current template.
+  //  The example is template=1101.  Suppose we hit an N at the second
+  //  1.  We set the merSizeValid to 0, and proceed.  When we push on
+  //  the base for the last 1 in the template, we'd increment the
+  //  merSizeValid.  The first two 1's in the template would now
+  //  create a mer big enough to be valid, and we'd return it -- but
+  //  now the template we're using is 0111.
+  //
+  //  _merSizeValid is offset by _merSize (e.g., the true valid size
+  //  is _merSizeValid - _merSize).  _merSizeValidIs is the valid
+  //  _merSizeValid needs to be in order for it to be valid.
+  //  Similarily, _merSizeValidZero is the value of zero (currently
+  //  this is equal to _merSize).
+  //
+  u32bit   _merSize;              //  Number of bases in the mer
+  u32bit  *_merSizeValid;
+  u32bit   _merSizeValidZero;
+  u32bit   _merSizeValidIs;
+
   //  An array of mers, we allocate all mers in one block
   kMer    *_merStorage;
 
   //  Pointer to the currently active mer
   kMer    *_fMer;
   kMer    *_rMer;
-
-  //  If spaced, we need to keep a set of mers
-  u32bit   _currentMer;
-  kMer   **_fmers;
-  kMer   **_rmers;
-
-  //  Amount of the mer that has valid sequence
-  u32bit   _merSizeValid;
-  //u32bit  *_merSizeValid;
-
-  u32bit   _style;
-
-  u32bit   _merSize;       //  Number of bases in the mer
 
   //  For compression
   u32bit   _compression;
@@ -352,9 +529,12 @@ private:
   u32bit   _compressionCurrentLength;
 
   //  For templates
-  u32bit   _templateSize;  //  # of 0's and 1's in the template
-  u32bit   _templateSpan;  //  If the template is repetitive, this is the length of the pattern.
-  char    *_template;
+  u32bit   _templateSpan;     //  # of 0's and 1's in the template
+  u32bit   _templateLength;   //  length of the pattern in the template
+  char    *_template;         //  character string template
+  u32bit   _templatePos;      //  position we are building in the template
+  u32bit   _templateMer;      //  the mer we should output next
+  u32bit   _templateFirst;    //  if true, we're still building the initial mer
 };
 
 #endif  //  BIO_KMER_H

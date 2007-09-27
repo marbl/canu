@@ -15,29 +15,73 @@ main(int argc, char **argv) {
 
   if (argc != 2) {
     fprintf(stderr, "usage: %s some.fasta\n", argv[0]);
-    fprintf(stderr, "       Builds a merStreamFile, writes the contents to stdout.\n");
+    fprintf(stderr, "       dumps mers to stdout.\n");
     exit(1);
   }
 
-#warning does nothing
-#if 0
-  merStreamFileBuilder   *B = new merStreamFileBuilder(BUILD_SIZE, argv[1], "junk");
-  u64bit numMers = B->build(true);
-  delete B;
+  if (0) {
+    seqStream   *STR = new seqStream(argv[1], true);
+    seqStore    *STO = new seqStore(argv[1], STR);
+    kMerBuilder *KB1 = new kMerBuilder(27);
+    merStream   *MS1 = new merStream(KB1, STO);
 
-  fprintf(stderr, "Found "u64bitFMT" mers in %s at mersize %d\n", numMers, argv[1], BUILD_SIZE);
+    fprintf(stdout, "NORMAL\n");
 
-  merStreamFileReader *R = new merStreamFileReader("junk", TEST_SIZE);
-  merStream           *M = new merStream(R);
+    while (MS1->nextMer())
+      fprintf(stdout, "'%s' seqNum:"u64bitFMT" posInSeq:"u64bitFMT" posInStream:"u64bitFMT"\n",
+              MS1->theFMer().merToString(str),
+              MS1->theSequenceNumber(),
+              MS1->thePositionInSequence(),
+              MS1->thePositionInStream());
 
-  while (M->nextMer())
-    fprintf(stdout, "'%s' seqNum:"u64bitFMT" posInSeq:"u64bitFMT" posInStream:"u64bitFMT" '%s'\n",
-            M->theFMer().merToString(str),
-            M->theSequenceNumber(),
-            M->thePositionInSequence(),
-            M->thePositionInStream(),
-            M->theDefLine());
-#endif
+    delete STR;
+    delete STO;
+    delete KB1;
+    delete MS1;
+  }
+
+  if (0) {
+    seqStream   *STR = new seqStream(argv[1], true);
+    seqStore    *STO = new seqStore(argv[1], STR);
+    kMerBuilder *KB1 = new kMerBuilder(27, 1);
+    merStream   *MS1 = new merStream(KB1, STO);
+
+    fprintf(stdout, "COMPRESSED\n");
+
+    while (MS1->nextMer())
+      fprintf(stdout, "'%s' seqNum:"u64bitFMT" posInSeq:"u64bitFMT" posInStream:"u64bitFMT"\n",
+              MS1->theFMer().merToString(str),
+              MS1->theSequenceNumber(),
+              MS1->thePositionInSequence(),
+              MS1->thePositionInStream());
+
+    delete STR;
+    delete STO;
+    delete KB1;
+    delete MS1;
+  }
+
+  if (1) {
+    seqStream   *STR = new seqStream(argv[1], true);
+    seqStore    *STO = new seqStore(argv[1], STR);
+    //                                          01234567890123
+    kMerBuilder *KB1 = new kMerBuilder(0, 0, "0011010000");
+    merStream   *MS1 = new merStream(KB1, STO);
+
+    fprintf(stdout, "SPACED\n");
+
+    while (MS1->nextMer())
+      fprintf(stdout, "'%s' seqNum:"u64bitFMT" posInSeq:"u64bitFMT" posInStream:"u64bitFMT"\n",
+              MS1->theFMer().merToString(str),
+              MS1->theSequenceNumber(),
+              MS1->thePositionInSequence(),
+              MS1->thePositionInStream());
+
+    delete STR;
+    delete STO;
+    delete KB1;
+    delete MS1;
+  }
 
   exit(0);
 }
