@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.30 2007-08-31 15:47:02 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.31 2007-09-28 07:31:22 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
@@ -63,6 +63,9 @@ Check_FragMesg(FragMesg            *frg_mesg,
 int
 Check_LinkMesg(LinkMesg             *lkg_mesg);
 
+
+int
+Load_SFF(FILE *sff);
 
 
 void

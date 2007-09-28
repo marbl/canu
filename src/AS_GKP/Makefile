@@ -33,7 +33,8 @@ SOURCES = AS_GKP_main.c \
           AS_GKP_dump.c	\
           AS_GKP_edit.c \
 	  AS_GKP_rebuildMap.c \
-          AS_GKP_rearrange.c
+          AS_GKP_rearrange.c \
+          AS_GKP_sff.c
 OBJECTS = $(SOURCES:.c=.o)
 
 LIBRARIES =

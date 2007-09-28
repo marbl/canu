@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_main.c,v 1.55 2007-08-31 21:06:16 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_main.c,v 1.56 2007-09-28 07:31:22 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -592,32 +592,60 @@ main(int argc, char **argv) {
     if (inFile == NULL)
       fprintf(stderr, "%s: failed to open input '%s': (returned null pointer)\n", argv[0], argv[firstFileArg]), exit(1);
 
-    while (EOF != ReadProtoMesg_AS(inFile, &pmesg)) {
-      int success = GATEKEEPER_SUCCESS;
+    int   isSFF = 0;
+    {
+      uint32  magic = 0;
 
-      if (pmesg->t == MESG_ADT) {
-        //  Ignore
-      } else if (pmesg->t == MESG_BAT) {
-        success = Check_BatchMesg((BatchMesg *)pmesg->m);
-      } else if (pmesg->t == MESG_DST) {
-        success = Check_DistanceMesg((DistanceMesg *)pmesg->m, believeInputStdDev);
-      } else if (pmesg->t == MESG_LIB) {
-        success = Check_LibraryMesg((LibraryMesg *)pmesg->m, believeInputStdDev);
-      } else if (pmesg->t == MESG_FRG) {
-        success = Check_FragMesg((FragMesg *)pmesg->m, check_qvs, assembler);
-      } else if (pmesg->t == MESG_LKG) {
-        success = Check_LinkMesg((LinkMesg *)pmesg->m);
-      } else if (pmesg->t == MESG_VER) {
-        //  Ignore
+      if (fileIsCompressed) {
+        //  Can't check the magic number, since we cannot rewind, so
+        //  guess based on filename.
+        //
+        int  len = strlen(argv[firstFileArg]);
+
+        if ((strcmp(argv[firstFileArg] + len - 4, ".sff") == 0) ||
+            (strcmp(argv[firstFileArg] + len - 7, ".sff.gz") == 0) ||
+            (strcmp(argv[firstFileArg] + len - 8, ".sff.bz2") == 0)) {
+          isSFF = 1;
+        }
       } else {
-        fprintf(errorFP,"# GKP Error: Unknown message with type %s.\n", MessageTypeName[pmesg->t]);
-        success = GATEKEEPER_FAILURE;
+        AS_UTL_safeRead(inFile, &magic, "sff_magic", sizeof(uint32), 1);
+        if ((magic == 0x2e736666) ||
+            (magic == 0x6666732e))
+          isSFF = 1;
+        rewind(inFile);
       }
+    }
 
-      if (success != GATEKEEPER_SUCCESS) {
-        fprintf(errorFP,"# GKP Error: at line %d:\n", GetProtoLineNum_AS());
-        WriteProtoMesg_AS(errorFP,pmesg);
-        nerrs++;
+    if (isSFF) {
+      Load_SFF(inFile);
+    } else {
+      while (EOF != ReadProtoMesg_AS(inFile, &pmesg)) {
+        int success = GATEKEEPER_SUCCESS;
+
+        if (pmesg->t == MESG_ADT) {
+          //  Ignore
+        } else if (pmesg->t == MESG_BAT) {
+          success = Check_BatchMesg((BatchMesg *)pmesg->m);
+        } else if (pmesg->t == MESG_DST) {
+          success = Check_DistanceMesg((DistanceMesg *)pmesg->m, believeInputStdDev);
+        } else if (pmesg->t == MESG_LIB) {
+          success = Check_LibraryMesg((LibraryMesg *)pmesg->m, believeInputStdDev);
+        } else if (pmesg->t == MESG_FRG) {
+          success = Check_FragMesg((FragMesg *)pmesg->m, check_qvs, assembler);
+        } else if (pmesg->t == MESG_LKG) {
+          success = Check_LinkMesg((LinkMesg *)pmesg->m);
+        } else if (pmesg->t == MESG_VER) {
+          //  Ignore
+        } else {
+          fprintf(errorFP,"# GKP Error: Unknown message with type %s.\n", MessageTypeName[pmesg->t]);
+          success = GATEKEEPER_FAILURE;
+        }
+
+        if (success != GATEKEEPER_SUCCESS) {
+          fprintf(errorFP,"# GKP Error: at line %d:\n", GetProtoLineNum_AS());
+          WriteProtoMesg_AS(errorFP,pmesg);
+          nerrs++;
+        }
       }
 
       if (nerrs >= maxerrs) {
