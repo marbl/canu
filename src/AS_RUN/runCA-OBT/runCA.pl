@@ -31,6 +31,9 @@ while (scalar(@ARGV)) {
     } elsif (($arg =~ /\.frg$|frg\.gz$|frg\.bz2$/) && (-e $arg)) {
         $arg = "$ENV{'PWD'}/$arg" if ($arg !~ m!^/!);
         push @fragFiles, $arg;
+    } elsif (($arg =~ /\.sff$|sff\.gz$|sff\.bz2$/) && (-e $arg)) {
+        $arg = "$ENV{'PWD'}/$arg" if ($arg !~ m!^/!);
+        push @fragFiles, $arg;
     } elsif (($arg =~ /\.cgb$/) && (-e $arg)) {
         $isContinuation = 1;
         $arg = "$ENV{'PWD'}/$arg" if ($arg !~ m!^/!);
