@@ -127,26 +127,6 @@ void Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
 
 
 
-
-OverlapMesg *QV_ReAligner_AS(InternalFragMesg *a, InternalFragMesg *b,
-                             OverlapMesg *align);
-
-/* Given fragments a and b and overlap align between them (computed by an
-   identity-based method), refine the overlap using quality values for the
-   fragments and return a pointer to a buffered overlap message containing
-   the new result.  The realignment takes place within a band of width
-   BAND_WIDTH (defined constant in AS_ALN_qvaligner.c).  Like other routines
-   in the module, the space for the overlap message is owned by the routine
-   and is reused by it on each subsequence call.  One must make a copy of
-   a result if the object is to be retained beyond a single call.
-
-   One must be aware that both Unpack_Alignment_AS and Pack_Alignment_AS
-   are used by this routine, so the most recent returns from these routines
-   (if called by the user) are destroyed by calling this routine.
-
-   THIS ROUTINE STILL NEEDS TO HAVE QV-BASED SCORING ADDED TO IT, CURRENTLY
-   IT REALIGNS UNDER THE IDENTITY METRIC.                                  */
-
 typedef enum {
   AS_FIND_OVERLAP,
   AS_FIND_ALIGN,

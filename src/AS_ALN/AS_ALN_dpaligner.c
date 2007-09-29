@@ -1781,15 +1781,14 @@ static void CNS_PrintAlign(FILE *file, int prefix, int suffix,
       Abuf[PRINT_WIDTH] = Bbuf[PRINT_WIDTH] = '\0';
     }
                                            /* buffer/output next column */
-#define COLUMN(x,y)			\
-{ if (o >= PRINT_WIDTH)			\
-    { fprintf(file,"\n\t%s\n",Abuf);	\
-      fprintf(file,"\t%s\n",Bbuf);	\
-      o = 0;				\
-    }					\
-  Abuf[o] = (x);			\
-  Bbuf[o] = (y);			\
-  o += 1;				\
+#define COLUMN(x,y)				\
+{ if (o >= PRINT_WIDTH)				\
+    { fprintf(file,"\n\t%s\n\t%s\n",Abuf, Bbuf);\
+      o = 0;					\
+    }						\
+  Abuf[o] = (x);				\
+  Bbuf[o] = (y);				\
+  o += 1;					\
 }
 
   a -= 1;
@@ -1819,12 +1818,12 @@ static void CNS_PrintAlign(FILE *file, int prefix, int suffix,
     while ((c = trace[p++]) != 0)
       if (c < 0)
         { c = -c;
-          while (i != c)
+          while (i < c)
             COLUMN(a[i++],b[j++])
           COLUMN('-',b[j++])
         }
       else
-        { while (j != c)
+        { while (j < c)
             COLUMN(a[i++],b[j++])
           COLUMN(a[i++],'-')
         }

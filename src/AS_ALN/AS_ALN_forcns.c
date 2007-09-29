@@ -58,11 +58,11 @@ static char *safe_copy_Astring_with_preceding_null(char *in){
   int length=strlen(in);
   if(outsize<length+2){
     if(outsize==0){
-      out=(char*)safe_malloc(((int)(length*1.2)+2)*sizeof(char));
-      outsize=(int)(length*1.2)+2;
+      outsize=length * 2 + 2;
+      out=(char*)safe_malloc(outsize*sizeof(char));
     } else {
-      out=(char*)safe_realloc(out,((int)(length*1.2)+2)*sizeof(char));
-      outsize=(int)(length*1.2)+2;
+      outsize=length * 2 + 2;
+      out=(char*)safe_realloc(out,outsize*sizeof(char));
     }
   }
   out[0]='\0';
@@ -76,11 +76,11 @@ static char *safe_copy_Bstring_with_preceding_null(char *in){
   int length=strlen(in);
   if(outsize<length+2){
     if(outsize==0){
-      out=(char*)safe_malloc(((int)(length*1.2)+2)*sizeof(char));
-      outsize=(int)(length*1.2)+2;
+      outsize=length * 2 + 2;
+      out=(char*)safe_malloc(outsize*sizeof(char));
     } else {
-      out=(char*)safe_realloc(out,((int)(length*1.2)+2)*sizeof(char));
-      outsize=(int)(length*1.2)+2;
+      outsize=length * 2 + 2;
+      out=(char*)safe_realloc(out,outsize*sizeof(char));
     }
   }
   out[0]='\0';

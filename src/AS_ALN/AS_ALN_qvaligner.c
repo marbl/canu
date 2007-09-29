@@ -197,7 +197,7 @@ int *Unpack_Alignment_AS(OverlapMesg *align)
             while (c < 0)
               { c    += 1;
                 bpos += 1;
-		if(buffused==buffalloc){
+		if(buffused>=buffalloc){
 		  buffalloc=buffalloc*2+10;
 		  UnpackBuffer = (int*)safe_realloc(UnpackBuffer,sizeof(int)*buffalloc);
 		  spt=UnpackBuffer+buffused;
@@ -209,20 +209,20 @@ int *Unpack_Alignment_AS(OverlapMesg *align)
             while (c > 0)
               { c    -= 1;
                 apos += 1;
-		if(buffused==buffalloc){
+		if(buffused>=buffalloc){
 		  buffalloc=buffalloc*2+10;
 		  UnpackBuffer = (int*)safe_realloc(UnpackBuffer,sizeof(int)*buffalloc);
 		  spt=UnpackBuffer+buffused;
 		}
 		buffused++;
-                *spt++ = -bpos;
+                *spt++ = bpos;
               }
         }
       else
         { if (c < 0)        /* Single gap */
             { bpos -= c;
               apos -= (c+1);
-	      if(buffused==buffalloc){
+	      if(buffused>=buffalloc){
 		buffalloc=buffalloc*2+10;
 		UnpackBuffer = (int*)safe_realloc(UnpackBuffer,sizeof(int)*buffalloc);
 		spt=UnpackBuffer+buffused;
@@ -233,7 +233,7 @@ int *Unpack_Alignment_AS(OverlapMesg *align)
           else
             { bpos += (c-1);
               apos += c;
-	      if(buffused==buffalloc){
+	      if(buffused>=buffalloc){
 		buffalloc=buffalloc*2+10;
 		UnpackBuffer = (int*)safe_realloc(UnpackBuffer,sizeof(int)*buffalloc);
 		spt=UnpackBuffer+buffused;
@@ -497,150 +497,6 @@ void Print_Overlap_AS(FILE *file, InternalFragMesg *a,
     }
 } 
 
-#if 0
-
-//  2005-oct-19, BPW, dead code.
-
-/*** OVERLAP ANALYSIS ROUTINE ***/
-
-/* Analyze an alignment between a and b given in trace (unpacked).
-   Prefix gives the length of the initial prefix of a that is unaligned.
-   Returns a -1 terminated list of the positions in the a sequences at
-   which errors of type amode occur, as well as:
-     alen - # of a symbols in overlap,
-     blen - # of b symbols in overlap,
-     del  - # of unaligned symbols in a,
-     sub  - # of substitutions,
-     ins  - # of unaligned symbols in b.
-*/
-static int *AnalyzeAlign(int prefix, int suffix,
-			 char *a, char *b, int *trace, int amode,
-                         int *alen, int *blen, int *del, int *sub, int *ins)
-{ int i, j, oa, ob;
-  int inserts, deletes, subtit;
-  int alength, blength;
-  int *amismatch, *bmismatch;
-  int dodels, doins, dosubs;
-  static int *mismatch = NULL;
-  static int mislen  = -1;
-
-  alength = strlen(a);
-  blength = strlen(b);
-  alength += 1;
-  blength += 1;
-  if (mislen < alength+blength)
-    { mislen = (int)(2*(alength+blength)) + 4;
-      fprintf(stderr,"(Re)allocating %d for mismatch array at %d\n",mislen,__LINE__);
-      mismatch = (int *)safe_realloc(mismatch,mislen*sizeof(int));
-    } 
-  amismatch = mismatch;
-  bmismatch = mismatch + alength;
-
-  dodels = doins = dosubs = 0;
-  if (amode == AS_ANALYZE_ALL)
-    dodels = doins = dosubs = 1;
-  else if (amode == AS_ANALYZE_DELETES)
-    dodels = 1;
-  else if (amode == AS_ANALYZE_INSERTS)
-    doins = 1;
-  else
-    dosubs = 1;
-  
-  a -= 1;
-  b -= 1;
-  oa = 0;
-  ob = 0;
-  i  = prefix+1;
-  j  = 1;
-
-  alength = 0;
-  blength = 0;
-  deletes = 0;
-  subtit  = 0;
-  inserts = 0;
-
-  { int p, c;      /* Output columns of alignment til reach trace end */
-
-    p = 0;
-    while ((c = trace[p++]) != 0)
-      if (c < 0)
-        { c = -c;
-          while (i != c)
-            { if (a[i++] != b[j++])
-                { subtit += 1;
-                  if (dosubs)
-                    { amismatch[oa++] = i-1;
-                      bmismatch[ob++] = j-1;
-                    }
-                }
-              alength += 1;
-              blength += 1;
-            }
-          inserts += 1;
-          if (dodels)
-            amismatch[oa++] = i;
-          if (doins)
-            bmismatch[ob++] = j;
-          blength += 1;
-          j += 1;
-        }
-      else
-        { while (j != c)
-            { if (a[i++] != b[j++])
-                { subtit += 1;
-                  if (dosubs)
-                    { amismatch[oa++] = i-1;
-                      bmismatch[ob++] = j-1;
-                    }
-                }
-              alength += 1;
-              blength += 1;
-            }
-          deletes += 1;
-          if (doins)
-            amismatch[oa++] = i;
-          if (dodels)
-            bmismatch[ob++] = j;
-          alength += 1;
-          i += 1;
-        }
-
-  }
-
-  { int x, y;     /* Output remaining column including unaligned suffix */
-
-    while ((x = a[i++]) != 0)
-      { if ((y = b[j++]) != 0)
-	{ if (x != y)
-            { subtit += 1;
-              if (dosubs)
-	      { amismatch[oa++] = i-1;
-	        bmismatch[ob++] = j-1;
-	      }
-	    }
-	  alength += 1;
-	  blength += 1;
-        }else{
-          break;
-        }
-      }
-  }
-
-  amismatch[oa] = -1;
-  bmismatch[ob] = -1;
-
-  *alen = alength;
-  *blen = blength;
-  *del  = deletes;
-  *sub  = subtit;
-  *ins  = inserts;
-  
-  return (mismatch);
-}
-
-#endif
-
-
 
 
 // Analyze an alignment between a and b given in trace (unpacked).
@@ -661,11 +517,6 @@ static int *AnalyzeAlign(int prefix, int suffix,
 //   const blocksize - min length of an indel to count as a block.
 //   optional biggestBlock - the length of the largest mismatch
 //
-//  Our only caller of this function (and
-//  AnalyzeAffineAlign_MaxIndexSize) never used the return value
-//  mismatch, so it's gone now.  See comments at
-//  Analyze_Affine_Overlap_IndelSize_AS() below.
-//
 void
 AnalyzeAffineAlign(int prefix, int suffix, 
                    char *a, char *b, int *trace, int amode,
@@ -673,13 +524,16 @@ AnalyzeAffineAlign(int prefix, int suffix,
                    int *affdel, int *affins,
                    int *blockdel, int *blockins, int blocksize,
                    int *biggestBlock) {
-  int i, j;
+  int i, j, imax, jmax;
   int inserts, deletes, subtit;
   int affinserts, affdeletes, lastindel,blockcount;
   int alength, blength;
 
   if (biggestBlock)
     *biggestBlock =0;
+
+  imax = strlen(a);
+  jmax = strlen(b);
 
   a -= 1;
   b -= 1;
@@ -746,7 +600,7 @@ AnalyzeAffineAlign(int prefix, int suffix,
     }
   }
 
-  {
+  if ((i < imax) && (j < jmax)) {
     int x, y;     /* Output remaining column including unaligned suffix */
 
     while ((x = a[i++]) != 0) {
@@ -773,106 +627,6 @@ AnalyzeAffineAlign(int prefix, int suffix,
 
 
 
-#if 0
-
-/* Analyze the overlap between fragments a and b.
-   Returns a -1 terminated list of the positions in the a sequences at
-   which errors of type amode occur, as well as:
-     alen - # of a symbols in overlap,
-     blen - # of b symbols in overlap,
-     del  - # of unaligned symbols in a,
-     sub  - # of substitutions,
-     ins  - # of unaligned symbols in b.
-*/
-
-int *Analyze_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
-                        OverlapMesg *align, int amode,
-                        int *alen, int *blen, int *del, int *sub, int *ins)
-{ int *mismatches = NULL;
-  int swap;
-
-  swap = 0;
-  if (a->iaccession == align->bifrag)
-    { InternalFragMesg *c;
-      c = a;
-      a = b;
-      b = c;
-      swap = 1;
-    }
- 
-  if (align->delta != NULL)
-    { int *trace;
-
-      trace = Unpack_Alignment_AS(align);
-
-#ifdef DEBUG
-      { int i;
-
-        fprintf(stderr,"Analyze_Overlap_AS()-- uncompressed trace:\n");
-        for (i = 0; trace[i] != 0; i++)
-          fprintf(stderr," %3d",trace[i]);
-        fprintf(stderr, "\n");
-      }
-#endif
-
-      if (align->orientation == AS_INNIE)
-        Complement_Fragment_AS(b);
-      else if (align->orientation == AS_OUTTIE)
-        Complement_Fragment_AS(a);
-
-      mismatches = AnalyzeAlign(align->ahg,align->bhg,
-			      a->sequence,b->sequence,trace,amode,
-                              alen,blen,del,sub,ins);
-
-      if (align->orientation == AS_INNIE)
-        { int alength, blength, i, j, c;
-          Complement_Fragment_AS(b);
-          alength = strlen(a->sequence)+1;
-          blength = strlen(b->sequence)+1;
-          for (i = alength; mismatches[i] >= 0; i++)
-            mismatches[i] = blength - mismatches[i];
-          j = alength;
-          i -= 1;
-          while (j < i)
-            { c = mismatches[i];
-              mismatches[i--] = mismatches[j];
-              mismatches[j++] = c;
-            }
-        }
-      else if (align->orientation == AS_OUTTIE)
-        { int alength, i, j, c;
-          Complement_Fragment_AS(a);
-          alength = strlen(a->sequence)+1;
-          for (i = 0; mismatches[i] >= 0; i++)
-            mismatches[i] = alength - mismatches[i];
-          j = 0;
-          i -= 1;
-          while (j < i)
-            { c = mismatches[i];
-              mismatches[i--] = mismatches[j];
-              mismatches[j++] = c;
-            }
-        }
-    }
-
-  if (swap)
-    { int x;
-      x = *alen;
-      *alen = *blen;
-      *blen = x;
-      x = *del;
-      *del = *ins;
-      *ins = x;
-      return (mismatches + strlen(a->sequence) + 1);
-    }
-  return (mismatches);
-} 
-
-#endif
-
-
-
-
 
 // Analyze the overlap between fragments a and b.
 //     alen - # of a symbols in overlap,
@@ -882,15 +636,6 @@ int *Analyze_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
 //     ins  - # of unaligned symbols in b,
 //     affdel - # of runs of unaligned symbols in a,
 //     affins - # of runs of unaligned symbols in b.
-//
-//  2005-oct-18: BPW removed significant portions of this function and
-//  merged in Analyze_Affine_Overlap_IndelSize_AS().
-//
-//  The only callers of these functions are calling to compute the
-//  number of substitutions, inserts and deletes.  There was a bug in
-//  the functionality that would return a list of the locations with
-//  errors in the alignment.  As it was not being used, and fixing
-//  properly would have been ugly, I removed said functionality.
 //
 void Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
                                OverlapMesg *align, int amode,
@@ -945,523 +690,8 @@ void Analyze_Affine_Overlap_AS(InternalFragMesg *a, InternalFragMesg *b,
 } 
 
 
-#if 0
-void
- Analyze_Affine_Overlap_IndelSize_AS(InternalFragMesg *a, InternalFragMesg *b,
-                                    OverlapMesg *align, int amode,
-                                    int *alen, int *blen, int *del, int *sub, int *ins,
-                                    int *affdel, int *affins, 
-                                    int *blockdel, int *blockins, int blocksize,int *biggestBlock) { 
-  int swap = 0;
 
-  if (a->iaccession == align->bifrag) {
-    InternalFragMesg *c;
-    c = a;
-    a = b;
-    b = c;
-    swap = 1;
-  }
 
-  if (align->delta != NULL) {
-    int *trace = Unpack_Alignment_AS(align);
-
-    if (align->orientation == AS_INNIE)
-      Complement_Fragment_AS(b);
-    else if (align->orientation == AS_OUTTIE)
-      Complement_Fragment_AS(a);
-
-    AnalyzeAffineAlign_MaxIndelSize(align->ahg,align->bhg,
-                                    a->sequence,b->sequence,trace,amode,
-                                    alen,blen,del,sub,ins,
-                                    affdel,affins,
-                                    blockdel,blockins,blocksize,biggestBlock);
-
-    if (align->orientation == AS_INNIE)
-      Complement_Fragment_AS(b);
-    else if (align->orientation == AS_OUTTIE)
-      Complement_Fragment_AS(a);
-  }
-
-  if (swap) {
-    swap = *alen;
-    *alen = *blen;
-    *blen = swap;
-
-    swap = *del;
-    *del = *ins;
-    *ins = swap;
-
-    swap = *affdel;
-    *affdel = *affins;
-    *affins = swap;
-  }
-} 
-#endif
-
-
-
-
-/*** QUALITY VALUE REALIGNMENT ROUTINE ***/
-
-/* Path abstraction that models cells that a trace
-     alignment passes through in a given row.       */
-
-typedef struct {
-    int   row;    /* current row */
-    int   low;    /* trace passes thru (row,low)  */
-    int   hgh;    /*                to (row,hgh) of row */
-    int   tpt;    /* next indel of trace to go through (or e.o.t.) */
-} PathSlice;
-
-static int *RAtrace;   /* Trace path slices are following */
-
-static void Extend_Row(PathSlice *f)   /* Traverse indels on current row */
-{ while (RAtrace[f->tpt] == (f->row+1))
-    { f->hgh += 1;
-      f->tpt += 1;
-    }
-}
-
-static void Advance_Path(PathSlice *f)  /* Move to next row and traverse */
-{ register int i, j, c;                 /*   indels on that row as well. */
-
-  /* N.B.: when outside the boundary of the d.p. matrix the effect of
-           Advance_Path is to move along a diagonal edge and stop.    */
-
-  i = f->hgh + 1;
-  if (RAtrace[c = f->tpt] == -i)
-    { i -= 1;
-      c += 1;
-    }
-  j = (f->row += 1) + 1;
-  f->low = i;
-  while (RAtrace[c] == j)
-    { i += 1;
-      c += 1;
-    }
-  f->hgh = i;
-  f->tpt = c;
-}
-
-/* Realign aseq and bseq in a band of width BAND_WIDTH about alignment
-   encoded in itrace.  On input *ahang gives the existing a-overhang
-   (see Overlap doc) and *bhang gives the exisiting b-overhang.  Both
-   are non-negative integers.  A pointer to the unpacked trace representing
-   the best alignment in the band is returned, *ahang is set to specify
-   the a-overhang for the new alignment, and *bhang is set to specify its
-   b-overhang.  Both may be *negative* integers.                          */
-
-static int *ReAlign(InternalFragMesg *a, InternalFragMesg *b,
-                      int *ahang, int *bhang, int *itrace)
-
-  /* The portion of the d.p. matrix computed is stored in the array dpspace
-     which is large enough for all possible alignments.  Upon completion of
-     the d.p. computation, the rows of the d.p. matrix in the band will be
-     in the interval [dpbot,dptop].  The smallest column in row j that is in
-     the band is at dpidx[j].  The width of the banded region in row j is
-     dploc[j+1] - dploc[j].  The value of a particular cell (i,j) in the
-     band is dploc[j][i-dpidx[j]].                                        */
-
-{ static int dpidx[AS_READ_MAX_LEN+1], *dploc[AS_READ_MAX_LEN+2];
-  static int dpspace[(2*AS_READ_MAX_LEN + 2)*(2*BAND_WIDTH+1)];
-  int        dptop, dpbot;
-
-  /* Buffer for the output trace */
-
-  static int RealignBuffer[2*AS_READ_MAX_LEN+1];
-  int       *otrace;
-
-  char *aseq, *bseq;  /* A and B sequences, qv-arrays, and lengths */
-  char *aqlv, *bqlv;
-  int   alen,  blen;
-
-  aseq    = a->sequence - 1;
-  bseq    = b->sequence - 1;
-  aqlv    = a->quality;
-  bqlv    = b->quality;
-  alen    = strlen(aseq+1);
-  blen    = strlen(bseq+1);
-  RAtrace = itrace;          /*  Set global trace used by path operators */
-
-  //#ifndef UNDEFINE_UNIT_INDEL
-  //  #define DEL(a,qa)      1
-  //  #define SUB(a,qa,b,qb) ((a)!=(b))
-  //#endif
-
-  { PathSlice  mid, lag, adv;  /* Path slices for current row,
-                                  current row-BAND, & current row + BAND */
-    int        plow, phgh;     /* cells in band of previous row have column
-                                  index in the interval [plow,phgh]  */
-    int       *dpc, *dpl;      /* ptrs to first d.p. cells in current and
-                                  previous rows */
-  
-    /* Setup initial path slices */
-
-    mid.tpt = 0;      /* Setup current row slice so it is the leftmost cell */
-    mid.row = 0;      /*  in row 0 (always starts in row 0 as *ahang >= 0.  */
-    mid.low = mid.hgh = *ahang;
-  
-    lag = mid;             /* Setup lag so it start BAND_WIDTH rows earlier */
-    lag.row -= BAND_WIDTH;
-    lag.low -= BAND_WIDTH;
-    lag.hgh -= BAND_WIDTH;
-  
-    Extend_Row(&mid);  /* Catch any other cells on the trace in the 1st row */
-  
-    { int j;           /* Setup adv so it starts BAND_WIDTH rows later */
-  
-      adv = mid;
-      for (j = 1; j <= BAND_WIDTH; j++)
-        Advance_Path(&adv);
-    }
-  
-#ifdef DEBUG
-    printf("\n");
-    printf("  %3d: %3d-%-3d",lag.row,lag.low,lag.hgh);
-    printf("  %3d: %3d-%-3d",mid.row,mid.low,mid.hgh);
-    printf("  %3d: %3d-%-3d",adv.row,adv.low,adv.hgh);
-#endif
-
-    /* Compute the first row of the band */
-  
-    { register int low, hgh; /* cells in band of current row will have column
-                                          indices in the interval [low,hgh] */
-      low = mid.low-BAND_WIDTH;
-      if (low > lag.low) low = lag.low;
-      if (low < 0) low = 0;
-  
-      hgh = mid.hgh+BAND_WIDTH;
-      if (hgh < adv.hgh) hgh = adv.hgh;
-      if (hgh > alen) hgh = alen;
-  
-      dpl = dpc = dpspace;  /* setup d.p. row pointers */
-      dpbot = mid.row;
-  
-      dpidx[mid.row] = low; /* establish band record for current row */
-      dploc[mid.row] = dpc;
-  
-      { int i, e;
-  
-        *dpc++ = e = 0;
-        if (mid.row == 0)                /* 1st row on A-boundary */
-          for (i = low+1; i <= hgh; i++)
-            *dpc++ = 0;
-        else                             /* 1st row not on A-boundary */
-          for (i = low+1; i <= hgh; i++)
-            *dpc++ = e = e + DEL(aseq[i],aqlv[i]);
-      }
-    
-      plow = low;
-      phgh = hgh;
-    }
-  
-#ifdef DEBUG
-    printf("  %3d-%-3d",plow,phgh);
-    printf("\n");
-#endif
-
-    /* Compute each subsequent row of the band til done. */
-  
-    while (1)
-  
-      { Advance_Path(&adv);   /* Advance path slices */
-        Advance_Path(&mid);
-        Advance_Path(&lag);
-  
-        /* Done if mid is thru B-boundary or BAND cells beyond A-boundary */
-
-        if (mid.low - BAND_WIDTH > alen || bseq[mid.row] == 0) break;
-  
-#ifdef DEBUG
-        printf("  %3d: %3d-%-3d",lag.row,lag.low,lag.hgh);
-        printf("  %3d: %3d-%-3d",mid.row,mid.low,mid.hgh);
-        printf("  %3d: %3d-%-3d",adv.row,adv.low,adv.hgh);
-#endif
-  
-        { register int low, hgh; /* cells in band of current row will have
-                                    column indices in the interval [low,hgh] */
-          low = mid.low-BAND_WIDTH;
-          if (low > lag.low) low = lag.low;
-          if (low < 0) low = 0;
-  
-          hgh = mid.hgh+BAND_WIDTH;
-          if (hgh < adv.hgh) hgh = adv.hgh;
-          if (hgh > alen) hgh = alen;
-  
-          dpidx[mid.row] = low; /* establish band record for current row */
-          dploc[mid.row] = dpc;
-  
-          /* Do the d.p.!  Invariant at the start of computing each cell (i,j)
-             is: i = index of current column, e = dp(i-1,j), c = dp(i-1,j-1). */
-
-          { int i, e, c, d;
-  
-            i = low;
-            if (i == 0)          /* 1st cell on B-boundary */
-              { *dpc++ = e = c = 0;
-                dpl += 1;
-              }
-            else if (i == plow)  /* 1st cell directly above 1st of last row */
-              *dpc++ = e = (c = *dpl++) + DEL(bseq[mid.row],bqlv[mid.row]);
-            else                 /* 1st cell right of 1st cell of last row */
-              { dpl += (i-plow)-1;
-                e = (*dpl++) + SUB(aseq[i],aqlv[i],bseq[mid.row],bqlv[mid.row]);
-                d = (c = *dpl++) + DEL(bseq[mid.row],bqlv[mid.row]);
-                if (e > d) e = d;
-                *dpc++ = e;
-              }
-            for (i++; i <= phgh; i++)  /* 2nd thru last column of last row */
-              { e += DEL(aseq[i],aqlv[i]);
-                c += SUB(aseq[i],aqlv[i],bseq[mid.row],bqlv[mid.row]);
-                if (e > c) e = c;
-                d = (c = *dpl++) + DEL(bseq[mid.row],bqlv[mid.row]);
-                if (e > d) e = d;
-                *dpc++ = e;
-              } 
-            if (i <= hgh)         /* Cells right of last column of last row */
-              { e += DEL(aseq[i],aqlv[i]);                /* 1st one */
-                c += SUB(aseq[i],aqlv[i],bseq[mid.row],bqlv[mid.row]);
-                if (e > c) e = c;
-                *dpc++ = e;
-                for (i++; i <= hgh; i++)          /* The remainder */
-                  *dpc++ = e = e + DEL(aseq[i],aqlv[i]);
-              }
-          }
-  
-          plow = low;
-          phgh = hgh;
-        }
-  
-#ifdef DEBUG
-        printf("  %3d-%-3d",plow,phgh);
-        printf("\n");
-#endif
-      }
-
-    dptop = mid.row-1;      /* Finish up band description */
-    dploc[mid.row] = dpc;
-  }
-
-#ifdef DEBUG
-  { int i, *d;   /* Print out the d.p. band */
-
-    printf("\n          ");
-    for (i = dpidx[dpbot]+1; i <= alen; i++)
-      printf("  %c",aseq[i]);
-    printf("\n");
-
-    for (i = dpbot; i <= dptop; i++)
-      { printf("%3d: %c ",i,((i>0)?bseq[i]:' '));
-        printf("%*s",3*(dpidx[i]-dpidx[dpbot]),"");
-        for (d = dploc[i]; d < dploc[i+1]; d++)
-          printf("%3d",*d);
-        printf("\n");
-      }
-  }
-#endif
-
-  /* Traverse the boundary of the band to find the minimum cell (row,col).
-     If there are several candidates, pick the one that is closest to the
-     original finish.                                                    */
-
-  { int row, col;
-
-    { int min, trg, *d, b, i;
-
-      d = dploc[dptop+1];
-      b = dpidx[dptop];
-      min = *--d;
-      row = dptop;
-      col = i = b + (d - dploc[dptop]);
-#ifdef DEBUG
-      printf("\nBoundary Minimum Computation:\n");
-      printf("  (%d,%d) -> %d\n",row,col,min);
-#endif
-      if (dptop == blen)    /* Traverse part on B-boundary ... */
-        { trg = alen + *bhang;  /* column of original finish */
-          for (i--; i >= b; i--)
-            { d -= 1;
-              if (*d < min || (*d == min && abs(i-trg) < abs(col-trg)))
-                { col = i;
-                  min = *d;
-                }
-#ifdef DEBUG
-              printf("  (%d,%d) -> %d\n",row,i,*d);
-#endif
-            }
-        } 
-      d = dploc[dptop];          /* ... and part on A-boundary */
-      trg = blen - *bhang;              /* row of original finish */
-      for (i = dptop-1; dpidx[i] + (d - dploc[i]) > alen; i--)
-        { d -= 1;
-          if (*d < min || (*d == min && abs(i-trg) < abs(row-trg)))
-            { row = i;
-              col = alen;
-              min = *d;
-            }
-#ifdef DEBUG
-          printf("  (%d,%d) -> %d\n",i,alen,*d);
-#endif
-          d = dploc[i];
-        }
-#ifdef DEBUG
-      printf("-------------\n");
-      printf("  (%d,%d) -> %d\n",row,col,min);
-#endif
-    }
-
-    /* Compute new trace via backtrack through the d.p. matrix.  Accumulate
-       unpacked trace in *reverse* order.                                   */
-
-    if (col == alen)         /* Set B overhang */
-      *bhang = blen-row;
-    else
-      *bhang = -(alen-col);
-
-    { int *d, *e;   /* d = @dp(row,col), e == @dp(row-1,col)  */
-      int *dc, *dl; /* dc = dploc[row], dl == dploc[row-1] */
-
-      otrace = RealignBuffer + 2*AS_READ_MAX_LEN;  /* start at end of buffer */
-      *otrace = 0;
-      d = (dc = dploc[row]) + (col-dpidx[row]);
-      e = (dl = dploc[row-1]) + (col-dpidx[row-1]);
-      while (row > 0 && col > 0)
-        { if (e > dl && e <= dc && e[-1] + SUB(aseq[col],aqvl[col],bseq[row],bqvl[row]) == *d)
-            { row -= 1;
-              col -= 1;    /* substitution */
-              d    = e-1;
-              dc   = dl;
-              e    = (dl = dploc[row-1]) + (col-dpidx[row-1]);
-            }
-          else if (e >= dl && e < dc && *e + DEL(bseq[row],bqvl[row]) == *d)
-            { row -= 1;
-              d    = e;    /* delete in B */
-              dc   = dl;
-              e    = (dl = dploc[row-1]) + (col-dpidx[row-1]);
-              *--otrace = -(col+1);
-            }
-          else if (d > dc && d[-1] + DEL(aseq[col],aqvl[col]) == *d)
-            { col -= 1;
-              d   -= 1;    /* delete in A*/
-              e   -= 1;
-              *--otrace = (row+1);
-            }
-        }
-    }
-
-    if (row == 0)         /* Set A overhang */
-      *ahang = col;
-    else
-      *ahang = -row;
-  }
-
-  return (otrace);
-}
-
-/* Given fragments a and b and overlap align between them (computed by an
-   identity-based method), refine the overlap using quality values for the
-   fragments and return a pointer to a buffered overlap message containing
-   the new result.                                                        */
-
-OverlapMesg *QV_ReAligner_AS(InternalFragMesg *a, InternalFragMesg *b,
-                             OverlapMesg *align)
-{ int   *itrace, *otrace;
-  int    ahang, bhang, orient;
-  static OverlapMesg QVBuffer;
-
-  itrace = Unpack_Alignment_AS(align);
-
-  ahang  = align->ahg;
-  bhang  = align->bhg;
-  orient = align->orientation;
-
-  if( a->iaccession == align->bifrag)
-    {
-      InternalFragMesg* t;
-      t = a;
-      a = b;
-      b = t;
-    }
-
-  if (orient == AS_INNIE)        /* complement sequences as necessary */
-    Complement_Fragment_AS(b);
-  else if (orient == AS_OUTTIE)
-    Complement_Fragment_AS(a);
- 
-  otrace = ReAlign(a,b,&ahang,&bhang,itrace);   /* compute new alignment */
-
-  if (orient == AS_INNIE)       /* restore complemented sequence */
-    Complement_Fragment_AS(b);
-  else if (orient == AS_OUTTIE)
-    Complement_Fragment_AS(a);
-
-  //#define DEBUG
-#ifdef DEBUG
-  { int i;
-    printf("\nOutput trace:  ahang = %d bhang = %d\n",ahang,bhang);
-    for (i = 0; otrace[i] != 0; i++)
-      printf("   %3d\n",otrace[i]);
-  }
-#endif
-
-  /* Unfortunately, the new alignment may put A and B into a different
-     orientation and overlap type with respect to each other and the new
-     overlap record has to reflect that.  Indeed, if the A overhang has
-     become negative then the orientation of A and B changes and the roles
-     of A and B need to be reversed.                                       */
-
-  QVBuffer = *align;
-  if (ahang < 0)       /* Argh: Switch A and B and orientations */
-    { 
-      if (bhang >= 0)
-        QVBuffer.overlap_type = AS_CONTAINMENT;
-      else
-        QVBuffer.overlap_type = AS_DOVETAIL;
-      QVBuffer.ahg = -ahang;
-      QVBuffer.bhg = -bhang;
-      if (orient == AS_INNIE)
-        QVBuffer.orientation = AS_OUTTIE;
-      else if (orient == AS_OUTTIE)
-        QVBuffer.orientation = AS_INNIE;
-
-      QVBuffer.aifrag = b->iaccession;
-      QVBuffer.bifrag = a->iaccession;
-
-      { int i;
-        for (i = 0; otrace[i] != 0; i++)
-          otrace[i] = -otrace[i];
-      }
-    }
-  else  /* The easy case: ahang is still positive so orientation is the same */
-    { if (bhang <= 0)
-        QVBuffer.overlap_type = AS_CONTAINMENT;
-      else
-        QVBuffer.overlap_type = AS_DOVETAIL;
-
-      QVBuffer.ahg = ahang;
-      QVBuffer.bhg = bhang;
-    }
-
-#ifdef DEBUG
-  { int i;
-    printf("QV_ReAligner_AS()-- output trace:  ahang = %d bhang = %d\n",ahang,bhang);
-    for (i = 0; otrace[i] != 0; i++)
-      printf(" %3d",otrace[i]);
-    fprintf(stderr, "\n");
-  }
-  printf("\nQV:  ahang = %d bhang = %d\n",QVBuffer.ahg,QVBuffer.bhg);
-#endif
-
-  /* Compress new trace to a delta */
-
-  QVBuffer.delta = Pack_Alignment_AS(otrace,QVBuffer.ahg);
-
-#ifdef DEBUG
-  Print_Overlap_AS(stdout,a,b,&QVBuffer);
-#endif
-
-  return (&QVBuffer);
-}
 
 
 /***** Wrapper for bubble smoothing overlap detector on top of affine dp_compare *****/
