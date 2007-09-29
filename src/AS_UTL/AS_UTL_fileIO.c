@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//static char CM_ID[] = "$Id: AS_UTL_fileIO.c,v 1.15 2007-09-02 22:56:56 brianwalenz Exp $";
+//static char CM_ID[] = "$Id: AS_UTL_fileIO.c,v 1.16 2007-09-29 06:43:34 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -124,9 +124,10 @@ AS_UTL_safeRead(FILE *file, void *buffer, char *desc, size_t size, size_t nobj) 
   }
 
  finish:
-  if (position != nobj)
-    fprintf(stderr, "AS_UTL_safeRead()--  Short read; wanted "F_SIZE_T" objects, read "F_SIZE_T" instead.\n",
-            nobj, position);
+  //  Just annoys developers.  Stop it.
+  //if (position != nobj)
+  //  fprintf(stderr, "AS_UTL_safeRead()--  Short read; wanted "F_SIZE_T" objects, read "F_SIZE_T" instead.\n",
+  //          nobj, position);
   return(position);
 }
 
@@ -143,7 +144,6 @@ AS_UTL_mkdir(const char *dirname) {
   if (errno == 0) {
     if (S_ISDIR(st.st_mode))
       return(0);
-
     fprintf(stderr, "AS_UTL_mkdir()--  ERROR!  '%s' is a file, and not a directory.\n", dirname);
     exit(1);
   }
