@@ -7,8 +7,8 @@ sub partitionCGB($$) {
     my $fileNum=1;
     my $firstIUM = 1;
     my $name = sprintf "%s_%03d.cgb",$asm,$fileNum;
-    open(IN,"<$cgbFile") || die "Can't read $cgbFile";
-    open(OUT,">$name") || die "Can't write $name";
+    open(IN,"<$cgbFile") || (print "Can't read $cgbFile" && return -1);
+    open(OUT,">$name") || (print "Can't write $name" && return -1);
     while(<IN>) {
         chomp;
         my $lastIMP = 0;
@@ -20,7 +20,7 @@ sub partitionCGB($$) {
             $numFrags = 0;
             $fileNum++;
             my $name = sprintf "%s_%03d.cgb",$asm,$fileNum;
-            open(OUT,">$name") || die "Can't write $name";
+            open(OUT,">$name") || (print "Can't write $name" && return -1);
             print OUT "{IUM\n";
             $firstIUM = 1;
         }
@@ -56,12 +56,12 @@ sub bogUnitigger {
 
         if (runCommand($workDir, $cmd)) {
             print STDERR "Failed to unitig.\n";
-            exit(1);
+            caFailure();
         }
 
         my $prevPwd = $ENV{PWD};
-        chdir $workDir || die "chdir $workDir failed.";
-        link('len150.ium',"$asm.cgb") || die "link to $asm.cgb failed in $ENV{PWD}";
+        chdir $workDir || (print "chdir $workDir failed." && return -1);
+        link('len150.ium',"$asm.cgb") || (print "link to $asm.cgb failed in $ENV{PWD}" && return -1);
         partitionCGB( "$asm.cgb", 250000 );
         unlink "$asm.cgb";
         chdir $prevPwd;

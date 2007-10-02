@@ -35,7 +35,7 @@ sub CGW ($$$$$$) {
         }
         close(F);
 
-        die "ERROR:  Found a timing file, but didn't find the checkpoint information!\n" if (!defined($ckp));
+        (print "ERROR:  Found a timing file, but didn't find the checkpoint information!\n" && return -1) if (!defined($ckp));
         print STDERR "Found a timing file, restarting: $ckp\n";
     }
 
@@ -52,7 +52,9 @@ sub CGW ($$$$$$) {
     my $sampleSize = getGlobal("cgwDistanceSampleSize");
     
     my $cmd;
-    $cmd  = "$bin/cgw $ckp -c -j 1 -k 5 -r 5 -s $stoneLevel ";
+    my $astatLow = getGlobal("astatLowBound");
+    my $astatHigh = getGlobal("astatHighBound");
+    $cmd  = "$bin/cgw $ckp -c -j $astatLow -k $astatHigh -r 5 -s $stoneLevel ";
     $cmd .= " -S 0 " if (($finalRun == 0)   || (getGlobal("doResolveSurrogates") == 0));
     $cmd .= " -G "   if (($finalRun == 0)   && (getGlobal("cgwOutputIntermediate") == 0));
     $cmd .= " -M "   if (($stoneLevel == 0) && (getGlobal("delayInterleavedMerging") == 1));
@@ -64,7 +66,7 @@ sub CGW ($$$$$$) {
     $cmd .= " > $wrk/$thisDir/cgw.out 2>&1";
     if (runCommand("$wrk/$thisDir", $cmd)) {
         print STDERR "Failed.\n";
-        exit(1);
+        caFailure();
     }
 
 
@@ -157,7 +159,7 @@ sub eCR ($$$) {
                 print STDERR "                       frg.before-$thisDir-scaffold.$curScaffold -> frg\n";
                 rename "$wrk/$asm.gkpStore/frg", "$wrk/$asm.gkpStore/frg.during.$thisDir-scaffold.$curScaffold.FAILED";
                 rename "$wrk/$asm.gkpStore/frg.before-$thisDir-scaffold.$curScaffold", "$wrk/$asm.gkpStore/frg";
-                exit(1);
+                caFailure();
             }
             touch("$wrk/$thisDir/extendClearRanges-scaffold.$curScaffold.success");
         }
@@ -187,7 +189,7 @@ sub updateDistanceRecords ($) {
     $cmd .= " $wrk/$thisDir/stat/contig_final.distupdate.dst ";
     $cmd .= " > $wrk/$thisDir/cgw.distupdate.err 2>&1";
     if (runCommand("$wrk/$thisDir", $cmd)) {
-        die "Gatekeeper Failed.\n";
+        (print "Gatekeeper Failed.\n" && return -1);
     }
 
     touch("$wrk/$thisDir/cgw.distupdate.success");

@@ -25,7 +25,8 @@ sub overlapTrim {
 
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
             rename "$wrk/0-overlaptrim/$asm.initialTrimLog", "$wrk/0-overlaptrim/$asm.initialTrimLog.failed";
-            die "Failed.\n";
+            print STDERR "Failed.\n";
+	    caFailure();
         }
     }
 
@@ -42,7 +43,8 @@ sub overlapTrim {
 
         if (runCommand("$wrk/0-overlaptrim",
                        "find $wrk/0-overlaptrim-overlap -follow -name \\*ovb -print > $wrk/0-overlaptrim/all-overlaps-trim.ovllist")) {
-            die "Failed to generate a list of all the overlap files.\n";
+            print STDERR "Failed to generate a list of all the overlap files.\n";
+	    caFailure();
         }
 
         my $cmd;
@@ -55,7 +57,8 @@ sub overlapTrim {
 
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
             rename "$wrk/$asm.obtStore", "$wrk/$asm.obtStore.FAILED";
-            die "Failed to build the obt store.\n";
+            print STDERR "Failed to build the obt store.\n";
+	    caFailure();
         }
     }
 
@@ -73,7 +76,8 @@ sub overlapTrim {
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
 
           unlink "$wrk/0-overlaptrim/$asm.ovl.consolidated";
-          die "Failed to consolidate.\n";
+          print STDERR "Failed to consolidate.\n";
+	  caFailure();
         }
     }
 
@@ -97,7 +101,8 @@ sub overlapTrim {
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
             unlink "$wrk/0-overlaptrim/$asm.mergeLog";
             unlink "$wrk/0-overlaptrim/$asm.mergeLog.stats";
-            die "Failed to merge trimming.\n";
+            print STDERR "Failed to merge trimming.\n";
+	    caFailure();
         }
     }
 
@@ -118,7 +123,8 @@ sub overlapTrim {
         $cmd .= " > $wrk/0-overlaptrim/$asm.chimera.err 2>&1";
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
             rename "$wrk/0-overlaptrim/$asm.chimera.report", "$wrk/0-overlaptrim/$asm.chimera.report.FAILED";
-            die "Failed.\n";
+            print STDERR "Failed.\n";
+	    caFailure();
         }
     }
 

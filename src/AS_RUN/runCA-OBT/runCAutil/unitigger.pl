@@ -1,7 +1,7 @@
 use strict;
 
 sub unitigger (@) {
-    my @cgbFiles = @_;
+    my @cgbFiles  = @_;
 
     goto alldone if (scalar(@cgbFiles) > 0);
 
@@ -36,7 +36,7 @@ sub unitigger (@) {
 
         if (runCommand("$wrk/4-unitigger", $cmd)) {
             print STDERR "Failed to unitig.\n";
-            exit(1);
+            caFailure();
         }
 
         touch("$wrk/4-unitigger/unitigger.success");
@@ -45,13 +45,13 @@ sub unitigger (@) {
   alldone:
     #  Other steps (consensus) need the list of cgb files, so we just do it here.
     #
-    open(F, "ls $wrk/4-unitigger/*.cgb |") or die;
+    open(F, "ls $wrk/4-unitigger/*.cgb |") or return -1;
     @cgbFiles = <F>;
     close(F);
     chomp @cgbFiles;
 
     stopAfter("unitigger");
-    return(@cgbFiles);
+    return(0,@cgbFiles);
 }
 
 1;

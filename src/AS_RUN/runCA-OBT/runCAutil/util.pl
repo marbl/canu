@@ -43,7 +43,7 @@ sub submitBatchJobs($$$$) {
        }
 
        if (runningOnGrid()) {
-          system($SGE) and die "Failed to submit overlap jobs.\n";
+          system($SGE) and (print "Failed to submit overlap jobs.\n" && return -1);
        } else {
           pleaseExecute($SGE);
        }
@@ -105,7 +105,7 @@ sub setBinDirectory ($) {
     if (!defined($binRoot)) {
         print STDERR "ERROR: I'm not installed in the assembler tree, and you\n";
         print STDERR "       didn't specify a binDir in the spec file.\n";
-        exit(1);
+        caFailure();
     }
 
     return("$binRoot/$thisarch/bin");
@@ -117,7 +117,7 @@ sub setBinDirectory ($) {
 #
 sub getGlobal ($) {
     my $var = shift @_;
-    die "ERROR: $var has no defined value!\n" if (!exists($global{$var}));
+    (print "ERROR: $var has no defined value!\n" && return -1) if (!exists($global{$var}));
     return($global{$var});
 }
 
@@ -130,7 +130,7 @@ sub setGlobal ($$) {
         setGlobal("merSizeOvl", $val);
         return;
     }
-    die "ERROR: $var is not a valid option.\n" if (!exists($global{$var}));
+    (print "ERROR: $var is not a valid option.\n" && return -1) if (!exists($global{$var}));
     $global{$var} = $val;
 }
 
@@ -167,6 +167,8 @@ sub setDefaults () {
     $global{"grid"}                        = "Linux-i686";
 
     $global{"help"}                        = 0;
+    $global{"version"}			   = 0;
+    $global{"fields"}			   = 0;
 
     #  Undocumented!
     $global{"doMeryl"}                     = 1;
@@ -229,6 +231,36 @@ sub setDefaults () {
     $global{"ovlErrorRate"}                = 0.06;
     $global{"cgwErrorRate"}                = 0.10;
     $global{"cnsErrorRate"}                = 0.06;
+
+    $global{"astatLowBound"}		   = 1;
+    $global{"astatHighBound"}		   = 5;
+
+    if ( $JCVI == 1 ) {
+    	$global{"vectorIntersect"}	   = 'in.clv';
+	$global{"cnsPartitions"}	   = 1;
+	$global{"frgCorrBatchSize"}	   = 200000;
+	$global{"ovlCorrBatchSize"}	   = 200000;
+	$global{"ovlHashBlockSize"}	   = 200000;
+	$global{"doOverlapTrimming"}	   = 1;
+	$global{"doUpdateDistanceRecords"} = 1;
+	$global{"cgwDistanceSampleSize"}   = 1000;
+	$global{"gkpBelieveInputStdDev"}   = 1;
+	$global{"sge"}			   = ' -P 08010 -b n -l msc';
+	$global{"sgeOverlap"}		   = ' -pe threaded 2';
+	$global{"fakeUIDs"}		   = 1;
+	$global{"useGrid"}		   = 1;
+	$global{"scriptOnGrid"}		   = 1;
+	$global{"alias"}		   = undef;
+	$global{"props_file"}		   = 'props.file';
+	$global{"maxCopy"}		   = 0;
+	$global{"medCopy"}		   = 1;
+	$global{"minCopy"}		   = 2;
+	$global{"noCopy"}		   = 3;
+	$global{"copy"}		   	   = getGlobal("medCopy");
+	$global{"notify"}		   = 1;
+	$global{"test"}		   	   = 0;
+	
+    }
 }
 
 sub makeAbsolute ($) {
@@ -259,11 +291,11 @@ sub setParameters ($@) {
         my $binRoot = "$FindBin::Bin";
 
         if (-e "$specFile") {
-            open(F, "< $specFile") or die "Couldn't open '$specFile'\n"
+            open(F, "< $specFile") or (print "Couldn't open '$specFile'\n" && return -1);
         } elsif (-e "$binRoot/$specFile") {
-            open(F, "< $binRoot/$specFile") or die "Couldn't open '$binRoot/$specFile'\n"
+            open(F, "< $binRoot/$specFile") or (print "Couldn't open '$binRoot/$specFile'\n" && return -1);
         } else {
-            die "Didn't find '$specFile' or '$binRoot/$specFile'\n";
+            (print "Didn't find '$specFile' or '$binRoot/$specFile'\n" && return -1);
         }
         while (<F>) {
             chomp;
@@ -308,13 +340,21 @@ sub setParameters ($@) {
     #  or didn't compile for the grid.
     #
     if (! -e "$gin/gatekeeper") {
-        print STDERR "WARNING: Didn't find binaries for the grid in $gin.\n";
-        print STDERR "         Using $bin instead.\n";
+#        print STDERR "WARNING: Didn't find binaries for the grid in $gin.\n";
+#        print STDERR "         Using $bin instead.\n";
         $gin = $bin;
     }
 
-    die "Can't find local bin/gatekeeper in $bin\n" if (! -e "$bin/gatekeeper");
-    die "Can't find grid bin/gatekeeper in $gin\n"  if (! -e "$gin/gatekeeper");
+    (print "Can't find local bin/gatekeeper in $bin\n" && return -1) if (! -e "$bin/gatekeeper");
+    (print "Can't find grid bin/gatekeeper in $gin\n" && return -1)  if (! -e "$gin/gatekeeper");
+
+    if ( $JCVI == 1 ) {
+        my $sybase = $ENV{SYBASE};
+        #print "Sybase = $sybase";
+        if ( !defined $sybase or !-d $sybase ) {
+             $ENV{SYBASE} = '/usr/local/packages/sybase';
+        }
+    }
 
     #  Set the globally accessible error rates.  Adjust them
     #  if they look strange.
@@ -327,22 +367,22 @@ sub setParameters ($@) {
     my $cnsER = getGlobal("cnsErrorRate");
 
     if (($ovlER < 0.0) || (0.25 < $ovlER)) {
-        die "ovlErrorRate is $ovlER, this MUST be between 0.0 and 0.25.\n";
+        (print "ovlErrorRate is $ovlER, this MUST be between 0.0 and 0.25.\n" && return -1);
     }
     if (($cgwER < 0.0) || (0.25 < $cgwER)) {
-        die "cgwErrorRate is $cgwER, this MUST be between 0.0 and 0.25.\n";
+        (print "cgwErrorRate is $cgwER, this MUST be between 0.0 and 0.25.\n" && return -1);
     }
     if (($cnsER < 0.0) || (0.25 < $cnsER)) {
-        die "cnsErrorRate is $cnsER, this MUST be between 0.0 and 0.25.\n";
+        (print "cnsErrorRate is $cnsER, this MUST be between 0.0 and 0.25.\n" && return -1);
     }
     if ($ovlER > $cnsER) {
-        die "ovlErrorRate is $ovlER, this MUST be <= cnsErrorRate ($cnsER)\n";
+        (print "ovlErrorRate is $ovlER, this MUST be <= cnsErrorRate ($cnsER)\n" && return -1);
     }
     if ($ovlER > $cgwER) {
-        die "ovlErrorRate is $ovlER, this MUST be <= cgwErrorRate ($cgwER)\n";
+        (print "ovlErrorRate is $ovlER, this MUST be <= cgwErrorRate ($cgwER)\n" && return -1);
     }
     if ($cnsER > $cgwER) {
-        die "cnsErrorRate is $cnsER, this MUST be <= cgwErrorRate ($cgwER)\n";
+        (print "cnsErrorRate is $cnsER, this MUST be <= cgwErrorRate ($cgwER)\n" && return -1);
     }
     $ENV{'AS_OVL_ERROR_RATE'} = $ovlER;
     $ENV{'AS_CGW_ERROR_RATE'} = $cgwER;
@@ -351,7 +391,15 @@ sub setParameters ($@) {
 
 
 sub printHelp () {
-    if (getGlobal("help")) {
+    if ( getGlobal("version")) {
+	my @full_pName = split('/',$0);
+	my $pName = $full_pName[$#full_pName]; 
+	print "$pName $MY_VERSION\n";
+	exit(0);
+    } elsif (getGlobal("help")) {
+        print $HELPTEXT;
+	exit(0);
+    } elsif ( getGlobal("fields") ) {
         foreach my $k (sort keys %global) {
             if (defined(getGlobal($k))) {
                 print substr("$k                             ", 0, 30) . getGlobal($k) . "\n";
@@ -359,7 +407,7 @@ sub printHelp () {
                 print substr("$k                             ", 0, 30) . "<not defined>\n";
             }
         }
-        exit(1);
+        exit(0);
     }
 }
 
@@ -369,9 +417,21 @@ sub checkDirectories () {
     #  Check that we were supplied a work directory, and that it
     #  exists, or we can create it.
     #
-    die "ERROR: I need a directory to run the assembly in (-d option).\n" if (!defined($wrk));
+    #die "ERROR: I need a directory to run the assembly in (-d option).\n" if (!defined($wrk));
+    if ($JCVI == 1 and !defined($wrk)) {
+    	$wrk = '/usr/local/aserver_new/var/assembly/'.$request_id;
+    	$commandLineOptions .= " \"-d\" \"$wrk\" ";	
+    } elsif ( !defined($wrk)) {
+    	(print "ERROR: I need a directory to run the assembly in (-d option).\n" && return -1);
+    }
+    
     system("mkdir -p $wrk") if (! -d $wrk);
-    die "ERROR: Directory '$wrk' doesn't exist (-d option) and couldn't be created.\n" if (! -d $wrk);
+    (print "ERROR: Directory '$wrk' doesn't exist (-d option) and couldn't be created.\n" && return -1) if (! -d $wrk);
+
+    system("mkdir -p $wrk/log") if (! -d "$wrk/log");
+    chmod 0755, "$wrk";
+    chmod 0755, "$wrk/log";
+    (print "ERROR: Unable to create log directory.\n" && return -1) if (! -d "$wrk/log");
 
     #  Check that we have scratch space, or try to make one in the
     #  work directory.
@@ -379,6 +439,10 @@ sub checkDirectories () {
     #  See if we can use the supplied scratch space
     #
     my $scratch = getGlobal("scratch");
+    if ( $JCVI == 1 ) {
+    	$scratch = "$wrk/scratch";
+        setGlobal("scratch", $scratch);
+    }
     system("mkdir -p $scratch") if (! -d $scratch);
 
     #  If not created, warn, and try to make one in the work directory.
@@ -393,7 +457,7 @@ sub checkDirectories () {
     #  If still not created, die.
     #
     if (! -d $scratch) {
-        die "ERROR:  Scratch directory '$scratch' doesn't exist, and couldn't be created!\n";
+        (print "ERROR:  Scratch directory '$scratch' doesn't exist, and couldn't be created!\n" && return -1);
     }
 }
 
@@ -449,7 +513,7 @@ sub findNumScaffoldsInCheckpoint ($$) {
     close(F);
     $numscaf = int($numscaf);
 
-    die "findNumScaffoldsInCheckpoint($dir, $lastckp) found no scaffolds?!" if ($numscaf == 0);
+    (print "findNumScaffoldsInCheckpoint($dir, $lastckp) found no scaffolds?!" && return -1) if ($numscaf == 0);
     print STDERR "Found $numscaf scaffolds in $dir checkpoint number $lastckp.\n";
     return($numscaf);
 }
@@ -462,12 +526,12 @@ sub getNumberOfFragsInStore ($$$) {
 
     return(0) if (! -e "$wrk/$asm.gkpStore/frg");
 
-    open(F, "$bin/gatekeeper -L $wrk/$asm.gkpStore 2> /dev/null |") or die;
+    open(F, "$bin/gatekeeper -L $wrk/$asm.gkpStore 2> /dev/null |") or return -1;
     $_ = <F>;    chomp $_;
     close(F);
 
     $numFrags = $1 if (m/^Last frag in store is iid = (\d+)$/);
-    die "No frags in the store?\n" if ($numFrags == 0);
+    (print "No frags in the store?\n" && return -1) if ($numFrags == 0);
     return($numFrags);
 }
 
@@ -499,7 +563,7 @@ sub backupFragStore ($) {
         unlink "$wrk/$asm.gkpStore/frg";
         if (system("cp -p $wrk/$asm.gkpStore/frg.$backupName $wrk/$asm.gkpStore/frg")) {
             unlink "$wrk/$asm.gkpStore/frg";
-            die "Failed to restore gkpStore from backup.\n";
+            (print "Failed to restore gkpStore from backup.\n" && return -1);
         }
     }
     if (! -e "$wrk/$asm.gkpStore/frg.$backupName") {
@@ -508,7 +572,7 @@ sub backupFragStore ($) {
 
         if (system("cp -p $wrk/$asm.gkpStore/frg $wrk/$asm.gkpStore/frg.$backupName")) {
             unlink "$wrk/$asm.gkpStore/frg.$backupName";
-            die "Failed to backup gkpStore.\n";
+            (print "Failed to backup gkpStore.\n" && return -1);
         }
     }
 }
@@ -552,7 +616,7 @@ sub submitScript ($) {
     my $script = "$output.sh";
     my $cmd;
 
-    open(F, "> $script") or die "Failed to open '$script' for writing\n";
+    open(F, "> $script") or (print "Failed to open '$script' for writing\n" && return -1);
     print F "#!/bin/sh\n";
     print F "#\n";
     print F "#  Attempt to (re)configure SGE.  For reasons Bri doesn't know,\n";
@@ -562,7 +626,7 @@ sub submitScript ($) {
     print F "#  interactive SGE logins (qlogin, etc) DO set the environment.\n";
     print F "#\n";
     print F ". \$SGE_ROOT/\$SGE_CELL/common/settings.sh\n";
-    print F "$perl $bin/runCA-OBT.pl $commandLineOptions\n";
+    print F "$perl $0 $commandLineOptions > $wrk/log/". getppid() .".child.out 2> $wrk/log/". getppid() .".child.err \n";
     close(F);
 
     my $sge       = getGlobal("sge");
@@ -575,20 +639,34 @@ sub submitScript ($) {
     }
 
     system("chmod +x $script");
-    system($cmd) and die "Failed to sumbit script.\n";
+    system($cmd) and (print "Failed to sumbit script.\n" && return -1);
 
     exit(0);
 }
 
 
-
+sub caFailure() {
+     my $failureFile = 'ca.failed';
+     $failureFile = "$wrk/log/$failureFile" if ( $JCVI == 1 );
+     $failureFile = "$wrk/$failureFile" if ( $JCVI != 1 );
+     
+     if ( !-e $failureFile )  {
+     	touch($failureFile);
+	failure(undef);
+     } else {
+     	print "CA Failed\n";
+	exit(1);
+     }
+}
 
 
 
 #  Create an empty file.  Much faster than system("touch ...").
 #
 sub touch ($) {
-    open(F, "> $_[0]") or die "Failed to touch '$_[0]'\n";
+    open(F, "> $_[0]") or (print "Failed to touch '$_[0]'\n" && return -1);
+    print F "$wrk\n";
+    print F "process id: " . getppid() . "\n";
     close(F);
 }
 

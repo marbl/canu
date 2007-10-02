@@ -38,7 +38,9 @@ OBJECTS = $(C_OBJECTS) $(CXX_OBJECTS)
 
 PROGS = fragmentDepth
 
-SCRIPTS = runCA-OBT.pl \
+SCRIPTS = runCA \
+          ca_observer.plx \
+	  aget.pl \
           assemblyCompare \
           qcCompare \
           tampaCompare \
@@ -52,6 +54,11 @@ SCRIPTS = runCA-OBT.pl \
           ca2ace.pl \
           asmToAGP.pl \
           mateLinkIIDRanges.rb
+ifeq ($(SITE_NAME),JCVI)
+  SCRIPTS += carun
+  ASDB = runCA-OBT/runCAutil/asdb.pl
+  HELP = runCA-OBT/runCAutil/carun_help.pl
+endif
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
@@ -74,11 +81,25 @@ RUNCAOBTUTIL = runCA-OBT/runCAutil/applyOverlapCorrection.pl \
                runCA-OBT/runCAutil/scaffolder.pl \
                runCA-OBT/runCAutil/terminate.pl \
                runCA-OBT/runCAutil/unitigger.pl \
-               runCA-OBT/runCAutil/bogUnitigger.pl
+               runCA-OBT/runCAutil/bogUnitigger.pl \
+	       runCA-OBT/runCAutil/startStop.pl
 
-runCA-OBT.pl: runCA-OBT/runCA.pl.head runCA-OBT/runCAutil/util.pl runCA-OBT/runCA.pl $(RUNCAOBTUTIL) runCA-OBT/runCAutil/scheduler.pm
-	@cat runCA-OBT/runCA.pl.head runCA-OBT/runCAutil/util.pl $(RUNCAOBTUTIL) runCA-OBT/runCA.pl runCA-OBT/runCAutil/scheduler.pm > $(LOCAL_BIN)/runCA-OBT.pl
-	@chmod 775 $(LOCAL_BIN)/runCA-OBT.pl
+runCA: runCA-OBT/runCA.pl.head runCA-OBT/runCAutil/util.pl runCA-OBT/runCA.pl $(RUNCAOBTUTIL) runCA-OBT/runCAutil/scheduler.pm
+	@cat runCA-OBT/runCA.pl.head runCA-OBT/runCAutil/util.pl $(RUNCAOBTUTIL) runCA-OBT/runCA.pl runCA-OBT/runCAutil/scheduler.pm > $(LOCAL_BIN)/$@
+	@chmod 775 $(LOCAL_BIN)/$@
+	@ln -fs $(LOCAL_BIN)/$@ $(LOCAL_BIN)/runCA-OBT.pl
+
+carun: runCA-OBT/runCA.pl.head $(HELP) runCA-OBT/runCAutil/util.pl runCA-OBT/runCA.pl $(RUNCAOBTUTIL) $(ASDB) runCA-OBT/runCAutil/scheduler.pm
+	@cat runCA-OBT/runCA.pl.head $(HELP) runCA-OBT/runCAutil/util.pl $(RUNCAOBTUTIL) $(ASDB) runCA-OBT/runCA.pl runCA-OBT/runCAutil/scheduler.pm > $(LOCAL_BIN)/$@
+	@chmod 775 $(LOCAL_BIN)/$@
+
+ca_observer.plx: runCA-OBT/ca_observer.plx
+	@cp $< $(LOCAL_BIN)/$@
+	@chmod 775 $(LOCAL_BIN)/$@
+
+aget.pl: runCA-OBT/aget.pl
+	@cp $< $(LOCAL_BIN)/aget
+	@chmod 775 $(LOCAL_BIN)/aget
 
 mateLinkIIDRanges.rb: asmQC/mateLinkIIDRanges.rb
 	@cp $< $(LOCAL_BIN)/$@

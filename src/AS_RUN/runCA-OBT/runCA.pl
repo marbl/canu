@@ -13,13 +13,40 @@ setDefaults();
 
 #  Stash the original options, quoted, for later use.
 foreach my $a (@ARGV) {
+    $invocation .= " $a";
     $commandLineOptions .= " \"$a\" ";
 }
 
 while (scalar(@ARGV)) {
     my $arg = shift @ARGV;
 
-    if      ($arg =~ m/^-d/) {
+    if ($arg =~ m/^-alias/ && $JCVI == 1 ) {
+        setGlobal("alias",shift @ARGV);
+    } elsif ($arg =~ m/^-maxCopy/ && $JCVI == 1 ) {
+        setGlobal("copy",getGlobal("maxCopy"));
+    } elsif ($arg =~ m/^-minCopy/ && $JCVI == 1 ) {
+        setGlobal("copy",getGlobal("minCopy"));
+    } elsif ($arg =~ m/^-medCopy/ && $JCVI == 1 ) {
+        setGlobal("copy",getGlobal("medCopy"));
+    } elsif ($arg =~ m/^-noCopy/ && $JCVI == 1 ) {
+        setGlobal("copy",getGlobal("noCopy"));
+    } elsif ($arg =~ m/^-(no)?notify/ && $JCVI == 1 ) {
+        setGlobal("notify",1) if ( $1 ne 'no' );
+        setGlobal("notify",0) if ( $1 eq 'no' );
+    } elsif ($arg =~ m/^-test/ && $JCVI == 1 ) {    
+        setGlobal("test",1);
+    } elsif ($arg =~ m/^-e/) {
+        setGlobal("utgErrorRate",shift @ARGV);
+    } elsif ($arg =~ m/^-g/) {
+        setGlobal("utgGenomeSize",shift @ARGV);
+    } elsif ($arg =~ m/^-j/) {
+        setGlobal("astatLowBound",shift @ARGV);
+    } elsif ($arg =~ m/^-k/) {    
+        setGlobal("astatHighBound",shift @ARGV);
+    } elsif ($arg =~ m/^-(no)?ubs/) {
+        setGlobal("utgBubblePopping",1) if ( $1 ne 'no' );
+        setGlobal("utgBubblePopping",0) if ( $1 eq 'no' );
+    } elsif ($arg =~ m/^-d/) {
         $wrk = shift @ARGV;
         $wrk = "$ENV{'PWD'}/$wrk" if ($wrk !~ m!^/!);
     } elsif ($arg =~ m/^-p/) {
@@ -28,6 +55,10 @@ while (scalar(@ARGV)) {
         $specFile = shift @ARGV;
     } elsif ($arg =~ m/^-h/) {
         setGlobal("help", 1);
+    } elsif ($arg =~ m/^-v/ or $arg =~ m/^-V/) {
+        setGlobal("version", 1);
+    } elsif ($arg =~ m/^-f/) {
+        setGlobal("fields", 1);
     } elsif (($arg =~ /\.frg$|frg\.gz$|frg\.bz2$/) && (-e $arg)) {
         $arg = "$ENV{'PWD'}/$arg" if ($arg !~ m!^/!);
         push @fragFiles, $arg;
@@ -55,7 +86,37 @@ while (scalar(@ARGV)) {
 
 setParameters($specFile, @specOpts);
 printHelp();
+
+my $retVal;
+my @steps = 
+(
+	'Pre-overlap',			'$retVal = preoverlap(@fragFiles)',
+	'OverlapTrim',			'$retVal = overlapTrim()',
+	'CreateOverlapJobs',		'$retVal = createOverlapJobs("normal")',
+	'CheckOverlap',		'$retVal = checkOverlap("normal")',
+	'CreateOverlapStore',		'$retVal = createOverlapStore()',
+	'CreateFragmentCorrections',	'$retVal = createFragmentCorrectionJobs()',
+	'MergeFragmentCorrection',	'$retVal = mergeFragmentCorrection()',
+	'CreateOverlapCorrections',	'$retVal = createOverlapCorrectionJobs()',
+	'ApplyOverlapCorrection',	'$retVal = applyOverlapCorrection()',
+	'Unitigger',			'($retVal,@cgbFiles) = unitigger(@cgbFiles)',
+	'PostUnitiggerConsensus',	'$retVal = postUnitiggerConsensus(@cgbFiles)',
+	'Scaffolder',			'$retVal = scaffolder($cgiFile)',
+	'PostScaffolderConsensus',	'$retVal = postScaffolderConsensus($scaffoldDir)',
+	'Terminator',			'$retVal = terminate($scaffoldDir)'
+);
+
+if ( $JCVI == 1 && !runningOnGrid()) {
+    $request_id = asdbInit();
+    print "Your Assembly Console request id is: $request_id\n";
+}
+
 checkDirectories();
+
+print "Your work directory is: '$wrk'\n";
+
+createInvocationScript() && init_prop_file( undef, $asm,(scalar @steps)/2)
+	if ( $JCVI == 1 && !runningOnGrid());
 
 #  If this is a continuation, we don't want to do obt or fragment
 #  error correction, or a bunch of other stuff.  We could surround
@@ -100,30 +161,28 @@ if ($isContinuation) {
 #  If not already on the grid, see if we should be on the grid.
 #
 submitScript("") if (!runningOnGrid());
+my $finished = 0;
 
-preoverlap(@fragFiles);
+for( my $index = 0 ; $index < scalar @steps ; $index+=2) {
+	my $stepName = $steps[$index];
+	my $stepCmd = $steps[$index+1];
+	if ( $JCVI == 1 && ! -e "$wrk/log/$stepName.started") {
+	    touch("$wrk/log/$stepName.started");
+	    start($stepName);
+	}
+	print "Executing '$stepName'\n";
+	eval($stepCmd);
+	print "Finished executing '$stepName'\nReturn value: $retVal\n";
+	if ($retVal == -1) {
+	    failure($stepName);
+	} elsif ( $JCVI == 1 && !-e "$wrk/log/$stepName.finished") {
+	    touch("$wrk/log/$stepName.finished");
+	    finish($stepName);
+	    $finished = 1 if ( $index + 2 >= scalar @steps );
+	}
+}
 
-overlapTrim();
-
-createOverlapJobs("normal");
-checkOverlap("normal");
-
-createOverlapStore();
-
-createFragmentCorrectionJobs();
-mergeFragmentCorrection();
-createOverlapCorrectionJobs();
-applyOverlapCorrection();
-
-@cgbFiles = unitigger(@cgbFiles);
-
-postUnitiggerConsensus(@cgbFiles);
-
-scaffolder($cgiFile);
-
-postScaffolderConsensus($scaffoldDir);
-
-terminate($scaffoldDir);
+copy() if ( $JCVI == 1 && $finished == 1);
 
 exit(0);
 

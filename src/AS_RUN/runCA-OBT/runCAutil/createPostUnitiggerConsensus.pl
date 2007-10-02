@@ -1,23 +1,23 @@
 use strict;
 
-sub createPostUnitiggerConsensusJobs(@) {
+sub createPostUnitiggerConsensusJobs (@) {
     my @cgbFiles  = @_;
 
     if (! -e "$wrk/5-consensus/$asm.partitioned") {
 
         #  Then, build a partition information file, and do the partitioning.
         #
-        open(G, "> $wrk/5-consensus/$asm.partFile") or die;
+        open(G, "> $wrk/5-consensus/$asm.partFile") or return -1;
         foreach my $f (@cgbFiles) {
             if ($f =~ m/^.*(\d\d\d).cgb$/) {
                 my $part = $1;
-                open(F, "grep ^mid: $f |") or die;
+                open(F, "grep ^mid: $f |") or return -1;
                 while (<F>) {
                     print G "$part $1\n" if (m/^mid:(\d+)$/);                        
                 }
                 close(F);
             } else {
-                die "CGB file didn't match ###.cgb!\n";
+                (print "CGB file didn't match ###.cgb!\n" && return -1);
             }
         }
         close(G);
@@ -29,7 +29,7 @@ sub createPostUnitiggerConsensusJobs(@) {
         $cmd .= "> $wrk/5-consensus/$asm.partitioned.err 2>&1";
         if (runCommand("$wrk/5-consensus", $cmd)) {
             rename "$wrk/5-consensus/$asm.partFile", "$wrk/5-consensus/$asm.partFile.FAILED";
-            die "Failed to partition the fragStore.\n";
+            (print "Failed to partition the fragStore.\n" && return -1);
         }
 
         touch "$wrk/5-consensus/$asm.partitioned";
@@ -46,7 +46,7 @@ sub createPostUnitiggerConsensusJobs(@) {
     my $jobP;
     my $jobs = 0;
 
-    open(F, "> $wrk/5-consensus/consensus.cgi.input") or die "Failed to open '$wrk/5-consensus/consensus.cgi.input'\n";
+    open(F, "> $wrk/5-consensus/consensus.cgi.input") or (print "Failed to open '$wrk/5-consensus/consensus.cgi.input'\n" && return -1);
     foreach my $f (@cgbFiles) {
         print F "$f\n";
 
@@ -61,7 +61,7 @@ sub createPostUnitiggerConsensusJobs(@) {
 
     $jobP = join ' ', sort { $a <=> $b } split '\s+', $jobP;
 
-    open(F, "> $wrk/5-consensus/consensus.sh") or die "Can't open '$wrk/5-consensus/consensus.sh'\n";
+    open(F, "> $wrk/5-consensus/consensus.sh") or (print "Can't open '$wrk/5-consensus/consensus.sh'\n" && return -1);
     print F "#!/bin/sh\n";
     print F "\n";
     print F "jobid=\$SGE_TASK_ID\n";
@@ -165,7 +165,7 @@ sub postUnitiggerConsensus (@) {
         if ($f =~ m/^.*(\d\d\d).cgb$/) {
             push @cgbIndices, $1;
         } else {
-            die "Didn't match '$f' for CGB filename!\n";
+            (print "Didn't match '$f' for CGB filename!\n" && return -1);
         }
     }
 
@@ -177,7 +177,7 @@ sub postUnitiggerConsensus (@) {
         }
     }
 
-    die  "$failedJobs consensusAfterUnitigger jobs failed.  Good luck.\n" if ($failedJobs);
+    (print  "$failedJobs consensusAfterUnitigger jobs failed.  Good luck.\n" && return -1) if ($failedJobs);
 
     #  All jobs finished.  Remove the partitioning from the gatekeeper
     #  store.  The gatekeeper store is currently (5 Mar 2007) tolerant
@@ -199,9 +199,9 @@ sub postUnitiggerConsensus (@) {
     #  Consolidate all the output
     #
 
-    open(G, "> $wrk/5-consensus/$asm.cgi") or die;
+    open(G, "> $wrk/5-consensus/$asm.cgi") or return -1;
     foreach my $fid (@cgbIndices) {
-        open(F, "< $wrk/5-consensus/${asm}_$fid.cgi") or die;
+        open(F, "< $wrk/5-consensus/${asm}_$fid.cgi") or return -1;
         while (<F>) {
             print G $_;
         }

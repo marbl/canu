@@ -10,7 +10,7 @@ use strict;
 sub createOverlapJobs {
     my $isTrim = shift @_;
 
-    die "createOverlapJobs()--  Help!  I have no frags!\n" if ($numFrags == 0);
+    (print "createOverlapJobs()--  Help!  I have no frags!\n" && return -1) if ($numFrags == 0);
 
     return if (-d "$wrk/$asm.ovlStore");
 
@@ -19,7 +19,8 @@ sub createOverlapJobs {
     my $scratch           = getGlobal("scratch");
 
     if (!defined($isTrim)) {
-        die "createOverlapJobs()-- I need to know if I'm trimming or assembling!\n";
+        print STDERR "createOverlapJobs()-- I need to know if I'm trimming or assembling!\n";
+	caFailure();
     }
 
     my $outDir  = "1-overlapper";
@@ -53,7 +54,7 @@ sub createOverlapJobs {
             #$cmd .= " > $wrk/$outDir/overmerry.err 2>&1";
             if (runCommand("$wrk/$outDir", $cmd)) {
                 rename "$wrk/$outDir/$asm.ovm", "$wrk/$outDir/$asm.ovm.FAILED";
-                die "Failed.\n";
+                (print "Failed.\n" && return -1);
             }
         }
 
@@ -66,7 +67,7 @@ sub createOverlapJobs {
             #$cmd .= " > $wrk/$outDir/overlapStore.err 2>&1";
             if (runCommand("$wrk/$outDir", $cmd)) {
                 rename "$wrk/$outDir/$asm.merStore", "$wrk/$outDir/$asm.merStore.FAILED";
-                die "Failed.\n";
+                (print "Failed.\n" && return -1);
             }
         }
 
@@ -89,7 +90,8 @@ sub createOverlapJobs {
 
             if (runCommand("$wrk/$outDir", $cmd)) {
                 rename "$wrk/$outDir/$asm.ovb", "$wrk/$outDir/$asm.ovb.FAILED";
-                die "Failed.\n";
+                print STDERR "Failed.\n";
+		caFailure();
             }
         }
 
@@ -110,7 +112,7 @@ sub createOverlapJobs {
     #  -r $refBeg-$refEnd).  From those, we can construct the command
     #  to run.
     #
-    open(F, "> $wrk/$outDir/overlap.sh") or die "Can't open '$wrk/$outDir/overlap.sh'\n";
+    open(F, "> $wrk/$outDir/overlap.sh") or (print "Can't open '$wrk/$outDir/overlap.sh'\n" && return -1);
     print F "#!/bin/sh\n";
     print F "\n";
     print F "perl='/usr/bin/env perl'\n";
@@ -242,7 +244,7 @@ sub createOverlapJobs {
         $hashBeg = $hashEnd + 1;
     }
 
-    open(SUB, "> $wrk/$outDir/ovlopts.pl") or die "Failed to open '$wrk/$outDir/ovlopts.pl'\n";
+    open(SUB, "> $wrk/$outDir/ovlopts.pl") or (print "Failed to open '$wrk/$outDir/ovlopts.pl'\n" && return -1);
     print SUB "#!/usr/bin/env perl\n";
     print SUB "use strict;\n";
     print SUB "my \@bat = (\n";  foreach my $b (@bat) { print SUB "\"$b\",\n"; }  print SUB ");\n";
@@ -263,7 +265,7 @@ sub createOverlapJobs {
     print SUB "exit(0);\n";
     close(SUB);
 
-    open(SUB, "> $wrk/$outDir/ovljobs.dat") or die "Failed to open '$wrk/$outDir/ovljobs.dat'\n";
+    open(SUB, "> $wrk/$outDir/ovljobs.dat") or (print "Failed to open '$wrk/$outDir/ovljobs.dat'\n" && return -1);
     foreach my $b (@bat) { print SUB "$b "; }  print SUB "\n";
     foreach my $b (@job) { print SUB "$b "; }  print SUB "\n";
     close(SUB);
@@ -311,6 +313,7 @@ sub createOverlapJobs {
             touch("$wrk/$outDir/jobsCreated.success");
         }
     }
+    
 }
 
 1;

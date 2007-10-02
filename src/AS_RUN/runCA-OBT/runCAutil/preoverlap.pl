@@ -13,7 +13,8 @@ sub preoverlap {
         goto stopafter;
     }
 
-    die "ERROR: No fragment files specified, and stores not already created.\n" if (scalar(@fragFiles) == 0);
+    print "ERROR: No fragment files specified, and stores not already created.\n" 
+    	&& caFailure() if (scalar(@fragFiles) == 0);
 
     system("mkdir $wrk/0-preoverlap") if (! -d "$wrk/0-preoverlap");
 
@@ -31,7 +32,7 @@ sub preoverlap {
             }
             $gkpInput .= " $frg";
         }
-        die if ($failedFiles);
+        caFailure() if ($failedFiles);
 
         my $cmd;
         $cmd  = "$bin/gatekeeper -e 10000000 -o $wrk/$asm.gkpStore ";
@@ -43,7 +44,7 @@ sub preoverlap {
             print STDERR "Failed.\n";
             rename "$wrk/0-preoverlap/$asm.inp", "$wrk/0-preoverlap/$asm.inp.FAILED";
             rename "$wrk/$asm.gkpStore", "$wrk/$asm.gkpStore.FAILED";
-            exit(1);
+            caFailure();
         }
     }
 
@@ -51,7 +52,7 @@ sub preoverlap {
     if ((defined($vi)) && (! -e "$wrk/0-preoverlap/$asm.vectorClearLoaded")) {
         if (runCommand("$wrk/0-preoverlap", "$bin/gatekeeper -a -v $vi -o $wrk/$asm.gkpStore > $wrk/0-preoverlap/$asm.vectorClearLoaded.err 2>&1")) {
             print STDERR "Failed.\n";
-            exit(1);
+            caFailure();
         }
         touch("$wrk/0-preoverlap/$asm.vectorClearLoaded");
     }
@@ -59,7 +60,7 @@ sub preoverlap {
     $numFrags = getNumberOfFragsInStore($bin, $wrk, $asm);
 
  stopafter:
-    stopAfter("initialStoreBuilding");
+    stopAfter("initialStoreBuilding");    
 }
 
 1;

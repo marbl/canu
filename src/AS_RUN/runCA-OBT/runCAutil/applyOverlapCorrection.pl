@@ -33,7 +33,7 @@ sub applyOverlapCorrection {
 
         close(F);
 
-        die "$failedJobs failed.  Good luck.\n" if ($failedJobs);
+        print "$failedJobs failed.  Good luck.\n" && caFailure() if ($failedJobs);
 
         if (! -e "$wrk/3-ovlcorr/$asm.erates") {
             my $cmd;
@@ -43,7 +43,8 @@ sub applyOverlapCorrection {
             $cmd .= "> $wrk/3-ovlcorr/cat-erates.err 2>&1";
             if (runCommand("$wrk/3-ovlcorr", $cmd)) {
                 rename "$wrk/3-ovlcorr/$asm.erates", "$wrk/3-ovlcorr/$asm.erates.FAILED";
-                die "Failed to concatenate the overlap erate corrections.\n";
+                print STDERR "Failed to concatenate the overlap erate corrections.\n";
+		caFailure();
             }
         }
 
@@ -53,11 +54,13 @@ sub applyOverlapCorrection {
         $cmd .= " $wrk/3-ovlcorr/$asm.erates";
         $cmd .= "> $wrk/3-ovlcorr/overlapStore-update-erates.err 2>&1";
         if (runCommand("$wrk/3-ovlcorr", $cmd)) {
-            die "Failed to apply the overlap corrections.\n";
+            print STDERR "Failed to apply the overlap corrections.\n";
+	    caFailure();
         }
 
         touch("$wrk/3-ovlcorr/update-erates.success");
     }
+    
 }
 
 1;

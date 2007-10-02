@@ -19,7 +19,7 @@ sub createFragmentCorrectionJobs {
         $correctfrags = "$bin/correct-frags";
     }
 
-    open(F, "> $wrk/2-frgcorr/correct.sh") or die;
+    open(F, "> $wrk/2-frgcorr/correct.sh") or return -1;
     print F "#!/bin/sh\n\n";
     print F "jobid=\$SGE_TASK_ID\n";
     print F "if [ x\$jobid = x -o x\$jobid = xundefined ]; then\n";
@@ -111,6 +111,7 @@ sub createFragmentCorrectionJobs {
     }
 
     touch("$wrk/2-frgcorr/jobsCreated.success");
+    
 }
 
 1;
