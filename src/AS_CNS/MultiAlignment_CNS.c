@@ -24,7 +24,7 @@
    Assumptions:  
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.166 2007-09-25 04:40:33 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.167 2007-10-02 15:12:50 gdenisov Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -153,7 +153,7 @@ extern int MaxEndGap;       // [ init value is 200; this could be set to the amo
 VA_DEF(int16);
 
 // Variables used to phase VAR records
-int32 vreg_id  = -1; // id of a VAR record
+static int32 vreg_id  = -1; // id of a VAR record
 
 // Variables used to compute general statistics
 
