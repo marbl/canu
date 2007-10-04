@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.2 2007-10-04 06:38:55 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.3 2007-10-04 06:47:34 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -128,9 +128,6 @@ readsff_header(FILE *sff, sffHeader *h) {
   
   AS_UTL_safeRead(sff,  h->flow_chars,   "readsff_header_2", sizeof(char), h->number_of_flows_per_read);
   AS_UTL_safeRead(sff,  h->key_sequence, "readsff_header_3", sizeof(char), h->key_length);
-
-  //h->flow_chars  [h->number_of_flows_per_read] = 0;
-  //h->key_sequence[h->key_length] = 0;
 
   uint64  padding_length = h->header_length - 31 - h->number_of_flows_per_read - h->key_length;
   if (padding_length > 0) {
