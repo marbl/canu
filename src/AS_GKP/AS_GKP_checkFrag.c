@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.31 2007-10-04 06:38:54 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.32 2007-10-04 06:46:40 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -383,7 +383,7 @@ Check_FragMesg(FragMesg            *frg_mesg,
       return(1);
     }      
 
-    delGatekeeperUIDtoIID(gkpStore, frg_mesg->eaccession))
+    delGatekeeperUIDtoIID(gkpStore, frg_mesg->eaccession);
 
     GateKeeperFragmentRecord dr;
     getIndexStore(gkpStore->frg, iid, &dr);
