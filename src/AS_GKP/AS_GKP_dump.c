@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.23 2007-09-10 19:44:41 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.24 2007-10-04 06:38:54 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,7 +43,105 @@ dumpGateKeeperInfo(char       *gkpStoreName) {
 
   fprintf(stdout, "num fragments        = "F_S32"\n", getNumGateKeeperFragments(gkp));
   fprintf(stdout, "num libraries        = "F_S32"\n", getNumGateKeeperLibraries(gkp));
+  fprintf(stdout, "\n");
+  fprintf(stdout, "LOAD STATS\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, F_U32"\tbatInput\n",    gkp->gkp.batInput);
+  fprintf(stdout, F_U32"\tbatLoaded\n",   gkp->gkp.batLoaded);
+  fprintf(stdout, F_U32"\tbatErrors\n",   gkp->gkp.batErrors);
+  fprintf(stdout, F_U32"\tbatWarnings\n", gkp->gkp.batWarnings);
+  fprintf(stdout, "\n");
+  fprintf(stdout, F_U32"\tlibInput\n",    gkp->gkp.libInput);
+  fprintf(stdout, F_U32"\tlibLoaded\n",   gkp->gkp.libLoaded);
+  fprintf(stdout, F_U32"\tlibErrors\n",   gkp->gkp.libErrors);
+  fprintf(stdout, F_U32"\tlibWarnings\n", gkp->gkp.libWarnings);
+  fprintf(stdout, "\n");
+  fprintf(stdout, F_U32"\tfrgInput\n",    gkp->gkp.frgInput);
+  fprintf(stdout, F_U32"\tfrgLoaded\n",   gkp->gkp.frgLoaded);
+  fprintf(stdout, F_U32"\tfrgErrors\n",   gkp->gkp.frgErrors);
+  fprintf(stdout, F_U32"\tfrgWarnings\n", gkp->gkp.frgWarnings);
+  fprintf(stdout, "\n");
+  fprintf(stdout, F_U32"\tlkgInput\n",    gkp->gkp.lkgInput);
+  fprintf(stdout, F_U32"\tlkgLoaded\n",   gkp->gkp.lkgLoaded);
+  fprintf(stdout, F_U32"\tlkgErrors\n",   gkp->gkp.lkgErrors);
+  fprintf(stdout, F_U32"\tlkgWarnings\n", gkp->gkp.lkgWarnings);
+  fprintf(stdout, "\n");
+  fprintf(stdout, F_U32"\tsffInput\n",    gkp->gkp.sffInput);
+  fprintf(stdout, F_U32"\tsffLoaded\n",   gkp->gkp.sffLoaded);
+  fprintf(stdout, F_U32"\tsffErrors\n",   gkp->gkp.sffErrors);
+  fprintf(stdout, F_U32"\tsffWarnings\n", gkp->gkp.sffWarnings);
+  fprintf(stdout, "\n");
+  fprintf(stdout, F_U32"\tsffLibCreated\n", gkp->gkp.sffLibCreated);
 
+  fragRecord    fr;
+  FragStream   *fs = openFragStream(gkp, FRAG_S_INF);
+  StoreStat     stat;
+
+  int           i, j;
+
+  uint64  numActiveFrag   = 0;
+  uint64  numDeletedFrag  = 0;
+  uint64  numMatedFrag    = 0;
+  uint64 *clearLength     = (uint64 *)safe_calloc(sizeof(uint64), (AS_READ_CLEAR_UNTRIM + 1));
+
+  uint64  *numActivePerLib  = (uint64  *)safe_calloc(sizeof(uint64),   (getNumGateKeeperLibraries(gkp) + 1));
+  uint64  *numDeletedPerLib = (uint64  *)safe_calloc(sizeof(uint64),   (getNumGateKeeperLibraries(gkp) + 1));
+  uint64  *numMatedPerLib   = (uint64  *)safe_calloc(sizeof(uint64),   (getNumGateKeeperLibraries(gkp) + 1));
+  uint64 **clearLengthByLib = (uint64 **)safe_calloc(sizeof(uint64 *), (getNumGateKeeperLibraries(gkp) + 1));
+
+  for (j=0; j<getNumGateKeeperLibraries(gkp) + 1; j++)
+    clearLengthByLib[j] = (uint64 *)safe_calloc(sizeof(uint64), (AS_READ_CLEAR_UNTRIM + 1));
+
+  while (nextFragStream(fs, &fr)) {
+    CDS_IID_t  lib = getFragRecordLibraryIID(&fr);
+
+    if (getFragRecordIsDeleted(&fr)) {
+      numDeletedFrag++;
+      numDeletedPerLib[lib]++;
+    } else {
+      numActiveFrag++;
+      numActivePerLib[lib]++;
+
+      if (getFragRecordMateIID(&fr) > 0) {
+        numMatedFrag++;
+        numMatedPerLib[lib]++;
+      }
+
+      for (i=0; i<AS_READ_CLEAR_UNTRIM + 1; i++) {
+        uint32 clrlen = getFragRecordClearRegionEnd(&fr, i) - getFragRecordClearRegionBegin(&fr, i);
+
+        //  What a ucky special case.
+        if ((i == AS_READ_CLEAR_QLT) && (fr.gkfr.hasQualityClear == 0))
+          continue;
+        if ((i == AS_READ_CLEAR_VEC) && (fr.gkfr.hasVectorClear == 0))
+          continue;
+
+        clearLength[i]           += clrlen;
+        clearLengthByLib[lib][i] += clrlen;
+      }
+    }
+  }
+
+  fprintf(stdout, "\n");
+  fprintf(stdout, "GLOBAL STATS\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "activeFRG="F_U32" deletedFRG="F_U32" matedFRG="F_U32" ", numActiveFrag, numDeletedFrag, numMatedFrag);
+  for (i=0; i<AS_READ_CLEAR_UNTRIM + 1; i++)
+    fprintf(stdout, "%s="F_U32" ", AS_READ_CLEAR_NAMES[i], clearLength[i]);
+  fprintf(stdout, "\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "PER LIBRARY STATS\n");
+  fprintf(stdout, "\n");
+  for (j=0; j<getNumGateKeeperLibraries(gkp) + 1; j++) {
+    fprintf(stdout, "libraryIID="F_IID" activeFRG="F_U32" deletedFRG="F_U32" matedFRG="F_U32" ", j, numActivePerLib[j], numDeletedPerLib[j], numMatedPerLib[j]);
+    for (i=0; i<AS_READ_CLEAR_UNTRIM + 1; i++)
+      fprintf(stdout, "%s="F_U32" ", AS_READ_CLEAR_NAMES[i], clearLengthByLib[j][i]);
+    fprintf(stdout, "\n");
+  }
+
+  //  yeah, a memory leak.
+
+  closeFragStream(fs);
   closeGateKeeperStore(gkp);
 }
 

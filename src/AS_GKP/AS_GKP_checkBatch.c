@@ -19,28 +19,32 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkBatch.c,v 1.14 2007-08-31 21:06:16 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkBatch.c,v 1.15 2007-10-04 06:38:54 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 
 #include "AS_global.h"
 #include "AS_GKP_include.h"
 #include "AS_PER_gkpStore.h"
 
 int Check_BatchMesg(BatchMesg          *bat_mesg){
-  GateKeeperBatchRecord  gkpb = {0};
+  GateKeeperBatchRecord  gkpb;
 
   clearGateKeeperBatchRecord(&gkpb);
 
+  gkpStore->gkp.batInput++;
+
   if (bat_mesg->eaccession == 0) {
-    fprintf(errorFP, "# BAT Error: Batch has zero or no UID; can't add it.\n");
-    return(GATEKEEPER_FAILURE);
+    AS_GKP_reportError(AS_GKP_BAT_ZERO_UID);
+    gkpStore->gkp.batErrors++;
+    return(1);
   }
+
   if (getGatekeeperUIDtoIID(gkpStore, bat_mesg->eaccession, NULL) != 0) {
-    fprintf(errorFP, "# BAT Error: Batch "F_UID" exists, can't add it again.\n", bat_mesg->eaccession);
-    return(GATEKEEPER_FAILURE);
+    AS_GKP_reportError(AS_GKP_BAT_EXISTS, bat_mesg->eaccession);
+    gkpStore->gkp.batErrors++;
+    return(1);
   }
 
   gkpb.batchUID       = bat_mesg->eaccession;
@@ -50,7 +54,9 @@ int Check_BatchMesg(BatchMesg          *bat_mesg){
   appendIndexStore(gkpStore->bat, &gkpb);
   setGatekeeperUIDtoIID(gkpStore, bat_mesg->eaccession, getLastElemStore(gkpStore->bat), AS_IID_BAT);
 
-  return GATEKEEPER_SUCCESS;
+  gkpStore->gkp.batLoaded++;
+
+  return(0);
 }
 
 

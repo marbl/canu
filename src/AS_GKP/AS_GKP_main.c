@@ -19,12 +19,11 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_main.c,v 1.56 2007-09-28 07:31:22 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_main.c,v 1.57 2007-10-04 06:38:54 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
@@ -40,6 +39,7 @@ static char const *rcsid = "$Id: AS_GKP_main.c,v 1.56 2007-09-28 07:31:22 brianw
 GateKeeperStore *gkpStore  = NULL;
 FILE            *errorFP   = NULL;
 
+
 static
 void
 usage(char *filename, int longhelp) {
@@ -50,13 +50,13 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "\n");
   fprintf(stdout, "The first usage will append to or create a GateKeeper store:\n");
   fprintf(stdout, "  -a                     append to existing tore\n");
-  fprintf(stdout, "  -e <errorThreshhold>   set error threshhold\n");
   fprintf(stdout, "  -o <gkpStore>          append to or create gkpStore\n");
-  fprintf(stdout, "  -G                     gatekeeper for assembler Grande (default)\n");
-  fprintf(stdout, "  -T                     gatekeeper for assembler Grande with Overlap Based Trimming\n");
-  fprintf(stdout, "  -Q                     don't check quality-based data quality\n");
-  fprintf(stdout, "  -E <error.frg>         write errors to this file\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "  -T                     do not check minimum length (for OBT)\n");
+  fprintf(stdout, "\n");
   fprintf(stdout, "  -D                     do NOT limit insert size stddev to 10% of the mean\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "  -E <error.frg>         write errors to this file\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "  -v <vector-info>       load vector clear ranges into each read.\n");
   fprintf(stdout, "                         MUST be done on an existing, complete store.\n");
@@ -171,11 +171,8 @@ main(int argc, char **argv) {
   //
   int              append             = 0;
   int              outputExists       = 0;
-  int              check_qvs          = 1;
   char            *vectorClearFile    = NULL;
   int              assembler          = AS_ASSEMBLER_GRANDE;
-  int              nerrs              = 0;   // Number of errors in current run
-  int              maxerrs            = 1;   // Number of errors allowed before we punt
   int              firstFileArg       = 0;
   char            *errorFile          = NULL;
   int              believeInputStdDev = 0;
@@ -216,8 +213,7 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-b") == 0) {
       begIID = atoi(argv[++arg]);
     } else if (strcmp(argv[arg], "-e") == 0) {
-      maxerrs = atoi(argv[++arg]);
-      endIID  = maxerrs;
+      endIID  = atoi(argv[++arg]);
     } else if (strcmp(argv[arg], "-h") == 0) {
       hlp++;
       err++;
@@ -226,12 +222,8 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-v") == 0) {
       vectorClearFile = argv[++arg];
       firstFileArg    = 1;  // gets us around the input file sanity check, unused otherwise
-    } else if (strcmp(argv[arg], "-G") == 0) {
-      assembler = AS_ASSEMBLER_GRANDE;
     } else if (strcmp(argv[arg], "-T") == 0) {
       assembler = AS_ASSEMBLER_OBT;
-    } else if (strcmp(argv[arg], "-Q") == 0) {
-      check_qvs = 0;
     } else if (strcmp(argv[arg], "-E") == 0) {
       errorFile = argv[++arg];
     } else if (strcmp(argv[arg], "-D") == 0) {
@@ -620,7 +612,7 @@ main(int argc, char **argv) {
       Load_SFF(inFile);
     } else {
       while (EOF != ReadProtoMesg_AS(inFile, &pmesg)) {
-        int success = GATEKEEPER_SUCCESS;
+        int success = 0;
 
         if (pmesg->t == MESG_ADT) {
           //  Ignore
@@ -631,26 +623,21 @@ main(int argc, char **argv) {
         } else if (pmesg->t == MESG_LIB) {
           success = Check_LibraryMesg((LibraryMesg *)pmesg->m, believeInputStdDev);
         } else if (pmesg->t == MESG_FRG) {
-          success = Check_FragMesg((FragMesg *)pmesg->m, check_qvs, assembler);
+          success = Check_FragMesg((FragMesg *)pmesg->m, assembler);
         } else if (pmesg->t == MESG_LKG) {
           success = Check_LinkMesg((LinkMesg *)pmesg->m);
         } else if (pmesg->t == MESG_VER) {
           //  Ignore
         } else {
-          fprintf(errorFP,"# GKP Error: Unknown message with type %s.\n", MessageTypeName[pmesg->t]);
-          success = GATEKEEPER_FAILURE;
+          //  Ignore messages we don't understand
+          AS_GKP_reportError(AS_GKP_UNKNOWN_MESSAGE, MessageTypeName[pmesg->t]);
+          success = 1;
         }
 
-        if (success != GATEKEEPER_SUCCESS) {
-          fprintf(errorFP,"# GKP Error: at line %d:\n", GetProtoLineNum_AS());
-          WriteProtoMesg_AS(errorFP,pmesg);
-          nerrs++;
+        if (success != 0) {
+          //fprintf(errorFP,"# GKP Error: at line %d:\n", GetProtoLineNum_AS());
+          //WriteProtoMesg_AS(errorFP,pmesg);
         }
-      }
-
-      if (nerrs >= maxerrs) {
-        fprintf(errorFP, "# GKP Error: Too many errors (%d), can't continue.\n", nerrs);
-        goto done;
       }
     }
 
@@ -664,13 +651,12 @@ main(int argc, char **argv) {
     }
   }
 
- done:
   closeGateKeeperStore(gkpStore);
 
   if (errorFile)
     fclose(errorFP);
 
-  fprintf(stderr, "GKP finished with %d errors.\n", nerrs);
+  ;
 
-  return(0);
+  return(AS_GKP_summarizeErrors());
 }

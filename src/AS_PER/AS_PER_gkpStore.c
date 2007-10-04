@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.39 2007-08-24 15:29:48 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.40 2007-10-04 06:38:54 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -317,9 +317,25 @@ createGateKeeperStore(const char *path) {
 
 void
 closeGateKeeperStore(GateKeeperStore *gkpStore) {
+  char  name[FILENAME_MAX];
+  FILE *gkpinfo;
 
   if (gkpStore == NULL)
     return;
+
+  sprintf(name,"%s/gkp", gkpStore->storePath);
+  errno = 0;
+  gkpinfo = fopen(name, "w");
+  if (errno) {
+    fprintf(stderr, "failed to write gatekeeper store into to '%s': %s\n", name, strerror(errno));
+    exit(1);
+  }
+
+  AS_UTL_safeWrite(gkpinfo, &gkpStore->gkp, "closeGateKeeperStore:header", sizeof(GateKeeperStoreInfo), 1);
+  if (fclose(gkpinfo)) {
+    fprintf(stderr, "failed to close gatekeeper store '%s': %s\n", name, strerror(errno));
+    exit(1);
+  }
 
   if(gkpStore->bat != NULL)
     closeStore(gkpStore->bat);

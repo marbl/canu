@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.40 2007-08-24 15:29:48 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.41 2007-10-04 06:38:54 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -398,6 +398,36 @@ typedef struct {
   uint32    gkpBatchRecordSize;
   uint32    gkpLibraryRecordSize;
   uint32    gkpFragmentRecordSize;
+
+  //  Statistics on our load
+
+  uint32    batInput;
+  uint32    batLoaded;
+  uint32    batErrors;
+  uint32    batWarnings;
+
+  uint32    libInput;
+  uint32    libLoaded;
+  uint32    libErrors;
+  uint32    libWarnings;
+
+  uint32    frgInput;
+  uint32    frgLoaded;
+  uint32    frgErrors;
+  uint32    frgWarnings;
+
+  uint32    lkgInput;
+  uint32    lkgLoaded;
+  uint32    lkgErrors;
+  uint32    lkgWarnings;
+
+  uint32    sffInput;
+  uint32    sffLoaded;
+  uint32    sffErrors;
+  uint32    sffWarnings;
+
+  uint32    sffLibCreated;
+
 } GateKeeperStoreInfo;
 
 #define UID_NAMESPACE_AS 'U'

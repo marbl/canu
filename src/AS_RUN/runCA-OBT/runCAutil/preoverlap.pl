@@ -35,9 +35,10 @@ sub preoverlap {
         caFailure() if ($failedFiles);
 
         my $cmd;
-        $cmd  = "$bin/gatekeeper -e 10000000 -o $wrk/$asm.gkpStore ";
-        $cmd .= "-Q -T " if (getGlobal("doOverlapTrimming"));
+        $cmd  = "$bin/gatekeeper -o $wrk/$asm.gkpStore ";
+        $cmd .= " -T " if (getGlobal("doOverlapTrimming"));
         $cmd .= " -D " if (getGlobal("gkpBelieveInputStdDev"));
+        $cmd .= " -E $wrk/0-preoverlap/gatekeeper.errors ";
         $cmd .= "$gkpInput ";
         $cmd .= "> $wrk/0-preoverlap/gatekeeper.err 2>&1";
         if (runCommand("$wrk/0-preoverlap", $cmd)) {

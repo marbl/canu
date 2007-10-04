@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.1 2007-09-28 07:31:22 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.2 2007-10-04 06:38:55 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -221,6 +221,11 @@ readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
     uint64  junk;
     AS_UTL_safeRead(sff, &junk, "readsff_read_8", sizeof(char), 8 - padding_length);
   }
+
+#if 0
+  fprintf(stderr, "%s\n", r->bases);
+  fprintf(stderr, "%s\n", r->quality);
+#endif
 }
 
 
@@ -265,6 +270,8 @@ readsff_constructUIDFromName(char *name, int constructReadUID) {
   x = position / 4096;
   y = position % 4096;
 
+  assert(4 + 31 + 3 + 14 + 12 == 64);
+
   int err = 0;
 
   if (timestamp > 1 << 31)
@@ -276,10 +283,11 @@ readsff_constructUIDFromName(char *name, int constructReadUID) {
   if (y > 4096)
     err |= 8;
 
-  if (err)
-    fprintf(stdout, "%s -- err %d -- timestamp:0x%08lx region:0x%08lx position:0x%08lx (x=%lu y=%lu)\n", name, err, timestamp, region, position, x, y);
-
-  assert(4 + 31 + 3 + 14 + 12 == 64);
+  if (err) {
+    //fprintf(stdout, "%s -- err %d -- timestamp:0x%08lx region:0x%08lx position:0x%08lx (x=%lu y=%lu)\n", name, err, timestamp, region, position, x, y);
+    AS_GKP_reportError(AS_GKP_FRG_UNKNOWN_LIB, name);
+    gkpStore->gkp.sffWarnings++;
+  }
 
   if (constructReadUID) {
     uid   = 0;
@@ -340,9 +348,8 @@ readsff_constructLibraryIIDFromName(char *name) {
 
     iid = getLastElemStore(gkpStore->lib);
 
-#if 0
-    fprintf(stderr, "added library "F_UID" at iid "F_IID"\n", gkl.libraryUID, iid);
-#endif
+    gkpStore->gkp.sffLibCreated++;
+    //fprintf(stderr, "added library "F_UID" at iid "F_IID"\n", gkl.libraryUID, iid);
   }
 
   return(iid);
@@ -366,6 +373,7 @@ Load_SFF(FILE *sff) {
   //  get the first read.  Then, we use the read timestamp, hash and
   //  region to make a library.
 
+  gkpStore->gkp.sffInput += h->number_of_reads;
 
   for (rn=0; rn < h->number_of_reads; rn++) {
     GateKeeperFragmentRecord gkf = {0};
@@ -378,10 +386,10 @@ Load_SFF(FILE *sff) {
     gkf.mateIID = 0;
 
     if (getGatekeeperUIDtoIID(gkpStore, gkf.readUID, NULL)) {
-      fprintf(errorFP, "# SFF Error: Fragment "F_UID" exists, can't add it again.\n",
-              gkf.readUID);
+      AS_GKP_reportError(AS_GKP_SFF_ALREADY_EXISTS,
+                         gkf.readUID);
+      gkpStore->gkp.sffErrors++;
       continue;
-      //return(GATEKEEPER_FAILURE);
     }
 
     gkf.libraryIID  = readsff_constructLibraryIIDFromName(r->name);
@@ -394,46 +402,78 @@ Load_SFF(FILE *sff) {
     //
     //  We have a policy decision here.  If only one of the ranges is
     //  set, we can either ignore both, or set the unset one to the
-    //  maximum.
+    //  maximum.  We set it to the maximum.
 
     int  clq = r->clip_quality_left;
     int  crq = r->clip_quality_right;
     int  which;
 
-    if (clq == 0)  clq = 1;
+    assert((r->clip_quality_left == 0) || (h->key_length <= r->clip_quality_left));
+    assert((r->clip_adapter_left == 0) || (h->key_length <= r->clip_adapter_left));
+
+#if 0
+    fprintf(stderr, "%3d %3d %3d %3d ", r->clip_quality_left, r->clip_quality_right, r->clip_adapter_left, r->clip_adapter_right);
+#endif
+
+    if (clq == 0)  clq = h->key_length + 1;
     if (crq == 0)  crq = r->number_of_bases;
 
     for (which=0; which <= AS_READ_CLEAR_LATEST; which++) {
-      gkf.clearBeg[which] = clq - 1;
-      gkf.clearEnd[which] = crq - 1;
+      gkf.clearBeg[which] = clq - h->key_length - 1;
+      gkf.clearEnd[which] = crq - h->key_length;
     }
-
-    gkf.hasQualityClear = 0;
-    gkf.clearBeg[AS_READ_CLEAR_QLT] = 0;
-    gkf.clearEnd[AS_READ_CLEAR_QLT] = 0;
 
     if ((r->clip_quality_left > 0) && (r->clip_quality_right > 0)) {
       gkf.hasQualityClear = 1;
-      gkf.clearBeg[AS_READ_CLEAR_QLT] = r->clip_quality_left  - 1;
-      gkf.clearEnd[AS_READ_CLEAR_QLT] = r->clip_quality_right - 1;
-    }
+      gkf.clearBeg[AS_READ_CLEAR_QLT] = r->clip_quality_left  - h->key_length - 1;
+      gkf.clearEnd[AS_READ_CLEAR_QLT] = r->clip_quality_right - h->key_length;
+    } else if (r->clip_quality_left > 0) {
+      gkf.hasQualityClear = 1;
+      gkf.clearBeg[AS_READ_CLEAR_QLT] = r->clip_quality_left  - h->key_length - 1;
+      gkf.clearEnd[AS_READ_CLEAR_QLT] = r->number_of_bases - h->key_length;
+    } else if (r->clip_quality_right > 0) {
+      gkf.hasQualityClear = 1;
+      gkf.clearBeg[AS_READ_CLEAR_QLT] = 0;
+      gkf.clearEnd[AS_READ_CLEAR_QLT] = r->clip_quality_right - h->key_length;
+    } else {
+      gkf.hasQualityClear = 0;
+      gkf.clearBeg[AS_READ_CLEAR_QLT] = 0;
+      gkf.clearEnd[AS_READ_CLEAR_QLT] = 0;
 
-    gkf.hasVectorClear = 0;
-    gkf.clearBeg[AS_READ_CLEAR_VEC] = 0;
-    gkf.clearEnd[AS_READ_CLEAR_VEC] = 0;
+    }
 
     if ((r->clip_adapter_left > 0) && (r->clip_adapter_right > 0)) {
       gkf.hasVectorClear  = 1;
-      gkf.clearBeg[AS_READ_CLEAR_VEC] = r->clip_adapter_left  - 1;
-      gkf.clearEnd[AS_READ_CLEAR_VEC] = r->clip_adapter_right - 1;
+      gkf.clearBeg[AS_READ_CLEAR_VEC] = r->clip_adapter_left  - h->key_length - 1;
+      gkf.clearEnd[AS_READ_CLEAR_VEC] = r->clip_adapter_right - h->key_length;
+    } else if (r->clip_adapter_left > 0) {
+      gkf.hasVectorClear  = 1;
+      gkf.clearBeg[AS_READ_CLEAR_VEC] = r->clip_adapter_left  - h->key_length - 1;
+      gkf.clearEnd[AS_READ_CLEAR_VEC] = r->number_of_bases - h->key_length;
+    } else if (r->clip_adapter_right > 0) {
+      gkf.hasVectorClear  = 1;
+      gkf.clearBeg[AS_READ_CLEAR_VEC] = 0;
+      gkf.clearEnd[AS_READ_CLEAR_VEC] = r->clip_adapter_right - h->key_length;
+    } else {
+      gkf.hasVectorClear = 0;
+      gkf.clearBeg[AS_READ_CLEAR_VEC] = 0;
+      gkf.clearEnd[AS_READ_CLEAR_VEC] = 0;
     }
+
+#if 0
+    fprintf(stderr, "-- %3d %3d %3d %3d\n",
+            gkf.clearBeg[AS_READ_CLEAR_QLT],
+            gkf.clearEnd[AS_READ_CLEAR_QLT],
+            gkf.clearBeg[AS_READ_CLEAR_VEC],
+            gkf.clearEnd[AS_READ_CLEAR_VEC]);
+#endif
 
 
     //  Now add the fragment to the store
     //
     gkf.readIID = getLastElemStore(gkpStore->frg) + 1;
 
-    gkf.seqLen = strlen(r->bases);
+    gkf.seqLen = strlen(r->bases + h->key_length);
     gkf.hpsLen = 0;
     gkf.srcLen = strlen(r->name);
 
@@ -456,13 +496,17 @@ Load_SFF(FILE *sff) {
     setGatekeeperUIDtoIID(gkpStore, gkf.readUID, gkf.readIID, AS_IID_FRG);
     appendIndexStore(gkpStore->frg, &gkf);
 
-    appendVLRecordStore(gkpStore->seq, r->bases, gkf.seqLen);
+    appendVLRecordStore(gkpStore->seq, r->bases + h->key_length, gkf.seqLen);
 
-    encodeSequenceQuality(encodedsequence, r->bases, r->quality);
+    encodeSequenceQuality(encodedsequence,
+                          r->bases + h->key_length,
+                          r->quality + h->key_length);
     appendVLRecordStore(gkpStore->qlt, encodedsequence, gkf.seqLen);
 
     appendVLRecordStore(gkpStore->hps, NULL,    0);
     appendVLRecordStore(gkpStore->src, r->name, gkf.srcLen);
+
+    gkpStore->gkp.sffLoaded++;
 
 #if 0
     fprintf(stderr, "Added '%s' of length %d  clears %d %d %d %d -- %d %d %d %d %d %d %d %d\n",
@@ -479,6 +523,6 @@ Load_SFF(FILE *sff) {
 
   fprintf(stderr, "Added %d 454 reads.\n", rn);
 
-  return(GATEKEEPER_SUCCESS);
+  return(0);
 }
 

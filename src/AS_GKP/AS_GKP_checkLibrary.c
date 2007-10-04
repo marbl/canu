@@ -19,11 +19,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.16 2007-08-31 21:06:16 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.17 2007-10-04 06:38:54 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 
 #include "AS_global.h"
 #include "AS_GKP_include.h"
@@ -53,45 +52,93 @@ Check_DistanceMesg(DistanceMesg    *dst_mesg,
 }
 
 
+
+void
+checkLibraryDistances(LibraryMesg *lib_mesg,
+                      int          believeInputStdDev) {
+
+  if (lib_mesg->link_orient == 'U')
+    return;
+
+
+  if ((lib_mesg->mean   <= 0.0) &&
+      (lib_mesg->stddev <= 0.0)) {
+    AS_GKP_reportError(AS_GKP_LIB_ILLEGAL_MEAN_STDDEV,
+                       lib_mesg->eaccession, lib_mesg->mean, lib_mesg->stddev);
+    if (lib_mesg->action == AS_ADD)
+      gkpStore->gkp.libWarnings++;
+    lib_mesg->mean   = 3000.0;
+    lib_mesg->stddev = 300.0;
+  }
+
+  if (lib_mesg->mean   <= 0.0) {
+    AS_GKP_reportError(AS_GKP_LIB_INVALID_MEAN,
+                       lib_mesg->eaccession, lib_mesg->mean, 10.0 * lib_mesg->stddev);
+    if (lib_mesg->action == AS_ADD)
+      gkpStore->gkp.libWarnings++;
+    lib_mesg->mean = 10.0 * lib_mesg->stddev;
+  }
+
+  if (lib_mesg->stddev <= 0.0) {
+    AS_GKP_reportError(AS_GKP_LIB_INVALID_STDDEV,
+                       lib_mesg->eaccession, lib_mesg->stddev, 0.1 * lib_mesg->mean);
+    if (lib_mesg->action == AS_ADD)
+      gkpStore->gkp.libWarnings++;
+    lib_mesg->stddev = 0.1 * lib_mesg->mean;
+  }
+
+  if (lib_mesg->mean < 3.0 * lib_mesg->stddev) {
+    AS_GKP_reportError(AS_GKP_LIB_STDDEV_TOO_BIG,
+                       lib_mesg->eaccession, lib_mesg->mean, lib_mesg->stddev, 0.1 * lib_mesg->mean);
+    if (lib_mesg->action == AS_ADD)
+      gkpStore->gkp.libWarnings++;
+    lib_mesg->stddev = 0.1 * lib_mesg->mean;
+  }
+
+  //  What's the 0.001 for?  If we reset the stddev in any of the
+  //  blocks above, we can still fail the test below, because
+  //  floating point math sucks.
+
+  if (believeInputStdDev == 0) {
+    if (lib_mesg->stddev + 0.001 < 0.1 * lib_mesg->mean) {
+      AS_GKP_reportError(AS_GKP_LIB_STDDEV_TOO_SMALL,
+                         lib_mesg->eaccession, lib_mesg->mean, lib_mesg->stddev, 0.1 * lib_mesg->mean);
+      if (lib_mesg->action == AS_ADD)
+        gkpStore->gkp.libWarnings++;
+      lib_mesg->stddev = 0.1 * lib_mesg->mean;
+    }
+  }
+}
+
+
 int
 Check_LibraryMesg(LibraryMesg      *lib_mesg,
                   int                believeInputStdDev) {
 
   GateKeeperLibraryRecord  gkpl;
 
+  if (lib_mesg->action == AS_ADD)
+    gkpStore->gkp.libInput++;
+
   if (lib_mesg->action == AS_IGNORE)
-    return GATEKEEPER_SUCCESS;
+    return 0;
 
   clearGateKeeperLibraryRecord(&gkpl);
 
-  if (lib_mesg->link_orient != 'U') {
-    if ((believeInputStdDev == 0) &&
-        (lib_mesg->stddev < 0.10 * lib_mesg->mean)) {
-      fprintf(errorFP, "# LIB Error:  Library "F_UID" has suspicious mean (%g) and standard deviation (%g); reset stddev to 0.10 * mean = %g.\n",
-              lib_mesg->eaccession, lib_mesg->mean, lib_mesg->stddev, 0.10 * lib_mesg->mean);
-      lib_mesg->stddev = 0.10 * lib_mesg->mean;
-      believeInputStdDev = 2;
-    }
-
-    if ((lib_mesg->mean   <= 0.0) ||
-        (lib_mesg->stddev <= 0.0) ||
-        (lib_mesg->mean - 3.0 * lib_mesg->stddev < 0.0)) {
-      fprintf(errorFP, "# LIB Error:  Library "F_UID" has lllegal mean (%g) and standard deviation (%g); one of mean, stddev, mean - 3*stddev is negative.\n",
-              lib_mesg->eaccession, lib_mesg->mean, lib_mesg->stddev);
-      return(GATEKEEPER_FAILURE);
-    }
-  }
+  checkLibraryDistances(lib_mesg, believeInputStdDev);
 
   if (lib_mesg->action == AS_ADD) {
     CDS_IID_t  iid = getGatekeeperUIDtoIID(gkpStore, lib_mesg->eaccession, NULL);
     if (iid) {
-      fprintf(errorFP, "# LIB Error: Library "F_UID","F_IID" already exists; can't add it again.\n",
+      AS_GKP_reportError(AS_GKP_LIB_EXISTS,
               lib_mesg->eaccession, iid);
-      return(GATEKEEPER_FAILURE);
+      gkpStore->gkp.libErrors++;
+      return(1);
     }
     if (lib_mesg->eaccession == 0) {
-      fprintf(errorFP, "# LIB Error: Library has zero or no UID; can't add it.\n");
-      return(GATEKEEPER_FAILURE);
+      AS_GKP_reportError(AS_GKP_LIB_ZERO_UID);
+      gkpStore->gkp.libErrors++;
+      return(1);
     }
 
     gkpl.libraryUID   = lib_mesg->eaccession;
@@ -119,13 +166,15 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
     appendIndexStore(gkpStore->lib, &gkpl);
     setGatekeeperUIDtoIID(gkpStore, lib_mesg->eaccession, getLastElemStore(gkpStore->lib), AS_IID_LIB);
 
+    gkpStore->gkp.libLoaded++;
+
   } else if (lib_mesg->action == AS_UPDATE) {
     CDS_IID_t  iid = getGatekeeperUIDtoIID(gkpStore, lib_mesg->eaccession, NULL);
 
     if (iid == 0) {
-      fprintf(errorFP, "# LIB Error:  Library "F_UID" does not exist, can't update it.\n",
-	      lib_mesg->eaccession);
-      return(GATEKEEPER_FAILURE);
+      AS_GKP_reportError(AS_GKP_LIB_DOESNT_EXIST_UPDATE,
+                         lib_mesg->eaccession);
+      return(1);
     }
 
     getIndexStore(gkpStore->lib, iid, &gkpl); 
@@ -138,28 +187,10 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
       setIndexStore(gkpStore->lib, iid, &gkpl);
     }
 
-  } else if (lib_mesg->action == AS_DELETE) {
-    CDS_IID_t  iid = getGatekeeperUIDtoIID(gkpStore, lib_mesg->eaccession, NULL);
-
-    if (iid == 0) {
-      fprintf(errorFP, "# LIB Error:  Library "F_UID" does not exist, can't delete it.\n",
-              lib_mesg->eaccession);
-      return(GATEKEEPER_FAILURE);
-    }
-
-    fprintf(errorFP, "# LIB Error:  Library "F_UID" exists, but we don't allow libraries to be deleted.\n",
-            lib_mesg->eaccession);
-    return(GATEKEEPER_FAILURE);
-
   } else {
-    fprintf(errorFP, "# LIB Error: invalid action %c.\n", lib_mesg->action);
-    return GATEKEEPER_FAILURE;
+    AS_GKP_reportError(AS_GKP_LIB_UNKNOWN_ACTION);
+    return 1;
   }
 
-  //  We return failure if we needed to muck with the std.dev -- the
-  //  library is still added though.
-  if (believeInputStdDev == 2)
-    return GATEKEEPER_FAILURE;
-
-  return GATEKEEPER_SUCCESS;
+  return 0;
 }

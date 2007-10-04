@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.31 2007-09-28 07:31:22 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.32 2007-10-04 06:38:54 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
@@ -38,9 +38,6 @@
 #define AS_ASSEMBLER_GRANDE  ((int)'A')
 #define AS_ASSEMBLER_OBT     ((int)'T')
 
-#define GATEKEEPER_SUCCESS 0
-#define GATEKEEPER_FAILURE 1
-
 extern GateKeeperStore  *gkpStore;
 extern FILE             *errorFP;
 
@@ -57,7 +54,6 @@ Check_LibraryMesg(LibraryMesg       *dst_mesg,
 
 int
 Check_FragMesg(FragMesg            *frg_mesg,  
-               int                   check_qvs,
                int                   assembler);
 
 int
@@ -133,5 +129,57 @@ updateVectorClear(char *vectorClearFile, char *gkpStoreName);
 
 void
 editStore(char *editsFileName, char *gkpStoreName, int update);
+
+
+//  Error handling
+
+void
+AS_GKP_reportError(int error, ...);
+
+int
+AS_GKP_summarizeErrors(void);
+
+
+#define AS_GKP_BAT_ZERO_UID              1
+#define AS_GKP_BAT_EXISTS                2
+
+#define AS_GKP_FRG_INVALID_CHAR_SEQ      3
+#define AS_GKP_FRG_INVALID_CHAR_QLT      4
+#define AS_GKP_FRG_INVALID_LENGTH        5
+#define AS_GKP_FRG_ZERO_UID              6
+#define AS_GKP_FRG_EXISTS                7
+#define AS_GKP_FRG_SEQ_TOO_LONG          8
+#define AS_GKP_FRG_SEQ_TOO_SHORT         9
+#define AS_GKP_FRG_CLR_BGN              10
+#define AS_GKP_FRG_CLR_END              11
+#define AS_GKP_FRG_CLR_TOO_SHORT        12
+#define AS_GKP_FRG_UNKNOWN_LIB          13
+#define AS_GKP_FRG_LOADED_DELETED       14
+#define AS_GKP_FRG_DOESNT_EXIST         15
+#define AS_GKP_FRG_HAS_MATE             16
+#define AS_GKP_FRG_UNKNOWN_ACTION       17
+
+#define AS_GKP_LIB_ILLEGAL_MEAN_STDDEV  18
+#define AS_GKP_LIB_INVALID_MEAN         19
+#define AS_GKP_LIB_INVALID_STDDEV       20
+#define AS_GKP_LIB_STDDEV_TOO_BIG       21
+#define AS_GKP_LIB_STDDEV_TOO_SMALL     22
+#define AS_GKP_LIB_EXISTS               23
+#define AS_GKP_LIB_ZERO_UID             24
+#define AS_GKP_LIB_DOESNT_EXIST_UPDATE  25
+#define AS_GKP_LIB_UNKNOWN_ACTION       28
+
+#define AS_GKP_LKG_SELF_LINK            29
+#define AS_GKP_LKG_UNSUPPORTED_TYPE     30
+#define AS_GKP_LKG_FRG_DOESNT_EXIST     31
+#define AS_GKP_LKG_ALREADY_MATED        33
+#define AS_GKP_LKG_LIB_DOESNT_EXIST     36
+#define AS_GKP_LKG_DIFFERENT_LIB        37
+#define AS_GKP_LKG_UNKNOWN_ACTION       38
+
+#define AS_GKP_SFF_ALREADY_EXISTS       39
+#define AS_GKP_SFF_UID_ERROR            40
+
+#define AS_GKP_UNKNOWN_MESSAGE          50
 
 #endif

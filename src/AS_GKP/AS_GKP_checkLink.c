@@ -19,11 +19,10 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkLink.c,v 1.14 2007-08-31 21:06:16 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkLink.c,v 1.15 2007-10-04 06:38:54 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <assert.h>
 
 #include "AS_global.h"
 #include "AS_GKP_include.h"
@@ -36,24 +35,30 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
   GateKeeperFragmentRecord   gkFrag1;
   GateKeeperFragmentRecord   gkFrag2;
 
+  if (lkg_mesg->action == AS_ADD)
+    gkpStore->gkp.lkgInput++;
 
   if (lkg_mesg->action == AS_IGNORE)
-    return GATEKEEPER_SUCCESS;
-
+    return 0;
 
   //  Check that the fragments are different
   //
   if (lkg_mesg->frag1 == lkg_mesg->frag2) {
-    fprintf(errorFP, "# LKG Error: Can't make a link from fragment "F_UID" to itself.\n" , lkg_mesg->frag1);
-    return(GATEKEEPER_FAILURE);
+    AS_GKP_reportError(AS_GKP_LKG_SELF_LINK,
+                       lkg_mesg->frag1);
+    if (lkg_mesg->action == AS_ADD)
+      gkpStore->gkp.lkgErrors++;
+    return(1);
   }
 
   //  Check that it's a currently supported link type
   //
   if (lkg_mesg->type != AS_MATE) {
-    fprintf(errorFP, "# LKG Error: Unsupported LKG type '%c' for frags "F_UID","F_UID" in library "F_UID"\n",
-            lkg_mesg->type, lkg_mesg->frag1, lkg_mesg->frag2, lkg_mesg->distance);
-    return(GATEKEEPER_FAILURE);
+    AS_GKP_reportError(AS_GKP_LKG_UNSUPPORTED_TYPE,
+                       lkg_mesg->type, lkg_mesg->frag1, lkg_mesg->frag2, lkg_mesg->distance);
+    if (lkg_mesg->action == AS_ADD)
+      gkpStore->gkp.lkgErrors++;
+    return(1);
   }
 
 
@@ -61,14 +66,20 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
   //
   frag1IID = getGatekeeperUIDtoIID(gkpStore, lkg_mesg->frag1, NULL);
   if (frag1IID == 0) {
-    fprintf(errorFP, "# LKG Error: Fragment "F_UID" not previously defined.\n", lkg_mesg->frag1);
-    return(GATEKEEPER_FAILURE);
+    AS_GKP_reportError(AS_GKP_LKG_FRG_DOESNT_EXIST,
+                       lkg_mesg->frag1);
+    if (lkg_mesg->action == AS_ADD)
+      gkpStore->gkp.lkgErrors++;
+    return(1);
   }
 
   frag2IID = getGatekeeperUIDtoIID(gkpStore, lkg_mesg->frag2, NULL);
   if (frag2IID == 0) {
-    fprintf(errorFP, "# LKG Error: Fragment "F_UID" not previously defined.\n", lkg_mesg->frag2);
-    return(GATEKEEPER_FAILURE);
+    AS_GKP_reportError(AS_GKP_LKG_FRG_DOESNT_EXIST,
+                       lkg_mesg->frag2);
+    if (lkg_mesg->action == AS_ADD)
+      gkpStore->gkp.lkgErrors++;
+    return(1);
   }
 
 
@@ -84,22 +95,23 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
     int err = 0;
 
     if ((gkFrag1.mateIID > 0) && (gkFrag1.mateIID != frag2IID)) {
-      fprintf(errorFP, "# LKG Error: Fragment "F_UID","F_IID" already has mate of iid="F_IID"; wanted to set to "F_UID","F_IID".\n",
+      AS_GKP_reportError(AS_GKP_LKG_ALREADY_MATED,
               gkFrag1.readUID, gkFrag1.readIID,
               gkFrag1.mateIID,
               lkg_mesg->frag2, frag2IID);
       err++;
     }
     if ((gkFrag2.mateIID > 0) && (gkFrag2.mateIID != frag1IID)) {
-      fprintf(errorFP, "# LKG Error: Fragment "F_UID","F_IID" already has mate of iid="F_IID"; wanted to set to "F_UID","F_IID".\n",
+      AS_GKP_reportError(AS_GKP_LKG_ALREADY_MATED,
               gkFrag2.readUID, gkFrag2.readIID,
               gkFrag2.mateIID,
               lkg_mesg->frag1, frag1IID);
       err++;
     }
-    if (err)
-      return(GATEKEEPER_FAILURE);
-
+    if (err) {
+      gkpStore->gkp.lkgErrors++;
+      return(1);
+    }
 
     //  If only one of the frags has the mate relationship, and the
     //  other has mateIID == 0, well, this should be difficult to do,
@@ -108,32 +120,29 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
 
 
     //  And if they ARE mated, just quit because their mates are
-    //  correct.  Is this a failure?  Sure.  It's unexpected.
+    //  correct.
     //
     if ((gkFrag1.mateIID > 0) &&
-        (gkFrag2.mateIID > 0)) {
-      fprintf(errorFP, "# LKG Error: fragments "F_UID","F_IID" and "F_UID","F_IID" already mated.\n",
-              gkFrag1.readUID, gkFrag1.readIID,
-              gkFrag2.readUID, gkFrag2.readIID);
-      return(GATEKEEPER_FAILURE);
-    }
+        (gkFrag2.mateIID > 0))
+      return(0);
   }
 
 
+  //  Version 1 encodes the library in the mate, not the read.  We
+  //  need to check that the library (from a distance record) is
+  //  there, and get the library IID to set in the reads.
+  //
   if (lkg_mesg->distance != 0) {
-    //  Version 1 encodes the library in the mate, not the read.  We
-    //  need to check that the library (from a distance record) is
-    //  there, and get the library IID to set in the reads.
-
-    gkFrag1.libraryIID = gkFrag2.libraryIID = getGatekeeperUIDtoIID(gkpStore, lkg_mesg->distance, NULL);
+    gkFrag1.libraryIID = getGatekeeperUIDtoIID(gkpStore, lkg_mesg->distance, NULL);
+    gkFrag2.libraryIID = gkFrag1.libraryIID;
 
     if (gkFrag1.libraryIID == 0) {
-      fprintf(errorFP, "# LKG Error: Library "F_UID" not previously defined.\n", lkg_mesg->distance);
-      return(GATEKEEPER_FAILURE);
+      AS_GKP_reportError(AS_GKP_LKG_LIB_DOESNT_EXIST,
+                         lkg_mesg->distance);
+      if (lkg_mesg->action == AS_ADD)
+        gkpStore->gkp.lkgErrors++;
+      return(1);
     }
-
-    //  One could also check that the two reads are version 1...but,
-    //  heck, if they aren't, we're still good to go!
 
     gkFrag1.orientation = lkg_mesg->link_orient;
     gkFrag2.orientation = lkg_mesg->link_orient;
@@ -142,13 +151,15 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
   //  Now make absolutely sure the two reads are in the same library.
   //
   if (gkFrag1.libraryIID != gkFrag2.libraryIID) {
-    fprintf(errorFP, "# LKG Error:  Fragment "F_IID" in lib "F_IID", different from fragment "F_IID" in lib "F_IID".\n",
+    AS_GKP_reportError(AS_GKP_LKG_DIFFERENT_LIB,
             frag1IID, gkFrag1.libraryIID,
             frag2IID, gkFrag2.libraryIID);
-    return(GATEKEEPER_FAILURE);
+    if (lkg_mesg->action == AS_ADD)
+      gkpStore->gkp.lkgErrors++;
+    return(1);
   }
 
-  //  And now set the library in the reads.
+  //  And commit the change.
 
   if (lkg_mesg->action == AS_ADD) {
     gkFrag1.mateIID    = frag2IID;
@@ -156,6 +167,8 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
 
     setIndexStore(gkpStore->frg, frag1IID, &gkFrag1);
     setIndexStore(gkpStore->frg, frag2IID, &gkFrag2);
+
+    gkpStore->gkp.lkgLoaded++;
   } else if (lkg_mesg->action == AS_DELETE) {
     gkFrag1.mateIID    = 0;
     gkFrag2.mateIID    = 0;
@@ -163,10 +176,9 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
     setIndexStore(gkpStore->frg, frag1IID, &gkFrag1);
     setIndexStore(gkpStore->frg, frag2IID, &gkFrag2);
   } else {
-    fprintf(errorFP, "# LKG Error: Unknown action %c\n", lkg_mesg->action);
-    return GATEKEEPER_FAILURE;
+    AS_GKP_reportError(AS_GKP_LKG_UNKNOWN_ACTION);
+    return 1;
   }
 
-  return GATEKEEPER_SUCCESS;
+  return 0;
 }
-
