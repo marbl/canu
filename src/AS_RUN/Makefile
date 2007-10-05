@@ -57,7 +57,7 @@ SCRIPTS = runCA \
           mateLinkIIDRanges.rb
 ifeq ($(SITE_NAME),JCVI)
   SCRIPTS += carun
-  HELP = runCA-OBT/runCAutil/carun_help.pl
+  HELP = runCA-OBT/runCAutil/jcvi.pl
 endif
 
 # Include for AS project rules
