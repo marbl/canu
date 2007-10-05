@@ -1,3 +1,5 @@
+use DBI;
+
 $JCVI = 1;
 $HELPTEXT =
   qq~Request a whole-genome shotgun assembly using Celera Assembler.

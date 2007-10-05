@@ -1,5 +1,4 @@
 # database handle
-use DBI;
 use IO::File;
 use Sys::Hostname;     #Use hostname
 use strict; 

@@ -57,7 +57,6 @@ SCRIPTS = runCA \
           mateLinkIIDRanges.rb
 ifeq ($(SITE_NAME),JCVI)
   SCRIPTS += carun
-  ASDB = runCA-OBT/runCAutil/asdb.pl
   HELP = runCA-OBT/runCAutil/carun_help.pl
 endif
 
@@ -82,15 +81,16 @@ RUNCAOBTUTIL = runCA-OBT/runCAutil/applyOverlapCorrection.pl \
                runCA-OBT/runCAutil/scaffolder.pl \
                runCA-OBT/runCAutil/terminate.pl \
                runCA-OBT/runCAutil/unitigger.pl \
-               runCA-OBT/runCAutil/bogUnitigger.pl
+               runCA-OBT/runCAutil/bogUnitigger.pl \
+	       runCA-OBT/runCAutil/asdb.pl
 
 runCA: runCA-OBT/runCA.pl.head runCA-OBT/runCAutil/util.pl runCA-OBT/runCA.pl $(RUNCAOBTUTIL) runCA-OBT/runCAutil/scheduler.pm
 	@cat runCA-OBT/runCA.pl.head runCA-OBT/runCAutil/util.pl $(RUNCAOBTUTIL) runCA-OBT/runCA.pl runCA-OBT/runCAutil/scheduler.pm > $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 	@ln -fs $(LOCAL_BIN)/$@ $(LOCAL_BIN)/runCA-OBT.pl
 
-carun: runCA-OBT/runCA.pl.head $(HELP) runCA-OBT/runCAutil/util.pl runCA-OBT/runCA.pl $(RUNCAOBTUTIL) $(ASDB) runCA-OBT/runCAutil/scheduler.pm
-	@cat runCA-OBT/runCA.pl.head $(HELP) runCA-OBT/runCAutil/util.pl $(RUNCAOBTUTIL) $(ASDB) runCA-OBT/runCA.pl runCA-OBT/runCAutil/scheduler.pm > $(LOCAL_BIN)/$@
+carun: runCA-OBT/runCA.pl.head $(HELP) runCA-OBT/runCAutil/util.pl runCA-OBT/runCA.pl $(RUNCAOBTUTIL) runCA-OBT/runCAutil/scheduler.pm
+	@cat runCA-OBT/runCA.pl.head $(HELP) runCA-OBT/runCAutil/util.pl $(RUNCAOBTUTIL) runCA-OBT/runCA.pl runCA-OBT/runCAutil/scheduler.pm > $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 ca_observer.plx: runCA-OBT/ca_observer.plx
