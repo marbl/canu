@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.32 2007-10-04 06:46:40 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.33 2007-10-05 07:42:06 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -120,7 +120,7 @@ checkClearRanges(FragMesg *frg_mesg,
   //  they are too long, we trim them, again, just so we can load them
   //  into the store.
   //
-  if (sl > AS_FRAG_MAX_LEN){
+  if (sl > AS_FRAG_MAX_LEN) {
     AS_GKP_reportError(AS_GKP_FRG_SEQ_TOO_LONG,
                        frg_mesg->eaccession, sl, AS_FRAG_MAX_LEN);
     sl = AS_FRAG_MAX_LEN;
@@ -129,7 +129,7 @@ checkClearRanges(FragMesg *frg_mesg,
     failed = 1;
   }
 
-  if (sl < AS_FRAG_MIN_LEN){
+  if (sl < AS_FRAG_MIN_LEN) {
     AS_GKP_reportError(AS_GKP_FRG_SEQ_TOO_SHORT,
                        frg_mesg->eaccession, sl, AS_FRAG_MIN_LEN);
     failed = 1;
@@ -217,6 +217,8 @@ setLibrary(GateKeeperFragmentRecord *gkf, FragMesg *frg_mesg) {
   }
 
   gkf->orientation = libOrientation[gkf->libraryIID];
+
+  return(0);
 }
 
 
@@ -247,6 +249,8 @@ setClearRanges(GateKeeperFragmentRecord *gkf, FragMesg *frg_mesg) {
     gkf->clearBeg[AS_READ_CLEAR_VEC] = 1;
     gkf->clearEnd[AS_READ_CLEAR_VEC] = 0;
   }
+
+  return(0);
 }
 
 
@@ -317,7 +321,7 @@ Check_FragMesg(FragMesg            *frg_mesg,
 
     //  Report if this fragment is dead
     //
-    if (failed == 1) {
+    if (failed) {
       AS_GKP_reportError(AS_GKP_FRG_LOADED_DELETED,
                          frg_mesg->eaccession);
       gkf.deleted = TRUE;

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.4 2007-10-05 06:23:59 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.5 2007-10-05 07:42:06 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -319,23 +319,18 @@ readsff_constructLibraryIIDFromName(char *name) {
   CDS_IID_t  iid = getGatekeeperUIDtoIID(gkpStore, uid, NULL);
 
   if (iid == 0) {
-    GateKeeperLibraryRecord  gkl  = {0};
+    GateKeeperLibraryRecord  gkl;
+
+    clearGateKeeperLibraryRecord(&gkl);
 
     gkl.libraryUID = uid;
-    gkl.comment[0] = 0;
-
-    gkl.spare2 = 0;
-    gkl.spare1 = 0;
 
     gkl.hpsIsFlowGram    = 1;
-    gkl.hpsIsPeakSpacing = 0;
 
+    gkl.deletePerfectPrefixes      = 1;
     gkl.doNotTrustHomopolymerRuns  = 1;
-    gkl.doNotOverlapTrim           = 0;
-    gkl.isNotRandom                = 0;
 
     gkl.orientation = AS_READ_ORIENT_UNKNOWN;
-    gkl.ZZZdeleted  = 0;
 
     gkl.mean   = 0.0;
     gkl.stddev = 0.0;

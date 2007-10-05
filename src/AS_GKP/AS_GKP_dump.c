@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.24 2007-10-04 06:38:54 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.25 2007-10-05 07:42:06 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,9 +41,6 @@ dumpGateKeeperInfo(char       *gkpStoreName) {
     exit(1);
   }
 
-  fprintf(stdout, "num fragments        = "F_S32"\n", getNumGateKeeperFragments(gkp));
-  fprintf(stdout, "num libraries        = "F_S32"\n", getNumGateKeeperLibraries(gkp));
-  fprintf(stdout, "\n");
   fprintf(stdout, "LOAD STATS\n");
   fprintf(stdout, "\n");
   fprintf(stdout, F_U32"\tbatInput\n",    gkp->gkp.batInput);
@@ -124,6 +121,9 @@ dumpGateKeeperInfo(char       *gkpStoreName) {
 
   fprintf(stdout, "\n");
   fprintf(stdout, "GLOBAL STATS\n");
+  fprintf(stdout, "\n");
+  fprintf(stdout, "numberFRG="F_S32"\n", getNumGateKeeperFragments(gkp));
+  fprintf(stdout, "numberLIB="F_S32"\n", getNumGateKeeperLibraries(gkp));
   fprintf(stdout, "\n");
   fprintf(stdout, "activeFRG="F_U32" deletedFRG="F_U32" matedFRG="F_U32" ", numActiveFrag, numDeletedFrag, numMatedFrag);
   for (i=0; i<AS_READ_CLEAR_UNTRIM + 1; i++)
