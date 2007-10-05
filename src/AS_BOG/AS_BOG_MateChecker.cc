@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.29 2007-09-26 20:29:06 eliv Exp $
- * $Revision: 1.29 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.30 2007-10-05 21:20:46 eliv Exp $
+ * $Revision: 1.30 $
 */
 
 #include <math.h>
@@ -51,6 +51,10 @@ namespace AS_BOG{
         closeStream(frags);
         closeGateKeeperStore(gkpStore);
     }
+
+    ///////////////////////////////////////////////////////////////////////////
+    
+    IntervalList* findPeakBad( std::vector<short>* badGraph, int tigLen);
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -294,7 +298,7 @@ namespace AS_BOG{
         UnitigsIter tigEditIter = tigGraph.unitigs->begin();
         for(; tigEditIter != tigGraph.unitigs->end(); tigEditIter++)
         {
-            if (*tigEditIter == NULL ) 
+            if (*tigEditIter == NULL || (*tigEditIter)->getNumFrags() < 2 ) 
                 continue;
 
             FragmentEnds* breaks = computeMateCoverage( *tigEditIter, globalStats,
@@ -306,6 +310,41 @@ namespace AS_BOG{
         tigGraph.unitigs->insert( tigGraph.unitigs->end(), splits->begin(), splits->end());
         delete splits;
 
+
+        splits = new UnitigVector(); // save split unitigs
+        // Lets do mate splitting a 2nd time and see how things look
+        tigEditIter = tigGraph.unitigs->begin();
+        for(; tigEditIter != tigGraph.unitigs->end(); tigEditIter++)
+        {
+            if (*tigEditIter == NULL || (*tigEditIter)->getNumFrags() < 2 ) 
+                continue;
+
+            FragmentEnds* breaks = computeMateCoverage( *tigEditIter, globalStats,
+                                                              tigGraph.bog_ptr );
+            tigGraph.accumulateSplitUnitigs( tigEditIter, breaks, splits );
+            delete breaks;
+        }
+        fprintf(stderr,"Num mate based splits iter 2 %d\n",splits->size());
+        tigGraph.unitigs->insert( tigGraph.unitigs->end(), splits->begin(), splits->end());
+        delete splits;
+        splits = new UnitigVector(); // save split unitigs
+        // Lets do mate splitting a 3rd time and see how things look
+        tigEditIter = tigGraph.unitigs->begin();
+        for(; tigEditIter != tigGraph.unitigs->end(); tigEditIter++)
+        {
+            if (*tigEditIter == NULL || (*tigEditIter)->getNumFrags() < 2 ) 
+                continue;
+
+            FragmentEnds* breaks = computeMateCoverage( *tigEditIter, globalStats,
+                                                              tigGraph.bog_ptr );
+            tigGraph.accumulateSplitUnitigs( tigEditIter, breaks, splits );
+            delete breaks;
+        }
+        fprintf(stderr,"Num mate based splits iter 3 %d\n",splits->size());
+        tigGraph.unitigs->insert( tigGraph.unitigs->end(), splits->begin(), splits->end());
+        delete splits;
+
+
         // Now we'll chuck out the contained frags that have unhappy mates
         UnitigVector* singletons = new UnitigVector(); // save singleton unitigs
         tigEditIter = tigGraph.unitigs->begin();
@@ -316,11 +355,28 @@ namespace AS_BOG{
 
             Unitig* tig = *tigEditIter;
             int tigLen  = tig->getLength();
+
             MateLocation positions(this);
             // Build mate position table
             positions.buildTable( tig );
             // Build good and bad mate graphs
             positions.buildHappinessGraphs( tigLen, globalStats );
+
+            // output the graphs
+            fprintf(stderr,"Per 300 bases good graph unitig %ld size %ld:\n",tig->id(),tigLen);
+            long sum = 0;
+            for(int i=0; i < tigLen; i++) {
+                if (i > 1 && i % 300 == 0) {
+                    fprintf(stderr,"%d ", sum / 300);
+                    sum = 0;
+                }
+                sum += (*positions.goodGraph)[ i ];
+            }
+            IntervalList *fwdBads,*revBads;
+            fprintf(stderr,"\nPer 300 bases bad fwd graph:\n");
+            fwdBads = findPeakBad( positions.badFwdGraph, tigLen );
+            fprintf(stderr,"\nPer 300 bases bad rev graph:\n");
+            revBads = findPeakBad( positions.badRevGraph, tigLen );
 
             // save position of singleton tig for case of a contain contain
             IdMap singleIds;
@@ -376,7 +432,7 @@ namespace AS_BOG{
                                 iuid offset = found->second;
                                 (*singletons)[ offset ]->addFrag( frag );
                                 singleIds[ frag.ident ] = offset;
-                                fprintf(stderr,"Contain placed in singleton frg %d off %d tig %d",
+                                fprintf(stderr,"Contain placed in singleton frg %d off %d tig %d\n",
                                         frag.ident, offset, (*singletons)[ offset ]->id());
                             } else { // happy mate leave in place
                                 frag.contained = 0; // Might pick something else
@@ -398,12 +454,19 @@ namespace AS_BOG{
 
     ///////////////////////////////////////////////////////////////////////////
 
-    void incrRange( short* graph, short val, iuid n, iuid m )
+    void incrRange( std::vector<short>* graph, short val, iuid n, iuid m )
     {
+        if (n == m)
+            return;
+        int sz = graph->size();
+        assert( m > n );
+        assert( n < sz );
+        assert( m <= sz );
         if (n < 0) n = 0;
+        if (m >= sz) m = sz-1;
 
         for(iuid i=n; i <=m ; i++)
-            graph[i] += val;
+            graph->at(i) += val;
     }
     bool contains( SeqInterval a, SeqInterval b)
     {
@@ -453,8 +516,6 @@ namespace AS_BOG{
     }
     ///////////////////////////////////////////////////////////////////////////
 
-    IntervalList* findPeakBad( short* badGraph, int tigLen);
-
     // hold over from testing if we should use 5' or 3' for range generation, now must use 3'
     static const bool MATE_3PRIME_END = true;
     FragmentEnds* MateChecker::computeMateCoverage( Unitig* tig, LibraryStats& globalStats,
@@ -482,7 +543,7 @@ namespace AS_BOG{
                 fprintf(stderr,"%d ", sum / 300);
                 sum = 0;
             }
-            sum += positions.goodGraph[ i ];
+            sum += positions.goodGraph->at( i );
         }
         IntervalList *fwdBads,*revBads;
         fprintf(stderr,"\nPer 300 bases bad fwd graph:\n");
@@ -544,7 +605,7 @@ namespace AS_BOG{
                 MateLocationEntry mloc = positions.getById( frag.ident );
                 if (mloc.id1 != 0 && mloc.isBad) { // only break on bad mates
 
-                    if ( fwdBad && bad < loc ) {
+                    if ( fwdBad && bad.bgn <= loc.end ) {
                         breakNow = true;
                     } else if ( !fwdBad && (loc.bgn == bad.end) ||
                             (combine && loc.end >  bad.bgn) ) {
@@ -614,14 +675,14 @@ namespace AS_BOG{
 
     ///////////////////////////////////////////////////////////////////////////
 
-    IntervalList* findPeakBad( short* badGraph, int tigLen ) {
+    IntervalList* findPeakBad( std::vector<short>* badGraph, int tigLen ) {
         long sum = 0;
         for(int i=0; i < tigLen; i++) {
             if (i > 1 && i % 300 == 0) {
                 fprintf(stderr,"%d ", sum / 300);
                 sum = 0;
             }
-            sum += badGraph[ i ];
+            sum += badGraph->at( i );
         }
         fprintf(stderr,"\n");
         IntervalList* peakBads = new IntervalList();
@@ -629,16 +690,16 @@ namespace AS_BOG{
         int badBegin, peakBad, lastBad;
         peakBad = lastBad = badBegin = 0;
         for(int i=0; i < tigLen; i++) {
-            if( badGraph[ i ] <= -3 ) {
+            if( badGraph->at( i ) <= -3 ) {
                 if (badBegin == 0)  // start bad region
                     badBegin = i;
-                if(badGraph[i] < peakBad) {
-                    peakBad   = badGraph[i];
+                if(badGraph->at(i) < peakBad) {
+                    peakBad   = badGraph->at(i);
                     peak.bgn = i;
                 } else if (lastBad < 0 && lastBad == peakBad) {
                     peak.end = i-1;
                 }
-                lastBad = badGraph[i];
+                lastBad = badGraph->at(i);
             } else {
                 if (badBegin > 0) {  // end bad region
                     fprintf(stderr,"Bad mates >3 from %d to %d peak %d from %d to %d\n",
@@ -677,9 +738,9 @@ namespace AS_BOG{
     
     void MateLocation::buildHappinessGraphs( int tigLen, LibraryStats& globalStats )
     {
-        goodGraph   = (short *)safe_calloc( tigLen+1, sizeof(short) );
-        badFwdGraph = (short *)safe_calloc( tigLen+1, sizeof(short) );
-        badRevGraph = (short *)safe_calloc( tigLen+1, sizeof(short) );
+        goodGraph->resize( tigLen+1 );
+        badFwdGraph->resize( tigLen+1 );
+        badRevGraph->resize( tigLen+1 );
 
         MateLocIter  posIter  = begin();
         for(;        posIter != end(); posIter++) {
@@ -740,7 +801,7 @@ namespace AS_BOG{
                         incrRange( badRevGraph, -1, beg, end);
                     } else {
                         // 2nd mate is forward, so mark bad towards tig end
-                        end = MIN( tigLen-1, mateBgn + badMax );
+                        end = MIN( tigLen, mateBgn + badMax );
                         beg = mateBgn;
                         if (MATE_3PRIME_END)
                             beg = mateEnd;
@@ -770,7 +831,7 @@ namespace AS_BOG{
                             fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
                                     mateId, mateBgn, mateEnd, fragId, lib);
 
-                            end = MIN( tigLen-1, frgBgn + badMax );
+                            end = MIN( tigLen, frgBgn + badMax );
                             beg = frgBgn;
                             if (MATE_3PRIME_END)
                                 beg = frgEnd;
@@ -781,7 +842,7 @@ namespace AS_BOG{
                         }
                     } else {
                         // 1st and 2nd forward so both bad 
-                        iuid end = MIN( tigLen-1, frgBgn + badMax );
+                        iuid end = MIN( tigLen, frgBgn + badMax );
                         iuid beg = frgBgn;
                         if (MATE_3PRIME_END)
                             beg = frgEnd;
@@ -793,7 +854,7 @@ namespace AS_BOG{
                                 fragId, frgBgn, frgEnd, mateId, lib);
 
                         // 2nd mate is forward, so mark bad towards tig end
-                        end = MIN( tigLen-1, mateBgn + badMax );
+                        end = MIN( tigLen, mateBgn + badMax );
                         beg = mateBgn;
                         if (MATE_3PRIME_END)
                             beg = mateEnd;
@@ -832,9 +893,9 @@ namespace AS_BOG{
     ///////////////////////////////////////////////////////////////////////////
     MateLocation::~MateLocation()
     {
-        safe_free( goodGraph );
-        safe_free( badFwdGraph );
-        safe_free( badRevGraph );
+        delete goodGraph;
+        delete badFwdGraph;
+        delete badRevGraph;
     }
 
     ///////////////////////////////////////////////////////////////////////////
