@@ -41,6 +41,7 @@ PROGS = fragmentDepth
 SCRIPTS = runCA \
           ca_observer.plx \
 	  aget.pl \
+	  ametrics.plx \
           assemblyCompare \
           qcCompare \
           tampaCompare \
@@ -81,8 +82,7 @@ RUNCAOBTUTIL = runCA-OBT/runCAutil/applyOverlapCorrection.pl \
                runCA-OBT/runCAutil/scaffolder.pl \
                runCA-OBT/runCAutil/terminate.pl \
                runCA-OBT/runCAutil/unitigger.pl \
-               runCA-OBT/runCAutil/bogUnitigger.pl \
-	       runCA-OBT/runCAutil/startStop.pl
+               runCA-OBT/runCAutil/bogUnitigger.pl
 
 runCA: runCA-OBT/runCA.pl.head runCA-OBT/runCAutil/util.pl runCA-OBT/runCA.pl $(RUNCAOBTUTIL) runCA-OBT/runCAutil/scheduler.pm
 	@cat runCA-OBT/runCA.pl.head runCA-OBT/runCAutil/util.pl $(RUNCAOBTUTIL) runCA-OBT/runCA.pl runCA-OBT/runCAutil/scheduler.pm > $(LOCAL_BIN)/$@
@@ -98,8 +98,12 @@ ca_observer.plx: runCA-OBT/ca_observer.plx
 	@chmod 775 $(LOCAL_BIN)/$@
 
 aget.pl: runCA-OBT/aget.pl
-	@cp $< $(LOCAL_BIN)/aget
-	@chmod 775 $(LOCAL_BIN)/aget
+	@cp $< $(LOCAL_BIN)/$@
+	@chmod 775 $(LOCAL_BIN)/$@
+
+ametrics.plx: runCA-OBT/ametrics.plx
+	@cp $< $(LOCAL_BIN)/$@
+	@chmod 775 $(LOCAL_BIN)/$@
 
 mateLinkIIDRanges.rb: asmQC/mateLinkIIDRanges.rb
 	@cp $< $(LOCAL_BIN)/$@
