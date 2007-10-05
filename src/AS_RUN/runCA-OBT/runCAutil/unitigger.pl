@@ -35,8 +35,7 @@ sub unitigger (@) {
         $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";
 
         if (runCommand("$wrk/4-unitigger", $cmd)) {
-            print STDERR "Failed to unitig.\n";
-            caFailure();
+            caFailure("Failed to unitig.\n");
         }
 
         touch("$wrk/4-unitigger/unitigger.success");

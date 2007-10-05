@@ -93,7 +93,7 @@ sub submitBatchJobs($$$$) {
        }
 
        if (runningOnGrid()) {
-          system($SGE) and (caFailure("Failed to submit overlap jobs."));
+          system($SGE) and caFailure("Failed to submit overlap jobs.");
        } else {
           pleaseExecute($SGE);
        }
@@ -153,9 +153,9 @@ sub setBinDirectory ($) {
         $binRoot = $t;
     }
     if (!defined($binRoot)) {
-        print STDERR "ERROR: I'm not installed in the assembler tree, and you\n";
-        print STDERR "       didn't specify a binDir in the spec file.\n";
-        caFailure();
+        my $errStr = "ERROR: I'm not installed in the assembler tree, and you\n";
+        $errStr .= "       didn't specify a binDir in the spec file.\n";
+        caFailure($errStr);
     }
 
     return("$binRoot/$thisarch/bin");
@@ -167,7 +167,7 @@ sub setBinDirectory ($) {
 #
 sub getGlobal ($) {
     my $var = shift @_;
-    (print "ERROR: $var has no defined value!\n" && caFailure()) if (!exists($global{$var}));
+    caFailure("ERROR: $var has no defined value!\n") if (!exists($global{$var}));
     return($global{$var});
 }
 
@@ -180,7 +180,7 @@ sub setGlobal ($$) {
         setGlobal("merSizeOvl", $val);
         return;
     }
-    (print "ERROR: $var is not a valid option.\n" && caFailure()) if (!exists($global{$var}));
+    caFailure("ERROR: $var is not a valid option.\n") if (!exists($global{$var}));
     $global{$var} = $val;
 }
 
@@ -341,11 +341,11 @@ sub setParameters ($@) {
         my $binRoot = "$FindBin::Bin";
 
         if (-e "$specFile") {
-            open(F, "< $specFile") or (print "Couldn't open '$specFile'\n" && caFailure());
+            open(F, "< $specFile") or caFailure("Couldn't open '$specFile'\n");
         } elsif (-e "$binRoot/$specFile") {
-            open(F, "< $binRoot/$specFile") or (print "Couldn't open '$binRoot/$specFile'\n" && caFailure());
+            open(F, "< $binRoot/$specFile") or caFailure("Couldn't open '$binRoot/$specFile'\n");
         } else {
-            (print "Didn't find '$specFile' or '$binRoot/$specFile'\n" && caFailure());
+            caFailure("Didn't find '$specFile' or '$binRoot/$specFile'\n");
         }
         while (<F>) {
             chomp;
@@ -395,8 +395,8 @@ sub setParameters ($@) {
         $gin = $bin;
     }
 
-    (print "Can't find local bin/gatekeeper in $bin\n" && caFailure()) if (! -e "$bin/gatekeeper");
-    (print "Can't find grid bin/gatekeeper in $gin\n" && caFailure())  if (! -e "$gin/gatekeeper");
+    caFailure("Can't find local bin/gatekeeper in $bin\n") if (! -e "$bin/gatekeeper");
+    caFailure("Can't find grid bin/gatekeeper in $gin\n")  if (! -e "$gin/gatekeeper");
 
     #  Set the globally accessible error rates.  Adjust them
     #  if they look strange.
@@ -409,22 +409,22 @@ sub setParameters ($@) {
     my $cnsER = getGlobal("cnsErrorRate");
 
     if (($ovlER < 0.0) || (0.25 < $ovlER)) {
-        (print "ovlErrorRate is $ovlER, this MUST be between 0.0 and 0.25.\n" && caFailure());
+        caFailure("ovlErrorRate is $ovlER, this MUST be between 0.0 and 0.25.\n");
     }
     if (($cgwER < 0.0) || (0.25 < $cgwER)) {
-        (print "cgwErrorRate is $cgwER, this MUST be between 0.0 and 0.25.\n" && caFailure());
+        caFailure("cgwErrorRate is $cgwER, this MUST be between 0.0 and 0.25.\n");
     }
     if (($cnsER < 0.0) || (0.25 < $cnsER)) {
-        (print "cnsErrorRate is $cnsER, this MUST be between 0.0 and 0.25.\n" && caFailure());
+        caFailure("cnsErrorRate is $cnsER, this MUST be between 0.0 and 0.25.\n");
     }
     if ($ovlER > $cnsER) {
-        (print "ovlErrorRate is $ovlER, this MUST be <= cnsErrorRate ($cnsER)\n" && caFailure());
+        caFailure("ovlErrorRate is $ovlER, this MUST be <= cnsErrorRate ($cnsER)\n");
     }
     if ($ovlER > $cgwER) {
-        (print "ovlErrorRate is $ovlER, this MUST be <= cgwErrorRate ($cgwER)\n" && caFailure());
+        caFailure("ovlErrorRate is $ovlER, this MUST be <= cgwErrorRate ($cgwER)\n");
     }
     if ($cnsER > $cgwER) {
-        (print "cnsErrorRate is $cnsER, this MUST be <= cgwErrorRate ($cgwER)\n" && caFailure());
+        caFailure("cnsErrorRate is $cnsER, this MUST be <= cgwErrorRate ($cgwER)\n");
     }
     $ENV{'AS_OVL_ERROR_RATE'} = $ovlER;
     $ENV{'AS_CGW_ERROR_RATE'} = $cgwER;
@@ -477,16 +477,16 @@ sub checkDirectories () {
     	$wrk = '/usr/local/aserver_new/var/assembly/'.$request_id;
     	$commandLineOptions .= " \"-d\" \"$wrk\" ";	
     } elsif ( !defined($wrk)) {
-    	(print "ERROR: I need a directory to run the assembly in (-d option).\n" && caFailure());
+    	caFailure("ERROR: I need a directory to run the assembly in (-d option).\n");
     }
     
     system("mkdir -p $wrk") if (! -d $wrk);
-    (print "ERROR: Directory '$wrk' doesn't exist (-d option) and couldn't be created.\n" && caFailure()) if (! -d $wrk);
+    caFailure("ERROR: Directory '$wrk' doesn't exist (-d option) and couldn't be created.\n") if (! -d $wrk);
 
     system("mkdir -p $wrk/log") if (! -d "$wrk/log");
     chmod 0755, "$wrk";
     chmod 0755, "$wrk/log";
-    (print "ERROR: Unable to create log directory.\n" && caFailure()) if (! -d "$wrk/log");
+    caFailure("ERROR: Unable to create log directory.\n") if (! -d "$wrk/log");
 
     #  Check that we have scratch space, or try to make one in the
     #  work directory.
@@ -512,7 +512,7 @@ sub checkDirectories () {
     #  If still not created, die.
     #
     if (! -d $scratch) {
-        (print "ERROR:  Scratch directory '$scratch' doesn't exist, and couldn't be created!\n" && caFailure());
+        caFailure("ERROR:  Scratch directory '$scratch' doesn't exist, and couldn't be created!\n");
     }
 }
 
@@ -568,7 +568,7 @@ sub findNumScaffoldsInCheckpoint ($$) {
     close(F);
     $numscaf = int($numscaf);
 
-    (print "findNumScaffoldsInCheckpoint($dir, $lastckp) found no scaffolds?!" && caFailure()) if ($numscaf == 0);
+    caFailure("findNumScaffoldsInCheckpoint($dir, $lastckp) found no scaffolds?!") if ($numscaf == 0);
     print STDERR "Found $numscaf scaffolds in $dir checkpoint number $lastckp.\n";
     return($numscaf);
 }
@@ -586,7 +586,7 @@ sub getNumberOfFragsInStore ($$$) {
     close(F);
 
     $numFrags = $1 if (m/^Last frag in store is iid = (\d+)$/);
-    (print "No frags in the store?\n" && caFailure()) if ($numFrags == 0);
+    caFailure("No frags in the store?\n") if ($numFrags == 0);
     return($numFrags);
 }
 
@@ -618,7 +618,7 @@ sub backupFragStore ($) {
         unlink "$wrk/$asm.gkpStore/frg";
         if (system("cp -p $wrk/$asm.gkpStore/frg.$backupName $wrk/$asm.gkpStore/frg")) {
             unlink "$wrk/$asm.gkpStore/frg";
-            (print "Failed to restore gkpStore from backup.\n" && caFailure());
+            caFailure("Failed to restore gkpStore from backup.\n");
         }
     }
     if (! -e "$wrk/$asm.gkpStore/frg.$backupName") {
@@ -627,7 +627,7 @@ sub backupFragStore ($) {
 
         if (system("cp -p $wrk/$asm.gkpStore/frg $wrk/$asm.gkpStore/frg.$backupName")) {
             unlink "$wrk/$asm.gkpStore/frg.$backupName";
-            (print "Failed to backup gkpStore.\n" && caFailure());
+            caFailure("Failed to backup gkpStore.\n");
         }
     }
 }
@@ -671,7 +671,7 @@ sub submitScript ($) {
     my $script = "$output.sh";
     my $cmd;
 
-    open(F, "> $script") or (print "Failed to open '$script' for writing\n" && caFailure());
+    open(F, "> $script") or caFailure("Failed to open '$script' for writing\n");
     print F "#!/bin/sh\n";
     print F "#\n";
     print F "#  Attempt to (re)configure SGE.  For reasons Bri doesn't know,\n";
@@ -694,7 +694,7 @@ sub submitScript ($) {
     }
 
     system("chmod +x $script");
-    system($cmd) and (print "Failed to sumbit script.\n" && caFailure());
+    system($cmd) and caFailure("Failed to sumbit script.\n");
 
     exit(0);
 }
@@ -702,13 +702,15 @@ sub submitScript ($) {
 
 sub caFailure {
      my  $msg = shift;
-     print "$msg\n" if ( defined $msg && $msg !~ /^\s+$/);
+     print STDERR "$msg\n" if ( defined $msg && $msg !~ /^\s+$/);
      my $failureFile = 'ca.failed';
-     $failureFile = "$wrk/log/$failureFile" if ( $JCVI == 1 );
-     $failureFile = "$wrk/$failureFile" if ( $JCVI != 1 );
+     if ( -d $wrk ) {
+	$failureFile = "$wrk/log/$failureFile" if ( $JCVI == 1 );
+	$failureFile = "$wrk/$failureFile" if ( $JCVI != 1 );
+     }
      
      if ( !-e $failureFile )  {
-     	touch($failureFile);
+        system("touch $failureFile");
 	failure(undef);
      } else {
      	print "CA Failed\n";
@@ -721,7 +723,7 @@ sub caFailure {
 #  Create an empty file.  Much faster than system("touch ...").
 #
 sub touch ($) {
-    open(F, "> $_[0]") or (print "Failed to touch '$_[0]'\n" && caFailure());
+    open(F, "> $_[0]") or caFailure("Failed to touch '$_[0]'\n");
     print F "$wrk\n";
     print F "process id: " . getppid() . "\n";
     close(F);

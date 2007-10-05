@@ -33,7 +33,7 @@ sub mergeFragmentCorrection {
 
         close(F);
 
-        print "$failedJobs failed.  Good luck.\n" && caFailure() if ($failedJobs);
+        caFailure("$failedJobs failed.  Good luck.\n") if ($failedJobs);
             
         my $cmd;
         $cmd  = "$bin/cat-corrects ";
@@ -42,8 +42,7 @@ sub mergeFragmentCorrection {
         $cmd .= "> $wrk/2-frgcorr/cat-corrects.err 2>&1";
         if (runCommand("$wrk/2-frgcorr", $cmd)) {
             rename "$wrk/2-frgcorr/$asm.corr", "$wrk/2-frgcorr/$asm.corr.FAILED";
-            print STDERR "Failed to concatenate the fragment corrections.\n";
-	    caFailure();
+            caFailure("Failed to concatenate the fragment corrections.\n");
         }
     }
     

@@ -26,7 +26,7 @@ sub runMeryl ($$$) {
             $cmd .= "> $wrk/0-mercounts/meryl.out 2>&1";
 
             if (runCommand("$wrk/0-mercounts", $cmd)) {
-                (print "Failed.\n" && caFailure());
+                caFailure("Failed.\n");
             }
         }
 
@@ -38,7 +38,7 @@ sub runMeryl ($$$) {
 
             if (runCommand("$wrk/0-mercounts", $cmd)) {
                 unlink "$wrk/0-mercounts/$asm.nmers.$merType.fasta";
-                (print "Failed.\n" && caFailure());
+                caFailure("Failed.\n");
             }
         }
     } elsif (merylVersion() eq "CA") {
@@ -60,11 +60,11 @@ sub runMeryl ($$$) {
 
             if (runCommand("$wrk/0-mercounts", $cmd)) {
                 unlink "$wrk/0-mercounts/$asm.nmers.$merType.fasta";
-                (print "Failed.\n" && caFailure());
+                caFailure("Failed.\n");
             }
         }
     } else {
-        (print "Unknown meryl version.\n" && caFailure());
+        caFailure("Unknown meryl version.\n");
     }
 }
 

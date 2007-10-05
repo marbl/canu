@@ -5,7 +5,6 @@ use Sys::Hostname;     #Use hostname
 use strict; 
 use FindBin qw($Bin);
 
-$JCVI = 1;
 my $dbh = undef;
 
 #Name:   init_db_connection
@@ -116,7 +115,7 @@ sub asdbInit () {
       or die("Database query \'$query\' failed: " . $dbh->errstr );
 
     my @row        = $qh->fetchrow();
-    my $request_id = $row[0];
+    $request_id = $row[0];
     $qh->finish();
     $qh = undef;
 
@@ -148,7 +147,7 @@ sub asdbInit () {
     $qh->finish();
     $qh = undef;
 
-    return $request_id;
+    print "Your Assembly Console request id is: $request_id\n";
 }
 
 #Name:   createInvocationScript
@@ -183,12 +182,11 @@ sub createInvocationScript() {
 
 #Name:   init_prop_file
 #Usage:  Initialize the properties file
-sub init_prop_file($$$) {
+sub init_prop_file($$) {
     if ( !$JCVI ) {
     	return;
     }
     
-    my $resdir    = shift;
     my $prefix    = shift;
     my $totalcmds = shift;
 
@@ -211,8 +209,8 @@ sub init_prop_file($$$) {
     total_commands=$totalcmds
     command_count=0
     ~;
-    if ( defined $resdir ) {
-        print $props_fh "resdir=$resdir\n";
+    if ( defined $wrk ) {
+        print $props_fh "resdir=$wrk\n";
     }
     if ( $notify == 1 && getGlobal('test') == 0 ) {
         print $props_fh "email=$notify\n";

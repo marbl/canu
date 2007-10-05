@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-my $MY_VERSION = " 1.6 (Build " . (qw/$Revision: 1.4 $/)[1] . ")";
+my $MY_VERSION = " 1.6 (Build " . (qw/$Revision: 1.5 $/)[1] . ")";
 my $HELPTEXT = " runCA -d <directory> -p <prefix> -s <specfile> ";
 $HELPTEXT =
   qq~Run a whole-genome shotgun assembly using Celera Assembler.
@@ -28,13 +28,11 @@ use vars qw($bin $gin $wrk $asm);
 use vars qw($numFrags);
 use vars qw(%global);
 use vars qw($commandLineOptions);
-use vars qw($JCVI $request_id $prefix $invocation);
+use vars qw($JCVI $invocation $request_id);
 use POSIX qw(ceil floor);
 
 #  Set some not reasonable defaults.
 $wrk = undef;
 $asm = "asm";
 $JCVI = 0;
-$request_id = undef;
-$prefix = 'tmp';
 $invocation = $0; 

@@ -85,8 +85,7 @@ sub terminate ($) {
         if (runCommand("$termDir", $cmd)) {
             rename "$termDir/$asm.asm", "$termDir/$asm.asm.FAILED";
             rename "$termDir/$asm.map", "$termDir/$asm.map.FAILED";
-            print STDERR "Failed.\n";
-	    caFailure();
+            caFailure("Failed.\n");
         }
     }
 
@@ -98,8 +97,7 @@ sub terminate ($) {
         $cmd .= "< $termDir/$asm.asm";
         if (runCommand("$termDir", $cmd)) {
             rename "$termDir/$asm.scaffold.fasta", "$termDir/$asm.scaffold.fasta.FAILED";
-            print STDERR "Failed.\n";
-	    caFailure();
+            caFailure("Failed.\n");
         }
     }
 
@@ -134,8 +132,7 @@ sub terminate ($) {
             $cmd = "$perl $bin/buildFragContigPosMap.pl $asm.posmap < $termDir/$asm.asm";
             if (runCommand("$termDir", $cmd)) {
                 rename "$termDir/$asm.posmap.frgscf", "$termDir/$asm.posmap.frgscf.FAILED";
-                print STDERR "buildFragContigMap failed.\n";
-		caFailure();
+                caFailure("buildFragContigMap failed.\n");
             }
         }
         if (! -e "$termDir/$asm.posmap.frgscf.sorted") {

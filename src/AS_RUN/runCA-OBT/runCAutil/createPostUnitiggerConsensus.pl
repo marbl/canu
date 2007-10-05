@@ -17,7 +17,7 @@ sub createPostUnitiggerConsensusJobs (@) {
                 }
                 close(F);
             } else {
-                (print "CGB file didn't match ###.cgb!\n" && caFailure());
+                caFailure("CGB file didn't match ###.cgb!\n");
             }
         }
         close(G);
@@ -29,7 +29,7 @@ sub createPostUnitiggerConsensusJobs (@) {
         $cmd .= "> $wrk/5-consensus/$asm.partitioned.err 2>&1";
         if (runCommand("$wrk/5-consensus", $cmd)) {
             rename "$wrk/5-consensus/$asm.partFile", "$wrk/5-consensus/$asm.partFile.FAILED";
-            (print "Failed to partition the fragStore.\n" && caFailure());
+            caFailure("Failed to partition the fragStore.\n");
         }
 
         touch "$wrk/5-consensus/$asm.partitioned";
@@ -46,7 +46,7 @@ sub createPostUnitiggerConsensusJobs (@) {
     my $jobP;
     my $jobs = 0;
 
-    open(F, "> $wrk/5-consensus/consensus.cgi.input") or (print "Failed to open '$wrk/5-consensus/consensus.cgi.input'\n" && caFailure());
+    open(F, "> $wrk/5-consensus/consensus.cgi.input") or caFailure("Failed to open '$wrk/5-consensus/consensus.cgi.input'\n");
     foreach my $f (@cgbFiles) {
         print F "$f\n";
 
@@ -61,7 +61,7 @@ sub createPostUnitiggerConsensusJobs (@) {
 
     $jobP = join ' ', sort { $a <=> $b } split '\s+', $jobP;
 
-    open(F, "> $wrk/5-consensus/consensus.sh") or (print "Can't open '$wrk/5-consensus/consensus.sh'\n" && caFailure());
+    open(F, "> $wrk/5-consensus/consensus.sh") or caFailure("Can't open '$wrk/5-consensus/consensus.sh'\n");
     print F "#!/bin/sh\n";
     print F "\n";
     print F "jobid=\$SGE_TASK_ID\n";
@@ -165,7 +165,7 @@ sub postUnitiggerConsensus (@) {
         if ($f =~ m/^.*(\d\d\d).cgb$/) {
             push @cgbIndices, $1;
         } else {
-            (print "Didn't match '$f' for CGB filename!\n" && caFailure());
+            caFailure("Didn't match '$f' for CGB filename!\n");
         }
     }
 
@@ -177,7 +177,7 @@ sub postUnitiggerConsensus (@) {
         }
     }
 
-    (print  "$failedJobs consensusAfterUnitigger jobs failed.  Good luck.\n" && caFailure()) if ($failedJobs);
+    caFailure("$failedJobs consensusAfterUnitigger jobs failed.  Good luck.\n") if ($failedJobs);
 
     #  All jobs finished.  Remove the partitioning from the gatekeeper
     #  store.  The gatekeeper store is currently (5 Mar 2007) tolerant

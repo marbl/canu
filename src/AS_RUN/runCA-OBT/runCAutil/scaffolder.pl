@@ -35,7 +35,7 @@ sub CGW ($$$$$$) {
         }
         close(F);
 
-        (print "ERROR:  Found a timing file, but didn't find the checkpoint information!\n" && caFailure()) if (!defined($ckp));
+        caFailure("ERROR:  Found a timing file, but didn't find the checkpoint information!\n") if (!defined($ckp));
         print STDERR "Found a timing file, restarting: $ckp\n";
     }
 
@@ -65,8 +65,7 @@ sub CGW ($$$$$$) {
     $cmd .= " $wrk/$thisDir/$asm.cgi ";
     $cmd .= " > $wrk/$thisDir/cgw.out 2>&1";
     if (runCommand("$wrk/$thisDir", $cmd)) {
-        print STDERR "Failed.\n";
-        caFailure();
+        caFailure("Failed.\n");
     }
 
 
@@ -154,12 +153,12 @@ sub eCR ($$$) {
             close(F);
 
             if (runCommand("$wrk/$thisDir", $cmd)) {
-                print STDERR "Failed.\n";
-                print STDERR "fragStore restored:    frg -> frg.during.$thisDir-scaffold.$curScaffold.FAILED\n";
-                print STDERR "                       frg.before-$thisDir-scaffold.$curScaffold -> frg\n";
+                my $errStr = "Failed.\n";
+                $errStr .= "fragStore restored:    frg -> frg.during.$thisDir-scaffold.$curScaffold.FAILED\n";
+                $errStr .= "                       frg.before-$thisDir-scaffold.$curScaffold -> frg\n";
                 rename "$wrk/$asm.gkpStore/frg", "$wrk/$asm.gkpStore/frg.during.$thisDir-scaffold.$curScaffold.FAILED";
                 rename "$wrk/$asm.gkpStore/frg.before-$thisDir-scaffold.$curScaffold", "$wrk/$asm.gkpStore/frg";
-                caFailure();
+                caFailure($errStr);
             }
             touch("$wrk/$thisDir/extendClearRanges-scaffold.$curScaffold.success");
         }
@@ -189,7 +188,7 @@ sub updateDistanceRecords ($) {
     $cmd .= " $wrk/$thisDir/stat/contig_final.distupdate.dst ";
     $cmd .= " > $wrk/$thisDir/cgw.distupdate.err 2>&1";
     if (runCommand("$wrk/$thisDir", $cmd)) {
-        (print "Gatekeeper Failed.\n" && caFailure());
+        caFailure("Gatekeeper Failed.\n");
     }
 
     touch("$wrk/$thisDir/cgw.distupdate.success");

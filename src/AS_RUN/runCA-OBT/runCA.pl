@@ -87,7 +87,6 @@ while (scalar(@ARGV)) {
 setParameters($specFile, @specOpts);
 printHelp();
 
-my $retVal;
 my @steps = 
 (
 	'Pre-overlap',			'preoverlap(@fragFiles)',
@@ -106,16 +105,13 @@ my @steps =
 	'Terminator',			'terminate($scaffoldDir)'
 );
 
-if ( !runningOnGrid()) {
-    $request_id = asdbInit();
-    print "Your Assembly Console request id is: $request_id\n";
-}
+asdbInit()  if ( !runningOnGrid());
 
 checkDirectories();
 copyFiles();
 print "Your work directory is: '$wrk'\n";
 
-createInvocationScript() && init_prop_file( undef, $asm,(scalar @steps)/2)
+createInvocationScript() && init_prop_file( $asm,(scalar @steps)/2)
 	if (!runningOnGrid());
 
 #  If this is a continuation, we don't want to do obt or fragment
@@ -171,7 +167,7 @@ for( my $index = 0 ; $index < scalar @steps ; $index+=2) {
 	}
 	print "Executing '$stepName'\n";
 	eval($stepCmd);
-	print "Finished executing '$stepName'\nReturn value: $retVal\n";
+	print "Finished executing '$stepName'\n";
 	if ( !-e "$wrk/log/$stepName.finished") {
 	    finish($stepName);
 	    $finished = 1 if ( $index + 2 >= scalar @steps );

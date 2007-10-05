@@ -15,8 +15,7 @@ sub checkOverlap {
     }
 
     if (!defined($isTrim)) {
-        print STDERR "checkOverlap()-- I need to know if I'm trimming or assembling!\n";
-	caFailure();
+        caFailure("checkOverlap()-- I need to know if I'm trimming or assembling!\n");
     }
 
     my $outDir = "1-overlapper";
@@ -27,7 +26,7 @@ sub checkOverlap {
         $ovlOpt = "-G";
     }
 
-    open(F, "< $wrk/$outDir/ovljobs.dat") or (print "Failed to open '$wrk/$outDir/ovljobs.dat'\n" && caFailure());
+    open(F, "< $wrk/$outDir/ovljobs.dat") or caFailure("Failed to open '$wrk/$outDir/ovljobs.dat'\n");
     $_ = <F>;
     my @bat = split '\s+', $_;
     $_ = <F>;
@@ -70,8 +69,7 @@ sub checkOverlap {
     close(F);
 
     if ($failedJobs) {
-        print STDERR "$failedJobs failed.  See $wrk/$outDir/overlap-restart.sh for resubmission commands.\n";
-        caFailure();
+        caFailure("$failedJobs failed.  See $wrk/$outDir/overlap-restart.sh for resubmission commands.\n");
     }
     
 }

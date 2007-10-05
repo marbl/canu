@@ -25,8 +25,7 @@ sub overlapTrim {
 
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
             rename "$wrk/0-overlaptrim/$asm.initialTrimLog", "$wrk/0-overlaptrim/$asm.initialTrimLog.failed";
-            print STDERR "Failed.\n";
-	    caFailure();
+            caFailure("Failed.\n");
         }
     }
 
@@ -43,8 +42,7 @@ sub overlapTrim {
 
         if (runCommand("$wrk/0-overlaptrim",
                        "find $wrk/0-overlaptrim-overlap -follow -name \\*ovb -print > $wrk/0-overlaptrim/all-overlaps-trim.ovllist")) {
-            print STDERR "Failed to generate a list of all the overlap files.\n";
-	    caFailure();
+            caFailure("Failed to generate a list of all the overlap files.\n");
         }
 
         my $cmd;
@@ -57,8 +55,7 @@ sub overlapTrim {
 
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
             rename "$wrk/$asm.obtStore", "$wrk/$asm.obtStore.FAILED";
-            print STDERR "Failed to build the obt store.\n";
-	    caFailure();
+            caFailure("Failed to build the obt store.\n");
         }
     }
 
@@ -76,8 +73,7 @@ sub overlapTrim {
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
 
           unlink "$wrk/0-overlaptrim/$asm.ovl.consolidated";
-          print STDERR "Failed to consolidate.\n";
-	  caFailure();
+          caFailure("Failed to consolidate.\n");
         }
     }
 
@@ -101,8 +97,7 @@ sub overlapTrim {
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
             unlink "$wrk/0-overlaptrim/$asm.mergeLog";
             unlink "$wrk/0-overlaptrim/$asm.mergeLog.stats";
-            print STDERR "Failed to merge trimming.\n";
-	    caFailure();
+            caFailure("Failed to merge trimming.\n");
         }
     }
 
@@ -123,8 +118,7 @@ sub overlapTrim {
         $cmd .= " > $wrk/0-overlaptrim/$asm.chimera.err 2>&1";
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
             rename "$wrk/0-overlaptrim/$asm.chimera.report", "$wrk/0-overlaptrim/$asm.chimera.report.FAILED";
-            print STDERR "Failed.\n";
-	    caFailure();
+            caFailure("Failed.\n");
         }
     }
 
