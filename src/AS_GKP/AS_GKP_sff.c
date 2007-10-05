@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.3 2007-10-04 06:47:34 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.4 2007-10-05 06:23:59 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -381,6 +381,14 @@ Load_SFF(FILE *sff) {
     gkf.readUID = readsff_constructUIDFromName(r->name, 1);
     gkf.readIID = 0;
     gkf.mateIID = 0;
+
+    if (r->number_of_bases - h->key_length < AS_FRAG_MIN_LEN) {
+      //  This isn't _really_ an error, and we'll notice it if we
+      //  compare the sffInput to sffLoaded counts.
+      //
+      //gkpStore->gkp.sffErrors++;
+      continue;
+    }
 
     if (getGatekeeperUIDtoIID(gkpStore, gkf.readUID, NULL)) {
       AS_GKP_reportError(AS_GKP_SFF_ALREADY_EXISTS,
