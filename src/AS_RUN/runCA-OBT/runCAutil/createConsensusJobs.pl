@@ -11,11 +11,11 @@ sub createPostScaffolderConsensusJobs ($) {
 
     #  Check that $cgwDir is complete
     #
-    (print "Didn't find '$cgwDir/$asm.SeqStore'.\n" && return -1)    if (! -d "$cgwDir/$asm.SeqStore");
-    (print "Didn't find '$cgwDir/$asm.cgw_contigs'.\n" && return -1) if (! -e "$cgwDir/$asm.cgw_contigs");
+    (print "Didn't find '$cgwDir/$asm.SeqStore'.\n" && caFailure())    if (! -d "$cgwDir/$asm.SeqStore");
+    (print "Didn't find '$cgwDir/$asm.cgw_contigs'.\n" && caFailure()) if (! -e "$cgwDir/$asm.cgw_contigs");
 
     my $lastckpt = findLastCheckpoint($cgwDir);
-    (print "Didn't find any checkpoints in '$cgwDir'\n" && return -1) if (!defined($lastckpt));
+    (print "Didn't find any checkpoints in '$cgwDir'\n" && caFailure()) if (!defined($lastckpt));
 
     my $partitionSize = int($numFrags / getGlobal("cnsPartitions"));
     $partitionSize = getGlobal("cnsMinFrags") if ($partitionSize < getGlobal("cnsMinFrags"));
@@ -25,7 +25,7 @@ sub createPostScaffolderConsensusJobs ($) {
         $cmd  = "$bin/PartitionSDB -all -seqstore $cgwDir/$asm.SeqStore -version $lastckpt -fragsper $partitionSize -input $cgwDir/$asm.cgw_contigs ";
         $cmd .= "> $wrk/8-consensus/partitionSDB.err 2>&1";
 
-        (print "Failed.\n" && return -1) if (runCommand("$wrk/8-consensus", $cmd));
+        (print "Failed.\n" && caFailure()) if (runCommand("$wrk/8-consensus", $cmd));
         touch("$wrk/8-consensus/partitionSDB.success");
     }
 
@@ -52,7 +52,7 @@ sub createPostScaffolderConsensusJobs ($) {
     my $jobP;
     my $jobs = 0;
 
-    open(CGW, "ls $cgwDir/$asm.cgw_contigs.* |") or return -1;
+    open(CGW, "ls $cgwDir/$asm.cgw_contigs.* |") or caFailure();
     while (<CGW>) {
         if (m/cgw_contigs.(\d+)/) {
             $jobP .= "$1\t";
@@ -65,7 +65,7 @@ sub createPostScaffolderConsensusJobs ($) {
 
     $jobP = join ' ', sort { $a <=> $b } split '\s+', $jobP;
 
-    open(F, "> $wrk/8-consensus/consensus.sh") or (print "Can't open '$wrk/8-consensus/consensus.sh'\n" && return -1);
+    open(F, "> $wrk/8-consensus/consensus.sh") or (print "Can't open '$wrk/8-consensus/consensus.sh'\n" && caFailure());
     print F "#!/bin/sh\n";
     print F "\n";
     print F "jobid=\$SGE_TASK_ID\n";
@@ -166,7 +166,7 @@ sub postScaffolderConsensus ($) {
     #
     my $failedJobs = 0;
 
-    open(CGWIN, "ls $cgwDir/$asm.cgw_contigs.* |") or return -1;
+    open(CGWIN, "ls $cgwDir/$asm.cgw_contigs.* |") or caFailure();
     while (<CGWIN>) {
         chomp;
 
@@ -182,7 +182,7 @@ sub postScaffolderConsensus ($) {
     }
     close(CGWIN);
 
-    (print "$failedJobs consensusAfterScaffolder jobs failed.  Good luck.\n" && return -1) if ($failedJobs);
+    (print "$failedJobs consensusAfterScaffolder jobs failed.  Good luck.\n" && caFailure()) if ($failedJobs);
 
     touch("$wrk/8-consensus/consensus.success");
 

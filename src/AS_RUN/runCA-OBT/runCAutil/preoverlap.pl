@@ -60,6 +60,10 @@ sub preoverlap {
         
     $numFrags = getNumberOfFragsInStore($bin, $wrk, $asm);
 
+    if (runCommand($wrk, "$bin/gatekeeper -dumpfrg $wrk/$asm.gkpStore 2> $wrk/gatekeeper.err | grep -v 'No source' > $wrk/$asm.frg")) {
+        unlink "$wrk/$asm.frg";
+    }    
+
  stopafter:
     stopAfter("initialStoreBuilding");    
 }

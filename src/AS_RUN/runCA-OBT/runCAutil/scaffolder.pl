@@ -35,7 +35,7 @@ sub CGW ($$$$$$) {
         }
         close(F);
 
-        (print "ERROR:  Found a timing file, but didn't find the checkpoint information!\n" && return -1) if (!defined($ckp));
+        (print "ERROR:  Found a timing file, but didn't find the checkpoint information!\n" && caFailure()) if (!defined($ckp));
         print STDERR "Found a timing file, restarting: $ckp\n";
     }
 
@@ -189,7 +189,7 @@ sub updateDistanceRecords ($) {
     $cmd .= " $wrk/$thisDir/stat/contig_final.distupdate.dst ";
     $cmd .= " > $wrk/$thisDir/cgw.distupdate.err 2>&1";
     if (runCommand("$wrk/$thisDir", $cmd)) {
-        (print "Gatekeeper Failed.\n" && return -1);
+        (print "Gatekeeper Failed.\n" && caFailure());
     }
 
     touch("$wrk/$thisDir/cgw.distupdate.success");

@@ -13,6 +13,13 @@ my $dbh = undef;
 #Output: none
 #Usage:  This function initializes a connection to the asdb database.
 sub init_db_connection() {
+    if ( !$JCVI ) {
+    	return;
+    }
+    my $sybase = $ENV{SYBASE};
+    $ENV{SYBASE} = '/usr/local/packages/sybase'
+    	if ( !defined $sybase or !-d $sybase );
+
 
     # Try to connect to the database server
     $dbh = DBI->connect(
@@ -36,6 +43,9 @@ sub init_db_connection() {
 #Output: none
 #Usage:  ASDB initializing for the new request
 sub asdbInit () {
+    if ( !$JCVI ) {
+    	return;
+    }
 
     my $project;
     my $alias;
@@ -146,6 +156,10 @@ sub asdbInit () {
 #Output: none
 #Usage:  Create invocation script
 sub createInvocationScript() {
+    if ( !$JCVI ) {
+    	return;
+    }
+    
     my $logDir = "$wrk/log";
     my $invocation_script = "$logDir/invocation.info";
     #writing the invocation
@@ -170,6 +184,10 @@ sub createInvocationScript() {
 #Name:   init_prop_file
 #Usage:  Initialize the properties file
 sub init_prop_file($$$) {
+    if ( !$JCVI ) {
+    	return;
+    }
+    
     my $resdir    = shift;
     my $prefix    = shift;
     my $totalcmds = shift;
@@ -204,7 +222,11 @@ sub init_prop_file($$$) {
       or die("Error closing '$pf'. Error Code: $!");
 }
 
-sub copy() {
+sub copyBack() {
+    if ( !$JCVI ) {
+    	return;
+    }
+    
     my $copyMode = getGlobal('copy');
 
     if ( $copyMode < getGlobal('noCopy') ) {
@@ -225,7 +247,7 @@ sub copy() {
 	 or bail("Error closing '$invocation_script'. Error Code: $!");
 
        if ( defined $user_dir and $user_dir ne '' ) {
-	  my $aget = "$Bin/aget";
+	  my $aget = "$Bin/aget.pl";
 	  my $agetCmd =  "$aget -mode $copyMode $request_id $user_dir >> $wrk/log/AGET.log";       
 	  print "Copying: '$agetCmd'\n";
 	  system($agetCmd);

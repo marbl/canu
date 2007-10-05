@@ -169,11 +169,20 @@ sub terminate ($) {
 #        }
     }
 
-    if (runCommand($termDir, "$bin/gatekeeper -dumpfrg $wrk/$asm.gkpStore 2> $termDir/gatekeeper.err | grep -v 'No source' > $termDir/$asm.frg")) {
-        unlink "$termDir/$asm.frg";
-    }
-	
+#    if (runCommand($termDir, "$bin/gatekeeper -dumpfrg $wrk/$asm.gkpStore 2> $termDir/gatekeeper.err | grep -v 'No source' > $termDir/$asm.frg")) {
+#        unlink "$termDir/$asm.frg";
+#    }    
+    
     if (! -e "$termDir/$asm.qc") {
+    	if ( -e "$wrk/$asm.frg" ) {
+		link "$wrk/$asm.frg", "$termDir/$asm.frg";
+	}    
+    	if ( -e "$wrk/$asm.catmap" && !-e "$termDir/$asm.catmap" )  {
+		link "$wrk/$asm.catmap", "$termDir/$asm.catmap";
+	}
+    	if ( -e "$wrk/$asm.seq.features" && !-e "$termDir/$asm.seq.features" )  {
+		link "$wrk/$asm.seq.features", "$termDir/$asm.seq.features";
+	}
         if (runCommand("$termDir", "$perl $bin/caqc.pl -euid -metrics $termDir/$asm.asm")) {
             rename "$termDir/$asm.qc", "$termDir/$asm.qc.FAILED";
         }
@@ -181,11 +190,11 @@ sub terminate ($) {
         summarizeConsensusStatistics("$wrk/5-consensus");
         summarizeConsensusStatistics("$wrk/8-consensus");
 
-        open(F, ">> $termDir/$asm.qc") or return -1;
+        open(F, ">> $termDir/$asm.qc") or caFailure();
 
         if (-e "$wrk/5-consensus/consensus.stats.summary") {
             print F "\n[Unitig Consensus]\n";
-            open(G, "<  $wrk/5-consensus/consensus.stats.summary") or return -1;
+            open(G, "<  $wrk/5-consensus/consensus.stats.summary") or caFailure();
             while (<G>) {
                 print F $_;
             }
@@ -194,7 +203,7 @@ sub terminate ($) {
 
         if (-e "$wrk/8-consensus/consensus.stats.summary") {
             print F "\n[Contig Consensus]\n";
-            open(G, "<  $wrk/8-consensus/consensus.stats.summary") or return -1;
+            open(G, "<  $wrk/8-consensus/consensus.stats.summary") or caFailure();
             while (<G>) {
                 print F $_;
             }
@@ -207,7 +216,7 @@ sub terminate ($) {
         my @H4;
         my $histMax = 0;
         if (-e "$termDir/$asm.posmap.frgscf.histogram1") {
-            open(G, "<  $termDir/$asm.posmap.frgscf.histogram1") or return -1;
+            open(G, "<  $termDir/$asm.posmap.frgscf.histogram1") or caFailure();
             while (<G>) {
                 my ($v, $s) = split '\s+', $_;
                 $H1[$v] = $s;
@@ -216,7 +225,7 @@ sub terminate ($) {
             close(G);
         }
         if (-e "$termDir/$asm.posmap.frgscf.histogram2") {
-            open(G, "<  $termDir/$asm.posmap.frgscf.histogram2") or return -1;
+            open(G, "<  $termDir/$asm.posmap.frgscf.histogram2") or caFailure();
             while (<G>) {
                 my ($v, $s) = split '\s+', $_;
                 $H2[$v] = $s;
@@ -225,7 +234,7 @@ sub terminate ($) {
             close(G);
         }
         if (-e "$termDir/$asm.posmap.frgscf.histogram3") {
-            open(G, "<  $termDir/$asm.posmap.frgscf.histogram3") or return -1;
+            open(G, "<  $termDir/$asm.posmap.frgscf.histogram3") or caFailure();
             while (<G>) {
                 my ($v, $s) = split '\s+', $_;
                 $H3[$v] = $s;
@@ -234,7 +243,7 @@ sub terminate ($) {
             close(G);
         }
         if (-e "$termDir/$asm.posmap.frgscf.histogram4") {
-            open(G, "<  $termDir/$asm.posmap.frgscf.histogram4") or return -1;
+            open(G, "<  $termDir/$asm.posmap.frgscf.histogram4") or caFailure();
             while (<G>) {
                 my ($v, $s) = split '\s+', $_;
                 $H4[$v] = $s;
@@ -409,7 +418,7 @@ sub terminate ($) {
 	chdir $wrk;
 	my @tempArr = split (/\//, $wrk);
 	$request_id = $tempArr[$#tempArr];
-	system("/local/packages/aserver/ametrics.plx -debug 9 $request_id $wrk/$asm.qc.metrics > $wrk/log/ametrics.log 2>&1");
+	system("$bin/ametrics.plx -debug 9 $request_id $wrk/$asm.qc.metrics > $wrk/log/ametrics.log 2>&1");
 	chdir $cwd;
     }	
  

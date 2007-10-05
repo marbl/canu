@@ -27,7 +27,7 @@ sub checkOverlap {
         $ovlOpt = "-G";
     }
 
-    open(F, "< $wrk/$outDir/ovljobs.dat") or (print "Failed to open '$wrk/$outDir/ovljobs.dat'\n" && return -1);
+    open(F, "< $wrk/$outDir/ovljobs.dat") or (print "Failed to open '$wrk/$outDir/ovljobs.dat'\n" && caFailure());
     $_ = <F>;
     my @bat = split '\s+', $_;
     $_ = <F>;

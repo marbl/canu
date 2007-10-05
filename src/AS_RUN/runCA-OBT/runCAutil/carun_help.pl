@@ -35,3 +35,5 @@ $HELPTEXT =
  Tracking assembly requests:  
  http://assemblyconsole.tigr.org/
 ~;
+
+1;
