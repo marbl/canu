@@ -47,13 +47,17 @@ my $text = undef;
 my $prefix = undef;
 
 our @DEPEND = ("TIGR::Foundation");
-our $REVISION = (qw$Revision: 1.1 $)[-1];
+our $REVISION = (qw$Revision: 1.2 $)[-1];
 our $VERSION = '2.2';
 our $VERSION_STRING = "$VERSION (Build $REVISION)";
 
 #This function initializes the connection to the database
 sub init_db_connection() {
  
+   my $sybase = $ENV{SYBASE};
+   $ENV{SYBASE} = '/usr/local/packages/sybase'
+       if ( !defined $sybase or !-d $sybase );
+
    print("Establishing a connection to the database");
    my $type = "Sybase";
    # Try to connect to the database server
