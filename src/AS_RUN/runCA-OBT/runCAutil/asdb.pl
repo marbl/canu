@@ -147,6 +147,9 @@ sub asdbInit () {
     $qh = undef;
 
     print "Your Assembly Console request id is: $request_id\n";
+    print "Please check the console for your job's status at\n";
+    print "http://aserver.tigr.org:8080/AserverConsole/\n";
+    
 }
 
 #Name:   createInvocationScript
