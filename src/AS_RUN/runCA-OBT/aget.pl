@@ -82,7 +82,10 @@ my %KEEP_FILES1 = (
 	'autoFinish' => 0,
 	'scaff'      => 0,
 	'cga.0'      => 0,
-	'bcp'        => 0
+	'bcp'        => 0,
+	'sq.context' => 0,
+	'sq.contigs' => 0,
+	'9-terminator' => 0,
 );
 
 #the suffix of files to be kept when clean level is 2
@@ -108,7 +111,8 @@ my %KEEP_FILES2 = (
 	'cga.0'      => 0,
 	'bcp'        => 0,
 	'sq.context' => 0,
-	'sq.contigs' => 0
+	'sq.contigs' => 0,
+	'9-terminator' => 0,
 );
 
 my @MY_DEPENDS = ( "TIGR::Foundation", "TIGR::ConfigFile" );
