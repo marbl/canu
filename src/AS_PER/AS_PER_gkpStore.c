@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.40 2007-10-04 06:38:54 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.41 2007-10-05 06:25:50 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -834,7 +834,6 @@ void    delFrag(GateKeeperStore *gkp, CDS_IID_t iid) {
   CDS_IID_t                  miid;
 
   assert(gkp->partmap == NULL);
-  assert(gkp->UIDtoIID != NULL);
 
   //  Delete fragment with iid from the store.  If the fragment has a
   //  mate, remove the mate relationship from both fragmentss.
