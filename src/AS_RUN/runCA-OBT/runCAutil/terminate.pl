@@ -166,9 +166,9 @@ sub terminate ($) {
 #        }
     }
 
-#    if (runCommand($termDir, "$bin/gatekeeper -dumpfrg $wrk/$asm.gkpStore 2> $termDir/gatekeeper.err | grep -v 'No source' > $termDir/$asm.frg")) {
-#        unlink "$termDir/$asm.frg";
-#    }    
+    if (runCommand($termDir, "$bin/gatekeeper -dumpinfo $wrk/$asm.gkpStore 2> $termDir/gatekeeper.err | grep -v 'No source' > $termDir/$asm.dumpinfo")) {
+        unlink "$termDir/$asm.dumpinfo";
+    }    
     
     if (! -e "$termDir/$asm.qc") {
     	if ( -e "$wrk/$asm.frg" ) {
