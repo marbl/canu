@@ -285,16 +285,11 @@ sub setDefaults () {
     $global{"astatLowBound"}		   = 1;
     $global{"astatHighBound"}		   = 5;
 
+    $global{"OBT"}		   	   = 'OBT.specFile';
+    $global{"noOBT"}		   	   = 'noOBT.specFile';
+    $global{"noVec"}		   	   = 'noVec.specFile';
+
     if ( $JCVI == 1 ) {
-    	$global{"vectorIntersect"}	   = 'in.clv';
-	$global{"cnsPartitions"}	   = 1;
-	$global{"frgCorrBatchSize"}	   = 200000;
-	$global{"ovlCorrBatchSize"}	   = 200000;
-	$global{"ovlHashBlockSize"}	   = 200000;
-	$global{"doOverlapTrimming"}	   = 1;
-	$global{"doUpdateDistanceRecords"} = 1;
-	$global{"cgwDistanceSampleSize"}   = 1000;
-	$global{"gkpBelieveInputStdDev"}   = 1;
 	$global{"sge"}			   = ' -P 08010 -b n -l msc';
 	$global{"sgeOverlap"}		   = ' -pe threaded 2';
 	$global{"fakeUIDs"}		   = 1;
@@ -309,7 +304,7 @@ sub setDefaults () {
 	$global{"copy"}		   	   = getGlobal("medCopy");
 	$global{"notify"}		   = 1;
 	$global{"test"}		   	   = 0;
-	
+	$global{"specfile"}		   = 'OBT';
     }
 }
 
@@ -336,14 +331,20 @@ sub setParameters ($@) {
     if (exists($ENV{'AS_CNS_ERROR_RATE'})) {
         setGlobal("cnsErrorRate", $ENV{'AS_CNS_ERROR_RATE'});
     }
+    
+    if( !defined($specFile) and defined getGlobal("specFile")) {
+    	$specFile = getGlobal("specFile");
+    }
 
     if (defined($specFile)) {
         my $binRoot = "$FindBin::Bin";
-
+	
         if (-e "$specFile") {
             open(F, "< $specFile") or caFailure("Couldn't open '$specFile'\n");
         } elsif (-e "$binRoot/$specFile") {
             open(F, "< $binRoot/$specFile") or caFailure("Couldn't open '$binRoot/$specFile'\n");
+        } elsif ( defined getGlobal($specFile) ) {
+	    open(F, "< $binRoot/". getGlobal($specFile)) or caFailure("Couldn't open '$binRoot/". getGlobal($specFile) . "\n");
         } else {
             caFailure("Didn't find '$specFile' or '$binRoot/$specFile'\n");
         }

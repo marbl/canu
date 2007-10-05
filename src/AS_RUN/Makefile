@@ -54,7 +54,11 @@ SCRIPTS = runCA \
           caqc-diff.pl \
           ca2ace.pl \
           asmToAGP.pl \
-          mateLinkIIDRanges.rb
+          mateLinkIIDRanges.rb \
+          OBT.specFile \
+          noOBT.specFile \
+          noVec.specFile
+	  	  
 ifeq ($(SITE_NAME),JCVI)
   SCRIPTS += carun
   HELP = runCA-OBT/runCAutil/jcvi.pl
@@ -159,5 +163,14 @@ testVersionOnPlatform.sh: testing/$@
 glen_est_truncadjusted.pl: dataQC/$@
 	@cp dataQC/$@ $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
+
+OBT.specFile: runCA-OBT/OBT.specFile
+	@cp $< $(LOCAL_BIN)/$@
+
+noOBT.specFile: runCA-OBT/noOBT.specFile
+	@cp $< $(LOCAL_BIN)/$@
+
+noVec.specFile: runCA-OBT/noVec.specFile
+	@cp $< $(LOCAL_BIN)/$@
 
 fragmentDepth: fragmentDepth.o libAS_UTL.a

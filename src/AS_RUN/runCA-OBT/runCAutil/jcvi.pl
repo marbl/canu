@@ -21,6 +21,9 @@ $HELPTEXT =
   -[no]notify       Send email upon completion/error and create BITS case 
                     for errors. (default: notify)
   -s <specfile>     Read options from the specifications file <specfile>.
+  		    <specfile> can also be one of the following key words:
+		    [no]OBT - run with[out] OBT
+		    noVec - run with OBT but without Vector
   -test             Run in debug mode (same as -D test -nonotify)  
   -version          Outputs the Celera Assembler Version
   -fields           Outputs the specfile fields

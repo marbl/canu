@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-my $MY_VERSION = " 1.6 (Build " . (qw/$Revision: 1.5 $/)[1] . ")";
+my $MY_VERSION = " 1.6 (Build " . (qw/$Revision: 1.6 $/)[1] . ")";
 my $HELPTEXT = " runCA -d <directory> -p <prefix> -s <specfile> ";
 $HELPTEXT =
   qq~Run a whole-genome shotgun assembly using Celera Assembler.
@@ -14,6 +14,9 @@ $HELPTEXT =
   -d <dir>          Use <dir> as the working directory. Required
   -p <prefix>       Use <prefix> as the output prefix. (default: 'asm')
   -s <specfile>     Read options from the specifications file <specfile>.
+  		    <specfile> can also be one of the following key words:
+		    [no]OBT - run with[out] OBT
+		    noVec - run with OBT but without Vector
   -help	            This text
   -version          Outputs the Celera Assembler Version
   -fields           Outputs the specfile fields
