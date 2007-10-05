@@ -28,7 +28,7 @@ LOCAL_WORK = $(shell cd ../..; pwd)
 SOURCES = acceptableOBToverlap.c \
           chimera.C \
           consolidate.C \
-          findDuplicateFragsInStore.C \
+          prefixDelete.C \
           getNumScaffolds.c \
           initialTrim.C \
           merge-trimming.C \
@@ -42,7 +42,7 @@ PROGS   = acceptableOBToverlap \
           merge-trimming \
           consolidate \
           chimera \
-          findDuplicateFragsInStore \
+          prefixDelete \
           getNumScaffolds
 SCRIPTS = 
 
@@ -57,8 +57,6 @@ consolidate:          consolidate.o util++.o readOverlap.o      -lAS_OVS -lAS_PE
 merge-trimming:       merge-trimming.o trim.o                            -lAS_PER -lAS_UTL
 chimera:              chimera.o util++.o readOverlap.o          -lAS_OVS -lAS_PER -lAS_UTL
 
-findDuplicateFragsInStore: findDuplicateFragsInStore.o -lAS_PER -lAS_UTL
+prefixDelete:         prefixDelete.o                                     -lAS_PER -lAS_UTL
 
 getNumScaffolds: getNumScaffolds.o libCA.a
-
-

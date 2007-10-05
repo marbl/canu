@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.41 2007-10-04 06:38:54 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.42 2007-10-05 07:43:26 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -82,17 +82,18 @@ typedef struct {
   //  The default value of these should be 0.
   //
   uint64         spare2:64;
-  uint64         spare1:55;
+  uint64         spare1:54;
 
-  uint64         hpsIsFlowGram:1;              //  Default 0 == no flow gram
-  uint64         hpsIsPeakSpacing:1;           //  Default 0 == no peak spacing
-
+  uint64         deletePerfectPrefixes:1;      //  Default 0 == don't delete
   uint64         doNotTrustHomopolymerRuns:1;  //  Default 0 == trust 'em
   uint64         doNotOverlapTrim:1;           //  Default 0 == do trimming
   uint64         isNotRandom:1;                //  Default 0 == is random
 
+  uint64         hpsIsSomethingElse:1;         //  (placeholder, so we don't break compatibility later)
+  uint64         hpsIsFlowGram:1;              //  Default 0 == no flow gram
+  uint64         hpsIsPeakSpacing:1;           //  Default 0 == no peak spacing
+
   uint64         orientation:3;                //  Default 0 == AS_READ_ORIENT_UNKNOWN
-  uint64         ZZZdeleted:1;                 //  UNUSED.  Needed for compatibility.
 
   double         mean;
   double         stddev;
