@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.60 2007-09-24 18:24:52 eliv Exp $
- * $Revision: 1.60 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.61 2007-10-05 17:47:38 eliv Exp $
+ * $Revision: 1.61 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.60 2007-09-24 18:24:52 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.61 2007-10-05 17:47:38 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -539,15 +539,12 @@ namespace AS_BOG{
 
 	// Note:  I only need BestOverlapGraph for it's frag_len and olap_length
 
-		iuid fp_frag_id, tp_frag_id;
 		iuid current_frag_id=src_frag_id;
 		iuid next_frag_id = 0;
 		fragment_end_type whichEnd = firstEnd;
         int frag_end,frag_begin,fragNextEnd,fragPrevEnd;
         frag_begin = fragNextEnd = fragPrevEnd = offset;
 
-		//std::cerr<<"Working on: "<<src_frag_id<< " Dir: " << travel_dir <<std::endl;
-		iuid last_frag_id;
 		while(current_frag_id != NULL_FRAG_ID && !Unitig::fragIn( current_frag_id )) {
 			// Store the current fragment into dovetail path
 			BestEdgeOverlap* bestEdge = bog_ptr->getBestEdgeOverlap(
@@ -1163,12 +1160,35 @@ namespace AS_BOG{
 		if(dovetail_path_ptr->size()==0){
 			std::cerr << "This Unitig has an empty fragPositions." << std::endl;	
 		}
-        iuid notUsed;
-        DoveTailNode last  = getLastBackboneNode(notUsed);
-        int lastEnd = last.position.end > last.position.bgn ? 
-                      last.position.end : last.position.bgn;
-
-		return lastEnd;
+        // used to use getLastBackboneNode(), but that's not required to be the 
+        // highest base, we can have a read stick out further, but not contain the last
+        int bgn = 0;
+        int end = 0;
+        DoveTailPath::reverse_iterator rIter = dovetail_path_ptr->rbegin();
+        for(;rIter != dovetail_path_ptr->rend(); rIter++) {
+            DoveTailNode node = *rIter;
+            if (node.contained)
+                continue;
+            if (isReverse(node.position))
+            {
+                if (node.position.bgn > end) {
+                    end = node.position.bgn;
+                    bgn = node.position.end;
+                }
+                else if ( node.position.bgn < bgn ) {
+                    break; // past all potenially longer reads, stop
+                }
+            } else { // forward read
+                if (node.position.end > end) {
+                    end = node.position.end;
+                    bgn = node.position.bgn;
+                }
+                else if ( node.position.end < bgn ) {
+                    break;
+                }
+            }
+        }
+		return end;
 	}
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -1238,7 +1258,9 @@ namespace AS_BOG{
         DoveTailIter iter = dovetail_path_ptr->begin();
         for(; iter != dovetail_path_ptr->end(); iter++) {
             iter->position.bgn += offset;
+            assert( iter->position.bgn >= 0);
             iter->position.end += offset;
+            assert( iter->position.end >= 0);
         }
     }
 	//////////////////////////////////////////////////////////////////////////////
@@ -1253,7 +1275,9 @@ namespace AS_BOG{
         DoveTailIter iter = dovetail_path_ptr->begin();
         for(; iter != dovetail_path_ptr->end(); iter++) {
             iter->position.bgn = length - iter->position.bgn;
+            assert( iter->position.bgn >= 0);
             iter->position.end = length - iter->position.end;
+            assert( iter->position.end >= 0);
         }
         reverse(dovetail_path_ptr->begin(),dovetail_path_ptr->end());
         first = dovetail_path_ptr->front();
@@ -1276,7 +1300,9 @@ namespace AS_BOG{
         DoveTailPath::reverse_iterator addIter = dovetail_path_ptr->rbegin();
         for(; addIter != rend; addIter++) {
             addIter->position.bgn = lastEnd - addIter->position.bgn + offset;
+            assert( addIter->position.bgn >= 0);
             addIter->position.end = lastEnd - addIter->position.end + offset;
+            assert( addIter->position.end >= 0);
             if (addIter->contained != 0) {
 #ifdef NEW_UNITIGGER_INTERFACE
                 int tmp = addIter->ahang;
