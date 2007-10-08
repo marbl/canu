@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.16 2007-10-08 13:40:17 adelcher Exp $
- * $Revision: 1.16 $
+ * $Id: OlapFromSeedsOVL.c,v 1.17 2007-10-08 21:48:50 brianwalenz Exp $
+ * $Revision: 1.17 $
 */
 
-static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.16 2007-10-08 13:40:17 adelcher Exp $";
+static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.17 2007-10-08 21:48:50 brianwalenz Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -2195,8 +2195,8 @@ static int  Eliminate_Correlated_Diff_Olaps
         num_eliminated ++;
      }
 
-   free (space);
-   free (signature);
+   safe_free (space);
+   safe_free (signature);
 
    return num_eliminated;
   }
