@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.30 2007-10-05 21:20:46 eliv Exp $
- * $Revision: 1.30 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.31 2007-10-08 19:45:53 eliv Exp $
+ * $Revision: 1.31 $
 */
 
 #include <math.h>
@@ -294,60 +294,38 @@ namespace AS_BOG{
                     libId, size, median, third, twoThird, aproxStd, smallest, biggest,
                             gdc->numPairs, gdc->mean, gdc->stddev );
         }
-        UnitigVector* splits = new UnitigVector(); // save split unitigs
-        UnitigsIter tigEditIter = tigGraph.unitigs->begin();
-        for(; tigEditIter != tigGraph.unitigs->end(); tigEditIter++)
-        {
-            if (*tigEditIter == NULL || (*tigEditIter)->getNumFrags() < 2 ) 
-                continue;
+        int numSplits = 1;
+        int iterNum = 1;
+        int prevNumSplits = 0;
+        while (numSplits > 0) {
+            UnitigVector* splits = new UnitigVector(); // save split unitigs
+            UnitigsIter tigEditIter = tigGraph.unitigs->begin();
+            for(; tigEditIter != tigGraph.unitigs->end(); tigEditIter++)
+            {
+                if (*tigEditIter == NULL || (*tigEditIter)->getNumFrags() < 2 ) 
+                    continue;
 
-            FragmentEnds* breaks = computeMateCoverage( *tigEditIter, globalStats,
-                                                              tigGraph.bog_ptr );
-            tigGraph.accumulateSplitUnitigs( tigEditIter, breaks, splits );
-            delete breaks;
+                FragmentEnds* breaks = computeMateCoverage( *tigEditIter, globalStats,
+                        tigGraph.bog_ptr );
+                tigGraph.accumulateSplitUnitigs( tigEditIter, breaks, splits );
+                delete breaks;
+            }
+            numSplits = splits->size();
+            fprintf(stderr,"Num mate based splits %d iteration %d\n",numSplits,iterNum++);
+            tigGraph.unitigs->insert( tigGraph.unitigs->end(),splits->begin(),splits->end());
+            delete splits;
+
+            // bugs in splitting can prevent numSplits from reaching zero
+            if (numSplits == prevNumSplits)
+                break;
+            else
+                prevNumSplits = numSplits;
         }
-        fprintf(stderr,"Num mate based splits %d\n",splits->size());
-        tigGraph.unitigs->insert( tigGraph.unitigs->end(), splits->begin(), splits->end());
-        delete splits;
-
-
-        splits = new UnitigVector(); // save split unitigs
-        // Lets do mate splitting a 2nd time and see how things look
-        tigEditIter = tigGraph.unitigs->begin();
-        for(; tigEditIter != tigGraph.unitigs->end(); tigEditIter++)
-        {
-            if (*tigEditIter == NULL || (*tigEditIter)->getNumFrags() < 2 ) 
-                continue;
-
-            FragmentEnds* breaks = computeMateCoverage( *tigEditIter, globalStats,
-                                                              tigGraph.bog_ptr );
-            tigGraph.accumulateSplitUnitigs( tigEditIter, breaks, splits );
-            delete breaks;
-        }
-        fprintf(stderr,"Num mate based splits iter 2 %d\n",splits->size());
-        tigGraph.unitigs->insert( tigGraph.unitigs->end(), splits->begin(), splits->end());
-        delete splits;
-        splits = new UnitigVector(); // save split unitigs
-        // Lets do mate splitting a 3rd time and see how things look
-        tigEditIter = tigGraph.unitigs->begin();
-        for(; tigEditIter != tigGraph.unitigs->end(); tigEditIter++)
-        {
-            if (*tigEditIter == NULL || (*tigEditIter)->getNumFrags() < 2 ) 
-                continue;
-
-            FragmentEnds* breaks = computeMateCoverage( *tigEditIter, globalStats,
-                                                              tigGraph.bog_ptr );
-            tigGraph.accumulateSplitUnitigs( tigEditIter, breaks, splits );
-            delete breaks;
-        }
-        fprintf(stderr,"Num mate based splits iter 3 %d\n",splits->size());
-        tigGraph.unitigs->insert( tigGraph.unitigs->end(), splits->begin(), splits->end());
-        delete splits;
 
 
         // Now we'll chuck out the contained frags that have unhappy mates
         UnitigVector* singletons = new UnitigVector(); // save singleton unitigs
-        tigEditIter = tigGraph.unitigs->begin();
+        UnitigsIter tigEditIter = tigGraph.unitigs->begin();
         for(; tigEditIter != tigGraph.unitigs->end(); tigEditIter++)
         {
             if (*tigEditIter == NULL ) 
@@ -582,10 +560,17 @@ namespace AS_BOG{
             } else {                     // reverse bad group, break at last frag
                 bad = *revIter;
                 if (fwdIter != fwdBads->end()     && fwdIter->bgn > bad.end &&
-                    fwdIter->bgn  - bad.end < 900 && fwdIter->end - bad.bgn < 2000)
+                    fwdIter->bgn  - bad.end < 900 ) // && fwdIter->end - bad.bgn < 2000)
                 {
                     fprintf(stderr,"Combine bad ranges %d - %d with %d - %d\n",
                             bad.bgn, bad.end, fwdIter->end, fwdIter->bgn);
+                    if (bad.bgn == 0) { // ignore reverse at start of tig
+                        bad.bgn = fwdIter->bgn;
+                        bad.end = fwdIter->end;
+                    } else {
+                        bad.bgn = bad.end;
+                        bad.end = fwdIter->bgn;
+                    }
                     fwdIter++; // Combine if fwd and bad within 900 bases
                     combine = true;
                 }
