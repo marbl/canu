@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CorrectOlapsOVL.c,v 1.25 2007-09-17 15:09:11 adelcher Exp $
- * $Revision: 1.25 $
+ * $Id: CorrectOlapsOVL.c,v 1.26 2007-10-08 13:40:17 adelcher Exp $
+ * $Revision: 1.26 $
 */
 
-static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.25 2007-09-17 15:09:11 adelcher Exp $";
+static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.26 2007-10-08 13:40:17 adelcher Exp $";
 
 
 //  System include files
@@ -360,12 +360,15 @@ int  main
    fprintf (stderr, "Starting Read_Frags ()\n");
    Read_Frags ();
 
+//**ALD
+//printf ("Before corrections applied:\n");
 //   Display_Frags ();
 
    fprintf (stderr, "Starting Correct_Frags ()\n");
    Correct_Frags ();
 
 //**ALD
+//printf ("After corrections applied:\n");
 //   Display_Frags ();
 
    fprintf (stderr, "Starting Read_Olaps ()\n");
@@ -2020,6 +2023,9 @@ static void  Process_Olap
    b_part_len = strlen (b_part);
    olap_len = OVL_Min_int (a_part_len, b_part_len);
 
+//**ALD
+// may want to increase the Error_Bound value for homopolymer type reads
+
    errors = Prefix_Edit_Dist
               (a_part, a_part_len, b_part, b_part_len,
                Error_Bound [olap_len], & a_end, & b_end,
@@ -2432,8 +2438,16 @@ static void  Redo_Olaps
         }
       if  (correct_iid == frag_iid && num_corrects > 0)
           {
+//**ALD
+//printf ("frag_iid = %d  before corrections\n", frag_iid);
+//Fasta_Print (stdout, seq_ptr, "Before");
+
            Apply_Seq_Corrects (& seq_ptr, & adjust_ptr, & adjust_ct,
                                correct, num_corrects, TRUE);
+
+//**ALD
+//printf ("frag_iid = %d  after corrections\n", frag_iid);
+//Fasta_Print (stdout, seq_ptr, "After");
           }
         else
           adjust_ct = 0;

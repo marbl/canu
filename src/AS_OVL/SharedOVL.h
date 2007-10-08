@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: SharedOVL.h,v 1.8 2007-09-18 14:39:23 adelcher Exp $
- * $Revision: 1.8 $
+ * $Id: SharedOVL.h,v 1.9 2007-10-08 13:40:18 adelcher Exp $
+ * $Revision: 1.9 $
 */
 
 
@@ -98,15 +98,19 @@
   // Other indel
 #define  HP_SUBST_SCORE            5
   // Substitution
-#define  HOMOPOLY_SCORE_BITS      13
+#define  HOMOPOLY_SCORE_BITS       13
   // Number of bits to store scores in  Homopoly_Match_Entry_t
 #define  HOMOPOLY_VOTE_FACTOR      1
   // Number of votes for each occurrence of a character in a homopoly-type read
 #define  MAX_HOMOPOLY_SCORE       ((1 << HOMOPOLY_SCORE_BITS) - 1)
 //**ALD temporary for printouts
-//#define  MAX_HOMOPOLY_SCORE    50
+//#define  MAX_HOMOPOLY_SCORE      50
   // Maximum, impossibly high score value
-#define  HOMOPOLY_SCORE_MULTIPLIER  4
+//**ALD was 3.0
+#define  HOMOPOLY_ERROR_DIVISOR    4.0
+  // Divide the homopoly score by this to get a virtual number of
+  // errors for partial alignment scoring
+#define  HOMOPOLY_SCORE_MULTIPLIER 4
   // Multiply the number of allowed errors by this to get the
   // score limit for alignments
 #define  STANDARD_VOTE_FACTOR      5
@@ -188,7 +192,8 @@ typedef struct
 int  Fwd_Banded_Homopoly_Prefix_Match
   (const char * AA, int m, const char * TT, int n, int score_limit,
    int * return_score, int * a_end, int * t_end, int * match_to_end, int * delta,
-   int * delta_len, Alignment_Cell_t ea []);
+   int * delta_len, Alignment_Cell_t ea [], double match_value,
+   int doing_partial);
 int  Fwd_Homopoly_Prefix_Match
   (const char * A, int m, const char * T, int n, int score_limit,
    int * return_score, int * a_end, int * t_end, int * match_to_end, int * delta,
@@ -205,7 +210,8 @@ int  OVL_Min_int
 int  Rev_Homopoly_Match_Start
   (const char * A, int m, const char * T, int n, int score_limit,
    int * return_score, int * a_end, int * t_end, int * match_to_end,
-   Homopoly_Match_Entry_t ** edit_array);
+   Homopoly_Match_Entry_t ** edit_array, double match_value,
+   int doing_partial);
 int  Rev_Prefix_Edit_Dist
   (char a_string [], int m, char t_string [], int n, int error_limit,
    int * a_end, int * t_end, int * leftover, int * match_to_end,

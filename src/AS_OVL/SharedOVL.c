@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: SharedOVL.c,v 1.5 2007-08-30 14:09:05 adelcher Exp $
- * $Revision: 1.5 $
+ * $Id: SharedOVL.c,v 1.6 2007-10-08 13:40:18 adelcher Exp $
+ * $Revision: 1.6 $
 */
 
 
@@ -48,13 +48,16 @@
 int  Fwd_Banded_Homopoly_Prefix_Match
   (const char * AA, int m, const char * TT, int n, int score_limit,
    int * return_score, int * a_end, int * t_end, int * match_to_end, int * delta,
-   int * delta_len, Alignment_Cell_t edit_space [])
+   int * delta_len, Alignment_Cell_t edit_space [], double match_value,
+   int doing_partial)
 
 // Return the number of homopoly-type changes (indels and substitutions)
 // in the best match a prefix of string  AA  of length  m  with a
 // prefix of string  TT  of length  n , extending to the end of
 // one of those strings if possible without exceeding  score_limit
-// as the score of the alignment.  The return value is the number of
+// as the score of the alignment.  If  doing_partial  is true, however,
+// the alignment need not extend to the end of either string.
+// The return value is the number of
 // changes; set  return_score  to the score of the best alignment.
 // Set  a_end  and  b_end  to where the match ends (each is the number
 // of characters aligned in the respective string).  Set
@@ -67,6 +70,9 @@ int  Fwd_Banded_Homopoly_Prefix_Match
   {
    Alignment_Cell_t  * curr, * prev;
    const char  * A, * T;
+   double  max_score, partial_score;
+   int  max_score_best_row, max_score_best_col;
+   int  max_score_hpscore, max_score_errs;
    int  indent [MAX_SEQUENCE_LEN], width [MAX_SEQUENCE_LEN];
    int  best_row, best_col, best_score, best_errors;
    int  cutoff_score, global_best, last_row = 0;
@@ -78,6 +84,8 @@ int  Fwd_Banded_Homopoly_Prefix_Match
    T = TT - 1;
 
    global_best = INT_MAX;
+   max_score = 0.0;
+   max_score_best_row = max_score_best_col = max_score_hpscore = max_score_errs = 0;
 
    // fill in the first row/band
    indent [0] = 0;
@@ -156,6 +164,19 @@ int  Fwd_Banded_Homopoly_Prefix_Match
          best_errors = errors;
          global_best = score;
         }
+      if (doing_partial)
+        {
+         partial_score = (i - errors) * match_value + (match_value - 1.0)
+              * (score / HOMOPOLY_ERROR_DIVISOR);
+         if (partial_score > max_score)
+           {
+            max_score = partial_score;
+            max_score_best_row = i;
+            max_score_best_col = indent [i];
+            max_score_hpscore = score;
+            max_score_errs = errors;
+           }
+        }
 
       min_width = width [i - 1] - shift;   // at least this many cells on current row
       cutoff_score = best_score + BAND_SCORE_DELTA;   // determined from prior row
@@ -222,13 +243,26 @@ int  Fwd_Banded_Homopoly_Prefix_Match
             best_errors = errors;
             global_best = score;
            }
+         if (doing_partial)
+           {
+            partial_score = (i - errors) * match_value + (match_value - 1.0)
+                 * (score / HOMOPOLY_ERROR_DIVISOR);
+            if (partial_score > max_score)
+              {
+               max_score = partial_score;
+               max_score_best_row = i;
+               max_score_best_col = indent [i] + j;
+               max_score_hpscore = score;
+               max_score_errs = errors;
+              }
+           }
         }
       width [i] = j;
       last_row = i;
 
       // stop if best score on the row is no better than the best end
       // alignment score; or if the best score on the row is worse than
-      // the limit, the it's hopeless
+      // the limit, then it's hopeless
       if (global_best <= best_score || score_limit < best_score)
         break;
 
@@ -246,6 +280,18 @@ int  Fwd_Banded_Homopoly_Prefix_Match
          putchar ('\n');
          curr += width [i];
         }
+     }
+
+   if (doing_partial)
+     {
+      (* a_end) = max_score_best_row;
+      (* t_end) = max_score_best_col;
+      (* match_to_end) = (max_score_best_row == m && max_score_best_col == n);
+      (* return_score) = max_score_hpscore;
+
+      Set_Fwd_Banded_Delta (delta, delta_len, edit_space, max_score_best_row,
+           max_score_best_col, width, indent);
+      return  max_score_errs;
      }
 
    if (score_limit < global_best)
@@ -693,7 +739,8 @@ int  OVL_Min_int
 int  Rev_Homopoly_Match_Start
   (const char * A, int m, const char * T, int n, int score_limit,
    int * return_score, int * a_end, int * t_end, int * match_to_end,
-   Homopoly_Match_Entry_t ** edit_array)
+   Homopoly_Match_Entry_t ** edit_array, double match_value,
+   int doing_partial)
 
 // Return the minimum number of homopolymer-type changes (indels & substitutions)
 // for the best match a prefix of string  A [0 .. (1-m)]  right-to-left
@@ -701,7 +748,11 @@ int  Rev_Homopoly_Match_Start
 // with alignment score  <= score_limit .  Note the subscripts are negative.
 // The return value is the number of changes and  return_score  is set to the
 // score of the best alignment.
-// The match must extend to the beginning of one of the two strings.
+// The match must extend to the beginning of one of the two strings,
+// unless  doing_partial  is true in which case the match will be to
+// the highest scoring point.   match_value  is the positive score
+// for matching characters and  (1 - match_value)  is the negative score
+// for mismatching characters.
 // Set  a_end  and  t_end  to the leftmost positions where the
 // alignment ended in  A  and  T , respectively, as negative values.
 // Set  match_to_end  true iff the match extended to the end
@@ -713,9 +764,14 @@ int  Rev_Homopoly_Match_Start
    Homopoly_Match_Entry_t  * ep;
    int  best_end_d, best_end_e, best_end_score;
    double  ratio, best_ratio, best_end_ratio;
+   double  max_score, partial_score;
+   int  max_score_len, max_score_best_d, max_score_best_e;
    int  from, lowest_score, score, shorter;
+   int  best_d, best_e, longest;
    int  row, left, right;
    int  d, e, j, k, s;
+
+   best_d = best_e = longest = 0;
 
    shorter = OVL_Min_int (m, n);
    for (row = 0; row < shorter && A [- row] == T [- row]; row ++)
@@ -736,6 +792,8 @@ int  Rev_Homopoly_Match_Start
    best_end_score = MAX_HOMOPOLY_SCORE;
    best_end_ratio = MAX_HOMOPOLY_SCORE;
    left = right = 0;
+   max_score = 0.0;
+   max_score_len = max_score_best_d = max_score_best_e = 0;
    for (e = 1; lowest_score < score_limit && e < MAX_ERRORS; e ++)
      {
       left = OVL_Max_int (left - 1, -e);
@@ -779,10 +837,44 @@ int  Rev_Homopoly_Match_Start
                   // non-homopoly insert in T
             if (s < score || (s == score && row < ep -> len))   // low scores are better
               {
+               int  i, q, ok = TRUE, s2;
+
 //printf ("is better\n");
-               row = ep -> len;
-               score = s;
-               from = -1;
+               // Check here if better score is a shorter extension.
+               // If so, then add to the score the penalties for mismatches
+               // on the current diagonal.  This is an heuristic, but should
+               // be correct except for relatively rare pathological cases.
+               // Note that we must look at the sequences and not the cells
+               // in edit_array which, because of indels, may skip over mismatches
+               if (ep -> len < row)
+                 {
+//printf ("from upper left  e/d=%d/%d  s/score=%d/%d  ep->len/row=%d/%d\n",
+//     e, d, s, score, ep -> len, row);
+                  s2 = s + HP_SUBST_SCORE;
+                  if (score <= s2)   // automaticaly have a mismatch at the last position
+                    ok = FALSE;
+                  else
+                    {
+                     if (d < 0)
+                       q = row + d - 1;
+                     else
+                       q = row - 1;
+                     for (i = row - 1; 0 <= q && s2 < score && ep -> len <= i;
+                          i --, q --)
+                       if (A [- i] != T [- i - d])
+                         {
+                          s2 += HP_SUBST_SCORE;
+//printf ("  i=%d  s2=%d\n", i, s2);
+                         }
+                     ok = (s2 < score);
+                    }
+                 }
+               if (ok)
+                 {
+                  row = ep -> len;
+                  score = s;
+                  from = -1;
+                 }
               }
            }
 
@@ -800,12 +892,41 @@ int  Rev_Homopoly_Match_Start
             else
               s = ep -> score + NON_HP_INDEL_SCORE;
                    // non-homopoly insert in A
-            if (s < score || (s == score && row < ep -> len))   // low scores are better
+            if (s < score || (s == score && row < ep -> len + 1))   // low scores are better
               {
+               int  i, q, ok = TRUE, s2;
+
 //printf ("is better\n");
-               row = ep -> len + 1;
-               score = s;
-               from = +1;
+               // similar check to above
+               if (ep -> len + 1 < row)
+                 {
+//printf ("from upper right  e/d=%d/%d  s/score=%d/%d  ep->len+1/row=%d/%d\n",
+//     e, d, s, score, ep -> len + 1, row);
+                  s2 = s + HP_SUBST_SCORE;
+                  if (score <= s2)
+                    ok = FALSE;
+                  else
+                    {
+                     if (d < 0)
+                       q = row + d - 1;
+                     else
+                       q = row - 1;
+                     for (i = row - 1; 0 <= q && s2 < score && ep-> len + 1 <= i;
+                          i --, q --)
+                       if (A [- i] != T [- i - d])
+                         {
+                          s2 += HP_SUBST_SCORE;
+//printf ("  i=%d  s2=%d\n", i, s2);
+                         }
+                     ok = (s2 < score);
+                    }
+                 }
+               if (ok)
+                 {
+                  row = ep -> len + 1;
+                  score = s;
+                  from = +1;
+                 }
               }
            }
 
@@ -829,7 +950,7 @@ int  Rev_Homopoly_Match_Start
 
          if (MIN_RATIO_E <= e)
            {
-            ratio = (double) score / (row + EPSILON);  // add EPSION in case row=0
+            ratio = (double) score / (row + EPSILON);  // add EPSILON in case row=0
             if (ratio < best_ratio)
               best_ratio = ratio;
            }
@@ -844,6 +965,12 @@ int  Rev_Homopoly_Match_Start
            }
          if (score < lowest_score)
            lowest_score = score;
+         if (doing_partial && edit_array [e] [d] . len > longest)
+           {
+            best_d = d;
+            best_e = e;
+            longest = edit_array [e] [d] . len;
+           }
         }
 
 //**ALD
@@ -855,11 +982,37 @@ if (0 && best_end_score < MAX_HOMOPOLY_SCORE)
    Show_Homopoly_Match_Array (stdout, edit_array, e);
   }
 
+      if (doing_partial)
+        {
+//**ALD
+//         partial_score = longest * match_value - e;
+//                  // Assumes  match_value - mismatch_value == 1.0
+         partial_score = (longest - e) * match_value + ((match_value - 1.0)
+              * (edit_array [best_e] [best_d] . score / HOMOPOLY_ERROR_DIVISOR));
+         if (partial_score > max_score)
+           {
+            max_score = partial_score;
+            max_score_len = longest;
+            max_score_best_d = best_d;
+            max_score_best_e = best_e;
+           }
+        }
+
       // if lowest score on row is worse (higher) than the best
       // match_to_end score, then have found the best match
       if (best_end_score <= lowest_score)
         {
          Homopoly_Match_Entry_t  * bp = edit_array [best_end_e] + best_end_d;
+
+         if (doing_partial)
+           {
+            (* a_end) = - max_score_len;
+            (* t_end) = - max_score_len - max_score_best_d;
+            (* match_to_end) = edit_array [max_score_best_e] [max_score_best_d] . at_end;
+            (* return_score) = edit_array [max_score_best_e] [max_score_best_d] . score;
+
+            return  max_score_best_e;
+           }
 
          (* a_end) = - (bp -> len);
          (* t_end) = - (bp -> len) - best_end_d;
@@ -905,6 +1058,17 @@ if (0 && best_end_score < MAX_HOMOPOLY_SCORE)
         }
 
       assert (left <= right);
+     }
+
+   // if doing partial overlaps return the max_score result
+   if (doing_partial)
+     {
+      (* a_end) = - max_score_len;
+      (* t_end) = - max_score_len - max_score_best_d;
+      (* match_to_end) = edit_array [max_score_best_e] [max_score_best_d] . at_end;
+      (* return_score) = edit_array [max_score_best_e] [max_score_best_d] . score;
+
+      return  max_score_best_e;
      }
 
    // if there was a match to the end at least as good as the score limit
