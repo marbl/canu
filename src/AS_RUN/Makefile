@@ -39,9 +39,6 @@ OBJECTS = $(C_OBJECTS) $(CXX_OBJECTS)
 PROGS = fragmentDepth
 
 SCRIPTS = runCA \
-          ca_observer.plx \
-	  aget.pl \
-	  ametrics.plx \
           assemblyCompare \
           qcCompare \
           tampaCompare \
@@ -58,10 +55,18 @@ SCRIPTS = runCA \
           OBT.specFile \
           noOBT.specFile \
           noVec.specFile
-	  	  
+
+
+#  JCVI likes to have both a modified (carun) and unmodified (runCA)
+#  version.  Other sites will probably be happy just redefining
+#  RUNCALOCAL.
+
+RUNCALOCAL = runCA-OBT/runCAutil/site-generic.pl
+
 ifeq ($(SITE_NAME),JCVI)
-  SCRIPTS += carun
-  HELP = runCA-OBT/runCAutil/jcvi.pl
+  SCRIPTS += carun aget.pl ca_observer.plx ametrics.plx
+  RUNCALOCAL = runCA-OBT/runCAutil/site-generic.pl
+  CARUNLOCAL = runCA-OBT/runCAutil/site-jcvi.pl
 endif
 
 # Include for AS project rules
@@ -85,16 +90,15 @@ RUNCAOBTUTIL = runCA-OBT/runCAutil/applyOverlapCorrection.pl \
                runCA-OBT/runCAutil/scaffolder.pl \
                runCA-OBT/runCAutil/terminate.pl \
                runCA-OBT/runCAutil/unitigger.pl \
-               runCA-OBT/runCAutil/bogUnitigger.pl \
-	       runCA-OBT/runCAutil/asdb.pl
+               runCA-OBT/runCAutil/bogUnitigger.pl
 
-runCA: runCA-OBT/runCA.pl.head runCA-OBT/runCAutil/util.pl runCA-OBT/runCA.pl $(RUNCAOBTUTIL) runCA-OBT/runCAutil/scheduler.pm
-	@cat runCA-OBT/runCA.pl.head runCA-OBT/runCAutil/util.pl $(RUNCAOBTUTIL) runCA-OBT/runCA.pl runCA-OBT/runCAutil/scheduler.pm > $(LOCAL_BIN)/$@
+runCA: runCA-OBT/runCA.pl.head $(RUNCALOCAL) runCA-OBT/runCAutil/util.pl runCA-OBT/runCA.pl $(RUNCAOBTUTIL) runCA-OBT/runCAutil/scheduler.pm
+	@cat runCA-OBT/runCA.pl.head $(RUNCALOCAL) runCA-OBT/runCAutil/util.pl $(RUNCAOBTUTIL) runCA-OBT/runCA.pl runCA-OBT/runCAutil/scheduler.pm > $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 	@ln -fs $(LOCAL_BIN)/$@ $(LOCAL_BIN)/runCA-OBT.pl
 
-carun: runCA-OBT/runCA.pl.head $(HELP) runCA-OBT/runCAutil/util.pl runCA-OBT/runCA.pl $(RUNCAOBTUTIL) runCA-OBT/runCAutil/scheduler.pm
-	@cat runCA-OBT/runCA.pl.head $(HELP) runCA-OBT/runCAutil/util.pl $(RUNCAOBTUTIL) runCA-OBT/runCA.pl runCA-OBT/runCAutil/scheduler.pm > $(LOCAL_BIN)/$@
+carun: runCA-OBT/runCA.pl.head $(CARUNLOCAL) runCA-OBT/runCAutil/util.pl runCA-OBT/runCA.pl $(RUNCAOBTUTIL) runCA-OBT/runCAutil/scheduler.pm
+	@cat runCA-OBT/runCA.pl.head $(CARUNLOCAL) runCA-OBT/runCAutil/util.pl $(RUNCAOBTUTIL) runCA-OBT/runCA.pl runCA-OBT/runCAutil/scheduler.pm > $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
 ca_observer.plx: runCA-OBT/ca_observer.plx

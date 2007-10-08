@@ -1,54 +1,5 @@
 use strict;
-use File::Copy;
-use FindBin qw($Bin);
 
-my $ca_observer = "$Bin/ca_observer.plx";
-my $ca_log = "log/ca_observer.log";
-
-sub start ($) {
-    if ( !$JCVI ) {
-    	return;
-    }
-
-    my $cmd_name = shift;
-    my $props_file = getGlobal('props_file');
-
-    if ( $JCVI == 1 and -x $ca_observer ){
-        touch("$wrk/log/$cmd_name.started");
-        my $exec_cmd = "$ca_observer --appendlog=1 --logfile=$wrk/$ca_log --event=start --name=\"$cmd_name\" --retval=0 --props=$wrk/$props_file -host=`hostname` --message=\"Command with name: '$cmd_name' started\"\n";
-        `$exec_cmd`;
-    }
-}
-
-sub finish ($) {
-    if ( !$JCVI ) {
-    	return;
-    }
-    
-    my $cmd_name = shift;
-    my $props_file = getGlobal('props_file');
-
-    if ( $JCVI == 1  and -x $ca_observer ){
-        touch("$wrk/log/$cmd_name.finished");
-        my $exec_cmd = "$ca_observer --appendlog=1 --logfile=$wrk/$ca_log --event=finish --name=\"$cmd_name\" --retval=0 --props=$wrk/$props_file --host=`hostname` --message=\"Command with name: '$cmd_name' finished\"\n";
-        `$exec_cmd`;
-    }
-}
-
-sub failure ($) {
-    if ( !$JCVI ) {
-    	return;
-    }
-
-    my $cmd_name = shift;
-    my $props_file = getGlobal('props_file');
-
-    if ( $JCVI == 1  and -x $ca_observer ){
-        my $exec_cmd = "$ca_observer --appendlog=1 --logfile=$wrk/$ca_log --event=failure --name=\"$cmd_name\" --retval=0 --props=$wrk/$props_file --host=`hostname` --message=\"Command with name: '$cmd_name' failed\"\n";
-        `$exec_cmd`;
-	exit;
-    }
-}
 
 # Submit batch jobs in groups. This function allows one to limit 
 # the maximum number of jobs submitted at once to the grid. The jobs are 
@@ -285,27 +236,7 @@ sub setDefaults () {
     $global{"astatLowBound"}		   = 1;
     $global{"astatHighBound"}		   = 5;
 
-    $global{"OBT"}		   	   = 'OBT.specFile';
-    $global{"noOBT"}		   	   = 'noOBT.specFile';
-    $global{"noVec"}		   	   = 'noVec.specFile';
-    $global{"specFile"}		           = 'OBT';
-
-    if ( $JCVI == 1 ) {
-	$global{"sge"}			   = ' -P 08010 -b n -l msc';
-	$global{"sgeOverlap"}		   = ' -pe threaded 2';
-	$global{"fakeUIDs"}		   = 1;
-	$global{"useGrid"}		   = 1;
-	$global{"scriptOnGrid"}		   = 1;
-	$global{"alias"}		   = undef;
-	$global{"props_file"}		   = 'props.file';
-	$global{"maxCopy"}		   = 0;
-	$global{"medCopy"}		   = 1;
-	$global{"minCopy"}		   = 2;
-	$global{"noCopy"}		   = 3;
-	$global{"copy"}		   	   = getGlobal("medCopy");
-	$global{"notify"}		   = 1;
-	$global{"test"}		   	   = 0;
-    }
+    $global{"specFile"}                    = undef;
 }
 
 sub makeAbsolute ($) {
@@ -331,7 +262,10 @@ sub setParameters ($@) {
     if (exists($ENV{'AS_CNS_ERROR_RATE'})) {
         setGlobal("cnsErrorRate", $ENV{'AS_CNS_ERROR_RATE'});
     }
-    
+
+    #  If the user didn't give us a specFile, see if there is a
+    #  system-wide one defined (set by your localDefaults()).
+    #
     if( !defined($specFile) ) {
     	$specFile = getGlobal("specFile");
     }
@@ -343,10 +277,10 @@ sub setParameters ($@) {
             open(F, "< $specFile") or caFailure("Couldn't open '$specFile'\n");
         } elsif (-e "$binRoot/$specFile") {
             open(F, "< $binRoot/$specFile") or caFailure("Couldn't open '$binRoot/$specFile'\n");
-        } elsif ( defined getGlobal($specFile) ) {
-	    open(F, "< $binRoot/". getGlobal($specFile)) or caFailure("Couldn't open '$binRoot/". getGlobal($specFile) . "\n");
+        } elsif (-e "$binRoot/$specFile.specFile") {
+            open(F, "< $binRoot/$specFile.specFile") or caFailure("Couldn't open '$binRoot/$specFile.specFile'\n");
         } else {
-            caFailure("Didn't find '$specFile' or '$binRoot/$specFile'\n");
+            caFailure("You gave me a specFile, but I couldn't find '$specFile' or '$binRoot/$specFile' or '$binRoot/$specFile.specFile'!\n");
         }
         while (<F>) {
             chomp;
@@ -455,39 +389,18 @@ sub printHelp () {
 }
 
 
-sub copyFiles() {
-
-    #catmap
-    if ( -e "$asm.catmap" and !-e "$wrk/$asm.catmap" ) {
-      copy("$asm.catmap", "$wrk/$asm.catmap") or die "Could not copy: $asm.catmap\n";
-    }
-    #seq.features
-    if ( -e "$asm.seq.features" and !-e "$wrk/$asm.seq.features" ) {
-      copy("$asm.seq.features", "$wrk/$asm.seq.features") or die "Could not copy: $asm.seq.features\n";
-    }
-
-}
 
 sub checkDirectories () {
 
     #  Check that we were supplied a work directory, and that it
     #  exists, or we can create it.
     #
-    #die "ERROR: I need a directory to run the assembly in (-d option).\n" if (!defined($wrk));
-    if ($JCVI == 1 and !defined($wrk)) {
-    	$wrk = '/usr/local/aserver_new/var/assembly/'.$request_id;
-    	$commandLineOptions .= " \"-d\" \"$wrk\" ";	
-    } elsif ( !defined($wrk)) {
-    	caFailure("ERROR: I need a directory to run the assembly in (-d option).\n");
-    }
-    
-    system("mkdir -p $wrk") if (! -d $wrk);
-    caFailure("ERROR: Directory '$wrk' doesn't exist (-d option) and couldn't be created.\n") if (! -d $wrk);
+    die "ERROR: I need a directory to run the assembly in (-d option).\n" if (!defined($wrk));
 
-    system("mkdir -p $wrk/log") if (! -d "$wrk/log");
+    system("mkdir -p $wrk") if (! -d $wrk);
     chmod 0755, "$wrk";
-    chmod 0755, "$wrk/log";
-    caFailure("ERROR: Unable to create log directory.\n") if (! -d "$wrk/log");
+
+    caFailure("ERROR: Directory '$wrk' doesn't exist (-d option) and couldn't be created.\n") if (! -d $wrk);
 
     #  Check that we have scratch space, or try to make one in the
     #  work directory.
@@ -495,10 +408,6 @@ sub checkDirectories () {
     #  See if we can use the supplied scratch space
     #
     my $scratch = getGlobal("scratch");
-    if ( $JCVI == 1 ) {
-    	$scratch = "$wrk/scratch";
-        setGlobal("scratch", $scratch);
-    }
     system("mkdir -p $scratch") if (! -d $scratch);
 
     #  If not created, warn, and try to make one in the work directory.
@@ -582,7 +491,7 @@ sub getNumberOfFragsInStore ($$$) {
 
     return(0) if (! -e "$wrk/$asm.gkpStore/frg");
 
-    open(F, "$bin/gatekeeper -L $wrk/$asm.gkpStore 2> /dev/null |") or caFailure();
+    open(F, "$bin/gatekeeper -L $wrk/$asm.gkpStore 2> /dev/null |") or caFailure("Failed to run gatekeeper to get the number of frags in the store.");
     $_ = <F>;    chomp $_;
     close(F);
 
@@ -672,6 +581,8 @@ sub submitScript ($) {
     my $script = "$output.sh";
     my $cmd;
 
+    my $pid = getpid();
+
     open(F, "> $script") or caFailure("Failed to open '$script' for writing\n");
     print F "#!/bin/sh\n";
     print F "#\n";
@@ -682,7 +593,7 @@ sub submitScript ($) {
     print F "#  interactive SGE logins (qlogin, etc) DO set the environment.\n";
     print F "#\n";
     print F ". \$SGE_ROOT/\$SGE_CELL/common/settings.sh\n";
-    print F "$perl $0 $commandLineOptions > $wrk/log/". getppid() .".child.out 2> $wrk/log/". getppid() .".child.err \n";
+    print F "$perl $0 $commandLineOptions\n";
     close(F);
 
     my $sge       = getGlobal("sge");
@@ -701,22 +612,10 @@ sub submitScript ($) {
 }
 
 
-sub caFailure {
-     my  $msg = shift;
-     print STDERR "$msg\n" if ( defined $msg && $msg !~ /^\s+$/);
-     my $failureFile = 'ca.failed';
-     if ( -d $wrk ) {
-	$failureFile = "$wrk/log/$failureFile" if ( $JCVI == 1 );
-	$failureFile = "$wrk/$failureFile" if ( $JCVI != 1 );
-     }
-     
-     if ( !-e $failureFile )  {
-        system("touch $failureFile");
-	failure(undef);
-     } else {
-     	print "CA Failed\n";
-     }
-     exit(1);
+sub caFailure ($) {
+    my  $msg = shift @_;
+    localFailure($msg);
+    die $msg;
 }
 
 
@@ -725,8 +624,8 @@ sub caFailure {
 #
 sub touch ($) {
     open(F, "> $_[0]") or caFailure("Failed to touch '$_[0]'\n");
-    print F "$wrk\n";
-    print F "process id: " . getppid() . "\n";
+    #print F "$wrk\n";
+    #print F "process id: " . getppid() . "\n";
     close(F);
 }
 
@@ -750,8 +649,6 @@ sub runCommand ($$) {
     my $t = localtime();
     my $d = time();
     print STDERR "----------------------------------------START $t\n$cmd\n";
-    #print STDERR "dir='$dir'\n";
-    #print STDERR "cmd='$cmd'\n";
 
     my $execwrap = getGlobal("executionWrapper");
     my $rc = 0xffff & system("cd $dir && $execwrap $cmd");
@@ -774,7 +671,7 @@ sub runCommand ($$) {
         }
     }
 
-    my $error = "ERROR: $cmd\nERROR: Command failed with ";
+    my $error = "ERROR: Failed with ";
 
     if ($rc == 0xff00) {
         $error .= "$!\n";

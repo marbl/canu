@@ -7,11 +7,11 @@ sub createPostUnitiggerConsensusJobs (@) {
 
         #  Then, build a partition information file, and do the partitioning.
         #
-        open(G, "> $wrk/5-consensus/$asm.partFile") or caFailure();
+        open(G, "> $wrk/5-consensus/$asm.partFile") or caFailure("Failed to write '$wrk/5-consensus/$asm.partFile'\n");
         foreach my $f (@cgbFiles) {
             if ($f =~ m/^.*(\d\d\d).cgb$/) {
                 my $part = $1;
-                open(F, "grep ^mid: $f |") or caFailure();
+                open(F, "grep ^mid: $f |") or caFailure("Failed to grep '^mid: $f'\n");
                 while (<F>) {
                     print G "$part $1\n" if (m/^mid:(\d+)$/);                        
                 }
@@ -199,9 +199,9 @@ sub postUnitiggerConsensus (@) {
     #  Consolidate all the output
     #
 
-    open(G, "> $wrk/5-consensus/$asm.cgi") or caFailure();
+    open(G, "> $wrk/5-consensus/$asm.cgi") or caFailure("Failed to write '$wrk/5-consensus/$asm.cgi'\n");
     foreach my $fid (@cgbIndices) {
-        open(F, "< $wrk/5-consensus/${asm}_$fid.cgi") or caFailure();
+        open(F, "< $wrk/5-consensus/${asm}_$fid.cgi") or caFailure("Failed to open '$wrk/5-consensus/${asm}_$fid.cgi'\n");
         while (<F>) {
             print G $_;
         }

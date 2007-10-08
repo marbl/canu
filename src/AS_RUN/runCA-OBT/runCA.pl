@@ -9,44 +9,44 @@ my @cgbFiles;
 my $cgiFile;
 my $scaffoldDir;
 
-setDefaults();
+my @steps = ('Pre-overlap',               'preoverlap(@fragFiles)',
+             'OverlapTrim',               'overlapTrim()',
+             'CreateOverlapJobs',         'createOverlapJobs("normal")',
+             'CheckOverlap',              'checkOverlap("normal")',
+             'CreateOverlapStore',        'createOverlapStore()',
+             'CreateFragmentCorrections', 'createFragmentCorrectionJobs()',
+             'MergeFragmentCorrection',   'mergeFragmentCorrection()',
+             'CreateOverlapCorrections',  'createOverlapCorrectionJobs()',
+             'ApplyOverlapCorrection',    'applyOverlapCorrection()',
+             'Unitigger',                 '@cgbFiles = unitigger(@cgbFiles)',
+             'PostUnitiggerConsensus',    'postUnitiggerConsensus(@cgbFiles)',
+             'Scaffolder',                'scaffolder($cgiFile)',
+             'PostScaffolderConsensus',   'postScaffolderConsensus($scaffoldDir)',
+             'Terminator',                'terminate($scaffoldDir)');
 
-#  Stash the original options, quoted, for later use.
+
+setDefaults();
+localDefaults();
+
+
+#  Stash the original options, quoted, for later use.  We need to use
+#  these when we resubmit ourself to SGE.
 foreach my $a (@ARGV) {
     $invocation .= " $a";
     $commandLineOptions .= " \"$a\" ";
 }
 
+
 while (scalar(@ARGV)) {
     my $arg = shift @ARGV;
 
-    if ($arg =~ m/^-alias/ ) {
-        setGlobal("alias",shift @ARGV);
-    } elsif ($arg =~ m/^-maxCopy/ ) {
-        setGlobal("copy",getGlobal("maxCopy"));
-    } elsif ($arg =~ m/^-minCopy/ ) {
-        setGlobal("copy",getGlobal("minCopy"));
-    } elsif ($arg =~ m/^-medCopy/ ) {
-        setGlobal("copy",getGlobal("medCopy"));
-    } elsif ($arg =~ m/^-noCopy/ ) {
-        setGlobal("copy",getGlobal("noCopy"));
-    } elsif ($arg =~ m/^-(no)?notify/ ) {
-        setGlobal("notify",1) if ( $1 ne 'no' );
-        setGlobal("notify",0) if ( $1 eq 'no' );
-    } elsif ($arg =~ m/^-test/ ) {    
-        setGlobal("test",1);
-    } elsif ($arg =~ m/^-e/) {
-        setGlobal("utgErrorRate",shift @ARGV);
-    } elsif ($arg =~ m/^-g/) {
-        setGlobal("utgGenomeSize",shift @ARGV);
-    } elsif ($arg =~ m/^-j/) {
-        setGlobal("astatLowBound",shift @ARGV);
-    } elsif ($arg =~ m/^-k/) {    
-        setGlobal("astatHighBound",shift @ARGV);
-    } elsif ($arg =~ m/^-(no)?ubs/) {
-        setGlobal("utgBubblePopping",1) if ( $1 ne 'no' );
-        setGlobal("utgBubblePopping",0) if ( $1 eq 'no' );
-    } elsif ($arg =~ m/^-d/) {
+    ($arg, @ARGV) = localOption($arg, @ARGV);
+
+    if (!defined($arg)) {
+        return;
+    }
+
+    if      ($arg =~ m/^-d/) {
         $wrk = shift @ARGV;
         $wrk = "$ENV{'PWD'}/$wrk" if ($wrk !~ m!^/!);
     } elsif ($arg =~ m/^-p/) {
@@ -80,39 +80,17 @@ while (scalar(@ARGV)) {
     } elsif ($arg =~ m/=/) {
         push @specOpts, $arg;
     } else {
-        print STDERR "$0: Unknown argument '$arg'\n";
+        die "$0: Unknown argument '$arg'\n";
     }
 }
 
 setParameters($specFile, @specOpts);
+
 printHelp();
 
-my @steps = 
-(
-	'Pre-overlap',			'preoverlap(@fragFiles)',
-	'OverlapTrim',			'overlapTrim()',
-	'CreateOverlapJobs',		'createOverlapJobs("normal")',
-	'CheckOverlap',			'checkOverlap("normal")',
-	'CreateOverlapStore',		'createOverlapStore()',
-	'CreateFragmentCorrections',	'createFragmentCorrectionJobs()',
-	'MergeFragmentCorrection',	'mergeFragmentCorrection()',
-	'CreateOverlapCorrections',	'createOverlapCorrectionJobs()',
-	'ApplyOverlapCorrection',	'applyOverlapCorrection()',
-	'Unitigger',			'@cgbFiles = unitigger(@cgbFiles)',
-	'PostUnitiggerConsensus',	'postUnitiggerConsensus(@cgbFiles)',
-	'Scaffolder',			'scaffolder($cgiFile)',
-	'PostScaffolderConsensus',	'postScaffolderConsensus($scaffoldDir)',
-	'Terminator',			'terminate($scaffoldDir)'
-);
-
-asdbInit()  if ( !runningOnGrid());
-
 checkDirectories();
-copyFiles();
-print "Your work directory is: '$wrk'\n";
 
-createInvocationScript() && init_prop_file( $asm,(scalar @steps)/2)
-	if (!runningOnGrid());
+localSetup(scalar(@steps) / 2);
 
 #  If this is a continuation, we don't want to do obt or fragment
 #  error correction, or a bunch of other stuff.  We could surround
@@ -152,29 +130,26 @@ if ($isContinuation) {
     }
 }
 
-#  Begin
 
 #  If not already on the grid, see if we should be on the grid.
 #
 submitScript("") if (!runningOnGrid());
-my $finished = 0;
 
-for( my $index = 0 ; $index < scalar @steps ; $index+=2) {
-	my $stepName = $steps[$index];
-	my $stepCmd = $steps[$index+1];
-	if ( ! -e "$wrk/log/$stepName.started") {
-	    start($stepName);
-	}
-	print "Executing '$stepName'\n";
-	eval($stepCmd);
-	print "Finished executing '$stepName'\n";
-	if ( !-e "$wrk/log/$stepName.finished") {
-	    finish($stepName);
-	    $finished = 1 if ( $index + 2 >= scalar @steps );
-	}
+
+#  Begin
+
+
+while (scalar(@steps) > 0) {
+    my $stepName = shift @steps;
+    my $stepCmd  = shift @steps;
+
+    localStart($stepName);
+    eval($stepCmd);
+    if ($@) {
+        chomp $@;
+        die "step $stepName failed with '$@'\n" ;
+    }
+    localFinish($stepName);
 }
 
-copyBack() if ( $finished == 1);
-
 exit(0);
-

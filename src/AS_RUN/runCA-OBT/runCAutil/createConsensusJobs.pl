@@ -52,7 +52,7 @@ sub createPostScaffolderConsensusJobs ($) {
     my $jobP;
     my $jobs = 0;
 
-    open(CGW, "ls $cgwDir/$asm.cgw_contigs.* |") or caFailure();
+    open(CGW, "ls $cgwDir/$asm.cgw_contigs.* |") or caFailure("ls of $cgwDir/$asm.cgw_contigs.* failed.");
     while (<CGW>) {
         if (m/cgw_contigs.(\d+)/) {
             $jobP .= "$1\t";
@@ -166,7 +166,7 @@ sub postScaffolderConsensus ($) {
     #
     my $failedJobs = 0;
 
-    open(CGWIN, "ls $cgwDir/$asm.cgw_contigs.* |") or caFailure();
+    open(CGWIN, "ls $cgwDir/$asm.cgw_contigs.* |") or caFailure("ls of $cgwDir/$asm.cgw_contigs.* failed.\n");
     while (<CGWIN>) {
         chomp;
 

@@ -44,7 +44,7 @@ sub unitigger (@) {
   alldone:
     #  Other steps (consensus) need the list of cgb files, so we just do it here.
     #
-    open(F, "ls $wrk/4-unitigger/*.cgb |") or caFailure();
+    open(F, "ls $wrk/4-unitigger/*.cgb |") or caFailure("Failed to ls '$wrk/4-unitigger/*.cgb'\n");
     @cgbFiles = <F>;
     close(F);
     chomp @cgbFiles;

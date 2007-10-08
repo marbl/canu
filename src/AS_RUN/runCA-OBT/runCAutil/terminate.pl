@@ -187,11 +187,11 @@ sub terminate ($) {
         summarizeConsensusStatistics("$wrk/5-consensus");
         summarizeConsensusStatistics("$wrk/8-consensus");
 
-        open(F, ">> $termDir/$asm.qc") or caFailure();
+        open(F, ">> $termDir/$asm.qc") or caFailure("Failed to append to '$termDir/$asm.qc'\n");
 
         if (-e "$wrk/5-consensus/consensus.stats.summary") {
             print F "\n[Unitig Consensus]\n";
-            open(G, "<  $wrk/5-consensus/consensus.stats.summary") or caFailure();
+            open(G, "<  $wrk/5-consensus/consensus.stats.summary") or caFailure("Failed to open '$wrk/5-consensus/consensus.stats.summary'\n");
             while (<G>) {
                 print F $_;
             }
@@ -200,7 +200,7 @@ sub terminate ($) {
 
         if (-e "$wrk/8-consensus/consensus.stats.summary") {
             print F "\n[Contig Consensus]\n";
-            open(G, "<  $wrk/8-consensus/consensus.stats.summary") or caFailure();
+            open(G, "<  $wrk/8-consensus/consensus.stats.summary") or caFailure("Failed to open '$wrk/8-consensus/consensus.stats.summary'\n");
             while (<G>) {
                 print F $_;
             }
@@ -213,7 +213,7 @@ sub terminate ($) {
         my @H4;
         my $histMax = 0;
         if (-e "$termDir/$asm.posmap.frgscf.histogram1") {
-            open(G, "<  $termDir/$asm.posmap.frgscf.histogram1") or caFailure();
+            open(G, "<  $termDir/$asm.posmap.frgscf.histogram1") or caFailure("Failed to open '$termDir/$asm.posmap.frgscf.histogram1'\n");
             while (<G>) {
                 my ($v, $s) = split '\s+', $_;
                 $H1[$v] = $s;
@@ -222,7 +222,7 @@ sub terminate ($) {
             close(G);
         }
         if (-e "$termDir/$asm.posmap.frgscf.histogram2") {
-            open(G, "<  $termDir/$asm.posmap.frgscf.histogram2") or caFailure();
+            open(G, "<  $termDir/$asm.posmap.frgscf.histogram2") or caFailure("Failed to open '$termDir/$asm.posmap.frgscf.histogram2'\n");
             while (<G>) {
                 my ($v, $s) = split '\s+', $_;
                 $H2[$v] = $s;
@@ -231,7 +231,7 @@ sub terminate ($) {
             close(G);
         }
         if (-e "$termDir/$asm.posmap.frgscf.histogram3") {
-            open(G, "<  $termDir/$asm.posmap.frgscf.histogram3") or caFailure();
+            open(G, "<  $termDir/$asm.posmap.frgscf.histogram3") or caFailure("Failed to open '$termDir/$asm.posmap.frgscf.histogram3'\n");
             while (<G>) {
                 my ($v, $s) = split '\s+', $_;
                 $H3[$v] = $s;
@@ -240,7 +240,7 @@ sub terminate ($) {
             close(G);
         }
         if (-e "$termDir/$asm.posmap.frgscf.histogram4") {
-            open(G, "<  $termDir/$asm.posmap.frgscf.histogram4") or caFailure();
+            open(G, "<  $termDir/$asm.posmap.frgscf.histogram4") or caFailure("Failed to open '$termDir/$asm.posmap.frgscf.histogram4'\n");
             while (<G>) {
                 my ($v, $s) = split '\s+', $_;
                 $H4[$v] = $s;
@@ -407,18 +407,8 @@ sub terminate ($) {
     link "$termDir/$asm.asm", "$wrk/$asm.asm";
     link "$termDir/$asm.qc",  "$wrk/$asm.qc";
  
-    if ( $JCVI == 1) {
-	link "$termDir/$asm.qc",  "$termDir/$asm.qc.metrics" if (! -e "$termDir/$asm.qc.metrics");
-	link "$termDir/$asm.qc.metrics", "$wrk/$asm.qc.metrics";
+    localPostTerminator($termDir);
 
-	my $cwd = getcwd;
-	chdir $wrk;
-	my @tempArr = split (/\//, $wrk);
-	$request_id = $tempArr[$#tempArr];
-	system("$bin/ametrics.plx -debug 9 $request_id $wrk/$asm.qc.metrics > $wrk/log/ametrics.log 2>&1");
-	chdir $cwd;
-    }	
- 
     return(0); 
 }
 

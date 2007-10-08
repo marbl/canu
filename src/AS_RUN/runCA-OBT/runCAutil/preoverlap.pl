@@ -32,7 +32,7 @@ sub preoverlap {
             }
             $gkpInput .= " $frg";
         }
-        caFailure() if ($failedFiles);
+        caFailure("Files supplied on command line not found.\n") if ($failedFiles);
 
         my $cmd;
         $cmd  = "$bin/gatekeeper -o $wrk/$asm.gkpStore ";
@@ -45,7 +45,7 @@ sub preoverlap {
             print STDERR "Failed.\n";
             rename "$wrk/0-preoverlap/$asm.inp", "$wrk/0-preoverlap/$asm.inp.FAILED";
             rename "$wrk/$asm.gkpStore", "$wrk/$asm.gkpStore.FAILED";
-            caFailure();
+            caFailure("gatekeeper failed.  Check your input files!\n");
         }
     }
 

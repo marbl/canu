@@ -1,9 +1,8 @@
 #!/usr/bin/env perl
 
-my $MY_VERSION = " 1.6 (Build " . (qw/$Revision: 1.6 $/)[1] . ")";
-my $HELPTEXT = " runCA -d <directory> -p <prefix> -s <specfile> ";
-$HELPTEXT =
-  qq~Run a whole-genome shotgun assembly using Celera Assembler.
+my $MY_VERSION = " 1.6 (Build " . (qw/$Revision: 1.7 $/)[1] . ")";
+
+my $HELPTEXT = qq~Run a whole-genome shotgun assembly using Celera Assembler.
 
  usage: runCA [options] <frg>
  

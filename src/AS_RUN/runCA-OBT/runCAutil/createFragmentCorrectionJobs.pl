@@ -19,7 +19,7 @@ sub createFragmentCorrectionJobs {
         $correctfrags = "$bin/correct-frags";
     }
 
-    open(F, "> $wrk/2-frgcorr/correct.sh") or caFailure();
+    open(F, "> $wrk/2-frgcorr/correct.sh") or caFailure("Failed to write to '$wrk/2-frgcorr/correct.sh'\n");
     print F "#!/bin/sh\n\n";
     print F "jobid=\$SGE_TASK_ID\n";
     print F "if [ x\$jobid = x -o x\$jobid = xundefined ]; then\n";

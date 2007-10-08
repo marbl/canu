@@ -11,7 +11,7 @@ sub createOverlapCorrectionJobs {
     #  Figure out how many jobs there are
     my $jobs = int($numFrags / ($ovlCorrBatchSize-1)) + 1;
 
-    open(F, "> $wrk/3-ovlcorr/correct.sh") or caFailure();
+    open(F, "> $wrk/3-ovlcorr/correct.sh") or caFailure("Failed to write '$wrk/3-ovlcorr/correct.sh'\n");
     print F "jobid=\$SGE_TASK_ID\n";
     print F "if [ x\$jobid = x -o x\$jobid = xundefined ]; then\n";
     print F "  jobid=\$1\n";
