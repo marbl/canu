@@ -1,0 +1,9 @@
+useGrid=0
+cnsPartitions=1
+frgCorrBatchSize=200000
+ovlCorrBatchSize=200000
+ovlHashBlockSize=200000
+doOverlapTrimming=0
+doUpdateDistanceRecords=1
+cgwDistanceSampleSize=1000
+gkpBelieveInputStdDev=1

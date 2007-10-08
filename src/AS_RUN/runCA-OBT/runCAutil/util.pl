@@ -288,6 +288,7 @@ sub setDefaults () {
     $global{"OBT"}		   	   = 'OBT.specFile';
     $global{"noOBT"}		   	   = 'noOBT.specFile';
     $global{"noVec"}		   	   = 'noVec.specFile';
+    $global{"specFile"}		           = 'OBT';
 
     if ( $JCVI == 1 ) {
 	$global{"sge"}			   = ' -P 08010 -b n -l msc';
@@ -304,7 +305,6 @@ sub setDefaults () {
 	$global{"copy"}		   	   = getGlobal("medCopy");
 	$global{"notify"}		   = 1;
 	$global{"test"}		   	   = 0;
-	$global{"specfile"}		   = 'OBT';
     }
 }
 
@@ -332,7 +332,7 @@ sub setParameters ($@) {
         setGlobal("cnsErrorRate", $ENV{'AS_CNS_ERROR_RATE'});
     }
     
-    if( !defined($specFile) and defined getGlobal("specFile")) {
+    if( !defined($specFile) ) {
     	$specFile = getGlobal("specFile");
     }
 
