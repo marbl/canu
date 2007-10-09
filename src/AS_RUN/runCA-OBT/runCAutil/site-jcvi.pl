@@ -62,16 +62,6 @@ $HELPTEXT =
 
 
 sub localDefaults () {
-    asdbInit()  if ( !runningOnGrid());
-
-    $wrk = "/usr/local/aserver_new/var/assembly/$request_id" if (!defined($wrk));
-
-    print "Using work directory: $wrk\n";    
-
-    system("mkdir -p $wrk/log") if (! -d "$wrk/log");
-    chmod 0755, "$wrk/log";
-    caFailure("ERROR: Unable to create log directory.\n") if (! -d "$wrk/log");
-
     setGlobal("specFile", 'OBT');
 
     setGlobal("scratch", "$wrk/scratch");
@@ -135,6 +125,18 @@ sub localOption($@) {
 sub localSetup($) {
     my $numSteps = shift @_;
 
+    asdbInit()  if ( !runningOnGrid());
+
+    $wrk = "/usr/local/aserver_new/var/assembly/$request_id" if (!defined($wrk));
+
+    print "Using work directory: $wrk\n";    
+    $commandLineOptions .= " -d $wrk ";
+
+
+    system("mkdir -p $wrk/log") if (! -d "$wrk/log");
+    chmod 0755, "$wrk/log";
+    caFailure("ERROR: Unable to create log directory.\n") if (! -d "$wrk/log");
+
     #catmap
     if ( -e "$asm.catmap" and !-e "$wrk/$asm.catmap" ) {
       copy("$asm.catmap", "$wrk/$asm.catmap") or die "Could not copy: $asm.catmap\n";
@@ -184,14 +186,18 @@ sub localFailure ($) {
     my $msg        = shift @_;
     my $props_file = $local_props_file;
 
-    if (-x $ca_observer ){
+    if (-x $ca_observer && -d "$wrk/log" ){
         my $exec_cmd = "$ca_observer --appendlog=1 --logfile=$wrk/$ca_log --event=failure --name=\"$0\" --retval=0 --props=$wrk/$props_file --host=`hostname` --message=\"Command with name: '$0' failed\"\n";
         system($exec_cmd);
+	open(F, "> $wrk/log/ca.failed");
+	print F "$msg\n";
+	close(F);
+    } else {
+	open(F, "> ca.failed");
+	print F "$msg\n";
+	close(F);
     }
 
-    open(F, "> $wrk/log/ca.failed");
-    print F "$msg\n";
-    close(F);
 }
 
 
