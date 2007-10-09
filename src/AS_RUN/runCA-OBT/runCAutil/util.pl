@@ -225,6 +225,7 @@ sub setDefaults () {
     $global{"useGrid"}                     = 0;
     $global{"useBogUnitig"}                = 0;
     $global{"bogPromiscuous"}              = 0;
+    $global{"bogEjectUnhappyContain"}      = 0;
     $global{"vectorIntersect"}             = undef;
 
     $global{"merOverlap"}                  = 0;

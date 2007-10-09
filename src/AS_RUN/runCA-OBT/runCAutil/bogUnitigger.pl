@@ -51,6 +51,9 @@ sub bogUnitigger {
         my $l = getGlobal("bogPromiscuous");
         $cmd .= " -b " if !$l;
 
+        my $l = getGlobal("bogEjectUnhappyContain");
+        $cmd .= " -k " if !$l;
+
         $cmd .= " > unitigger.out ";
         $cmd .= " 2> unitigger.err ";
 
