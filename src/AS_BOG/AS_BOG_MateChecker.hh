@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.hh,v 1.13 2007-10-05 21:21:46 eliv Exp $
- * $Revision: 1.13 $
+ * $Id: AS_BOG_MateChecker.hh,v 1.14 2007-10-09 20:26:39 eliv Exp $
+ * $Revision: 1.14 $
 */
 
 #ifndef INCLUDE_AS_BOG_MATECHEKER
@@ -63,6 +63,34 @@ namespace AS_BOG{
     };
     typedef std::map<iuid,DistanceCompute> LibraryStats;
 
+    struct MateCounts {
+        int badOtherTig;
+        int otherTig;
+        int total;
+        int goodCircular;
+        int good;
+        int badOuttie;
+        int badInnie;
+        int badAntiNormal;
+        int badNormal;
+        MateCounts() : badOtherTig(0), otherTig(0), total(0), goodCircular(0), good(0),
+                       badOuttie(0), badInnie(0), badAntiNormal(0), badNormal(0)
+        {}
+        friend std::ostream& operator<< (std::ostream&, MateCounts);
+
+        MateCounts operator+= (MateCounts other)
+        {
+            badOtherTig   += other.badOtherTig;
+            otherTig      += other.otherTig;
+            total         += other.total;
+            goodCircular  += other.goodCircular;
+            good          += other.good;
+            badOuttie     += other.badOuttie;
+            badInnie      += other.badInnie;
+            badAntiNormal += other.badAntiNormal;
+            badNormal     += other.badNormal;
+        }; 
+    };
     ///////////////////////////////////////////////////////////////////////////
 
     struct MateChecker{
@@ -122,7 +150,7 @@ namespace AS_BOG{
         MateLocIter end()   { return _table.end();   }
 
         void buildTable( Unitig *);
-        void buildHappinessGraphs( int tigLen, LibraryStats &);
+        MateCounts* buildHappinessGraphs( int tigLen, LibraryStats &);
         
         std::vector<short>* goodGraph;
         std::vector<short>* badFwdGraph;

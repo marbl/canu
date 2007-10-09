@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.31 2007-10-08 19:45:53 eliv Exp $
- * $Revision: 1.31 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.32 2007-10-09 20:26:39 eliv Exp $
+ * $Revision: 1.32 $
 */
 
 #include <math.h>
@@ -324,6 +324,7 @@ namespace AS_BOG{
 
 
         // Now we'll chuck out the contained frags that have unhappy mates
+        MateCounts allMates;
         UnitigVector* singletons = new UnitigVector(); // save singleton unitigs
         UnitigsIter tigEditIter = tigGraph.unitigs->begin();
         for(; tigEditIter != tigGraph.unitigs->end(); tigEditIter++)
@@ -338,7 +339,9 @@ namespace AS_BOG{
             // Build mate position table
             positions.buildTable( tig );
             // Build good and bad mate graphs
-            positions.buildHappinessGraphs( tigLen, globalStats );
+            MateCounts* cnts = positions.buildHappinessGraphs( tigLen, globalStats );
+            allMates += *cnts;
+            delete cnts;
 
             // output the graphs
             fprintf(stderr,"Per 300 bases good graph unitig %ld size %ld:\n",tig->id(),tigLen);
@@ -428,6 +431,7 @@ namespace AS_BOG{
         }
         tigGraph.unitigs->insert( tigGraph.unitigs->end(), singletons->begin(),
                                                            singletons->end() );
+        std::cerr << allMates;
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -504,7 +508,8 @@ namespace AS_BOG{
         // Build mate position table
         positions.buildTable( tig );
         // Build good and bad mate graphs
-        positions.buildHappinessGraphs( tigLen, globalStats );
+        MateCounts *unused = positions.buildHappinessGraphs( tigLen, globalStats );
+        delete unused;
 
         // For debugging purposes output the table
         MateLocIter posIter = positions.begin();
@@ -719,14 +724,34 @@ namespace AS_BOG{
         }
         sort();
     }
+
     ///////////////////////////////////////////////////////////////////////////
     
-    void MateLocation::buildHappinessGraphs( int tigLen, LibraryStats& globalStats )
+    std::ostream& operator<< (std::ostream& os, MateCounts c)
+    {
+        int sum = c.badOtherTig + c.otherTig + c.goodCircular + c.good + c.badOuttie +
+                  c.badInnie + c.badAntiNormal + c.badNormal;
+
+        os << std::endl << "Total mates " << c.total << " should equal sum " << sum
+           << std::endl
+           << "Good innies " << c.good << " good circular mates " << c.goodCircular
+           << std::endl
+           << "Other unitig " << c.otherTig << " other tig dist exceeded " << c.badOtherTig
+           << std::endl
+           << "Bad Outtie " << c.badOuttie << " Bad Innie " << c.badInnie << std::endl
+           << "Bad Normal " << c.badNormal << " Bad Anti-normal " << c.badAntiNormal
+           << std::endl << std::endl;
+    }
+    
+    ///////////////////////////////////////////////////////////////////////////
+    
+    MateCounts* MateLocation::buildHappinessGraphs( int tigLen, LibraryStats& globalStats )
     {
         goodGraph->resize( tigLen+1 );
         badFwdGraph->resize( tigLen+1 );
         badRevGraph->resize( tigLen+1 );
 
+        MateCounts *cnts = new MateCounts();
         MateLocIter  posIter  = begin();
         for(;        posIter != end(); posIter++) {
             MateLocationEntry loc = *posIter;
@@ -734,6 +759,7 @@ namespace AS_BOG{
             MateInfo mateInfo   =  _checker->getMateInfo( fragId );
             iuid mateId         =  mateInfo.mate;
             iuid lib            =  mateInfo.lib;
+            cnts->total++;
             DistanceCompute *gdc = &(globalStats[ lib ]);
             int badMax = static_cast<int>(gdc->mean + 5 * gdc->stddev);
             int badMin = static_cast<int>(gdc->mean - 5 * gdc->stddev);
@@ -748,6 +774,9 @@ namespace AS_BOG{
                         posIter->isBad = true;
                         fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
                                 fragId, frgBgn, loc.pos1.end, mateId, lib);
+                        cnts->badOtherTig++;
+                    } else {
+                        cnts->otherTig++;
                     }
                 } else {
                     if ( frgBgn + badMax < tigLen ) {
@@ -757,6 +786,9 @@ namespace AS_BOG{
                         posIter->isBad = true;
                         fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
                                 fragId, frgBgn, frgEnd, mateId, lib);
+                        cnts->badOtherTig++;
+                    } else {
+                        cnts->otherTig++;
                     }
                 }
             } else {
@@ -767,8 +799,10 @@ namespace AS_BOG{
                     if (!isReverse( loc.pos2 )) {
                         // reverse and forward, check for circular unitig
                         int dist = frgEnd + tigLen - mateEnd; 
-                        if ( dist <= badMax || dist >= badMin)
+                        if ( dist <= badMax || dist >= badMin) {
+                            cnts->goodCircular++;
                             continue; // Good circular mates
+                        } 
                     }
                     // 1st reversed, so bad 
                     iuid beg = MAX( 0, frgBgn - badMax );
@@ -784,6 +818,7 @@ namespace AS_BOG{
                         if (MATE_3PRIME_END)
                             end = mateEnd;
                         incrRange( badRevGraph, -1, beg, end);
+                        cnts->badAntiNormal++;
                     } else {
                         // 2nd mate is forward, so mark bad towards tig end
                         end = MIN( tigLen, mateBgn + badMax );
@@ -791,6 +826,7 @@ namespace AS_BOG{
                         if (MATE_3PRIME_END)
                             beg = mateEnd;
                         incrRange( badFwdGraph, -1, beg, end);
+                        cnts->badOuttie++;
                     }
                     fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
                                 mateId, mateBgn, mateEnd, fragId, lib);
@@ -802,8 +838,10 @@ namespace AS_BOG{
                         uint16 mateLen = mateBgn - mateEnd;
                         int mateDist = mateBgn - frgBgn;  
 
-                        if (mateDist >= badMin && mateDist <= badMax)
+                        if (mateDist >= badMin && mateDist <= badMax) {
                             incrRange(goodGraph,2, frgBgn, mateEnd);
+                            cnts->good++;
+                        }
                         else {
                             // both are bad, mate points towards tig begin
                             iuid beg = MAX(0, mateBgn - badMax); 
@@ -824,6 +862,7 @@ namespace AS_BOG{
                             incrRange(badFwdGraph,-1, beg, end);
                             fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
                                     fragId, frgBgn, frgEnd, mateId, lib);
+                            cnts->badInnie++;
                         }
                     } else {
                         // 1st and 2nd forward so both bad 
@@ -847,10 +886,12 @@ namespace AS_BOG{
                         incrRange( badFwdGraph, -1, beg, end);
                         fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
                                 mateId, mateBgn, mateEnd, fragId, lib);
+                        cnts->badNormal++;
                     }
                 }
             }
         }
+        return cnts;
     }
 
     ///////////////////////////////////////////////////////////////////////////
