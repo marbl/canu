@@ -21,7 +21,7 @@ sub overlapTrim {
         $cmd  = "$bin/initialTrim -update -q 12 ";
         $cmd .= " -log $wrk/0-overlaptrim/$asm.initialTrimLog ";
         $cmd .= " -frg $wrk/$asm.gkpStore ";
-        $cmd .= " > $wrk/0-overlaptrim/initialTrim.err 2>&1";
+        $cmd .= " > $wrk/0-overlaptrim/$asm.initialTrim.err 2>&1";
 
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {
             rename "$wrk/0-overlaptrim/$asm.initialTrimLog", "$wrk/0-overlaptrim/$asm.initialTrimLog.failed";
@@ -29,6 +29,25 @@ sub overlapTrim {
         }
     }
 
+    #  Look for any exact prefix reads -- only does something if
+    #  you've got 454 reads.
+    #
+    if ((! -e "$wrk/0-overlaptrim/$asm.prefixRemovalLog") &&
+        (! -e "$wrk/0-overlaptrim/$asm.prefixRemovalLog.bz2")) {
+
+        backupFragStore("beforePrefixDelete");
+
+        my $cmd;
+        $cmd  = "$bin/prefixDelete ";
+        $cmd .= " -log $wrk/0-overlaptrim/$asm.prefixDeleteLog ";
+        $cmd .= " -frg $wrk/$asm.gkpStore ";
+        $cmd .= " > $wrk/0-overlaptrim/$asm.prefixDelete.err 2>&1";
+
+        if (runCommand("$wrk/0-overlaptrim", $cmd)) {
+            rename "$wrk/0-overlaptrim/$asm.initialTrimLog", "$wrk/0-overlaptrim/$asm.initialTrimLog.failed";
+            caFailure("Failed.\n");
+        }
+    }
 
     #  Compute overlaps, if we don't have them already
 
