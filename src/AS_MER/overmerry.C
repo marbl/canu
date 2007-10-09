@@ -32,6 +32,7 @@ extern "C" {
 
 #include "bio++.H"
 #include "positionDB.H"
+#include "sweatShop.H"
 
 
 //  using external mer counts - we'll need to extend the posDB to have
@@ -42,45 +43,6 @@ extern "C" {
 //  subset of gkpstore
 //
 //  extend merstream with spaced, compressed, skips, transitions
-//
-//  M039 takes 134u total, 30u to build the table.
-
-
-#undef EXPENSIVE_CHECK
-#ifdef EXPENSIVE_CHECK
-
-//  For debug, swiped from AS_OVL
-/*  Return the DNA complement of  ch . */
-static char  Complement (char ch) {
-   switch  (((int) ch)) {
-      case  'A' : return  'T';
-      case  'C' : return  'G';
-      case  'G' : return  'C';
-      case  'T' : return  'A';
-      case  'N' : return  'N';
-      default :
-        fprintf (stderr, "ERROR(complement):  Unexpected character `%c\'\n", ch);
-        exit (-1);
-     }
-   return  'X';    // Just to make the compiler happy
-  }
-
-
-/* Set string  s  to its DNA reverse complement. */
-static void  Rev_Complement (char * s) {
-   char  ch;
-   int  i, j, len; 
-   len = strlen (s); 
-   for  (i = 0, j = len - 1;  i < j;  i ++, j --) {
-      ch = Complement (s [i]);
-      s [i] = Complement (s [j]);
-      s [j] = ch;
-     } 
-   if  (i == j) s [i] = Complement (s [i]); 
-  }
-
-#endif
-
 
 
 
@@ -88,6 +50,7 @@ static void  Rev_Complement (char * s) {
 //  Instead of using The internal overlap, which has enough extra
 //  stuff in it that we cannot store a sequence iid for the table
 //  sequence, we need to make our own overlap structure.
+//
 //
 struct kmerhit {
   u64bit   tseq:30;              //  sequence in the table
@@ -118,342 +81,576 @@ kmerhitcompare(const void *a, const void *b) {
 }
 
 
-inline
-u64bit
-addHit(seqStream *SS, CDS_IID_t iid, merStream *M,
-       kmerhit *&hits, u32bit &hitsLen, u32bit &hitsMax,
-       u64bit pos, u64bit cnt,
-       u64bit pal,
-       u64bit fwd) {
-  u32bit  seq = SS->sequenceNumberOfPosition(pos);
 
-  pos -= SS->startOf(seq);
-  seq  = SS->IIDOf(seq);
 
-  if (iid == seq)
-    return(0);
 
-  if (iid < seq)
-    return(0);
+class ovmGlobalData {
+public:
+  ovmGlobalData() {
+    gkpPath     = 0L;
+    merSize     = 23;
+    compression = 1;
+    maxCount    = 40;
+    numThreads  = 4;
 
-  if (hitsLen >= hitsMax) {
-    if (hitsMax == 0) {
-      hitsMax = 256;
-      hits    = new kmerhit [hitsMax];
+    qGK  = 0L;
+    qFS  = 0L;
+    qBeg = 1;
+    qEnd = 0;
+
+    tGK  = 0L;
+    tKB  = 0L;
+    tSS  = 0L;
+    tMS  = 0L;
+    tPS  = 0L;
+    tBeg = 1;
+    tEnd = 0;
+
+    outputName  = 0L;
+    outputFile = 0L;
+  };
+
+  ~ovmGlobalData() {
+
+    //fprintf(stderr, "Found "u64bitFMT" mer hits.\n", merfound);
+    //fprintf(stderr, "Found "u64bitFMT" overlaps.\n", ovlfound);
+
+    AS_OVS_closeBinaryOverlapFile(outputFile);
+
+    closeFragStream(qFS);
+    closeGateKeeperStore(qGK);
+
+    delete tPS;
+    delete tMS;
+    delete tSS;
+    delete tKB;
+    delete tGK;
+  };
+
+  void  build(void) {
+
+    //
+    //  Open inputs for the reader
+    //
+    qGK = openGateKeeperStore(gkpPath, FALSE);
+
+    //  Use that gkpStore to check and reset the desired ranges
+    //
+    if (qBeg < 1)   qBeg = 1;
+    if (qEnd == 0)  qEnd = getNumGateKeeperFragments(qGK);
+    if (qBeg >= qEnd) {
+      fprintf(stderr, "ERROR: -qb="F_U32" and -qe="F_U32" are invalid ("F_U32" frags in the store)\n",
+              qBeg, qEnd, getNumGateKeeperFragments(qGK));
+      exit(1);
+    }
+
+    if (tBeg < 1)   tBeg = 1;
+    if (tEnd == 0)  tEnd = getNumGateKeeperFragments(qGK);
+    if (tBeg >= tEnd) {
+      fprintf(stderr, "ERROR: -tb="F_U32" and -te="F_U32" are invalid ("F_U32" frags in the store)\n",
+              tBeg, tEnd, getNumGateKeeperFragments(qGK));
+      exit(1);
+    }
+
+    //  Use that gkpStore to quickly build a list of the clear ranges
+    //  and full sequence length for reads in the table.
+    //
+    {
+      fragRecord   fr;
+      FragStream  *fs = openFragStream(qGK, FRAG_S_INF);
+
+      resetFragStream(fs, tBeg, tEnd);
+
+      table_clrBeg       = new uint32 [tEnd - tBeg];
+      table_untrimLength = new uint32 [tEnd - tBeg];
+
+      while (nextFragStream(fs, &fr)) {
+        table_clrBeg      [getFragRecordIID(&fr) - tBeg] = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBT);
+        table_untrimLength[getFragRecordIID(&fr) - tBeg] = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_UNTRIM);
+      }
+
+      closeFragStream(fs);
+    }
+
+    //  Open another fragStream for the query fragments.
+    //
+    qFS = openFragStream(qGK, FRAG_S_SEQ);
+    resetFragStream(qFS, qBeg, qEnd);
+
+
+    //
+    //  Build state for the workers
+    //
+
+    //  Open the gatekeeper store as a kmer seqFile.  We need to
+    //  dynamic_cast this back to our gkpStoreSequence, so we can access
+    //  methods defined only on that object.
+    //
+    {
+      char     gkpName[FILENAME_MAX + 64] = {0};
+      sprintf(gkpName, "%s:%u-%u:obt", gkpPath, tBeg, tEnd);
+
+      tGK = dynamic_cast<gkpStoreSequence*>(openSeqFile(gkpName));
+      if (tGK == 0L) {
+        fprintf(stderr, "%s: invalid input file '%s' (not a GateKeeperStore?).\n", gkpName);
+        exit(1);
+      }
+
+      tKB = new kMerBuilder(merSize, compression, 0L);
+
+      tSS = new seqStream(tGK, true);
+      tSS->setSeparator('.', 100);
+
+      tMS = new merStream(tKB, tSS);
+      tPS = new positionDB(tMS, merSize, 0, 20, 0L, 0L, maxCount, true);
+    }
+
+    //
+    //  Open the output file.
+    //
+
+    outputFile = AS_OVS_createBinaryOverlapFile(outputName, FALSE);
+  };
+
+  uint32    getClrBeg(CDS_IID_t iid) {
+    assert(tBeg <= iid);
+    return(table_clrBeg[iid - tBeg]);
+  };
+
+  uint32    getUntrimLength(CDS_IID_t iid) {
+    assert(tBeg <= iid);
+    return(table_untrimLength[iid - tBeg]);
+  };
+
+
+  //  Command line parameters
+  //
+  char    *gkpPath;
+  uint32   merSize;
+  uint32   compression;
+  uint32   maxCount;
+  uint32   numThreads;
+
+  //  for the READER only
+  //
+  GateKeeperStore   *qGK;
+  FragStream        *qFS;
+  uint32             qBeg;
+  uint32             qEnd;
+
+  //  for the WORKERS.
+  //
+  gkpStoreSequence  *tGK;
+  kMerBuilder       *tKB;
+  seqStream         *tSS;  //  needs to be public so we can offset coords
+  merStream         *tMS;
+  positionDB        *tPS;  //  needs to be public!  (this is the main tabile)
+  uint32             tBeg;
+  uint32             tEnd;
+
+  //  for the WORKERS - we need to know the clrBeg and full read
+  //  length for stuff in the table, which we can't get from the
+  //  READER gkp.
+  //
+  uint32            *table_clrBeg;
+  uint32            *table_untrimLength;
+
+  //  for the WRITER only.
+  //
+  char              *outputName;
+  BinaryOverlapFile *outputFile;
+};
+
+
+
+class ovmThreadData {
+public:
+  ovmThreadData(ovmGlobalData *g) {
+    qKB      = new kMerBuilder(g->merSize, g->compression, 0L);
+
+    posnF    = 0L;
+    posnFMax = 0;
+    posnFLen = 0;
+
+    posnR    = 0L;
+    posnRMax = 0;
+    posnRLen = 0;
+
+    hitsLen = 0;
+    hitsMax = 0;
+    hits    = 0L;
+
+    merfound = 0;
+    ovlfound = 0;
+  };
+
+  ~ovmThreadData() {
+    delete [] posnF;
+    delete [] posnR;
+    delete [] hits;
+  };
+
+  void
+  addHit(seqStream   *SS,
+         CDS_IID_t    iid,
+         merStream   *MS,
+         u64bit       pos,
+         u64bit       cnt,
+         u64bit       pal,
+         u64bit       fwd) {
+
+    uint32  seq = SS->sequenceNumberOfPosition(pos);
+
+    pos -= SS->startOf(seq);
+    seq  = SS->IIDOf(seq);
+
+    if (iid == seq)
+      return;
+
+    if (iid < seq)
+      return;
+
+    if (hitsLen >= hitsMax) {
+      if (hitsMax == 0) {
+        hitsMax = 1048576;  //  tiny, 8MB per thread
+        hits    = new kmerhit [hitsMax];
+      } else {
+        hitsMax *= 2;
+        kmerhit *h = new kmerhit [hitsMax];
+        memcpy(h, hits, sizeof(kmerhit) * hitsLen);
+        delete [] hits;
+        hits = h;
+      }
+    }
+
+    hits[hitsLen].tseq = seq;
+    hits[hitsLen].tpos = pos;
+    hits[hitsLen].qpos = MS->thePositionInSequence();
+    hits[hitsLen].cnt  = cnt;
+    hits[hitsLen].pal  = pal;
+    hits[hitsLen].fwd  = fwd;
+
+#if 0
+    if (((seq == 10) && (iid ==  1)) ||
+        ((seq ==  1) && (iid == 10)))
+      fprintf(stderr, "addHit: "u64bitFMT"\t"u64bitFMT"\t"u64bitFMT"\t"u64bitFMT"\t%c\n",
+              hits[hitsLen].tseq,
+              hits[hitsLen].tpos,
+              hits[hitsLen].qpos,
+              hits[hitsLen].cnt,
+              hits[hitsLen].pal ? 'p' : (hits[hitsLen].fwd ? 'f' : 'r'));
+#endif
+
+    hitsLen++;
+    merfound++;
+  };
+
+
+  kMerBuilder  *qKB;
+
+  u64bit        posnFLen;
+  u64bit        posnFMax;
+  u64bit       *posnF;
+
+  u64bit        posnRLen;
+  u64bit        posnRMax;
+  u64bit       *posnR;
+
+  u32bit        hitsLen;
+  u32bit        hitsMax;
+  kmerhit      *hits;
+
+  u64bit        merfound;
+  u64bit        ovlfound;
+};
+
+
+
+class ovmComputation {
+public:
+  ovmComputation(fragRecord *fr) {
+    beg = getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBT);
+    end = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBT);
+    tln = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_UNTRIM);
+
+    iid = getFragRecordIID(fr);
+    uid = getFragRecordUID(fr);
+
+    memset(seq, 0, AS_FRAG_MAX_LEN);
+    strcpy(seq, getFragRecordSequence(fr));
+
+    ovsLen = 0;
+    ovsMax = 1024;
+    ovs    = new OVSoverlap [ovsMax];
+  };
+
+  ~ovmComputation() {
+    delete [] ovs;
+  };
+
+  void        addOverlap(OVSoverlap *overlap) {
+
+#if 0
+    //  some ascii output
+    fprintf(stderr, "%d\t%d\t%c\t%d\t%d\n",
+            (int)overlap->a_iid,
+            (int)overlap->dat.mer.a_pos,
+            overlap->dat.mer.palindrome ? 'p' : (overlap->dat.mer.fwd ? 'f' : 'r'),
+            (int)overlap->b_iid,
+            (int)overlap->dat.mer.b_pos);
+#endif
+
+    if (ovsLen >= ovsMax) {
+      ovsMax *= 2;
+      OVSoverlap *o = new OVSoverlap [ovsMax];
+      memcpy(o, ovs, sizeof(OVSoverlap) * ovsLen);
+      delete [] ovs;
+      ovs = o;
+    }
+
+    ovs[ovsLen++] = *overlap;
+  };
+
+  void        writeOverlaps(BinaryOverlapFile *outputFile) {
+    for (uint32 i=0; i<ovsLen; i++)
+      AS_OVS_writeOverlap(outputFile, ovs + i);
+  };
+
+  uint32      beg;
+  uint32      end;
+  uint32      tln;
+
+  CDS_IID_t   iid;
+  CDS_UID_t   uid;
+
+  uint32      ovsLen;  //  Overlap Storage, waiting for output
+  uint32      ovsMax;
+  OVSoverlap *ovs;
+
+  char        seq[AS_FRAG_MAX_LEN];
+};
+
+
+
+
+void*
+ovmReader(void *G) {
+  ovmGlobalData  *g = (ovmGlobalData *)G;
+
+  static fragRecord  fr;  //  static only for performance
+
+ again:
+  if (nextFragStream(g->qFS, &fr) == 0)
+    return(0L);
+
+  if (getFragRecordIsDeleted(&fr))
+    goto again;
+
+  return(new ovmComputation(&fr));
+}
+
+
+
+
+void
+ovmWorker(void *G, void *T, void *S) {
+  ovmGlobalData    *g = (ovmGlobalData  *)G;
+  ovmThreadData    *t = (ovmThreadData  *)T;
+  ovmComputation   *s = (ovmComputation *)S;
+
+  OVSoverlap        overlap;
+
+  t->hitsLen = 0;
+
+  //  We can "simulate" a canonical mercount by getting the count
+  //  for both forward and reverse.
+
+  merStream *sMS = new merStream(t->qKB, s->seq, s->beg, s->end - s->beg);
+
+  while (sMS->nextMer()) {
+    if (sMS->theFMer() == sMS->theRMer()) {
+      g->tPS->get(sMS->theFMer(), t->posnF, t->posnFMax, t->posnFLen);
+      if (t->posnFLen > 1)
+        for (u32bit i=0; i<t->posnFLen; i++)
+          t->addHit(g->tSS, s->iid, sMS, t->posnF[i], t->posnFLen, 1, 0);
     } else {
-      hitsMax *= 2;
-      kmerhit *h = new kmerhit [hitsMax];
-      memcpy(h, hits, sizeof(kmerhit) * hitsLen);
-      delete [] hits;
-      hits = h;
-      fprintf(stderr, "reallocating to hitsMax "u32bitFMT"\n", hitsMax);
+      g->tPS->get(sMS->theFMer(), t->posnF, t->posnFMax, t->posnFLen);
+      g->tPS->get(sMS->theRMer(), t->posnR, t->posnRMax, t->posnRLen);
+
+      u64bit totalLen = t->posnFLen + t->posnRLen - 1;  //  the canonical mer count
+
+      if (t->posnFLen > 1)
+        for (u32bit i=0; i<t->posnFLen; i++)
+          t->addHit(g->tSS, s->iid, sMS, t->posnF[i], totalLen, 0, 1);
+      if (t->posnRLen > 1)
+        for (u32bit i=0; i<t->posnRLen; i++)
+          t->addHit(g->tSS, s->iid, sMS, t->posnR[i], totalLen, 0, 0);
     }
   }
 
-  hits[hitsLen].tseq = seq;
-  hits[hitsLen].tpos = pos;
-  hits[hitsLen].qpos = M->thePositionInSequence();
-  hits[hitsLen].cnt  = cnt;
-  hits[hitsLen].pal  = pal;
-  hits[hitsLen].fwd  = fwd;
+  delete sMS;
+
+  if (t->hitsLen == 0)
+    return;
+
+
+  //  We have all the hits for this frag.  Sort them by sequence
+  //  (the other sequence), then pick out the one with the least
+  //  count for each sequence.
+
+  qsort(t->hits, t->hitsLen, sizeof(kmerhit), kmerhitcompare);
+
 
 #if 0
-  if (((seq == 10) && (iid ==  1)) ||
-      ((seq ==  1) && (iid == 10)))
-    fprintf(stderr, "addHit: "u64bitFMT"\t"u64bitFMT"\t"u64bitFMT"\t"u64bitFMT"\t%c\n",
-            hits[hitsLen].tseq,
-            hits[hitsLen].tpos,
-            hits[hitsLen].qpos,
-            hits[hitsLen].cnt,
-            hits[hitsLen].pal ? 'p' : (hits[hitsLen].fwd ? 'f' : 'r'));
+  //  Debug, I guess.  Generates lots of output, since frags with
+  //  big identical overlaps will have lots and lots of mers in
+  //  common.
+  //
+  for (u32bit i=0; i<t->hitsLen; i++) {
+    if (i != t->hitsLen) {
+      fprintf(stderr, u32bitFMT"\t"u64bitFMT"\t"u32bitFMT"\t"u64bitFMT"\t%c\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\tTAG\n",
+              t->hits[i].tseq, t->hits[i].tpos,
+              s->iid,  t->hits[i].qpos,
+              t->hits[i].pal ? 'p' : (t->hits[i].fwd ? 'f' : 'r'),
+              0,
+              t->hits[i].cnt,
+              merSize);
+    }
+  }
 #endif
 
-  hitsLen++;
 
-  return(1);
+
+  for (u32bit i=0; i<t->hitsLen; i++) {
+
+    //  By the definition of our sort, the least common mer is the
+    //  first hit in the list for each pair of sequences.
+    //
+    t->ovlfound++;
+
+    //  Adjust coords to be relative to whole read
+    //
+    t->hits[i].tpos += g->getClrBeg(t->hits[i].tseq);
+    t->hits[i].qpos += s->beg;
+
+    //  Reverse if needed
+    //
+    if (t->hits[i].fwd == false)
+      t->hits[i].qpos = s->tln - t->hits[i].qpos - g->merSize;
+
+    //  Save off the A vs B overlap
+    //
+    overlap.a_iid                      = t->hits[i].tseq;
+    overlap.b_iid                      = s->iid;
+    overlap.dat.mer.datpad             = 0;
+    overlap.dat.mer.compression_length = 0;
+    overlap.dat.mer.fwd                = t->hits[i].fwd;
+    overlap.dat.mer.palindrome         = t->hits[i].pal;
+    overlap.dat.mer.a_pos              = t->hits[i].tpos;
+    overlap.dat.mer.b_pos              = t->hits[i].qpos;
+    overlap.dat.mer.k_count            = t->hits[i].cnt;
+    overlap.dat.mer.k_len              = g->merSize;
+    overlap.dat.mer.type               = AS_OVS_TYPE_MER;
+    s->addOverlap(&overlap);
+
+    //  Save off the B vs A overlap
+    //
+    overlap.a_iid = s->iid;
+    overlap.b_iid = t->hits[i].tseq;
+
+    if (overlap.dat.mer.fwd) {
+      overlap.dat.mer.a_pos = t->hits[i].qpos;
+      overlap.dat.mer.b_pos = t->hits[i].tpos;
+    } else {
+      uint32 othlen = g->getUntrimLength(t->hits[i].tseq);
+
+      overlap.dat.mer.a_pos = s->tln - t->hits[i].qpos - g->merSize;
+      overlap.dat.mer.b_pos = othlen - t->hits[i].tpos - g->merSize;
+    }
+    s->addOverlap(&overlap);
+
+    //  Now, skip ahead until we find the next pair.
+    //
+    u64bit  lastiid = t->hits[i].tseq;
+    while ((i < t->hitsLen) && (t->hits[i].tseq == lastiid))
+      i++;
+  }  //  over all hits
 }
+
+
+
+void
+ovmWriter(void *G, void *S) {
+  ovmGlobalData    *g = (ovmGlobalData  *)G;
+  ovmComputation   *s = (ovmComputation *)S;
+
+  s->writeOverlaps(g->outputFile);
+
+  delete s;
+}
+
+
+
 
 
 int
 main(int argc, char **argv) {
-  bool  need_reverse_orientation_too = false;
-  char   *gkpPath    = 0L;
-  char    gkpName[FILENAME_MAX + 64] = {0};
-  u32bit  merSize    = 23;
-  u32bit  maxCount   = 40;
-  char   *outputName = NULL;
+  ovmGlobalData  *g = new ovmGlobalData;
 
   assert(sizeof(kmerhit) == 8);
 
   int arg=1;
   int err=0;
   while (arg < argc) {
-    if (strcmp(argv[arg], "-2") == 0) {
-      need_reverse_orientation_too = true;
-    } else if (strcmp(argv[arg], "-g") == 0) {
-      gkpPath = argv[++arg];
+    if        (strcmp(argv[arg], "-g") == 0) {
+      g->gkpPath = argv[++arg];
+
     } else if (strcmp(argv[arg], "-m") == 0) {
-      merSize = atoi(argv[++arg]);
+      g->merSize = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-c") == 0) {
+      g->compression = atoi(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-o") == 0) {
-      outputName = argv[++arg];
+      g->outputName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-t") == 0) {
+      g->numThreads = atoi(argv[++arg]);
+
+    } else if (strcmp(argv[arg], "-tb") == 0) {
+      g->tBeg = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-te") == 0) {
+      g->tEnd = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-qb") == 0) {
+      g->qBeg = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-qe") == 0) {
+      g->qEnd = atoi(argv[++arg]);
+
     } else {
       fprintf(stderr, "unknown option '%s'\n", argv[arg]);
       err++;
     }
     arg++;
   }
-  if ((gkpPath == 0L) || (err)) {
-    fprintf(stderr, "usage: %s [-g gkpStore] [-m merSize] [-o outputName]\n", argv[0]);
+  if ((g->gkpPath == 0L) || (err)) {
+    fprintf(stderr, "usage: %s [-g gkpStore] [-m merSize] [-c compression] [-o outputName]\n", argv[0]);
     exit(1);
   }
 
   seqFactory::instance()->registerFile(new gkpStoreSequence());
 
-  //  Open the gatekeeper store as a kmer seqFile.  We need to
-  //  dynamic_cast this back to our gkpStoreSequence, so we can access
-  //  methods defined only on that object.
-  //
-  sprintf(gkpName, "%s:obt", gkpPath);
-  gkpStoreSequence *gkpseq = dynamic_cast<gkpStoreSequence*>(openSeqFile(gkpName));
-  if (gkpseq == 0L) {
-    fprintf(stderr, "%s: invalid input file '%s' (not a GateKeeperStore?).\n", gkpName);
-    exit(1);
-  }
+  g->build();
 
-  seqStream    *SS = new seqStream(gkpseq, true);
-  merStream    *MS = new merStream(merSize, SS);
-  positionDB   *PS = new positionDB(MS, merSize, 0, 20, 0L, 0L, maxCount, true);
+  sweatShop *ss = new sweatShop(ovmReader, ovmWorker, ovmWriter);
 
-  u64bit  *posnF    = 0L;
-  u64bit   posnFMax = 0;
-  u64bit   posnFLen = 0;
+  ss->loaderQueueSize(10240);
+  ss->writerQueueSize(10240);
 
-  u64bit  *posnR    = 0L;
-  u64bit   posnRMax = 0;
-  u64bit   posnRLen = 0;
+  ss->numberOfWorkers(g->numThreads);
 
-  u64bit  merfound = 0;
-  u64bit  ovlfound = 0;
+  for (u32bit w=0; w<g->numThreads; w++)
+    ss->setThreadData(w, new ovmThreadData(g));
 
-  u32bit     hitsLen = 0;
-  u32bit     hitsMax = 0;
-  kmerhit   *hits    = 0;
+  ss->run(g, true);  //  true == verbose
 
-  BinaryOverlapFile *binout = AS_OVS_createBinaryOverlapFile(outputName, FALSE);
-  OVSoverlap         overlap;
-
-#ifdef EXPENSIVE_CHECK
-  GateKeeperStore  *dbggkp = openGateKeeperStore(gkpPath, FALSE);
-  fragRecord       *dbgf1  = new_fragRecord();
-  fragRecord       *dbgf2  = new_fragRecord();
-  char              dbgs1[AS_READ_MAX_LEN+1];
-  char              dbgs2[AS_READ_MAX_LEN+1];
-#endif
-
-  fragRecord       *fr  = new_fragRecord();
-  GateKeeperStore  *gkp = openGateKeeperStore(gkpPath, FALSE);
-  FragStream       *frs = openFragStream(gkp, FRAG_S_SEQ);
-
-
-  while (nextFragStream(frs, fr)) {
-//    fprintf(stderr, "WORKING on "F_UID","F_IID"\r",
-//            getFragRecordUID(fr), getFragRecordIID(fr));
-
-    if (getFragRecordIsDeleted(fr))
-      continue;
-
-    uint32       beg = getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBT);
-    uint32       end = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBT);
-    uint32       tln = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_UNTRIM);
-    CDS_IID_t    iid = getFragRecordIID(fr);
-    merStream   *M   = new merStream(merSize, getFragRecordSequence(fr), beg, end - beg);
-
-    hitsLen = 0;
-
-    //  We can "simulate" a canonical mercount by getting the count
-    //  for both forward and reverse.
-
-    while (M->nextMer()) {
-      if (M->theFMer() == M->theRMer()) {
-        PS->get(M->theFMer(), posnF, posnFMax, posnFLen);
-        if (posnFLen > 1)
-          for (u32bit i=0; i<posnFLen; i++)
-            merfound += addHit(SS, getFragRecordIID(fr), M, hits, hitsLen, hitsMax, posnF[i], posnFLen, 1, 0);
-      } else {
-        PS->get(M->theFMer(), posnF, posnFMax, posnFLen);
-        PS->get(M->theRMer(), posnR, posnRMax, posnRLen);
-
-        u64bit totalLen = posnFLen + posnRLen - 1;  //  the canonical mer count
-
-        if (posnFLen > 1)
-          for (u32bit i=0; i<posnFLen; i++)
-            merfound += addHit(SS, iid, M, hits, hitsLen, hitsMax, posnF[i], totalLen, 0, 1);
-        if (posnRLen > 1)
-          for (u32bit i=0; i<posnRLen; i++)
-            merfound += addHit(SS, iid, M, hits, hitsLen, hitsMax, posnR[i], totalLen, 0, 0);
-      }
-    }
-
-    if (hitsLen == 0)
-      continue;
-
-    //  We have all the hits for this frag.  Sort them by sequence
-    //  (the other sequence), then pick out the one with the least
-    //  count for each sequence.
-
-    qsort(hits, hitsLen, sizeof(kmerhit), kmerhitcompare);
-
-#if 0
-    //  Debug, I guess.  Generates lots of output, since frags with
-    //  big identical overlaps will have lots and lots of mers in
-    //  common.
-    //
-    for (u32bit i=0; i<hitsLen; i++) {
-      if (i != hitsLen) {
-        fprintf(stderr, u32bitFMT"\t"u64bitFMT"\t"u32bitFMT"\t"u64bitFMT"\t%c\t"u32bitFMT"\t"u32bitFMT"\t"u32bitFMT"\tTAG\n",
-                hits[i].tseq, hits[i].tpos,
-                iid,  hits[i].qpos,
-                hits[i].pal ? 'p' : (hits[i].fwd ? 'f' : 'r'),
-                0,
-                hits[i].cnt,
-                merSize);
-      }
-    }
-#endif
-
-
-
-    for (u32bit i=0; i<hitsLen; i++) {
-
-      //  By the definition of our sort, the least common mer is the
-      //  first hit in the list for each pair of sequences.
-      //
-      ovlfound++;
-
-      //  Adjust coords to be relative to whole read
-      //
-      hits[i].tpos += gkpseq->clrBeg(hits[i].tseq);
-      hits[i].qpos += beg;
-
-      //  Reverse if needed
-      //
-      if (hits[i].fwd == false)
-        hits[i].qpos = tln - hits[i].qpos - merSize;
-
-      overlap.a_iid                      = hits[i].tseq;
-      overlap.b_iid                      = iid;
-      overlap.dat.mer.datpad             = 0;
-      overlap.dat.mer.compression_length = 0;
-      overlap.dat.mer.fwd                = hits[i].fwd;
-      overlap.dat.mer.palindrome         = hits[i].pal;
-      overlap.dat.mer.a_pos              = hits[i].tpos;
-      overlap.dat.mer.b_pos              = hits[i].qpos;
-      overlap.dat.mer.k_count            = hits[i].cnt;
-      overlap.dat.mer.k_len              = merSize;
-      overlap.dat.mer.type               = AS_OVS_TYPE_MER;
-
-#if 0
-      //  some ascii output
-      fprintf(stderr, "%d\t%d\t%c\t%d\t%d\n",
-              (int)overlap.a_iid,
-              (int)overlap.dat.mer.a_pos,
-              overlap.dat.mer.palindrome ? 'p' : (overlap.dat.mer.fwd ? 'f' : 'r'),
-              (int)overlap.b_iid,
-              (int)overlap.dat.mer.b_pos);
-#endif
-
-      AS_OVS_writeOverlap(binout, &overlap);
-
-
-#ifdef EXPENSIVE_CHECK
-      getFrag(dbggkp, overlap.a_iid, dbgf1, FRAG_S_SEQ);
-      getFrag(dbggkp, overlap.b_iid, dbgf2, FRAG_S_SEQ);
-
-      //  Debugging....lots of it....
-      //fprintf(stderr, ">"F_IID"\n%s\n", getFragRecordIID(dbgf1), getFragRecordSequence(dbgf1));
-      //fprintf(stderr, ">"F_IID"\n%s\n", getFragRecordIID(dbgf2), getFragRecordSequence(dbgf2));
-
-      if (overlap.dat.mer.fwd == false)
-        Rev_Complement(getFragRecordSequence(dbgf2));
-
-      if (strncasecmp(getFragRecordSequence(dbgf1) + overlap.dat.mer.a_pos,
-                      getFragRecordSequence(dbgf2) + overlap.dat.mer.b_pos, merSize) != 0) {
-
-        fprintf(stderr, ">"F_IID"\n%s\n", getFragRecordIID(dbgf1), getFragRecordSequence(dbgf1));
-        fprintf(stderr, ">"F_IID"\n%s\n", getFragRecordIID(dbgf2), getFragRecordSequence(dbgf2));
-
-        fprintf(stderr, "%d\t%d\t%c\t%d\t%d\n",
-                (int)overlap.a_iid,
-                (int)overlap.dat.mer.a_pos,
-                overlap.dat.mer.palindrome ? 'p' : (overlap.dat.mer.fwd ? 'f' : 'r'),
-                (int)overlap.b_iid,
-                (int)overlap.dat.mer.b_pos);
-
-        char  *a = getFragRecordSequence(dbgf1) + overlap.dat.mer.a_pos;
-        char  *b = getFragRecordSequence(dbgf2);
-        int    i = 0;
-        for (; *b; b++, i++)
-          if (strncasecmp(a, b, overlap.dat.mer.k_len) == 0)
-            fprintf(stderr, "found at %d\n", i);
-
-        getFragRecordSequence(dbgf1)[overlap.dat.mer.a_pos + overlap.dat.mer.k_len] = 0;
-        getFragRecordSequence(dbgf2)[overlap.dat.mer.b_pos + overlap.dat.mer.k_len] = 0;
-
-        fprintf(stderr, ">"F_IID"\n%s\n", getFragRecordIID(dbgf1), getFragRecordSequence(dbgf1) + overlap.dat.mer.a_pos);
-        fprintf(stderr, ">"F_IID"\n%s\n", getFragRecordIID(dbgf2), getFragRecordSequence(dbgf2) + overlap.dat.mer.b_pos);
-
-        assert(0);
-      }
-#endif
-
-      if (need_reverse_orientation_too)
-        {
-         overlap . a_iid = iid;
-         overlap . b_iid = hits [i] . tseq;
-         if (overlap . dat . mer . fwd)
-           {
-            overlap . dat . mer . a_pos = hits [i] . qpos;
-            overlap . dat . mer . b_pos = hits [i] . tpos;
-           }
-         else
-           {
-            static fragRecord  * otherfr = NULL;
-            uint32  len;
-
-            if (otherfr == NULL)
-              otherfr = new_fragRecord();
-
-            getFrag (gkp, hits [i] . tseq, otherfr, 0);
-            len = getFragRecordClearRegionEnd (otherfr, AS_READ_CLEAR_UNTRIM);
-
-            overlap . dat . mer . a_pos = tln - hits [i] . qpos - merSize;
-            overlap . dat . mer . b_pos = len - hits [i] . tpos - merSize;
-           }
-         AS_OVS_writeOverlap(binout, &overlap);
-        }
-
-      //  Now, skip ahead until we find the next pair.
-      //
-      u64bit  lastiid = hits[i].tseq;
-      while ((i < hitsLen) && (hits[i].tseq == lastiid))
-        i++;
-
-    }  //  over all hits
-
-    delete M;
-  }
-
-  fprintf(stderr, "Found "u64bitFMT" mer hits.\n", merfound);
-  fprintf(stderr, "Found "u64bitFMT" overlaps.\n", ovlfound);
-
-  AS_OVS_closeBinaryOverlapFile(binout);
-
-  closeFragStream(frs);
-  closeGateKeeperStore(gkp);
-
-  delete PS;
-  delete MS;
-  delete SS;
-
-  delete gkpseq;
+  delete g;
 }
