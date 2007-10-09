@@ -36,8 +36,6 @@ sub createOverlapJobs {
 
     return if (-e "$wrk/$outDir/jobsCreated.success");
 
-
-
     #  If we're doing the mer overlapper...and we're not doing OBT
     #
     if ((getGlobal("merOverlap") != 0) &&
@@ -49,6 +47,7 @@ sub createOverlapJobs {
             $cmd  = "$bin/overmerry";
             $cmd .= " -g $wrk/$asm.gkpStore";
             $cmd .= " -m 28";
+            $cmd .= " -c 0";
             $cmd .= " -o $wrk/$outDir/$asm.ovm";
             #$cmd .= " > $wrk/$outDir/overmerry.err 2>&1";
             if (runCommand("$wrk/$outDir", $cmd)) {
@@ -72,8 +71,9 @@ sub createOverlapJobs {
 
         if (! -e "$wrk/$outDir/$asm.ovb") {
             $cmd  = "$bin/olap-from-seeds";
-            $cmd .= " -b";
+            $cmd .= " -a -b -t 3 ";
             $cmd .= " -S $wrk/$outDir/$asm.merStore";
+            $cmd .= " -c $wrk/3-frgcorr/$asm.corr";
             $cmd .= " -o $wrk/$outDir/$asm.ovb"      if ($isTrim ne "trim");
             $cmd .= " -o $wrk/$outDir/$asm.ovb.raw"  if ($isTrim eq "trim");
             $cmd .= " $wrk/$asm.gkpStore 1 $numFrags";
@@ -86,6 +86,12 @@ sub createOverlapJobs {
                 $cmd .= " < $wrk/$outDir/$asm.ovb.raw";
                 $cmd .= " > $wrk/$outDir/$asm.ovb";
             }
+
+            #  Make the 3-frgcorr directory (to hold the corrections
+            #  output) and claim that fragment correction is all done.
+
+            system("mkdir $wrk/3-frgcorr") if (! -d "$wrk/3-frgcorr");
+            touch("$wrk/3-frgcorr/jobsCreated.success");
 
             if (runCommand("$wrk/$outDir", $cmd)) {
                 rename "$wrk/$outDir/$asm.ovb", "$wrk/$outDir/$asm.ovb.FAILED";
