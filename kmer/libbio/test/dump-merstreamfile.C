@@ -40,10 +40,10 @@ main(int argc, char **argv) {
     delete MS1;
   }
 
-  if (0) {
+  if (1) {
     seqStream   *STR = new seqStream(argv[1], true);
     seqStore    *STO = new seqStore(argv[1], STR);
-    kMerBuilder *KB1 = new kMerBuilder(27, 1);
+    kMerBuilder *KB1 = new kMerBuilder(8, 2);
     merStream   *MS1 = new merStream(KB1, STO);
 
     fprintf(stdout, "COMPRESSED\n");
@@ -61,7 +61,7 @@ main(int argc, char **argv) {
     delete MS1;
   }
 
-  if (1) {
+  if (0) {
     seqStream   *STR = new seqStream(argv[1], true);
     seqStore    *STO = new seqStore(argv[1], STR);
     //                                          01234567890123
