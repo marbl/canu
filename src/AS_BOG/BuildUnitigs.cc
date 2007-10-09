@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.26 2007-09-20 16:17:41 eliv Exp $
- * $Revision: 1.26 $
+ * $Id: BuildUnitigs.cc,v 1.27 2007-10-09 20:49:09 eliv Exp $
+ * $Revision: 1.27 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.26 2007-09-20 16:17:41 eliv Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.27 2007-10-09 20:49:09 eliv Exp $";
 
 //  System include files
 
@@ -106,6 +106,8 @@ int  main (int argc, char * argv [])
                float t;
                while (iStr >> t) erates.push_back(t);
                } break;
+           case 'k':
+               BogOptions::ejectUnhappyContained = true; break;
            case 's':
                genome_size = atol(optarg); break;
            default:
@@ -118,6 +120,7 @@ int  main (int argc, char * argv [])
         fprintf(stderr, "[-b] Break promisciuous unitigs at unitig intersection points\n");
         fprintf(stderr, "[-e] Space separated list of erates to generate unitig for\n");
         fprintf(stderr, "     default is -e '2.5 1.5 1.0'\n");
+        fprintf(stderr, "[-k] Kick out unhappy contained mated reads into singleton unitigs\n");
         fprintf(stderr, " \n");
            exit(1);
        }

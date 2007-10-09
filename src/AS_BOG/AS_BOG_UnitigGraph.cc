@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.61 2007-10-05 17:47:38 eliv Exp $
- * $Revision: 1.61 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.62 2007-10-09 20:49:09 eliv Exp $
+ * $Revision: 1.62 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.61 2007-10-05 17:47:38 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.62 2007-10-09 20:49:09 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -90,6 +90,7 @@ namespace AS_BOG{
     }
 
     bool BogOptions::unitigIntersectBreaking = false;
+    bool BogOptions::ejectUnhappyContained   = false;
 
 	void UnitigGraph::build(ChunkGraph *cg_ptr) {
 

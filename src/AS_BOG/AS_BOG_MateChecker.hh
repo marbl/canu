@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.hh,v 1.14 2007-10-09 20:26:39 eliv Exp $
- * $Revision: 1.14 $
+ * $Id: AS_BOG_MateChecker.hh,v 1.15 2007-10-09 20:49:09 eliv Exp $
+ * $Revision: 1.15 $
 */
 
 #ifndef INCLUDE_AS_BOG_MATECHEKER
@@ -97,13 +97,19 @@ namespace AS_BOG{
         ~MateChecker();
 
         void readStore(const char *);   // reads the gkpStore mate info into memory
+
         // returns the mate iid for the given iid, or zero if none
         MateInfo getMateInfo(iuid);
 
         // Checks size of mates internal to unitig
         LibraryStats* checkUnitig( Unitig* );
+
         // Compute good and bad coverage graphs for a unitig, returns split points
         FragmentEnds* computeMateCoverage( Unitig*, LibraryStats &, BestOverlapGraph *);
+
+        // Make singleton unitigs out of unhappy contained reads
+        void ejectUnhappyContains(UnitigGraph& , LibraryStats& );
+
         // Computes stddev and mate coverage over all unitigs
         void checkUnitigGraph( UnitigGraph& );
 

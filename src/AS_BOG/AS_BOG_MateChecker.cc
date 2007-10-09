@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.32 2007-10-09 20:26:39 eliv Exp $
- * $Revision: 1.32 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.33 2007-10-09 20:49:09 eliv Exp $
+ * $Revision: 1.33 $
 */
 
 #include <math.h>
@@ -322,8 +322,15 @@ namespace AS_BOG{
                 prevNumSplits = numSplits;
         }
 
-
         // Now we'll chuck out the contained frags that have unhappy mates
+        if (BogOptions::ejectUnhappyContained) 
+            ejectUnhappyContains( tigGraph, globalStats );
+    }
+
+    ///////////////////////////////////////////////////////////////////////////
+
+    void MateChecker::ejectUnhappyContains(UnitigGraph& tigGraph, LibraryStats& globalStats )
+    {
         MateCounts allMates;
         UnitigVector* singletons = new UnitigVector(); // save singleton unitigs
         UnitigsIter tigEditIter = tigGraph.unitigs->begin();
