@@ -14,7 +14,7 @@ my $local_maxCopy     = 0;
 my $local_medCopy     = 1;
 my $local_minCopy     = 2;
 my $local_noCopy      = 3;
-my $local_copy        = $medCopy;
+my $local_copy        = $local_medCopy;
 my $local_notify      = 1;
 my $local_test        = 0;
 
@@ -62,8 +62,11 @@ $HELPTEXT =
 
 
 sub localDefaults () {
-    
+    asdbInit()  if ( !runningOnGrid());
+
     $wrk = "/usr/local/aserver_new/var/assembly/$request_id" if (!defined($wrk));
+
+    print "Using work directory: $wrk\n";    
 
     system("mkdir -p $wrk/log") if (! -d "$wrk/log");
     chmod 0755, "$wrk/log";
@@ -131,8 +134,6 @@ sub localOption($@) {
 
 sub localSetup($) {
     my $numSteps = shift @_;
-
-    asdbInit()  if ( !runningOnGrid());
 
     #catmap
     if ( -e "$asm.catmap" and !-e "$wrk/$asm.catmap" ) {
@@ -252,7 +253,7 @@ sub asdbInit () {
     my $project;
 
     if ( $local_test ) {
-    	$local_alias = $asm if (!defined($local_alias);
+    	$local_alias = $asm if (!defined($local_alias));
         $project = "test\n";
     } else {
         $project = $asm

@@ -581,8 +581,6 @@ sub submitScript ($) {
     my $script = "$output.sh";
     my $cmd;
 
-    my $pid = getpid();
-
     open(F, "> $script") or caFailure("Failed to open '$script' for writing\n");
     print F "#!/bin/sh\n";
     print F "#\n";

@@ -43,7 +43,7 @@ while (scalar(@ARGV)) {
     ($arg, @ARGV) = localOption($arg, @ARGV);
 
     if (!defined($arg)) {
-        return;
+        last;
     }
 
     if      ($arg =~ m/^-d/) {
