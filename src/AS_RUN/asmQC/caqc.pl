@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# $Id: caqc.pl,v 1.24 2007-08-17 20:15:40 moweis Exp $
+# $Id: caqc.pl,v 1.25 2007-10-09 04:05:05 moweis Exp $
 #
 # This program reads a Celera .asm file and produces aggregate information
 # about the assembly
@@ -20,7 +20,7 @@ use File::Copy;
 use Math::BigFloat;
 use FindBin qw($Bin);
 
-my $MY_VERSION = "caqc Version 2.13 (Build " . (qw/$Revision: 1.24 $/)[1] . ")";
+my $MY_VERSION = "caqc Version 2.13 (Build " . (qw/$Revision: 1.25 $/)[1] . ")";
 
 # Constants
 my $MINQUAL    = 20;
@@ -1031,7 +1031,7 @@ MAIN:
             elsif ( $type eq 'FRG' ) {
                 my ( $type, $fields, $recs ) = parseCARecord($record);
                 my $seq = $$fields{'seq'};
-                my $seqLen = $seq =~ tr/a-z//;
+                my $seqLen = $seq =~ tr/a-zA-Z//;
                 $totalBases += $seqLen;
                 my $clrStr = $$fields{'clr'};
                 if ( $clrStr =~ /^(\d+),(\d+)$/ ) {
