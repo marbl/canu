@@ -65,6 +65,8 @@ public:
    _templateMer     = 0;
    _templateFirst   = 0;
 
+   fprintf(stderr, "ms="u32bitFMT" cm="u32bitFMT"\n", ms, cm);
+
    if (ms) {
      _style            = 0;
      _merSize          = ms;
@@ -212,6 +214,11 @@ public:
     u64bit  cf = validCompressedSymbol[ch];
     u64bit  cr = validCompressedSymbol[complementSymbol[ch]] & 0x03;
 
+#undef DEBUG
+#ifdef DEBUG
+    fprintf(stderr, "addBase() %c\n", ch);
+#endif
+
     ////////////////////////////////////////
     //
     //  Normal contiguous mers
@@ -258,6 +265,10 @@ public:
 
         _merSizeValid[0] = _merSizeValidZero;
 
+#undef DEBUGCOMP
+#ifdef DEBUGCOMP
+        fprintf(stderr, "invalid letter, keep going.\n");
+#endif
         return(true);
       }
 
@@ -265,6 +276,11 @@ public:
 
       u64bit  lb = theFMer().endOfMer(2);
       u32bit  ms = theFMer().getMerSpan();
+
+#ifdef DEBUGCOMP
+      fprintf(stderr, "lb="u64bitFMT" cf="u64bitFMT" ms="u32bitFMT" ccl="u32bitFMT" compression="u32bitFMT"\n",
+              lb, cf, ms, _compressionCurrentLength, _compression);
+#endif
 
       //  Always add one to the current length.  When we started, it
       //  was 0, and this represents the length after adding the base.
@@ -276,15 +292,23 @@ public:
       //  remember we've seen another letter in the run, and don't add
       //  it.  Request another letter.
       //
-      if ((_merSizeValid[0] > _merSizeValidIs) &&
-          (lb == cf) &&
-          (_compressionCurrentLength > _compression)) {
+      if ((_merSizeValidZero < _merSizeValid[0]) &&      //  there is a last base
+          (lb == cf) &&                                  //  last is the same as this
+          (_compressionCurrentLength > _compression)) {  //  run is already too big
         _compressionLength[_compressionIndex]++;
 
         _fMer->setMerSpan(ms + 1);
         _rMer->setMerSpan(ms + 1);
 
+#ifdef DEBUGCOMP
+        fprintf(stderr, "need more!\n");
+#endif
         return(true);
+      } else {
+#ifdef DEBUGCOMP
+        fprintf(stderr, "msvis="u64bitFMT" <= msv="u64bitFMT"\n",
+                _merSizeValidIs, _merSizeValid[0]);
+#endif
       }
 
       //  Else, it's a new run (a different letter) or our run isn't
@@ -340,12 +364,17 @@ public:
 
       if (_merSizeValid[0] + 1 < _merSizeValidIs) {
         _merSizeValid[0]++;
+#ifdef DEBUGCOMP
+        fprintf(stderr, "still too short, need more!\n");
+#endif
         return(true);
       }
 
-      //fprintf(stderr, "span=%u %u\n", ms+1, _fMer->getMerSpan());
-
-      return(false);  //  Good!  Don't need another letter.
+      //  Good!  Don't need another letter.
+#ifdef DEBUGCOMP
+      fprintf(stderr, "span=%u %u\n", ms+1, _fMer->getMerSpan());
+#endif
+      return(false);
     }
 
     ////////////////////////////////////////
