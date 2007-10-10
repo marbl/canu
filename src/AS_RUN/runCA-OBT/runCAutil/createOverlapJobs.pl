@@ -47,7 +47,7 @@ sub createOverlapJobs {
             $cmd  = "$bin/overmerry";
             $cmd .= " -g $wrk/$asm.gkpStore";
             $cmd .= " -m 28";
-            $cmd .= " -c 0";
+            $cmd .= " -c 1";
             $cmd .= " -o $wrk/$outDir/$asm.ovm";
             #$cmd .= " > $wrk/$outDir/overmerry.err 2>&1";
             if (runCommand("$wrk/$outDir", $cmd)) {
