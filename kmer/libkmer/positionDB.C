@@ -215,6 +215,7 @@ positionDB::positionDB(merStream   *MS,
         _bucketSizes[ HASH(MS->theFMer()) ]++;
         _numberOfMers++;
         _numberOfPositions = MS->thePositionInStream();
+        assert((_numberOfPositions >> 60) == 0);
       }
 
       C->tick();
@@ -231,6 +232,7 @@ positionDB::positionDB(merStream   *MS,
         _bucketSizes[ HASH(MS->theFMer()) ]++;
         _numberOfMers++;
         _numberOfPositions = MS->thePositionInStream();
+        assert((_numberOfPositions >> 60) == 0);
       }
 
       C->tick();
@@ -247,6 +249,7 @@ positionDB::positionDB(merStream   *MS,
 
       _numberOfMers++;
       _numberOfPositions = MS->thePositionInStream();
+      assert((_numberOfPositions >> 60) == 0);
       C->tick();
     }
 
@@ -260,6 +263,11 @@ positionDB::positionDB(merStream   *MS,
 
   if (beVerbose)
     fprintf(MSG_OUTPUT, "    Found "u64bitFMT" mers (max position = "u64bitFMT")\n", _numberOfMers, _numberOfPositions);
+
+  //  This caught a nasty bug in merStream rewind(), and it's pretty
+  //  cheap, so I left it in.  Search for the other DEBUGnumPositions.
+  //
+  u64bit DEBUGnumPositions = _numberOfPositions + 1;
 
   //  This is _numberOfMers+1 because we need to store the first
   //  position after the last mer.  That is, if there are two mers, we
@@ -359,6 +367,17 @@ positionDB::positionDB(merStream   *MS,
 
     while (MS->nextMer(_merSkipInBases)) {
       u64bit  canonicalmer = MS->theFMer();
+
+#ifdef ERROR_CHECK_COUNTING_ENCODING
+      if ((MS->thePositionInStream() & _posnMask) != MS->thePositionInStream()) {
+        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  POSNMASK "u64bitHEX" invalid!  Wanted "u64bitHEX" got "u64bitHEX"\n",
+                _posnMask,
+                MS->thePositionInStream(),
+                MS->thePositionInStream() & _posnMask);
+      }
+      assert((MS->thePositionInStream() >> 60) == 0);
+#endif
+
       if ((isCanonical) && (canonicalmer > MS->theRMer()))
         canonicalmer = MS->theRMer();
 
@@ -378,6 +397,17 @@ positionDB::positionDB(merStream   *MS,
 
     while (MS->nextMer(_merSkipInBases)) {
       u64bit  canonicalmer = MS->theFMer();
+
+#ifdef ERROR_CHECK_COUNTING_ENCODING
+      if ((MS->thePositionInStream() & _posnMask) != MS->thePositionInStream()) {
+        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  POSNMASK "u64bitHEX" invalid!  Wanted "u64bitHEX" got "u64bitHEX"\n",
+                _posnMask,
+                MS->thePositionInStream(),
+                MS->thePositionInStream() & _posnMask);
+      }
+      assert((MS->thePositionInStream() >> 60) == 0);
+#endif
+
       if ((isCanonical) && (canonicalmer > MS->theRMer()))
         canonicalmer = MS->theRMer();
 
@@ -396,6 +426,16 @@ positionDB::positionDB(merStream   *MS,
 
     while (MS->nextMer(_merSkipInBases)) {
       u64bit h = HASH(MS->theFMer());
+
+#ifdef ERROR_CHECK_COUNTING_ENCODING
+      if ((MS->thePositionInStream() & _posnMask) != MS->thePositionInStream()) {
+        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  POSNMASK "u64bitHEX" invalid!  Wanted "u64bitHEX" got "u64bitHEX"\n",
+                _posnMask,
+                MS->thePositionInStream(),
+                MS->thePositionInStream() & _posnMask);
+      }
+      assert((MS->thePositionInStream() >> 60) == 0);
+#endif
 
 #ifdef ERROR_CHECK_COUNTING
       char  str[33];
@@ -814,6 +854,12 @@ positionDB::positionDB(merStream   *MS,
         //  masks out the extra crap, so no temporary needed.
         //
         for (; stM < edM; stM++) {
+          if ((_sortedList[stM] & u64bitMASK(_posnWidth)) >= DEBUGnumPositions) {
+            fprintf(stderr, "ERROR:  Got position "u64bitFMT", but only "u64bitFMT" available!\n",
+                    _sortedList[stM] & u64bitMASK(_posnWidth), DEBUGnumPositions);
+            abort();
+          }
+
           setDecodedValue(_positions, currentPbit, _posnWidth, _sortedList[stM]);
           currentPbit += _posnWidth;
           currentPpos++;
@@ -913,18 +959,20 @@ positionDB::positionDB(merStream   *MS,
   //  Unpack the bucket positions and check.  Report the first one
   //  that is broken.
   //
-  for(u64bit b=0; b<currentBpos; b++) {
-    u64bit c = (getDecodedValue(_buckets, b * _wFin, _wFin) >> _chckWidth) & _posnPtrMask;
-    if (posPtrCheck[b] != c) {
-      fprintf(stderr, "Bucket %u (at bitpos %lu) failed position check (wanted %u got %u)\n",
-              (u32bit)b,
-              b * _wFin,
-              (u32bit)posPtrCheck[b],
-              (u32bit)c);
+  {
+    for(u64bit bb=0; bb<currentBpos; bb++) {
+      u64bit c = (getDecodedValue(_buckets, bb * _wFin, _wFin) >> _chckWidth) & _posnPtrMask;
+      if (posPtrCheck[bb] != c) {
+        fprintf(stderr, "Bucket %u (at bitpos %lu) failed position check (wanted %u got %u)\n",
+                (u32bit)bb,
+                bb * _wFin,
+                (u32bit)posPtrCheck[bb],
+                (u32bit)c);
+      }
     }
-  }
 
-  delete [] posPtrCheck;
+    delete [] posPtrCheck;
+  }
 #endif
 
 
