@@ -199,10 +199,10 @@ public:
       tKB = new kMerBuilder(merSize, compression, 0L);
 
       tSS = new seqStream(tGK, true);
-      tSS->setSeparator('.', 100);
+      tSS->setSeparator('.', 1);
 
       tMS = new merStream(tKB, tSS);
-      tPS = new positionDB(tMS, merSize, 0, 20, 0L, 0L, maxCount, true);
+      tPS = new positionDB(tMS, merSize, 0, 0L, 0L, maxCount, true);  //  This interface is in kmer r1544
     }
 
     //
@@ -653,4 +653,6 @@ main(int argc, char **argv) {
   ss->run(g, true);  //  true == verbose
 
   delete g;
+
+  fprintf(stderr, "\nSuccess!  Bye.\n");
 }
