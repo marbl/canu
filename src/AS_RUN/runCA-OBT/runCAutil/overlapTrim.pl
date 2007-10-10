@@ -32,8 +32,8 @@ sub overlapTrim {
     #  Look for any exact prefix reads -- only does something if
     #  you've got 454 reads.
     #
-    if ((! -e "$wrk/0-overlaptrim/$asm.prefixRemovalLog") &&
-        (! -e "$wrk/0-overlaptrim/$asm.prefixRemovalLog.bz2")) {
+    if ((! -e "$wrk/0-overlaptrim/$asm.prefixDeleteLog") &&
+        (! -e "$wrk/0-overlaptrim/$asm.prefixDeleteLog.bz2")) {
 
         backupFragStore("beforePrefixDelete");
 
