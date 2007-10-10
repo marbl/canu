@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.27 2007-10-09 20:49:09 eliv Exp $
- * $Revision: 1.27 $
+ * $Id: BuildUnitigs.cc,v 1.28 2007-10-10 14:01:21 eliv Exp $
+ * $Revision: 1.28 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.27 2007-10-09 20:49:09 eliv Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.28 2007-10-10 14:01:21 eliv Exp $";
 
 //  System include files
 
@@ -88,7 +88,7 @@ int  main (int argc, char * argv [])
    int ch;
    bool argsDone=false;
    optarg = NULL;
-   while(!argsDone && (ch = getopt(argc, argv,"O:G:e:s:b"))) {
+   while(!argsDone && (ch = getopt(argc, argv,"O:G:e:s:bk"))) {
        switch(ch) {
            case -1: argsDone=true;break;
            case 'G':
