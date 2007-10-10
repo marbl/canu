@@ -174,7 +174,7 @@ public:
      _merStorage[0].setMerSize(_merSize);
      _merStorage[1].setMerSize(_merSize);
 
-     _merSizeValid[0] = _merSize;
+     _merSizeValid[0] = _merSizeValidZero;
 
      if (cm) {
        _merStorage[0].setMerSpan(0);
@@ -195,16 +195,32 @@ public:
 
   //  Clear all mer data
   void    clear(void) {
+
     if (_template) {
-      for (u32bit i=0; i<2*_templateLength; i++) {
+      for (u32bit i=0; i<2*_templateLength; i++)
         _merStorage[i].clear();
-        _merSizeValid[i] = _merSizeValidZero;
-      }
-    } else {
-      _fMer->clear();
-      _rMer->clear();
-      _merSizeValid[0] = _merSizeValidZero;
+     for (u32bit i=0; i<_templateLength; i++)
+       _merSizeValid[i] = _merSize - i;
+     _templatePos     = 0;
+     _templateMer     = 0;
+     _templateFirst   = 1;
     }
+
+    if (_compression) {
+      _compressionIndex         = 0;
+      _compressionFirstIndex    = 0;
+      _compressionCurrentLength = 0;
+
+      for (u32bit z=0; z<_merSize; z++)
+        _compressionLength[z] = 0;
+
+      _merStorage[0].setMerSpan(0);
+      _merStorage[1].setMerSpan(0);
+    }
+
+    _fMer->clear();
+    _rMer->clear();
+    _merSizeValid[0] = _merSizeValidZero;
   };
 
   //  Returns true if we need another base to finish the mer.  This
