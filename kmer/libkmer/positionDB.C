@@ -41,7 +41,6 @@ positionDB::positionDB(char const    *filename,
 positionDB::positionDB(merStream   *MS,
                        u32bit       merSize,
                        u32bit       merSkip,
-                       u32bit       tblBits,
                        existDB     *mask,
                        existDB     *only,
                        u32bit       maxCount,
@@ -53,32 +52,38 @@ positionDB::positionDB(merStream   *MS,
   _buckets               = 0L;
   _positions             = 0L;
 
-  //  Guesstimate a nice table size based on the number of input mers and the mersize, unless the user gave
-  //  us a table size.
+
+  //  Guesstimate a nice table size based on the number of input mers
+  //  and the mersize, unless the user gave us a table size.
   //
-  if (tblBits == 0) {
+  //  We need to ensure that
+  //    2 * merSize + posnWidth + 1 - 64 <= tblBits <= 2 * merSize - 4
+  //
+  //  The only catch is that we don't exactly know posnWidth right
+  //  now.  We can overestimate it, though, based on the size of the
+  //  sequence that is backing the merStream.
+  //
+  {
     u64bit  approxMers = MS->approximateNumberOfMers();
+    u64bit  posnWidth  = logBaseTwo64(approxMers + 1);
 
-    tblBits = 25;
-    if (approxMers < 64 * 1024 * 1024) tblBits = 24;
-    if (approxMers < 16 * 1024 * 1024) tblBits = 23;
-    if (approxMers <  4 * 1024 * 1024) tblBits = 22;
-    if (approxMers <  2 * 1024 * 1024) tblBits = 21;
-    if (approxMers <  1 * 1024 * 1024) tblBits = 20;
+    _tableSizeInBits = 2 * merSize + posnWidth + 1 - 64;
+
+    if (_tableSizeInBits > 2 * merSize - 4) {
+      fprintf(stderr, "ERROR:  too many mers for this mersize.\n");
+      fprintf(stderr, "tblBits="u64bitFMT": merSize="u64bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers)\n",
+              _tableSizeInBits, merSize, posnWidth, approxMers);
+      exit(1);
+    }
+
+    fprintf(stderr, "tblBits="u64bitFMT": merSize="u64bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers)\n",
+            _tableSizeInBits, merSize, posnWidth, approxMers);
   }
 
-  //  Reset the tblBits if it is too big for our mersize
-  //
-  if (tblBits >= 2 * merSize - 4) {
-    //  If this is uncommented, snapper2 continually complains.
-    //fprintf(stderr, "positionDB::positionDB()--  WARNING!  tblBits="u32bitFMT" > merBits="u32bitFMT", reset tblBits to merBits-4\n", tblBits, 2*merSize);
-    tblBits = 2 * merSize - 4;
-  }
 
   _merSizeInBases        = merSize;
   _merSizeInBits         = 2 * _merSizeInBases;
   _merSkipInBases        = merSkip;
-  _tableSizeInBits       = tblBits;
   _tableSizeInEntries    = u64bitONE << _tableSizeInBits;
   _hashWidth             = u32bitZERO;
   _hashMask              = u64bitMASK(_tableSizeInBits);
@@ -104,17 +109,6 @@ positionDB::positionDB(merStream   *MS,
 
   _sortedListMax         = 4096;
   _sortedList            = new heapbit [_sortedListMax];
-
-#if 0
-  fprintf(stderr, "positionDB::positionDB()--  _merSizeInBases       = "u32bitFMT"\n", _merSizeInBases);
-  fprintf(stderr, "positionDB::positionDB()--  _merSizeInBits        = "u32bitFMT"\n", _merSizeInBits);
-  fprintf(stderr, "positionDB::positionDB()--  _merSkipInBases       = "u32bitFMT"\n", _merSkipInBases);
-  fprintf(stderr, "positionDB::positionDB()--  _tableSizeInBits      = "u32bitFMT"\n", _tableSizeInBits);
-  fprintf(stderr, "positionDB::positionDB()--  _tableSizeInEntries   = "u32bitFMT"\n", _tableSizeInEntries);
-  fprintf(stderr, "positionDB::positionDB()--  _chckWidth            = "u32bitFMT"\n", _chckWidth);
-  fprintf(stderr, "positionDB::positionDB()--  _shift1               = "u32bitFMT"\n", _shift1);
-  fprintf(stderr, "positionDB::positionDB()--  _shift2               = "u32bitFMT"\n", _shift2);
-#endif
 
   if (MS == 0L) {
     fprintf(stderr, "positionDB()-- ERROR: No merStream?  Nothing to build a table with!\n");
@@ -277,6 +271,7 @@ positionDB::positionDB(merStream   *MS,
   //  In reality, it should be the number of distinct mers, not the
   //  total number of mers, but we don't know that yet.
   //
+#if 0
   _hashWidth = 1;
   while ((_numberOfMers+1) > (u64bitONE << _hashWidth))
     _hashWidth++;
@@ -284,6 +279,9 @@ positionDB::positionDB(merStream   *MS,
   _posnWidth = 1;
   while ((_numberOfPositions+1) > (u64bitONE << _posnWidth))
     _posnWidth++;
+#endif
+  _hashWidth = logBaseTwo64(_numberOfMers+1);
+  _posnWidth = logBaseTwo64(_numberOfPositions+1);
   _posnMask = u64bitMASK(_posnWidth);
 
 
@@ -294,14 +292,17 @@ positionDB::positionDB(merStream   *MS,
   //
   _wCnt          = _chckWidth + _posnWidth + 1;
 
+  if (_wCnt > 64) {
+    fprintf(stderr, "ERROR: Data sizes to big: wCnt="u32bitFMT", should be <= 64.\n", _wCnt);
+    fprintf(stderr, "       wCnt = chckWidth="u64bitFMT" + posnWidth="u64bitFMT" + 1\n", _chckWidth, _posnWidth);
+    fprintf(stderr, "       Reduce mersize, number of mers, or both.\n");
+    fprintf(stderr, "       (this really shouldn't have happened, please report!)\n");
+    exit(1);
+  }
+
   u64bit   bucketsSpace  = (_numberOfMers+1) * _wCnt / 64 + 1;
   u32bit   endPosition   = 0;
 
-  if (_wCnt > 64) {
-    fprintf(stderr, "ERROR: Data sizes to big: wCnt="u32bitFMT", should be <= 64.\n", _wCnt);
-    fprintf(stderr, "       Reduce mersize, number of mers, or both.\n");
-    exit(1);
-  }
 
 
   if (beVerbose)

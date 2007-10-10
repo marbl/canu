@@ -118,7 +118,7 @@ doSearch(searcherState       *state,
       kMerBuilder           KB(config._merSize);
 
       merStream            *MS     = new merStream(&KB, GENseq, GENlo, GENhi - GENlo);
-      positionDB           *PS     = new positionDB(MS, config._merSize, 0, 20, 0L, 0L, 0, false);
+      positionDB           *PS     = new positionDB(MS, config._merSize, 0, 0L, 0L, 0, false);
       hitMatrix            *HM     = new hitMatrix(seq->sequenceLength(), qMers, idx);
 
       //  We find the number of hits we would get if we use a

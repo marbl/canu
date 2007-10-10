@@ -34,7 +34,6 @@ public:
   //  Load mers from an existing existDB file, a fastafile, or a meryl database
   existDB(char const    *filename,
           u32bit         merSize,
-          u32bit         tblBits,
           u32bit         lo = 0,
           u32bit         hi = ~u32bitZERO,
           existDBflags   flags = 0x0000);
@@ -59,12 +58,10 @@ private:
   bool        loadState(char const *filename, bool beNoisy=false, bool loadData=true);
   bool        createFromFastA(char const  *filename,
                               u32bit       merSize,
-                              u32bit       tblBits,
                               u32bit       flags);
   bool        createFromMeryl(char const  *filename,
                               u32bit       lo,
                               u32bit       hi,
-                              u32bit       tblBits,
                               u32bit       flags);
 
   u64bit       HASH(u64bit k) {

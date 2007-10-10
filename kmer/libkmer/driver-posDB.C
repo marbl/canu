@@ -15,13 +15,11 @@
 
 
 #define MERSIZE 20
-#define TBLSIZE 19
 
 char const *usage =
 "usage: %s [args]\n"
 "       -mersize k         The size of the mers, default=20.\n"
 "       -merskip k         The skip between mers, default=0\n"
-"       -tablesize t       The size of the hash table, default=0 (auto)\n"
 "       -use a-b,c         Specify which sequences to use, default=all\n"
 "       -merbegin b        Build on a subset of the mers, starting at mer #b, default=all mers\n"
 "       -merend e          Build on a subset of the mers, ending at mer #e, default=all mers\n"
@@ -58,7 +56,7 @@ test1(char *filename) {
   seqStream         *C       = new seqStream(filename, true);
   kMerBuilder        KB(MERSIZE);
   merStream         *T       = new merStream(&KB, C);
-  positionDB        *M       = new positionDB(T, MERSIZE, 0, TBLSIZE, 0L, 0L, 0, true);
+  positionDB        *M       = new positionDB(T, MERSIZE, 0, 0L, 0L, 0, true);
   u64bit            *posn    = new u64bit [1024];
   u64bit             posnMax = 1024;
   u64bit             posnLen = u64bitZERO;
@@ -118,7 +116,7 @@ test2(char *filename, char *query) {
   seqStream         *C       = new seqStream(filename, true);
   kMerBuilder        KB(MERSIZE);
   merStream         *T       = new merStream(&KB, C);
-  positionDB        *M       = new positionDB(T, MERSIZE, 0, TBLSIZE, 0L, 0L, 0, true);
+  positionDB        *M       = new positionDB(T, MERSIZE, 0, 0L, 0L, 0, true);
   u64bit            *posn    = new u64bit [1024];
   u64bit             posnMax = 1024;
   u64bit             posnLen = u64bitZERO;
@@ -175,7 +173,6 @@ int
 main(int argc, char **argv) {
   u32bit           mersize = 20;
   u32bit           merskip = 0;
-  u32bit           tblsize = 0;
 
   seqStream        SS;
   u64bit           merBegin = ~u64bitZERO;
@@ -198,8 +195,6 @@ main(int argc, char **argv) {
       mersize = strtou32bit(argv[++arg], 0L);
     } else if (strncmp(argv[arg], "-merskip", 6) == 0) {
       merskip = strtou32bit(argv[++arg], 0L);
-    } else if (strncmp(argv[arg], "-tablesize", 3) == 0) {
-      tblsize = strtou32bit(argv[++arg], 0L);
 
     } else if (strncmp(argv[arg], "-use", 2) == 0) {
       SS.parse(argv[++arg]);
@@ -272,22 +267,10 @@ main(int argc, char **argv) {
   }
 
 
-  //  Figure out a nice size of the hash.  XXX: This probably should
-  //  be tuned.
-  //
-  if (tblsize == 0) {
-    tblsize = 25;
-    if (numMers < 64 * 1024 * 1024)  tblsize = 24;
-    if (numMers < 16 * 1024 * 1024)  tblsize = 23;
-    if (numMers <  4 * 1024 * 1024)  tblsize = 22;
-    if (numMers <  2 * 1024 * 1024)  tblsize = 21;
-    if (numMers <  1 * 1024 * 1024)  tblsize = 20;
-  }
+  fprintf(stderr, "Building table with merSize "u32bitFMT", merSkip "u32bitFMT"\n",
+          mersize, merskip);
 
-  fprintf(stderr, "Building table with merSize "u32bitFMT", merSkip "u32bitFMT" and table size "u32bitFMT"\n",
-          mersize, merskip, tblsize);
-
-  positionDB *positions = new positionDB(MS, mersize, merskip, tblsize, 0L, 0L, 0, true);
+  positionDB *positions = new positionDB(MS, mersize, merskip, 0L, 0L, 0, true);
 
   fprintf(stderr, "Dumping positions table to '%s'\n", outputFile);
 

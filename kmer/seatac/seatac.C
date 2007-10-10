@@ -126,35 +126,24 @@ main(int argc, char **argv) {
     }
   } else {
 
-    //  Figure out a nice size of the hash.
-    //
-    //  XXX:  This probably should be tuned.
-    //
-    u32bit tblSize = 25;
-    if (config._useList.lengthOfSequences() < 64 * 1024 * 1024)  tblSize = 24;
-    if (config._useList.lengthOfSequences() < 16 * 1024 * 1024)  tblSize = 23;
-    if (config._useList.lengthOfSequences() <  4 * 1024 * 1024)  tblSize = 22;
-    if (config._useList.lengthOfSequences() <  2 * 1024 * 1024)  tblSize = 21;
-    if (config._useList.lengthOfSequences() <  1 * 1024 * 1024)  tblSize = 20;
-
     existDB *maskDB = 0L;
     if (config._maskFileName) {
       if (config._beVerbose)
         fprintf(stderr, "Building maskDB from '%s'\n", config._maskFileName);
-      maskDB = new existDB(config._maskFileName, config._merSize, tblSize, 0, ~u32bitZERO, existDBcanonical | existDBcompressHash | existDBcompressBuckets);
+      maskDB = new existDB(config._maskFileName, config._merSize, 0, ~u32bitZERO, existDBcanonical | existDBcompressHash | existDBcompressBuckets);
     }
 
     existDB *onlyDB = 0L;
     if (config._onlyFileName) {
       if (config._beVerbose)
         fprintf(stderr, "Building onlyDB from '%s'\n", config._onlyFileName);
-      onlyDB = new existDB(config._onlyFileName, config._merSize, tblSize, 0, ~u32bitZERO, existDBcanonical | existDBcompressHash | existDBcompressBuckets);
+      onlyDB = new existDB(config._onlyFileName, config._merSize, 0, ~u32bitZERO, existDBcanonical | existDBcompressHash | existDBcompressBuckets);
     }
 
     kMerBuilder KB(config._merSize);
     merStream  *MS = new merStream(&KB, &config._useList);
 
-    positions = new positionDB(MS, config._merSize, config._merSkip, tblSize, maskDB, onlyDB, 0, config._beVerbose);
+    positions = new positionDB(MS, config._merSize, config._merSkip, maskDB, onlyDB, 0, config._beVerbose);
 
     delete    MS;
 

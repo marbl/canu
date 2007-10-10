@@ -29,7 +29,6 @@ public:
   positionDB(merStream     *MS,
              u32bit         merSize,
              u32bit         merSkip,
-             u32bit         tblBits,
              existDB       *mask,
              existDB       *only,
              u32bit         maxCount,

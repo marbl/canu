@@ -9,7 +9,6 @@
 bool
 existDB::createFromFastA(char const  *filename,
                          u32bit       merSize,
-                         u32bit       tblBits,
                          u32bit       flags) {
 
   _hashTable = 0L;
@@ -17,6 +16,12 @@ existDB::createFromFastA(char const  *filename,
   _counts    = 0L;
 
   _merSizeInBases        = merSize;
+
+  //  This eats up 16MB, and should allow a lot of mers at big sizes.
+  //  Unfortunately, we know nothing about how man mers are going to
+  //  be in the input.
+  //
+  u32bit tblBits = 22;
 
   _shift1                = 2 * _merSizeInBases - tblBits;
   _shift2                = _shift1 / 2;

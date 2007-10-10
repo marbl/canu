@@ -307,22 +307,16 @@ main(int argc, char **argv) {
     }
 
 
-    //  Figure out a nice size of the hash.
-    //
-    //  XXX:  This probably should be tuned.
-    //
-    u32bit tblSize = 25;
-    if (config._useList.lengthOfSequences() < 64 * 1024 * 1024) tblSize = 24;
-    if (config._useList.lengthOfSequences() < 16 * 1024 * 1024) tblSize = 23;
-    if (config._useList.lengthOfSequences() <  4 * 1024 * 1024) tblSize = 22;
-    if (config._useList.lengthOfSequences() <  2 * 1024 * 1024) tblSize = 21;
-    if (config._useList.lengthOfSequences() <  1 * 1024 * 1024) tblSize = 20;
-
     kMerBuilder KB(config._merSize);
     merStream  *MS = new merStream(&KB, &config._useList);
 
-    positions = new positionDB(MS, config._merSize, config._merSkip, tblSize,
-                               maskDB, onlyDB, config._ignoreThreshold, config._beVerbose);
+    positions = new positionDB(MS,
+                               config._merSize,
+                               config._merSkip,
+                               maskDB,
+                               onlyDB,
+                               config._ignoreThreshold,
+                               config._beVerbose);
 
     delete    MS;
 

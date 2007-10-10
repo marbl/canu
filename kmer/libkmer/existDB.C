@@ -22,7 +22,6 @@ existDB::existDB(char const  *filename,
 
 existDB::existDB(char const    *filename,
                  u32bit         merSize,
-                 u32bit         tblBits,
                  u32bit         lo,
                  u32bit         hi,
                  existDBflags   flags) {
@@ -32,8 +31,8 @@ existDB::existDB(char const    *filename,
   _compressedBucket = flags & existDBcompressBuckets;
   _compressedCounts = flags & existDBcompressCounts;
 
-  //  Try to read state from the filename.  If successful, make sure that
-  //  the merSize and tblBits are correct.
+  //  Try to read state from the filename.  If successful, make sure
+  //  that the merSize is correct.
   //
   if (loadState(filename)) {
     bool fail = false;
@@ -41,11 +40,6 @@ existDB::existDB(char const    *filename,
     if (_merSizeInBases != merSize) {
       fprintf(stderr, "existDB::existDB()-- Read state from '%s', but got different mer sizes\n", filename);
       fprintf(stderr, "existDB::existDB()-- Got "u32bitFMT", expected "u32bitFMT"\n", _merSizeInBases, merSize);
-      fail = true;
-    }
-    if (_mask1 != u64bitMASK(tblBits)) {
-      fprintf(stderr, "existDB::existDB()-- Read state from '%s', but got different table sizes\n", filename);
-      fprintf(stderr, "existDB::existDB()-- Got "u32bitFMT", expected "u32bitFMT"\n", 2 * _merSizeInBases - _shift1, tblBits);
       fail = true;
     }
 
@@ -61,16 +55,17 @@ existDB::existDB(char const    *filename,
   if ((flags & (existDBcanonical | existDBforward)) == u32bitZERO)
     flags |= existDBforward;
 
-  //  If we can open 'filename' for reading, then we assume the file is a multi-fasta, and
-  //  we build an existDB using merSize = p1 and tblBits = p2
+  //  If we can open 'filename' for reading, then we assume the file
+  //  is a multi-fasta, and we build an existDB/
   //
-  //  Otherwise, we assume that 'filename' is really the prefix for a meryl database.
+  //  Otherwise, we assume that 'filename' is really the prefix for a
+  //  meryl database.
 
 
   if (fileExists(filename))
-    createFromFastA(filename, merSize, tblBits, flags);
+    createFromFastA(filename, merSize, flags);
   else
-    createFromMeryl(filename, lo, hi, tblBits, flags);
+    createFromMeryl(filename, lo, hi, flags);
 }
 
 

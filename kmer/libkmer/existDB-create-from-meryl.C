@@ -10,7 +10,6 @@ bool
 existDB::createFromMeryl(char const  *prefix,
                          u32bit       lo,
                          u32bit       hi,
-                         u32bit       tblBits,
                          u32bit       flags) {
 
   merylStreamReader *M = new merylStreamReader(prefix);
@@ -22,6 +21,14 @@ existDB::createFromMeryl(char const  *prefix,
   _counts    = 0L;
 
   _merSizeInBases        = M->merSize();
+
+  //  We can set this exactly, but not memory optimal (see
+  //  meryl/estimate.C:optimalNumberOfBuckets()).  Instead,
+  //  we just blindly use whatever meryl used.
+  //
+  //u32bit tblBits = logBaseTwo64(M->numberOfDistinctMers() + 1);
+  //
+  u32bit tblBits = M->prefixSize();
 
   _shift1                = 2 * _merSizeInBases - tblBits;
   _shift2                = _shift1 / 2;
