@@ -152,4 +152,5 @@ while (scalar(@steps) > 0) {
     localFinish($stepName);
 }
 
+localFinalize();
 exit(0);

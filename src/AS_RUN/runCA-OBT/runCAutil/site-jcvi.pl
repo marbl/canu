@@ -59,7 +59,9 @@ $HELPTEXT =
  http://assemblyconsole.tigr.org/
 ~;
 
-
+sub localFinalize() {
+    copyBack();
+}
 
 sub localDefaults () {
     setGlobal("specFile", 'OBT');
@@ -423,7 +425,7 @@ sub init_prop_file($$) {
 
 sub copyBack() {
 
-    if ( $local_copy < getGlobal('noCopy') ) {
+    if ( $local_copy < $local_noCopy ) {
 
        my $invocation_script = "$wrk/log/invocation.info";        
        my $invo_fh = new IO::File "<$invocation_script"

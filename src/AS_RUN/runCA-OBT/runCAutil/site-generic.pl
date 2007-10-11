@@ -5,7 +5,9 @@
 #  major component runs -- JCVI likes to update a database showing
 #  progress, users can use the web to display this info.  Finally, you
 #  can post-process the assembly.
-
+ 
+sub localFinalize() {
+}
 
 sub localDefaults() {
 }
