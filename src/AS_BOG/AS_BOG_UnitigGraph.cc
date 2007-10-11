@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.62 2007-10-09 20:49:09 eliv Exp $
- * $Revision: 1.62 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.63 2007-10-11 19:41:28 eliv Exp $
+ * $Revision: 1.63 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.62 2007-10-09 20:49:09 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.63 2007-10-11 19:41:28 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -669,6 +669,7 @@ namespace AS_BOG{
         for(;tigIter != unitigs->end(); tigIter++)
         {
             Unitig* tig = *tigIter;
+            tig->sort();
             FragmentEnds breaks;
             int fragCount = 1;
             DoveTailNode lastBackbone;
