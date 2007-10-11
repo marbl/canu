@@ -71,7 +71,8 @@ sub createOverlapJobs {
 
         if (! -e "$wrk/$outDir/$asm.ovb") {
             $cmd  = "$bin/olap-from-seeds";
-            $cmd .= " -a -b -t 3 ";
+            $cmd .= " -a -b -t 1 ";
+            #$cmd .= " -v 1 ";
             $cmd .= " -S $wrk/$outDir/$asm.merStore";
             $cmd .= " -c $wrk/3-frgcorr/$asm.corr";
             $cmd .= " -o $wrk/$outDir/$asm.ovb"      if ($isTrim ne "trim");
