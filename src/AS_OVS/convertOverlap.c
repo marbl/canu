@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: convertOverlap.c,v 1.13 2007-10-11 21:07:37 brianwalenz Exp $";
+static char CM_ID[] = "$Id: convertOverlap.c,v 1.14 2007-10-11 22:18:39 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -196,7 +196,7 @@ void   convertOBTtoBinary(void) {
 
 void   convertMERtoBinary(void) {
   fprintf(stderr, "not implemented.\n");
-  exit1(1);
+  exit(1);
 }
 
 
