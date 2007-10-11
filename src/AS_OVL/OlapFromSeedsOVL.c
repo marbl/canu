@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.17 2007-10-08 21:48:50 brianwalenz Exp $
- * $Revision: 1.17 $
+ * $Id: OlapFromSeedsOVL.c,v 1.18 2007-10-11 21:10:06 brianwalenz Exp $
+ * $Revision: 1.18 $
 */
 
-static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.17 2007-10-08 21:48:50 brianwalenz Exp $";
+static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.18 2007-10-11 21:10:06 brianwalenz Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -3655,15 +3655,17 @@ static void  Process_Seed
      {
       int  j, ct;
 
-      printf (">a_part\n");
+      printf (">a_part a_offset=%d\n", a_offset);
       ct = 0;
-      for (j = 0; a_part [j] != '\0'; j ++)
+      for (j = -a_offset; a_part [j] != '\0'; j ++)
         {
          if (ct == 60)
            {
             putchar ('\n');
             ct = 0;
            }
+         if (j == 0)
+           putchar('|');
          if (j + a_offset >= Frag [sub] . clear_len )
             putchar (toupper (a_part [j]));
          else
@@ -3672,15 +3674,17 @@ static void  Process_Seed
         }
       putchar ('\n');
 
-      printf (">b_part\n");
+      printf (">b_part b_offset=%d\n", b_offset);
       ct = 0;
-      for (j = 0; b_part [j] != '\0'; j ++)
+      for (j = -b_offset; b_part [j] != '\0'; j ++)
         {
          if (ct == 60)
            {
             putchar ('\n');
             ct = 0;
            }
+         if (j == 0)
+           putchar('|');
          putchar (b_part [j]);
          ct ++;
         }
@@ -3693,7 +3697,7 @@ static void  Process_Seed
       fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
       fprintf (stderr, "Bad seed position--letters differ here\n");
       fprintf (stderr, "a_iid=%d  b_iid=%d  a_offset=%d  b_offset=%d  ori=%c"
-           "  a_ch=%c  b_ch=%d\n", olap -> a_iid, olap -> b_iid,
+           "  a_ch=%c  b_ch=%c\n", olap -> a_iid, olap -> b_iid,
            olap -> a_hang, olap -> b_hang, olap -> orient == INNIE ? 'I' : 'N',
            * a_part, * b_part);
       exit (EXIT_FAILURE);
