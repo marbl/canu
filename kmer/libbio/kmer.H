@@ -269,7 +269,7 @@ public:
       //  out a bogus value.
       //
       if (cf & (unsigned char)0xfc) {
-        _compressionIndex         = _merSize - 1;  //  Next time, this will be incremented to 0
+        _compressionIndex         = 0;  //_merSize - 1;  //  Next time, this will be incremented to 0
         _compressionFirstIndex    = 0;
         _compressionCurrentLength = 0;
 
@@ -317,6 +317,13 @@ public:
         _rMer->setMerSpan(ms + 1);
 
 #ifdef DEBUGCOMP
+        {
+          for (int x=0, y=_compressionFirstIndex; x<_merSize; x++) {
+            fprintf(stderr, "%u(%d) ", _compressionLength[y], y);
+            y = (y + 1) % _merSize;
+          }
+          fprintf(stderr, " currentIdx=%u first=%u\n", _compressionIndex, _compressionFirstIndex);
+        }
         fprintf(stderr, "need more!\n");
 #endif
         return(true);
@@ -360,12 +367,24 @@ public:
       //  letter in the run is the first letter in the mer, we need to
       //  immediately update the span.
 
+#ifdef DEBUGCOMP
+      {
+        for (int x=0, y=_compressionFirstIndex; x<_merSize; x++) {
+          fprintf(stderr, "%u(%d) ", _compressionLength[y], y);
+          y = (y + 1) % _merSize;
+        }
+        fprintf(stderr, " currentIdx=%u first=%u MID\n", _compressionIndex, _compressionFirstIndex);
+      }
+#endif
+
       //  If it's a new letter, move the count to the first thing in
       //  the run.
       //
       if (lb != cf) {
-        _compressionLength[_compressionFirstIndex] += _compressionLength[_compressionIndex] - 1;
-        _compressionLength[_compressionIndex]       = 1;
+        if (_compressionFirstIndex != _compressionIndex) {
+          _compressionLength[_compressionFirstIndex] += _compressionLength[_compressionIndex] - 1;
+          _compressionLength[_compressionIndex]       = 1;
+        }
         _compressionFirstIndex    = (_compressionIndex + 1) % _merSize;
         _compressionCurrentLength = 1;
       } else {
@@ -381,6 +400,13 @@ public:
       if (_merSizeValid[0] + 1 < _merSizeValidIs) {
         _merSizeValid[0]++;
 #ifdef DEBUGCOMP
+        {
+          for (int x=0, y=_compressionFirstIndex; x<_merSize; x++) {
+            fprintf(stderr, "%d ", _compressionLength[y]);
+            y = (y + 1) % _merSize;
+          }
+          fprintf(stderr, " currentIdx=%u first=%u\n", _compressionIndex, _compressionFirstIndex);
+        }
         fprintf(stderr, "still too short, need more!\n");
 #endif
         return(true);
@@ -388,6 +414,13 @@ public:
 
       //  Good!  Don't need another letter.
 #ifdef DEBUGCOMP
+        {
+          for (int x=0, y=_compressionFirstIndex; x<_merSize; x++) {
+            fprintf(stderr, "%d ", _compressionLength[y]);
+            y = (y + 1) % _merSize;
+          }
+          fprintf(stderr, " currentIdx=%u first=%u\n", _compressionIndex, _compressionFirstIndex);
+        }
       fprintf(stderr, "span=%u %u\n", ms+1, _fMer->getMerSpan());
 #endif
       return(false);

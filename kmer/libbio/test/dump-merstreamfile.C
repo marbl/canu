@@ -26,11 +26,11 @@ main(int argc, char **argv) {
   fprintf(stdout, "NORMAL\n");
   kMerBuilder *KB1 = new kMerBuilder(8, 0);
 #endif
-#if 0
+#if 1
   fprintf(stdout, "COMPRESSED\n");
   kMerBuilder *KB1 = new kMerBuilder(8, 1);
 #endif
-#if 1
+#if 0
   fprintf(stdout, "SPACED\n");  //            01234567890123
   kMerBuilder *KB1 = new kMerBuilder(0, 0, "0011010000");
 #endif
@@ -42,11 +42,12 @@ main(int argc, char **argv) {
 
 
   while (MS1->nextMer()) {
-    fprintf(stdout, "'%s' seqNum:"u64bitFMT" posInSeq:"u64bitFMT" posInStream:"u64bitFMT"\n",
+    fprintf(stdout, "'%s' seqNum:"u64bitFMT" posInSeq:"u64bitFMT" posInStream:"u64bitFMT" span:"u32bitFMT"\n",
             MS1->theFMer().merToString(str),
             MS1->theSequenceNumber(),
             MS1->thePositionInSequence(),
-            MS1->thePositionInStream());
+            MS1->thePositionInStream(),
+            MS1->theFMer().getMerSpan());
     s1 += MS1->theSequenceNumber() + MS1->thePositionInSequence() + MS1->thePositionInStream();
   }
 
@@ -54,11 +55,12 @@ main(int argc, char **argv) {
   MS1->rewind();
 
   while (MS1->nextMer()) {
-    fprintf(stdout, "'%s' seqNum:"u64bitFMT" posInSeq:"u64bitFMT" posInStream:"u64bitFMT"\n",
+    fprintf(stdout, "'%s' seqNum:"u64bitFMT" posInSeq:"u64bitFMT" posInStream:"u64bitFMT" span:"u32bitFMT"\n",
             MS1->theFMer().merToString(str),
             MS1->theSequenceNumber(),
             MS1->thePositionInSequence(),
-            MS1->thePositionInStream());
+            MS1->thePositionInStream(),
+            MS1->theFMer().getMerSpan());
     s2 += MS1->theSequenceNumber() + MS1->thePositionInSequence() + MS1->thePositionInStream();
   }
 
