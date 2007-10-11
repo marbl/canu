@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: convertOverlap.c,v 1.12 2007-07-23 05:57:47 brianwalenz Exp $";
+static char CM_ID[] = "$Id: convertOverlap.c,v 1.13 2007-10-11 21:07:37 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -195,6 +195,8 @@ void   convertOBTtoBinary(void) {
 
 
 void   convertMERtoBinary(void) {
+  fprintf(stderr, "not implemented.\n");
+  exit1(1);
 }
 
 
@@ -277,5 +279,22 @@ void   convertOBTtoASCII(void) {
 
 
 void   convertMERtoASCII(void) {
+  OVSoverlap    olap;
+
+  BinaryOverlapFile  *input = AS_OVS_openBinaryOverlapFile(NULL, FALSE);
+
+  while (AS_OVS_readOverlap(input, &olap)) {
+    fprintf(stdout, "%7d %7d  %c %c  %d  %4d %4d  %4d %4d\n",
+            olap.a_iid, olap.b_iid,
+            olap.dat.mer.fwd ? 'f' : 'r',
+            olap.dat.mer.palindrome ? 'p' : 'n',
+            olap.dat.mer.compression_length,
+            olap.dat.mer.a_pos,
+            olap.dat.mer.b_pos,
+            olap.dat.mer.k_count,
+            olap.dat.mer.k_len);
+  }
+
+  AS_OVS_closeBinaryOverlapFile(input);
 }
 
