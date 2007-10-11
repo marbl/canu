@@ -293,7 +293,7 @@ public:
   void
   addHit(seqStream   *SS,
          CDS_IID_t    iid,
-         merStream   *MS,
+         u64bit       qpos,
          u64bit       pos,
          u64bit       cnt,
          u64bit       pal,
@@ -325,7 +325,7 @@ public:
 
     hits[hitsLen].tseq = seq;
     hits[hitsLen].tpos = pos;
-    hits[hitsLen].qpos = MS->thePositionInSequence();
+    hits[hitsLen].qpos = qpos;
     hits[hitsLen].cnt  = cnt;
     hits[hitsLen].pal  = pal;
     hits[hitsLen].fwd  = fwd;
@@ -460,35 +460,46 @@ ovmWorker(void *G, void *T, void *S) {
 
   OVSoverlap        overlap;
 
+#if 0
+  if (s->iid == 76)
+    fprintf(stderr, "IID 76\n");
+#endif
+
   t->hitsLen = 0;
 
   //  We can "simulate" a canonical mercount by getting the count
   //  for both forward and reverse.
 
-  merStream *sMS = new merStream(t->qKB, s->seq, s->beg, s->end - s->beg);
+  merStream *sMSTR  = new merStream(t->qKB, s->seq, s->beg, s->end - s->beg);
+  uint32    *sSPAN  = new uint32 [s->end - s->beg];
 
-  while (sMS->nextMer()) {
-    if (sMS->theFMer() == sMS->theRMer()) {
-      g->tPS->get(sMS->theFMer(), t->posnF, t->posnFMax, t->posnFLen);
+  while (sMSTR->nextMer()) {
+    u64bit  qpos = sMSTR->thePositionInSequence();
+
+    sSPAN[qpos] = sMSTR->theFMer().getMerSpan();
+    assert(qpos <= s->end - s->beg);
+
+    if (sMSTR->theFMer() == sMSTR->theRMer()) {
+      g->tPS->get(sMSTR->theFMer(), t->posnF, t->posnFMax, t->posnFLen);
       if (t->posnFLen > 1)
         for (u32bit i=0; i<t->posnFLen; i++)
-          t->addHit(g->tSS, s->iid, sMS, t->posnF[i], t->posnFLen, 1, 0);
+          t->addHit(g->tSS, s->iid, qpos, t->posnF[i], t->posnFLen, 1, 0);
     } else {
-      g->tPS->get(sMS->theFMer(), t->posnF, t->posnFMax, t->posnFLen);
-      g->tPS->get(sMS->theRMer(), t->posnR, t->posnRMax, t->posnRLen);
+      g->tPS->get(sMSTR->theFMer(), t->posnF, t->posnFMax, t->posnFLen);
+      g->tPS->get(sMSTR->theRMer(), t->posnR, t->posnRMax, t->posnRLen);
 
       u64bit totalLen = t->posnFLen + t->posnRLen - 1;  //  the canonical mer count
 
       if (t->posnFLen > 1)
         for (u32bit i=0; i<t->posnFLen; i++)
-          t->addHit(g->tSS, s->iid, sMS, t->posnF[i], totalLen, 0, 1);
+          t->addHit(g->tSS, s->iid, qpos, t->posnF[i], totalLen, 0, 1);
       if (t->posnRLen > 1)
         for (u32bit i=0; i<t->posnRLen; i++)
-          t->addHit(g->tSS, s->iid, sMS, t->posnR[i], totalLen, 0, 0);
+          t->addHit(g->tSS, s->iid, qpos, t->posnR[i], totalLen, 0, 0);
     }
   }
 
-  delete sMS;
+  delete sMSTR;
 
   if (t->hitsLen == 0)
     return;
@@ -523,27 +534,39 @@ ovmWorker(void *G, void *T, void *S) {
 
   for (u32bit i=0; i<t->hitsLen; i++) {
 
+#if 0
+    if ((t->hits[i].tseq == 48) && (s->iid == 76))
+      fprintf(stderr, "Found it.\n");
+#endif
+
     //  By the definition of our sort, the least common mer is the
     //  first hit in the list for each pair of sequences.
     //
     t->ovlfound++;
 
-    //  Adjust coords to be relative to whole read
+    //  Adjust coords to be relative to whole read -- the table is
+    //  built using only sequence in the OBT clear.  The query is
+    //  built starting at the begin of the OBT clear.  Same effect for
+    //  both just a different mechanism.
     //
     t->hits[i].tpos += g->getClrBeg(t->hits[i].tseq);
     t->hits[i].qpos += s->beg;
 
-    //  Reverse if needed
+    //  Reverse if needed -- we need to remember, from when we were
+    //  grabbing mers, the length of the uncompressed mer -- that's
+    //  the sSPAN; if we're not using compressed seeds, sSPAN ==
+    //  g->merSize.  The [t->hits[i].qpos - s->beg] array index is
+    //  simply the position in the trimmed read.
     //
     if (t->hits[i].fwd == false)
-      t->hits[i].qpos = s->tln - t->hits[i].qpos - g->merSize;
+      t->hits[i].qpos = s->tln - t->hits[i].qpos - sSPAN[t->hits[i].qpos - s->beg];
 
     //  Save off the A vs B overlap
     //
     overlap.a_iid                      = t->hits[i].tseq;
     overlap.b_iid                      = s->iid;
     overlap.dat.mer.datpad             = 0;
-    overlap.dat.mer.compression_length = 0;
+    overlap.dat.mer.compression_length = g->compression;
     overlap.dat.mer.fwd                = t->hits[i].fwd;
     overlap.dat.mer.palindrome         = t->hits[i].pal;
     overlap.dat.mer.a_pos              = t->hits[i].tpos;
@@ -564,8 +587,17 @@ ovmWorker(void *G, void *T, void *S) {
     } else {
       uint32 othlen = g->getUntrimLength(t->hits[i].tseq);
 
-      overlap.dat.mer.a_pos = s->tln - t->hits[i].qpos - g->merSize;
-      overlap.dat.mer.b_pos = othlen - t->hits[i].tpos - g->merSize;
+      //  The -1 is to back up to the last base in the mer.
+
+      overlap.dat.mer.a_pos = s->tln - t->hits[i].qpos - 1;
+      overlap.dat.mer.b_pos = othlen - t->hits[i].tpos - 1;
+
+#if ADJUST_LEFT_END
+      //  This only works for non-compressed seeds.
+      overlap.dat.mer.a_pos -= g->merSize;  //  sSPAN[t->hits[i].qpos];
+      overlap.dat.mer.b_pos -= g->merSize;  //  we don't have the span of the table-based mer
+#endif
+
     }
     s->addOverlap(&overlap);
 
