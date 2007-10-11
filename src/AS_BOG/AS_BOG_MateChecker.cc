@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.33 2007-10-09 20:49:09 eliv Exp $
- * $Revision: 1.33 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.34 2007-10-11 19:37:57 eliv Exp $
+ * $Revision: 1.34 $
 */
 
 #include <math.h>
@@ -768,6 +768,9 @@ namespace AS_BOG{
             iuid lib            =  mateInfo.lib;
             cnts->total++;
             DistanceCompute *gdc = &(globalStats[ lib ]);
+            // Don't check libs that we didn't generate good stats for
+            if (gdc->numPairs < 10)
+                continue;
             int badMax = static_cast<int>(gdc->mean + 5 * gdc->stddev);
             int badMin = static_cast<int>(gdc->mean - 5 * gdc->stddev);
             int frgBgn = loc.pos1.bgn;
