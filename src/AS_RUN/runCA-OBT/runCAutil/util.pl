@@ -192,6 +192,10 @@ sub setDefaults () {
     $global{"ovlStoreMemory"}              = 1024;
     $global{"ovlThreads"}                  = 2;
     $global{"ovlOnGrid"}                   = 1;
+
+    $global{"merOverlap"}                  = "none";  # obt or ovl or both
+    $global{"merCompression"}              = 1;       # used only if merOverlap != none
+
     $global{"executionWrapper"}            = undef;
     $global{"scratch"}                     = "/scratch";
     $global{"scriptOnGrid"}                = 0;
@@ -227,8 +231,6 @@ sub setDefaults () {
     $global{"bogPromiscuous"}              = 0;
     $global{"bogEjectUnhappyContain"}      = 0;
     $global{"vectorIntersect"}             = undef;
-
-    $global{"merOverlap"}                  = 0;
 
     $global{"ovlErrorRate"}                = 0.06;
     $global{"cgwErrorRate"}                = 0.10;

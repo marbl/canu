@@ -1,12 +1,13 @@
 use strict;
 
-############################################################
-#
-#  Create overlap jobs
-#
-#  A better way to do this (maybe) is to make a job array that
-#  contains the logic to decide which partition to work on.
-#
+
+
+
+
+
+
+
+
 sub createOverlapJobs {
     my $isTrim = shift @_;
 
@@ -25,6 +26,7 @@ sub createOverlapJobs {
     my $outDir  = "1-overlapper";
     my $ovlOpt  = "";
     my $merSize = getGlobal("merSizeOvl");
+    my $merComp = getGlobal("merCompression");
 
     if ($isTrim eq "trim") {
         $outDir  = "0-overlaptrim-overlap";
@@ -36,20 +38,23 @@ sub createOverlapJobs {
 
     return if (-e "$wrk/$outDir/jobsCreated.success");
 
-    #  If we're doing the mer overlapper...and we're not doing OBT
+    print STDERR "merOverlap = ", getGlobal("merOverlap"), " $isTrim\n";
+
+    #  If we're doing the mer overlapper.
     #
-    if ((getGlobal("merOverlap") != 0) &&
-        ($isTrim ne "trim")) {
+    if ((getGlobal("merOverlap") eq "both") ||
+        ((getGlobal("merOverlap") eq "obt") && ($isTrim eq "trim")) ||
+        ((getGlobal("merOverlap") eq "ovl") && ($isTrim ne "trim"))) {
 
         my $cmd;
 
         if (! -e "$wrk/$outDir/$asm.ovm") {
             $cmd  = "$bin/overmerry";
             $cmd .= " -g $wrk/$asm.gkpStore";
-            $cmd .= " -m 28";
-            $cmd .= " -c 1";
+            $cmd .= " -m $merSize";
+            $cmd .= " -c $merComp";
             $cmd .= " -o $wrk/$outDir/$asm.ovm";
-            #$cmd .= " > $wrk/$outDir/overmerry.err 2>&1";
+            $cmd .= " > $wrk/$outDir/$asm.ovm.err 2>&1";
             if (runCommand("$wrk/$outDir", $cmd)) {
                 rename "$wrk/$outDir/$asm.ovm", "$wrk/$outDir/$asm.ovm.FAILED";
                 caFailure("Failed.\n");
@@ -62,7 +67,7 @@ sub createOverlapJobs {
             $cmd .= " -M " . getGlobal("ovlStoreMemory");
             $cmd .= " -m $numFrags";
             $cmd .= " $wrk/$outDir/$asm.ovm";
-            #$cmd .= " > $wrk/$outDir/overlapStore.err 2>&1";
+            $cmd .= " > $wrk/$outDir/$asm.merStore.err 2>&1";
             if (runCommand("$wrk/$outDir", $cmd)) {
                 rename "$wrk/$outDir/$asm.merStore", "$wrk/$outDir/$asm.merStore.FAILED";
                 caFailure("Failed.\n");
@@ -75,26 +80,28 @@ sub createOverlapJobs {
             #$cmd .= " -v 1 ";
             $cmd .= " -S $wrk/$outDir/$asm.merStore";
             $cmd .= " -c $wrk/3-frgcorr/$asm.corr";
-            $cmd .= " -o $wrk/$outDir/$asm.ovb"      if ($isTrim ne "trim");
-            $cmd .= " -o $wrk/$outDir/$asm.ovb.raw"  if ($isTrim eq "trim");
+            $cmd .= " -o $wrk/$outDir/$asm.ovb"  if ($isTrim ne "trim");
+            $cmd .= " -o $wrk/$outDir/$asm.ovr"  if ($isTrim eq "trim");
             $cmd .= " $wrk/$asm.gkpStore 1 $numFrags";
-            #$cmd .= " > $wrk/$outDir/olap-from-seeds.err 2>&1";
+            $cmd .= " > $wrk/$outDir/$asm.ovb.err 2>&1";
 
             if ($isTrim eq "trim") {
-                #  Maybe sometime we'll actually work with OBT....
                 $cmd .= " && ";
                 $cmd .= "$gin/acceptableOBToverlap";
-                $cmd .= " < $wrk/$outDir/$asm.ovb.raw";
+                $cmd .= " < $wrk/$outDir/$asm.ovr";
                 $cmd .= " > $wrk/$outDir/$asm.ovb";
             }
 
             #  Make the 3-frgcorr directory (to hold the corrections
             #  output) and claim that fragment correction is all done.
-
-            system("mkdir $wrk/3-frgcorr") if (! -d "$wrk/3-frgcorr");
-            touch("$wrk/3-frgcorr/jobsCreated.success");
+            #
+            if ($isTrim ne "trim") {
+                system("mkdir $wrk/3-frgcorr") if (! -d "$wrk/3-frgcorr");
+                touch("$wrk/3-frgcorr/jobsCreated.success");
+            }
 
             if (runCommand("$wrk/$outDir", $cmd)) {
+                rename "$wrk/$outDir/$asm.ovr", "$wrk/$outDir/$asm.ovr.FAILED" if ($isTrim eq "trim");
                 rename "$wrk/$outDir/$asm.ovb", "$wrk/$outDir/$asm.ovb.FAILED";
                 caFailure("Failed.\n");
             }
