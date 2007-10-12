@@ -46,6 +46,7 @@ public:
   char             *statsFile;
 
   u32bit            merSize;
+  u32bit            merComp;
 
   u64bit            numMersEstimated;
   u64bit            numMersActual;

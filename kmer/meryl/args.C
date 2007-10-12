@@ -88,6 +88,7 @@ const char *usagestring =
 "     number of mers in the file (-n), compute the table size\n"
 "     (-t in build) to minimize the memory usage.\n"
 "        -m #          (size of a mer; required)\n"
+"        -c #          (homopolymer compression; optional)\n"
 "        -s seq.fasta  (seq.fasta is scanned to determine the number of mers)\n"
 "        -n #          (compute params assuming file with this many mers in it)\n"
 "\n"
@@ -103,10 +104,7 @@ const char *usagestring =
 "        -L #          (DON'T save mers that occur less than # times)\n"
 "        -U #          (DON'T save mers that occur more than # times)\n"
 "        -m #          (size of a mer; required)\n"
-#if 0
-"        -t #          (size of the table, in bits)\n"
-"        -H #          (force the hash width, in bits -- use with caution!)\n"
-#endif
+"        -c #          (homopolymer compression; optional)\n"
 "        -s seq.fasta  (sequence to build the table for)\n"
 "        -o tblprefix  (output table prefix)\n"
 "        -v            (entertain the user)\n"
@@ -219,9 +217,9 @@ merylArgs::merylArgs(int argc, char **argv) {
 
   inputFile          = 0L;
   outputFile         = 0L;
-  queryFile          = 0L;
 
   merSize            = 20;
+  merComp            = 0;
 
   doForward          = true;
   doReverse          = false;
@@ -256,13 +254,6 @@ merylArgs::merylArgs(int argc, char **argv) {
   lowCount           = 0;
   highCount          = ~lowCount;
   desiredCount       = 0;
-
-  outputCount        = false;
-  outputAll          = false;
-  outputPosition     = false;
-
-  includeDefLine     = false;
-  includeMer         = false;
 
   mergeFilesMax      = 0;
   mergeFilesLen      = 0;
@@ -325,6 +316,9 @@ merylArgs::merylArgs(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-m") == 0) {
       arg++;
       merSize = strtou32bit(argv[arg], 0L);
+    } else if (strcmp(argv[arg], "-c") == 0) {
+      arg++;
+      merComp = strtou32bit(argv[arg], 0L);
     } else if (strcmp(argv[arg], "-s") == 0) {
       arg++;
       delete [] inputFile;
@@ -361,26 +355,7 @@ merylArgs::merylArgs(int argc, char **argv) {
       outputFile = duplString(argv[arg]);
     } else if (strcmp(argv[arg], "-v") == 0) {
       beVerbose = true;
-    } else if (strcmp(argv[arg], "-q") == 0) {
-      arg++;
-      delete [] queryFile;
-      queryFile = duplString(argv[arg]);
-    } else if (strcmp(argv[arg], "-d") == 0) {
-      includeDefLine = true;
-    } else if (strcmp(argv[arg], "-e") == 0) {
-      includeMer = true;
-    } else if (strcmp(argv[arg], "-c") == 0) {
-      outputCount    = true;
-      outputAll      = false;
-      outputPosition = false;
-    } else if (strcmp(argv[arg], "-a") == 0) {
-      outputCount    = false;
-      outputAll      = true;
-      outputPosition = false;
-    } else if (strcmp(argv[arg], "-p") == 0) {
-      outputCount    = false;
-      outputAll      = false;
-      outputPosition = true;
+
     } else if (strcmp(argv[arg], "-P") == 0) {
       personality = 'P';
     } else if (strcmp(argv[arg], "-B") == 0) {
@@ -532,7 +507,6 @@ merylArgs::merylArgs(const char *prefix) {
   execName   = readString(F);
   inputFile  = readString(F);
   outputFile = readString(F);
-  queryFile  = readString(F);
   statsFile  = readString(F);
   sgeJobName = readString(F);
   sgeOptions = readString(F);
@@ -552,7 +526,6 @@ merylArgs::~merylArgs() {
   delete [] execName;
   delete [] inputFile;
   delete [] outputFile;
-  delete [] queryFile;
 
   for (u32bit i=0; i<mergeFilesLen; i++)
     delete [] mergeFiles[i];
@@ -583,7 +556,6 @@ merylArgs::writeConfig(void) {
   writeString(execName,   F);
   writeString(inputFile,  F);
   writeString(outputFile, F);
-  writeString(queryFile,  F);
   writeString(statsFile,  F);
   writeString(sgeJobName, F);
   writeString(sgeOptions, F);

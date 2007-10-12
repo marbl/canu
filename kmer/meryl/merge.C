@@ -48,12 +48,15 @@ multipleOperations(merylArgs *args) {
   //
   bool    fail       = false;
   u32bit  merSize    = R[0]->merSize();
+  u32bit  merComp    = R[0]->merCompression();
 
-  for (u32bit i=0; i<args->mergeFilesLen; i++)
+  for (u32bit i=0; i<args->mergeFilesLen; i++) {
     fail |= (merSize != R[i]->merSize());
+    fail |= (merComp != R[i]->merCompression());
+  }
 
   if (fail) {
-    fprintf(stderr, "ERROR:  mer sizes are different.\n");
+    fprintf(stderr, "ERROR:  mer sizes (or compression level) differ.\n");
     exit(1);
   }
 
@@ -68,6 +71,7 @@ multipleOperations(merylArgs *args) {
 
   W = new merylStreamWriter(args->outputFile,
                             merSize,
+                            merComp,
                             prefixSize);
 
 

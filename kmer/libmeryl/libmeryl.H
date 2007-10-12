@@ -26,7 +26,9 @@ public:
 
   u64bit          theCount(void) { return(_thisMerCount); };
 
-  u32bit          merSize(void)    { return(_merSizeInBits >> 1); };
+  u32bit          merSize(void)         { return(_merSizeInBits >> 1); };
+  u32bit          merCompression(void)  { return(_merCompression); };
+
   u32bit          prefixSize(void) { return(_prefixSize); };
 
   u64bit          numberOfUniqueMers(void)   { return(_numUnique); };
@@ -40,6 +42,7 @@ private:
   bitPackedFile         *_DAT;
 
   u32bit                 _merSizeInBits;
+  u32bit                 _merCompression;
   u32bit                 _prefixSize;
   u32bit                 _merDataSize;
   u64bit                 _thisBucket;
@@ -104,6 +107,7 @@ class merylStreamWriter {
 public:
   merylStreamWriter(const char *filePrefix,
                     u32bit merSize,          //  In bases
+                    u32bit merComp,          //  A length, bases
                     u32bit prefixSize);      //  In bits
 
   ~merylStreamWriter();
@@ -116,6 +120,7 @@ private:
   bitPackedFile         *_DAT;
 
   u32bit                 _merSizeInBits;
+  u32bit                 _merCompression;
   u32bit                 _prefixSize;
   u32bit                 _merDataSize;
   u64bit                 _thisBucket;

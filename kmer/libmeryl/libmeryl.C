@@ -51,6 +51,7 @@ merylStreamReader::merylStreamReader(const char *fn, u32bit ms) {
     exit(1);
 
   _merSizeInBits  = _IDX->getBits(32) << 1;
+  _merCompression = _IDX->getBits(32);
   _prefixSize     = _IDX->getBits(32);
   _merDataSize    = _merSizeInBits - _prefixSize;
 
@@ -70,6 +71,7 @@ merylStreamReader::merylStreamReader(const char *fn, u32bit ms) {
 
 #ifdef SHOW_VARIABLES
   fprintf(stderr, "_merSizeInBits  = "u32bitFMT"\n", _merSizeInBits);
+  fprintf(stderr, "_merCompression = "u32bitFMT"\n", _merCompression);
   fprintf(stderr, "_prefixSize     = "u32bitFMT"\n", _prefixSize);
   fprintf(stderr, "_merDataSize    = "u32bitFMT"\n", _merDataSize);
   fprintf(stderr, "_numUnique      = "u64bitFMT"\n", _numUnique);
@@ -97,6 +99,7 @@ merylStreamReader::~merylStreamReader() {
 
 merylStreamWriter::merylStreamWriter(const char *fn,
                                      u32bit merSize,
+                                     u32bit merComp,
                                      u32bit prefixSize) {
 
   char *outpath = new char [strlen(fn) + 17];
@@ -112,6 +115,7 @@ merylStreamWriter::merylStreamWriter(const char *fn,
   //  Save really important stuff
   //
   _merSizeInBits  = merSize * 2;
+  _merCompression = merComp;
   _prefixSize     = prefixSize;
   _merDataSize    = _merSizeInBits - _prefixSize;
 
@@ -155,6 +159,7 @@ merylStreamWriter::merylStreamWriter(const char *fn,
   _IDX->putBits('\n', 8);
 
   _IDX->putBits(_merSizeInBits >> 1, 32);
+  _IDX->putBits(_merCompression, 32);
   _IDX->putBits(_prefixSize,  32);
   _IDX->putBits(_numUnique,   64);
   _IDX->putBits(_numDistinct, 64);
@@ -216,7 +221,8 @@ merylStreamWriter::~merylStreamWriter() {
   _IDX->putBits('1',  8);
   _IDX->putBits('\n', 8);
 
-  _IDX->putBits(_merSizeInBits >> 1,     32);
+  _IDX->putBits(_merSizeInBits >> 1, 32);
+  _IDX->putBits(_merCompression, 32);
   _IDX->putBits(_prefixSize,  32);
   _IDX->putBits(_numUnique,   64);
   _IDX->putBits(_numDistinct, 64);
