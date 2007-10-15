@@ -114,7 +114,8 @@ void          InitializeHashTable_Iterator_AS(HashTable_AS *table,
 
 int           NextHashTable_Iterator_AS(HashTable_Iterator_AS *iterator,
                                         uint64 *key,
-                                        uint64 *value);
+                                        uint64 *value,
+                                        uint32 *valuetype);
 
 #endif
 

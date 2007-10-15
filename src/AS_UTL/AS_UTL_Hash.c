@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_Hash.c,v 1.10 2007-08-24 15:29:48 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_UTL_Hash.c,v 1.11 2007-10-15 22:53:08 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -682,7 +682,8 @@ InitializeHashTable_Iterator_AS(HashTable_AS *table,
 int
 NextHashTable_Iterator_AS(HashTable_Iterator_AS *iterator, 
                           uint64                *key, 
-                          uint64                *value){
+                          uint64                *value,
+                          uint32                *valuetype) {
 
   HashNode_AS *node = (HashNode_AS *)NextHeapIterator_AS(&iterator->iterator);
 
@@ -690,13 +691,17 @@ NextHashTable_Iterator_AS(HashTable_Iterator_AS *iterator,
     node = (HashNode_AS *)NextHeapIterator_AS(&iterator->iterator);
 
   if (node == NULL) {
-    *key   = 0;
-    *value = 0;
-    return HASH_FAILURE;
+    *key        = 0;
+    *value      = 0;
+    *valuetype  = 0;
+
+    return(HASH_FAILURE);
   }
 
-  *key   = node->key;
-  *value = node->value;
-  return HASH_SUCCESS;
+  *key       = node->key;
+  *value     = node->value;
+  *valuetype = node->valueType;
+
+  return(HASH_SUCCESS);
 }
 

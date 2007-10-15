@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.22 2007-09-05 11:22:10 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.23 2007-10-15 22:53:08 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -128,13 +128,14 @@ void  SaveChunkOverlapperToStream(ChunkOverlapperT *chunkOverlapper, FILE *strea
 
   HashTable_Iterator_AS iterator;
   uint64 key, value;
+  uint32 valuetype;
   int64 numOverlaps = 0;
 
   // Iterate over all hashtable elements, just to count them
 
   InitializeHashTable_Iterator_AS(chunkOverlapper->hashTable, &iterator);
 
-  while(NextHashTable_Iterator_AS(&iterator, &key, &value)){
+  while(NextHashTable_Iterator_AS(&iterator, &key, &value, &valuetype)){
     numOverlaps++;
   }
 
@@ -144,7 +145,7 @@ void  SaveChunkOverlapperToStream(ChunkOverlapperT *chunkOverlapper, FILE *strea
 
   InitializeHashTable_Iterator_AS(chunkOverlapper->hashTable, &iterator);
 
-  while(NextHashTable_Iterator_AS(&iterator, &key, &value)){
+  while(NextHashTable_Iterator_AS(&iterator, &key, &value, &valuetype)){
     ChunkOverlapCheckT *olap = (ChunkOverlapCheckT*) value;
 
     AS_UTL_safeWrite(stream, olap, "SaveChunkOverlapperToStream", sizeof(ChunkOverlapCheckT), 1);
@@ -1200,6 +1201,7 @@ OverlapMesg *ComputeCanonicalOverlapWithTrace(GraphCGW_T *graph,
 void DumpOverlaps(GraphCGW_T *graph){
   HashTable_Iterator_AS iterator;
   uint64 key, value;
+  uint32 valuetype;
 
   StartTimerT(&GlobalData->OverlapTimer);
 
@@ -1209,7 +1211,7 @@ void DumpOverlaps(GraphCGW_T *graph){
 
   InitializeHashTable_Iterator_AS(graph->overlapper->hashTable, &iterator);
 
-  while(NextHashTable_Iterator_AS(&iterator, &key, &value)){
+  while(NextHashTable_Iterator_AS(&iterator, &key, &value, &valuetype)){
     ChunkOverlapCheckT *olap = (ChunkOverlapCheckT*) value;    
     
     fprintf(GlobalData->stderrc,"* (" F_CID "," F_CID ",%c) olap:" F_COORD " ahg:" F_COORD " bhg:" F_COORD "  fromcgb:%d\n",
@@ -1233,6 +1235,7 @@ void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
   int i = 0;
   HashTable_Iterator_AS iterator;
   uint64 key, value;
+  uint32 valuetype;
   int sectionOuter, sectionOuterMin, sectionOuterMax;
   int sectionInner, sectionInnerMin, sectionInnerMax;
   int numOverlaps = 0;
@@ -1260,7 +1263,7 @@ void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
 	  
 	  InitializeHashTable_Iterator_AS(graph->overlapper->hashTable, &iterator);
 
-	  while(NextHashTable_Iterator_AS(&iterator, &key, &value))
+	  while(NextHashTable_Iterator_AS(&iterator, &key, &value, &valuetype))
             {
               ChunkOverlapCheckT *olap = (ChunkOverlapCheckT*) value;    
 		

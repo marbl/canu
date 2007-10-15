@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.14 2007-08-28 22:50:10 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGW_EdgeDiagnostics.c,v 1.15 2007-10-15 22:53:08 brianwalenz Exp $";
 
 
 #include <stdio.h>
@@ -1103,12 +1103,12 @@ void PrintScaffoldConnectivity(ScaffoldGraphT * graph,
   if(otherScaffoldID == NULLINDEX)
     {
       HashTable_Iterator_AS iterator;
-      uint64 key;
-      uint64 value;
-    
+      uint64 key, value;
+      uint32 valuetype;
+
       fprintf(stdout, "*** Links from scaffold " F_CID ":\n", scaffold->id);
       InitializeHashTable_Iterator_AS(linkHT, &iterator);
-      while(NextHashTable_Iterator_AS(&iterator, &key, &value) == HASH_SUCCESS)
+      while(NextHashTable_Iterator_AS(&iterator, &key, &value, &valuetype) == HASH_SUCCESS)
         {
           ScfLink * link = (ScfLink *) value;
           if (link == NULL)
