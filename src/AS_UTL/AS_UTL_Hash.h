@@ -50,6 +50,10 @@ typedef struct HashNode_AS{
   uint32               keyLength:23;
   uint32               valueType:8;
   struct HashNode_AS  *next;
+#ifdef TRUE32BIT
+  struct HashNode_AS  *boguspad1;  //  on 64-bit, the pointer is 8-byte aligned (so we need
+  struct HashNode_AS  *boguspad2;  //  to pad the uint32) and it's a 64-bit pointer
+#endif
 }HashNode_AS;
 
 
