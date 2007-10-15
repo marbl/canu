@@ -80,6 +80,7 @@ RUNCAOBTUTIL = runCA-OBT/runCAutil/applyOverlapCorrection.pl \
                runCA-OBT/runCAutil/createConsensusJobs.pl \
                runCA-OBT/runCAutil/createFragmentCorrectionJobs.pl \
                runCA-OBT/runCAutil/createOverlapCorrectionJobs.pl \
+               runCA-OBT/runCAutil/merOverlapper.pl \
                runCA-OBT/runCAutil/createOverlapJobs.pl \
                runCA-OBT/runCAutil/createOverlapStore.pl \
                runCA-OBT/runCAutil/createPostUnitiggerConsensus.pl \

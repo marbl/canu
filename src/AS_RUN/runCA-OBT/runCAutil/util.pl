@@ -194,6 +194,7 @@ sub setDefaults () {
     $global{"ovlOnGrid"}                   = 1;
 
     $global{"merOverlap"}                  = "none";  # obt or ovl or both
+    $global{"merOverlapThreads"}           = 2;
     $global{"merCompression"}              = 1;       # used only if merOverlap != none
 
     $global{"executionWrapper"}            = undef;
@@ -408,15 +409,11 @@ sub checkDirectories () {
     #  Check that we have scratch space, or try to make one in the
     #  work directory.
 
-    #  See if we can use the supplied scratch space
+    #  See if we can use the supplied scratch space.  Previous
+    #  behavior was to attempt to make the directory.
     #
     my $scratch = getGlobal("scratch");
-    system("mkdir -p $scratch") if (! -d $scratch);
-
-    #  If not created, warn, and try to make one in the work directory.
-    #
     if (! -d $scratch) {
-        print STDERR "WARNING: Scratch directory '$scratch' doesn't exist and couldn't be created; trying '$wrk/scratch' instead.\n";
         $scratch = "$wrk/scratch";
         system("mkdir -p $scratch");
         setGlobal("scratch", $scratch);

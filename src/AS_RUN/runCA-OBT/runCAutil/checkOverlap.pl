@@ -3,20 +3,9 @@ use strict;
 #  Check that the overlapper jobs properly executed.  If not,
 #  complain, but don't help the user fix things.
 
-sub checkOverlap {
+
+sub checkOverlapper ($) {
     my $isTrim = shift @_;
-
-    return if (-d "$wrk/$asm.ovlStore");
-
-    if ((getGlobal("merOverlap") ne "none") &&
-        ($isTrim ne "trim")) {
-        print STDERR "checkOverlap()-- SKIPPED because merOverlap is defined.\n";
-        return;
-    }
-
-    if (!defined($isTrim)) {
-        caFailure("checkOverlap()-- I need to know if I'm trimming or assembling!\n");
-    }
 
     my $outDir = "1-overlapper";
     my $ovlOpt = "";
@@ -71,7 +60,50 @@ sub checkOverlap {
     if ($failedJobs) {
         caFailure("$failedJobs failed.  See $wrk/$outDir/overlap-restart.sh for resubmission commands.\n");
     }
-    
+}
+
+
+sub checkMerOverlapper ($) {
+    my $isTrim = shift @_;
+
+    my $outDir = "1-overlapper";
+
+    if ($isTrim eq "trim") {
+        $outDir = "0-overlaptrim-overlap";
+    }
+
+    my $batchSize  = getGlobal("ovlCorrBatchSize");
+    my $jobs       = int($numFrags / ($batchSize-1)) + 1;
+    my $failedJobs = 0;
+
+    for (my $i=1; $i<=$jobs; $i++) {
+        my $job = substr("0000" . $i, -4);
+
+        if (! -e "$wrk/$outDir/olaps/$asm.$job.success") {
+            print STDERR "$wrk/$outDir/olaps/$job failed.\n";
+            $failedJobs++;
+        }
+    }
+    if ($failedJobs) {
+        caFailure("$failedJobs failed.  See $wrk/$outDir/overlap-restart.sh for resubmission commands.\n");
+    }
+}
+
+
+sub checkOverlap {
+    my $isTrim = shift @_;
+
+    return if (-d "$wrk/$asm.ovlStore");
+
+    caFailure("checkOverlap()-- I need to know if I'm trimming or assembling!\n") if (!defined($isTrim));
+
+    if ((getGlobal("merOverlap") eq "both") ||
+        ((getGlobal("merOverlap") eq "obt") && ($isTrim eq "trim")) ||
+        ((getGlobal("merOverlap") eq "ovl") && ($isTrim ne "trim"))) {
+        checkMerOverlapper($isTrim);
+    } else {
+        checkOverlapper($isTrim);
+    }
 }
 
 1;

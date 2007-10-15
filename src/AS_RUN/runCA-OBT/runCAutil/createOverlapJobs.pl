@@ -1,27 +1,17 @@
 use strict;
 
 
-
-
-
-
-
-
-
-sub createOverlapJobs {
+sub createOverlapJobs($) {
     my $isTrim = shift @_;
 
-    caFailure("createOverlapJobs()--  Help!  I have no frags!\n") if ($numFrags == 0);
-
     return if (-d "$wrk/$asm.ovlStore");
+
+    caFailure("createOverlapJobs()-- Help!  I have no frags!\n") if ($numFrags == 0);
+    caFailure("createOverlapJobs()-- I need to know if I'm trimming or assembling!\n") if (!defined($isTrim));
 
     my $ovlThreads        = getGlobal("ovlThreads");
     my $ovlMemory         = getGlobal("ovlMemory");
     my $scratch           = getGlobal("scratch");
-
-    if (!defined($isTrim)) {
-        caFailure("createOverlapJobs()-- I need to know if I'm trimming or assembling!\n");
-    }
 
     my $outDir  = "1-overlapper";
     my $ovlOpt  = "";
@@ -38,82 +28,16 @@ sub createOverlapJobs {
 
     return if (-e "$wrk/$outDir/jobsCreated.success");
 
-    print STDERR "merOverlap = ", getGlobal("merOverlap"), " $isTrim\n";
+    #  mer overlapper here
 
-    #  If we're doing the mer overlapper.
-    #
     if ((getGlobal("merOverlap") eq "both") ||
         ((getGlobal("merOverlap") eq "obt") && ($isTrim eq "trim")) ||
         ((getGlobal("merOverlap") eq "ovl") && ($isTrim ne "trim"))) {
-
-        my $cmd;
-
-        if (! -e "$wrk/$outDir/$asm.ovm") {
-            $cmd  = "$bin/overmerry";
-            $cmd .= " -g $wrk/$asm.gkpStore";
-            $cmd .= " -m $merSize";
-            $cmd .= " -c $merComp";
-            $cmd .= " -o $wrk/$outDir/$asm.ovm";
-            $cmd .= " > $wrk/$outDir/$asm.ovm.err 2>&1";
-            if (runCommand("$wrk/$outDir", $cmd)) {
-                rename "$wrk/$outDir/$asm.ovm", "$wrk/$outDir/$asm.ovm.FAILED";
-                caFailure("Failed.\n");
-            }
-        }
-
-        if (! -e "$wrk/$outDir/$asm.merStore") {
-            $cmd  = "$bin/overlapStore";
-            $cmd .= " -c $wrk/$outDir/$asm.merStore";
-            $cmd .= " -M " . getGlobal("ovlStoreMemory");
-            $cmd .= " -m $numFrags";
-            $cmd .= " $wrk/$outDir/$asm.ovm";
-            $cmd .= " > $wrk/$outDir/$asm.merStore.err 2>&1";
-            if (runCommand("$wrk/$outDir", $cmd)) {
-                rename "$wrk/$outDir/$asm.merStore", "$wrk/$outDir/$asm.merStore.FAILED";
-                caFailure("Failed.\n");
-            }
-        }
-
-        if (! -e "$wrk/$outDir/$asm.ovb") {
-            $cmd  = "$bin/olap-from-seeds";
-            $cmd .= " -a -b -t 1 ";
-            #$cmd .= " -v 1 ";
-            $cmd .= " -S $wrk/$outDir/$asm.merStore";
-            $cmd .= " -c $wrk/3-frgcorr/$asm.corr";
-            $cmd .= " -o $wrk/$outDir/$asm.ovb"  if ($isTrim ne "trim");
-            $cmd .= " -o $wrk/$outDir/$asm.ovr"  if ($isTrim eq "trim");
-            $cmd .= " $wrk/$asm.gkpStore 1 $numFrags";
-            $cmd .= " > $wrk/$outDir/$asm.ovb.err 2>&1";
-
-            if ($isTrim eq "trim") {
-                $cmd .= " && ";
-                $cmd .= "$gin/acceptableOBToverlap";
-                $cmd .= " < $wrk/$outDir/$asm.ovr";
-                $cmd .= " > $wrk/$outDir/$asm.ovb";
-            }
-
-            #  Make the 3-frgcorr directory (to hold the corrections
-            #  output) and claim that fragment correction is all done.
-            #
-            if ($isTrim ne "trim") {
-                system("mkdir $wrk/3-frgcorr") if (! -d "$wrk/3-frgcorr");
-                touch("$wrk/3-frgcorr/jobsCreated.success");
-            }
-
-            if (runCommand("$wrk/$outDir", $cmd)) {
-                rename "$wrk/$outDir/$asm.ovr", "$wrk/$outDir/$asm.ovr.FAILED" if ($isTrim eq "trim");
-                rename "$wrk/$outDir/$asm.ovb", "$wrk/$outDir/$asm.ovb.FAILED";
-                caFailure("Failed.\n");
-            }
-        }
-
+        merOverlapper($isTrim);
         return;
     }
 
-
-
     meryl();
-
 
     #  We make a giant job array for this -- we need to know hashBeg,
     #  hashEnd, refBeg and refEnd -- from that we compute batchName
@@ -292,12 +216,10 @@ sub createOverlapJobs {
         my $sge        = getGlobal("sge");
         my $sgeOverlap = getGlobal("sgeOverlap");
 
-
         my $SGE;
-        $SGE .= "qsub $sge $sgeOverlap -r y -N NAME  \\\n";
+        $SGE  = "qsub $sge $sgeOverlap -r y -N NAME \\\n";
         $SGE .= "  -t MINMAX \\\n";
         $SGE .= "  -j y -o $wrk/$outDir/overlap.\\\$TASK_ID.out \\\n";
-        $SGE .= "  -e $wrk/$outDir/overlap.\\\$TASK_ID.err \\\n";
         $SGE .= "  $wrk/$outDir/overlap.sh\n";
 
 	my $waitTag = submitBatchJobs("ovl", $SGE, $jobs, $ovlThreads);
@@ -310,22 +232,18 @@ sub createOverlapJobs {
             touch("$wrk/$outDir/jobsCreated.success");
             exit(0);
         }
-
-
     } else {
         my $failures = 0;
         for (my $i=1; $i<=$jobs; $i++) {
             my $out = substr("0000" . $i, -4);
-            if (runCommand("$wrk/$outDir", "$wrk/$outDir/overlap.sh $i > $wrk/$outDir/$out.out 2>&1")) {
+            if (runCommand("$wrk/$outDir", "$wrk/$outDir/overlap.sh $i > $wrk/$outDir/overlap.$out.out 2>&1")) {
                 $failures++;
             }
         }
-
         if ($failures == 0) {
             touch("$wrk/$outDir/jobsCreated.success");
         }
     }
-    
 }
 
 1;

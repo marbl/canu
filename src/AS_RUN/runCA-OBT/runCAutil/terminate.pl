@@ -166,19 +166,20 @@ sub terminate ($) {
 #        }
     }
 
-    if (runCommand($termDir, "$bin/gatekeeper -dumpinfo $wrk/$asm.gkpStore 2> $termDir/gatekeeper.err | grep -v 'No source' > $termDir/$asm.dumpinfo")) {
-        unlink "$termDir/$asm.dumpinfo";
-    }    
-    
     if (! -e "$termDir/$asm.qc") {
+        if (! -e "$termDir/$asm.dumpinfo") {
+            if (runCommand($termDir, "$bin/gatekeeper -dumpinfo $wrk/$asm.gkpStore > $termDir/$asm.gkpinfo 2> $termDir/$asm.gkpinfo.err")) {
+                unlink "$termDir/$asm.gkpinfo";
+            }
+        }
     	if ( -e "$wrk/$asm.frg" ) {
-		link "$wrk/$asm.frg", "$termDir/$asm.frg";
+            link "$wrk/$asm.frg", "$termDir/$asm.frg";
 	}    
     	if ( -e "$wrk/$asm.catmap" && !-e "$termDir/$asm.catmap" )  {
-		link "$wrk/$asm.catmap", "$termDir/$asm.catmap";
+            link "$wrk/$asm.catmap", "$termDir/$asm.catmap";
 	}
     	if ( -e "$wrk/$asm.seq.features" && !-e "$termDir/$asm.seq.features" )  {
-		link "$wrk/$asm.seq.features", "$termDir/$asm.seq.features";
+            link "$wrk/$asm.seq.features", "$termDir/$asm.seq.features";
 	}
         if (runCommand("$termDir", "$perl $bin/caqc.pl -euid -metrics $termDir/$asm.asm")) {
             rename "$termDir/$asm.qc", "$termDir/$asm.qc.FAILED";
