@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.63 2007-10-11 19:41:28 eliv Exp $
- * $Revision: 1.63 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.64 2007-10-16 18:55:13 eliv Exp $
+ * $Revision: 1.64 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.63 2007-10-11 19:41:28 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.64 2007-10-16 18:55:13 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -48,6 +48,7 @@ static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 #include <cstdio>
 #include <cmath>
 #include <cassert>
+#include <cerrno>
 
 extern "C" {
 	#include "AS_global.h"
@@ -1027,6 +1028,12 @@ namespace AS_BOG{
 	//////////////////////////////////////////////////////////////////////////////
 
 	Unitig::Unitig(void){
+        Unitig(nextId++);
+	}
+
+	//////////////////////////////////////////////////////////////////////////////
+
+	Unitig::Unitig(iuid accession){
 		// Initialize values to unlikely values
 		_localArrivalRate=-1;
 		_covStat=FLT_MAX;
@@ -1035,9 +1042,8 @@ namespace AS_BOG{
 		_numRandomFrags=-1;
         _avgRho = -1;
 		dovetail_path_ptr = new DoveTailPath;
-        _id=nextId++;
+        _id=accession;
 	}
-
 	//////////////////////////////////////////////////////////////////////////////
 
 	Unitig::~Unitig(void){
@@ -1879,6 +1885,45 @@ namespace AS_BOG{
 
 		fclose(fptr);
 	}
+
+	//////////////////////////////////////////////////////////////////////////////
+
+	void UnitigGraph::readIUMsFromFile(const char *filename){
+        FILE *iumIn = fopen( filename, "r");
+        if (errno) {
+            fprintf(stderr, "Could not open '%s' for input: %s\n",
+                     filename, strerror(errno));
+            exit(1);
+        }
+        // should be max iid on input
+        iuid maxIID = 50000;
+        Unitig::resetFragUnitigMap(maxIID);
+        BestOverlapGraph::fragLength = new uint16[maxIID];
+        memset( BestOverlapGraph::fragLength, std::numeric_limits<uint16>::max(),
+                sizeof(uint16)*maxIID );
+
+        GenericMesg *pmesg = NULL;
+        while ((ReadProtoMesg_AS( iumIn, &pmesg ) != EOF)) {
+
+            if (pmesg->t == MESG_IUM) {
+                IntUnitigMesg *intig = (IntUnitigMesg *)(pmesg->m);
+                Unitig *tig = new Unitig(intig->iaccession);
+                unitigs->push_back( tig );
+
+                for(int i=0; i < intig->num_frags; i++) {
+                    IntMultiPos frg = intig->f_list[ i ];
+                    tig->addFrag( frg );
+                    BestOverlapGraph::fragLength[ frg.ident ]= abs(frg.position.end - frg.position.bgn);
+
+                    OVSoverlap olap;
+                    memset( static_cast<void*>(&olap), 0, sizeof(olap));
+                    olap.a_iid = frg.contained;
+                    olap.b_iid = frg.ident;
+                    bog_ptr->setBestContainer( olap, 0 );
+                }
+            }
+        }
+    }
 
 	//////////////////////////////////////////////////////////////////////////////
 
