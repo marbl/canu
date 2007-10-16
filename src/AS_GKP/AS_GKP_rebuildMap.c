@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const rcsid[] = "$Id: AS_GKP_rebuildMap.c,v 1.3 2007-10-04 06:38:54 brianwalenz Exp $";
+static char const rcsid[] = "$Id: AS_GKP_rebuildMap.c,v 1.4 2007-10-16 03:34:18 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,83 +30,68 @@ static char const rcsid[] = "$Id: AS_GKP_rebuildMap.c,v 1.3 2007-10-04 06:38:54 
 
 
 int
-rebuildMap(char *hashFileName, 
-           char *gkpStoreName) {
-   HashTable_AS      *UIDtoIID   = CreateScalarHashTable_AS(32 * 1024);
+rebuildMap(char *gkpStoreName) {
    GateKeeperStore   *gkp        = openGateKeeperStore(gkpStoreName, FALSE);
-   fragRecord        *fr;
-   FragStream        *fs;
-   StoreStat          stat;
 
-   CDS_IID_t          i;
-   int                success;
-    
-   if (gkp == NULL) {
-      fprintf(stderr, "Failed to open %s\n", gkpStoreName);
-      exit(1);
+   if (gkp == NULL)
+     fprintf(stderr, "Failed to open %s\n", gkpStoreName), exit(1);
+
+   {
+     char name[FILENAME_MAX];
+     sprintf(name,"%s/map", gkpStoreName);
+     gkp->UIDtoIID = CreateScalarHashTable_AS(32 * 1024);
+     SaveHashTable_AS(name, gkp->UIDtoIID);
    }
 
-   fr = new_fragRecord();
-   fs = openFragStream(gkp, FRAG_S_ALL);
+   //  Insert batch info
+   //
+   {
+     StoreStat             stat = {0};
+     CDS_IID_t             i    = 0;
+     GateKeeperBatchRecord gkpb = {0};
 
-   statsStore(gkp->frg, &stat);
-   resetFragStream(fs, stat.firstElem, stat.lastElem);
+     statsStore(gkp->bat, &stat);   
 
-   // read all fragments from the store and enter them into our map
-   while (nextFragStream(fs, fr)) {
-      success = InsertInHashTable_AS(UIDtoIID, getFragRecordUID(fr), 0, (uint64)getFragRecordIID(fr), AS_IID_LIB);
-      
-      if (success == HASH_FAILURE) {  
-         fprintf(stderr, "Error inserting UID"F_UID" and IID "F_IID"into hash table.\n", getFragRecordUID(fr), getFragRecordIID(fr));
-         closeFragStream(fs);
-         closeGateKeeperStore(gkp);
-         
-         exit(1);
-      }
+     for (i=stat.firstElem; i<=stat.lastElem; i++) {
+       getGateKeeperBatch(gkp, i, &gkpb);
+
+       if (InsertInHashTable_AS(gkp->UIDtoIID, (uint64)gkpb.batchUID, 0, (uint64)i, AS_IID_BAT) == HASH_FAILURE)
+         fprintf(stderr, "Error inserting batch "F_UID","F_IID" into hash table.\n", gkpb.batchUID, i);
+     }
    }
-   closeFragStream(fs);  
-  
-   // now add library info to map
-   statsStore(gkp->lib, &stat);
-   for (i = stat.firstElem; i <= stat.lastElem; i++) {    
-      GateKeeperLibraryRecord *gkpl = getGateKeeperLibrary(gkp, i);
-      LibraryMesg              lmesg;
 
-      AS_PER_encodeLibraryFeatures(gkpl, &lmesg);
-      success = InsertInHashTable_AS(UIDtoIID, gkpl->libraryUID, 0, (uint64)i, AS_IID_LIB);
-      AS_PER_encodeLibraryFeaturesCleanup(&lmesg);
-      
-      if (success == HASH_FAILURE) {  
-         fprintf(stderr, "Error inserting UID"F_UID" and IID "F_IID"into hash table.\n", gkpl->libraryUID, i);
-         closeFragStream(fs);
-         closeGateKeeperStore(gkp);
-         
-         exit(1);
-      }
-   }
-  
-   // now add the batch info to the map
-   statsStore(gkp->bat, &stat);   
-   for (i = stat.firstElem; i <= stat.lastElem; i++) {
-      GateKeeperBatchRecord gkpb;
-      getGateKeeperBatch(gkp, i, &gkpb);
+   //  Insert library info
+   //
+   {
+     StoreStat                stat = {0};
+     CDS_IID_t                i    = 0;
+     GateKeeperLibraryRecord *gkpl = NULL;
 
-      success = InsertInHashTable_AS(UIDtoIID, gkpb.batchUID, 0, (uint64)i, AS_IID_LIB);
-      
-      if (success == HASH_FAILURE) {  
-         fprintf(stderr, "Error inserting UID"F_UID" and IID "F_IID"into hash table.\n", gkpb.batchUID, i);
-         closeFragStream(fs);
-         closeGateKeeperStore(gkp);
-         
-         exit(1);
-      }
+     statsStore(gkp->lib, &stat);
+     for (i=stat.firstElem; i<=stat.lastElem; i++) {    
+       gkpl = getGateKeeperLibrary(gkp, i);
+
+       if (InsertInHashTable_AS(gkp->UIDtoIID, (uint64)gkpl->libraryUID, 0, (uint64)i, AS_IID_LIB) == HASH_FAILURE)
+         fprintf(stderr, "Error inserting library "F_UID","F_IID" into hash table.\n", gkpl->libraryUID, i);
+     }
    }
-      
+
+   //  Insert fragment info
+   {
+     FragStream *fs = openFragStream(gkp, FRAG_S_ALL);
+     fragRecord  fr = {0};
+
+     while (nextFragStream(fs, &fr)) {
+       if (InsertInHashTable_AS(gkp->UIDtoIID, (uint64)getFragRecordUID(&fr), 0, (uint64)getFragRecordIID(&fr), AS_IID_FRG) == HASH_FAILURE)
+         fprintf(stderr, "Error inserting UID"F_UID" and IID "F_IID"into hash table.\n", getFragRecordUID(&fr), getFragRecordIID(&fr));
+     }
+
+     closeFragStream(fs);  
+   }
+
+   //  This saves the updated hash table for us.
+   //
    closeGateKeeperStore(gkp);
   
-   // now dump the hash map we build
-   SaveHashTable_AS(hashFileName, UIDtoIID);
-   DeleteHashTable_AS(UIDtoIID);
-   
    return 0;
 }

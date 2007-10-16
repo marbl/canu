@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_main.c,v 1.57 2007-10-04 06:38:54 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_main.c,v 1.58 2007-10-16 03:34:18 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -281,12 +281,7 @@ main(int argc, char **argv) {
       //  End of dump options, SECRET OPTIONS below
 
     } else if (strcmp(argv[arg], "--rebuildmap") == 0) {
-      if ((arg + 2) == argc) {
-         fprintf(stderr, "Must input a gkpStore and map file name for map re-generation.\n");
-         exit(1);
-      }
-      
-      rebuildMap(argv[arg+1], argv[arg+2]);
+      rebuildMap(argv[arg+1]);
       exit(0);
     } else if (strcmp(argv[arg], "--rearrange") == 0) {
       //  Takes three args:  UID order file, oldStore, newStore
