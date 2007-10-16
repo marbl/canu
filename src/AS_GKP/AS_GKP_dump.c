@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.26 2007-10-15 22:53:08 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.27 2007-10-16 03:33:02 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -274,6 +274,9 @@ buildFragmentIIDtoUIDmap(GateKeeperStore *gkp, CDS_IID_t begIID, CDS_IID_t endII
   uint64                  key = 0;
   uint64                  value = 0;
   uint32                  valuetype = 0;
+  uint32                  added = 0;
+
+  fprintf(stderr, "Creating IID to UID map for fragments "F_IID" to "F_IID"\n", begIID, endIID);
 
   //  Make sure we have the table loaded.
   getGatekeeperUIDtoIID(gkp, (CDS_UID_t)1, NULL);
@@ -284,9 +287,13 @@ buildFragmentIIDtoUIDmap(GateKeeperStore *gkp, CDS_IID_t begIID, CDS_IID_t endII
     CDS_UID_t  uid = (CDS_UID_t)key;
     CDS_IID_t  iid = (CDS_IID_t)value;
     
-    if ((valuetype == AS_IID_FRG) && (begIID <= iid) && (iid <= endIID))
+    if ((valuetype == AS_IID_FRG) && (begIID <= iid) && (iid <= endIID)) {
+      added++;
       IIDtoUID[iid - begIID] = uid;
+    }
   }
+
+  fprintf(stderr, "Found "F_U32" UID to IID mappings.\n", added);
 
   return(IIDtoUID);
 }
