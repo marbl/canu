@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.42 2007-10-05 07:43:26 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.43 2007-10-16 12:55:47 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -435,6 +435,8 @@ typedef struct {
 
 typedef struct {
   char                     storePath[FILENAME_MAX];
+
+  uint32                   writable:1;
 
   GateKeeperStoreInfo      gkp;
 

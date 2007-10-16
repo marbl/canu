@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.41 2007-10-05 06:25:50 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.42 2007-10-16 12:55:47 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -129,6 +129,8 @@ openGateKeeperStore(const char *path,
 
   GateKeeperStore  *gkpStore = (GateKeeperStore *)safe_calloc(1, sizeof(GateKeeperStore));
 
+  gkpStore->writable = 0;
+
   strcpy(gkpStore->storePath, path);
 
   gkpStore->bat = NULL;
@@ -186,14 +188,16 @@ openGateKeeperStore(const char *path,
     assert(gkpStore->gkp.gkpFragmentRecordSize == sizeof(GateKeeperFragmentRecord));
   }
 
-
-  char  mode[4];
-  if (writable)
-    strcpy(mode, "r+");
-  else
-    strcpy(mode, "r");
+  //  writable is -1 if we are called from createGateKeeperPartition()
 
   if (writable >= 0) {
+    char  mode[4];
+
+    if (writable)
+      strcpy(mode, "r+");
+    else
+      strcpy(mode, "r");
+
     sprintf(name,"%s/bat", gkpStore->storePath);
     gkpStore->bat   = openStore(name, mode);
 
@@ -227,7 +231,6 @@ openGateKeeperStore(const char *path,
     }
 
     if (writable) {
-      char  name[FILENAME_MAX];
       sprintf(name,"%s/map", gkpStore->storePath);
       gkpStore->UIDtoIID = LoadUIDtoIIDHashTable_AS(name);
     }
@@ -245,6 +248,8 @@ createGateKeeperStore(const char *path) {
   GateKeeperStore  *gkpStore = (GateKeeperStore *)safe_calloc(1, sizeof(GateKeeperStore));
 
   strcpy(gkpStore->storePath, path);
+
+  gkpStore->writable = 1;
 
   gkpStore->bat = NULL;
   gkpStore->frg = NULL;
@@ -323,18 +328,19 @@ closeGateKeeperStore(GateKeeperStore *gkpStore) {
   if (gkpStore == NULL)
     return;
 
-  sprintf(name,"%s/gkp", gkpStore->storePath);
-  errno = 0;
-  gkpinfo = fopen(name, "w");
-  if (errno) {
-    fprintf(stderr, "failed to write gatekeeper store into to '%s': %s\n", name, strerror(errno));
-    exit(1);
-  }
-
-  AS_UTL_safeWrite(gkpinfo, &gkpStore->gkp, "closeGateKeeperStore:header", sizeof(GateKeeperStoreInfo), 1);
-  if (fclose(gkpinfo)) {
-    fprintf(stderr, "failed to close gatekeeper store '%s': %s\n", name, strerror(errno));
-    exit(1);
+  if (gkpStore->writable) {
+    sprintf(name,"%s/gkp", gkpStore->storePath);
+    errno = 0;
+    gkpinfo = fopen(name, "w");
+    if (errno) {
+      fprintf(stderr, "failed to write gatekeeper store into to '%s': %s\n", name, strerror(errno));
+      exit(1);
+    }
+    AS_UTL_safeWrite(gkpinfo, &gkpStore->gkp, "closeGateKeeperStore:header", sizeof(GateKeeperStoreInfo), 1);
+    if (fclose(gkpinfo)) {
+      fprintf(stderr, "failed to close gatekeeper store '%s': %s\n", name, strerror(errno));
+      exit(1);
+    }
   }
 
   if(gkpStore->bat != NULL)
@@ -375,7 +381,6 @@ closeGateKeeperStore(GateKeeperStore *gkpStore) {
 
   if (gkpStore->partmap != NULL)
     DeleteHashTable_AS(gkpStore->partmap);
-
 
   safe_free(gkpStore);
 }
