@@ -59,22 +59,62 @@ positionDB::positionDB(merStream   *MS,
   //  We need to ensure that
   //    2 * merSize + posnWidth + 1 - 64 <= tblBits <= 2 * merSize - 4
   //
-  //  The only catch is that we don't exactly know posnWidth right
-  //  now.  We can overestimate it, though, based on the size of the
-  //  sequence that is backing the merStream.
+  //  The catch is that we don't exactly know posnWidth right now.  We
+  //  can overestimate it, though, based on the size of the sequence
+  //  that is backing the merStream.
+  //
+  //  The second catch is that we don't want to make tblBits too big
+  //  or too small.  If too big, we waste a lot of memory in the hash
+  //  table pointers, and if too small, we waste even more memory in
+  //  the data table (not to mention the algorithm dies because it
+  //  assumed buckets in the data table are small).
+  //
+  //  The memory size is (roughly):
+  //
+  //    2^tblBits * log(numDistinctMers) +
+  //    numDistinctMers * (2*merSize - tblBits + 1 + log(numMers) +
+  //    (numMers - numUniqieMers) * log(numMers)
+  //
+  //  this is approximately proportional to:
+  //
+  //    2^tblBits * posnWidth +
+  //    approxMers * (2*merSize - tblBits + 1 + posnWidth)
   //
   {
     u64bit  approxMers = MS->approximateNumberOfMers();
     u64bit  posnWidth  = logBaseTwo64(approxMers + 1);
 
-    _tableSizeInBits = 2 * merSize + posnWidth + 1 - 64;
+    //  Find the smallest and largest tblBits we could possibly use.
+    //
+    u64bit  sm = 2 * merSize + posnWidth + 1 - 64;
+    u64bit  lg = 2 * merSize - 4;
 
-    if (_tableSizeInBits > 2 * merSize - 4) {
+    if (sm > lg) {
       fprintf(stderr, "ERROR:  too many mers for this mersize.\n");
       fprintf(stderr, "tblBits="u64bitFMT": merSize="u64bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers)\n",
               _tableSizeInBits, merSize, posnWidth, approxMers);
       exit(1);
     }
+
+    //  Iterate through all the choices, picking the one with the
+    //  smallest expected footprint.
+    //
+    u64bit  mini = 0;      //  tblSize of the smallest found
+    u64bit  mins = ~mini;  //  memory size of the smallest found (~mini == biggest int)
+    u64bit  one  = 1;
+    for (u64bit i=sm; i<=lg; i++) {
+      u64bit  mm = (one << i) * posnWidth + approxMers * (2*merSize - i + 1 + posnWidth);
+
+      //fprintf(stderr, "tblBits="u64bitFMT": merSize="u64bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers) -- size "u64bitFMT".\n",
+      //        i, merSize, posnWidth, approxMers, mm);
+
+      if (mm < mins) {
+        mini = i;
+        mins = mm;
+      }
+    }
+
+    _tableSizeInBits = mini;
 
     fprintf(stderr, "tblBits="u64bitFMT": merSize="u64bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers)\n",
             _tableSizeInBits, merSize, posnWidth, approxMers);
