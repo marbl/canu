@@ -34,15 +34,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.31 2007-10-16 18:55:13 eliv Exp $
- * $Revision: 1.31 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.32 2007-10-17 14:35:06 eliv Exp $
+ * $Revision: 1.32 $
 */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.31 2007-10-16 18:55:13 eliv Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.32 2007-10-17 14:35:06 eliv Exp $";
 
 #include <set>
 #include <iostream>
@@ -99,8 +99,7 @@ namespace AS_BOG{
 
 	struct Unitig{
 
-		Unitig(iuid);		
-		Unitig(void);		
+		Unitig(iuid =nextId++);		
 		~Unitig(void);		
 
         // Sort frags by position on the unitig

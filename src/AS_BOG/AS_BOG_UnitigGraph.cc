@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.64 2007-10-16 18:55:13 eliv Exp $
- * $Revision: 1.64 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.65 2007-10-17 14:35:06 eliv Exp $
+ * $Revision: 1.65 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.64 2007-10-16 18:55:13 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.65 2007-10-17 14:35:06 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -1023,12 +1023,6 @@ namespace AS_BOG{
 
 		return(_globalArrivalRate);		
 
-	}
-
-	//////////////////////////////////////////////////////////////////////////////
-
-	Unitig::Unitig(void){
-        Unitig(nextId++);
 	}
 
 	//////////////////////////////////////////////////////////////////////////////
