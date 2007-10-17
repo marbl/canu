@@ -24,7 +24,7 @@
    Assumptions:  
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.168 2007-10-03 12:50:17 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.169 2007-10-17 22:29:43 gdenisov Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -2076,9 +2076,11 @@ SmoothenVariation(double *var, int len, int window)
     {
       int j, left_win=0, right_win=0;
       double sum_var = (var[i]>ZERO_MINUS)?var[i]:((var[i]<-1.)?0.:-var[i]);
+      int max_left_win = window/2;
+      int max_right_win = window - max_left_win;
 
       j = i-1;
-      while (j>=0 && left_win<window/2)
+      while (j>=0 && left_win <= max_left_win)
         {
           if (var[j] > ZERO_MINUS)   // consensus is not gap
             {
@@ -2091,7 +2093,7 @@ SmoothenVariation(double *var, int len, int window)
           j--;
         }
       j = i+1;
-      while (j<len && right_win<window/2)
+      while (j<len && right_win <= max_right_win)
         {
           if (var[j] > ZERO_MINUS)  // consensus is not gap
             {
