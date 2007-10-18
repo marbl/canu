@@ -24,27 +24,28 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-SOURCES = AS_GKP_main.c \
-          AS_GKP_buildPartition.c \
-          AS_GKP_checkBatch.c \
-          AS_GKP_checkLibrary.c \
-          AS_GKP_checkFrag.c \
-          AS_GKP_checkLink.c \
-          AS_GKP_dump.c \
-          AS_GKP_edit.c \
-          AS_GKP_errors.c \
-          AS_GKP_rebuildMap.c \
-          AS_GKP_rearrange.c \
-          AS_GKP_sff.c
-OBJECTS = $(SOURCES:.c=.o)
+GKPSRC    = AS_GKP_buildPartition.c \
+            AS_GKP_checkBatch.c \
+            AS_GKP_checkLibrary.c \
+            AS_GKP_checkFrag.c \
+            AS_GKP_checkLink.c \
+            AS_GKP_dump.c \
+            AS_GKP_edit.c \
+            AS_GKP_errors.c \
+            AS_GKP_rebuildMap.c \
+            AS_GKP_rearrange.c \
+            AS_GKP_sff.c
 
+SOURCES   = AS_GKP_main.c AS_GKP_bench.c $(GKPSRC)
+OBJECTS   = $(SOURCES:.c=.o)
 LIBRARIES =
-
-PROGS = gatekeeper
+PROGS     = gatekeeper gatekeeperbench
 
 include $(LOCAL_WORK)/src/c_make.as
 
 all:    $(OBJECTS) $(LIBRARIES) $(PROGS)
 	@test -n nop
 
-gatekeeper: $(OBJECTS) libAS_PER.a libAS_MSG.a libAS_UTL.a
+gatekeeper: AS_GKP_main.o $(GKPSRC:.c=.o) libAS_PER.a libAS_MSG.a libAS_UTL.a
+
+gatekeeperbench: AS_GKP_bench.o libAS_PER.a libAS_MSG.a libAS_UTL.a
