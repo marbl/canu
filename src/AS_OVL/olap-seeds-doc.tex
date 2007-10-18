@@ -292,7 +292,7 @@ Program options are these:
   Do \EMPH{NOT} try to correct read errors.  No corrections will be output.
 \ei
 
-The following options are leftover from \correctfrags and were
+The following options are leftover from \correctfrags\ and were
 used to determine the parameters for the correction scheme.  Because a
 different correction scheme based on the multi-alignment is now used,
 these options no longer have any effect.
@@ -394,6 +394,78 @@ The main program steps are these:
       this information and it could be used in the correction step.
     \ei
   \etn
+\item
+  After all seeds are processed, each of the reference reads is processed in
+  order.  For each read $a$, all its overlap differences are used to construct
+  a multi-alignment over it.  If correlated differences are being checked, overlaps
+  that fail the check are eliminated.  The remaining reads in the overlap are
+  used to correct bases in $a$.  The current correction is done independently
+  in each column.  A position in $a$ is corrected if there are sufficiently few
+  $b$ reads in the corresponding column that match the existing $a$ value and
+  there are sufficiently many reads that have an alternative value.
+
+  An additional correction step is done if the $a$ read is a homopoly-type read.
+  In this case, each homopolymer-run region in $a$ has its length adjusted to
+  the average of the lengths of the corresponding runs in the columns above
+  this region (the average is weighted to favour non-homopoly runs in the
+  above region if there are any).  The average includes the length of the $a$
+  region itself, so if the same set of reads is present when the other reads
+  are processed as the $a$ read, they all should get the same homopoly run
+  length.
+
+  At this point corrections and overlaps are output for read $a$.
+  \btn
+  \item
+    This is not multi-threaded yet.  It can be done so in any number of ways,
+    since only information stored with read $a$ is being used/modified.
+  \item
+    The multi-alignments currently are just the agglomeration of the
+    pairwise alignments to the reference read $a$.  Nothing is done to
+    make insertions internally consistent.  \Eg, the following currently
+    occurs:
+    \bq
+      \begin{tabular}{rl}
+        $b_1$ & \ldots \verb`atcgatcgcta` \ldots \\
+        $b_2$ & \ldots \verb`atctc--gcta` \ldots \\
+        $b_3$ & \ldots \verb`atcgatcgcta` \ldots \\
+        $b_4$ & \ldots \verb`atctc--gcta` \ldots \\
+          $a$ & \ldots \verb`atc----gcta` \ldots
+      \end{tabular}
+    \eq
+    when it should be:
+    \bq
+      \begin{tabular}{rl}
+        $b_1$ & \ldots \verb`atcgatcgcta` \ldots \\
+        $b_2$ & \ldots \verb`atc--tcgcta` \ldots \\
+        $b_3$ & \ldots \verb`atcgatcgcta` \ldots \\
+        $b_4$ & \ldots \verb`atc--tcgcta` \ldots \\
+          $a$ & \ldots \verb`atc----gcta` \ldots
+      \end{tabular}
+    \eq
+    The problem occurs most frequently in homopoly reads where:
+    \bq
+      \begin{tabular}{rl}
+        $b_1$ & \ldots \verb`attctt--g` \ldots \\
+        $b_2$ & \ldots \verb`atttctttg` \ldots \\
+        $b_3$ & \ldots \verb`attcttt-g` \ldots \\
+        $b_4$ & \ldots \verb`attttcttg` \ldots \\
+          $a$ & \ldots \verb`atttttt-g` \ldots
+      \end{tabular}
+    \eq
+    should be:
+    \bq
+      \begin{tabular}{rl}
+        $b_1$ & \ldots \verb`att--ctt-g` \ldots \\
+        $b_2$ & \ldots \verb`attt-ctttg` \ldots \\
+        $b_3$ & \ldots \verb`att--ctttg` \ldots \\
+        $b_4$ & \ldots \verb`attttctt-g` \ldots \\
+          $a$ & \ldots \verb`attt--tttg` \ldots
+      \end{tabular}
+    \eq
+  \item
+    Quality values are not used yet.  They probably should be.
+  \etn
+  
 \en
 
 \subsection{Homopolymer Alignments}
@@ -591,7 +663,9 @@ assemblies.
   \btn
   \item
     One issue is the scoring function for homopoly alignments, which
-    is used to determine the end of the partial overlap.
+    is used to determine the end of the partial overlap.  The error
+    penalties are well-defined, but it's not so clear what the positive
+    match score should be to implement a given error rate.
   \etn
 \item
   Quality values are not currently used.  Since multi-alignments are built
