@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_bench.c,v 1.1 2007-10-18 07:44:34 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_bench.c,v 1.2 2007-10-18 08:35:09 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -56,13 +56,17 @@ getTime(void) {
 static
 void
 printrusage(char *gkpName, double startTime) {
+#ifndef __linux
   struct   statfs  sf = {0};
+#endif
   struct   utsname un = {0};
   struct   rusage  ru = {0};
 
+#ifndef __linux
   errno = 0;
   if (statfs(gkpName, &sf) == -1)
     fprintf(stdout, "statfs() call failed: %s\n", strerror(errno));
+#endif
 
   errno = 0;
   if (uname(&un) == -1)
@@ -72,10 +76,15 @@ printrusage(char *gkpName, double startTime) {
   if (getrusage(RUSAGE_SELF, &ru) == -1)
     fprintf(stdout, "getrusage() call failed: %s\n", strerror(errno));
 
+#ifndef __linux
   fprintf(stdout, "%s (%s|%s) ",
           gkpName,
           sf.f_fstypename,
           sf.f_mntfromname);
+#else
+  fprintf(stdout, "%s ",
+          gkpName);
+#endif
   fprintf(stdout, "%s (%s/%s %s) ",
           un.nodename,
           un.sysname,
@@ -114,6 +123,8 @@ addRandomFrags(char *gkpName, uint32 numFrags) {
       seq[j] = acgt[lrand48() % 10];
       qlt[j] = '0' + lrand48() % 60;
     }
+    seq[gkf.seqLen] = 0;
+    qlt[gkf.seqLen] = 0;
 
     {
       StoreStat   stats;
