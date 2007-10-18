@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.18 2007-10-11 21:10:06 brianwalenz Exp $
- * $Revision: 1.18 $
+ * $Id: OlapFromSeedsOVL.c,v 1.19 2007-10-18 21:39:12 adelcher Exp $
+ * $Revision: 1.19 $
 */
 
-static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.18 2007-10-11 21:10:06 brianwalenz Exp $";
+static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.19 2007-10-18 21:39:12 adelcher Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -514,7 +514,8 @@ if (0)
         {
          // need to adjust mod_seq, mod_len and mod_dp here because of
          // eliminated reads
-         ;
+         fprintf (stderr, "Check_Correlated_Differences not implemented\n");
+         exit (EXIT_FAILURE);
         }
      }
 
@@ -3312,7 +3313,7 @@ static void  Output_Olap
 static void  Output_Olap_From_Diff
   (const Sequence_Diff_t * dp, int sub)
 
-// Output the overlap described in  dp  which is wrt read  FRag [sub] .
+// Output the overlap described in  dp  which is wrt read  Frag [sub] .
 
   {
    OVSoverlap  overlap;
@@ -3655,7 +3656,7 @@ static void  Process_Seed
      {
       int  j, ct;
 
-      printf (">a_part a_offset=%d\n", a_offset);
+      printf (">a_seq  a_offset=%d\n", a_offset);
       ct = 0;
       for (j = -a_offset; a_part [j] != '\0'; j ++)
         {
@@ -3674,7 +3675,7 @@ static void  Process_Seed
         }
       putchar ('\n');
 
-      printf (">b_part b_offset=%d\n", b_offset);
+      printf (">b_seq  b_offset=%d\n", b_offset);
       ct = 0;
       for (j = -b_offset; b_part [j] != '\0'; j ++)
         {
@@ -4039,7 +4040,7 @@ static void  Read_Seeds
    int32  a_iid, b_iid;
    int  a_offset, b_offset;
    char  orient [10];
-   int  count, len;
+   int  count;
    long int  olap_size;
    long int  ct = 0;
 
@@ -4057,8 +4058,8 @@ static void  Read_Seeds
 
       while (fgets (line, MAX_LINE, fp) != NULL)
         {
-         if (sscanf (line, "%d %d %s %d %d %d %d", & a_iid, & b_iid, orient,
-                 & a_offset, & b_offset, & count, & len) >= 7
+         if (sscanf (line, "%d %d %s %d %d %d", & a_iid, & b_iid, orient,
+                 & a_offset, & b_offset, & count) >= 6
                  && Lo_Frag_IID <= a_iid && a_iid <= Hi_Frag_IID)
            {
             if (ct >= olap_size)
@@ -4075,7 +4076,7 @@ static void  Read_Seeds
                Olap [ct] . orient = NORMAL;
             else
                Olap [ct] . orient = INNIE;
-            Olap [ct] . k_count = 0;
+            Olap [ct] . k_count = count;
             ct ++;
            }
 
