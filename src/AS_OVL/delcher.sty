@@ -1,0 +1,303 @@
+%\renewcommand*\l@section{\@dottedtocline{1}{1.5em}{2.7em}}    %temporary
+
+%\lefthyphenmin=2
+%\righthyphenmin=3
+
+%\input setwmf
+
+\def\topfraction{0.99}
+\def\bottomfraction{0.99}
+\def\textfraction{0.01}
+\def\floatpagefraction{0.7}
+\def\dbltopfraction{0.99}
+\def\dblfloatpagefraction{0.7}
+%\def\clubpenalty{1000}
+%\def\widowpenalty{1000}
+\def\Linewidth{0.0067in}
+
+
+\def\LandscapePage{\topmargin=-.5in
+\oddsidemargin=0in
+\textwidth=9.0in
+\textheight=6.5in
+\columnsep=0.5in
+\raggedbottom
+\parindent=1.0em
+\parskip=0.7ex
+\mathsurround=1pt}
+
+\def\PortraitPage{\topmargin=-0.3in
+\oddsidemargin=0.25in
+\textwidth=6.0in
+\textheight=8.6in
+\raggedbottom
+\parindent=1.5em
+\parskip=0.75ex
+\mathsurround=1pt}
+
+\def\NotesPage{\topmargin=-0.3in
+\oddsidemargin=0.25in
+\textwidth=4.0in
+\textheight=8.6in
+\raggedbottom
+\parindent=1.5em
+\parskip=0.75ex
+\mathsurround=1pt}
+
+\def\LetterheadPage{\topmargin=-0.25in
+\oddsidemargin=0.2in
+\textwidth=6.1in
+\textheight=8.4in
+\raggedbottom
+\parindent=1.5em
+\parskip=0.75ex
+\mathsurround=1pt}
+
+\def\DualPage{\topmargin=-.5in
+\oddsidemargin=0in
+\textwidth=9.0in
+\textheight=6.5in
+\columnsep=2.0in
+\raggedbottom
+\parindent=1.0em
+\parskip=0.7ex
+\mathsurround=1pt}
+
+\def\FullPage{\topmargin=-0.6in
+\oddsidemargin=-0.1in
+\textwidth=6.7in
+\textheight=9.2in
+\raggedbottom
+\parindent=1.5em
+\parskip=0.75ex
+\mathsurround=1pt}
+
+\def\SlidePage{\topmargin=-0.6in
+\oddsidemargin=-0.1in
+\textwidth=6.7in
+\textheight=9.2in
+\raggedbottom
+\parindent=0pt
+\mathsurround=1pt}
+
+\def\SetMarginParWidth{\marginparsep=10pt
+\marginparwidth=\oddsidemargin
+\advance\marginparwidth by -\marginparsep
+\advance\marginparwidth by 42pt}
+
+\def\CSMemoHead{\noindent
+  \setlength{\unitlength}{0.003333in}
+  \hglue -0.25in\makebox[0.25in][l]{\begin{picture}(0,0)
+  \put(0,-200){\makebox(0,0){\special{bmp:/misc/graphics/csmemo.bmp
+    x=1.073in y=1.377in}}}
+  \end{picture}}\hspace*{\fill}\textsf{\large MEMORANDUM}\hspace*{\fill}}
+
+
+%\newfont{\ArialTiny}{ARIALR at 6pt}
+\def\ArialTiny{\sf\scriptsize}
+\def\theslide{{\ArialTiny\@arabic\c@slide}}
+
+\def\ps@ReverseHeaders{\let\@mkboth\@gobbletwo
+\def\@evenhead{\hbox{}\sl\rightmark \hfil
+\rm\thepage}\def\@oddfoot{}\def\@oddhead{\rm \thepage\hfil\sl\leftmark\hbox
+{}}\def\@evenfoot{}\def\sectionmark##1{}\def\subsectionmark##1{}}
+
+\def\ps@PlainWithDate{\let\@mkboth\@gobbletwo
+\def\@evenhead{}
+\def\@oddfoot{\hbox{} \hfil {\footnotesize\textsf{\thepage}} \hfil
+  \llap{\scriptsize\ArialTiny{\today}}
+\hbox{}}
+\def\@oddhead{}
+\def\@evenfoot{\hbox{} \hfil {\footnotesize\textsf{\thepage}} \hfil
+  \llap{\scriptsize\ArialTiny{\today}}
+\hbox{}}
+\def\sectionmark##1{}\def\subsectionmark##1{}}
+
+\def\ps@EmptyWithDate{\let\@mkboth\@gobbletwo
+\def\@evenhead{}
+\def\@oddfoot{\hbox{} \hfil \llap{\scriptsize\today}
+\hbox{}}
+\def\@oddhead{}
+\def\@evenfoot{\hbox{} \hfil \llap{\scriptsize\today}
+\hbox{}}
+\def\sectionmark##1{}\def\subsectionmark##1{}}
+
+\def\ps@PlainWithHeadline{\let\@mkboth\@gobbletwo
+\def\@evenhead{\Headline}
+\def\@oddfoot{\hbox{} \hfil {\footnotesize\textsf{\thepage}} \hfil \hbox{}}
+\def\@oddhead{\Headline}
+\def\@evenfoot{\hbox{} \hfil {\footnotesize\textsf{\thepage}} \hfil \hbox{}}
+\def\sectionmark##1{}\def\subsectionmark##1{}}
+
+\def\ps@EmptyWithHeadline{\let\@mkboth\@gobbletwo
+\def\@evenhead{\Headline}
+\def\@oddfoot{}
+\def\@oddhead{\Headline}
+\def\@evenfoot{}
+\def\sectionmark##1{}\def\subsectionmark##1{}}
+
+\def\ps@MasterSchedule{\let\@mkboth\@gobbletwo
+\def\@evenhead{}
+\def\@oddfoot{\hbox{} \hfil {\ArialRti WHITE---RECORDS \hskip16pt
+  GREEN---ACADEMIC PUBLICATIONS \hskip16pt YELLOW---INSTRUCTIONAL DEAN \hskip16pt
+  GOLD--DEPARTMENT} \hfil \llap{\textsf{\footnotesize Page~\thepage\ of \TotalPages}}}
+\def\@oddhead{}
+\def\@evenfoot{\hbox{} \hfil {\small\thepage} \hfil \llap{\scriptsize\today}
+\hbox{}}
+\def\sectionmark##1{}\def\subsectionmark##1{}}
+
+\renewcommand{\today}{\number \day \space
+  \ifcase \month \or January\or February\or March\or April\or
+     May\or June\or July\or August\or September\or October\or
+     November\or December\fi \space \number \year}
+
+\def\EMPH#1{\underline{\emph{#1}}}
+\def\EmphSF#1{\,\textsf{#1}\,}
+\def\NIL{\mbox{}}
+\def\x{\hspace{0.3em}}
+\def\ie{\emph{i.e.}}
+\def\Ie{\emph{I.e.}}
+\def\eg{\emph{e.g.}}
+\def\Eg{\emph{E.g.}}
+\def\etal{\emph{et~al.}}
+\def\etc{\emph{etc.}}
+\def\bigO{{\cal O}}
+\def\bchar#1{{\hspace{0.2em}\bfseries #1\hspace{0.2em}}}
+\def\th{\mbox{\raisebox{1.0ex}{\scriptsize th}}}
+\def\nd{\mbox{\raisebox{1.0ex}{\scriptsize nd}}}
+\def\rd{\mbox{\raisebox{1.0ex}{\scriptsize rd}}}
+\def\Eq*#1{\mbox{$#1$}}
+\def\half{\mbox{$1 \over 2$}}
+\def\K#1{\mbox{\texttt{\textbf{#1}}}}
+\def\N#1{\mbox{\textsf{\emph{\thinspace#1\thinspace}}}}
+\def\P{\mbox{$\cal P$}}
+\def\NP{\mbox{$\cal N\!P$}}
+\def\NC{\mbox{$\cal N\!C$}}
+\def\YPE{\mbox{$\Upsilon\Pi$E}}
+\def\Prob{\mbox{\textsf{Pr\,}}}
+\def\Problem#1{\mbox{\textsc{#1}}}
+\def\bstrut#1{\protect\rule[-#1]{0in}{#1}}
+\def\dstrut#1#2{\protect\rule[-#1]{0in}{#2}}
+\def\hstrut#1{\protect\rule{#1}{0in}}
+\def\vstrut#1{\protect\rule{0in}{#1}}
+\def\Hang{\hangindent=1em \hangafter=1}
+%\newcounter{TotalPts}
+%\def\pts#1{\NIL\marginpar{\hspace*{\fill}\addtocounter{TotalPts}{#1}
+%  \footnotesize\sf [#1] \hspace*{\fill}}\ignorespaces}
+\newcount\TotalPts
+\def\pts#1{\NIL\global\advance\TotalPts by #1\marginpar{\NIL\hspace*{\fill}%
+\footnotesize\textsf{[#1]}\hspace*{\fill}\NIL}\ignorespaces}
+\def\RaggedRight{\rightskip=0pt plus2.0em
+  \spaceskip=0.3em plus0.03em minus0.03em
+  \xspaceskip=0.5em plus0.05em minus0.05em}
+\def\BCode{\small\spaceskip=0.51em\advance\baselineskip by -1pt}
+\def\ECode{\advance\baselineskip by 1pt}
+\def\SV{\small\spaceskip=0.472em}
+\def\BSV{\begin{trivlist}{}\item[]\small\spaceskip=0.51em
+  \advance\baselineskip by -1pt}
+\def\ESV{\advance\baselineskip by 1pt \end{trivlist}}
+\def\BFV{\begin{trivlist}{}\item[]\footnotesize\spaceskip=0.525em     % 12pt
+  \advance\baselineskip by -1pt}
+\def\EFV{\advance\baselineskip by 1pt \end{trivlist}}
+\def\BSTV{\begin{trivlist}{}\item[]\small\spaceskip=0.51em \vskip -1.0ex
+  \advance\baselineskip by -2pt}
+\def\ESTV{\advance\baselineskip by 2pt \vskip -1.0ex \end{trivlist}}
+\def\BSLV{\ifcopies
+    \BFV
+  \else
+    \topsep=0pt\parskip=0pt\partopsep=0pt\vskip 1ex minus1ex
+    \begin{trivlist}\item[]\small\spaceskip=0.425em
+    \advance\baselineskip by -1pt
+  \fi}
+\def\ESLV{\ifcopies
+    \EFV
+  \else
+    \advance\baselineskip by 1pt\end{trivlist}\vskip 0ex minus1ex
+  \fi}
+\def\CC#1{\bigskip \noindent cc: #1}
+
+\def\SlideCopies{\newenvironment{slide}{\parindent=0pt\sffamily}{\newpage}}
+
+\def\bc{\begin{center}}
+\def\ec{\end{center}}
+\def\bi{\begin{itemize}}
+\def\ei{\end{itemize}}
+\def\bn{\begin{enumerate}}
+\def\en{\end{enumerate}}
+\def\bd{\begin{description}}
+\def\ed{\end{description}}
+\def\bl#1{\begin{list}{}{#1}}
+\def\el{\end{list}}
+\def\bq{\begin{quote}}
+\def\eq{\end{quote}}
+\def\BLT{\begin{tabular}[t]{@{}l@{}}}
+\def\ELT{\end{tabular}}
+\def\BLA{\begin{array}[t]{@{}l@{}}}
+\def\ELA{\end{array}}
+\def\exdent{\item[]\hspace*{-\leftmargin}}
+\def\bpf{\begin{list}{}
+  {\setlength{\leftmargin}{1em}}
+  \item \hspace{-1em}{\textbf{Proof: \,}}}
+\def\epf{\hfill $\Box$ \end{list}}
+\def\bdf{\begin{list}{}
+  {\setlength{\leftmargin}{1em}}
+  \item \hspace{-1em}{\textbf{Definition: \,}}}
+\def\edf{\end{list}}
+\def\bcl{\begin{list}{}
+  {\setlength{\leftmargin}{1em}}
+  \item \hspace{-1em}{\textbf{Claim: \,}}}
+\def\ecl{\end{list}}
+\newcounter{stepctr}
+\def\bsteps{\begin{list}{\sl Step \arabic{stepctr}}
+  {\usecounter{stepctr}}}
+\def\esteps{\end{list}}
+\def\babs{\begin{list}{}{\setlength{\leftmargin}{2.0em}
+  \setlength{\rightmargin}{\leftmargin}} \item
+  \hspace*{\fill} {\textbf{Abstract} \hspace*{\fill} \bigskip \\}}
+\def\eabs{\end{list}}
+\def\bthm#1#2{\begin{list}{}
+  {\leftmargin=1em \refstepcounter{#2}}
+  \item \hspace{-1em}{\textbf{#1} \arabic{#2}:}}
+\def\ethm{\end{list}}
+\def\bclm#1{\begin{list}{}
+  {\leftmargin=1em}
+  \item \hspace{-1em}{\textbf{#1:}}}
+\def\eclm{\end{list}}
+
+\def\StarBreak{\bc $\ast$\quad $\ast$\quad $\ast$\quad $\ast$\quad $\ast$\ec}
+
+\newtheorem{proposition}{Proposition}
+\newtheorem{theorem}[proposition]{Theorem}
+\newtheorem{lemma}[proposition]{Lemma}
+\newtheorem{corollary}[proposition]{Corollary}
+\newtheorem{claim}[proposition]{Claim}
+
+\def\IncludePCL#1#2{\unitlength=0.0033333in\begin{picture}(#2)
+  \put(0,0){\makebox(0,0)[bl]{\special{pcl:#1.pcl}}}
+ \end{picture}}
+\def\CenterPCL#1#2{\unitlength=0.0033333in\NIL\hfill\begin{picture}(#2)
+  \put(0,0){\makebox(0,0)[bl]{\special{pcl:#1.pcl}}}
+ \end{picture}\hfill\NIL}
+\def\CenterEPS#1#2{\unitlength=0.0033333in\NIL\hfill\begin{picture}(#2)
+  \put(0,0){\makebox(0,0)[bl]{\special{ps:#1.ps}}}
+ \end{picture}\hfill\NIL}
+\def\IncludeBMP#1#2#3#4{{\unitlength=0.0033333in\begin{picture}(#2)
+  \put(0,0){\makebox(0,0)[bl]{\special{bmp:#1.bmp x=#3 y=#4}}}
+ \end{picture}}}
+\def\CenterBMP#1#2#3#4{\unitlength=0.0033333in\NIL\hfill\begin{picture}(#2)
+  \put(0,0){\makebox(0,0)[bl]{\special{bmp:#1.bmp x=#3 y=#4}}}
+ \end{picture}\hfill\NIL}
+
+\def\SFverbatim{\trivlist \item[]\if@minipage\else\vskip\parskip\fi
+\leftskip\@totalleftmargin\rightskip\z@
+\parindent\z@\parfillskip\@flushglue\parskip\z@
+\@tempswafalse \def\par{\if@tempswa\hbox{}\fi\@tempswatrue\@@par}
+\obeylines \sf \catcode``=13 \@noligs \let\do\@makeother \dospecials
+\frenchspacing\@vobeyspaces \@xverbatim}
+
+\def\@citex[#1]#2{\if@filesw\immediate\write\@auxout{\string\citation{#2}}\fi
+  \def\@citea{}\@cite{\@for\@citeb:=#2\do
+    {\@citea\def\@citea{,\hskip 3pt\penalty 500}\@ifundefined
+       {b@\@citeb}{{\textbf{?}}\@warning
+       {Citation `\@citeb' on page \thepage \space undefined}}%
+\hbox{\csname b@\@citeb\endcsname}}}{#1}}
