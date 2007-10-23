@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.28 2007-10-10 14:01:21 eliv Exp $
- * $Revision: 1.28 $
+ * $Id: BuildUnitigs.cc,v 1.29 2007-10-23 13:40:01 eliv Exp $
+ * $Revision: 1.29 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.28 2007-10-10 14:01:21 eliv Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.29 2007-10-23 13:40:01 eliv Exp $";
 
 //  System include files
 
@@ -131,10 +131,11 @@ int  main (int argc, char * argv [])
    my_store = AS_OVS_openOverlapStore(OVL_Store_Path);
 
    AS_BOG::MateChecker mateChecker;
-   mateChecker.readStore(GKP_Store_Path);
+   int numFrgsInGKP = mateChecker.readStore(GKP_Store_Path);
    // must be before creating the scoring objects, because it sets their size
 //   AS_BOG::BOG_Runner bogRunner(getLastElemFragStore() need to fix to get size of gkpStore;
-   AS_BOG::BOG_Runner bogRunner(AS_OVS_lastFragInStore(my_store));
+   //AS_BOG::BOG_Runner bogRunner(AS_OVS_lastFragInStore(my_store));
+   AS_BOG::BOG_Runner bogRunner(numFrgsInGKP);
 
    // Initialize our three different types of Best Overlap Graphs
    //AS_BOG::ErateScore erScore;
