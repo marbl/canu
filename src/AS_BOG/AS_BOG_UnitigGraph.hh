@@ -34,15 +34,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.32 2007-10-17 14:35:06 eliv Exp $
- * $Revision: 1.32 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.33 2007-10-23 14:42:29 eliv Exp $
+ * $Revision: 1.33 $
 */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.32 2007-10-17 14:35:06 eliv Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.33 2007-10-23 14:42:29 eliv Exp $";
 
 #include <set>
 #include <iostream>
@@ -200,7 +200,7 @@ namespace AS_BOG{
 		void writeIUMtoFile(char *filename);
 
 		// For compatibility with the rest of the assembler
-		void readIUMsFromFile(const char *filename);
+		void readIUMsFromFile(const char *filename, iuid maxIID);
 
 		float getGlobalArrivalRate(long total_random_frags_in_genome=0, long genome_size=0);
 

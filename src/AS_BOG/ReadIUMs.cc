@@ -31,15 +31,16 @@
 *************************************************/
 
 /* RCS info
- * $Id: ReadIUMs.cc,v 1.2 2007-10-23 13:53:26 eliv Exp $
- * $Revision: 1.2 $
+ * $Id: ReadIUMs.cc,v 1.3 2007-10-23 14:42:29 eliv Exp $
+ * $Revision: 1.3 $
 */
 
-static const char CM_ID[] = "$Id: ReadIUMs.cc,v 1.2 2007-10-23 13:53:26 eliv Exp $";
+static const char CM_ID[] = "$Id: ReadIUMs.cc,v 1.3 2007-10-23 14:42:29 eliv Exp $";
 
 //  System include files
 
 #include"AS_BOG_UnitigGraph.hh"
+#include"AS_BOG_MateChecker.hh"
 
 using std::cout;
 using std::endl;
@@ -58,6 +59,7 @@ int  main
    const char* IUM_File       = argv[1];
    const char* GKP_Store_Path = argv[2];
 
+   AS_BOG::MateChecker mateChecker;
    int numFrgsInGKP = mateChecker.readStore(GKP_Store_Path);
 
    LongestHighIdent bog( 15 );

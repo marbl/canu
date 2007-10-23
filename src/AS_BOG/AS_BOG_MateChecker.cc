@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.34 2007-10-11 19:37:57 eliv Exp $
- * $Revision: 1.34 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.35 2007-10-23 14:42:29 eliv Exp $
+ * $Revision: 1.35 $
 */
 
 #include <math.h>
@@ -32,7 +32,7 @@ namespace AS_BOG{
     MateChecker::~MateChecker() {
     }
 
-    void MateChecker::readStore(const char* gkpStorePath) {
+    iuid MateChecker::readStore(const char* gkpStorePath) {
         GateKeeperStore *gkpStore = openGateKeeperStore(gkpStorePath, FALSE);
 
         StreamStruct *frags = openStream(gkpStore->frg, NULL, 0);
@@ -48,8 +48,13 @@ namespace AS_BOG{
 
             frgIID++;
         }
+        iuid numFrgs = getNumGateKeeperFragments( gkpStore );
+
+        std::cerr << "Frg count " << frgIID << " num in store " << numFrgs << std::endl;
+
         closeStream(frags);
         closeGateKeeperStore(gkpStore);
+        return numFrgs;
     }
 
     ///////////////////////////////////////////////////////////////////////////

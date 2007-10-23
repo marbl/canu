@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.hh,v 1.15 2007-10-09 20:49:09 eliv Exp $
- * $Revision: 1.15 $
+ * $Id: AS_BOG_MateChecker.hh,v 1.16 2007-10-23 14:42:29 eliv Exp $
+ * $Revision: 1.16 $
 */
 
 #ifndef INCLUDE_AS_BOG_MATECHEKER
@@ -96,7 +96,7 @@ namespace AS_BOG{
     struct MateChecker{
         ~MateChecker();
 
-        void readStore(const char *);   // reads the gkpStore mate info into memory
+        iuid readStore(const char *);   // reads the gkpStore mate info into memory
 
         // returns the mate iid for the given iid, or zero if none
         MateInfo getMateInfo(iuid);

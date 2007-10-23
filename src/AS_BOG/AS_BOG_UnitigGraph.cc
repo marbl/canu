@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.65 2007-10-17 14:35:06 eliv Exp $
- * $Revision: 1.65 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.66 2007-10-23 14:42:29 eliv Exp $
+ * $Revision: 1.66 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.65 2007-10-17 14:35:06 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.66 2007-10-23 14:42:29 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -1882,15 +1882,13 @@ namespace AS_BOG{
 
 	//////////////////////////////////////////////////////////////////////////////
 
-	void UnitigGraph::readIUMsFromFile(const char *filename){
+	void UnitigGraph::readIUMsFromFile(const char *filename, iuid maxIID){
         FILE *iumIn = fopen( filename, "r");
         if (errno) {
             fprintf(stderr, "Could not open '%s' for input: %s\n",
                      filename, strerror(errno));
             exit(1);
         }
-        // should be max iid on input
-        iuid maxIID = 50000;
         Unitig::resetFragUnitigMap(maxIID);
         BestOverlapGraph::fragLength = new uint16[maxIID];
         memset( BestOverlapGraph::fragLength, std::numeric_limits<uint16>::max(),
