@@ -31,11 +31,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: ReadIUMs.cc,v 1.1 2007-10-16 18:55:13 eliv Exp $
- * $Revision: 1.1 $
+ * $Id: ReadIUMs.cc,v 1.2 2007-10-23 13:53:26 eliv Exp $
+ * $Revision: 1.2 $
 */
 
-static const char CM_ID[] = "$Id: ReadIUMs.cc,v 1.1 2007-10-16 18:55:13 eliv Exp $";
+static const char CM_ID[] = "$Id: ReadIUMs.cc,v 1.2 2007-10-23 13:53:26 eliv Exp $";
 
 //  System include files
 
@@ -55,10 +55,15 @@ int  main
 
 {
    // Get path/name of file from command line
-   const char* IUM_File = argv[1];
+   const char* IUM_File       = argv[1];
+   const char* GKP_Store_Path = argv[2];
+
+   int numFrgsInGKP = mateChecker.readStore(GKP_Store_Path);
+
    LongestHighIdent bog( 15 );
    UnitigGraph tigGraph( &bog );
-   tigGraph.readIUMsFromFile( IUM_File );
+
+   tigGraph.readIUMsFromFile( IUM_File, numFrgsInGKP );
    AS_BOG::UnitigsConstIter iter = tigGraph.unitigs->begin();
    for(; iter != tigGraph.unitigs->end(); iter++)
    {
