@@ -53,7 +53,7 @@ MakeRoom_VA(VarArrayType *va,
 VarArrayType *
 Create_VA(size_t arraySize,
           size_t sizeofElement,
-          char *thetype);
+          const char *thetype);
 
 void
 Clear_VA(VarArrayType *va);
@@ -83,7 +83,7 @@ void
 LoadFromFile_VA(FILE *fp, VarArrayType *va);
 
 VarArrayType *
-CreateFromFile_VA(FILE *fp, char *thetype);
+CreateFromFile_VA(FILE *fp, const char *thetype);
 
 size_t
 CopyToFile_VA(VarArrayType *va, FILE *fp);
@@ -100,7 +100,7 @@ CopyToFile_VA(VarArrayType *va, FILE *fp);
 static
 size_t
 ReportMemorySize_VA(VarArrayType *va,
-                    char *name,
+                    const char *name,
                     FILE * stream ) {
   size_t numElements       = (NULL == va ? 0 : va->numElements);
   size_t allocatedElements = (NULL == va ? 0 : va->allocatedElements);

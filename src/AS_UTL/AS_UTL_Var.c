@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.22 2007-09-25 01:37:31 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_UTL_Var.c,v 1.23 2007-10-23 13:51:37 eliv Exp $";
 
 /********************************************************************/
 /* Variable Length C Array Package 
@@ -180,7 +180,7 @@ MakeRoom_VA(VarArrayType *va,
 VarArrayType *
 Create_VA(size_t numElements,
           size_t sizeofElement,
-          char *thetype) {
+          const char *thetype) {
   VarArrayType *va = (VarArrayType *)safe_calloc(1, sizeof(VarArrayType));
 
   va->Elements          = NULL;
@@ -379,7 +379,7 @@ LoadFromFile_VA(FILE *fp,
 
 VarArrayType *
 CreateFromFile_VA(FILE *fp,
-                  char *thetype) {
+                  const char *thetype) {
 
   FileVarArrayType    vat = {0};
   VarArrayType       *va  = (VarArrayType *)safe_calloc(1, sizeof(VarArrayType));
