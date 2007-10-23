@@ -602,11 +602,6 @@ runSegment(merylArgs *args, u64bit segment) {
     for (u32bit t=0; t<sortedListLen; t++) {
       C->tick();
 
-#if 0
-      fprintf(stderr, u32bitFMTW(2)": "u64bitHEX" "u64bitHEX" "u64bitHEX"\n",
-              t, sortedList[t]._w[0], sortedList[t]._w[1], sortedList[t]._w[2]);
-#endif
-
       //  Build the complete mer
       //
 #if SORTED_LIST_WIDTH == 1
@@ -616,6 +611,17 @@ runSegment(merylArgs *args, u64bit segment) {
         mer.setWord(mword, sortedList[t]._w[mword]);
 #endif
       mer.setBits(args->merDataWidth, args->numBuckets_log2, bucket);
+
+
+#if 0
+#if SORTED_LIST_WIDTH == 1
+      {
+        char ms[33];
+        fprintf(stderr, u64bitFMTW(6)" - "u32bitFMTW(2)": "u64bitHEX" %s\n",
+                bucket, t, sortedList[t], mer.merToString(ms));
+      }
+#endif
+#endif
 
       //  Add it
       W->addMer(mer);

@@ -3,6 +3,7 @@ class kMerTiny {
 public:
   kMerTiny(u32bit ms=u32bitZERO) {
     setMerSize(ms);
+    clear();
   };
   ~kMerTiny() {
   };

@@ -22,16 +22,12 @@ test-exhaustive: exhaustive ../meryl ../../leaff/leaff
 	./exhaustive -m s -f g.fasta
 
 test-reduce: ../meryl
-	#  Build the initial table
-	../meryl -B -f -m 20 -s test-seq1.fasta -o 1
-	#  Dump the initial table as fasta
-	../meryl -Dt -n 0 -s 1 > 2.reduce.fasta
-	#  Build a new table on the dumped fasta
-	../meryl -B -f -m 20 -s 2.reduce.fasta -o 2
-	#  Remove one copy of each mer
-	../meryl -M sub -s 1 -s 2 -o 3
-	#  Dump the resulting file
-	../meryl -Dt -n 1 -s 3
+	../meryl -B -f -m 20 -s test-seq1.fasta -o 1 #  Build the initial table
+	../meryl -Dt -n 0 -s 1 > 2.reduce.fasta      #  Dump the initial table as fasta
+	../meryl -B -f -m 20 -s 2.reduce.fasta -o 2  #  Build a new table on the dumped fasta
+	../meryl -M sub -s 1 -s 2 -o 3               #  Remove one copy of each mer
+	../meryl -Dt -n 1 -s 3                       #  Dump the resulting file
+	echo 1 10 9 1 is correct
 	touch test-reduce
 
 test:

@@ -6,6 +6,7 @@ class kMerHuge {
 public:
   kMerHuge(u32bit ms=u32bitZERO) {
     setMerSize(ms);
+    clear();
   };
   ~kMerHuge() {
   };
