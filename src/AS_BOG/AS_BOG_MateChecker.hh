@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.hh,v 1.17 2007-10-24 20:23:24 eliv Exp $
- * $Revision: 1.17 $
+ * $Id: AS_BOG_MateChecker.hh,v 1.18 2007-10-24 20:55:55 eliv Exp $
+ * $Revision: 1.18 $
 */
 
 #ifndef INCLUDE_AS_BOG_MATECHEKER
@@ -92,6 +92,7 @@ namespace AS_BOG{
             badNormal     += other.badNormal;
         }; 
     };
+
     ///////////////////////////////////////////////////////////////////////////
 
     struct MateChecker{
@@ -103,7 +104,7 @@ namespace AS_BOG{
         MateInfo getMateInfo(iuid);
 
         // Checks size of mates internal to unitig
-        LibraryStats* checkUnitig( Unitig* );
+        LibraryStats* computeLibraryStats( Unitig* );
 
         // Compute good and bad coverage graphs for a unitig, returns split points
         FragmentEnds* computeMateCoverage( Unitig*, BestOverlapGraph *);
@@ -112,6 +113,9 @@ namespace AS_BOG{
         void ejectUnhappyContains( UnitigGraph& );
 
         // Computes stddev and mate coverage over all unitigs
+        void computeGlobalLibStats( UnitigGraph& );
+
+        // Main entry point for running mate splitting
         void checkUnitigGraph( UnitigGraph& );
 
         private:
@@ -119,6 +123,8 @@ namespace AS_BOG{
             LibraryDistances _dists; // all distances 
             LibraryStats _globalStats;
     };
+
+    ///////////////////////////////////////////////////////////////////////////
 
     struct MateLocationEntry {
         SeqInterval pos1;

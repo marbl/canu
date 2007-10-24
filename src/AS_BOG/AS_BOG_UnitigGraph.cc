@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.66 2007-10-23 14:42:29 eliv Exp $
- * $Revision: 1.66 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.67 2007-10-24 20:55:55 eliv Exp $
+ * $Revision: 1.67 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.66 2007-10-23 14:42:29 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.67 2007-10-24 20:55:55 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -55,6 +55,12 @@ extern "C" {
 }
 #undef max
 namespace AS_BOG{
+
+	//////////////////////////////////////////////////////////////////////////////
+    
+    bool BogOptions::unitigIntersectBreaking = false;
+    bool BogOptions::ejectUnhappyContained   = false;
+    bool BogOptions::useGkpStoreLibStats     = false;
 
 	//////////////////////////////////////////////////////////////////////////////
     UnitigGraph::UnitigGraph(BestOverlapGraph *in_bog_ptr) : bog_ptr(in_bog_ptr)
@@ -89,9 +95,6 @@ namespace AS_BOG{
             return 0;
         return _inUnitig[fragId];
     }
-
-    bool BogOptions::unitigIntersectBreaking = false;
-    bool BogOptions::ejectUnhappyContained   = false;
 
 	void UnitigGraph::build(ChunkGraph *cg_ptr) {
 

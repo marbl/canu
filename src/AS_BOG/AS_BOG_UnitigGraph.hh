@@ -34,15 +34,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.33 2007-10-23 14:42:29 eliv Exp $
- * $Revision: 1.33 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.34 2007-10-24 20:55:55 eliv Exp $
+ * $Revision: 1.34 $
 */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.33 2007-10-23 14:42:29 eliv Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.34 2007-10-24 20:55:55 eliv Exp $";
 
 #include <set>
 #include <iostream>
@@ -261,12 +261,6 @@ namespace AS_BOG{
 	};
 		
 	///////////////////////////////////////////////////////////////////////
-
-    struct BogOptions {
-        static bool unitigIntersectBreaking;
-        static bool ejectUnhappyContained;
-    };
-
 };
 
 #endif

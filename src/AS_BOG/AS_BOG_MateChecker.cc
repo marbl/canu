@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.36 2007-10-24 20:23:24 eliv Exp $
- * $Revision: 1.36 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.37 2007-10-24 20:55:55 eliv Exp $
+ * $Revision: 1.37 $
 */
 
 #include <math.h>
@@ -93,7 +93,7 @@ namespace AS_BOG{
 
     ///////////////////////////////////////////////////////////////////////////
 
-    LibraryStats* MateChecker::checkUnitig(Unitig* tig)
+    LibraryStats* MateChecker::computeLibraryStats(Unitig* tig)
     {
         fprintf(stderr,"Check mates for tig %ld\n",tig->id());
         IdMap goodMates;
@@ -216,8 +216,8 @@ namespace AS_BOG{
     }
 
     ///////////////////////////////////////////////////////////////////////////
-    // main entry point into mate checking code
-    void MateChecker::checkUnitigGraph( UnitigGraph& tigGraph )
+    
+    void MateChecker::computeGlobalLibStats( UnitigGraph& tigGraph )
     {
         LibraryStats::iterator dcIter;
         _dists.clear(); // reset to seperate multiple Graphs
@@ -226,7 +226,7 @@ namespace AS_BOG{
         {
             if (*tigIter == NULL ) 
                 continue;
-            LibraryStats* libs = checkUnitig(*tigIter);
+            LibraryStats* libs = computeLibraryStats(*tigIter);
             // Accumulate per unitig stats to compute global stddev's
             for(dcIter = libs->begin(); dcIter != libs->end(); dcIter++) {
                 iuid lib = dcIter->first;
@@ -241,7 +241,7 @@ namespace AS_BOG{
                     gdc->sumSquares += dc.sumSquares;
                 }
             }
-            delete libs; // Created in checkUnitig
+            delete libs; // Created in computeLibraryStats
         }
         // Calculate and output overall global mean
         for(dcIter= _globalStats.begin(); dcIter != _globalStats.end(); dcIter++){
@@ -315,6 +315,14 @@ namespace AS_BOG{
                     libId, size, median, third, twoThird, aproxStd, smallest, biggest,
                             gdc->numPairs, gdc->mean, gdc->stddev );
         }
+    }
+    ///////////////////////////////////////////////////////////////////////////
+    // main entry point into mate checking code
+    void MateChecker::checkUnitigGraph( UnitigGraph& tigGraph )
+    {
+        if ( ! BogOptions::useGkpStoreLibStats )
+            computeGlobalLibStats( tigGraph );
+
         int numSplits = 1;
         int iterNum = 1;
         int prevNumSplits = 0;

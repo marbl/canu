@@ -33,8 +33,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_Datatypes.hh,v 1.16 2007-06-11 20:59:42 eliv Exp $
- * $Revision: 1.16 $
+ * $Id: AS_BOG_Datatypes.hh,v 1.17 2007-10-24 20:55:55 eliv Exp $
+ * $Revision: 1.17 $
 */
 
 #ifndef INCLUDE_AS_BOG_DATATYPES
@@ -124,6 +124,13 @@ namespace AS_BOG{
         else
             return a.end < b.end;
     };
+
+    struct BogOptions {
+        static bool unitigIntersectBreaking;
+        static bool ejectUnhappyContained;
+        static bool useGkpStoreLibStats;
+    };
+
 } //AS_BOG namespace
 
 
