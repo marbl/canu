@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_global.h,v 1.21 2007-08-10 06:53:03 brianwalenz Exp $
+//  $Id: AS_global.h,v 1.22 2007-10-24 21:04:21 brianwalenz Exp $
 
 //  This is the global include file that all C files in the AS
 //  subsystem should include.
@@ -98,6 +98,8 @@ typedef void *PtrT;
 
   #define TRUE32BIT
 
+  typedef uint32   INTPTR;
+
   #ifndef UINT64_MAX
     #define INT64_MAX  LLONG_MAX
     #define UINT64_MAX ULLONG_MAX
@@ -171,6 +173,8 @@ typedef void *PtrT;
   // 64-bit architecture
 
   #define TRUE64BIT
+
+  typedef uint32   INTPTR;
 
   #ifndef UINT64_MAX
     #define INT64_MAX  LONG_MAX

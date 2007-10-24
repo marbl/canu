@@ -469,7 +469,7 @@ int AddAFG2Store(AssemblyStore * asmStore, AugFragMesg * afg)
     InsertInHashTable_AS(asmStore->hashTable, myAFG.uid, 0, getLastElemStore(asmStore->afgStore), AS_IID_AFG);
   }
 
-  CDS_IID_t  iid = LookupValueInHashTable_AS(asmStore->hashTable, afg->eaccession, 0);
+  CDS_IID_t  iid = (CDS_IID_t)LookupValueInHashTable_AS(asmStore->hashTable, afg->eaccession, 0);
   if (iid == 0) {
     fprintf(stderr, "Failed to lookup " F_UID " in hashtable\n",
             afg->eaccession);
@@ -518,7 +518,7 @@ int AddUTG2Store(AssemblyStore * asmStore, SnapUnitigMesg * sum)
     ASM_AFGRecord afg;
     CDS_IID_t     iid;
 
-    iid = LookupValueInHashTable_AS(asmStore->hashTable, sum->f_list[i].eident, 0);
+    iid = (CDS_IID_t)LookupValueInHashTable_AS(asmStore->hashTable, sum->f_list[i].eident, 0);
     if (iid == 0)
     {
       fprintf(stderr, "Failed to lookup " F_UID " in hashtable\n",
@@ -569,7 +569,7 @@ int AddCCO2Store(AssemblyStore * asmStore, SnapConConMesg * sccm)
     CDS_IID_t  iid;
 
     // look up the afg & set contig fields
-    iid = LookupValueInHashTable_AS(asmStore->hashTable, sccm->pieces[i].eident, 0);
+    iid = (CDS_IID_t)LookupValueInHashTable_AS(asmStore->hashTable, sccm->pieces[i].eident, 0);
     if (iid == 0)
     {
       fprintf(stderr, "Failed to lookup " F_UID " in hashtable\n",
@@ -590,7 +590,7 @@ int AddCCO2Store(AssemblyStore * asmStore, SnapConConMesg * sccm)
     CDS_IID_t  iid;
 
     // look up the afg & set contig fields
-    iid = LookupValueInHashTable_AS(asmStore->hashTable, sccm->unitigs[i].eident, 0);
+    iid = (CDS_IID_t)LookupValueInHashTable_AS(asmStore->hashTable, sccm->unitigs[i].eident, 0);
     if (iid == 0)
     {
       fprintf(stderr, "Failed to lookup " F_UID " in hashtable\n",
@@ -859,7 +859,7 @@ int AddDSC2Store(AssemblyStore * asmStore, SnapDegenerateScaffoldMesg * sdsm)
 #endif
   
   // look up the cco
-  iid = LookupValueInHashTable_AS(asmStore->hashTable, sdsm->econtig, 0);
+  iid = (CDS_IID_t)LookupValueInHashTable_AS(asmStore->hashTable, sdsm->econtig, 0);
   if (iid == 0)
   {
     fprintf(stderr, "Failed to lookup " F_UID " in hashtable\n",
@@ -902,7 +902,7 @@ int AddSCF2Store(AssemblyStore * asmStore, SnapScaffoldMesg * ssm)
   for(i = 0; i < ssm->num_contig_pairs; i++)
   {
     // look up the cco
-    iid = LookupValueInHashTable_AS(asmStore->hashTable, ssm->contig_pairs[i].econtig1, 0);
+    iid = (CDS_IID_t)LookupValueInHashTable_AS(asmStore->hashTable, ssm->contig_pairs[i].econtig1, 0);
     if (iid == 0)
     {
       fprintf(stderr, "Failed to lookup " F_UID " in hashtable\n",
@@ -930,7 +930,7 @@ int AddSCF2Store(AssemblyStore * asmStore, SnapScaffoldMesg * ssm)
 
   i -= (i == 0) ? 0 : 1;
   // look up the cco
-  iid = LookupValueInHashTable_AS(asmStore->hashTable, ssm->contig_pairs[i].econtig2, 0);
+  iid = (CDS_IID_t)LookupValueInHashTable_AS(asmStore->hashTable, ssm->contig_pairs[i].econtig2, 0);
   if (iid == 0)
   {
     fprintf(stderr, "Failed to lookup " F_UID " in hashtable\n",
@@ -1765,12 +1765,12 @@ VA_TYPE(ASM_Quad) * IdentifyBadMateQuads(AssemblyStore * asmStore,
         CDS_IID_t  iid;
 
         mp = GetVA_ASM_MatePair(cd->innie, i);
-        iid = LookupValueInHashTable_AS(asmStore->hashTable, mp->leftUID, 0);
+        iid = (CDS_IID_t)LookupValueInHashTable_AS(asmStore->hashTable, mp->leftUID, 0);
         getASM_AFGStore(asmStore->afgStore, iid, &afg);
         if(fragTypes[afg.type] == 0)
           continue;
         
-        iid = LookupValueInHashTable_AS(asmStore->hashTable, mp->distUID, 0);
+        iid = (CDS_IID_t)LookupValueInHashTable_AS(asmStore->hashTable, mp->distUID, 0);
         getASM_MDIStore(asmStore->mdiStore, iid, &mdi);
 
         if(mp->fivePrimes.end - mp->fivePrimes.bgn >
@@ -1821,12 +1821,12 @@ VA_TYPE(ASM_Quad) * IdentifyBadMateQuads(AssemblyStore * asmStore,
         CDS_IID_t  iid;
 
         mp = GetVA_ASM_MatePair(cd->innie, i);
-        iid = LookupValueInHashTable_AS(asmStore->hashTable, mp->leftUID, 0);
+        iid = (CDS_IID_t)LookupValueInHashTable_AS(asmStore->hashTable, mp->leftUID, 0);
         getASM_AFGStore(asmStore->afgStore, iid, &afg);
         if(fragTypes[afg.type] == 0)
           continue;
         
-        iid = LookupValueInHashTable_AS(asmStore->hashTable, mp->distUID, 0);
+        iid = (CDS_IID_t)LookupValueInHashTable_AS(asmStore->hashTable, mp->distUID, 0);
         getASM_MDIStore(asmStore->mdiStore, iid, &mdi);
 
         if(mp->fivePrimes.end - mp->fivePrimes.bgn <
@@ -1877,12 +1877,12 @@ VA_TYPE(ASM_Quad) * IdentifyBadMateQuads(AssemblyStore * asmStore,
         CDS_IID_t  iid;
 
         mp = GetVA_ASM_MatePair(cd->normal, i);
-        iid = LookupValueInHashTable_AS(asmStore->hashTable, mp->leftUID, 0);
+        iid = (CDS_IID_t)LookupValueInHashTable_AS(asmStore->hashTable, mp->leftUID, 0);
         getASM_AFGStore(asmStore->afgStore, iid, &afg);
         if(fragTypes[afg.type] == 0)
           continue;
         
-        iid = LookupValueInHashTable_AS(asmStore->hashTable, mp->distUID, 0);
+        iid = (CDS_IID_t)LookupValueInHashTable_AS(asmStore->hashTable, mp->distUID, 0);
         getASM_MDIStore(asmStore->mdiStore, iid, &mdi);
 
         {
@@ -1931,12 +1931,12 @@ VA_TYPE(ASM_Quad) * IdentifyBadMateQuads(AssemblyStore * asmStore,
         CDS_IID_t iid;
 
         mp = GetVA_ASM_MatePair(cd->antinormal, i);
-        iid = LookupValueInHashTable_AS(asmStore->hashTable, mp->leftUID, 0);
+        iid = (CDS_IID_t)LookupValueInHashTable_AS(asmStore->hashTable, mp->leftUID, 0);
         getASM_AFGStore(asmStore->afgStore, iid, &afg);
         if(fragTypes[afg.type] == 0)
           continue;
         
-        iid = LookupValueInHashTable_AS(asmStore->hashTable, mp->distUID, 0);
+        iid = (CDS_IID_t)LookupValueInHashTable_AS(asmStore->hashTable, mp->distUID, 0);
         getASM_MDIStore(asmStore->mdiStore, iid, &mdi);
 
         {
@@ -1985,12 +1985,12 @@ VA_TYPE(ASM_Quad) * IdentifyBadMateQuads(AssemblyStore * asmStore,
         CDS_IID_t iid;
 
         mp = GetVA_ASM_MatePair(cd->outtie, i);
-        iid = LookupValueInHashTable_AS(asmStore->hashTable, mp->leftUID, 0);
+        iid = (CDS_IID_t)LookupValueInHashTable_AS(asmStore->hashTable, mp->leftUID, 0);
         getASM_AFGStore(asmStore->afgStore, iid, &afg);
         if(fragTypes[afg.type] == 0)
           continue;
         
-        iid = LookupValueInHashTable_AS(asmStore->hashTable, mp->distUID, iid);
+        iid = (CDS_IID_t)LookupValueInHashTable_AS(asmStore->hashTable, mp->distUID, iid);
         getASM_MDIStore(asmStore->mdiStore, iid, &mdi);
 
         {
@@ -2038,7 +2038,7 @@ VA_TYPE(ASM_Quad) * IdentifyBadMateQuads(AssemblyStore * asmStore,
         CDS_IID_t iid;
 
         mp = GetVA_ASM_MatePair(cd->outtie, i);
-        iid = LookupValueInHashTable_AS(asmStore->hashTable, mp->leftUID, 0);
+        iid = (CDS_IID_t)LookupValueInHashTable_AS(asmStore->hashTable, mp->leftUID, 0);
         getASM_AFGStore(asmStore->afgStore, iid, &afg);
         if(fragTypes[afg.type] == 0)
           continue;
@@ -2457,7 +2457,7 @@ MapStore * CreateMapStoreFromFiles(AssemblyStore * asmStore,
       assert(numParsed == 4);
 
       // look up frag IID
-      iid = LookupValueInHashTable_AS(asmStore->hashTable, fragUID, 0);
+      iid = (CDS_IID_t)LookupValueInHashTable_AS(asmStore->hashTable, fragUID, 0);
       if (iid == 0)
       {
         fprintf(stderr, "Failed to lookup " F_UID " in hashtable\n", fragUID);
@@ -2466,7 +2466,7 @@ MapStore * CreateMapStoreFromFiles(AssemblyStore * asmStore,
       fragIndex = iid;
       
       // look up chr IID
-      iid = LookupValueInHashTable_AS(asmStore->hashTable, chromUID, 0);
+      iid = (CDS_IID_t)LookupValueInHashTable_AS(asmStore->hashTable, chromUID, 0);
       if (iid == 0)
       {
         fprintf(stderr, "Failed to lookup " F_UID " in hashtable\n", chromUID);
@@ -2549,7 +2549,7 @@ void PrintChromosomeElsewheres(AssemblyStore * asmStore,
   int chrIndex;
   CDS_IID_t iid;
 
-  iid = LookupValueInHashTable_AS(mapStore->hashTable, containerUID, 0);
+  iid = (CDS_IID_t)LookupValueInHashTable_AS(mapStore->hashTable, containerUID, 0);
   if (iid == 0)
   {
     fprintf(stderr, "Failed to lookup " F_UID " in hashtable\n", containerUID);
@@ -2700,7 +2700,7 @@ CloneData * GetChromosomeCloneData(AssemblyStore * asmStore,
 
   cd = CreateCloneData();
 
-  iid = LookupValueInHashTable_AS(mapStore->hashTable, containerUID, 0);
+  iid = (CDS_IID_t)LookupValueInHashTable_AS(mapStore->hashTable, containerUID, 0);
   if (iid == 0)
   {
     fprintf(stderr, "Failed to lookup " F_UID " in hashtable\n", containerUID);
@@ -2799,7 +2799,7 @@ void PrintDeflineATACAxes(AssemblyStore * asmStore,
   while(fgets(line, 1023, dfp))
   {
     CDS_UID_t uid = STR_TO_UID(&line[1], NULL, 10);
-    CDS_IID_t iid = LookupValueInHashTable_AS(asmStore->hashTable, uid, 0);
+    CDS_IID_t iid = (CDS_IID_t)LookupValueInHashTable_AS(asmStore->hashTable, uid, 0);
     if (iid != 0)
       PrintATACScaffoldGenomicAxis(asmStore, iid, parent, &offset, fo);
   }

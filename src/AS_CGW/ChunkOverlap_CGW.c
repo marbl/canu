@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.23 2007-10-15 22:53:08 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.24 2007-10-24 21:04:21 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -81,8 +81,8 @@ static void prepare_overlap(ChunkOverlapCheckT *canOlap,
 
 /* Type of function to compare hash table entries */
 int CanOlapCmp(uint64 cO1, uint64 cO2){
-  ChunkOverlapSpecT *c1 = (ChunkOverlapSpecT *)cO1;
-  ChunkOverlapSpecT *c2 = (ChunkOverlapSpecT *)cO2;
+  ChunkOverlapSpecT *c1 = (ChunkOverlapSpecT *)(INTPTR)cO1;
+  ChunkOverlapSpecT *c2 = (ChunkOverlapSpecT *)(INTPTR)cO2;
   int diff;
 
   diff = c1->cidA - c2->cidA;
@@ -98,7 +98,7 @@ int CanOlapCmp(uint64 cO1, uint64 cO2){
   else return (c1 - c2);
 }
 int CanOlapHash(uint64 cO, uint32 length){
-  return  Hash_AS((uint8 *)cO, length, 37);
+  return  Hash_AS((uint8 *)(INTPTR)cO, length, 37);
 }
 
 /* ^*** Functions supporting hash table ***^ */
@@ -146,7 +146,7 @@ void  SaveChunkOverlapperToStream(ChunkOverlapperT *chunkOverlapper, FILE *strea
   InitializeHashTable_Iterator_AS(chunkOverlapper->hashTable, &iterator);
 
   while(NextHashTable_Iterator_AS(&iterator, &key, &value, &valuetype)){
-    ChunkOverlapCheckT *olap = (ChunkOverlapCheckT*) value;
+    ChunkOverlapCheckT *olap = (ChunkOverlapCheckT*)(INTPTR)value;
 
     AS_UTL_safeWrite(stream, olap, "SaveChunkOverlapperToStream", sizeof(ChunkOverlapCheckT), 1);
   }
@@ -405,7 +405,7 @@ int LookupOverlap(GraphCGW_T *graph,
 
 ChunkOverlapCheckT *LookupCanonicalOverlap(ChunkOverlapperT *chunkOverlapper,
                                            ChunkOverlapSpecT *spec){
-  return (ChunkOverlapCheckT *)LookupValueInHashTable_AS(chunkOverlapper->hashTable, (uint64)spec, sizeof(*spec));
+  return (ChunkOverlapCheckT *)(INTPTR)LookupValueInHashTable_AS(chunkOverlapper->hashTable, (uint64)(INTPTR)spec, sizeof(*spec));
 }
 
 /************************************************************************/
@@ -414,13 +414,17 @@ int InsertChunkOverlap(ChunkOverlapperT *chunkOverlapper,
   ChunkOverlapCheckT *nolap = (ChunkOverlapCheckT *)GetHeapItem_AS(chunkOverlapper->ChunkOverlaps);
   *nolap = *olap;
   assert(nolap->overlap==0||nolap->errorRate >= 0.0);  
-  return InsertInHashTable_AS(chunkOverlapper->hashTable, (uint64)&nolap->spec, sizeof(olap->spec), (uint64)nolap, 0);
+  return(InsertInHashTable_AS(chunkOverlapper->hashTable,
+                              (uint64)(INTPTR)&nolap->spec,
+                              sizeof(olap->spec),
+                              (uint64)(INTPTR)nolap,
+                              0));
 }
 
 /************************************************************************/
 int DeleteChunkOverlap(ChunkOverlapperT *chunkOverlapper,
                        ChunkOverlapCheckT *olap){
-  return DeleteFromHashTable_AS(chunkOverlapper->hashTable, (uint64)&olap->spec, sizeof(olap->spec));
+  return DeleteFromHashTable_AS(chunkOverlapper->hashTable, (uint64)(INTPTR)&olap->spec, sizeof(olap->spec));
 }
 
 // use this routine to put an overlap into hash table
@@ -1212,7 +1216,7 @@ void DumpOverlaps(GraphCGW_T *graph){
   InitializeHashTable_Iterator_AS(graph->overlapper->hashTable, &iterator);
 
   while(NextHashTable_Iterator_AS(&iterator, &key, &value, &valuetype)){
-    ChunkOverlapCheckT *olap = (ChunkOverlapCheckT*) value;    
+    ChunkOverlapCheckT *olap = (ChunkOverlapCheckT*)(INTPTR)value;
     
     fprintf(GlobalData->stderrc,"* (" F_CID "," F_CID ",%c) olap:" F_COORD " ahg:" F_COORD " bhg:" F_COORD "  fromcgb:%d\n",
             olap->spec.cidA, olap->spec.cidB,
@@ -1265,7 +1269,7 @@ void ComputeOverlaps(GraphCGW_T *graph, int addEdgeMates,
 
 	  while(NextHashTable_Iterator_AS(&iterator, &key, &value, &valuetype))
             {
-              ChunkOverlapCheckT *olap = (ChunkOverlapCheckT*) value;    
+              ChunkOverlapCheckT *olap = (ChunkOverlapCheckT*)(INTPTR)value;
 		
 #if 0
               fprintf(GlobalData->stderrc,"* olap is (" F_CID "," F_CID ",%c) bayes:%d computed:%d\n",

@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.30 2007-09-05 11:22:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.31 2007-10-24 21:04:21 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3022,10 +3022,10 @@ int AddInstrumenterBookkeeping(ScaffoldGraphT * graph,
         {
           CDS_CID_t * fragIID = GetVA_CDS_CID_t(src->fragArray, i);
       
-          if(!ExistsInHashTable_AS(dest->fragHT, (uint64)fragIID, 0))
+          if(!ExistsInHashTable_AS(dest->fragHT, (uint64)(INTPTR)fragIID, 0))
             {
               CIFragT * frag = getFragByIID(graph, *fragIID);
-              InsertInHashTable_AS(dest->fragHT, (uint64)frag->iid, 0, (uint64)frag, 0);
+              InsertInHashTable_AS(dest->fragHT, (uint64)frag->iid, 0, (uint64)(INTPTR)frag, 0);
               AppendVA_CDS_CID_t(dest->fragArray, fragIID);
             }
         }
@@ -3048,7 +3048,7 @@ int AddInstrumenterBookkeeping(ScaffoldGraphT * graph,
               // need to find the CIFragT - stable pointer
               CIFragT * frag = getFragByIID(graph, md->fragIID);
         
-              InsertInHashTable_AS(dest->fragHT, (uint64)frag->iid, 0, (uint64)frag, 0);
+              InsertInHashTable_AS(dest->fragHT, (uint64)frag->iid, 0, (uint64)(INTPTR)frag, 0);
               AppendVA_CDS_CID_t(dest->fragArray, &(md->fragIID));
             }
         }
@@ -3696,11 +3696,11 @@ int AddFragmentToUnitigInstrumenter(ScaffoldGraphT * graph,
 
           if(frag->mateOf != NULLINDEX)
             {
-              if(!ExistsInHashTable_AS(ui->bookkeeping.fragHT, (uint64)&(frag->iid), 0))
+              if(!ExistsInHashTable_AS(ui->bookkeeping.fragHT, (uint64)(INTPTR)&frag->iid, 0))
                 {
                   if(InsertInHashTable_AS(ui->bookkeeping.fragHT,
                                           (uint64)frag->iid, 0,
-                                          (uint64)frag, 0) == HASH_FAILURE)
+                                          (uint64)(INTPTR)frag, 0) == HASH_FAILURE)
                     {
                       fprintf(stderr, "Failed to insert frag into hashtable.\n");
                       return 1;
@@ -3759,8 +3759,8 @@ int AddFragmentToSurrogateTracker(ScaffoldGraphT * graph,
       add an entry to the array & change the NULL to point to it
       if not present, add to hashtable
     */
-    if((sflp = (SurrogateFragLocation *)LookupValueInHashTable_AS(st->surrogateFragHT,
-                                                                  (uint64)frag->iid, 0)))
+    if((sflp = (SurrogateFragLocation *)(INTPTR)LookupValueInHashTable_AS(st->surrogateFragHT,
+                                                                          (uint64)frag->iid, 0)))
       {
         // found entry for fragment. follow linked list to the last one
         while(sflp->nextIndex != 0)
@@ -3802,7 +3802,7 @@ int AddFragmentToSurrogateTracker(ScaffoldGraphT * graph,
       {
         if(InsertInHashTable_AS(st->surrogateFragHT,
                                 (uint64)frag->iid, 0,
-                                (uint64)&st->surrogateFragLocs[st->numUsedLocs], 0)
+                                (uint64)(INTPTR)&st->surrogateFragLocs[st->numUsedLocs], 0)
            != HASH_SUCCESS)
           {
             fprintf(stderr,
@@ -3868,7 +3868,7 @@ int GetFragmentPositionInFauxScaffold(HashTable_AS * cpHT,
 {
   ContigPlacement * cp;
 
-  cp = (ContigPlacement *)LookupValueInHashTable_AS(cpHT, (uint64)frag->contigID, 0);
+  cp = (ContigPlacement *)(INTPTR)LookupValueInHashTable_AS(cpHT, (uint64)frag->contigID, 0);
   if(cp == NULL)
     {
       fprintf(stderr, "Fragment " F_CID "'s contig " F_CID " is not in hashtable!\n",
@@ -3941,7 +3941,7 @@ int GetFragment5pPositionInFauxScaffoldGivenCtgPsn(HashTable_AS * cpHT,
   ContigPlacement * cp;
   static int firstTime=1;
 
-  cp = (ContigPlacement *)LookupValueInHashTable_AS(cpHT, (uint64)contigIID, 0);
+  cp = (ContigPlacement *)(INTPTR)LookupValueInHashTable_AS(cpHT, (uint64)contigIID, 0);
   if(cp == NULL)
     {
       fprintf(stderr, "Contig %u is not in hashtable!\n",
@@ -3997,7 +3997,7 @@ int GetSurrogatePositionInFauxScaffoldFromSFL(HashTable_AS * cpHT,
   CDS_COORD_t AEndOnCtg = *frag5p;
   CDS_COORD_t BEndOnCtg = *frag3p;
 
-  cp = (ContigPlacement *)LookupValueInHashTable_AS(cpHT, (uint64)contigID, 0);
+  cp = (ContigPlacement *)(INTPTR)LookupValueInHashTable_AS(cpHT, (uint64)contigID, 0);
   if(cp == NULL)
     {
       fprintf(stderr, "A surrogate fragment's contig %u is not in hashtable!\n",
@@ -4432,13 +4432,13 @@ int CheckFragmentMatePairs(ScaffoldGraphT * graph,
       graphMate = GetCIFragT(graph->CIFrags, frag->mateOf);
 
       // see if the mate is in a unitig
-      if((lookupMate = (CIFragT *)LookupValueInHashTable_AS(bookkeeping->fragHT, (uint64)graphMate->iid, 0)) == NULL)
+      if((lookupMate = (CIFragT *)(INTPTR)LookupValueInHashTable_AS(bookkeeping->fragHT, (uint64)graphMate->iid, 0)) == NULL)
         {
           // if here, mate is not in a non-surrogate unitig in this node
           // see if it's in the set of surrogate fragments
           SurrogateFragLocation * sflp;
-          if((sflp = (SurrogateFragLocation *)LookupValueInHashTable_AS(st->surrogateFragHT,
-                                                                   (uint64)graphMate->iid, 0)) != NULL
+          if((sflp = (SurrogateFragLocation *)(INTPTR)LookupValueInHashTable_AS(st->surrogateFragHT,
+                                                                                (uint64)graphMate->iid, 0)) != NULL
              && (!doingContig /* i.e. working on scf */ || 
                  sflp->contig == chunkIID /* surrogate is in same contig */)
              )
@@ -5092,7 +5092,7 @@ int AddCPToHashTable(HashTable_AS * ht,
 {
   if(InsertInHashTable_AS(ht,
                           (uint64)cp->id, 0,
-                          (uint64)cp, 0) == HASH_FAILURE)
+                          (uint64)(INTPTR)cp, 0) == HASH_FAILURE)
     {
       fprintf(stderr, "Failed to insert contig position into hashtable.\n");
       return 1;
@@ -5461,7 +5461,7 @@ int FinishMissingMateList(ScaffoldGraphInstrumenter * sgi)
   for(i = 0; i < numMatePairs; i++)
     {
       MateDetail * mate;
-      if((mate = (MateDetail *)LookupValueInHashTable_AS(mateDetailHT, (uint64)wExtMates[i].mateIID, 0)) == NULL)
+      if((mate = (MateDetail *)(INTPTR)LookupValueInHashTable_AS(mateDetailHT, (uint64)wExtMates[i].mateIID, 0)) == NULL)
         {
           if(wExtMates[i].mateChunkIID != NULLINDEX)
             {
@@ -5469,7 +5469,7 @@ int FinishMissingMateList(ScaffoldGraphInstrumenter * sgi)
             }
           InsertInHashTable_AS(mateDetailHT,
                                (uint64)wExtMates[i].fragIID, 0,
-                               (uint64)&wExtMates[i], 0);
+                               (uint64)(INTPTR)&wExtMates[i], 0);
         }
       else
         {

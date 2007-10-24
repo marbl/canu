@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.42 2007-10-16 12:55:47 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.43 2007-10-24 21:04:21 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -475,7 +475,7 @@ void       loadGateKeeperPartition(GateKeeperStore *gkp, uint32 partnum) {
 
     if (InsertInHashTable_AS(gkp->partmap,
                              (uint64)p->readIID, 0,
-                             (uint64)p, 0) != HASH_SUCCESS)
+                             (INTPTR)(p), 0) != HASH_SUCCESS)
       assert(0);
   }
 }
@@ -816,7 +816,7 @@ void    getFrag(GateKeeperStore *gkp, CDS_IID_t iid, fragRecord *fr, int32 flags
   } else {
     GateKeeperFragmentRecord *gkfr;
 
-    gkfr = (GateKeeperFragmentRecord *)LookupValueInHashTable_AS(gkp->partmap, iid, 0);
+    gkfr = (GateKeeperFragmentRecord *)(INTPTR)LookupValueInHashTable_AS(gkp->partmap, iid, 0);
     if (gkfr == NULL) {
       fprintf(stderr, "getFrag()-- ERROR!  IID "F_IID" not in partition!\n", iid);
       assert(0);

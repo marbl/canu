@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_Bubble.c,v 1.10 2007-07-19 09:50:26 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_Bubble.c,v 1.11 2007-10-24 21:04:21 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -60,8 +60,8 @@ typedef struct BVSPair {
 int
 _hash_vset_cmp(uint64 vset1, uint64 vset2)
 {
-  BVSPair *v1 = (BVSPair *) vset1;
-  BVSPair *v2 = (BVSPair *) vset2;
+  BVSPair *v1 = (BVSPair *)(INTPTR)vset1;
+  BVSPair *v2 = (BVSPair *)(INTPTR)vset2;
   int comp_f = BVS_compare(v1->f, v2->f);
   
   if (comp_f != 0)
@@ -74,7 +74,7 @@ _hash_vset_cmp(uint64 vset1, uint64 vset2)
 int
 _hash_vset_hash(uint64 vset, uint32 length)
 {
-  BVSPair *v = (BVSPair *) vset;
+  BVSPair *v = (BVSPair *)(INTPTR)vset;
 
   return (int) (BVS_hash(v->f) + BVS_hash(v->r));
 }
@@ -124,7 +124,7 @@ _collect_bubbles(BubGraph_t bg, BubVertexSet *fwd, BubVertexSet *rvs,
 #endif
       bp_ins_keys[f].f = &(fwd[top[f]]);
       bp_ins_keys[f].r = &(rvs[top[f]]);
-      InsertInHashTable_AS(init_nodes, (uint64)(&(bp_ins_keys[f])), sizeof(BVSPair), (uint64)&(top[f]), 0);
+      InsertInHashTable_AS(init_nodes, (uint64)(INTPTR)&bp_ins_keys[f], sizeof(BVSPair), (uint64)(INTPTR)&top[f], 0);
     }
 
   for (f = 0; f < num_valid; ++f) 
@@ -138,7 +138,7 @@ _collect_bubbles(BubGraph_t bg, BubVertexSet *fwd, BubVertexSet *rvs,
 #endif
       bp_find_key.f = &(fwd[top[f]]);
       bp_find_key.r = &(rvs[top[f]]);
-      i_node = (IntFragment_ID *)LookupValueInHashTable_AS(init_nodes, (uint64)&(bp_find_key), sizeof(BVSPair));
+      i_node = (IntFragment_ID *)(INTPTR)LookupValueInHashTable_AS(init_nodes, (uint64)(INTPTR)&bp_find_key, sizeof(BVSPair));
 #if AS_CGB_BUBBLE_VERY_VERBOSE
       if (!i_node)
 	fprintf(BUB_LOG_G, "None found.\n");

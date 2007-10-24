@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.16 2007-09-25 01:37:31 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_SDB_SequenceDB.c,v 1.17 2007-10-24 21:04:21 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -184,7 +184,7 @@ openSequenceDBPartition(tSequenceDB *db, int32 partition){
 
     if(InsertInHashTable_AS(db->multiAlignLookup,
                             (uint64)maRecord->multiAlignID, 0,
-                            (uint64)ma, 0) != HASH_SUCCESS) {
+                            (uint64)(INTPTR)(ma), 0) != HASH_SUCCESS) {
       fprintf(stderr, "Failed to insert multiAlign %d into the lookup table.  Already there?\n", maRecord->multiAlignID);
       assert(0);
     }
@@ -349,7 +349,7 @@ loadMultiAlignTFromSequenceDB(tSequenceDB *db, int index, int isUnitig){
 
   //  If it's in the partition, return that -- only valid for contig?
   if (db->multiAlignLookup)
-    ma = (MultiAlignT *)LookupValueInHashTable_AS(db->multiAlignLookup, index, 0);
+    ma = (MultiAlignT *)(INTPTR)LookupValueInHashTable_AS(db->multiAlignLookup, index, 0);
   if (ma)
     return(ma);
 
@@ -393,7 +393,7 @@ copyMultiAlignTFromSequenceDB(tSequenceDB *db, MultiAlignT *reusema, int index, 
   //  If it's in the partition, return that -- only valid for contig?
   //  Otherwise, grab it from the store
   if (db->multiAlignLookup)
-    ma = (MultiAlignT *)LookupValueInHashTable_AS(db->multiAlignLookup, index, 0);
+    ma = (MultiAlignT *)(INTPTR)LookupValueInHashTable_AS(db->multiAlignLookup, index, 0);
   if (!ma)
     ma = GetMultiAlignInStore(maStore,index);
   if (ma) {
