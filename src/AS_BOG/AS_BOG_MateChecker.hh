@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.hh,v 1.16 2007-10-23 14:42:29 eliv Exp $
- * $Revision: 1.16 $
+ * $Id: AS_BOG_MateChecker.hh,v 1.17 2007-10-24 20:23:24 eliv Exp $
+ * $Revision: 1.17 $
 */
 
 #ifndef INCLUDE_AS_BOG_MATECHEKER
@@ -60,6 +60,7 @@ namespace AS_BOG{
         double sumSquares;
         double sumDists;
         int numPairs;
+        DistanceCompute() : stddev(0), mean(0), sumSquares(0), sumDists(0), numPairs(0) {}
     };
     typedef std::map<iuid,DistanceCompute> LibraryStats;
 
@@ -105,10 +106,10 @@ namespace AS_BOG{
         LibraryStats* checkUnitig( Unitig* );
 
         // Compute good and bad coverage graphs for a unitig, returns split points
-        FragmentEnds* computeMateCoverage( Unitig*, LibraryStats &, BestOverlapGraph *);
+        FragmentEnds* computeMateCoverage( Unitig*, BestOverlapGraph *);
 
         // Make singleton unitigs out of unhappy contained reads
-        void ejectUnhappyContains(UnitigGraph& , LibraryStats& );
+        void ejectUnhappyContains( UnitigGraph& );
 
         // Computes stddev and mate coverage over all unitigs
         void checkUnitigGraph( UnitigGraph& );
@@ -116,6 +117,7 @@ namespace AS_BOG{
         private:
             MateMap _mates;
             LibraryDistances _dists; // all distances 
+            LibraryStats _globalStats;
     };
 
     struct MateLocationEntry {

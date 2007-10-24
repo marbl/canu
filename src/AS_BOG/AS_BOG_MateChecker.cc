@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.35 2007-10-23 14:42:29 eliv Exp $
- * $Revision: 1.35 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.36 2007-10-24 20:23:24 eliv Exp $
+ * $Revision: 1.36 $
 */
 
 #include <math.h>
@@ -35,6 +35,16 @@ namespace AS_BOG{
     iuid MateChecker::readStore(const char* gkpStorePath) {
         GateKeeperStore *gkpStore = openGateKeeperStore(gkpStorePath, FALSE);
 
+        iuid numDists = getNumGateKeeperLibraries(gkpStore);
+        iuid i;
+        for(i = 1; i <= numDists; i++){
+            GateKeeperLibraryRecord  *gkpl = getGateKeeperLibrary(gkpStore, i);
+            DistanceCompute dc;
+            dc.mean   = gkpl->mean;
+            dc.stddev = gkpl->stddev;
+            _globalStats[ i ] = dc;
+        }
+
         StreamStruct *frags = openStream(gkpStore->frg, NULL, 0);
         resetStream(frags, STREAM_FROMSTART, STREAM_UNTILEND);
 
@@ -46,8 +56,18 @@ namespace AS_BOG{
             mi.lib  = gkpf.libraryIID;
             _mates[ gkpf.readIID ] = mi;
 
+            _globalStats[ mi.lib ].numPairs++;
             frgIID++;
         }
+        for(i = 1; i <= numDists; i++){
+            DistanceCompute *dc = &(_globalStats[i]);
+            fprintf(stderr, "Lib %d mean %.1f stddev %.1f numReads %d\n",
+                    i, dc->mean, dc->stddev, dc->numPairs );
+
+            assert( dc->numPairs % 2 == 0);
+            dc->numPairs /= 2;
+        }
+
         iuid numFrgs = getNumGateKeeperFragments( gkpStore );
 
         std::cerr << "Frg count " << frgIID << " num in store " << numFrgs << std::endl;
@@ -116,9 +136,6 @@ namespace AS_BOG{
                                 DistanceCompute d;
                                 d.numPairs   = 1;
                                 d.sumDists   = mateDist;
-                                d.stddev     = 0.0;
-                                d.mean       = 0.0;
-                                d.sumSquares = 0.0;
                                 (*libs)[ distId ] = d;
                             } else {
                                 (*libs)[distId].numPairs++;
@@ -202,7 +219,6 @@ namespace AS_BOG{
     // main entry point into mate checking code
     void MateChecker::checkUnitigGraph( UnitigGraph& tigGraph )
     {
-        LibraryStats globalStats;
         LibraryStats::iterator dcIter;
         _dists.clear(); // reset to seperate multiple Graphs
         UnitigsConstIter tigIter = tigGraph.unitigs->begin();
@@ -215,11 +231,11 @@ namespace AS_BOG{
             for(dcIter = libs->begin(); dcIter != libs->end(); dcIter++) {
                 iuid lib = dcIter->first;
                 DistanceCompute dc = dcIter->second;
-                if (globalStats.find(lib) == globalStats.end() ) {
-                    globalStats[ lib ] = dc;
+                if (_globalStats.find(lib) == _globalStats.end() ) {
+                    _globalStats[ lib ] = dc;
                 }
                 else {
-                    DistanceCompute *gdc = &(globalStats[ lib ]);
+                    DistanceCompute *gdc = &(_globalStats[ lib ]);
                     gdc->numPairs   += dc.numPairs;
                     gdc->sumDists   += dc.sumDists;
                     gdc->sumSquares += dc.sumSquares;
@@ -228,7 +244,7 @@ namespace AS_BOG{
             delete libs; // Created in checkUnitig
         }
         // Calculate and output overall global mean
-        for(dcIter= globalStats.begin(); dcIter != globalStats.end(); dcIter++){
+        for(dcIter= _globalStats.begin(); dcIter != _globalStats.end(); dcIter++){
             iuid lib = dcIter->first;
             DistanceCompute *dc = &(dcIter->second);
             dc->mean = dc->sumDists / dc->numPairs;
@@ -236,7 +252,7 @@ namespace AS_BOG{
                     lib, dc->numPairs, dc->mean );
         }
         // Calculate and output overall global stddev
-        for(dcIter= globalStats.begin(); dcIter != globalStats.end(); dcIter++)
+        for(dcIter= _globalStats.begin(); dcIter != _globalStats.end(); dcIter++)
         {
             iuid lib = dcIter->first;
             DistanceCompute *dc = &(dcIter->second);
@@ -275,7 +291,7 @@ namespace AS_BOG{
             // now go through the distances and calculate the real stddev
             // including everything within 5 stddevs
             iuid numBad = 0;
-            DistanceCompute *gdc = &(globalStats[ libId ]);
+            DistanceCompute *gdc = &(_globalStats[ libId ]);
             DistanceListCIter dIter = dl.begin();
             for(;dIter != dl.end(); dIter++) {
                 if (*dIter >= smallest && *dIter <= biggest ) {
@@ -310,8 +326,7 @@ namespace AS_BOG{
                 if (*tigEditIter == NULL || (*tigEditIter)->getNumFrags() < 2 ) 
                     continue;
 
-                FragmentEnds* breaks = computeMateCoverage( *tigEditIter, globalStats,
-                        tigGraph.bog_ptr );
+                FragmentEnds* breaks = computeMateCoverage( *tigEditIter, tigGraph.bog_ptr );
                 tigGraph.accumulateSplitUnitigs( tigEditIter, breaks, splits );
                 delete breaks;
             }
@@ -329,12 +344,12 @@ namespace AS_BOG{
 
         // Now we'll chuck out the contained frags that have unhappy mates
         if (BogOptions::ejectUnhappyContained) 
-            ejectUnhappyContains( tigGraph, globalStats );
+            ejectUnhappyContains( tigGraph );
     }
 
     ///////////////////////////////////////////////////////////////////////////
 
-    void MateChecker::ejectUnhappyContains(UnitigGraph& tigGraph, LibraryStats& globalStats )
+    void MateChecker::ejectUnhappyContains(UnitigGraph& tigGraph )
     {
         MateCounts allMates;
         UnitigVector* singletons = new UnitigVector(); // save singleton unitigs
@@ -351,7 +366,7 @@ namespace AS_BOG{
             // Build mate position table
             positions.buildTable( tig );
             // Build good and bad mate graphs
-            MateCounts* cnts = positions.buildHappinessGraphs( tigLen, globalStats );
+            MateCounts* cnts = positions.buildHappinessGraphs( tigLen, _globalStats );
             allMates += *cnts;
             delete cnts;
 
@@ -512,15 +527,14 @@ namespace AS_BOG{
 
     // hold over from testing if we should use 5' or 3' for range generation, now must use 3'
     static const bool MATE_3PRIME_END = true;
-    FragmentEnds* MateChecker::computeMateCoverage( Unitig* tig, LibraryStats& globalStats,
-                                                    BestOverlapGraph* bog_ptr )
+    FragmentEnds* MateChecker::computeMateCoverage( Unitig* tig, BestOverlapGraph* bog_ptr )
     {
         int tigLen = tig->getLength();
         MateLocation positions(this);
         // Build mate position table
         positions.buildTable( tig );
         // Build good and bad mate graphs
-        MateCounts *unused = positions.buildHappinessGraphs( tigLen, globalStats );
+        MateCounts *unused = positions.buildHappinessGraphs( tigLen, _globalStats );
         delete unused;
 
         // For debugging purposes output the table
