@@ -128,11 +128,11 @@ sub merOverlapper($) {
         print F " -t 1 \\\n";
         print F " -S $wrk/$outDir/$asm.merStore \\\n";
         print F " -c $wrk/2-frgcorr/\$jobid.frgcorr \\\n"       if ($isTrim ne "trim");
-        print F " -o $wrk/$outDir/olaps/$asm.\$jobid.ovb \\\n"  if ($isTrim ne "trim");
-        print F " -o $wrk/$outDir/olaps/$asm.\$jobid.ovr \\\n"  if ($isTrim eq "trim");
+        print F " -o $wrk/$outDir/olaps/\$jobid.ovb \\\n"  if ($isTrim ne "trim");
+        print F " -o $wrk/$outDir/olaps/\$jobid.ovr \\\n"  if ($isTrim eq "trim");
         print F " $wrk/$asm.gkpStore \\\n";
         print F " \$minid \$maxid \\\n";
-        print F " \\> $wrk/$outDir/olaps/$asm.\$jobid.ovb.err 2\\>\\&1\n";
+        print F " \\> $wrk/$outDir/olaps/\$jobid.ovb.err 2\\>\\&1\n";
         print F "\n";
 
         print F "$bin/olap-from-seeds \\\n";
@@ -140,8 +140,8 @@ sub merOverlapper($) {
         print F " -t 1 \\\n";
         print F " -S $wrk/$outDir/$asm.merStore \\\n";
         print F " -c $wrk/2-frgcorr/\$jobid.frgcorr \\\n"       if ($isTrim ne "trim");
-        print F " -o $wrk/$outDir/olaps/$asm.\$jobid.ovb \\\n"  if ($isTrim ne "trim");
-        print F " -o $wrk/$outDir/olaps/$asm.\$jobid.ovr \\\n"  if ($isTrim eq "trim");
+        print F " -o $wrk/$outDir/olaps/\$jobid.ovb \\\n"  if ($isTrim ne "trim");
+        print F " -o $wrk/$outDir/olaps/\$jobid.ovr \\\n"  if ($isTrim eq "trim");
         print F " $wrk/$asm.gkpStore \\\n";
         print F " \$minid \$maxid \\\n";
         print F " > $wrk/$outDir/olaps/$asm.\$jobid.ovb.err 2>&1 \\\n";
@@ -149,8 +149,8 @@ sub merOverlapper($) {
         if ($isTrim eq "trim") {
             print F " &&  \\\n";
             print F "$gin/acceptableOBToverlap \\\n";
-            print F " < $wrk/$outDir/$asm.ovr \\\n";
-            print F " > $wrk/$outDir/$asm.ovb \\\n";
+            print F " < $wrk/$outDir/olaps/\$jobid.ovr \\\n";
+            print F " > $wrk/$outDir/olaps/\$jobid.ovb \\\n";
         } else {
             print F "&& \\\n";
             print F "touch $wrk/2-frgcorr/\$jobid.success \\\n";
@@ -160,6 +160,8 @@ sub merOverlapper($) {
         print F "touch $wrk/$outDir/olaps/\$jobid.success\n";
 
         close(F);
+
+        system("chmod +x $wrk/$outDir/olap-from-seeds.sh");
 
 
         #  Make the 2-frgcorr directory (to hold the corrections
@@ -200,7 +202,7 @@ sub merOverlapper($) {
             my $failures = 0;
             for (my $i=1; $i<=$jobs; $i++) {
                 my $out = substr("0000" . $i, -4);
-                if (runCommand("$wrk/$outDir", "$wrk/$outDir/overlap.sh $i > $wrk/$outDir/olap-from-seeds.$out.out 2>&1")) {
+                if (runCommand("$wrk/$outDir", "$wrk/$outDir/olap-from-seeds.sh $i > $wrk/$outDir/olap-from-seeds.$out.out 2>&1")) {
                     $failures++;
                 }
             }

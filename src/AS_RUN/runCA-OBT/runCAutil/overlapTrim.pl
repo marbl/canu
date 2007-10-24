@@ -60,7 +60,7 @@ sub overlapTrim {
         #  all overlaps for a fragment A are localized.
 
         if (runCommand("$wrk/0-overlaptrim",
-                       "find $wrk/0-overlaptrim-overlap -follow -name \\*ovb -print > $wrk/0-overlaptrim/all-overlaps-trim.ovllist")) {
+                       "find $wrk/0-overlaptrim-overlap -follow -name \\*ovb -print > $wrk/0-overlaptrim/$asm.ovllist")) {
             caFailure("Failed to generate a list of all the overlap files.\n");
         }
 
@@ -69,7 +69,7 @@ sub overlapTrim {
         $cmd .= " -c $wrk/$asm.obtStore ";
         $cmd .= " -M " . getGlobal('ovlSortMemory');
         $cmd .= " -m $numFrags ";
-        $cmd .= " -L $wrk/0-overlaptrim/all-overlaps-trim.ovllist";
+        $cmd .= " -L $wrk/0-overlaptrim/$asm.ovllist";
         $cmd .= " > $wrk/0-overlaptrim/$asm.overlapstore.err 2>&1";
 
         if (runCommand("$wrk/0-overlaptrim", $cmd)) {

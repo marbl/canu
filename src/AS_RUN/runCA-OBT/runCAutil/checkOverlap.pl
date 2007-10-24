@@ -79,7 +79,7 @@ sub checkMerOverlapper ($) {
     for (my $i=1; $i<=$jobs; $i++) {
         my $job = substr("0000" . $i, -4);
 
-        if (! -e "$wrk/$outDir/olaps/$asm.$job.success") {
+        if (! -e "$wrk/$outDir/olaps/$job.success") {
             print STDERR "$wrk/$outDir/olaps/$job failed.\n";
             $failedJobs++;
         }
