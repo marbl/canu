@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.37 2007-10-24 20:55:55 eliv Exp $
- * $Revision: 1.37 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.38 2007-10-25 04:28:15 brianwalenz Exp $
+ * $Revision: 1.38 $
 */
 
 #include <math.h>
@@ -51,12 +51,14 @@ namespace AS_BOG{
         GateKeeperFragmentRecord gkpf;
         iuid frgIID = 1;
         while(nextStream(frags, &gkpf)){
-            MateInfo mi;
-            mi.mate = gkpf.mateIID;
-            mi.lib  = gkpf.libraryIID;
-            _mates[ gkpf.readIID ] = mi;
+            if (gkpf.mateIID != 0) {
+                MateInfo mi;
+                mi.mate = gkpf.mateIID;
+                mi.lib  = gkpf.libraryIID;
+                _mates[ gkpf.readIID ] = mi;
 
-            _globalStats[ mi.lib ].numPairs++;
+                _globalStats[ mi.lib ].numPairs++;
+            }
             frgIID++;
         }
         for(i = 1; i <= numDists; i++){
