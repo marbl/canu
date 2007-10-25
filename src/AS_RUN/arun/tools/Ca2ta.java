@@ -4,8 +4,7 @@ import java.util.regex.*;
 import java.util.zip.*;
 import java.lang.reflect.Field;
 
-class Compression {
-
+class StringCompression {
 	public static final byte[] compress(String str) throws IOException {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		ZipOutputStream zout = new ZipOutputStream(out);
@@ -35,49 +34,6 @@ class Compression {
 
 }
 
-class ToString {
-	/**
-	* Intended only for debugging.
-	*
-	* <P>Here, a generic implementation uses reflection to print
-	* names and values of all fields <em>declared in this class</em>. Note that
-	* superclass fields are left out of this implementation.
-	*
-	* <p>The format of the presentation could be standardized by using
-	* a MessageFormat object with a standard pattern.
-	*/
-	public String toString() {
-	  StringBuilder result = new StringBuilder();
-
-	  result.append( this.getClass().getName() );
-	  result.append( "$ Object {" );
-	  result.append("\n");
-
-	  //determine fields declared in this class only (no fields of superclass)
-	  Field[] fields = this.getClass().getDeclaredFields();
-
-	  //print field names paired with their values
-	  for ( Field field : fields  ) {
-	    result.append("  ");
-	    try {
-              result.append( field.getName() );
-              result.append(": ");
-              //requires access to private field:
-              result.append( field.get(this) );
-	    }
-	    catch ( IllegalAccessException ex ) {
-              System.out.println(ex);
-	    }
-	    result.append("\n");
-	  }
-	  result.append("}");
-
-	  return result.toString();
-	}
-
-
-}
-
 class Contig {
 	String acc;
 	int len;
@@ -88,14 +44,19 @@ class Contig {
 	public String toString() {
 		StringBuilder result = new StringBuilder();
 	     	try {
-			String cnsDecompressed = Compression.decompress(cns);
-			System.out.println("Compressed size: " + cns.length + ", Decompressed size: " + cnsDecompressed.getBytes().length);
+			Comparator<MPS> comp = new Comparator<MPS>() { 
+				public int compare(MPS o1, MPS o2) { 
+					int retVal = o1.lpos - o2.lpos;
+					if ( retVal == 0 )
+						retVal = o1.rpos - o2.rpos;
+					return retVal;
+				}};
+			Collections.sort(mpsList,comp);
+			String cnsDecompressed = StringCompression.decompress(cns);
 			result.append("##" + acc + " " + npc + " " + cnsDecompressed.length() + " bases, 00000000 checksum." + "\n");
 			result.append(Ca2ta.formatSeq(cnsDecompressed));
-			Comparator<MPS> comp = new Comparator<MPS>() { public int compare(MPS o1, MPS o2) { return o1.mid.compareTo(o2.mid);}};
-			Collections.sort(mpsList,comp);
 			for ( MPS mps : mpsList )
-				result.append(mps.toString());	
+				result.append(mps.toString());
 		} catch (java.io.IOException e) {
 			e.printStackTrace();
 		}
@@ -109,11 +70,13 @@ class FRG extends ToString {
 	byte [] seq;
 	int lclr;
 	int rclr;
+	
 }
 
 class MPS {
 	char typ;
 	String mid;
+	boolean rc;
 	int lpos;
 	int rpos;
 	int dln; //gapno
@@ -122,20 +85,63 @@ class MPS {
 		StringBuilder result = new StringBuilder();
 	     	try {
 			FRG frg = Ca2ta.frgHash.get(mid);
-			String seqDecompressed = Compression.decompress(frg.seq);
-			System.out.println("Compressed size: " + frg.seq.length + ", Decompressed size: " + seqDecompressed.getBytes().length);
-			result.append("#" + frg.nm + "(" + lpos + ")" + " [] " 
-				+ seqDecompressed.length() 
+			String seqDecompressed = StringCompression.decompress(frg.seq);
+			int my_lpos = lpos;
+			int my_rpos = rpos;
+			int my_lclr = frg.lclr;
+			int my_rclr = frg.rclr;
+			
+			if ( rc ) {
+				seqDecompressed = rc(seqDecompressed);
+				my_lclr = frg.rclr;
+				my_rclr = frg.lclr;
+			} 
+
+			if ( dln > 0 )
+				seqDecompressed = insertDeletes(frg.lclr,seqDecompressed);
+						
+			result.append("#" + frg.nm + "(" + lpos + ")" 
+				+ " [" + (rc?"RC":"") + "] " 
+				+ (dln+frg.rclr-frg.lclr) 
 				+ " bases, 00000000 checksum." 
-				+ " {" + frg.lclr + "," + frg.rclr + "}" 
-				+ " <" + lpos + "," + rpos +">" + "\n");
-			result.append(Ca2ta.formatSeq(seqDecompressed));
+				+ " {" + my_lclr + " " + my_rclr + "}" 
+				+ " <" + my_lpos + " " + my_rpos +">" + "\n");
+			result.append(Ca2ta.formatSeq(seqDecompressed.substring(frg.lclr,frg.rclr)));
 		} catch (java.io.IOException e) {
 			e.printStackTrace();
 		}
 		return result.toString();
 	}
+	
+	String insertDeletes(int offset, String seq) {
+		StringBuffer retSB = new StringBuffer(seq);
+		int localOffset = 0;
+		for ( int gapPos : del ) {
+			retSB.insert(offset+gapPos+localOffset++,"-");
+		}
+		return retSB.toString();
+	}
+	
+	static String rc(String seqStr) {
+		StringBuffer retSB = new StringBuffer();
+
+		for(int i=0 ; i<seqStr.length() ; i++) {
+        		switch(seqStr.charAt(i)) {
+        			case 'A': retSB.append('T');break;
+                		case 'T': retSB.append('A');break;
+                		case 'G': retSB.append('C');break;
+                		case 'C': retSB.append('G');break;
+                		case 'a': retSB.append('t');break;
+                		case 't': retSB.append('a');break;
+                		case 'g': retSB.append('c');break;
+                		case 'c': retSB.append('g');break;
+                		default: retSB.append('N');break;
+        		}
+		}
+		return retSB.reverse().toString();        
+	}	
 }
+
 public class Ca2ta {
    static final int SEQ_OUTPUT_SIZE = 60;
    static Pattern acc = Pattern.compile("^acc:\\((\\d+)");
@@ -174,7 +180,7 @@ public class Ca2ta {
    
    static void createCLR() {
    	//First check if it already exists
-		String clrFile = prefix.concat(".clr");
+	String clrFile = prefix.concat(".clr");
 	
 	if ( new File(clrFile).exists() )
 		return;
@@ -223,6 +229,7 @@ public class Ca2ta {
 		  frg.mid = values[0];
 		  frg.lclr = Integer.parseInt(values[1]);
 		  frg.rclr = Integer.parseInt(values[2]);
+		  
 		  frgHash.put(frg.mid,frg);
 		  line = bufRead.readLine();
 		  count++;
@@ -238,7 +245,7 @@ public class Ca2ta {
 	}catch (IOException e){
 		e.printStackTrace();
 	}
-   }
+   }   
 
    static void readFrg() {
 	try {
@@ -251,23 +258,25 @@ public class Ca2ta {
 		
 		while ( line != null ) {
 			Matcher m = bracket.matcher(line);
-			String recName = "";
+			
 			if ( m.lookingAt() ) {
-				recName = m.group(1);
-			}
-			int brackets = 0;
-			if (recName.equals("FRG") ) { 
-				FRG frg = processFRG(bufRead);
-				if ( frg != null )  {
-					FRG getFRG = frgHash.get(frg.mid);
-					if ( getFRG == null ) continue;
-					getFRG.nm = frg.nm;
-					getFRG.seq = frg.seq;
-					count++;
-			   	        if ( count % 100000 == 0 ) System.out.println("FRG: " + count);
+				String recName = m.group(1);
+				if (recName.equals("FRG") ) { 
+					FRG frg = processFRG(bufRead);
+					if ( frg != null )  {
+						FRG getFRG = frgHash.get(frg.mid);
+						if ( getFRG != null ) {
+							getFRG.nm = frg.nm;
+							getFRG.seq = frg.seq;
+							count++;
+			   	        		if ( count % 100000 == 0 ) System.out.println("FRG: " + count);
+						}
+					} else {
+						System.out.println("FRG IS NULL for: " + frg.mid);
+					}
+				} else {
+					skipMsg(bufRead);
 				}
-			} else {
-				skipMsg(bufRead);
 			}
 			line = bufRead.readLine();
 		}
@@ -329,7 +338,6 @@ public class Ca2ta {
 			recName = m.group(1);
 		}
 
-		int brackets = 0;
 		if (recName.equals("CCO") ) { 
 			processContig(bufRead);
 			count++;
@@ -359,7 +367,7 @@ public class Ca2ta {
 			} else if ( fieldName.equals("src") ) {
 				frg.nm = bufRead.readLine();
 			} else if ( fieldName.equals("seq") ) {			
-				frg.seq = Compression.compress(readSequence(bufRead));
+				frg.seq = StringCompression.compress(readSequence(bufRead));
 			}
 		}
 		} catch (NumberFormatException e)  {
@@ -370,7 +378,7 @@ public class Ca2ta {
 	}
 	return frg;   
    }
-   
+
    static void processContig( BufferedReader bufRead ) throws Exception {
    	String line = bufRead.readLine();
 
@@ -402,7 +410,7 @@ public class Ca2ta {
 			if ( fieldName.equals("len") ) {
 				cco.len = Integer.parseInt(fieldValue);
 			} else if ( fieldName.equals("cns") ) {
-				cco.cns = Compression.compress(readSequence(bufRead));
+				cco.cns = StringCompression.compress(readSequence(bufRead));
 			} else if ( fieldName.equals("npc") ) {			
 				cco.npc = Integer.parseInt(fieldValue);
 			}
@@ -429,17 +437,24 @@ public class Ca2ta {
 				}
 				mps.typ = fieldValue.charAt(0);
 			} else if ( fieldName.equals("mid") ) {
-				mps.mid = fieldValue;
+				mps.mid = fieldValue;				
 			} else if ( fieldName.equals("pos") ) {			
 				String [] posArray = fieldValue.split(",");
 				mps.lpos = Integer.parseInt(posArray[0]);
 				mps.rpos = Integer.parseInt(posArray[1]);
+				if ( mps.rpos < mps.lpos ) {					
+					int tmp = mps.lpos;
+					mps.lpos = mps.rpos;
+					mps.rpos = tmp;
+					mps.rc = true;
+				}
+				
 			} else if ( fieldName.equals("dln") ) {
 				mps.dln = Integer.parseInt(fieldValue);
 			} else if ( fieldName.equals("del") ) {
 				line = bufRead.readLine();
 				if ( line.equals("}") )  {
-					return null;
+					break;
 				}
 				String delStr = new String();
 				while ( line != null && !line.equals("}") ) {
