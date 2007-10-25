@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: eCR.c,v 1.31 2007-09-25 05:46:28 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: eCR.c,v 1.32 2007-10-25 16:49:42 gdenisov Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -1624,7 +1624,7 @@ GetNewUnitigMultiAlign(NodeCGW_T *unitig,
   //  DP_Compare.
   //
   CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
-                          CNS_OPTIONS_SMOOTH_WIN_DEFAULT,
+                          CNS_OPTIONS_MIN_ANCHOR_DEFAULT,
                           CNS_OPTIONS_MAX_NUM_ALLELES };
   ALIGNMENT_CONTEXT=AS_CONSENSUS;
 
