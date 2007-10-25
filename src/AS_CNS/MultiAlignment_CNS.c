@@ -24,7 +24,7 @@
    Assumptions:  
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.170 2007-10-17 22:34:58 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.171 2007-10-25 16:44:36 gdenisov Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -1608,7 +1608,7 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
   CNS_Options  opp_private;
   if (opp == NULL) {
     opp_private.split_alleles   = CNS_OPTIONS_SPLIT_ALLELES_DEFAULT;
-    opp_private.smooth_win      = CNS_OPTIONS_SMOOTH_WIN_DEFAULT;
+    opp_private.smooth_win      = CNS_OPTIONS_MIN_ANCHOR_DEFAULT-1;
     opp_private.max_num_alleles = CNS_OPTIONS_MAX_NUM_ALLELES;
     opp = &opp_private;
   }
@@ -2067,7 +2067,7 @@ SmoothenVariation(double *var, int len, int window)
   int i;
   double *y = (double *)safe_malloc(len * sizeof(double));
 
-  if (window == 0)
+  if (window <= 0)
     {
       safe_free(y);
       return;
@@ -2080,7 +2080,7 @@ SmoothenVariation(double *var, int len, int window)
       int max_right_win = window - max_left_win;
 
       j = i-1;
-      while (j>=0 && left_win <= max_left_win)
+      while (j>=0 && left_win<=max_left_win)
         {
           if (var[j] > ZERO_MINUS)   // consensus is not gap
             {
@@ -2093,8 +2093,7 @@ SmoothenVariation(double *var, int len, int window)
           j--;
         }
       j = i+1;
-
-      while (j<len && right_win <= max_right_win)
+      while (j<len && right_win<=max_right_win)
         {
           if (var[j] > ZERO_MINUS)  // consensus is not gap
             {
@@ -2114,6 +2113,7 @@ SmoothenVariation(double *var, int len, int window)
     }
   safe_free(y);
 }
+
 
 static void
 GetReadIidsAndNumReads(int cid, VarRegion  *vreg)
@@ -2775,7 +2775,7 @@ PopulateVARRecord(int is_phased, int32 *cids, int32 *nvars, int32 *min_len_vlist
   (*v_list)[*nvars].position.end = vreg.end+1;
   (*v_list)[*nvars].num_reads = (int32)vreg.nr;
   (*v_list)[*nvars].num_conf_alleles = vreg.nca;
-  (*v_list)[*nvars].anchor_size = opp->smooth_win;
+  (*v_list)[*nvars].min_anchor_size = opp->smooth_win+1;
   (*v_list)[*nvars].var_length = vreg.end+1-vreg.beg;
   (*v_list)[*nvars].curr_var_id = vreg_id;
   (*v_list)[*nvars].phased_var_id = is_phased ? vreg_id-1 : -1;
@@ -3181,7 +3181,7 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
   CNS_Options  opp_private;
   if (opp == NULL) {
     opp_private.split_alleles   = CNS_OPTIONS_SPLIT_ALLELES_DEFAULT;
-    opp_private.smooth_win      = CNS_OPTIONS_SMOOTH_WIN_DEFAULT;
+    opp_private.smooth_win      = CNS_OPTIONS_MIN_ANCHOR_DEFAULT-1;
     opp_private.max_num_alleles = CNS_OPTIONS_MAX_NUM_ALLELES;
     opp = &opp_private;
   }
@@ -3339,20 +3339,30 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
 
           vreg.beg = vbeg = vend = i;
 
-          /* Set beginning of unsmoothed VAR region */
+          /* Set the beginning of unsmoothed VAR region */
           while (vreg.beg < len_manode - 1 && 
                  DBL_EQ_DBL(varf[vreg.beg], (double)0.0))
             vreg.beg++;
 
-          /* Set end of smoothed VAR region */
-          while ((vend < len_manode-1) && (svarf[vend] > ZERO_PLUS))
-            vend++;
-
-          vreg.end = vend;
+          /* Set the end of smoothed VAR region */
+          if (opp->smooth_win >= 0)
+          {
+              while ((vend < len_manode-1) && (svarf[vend] > ZERO_PLUS))
+                  vend++;
+              vreg.end = vend;
+          }
+          else
+          {
+              vend = vbeg+1;
+              vreg.end = vend;
+          }
 
           /* Set end of unsmoothed VAR region */
-          while (vreg.end >0 && varf[vreg.end] < ZERO_PLUS)
-            vreg.end--;
+          if (opp->smooth_win >= 0)
+          {
+              while (vreg.end >0 && varf[vreg.end] < ZERO_PLUS)
+                vreg.end--;
+          }
 
           // Store iids of all the reads in current region
           vreg.nr = 0;

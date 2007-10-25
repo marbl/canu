@@ -29,7 +29,7 @@
 #include "MultiAlignStore_CNS.h"
 #include "MultiAlignment_CNS.h"
 
-static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.19 2007-09-05 11:22:13 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.20 2007-10-25 16:44:36 gdenisov Exp $";
 
 static HashTable_AS *utgUID2IID;
 
@@ -148,7 +148,7 @@ static IntConConMesg* convert_CCO_to_ICM(SnapConConMesg* ccoMesg)
      {
         icmMesg->v_list[i].position       = ccoMesg->vars[i].position;
         icmMesg->v_list[i].num_reads      = ccoMesg->vars[i].num_reads; 
-        icmMesg->v_list[i].anchor_size    = ccoMesg->vars[i].anchor_size;
+        icmMesg->v_list[i].min_anchor_size    = ccoMesg->vars[i].min_anchor_size;
         icmMesg->v_list[i].var_length     = ccoMesg->vars[i].var_length ;
         icmMesg->v_list[i].nr_conf_alleles=strdup(ccoMesg->vars[i].nr_conf_alleles);
         icmMesg->v_list[i].weights        = strdup(ccoMesg->vars[i].weights);
@@ -248,7 +248,7 @@ int main (int argc, char *argv[]) {
     int expert=0;
     int in_memory=0;
     CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
-                            CNS_OPTIONS_SMOOTH_WIN_DEFAULT,
+                            CNS_OPTIONS_MIN_ANCHOR_DEFAULT,
                             CNS_OPTIONS_MAX_NUM_ALLELES };
 
 #ifdef X86_GCC_LINUX
@@ -364,7 +364,7 @@ int main (int argc, char *argv[]) {
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.19 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.20 $ processing. Started %s\n",
 	      ctime(&t));
       InitializeAlphTable();
 

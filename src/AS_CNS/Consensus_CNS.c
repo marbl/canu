@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char rcsid[] = "$Id: Consensus_CNS.c,v 1.58 2007-09-25 01:41:05 brianwalenz Exp $";
+static const char rcsid[] = "$Id: Consensus_CNS.c,v 1.59 2007-10-25 16:44:36 gdenisov Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -93,7 +93,7 @@ main (int argc, char **argv) {
   int allow_neg_hang_retry = 0;
 
   CNS_Options options = { CNS_OPTIONS_SPLIT_ALLELES_DEFAULT,
-                          CNS_OPTIONS_SMOOTH_WIN_DEFAULT,
+                          CNS_OPTIONS_MIN_ANCHOR_DEFAULT,
                           CNS_OPTIONS_MAX_NUM_ALLELES };
 
   int num_unitig_failures = 0;
