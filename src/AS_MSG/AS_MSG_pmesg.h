@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.55 2007-09-25 01:39:41 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.56 2007-10-25 16:36:17 gdenisov Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE
 #define AS_MSG_PMESG_INCLUDE
@@ -482,7 +482,7 @@ typedef struct IntMultiVar {
   SeqInterval     position;
   int32           num_reads;
   int32           num_conf_alleles;
-  int32           anchor_size;
+  int32           min_anchor_size;
   int32           var_length;
   int32           curr_var_id; // id of current VAR record
   int32           phased_var_id;  // id of the VAR record phased with the current one

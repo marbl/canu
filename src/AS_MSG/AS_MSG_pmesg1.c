@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.15 2007-09-19 20:55:35 skoren Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.16 2007-10-25 16:36:17 gdenisov Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -358,7 +358,7 @@ static void Read_IMV_Mesg(FILE *fin, long indx)
   GET_PAIR(imv->position.bgn,imv->position.end,"pos:"F_COORD","F_COORD,"position field");
   GET_FIELD(imv->num_reads,"nrd:"F_S32,"number of reads"); 
   GET_FIELD(imv->num_conf_alleles,"nca:"F_S32,"number of confirmed alleles");
-  GET_FIELD(imv->anchor_size,"anc:"F_S32,"anchor size");
+  GET_FIELD(imv->min_anchor_size,"anc:"F_S32,"minimal anchor size");
   GET_FIELD(imv->var_length,"len:"F_S32,"length field");
   GET_FIELD(imv->curr_var_id,"vid:"F_S32,"current VAR record id");
   GET_FIELD(imv->phased_var_id,"pid:"F_S32,"phased VAR record id");
@@ -377,7 +377,7 @@ static void Read_VAR_Mesg(FILE *fin, long indx)
   GET_PAIR(smv->position.bgn,smv->position.end,"pos:"F_COORD","F_COORD,"position field");
   GET_FIELD(smv->num_reads,"nrd:"F_S32,"number of reads");
   GET_FIELD(smv->num_conf_alleles,"nca:"F_S32,"number of confirmed alleles");
-  GET_FIELD(smv->anchor_size,"anc:"F_S32,"anchor size");
+  GET_FIELD(smv->min_anchor_size,"anc:"F_S32,"minimal anchor size");
   GET_FIELD(smv->var_length,"len:"F_S32,"length field");
   GET_FIELD(smv->curr_var_id,"vid:"F_S32,"current VAR record id");
   GET_FIELD(smv->phased_var_id,"pid:"F_S32,"phased VAR record id");
@@ -1466,7 +1466,7 @@ static void Write_IMV_Mesg(FILE *fout, IntMultiVar *imv)
   fprintf(fout,"pos:"F_COORD","F_COORD"\n",imv->position.bgn,imv->position.end);
   fprintf(fout,"nrd:"F_S32"\n",imv->num_reads);
   fprintf(fout,"nca:"F_S32"\n",imv->num_conf_alleles);
-  fprintf(fout,"anc:"F_S32"\n",imv->anchor_size);
+  fprintf(fout,"anc:"F_S32"\n",imv->min_anchor_size);
   fprintf(fout,"len:"F_S32"\n",imv->var_length);
   fprintf(fout,"vid:"F_S32"\n",imv->curr_var_id);
   fprintf(fout,"pid:"F_S32"\n",imv->phased_var_id);
@@ -1484,7 +1484,7 @@ static void Write_VAR_Mesg(FILE *fout, IntMultiVar *smv)
   fprintf(fout,"pos:"F_COORD","F_COORD"\n",smv->position.bgn,smv->position.end);
   fprintf(fout,"nrd:"F_S32"\n",smv->num_reads);
   fprintf(fout,"nca:"F_S32"\n",smv->num_conf_alleles);
-  fprintf(fout,"anc:"F_S32"\n",smv->anchor_size);
+  fprintf(fout,"anc:"F_S32"\n",smv->min_anchor_size);
   fprintf(fout,"len:"F_S32"\n",smv->var_length);
   fprintf(fout,"vid:"F_S32"\n",smv->curr_var_id);
   fprintf(fout,"pid:"F_S32"\n",smv->phased_var_id);
