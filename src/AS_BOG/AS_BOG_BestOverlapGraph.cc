@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.39 2007-09-20 16:27:13 eliv Exp $
- * $Revision: 1.39 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.40 2007-10-25 05:05:42 brianwalenz Exp $
+ * $Revision: 1.40 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.39 2007-09-20 16:27:13 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.40 2007-10-25 05:05:42 brianwalenz Exp $";
 
 //  System include files
 #include<iostream>
@@ -578,6 +578,8 @@ namespace AS_BOG{
     // Computes the score for a Longest Edge BOG based on overlap length but
     //   after applying an an error rate cutoff.
 
+        if (olap.dat.ovl.orig_erate > consensusCutoff )
+            return 0;
         if (olap.dat.ovl.corr_erate > mismatchCutoff )
             return 0;
 

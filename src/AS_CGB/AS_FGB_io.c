@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_FGB_io.c,v 1.25 2007-07-20 17:17:08 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_FGB_io.c,v 1.26 2007-10-25 05:05:42 brianwalenz Exp $";
 
 //  Fragment Overlap Graph Builder file input and output.  This
 //  functional unit reads a *.ovl prototype i/o file an massages it
@@ -620,6 +620,8 @@ void process_ovl_store(char * OVL_Store_Path,
   IntEdge_ID novl_containment = 0;
   IntEdge_ID nedges_delta = 0;
 
+  uint32  overlap_consensus_threshold = AS_OVS_encodeQuality(AS_CNS_ERROR_RATE);
+
   ovs = AS_OVS_openOverlapStore(OVL_Store_Path);
 
   //  Copy the information in  (* olap)  into  (* an_edge)  with
@@ -656,6 +658,7 @@ void process_ovl_store(char * OVL_Store_Path,
     //  computed overlaps), process the overlap.
     //
     if ((olap.dat.ovl.corr_erate <= overlap_error_threshold) &&
+        (olap.dat.ovl.orig_erate <= overlap_consensus_threshold) &&
         (afr_to_avx[olap.a_iid] != AS_CGB_NOT_SEEN_YET) &&
         (afr_to_avx[olap.b_iid] != AS_CGB_NOT_SEEN_YET)) {
 

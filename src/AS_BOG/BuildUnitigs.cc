@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.29 2007-10-23 13:40:01 eliv Exp $
- * $Revision: 1.29 $
+ * $Id: BuildUnitigs.cc,v 1.30 2007-10-25 05:05:42 brianwalenz Exp $
+ * $Revision: 1.30 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.29 2007-10-23 13:40:01 eliv Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.30 2007-10-25 05:05:42 brianwalenz Exp $";
 
 //  System include files
 
@@ -75,6 +75,8 @@ int  main (int argc, char * argv [])
    OVSoverlap      olap;
 
    fprintf(stderr, "%s\n\n", BUILD_UNITIGS_MAIN_CM_ID);
+
+   argc = AS_configure(argc, argv);
 
    // Get path/names of olap and frg stores from command line
    const char* OVL_Store_Path;

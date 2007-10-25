@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.31 2007-09-20 16:27:13 eliv Exp $
- * $Revision: 1.31 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.32 2007-10-25 05:05:42 brianwalenz Exp $
+ * $Revision: 1.32 $
 */
 
 //  System include files
@@ -169,9 +169,11 @@ namespace AS_BOG{
 
     struct LongestHighIdent : public BestOverlapGraph {
         int mismatchCutoff;
+        int consensusCutoff;
         LongestHighIdent( float maxMismatch) : BestOverlapGraph()
         {
-            mismatchCutoff = AS_OVS_encodeQuality( maxMismatch / 100.0 );
+            mismatchCutoff  = AS_OVS_encodeQuality( maxMismatch / 100.0 );
+            consensusCutoff = AS_OVS_encodeQuality( AS_CNS_ERROR_RATE );
         }
         int getThreshold() { return mismatchCutoff; }
         float scoreOverlap( const OVSoverlap& olap);
