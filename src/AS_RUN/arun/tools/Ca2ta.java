@@ -40,28 +40,97 @@ class Contig {
 	int npc;
 	byte [] cns;
 	ArrayList<MPS> mpsList;
+	int [] ra_offsets;
 	
 	public String toString() {
 		StringBuilder result = new StringBuilder();
-	     	try {
+	    try {
 			Comparator<MPS> comp = new Comparator<MPS>() { 
 				public int compare(MPS o1, MPS o2) { 
 					int retVal = o1.lpos - o2.lpos;
-					if ( retVal == 0 )
-						retVal = o1.rpos - o2.rpos;
+					if ( retVal == 0 ) {
+						FRG frg1 = Ca2ta.frgHash.get(o1.mid);
+						FRG frg2 = Ca2ta.frgHash.get(o2.mid);
+						int o1_len = o1.dln+frg1.rclr-frg1.lclr+1;
+						int o2_len = o2.dln+frg2.rclr-frg2.lclr+1;
+						String o1_nm = frg1.nm;
+						String o2_nm = frg1.nm;
+						retVal = o1_len - o2_len;
+						System.out.printf("CompareTo %s for %s (%d) and %s (%d): %d\n",acc,o1_nm,o1_len,o2_nm,o2_len,retVal);
+					}
 					return retVal;
 				}};
 			Collections.sort(mpsList,comp);
 			String cnsDecompressed = StringCompression.decompress(cns);
 			result.append("##" + acc + " " + npc + " " + cnsDecompressed.length() + " bases, 00000000 checksum." + "\n");
 			result.append(Ca2ta.formatSeq(cnsDecompressed));
+			buildOffsets();			
 			for ( MPS mps : mpsList )
-				result.append(mps.toString());
+				result.append(printMPS(mps));
 		} catch (java.io.IOException e) {
 			e.printStackTrace();
 		}
 		return result.toString();
 	}
+	public void buildOffsets() throws IOException {
+		String cnsStr = StringCompression.decompress(cns);
+		ra_offsets = new int[cnsStr.length()];		
+		int coord = 0;
+		System.out.println("Length = " + (cnsStr.length()-1));
+		for (int i = 0; i < cnsStr.length(); i++){
+			if ( cnsStr.charAt(i) != '-'){
+				coord++;
+			}
+			ra_offsets[i] = coord;
+		}
+	}
+	public String printMPS ( MPS mps ) {
+		StringBuilder result = new StringBuilder();
+		try {
+			FRG frg = Ca2ta.frgHash.get(mps.mid);
+			String seqDecompressed = StringCompression.decompress(frg.seq).substring(frg.lclr,frg.rclr);
+			seqDecompressed = seqDecompressed.toUpperCase();
+			frg.lclr++;
+			int asml = mps.lpos; //asml
+			int asmr = mps.rpos; //asmr
+			int seqleft = frg.lclr; //seqleft
+			int seqright = frg.rclr; //seqright
+			
+			if ( mps.rc ) {
+				seqDecompressed = mps.rc(seqDecompressed);
+				seqleft = frg.rclr;
+				seqright = frg.lclr;
+			}
+			
+			int offset = asml;
+			
+			if ( mps.dln > 0 )
+				seqDecompressed = mps.insertDeletes(seqDecompressed);
+						
+			if ( asmr - asml > seqDecompressed.length()) {
+				asmr = asml + seqDecompressed.length() - 1;
+			}
+			if ( asmr <= 0 )
+				asmr = ra_offsets[0];
+			else
+				asmr = ra_offsets[asmr - 1];
+			if ( asml >= ra_offsets.length )
+				asml = ra_offsets[ra_offsets.length-1];
+			else
+				asml = ra_offsets[asml];
+			result.append("#" + frg.nm + "(" + offset + ")" 
+				+ " [" + (mps.rc?"RC":"") + "] " 
+				+ (mps.dln+frg.rclr-frg.lclr+1) 
+				+ " bases, 00000000 checksum." 
+				+ " {" + seqleft + " " + seqright + "}" 
+				+ " <" + asml + " " + asmr +">" + "\n");
+			result.append(Ca2ta.formatSeq(seqDecompressed));
+		} catch (java.io.IOException e) {
+			e.printStackTrace();
+		}
+		return result.toString();	
+	}
+
 }
 
 class FRG extends ToString {
@@ -74,50 +143,19 @@ class FRG extends ToString {
 }
 
 class MPS {
+	boolean rc;
 	char typ;
 	String mid;
-	boolean rc;
 	int lpos;
 	int rpos;
 	int dln; //gapno
 	int del[]; //gaps
-	public String toString() {
-		StringBuilder result = new StringBuilder();
-	     	try {
-			FRG frg = Ca2ta.frgHash.get(mid);
-			String seqDecompressed = StringCompression.decompress(frg.seq);
-			int my_lpos = lpos;
-			int my_rpos = rpos;
-			int my_lclr = frg.lclr;
-			int my_rclr = frg.rclr;
-			
-			if ( rc ) {
-				seqDecompressed = rc(seqDecompressed);
-				my_lclr = frg.rclr;
-				my_rclr = frg.lclr;
-			} 
-
-			if ( dln > 0 )
-				seqDecompressed = insertDeletes(frg.lclr,seqDecompressed);
-						
-			result.append("#" + frg.nm + "(" + lpos + ")" 
-				+ " [" + (rc?"RC":"") + "] " 
-				+ (dln+frg.rclr-frg.lclr) 
-				+ " bases, 00000000 checksum." 
-				+ " {" + my_lclr + " " + my_rclr + "}" 
-				+ " <" + my_lpos + " " + my_rpos +">" + "\n");
-			result.append(Ca2ta.formatSeq(seqDecompressed.substring(frg.lclr,frg.rclr)));
-		} catch (java.io.IOException e) {
-			e.printStackTrace();
-		}
-		return result.toString();
-	}
 	
-	String insertDeletes(int offset, String seq) {
+	String insertDeletes(String seq) {
 		StringBuffer retSB = new StringBuffer(seq);
 		int localOffset = 0;
 		for ( int gapPos : del ) {
-			retSB.insert(offset+gapPos+localOffset++,"-");
+			retSB.insert(gapPos+localOffset++,"-");
 		}
 		return retSB.toString();
 	}
@@ -131,10 +169,6 @@ class MPS {
                 		case 'T': retSB.append('A');break;
                 		case 'G': retSB.append('C');break;
                 		case 'C': retSB.append('G');break;
-                		case 'a': retSB.append('t');break;
-                		case 't': retSB.append('a');break;
-                		case 'g': retSB.append('c');break;
-                		case 'c': retSB.append('g');break;
                 		default: retSB.append('N');break;
         		}
 		}
@@ -442,11 +476,11 @@ public class Ca2ta {
 				String [] posArray = fieldValue.split(",");
 				mps.lpos = Integer.parseInt(posArray[0]);
 				mps.rpos = Integer.parseInt(posArray[1]);
-				if ( mps.rpos < mps.lpos ) {					
-					int tmp = mps.lpos;
-					mps.lpos = mps.rpos;
-					mps.rpos = tmp;
-					mps.rc = true;
+				if ( mps.lpos > mps.rpos ) {
+					int temp = mps.rpos;
+					mps.rpos = mps.lpos;
+					mps.lpos = temp;
+					mps.rc = true;	
 				}
 				
 			} else if ( fieldName.equals("dln") ) {
