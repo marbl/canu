@@ -140,7 +140,7 @@ print STDERR "configureESTmapper-- Initializing positionDB creation.\n";
 if ((! -e "$genomedir/genome.seqStore.blocks") ||
     (! -e "$genomedir/genome.seqStore.sequence") ||
     (! -e "$genomedir/genome.seqStore.out")) {
-    if (runCommand("$mimsf $genomedir/genome.fasta > $genomedir/genome.seqStore.out 2>&1")) {
+    if (runCommand("$mimsf $genomedir/genome.fasta $genomedir/genome > $genomedir/genome.seqStore.out 2>&1")) {
         die "Failed.\n";
     }
 }
@@ -243,19 +243,27 @@ print F "\n";
 print F "ln -s \"$genomedir/genome.seqStore.blocks\"   \"$genomedir/seg\$seg.building.posDB.seqStore.blocks\"\n";
 print F "ln -s \"$genomedir/genome.seqStore.sequence\" \"$genomedir/seg\$seg.building.posDB.seqStore.sequence\"\n";
 print F "\n";
-print F "$posdb \\\n";
-print F "  -mersize $mersize \\\n";
-print F "  -merbegin \$beg \\\n";
-print F "  -merend \$end \\\n";
-print F "  -sequence \"$genomedir/genome.fasta\" \\\n";
-print F "  -output   \"$genomedir/seg\$seg.building.posDB\" \\\n";
-print F "&& \\\n";
-print F "mv \"$genomedir/seg\$seg.building.posDB\" \\\n";
-print F "   \"$genomedir/seg\$seg.posDB\" \\\n";
-print F "&& \\\n";
-print F "$meryl -countbatch `expr \$jobid - 1` -o \"$genomedir/genome\" \\\n";
+print F "\n";
+print F "if [ ! -e \"$genomedir/seg\$seg.posDB\" ] ; then\n";
+print F "  $posdb \\\n";
+print F "    -mersize $mersize \\\n";
+print F "    -merbegin \$beg \\\n";
+print F "    -merend \$end \\\n";
+print F "    -sequence \"$genomedir/genome.fasta\" \\\n";
+print F "    -output   \"$genomedir/seg\$seg.building.posDB\" \\\n";
+print F "  && \\\n";
+print F "  mv \"$genomedir/seg\$seg.building.posDB\" \\\n";
+print F "     \"$genomedir/seg\$seg.posDB\"\n";
+print F "fi\n";
+print F "\n";
+print F "\n";
+print F "$meryl \\\n";
+print F "  -countbatch `expr \$jobid - 1` \\\n";
+print F "  -v \\\n";
+print F "  -o \"$genomedir/genome\" \\\n";
 print F "|| \\\n";
-print F "rm -f dddd\n";
+print F "rm -f \"$genomedir/genome.mcidx\" \"$genomedir/genome.mcdat\"\n";
+print F "\n";
 print F "\n";
 print F "rm -f \"$genomedir/seg\$seg.building.posDB.seqStore.blocks\"\n";
 print F "rm -f \"$genomedir/seg\$seg.building.posDB.seqStore.sequence\"\n";
@@ -286,10 +294,13 @@ if      ($local) {
     my $seg = "000";
 
     while ($seg ne $segId) {
-        print STDERR "Creating $seg out of $segId\n";
+        #  Copy $seg (a string) into $s (an integer).
+        my $s = int($seg);
 
-        if (! -e "$genomedir/seg$seg.posDB") {
-            my $s = $seg + 1;
+        print STDERR "Creating $seg out of $segId\n";
+        
+        if ((! -e "$genomedir/seg$seg.posDB") || (! -e "$genomedir/genome.batch$s.mcdat")) {
+            $s++;
             runCommand("/bin/sh $genomedir/create.sh $s") and die "Segment $seg failed.\n";
         }
 
