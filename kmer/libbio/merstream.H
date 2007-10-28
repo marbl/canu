@@ -133,13 +133,19 @@ merStream::theSequenceNumber(void) {
 inline
 u64bit
 merStream::approximateNumberOfMers(void) {
-  if (_ss_file)
-    return(_ss_file->numberOfACGT());
-  if (_cs_stream)
-    return(_cs_stream->lengthOfSequences());
-  if (_st_string)
-    return(_st_stringLen);
-  return(~u64bitZERO);
+  u64bit  approx = ~u64bitZERO;
+
+  if        (_ss_file) {
+    approx = _ss_file->numberOfACGT();
+    if (_ss_end - _ss_beg < approx)
+      approx = _ss_end - _ss_beg;
+  } else if (_cs_stream) {
+    approx = _cs_stream->lengthOfSequences();
+  } else if (_st_string) {
+    approx = _st_stringLen;
+  }
+
+  return(approx);
 }
 
 
