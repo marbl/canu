@@ -1,6 +1,122 @@
 #include "snapper2.H"
 
 
+
+
+
+class encodedQuery {
+private:
+  u64bit   *_mers;
+  u32bit   *_posn;
+  u32bit   *_span;
+  u32bit    _mersActive;
+  u32bit    _mersInQuery;
+public:
+
+  encodedQuery(seqInCore           *seq,
+               kMerBuilder         *KB,
+               bool                 rc) {
+    _mers        = new u64bit [seq->sequenceLength()];
+    _posn        = new u32bit [seq->sequenceLength()];
+    _span        = new u32bit [seq->sequenceLength()];
+    _mersActive  = 0;
+    _mersInQuery = 0;
+
+    //  Unfortunately, we need to use the slightly heavyweight merStream
+    //  and kMerBuilder to get mers.  We used to build mers in a tight
+    //  loop, but with the inclusion of spacing and compression, we
+    //  cannot do that anymore.
+
+    merStream  *MS = new merStream(KB, seq);
+    u64bit      mer;
+    u32bit      val;
+
+    //  The rc flag tells us if we should build for the forward or
+    //  reverse strand.  If forward (rc == false) the mers are in the
+    //  same order.  If reverse, the mers are both reverse-complemented,
+    //  and appear in our mers[] and skip[] lists reversed.
+
+    if (rc == false) {
+      while (MS->nextMer()) {
+        mer = MS->theFMer();
+
+        if ((maskDB && (maskDB->exists(mer) == true)) ||
+            (onlyDB && (onlyDB->exists(mer) == false)))
+          ;  //  Don't use it.
+        else {
+          _mers[_mersActive] = mer;
+          _posn[_mersActive] = MS->thePositionInSequence();
+          _span[_mersActive] = MS->theFMer().getMerSpan();
+          _mersActive++;
+        }
+
+        _mersInQuery++;
+      }
+    } else {
+      while (MS->nextMer()) {
+        mer = MS->theRMer();
+
+        if ((maskDB && (maskDB->exists(mer) == true)) ||
+            (onlyDB && (onlyDB->exists(mer) == false)))
+          ;  //  Don't use it.
+        else {
+          //  We die horribly unless we do the goofy math to get the
+          //  _posn.  I'm sure that could be cleaned up, but it'd take
+          //  more effort than I want now (being we'd have to figure
+          //  out what the search/hitMatrix stuff is doing).
+          _mers[_mersActive] = mer;
+          _posn[_mersActive] = seq->sequenceLength() - MS->thePositionInSequence() - MS->theRMer().getMerSpan();
+          _span[_mersActive] = MS->theRMer().getMerSpan();
+          _mersActive++;
+        }
+
+        _mersInQuery++;
+      }
+
+      //  Reverse the array -- this appears to be optional.
+#if 1
+      for (u32bit i=0, j=_mersActive-1; i<j; i++, j--) {
+        mer      = _mers[i];
+        _mers[i] = _mers[j];
+        _mers[j] = mer;
+
+        val      = _posn[i];
+        _posn[i] = _posn[j];
+        _posn[j] = val;
+
+        val      = _span[i];
+        _span[i] = _span[j];
+        _span[j] = val;
+      }
+#endif
+    }
+
+    delete MS;
+  };
+
+
+  ~encodedQuery() {
+    delete [] _mers;
+  };
+
+  u32bit           numberOfMersActive(void)    { return(_mersActive);  };
+  u32bit           numberOfMersInQuery(void)   { return(_mersInQuery); };
+
+  u64bit           getMer(u32bit i)            { return(_mers[i]);     };
+  u32bit           getPosn(u32bit i)           { return(_posn[i]);     };
+  u32bit           getSpan(u32bit i)           { return(_span[i]);     };
+};
+
+
+
+
+
+
+
+
+
+
+
 void
 doSearch(searcherState       *state,
          seqInCore           *seq,
@@ -12,46 +128,20 @@ doSearch(searcherState       *state,
          logMsg              *theLog) {
   encodedQuery  *query  = 0L;
   hitMatrix     *matrix = 0L;
-  u32bit         qMers  = 0;
   double         startTime  = 0.0;
+
+  if (state->KB == 0L)
+    state->KB = new kMerBuilder(config._KBmerSize,
+                                config._KBcompression,
+                                config._KBspacingTemplate);
+
+  startTime = getTime();
 
   ///////////////////////////////////////
   //
   //  Build and mask the query
   //
-  startTime = getTime();
-  query = new encodedQuery(seq->sequence(), seq->sequenceLength(), config._merSize, rc);
-
-  startTime = getTime();
-  if (maskDB)
-    for (u32bit qi=0; qi<query->numberOfMers(); qi++)
-      if ((query->getSkip(qi) == false) &&
-          (maskDB->exists(query->getMer(qi))))
-        query->setSkip(qi);
-
-  if (onlyDB)
-    for (u32bit qi=0; qi<query->numberOfMers(); qi++)
-      if ((query->getSkip(qi) == false) &&
-          (!onlyDB->exists(query->getMer(qi))))
-        query->setSkip(qi);
-
-#ifdef USEEXACTSIZE
-  intervalList   *IL = new intervalList(config._merSize);
-
-  for (u32bit qi=0; qi<query->numberOfMers(); qi++) {
-    if (query->getSkip(qi) == false)
-      IL->add(qi, config._merSize);
-  }
-
-  IL->merge();
-
-  qMers = IL->sumOfLengths();
-  delete IL;
-#else
-  qMers = query->numberOfValidMers();
-#endif
-  state->maskTime += getTime() - startTime;
-
+  query = new encodedQuery(seq, state->KB, rc);
 
 
   ///////////////////////////////////////
@@ -59,16 +149,17 @@ doSearch(searcherState       *state,
   //  Get the hits
   //
   startTime = getTime();
-  matrix = new hitMatrix(seq->sequenceLength(), qMers, idx);
-  for (u32bit qi=0; qi<query->numberOfMers(); qi++) {
-    if ((query->getSkip(qi) == false) &&
-        (positions->get(query->getMer(qi), state->posn, state->posnMax, state->posnLen))) {
-      matrix->addHits(qi, state->posn, state->posnLen);
+  matrix = new hitMatrix(seq->sequenceLength(), query->numberOfMersInQuery(), idx, theLog);
+  for (u32bit qidx=0; qidx<query->numberOfMersActive(); qidx++) {
+    if (positions->get(query->getMer(qidx), state->posn, state->posnMax, state->posnLen)) {
+#if 0
+      fprintf(stderr, "rc=%d qidx="u32bitFMT" pos="u32bitFMT" mer="u64bitHEX" hits="u64bitFMT"\n",
+              rc, qidx, query->getPosn(qidx), query->getMer(qidx), state->posnLen);
+#endif
+      matrix->addHits(query->getPosn(qidx), state->posn, state->posnLen);
     }
   }
   state->searchTime += getTime() - startTime;
-
-
 
 
   ///////////////////////////////////////
@@ -79,7 +170,6 @@ doSearch(searcherState       *state,
   matrix->filter(rc ? 'r' : 'f', config._minHitCoverage, config._minHitLength,
                  theHits, theHitsLen, theHitsMax);
   state->chainTime += getTime() - startTime;
-
 
 
   ////////////////////////////////////////
@@ -114,12 +204,9 @@ doSearch(searcherState       *state,
       u32bit                GENlo  = theHits[h]._dsLo;
       u32bit                GENhi  = theHits[h]._dsHi;
 
-#warning this kMerBuilder should be in config
-      kMerBuilder           KB(config._merSize);
-
-      merStream            *MS     = new merStream(&KB, GENseq, GENlo, GENhi - GENlo);
-      positionDB           *PS     = new positionDB(MS, config._merSize, 0, 0L, 0L, 0, false);
-      hitMatrix            *HM     = new hitMatrix(seq->sequenceLength(), qMers, idx);
+      merStream            *MS     = new merStream(state->KB, GENseq, GENlo, GENhi - GENlo);
+      positionDB           *PS     = new positionDB(MS, config._KBmerSize, 0, 0L, 0L, 0, false);
+      hitMatrix            *HM     = new hitMatrix(seq->sequenceLength(), query->numberOfMersInQuery(), idx, theLog);
 
       //  We find the number of hits we would get if we use a
       //  countLimit of i.
@@ -136,9 +223,8 @@ doSearch(searcherState       *state,
       u32bit maxNum  = 0;
 #endif
 
-      for (u32bit qi=0; qi<query->numberOfMers(); qi++) {
-        if ((query->getSkip(qi) == false) &&
-            (PS->get(query->getMer(qi), state->posn, state->posnMax, state->posnLen))) {
+      for (u32bit qidx=0; qidx<query->numberOfMersActive(); qidx++) {
+        if (PS->get(query->getMer(qidx), state->posn, state->posnMax, state->posnLen)) {
           numMers++;
 
           if (state->posnLen < COUNT_MAX)
@@ -155,11 +241,11 @@ doSearch(searcherState       *state,
       //  Scan the number of hits at count, pick the first highest
       //  count such that the number of hits is below our threshold.
       //
-      for (u32bit qi=1; qi<COUNT_MAX; qi++) {
-        numHitsAtCount[qi] = numHitsAtCount[qi-1] + numHitsAtCount[qi];
+      for (u32bit qidx=1; qidx<COUNT_MAX; qidx++) {
+        numHitsAtCount[qidx] = numHitsAtCount[qidx-1] + numHitsAtCount[qidx];
 
-        if (numHitsAtCount[qi] <= numMers * config._repeatThreshold)
-          countLimit = qi;
+        if (numHitsAtCount[qidx] <= numMers * config._repeatThreshold)
+          countLimit = qidx;
       }
 
 #ifdef SHOW_HIT_DISCARDING
@@ -169,9 +255,8 @@ doSearch(searcherState       *state,
                  countLimit, numHitsAtCount[countLimit]);
 #endif
 
-      for (u32bit qi=0; qi<query->numberOfMers(); qi++) {
-        if ((query->getSkip(qi) == false) &&
-            (PS->get(query->getMer(qi), state->posn, state->posnMax, state->posnLen))) {
+      for (u32bit qidx=0; qidx<query->numberOfMersActive(); qidx++) {
+        if (PS->get(query->getMer(qidx), state->posn, state->posnMax, state->posnLen)) {
           if (state->posnLen <= countLimit) {
             for (u32bit x=0; x<state->posnLen; x++)
               state->posn[x] += GENlo + config._useList.startOf(theHits[h]._dsIdx);
@@ -183,7 +268,7 @@ doSearch(searcherState       *state,
             //  values.  Or we could simply reset the counts to the global
             //  value.
             //
-            HM->addHits(qi, state->posn, state->posnLen, positions->count(query->getMer(qi)));
+            HM->addHits(query->getPosn(qidx), state->posn, state->posnLen, positions->count(query->getMer(qidx)));
           }
         }
       }

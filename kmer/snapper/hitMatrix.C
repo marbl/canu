@@ -2,7 +2,7 @@
 
 #define MINCOUNT  3
 
-hitMatrix::hitMatrix(u32bit qsLen, u32bit qsMers, u32bit qsIdx) {
+hitMatrix::hitMatrix(u32bit qsLen, u32bit qsMers, u32bit qsIdx, logMsg *theLog) {
   _qsLen    = qsLen;
   _qsMers   = qsMers;
   _qsIdx    = qsIdx;
@@ -12,6 +12,8 @@ hitMatrix::hitMatrix(u32bit qsLen, u32bit qsMers, u32bit qsIdx) {
   _hits     = new diagonalLine [_hitsMax];
 
   _matches  = 0L;
+
+  _theLog   = theLog;
 }
 
 hitMatrix::~hitMatrix() {
@@ -52,9 +54,9 @@ hitMatrix::addMatch(u32bit         isunique,
   trapMatch *n = new trapMatch(isunique, qsLo, qsHi, dsLo, dsHi, IL, ML);
 
 #ifdef SHOW_HITMATRIX
-  theLog->add(stderr, "chained:  Q::"u32bitFMT"-"u32bitFMT"("u32bitFMT") G::"u32bitFMT"-"u32bitFMT"("u32bitFMT")\n",
-              qsLo, qsHi, qsHi - qsLo,
-              dsLo, dsHi, dsHi - dsLo);
+  _theLog->add("chained:  Q::"u32bitFMT"-"u32bitFMT"("u32bitFMT") G::"u32bitFMT"-"u32bitFMT"("u32bitFMT")\n",
+               qsLo, qsHi, qsHi - qsLo,
+               dsLo, dsHi, dsHi - dsLo);
 #endif
 
   //  And find a home for it in the list.  No merging of matches is done here.  It's
@@ -241,7 +243,7 @@ hitMatrix::filter(char      direction,
     u32bit  dsHigh       = _hits[firstHit].val.dPos;
     u32bit  minCount     = ~u32bitZERO;
 
-    merCovering   *IL = new merCovering(config._merSize);
+    merCovering   *IL = new merCovering(config._KBmerSize);
     merList       *ML = new merList();
 
     for (u32bit i=firstHit; i<lastHit; i++) {
@@ -269,12 +271,12 @@ hitMatrix::filter(char      direction,
       if ((minCount <= MINCOUNT) || (minLength <= IL->sumOfLengths())) {
         addMatch(minCount <= MINCOUNT,
                  qsLow,
-                 qsHigh + config._merSize,
+                 qsHigh + config._KBmerSize,
                  dsLow,
-                 dsHigh + config._merSize,
+                 dsHigh + config._KBmerSize,
                  IL,
                  ML);
-        IL = new merCovering(config._merSize);
+        IL = new merCovering(config._KBmerSize);
         ML = new merList();
       } else {
         IL->clear();
@@ -300,9 +302,9 @@ hitMatrix::filter(char      direction,
     if ((minCount <= MINCOUNT) || (minLength <= IL->sumOfLengths())) {
       addMatch(minCount <= MINCOUNT,
                qsLow,
-               qsHigh + config._merSize,
+               qsHigh + config._KBmerSize,
                dsLow,
-               dsHigh + config._merSize,
+               dsHigh + config._KBmerSize,
                IL,
                ML);
     } else {
@@ -400,7 +402,7 @@ hitMatrix::filter(char      direction,
       a->_ML        = ML;
 
 #ifdef SHOW_HITMATRIX
-      theLog->add("merged:   G::"u32bitFMT"-"u32bitFMT"("u32bitFMT")  q:"u32bitFMT" g:"u32bitFMT" cov:"u32bitFMT" mat:"u32bitFMT" mer:"u32bitFMT"\n",
+      _theLog->add("merged:   G::"u32bitFMT"-"u32bitFMT"("u32bitFMT")  q:"u32bitFMT" g:"u32bitFMT" cov:"u32bitFMT" mat:"u32bitFMT" mer:"u32bitFMT"\n",
               a->_dsLo, a->_dsHi, a->_dsHi - a->_dsLo,
               a->_qsIdx,
               a->_dsIdx,

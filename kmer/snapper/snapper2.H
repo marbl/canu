@@ -24,14 +24,6 @@
 
 #include <new>
 
-#if 0
-//  At one time, this was needed for pthread.h or semaphore.h
-typedef unsigned short ushort;
-
-#include <pthread.h>
-#include <semaphore.h>
-#endif
-
 #include "bio++.H"
 
 #include "positionDB.H"
@@ -39,15 +31,6 @@ typedef unsigned short ushort;
 #include "sim4.H"
 
 #include "logMsg.H"
-
-
-
-
-//  If you really, really, really want to know the exact number of
-//  bases left in the query, use the interval list.  Otherwise, it's
-//  faster to guess.
-//
-#undef USEEXACTSIZE
 
 
 //  A meta-option.  Enable all the good stuff.  Or not, I guess.
@@ -65,6 +48,9 @@ typedef unsigned short ushort;
 //
 #define VERBOSE_FILTER
 #define VERBOSE_FILTER_MINIMUM  10
+
+//  Define this to show the hitMatrix
+#define SHOW_HITMATRIX
 
 //  Define this to print a message whenever a polish starts.
 //
@@ -89,41 +75,11 @@ typedef unsigned short ushort;
 //  Define this to show the kmers being added to the sim4command from
 //  thr-polish.C.  This generates a lot of output!
 //
-//#define SHOW_HITS_ADDED
-//#define SHOW_HITS_ADDED_AFTER_QUERY   4600
+#define SHOW_HITS_ADDED
+//#define SHOW_HITS_ADDED_AFTER_QUERY   0
 
 //  END OF GOOD STUFF!
 #endif
-
-
-
-class encodedQuery {
-private:
-  u32bit    _mersTotal;  //  Number of mers possible in the query
-  u32bit    _mersAvail;  //  Number of mers not masked out
-  u64bit   *_mers;       //  List of mers
-  u32bit   *_skip;
-public:
-  encodedQuery(char const           *seq,
-               u32bit                seqLen,
-               u32bit                k,
-               bool                  rc);
-  ~encodedQuery();
-
-  u32bit           numberOfMers(void)        { return(_mersTotal); };
-  u32bit           numberOfValidMers(void)   { return(_mersAvail); };
-  u64bit           getMer(u32bit i)          { return(_mers[i]); };
-
-  u32bit           getSkip(u32bit i)         { return(_skip[i]); };
-  void             setSkip(u32bit i)         {
-    //  If skip[i] is already set, don't adjust; otherwise, subtract
-    //  one from the available.
-    _mersAvail -= 1 - _skip[i];
-    _skip[i]    = 1;
-  };
-};
-
-
 
 
 
@@ -135,13 +91,14 @@ public:
   u64bit         posnLen;
   u64bit        *posn;
 
-  double         maskTime;
   double         searchTime;
   double         chainTime;
   double         polishTime;
 
   u64bit         searched;
   u64bit         polished;
+
+  kMerBuilder   *KB;
 
   searcherState(u64bit U) {
     threadID    = U;
@@ -150,21 +107,21 @@ public:
     posnLen     = 0;
     posn        = 0L;
 
-    maskTime    = 0.0;
     searchTime  = 0.0;
     chainTime   = 0.0;
     polishTime  = 0.0;
 
     searched    = 0;
     polished    = 0;
+
+    KB          = 0L;
   };
 
   ~searcherState() {
     delete [] posn;
+    delete    KB;
   };
 };
-
-
 
 
 
@@ -248,7 +205,7 @@ public:
 
 class hitMatrix {
 public:
-  hitMatrix(u32bit qsLen, u32bit q, u32bit qsIdx);
+  hitMatrix(u32bit qsLen, u32bit q, u32bit qsIdx, logMsg *theLog);
   ~hitMatrix();
 
   void    addHits(u32bit  qi,
@@ -279,6 +236,7 @@ private:
   u32bit                        _hitsMax;
   diagonalLine                 *_hits;
 
+  logMsg                       *_theLog;
 
   //  Making sense of the raw output from the search is not a trivial
   //  task for perl.  SMALL searches (dbEST vs 0.5MB sequence) used more
@@ -349,13 +307,6 @@ hitMatrix::addHits(u32bit  qi,
 
 
 
-
-
-
-
-
-
-
 //
 //  A singleton for working with the command line parameters.
 //
@@ -366,7 +317,14 @@ class configuration {
 public:
   bool             _beVerbose;
 
-  u32bit           _merSize;
+  //  These are private to the kMerBuilder -- in particular, we cannot
+  //  use _merSize as a surrogate for the length of the seed,
+  //  compressed seeds can be much longer.
+  //
+  u32bit           _KBmerSize;
+  u32bit           _KBcompression;
+  char            *_KBspacingTemplate;
+
   u32bit           _merSkip;
 
   u32bit           _numSearchThreads;
@@ -498,10 +456,6 @@ doPolish(searcherState       *state,
          aHit               *&theHits,
          u32bit              &theHitsLen,
          logMsg              *theLog);
-
-
-
-
 
 
 

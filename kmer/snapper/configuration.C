@@ -4,8 +4,12 @@ configuration::configuration(void) {
 
   _beVerbose            = false;
 
-  _merSize              = 20;
+  _KBmerSize            = 20;
+  _KBcompression        = 0;
+  _KBspacingTemplate    = 0L;
+
   _merSkip              = 0;
+
   _numSearchThreads     = 4;
 
   _doReverse            = true;
@@ -93,6 +97,9 @@ static char const *usageString =
 "\n"
 "    -mersize k              Use k-mers.\n"
 "    -merskip l              Skip l mers between.\n"
+"    -compression c          Compress homopolymer runs to c letters.\n"
+"    -template t             Use spaced seed template t.\n"
+"\n"
 "    -maxdiagonal d          Maximum diagonal gap within a hit (25).\n"
 "    -minhitlength l         Minimum length for a hit to be polished (0).\n"
 "    -minhitcoverage c       Minimum coverage for a hit to be polished (0.2, 0.0 to 1.0).\n"
@@ -152,49 +159,40 @@ configuration::usage(char *name) {
 void
 configuration::read(int argc, char **argv) {
   int arg = 1;
+  int err = 0;
   while (arg < argc) {
     if        (strcmp(argv[arg], "-mersize") == 0) {
-      arg++;
-      _merSize = strtou32bit(argv[arg], 0L);
+      _KBmerSize = strtou32bit(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-merskip") == 0) {
-      arg++;
-      _merSkip = strtou32bit(argv[arg], 0L);
+      _merSkip = strtou32bit(argv[++arg], 0L);
+    } else if (strcmp(argv[arg], "-compression") == 0) {
+      _KBcompression = strtou32bit(argv[++arg], 0L);
+    } else if (strcmp(argv[arg], "-template") == 0) {
+      _KBspacingTemplate = argv[++arg];
     } else if (strcmp(argv[arg], "-numthreads") == 0) {
-      arg++;
-      _numSearchThreads = strtou32bit(argv[arg], 0L);
+      _numSearchThreads = strtou32bit(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-ignore") == 0) {
-      ++arg;
-      _ignoreThreshold = strtou32bit(argv[arg], 0L);
+      _ignoreThreshold = strtou32bit(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-mask") == 0) {
-      arg++;
-      _maskFileName = argv[arg];
+      _maskFileName = argv[++arg];
     } else if (strcmp(argv[arg], "-only") == 0) {
-      arg++;
-      _onlyFileName = argv[arg];
+      _onlyFileName = argv[++arg];
     } else if (strcmp(argv[arg], "-maskn") == 0) {
-      arg++;
-      _maskPrefix    = argv[arg];
-      arg++;
-      _maskThreshold = strtou32bit(argv[arg], 0L);
+      _maskPrefix    = argv[++arg];
+      _maskThreshold = strtou32bit(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-onlyn") == 0) {
-      arg++;
-      _onlyPrefix    = argv[arg];
-      arg++;
-      _onlyThreshold = strtou32bit(argv[arg], 0L);
+      _onlyPrefix    = argv[++arg];
+      _onlyThreshold = strtou32bit(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-queries") == 0) {
-      arg++;
-      _qsFileName = argv[arg];
+      _qsFileName = argv[++arg];
     } else if (strcmp(argv[arg], "-genomic") == 0) {
-      arg++;
-      _dbFileName = argv[arg];
+      _dbFileName = argv[++arg];
     } else if (strcmp(argv[arg], "-positions") == 0) {
-      arg++;
-      _psFileName = argv[arg];
+      _psFileName = argv[++arg];
     } else if (strcmp(argv[arg], "-buildonly") == 0) {
       _buildOnly = argv[arg];
     } else if (strcmp(argv[arg], "-use") == 0) {
-      arg++;
-      _useList.parse(argv[arg]);
+      _useList.parse(argv[++arg]);
     } else if (strcmp(argv[arg], "-forward") == 0) {
       _doForward = true;
       _doReverse = false;
@@ -202,77 +200,59 @@ configuration::read(int argc, char **argv) {
       _doReverse = true;
       _doForward = false;
     } else if (strcmp(argv[arg], "-validate") == 0) {
-      arg++;
       _doValidation         = true;
-      _doValidationFileName = argv[arg];
+      _doValidationFileName = argv[++arg];
     } else if ((strcmp(argv[arg], "-setfilter") == 0) ||
                (strcmp(argv[arg], "-lhv") == 0) ||
                (strcmp(argv[arg], "-LHV") == 0)) {
-      arg++;  _Lo = atof(argv[arg]);
-      arg++;  _Hi = atof(argv[arg]);
-      arg++;  _Va = atof(argv[arg]);
+      _Lo = atof(argv[++arg]);
+      _Hi = atof(argv[++arg]);
+      _Va = atof(argv[++arg]);
     } else if (strcmp(argv[arg], "-verbose") == 0) {
       _beVerbose = true;
     } else if (strcmp(argv[arg], "-output") == 0) {
-      arg++;
-      _outputFileName = argv[arg];
+      _outputFileName = argv[++arg];
     } else if (strcmp(argv[arg], "-aligns") == 0) {
       _doAlignments = true;
     } else if (strcmp(argv[arg], "-noaligns") == 0) {
       _doAlignments = false;
     } else if (strcmp(argv[arg], "-log") == 0) {
-      arg++;
-      _logmsgFileName = argv[arg];
+      _logmsgFileName = argv[++arg];
     } else if (strcmp(argv[arg], "-stats") == 0) {
-      arg++;
-      _statsFileName = argv[arg];
+      _statsFileName = argv[++arg];
     } else if (strcmp(argv[arg], "-maxdiagonal") == 0) {
-      arg++;
-      _maxDiagonal = strtou32bit(argv[arg], 0L);
+      _maxDiagonal = strtou32bit(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-minhitlength") == 0) {
-      arg++;
-      _minHitLength = strtou32bit(argv[arg], 0L);
+      _minHitLength = strtou32bit(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-minhitcoverage") == 0) {
-      arg++;
-      _minHitCoverage = atof(argv[arg]);
+      _minHitCoverage = atof(argv[++arg]);
     } else if (strcmp(argv[arg], "-minmatchidentity") == 0) {
-      arg++;
-      _minMatchIdentity = strtou32bit(argv[arg], 0L);
+      _minMatchIdentity = strtou32bit(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-minmatchcoverage") == 0) {
-      arg++;
-      _minMatchCoverage = strtou32bit(argv[arg], 0L);
+      _minMatchCoverage = strtou32bit(argv[++arg], 0L);
 
     } else if (strcmp(argv[arg], "-af") == 0) {
       _afEnabled   = true;
     } else if (strcmp(argv[arg], "-afthreshold") == 0) {
-      arg++;
-      _afThreshold = atof(argv[arg]);
+      _afThreshold = atof(argv[++arg]);
       _afEnabled   = true;
     } else if (strcmp(argv[arg], "-aflength") == 0) {
-      arg++;
-      _afLength    = strtou32bit(argv[arg], 0L);
+      _afLength    = strtou32bit(argv[++arg], 0L);
       _afEnabled   = true;
     } else if (strcmp(argv[arg], "-afinit") == 0) {
-      arg++;
-      _afInit      = strtou32bit(argv[arg], 0L);
+      _afInit      = strtou32bit(argv[++arg], 0L);
       _afEnabled   = true;
 
-
     } else if (strcmp(argv[arg], "-discardexonlength") == 0) {
-      arg++;
-      _discardExonLength = strtou32bit(argv[arg], 0L);
+      _discardExonLength = strtou32bit(argv[++arg], 0L);
     } else if (strcmp(argv[arg], "-discardexonquality") == 0) {
-      arg++;
-      _discardExonQuality = strtou32bit(argv[arg], 0L);
+      _discardExonQuality = strtou32bit(argv[++arg], 0L);
     } else if (strncmp(argv[arg], "-extendweight", 8) == 0) {
-      arg++;
-      _extendWeight = atof(argv[arg]);
+      _extendWeight = atof(argv[++arg]);
     } else if (strncmp(argv[arg], "-extendminimum", 8) == 0) {
-      arg++;
-      _extendMinimum = strtou32bit(argv[arg], 0L);
+      _extendMinimum = strtou32bit(argv[++arg], 0L);
     } else if (strncmp(argv[arg], "-repeatthreshold", 8) == 0) {
-      arg++;
-      _repeatThreshold = strtou32bit(argv[arg], 0L);
+      _repeatThreshold = strtou32bit(argv[++arg], 0L);
     } else if (strncmp(argv[arg], "-loaderhighwatermark", 8) == 0) {
       _loaderHighWaterMark = strtou32bit(argv[++arg], 0L);
     } else if (strncmp(argv[arg], "-loadersleep",         8) == 0) {
@@ -289,7 +269,7 @@ configuration::read(int argc, char **argv) {
       _writerWarnings = true;
     } else {
       fprintf(stderr, "Unknown option '%s'\n", argv[arg]);
-      exit(1);
+      err++;
     }
     arg++;
   }
@@ -300,26 +280,31 @@ configuration::read(int argc, char **argv) {
 
   if (_numSearchThreads > MAX_THREADS) {
     fprintf(stderr, "ERROR:  Number of threads is limited to %d.\n", MAX_THREADS);
-    exit(1);
+    err++;
   }
 
   if (_maskFileName && _onlyFileName) {
     fprintf(stderr, "ERROR:  At most one of -mask and -only may be used.\n");
-    exit(-1);
+    err++;
   }
 
-  if (_merSkip >= _merSize) {
+  if (_merSkip >= _KBmerSize) {
     fprintf(stderr, "ERROR:  Mers are not adjacent; make sure merskip <= mersize.\n");
-    exit(-1);
+    err++;
+  }
+
+  if ((_KBcompression) || (_KBspacingTemplate)) {
+    fprintf(stderr, "ERROR:  Mer compression and spacing not supported right now.  :-(\n");
+    err++;
   }
 
   if ((_afThreshold < 0) || (_afThreshold > 1.0)) {
     fprintf(stderr, "ERROR: Invalid afThreshold %f, should be 0.0 <= t <= 1.0\n", _afThreshold);
-    exit(1);
+    err++;
   }
   if (64 < _afLength) {
     fprintf(stderr, "ERROR: Invalid afLength "u32bitFMT", should be < 64.\n", _afLength);
-    exit(1);
+    err++;
   }
 
 
@@ -327,11 +312,16 @@ configuration::read(int argc, char **argv) {
   //
   if ((_qsFileName == 0L) && (_buildOnly == false)) {
     fprintf(stderr, "ERROR: No query file supplied.\n");
-    exit(1);
+    err++;
   }
 
   if (_dbFileName == 0L) {
     fprintf(stderr, "ERROR: No genome file supplied.\n");
+    err++;
+  }
+
+  if (err) {
+    usage(argv[0]);
     exit(1);
   }
 }
@@ -341,14 +331,14 @@ configuration::display(FILE *out) {
   if ((out == stdout) && (_beVerbose)) {
     fprintf(out, "--Using these Algorithm Options--\n");
 
-    fprintf(out, "merSize             = "u32bitFMT"\n",   _merSize);
+    fprintf(out, "merSize             = "u32bitFMT"\n",   _KBmerSize);
     fprintf(out, "merSkip             = "u32bitFMT"\n",   _merSkip);
     fprintf(out, "doReverse           = %s\n",   _doReverse ? "true" : "false");
     fprintf(out, "doForward           = %s\n",   _doForward ? "true" : "false");
     fprintf(out, "doAlignments        = %s\n",   _doAlignments ? "true" : "false");
     fprintf(out, "\n");
     fprintf(out, "maxDiagonal         = "u32bitFMT"\n",   _maxDiagonal);
-    fprintf(out, "minHitLength        = "u32bitFMT"\n",   _minHitLength + _merSize);
+    fprintf(out, "minHitLength        = "u32bitFMT"\n",   _minHitLength);
     fprintf(out, "minHitCoverage      = %f\n",  _minHitCoverage);
     fprintf(out, "minMatchIdentity    = "u32bitFMT"\n",   _minMatchIdentity);
     fprintf(out, "minMatchCoverage    = "u32bitFMT"\n",   _minMatchCoverage);

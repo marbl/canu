@@ -8,7 +8,6 @@ LIBSIM4/    :=$(call MakePath,$/../libsim4/)
 
 src      := $/snapper2.C \
             $/configuration.C \
-            $/encodedQuery.C \
             $/thr.C \
             $/thr-search.C \
             $/thr-filter.C \

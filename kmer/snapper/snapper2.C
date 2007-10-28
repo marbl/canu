@@ -283,35 +283,46 @@ main(int argc, char **argv) {
     //  The masking databases
     //
     maskDB = 0L;
+#if 0
     if (config._maskFileName) {
       if (config._beVerbose)
         fprintf(stderr, "Building maskDB from fasta file '%s'\n", config._maskFileName);
-      maskDB = new existDB(config._maskFileName, config._merSize, 19);
+      maskDB = new existDB(config._maskFileName, config._KBmerSize, 19);
     }
     if (config._maskPrefix) {
       if (config._beVerbose)
         fprintf(stderr, "Building maskDB from meryl prefix '%s'\n", config._maskPrefix);
-      maskDB = new existDB(config._maskPrefix, config._merSize, 19, config._maskThreshold, ~u32bitZERO);
+      maskDB = new existDB(config._maskPrefix, config._KBmerSize, 19, config._maskThreshold, ~u32bitZERO);
     }
+#endif
 
     onlyDB = 0L;
+#if 0
     if (config._onlyFileName) {
       if (config._beVerbose)
         fprintf(stderr, "Building onlyDB from fasta file '%s'\n", config._onlyFileName);
-      onlyDB = new existDB(config._onlyFileName, config._merSize, 19);
+      onlyDB = new existDB(config._onlyFileName, config._KBmerSize, 19);
     }
     if (config._onlyPrefix) {
       if (config._beVerbose)
         fprintf(stderr, "Building onlyDB from meryl prefix '%s'\n", config._onlyPrefix);
-      onlyDB = new existDB(config._onlyPrefix, config._merSize, 19, 0, config._onlyThreshold);
+      onlyDB = new existDB(config._onlyPrefix, config._KBmerSize, 19, 0, config._onlyThreshold);
+    }
+#endif
+
+    if ((config._maskFileName) ||
+        (config._maskPrefix) ||
+        (config._onlyFileName) ||
+        (config._onlyPrefix)) {
+      fprintf(stderr, "maskDB/onlyDB not currently supported.\n");
+      exit(1);
     }
 
-
-    kMerBuilder KB(config._merSize);
+    kMerBuilder KB(config._KBmerSize, config._KBcompression, config._KBspacingTemplate);
     merStream  *MS = new merStream(&KB, &config._useList);
 
     positions = new positionDB(MS,
-                               config._merSize,
+                               config._KBmerSize,
                                config._merSkip,
                                maskDB,
                                onlyDB,
@@ -351,7 +362,6 @@ main(int argc, char **argv) {
     fprintf(stderr, "Opening the genomic database.\n");
 
   cache = new FastACache(config._dbFileName, 0, true);
-  //cache = new FastACache(config._dbFileName, 256, false);
 
 
 #if 0

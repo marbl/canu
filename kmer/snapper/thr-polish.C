@@ -146,9 +146,9 @@ doPolish(searcherState       *state,
           theLog->add("FORWARDHIT GEN: hi:"u32bitFMT"-lo:"u32bitFMT" pos:"u32bitFMT" EST: len:"u32bitFMT" pos:"u32bitFMT"\n",
                       GENhi, GENlo, y, (u32bit)ESTseq->sequenceLength(), x);
 #endif
-        P4->addSeed(y - GENlo + config._merSize,
-                    x         + config._merSize,
-                    config._merSize);
+        P4->addSeed(y - GENlo + config._KBmerSize,
+                    x         + config._KBmerSize,
+                    config._KBmerSize);
       }
     } else {
       for (u32bit i=0, x, y; theHits[h]._ML->getMer(i, x, y); i++) {
@@ -166,7 +166,7 @@ doPolish(searcherState       *state,
         //
         P4->addSeed(GENhi                    - y,
                     ESTseq->sequenceLength() - x,
-                    config._merSize);
+                    config._KBmerSize);
       }
     }
 

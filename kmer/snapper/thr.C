@@ -64,7 +64,7 @@ searchThread(void *U) {
         u32bit               theHitsMax = 4;
         aHit                *theHits    = new aHit [theHitsMax];
 
-        logMsg              *theLog     = new logMsg;
+        logMsg              *theLog     = new logMsg(true);
 
 #ifdef VERBOSE_SEARCH
         double startTime = getTime();
