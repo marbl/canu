@@ -36,6 +36,9 @@ typedef kMerHuge kMer;
 #endif
 
 
+#undef DEBUG
+#undef DEBUGCOMP
+#undef DEBUGSPACE
 
 
 class kMerBuilder {
@@ -64,8 +67,6 @@ public:
    _templatePos     = 0;
    _templateMer     = 0;
    _templateFirst   = 0;
-
-   fprintf(stderr, "ms="u32bitFMT" cm="u32bitFMT"\n", ms, cm);
 
    if (ms) {
      _style            = 0;
@@ -133,9 +134,11 @@ public:
 
      _templateSpan = t + 1;
 
+#ifdef DEBUGSPACE
      for (i=0; i<_templateSpan; i++)
        fprintf(stderr, "%d", _template[i]);
      fprintf(stderr, " -- %d\n", _templateSpan);
+#endif
 
      //  Look for patterns in the template, set templateLength to be the
      //  size of the pattern.
@@ -230,7 +233,6 @@ public:
     u64bit  cf = validCompressedSymbol[ch];
     u64bit  cr = validCompressedSymbol[complementSymbol[ch]] & 0x03;
 
-#undef DEBUG
 #ifdef DEBUG
     fprintf(stderr, "addBase() %c\n", ch);
 #endif
@@ -281,7 +283,6 @@ public:
 
         _merSizeValid[0] = _merSizeValidZero;
 
-#undef DEBUGCOMP
 #ifdef DEBUGCOMP
         fprintf(stderr, "invalid letter, keep going.\n");
 #endif
@@ -432,7 +433,6 @@ public:
     //
     if (_style == 2) {
 
-#undef DEBUGSPACE
 #ifdef DEBUGSPACE
       fprintf(stderr, "add %c templatePos=%u templateMer=%u\n", ch, _templatePos, _templateMer);
 #endif
