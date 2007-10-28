@@ -89,10 +89,16 @@ positionDB::positionDB(merStream   *MS,
     u64bit  sm = 2 * merSize + posnWidth + 1 - 64;
     u64bit  lg = 2 * merSize - 4;
 
+    if (2 * merSize + posnWidth + 1 < 64)
+      sm = 2;
+
     if (sm > lg) {
-      fprintf(stderr, "ERROR:  too many mers for this mersize.\n");
-      fprintf(stderr, "tblBits="u64bitFMT": merSize="u64bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers)\n",
-              _tableSizeInBits, merSize, posnWidth, approxMers);
+      fprintf(stderr, "ERROR:  too many mers for this mersize!\n");
+      fprintf(stderr, "        sm         = "u64bitFMT"\n", sm);
+      fprintf(stderr, "        lg         = "u64bitFMT"\n", sm, lg);
+      fprintf(stderr, "        merSize    = "u64bitFMT" bits\n", 2 * merSize);
+      fprintf(stderr, "        approxMers = "u64bitFMT" mers\n", approxMers);
+      fprintf(stderr, "        posnWidth  = "u64bitFMT" bits\n", posnWidth);
       exit(1);
     }
 
@@ -116,8 +122,8 @@ positionDB::positionDB(merStream   *MS,
 
     _tableSizeInBits = mini;
 
-    fprintf(stderr, "tblBits="u64bitFMT": merSize="u64bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers)\n",
-            _tableSizeInBits, merSize, posnWidth, approxMers);
+    //fprintf(stderr, "tblBits="u64bitFMT": merSize="u64bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers)\n",
+    //        _tableSizeInBits, merSize, posnWidth, approxMers);
   }
 
 
