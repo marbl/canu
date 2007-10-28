@@ -181,7 +181,6 @@ main(int argc, char **argv) {
   merStream       *MS = 0L;
   seqStore        *seqsto = 0L;
 
-  char            *inputFile  = 0L;
   char            *outputFile = 0L;
 
   if (argc < 3) {
@@ -253,7 +252,6 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-
   kMerBuilder        KB(mersize);
 
   //  We need a merStreamFile to implement -merbegin (using
@@ -262,6 +260,11 @@ main(int argc, char **argv) {
   if ((merBegin > 0) || (merEnd < numMers)) {
     seqsto = new seqStore(outputFile, &SS);
     MS     = new merStream(&KB, seqsto);
+
+    if (MS->setRange(merBegin, merEnd) == false) {
+      fprintf(stderr, "ERROR:  Couldn't set the range to "u64bitFMT","u64bitFMT".\n", merBegin, merEnd);
+      exit(1);
+    }
   } else {
     MS = new merStream(&KB, &SS);
   }
