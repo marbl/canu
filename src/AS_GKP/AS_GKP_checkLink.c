@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkLink.c,v 1.15 2007-10-04 06:38:54 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkLink.c,v 1.16 2007-10-29 06:36:47 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -88,6 +88,24 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
   getGateKeeperFragment(gkpStore, frag1IID, &gkFrag1);
   getGateKeeperFragment(gkpStore, frag2IID, &gkFrag2);
 
+
+  //  Make sure they're not deleted
+  //
+  if (gkFrag1.deleted) {
+    AS_GKP_reportError(AS_GKP_LKG_FRG_DELETED,
+                       lkg_mesg->frag1);
+    if (lkg_mesg->action == AS_ADD)
+      gkpStore->gkp.lkgErrors++;
+    return(1);
+  }
+
+  if (gkFrag2.deleted) {
+    AS_GKP_reportError(AS_GKP_LKG_FRG_DELETED,
+                       lkg_mesg->frag2);
+    if (lkg_mesg->action == AS_ADD)
+      gkpStore->gkp.lkgErrors++;
+    return(1);
+  }
 
   //  Make sure they're not already mated
   //

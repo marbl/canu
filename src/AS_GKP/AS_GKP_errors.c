@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_errors.c,v 1.1 2007-10-04 06:38:54 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_errors.c,v 1.2 2007-10-29 06:36:47 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -81,6 +81,7 @@ AS_GKP_reportError(int error, ...) {
     errorMs[AS_GKP_LKG_SELF_LINK          ] = "# LKG Error: Can't make a link from fragment "F_UID" to itself.\n";
     errorMs[AS_GKP_LKG_UNSUPPORTED_TYPE   ] = "# LKG Error: Unsupported LKG type '%c' for frags "F_UID","F_UID" in library "F_UID".\n";
     errorMs[AS_GKP_LKG_FRG_DOESNT_EXIST   ] = "# LKG Error: Fragment "F_UID" not previously defined.\n";
+    errorMs[AS_GKP_LKG_FRG_DELETED        ] = "# LKG Error: Fragment "F_UID" is marked as deleted.\n";
     errorMs[AS_GKP_LKG_ALREADY_MATED      ] = "# LKG Error: Fragment "F_UID","F_IID" already has mate of iid="F_IID"; wanted to set to "F_UID","F_IID".\n";
     errorMs[AS_GKP_LKG_LIB_DOESNT_EXIST   ] = "# LKG Error: Library "F_UID" not previously defined.\n";
     errorMs[AS_GKP_LKG_DIFFERENT_LIB      ] = "# LKG Error: Fragment "F_IID" in lib "F_IID", different from fragment "F_IID" in lib "F_IID".\n";
@@ -127,6 +128,7 @@ AS_GKP_reportError(int error, ...) {
     errorSs[AS_GKP_LKG_SELF_LINK          ] = "# LKG Error: link from fragment to itself.\n";
     errorSs[AS_GKP_LKG_UNSUPPORTED_TYPE   ] = "# LKG Error: Unsupported link type.\n";
     errorSs[AS_GKP_LKG_FRG_DOESNT_EXIST   ] = "# LKG Error: Fragment not previously defined.\n";
+    errorMs[AS_GKP_LKG_FRG_DELETED        ] = "# LKG Error: Fragment is marked as deleted.\n";
 
     errorSs[AS_GKP_LKG_ALREADY_MATED      ] = "# LKG Error: Fragment already mated.\n";
 
