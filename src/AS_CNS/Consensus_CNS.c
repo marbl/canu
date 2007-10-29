@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char rcsid[] = "$Id: Consensus_CNS.c,v 1.59 2007-10-25 16:44:36 gdenisov Exp $";
+static const char rcsid[] = "$Id: Consensus_CNS.c,v 1.60 2007-10-29 06:36:18 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -98,6 +98,7 @@ main (int argc, char **argv) {
 
   int num_unitig_failures = 0;
   int num_contig_failures = 0;
+  int num_contig_skips    = 0;
 
 #ifdef X86_GCC_LINUX
   /*
@@ -330,6 +331,11 @@ main (int argc, char **argv) {
       if (extract > -1 && iunitig->iaccession != extract)
         break;
 
+      if (VERBOSE_MULTIALIGN_OUTPUT)
+        fprintf(stderr, "MultiAlignContig %d %f pieces/length\n",
+                iunitig->iaccession,
+                (double)iunitig->num_frags / iunitig->length);
+
       unitigfail = MultiAlignUnitig(iunitig, gkpStore, sequence, quality, deltas, printwhat, 0, COMPARE_FUNC, &options);
         
       if ((unitigfail == EXIT_FAILURE) &&
@@ -371,11 +377,25 @@ main (int argc, char **argv) {
       if (extract > -1 && pcontig->iaccession != extract)
         break;
 
+      if (VERBOSE_MULTIALIGN_OUTPUT)
+        fprintf(stderr, "MultiAlignContig %d %f pieces/length\n",
+                pcontig->iaccession,
+                (double)pcontig->num_pieces / pcontig->length);
+
       pcontig->num_vars == 0;
       pcontig->v_list == NULL;
 
-      contigFail = MultiAlignContig(pcontig, sequence, quality, deltas, printwhat,
-                                    COMPARE_FUNC, &options);
+      if ((((double)pcontig->num_pieces / pcontig->length) > 1.0) &&
+          (pcontig->consensus != NULL)) {
+        fprintf(stderr, "WARNING:  MultiAlignContig skipping contig %d -- %f pieces/length (and it already has a consensus sequence)\n",
+                pcontig->iaccession,
+                (double)pcontig->num_pieces / pcontig->length);
+        num_contig_skips++;
+        contigFail = EXIT_SUCCESS;
+      } else {
+        contigFail = MultiAlignContig(pcontig, sequence, quality, deltas, printwhat,
+                                      COMPARE_FUNC, &options);
+      }
 
       if (contigFail == EXIT_FAILURE) {
         num_contig_failures++;
@@ -444,6 +464,10 @@ main (int argc, char **argv) {
     fprintf(stderr, "ERROR!  Failed to rename output '%s' to '%s': %s\n",
             tmpName, outName, strerror(errno));
     return(1);
+  }
+
+  if (num_contig_skips) {
+    fprintf(stderr, "WARNING:  Total number of skipped contigs = %d\n", num_contig_skips);
   }
 
   if (num_unitig_failures || num_contig_failures) {
