@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.67 2007-10-24 20:55:55 eliv Exp $
- * $Revision: 1.67 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.68 2007-10-29 20:43:04 eliv Exp $
+ * $Revision: 1.68 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.67 2007-10-24 20:55:55 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.68 2007-10-29 20:43:04 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -1922,5 +1922,73 @@ namespace AS_BOG{
 
 	//////////////////////////////////////////////////////////////////////////////
 
+    BestEdgeCounts UnitigGraph::countInternalBestEdges( const Unitig *tig) {
+        DoveTailConstIter iter = tig->dovetail_path_ptr->begin();
+        DoveTailNode prevFrag;
+        BestEdgeCounts cnts;
+        for(; iter != tig->dovetail_path_ptr->end(); iter++) {
+            DoveTailNode frag = *iter;
+            if (iter == tig->dovetail_path_ptr->begin()){
+                prevFrag = frag;
+                continue;
+            }
+            if (frag.contained) {
+                cnts.contained++;
+                continue;
+            }
+
+            BestEdgeOverlap* prevBestEdge;
+            if( isReverse( prevFrag.position ) )
+                prevBestEdge = bog_ptr->getBestEdgeOverlap( prevFrag.ident, FIVE_PRIME);
+            else
+                prevBestEdge = bog_ptr->getBestEdgeOverlap( prevFrag.ident, THREE_PRIME);
+
+            BestEdgeOverlap* bestEdge;
+            if( isReverse( frag.position ) )
+                bestEdge = bog_ptr->getBestEdgeOverlap( frag.ident, THREE_PRIME);
+            else
+                bestEdge = bog_ptr->getBestEdgeOverlap( frag.ident, FIVE_PRIME);
+
+            if ( prevBestEdge->frag_b_id == frag.ident ) {
+                // Either one way best or dovetail
+                if (bestEdge->frag_b_id == prevFrag.ident) // dovetail
+                    cnts.dovetail++;
+                else
+                    cnts.oneWayBest++;
+            } else {
+                // Either one way best or neither
+                if (bestEdge->frag_b_id == prevFrag.ident)
+                    cnts.oneWayBest++;
+                else
+                    cnts.neither++;
+            }
+            prevFrag = frag;
+        }
+        return cnts;
+    }
+
+	//////////////////////////////////////////////////////////////////////////////
+
+    BestEdgeCounts UnitigGraph::countInternalBestEdges() {
+        BestEdgeCounts allTigs;
+        UnitigsConstIter iter = unitigs->begin();
+		for(iter = unitigs->begin(); iter != unitigs->end(); iter++){
+            if( *iter == NULL)
+                continue;
+
+            if( (*iter)->getNumFrags() == 0 )
+                continue;
+
+            Unitig* tig = *iter;
+            BestEdgeCounts cnts = countInternalBestEdges(tig);
+            std::cerr << "Tig " << tig->id() << " overlap counts, dovetail " << cnts.dovetail
+                  << " oneWayBest " << cnts.oneWayBest << " neither " << cnts.neither
+                  << " contained " << cnts.contained << std::endl;
+            allTigs += cnts;
+        }
+        return allTigs;
+    }
+
+	//////////////////////////////////////////////////////////////////////////////
 
 } //AS_BOG namespace
