@@ -149,6 +149,12 @@ sub eCR ($$$) {
 
             open(F, "> $wrk/$thisDir/extendClearRanges-scaffold.$curScaffold.sh");
             print F "#!/bin/sh\n\n";
+            print F "\n";
+            print F "AS_OVL_ERROR_RATE=", getGlobal("ovlErrorRate"), "\n";
+            print F "AS_CNS_ERROR_RATE=", getGlobal("cnsErrorRate"), "\n";
+            print F "AS_CGW_ERROR_RATE=", getGlobal("cgwErrorRate"), "\n";
+            print F "export AS_OVL_ERROR_RATE AS_CNS_ERROR_RATE AS_CGW_ERROR_RATE\n";
+            print F "\n";
             print F "$cmd\n";
             close(F);
 
