@@ -21,7 +21,6 @@ define .FUN-install-copy
 	    if [ -f $$$${F} ] ; then \
 	      for D in $$$${dirs} ; do \
 	        Fout=$${INSTALL/}$$$${D}`basename $$$${F}` ; \
-	        echo ":Copying $$$${F} to $$$${Fout}:" ; \
 	        mkdir -p `dirname $$$${Fout}` && \
 	        rm -f $$$${Fout} && cp -fp $$$${F} $$$${Fout} ; \
 	      done ; \
@@ -39,7 +38,6 @@ define .FUN-install-copy-exe
 	    if [ "${.EXE}" != "" -a -f $$$${F}${.EXE} ] ; then \
 	      for D in $$$${dirs} ; do \
 	        Fout=$${INSTALL/}$$$${D}`basename $$$${F}` ; \
-	        echo ":Copying $$$${F}${.EXE} to $$$${Fout}${.EXE}:" ; \
 	        mkdir -p `dirname $$$${Fout}` && \
 	        rm -f $$$${Fout}${.EXE} && cp -fp $$$${F}${.EXE} $$$${Fout}${.EXE} ; \
 	      done ; \
@@ -47,7 +45,6 @@ define .FUN-install-copy-exe
 	    if [ -f $$$${F} ] ; then \
 	      for D in $$$${dirs} ; do \
 	        Fout=$${INSTALL/}$$$${D}`basename $$$${F}` ; \
-	        echo ":Copying $$$${F} to $$$${Fout}:" ; \
 	        mkdir -p `dirname $$$${Fout}` && \
 	        rm -f $$$${Fout} && cp -fp $$$${F} $$$${Fout} ; \
 	      done ; \
@@ -64,7 +61,6 @@ define .FUN-install-copy-shlib
 	    if [ -f $$$${F} ] ; then \
 	      for D in $$$${dirs} ; do \
 	        Fout=$${INSTALL/}$$$${D}`basename $$$${F} .so`${.SO} ; \
-	        echo ":Copying $$$${F} to $$$${Fout}:" ; \
 	        mkdir -p `dirname $$$${Fout}` && \
 	        rm -f $$$${Fout} && cp -fp $$$${F} $$$${Fout} ; \
 	      done ; \
@@ -72,7 +68,7 @@ define .FUN-install-copy-shlib
 	  done ; \
         fi
 endef
-# use this one for executable scripts with sheband  substitution
+# use this one for executable scripts with #!  substitution
 define .FUN-install-copy-script
 	@ files='$$(strip $1)'; dirs='$$(strip $2)'; sheb='$$(strip $3)'; \
 	if [ -n "$$$${files}" -a -n "$$$${dirs}" ] ; then \
@@ -350,14 +346,3 @@ ${1:.=.install-copy-SHARE}:
 
 endef
 $(eval $(foreach x,${//},$(call .RULE-install-copy-SHARE,$x)))
-
-
-
-
-
-
-
-
-
-
-
