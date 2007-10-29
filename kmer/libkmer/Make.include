@@ -17,7 +17,8 @@ src := $/existDB-create-from-fasta.C \
        $/positionDB.C \
        $/positionDB.H
 
-$/.CXX_SRCS   := $/driver-existDB.C $/driver-posDB.C $/percentCovered.C $/mask.C $(filter %.C,${src})
+$/.CXX_SRCS   := $(filter %.C,${src}) $/driver-existDB.C $/driver-posDB.C $/percentCovered.C $/mask.C
+$/.CXX_INCS   := $(filter %.H,${src})
 $/.CXX_EXES   := $/existDB $/positionDB $/percentCovered $/mask
 $/.CXX_LIBS   := $/libkmer.a
 $/.CLEAN      := $/*.o

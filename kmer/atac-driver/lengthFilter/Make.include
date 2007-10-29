@@ -4,8 +4,8 @@ LIBUTL/     :=$(call MakePath,$/../../libutil/)
 LIBBIO/     :=$(call MakePath,$/../../libbio/)
 LIBATAC/    :=$(call MakePath,$/../libatac/)
 
-$/.CXX_EXES := $/lengthFilter
 $/.CXX_SRCS := $/lengthFilter.C
+$/.CXX_EXES := $/lengthFilter
 
 $/.CLEAN :=$/*.o $/*~ $/core
 

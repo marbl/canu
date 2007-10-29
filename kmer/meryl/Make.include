@@ -16,7 +16,10 @@ merylsrc := $/args.C \
 
 #  Removed m.C from SRCS. and m from EXES -- what's it do??
 
+#  meryl.H is exported only for celera-assembler.
+
 $/.CXX_SRCS   := ${merylsrc} $/meryl.C $/asmMerQC.C $/mapMers.C $/mapMers-depth.C
+$/.CXX_INCS   := $/meryl.H
 $/.CXX_LIBS   := $/libmerylguts.a
 $/.CXX_EXES   := $/meryl $/asmMerQC $/mapMers $/mapMers-depth $/testPositionBias
 $/.CLEAN      := $/*.o

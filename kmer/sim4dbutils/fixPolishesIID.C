@@ -6,6 +6,13 @@
 #include "bio.h"
 #include "sim4.H"
 
+//  Kaz Kylheku <kaz@ashi.footprints.net> library.
+#include "kazlib/dict.h"
+#include "kazlib/except.h"
+#include "kazlib/hash.h"
+#include "kazlib/list.h"
+#include "kazlib/sfx.h"
+
 //  Updates the IID's in a set of polishes.  If a file of deflines (or
 //  fasta file) is supplied, the IIDs will match those, otherwise,
 //  IIDs are guaranteed to be unique, and in the order of the

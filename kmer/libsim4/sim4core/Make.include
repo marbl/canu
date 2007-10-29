@@ -31,6 +31,7 @@ src    := $/sim4command.C \
           $/util.C
 
 $/.CXX_SRCS := $(filter %.C,${src})
+$/.CXX_INCS := $(filter %.H,${src})
 $/.CXX_LIBS := $/libsim4.a
 $/.CLEAN    := $/*.o
 

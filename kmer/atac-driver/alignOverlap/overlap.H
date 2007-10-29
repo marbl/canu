@@ -27,6 +27,13 @@
 #include "util++.H"
 #include "atac.H"
 
+//  Kaz Kylheku <kaz@ashi.footprints.net> library.
+#include "kazlib/dict.h"
+#include "kazlib/except.h"
+#include "kazlib/hash.h"
+#include "kazlib/list.h"
+#include "kazlib/sfx.h"
+
 int sortMatches1(const void *a, const void *b);
 int sortMatches2(const void *a, const void *b);
 int spanCompare(const void *a, const void *b);

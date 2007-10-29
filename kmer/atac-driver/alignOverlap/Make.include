@@ -5,8 +5,8 @@ LIBBIO/     :=$(call MakePath,$/../../libbio/)
 LIBATAC/    :=$(call MakePath,$/../libatac/)
 THIS/       :=$(call MakePath,$/)
 
-$/.CXX_EXES := $/overlap
 $/.CXX_SRCS := $/overlap.C $/overlap-sort.C $/overlap-printAnno.C $/overlap-find.C
+$/.CXX_EXES := $/overlap
 
 $/.CLEAN :=$/*.o $/*~ $/core $/overlap-process1.C $/overlap-process2.C
 

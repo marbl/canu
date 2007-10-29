@@ -23,6 +23,12 @@
 #include "util++.H"
 #include "atac.H"
 
+//  Kaz Kylheku <kaz@ashi.footprints.net> library.
+#include "kazlib/dict.h"
+#include "kazlib/except.h"
+#include "kazlib/hash.h"
+#include "kazlib/list.h"
+#include "kazlib/sfx.h"
 
 //  Filters out matches that have non-unique pieces.  Does not discard
 //  the whole match, but just trims out the non-unique section.

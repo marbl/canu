@@ -3,7 +3,7 @@
 LIBUTL/     :=$(call MakePath,$/../../libutil/)
 LIBBIO/     :=$(call MakePath,$/../../libbio/)
 
-$/.CXX_HDRS := $/atac.H \
+$/.CXX_INCS := $/atac.H \
                $/atacFeature.H \
                $/atacFeatureList.H \
                $/atacMatch.H \

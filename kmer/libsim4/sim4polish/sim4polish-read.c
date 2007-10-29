@@ -5,7 +5,7 @@
 #include <string.h>
 #include <errno.h>
 #include <math.h>
-
+#include <assert.h>
 
 
 //  Utility for reading a whole line, safely, from a file.

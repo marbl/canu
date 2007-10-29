@@ -7,6 +7,13 @@
 #include "bio.h"
 #include "sim4.H"
 
+//  Kaz Kylheku <kaz@ashi.footprints.net> library.
+#include "kazlib/dict.h"
+#include "kazlib/except.h"
+#include "kazlib/hash.h"
+#include "kazlib/list.h"
+#include "kazlib/sfx.h"
+
 //  Derived from pickBestPolish.c.  We report only the single best
 //  match, when it is obvious that there is EXACTLY one best match.
 //

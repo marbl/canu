@@ -4,41 +4,49 @@ $(eval $(call Include,$/md5lib/))
 $(eval $(call Include,$/mt19937ar/))
 $(eval $(call Include,$/kazlib/))
 
-src    := $/util++.H \
-          $/util.h \
+src    := $/bigQueue.C \
           $/bigQueue.H \
-          $/bigQueue.C \
-          $/sweatShop.H \
-          $/sweatShop.C \
-          $/time.c \
-          $/speedCounter.C \
+          $/bitOperations.h \
+          $/bitPackedArray.C \
+          $/bitPackedArray.H \
+          $/bitPackedFile.C \
+          $/bitPackedFile.H \
+          $/bitPacking.h \
+          $/eliasDeltaEncoding.h \
+          $/eliasGammaEncoding.h \
+          $/endianess.H \
+          $/fibonacciEncoding.h \
+          $/fibonacciNumbers.C \
           $/file.c \
+          $/generalizedUnaryEncoding.h \
           $/intervalList.C \
+          $/intervalList.H \
+          $/logMsg.H \
           $/md5.c \
           $/memory.c \
           $/palloc.c \
-          $/readBuffer.H \
           $/readBuffer.C \
-          $/logMsg.H \
+          $/readBuffer.H \
+          $/speedCounter.C \
+          $/speedCounter.H \
+          $/splitToWords.H \
           $/stat.c \
-          $/bitOperations.h \
-          $/bitPackedArray.C \
-          $/bitPackedFile.C \
-          $/bitPacking.h \
-          $/fibonacciEncoding.h \
-          $/fibonacciNumbers.C \
-          $/eliasGammaEncoding.h \
-          $/eliasDeltaEncoding.h \
-          $/unaryEncoding.h
+          $/sweatShop.C \
+          $/sweatShop.H \
+          $/time.c \
+          $/u32bitList.H \
+          $/unaryEncoding.h \
+          $/unaryEncodingTester.C \
+          $/util++.H \
+          $/util.h
 
-#  broken
-#          $/bzipBuffer.H \
-#          $/bzipBuffer.C \
-#
-
+# Broken
+#          $/bzipBuffer.C
+#          $/bzipBuffer.H
 
 $/.C_SRCS    :=$(filter %.c,${src})
 $/.CXX_SRCS  :=$(filter %.C,${src})
+$/.CXX_INCS  :=$(filter %.H,${src}) $(filter %.h,${src})
 $/.CXX_LIBS  :=$/libutil.a
 
 $/.CLEAN := $/*.o

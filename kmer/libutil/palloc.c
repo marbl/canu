@@ -41,7 +41,6 @@ really_allocate(size_t size) {
   void *ret = malloc(size);
   if (ret == 0L) {
     fprintf(stderr, "palloc()-- can't allocate "SIZETFMT" bytes: %s.\n", size, strerror(errno));
-    assert(0);
     exit(1);
   }
   return(ret);
@@ -67,7 +66,7 @@ void*
 pallochandle(size_t size) {
   pallocroot *root = (pallocroot *)malloc(sizeof(pallocroot));
   if (root == NULL)
-    fprintf(stderr, "pallochandle()-- can't allocate a handle!\n"), assert(0), exit(1);
+    fprintf(stderr, "pallochandle()-- can't allocate a handle!\n"), exit(1);
   if (size == 0)
     size = 128 * 1024 * 1024;
   root->_bs  = size;

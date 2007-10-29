@@ -23,7 +23,9 @@ src     :=$/sim4polish.c \
           $/sim4polishFile.C
 
 $/.C_SRCS    :=$(filter %.c,${src})
+$/.C_INCS    :=$(filter %.h,${src})
 $/.CXX_SRCS  :=$(filter %.C,${src})
+$/.CXX_INCS  :=$(filter %.H,${src})
 $/.CXX_LIBS  :=$/libsim4polish.a
 
 $/.CLEAN  :=$/*.o

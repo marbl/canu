@@ -6,25 +6,61 @@ src    := $/alphabet.c \
           $/alphabet.h \
           $/bio++.H \
           $/bio.h \
+          $/fasta-accessor.H \
           $/fasta-c.C \
           $/fasta-c.h \
           $/fasta-cache.C \
           $/fasta-cache.H \
+          $/fasta-simple.c \
+          $/fasta-simple.h \
           $/fasta.C \
           $/fasta.H \
           $/halign.c \
           $/kmer.H \
+          $/kmerhuge.H \
+          $/kmeriface.H \
+          $/kmertiny.H \
           $/merCovering.H \
           $/merList.H \
           $/mers.h \
           $/merstream.C \
           $/merstream.H \
           $/reversecomplement.c \
-          $/seq.C
+          $/seq.C \
+          $/seq.H \
+          $/seqFactory.H \
+          $/seqFile.H \
+          $/seqInCore.H \
+          $/seqOnDisk.H \
+          $/seqStore.H \
+          $/seqStream.H
+
+
+# $/alphabet.c \
+#          $/alphabet.h \
+#          $/bio++.H \
+#          $/bio.h \
+#          $/fasta-c.C \
+#          $/fasta-c.h \
+#          $/fasta-cache.C \
+#          $/fasta-cache.H \
+#          $/fasta.C \
+#          $/fasta.H \
+#          $/halign.c \
+#          $/kmer.H \
+#          $/merCovering.H \
+#          $/merList.H \
+#          $/mers.h \
+#          $/merstream.C \
+#          $/merstream.H \
+#          $/reversecomplement.c \
+#          $/seq.C
 
 
 $/.C_SRCS    :=$(filter %.c,${src})
+$/.C_INCS    :=$(filter %.h,${src})
 $/.CXX_SRCS  :=$(filter %.C,${src})
+$/.CXX_INCS  :=$(filter %.H,${src})
 $/.CXX_LIBS  :=$/libbio.a
 
 $/.CLEAN := $/*.o

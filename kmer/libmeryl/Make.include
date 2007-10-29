@@ -4,6 +4,7 @@ LIBUTL/     :=$(call MakePath,$/../libutil/)
 LIBBIO/     :=$(call MakePath,$/../libbio/)
 
 $/.CXX_SRCS   := $/libmeryl.C
+$/.CXX_INCS   := $/libmeryl.H
 $/.CXX_LIBS   := $/libmeryl.a
 $/.CLEAN      := $/*.o
 

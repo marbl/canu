@@ -5,6 +5,13 @@
 #include <unistd.h>
 #include <string.h>
 
+//  Kaz Kylheku <kaz@ashi.footprints.net> library.
+#include "kazlib/dict.h"
+#include "kazlib/except.h"
+#include "kazlib/hash.h"
+#include "kazlib/list.h"
+#include "kazlib/sfx.h"
+
 //  qsort and kazlib are incombatible.  qsort passes a pointer to the data, kaz lib passes
 //  the data (which it assumes is a pointer to begin with).
 
