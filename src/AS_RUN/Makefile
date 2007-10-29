@@ -96,7 +96,7 @@ RUNCAOBTUTIL = runCA-OBT/runCAutil/applyOverlapCorrection.pl \
 runCA: runCA-OBT/runCA.pl.head $(RUNCALOCAL) runCA-OBT/runCAutil/util.pl runCA-OBT/runCA.pl $(RUNCAOBTUTIL) runCA-OBT/runCAutil/scheduler.pm
 	@cat runCA-OBT/runCA.pl.head $(RUNCALOCAL) runCA-OBT/runCAutil/util.pl $(RUNCAOBTUTIL) runCA-OBT/runCA.pl runCA-OBT/runCAutil/scheduler.pm > $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
-	@ln -fs $(LOCAL_BIN)/$@ $(LOCAL_BIN)/runCA-OBT.pl
+	@ln -fs $@ $(LOCAL_BIN)/runCA-OBT.pl
 
 carun: runCA-OBT/runCA.pl.head $(CARUNLOCAL) runCA-OBT/runCAutil/util.pl runCA-OBT/runCA.pl $(RUNCAOBTUTIL) runCA-OBT/runCAutil/scheduler.pm
 	@cat runCA-OBT/runCA.pl.head $(CARUNLOCAL) runCA-OBT/runCAutil/util.pl $(RUNCAOBTUTIL) runCA-OBT/runCA.pl runCA-OBT/runCAutil/scheduler.pm > $(LOCAL_BIN)/$@
