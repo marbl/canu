@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.34 2007-09-05 11:22:10 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.35 2007-10-29 06:10:36 brianwalenz Exp $";
 
 #undef DEBUG_CHECKFORCTGS
 #undef DEBUG_DETAILED
@@ -2450,12 +2450,12 @@ void ContigContainment(CIScaffoldT  *scaffold,
 
 
   if (contigOverlap == NULL) {
-    fprintf(stderr, "no overlap found between " F_CID " and " F_CID ", aborting...\n",
-            leftContig->id, rightContig->id);
+    fprintf(stderr, "================================================================================\n");
     dumpContigInfo(leftContig);
     dumpContigInfo(rightContig);
-    assert(0);
+    fprintf(stderr, "no overlap found between "F_CID" and "F_CID", aborting...\n", leftContig->id, rightContig->id);
   }	
+  assert(contigOverlap != NULL);
   
   // contigs need to be reversed
   if (contigOverlap->begpos < 0) {
