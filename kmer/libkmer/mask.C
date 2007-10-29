@@ -22,7 +22,7 @@ main(int argc, char **argv) {
 
   existDB *exist = 0L;
   if (0) {
-    exist = new existDB(merName, merSize, 20);
+    exist = new existDB(merName, merSize, existDBnoFlags, 0, ~u32bitZERO);
     exist->saveState("/project/huref4/assembly-mapping/missing/missing0/HMISSING-and-B35LC.existDB");
   } else {
     exist = new existDB("/project/huref4/assembly-mapping/missing/missing0/HMISSING-and-B35LC.existDB");

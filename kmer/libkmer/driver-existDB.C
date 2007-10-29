@@ -16,12 +16,12 @@
 
 
 int
-testFiles(char *filename, char *prefix, u32bit merSize, u32bit tblSize) {
+testFiles(char *filename, char *prefix, u32bit merSize) {
   char *prefixfilename = new char [strlen(prefix) + 32];
 
   //  Create existDB e and save it to disk
   //
-  existDB  *e = new existDB(filename, merSize, tblSize);
+  existDB  *e = new existDB(filename, merSize, existDBnoFlags, 0, ~u32bitZERO);
   sprintf(prefixfilename, "%s.1", prefix);
   e->saveState(prefixfilename);
 
@@ -31,7 +31,7 @@ testFiles(char *filename, char *prefix, u32bit merSize, u32bit tblSize) {
 
   //  Create a fresh existDB g
   //
-  existDB  *g = new existDB(filename, merSize, tblSize);
+  existDB  *g = new existDB(filename, merSize, existDBnoFlags, 0, ~u32bitZERO);
 
   speedCounter *C = new speedCounter("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, true);
   fprintf(stderr, "Need to iterate over %7.2f Mmers.\n", (u64bitMASK(2 * merSize) + 1) / 1000000.0);
@@ -55,8 +55,8 @@ testFiles(char *filename, char *prefix, u32bit merSize, u32bit tblSize) {
 
 
 int
-testExistence(char *filename, u32bit merSize, u32bit tblSize) {
-  existDB         *E      = new existDB(filename, merSize, tblSize);
+testExistence(char *filename, u32bit merSize) {
+  existDB         *E      = new existDB(filename, merSize, existDBnoFlags, 0, ~u32bitZERO);
   seqStream       *C      = new seqStream(filename, true);
   kMerBuilder      KB(merSize);
   merStream       *M      = new merStream(&KB, C);
@@ -84,8 +84,8 @@ testExistence(char *filename, u32bit merSize, u32bit tblSize) {
 
 
 int
-testExhaustive(char *filename, char *merylname, u32bit merSize, u32bit tblSize) {
-  existDB           *E        = new existDB(filename, merSize, tblSize);
+testExhaustive(char *filename, char *merylname, u32bit merSize) {
+  existDB           *E        = new existDB(filename, merSize, existDBnoFlags, 0, ~u32bitZERO);
   merylStreamReader *M        = new merylStreamReader(merylname);
   speedCounter      *C        = new speedCounter("    %7.2f Mmers -- %5.2f Mmers/second\r", 1000000.0, 0x1fffff, true);
   u64bit             found    = u64bitZERO;
@@ -138,9 +138,7 @@ testExhaustive(char *filename, char *merylname, u32bit merSize, u32bit tblSize) 
 const char *usage =
 "usage: %s [stuff]\n"
 "       -mersize mersize\n"
-"       -tblsize tablesize\n"
-"         -- Use the specified mersize or tablesize when building\n"
-"            existDB tables.\n"
+"         -- Use the specified mersize when building existDB tables.\n"
 "\n"
 "       -build some.fasta prefix\n"
 "         -- Build an existDB on all mers in some.fasta and save\n"
@@ -169,7 +167,6 @@ const char *usage =
 int
 main(int argc, char **argv) {
   u32bit    mersize = 20;
-  u32bit    tblsize = 19;
 
   if (argc < 3) {
     fprintf(stderr, usage, argv[0]);
@@ -181,25 +178,19 @@ main(int argc, char **argv) {
     if        (strncmp(argv[arg], "-mersize", 2) == 0) {
       arg++;
       mersize = atoi(argv[arg]);
-    } else if (strncmp(argv[arg], "-tblsize", 3) == 0) {
-      arg++;
-      tblsize = atoi(argv[arg]);
-    } else if (strncmp(argv[arg], "-tablesize", 3) == 0) {
-      arg++;
-      tblsize = atoi(argv[arg]);
     } else if (strncmp(argv[arg], "-describe", 2) == 0) {
       existDB *e = new existDB(argv[argc-1], false);
       e->printState(stdout);
       delete e;
       exit(0);
     } else if (strncmp(argv[arg], "-testfiles", 8) == 0) {
-      exit(testFiles(argv[arg+1], argv[arg+2], mersize, tblsize));
+      exit(testFiles(argv[arg+1], argv[arg+2], mersize));
     } else if (strncmp(argv[arg], "-testexistence", 8) == 0) {
-      exit(testExistence(argv[arg+1], mersize, tblsize));
+      exit(testExistence(argv[arg+1], mersize));
     } else if (strncmp(argv[arg], "-testexhaustive", 8) == 0) {
-      exit(testExhaustive(argv[arg+1], argv[arg+2], mersize, tblsize));
+      exit(testExhaustive(argv[arg+1], argv[arg+2], mersize));
     } else if (strncmp(argv[arg], "-build", 2) == 0) {
-      existDB  *e = new existDB(argv[argc-2], mersize, tblsize);
+      existDB  *e = new existDB(argv[argc-2], mersize, existDBnoFlags, 0, ~u32bitZERO);
       e->saveState(argv[argc-1]);
       delete e;
       exit(0);

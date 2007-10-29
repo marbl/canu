@@ -17,6 +17,7 @@
 //#define STATS
 
 typedef u32bit existDBflags;
+const existDBflags  existDBnoFlags         = 0x0000;
 const existDBflags  existDBcompressHash    = 0x0001;
 const existDBflags  existDBcompressBuckets = 0x0002;
 const existDBflags  existDBcompressCounts  = 0x0004;
@@ -34,9 +35,9 @@ public:
   //  Load mers from an existing existDB file, a fastafile, or a meryl database
   existDB(char const    *filename,
           u32bit         merSize,
-          u32bit         lo = 0,
-          u32bit         hi = ~u32bitZERO,
-          existDBflags   flags = 0x0000);
+          existDBflags   flags,
+          u32bit         lo,
+          u32bit         hi);
   ~existDB();
 
   void        saveState(char const *filename);

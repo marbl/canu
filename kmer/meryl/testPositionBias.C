@@ -5,7 +5,6 @@
 
 #include "bio++.H"
 #include "libmeryl.H"
-#include "existDB.H"
 
 
 u32bit *

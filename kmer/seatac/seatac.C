@@ -130,14 +130,14 @@ main(int argc, char **argv) {
     if (config._maskFileName) {
       if (config._beVerbose)
         fprintf(stderr, "Building maskDB from '%s'\n", config._maskFileName);
-      maskDB = new existDB(config._maskFileName, config._merSize, 0, ~u32bitZERO, existDBcanonical | existDBcompressHash | existDBcompressBuckets);
+      maskDB = new existDB(config._maskFileName, config._merSize, existDBcanonical | existDBcompressHash | existDBcompressBuckets, 0, ~u32bitZERO);
     }
 
     existDB *onlyDB = 0L;
     if (config._onlyFileName) {
       if (config._beVerbose)
         fprintf(stderr, "Building onlyDB from '%s'\n", config._onlyFileName);
-      onlyDB = new existDB(config._onlyFileName, config._merSize, 0, ~u32bitZERO, existDBcanonical | existDBcompressHash | existDBcompressBuckets);
+      onlyDB = new existDB(config._onlyFileName, config._merSize, existDBcanonical | existDBcompressHash | existDBcompressBuckets, 0, ~u32bitZERO);
     }
 
     kMerBuilder KB(config._merSize);

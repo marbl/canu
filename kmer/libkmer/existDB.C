@@ -22,9 +22,9 @@ existDB::existDB(char const  *filename,
 
 existDB::existDB(char const    *filename,
                  u32bit         merSize,
+                 existDBflags   flags,
                  u32bit         lo,
-                 u32bit         hi,
-                 existDBflags   flags) {
+                 u32bit         hi) {
   clear();
 
   _compressedHash   = flags & existDBcompressHash;

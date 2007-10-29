@@ -47,7 +47,7 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  existDB       *E = new existDB(merylFile, merSize, loCount, hiCount, existDBcounts | existDBcompressCounts | existDBcompressBuckets);
+  existDB       *E = new existDB(merylFile, merSize, existDBcounts | existDBcompressCounts | existDBcompressBuckets, loCount, hiCount);
   seqFile       *F = openSeqFile(fastaFile);
   seqInCore     *S = F->getSequenceInCore();
 

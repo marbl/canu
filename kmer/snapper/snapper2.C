@@ -287,12 +287,12 @@ main(int argc, char **argv) {
     if (config._maskFileName) {
       if (config._beVerbose)
         fprintf(stderr, "Building maskDB from fasta file '%s'\n", config._maskFileName);
-      maskDB = new existDB(config._maskFileName, config._KBmerSize, 19);
+      maskDB = new existDB(config._maskFileName, config._KBmerSize, existDBnoFlags, 0, ~u32bitZERO);
     }
     if (config._maskPrefix) {
       if (config._beVerbose)
         fprintf(stderr, "Building maskDB from meryl prefix '%s'\n", config._maskPrefix);
-      maskDB = new existDB(config._maskPrefix, config._KBmerSize, 19, config._maskThreshold, ~u32bitZERO);
+      maskDB = new existDB(config._maskPrefix, config._KBmerSize, existDBnoFlags, config._maskThreshold, ~u32bitZERO);
     }
 #endif
 
@@ -301,12 +301,12 @@ main(int argc, char **argv) {
     if (config._onlyFileName) {
       if (config._beVerbose)
         fprintf(stderr, "Building onlyDB from fasta file '%s'\n", config._onlyFileName);
-      onlyDB = new existDB(config._onlyFileName, config._KBmerSize, 19);
+      onlyDB = new existDB(config._onlyFileName, config._KBmerSize, existDBnoFlags, 0, ~u32bitZERO);
     }
     if (config._onlyPrefix) {
       if (config._beVerbose)
         fprintf(stderr, "Building onlyDB from meryl prefix '%s'\n", config._onlyPrefix);
-      onlyDB = new existDB(config._onlyPrefix, config._KBmerSize, 19, 0, config._onlyThreshold);
+      onlyDB = new existDB(config._onlyPrefix, config._KBmerSize, existDBnoFlags, 0, config._onlyThreshold);
     }
 #endif
 

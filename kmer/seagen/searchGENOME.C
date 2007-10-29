@@ -88,13 +88,13 @@ main(int argc, char **argv) {
   if (config._maskFileName) {
     if (config._beVerbose)
       fprintf(stderr, "Building maskDB from '%s'\n", config._maskFileName);
-    config._maskDB = new existDB(config._maskFileName, config._merSize, 19, u32bitZERO, ~u32bitZERO);
+    config._maskDB = new existDB(config._maskFileName, config._merSize, existDBnoFlags, 0, ~u32bitZERO);
   }
 
   if (config._onlyFileName) {
     if (config._beVerbose)
       fprintf(stderr, "Building onlyDB from '%s'\n", config._onlyFileName);
-    config._onlyDB = new existDB(config._onlyFileName, config._merSize, 19, u32bitZERO, ~u32bitZERO);
+    config._onlyDB = new existDB(config._onlyFileName, config._merSize, existDBnoFlags, 0, ~u32bitZERO);
   }
 
   config._buildTime = getTime();

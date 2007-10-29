@@ -19,7 +19,7 @@ main(int argc, char **argv) {
     arg++;
   }
 
-  existDB      *E = new existDB(merFile, 22, 17);
+  existDB      *E = new existDB(merFile, 22, existDBnoFlags, 0, ~u32bitZERO);
   seqFile      *Q = openSeqFile(queryFile);
   seqInCore    *S = Q->getSequenceInCore();
 
