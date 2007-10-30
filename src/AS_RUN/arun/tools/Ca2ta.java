@@ -1,10 +1,14 @@
 // A quick hack of ca2ta.pl to output a .contig file given a .frg and .asm file
+// Marwan Oweis
+// Copyright 2007 J. Craig Venter Institute. All rights reserved.
 
 import java.io.*;
 import java.util.*;
 import java.util.regex.*;
 import java.util.zip.*;
 
+//Used for compressing the sequence data into memory.
+//Typically reduces 3x reduction in size
 class StringCompression {
 	public static final byte[] compress(String str) throws IOException {
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -72,6 +76,7 @@ class Contig implements Serializable {
 		}
 		return result.toString();
 	}
+	
 	public void buildOffsets() throws IOException {
 		String cnsStr = StringCompression.decompress(cns);
 		ra_offsets = new int[cnsStr.length()];		
@@ -83,6 +88,7 @@ class Contig implements Serializable {
 			ra_offsets[i] = coord;
 		}
 	}
+	
 	public String printMPS ( MPS mps ) throws IOException {
 		StringBuilder result = new StringBuilder();
 
