@@ -102,8 +102,8 @@ private:
   char           *_theNames;
 
   readBuffer     *_filebuffer;
-  char            _filename[PATH_MAX];
-  char            _indexname[PATH_MAX];
+  char            _filename[FILENAME_MAX];
+  char            _indexname[FILENAME_MAX];
 
   u32bit          _curIID;
 

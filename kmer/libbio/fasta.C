@@ -11,8 +11,8 @@
 
 fastaFile::fastaFile() {
   memset(&_theDesc,  0, sizeof(_idxfa_global));
-  memset(_filename,  0, sizeof(char) * PATH_MAX);
-  memset(_indexname, 0, sizeof(char) * PATH_MAX);
+  memset(_filename,  0, sizeof(char) * FILENAME_MAX);
+  memset(_indexname, 0, sizeof(char) * FILENAME_MAX);
 
   _theSeqs               = 0L;
   _theNamesLen           = 0;
@@ -28,8 +28,8 @@ fastaFile::fastaFile() {
 fastaFile::fastaFile(char const *filename) {
 
   memset(&_theDesc,  0, sizeof(_idxfa_global));
-  memset(_filename,  0, sizeof(char) * PATH_MAX);
-  memset(_indexname, 0, sizeof(char) * PATH_MAX);
+  memset(_filename,  0, sizeof(char) * FILENAME_MAX);
+  memset(_indexname, 0, sizeof(char) * FILENAME_MAX);
 
   _theSeqs               = 0L;
   _theNamesLen           = 0;
