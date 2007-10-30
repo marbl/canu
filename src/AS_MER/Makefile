@@ -24,17 +24,31 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-#  KMER should point to a configured and compiled copy of
+#  KMER should point to a configured, compiled and installed copy of
 #  http://sourceforge.net/projects/kmer/
 #
 #  We attempt to find it in the same place that our src/ directory is.
-#
-ifneq "$(origin KMER)" "environment"
-ifeq ($(shell ls -d $(LOCAL_WORK)/kmer 2> /dev/null), $(LOCAL_WORK)/kmer)
-  KMER = $(LOCAL_WORK)/kmer
+
+
+#  We'd like to include the global include (c_make.as) to get these
+#  definitions, but we cannot without defining rules.
+
+OSTYPE      = $(shell echo `uname`)
+MACHINETYPE = $(shell echo `uname -m`)
+
+ifeq ($(MACHINETYPE), x86_64)
+  MACHINETYPE = amd64
 endif
+ifeq ($(MACHINETYPE), Power Macintosh)
+  MACHINETYPE = ppc
 endif
 
+
+ifneq "$(origin KMER)" "environment"
+ifeq ($(shell ls -d $(LOCAL_WORK)/kmer/$(OSTYPE)-$(MACHINETYPE) 2> /dev/null), $(LOCAL_WORK)/kmer/$(OSTYPE)-$(MACHINETYPE))
+  KMER = $(LOCAL_WORK)/kmer/$(OSTYPE)-$(MACHINETYPE)
+endif
+endif
 
 ifdef KMER
   MERYLSOURCE      = meryl.C
@@ -42,8 +56,8 @@ ifdef KMER
   SOURCES          = $(MERYLSOURCE) mercy.C mercy-regions.C overmerry.C AS_MER_gkpStore_to_FastABase.C
   OBJECTS          = $(SOURCES:.C=.o)
   PROGS            = meryl mercy overmerry
-  INC_IMPORT_DIRS += $(KMER)/meryl $(KMER)/libutil $(KMER)/libmeryl $(KMER)/libbio $(KMER)/libkmer
-  LIB_IMPORT_DIRS += $(KMER)/meryl $(KMER)/libutil $(KMER)/libmeryl $(KMER)/libbio $(KMER)/libkmer
+  INC_IMPORT_DIRS += $(KMER)/include
+  LIB_IMPORT_DIRS += $(KMER)/lib
   KMERLIBS         = libmerylguts.a libkmer.a libmeryl.a libbio.a libutil.a
 else
   MERYLSOURCE      = AS_MER_meryl.cc
@@ -54,6 +68,7 @@ else
 endif
 
 
+#  include again to get everything else updated
 include $(LOCAL_WORK)/src/c_make.as
 
 

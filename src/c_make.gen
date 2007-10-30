@@ -204,7 +204,7 @@
 ######################################################################
 
 
-####  Figure out what we're building on.
+####  Figure out what we're building on.  (Duplicated in AS_MER/Makefile!)
 
 OSTYPE      = $(shell echo `uname`)
 MACHINETYPE = $(shell echo `uname -m`)
@@ -215,7 +215,6 @@ endif
 ifeq ($(MACHINETYPE), Power Macintosh)
   MACHINETYPE = ppc
 endif
-
 
 #### Set up paths
 
@@ -312,19 +311,24 @@ VPATH = $(shell pwd)$(patsubst %, :%, \
 default_target: all
 
 #### Clean
+.PHONY: clean
 clean:	clean_obj clean_lib clean_bin clean_dep
 
+.PHONY: clean_dep
 clean_dep:
 	rm -f $(DEPS)
+
+.PHONY: clean_obj
 clean_obj:
 	-cd $(LOCAL_OBJ); rm -f $(OBJECTS)
+
+.PHONY: clean_lib
 clean_lib:
 	-cd $(LOCAL_LIB); rm -f $(LIBRARIES) $(IMPORTED_LIBRARIES)
+
+.PHONY: clean_bin
 clean_bin:
 	-cd $(LOCAL_BIN); rm -f $(PROGS)
-
-dep-clean:
-	find . -name "*.d" -exec rm {} \;
 
 
 #### Separate source types
@@ -419,8 +423,6 @@ progs: $(PROGS)
 
 -include $(DEPS)
 
-#### Phony
-.PHONY: all clean clean_obj clean_lib clean_bin clean_dep
 
 ## Unfortunately, this TGT can't easily be set in the make rule
 ## So set it to be the target (typically objs, libs, progs, all, ...)
