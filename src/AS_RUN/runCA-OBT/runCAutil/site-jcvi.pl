@@ -4,6 +4,7 @@ use FindBin qw($Bin);
 
 my $ca_observer = "$Bin/ca_observer.plx";
 my $ca_log      = "log/ca_observer.log";
+my $D_set  = 0;
 
 # These are used only here -- we prefix with local_ just to not
 # pollute the namespace too much.
@@ -21,15 +22,17 @@ my $local_test        = 0;
 $HELPTEXT =
   qq~Request a whole-genome shotgun assembly using Celera Assembler.
 
- usage: carun [options] <frg>
+ usage: carun [options] <prefix>[.frg]
  
  inputs: 
-  <frg>       Sequence file (.frg) generated e.g. by pullfrag.
+  <prefix>       Sequence file generated e.g. by pullfrag. 
+                 Extension '.frg' is optional. 
 
  general options:
   -d <dir>          Use <dir> as the working directory. 
                     (default: /usr/local/aserver/var/assembly/<...> )
-  -p <prefix>       Use <prefix> as the output prefix. (default: 'asm')
+  -D <p>       
+  -p <p>            Use <p> as the output prefix. (default: 'asm')
   -alias <a>        Identify the request as <a> on Assembly Server Console
   -maxCopy <dir>    Copy max output to <dir> (default: dir=maxCopy)
   -medCopy <dir>    Copy med output to <dir> (default: dir=medCopy) 
@@ -82,7 +85,16 @@ sub localOption($@) {
     my @ARGV  = @_;
     my $found = 1;
 
-    if ($arg =~ m/^-alias/ ) {
+    if ($arg =~ m/^-D/) {
+        $asm = shift @ARGV;
+	$D_set = 1;
+    } elsif ($arg =~ /(.+)\.frg/ && $D_set == 0) {
+    	$asm = $1;
+	$found = 0;
+    } elsif ($arg !~ /^-/ && $arg !~ /\.frg/ ) {
+      push @ARGV, ($arg.'.frg');
+      $asm = $arg if ( $D_set == 0 );
+    } elsif ($arg =~ m/^-alias/ ) {
         $local_alias = shift @ARGV;
     } elsif ($arg =~ m/^-maxCopy/ ) {
         $local_copy = $local_maxCopy;
@@ -111,15 +123,13 @@ sub localOption($@) {
     } elsif ($arg =~ m/^-(no)?ubs/) {
         setGlobal("utgBubblePopping",1) if ( $1 ne 'no' );
         setGlobal("utgBubblePopping",0) if ( $1 eq 'no' );
+    } elsif ($arg =~ m/^--h/) {
+        setGlobal("help", 1);
     } else {
         $found = 0;
     }
 
-    if ($found) {
-        $arg = shift @ARGV;
-    }
-
-    return($arg, @ARGV);
+    return($found, @ARGV);
 }
 
 
@@ -147,6 +157,17 @@ sub localSetup($) {
     #seq.features
     if ( -e "$asm.seq.features" and !-e "$wrk/$asm.seq.features" ) {
       copy("$asm.seq.features", "$wrk/$asm.seq.features") or die "Could not copy: $asm.seq.features\n";
+    }
+
+    my $vi = getGlobal("vectorIntersect");
+    my $clvFile = "in.clv";
+    if( defined($vi) and !-e "$wrk/in.clv" ) {
+	if ( !-e "$asm.seq.features" ) {
+		die("ERROR: Unable to create vector intersect file (.clv). Please provide the $asm.seq.features file.\n")
+	}
+	#create .clv file
+	my $clv_cmd = "awk '{print \$1,\$5,\$6}' $asm.seq.features > in.clv";
+	system($clv_cmd);	
     }
 
     createInvocationScript() && init_prop_file($asm, $numSteps) if (!runningOnGrid());

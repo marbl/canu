@@ -40,7 +40,12 @@ foreach my $a (@ARGV) {
 while (scalar(@ARGV)) {
     my $arg = shift @ARGV;
 
-    ($arg, @ARGV) = localOption($arg, @ARGV);
+    my $found = 0;
+    ($found, @ARGV) = localOption($arg, @ARGV);
+    
+    if ($found == 1 ) {
+    	next;
+    }
 
     if (!defined($arg)) {
         last;
