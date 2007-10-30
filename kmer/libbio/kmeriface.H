@@ -1,3 +1,8 @@
+
+#if 0
+
+//  Documentation, really.
+
 class kMerInterface {
   kMerInterface() {};
   virtual ~kMerInterface() {};
@@ -71,3 +76,6 @@ class kMerInterface {
   //
   virtual char    *merToString(char *instr) const = 0;
 };
+
+
+#endif
