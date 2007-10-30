@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.17 2007-10-04 06:38:54 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.18 2007-10-30 10:10:24 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -89,7 +89,7 @@ checkLibraryDistances(LibraryMesg *lib_mesg,
 
   if (lib_mesg->mean < 3.0 * lib_mesg->stddev) {
     AS_GKP_reportError(AS_GKP_LIB_STDDEV_TOO_BIG,
-                       lib_mesg->eaccession, lib_mesg->mean, lib_mesg->stddev, 0.1 * lib_mesg->mean);
+                       lib_mesg->eaccession, lib_mesg->stddev, lib_mesg->mean, 0.1 * lib_mesg->mean);
     if (lib_mesg->action == AS_ADD)
       gkpStore->gkp.libWarnings++;
     lib_mesg->stddev = 0.1 * lib_mesg->mean;
