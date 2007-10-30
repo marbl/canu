@@ -91,7 +91,7 @@ sub localOption($@) {
     } elsif ($arg =~ /(.+)\.frg/ && $D_set == 0) {
     	$asm = $1;
 	$found = 0;
-    } elsif ($arg !~ /^-/ && $arg !~ /\.frg/ ) {
+    } elsif ($arg !~ /^-/ && $arg !~ /=/  && $arg !~ /\.frg/ ) {
       push @ARGV, ($arg.'.frg');
       $asm = $arg if ( $D_set == 0 );
     } elsif ($arg =~ m/^-alias/ ) {
@@ -161,13 +161,14 @@ sub localSetup($) {
 
     my $vi = getGlobal("vectorIntersect");
     my $clvFile = "in.clv";
-    if( defined($vi) and !-e "$wrk/in.clv" ) {
+    if( defined($vi) and !-e "$wrk/$clvFile" ) {
 	if ( !-e "$asm.seq.features" ) {
 		die("ERROR: Unable to create vector intersect file (.clv). Please provide the $asm.seq.features file.\n")
 	}
 	#create .clv file
-	my $clv_cmd = "awk '{print \$1,\$5,\$6}' $asm.seq.features > in.clv";
-	system($clv_cmd);	
+	my $clv_cmd = "awk '{print \$1,\$5,\$6}' $asm.seq.features > $clvFile";
+	system($clv_cmd);
+	copy($clvFile, "$wrk/$clvFile") or die "Could not copy: $clvFile\n";
     }
 
     createInvocationScript() && init_prop_file($asm, $numSteps) if (!runningOnGrid());
