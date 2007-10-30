@@ -39,7 +39,7 @@ if [ "x$target" = "x" ] ; then
     Darwin)
       target="Darwin-i386$opts"
       if [ "`uname -m`" = "Power Macintosh" ] ; then
-          target="Darwin-PPC$opts"
+          target="Darwin-ppc$opts"
       fi
       ;;
     FreeBSD)
@@ -121,7 +121,7 @@ case $target in
     echo "Darwin Intel not supported because the developer doesn't have access to one."
     exit
     ;;
-  Darwin-PPC)
+  Darwin-ppc)
     rm -f Make.compilers
     cat <<EOF > Make.compilers
 # -*- makefile -*-
@@ -151,7 +151,7 @@ ARFLAGS           := ruvs
 INSTALL/          := $target/
 EOF
     ;;
-  Darwin-PPC-debug)
+  Darwin-ppc-debug)
     rm -f Make.compilers
     cat <<EOF > Make.compilers
 # -*- makefile -*-
@@ -171,7 +171,7 @@ ARFLAGS           := ruvs
 INSTALL/          := $target/
 EOF
     ;;
-  Darwin-PPC-profile)
+  Darwin-ppc-profile)
     rm -f Make.compilers
     cat <<EOF > Make.compilers
 # -*- makefile -*-
