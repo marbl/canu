@@ -19,6 +19,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
+#ifndef AS_MSG_PMESG_INTERNAL_H
+#define AS_MSG_PMESG_INTERNAL_H
+
 //  FreeBSD 6.1 fgets() sporadically replaces \n with \0, which
 //  horribly breaks this reader.  Defined this to replace
 //  fgets() with fgetc().
@@ -129,3 +132,5 @@ void    AS_MSG_setFormatVersion2(void);
 { if (GetLine(fin,TRUE)[0] != '}')           \
     MgenError("Expecting end of message");   \
 }
+
+#endif

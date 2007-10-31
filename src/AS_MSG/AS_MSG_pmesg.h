@@ -18,10 +18,10 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.56 2007-10-25 16:36:17 gdenisov Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.57 2007-10-31 17:26:43 eliv Exp $   */
 
-#ifndef AS_MSG_PMESG_INCLUDE
-#define AS_MSG_PMESG_INCLUDE
+#ifndef AS_MSG_PMESG_INCLUDE_H
+#define AS_MSG_PMESG_INCLUDE_H
 
 #include <stdio.h>
 #include <time.h>
@@ -541,8 +541,8 @@ typedef struct {
   UnitigStatus    status;
   UnitigFUR       unique_rept;
   CDS_COORD_t     length;
-  char            *consensus;
-  char            *quality;
+  char      *consensus;
+  const char      *quality;
   int32		  forced;
   int32           num_frags;
   IntMultiPos    *f_list;

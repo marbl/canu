@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg_test.c,v 1.8 2007-03-09 03:05:58 brianwalenz Exp $ */
+/* $Id: AS_MSG_pmesg_test.c,v 1.9 2007-10-31 17:26:43 eliv Exp $ */
 
 #include <assert.h>
 #include <errno.h>
@@ -27,6 +27,7 @@
 #include <time.h>
 #include <string.h>
 #include <unistd.h> /* man 3 getopt */
+#include <getopt.h>
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
