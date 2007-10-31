@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.40 2007-10-25 05:05:42 brianwalenz Exp $
- * $Revision: 1.40 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.41 2007-10-31 17:30:22 eliv Exp $
+ * $Revision: 1.41 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.40 2007-10-25 05:05:42 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.41 2007-10-31 17:30:22 eliv Exp $";
 
 //  System include files
 #include<iostream>
@@ -105,6 +105,8 @@ namespace AS_BOG{
 
     BestOverlapGraph::BestOverlapGraph() : curFrag(0)
     {
+        assert( lastFrg > 0 ); // Set in BOG_Runner constructor
+
         _best_overlaps = new BestFragmentOverlap[lastFrg+1];
 
         memset(_best_overlaps, 0, sizeof(BestFragmentOverlap)*(lastFrg+1));
