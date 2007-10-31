@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.68 2007-10-29 20:43:04 eliv Exp $
- * $Revision: 1.68 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.69 2007-10-31 17:39:21 eliv Exp $
+ * $Revision: 1.69 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.68 2007-10-29 20:43:04 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.69 2007-10-31 17:39:21 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -1466,6 +1466,7 @@ namespace AS_BOG{
 		}
         this->sort();
         delete containPartialOrder;
+        containPartialOrder = NULL;
         // Compute assuming that containee is the same orientation as container
         //	if(cntnr_intvl.begin < cntnr_intvl.end)
 
@@ -1892,10 +1893,10 @@ namespace AS_BOG{
                      filename, strerror(errno));
             exit(1);
         }
-        Unitig::resetFragUnitigMap(maxIID);
-        BestOverlapGraph::fragLength = new uint16[maxIID];
+        Unitig::resetFragUnitigMap(maxIID+1);
+        BestOverlapGraph::fragLength = new uint16[maxIID+1];
         memset( BestOverlapGraph::fragLength, std::numeric_limits<uint16>::max(),
-                sizeof(uint16)*maxIID );
+                sizeof(uint16)*(maxIID+1) );
 
         GenericMesg *pmesg = NULL;
         while ((ReadProtoMesg_AS( iumIn, &pmesg ) != EOF)) {
