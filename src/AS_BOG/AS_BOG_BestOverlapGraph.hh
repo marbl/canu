@@ -34,8 +34,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.32 2007-10-25 05:05:42 brianwalenz Exp $
- * $Revision: 1.32 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.33 2007-10-31 17:41:03 eliv Exp $
+ * $Revision: 1.33 $
 */
 
 //  System include files
@@ -174,6 +174,7 @@ namespace AS_BOG{
         {
             mismatchCutoff  = AS_OVS_encodeQuality( maxMismatch / 100.0 );
             consensusCutoff = AS_OVS_encodeQuality( AS_CNS_ERROR_RATE );
+            assert( consensusCutoff >= 0 ); // Set in AS_configure
         }
         int getThreshold() { return mismatchCutoff; }
         float scoreOverlap( const OVSoverlap& olap);
