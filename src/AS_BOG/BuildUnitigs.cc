@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.31 2007-10-29 20:43:05 eliv Exp $
- * $Revision: 1.31 $
+ * $Id: BuildUnitigs.cc,v 1.32 2007-10-31 17:41:38 eliv Exp $
+ * $Revision: 1.32 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.31 2007-10-29 20:43:05 eliv Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.32 2007-10-31 17:41:38 eliv Exp $";
 
 //  System include files
 
@@ -180,6 +180,7 @@ int  main (int argc, char * argv [])
     std::cerr << std::endl<< "There were " << utg.unitigs->size() << " unitigs generated.\n";
 
     utg.writeIUMtoFile(fileStr);
+
     AS_BOG::BestEdgeCounts cnts = utg.countInternalBestEdges();
     std::cerr << std::endl << "Overall best edge counts: dovetail " << cnts.dovetail
               << " oneWayBest " << cnts.oneWayBest << " neither " << cnts.neither
