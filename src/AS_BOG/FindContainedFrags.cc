@@ -31,11 +31,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FindContainedFrags.cc,v 1.27 2007-06-06 19:56:26 eliv Exp $
- * $Revision: 1.27 $
+ * $Id: FindContainedFrags.cc,v 1.28 2007-10-31 17:44:28 eliv Exp $
+ * $Revision: 1.28 $
 */
 
-static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.27 2007-06-06 19:56:26 eliv Exp $";
+static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.28 2007-10-31 17:44:28 eliv Exp $";
 
 //  System include files
 
@@ -68,6 +68,8 @@ int  main
    // Get path/names of olap and frg stores from command line
    const char* OVL_Store_Path = argv[1];
    const char* FRG_Store_Path = argv[2];
+
+   argc = AS_configure(argc, argv);
 
    // Open and initialize Overlap store
    my_store = AS_OVS_openOverlapStore(OVL_Store_Path);
