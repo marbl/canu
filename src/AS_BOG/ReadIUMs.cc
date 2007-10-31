@@ -31,11 +31,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: ReadIUMs.cc,v 1.3 2007-10-23 14:42:29 eliv Exp $
- * $Revision: 1.3 $
+ * $Id: ReadIUMs.cc,v 1.4 2007-10-31 17:43:37 eliv Exp $
+ * $Revision: 1.4 $
 */
 
-static const char CM_ID[] = "$Id: ReadIUMs.cc,v 1.3 2007-10-23 14:42:29 eliv Exp $";
+static const char CM_ID[] = "$Id: ReadIUMs.cc,v 1.4 2007-10-31 17:43:37 eliv Exp $";
 
 //  System include files
 
@@ -44,8 +44,7 @@ static const char CM_ID[] = "$Id: ReadIUMs.cc,v 1.3 2007-10-23 14:42:29 eliv Exp
 
 using std::cout;
 using std::endl;
-using AS_BOG::UnitigGraph;
-using AS_BOG::LongestHighIdent;
+using namespace AS_BOG;
 
 //  Local include files
 extern "C" {
@@ -58,19 +57,35 @@ int  main
    // Get path/name of file from command line
    const char* IUM_File       = argv[1];
    const char* GKP_Store_Path = argv[2];
+   const char* OVL_Store_Path = argv[3];
 
-   AS_BOG::MateChecker mateChecker;
+   argc = AS_configure(argc, argv);
+
+   MateChecker mateChecker;
    int numFrgsInGKP = mateChecker.readStore(GKP_Store_Path);
 
-   LongestHighIdent bog( 15 );
-   UnitigGraph tigGraph( &bog );
+   OverlapStore* ovlStore = AS_OVS_openOverlapStore(OVL_Store_Path);
+
+   BOG_Runner bogRunner(numFrgsInGKP);
+   LongestHighIdent* bog = new LongestHighIdent( 1.5 );
+   bogRunner.push_back( bog );
+   bogRunner.processOverlapStream(ovlStore, GKP_Store_Path);
+
+   UnitigGraph tigGraph( bog );
 
    tigGraph.readIUMsFromFile( IUM_File, numFrgsInGKP );
-   AS_BOG::UnitigsConstIter iter = tigGraph.unitigs->begin();
+   BestEdgeCounts cnts = tigGraph.countInternalBestEdges();
+   std::cerr << std::endl << "Overall best edge counts: dovetail " << cnts.dovetail
+             << " oneWayBest " << cnts.oneWayBest << " neither " << cnts.neither
+             << std::endl << std::endl;
+
+/*   AS_BOG::UnitigsConstIter iter = tigGraph.unitigs->begin();
    for(; iter != tigGraph.unitigs->end(); iter++)
    {
        cout << **iter << endl;
    }
+*/
 
+   delete bog;
    return  0;
 }
