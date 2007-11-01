@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.38 2007-10-25 04:28:15 brianwalenz Exp $
- * $Revision: 1.38 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.39 2007-11-01 19:12:00 eliv Exp $
+ * $Revision: 1.39 $
 */
 
 #include <math.h>
@@ -837,8 +837,8 @@ namespace AS_BOG{
                 if (isReverse( loc.pos1 )) {
                     if (!isReverse( loc.pos2 )) {
                         // reverse and forward, check for circular unitig
-                        int dist = frgEnd + tigLen - mateEnd; 
-                        if ( dist <= badMax || dist >= badMin) {
+                        int dist = frgBgn + tigLen - mateBgn; 
+                        if ( dist <= badMax && dist >= badMin) {
                             cnts->goodCircular++;
                             continue; // Good circular mates
                         } 
