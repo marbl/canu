@@ -22,21 +22,12 @@
 #
 ##########################################################################
 
-# $Id: FASTA_to_frg_file.pl,v 1.6 2007-07-23 18:34:47 brianwalenz Exp $
+# $Id: FASTA_to_frg_file.pl,v 1.7 2007-11-02 02:19:53 brianwalenz Exp $
 
 use strict;
 use Getopt::Std;
 use FileHandle;
 use vars qw($opt_q $opt_f);
-
-print STDERR "WARNING!\n";
-print STDERR "WARNING!\n";
-print STDERR "WARNING!  This is UNTESTED frag format version 2 code!  It will work\n";
-print STDERR "WARNING!  ONLY with assemblers more recent than May 10, 2007.  (If it\n";
-print STDERR "WARNING!  tests ok, kindly remove this warning, thanks.)\n";
-print STDERR "WARNING!  Complaints to Bri.\n";
-print STDERR "WARNING!\n";
-print STDERR "WARNING!\n";
 
 my $DEFAULT_QUAL=20;
 my $LOW_QUAL_DIVISOR=4;
