@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Output_CGW.c,v 1.27 2007-09-19 21:54:24 skoren Exp $";
+static char CM_ID[] = "$Id: Output_CGW.c,v 1.28 2007-11-02 22:36:56 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -58,26 +58,36 @@ void OutputMateDists(ScaffoldGraphT *graph){
     //  and the input (except we had already munged the input stddev)
     //  if there were 30 or fewer samples.
 
-    imd.stddev      = dptr->sigma;
+    imd.refines     = i;
     imd.mean        = dptr->mu;
-    imd.num_buckets = 0;
+    imd.stddev      = dptr->sigma;
     imd.min         = CDS_COORD_MIN;
     imd.max         = CDS_COORD_MAX;      
+    imd.num_buckets = 0;
+    imd.histogram   = NULL;
 
     if (dptr->numSamples > 0) {
-      imd.num_buckets = dptr->bnum;
       imd.min         = dptr->min;
       imd.max         = dptr->max;
-    }
+      imd.num_buckets = dptr->bnum;
+      imd.histogram   = dptr->histogram;
 
-    imd.refines   = i;
-    imd.histogram = dptr->histogram;
+      //  If this assert ever triggers, BPW would love to have an
+      //  example.  You can get around it by ignoring this if block --
+      //  in particular, set imd.num_buckets to 0 and imd.histogram to
+      //  NULL.  See also the comment about UNITIG_OPERATIONS in
+      //  Graph_CGW.c.
+      //
+      assert(imd.histogram != NULL);
+    }
 
     if (GlobalData->cgwfp)
       WriteProtoMesg_AS(GlobalData->cgwfp,&pmesg);
 
     safe_free(dptr->histogram);
-    dptr->histogram = NULL;
+    dptr->histogram  = NULL;
+    dptr->numSamples = 0;
+    dptr->bnum       = 0;
   }
 }
 

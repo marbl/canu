@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.51 2007-09-05 11:22:10 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_CGW_main.c,v 1.52 2007-11-02 22:36:56 brianwalenz Exp $";
 
 
 
@@ -36,7 +36,7 @@ static const char *usage =
 "   [-j <thresh>]  Set min coverage stat for definite uniqueness\n"
 "   [-k <thresh>]  Set max coverage stat for possible uniqueness\n"
 "   [-l <maxdegree> ]\n"
-"   [-m <minSamplesForOverride>]   For ComputeMatePairStatisticsRestricted, default is 100\n"
+"   [-m <min>]     Number of mate samples to recompute an insert size, default is 100\n"
 "   [-n] <scaffnum>  Starting scaffold number for stones\n"
 "   [-o]           Output Name (required)\n"
 "   [-q <cutoff>]  Transquality cutoff\n"
@@ -579,10 +579,9 @@ int main(int argc, char *argv[]){
     }
 
     if(restartFromLogicalCheckpoint < CHECKPOINT_AFTER_BUILDING_EDGES){
-      fprintf(GlobalData->stderrc,"* Calling ComputeMatePairStatisticsRestricted (UNITIG_OPERATIONS)\n");
-      fflush(stderr);
-      ComputeMatePairStatisticsRestricted( UNITIG_OPERATIONS, minSamplesForOverride /* update distance estimates */, 
-                                           "unitig_initial");
+      ComputeMatePairStatisticsRestricted(UNITIG_OPERATIONS,
+                                          minSamplesForOverride,
+                                          "unitig_initial");
 
       fprintf(data->stderrc,"** Before BUILDCIEDGES **\n");
       if(GlobalData->debugLevel > 0){
@@ -1016,14 +1015,17 @@ int main(int argc, char *argv[]){
   //
   //Show_Reads_In_Gaps (GlobalData -> File_Name_Prefix);
 
-  // now recompute mate pair statistics, once on scaffolds, once on contigs, with 
-  // the results on contigs being the ones that are output in OutputMateDists
-  if (immediateOutput == 0) {
-    fprintf(GlobalData->stderrc,"* Calling ComputeMatePairStatisticsRestricted (SCAFFOLD_OPERATIONS)\n");
-    ComputeMatePairStatisticsRestricted( SCAFFOLD_OPERATIONS, minSamplesForOverride, "scaffold_final");
+  // now recompute mate pair statistics, once on scaffolds, once on
+  // contigs, with the results on contigs being the ones that are
+  // output in OutputMateDists
 
-    fprintf(GlobalData->stderrc,"* Calling ComputeMatePairStatisticsRestricted (CONTIG_OPERATIONS)\n");
-    ComputeMatePairStatisticsRestricted( CONTIG_OPERATIONS, minSamplesForOverride, "contig_final");
+  if (immediateOutput == 0) {
+    ComputeMatePairStatisticsRestricted(SCAFFOLD_OPERATIONS,
+                                        minSamplesForOverride,
+                                        "scaffold_final");
+    ComputeMatePairStatisticsRestricted(CONTIG_OPERATIONS,
+                                        minSamplesForOverride,
+                                        "contig_final");
   }
 
   fprintf(GlobalData->stderrc,"* Output cam files *\n");

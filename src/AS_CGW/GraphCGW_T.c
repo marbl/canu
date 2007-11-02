@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.56 2007-11-02 21:34:47 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.57 2007-11-02 22:36:56 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -3645,8 +3645,6 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
 
   AS_UTL_mkdir("stat");
 
-  //fprintf(stderr, "ComputeMatePairStatisticsRestricted()-- on %s\n", instance_label);
-
   if (operateOnNodes == UNITIG_OPERATIONS)
     graph = ScaffoldGraph->CIGraph;
   if (operateOnNodes == CONTIG_OPERATIONS)
@@ -4174,37 +4172,57 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
       dupd->numReferences  = dfrg->numReferences;
       dupd->min            = dfrg->min;
       dupd->max            = dfrg->max;
-      dupd->bnum           = 1;
-      dupd->bsize          = dfrg->max - dfrg->min;
+      dupd->bnum           = 0;
+      dupd->bsize          = 0;
       dupd->lower          = dupd->mu - CGW_CUTOFF * dupd->sigma;
       dupd->upper          = dupd->mu + CGW_CUTOFF * dupd->sigma;
       dupd->numReferences  = dfrg->numReferences;
       dupd->numBad         = dfrg->numBad;
 
-      if (dupd->sigma > CGW_NUM_BUCKETS)
-        dupd->bnum = dupd->bsize * CGW_NUM_BUCKETS / dupd->sigma + 1;
+      //  If we're computing on unitigs, do NOT make a histogram.
+      //  What seems to occur (rarely) is that we allocate the
+      //  histogram, write a checkpoint with that pointer still there,
+      //  then somehow never again have enough samples to reset the
+      //  pointer to something valid.  On output, we try to write out
+      //  invalid crud and bomb.
+      //
+      //  Unitigs are suspected here beacuse those are the only ones that
+      //  are computed when checkpoints are written.  Scaffold and contig
+      //  computations are done right before final output, and output
+      //  cleans up the pointer.
+      //
+      if (operateOnNodes != UNITIG_OPERATIONS) {
+        dupd->bnum           = 1;
+        dupd->bsize          = dfrg->max - dfrg->min;
 
-      dupd->bsize /= dupd->bnum;
+        if (dupd->sigma > CGW_NUM_BUCKETS)
+          dupd->bnum = dupd->bsize * CGW_NUM_BUCKETS / dupd->sigma + 1;
 
-      //  Remove any existing histogram, then reallocate (and clear)
-      //  one big enough.
+        dupd->bsize /= dupd->bnum;
 
-      safe_free(dupd->histogram);
-      dupd->histogram = (int32 *)safe_calloc(dupd->bnum, sizeof(int32));
+        //  Remove any existing histogram, then reallocate (and clear)
+        //  one big enough.
 
-      // output a histogram file for each library
+        safe_free(dupd->histogram);
+        dupd->histogram = (int32 *)safe_calloc(dupd->bnum, sizeof(int32));
+
+        // output a histogram file for each library
+
+        numSamples = GetNumCDS_COORD_ts(dworkSamples[i]);
+        samples    = GetCDS_COORD_t(dworkSamples[i],0);
+
+        for (j=0; j<numSamples ; j++) {
+          int32 binNum = (samples[j] - dupd->min) / (float)dupd->bsize;
+
+          binNum = MIN(binNum, dupd->bnum - 1);
+          binNum = MAX(binNum,0);
+
+          dupd->histogram[binNum]++;
+        }
+      }  //  end of not UNITIG_OPERATIONS
 
       numSamples = GetNumCDS_COORD_ts(dworkSamples[i]);
       samples    = GetCDS_COORD_t(dworkSamples[i],0);
-
-      for (j=0; j<numSamples ; j++) {
-        int32 binNum = (samples[j] - dupd->min) / (float)dupd->bsize;
-
-        binNum = MIN(binNum, dupd->bnum - 1);
-        binNum = MAX(binNum,0);
-
-        dupd->histogram[binNum]++;
-      }
 
       qsort(samples, numSamples, sizeof(CDS_COORD_t), &compareInt);
 
