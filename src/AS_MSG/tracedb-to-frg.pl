@@ -266,18 +266,13 @@ sub readQual {
             }
         } else {
             my $q = $_;
-            $q =~ s/^ /0/;
-            $q =~ s/  / 0/g;
+
+            $q =~ s/^\s+//;
             $q =~ s/\s+$//;
 
-            if (0) {
-                $q =~ s/ //g;
-                $qstr .= $q;
-            } else {
-                foreach my $qv (split '\s+', $q) {
-                    if ($qv > 60) {$qv = 60;}
-                    $qstr .= chr(ord('0') + $qv);
-                }
+            foreach my $qv (split '\s+', $q) {
+                if ($qv > 60) {$qv = 60;}
+                $qstr .= chr(ord('0') + $qv);
             }
         }
     }
@@ -390,6 +385,7 @@ sub runXML ($) {
 
         if (($type eq "WGS") ||
             ($type eq "SHOTGUN") ||
+            ($type eq "CLONEEND") ||
             ($type eq "454")) {
             print L "$xid\t$template\t$end\t$lib\t$libsize\t$libstddev\t$clr\t$clv\t$clq\n";
         }
@@ -687,7 +683,10 @@ sub runFRG ($) {
         my ($sid, $seq) = readFasta();
         my ($qid, $qlt) = readQual();
 
-        if (($type eq "WGS") || ($type eq "SHOTGUN") || ($type eq "454")) {
+        if (($type eq "WGS") ||
+            ($type eq "SHOTGUN") ||
+            ($type eq "CLONEEND") ||
+            ($type eq "454")) {
             my $lll = <L>;
             my $lid;
             ($lid, $lib) = split '\s+', $lll;
