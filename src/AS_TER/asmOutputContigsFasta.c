@@ -101,11 +101,10 @@ main(int argc, char **argv) {
       else
         strcat(status, " degenerate=false");
 
-      printf(">contig"F_UID","F_IID" %s\n%s\n",
-             contig->eaccession,
-             contig->iaccession,
-             status,
-             contig->consensus);
+      AS_UTL_writeFastA(stdout,
+                        contig->consensus, strlen(contig->consensus),
+                        ">contig"F_UID","F_IID" %s\n",
+                        contig->eaccession, contig->iaccession, status);
     }
   }
 

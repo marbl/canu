@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpSingletons.c,v 1.20 2007-05-16 11:52:45 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpSingletons.c,v 1.21 2007-11-02 21:34:47 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,6 +34,8 @@ static char CM_ID[] = "$Id: dumpSingletons.c,v 1.20 2007-05-16 11:52:45 brianwal
 #include "ScaffoldGraph_CGW.h"
 #include "Globals_CGW.h"
 #include "ScaffoldGraph_CGW.h"
+
+#include "AS_UTL_fasta.h"
 
 #include "SYS_UIDclient.h"
 
@@ -116,8 +118,7 @@ main( int argc, char **argv) {
 
   uids = UIDserverInitialize(256, uidStart);
 
-  char *toprint1   = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_LEN);
-  char *toprint2   = (char *)safe_malloc(sizeof(char) * AS_READ_MAX_LEN);
+  char *toprint = (char *)safe_malloc(sizeof(char) * (AS_READ_MAX_LEN + 51 + AS_READ_MAX_LEN + 2));
 
   ScaffoldGraph = LoadScaffoldGraphFromCheckpoint(GlobalData->File_Name_Prefix, ckptNum, FALSE);
 
@@ -149,16 +150,16 @@ main( int argc, char **argv) {
     if ((mate == NULL) ||
         (mate->flags.bits.isChaff == 0) ||
         (makeMiniScaffolds == 0)) {
-      CDS_UID_t  fUID = getFragmentClear(frag->iid, 0, toprint1);
+      CDS_UID_t  fUID = getFragmentClear(frag->iid, 0, toprint);
 
-      fprintf(stdout, ">"F_S64" /type=singleton\n%s\n",
-             fUID, toprint1);
+      AS_UTL_writeFastA(stdout,
+                        toprint, strlen(toprint),
+                        ">"F_S64" /type=singleton\n", fUID);
+
     } else if ((mate != NULL) &&
                (mate->flags.bits.isChaff == 1) &&
                (makeMiniScaffolds == 1) &&
                (frag->iid < mate->iid)) {
-      CDS_UID_t  fUID = getFragmentClear(frag->iid, 0, toprint1);
-      CDS_UID_t  mUID = getFragmentClear(mate->iid, 1, toprint2);
 
       //  make sure the following chain of Ns is divisible by three;
       //  the exact length is arbitrary but Doug Rusch points out that
@@ -166,9 +167,15 @@ main( int argc, char **argv) {
       //  the phase of a protein ...  which helps in the
       //  auto-annotation of environmental samples
 
-      fprintf(stdout, ">"F_S64" /type=mini_scaffold /frgs=("F_S64","F_S64")\n%sNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN%s\n",
-              getUID(uids),
-              fUID, mUID, toprint1, toprint2);
+      CDS_UID_t  fUID = getFragmentClear(frag->iid, 0, toprint);
+
+      strcat(toprint, "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN");
+
+      CDS_UID_t  mUID = getFragmentClear(mate->iid, 1, toprint + strlen(toprint));
+
+      AS_UTL_writeFastA(stdout,
+                        toprint, strlen(toprint),
+                        ">"F_S64" /type=mini_scaffold /frgs=("F_S64","F_S64")\n", getUID(uids), fUID, mUID);
     }
   }
 

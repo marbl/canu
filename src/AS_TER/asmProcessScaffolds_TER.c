@@ -105,11 +105,6 @@ int FastaScaffold(FILE *out, FILE *qual, SnapScaffoldMesg *scaff){
   reversed = Getint32(reversedVA,0);
   contigid = (int32)LookupValueInHashTable_AS(uid2iid, cp[0].econtig1,0);
 
-  // output label line for this scaffold
-  fprintf(out,">" F_S64 " /type=%s\n",scaff->eaccession,fastaIdent);
-
-  if (qual)
-    fprintf(qual,">" F_S64 " /type=%s\n",scaff->eaccession,fastaIdent);
 
   // calculate length of sequence:
   //
@@ -215,21 +210,19 @@ int FastaScaffold(FILE *out, FILE *qual, SnapScaffoldMesg *scaff){
   }
 
   // now, output the scaffold
+
   sseq = Getchar(scaffold_sequence,0);
   qseq = Getchar(quality_sequence,0);
 
-  flen = strlen(sseq);
+  AS_UTL_writeFastA(out,
+                    sseq, strlen(sseq),
+                    ">"F_S64" /type=%s\n", scaff->eaccession, fastaIdent);
 
-  for (i = 0; i < flen; i += 70) { 
-    fprintf(out,"%.*s\n",70,sseq);
-    sseq += 70;
+  if (qual)
+    AS_UTL_writeFastA(qual,
+                      qseq, strlen(sseq),
+                      ">"F_S64" /type=%s\n",scaff->eaccession, fastaIdent);
 
-    if (qual) {
-      fprintf(qual,"%.*s\n",70,qseq);
-      qseq += 70;
-    }
-    
-  }
   return 1;
 }
 
@@ -270,16 +263,12 @@ int FastaDegenerateScaffold(FILE *out, SnapDegenerateScaffoldMesg *scaff,VA_TYPE
     fprintf(stderr,"FastaScaffold warning: unexpectedly long string in scaffold\n");
   }
 
-  // output label line for this scaffold
-  fprintf(out,">" F_S64 " /type=%s_Degenerate\n",scaff->econtig,fastaIdent);
-
   memcpy(sseq, Getchar(ctmp,0),contig_length);
 
-  flen = strlen(sseq);
-  for (i = 0; i < flen; i += 70) { 
-    fprintf(out,"%.*s\n",70,sseq);
-    sseq += 70;
-  }
+  AS_UTL_writeFastA(out,
+                    sseq, strlen(sseq),
+                    ">"F_S64" /type=%s_Degenerate\n", scaff->econtig, fastaIdent);
+
   return 1;
 }
 
