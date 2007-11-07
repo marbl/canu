@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.41 2007-10-31 17:30:22 eliv Exp $
- * $Revision: 1.41 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.42 2007-11-07 22:00:19 eliv Exp $
+ * $Revision: 1.42 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.41 2007-10-31 17:30:22 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.42 2007-11-07 22:00:19 eliv Exp $";
 
 //  System include files
 #include<iostream>
@@ -489,8 +489,8 @@ namespace AS_BOG{
 
         // store real edges from contained frags to help with unhappy mate splitting
         if (isContained( olap.a_iid ) ) {
-            if ( ( olap.dat.ovl.a_hang < 0 && olap.dat.ovl.b_hang < 0) ||
-                 ( olap.dat.ovl.a_hang > 0 && olap.dat.ovl.b_hang > 0) )
+            if ( ( olap.dat.ovl.a_hang < 0 && olap.dat.ovl.b_hang < 10) ||
+                 ( olap.dat.ovl.a_hang > 0 && olap.dat.ovl.b_hang > -10) )
                 addContainEdge( olap.a_iid, olap.b_iid );
             return;
         }
