@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.69 2007-10-31 17:39:21 eliv Exp $
- * $Revision: 1.69 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.70 2007-11-07 22:07:43 eliv Exp $
+ * $Revision: 1.70 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.69 2007-10-31 17:39:21 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.70 2007-11-07 22:07:43 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -1040,6 +1040,7 @@ namespace AS_BOG{
         _avgRho = -1;
 		dovetail_path_ptr = new DoveTailPath;
         _id=accession;
+        std::cerr << "Creating Unitig " << _id << std::endl;
 	}
 	//////////////////////////////////////////////////////////////////////////////
 
@@ -1050,8 +1051,29 @@ namespace AS_BOG{
 	//////////////////////////////////////////////////////////////////////////////
 
     void Unitig::addFrag( DoveTailNode node) {
-        dovetail_path_ptr->push_back( node );
+
+        // keep track of the unitig a frag is in
         _inUnitig[ node.ident ] = id();
+
+        // keep track of max position in unitig
+        int frgEnd = MAX( node.position.bgn, node.position.end);
+        if ( frgEnd > _length)
+            _length = frgEnd;
+
+        if ( node.contained ) {
+            if ( _inUnitig[ node.contained ] != id())
+                node.contained = NULL_FRAG_ID;
+        }
+
+        dovetail_path_ptr->push_back( node );
+    }
+
+    void Unitig::addFrag( DoveTailNode node, int offset) {
+        node.position.bgn += offset;
+        assert( node.position.bgn >= 0 );
+        node.position.end += offset;
+        assert( node.position.end >= 0 );
+        addFrag( node );
     }
 
 	//////////////////////////////////////////////////////////////////////////////
@@ -1165,6 +1187,9 @@ namespace AS_BOG{
 		if(dovetail_path_ptr->size()==0){
 			std::cerr << "This Unitig has an empty fragPositions." << std::endl;	
 		}
+        return _length;
+        // Dead code below, since length is now tracked in addFrag as reads are added
+        
         // used to use getLastBackboneNode(), but that's not required to be the 
         // highest base, we can have a read stick out further, but not contain the last
         int bgn = 0;
@@ -1687,7 +1712,6 @@ namespace AS_BOG{
                     // create singleton when breaking at both ends of a fragment
                     fprintf(stderr,"  Breaking tig %d at both ends of %d num %d\n",
                             tig->id(), breakPoint.fragEnd.id, breakPoint.fragNumber);
-                    newTig->shiftCoordinates( offset ); // set coords for last piece
                     newTig = new Unitig();              // create the singlenton
                     splits->push_back( newTig );        // add to list of new untigs
                     frg.position.bgn = 0;               // set begin and end
@@ -1702,13 +1726,12 @@ namespace AS_BOG{
                     // break at left end of frg, frg starts new tig
                     fprintf(stderr,"  Break tig %d before %d num %d\n",
                             tig->id(), breakPoint.fragEnd.id, breakPoint.fragNumber);
-                    newTig->shiftCoordinates( offset ); // set coords for last piece
                     newTig = new Unitig();              // create next new unitig
                     // record offset of start of new unitig
                     offset = reverse ? -frg.position.end : -frg.position.bgn;
                     fprintf(stderr,"Offset is %d for frg %d %d,%d ",
                             offset,frg.ident,frg.position.bgn,frg.position.end);
-                    newTig->addFrag( frg );             // add frag as 1st in unitig
+                    newTig->addFrag( frg, offset );     // add frag as 1st in unitig
                 }
                 else if (breakPoint.fragEnd.end ==  FIVE_PRIME && reverse ||
                          breakPoint.fragEnd.end == THREE_PRIME && !reverse )
@@ -1716,8 +1739,7 @@ namespace AS_BOG{
                     // break at right end of frg, frg goes in existing tig
                     fprintf(stderr,"  Break tig %d after %d num %d\n",
                             tig->id(), breakPoint.fragEnd.id, breakPoint.fragNumber);
-                    newTig->addFrag( frg );             // add frag as last
-                    newTig->shiftCoordinates( offset );
+                    newTig->addFrag( frg, offset );     // add frag as last
                     newTig = new Unitig();              // create new empty unitig
                 } else {
                     // logically impossible!
@@ -1740,17 +1762,12 @@ namespace AS_BOG{
                 if (newTig->dovetail_path_ptr->empty()) {
                     // if it's empty, this is it's 1st frag, store the offset
                     offset = reverse ? -frg.position.end : -frg.position.bgn;
-                    fprintf(stderr,"Offset is %d for frg %d %d,%d ",
+                    fprintf(stderr,"Offset is %d for frg %d %d,%d\n",
                             offset,frg.ident,frg.position.bgn,frg.position.end);
                 }
-                if (frg.contained) {
-                    if (Unitig::fragIn(frg.contained) != newTig->id())
-                        frg.contained = NULL_FRAG_ID;
-                }
-                newTig->addFrag( frg );
+                newTig->addFrag( frg, offset );
             }
         }
-        newTig->shiftCoordinates( offset );
         // should be zero
         fprintf(stderr,"After break size is %d\n",breaks.size());
         return splits;

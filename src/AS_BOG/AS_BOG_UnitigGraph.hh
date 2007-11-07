@@ -34,15 +34,15 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.35 2007-10-29 20:43:04 eliv Exp $
- * $Revision: 1.35 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.36 2007-11-07 22:07:43 eliv Exp $
+ * $Revision: 1.36 $
 */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.35 2007-10-29 20:43:04 eliv Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.36 2007-11-07 22:07:43 eliv Exp $";
 
 #include <set>
 #include <iostream>
@@ -134,6 +134,8 @@ namespace AS_BOG{
         static void setNextId(iuid);
 
         void addFrag( DoveTailNode );
+        void addFrag( DoveTailNode, int offset ); // shift by offset before adding
+
         static iuid fragIn(iuid);
         static void resetFragUnitigMap(iuid numFrags);
 
