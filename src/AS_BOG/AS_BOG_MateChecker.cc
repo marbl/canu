@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.39 2007-11-01 19:12:00 eliv Exp $
- * $Revision: 1.39 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.40 2007-11-07 22:11:23 eliv Exp $
+ * $Revision: 1.40 $
 */
 
 #include <math.h>
@@ -353,8 +353,8 @@ namespace AS_BOG{
         }
 
         // Now we'll chuck out the contained frags that have unhappy mates
-        if (BogOptions::ejectUnhappyContained) 
-            ejectUnhappyContains( tigGraph );
+        // Plus some important cleanup of uncovered reads
+        ejectUnhappyContains( tigGraph );
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -370,6 +370,9 @@ namespace AS_BOG{
                 continue;
 
             Unitig* tig = *tigEditIter;
+            if (tig->dovetail_path_ptr->empty() || tig->dovetail_path_ptr->size() == 1)
+                continue;
+
             int tigLen  = tig->getLength();
 
             MateLocation positions(this);
@@ -410,7 +413,10 @@ namespace AS_BOG{
             if (old->size() > 1 && tigIter != old->end()) {
                 DoveTailNode first  = *(tigIter);
                 DoveTailNode second = *(tigIter+1);
-                if ( tigGraph.bog_ptr->isContained( first.ident ) &&
+                BestContainment* cntn = tigGraph.bog_ptr->getBestContainer( second.ident);
+                if ( cntn != NULL && cntn->container == first.ident ) {
+                    overlapFound = true;
+                } else if ( tigGraph.bog_ptr->isContained( first.ident ) &&
                     !tigGraph.bog_ptr->containHaveEdgeTo( first.ident, second.ident))
                 {
                     Unitig* singleton = new Unitig;
@@ -430,15 +436,12 @@ namespace AS_BOG{
             for(; tigIter != old->end(); tigIter++)
             {
                 DoveTailNode frag = *tigIter;
-                frag.position.bgn -= bgnShift;
-                frag.position.end -= bgnShift;
-                SeqInterval loc = frag.position;
-                if ( frag.contained ) {
+                if (BogOptions::ejectUnhappyContained && frag.contained ) {
                     MateLocationEntry mloc = positions.getById( frag.ident );
                     if (mloc.id1 != 0 && mloc.isBad ) // make contain bad a singleton unitig
                     {
                         Unitig* singleton = new Unitig;
-                        singleton->addFrag( frag );
+                        singleton->addFrag( frag, bgnShift );
                         singleIds[ frag.ident ] = singletons->size();
                         singletons->push_back( singleton );
                     }
@@ -454,14 +457,14 @@ namespace AS_BOG{
                                         frag.ident, offset, (*singletons)[ offset ]->id());
                             } else { // happy mate leave in place
                                 frag.contained = 0; // Might pick something else
-                                tig->addFrag( frag );
+                                tig->addFrag( frag, bgnShift );
                             }
                         } else { // mated, so good mate
-                            tig->addFrag( frag );
+                            tig->addFrag( frag, bgnShift );
                         }
                     }
                 } else { // non-contained, just add back to dovetail path
-                    tig->addFrag( frag );
+                    tig->addFrag( frag, bgnShift );
                 }
             }
             delete old;
@@ -536,7 +539,6 @@ namespace AS_BOG{
     ///////////////////////////////////////////////////////////////////////////
 
     // hold over from testing if we should use 5' or 3' for range generation, now must use 3'
-    static const bool MATE_3PRIME_END = true;
     FragmentEnds* MateChecker::computeMateCoverage( Unitig* tig, BestOverlapGraph* bog_ptr )
     {
         int tigLen = tig->getLength();
@@ -590,38 +592,68 @@ namespace AS_BOG{
         // Go through the peak bad ranges looking for reads to break on
         while( fwdIter != fwdBads->end() || revIter != revBads->end() )
         {
-            bool fwdBad = false;
+            bool isFwdBad = false;
             SeqInterval bad;
             if ( revIter == revBads->end() ||
                  fwdIter != fwdBads->end() &&  *fwdIter < *revIter ) {
                 // forward bad group, break at 1st frag
-                fwdBad = true;
+                isFwdBad = true;
                 bad = *fwdIter;
                 fwdIter++;
+                if (lastBreakBBEnd >= bad.bgn) {
+                    // Skip, instead of combine trying to detect in combine case
+                    fprintf(stderr,"Skip fwd bad range %d %d due to backbone %d\n",
+                            bad.bgn, bad.end, lastBreakBBEnd);
+                    continue;
+                }
             } else {                     // reverse bad group, break at last frag
                 bad = *revIter;
-                if (fwdIter != fwdBads->end()     && fwdIter->bgn > bad.end &&
-                    fwdIter->bgn  - bad.end < 900 ) // && fwdIter->end - bad.bgn < 2000)
-                {
-                    fprintf(stderr,"Combine bad ranges %d - %d with %d - %d\n",
-                            bad.bgn, bad.end, fwdIter->end, fwdIter->bgn);
-                    if (bad.bgn == 0) { // ignore reverse at start of tig
-                        bad.bgn = fwdIter->bgn;
-                        bad.end = fwdIter->end;
-                    } else {
-                        bad.bgn = bad.end;
-                        bad.end = fwdIter->bgn;
-                    }
-                    fwdIter++; // Combine if fwd and bad within 900 bases
-                    combine = true;
+                if (lastBreakBBEnd >= bad.bgn) {
+                    // Skip, instead of combine trying to detect in combine case
+                    fprintf(stderr,"Skip rev bad range %d %d due to backbone %d\n",
+                            bad.bgn, bad.end, lastBreakBBEnd);
+                    revIter++;
+                    continue;
                 }
-                revIter++;
+                if (fwdIter != fwdBads->end())
+                {
+                    if ( fwdIter->bgn < bad.end && bad.end - fwdIter->bgn > 500 ) {
+                    // if fwd and reverse bad overlap 
+                    // and end of reverse is far away, do fwd 1st
+                        isFwdBad = true;
+                        bad = *fwdIter;
+                        fwdIter++;
+                    } else {
+                        if ( fwdIter->bgn < bad.end &&
+                             fwdIter->end > bad.end &&
+                             bad.end - fwdIter->end < 200)
+                                
+                        {
+                             fprintf(stderr,"Combine bad ranges %d - %d with %d - %d\n",
+                                        bad.bgn, bad.end, fwdIter->bgn, fwdIter->end);
+                                if (bad.bgn == 0) { // ignore reverse at start of tig
+                                    bad.bgn = fwdIter->bgn;
+                                    bad.end = fwdIter->end;
+                                } else {
+                                    bad.bgn = bad.end;
+                                    bad.end = fwdIter->bgn;
+                                }
+                                fwdIter++; 
+                                combine = true;
+                        }
+                        revIter++;
+                    }
+                } else {
+                    revIter++;
+                }
             }
             fprintf(stderr,"Bad peak from %d to %d\n",bad.bgn,bad.end);
             for(;tigIter != tig->dovetail_path_ptr->end(); tigIter++)
             {
                 DoveTailNode frag = *tigIter;
                 SeqInterval loc = frag.position;
+                // Don't want to go past range and break in wrong place
+                assert( loc.bgn <= bad.end+1 || loc.end <= bad.end+1 );
                 // keep track of current and previous uncontained contig end
                 // so that we can split apart contained reads that don't overlap each other
                 if ( !bog_ptr->isContained(frag.ident) )
@@ -631,10 +663,11 @@ namespace AS_BOG{
                 MateLocationEntry mloc = positions.getById( frag.ident );
                 if (mloc.id1 != 0 && mloc.isBad) { // only break on bad mates
 
-                    if ( fwdBad && bad.bgn <= loc.end ) {
+                    if ( isFwdBad && bad.bgn <= loc.end ) {
                         breakNow = true;
-                    } else if ( !fwdBad && (loc.bgn == bad.end) ||
-                            (combine && loc.end >  bad.bgn) ) {
+                    } else if ( !isFwdBad && (loc.bgn >= bad.end) ||
+                            (combine && loc.end >  bad.bgn) ||
+                            (combine && loc.end == bad.end) ) {
                         breakNow = true;
                     } else if (bad.bgn > backBgn) {
                         // fun special case, keep contained frags at end of tig in container 
@@ -646,10 +679,13 @@ namespace AS_BOG{
                     combine = false;
                     lastBreakBBEnd = currBackboneEnd;
                     fprintf(stderr,"Frg to break in peak bad range is %d fwd %d pos (%d,%d) backbone %d\n",
-                            frag.ident, fwdBad, loc.bgn, loc.end, currBackboneEnd );
-                    fragment_end_type fragEndInTig = FIVE_PRIME;
-                    if (isReverse( frag.position ))
-                        fragEndInTig = THREE_PRIME;
+                            frag.ident, isFwdBad, loc.bgn, loc.end, currBackboneEnd );
+                    fragment_end_type fragEndInTig = THREE_PRIME;
+                    // If reverse mate is 1st and overlaps its mate break at 5'
+                    if ( isReverse( loc ) && !isReverse(mloc.pos2) &&
+                            loc.bgn >= mloc.pos2.bgn )
+                        fragEndInTig = FIVE_PRIME;
+
                     UnitigBreakPoint bp( frag.ident, fragEndInTig );
                     bp.position = frag.position;
                     bp.inSize = 100000;
@@ -721,7 +757,7 @@ namespace AS_BOG{
                     badBegin = i;
                 if(badGraph->at(i) < peakBad) {
                     peakBad   = badGraph->at(i);
-                    peak.bgn = i;
+                    peak.bgn = peak.end = i;
                 } else if (lastBad < 0 && lastBad == peakBad) {
                     peak.end = i-1;
                 }
@@ -804,11 +840,22 @@ namespace AS_BOG{
             int badMin = static_cast<int>(gdc->mean - 5 * gdc->stddev);
             int frgBgn = loc.pos1.bgn;
             int frgEnd = loc.pos1.end;
+            int frgLen = abs(frgEnd - frgBgn);
+            if (frgLen >= badMax) {
+                fprintf(stderr,"Warning skipping read %d with length %d > mean + 5*stddev %d\n",
+                        fragId, frgLen, badMax );
+                continue; // Could assert instead
+            }
+            frgLen = abs( loc.pos2.end - loc.pos2.bgn );
+            if (frgLen >= badMax) {
+                fprintf(stderr,"Warning skipping read %d with length %d > mean + 5*stddev %d\n",
+                        loc.id2, frgLen, badMax );
+                continue; // Could assert instead
+            }
             if ( loc.unitig1 != loc.unitig2) {
                 // mate in another tig, mark bad only if max range exceeded
                 if (isReverse(loc.pos1)) {
                     if ( frgBgn > badMax ) {
-                        if (MATE_3PRIME_END) frgEnd = loc.pos1.bgn;
                         incrRange( badRevGraph, -1, frgBgn - badMax, frgEnd );
                         posIter->isBad = true;
                         fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
@@ -819,9 +866,7 @@ namespace AS_BOG{
                     }
                 } else {
                     if ( frgBgn + badMax < tigLen ) {
-                        iuid beg = frgBgn;
-                        if (MATE_3PRIME_END) beg = frgEnd;
-                        incrRange( badFwdGraph, -1, beg, frgBgn + badMax );
+                        incrRange( badFwdGraph, -1, frgEnd, frgBgn + badMax );
                         posIter->isBad = true;
                         fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
                                 fragId, frgBgn, frgEnd, mateId, lib);
@@ -849,22 +894,16 @@ namespace AS_BOG{
                     posIter->isBad = true;
                     fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
                                 fragId, frgBgn, frgEnd, mateId, lib);
-                    iuid end;
+
                     if (isReverse( loc.pos2 )) {
                         // 2nd mate is reversed, so mark bad towards tig begin
                         beg = MAX( 0, mateBgn - badMax );
-                        end = mateBgn;
-                        if (MATE_3PRIME_END)
-                            end = mateEnd;
-                        incrRange( badRevGraph, -1, beg, end);
+                        incrRange( badRevGraph, -1, beg, mateEnd);
                         cnts->badAntiNormal++;
                     } else {
                         // 2nd mate is forward, so mark bad towards tig end
-                        end = MIN( tigLen, mateBgn + badMax );
-                        beg = mateBgn;
-                        if (MATE_3PRIME_END)
-                            beg = mateEnd;
-                        incrRange( badFwdGraph, -1, beg, end);
+                        iuid end = MIN( tigLen, mateBgn + badMax );
+                        incrRange( badFwdGraph, -1, mateEnd, end);
                         cnts->badOuttie++;
                     }
                     fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
@@ -878,15 +917,15 @@ namespace AS_BOG{
                         int mateDist = mateBgn - frgBgn;  
 
                         if (mateDist >= badMin && mateDist <= badMax) {
-                            incrRange(goodGraph,2, frgBgn, mateEnd);
+                            // For good graph only we mark from 5' to 5'
+                            // so overlapping mates can still be good
+                            incrRange(goodGraph,2, frgBgn, mateBgn);
                             cnts->good++;
                         }
                         else {
                             // both are bad, mate points towards tig begin
                             iuid beg = MAX(0, mateBgn - badMax); 
-                            iuid end = mateBgn;
-                            if (MATE_3PRIME_END)
-                                end = mateEnd;
+                            iuid end = mateEnd;
 
                             incrRange(badRevGraph, -1, beg, end);
                             posIter->isBad = true;
@@ -894,9 +933,7 @@ namespace AS_BOG{
                                     mateId, mateBgn, mateEnd, fragId, lib);
 
                             end = MIN( tigLen, frgBgn + badMax );
-                            beg = frgBgn;
-                            if (MATE_3PRIME_END)
-                                beg = frgEnd;
+                            beg = frgEnd;
 
                             incrRange(badFwdGraph,-1, beg, end);
                             fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
@@ -906,9 +943,7 @@ namespace AS_BOG{
                     } else {
                         // 1st and 2nd forward so both bad 
                         iuid end = MIN( tigLen, frgBgn + badMax );
-                        iuid beg = frgBgn;
-                        if (MATE_3PRIME_END)
-                            beg = frgEnd;
+                        iuid beg = frgEnd;
 
                         incrRange(badFwdGraph,-1, beg, end);
                         posIter->isBad = true;
@@ -918,9 +953,7 @@ namespace AS_BOG{
 
                         // 2nd mate is forward, so mark bad towards tig end
                         end = MIN( tigLen, mateBgn + badMax );
-                        beg = mateBgn;
-                        if (MATE_3PRIME_END)
-                            beg = mateEnd;
+                        beg = mateEnd;
 
                         incrRange( badFwdGraph, -1, beg, end);
                         fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
