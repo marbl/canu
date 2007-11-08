@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.70 2007-11-07 22:07:43 eliv Exp $
- * $Revision: 1.70 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.71 2007-11-08 19:42:35 eliv Exp $
+ * $Revision: 1.71 $
 */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.70 2007-11-07 22:07:43 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.71 2007-11-08 19:42:35 eliv Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -58,6 +58,7 @@ namespace AS_BOG{
 
 	//////////////////////////////////////////////////////////////////////////////
     
+    int BogOptions::badMateBreakThreshold    = -7;
     bool BogOptions::unitigIntersectBreaking = false;
     bool BogOptions::ejectUnhappyContained   = false;
     bool BogOptions::useGkpStoreLibStats     = false;

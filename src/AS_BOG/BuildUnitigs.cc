@@ -30,11 +30,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.32 2007-10-31 17:41:38 eliv Exp $
- * $Revision: 1.32 $
+ * $Id: BuildUnitigs.cc,v 1.33 2007-11-08 19:42:35 eliv Exp $
+ * $Revision: 1.33 $
 */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.32 2007-10-31 17:41:38 eliv Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.33 2007-11-08 19:42:35 eliv Exp $";
 
 //  System include files
 
@@ -90,7 +90,7 @@ int  main (int argc, char * argv [])
    int ch;
    bool argsDone=false;
    optarg = NULL;
-   while(!argsDone && (ch = getopt(argc, argv,"O:G:e:s:bk"))) {
+   while(!argsDone && (ch = getopt(argc, argv,"O:G:e:m:s:bk"))) {
        switch(ch) {
            case -1: argsDone=true;break;
            case 'G':
@@ -110,6 +110,8 @@ int  main (int argc, char * argv [])
                } break;
            case 'k':
                BogOptions::ejectUnhappyContained = true; break;
+           case 'm':
+               BogOptions::badMateBreakThreshold = -atoi(optarg); break;
            case 's':
                genome_size = atol(optarg); break;
            default:
@@ -123,6 +125,8 @@ int  main (int argc, char * argv [])
         fprintf(stderr, "[-e] Space separated list of erates to generate unitig for\n");
         fprintf(stderr, "     default is -e '2.5 1.5 1.0'\n");
         fprintf(stderr, "[-k] Kick out unhappy contained mated reads into singleton unitigs\n");
+        fprintf(stderr, "[-m] Number of bad mates in a region required to break a unitig\n");
+        fprintf(stderr, "     default is 7\n");
         fprintf(stderr, " \n");
            exit(1);
        }

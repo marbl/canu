@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.41 2007-11-08 12:38:11 brianwalenz Exp $
- * $Revision: 1.41 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.42 2007-11-08 19:42:35 eliv Exp $
+ * $Revision: 1.42 $
 */
 
 #include <math.h>
@@ -752,7 +752,7 @@ namespace AS_BOG{
         int badBegin, peakBad, lastBad;
         peakBad = lastBad = badBegin = 0;
         for(int i=0; i < tigLen; i++) {
-            if( badGraph->at( i ) <= -3 ) {
+            if( badGraph->at( i ) <= BogOptions::badMateBreakThreshold ) {
                 if (badBegin == 0)  // start bad region
                     badBegin = i;
                 if(badGraph->at(i) < peakBad) {
@@ -764,7 +764,8 @@ namespace AS_BOG{
                 lastBad = badGraph->at(i);
             } else {
                 if (badBegin > 0) {  // end bad region
-                    fprintf(stderr,"Bad mates >3 from %d to %d peak %d from %d to %d\n",
+                    fprintf(stderr,"Bad mates >%d from %d to %d peak %d from %d to %d\n",
+                            -BogOptions::badMateBreakThreshold,
                             badBegin,i-1,peakBad,peak.bgn,peak.end);
                     peakBads->push_back( peak );
                     peakBad = lastBad = badBegin = 0;

@@ -33,8 +33,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_Datatypes.hh,v 1.18 2007-11-08 12:38:11 brianwalenz Exp $
- * $Revision: 1.18 $
+ * $Id: AS_BOG_Datatypes.hh,v 1.19 2007-11-08 19:42:35 eliv Exp $
+ * $Revision: 1.19 $
 */
 
 #ifndef INCLUDE_AS_BOG_DATATYPES
@@ -126,6 +126,7 @@ namespace AS_BOG{
     };
 
     struct BogOptions {
+        static int badMateBreakThreshold;
         static bool unitigIntersectBreaking;
         static bool ejectUnhappyContained;
         static bool useGkpStoreLibStats;
