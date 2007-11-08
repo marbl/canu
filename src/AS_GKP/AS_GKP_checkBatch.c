@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkBatch.c,v 1.15 2007-10-04 06:38:54 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkBatch.c,v 1.16 2007-11-08 12:38:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,14 +35,21 @@ int Check_BatchMesg(BatchMesg          *bat_mesg){
 
   gkpStore->gkp.batInput++;
 
-  if (bat_mesg->eaccession == 0) {
+#if 0
+  //  Process all the incoming UIDs.
+  //
+  AS_UID_setGatekeeper(gkpStore);  //  doesn't need to be done all the time
+  bat_mesg->eaccession = AS_UID_process(bat_mesg->eaccession);
+#endif
+
+  if (AS_UID_isDefined(bat_mesg->eaccession) == FALSE) {
     AS_GKP_reportError(AS_GKP_BAT_ZERO_UID);
     gkpStore->gkp.batErrors++;
     return(1);
   }
 
   if (getGatekeeperUIDtoIID(gkpStore, bat_mesg->eaccession, NULL) != 0) {
-    AS_GKP_reportError(AS_GKP_BAT_EXISTS, bat_mesg->eaccession);
+    AS_GKP_reportError(AS_GKP_BAT_EXISTS, AS_UID_toString(bat_mesg->eaccession));
     gkpStore->gkp.batErrors++;
     return(1);
   }

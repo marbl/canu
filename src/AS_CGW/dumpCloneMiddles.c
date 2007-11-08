@@ -37,7 +37,6 @@ extern int do_draw_frags_in_CelamyScaffold;
 extern int do_compute_missing_overlaps;
 extern int CelamyOvlCutoff;
 extern int do_surrogate_tracking;
-extern int printMateUIDs;
 
 void
 dumpCloneMiddle(int sid) {
@@ -103,7 +102,6 @@ usage(char *pgm) {
   fprintf(stderr, "    -l <min length>      -- generate only scaffolds larger than min length\n");
   fprintf(stderr, "    -e <ovl err. cutoff> -- sets cutoff for overlaps; default=0.015;\n");
   fprintf(stderr, "    -S                   -- suppress surrogate fragment placement (possibly multiple placements per frg)\n");
-  fprintf(stderr, "    -U                   -- name clones with the UID of their read\n");
 }
 
 
@@ -150,8 +148,6 @@ main(int argc, char **argv) {
       specificScf = atoi(argv[++arg]);
     } else if (strcmp(argv[arg], "-S") == 0) {
       do_surrogate_tracking = 0;
-    } else if (strcmp(argv[arg], "-U") == 0) {
-      printMateUIDs = 1;
     } else {
       if (atoi(argv[arg]) > 0) {
         firstScfArg = arg;

@@ -33,8 +33,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_Datatypes.hh,v 1.17 2007-10-24 20:55:55 eliv Exp $
- * $Revision: 1.17 $
+ * $Id: AS_BOG_Datatypes.hh,v 1.18 2007-11-08 12:38:11 brianwalenz Exp $
+ * $Revision: 1.18 $
 */
 
 #ifndef INCLUDE_AS_BOG_DATATYPES
@@ -99,7 +99,7 @@ namespace AS_BOG{
 		REVERSE
 	} orientation_type;
 
-	typedef CDS_IID_t iuid;
+	typedef AS_IID    iuid;
 	const iuid NULL_FRAG_ID=0;
 
     typedef std::list<SeqInterval> IntervalList;

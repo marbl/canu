@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_Bubble.c,v 1.11 2007-10-24 21:04:21 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_Bubble.c,v 1.12 2007-11-08 12:38:11 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -445,7 +445,6 @@ AS_CGB_Bubble_find_and_remove_bubbles
       int o;
       GenericMesg m;
       m.t = MESG_OVL;
-      m.s = sizeof(OverlapMesg);
       for (o = 0; o < num_ovl; ++o) {
 	m.m = (void *) &(ovl[o]);
 	WriteProtoMesg_AS(olap_file, &m);

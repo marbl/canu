@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* 	$Id: AS_PER_gkpStore.h,v 1.43 2007-10-16 12:55:47 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_gkpStore.h,v 1.44 2007-11-08 12:38:15 brianwalenz Exp $	 */
 
 #ifndef AS_PER_GKPFRGSTORE_H
 #define AS_PER_GKPFRGSTORE_H
@@ -50,7 +50,7 @@
 //  the difference between batch i+1 and batch i.
 //
 typedef struct {
-  CDS_UID_t      batchUID;
+  AS_UID         batchUID;
   char           name[AS_PER_NAME_LEN];
   char           comment[AS_PER_COMMENT_LEN];
 
@@ -70,7 +70,7 @@ static const char *AS_READ_ORIENT_NAMES[8] = {
 
 
 typedef struct {
-  CDS_UID_t      libraryUID;
+  AS_UID         libraryUID;
 
   char           comment[AS_PER_COMMENT_LEN];
 
@@ -119,8 +119,8 @@ typedef struct {
       //  Example 1; indicate that the reads in this library should go
       //  between some specific clone.
       //
-      //CDS_UID_t   cloneRestrictLeft;
-      //CDS_UID_t   cloneRestrictRight;
+      //AS_UID        cloneRestrictLeft;
+      //AS_UID        cloneRestrictRight;
 
       //  Example 2: just a collection of whatever.  This would be accessed
       //  as gkpl->features.data.whatever.a
@@ -230,14 +230,14 @@ AS_PER_decodeClearRangeLabel(const char *label) {
 
 
 typedef struct{
-  CDS_UID_t        readUID;
+  AS_UID           readUID;
  
-  CDS_IID_t        readIID;
-  CDS_IID_t        mateIID;
+  AS_IID           readIID;
+  AS_IID           mateIID;
 
-  CDS_UID_t        plateUID;
+  AS_UID           plateUID;
 
-  CDS_IID_t        libraryIID;
+  AS_IID           libraryIID;
 
   uint32           deleted:1;
   uint32           nonrandom:1;
@@ -253,8 +253,8 @@ typedef struct{
   uint64           srcLen:12;
   uint64           pad2:28;
 
-  VLSTRING_SIZE_T  clearBeg[AS_READ_CLEAR_NUMREAL];
-  VLSTRING_SIZE_T  clearEnd[AS_READ_CLEAR_NUMREAL];
+  uint16           clearBeg[AS_READ_CLEAR_NUMREAL];
+  uint16           clearEnd[AS_READ_CLEAR_NUMREAL];
 
   uint64           seqOffset;
   uint64           qltOffset;
@@ -296,32 +296,28 @@ typedef struct {
 } fragRecord;
 
 
-fragRecord *new_fragRecord(void);
-void        del_fragRecord(fragRecord *fr);
-void        clr_fragRecord(fragRecord *fr);
-
 void        setFragRecordClearRegion(fragRecord *fr, 
                                      uint32 start,
                                      uint32 end,
                                      uint32 which);
 
 static
-CDS_UID_t   getFragRecordUID(fragRecord *fr) {
+AS_UID      getFragRecordUID(fragRecord *fr) {
   return(fr->gkfr.readUID);
 };
 
 static
-CDS_IID_t   getFragRecordIID(fragRecord *fr) {
+AS_IID      getFragRecordIID(fragRecord *fr) {
   return(fr->gkfr.readIID);
 };
 
 static
-CDS_IID_t   getFragRecordMateIID(fragRecord *fr) {
+AS_IID      getFragRecordMateIID(fragRecord *fr) {
   return(fr->gkfr.mateIID);
 };
 
 static
-CDS_IID_t   getFragRecordLibraryIID(fragRecord *fr) {
+AS_IID      getFragRecordLibraryIID(fragRecord *fr) {
   return(fr->gkfr.libraryIID);
 };
 
@@ -381,18 +377,6 @@ char       *getFragRecordSource(fragRecord *fr) {
 
 ////////////////////////////////////////////////////////////
 
-#define NUM_GKP_FILES 9
-
-// 1  is gatekeeper store info
-// 2  is batches
-// 3  is fragments
-// 4  is libraries
-// 5  is sequence
-// 6  is quality
-// 7  is homopolymer spacing and etc
-// 8  is source
-// 9  is uid to iid mapping
-
 typedef struct {
   uint64    gkpMagic;
   uint64    gkpVersion;
@@ -450,16 +434,21 @@ typedef struct {
 
   StoreStruct             *src;
 
-  //  This is now a _private_ member.  It is not allocated when the
-  //  gatekeeper is initially loaded -- because on big assemblies, it
-  //  blows the address space of grid-based jobs like overlap,
-  //  consensus, etc.
+  StoreStruct             *uid;
+
+  //  Maps UIDs to IIDs; maps strings to UIDs.  The STR array
+  //  holds ALL the string UIDs.
   //
   HashTable_AS            *UIDtoIID;
+  HashTable_AS            *STRtoUID;
 
   //  We cache all the library records, for quick access.
   //
   GateKeeperLibraryRecord *lib_cache;
+
+  //  We can generate a quick mapping from IID to UID for fragments.
+  //
+  uint64                  *frgUID;
 
   //  The rest are for a partitioned fragment store.
   //
@@ -490,23 +479,17 @@ typedef struct {
 static
 int32
 getNumGateKeeperBatches(GateKeeperStore *gkp) {
-  StoreStat stat;
-  statsStore(gkp->bat, &stat);
-  return(stat.lastElem);
+  return(getLastElemStore(gkp->bat));
 }
 static
 int32
 getNumGateKeeperLibraries(GateKeeperStore *gkp) {
-  StoreStat stat;
-  statsStore(gkp->lib, &stat);
-  return(stat.lastElem);
+  return(getLastElemStore(gkp->lib));
 }
 static
 int32
 getNumGateKeeperFragments(GateKeeperStore *gkp) {
-  StoreStat stat;
-  statsStore(gkp->frg, &stat);
-  return(stat.lastElem);
+  return(getLastElemStore(gkp->frg));
 }
 
 
@@ -540,49 +523,17 @@ getGateKeeperLibrary(GateKeeperStore *gkp, int libiid) {
 }
 
 
-
-
-
-
-//  The only public accessor for the persistent hash in the
-//  gatekeeper.  Returns the IID, or 0 if the uid was not found.
+//  The following three functions should not be used.  They are needed
+//  only by AS_UTL_UID.c, which handles all the UID strings.
 //
-static
-CDS_IID_t
-getGatekeeperUIDtoIID(GateKeeperStore *gkp, CDS_UID_t uid, uint32 *type) {
-  uint64   iid = 0;
+AS_UID   AS_GKP_getUIDfromString(GateKeeperStore *gkp, AS_UID uid);
+AS_UID   AS_GKP_getUID(GateKeeperStore *gkp, AS_UID uid);
+AS_UID   AS_GKP_addUID(GateKeeperStore *gkp, AS_UID uid);
 
-  if (gkp->UIDtoIID == NULL) {
-    char  name[FILENAME_MAX];
-    sprintf(name,"%s/map", gkp->storePath);
-    gkp->UIDtoIID = LoadUIDtoIIDHashTable_AS(name);
-  }
+AS_IID   getGatekeeperUIDtoIID(GateKeeperStore *gkp, AS_UID uid, uint32 *type);
+int      setGatekeeperUIDtoIID(GateKeeperStore *gkp, AS_UID uid, AS_IID iid, uint32 type);
 
-  assert(uid != 0);
-  LookupInHashTable_AS(gkp->UIDtoIID, uid, 0, &iid, type);
-  return((CDS_IID_t)iid);
-}
-
-
-static
-int
-setGatekeeperUIDtoIID(GateKeeperStore *gkp, CDS_UID_t uid, CDS_IID_t iid, uint32 type) {
-  assert(gkp->UIDtoIID != NULL);
-  assert(uid != 0);
-  assert(iid != 0);
-  return(InsertInHashTable_AS(gkp->UIDtoIID, uid, 0, (uint64)iid, type));
-}
-
-
-static
-int
-delGatekeeperUIDtoIID(GateKeeperStore *gkp, CDS_UID_t uid) {
-  assert(gkp->UIDtoIID != NULL);
-  assert(uid != 0);
-  return(DeleteFromHashTable_AS(gkp->UIDtoIID, uid, 0));
-}
-
-
+AS_UID   getGatekeeperIIDtoUID(GateKeeperStore *gkp, AS_IID iid, uint32 type);
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -604,9 +555,9 @@ void    clearGateKeeperBatchRecord(GateKeeperBatchRecord *g);
 void    clearGateKeeperLibraryRecord(GateKeeperLibraryRecord *g);
 void    clearGateKeeperFragmentRecord(GateKeeperFragmentRecord *g);
 
-void    getFrag(GateKeeperStore *gkp, CDS_IID_t iid, fragRecord *fr, int32 flags);
-void    setFrag(GateKeeperStore *gkp, CDS_IID_t iid, fragRecord *fr);
-void    delFrag(GateKeeperStore *gkp, CDS_IID_t iid);
+void    getFrag(GateKeeperStore *gkp, AS_IID    iid, fragRecord *fr, int32 flags);
+void    setFrag(GateKeeperStore *gkp, AS_IID    iid, fragRecord *fr);
+void    delFrag(GateKeeperStore *gkp, AS_IID    iid);
 
 #define getFirstElemFragStore(GKP)  getFirstElemStore((GKP)->frg)
 #define getLastElemFragStore(GKP)   getLastElemStore((GKP)->frg)
@@ -621,12 +572,6 @@ typedef struct {
   StreamStruct      *qlt;
   StreamStruct      *hps;
   StreamStruct      *src;
-
-  char              *frgBuffer;
-  char              *seqBuffer;
-  char              *qltBuffer;
-  char              *hpsBuffer;
-  char              *srcBuffer;
 
   int                flags;
 } FragStream;

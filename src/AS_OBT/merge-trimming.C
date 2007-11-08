@@ -134,7 +134,7 @@ main(int argc, char **argv) {
   }
   uint32      firstElem = getFirstElemFragStore(gkp);
   uint32      lastElem  = getLastElemFragStore(gkp) + 1;
-  fragRecord *fr = new_fragRecord();
+  fragRecord  fr;
 
 
   //  Open the overlap file
@@ -174,15 +174,15 @@ main(int argc, char **argv) {
     //
     lid++;
     while (lid < iid) {
-      getFrag(gkp, lid, fr, FRAG_S_INF | FRAG_S_QLT);
+      getFrag(gkp, lid, &fr, FRAG_S_INF | FRAG_S_QLT);
 
-      uint32 qltL0 = getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBTINI);
-      uint32 qltR0 = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBTINI);
+      uint32 qltL0 = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBTINI);
+      uint32 qltR0 = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_OBTINI);
       uint32 qltL1 = 0;
       uint32 qltR1 = 0;
-      uint64 uid   = getFragRecordUID(fr);
+      AS_UID uid   = getFragRecordUID(&fr);
 
-      doTrim(fr, minQuality, qltL1, qltR1);
+      doTrim(&fr, minQuality, qltL1, qltR1);
 
       //  Pick the bigger of the L's and the lesser of the R's.  If
       //  L<R still, then the Q0 and Q1 trimming intersect, and we
@@ -194,13 +194,13 @@ main(int argc, char **argv) {
 
       if (l + AS_FRAG_MIN_LEN < r) {
         if (doModify) {
-          setFragRecordClearRegion(fr, l, r, AS_READ_CLEAR_OBT);
-          setFrag(gkp, lid, fr);
+          setFragRecordClearRegion(&fr, l, r, AS_READ_CLEAR_OBT);
+          setFrag(gkp, lid, &fr);
         }
 
         if (logFile)
-          fprintf(logFile, F_U64"\t"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (no overlaps)\n",
-                  uid, lid, qltL0, qltR0, l, r);
+          fprintf(logFile, "%s\t"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (no overlaps)\n",
+                  AS_UID_toString(uid), lid, qltL0, qltR0, l, r);
       } else {
         //  What?  No intersect...too small?  Delete it!
         //
@@ -209,11 +209,11 @@ main(int argc, char **argv) {
 
         if (logFile)
           if (l < r)
-            fprintf(logFile, F_U64"\t"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (no overlaps, intersection too short, deleted)\n",
-                    uid, lid, qltL0, qltR0, qltL1, qltR1);
+            fprintf(logFile, "%s\t"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (no overlaps, intersection too short, deleted)\n",
+                    AS_UID_toString(uid), lid, qltL0, qltR0, qltL1, qltR1);
           else
-            fprintf(logFile, F_U64"\t"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (no overlaps, no intersection, deleted)\n",
-                    uid, lid, qltL0, qltR0, qltL1, qltR1);
+            fprintf(logFile, "%s\t"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (no overlaps, no intersection, deleted)\n",
+                    AS_UID_toString(uid), lid, qltL0, qltR0, qltL1, qltR1);
       }
 
       lid++;
@@ -228,20 +228,20 @@ main(int argc, char **argv) {
     uint32 qltL = 0;
     uint32 qltR = 0;
 
-    getFrag(gkp, iid, fr, FRAG_S_INF | FRAG_S_QLT);
+    getFrag(gkp, iid, &fr, FRAG_S_INF | FRAG_S_QLT);
 
-    uint32 qltLQ1 = getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBTINI);
-    uint32 qltRQ1 = getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBTINI);
-    uint64 uid    = getFragRecordUID(fr);
+    uint32 qltLQ1 = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBTINI);
+    uint32 qltRQ1 = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_OBTINI);
+    AS_UID uid    = getFragRecordUID(&fr);
 
-    GateKeeperLibraryRecord  *gklr = getGateKeeperLibrary(gkp, getFragRecordLibraryIID(fr));
+    GateKeeperLibraryRecord  *gklr = getGateKeeperLibrary(gkp, getFragRecordLibraryIID(&fr));
 
     //  Only proceed if we're mutable.
     //
     if ((gklr) && (gklr->doNotOverlapTrim)) {
       if (logFile)
-        fprintf(logFile, F_U64"\t"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (immutable)\n",
-                uid, lid, qltLQ1, qltRQ1, qltLQ1, qltRQ1);
+        fprintf(logFile, "%s\t"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (immutable)\n",
+                AS_UID_toString(uid), lid, qltLQ1, qltRQ1, qltLQ1, qltRQ1);
     } else {
       uint32 min5   = atoi(W[1]) + qltLQ1;
       uint32 minm5  = atoi(W[2]) + qltLQ1;
@@ -303,7 +303,7 @@ main(int argc, char **argv) {
       }
 
 
-      doTrim(fr, minQuality, qltL, qltR);
+      doTrim(&fr, minQuality, qltL, qltR);
 
       uint32 left  = 0;
       uint32 right = 0;
@@ -441,8 +441,8 @@ main(int argc, char **argv) {
         stats[19]++;
 
         if (logFile)
-          fprintf(logFile, F_U64"\t"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (deleted, too short)\n",
-                  uid, iid, qltL, qltR, left, right);
+          fprintf(logFile, "%s\t"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32" (deleted, too short)\n",
+                  AS_UID_toString(uid), iid, qltL, qltR, left, right);
 
         if (doModify)
           delFrag(gkp, iid);
@@ -450,12 +450,12 @@ main(int argc, char **argv) {
         stats[20]++;
 
         if (logFile)
-          fprintf(logFile, F_U64"\t"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\n",
-                  uid, iid, qltL, qltR, left, right);
+          fprintf(logFile, "%s\t"F_U64"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\n",
+                  AS_UID_toString(uid), iid, qltL, qltR, left, right);
 
         if (doModify) {
-          setFragRecordClearRegion(fr, left, right, AS_READ_CLEAR_OBT);
-          setFrag(gkp, iid, fr);
+          setFragRecordClearRegion(&fr, left, right, AS_READ_CLEAR_OBT);
+          setFrag(gkp, iid, &fr);
         }
       }
     }

@@ -354,12 +354,14 @@ int main(int argc, char *argv[])
       for (i = (file2==NULL ? j+1 : 0); i <= (file2==NULL ? K : KB); i++){
 	tlaps += 1;
 	A.sequence = Seqs[j];
+	A.iaccession = j+1;
+        A.eaccession = AS_UID_fromInteger(A.iaccession);
+
 	B.sequence = (file2==NULL ? Seqs[i] : SeqsB[i]);
-	A.iaccession = A.eaccession = j+1;
-	B.iaccession = B.eaccession = i+1 + (file2!=NULL ? (K+1) : 0);
+	B.iaccession = i+1 + (file2!=NULL ? (K+1) : 0);
+        B.eaccession = AS_UID_fromInteger(B.iaccession);
 
 	for(ori=0;ori<=1;ori++){
-
 
 	  if(strlen(B.sequence)<-bbnd)
 	  bbnd=-strlen(B.sequence);

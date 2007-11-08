@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.16 2007-10-25 16:36:17 gdenisov Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.17 2007-11-08 12:38:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,100 +31,137 @@ static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.16 2007-10-25 16:36:17 gdenisov E
 #include "AS_MSG_pmesg_internal.h"
 #include "AS_PER_gkpStore.h"
 
-//  reads old and new AFG message (with and w/o chaff field)
-#define AFG_BACKWARDS_COMPATIBLE
-#define IAF_BACKWARDS_COMPATIBLE
+
+
+static
+char
+GetIIDIIDMatePairType(AS_IID *IID1, AS_IID *IID2, FILE *fin) {
+
+  ReadLine(fin,TRUE);
+
+  *IID1 = 0;
+  *IID2 = 0;
+
+  char *str = AS_MSG_globals->curLine;
+
+  *IID1 = strtoul(str, NULL, 10);
+
+  while (*str != ',')  str++;
+  str++;
+
+  *IID2 = strtoul(str, NULL, 10);
+
+  while (*str != ',')  str++;
+  str++;
+
+  return(*str);
+}
+
+
+static
+char
+GetUIDUIDMatePairType(AS_UID *UID1, AS_UID *UID2, FILE *fin) {
+
+  ReadLine(fin,TRUE);
+
+  UID1->isString  = 0;
+  UID1->UID       = 0;
+  UID1->UIDstring = NULL;
+
+  UID2->isString  = 0;
+  UID2->UID       = 0;
+  UID2->UIDstring = NULL;
+
+  char *str = GetMemory(strlen(AS_MSG_globals->curLine + 1));
+  strcpy(str, AS_MSG_globals->curLine);
+
+  UID1->UIDstring = str;
+
+  while (*str != ',')  str++;
+  *str = 0;
+  str++;
+
+  UID2->UIDstring = str;
+
+  while (*str != ',')  str++;
+  *str = 0;
+  str++;
+
+  return(*str);
+}
+
+
+
 
 
 /******************** INPUT ROUTINES ***************************/
 
-static void *Read_DST_Mesg(FILE *fin)
-{ static DistanceMesg dmesg;
-  char ch;
+static
+void *
+Read_DST_Mesg(FILE *fin) {
+  static DistanceMesg dmesg;
 
-  GET_TYPE(ch,"act:%c","action");
-  dmesg.action = (ActionType) ch;
-  GET_FIELD(dmesg.eaccession,"acc:"F_UID,"accession field");
+  dmesg.action = (ActionType)GetType("act:%c","action", fin);
+
+  dmesg.eaccession = GetUID("acc:",fin);
 
   if (dmesg.action == 'R')
     dmesg.action = AS_UPDATE;
-  if ((dmesg.action == AS_ADD) || (dmesg.action == AS_UPDATE) || (dmesg.action == AS_IGNORE))
-    { GET_FIELD(dmesg.mean,"mea:%f","mean field");
-      GET_FIELD(dmesg.stddev ,"std:%f","stddev field");
-    }
-  GET_EOM;
-  return ((void *) (&dmesg));
+
+  if ((dmesg.action == AS_ADD) ||
+      (dmesg.action == AS_UPDATE) ||
+      (dmesg.action == AS_IGNORE)) {
+    GET_FIELD(dmesg.mean,   "mea:%f", "mean field");
+    GET_FIELD(dmesg.stddev, "std:%f", "stddev field");
+  }
+
+  GetEOM(fin);
+
+  return(&dmesg);
 }
 
 
-// This is tricky, since we are trying to update the fields
-// of a structure that may be realloced.  Store offsets in
-// temps, and stuff them in in one go.
 
-static int Read_ADL_Struct(long last, FILE *fin)
-{ AuditLine mesg; // temporary
-  long crnt;
-  AuditLine *newMesg;
+static
+void *
+Read_ADT_Mesg(FILE *fin) {
+  static AuditMesg amesg;
+  AuditLine *cptr = NULL;
+  AuditLine *tail = NULL;
 
-  mesg.name    = (char *)GetString("who:",fin);
-  GET_FIELD(mesg.complete,"ctm:"F_TIME_T,"completion field");
-  mesg.version = (char *) GetString("vsn:",fin);
-  mesg.comment = (char *)GetText("com:",fin, FALSE);
-  mesg.next = (AuditLine *)last;
-  // this looks SUSPICIOUS
-  GET_EOM;
+  while (strncmp(ReadLine(fin,TRUE),"{ADL",4) == 0) {
+    AuditLine  *al = (AuditLine *)GetMemory(sizeof(AuditLine));
 
-  // Now allocate space for this guy, and copy him to the allocated space
-  crnt = MoreSpace(sizeof(AuditLine),8);
-  newMesg = (AuditLine *)(AS_MSG_globals->MemBuffer + crnt);
-  *newMesg = mesg;
+    al->name     = GetString("who:",fin);
+    GET_FIELD(al->complete,"ctm:"F_TIME_T,"completion field");
+    al->version  = GetString("vsn:",fin);
+    al->comment  = GetText("com:",fin, FALSE);
+    al->next     = NULL;
 
-  return crnt;
-}
+    GetEOM(fin);
 
-static void *Read_ADT_Mesg(FILE *fin)
-{ static AuditMesg amesg;
-  AuditLine *cptr, *tail;
-  long       last,  crnt;
+    if (amesg.list == NULL)
+      amesg.list = al;
 
-  /* First build up list (in reverse order) using indices and not pointers */
+    if (tail)
+      tail->next = al;
 
-  last = crnt = -1;
-  while (strncmp(GetLine(fin,TRUE),"{ADL",4) == 0)
-    { 
-      last =  Read_ADL_Struct(last,fin);
-    }
-  if (AS_MSG_globals->CurLine[0] != '.')
-    MgenError("Expecting end of ADL list");
-  GET_EOM;
+    tail = al;
+  }
 
-  /* Traverse again, reversing list order and converting indices to ptrs. */
-
-  //  fprintf(stderr,"* crnt = %lx last = %lx \n", crnt, last);
-
-  tail = NULL;
-
-  crnt = last;
-
-  while (crnt >= 0)
-    { cptr = (AuditLine *) (AS_MSG_globals->MemBuffer + crnt);
-      crnt = (long) (cptr->next);
-      cptr->next    = tail;
-      cptr->name    = AS_MSG_globals->MemBuffer + ((long) (cptr->name));
-      cptr->version = AS_MSG_globals->MemBuffer + ((long) (cptr->version));
-      cptr->comment = AS_MSG_globals->MemBuffer + ((long) (cptr->comment));
-      
-      tail = cptr;
-    }
-  amesg.list = tail;
+  GetEOM(fin);
 
   return (&amesg);
 }
 
-static void *Read_VER_Mesg(FILE *fin) {
+static
+void *
+Read_VER_Mesg(FILE *fin) {
   static VersionMesg vmesg;
+
   GET_FIELD(vmesg.version,"ver:"F_U32,"version field");
-  GET_EOM;
+  GetEOM(fin);
+
   switch (vmesg.version) {
     case 1:
       AS_MSG_setFormatVersion1();
@@ -142,17 +179,17 @@ static void *Read_VER_Mesg(FILE *fin) {
 }
 
 
-static void *Read_Frag_Mesg(FILE *fin, int frag_class)
-{ static FragMesg fmesg;
-  char   ch;
-  time_t entry_time;
+static
+void *
+Read_Frag_Mesg(FILE *fin, int frag_class) {
+  static FragMesg fmesg;
 
-  assert((frag_class == MESG_FRG) || (frag_class == MESG_IFG));
+  assert(frag_class == MESG_FRG);
 
   fmesg.version        = 1;
-  fmesg.library_uid    = 0;
+  fmesg.library_uid    = AS_UID_undefined();
   fmesg.library_iid    = 0;
-  fmesg.plate_uid      = 0;
+  fmesg.plate_uid      = AS_UID_undefined();
   fmesg.plate_location = 0;
   fmesg.is_random      = 1;
   fmesg.status_code    = 'G';
@@ -161,15 +198,9 @@ static void *Read_Frag_Mesg(FILE *fin, int frag_class)
   fmesg.clear_qlt.bgn  = 1;
   fmesg.clear_qlt.end  = 0;
   
-  if (frag_class == MESG_FRG) { 
-    GET_TYPE(ch,"act:%c","action");
-    fmesg.action = (ActionType) ch;
-    GET_FIELD(fmesg.eaccession,"acc:"F_UID,"accession field");
-  } else {
-    GET_TYPE(ch,"act:%1[AD]","action");
-    fmesg.action = (ActionType) ch;
-    GET_PAIR(fmesg.eaccession,fmesg.iaccession,"acc:("F_UID","F_IID")","accession field pair");
-  } 
+  fmesg.action = (ActionType)GetType("act:%c","action", fin);
+
+  fmesg.eaccession = GetUID("acc:",fin);
 
   fmesg.source   = NULL;
   fmesg.sequence = NULL;
@@ -177,32 +208,22 @@ static void *Read_Frag_Mesg(FILE *fin, int frag_class)
   fmesg.hps      = NULL;
 
   if ((fmesg.action == AS_ADD) || (fmesg.action == AS_IGNORE)) { 
-    if (frag_class == MESG_FRG){
-      GET_TYPE(ch,"typ:%c","type");
-      fmesg.type = (FragType) ch;
-      // We want to succeed on all reads, and let the gatekeeper do its stuff
-    }else{
-      GET_TYPE(ch,"typ:%1[RXELTFUCBW]","type");
-      fmesg.type = (FragType) ch;
-    }
+
+    // We want to succeed on all reads, and let the gatekeeper do its stuff
+    fmesg.type = (FragType)GetType("typ:%c","type", fin);
 
     fmesg.source   = (char *) GetText("src:",fin,FALSE);
 
-    //  Unused
-    GET_FIELD(entry_time,"etm:"F_TIME_T,"time field");
+    ReadLine(fin, TRUE);  //  unused "entry time field" etm:
 
     fmesg.sequence = (char *) GetText("seq:",fin,TRUE);
     fmesg.quality  = (char *) GetText("qlt:",fin,TRUE);
 
     GET_PAIR(fmesg.clear_rng.bgn,fmesg.clear_rng.end,"clr:"F_COORD","F_COORD,"clear range field");
-    fmesg.source   = AS_MSG_globals->MemBuffer + ((long) (fmesg.source));
 
-    // Convert from an index to a pointer.
-    fmesg.sequence = AS_MSG_globals->MemBuffer + ((long) (fmesg.sequence));
-    fmesg.quality  = AS_MSG_globals->MemBuffer + ((long) (fmesg.quality));
   }  //  action is AS_ADD or AS_IGNORE
-  GET_EOM;
-  return ((void *) (&fmesg));
+  GetEOM(fin);
+  return(&fmesg);
 }
 
 static void *Read_FRG_Mesg(FILE *fin)
@@ -215,14 +236,13 @@ static void *Read_IFG_Mesg(FILE *fin)
 static void *Read_OVL_Mesg(FILE *fin)
 { static OverlapMesg omesg;
   int    idx;
-  char ch;
   
   GET_FIELD(omesg.aifrag,"afr:"F_IID,"a-fragment field");
   GET_FIELD(omesg.bifrag,"bfr:"F_IID,"b-fragment field");
-  GET_TYPE(ch,"ori:%1[NAIO]","orientation");
-  omesg.orientation = (OrientType) ch;
-  GET_TYPE(ch,"olt:%1[DCSXdc]","overlap");
-  omesg.overlap_type = (OverlapType) ch;
+
+  omesg.orientation = (OrientType)GetType("ori:%1[NAIO]","orientation", fin);
+  omesg.overlap_type = (OverlapType)GetType("olt:%1[DCSXdc]","overlap", fin);
+
   GET_FIELD(omesg.ahg,"ahg:"F_COORD,"a-hang field");
   GET_FIELD(omesg.bhg,"bhg:"F_COORD,"b-hang field");
   GET_FIELD(omesg.quality,"qua:%f","quality field");
@@ -230,90 +250,79 @@ static void *Read_OVL_Mesg(FILE *fin)
   GET_FIELD(omesg.max_offset,"mxo:"F_COORD,"max-offset field");
   GET_FIELD(omesg.polymorph_ct,"pct:"F_S32,"poly-count field");
 
-  if (strncmp(GetLine(fin,TRUE),"del:",4) != 0)
+  if (strncmp(ReadLine(fin,TRUE),"del:",4) != 0)
     MgenError("delta tag label");
-  idx = MoreSpace(2*AS_FRAG_MAX_LEN,1);
-  omesg.delta = (signed char *) (AS_MSG_globals->MemBuffer + idx);
 
-  { int i, n;     /* Read a delta item (only one of its kind) */
+  omesg.delta = (signed char *)GetMemory(2*AS_FRAG_MAX_LEN);
+
+  {
+    int i, n;     /* Read a delta item (only one of its kind) */
     char *t, *u;
 
     i = 0;
-    while ((t = GetLine(fin,TRUE))[0] != '.')
-      while (1)
-        { n = strtol(t,&u,10);
-          if (u == t) break;
-          t = u;
-          if (! isspace((int)*t))
-            MgenError("Delta is not a sequence of digits");
-          omesg.delta[i++] = n;
-        }
+    while ((t = ReadLine(fin,TRUE))[0] != '.')
+      while (1) {
+        n = strtol(t,&u,10);
+        if (u == t) break;
+        t = u;
+        if (! isspace((int)*t))
+          MgenError("Delta is not a sequence of digits");
+        omesg.delta[i++] = n;
+      }
     omesg.delta[i] = 0;
   }
 
-  GET_EOM;
-  return ((void *) (&omesg));
+  GetEOM(fin);
+  return(&omesg);
 }
 
-static void *Read_LKG_Mesg(FILE *fin)
-{ static LinkMesg lmesg;
-  char ch;
-  time_t entry_time;
-  GET_TYPE(ch,"act:%c","action");
-  lmesg.action = (ActionType) ch;
-  GET_TYPE(ch,"typ:%c","link");
-  lmesg.type = (LinkType) ch;
-  GET_FIELD(lmesg.frag1,"fg1:"F_UID,"fragment 1 field");
-  GET_FIELD(lmesg.frag2,"fg2:"F_UID,"fragment 2 field");
-  if ((lmesg.action == AS_ADD) || (lmesg.action == AS_IGNORE))
-    {
-      //  Unused
-      GET_FIELD(entry_time,"etm:"F_TIME_T,"entry time field");
-      GET_FIELD(lmesg.distance,"dst:"F_UID,"distance field");
-      GET_TYPE(ch,"ori:%1[NAIOU]","link orientation");
-      lmesg.link_orient = (OrientType) ch;
-    }
-  GET_EOM;
-  return ((void *) (&lmesg));
+static
+void *
+Read_LKG_Mesg(FILE *fin) {
+  static LinkMesg lmesg;
+
+  lmesg.action = (ActionType)GetType("act:%c","action", fin);
+  lmesg.type   = (LinkType)  GetType("typ:%c","link", fin);
+
+  lmesg.frag1 = GetUID("fg1:",fin);
+  lmesg.frag2 = GetUID("fg2:",fin);
+
+  if ((lmesg.action == AS_ADD) || (lmesg.action == AS_IGNORE)) {
+    ReadLine(fin, TRUE);  //  unused "entry time field" etm:
+    lmesg.distance    = GetUID("dst:",fin);
+    lmesg.link_orient = (OrientType)GetType("ori:%1[NAIOU]","link orientation", fin);
+  }
+  GetEOM(fin);
+  return(&lmesg);
 }
 
 static void *Read_UOM_Mesg(FILE *fin)
 { static UnitigOverlapMesg	mesg;
-  char ch; 
   GET_FIELD(mesg.chunk1,"ck1:"F_IID,"chunk 1 id field");
   GET_FIELD(mesg.chunk2,"ck2:"F_IID,"chunk 2 id field");
-  GET_TYPE(ch,"ori:%1[NAIO]","orientation");
-  mesg.orient = (ChunkOrientationType) ch;
-  GET_TYPE(ch,"ovt:%1[NOTCIMXdcYZ]","overlap type");
-  mesg.overlap_type = (UnitigOverlapType) ch;
+  
+  mesg.orient = (ChunkOrientationType)GetType("ori:%1[NAIO]","orientation", fin);
+  mesg.overlap_type = (UnitigOverlapType)GetType("ovt:%1[NOTCIMXdcYZ]","overlap type", fin);
 
 #ifdef AS_ENABLE_SOURCE
-  {
-    long		sindx;
-    sindx = GetText("src:",fin,FALSE);
-    mesg.source = AS_MSG_globals->MemBuffer + sindx;
-  }
+  mesg.source = GetText("src:",fin,FALSE);
 #endif
   GET_FIELD(mesg.best_overlap_length,"len:"F_COORD,"best overlap");
   GET_FIELD(mesg.min_overlap_length,"min:"F_COORD,"min overlap");
   GET_FIELD(mesg.max_overlap_length,"max:"F_COORD,"max overlap");
   GET_FIELD(mesg.quality,"qua:%f","quality field");
-  GET_EOM;
-  return ((void *) (&mesg));
+  GetEOM(fin);
+  return(&mesg);
 }
 
-static void Read_IMP_Mesg(FILE *fin, long indx)
-{
-  IntMultiPos	*imp;
+static
+void
+Read_IMP_Mesg(FILE *fin, IntMultiPos *imp) {
   int		 i;
   int32		 n, *delta;
-  long		 tindx;
   char		*line, *u;
-  char ch;
   
-  imp = (IntMultiPos *) (AS_MSG_globals->MemBuffer + indx);
-  GET_TYPE(ch,"typ:%1[RXTELUFSUcBCG]","multipos$");
-  imp->type = (FragType) ch;
+  imp->type = (FragType)GetType("typ:%1[RXTELUFSUcBCG]","multipos$", fin);
   GET_FIELD(imp->ident,"mid:"F_IID,"multipos id");
   GET_FIELD(imp->contained,"con:"F_IID,"contained id");
 #ifdef NEW_UNITIGGER_INTERFACE
@@ -328,32 +337,28 @@ static void Read_IMP_Mesg(FILE *fin, long indx)
   GET_FIELD(imp->bhang,"bhg:"F_S32,"bhang");
 #endif
   GET_FIELD(imp->delta_length,"dln:"F_S32,"delta length");
-  if (strncmp(GetLine(fin,TRUE),"del:",4) != 0)
+  if (strncmp(ReadLine(fin,TRUE),"del:",4) != 0)
     MgenError("Missing del: field");
   imp->delta = NULL;
   if (imp->delta_length > 0) {
-    tindx = MoreSpace(sizeof(int32)*imp->delta_length,8);
-    imp = (IntMultiPos *) (AS_MSG_globals->MemBuffer + indx);	// in case of realloc
-    imp->delta = (int32 *) tindx;
-    delta = (int32 *) (AS_MSG_globals->MemBuffer + (long) imp->delta);
+    imp->delta = (int32 *)GetMemory(sizeof(int32) * imp->delta_length);
     i = 0;
     while (i < imp->delta_length) {
-      line = GetLine(fin,TRUE);
+      line = ReadLine(fin,TRUE);
       n = (int32) strtol(line,&u,10);
       while (u != line) {
 	line = u;
-	delta[i++] = n;
+	imp->delta[i++] = n;
         n = (int32) strtol(line,&u,10);
       }
     }
   } 
-  GET_EOM;
-  return;
+  GetEOM(fin);
 }
 
-static void Read_IMV_Mesg(FILE *fin, long indx)
-{
-  IntMultiVar *imv = (IntMultiVar *) (AS_MSG_globals->MemBuffer + indx);
+static
+void
+Read_IMV_Mesg(FILE *fin, IntMultiVar *imv) {
 
   GET_PAIR(imv->position.bgn,imv->position.end,"pos:"F_COORD","F_COORD,"position field");
   GET_FIELD(imv->num_reads,"nrd:"F_S32,"number of reads"); 
@@ -362,17 +367,16 @@ static void Read_IMV_Mesg(FILE *fin, long indx)
   GET_FIELD(imv->var_length,"len:"F_S32,"length field");
   GET_FIELD(imv->curr_var_id,"vid:"F_S32,"current VAR record id");
   GET_FIELD(imv->phased_var_id,"pid:"F_S32,"phased VAR record id");
-  imv->nr_conf_alleles = (char *)GetText("nra:",fin,FALSE);
-  imv->weights         = (char *)GetText("wgt:",fin,FALSE);
-  imv->var_seq         = (char *)GetText("seq:",fin,FALSE);
-  imv->conf_read_iids  = (char *)GetText("rid:",fin,FALSE);
-  GET_EOM;
-  return;
+  imv->nr_conf_alleles = GetText("nra:",fin,FALSE);
+  imv->weights         = GetText("wgt:",fin,FALSE);
+  imv->var_seq         = GetText("seq:",fin,FALSE);
+  imv->conf_read_iids  = GetText("rid:",fin,FALSE);
+  GetEOM(fin);
 }
 
-static void Read_VAR_Mesg(FILE *fin, long indx)
-{
-  IntMultiVar *smv = (IntMultiVar *) (AS_MSG_globals->MemBuffer + indx);
+static
+void
+Read_VAR_Mesg(FILE *fin, IntMultiVar *smv) {
 
   GET_PAIR(smv->position.bgn,smv->position.end,"pos:"F_COORD","F_COORD,"position field");
   GET_FIELD(smv->num_reads,"nrd:"F_S32,"number of reads");
@@ -381,288 +385,221 @@ static void Read_VAR_Mesg(FILE *fin, long indx)
   GET_FIELD(smv->var_length,"len:"F_S32,"length field");
   GET_FIELD(smv->curr_var_id,"vid:"F_S32,"current VAR record id");
   GET_FIELD(smv->phased_var_id,"pid:"F_S32,"phased VAR record id");
-  smv->nr_conf_alleles = (char *)GetText("nra:",fin,FALSE);
-  smv->weights         = (char *)GetText("wgt:",fin,FALSE);
-  smv->var_seq         = (char *)GetText("seq:",fin,FALSE);
-  smv->conf_read_iids  = (char *)GetText("rid:",fin,FALSE);
-  GET_EOM;
-  return;
+  smv->nr_conf_alleles = GetText("nra:",fin,FALSE);
+  smv->weights         = GetText("wgt:",fin,FALSE);
+  smv->var_seq         = GetText("seq:",fin,FALSE);
+  smv->conf_read_iids  = GetText("rid:",fin,FALSE);
+  GetEOM(fin);
 }
 
-static void Read_IUP_Mesg(FILE *fin, long indx)
-{
-  IntUnitigPos		*iup;
+static
+void
+Read_IUP_Mesg(FILE *fin, IntUnitigPos *iup) {
   int			i;
   int32			n, *delta;
-  long			tindx;
   char			*line, *u;
-  char ch;
   
-  iup = (IntUnitigPos *) (AS_MSG_globals->MemBuffer + indx);
-  GET_TYPE(ch,"typ:%1[URSPsX]","unitigpos type");
-  iup->type = (UnitigType) ch;
+  iup->type = (UnitigType)GetType("typ:%1[URSPsX]","unitigpos type", fin);
   GET_FIELD(iup->ident,"lid:"F_IID,"unitigpos id");
   GET_PAIR(iup->position.bgn,iup->position.end,"pos:"F_COORD","F_COORD,"position field");
   GET_FIELD(iup->delta_length,"dln:"F_S32,"delta length");
-  if (strncmp(GetLine(fin,TRUE),"del:",4) != 0)
+  if (strncmp(ReadLine(fin,TRUE),"del:",4) != 0)
     MgenError("Missing del: field");
   iup->delta = NULL;
   if (iup->delta_length > 0) {
-    tindx = MoreSpace(sizeof(int32)*iup->delta_length,8);
-    iup = (IntUnitigPos *) (AS_MSG_globals->MemBuffer + indx);	// in case of realloc
-    iup->delta = (int32 *) tindx;
-    delta = (int32 *) (AS_MSG_globals->MemBuffer + (long) iup->delta);
+    iup->delta = (int32 *)GetMemory(sizeof(int32)*iup->delta_length);
     i = 0;
     while (i < iup->delta_length) {
-      line = GetLine(fin,TRUE);
+      line = ReadLine(fin,TRUE);
       n = (int32) strtol(line,&u,10);
       while (u != line) {
 	line = u;
-	delta[i++] = n;
+	iup->delta[i++] = n;
         n = (int32) strtol(line,&u,10);
       }
     }
   } 
-  GET_EOM;
-  return;
+  GetEOM(fin);
 }
 
-static void *Read_IUM_Mesg(FILE *fin)
-{ static IntUnitigMesg		mesg;
+static
+void *
+Read_IUM_Mesg(FILE *fin) {
+  static IntUnitigMesg		mesg;
   int				i;
-  long				cindx, qindx, mpindx, indx;
-# ifdef AS_ENABLE_SOURCE
-  long				sindx;
-# endif
-  char ch;
-
-  //  unused, needed so we don't change the format of the message
-  CDS_COORD_t     a_branch_point;
-  CDS_COORD_t     b_branch_point;
 
   GET_FIELD(mesg.iaccession,"acc:"F_IID,"accession field");
 # ifdef AS_ENABLE_SOURCE
-  sindx = GetText("src:",fin,FALSE);
+  mesg.source = GetText("src:",fin,FALSE);
 # endif
   GET_FIELD(mesg.coverage_stat,"cov:%f","coverage stat");  
-  GET_TYPE(ch,"sta:%1[UCNSX]","status");
-  mesg.status = (UnitigStatus) ch;
+  mesg.status = (UnitigStatus)GetType("sta:%1[UCNSX]","status", fin);
 
   // flag for handling unitig
-  GET_TYPE(ch,"fur:%1[XUR]","unique_rept");
-  mesg.unique_rept = (UnitigFUR) ch;
+  mesg.unique_rept = (UnitigFUR)GetType("fur:%1[XUR]","unique_rept", fin);
 
-  //  Unused!
-  GET_FIELD(a_branch_point,"abp:"F_COORD,"a branch point");
-  GET_FIELD(b_branch_point,"bbp:"F_COORD,"b branch point");
+  ReadLine(fin, TRUE);  //  unused "a branch point" abp:
+  ReadLine(fin, TRUE);  //  unused "b branch point" bbp:
 
   GET_FIELD(mesg.length,"len:"F_COORD,"length field");
-  cindx = GetText("cns:",fin,TRUE);
-  qindx = GetText("qlt:",fin,TRUE);
+  mesg.consensus = GetText("cns:",fin,TRUE);
+  mesg.quality   = GetText("qlt:",fin,TRUE);
   GET_FIELD(mesg.forced,"for:"F_S32,"forced booleon");
   GET_FIELD(mesg.num_frags,"nfr:"F_S32,"num frags field");
+
+  mesg.f_list = NULL;
+
   if (mesg.num_frags > 0) {
-    indx = mpindx = MoreSpace(mesg.num_frags*sizeof(IntMultiPos),8);
-    /* Why use 8 boundary above? Damned if I know - ela */
+    mesg.f_list = (IntMultiPos *)GetMemory(mesg.num_frags * sizeof(IntMultiPos));
+
     for (i=0; i < mesg.num_frags; ++i) {
-      if (strncmp(GetLine(fin,TRUE),"{IMP",4) != 0)
+      if (strncmp(ReadLine(fin,TRUE),"{IMP",4) != 0)
 	MgenError("Expecting IMP record");
-      Read_IMP_Mesg(fin, indx);
-      indx += sizeof(IntMultiPos);
+      Read_IMP_Mesg(fin, mesg.f_list + i);
     }
-    mesg.f_list = (IntMultiPos *) (AS_MSG_globals->MemBuffer + mpindx);
   }
-  else
-    mesg.f_list = NULL;
-  GET_EOM;
-  mesg.consensus = AS_MSG_globals->MemBuffer + cindx;
-  mesg.quality  = AS_MSG_globals->MemBuffer + qindx;
+
+  GetEOM(fin);
 
   assert(strlen(mesg.consensus) == strlen(mesg.quality));
-  assert((strlen(mesg.consensus) == mesg.length) ||
-	 (strlen(mesg.consensus) == 0) );
 
-  //  Adjust all the delta offsets into pointers
-  for (i=0; i < mesg.num_frags; ++i) {
-    if (mesg.f_list[i].delta_length > 0)
-      mesg.f_list[i].delta = (int32 *) (AS_MSG_globals->MemBuffer+(long) mesg.f_list[i].delta);
-  }
-# ifdef AS_ENABLE_SOURCE
-  mesg.source = AS_MSG_globals->MemBuffer + sindx;
-# endif
-  return ((void *) (&mesg));
+  return(&mesg);
 }
 
-static void *Read_IUL_Mesg(FILE *fin)
-{ static IntUnitigLinkMesg	mesg;
+static
+void *
+Read_IUL_Mesg(FILE *fin) {
+  static IntUnitigLinkMesg	mesg;
   int				i,size;
-  long				indx;
-  IntMate_Pairs			*imp;
-  char ch;
   
   GET_FIELD(mesg.unitig1,"ut1:"F_IID,"unitig 1 field");
   GET_FIELD(mesg.unitig2,"ut2:"F_IID,"unitig 2 field");
-  GET_TYPE(ch,"ori:%1[NAOI]","orientation");
-  mesg.orientation = (ChunkOrientationType) ch;
-  GET_TYPE(ch,"ovt:%1[NOTCIMXYZ]","overlap type");
-  mesg.overlap_type = (UnitigOverlapType) ch;
+  mesg.orientation = (ChunkOrientationType)GetType("ori:%1[NAOI]","orientation", fin);
+  mesg.overlap_type = (UnitigOverlapType)GetType("ovt:%1[NOTCIMXYZ]","overlap type", fin);
   GET_FIELD(mesg.is_possible_chimera,"ipc:"F_S32,"warning");
   GET_FIELD(mesg.includes_guide,"gui:"F_S32,"guide flag");
   GET_FIELD(mesg.mean_distance,"mea:%f","mean distance");
   GET_FIELD(mesg.std_deviation,"std:%f","standard deviation");
   GET_FIELD(mesg.num_contributing,"num:"F_S32,"number of links");
-  GET_TYPE(ch,"sta:%1[APBCU]","placement status");
-  mesg.status = (PlacementStatusType) ch;
-  if (strncmp(GetLine(fin,TRUE),"jls:",4) != 0)
+  mesg.status = (PlacementStatusType)GetType("sta:%1[APBCU]","placement status", fin);
+  if (strncmp(ReadLine(fin,TRUE),"jls:",4) != 0)
     MgenError("Expecting jls field");
   size = mesg.num_contributing;
   if (mesg.overlap_type != AS_NO_OVERLAP)
     --size;
+  mesg.jump_list = NULL;
   if (size > 0) {
-    indx = MoreSpace(sizeof(IntMate_Pairs)*size,8);
-    imp = mesg.jump_list = (IntMate_Pairs *) (AS_MSG_globals->MemBuffer + indx);
+    mesg.jump_list = (IntMate_Pairs *)GetMemory(sizeof(IntMate_Pairs)*size);
     for (i=0; i < size; ++i) {
-      GET_TRIPLE(imp->in1,imp->in2,ch,F_IID","F_IID",%1[MSBRYT]","mate pair");
-      imp->type = (LinkType)ch;
-      ++imp;
+      IntMate_Pairs *imp = mesg.jump_list + i;
+      //GET_TRIPLE(imp->in1,imp->in2,ch,F_IID","F_IID",%1[MSBRYT]","mate pair");
+      imp->type = (LinkType)GetIIDIIDMatePairType(&imp->in1, &imp->in2, fin);;
     }
   }
-  else
-    mesg.jump_list = NULL;
-  GET_EOM;
-  return ((void *) (&mesg));
+  GetEOM(fin);
+  return(&mesg);
 }
 
-static void *Read_ICL_Mesg(FILE *fin)
-{ static IntContigLinkMesg	mesg;
+static
+void *
+Read_ICL_Mesg(FILE *fin) {
+  static IntContigLinkMesg	mesg;
   int				i,size;
-  long				indx;
-  IntMate_Pairs			*imp;
-  char ch;
   
   GET_FIELD(mesg.contig1,"co1:"F_IID,"contig 1 field");
   GET_FIELD(mesg.contig2,"co2:"F_IID,"contig 2 field");
-  GET_TYPE(ch,"ori:%1[NAOI]","orientation");
-  mesg.orientation = (ChunkOrientationType) ch;
-  GET_TYPE(ch,"ovt:%1[NOTCIMXYZ]","overlap type");
-  mesg.overlap_type = (UnitigOverlapType) ch;
+  mesg.orientation = (ChunkOrientationType)GetType("ori:%1[NAOI]","orientation", fin);
+  mesg.overlap_type = (UnitigOverlapType)GetType("ovt:%1[NOTCIMXYZ]","overlap type", fin);
   GET_FIELD(mesg.is_possible_chimera,"ipc:"F_S32,"warning");
   GET_FIELD(mesg.includes_guide,"gui:"F_S32,"guide flag");
   GET_FIELD(mesg.mean_distance,"mea:%f","mean distance");
   GET_FIELD(mesg.std_deviation,"std:%f","standard deviation");
   GET_FIELD(mesg.num_contributing,"num:"F_S32,"number of links");
-  GET_TYPE(ch,"sta:%1[APBCU]","placement status");
-  mesg.status = (PlacementStatusType) ch;
-  if (strncmp(GetLine(fin,TRUE),"jls:",4) != 0)
+  mesg.status = (PlacementStatusType)GetType("sta:%1[APBCU]","placement status", fin);
+  if (strncmp(ReadLine(fin,TRUE),"jls:",4) != 0)
     MgenError("Expecting jls field");
   size = mesg.num_contributing;
   if (mesg.overlap_type != AS_NO_OVERLAP)
     --size;
+  mesg.jump_list = NULL;
   if (size > 0) {
-    indx = MoreSpace(sizeof(IntMate_Pairs)*size,8);
-    imp = mesg.jump_list = (IntMate_Pairs *) (AS_MSG_globals->MemBuffer + indx);
+    mesg.jump_list = (IntMate_Pairs *)GetMemory(sizeof(IntMate_Pairs)*size);
     for (i=0; i < size; ++i) {
-      GET_TRIPLE(imp->in1,imp->in2,ch, F_IID","F_IID",%1[MSBRYT]","mate pair");
-      imp->type = (LinkType)ch;
-      ++imp;
+      IntMate_Pairs *imp = mesg.jump_list + i;
+      //GET_TRIPLE(imp->in1,imp->in2,ch, F_IID","F_IID",%1[MSBRYT]","mate pair");
+      imp->type = (LinkType)GetIIDIIDMatePairType(&imp->in1, &imp->in2, fin);
     }
   }
-  else
-    mesg.jump_list = NULL;
-  GET_EOM;
-  return ((void *) (&mesg));
+  GetEOM(fin);
+  return(&mesg);
 }
 
-static void *Read_ISL_Mesg(FILE *fin)
-{ static InternalScaffoldLinkMesg	mesg;
+static
+void *
+Read_ISL_Mesg(FILE *fin) {
+  static InternalScaffoldLinkMesg	mesg;
   int				i,size;
-  long				indx;
-  IntMate_Pairs			*imp;
-  char ch;
   
   GET_FIELD(mesg.iscaffold1,"sc1:"F_IID,"scaffold 1 field");
   GET_FIELD(mesg.iscaffold2,"sc2:"F_IID,"scaffold 2 field");
-  GET_TYPE(ch,"ori:%1[NAOI]","orientation");
-  mesg.orientation = (ChunkOrientationType) ch;
+  mesg.orientation = (ChunkOrientationType)GetType("ori:%1[NAOI]","orientation", fin);
   GET_FIELD(mesg.includes_guide,"gui:"F_S32,"guide flag");
   GET_FIELD(mesg.mean_distance,"mea:%f","mean distance");
   GET_FIELD(mesg.std_deviation,"std:%f","standard deviation");
   GET_FIELD(mesg.num_contributing,"num:"F_S32,"number of links");
-  if (strncmp(GetLine(fin,TRUE),"jls:",4) != 0)
+  if (strncmp(ReadLine(fin,TRUE),"jls:",4) != 0)
     MgenError("Expecting jls field");
   size = mesg.num_contributing;
   assert(size > 0);
-  indx = MoreSpace(sizeof(IntMate_Pairs)*size,8);
-  imp = mesg.jump_list = (IntMate_Pairs *) (AS_MSG_globals->MemBuffer + indx);
+  mesg.jump_list = (IntMate_Pairs *)GetMemory(sizeof(IntMate_Pairs)*size);
   for (i=0; i < size; ++i) {
-    GET_TRIPLE(imp->in1,imp->in2,ch, F_IID","F_IID",%1[MSBRYT]","mate pair");
-    imp->type = (LinkType) ch;
-    ++imp;
+    IntMate_Pairs *imp = mesg.jump_list + i;
+    //GET_TRIPLE(imp->in1,imp->in2,ch, F_IID","F_IID",%1[MSBRYT]","mate pair");
+    imp->type = (LinkType)GetIIDIIDMatePairType(&imp->in1, &imp->in2, fin);
   }
-  GET_EOM;
-  return ((void *) (&mesg));
+  GetEOM(fin);
+  return(&mesg);
 }
 
 static void *Read_AFG_Mesg(FILE *fin)
 { static AugFragMesg		mesg;
   char *line;
   int32 i,j;
-  char ch;
   
-  GET_PAIR(mesg.eaccession,mesg.iaccession,"acc:("F_UID","F_IID")","accession field");
-  GET_TYPE(ch,"mst:%1[ZGCLSONHADEURF]","mate status");
-  mesg.mate_status = (MateStatType) ch;
-  GET_FIELD(mesg.chimeric,"chi:"F_S32,"chimeric flag");
-#ifdef AFG_BACKWARDS_COMPATIBLE
-  line = GetLine(fin, TRUE);
-  if(sscanf(line,"cha:"F_S32,&i)==1){
-    mesg.chaff=i;
-    line = GetLine(fin, TRUE);
-  }
-  else
-    mesg.chaff=0;
+  mesg.eaccession = GetUIDIID("acc:",&mesg.iaccession,fin);
 
-  if(sscanf(line,"clr:"F_COORD","F_COORD,&i,&j)==2){
-    mesg.clear_rng.bgn=i;
-    mesg.clear_rng.end=j;
-  }
-  else
-    MfieldError("chaff flag/clear range");	
-#else
+  mesg.mate_status = (MateStatType)GetType("mst:%1[ZGCLSONHADEURF]","mate status", fin);
+  GET_FIELD(mesg.chimeric,"chi:"F_S32,"chimeric flag");
   GET_FIELD(mesg.chaff,"cha:"F_S32,"chaff flag");
   GET_PAIR(mesg.clear_rng.bgn,mesg.clear_rng.end,"clr:"F_COORD","F_COORD,"clear range");
-#endif
-  GET_EOM;
-  return ((void *) (&mesg));
+  GetEOM(fin);
+  return(&mesg);
 }
 
 static void Read_ICP_Mesg(FILE *fin, IntContigPairs *icp)
 {
-  char ch;
   GET_FIELD(icp->contig1,"ct1:"F_IID,"contig 1 id");
   GET_FIELD(icp->contig2,"ct2:"F_IID,"contig 2 id");
   GET_FIELD(icp->mean,"mea:%f","mean distance");
   GET_FIELD(icp->stddev,"std:%f","standard deviation");
-  GET_TYPE(ch,"ori:%1[NAIOU]","link orientation");
-  icp->orient = (ChunkOrientationType) ch;
-  GET_EOM;
-  return;
+  icp->orient = (ChunkOrientationType)GetType("ori:%1[NAIOU]","link orientation", fin);
+  GetEOM(fin);
 }
 
-static void *Read_ISF_Mesg(FILE *fin)
-{ static IntScaffoldMesg	mesg;
+static
+void *
+Read_ISF_Mesg(FILE *fin) {
+  static IntScaffoldMesg	mesg;
   int				i, num;
-  long				indx;
   IntContigPairs		*icp;
 
   GET_FIELD(mesg.iaccession,"acc:"F_IID,"ISF accession");
   GET_FIELD(mesg.num_contig_pairs,"noc:"F_S32,"number of contigs");
   num = MAX(1,mesg.num_contig_pairs);
   if (num > 0) {
-    indx = MoreSpace(num*sizeof(IntContigPairs),8);
-    icp = mesg.contig_pairs = (IntContigPairs *) (AS_MSG_globals->MemBuffer + indx);
+    icp = mesg.contig_pairs = (IntContigPairs *)GetMemory(num*sizeof(IntContigPairs));
     for (i=0; i < num; ++i) {
-      if (strncmp(GetLine(fin,TRUE),"{ICP",4) != 0)
+      if (strncmp(ReadLine(fin,TRUE),"{ICP",4) != 0)
 	MgenError("Expecting ICP record");
       Read_ICP_Mesg(fin,icp);
       ++icp;
@@ -670,13 +607,14 @@ static void *Read_ISF_Mesg(FILE *fin)
   }
   else
     mesg.contig_pairs = NULL;
-  GET_EOM;
-  return ((void *) (&mesg));
+  GetEOM(fin);
+  return(&mesg);
 }
 
-static void *Read_IMD_Mesg(FILE *fin)
-{ static IntMateDistMesg	mesg;
-  long				indx;
+static
+void *
+Read_IMD_Mesg(FILE *fin) {
+  static IntMateDistMesg	mesg;
   int				i;
 
   GET_FIELD(mesg.refines,"ref:"F_IID,"distance id");
@@ -685,161 +623,98 @@ static void *Read_IMD_Mesg(FILE *fin)
   GET_FIELD(mesg.min,"min:"F_COORD,"min distance");
   GET_FIELD(mesg.max,"max:"F_COORD,"max distance");
   GET_FIELD(mesg.num_buckets,"buc:"F_S32,"number of buckets");
-  if (strncmp(GetLine(fin,TRUE),"his:",4) != 0)
+  if (strncmp(ReadLine(fin,TRUE),"his:",4) != 0)
     MgenError("Expecting his field");
   if (mesg.num_buckets > 0) {
-    indx = MoreSpace(mesg.num_buckets*sizeof(int32),8);
-    mesg.histogram = (int32 *) (AS_MSG_globals->MemBuffer + indx);
+    mesg.histogram = (int32 *)GetMemory(mesg.num_buckets*sizeof(int32));
     for (i=0; i < mesg.num_buckets; ++i)
       GET_FIELD(mesg.histogram[i],F_S32,"histogram entry");
   }
   else
     mesg.histogram = NULL;
-  GET_EOM;
-  return ((void *) (&mesg));
+  GetEOM(fin);
+  return(&mesg);
 }
 
-static void *Read_ICM_Mesg(FILE *fin)
-{ static IntConConMesg		mesg;
-  long	 cindx, qindx, mpindx, upindx, indx, uindx, vindx, vpindx;
+static
+void *
+Read_ICM_Mesg(FILE *fin) {
+  static IntConConMesg		mesg;
   int				i;
-  char ch;
   
   GET_FIELD(mesg.iaccession,"acc:"F_IID,"accession number");
-  GET_TYPE(ch,"pla:%1[PU]","placed flag");
-  mesg.placed = (ContigPlacementStatusType) ch;
+  mesg.placed = (ContigPlacementStatusType)GetType("pla:%1[PU]","placed flag", fin);
   GET_FIELD(mesg.length,"len:"F_COORD,"contig length");
-  cindx = GetText("cns:",fin,TRUE);
-  qindx = GetText("qlt:",fin,TRUE);
+  mesg.consensus = GetText("cns:",fin,TRUE);
+  mesg.quality   = GetText("qlt:",fin,TRUE);
   GET_FIELD(mesg.forced,"for:"F_S32,"forced flag");
   GET_FIELD(mesg.num_pieces,"npc:"F_S32,"number of pieces");
   GET_FIELD(mesg.num_unitigs,"nou:"F_S32,"number of unitigs");
   GET_FIELD(mesg.num_vars,"nvr:"F_S32,"num vars field");
-  /* Why use 8 boundary above & below? Damned if I know - ela */
-  vindx = vpindx = MoreSpace(mesg.num_vars   *sizeof(IntMultiVar),8); 
-  indx  = mpindx = MoreSpace(mesg.num_pieces *sizeof(IntMultiPos),8);
-  uindx = upindx = MoreSpace(mesg.num_unitigs*sizeof(IntUnitigPos),8);
 
   mesg.v_list = NULL;
   mesg.pieces = NULL;
   mesg.unitigs = NULL;
 
   if (mesg.num_vars > 0) {
-    mesg.v_list = (IntMultiVar *) (AS_MSG_globals->MemBuffer + vpindx);
+    mesg.v_list = (IntMultiVar *)GetMemory(mesg.num_vars   *sizeof(IntMultiVar));
     for (i=0; i < mesg.num_vars; ++i) {
-      if (strncmp(GetLine(fin,TRUE),"{IMV",4) != 0)
+      if (strncmp(ReadLine(fin,TRUE),"{IMV",4) != 0)
         MgenError("Expecting IMV record");
-      Read_IMV_Mesg(fin, vindx);
-      vindx += sizeof(IntMultiVar);
+      Read_IMV_Mesg(fin, mesg.v_list + i);
     }
   }
 
   if (mesg.num_pieces > 0) {
-    mesg.pieces = (IntMultiPos *) (AS_MSG_globals->MemBuffer + mpindx);
+    mesg.pieces = (IntMultiPos *)GetMemory(mesg.num_pieces *sizeof(IntMultiPos));
     for (i=0; i < mesg.num_pieces; ++i) {
-      if (strncmp(GetLine(fin,TRUE),"{IMP",4) != 0)
+      if (strncmp(ReadLine(fin,TRUE),"{IMP",4) != 0)
         MgenError("Expecting IMP record");
-      Read_IMP_Mesg(fin, indx);
-      indx += sizeof(IntMultiPos);
+      Read_IMP_Mesg(fin, mesg.pieces + i);
     }
   }  
 
   if (mesg.num_unitigs > 0) {
-    mesg.unitigs = (IntUnitigPos *) (AS_MSG_globals->MemBuffer + upindx);
+    mesg.unitigs = (IntUnitigPos *)GetMemory(mesg.num_unitigs*sizeof(IntUnitigPos));
     for (i=0; i < mesg.num_unitigs; ++i) {
-      if (strncmp(GetLine(fin,TRUE),"{IUP",4) != 0)
+      if (strncmp(ReadLine(fin,TRUE),"{IUP",4) != 0)
 	MgenError("Expecting IUP record");
-      Read_IUP_Mesg(fin, uindx);
-      uindx += sizeof(IntUnitigPos);
+      Read_IUP_Mesg(fin, mesg.unitigs + i);
     }
   }
 
-  GET_EOM;
+  GetEOM(fin);
 
-  mesg.consensus = AS_MSG_globals->MemBuffer + cindx;
-  mesg.quality = AS_MSG_globals->MemBuffer + qindx;
-
-  if (mesg.num_vars > 0)
-    mesg.v_list = (IntMultiVar *) (AS_MSG_globals->MemBuffer + vpindx);
-  for (i=0; i < mesg.num_vars; ++i) {
-    mesg.v_list[i].nr_conf_alleles = AS_MSG_globals->MemBuffer + (long) mesg.v_list[i].nr_conf_alleles;
-    mesg.v_list[i].weights = AS_MSG_globals->MemBuffer + (long) mesg.v_list[i].weights;
-    mesg.v_list[i].var_seq = AS_MSG_globals->MemBuffer + (long) mesg.v_list[i].var_seq;
-    mesg.v_list[i].conf_read_iids = AS_MSG_globals->MemBuffer + (long) mesg.v_list[i].conf_read_iids;
-  }
-
-  //  Adjust all the delta offsets into pointers
-
-  if (mesg.num_pieces > 0)
-    mesg.pieces = (IntMultiPos *) (AS_MSG_globals->MemBuffer + mpindx);
-  for (i=0; i < mesg.num_pieces; ++i) {
-    if (mesg.pieces[i].delta_length > 0)
-      mesg.pieces[i].delta = (int32 *) (AS_MSG_globals->MemBuffer + (long) mesg.pieces[i].delta);
-  }
-  if (mesg.num_unitigs > 0)
-    mesg.unitigs = (IntUnitigPos *) (AS_MSG_globals->MemBuffer + upindx);
-  for (i=0; i < mesg.num_unitigs; ++i) {
-    if (mesg.unitigs[i].delta_length > 0)
-      mesg.unitigs[i].delta = (int32 *) (AS_MSG_globals->MemBuffer + (long) mesg.unitigs[i].delta);
-  }
-  return ((void *) (&mesg));
+  return(&mesg);
 }
 
 
 static void *Read_IAF_Mesg(FILE *fin)
 { static IntAugFragMesg		mesg;
-  char ch;
   
   GET_FIELD(mesg.iaccession,"acc:"F_IID,"accession field");
-  GET_TYPE(ch,"typ:%1[RXELTFSUCBWG]","type");
-  mesg.type = (FragType) ch;
+  mesg.type = (FragType)GetType("typ:%1[RXELTFSUCBWG]","type", fin);
   GET_FIELD(mesg.chimeric,"chi:"F_S32,"chimeric flag");
-
-#ifdef IAF_BACKWARDS_COMPATIBLE
-  {
-    int i, j;
-    char *line;
-
-    line = GetLine(fin, TRUE);
-    if(sscanf(line,"cha:"F_S32,&i)==1)
-      {
-        mesg.chaff=i;
-        line = GetLine(fin, TRUE);
-      }
-    else
-      mesg.chaff=0;
-    if(sscanf(line,"clr:"F_COORD","F_COORD,&i,&j)==2)
-      {
-        mesg.clear_rng.bgn=i;
-        mesg.clear_rng.end=j;
-      }
-    else
-      MgenError("IAF: choked on cha: or chr:");
-  }
-#else
   GET_FIELD(mesg.chaff,"cha:"F_S32,"chaff flag");
   GET_PAIR(mesg.clear_rng.bgn,mesg.clear_rng.end,"clr:"F_COORD","F_COORD,"clear range");
-#endif
-  GET_TYPE(ch,"mst:%1[ZGCLSONHADEURF]","mate status");
-  mesg.mate_status = (MateStatType) ch;
-  GET_EOM;
-  return ((void *) (&mesg));
+  mesg.mate_status = (MateStatType)GetType("mst:%1[ZGCLSONHADEURF]","mate status", fin);
+  GetEOM(fin);
+  return(&mesg);
 }
 
 
-static void *Read_EOF_Mesg(FILE *fin)
-{
+static
+void *
+Read_EOF_Mesg(FILE *fin) {
   static EndOfFileMesg mesg;
-  int commentidx;
   time_t entry_time;
 
   GET_FIELD(mesg.status,"sta:"F_S32,"status field");
-  GET_FIELD(entry_time,"crt:"F_TIME_T,"entry time field");  //  Unused
-  commentidx = GetText("com:",fin,FALSE);
-  mesg.comment = AS_MSG_globals->MemBuffer + commentidx;
-  GET_EOM;
+  ReadLine(fin, TRUE);  //  unused "entry time field" crt:
+  mesg.comment = GetText("com:",fin,FALSE);
+  GetEOM(fin);
 
-  return ((void *) &mesg);
+  return (&mesg);
 }
 
 
@@ -847,292 +722,210 @@ static void *Read_EOF_Mesg(FILE *fin)
 /* Genome snapshot input routines */
 /**********************************/
 
-static void Read_MPS_Mesg(FILE *fin, long indx)
-{
-  SnapMultiPos		*imp;
+static
+void
+Read_MPS_Mesg(FILE *fin, SnapMultiPos *imp) {
   int			i;
-  int32			n, *delta;
-  long			tindx;
+  int32			n;
   char			*line, *u;
-  char ch;
-  
-  imp = (SnapMultiPos *) (AS_MSG_globals->MemBuffer + indx);
-  GET_TYPE(ch,"typ:%1[RXTEFUSLuBG]","multipos type");
-  imp->type = (FragType) ch;
-  GET_FIELD(imp->eident,"mid:"F_UID,"multipos id");
+
+  imp->type = (FragType)GetType("typ:%1[RXTEFUSLuBG]","multipos type", fin);
+
+  imp->eident = GetUID("mid:",fin);
+
 #ifdef AS_ENABLE_SOURCE
-  tindx = GetText("src:",fin,FALSE);
-  imp = (SnapMultiPos *) (AS_MSG_globals->MemBuffer + indx);	// in case of realloc
-  imp->source = (char *) tindx;
+  imp->source = GetText("src:",fin,FALSE);
 #endif
   GET_PAIR(imp->position.bgn,imp->position.end,"pos:"F_COORD","F_COORD,"position field");
   GET_FIELD(imp->delta_length,"dln:"F_S32,"delta length");
-  if (strncmp(GetLine(fin,TRUE),"del:",4) != 0)
+  if (strncmp(ReadLine(fin,TRUE),"del:",4) != 0)
     MgenError("Missing del: field");
+  imp->delta = NULL;
   if (imp->delta_length > 0) {
-    tindx = MoreSpace(sizeof(int32)*imp->delta_length,8);
-    imp = (SnapMultiPos *) (AS_MSG_globals->MemBuffer + indx);	// in case of realloc
-    imp->delta = (int32 *) tindx;
-    delta = (int32 *) (AS_MSG_globals->MemBuffer + (long) imp->delta);
+    imp->delta = (int32 *)GetMemory(sizeof(int32) * imp->delta_length);
     i = 0;
     while (i < imp->delta_length) {
-      line = GetLine(fin,TRUE);
+      line = ReadLine(fin,TRUE);
       n = (int32) strtol(line,&u,10);
       while (u != line) {
 	line = u;
-	delta[i++] = n;
+	imp->delta[i++] = n;
         n = (int32) strtol(line,&u,10);
       }
     }
   } 
-  else
-    imp->delta = NULL;
-  GET_EOM;
-  return;
+  GetEOM(fin);
 }
 
-static void Read_UPS_Mesg(FILE *fin, long indx)
-{
-  UnitigPos		*iup;
+static
+void
+Read_UPS_Mesg(FILE *fin, UnitigPos *iup) {
   int			i;
-  int32			n, *delta;
-  long			tindx;
+  int32			n;
   char			*line, *u;
-  char ch;
   
-  iup = (UnitigPos *) (AS_MSG_globals->MemBuffer + indx);
-  GET_TYPE(ch,"typ:%1[URSPs]","unitigpos type");
-  iup->type = (UnitigType) ch;
-  GET_FIELD(iup->eident,"lid:"F_UID,"unitig id");
+  iup->type = (UnitigType)GetType("typ:%1[URSPs]","unitigpos type", fin);
+
+  iup->eident = GetUID("lid:",fin);
+
   GET_PAIR(iup->position.bgn,iup->position.end,"pos:"F_COORD","F_COORD,"position field");
   GET_FIELD(iup->delta_length,"dln:"F_S32,"delta length");
-  if (strncmp(GetLine(fin,TRUE),"del:",4) != 0)
+  if (strncmp(ReadLine(fin,TRUE),"del:",4) != 0)
     MgenError("Missing del: field");
   iup->delta = NULL;
   if (iup->delta_length > 0) {
-    tindx = MoreSpace(sizeof(int32)*iup->delta_length,8);
-    iup = (UnitigPos *) (AS_MSG_globals->MemBuffer + indx);	// in case of realloc
-    iup->delta = (int32 *) tindx;
-    delta = (int32 *) (AS_MSG_globals->MemBuffer + (long) iup->delta);
+    iup->delta = (int32 *)GetMemory(sizeof(int32)*iup->delta_length);
     i = 0;
     while (i < iup->delta_length) {
-      line = GetLine(fin,TRUE);
+      line = ReadLine(fin,TRUE);
       n = (int32) strtol(line,&u,10);
       while (u != line) {
 	line = u;
-	delta[i++] = n;
+	iup->delta[i++] = n;
         n = (int32) strtol(line,&u,10);
       }
     }
   } 
-  GET_EOM;
-  return;
+  GetEOM(fin);
 }
 
 
-static void Read_CTP_Mesg(FILE *fin, SnapContigPairs *icp)
-{
-  char ch;
-  GET_FIELD(icp->econtig1,"ct1:"F_UID ,"contig 1 id");
-  GET_FIELD(icp->econtig2,"ct2:"F_UID ,"contig 2 id");
+static
+void
+Read_CTP_Mesg(FILE *fin, SnapContigPairs *icp) {
+
+  icp->econtig1 = GetUID("ct1:",fin);
+  icp->econtig2 = GetUID("ct2:",fin);
+
   GET_FIELD(icp->mean,"mea:%f","mean distance");
   GET_FIELD(icp->stddev,"std:%f","standard deviation");
-  GET_TYPE(ch,"ori:%1[NAIOU]","link orientation");
-  icp->orient = (ChunkOrientationType) ch;
-  GET_EOM;
-  return;
+  icp->orient = (ChunkOrientationType)GetType("ori:%1[NAIOU]","link orientation", fin);
+  GetEOM(fin);
 }
 
 
-static void *Read_UTG_Mesg(FILE *fin)
-{ static SnapUnitigMesg		mesg;
+static
+void *
+Read_UTG_Mesg(FILE *fin) {
+  static SnapUnitigMesg		mesg;
   int				i;
-  long				cindx, qindx, mpindx, indx;
-#ifdef AS_ENABLE_SOURCE
-  long				sindx;
-#endif
-  char ch;
 
-  //  unused, needed so we don't change the format of the message
-  CDS_COORD_t     a_branch_point;
-  CDS_COORD_t     b_branch_point;
+  mesg.eaccession = GetUIDIID("acc:",&mesg.iaccession,fin);
 
-  GET_PAIR(mesg.eaccession,mesg.iaccession,"acc:("F_UID","F_IID")","accession field");
 #ifdef AS_ENABLE_SOURCE
-  sindx = GetText("src:",fin,FALSE);
+  mesg.source = GetText("src:",fin,FALSE);
 #endif
   GET_FIELD(mesg.coverage_stat,"cov:%f","coverage stat");
-  GET_TYPE(ch,"sta:%1[UCNSX]","status");
-  mesg.status = (UnitigStatus) ch;
+  mesg.status = (UnitigStatus)GetType("sta:%1[UCNSX]","status", fin);
 
-  //  Unused!
-  GET_FIELD(a_branch_point,"abp:"F_COORD,"a branch point");
-  GET_FIELD(b_branch_point,"bbp:"F_COORD,"b branch point");
+  ReadLine(fin, TRUE);  //  unused "a branch point" abp:
+  ReadLine(fin, TRUE);  //  unused "b branch point" bbp:
 
   GET_FIELD(mesg.length,"len:"F_COORD,"length field");
-  cindx = GetText("cns:",fin,TRUE);
-  qindx = GetText("qlt:",fin,TRUE);
+  mesg.consensus = GetText("cns:",fin,TRUE);
+  mesg.quality   = GetText("qlt:",fin,TRUE);
   GET_FIELD(mesg.forced,"for:"F_S32,"forced booleon");
   GET_FIELD(mesg.num_frags,"nfr:"F_S32,"num frags field");
-  if (mesg.num_frags > 0) {
-    indx = mpindx = MoreSpace(mesg.num_frags*sizeof(SnapMultiPos),8);
-    /* Why use 8 boundary above? Damned if I know - ela */
-    for (i=0; i < mesg.num_frags; ++i) {
-      if (strncmp(GetLine(fin,TRUE),"{MPS",4) != 0)
-	MgenError("Expecting MPS record");
-      Read_MPS_Mesg(fin, indx);
-      indx += sizeof(SnapMultiPos);
-    }
-    mesg.f_list = (SnapMultiPos *) (AS_MSG_globals->MemBuffer + mpindx);
-  }
-  else
-    mesg.f_list = NULL;
-  GET_EOM;
-  mesg.consensus = AS_MSG_globals->MemBuffer + cindx;
-  mesg.quality  = AS_MSG_globals->MemBuffer + qindx;
 
-  //  Adjust all the delta offsets into pointers
-  
-  for (i=0; i < mesg.num_frags; ++i) {
-#ifdef AS_ENABLE_SOURCE
-    mesg.f_list[i].source = AS_MSG_globals->MemBuffer + (long) mesg.f_list[i].source;
-#endif
-    if (mesg.f_list[i].delta_length > 0)
-      mesg.f_list[i].delta = (int32 *) (AS_MSG_globals->MemBuffer+(long) mesg.f_list[i].delta);
+  mesg.f_list = NULL;
+  if (mesg.num_frags > 0) {
+    mesg.f_list = (SnapMultiPos *)GetMemory(mesg.num_frags*sizeof(SnapMultiPos));
+
+    for (i=0; i < mesg.num_frags; ++i) {
+      if (strncmp(ReadLine(fin,TRUE),"{MPS",4) != 0)
+	MgenError("Expecting MPS record");
+      Read_MPS_Mesg(fin, mesg.f_list + i);
+    }
   }
-#ifdef AS_ENABLE_SOURCE
-  mesg.source = AS_MSG_globals->MemBuffer + sindx;
-#endif
-  return ((void *) (&mesg));
+
+  GetEOM(fin);
+
+  return(&mesg);
 }
 
 
-static void *Read_ULK_Mesg(FILE *fin)
-{ static SnapUnitigLinkMesg	mesg;
+static void *Read_ULK_Mesg(FILE *fin) {
+  static SnapUnitigLinkMesg	mesg;
   int				i,size;
-  long				indx;
-  SnapMate_Pairs	       	*imp;
-  char ch;
 
-  GET_FIELD(mesg.eunitig1,"ut1:"F_UID,"unitig 1 field");
-  GET_FIELD(mesg.eunitig2,"ut2:"F_UID,"unitig 2 field");
-  GET_TYPE(ch,"ori:%1[NAOI]","orientation");
-  mesg.orientation = (ChunkOrientationType) ch;
-  GET_TYPE(ch,"ovt:%1[NOTCIMXYZ]","overlap type");
-  mesg.overlap_type = (UnitigOverlapType) ch;
+  mesg.eunitig1 = GetUID("ut1:",fin);
+  mesg.eunitig2 = GetUID("ut2:",fin);
+
+  mesg.orientation = (ChunkOrientationType)GetType("ori:%1[NAOI]","orientation", fin);
+  mesg.overlap_type = (UnitigOverlapType)GetType("ovt:%1[NOTCIMXYZ]","overlap type", fin);
   GET_FIELD(mesg.is_possible_chimera,"ipc:"F_S32,"warning");
   GET_FIELD(mesg.includes_guide,"gui:"F_S32,"guide flag");
   GET_FIELD(mesg.mean_distance,"mea:%f","mean distance");
   GET_FIELD(mesg.std_deviation,"std:%f","standard deviation");
   GET_FIELD(mesg.num_contributing,"num:"F_S32,"number of links");
-  GET_TYPE(ch,"sta:%1[APBCU]","placement status");
-  mesg.status = (PlacementStatusType) ch;
-  if (strncmp(GetLine(fin,TRUE),"jls:",4) != 0)
+  mesg.status = (PlacementStatusType)GetType("sta:%1[APBCU]","placement status", fin);
+  if (strncmp(ReadLine(fin,TRUE),"jls:",4) != 0)
     MgenError("Expecting jls field");
   size = mesg.num_contributing;
   if (mesg.overlap_type != AS_NO_OVERLAP)
     --size;
   if (size > 0) {
-    indx = MoreSpace(sizeof(SnapMate_Pairs)*size,8);
-    imp = mesg.jump_list = (SnapMate_Pairs *) (AS_MSG_globals->MemBuffer + indx);
+    mesg.jump_list = (SnapMate_Pairs *)GetMemory(sizeof(SnapMate_Pairs)*size);
     for (i=0; i < size; ++i) {
-      GET_TRIPLE(imp->in1,imp->in2,ch,F_UID","F_UID",%1[MSBRYT]","mate pair");
-      imp->type = (LinkType)ch;
-      ++imp;
+      SnapMate_Pairs *imp = mesg.jump_list + i;
+      imp->type = (LinkType)GetUIDUIDMatePairType(&imp->in1, &imp->in2, fin);  //  valid MSBRYT
     }
   }
   else
     mesg.jump_list = NULL;
-  GET_EOM;
-  return ((void *) (&mesg));
+  GetEOM(fin);
+  return(&mesg);
 }
 
 
 static void *Read_CCO_Mesg(FILE *fin)
 { static SnapConConMesg		mesg;
-  long	 cindx, qindx, mpindx, upindx, indx, uindx, vindx, vpindx;
   int  	 i;
-  char   ch;
   
-  GET_PAIR(mesg.eaccession,mesg.iaccession,"acc:("F_UID","F_IID")","accession number");
-  GET_TYPE(ch,"pla:%1[PU]","placed flag");
-  mesg.placed = (ContigPlacementStatusType) ch;
+  mesg.eaccession = GetUIDIID("acc:",&mesg.iaccession,fin);
+  mesg.placed = (ContigPlacementStatusType)GetType("pla:%1[PU]","placed flag", fin);
   GET_FIELD(mesg.length,"len:"F_COORD,"contig length");
-  cindx = GetText("cns:",fin,TRUE);
-  qindx = GetText("qlt:",fin,TRUE);
+  mesg.consensus = GetText("cns:",fin,TRUE);
+  mesg.quality   = GetText("qlt:",fin,TRUE);
   GET_FIELD(mesg.forced,"for:"F_S32,"forced flag");
   GET_FIELD(mesg.num_pieces,"npc:"F_S32,"number of pieces");
   GET_FIELD(mesg.num_unitigs,"nou:"F_S32,"number of unitigs");
   GET_FIELD(mesg.num_vars,"nvr:"F_S32,"number of vars");
-  /* Why use 8 boundary above & below? Damned if I know - ela */
-  vindx = vpindx = MoreSpace(mesg.num_vars  *sizeof(IntMultiVar),8);
-  indx  = mpindx = MoreSpace(mesg.num_pieces*sizeof(SnapMultiPos),8);
-  uindx =upindx = MoreSpace(mesg.num_unitigs*sizeof(UnitigPos),8);
 
   mesg.vars = NULL;
+  mesg.pieces = NULL;
   mesg.unitigs = NULL;
 
   if (mesg.num_vars > 0) {
-    mesg.vars = (IntMultiVar *) (AS_MSG_globals->MemBuffer + vpindx);
+    mesg.vars = (IntMultiVar *)GetMemory(mesg.num_vars  *sizeof(IntMultiVar));
     for (i=0; i < mesg.num_vars; ++i) {
-      if (strncmp(GetLine(fin,TRUE),"{VAR",4) != 0)
+      if (strncmp(ReadLine(fin,TRUE),"{VAR",4) != 0)
         MgenError("Expecting VAR record");
-      Read_VAR_Mesg(fin, vindx);
-      vindx += sizeof(IntMultiVar);
+      Read_VAR_Mesg(fin, mesg.vars + i);
     }
   }
 
-  for (i=0; i < mesg.num_pieces; ++i) {
-    if (strncmp(GetLine(fin,TRUE),"{MPS",4) != 0)
-      MgenError("Expecting MPS record");
-    Read_MPS_Mesg(fin, indx);
-    indx += sizeof(SnapMultiPos);
+  if (mesg.num_pieces > 0) {
+    mesg.pieces = (SnapMultiPos *)GetMemory(mesg.num_pieces * sizeof(SnapMultiPos));
+    for (i=0; i < mesg.num_pieces; ++i) {
+      if (strncmp(ReadLine(fin,TRUE),"{MPS",4) != 0)
+        MgenError("Expecting MPS record");
+      Read_MPS_Mesg(fin, mesg.pieces + i);
+    }
   }
 
   if (mesg.num_unitigs > 0) {
-    mesg.unitigs  = (UnitigPos *) (AS_MSG_globals->MemBuffer + upindx);
+    mesg.unitigs  = (UnitigPos *)GetMemory(mesg.num_unitigs*sizeof(UnitigPos));
     for (i=0; i < mesg.num_unitigs; ++i) {
-      if (strncmp(GetLine(fin,TRUE),"{UPS",4) != 0)
+      if (strncmp(ReadLine(fin,TRUE),"{UPS",4) != 0)
 	MgenError("Expecting UPS record");
-      Read_UPS_Mesg(fin, uindx);
-      uindx += sizeof(UnitigPos);
+      Read_UPS_Mesg(fin, mesg.unitigs + i);
     }
   }
 
-  GET_EOM;
+  GetEOM(fin);
 
-  mesg.consensus = AS_MSG_globals->MemBuffer + cindx;
-  mesg.quality = AS_MSG_globals->MemBuffer + qindx;
-
-  if (mesg.num_vars > 0)
-    mesg.vars = (IntMultiVar *) (AS_MSG_globals->MemBuffer + vpindx);
-  for (i=0; i < mesg.num_vars; ++i) {
-    mesg.vars[i].nr_conf_alleles = AS_MSG_globals->MemBuffer + (long) mesg.vars[i].nr_conf_alleles;
-    mesg.vars[i].weights = AS_MSG_globals->MemBuffer + (long) mesg.vars[i].weights;
-    mesg.vars[i].var_seq = AS_MSG_globals->MemBuffer + (long) mesg.vars[i].var_seq;
-    mesg.vars[i].conf_read_iids = AS_MSG_globals->MemBuffer + (long) mesg.vars[i].conf_read_iids;
-  } 
-
-  //  Adjust all the delta offsets into pointers
-
-  if (mesg.num_pieces > 0)
-    mesg.pieces = (SnapMultiPos *) (AS_MSG_globals->MemBuffer + mpindx);
-  for (i=0; i < mesg.num_pieces; ++i) {
-#ifdef AS_ENABLE_SOURCE
-    mesg.pieces[i].source = AS_MSG_globals->MemBuffer + (long) mesg.pieces[i].source;
-#endif
-    if (mesg.pieces[i].delta_length > 0)
-      mesg.pieces[i].delta = (int32 *) (AS_MSG_globals->MemBuffer + (long) mesg.pieces[i].delta);
-  }
-
-  if (mesg.num_unitigs > 0)
-    mesg.unitigs = (UnitigPos *) (AS_MSG_globals->MemBuffer + upindx);
-  for (i=0; i < mesg.num_unitigs; ++i) {
-    if (mesg.unitigs[i].delta_length > 0)
-      mesg.unitigs[i].delta = (int32 *) (AS_MSG_globals->MemBuffer + (long) mesg.unitigs[i].delta);
-  }
-  
-  return ((void *) (&mesg));
+  return(&mesg);
 }
 
 
@@ -1140,166 +933,144 @@ static void *Read_CCO_Mesg(FILE *fin)
 static void *Read_CLK_Mesg(FILE *fin)
 { static SnapContigLinkMesg	mesg;
   int				i,size;
-  long				indx;
-  SnapMate_Pairs		*imp;
-  char ch;
-  // char*                         line;
   
-  GET_FIELD(mesg.econtig1,"c%*1[ot]1:"F_UID,"unitig 1 field");
-  GET_FIELD(mesg.econtig2,"c%*1[ot]2:"F_UID,"unitig 2 field");
+  mesg.econtig1 = GetUID("co1:",fin);
+  mesg.econtig2 = GetUID("co2:",fin);
 
-  GET_TYPE(ch,"ori:%1[NAOI]","orientation");
-  mesg.orientation = (ChunkOrientationType) ch;
-  GET_TYPE(ch,"ovt:%1[NOTCIMXYZ]","overlap type");
-  mesg.overlap_type = (UnitigOverlapType) ch;
+  mesg.orientation = (ChunkOrientationType)GetType("ori:%1[NAOI]","orientation", fin);
+  mesg.overlap_type = (UnitigOverlapType)GetType("ovt:%1[NOTCIMXYZ]","overlap type", fin);
   GET_FIELD(mesg.is_possible_chimera,"ipc:"F_S32,"warning");
   GET_FIELD(mesg.includes_guide,"gui:"F_S32,"guide flag");
   GET_FIELD(mesg.mean_distance,"mea:%f","mean distance");
   GET_FIELD(mesg.std_deviation,"std:%f","standard deviation");
   GET_FIELD(mesg.num_contributing,"num:"F_S32,"number of links");
-  GET_TYPE(ch,"sta:%1[APBCU]","placement status");
-  mesg.status = (PlacementStatusType) ch;
-  if (strncmp(GetLine(fin,TRUE),"jls:",4) != 0)
+  mesg.status = (PlacementStatusType)GetType("sta:%1[APBCU]","placement status", fin);
+  if (strncmp(ReadLine(fin,TRUE),"jls:",4) != 0)
     MgenError("Expecting jls field");
+
   size = mesg.num_contributing;
   if (mesg.overlap_type != AS_NO_OVERLAP)
     --size;
+
+  mesg.jump_list = NULL;
   if (size > 0) {
-    indx = MoreSpace(sizeof(SnapMate_Pairs)*size,8);
-    imp = mesg.jump_list = (SnapMate_Pairs *) (AS_MSG_globals->MemBuffer + indx);
+    mesg.jump_list = (SnapMate_Pairs *)GetMemory(sizeof(SnapMate_Pairs)*size);
     for (i=0; i < size; ++i) {
-      GET_TRIPLE(imp->in1,imp->in2,ch,F_UID","F_UID",%1[MSBRYT]","mate pair");
-      imp->type = (LinkType)ch;
-      ++imp;
+      SnapMate_Pairs *imp = mesg.jump_list + i;
+      imp->type = (LinkType)GetUIDUIDMatePairType(&imp->in1, &imp->in2, fin);  //  valid MSBRYT
     }
   }
-  else
-    mesg.jump_list = NULL;
-  GET_EOM;
-  return ((void *) (&mesg));
+
+  GetEOM(fin);
+
+  return(&mesg);
 }
 
 static void *Read_SLK_Mesg(FILE *fin)
 { static SnapScaffoldLinkMesg	mesg;
   int				i,size;
-  long				indx;
-  SnapMate_Pairs		*imp;
-  char ch;
   
-  GET_FIELD(mesg.escaffold1,"sc1:"F_UID,"scaffold 1 field");
-  GET_FIELD(mesg.escaffold2,"sc2:"F_UID,"scaffold 2 field");
+  mesg.escaffold1 = GetUID("sc1:",fin);
+  mesg.escaffold2 = GetUID("sc2:",fin);
 
-  GET_TYPE(ch,"ori:%1[NAOI]","orientation");
-  mesg.orientation = (ChunkOrientationType) ch;
+  mesg.orientation = (ChunkOrientationType)GetType("ori:%1[NAOI]","orientation", fin);
   GET_FIELD(mesg.includes_guide,"gui:"F_S32,"guide flag");
   GET_FIELD(mesg.mean_distance,"mea:%f","mean distance");
   GET_FIELD(mesg.std_deviation,"std:%f","standard deviation");
   GET_FIELD(mesg.num_contributing,"num:"F_S32,"number of links");
-  if (strncmp(GetLine(fin,TRUE),"jls:",4) != 0)
+  if (strncmp(ReadLine(fin,TRUE),"jls:",4) != 0)
     MgenError("Expecting jls field");
   size = mesg.num_contributing;
   assert(size > 0) ;
-  indx = MoreSpace(sizeof(SnapMate_Pairs)*size,8);
-  imp = mesg.jump_list = (SnapMate_Pairs *) (AS_MSG_globals->MemBuffer + indx);
+  mesg.jump_list = (SnapMate_Pairs *)GetMemory(sizeof(SnapMate_Pairs)*size);
   for (i=0; i < size; ++i) {
-    GET_TRIPLE(imp->in1,imp->in2,ch,F_UID","F_UID",%1[MSBRYT]","mate pair");
-    imp->type = (LinkType)ch;
-    ++imp;
+    SnapMate_Pairs *imp = mesg.jump_list + i;
+    imp->type = (LinkType)GetUIDUIDMatePairType(&imp->in1, &imp->in2, fin);  //  valid MSBRYT
   }
-  GET_EOM;
-  return ((void *) (&mesg));
+
+  GetEOM(fin);
+
+  return(&mesg);
 }
 
 
 static void *Read_SCF_Mesg(FILE *fin)
 { static SnapScaffoldMesg	mesg;
   int				i, num;
-  long				indx;
-  SnapContigPairs		*icp;
 
-  GET_PAIR(mesg.eaccession,mesg.iaccession,"acc:("F_UID","F_IID")","accession number");
+  mesg.eaccession = GetUIDIID("acc:",&mesg.iaccession,fin);
+
   GET_FIELD(mesg.num_contig_pairs,"noc:"F_S32,"number of contigs");
   num = MAX(mesg.num_contig_pairs, 1);
   if (num > 0) {
-    indx = MoreSpace(num*sizeof(SnapContigPairs),8);
-    icp = mesg.contig_pairs = (SnapContigPairs *) (AS_MSG_globals->MemBuffer + indx);
+    mesg.contig_pairs = (SnapContigPairs *)GetMemory(num * sizeof(SnapContigPairs));
     for (i=0; i < num; ++i) {
-      if (strncmp(GetLine(fin,TRUE),"{CTP",4) != 0)
+      SnapContigPairs *icp = mesg.contig_pairs + i;
+      if (strncmp(ReadLine(fin,TRUE),"{CTP",4) != 0)
 	MgenError("Expecting CTP record");
       Read_CTP_Mesg(fin,icp);
-      ++icp;
     }
   }
   else
     mesg.contig_pairs = NULL;
-  GET_EOM;
-  return ((void *) (&mesg));
+  GetEOM(fin);
+  return(&mesg);
 }
 
-static void *Read_DSC_Mesg(FILE *fin)
-{ static SnapDegenerateScaffoldMesg	mesg;
-
-  GET_FIELD(mesg.eaccession,"acc:"F_UID,"scaffold ID");
-  GET_FIELD(mesg.econtig,"ctg:"F_UID,"contig ID");
-  GET_EOM;
-  return ((void *) (&mesg));
+static void *Read_DSC_Mesg(FILE *fin) {
+  static SnapDegenerateScaffoldMesg	mesg;
+  mesg.eaccession = GetUID("acc:",fin);
+  mesg.econtig    = GetUID("ctg:",fin);
+  GetEOM(fin);
+  return(&mesg);
 }
 
-static void *Read_IDS_Mesg(FILE *fin)
-{ static IntDegenerateScaffoldMesg	mesg;
-
+static void *Read_IDS_Mesg(FILE *fin) {
+  static IntDegenerateScaffoldMesg	mesg;
   GET_FIELD(mesg.icontig,"ctg:"F_IID,"contig ID");
-  GET_EOM;
-  return ((void *) (&mesg));
+  GetEOM(fin);
+  return(&mesg);
 }
 
 
 
 static void *Read_MDI_Mesg(FILE *fin)
 { static SnapMateDistMesg	mesg;
-  long				indx;
   int				i;
 
-  GET_PAIR(mesg.erefines,mesg.irefines,"ref:("F_UID","F_IID")","distance id");
+  mesg.erefines = GetUIDIID("ref:",&mesg.irefines,fin);
   GET_FIELD(mesg.mean,"mea:%f","mean distance");
   GET_FIELD(mesg.stddev,"std:%f","standard deviation");
   GET_FIELD(mesg.min,"min:"F_COORD,"min distance");
   GET_FIELD(mesg.max,"max:"F_COORD,"max distance");
   GET_FIELD(mesg.num_buckets,"buc:"F_S32,"number of buckets");
-  if (strncmp(GetLine(fin,TRUE),"his:",4) != 0)
+  if (strncmp(ReadLine(fin,TRUE),"his:",4) != 0)
     MgenError("Expecting his field");
   if (mesg.num_buckets > 0) {
-    indx = MoreSpace(mesg.num_buckets*sizeof(int32),8);
-    mesg.histogram = (int32 *) (AS_MSG_globals->MemBuffer + indx);
+    mesg.histogram = (int32 *)GetMemory(mesg.num_buckets*sizeof(int32));
+
     for (i=0; i < mesg.num_buckets; ++i)
       GET_FIELD(mesg.histogram[i],F_S32,"histogram entry");
   }
   else
     mesg.histogram = NULL;
-  GET_EOM;
-  return ((void *) (&mesg));
+  GetEOM(fin);
+  return(&mesg);
 }
 
 
 static void *Read_BAT_Mesg(FILE *fin){
   static BatchMesg mesg;
-  int nameidx, commentidx;
-  time_t entry_time;
-  nameidx = GetString("bna:",fin);
-  GET_FIELD(entry_time,"crt:"F_TIME_T,"entry time field");  //  Unused
-  GET_FIELD(mesg.eaccession,"acc:"F_UID,"accession number");
-  commentidx = GetText("com:",fin, FALSE);
 
-  mesg.comment = AS_MSG_globals->MemBuffer + commentidx;
-  mesg.name = AS_MSG_globals->MemBuffer + nameidx;
-
-  GET_EOM;
-  return ((void *) (&mesg));
+  mesg.name       = GetString("bna:",fin);
+  ReadLine(fin, TRUE);  //  unused "entry time" crt:
+  mesg.eaccession = GetUID("acc:",fin);
+  mesg.comment    = GetText("com:",fin, FALSE);
+  GetEOM(fin);
+  return(&mesg);
 }
 
 /******************** OUTPUT ROUTINES ***************************/
-
-/*  Routine to output each type of proto-IO message. */
 
 
 static void Write_DST_Mesg(FILE *fout, void *vmesg)
@@ -1307,7 +1078,7 @@ static void Write_DST_Mesg(FILE *fout, void *vmesg)
 
   fprintf(fout,"{DST\n");
   fprintf(fout,"act:%c\n",mesg->action);
-  fprintf(fout,"acc:"F_UID"\n",mesg->eaccession);
+  fprintf(fout,"acc:%s\n",AS_UID_toString(mesg->eaccession));
   if (mesg->action != AS_DELETE)
     { fprintf(fout,"mea:%.3f\n",mesg->mean);
       fprintf(fout,"std:%.3f\n",mesg->stddev);
@@ -1349,11 +1120,11 @@ static void Write_LKG_Mesg(FILE *fout, void *vmesg)
   fprintf(fout,"{LKG\n");
   fprintf(fout,"act:%c\n",mesg->action);
   fprintf(fout,"typ:%c\n",(char) mesg->type);
-  fprintf(fout,"fg1:"F_UID"\n",mesg->frag1);
-  fprintf(fout,"fg2:"F_UID"\n",mesg->frag2);
+  fprintf(fout,"fg1:%s\n",AS_UID_toString(mesg->frag1));
+  fprintf(fout,"fg2:%s\n",AS_UID_toString(mesg->frag2));
   if((mesg->action == AS_ADD) || (mesg->action == AS_IGNORE))
     { fprintf(fout,"etm:0\n");
-      fprintf(fout,"dst:"F_UID"\n",mesg->distance);
+      fprintf(fout,"dst:%s\n",AS_UID_toString(mesg->distance));
       fprintf(fout,"ori:%c\n",mesg->link_orient);
     }
   fprintf(fout,"}\n");
@@ -1367,9 +1138,9 @@ static void Write_Frag_Mesg(FILE *fout, void *vmesg, int frag_class) {
   fprintf(fout,"{%s\n",MessageTypeName[frag_class]);
   fprintf(fout,"act:%c\n",mesg->action);
   if (frag_class == MESG_FRG)
-    fprintf(fout,"acc:"F_UID"\n",mesg->eaccession);
+    fprintf(fout,"acc:%s\n",AS_UID_toString(mesg->eaccession));
   else
-    fprintf(fout,"acc:("F_UID","F_IID")\n",mesg->eaccession,mesg->iaccession);
+    fprintf(fout,"acc:(%s,"F_IID")\n",AS_UID_toString(mesg->eaccession),mesg->iaccession);
 
   if ((mesg->action == AS_ADD) || (mesg->action == AS_IGNORE)) {
     fprintf(fout,"typ:%c\n",(char) mesg->type);
@@ -1626,7 +1397,7 @@ static void Write_AFG_Mesg(FILE *fout, void *vmesg)
 { AugFragMesg *mesg = (AugFragMesg *) vmesg;
   
   fprintf(fout,"{AFG\n");
-  fprintf(fout,"acc:("F_UID","F_IID")\n",mesg->eaccession,mesg->iaccession);
+  fprintf(fout,"acc:(%s,"F_IID")\n",AS_UID_toString(mesg->eaccession),mesg->iaccession);
   fprintf(fout,"mst:%c\n",mesg->mate_status);
   fprintf(fout,"chi:"F_S32"\n",mesg->chimeric);
   fprintf(fout,"cha:"F_S32"\n",mesg->chaff);
@@ -1726,7 +1497,7 @@ static void Write_UPS_Mesg(FILE *fout, UnitigPos *up)
 
   fprintf(fout,"{UPS\n");
   fprintf(fout,"typ:%c\n",(char) up->type);
-  fprintf(fout,"lid:"F_UID"\n",up->eident);
+  fprintf(fout,"lid:%s\n",AS_UID_toString(up->eident));
   fprintf(fout,"pos:"F_COORD","F_COORD"\n",up->position.bgn,up->position.end);
   fprintf(fout,"dln:"F_S32"\n",up->delta_length);
   fprintf(fout,"del:\n");
@@ -1743,7 +1514,7 @@ static void Write_MPS_Mesg(FILE *fout, SnapMultiPos *mlp)
 
   fprintf(fout,"{MPS\n");
   fprintf(fout,"typ:%c\n",(char) mlp->type);
-  fprintf(fout,"mid:"F_UID"\n",mlp->eident);
+  fprintf(fout,"mid:%s\n",AS_UID_toString(mlp->eident));
 #ifdef AS_ENABLE_SOURCE
   PutText(fout,"src:",mlp->source,FALSE);
 #endif
@@ -1766,8 +1537,7 @@ static void Write_UTG_Mesg(FILE *fout, void *vmesg)
   int			i;
 
   fprintf(fout,"{UTG\n");
-  fprintf(fout,"acc:("F_UID","F_IID")\n",
-          mesg->eaccession,mesg->iaccession);
+  fprintf(fout,"acc:(%s,"F_IID")\n", AS_UID_toString(mesg->eaccession),mesg->iaccession);
 #ifdef AS_ENABLE_SOURCE
   PutText(fout,"src:",mesg->source,FALSE);
 #endif
@@ -1792,8 +1562,8 @@ static void Write_ULK_Mesg(FILE *fout, void *vmesg)
   int		i, npairs;
 
   fprintf(fout,"{ULK\n");
-  fprintf(fout,"ut1:"F_UID"\n",mesg->eunitig1);
-  fprintf(fout,"ut2:"F_UID"\n",mesg->eunitig2);
+  fprintf(fout,"ut1:%s\n",AS_UID_toString(mesg->eunitig1));
+  fprintf(fout,"ut2:%s\n",AS_UID_toString(mesg->eunitig2));
   fprintf(fout,"ori:%c\n",mesg->orientation);
   fprintf(fout,"ovt:%c\n",mesg->overlap_type);
   fprintf(fout,"ipc:"F_S32"\n",mesg->is_possible_chimera);
@@ -1807,9 +1577,9 @@ static void Write_ULK_Mesg(FILE *fout, void *vmesg)
     --npairs;
   fprintf(fout,"jls:\n");
   for (i=0; i < npairs; ++i)
-    fprintf(fout, F_UID","F_UID",%c\n",
-            mesg->jump_list[i].in1,
-            mesg->jump_list[i].in2,
+    fprintf(fout,"%s,%s,%c\n",
+            AS_UID_toString(mesg->jump_list[i].in1),
+            AS_UID_toString(mesg->jump_list[i].in2),
             (char)(mesg->jump_list[i].type));
   fprintf(fout,"}\n");
   return;
@@ -1821,7 +1591,7 @@ static void Write_CCO_Mesg(FILE *fout, void *vmesg)
   int		i;
 
   fprintf(fout,"{CCO\n");
-  fprintf(fout,"acc:("F_UID","F_IID")\n",mesg->eaccession,mesg->iaccession);
+  fprintf(fout,"acc:(%s,"F_IID")\n",AS_UID_toString(mesg->eaccession),mesg->iaccession);
   fprintf(fout,"pla:%c\n",mesg->placed);
   fprintf(fout,"len:"F_COORD"\n",mesg->length);
   PutText(fout,"cns:",mesg->consensus,TRUE);
@@ -1846,8 +1616,8 @@ static void Write_CLK_Mesg(FILE *fout, void *vmesg)
   int		i, npairs;
 
   fprintf(fout,"{CLK\n");
-  fprintf(fout,"co1:"F_UID"\n",mesg->econtig1);
-  fprintf(fout,"co2:"F_UID"\n",mesg->econtig2);
+  fprintf(fout,"co1:%s\n",AS_UID_toString(mesg->econtig1));
+  fprintf(fout,"co2:%s\n",AS_UID_toString(mesg->econtig2));
   fprintf(fout,"ori:%c\n",mesg->orientation);
   fprintf(fout,"ovt:%c\n",mesg->overlap_type);
   fprintf(fout,"ipc:"F_S32"\n",mesg->is_possible_chimera);
@@ -1861,9 +1631,9 @@ static void Write_CLK_Mesg(FILE *fout, void *vmesg)
     --npairs;
   fprintf(fout,"jls:\n");
   for (i=0; i < npairs; ++i)
-    fprintf(fout, F_UID","F_UID",%c\n",
-            mesg->jump_list[i].in1,
-            mesg->jump_list[i].in2,
+    fprintf(fout, "%s,%s,%c\n",
+            AS_UID_toString(mesg->jump_list[i].in1),
+            AS_UID_toString(mesg->jump_list[i].in2),
             (char)(mesg->jump_list[i].type));
   fprintf(fout,"}\n");
   return;
@@ -1874,8 +1644,8 @@ static void Write_SLK_Mesg(FILE *fout, void *vmesg)
   int		i, npairs;
 
   fprintf(fout,"{SLK\n");
-  fprintf(fout,"sc1:"F_UID"\n",mesg->escaffold1);
-  fprintf(fout,"sc2:"F_UID"\n",mesg->escaffold2);
+  fprintf(fout,"sc1:%s\n",AS_UID_toString(mesg->escaffold1));
+  fprintf(fout,"sc2:%s\n",AS_UID_toString(mesg->escaffold2));
   fprintf(fout,"ori:%c\n",mesg->orientation);
   fprintf(fout,"gui:"F_S32"\n",mesg->includes_guide);
   fprintf(fout,"mea:%.3f\n",mesg->mean_distance);
@@ -1885,9 +1655,9 @@ static void Write_SLK_Mesg(FILE *fout, void *vmesg)
   assert(npairs > 0);
   fprintf(fout,"jls:\n");
   for (i=0; i < npairs; ++i)
-    fprintf(fout, F_UID","F_UID",%c\n",
-            mesg->jump_list[i].in1,
-            mesg->jump_list[i].in2,
+    fprintf(fout, "%s,%s,%c\n",
+            AS_UID_toString(mesg->jump_list[i].in1),
+            AS_UID_toString(mesg->jump_list[i].in2),
             (char)(mesg->jump_list[i].type));
   fprintf(fout,"}\n");
   return;
@@ -1897,8 +1667,8 @@ static void Write_SLK_Mesg(FILE *fout, void *vmesg)
 static void Write_CTP_Mesg(FILE *fout, SnapContigPairs *mesg)
 {
   fprintf(fout,"{CTP\n");
-  fprintf(fout,"ct1:"F_UID"\n",mesg->econtig1);
-  fprintf(fout,"ct2:"F_UID"\n",mesg->econtig2);
+  fprintf(fout,"ct1:%s\n",AS_UID_toString(mesg->econtig1));
+  fprintf(fout,"ct2:%s\n",AS_UID_toString(mesg->econtig2));
   fprintf(fout,"mea:%.3f\n",mesg->mean);
   fprintf(fout,"std:%.3f\n",mesg->stddev);
   fprintf(fout,"ori:%c\n",mesg->orient);
@@ -1911,7 +1681,7 @@ static void Write_SCF_Mesg(FILE *fout, void *vmesg)
   int		i;
   int num = MAX(1,mesg->num_contig_pairs);
   fprintf(fout,"{SCF\n");
-  fprintf(fout,"acc:("F_UID","F_IID")\n",mesg->eaccession,mesg->iaccession);
+  fprintf(fout,"acc:(%s,"F_IID")\n",AS_UID_toString(mesg->eaccession),mesg->iaccession);
   fprintf(fout,"noc:"F_S32"\n",mesg->num_contig_pairs);
   for (i=0; i < num; ++i)
     Write_CTP_Mesg(fout,&mesg->contig_pairs[i]);
@@ -1922,8 +1692,8 @@ static void Write_SCF_Mesg(FILE *fout, void *vmesg)
 static void Write_DSC_Mesg(FILE *fout, void *vmesg)
 { SnapDegenerateScaffoldMesg *mesg = (SnapDegenerateScaffoldMesg *) vmesg;
   fprintf(fout,"{DSC\n");
-  fprintf(fout,"acc:"F_UID"\n",mesg->eaccession);
-  fprintf(fout,"ctg:"F_UID"\n",mesg->econtig);
+  fprintf(fout,"acc:%s\n",AS_UID_toString(mesg->eaccession));
+  fprintf(fout,"ctg:%s\n",AS_UID_toString(mesg->econtig));
   fprintf(fout,"}\n");
   return;
 }
@@ -1942,7 +1712,7 @@ static void Write_MDI_Mesg(FILE *fout, void *vmesg)
   int		i;
 
   fprintf(fout,"{MDI\n");
-  fprintf(fout,"ref:("F_UID","F_IID")\n",mesg->erefines,mesg->irefines);
+  fprintf(fout,"ref:(%s,"F_IID")\n",AS_UID_toString(mesg->erefines),mesg->irefines);
   fprintf(fout,"mea:%.3f\n",mesg->mean);
   fprintf(fout,"std:%.3f\n",mesg->stddev);
   fprintf(fout,"min:"F_COORD"\n",mesg->min);
@@ -1960,7 +1730,7 @@ static void Write_BAT_Mesg(FILE *fout, void *vmesg){
   fprintf(fout,"{BAT\n");
   fprintf(fout,"bna:%s\n",mesg->name);
   fprintf(fout,"crt:0\n");
-  fprintf(fout,"acc:"F_UID"\n",mesg->eaccession);
+  fprintf(fout,"acc:%s\n",AS_UID_toString(mesg->eaccession));
   PutText(fout,"com:",mesg->comment, FALSE);
   fprintf(fout,"}\n");
 
@@ -1976,7 +1746,6 @@ static void Write_EOF_Mesg(FILE *fout, void *vmesg)
   PutText(fout,"com:", mesg->comment, FALSE);
   fprintf(fout,"}\n");
 }
-
 
 
 

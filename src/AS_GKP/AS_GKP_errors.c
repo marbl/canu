@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_errors.c,v 1.2 2007-10-29 06:36:47 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_errors.c,v 1.3 2007-11-08 12:38:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,45 +50,45 @@ AS_GKP_reportError(int error, ...) {
     //
 
     errorMs[AS_GKP_BAT_ZERO_UID           ] = "# BAT Error: Batch has zero or no UID; can't add it.\n";
-    errorMs[AS_GKP_BAT_EXISTS             ] = "# BAT Error: Batch "F_UID" exists, can't add it again.\n";
+    errorMs[AS_GKP_BAT_EXISTS             ] = "# BAT Error: Batch %s exists, can't add it again.\n";
 
-    errorMs[AS_GKP_FRG_INVALID_CHAR_SEQ   ] = "# FRG Error: Fragment "F_UID" invalid char %c at position "F_SIZE_T" in sequence.\n";
-    errorMs[AS_GKP_FRG_INVALID_CHAR_QLT   ] = "# FRG Error: Fragment "F_UID" invalid char %c at position " F_SIZE_T " in quality.\n";
-    errorMs[AS_GKP_FRG_INVALID_LENGTH     ] = "# FRG Error: Fragment "F_UID" sequence length %d != %d quality length.\n";
+    errorMs[AS_GKP_FRG_INVALID_CHAR_SEQ   ] = "# FRG Error: Fragment %s invalid char %c at position "F_SIZE_T" in sequence.\n";
+    errorMs[AS_GKP_FRG_INVALID_CHAR_QLT   ] = "# FRG Error: Fragment %s invalid char %c at position " F_SIZE_T " in quality.\n";
+    errorMs[AS_GKP_FRG_INVALID_LENGTH     ] = "# FRG Error: Fragment %s sequence length %d != %d quality length.\n";
     errorMs[AS_GKP_FRG_ZERO_UID           ] = "# FRG Error: Fragment has UID of zero; can't add it.\n";
-    errorMs[AS_GKP_FRG_EXISTS             ] = "# FRG Error: Fragment "F_UID" exists; can't add it again.\n";
-    errorMs[AS_GKP_FRG_SEQ_TOO_LONG       ] = "# FRG Error: Fragment "F_UID" sequence length %d > %d max allowed sequence length.\n";
-    errorMs[AS_GKP_FRG_SEQ_TOO_SHORT      ] = "# FRG Error: Fragment "F_UID" sequence length %d < %d min allowed sequence length.\n";
-    errorMs[AS_GKP_FRG_CLR_BGN            ] = "# FRG Alert: Fragment "F_UID" invalid clear range (%d,%d) valid range is (0,%d) -- fixing clear_rng.bgn.\n";
-    errorMs[AS_GKP_FRG_CLR_END            ] = "# FRG Alert: Fragment "F_UID" invalid clear range (%d,%d) valid range is (0,%d) -- fixing clear_rng.end.\n";
-    errorMs[AS_GKP_FRG_CLR_TOO_SHORT      ] = "# FRG Error: Fragment "F_UID" clear range length %d < %d min allowed length.\n";
-    errorMs[AS_GKP_FRG_UNKNOWN_LIB        ] = "# FRG Error: Fragment "F_UID" references unknown library "F_UID".\n";
-    errorMs[AS_GKP_FRG_LOADED_DELETED     ] = "# FRG Alert: Fragment "F_UID" loaded, but marked as deleted due to errors previously reported.\n";
-    errorMs[AS_GKP_FRG_DOESNT_EXIST       ] = "# FRG Error: Fragment "F_UID" does not exist, can't delete it.\n";
-    errorMs[AS_GKP_FRG_HAS_MATE           ] = "# FRG Error: Fragment "F_UID" has mate pair relationship, can't delete it.\n";
+    errorMs[AS_GKP_FRG_EXISTS             ] = "# FRG Error: Fragment %s exists; can't add it again.\n";
+    errorMs[AS_GKP_FRG_SEQ_TOO_LONG       ] = "# FRG Error: Fragment %s sequence length %d > %d max allowed sequence length.\n";
+    errorMs[AS_GKP_FRG_SEQ_TOO_SHORT      ] = "# FRG Error: Fragment %s sequence length %d < %d min allowed sequence length.\n";
+    errorMs[AS_GKP_FRG_CLR_BGN            ] = "# FRG Alert: Fragment %s invalid clear range (%d,%d) valid range is (0,%d) -- fixing clear_rng.bgn.\n";
+    errorMs[AS_GKP_FRG_CLR_END            ] = "# FRG Alert: Fragment %s invalid clear range (%d,%d) valid range is (0,%d) -- fixing clear_rng.end.\n";
+    errorMs[AS_GKP_FRG_CLR_TOO_SHORT      ] = "# FRG Error: Fragment %s clear range length %d < %d min allowed length.\n";
+    errorMs[AS_GKP_FRG_UNKNOWN_LIB        ] = "# FRG Error: Fragment %s references unknown library %s.\n";
+    errorMs[AS_GKP_FRG_LOADED_DELETED     ] = "# FRG Alert: Fragment %s loaded, but marked as deleted due to errors previously reported.\n";
+    errorMs[AS_GKP_FRG_DOESNT_EXIST       ] = "# FRG Error: Fragment %s does not exist, can't delete it.\n";
+    errorMs[AS_GKP_FRG_HAS_MATE           ] = "# FRG Error: Fragment %s has mate pair relationship, can't delete it.\n";
     errorMs[AS_GKP_FRG_UNKNOWN_ACTION     ] = "# FRG Error: invalid action %c.\n";
 
-    errorMs[AS_GKP_LIB_ILLEGAL_MEAN_STDDEV] = "# LIB Alert: Library "F_UID" has lllegal mean (%g) and standard deviation (%g); reset to mean 3000, stddev 300.\n";
-    errorMs[AS_GKP_LIB_INVALID_MEAN       ] = "# LIB Alert: Library "F_UID" has invalid mean (%g); reset mean to 10 * stddev = %g.\n";
-    errorMs[AS_GKP_LIB_INVALID_STDDEV     ] = "# LIB Alert: Library "F_UID" has invalid stddev (%g); reset stddev to 0.1 * mean = %g.\n";
-    errorMs[AS_GKP_LIB_STDDEV_TOO_BIG     ] = "# LIB Alert: Library "F_UID" stddev (%g) too big for mean (%g); reset stddev to 0.1 * mean = %g.\n";
-    errorMs[AS_GKP_LIB_STDDEV_TOO_SMALL   ] = "# LIB Alert: Library "F_UID" has suspicious mean (%g) and standard deviation (%g); reset stddev to 0.10 * mean = %g.\n";
-    errorMs[AS_GKP_LIB_EXISTS             ] = "# LIB Error: Library "F_UID","F_IID" already exists; can't add it again.\n";
+    errorMs[AS_GKP_LIB_ILLEGAL_MEAN_STDDEV] = "# LIB Alert: Library %s has lllegal mean (%g) and standard deviation (%g); reset to mean 3000, stddev 300.\n";
+    errorMs[AS_GKP_LIB_INVALID_MEAN       ] = "# LIB Alert: Library %s has invalid mean (%g); reset mean to 10 * stddev = %g.\n";
+    errorMs[AS_GKP_LIB_INVALID_STDDEV     ] = "# LIB Alert: Library %s has invalid stddev (%g); reset stddev to 0.1 * mean = %g.\n";
+    errorMs[AS_GKP_LIB_STDDEV_TOO_BIG     ] = "# LIB Alert: Library %s stddev (%g) too big for mean (%g); reset stddev to 0.1 * mean = %g.\n";
+    errorMs[AS_GKP_LIB_STDDEV_TOO_SMALL   ] = "# LIB Alert: Library %s has suspicious mean (%g) and standard deviation (%g); reset stddev to 0.10 * mean = %g.\n";
+    errorMs[AS_GKP_LIB_EXISTS             ] = "# LIB Error: Library %s,"F_IID" already exists; can't add it again.\n";
     errorMs[AS_GKP_LIB_ZERO_UID           ] = "# LIB Error: Library has zero or no UID; can't add it.\n";
-    errorMs[AS_GKP_LIB_DOESNT_EXIST_UPDATE] = "# LIB Error: Library "F_UID" does not exist, can't update it.\n";
+    errorMs[AS_GKP_LIB_DOESNT_EXIST_UPDATE] = "# LIB Error: Library %s does not exist, can't update it.\n";
     errorMs[AS_GKP_LIB_UNKNOWN_ACTION     ] = "# LIB Error: invalid action %c.\n";
 
-    errorMs[AS_GKP_LKG_SELF_LINK          ] = "# LKG Error: Can't make a link from fragment "F_UID" to itself.\n";
-    errorMs[AS_GKP_LKG_UNSUPPORTED_TYPE   ] = "# LKG Error: Unsupported LKG type '%c' for frags "F_UID","F_UID" in library "F_UID".\n";
-    errorMs[AS_GKP_LKG_FRG_DOESNT_EXIST   ] = "# LKG Error: Fragment "F_UID" not previously defined.\n";
-    errorMs[AS_GKP_LKG_FRG_DELETED        ] = "# LKG Error: Fragment "F_UID" is marked as deleted.\n";
-    errorMs[AS_GKP_LKG_ALREADY_MATED      ] = "# LKG Error: Fragment "F_UID","F_IID" already has mate of iid="F_IID"; wanted to set to "F_UID","F_IID".\n";
-    errorMs[AS_GKP_LKG_LIB_DOESNT_EXIST   ] = "# LKG Error: Library "F_UID" not previously defined.\n";
+    errorMs[AS_GKP_LKG_SELF_LINK          ] = "# LKG Error: Can't make a link from fragment %s to itself.\n";
+    errorMs[AS_GKP_LKG_UNSUPPORTED_TYPE   ] = "# LKG Error: Unsupported LKG type '%c' for frags %s,%s in library %s.\n";
+    errorMs[AS_GKP_LKG_FRG_DOESNT_EXIST   ] = "# LKG Error: Fragment %s not previously defined.\n";
+    errorMs[AS_GKP_LKG_FRG_DELETED        ] = "# LKG Error: Fragment %s is marked as deleted.\n";
+    errorMs[AS_GKP_LKG_ALREADY_MATED      ] = "# LKG Error: Fragment %s,"F_IID" already has mate of iid="F_IID"; wanted to set to %s,"F_IID".\n";
+    errorMs[AS_GKP_LKG_LIB_DOESNT_EXIST   ] = "# LKG Error: Library %s not previously defined.\n";
     errorMs[AS_GKP_LKG_DIFFERENT_LIB      ] = "# LKG Error: Fragment "F_IID" in lib "F_IID", different from fragment "F_IID" in lib "F_IID".\n";
     errorMs[AS_GKP_LKG_UNKNOWN_ACTION     ] = "# LKG Error: Unknown action %c.\n";
 
     errorMs[AS_GKP_SFF_UID_ERROR          ] = "# SFF Error: 454 Universal Accession Number '%s' out of range.\n";
-    errorMs[AS_GKP_SFF_ALREADY_EXISTS     ] = "# SFF Error: Fragment "F_UID" exists, can't add it again.\n";
+    errorMs[AS_GKP_SFF_ALREADY_EXISTS     ] = "# SFF Error: Fragment %s exists, can't add it again.\n";
 
     errorMs[AS_GKP_UNKNOWN_MESSAGE        ] = "# GKP Error: Unknown message with type %s.\n";
 

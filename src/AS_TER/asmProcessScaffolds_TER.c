@@ -31,6 +31,7 @@
 #include "AS_PER_genericStore.h"
 #include "AS_UTL_Var.h"
 #include "AS_UTL_Hash.h"
+#include "AS_UTL_fasta.h"
 #include "MultiAlignStore_CNS.h"
 
 static HashTable_AS *uid2iid;
@@ -103,7 +104,7 @@ int FastaScaffold(FILE *out, FILE *qual, SnapScaffoldMesg *scaff){
   ResetVA_char(quality_sequence);
 
   reversed = Getint32(reversedVA,0);
-  contigid = (int32)LookupValueInHashTable_AS(uid2iid, cp[0].econtig1,0);
+  contigid = (int32)LookupValueInHashTable_AS(uid2iid, AS_UID_toInteger(cp[0].econtig1), 0);
 
 
   // calculate length of sequence:
@@ -112,7 +113,9 @@ int FastaScaffold(FILE *out, FILE *qual, SnapScaffoldMesg *scaff){
   for ( i=0;i<num_pairs;i++ ) {
     scaffold_length += compute_gap(cp[i].mean);
     scaffold_length += GetMultiAlignUngappedLength(GetMultiAlignInStore(cstore,
-									(int32)LookupValueInHashTable_AS(uid2iid,cp[i].econtig2,0)));
+									(int32)LookupValueInHashTable_AS(uid2iid,
+                                                                                                         AS_UID_toInteger(cp[i].econtig2),
+                                                                                                         0)));
   }
 
   EnableRangeVA_char(scaffold_sequence, scaffold_length+1);
@@ -184,7 +187,7 @@ int FastaScaffold(FILE *out, FILE *qual, SnapScaffoldMesg *scaff){
     sseq+=ngaps;
     qseq+=ngaps;
 
-    contigid      = (int32)LookupValueInHashTable_AS(uid2iid,cp[i].econtig2,0);
+    contigid      = (int32)LookupValueInHashTable_AS(uid2iid,AS_UID_toInteger(cp[i].econtig2),0);
     contig        = GetMultiAlignInStore(cstore,contigid);
     contig_length = GetMultiAlignUngappedLength(contig);
 
@@ -216,18 +219,18 @@ int FastaScaffold(FILE *out, FILE *qual, SnapScaffoldMesg *scaff){
 
   AS_UTL_writeFastA(out,
                     sseq, strlen(sseq),
-                    ">"F_S64" /type=%s\n", scaff->eaccession, fastaIdent);
+                    ">%s /type=%s\n", AS_UID_toString(scaff->eaccession), fastaIdent);
 
   if (qual)
     AS_UTL_writeFastA(qual,
                       qseq, strlen(sseq),
-                      ">"F_S64" /type=%s\n",scaff->eaccession, fastaIdent);
+                      ">%s /type=%s\n", AS_UID_toString(scaff->eaccession), fastaIdent);
 
   return 1;
 }
 
 int FastaDegenerateScaffold(FILE *out, SnapDegenerateScaffoldMesg *scaff,VA_TYPE(int32) *is_placed)  {
-  int32 contigid =  (int32)LookupValueInHashTable_AS(uid2iid,scaff->econtig,0);
+  int32 contigid =  (int32)LookupValueInHashTable_AS(uid2iid,AS_UID_toInteger(scaff->econtig),0);
   int i;
   MultiAlignT *contig;
   char *sseq;
@@ -251,7 +254,7 @@ int FastaDegenerateScaffold(FILE *out, SnapDegenerateScaffoldMesg *scaff,VA_TYPE
   contig_length = GetMultiAlignUngappedLength(contig);
 
   if ( GetNumUnitigPoss(contig->u_list) == 1 ) {
-    uint32 iid=  (int32)LookupValueInHashTable_AS(uid2iid,GetUnitigPos(contig->u_list,0)->eident,0);
+    uint32 iid=  (int32)LookupValueInHashTable_AS(uid2iid,AS_UID_toInteger(GetUnitigPos(contig->u_list,0)->eident),0);
     if ( *(Getint32(is_placed,iid)) ) return 0;
   }
   GetMultiAlignUngappedConsensus(contig,ctmp,qtmp);
@@ -383,13 +386,13 @@ int main(int argc, char *argv[]) {
   while (ReadProtoMesg_AS(stdin,&pmesg) != EOF){
     if (pmesg->t ==MESG_UTG)  {
       unitig = pmesg->m;
-      InsertInHashTable_AS(uid2iid,unitig->eaccession,0,unitig->iaccession,0);
+      InsertInHashTable_AS(uid2iid,AS_UID_toInteger(unitig->eaccession),0,unitig->iaccession,0);
       SetVA_int32(is_placed, unitig->iaccession,  
                   ( unitig->status == AS_SEP )? &placed : &unplaced );
     }
     if (pmesg->t ==MESG_CCO)  {
       contig = pmesg->m;
-      InsertInHashTable_AS(uid2iid,contig->eaccession,0,contig->iaccession,0);
+      InsertInHashTable_AS(uid2iid,AS_UID_toInteger(contig->eaccession),0,contig->iaccession,0);
       assert ( strlen(contig->consensus) == contig->length);
       ma = CreateMultiAlignTFromCCO(contig, -1,  0);
       SetMultiAlignInStore(cstore,ma->maID,ma);

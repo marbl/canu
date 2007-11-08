@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: createFrgDeletes.c,v 1.12 2007-08-24 15:29:48 brianwalenz Exp $";
+static char CM_ID[] = "$Id: createFrgDeletes.c,v 1.13 2007-11-08 12:38:11 brianwalenz Exp $";
 
 
 /*********************************************************************/
@@ -54,7 +54,7 @@ int main( int argc, char *argv[])
   int setGatekeeperStore = FALSE;
   int fragIID,mateIID;
   FILE *iidlist;
-  CDS_UID_t fragUID,mateUID;
+  AS_UID fragUID,mateUID;
   char iidlist_name[2000];
   char GKP_Store_Name[2000];
   GateKeeperStore *gkpStore;
@@ -65,7 +65,7 @@ int main( int argc, char *argv[])
   Overlap *ovl;
   IntUnitigMesg ium;
   IntMultiPos the_imps[2];
-  CDS_UID_t batchUid;
+  AS_UID batchUid;
   char seq[MAXSEQLEN], qlt[MAXSEQLEN];
   int clr_bgn,clr_end;
   int iid;
@@ -113,20 +113,16 @@ int main( int argc, char *argv[])
   /*************************/
   // Construct a BAT message
   /*************************/
-  {
 
-    batchUid = getUID(uids);
+  batchUid = AS_UID_fromInteger(getUID(uids));
 
-    /***********************/
-    // Print a BAT message
-    /***********************/
-    printf("{BAT\n");
-    printf("bna:(Batch name)\n");
-    printf("crt:" F_TIME_T "\n",time(NULL));
-    printf("acc:" F_UID "\n",batchUid);
-    printf("com:\nCreated by %s\n.\n",__FILE__);
-    printf("}\n");
-  }
+  printf("{BAT\n");
+  printf("bna:(Batch name)\n");
+  printf("crt:" F_TIME_T "\n",time(NULL));
+  printf("acc:%s\n", AS_UID_toString(batchUid));
+  printf("com:\nCreated by %s\n.\n",__FILE__);
+  printf("}\n");
+
 
   /*************************/
   // over all fragments in list
@@ -155,15 +151,15 @@ int main( int argc, char *argv[])
 	printf("{LKG\n");
 	printf("act:D\n");
 	printf("typ:M\n");
-	printf("fg1:" F_UID "\n",fragUID);
-	printf("fg2:" F_UID "\n",mateUID);
+	printf("fg1:%s\n",AS_UID_toString(fragUID));
+        printf("fg2:%s\n",AS_UID_toString(mateUID));
 	printf("}\n");
       }
     }
 
     printf("{FRG\n");
     printf("act:D\n");
-    printf("acc:" F_UID "\n",fragUID);
+    printf("acc:%s\n",AS_UID_toString(fragUID));
     printf("}\n");
 
   }

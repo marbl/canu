@@ -154,18 +154,18 @@ PrintMultiAlignT(FILE *out,
           frgTypeData = AS_READ;
           frgTypeDisplay = ' ';
 
-          fprintf(out, "%-100.100s   %c   (" F_UID ",%d) %c\n",
+          fprintf(out, "%-100.100s   %c   (%s,%d) %c\n",
                   multia[2*i]+window,
                   (orient>0)?'>':'<',
-                  getFragRecordUID(&rsp),
+                  AS_UID_toString(getFragRecordUID(&rsp)),
                   row_id,
                   frgTypeDisplay);
 
           if (show_qv)
-            fprintf(out, "%-100.100s   %c   (" F_UID ",%d) %c\n",
+            fprintf(out, "%-100.100s   %c   (%s,%d) %c\n",
                     multia[2*i+1]+window,
                     (orient>0)?'>':'<',
-                    getFragRecordUID(&rsp),
+                    AS_UID_toString(getFragRecordUID(&rsp)),
                     row_id,
                     frgTypeDisplay);
         }

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_bench.c,v 1.2 2007-10-18 08:35:09 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_bench.c,v 1.3 2007-11-08 12:38:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -111,8 +111,9 @@ addRandomFrags(char *gkpName, uint32 numFrags) {
   for (i=0; i<numFrags; i++) {
     clearGateKeeperFragmentRecord(&gkf);
 
-    gkf.readUID = getLastElemStore(gkp->frg) + 1 + 2000000000;
-    gkf.readIID = getLastElemStore(gkp->frg) + 1;
+    gkf.readUID.isString = 0;
+    gkf.readUID.UID      = getLastElemStore(gkp->frg) + 1 + 2000000000;
+    gkf.readIID          = getLastElemStore(gkp->frg) + 1;
 
     gkf.seqLen = 600 + lrand48() % 600;
     gkf.hpsLen = 0;
@@ -126,32 +127,21 @@ addRandomFrags(char *gkpName, uint32 numFrags) {
     seq[gkf.seqLen] = 0;
     qlt[gkf.seqLen] = 0;
 
-    {
-      StoreStat   stats;
-
-      statsStore(gkp->seq, &stats);
-      gkf.seqOffset = stats.lastElem;
-
-      statsStore(gkp->qlt, &stats);
-      gkf.qltOffset = stats.lastElem;
-
-      statsStore(gkp->hps, &stats);
-      gkf.hpsOffset = stats.lastElem;
-
-      statsStore(gkp->src, &stats);
-      gkf.srcOffset = stats.lastElem;
-    }
+    gkf.seqOffset = getLastElemStore(gkp->seq);
+    gkf.qltOffset = getLastElemStore(gkp->qlt);
+    gkf.hpsOffset = getLastElemStore(gkp->hps);
+    gkf.srcOffset = getLastElemStore(gkp->src);
 
     setGatekeeperUIDtoIID(gkp, gkf.readUID, gkf.readIID, AS_IID_FRG);
     appendIndexStore(gkp->frg, &gkf);
 
-    appendVLRecordStore(gkp->seq, seq, gkf.seqLen);
+    appendStringStore(gkp->seq, seq, gkf.seqLen);
 
     encodeSequenceQuality(enc, seq, qlt);
-    appendVLRecordStore(gkp->qlt, enc, gkf.seqLen);
+    appendStringStore(gkp->qlt, enc, gkf.seqLen);
 
-    appendVLRecordStore(gkp->hps, NULL, gkf.hpsLen);
-    appendVLRecordStore(gkp->src, NULL, gkf.srcLen);
+    appendStringStore(gkp->hps, NULL, gkf.hpsLen);
+    appendStringStore(gkp->src, NULL, gkf.srcLen);
 
     if ((i > 50000) && (i % 10000) == 0)
       fprintf(stderr, "%.3f ops/sec %.3f%% complete\n", i / (getTime() - startTime), 100.0 * i / numFrags);
@@ -170,8 +160,8 @@ updateRandomMates(char *gkpName, uint32 numMates) {
   GateKeeperStore           *gkp   = openGateKeeperStore(gkpName, TRUE);
   GateKeeperFragmentRecord   gkFrag1;
   GateKeeperFragmentRecord   gkFrag2;
-  CDS_IID_t                  frag1IID;
-  CDS_IID_t                  frag2IID;
+  AS_IID                     frag1IID;
+  AS_IID                     frag2IID;
   int                        i, lo, hi;
   int                        totalFrags = getLastElemStore(gkp->frg);
 
@@ -213,7 +203,7 @@ void
 readRandomFragments(char *gkpName, uint32 numReads) {
   GateKeeperStore           *gkp   = openGateKeeperStore(gkpName, FALSE);
   fragRecord                 frg;
-  CDS_IID_t                  fragIID;
+  AS_IID                     fragIID;
   int                        i;
   int                        totalFrags = getLastElemStore(gkp->frg);
 

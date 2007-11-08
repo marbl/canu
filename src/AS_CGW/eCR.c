@@ -18,7 +18,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: eCR.c,v 1.32 2007-10-25 16:49:42 gdenisov Exp $";
+static const char CM_ID[] = "$Id: eCR.c,v 1.33 2007-11-08 12:38:11 brianwalenz Exp $";
 
 #include "eCR.h"
 #include "ScaffoldGraph_CGW.h"
@@ -327,7 +327,7 @@ main(int argc, char **argv) {
         int          i;
 
         for (i=0; i<GetNumIntMultiPoss(ma->f_list); i++) {
-          CDS_IID_t       iid = GetCIFragT(ScaffoldGraph->CIFrags,
+          AS_IID          iid = GetCIFragT(ScaffoldGraph->CIFrags,
                                            GetIntMultiPos(ma->f_list, i)->sourceInt)->iid;
           unsigned int    clr_bgn;
           unsigned int    clr_end;
@@ -340,9 +340,9 @@ main(int argc, char **argv) {
               clr_end = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_ECR1 - 1);
               if ((clr_bgn != getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_ECR1)) ||
                   (clr_end != getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_ECR1))) {
-                fprintf(stderr, "WARNING:  Reset clear for frag "F_IID","F_UID" (ctg %d scf %d) from (%d,%d) to (%d,%d)\n",
+                fprintf(stderr, "WARNING:  Reset clear for frag "F_IID",%s (ctg %d scf %d) from (%d,%d) to (%d,%d)\n",
                         getFragRecordIID(&fsread),
-                        getFragRecordUID(&fsread),
+                        AS_UID_toString(getFragRecordUID(&fsread)),
                         contigID, sid,
                         getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_ECR1),
                         getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_ECR1),
@@ -357,9 +357,9 @@ main(int argc, char **argv) {
               clr_end = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_ECR2 - 1);
               if ((clr_bgn != getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_ECR2)) ||
                   (clr_end != getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_ECR2))) {
-                fprintf(stderr, "WARNING:  Reset clear for frag "F_IID","F_UID" (ctg %f scf %d) from (%d,%d) to (%d,%d)\n",
+                fprintf(stderr, "WARNING:  Reset clear for frag "F_IID",%s (ctg %f scf %d) from (%d,%d) to (%d,%d)\n",
                         getFragRecordIID(&fsread),
-                        getFragRecordUID(&fsread),
+                        AS_UID_toString(getFragRecordUID(&fsread)),
                         contigID, sid,
                         getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_ECR2),
                         getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_ECR2),
@@ -1098,7 +1098,7 @@ compExtendableFrags(const void *s1, const void *s2) {
 
 
 void
-getExtendableClearRange(CDS_IID_t     iid,
+getExtendableClearRange(AS_IID        iid,
                         unsigned int *clr_bgn,
                         unsigned int *clr_end,
                         unsigned int *len) {
@@ -1719,9 +1719,9 @@ extendClearRange(int fragIid, int frag3pDelta) {
 
   setFrag(ScaffoldGraph->gkpStore, fragIid, &fsread);
 
-  fprintf(stderr, "WARNING:  Set clear for frag "F_IID","F_UID" from (%d,%d) to (%d,%d)\n",
+  fprintf(stderr, "WARNING:  Set clear for frag "F_IID",%s from (%d,%d) to (%d,%d)\n",
           getFragRecordIID(&fsread),
-          getFragRecordUID(&fsread),
+          AS_UID_toString(getFragRecordUID(&fsread)),
           clr_bgn,
           clr_end - frag3pDelta,
           clr_bgn,
@@ -1757,9 +1757,9 @@ revertClearRange(int fragIid) {
 
   setFrag(ScaffoldGraph->gkpStore, fragIid, &fsread);
 
-  fprintf(stderr, "WARNING:  Revert clear for frag "F_IID","F_UID" to (%d,%d)\n",
+  fprintf(stderr, "WARNING:  Revert clear for frag "F_IID",%s to (%d,%d)\n",
           getFragRecordIID(&fsread),
-          getFragRecordUID(&fsread),
+          AS_UID_toString(getFragRecordUID(&fsread)),
           clr_bgn,
           clr_end);
 }

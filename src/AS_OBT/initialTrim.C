@@ -105,7 +105,7 @@ main(int argc, char **argv) {
   uint32        firstElem = getFirstElemFragStore(gkp);
   uint32        lastElem  = getLastElemFragStore(gkp) + 1;
 
-  fragRecord   *fr = new_fragRecord();
+  fragRecord    fr = {0};
 
   uint32        qltL = 0;
   uint32        qltR = 0;
@@ -123,9 +123,9 @@ main(int argc, char **argv) {
 
   for (uint32 iid=firstElem; iid<lastElem; iid++) {
 
-    getFrag(gkp, iid, fr, FRAG_S_INF | FRAG_S_SEQ | FRAG_S_QLT);
+    getFrag(gkp, iid, &fr, FRAG_S_INF | FRAG_S_SEQ | FRAG_S_QLT);
 
-    GateKeeperLibraryRecord  *gklr = getGateKeeperLibrary(gkp, getFragRecordLibraryIID(fr));
+    GateKeeperLibraryRecord  *gklr = getGateKeeperLibrary(gkp, getFragRecordLibraryIID(&fr));
 
     //  Bail now if we've been told to not modify this read.  We do
     //  not print a message in the log.
@@ -135,17 +135,17 @@ main(int argc, char **argv) {
       continue;
     }
 
-    doTrim(fr, minQuality, qltL, qltR);
+    doTrim(&fr, minQuality, qltL, qltR);
 
     vecL = qltL;
     vecR = qltR;
 
     //  Intersect with the vector clear range, if it exists
     //
-    if (fr->gkfr.hasVectorClear == false) {
+    if (fr.gkfr.hasVectorClear == false) {
       //  iid not present in our input list, do nothing.
       stat_notPresent++;
-    } else if ((fr->gkfr.clearBeg[AS_READ_CLEAR_VEC] > vecR) || (fr->gkfr.clearEnd[AS_READ_CLEAR_VEC] < vecL)) {
+    } else if ((fr.gkfr.clearBeg[AS_READ_CLEAR_VEC] > vecR) || (fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] < vecL)) {
       //  don't intersect; trust the quality clear
       stat_noIntersect++;
     } else {
@@ -153,13 +153,13 @@ main(int argc, char **argv) {
 
       bool changed = false;
 
-      if (vecL < fr->gkfr.clearBeg[AS_READ_CLEAR_VEC]) {
+      if (vecL < fr.gkfr.clearBeg[AS_READ_CLEAR_VEC]) {
         changed = true;
-        vecL = fr->gkfr.clearBeg[AS_READ_CLEAR_VEC];
+        vecL = fr.gkfr.clearBeg[AS_READ_CLEAR_VEC];
       }
-      if (fr->gkfr.clearEnd[AS_READ_CLEAR_VEC] < vecR) {
+      if (fr.gkfr.clearEnd[AS_READ_CLEAR_VEC] < vecR) {
         changed = true;
-        vecR = fr->gkfr.clearEnd[AS_READ_CLEAR_VEC];
+        vecR = fr.gkfr.clearEnd[AS_READ_CLEAR_VEC];
       }
 
       if (changed)
@@ -170,23 +170,23 @@ main(int argc, char **argv) {
 
 
     if (logFile) {
-      fprintf(logFile, F_U64","F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"%s\n",
-              getFragRecordUID(fr),
+      fprintf(logFile, "%s,"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"\t"F_U32"%s\n",
+              AS_UID_toString(getFragRecordUID(&fr)),
               iid,
-              getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_ORIG),
-              getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_ORIG),
+              getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_ORIG),
+              getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_ORIG),
               qltL,
               qltR,
-              fr->gkfr.clearBeg[AS_READ_CLEAR_VEC],
-              fr->gkfr.clearEnd[AS_READ_CLEAR_VEC],
+              fr.gkfr.clearBeg[AS_READ_CLEAR_VEC],
+              fr.gkfr.clearEnd[AS_READ_CLEAR_VEC],
               vecL,
               vecR,
               ((vecL + AS_FRAG_MIN_LEN) > vecR) ? " (deleted)" : "");
     }
 
     if (doUpdate) {
-      setFragRecordClearRegion(fr, vecL, vecR, AS_READ_CLEAR_OBTINI);
-      setFrag(gkp, iid, fr);
+      setFragRecordClearRegion(&fr, vecL, vecR, AS_READ_CLEAR_OBTINI);
+      setFrag(gkp, iid, &fr);
 
       if ((vecL + AS_FRAG_MIN_LEN) > vecR)
         delFrag(gkp, iid);

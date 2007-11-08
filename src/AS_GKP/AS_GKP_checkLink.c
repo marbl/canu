@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkLink.c,v 1.16 2007-10-29 06:36:47 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkLink.c,v 1.17 2007-11-08 12:38:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -30,8 +30,8 @@ static char const *rcsid = "$Id: AS_GKP_checkLink.c,v 1.16 2007-10-29 06:36:47 b
 
 int
 Check_LinkMesg(LinkMesg *lkg_mesg) {
-  CDS_IID_t                  frag1IID;
-  CDS_IID_t                  frag2IID;
+  AS_IID                     frag1IID;
+  AS_IID                     frag2IID;
   GateKeeperFragmentRecord   gkFrag1;
   GateKeeperFragmentRecord   gkFrag2;
 
@@ -41,11 +41,20 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
   if (lkg_mesg->action == AS_IGNORE)
     return 0;
 
+#if 0
+  //  Process all the incoming UIDs.
+  //
+  AS_UID_setGatekeeper(gkpStore);  //  doesn't need to be done all the time
+  lkg_mesg->frag1    = AS_UID_process(lkg_mesg->frag1);
+  lkg_mesg->frag2    = AS_UID_process(lkg_mesg->frag2);
+  lkg_mesg->distance = AS_UID_process(lkg_mesg->distance);
+#endif
+
   //  Check that the fragments are different
   //
-  if (lkg_mesg->frag1 == lkg_mesg->frag2) {
+  if (AS_UID_compare(lkg_mesg->frag1, lkg_mesg->frag2) == 0) {
     AS_GKP_reportError(AS_GKP_LKG_SELF_LINK,
-                       lkg_mesg->frag1);
+                       AS_UID_toString(lkg_mesg->frag1));
     if (lkg_mesg->action == AS_ADD)
       gkpStore->gkp.lkgErrors++;
     return(1);
@@ -55,7 +64,7 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
   //
   if (lkg_mesg->type != AS_MATE) {
     AS_GKP_reportError(AS_GKP_LKG_UNSUPPORTED_TYPE,
-                       lkg_mesg->type, lkg_mesg->frag1, lkg_mesg->frag2, lkg_mesg->distance);
+                       lkg_mesg->type, AS_UID_toString1(lkg_mesg->frag1), AS_UID_toString2(lkg_mesg->frag2), AS_UID_toString3(lkg_mesg->distance));
     if (lkg_mesg->action == AS_ADD)
       gkpStore->gkp.lkgErrors++;
     return(1);
@@ -67,7 +76,7 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
   frag1IID = getGatekeeperUIDtoIID(gkpStore, lkg_mesg->frag1, NULL);
   if (frag1IID == 0) {
     AS_GKP_reportError(AS_GKP_LKG_FRG_DOESNT_EXIST,
-                       lkg_mesg->frag1);
+                       AS_UID_toString(lkg_mesg->frag1));
     if (lkg_mesg->action == AS_ADD)
       gkpStore->gkp.lkgErrors++;
     return(1);
@@ -76,7 +85,7 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
   frag2IID = getGatekeeperUIDtoIID(gkpStore, lkg_mesg->frag2, NULL);
   if (frag2IID == 0) {
     AS_GKP_reportError(AS_GKP_LKG_FRG_DOESNT_EXIST,
-                       lkg_mesg->frag2);
+                       AS_UID_toString(lkg_mesg->frag2));
     if (lkg_mesg->action == AS_ADD)
       gkpStore->gkp.lkgErrors++;
     return(1);
@@ -93,7 +102,7 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
   //
   if (gkFrag1.deleted) {
     AS_GKP_reportError(AS_GKP_LKG_FRG_DELETED,
-                       lkg_mesg->frag1);
+                       AS_UID_toString(lkg_mesg->frag1));
     if (lkg_mesg->action == AS_ADD)
       gkpStore->gkp.lkgErrors++;
     return(1);
@@ -101,7 +110,7 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
 
   if (gkFrag2.deleted) {
     AS_GKP_reportError(AS_GKP_LKG_FRG_DELETED,
-                       lkg_mesg->frag2);
+                       AS_UID_toString(lkg_mesg->frag2));
     if (lkg_mesg->action == AS_ADD)
       gkpStore->gkp.lkgErrors++;
     return(1);
@@ -114,16 +123,16 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
 
     if ((gkFrag1.mateIID > 0) && (gkFrag1.mateIID != frag2IID)) {
       AS_GKP_reportError(AS_GKP_LKG_ALREADY_MATED,
-              gkFrag1.readUID, gkFrag1.readIID,
-              gkFrag1.mateIID,
-              lkg_mesg->frag2, frag2IID);
+                         AS_UID_toString1(gkFrag1.readUID), gkFrag1.readIID,
+                         gkFrag1.mateIID,
+                         AS_UID_toString2(lkg_mesg->frag2), frag2IID);
       err++;
     }
     if ((gkFrag2.mateIID > 0) && (gkFrag2.mateIID != frag1IID)) {
       AS_GKP_reportError(AS_GKP_LKG_ALREADY_MATED,
-              gkFrag2.readUID, gkFrag2.readIID,
-              gkFrag2.mateIID,
-              lkg_mesg->frag1, frag1IID);
+                         AS_UID_toString1(gkFrag2.readUID), gkFrag2.readIID,
+                         gkFrag2.mateIID,
+                         AS_UID_toString2(lkg_mesg->frag1), frag1IID);
       err++;
     }
     if (err) {
@@ -150,13 +159,13 @@ Check_LinkMesg(LinkMesg *lkg_mesg) {
   //  need to check that the library (from a distance record) is
   //  there, and get the library IID to set in the reads.
   //
-  if (lkg_mesg->distance != 0) {
+  if (AS_UID_isDefined(lkg_mesg->distance) == TRUE) {
     gkFrag1.libraryIID = getGatekeeperUIDtoIID(gkpStore, lkg_mesg->distance, NULL);
     gkFrag2.libraryIID = gkFrag1.libraryIID;
 
     if (gkFrag1.libraryIID == 0) {
       AS_GKP_reportError(AS_GKP_LKG_LIB_DOESNT_EXIST,
-                         lkg_mesg->distance);
+                         AS_UID_toString(lkg_mesg->distance));
       if (lkg_mesg->action == AS_ADD)
         gkpStore->gkp.lkgErrors++;
       return(1);

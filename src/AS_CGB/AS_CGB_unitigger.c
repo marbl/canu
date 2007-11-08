@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.26 2007-09-19 20:57:16 skoren Exp $";
+static char CM_ID[] = "$Id: AS_CGB_unitigger.c,v 1.27 2007-11-08 12:38:11 brianwalenz Exp $";
 
 #include "AS_UTL_version.h"
 #include "AS_CGB_all.h"
@@ -239,7 +239,7 @@ ParseCommandLine(UnitiggerGlobals * rg,
         break;
       case 'l':
         // -l <int> : the length of the genome
-        rg->genome_length = STR_TO_INT64(optarg, NULL, 10);
+        rg->genome_length = strtoll(optarg, NULL, 10);
         break;
       case 'm':
         // -m <int> : Pre-allocate space to process this many additional

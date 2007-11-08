@@ -28,6 +28,7 @@
 
 #include "AS_global.h"
 #include "AS_MSG_pmesg.h"
+#include "AS_UTL_fasta.h"
 
 int
 main(int argc, char **argv) {
@@ -103,8 +104,10 @@ main(int argc, char **argv) {
 
       AS_UTL_writeFastA(stdout,
                         contig->consensus, strlen(contig->consensus),
-                        ">contig"F_UID","F_IID" %s\n",
-                        contig->eaccession, contig->iaccession, status);
+                        ">contig%s,"F_IID" %s\n",
+                        AS_UID_toString(contig->eaccession),
+                        contig->iaccession,
+                        status);
     }
   }
 

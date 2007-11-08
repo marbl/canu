@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_main.c,v 1.58 2007-10-16 03:34:18 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_main.c,v 1.59 2007-11-08 12:38:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -183,8 +183,8 @@ main(int argc, char **argv) {
 
   //  Options for dumping:
   //
-  CDS_IID_t        begIID            = 0;
-  CDS_IID_t        endIID            = 2000000000;  //  I hope I never see an assembly with 2 billion IIDs!
+  AS_IID           begIID            = 0;
+  AS_IID           endIID            = 2000000000;  //  I hope I never see an assembly with 2 billion IIDs!
   char            *uidFileName       = NULL;
   char            *iidFileName       = NULL;
   int              dump              = DUMP_NOTHING;
@@ -327,7 +327,7 @@ main(int argc, char **argv) {
   //
   if (uidFileName || iidFileName) {
     GateKeeperStore *gkp      = openGateKeeperStore(gkpStoreName, FALSE);
-    CDS_IID_t        lastElem = getLastElemFragStore(gkp) + 1;
+    AS_IID           lastElem = getLastElemFragStore(gkp) + 1;
     FILE            *F        = NULL;
     char             L[1024];
 
@@ -350,9 +350,9 @@ main(int argc, char **argv) {
       }
       fgets(L, 1024, F);
       while (!feof(F)) {
-        CDS_UID_t      iid = STR_TO_UID(L, 0L, 10);
+        AS_IID      iid = AS_IID_fromString(L, NULL);
         if (iid >= lastElem)
-          fprintf(stderr, "%s: IID "F_UID" too big, ignored.\n", argv[0], iid);
+          fprintf(stderr, "%s: IID "F_IID" too big, ignored.\n", argv[0], iid);
         else
           iidToDump[iid]++;
         fgets(L, 1024, F);
@@ -373,13 +373,13 @@ main(int argc, char **argv) {
       }
       fgets(L, 1024, F);
       while (!feof(F)) {
-        CDS_UID_t      uid = STR_TO_UID(L, 0L, 10);
-        CDS_IID_t      iid = getGatekeeperUIDtoIID(gkp, uid, NULL);
+        AS_UID  uid = AS_UID_lookup(L, NULL);
+        AS_IID  iid = getGatekeeperUIDtoIID(gkp, uid, NULL);
 
         if (iid == 0)
-          fprintf(stderr, "%s: UID "F_UID" doesn't exist, ignored.\n", argv[0], uid);
+          fprintf(stderr, "%s: UID %s doesn't exist, ignored.\n", argv[0], AS_UID_toString(uid));
         else if (iid >= lastElem)
-          fprintf(stderr, "%s: UID "F_UID" is IID "F_IID", and that's too big, ignored.\n", argv[0], uid, iid);
+          fprintf(stderr, "%s: UID %s is IID "F_IID", and that's too big, ignored.\n", argv[0], AS_UID_toString(uid), iid);
         else
           iidToDump[iid]++;
 
@@ -399,7 +399,7 @@ main(int argc, char **argv) {
 
   if (dumpRandMateNum > 0) {
     GateKeeperStore *gkp        = openGateKeeperStore(gkpStoreName, FALSE);
-    CDS_IID_t        lastElem   = getLastElemFragStore(gkp) + 1;
+    AS_IID           lastElem   = getLastElemFragStore(gkp) + 1;
 
     //  No way to know (currently) how many reads are in a library,
     //  without actually counting it.  We just allocate enough space
@@ -416,30 +416,27 @@ main(int argc, char **argv) {
 
     iidToDump = (char *)safe_calloc(lastElem, sizeof(char));
 
-    fragRecord   *fr = new_fragRecord();
+    fragRecord    fr;
     FragStream   *fs = openFragStream(gkp, FRAG_S_INF);
-    StoreStat     stat;
 
     int           i;
 
-    statsStore(gkp->frg, &stat);
-
-    if (begIID < stat.firstElem)
-      begIID = stat.firstElem;
-    if (stat.lastElem < endIID)
-      endIID = stat.lastElem;
+    if (begIID < getFirstElemStore(gkp->frg))
+      begIID = getFirstElemStore(gkp->frg);
+    if (getLastElemStore(gkp->frg) < endIID)
+      endIID = getLastElemStore(gkp->frg);
 
     resetFragStream(fs, begIID, endIID);
 
     //  Scan the whole fragstore, looking for mated reads in the
     //  correct library, and save the lesser of the two reads.
     //
-    while (nextFragStream(fs, fr)) {
-      if ((getFragRecordLibraryIID(fr) == dumpRandMateLib) &&
-          (getFragRecordMateIID(fr) > 0) &&
-          (getFragRecordIID(fr) < getFragRecordMateIID(fr))) {
-        candidatesA[candidatesLen] = getFragRecordIID(fr);
-        candidatesB[candidatesLen] = getFragRecordMateIID(fr);
+    while (nextFragStream(fs, &fr)) {
+      if ((getFragRecordLibraryIID(&fr) == dumpRandMateLib) &&
+          (getFragRecordMateIID(&fr) > 0) &&
+          (getFragRecordIID(&fr) < getFragRecordMateIID(&fr))) {
+        candidatesA[candidatesLen] = getFragRecordIID(&fr);
+        candidatesB[candidatesLen] = getFragRecordMateIID(&fr);
         candidatesLen++;
       }
     }

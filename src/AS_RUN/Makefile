@@ -178,4 +178,4 @@ noOBT.specFile: runCA-OBT/noOBT.specFile
 noVec.specFile: runCA-OBT/noVec.specFile
 	@cp $< $(LOCAL_BIN)/$@
 
-fragmentDepth: fragmentDepth.o libAS_UTL.a
+fragmentDepth: fragmentDepth.o libCA.a

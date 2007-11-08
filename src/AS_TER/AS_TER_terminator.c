@@ -20,7 +20,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.22 2007-10-25 16:38:36 gdenisov Exp $";
+static const char CM_ID[] = "$Id: AS_TER_terminator.c,v 1.23 2007-11-08 12:38:15 brianwalenz Exp $";
 
 //  Assembly terminator module. It is the backend of the assembly
 //  pipeline and replaces internal accession numbers by external
@@ -43,28 +43,28 @@ typedef struct {
   int32       deleted:1;
   int32       clearBeg:15;
   int32       clearEnd:15;
-  CDS_UID_t   uid;
+  AS_UID      uid;
 } fragInfo_t;
 
 fragInfo_t    *fragInfo;
 
-VA_DEF(CDS_UID_t);
-VA_DEF(CDS_IID_t);
+VA_DEF(AS_UID);
+VA_DEF(AS_IID);
 
-VA_TYPE(CDS_IID_t) *ICMinISF1;
-VA_TYPE(CDS_IID_t) *ICMinISF2;
+VA_TYPE(AS_IID) *ICMinISF1;
+VA_TYPE(AS_IID) *ICMinISF2;
 
-VA_TYPE(CDS_UID_t) *IUMmap;
-VA_TYPE(CDS_UID_t) *ICMmap;
-VA_TYPE(CDS_UID_t) *ISFmap;
-VA_TYPE(CDS_UID_t) *FRGmap;
-VA_TYPE(CDS_UID_t) *DSCmap;
-VA_TYPE(CDS_UID_t) *DSTmap;
+VA_TYPE(AS_UID) *IUMmap;
+VA_TYPE(AS_UID) *ICMmap;
+VA_TYPE(AS_UID) *ISFmap;
+VA_TYPE(AS_UID) *FRGmap;
+VA_TYPE(AS_UID) *DSCmap;
+VA_TYPE(AS_UID) *DSTmap;
 
 UIDserver       *uids;
 
 void
-DumpIID2UIDmap(VA_TYPE(CDS_UID_t) *map,
+DumpIID2UIDmap(VA_TYPE(AS_UID) *map,
                char *execname,
                char *prefix,
                char *name,
@@ -83,27 +83,35 @@ DumpIID2UIDmap(VA_TYPE(CDS_UID_t) *map,
 
   fprintf(F, "%s\n", label);
 
-  for(i=0; i<GetNumCDS_UID_ts(map); i++){
-    CDS_UID_t *di = GetCDS_UID_t(map,i);
-    if (*di != 0)
-      fprintf(F,"%d\t" F_U64 "\n",i,*di);
+  for(i=0; i<GetNumAS_UIDs(map); i++){
+    AS_UID  di = *GetAS_UID(map,i);
+    if (AS_UID_isDefined(di))
+      fprintf(F,"%d\t%s\n", i, AS_UID_toString(di));
   }
 
   fclose(F);
 }
 
-CDS_UID_t
-lookupUID(VA_TYPE(CDS_UID_t) *map, CDS_IID_t iid){
-  CDS_UID_t *ret = GetCDS_UID_t(map, iid);
-  if ((ret == NULL) || (*ret == 0))
-    return(0);
+AS_UID
+lookupUID(VA_TYPE(AS_UID) *map, AS_IID    iid){
+  AS_UID    *ret = GetAS_UID(map, iid);
+  if ((ret == NULL) || (AS_UID_isDefined(*ret) == FALSE))
+    return(AS_UID_undefined());
   return(*ret);
 }
 
-CDS_IID_t
-lookupIID(VA_TYPE(CDS_IID_t) *map, CDS_IID_t iid){
-  CDS_IID_t *ret = GetCDS_IID_t(map, iid);
-  if ((ret == NULL) || (*ret == 0))
+int
+existsUID(VA_TYPE(AS_UID) *map, AS_IID    iid){
+  AS_UID    *ret = GetAS_UID(map, iid);
+  if ((ret == NULL) || (AS_UID_isDefined(*ret) == FALSE))
+    return(0);
+  return(1);
+}
+
+AS_IID
+lookupIID(VA_TYPE(AS_IID) *map, AS_IID    iid){
+  AS_IID    *ret = GetAS_IID(map, iid);
+  if ((ret == NULL) || (AS_IID_isDefined(*ret) == FALSE))
     return(0);
   return(*ret);
 }
@@ -125,7 +133,7 @@ convertIAF(GenericMesg *pmesg,
   assert(iafMesg->clear_rng.bgn == -1);
   assert(iafMesg->clear_rng.end == -1);
 
-  if (lookupUID(IUMmap, iafMesg->iaccession)) {
+  if (existsUID(IUMmap, iafMesg->iaccession)) {
     fprintf(stderr, "IAF: Spotted FRG internal ID "F_IID" second time\n", iafMesg->iaccession);
     exit(1);
   }
@@ -138,7 +146,7 @@ convertIAF(GenericMesg *pmesg,
   afgMesg.clear_rng.bgn = fragInfo[iafMesg->iaccession].clearBeg;
   afgMesg.clear_rng.end = fragInfo[iafMesg->iaccession].clearEnd;
 
-  SetCDS_UID_t(FRGmap, iafMesg->iaccession, &afgMesg.eaccession);
+  SetAS_UID(FRGmap, iafMesg->iaccession, &afgMesg.eaccession);
 
   pmesg->m = &afgMesg;
   pmesg->t = MESG_AFG;
@@ -155,12 +163,12 @@ convertIUM(GenericMesg *pmesg,
   SnapUnitigMesg  utgMesg;
   int             i;
 
-  if (lookupUID(IUMmap, iumMesg->iaccession)) {
+  if (existsUID(IUMmap, iumMesg->iaccession)) {
     fprintf(stderr, "IUM: Spotted IUM internal ID "F_IID" second time\n", iumMesg->iaccession);
     exit(1);
   }
 
-  utgMesg.eaccession     = getUID(uids);
+  utgMesg.eaccession     = AS_UID_fromInteger(getUID(uids));
   utgMesg.iaccession     = iumMesg->iaccession;
 #ifdef AS_ENABLE_SOURCE
   utgMesg.source         = strdup(iumMesg->source);
@@ -176,13 +184,13 @@ convertIUM(GenericMesg *pmesg,
   utgMesg.f_list         = NULL;
   utgMesg.v_list         = NULL;
 
-  SetCDS_UID_t(IUMmap, iumMesg->iaccession, &utgMesg.eaccession);
+  SetAS_UID(IUMmap, iumMesg->iaccession, &utgMesg.eaccession);
 
   if (iumMesg->num_frags > 0) {
     utgMesg.f_list = (SnapMultiPos*)safe_malloc(iumMesg->num_frags * sizeof(SnapMultiPos));
 
     for(i=0; i<iumMesg->num_frags; i++){
-      if (lookupUID(FRGmap, iumMesg->f_list[i].ident) == 0) {
+      if (existsUID(FRGmap, iumMesg->f_list[i].ident) == 0) {
         fprintf(stderr,"IUM: Reference before definition for fragment ID "F_IID"\n", iumMesg->f_list[i].ident);
         exit(1);
       }
@@ -219,11 +227,11 @@ convertIUL(GenericMesg *pmesg,
   int32               jumplistLength;
   int                 i;
 
-  if (lookupUID(IUMmap, iulMesg->unitig1) == 0) {
+  if (existsUID(IUMmap, iulMesg->unitig1) == 0) {
     fprintf(stderr,"IUL: reference before definition error for unitig ID "F_IID"\n",iulMesg->unitig1);
     exit(1);
   }
-  if (lookupUID(IUMmap, iulMesg->unitig2) == 0) {
+  if (existsUID(IUMmap, iulMesg->unitig2) == 0) {
     fprintf(stderr,"IUL: reference before definition error for unitig ID "F_IID"\n",iulMesg->unitig2);
     exit(1);
   }
@@ -254,17 +262,18 @@ convertIUL(GenericMesg *pmesg,
   //  IDs by the external IDs
 
   for(i=0; i<jumplistLength; i++) {
-    ulkMesg.jump_list[i].in1 = lookupUID(FRGmap, iulMesg->jump_list[i].in1);
-    ulkMesg.jump_list[i].in2 = lookupUID(FRGmap, iulMesg->jump_list[i].in2);
 
-    if (ulkMesg.jump_list[i].in1 == 0) {
+    if (existsUID(FRGmap, iulMesg->jump_list[i].in1) == 0) {
       fprintf(stderr,"IUL: Internal Fragment ID "F_IID" does not exist in Fragstore\n", iulMesg->jump_list[i].in1);
       exit(1);
     }
-    if (ulkMesg.jump_list[i].in2 == 0) {
+    if (existsUID(FRGmap, iulMesg->jump_list[i].in2) == 0) {
       fprintf(stderr,"IUL: Internal Fragment ID "F_IID" does not exist in Fragstore\n", iulMesg->jump_list[i].in2);
       exit(1);
     }
+
+    ulkMesg.jump_list[i].in1 = lookupUID(FRGmap, iulMesg->jump_list[i].in1);
+    ulkMesg.jump_list[i].in2 = lookupUID(FRGmap, iulMesg->jump_list[i].in2);
 
     ulkMesg.jump_list[i].type = iulMesg->jump_list[i].type;
   }
@@ -286,12 +295,12 @@ convertICM(GenericMesg *pmesg,
   SnapConConMesg   ccoMesg;
   int              i;
 
-  if (lookupUID(ICMmap, icmMesg->iaccession)) {
+  if (existsUID(ICMmap, icmMesg->iaccession)) {
     fprintf(stderr, "ICM: Spotted ICM internal ID "F_IID" second time\n", icmMesg->iaccession);
     exit(1);
   }
 
-  ccoMesg.eaccession = getUID(uids);
+  ccoMesg.eaccession = AS_UID_fromInteger(getUID(uids));
   ccoMesg.iaccession = icmMesg->iaccession;
   ccoMesg.placed     = icmMesg->placed;
   ccoMesg.length     = icmMesg->length;
@@ -305,7 +314,7 @@ convertICM(GenericMesg *pmesg,
   ccoMesg.vars       = NULL;
   ccoMesg.unitigs    = NULL;
 
-  SetCDS_UID_t(ICMmap, icmMesg->iaccession, &ccoMesg.eaccession);
+  SetAS_UID(ICMmap, icmMesg->iaccession, &ccoMesg.eaccession);
 
   if (icmMesg->num_vars > 0) {
     ccoMesg.vars = (IntMultiVar*) safe_malloc(icmMesg->num_vars * sizeof(IntMultiVar));
@@ -334,7 +343,7 @@ convertICM(GenericMesg *pmesg,
       ccoMesg.pieces[i].source = NULL;
 #endif
 
-      if (lookupUID(FRGmap, icmMesg->pieces[i].ident) == 0) {
+      if (existsUID(FRGmap, icmMesg->pieces[i].ident) == 0) {
 	fprintf(stderr,"ICM: Reference before definition for fragment ID "F_IID"\n", icmMesg->pieces[i].ident);
 	exit(1);
       }
@@ -355,7 +364,7 @@ convertICM(GenericMesg *pmesg,
     for(i=0; i<icmMesg->num_unitigs; i++){
       ccoMesg.unitigs[i].type  = icmMesg->unitigs[i].type;
 
-      if (lookupUID(IUMmap, icmMesg->unitigs[i].ident) == 0) {
+      if (existsUID(IUMmap, icmMesg->unitigs[i].ident) == 0) {
 	fprintf(stderr,"ICM: Reference before definition for unitig ID "F_IID"\n", icmMesg->unitigs[i].ident);
 	exit(1);
       }
@@ -386,11 +395,11 @@ convertICL(GenericMesg *pmesg,
   int32               jumplistLength;
   int                 i;
 
-  if (lookupUID(ICMmap, iclMesg->contig1) == 0) {
+  if (existsUID(ICMmap, iclMesg->contig1) == 0) {
     fprintf(stderr,"ICL: reference before definition error for contig ID "F_IID"\n",iclMesg->contig1);
     exit(1);
   }
-  if (lookupUID(ICMmap, iclMesg->contig2) == 0) {
+  if (existsUID(ICMmap, iclMesg->contig2) == 0) {
     fprintf(stderr,"ICL: reference before definition error for contig ID "F_IID"\n",iclMesg->contig2);
     exit(1);
   }
@@ -421,17 +430,17 @@ convertICL(GenericMesg *pmesg,
   //  by external fragment IDs
 
   for (i=0; i<jumplistLength; i++) {
-    clkMesg.jump_list[i].in1 = lookupUID(FRGmap, iclMesg->jump_list[i].in1);
-    clkMesg.jump_list[i].in2 = lookupUID(FRGmap, iclMesg->jump_list[i].in2);
-
-    if (clkMesg.jump_list[i].in1 == 0) {
+    if (existsUID(FRGmap, iclMesg->jump_list[i].in1) == 0) {
       fprintf(stderr,"ICL: Internal Fragment ID "F_IID" does not exist in Fragstore\n", iclMesg->jump_list[i].in1);
       exit(1);
     }
-    if (clkMesg.jump_list[i].in2 == 0) {
+    if (existsUID(FRGmap, iclMesg->jump_list[i].in2) == 0) {
       fprintf(stderr,"ICL: Internal Fragment ID "F_IID" does not exist in Fragstore\n", iclMesg->jump_list[i].in2);
       exit(1);
     }
+
+    clkMesg.jump_list[i].in1 = lookupUID(FRGmap, iclMesg->jump_list[i].in1);
+    clkMesg.jump_list[i].in2 = lookupUID(FRGmap, iclMesg->jump_list[i].in2);
 
     clkMesg.jump_list[i].type = iclMesg->jump_list[i].type;
   }
@@ -454,11 +463,11 @@ convertISL(GenericMesg *pmesg,
   int32                     jumplistLength;
   int                       i;
 
-  if (lookupUID(ISFmap, islMesg->iscaffold1) == 0) {
+  if (existsUID(ISFmap, islMesg->iscaffold1) == 0) {
     fprintf(stderr,"ISL: reference before definition error for scaffold ID "F_IID"\n", islMesg->iscaffold1);
     exit(1);
   }
-  if (lookupUID(ISFmap, islMesg->iscaffold2) == 0) {
+  if (existsUID(ISFmap, islMesg->iscaffold2) == 0) {
     fprintf(stderr,"ISL: reference before definition error for scaffold ID "F_IID"\n", islMesg->iscaffold2);
     exit(1);
   }
@@ -482,17 +491,17 @@ convertISL(GenericMesg *pmesg,
   //  by external fragment IDs
 
   for (i=0; i<jumplistLength; i++) {
-    slkMesg.jump_list[i].in1 = lookupUID(FRGmap, islMesg->jump_list[i].in1);
-    slkMesg.jump_list[i].in2 = lookupUID(FRGmap, islMesg->jump_list[i].in2);
-
-    if (slkMesg.jump_list[i].in1 == 0) {
+    if (existsUID(FRGmap, islMesg->jump_list[i].in1) == 0) {
       fprintf(stderr,"ISL: Internal Fragment ID "F_IID" does not exist in Fragstore\n", islMesg->jump_list[i].in1);
       exit(1);
     }
-    if (slkMesg.jump_list[i].in2 == 0) {
+      if (existsUID(FRGmap, islMesg->jump_list[i].in2) == 0) {
       fprintf(stderr,"ISL: Internal Fragment ID "F_IID" does not exist in Fragstore\n", islMesg->jump_list[i].in2);
       exit(1);
     }
+
+    slkMesg.jump_list[i].in1 = lookupUID(FRGmap, islMesg->jump_list[i].in1);
+    slkMesg.jump_list[i].in2 = lookupUID(FRGmap, islMesg->jump_list[i].in2);
 
     slkMesg.jump_list[i].type = islMesg->jump_list[i].type;
   }
@@ -511,13 +520,13 @@ convertISF(GenericMesg *pmesg,
   SnapScaffoldMesg   scfMesg;
   int                i;
 
-  if (lookupUID(ISFmap, isfMesg->iaccession)) {
+  if (existsUID(ISFmap, isfMesg->iaccession)) {
     fprintf(stderr,"ISF: duplicate definition for scaffold ID "F_IID"\n", isfMesg->iaccession);
     exit(1);
   }
 
   scfMesg.iaccession       = isfMesg->iaccession;
-  scfMesg.eaccession       = getUID(uids);
+  scfMesg.eaccession       = AS_UID_fromInteger(getUID(uids));
 
   scfMesg.num_contig_pairs = isfMesg->num_contig_pairs;
   scfMesg.contig_pairs     = NULL;
@@ -526,11 +535,11 @@ convertISF(GenericMesg *pmesg,
     scfMesg.contig_pairs = (SnapContigPairs *)safe_malloc(scfMesg.num_contig_pairs * sizeof(SnapContigPairs));
 
     for(i=0; i<scfMesg.num_contig_pairs; i++) {
-      if (lookupUID(ICMmap, isfMesg->contig_pairs[i].contig1) == 0) {
+      if (existsUID(ICMmap, isfMesg->contig_pairs[i].contig1) == 0) {
 	fprintf(stderr,"ISF: reference before definition for contig ID "F_IID"\n", isfMesg->contig_pairs[i].contig1);
 	exit(1);
       }
-      if (lookupUID(ICMmap, isfMesg->contig_pairs[i].contig2) == 0) {
+      if (existsUID(ICMmap, isfMesg->contig_pairs[i].contig2) == 0) {
 	fprintf(stderr,"ISF: reference before definition for contig ID "F_IID"\n", isfMesg->contig_pairs[i].contig2);
 	exit(1);
       }
@@ -538,20 +547,26 @@ convertISF(GenericMesg *pmesg,
       //  decide if we've already put this contig in a scaffold
 
       if (lookupIID(ICMinISF1, isfMesg->contig_pairs[i].contig1)) {
-	fprintf(stderr,"ISF: Contig1 ID "F_IID" already used in scaffold uid:"F_UID"\n",
-                isfMesg->contig_pairs[i].contig1, lookupUID(ICMinISF1, isfMesg->contig_pairs[i].contig1));
-        fprintf(stderr, "tried in scaffold iid="F_IID" uid="F_IID"\n", scfMesg.iaccession, scfMesg.eaccession);
+	fprintf(stderr,"ISF: Contig1 ID "F_IID" already used in scaffold uid:%s\n",
+                isfMesg->contig_pairs[i].contig1,
+                AS_UID_toString(lookupUID(ICMinISF1, isfMesg->contig_pairs[i].contig1)));
+        fprintf(stderr, "tried in scaffold iid="F_IID" uid=%s\n",
+                scfMesg.iaccession,
+                AS_UID_toString(scfMesg.eaccession));
 	exit(1);
       }
       if (lookupIID(ICMinISF2, isfMesg->contig_pairs[i].contig2)) {
-	fprintf(stderr,"ISF: Contig2 ID "F_IID" already used in scaffold uid:"F_UID"\n",
-                isfMesg->contig_pairs[i].contig2, lookupUID(ICMinISF2, isfMesg->contig_pairs[i].contig2));
-        fprintf(stderr, "tried in scaffold iid="F_IID" uid="F_IID"\n", scfMesg.iaccession, scfMesg.eaccession);
+	fprintf(stderr,"ISF: Contig2 ID "F_IID" already used in scaffold uid:%s\n",
+                isfMesg->contig_pairs[i].contig2,
+                AS_UID_toString(lookupUID(ICMinISF2, isfMesg->contig_pairs[i].contig2)));
+        fprintf(stderr, "tried in scaffold iid="F_IID" uid=%s\n",
+                scfMesg.iaccession,
+                AS_UID_toString(scfMesg.eaccession));
 	exit(1);
       }
 
-      SetCDS_IID_t(ICMinISF1, isfMesg->contig_pairs[i].contig1, &isfMesg->iaccession);
-      SetCDS_IID_t(ICMinISF2, isfMesg->contig_pairs[i].contig2, &isfMesg->iaccession);
+      SetAS_IID(ICMinISF1, isfMesg->contig_pairs[i].contig1, &isfMesg->iaccession);
+      SetAS_IID(ICMinISF2, isfMesg->contig_pairs[i].contig2, &isfMesg->iaccession);
 
       scfMesg.contig_pairs[i].econtig1 = lookupUID(ICMmap, isfMesg->contig_pairs[i].contig1);
       scfMesg.contig_pairs[i].econtig2 = lookupUID(ICMmap, isfMesg->contig_pairs[i].contig2);
@@ -567,25 +582,27 @@ convertISF(GenericMesg *pmesg,
 
     scfMesg.contig_pairs = (SnapContigPairs*) safe_malloc(1 * sizeof(SnapContigPairs));
 
-    if (lookupUID(ICMmap, isfMesg->contig_pairs[0].contig1) == 0) {
+    if (existsUID(ICMmap, isfMesg->contig_pairs[0].contig1) == 0) {
       fprintf(stderr,"ISF: reference before definition for contig ID "F_IID"\n", isfMesg->contig_pairs[0].contig1);
       exit(1);
     }
     if (lookupIID(ICMinISF1, isfMesg->contig_pairs[0].contig1)) {
-      fprintf(stderr,"ISF: Contig1 ID "F_IID" already used in scaffold uid:"F_UID"\n",
-              isfMesg->contig_pairs[0].contig1, lookupUID(ICMinISF1, isfMesg->contig_pairs[0].contig1));
+      fprintf(stderr,"ISF: Contig1 ID "F_IID" already used in scaffold uid:%s\n",
+              isfMesg->contig_pairs[0].contig1,
+              AS_UID_toString(lookupUID(ICMinISF1, isfMesg->contig_pairs[0].contig1)));
       fprintf(stderr, "tried in scaffold iid="F_IID" uid="F_IID"\n", scfMesg.iaccession, scfMesg.eaccession);
       exit(1);
     }
     if (lookupIID(ICMinISF2, isfMesg->contig_pairs[0].contig2)) {
-      fprintf(stderr,"ISF: Contig2 ID "F_IID" already used in scaffold uid:"F_UID"\n",
-              isfMesg->contig_pairs[0].contig2, lookupUID(ICMinISF2, isfMesg->contig_pairs[0].contig2));
+      fprintf(stderr,"ISF: Contig2 ID "F_IID" already used in scaffold uid:%s\n",
+              isfMesg->contig_pairs[0].contig2,
+              AS_UID_toString(lookupUID(ICMinISF2, isfMesg->contig_pairs[0].contig2)));
       fprintf(stderr, "tried in scaffold iid="F_IID" uid="F_IID"\n", scfMesg.iaccession, scfMesg.eaccession);
       exit(1);
     }
 
-    SetCDS_IID_t(ICMinISF1, isfMesg->contig_pairs[0].contig1, &isfMesg->iaccession);
-    SetCDS_IID_t(ICMinISF2, isfMesg->contig_pairs[0].contig2, &isfMesg->iaccession);
+    SetAS_IID(ICMinISF1, isfMesg->contig_pairs[0].contig1, &isfMesg->iaccession);
+    SetAS_IID(ICMinISF2, isfMesg->contig_pairs[0].contig2, &isfMesg->iaccession);
 
     scfMesg.contig_pairs[0].econtig1 = lookupUID(ICMmap, isfMesg->contig_pairs[0].contig1);
     scfMesg.contig_pairs[0].econtig2 = lookupUID(ICMmap, isfMesg->contig_pairs[0].contig1);
@@ -594,7 +611,7 @@ convertISF(GenericMesg *pmesg,
     scfMesg.contig_pairs[0].orient   = isfMesg->contig_pairs[0].orient;
   }
 
-  SetCDS_UID_t(ISFmap, scfMesg.iaccession, &scfMesg.eaccession);
+  SetAS_UID(ISFmap, scfMesg.iaccession, &scfMesg.eaccession);
 
   pmesg->m = &scfMesg;
   pmesg->t = MESG_SCF;
@@ -635,19 +652,19 @@ convertIDS(GenericMesg *pmesg,
   IntDegenerateScaffoldMesg   *idsMesg = (IntDegenerateScaffoldMesg*) pmesg->m;
   SnapDegenerateScaffoldMesg   dscMesg;
 
-  if (lookupUID(ICMmap, idsMesg->icontig) == 0) {
+  if (existsUID(ICMmap, idsMesg->icontig) == 0) {
     fprintf(stderr,"IDS: reference before definition error for contig ID "F_IID"\n", idsMesg->icontig);
     exit(1);
   }
-  if (lookupUID(DSCmap, idsMesg->icontig)) {
+  if (existsUID(DSCmap, idsMesg->icontig)) {
     fprintf(stderr,"IDS: duplicate definition for contig ID "F_IID"\n", idsMesg->icontig);
     exit(1);
   }
 
-  dscMesg.eaccession = getUID(uids);
+  dscMesg.eaccession = AS_UID_fromInteger(getUID(uids));
   dscMesg.econtig    = lookupUID(ICMmap, idsMesg->icontig);
 
-  SetCDS_UID_t(DSCmap, idsMesg->icontig, &dscMesg.eaccession);
+  SetAS_UID(DSCmap, idsMesg->icontig, &dscMesg.eaccession);
 
   pmesg->m = &dscMesg;
   pmesg->t = MESG_DSC;
@@ -725,15 +742,15 @@ int main (int argc, char *argv[]) {
     exit(1);
   }
 
-  ICMinISF1     = CreateVA_CDS_IID_t(8192);
-  ICMinISF2     = CreateVA_CDS_IID_t(8192);
+  ICMinISF1     = CreateVA_AS_IID(8192);
+  ICMinISF2     = CreateVA_AS_IID(8192);
 
-  IUMmap        = CreateVA_CDS_UID_t(8192);
-  ICMmap        = CreateVA_CDS_UID_t(8192);
-  ISFmap        = CreateVA_CDS_UID_t(8192);
-  FRGmap        = CreateVA_CDS_UID_t(65536);
-  DSCmap        = CreateVA_CDS_UID_t(8192);
-  DSTmap        = CreateVA_CDS_UID_t(64);
+  IUMmap        = CreateVA_AS_UID(8192);
+  ICMmap        = CreateVA_AS_UID(8192);
+  ISFmap        = CreateVA_AS_UID(8192);
+  FRGmap        = CreateVA_AS_UID(65536);
+  DSCmap        = CreateVA_AS_UID(8192);
+  DSTmap        = CreateVA_AS_UID(64);
 
   fprintf(stderr, "Reading gatekeeper store\n");
 
@@ -742,7 +759,7 @@ int main (int argc, char *argv[]) {
   fragInfo = (fragInfo_t *)safe_calloc(getLastElemFragStore(gkpStore) + 1, sizeof(fragInfo_t));
 
   while (nextFragStream(fs, &fr)) {
-    CDS_IID_t iid = getFragRecordIID(&fr);
+    AS_IID    iid = getFragRecordIID(&fr);
 
     fragInfo[iid].loaded   = 1;
     fragInfo[iid].deleted  = getFragRecordIsDeleted(&fr);
@@ -750,8 +767,10 @@ int main (int argc, char *argv[]) {
     fragInfo[iid].clearEnd = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_LATEST);
     fragInfo[iid].uid      = getFragRecordUID(&fr);
 
-    if ((uidStart > 0) && (uidStart < fragInfo[iid].uid))
-      uidStart = fragInfo[iid].uid + 1;
+    if ((uidStart > 0) &&
+        (AS_UID_isString(fragInfo[iid].uid) == FALSE) &&
+        (uidStart < AS_UID_toInteger(fragInfo[iid].uid)))
+      uidStart = AS_UID_toInteger(fragInfo[iid].uid) + 1;
   }
 
   closeFragStream(fs);
@@ -844,8 +863,6 @@ int main (int argc, char *argv[]) {
 
   fprintf(stderr, "Assembly file complete.\n");
 
-  closeGateKeeperStore(gkpStore);
-
   fprintf(stderr, "Writing IID to UID mapping files.\n");
 
   DumpIID2UIDmap(FRGmap, argv[0], mapFileName, "%s.fragment.iidtouid", "Fragment IID2UID map");
@@ -857,15 +874,19 @@ int main (int argc, char *argv[]) {
 
   fprintf(stderr, "IID to UID mapping files complete.\n");
 
-  DeleteVA_CDS_IID_t(ICMinISF1);
-  DeleteVA_CDS_IID_t(ICMinISF2);
+  //  CANNOT close this before dumping IID to UID maps -- needed for
+  //  UID lookups!
+  closeGateKeeperStore(gkpStore);
 
-  DeleteVA_CDS_UID_t(IUMmap);
-  DeleteVA_CDS_UID_t(ICMmap);
-  DeleteVA_CDS_UID_t(ISFmap);
-  DeleteVA_CDS_UID_t(FRGmap);
-  DeleteVA_CDS_UID_t(DSCmap);
-  DeleteVA_CDS_UID_t(DSTmap);
+  DeleteVA_AS_IID(ICMinISF1);
+  DeleteVA_AS_IID(ICMinISF2);
+
+  DeleteVA_AS_UID(IUMmap);
+  DeleteVA_AS_UID(ICMmap);
+  DeleteVA_AS_UID(ISFmap);
+  DeleteVA_AS_UID(FRGmap);
+  DeleteVA_AS_UID(DSCmap);
+  DeleteVA_AS_UID(DSTmap);
 
   return(0);
 }

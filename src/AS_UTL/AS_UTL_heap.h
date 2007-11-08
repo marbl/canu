@@ -21,7 +21,7 @@
 #ifndef AS_UTL_HEAP_H
 #define AS_UTL_HEAP_H
 
-//  $Id: AS_UTL_heap.h,v 1.5 2007-08-18 11:42:07 brianwalenz Exp $
+//  $Id: AS_UTL_heap.h,v 1.6 2007-11-08 12:38:16 brianwalenz Exp $
 
 #include "AS_global.h"
 
@@ -44,9 +44,9 @@ typedef struct{
   int           item;
 } HeapIterator_AS;
 
-Heap_AS       *AllocateHeap_AS(uint32 num_generics, size_t item_size );
-void          *GetHeapItem_AS(Heap_AS *heap );
-void           FreeHeap_AS(Heap_AS *heap );
+Heap_AS       *AllocateHeap_AS(uint32 num_generics, size_t item_size);
+void          *GetHeapItem_AS(Heap_AS *heap);
+void           FreeHeap_AS(Heap_AS *heap);
 
 void           InitHeapIterator_AS(Heap_AS *heap, HeapIterator_AS *iterator);
 void          *NextHeapIterator_AS(HeapIterator_AS *iterator);

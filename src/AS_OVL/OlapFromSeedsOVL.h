@@ -33,8 +33,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.h,v 1.10 2007-09-18 14:39:23 adelcher Exp $
- * $Revision: 1.10 $
+ * $Id: OlapFromSeedsOVL.h,v 1.11 2007-11-08 12:38:14 brianwalenz Exp $
+ * $Revision: 1.11 $
 */
 
 
@@ -234,7 +234,7 @@ typedef  struct
    int  next_olap;
    int  failed_olaps;
    FragStream  * frag_stream;
-   fragRecord  * frag_read;
+   fragRecord     frag_read;
    Frag_List_t  * frag_list;
    char  rev_seq [AS_READ_MAX_LEN + 1];
    int  rev_id;

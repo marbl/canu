@@ -190,9 +190,12 @@ fprintf(stderr,"Read in %d sequences\n",K+1);
       for (i = j+1; i <= K; i++)
         { tlaps += 1;
           A.sequence = Seqs[j];
+          A.iaccession = j+1;
+          A.eaccession = AS_UID_fromInteger(A.iaccession);
+
           B.sequence = Seqs[i];
-          A.iaccession = A.eaccession = j+1;
-          B.iaccession = B.eaccession = i+1;
+          B.iaccession = i+1;
+          B.eaccession = AS_UID_fromInteger(B.iaccession);
 
 	  for(ori=0;ori<2;ori++){
 

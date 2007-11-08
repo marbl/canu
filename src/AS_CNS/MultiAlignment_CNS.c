@@ -24,7 +24,7 @@
    Assumptions:  
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.171 2007-10-25 16:44:36 gdenisov Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.172 2007-11-08 12:38:12 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -62,7 +62,6 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.171 2007-10-25 16:44:36 gde
 #define QV_FOR_MULTI_GAP                   14
 #define SHOW_OLAP                           1
 #undef  ALIGN_TO_CONSENSUS
-#define PRINTUIDS
 
 #define CNS_DP_THRESH                       1e-6
 #define CNS_DP_MINLEN                      30
@@ -887,7 +886,9 @@ int32 AppendFragToLocalStore(FragType          type,
       strcpy(seqbuffer, getFragRecordSequence(&fsread));
       strcpy(qltbuffer, getFragRecordQuality(&fsread));
 
+#ifdef PRINTUIDS
       fragment.uid = getFragRecordUID(&fsread);
+#endif
       //getReadType_ReadStruct(&fsread, &fragment.type);
       fragment.type = AS_READ;
       fragment.source = NULL;
@@ -9281,7 +9282,9 @@ int32 AppendArtificialFragToLocalStore(FragType type, int32 iid, int complement,
   }
   seqbuffer[len] = '\0';
   qltbuffer[len] = '\0';
+#ifdef PRINTUIDS
   fragment.uid=iid;
+#endif
   fragment.source = NULL;
   fragment.length = len;
   fragment.n_components = 0;  // no component frags or unitigs

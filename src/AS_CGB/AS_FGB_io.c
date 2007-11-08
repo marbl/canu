@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_FGB_io.c,v 1.26 2007-10-25 05:05:42 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_FGB_io.c,v 1.27 2007-11-08 12:38:11 brianwalenz Exp $";
 
 //  Fragment Overlap Graph Builder file input and output.  This
 //  functional unit reads a *.ovl prototype i/o file an massages it
@@ -529,7 +529,7 @@ process_gkp_store_for_fragments(char *gkpStoreName,
                                 Tfragment   *frags,
                                 Tedge       *edges) {
 
-  fragRecord       *fr = new_fragRecord();
+  fragRecord        fr;
   FragStream       *fs = NULL;
 
   IntFragment_ID    iid = 0;
@@ -549,9 +549,9 @@ process_gkp_store_for_fragments(char *gkpStoreName,
   ///unsigned int lastElem  = getLastElemFragStore(gkp) + 1;
   //resetFragStream(fs, firstElem, lastElem);
 
-  while (nextFragStream(fs, fr)) {
-    if (getFragRecordIsDeleted(fr) == FALSE) {
-      iid = getFragRecordIID(fr);
+  while (nextFragStream(fs, &fr)) {
+    if (getFragRecordIsDeleted(&fr) == FALSE) {
+      iid = getFragRecordIID(&fr);
   
       //  Argh!  This needs to be here, other code depends on the
       //  range of the VA being the number of fragments.
@@ -563,8 +563,8 @@ process_gkp_store_for_fragments(char *gkpStoreName,
       set_typ_fragment(frags, vid, AS_READ);
       set_del_fragment(frags, vid, FALSE);
       set_length_fragment(frags, vid,
-                          getFragRecordClearRegionEnd  (fr, AS_READ_CLEAR_OBT) -
-                          getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBT));
+                          getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_OBT) -
+                          getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBT));
 
       // Assume that each fragment spans a chunk.
       set_lab_fragment(frags, vid, AS_CGB_UNLABELED_FRAG);
@@ -596,7 +596,6 @@ process_gkp_store_for_fragments(char *gkpStoreName,
     }
   }
 
-  del_fragRecord(fr);
   closeFragStream(fs);
   closeGateKeeperStore(gkp);
 }

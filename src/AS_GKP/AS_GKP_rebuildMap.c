@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const rcsid[] = "$Id: AS_GKP_rebuildMap.c,v 1.4 2007-10-16 03:34:18 brianwalenz Exp $";
+static char const rcsid[] = "$Id: AS_GKP_rebuildMap.c,v 1.5 2007-11-08 12:38:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,33 +46,36 @@ rebuildMap(char *gkpStoreName) {
    //  Insert batch info
    //
    {
-     StoreStat             stat = {0};
-     CDS_IID_t             i    = 0;
+     AS_IID                i    = 0;
      GateKeeperBatchRecord gkpb = {0};
 
-     statsStore(gkp->bat, &stat);   
+     int64  firstElem = getFirstElemStore(gkp->bat);
+     int64  lastElem  = getLastElemStore(gkp->bat);
 
-     for (i=stat.firstElem; i<=stat.lastElem; i++) {
+     for (i=firstElem; i<=lastElem; i++) {
        getGateKeeperBatch(gkp, i, &gkpb);
 
-       if (InsertInHashTable_AS(gkp->UIDtoIID, (uint64)gkpb.batchUID, 0, (uint64)i, AS_IID_BAT) == HASH_FAILURE)
-         fprintf(stderr, "Error inserting batch "F_UID","F_IID" into hash table.\n", gkpb.batchUID, i);
+       if (InsertInHashTable_AS(gkp->UIDtoIID, AS_UID_toInteger(gkpb.batchUID), 0, (uint64)i, AS_IID_BAT) == HASH_FAILURE)
+         fprintf(stderr, "Error inserting batch %s,"F_IID" into hash table.\n",
+                 AS_UID_toString(gkpb.batchUID), i);
      }
    }
 
    //  Insert library info
    //
    {
-     StoreStat                stat = {0};
-     CDS_IID_t                i    = 0;
+     AS_IID                   i    = 0;
      GateKeeperLibraryRecord *gkpl = NULL;
 
-     statsStore(gkp->lib, &stat);
-     for (i=stat.firstElem; i<=stat.lastElem; i++) {    
+     int64  firstElem = getFirstElemStore(gkp->lib);
+     int64  lastElem  = getLastElemStore(gkp->lib);
+
+     for (i=firstElem; i<=lastElem; i++) {
        gkpl = getGateKeeperLibrary(gkp, i);
 
-       if (InsertInHashTable_AS(gkp->UIDtoIID, (uint64)gkpl->libraryUID, 0, (uint64)i, AS_IID_LIB) == HASH_FAILURE)
-         fprintf(stderr, "Error inserting library "F_UID","F_IID" into hash table.\n", gkpl->libraryUID, i);
+       if (InsertInHashTable_AS(gkp->UIDtoIID, AS_UID_toInteger(gkpl->libraryUID), 0, (uint64)i, AS_IID_LIB) == HASH_FAILURE)
+         fprintf(stderr, "Error inserting library %s,"F_IID" into hash table.\n",
+                 AS_UID_toString(gkpl->libraryUID), i);
      }
    }
 
@@ -82,8 +85,9 @@ rebuildMap(char *gkpStoreName) {
      fragRecord  fr = {0};
 
      while (nextFragStream(fs, &fr)) {
-       if (InsertInHashTable_AS(gkp->UIDtoIID, (uint64)getFragRecordUID(&fr), 0, (uint64)getFragRecordIID(&fr), AS_IID_FRG) == HASH_FAILURE)
-         fprintf(stderr, "Error inserting UID"F_UID" and IID "F_IID"into hash table.\n", getFragRecordUID(&fr), getFragRecordIID(&fr));
+       if (InsertInHashTable_AS(gkp->UIDtoIID, AS_UID_toInteger(getFragRecordUID(&fr)), 0, (uint64)getFragRecordIID(&fr), AS_IID_FRG) == HASH_FAILURE)
+         fprintf(stderr, "Error inserting UID %s and IID "F_IID"into hash table.\n",
+                 AS_UID_toString(getFragRecordUID(&fr)), getFragRecordIID(&fr));
      }
 
      closeFragStream(fs);  

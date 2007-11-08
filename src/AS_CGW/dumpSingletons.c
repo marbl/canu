@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: dumpSingletons.c,v 1.21 2007-11-02 21:34:47 brianwalenz Exp $";
+static char CM_ID[] = "$Id: dumpSingletons.c,v 1.22 2007-11-08 12:38:11 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,29 +41,26 @@ static char CM_ID[] = "$Id: dumpSingletons.c,v 1.21 2007-11-02 21:34:47 brianwal
 
 
 
-CDS_UID_t
+AS_UID
 getFragmentClear(int    iid,
                  int    reversecomplement,
                  char  *toprint) {
 
-  static fragRecord  *fs = NULL;
+  static fragRecord  fs;
   unsigned int  clr_bgn, clr_end;
 
-  if (fs == NULL)
-    fs = new_fragRecord();
-
-  getFrag(ScaffoldGraph->gkpStore, iid, fs, FRAG_S_SEQ);
+  getFrag(ScaffoldGraph->gkpStore, iid, &fs, FRAG_S_SEQ);
  
-  clr_bgn = getFragRecordClearRegionBegin(fs, AS_READ_CLEAR_LATEST);
-  clr_end = getFragRecordClearRegionEnd  (fs, AS_READ_CLEAR_LATEST);
+  clr_bgn = getFragRecordClearRegionBegin(&fs, AS_READ_CLEAR_LATEST);
+  clr_end = getFragRecordClearRegionEnd  (&fs, AS_READ_CLEAR_LATEST);
 
-  strcpy(toprint, getFragRecordSequence(fs) + clr_bgn);
+  strcpy(toprint, getFragRecordSequence(&fs) + clr_bgn);
   toprint[clr_end - clr_bgn] = 0;
 
   if (reversecomplement)
     Complement_Seq(toprint);
 
-  return(getFragRecordUID(fs));
+  return(getFragRecordUID(&fs));
 }
 
 
@@ -150,11 +147,11 @@ main( int argc, char **argv) {
     if ((mate == NULL) ||
         (mate->flags.bits.isChaff == 0) ||
         (makeMiniScaffolds == 0)) {
-      CDS_UID_t  fUID = getFragmentClear(frag->iid, 0, toprint);
+      AS_UID  fUID = getFragmentClear(frag->iid, 0, toprint);
 
       AS_UTL_writeFastA(stdout,
                         toprint, strlen(toprint),
-                        ">"F_S64" /type=singleton\n", fUID);
+                        ">%s /type=singleton\n", AS_UID_toString(fUID));
 
     } else if ((mate != NULL) &&
                (mate->flags.bits.isChaff == 1) &&
@@ -167,15 +164,18 @@ main( int argc, char **argv) {
       //  the phase of a protein ...  which helps in the
       //  auto-annotation of environmental samples
 
-      CDS_UID_t  fUID = getFragmentClear(frag->iid, 0, toprint);
+      AS_UID  fUID = getFragmentClear(frag->iid, 0, toprint);
 
       strcat(toprint, "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN");
 
-      CDS_UID_t  mUID = getFragmentClear(mate->iid, 1, toprint + strlen(toprint));
+      AS_UID  mUID = getFragmentClear(mate->iid, 1, toprint + strlen(toprint));
 
       AS_UTL_writeFastA(stdout,
                         toprint, strlen(toprint),
-                        ">"F_S64" /type=mini_scaffold /frgs=("F_S64","F_S64")\n", getUID(uids), fUID, mUID);
+                        ">"F_U64" /type=mini_scaffold /frgs=(%s,%s)\n",
+                        getUID(uids),
+                        AS_UID_toString2(fUID),
+                        AS_UID_toString3(mUID));
     }
   }
 

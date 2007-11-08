@@ -107,9 +107,9 @@ JTC_GUIDWriteMemoryCallback(void *ptr, size_t size, size_t nmemb, void *data)
 }
 
 
-CDS_UID_t getGUIDBlock(int guidRequestSize)
+uint64 getGUIDBlock(int guidRequestSize)
 {
-  CDS_UID_t guidStart = 0;
+  uint64 guidStart = 0;
 
   CURL *curl_handle;
   int curl_response = -1;
@@ -202,7 +202,7 @@ CDS_UID_t getGUIDBlock(int guidRequestSize)
 		  for (i=guidNumLength;i<JTC_GUID_NUM_BUFFER_SIZE;i++) {
 		    guidNumResponse[i] = '\0';
 		  }
-		  guidStart = STR_TO_UID(guidNumResponse,NULL,10);
+		  guidStart = strtoull(guidNumResponse,NULL,10);
 		} else {
 		  /* error */
 		  safe_free(chunk.memory);

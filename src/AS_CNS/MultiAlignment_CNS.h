@@ -40,6 +40,9 @@
 #define BC_MIN(a,b)  (((a)<(b))?(a):(b))
 #define MIN_ALLOCATED_DEPTH 100
 
+//  This is probably broken, or extremely inefficient, as of Nov 4 2007.
+#undef PRINTUIDS
+
 extern int DUMP_UNITIGS_IN_MULTIALIGNCONTIG;
 extern int VERBOSE_MULTIALIGN_OUTPUT;
 
@@ -153,7 +156,9 @@ typedef struct {
   FragType type;
   UnitigType utype;
   uint32 iid;
+#ifdef PRINTUIDS
   uint64 uid;
+#endif
   int32 lid;  // index in sequence/quality/fragment store
   int32 length;
   int complement;

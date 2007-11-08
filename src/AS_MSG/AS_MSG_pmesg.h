@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.57 2007-10-31 17:26:43 eliv Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.58 2007-11-08 12:38:13 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
@@ -34,13 +34,13 @@
 
 //   #define NEW_UNITIGGER_INTERFACE
 
-typedef CDS_IID_t   IntLibrary_ID;
-typedef CDS_IID_t   IntDist_ID;
-typedef CDS_IID_t   IntFragment_ID;
-typedef CDS_IID_t   IntChunk_ID;
-typedef CDS_IID_t   IntUnitig_ID;
-typedef CDS_IID_t   IntContig_ID;
-typedef CDS_IID_t   IntScaffold_ID;
+typedef AS_IID      IntLibrary_ID;
+typedef AS_IID      IntDist_ID;
+typedef AS_IID      IntFragment_ID;
+typedef AS_IID      IntChunk_ID;
+typedef AS_IID      IntUnitig_ID;
+typedef AS_IID      IntContig_ID;
+typedef AS_IID      IntScaffold_ID;
 
 typedef enum {
   AS_ADD      = (int)'A',
@@ -89,14 +89,13 @@ static const char  *MessageTypeName[NUM_OF_REC_TYPES + 1] = {
 typedef struct { 
   void         *m;         // A pointer to the message object
   MessageType  t;          // The message type
-  int32        s;          // The message size in bytes
 } GenericMesg;
 
 /* BAT record */
 
 typedef struct InternalBatchMesgTag {
   char         *name;
-  CDS_UID_t     eaccession;
+  AS_UID        eaccession;
   char         *comment;
 }BatchMesg;
 
@@ -144,16 +143,16 @@ typedef struct {
   ActionType      action;
   LinkType        type;
   OrientType      link_orient;
-  CDS_UID_t       frag1;
-  CDS_UID_t       frag2;
-  CDS_UID_t       distance;
+  AS_UID          frag1;
+  AS_UID          frag2;
+  AS_UID          distance;
 } LinkMesg;
 
 /* LIB message -- only for version 2 */
 
 typedef struct {
   ActionType   action;
-  CDS_UID_t    eaccession;
+  AS_UID       eaccession;
   float        mean;
   float        stddev;
 #ifdef AS_ENABLE_SOURCE
@@ -169,7 +168,7 @@ typedef struct {
 
 typedef struct {
   ActionType   action;
-  CDS_UID_t    eaccession;
+  AS_UID       eaccession;
   float        mean;
   float        stddev;
 } DistanceMesg;
@@ -243,10 +242,10 @@ typedef enum {
 typedef struct {
   ActionType   		action;
   uint32                version;
-  CDS_UID_t  		eaccession;
-  CDS_UID_t             library_uid;     //  only version 2
+  AS_UID     		eaccession;
+  AS_UID                library_uid;     //  only version 2
   IntLibrary_ID         library_iid;     //  only version 2
-  CDS_UID_t             plate_uid;       //  only version 2
+  AS_UID                plate_uid;       //  only version 2
   uint32                plate_location;  //  only version 2
   FragType     		type;            //  only version 1
   uint32                is_random;       //  only version 2
@@ -517,7 +516,7 @@ typedef struct {
   SeqInterval  position;
   int32        delta_length;
   int32        *delta;
-  CDS_UID_t     eident;
+  AS_UID        eident;
 } UnitigPos;
 
 /* IEP messages */
@@ -541,8 +540,8 @@ typedef struct {
   UnitigStatus    status;
   UnitigFUR       unique_rept;
   CDS_COORD_t     length;
-  char      *consensus;
-  const char      *quality;
+  char            *consensus;
+  char            *quality;
   int32		  forced;
   int32           num_frags;
   IntMultiPos    *f_list;
@@ -551,10 +550,10 @@ typedef struct {
 VA_DEF(IntUnitigMesg);  //  Used by unitigger.
 
 typedef struct {
-  CDS_UID_t       eaccession;
+  AS_UID          eaccession;
   UnitigStatus    status;
   int32           num_occurences;
-  CDS_UID_t       *occurences;
+  AS_UID          *occurences;
   CDS_COORD_t     length;
   char            *consensus;
   char            *quality;
@@ -680,7 +679,7 @@ typedef struct {
 /* AFG message */
 
 typedef struct {
-  CDS_UID_t       eaccession;
+  AS_UID          eaccession;
   IntFragment_ID  iaccession;              
   MateStatType    mate_status;
   int32           chimeric;
@@ -729,7 +728,7 @@ typedef struct {
 /* MPS message */
 typedef struct {
   FragType      type;
-  CDS_UID_t     eident;
+  AS_UID        eident;
 #ifdef AS_ENABLE_SOURCE
   char		*source;
 #endif
@@ -741,13 +740,13 @@ typedef struct {
 /* EPS messages */
 typedef struct {
   FragType     type;
-  CDS_UID_t    eident;
+  AS_UID       eident;
   SeqInterval  position;
 } SnapElementPos;
 
 /* UTG Message */
 typedef struct {
-  CDS_UID_t       eaccession;  // changed in comparison to internal message
+  AS_UID          eaccession;  // changed in comparison to internal message
   IntChunk_ID     iaccession;
 #ifdef AS_ENABLE_SOURCE
   char		  *source;
@@ -765,14 +764,14 @@ typedef struct {
 } SnapUnitigMesg;
 
 typedef struct {
-  CDS_UID_t    in1, in2; 
+  AS_UID       in1, in2; 
   LinkType     type;
 } SnapMate_Pairs;
 
 /* ULK message */
 typedef struct {
-  CDS_UID_t		eunitig1;
-  CDS_UID_t		eunitig2;
+  AS_UID   		eunitig1;
+  AS_UID   		eunitig2;
   ChunkOrientationType	orientation;
   UnitigOverlapType	overlap_type;
   int32			is_possible_chimera;
@@ -786,7 +785,7 @@ typedef struct {
 
 /* CCO message */
 typedef struct {
-  CDS_UID_t                   eaccession;
+  AS_UID                      eaccession;
   IntContig_ID                iaccession;
   ContigPlacementStatusType   placed;
   CDS_COORD_t                 length;
@@ -803,8 +802,8 @@ typedef struct {
 
 /* CLK message */
 typedef struct {
-  CDS_UID_t		econtig1; // changed in comparison to internal message
-  CDS_UID_t		econtig2; // changed in comparison to internal message
+  AS_UID   		econtig1; // changed in comparison to internal message
+  AS_UID   		econtig2; // changed in comparison to internal message
   ChunkOrientationType	orientation;
   UnitigOverlapType	overlap_type;
   int32			is_possible_chimera;
@@ -818,8 +817,8 @@ typedef struct {
 
 /* SLK message */
 typedef struct {
-  CDS_UID_t             escaffold1;
-  CDS_UID_t             escaffold2;
+  AS_UID                escaffold1;
+  AS_UID                escaffold2;
   ChunkOrientationType	orientation;
   int32			includes_guide;
   float  		mean_distance;
@@ -830,8 +829,8 @@ typedef struct {
 
 /* CTP message */
 typedef struct {
-  CDS_UID_t		econtig1; // changed in comparison to internal message
-  CDS_UID_t		econtig2; // changed in comparison to internal message
+  AS_UID   		econtig1; // changed in comparison to internal message
+  AS_UID   		econtig2; // changed in comparison to internal message
   float  		mean;
   float  		stddev;
   ChunkOrientationType	orient;
@@ -839,7 +838,7 @@ typedef struct {
 
 /* SCF message */
 typedef struct {
-  CDS_UID_t             eaccession;
+  AS_UID                eaccession;
   IntScaffold_ID        iaccession;
   int32			num_contig_pairs;
   SnapContigPairs   	*contig_pairs; // changed in comparison to internal message
@@ -847,13 +846,13 @@ typedef struct {
 
 /* DSC message */
 typedef struct {
-  CDS_UID_t             eaccession;
-  CDS_UID_t             econtig;
+  AS_UID                eaccession;
+  AS_UID                econtig;
 } SnapDegenerateScaffoldMesg;
 
 /* MDI message */
 typedef struct {
-  CDS_UID_t		erefines; // changed in comparison to internal message
+  AS_UID   		erefines; // changed in comparison to internal message
   IntDist_ID		irefines; // changed in comparison to internal message
   float			mean;
   float			stddev;

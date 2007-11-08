@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.39 2007-08-27 14:40:10 skoren Exp $
- * $Revision: 1.39 $
+ * $Id: AS_OVL_overlap_common.h,v 1.40 2007-11-08 12:38:14 brianwalenz Exp $
+ * $Revision: 1.40 $
 */
 
 
@@ -3080,7 +3080,6 @@ void  Initialize_Work_Area
      }
 
    WA -> status = 0;
-   WA -> myRead = new_fragRecord ();
 
    WA -> screen_info . range = (Screen_Range_t *) safe_malloc (INIT_SCREEN_MATCHES * sizeof (Screen_Range_t));
    WA -> screen_info . match_len = INIT_SCREEN_MATCHES;
@@ -4488,14 +4487,14 @@ void  Process_Overlaps
 
 
    while  ((frag_status
-              = Read_Next_Frag (Frag, quality, stream, WA -> myRead,
+              = Read_Next_Frag (Frag, quality, stream, &WA -> myRead,
                                 & (WA -> screen_info), & last_old_frag_read)))
      {
 
       if  (frag_status == DELETED_FRAG)
            continue;
 
-      Curr_String_Num = getFragRecordIID (WA -> myRead);
+      Curr_String_Num = getFragRecordIID (&WA -> myRead);
 
       //getReadType_ReadStruct (WA -> myRead, & (WA -> curr_frag_type));
       WA -> curr_frag_type = AS_READ;
@@ -5133,8 +5132,8 @@ static int  Read_Next_Frag
      }
    if  (OFFSET_MASK < frag_len)
      {
-       fprintf (stderr, "ERROR:  Read "F_UID" is too long (%lu) for hash table\n",
-                getFragRecordUID(myRead), frag_len);
+       fprintf (stderr, "ERROR:  Read %s is too long (%lu) for hash table\n",
+                AS_UID_toString(getFragRecordUID(myRead)), frag_len);
        exit (-1);
      }
    frag [frag_len] = '\0';

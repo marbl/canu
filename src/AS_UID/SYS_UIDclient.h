@@ -59,6 +59,10 @@ typedef struct {
 } UIDserver;
 
 
+//  firstuid is an integer (and not an AS_UID) on purpose.  The UID
+//  server currently returns only integer UIDs; it makes no sense
+//  to pass in a string uid.
+
 static
 UIDserver   *UIDserverInitialize(uint32 blockSize, uint64 firstuid) {
   UIDserver  *u = (UIDserver *)safe_calloc(1, sizeof(UIDserver));

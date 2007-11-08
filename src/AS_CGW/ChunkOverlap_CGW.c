@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.24 2007-10-24 21:04:21 brianwalenz Exp $";
+static char CM_ID[] = "$Id: ChunkOverlap_CGW.c,v 1.25 2007-11-08 12:38:11 brianwalenz Exp $";
 
 #include <assert.h>
 #include <stdio.h>
@@ -1103,13 +1103,14 @@ OverlapMesg *ComputeCanonicalOverlapWithTrace(GraphCGW_T *graph,
   {
     CDS_COORD_t where;
 
-    AFR->sequence   =  Getchar(consensusA, 0);
-    AFR->quality    =  Getchar(qualityA, 0);
-    AFR->eaccession = 0;
+    AFR->sequence   = Getchar(consensusA, 0);
+    AFR->quality    = Getchar(qualityA, 0);
+    AFR->eaccession = AS_UID_undefined();
     AFR->iaccession = canOlap->spec.cidA;
-    BFR->sequence   =  Getchar(consensusB, 0);
-    BFR->quality    =  Getchar(qualityB, 0);
-    BFR->eaccession = 0;
+
+    BFR->sequence   = Getchar(consensusB, 0);
+    BFR->quality    = Getchar(qualityB, 0);
+    BFR->eaccession = AS_UID_undefined();
     BFR->iaccession = canOlap->spec.cidB;
     
 

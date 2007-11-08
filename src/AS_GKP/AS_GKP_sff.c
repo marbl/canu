@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.5 2007-10-05 07:42:06 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.6 2007-11-08 12:38:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -229,9 +229,9 @@ readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
 //  Massage the sff into a new gatekeeper entry.
 //
 static
-CDS_UID_t
+AS_UID
 readsff_constructUIDFromName(char *name, int constructReadUID) {
-  CDS_UID_t   uid;
+  AS_UID      uid;
   char        base36[16];
   uint64      timestamp;
   uint64      rigname;
@@ -286,26 +286,28 @@ readsff_constructUIDFromName(char *name, int constructReadUID) {
     gkpStore->gkp.sffWarnings++;
   }
 
+  uid.isString = 0;
+
   if (constructReadUID) {
-    uid   = 0;
-    uid  |= rigname;    //  4 bits
-    uid <<= 31;
-    uid  |= timestamp;  //  31 bits
-    uid <<= 3;
-    uid  |= region;     //  3 bits
-    uid <<= 14;
-    uid  |= x;          //  14 bits
-    uid <<= 12;
-    uid  |= y;          //  12 bits
+    uid.UID   = 0;
+    uid.UID  |= rigname;    //  4 bits
+    uid.UID <<= 31;
+    uid.UID  |= timestamp;  //  31 bits
+    uid.UID <<= 3;
+    uid.UID  |= region;     //  3 bits
+    uid.UID <<= 14;
+    uid.UID  |= x;          //  14 bits
+    uid.UID <<= 12;
+    uid.UID  |= y;          //  12 bits
   } else {
-    uid   = 0;
-    uid  |= rigname;    //  4 bits
-    uid <<= 31;
-    uid  |= timestamp;  //  31 bits
-    uid <<= 3;
-    uid  |= region;     //  3 bits
-    uid <<= 26;
-    uid  |= 0x03ffffff; // 26 bits
+    uid.UID   = 0;
+    uid.UID  |= rigname;    //  4 bits
+    uid.UID <<= 31;
+    uid.UID  |= timestamp;  //  31 bits
+    uid.UID <<= 3;
+    uid.UID  |= region;     //  3 bits
+    uid.UID <<= 26;
+    uid.UID  |= 0x03ffffff; // 26 bits
   }
 
   return(uid);
@@ -313,10 +315,10 @@ readsff_constructUIDFromName(char *name, int constructReadUID) {
 
 
 static
-CDS_IID_t
+AS_IID
 readsff_constructLibraryIIDFromName(char *name) {
-  CDS_UID_t  uid = readsff_constructUIDFromName(name, 0);
-  CDS_IID_t  iid = getGatekeeperUIDtoIID(gkpStore, uid, NULL);
+  AS_UID  uid = readsff_constructUIDFromName(name, 0);
+  AS_IID  iid = getGatekeeperUIDtoIID(gkpStore, uid, NULL);
 
   if (iid == 0) {
     GateKeeperLibraryRecord  gkl;
@@ -341,7 +343,6 @@ readsff_constructLibraryIIDFromName(char *name) {
     iid = getLastElemStore(gkpStore->lib);
 
     gkpStore->gkp.sffLibCreated++;
-    //fprintf(stderr, "added library "F_UID" at iid "F_IID"\n", gkl.libraryUID, iid);
   }
 
   return(iid);
@@ -387,7 +388,7 @@ Load_SFF(FILE *sff) {
 
     if (getGatekeeperUIDtoIID(gkpStore, gkf.readUID, NULL)) {
       AS_GKP_reportError(AS_GKP_SFF_ALREADY_EXISTS,
-                         gkf.readUID);
+                         AS_UID_toString(gkf.readUID));
       gkpStore->gkp.sffErrors++;
       continue;
     }
@@ -477,34 +478,23 @@ Load_SFF(FILE *sff) {
     gkf.hpsLen = 0;
     gkf.srcLen = strlen(r->name);
 
-    {
-      StoreStat   stats;
-
-      statsStore(gkpStore->seq, &stats);
-      gkf.seqOffset = stats.lastElem;
-
-      statsStore(gkpStore->qlt, &stats);
-      gkf.qltOffset = stats.lastElem;
-
-      statsStore(gkpStore->hps, &stats);
-      gkf.hpsOffset = stats.lastElem;
-
-      statsStore(gkpStore->src, &stats);
-      gkf.srcOffset = stats.lastElem;
-    }
+    gkf.seqOffset = getLastElemStore(gkpStore->seq);
+    gkf.qltOffset = getLastElemStore(gkpStore->qlt);
+    gkf.hpsOffset = getLastElemStore(gkpStore->hps);
+    gkf.srcOffset = getLastElemStore(gkpStore->src);
 
     setGatekeeperUIDtoIID(gkpStore, gkf.readUID, gkf.readIID, AS_IID_FRG);
     appendIndexStore(gkpStore->frg, &gkf);
 
-    appendVLRecordStore(gkpStore->seq, r->bases + h->key_length, gkf.seqLen);
+    appendStringStore(gkpStore->seq, r->bases + h->key_length, gkf.seqLen);
 
     encodeSequenceQuality(encodedsequence,
                           r->bases + h->key_length,
                           r->quality + h->key_length);
-    appendVLRecordStore(gkpStore->qlt, encodedsequence, gkf.seqLen);
+    appendStringStore(gkpStore->qlt, encodedsequence, gkf.seqLen);
 
-    appendVLRecordStore(gkpStore->hps, NULL,    0);
-    appendVLRecordStore(gkpStore->src, r->name, gkf.srcLen);
+    appendStringStore(gkpStore->hps, NULL,    0);
+    appendStringStore(gkpStore->src, r->name, gkf.srcLen);
 
     gkpStore->gkp.sffLoaded++;
 

@@ -296,6 +296,9 @@ endif
 
 #CFLAGS += -I/n8/wgs/src/AS_CNS -I/n8/wgs/src/AS_CGW -I/n8/wgs/src/AS_ALN -I/n8/wgs/src/AS_REZ -I/n8/wgs/src/AS_SDB
 
+# Broken by BPW's string UID hack: AS_CVT, AS_MPA.  AS_CVT might work,
+# but its only used by AS_MPA.
+
 SUBDIRS = AS_RUN \
           AS_UTL \
           AS_UID \
@@ -315,8 +318,6 @@ SUBDIRS = AS_RUN \
           AS_LIN \
           AS_CGW \
           AS_TER \
-          AS_CVT \
           AS_VWR \
-          AS_MPA \
 	  AS_ENV
 

@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg2.c,v 1.7 2007-07-24 06:30:03 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg2.c,v 1.8 2007-11-08 12:38:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,45 +35,40 @@ static
 void *
 Read_LIB_Mesg(FILE *fin) {
   static LibraryMesg  lmesg;  // statics are initialized to zero, important for realloc() below
-  char                ch;
-  long                featureoffset = 0;
+  char               *features = NULL;
 
-  GET_TYPE(ch,"act:%c","action");
-  lmesg.action = (ActionType) ch;
+  lmesg.action = (ActionType)GetType("act:%c","action",fin);
 
-  GET_FIELD(lmesg.eaccession,"acc:"F_UID,"accession field");
+  lmesg.eaccession = GetUID("acc:",fin);
 
   if (lmesg.action == AS_UPDATE) {
-    GET_FIELD(lmesg.mean,"mea:%f","mean field");
-    GET_FIELD(lmesg.stddev ,"std:%f","stddev field");
+    GET_FIELD(lmesg.mean,   "mea:%f","mean field");
+    GET_FIELD(lmesg.stddev, "std:%f","stddev field");
   }
 
   lmesg.num_features = 0;
 
   if ((lmesg.action == AS_ADD) || (lmesg.action == AS_IGNORE)) {
-    GET_TYPE(ch,"ori:%c","orientation");
-    lmesg.link_orient = (OrientType) ch;
+    lmesg.link_orient = (OrientType)GetType("ori:%c","orientation",fin);
 
     GET_FIELD(lmesg.mean,"mea:%f","mean field");
     GET_FIELD(lmesg.stddev ,"std:%f","stddev field");
 
-    lmesg.source   = (char *)GetText("src:",fin,FALSE);
+    lmesg.source   = GetText("src:",fin,FALSE);
 
     GET_FIELD(lmesg.num_features ,"nft:%d","number of features");
-    featureoffset = GetText("fea:",fin,FALSE);
+    features = GetText("fea:",fin,FALSE);
 
-    //  Adjust source to be a pointer instead of an offset
-    lmesg.source = AS_MSG_globals->MemBuffer + (long)lmesg.source;
   }  //  End of AS_ADD & AS_IGNORE
 
-  GET_EOM;
+  GetEOM(fin);
 
 
   //  Munge the feature string into a list of features
   //
   if (lmesg.num_features > 0) {
     int      i;
-    char    *fb = AS_MSG_globals->MemBuffer + featureoffset;
+    char    *fb = features;
     char    *fn = fb;
 
     lmesg.features = (char **)safe_realloc(lmesg.features, sizeof(char *) * lmesg.num_features);
@@ -133,7 +128,8 @@ Write_LIB_Mesg(FILE *fout,void *mesg) {
 
   fprintf(fout,"{LIB\n");
   fprintf(fout,"act:%c\n", lmesg->action);
-  fprintf(fout,"acc:"F_UID"\n", lmesg->eaccession);
+
+  fprintf(fout,"acc:%s\n", AS_UID_toString(lmesg->eaccession));
 
   if (lmesg->action == AS_UPDATE) {
     fprintf(fout,"mea:%.3f\n",lmesg->mean);
@@ -164,13 +160,13 @@ Read_Frag_Mesg(FILE *fin,int frag_class) {
   static FragMesg fmesg;
   char   ch;
 
-  assert((frag_class == MESG_FRG) || (frag_class == MESG_IFG));
+  assert(frag_class == MESG_FRG);
 
   fmesg.version        = 2;
 
-  fmesg.library_uid    = 0;
+  fmesg.library_uid    = AS_UID_undefined();
   fmesg.library_iid    = 0;
-  fmesg.plate_uid      = 0;
+  fmesg.plate_uid      = AS_UID_undefined();
   fmesg.plate_location = 0;
   fmesg.is_random      = 1;
   fmesg.status_code    = 'G';
@@ -179,26 +175,16 @@ Read_Frag_Mesg(FILE *fin,int frag_class) {
   fmesg.clear_qlt.bgn  = 0;
   fmesg.clear_qlt.end  = 0;
 
-  if (frag_class == MESG_FRG) { 
-    GET_TYPE(ch,"act:%c","action");
-    fmesg.action = (ActionType) ch;
-    GET_FIELD(fmesg.eaccession,"acc:"F_UID,"accession field");
-  } else {
-    GET_TYPE(ch,"act:%1[AD]","action");
-    fmesg.action = (ActionType) ch;
-    GET_PAIR(fmesg.eaccession,fmesg.iaccession,"acc:("F_UID","F_IID")","accession field pair");
-  } 
+  fmesg.action     = (ActionType)GetType("act:%c","action",fin);
+  fmesg.eaccession = GetUID("acc:",fin);
 
   GET_FIELD(fmesg.is_random,"rnd:"F_U32,"is_random");
-  GET_TYPE(fmesg.status_code,"sta:%1[GBUWXVEIR]","status code");
 
-  if (frag_class == MESG_FRG) { 
-    GET_FIELD(fmesg.library_uid,"lib:"F_UID,"library accession field");
-  } else {
-    GET_PAIR(fmesg.library_uid,fmesg.library_iid,"lib:("F_UID","F_IID")","library accession field pair");
-  } 
+  fmesg.status_code = GetType("sta:%1[GBUWXVEIR]","status code", fin);
 
-  GET_FIELD(fmesg.plate_uid,"pla:"F_UID,"plate_uid field");
+  fmesg.library_uid = GetUID("lib:",fin);
+
+  fmesg.plate_uid = GetUID("pla:",fin);
   GET_FIELD(fmesg.plate_location,"loc:"F_U32,"plate_location field");
 
   fmesg.source   = NULL;
@@ -210,11 +196,10 @@ Read_Frag_Mesg(FILE *fin,int frag_class) {
     char  *line;
     int    b, e;
 
-    fmesg.source   = (char *) GetText("src:",fin,FALSE);
-
-    fmesg.sequence = (char *) GetText("seq:",fin,TRUE);
-    fmesg.quality  = (char *) GetText("qlt:",fin,TRUE);
-    fmesg.hps      = (char *) GetText("hps:",fin,TRUE);
+    fmesg.source   = GetText("src:",fin,FALSE);
+    fmesg.sequence = GetText("seq:",fin,TRUE);
+    fmesg.quality  = GetText("qlt:",fin,TRUE);
+    fmesg.hps      = GetText("hps:",fin,TRUE);
 
     //  Special handling for clear ranges -- the vector and quality clear are optional.
 
@@ -227,16 +212,16 @@ Read_Frag_Mesg(FILE *fin,int frag_class) {
     fmesg.clear_rng.bgn = 1;
     fmesg.clear_rng.end = 0;
 
-    line = GetLine(fin, TRUE);
+    line = ReadLine(fin, TRUE);
     if(sscanf(line,"clv:"F_COORD","F_COORD,&b,&e)==2){
       fmesg.clear_vec.bgn = b;
       fmesg.clear_vec.end = e;
-      line = GetLine(fin, TRUE);
+      line = ReadLine(fin, TRUE);
     }
     if(sscanf(line,"clq:"F_COORD","F_COORD,&b,&e)==2){
       fmesg.clear_qlt.bgn = b;
       fmesg.clear_qlt.end = e;
-      line = GetLine(fin, TRUE);
+      line = ReadLine(fin, TRUE);
     }
     if(sscanf(line,"clr:"F_COORD","F_COORD,&b,&e)==2){
       fmesg.clear_rng.bgn = b;
@@ -244,16 +229,9 @@ Read_Frag_Mesg(FILE *fin,int frag_class) {
     } else {
       MfieldError("final clear range field");	
     }
-
-    // Convert from an index to a pointer.
-    //
-    fmesg.source   = AS_MSG_globals->MemBuffer + ((long) (fmesg.source));
-    fmesg.sequence = AS_MSG_globals->MemBuffer + ((long) (fmesg.sequence));
-    fmesg.quality  = AS_MSG_globals->MemBuffer + ((long) (fmesg.quality));
-    fmesg.hps      = AS_MSG_globals->MemBuffer + ((long) (fmesg.hps));
   }  //  action is AS_ADD
 
-  GET_EOM;
+  GetEOM(fin);
 
   return ((void *) (&fmesg));
 }
@@ -275,19 +253,19 @@ Write_Frag_Mesg(FILE *fout,void *vmesg,int frag_class) {
   fprintf(fout,"{%s\n",MessageTypeName[frag_class]);
   fprintf(fout,"act:%c\n",mesg->action);
   if (frag_class == MESG_FRG)
-    fprintf(fout,"acc:"F_UID"\n",mesg->eaccession);
+    fprintf(fout,"acc:%s\n",AS_UID_toString(mesg->eaccession));
   else
-    fprintf(fout,"acc:("F_UID","F_IID")\n",mesg->eaccession,mesg->iaccession);
+    fprintf(fout,"acc:(%s,"F_IID")\n",AS_UID_toString(mesg->eaccession),mesg->iaccession);
 
   fprintf(fout,"rnd:%d\n",mesg->is_random);
   fprintf(fout,"sta:%c\n",mesg->status_code);
 
   if (frag_class == MESG_FRG)
-    fprintf(fout,"lib:"F_UID"\n",mesg->library_uid);
+    fprintf(fout,"lib:%s\n",AS_UID_toString(mesg->library_uid));
   else
-    fprintf(fout,"lib:"F_UID","F_IID"\n",mesg->library_uid,mesg->library_iid);
+    fprintf(fout,"lib:%s,"F_IID"\n",AS_UID_toString(mesg->library_uid),mesg->library_iid);
 
-  fprintf(fout,"pla:"F_UID"\n",mesg->plate_uid);
+  fprintf(fout,"pla:%s\n",AS_UID_toString(mesg->plate_uid));
   fprintf(fout,"loc:"F_U32"\n",mesg->plate_location);
 
   if ((mesg->action == AS_ADD) || (mesg->action == AS_IGNORE)) {
@@ -321,15 +299,13 @@ void *
 Read_LKG_Mesg(FILE *fin) {
   static LinkMesg lmesg;
 
-  char ch; 
-  GET_TYPE(ch,"act:%c","action");
-  lmesg.action = (ActionType) ch;
+  lmesg.action = (ActionType)GetType("act:%c","action",fin);
   lmesg.type = AS_MATE;
   lmesg.link_orient = AS_READ_ORIENT_UNKNOWN;
-  GET_FIELD(lmesg.frag1,"frg:"F_UID,"fragment 1 field");
-  GET_FIELD(lmesg.frag2,"frg:"F_UID,"fragment 2 field");
-  lmesg.distance = 0;
-  GET_EOM;
+  lmesg.frag1 = GetUID("frg:",fin);
+  lmesg.frag2 = GetUID("frg:",fin);
+  lmesg.distance = AS_UID_undefined();
+  GetEOM(fin);
   return (&lmesg);
 }
 
@@ -339,8 +315,8 @@ Write_LKG_Mesg(FILE *fout,void *mesg) {
   LinkMesg *lmesg = (LinkMesg *)mesg;
   fprintf(fout,"{LKG\n");
   fprintf(fout,"act:%c\n",lmesg->action);
-  fprintf(fout,"frg:"F_UID"\n",lmesg->frag1);
-  fprintf(fout,"frg:"F_UID"\n",lmesg->frag2);
+  fprintf(fout,"frg:%s\n",AS_UID_toString(lmesg->frag1));
+  fprintf(fout,"frg:%s\n",AS_UID_toString(lmesg->frag2));
   fprintf(fout,"}\n");
 }
 

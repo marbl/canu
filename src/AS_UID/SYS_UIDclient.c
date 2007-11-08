@@ -25,7 +25,7 @@
 
 
 static int32                QueryServer(int32 code, uint64* interval);
-CDS_UID_t                   getGUIDBlock(int guidRequestSize);
+uint64                      getGUIDBlock(int guidRequestSize);
 int                         findGuidStartFromHttpString(char* httpString);
 int                         findGuidEndFromHttpString(char* httpString);
 static int32                CreateConnection(void);
@@ -290,7 +290,7 @@ static int32 QueryServer(int32 code, uint64* interval)
 {
    static char FirstTime     = 1;
    char        failsafe_flag = 0;
-   CDS_UID_t   newBlockStart = 0;
+   uint64      newBlockStart = 0;
 
 #ifndef NOT_IMPLEMENTED_JTC
 

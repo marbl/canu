@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_Bubble_Popper.c,v 1.14 2007-08-04 22:27:35 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_Bubble_Popper.c,v 1.15 2007-11-08 12:38:11 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -62,7 +62,6 @@ BP_init(BubblePopper_t bp, BubGraph_t bg, TChunkMesg *chunks,
   bp->globalArrivalRate = global_arrival_rate;
   bp->gkpStore = gkpStore;
   
-  bp->rsp = new_fragRecord();
   bp->vidToBid     = (int *)safe_malloc(sizeof(int) * GetNumFragments(BG_vertices(bg)));
 
   bp->topDistArray = (int *)safe_malloc(sizeof(int) * POPPER_MAX_BUBBLE_SIZE);
@@ -200,12 +199,12 @@ BP_findOverlap(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2)
   id1 = get_iid_fragment(BG_vertices(bp->bg), bp->bubFrags[bid1]);
   if (if1->iaccession != id1) {
     if1->iaccession = id1;
-    getFrag(bp->gkpStore, id1, bp->rsp, FRAG_S_SEQ);
+    getFrag(bp->gkpStore, id1, &bp->rsp, FRAG_S_SEQ);
 
-    if1->clear_rng.bgn = getFragRecordClearRegionBegin(bp->rsp, AS_READ_CLEAR_OBT);
-    if1->clear_rng.end = getFragRecordClearRegionEnd  (bp->rsp, AS_READ_CLEAR_OBT);
+    if1->clear_rng.bgn = getFragRecordClearRegionBegin(&bp->rsp, AS_READ_CLEAR_OBT);
+    if1->clear_rng.end = getFragRecordClearRegionEnd  (&bp->rsp, AS_READ_CLEAR_OBT);
 
-    seq_buf = getFragRecordSequence(bp->rsp);
+    seq_buf = getFragRecordSequence(&bp->rsp);
 
     for (src = &(seq_buf[if1->clear_rng.bgn]), dst = if1->sequence;
 	 src < &(seq_buf[if1->clear_rng.end]);
@@ -216,12 +215,12 @@ BP_findOverlap(BubblePopper_t bp, IntFragment_ID bid1, IntFragment_ID bid2)
   id2 = get_iid_fragment(BG_vertices(bp->bg), bp->bubFrags[bid2]);
   if (if2->iaccession != id2) {
     if2->iaccession = id2;
-    getFrag(bp->gkpStore, id2, bp->rsp, FRAG_S_SEQ);
+    getFrag(bp->gkpStore, id2, &bp->rsp, FRAG_S_SEQ);
 
-    if2->clear_rng.bgn = getFragRecordClearRegionBegin(bp->rsp, AS_READ_CLEAR_OBT);
-    if2->clear_rng.end = getFragRecordClearRegionEnd  (bp->rsp, AS_READ_CLEAR_OBT);
+    if2->clear_rng.bgn = getFragRecordClearRegionBegin(&bp->rsp, AS_READ_CLEAR_OBT);
+    if2->clear_rng.end = getFragRecordClearRegionEnd  (&bp->rsp, AS_READ_CLEAR_OBT);
 
-    seq_buf = getFragRecordSequence(bp->rsp);
+    seq_buf = getFragRecordSequence(&bp->rsp);
 
     for (src = &(seq_buf[if2->clear_rng.bgn]), dst = if2->sequence;
 	 src < &(seq_buf[if2->clear_rng.end]);
@@ -562,7 +561,6 @@ AS_CGB_Bubble_Popper_destroy(BubblePopper_t bp)
 #endif // DONT_ALLOC_OLAP_DELTAS
   
   BG_destroy(bp->bg);
-  del_fragRecord(bp->rsp);
   safe_free(bp->vidToBid); // proportional to the number of fragments
 
   safe_free(bp->topDistArray); // POPPER_MAX_BUBBLE_SIZE

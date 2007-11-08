@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: adjustAStat.c,v 1.1 2007-09-19 20:57:16 skoren Exp $";
+static char const *rcsid = "$Id: adjustAStat.c,v 1.2 2007-11-08 12:38:11 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -112,7 +112,7 @@ main(int argc, char **argv) {
    fgets(L, 1024, F);
    while (!feof(F)) {
       char *endPtr;
-      CDS_IID_t iid = STR_TO_IID(L, &endPtr, 10);        
+      AS_IID    iid = AS_IID_fromString(L, &endPtr);        
 
       char in[2];
       char ch;

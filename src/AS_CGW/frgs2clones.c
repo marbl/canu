@@ -29,16 +29,11 @@
 
 
 #include "AS_global.h"
-
 #include "AS_PER_gkpStore.h"
-
-//#include "SYS_UIDcommon.h"
 #include "SYS_UIDclient.h"
-
 #include "MultiAlignment_CNS.h"
 
 #define MAXSEQLEN 20000
-
 
 
 void RevCompl(char *seq, char *qul)
@@ -110,7 +105,7 @@ int main( int argc, char *argv[])
 
   int setGatekeeperStore = FALSE;
   int fragIID,mateIID;
-  CDS_UID_t fragUID,mateUID;
+  AS_UID fragUID,mateUID;
   char GKP_Store_Name[2000];
   GateKeeperStore *gkpStore;
   GateKeeperFragmentRecord gkpFrag,gkpMate;
@@ -121,18 +116,15 @@ int main( int argc, char *argv[])
   int alloclen1=5000;
   int alloclen2=5000;
   int len1,len2,lastfrg;
-  //  ReadStructp fsread=new_ReadStruct();
   fragRecord fsread;
-  //  ReadStructp fsmate=new_ReadStruct();
   fragRecord fsmate;
-  CDS_UID_t UIDstart=1230000;
+  uint64 UIDstart = 1230000;
   UIDserver   *uids              = NULL;
 
-  //  CDS_UID_t       interval_UID[4];
   Overlap *ovl;
   IntUnitigMesg ium;
   IntMultiPos the_imps[2];
-  CDS_UID_t mergeUid;
+  AS_UID  mergeUid;
   char seq[MAXSEQLEN], qlt[MAXSEQLEN];
   int clr_bgn,clr_end;
   VA_TYPE(int32) *deltas=CreateVA_int32(1);
@@ -162,7 +154,7 @@ int main( int argc, char *argv[])
           Ngaps=1;
           break;
         case 'U':
-          UIDstart=0;
+          UIDstart = 0;
           break;
         case '?':
           fprintf(stderr,"Unrecognized option -%c",optopt);
@@ -202,13 +194,8 @@ int main( int argc, char *argv[])
   /*************************/
   // Set up UID server stuff
   /*************************/
-  {
-
-    uids = UIDserverInitialize(256, UIDstart);
-
-    assert(uids!=NULL);
-
-  }
+  uids = UIDserverInitialize(256, UIDstart);
+  assert(uids!=NULL);
 
   /*************************/
   // over all fragments, check for overlap with (previously unseen) mate
@@ -295,7 +282,7 @@ int main( int argc, char *argv[])
       // Create a UID for the clone
       /*********************************************/
 
-      mergeUid = getUID(uids);
+      mergeUid = AS_UID_fromInteger(getUID(uids));
 
       /*************************/
       // check for an overlap

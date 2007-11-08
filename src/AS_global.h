@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_global.h,v 1.23 2007-10-24 21:25:50 brianwalenz Exp $
+//  $Id: AS_global.h,v 1.24 2007-11-08 12:38:11 brianwalenz Exp $
 
 //  This is the global include file that all C files in the AS
 //  subsystem should include.
@@ -30,6 +30,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
+
+#include <assert.h>
 
 #include <limits.h>
 #include <float.h>
@@ -139,11 +141,6 @@ typedef void *PtrT;
   #define F_OFF_T   "%lld"
   #define F_OFF_TP   "lld"
 
-  #define STR_TO_UID      strtoull
-  #define STR_TO_IID      strtoul
-  #define STR_TO_UINT64   strtoull
-  #define STR_TO_INT64    strtoll
-
   #define FILEID_MASK       0xffff000000000000ULL
   #define FILEOFFSET_MASK   0x0000ffffffffffffULL
   #define LOCALE_OFFSET            10000000000ULL  // 10^10 > 2^32
@@ -233,12 +230,7 @@ typedef void *PtrT;
       #define F_OFF_TP   "ld"
     #endif
   #endif
-    
-  #define STR_TO_UID     strtoul
-  #define STR_TO_IID     strtoul
-  #define STR_TO_UINT64  strtoul
-  #define STR_TO_INT64    strtol
-    
+
   #define FILEID_MASK       0xffff000000000000UL
   #define FILEOFFSET_MASK   0x0000ffffffffffffUL
   #define LOCALE_OFFSET            10000000000UL  // 10^10 > 2^32
@@ -269,12 +261,6 @@ int   fseeko(FILE *stream, off_t offset, int whence );
 off_t ftello(FILE *stream );
 #endif
 
-
-typedef uint64 CDS_UID_t;
-typedef uint32 CDS_IID_t;
-typedef int32  CDS_CID_t;
-typedef int32  CDS_COORD_t;
-
 //  OSF1 doesn't know UINT32_MAX or INT32_MAX or INT32_MIN.
 #ifndef UINT32_MAX
   #define UINT32_MAX UINT_MAX
@@ -286,19 +272,12 @@ typedef int32  CDS_COORD_t;
   #define INT32_MIN INT_MIN
 #endif
 
-#define CDS_IID_MAX     UINT32_MAX
-#define CDS_CID_MAX     INT32_MAX
-#define CDS_COORD_MIN   INT32_MIN
-#define CDS_COORD_MAX   INT32_MAX
 
-#define F_UID    F_U64
-#define F_UIDP   F_U64P
-#define F_IID    F_U32
-#define F_IIDP   F_U32P
-#define F_CID    F_S32
-#define F_CIDP   F_S32P
-#define F_COORD  F_S32
-#define F_COORDP F_S32P
+
+#include "AS_UTL_IID.h"
+#include "AS_UTL_UID.h"
+
+
 
 
 

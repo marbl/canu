@@ -132,12 +132,12 @@ int
 main(int argc, char **argv) {
   int              i = 0;
 
-  CDS_UID_t        uidjunk = 0;
-  CDS_UID_t        uid = 0;
-  int              beg = 0;
-  int              end = 0;
+  AS_UID           uidjunk = AS_UID_undefined();
+  AS_UID           uid     = AS_UID_undefined();
+  int              beg     = 0;
+  int              end     = 0;
 
-  CDS_UID_t        lastuid = 0;
+  AS_UID           lastuid = AS_UID_undefined();
   int              lastend = 0;
 
   int              histogram[HISTMAX] = { 0 };
@@ -183,19 +183,29 @@ main(int argc, char **argv) {
     exit(1);
   }
 
-  uint32   inlen = 0;
+  uint32     inlen = 0;
   uint32     inmax = (((uint64) memLimit) * 1024 * 1024) / (sizeof(intDep));
   intDep    *in    = (intDep *)safe_malloc(sizeof(intDep) * inmax);
+
+  char       line[1024] = {0};
+  char      *cont       = NULL;
+
   if (doScaffold)
     fprintf(stdout, "uid\tstart\tend\tmode\tmean\tmedian\n");
 
-  while (4 == fscanf(stdin, " "F_UID" "F_UID" %d %d %*d ", &uidjunk, &uid, &beg, &end)) {
-    if (lastuid == 0)
+  while (fgets(line, 1024, stdin) != NULL) {
+
+    uidjunk = AS_UID_lookup(line, &cont);
+    uid     = AS_UID_lookup(cont, &cont);
+    beg     = strtol(cont, &cont, 10);
+    end     = strtol(cont, &cont, 10);
+
+    if (AS_UID_compare(lastuid, AS_UID_undefined()) == 0)
       lastuid = uid;
 
     //  Did we switch to a new scaffold?  Process this set of intervals.
     //
-    if ((uid != lastuid) &&
+    if ((AS_UID_compare(uid, lastuid) != 0) &&
         (inlen > 0)) {
 
       //  This scaffold is the correct size
@@ -322,7 +332,7 @@ main(int argc, char **argv) {
             if (E > N) { E = N; }
             
             computeStuff(V, N, i, E, &mode, &mean, &median);
-            fprintf(stdout, F_UID"\t"F_U32"\t"F_U32"\t"F_U32"\t%f\t"F_U32"\n", lastuid, i, E, mode, mean, median);
+            fprintf(stdout, "%s\t"F_U32"\t"F_U32"\t"F_U32"\t%f\t"F_U32"\n", AS_UID_toString(lastuid), i, E, mode, mean, median);
           }
           safe_free(V);
         }

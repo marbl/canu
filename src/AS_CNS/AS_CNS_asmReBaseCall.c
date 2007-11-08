@@ -29,7 +29,7 @@
 #include "MultiAlignStore_CNS.h"
 #include "MultiAlignment_CNS.h"
 
-static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.20 2007-10-25 16:44:36 gdenisov Exp $";
+static const char CM_ID[] = "$Id: AS_CNS_asmReBaseCall.c,v 1.21 2007-11-08 12:38:11 brianwalenz Exp $";
 
 static HashTable_AS *utgUID2IID;
 
@@ -39,11 +39,6 @@ static HashTable_AS *utgUID2IID;
 
 
 
-static int fraguid2iid(uint64 uid){
-  return(getGatekeeperUIDtoIID(gkpStore, uid, NULL));
-}
-
-
 
 static IntUnitigMesg* convert_UTG_to_IUM(SnapUnitigMesg* utgMesg)
      /*
@@ -51,23 +46,23 @@ static IntUnitigMesg* convert_UTG_to_IUM(SnapUnitigMesg* utgMesg)
      */
 {
   int i;
-  CDS_IID_t iid;
+  AS_IID    iid;
   int32  iidStatus;
-  CDS_IID_t *di;
+  AS_IID    *di;
   IntUnitigMesg *iumMesg = 
     (IntUnitigMesg*) safe_malloc(sizeof(IntUnitigMesg));
 
 #if DEBUG > 1
-  fprintf(stderr,"UTG external acc " F_UID "\n",utgMesg->eaccession);
+  fprintf(stderr,"UTG external acc %s\n", AS_UID_toString(utgMesg->eaccession));
 #endif
 
   { // hash the uid to the iid
-    if(ExistsInHashTable_AS(utgUID2IID,utgMesg->eaccession, 0)){
-      fprintf(stderr,"Encountered UTG UID " F_UID " more than once! DIE!\n",
-	      utgMesg->eaccession);
+    if(ExistsInHashTable_AS(utgUID2IID,AS_UID_toInteger(utgMesg->eaccession), 0)){
+      fprintf(stderr,"Encountered UTG UID %s more than once! DIE!\n",
+	      AS_UID_toString(utgMesg->eaccession));
       exit(-1);
     }
-    InsertInHashTable_AS(utgUID2IID, utgMesg->eaccession, 0, utgMesg->iaccession, 0);
+    InsertInHashTable_AS(utgUID2IID, AS_UID_toInteger(utgMesg->eaccession), 0, utgMesg->iaccession, 0);
   }
 
   /* Set all toplevel fields */
@@ -93,12 +88,11 @@ static IntUnitigMesg* convert_UTG_to_IUM(SnapUnitigMesg* utgMesg)
 #ifdef AS_ENABLE_SOURCE
       iumMesg->f_list[i].sourceInt = atoi(utgMesg->f_list[i].source);
 #endif
-      iid = fraguid2iid(utgMesg->f_list[i].eident);
+      iid = getGatekeeperUIDtoIID(gkpStore, utgMesg->f_list[i].eident, NULL);
       
       if( iid == 0 ){
-	char dummy[40];
-	fprintf(stderr,"Error: Unknown uid fragment ID " F_UID " at %s:%d\n",
-		utgMesg->f_list[i].eident,__FILE__,__LINE__);
+	fprintf(stderr,"Error: Unknown uid fragment ID %s at %s:%d\n",
+		AS_UID_toString(utgMesg->f_list[i].eident),__FILE__,__LINE__);
 	exit(-1);
       }
       
@@ -126,7 +120,7 @@ static IntConConMesg* convert_CCO_to_ICM(SnapConConMesg* ccoMesg)
      */
 {
   int i;
-  CDS_IID_t iid;
+  AS_IID    iid;
 
   IntConConMesg *icmMesg = (IntConConMesg*) safe_malloc(sizeof(IntConConMesg));
   
@@ -168,11 +162,10 @@ static IntConConMesg* convert_CCO_to_ICM(SnapConConMesg* ccoMesg)
       icmMesg->pieces[i].sourceInt = atoi(ccoMesg->pieces[i].source);
 #endif
 
-      iid = fraguid2iid(ccoMesg->pieces[i].eident);
+      iid = getGatekeeperUIDtoIID(gkpStore, ccoMesg->pieces[i].eident, NULL);
       if( iid == 0 ){
-	char dummy[40];
-	fprintf(stderr,"Error: Unknown uid fragment ID " F_UID " at %s:%d\n",
-		ccoMesg->pieces[i].eident,__FILE__,__LINE__);
+	fprintf(stderr,"Error: Unknown uid fragment ID %s at %s:%d\n",
+		AS_UID_toString(ccoMesg->pieces[i].eident),__FILE__,__LINE__);
 	exit(-1);
       }
       icmMesg->pieces[i].ident       = iid;
@@ -193,12 +186,12 @@ static IntConConMesg* convert_CCO_to_ICM(SnapConConMesg* ccoMesg)
     for(i=0; i<icmMesg->num_unitigs; i++){
       int32 *iid;
       icmMesg->unitigs[i].type  = ccoMesg->unitigs[i].type;
-      if (!ExistsInHashTable_AS(utgUID2IID,ccoMesg->unitigs[i].eident,0)) {
-	fprintf(stderr,"Error: Reference before definition for unitig UID " F_UID " at %s:%d\n",
-		ccoMesg->pieces[i].eident,__FILE__,__LINE__);
+      if (!ExistsInHashTable_AS(utgUID2IID, AS_UID_toInteger(ccoMesg->unitigs[i].eident), 0)) {
+	fprintf(stderr,"Error: Reference before definition for unitig UID %s at %s:%d\n",
+		AS_UID_toString(ccoMesg->pieces[i].eident),__FILE__,__LINE__);
 	exit(-1);
       }
-      icmMesg->unitigs[i].ident        = LookupValueInHashTable_AS(utgUID2IID, ccoMesg->unitigs[i].eident, 0);
+      icmMesg->unitigs[i].ident        = LookupValueInHashTable_AS(utgUID2IID, AS_UID_toInteger(ccoMesg->unitigs[i].eident), 0);
       icmMesg->unitigs[i].position     = ccoMesg->unitigs[i].position;
       icmMesg->unitigs[i].delta        = ccoMesg->unitigs[i].delta; /*** COPY BY REFERENCE ***/
       icmMesg->unitigs[i].delta_length = ccoMesg->unitigs[i].delta_length;
@@ -364,7 +357,7 @@ int main (int argc, char *argv[]) {
       MultiAlignT *ma;
       time_t t;
       t = time(0);
-      fprintf(stderr,"# asmReBaseCall $Revision: 1.20 $ processing. Started %s\n",
+      fprintf(stderr,"# asmReBaseCall $Revision: 1.21 $ processing. Started %s\n",
 	      ctime(&t));
       InitializeAlphTable();
 

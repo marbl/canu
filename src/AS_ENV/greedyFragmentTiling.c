@@ -89,23 +89,22 @@ typedef enum {
 
 
 
-uint64 iid2uid(uint32 iid){
-  static uint64 *uid=NULL;
+AS_UID iid2uid(uint32 iid){
+  static AS_UID *uid=NULL;
+
   if(uid==NULL){
     int i;
     int last = getLastElemFragStore (my_gkp_store);
-    uid = (uint64 *)safe_malloc(sizeof(uint64)*(last+1));
+    uid = (AS_UID *)safe_malloc(sizeof(AS_UID)*(last+1));
     for(i=0;i<=last;i++){
-      uid[i]=0;
+      uid[i] = AS_UID_undefined();
     }
   }
 
-  if(uid[iid]!=0){
-    return (uid[iid]);
-  } else {
+  if(AS_UID_isDefined(uid[iid]) == FALSE){
     GateKeeperFragmentRecord gkpFrag;
     getGateKeeperFragment(my_gkp_store,iid,&gkpFrag);
-    assert(gkpFrag.readIID);
+    assert(gkpFrag.readIID == iid);
     uid[iid] = gkpFrag.readUID;
   }
   return uid[iid];
@@ -661,13 +660,13 @@ void usage(char *pgm){
            ,pgm);
 }
 
-int uid2iid(uint64 uid){
+AS_IID uid2iid(AS_UID uid){
   static int firstFailure=1;
-  CDS_IID_t  iid;
+  AS_IID     iid;
   iid = getGatekeeperUIDtoIID(my_gkp_store, uid, 0);
   if (iid == 0) {
     if (firstFailure) {
-      fprintf(stderr,"Tried to look up iid of unknown uid: " F_UID "; this may reflect trying to use a deleted fragment; further instances will not be reported.\n",uid);
+      fprintf(stderr,"Tried to look up iid of unknown uid: %s; this may reflect trying to use a deleted fragment; further instances will not be reported.\n", AS_UID_toString(uid));
       firstFailure=0;
     }
     return (-1);
@@ -884,10 +883,14 @@ int main (int argc , char * argv[] ) {
     }
     assert(sampleFileName[0]!='\0');
   }
+#if 1
+  fprintf(stderr, "sampleFileName is broken.  Blame BPW.\n");
+  exit(1);
+#else
   if(sampleFileName[0]!='\0'){
-    uint64 uid;
+    AS_UID uid;
     uint32 smp;
-    uint32 iid;
+    AS_IID iid;
     int i;
     iid2sample = (int *) safe_malloc(sizeof(int)*(last_stored_frag+1));
     for(i=0;i<=last_stored_frag;i++){
@@ -895,8 +898,9 @@ int main (int argc , char * argv[] ) {
     }
     sampleFile = fopen(sampleFileName,"r");
     assert(sampleFile!=NULL);
-    while(fscanf(sampleFile,F_UID " " F_IID,&uid,&smp)==2){
-      int iid=uid2iid(uid);
+#error broken
+    while(fscanf(sampleFile, "%s "F_IID,&uid,&smp)==2){
+      AS_IID iid=uid2iid(uid);
       if(iid>0) iid2sample[iid]=smp;
     }
     if(favorSameSample==0&&favorSameSampleAsSeed==0){
@@ -905,6 +909,7 @@ int main (int argc , char * argv[] ) {
       exit(-1);
     }
   }
+#endif
 
   seen = (char*) safe_malloc((last_stored_frag+1)*sizeof(char));
   {

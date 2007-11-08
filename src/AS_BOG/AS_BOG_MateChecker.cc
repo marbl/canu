@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.40 2007-11-07 22:11:23 eliv Exp $
- * $Revision: 1.40 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.41 2007-11-08 12:38:11 brianwalenz Exp $
+ * $Revision: 1.41 $
 */
 
 #include <math.h>
@@ -45,12 +45,12 @@ namespace AS_BOG{
             _globalStats[ i ] = dc;
         }
 
-        StreamStruct *frags = openStream(gkpStore->frg, NULL, 0);
+        StreamStruct *frags = openStream(gkpStore->frg);
         resetStream(frags, STREAM_FROMSTART, STREAM_UNTILEND);
 
         GateKeeperFragmentRecord gkpf;
         iuid frgIID = 1;
-        while(nextStream(frags, &gkpf)){
+        while(nextStream(frags, &gkpf, 0, NULL)){
             if (gkpf.mateIID != 0) {
                 MateInfo mi;
                 mi.mate = gkpf.mateIID;

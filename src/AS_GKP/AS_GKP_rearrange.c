@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_rearrange.c,v 1.6 2007-08-31 21:06:16 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_rearrange.c,v 1.7 2007-11-08 12:38:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -39,34 +39,25 @@ addFragToStore(GateKeeperStore           *gkp,
                char                      *qlt,
                char                      *hps,
                char                      *src) {
-  StoreStat   stats;
-
   gkf->seqLen = strlen(seq);
   gkf->hpsLen = strlen(hps);
   gkf->srcLen = strlen(src);
 
-  statsStore(gkp->seq, &stats);
-  gkf->seqOffset = stats.lastElem;
-
-  statsStore(gkp->qlt, &stats);
-  gkf->qltOffset = stats.lastElem;
-
-  statsStore(gkp->hps, &stats);
-  gkf->hpsOffset = stats.lastElem;
-
-  statsStore(gkp->src, &stats);
-  gkf->srcOffset = stats.lastElem;
+  gkf->seqOffset = getLastElemStore(gkp->seq);
+  gkf->qltOffset = getLastElemStore(gkp->qlt);
+  gkf->hpsOffset = getLastElemStore(gkp->hps);
+  gkf->srcOffset = getLastElemStore(gkp->src);
 
   setGatekeeperUIDtoIID(gkp, gkf->readUID, gkf->readIID, AS_IID_FRG);
   appendIndexStore(gkp->frg, gkf);
 
-  appendVLRecordStore(gkp->seq, seq, gkf->seqLen);
+  appendStringStore(gkp->seq, seq, gkf->seqLen);
 
   encodeSequenceQuality(encodedsequence, seq, qlt);
-  appendVLRecordStore(gkp->qlt, encodedsequence, gkf->seqLen);
+  appendStringStore(gkp->qlt, encodedsequence, gkf->seqLen);
 
-  appendVLRecordStore(gkp->hps, hps, gkf->hpsLen);
-  appendVLRecordStore(gkp->src, src, gkf->srcLen);
+  appendStringStore(gkp->hps, hps, gkf->hpsLen);
+  appendStringStore(gkp->src, src, gkf->srcLen);
 }
 
 
@@ -95,7 +86,7 @@ rearrangeStore(char *uidFileName, char *gkpStoreName, char *newStoreName) {
     exit(1);
   }
 
-  CDS_IID_t        lastElem = getLastElemFragStore(gkp) + 1;
+  AS_IID           lastElem = getLastElemFragStore(gkp) + 1;
   FILE            *F        = NULL;
   char             L[1024];
 
@@ -105,9 +96,9 @@ rearrangeStore(char *uidFileName, char *gkpStoreName, char *newStoreName) {
   //  list).
 
   uint32           orderLen   = 0;
-  CDS_IID_t       *newIIDorder      = (CDS_IID_t *)safe_calloc(lastElem, sizeof(CDS_IID_t));
-  CDS_UID_t       *newIIDordertoUID = (CDS_UID_t *)safe_calloc(lastElem, sizeof(CDS_UID_t));
-  CDS_IID_t       *oldIIDtonewIID   = (CDS_IID_t *)safe_calloc(lastElem, sizeof(CDS_IID_t));
+  AS_IID          *newIIDorder      = (AS_IID *)safe_calloc(lastElem, sizeof(AS_IID));
+  AS_UID          *newIIDordertoUID = (AS_UID *)safe_calloc(lastElem, sizeof(AS_UID));
+  AS_IID          *oldIIDtonewIID   = (AS_IID *)safe_calloc(lastElem, sizeof(AS_IID));
 
   //  Read the list of UIDs, and generate a list of IIDs that we want to dump.
 
@@ -122,15 +113,16 @@ rearrangeStore(char *uidFileName, char *gkpStoreName, char *newStoreName) {
   }
   fgets(L, 1024, F);
   while (!feof(F)) {
-    CDS_UID_t      uid = STR_TO_UID(L, 0L, 10);
-    CDS_IID_t      iid = getGatekeeperUIDtoIID(gkp, uid, NULL);
+    AS_UID   uid = AS_UID_lookup(L, NULL);
+    AS_IID   iid = getGatekeeperUIDtoIID(gkp, uid, NULL);
 
     newIIDorder[orderLen]       = iid;
     oldIIDtonewIID[iid]         = orderLen + 1;
     newIIDordertoUID[orderLen]  = uid;
 
     if (iid == 0)
-      fprintf(stderr, "UID "F_UID" doesn't exist in original store, adding empty (deleted) fragment in it's place (new IID="F_IID").\n", uid, orderLen);
+      fprintf(stderr, "UID %s doesn't exist in original store, adding empty (deleted) fragment in it's place (new IID="F_IID").\n",
+              AS_UID_toString(uid), orderLen);
 
     orderLen++;
 
@@ -174,13 +166,13 @@ rearrangeStore(char *uidFileName, char *gkpStoreName, char *newStoreName) {
       //fprintf(stderr, "i+1=%d readIID=%d oldIIDtonewIID=%d\n", i+1, fr.gkfr.readIID, oldIIDtonewIID[fr.gkfr.readIID]);
       assert(i+1             == oldIIDtonewIID[fr.gkfr.readIID]);
 
-      //fprintf(stderr, "readUID "F_UID"  newIIDorderUID "F_UID"\n", fr.gkfr.readUID, newIIDordertoUID[i]);
-      assert(fr.gkfr.readUID == newIIDordertoUID[i]);
+      //fprintf(stderr, "readUID %s  newIIDorderUID %s\n", AS_UID_toString(fr.gkfr.readUID), AS_UID_toString(newIIDordertoUID[i]));
+      assert(AS_UID_compare(fr.gkfr.readUID, newIIDordertoUID[i]) == 0);
     } else {
       //  Nope, fragment in our UID list isn't in the source store,
       //  add a deleted bogus fragment.
       //
-      clr_fragRecord(&fr);
+      memset(&fr, 0, sizeof(fragRecord));
       fr.gkfr.readUID = newIIDordertoUID[i];
       fr.gkfr.deleted = 1;
     }

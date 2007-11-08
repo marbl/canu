@@ -617,7 +617,7 @@ int main (int argc, char *argv[]){
   uint32  lastfrag,lastovlfrg;
   char *smpsFile=NULL;
   FILE *smps;
-  CDS_IID_t iid1,iid2;
+  AS_IID    iid1,iid2;
   int errflg=0;
   char ch;
   int i,j,k;

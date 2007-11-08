@@ -31,11 +31,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FindContainedFrags.cc,v 1.28 2007-10-31 17:44:28 eliv Exp $
- * $Revision: 1.28 $
+ * $Id: FindContainedFrags.cc,v 1.29 2007-11-08 12:38:11 brianwalenz Exp $
+ * $Revision: 1.29 $
 */
 
-static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.28 2007-10-31 17:44:28 eliv Exp $";
+static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.29 2007-11-08 12:38:11 brianwalenz Exp $";
 
 //  System include files
 
@@ -118,7 +118,7 @@ int  main
            if ( j == bogRunner.metrics.size()-1 ) {
 
                // Get the 5' overlap for the current IUID
-               CDS_IID_t b0 = five[0]->frag_b_id;
+               AS_IID    b0 = five[0]->frag_b_id;
                AS_BOG::BestEdgeOverlap* f1 = five[1];
                AS_BOG::BestEdgeOverlap* f2 = five[2];
 
@@ -166,18 +166,18 @@ int  main
    } // end for each fragment
 
    // We should typedef this map for best_containments
-   map<CDS_IID_t,AS_BOG::BestContainment> c1 = bogRunner.metrics[0]->_best_containments;
+   map<AS_IID,AS_BOG::BestContainment> c1 = bogRunner.metrics[0]->_best_containments;
 
    // Iterate through all the containees, this may miss containees that exists
    //   by other bogRunner.metrics/graph types
-   for(map<CDS_IID_t,AS_BOG::BestContainment>::const_iterator it = c1.begin();
+   for(map<AS_IID,AS_BOG::BestContainment>::const_iterator it = c1.begin();
            it != c1.end(); it++)
    {
 
        // First is containee IUID, Second is container IUID
-       CDS_IID_t id = it->first;
+       AS_IID    id = it->first;
        AS_BOG::BestContainment bst = it->second;
-       CDS_IID_t cr1 = bst.container;
+       AS_IID    cr1 = bst.container;
        int ahng1 = bst.a_hang;
 
 
@@ -189,7 +189,7 @@ int  main
        AS_BOG::BestContainment* b2 = bogRunner.metrics[1]->getBestContainer(id);
 
        if ( b2 != NULL ) {
-           CDS_IID_t cr2 = b2->container;
+           AS_IID    cr2 = b2->container;
            int ahng2 = b2->a_hang;
 
            cout << id << " c2 by "<< cr2 << " " << b2->score << " " << ahng2 <<
@@ -204,7 +204,7 @@ int  main
         //  3: lenIdent
        AS_BOG::BestContainment* b3 = bogRunner.metrics[2]->getBestContainer(id);
        if ( b3 != NULL ) {
-           CDS_IID_t cr3 = b3->container;
+           AS_IID    cr3 = b3->container;
            int ahng3 = b3->a_hang;
 
            cout << id << " c3 by "<< cr3 << " " << b3->score << " " << ahng3 <<

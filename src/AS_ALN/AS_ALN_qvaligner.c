@@ -424,9 +424,9 @@ void Print_Overlap_AS(FILE *file, InternalFragMesg *a,
     }
   
   fprintf(file,"\nOVERLAP BETWEEN");
-  fprintf(file," A = (" F_UID "," F_IID ")",a->eaccession,a->iaccession);
+  fprintf(file," A = (%s," F_IID ")",AS_UID_toString(a->eaccession),a->iaccession);
   fprintf(file," and");
-  fprintf(file," B = (" F_UID "," F_IID ")",b->eaccession,b->iaccession);
+  fprintf(file," B = (%s," F_IID ")",AS_UID_toString(b->eaccession),b->iaccession);
   fprintf(file,"\n\n");
 
   switch (align->orientation)

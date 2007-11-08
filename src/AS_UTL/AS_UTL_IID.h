@@ -2,7 +2,7 @@
 /**************************************************************************
  * This file is part of Celera Assembler, a software program that 
  * assembles whole-genome shotgun reads into contigs and scaffolds.
- * Copyright (C) 2007, J. Craig Venter Institute. All rights reserved.
+ * Copyright (C) 2007, J. Craig Venter Institute.
  * 
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,43 +19,41 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#ifndef OVERLAPSTORE_H
-#define OVERLAPSTORE_H
+// $Id: AS_UTL_IID.h,v 1.1 2007-11-08 12:38:15 brianwalenz Exp $
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <errno.h>
+#ifndef AS_UTL_IID_H
+#define AS_UTL_IID_H
 
-#include "AS_global.h"
 
-void
-buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 nThreads, uint32 fileListLen, char **fileList);
+typedef int32  CDS_CID_t;
+#define CDS_CID_MAX     INT32_MAX
+#define F_CID           F_S32
+#define F_CIDP          F_S32P
 
-void
-mergeStore(char *storeName, char *mergeName);
+typedef int32  CDS_COORD_t;
+#define CDS_COORD_MIN   INT32_MIN
+#define CDS_COORD_MAX   INT32_MAX
+#define F_COORD         F_S32
+#define F_COORDP        F_S32P
 
-void
-updateErates(char *storeName, char *eratesName);
+typedef uint32 AS_IID;
+#define CDS_IID_MAX     UINT32_MAX
+#define F_IID           F_U32
+#define F_IIDP          F_U32P
 
-void
-dumpStore(char *storeName, uint32 dumpBinary, double dumpERate, uint32 bgnIID, uint32 endIID);
+static
+inline
+AS_IID
+AS_IID_fromString(char *str, char **nxt) {
+  return(strtoull(str, nxt, 10));
+};
 
+static
+inline
 int
-OVSoverlap_sort(const void *a, const void *b);
+AS_IID_isDefined(AS_IID iid) {
+  return(iid > 0);
+};
 
 
-//  perl's chomp is pretty nice
-//
-#define chomp(S) { char *t=S; while (*t) t++; t--; while (isspace(*t)) *t--=0; }
-
-
-#define OP_NONE           0
-#define OP_BUILD          1
-#define OP_MERGE          2
-#define OP_DUMP           3
-#define OP_STATS          4  //  not implemented
-#define OP_UPDATE_ERATES  5
-
-
-#endif  //  OVERLAPSTORE_H
+#endif  //  AS_UTL_IID_H

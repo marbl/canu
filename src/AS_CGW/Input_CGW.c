@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 #define FILTER_EDGES
-static char CM_ID[] = "$Id: Input_CGW.c,v 1.47 2007-09-19 21:54:24 skoren Exp $";
+static char CM_ID[] = "$Id: Input_CGW.c,v 1.48 2007-11-08 12:38:11 brianwalenz Exp $";
 
 /*   THIS FILE CONTAINS ALL PROTO/IO INPUT ROUTINES */
 
@@ -561,8 +561,8 @@ LoadDistData(void) {
     dist.numReferences  = 0;
     dist.numBad         = 0;
 
-    fprintf(GlobalData->stderrc,"* Loaded dist "F_UID","F_CID" (%g +/- %g)\n",
-            gkpl->libraryUID, i, dist.mu, dist.sigma);
+    fprintf(GlobalData->stderrc,"* Loaded dist %s,"F_CID" (%g +/- %g)\n",
+            AS_UID_toString(gkpl->libraryUID), i, dist.mu, dist.sigma);
 
     SetDistT(ScaffoldGraph->Dists, i, &dist);
   }

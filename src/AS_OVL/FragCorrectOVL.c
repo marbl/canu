@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: FragCorrectOVL.c,v 1.23 2007-08-23 15:00:00 adelcher Exp $
- * $Revision: 1.23 $
+ * $Id: FragCorrectOVL.c,v 1.24 2007-11-08 12:38:14 brianwalenz Exp $
+ * $Revision: 1.24 $
 */
 
-static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.23 2007-08-23 15:00:00 adelcher Exp $";
+static char CM_ID[] = "$Id: FragCorrectOVL.c,v 1.24 2007-11-08 12:38:14 brianwalenz Exp $";
 
 
 //  System include files
@@ -1028,14 +1028,11 @@ static void  Extract_Needed_Frags
    FragStream  *frag_stream;
    int i;
 #endif
-   static fragRecord  *frag_read = NULL;
+   static fragRecord  frag_read;
    uint32  frag_iid;
    int  bytes_used, total_len, new_total;
    int  extract_ct, stream_ct;
    int  j;
-
-   if  (frag_read == NULL)
-       frag_read = new_fragRecord ();
 
 #ifdef USE_STREAM_FOR_EXTRACT
    frag_stream = openFragStream (store, FRAG_S_SEQ);
@@ -1048,7 +1045,7 @@ static void  Extract_Needed_Frags
 
 #ifdef USE_STREAM_FOR_EXTRACT
    for  (i = 0;
-           nextFragStream (frag_stream, frag_read) && (* next_olap) < Num_Olaps;
+           nextFragStream (frag_stream, &frag_read) && (* next_olap) < Num_Olaps;
            i ++)
 #else
    frag_iid = Olap [(* next_olap)] . b_iid;
@@ -1066,27 +1063,27 @@ static void  Extract_Needed_Frags
       stream_ct ++;
 
 #ifdef USE_STREAM_FOR_EXTRACT
-      frag_iid = getFragRecordIID(frag_read);
+      frag_iid = getFragRecordIID(&frag_read);
       if  (frag_iid < Olap [(* next_olap)] . b_iid)
           continue;
 #else
-      getFrag (store, frag_iid, frag_read, FRAG_S_SEQ);
+      getFrag (store, frag_iid, &frag_read, FRAG_S_SEQ);
 #endif
 
-      deleted = getFragRecordIsDeleted(frag_read);
+      deleted = getFragRecordIsDeleted(&frag_read);
       if  (deleted)
           goto  Advance_Next_Olap;
 
-      //getReadType_ReadStruct (frag_read, & read_type);
+      //getReadType_ReadStruct (&frag_read, & read_type);
       read_type = AS_READ;
       shredded = (AS_FA_SHREDDED(read_type))? TRUE : FALSE; 
 
-      clear_start = getFragRecordClearRegionBegin(frag_read, AS_READ_CLEAR_OBT);
-      clear_end   = getFragRecordClearRegionEnd  (frag_read, AS_READ_CLEAR_OBT);
+      clear_start = getFragRecordClearRegionBegin(&frag_read, AS_READ_CLEAR_OBT);
+      clear_end   = getFragRecordClearRegionEnd  (&frag_read, AS_READ_CLEAR_OBT);
 
       // Make sure that we have a valid lowercase sequence string
 
-      seqptr = getFragRecordSequence(frag_read);
+      seqptr = getFragRecordSequence(&frag_read);
 
       for  (j = clear_start;  j < clear_end;  j ++)
          seq_buff [j] = Filter (seqptr [j]);
@@ -1278,7 +1275,6 @@ static void  Init_Thread_Work_Area
    int  i;
 
    wa -> thread_id = id;
-   wa -> frag_read = new_fragRecord ();
    strcpy (wa -> rev_seq, "acgt");
 
    wa -> edit_array = (int **) safe_malloc(MAX_ERRORS * sizeof(int *));
@@ -2002,7 +1998,7 @@ static void  Read_Frags
   {
    char  seq_buff [AS_READ_MAX_LEN + 1];
    char  qual_buff [AS_READ_MAX_LEN + 1];
-   fragRecord  *frag_read;
+   fragRecord  frag_read;
    unsigned  clear_start, clear_end;
    int32  high_store_frag;
    int  i, j;
@@ -2020,8 +2016,6 @@ static void  Read_Frags
    Num_Frags = 1 + Hi_Frag_IID - Lo_Frag_IID;
    Frag = (Frag_Info_t *) safe_calloc (Num_Frags, sizeof (Frag_Info_t));
 
-   frag_read = new_fragRecord ();
-
 #ifdef USE_STORE_DIRECTLY_READ
   Internal_gkpStore = openGateKeeperStore (gkpStore_Path, FALSE);
   assert (Internal_gkpStore != NULL);
@@ -2034,14 +2028,14 @@ static void  Read_Frags
    Frag_Stream = openFragStream (Internal_gkpStore, FRAG_S_SEQ);
    resetFragStream (Frag_Stream, Lo_Frag_IID, Hi_Frag_IID);
 
-   for  (i = 0;  nextFragStream (Frag_Stream, frag_read);
+   for  (i = 0;  nextFragStream (Frag_Stream, &frag_read);
            i ++)
      {
       FragType  read_type;
       unsigned  deleted;
       int  result, frag_len;
 
-      deleted = getFragRecordIsDeleted(frag_read);
+      deleted = getFragRecordIsDeleted(&frag_read);
       if  (deleted)
           {
            Frag [i] . sequence = NULL;
@@ -2049,14 +2043,14 @@ static void  Read_Frags
            continue;
           }
 
-      //getReadType_ReadStruct (frag_read, & read_type);
+      //getReadType_ReadStruct (&frag_read, & read_type);
       read_type = AS_READ;
       Frag [i] . shredded = (AS_FA_SHREDDED(read_type))? TRUE : FALSE; 
 
-      strcpy(seq_buff, getFragRecordSequence(frag_read));
+      strcpy(seq_buff, getFragRecordSequence(&frag_read));
 
-      clear_start = getFragRecordClearRegionBegin(frag_read, AS_READ_CLEAR_OBT);
-      clear_end   = getFragRecordClearRegionEnd  (frag_read, AS_READ_CLEAR_OBT);
+      clear_start = getFragRecordClearRegionBegin(&frag_read, AS_READ_CLEAR_OBT);
+      clear_end   = getFragRecordClearRegionEnd  (&frag_read, AS_READ_CLEAR_OBT);
 
       // Make sure that we have a legal lowercase sequence string
 
@@ -2077,7 +2071,6 @@ static void  Read_Frags
       Frag [i] . left_degree = Frag [i] . right_degree = 0;
      }
 
-   del_fragRecord (frag_read);
    closeFragStream (Frag_Stream);
    closeGateKeeperStore (Internal_gkpStore);
 
@@ -2219,7 +2212,7 @@ static void  Stream_Old_Frags
 
   {
    Thread_Work_Area_t  wa;
-   fragRecord *frag_read;
+   fragRecord frag_read;
    char  seq_buff [AS_READ_MAX_LEN + 1];
    char *seqptr;
    char  rev_seq [AS_READ_MAX_LEN + 1] = "acgt";
@@ -2229,7 +2222,6 @@ static void  Stream_Old_Frags
    int  i, j;
 
    Init_Thread_Work_Area (& wa, 0);
-   frag_read = new_fragRecord ();
 
    Frag_Stream = openFragStream (gkpStore, FRAG_S_SEQ);
 
@@ -2239,7 +2231,7 @@ static void  Stream_Old_Frags
    resetFragStream (Frag_Stream, lo_frag, hi_frag);
    
    next_olap = 0;
-   for  (i = 0;  nextFragStream (Frag_Stream, frag_read)
+   for  (i = 0;  nextFragStream (Frag_Stream, &frag_read)
                    && next_olap < Num_Olaps;
            i ++)
      {
@@ -2249,22 +2241,22 @@ static void  Stream_Old_Frags
       unsigned  deleted;
       int  result, shredded;
 
-      frag_iid = getFragRecordIID(frag_read);
+      frag_iid = getFragRecordIID(&frag_read);
       if  (frag_iid < Olap [next_olap] . b_iid)
           continue;
 
-      deleted = getFragRecordIsDeleted (frag_read);
+      deleted = getFragRecordIsDeleted (&frag_read);
       if  (deleted)
           continue;
 
-      //getReadType_ReadStruct (frag_read, & read_type);
+      //getReadType_ReadStruct (&frag_read, & read_type);
       read_type = AS_READ;
       shredded = (AS_FA_SHREDDED(read_type))? TRUE : FALSE; 
 
-      clear_start = getFragRecordClearRegionBegin(frag_read, AS_READ_CLEAR_OBT);
-      clear_end   = getFragRecordClearRegionEnd  (frag_read, AS_READ_CLEAR_OBT);
+      clear_start = getFragRecordClearRegionBegin(&frag_read, AS_READ_CLEAR_OBT);
+      clear_end   = getFragRecordClearRegionEnd  (&frag_read, AS_READ_CLEAR_OBT);
 
-      seqptr = getFragRecordSequence(frag_read);
+      seqptr = getFragRecordSequence(&frag_read);
 
       // Make sure that we have a valid lowercase sequence string
 
@@ -2283,7 +2275,6 @@ static void  Stream_Old_Frags
         }
      }
 
-   del_fragRecord (frag_read);
    closeFragStream (Frag_Stream);
 
    return;

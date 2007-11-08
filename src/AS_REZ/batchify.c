@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: batchify.c,v 1.9 2007-04-16 17:34:16 brianwalenz Exp $
- * $Revision: 1.9 $
+ * $Id: batchify.c,v 1.10 2007-11-08 12:38:15 brianwalenz Exp $
+ * $Revision: 1.10 $
 */
 
-static char fileID[] = "$Id: batchify.c,v 1.9 2007-04-16 17:34:16 brianwalenz Exp $";
+static char fileID[] = "$Id: batchify.c,v 1.10 2007-11-08 12:38:15 brianwalenz Exp $";
 
 #define FILE_NAME_FORMAT "b%03d."
 
@@ -80,7 +80,7 @@ int main  (int argc, char * argv [])
      switch  (ch)
        {
         case  'b':
-          batch_size = STR_TO_INT64(optarg, & p, 10);
+          batch_size = strtoll(optarg, & p, 10);
           if  (batch_size <= 0 || p == NULL)
               {
                fprintf (stderr, "ERROR:  Illegal batch size = \"%s\"\n",
@@ -148,7 +148,7 @@ int main  (int argc, char * argv [])
           adt_mesg = (AuditMesg *) gmesg -> m;
           sprintf (batch_line, "Batch %d", batch_num);
           AppendAuditLine_AS (adt_mesg, & audit_line, time (0), "batchify",
-                              "$Revision: 1.9 $", batch_line);
+                              "$Revision: 1.10 $", batch_line);
           WriteProtoMesg_AS (outfile, gmesg);
           break;
 
@@ -175,7 +175,7 @@ int main  (int argc, char * argv [])
                audit_line . next = NULL;
                audit_line . name = "batchify";
                audit_line . complete = time (0);
-               audit_line . version = "$Revision: 1.9 $";
+               audit_line . version = "$Revision: 1.10 $";
                sprintf (batch_line, "Batch %d", batch_num);
                audit_line . comment = batch_line;
                WriteProtoMesg_AS (outfile, pmesg);

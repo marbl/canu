@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: AS_PER_asmStore.h,v 1.15 2007-08-24 15:29:48 brianwalenz Exp $	 */
+/* 	$Id: AS_PER_asmStore.h,v 1.16 2007-11-08 12:38:14 brianwalenz Exp $	 */
 #ifndef AS_PER_ASMSTORE_H
 #define AS_PER_ASMSTORE_H
 /*************************************************************************
@@ -60,7 +60,7 @@
 #define AS_IID_CHR  6
 
 typedef int32     ASM_BucketRecord;
-typedef CDS_IID_t ASM_IIDRecord;
+typedef AS_IID    ASM_IIDRecord;
 
 typedef struct
 {
@@ -71,7 +71,7 @@ typedef struct
 
 typedef struct
 {
-  CDS_UID_t uid;
+  AS_UID   uid;
   float    inMean;
   float    inStddev;
   float    asmMean;
@@ -83,7 +83,7 @@ typedef struct
 
 typedef struct
 {
-  CDS_UID_t      uid;
+  AS_UID         uid;
   unsigned int   chaff:1;
   unsigned int   chimeric:1;
   unsigned int   inDegenerate:1;
@@ -106,7 +106,7 @@ typedef struct
 
 typedef struct
 {
-  CDS_UID_t      uid;
+  AS_UID         uid;
   float          coverageStat;
   unsigned int   inDegenerate:1;
   unsigned int   spare1:7;
@@ -123,7 +123,7 @@ typedef struct
 
 typedef struct
 {
-  CDS_UID_t      uid;
+  AS_UID         uid;
   CDS_COORD_t    length;
   unsigned int   inDegenerate:1;
   unsigned int   numFrags:31;
@@ -137,7 +137,7 @@ typedef struct
 
 typedef struct
 {
-  CDS_UID_t    uid;
+  AS_UID       uid;
   IntContig_ID contigIndex;
 } ASM_DSCRecord;
 
@@ -151,7 +151,7 @@ typedef struct
 
 typedef struct
 {
-  CDS_UID_t   uid;
+  AS_UID      uid;
   int32       numContigs;
   int32       firstContig;
   int32       firstGap;
@@ -181,9 +181,7 @@ static void append ## type ## Store(type ## Store store, type ## Record *element
   appendIndexStore(store,element);\
 }\
 static int32 getNum ## type ## s(type ## Store store){\
-  StoreStat stat;\
-  statsStore(store, &stat);\
-  return(stat.lastElem);\
+  return(getLastElemStore(store));\
 }
 
 // Stores
@@ -284,7 +282,7 @@ int RemoveAssemblyStoreFiles(AssemblyStore *asmStore);
  */
 typedef struct
 {
-  CDS_UID_t  uid;
+  AS_UID     uid;
   char       chromosome[4];
   char       arm[4];
   char       description[256];

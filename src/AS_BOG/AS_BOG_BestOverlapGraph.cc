@@ -37,11 +37,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.42 2007-11-07 22:00:19 eliv Exp $
- * $Revision: 1.42 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.43 2007-11-08 12:38:11 brianwalenz Exp $
+ * $Revision: 1.43 $
 */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.42 2007-11-07 22:00:19 eliv Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.43 2007-11-08 12:38:11 brianwalenz Exp $";
 
 //  System include files
 #include<iostream>
@@ -597,22 +597,21 @@ namespace AS_BOG{
         // Open Frag store
         GateKeeperStore  *gkpStoreHandle = openGateKeeperStore( FRG_Store_Path, FALSE);
         FragStream       *fragStream = openFragStream( gkpStoreHandle, FRAG_S_INF);
-        fragRecord       *fsread = new_fragRecord();
+        fragRecord        fsread;
 
         // Allocate and Initialize fragLength array
         BestOverlapGraph::fragLength = new uint16[BestOverlapGraph::lastFrg+1];
         memset( BestOverlapGraph::fragLength, std::numeric_limits<uint16>::max(),
                 sizeof(uint16)*(BestOverlapGraph::lastFrg+1));
         iuid iid = 1;
-        while(nextFragStream( fragStream, fsread)) {
-            if (getFragRecordIsDeleted(fsread)) {
+        while(nextFragStream( fragStream, &fsread)) {
+            if (getFragRecordIsDeleted(&fsread)) {
                 iid++; continue;
             }
-            uint32 clrBgn = getFragRecordClearRegionBegin(fsread, AS_READ_CLEAR_OBT);
-            uint32 clrEnd = getFragRecordClearRegionEnd  (fsread, AS_READ_CLEAR_OBT);
+            uint32 clrBgn = getFragRecordClearRegionBegin(&fsread, AS_READ_CLEAR_OBT);
+            uint32 clrEnd = getFragRecordClearRegionEnd  (&fsread, AS_READ_CLEAR_OBT);
             BestOverlapGraph::fragLength[ iid++ ] = clrEnd - clrBgn;
         }
-        del_fragRecord( fsread );
         closeFragStream( fragStream ); 
         closeGateKeeperStore( gkpStoreHandle ); 
 

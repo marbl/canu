@@ -24,28 +24,50 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
-LIB_SOURCES = AS_UTL_Hash.c AS_UTL_heap.c AS_UTL_Var.c AS_UTL_rand.c AS_UTL_version.c AS_UTL_interval.c UnionFind_AS.c AS_UTL_skiplist.c AS_UTL_SequenceBucket.c getopt.c getopt1.c AS_UTL_alloc.c AS_UTL_fileIO.c AS_UTL_qsort_mt.c AS_UTL_fasta.c
+LIB_SOURCES = AS_UTL_Hash.c \
+              AS_UTL_heap.c \
+              AS_UTL_Var.c \
+              AS_UTL_rand.c \
+              AS_UTL_version.c \
+              AS_UTL_interval.c \
+              UnionFind_AS.c \
+              AS_UTL_skiplist.c \
+              getopt.c \
+              getopt1.c \
+              AS_UTL_alloc.c \
+              AS_UTL_fileIO.c \
+              AS_UTL_qsort_mt.c \
+              AS_UTL_fasta.c \
+              AS_UTL_UID.c
 LIB_OBJECTS = $(LIB_SOURCES:.c=.o)
 
-SOURCES     = AS_UTL_skiplist_test.c testHashTable.c testVar.c testRand.c testSequenceBucket.c $(LIB_SOURCES)
+SOURCES     = $(LIB_SOURCES)
+
+DEADSRC     = AS_UTL_skiplist_test.c \
+              testHashTable.c \
+              testVar.c \
+              testRand.c
+
 OBJECTS     = $(SOURCES:.c=.o)
 LIBRARIES   = libAS_UTL.a libCA.a
-SCRIPTS     = AS_UTL_extractMSG.awk extractMSG 
-PROGS       = testVar testRand testSkiplist testBuckets testHashTable
+SCRIPTS     = 
+PROGS       = 
+
+DEADSCRIPTS = AS_UTL_extractMSG.awk extractMSG
+DEADPROGS   = testVar testRand testSkiplist testHashTable
 
 # Include for AS project rules
 include $(LOCAL_WORK)/src/c_make.as
 
-all: $(OBJECTS) $(LIBRARIES) $(PROGS) install
+all: $(OBJECTS) $(LIBRARIES) $(PROGS)
 	@test -n nop
 
-install: $(SCRIPTS)
-	@cp -f $(SCRIPTS) $(LOCAL_BIN)
+#install: $(SCRIPTS)
+#	@cp -f $(SCRIPTS) $(LOCAL_BIN)
 
 libAS_UTL.a: $(LIB_OBJECTS)
 libCA.a: $(LIB_OBJECTS)
 
-testBuckets:    testSequenceBucket.o libAS_UTL.a
 testSkiplist:   AS_UTL_skiplist_test.o libAS_UTL.a
 testHashTable:  testHashTable.o AS_UTL_Hash.o libAS_UTL.a
 testRand:       testRand.o libAS_UTL.a

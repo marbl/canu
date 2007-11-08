@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.18 2007-10-30 10:10:24 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkLibrary.c,v 1.19 2007-11-08 12:38:12 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -64,7 +64,7 @@ checkLibraryDistances(LibraryMesg *lib_mesg,
   if ((lib_mesg->mean   <= 0.0) &&
       (lib_mesg->stddev <= 0.0)) {
     AS_GKP_reportError(AS_GKP_LIB_ILLEGAL_MEAN_STDDEV,
-                       lib_mesg->eaccession, lib_mesg->mean, lib_mesg->stddev);
+                       AS_UID_toString(lib_mesg->eaccession), lib_mesg->mean, lib_mesg->stddev);
     if (lib_mesg->action == AS_ADD)
       gkpStore->gkp.libWarnings++;
     lib_mesg->mean   = 3000.0;
@@ -73,7 +73,7 @@ checkLibraryDistances(LibraryMesg *lib_mesg,
 
   if (lib_mesg->mean   <= 0.0) {
     AS_GKP_reportError(AS_GKP_LIB_INVALID_MEAN,
-                       lib_mesg->eaccession, lib_mesg->mean, 10.0 * lib_mesg->stddev);
+                       AS_UID_toString(lib_mesg->eaccession), lib_mesg->mean, 10.0 * lib_mesg->stddev);
     if (lib_mesg->action == AS_ADD)
       gkpStore->gkp.libWarnings++;
     lib_mesg->mean = 10.0 * lib_mesg->stddev;
@@ -81,7 +81,7 @@ checkLibraryDistances(LibraryMesg *lib_mesg,
 
   if (lib_mesg->stddev <= 0.0) {
     AS_GKP_reportError(AS_GKP_LIB_INVALID_STDDEV,
-                       lib_mesg->eaccession, lib_mesg->stddev, 0.1 * lib_mesg->mean);
+                       AS_UID_toString(lib_mesg->eaccession), lib_mesg->stddev, 0.1 * lib_mesg->mean);
     if (lib_mesg->action == AS_ADD)
       gkpStore->gkp.libWarnings++;
     lib_mesg->stddev = 0.1 * lib_mesg->mean;
@@ -89,7 +89,7 @@ checkLibraryDistances(LibraryMesg *lib_mesg,
 
   if (lib_mesg->mean < 3.0 * lib_mesg->stddev) {
     AS_GKP_reportError(AS_GKP_LIB_STDDEV_TOO_BIG,
-                       lib_mesg->eaccession, lib_mesg->stddev, lib_mesg->mean, 0.1 * lib_mesg->mean);
+                       AS_UID_toString(lib_mesg->eaccession), lib_mesg->stddev, lib_mesg->mean, 0.1 * lib_mesg->mean);
     if (lib_mesg->action == AS_ADD)
       gkpStore->gkp.libWarnings++;
     lib_mesg->stddev = 0.1 * lib_mesg->mean;
@@ -102,7 +102,7 @@ checkLibraryDistances(LibraryMesg *lib_mesg,
   if (believeInputStdDev == 0) {
     if (lib_mesg->stddev + 0.001 < 0.1 * lib_mesg->mean) {
       AS_GKP_reportError(AS_GKP_LIB_STDDEV_TOO_SMALL,
-                         lib_mesg->eaccession, lib_mesg->mean, lib_mesg->stddev, 0.1 * lib_mesg->mean);
+                         AS_UID_toString(lib_mesg->eaccession), lib_mesg->mean, lib_mesg->stddev, 0.1 * lib_mesg->mean);
       if (lib_mesg->action == AS_ADD)
         gkpStore->gkp.libWarnings++;
       lib_mesg->stddev = 0.1 * lib_mesg->mean;
@@ -127,15 +127,22 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
 
   checkLibraryDistances(lib_mesg, believeInputStdDev);
 
+#if 0
+  //  Process all the incoming UIDs.
+  //
+  AS_UID_setGatekeeper(gkpStore);  //  doesn't need to be done all the time
+  lib_mesg->eaccession = AS_UID_process(lib_mesg->eaccession);
+#endif
+
   if (lib_mesg->action == AS_ADD) {
-    CDS_IID_t  iid = getGatekeeperUIDtoIID(gkpStore, lib_mesg->eaccession, NULL);
+    AS_IID     iid = getGatekeeperUIDtoIID(gkpStore, lib_mesg->eaccession, NULL);
     if (iid) {
       AS_GKP_reportError(AS_GKP_LIB_EXISTS,
-              lib_mesg->eaccession, iid);
+                         AS_UID_toString(lib_mesg->eaccession), iid);
       gkpStore->gkp.libErrors++;
       return(1);
     }
-    if (lib_mesg->eaccession == 0) {
+    if (AS_UID_isDefined(lib_mesg->eaccession) == FALSE) {
       AS_GKP_reportError(AS_GKP_LIB_ZERO_UID);
       gkpStore->gkp.libErrors++;
       return(1);
@@ -169,11 +176,11 @@ Check_LibraryMesg(LibraryMesg      *lib_mesg,
     gkpStore->gkp.libLoaded++;
 
   } else if (lib_mesg->action == AS_UPDATE) {
-    CDS_IID_t  iid = getGatekeeperUIDtoIID(gkpStore, lib_mesg->eaccession, NULL);
+    AS_IID     iid = getGatekeeperUIDtoIID(gkpStore, lib_mesg->eaccession, NULL);
 
     if (iid == 0) {
       AS_GKP_reportError(AS_GKP_LIB_DOESNT_EXIST_UPDATE,
-                         lib_mesg->eaccession);
+                         AS_UID_toString(lib_mesg->eaccession));
       return(1);
     }
 

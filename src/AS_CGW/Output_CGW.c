@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Output_CGW.c,v 1.28 2007-11-02 22:36:56 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Output_CGW.c,v 1.29 2007-11-08 12:38:11 brianwalenz Exp $";
 
 #include <assert.h>
 #include <math.h>
@@ -239,7 +239,7 @@ void OutputContigsFromMultiAligns(void){
   InitGraphNodeIterator(&nodes, graph, GRAPH_NODE_DEFAULT);
   /* 1st get min and max values */
   while((ctg = NextGraphNodeIterator(&nodes)) != NULL){
-    CDS_IID_t i;
+    AS_IID    i;
     
     if(ctg->flags.bits.isChaff){
       //      fprintf(GlobalData->stderrc,"* # Contig " F_CID " is CHAFF\n", ctg->id);
@@ -248,8 +248,8 @@ void OutputContigsFromMultiAligns(void){
     
     {
       CIScaffoldT *scaffold = GetGraphNode(ScaffoldGraph->ScaffoldGraph, ctg->scaffoldID);
-      CDS_IID_t numFrag;
-      CDS_IID_t numUnitig;
+      AS_IID    numFrag;
+      AS_IID    numUnitig;
       IntMultiPos *mp;
       IntUnitigPos *up;
 
@@ -694,7 +694,7 @@ void OutputUnitigsFromMultiAligns(void){
 
     {
       MultiAlignT *ma = loadMultiAlignTFromSequenceDB(ScaffoldGraph->sequenceDB, ci->id, TRUE);
-      CDS_IID_t numFrag = GetNumIntMultiPoss(ma->f_list);
+      AS_IID    numFrag = GetNumIntMultiPoss(ma->f_list);
       assert (ci->type != CONTIG_CGW);
 
       ci->outputID = cid++;
@@ -909,7 +909,7 @@ void OutputUnitigLinksFromMultiAligns(void){
 
 void OutputScaffolds(ScaffoldGraphT *graph)
 {
-  CDS_IID_t			sid, pairCount;
+  AS_IID			sid, pairCount;
   IntScaffoldMesg		ism;
   int				buffSize=2048;
   GenericMesg			pmesg;
@@ -918,7 +918,7 @@ void OutputScaffolds(ScaffoldGraphT *graph)
   CIScaffoldTIterator		Contigs;
   ChunkInstanceT		*curr, *last;
   GraphNodeIterator             scaffolds;
-  CDS_IID_t cnt = 0;
+  AS_IID    cnt = 0;
 
   pmesg.m = &ism;
   pmesg.t = MESG_ISF;

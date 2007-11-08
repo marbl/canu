@@ -223,7 +223,7 @@ readClearRanges(GateKeeperStore *gkp) {
   clear_t          *clear = new clear_t [getLastElemFragStore(gkp) + 1];
 
   while (nextFragStream(fs, &fr)) {
-    CDS_IID_t      iid = getFragRecordIID(&fr);
+    AS_IID         iid = getFragRecordIID(&fr);
     clear[iid].length  = getFragRecordSequenceLength(&fr);
     clear[iid].ovlpL   = getFragRecordClearRegionBegin(&fr, AS_READ_CLEAR_OBT);
     clear[iid].ovlpR   = getFragRecordClearRegionEnd  (&fr, AS_READ_CLEAR_OBT);
@@ -243,8 +243,8 @@ readClearRanges(GateKeeperStore *gkp) {
 void
 printReport(FILE          *reportFile,
             char          *type,
-            uint64         uid,
-            uint32         iid,
+            AS_UID         uid,
+            AS_IID         iid,
             intervalList  &IL,
             uint32         intervalBeg,
             uint32         intervalEnd,
@@ -252,8 +252,8 @@ printReport(FILE          *reportFile,
             overlapList  *overlap) {
 
   if (reportFile) {
-    fprintf(reportFile, F_U64","F_U32" %s!  "F_U32" intervals ("F_U32","F_U32").  "F_U32" potential chimeric overlaps (%5.2f%%).\n",
-            uid, iid, type,
+    fprintf(reportFile, "%s,"F_IID" %s!  "F_U32" intervals ("F_U32","F_U32").  "F_U32" potential chimeric overlaps (%5.2f%%).\n",
+            AS_UID_toString(uid), iid, type,
             IL.numberOfIntervals(), intervalBeg, intervalEnd,
             hasPotentialChimera, (double)hasPotentialChimera / (double)overlap->length() * 100);
 
@@ -266,8 +266,8 @@ printReport(FILE          *reportFile,
 void
 printLogMessage(FILE         *reportFile,
                 fragRecord   *fr,
-                uint64        uid,
-                uint32        iid,
+                AS_UID        uid,
+                AS_IID        iid,
                 uint32        intervalBeg,
                 uint32        intervalEnd,
                 bool          doUpdate,
@@ -275,8 +275,8 @@ printLogMessage(FILE         *reportFile,
                 char         *message) {
 
   if (reportFile)
-    fprintf(reportFile, F_U64","F_U32" %s Trimmed from "F_U32W(4)" "F_U32W(4)" to "F_U32W(4)" "F_U32W(4)".  %s, gatekeeper store %s.\n",
-            uid,
+    fprintf(reportFile, "%s,"F_IID" %s Trimmed from "F_U32W(4)" "F_U32W(4)" to "F_U32W(4)" "F_U32W(4)".  %s, gatekeeper store %s.\n",
+            AS_UID_toString(uid),
             iid,
             type,
             getFragRecordClearRegionBegin(fr, AS_READ_CLEAR_OBT),
@@ -611,7 +611,6 @@ process(uint32           iid,
     }
 
     fragRecord        fr;
-    uint64            uid = 0;
 
     //  We need this to decide if we should get the UID (and the fragRecord)
     //
@@ -621,7 +620,7 @@ process(uint32           iid,
 
     getFrag(gkp, iid, &fr, FRAG_S_INF);
 
-    uid = getFragRecordUID(&fr);
+    AS_UID uid = getFragRecordUID(&fr);
 
     GateKeeperLibraryRecord  *gklr = getGateKeeperLibrary(gkp, getFragRecordLibraryIID(&fr));
     if ((doUpdate) && (gklr) && (gklr->doNotOverlapTrim))

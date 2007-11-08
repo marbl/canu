@@ -34,11 +34,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: CorrectOlapsOVL.c,v 1.26 2007-10-08 13:40:17 adelcher Exp $
- * $Revision: 1.26 $
+ * $Id: CorrectOlapsOVL.c,v 1.27 2007-11-08 12:38:14 brianwalenz Exp $
+ * $Revision: 1.27 $
 */
 
-static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.26 2007-10-08 13:40:17 adelcher Exp $";
+static char CM_ID[] = "$Id: CorrectOlapsOVL.c,v 1.27 2007-11-08 12:38:14 brianwalenz Exp $";
 
 
 //  System include files
@@ -2200,7 +2200,7 @@ static void  Read_Frags
 //  global  Frag .
 
   {
-   fragRecord *frag_read;
+   fragRecord frag_read;
    char  frag_source [MAX_SOURCE_LENGTH + 1];
    unsigned  clear_start, clear_end;
    int  i, j;
@@ -2216,15 +2216,13 @@ static void  Read_Frags
    Num_Frags = 1 + Hi_Frag_IID - Lo_Frag_IID;
    Frag = (Frag_Info_t *) safe_calloc (Num_Frags, sizeof (Frag_Info_t));
 
-   frag_read = new_fragRecord ();
-
    gkpStore = openGateKeeperStore(gkpStore_Path, FALSE);
    loadGateKeeperStorePartial(gkpStore, Lo_Frag_IID, Hi_Frag_IID, FRAG_S_SEQ | FRAG_S_SRC);
    
    Frag_Stream = openFragStream (gkpStore, FRAG_S_SEQ | FRAG_S_SRC);
    resetFragStream (Frag_Stream, Lo_Frag_IID, Hi_Frag_IID);
 
-   for  (i = 0;  nextFragStream (Frag_Stream, frag_read);
+   for  (i = 0;  nextFragStream (Frag_Stream, &frag_read);
            i ++)
      {
       char  seq_buff [AS_READ_MAX_LEN + 1];
@@ -2232,7 +2230,7 @@ static void  Read_Frags
       unsigned  deleted;
       int  result;
 
-      deleted = getFragRecordIsDeleted (frag_read);
+      deleted = getFragRecordIsDeleted (&frag_read);
       if  (deleted)
           {
            Frag [i] . sequence = NULL;
@@ -2241,10 +2239,10 @@ static void  Read_Frags
            continue;
           }
 
-      clear_start = getFragRecordClearRegionBegin(frag_read, AS_READ_CLEAR_OBT);
-      clear_end   = getFragRecordClearRegionEnd  (frag_read, AS_READ_CLEAR_OBT);
+      clear_start = getFragRecordClearRegionBegin(&frag_read, AS_READ_CLEAR_OBT);
+      clear_end   = getFragRecordClearRegionEnd  (&frag_read, AS_READ_CLEAR_OBT);
 
-      seqptr = getFragRecordSequence(frag_read);
+      seqptr = getFragRecordSequence(&frag_read);
 
       // Make sure that we have a legal lowercase sequence string
 
@@ -2255,7 +2253,7 @@ static void  Read_Frags
 
       Frag [i] . sequence = strdup (seq_buff + clear_start);
 
-      if  (! Get_Celsim_Coords (getFragRecordSource(frag_read),
+      if  (! Get_Celsim_Coords (getFragRecordSource(&frag_read),
                                 & Frag [i] . celsim_start,
                                 & Frag [i] . celsim_end))
           Frag [i] . celsim_start = Frag [i] . celsim_end = -1;
@@ -2265,7 +2263,6 @@ static void  Read_Frags
 #endif
      }
 
-   del_fragRecord (frag_read);
    closeFragStream (Frag_Stream);
    closeGateKeeperStore (gkpStore);
 
@@ -2360,7 +2357,7 @@ static void  Redo_Olaps
 
   {
    FILE  * fp;
-   fragRecord *frag_read;
+   fragRecord frag_read;
    unsigned  clear_start, clear_end;
    int  lo_frag, hi_frag;
    uint64  next_olap;
@@ -2371,8 +2368,6 @@ static void  Redo_Olaps
    int  num_corrects;
    uint32  correct_iid = 0, next_iid;
    int  i, j;
-
-   frag_read = new_fragRecord ();
 
    gkpStore = openGateKeeperStore (gkpStore_Path, FALSE);
    Frag_Stream = openFragStream (gkpStore, FRAG_S_SEQ);
@@ -2385,7 +2380,7 @@ static void  Redo_Olaps
    fp = File_Open (Correct_File_Path, "rb");
 
    next_olap = 0;
-   for  (i = 0;  nextFragStream (Frag_Stream, frag_read)
+   for  (i = 0;  nextFragStream (Frag_Stream, &frag_read)
                    && next_olap < Num_Olaps;
            i ++)
      {
@@ -2397,18 +2392,18 @@ static void  Redo_Olaps
       unsigned  deleted;
       int  frag_len, result;
 
-      frag_iid = getFragRecordIID (frag_read);
+      frag_iid = getFragRecordIID (&frag_read);
       if  (frag_iid < Olap [next_olap] . b_iid)
           continue;
 
-      deleted = getFragRecordIsDeleted (frag_read);
+      deleted = getFragRecordIsDeleted (&frag_read);
       if  (deleted)
           continue;
 
-      clear_start = getFragRecordClearRegionBegin(frag_read, AS_READ_CLEAR_OBT);
-      clear_end   = getFragRecordClearRegionEnd  (frag_read, AS_READ_CLEAR_OBT);
+      clear_start = getFragRecordClearRegionBegin(&frag_read, AS_READ_CLEAR_OBT);
+      clear_end   = getFragRecordClearRegionEnd  (&frag_read, AS_READ_CLEAR_OBT);
 
-      seqptr = getFragRecordSequence(frag_read);
+      seqptr = getFragRecordSequence(&frag_read);
 
       // Make sure that we have a legal lowercase sequence string
 
@@ -2462,7 +2457,6 @@ static void  Redo_Olaps
         }
      }
 
-   del_fragRecord (frag_read);
    closeFragStream (Frag_Stream);
    closeGateKeeperStore (gkpStore);
 

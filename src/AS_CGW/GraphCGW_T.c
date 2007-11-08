@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.57 2007-11-02 22:36:56 brianwalenz Exp $";
+static char CM_ID[] = "$Id: GraphCGW_T.c,v 1.58 2007-11-08 12:38:11 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -4286,8 +4286,8 @@ void ComputeMatePairStatisticsRestricted(int operateOnNodes,
       lmesg.values       = NULL;   //  Not used for AS_UPDATE
 
       fflush(fout);
-      fprintf(fout, "# LIB "F_UID" %f +- %f -> %f +- %f\n",
-              lmesg.eaccession, gkpl->mean, gkpl->stddev, dptr->mu, dptr->sigma);
+      fprintf(fout, "# LIB %s %f +- %f -> %f +- %f\n",
+              AS_UID_toString(lmesg.eaccession), gkpl->mean, gkpl->stddev, dptr->mu, dptr->sigma);
       fflush(fout);
 
       pmesg.m = &lmesg;

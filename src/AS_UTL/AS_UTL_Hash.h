@@ -87,6 +87,7 @@ uint32        Hash_AS(uint8 *k, uint32 length, uint32 initval);
 
 HashTable_AS *CreateGenericHashTable_AS(uint32 numItemsToHash, ASHashHashFn hash, ASHashCompFn comp);
 HashTable_AS *CreateScalarHashTable_AS(uint32 numItemsToHash);
+HashTable_AS *CreateStringHashTable_AS(uint32 numItemsToHash);
 
 void          ResetHashTable_AS (HashTable_AS *table);
 void          DeleteHashTable_AS(HashTable_AS *table);

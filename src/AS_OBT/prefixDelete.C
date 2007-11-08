@@ -191,8 +191,8 @@ main(int argc, char **argv) {
       for (uint32 b=beg; b<end; b++) {
         for (uint32 e=b+1; e<end; e++) {
 
-          CDS_IID_t  iid1 = fh[b].iid;
-          CDS_IID_t  iid2 = fh[e].iid;
+          AS_IID     iid1 = fh[b].iid;
+          AS_IID     iid2 = fh[e].iid;
 
           getFrag(gkp, iid1, &fr1, FRAG_S_SEQ);
           getFrag(gkp, iid2, &fr2, FRAG_S_SEQ);
@@ -229,8 +229,8 @@ main(int argc, char **argv) {
             //  smaller sequence length or smaller iid).  We can skip
             //  the delete if it's already deleted.
 
-            CDS_UID_t  deletedUID = 0;
-            CDS_IID_t  deletedIID = 0;
+            AS_UID     deletedUID = AS_UID_undefined();
+            AS_IID     deletedIID = 0;
             uint32     deleted    = 0;
 
             if ((len == getFragRecordSequenceLength(&fr1)) &&
@@ -250,11 +250,11 @@ main(int argc, char **argv) {
 
             if (deleted == 0) {
               delFrag(gkp, deletedIID);
-              fprintf(stdout, F_UID"\t"F_UID"\tlen="F_U32"\tdeleted="F_UID"\n",
-                      getFragRecordUID(&fr1),
-                      getFragRecordUID(&fr2),
+              fprintf(stdout, "%s\t%s\tlen="F_U32"\tdeleted=%s\n",
+                      AS_UID_toString(getFragRecordUID(&fr1)),
+                      AS_UID_toString(getFragRecordUID(&fr2)),
                       len,
-                      deletedUID);
+                      AS_UID_toString(deletedUID));
             }
           }
         }

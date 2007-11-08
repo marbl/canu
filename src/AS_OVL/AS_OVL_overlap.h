@@ -26,8 +26,8 @@
  *********************************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap.h,v 1.23 2007-08-03 20:45:04 brianwalenz Exp $
- * $Revision: 1.23 $
+ * $Id: AS_OVL_overlap.h,v 1.24 2007-11-08 12:38:13 brianwalenz Exp $
+ * $Revision: 1.24 $
 */
 
 
@@ -526,7 +526,7 @@ typedef  struct Work_Area
    FragStream  *stream_segment;
    Screen_Info_t  screen_info;
    int  status;
-   fragRecord *myRead;
+   fragRecord  myRead;
    FragType  curr_frag_type;
    int  thread_id;
 

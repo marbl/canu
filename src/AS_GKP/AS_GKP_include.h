@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-/* $Id: AS_GKP_include.h,v 1.34 2007-10-29 06:36:47 brianwalenz Exp $ */
+/* $Id: AS_GKP_include.h,v 1.35 2007-11-08 12:38:12 brianwalenz Exp $ */
 
 #ifndef AS_GKP_INCLUDE_H
 #define AS_GKP_INCLUDE_H
@@ -29,7 +29,6 @@
 #include "AS_PER_gkpStore.h"
 #include "AS_UTL_Var.h"
 #include "AS_MSG_pmesg.h"
-#include "AS_UTL_SequenceBucket.h"
 
 #define GATEKEEPER_MAX_ERROR_RATE        0.025 
 #define GATEKEEPER_QV_WINDOW_WIDTH      50
@@ -69,22 +68,22 @@ dumpGateKeeperInfo(char       *gkpStoreName);
 
 void
 dumpGateKeeperBatches(char       *gkpStoreName,
-                      CDS_IID_t   begIID,
-                      CDS_IID_t   endIID,
+                      AS_IID      begIID,
+                      AS_IID      endIID,
                       char       *iidToDump, 
                       int         asTable);
 
 void
 dumpGateKeeperLibraries(char       *gkpStoreName,
-                        CDS_IID_t   begIID,
-                        CDS_IID_t   endIID,
+                        AS_IID      begIID,
+                        AS_IID      endIID,
                         char       *iidToDump, 
                         int         asTable);
 
 void
 dumpGateKeeperFragments(char       *gkpStoreName,
-                        CDS_IID_t   begIID,
-                        CDS_IID_t   endIID,
+                        AS_IID      begIID,
+                        AS_IID      endIID,
                         char       *iidToDump, 
                         int         dumpWithSequence,
                         int         dumpClear,
@@ -92,8 +91,8 @@ dumpGateKeeperFragments(char       *gkpStoreName,
 
 void
 dumpGateKeeperAsFasta(char       *gkpStoreName,
-                      CDS_IID_t   begIID,
-                      CDS_IID_t   endIID,
+                      AS_IID      begIID,
+                      AS_IID      endIID,
                       char       *iidToDump, 
                       int         dumpFastaAllReads,
                       int         dumpFastaClear,
@@ -102,8 +101,8 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
 void
 dumpGateKeeperAsFRG(char       *gkpStoreName,
                     int         dumpFormat,
-                    CDS_IID_t   begIID,
-                    CDS_IID_t   endIID,
+                    AS_IID      begIID,
+                    AS_IID      endIID,
                     char       *iidToDump,
                     int         doNotFixMates,
                     int         dumpFRGClear);

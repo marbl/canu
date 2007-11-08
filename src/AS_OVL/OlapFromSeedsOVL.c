@@ -36,11 +36,11 @@
 *************************************************/
 
 /* RCS info
- * $Id: OlapFromSeedsOVL.c,v 1.19 2007-10-18 21:39:12 adelcher Exp $
- * $Revision: 1.19 $
+ * $Id: OlapFromSeedsOVL.c,v 1.20 2007-11-08 12:38:14 brianwalenz Exp $
+ * $Revision: 1.20 $
 */
 
-static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.19 2007-10-18 21:39:12 adelcher Exp $";
+static char CM_ID[] = "$Id: OlapFromSeedsOVL.c,v 1.20 2007-11-08 12:38:14 brianwalenz Exp $";
 
 
 #include "OlapFromSeedsOVL.h"
@@ -2218,14 +2218,11 @@ static void  Extract_Needed_Frags
    FragStream  *frag_stream;
    int i;
 #endif
-   static fragRecord  * frag_read = NULL;
+   static fragRecord   frag_read;
    uint32  frag_iid;
    int  bytes_used, total_len, new_total;
    int  extract_ct, stream_ct;
    int  j;
-
-   if  (frag_read == NULL)
-       frag_read = new_fragRecord ();
 
 #ifdef USE_STREAM_FOR_EXTRACT
    frag_stream = openFragStream (store);
@@ -2237,7 +2234,7 @@ static void  Extract_Needed_Frags
    extract_ct = stream_ct = 0;
 
 #ifdef USE_STREAM_FOR_EXTRACT
-   for (i = 0; nextFragStream (frag_stream, frag_read, FRAG_S_SEQ)
+   for (i = 0; nextFragStream (frag_stream, &frag_read, FRAG_S_SEQ)
         && (* next_olap) < Num_Olaps; i ++)
 #else
    frag_iid = Olap [(* next_olap)] . b_iid;
@@ -2252,24 +2249,24 @@ static void  Extract_Needed_Frags
       stream_ct ++;
 
 #ifdef USE_STREAM_FOR_EXTRACT
-      getReadIndex_ReadStruct (frag_read, & frag_iid);
+      getReadIndex_ReadStruct (&frag_read, & frag_iid);
       if  (frag_iid < Olap [(* next_olap)] . b_iid)
           continue;
 #else
-      getFrag (store, frag_iid, frag_read, FRAG_S_SEQ);
+      getFrag (store, frag_iid, &frag_read, FRAG_S_SEQ);
 #endif
 
-      if (getFragRecordIsDeleted (frag_read))
+      if (getFragRecordIsDeleted (&frag_read))
           goto  Advance_Next_Olap;
 
       shredded = FALSE;
         // Used in Process_Seed to ignore overlaps between two "shredded" reads
         // Perhaps should check for external reads now
 
-      clear_start = getFragRecordClearRegionBegin (frag_read, AS_READ_CLEAR_OBT);
-      clear_end = getFragRecordClearRegionEnd (frag_read, AS_READ_CLEAR_OBT);
-      raw_len = getFragRecordSequenceLength (frag_read);
-      seq_ptr = getFragRecordSequence (frag_read);
+      clear_start = getFragRecordClearRegionBegin (&frag_read, AS_READ_CLEAR_OBT);
+      clear_end = getFragRecordClearRegionEnd (&frag_read, AS_READ_CLEAR_OBT);
+      raw_len = getFragRecordSequenceLength (&frag_read);
+      seq_ptr = getFragRecordSequence (&frag_read);
 
       if (AS_READ_MAX_LEN < clear_end - clear_start)
         {
@@ -2295,7 +2292,7 @@ static void  Extract_Needed_Frags
       list -> entry [list -> ct] . id = frag_iid;
       list -> entry [list -> ct] . shredded = shredded;
       list -> entry [list -> ct] . is_homopoly_type
-           = Is_Homopoly_Type (frag_read, store);
+           = Is_Homopoly_Type (&frag_read, store);
       list -> entry [list -> ct] . trim_5p = clear_start;
       list -> entry [list -> ct] . trim_3p = raw_len - clear_end;
       bytes_used = 1 + clear_end - clear_start;
@@ -2627,7 +2624,6 @@ static void  Init_Thread_Work_Area
 
    wa -> thread_id = id;
    wa -> failed_olaps = 0;
-   wa -> frag_read = new_fragRecord ();
    strcpy (wa -> rev_seq, "acgt");
 
    wa -> edit_array = (int **) safe_malloc(MAX_ERRORS * sizeof(int *));
@@ -3928,7 +3924,7 @@ static void  Read_Frags
 
   {
    char  seq_buff [AS_READ_MAX_LEN + 1];
-   static  fragRecord  * frag_read = NULL;
+   static  fragRecord    frag_read;
    unsigned  clear_start, clear_end;
    int32  high_store_frag;
    int  i, j;
@@ -3947,9 +3943,6 @@ static void  Read_Frags
    Num_Frags = 1 + Hi_Frag_IID - Lo_Frag_IID;
    Frag = (Frag_Info_t *) safe_calloc (Num_Frags, sizeof (Frag_Info_t));
 
-   if (frag_read == NULL)
-     frag_read = new_fragRecord ();
-
 #ifdef USE_STORE_DIRECTLY_READ
   Internal_gkpStore = openGateKeeperStore (gkpStore_Path, FALSE);
   assert (Internal_gkpStore != NULL);
@@ -3961,12 +3954,12 @@ static void  Read_Frags
    Frag_Stream = openFragStream (Internal_gkpStore, FRAG_S_SEQ);
    resetFragStream (Frag_Stream, Lo_Frag_IID, Hi_Frag_IID);
 
-   for (i = 0; nextFragStream (Frag_Stream, frag_read); i ++)
+   for (i = 0; nextFragStream (Frag_Stream, &frag_read); i ++)
      {
       char  * seq_ptr;
       int  raw_len, result, frag_len;
 
-      if (getFragRecordIsDeleted (frag_read))
+      if (getFragRecordIsDeleted (&frag_read))
         {
          Frag [i] . sequence = NULL;
          Frag [i] . vote = NULL;
@@ -3978,22 +3971,22 @@ static void  Read_Frags
         // Perhaps should check for external reads now
 
 
-      clear_start = getFragRecordClearRegionBegin (frag_read, AS_READ_CLEAR_OBT);
-      clear_end = getFragRecordClearRegionEnd (frag_read, AS_READ_CLEAR_OBT);
-      raw_len = getFragRecordSequenceLength (frag_read);
+      clear_start = getFragRecordClearRegionBegin (&frag_read, AS_READ_CLEAR_OBT);
+      clear_end = getFragRecordClearRegionEnd (&frag_read, AS_READ_CLEAR_OBT);
+      raw_len = getFragRecordSequenceLength (&frag_read);
       if (AS_READ_MAX_LEN < raw_len)
         {
          fprintf (stderr, "ERROR:  line %d  file %s\n", __LINE__, __FILE__);
          fprintf (stderr, "Read %u is too long:  %d bp; max is %d\n",
-              getFragRecordIID (frag_read), raw_len, AS_READ_MAX_LEN);
+              getFragRecordIID (&frag_read), raw_len, AS_READ_MAX_LEN);
          exit (-1);
         }
 
-      seq_ptr = getFragRecordSequence (frag_read);
+      seq_ptr = getFragRecordSequence (&frag_read);
       Frag [i] . trim_5p = clear_start;
       Frag [i] . trim_3p = raw_len - clear_end;
       Frag [i] . clear_len = clear_end - clear_start;
-      Frag [i] . is_homopoly_type = Is_Homopoly_Type (frag_read, Internal_gkpStore);
+      Frag [i] . is_homopoly_type = Is_Homopoly_Type (&frag_read, Internal_gkpStore);
 
       // Make sure that we have a valid lowercase sequence string
 
@@ -5253,7 +5246,7 @@ static void  Stream_Old_Frags
 
   {
    Thread_Work_Area_t  wa;
-   fragRecord  * frag_read;
+   fragRecord   frag_read;
    char  * seq_ptr;
    char  seq_buff [AS_READ_MAX_LEN + 1];
    char  rev_seq [AS_READ_MAX_LEN + 1] = "acgt";
@@ -5263,7 +5256,6 @@ static void  Stream_Old_Frags
    int  i, j;
 
    Init_Thread_Work_Area (& wa, 0);
-   frag_read = new_fragRecord ();
 
    Frag_Stream = openFragStream (gkpStore, FRAG_S_SEQ);
 
@@ -5273,29 +5265,29 @@ static void  Stream_Old_Frags
    resetFragStream (Frag_Stream, lo_frag, hi_frag);
    
    next_olap = 0;
-   for (i = 0; nextFragStream (Frag_Stream, frag_read)
+   for (i = 0; nextFragStream (Frag_Stream, &frag_read)
         && next_olap < Num_Olaps; i ++)
      {
       int32  rev_id;
       uint32  frag_iid;
       int  raw_len, result, shredded, is_homopoly;
 
-      frag_iid = (uint32) getFragRecordIID (frag_read);
+      frag_iid = (uint32) getFragRecordIID (&frag_read);
       if  (frag_iid < Olap [next_olap] . b_iid)
           continue;
 
-      if (getFragRecordIsDeleted (frag_read))
+      if (getFragRecordIsDeleted (&frag_read))
           continue;
 
       shredded = FALSE;
         // Used in Process_Seed to ignore overlaps between two "shredded" reads
         // Perhaps should check for external reads now
 
-      clear_start = getFragRecordClearRegionBegin (frag_read, AS_READ_CLEAR_OBT);
-      clear_end = getFragRecordClearRegionEnd (frag_read, AS_READ_CLEAR_OBT);
-      raw_len = getFragRecordSequenceLength (frag_read);
-      seq_ptr = getFragRecordSequence (frag_read);
-      is_homopoly = Is_Homopoly_Type (frag_read, gkpStore);
+      clear_start = getFragRecordClearRegionBegin (&frag_read, AS_READ_CLEAR_OBT);
+      clear_end = getFragRecordClearRegionEnd (&frag_read, AS_READ_CLEAR_OBT);
+      raw_len = getFragRecordSequenceLength (&frag_read);
+      seq_ptr = getFragRecordSequence (&frag_read);
+      is_homopoly = Is_Homopoly_Type (&frag_read, gkpStore);
 
       if (AS_READ_MAX_LEN < clear_end - clear_start)
         {
@@ -5328,7 +5320,6 @@ static void  Stream_Old_Frags
         }
      }
 
-   del_fragRecord (frag_read);
    closeFragStream (Frag_Stream);
 
    Failed_Olaps = wa . failed_olaps;

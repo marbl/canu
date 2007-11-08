@@ -85,8 +85,8 @@ main(int argc, char **argv) {
       utg_mesg->consensus[ungapped_unitig_length] = '\0';
 
       if (utg_mesg->num_frags > numfrags)
-        fprintf(stdout,">unitig"F_UID" length=%d num_frags="F_IID" Astat=%.2f\n%s\n",
-                utg_mesg->eaccession,
+        fprintf(stdout,">unitig%s length=%d num_frags="F_IID" Astat=%.2f\n%s\n",
+                AS_UID_toString(utg_mesg->eaccession),
                 ungapped_unitig_length,
                 utg_mesg->num_frags,
                 utg_mesg->coverage_stat,

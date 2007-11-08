@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_Hash.c,v 1.11 2007-10-15 22:53:08 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_UTL_Hash.c,v 1.12 2007-11-08 12:38:15 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,10 +34,6 @@ static char CM_ID[] = "$Id: AS_UTL_Hash.c,v 1.11 2007-10-15 22:53:08 brianwalenz
 #define hashsize(n) ((uint32)1<<(n))
 #define hashmask(n) (hashsize(n)-1)
 
-//  The old memory reporting stuff:
-//  fprintf(stream,"*\tStats for HashTable %s buckets = %d  hashnodes = %d\n", name, ht->numBuckets, ht->numNodes);
-//  totalMemorySize += ht->numBuckets * sizeof(HashNode_AS);
-//  totalMemorySize += ReportMemorySize_HP(ht->allocated, "HashNodes", stream);
 
 
 //  mix -- mix 3 32-bit values reversibly.
@@ -173,7 +169,7 @@ InsertNodeInHashBucket(HashTable_AS *table,
                        HashNode_AS *newnode) {
 
   int32        hashkey = (*table->hash)(newnode->key, newnode->keyLength);
-  int          bucket  = hashkey & table->hashmask ; 
+  int          bucket  = hashkey & table->hashmask; 
   HashNode_AS *node    = table->buckets[bucket];
   HashNode_AS *prevnode;
   int          comparison;
@@ -238,11 +234,10 @@ InsertNodeInHashBucket(HashTable_AS *table,
 //  Increase the size to the next power of two
 void
 ReallocHashTable_AS(HashTable_AS *htable) {
-
-  int           oldNumNodes = htable->numNodesAllocated;
-  int           oldNumBuckets = htable->numBuckets;
   int           i;
   HashNode_AS  *node;
+
+  fprintf(stderr, "ReallocHashTable()-- \n");
 
   HeapIterator_AS iterator;
 
@@ -308,6 +303,26 @@ CreateScalarHashTable_AS(uint32 numItemsToHash) {
 
 
 
+static
+int
+STRhashfunction(uint64 k, uint32 l) {
+  //  k is a pointer to the string
+  return(Hash_AS((uint8 *)(INTPTR)k, l, 37));
+}
+static
+int
+STRcomparefunction(uint64 ka, uint64 kb) {
+  //  ka, kb are pointers to the strings
+  char *kas = (char *)(INTPTR)ka;
+  char *kbs = (char *)(INTPTR)kb;
+  return(strcmp(kas, kbs));
+}
+HashTable_AS *
+CreateStringHashTable_AS(uint32 numItemsToHash) {
+  return(CreateGenericHashTable_AS(numItemsToHash, STRhashfunction, STRcomparefunction));
+}
+
+
 void
 ResetHashTable_AS(HashTable_AS *table) {
   memset(table->buckets, 0, table->numBuckets * sizeof(HashNode_AS *));
@@ -344,12 +359,13 @@ InsertInHashTable_AS(HashTable_AS  *table,
 
   HashNode_AS *node;
 
+  table->numNodes++;
+
   if (table->freeList) {
     node = table->freeList;
     table->freeList = node->next;
-    table->numNodes++;
   } else {
-    if (table->numNodes++ >= table->numNodesAllocated)
+    if (table->numNodes >= table->numNodesAllocated)
       ReallocHashTable_AS(table);
     node = (HashNode_AS *)GetHeapItem_AS(table->allocated);
   }
@@ -458,8 +474,8 @@ ReplaceInHashTable_AS(HashTable_AS  *table,
 
 
 
-//  Lookup a key, and return its value.  Returns 0 if the key isn't
-//  found, 1 if it is found.
+//  Lookup a key, and return its value.  Returns FALSE if the key isn't
+//  found, TRUE if it is found.
 //
 int
 LookupInHashTable_AS(HashTable_AS *table, 
@@ -484,7 +500,7 @@ LookupInHashTable_AS(HashTable_AS *table,
         *value      = node->value;
       if (valuetype)
         *valuetype  = node->valueType;
-      return(1);
+      return(TRUE);
     }
 
     node = node->next;
@@ -498,7 +514,7 @@ LookupInHashTable_AS(HashTable_AS *table,
     *value     = 0;
   if (valuetype)
     *valuetype = 0;
-  return(0);
+  return(FALSE);
 }
 
 

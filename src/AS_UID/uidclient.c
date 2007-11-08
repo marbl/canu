@@ -65,7 +65,7 @@ main(int argc, char **argv) {
 
   if (msDelay == 0) {
     while (numUIDs > 0) {
-      fprintf(stdout, F_UID"\n", getUID(uids));
+      fprintf(stdout, F_U64"\n", getUID(uids));
       numUIDs--;
     }
   } else {

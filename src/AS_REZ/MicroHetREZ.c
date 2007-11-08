@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.18 2007-05-23 02:37:20 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MicroHetREZ.c,v 1.19 2007-11-08 12:38:15 brianwalenz Exp $";
 
 #include <assert.h>
 #include <errno.h>
@@ -309,7 +309,7 @@ static  VA_TYPE(uint32)  *fragtype = NULL;
 
 static
 void
-AS_REZ_get_info(CDS_IID_t iid,
+AS_REZ_get_info(AS_IID    iid,
                      GateKeeperStore *frag_store,
                      uint32 *locale,
                      uint32 *beg, uint32 *end,
@@ -318,10 +318,7 @@ AS_REZ_get_info(CDS_IID_t iid,
                      VA_TYPE(uint32) *fragtype,
                      VA_TYPE(uint32) *locbeg,
                      VA_TYPE(uint32) *locend){
-  static  fragRecord *input = NULL;
-
-  if (input == NULL)
-    input = new_fragRecord();
+  static  fragRecord input;
 
   if( iid != 0 ){ // blank positions have IID 0
 
@@ -330,15 +327,15 @@ AS_REZ_get_info(CDS_IID_t iid,
       mytype = NULL;
 
     if(!mytype ){ // we have not seen that iid before 
-      getFrag(frag_store,iid,input,FRAG_S_INF);
+      getFrag(frag_store,iid,&input,FRAG_S_INF);
 
-      //getReadType_ReadStruct(input,type); 
+      //getReadType_ReadStruct(&input,type); 
       *type == AS_READ;
 
       //  Locale info was removed, so we now just return empty info.
 #ifdef WITH_LOCALE_SUPPORT
-      getLocID_ReadStruct(input,locale);
-      getLocalePos_ReadStruct(input,beg,end);
+      getLocID_ReadStruct(&input,locale);
+      getLocalePos_ReadStruct(&input,beg,end);
 #else
       *locale = 0;
       *beg    = 0;
@@ -396,7 +393,7 @@ void AS_REZ_compress_shreds_and_null_indels(int c,
   uint32 l1,l2;
   uint32 b1,b2;
   uint32 e1,e2;
-  CDS_IID_t iid1,iid2;
+  AS_IID    iid1,iid2;
   FragType t1,t2;
 
   if(locales == NULL){

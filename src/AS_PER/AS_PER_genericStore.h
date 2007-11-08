@@ -22,69 +22,50 @@
 #ifndef AS_PER_GENERICSTORE_H
 #define AS_PER_GENERICSTORE_H
 
-
-#ifdef GENERIC_STORE_USE_LONG_STRINGS
-#define VLSTRING_SIZE_T uint32
-#define F_VLS F_U32
-#define VLSTRING_MAX_SIZE (4 * 1024 * 1024 - 1)
-#else
-#define VLSTRING_SIZE_T uint16
-#define F_VLS F_U16
-#define VLSTRING_MAX_SIZE (64 * 1024 - 1)
-#endif
-
-#include <time.h>
-
-typedef enum { UnAllocatedStore = 0, 
-	       UnInitializedStore, 
-	       ActiveStore} StoreStatus;
-
-#define INVALID_STORE  0
-#define INDEX_STORE    1
-#define VLRECORD_STORE 2
-
-#define STREAM_UNTILEND  -1 
 #define STREAM_FROMSTART -1
+#define STREAM_UNTILEND  -1 
 
 typedef struct{
-  uint32        isDeleted:1;
-  uint32        type:3;
-  uint32        p1:28;          // padding field
-  uint32        p2:32;          // padding field
-  char          storeType[8];
+  char          storeLabel[8];  //
+  uint32        storeType;      //
+  uint32        elementSize;    //
   int64         firstElem;      // Initially -1.  If >0, index of first allocated element
   int64         lastElem;       // Initially -1.  If >0, index of last allocated element
-  int32         unused_version; // Was the 'version', now just to keep the struct the same size
-  int32         elementSize;  
-  int64         creationTime;
-  int64         lastUpdateTime;
-} StoreStat;
 
-typedef struct{
-  FILE        *fp;            //  For a file-based store
-  char        *buffer;        //  For a memory-based store, also holds setbuffer() buffer for disk stores
-  int64        allocatedSize;
-  StoreStatus  status; 
-  StoreStat    header;
-  int64        lastCommittedElem;  //  Initially -1.  If >0, index of last committed element
-  int          isMemoryStore;
-  int          isDirty;
-  //  The "lastWasRead" field allows us to flush the stream between read
-  //  and write events, as per ANSI 4.9.5.3.  It's not clear if this is
-  //  really needed though.
-  //
-  int          lastWasRead;
+  //  Everything else is only valid when the store is loaded.
+
+  int64         allocatedSize; //  size of that buffer
+  char         *memoryBuffer;  //  Non-NULL if we have a copy of the store in memory
+
+  FILE         *fp;            //  Non-NULL if we have a disk-backed store (can also be in memory)
+  char         *diskBuffer;    //  system buffer for disk-based store
+
+#ifdef TRUE32BIT
+  char         *ptrs[3];
+  int           pad;           //  64-bit wants to make this 80 bytes, not 76
+#endif
+
+  int           isDirty;       //  True if we need to flush on close
+  int           readOnly;      //  True if we're a partial memory store
+  int           lastWasWrite;  //  True if the last disk op was a write
 } StoreStruct;
+
+//  The "lastWasWrite" field allows us to flush the stream between
+//  read and write events, as per ANSI 4.9.5.3.  It's not clear if
+//  this is really needed though.  We always flush, even if there is a
+//  previous seek, since our AS_UTL seek notices when the fp is
+//  correctly placed, and skips the seek.
+//
+//  "A change of input/output direction on an update file is only
+//  allowed following a fsetpos, fseek, rewind, or fflush operation,
+//  since these are precisely the functions which assure that the I/O
+//  buffer has been flushed."
 
 typedef struct{
   StoreStruct  *store;
-  void         *buffer;
-  int32         bufferSize;
   int64         startIndex;
   int64         endIndex;
-  StoreStatus   status; 
 } StreamStruct;
-
 
 
 //  Make all stores use a system buffer of size wb bytes.  Bigger
@@ -95,11 +76,10 @@ typedef struct{
 void          AS_PER_setBufferSize(int wb);
 
 StoreStruct  *openStore(const char *StorePath, const char *rw);
-void          statsStore(StoreStruct *store, StoreStat *stats);
 void          closeStore(StoreStruct *sh);
 
-int64         getLastElemStore(StoreStruct *store);
-int64         getFirstElemStore(StoreStruct *store);
+static int64  getLastElemStore(StoreStruct *s)  { return(s->lastElem);  }
+static int64  getFirstElemStore(StoreStruct *s) { return(s->firstElem); }
 
 StoreStruct  *createIndexStore(const char *StorePath, const char *storeType, int32 elementSize, int64 firstID);
 void          getIndexStore(StoreStruct *fs, int64 indx, void *buffer);
@@ -107,31 +87,34 @@ void         *getIndexStorePtr(StoreStruct *fs, int64 indx);
 void          setIndexStore(StoreStruct *store, int64 indx, void *element);
 void          appendIndexStore(StoreStruct *store, void *element);
 
-StoreStruct  *createVLRecordStore(const char *StorePath, const char *storeType, int32 expectedRecordSize);
-void          getVLRecordStore(StoreStruct *s, int64 offset, void *buffer, VLSTRING_SIZE_T maxLength, VLSTRING_SIZE_T *actualLength);
-void          appendVLRecordStore(StoreStruct *store, void *element, VLSTRING_SIZE_T length);
+StoreStruct  *createStringStore(const char *StorePath, const char *storeType);
+void          getStringStore(StoreStruct *s, int64 offset, void *buffer, uint32 maxLength, uint32 *actualLength);
+char         *getStringStorePtr(StoreStruct *s, int64 offset, uint32 *actualLength);
+void          appendStringStore(StoreStruct *store, void *element, uint32 length);
 
-StreamStruct *openStream(StoreStruct *sh, void *buffer, int32 bufferSize);
+StreamStruct *openStream(StoreStruct *sh);
 void          resetStream(StreamStruct *sh, int64 startIndex, int64 endIndex);
-int           nextStream(StreamStruct *sh, void *buffer);
+int           nextStream(StreamStruct *sh, void *buffer, uint32 maxLength, uint32 *actualLength);
 void          closeStream(StreamStruct *sh);
-
-int           nextVLRecordStream(StreamStruct *sh, void *buffer, VLSTRING_SIZE_T maxLength, VLSTRING_SIZE_T *actualLength);
 
 
 //  "Convert" the loadStore into a new memory store.  The loadStore is
-//  closed.
+//  closed.  A partial memory store does not allow writes.
 //
-StoreStruct *
-convertStoreToPartialMemoryStore(StoreStruct *loadStore, int64 firstElem, int64 lastElem);
+StoreStruct *convertStoreToMemoryStore(StoreStruct *source);
+StoreStruct *convertStoreToPartialMemoryStore(StoreStruct *loadStore, int64 firstElem, int64 lastElem);
 
 
 //  Open an existing file-based Store, and load a portion of its
-//  contents into A newly created memory-based Store.
+//  contents into a newly created memory-based Store.
 ///
 static
-StoreStruct *
-loadStorePartial(const char *StorePath, int64 firstElem, int64 lastElem) {
+StoreStruct *loadStore(const char *StorePath) {
+  return(convertStoreToMemoryStore(openStore(StorePath, "r")));
+}
+
+static
+StoreStruct *loadStorePartial(const char *StorePath, int64 firstElem, int64 lastElem) {
   return(convertStoreToPartialMemoryStore(openStore(StorePath, "r"), firstElem, lastElem));
 }
 

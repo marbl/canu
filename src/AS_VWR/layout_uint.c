@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: layout_uint.c,v 1.8 2007-03-09 03:05:58 brianwalenz Exp $ */
+/* $Id: layout_uint.c,v 1.9 2007-11-08 12:38:17 brianwalenz Exp $ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -617,7 +617,7 @@ void ReadAssembly(FILE *file)
             if (wasA)
               num = GetIdentifier(StyleTable,t,&end,0);  
             else
-              { num = STR_TO_INT64(t,&end,10);  
+              { num = strtoll(t,&end,10);  
               if (num < 0) {
 #ifndef TRUNCATE_NEGATIVE_COORDINATES
                 Error("Coordinates must be non-negative ints",0);
@@ -688,9 +688,9 @@ void ReadAssembly(FILE *file)
           while (cnt-- > 0)
             { lst = num;
               if (*s == 'M')
-                num = STR_TO_INT64(s+1,&end,10);
+                num = strtoll(s+1,&end,10);
               else
-                num = STR_TO_INT64(s,&end,10);  
+                num = strtoll(s,&end,10);  
               if (num < 0 ) {
 #ifndef TRUNCATE_NEGATIVE_COORDINATES
                 Error("Coordinates must be non-negative",0);

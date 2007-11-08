@@ -192,7 +192,7 @@ main(int argc, char **argv) {
   if ((ovsprimary == NULL) || err)
     fprintf(stderr, "usage: %s -ovs obtStore > asm.ovl.consolidated\n", argv[0]), exit(1);
 
-  CDS_IID_t    lastFrag    = AS_OVS_lastFragInStore(ovsprimary);
+  AS_IID       lastFrag    = AS_OVS_lastFragInStore(ovsprimary);
   if ((ovssecondary) && (lastFrag < AS_OVS_lastFragInStore(ovssecondary))) {
     lastFrag = AS_OVS_lastFragInStore(ovssecondary);
   }
@@ -201,7 +201,7 @@ main(int argc, char **argv) {
   uint32       numOverlaps = 0;
   uint32      *left        = new uint32    [MAX_OVERLAPS_PER_FRAG];
   uint32      *right       = new uint32    [MAX_OVERLAPS_PER_FRAG];
-  CDS_IID_t   *biid        = new CDS_IID_t [MAX_OVERLAPS_PER_FRAG];
+  AS_IID      *biid        = new AS_IID    [MAX_OVERLAPS_PER_FRAG];
   char        *bseen       = new char      [lastFrag + 1];
 
   for (uint32 i=0; i<lastFrag+1; i++)

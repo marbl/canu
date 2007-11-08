@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.43 2007-10-24 21:04:21 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.44 2007-11-08 12:38:15 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -111,12 +111,14 @@ testOpenGateKeeperStore(const char *path,
     sprintf(name,"%s/src", path);
     fileCount += fileExists(name, 0, writable);
 
-    sprintf(name,"%s/map", path);
+    sprintf(name,"%s/u2i", path);
     fileCount += fileExists(name, 0, writable);
 
+    sprintf(name,"%s/uid", path);
+    fileCount += fileExists(name, 0, writable);
   }
 
-  return(fileCount == NUM_GKP_FILES);
+  return(fileCount == 10);
 }
 
 
@@ -142,8 +144,14 @@ openGateKeeperStore(const char *path,
   gkpStore->hps = NULL;
   gkpStore->src = NULL;
 
-  gkpStore->UIDtoIID = NULL;
-  
+  gkpStore->uid = NULL;
+
+  gkpStore->UIDtoIID  = NULL;
+  gkpStore->STRtoUID  = NULL;
+
+  gkpStore->lib_cache = NULL;
+  gkpStore->frgUID    = NULL;
+
   gkpStore->partnum = -1;
   gkpStore->partfrg = NULL;
   gkpStore->partqlt = NULL;
@@ -219,23 +227,23 @@ openGateKeeperStore(const char *path,
     sprintf(name,"%s/src", gkpStore->storePath);
     gkpStore->src = openStore(name, mode);
 
+    sprintf(name,"%s/uid", gkpStore->storePath);
+    gkpStore->uid = openStore(name, mode);
+
     if ((NULL == gkpStore->bat) ||
         (NULL == gkpStore->frg) ||
         (NULL == gkpStore->lib) ||
         (NULL == gkpStore->seq) ||
         (NULL == gkpStore->qlt) ||
         (NULL == gkpStore->hps) ||
-        (NULL == gkpStore->src)) {
+        (NULL == gkpStore->src) ||
+        (NULL == gkpStore->uid)) {
       fprintf(stderr,"**** Failure to open Gatekeeper Store ...\n");
       assert(0);
     }
-
-    if (writable) {
-      sprintf(name,"%s/map", gkpStore->storePath);
-      gkpStore->UIDtoIID = LoadUIDtoIIDHashTable_AS(name);
-    }
   }
 
+  AS_UID_setGatekeeper(gkpStore);
   return(gkpStore);
 }
 
@@ -259,8 +267,13 @@ createGateKeeperStore(const char *path) {
   gkpStore->qlt = NULL;
   gkpStore->hps = NULL;
   gkpStore->src = NULL;
+  gkpStore->uid = NULL;
 
-  gkpStore->UIDtoIID = NULL;
+  gkpStore->UIDtoIID  = NULL;
+  gkpStore->STRtoUID  = NULL;
+
+  gkpStore->lib_cache = NULL;
+  gkpStore->frgUID    = NULL;
 
   gkpStore->partnum = -1;
   gkpStore->partfrg = NULL;
@@ -301,21 +314,25 @@ createGateKeeperStore(const char *path) {
   gkpStore->lib = createIndexStore(name, "lib", sizeof(GateKeeperLibraryRecord), 1);
 
   sprintf(name,"%s/seq", path);
-  gkpStore->seq = createVLRecordStore(name, "seq", MAX_SEQ_LENGTH);
+  gkpStore->seq = createStringStore(name, "seq");
 
   sprintf(name,"%s/qlt", path);
-  gkpStore->qlt = createVLRecordStore(name, "qlt", MAX_SEQ_LENGTH);
+  gkpStore->qlt = createStringStore(name, "qlt");
 
   sprintf(name,"%s/hps", path);
-  gkpStore->hps = createVLRecordStore(name, "hps", MAX_HPS_LENGTH);
+  gkpStore->hps = createStringStore(name, "hps");
 
   sprintf(name,"%s/src", path);
-  gkpStore->src = createVLRecordStore(name, "src", MAX_SRC_LENGTH);
+  gkpStore->src = createStringStore(name, "src");
 
-  sprintf(name,"%s/map", path);
+  sprintf(name,"%s/uid", path);
+  gkpStore->uid = createStringStore(name, "uid");
+
+  sprintf(name,"%s/u2i", path);
   gkpStore->UIDtoIID = CreateScalarHashTable_AS(32 * 1024);
   SaveHashTable_AS(name, gkpStore->UIDtoIID);
 
+  AS_UID_setGatekeeper(gkpStore);
   return(gkpStore);
 }
 
@@ -364,8 +381,17 @@ closeGateKeeperStore(GateKeeperStore *gkpStore) {
   if(gkpStore->src != NULL)
     closeStore(gkpStore->src);
 
+  if(gkpStore->uid != NULL)
+    closeStore(gkpStore->uid);
+
   if(gkpStore->UIDtoIID != NULL)
     DeleteHashTable_AS(gkpStore->UIDtoIID);
+
+  if(gkpStore->STRtoUID != NULL)
+    DeleteHashTable_AS(gkpStore->STRtoUID);
+
+  safe_free(gkpStore->lib_cache);
+  safe_free(gkpStore->frgUID);
 
   if(gkpStore->partfrg != NULL)
     closeStore(gkpStore->partfrg);
@@ -403,13 +429,13 @@ GateKeeperStore *createGateKeeperPartition(const char *path, uint32 partnum) {
   gkp->partfrg = createIndexStore(name, "partfrg", sizeof(GateKeeperFragmentRecord), 1);
 
   sprintf(name,"%s/qlt.%03d", gkp->storePath, partnum);
-  gkp->partqlt = createVLRecordStore(name, "partqlt", MAX_SEQ_LENGTH);
+  gkp->partqlt = createStringStore(name, "partqlt");
 
   sprintf(name,"%s/hps.%03d", gkp->storePath, partnum);
-  gkp->parthps = createVLRecordStore(name, "parthps", MAX_HPS_LENGTH);
+  gkp->parthps = createStringStore(name, "parthps");
 
   sprintf(name,"%s/src.%03d", gkp->storePath, partnum);
-  gkp->partsrc = createVLRecordStore(name, "partsrc", MAX_SRC_LENGTH);
+  gkp->partsrc = createStringStore(name, "partsrc");
 
   return(gkp);
 }
@@ -419,7 +445,6 @@ GateKeeperStore *createGateKeeperPartition(const char *path, uint32 partnum) {
 
 void       loadGateKeeperPartition(GateKeeperStore *gkp, uint32 partnum) {
   char       name[FILENAME_MAX];
-  StoreStat  stats;
   int        i;
 
   if (gkp->partnum != -1) {
@@ -466,11 +491,12 @@ void       loadGateKeeperPartition(GateKeeperStore *gkp, uint32 partnum) {
 
   //  zip through the frg and build a map from iid to the frg record
 
-  statsStore(gkp->partfrg, &stats);
+  int64  firstElem = getFirstElemStore(gkp->partfrg);
+  int64  lastElem  = getLastElemStore(gkp->partfrg);
 
-  gkp->partmap = CreateScalarHashTable_AS(stats.lastElem + 1);
+  gkp->partmap = CreateScalarHashTable_AS(lastElem + 1);
 
-  for(i = stats.firstElem; i <= stats.lastElem; i++) {
+  for(i = firstElem; i <= lastElem; i++) {
     GateKeeperFragmentRecord *p = getIndexStorePtr(gkp->partfrg, i);
 
     if (InsertInHashTable_AS(gkp->partmap,
@@ -495,6 +521,228 @@ void clearGateKeeperLibraryRecord(GateKeeperLibraryRecord *g) {
 void clearGateKeeperFragmentRecord(GateKeeperFragmentRecord *g) {
   memset(g, 0, sizeof(GateKeeperFragmentRecord));
 }
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+//  UID lookups.
+//
+//  For numeric UIDs (those with both isString and UID valid), you can
+//  do a UID to IID mapping.
+//
+//  String UIDs (those with only UIDstring defined) must be added to
+//  the store first.  The UIDstring itself is stored in a String
+//  store, just like sequence and source.  The index into this store
+//  is saved in the (isString, UID) pair.
+//
+//  A hash must be maintained that maps the UIDstring to the location
+//  in the store (which is also exactly the (isString, UID) pair.
+//  This will be used to lookup a string UID.
+//
+//  The gkp files are:
+//    'u2i' -> the UID to IID mapping
+//    'uid' -> the string store itself
+
+
+static
+void
+loadGatekeeperSTRtoUID(GateKeeperStore *gkp) {
+  if (gkp->STRtoUID == NULL) {
+    gkp->uid = convertStoreToMemoryStore(gkp->uid);
+
+    gkp->STRtoUID = CreateStringHashTable_AS(32 * 1024);
+    //SaveHashTable_AS(name, gkpStore->STRtoUID);
+
+    char          *uidptr = NULL;
+    int64          uidoff = 0;
+    uint32         actlen = 0;
+
+    while ((uidptr = getStringStorePtr(gkp->uid, uidoff, &actlen)) != NULL) {
+      if (InsertInHashTable_AS(gkp->STRtoUID,
+                               (INTPTR)uidptr, actlen,
+                               uidoff, 0) == HASH_FAILURE) {
+        fprintf(stderr, "loadGatekeeperSTRtoUID()-- failed to insert uid '%s' into store; already there?!\n", uidptr);
+        assert(0);
+      }
+
+      uidoff += actlen + 1;
+    }
+  }
+  assert(gkp->STRtoUID != NULL);
+}
+
+
+//  Takes a uid, with UIDstring set, populates the rest of the uid
+//  (isString, UID).
+//
+AS_UID
+AS_GKP_getUIDfromString(GateKeeperStore *gkp, AS_UID uid) {
+  uint64  loc = 0;
+
+  loadGatekeeperSTRtoUID(gkp);
+
+  if (LookupInHashTable_AS(gkp->STRtoUID,
+                           (INTPTR)uid.UIDstring, strlen(uid.UIDstring),
+                           &loc, 0)) {
+    uid.isString  = 1;
+    uid.UID       = loc;
+  } else {
+    uid = AS_UID_undefined();
+  }
+  return(uid);
+}
+
+//  Takes a uid with (isString, UID) set (and without UIDstring set),
+//  returns a uid with all three set.
+//
+AS_UID
+AS_GKP_getUID(GateKeeperStore *gkp, AS_UID uid) {
+
+  uid.UIDstring = NULL;
+
+  if (uid.isString) {
+    uint32  actlen = 0;
+    loadGatekeeperSTRtoUID(gkp);
+    uid.UIDstring = getStringStorePtr(gkp->uid, uid.UID, &actlen);
+  }
+
+  return(uid);
+}
+
+
+//  Adds a uid (UIDstring) to the store, populates the rest of the UID.
+//
+AS_UID
+AS_GKP_addUID(GateKeeperStore *gkp, AS_UID uid) {
+
+  //  Could probably just return...might want to verify that this
+  //  UIDstring is the same as the UID.
+
+  assert((uid.isString == 0) && (uid.UID == 0) && (uid.UIDstring != NULL));
+
+  uint64     loc    = 0;
+  uint64     len    = strlen(uid.UIDstring);
+
+  loadGatekeeperSTRtoUID(gkp);
+
+  //  If the UID is already in the store, just return as if it was
+  //  new.  Otherwise, add it to the store.
+
+  if (LookupInHashTable_AS(gkp->STRtoUID, (INTPTR)uid.UIDstring, len, &loc, 0) == FALSE) {
+    char    *str = NULL;
+    uint32   act = 0;
+
+    loc = getLastElemStore(gkp->uid);
+
+    //  Stash the UID on disk.
+    appendStringStore(gkp->uid, uid.UIDstring, len);
+
+    str = getStringStorePtr(gkp->uid, loc, &act);
+
+    if (InsertInHashTable_AS(gkp->STRtoUID,
+                             (INTPTR)str, len,
+                             loc, 0) == HASH_FAILURE) {
+      fprintf(stderr, "setGatekeeperUID()-- failed to insert uid '%s' into store; already there?!\n", uid.UIDstring);
+      assert(0);
+    }
+  }
+
+  uid.isString  = 1;
+  uid.UID       = loc;
+  uid.UIDstring = NULL;  //  its not valid until we get().
+
+  return(uid);
+}
+
+
+
+
+static
+void
+loadGatekeeperUIDtoIID(GateKeeperStore *gkp) {
+  if (gkp->UIDtoIID == NULL) {
+    char  name[FILENAME_MAX];
+    sprintf(name,"%s/u2i", gkp->storePath);
+    gkp->UIDtoIID = LoadUIDtoIIDHashTable_AS(name);
+  }
+  assert(gkp->UIDtoIID != NULL);
+}
+
+//  The only public accessor for the persistent hash in the
+//  gatekeeper.  Returns the IID, or 0 if the uid was not found.
+//
+AS_IID
+getGatekeeperUIDtoIID(GateKeeperStore *gkp, AS_UID uid, uint32 *type) {
+  uint64   iid = 0;
+  loadGatekeeperUIDtoIID(gkp);
+  if (AS_UID_isDefined(uid))
+    LookupInHashTable_AS(gkp->UIDtoIID, AS_UID_toInteger(uid), 0, &iid, type);
+  return((AS_IID)iid);
+}
+
+int
+setGatekeeperUIDtoIID(GateKeeperStore *gkp, AS_UID uid, AS_IID iid, uint32 type) {
+  loadGatekeeperUIDtoIID(gkp);
+  assert(AS_UID_isDefined(uid) == TRUE);
+  assert(AS_IID_isDefined(iid) == TRUE);
+  return(InsertInHashTable_AS(gkp->UIDtoIID, AS_UID_toInteger(uid), 0, (uint64)iid, type));
+}
+
+
+
+
+
+
+static
+void
+loadGatekeeperIIDtoUID(GateKeeperStore *gkp) {
+
+  if (gkp->frgUID)
+    return;
+
+  uint64   lastIID = getNumGateKeeperFragments(gkp);
+
+  gkp->frgUID = (uint64 *)safe_calloc(lastIID, sizeof(uint64));
+
+  HashTable_Iterator_AS   iterator  = {0};
+  uint64                  key       = 0;
+  uint64                  value     = 0;
+  uint32                  valuetype = 0;
+  uint32                  added     = 0;
+
+  loadGatekeeperUIDtoIID(gkp);
+  InitializeHashTable_Iterator_AS(gkp->UIDtoIID, &iterator);
+
+  while (NextHashTable_Iterator_AS(&iterator, &key, &value, &valuetype)) {
+    if (valuetype == AS_IID_FRG)
+      gkp->frgUID[value] = key;
+  }
+}
+
+AS_UID
+getGatekeeperIIDtoUID(GateKeeperStore *gkp, AS_IID iid, uint32 type) {
+  AS_UID  uid = AS_UID_undefined();
+
+  loadGatekeeperIIDtoUID(gkp);
+
+  switch (type) {
+    case AS_IID_FRG:
+      uid = AS_UID_fromInteger(gkp->frgUID[iid]);
+      break;
+    case AS_IID_LIB:
+      uid = getGateKeeperLibrary(gkp, iid)->libraryUID;
+      break;
+    case AS_IID_BAT:
+      assert(0);
+      break;
+    default:
+      break;
+  }
+
+  return(uid);
+}
+
+
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -659,29 +907,6 @@ AS_PER_encodeLibraryFeatures(GateKeeperLibraryRecord *gkpl,
 
 ////////////////////////////////////////////////////////////////////////////////
 
-
-fragRecord *new_fragRecord(void) {
-  fragRecord *fr = (fragRecord *)safe_malloc(sizeof(fragRecord));
-  clr_fragRecord(fr);
-  return(fr);
-}
-
-void        del_fragRecord(fragRecord *fr) {
-  safe_free(fr);
-}
-
-void        clr_fragRecord(fragRecord *fr) {
-  clearGateKeeperFragmentRecord(&fr->gkfr);
-  fr->hasSEQ = 0;
-  fr->hasQLT = 0;
-  fr->hasHPS = 0;
-  fr->hasSRC = 0;
-  fr->seq[0] = 0;
-  fr->qlt[0] = 0;
-  fr->hps[0] = 0;
-  fr->src[0] = 0;
-}
-
 //  Set clear region 'which' and all later clear regions.  You are
 //  explicitly not allowed to set the original clear range.
 //
@@ -736,7 +961,7 @@ uint32      getFragRecordClearRegionEnd  (fragRecord *fr, uint32 which) {
 static
 void
 getFragData(GateKeeperStore *gkp, fragRecord *fr, int streamFlags) {
-  VLSTRING_SIZE_T   actualLength = 0;
+  uint32            actualLength = 0;
   StoreStruct      *store        = NULL;
 
   fr->hasSEQ = 0;
@@ -754,10 +979,10 @@ getFragData(GateKeeperStore *gkp, fragRecord *fr, int streamFlags) {
     fr->hasSEQ = 1;
     if (fr->gkfr.seqLen > 0) {
       assert(gkp->partmap == NULL);
-      getVLRecordStore(gkp->seq,
+      getStringStore(gkp->seq,
                        fr->gkfr.seqOffset,
                        fr->seq,
-                       VLSTRING_MAX_SIZE,
+                       MAX_SEQ_LENGTH,
                        &actualLength);
       fr->seq[actualLength] = 0;
     }
@@ -770,10 +995,10 @@ getFragData(GateKeeperStore *gkp, fragRecord *fr, int streamFlags) {
       store = gkp->qlt;
       if (gkp->partmap)
         store = gkp->partqlt;
-      getVLRecordStore(store,
+      getStringStore(store,
                        fr->gkfr.qltOffset,
                        fr->qlt,
-                       VLSTRING_MAX_SIZE,
+                       MAX_SEQ_LENGTH,
                        &actualLength);
       fr->qlt[actualLength] = 0;
       decodeSequenceQuality(fr->qlt, fr->seq, fr->qlt);
@@ -785,10 +1010,10 @@ getFragData(GateKeeperStore *gkp, fragRecord *fr, int streamFlags) {
       store = gkp->hps;
       if (gkp->partmap)
         store = gkp->parthps;
-      getVLRecordStore(store,
+      getStringStore(store,
                        fr->gkfr.hpsOffset,
                        fr->hps,
-                       VLSTRING_MAX_SIZE,
+                       MAX_HPS_LENGTH,
                        &actualLength);
       fr->hps[actualLength] = 0;
     }
@@ -799,10 +1024,10 @@ getFragData(GateKeeperStore *gkp, fragRecord *fr, int streamFlags) {
       store = gkp->src;
       if (gkp->partmap)
         store = gkp->partsrc;
-      getVLRecordStore(store,
+      getStringStore(store,
                        fr->gkfr.srcOffset,
                        fr->src,
-                       VLSTRING_MAX_SIZE,
+                       MAX_SRC_LENGTH,
                        &actualLength);
       fr->src[actualLength] = 0;
     }
@@ -810,7 +1035,7 @@ getFragData(GateKeeperStore *gkp, fragRecord *fr, int streamFlags) {
 }
 
 
-void    getFrag(GateKeeperStore *gkp, CDS_IID_t iid, fragRecord *fr, int32 flags) {
+void    getFrag(GateKeeperStore *gkp, AS_IID    iid, fragRecord *fr, int32 flags) {
   if (gkp->partmap == NULL) {
     getIndexStore(gkp->frg, iid, &fr->gkfr);
   } else {
@@ -829,14 +1054,14 @@ void    getFrag(GateKeeperStore *gkp, CDS_IID_t iid, fragRecord *fr, int32 flags
 }
 
 
-void    setFrag(GateKeeperStore *gkp, CDS_IID_t iid, fragRecord *fr) {
+void    setFrag(GateKeeperStore *gkp, AS_IID    iid, fragRecord *fr) {
   assert(gkp->partmap == NULL);
   setIndexStore(gkp->frg, iid, &fr->gkfr);
 }
 
-void    delFrag(GateKeeperStore *gkp, CDS_IID_t iid) {
+void    delFrag(GateKeeperStore *gkp, AS_IID    iid) {
   GateKeeperFragmentRecord   gkfr;
-  CDS_IID_t                  miid;
+  AS_IID                     miid;
 
   assert(gkp->partmap == NULL);
 
@@ -871,32 +1096,16 @@ FragStream      *openFragStream(GateKeeperStore *gkp, int flags) {
   fs->src   = NULL;
   fs->flags = flags;
 
-#if 0
-  int bufferSize = 1048576;
-  fs->frgBuffer = (char *)safe_malloc(sizeof(char) * bufferSize);
-  fs->seqBuffer = (char *)safe_malloc(sizeof(char) * bufferSize);
-  fs->qltBuffer = (char *)safe_malloc(sizeof(char) * bufferSize);
-  fs->hpsBuffer = (char *)safe_malloc(sizeof(char) * bufferSize);
-  fs->seqBuffer = (char *)safe_malloc(sizeof(char) * bufferSize);
-#else
-  int bufferSize = 0;
-  fs->frgBuffer = NULL;
-  fs->seqBuffer = NULL;
-  fs->qltBuffer = NULL;
-  fs->hpsBuffer = NULL;
-  fs->seqBuffer = NULL;
-#endif
-
-  fs->frg   = openStream(fs->gkp->frg, fs->frgBuffer, bufferSize);
+  fs->frg   = openStream(fs->gkp->frg);
 
   if ((fs->flags & FRAG_S_SEQ) && !(fs->flags & FRAG_S_QLT))
-    fs->seq   = openStream(fs->gkp->seq, fs->seqBuffer, bufferSize);
+    fs->seq   = openStream(fs->gkp->seq);
   if (fs->flags & FRAG_S_QLT)
-    fs->qlt   = openStream(fs->gkp->qlt, fs->qltBuffer, bufferSize);
+    fs->qlt   = openStream(fs->gkp->qlt);
   if (fs->flags & FRAG_S_HPS)
-    fs->hps   = openStream(fs->gkp->hps, fs->hpsBuffer, bufferSize);
+    fs->hps   = openStream(fs->gkp->hps);
   if (fs->flags & FRAG_S_SRC)
-    fs->src   = openStream(fs->gkp->src, fs->srcBuffer, bufferSize);
+    fs->src   = openStream(fs->gkp->src);
 
   return(fs);
 }
@@ -948,20 +1157,14 @@ void             closeFragStream(FragStream *fs) {
     closeStream(fs->hps);
   if (fs->flags & FRAG_S_SRC)
     closeStream(fs->src);
-
-  safe_free(fs->frgBuffer);
-  safe_free(fs->seqBuffer);
-  safe_free(fs->qltBuffer);
-  safe_free(fs->hpsBuffer);
-  safe_free(fs->seqBuffer);
 }
 
 
 
 int              nextFragStream(FragStream *fs, fragRecord *fr) {
-  VLSTRING_SIZE_T  actualLength = 0;
+  uint32    actualLength = 0;
 
-  if (nextStream(fs->frg, &fr->gkfr) == 0)
+  if (nextStream(fs->frg, &fr->gkfr, 0, NULL) == 0)
     return(0);
 
   //  So we can use the stream, we can't use getFragData() here.  We
@@ -979,7 +1182,7 @@ int              nextFragStream(FragStream *fs, fragRecord *fr) {
 
   if ((fs->flags & FRAG_S_SEQ) && !(fs->flags & FRAG_S_QLT)) {
     fr->hasSEQ = 1;
-    nextVLRecordStream(fs->seq, fr->seq, MAX_SEQ_LENGTH, &actualLength);
+    nextStream(fs->seq, fr->seq, MAX_SEQ_LENGTH, &actualLength);
     fr->seq[actualLength] = 0;
   }
 
@@ -987,20 +1190,20 @@ int              nextFragStream(FragStream *fs, fragRecord *fr) {
     assert(fr->hasSEQ == 0);
     fr->hasSEQ = 1;
     fr->hasQLT = 1;
-    nextVLRecordStream(fs->qlt, fr->qlt, MAX_SEQ_LENGTH, &actualLength);
+    nextStream(fs->qlt, fr->qlt, MAX_SEQ_LENGTH, &actualLength);
     fr->qlt[actualLength] = 0;
     decodeSequenceQuality(fr->qlt, fr->seq, fr->qlt);
   }
 
   if (fs->flags & FRAG_S_HPS) {
     fr->hasHPS = 1;
-    nextVLRecordStream(fs->hps, fr->hps, MAX_HPS_LENGTH, &actualLength);
+    nextStream(fs->hps, fr->hps, MAX_HPS_LENGTH, &actualLength);
     fr->hps[actualLength] = 0;
   }
 
   if (fs->flags & FRAG_S_SRC) {
     fr->hasSRC = 1;
-    nextVLRecordStream(fs->src, fr->src, MAX_SRC_LENGTH, &actualLength);
+    nextStream(fs->src, fr->src, MAX_SRC_LENGTH, &actualLength);
     fr->src[actualLength] = 0;
   }
 

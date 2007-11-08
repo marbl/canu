@@ -26,8 +26,8 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_driver_common.h,v 1.22 2007-08-12 04:57:19 brianwalenz Exp $
- * $Revision: 1.22 $
+ * $Id: AS_OVL_driver_common.h,v 1.23 2007-11-08 12:38:13 brianwalenz Exp $
+ * $Revision: 1.23 $
  */
 
 
@@ -43,7 +43,7 @@
 
 static int64  First_Hash_Frag = -1;
 static int64   Last_Hash_Frag;
-static fragRecord  *myRead;
+static fragRecord  myRead;
 static int  Screen_Blocks_Used;
 static int64  Total_Frags_Read = 0;
 static int  Next_Distance_Index;
@@ -143,8 +143,6 @@ int  OverlapDriver(int argc, char **argv)
   for  (i = 1;  i < Num_PThreads;  i ++)
     Initialize_Work_Area (thread_wa + i, i);
 
-  myRead = new_fragRecord ();
-
 #if  SHOW_PROGRESS
   Start_Time = clock ();
 #endif
@@ -218,7 +216,7 @@ int  OverlapDriver(int argc, char **argv)
 
       /* Create the hash table from the HashFragStream */
 
-      Build_Hash_Index (HashFragStream, startIndex, myRead);
+      Build_Hash_Index (HashFragStream, startIndex, &myRead);
 
       if  (Last_Hash_Frag_Read < Last_Hash_Frag)
         {
@@ -423,7 +421,6 @@ void  Cleanup_Work_Area
 {
   safe_free (wa -> String_Olap_Space);
   safe_free (wa -> Match_Node_Space);
-  del_fragRecord (wa -> myRead);
   safe_free (wa -> overlaps);
   return;
 }

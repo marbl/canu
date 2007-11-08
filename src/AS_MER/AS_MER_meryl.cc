@@ -101,13 +101,13 @@ private:
     if (_iid >= _max)
       return(0);
 
-    getFrag(_fs, _iid, _fr, FRAG_S_SEQ);
+    getFrag(_fs, _iid, &_fr, FRAG_S_SEQ);
     _iid += _skipNum;
 
-    _thePos = getFragRecordClearRegionBegin(_fr, AS_READ_CLEAR_OBT);
-    _endPos = getFragRecordClearRegionEnd  (_fr, AS_READ_CLEAR_OBT);
+    _thePos = getFragRecordClearRegionBegin(&_fr, AS_READ_CLEAR_OBT);
+    _endPos = getFragRecordClearRegionEnd  (&_fr, AS_READ_CLEAR_OBT);
 
-    _theSeq = getFragRecordSequence(_fr);
+    _theSeq = getFragRecordSequence(&_fr);
 
     return('N');
   };
@@ -128,7 +128,7 @@ private:
   uint32                _theRMerShift;
 
   GateKeeperStore      *_fs;
-  fragRecord           *_fr;
+  fragRecord            _fr;
 
   uint64                _iid;
   uint64                _max;
@@ -253,7 +253,6 @@ merStream::merStream(uint32 merSize, char *gkpstore, int skipNum) {
     fprintf(stderr, "ERROR:  couldn't open the gatekeeper store '%s'\n", gkpstore);
     exit(1);
   }
-  _fr  = new_fragRecord();
 
   _iid = 1;
   _max = getLastElemFragStore(_fs);
@@ -264,7 +263,6 @@ merStream::merStream(uint32 merSize, char *gkpstore, int skipNum) {
 
 
 merStream::~merStream() {
-  del_fragRecord(_fr);
   closeGateKeeperStore(_fs);
 }
 
@@ -664,7 +662,7 @@ main(int argc, char **argv) {
           break;
         case 'n':
           arg++;
-          minimumCount = STR_TO_UINT64(argv[arg], NULL, 10);
+          minimumCount = strtoull(argv[arg], NULL, 10);
           break;
         case 'K':
 	  arg++;
@@ -672,7 +670,7 @@ main(int argc, char **argv) {
 	  break;
         case 'N':
 	  arg++;
-          mersToCount = STR_TO_UINT64(argv[arg], NULL, 10);
+          mersToCount = strtoull(argv[arg], NULL, 10);
  	  if(mersToCount <= 0){
  	    fprintf(stderr,"Trouble getting number of mers to count from %s (option -N)\n",
  		    argv[arg]);
@@ -684,7 +682,7 @@ main(int argc, char **argv) {
           outputFile = argv[arg];
           break;
         case 'V':
-          fprintf(stdout, "version: CA $Id: AS_MER_meryl.cc,v 1.10 2007-08-03 20:45:04 brianwalenz Exp $\n");
+          fprintf(stdout, "version: CA $Id: AS_MER_meryl.cc,v 1.11 2007-11-08 12:38:12 brianwalenz Exp $\n");
           exit(0);
           break;
         default:

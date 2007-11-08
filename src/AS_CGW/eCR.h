@@ -49,5 +49,5 @@ typedef struct {
 extern debugflags_t            debug;
 
 extern int                     totalContigsBaseChange;
-extern fragRecord             *fsread;
+extern fragRecord              fsread;
 extern int                     iterNumber;
