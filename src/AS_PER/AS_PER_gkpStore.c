@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.44 2007-11-08 12:38:15 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.45 2007-11-08 13:47:30 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -700,9 +700,7 @@ loadGatekeeperIIDtoUID(GateKeeperStore *gkp) {
   if (gkp->frgUID)
     return;
 
-  uint64   lastIID = getNumGateKeeperFragments(gkp);
-
-  gkp->frgUID = (uint64 *)safe_calloc(lastIID, sizeof(uint64));
+  gkp->frgUID = (uint64 *)safe_calloc(getNumGateKeeperFragments(gkp) + 1, sizeof(uint64));
 
   HashTable_Iterator_AS   iterator  = {0};
   uint64                  key       = 0;
@@ -1157,6 +1155,8 @@ void             closeFragStream(FragStream *fs) {
     closeStream(fs->hps);
   if (fs->flags & FRAG_S_SRC)
     closeStream(fs->src);
+  memset(fs, 0xfe, sizeof(FragStream));
+  safe_free(fs);
 }
 
 

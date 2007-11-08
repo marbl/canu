@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.28 2007-11-08 12:38:12 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.29 2007-11-08 13:47:30 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -272,7 +272,7 @@ dumpGateKeeperFragments(char       *gkpStoreName,
     exit(1);
   }
 
-  fragRecord    fr;
+  fragRecord    fr = {0};
   FragStream   *fs = openFragStream(gkp, (!dumpWithSequence || asTable) ? FRAG_S_INF : FRAG_S_ALL);
 
   int           i;

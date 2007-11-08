@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.22 2007-11-08 12:38:15 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.23 2007-11-08 13:47:30 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -268,7 +268,7 @@ getStringStorePtr(StoreStruct *s, int64 offset, uint32 *actualLength) {
   assert(s->memoryBuffer);
   assert(s->storeType == STRING_STORE);
 
-  if (offset > s->lastElem) {
+  if (offset >= s->lastElem) {
     *actualLength = 0;
     return(NULL);
   }
