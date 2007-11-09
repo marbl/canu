@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-// $Id: AS_UTL_UID.c,v 1.1 2007-11-08 12:38:16 brianwalenz Exp $
+// $Id: AS_UTL_UID.c,v 1.2 2007-11-09 13:38:00 brianwalenz Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,13 +31,101 @@
 #define MAX_UID_LENGTH (128)
 
 
-static
-GateKeeperStore *AS_UID_gkp = NULL;
+static  GateKeeperStore *AS_UID_gkp = NULL;
+
+static  size_t           AS_UID_stringsLen = 0;
+static  size_t           AS_UID_stringsMax = 0;
+static  char            *AS_UID_strings    = NULL;
+
+static  HashTable_AS    *AS_UID_STRtoUID   = NULL;
 
 void
 AS_UID_setGatekeeper(void *gkp) {
   AS_UID_gkp = gkp;
 }
+
+//  If we don't have a gkpStore we are likely processing a protoIO
+//  file, like the asm file.  To do this, we need to convert external
+//  UIDs (strings) to internal UIDs (offsets).  We duplicate most of
+//  the functionality, with memory leaks.
+//
+//  CODE DUPLICATION:
+//
+//  AS_GKP_getUIDfromString() == AS_UID_getUIDfromString()
+//  AS_GKP_getUID()           == AS_UID_getUID()
+//  AS_GKP_addUID()           == AS_UID_addUID()
+//  
+
+AS_UID
+AS_UID_getUIDfromString(AS_UID uid) {
+  uint64  loc = 0;
+
+  
+  if ((AS_UID_STRtoUID != NULL) &&
+      (LookupInHashTable_AS(AS_UID_STRtoUID,
+                            (INTPTR)uid.UIDstring, strlen(uid.UIDstring),
+                            &loc, 0))) {
+    uid.isString  = 1;
+    uid.UID       = loc;
+  } else {
+    uid = AS_UID_undefined();
+  }
+  return(uid);
+}
+
+AS_UID
+AS_UID_getUID(AS_UID uid) {
+  uid.UIDstring = NULL;
+  if (uid.isString) {
+    assert(AS_UID_strings != NULL);
+    uid.UIDstring = AS_UID_strings + uid.UID;
+  }
+  return(uid);
+}
+
+AS_UID
+AS_UID_addUID(AS_UID uid) {
+
+  assert((uid.isString == 0) && (uid.UID == 0) && (uid.UIDstring != NULL));
+
+  uint64     loc    = 0;
+  uint64     len    = strlen(uid.UIDstring);
+
+  if (AS_UID_STRtoUID == NULL) {
+    AS_UID_STRtoUID = CreateStringHashTable_AS(32 * 1024);
+    AS_UID_stringsLen = 0;
+    AS_UID_stringsMax = 16 * 1024 * 1024;
+    AS_UID_strings    = (char *)safe_malloc(sizeof(char) * AS_UID_stringsMax);
+  }
+
+  if (LookupInHashTable_AS(AS_UID_STRtoUID, (INTPTR)uid.UIDstring, len, &loc, 0) == FALSE) {
+    loc = AS_UID_stringsLen;
+
+    if (AS_UID_stringsLen + len + 1 >= AS_UID_stringsMax) {
+      AS_UID_stringsMax *= 2;
+      AS_UID_strings     = (char *)safe_realloc(AS_UID_strings, sizeof(char) * AS_UID_stringsMax);
+    }
+
+    memcpy(AS_UID_strings + AS_UID_stringsLen, uid.UIDstring, len + 1);
+    AS_UID_stringsLen += len + 1;
+
+    if (InsertInHashTable_AS(AS_UID_STRtoUID,
+                             (INTPTR)AS_UID_strings + loc, len,
+                             loc, 0) == HASH_FAILURE) {
+      fprintf(stderr, "AS_UID_addUID()-- failed to insert uid '%s' into store; already there?!\n", uid.UIDstring);
+      assert(0);
+    }
+  }
+
+  uid.isString  = 1;
+  uid.UID       = loc;
+  uid.UIDstring = NULL;  //  its not valid until we get().
+
+  return(uid);
+}
+
+
+
 
 
 static
@@ -53,6 +141,9 @@ AS_UID_toStringBuffer(AS_UID uid, char *buffer) {
   if (uid.isString) {
     if ((uid.UIDstring == NULL) && (AS_UID_gkp))
       uid = AS_GKP_getUID(AS_UID_gkp, uid);
+
+    if ((uid.UIDstring == NULL) && (AS_UID_STRtoUID))
+      uid = AS_UID_getUID(uid);
 
     if (uid.UIDstring) {
       sprintf(buffer, "%s", uid.UIDstring);
@@ -150,15 +241,16 @@ AS_UID_lookup(char *uidstr, char **nxtstr) {
     uid.isString  = 0;
     uid.UID       = strtoull(uidstr, NULL, 10);
     uid.UIDstring = NULL;
-  } else {
-    if (AS_UID_gkp == NULL) {
-      fprintf(stderr, "AS_UID_lookup()-- cannot lookup string UID from GateKeeper; AS_UID_gkp is not set.\n");
-      exit(1);
-    }
+  } else if (AS_UID_gkp) {
     uid.isString  = 0;
     uid.UID       = 0;
     uid.UIDstring = uidstr;
     uid = AS_GKP_getUIDfromString(AS_UID_gkp, uid);
+  } else {
+    uid.isString  = 0;
+    uid.UID       = 0;
+    uid.UIDstring = uidstr;
+    uid = AS_UID_getUIDfromString(uid);
   }
 
   //  Now bump past the uid, almost like strtoull does.
@@ -191,12 +283,10 @@ AS_UID_load(char *uidstr) {
   uid.UID       = 0;
   uid.UIDstring = uidstr;
 
-  if (AS_UID_gkp == NULL) {
-    fprintf(stderr, "AS_UID_load()-- cannot load string UID into GateKeeper; AS_UID_gkp is not set.\n");
-    exit(1);
-  }
-
-  uid = AS_GKP_addUID(AS_UID_gkp, uid);
+  if (AS_UID_gkp)
+    uid = AS_GKP_addUID(AS_UID_gkp, uid);
+  else
+    uid = AS_UID_addUID(uid);
 
   return(uid);
 }
