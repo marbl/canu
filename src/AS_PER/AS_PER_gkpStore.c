@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.45 2007-11-08 13:47:30 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.46 2007-11-09 13:40:16 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -542,7 +542,13 @@ void clearGateKeeperFragmentRecord(GateKeeperFragmentRecord *g) {
 //  The gkp files are:
 //    'u2i' -> the UID to IID mapping
 //    'uid' -> the string store itself
-
+//
+//  CODE DUPLICATION:
+//
+//  AS_GKP_getUIDfromString() == AS_UID_getUIDfromString()
+//  AS_GKP_getUID()           == AS_UID_getUID()
+//  AS_GKP_addUID()           == AS_GKP_addUID()
+//  
 
 static
 void
@@ -642,7 +648,7 @@ AS_GKP_addUID(GateKeeperStore *gkp, AS_UID uid) {
     if (InsertInHashTable_AS(gkp->STRtoUID,
                              (INTPTR)str, len,
                              loc, 0) == HASH_FAILURE) {
-      fprintf(stderr, "setGatekeeperUID()-- failed to insert uid '%s' into store; already there?!\n", uid.UIDstring);
+      fprintf(stderr, "AS_GKP_addUID()-- failed to insert uid '%s' into store; already there?!\n", uid.UIDstring);
       assert(0);
     }
   }
