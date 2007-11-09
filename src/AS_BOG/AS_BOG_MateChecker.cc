@@ -19,8 +19,8 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.42 2007-11-08 19:42:35 eliv Exp $
- * $Revision: 1.42 $
+ * $Id: AS_BOG_MateChecker.cc,v 1.43 2007-11-09 20:23:29 eliv Exp $
+ * $Revision: 1.43 $
 */
 
 #include <math.h>
@@ -682,8 +682,8 @@ namespace AS_BOG{
                             frag.ident, isFwdBad, loc.bgn, loc.end, currBackboneEnd );
                     fragment_end_type fragEndInTig = THREE_PRIME;
                     // If reverse mate is 1st and overlaps its mate break at 5'
-                    if ( isReverse( loc ) && !isReverse(mloc.pos2) &&
-                            loc.bgn >= mloc.pos2.bgn )
+                    if ( mloc.unitig2 == tig->id() && isReverse( loc ) &&
+                          !isReverse(mloc.pos2) && loc.bgn >= mloc.pos2.bgn )
                         fragEndInTig = FIVE_PRIME;
 
                     UnitigBreakPoint bp( frag.ident, fragEndInTig );
