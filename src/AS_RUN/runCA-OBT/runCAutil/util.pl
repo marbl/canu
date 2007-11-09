@@ -213,7 +213,7 @@ sub setDefaults () {
 
     $global{"createAGP"}                   = 0;
     $global{"createACE"}                   = 0;
-    $global{"createPosMap"}                = 0;
+    $global{"createPosMap"}                = 1;
 
     $global{"merQC"}                       = 0;
     $global{"merQCmemory"}                 = 1024;
