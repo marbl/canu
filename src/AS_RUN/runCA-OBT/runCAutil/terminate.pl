@@ -90,13 +90,11 @@ sub terminate ($) {
     }
 
 
-    if (! -e "$termDir/$asm.scaffold.fasta") {
+    if (! -e "$termDir/$asm.scfcns.fasta") {
         my $cmd;
-        $cmd  = "$bin/asmProcessScaffolds_TER -q -d ";
-        $cmd .= "-f $termDir/$asm.scaffold.fasta ";
-        $cmd .= "< $termDir/$asm.asm";
+        $cmd  = "$bin/asmOutputFasta -p $termDir/$asm $termDir/$asm.asm ";
         if (runCommand("$termDir", $cmd)) {
-            rename "$termDir/$asm.scaffold.fasta", "$termDir/$asm.scaffold.fasta.FAILED";
+            rename "$termDir/$asm.scfcns.fasta", "$termDir/$asm.scfcns.fasta.FAILED";
             caFailure("Failed.\n");
         }
     }
