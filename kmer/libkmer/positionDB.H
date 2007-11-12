@@ -32,9 +32,17 @@ public:
              existDB       *mask,
              existDB       *only,
              u32bit         maxCount,
-             bool           beVerbose);
+             bool           beVerbose,
+             bool           isForMismatches = false);
 
   ~positionDB();
+
+private:
+  void  build(merStream   *MS,
+              existDB     *mask,
+              existDB     *only,
+              u32bit       maxCount,
+              bool         beVerbose);
 
   //  Returns position in posn, resizing it if needed.  Space is
   //  allocated if none supplied.  The following is valid:
@@ -49,10 +57,22 @@ public:
   //  exists() returns T/F if mer exists or not
   //  count() returns the number of times that mer is present
   //
+private:
+  void        loadPositions(u64bit      v,
+                            u64bit*&    posn,
+                            u64bit&     posnMax,
+                            u64bit&     posnLen);
+
+public:
   bool        get(u64bit      mer,
                   u64bit*&    posn,
                   u64bit&     posnMax,
                   u64bit&     posnLen);
+  bool        getMismatch(u64bit      mer,
+                          u64bit      numMismatches,
+                          u64bit*&    posn,
+                          u64bit&     posnMax,
+                          u64bit&     posnLen);
   bool        exists(u64bit   mer);
   u64bit      count(u64bit    mer);
 

@@ -44,14 +44,8 @@ positionDB::positionDB(merStream   *MS,
                        existDB     *mask,
                        existDB     *only,
                        u32bit       maxCount,
-                       bool         beVerbose) {
-
-  _bucketSizes           = 0L;
-  _countingBuckets       = 0L;
-  _hashTable             = 0L;
-  _buckets               = 0L;
-  _positions             = 0L;
-
+                       bool         beVerbose,
+                       bool         isForMismatches) {
 
   //  Guesstimate a nice table size based on the number of input mers
   //  and the mersize, unless the user gave us a table size.
@@ -80,52 +74,76 @@ positionDB::positionDB(merStream   *MS,
   //    2^tblBits * posnWidth +
   //    approxMers * (2*merSize - tblBits + 1 + posnWidth)
   //
-  {
-    u64bit  approxMers = MS->approximateNumberOfMers();
-    u64bit  posnWidth  = logBaseTwo64(approxMers + 1);
+  u64bit  approxMers = MS->approximateNumberOfMers();
+  u64bit  posnWidth  = logBaseTwo64(approxMers + 1);
 
-    //  Find the smallest and largest tblBits we could possibly use.
-    //
-    u64bit  sm = 2 * merSize + posnWidth + 1 - 64;
-    u64bit  lg = 2 * merSize - 4;
+  //  Find the smallest and largest tblBits we could possibly use.
+  //
+  u64bit  sm = 2 * merSize + posnWidth + 1 - 64;
+  u64bit  lg = 2 * merSize - 4;
 
-    if (2 * merSize + posnWidth + 1 < 64)
-      sm = 2;
+  if (2 * merSize + posnWidth + 1 < 64)
+    sm = 2;
 
-    if (sm > lg) {
-      fprintf(stderr, "ERROR:  too many mers for this mersize!\n");
-      fprintf(stderr, "        sm         = "u64bitFMT"\n", sm);
-      fprintf(stderr, "        lg         = "u64bitFMT"\n", sm, lg);
-      fprintf(stderr, "        merSize    = "u64bitFMT" bits\n", 2 * merSize);
-      fprintf(stderr, "        approxMers = "u64bitFMT" mers\n", approxMers);
-      fprintf(stderr, "        posnWidth  = "u64bitFMT" bits\n", posnWidth);
-      exit(1);
-    }
+  //  The mismatch search bogs down if the tblBits is too small --
+  //  this makes buckets larger, and we spend more time searching.
+  //
+#define MINSIZE 30
+  if ((isForMismatches) && (sm < MINSIZE) && (MINSIZE < lg))
+    sm = MINSIZE;
 
-    //  Iterate through all the choices, picking the one with the
-    //  smallest expected footprint.
-    //
-    u64bit  mini = 0;      //  tblSize of the smallest found
-    u64bit  mins = ~mini;  //  memory size of the smallest found (~mini == biggest int)
-    u64bit  one  = 1;
-    for (u64bit i=sm; i<=lg; i++) {
-      u64bit  mm = (one << i) * posnWidth + approxMers * (2*merSize - i + 1 + posnWidth);
+  if (sm > lg) {
+    fprintf(stderr, "ERROR:  too many mers for this mersize!\n");
+    fprintf(stderr, "        sm         = "u64bitFMT"\n", sm);
+    fprintf(stderr, "        lg         = "u64bitFMT"\n", sm, lg);
+    fprintf(stderr, "        merSize    = "u64bitFMT" bits\n", 2 * merSize);
+    fprintf(stderr, "        approxMers = "u64bitFMT" mers\n", approxMers);
+    fprintf(stderr, "        posnWidth  = "u64bitFMT" bits\n", posnWidth);
+    exit(1);
+  }
 
-      //fprintf(stderr, "tblBits="u64bitFMT": merSize="u64bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers) -- size "u64bitFMT".\n",
-      //        i, merSize, posnWidth, approxMers, mm);
+  fprintf(stderr, "        sm         = "u64bitFMT"\n", sm);
+  fprintf(stderr, "        lg         = "u64bitFMT"\n", sm, lg);
+  fprintf(stderr, "        merSize    = "u64bitFMT" bits\n", 2 * merSize);
+  fprintf(stderr, "        approxMers = "u64bitFMT" mers\n", approxMers);
+  fprintf(stderr, "        posnWidth  = "u64bitFMT" bits\n", posnWidth);
 
-      if (mm < mins) {
-        mini = i;
-        mins = mm;
+  //  Iterate through all the choices, picking the one with the
+  //  smallest expected footprint.
+  //
+  u64bit  mini = 0;      //  tblSize of the smallest found
+  u64bit  mins = ~mini;  //  memory size of the smallest found (~mini == biggest int)
+  u64bit  one  = 1;
+  for (u64bit i=sm; i<=lg; i++) {
+
+    u64bit  mm = (one << i) * posnWidth + approxMers * (2*merSize - i + 1 + posnWidth);
+
+    //  If the ts is even, and shift1 is even, and shift2 is even,
+    //  this is a valid tablesize to consider.
+    if (isForMismatches) {
+      u32bit  s1 = 2 * merSize - i;
+      u32bit  s2 = s1 / 2;
+
+      if (((i % 2) == 1) || ((s1 % 2) == 1) || ((s2 % 2) == 1)) {
+        fprintf(stderr, "tblBits="u64bitFMT": merSize="u64bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers) -- size "u64bitFMT" SKIP.\n",
+                i, merSize, posnWidth, approxMers, mm);
+        continue;
       }
     }
 
-    _tableSizeInBits = mini;
+    fprintf(stderr, "tblBits="u64bitFMT": merSize="u64bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers) -- size "u64bitFMT".\n",
+            i, merSize, posnWidth, approxMers, mm);
 
-    //fprintf(stderr, "tblBits="u64bitFMT": merSize="u64bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers)\n",
-    //        _tableSizeInBits, merSize, posnWidth, approxMers);
+    if (mm < mins) {
+      mini = i;
+      mins = mm;
+    }
   }
 
+  _tableSizeInBits = mini;
+
+  fprintf(stderr, "tblBits="u64bitFMT": merSize="u64bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers)\n",
+          _tableSizeInBits, merSize, posnWidth, approxMers);
 
   _merSizeInBases        = merSize;
   _merSizeInBits         = 2 * _merSizeInBases;
@@ -138,13 +156,31 @@ positionDB::positionDB(merStream   *MS,
   _posnWidth             = u64bitZERO;
   _posnMask              = u64bitZERO;
 
-  _wCnt                  = 0;
-  _wFin                  = 0;
-
   _shift1                = _merSizeInBits - _tableSizeInBits;
   _shift2                = _shift1 / 2;
   _mask1                 = u64bitMASK(_tableSizeInBits);
   _mask2                 = u64bitMASK(_shift1);
+
+  build(MS, mask, only, maxCount, beVerbose);
+}
+
+
+
+void
+positionDB::build(merStream *MS,
+                  existDB     *mask,
+                  existDB     *only,
+                  u32bit       maxCount,
+                  bool         beVerbose) {
+
+  _bucketSizes           = 0L;
+  _countingBuckets       = 0L;
+  _hashTable             = 0L;
+  _buckets               = 0L;
+  _positions             = 0L;
+
+  _wCnt                  = 0;
+  _wFin                  = 0;
 
   _numberOfMers          = u64bitZERO;
   _numberOfPositions     = u64bitZERO;

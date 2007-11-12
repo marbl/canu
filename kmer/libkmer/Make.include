@@ -13,6 +13,7 @@ src := $/existDB-create-from-fasta.C \
        $/positionDB-access.C \
        $/positionDB-dump.C \
        $/positionDB-file.C \
+       $/positionDB-mismatch.C \
        $/positionDB-sort.C \
        $/positionDB.C \
        $/positionDB.H

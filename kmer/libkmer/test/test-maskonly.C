@@ -9,7 +9,6 @@
 //
 
 #define MERSIZE 14
-#define TBLSIZE 19
 
 int
 main(int argc, char **argv) {
@@ -30,31 +29,31 @@ main(int argc, char **argv) {
   char *incName = argv[3];
 
   fprintf(stderr, "BUILDING EXCLUDE\n");
-  exclude = new existDB(mskName, MERSIZE, TBLSIZE);
+  exclude = new existDB(mskName, MERSIZE, existDBnoFlags, u32bitZERO, ~u32bitZERO);
 
   fprintf(stderr, "BUILDING INCLUDE\n");
-  include = new existDB(incName, MERSIZE, TBLSIZE);
+  include = new existDB(incName, MERSIZE, existDBnoFlags, u32bitZERO, ~u32bitZERO);
 
   seqStream *F = new seqStream(seqName, true);
   merStream *T = new merStream(new kMerBuilder(MERSIZE), F);
 
   fprintf(stderr, "BUILDING FULL\n");
-  full = new positionDB(T, MERSIZE, 0, TBLSIZE,      0L,      0L, 0, true);
+  full = new positionDB(T, MERSIZE, 0,      0L,      0L, 0, true);
   full->saveState("junk-full");
   delete full;
 
   fprintf(stderr, "BUILDING INCL\n");
-  incl = new positionDB(T, MERSIZE, 0, TBLSIZE,      0L, include, 0, true);
+  incl = new positionDB(T, MERSIZE, 0,      0L, include, 0, true);
   incl->saveState("junk-incl");
   delete incl;
 
   fprintf(stderr, "BUILDING EXCL\n");
-  excl = new positionDB(T, MERSIZE, 0, TBLSIZE, exclude,      0L, 0, true);
+  excl = new positionDB(T, MERSIZE, 0, exclude,      0L, 0, true);
   excl->saveState("junk-excl");
   delete excl;
 
   fprintf(stderr, "BUILDING THRS\n");
-  thrs = new positionDB(T, MERSIZE, 0, TBLSIZE,      0L,      0L, 1, true);
+  thrs = new positionDB(T, MERSIZE, 0,      0L,      0L, 1, true);
   thrs->saveState("junk-thrs");
   delete thrs;
 

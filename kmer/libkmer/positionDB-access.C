@@ -1,6 +1,44 @@
 #include "positionDB.H"
 #include "bio++.H"
 
+void
+positionDB::loadPositions(u64bit   v,
+                          u64bit*& posn,
+                          u64bit&  posnMax,
+                          u64bit&  posnLen) {
+
+  u64bit  pos = (v >> _chckWidth) & _posnPtrMask;
+
+  if (v & (u64bitONE << (_wFin - 1))) {
+    //  We allocated space already.
+    posn[posnLen++] = pos;
+  } else {
+    u64bit ptr  = pos * _posnWidth;
+    u64bit len  = getDecodedValue(_positions, ptr, _posnWidth);
+
+    //  Whoops!  Need more space!
+    //
+    if (posnMax < posnLen + len) {
+      delete [] posn;
+
+      posnMax = posnLen + len + (len >> 2);
+      try {
+        posn    = new u64bit [posnMax];
+      } catch (...) {
+        fprintf(stderr, "positionDB::get()-- Can't allocate space for more positions, requested "u64bitFMT" u64bit's.\n", posnMax);
+        abort();
+      }
+    }
+
+    for (; len > 0; len--) {
+      ptr += _posnWidth;
+      posn[posnLen++] = getDecodedValue(_positions, ptr, _posnWidth);
+    }
+  }
+}
+
+
+
 bool
 positionDB::get(u64bit   mer,
                 u64bit*& posn,
@@ -12,9 +50,6 @@ positionDB::get(u64bit   mer,
   u64bit ed = getDecodedValue(_hashTable, h * _hashWidth + _hashWidth, _hashWidth);
   u64bit le = ed - st;
 
-  //  We probably should always say the length is zero if we don't
-  //  find anything, not just return false.
-  //
   posnLen = 0;
 
   if (le == 0)
@@ -33,44 +68,11 @@ positionDB::get(u64bit   mer,
     }
   }
 
-  u64bit  v;
-  u64bit  pos;
-  u64bit  len, ptr;
-
   for (u64bit i=st, J=st * _wFin; i<ed; i++, J += _wFin) {
-    v = getDecodedValue(_buckets, J, _wFin);
+    u64bit v = getDecodedValue(_buckets, J, _wFin);
 
     if ((v & _chckMask) == c) {
-      pos = (v >> _chckWidth) & _posnPtrMask;
-
-      if (v & (u64bitONE << (_wFin - 1))) {
-        //  We allocated space already.
-        posnLen = 1;
-        posn[0] = pos;
-      } else {
-        ptr  = pos * _posnWidth;
-        len  = getDecodedValue(_positions, ptr, _posnWidth);
-
-        //  Whoops!  Need more space!
-        //
-        if (posnMax < len) {
-          delete [] posn;
-
-          posnMax = len + (len >> 2);
-          try {
-            posn    = new u64bit [posnMax];
-          } catch (...) {
-            fprintf(stderr, "positionDB::get()-- Can't allocate space for more positions, requested "u64bitFMT" u64bit's.\n", posnMax);
-            abort();
-          }
-        }
-
-        for (; len > 0; len--) {
-          ptr += _posnWidth;
-          posn[posnLen++] = getDecodedValue(_positions, ptr, _posnWidth);
-        }
-      }
-
+      loadPositions(v, posn, posnMax, posnLen);
       return(true);
     }
   }
