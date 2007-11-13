@@ -22,7 +22,7 @@
 #
 ##########################################################################
 
-# $Id: FASTA_to_frg_file.pl,v 1.7 2007-11-02 02:19:53 brianwalenz Exp $
+# $Id: FASTA_to_frg_file.pl,v 1.8 2007-11-13 16:32:40 brianwalenz Exp $
 
 use strict;
 use Getopt::Std;
@@ -97,6 +97,10 @@ while(<$fasta_fh>){
 	}
 }
 process_record($prev_defline, $sequence);
+
+print STDOUT "{VER\n";
+print STDOUT "ver:1\n";
+print STDOUT "}\n";
 
 print STDERR "Completed.\n";
 
