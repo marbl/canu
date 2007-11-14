@@ -23,7 +23,6 @@
 
 gkpStoreSequence::gkpStoreSequence() {
   _gkp = 0L;
-  _frg = 0L;
   _bgn = 0;
   _end = 0;
   _clr = AS_READ_CLEAR_LATEST;
@@ -37,7 +36,6 @@ gkpStoreSequence::gkpStoreSequence(char const *gkpName,
                                    uint32 end,
                                    uint32 clr) {
   _gkp = openGateKeeperStore(gkpName, FALSE);
-  _frg = new_fragRecord();
   _bgn = bgn;
   _end = end;
   _clr = clr;
@@ -81,12 +79,12 @@ gkpStoreSequence::gkpStoreSequence(char const *gkpName,
   if ((_bgn < max) && (end < max))
     resetFragStream(stm, _bgn, _end);
 
-  while (nextFragStream(stm, _frg)) {
-    if (!getFragRecordIsDeleted(_frg)) {
-      uint32  iid = getFragRecordIID(_frg);
-      _clrBeg[iid] = getFragRecordClearRegionBegin(_frg, _clr);
-      _clrEnd[iid] = getFragRecordClearRegionEnd  (_frg, _clr);
-      _seqLen[iid] = getFragRecordSequenceLength  (_frg);
+  while (nextFragStream(stm, &_frg)) {
+    if (!getFragRecordIsDeleted(&_frg)) {
+      uint32  iid = getFragRecordIID(&_frg);
+      _clrBeg[iid] = getFragRecordClearRegionBegin(&_frg, _clr);
+      _clrEnd[iid] = getFragRecordClearRegionEnd  (&_frg, _clr);
+      _seqLen[iid] = getFragRecordSequenceLength  (&_frg);
     }
   }
 
@@ -95,7 +93,6 @@ gkpStoreSequence::gkpStoreSequence(char const *gkpName,
 
 
 gkpStoreSequence::~gkpStoreSequence() {
-  del_fragRecord(_frg);
   closeGateKeeperStore(_gkp);
   delete [] _seqLen;
   delete [] _clrBeg;
@@ -154,21 +151,19 @@ gkpStoreSequence::getSequence(uint32 &hLen, char *&h,
   if (_iid > _end)
     return(false);
 
-  if ((_iid > 0) && (_iid != getFragRecordIID(_frg)))
+  if ((_iid > 0) && (_iid != getFragRecordIID(&_frg)))
     if (find(_iid) == false)
       return(false);
 
   h    = new char [65];
-  sprintf(h, F_UID","F_IID,
-          getFragRecordUID(_frg),
-          getFragRecordIID(_frg));
+  sprintf(h, "%s,"F_IID, AS_UID_toString(getFragRecordUID(&_frg)), getFragRecordIID(&_frg));
   hLen = strlen(h);
 
   sLen = _clrEnd[_iid] - _clrBeg[_iid];
   s    = new char [sLen + 1];
 
   if (sLen > 0)
-    strncpy(s, getFragRecordSequence(_frg) + _clrBeg[_iid], sLen);
+    strncpy(s, getFragRecordSequence(&_frg) + _clrBeg[_iid], sLen);
 
   s[sLen] = 0;
 
@@ -215,7 +210,7 @@ gkpStoreSequence::find(seqIID  iid) {
     _iid = getLastElemFragStore(_gkp) + 2;
     return(false);
   }
-  getFrag(_gkp, iid, _frg, FRAG_S_SEQ);
+  getFrag(_gkp, iid, &_frg, FRAG_S_SEQ);
   _iid = iid;
   return(true);
 }

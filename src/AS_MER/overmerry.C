@@ -212,12 +212,12 @@ public:
     outputFile = AS_OVS_createBinaryOverlapFile(outputName, FALSE);
   };
 
-  uint32    getClrBeg(CDS_IID_t iid) {
+  uint32    getClrBeg(AS_IID iid) {
     assert(tBeg <= iid);
     return(table_clrBeg[iid - tBeg]);
   };
 
-  uint32    getUntrimLength(CDS_IID_t iid) {
+  uint32    getUntrimLength(AS_IID iid) {
     assert(tBeg <= iid);
     return(table_untrimLength[iid - tBeg]);
   };
@@ -292,7 +292,7 @@ public:
 
   void
   addHit(seqStream   *SS,
-         CDS_IID_t    iid,
+         AS_IID       iid,
          u64bit       qpos,
          u64bit       pos,
          u64bit       cnt,
@@ -420,8 +420,8 @@ public:
   uint32      end;
   uint32      tln;
 
-  CDS_IID_t   iid;
-  CDS_UID_t   uid;
+  AS_IID      iid;
+  AS_UID      uid;
 
   uint32      ovsLen;  //  Overlap Storage, waiting for output
   uint32      ovsMax;

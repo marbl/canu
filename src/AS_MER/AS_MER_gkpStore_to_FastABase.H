@@ -122,7 +122,7 @@ private:
                            uint32 &sLen, char *&s);
 
   GateKeeperStore  *_gkp;
-  fragRecord       *_frg;
+  fragRecord        _frg;
   uint32            _bgn;
   uint32            _end;
   uint32            _clr;
