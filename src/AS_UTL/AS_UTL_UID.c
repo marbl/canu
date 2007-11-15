@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-// $Id: AS_UTL_UID.c,v 1.2 2007-11-09 13:38:00 brianwalenz Exp $
+// $Id: AS_UTL_UID.c,v 1.3 2007-11-15 14:27:50 skoren Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -200,9 +200,10 @@ AS_UID
 AS_UID_lookup(char *uidstr, char **nxtstr) {
   AS_UID  uid = AS_UID_undefined();
 
+  assert(uidstr != NULL);
   //  Bump up to the next word, then bump past the word.
   //
-  while (uidstr && isspace(*uidstr))  uidstr++;
+  while (*uidstr && isspace(*uidstr))  uidstr++;
 
   //  If we are all numeric, and smaller than what will fit in
   //  63-bits, then we're numeric, otherwise, we're a string.
@@ -210,7 +211,7 @@ AS_UID_lookup(char *uidstr, char **nxtstr) {
   int   len = 0;
   int   dig = 0;
 
-  while (uidstr[len]) {
+  while (uidstr[len] && !isspace(uidstr[len])) {
     if (('0' <= uidstr[len]) && (uidstr[len] <= '9'))
       dig++;
     len++;
