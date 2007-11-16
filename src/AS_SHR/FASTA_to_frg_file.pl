@@ -22,11 +22,12 @@
 #
 ##########################################################################
 
-# $Id: FASTA_to_frg_file.pl,v 1.8 2007-11-13 16:32:40 brianwalenz Exp $
+# $Id: FASTA_to_frg_file.pl,v 1.9 2007-11-16 08:40:40 brianwalenz Exp $
 
 use strict;
 use Getopt::Std;
 use FileHandle;
+use Annotation::UID;
 use vars qw($opt_q $opt_f);
 
 my $DEFAULT_QUAL=20;
@@ -56,6 +57,14 @@ print STDERR "Default Quality Value: $DEFAULT_QUAL\n";
 my $filename=$opt_f;
 my $time=time;
 
+#  Apparently needed for Annotation:UID
+my $logConf = q(
+log4perl.category.GUID          = WARN, Screen
+log4perl.appender.Screen        = Log::Log4perl::Appender::Screen
+log4perl.appender.Screen.stderr = 0
+log4perl.appender.Screen.layout = Log::Log4perl::Layout::SimpleLayout
+);
+Log::Log4perl->init(\$logConf);
 my $uidServ = new Annotation::UID(2, "seq454");
 my $libId   = $uidServ->incrUID;
 
