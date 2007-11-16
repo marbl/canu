@@ -126,7 +126,7 @@ endif
 ifeq ($(OSTYPE), Darwin)
   CC               = gcc
   CXX              = g++
-  ARCH_CFLAGS      = -DNEEDXDRUHYPER -D_THREAD_SAFE
+  ARCH_CFLAGS      = -D_THREAD_SAFE
   ifeq ($(BUILDDEBUG), 1)
     ARCH_CFLAGS   += -g
   else
