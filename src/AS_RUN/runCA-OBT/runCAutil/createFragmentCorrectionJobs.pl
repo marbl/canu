@@ -60,6 +60,7 @@ sub createFragmentCorrectionJobs {
     print F "\n";
 
     print F "$correctfrags \\\n";
+    print F "  -t $numThreads \\\n";
     print F "  -S $wrk/$asm.ovlStore \\\n";
     print F "  -o $wrk/2-frgcorr/\$jobid.frgcorr \\\n";
     print F "  $wrk/$asm.gkpStore \\\n";
