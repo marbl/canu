@@ -67,8 +67,8 @@ sub overlapTrim {
         my $cmd;
         $cmd  = "$bin/overlapStore ";
         $cmd .= " -c $wrk/$asm.obtStore ";
+        $cmd .= " -g $wrk/$asm.gkpStore ";
         $cmd .= " -M " . getGlobal('ovlSortMemory');
-        $cmd .= " -m $numFrags ";
         $cmd .= " -L $wrk/0-overlaptrim/$asm.ovllist";
         $cmd .= " > $wrk/0-overlaptrim/$asm.overlapstore.err 2>&1";
 

@@ -15,8 +15,8 @@ sub createOverlapStore {
     my $cmd;
     $cmd  = "$bin/overlapStore ";
     $cmd .= " -c $wrk/$asm.ovlStore ";
+    $cmd .= " -g $wrk/$asm.gkpStore ";
     $cmd .= " -M " . getGlobal("ovlStoreMemory");
-    $cmd .= " -m $numFrags ";
     $cmd .= " -L $wrk/1-overlapper/$asm.ovllist ";
     $cmd .= " > $wrk/1-overlapper/grow-olap-store.err 2>&1";
 

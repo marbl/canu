@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore_build.c,v 1.12 2007-07-23 08:40:09 brianwalenz Exp $";
+//  $Id: overlapStore_build.c,v 1.13 2007-11-19 13:18:29 brianwalenz Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -105,13 +105,19 @@ writeToDumpFile(OVSoverlap          *overlap,
 
 
 void
-buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 nThreads, uint32 fileListLen, char **fileList) {
+buildStore(char *storeName, char *gkpName, uint64 memoryLimit, uint32 nThreads, uint32 fileListLen, char **fileList) {
+
+  if (gkpName == NULL) {
+    fprintf(stderr, "overlapStore: The '-g gkpName' parameter is required.\n");
+    exit(1);
+  }
 
   //  We create the store early, allowing it to fail if it already
   //  exists, or just cannot be created.
   //
-  OverlapStore  *storeFile = AS_OVS_createOverlapStore(storeName, TRUE);
+  OverlapStore    *storeFile = AS_OVS_createOverlapStore(storeName, TRUE);
 
+  storeFile->gkp = openGateKeeperStore(gkpName, FALSE);
 
   //  Decide on some sizes.  We need to decide on how many IID's to
   //  put in each bucket.  Except for running out of file descriptors
@@ -127,6 +133,7 @@ buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 nThreads, 
   uint64  numOverlaps         = 0;
   uint64  overlapsPerIID      = 0;
   uint64  iidPerBucket        = 0;
+  uint64  maxIID              = getLastElemFragStore(storeFile->gkp) + 1;
 
   if (fileList[i][0] != '-') {
     for (i=0; i<fileListLen; i++) {
@@ -303,9 +310,3 @@ buildStore(char *storeName, uint64 memoryLimit, uint64 maxIID, uint32 nThreads, 
   //
   exit(0);
 }
-
-
-//  time /scratch/wgs/FreeBSD-amd64/bin/overlapStore -c /scratch/tri.obtStore -M 16000 -m 1403477 /external/tri/0-overlaptrim-overlap/00000001/h00000001r00000000.ovb
-//
-//  8 threads 16GB took 7814.983u 3032.649s 3:18:40.14 91.0%    46+19153893k 1973461+2309221io 3pf+0w
-//  2 threads  4GB took 6619.982u 2939.473s 4:01:32.30 65.9%    46+4802800k 1988156+2309826io 4pf+0w

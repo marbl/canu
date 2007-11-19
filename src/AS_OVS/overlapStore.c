@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: overlapStore.c,v 1.12 2007-11-08 12:38:14 brianwalenz Exp $";
+//  $Id: overlapStore.c,v 1.13 2007-11-19 13:18:29 brianwalenz Exp $
 
 #include "overlapStore.h"
 
@@ -29,12 +29,12 @@ int
 main(int argc, char **argv) {
   uint32    operation   = OP_NONE;
   char     *storeName   = NULL;
+  char     *gkpName     = NULL;
   uint32    dumpBinary  = FALSE;
   double    dumpERate   = 100.0;
   uint32    bgnIID      = 0;
   uint32    endIID      = 1000000000;
   uint64    memoryLimit = 512 * 1024 * 1024;
-  uint64    maxIID      = 1000000;
   uint32    nThreads    = 4;
   uint32    fileListLen = 0;
   uint32    fileListMax = 10 * 1024;  //  If you run more than 10,000 overlapper jobs, you'll die.
@@ -45,31 +45,43 @@ main(int argc, char **argv) {
   while (arg < argc) {
 
     if        (strcmp(argv[arg], "-c") == 0) {
+      if (storeName)
+        fprintf(stderr, "ERROR: only one of -c, -m, -d, -s, -S or -u may be supplied.\n"), err++;
       storeName   = argv[++arg];
       operation   = OP_BUILD;
 
     } else if (strcmp(argv[arg], "-m") == 0) {
-      if (storeName == NULL) {
-        storeName   = argv[++arg];
-        operation   = OP_MERGE;
-      } else {
-        maxIID      = atoi(argv[++arg]);
-      }
+      if (storeName)
+        fprintf(stderr, "ERROR: only one of -c, -m, -d, -s, -S or -u may be supplied.\n"), err++;
+      storeName   = argv[++arg];
+      operation   = OP_MERGE;
 
     } else if (strcmp(argv[arg], "-d") == 0) {
+      if (storeName)
+        fprintf(stderr, "ERROR: only one of -c, -m, -d, -s, -S or -u may be supplied.\n"), err++;
       storeName   = argv[++arg];
       operation   = OP_DUMP;
 
     } else if (strcmp(argv[arg], "-s") == 0) {
+      if (storeName)
+        fprintf(stderr, "ERROR: only one of -c, -m, -d, -s, -S or -u may be supplied.\n"), err++;
       storeName   = argv[++arg];
-      operation   = OP_STATS;
+      operation   = OP_STATS_DUMP;
+
+    } else if (strcmp(argv[arg], "-S") == 0) {
+      if (storeName)
+        fprintf(stderr, "ERROR: only one of -c, -m, -d, -s, -S or -u may be supplied.\n"), err++;
+      storeName   = argv[++arg];
+      operation   = OP_STATS_REBUILD;
+
+    } else if (strcmp(argv[arg], "-u") == 0) {
+      if (storeName)
+        fprintf(stderr, "ERROR: only one of -c, -m, -d, -s, -S or -u may be supplied.\n"), err++;
+      storeName   = argv[++arg];
+      operation   = OP_UPDATE_ERATES;
 
     } else if (strcmp(argv[arg], "-t") == 0) {
       nThreads    = atoi(argv[++arg]);
-
-    } else if (strcmp(argv[arg], "-u") == 0) {
-      storeName   = argv[++arg];
-      operation   = OP_UPDATE_ERATES;
 
     } else if (strcmp(argv[arg], "-E") == 0) {
       dumpERate = atof(argv[++arg]);
@@ -86,6 +98,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-M") == 0) {
       memoryLimit  = atoi(argv[++arg]);  //  convert first, then multiply so we don't
       memoryLimit *= 1024 * 1024;        //  overflow whatever type atoi() is.
+
+    } else if (strcmp(argv[arg], "-g") == 0) {
+      gkpName = argv[++arg];
 
     } else if (strcmp(argv[arg], "-L") == 0) {
       char *line;
@@ -124,20 +139,21 @@ main(int argc, char **argv) {
     arg++;
   }
   if ((operation == OP_NONE) || (storeName == NULL) || (err)) {
-    fprintf(stderr, "usage: %s -c storeName [-M x (MB) -m maxIID] [-t threads] [-L list-of-ovl-files] ovl-file ...\n", argv[0]);
+    fprintf(stderr, "usage: %s -c storeName [-M x (MB)] [-t threads] [-g gkpStore] [-L list-of-ovl-files] ovl-file ...\n", argv[0]);
     fprintf(stderr, "       %s -m storeName mergeName\n", argv[0]);
     fprintf(stderr, "       %s -d storeName [-B] [-E erate] [-b beginIID] [-e endIID]\n", argv[0]);
     fprintf(stderr, "       %s -s storeName\n", argv[0]);
+    fprintf(stderr, "       %s -S storeName -g gkpStore\n", argv[0]);
     fprintf(stderr, "\n");
     fprintf(stderr, "  -c create a new store, fails if the store exists\n");
     fprintf(stderr, "  -m merge store mergeName into store storeName\n");
     fprintf(stderr, "  -d dump a store\n");
     fprintf(stderr, "  -s dump statistics about a store\n");
+    fprintf(stderr, "  -S recompute overlap statistics\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "CREATION\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "  -M x         Use 'x'MB memory for sorting overlaps.\n");
-    fprintf(stderr, "  -m m         There are 'm' reads in the fragment set.\n");
     fprintf(stderr, "  -t t         Use 't' threads for sorting overlaps.\n");
     fprintf(stderr, "  -L f         Read overlaps from files listed in 'f'.\n");
     fprintf(stderr, "\n");
@@ -161,13 +177,19 @@ main(int argc, char **argv) {
 
   switch (operation) {
     case OP_BUILD:
-      buildStore(storeName, memoryLimit, maxIID, nThreads, fileListLen, fileList);
+      buildStore(storeName, gkpName, memoryLimit, nThreads, fileListLen, fileList);
       break;
     case OP_MERGE:
       mergeStore(storeName, fileList[0]);
       break;
     case OP_DUMP:
       dumpStore(storeName, dumpBinary, dumpERate, bgnIID, endIID);
+      break;
+    case OP_STATS_DUMP:
+      dumpStats(storeName);
+      break;
+    case OP_STATS_REBUILD:
+      rebuildStats(storeName, gkpName);
       break;
     case OP_UPDATE_ERATES:
       updateErates(storeName, fileList[0]);

@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: ";
+//  $Id: filterOverlap.c,v 1.2 2007-11-19 13:18:29 brianwalenz Exp $
 
 #include <stdio.h>
 #include <stdlib.h>

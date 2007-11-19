@@ -57,8 +57,8 @@ sub merOverlapper($) {
     if (! -e "$wrk/$outDir/$asm.merStore") {
         $cmd  = "$bin/overlapStore";
         $cmd .= " -c $wrk/$outDir/$asm.merStore";
+        $cmd .= " -g $wrk/$asm.gkpStore";
         $cmd .= " -M " . getGlobal("ovlStoreMemory");
-        $cmd .= " -m $numFrags";
         $cmd .= " $wrk/$outDir/$asm.ovm";
         $cmd .= " > $wrk/$outDir/$asm.merStore.err 2>&1";
         if (runCommand("$wrk/$outDir", $cmd)) {
