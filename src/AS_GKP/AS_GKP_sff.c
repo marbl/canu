@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.6 2007-11-08 12:38:12 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.7 2007-11-19 16:37:54 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -226,91 +226,58 @@ readsff_read(FILE *sff, sffHeader *h, sffRead *r) {
 }
 
 
-//  Massage the sff into a new gatekeeper entry.
-//
+
 static
 AS_UID
 readsff_constructUIDFromName(char *name, int constructReadUID) {
-  AS_UID      uid;
-  char        base36[16];
-  uint64      timestamp;
-  uint64      rigname;
-  uint64      region;
-  uint64      position, x, y;
+  char  libname[16] = {0};
 
-  base36[0] = name[0];
-  base36[1] = name[1];
-  base36[2] = name[2];
-  base36[3] = name[3];
-  base36[4] = name[4];
-  base36[5] = name[5];
-  base36[6] = 0;
-  timestamp = strtoull(base36, NULL, 36);
+  assert(strlen(name) == 14);
 
-  base36[0] = name[6];
-  base36[1] = 0;
-  rigname = strtoull(base36, NULL, 36) & 0x0000000f;
-
-  base36[0] = name[7];
-  base36[1] = name[8];
-  base36[2] = 0;
-  region = strtoul(base36, NULL, 10);
-
-  base36[0] = name[9];
-  base36[1] = name[10];
-  base36[2] = name[11];
-  base36[3] = name[12];
-  base36[4] = name[13];
-  base36[5] = 0;
-  position = strtoul(base36, NULL, 36);
-
-  x = position / 4096;
-  y = position % 4096;
-
-  assert(4 + 31 + 3 + 14 + 12 == 64);
-
-  int err = 0;
-
-  if (timestamp > 1 << 31)
-    err |= 1;
-  if ((region == 0) || (region > 4))
-    err |= 2;
-  if (x > 16384)
-    err |= 4;
-  if (y > 4096)
-    err |= 8;
-
-  if (err) {
-    //fprintf(stdout, "%s -- err %d -- timestamp:0x%08lx region:0x%08lx position:0x%08lx (x=%lu y=%lu)\n", name, err, timestamp, region, position, x, y);
-    AS_GKP_reportError(AS_GKP_FRG_UNKNOWN_LIB, name);
-    gkpStore->gkp.sffWarnings++;
-  }
-
-  uid.isString = 0;
+  //  The read UID is just the name given by 454.  Thanks, 454!  The
+  //  library UID is derived from the read UID by yanking out the
+  //  position of the read, and replacing it with something obnoxious.
+  //  We could have just truncated it to the last 9 letters, but
+  //  that's kind of short.  Not that 15 is better.
 
   if (constructReadUID) {
-    uid.UID   = 0;
-    uid.UID  |= rigname;    //  4 bits
-    uid.UID <<= 31;
-    uid.UID  |= timestamp;  //  31 bits
-    uid.UID <<= 3;
-    uid.UID  |= region;     //  3 bits
-    uid.UID <<= 14;
-    uid.UID  |= x;          //  14 bits
-    uid.UID <<= 12;
-    uid.UID  |= y;          //  12 bits
+    libname[0]  = name[0];
+    libname[1]  = name[1];
+    libname[2]  = name[2];
+    libname[3]  = name[3];
+    libname[4]  = name[4];
+    libname[5]  = name[5];
+    libname[6]  = name[6];
+    libname[7]  = name[7];
+    libname[8]  = name[8];
+    libname[9]  = name[9];
+    libname[10] = name[10];
+    libname[11] = name[11];
+    libname[12] = name[12];
+    libname[13] = name[13];
+    libname[14] = name[14];
+    libname[15] = 0;
   } else {
-    uid.UID   = 0;
-    uid.UID  |= rigname;    //  4 bits
-    uid.UID <<= 31;
-    uid.UID  |= timestamp;  //  31 bits
-    uid.UID <<= 3;
-    uid.UID  |= region;     //  3 bits
-    uid.UID <<= 26;
-    uid.UID  |= 0x03ffffff; // 26 bits
+    libname[0] = 'L';
+    libname[1] = 'I';
+    libname[2] = 'B';
+    libname[3] = 'S';
+    libname[4] = 'F';
+    libname[5] = 'F';
+    libname[6]  = name[0];
+    libname[7]  = name[1];
+    libname[8]  = name[2];
+    libname[9]  = name[3];
+    libname[10] = name[4];
+    libname[11] = name[5];
+    libname[12] = name[6];
+    libname[13] = name[7];
+    libname[14] = name[8];
+    libname[15] = name[9];
+    libname[16] = 0;
   }
 
-  return(uid);
+  return(AS_UID_load(libname));
 }
 
 
