@@ -231,6 +231,7 @@ sub setDefaults () {
     $global{"useBogUnitig"}                = 0;
     $global{"bogPromiscuous"}              = 0;
     $global{"bogEjectUnhappyContain"}      = 0;
+    $global{"bogBadMateDepth"}             = undef;
     $global{"vectorIntersect"}             = undef;
 
     $global{"ovlErrorRate"}                = 0.06;
