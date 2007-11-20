@@ -49,8 +49,8 @@
 *************************************************/
 
 /* RCS info
- * $Id: AS_OVL_overlap_common.h,v 1.41 2007-11-09 13:39:08 brianwalenz Exp $
- * $Revision: 1.41 $
+ * $Id: AS_OVL_overlap_common.h,v 1.42 2007-11-20 16:03:20 eliv Exp $
+ * $Revision: 1.42 $
 */
 
 
@@ -4142,7 +4142,7 @@ static void  Process_Matches
       if  (is_hopeless)
         {
           (* Start) = 0;
-          Kmer_Hits_Without_Olap_Ct ++;
+          WA->Kmer_Hits_Without_Olap_Ct ++;
           return;
         }
     }
