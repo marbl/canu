@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: overlapStore_erates.c,v 1.7 2007-11-19 13:18:29 brianwalenz Exp $
+//  $Id: overlapStore_erates.c,v 1.8 2007-11-20 07:08:28 brianwalenz Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -76,13 +76,17 @@ updateErates(char *storeName, char *eratesName) {
   //
   orig = AS_OVS_openOverlapStorePrivate(storeName, TRUE,  TRUE);
 
-  // close before asserting otherwise the store is corrupted
   if (iNum != orig->ovs.numOverlapsTotal) {
-    // The backup gets nuked by the close call, restore to avoid exiting with only backup store 
+    fprintf(stderr, "ERROR: iNum "F_U64" != orig->ovs.numOverlapsTotal "F_U64"\n",
+            iNum, orig->ovs.numOverlapsTotal);
+
+    // The backup gets nuked by the close call, restore to avoid
+    // exiting with only backup store
+    //
     AS_OVS_restoreBackup(orig);
-  	
     AS_OVS_closeOverlapStore(orig);
-    assert(iNum == orig->ovs.numOverlapsTotal);
+
+    exit(1);
   }
 
   //  Recreate a store in the same place as the original store.

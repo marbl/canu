@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: overlapStore_stats.c,v 1.5 2007-11-19 13:18:29 brianwalenz Exp $
+//  $Id: overlapStore_stats.c,v 1.6 2007-11-20 07:08:28 brianwalenz Exp $
 
 #include "AS_OVS_overlapStore.h"
 #include "overlapStore.h"
@@ -108,8 +108,6 @@ rebuildStats(char *storeName, char *gkpName) {
 
   //  Clear the stat struct
   memset(&ovs->stats, 0, sizeof(OverlapStoreStats));
-
-  ovs->statsUpdated = 1;
 
   //  Read all the overlaps, compute stats on them
   while (AS_OVS_readOverlapFromStore(ovs, &ovl, AS_OVS_TYPE_ANY) == TRUE)

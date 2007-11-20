@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_OVS_overlapStats.c,v 1.1 2007-11-19 13:18:29 brianwalenz Exp $
+//  $Id: AS_OVS_overlapStats.c,v 1.2 2007-11-20 07:08:27 brianwalenz Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -182,7 +182,8 @@ AS_OVS_accumulateStats(OverlapStore *ovs, OVSoverlap *ovl) {
   //  of erates without knowing fragment length, but it's better to
   //  just force the user to always have a gkpStore.
 
-  assert(ovs->gkp != NULL);
+  if (ovs->gkp == NULL)
+    return;
 
   if (ovs->fragClearLength == NULL)
     AS_OVS_loadClearLengths(ovs, ovl);

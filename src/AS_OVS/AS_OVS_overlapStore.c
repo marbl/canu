@@ -121,7 +121,7 @@ AS_OVS_openOverlapStorePrivate(const char *path, int useBackup, int saveSpace) {
 
   //  If we're not supposed to be using the backup, load the stats.
   //
-  if (ovs->useBackup == FALSE) {
+  if (ovs->useBackup == 0) {
     FILE *ost;
 
     sprintf(name, "%s/ost", ovs->storePath);
@@ -132,7 +132,7 @@ AS_OVS_openOverlapStorePrivate(const char *path, int useBackup, int saveSpace) {
       exit(1);
     }
 
-    AS_UTL_safeRead(ost, &ovs->stats, "AS_OVS_closeOverlapStore", sizeof(OverlapStoreStats), 1);
+    AS_UTL_safeRead(ost, &ovs->stats, "AS_OVS_openOverlapStore", sizeof(OverlapStoreStats), 1);
     fclose(ost);
   }
 
@@ -185,10 +185,10 @@ AS_OVS_openOverlapStorePrivate(const char *path, int useBackup, int saveSpace) {
 
 void
 AS_OVS_restoreBackup(OverlapStore *ovs) {
-	char            name[FILENAME_MAX];
+  char            name[FILENAME_MAX];
 	
   //  Restore the backup for an overlap store.
-	//
+  //
   if (ovs->useBackup) {
     int i;
     renameFromBackup(ovs->storePath, "ovs");
@@ -381,13 +381,13 @@ AS_OVS_closeOverlapStore(OverlapStore *ovs) {
         ovs->missing.numOlaps  = 0;
         AS_UTL_safeWrite(ovs->offsetFile,
                          &ovs->missing,
-                         "AS_OVS_writeOverlapToStore offset",
+                         "AS_OVS_closeOverlapStore offset",
                          sizeof(OverlapStoreOffsetRecord),
                          1);
         ovs->missing.a_iid++;
       }
 
-      AS_UTL_safeWrite(ovs->offsetFile, &ovs->offset, "AS_OVS_writeOverlapToStore offset",
+      AS_UTL_safeWrite(ovs->offsetFile, &ovs->offset, "AS_OVS_closeOverlapStore offset",
                        sizeof(OverlapStoreOffsetRecord), 1);
     }
 
@@ -404,6 +404,15 @@ AS_OVS_closeOverlapStore(OverlapStore *ovs) {
     ovs->ovs.highestFileIndex = ovs->currentFileIndex;
     AS_UTL_safeWrite(ovsinfo, &ovs->ovs, "AS_OVS_closeOverlapStore", sizeof(OverlapStoreInfo), 1);
     fclose(ovsinfo);
+
+    fprintf(stderr, "Closing the new store:\n");
+    fprintf(stderr, "ovs->ovs.ovsMagic           = "F_U64"\n", ovs->ovs.ovsMagic);
+    fprintf(stderr, "ovs->ovs.ovsVersion         = "F_U64"\n", ovs->ovs.ovsVersion);
+    fprintf(stderr, "ovs->ovs.numOverlapsPerFile = "F_U64"\n", ovs->ovs.numOverlapsPerFile);
+    fprintf(stderr, "ovs->ovs.smallestIID        = "F_U64"\n", ovs->ovs.smallestIID);
+    fprintf(stderr, "ovs->ovs.largestIID         = "F_U64"\n", ovs->ovs.largestIID);
+    fprintf(stderr, "ovs->ovs.numOverlapsTotal   = "F_U64"\n", ovs->ovs.numOverlapsTotal);
+    fprintf(stderr, "ovs->ovs.highestFileIndex   = "F_U64"\n", ovs->ovs.highestFileIndex);
   }
 
   if (ovs->statsUpdated) {
