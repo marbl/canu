@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.18 2007-11-21 18:05:50 skoren Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.19 2007-11-21 19:26:36 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,35 +72,22 @@ GetUIDUIDMatePairType(AS_UID *UID1, AS_UID *UID2, FILE *fin) {
   UID2->UID       = 0;
   UID2->UIDstring = NULL;
 
-  char *str = GetMemory(strlen(AS_MSG_globals->curLine + 1));
+  char *str = AS_MSG_globals->curLine; 
   char *currLoc = str;
-  strcpy(str, AS_MSG_globals->curLine);
 
-/*
-  UID1->UIDstring = str;
-
-  while (*str != ',')  str++;
-  *str = 0;
-  str++;
-
-  UID2->UIDstring = str;
-
-  while (*str != ',')  str++;
-  *str = 0;
-  str++;
-*/
-   while (*currLoc != '\0') {
-      if (*currLoc == ',') {
-         *currLoc = ' ';
-      }
-      currLoc++;
-   }   
-   currLoc = str;
+   // get first UID
+   while (*currLoc != ',') { currLoc++; }
+   *currLoc = '\0';
+   (*UID1) = AS_UID_lookup(str, NULL);
    
-   (*UID1) = AS_UID_lookup(str, &currLoc);
-   (*UID2) = AS_UID_lookup(currLoc, &currLoc);
+   // get second UID
+   str = ++currLoc;
+   while (*currLoc != ',') { currLoc++; }
+   *currLoc = '\0';
+   (*UID2) = AS_UID_lookup(str, NULL);
 
-  return(*currLoc);
+   // return the type value
+  return(*(++currLoc));
 }
 
 
