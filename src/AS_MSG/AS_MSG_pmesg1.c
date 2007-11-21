@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.17 2007-11-08 12:38:13 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg1.c,v 1.18 2007-11-21 18:05:50 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -73,8 +73,10 @@ GetUIDUIDMatePairType(AS_UID *UID1, AS_UID *UID2, FILE *fin) {
   UID2->UIDstring = NULL;
 
   char *str = GetMemory(strlen(AS_MSG_globals->curLine + 1));
+  char *currLoc = str;
   strcpy(str, AS_MSG_globals->curLine);
 
+/*
   UID1->UIDstring = str;
 
   while (*str != ',')  str++;
@@ -86,8 +88,19 @@ GetUIDUIDMatePairType(AS_UID *UID1, AS_UID *UID2, FILE *fin) {
   while (*str != ',')  str++;
   *str = 0;
   str++;
+*/
+   while (*currLoc != '\0') {
+      if (*currLoc == ',') {
+         *currLoc = ' ';
+      }
+      currLoc++;
+   }   
+   currLoc = str;
+   
+   (*UID1) = AS_UID_lookup(str, &currLoc);
+   (*UID2) = AS_UID_lookup(currLoc, &currLoc);
 
-  return(*str);
+  return(*currLoc);
 }
 
 
@@ -569,6 +582,7 @@ static void *Read_AFG_Mesg(FILE *fin)
   mesg.eaccession = GetUIDIID("acc:",&mesg.iaccession,fin);
 
   mesg.mate_status = (MateStatType)GetType("mst:%1[ZGCLSONHADEURF]","mate status", fin);
+
   GET_FIELD(mesg.chimeric,"chi:"F_S32,"chimeric flag");
   GET_FIELD(mesg.chaff,"cha:"F_S32,"chaff flag");
   GET_PAIR(mesg.clear_rng.bgn,mesg.clear_rng.end,"clr:"F_COORD","F_COORD,"clear range");
