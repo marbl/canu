@@ -1,5 +1,5 @@
 #!/usr/local/bin/perl
-# $Id: arun.pl,v 1.2 2007-08-15 22:30:50 moweis Exp $
+# $Id: arun.pl,v 1.3 2007-11-26 16:20:34 eliv Exp $
 #
 # Given input from STDIN, generates and runs shell script
 # on the grid or on the local machine with AserverConsole support.
@@ -9,7 +9,7 @@
 
 # Program configuration
 my @MY_DEPENDS = ( "TIGR::Foundation", "TIGR::ConfigFile" );
-my $MY_VERSION = " 1.7 (Build " . (qw/$Revision: 1.2 $/)[1] . ")";
+my $MY_VERSION = " 1.7 (Build " . (qw/$Revision: 1.3 $/)[1] . ")";
 my $HELPTEXT =
   qq~
 Given input from STDIN, generates and runs shell script
@@ -75,7 +75,7 @@ use File::Copy;        # copy()
 
 # ================================== Constants  ===============================
 # default config file for arun
-my $DEFAULT_INSTALL_DIR = "/usr/local/common/CARUN";
+my $DEFAULT_INSTALL_DIR = "/usr/local/common/ARUN";
 my $ARUN_CONFIG_FILE = "ARUN.conf";
 my $install_dir = $ENV{'ARUN_INSTALL_DIR'};    
 

@@ -5,7 +5,7 @@ use TIGR::ConfigFile;
 
 my $dbh         = undef;
 my $ARUN_CONFIG_FILE = "ARUN.conf";
-my $DEFAULT_INSTALL_DIR = "/usr/local/common/CARUN";
+my $DEFAULT_INSTALL_DIR = "/usr/local/common/ARUN";
 
 my $install_dir = $ENV{'ARUN_INSTALL_DIR'};
 $install_dir = $DEFAULT_INSTALL_DIR if ( !defined $install_dir );    

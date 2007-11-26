@@ -1,5 +1,5 @@
 #!/usr/local/bin/perl -w
-# $Id: aprep.pl,v 1.1 2007-07-03 19:44:35 moweis Exp $
+# $Id: aprep.pl,v 1.2 2007-11-26 16:20:34 eliv Exp $
 #
 # Celera Assembler front-end script calls runs assembly pipline 
 # recipes on the grid or on the local host.
@@ -9,7 +9,7 @@
 
 # Program configuration
 my @MY_DEPENDS = ( "TIGR::Foundation", "TIGR::ConfigFile" );
-my $MY_VERSION = " 1.2 (Build " . (qw/$Revision: 1.1 $/)[1] . ")";
+my $MY_VERSION = " 1.2 (Build " . (qw/$Revision: 1.2 $/)[1] . ")";
 my $HELPTEXT =
   qq~Perform preload processes on a Celera Assembly.
 
@@ -69,7 +69,7 @@ use IO::File;
 
 # ================================== Constants  ===============================
 # default config file for aprep
-my $DEFAULT_INSTALL_DIR = "/usr/local/common/CARUN";
+my $DEFAULT_INSTALL_DIR = "/usr/local/common/ARUN";
 my $PREP_CONFIG_FILE = "APREP.conf";
 my $install_dir = $ENV{'ARUN_INSTALL_DIR'};    
 

@@ -1,5 +1,5 @@
 #!/usr/local/bin/perl -w
-# $Id: tarun.pl,v 1.1 2007-07-05 19:57:34 moweis Exp $
+# $Id: tarun.pl,v 1.2 2007-11-26 16:20:34 eliv Exp $
 #
 # TIGR Assembler front-end script calls/runs assembly pipline 
 # recipes on the grid or on the local host.
@@ -210,7 +210,7 @@ sub appFlags
 my $MY_SAFEOPS = $SAFEOPS{$MY_APP};
 # ================================== Constants  ===============================
 # default config file for tarun
-my $CARUN_CONFIG_FILE = "/usr/local/common/CARUN/CARUN.conf";
+my $CARUN_CONFIG_FILE = "/usr/local/common/ARUN/CARUN.conf";
 
 # The tarun Config file object
 my $carun_cf = undef;
@@ -407,7 +407,7 @@ sub callArun($$$) {
     my $recipeFileName  = shift;
 
     #my $arun = "$Bin/arun.pl";
-    my $arun = "/usr/local/common/CARUN/arun";
+    my $arun = "/usr/local/common/ARUN/arun";
 
     my $cmd = "cat  $sessionFileName $recipeFileName";
     $cmd .= "| $arun $arun_options" ;
