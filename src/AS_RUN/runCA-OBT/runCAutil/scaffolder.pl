@@ -188,13 +188,15 @@ sub updateDistanceRecords ($) {
     #  distances.  Now, cgw outputs it!  Yay!
 
     my $cmd;
+    my $gkpErrorFile = "$wrk/$thisDir/gkp.distupdate.err";
     $cmd  = "$bin/gatekeeper ";
     $cmd .= " -D -a -o $wrk/$asm.gkpStore ";
+    $cmd .= " -E $gkpErrorFile";
     $cmd .= " $wrk/$thisDir/stat/scaffold_final.distupdate.dst ";
     $cmd .= " $wrk/$thisDir/stat/contig_final.distupdate.dst ";
     $cmd .= " > $wrk/$thisDir/cgw.distupdate.err 2>&1";
-    if (runCommand("$wrk/$thisDir", $cmd)) {
-        caFailure("Gatekeeper Failed.\n");
+    if (runCommand("$wrk/$thisDir", $cmd) || -s $gkpErrorFile) {
+        caFailure("Gatekeeper distupdate Failed.\n");
     }
 
     touch("$wrk/$thisDir/cgw.distupdate.success");
