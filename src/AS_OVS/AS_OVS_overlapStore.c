@@ -121,6 +121,7 @@ AS_OVS_openOverlapStorePrivate(const char *path, int useBackup, int saveSpace) {
 
   //  If we're not supposed to be using the backup, load the stats.
   //
+#if 0
   if (ovs->useBackup == 0) {
     FILE *ost;
 
@@ -135,7 +136,7 @@ AS_OVS_openOverlapStorePrivate(const char *path, int useBackup, int saveSpace) {
     AS_UTL_safeRead(ost, &ovs->stats, "AS_OVS_openOverlapStore", sizeof(OverlapStoreStats), 1);
     fclose(ost);
   }
-
+#endif
 
   //  If we're supposed to be using the backup, actually make the
   //  backup.  OK, it's not much of a "backup", it's really just a
@@ -415,6 +416,7 @@ AS_OVS_closeOverlapStore(OverlapStore *ovs) {
     fprintf(stderr, "ovs->ovs.highestFileIndex   = "F_U64"\n", ovs->ovs.highestFileIndex);
   }
 
+#if 0
   if (ovs->statsUpdated) {
     FILE *ost;
 
@@ -431,6 +433,7 @@ AS_OVS_closeOverlapStore(OverlapStore *ovs) {
     AS_UTL_safeWrite(ost, &ovs->stats, "AS_OVS_closeOverlapStore", sizeof(OverlapStoreStats), 1);
     fclose(ost);
   }
+#endif
 
   AS_OVS_closeBinaryOverlapFile(ovs->bof);
 
@@ -584,7 +587,7 @@ AS_OVS_writeOverlapToStore(OverlapStore *ovs, OVSoverlap *overlap) {
     ovs->offset.offset    = ovs->overlapsThisFile;
   }
 
-  AS_OVS_accumulateStats(ovs, overlap);
+  //AS_OVS_accumulateStats(ovs, overlap);
   AS_OVS_writeOverlap(ovs->bof, overlap);
   ovs->offset.numOlaps++;
   ovs->ovs.numOverlapsTotal++;

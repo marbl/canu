@@ -26,18 +26,20 @@ LOCAL_WORK = $(shell cd ../..; pwd)
 
 OVS_LIB_SRC = AS_OVS_overlap.c AS_OVS_overlapFile.c AS_OVS_overlapStore.c AS_OVS_overlapStats.c
 OVS_STR_SRC = overlapStore.c overlapStore_build.c overlapStore_merge.c overlapStore_dump.c overlapStore_stats.c overlapStore_erates.c
+OVS_STA_SRC = overlapStats.c
 OVS_CVT_SRC = convertOverlap.c filterOverlap.c
 
 OVS_LIB_OBJ = $(OVS_LIB_SRC:.c=.o)
 OVS_STR_OBJ = $(OVS_STR_SRC:.c=.o)
+OVS_STA_OBJ = $(OVS_STA_SRC:.c=.o)
 OVS_CVT_OBJ = $(OVS_CVT_SRC:.c=.o)
 
-SOURCES = $(OVS_LIB_SRC) $(OVS_STR_SRC) $(OVS_CVT_SRC)
+SOURCES = $(OVS_LIB_SRC) $(OVS_STR_SRC) $(OVS_STA_SRC) $(OVS_CVT_SRC)
 OBJECTS = $(SOURCES:.c=.o)
 
 LIBRARIES = libAS_OVS.a libCA.a
 
-PROGS = overlapStore convertOverlap filterOverlap
+PROGS = overlapStore overlapStats convertOverlap filterOverlap
 
 include $(LOCAL_WORK)/src/c_make.as
 
@@ -48,5 +50,6 @@ libAS_OVS.a: $(OVS_LIB_OBJ)
 libCA.a:     $(OVS_LIB_OBJ)
 
 overlapStore:   $(OVS_STR_OBJ)   libCA.a
+overlapStats:   overlapStats.o   libCA.a
 convertOverlap: convertOverlap.o libCA.a
 filterOverlap:  filterOverlap.o  libCA.a

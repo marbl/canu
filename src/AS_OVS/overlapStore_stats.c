@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: overlapStore_stats.c,v 1.6 2007-11-20 07:08:28 brianwalenz Exp $
+//  $Id: overlapStore_stats.c,v 1.7 2007-11-27 22:00:04 brianwalenz Exp $
 
 #include "AS_OVS_overlapStore.h"
 #include "overlapStore.h"
@@ -27,6 +27,7 @@
 
 void
 dumpStats(char *storeName) {
+#if 0
   OverlapStore  *ovs = AS_OVS_openOverlapStore(storeName);
   int            i;
   char          *labels[16] = { "all overlaps",
@@ -94,12 +95,14 @@ dumpStats(char *storeName) {
   }
 
   AS_OVS_closeOverlapStore(ovs);
+#endif
 }
 
 
 
 void
 rebuildStats(char *storeName, char *gkpName) {
+#if 0
   OverlapStore  *ovs = AS_OVS_openOverlapStore(storeName);
   OVSoverlap     ovl;
   int            i;
@@ -122,4 +125,5 @@ rebuildStats(char *storeName, char *gkpName) {
 
   //  Close the store, updating the stats
   AS_OVS_closeOverlapStore(ovs);
+#endif
 }

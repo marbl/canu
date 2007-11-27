@@ -40,44 +40,6 @@ typedef struct {
 } OverlapStoreInfo;
 
 typedef struct {
-  uint64   nSamples;
-  uint64   histogram[65536];     //  Assumes input values are 16-bit unsigned ints!
-
-  uint16   median;
-
-  double   mean;
-  double   stddev;
-
-  uint16   mode;
-  double   mad;
-} OverlapStoreHistogram;
-
-typedef struct {
-  uint64                   numOVL;
-  uint64                   numOBT;
-  uint64                   numMER;
-
-  //  Specific to OVL type
-  OverlapStoreHistogram    orig_erate[16];
-  OverlapStoreHistogram    corr_erate[16];
-  OverlapStoreHistogram    length[16];
-
-  //  Specific to OBT type
-  OverlapStoreHistogram    obtAbeg;
-  OverlapStoreHistogram    obtAend;
-  OverlapStoreHistogram    obtAlength;
-  OverlapStoreHistogram    obtBbeg;
-  OverlapStoreHistogram    obtBend;
-  OverlapStoreHistogram    obtBlength;
-  OverlapStoreHistogram    obtErate;
-
-  //  Specific to MER type
-  OverlapStoreHistogram    merApos;
-  OverlapStoreHistogram    merBpos;
-  OverlapStoreHistogram    merKcount;
-} OverlapStoreStats;
-
-typedef struct {
   uint32    a_iid;
   uint32    fileno;    //  the file that contains this a_iid
   uint32    offset;    //  offset to the first overlap for this iid
@@ -92,9 +54,6 @@ typedef struct {
 
   OverlapStoreInfo            ovs;
 
-  OverlapStoreStats           stats;
-  int                         statsUpdated;
-
   FILE                       *offsetFile;
   OverlapStoreOffsetRecord    offset;
   OverlapStoreOffsetRecord    missing;
@@ -108,9 +67,11 @@ typedef struct {
 
   GateKeeperStore            *gkp;
 
+#if 0
   uint16                     *fragClearBegin;
   uint16                     *fragClearEnd;
   uint16                     *fragClearLength;
+#endif
 } OverlapStore;
 
 OverlapStore      *AS_OVS_openOverlapStorePrivate(const char *name, int useBackup, int saveSpace);
@@ -130,15 +91,6 @@ static
 uint32             AS_OVS_lastFragInStore(OverlapStore *ovs) {
   return(ovs->ovs.largestIID);
 }
-
-//  The mostly private interface for dealing with stats
-
-void   AS_OVS_histogramAdd(OverlapStoreHistogram *h, uint16 val);
-void   AS_OVS_histogramCompute(OverlapStoreHistogram *h);
-void   AS_OVS_histogramShow(char *label, char *type, OverlapStoreHistogram *h);
-
-void   AS_OVS_accumulateStats(OverlapStore *ovs, OVSoverlap *ovl);
-
 
 
 //  The mostly private interface for creating an overlap store.
