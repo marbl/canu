@@ -19,10 +19,12 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-#include "AS_global.h"  //  only for CDS_UID_t, sigh.
+#include "AS_global.h"
+#include "AS_UTL_fasta.h"
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include <assert.h>
 
@@ -32,7 +34,6 @@
 #define HISTMAX     (8192)
 #define DEPTHSIZE   (128 * 1024 * 1024)
 #define FRAGMAX     (1024 * 1024)
-#define DEFAULT_MEMORY_LIMIT 128
 
 
 typedef struct {
@@ -127,6 +128,9 @@ computeStuff(uint32 *V, uint32 N,
 
 
 
+#define MODE_HISTOGRAM 0
+#define MODE_SCAFFOLD  1
+#define MODE_DEPTH     2
 
 int
 main(int argc, char **argv) {
@@ -146,9 +150,8 @@ main(int argc, char **argv) {
   int              minSize = 0;
   int              maxSize = DEPTHSIZE;
 
-  int              doScaffold = 0;
+  int              mode     = MODE_HISTOGRAM;
   int              stepSize = 0;
-  uint32           memLimit = DEFAULT_MEMORY_LIMIT;
 
   int arg=1;
   int err=0;
@@ -157,40 +160,61 @@ main(int argc, char **argv) {
       minSize = atoi(argv[++arg]);
     } else if (strcmp(argv[arg], "-max") == 0) {
       maxSize = atoi(argv[++arg]);
-    } else if (strcmp(argv[arg], "-scaffold") == 0) {
-      doScaffold = 1;
     } else if (strcmp(argv[arg], "-stepSize") == 0) {
       stepSize = atoi(argv[++arg]);
-    } else if (strcmp(argv[arg], "-memLimit") == 0) {
-      memLimit = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-histogram") == 0) {
+      mode = MODE_HISTOGRAM;
+    } else if (strcmp(argv[arg], "-scaffold") == 0) {
+      mode = MODE_SCAFFOLD;
+    } else if (strcmp(argv[arg], "-depth") == 0) {
+      mode = MODE_DEPTH;
     } else {
       fprintf(stderr, "unknown option '%s'\n", argv[arg]);
       err++;
     }
     arg++;
   }
-  if (err) {
-    fprintf(stderr, "usage: %s [-min N] [-max N] [-scaffold] [-stepSize N] [-memLimit N] < x.posmap.frgscf", argv[0]);
-    fprintf(stderr, "  Default is to compute a histogram of the number of bases at some\n");
-    fprintf(stderr, "  depth of coverage.  Options for this are:\n");
-    fprintf(stderr, "    -min N     use scaffolds at least N bases long.\n");
-    fprintf(stderr, "    -max N     use scaffolds at most N bases long.\n");
-    fprintf(stderr, "    -stepSize N     Used together with -scaffold, compute stats per stepSize per scaffold.\n");
-    fprintf(stderr, "    -memLimit N     Used to limit the maximum memory to be used while running. Default = %dMB.\n", DEFAULT_MEMORY_LIMIT);
+  if (err || isatty(fileno(stdin))) {
+    fprintf(stderr, "usage: %s MODE [-min N] [-max N] [-stepSize N] < x.posmap.frgscf\n", argv[0]);
     fprintf(stderr, "\n");
-    fprintf(stderr, "  The -scaffold switch disables the default output, and instead reports\n");
-    fprintf(stderr, "  the mode, mean, median per scaffold.\n");
+    fprintf(stderr, "  -min N     use scaffolds at least N bases long.\n");
+    fprintf(stderr, "  -max N     use scaffolds at most N bases long.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "MODES:  -histogram, -scaffold or -depth\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "The default mode is to compute a histogram of the number of bases at some\n");
+    fprintf(stderr, "depth of coverage.\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "The -scaffold mode reports the mode, mean, median depth per scaffold.  The\n");
+    fprintf(stderr, "-stepSize option will compute those stats, in blocks of N bases (e.g., for bases\n");
+    fprintf(stderr, "0 through N, then N through 2N, then 2N through 3N, etc.)\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "The -depth mode writes a multi-fasta file with the actual depth at each base\n");
+    fprintf(stderr, "encoded.  The encoding is somewhat complicated to avoid using the '>' letter.\n");
+    fprintf(stderr, "Depth 0 through 9 is encoded as '0' through '9'.  Depth 10 through 68 is\n");
+    fprintf(stderr, "encoded as A-Z[\]^_`a-z{|}, and depth more than 68 is encoded as ~.  Decode as:\n");
+    fprintf(stderr, "  depth = letter - '0';\n");
+    fprintf(stderr, "  if (depth > 9)\n");
+    fprintf(stderr, "    depth -= 7;\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "!!WARNING -- The input frgscf MUST be sorted by scaffold ID -- WARNING!!\n");
+    fprintf(stderr, "\n");
     exit(1);
   }
 
+
+
+
+
+
   uint32     inlen = 0;
-  uint32     inmax = (((uint64) memLimit) * 1024 * 1024) / (sizeof(intDep));
+  uint32     inmax = 4194304;  //  4 million fragments per scaffold should be enough (but we'll realloc later if not)
   intDep    *in    = (intDep *)safe_malloc(sizeof(intDep) * inmax);
 
   char       line[1024] = {0};
   char      *cont       = NULL;
 
-  if (doScaffold)
+  if (mode == MODE_SCAFFOLD)
     fprintf(stdout, "uid\tstart\tend\tmode\tmean\tmedian\n");
 
   while (fgets(line, 1024, stdin) != NULL) {
@@ -291,51 +315,82 @@ main(int argc, char **argv) {
 
         safe_free(is);
 
-        //  Update the histogram
-        //
-        if (doScaffold == 0) {
-          for (i=0; i<idlen; i++) {
-            if (id[i].de < HISTMAX) {
-              histogram[id[i].de] += id[i].hi - id[i].lo;
-              if (histmax < id[i].de)
-                histmax = id[i].de;
+        switch (mode) {
+          case MODE_HISTOGRAM:
+            //  Update the histogram
+            //
+            for (i=0; i<idlen; i++) {
+              if (id[i].de < HISTMAX) {
+                histogram[id[i].de] += id[i].hi - id[i].lo;
+                if (histmax < id[i].de)
+                  histmax = id[i].de;
+              }
             }
-          }
-        }
+            break;
 
-        //  Report mode, mean and median for thsi scaffold
-        //
-        if (doScaffold) {
-          uint32  N      = id[idlen-1].hi;
-          uint32 *V      = (uint32 *)safe_calloc(N, sizeof(uint32));
-          uint32  mode   = 0;
-          double  mean   = 0.0;
-          uint32  median = 0;
-          uint32  currStep = 0;
 
-          for (i=0; i<idlen; i++) {
-            int j;
-            for (j=id[i].lo; j<id[i].hi; j++) {
-              V[j] = id[i].de;
-            }
-          }
+          case MODE_SCAFFOLD:
+            //  Report mode, mean and median for this scaffold
+            //
+            {          
+              uint32  N      = id[idlen-1].hi;
+              uint32 *V      = (uint32 *)safe_calloc(N, sizeof(uint32));
+              uint32  mode   = 0;
+              double  mean   = 0.0;
+              uint32  median = 0;
+              uint32  currStep = 0;
+
+              for (i=0; i<idlen; i++) {
+                int j;
+                for (j=id[i].lo; j<id[i].hi; j++) {
+                  V[j] = id[i].de;
+                }
+              }
          
-          if (stepSize == 0) { 
-            currStep = N; 
-          } 
-          else {
-            currStep = stepSize;
-          }
+              if (stepSize == 0) { 
+                currStep = N; 
+              } 
+              else {
+                currStep = stepSize;
+              }
           
-          for (i = 0; i < N; i+=currStep) {                    
-            int E  = i+currStep;            
-            if (E > N) { E = N; }
+              for (i = 0; i < N; i+=currStep) {                    
+                int E  = i+currStep;            
+                if (E > N) { E = N; }
             
-            computeStuff(V, N, i, E, &mode, &mean, &median);
-            fprintf(stdout, "%s\t"F_U32"\t"F_U32"\t"F_U32"\t%f\t"F_U32"\n", AS_UID_toString(lastuid), i, E, mode, mean, median);
-          }
-          safe_free(V);
+                computeStuff(V, N, i, E, &mode, &mean, &median);
+                fprintf(stdout, "%s\t"F_U32"\t"F_U32"\t"F_U32"\t%f\t"F_U32"\n", AS_UID_toString(lastuid), i, E, mode, mean, median);
+              }
+              safe_free(V);
+            }
+            break;
+
+
+          case MODE_DEPTH:
+            {
+              char   *seq = (char *)safe_malloc((id[idlen-1].hi + 1) * sizeof(char));
+              int     j;
+
+              memset(seq, '0', id[idlen-1].hi);
+
+              for (i=0; i<idlen; i++) {
+                for (j=id[i].lo; j<id[i].hi; j++) {
+                  if (id[i].de < 10)
+                    seq[j] = '0' + id[i].de;
+                  else if (id[i].de < 68)
+                    seq[j] = 'A' + id[i].de - 10;
+                  else
+                    seq[j] = '~';
+                }
+              }
+
+              seq[id[idlen-1].hi] = 0;
+
+              AS_UTL_writeFastA(stdout, seq, id[idlen-1].hi, ">%s\n", AS_UID_toString(lastuid));
+            }
+            break;
         }
+
         safe_free(id);
       }  //  scaffold is correct size
 
@@ -354,17 +409,18 @@ main(int argc, char **argv) {
     inlen++;
 
     if (inlen >= inmax) {
-      fprintf(stderr, "The maxmimum limit of fragments per scaffold is %d and have already read %d\n", inmax, inlen);
-      exit(1);
+      inmax *= 2;
+      in     = (intDep *)safe_realloc(in, inmax * sizeof(intDep));
     }
 
     if (lastend < end)
       lastend = end;
   }
 
-  if (doScaffold == 0)
+  if (mode == MODE_HISTOGRAM)
     for (i=0; i<=histmax; i++)
       fprintf(stdout, "%d\t%d\n", i, histogram[i]);
+
   safe_free(in);
 
   exit(0);
