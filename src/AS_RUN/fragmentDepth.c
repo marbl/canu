@@ -192,7 +192,7 @@ main(int argc, char **argv) {
     fprintf(stderr, "The -depth mode writes a multi-fasta file with the actual depth at each base\n");
     fprintf(stderr, "encoded.  The encoding is somewhat complicated to avoid using the '>' letter.\n");
     fprintf(stderr, "Depth 0 through 9 is encoded as '0' through '9'.  Depth 10 through 68 is\n");
-    fprintf(stderr, "encoded as A-Z[\]^_`a-z{|}, and depth more than 68 is encoded as ~.  Decode as:\n");
+    fprintf(stderr, "encoded as A-Z[\\]^_`a-z{|}, and depth more than 68 is encoded as ~.  Decode as:\n");
     fprintf(stderr, "  depth = letter - '0';\n");
     fprintf(stderr, "  if (depth > 9)\n");
     fprintf(stderr, "    depth -= 7;\n");
