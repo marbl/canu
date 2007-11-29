@@ -244,33 +244,52 @@ computeRepeatModels(OverlapStore *ovs, GateKeeperStore *gkp) {
 
   for (i=0; i <= getNumGateKeeperLibraries(gkp); i++) {
     char  label[256] = {0};
+    char  name[FILENAME_MAX] = {0};
+    FILE *file = NULL;
 
     AS_UTL_histogramCompute(&rm[i].hist5);
     AS_UTL_histogramCompute(&rm[i].hist3);
 
-#if 0
-    sprintf(label, "Lib "F_IID" 5'", i);
-    AS_UTL_histogramShow(&rm[i].hist5, label);
-
-    sprintf(label, "xxxx.lib"F_IID".5end.ovl.histogram", i);
-    AS_UTL_histogramDump(&rm[i].hist5, label);
-
-    sprintf(label, "Lib "F_IID" 3'", i);
-    AS_UTL_histogramShow(&rm[i].hist3, label);
-
-    sprintf(label, "xxxx.lib"F_IID".3end.ovl.histogram", i);
-    AS_UTL_histogramDump(&rm[i].hist3, label);
-#endif
-
 #warning bogus compute of repeatThreshold
     rm[i].repeatThreshold = ((rm[i].hist5.mode + 2 * rm[i].hist5.mad) +
                              (rm[i].hist3.mode + 2 * rm[i].hist3.mad)) / 2;
+
+    sprintf(name, "%s.repeatmodel.lib.%03d.stats", outputPrefix, i);
+
+    errno = 0;
+    file = fopen(name, "w");
+    if (errno) {
+      fprintf(stderr, "Couldn't open '%s' for write: %s\n", name, strerror(errno));
+      exit(1);
+    }
+
+    fprintf(file, "repeatThreshold = %d\n", rm[i].repeatThreshold);
+
+    sprintf(label, "Lib "F_IID" 5'", i);
+    AS_UTL_histogramShow(&rm[i].hist5, file, label);
+
+    sprintf(label, "Lib "F_IID" 3'", i);
+    AS_UTL_histogramShow(&rm[i].hist3, file, label);
+
+    fclose(file);
+
+    sprintf(name,  "%s.repeatmodel.lib.%03d.5prime.dat", outputPrefix, i);
+    sprintf(label, "%s.repeatmodel.lib.%03d.5prime.dat", outputPrefix, i);
+    AS_UTL_histogramDump(&rm[i].hist5, name, label);
+
+    sprintf(name,  "%s.repeatmodel.lib.%03d.3prime.dat", outputPrefix, i);
+    sprintf(label, "%s.repeatmodel.lib.%03d.3prime.dat", outputPrefix, i);
+    AS_UTL_histogramDump(&rm[i].hist3, name, label);
   }
 
-#if 0
+#if 1
   //  Dump the repeat thresholds
+  fprintf(stderr, "== Repeat Model ==\n");
+  fprintf(stderr, "\n");
   for (i=0; i <= getNumGateKeeperLibraries(gkp); i++)
-    fprintf(stderr, "rm["F_U64"] = "F_U64"\n", i, rm[i].repeatThreshold);
+    fprintf(stderr, "repeatThreshold[%2d] = "F_U64"\n", i, rm[i].repeatThreshold);
+  AS_UTL_histogramShow(&rm[0].hist5, stderr, "Global 5'");
+  AS_UTL_histogramShow(&rm[0].hist3, stderr, "Global 3'");
 #endif
 
   return(rm);

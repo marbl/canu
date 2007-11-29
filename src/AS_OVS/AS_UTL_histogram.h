@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_UTL_histogram.h,v 1.1 2007-11-27 22:00:04 brianwalenz Exp $
+//  $Id: AS_UTL_histogram.h,v 1.2 2007-11-29 03:47:48 brianwalenz Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -264,7 +264,7 @@ AS_UTL_histogramDump(AS_UTL_histogram *h, char *filename, char *label) {
     return;
   }
 
-  AS_UTL_histogramShow(h, F, label);
+  //AS_UTL_histogramShow(h, F, label);
 
   for (i=h->smallest; i<=h->largest; i++)
     fprintf(F, F_U64"\t"F_U64"\n", i, h->histogram[i]);
@@ -370,6 +370,20 @@ AS_UTL_histogram3dDump(AS_UTL_histogram3d *h, char *filename, char *label) {
     for (y=0; y<h->allocated[1]; y++) {
       fprintf(F, F_U64" ", h->histogram[x][y]);
     }
+    fprintf(F, "\n");
+  }
+#endif
+
+#if 0
+  //  Suitable for R
+  for (y=0; y<h->allocated[1]; y++)
+    fprintf(F, "\"%d\" ", y);
+  fprintf(F, "\n");
+
+  for (x=0; x<h->allocated[0]; x++) {
+    fprintf(F, "\"%d\" ", x);
+    for (y=0; y<h->allocated[1]; y++)
+      fprintf(F, F_U64" ", h->histogram[x][y]);
     fprintf(F, "\n");
   }
 #endif

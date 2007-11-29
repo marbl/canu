@@ -19,7 +19,31 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: overlapStats.c,v 1.1 2007-11-27 22:00:04 brianwalenz Exp $
+//  $Id: overlapStats.c,v 1.2 2007-11-29 03:47:48 brianwalenz Exp $
+
+
+//  install.packages(c("akima"))
+//
+//  XX = read.table("xxx.UniqueEnds.lengtherror")
+//  XX = read.table("xxx.RepeatEnds.lengtherror")
+//  library(akima)
+//
+//  x=XX[,1]
+//  y=XX[,2]
+//  z=XX[,3]
+//
+//  YY = interp(x, y, z, xo=seq(min(x), max(x), length = 100), yo=seq(min(y), max(y), length = 100))
+//
+//  contour(YY, nlevels=50)
+//  filled.contour(YY, nlevels=50, color=rainbow)
+//
+//  EE  = read.table("xxx.UniqueEnds.enderror")
+//  EL  = read.table("xxx.UniqueEnds.endlength")
+
+//
+//  plot "xxx.UniqueEnds.enderror" with lines, "xxx.RepeatEnds.enderror" with lines
+//  plot "xxx.UniqueEnds.endlength" with lines, "xxx.RepeatEnds.endlength" with lines
+//
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -283,8 +307,8 @@ main(int argc, char **argv) {
   OVSoverlap  *ovls    = safe_malloc(ovlsMax * sizeof(OVSoverlap));;
   AS_IID       ovlsIID = 0;
 
-  FragmentEndData *repeat    = NULL;
-  FragmentEndData *polymorph = NULL;
+  FragmentEndData *repeat   = NULL;
+  FragmentEndData *unique   = NULL;
 
   AS_OVS_resetRangeOverlapStore(ovs);
   while (AS_OVS_readOverlapFromStore(ovs, &ovl, AS_OVS_TYPE_OVL) == TRUE) {
@@ -298,8 +322,8 @@ main(int argc, char **argv) {
     //  contained.
 
     if (ovl.a_iid != ovlsIID) {
-      repeat    = process_FragmentEnds(ovls, ovlsLen, gkp, rm, repeat,    1);
-      polymorph = process_FragmentEnds(ovls, ovlsLen, gkp, rm, polymorph, 0);
+      repeat = process_FragmentEnds(ovls, ovlsLen, gkp, rm, repeat, 1);
+      unique = process_FragmentEnds(ovls, ovlsLen, gkp, rm, unique, 0);
 
       process_ShortInsert      (ovls, ovlsLen, gkp, rm);
       process_GenomeLength     (ovls, ovlsLen, gkp, rm);
@@ -318,8 +342,8 @@ main(int argc, char **argv) {
   }
 
   if (ovlsLen > 0) {
-    repeat    = process_FragmentEnds(ovls, ovlsLen, gkp, rm, repeat,    1);
-    polymorph = process_FragmentEnds(ovls, ovlsLen, gkp, rm, polymorph, 0);
+    repeat = process_FragmentEnds(ovls, ovlsLen, gkp, rm, repeat, 1);
+    unique = process_FragmentEnds(ovls, ovlsLen, gkp, rm, unique, 0);
 
     process_ShortInsert      (ovls, ovlsLen, gkp, rm);
     process_GenomeLength     (ovls, ovlsLen, gkp, rm);
@@ -328,8 +352,8 @@ main(int argc, char **argv) {
 
   //  After our one pass, we can finish up the statistics.
 
-  finalize_FragmentEnds(gkp, rm, repeat,    "Repeat Ends");
-  finalize_FragmentEnds(gkp, rm, polymorph, "Polymorphism");
+  finalize_FragmentEnds(gkp, rm, repeat, "RepeatEnds");
+  finalize_FragmentEnds(gkp, rm, unique, "UniqueEnds");
 
   finalize_ShortInsert      (gkp, rm);
   finalize_GenomeLength     (gkp, rm);
