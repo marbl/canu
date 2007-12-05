@@ -37,11 +37,11 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.44 2007-12-05 23:46:57 brianwalenz Exp $
- * $Revision: 1.44 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.45 2007-12-05 23:54:42 brianwalenz Exp $
+ * $Revision: 1.45 $
  */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.44 2007-12-05 23:46:57 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.45 2007-12-05 23:54:42 brianwalenz Exp $";
 
 //  System include files
 #include<iostream>
@@ -164,23 +164,39 @@ namespace AS_BOG{
         }
     }
 
-    void BestOverlapGraph::addContainEdge( iuid contain, iuid otherRead ) {
-        _best_containments[ contain ].overlaps.insert( otherRead );
+  void BestOverlapGraph::addContainEdge( iuid contain, iuid otherRead ) {
+    _best_containments[ contain ].overlapsAreSorted = false;
+    _best_containments[ contain ].overlaps.push_back( otherRead );
+    //fprintf(stderr, "add %d to %d\n", otherRead, contain);
+  }
+  bool BestOverlapGraph::containHaveEdgeTo( iuid contain, iuid otherRead ) {
+
+    if (_best_containments.find( contain ) == _best_containments.end())
+      return(false);
+
+    //fprintf(stderr, "search %d in %d (really)\n", otherRead, contain);
+
+    if (_best_containments[ contain ].overlapsAreSorted == false) {
+      std::sort(_best_containments[ contain ].overlaps.begin(),
+                _best_containments[ contain ].overlaps.end());              //  less<iuid>()
+      _best_containments[ contain ].overlapsAreSorted = true;
     }
-    bool BestOverlapGraph::containHaveEdgeTo( iuid contain, iuid otherRead ) {
-        bool ret = false;
-        if (_best_containments.find( contain ) != _best_containments.end())
-            if (_best_containments[ contain ].overlaps.find( otherRead ) !=
-                _best_containments[ contain ].overlaps.end() )
-                ret = true;
-        return ret;
-    }
+
+    if (std::binary_search(_best_containments[ contain ].overlaps.begin(),
+                           _best_containments[ contain ].overlaps.end(),
+                           otherRead))
+      //fprintf(stderr, "found %d in %d\n", otherRead, contain);
+
+    return(std::binary_search(_best_containments[ contain ].overlaps.begin(),
+                              _best_containments[ contain ].overlaps.end(),
+                              otherRead));
+  }
 
     void BestOverlapGraph::setBestContainer(const OVSoverlap& olap, float newScr) {
 
         BestContainment newBest;
         newBest.container = olap.a_iid;
-        newBest.score     = newScr;
+        newBest.contain_score = newScr;
         newBest.sameOrientation =  olap.dat.ovl.flipped ? false : true;
         newBest.isPlaced        = false;
         newBest.a_hang =  olap.dat.ovl.a_hang;
@@ -456,12 +472,12 @@ namespace AS_BOG{
             //     1.) a containment relationship/record doesn't exist
             //     2.) the new relationship has a higher score
             //     3.) Container fragment ID is nominally less than the existing container ID
-            if (NULL == best || newScr > best->score || newScr == best->score
+            if (NULL == best || newScr > best->contain_score || newScr == best->contain_score
                 && fragLen(best->container) < fragLen(olap.a_iid) ) {
-                //std::cout << olap.a_iid << " contains " << olap.b_iid <<" "<< fragLen(olap.a_iid) << std::endl; 
-                setBestContainer( olap, newScr );
+              //std::cout << olap.a_iid << " contains " << olap.b_iid <<" "<< fragLen(olap.a_iid) << std::endl; 
+              setBestContainer( olap, newScr );
             }
-        
+
             // B contains A, this code is commented out/unnecessary because the overlap
             //   recorded is listed twice in the overlap store.
         } else if ( olap.dat.ovl.a_hang <= 0 && olap.dat.ovl.b_hang >= 0 ) {

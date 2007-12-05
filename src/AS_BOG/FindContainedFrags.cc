@@ -31,11 +31,11 @@
  *************************************************/
 
 /* RCS info
- * $Id: FindContainedFrags.cc,v 1.30 2007-12-05 23:46:58 brianwalenz Exp $
- * $Revision: 1.30 $
+ * $Id: FindContainedFrags.cc,v 1.31 2007-12-05 23:54:42 brianwalenz Exp $
+ * $Revision: 1.31 $
  */
 
-static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.30 2007-12-05 23:46:58 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.31 2007-12-05 23:54:42 brianwalenz Exp $";
 
 //  System include files
 
@@ -180,25 +180,25 @@ int  main
         int ahng1 = bst.a_hang;
 
 
-        //  1: erScore
-        cout << id << " c1 by "<< cr1 << " " << bst.score << " " << ahng1 <<
+	//  1: erScore
+        cout << id << " c1 by "<< cr1 << " " << bst.contain_score << " " << ahng1 <<
             " " << bst.b_hang <<" sameOrient " << bst.sameOrientation << endl;
 
         //  2: lenScore
         AS_BOG::BestContainment* b2 = bogRunner.metrics[1]->getBestContainer(id);
 
-        if ( b2 != NULL ) {
-            AS_IID    cr2 = b2->container;
-            int ahng2 = b2->a_hang;
+       if ( b2 != NULL ) {
+           AS_IID    cr2 = b2->container;
+           int ahng2 = b2->a_hang;
 
-            cout << id << " c2 by "<< cr2 << " " << b2->score << " " << ahng2 <<
-                " " << b2->b_hang <<" sameOrient " << b2->sameOrientation << endl;
+           cout << id << " c2 by "<< cr2 << " " << b2->contain_score << " " << ahng2 <<
+               " " << b2->b_hang <<" sameOrient " << b2->sameOrientation << endl;
 
-            if ( cr1 == cr2 && ahng1 != ahng2 )
-                cout<<"Error, hang mismatch: "<<cr1<<" "<<ahng1<<" "<<ahng2<<endl;
-            cr1   = cr2;
-            ahng1 = ahng2;
-        }
+           if ( cr1 == cr2 && ahng1 != ahng2 )
+              cout<<"Error, hang mismatch: "<<cr1<<" "<<ahng1<<" "<<ahng2<<endl;
+           cr1   = cr2;
+           ahng1 = ahng2;
+       }
        
         //  3: lenIdent
         AS_BOG::BestContainment* b3 = bogRunner.metrics[2]->getBestContainer(id);
@@ -206,7 +206,7 @@ int  main
             AS_IID    cr3 = b3->container;
             int ahng3 = b3->a_hang;
 
-            cout << id << " c3 by "<< cr3 << " " << b3->score << " " << ahng3 <<
+            cout << id << " c3 by "<< cr3 << " " << b3->contain_score << " " << ahng3 <<
                 " " << b3->b_hang << " sameOrient " << b3->sameOrientation << endl;
 
             if ( cr3 == cr1 && ahng3 != ahng1 )

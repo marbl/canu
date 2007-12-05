@@ -34,8 +34,8 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.34 2007-12-05 23:46:57 brianwalenz Exp $
- * $Revision: 1.34 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.35 2007-12-05 23:54:42 brianwalenz Exp $
+ * $Revision: 1.35 $
  */
 
 //  System include files
@@ -81,15 +81,19 @@ namespace AS_BOG{
         // Contains what kind of containment relationship exists between
         // fragment a and fragment b
 
-        iuid container;
-        float score;
-        short a_hang;
-        short b_hang;
-        bool sameOrientation;
-        bool isPlaced;
-        std::set<iuid> overlaps;
+        iuid   container;
+        float  contain_score;
+
+        short  a_hang;
+        short  b_hang;
+        bool   sameOrientation;
+        bool   isPlaced;
+
+        bool overlapsAreSorted;
+        std::vector<iuid> overlaps;
     };
 
+    //#warning why a map and not a vector or just an array
     typedef std::map<iuid, BestContainment> BestContainmentMap;
 
     ///////////////////////////////////////////////////////////////////////
