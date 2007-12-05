@@ -19,9 +19,9 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.cc,v 1.43 2007-11-09 20:23:29 eliv Exp $
- * $Revision: 1.43 $
-*/
+ * $Id: AS_BOG_MateChecker.cc,v 1.44 2007-12-05 23:46:57 brianwalenz Exp $
+ * $Revision: 1.44 $
+ */
 
 #include <math.h>
 #include "AS_BOG_MateChecker.hh"
@@ -85,8 +85,7 @@ namespace AS_BOG{
 
     ///////////////////////////////////////////////////////////////////////////
 
-    MateInfo MateChecker::getMateInfo(iuid fragID)
-    {
+    MateInfo MateChecker::getMateInfo(iuid fragID) {
         if (_mates.find( fragID ) == _mates.end())
             return NULL_MATE_INFO;
         else
@@ -95,8 +94,7 @@ namespace AS_BOG{
 
     ///////////////////////////////////////////////////////////////////////////
 
-    LibraryStats* MateChecker::computeLibraryStats(Unitig* tig)
-    {
+    LibraryStats* MateChecker::computeLibraryStats(Unitig* tig) {
         fprintf(stderr,"Check mates for tig %ld\n",tig->id());
         IdMap goodMates;
         iuid max = std::numeric_limits<iuid>::max(); // Sentinel value
@@ -107,8 +105,7 @@ namespace AS_BOG{
         IdMap otherTigHist; // count of mates to the other unitigs
         // Check each frag in unitig for it's mate
         DoveTailConstIter tigIter = tig->dovetail_path_ptr->begin();
-        for(;tigIter != tig->dovetail_path_ptr->end(); tigIter++)
-        {
+        for(;tigIter != tig->dovetail_path_ptr->end(); tigIter++) {
             DoveTailNode frag = *tigIter;
             iuid fragId = frag.ident;
             MateInfo mateInfo = getMateInfo( fragId );
@@ -167,18 +164,17 @@ namespace AS_BOG{
                 }
             }
         }
-        if (tig->dovetail_path_ptr->size() > 1 )
-        {
-        fprintf(stderr,"Num frags in tig %ld\n",tig->dovetail_path_ptr->size());
-        fprintf(stderr,"Num frags with mate %d\n",numWithMate);
-        fprintf(stderr,"Num with mate in unitig %d\n",numInTig);
-        fprintf(stderr,"Num other unitig %d\n",otherUnitig.size());
-        IdMapConstIter histIter = otherTigHist.begin();
-        for(;histIter != otherTigHist.end(); histIter++) {
-            iuid libId = histIter->first;
-            iuid cnt   = histIter->second;
-            fprintf(stderr,"Num mates to unitig %ld is %ld.\n",libId,cnt);
-        }
+        if (tig->dovetail_path_ptr->size() > 1 ) {
+            fprintf(stderr,"Num frags in tig %ld\n",tig->dovetail_path_ptr->size());
+            fprintf(stderr,"Num frags with mate %d\n",numWithMate);
+            fprintf(stderr,"Num with mate in unitig %d\n",numInTig);
+            fprintf(stderr,"Num other unitig %d\n",otherUnitig.size());
+            IdMapConstIter histIter = otherTigHist.begin();
+            for(;histIter != otherTigHist.end(); histIter++) {
+                iuid libId = histIter->first;
+                iuid cnt   = histIter->second;
+                fprintf(stderr,"Num mates to unitig %ld is %ld.\n",libId,cnt);
+            }
         }
 
         // Calculate the unitig local mean
@@ -192,8 +188,7 @@ namespace AS_BOG{
         }
         // Sum of (x-mean)^2, not yet full stddev
         IdMapConstIter goodIter = goodMates.begin();
-        for(;goodIter != goodMates.end(); goodIter++)
-        {
+        for(;goodIter != goodMates.end(); goodIter++) {
             iuid fragId = goodIter->first;
             iuid mateDist = goodIter->second;
             if (mateDist == max)
@@ -219,13 +214,11 @@ namespace AS_BOG{
 
     ///////////////////////////////////////////////////////////////////////////
     
-    void MateChecker::computeGlobalLibStats( UnitigGraph& tigGraph )
-    {
+    void MateChecker::computeGlobalLibStats( UnitigGraph& tigGraph ) {
         LibraryStats::iterator dcIter;
         _dists.clear(); // reset to seperate multiple Graphs
         UnitigsConstIter tigIter = tigGraph.unitigs->begin();
-        for(; tigIter != tigGraph.unitigs->end(); tigIter++)
-        {
+        for(; tigIter != tigGraph.unitigs->end(); tigIter++) {
             if (*tigIter == NULL ) 
                 continue;
             LibraryStats* libs = computeLibraryStats(*tigIter);
@@ -254,8 +247,7 @@ namespace AS_BOG{
                     lib, dc->numPairs, dc->mean );
         }
         // Calculate and output overall global stddev
-        for(dcIter= _globalStats.begin(); dcIter != _globalStats.end(); dcIter++)
-        {
+        for(dcIter= _globalStats.begin(); dcIter != _globalStats.end(); dcIter++) {
             iuid lib = dcIter->first;
             DistanceCompute *dc = &(dcIter->second);
             if (dc->numPairs == 1)
@@ -273,12 +265,11 @@ namespace AS_BOG{
         }
         // Tab delimited table header
         fprintf(stderr,
-"DistLib\tnumDists\tmedian\t1/3rd\t2/3rd\tmaxDiff\tmin\tmax\tnumGood\tmean\tstddev\n");
+                "DistLib\tnumDists\tmedian\t1/3rd\t2/3rd\tmaxDiff\tmin\tmax\tnumGood\tmean\tstddev\n");
 
         // Disregard outliers and recalculate global stddev
         LibDistsConstIter libDistIter = _dists.begin();
-        for(; libDistIter != _dists.end(); libDistIter++)
-        {
+        for(; libDistIter != _dists.end(); libDistIter++) {
             iuid libId = libDistIter->first;
             DistanceList dl = libDistIter->second;
             sort(dl.begin(),dl.end());
@@ -305,8 +296,7 @@ namespace AS_BOG{
             }
             gdc->mean = gdc->sumDists / gdc->numPairs;
             // Compute sum of squares for stddev
-            for(dIter = dl.begin(); dIter != dl.end(); dIter++)
-            {
+            for(dIter = dl.begin(); dIter != dl.end(); dIter++) {
                 if (*dIter >= smallest && *dIter <= biggest )
                     gdc->sumSquares += pow( *dIter - gdc->mean, 2);
             }
@@ -315,13 +305,12 @@ namespace AS_BOG{
 
             fprintf(stderr, "%ld\t%ld\t%ld\t%ld\t%ld\t%ld\t%ld\t%ld\t%ld\t%.1f\t%.1f\n",
                     libId, size, median, third, twoThird, aproxStd, smallest, biggest,
-                            gdc->numPairs, gdc->mean, gdc->stddev );
+                    gdc->numPairs, gdc->mean, gdc->stddev );
         }
     }
     ///////////////////////////////////////////////////////////////////////////
     // main entry point into mate checking code
-    void MateChecker::checkUnitigGraph( UnitigGraph& tigGraph )
-    {
+    void MateChecker::checkUnitigGraph( UnitigGraph& tigGraph ) {
         if ( ! BogOptions::useGkpStoreLibStats )
             computeGlobalLibStats( tigGraph );
 
@@ -331,8 +320,7 @@ namespace AS_BOG{
         while (numSplits > 0) {
             UnitigVector* splits = new UnitigVector(); // save split unitigs
             UnitigsIter tigEditIter = tigGraph.unitigs->begin();
-            for(; tigEditIter != tigGraph.unitigs->end(); tigEditIter++)
-            {
+            for(; tigEditIter != tigGraph.unitigs->end(); tigEditIter++) {
                 if (*tigEditIter == NULL || (*tigEditIter)->getNumFrags() < 2 ) 
                     continue;
 
@@ -359,13 +347,11 @@ namespace AS_BOG{
 
     ///////////////////////////////////////////////////////////////////////////
 
-    void MateChecker::ejectUnhappyContains(UnitigGraph& tigGraph )
-    {
+    void MateChecker::ejectUnhappyContains(UnitigGraph& tigGraph ) {
         MateCounts allMates;
         UnitigVector* singletons = new UnitigVector(); // save singleton unitigs
         UnitigsIter tigEditIter = tigGraph.unitigs->begin();
-        for(; tigEditIter != tigGraph.unitigs->end(); tigEditIter++)
-        {
+        for(; tigEditIter != tigGraph.unitigs->end(); tigEditIter++) {
             if (*tigEditIter == NULL ) 
                 continue;
 
@@ -408,45 +394,42 @@ namespace AS_BOG{
             int bgnShift = 0;
             // make sure 1st and 2nd frag overlap, otherwise make 1st singleton
             bool overlapFound = false;
-            while (!overlapFound)
-            {
-            if (old->size() > 1 && tigIter != old->end()) {
-                DoveTailNode first  = *(tigIter);
-                DoveTailNode second = *(tigIter+1);
-                BestContainment* cntn = tigGraph.bog_ptr->getBestContainer( second.ident);
-                if ( cntn != NULL && cntn->container == first.ident ) {
-                    overlapFound = true;
-                } else if ( tigGraph.bog_ptr->isContained( first.ident ) &&
-                    !tigGraph.bog_ptr->containHaveEdgeTo( first.ident, second.ident))
-                {
-                    Unitig* singleton = new Unitig;
-                    singleton->addFrag( first );
-                    singleIds[ first.ident ] = singletons->size();
-                    singletons->push_back( singleton );
-                    tigIter++;
-                    bgnShift = MIN( second.position.bgn, second.position.end );
-                    fprintf(stderr,"Non overlap start %d %d\n",first.ident,second.ident);
+            while (!overlapFound) {
+                if (old->size() > 1 && tigIter != old->end()) {
+                    DoveTailNode first  = *(tigIter);
+                    DoveTailNode second = *(tigIter+1);
+                    BestContainment* cntn = tigGraph.bog_ptr->getBestContainer( second.ident);
+                    if ( cntn != NULL && cntn->container == first.ident ) {
+                        overlapFound = true;
+                    } else if ( tigGraph.bog_ptr->isContained( first.ident ) &&
+                                !tigGraph.bog_ptr->containHaveEdgeTo( first.ident, second.ident)) {
+                        Unitig* singleton = new Unitig;
+                        singleton->addFrag( first );
+                        singleIds[ first.ident ] = singletons->size();
+                        singletons->push_back( singleton );
+                        tigIter++;
+                        bgnShift = MIN( second.position.bgn, second.position.end );
+                        fprintf(stderr,"Non overlap start %d %d\n",first.ident,second.ident);
+                    }
+                    else overlapFound = true;
                 }
                 else overlapFound = true;
             }
-            else overlapFound = true;
-            }
             // Create new one to add reads back to
             tig->dovetail_path_ptr = new DoveTailPath;
-            for(; tigIter != old->end(); tigIter++)
-            {
+            for(; tigIter != old->end(); tigIter++) {
                 DoveTailNode frag = *tigIter;
                 if (BogOptions::ejectUnhappyContained && frag.contained ) {
                     MateLocationEntry mloc = positions.getById( frag.ident );
-                    if (mloc.id1 != 0 && mloc.isBad ) // make contain bad a singleton unitig
-                    {
+                    if (mloc.id1 != 0 && mloc.isBad ) {
+                        // make contain bad a singleton unitig
                         Unitig* singleton = new Unitig;
                         singleton->addFrag( frag, bgnShift );
                         singleIds[ frag.ident ] = singletons->size();
                         singletons->push_back( singleton );
                     }
-                    else // contained, but not bad mate what to do with it?
-                    {    
+                    else {    
+                        // contained, but not bad mate what to do with it?
                         IdMapConstIter found = singleIds.find( frag.contained );
                         if ( found != singleIds.end() ) { // contained in unhappy singleton
                             if (mloc.id1 == 0) { // unmated, so follow container
@@ -470,14 +453,13 @@ namespace AS_BOG{
             delete old;
         }
         tigGraph.unitigs->insert( tigGraph.unitigs->end(), singletons->begin(),
-                                                           singletons->end() );
+                                  singletons->end() );
         std::cerr << allMates;
     }
 
     ///////////////////////////////////////////////////////////////////////////
 
-    void incrRange( std::vector<short>* graph, short val, iuid n, iuid m )
-    {
+    void incrRange( std::vector<short>* graph, short val, iuid n, iuid m ) {
         if (n == m)
             return;
         int sz = graph->size();
@@ -490,8 +472,7 @@ namespace AS_BOG{
         for(iuid i=n; i <=m ; i++)
             graph->at(i) += val;
     }
-    bool contains( SeqInterval a, SeqInterval b)
-    {
+    bool contains( SeqInterval a, SeqInterval b) {
         int aMin,aMax,bMin,bMax;
         if (isReverse(a)) { aMin = a.end; aMax = a.bgn; }
         else              { aMin = a.bgn; aMax = a.end; }
@@ -503,8 +484,7 @@ namespace AS_BOG{
             return false;
     }
     ///////////////////////////////////////////////////////////////////////////
-    SeqInterval intersection( SeqInterval a, SeqInterval b)
-    {
+    SeqInterval intersection( SeqInterval a, SeqInterval b) {
         SeqInterval retVal = NULL_SEQ_LOC;
         int aMin,aMax,bMin,bMax;
         if (isReverse(a)) { aMin = a.end; aMax = a.bgn; }
@@ -522,12 +502,11 @@ namespace AS_BOG{
     }
     ///////////////////////////////////////////////////////////////////////////
     // Assumes list is already sorted
-    void combineOverlapping( IntervalList* list )
-    {
+    void combineOverlapping( IntervalList* list ) {
         IntervalList::iterator iter = list->begin();
         IntervalList::iterator a = iter++;
         for(; iter != list->end() && iter != static_cast<IntervalList::iterator>(NULL);
-              iter++) {
+            iter++) {
             SeqInterval aIb = intersection( *a, *iter );
             if (!(aIb == NULL_SEQ_LOC) && aIb.end - aIb.bgn > 1000) {
                 a->bgn = aIb.bgn;
@@ -539,8 +518,7 @@ namespace AS_BOG{
     ///////////////////////////////////////////////////////////////////////////
 
     // hold over from testing if we should use 5' or 3' for range generation, now must use 3'
-    FragmentEnds* MateChecker::computeMateCoverage( Unitig* tig, BestOverlapGraph* bog_ptr )
-    {
+    FragmentEnds* MateChecker::computeMateCoverage( Unitig* tig, BestOverlapGraph* bog_ptr ) {
         int tigLen = tig->getLength();
         MateLocation positions(this);
         // Build mate position table
@@ -581,7 +559,7 @@ namespace AS_BOG{
         iuid backBgn; // Start position of final backbone unitig
         DoveTailNode backbone = tig->getLastBackboneNode(backBgn);
         backBgn = isReverse( backbone.position ) ? backbone.position.end :
-                                                   backbone.position.bgn ;
+            backbone.position.bgn ;
 
         bool combine = false;
         CDS_COORD_t currBackboneEnd = 0;
@@ -590,8 +568,7 @@ namespace AS_BOG{
         IntervalList::const_iterator revIter = revBads->begin();
         DoveTailConstIter tigIter = tig->dovetail_path_ptr->begin();
         // Go through the peak bad ranges looking for reads to break on
-        while( fwdIter != fwdBads->end() || revIter != revBads->end() )
-        {
+        while( fwdIter != fwdBads->end() || revIter != revBads->end() ) {
             bool isFwdBad = false;
             SeqInterval bad;
             if ( revIter == revBads->end() ||
@@ -615,31 +592,28 @@ namespace AS_BOG{
                     revIter++;
                     continue;
                 }
-                if (fwdIter != fwdBads->end())
-                {
+                if (fwdIter != fwdBads->end()) {
                     if ( fwdIter->bgn < bad.end && bad.end - fwdIter->bgn > 500 ) {
-                    // if fwd and reverse bad overlap 
-                    // and end of reverse is far away, do fwd 1st
+                        // if fwd and reverse bad overlap 
+                        // and end of reverse is far away, do fwd 1st
                         isFwdBad = true;
                         bad = *fwdIter;
                         fwdIter++;
                     } else {
                         if ( fwdIter->bgn < bad.end &&
                              fwdIter->end > bad.end &&
-                             bad.end - fwdIter->end < 200)
-                                
-                        {
-                             fprintf(stderr,"Combine bad ranges %d - %d with %d - %d\n",
-                                        bad.bgn, bad.end, fwdIter->bgn, fwdIter->end);
-                                if (bad.bgn == 0) { // ignore reverse at start of tig
-                                    bad.bgn = fwdIter->bgn;
-                                    bad.end = fwdIter->end;
-                                } else {
-                                    bad.bgn = bad.end;
-                                    bad.end = fwdIter->bgn;
-                                }
-                                fwdIter++; 
-                                combine = true;
+                             bad.end - fwdIter->end < 200) {
+                            fprintf(stderr,"Combine bad ranges %d - %d with %d - %d\n",
+                                    bad.bgn, bad.end, fwdIter->bgn, fwdIter->end);
+                            if (bad.bgn == 0) { // ignore reverse at start of tig
+                                bad.bgn = fwdIter->bgn;
+                                bad.end = fwdIter->end;
+                            } else {
+                                bad.bgn = bad.end;
+                                bad.end = fwdIter->bgn;
+                            }
+                            fwdIter++; 
+                            combine = true;
                         }
                         revIter++;
                     }
@@ -648,8 +622,7 @@ namespace AS_BOG{
                 }
             }
             fprintf(stderr,"Bad peak from %d to %d\n",bad.bgn,bad.end);
-            for(;tigIter != tig->dovetail_path_ptr->end(); tigIter++)
-            {
+            for(;tigIter != tig->dovetail_path_ptr->end(); tigIter++) {
                 DoveTailNode frag = *tigIter;
                 SeqInterval loc = frag.position;
                 // Don't want to go past range and break in wrong place
@@ -666,8 +639,8 @@ namespace AS_BOG{
                     if ( isFwdBad && bad.bgn <= loc.end ) {
                         breakNow = true;
                     } else if ( !isFwdBad && (loc.bgn >= bad.end) ||
-                            (combine && loc.end >  bad.bgn) ||
-                            (combine && loc.end == bad.end) ) {
+                                (combine && loc.end >  bad.bgn) ||
+                                (combine && loc.end == bad.end) ) {
                         breakNow = true;
                     } else if (bad.bgn > backBgn) {
                         // fun special case, keep contained frags at end of tig in container 
@@ -683,7 +656,7 @@ namespace AS_BOG{
                     fragment_end_type fragEndInTig = THREE_PRIME;
                     // If reverse mate is 1st and overlaps its mate break at 5'
                     if ( mloc.unitig2 == tig->id() && isReverse( loc ) &&
-                          !isReverse(mloc.pos2) && loc.bgn >= mloc.pos2.bgn )
+                         !isReverse(mloc.pos2) && loc.bgn >= mloc.pos2.bgn )
                         fragEndInTig = FIVE_PRIME;
 
                     UnitigBreakPoint bp( frag.ident, fragEndInTig );
@@ -692,14 +665,13 @@ namespace AS_BOG{
                     bp.inFrags = 10;
                     breaks->push_back( bp );
                 }
-                if ( lastBreakBBEnd != 0 && lastBreakBBEnd > MAX(loc.bgn,loc.end))
-                {
+                if ( lastBreakBBEnd != 0 && lastBreakBBEnd > MAX(loc.bgn,loc.end)) {
                     // change use ++ & -- instead of +1 so we can use list
                     tigIter++;
                     DoveTailConstIter nextPos = tigIter;
                     tigIter--;
-                    if (nextPos != tig->dovetail_path_ptr->end())  {
-//                        if ((NULL_SEQ_LOC == overlap || diff < DEFAULT_MIN_OLAP_LEN) || 
+                    if (nextPos != tig->dovetail_path_ptr->end()) {
+                        //                        if ((NULL_SEQ_LOC == overlap || diff < DEFAULT_MIN_OLAP_LEN) || 
                         if ( contains( loc, nextPos->position ) ) {
                             // Contains the next one, so skip it
                         } else {
@@ -707,19 +679,19 @@ namespace AS_BOG{
                             int diff = abs( overlap.end - overlap.bgn);
                             if ((NULL_SEQ_LOC == overlap || diff < DEFAULT_MIN_OLAP_LEN) || 
                                 (bog_ptr->isContained( frag.ident ) &&
-                                !bog_ptr->containHaveEdgeTo( frag.ident, nextPos->ident))) {
-                            // no overlap between this and the next frg, break after frg
-                            fragment_end_type fragEndInTig = THREE_PRIME;
-                            if (isReverse( loc ))
-                                fragEndInTig = FIVE_PRIME;
+                                 !bog_ptr->containHaveEdgeTo( frag.ident, nextPos->ident))) {
+                                // no overlap between this and the next frg, break after frg
+                                fragment_end_type fragEndInTig = THREE_PRIME;
+                                if (isReverse( loc ))
+                                    fragEndInTig = FIVE_PRIME;
 
-                            UnitigBreakPoint bp( frag.ident, fragEndInTig );
-                            bp.position = loc;
-                            bp.inSize = 100001;
-                            bp.inFrags = 11;
-                            breaks->push_back( bp );
-                            fprintf(stderr,"Might make frg %d singleton, end %d size %d pos %d,%d\n",
-                                    frag.ident, fragEndInTig, breaks->size(),loc.bgn,loc.end);
+                                UnitigBreakPoint bp( frag.ident, fragEndInTig );
+                                bp.position = loc;
+                                bp.inSize = 100001;
+                                bp.inFrags = 11;
+                                breaks->push_back( bp );
+                                fprintf(stderr,"Might make frg %d singleton, end %d size %d pos %d,%d\n",
+                                        frag.ident, fragEndInTig, breaks->size(),loc.bgn,loc.end);
                             }
                         }
                     }
@@ -778,17 +750,14 @@ namespace AS_BOG{
 
     ///////////////////////////////////////////////////////////////////////////
     
-    void MateLocation::buildTable( Unitig *tig)
-    {
+    void MateLocation::buildTable( Unitig *tig) {
         DoveTailConstIter tigIter = tig->dovetail_path_ptr->begin();
-        for(;tigIter != tig->dovetail_path_ptr->end(); tigIter++)
-        {
+        for(;tigIter != tig->dovetail_path_ptr->end(); tigIter++) {
             DoveTailNode frag = *tigIter;
             iuid fragId = frag.ident;
             MateInfo mateInfo = _checker->getMateInfo( fragId );
             iuid mateId = mateInfo.mate;
-            if ( mateInfo.mate != NULL_FRAG_ID )
-            {
+            if ( mateInfo.mate != NULL_FRAG_ID ) {
                 if (hasFrag( mateId ) )
                     addMate( tig->id(), fragId, frag.position );
                 else
@@ -800,10 +769,9 @@ namespace AS_BOG{
 
     ///////////////////////////////////////////////////////////////////////////
     
-    std::ostream& operator<< (std::ostream& os, MateCounts c)
-    {
+    std::ostream& operator<< (std::ostream& os, MateCounts c) {
         int sum = c.badOtherTig + c.otherTig + c.goodCircular + c.good + c.badOuttie +
-                  c.badInnie + c.badAntiNormal + c.badNormal;
+            c.badInnie + c.badAntiNormal + c.badNormal;
 
         os << std::endl << "Total mates " << c.total << " should equal sum " << sum
            << std::endl
@@ -818,8 +786,7 @@ namespace AS_BOG{
     
     ///////////////////////////////////////////////////////////////////////////
     
-    MateCounts* MateLocation::buildHappinessGraphs( int tigLen, LibraryStats& globalStats )
-    {
+    MateCounts* MateLocation::buildHappinessGraphs( int tigLen, LibraryStats& globalStats ) {
         goodGraph->resize( tigLen+1 );
         badFwdGraph->resize( tigLen+1 );
         badRevGraph->resize( tigLen+1 );
@@ -894,7 +861,7 @@ namespace AS_BOG{
                     incrRange( badRevGraph, -1, beg, frgEnd);
                     posIter->isBad = true;
                     fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
-                                fragId, frgBgn, frgEnd, mateId, lib);
+                            fragId, frgBgn, frgEnd, mateId, lib);
 
                     if (isReverse( loc.pos2 )) {
                         // 2nd mate is reversed, so mark bad towards tig begin
@@ -908,7 +875,7 @@ namespace AS_BOG{
                         cnts->badOuttie++;
                     }
                     fprintf(stderr,"Bad mate %ld pos %ld %ld mate %ld lib %d\n",
-                                mateId, mateBgn, mateEnd, fragId, lib);
+                            mateId, mateBgn, mateEnd, fragId, lib);
 
                 } else {
                     // 1st forward
@@ -969,8 +936,7 @@ namespace AS_BOG{
 
     ///////////////////////////////////////////////////////////////////////////
 
-    bool MateLocation::startEntry(iuid unitigID, iuid fragID, SeqInterval fragPos)
-    {
+    bool MateLocation::startEntry(iuid unitigID, iuid fragID, SeqInterval fragPos) {
         if ( _iidIndex.find( fragID) != _iidIndex.end() )
             return false; // Entry already exists, can't start new
 
@@ -990,8 +956,7 @@ namespace AS_BOG{
     }
 
     ///////////////////////////////////////////////////////////////////////////
-    MateLocation::~MateLocation()
-    {
+    MateLocation::~MateLocation() {
         delete goodGraph;
         delete badFwdGraph;
         delete badRevGraph;
@@ -999,12 +964,11 @@ namespace AS_BOG{
 
     ///////////////////////////////////////////////////////////////////////////
 
-    bool MateLocation::addMate(iuid unitigId, iuid fragId, SeqInterval fragPos)
-    {
+    bool MateLocation::addMate(iuid unitigId, iuid fragId, SeqInterval fragPos) {
         iuid mateId = _checker->getMateInfo( fragId ).mate;
         IdMapConstIter entryIndex = _iidIndex.find( mateId );
         if ( _iidIndex.find( fragId ) != _iidIndex.end() ||
-                           entryIndex == _iidIndex.end() )
+             entryIndex == _iidIndex.end() )
             return false; // Missing mate or already added
 
         iuid idx = entryIndex->second;
@@ -1027,8 +991,7 @@ namespace AS_BOG{
 
     ///////////////////////////////////////////////////////////////////////////
 
-    bool MateLocation::hasFrag(iuid fragId)
-    {
+    bool MateLocation::hasFrag(iuid fragId) {
         if ( _iidIndex.find( fragId ) == _iidIndex.end() )
             return false;
         else
@@ -1037,8 +1000,7 @@ namespace AS_BOG{
 
     ///////////////////////////////////////////////////////////////////////////
 
-    void MateLocation::sort()
-    {
+    void MateLocation::sort() {
         std::sort(begin(),end());
         MateLocCIter iter = begin();
         int i = 0;
@@ -1051,8 +1013,7 @@ namespace AS_BOG{
 
     ///////////////////////////////////////////////////////////////////////////
 
-    std::ostream& operator<< (std::ostream& os, MateLocationEntry& e)
-    {
+    std::ostream& operator<< (std::ostream& os, MateLocationEntry& e) {
         int dist = e.pos2.bgn - e.pos1.bgn;
         os << e.pos1.bgn <<","<< e.pos1.end <<" -> "<< e.pos2.bgn <<","<< e.pos2.end
            << " "<< dist << " Frg " << e.id1 << " mate " << e.id2 << " isBad " << e.isBad ;

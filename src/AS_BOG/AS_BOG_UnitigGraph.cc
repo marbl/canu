@@ -19,26 +19,26 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*************************************************
-* Module:  AS_BOG_UnitigGraph.cc
-* Description:
-*	Data structure to contain the unitig paths and how they connect to each
-*	other
-* 
-*    Programmer:  K. Li
-*       Started:  2 Aug 2005
-* 
-* Assumptions:
-* 
-* Notes:
-*
-*************************************************/
+ * Module:  AS_BOG_UnitigGraph.cc
+ * Description:
+ *	Data structure to contain the unitig paths and how they connect to each
+ *	other
+ * 
+ *    Programmer:  K. Li
+ *       Started:  2 Aug 2005
+ * 
+ * Assumptions:
+ * 
+ * Notes:
+ *
+ *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.71 2007-11-08 19:42:35 eliv Exp $
- * $Revision: 1.71 $
-*/
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.72 2007-12-05 23:46:57 brianwalenz Exp $
+ * $Revision: 1.72 $
+ */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.71 2007-11-08 19:42:35 eliv Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.72 2007-12-05 23:46:57 brianwalenz Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -51,28 +51,27 @@ static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 #include <cerrno>
 
 extern "C" {
-	#include "AS_global.h"
+#include "AS_global.h"
 }
 #undef max
 namespace AS_BOG{
 
-	//////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
     
     int BogOptions::badMateBreakThreshold    = -7;
     bool BogOptions::unitigIntersectBreaking = false;
     bool BogOptions::ejectUnhappyContained   = false;
     bool BogOptions::useGkpStoreLibStats     = false;
 
-	//////////////////////////////////////////////////////////////////////////////
-    UnitigGraph::UnitigGraph(BestOverlapGraph *in_bog_ptr) : bog_ptr(in_bog_ptr)
-    {
+    //////////////////////////////////////////////////////////////////////////////
+    UnitigGraph::UnitigGraph(BestOverlapGraph *in_bog_ptr) : bog_ptr(in_bog_ptr) {
         unitigs = new UnitigVector;
         unitigIntersect = new FragmentEdgeList;
     }
 
     UnitigGraph::~UnitigGraph() {
-		UnitigVector::iterator utg_itr;
-		for(utg_itr=unitigs->begin(); utg_itr!=unitigs->end(); utg_itr++)
+        UnitigVector::iterator utg_itr;
+        for(utg_itr=unitigs->begin(); utg_itr!=unitigs->end(); utg_itr++)
             delete *utg_itr;
         delete unitigs;
         delete unitigIntersect;
@@ -97,23 +96,23 @@ namespace AS_BOG{
         return _inUnitig[fragId];
     }
 
-	void UnitigGraph::build(ChunkGraph *cg_ptr) {
+    void UnitigGraph::build(ChunkGraph *cg_ptr) {
 
-		iuid num_frags=cg_ptr->getNumFragments();
+        iuid num_frags=cg_ptr->getNumFragments();
         Unitig::setNextId( 1 );
-		iuid unitig_id=0;
+        iuid unitig_id=0;
 
-		iuid frag_idx;
-		iuid fp_dst_frag_id, tp_dst_frag_id;
+        iuid frag_idx;
+        iuid fp_dst_frag_id, tp_dst_frag_id;
 
-		// Initialize where we've been to nowhere; "Do not retraverse list"
+        // Initialize where we've been to nowhere; "Do not retraverse list"
         Unitig::resetFragUnitigMap( num_frags );
 
-		BestContainmentMap *best_cntr = &(bog_ptr->_best_containments);
-		_build_container_map(best_cntr);
+        BestContainmentMap *best_cntr = &(bog_ptr->_best_containments);
+        _build_container_map(best_cntr);
 
-		// Step through all the fragments 
-		std::cerr << "Building Unitigs from " << num_frags << " fragments.\n"; 
+        // Step through all the fragments 
+        std::cerr << "Building Unitigs from " << num_frags << " fragments.\n"; 
         while( frag_idx = cg_ptr->nextFragByChunkLength() ) {
             if (BestOverlapGraph::fragLen(frag_idx) == std::numeric_limits<uint16>::max())
                 continue; // Deleted frag
@@ -121,13 +120,11 @@ namespace AS_BOG{
             // Check the map to so we don't visit a unitig twice (once from
             //   both ends)
             if( !Unitig::fragIn( frag_idx ) && 
-                    best_cntr->find(frag_idx) == best_cntr->end() )
-            { 
-                cg_ptr->getChunking(
-                        frag_idx, 
-                        fp_dst_frag_id, 
-                        tp_dst_frag_id);
-
+                best_cntr->find(frag_idx) == best_cntr->end() ) { 
+                cg_ptr->getChunking(frag_idx, 
+                                    fp_dst_frag_id, 
+                                    tp_dst_frag_id);
+                
                 if(!(unitig_id%10000)){
                     std::cerr << ".";
                 }
@@ -145,12 +142,11 @@ namespace AS_BOG{
                 // if the other end is already in another unitig, don't try to extend
                 if (Unitig::fragIn(tpId)) {
                     // question, should we include the circle in the intersection list?
-                    if (tpId != 0 && unitig_id != Unitig::fragIn(tpId))
-                    {
-                      // save this outgoing intersection point for future use
-                      (*unitigIntersect)[tpId].push_back( frag_idx );
-                      fprintf(stderr,"Unitig %5d 1st frag %7d -> Unitig %5d frag %7d\n",
-                            unitig_id, frag_idx, Unitig::fragIn(tpId), tpId );
+                    if (tpId != 0 && unitig_id != Unitig::fragIn(tpId)) {
+                        // save this outgoing intersection point for future use
+                        (*unitigIntersect)[tpId].push_back( frag_idx );
+                        fprintf(stderr,"Unitig %5d 1st frag %7d -> Unitig %5d frag %7d\n",
+                                unitig_id, frag_idx, Unitig::fragIn(tpId), tpId );
                     }
                 } else {
                     // if other end is also 3' we need to walk of it's 5'
@@ -162,12 +158,12 @@ namespace AS_BOG{
                     int ahng = tpBest->ahang;
                     int offset = len - flen + ahng;
                     fprintf(stderr,
-                        "Join unitig %d len %d at %d len %d and %d ahang %d offset %d\n",
-                         unitig_id, len, frag_idx, flen, tpBest->frag_b_id, ahng, offset );
+                            "Join unitig %d len %d at %d len %d and %d ahang %d offset %d\n",
+                            unitig_id, len, frag_idx, flen, tpBest->frag_b_id, ahng, offset );
 
                     utg->reverseComplement();
                     populateUnitig( utg,
-                            tpBest->frag_b_id, whichEnd, cg_ptr, offset);
+                                    tpBest->frag_b_id, whichEnd, cg_ptr, offset);
                 }
 
                 // Store unitig in unitig graph
@@ -179,25 +175,24 @@ namespace AS_BOG{
                 // across a dovetail.
 
             }
-		}
+        }
         std::cerr << std::endl;
 
         // Pick up frags missed above, possibly circular unitigs
         for(frag_idx=1; frag_idx<=num_frags; frag_idx++){
             if (Unitig::fragIn( frag_idx ) == 0) {
-				cg_ptr->getChunking( frag_idx, fp_dst_frag_id, tp_dst_frag_id);
+                cg_ptr->getChunking( frag_idx, fp_dst_frag_id, tp_dst_frag_id);
 
                 if ( fp_dst_frag_id != NULL_FRAG_ID &&
-                     tp_dst_frag_id != NULL_FRAG_ID )
-                {
-					Unitig *utg=new Unitig;
+                     tp_dst_frag_id != NULL_FRAG_ID ) {
+                    Unitig *utg=new Unitig;
                     // need to make populateUnitig break circle
                     populateUnitig( utg, frag_idx, FIVE_PRIME, cg_ptr, 0 );
 
                     fprintf(stderr,"Circular unitig %d 1st frag %d\n",
                             unitig_id,frag_idx);
 
-					unitigs->push_back(utg);
+                    unitigs->push_back(utg);
 
                 } else {
                     // Should both be null or neither null
@@ -222,12 +217,11 @@ namespace AS_BOG{
         fprintf(stderr,"Max contain depth is %d\n",maxContainDepth);
         delete cntnrmap_ptr;
         cntnrmap_ptr = NULL;
-	}
+    }
     //////////////////////////////////////////////////////////////////////////////
     BestEdgeOverlap* UnitigGraph::nextJoiner( Unitig* tig, 
-            iuid &aPrev, iuid &fragA, int &tigEnd, bool &begRev,
-                       BestEdgeOverlap *&fivePrime, BestEdgeOverlap *&threePrime )
-    {
+                                              iuid &aPrev, iuid &fragA, int &tigEnd, bool &begRev,
+                                              BestEdgeOverlap *&fivePrime, BestEdgeOverlap *&threePrime ) {
         aPrev = 0;
         DoveTailNode joinerNode = tig->getLastBackboneNode(aPrev);
         fragA = joinerNode.ident;
@@ -249,7 +243,7 @@ namespace AS_BOG{
                     fragA, aPrev, 
                     fivePrime->frag_b_id, fivePrime->in_degree,
                     threePrime->frag_b_id, threePrime->in_degree
-            );
+                    );
             if ( begRev )
                 bestEdge = fivePrime;
             else
@@ -260,39 +254,36 @@ namespace AS_BOG{
 
     //////////////////////////////////////////////////////////////////////////////
     void UnitigGraph::mergeUnitigs(Unitig* tig, std::set<iuid> *joined,
-            std::map<iuid,iuid> *visited_map)
-    {
+                                   std::map<iuid,iuid> *visited_map) {
         iuid beforeLast, beginId, joiner;
         int tigEnd;
         bool begRev;
         BestEdgeOverlap *bestEdge,*fivePrime,*threePrime;
         bestEdge = nextJoiner( tig, beforeLast,
-                beginId, tigEnd, begRev, fivePrime, threePrime
-        );
+                               beginId, tigEnd, begRev, fivePrime, threePrime
+                               );
         joiner = bestEdge->frag_b_id;
         iuid tigIdToAdd = (*visited_map)[ joiner ];
         while (joiner != 0 && joined->find(tigIdToAdd) == joined->end() &&
-                 visited_map->find(joiner) != visited_map->end())
-        {
+               visited_map->find(joiner) != visited_map->end()) {
             Unitig* tigToAdd = unitigs->at( tigIdToAdd - 1);
             // Code assumes joining only from end of unitig
             if ( beforeLast != 0 ) // ok to join singleton though
                 assert( beginId != tig->dovetail_path_ptr->front().ident);
             BestEdgeOverlap* addFivePrime = bog_ptr->getBestEdgeOverlap(
-                    joiner, FIVE_PRIME );
+                                                                        joiner, FIVE_PRIME );
             BestEdgeOverlap* addThreePrime = bog_ptr->getBestEdgeOverlap(
-                    joiner, THREE_PRIME );
+                                                                         joiner, THREE_PRIME );
 
             bool bDisagree = false;
             if ( bestEdge->bend == FIVE_PRIME  && beginId != addFivePrime->frag_b_id
-              || bestEdge->bend == THREE_PRIME && beginId != addThreePrime->frag_b_id)
-            { 
+                 || bestEdge->bend == THREE_PRIME && beginId != addThreePrime->frag_b_id) { 
                 fprintf(stderr,"B Disagree: A %d,%d B %d 5' %d,%d 3' %d,%d\n",
-                    beginId, bestEdge->in_degree, joiner,
-                    addFivePrime->frag_b_id, addFivePrime->in_degree,
-                    addThreePrime->frag_b_id, addThreePrime->in_degree
-                );
-                 bDisagree = true;
+                        beginId, bestEdge->in_degree, joiner,
+                        addFivePrime->frag_b_id, addFivePrime->in_degree,
+                        addThreePrime->frag_b_id, addThreePrime->in_degree
+                        );
+                bDisagree = true;
             }
 
             bool reverse = false;
@@ -309,16 +300,16 @@ namespace AS_BOG{
                     if (begRev ^ lastReverse)
                         reverse = true;
                     fprintf(stderr,"3'->5' %d %d bR %d lR %d R %d\n", beginId, joiner,
-                                            begRev, lastReverse, reverse);
+                            begRev, lastReverse, reverse);
                     assert( bDisagree || bestEdge->in_degree != 1 ||
                             addFivePrime->in_degree != 1);
                 } else if ( bestEdge->bend == THREE_PRIME ) {
                     if (!(begRev ^ lastReverse))
                         reverse = true;
                     fprintf(stderr,"3'->3' %d %d bR %d lR %d R %d\n", beginId, joiner,
-                                            begRev, lastReverse, reverse);
+                            begRev, lastReverse, reverse);
                     assert( bDisagree || bestEdge->in_degree != 1 ||
-                                addThreePrime->in_degree != 1);
+                            addThreePrime->in_degree != 1);
                 } else {
                     assert(0);
                 }
@@ -327,16 +318,16 @@ namespace AS_BOG{
                     if (!(begRev ^ lastReverse))
                         reverse = true;
                     fprintf(stderr,"5'->5' %d %d bR %d lR %d R %d\n", beginId, joiner,
-                                            begRev, lastReverse, reverse);
+                            begRev, lastReverse, reverse);
                     assert( bDisagree || bestEdge->in_degree != 1 ||
-                                addFivePrime->in_degree != 1 );
+                            addFivePrime->in_degree != 1 );
                 } else if ( bestEdge->bend == THREE_PRIME ) {
                     if (begRev ^ lastReverse)
                         reverse = true;
                     fprintf(stderr,"5'->3' %d %d bR %d lR %d R %d\n", beginId, joiner,
-                                            begRev, lastReverse, reverse);
+                            begRev, lastReverse, reverse);
                     assert( bDisagree || bestEdge->in_degree != 1 ||
-                                addThreePrime->in_degree != 1);
+                            addThreePrime->in_degree != 1);
                 } else {
                     assert(0);
                 }
@@ -356,8 +347,8 @@ namespace AS_BOG{
                 assert( bestEdge == threePrime );
 
             int offset  = 1 + tigEnd - BestOverlapGraph::olapLength( beginId,
-                    joiner, bestEdge->ahang, bestEdge->bhang
-            );
+                                                                     joiner, bestEdge->ahang, bestEdge->bhang
+                                                                     );
             if (!reverse && joiner == first.ident) {
                 DoveTailPath::iterator addIter = tigToAdd->dovetail_path_ptr->begin();
                 for(;addIter != tigToAdd->dovetail_path_ptr->end(); addIter++) {
@@ -368,15 +359,15 @@ namespace AS_BOG{
             } else { // reverse complement and append
                 tigToAdd->reverseComplement( offset, bog_ptr);
                 tig->dovetail_path_ptr->insert( tig->dovetail_path_ptr->end(),
-                                           tigToAdd->dovetail_path_ptr->begin(),
-                                           tigToAdd->dovetail_path_ptr->end() );
+                                                tigToAdd->dovetail_path_ptr->begin(),
+                                                tigToAdd->dovetail_path_ptr->end() );
             }
             delete tigToAdd;
             unitigs->at( tigIdToAdd - 1) = NULL;
             joined->insert(tigIdToAdd);
             bestEdge = nextJoiner( tig, beforeLast,
-                    beginId, tigEnd, begRev, fivePrime, threePrime
-            );
+                                   beginId, tigEnd, begRev, fivePrime, threePrime
+                                   );
             joiner = bestEdge->frag_b_id;
             if ( joiner == 0)
                 break;
@@ -407,7 +398,7 @@ namespace AS_BOG{
         unitigs = newTigs;
         delete joined;
     }
-	//////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
     DoveTailNode Unitig::getLastBackboneNode(iuid &prevId) {
         DoveTailPath::reverse_iterator rIter = dovetail_path_ptr->rbegin();
         DoveTailNode lastNonContain;
@@ -417,8 +408,7 @@ namespace AS_BOG{
             if (node.contained == 0) {
                 if (lastNonContain.ident == 0)
                     lastNonContain = node;
-                else
-                {
+                else {
                     prevId = node.ident;
                     return lastNonContain;
                 }
@@ -426,7 +416,7 @@ namespace AS_BOG{
         }
         return lastNonContain;
     }
-	//////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
 
     void Unitig::computeFragmentPositions(BestOverlapGraph* bog_ptr) {
         if (dovetail_path_ptr == NULL || dovetail_path_ptr->empty())
@@ -446,11 +436,11 @@ namespace AS_BOG{
             return;
         }
         BestEdgeOverlap* bestEdge = bog_ptr->getBestEdgeOverlap(
-                first, FIVE_PRIME );
+                                                                first, FIVE_PRIME );
         BestEdgeOverlap* threeP = bog_ptr->getBestEdgeOverlap(
-                first, THREE_PRIME );
+                                                              first, THREE_PRIME );
         fprintf(stderr,"1stFrag %d beg %d end %d\n",
-                    first, frag_begin, frag_end );
+                first, frag_begin, frag_end );
         iter++;
         if (iter->ident == bestEdge->frag_b_id) {
             dovetail_path_ptr->front().position.bgn = frag_end;
@@ -477,7 +467,7 @@ namespace AS_BOG{
         for (; iter != dovetail_path_ptr->end(); iter++ ) {
             DoveTailNode* node = &*iter;
             //DoveTailNode* nextNode = &*(iter+1);
-			bestEdge = bog_ptr->getBestEdgeOverlap( node->ident, whichEnd);
+            bestEdge = bog_ptr->getBestEdgeOverlap( node->ident, whichEnd);
             int currLen = BestOverlapGraph::fragLen(node->ident);
             // The end of the fragment can be calulated as start + length
             // or as end of previous frag + b_hang. They should be the same
@@ -486,8 +476,8 @@ namespace AS_BOG{
 
             fprintf(stderr,"Frag %d len %d beg %d end %d ahang %d bhang %d end %s bfrg %d bend %s\n",
                     node->ident, currLen, frag_begin, frag_end,
-                     bestEdge->ahang, bestEdge->bhang, whichEnd == FIVE_PRIME ? "5'":"3'",
-                     bestEdge->frag_b_id, bestEdge->bend == FIVE_PRIME ? "5'":"3'");
+                    bestEdge->ahang, bestEdge->bhang, whichEnd == FIVE_PRIME ? "5'":"3'",
+                    bestEdge->frag_b_id, bestEdge->bend == FIVE_PRIME ? "5'":"3'");
 
             int end;
             // pick the smallest end that's greater then the previous end
@@ -500,38 +490,38 @@ namespace AS_BOG{
             } else {
                 end = fragNextEnd > frag_end ? frag_end : fragNextEnd;
             }
-/* only if I can't find a better way to fix up reverse complemented unitigs
-           if (nextNode != dovetail_path_ptr->end() &&
-                bestEdge->frag_b_id  != nextNode->ident) {
-                // disagreement, use next node's end and hangs
-                BestEdgeOverlap tP = bog_ptr->getBestEdgeOverlap( nextNode->ident,THREE_PRIME);
-                BestEdgeOverlap fP = bog_ptr->getBestEdgeOverlap( nextNode->ident,FIVE_PRIME);
-                if (node->ident == fP->frag_b_id) {
-                    if (whichEnd == FIVE_PRIME) {
-                       if ( fp->bend == FIVE_PRIME) {
-                       }
-                    }
-                }
-            }
-*/
+            /* only if I can't find a better way to fix up reverse complemented unitigs
+               if (nextNode != dovetail_path_ptr->end() &&
+               bestEdge->frag_b_id  != nextNode->ident) {
+               // disagreement, use next node's end and hangs
+               BestEdgeOverlap tP = bog_ptr->getBestEdgeOverlap( nextNode->ident,THREE_PRIME);
+               BestEdgeOverlap fP = bog_ptr->getBestEdgeOverlap( nextNode->ident,FIVE_PRIME);
+               if (node->ident == fP->frag_b_id) {
+               if (whichEnd == FIVE_PRIME) {
+               if ( fp->bend == FIVE_PRIME) {
+               }
+               }
+               }
+               }
+            */
 
-			if(whichEnd == FIVE_PRIME){
-				node->position.bgn = end;
-				node->position.end = frag_begin;
-			}else {
-				node->position.bgn = frag_begin;
-				node->position.end = end;
-			}
+            if(whichEnd == FIVE_PRIME){
+                node->position.bgn = end;
+                node->position.end = frag_begin;
+            }else {
+                node->position.bgn = frag_begin;
+                node->position.end = end;
+            }
             fragNextEnd = frag_end;
             fragPrevEnd = end;
 
             // Prep the start position of the next fragment
             if (bestEdge->ahang < 0 && bestEdge->bhang < 0 ) {
                 fragNextEnd -= bestEdge->ahang ;
-			    frag_begin  -= bestEdge->bhang ;
+                frag_begin  -= bestEdge->bhang ;
             } else {
                 fragNextEnd += bestEdge->bhang ;
-			    frag_begin  += bestEdge->ahang ;
+                frag_begin  += bestEdge->ahang ;
             }
             if ( bestEdge->bend == FIVE_PRIME ) {
                 whichEnd = THREE_PRIME;
@@ -540,22 +530,22 @@ namespace AS_BOG{
             }
         }
     }
-	void UnitigGraph::populateUnitig( Unitig* unitig,
-		iuid src_frag_id, fragment_end_type firstEnd, ChunkGraph *cg_ptr, int offset){
+    void UnitigGraph::populateUnitig( Unitig* unitig,
+                                      iuid src_frag_id, fragment_end_type firstEnd, ChunkGraph *cg_ptr, int offset){
 
 	// Note:  I only need BestOverlapGraph for it's frag_len and olap_length
 
-		iuid current_frag_id=src_frag_id;
-		iuid next_frag_id = 0;
-		fragment_end_type whichEnd = firstEnd;
+        iuid current_frag_id=src_frag_id;
+        iuid next_frag_id = 0;
+        fragment_end_type whichEnd = firstEnd;
         int frag_end,frag_begin,fragNextEnd,fragPrevEnd;
         frag_begin = fragNextEnd = fragPrevEnd = offset;
 
-		while(current_frag_id != NULL_FRAG_ID && !Unitig::fragIn( current_frag_id )) {
-			// Store the current fragment into dovetail path
-			BestEdgeOverlap* bestEdge = bog_ptr->getBestEdgeOverlap(
-				current_frag_id, whichEnd
-                );
+        while(current_frag_id != NULL_FRAG_ID && !Unitig::fragIn( current_frag_id )) {
+            // Store the current fragment into dovetail path
+            BestEdgeOverlap* bestEdge = bog_ptr->getBestEdgeOverlap(
+                                                                    current_frag_id, whichEnd
+                                                                    );
             DoveTailNode dt_node;
             dt_node.type         = AS_READ; /* Isolated fragtype VR */
             dt_node.ident        = current_frag_id;
@@ -582,9 +572,9 @@ namespace AS_BOG{
             if ( fragNextEnd == offset )
                 fragNextEnd = currLen + offset;
 
-//            fprintf(stderr,"Frag %d len %d beg %d end %d ahang %d bhang %d nEnd %d\n",
-//                    current_frag_id, currLen, frag_begin, frag_end,
-//                     bestEdge->ahang, bestEdge->bhang, fragNextEnd);
+            //            fprintf(stderr,"Frag %d len %d beg %d end %d ahang %d bhang %d nEnd %d\n",
+            //                    current_frag_id, currLen, frag_begin, frag_end,
+            //                     bestEdge->ahang, bestEdge->bhang, fragNextEnd);
 
             int end;
             // pick the smallest end that's greater then the previous end
@@ -597,32 +587,32 @@ namespace AS_BOG{
             } else {
                 end = fragNextEnd > frag_end ? frag_end : fragNextEnd;
             }
-			if(whichEnd == FIVE_PRIME){
-				dt_node.position.bgn = end;
-				dt_node.position.end = frag_begin;
-			}else {
-				dt_node.position.bgn = frag_begin;
-				dt_node.position.end = end;
-			}
+            if(whichEnd == FIVE_PRIME){
+                dt_node.position.bgn = end;
+                dt_node.position.end = frag_begin;
+            }else {
+                dt_node.position.bgn = frag_begin;
+                dt_node.position.end = end;
+            }
             fragNextEnd = frag_end;
             fragPrevEnd = end;
-			unitig->addFrag(dt_node);
+            unitig->addFrag(dt_node);
 
             // Prep the start position of the next fragment
             if (bestEdge->ahang < 0 && bestEdge->bhang < 0 ) {
                 fragNextEnd -= bestEdge->ahang ;
-			    frag_begin  -= bestEdge->bhang ;
+                frag_begin  -= bestEdge->bhang ;
             } else {
                 fragNextEnd += bestEdge->bhang ;
-			    frag_begin  += bestEdge->ahang ;
+                frag_begin  += bestEdge->ahang ;
             }
             int chunkNextId = cg_ptr->getChunking(current_frag_id, whichEnd); 
             if ( chunkNextId != NULL_FRAG_ID )
                 assert( chunkNextId == next_frag_id );
 
-			// Set current to next
-			next_frag_id = current_frag_id;
-			current_frag_id = chunkNextId;
+            // Set current to next
+            next_frag_id = current_frag_id;
+            current_frag_id = chunkNextId;
             if ( current_frag_id == src_frag_id )
                 break; // Break a circle
             if ( bestEdge->bend == FIVE_PRIME ) {
@@ -631,18 +621,17 @@ namespace AS_BOG{
                 whichEnd = FIVE_PRIME;
             }
         }
-		if ( next_frag_id != 0 && Unitig::fragIn( current_frag_id ) ) {
+        if ( next_frag_id != 0 && Unitig::fragIn( current_frag_id ) ) {
             // save this outgoing intersection point for future use
             (*unitigIntersect)[current_frag_id].push_back( next_frag_id );
             fprintf(stderr,"Unitig %5d frag %7d -> Unitig %5d frag %7d\n",
                     unitig->id(), next_frag_id, Unitig::fragIn(current_frag_id),
                     current_frag_id );
         }
-	}
-	//////////////////////////////////////////////////////////////////////////////
+    }
+    //////////////////////////////////////////////////////////////////////////////
     void UnitigGraph::accumulateSplitUnitigs( UnitigsIter tig, FragmentEnds* breaks,
-            UnitigVector* splits)
-    {
+                                              UnitigVector* splits) {
         UnitigVector* newUs = breakUnitigAt( *tig, *breaks );
         if (newUs == NULL)
             return;
@@ -664,15 +653,14 @@ namespace AS_BOG{
         }
         delete newUs;
     }
-	//////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
     void UnitigGraph::breakUnitigs() {
 
         const char * fiveP  = "5'";
         const char * threeP = "3'";
         UnitigVector* splits = new UnitigVector(); // save split locations
         UnitigsIter  tigIter = unitigs->begin();
-        for(;tigIter != unitigs->end(); tigIter++)
-        {
+        for(;tigIter != unitigs->end(); tigIter++) {
             Unitig* tig = *tigIter;
             tig->sort();
             FragmentEnds breaks;
@@ -680,8 +668,7 @@ namespace AS_BOG{
             DoveTailNode lastBackbone;
             DoveTailPath::const_iterator dt_itr;
             for( dt_itr  = tig->dovetail_path_ptr->begin();
-                 dt_itr != tig->dovetail_path_ptr->end(); dt_itr++,fragCount++)
-            {
+                 dt_itr != tig->dovetail_path_ptr->end(); dt_itr++,fragCount++) {
                 DoveTailNode node = *dt_itr;
                 iuid dtFrag = node.ident;
                 // Include contained frags in count for coverage calculation
@@ -691,8 +678,7 @@ namespace AS_BOG{
                 BestEdgeOverlap *bestEdge;
                 // Detect first or last frg in unitig
                 if (dt_itr   == tig->dovetail_path_ptr->begin() ||
-                    dt_itr+1 == tig->dovetail_path_ptr->end() )
-                {
+                    dt_itr+1 == tig->dovetail_path_ptr->end() ) {
                     // default to 3' end of untig for the last frag
                     fragment_end_type dtEnd = THREE_PRIME;
                     const char *endStr = threeP;
@@ -719,20 +705,19 @@ namespace AS_BOG{
                     lastBackbone = node;
 
                 FragmentEdgeList::const_iterator edge_itr =
-                                            unitigIntersect->find( dtFrag );
+                    unitigIntersect->find( dtFrag );
                 if (edge_itr != unitigIntersect->end() ) {
-                // We have a set of best edges incoming from other unitigs
+                    // We have a set of best edges incoming from other unitigs
                     FragmentList::const_iterator fragItr;
                     for( fragItr  = edge_itr->second.begin();
-                         fragItr != edge_itr->second.end();  fragItr++)
-                    {
+                         fragItr != edge_itr->second.end();  fragItr++) {
                         iuid inFrag = *fragItr;
                         BestEdgeOverlap *bestEdge;
                         // check if it's incoming frag's 5' best edge
                         fragment_end_type bestEnd = FIVE_PRIME;
                         bestEdge = bog_ptr->getBestEdgeOverlap( inFrag, bestEnd );
-                        if (bestEdge->frag_b_id != dtFrag)
-                        { // not 5' best edge, so 3'
+                        if (bestEdge->frag_b_id != dtFrag) {
+                            // not 5' best edge, so 3'
                             bestEnd = THREE_PRIME;
                             bestEdge = bog_ptr->getBestEdgeOverlap( inFrag, bestEnd );
                         }
@@ -762,7 +747,7 @@ namespace AS_BOG{
                             breaks.push_back( breakPoint );
                         }
                         fprintf(stderr,
-"  Utig %4d frgs %5d len %4d frag %6d end %s into Utig %4d frag %6d end %s pos %6d\n",
+                                "  Utig %4d frgs %5d len %4d frag %6d end %s into Utig %4d frag %6d end %s pos %6d\n",
                                 Unitig::fragIn(inFrag), inTig->getNumFrags(),
                                 inTig->getLength(), inFrag, inEnd,
                                 tig->id(), dtFrag, dtEnd, pos );
@@ -775,7 +760,7 @@ namespace AS_BOG{
                 // filtering the breakpoints
                 fragment_end_type lastEnd = THREE_PRIME;
                 if ( isReverse( lastBackbone.position ) )
-                        lastEnd = FIVE_PRIME;
+                    lastEnd = FIVE_PRIME;
                 UnitigBreakPoint breakPoint(lastBackbone.ident, lastEnd);
                 breakPoint.position   = lastBackbone.position;
                 breakPoint.fragNumber = fragCount;
@@ -789,7 +774,7 @@ namespace AS_BOG{
         unitigs->insert( unitigs->end(), splits->begin(), splits->end());
         delete splits;
     }
-	//////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
     void UnitigGraph::printUnitigBreaks() {
 
         UnitigVector::const_iterator tigIter = unitigs->begin();
@@ -824,110 +809,108 @@ namespace AS_BOG{
             }
         }
     }
-	//////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
 
-	void UnitigGraph::_build_container_map(BestContainmentMap *best_cntr)
-    {
-		cntnrmap_ptr = new ContainerMap;
-		int containees=0;
+    void UnitigGraph::_build_container_map(BestContainmentMap *best_cntr) {
+        cntnrmap_ptr = new ContainerMap;
+        int containees=0;
 
-		BestContainmentMap::const_iterator bstcnmap_itr;
-		for( bstcnmap_itr  = best_cntr->begin(); 
-		     bstcnmap_itr != best_cntr->end(); bstcnmap_itr++)
-        {
-			iuid ctnee_id     = bstcnmap_itr->first;
-			iuid container_id = bstcnmap_itr->second.container;
+        BestContainmentMap::const_iterator bstcnmap_itr;
+        for( bstcnmap_itr  = best_cntr->begin(); 
+             bstcnmap_itr != best_cntr->end(); bstcnmap_itr++) {
+            iuid ctnee_id     = bstcnmap_itr->first;
+            iuid container_id = bstcnmap_itr->second.container;
 
-			(*cntnrmap_ptr)[container_id].push_back(ctnee_id);
-			containees++;
-		}
+            (*cntnrmap_ptr)[container_id].push_back(ctnee_id);
+            containees++;
+        }
 		
-		std::cerr << "BestContainments Inverted into ContainerMap." << std::endl;
-		std::cerr << "Num containees: " << containees << std::endl;
-		std::cerr << "Num containers: " << cntnrmap_ptr->size() << std::endl;
-	}
+        std::cerr << "BestContainments Inverted into ContainerMap." << std::endl;
+        std::cerr << "Num containees: " << containees << std::endl;
+        std::cerr << "Num containers: " << cntnrmap_ptr->size() << std::endl;
+    }
 
-	//////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
 
-	std::ostream& operator << (std::ostream& os, Unitig& utg){
+    std::ostream& operator << (std::ostream& os, Unitig& utg){
 		
-		os << "Dovetails:" << std::endl;
+        os << "Dovetails:" << std::endl;
 
-		DoveTailPath::const_iterator dt_itr;
-		for(dt_itr=utg.dovetail_path_ptr->begin();
-			dt_itr!=utg.dovetail_path_ptr->end(); 
-			dt_itr++){
+        DoveTailPath::const_iterator dt_itr;
+        for(dt_itr=utg.dovetail_path_ptr->begin();
+            dt_itr!=utg.dovetail_path_ptr->end(); 
+            dt_itr++){
 			
-			os << "  " << dt_itr->ident << std::endl;
-		}
+            os << "  " << dt_itr->ident << std::endl;
+        }
 
-		os << "Containments:" << std::endl;
+        os << "Containments:" << std::endl;
 	
-		os << "avgRho: " << utg.getAvgRho() << std::endl;
-		os << "covStat: " << utg.getCovStat() << std::endl;
-		os << "numFrags: " << utg.getNumFrags() << std::endl;
-		os << "numRandomFrags: " << utg.getNumRandomFrags() << std::endl;
-		os << "length: " << utg.getLength() << std::endl;
+        os << "avgRho: " << utg.getAvgRho() << std::endl;
+        os << "covStat: " << utg.getCovStat() << std::endl;
+        os << "numFrags: " << utg.getNumFrags() << std::endl;
+        os << "numRandomFrags: " << utg.getNumRandomFrags() << std::endl;
+        os << "length: " << utg.getLength() << std::endl;
 
-		return(os);
+        return(os);
 
-	}
+    }
 
-	//////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
 
-	std::ostream& operator << (std::ostream& os, UnitigGraph& utgrph){
+    std::ostream& operator << (std::ostream& os, UnitigGraph& utgrph){
 		
-		UnitigVector::const_iterator utg_itr;
-		iuid num_utgs=0;
-		for(utg_itr=utgrph.unitigs->begin();
-			utg_itr!=utgrph.unitigs->end();
-			utg_itr++){
+        UnitigVector::const_iterator utg_itr;
+        iuid num_utgs=0;
+        for(utg_itr=utgrph.unitigs->begin();
+            utg_itr!=utgrph.unitigs->end();
+            utg_itr++){
 		
-			std::cerr << num_utgs << std::endl;
-			std::cerr << (**utg_itr) << std::endl;
-			num_utgs++;
+            std::cerr << num_utgs << std::endl;
+            std::cerr << (**utg_itr) << std::endl;
+            num_utgs++;
 		
-		}
+        }
 
-		return(os);
-	}
+        return(os);
+    }
 
-	//////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
 
-	float UnitigGraph::getGlobalArrivalRate(long total_random_frags_in_genome, long genome_size){
+    float UnitigGraph::getGlobalArrivalRate(long total_random_frags_in_genome, long genome_size){
 		
-		float _globalArrivalRate;
+        float _globalArrivalRate;
 
-		//  If the genome size has not been specified, estimate the GAR.
-		if(genome_size == 0){
+        //  If the genome size has not been specified, estimate the GAR.
+        if(genome_size == 0){
 
-			float total_rho=0, avg_rho;
-			float total_arrival_frags=0;
+            float total_rho=0, avg_rho;
+            float total_arrival_frags=0;
             size_t rho_gt_10000 = 0;
 
-			// Go through all the unitigs to sum rho and unitig arrival frags
-			UnitigVector::const_iterator iter;
-			for(
-			    iter=unitigs->begin();
-			    iter!=unitigs->end();
-			    iter++){
+            // Go through all the unitigs to sum rho and unitig arrival frags
+            UnitigVector::const_iterator iter;
+            for(
+                iter=unitigs->begin();
+                iter!=unitigs->end();
+                iter++){
 				
                 if (*iter == NULL)
                     continue;
 
-				avg_rho = (*iter)->getAvgRho();
-				total_rho += avg_rho;
+                avg_rho = (*iter)->getAvgRho();
+                total_rho += avg_rho;
                 if (avg_rho > 10000.0)
                     rho_gt_10000 += (size_t)avg_rho / 10000;
             
-				float unitig_random_frags = (*iter)->getNumRandomFrags();
+                float unitig_random_frags = (*iter)->getNumRandomFrags();
                 if (--unitig_random_frags < 0)
                     unitig_random_frags = 0;
 
-				total_arrival_frags += unitig_random_frags;
+                total_arrival_frags += unitig_random_frags;
                 (*iter)->setLocalArrivalRate( unitig_random_frags / avg_rho );
-			}
-			// Estimate GAR
+            }
+            // Estimate GAR
             _globalArrivalRate = (total_rho > 0) ? (total_arrival_frags / total_rho): 0;
 
             std::cerr << "Calculated Global Arrival rate " << _globalArrivalRate <<
@@ -942,8 +925,7 @@ namespace AS_BOG{
                 int median_index;
                 std::vector<float> arrival_rate_array(rho_gt_10000);
                 
-                for( iter=unitigs->begin(); iter!=unitigs->end(); iter++)
-                {
+                for( iter=unitigs->begin(); iter!=unitigs->end(); iter++) {
                     if (*iter == NULL)
                         continue;
                     avg_rho = (*iter)->getAvgRho();
@@ -1004,52 +986,52 @@ namespace AS_BOG{
                         if(recalibrated_fragment_arrival_rate > _globalArrivalRate){
                             _globalArrivalRate = recalibrated_fragment_arrival_rate;
                             std::cerr <<
-                                  "Used recalibrated global_fragment_arrival_rate="
-                                << _globalArrivalRate << std::endl
-                                << "Used recalibrated global_fragment_arrival_distance="
-                                <<((_globalArrivalRate > 0.) ? 1./(_globalArrivalRate) : 0.)
-                                << std::endl
-                                << "Chunk arrival rates sorted at 1/100s"
-                                << std::endl ;
+                                "Used recalibrated global_fragment_arrival_rate="
+                                      << _globalArrivalRate << std::endl
+                                      << "Used recalibrated global_fragment_arrival_distance="
+                                      <<((_globalArrivalRate > 0.) ? 1./(_globalArrivalRate) : 0.)
+                                      << std::endl
+                                      << "Chunk arrival rates sorted at 1/100s"
+                                      << std::endl ;
                             for(i=0;i<100;i++) {
-                               std::cerr<<arrival_rate_array[((num_arrival_rates * i) / 100)]
-                                        << std::endl;
+                                std::cerr<<arrival_rate_array[((num_arrival_rates * i) / 100)]
+                                         << std::endl;
                             }
                             std::cerr << max_local_arrival_rate << std::endl;
                         }
                     }
                 }
             }
-		}else{
-			// Compute actual GAR
-			_globalArrivalRate = (float)total_random_frags_in_genome / (float)genome_size;
-		}
+        }else{
+            // Compute actual GAR
+            _globalArrivalRate = (float)total_random_frags_in_genome / (float)genome_size;
+        }
 
-		return(_globalArrivalRate);		
+        return(_globalArrivalRate);		
 
-	}
+    }
 
-	//////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
 
-	Unitig::Unitig(iuid accession){
-		// Initialize values to unlikely values
-		_localArrivalRate=-1;
-		_covStat=FLT_MAX;
-		_length=-1;
-		_numFrags=-1;
-		_numRandomFrags=-1;
+    Unitig::Unitig(iuid accession){
+        // Initialize values to unlikely values
+        _localArrivalRate=-1;
+        _covStat=FLT_MAX;
+        _length=-1;
+        _numFrags=-1;
+        _numRandomFrags=-1;
         _avgRho = -1;
-		dovetail_path_ptr = new DoveTailPath;
+        dovetail_path_ptr = new DoveTailPath;
         _id=accession;
         std::cerr << "Creating Unitig " << _id << std::endl;
-	}
-	//////////////////////////////////////////////////////////////////////////////
+    }
+    //////////////////////////////////////////////////////////////////////////////
 
-	Unitig::~Unitig(void){
-		if(dovetail_path_ptr!=NULL) delete dovetail_path_ptr;
-	}
+    Unitig::~Unitig(void){
+        if(dovetail_path_ptr!=NULL) delete dovetail_path_ptr;
+    }
 
-	//////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
 
     void Unitig::addFrag( DoveTailNode node) {
 
@@ -1077,117 +1059,117 @@ namespace AS_BOG{
         addFrag( node );
     }
 
-	//////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
 
-	float Unitig::getAvgRho(void){
+    float Unitig::getAvgRho(void){
 
         if(dovetail_path_ptr->size() == 1) 
             _avgRho = 1;
-		if(_avgRho!=-1)
-			return(_avgRho);
+        if(_avgRho!=-1)
+            return(_avgRho);
 		
 		
-		// We will compute the average rho.
-		//
-		// Since rho is the length(unitig) - length(last fragment),
-		//   and the length(last fragment) is ambiguous depending on which
-		//   direction we are walking the unitig from.  We will take the average 
-		//   of the rhos through both directions.
+        // We will compute the average rho.
+        //
+        // Since rho is the length(unitig) - length(last fragment),
+        //   and the length(last fragment) is ambiguous depending on which
+        //   direction we are walking the unitig from.  We will take the average 
+        //   of the rhos through both directions.
 
-		DoveTailPath::const_iterator dtp_iter;
+        DoveTailPath::const_iterator dtp_iter;
         if (dovetail_path_ptr == NULL || dovetail_path_ptr->empty()) {
             fprintf(stderr,"NULL dovetailpath\n");
             return 1;
         }
 
-		// Get first fragment's length
-		dtp_iter=dovetail_path_ptr->begin();
+        // Get first fragment's length
+        dtp_iter=dovetail_path_ptr->begin();
         int ident1 = dtp_iter->ident;
-		long first_frag_len = BestOverlapGraph::fragLen(dtp_iter->ident);
+        long first_frag_len = BestOverlapGraph::fragLen(dtp_iter->ident);
 
-		// Get last fragment's length
-		dtp_iter=dovetail_path_ptr->end();
-		dtp_iter--;
+        // Get last fragment's length
+        dtp_iter=dovetail_path_ptr->end();
+        dtp_iter--;
         int ident2 = dtp_iter->ident;
-		long last_frag_len = BestOverlapGraph::fragLen(dtp_iter->ident);
+        long last_frag_len = BestOverlapGraph::fragLen(dtp_iter->ident);
 
-		// Get average of first and last fragment lengths
-		double avg_frag_len = (last_frag_len + first_frag_len)/2.0;
+        // Get average of first and last fragment lengths
+        double avg_frag_len = (last_frag_len + first_frag_len)/2.0;
 		
-		// Compute average rho
-		long unitig_length=getLength();
-		_avgRho = unitig_length - avg_frag_len;
+        // Compute average rho
+        long unitig_length=getLength();
+        _avgRho = unitig_length - avg_frag_len;
 		
         if (_avgRho <= 0 ) {
             std::cerr << "Negative Rho fid1 " << ident1 << " fid2 " << ident2 <<
-                   " ulen " << unitig_length << " len1 " << first_frag_len <<
-                   " len2 " << last_frag_len << " avg " << avg_frag_len <<std::endl;
+                " ulen " << unitig_length << " len1 " << first_frag_len <<
+                " len2 " << last_frag_len << " avg " << avg_frag_len <<std::endl;
             _avgRho = 1;
         }
-		return(_avgRho);
-	}
+        return(_avgRho);
+    }
 
-	//////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
 
-	float Unitig::_globalArrivalRate = -1;
+    float Unitig::_globalArrivalRate = -1;
 
-	void Unitig::setGlobalArrivalRate(float global_arrival_rate){
-		_globalArrivalRate=global_arrival_rate;
-	}
-	void Unitig::setLocalArrivalRate(float local_arrival_rate){
+    void Unitig::setGlobalArrivalRate(float global_arrival_rate){
+        _globalArrivalRate=global_arrival_rate;
+    }
+    void Unitig::setLocalArrivalRate(float local_arrival_rate){
         
         if ( local_arrival_rate < std::numeric_limits<float>::epsilon())
             _localArrivalRate = 0;
         else
-		    _localArrivalRate = local_arrival_rate;
-	}
-	float Unitig::getLocalArrivalRate(){
-		if (_localArrivalRate != -1 )
+            _localArrivalRate = local_arrival_rate;
+    }
+    float Unitig::getLocalArrivalRate(){
+        if (_localArrivalRate != -1 )
             return _localArrivalRate;
         setLocalArrivalRate((getNumFrags() - 1) / getAvgRho());
         return _localArrivalRate;
     }
 
-	//////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
 
-	float Unitig::getCovStat(void){
+    float Unitig::getCovStat(void){
 
-		const float ln2=0.69314718055994530941723212145818;
+        const float ln2=0.69314718055994530941723212145818;
 
-		// Note that we are using numFrags in this calculation.
-		//   If the fragments in the unitig are not randomly sampled
-		//   from the genome, this calculation will be wrong.
-		//   Ie. if fragments being assembled are from a locally
-		//   sequenced batch, the region may look artificially repetitive.
-		//   The value should really be "number of randomly sampled
-		//   fragments in the unitig".
+        // Note that we are using numFrags in this calculation.
+        //   If the fragments in the unitig are not randomly sampled
+        //   from the genome, this calculation will be wrong.
+        //   Ie. if fragments being assembled are from a locally
+        //   sequenced batch, the region may look artificially repetitive.
+        //   The value should really be "number of randomly sampled
+        //   fragments in the unitig".
 
-		if(_globalArrivalRate==-1){
-			std::cerr << "You have not set the _globalArrivalRate variable." << std::endl;
-		}
+        if(_globalArrivalRate==-1){
+            std::cerr << "You have not set the _globalArrivalRate variable." << std::endl;
+        }
 
-		if(_covStat == FLT_MAX){
-			if(_globalArrivalRate > 0.0){
-				_covStat = (getAvgRho() * _globalArrivalRate) - 
-					(ln2 * (getNumFrags() -1));
-			}else{
-				_covStat = 0.0;
-			}
-		}
+        if(_covStat == FLT_MAX){
+            if(_globalArrivalRate > 0.0){
+                _covStat = (getAvgRho() * _globalArrivalRate) - 
+                    (ln2 * (getNumFrags() -1));
+            }else{
+                _covStat = 0.0;
+            }
+        }
 
-		return(_covStat);
+        return(_covStat);
 
-	}
+    }
 
-	//////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
 
-	long Unitig::getLength(void){
+    long Unitig::getLength(void){
 	// The length of the unitig is just the position of the fragment 
 	//   with the large begin or end value 
 
-		if(dovetail_path_ptr->size()==0){
-			std::cerr << "This Unitig has an empty fragPositions." << std::endl;	
-		}
+        if(dovetail_path_ptr->size()==0){
+            std::cerr << "This Unitig has an empty fragPositions." << std::endl;	
+        }
         return _length;
         // Dead code below, since length is now tracked in addFrag as reads are added
         
@@ -1200,8 +1182,7 @@ namespace AS_BOG{
             DoveTailNode node = *rIter;
             if (node.contained)
                 continue;
-            if (isReverse(node.position))
-            {
+            if (isReverse(node.position)) {
                 if (node.position.bgn > end) {
                     end = node.position.bgn;
                     bgn = node.position.end;
@@ -1219,72 +1200,72 @@ namespace AS_BOG{
                 }
             }
         }
-		return end;
-	}
+        return end;
+    }
 
-	//////////////////////////////////////////////////////////////////////////////
-	long Unitig::getSumFragLength(void){
+    //////////////////////////////////////////////////////////////////////////////
+    long Unitig::getSumFragLength(void){
 	// The length of the unitig is just the position of the fragment 
 	//   with the large begin or end value 
 
-		long sum=0;
+        long sum=0;
 
-		if(dovetail_path_ptr->size()==0){
-			std::cerr << "This Unitig has an empty dovetail." << std::endl;	
-		}
+        if(dovetail_path_ptr->size()==0){
+            std::cerr << "This Unitig has an empty dovetail." << std::endl;	
+        }
 
         DoveTailPath::const_iterator fpm_itr;
-		for(
-		    fpm_itr=dovetail_path_ptr->begin();
-		    fpm_itr!=dovetail_path_ptr->end();
-		    fpm_itr++){
+        for(
+            fpm_itr=dovetail_path_ptr->begin();
+            fpm_itr!=dovetail_path_ptr->end();
+            fpm_itr++){
 
-			SeqInterval intrvl=fpm_itr->position;
+            SeqInterval intrvl=fpm_itr->position;
             sum += abs( intrvl.end - intrvl.bgn );
-		}
-		return(sum);
-	}
-	//////////////////////////////////////////////////////////////////////////////
+        }
+        return(sum);
+    }
+    //////////////////////////////////////////////////////////////////////////////
 
-	long Unitig::getNumFrags(void){
+    long Unitig::getNumFrags(void){
 
-//		if(_numFrags!=-1){
-//			return(_numFrags);
-//		}
+        //		if(_numFrags!=-1){
+        //			return(_numFrags);
+        //		}
         if (!dovetail_path_ptr->empty()) {
             _numFrags = dovetail_path_ptr->size();
             return _numFrags;
         }
 
-		long num_dovetailing_frags = dovetail_path_ptr->size();
-		long num_contained_frags=0;
+        long num_dovetailing_frags = dovetail_path_ptr->size();
+        long num_contained_frags=0;
 
-		// Total frags are the sum
-		_numFrags = num_dovetailing_frags + num_contained_frags;
-		return(_numFrags);
+        // Total frags are the sum
+        _numFrags = num_dovetailing_frags + num_contained_frags;
+        return(_numFrags);
 
-	}
+    }
 
-	//////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
 
-	long Unitig::getNumRandomFrags(void){
+    long Unitig::getNumRandomFrags(void){
 	// This is a placeholder, random frags should not contain guides, or other
 	//   fragments that are not randomly sampled across the whole genome.
 		
-		if(_numRandomFrags!=-1){
-			return(_numRandomFrags);
-		}	
+        if(_numRandomFrags!=-1){
+            return(_numRandomFrags);
+        }	
 
-		_numRandomFrags=getNumFrags();
-		return(_numRandomFrags);
-	}
-	//////////////////////////////////////////////////////////////////////////////
+        _numRandomFrags=getNumFrags();
+        return(_numRandomFrags);
+    }
+    //////////////////////////////////////////////////////////////////////////////
     void Unitig::shiftCoordinates(int offset) {
         //simple version
         if (dovetail_path_ptr->empty()) {
         } else {
-//        fprintf(stderr,"shift unitig by %d 1st frg %d\n",
-//                offset,dovetail_path_ptr->front().ident);
+            //        fprintf(stderr,"shift unitig by %d 1st frg %d\n",
+            //                offset,dovetail_path_ptr->front().ident);
         }
         DoveTailIter iter = dovetail_path_ptr->begin();
         for(; iter != dovetail_path_ptr->end(); iter++) {
@@ -1294,7 +1275,7 @@ namespace AS_BOG{
             assert( iter->position.end >= 0);
         }
     }
-	//////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
     void Unitig::reverseComplement() {
         //simple version
         int length = this->getLength();
@@ -1317,13 +1298,12 @@ namespace AS_BOG{
                 first.ident,first.position.bgn,first.position.end,
                 last.ident,last.position.bgn,last.position.end);
     }
-	//////////////////////////////////////////////////////////////////////////////
-    void Unitig::reverseComplement(int offset, BestOverlapGraph *bog_ptr)
-    {
+    //////////////////////////////////////////////////////////////////////////////
+    void Unitig::reverseComplement(int offset, BestOverlapGraph *bog_ptr) {
         iuid notUsed;
         DoveTailNode last  = getLastBackboneNode(notUsed);
         int lastEnd = last.position.end > last.position.bgn ? 
-                      last.position.end : last.position.bgn;
+            last.position.end : last.position.bgn;
         int prevBeg = 0;
         DoveTailPath contains;
         DoveTailPath *revP = new DoveTailPath;
@@ -1344,12 +1324,11 @@ namespace AS_BOG{
             } else {
 #ifdef NEW_UNITIGGER_INTERFACE
                 int left = addIter->position.end < addIter->position.bgn ? 
-                           addIter->position.end : addIter->position.bgn;
+                    addIter->position.end : addIter->position.bgn;
                 assert( prevBeg <= left ); 
                 DoveTailPath::reverse_iterator prev = addIter+1;
                 while (prev != rend &&
-                        prev->contained != 0) 
-                {
+                       prev->contained != 0) {
                     prev = prev+1;
                 }
                 if (prev == rend) {
@@ -1388,96 +1367,93 @@ namespace AS_BOG{
         dovetail_path_ptr = revP;
     }
 
-	//////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
     //Recursively place all contains under this one into the FragmentPositionMap
 
     void Unitig::placeContains(const ContainerMap* cntnrp, BestContainmentMap *bestCtn,
-                             const iuid container, const SeqInterval intvl, const int level)
-    {
+                               const iuid container, const SeqInterval intvl, const int level) {
         if (cntnrp->size() == 0)
             return;
 
         ContainerMap::const_iterator ctmp_itr = cntnrp->find( container );
         if (ctmp_itr != cntnrp->end() ) {
 
-                ContaineeList::const_iterator cntee_itr;
-                for(cntee_itr  = ctmp_itr->second.begin();
-                    cntee_itr != ctmp_itr->second.end(); cntee_itr++)
-                {
-                    iuid cntee = *cntee_itr;
-                    BestContainment &best = (*bestCtn)[ cntee ];
+            ContaineeList::const_iterator cntee_itr;
+            for(cntee_itr  = ctmp_itr->second.begin();
+                cntee_itr != ctmp_itr->second.end(); cntee_itr++) {
+                iuid cntee = *cntee_itr;
+                BestContainment &best = (*bestCtn)[ cntee ];
 
-                    if (best.isPlaced)
-                        continue;
+                if (best.isPlaced)
+                    continue;
 
-                    assert( best.container == container );
-                    (*containPartialOrder)[ cntee ] = level;
-                    if (level > maxContainDepth)
-                        maxContainDepth = level;
+                assert( best.container == container );
+                (*containPartialOrder)[ cntee ] = level;
+                if (level > maxContainDepth)
+                    maxContainDepth = level;
 
-                    int offset = best.a_hang;
-                    int bhang  = best.b_hang;
-                    DoveTailNode pos;
-                    pos.type         = AS_READ; /* Isolated FT VR */
-                    pos.ident        = cntee;
-                    pos.contained    = container;
-                    pos.delta_length = 0;
-                    pos.delta        = NULL;
+                int offset = best.a_hang;
+                int bhang  = best.b_hang;
+                DoveTailNode pos;
+                pos.type         = AS_READ; /* Isolated FT VR */
+                pos.ident        = cntee;
+                pos.contained    = container;
+                pos.delta_length = 0;
+                pos.delta        = NULL;
 
-                    if(intvl.bgn < intvl.end) {
-                        pos.position.bgn = intvl.bgn + offset;
-                        pos.position.end = intvl.end + bhang;
+                if(intvl.bgn < intvl.end) {
+                    pos.position.bgn = intvl.bgn + offset;
+                    pos.position.end = intvl.end + bhang;
 #ifdef NEW_UNITIGGER_INTERFACE
-                        pos.ident2       = container;
-                        pos.ahang        = offset;
-                        pos.bhang        = bhang;
+                    pos.ident2       = container;
+                    pos.ahang        = offset;
+                    pos.bhang        = bhang;
 #endif
 
-                    } else if (intvl.bgn > intvl.end) {
-                        pos.position.bgn = intvl.bgn - offset;
-                        pos.position.end = intvl.end - bhang;
+                } else if (intvl.bgn > intvl.end) {
+                    pos.position.bgn = intvl.bgn - offset;
+                    pos.position.end = intvl.end - bhang;
 #ifdef NEW_UNITIGGER_INTERFACE
-                        pos.ident2       = container;
-                        // consensus seeems to need these reversed to get the
-                        // correct alignment
-                        pos.bhang        = -offset;
-                        pos.ahang        = -bhang;
+                    pos.ident2       = container;
+                    // consensus seeems to need these reversed to get the
+                    // correct alignment
+                    pos.bhang        = -offset;
+                    pos.ahang        = -bhang;
 #endif
-                    }else{
-                        std::cerr << "Error, container size is zero." << std::endl;
-                        assert(0);
-                    }
-                    // Swap ends if containee is not same strand as container
-                    if(!best.sameOrientation){
-                        int tmp          = pos.position.bgn;
-                        pos.position.bgn = pos.position.end;
-                        pos.position.end = tmp;
-                    }
-
-                    addFrag( pos );
-                    best.isPlaced = true;
-                    placeContains( cntnrp, bestCtn, cntee, pos.position, level+1);
+                }else{
+                    std::cerr << "Error, container size is zero." << std::endl;
+                    assert(0);
                 }
+                // Swap ends if containee is not same strand as container
+                if(!best.sameOrientation){
+                    int tmp          = pos.position.bgn;
+                    pos.position.bgn = pos.position.end;
+                    pos.position.end = tmp;
+                }
+
+                addFrag( pos );
+                best.isPlaced = true;
+                placeContains( cntnrp, bestCtn, cntee, pos.position, level+1);
+            }
         }
     }
 
     void Unitig::recomputeFragmentPositions(ContainerMap *allcntnr_ptr,
-                 BestContainmentMap *bestContain, BestOverlapGraph *bog_ptr)
-    {
-		long frag_ins_begin = 0;
-		long frag_ins_end;
+                                            BestContainmentMap *bestContain, BestOverlapGraph *bog_ptr) {
+        long frag_ins_begin = 0;
+        long frag_ins_end;
         iuid lastFrag = 0;
 #ifdef NEW_UNITIGGER_INTERFACE
         iuid nextFrag = 0;
 #endif
-		//std::cerr << "Positioning dovetails." << std::endl;
-		// place dovetails in a row
+        //std::cerr << "Positioning dovetails." << std::endl;
+        // place dovetails in a row
         if (dovetail_path_ptr == NULL)
             return;
-//        computeFragmentPositions( bog_ptr );
+        //        computeFragmentPositions( bog_ptr );
         containPartialOrder = new std::map<iuid,int>;
         long numDoveTail = dovetail_path_ptr->size();
-		for(long i=0; i < numDoveTail; i++) {
+        for(long i=0; i < numDoveTail; i++) {
             DoveTailNode *dt_itr = &(*dovetail_path_ptr)[i];
 
             iuid fragId  = dt_itr->ident;
@@ -1489,7 +1465,7 @@ namespace AS_BOG{
             lastFrag = fragId;
 
             placeContains( allcntnr_ptr, bestContain, fragId, dt_itr->position,1);
-		}
+        }
         this->sort();
         delete containPartialOrder;
         containPartialOrder = NULL;
@@ -1530,13 +1506,12 @@ namespace AS_BOG{
         // CEE fragment can be from either orientation since
         //   definition of olap_offset is based on 3' origin.
 
-	}
-	//////////////////////////////////////////////////////////////////////////////
+    }
+    //////////////////////////////////////////////////////////////////////////////
     int lastBPCoord   = 0;
     int lastBPFragNum = 0;
     UnitigBreakPoint UnitigGraph::selectSmall(const Unitig *tig,
-           const FragmentEnds &smalls, const UnitigBreakPoint& big)
-    {
+                                              const FragmentEnds &smalls, const UnitigBreakPoint& big) {
         double difference = 0.0;
         UnitigBreakPoint selection;
         int rFrgs =  big.fragNumber; 
@@ -1551,8 +1526,7 @@ namespace AS_BOG{
             bContain = (*cntnrmap_ptr)[ bid ].size();
 
         if ( (bRev && big.fragEnd == THREE_PRIME) ||
-            ( !bRev && big.fragEnd == FIVE_PRIME) ) 
-        {
+             ( !bRev && big.fragEnd == FIVE_PRIME) ) {
             rFrgs -= 1 + bContain;
         }
         FragmentEnds::const_iterator sIter = smalls.begin();
@@ -1569,16 +1543,15 @@ namespace AS_BOG{
             // use middle of frag instead of end, to get some overlap
             double bp = (small.position.end + small.position.bgn) / 2.0;
 
-//            if (small.fragEnd.end == FIVE_PRIME) bp = small.position.bgn;
-//            else                                 bp = small.position.end;
+            //            if (small.fragEnd.end == FIVE_PRIME) bp = small.position.bgn;
+            //            else                                 bp = small.position.end;
 
             if ( cntnrmap_ptr->find( sid ) != cntnrmap_ptr->end() )
                 sContain = (*cntnrmap_ptr)[ sid ].size();
 
             if ( (rev && small.fragEnd == THREE_PRIME) ||
-                (!rev && small.fragEnd == FIVE_PRIME ) ) 
-            // left side of the frag in the unitig, don't count it
-            {
+                 (!rev && small.fragEnd == FIVE_PRIME ) ) {
+                // left side of the frag in the unitig, don't count it
                 lFrgs -= 1 + sContain;
             }
             if (rFrgs - lFrgs == 1)
@@ -1586,12 +1559,12 @@ namespace AS_BOG{
             double lRate = (lFrgs - lastBPFragNum) / (bp - lastBPCoord); 
             double rRate = (rFrgs - lFrgs) / (right - bp);
             fprintf(stderr,
-              "Break frg %7d b %4d l %4d pos b %5d e %5.0f lRate %.4f\n",
-              sid, lastBPFragNum, lFrgs, lastBPCoord, bp, lRate );
+                    "Break frg %7d b %4d l %4d pos b %5d e %5.0f lRate %.4f\n",
+                    sid, lastBPFragNum, lFrgs, lastBPCoord, bp, lRate );
             double ratio = lRate > rRate ? lRate / rRate : rRate / lRate;
             fprintf(stderr,
-              "     diff %4d r %4d pos %5d rRate %.4f ratio %.2f to frag %7d\n",
-               rFrgs - lFrgs, rFrgs, right, rRate, ratio, bid ); 
+                    "     diff %4d r %4d pos %5d rRate %.4f ratio %.2f to frag %7d\n",
+                    rFrgs - lFrgs, rFrgs, right, rRate, ratio, bid ); 
 
             double diff = fabs( lRate - rRate);
             if (ratio > 1.8 && diff > difference) {
@@ -1606,8 +1579,7 @@ namespace AS_BOG{
         return selection;
     }
 
-    void UnitigGraph::filterBreakPoints(Unitig *tig, FragmentEnds &breaks)
-    {
+    void UnitigGraph::filterBreakPoints(Unitig *tig, FragmentEnds &breaks) {
         UnitigBreakPoint fakeEnd = breaks.back();
         // Check for sentinal at end, not needed by MateChecker
         if (fakeEnd.inSize == std::numeric_limits<int>::max())
@@ -1615,8 +1587,7 @@ namespace AS_BOG{
         FragmentEnds smallBPs, newBPs;
         bool hadBig = false;
         FragmentEnds::iterator iter = breaks.begin();
-        for(; iter != breaks.end(); iter++)
-        {
+        for(; iter != breaks.end(); iter++) {
             UnitigBreakPoint nextBP = *iter;
             //if (nextBP.inSize > 2500) 
             if (nextBP.inFrags > 1 && nextBP.inSize > 500) {
@@ -1643,8 +1614,7 @@ namespace AS_BOG{
                         lastBPFragNum = nextBP.fragNumber;
                         bool bRev = isReverse( nextBP.position );
                         if ( (bRev && nextBP.fragEnd == THREE_PRIME) ||
-                           ( !bRev && nextBP.fragEnd == FIVE_PRIME) ) 
-                        {
+                             ( !bRev && nextBP.fragEnd == FIVE_PRIME) ) {
                             lastBPFragNum -= 1 + bContain;
                         }
                     }
@@ -1652,8 +1622,8 @@ namespace AS_BOG{
                 }
             } else 
                 if ( newBPs.empty() ||
-                    !(nextBP.fragEnd == newBPs.back().fragEnd) &&
-                    !(nextBP.fragEnd == smallBPs.back().fragEnd) ) 
+                     !(nextBP.fragEnd == newBPs.back().fragEnd) &&
+                     !(nextBP.fragEnd == smallBPs.back().fragEnd) ) 
                     smallBPs.push_back( nextBP );
         }
         if (!hadBig)
@@ -1667,8 +1637,7 @@ namespace AS_BOG{
         breaks = newBPs;
     }
     // Doesn't handle contained frags yet
-    UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig, FragmentEnds &breaks)
-    {
+    UnitigVector* UnitigGraph::breakUnitigAt(Unitig *tig, FragmentEnds &breaks) {
         if (breaks.empty())
             return NULL;
         fprintf(stderr,"Before break size is %d, unitig %d\n",breaks.size(),tig->dovetail_path_ptr->size());
@@ -1722,8 +1691,7 @@ namespace AS_BOG{
                     bothEnds = false;
                 }
                 else if (breakPoint.fragEnd.end ==  FIVE_PRIME && !reverse ||
-                         breakPoint.fragEnd.end == THREE_PRIME && reverse)
-                {
+                         breakPoint.fragEnd.end == THREE_PRIME && reverse) {
                     // break at left end of frg, frg starts new tig
                     fprintf(stderr,"  Break tig %d before %d num %d\n",
                             tig->id(), breakPoint.fragEnd.id, breakPoint.fragNumber);
@@ -1735,8 +1703,7 @@ namespace AS_BOG{
                     newTig->addFrag( frg, offset );     // add frag as 1st in unitig
                 }
                 else if (breakPoint.fragEnd.end ==  FIVE_PRIME && reverse ||
-                         breakPoint.fragEnd.end == THREE_PRIME && !reverse )
-                {
+                         breakPoint.fragEnd.end == THREE_PRIME && !reverse ) {
                     // break at right end of frg, frg goes in existing tig
                     fprintf(stderr,"  Break tig %d after %d num %d\n",
                             tig->id(), breakPoint.fragEnd.id, breakPoint.fragNumber);
@@ -1800,12 +1767,10 @@ namespace AS_BOG{
             bright = impb->position.bgn;
             bleft  = impb->position.end;
         }
-        if(aleft!=bleft)
-        {
+        if(aleft!=bleft) {
             return(aleft - bleft);
         }
-        else if (aright != bright)
-        {
+        else if (aright != bright) {
             if (impa->contained==0 && impb->contained!=0)
                 return(-1);
             else if (impa->contained!=0 && impb->contained==0)
@@ -1832,7 +1797,7 @@ namespace AS_BOG{
     //////////////////////////////////////////////////////////////////////////////
     void Unitig::sort() {
         qsort( &(dovetail_path_ptr->front()), getNumFrags(),
-                sizeof(IntMultiPos), &IntMultiPosCmp );
+               sizeof(IntMultiPos), &IntMultiPosCmp );
     }
     //////////////////////////////////////////////////////////////////////////////
     IntUnitigMesg *Unitig::getIUM_Mesg(){
@@ -1864,51 +1829,51 @@ namespace AS_BOG{
 
     //////////////////////////////////////////////////////////////////////////////
 
-	void UnitigGraph::writeIUMtoFile(char *filename){
+    void UnitigGraph::writeIUMtoFile(char *filename){
 		
-		// Open up the output file
-		FILE *fptr=fopen(filename, "w");
-		if(fptr==NULL){
-			std::cerr << "Could not open " << filename << 
-				"for writing IUM (IntUnitigMesg) output." << std::endl;
+        // Open up the output file
+        FILE *fptr=fopen(filename, "w");
+        if(fptr==NULL){
+            std::cerr << "Could not open " << filename << 
+                "for writing IUM (IntUnitigMesg) output." << std::endl;
 			
-			exit(-1);
-		}
+            exit(-1);
+        }
 
-		// Step through all the unitigs
+        // Step through all the unitigs
         int iumId = 0;
-		UnitigVector::iterator utg_itr;
-		for(utg_itr=unitigs->begin(); utg_itr!=unitigs->end(); utg_itr++){
+        UnitigVector::iterator utg_itr;
+        for(utg_itr=unitigs->begin(); utg_itr!=unitigs->end(); utg_itr++){
             if( *utg_itr == NULL)
                 continue;
 
             if( (*utg_itr)->getNumFrags() == 0 )
                 continue;
 
-			IntUnitigMesg *ium_mesg_ptr;
-			ium_mesg_ptr=(*utg_itr)->getIUM_Mesg();
+            IntUnitigMesg *ium_mesg_ptr;
+            ium_mesg_ptr=(*utg_itr)->getIUM_Mesg();
             fprintf(stderr,"Internal tig %ld is %ld in IUM msg.\n",
                     (*utg_itr)->id(),iumId );
-			ium_mesg_ptr->iaccession=iumId++; //IntChunk_ID
+            ium_mesg_ptr->iaccession=iumId++; //IntChunk_ID
 
-			GenericMesg mesg;
-			mesg.m=ium_mesg_ptr;
-			mesg.t=MESG_IUM;
+            GenericMesg mesg;
+            mesg.m=ium_mesg_ptr;
+            mesg.t=MESG_IUM;
 
-			WriteProtoMesg_AS(fptr, &mesg);
-			(*utg_itr)->freeIUM_Mesg(ium_mesg_ptr);
-		}
+            WriteProtoMesg_AS(fptr, &mesg);
+            (*utg_itr)->freeIUM_Mesg(ium_mesg_ptr);
+        }
 
-		fclose(fptr);
-	}
+        fclose(fptr);
+    }
 
-	//////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
 
-	void UnitigGraph::readIUMsFromFile(const char *filename, iuid maxIID){
+    void UnitigGraph::readIUMsFromFile(const char *filename, iuid maxIID){
         FILE *iumIn = fopen( filename, "r");
         if (errno) {
             fprintf(stderr, "Could not open '%s' for input: %s\n",
-                     filename, strerror(errno));
+                    filename, strerror(errno));
             exit(1);
         }
         Unitig::resetFragUnitigMap(maxIID+1);
@@ -1939,7 +1904,7 @@ namespace AS_BOG{
         }
     }
 
-	//////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
 
     BestEdgeCounts UnitigGraph::countInternalBestEdges( const Unitig *tig) {
         DoveTailConstIter iter = tig->dovetail_path_ptr->begin();
@@ -1986,12 +1951,12 @@ namespace AS_BOG{
         return cnts;
     }
 
-	//////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
 
     BestEdgeCounts UnitigGraph::countInternalBestEdges() {
         BestEdgeCounts allTigs;
         UnitigsConstIter iter = unitigs->begin();
-		for(iter = unitigs->begin(); iter != unitigs->end(); iter++){
+        for(iter = unitigs->begin(); iter != unitigs->end(); iter++){
             if( *iter == NULL)
                 continue;
 
@@ -2001,13 +1966,13 @@ namespace AS_BOG{
             Unitig* tig = *iter;
             BestEdgeCounts cnts = countInternalBestEdges(tig);
             std::cerr << "Tig " << tig->id() << " overlap counts, dovetail " << cnts.dovetail
-                  << " oneWayBest " << cnts.oneWayBest << " neither " << cnts.neither
-                  << " contained " << cnts.contained << std::endl;
+                      << " oneWayBest " << cnts.oneWayBest << " neither " << cnts.neither
+                      << " contained " << cnts.contained << std::endl;
             allTigs += cnts;
         }
         return allTigs;
     }
 
-	//////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
 
 } //AS_BOG namespace

@@ -19,9 +19,9 @@
  *************************************************************************/
 
 /* RCS info
- * $Id: AS_BOG_MateChecker.hh,v 1.18 2007-10-24 20:55:55 eliv Exp $
- * $Revision: 1.18 $
-*/
+ * $Id: AS_BOG_MateChecker.hh,v 1.19 2007-12-05 23:46:57 brianwalenz Exp $
+ * $Revision: 1.19 $
+ */
 
 #ifndef INCLUDE_AS_BOG_MATECHEKER
 #define INCLUDE_AS_BOG_MATECHEKER
@@ -79,8 +79,7 @@ namespace AS_BOG{
         {}
         friend std::ostream& operator<< (std::ostream&, MateCounts);
 
-        MateCounts operator+= (MateCounts other)
-        {
+        MateCounts operator+= (MateCounts other) {
             badOtherTig   += other.badOtherTig;
             otherTig      += other.otherTig;
             total         += other.total;
@@ -118,10 +117,10 @@ namespace AS_BOG{
         // Main entry point for running mate splitting
         void checkUnitigGraph( UnitigGraph& );
 
-        private:
-            MateMap _mates;
-            LibraryDistances _dists; // all distances 
-            LibraryStats _globalStats;
+    private:
+        MateMap _mates;
+        LibraryDistances _dists; // all distances 
+        LibraryStats _globalStats;
     };
 
     ///////////////////////////////////////////////////////////////////////////
@@ -145,10 +144,9 @@ namespace AS_BOG{
     typedef MateLocTable::const_iterator MateLocCIter;
 
     class MateLocation {
-        public:
+    public:
 
-        MateLocation(MateChecker* const check) : _checker(check)
-        {
+        MateLocation(MateChecker* const check) : _checker(check) {
             goodGraph   = new std::vector<short>;
             badFwdGraph = new std::vector<short>;
             badRevGraph = new std::vector<short>;
@@ -170,7 +168,7 @@ namespace AS_BOG{
         std::vector<short>* badFwdGraph;
         std::vector<short>* badRevGraph;
 
-        private:
+    private:
 
         MateLocTable _table;
         IdMap _iidIndex;
@@ -183,8 +181,7 @@ namespace AS_BOG{
         else
             return false;
     };
-    inline bool operator<(SeqInterval a, SeqInterval b)
-    {
+    inline bool operator<(SeqInterval a, SeqInterval b) {
         if ( isReverse(a) ) {
             if ( isReverse(b) ) return a.end < b.end;
             else                return a.end < b.bgn;
@@ -193,8 +190,7 @@ namespace AS_BOG{
             else                return a.bgn < b.bgn; 
         }
     };
-    inline bool SeqInterval_less(SeqInterval a, SeqInterval b)
-    {
+    inline bool SeqInterval_less(SeqInterval a, SeqInterval b) {
         return a < b;
     };
     inline bool operator==(MateLocationEntry a, MateLocationEntry b) {

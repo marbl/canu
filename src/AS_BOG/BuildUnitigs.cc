@@ -17,24 +17,24 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*************************************************
-* Module:  BuildUnitigs.c
-* Description:
-* 
-*    Programmer:  K. Li
-*       Started:  09/19/2005
-* 
-* Assumptions:
-* 
-* Notes:
-*
-*************************************************/
+ * Module:  BuildUnitigs.c
+ * Description:
+ * 
+ *    Programmer:  K. Li
+ *       Started:  09/19/2005
+ * 
+ * Assumptions:
+ * 
+ * Notes:
+ *
+ *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.33 2007-11-08 19:42:35 eliv Exp $
- * $Revision: 1.33 $
-*/
+ * $Id: BuildUnitigs.cc,v 1.34 2007-12-05 23:46:57 brianwalenz Exp $
+ * $Revision: 1.34 $
+ */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.33 2007-11-08 19:42:35 eliv Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.34 2007-12-05 23:46:57 brianwalenz Exp $";
 
 //  System include files
 
@@ -71,92 +71,92 @@ void outputHistograms(AS_BOG::UnitigGraph *);
 int  main (int argc, char * argv [])
 
 {
-   OverlapStore  * my_store;
-   OVSoverlap      olap;
+    OverlapStore  * my_store;
+    OVSoverlap      olap;
 
-   fprintf(stderr, "%s\n\n", BUILD_UNITIGS_MAIN_CM_ID);
+    fprintf(stderr, "%s\n\n", BUILD_UNITIGS_MAIN_CM_ID);
 
-   argc = AS_configure(argc, argv);
+    argc = AS_configure(argc, argv);
 
-   // Get path/names of olap and frg stores from command line
-   const char* OVL_Store_Path;
-   const char* GKP_Store_Path;
+    // Get path/names of olap and frg stores from command line
+    const char* OVL_Store_Path;
+    const char* GKP_Store_Path;
 
-   vector<float> erates;
-//   erates.push_back(2.5);
-   erates.push_back(1.5);
-//   erates.push_back(1.0);
-   long genome_size=0;
-   int ch;
-   bool argsDone=false;
-   optarg = NULL;
-   while(!argsDone && (ch = getopt(argc, argv,"O:G:e:m:s:bk"))) {
-       switch(ch) {
-           case -1: argsDone=true;break;
-           case 'G':
-               GKP_Store_Path = strdup(optarg);
-               assert( GKP_Store_Path != NULL ); break;
-           case 'O':
-               OVL_Store_Path = strdup(optarg);
-               assert( OVL_Store_Path != NULL ); break;
-           case 'b':
-               BogOptions::unitigIntersectBreaking = true; break;
-           case 'e': {
-               erates.clear();
-               std::string eOpt(optarg);
-               std::istringstream iStr(eOpt);
-               float t;
-               while (iStr >> t) erates.push_back(t);
-               } break;
-           case 'k':
-               BogOptions::ejectUnhappyContained = true; break;
-           case 'm':
-               BogOptions::badMateBreakThreshold = -atoi(optarg); break;
-           case 's':
-               genome_size = atol(optarg); break;
-           default:
-        fprintf(stderr,"Unrecognized option -%c optarg %s\n\n",optopt, optarg);
-        fprintf(stderr, "%s: -O <OVL Store Path> -G <GKP Store Path>\n", argv[0]);
-        fprintf(stderr, "[-s <genome size>]\n");
-        fprintf(stderr, "  If the genome size is set to 0, this will cause the unitigger\n");
-        fprintf(stderr, "  to try to estimate the genome size based on the constructed\n");
-        fprintf(stderr, "  unitig lengths.\n");
-        fprintf(stderr, "[-b] Break promisciuous unitigs at unitig intersection points\n");
-        fprintf(stderr, "[-e] Space separated list of erates to generate unitig for\n");
-        fprintf(stderr, "     default is -e '2.5 1.5 1.0'\n");
-        fprintf(stderr, "[-k] Kick out unhappy contained mated reads into singleton unitigs\n");
-        fprintf(stderr, "[-m] Number of bad mates in a region required to break a unitig\n");
-        fprintf(stderr, "     default is 7\n");
-        fprintf(stderr, " \n");
-           exit(1);
-       }
-   }
+    vector<float> erates;
+    //   erates.push_back(2.5);
+    erates.push_back(1.5);
+    //   erates.push_back(1.0);
+    long genome_size=0;
+    int ch;
+    bool argsDone=false;
+    optarg = NULL;
+    while(!argsDone && (ch = getopt(argc, argv,"O:G:e:m:s:bk"))) {
+        switch(ch) {
+            case -1: argsDone=true;break;
+            case 'G':
+                GKP_Store_Path = strdup(optarg);
+                assert( GKP_Store_Path != NULL ); break;
+            case 'O':
+                OVL_Store_Path = strdup(optarg);
+                assert( OVL_Store_Path != NULL ); break;
+            case 'b':
+                BogOptions::unitigIntersectBreaking = true; break;
+            case 'e': {
+                erates.clear();
+                std::string eOpt(optarg);
+                std::istringstream iStr(eOpt);
+                float t;
+                while (iStr >> t) erates.push_back(t);
+            } break;
+            case 'k':
+                BogOptions::ejectUnhappyContained = true; break;
+            case 'm':
+                BogOptions::badMateBreakThreshold = -atoi(optarg); break;
+            case 's':
+                genome_size = atol(optarg); break;
+            default:
+                fprintf(stderr,"Unrecognized option -%c optarg %s\n\n",optopt, optarg);
+                fprintf(stderr, "%s: -O <OVL Store Path> -G <GKP Store Path>\n", argv[0]);
+                fprintf(stderr, "[-s <genome size>]\n");
+                fprintf(stderr, "  If the genome size is set to 0, this will cause the unitigger\n");
+                fprintf(stderr, "  to try to estimate the genome size based on the constructed\n");
+                fprintf(stderr, "  unitig lengths.\n");
+                fprintf(stderr, "[-b] Break promisciuous unitigs at unitig intersection points\n");
+                fprintf(stderr, "[-e] Space separated list of erates to generate unitig for\n");
+                fprintf(stderr, "     default is -e '2.5 1.5 1.0'\n");
+                fprintf(stderr, "[-k] Kick out unhappy contained mated reads into singleton unitigs\n");
+                fprintf(stderr, "[-m] Number of bad mates in a region required to break a unitig\n");
+                fprintf(stderr, "     default is 7\n");
+                fprintf(stderr, " \n");
+                exit(1);
+        }
+    }
 
-   std::cerr << "Genome Size: " << genome_size << std::endl;
+    std::cerr << "Genome Size: " << genome_size << std::endl;
 
-   my_store = AS_OVS_openOverlapStore(OVL_Store_Path);
+    my_store = AS_OVS_openOverlapStore(OVL_Store_Path);
 
-   AS_BOG::MateChecker mateChecker;
-   int numFrgsInGKP = mateChecker.readStore(GKP_Store_Path);
-   // must be before creating the scoring objects, because it sets their size
-//   AS_BOG::BOG_Runner bogRunner(getLastElemFragStore() need to fix to get size of gkpStore;
-   //AS_BOG::BOG_Runner bogRunner(AS_OVS_lastFragInStore(my_store));
-   AS_BOG::BOG_Runner bogRunner(numFrgsInGKP);
+    AS_BOG::MateChecker mateChecker;
+    int numFrgsInGKP = mateChecker.readStore(GKP_Store_Path);
+    // must be before creating the scoring objects, because it sets their size
+    //   AS_BOG::BOG_Runner bogRunner(getLastElemFragStore() need to fix to get size of gkpStore;
+    //AS_BOG::BOG_Runner bogRunner(AS_OVS_lastFragInStore(my_store));
+    AS_BOG::BOG_Runner bogRunner(numFrgsInGKP);
 
-   // Initialize our three different types of Best Overlap Graphs
-   //AS_BOG::ErateScore erScore;
-   //AS_BOG::LongestEdge lenScore;
+    // Initialize our three different types of Best Overlap Graphs
+    //AS_BOG::ErateScore erScore;
+    //AS_BOG::LongestEdge lenScore;
 
-   int i;
-   for(i=0; i < erates.size(); i++) {
-       bogRunner.push_back( new AS_BOG::LongestHighIdent( erates[i] ) );
-   }
-   bogRunner.processOverlapStream(my_store, GKP_Store_Path);
+    int i;
+    for(i=0; i < erates.size(); i++) {
+        bogRunner.push_back( new AS_BOG::LongestHighIdent( erates[i] ) );
+    }
+    bogRunner.processOverlapStream(my_store, GKP_Store_Path);
 
-   ////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
 
-   for(i=0; i<bogRunner.size(); i++){
-//	AS_BOG::ChunkGraph *cg = new AS_BOG::ChunkGraph();
+    for(i=0; i<bogRunner.size(); i++){
+        //	AS_BOG::ChunkGraph *cg = new AS_BOG::ChunkGraph();
 	AS_BOG::PromiscuousChunkGraph *cg = new AS_BOG::PromiscuousChunkGraph();
 	//cg.checkInDegree(bogRunner.metrics[i]);
 	cg->build(bogRunner.metrics[i]);
@@ -170,45 +170,45 @@ int  main (int argc, char * argv [])
 	utg.build(cg);
 
 	std::cerr << "Reporting.\n" << std::endl;
-    mateChecker.checkUnitigGraph(utg);
+        mateChecker.checkUnitigGraph(utg);
 
-    char fileStr[16];
-    int mismatch = bogRunner.metrics[i]->getThreshold();
-    sprintf( fileStr, "len%d.ium",mismatch);
-    fprintf( stderr, "Made unitigs at %d mismatch rate\n",mismatch);
-    std::cerr << "Setting Global Arrival Rate.\n";
-    // should be number of Random frags when that's supported
-    float globalARate = utg.getGlobalArrivalRate(cg->getNumFragments(), genome_size);
-    AS_BOG::Unitig::setGlobalArrivalRate(globalARate);
-    std::cerr << "Global Arrival Rate: " << globalARate << std::endl;
-    std::cerr << std::endl<< "There were " << utg.unitigs->size() << " unitigs generated.\n";
+        char fileStr[16];
+        int mismatch = bogRunner.metrics[i]->getThreshold();
+        sprintf( fileStr, "len%d.ium",mismatch);
+        fprintf( stderr, "Made unitigs at %d mismatch rate\n",mismatch);
+        std::cerr << "Setting Global Arrival Rate.\n";
+        // should be number of Random frags when that's supported
+        float globalARate = utg.getGlobalArrivalRate(cg->getNumFragments(), genome_size);
+        AS_BOG::Unitig::setGlobalArrivalRate(globalARate);
+        std::cerr << "Global Arrival Rate: " << globalARate << std::endl;
+        std::cerr << std::endl<< "There were " << utg.unitigs->size() << " unitigs generated.\n";
 
-    utg.writeIUMtoFile(fileStr);
+        utg.writeIUMtoFile(fileStr);
 
-    AS_BOG::BestEdgeCounts cnts = utg.countInternalBestEdges();
-    std::cerr << std::endl << "Overall best edge counts: dovetail " << cnts.dovetail
-              << " oneWayBest " << cnts.oneWayBest << " neither " << cnts.neither
-              << std::endl << std::endl;
+        AS_BOG::BestEdgeCounts cnts = utg.countInternalBestEdges();
+        std::cerr << std::endl << "Overall best edge counts: dovetail " << cnts.dovetail
+                  << " oneWayBest " << cnts.oneWayBest << " neither " << cnts.neither
+                  << std::endl << std::endl;
 
-    outputHistograms( &utg );
+        outputHistograms( &utg );
 	std::cerr << "///////////////////////////////////////////////////////////\n" << std::endl;
 
-    delete bogRunner.metrics[i];
-    delete cg;
-   }
+        delete bogRunner.metrics[i];
+        delete cg;
+    }
 
 
-   std::cerr<<"Done with unitiger specifics.\n"<<std::endl;
+    std::cerr<<"Done with unitiger specifics.\n"<<std::endl;
 
-   ////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////
 
-   std::cerr << "Cleaning up." << std::endl;
-   // Free/clean up the frag/overlap store/stream handles
-   AS_OVS_closeOverlapStore(my_store);
-   // Shouldn't these both be n a  destructor in BOG?
-   delete[] BestOverlapGraph::fragLength;
+    std::cerr << "Cleaning up." << std::endl;
+    // Free/clean up the frag/overlap store/stream handles
+    AS_OVS_closeOverlapStore(my_store);
+    // Shouldn't these both be n a  destructor in BOG?
+    delete[] BestOverlapGraph::fragLength;
 
-   return  0;
+    return  0;
 }
 
 
@@ -222,11 +222,11 @@ void outputHistograms(AS_BOG::UnitigGraph *utg) {
     Histogram_t *arate_histogram = create_histogram(nsample,nbucket,0,TRUE);
 
     extend_histogram(length_of_unitigs_histogram, sizeof(MyHistoDataType),
-            myindexdata,mysetdata,myaggregate,myprintdata);
+                     myindexdata,mysetdata,myaggregate,myprintdata);
     extend_histogram(covg_histogram, sizeof(MyHistoDataType),
-            myindexdata,mysetdata,myaggregate,myprintdata);
+                     myindexdata,mysetdata,myaggregate,myprintdata);
     extend_histogram(arate_histogram, sizeof(MyHistoDataType),
-            myindexdata,mysetdata,myaggregate,myprintdata);
+                     myindexdata,mysetdata,myaggregate,myprintdata);
 
     AS_BOG::UnitigVector::const_iterator uiter = utg->unitigs->begin();
     for(;uiter != utg->unitigs->end(); uiter++) {
@@ -252,7 +252,7 @@ void outputHistograms(AS_BOG::UnitigGraph *utg) {
         int arate = static_cast<int>(rintf(arateF));
         if (arate < 0) {
             std::cerr << "Negative Local ArrivalRate " << arateF << " id " << u->id()
-                << " arate " << arate << std::endl;
+                      << " arate " << arate << std::endl;
         }
         zork.sum_arrival = zork.min_arrival = zork.max_arrival = arate;
 

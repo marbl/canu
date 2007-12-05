@@ -19,24 +19,24 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /*************************************************
-* Module:  AS_BOG_BestOverlapGraph.hh
-* Description:
-*        Data structure to contain the best overlaps and containments
-*        based on a defined metric.
-* 
-*    Programmer:  K. Li
-*       Started:  20 July 2005
-* 
-* Assumptions:
-* 
-* Notes:
-*
-*************************************************/
+ * Module:  AS_BOG_BestOverlapGraph.hh
+ * Description:
+ *        Data structure to contain the best overlaps and containments
+ *        based on a defined metric.
+ * 
+ *    Programmer:  K. Li
+ *       Started:  20 July 2005
+ * 
+ * Assumptions:
+ * 
+ * Notes:
+ *
+ *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.33 2007-10-31 17:41:03 eliv Exp $
- * $Revision: 1.33 $
-*/
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.34 2007-12-05 23:46:57 brianwalenz Exp $
+ * $Revision: 1.34 $
+ */
 
 //  System include files
 
@@ -96,62 +96,62 @@ namespace AS_BOG{
 
     struct BestOverlapGraph {
 
-            friend class BOG_Runner;
+        friend class BOG_Runner;
 
-            // Constructor, parametrizing maximum number of overlaps
-            BestOverlapGraph();
+        // Constructor, parametrizing maximum number of overlaps
+        BestOverlapGraph();
 
-            // Destructor
-            ~BestOverlapGraph();
+        // Destructor
+        ~BestOverlapGraph();
 
-            // Interface to graph visitor
-            // accept(BestOverlapGraphVisitor bog_vis){
-            // bog_vis.visit(this);
-            // }
+        // Interface to graph visitor
+        // accept(BestOverlapGraphVisitor bog_vis){
+        // bog_vis.visit(this);
+        // }
 
-            // Accessor Functions
-            BestEdgeOverlap *getBestEdgeOverlap(iuid frag_id, fragment_end_type which_end);
-            BestEdgeOverlap *getBestEdgeOverlap(FragmentEnd*);
-            // given a FragmentEnd sets it to the next FragmentEnd after following the
-            // best edge
-            void followOverlap(FragmentEnd*);
-            void setBestEdgeOverlap(const OVSoverlap& olap, float newScore);
-            void setBestContainer(const OVSoverlap& olap, float newScore);
-            iuid getNumFragments() { return lastFrg; }
-            bool isContained(const iuid);
-            BestContainment *getBestContainer(iuid frag_id);
-            void addContainEdge( iuid, iuid);
-            bool containHaveEdgeTo( iuid, iuid);
-            void printFrom(iuid begin, iuid end=0);
+        // Accessor Functions
+        BestEdgeOverlap *getBestEdgeOverlap(iuid frag_id, fragment_end_type which_end);
+        BestEdgeOverlap *getBestEdgeOverlap(FragmentEnd*);
+        // given a FragmentEnd sets it to the next FragmentEnd after following the
+        // best edge
+        void followOverlap(FragmentEnd*);
+        void setBestEdgeOverlap(const OVSoverlap& olap, float newScore);
+        void setBestContainer(const OVSoverlap& olap, float newScore);
+        iuid getNumFragments() { return lastFrg; }
+        bool isContained(const iuid);
+        BestContainment *getBestContainer(iuid frag_id);
+        void addContainEdge( iuid, iuid);
+        bool containHaveEdgeTo( iuid, iuid);
+        void printFrom(iuid begin, iuid end=0);
 
-            // Graph building methods
-            fragment_end_type AEnd(const OVSoverlap& olap);
-            fragment_end_type BEnd(const OVSoverlap& olap);
-            void processOverlap(const OVSoverlap& olap);
-            static overlap_type getType(const OVSoverlap & olap);
-            virtual float scoreOverlap(const OVSoverlap& olap)=0;
-            virtual int getThreshold()=0;
+        // Graph building methods
+        fragment_end_type AEnd(const OVSoverlap& olap);
+        fragment_end_type BEnd(const OVSoverlap& olap);
+        void processOverlap(const OVSoverlap& olap);
+        static overlap_type getType(const OVSoverlap & olap);
+        virtual float scoreOverlap(const OVSoverlap& olap)=0;
+        virtual int getThreshold()=0;
 
-            // FragStore related variables
+        // FragStore related variables
         //These should be moved to protected
-            static uint16 *fragLength;
-            static uint16 fragLen( iuid );
-            static uint16 olapLength( iuid, iuid, short, short);
-            static uint16 olapLength(const OVSoverlap& olap);
+        static uint16 *fragLength;
+        static uint16 fragLen( iuid );
+        static uint16 olapLength( iuid, iuid, short, short);
+        static uint16 olapLength(const OVSoverlap& olap);
 
-            BestContainmentMap _best_containments;
+        BestContainmentMap _best_containments;
 
-            bool checkForNextFrag(const OVSoverlap& olap);
-            void scoreContainment(const OVSoverlap& olap);
-            void scoreEdge(const OVSoverlap& olap);
-            void updateInDegree(void);
-            void removeTransitiveContainment();
+        bool checkForNextFrag(const OVSoverlap& olap);
+        void scoreContainment(const OVSoverlap& olap);
+        void scoreEdge(const OVSoverlap& olap);
+        void updateInDegree(void);
+        void removeTransitiveContainment();
 
-        protected:
-            static iuid lastFrg;
-            iuid curFrag;
-            int bestLength;
-            BestFragmentOverlap* _best_overlaps;
+    protected:
+        static iuid lastFrg;
+        iuid curFrag;
+        int bestLength;
+        BestFragmentOverlap* _best_overlaps;
 
     }; //BestOverlapGraph
 
@@ -170,8 +170,7 @@ namespace AS_BOG{
     struct LongestHighIdent : public BestOverlapGraph {
         int mismatchCutoff;
         int consensusCutoff;
-        LongestHighIdent( float maxMismatch) : BestOverlapGraph()
-        {
+        LongestHighIdent( float maxMismatch) : BestOverlapGraph() {
             mismatchCutoff  = AS_OVS_encodeQuality( maxMismatch / 100.0 );
             consensusCutoff = AS_OVS_encodeQuality( AS_CNS_ERROR_RATE );
             assert( consensusCutoff >= 0 ); // Set in AS_configure
