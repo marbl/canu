@@ -18,14 +18,13 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: SplitChunks_CGW.h,v 1.6 2007-09-05 11:22:12 brianwalenz Exp $ */
+/* $Id: SplitChunks_CGW.h,v 1.7 2007-12-06 23:39:57 brianwalenz Exp $ */
 
 #ifndef SPLITCHUNKS_H
 #define SPLITCHUNKS_H
 
-#include "AS_UTL_Var.h"
 #include "ScaffoldGraph_CGW.h"
 
-int SplitInputUnitigs(ScaffoldGraphT * graph);
+void SplitInputUnitigs(ScaffoldGraphT * graph);
 
 #endif
