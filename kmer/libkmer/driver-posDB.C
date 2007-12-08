@@ -4,6 +4,7 @@
 #include <errno.h>
 
 #include "bio++.H"
+#include "existDB.H"
 #include "positionDB.H"
 
 //  Driver for the positionDB creation.  Reads a sequence.fasta, builds
@@ -174,6 +175,9 @@ main(int argc, char **argv) {
   u32bit           mersize = 20;
   u32bit           merskip = 0;
 
+  char            *maskF = 0L;
+  char            *onlyF = 0L;
+
   seqStream        SS;
   u64bit           merBegin = ~u64bitZERO;
   u64bit           merEnd   = ~u64bitZERO;
@@ -195,6 +199,11 @@ main(int argc, char **argv) {
     } else if (strncmp(argv[arg], "-merskip", 6) == 0) {
       merskip = strtou32bit(argv[++arg], 0L);
 
+    } else if (strncmp(argv[arg], "-mask", 2) == 0) {
+      maskF = argv[++arg];
+    } else if (strncmp(argv[arg], "-only", 3) == 0) {
+      onlyF = argv[++arg];
+
     } else if (strncmp(argv[arg], "-use", 2) == 0) {
       SS.parse(argv[++arg]);
     } else if (strncmp(argv[arg], "-merbegin", 5) == 0) {
@@ -204,7 +213,7 @@ main(int argc, char **argv) {
 
     } else if (strncmp(argv[arg], "-sequence", 2) == 0) {
       SS.setFile(argv[++arg]);
-    } else if (strncmp(argv[arg], "-output", 2) == 0) {
+    } else if (strncmp(argv[arg], "-output", 3) == 0) {
       outputFile = argv[++arg];
 
     } else if (strncmp(argv[arg], "-dump", 2) == 0) {
@@ -269,11 +278,21 @@ main(int argc, char **argv) {
     MS = new merStream(&KB, &SS);
   }
 
+  existDB *maskDB = 0L;
+  if (maskF) {
+    fprintf(stderr, "Building maskDB from '%s'\n", maskF);
+    maskDB = new existDB(maskF, mersize, existDBnoFlags, 0, ~u32bitZERO);
+  }
 
-  fprintf(stderr, "Building table with merSize "u32bitFMT", merSkip "u32bitFMT"\n",
-          mersize, merskip);
+  existDB *onlyDB = 0L;
+  if (onlyF) {
+    fprintf(stderr, "Building onlyDB from '%s'\n", onlyF);
+    onlyDB = new existDB(onlyF, mersize, existDBnoFlags, 0, ~u32bitZERO);
+  }
 
-  positionDB *positions = new positionDB(MS, mersize, merskip, 0L, 0L, 0, true);
+  fprintf(stderr, "Building table with merSize "u32bitFMT", merSkip "u32bitFMT"\n", mersize, merskip);
+
+  positionDB *positions = new positionDB(MS, mersize, merskip, maskDB, onlyDB, 0, true);
 
   fprintf(stderr, "Dumping positions table to '%s'\n", outputFile);
 
