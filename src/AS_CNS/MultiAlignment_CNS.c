@@ -24,7 +24,7 @@
    Assumptions:  
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.172 2007-11-08 12:38:12 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.173 2007-12-08 22:36:22 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -61,7 +61,6 @@ static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.172 2007-11-08 12:38:12 bri
 #define MIN_SUM_QVS_FOR_VARIATION          60
 #define QV_FOR_MULTI_GAP                   14
 #define SHOW_OLAP                           1
-#undef  ALIGN_TO_CONSENSUS
 
 #define CNS_DP_THRESH                       1e-6
 #define CNS_DP_MINLEN                      30
@@ -3844,6 +3843,11 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang,
   int     CNS_LOOSESEMIBANDWIDTH = 100;
   int     CNS_DP_THIN_MINLEN     = 10;
 
+  //  Clear the 'output' early.  This is needed so we can force
+  //  fragments in MultiAlignContig.
+  //
+  ResetVA_int32(trace);
+
   assert((0.0 <= AS_CNS_ERROR_RATE) && (AS_CNS_ERROR_RATE <= AS_MAX_ERROR_RATE));
 
   if (AS_CNS_ERROR_RATE > 0.06)
@@ -4073,15 +4077,8 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang,
 
   if ( O == NULL ) {
     // Here, we're convinced there is NO acceptable overlap with this COMPARE_FUNC
-
     fprintf(stderr,"GetAlignmentTrace()-- Could not find overlap between %d (%c) and %d (%c) estimated ahang: %d\n",
             aiid,atype,biid,btype,ahang_input);
-
-#if 0
-    fprintf(stderr,">Afrag%d\n%s\n",aiid, a);
-    fprintf(stderr,">Bfrag%d\n%s\n",biid, a);
-#endif
-
     return 0;
   }
 
@@ -4097,27 +4094,21 @@ int GetAlignmentTrace(int32 afid, int32 aoffset, int32 bfid, int32 *ahang,
 
     if ( O->begpos < CNS_NEG_AHANG_CUTOFF && ! allow_neg_hang)  {
       if (show_olap) {
-        if (O->begpos > -12) 
-          fprintf(stderr,"GetAlignmentTrace()-- DIAGNOSTIC: would have accepted bad olap with %d bp slip\n",ahang_input-O->begpos); // diagnostic - remove soon!
         PrintOverlap(stderr, a, b, O);
         PrintAlarm(stderr,"GetAlignmentTrace()-- NOTE: Negative ahang is unacceptably large. Will not use this overlap.\n");
       }
-      if ( O->begpos < -10 ) //added to get lsat 3 human partitions through
-        return 0;
+      return 0;
     }
   }
   slip = O->begpos - ahang_input;
-  if (slip < 0 ) slip *=-1;
+  if (slip < 0 ) slip = -slip;
   if ( ALIGNMENT_CONTEXT != AS_MERGE && bfrag->type != AS_UNITIG && slip > CNS_TIGHTSEMIBANDWIDTH && COMPARE_FUNC == DP_Compare ) {  
     if (show_olap) {
       ReportTrick(stderr,trick);
       ReportOverlap(stderr,COMPARE_FUNC,params,aiid,atype,biid,btype,O,ahang_input);
       PrintOverlap(stderr, a, b, O);
       PrintAlarm(stderr,"GetAlignmentTrace()-- NOTE: Slip is unacceptably large. Will not use this overlap.\n");
-      fprintf(stderr,"GetAlignmentTrace()-- DIAGNOSTIC: would have accepted bad olap with %d bp slip\n",slip); // diagnostic - remove soon!
     }
-    //     if (O->begpos < 0 && slip < 15 ) {} //added to get last 3 human partitions through
-    //        else 
     return 0;
   }
 
@@ -7403,9 +7394,6 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
   // (due to overlap failure)
   int32 fid,i,align_to;
   int32 num_reads=0,num_columns=0;
-#ifdef ALIGN_TO_CONSENSUS
-  int32 aoffset;
-#endif 
 
   int do_rez=1;
   // command line arg that is now obsolete
@@ -7443,7 +7431,6 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
   //  Make sure that we have valid options here, we then reset the
   //  pointer to the freshly copied options, so that we can always
   //  assume opp is a valid pointer
-  //
 
   ALIGNMENT_CONTEXT=AS_CONSENSUS;
   gkpStore=fragStore;
@@ -7460,38 +7447,33 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
 
   for (i=0;i<num_frags;i++) {
     complement = (positions[i].position.bgn<positions[i].position.end)?0:1;
-    switch (positions[i].type) 
-      {
-        case AS_READ:
-        case AS_EXTR:
-        case AS_TRNR:
-          {
-            num_reads++;
-            if (HASH_SUCCESS != InsertInHashTable_AS(fragmentMap,positions[i].ident, 0, 1, 0)) {
-              fprintf(stderr,"MultiAlignUnitig()-- Failure to insert ident %d in hashtable\n", positions[i].ident); 
-              assert(0);
-            }
+    switch (positions[i].type) {
+      case AS_READ:
+      case AS_EXTR:
+      case AS_TRNR:
+        num_reads++;
+        if (HASH_SUCCESS != InsertInHashTable_AS(fragmentMap,positions[i].ident, 0, 1, 0)) {
+          fprintf(stderr,"MultiAlignUnitig()-- Failure to insert ident %d in hashtable\n", positions[i].ident); 
+          assert(0);
+        }
 
-            fid = AppendFragToLocalStore(positions[i].type, 
-                                         positions[i].ident, 
-                                         complement,
-                                         positions[i].contained,
-                                         AS_OTHER_UNITIG, NULL);
+        fid = AppendFragToLocalStore(positions[i].type, 
+                                     positions[i].ident, 
+                                     complement,
+                                     positions[i].contained,
+                                     AS_OTHER_UNITIG, NULL);
 
-            offsets[fid].bgn = complement ? positions[i].position.end : positions[i].position.bgn;
-            offsets[fid].end = complement ? positions[i].position.bgn : positions[i].position.end;
-            break;
-          }
-        case AS_UNITIG:
-        default:
-          {
-            fprintf(stderr, "MultiAlignUnitig()-- Failed to determine the type of fragment %d in unitig %d\n",
-                    i, unitig->iaccession);
-            DeleteHashTable_AS(fragmentMap);
-            DeleteMANode(ma->lid);
-            return EXIT_FAILURE;
-          }
-      }
+        offsets[fid].bgn = complement ? positions[i].position.end : positions[i].position.bgn;
+        offsets[fid].end = complement ? positions[i].position.bgn : positions[i].position.end;
+        break;
+      case AS_UNITIG:
+      default:
+        fprintf(stderr, "MultiAlignUnitig()-- Failed to determine the type of fragment %d in unitig %d\n",
+                i, unitig->iaccession);
+        DeleteHashTable_AS(fragmentMap);
+        DeleteMANode(ma->lid);
+        return EXIT_FAILURE;
+    }
   }
 
   ma = CreateMANode(unitig->iaccession);
@@ -7515,9 +7497,11 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
 #endif
 
   for (i=1;i<num_frags;i++) {
-    Fragment *bfrag = GetFragment(fragmentStore,i);
-    Fragment *afrag = NULL;
-    int ahang;
+    Fragment *bfrag     = GetFragment(fragmentStore,i);
+    Fragment *afrag     = NULL;
+    Fragment *afraginit = NULL;
+    int       ahang     = 0;
+    int       ahanginit = 0;
     int olap_success=0;
     int ovl=0;
     OverlapType otype;
@@ -7531,12 +7515,10 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     // check whether contained, if so
     // align_to = containing
     // else 
-    int frag_forced=0;
+
 #ifdef NEW_UNITIGGER_INTERFACE
-#if 0
-    fprintf(stderr, "i=%d contained=%d align_to=%d num_frags=%d\n", 
-            i, afrag->contained, align_to, num_frags);
-#endif
+    //fprintf(stderr, "i=%d contained=%d align_to=%d num_frags=%d\n", i, afrag->contained, align_to, num_frags);
+
     // Don't process the last fragment unless it is contained!
     if ((i==num_frags-1) && !afrag->contained)
       continue;
@@ -7546,51 +7528,45 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     assert(align_to >= 0);
     ahang = positions[i].ahang;
     is_pointed[align_to] = 1;
-    if (align_to < i)
-      {
-        // Redefine afrag and bfrag: afrag should be the upstream one!
-        bfrag = afrag;
-        afrag = GetFragment(fragmentStore, align_to);
-      }
-    else
+
+    if (align_to < i) {
+      // Redefine afrag and bfrag: afrag should be the upstream one!
+      bfrag = afrag;
+      afrag = GetFragment(fragmentStore, align_to);
+    } else {
       bfrag = GetFragment(fragmentStore, align_to);
-#if 0
-    fprintf(stderr, 
-            "i= %d align_to= %d ident= %d ident2= %d a_contained=%d b_contained= %d ahang= %d bhang= %d num_frags=%d\n", 
-            i, align_to, positions[i].ident, positions[i].ident2, afrag->contained, 
-            bfrag->contained, ahang, positions[i].bhang, num_frags);
-    fprintf(stderr, "Aligned: a=%d b=%d \n", is_aligned[i], is_aligned[align_to]);
-#endif
-#ifdef NEW_UNITIGGER_INTERFACE
-    if (!is_aligned[i] && !is_aligned[align_to])
-#endif
-      {
-        fprintf(stderr, "MultiAlignUnitig()-- Failed to process unitig %d: ", unitig->iaccession);
-        fprintf(stderr, "MultiAlignUnitig()-- none of fragments a (i=%d, id=%d) and b (i=%d, id=%d) is pre-aligned\n",
-                i, positions[i].ident, align_to, positions[align_to].ident);
-        DeleteHashTable_AS(fragmentMap);
-        DeleteMANode(ma->lid);
-        return EXIT_FAILURE;        
-      }
+    }
+
+    //fprintf(stderr, "i= %d align_to= %d ident= %d ident2= %d a_contained=%d b_contained= %d ahang= %d bhang= %d num_frags=%d\n", 
+    //        i, align_to, positions[i].ident, positions[i].ident2, afrag->contained, 
+    //        bfrag->contained, ahang, positions[i].bhang, num_frags);
+    //fprintf(stderr, "Aligned: a=%d b=%d \n", is_aligned[i], is_aligned[align_to]);
+
+    if (!is_aligned[i] && !is_aligned[align_to]) {
+      fprintf(stderr, "MultiAlignUnitig()-- Failed to process unitig %d: ", unitig->iaccession);
+      fprintf(stderr, "MultiAlignUnitig()-- none of fragments a (i=%d, id=%d) and b (i=%d, id=%d) is pre-aligned\n",
+              i, positions[i].ident, align_to, positions[align_to].ident);
+      DeleteHashTable_AS(fragmentMap);
+      DeleteMANode(ma->lid);
+      return EXIT_FAILURE;
+    }
 #else
     align_to = i-1;
     while (! olap_success) 
 #endif
       {
 #ifndef NEW_UNITIGGER_INTERFACE
-        if (align_to < 0)
-          {
-            if (VERBOSE_MULTIALIGN_OUTPUT) {
-              fprintf(stderr, "MultiAlignUnitig()-- hit the beginning of fragment list: no fragment upstream overlaps with current fragment %d\n",
-                      bfrag->iid);
-            }
-            break;
-          }
+        if (align_to < 0) {
+          if (VERBOSE_MULTIALIGN_OUTPUT)
+            fprintf(stderr, "MultiAlignUnitig()-- hit the beginning of fragment list: no fragment upstream overlaps with current fragment %d\n",
+                    bfrag->iid);
+          break;
+        }
         afrag = GetFragment(fragmentStore, align_to);
 
-        /* If bfrag is contained, then afrag should be its container.
-         * If bfrag is not contained, then afrag should be just uncontained
-         */
+        // If bfrag is contained, then afrag should be its container.
+        // If bfrag is not contained, then afrag should be just uncontained
+        //
         if ( bfrag->contained ) {
           while ( align_to>-1 ) {
             if ( afrag->iid == bfrag->contained && afrag->contained != afrag->iid)
@@ -7608,34 +7584,27 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
         }
         if ( align_to < 0 ) {
           if (VERBOSE_MULTIALIGN_OUTPUT) {
-            if (bfrag->contained )
-              {
-                fprintf(stderr, "MultiAlignUnitig()-- bfrag %d is contained, but no container is found upstream\n",
-                        bfrag->iid);
-              }
+            if (bfrag->contained)
+              fprintf(stderr, "MultiAlignUnitig()-- bfrag %d is contained, but no container is found upstream\n", bfrag->iid);
             else
-              {
-                fprintf(stderr, "MultiAlignUnitig()-- bfrag %d is not contained, and no uncontained afrag is found upstream\n",
-                        bfrag->iid);
-              }
+              fprintf(stderr, "MultiAlignUnitig()-- bfrag %d is not contained, and no uncontained afrag is found upstream\n", bfrag->iid);
           }
           break;
         }
+
         ahang = offsets[bfrag->lid].bgn - offsets[afrag->lid].bgn;
 
-        /* Make sure ahang is above the cutoff value. 
-         * If it's not, may need to sort fragments begfore processing
-         */
-        if (ahang < CNS_NEG_AHANG_CUTOFF && (! allow_neg_hang))
-          {
-            if (VERBOSE_MULTIALIGN_OUTPUT) {
-              fprintf(stderr, "MultiAlignUnitig()-- too negative ahang is detected for afrag %d and bfrag %d; proceed to the next upstraem afrag\n",
-                      afrag->iid,  bfrag->iid);
-            }
-            align_to--;
-            continue;
-          }
-#endif 
+        // Make sure ahang is above the cutoff value. 
+        // If it's not, may need to sort fragments begfore processing
+        //
+        if (ahang < CNS_NEG_AHANG_CUTOFF && (! allow_neg_hang)) {
+          if (VERBOSE_MULTIALIGN_OUTPUT)
+            fprintf(stderr, "MultiAlignUnitig()-- too negative ahang is detected for afrag %d and bfrag %d; proceed to the next upstraem afrag\n",
+                    afrag->iid,  bfrag->iid);
+          align_to--;
+          continue;
+        }
+#endif
 
         ovl = offsets[afrag->lid].end - offsets[bfrag->lid].bgn;
 
@@ -7652,36 +7621,26 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
                 ahang);
 #endif
 
-        if (ovl < 0)
-          {
-            if (VERBOSE_MULTIALIGN_OUTPUT) {
-              fprintf(stderr, "MultiAlignUnitig()-- positions of afrag %d and bfrag %d do not overlap; proceed to the next upstream afrag\n",
-                      afrag->iid, bfrag->iid);
-            }
-            align_to--;
-            continue;
-          }
-            
-#ifdef ALIGN_TO_CONSENSUS
-        { 
-          Bead *afirst = GetBead(beadStore,afrag->beads);
-          Column *col = GetColumn(columnStore,afirst->column_index);
-          aoffset = col->call;
-          // starting consensus bead  is call of columne where first a basepair 
-          // is aligned
-          olap_success = GetAlignmentTrace(-1, aoffset, bfrag->lid, &ahang, 
-                                           ovl, trace, &otype,COMPARE_FUNC,DONT_SHOW_OLAP,0);
+        if (ovl < 0) {
+          if (VERBOSE_MULTIALIGN_OUTPUT)
+            fprintf(stderr, "MultiAlignUnitig()-- positions of afrag %d and bfrag %d do not overlap; proceed to the next upstream afrag\n",
+                    afrag->iid, bfrag->iid);
+          align_to--;
+          continue;
         }
-#else
-        olap_success = GetAlignmentTrace(afrag->lid, 0, bfrag->lid, &ahang, 
-                                         ovl, trace, &otype,DP_Compare,DONT_SHOW_OLAP,0);
 
-        if ( ! olap_success && COMPARE_FUNC != DP_Compare ) {
-          // try again, perhaps with alternate overlapper
-          olap_success = GetAlignmentTrace(afrag->lid, 0, bfrag->lid, &ahang, 
-                                           ovl, trace, &otype,COMPARE_FUNC,DONT_SHOW_OLAP,0);
+        //  Save for later use.
+        if (afraginit == NULL) {
+          afraginit = afrag;
+          ahanginit = ahang;
         }
-#endif
+
+        olap_success = GetAlignmentTrace(afrag->lid, 0, bfrag->lid, &ahang, ovl, trace, &otype,DP_Compare,DONT_SHOW_OLAP,0);
+
+        // try again, perhaps with alternate overlapper
+        if (! olap_success && COMPARE_FUNC != DP_Compare)
+          olap_success = GetAlignmentTrace(afrag->lid, 0, bfrag->lid, &ahang, ovl, trace, &otype,COMPARE_FUNC,DONT_SHOW_OLAP,0);
+
         if ( !olap_success ) {
 #ifndef NEW_UNITIGGER_INTERFACE       
           align_to--;
@@ -7690,7 +7649,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
                   afrag->iid,afrag->type,bfrag->iid,bfrag->type,
                   ahang, (bfrag->contained)?" (reported contained)":"");
         }
-      } /* ! olap_success */
+      }   //  while (!olap_success)
 
     if ( ! olap_success ) {
       if (VERBOSE_MULTIALIGN_OUTPUT) {
@@ -7708,7 +7667,10 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
       }
 
       if ( allow_forced_frags ) {
-        frag_forced = 1;
+        //  Restore the frag and hang we were supposed to align with.
+        //  We need these for the ApplyAlignment call.
+        afrag         = afraginit;
+        ahang         = ahanginit;
         unitig_forced = 1;
       } else {
         DeleteHashTable_AS(fragmentMap);
@@ -7716,34 +7678,31 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
         return EXIT_FAILURE;
       }
     }
+
     if ( mark_contains && otype == AS_CONTAINMENT ) { 
       MarkAsContained(i);
     }
+
 #ifdef NEW_UNITIGGER_INTERFACE
     i_afrag = (i<align_to) ? i : align_to;
-    if (i_afrag && !is_pointed[i] && !afrag->contained && !bfrag->contained)
-      {
-        fprintf(stderr, "Failed to process unitig %d: no fragment pointed to uncontained fragment %d.\n",
-                unitig->iaccession, positions[i].ident);
-        DeleteHashTable_AS(fragmentMap);
-        DeleteMANode(ma->lid);
-        return EXIT_FAILURE;         
-      }
-#endif
-    if ( frag_forced ) {
-      ApplyAlignment(afrag->lid,0,bfrag->lid,ahang,Getint32(trace,0));
-    } else {
-#ifdef ALIGN_TO_CONSENSUS
-      ApplyAlignment(-1,aoffset,bfrag->lid,ahang,Getint32(trace,0));
-#else
-      ApplyAlignment(afrag->lid,0,bfrag->lid,ahang,Getint32(trace,0));
-#endif
+    if (i_afrag && !is_pointed[i] && !afrag->contained && !bfrag->contained) {
+      fprintf(stderr, "Failed to process unitig %d: no fragment pointed to uncontained fragment %d.\n",
+              unitig->iaccession, positions[i].ident);
+      DeleteHashTable_AS(fragmentMap);
+      DeleteMANode(ma->lid);
+      return EXIT_FAILURE;         
     }
+#endif
+
+    ApplyAlignment(afrag->lid,0,bfrag->lid,ahang,Getint32(trace,0));
+
 #ifdef NEW_UNITIGGER_INTERFACE
     is_aligned[i       ] = 1;
     is_aligned[align_to] = 1;
 #endif
+
   } /* loop through all the unitigs */
+
 #ifdef NEW_UNITIGGER_INTERFACE
   safe_free(is_pointed);
   safe_free(is_aligned);
@@ -7755,6 +7714,7 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
 
   if (printwhat == CNS_VERBOSE) 
     PrintAlignment(stderr,ma->lid,0,-1,printwhat);
+
   if ( ! unitig_forced ) {
     score_reduction = AbacusRefine(ma,0,-1,CNS_SMOOTH, opp);
     MergeRefine(ma->lid, NULL, NULL, opp, 0);
@@ -7766,8 +7726,9 @@ int MultiAlignUnitig(IntUnitigMesg *unitig,
     MergeRefine(ma->lid, NULL, NULL, opp, 1);
 
     if (printwhat != CNS_QUIET && printwhat != CNS_STATS_ONLY)
-        PrintAlignment(stderr,ma->lid,0,-1,printwhat);
+      PrintAlignment(stderr,ma->lid,0,-1,printwhat);
   }
+
   GetMANodeConsensus(ma->lid,sequence,quality);
   unitig->consensus = Getchar(sequence,0);
   unitig->quality = Getchar(quality,0);
