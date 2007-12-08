@@ -47,8 +47,6 @@ positionDB::sortAndRepackBucket(u64bit b) {
   u32bit le = (u32bit)(ed - st);
 
 #ifdef ERROR_CHECK
-  //  This passes!
-  //
   if (ed < st)
     fprintf(stdout, "ERROR: Bucket %10lu starts at %10lu ends at %10lu?\n", b, st, ed);
 #endif

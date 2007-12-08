@@ -102,11 +102,13 @@ positionDB::positionDB(merStream   *MS,
     exit(1);
   }
 
+#if 0
   fprintf(stderr, "        sm         = "u64bitFMT"\n", sm);
   fprintf(stderr, "        lg         = "u64bitFMT"\n", sm, lg);
   fprintf(stderr, "        merSize    = "u64bitFMT" bits\n", 2 * merSize);
   fprintf(stderr, "        approxMers = "u64bitFMT" mers\n", approxMers);
   fprintf(stderr, "        posnWidth  = "u64bitFMT" bits\n", posnWidth);
+#endif
 
   //  Iterate through all the choices, picking the one with the
   //  smallest expected footprint.
@@ -125,14 +127,14 @@ positionDB::positionDB(merStream   *MS,
       u32bit  s2 = s1 / 2;
 
       if (((i % 2) == 1) || ((s1 % 2) == 1) || ((s2 % 2) == 1)) {
-        fprintf(stderr, "tblBits="u64bitFMT": merSize="u64bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers) -- size "u64bitFMT" SKIP.\n",
-                i, merSize, posnWidth, approxMers, mm);
+        //fprintf(stderr, "tblBits="u64bitFMT": merSize="u64bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers) -- size "u64bitFMT" SKIP.\n",
+        //        i, merSize, posnWidth, approxMers, mm);
         continue;
       }
     }
 
-    fprintf(stderr, "tblBits="u64bitFMT": merSize="u64bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers) -- size "u64bitFMT".\n",
-            i, merSize, posnWidth, approxMers, mm);
+    //fprintf(stderr, "tblBits="u64bitFMT": merSize="u64bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers) -- size "u64bitFMT".\n",
+    //        i, merSize, posnWidth, approxMers, mm);
 
     if (mm < mins) {
       mini = i;
@@ -142,8 +144,8 @@ positionDB::positionDB(merStream   *MS,
 
   _tableSizeInBits = mini;
 
-  fprintf(stderr, "tblBits="u64bitFMT": merSize="u64bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers)\n",
-          _tableSizeInBits, merSize, posnWidth, approxMers);
+  //fprintf(stderr, "tblBits="u64bitFMT": merSize="u64bitFMT" bits + posnWidth="u64bitFMT" bits (est "u64bitFMT" mers)\n",
+  //        _tableSizeInBits, merSize, posnWidth, approxMers);
 
   _merSizeInBases        = merSize;
   _merSizeInBits         = 2 * _merSizeInBases;
@@ -211,16 +213,17 @@ positionDB::build(merStream *MS,
   //  1)  Count bucket sizes
   //
 
-  //  We'll later want to reuse the _bucketSizes space for storing
-  //  the _hashTable.  To make it somewhat safe, we allocate the
-  //  space as u64bit, then cast it to be u32bit.
+  //  We'll later want to reuse the _bucketSizes space for storing the
+  //  _hashTable.  To make it somewhat safe, we allocate the space as
+  //  u64bit, then cast it to be u32bit.
   //
-  //  bktAllocIsJunk tells us if we should release this memory (if
-  //  we need to allocate separate space for the _hashTable).
+  //  bktAllocIsJunk tells us if we should release this memory (if we
+  //  need to allocate separate space for the _hashTable).  We'd need
+  //  to do this if the hashWidth is more than 32 bits, but we won't
+  //  know that for a little bit.
   //
-  //  The _bucketSizes is offset by one from bktAlloc so that
-  //  we don't overwrite _bucketSizes when we are constructing
-  //  _hashTable.
+  //  The _bucketSizes is offset by one from bktAlloc so that we don't
+  //  overwrite _bucketSizes when we are constructing _hashTable.
   //
   u64bit *bktAlloc;
   try {
@@ -348,23 +351,17 @@ positionDB::build(merStream *MS,
   //  This is _numberOfMers+1 because we need to store the first
   //  position after the last mer.  That is, if there are two mers, we
   //  will store that the first mer is at position 0, the second mer
-  //  is at position 1, and the end of the second mer is at position 2.
+  //  is at position 1, and the end of the second mer is at position
+  //  2.
   //
   //  In reality, it should be the number of distinct mers, not the
-  //  total number of mers, but we don't know that yet.
+  //  total number of mers, but we don't know that yet.  And so
+  //  occasionally we'll make things too big and waste a bit of
+  //  memory.
   //
-#if 0
-  _hashWidth = 1;
-  while ((_numberOfMers+1) > (u64bitONE << _hashWidth))
-    _hashWidth++;
-
-  _posnWidth = 1;
-  while ((_numberOfPositions+1) > (u64bitONE << _posnWidth))
-    _posnWidth++;
-#endif
   _hashWidth = logBaseTwo64(_numberOfMers+1);
   _posnWidth = logBaseTwo64(_numberOfPositions+1);
-  _posnMask = u64bitMASK(_posnWidth);
+  _posnMask  = u64bitMASK(_posnWidth);
 
 
 
@@ -374,6 +371,7 @@ positionDB::build(merStream *MS,
   //
   _wCnt          = _chckWidth + _posnWidth + 1;
 
+#warning no need
   if (_wCnt > 64) {
     fprintf(stderr, "ERROR: Data sizes to big: wCnt="u32bitFMT", should be <= 64.\n", _wCnt);
     fprintf(stderr, "       wCnt = chckWidth="u64bitFMT" + posnWidth="u64bitFMT" + 1\n", _chckWidth, _posnWidth);
@@ -397,10 +395,6 @@ positionDB::build(merStream *MS,
     exit(1);
   }
 
-  //  Maybe we should be using memset() here??  I'd hate to track down
-  //  that bug, though.
-  //
-  //bzero(_countingBuckets, sizeof(u64bit) * bucketsSpace);
   for (u64bit i=0; i<bucketsSpace; i++)
     _countingBuckets[i] = ~u64bitZERO;
 

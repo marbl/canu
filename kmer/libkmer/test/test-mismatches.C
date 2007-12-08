@@ -9,6 +9,17 @@
 
 #define MERSIZE 27   //  mersize in bases
 
+
+void
+encodeToColor(char *seq, u32bit len) {
+
+
+
+}
+
+
+
+
 int
 main(int argc, char **argv) {
 
