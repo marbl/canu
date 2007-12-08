@@ -37,7 +37,7 @@
 #
 #  If you have SGE installed, you can run all three stages, parallel if
 #  appropriate with:
-#    tracedb-to-frg.pl -sge xml*
+#    tracedb-to-frg.pl -sgeoptions '-P project -A account etc' -sge xml*
 #
 #  Otherwise, you'll need to run (sequentially) with:
 #    tracedb-to-frg.pl -xml xml*
@@ -78,6 +78,7 @@ my %seqLibIDFix;
 my $version = 2;
 
 my @sgefiles;
+my $sgeOptions;
 my $xmlfile;
 my @libfiles;
 my $frgfile;
@@ -89,6 +90,8 @@ while (scalar(@ARGV) > 0) {
     if      ($arg eq "-sge") {
         @sgefiles = @ARGV;
         undef @ARGV;
+    } elsif ($arg eq "-sgeoptions") {
+        $sgeOptions = shift @ARGV;
     } elsif ($arg eq "-xml") {
         $xmlfile = shift @ARGV;
     } elsif ($arg eq "-lib") {
@@ -346,9 +349,15 @@ sub runSGE (@) {
     close(L);
     close(F);
 
-    system("qsub -p -5 -N tafrgX-$prefix                          -t 1-$nf -o tafrgX-$prefix-\\\$TASK_ID.out tafrgX-$prefix.sh") and die;
-    system("qsub -p -4 -N tafrgL-$prefix -hold_jid tafrgX-$prefix          -o tafrgL-$prefix.out             tafrgL-$prefix.sh") and die;
-    system("qsub -p -6 -N tafrgF-$prefix -hold_jid tafrgL-$prefix -t 1-$nf -o tafrgF-$prefix-\\\$TASK_ID.out tafrgF-$prefix.sh") and die;
+    system("chmod +x tafrgX-$prefix.sh");
+    system("chmod +x tafrgL-$prefix.sh");
+    system("chmod +x tafrgF-$prefix.sh");
+
+    #  -b n  is the default; TIGR IT decided to change the default.
+
+    system("qsub -b n -p -5 -N tafrgX-$prefix                          -t 1-$nf -o tafrgX-$prefix-\\\$TASK_ID.out $sgeOptions ./tafrgX-$prefix.sh") and die;
+    system("qsub -b n -p -4 -N tafrgL-$prefix -hold_jid tafrgX-$prefix          -o tafrgL-$prefix.out             $sgeOptions ./tafrgL-$prefix.sh") and die;
+    system("qsub -b n -p -6 -N tafrgF-$prefix -hold_jid tafrgL-$prefix -t 1-$nf -o tafrgF-$prefix-\\\$TASK_ID.out $sgeOptions ./tafrgF-$prefix.sh") and die;
 
     exit(0);
 }
@@ -376,7 +385,11 @@ sub runXML ($) {
 
     die "Didn't understand file '$xmlfile'.\n" if (!defined($prefix));
 
-    open(L, "> $prefix.lib");
+    if (-e "$prefix.lib") {
+        exit(0);
+    }
+
+    open(L, "> $prefix.lib.tmp") or die "Failed to open '$prefix.lib.tmp' for write.\n";
 
     while (!eof(X)) {
         my ($xid, $type, $template, $end, $lib, $libsize, $libstddev, $clr, $clv, $clq) = readXML();
@@ -393,6 +406,8 @@ sub runXML ($) {
 
     close(L);
     close(X);
+
+    rename "$prefix.lib.tmp", "$prefix.lib";
 
     foreach my $k (sort keys %types) {
         print "$prefix\t$k\t$types{$k}\n";
@@ -469,8 +484,12 @@ sub runLIB (@) {
         die "Malformed prefix '$prefix'\n";
     }
 
-    open(LIB, "> $prefix.1.lib.frg") or die "Failed to open LIB output '$prefix.1.lib.frg'\n";
-    open(LKG, "> $prefix.3.lkg.frg") or die "Failed to open LKG output '$prefix.3.lkg.frg'\n";
+    if ((-e "$prefix.1.lib.frg") && (-e "$prefix.3.lkg.frg")) {
+        exit(0);
+    }
+
+    open(LIB, "> $prefix.1.lib.frg.tmp") or die "Failed to open LIB output '$prefix.1.lib.frg.tmp'\n";
+    open(LKG, "> $prefix.3.lkg.frg.tmp") or die "Failed to open LKG output '$prefix.3.lkg.frg.tmp'\n";
 
     if ($version > 1) {
         print LIB "{VER\n";
@@ -541,8 +560,8 @@ sub runLIB (@) {
             $prefix = $1;
         }
 
-        open(L, "> $prefix.frglib") or die "Failed to open '$prefix.frglib'.\n";
-        open(F, "< $prefix.lib")    or die "Failed to open '$prefix.lib'\n";
+        open(L, "> $prefix.frglib.tmp") or die "Failed to open '$prefix.frglib.tmp' for write.\n";
+        open(F, "< $prefix.lib")        or die "Failed to open '$prefix.lib' for read\n";
 
         while (<F>) {
             chomp;
@@ -618,6 +637,8 @@ sub runLIB (@) {
         close(F);
         close(L);
 
+        rename "$prefix.frglib.tmp", "$prefix.frglib";
+
         my $percMated = 0;
         if ($numFrag > 0) {
             $percMated = int(10000 * 2 * $numMate / $numFrag) / 100;
@@ -627,6 +648,9 @@ sub runLIB (@) {
 
     close(LKG);
     close(LIB);
+
+    rename "$prefix.1.lib.frg.tmp", "$prefix.1.lib.frg";
+    rename "$prefix.3.lkg.frg.tmp", "$prefix.3.lkg.frg";
 
     exit(0);
 }
@@ -640,32 +664,36 @@ sub runFRG ($) {
     if ($frgfile =~ m/xml.(.*)\.(\d+).bz2$/) {
         $prefix = $1;
         $index  = $2;
-        open(X, "bzip2 -dc xml.$prefix.$index.bz2   | $tcat") or die "Failed to open xml.$prefix.$index.bz2\n";
-        open(F, "bzip2 -dc fasta.$prefix.$index.bz2 | $tcat") or die "Failed to open fasta.$prefix.$index.bz2\n";
-        open(Q, "bzip2 -dc qual.$prefix.$index.bz2  | $tcat") or die "Failed to open qual.$prefix.$index.bz2\n";
-        open(L, "< $prefix.$index.frglib")                    or die "Failed to open $prefix.$index.frglib\n";
+        open(X, "bzip2 -dc xml.$prefix.$index.bz2   | $tcat") or die "Failed to open 'xml.$prefix.$index.bz2' for read\n";
+        open(F, "bzip2 -dc fasta.$prefix.$index.bz2 | $tcat") or die "Failed to open 'fasta.$prefix.$index.bz2' for read\n";
+        open(Q, "bzip2 -dc qual.$prefix.$index.bz2  | $tcat") or die "Failed to open 'qual.$prefix.$index.bz2' for read\n";
+        open(L, "< $prefix.$index.frglib")                    or die "Failed to open '$prefix.$index.frglib' for read\n";
     }
 
     if ($frgfile =~ m/xml.(.*)\.(\d+).gz$/) {
         $prefix = $1;
         $index  = $2;
-        open(X, "gzip -dc xml.$prefix.$index.gz   | $tcat") or die "Failed to open xml.$prefix.$index.gz\n";
-        open(F, "gzip -dc fasta.$prefix.$index.gz | $tcat") or die "Failed to open fasta.$prefix.$index.gz\n";
-        open(Q, "gzip -dc qual.$prefix.$index.gz  | $tcat") or die "Failed to open qual.$prefix.$index.gz\n";
-        open(L, "< $prefix.$index.frglib")                  or die "Failed to open $prefix.$index.frglib\n";
+        open(X, "gzip -dc xml.$prefix.$index.gz   | $tcat") or die "Failed to open 'xml.$prefix.$index.gz' for read\n";
+        open(F, "gzip -dc fasta.$prefix.$index.gz | $tcat") or die "Failed to open 'fasta.$prefix.$index.gz' for read\n";
+        open(Q, "gzip -dc qual.$prefix.$index.gz  | $tcat") or die "Failed to open 'qual.$prefix.$index.gz' for read\n";
+        open(L, "< $prefix.$index.frglib")                  or die "Failed to open '$prefix.$index.frglib' for read\n";
     }
 
     if ($frgfile =~ m/xml.(.*)\.(\d+)$/) {
         $prefix = $1;
         $index  = $2;
-        open(X, "< xml.$prefix")    or die "Failed to open xml.$prefix\n";
-        open(F, "< fasta.$prefix")  or die "Failed to open fasta.$prefix\n";
-        open(Q, "< qual.$prefix")   or die "Failed to open qual.$prefix\n";
-        open(L, "< $prefix.$index.frglib") or die "Failed to open $prefix.$index.frglib\n";
+        open(X, "< xml.$prefix")           or die "Failed to open 'xml.$prefix' for read\n";
+        open(F, "< fasta.$prefix")         or die "Failed to open 'fasta.$prefix' for read\n";
+        open(Q, "< qual.$prefix")          or die "Failed to open 'qual.$prefix' for read\n";
+        open(L, "< $prefix.$index.frglib") or die "Failed to open '$prefix.$index.frglib' for read\n";
     }
 
-    open(FRG, "| $tcat bzip2 -9c > $prefix.2.$index.frg.bz2") or die "Failed to open $prefix.2.$index.frg.bz2\n";
-    #open(FRG, "> $prefix.2.$index.frg") or die "Failed to open $prefix.2.$index.frg\n";
+    if (-e "$prefix.2.$index.frg.bz2") {
+        exit(0);
+    }
+
+    open(FRG, "| $tcat bzip2 -9c > $prefix.2.$index.frg.bz2.tmp") or die "Failed to open '$prefix.2.$index.frg.bz2.tmp' for write\n";
+    #open(FRG, "> $prefix.2.$index.frg.tmp") or die "Failed to open $prefix.2.$index.frg.tmp\n";
     if ($version > 1) {
         print FRG "{VER\n";
         print FRG "ver:$version\n";
@@ -762,6 +790,8 @@ sub runFRG ($) {
     close(F);
     close(X);
     close(FRG);
+
+    rename "$prefix.2.$index.frg.bz2.tmp", "$prefix.2.$index.frg.bz2";
 
     exit(0);
 }
