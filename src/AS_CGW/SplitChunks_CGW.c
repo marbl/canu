@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.27 2007-12-08 22:18:08 brianwalenz Exp $";
+static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.28 2007-12-08 22:20:23 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -190,10 +190,27 @@ AddIMPToIUMStruct(IUMStruct *is, IntMultiPos *imp) {
 }
 
 
+static
+void
+PrintPositions(ScaffoldGraphT *graph, MultiAlignT *ma, int isUnitig, char *label) {
+  int i;
 
+  fprintf(stderr, "%10" F_IIDP ": %s\n", ma->maID, label);
 
+  for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++) {
+    IntMultiPos *imp  = GetIntMultiPos(ma->f_list, i);
+    InfoByIID   *info = GetInfoByIID(graph->iidToFragIndex, imp->ident);
+    CIFragT     *frag = GetCIFragT(graph->CIFrags, info->fragIndex);
 
-
+    fprintf(stderr, F_IID ": (" F_COORD "," F_COORD ")\t(%f,%f)\t"F_IID"\n",
+            imp->ident,
+            MIN(imp->position.bgn, imp->position.end),
+            MAX(imp->position.bgn, imp->position.end),
+            (isUnitig) ? MIN(frag->offset5p.mean, frag->offset3p.mean) : MIN(frag->contigOffset5p.mean, frag->contigOffset3p.mean),
+            (isUnitig) ? MAX(frag->offset5p.mean, frag->offset3p.mean) : MAX(frag->contigOffset5p.mean, frag->contigOffset3p.mean),
+            imp->contained);
+  }
+}
 
 
 static
@@ -527,7 +544,7 @@ positionCompare(const void *A, const void *B) {
 //
 //  AdjustContainedOrder() is very aggressive, moving all contained
 //  fragments to be immediately after their container.  This fact is
-//  used in SplitChunksByIntervals()
+//  used in SplitChunkByIntervals()
 //
 //  FixContainedOrder() just makes sure that all containers are after
 //  their containee, and does so without changing the position-based
@@ -665,11 +682,35 @@ void
 FixContainedOrder(IntMultiPos *impList, int numIMPs) {
   int i=0, j=0;
 
+#if 0
+  VERBOSE_MULTIALIGN_OUTPUT = 1;
+#endif
+
+#if 0
+  fprintf(stderr, "BEFORE\n");
+  for (i=0; i<numIMPs; i++)
+    fprintf(stderr, "%d\t"F_IID"\t%d\t%d\t"F_IID"\n",
+            i,
+            impList[i].ident,
+            impList[i].position.bgn,
+            impList[i].position.end,
+            impList[i].contained);
+#endif
+
   while (i < numIMPs - 1) {
     j = i + 1;
 
-    CDS_COORD_t  ipos = MIN(impList[i].position.bgn, impList[i].position.end);
-    CDS_COORD_t  jpos = MIN(impList[j].position.bgn, impList[j].position.end);
+#if 0
+    fprintf(stderr, "TEST %d\t"F_IID"\t%d\t%d\t"F_IID"\n",
+            i,
+            impList[i].ident,
+            impList[i].position.bgn,
+            impList[i].position.end,
+            impList[i].contained);
+#endif
+
+    int  ipos = MIN(impList[i].position.bgn, impList[i].position.end);
+    int  jpos = MIN(impList[j].position.bgn, impList[j].position.end);
 
     while ((ipos == jpos) && (j < numIMPs)) {
       j++;
@@ -679,10 +720,24 @@ FixContainedOrder(IntMultiPos *impList, int numIMPs) {
     if (i+1 != j) {
 
       //  Got a set of reads that all start at the same position.  We
-      //  don't expect this to be a very large set.
+      //  don't expect this to be a very large set, and we do lots of
+      //  linear searches.
+
+#if 0
+      {
+        int xx;
+        fprintf(stderr, "Found potential containments to fix.\n");
+        for (xx=i; xx<j; xx++)
+          fprintf(stderr, "%d\t"F_IID"\t%d\t%d\t"F_IID"\n",
+                  xx,
+                  impList[xx].ident,
+                  impList[xx].position.bgn,
+                  impList[xx].position.end,
+                  impList[xx].contained);
+      }
+#endif
 
       int  beg = i;
-      int  end = i;
       int  elt = i;
 
       //  Move all the non-contained reads to the start.  Scan the
@@ -691,8 +746,11 @@ FixContainedOrder(IntMultiPos *impList, int numIMPs) {
       //
       while ((beg < j) && (impList[beg].contained == 0))
         beg++;
-      for (elt == beg+1; elt < j; elt++) {
+      for (elt = beg+1; elt < j; elt++) {
         if (impList[elt].contained == 0) {
+#if 0
+          fprintf(stderr, "swap 1 container %d to %d\n", elt, beg);
+#endif
           IntMultiPos t = impList[beg];
           impList[beg]  = impList[elt];
           impList[elt]  = t;
@@ -715,7 +773,8 @@ FixContainedOrder(IntMultiPos *impList, int numIMPs) {
       //  container must be before our range.
       //
       while (beg < elt) {
-        int scan;
+        int scan = 0;
+        int swap = 0;
 
         assert(impList[elt].contained != 0);
 
@@ -727,36 +786,72 @@ FixContainedOrder(IntMultiPos *impList, int numIMPs) {
             if (scan < beg) {
               //  Container is properly ordered.  Move 'elt' into the
               //  set of containers.
+#if 0
+              fprintf(stderr, "swap 2 containee %d to %d\n", elt, beg);
+#endif
               IntMultiPos t = impList[beg];
               impList[beg]  = impList[elt];
               impList[elt]  = t;
+              swap = 1;
               beg++;
-              elt++;
             } else {
               //  Our container is here, but it's not yet in the
               //  correct spot.  Swap the two elements, and restart
               //  the loop to process the container.
+#if 0
+              fprintf(stderr, "swap 3 container %d to %d\n", scan, elt);
+#endif
               IntMultiPos t = impList[scan];
               impList[scan] = impList[elt];
               impList[elt]  = t;
-              elt++;
+              swap = 1;
             }
             scan = j;
-          }
-        }
+          }  //  end of if container found
+        }  //  end of scan loop
 
         //  Move to the next element.  If we swapped elements, this
         //  will move us back to the element we swapped in, and we'll
         //  next process it.  If we didn't swap elements, this element
-        //  is contained in something not in the [i...j] range, and we
-        //  can leave it here.
+        //  is contained in something not in the [i...j] range, and is thus
+        //  eligible to be moved into the set of valid containers.
         //
-        elt--;
+        if (swap == 0) {
+          IntMultiPos t = impList[beg];
+          impList[beg]  = impList[elt];
+          impList[elt]  = t;
+          beg++;
+        }
       }
+
+#if 0
+      {
+        int xx;
+        fprintf(stderr, "Final containments fixed?\n");
+        for (xx=i; xx<j; xx++)
+          fprintf(stderr, "%d\t"F_IID"\t%d\t%d\t"F_IID"\n",
+                  xx,
+                  impList[xx].ident,
+                  impList[xx].position.bgn,
+                  impList[xx].position.end,
+                  impList[xx].contained);
+      }
+#endif
+
     }  //  Done fixing the containments in range [i...j]
 
     i = j;
   }  //  Move to the next range
+
+#if 0
+  fprintf(stderr, "AFTER\n");
+  for (i=0; i<numIMPs; i++)
+    fprintf(stderr, F_IID"\t%d\t%d\t"F_IID"\n",
+            impList[i].ident,
+            impList[i].position.bgn,
+            impList[i].position.end,
+            impList[i].contained);
+#endif
 }
 
 
@@ -824,22 +919,67 @@ StoreIUMStruct(ScaffoldGraphT *graph,
   qsort(is->ium.f_list, is->ium.num_frags, sizeof(IntMultiPos), positionCompare );
 
   FixContainedOrder(is->ium.f_list, is->ium.num_frags);
-  
+
   // get the multi-alignment - this fills in some unitig fields
 
-  if(MultiAlignUnitig(&(is->ium),
-                      ScaffoldGraph->gkpStore,
-                      is->sequence,
-                      is->quality,
-                      is->deltas,
-                      CNS_STATS_ONLY,
-                      0,
-                      Local_Overlap_AS_forCNS,      //  DP_Compare
-                      NULL)) {
-    fprintf(GlobalData->stderrc, "FATAL ERROR: MultiAlignUnitig call failed in unitig splitting\n");
+  int unitigFail = MultiAlignUnitig(&(is->ium),
+                                    ScaffoldGraph->gkpStore,
+                                    is->sequence,
+                                    is->quality,
+                                    is->deltas,
+                                    CNS_STATS_ONLY,
+                                    0,
+                                    Local_Overlap_AS_forCNS, // DP_Compare
+                                    NULL);
+
+  //  Whoops!  Failed!  Like consensus does in MultiAlignUnitig() we
+  //  now (2007-12-07) will try again, allowing negative hangs.
+  //  
+  if (unitigFail) {
+    int  ov = VERBOSE_MULTIALIGN_OUTPUT, oh=allow_neg_hang;
+
+    VERBOSE_MULTIALIGN_OUTPUT = 1;
+    allow_neg_hang            = 1;
+    unitigFail = MultiAlignUnitig(&(is->ium),
+                                  ScaffoldGraph->gkpStore,
+                                  is->sequence,
+                                  is->quality,
+                                  is->deltas,
+                                  CNS_STATS_ONLY,
+                                  0,
+                                  Local_Overlap_AS_forCNS, // DP_Compare
+                                  NULL);
+    VERBOSE_MULTIALIGN_OUTPUT = ov;
+    allow_neg_hang            = oh;
+  }
+
+  //  Whoops!  Failed!  Unlike consensus does, we'll also try to
+  //  force the fragment (2007-12-07).
+  //
+  if (unitigFail) {
+    int  ov = VERBOSE_MULTIALIGN_OUTPUT, of=allow_forced_frags;
+
+    VERBOSE_MULTIALIGN_OUTPUT = 1;
+    allow_forced_frags        = 1;
+    unitigFail = MultiAlignUnitig(&(is->ium),
+                                  ScaffoldGraph->gkpStore,
+                                  is->sequence,
+                                  is->quality,
+                                  is->deltas,
+                                  CNS_STATS_ONLY,
+                                  0,
+                                  Local_Overlap_AS_forCNS, // DP_Compare
+                                  NULL);
+    VERBOSE_MULTIALIGN_OUTPUT = ov;
+    allow_forced_frags        = of;
+  }
+
+  if (unitigFail) {
+    fprintf(GlobalData->stderrc, "FATAL ERROR: MultiAlignUnitig call failed in unitig splitting.\n");
     assert(FALSE);
   }
-  
+
+
   // add ium to the system
   {
     MultiAlignT *ma = CreateMultiAlignTFromIUM(&(is->ium), GetNumCIFragTs(graph->CIFrags), FALSE);
@@ -881,27 +1021,6 @@ StoreIUMStruct(ScaffoldGraphT *graph,
 
 
 
-static
-void
-PrintPositions(ScaffoldGraphT *graph, MultiAlignT *ma, int isUnitig, char *label) {
-  int i;
-
-  fprintf(stderr, "%10" F_IIDP ": %s\n", ma->maID, label);
-
-  for(i = 0; i < GetNumIntMultiPoss(ma->f_list); i++) {
-    IntMultiPos *imp  = GetIntMultiPos(ma->f_list, i);
-    InfoByIID   *info = GetInfoByIID(graph->iidToFragIndex, imp->ident);
-    CIFragT     *frag = GetCIFragT(graph->CIFrags, info->fragIndex);
-
-    fprintf(stderr, F_IID ": (" F_COORD "," F_COORD ")\t(%f,%f)\t"F_IID"\n",
-            imp->ident,
-            MIN(imp->position.bgn, imp->position.end),
-            MAX(imp->position.bgn, imp->position.end),
-            (isUnitig) ? MIN(frag->offset5p.mean, frag->offset3p.mean) : MIN(frag->contigOffset5p.mean, frag->contigOffset3p.mean),
-            (isUnitig) ? MAX(frag->offset5p.mean, frag->offset3p.mean) : MAX(frag->contigOffset5p.mean, frag->contigOffset3p.mean),
-            imp->contained);
-  }
-}
 
 
 static
@@ -944,25 +1063,11 @@ SplitChunkByIntervals(ScaffoldGraphT *graph,
 
   assert(isUnitig);  // not implemented for contigs yet
 
-#if 1
-  PrintPositions(graph, ma, 1, "presort");
-#endif
-
   qsort(ma->f_list->Elements, GetNumIntMultiPoss(ma->f_list), sizeof(IntMultiPos), positionCompare);
 
   egfar = EstimateGlobalFragmentArrivalRate(ci, ma);
 
-  // need to have contained fragments listed right after containing fragment
-
-#if 1
-  PrintPositions(graph, ma, 1, "preadjust");
-#endif
-
   AdjustContainedOrder((IntMultiPos *) ma->f_list->Elements, GetNumIntMultiPoss(ma->f_list));
-
-#if 1
-  PrintPositions(graph, ma, 1, "final");
-#endif
 
 #if 1
   // feedback for log file
