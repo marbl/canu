@@ -15,17 +15,14 @@
 //  < #distinct_mers, we would overflow the position pointer in
 //  buckets.  This enables a check that it doesn't occur.
 //
-//#define TEST_NASTY_BUGS
+#undef  TEST_NASTY_BUGS
+
+//  Tests that mers are masked out properly.  Doesn't handle canonical
+//  mers though.
+//
+#undef  MER_REMOVAL_TEST
 
 #define MSG_OUTPUT  stderr
-
-//  Enable masking of mers during final table construction.  This is
-//  slightly faster, but uses more memory to build.  Disabling this
-//  returns to the previous method of masking mers during the counting
-//  phases.
-//
-#define MER_REMOVAL_DURING_XFER
-#undef  MER_REMOVAL_TEST
 
 
 positionDB::positionDB(char const    *filename,
@@ -281,60 +278,18 @@ positionDB::build(merStream *MS,
     exit(1);
   }
 
-#ifndef MER_REMOVAL_DURING_XFER
-  if (mask) {
-    bool  isCanonical = mask->isCanonical();
-
-    while (MS->nextMer(_merSkipInBases)) {
-      u64bit  canonicalmer = MS->theFMer();
-      if ((isCanonical) && (canonicalmer > MS->theRMer()))
-        canonicalmer = MS->theRMer();
-
-      if (!mask->exists(canonicalmer)) {
-        _bucketSizes[ HASH(MS->theFMer()) ]++;
-        _numberOfMers++;
-        _numberOfPositions = MS->thePositionInStream();
-        assert((_numberOfPositions >> 60) == 0);
-      }
-
-      C->tick();
-    }
-  } else if (only) {
-    bool  isCanonical = only->isCanonical();
-
-    while (MS->nextMer(_merSkipInBases)) {
-      u64bit  canonicalmer = MS->theFMer();
-      if ((isCanonical) && (canonicalmer > MS->theRMer()))
-        canonicalmer = MS->theRMer();
-
-      if (only->exists(canonicalmer)) {
-        _bucketSizes[ HASH(MS->theFMer()) ]++;
-        _numberOfMers++;
-        _numberOfPositions = MS->thePositionInStream();
-        assert((_numberOfPositions >> 60) == 0);
-      }
-
-      C->tick();
-    }
-  } else {
-#endif
-
-    while (MS->nextMer(_merSkipInBases)) {
-      _bucketSizes[ HASH(MS->theFMer()) ]++;
+  while (MS->nextMer(_merSkipInBases)) {
+    _bucketSizes[ HASH(MS->theFMer()) ]++;
 
 #ifdef ERROR_CHECK_COUNTING
-      _errbucketSizes[ HASH(MS->theFMer()) ]++;
+    _errbucketSizes[ HASH(MS->theFMer()) ]++;
 #endif
 
-      _numberOfMers++;
-      _numberOfPositions = MS->thePositionInStream();
-      assert((_numberOfPositions >> 60) == 0);
-      C->tick();
-    }
-
-#ifndef MER_REMOVAL_DURING_XFER
+    _numberOfMers++;
+    _numberOfPositions = MS->thePositionInStream();
+    assert((_numberOfPositions >> 60) == 0);
+    C->tick();
   }
-#endif
 
 
   delete C;
@@ -438,138 +393,71 @@ positionDB::build(merStream *MS,
   //  client that uses masking)
   //
 
-#ifndef MER_REMOVAL_DURING_XFER
-  if (mask) {
-    bool  isCanonical = mask->isCanonical();
-
-    while (MS->nextMer(_merSkipInBases)) {
-      u64bit  canonicalmer = MS->theFMer();
+  while (MS->nextMer(_merSkipInBases)) {
+    u64bit h = HASH(MS->theFMer());
 
 #ifdef ERROR_CHECK_COUNTING_ENCODING
-      if ((MS->thePositionInStream() & _posnMask) != MS->thePositionInStream()) {
-        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  POSNMASK "u64bitHEX" invalid!  Wanted "u64bitHEX" got "u64bitHEX"\n",
-                _posnMask,
-                MS->thePositionInStream(),
-                MS->thePositionInStream() & _posnMask);
-      }
-      assert((MS->thePositionInStream() >> 60) == 0);
-#endif
-
-      if ((isCanonical) && (canonicalmer > MS->theRMer()))
-        canonicalmer = MS->theRMer();
-
-      if (!mask->exists(canonicalmer)) {
-        u64bit h = HASH(MS->theFMer());
-        _bucketSizes[h]--;
-        setDecodedValue(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, _wCnt,
-                        (CHECK(MS->theFMer()) << _posnWidth) | (MS->thePositionInStream() & _posnMask));
-      }
-
-      C->tick();
+    if ((MS->thePositionInStream() & _posnMask) != MS->thePositionInStream()) {
+      fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  POSNMASK "u64bitHEX" invalid!  Wanted "u64bitHEX" got "u64bitHEX"\n",
+              _posnMask,
+              MS->thePositionInStream(),
+              MS->thePositionInStream() & _posnMask);
     }
-
-
-  } else if (only) {
-    bool  isCanonical = only->isCanonical();
-
-    while (MS->nextMer(_merSkipInBases)) {
-      u64bit  canonicalmer = MS->theFMer();
-
-#ifdef ERROR_CHECK_COUNTING_ENCODING
-      if ((MS->thePositionInStream() & _posnMask) != MS->thePositionInStream()) {
-        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  POSNMASK "u64bitHEX" invalid!  Wanted "u64bitHEX" got "u64bitHEX"\n",
-                _posnMask,
-                MS->thePositionInStream(),
-                MS->thePositionInStream() & _posnMask);
-      }
-      assert((MS->thePositionInStream() >> 60) == 0);
-#endif
-
-      if ((isCanonical) && (canonicalmer > MS->theRMer()))
-        canonicalmer = MS->theRMer();
-
-      if (only->exists(canonicalmer)) {
-        u64bit h = HASH(MS->theFMer());
-        _bucketSizes[h]--;
-        setDecodedValue(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, _wCnt,
-                        (CHECK(MS->theFMer()) << _posnWidth) | (MS->thePositionInStream() & _posnMask));
-      }
-
-      C->tick();
-    }
-
-  } else {
-#endif
-
-    while (MS->nextMer(_merSkipInBases)) {
-      u64bit h = HASH(MS->theFMer());
-
-#ifdef ERROR_CHECK_COUNTING_ENCODING
-      if ((MS->thePositionInStream() & _posnMask) != MS->thePositionInStream()) {
-        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  POSNMASK "u64bitHEX" invalid!  Wanted "u64bitHEX" got "u64bitHEX"\n",
-                _posnMask,
-                MS->thePositionInStream(),
-                MS->thePositionInStream() & _posnMask);
-      }
-      assert((MS->thePositionInStream() >> 60) == 0);
+    assert((MS->thePositionInStream() >> 60) == 0);
 #endif
 
 #ifdef ERROR_CHECK_COUNTING
-      char  str[33];
+    char  str[33];
 
-      if (_bucketSizes[h] == 0) {
-        fprintf(stderr, "ERROR_CHECK_COUNTING: Bucket "u64bitFMT" ran out of things!  '%s'\n", h, MS->theFMer().merToString(str));
-        fprintf(stderr, "ERROR_CHECK_COUNTING: Stream is at "u64bitFMT"\n", MS->thePositionInStream());
-      }
+    if (_bucketSizes[h] == 0) {
+      fprintf(stderr, "ERROR_CHECK_COUNTING: Bucket "u64bitFMT" ran out of things!  '%s'\n", h, MS->theFMer().merToString(str));
+      fprintf(stderr, "ERROR_CHECK_COUNTING: Stream is at "u64bitFMT"\n", MS->thePositionInStream());
+    }
 #endif
 
-      _bucketSizes[h]--;
+    _bucketSizes[h]--;
 
 #ifdef ERROR_CHECK_COUNTING
-      _errbucketSizes[h]--;
+    _errbucketSizes[h]--;
 #endif
 
 
 #ifdef ERROR_CHECK_EMPTY_BUCKETS
-      if ((~getDecodedValue(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, _wCnt)) & u64bitMASK(_wCnt))
-        fprintf(stdout, "ERROR_CHECK_EMPTY_BUCKETS: countingBucket not empty!  pos=%lu\n", _bucketSizes[h] * _wCnt);
+    if ((~getDecodedValue(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, _wCnt)) & u64bitMASK(_wCnt))
+      fprintf(stdout, "ERROR_CHECK_EMPTY_BUCKETS: countingBucket not empty!  pos=%lu\n", _bucketSizes[h] * _wCnt);
 #endif
 
-      setDecodedValue(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, _wCnt,
-                      (CHECK(MS->theFMer()) << _posnWidth) | (MS->thePositionInStream() & _posnMask));
+    setDecodedValue(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, _wCnt,
+                    (CHECK(MS->theFMer()) << _posnWidth) | (MS->thePositionInStream() & _posnMask));
 
 
 #ifdef ERROR_CHECK_COUNTING_ENCODING
-      if ((MS->thePositionInStream() & _posnMask) != MS->thePositionInStream())
-        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  POSNMASK "u64bitHEX" invalid!  Wanted "u64bitHEX" got "u64bitHEX"\n",
-                _posnMask,
-                MS->thePositionInStream(),
-                MS->thePositionInStream() & _posnMask);
+    if ((MS->thePositionInStream() & _posnMask) != MS->thePositionInStream())
+      fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  POSNMASK "u64bitHEX" invalid!  Wanted "u64bitHEX" got "u64bitHEX"\n",
+              _posnMask,
+              MS->thePositionInStream(),
+              MS->thePositionInStream() & _posnMask);
 #endif
 
 #ifdef ERROR_CHECK_COUNTING_ENCODING
-      u64bit v = getDecodedValue(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, _wCnt);
+    u64bit v = getDecodedValue(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, _wCnt);
 
-      //  This test is only valid if we have an extra bit at the start --
-      //  if we are planning on reusing the counting space for buckets.
-      //
-      if ((0 != (v >> (_wCnt - 1))))
-        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error: HBIT is set!      Wanted "u64bitHEX" got "u64bitHEX"\n",
-                (CHECK(MS->theFMer()) << _posnWidth) | (MS->thePositionInStream() & _posnMask), v);
-      if (CHECK(MS->theFMer()) != ((v >> _posnWidth) & _chckMask))
-        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  CHCK corrupted!  Wanted "u64bitHEX" got "u64bitHEX"\n",
-                (CHECK(MS->theFMer()) << _posnWidth) | (MS->thePositionInStream() & _posnMask), v);
-      if (MS->thePositionInStream() != (v & _posnMask))
-        fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  POSN corrupted!  Wanted "u64bitHEX" got "u64bitHEX"\n",
-                (CHECK(MS->theFMer()) << _posnWidth) | (MS->thePositionInStream() & _posnMask), v);
+    //  This test is only valid if we have an extra bit at the start --
+    //  if we are planning on reusing the counting space for buckets.
+    //
+    if ((0 != (v >> (_wCnt - 1))))
+      fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error: HBIT is set!      Wanted "u64bitHEX" got "u64bitHEX"\n",
+              (CHECK(MS->theFMer()) << _posnWidth) | (MS->thePositionInStream() & _posnMask), v);
+    if (CHECK(MS->theFMer()) != ((v >> _posnWidth) & _chckMask))
+      fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  CHCK corrupted!  Wanted "u64bitHEX" got "u64bitHEX"\n",
+              (CHECK(MS->theFMer()) << _posnWidth) | (MS->thePositionInStream() & _posnMask), v);
+    if (MS->thePositionInStream() != (v & _posnMask))
+      fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  POSN corrupted!  Wanted "u64bitHEX" got "u64bitHEX"\n",
+              (CHECK(MS->theFMer()) << _posnWidth) | (MS->thePositionInStream() & _posnMask), v);
 #endif
 
-      C->tick();
-    }
-
-#ifndef MER_REMOVAL_DURING_XFER
+    C->tick();
   }
-#endif
 
 
   delete C;
@@ -757,9 +645,7 @@ positionDB::build(merStream *MS,
 #endif
 
   //  We also take this opportunity to reset some statistics that are
-  //  wrong.  Technically, we only need to do this if we are
-  //  MER_REMOVAL_DURING_XFER, but everbody benefits from it (the old
-  //  method gets the number of entries and positions wrong).
+  //  wrong.
   //
   _numberOfMers      = 0;
   _numberOfPositions = 0;
@@ -839,7 +725,9 @@ positionDB::build(merStream *MS,
       //  Ask the only/mask if that exists, if so do/do not include the mer.
       //
       bool useMer = true;
-#ifdef MER_REMOVAL_DURING_XFER
+
+      //  Begin of MER_REMOVAL_DURING_XFER
+
       if (mask || only) {
 
         //  Great.  The existDB has (usually) the canonical mer.  We
@@ -874,74 +762,75 @@ positionDB::build(merStream *MS,
 
       if (edM - stM > maxCount)
         useMer = false;
-#endif
+
+      //  End of MER_REMOVAL_DURING_XFER
 
       if (useMer) {
         _numberOfMers      += edM - stM;
         _numberOfPositions += edM - stM;
         _numberOfDistinct++;
 
-      if (stM+1 == edM) {
-        _numberOfUnique++;
+        if (stM+1 == edM) {
+          _numberOfUnique++;
 
 #ifdef TEST_NASTY_BUGS
-        posPtrCheck[currentBpos++] = _sortedList[stM] & _posnMask;
+          posPtrCheck[currentBpos++] = _sortedList[stM] & _posnMask;
 #endif
 
-        //  Rearrange the check and position, insert a bit telling us that
-        //  this is a position and not an offset.
-        //
-        v  = u64bitONE << (_wFin - 1);
-        v |= (_sortedList[stM] & _posnMask) << _chckWidth;
-        v |= (_sortedList[stM] & checkMask) >> _posnWidth;
+          //  Rearrange the check and position, insert a bit telling us that
+          //  this is a position and not an offset.
+          //
+          v  = u64bitONE << (_wFin - 1);
+          v |= (_sortedList[stM] & _posnMask) << _chckWidth;
+          v |= (_sortedList[stM] & checkMask) >> _posnWidth;
 
-        //  Finally, add the mer and position to the bucket.
-        //
-        setDecodedValue(_buckets, currentBbit, _wFin, v);
-        currentBbit += _wFin;
-        bucketStartPosition++;
-      } else {
-        _numberOfEntries  += edM - stM;
-        if (_maximumEntries < edM - stM)
-          _maximumEntries = edM - stM;
+          //  Finally, add the mer and position to the bucket.
+          //
+          setDecodedValue(_buckets, currentBbit, _wFin, v);
+          currentBbit += _wFin;
+          bucketStartPosition++;
+        } else {
+          _numberOfEntries  += edM - stM;
+          if (_maximumEntries < edM - stM)
+            _maximumEntries = edM - stM;
 
 #ifdef TEST_NASTY_BUGS
-        posPtrCheck[currentBpos++] = currentPpos;
- #endif
+          posPtrCheck[currentBpos++] = currentPpos;
+#endif
 
-        //  Create a pointer to the position list.
-        //
-        v  = u64bitZERO;
-        v |= (currentPpos      & _posnPtrMask) << _chckWidth;
-        v |= (_sortedList[stM] & checkMask)    >> _posnWidth;
+          //  Create a pointer to the position list.
+          //
+          v  = u64bitZERO;
+          v |= (currentPpos      & _posnPtrMask) << _chckWidth;
+          v |= (_sortedList[stM] & checkMask)    >> _posnWidth;
 
-        //  Add the mer to the bucket.
-        //
-        setDecodedValue(_buckets, currentBbit, _wFin, v);
-        currentBbit += _wFin;
-        bucketStartPosition++;
+          //  Add the mer to the bucket.
+          //
+          setDecodedValue(_buckets, currentBbit, _wFin, v);
+          currentBbit += _wFin;
+          bucketStartPosition++;
 
-        //  Store the positions.
-        //
-        setDecodedValue(_positions, currentPbit, _posnWidth, edM - stM);
-        currentPbit += _posnWidth;
-        currentPpos++;
-
-        //  The positions are in the proper place in _sortedList, and setDecodedValue
-        //  masks out the extra crap, so no temporary needed.
-        //
-        for (; stM < edM; stM++) {
-          if ((_sortedList[stM] & u64bitMASK(_posnWidth)) >= DEBUGnumPositions) {
-            fprintf(stderr, "ERROR:  Got position "u64bitFMT", but only "u64bitFMT" available!\n",
-                    _sortedList[stM] & u64bitMASK(_posnWidth), DEBUGnumPositions);
-            abort();
-          }
-
-          setDecodedValue(_positions, currentPbit, _posnWidth, _sortedList[stM]);
+          //  Store the positions.
+          //
+          setDecodedValue(_positions, currentPbit, _posnWidth, edM - stM);
           currentPbit += _posnWidth;
           currentPpos++;
+
+          //  The positions are in the proper place in _sortedList, and setDecodedValue
+          //  masks out the extra crap, so no temporary needed.
+          //
+          for (; stM < edM; stM++) {
+            if ((_sortedList[stM] & u64bitMASK(_posnWidth)) >= DEBUGnumPositions) {
+              fprintf(stderr, "ERROR:  Got position "u64bitFMT", but only "u64bitFMT" available!\n",
+                      _sortedList[stM] & u64bitMASK(_posnWidth), DEBUGnumPositions);
+              abort();
+            }
+
+            setDecodedValue(_positions, currentPbit, _posnWidth, _sortedList[stM]);
+            currentPbit += _posnWidth;
+            currentPpos++;
+          }
         }
-      }
       }  //  useMer
 
       //  All done with this mer.
@@ -988,7 +877,6 @@ positionDB::build(merStream *MS,
   }
 
 
-#ifdef MER_REMOVAL_DURING_XFER
   //  If we removed mers, there is a small chance that our hash table
   //  is too big -- we might have removed enoough mers to make the
   //  width smaller.  If so, rebuild the hash table.
@@ -1029,7 +917,6 @@ positionDB::build(merStream *MS,
 
     _hashWidth = newHashWidth;
   }
-#endif
 
 
 #ifdef TEST_NASTY_BUGS
@@ -1054,9 +941,7 @@ positionDB::build(merStream *MS,
 
 
 #ifdef MER_REMOVAL_TEST
-
-  //  this was not updated to deal with canonical mers
-
+#warning MER_REMOVAL_TEST was not updated to deal with canonical mers
   MS->rewind();
   if (mask) {
     if (beVerbose)

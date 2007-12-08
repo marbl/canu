@@ -21,6 +21,21 @@ typedef u64bit heapbit;
 
 class existDB;
 
+
+//  Returns position in posn, resizing it if needed.  Space is
+//  allocated if none supplied.  The following is valid:
+//
+//    u64bit  *posn    = 0L;
+//    u64bit   posnMax = 0;
+//    u64bit   posnLen = 0;
+//    if (get(somemer, posn, posnMax, posnLen)) {
+//      do something with the positions
+//    }
+//
+//  exists() returns T/F if mer exists or not
+//  count() returns the number of times that mer is present
+
+
 class positionDB {
 public:
   positionDB(char const    *filename,
@@ -44,19 +59,6 @@ private:
               u32bit       maxCount,
               bool         beVerbose);
 
-  //  Returns position in posn, resizing it if needed.  Space is
-  //  allocated if none supplied.  The following is valid:
-  //
-  //    u64bit  *posn    = 0L;
-  //    u64bit   posnMax = 0;
-  //    u64bit   posnLen = 0;
-  //    if (get(somemer, posn, posnMax, posnLen)) {
-  //      do something with the positions
-  //    }
-  //
-  //  exists() returns T/F if mer exists or not
-  //  count() returns the number of times that mer is present
-  //
 private:
   void        loadPositions(u64bit      v,
                             u64bit*&    posn,
@@ -179,10 +181,6 @@ private:
   u32bit      _posnWidth;
   u32bit      _posnPtrWidth;
 
-#ifdef __APPLE__
-  u32bit      _pad1;
-#endif
-
   u64bit      _hashMask;
   u64bit      _chckMask;
   u64bit      _posnMask;
@@ -205,8 +203,8 @@ private:
 
   //  For sorting the mers
   //
-  u32bit   _sortedListMax;
-  heapbit *_sortedList;
+  u32bit      _sortedListMax;
+  heapbit    *_sortedList;
 };
 
 #endif  //  POSITIONDB_H
