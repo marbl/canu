@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.26 2007-12-06 23:39:57 brianwalenz Exp $";
+static char CM_ID[] = "$Id: SplitChunks_CGW.c,v 1.27 2007-12-08 22:18:08 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1133,31 +1133,34 @@ SplitInputUnitigs(ScaffoldGraphT *graph) {
   assert(rc != NULL && gcc != NULL && bcc != NULL && csis != NULL);
 
   // determine minimum unitig length of interest
-  // NOTE: consider adding a multipler to dptr->upper
-  for(i = 0; i < GetNumDistTs(graph->Dists); i++) {
+  //
+  for (i=1; i<GetNumDistTs(graph->Dists); i++) {
     DistT *dptr = GetDistT(graph->Dists,i);
     minLength = MIN(minLength,dptr->mu + CGW_CUTOFF * dptr->sigma);
   }
 
-  // loop over number of original unitigs - not new ones being generated
-  // otherwise would use an iterator
-  for(i = 0; i < numCIs; i++) {
+  // loop over number of original unitigs - not new ones being
+  // generated
+  //
+  for (i=0; i<numCIs; i++) {
     ChunkInstanceT *ci = GetGraphNode(graph->CIGraph, i);
     MultiAlignT *ma = loadMultiAlignTFromSequenceDB(graph->sequenceDB, ci->id, TRUE);
     
     // NOTE: add discriminator statistic checks?
+
     if(GetMultiAlignLength(ma) >= minLength) {
       CDS_COORD_t minBase, maxBase;
       CDS_COORD_t curBase;
 
       // create read coverage map for unitig
-      // function intended to work for either contig or unitig
+
       ResetVA_uint16(rc);
       EnableRangeVA_uint16(rc, GetMultiAlignLength(ma));
       CreateReadCoverageMap(graph, rc, ma, TRUE);
       
-      // locate region within which to look for possible chimeric points
-      // i.e., ignore initial & trailing 0/1 values
+      // locate region within which to look for possible chimeric
+      // points i.e., ignore initial & trailing 0/1 values
+
       for(minBase = READ_TRIM_BASES;
           minBase < GetMultiAlignLength(ma) - READ_TRIM_BASES && *(GetVA_uint16(rc,minBase)) <= 1;
           minBase++)
@@ -1169,11 +1172,13 @@ SplitInputUnitigs(ScaffoldGraphT *graph) {
         ;
 
       // see if there is a candidate interval
+
       for( curBase = minBase; curBase < maxBase; curBase++)
         if(*(GetVA_uint16(rc,curBase)) <= MAX_SEQUENCE_COVERAGE)
           break;
 
       // see if above loop ended in a candidate interval
+
       if(curBase < maxBase) {
         CDS_COORD_t checkBase;
         SeqInterval interval;
@@ -1190,7 +1195,6 @@ SplitInputUnitigs(ScaffoldGraphT *graph) {
         ResetVA_SeqInterval(csis);
         EnableRangeVA_SeqInterval(csis, 0);
         
-        // function intended to work for either contig or unitig
         CreateCloneCoverageMaps(graph, gcc, bcc, ma, TRUE);
         
         // identify & count chimeric sequence intervals
@@ -1229,9 +1233,7 @@ SplitInputUnitigs(ScaffoldGraphT *graph) {
         }
 
         if(GetNumVA_SeqInterval(csis) > 0) {
-          // compute global fragment arrival rate
           SplitChunkByIntervals(graph, ci->id, ma, csis, TRUE);
-          // refresh ci, since the VarArray may have been resized
           ci = GetGraphNode(graph->CIGraph, i);
         }
       }
