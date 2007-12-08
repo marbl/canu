@@ -92,13 +92,13 @@ main(int argc, char **argv) {
   //  any quick error detection first.
 
   if (beVerbose)
-    fprintf(stderr, "%s: Reading genomic deflines from '%s'\n", gDeflines);
+    fprintf(stderr, "%s: Reading genomic deflines from '%s'\n", argv[0], gDeflines);
 
   dict_t  *g = dict_create(DICTCOUNT_T_MAX, headerCompare);
   addToDict(g, gDeflines);
 
   if (beVerbose)
-    fprintf(stderr, "%s: Reading genomic deflines from '%s'\n", cDeflines);
+    fprintf(stderr, "%s: Reading genomic deflines from '%s'\n", argv[0], cDeflines);
 
   dict_t  *c = dict_create(DICTCOUNT_T_MAX, headerCompare);
   addToDict(c, cDeflines);
@@ -132,8 +132,8 @@ main(int argc, char **argv) {
       exit(1);
     }
 
-    p->estID = (u32bit)dnode_get(cid);
-    p->genID = (u32bit)dnode_get(gid);
+    p->estID = (u32bit)(u64bit)dnode_get(cid);
+    p->genID = (u32bit)(u64bit)dnode_get(gid);
 
     s4p_printPolish(stdout, p, S4P_PRINTPOLISH_NOTVALUABLE);
     s4p_destroyPolish(p);

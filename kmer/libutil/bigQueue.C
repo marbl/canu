@@ -228,7 +228,7 @@ bigQueue::mergeTemporaryFiles(void) {
       //  XXX: should be const thing
 
       void   *thing  = (void *)dnode_getkey(head);
-      int     fileid = (int)dnode_get(head);
+      long    fileid = (long)dnode_get(head);
 
       if (_writFunction)
         (*_writFunction)(mergeFile, thing);

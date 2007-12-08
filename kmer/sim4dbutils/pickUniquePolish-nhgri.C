@@ -385,8 +385,8 @@ fixIID(sim4polish *q, dict_t *estdict) {
     exit(1);
   }
 
-  q->estID = (u32bit)dnode_get(cid);
-  q->genID = (u32bit)dnode_get(gid);
+  q->estID = (u32bit)(u64bit)dnode_get(cid);
+  q->genID = (u32bit)(u64bit)dnode_get(gid);
 }
 
 
