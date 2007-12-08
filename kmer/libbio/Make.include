@@ -4,6 +4,8 @@ LIBUTL/        :=$(call MakePath,$/../libutil/)
 
 src    := $/alphabet.c \
           $/alphabet.h \
+          $/alphabet-acgtspace.c \
+          $/alphabet-colorspace.c \
           $/bio++.H \
           $/bio.h \
           $/fasta-accessor.H \
@@ -35,28 +37,6 @@ src    := $/alphabet.c \
           $/seqStore.H \
           $/seqStream.H
 
-
-# $/alphabet.c \
-#          $/alphabet.h \
-#          $/bio++.H \
-#          $/bio.h \
-#          $/fasta-c.C \
-#          $/fasta-c.h \
-#          $/fasta-cache.C \
-#          $/fasta-cache.H \
-#          $/fasta.C \
-#          $/fasta.H \
-#          $/halign.c \
-#          $/kmer.H \
-#          $/merCovering.H \
-#          $/merList.H \
-#          $/mers.h \
-#          $/merstream.C \
-#          $/merstream.H \
-#          $/reversecomplement.c \
-#          $/seq.C
-
-
 $/.C_SRCS    :=$(filter %.c,${src})
 $/.C_INCS    :=$(filter %.h,${src})
 $/.CXX_SRCS  :=$(filter %.C,${src})
@@ -65,14 +45,8 @@ $/.CXX_LIBS  :=$/libbio.a
 
 $/.CLEAN := $/*.o
 
-#  For reasons bri doesn't know, we must explicitly include libbio.
-#  It's related to things in fasta needing to include things in libbio,
-#  and possibly has root cause in that when building libbio, we don't
-#  use fasta/Make.include -- perhaps we should be using relative
-#  includes "../libbio/bri.h" or have an include directory?
-#
-$(eval $/%.d $/%.o: CFLAGS+=-I${LIBUTL/})
-$(eval $/%.d $/%.o: CXXFLAGS+=-I${LIBUTL/})
+$(eval $/%.d $/%.o: CFLAGS   += -I${LIBUTL/})
+$(eval $/%.d $/%.o: CXXFLAGS += -I${LIBUTL/})
 
 $/reversecomplement.c.d: $/alphabet.h
 $/merstream.C.d:         $/alphabet.h
@@ -80,6 +54,6 @@ $/merstream.C.d:         $/alphabet.h
 $/libbio.a: ${$/.C_SRCS:.c=.o} ${$/.CXX_SRCS:.C=.o} $/alphabet.o
 
 $/alphabet.c: $/alphabet.h
-$/alphabet.h:  $/alphabet-generate.c
-	$(CC) $(CFLAGS) $(CFLAGS_COMPILE) -o `dirname $@`/a.out -DMAIN $<
+$/alphabet.h: $/alphabet-generate.c $/alphabet-acgtspace.c $/alphabet-colorspace.c
+	$(CC) $(CFLAGS) $(CFLAGS_COMPILE) -o `dirname $@`/a.out $<
 	cd `dirname $@` ; ./a.out && rm -f a.out

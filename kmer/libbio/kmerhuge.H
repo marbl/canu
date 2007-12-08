@@ -14,6 +14,10 @@ public:
   void    setMerSize(u32bit ms);
   u32bit  getMerSize(void) const { return(_merSize); };
 
+#warning setMerSpan, getMerSpan also not implemented
+  void    setMerSpan(u32bit ms);
+  u32bit  getMerSpan(void) const;
+
   kMerHuge  &reverseComplement(void) {
     for (u32bit i=0, j=KMER_WORDS-1; i<KMER_WORDS/2; i++, j--) {
       u64bit t = MERWORD(i);
@@ -33,6 +37,11 @@ public:
     *this >>= KMER_WORDS * 64 - 2 * _merSize;
 
     return(*this);
+  };
+
+
+  kMerTiny  &convertToColorSpace(kMerTiny &csmer) {
+#error convertToColorSpace not implemented
   };
 
 

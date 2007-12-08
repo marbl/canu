@@ -19,6 +19,73 @@ public:
     return(*this);
   };
 
+  kMerTiny  &convertToColorSpace(kMerTiny &csmer) {
+
+    //  Copy to the csmer.
+    csmer._md         = u64bitZERO;
+    csmer._merSize    = _merSize;
+    csmer._merSpan    = _merSpan;
+    csmer._mask       = _mask;
+    csmer._lastShift = _lastShift;
+
+    //u64bit  lastBase = 0;
+    //u64bit  thisBase = 0;
+
+    u64bit  md = csmer._md;  //  our cs mer
+    u64bit  lb = 0;          //  the last base we've seen
+    u64bit  tb = 0;          //  the current base
+
+    //  Grab the first base.
+    //
+    md <<= (64 - _lastShift);
+    lb   = (md >> 62) & u64bitMASK(2);
+
+    //  Push that base onto the csmer.
+    csmer._md  |= lb;
+
+    //  For all the remaining bases, we need to encode
+    for (u32bit i=1; i<_merSize; i++) {
+      md <<= 2;
+      tb   = (md >> 62) & u64bitMASK(2);
+
+      //  Remember:
+      //
+      //  lb = the last base (vertical)
+      //  tb = the current base (horizontal)
+      //
+      //      A C G T <- tb
+      //    A 0 1 2 3   color =  tb
+      //    C 1 0 3 2   color =  (lb ^ tb)
+      //    G 2 3 0 1   color = ~(lb ^ tb)
+      //    T 3 2 1 0   color = ~tb
+      //
+      //  How cool is that?!
+
+      csmer._md <<= 2;
+
+      switch (lb) {
+        case 0x00:
+          csmer._md |=  lb;
+          break;
+        case 0x01:
+          csmer._md |=  (lb ^ tb);
+          break;
+        case 0x02:
+          csmer._md |= ~(lb ^ tb);
+          break;
+        case 0x03:
+          csmer._md |= ~lb;
+          break;
+        default:
+          break;
+      }
+
+      lb = tb;
+    }
+
+    return(csmer);
+  };
+
   void    clear(void) {
     _md = u64bitZERO;
   };
@@ -126,7 +193,9 @@ kMerTiny::setMerSize(u32bit ms) {
 
 inline
 char *
-kMerTiny::merToString(char *instr) const {
-  ::merToString(_merSize, _md, instr);
-  return(instr);
+kMerTiny::merToString(char *str) const {
+  for (u32bit i=0; i<_merSize; i++)
+    str[_merSize-i-1] = decompressSymbol[(_md >> (2*i)) & 0x03];
+  str[_merSize] = 0;
+  return(str);
 };
