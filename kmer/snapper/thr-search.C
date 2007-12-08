@@ -97,6 +97,8 @@ public:
 
   ~encodedQuery() {
     delete [] _mers;
+    delete [] _posn;
+    delete [] _span;
   };
 
   u32bit           numberOfMersActive(void)    { return(_mersActive);  };
