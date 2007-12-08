@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: AS_UTL_Hash.c,v 1.12 2007-11-08 12:38:15 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_UTL_Hash.c,v 1.13 2007-12-08 03:15:17 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -237,7 +237,7 @@ ReallocHashTable_AS(HashTable_AS *htable) {
   int           i;
   HashNode_AS  *node;
 
-  fprintf(stderr, "ReallocHashTable()-- \n");
+  //fprintf(stderr, "ReallocHashTable()-- \n");
 
   HeapIterator_AS iterator;
 
