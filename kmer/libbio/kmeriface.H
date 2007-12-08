@@ -3,6 +3,8 @@
 
 //  Documentation, really.
 
+//  Incomplete too.
+
 class kMerInterface {
   kMerInterface() {};
   virtual ~kMerInterface() {};
