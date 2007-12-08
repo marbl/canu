@@ -30,29 +30,4 @@ reverseComplementMer(u32bit ms, u64bit fmer) {
 }
 
 
-inline
-u64bit
-stringToMer(u32bit ms, char *str) {
-  u64bit  mer = 0L;
-
-  for (u32bit i=0; i<ms; i++) {
-    mer <<= 2;
-    mer  |= compressSymbol[str[i]];
-  }
-
-  return(mer);
-}
-
-
-inline
-char *
-merToString(u32bit ms, u64bit mer, char *str) {
-  for (u32bit i=0; i<ms; i++)
-    str[ms-i-1] = decompressSymbol[(mer >> (2*i)) & 0x03];
-  str[ms] = 0;
-  return(str);
-}
-
-
-
 #endif  //  BIO_MERS_H
