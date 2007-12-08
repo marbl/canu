@@ -100,10 +100,10 @@ submitPrepareBatch(merylArgs *args) {
   fclose(F);
 
   if (args->sgeOptions)
-    sprintf(cmd, "qsub -cwd -j y -o %s-prepare.err %s -N mp%s %s-prepare.sh",
+    sprintf(cmd, "qsub -cwd -b n -j y -o %s-prepare.err %s -N mp%s %s-prepare.sh",
             args->outputFile, args->sgeOptions, args->sgeJobName, args->outputFile);
   else
-    sprintf(cmd, "qsub -cwd -j y -o %s-prepare.err -N mp%s %s-prepare.sh",
+    sprintf(cmd, "qsub -cwd -b n -j y -o %s-prepare.err -N mp%s %s-prepare.sh",
             args->outputFile, args->sgeJobName, args->outputFile);
   fprintf(stderr, "%s\n", cmd);
   if (system(cmd))
@@ -131,10 +131,10 @@ submitCountBatches(merylArgs *args) {
   fclose(F);
 
   if (args->sgeOptions)
-    sprintf(cmd, "qsub -t 1-"u64bitFMT" -cwd -j y -o %s-count-\\$TASK_ID.err %s -N mc%s %s-count.sh",
+    sprintf(cmd, "qsub -t 1-"u64bitFMT" -cwd -b n -j y -o %s-count-\\$TASK_ID.err %s -N mc%s %s-count.sh",
             args->segmentLimit, args->outputFile, args->sgeOptions, args->sgeJobName, args->outputFile);
   else
-    sprintf(cmd, "qsub -t 1-"u64bitFMT" -cwd -j y -o %s-count-\\$TASK_ID.err -N mc%s %s-count.sh",
+    sprintf(cmd, "qsub -t 1-"u64bitFMT" -cwd -b n -j y -o %s-count-\\$TASK_ID.err -N mc%s %s-count.sh",
             args->segmentLimit, args->outputFile, args->sgeJobName, args->outputFile);
   fprintf(stderr, "%s\n", cmd);
   if (system(cmd))
@@ -155,10 +155,10 @@ submitCountBatches(merylArgs *args) {
   fclose(F);
 
   if (args->sgeOptions)
-    sprintf(cmd, "qsub -hold_jid mc%s -cwd -j y -o %s-merge.err %s -N mm%s %s-merge.sh",
+    sprintf(cmd, "qsub -hold_jid mc%s -cwd -b n -j y -o %s-merge.err %s -N mm%s %s-merge.sh",
             args->sgeJobName, args->outputFile, args->sgeOptions, args->sgeJobName, args->outputFile);
   else
-    sprintf(cmd, "qsub -hold_jid mc%s -cwd -j y -o %s-merge.err -N mm%s %s-merge.sh",
+    sprintf(cmd, "qsub -hold_jid mc%s -cwd -b n -j y -o %s-merge.err -N mm%s %s-merge.sh",
             args->sgeJobName, args->outputFile, args->sgeJobName, args->outputFile);
   fprintf(stderr, "%s\n", cmd);
   if (system(cmd))
