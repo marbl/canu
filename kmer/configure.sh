@@ -436,7 +436,7 @@ CXX_TMP_ARCH      := cxx_repository
 INSTALL/          := $target/
 EOF
     ;;
-  Linux-i386)
+  Linux-i686)
     rm -f Make.compilers
     cat <<EOF > Make.compilers
 # -*- makefile -*-
@@ -499,7 +499,7 @@ ARFLAGS           := ruvs
 INSTALL/          := $target/
 EOF
     ;;
-  Linux-debug)
+  Linux-i686-debug)
     rm -f Make.compilers
     cat <<EOF > Make.compilers
 # -*- makefile -*-
