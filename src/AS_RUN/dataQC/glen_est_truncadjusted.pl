@@ -65,6 +65,8 @@ $Into=50;
 my $K=0;
 my $windowsize=100;
 my $Minovl=40;
+my $caRoot = $AS_ROOT;
+my $caBin = "";
 
 BEGIN: {
   GetOptions(
@@ -75,7 +77,9 @@ BEGIN: {
     "last=i" => \$last,
     "into=i" => \$Into,
     "window=i" => \$windowsize,
-    "minovl=i" => \$Minovl
+    "minovl=i" => \$Minovl,
+    "CA=s" => \$caRoot,
+    "CABIN=s" => \$caBin
   ) || pod2usage(2);
   pod2usage(1) if defined($help) || !defined($base) || $K<=0 || $first >= $last || $first < 1 || $Into < 0 || $Into > 500 || $windowsize<=0 || $windowsize>400;
 }
@@ -89,27 +93,41 @@ for($f=2;$f<$K;$f++){
     $fact[$f]=$fact[$f-1]*$f;
 }
 
-$frgStore = $base . ".frgStore";
+#$frgStore = $base . ".frgStore";
+#frg store no longer exists, part of gkp store
 $gkpStore = $base . ".gkpStore";
 $ovlStore = $base . ".ovlStore";
 
-if($AS_ROOT eq ""){
-    $AS_ROOT="/bioinfo/work/software/released/asm/current";
+if ($caBin eq "") {   
+   if($caRoot eq ""){
+       $caRoot="/bioinfo/work/software/released/asm/current";
+   }
+   
+   if( $ENV{OSTYPE} eq "osf1" ){
+   	$caBin="$caRoot/OSF1";
+   }
+   elsif ($ENV{OSTYPE} eq "linux"){
+       if ($ENV{HOSTTYPE} eq "x86_64") {
+         $caBin="$caRoot/Linux-amd64";
+       }
+       else {
+          $caBin="$caRoot/Linux-i686";
+       }
+   }
+   else {
+      die "Unknown OSTYPE $OSTYPE\n";
+   }
 }
 
-if( $OSTYPE eq "osf1" ){
-	$ASROOT="$AS_ROOT/OSF1";
-}else{
-    $ASROOT="$AS_ROOT/Linux";
-}
-
-open(ALLFRG,"${ASROOT}/bin/lastfraginstore $frgStore|");
+open(ALLFRG,"${caBin}/bin/gatekeeper -L $gkpStore|");
 $tmpstr=<ALLFRG>;
 close(ALLFRG);
 chomp $tmpstr;
 my @foo = split / /,$tmpstr;
 my $nfoo = @foo;
 my $nfrags=$foo[$nfoo-1];
+
+print STDERR "The last frag id is $nfrags\n";
 
 if($first >$nfrags){
     print STDERR "First must be smaller than number of fragments!\n";
@@ -124,9 +142,12 @@ if($last >$nfrags){
 my $avgfrglen=0;
 my $nfr=0;
 my $nzero=0;
-open(LENS,"${ASROOT}/bin/dumpFragClearLens -b $first -e $last $frgStore $gkpStore |");
+open(LENS,"${caBin}/bin/gatekeeper -b $first -e $last -clear LATEST -dumpfragments -tabular $gkpStore | awk '{print \$1\"\\t\"\$13-\$12}' |");
+print "Running ${caBin}/bin/gatekeeper -b $first -e $last -clear LATEST -dumpfragments -tabular $gkpStore | awk '{print \$1\"\\t\"\$13-\$12}'\n";
 while(<LENS>){
     @w=split;
+
+    if ($w[0] eq "UID") { next; }    
     $avgfrglen+=$w[1];
     $nfr++;
     if($w[1]==0){
@@ -142,7 +163,8 @@ if($nfr != $last-$first+1 || $nfr-$nzero == 0){
 $nfr-=$nzero;
 $avgfrglen/=($nfr-$nzero);
 
-open(OLAPS,"${ASROOT}/bin/dump-olap-store -b $first -e $last $ovlStore |");
+print "Running command ${caBin}/bin/overlapStore -b $first -e $last -d $ovlStore\n";
+open(OLAPS,"${caBin}/bin/overlapStore -b $first -e $last -d $ovlStore -g $gkpStore|");
 my $NR=0;
 my $prev=-1;
 my $readswithovls=0;
@@ -160,7 +182,7 @@ my $N=0;
  
 while(<OLAPS>){
     my @w=split;
-    if($w[3]<=$Into){next;}
+    if($w[3]<=$Into){next;}    
     $NR++;
     if($w[0]!=$prev){
       $readswithovls++;
@@ -254,6 +276,7 @@ sub compute_truncated_mean(){
     my $lowest=estimate($low,$frac,$k);
     my $mid=($high+$low)/2;
     my $midest=estimate($mid,$frac,$k);
+
     if($highest<$goal){
     print STDERR "Trouble getting initial bounds!\n";
     exit(-1);
