@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 /* All of the CGW celamy stuff is here */
-static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.18 2007-09-05 11:22:10 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Celamy_CGW.c,v 1.19 2007-12-10 23:29:31 brianwalenz Exp $";
 
 //#define DEBUG 1
 #include <stdio.h>
@@ -545,8 +545,8 @@ void draw_surroFrags_in_contig_for_CelamyScaffold(FILE *fout, ContigT *ctg, int 
 	  //CIFragT *f = getFragByIID(ScaffoldGraph,f_list[j].ident);
 	  //	  if(f->dist>=0&&GetDistT(ScaffoldGraph->Dists,f->dist)->mean>15000)
 
-	  fprintf(fout,"%dCtgSurro%d: %d A%dFragColor %d R10 # Contig %d Surrogate Frag %d Overlaps L/R %d/%d details: %s / %s\n",
-                  ctg->id, f_list[j].ident,
+          fprintf(fout,"%dCtgSurro%drand%d: %d A%dFragColor %d R10 # Contig %d Surrogate Frag %d Overlaps L/R %d/%d details: %s / %s\n",
+                  ctg->id, f_list[j].ident, lrand48() % 9999,
                   frgAEnd,
                   surroColor,     
                   frgBEnd,
@@ -559,8 +559,8 @@ void draw_surroFrags_in_contig_for_CelamyScaffold(FILE *fout, ContigT *ctg, int 
                   );
 
 	}else{
-	  fprintf(fout,"%dCtgSurro%d: %d A%dFragColor %d R10 # Contig %d Surrogate Frag %d\n",
-                  ctg->id, f_list[j].ident,
+          fprintf(fout,"%dCtgSurro%drand%d: %d A%dFragColor %d R10 # Contig %d Surrogate Frag %d\n",
+                  ctg->id, f_list[j].ident, lrand48() % 9999,
                   frgAEnd,
                   surroColor,     
                   frgBEnd,
