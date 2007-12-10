@@ -17,7 +17,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.32 2007-11-08 12:38:11 brianwalenz Exp $";
+static char CM_ID[] = "$Id: Instrument_CGW.c,v 1.33 2007-12-10 23:15:13 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -675,7 +675,7 @@ int InitializeSurrogateTracker(ScaffoldGraphT * graph,
   if(st->surrogateFragHT == NULL)
     {
       // assume 1/10 # of frags?
-      st->numAllocatedLocs = MAX(50, GetNumCIFragTs(graph->CIFrags) / 100);
+      st->numAllocatedLocs = MAX(5000, GetNumCIFragTs(graph->CIFrags) / 100);
       st->surrogateFragHT = CreateScalarHashTable_AS(st->numAllocatedLocs);
       if(st->surrogateFragHT == NULL)
         {
@@ -690,7 +690,7 @@ int InitializeSurrogateTracker(ScaffoldGraphT * graph,
   
   if(st->surrogateFragLocs == NULL)
     {
-      st->numAllocatedLocs = MAX(50, GetNumCIFragTs(graph->CIFrags) / 100);
+      st->numAllocatedLocs = MAX(5000, GetNumCIFragTs(graph->CIFrags) / 100);
       st->numUsedLocs = 0;
       st->surrogateFragLocs = safe_calloc(st->numAllocatedLocs,
                                           sizeof(SurrogateFragLocation));
