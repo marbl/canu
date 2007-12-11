@@ -30,6 +30,7 @@ CGW_SOURCES =     AS_CGW_main.c \
                   eCR-diagnostic.c \
                   resolveSurrogates.c \
                   dumpCloneMiddles.c \
+                  exploreGapStructure.c \
                   frgs2clones.c \
                   createFrgDeletes.c \
                   dumpSingletons.c
@@ -45,9 +46,8 @@ CGW_LIB_SOURCES = AS_CGW_dataTypes.c \
                   Celamy_CGW.c \
                   ChunkOverlap_CGW.c \
                   ContigT_CGW.c \
-		  DemoteUnitigsWithRBP_CGW.c \
+                  DemoteUnitigsWithRBP_CGW.c \
                   DiagnosticsCGW.c \
-                  exploreGapStructure.c \
                   fragmentPlacement.c \
                   GraphCGW_T.c \
                   Input_CGW.c \
