@@ -8,20 +8,6 @@
 //  canonical, we are smart enough to search exist/only with the
 //  canonical mer.
 
-typedef u64bit heapbit;
-
-//  Define this to leave out references to getTime(), speedCounter()
-//  and make the positionDB build very quietly.
-//
-#undef SILENTPOSITIONDB
-
-//  Define these to enable some debugging methods
-#undef DEBUGPOSDB
-#undef DEBUGREBUILD
-
-class existDB;
-
-
 //  Returns position in posn, resizing it if needed.  Space is
 //  allocated if none supplied.  The following is valid:
 //
@@ -35,6 +21,15 @@ class existDB;
 //  exists() returns T/F if mer exists or not
 //  count() returns the number of times that mer is present
 
+//  Define this to leave out references to getTime(), speedCounter()
+//  and make the positionDB build very quietly.
+#undef SILENTPOSITIONDB
+
+//  Define these to enable some debugging methods
+#undef DEBUGPOSDB
+#undef DEBUGREBUILD
+
+class existDB;
 
 class positionDB {
 public:
@@ -180,11 +175,9 @@ private:
   u32bit      _chckWidth;
   u32bit      _posnWidth;
   u32bit      _posnPtrWidth;
+  u32bit      _sizeWidth;
 
   u64bit      _hashMask;
-  u64bit      _chckMask;
-  u64bit      _posnMask;
-  u64bit      _posnPtrMask;
 
   u32bit      _wCnt;
   u32bit      _wFin;
@@ -203,8 +196,9 @@ private:
 
   //  For sorting the mers
   //
-  u32bit      _sortedListMax;
-  heapbit    *_sortedList;
+  u32bit      _sortedMax;
+  u64bit     *_sortedChck;
+  u64bit     *_sortedPosn;
 };
 
 #endif  //  POSITIONDB_H

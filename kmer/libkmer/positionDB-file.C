@@ -55,7 +55,7 @@ positionDB::saveState(char const *filename) {
 
   _bucketSizes     = 0L;
   _countingBuckets = 0L;
- _hashTable       = 0L;
+  _hashTable       = 0L;
   _buckets         = 0L;
   _positions       = 0L;
 

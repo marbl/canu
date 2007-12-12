@@ -1,43 +1,30 @@
 #include "positionDB.H"
 #include "bio++.H"
 
-//#define ERROR_CHECK
-//#define SORT_CHECK
-//#define CHECK_FOR_EQUALITY
 
 void
-adjustHeap(heapbit *M, s64bit i, s64bit n) {
-  heapbit   m = M[i];
-  s64bit    j = (i << 1) + 1;  //  let j be the left child
+adjustHeap(u64bit *C,
+           u64bit *P, s64bit i, s64bit n) {
+  u64bit  c = C[i];
+  u64bit  p = P[i];
+  s64bit  j = (i << 1) + 1;  //  let j be the left child
 
   while (j < n) {
-    if (j<n-1 && M[j] < M[j+1])
+    if (j<n-1 && C[j] < C[j+1])
       j++;                   //  j is the larger child
 
-    if (m >= M[j])           //  a position for M[i] has been found
+    if (c >= C[j])           //  a position for M[i] has been found
       break;
 
-    M[(j-1)/2] = M[j];       //  Move larger child up a level
+    C[(j-1)/2] = C[j];       //  Move larger child up a level
+    P[(j-1)/2] = P[j];
 
     j = (j << 1) + 1;
   }
 
-  M[(j-1)/2] = m;
+  C[(j-1)/2] = c;
+  P[(j-1)/2] = p;
 }
-
-#ifdef SORT_CHECK
-int
-cmpheap(void const *a, void const *b) {
-  heapbit A = *((heapbit const *)a);
-  heapbit B = *((heapbit const *)b);
-
-  if (A < B) return(-1);
-  if (A > B) return(1);
-  return(0);
-}
-#endif
-
-
 
 
 void
@@ -46,18 +33,14 @@ positionDB::sortAndRepackBucket(u64bit b) {
   u64bit ed = _bucketSizes[b+1];
   u32bit le = (u32bit)(ed - st);
 
-#ifdef ERROR_CHECK
   if (ed < st)
     fprintf(stdout, "ERROR: Bucket %10lu starts at %10lu ends at %10lu?\n", b, st, ed);
-#endif
 
-  //  No mers in the list?  We're done.
-  //
-  if (ed == st)
+  if (le == 0)
     return;
 
-  //  One mer in the list?  It's distinct and unique!  (and doesn't contribute
-  //  to the position list space count)
+  //  One mer in the list?  It's distinct and unique!  (and doesn't
+  //  contribute to the position list space count)
   //
   if (le == 1) {
     _numberOfDistinct++;
@@ -67,143 +50,67 @@ positionDB::sortAndRepackBucket(u64bit b) {
 
   //  Allocate more space, if we need to.
   //
-  if (_sortedListMax <= le) {
-    delete [] _sortedList;
-    _sortedListMax = le + 16;
-    _sortedList    = new heapbit [_sortedListMax];
+  if (_sortedMax <= le) {
+    _sortedMax = le + 1024;
+    delete [] _sortedChck;
+    delete [] _sortedPosn;
+    _sortedChck = new u64bit [_sortedMax];
+    _sortedPosn = new u64bit [_sortedMax];
   }
 
-  //  Unpack the check values
+  //  Unpack the bucket
   // 
-  for (u64bit i=st, J=st * _wCnt; i<ed; i++, J += _wCnt)
-   _sortedList[i-st] = getDecodedValue(_countingBuckets, J, _wCnt);
-
-
-#ifdef CHECK_FOR_EQUALITY
-  //  Check for duplicate entries in the _sortedList.
-  //
-  u32bit duplicates = 0;
-
-  for (u32bit i=0; i<le; i++)
-    for (u32bit j=i+1; j<le; j++)
-      if (_sortedList[i] == _sortedList[j])
-        duplicates++;
-
-  if (duplicates > 0)
-    fprintf(stdout, "Found %u (pairs of) duplicates!\n", duplicates);
-#endif
-
-
-
-#ifdef ERROR_CHECK
-  int unsetBucket = 0;
-  for (u32bit t=0; t<le; t++)
-    if ((_sortedList[t] & _posnMask) == _posnMask) {
-      unsetBucket = 1;
-      fprintf(stdout, "WARNING!  Unset countingBucket --i=%lu len=%lu 0x%016lx\n", t, le, _sortedList[t]);
-      fprintf(stdout, "          Bucket %10lu starts at %10lu ends at %10lu\n\n", b, st, ed);
-    }
-#endif
-
-
-#ifdef ERROR_CHECK
-  if (unsetBucket) {
-    fprintf(stdout, "entries are BEFORE:\n");
-    for (u32bit t=0; t<le; t++)
-      fprintf(stdout, "%4u] 0x%016lx\n", t, _sortedList[t]);
-    fprintf(stdout, "\n");
+  u64bit   lens[3] = {_chckWidth, _posnWidth, 1 + _sizeWidth};
+  u64bit   vals[3] = {0};
+  for (u64bit i=st, J=st * _wCnt; i<ed; i++, J += _wCnt) {
+    getDecodedValues(_countingBuckets, J, 2, lens, vals);
+    _sortedChck[i-st] = vals[0];
+    _sortedPosn[i-st] = vals[1];
   }
-#endif
-
-
-
-#ifdef SORT_CHECK
-  //  Error check the sorting.  Sort once using qsort (which we
-  //  assume is correct), then sort it again with heapsort.
-  //  compare the two outputs.
-  //
-
-  heapbit *sortTest = new heapbit [le];
-  for (u32bit t=0; t<le; t++)
-    sortTest[t] = _sortedList[t];
-
-  qsort(sortTest, le, sizeof(heapbit), cmpheap);
-#endif
-
-
 
   //  Create the heap of lines.
   //
-  for (s64bit t=(le-2)/2; t>=0; t--)
-    adjustHeap(_sortedList, t, le);
+  int unsetBucket = 0;
+
+  for (s64bit t=(le-2)/2; t>=0; t--) {
+    if (_sortedPosn[t] == u64bitMASK(_posnWidth)) {
+      unsetBucket = 1;
+      fprintf(stdout, "ERROR: unset posn bucket="u64bitFMT" t="u32bitFMT" le="u32bitFMT"\n", b, t, le);
+    }
+
+    adjustHeap(_sortedChck, _sortedPosn, t, le);
+  }
+
+  if (unsetBucket)
+    for (u32bit t=0; t<le; t++)
+      fprintf(stdout, "%4u] chck=u64bitHEX posn=u64bitFMT\n", t, _sortedChck[t], _sortedPosn[t]);
 
   //  Interchange the new maximum with the element at the end of the tree
   //
   for (s64bit t=le-1; t>0; t--) {
-    heapbit          tv = _sortedList[t];
-    _sortedList[t]      = _sortedList[0];
-    _sortedList[0]      = tv;
+    u64bit           tc = _sortedChck[t];
+    u64bit           tp = _sortedPosn[t];
 
-    adjustHeap(_sortedList, 0, t);
+    _sortedChck[t]      = _sortedChck[0];
+    _sortedPosn[t]      = _sortedPosn[0];
+
+    _sortedChck[0]      = tc;
+    _sortedPosn[0]      = tp;
+
+    adjustHeap(_sortedChck, _sortedPosn, 0, t);
   }
 
-
-#if 0
-  //  Define this (and SORT_CHECK) to use qsort() exclusively
-  for (u32bit t=0; t<le; t++)
-    _sortedList[t] = sortTest[t];
-#endif
-
-
-#ifdef SORT_CHECK
-  for (u32bit t=0; t<le; t++)
-    if (sortTest[t] != _sortedList[t])
-      fprintf(stderr, "ERROR with sort: %5u/%5u\n", t, le);
-  delete [] sortTest;
-#endif
-
-#ifdef ERROR_CHECK
-  if (unsetBucket) {
-    fprintf(stdout, "entries are AFTER:\n");
-    for (u32bit t=0; t<le; t++)
-      fprintf(stdout, "%4u] 0x%016lx\n", t, _sortedList[t]);
-    fprintf(stdout, "\n");
-  }
-#endif
-
-#ifdef ERROR_CHECK
-  //  Are we actually sorted?
-  //
-  //  We get EQUAL (on real data), and lots of:
-  //    ERROR:    38/ 174: 0x0001ffffffffffff == 0x0001ffffffffffff
-  //
-  //  ON BOTH versions.
-  //
-  for (u32bit t=1; t<le; t++) {
-    if (_sortedList[t-1] == _sortedList[t])
-      fprintf(stdout, "ERROR: %6u %4u/%4u: 0x%016llx == 0x%016llx\n", b, t, le, _sortedList[t-1], _sortedList[t]);
-    if (_sortedList[t-1] > _sortedList[t])
-      fprintf(stdout, "ERROR: %6u %4u/%4u: 0x%016llx  > 0x%016llx\n", b, t, le, _sortedList[t-1], _sortedList[t]);
-  }
-#endif
-
-  u64bit  checkMask = _mask2 << _posnWidth;
-
-  //
   //  Scan the list of sorted mers, counting the number of distinct and unique,
   //  and the space needed in the position list.
-  //
 
-  //  Count the first mer.
-  //
-  u64bit   entries = 1;
+  u64bit   entries = 1;  //  For t=0
 
   for (u32bit t=1; t<le; t++) {
+    if (_sortedChck[t-1] > _sortedChck[t])
+      fprintf(stdout, "ERROR: bucket="u64bitFMT" t="u32bitFMT" le="u32bitFMT": "u64bitHEX" > "u64bitHEX"\n",
+              b, t, le, _sortedChck[t-1], _sortedChck[t]);
 
-    //  If the current check is not the last check, then we have a new
-    //  mer.  Update the counts.
-    //
-    if ((_sortedList[t-1] & checkMask) != (_sortedList[t] & checkMask)) {
+    if (_sortedChck[t-1] != _sortedChck[t]) {
       _numberOfDistinct++;
 
       if (_maximumEntries < entries)
@@ -212,7 +119,7 @@ positionDB::sortAndRepackBucket(u64bit b) {
       if (entries == 1)
         _numberOfUnique++;
       else
-        _numberOfEntries += entries + 1;
+        _numberOfEntries += entries + 1;  //  +1 for the length
 
       entries = 0;
     }
@@ -230,9 +137,14 @@ positionDB::sortAndRepackBucket(u64bit b) {
   else
     _numberOfEntries += entries + 1;
 
+
   //  Repack the sorted entries
   //
-  for (u64bit i=st, J=st * _wCnt; i<ed; i++, J += _wCnt)
-    setDecodedValue(_countingBuckets, J, _wCnt, _sortedList[i-st]);
+  for (u64bit i=st, J=st * _wCnt; i<ed; i++, J += _wCnt) {
+    vals[0] = _sortedChck[i-st];
+    vals[1] = _sortedPosn[i-st];
+    vals[3] = 0;
+    setDecodedValues(_countingBuckets, J, 3, lens, vals);
+  }
 }
 

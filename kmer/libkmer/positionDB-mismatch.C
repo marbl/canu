@@ -79,11 +79,10 @@ positionDB::getMismatch(u64bit   mer,
         u64bit ed = getDecodedValue(_hashTable, hasherrors * _hashWidth + _hashWidth, _hashWidth);
 
         for (u64bit i=st, J=st * _wFin; i<ed; i++, J += _wFin) {
-          u64bit v = getDecodedValue(_buckets, J, _wFin);
 
           //  Rebuild the mer from the hash and its check code.
           //
-          u64bit  chk = REBUILD(hasherrors, v & _chckMask);
+          u64bit  chk = REBUILD(hasherrors, getDecodedValue(_buckets, J, _chckWidth));
 
           //  Compare the rebuilt mer and the original mer -- if there
           //  are exactly three errors, it's a hit!  (if there are
@@ -95,7 +94,7 @@ positionDB::getMismatch(u64bit   mer,
           u64bit  d2    = diffs & u64bitNUMBER(0xaaaaaaaaaaaaaaaa);
 
           if (countNumberOfSetBits64(d1 | (d2 >> 1)) == numMismatches)
-            loadPositions(v, posn, posnMax, posnLen);
+            loadPositions(J, posn, posnMax, posnLen);
         }
       }
     }

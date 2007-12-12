@@ -1,23 +1,24 @@
 #include "positionDB.H"
 #include "bio++.H"
 
+
 void
-positionDB::loadPositions(u64bit   v,
+positionDB::loadPositions(u64bit   J,
                           u64bit*& posn,
                           u64bit&  posnMax,
                           u64bit&  posnLen) {
 
-  u64bit  pos = (v >> _chckWidth) & _posnPtrMask;
+  u64bit  sizs[2] = {_posnWidth, 1};
+  u64bit  vals[2] = {0};
 
-  if (v & (u64bitONE << (_wFin - 1))) {
-    //  We allocated space already.
-    posn[posnLen++] = pos;
+  getDecodedValues(_buckets, J + _chckWidth, 2, sizs, vals);
+
+  if (vals[1]) {
+    posn[posnLen++] = vals[0];
   } else {
-    u64bit ptr  = pos * _posnWidth;
+    u64bit ptr  = vals[0] * _posnWidth;
     u64bit len  = getDecodedValue(_positions, ptr, _posnWidth);
 
-    //  Whoops!  Need more space!
-    //
     if (posnMax < posnLen + len) {
       delete [] posn;
 
@@ -30,10 +31,8 @@ positionDB::loadPositions(u64bit   v,
       }
     }
 
-    for (; len > 0; len--) {
-      ptr += _posnWidth;
+    for (ptr += _posnWidth; len > 0; ptr += _posnWidth, len--)
       posn[posnLen++] = getDecodedValue(_positions, ptr, _posnWidth);
-    }
   }
 }
 
@@ -48,16 +47,12 @@ positionDB::get(u64bit   mer,
   u64bit  c = CHECK(mer);
   u64bit st = getDecodedValue(_hashTable, h * _hashWidth,              _hashWidth);
   u64bit ed = getDecodedValue(_hashTable, h * _hashWidth + _hashWidth, _hashWidth);
-  u64bit le = ed - st;
 
   posnLen = 0;
 
-  if (le == 0)
+  if (st == ed)
     return(false);
 
-  //  Get this out of the way.  If we have no space, allocate a little
-  //  bit.
-  //
   if (posnMax == 0) {
     posnMax = 16384;
     try {
@@ -69,16 +64,15 @@ positionDB::get(u64bit   mer,
   }
 
   for (u64bit i=st, J=st * _wFin; i<ed; i++, J += _wFin) {
-    u64bit v = getDecodedValue(_buckets, J, _wFin);
-
-    if ((v & _chckMask) == c) {
-      loadPositions(v, posn, posnMax, posnLen);
+    if (c == getDecodedValue(_buckets, J, _chckWidth)) {
+      loadPositions(J, posn, posnMax, posnLen);
       return(true);
     }
   }
 
   return(false);
 }
+
 
 bool
 positionDB::exists(u64bit mer) {
@@ -87,13 +81,16 @@ positionDB::exists(u64bit mer) {
   u64bit st = getDecodedValue(_hashTable, h * _hashWidth,              _hashWidth);
   u64bit ed = getDecodedValue(_hashTable, h * _hashWidth + _hashWidth, _hashWidth);
 
-  if (st != ed)
-    for (u64bit i=st, J=st * _wFin; i<ed; i++, J += _wFin)
-      if ((getDecodedValue(_buckets, J, _wFin) & _chckMask) == c)
-        return(true);
+  if (st == ed)
+    return(false);
+
+  for (u64bit i=st, J=st * _wFin; i<ed; i++, J += _wFin)
+    if (c == getDecodedValue(_buckets, J, _chckWidth))
+      return(true);
 
   return(false);
 }
+
 
 u64bit
 positionDB::count(u64bit mer) {
@@ -102,15 +99,25 @@ positionDB::count(u64bit mer) {
   u64bit st = getDecodedValue(_hashTable, h * _hashWidth,              _hashWidth);
   u64bit ed = getDecodedValue(_hashTable, h * _hashWidth + _hashWidth, _hashWidth);
 
-  if (st != ed)
-    for (u64bit i=st, J=st * _wFin; i<ed; i++, J += _wFin) {
-      u64bit v = getDecodedValue(_buckets, J, _wFin);
-      if ((v & _chckMask) == c) {
-        if (v & (u64bitONE << (_wFin - 1)))
-          return(1);
-        return(getDecodedValue(_positions, ((v >> _chckWidth) & _posnPtrMask) * _posnWidth, _posnWidth));
-      }
+  if (st == ed)
+    return(0);
+
+  for (u64bit i=st, J=st * _wFin; i<ed; i++, J += _wFin) {
+    if (c == getDecodedValue(_buckets, J, _chckWidth)) {
+      u64bit  sizs[3] = {_posnWidth, 1, _sizeWidth};
+      u64bit  vals[3] = {0};
+
+      getDecodedValues(_buckets, J + _chckWidth, 3, sizs, vals);
+
+      if (_sizeWidth > 0)
+        return(vals[2]);
+
+      if (vals[1])
+        return(1);
+
+      return(getDecodedValue(_positions, vals[0] * _posnWidth, _posnWidth));
     }
+  }
 
   return(0);
 }
