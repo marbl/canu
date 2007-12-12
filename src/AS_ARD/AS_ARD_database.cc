@@ -160,11 +160,11 @@ bool AS_ARD_database::addULK2DB(SnapUnitigLinkMesg * ulk) {
    }
    
    for (i = 0; i < num; i++) {
-      result = result && addJMP2DB(ULK_TYPE, euid, &ulk->jump_list[i]);
+      result = result && addJMP2DB(IDBOutput::ULK_TYPE, euid, &ulk->jump_list[i]);
    }
  
-   result = result && addLKList2DB(ULK_TYPE, ulk->eunitig1, euid);
-   result = result && addLKList2DB(ULK_TYPE, ulk->eunitig2, euid);
+   result = result && addLKList2DB(IDBOutput::ULK_TYPE, ulk->eunitig1, euid);
+   result = result && addLKList2DB(IDBOutput::ULK_TYPE, ulk->eunitig2, euid);
    
    return result;
 }
@@ -365,18 +365,17 @@ bool AS_ARD_database::addCLK2DB(SnapContigLinkMesg * clk) {
             clk->num_contributing,
             clk->status);
    
-   #warning is this appropriate for CLK as well as for ULK?
    int32 num = clk->num_contributing;
    if (clk->overlap_type != AS_NO_OVERLAP) {
       num--;
    }
    
    for (i = 0; i < num; i++) {
-      result = result && addJMP2DB(CLK_TYPE, euid, &clk->jump_list[i]);
+      result = result && addJMP2DB(IDBOutput::CLK_TYPE, euid, &clk->jump_list[i]);
    }
  
-   result = result && addLKList2DB(CLK_TYPE, clk->econtig1, euid);
-   result = result && addLKList2DB(CLK_TYPE, clk->econtig2, euid);
+   result = result && addLKList2DB(IDBOutput::CLK_TYPE, clk->econtig1, euid);
+   result = result && addLKList2DB(IDBOutput::CLK_TYPE, clk->econtig2, euid);
    
    return result;
 }

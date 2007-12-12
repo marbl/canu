@@ -56,8 +56,6 @@ const char BCPOutput::CPS_FILENAME[MAX_FILE_LEN] = "CPS";
 
 const char BCPOutput::DEFAULT_BCP[MAX_STR_LEN] = "bcp";
 
-#define MAX_DELTA 1000
-
 BCPOutput::BCPOutput(
             const char * _prefix, 
             const char * _server,
@@ -109,8 +107,6 @@ BCPOutput::BCPOutput(
       bcp = new char[len + 1];
       strncpy(bcp, DEFAULT_BCP, len+1);
    }
-
-std::cerr << "The BCP IS SET TO : " << bcp << ":" << std::endl;
 }
 
 BCPOutput::~BCPOutput() {
@@ -182,14 +178,9 @@ bool BCPOutput::updateFile(
          }
          // do one last find so we get the range to replace
          std::string::size_type end = line.find("\t", pos+1) - pos;
-//std::cerr << "Teh substring runs from " << pos << " to " << pos+end << std::endl;         
-//std::cerr << "Teh substring is " << line.substr(pos, end) << std::endl;         
          AS_UID uid = AS_UID_fromInteger(strtoll(line.substr(pos, end).c_str(), NULL, 10));
-//std::cerr << "The substring is " <<  uid << std::endl;
-//std::cerr << "The lookup is " << LookupValueInHashTable_AS(hash, uid, 0) << std::endl;
          sprintf(replace, F_U64, LookupValueInHashTable_AS(hash, AS_UID_toInteger(uid), 0));
          line.replace(pos,end,replace);
-//std::cerr << "New line is now " << line << std::endl;
 
          fout << line << std::endl;
       }
@@ -513,8 +504,6 @@ bool BCPOutput::storeCCO2DB (
       ccoBCP = openFile(CCO_FILENAME);
    }
    
-//std::cerr << "Storing CCO " << std::endl;
-   
    (*ccoBCP) << assemblyID << "\t" 
                << AS_UID_toInteger(eaccession) << "\t"
                << iaccession << "\t"
@@ -544,8 +533,6 @@ bool BCPOutput::storeCCOMPS2DB(
       ccoMpsBCP = openFile(CCO_MPS_FILENAME);
    }
 
-//std::cerr << "Storing CCOMPS " << std::endl;
-
    #warning using 0 as ciid for CCOMPS
    (*ccoMpsBCP) << assemblyID << "\t"
                   << AS_UID_toInteger(ccoMpsID) << "\t"
@@ -573,8 +560,7 @@ bool BCPOutput::storeUPS2DB(
    if (upsBCP == NULL) {
       upsBCP = openFile(UPS_FILENAME);
    }
-   
-//std::cerr << "Storing UPS " << std::endl;   
+      
    #warning truncating delta in UPS to 1000
    #warning using 0 as ciid for UPS
    (*upsBCP) << assemblyID << "\t" 
@@ -604,7 +590,6 @@ bool BCPOutput::storeVAR2DB(
    if (varBCP == NULL) {
       varBCP = openFile(VAR_FILENAME);
    }
-//std::cerr << "Storing VAR " << std::endl;
 
    #warning using 0 as ciid for VAR
    (*varBCP) << assemblyID << "\t"
@@ -627,7 +612,6 @@ bool BCPOutput::storeVARAllele2DB(AS_UID varAlleleID, AS_UID varID, uint32 nra, 
    if (varAlleleBCP == NULL) {
       varAlleleBCP = openFile(VAR_ALLELE_FILENAME);
    }
-//std::cerr << "Storing VARALL " << std::endl;
    
    #warning using 0 as ciid for VAR_ALLELE
    (*varAlleleBCP) << assemblyID << "\t"
@@ -646,7 +630,6 @@ bool BCPOutput::storeVARAFG2DB(AS_UID varAfgID, AS_UID varID, CDS_CID_t readID) 
       varAFGBCP = openFile(VAR_AFG_FILENAME);
    }
    
-//std::cerr << "Storing VAR AFG " << std::endl;
    #warning using 0 as ciid for VAR_AFG
    (*varAFGBCP) << assemblyID << "\t"
                   << AS_UID_toInteger(varAfgID) << "\t"
@@ -672,9 +655,6 @@ bool BCPOutput::storeCLK2DB(
       clkBCP = openFile(CLK_FILENAME);
    }
 
-   char cmd[MAX_STR_LEN];   
-//std::cerr << "Storing CLK " << std::endl;
-
    (*clkBCP) << assemblyID << "\t"
                   << AS_UID_toInteger(euid) << "\t"
                   << ciid << "\t"
@@ -691,14 +671,10 @@ bool BCPOutput::storeCLK2DB(
 }
 
 bool BCPOutput::storeDSC2DB(AS_UID eaccession, AS_UID econtig) {
-   char cmd[MAX_STR_LEN];   
-
    if (dscBCP == NULL) {
       dscBCP = openFile(DSC_FILENAME);
    }
    
-//std::cerr << "Storing DSC " << std::endl;
-
    (*dscBCP) << assemblyID << "\t"
                   << AS_UID_toInteger(eaccession) << "\t"
                   << AS_UID_toInteger(econtig) << "\n";
@@ -707,13 +683,10 @@ bool BCPOutput::storeDSC2DB(AS_UID eaccession, AS_UID econtig) {
 }
 
 bool BCPOutput::storeSCF2DB(AS_UID eaccession, CDS_CID_t iaccession, uint32 num_contig_pairs) {
-   char cmd[MAX_STR_LEN];   
-
    if (scfBCP == NULL) {
       scfBCP = openFile(SCF_FILENAME);
    }
-//std::cerr << "Storing SCF " << std::endl;
-
+   
    (*scfBCP) << assemblyID << "\t"
                   << AS_UID_toInteger(eaccession) << "\t"
                   << iaccession << "\t"
@@ -723,13 +696,9 @@ bool BCPOutput::storeSCF2DB(AS_UID eaccession, CDS_CID_t iaccession, uint32 num_
 }
 
 bool BCPOutput::storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev, ChunkOrientationType orient) {
-   char cmd[MAX_STR_LEN];   
-
    if (ctpBCP == NULL) {
       ctpBCP = openFile(CTP_FILENAME);
    }
-
-//std::cerr << "Storing CTP " << std::endl;
 
    #warning using 0 as ciid for CTP
    (*ctpBCP) << assemblyID << "\t"
@@ -744,12 +713,9 @@ bool BCPOutput::storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev
 }
          
 bool BCPOutput::storeCTPList2DB(AS_UID ctpListID, AS_UID ctpID, AS_UID ccoID) {
-   char cmd[MAX_STR_LEN];
-
    if (ctpListBCP == NULL) {
       ctpListBCP = openFile(CTP_LIST_FILENAME);
    }
-//std::cerr << "Storing CTP LIST " << std::endl;
    
    (*ctpListBCP) << assemblyID << "\t"
                   << AS_UID_toInteger(ctpListID) << "\t"
@@ -761,12 +727,9 @@ bool BCPOutput::storeCTPList2DB(AS_UID ctpListID, AS_UID ctpID, AS_UID ccoID) {
 }
 
 bool BCPOutput::storeCPS2DB(AS_UID cpsID, AS_UID ctpID, AS_UID ccoID, CDS_COORD_t ctgStart, CDS_COORD_t ctgEnd) {
-   char cmd[MAX_STR_LEN];
-
    if (cpsBCP == NULL) {
       cpsBCP = openFile(CPS_FILENAME);
    }
-//std::cerr << "Storing CPS " << std::endl;
    
    (*cpsBCP) << assemblyID << "\t"
                << AS_UID_toInteger(cpsID) << "\t"
@@ -884,7 +847,6 @@ bool BCPOutput::commitJMPList2DB() {
 bool BCPOutput::commitCCO2DB() {
    if (ccoBCP == NULL) { return true; }
 
-std::cerr << "Comming CCO" << std::endl;   
    SQLOutput::commitCCO2DB();
 
    if (CCO_UID_to_MSGID == NULL) {
@@ -900,7 +862,6 @@ std::cerr << "Comming CCO" << std::endl;
 bool BCPOutput::commitCCOMPS2DB() {
    if (ccoMpsBCP == NULL) { return true; }
 
-std::cerr << "Comming CCOMPS" << std::endl;   
    SQLOutput::commitCCOMPS2DB();
    
    bool result = closeFile(&ccoMpsBCP);
@@ -913,7 +874,6 @@ std::cerr << "Comming CCOMPS" << std::endl;
 bool BCPOutput::commitUPS2DB() { 
    if (upsBCP == NULL) { return true; }
 
-std::cerr << "Comming UPS" << std::endl;   
    bool result = closeFile(&upsBCP);
    updateFile(UPS_FILENAME, CCO_UID_to_MSGID, 3);
    updateFile(UPS_FILENAME, UTG_UID_to_MSGID, 4);
@@ -926,7 +886,6 @@ std::cerr << "Comming UPS" << std::endl;
 bool BCPOutput::commitVAR2DB() { 
    if (varBCP == NULL) { return true; }
    
-std::cerr << "Comming VAR" << std::endl;
    SQLOutput::commitVAR2DB();
 
    if (VAR_UID_to_MSGID == NULL) {
@@ -943,8 +902,7 @@ std::cerr << "Comming VAR" << std::endl;
 
 bool BCPOutput::commitVARAllele2DB() { 
    if (varAlleleBCP == NULL) { return true; }
-
-std::cerr << "Comming VARALL" << std::endl;      
+      
    bool result = closeFile(&varAlleleBCP);
    updateFile(VAR_ALLELE_FILENAME, VAR_UID_to_MSGID, 3);
    SQLOutput::commitVARAllele2DB();
@@ -955,7 +913,6 @@ std::cerr << "Comming VARALL" << std::endl;
 bool BCPOutput::commitVARAFG2DB() {
    if (varAFGBCP == NULL) { return true; }
       
-std::cerr << "Comming VARAFG" << std::endl;
    bool result = closeFile(&varAFGBCP);
    updateFile(VAR_AFG_FILENAME, VAR_UID_to_MSGID, 3);
    updateFile(VAR_AFG_FILENAME, AFG_IID_to_MSGID, 4);
@@ -968,7 +925,6 @@ std::cerr << "Comming VARAFG" << std::endl;
 bool BCPOutput::commitCLK2DB() {
    if (clkBCP == NULL) { return true; }
 
-std::cerr << "Comming CLK" << std::endl;
    if (CLK_UID_to_MSGID == NULL) {
       CLK_UID_to_MSGID = CreateScalarHashTable_AS(32 * 1024);
    }   

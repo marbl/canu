@@ -21,6 +21,7 @@
 /*************************************************************************/
 /* Local include files */
 /*************************************************************************/
+#ifdef SYBASE
 
 extern "C" {   
    #include "AS_global.h"
@@ -1103,3 +1104,6 @@ std::cerr << "Running command " << command << std::endl;
    fclose(file);
    return 0;
 }
+
+#endif
+

@@ -28,8 +28,6 @@
 using AS_ARD::SQLOutput;
 using AS_ARD::Sybase;
 
-#define MAX_DELTA 1000
-
 SQLOutput::SQLOutput(IDBConnection * connection) {
    dbConnection = connection;
    

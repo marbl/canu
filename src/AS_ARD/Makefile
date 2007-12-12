@@ -33,9 +33,9 @@ AS_ARD_CXXFLAGS =
 #but we need to include it to get OSTYPE and MACHINETIME and all the settings
 COMMON_SOURCES = Sybase.cc
 DB_SOURCES = 	AS_ARD_database.cc \
-		        	DBTextOutput.cc \
-					BCPOutput.cc \
-				 	SQLOutput.cc 
+        	DBTextOutput.cc \
+		BCPOutput.cc \
+	 	SQLOutput.cc 
 SOURCES = loadAssembly.cc getAssembly.cc $(COMMON_SOURCES) $(DB_SOURCES)
 OBJECTS = $(SOURCES:.cc=.o)
 LIBRARIES =
@@ -45,7 +45,9 @@ include $(LOCAL_WORK)/src/c_make.as
 
 ifeq ($(SITE_NAME), JCVI) 
    ifeq ($(OSTYPE), Linux)
-		SYBASE = /usr/local/packages/sybase15
+		ifndef SYBASE
+			SYBASE = /usr/local/packages/sybase15
+		endif
 		AS_ARD_CXXFLAGS = -DSYBASE
 
 		ifeq ($(MACHINETYPE), i686)

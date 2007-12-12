@@ -234,30 +234,55 @@ bool DBTextOutput::storeJMPList2DB(int jmpType, AS_UID jmpListID, AS_UID jmpID, 
 }
 
 bool DBTextOutput::storeCCO2DB (
-         AS_UID eaccession,  
-         IntFragment_ID iaccession,
-         ContigPlacementStatusType placed,
-         CDS_COORD_t length,
-         const char * consensus,
-         const char * quality,
-         int32 forced,
-         int32 num_pieces,
-         int32 num_unitigs,
-         int32 num_vars) {
+                  AS_UID eaccession,  
+                  IntFragment_ID iaccession,
+                  ContigPlacementStatusType placed,
+                  CDS_COORD_t length,
+                  const char * consensus,
+                  const char * quality,
+                  int32 forced,
+                  int32 num_pieces,
+                  int32 num_unitigs,
+                  int32 num_vars) {
+
+   std::cerr << assemblyID << "\t" 
+               << AS_UID_toInteger(eaccession) << "\t"
+               << iaccession << "\t"
+               << static_cast<char>(placed) << "\t"
+               << length << "\t"
+               << "" << "\t"
+               << "" << "\t"
+               << forced << "\t"
+               << num_pieces << "\t"
+               << num_unitigs << "\t"
+               << num_vars << "\n";
 
    return true;
 }
 
 bool DBTextOutput::storeCCOMPS2DB(
-         AS_UID ccoMpsID,
-         AS_UID ccoID,            
-         AS_UID fragID,
-         FragType type,
-         const char * source,
-         CDS_COORD_t bgn,
-         CDS_COORD_t end,
-         int32 delta_length,
-         std::string delta) {
+                  AS_UID ccoMpsID,
+                  AS_UID ccoID,            
+                  AS_UID fragID,
+                  FragType type,
+                  const char * source,
+                  CDS_COORD_t bgn,
+                  CDS_COORD_t end,
+                  int32 delta_length,
+                  std::string delta) {
+
+   #warning using 0 as ciid for CCOMPS
+   std::cerr << assemblyID << "\t"
+                  << AS_UID_toInteger(ccoMpsID) << "\t"
+                  << 0 << "\t"
+                  << AS_UID_toInteger(ccoID) << "\t"
+                  << AS_UID_toInteger(fragID) << "\t"
+                  << static_cast<char>(type) << "\t"
+                  << source << "\t"
+                  << bgn << "\t"
+                  << end << "\t"
+                  << delta.substr(0,MAX_DELTA).c_str() << "\n";
+
    return true;
 }
 
@@ -270,10 +295,23 @@ bool DBTextOutput::storeUPS2DB(
                   CDS_COORD_t end,
                   int32 delta_length,
                   std::string delta) {
+   #warning truncating delta in UPS to 1000
+   #warning using 0 as ciid for UPS
+   std::cerr << assemblyID << "\t" 
+                  << AS_UID_toInteger(upsID) << "\t"
+                  << 0 << "\t" 
+                  << AS_UID_toInteger(ccoID) << "\t"
+                  << AS_UID_toInteger(unitigID) << "\t"
+                  << static_cast<char>(type) << "\t"
+                  << bgn << "\t"
+                  << end << "\t"
+                  << delta.substr(0,MAX_DELTA).c_str() << "\n";
+
    return true;
 }
 
 bool DBTextOutput::storeVAR2DB(
+                  AS_UID varID,
                   AS_UID ccoID,            
                   CDS_COORD_t bgn,
                   CDS_COORD_t end,
@@ -283,16 +321,46 @@ bool DBTextOutput::storeVAR2DB(
                   CDS_COORD_t var_length,
                   int32 curr_var_id,
                   int32 phased_var_id) {
+   #warning using 0 as ciid for VAR
+   std::cerr << assemblyID << "\t"
+                  << AS_UID_toInteger(varID) << "\t"
+                  << 0 << "\t" 
+                  << AS_UID_toInteger(ccoID) << "\t"
+                  << bgn << "\t"
+                  << end << "\t"
+                  << num_reads << "\t"
+                  << num_conf_alleles << "\t"
+                  << anchor_size << "\t"
+                  << var_length << "\t"
+                  << curr_var_id << "\t"
+                  << phased_var_id << "\n";
+   
    return true;
 }
 
-bool DBTextOutput::storeVARAllele2DB(AS_UID varAlleleID, AS_UID varID, uint64 nra, uint64 wgt, std::string seq) {
+bool DBTextOutput::storeVARAllele2DB(AS_UID varAlleleID, AS_UID varID, uint32 nra, uint32 wgt, std::string seq) {
+   #warning using 0 as ciid for VAR_ALLELE
+   std::cerr << assemblyID << "\t"
+                     << AS_UID_toInteger(varAlleleID) << "\t"
+                     << 0 << "\t" 
+                     << AS_UID_toInteger(varID) << "\t"
+                     << nra << "\t"
+                     << wgt << "\t"
+                     << seq.c_str() << "\n";
+
    return true;
-}   
+}
 
 bool DBTextOutput::storeVARAFG2DB(AS_UID varAfgID, AS_UID varID, CDS_CID_t readID) {
+   #warning using 0 as ciid for VAR_AFG
+   std::cerr << assemblyID << "\t"
+                  << AS_UID_toInteger(varAfgID) << "\t"
+                  << 0 << "\t"
+                  << AS_UID_toInteger(varID) << "\t"
+                  << readID << "\n";
+
    return true;
-}   
+}
 
 bool DBTextOutput::storeCLK2DB(
                   AS_UID euid,
@@ -305,25 +373,70 @@ bool DBTextOutput::storeCLK2DB(
                   float std_deviation,
                   uint32 num_contributing,
                   PlacementStatusType status) {
+   std::cerr << assemblyID << "\t"
+                  << AS_UID_toInteger(euid) << "\t"
+                  << ciid << "\t"
+                  << static_cast<char>(orientation) << "\t"
+                  << static_cast<char>(overlap_type) << "\t"
+                  << is_possible_chimera << "\t"
+                  << includes_guide << "\t"
+                  << mean_distance << "\t"
+                  << std_deviation << "\t"
+                  << num_contributing << "\t"
+                  << static_cast<char>(status) << "\n";
+
    return true;
 }
 
 bool DBTextOutput::storeDSC2DB(AS_UID eaccession, AS_UID econtig) {
+   std::cerr << assemblyID << "\t"
+                  << AS_UID_toInteger(eaccession) << "\t"
+                  << AS_UID_toInteger(econtig) << "\n";
+
    return true;
 }
 
 bool DBTextOutput::storeSCF2DB(AS_UID eaccession, CDS_CID_t iaccession, uint32 num_contig_pairs) {
+   std::cerr << assemblyID << "\t"
+                  << AS_UID_toInteger(eaccession) << "\t"
+                  << iaccession << "\t"
+                  << num_contig_pairs << "\n";
+   
    return true;
 }
 
 bool DBTextOutput::storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev, ChunkOrientationType orient) {
+   #warning using 0 as ciid for CTP
+   std::cerr << assemblyID << "\t"
+                  << AS_UID_toInteger(ctpID) << "\t"
+                  << 0 << "\t"
+                  << AS_UID_toInteger(scfID) << "\t"
+                  << mean << "\t"
+                  << stddev << "\t"
+                  << static_cast<char>(orient) << "\n";
+   
    return true;
 }
-
+         
 bool DBTextOutput::storeCTPList2DB(AS_UID ctpListID, AS_UID ctpID, AS_UID ccoID) {
+   std::cerr << assemblyID << "\t"
+                  << AS_UID_toInteger(ctpListID) << "\t"
+                  << (uint32)0 << "\t"
+                  << AS_UID_toInteger(ctpID) << "\t"
+                  << AS_UID_toInteger(ccoID) << "\n";
+
    return true;
 }
 
 bool DBTextOutput::storeCPS2DB(AS_UID cpsID, AS_UID ctpID, AS_UID ccoID, CDS_COORD_t ctgStart, CDS_COORD_t ctgEnd) {
+   std::cerr << assemblyID << "\t"
+               << AS_UID_toInteger(cpsID) << "\t"
+               << (uint32)0 << "\t"
+               << AS_UID_toInteger(ctpID) << "\t"
+               << AS_UID_toInteger(ccoID) << "\t"
+               << ctgStart << "\t"
+               << ctgEnd << "\n";
+
    return true;
 }
+

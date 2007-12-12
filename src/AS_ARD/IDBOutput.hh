@@ -27,15 +27,19 @@ extern "C" {
 }
 
 namespace AS_ARD {
-   #define ULK_TYPE 0
-   #define CLK_TYPE 1
+   //#define ULK_TYPE 0
+   //#define CLK_TYPE 1   
    
    class IDBOutput {
       private:
          // disable copy constructor
          IDBOutput(IDBOutput &);
                
-      public:         
+      public:
+         static const int MAX_DELTA = 1000;
+         static const int ULK_TYPE = 0;
+         static const int CLK_TYPE = 1;
+      
          IDBOutput() {};
          virtual ~IDBOutput() {};
          

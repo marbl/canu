@@ -116,7 +116,7 @@ namespace AS_ARD {
                   CDS_COORD_t bgn,
                   CDS_COORD_t end,
                   int32 delta_length,
-                  std::string delta);         
+                  std::string delta);
          bool storeUPS2DB(
                   AS_UID upsID,
                   AS_UID ccoID,            
@@ -127,6 +127,7 @@ namespace AS_ARD {
                   int32 delta_length,
                   std::string delta);
          bool storeVAR2DB(
+                  AS_UID varID,
                   AS_UID ccoID,            
                   CDS_COORD_t bgn,
                   CDS_COORD_t end,
@@ -136,7 +137,7 @@ namespace AS_ARD {
                   CDS_COORD_t var_length,
                   int32 curr_var_id,
                   int32 phased_var_id);
-         bool storeVARAllele2DB(AS_UID varAlleleID, AS_UID varID, uint64 nra, uint64 wgt, std::string seq);
+         bool storeVARAllele2DB(AS_UID varAlleleID, AS_UID varID, uint32 nra, uint32 wgt, std::string seq);
          bool storeVARAFG2DB(AS_UID varAfgID, AS_UID varID, CDS_CID_t readID);
          bool storeCLK2DB(
                   AS_UID euid,
@@ -151,10 +152,10 @@ namespace AS_ARD {
                   PlacementStatusType status);
          bool storeDSC2DB(AS_UID eaccession, AS_UID econtig);
          bool storeSCF2DB(AS_UID eaccession, CDS_CID_t iaccession, uint32 num_contig_pairs);
-         bool storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev, ChunkOrientationType orient);
+         bool storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev, ChunkOrientationType orient);         
          bool storeCTPList2DB(AS_UID ctpListID, AS_UID ctpID, AS_UID ccoID);
          bool storeCPS2DB(AS_UID cpsID, AS_UID ctpID, AS_UID ccoID, CDS_COORD_t ctgStart, CDS_COORD_t ctgEnd);
-         
+
          bool commitMDI2DB() { return true; };
          bool commitAFG2DB() { return true; };
          bool commitUTG2DB() { return true; };
@@ -177,6 +178,7 @@ namespace AS_ARD {
          bool commitSCF2DB() { return true; };
          bool commitCTP2DB() { return true; };
          bool commitCTPList2DB() { return true; };
+         bool commitCPS2DB() { return true; };
    };
 }; 
 
