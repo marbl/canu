@@ -114,6 +114,10 @@ getDecodedValue(u64bit *ptr,
     fprintf(stderr, "ERROR: getDecodedValue() called with zero size!\n");
     abort();
   }
+  if (siz > 64) {
+    fprintf(stderr, "ERROR: getDecodedValue() called with huge size ("u64bitFMT")!\n", siz);
+    abort();
+  }
 #endif
 
   if (b1 >= siz) {
@@ -145,6 +149,10 @@ setDecodedValue(u64bit *ptr,
 #warning libbri/bitPacking.h::setDecodedValue() has defined CHECK_WIDTH!
   if (siz == 0) {
     fprintf(stderr, "ERROR: setDecodedValue() called with zero size!\n");
+    abort();
+  }
+  if (siz > 64) {
+    fprintf(stderr, "ERROR: getDecodedValue() called with huge size ("u64bitFMT")!\n", siz);
     abort();
   }
 #endif
@@ -182,6 +190,18 @@ getDecodedValues(u64bit *ptr,
 
   for (u64bit i=0; i<num; i++) {
     b1 = 64 - bit;
+
+#ifdef CHECK_WIDTH
+#warning libbri/bitPacking.h::postDecrementDecodedValue() has defined CHECK_WIDTH!
+    if (siz[i] == 0) {
+      fprintf(stderr, "ERROR: postDecrementDecodedValue() called with zero size!\n");
+      abort();
+    }
+    if (siz[i] > 64) {
+      fprintf(stderr, "ERROR: getDecodedValue() called with huge size ("u64bitFMT")!\n", siz);
+      abort();
+    }
+#endif
 
     if (b1 >= sizs[i]) {
       //fprintf(stderr, "get-single pos=%d b1=%d bit=%d wrd=%d\n", pos, b1, bit, wrd);
@@ -225,6 +245,18 @@ setDecodedValues(u64bit *ptr,
     vals[i] &= u64bitMASK(sizs[i]);
 
     b1 = 64 - bit;
+
+#ifdef CHECK_WIDTH
+#warning libbri/bitPacking.h::postDecrementDecodedValue() has defined CHECK_WIDTH!
+    if (siz[i] == 0) {
+      fprintf(stderr, "ERROR: postDecrementDecodedValue() called with zero size!\n");
+      abort();
+    }
+    if (siz[i] > 64) {
+      fprintf(stderr, "ERROR: getDecodedValue() called with huge size ("u64bitFMT")!\n", siz);
+      abort();
+    }
+#endif
 
     if (b1 >= sizs[i]) {
       //fprintf(stderr, "set-single pos=%d b1=%d bit=%d wrd=%d\n", pos, b1, bit, wrd);
@@ -281,6 +313,10 @@ preIncrementDecodedValue(u64bit *ptr,
     fprintf(stderr, "ERROR: preIncrementDecodedValue() called with zero size!\n");
     abort();
   }
+  if (siz > 64) {
+    fprintf(stderr, "ERROR: getDecodedValue() called with huge size ("u64bitFMT")!\n", siz);
+    abort();
+  }
 #endif
 
   if (b1 >= siz) {
@@ -328,6 +364,10 @@ preDecrementDecodedValue(u64bit *ptr,
     fprintf(stderr, "ERROR: preDecrementDecodedValue() called with zero size!\n");
     abort();
   }
+  if (siz > 64) {
+    fprintf(stderr, "ERROR: getDecodedValue() called with huge size ("u64bitFMT")!\n", siz);
+    abort();
+  }
 #endif
 
   if (b1 >= siz) {
@@ -373,6 +413,10 @@ postIncrementDecodedValue(u64bit *ptr,
 #warning libbri/bitPacking.h::postIncrementDecodedValue() has defined CHECK_WIDTH!
   if (siz == 0) {
     fprintf(stderr, "ERROR: postIncrementDecodedValue() called with zero size!\n");
+    abort();
+  }
+  if (siz > 64) {
+    fprintf(stderr, "ERROR: getDecodedValue() called with huge size ("u64bitFMT")!\n", siz);
     abort();
   }
 #endif
@@ -425,6 +469,10 @@ postDecrementDecodedValue(u64bit *ptr,
 #warning libbri/bitPacking.h::postDecrementDecodedValue() has defined CHECK_WIDTH!
   if (siz == 0) {
     fprintf(stderr, "ERROR: postDecrementDecodedValue() called with zero size!\n");
+    abort();
+  }
+  if (siz > 64) {
+    fprintf(stderr, "ERROR: getDecodedValue() called with huge size ("u64bitFMT")!\n", siz);
     abort();
   }
 #endif
