@@ -7,6 +7,35 @@ require 'rgl/mutable'
 require 'rgl/rdot'
 #require 'graph/graphviz_dot'
 
+usage = "#$0 unitig_iid asm/iumFile [UTG|CCO] [bestEdgeFile]
+Give it an iid for either a contig(CCO) or a unitig(UTG),
+a file with messages to parse and optionally
+tell it if you want unitigs or contigs. Default is contigs.
+
+Currently needs env var RUBYLIB=~eventer/lib/ruby for rgl module.
+"
+
+node = ARGV[0]
+iumFilePath = ARGV[1]
+utgStr = ARGV[2]
+bestEdgeFilePath = ARGV[3]
+abort usage unless node && iumFilePath
+
+# default to contig message, just because it's smaller
+$tigMsg  = '{CCO'
+$linkMsg = '{CLK'
+if utgStr == 'UTG'
+    $tigMsg  = '{UTG'
+    $linkMsg = '{ULK'
+elsif utgStr && utgStr != 'CCO'
+    abort usage
+end
+
+#iumFile      = File.open( iumFilePath )
+asmFile      = File.open( iumFilePath )
+unitigs = {}
+#bestEdgeFile = File.open( bestEdgeFilePath )
+
 class Link
     attr_accessor :from, :to, :info
     def initialize(from, to, info)
@@ -146,7 +175,7 @@ def readUnitigsFromAsmFile(asmFile)
     links = []
     ulk = {}
     asmFile.each_line do |line|
-        if line[0,4] == '{UTG'
+        if line[0,4] == $tigMsg
             uid,iid = asmFile.readline.scan(/\d+/)
             raise "Bad acc: #{uid}" if uid == nil || iid == nil
             line = asmFile.readTo('len:')
@@ -155,7 +184,7 @@ def readUnitigsFromAsmFile(asmFile)
             uidToIID[ uid ] = iid
             $iidToLen[ iid ] = len
 
-        elsif line[0,4] == '{ULK'
+        elsif line[0,4] == $linkMsg
             u,ut1 = asmFile.readline.scan(/\d+/)
             u,ut2 = asmFile.readline.scan(/\d+/)
             ut1 = uidToIID[ ut1 ]
@@ -223,13 +252,6 @@ def graphrStuff()
     dgp.orientation = "landscape"      # Dot problem with PS orientation
     dgp.write_to_file("utggraph.ps")          # Generate postscript file
 end
-
-iumFilePath      = ARGV[0]
-bestEdgeFilePath = ARGV[1]
-#iumFile      = File.open( iumFilePath )
-asmFile      = File.open( iumFilePath )
-unitigs = {}
-#bestEdgeFile = File.open( bestEdgeFilePath )
 
 #unitigs = readUnitigsFromIUMFile( iumFile )
 
@@ -325,7 +347,10 @@ def graphToRDot(graph)
         if $edgeInfo.has_key?( key )
             [u,v].each { |l| lab = "\"#{l} :#{$iidToLen[l]}\""
                 unless nodes.has_key?(l)
-                    nodes[l]=DOT::DOTNode.new({'name' => l,'label' => lab})
+                    nodes[l]=DOT::DOTNode.new({'name' => l,'label' => lab,
+                                        'fontsize' => 7
+                    #                    , 'height' => 0.2, 'width' => 0.5
+                    })
                 end
             }
             color,label = $edgeInfo[key].split(',')
@@ -333,7 +358,7 @@ def graphToRDot(graph)
             edge = DOT::DOTDirectedEdge.new( {"from" => u, "to" => v,
                         "label" => label,
                         "color" => color,
-                        "fontsize" => 9}
+                        "fontsize" => 6}
             )
             nodes[ u ] << edge
         end
@@ -358,7 +383,8 @@ links,ulk = readUnitigsFromAsmFile(asmFile)
 graph.add_edges(*links)
 #visitor = RGL::DFSVisitor.new(graph)
 #visitor.attach_distance_map
-node = '235'
+#node = '235'
+#node = '67429'
 #node = '1097326128195'
 #node = '0'
 #graph.write_to_graphic_file('ps','allutg')
@@ -367,11 +393,11 @@ node = '235'
 #graph.depth_first_visit( node, visitor) {}
 #fgraph = graph.vertices_filtered_by {|v| visitor.distance_to_root(v) < 4}
 #fgraph = findAdjacentAtDepth(graph, node, 2)
-links = findAdjacentAtDepth(graph, node, 2)
+links = findAdjacentAtDepth(graph, node, 20)
 #fgraph.each_edge { |u,v| puts "#{u}-#{v}" }
 fgraph = RGL::AdjacencyGraph.new()
 fgraph.add_edges(*links)
 #fgraph.write_to_graphic_file('ps',"unitigOrig#{node}")
 dotGraph = graphToRDot( fgraph )
 puts dotGraph
-dotGraph.write_rdot_to_graphic_file('ps',"unitig#{node}")
+dotGraph.write_rdot_to_graphic_file('ps',"#{utgStr}#{node}")
