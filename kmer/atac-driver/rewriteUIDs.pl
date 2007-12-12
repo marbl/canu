@@ -1,5 +1,9 @@
 #!/usr/bin/perl
 
+#  Reads an atac file with atac-format IDs, writes an atac file with
+#  UIDs (the first word in the defline).  This is the last step in the
+#  normal atac pipeline.
+
 use strict;
 
 my $atacfile = shift @ARGV;

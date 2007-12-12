@@ -54,8 +54,8 @@ if ($file eq "-B") {
     $file = shift @ARGV;
 }
 
-open(F, "< $file") or die "Failed to open '$file' for input\n";
-#open(G, "> $file.renamed") or die "Failed to open '$file' for output\n";
+open(F, "< $file")      or die "Failed to open '$file' for input\n";
+open(G, "> $file.uids") or die "Failed to open '$file.uids' for output\n";
 
 while (<F>) {
     if (m/assemblyFile1=(.*)$/) {
@@ -115,11 +115,11 @@ while (<F>) {
 
 
         my $line = join " ", @v;
-        print "$line\n";
+        print G "$line\n";
     } else {
-        print $_;
+        print G $_;
     }
 }
 
-#close(G);
+close(G);
 close(F);
