@@ -75,19 +75,20 @@ public:
 
       //  Reverse the array -- this appears to be optional.
 #if 1
-      for (u32bit i=0, j=_mersActive-1; i<j; i++, j--) {
-        mer      = _mers[i];
-        _mers[i] = _mers[j];
-        _mers[j] = mer;
+      if (_mersActive > 0)
+        for (u32bit i=0, j=_mersActive-1; i<j; i++, j--) {
+          mer      = _mers[i];
+          _mers[i] = _mers[j];
+          _mers[j] = mer;
 
-        val      = _posn[i];
-        _posn[i] = _posn[j];
-        _posn[j] = val;
+          val      = _posn[i];
+          _posn[i] = _posn[j];
+          _posn[j] = val;
 
-        val      = _span[i];
-        _span[i] = _span[j];
-        _span[j] = val;
-      }
+          val      = _span[i];
+          _span[i] = _span[j];
+          _span[j] = val;
+        }
 #endif
     }
 
