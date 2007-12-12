@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.24 2007-09-19 21:54:24 skoren Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_CGW.c,v 1.25 2007-12-12 09:30:14 brianwalenz Exp $";
 
 #undef DEBUG
 #undef DEBUG_INSERT
@@ -272,15 +272,26 @@ void  MarkCIElementsForScaffoldMembership(ChunkInstanceT *chunkInstance,
 
 
 
-/****************************************************************************/
-// InsertCIInScaffold
-// Insert chunk instance ci int scaffold sid at offset with orientation orient.
-// offsetFromAEnd = offset of the end of the CI that is closest to the A end of the scaffold
-// orient
-int InsertCIInScaffold(ScaffoldGraphT *sgraph,
-                       CDS_CID_t ci, CDS_CID_t sid, 
-                       LengthT aEndOffset, LengthT bEndOffset,
-                       int AEndToBend, int contigNow){
+
+//  Insert chunk instance ci int scaffold sid at offset with
+//  orientation orient.
+//
+//  offsetFromAEnd = offset of the end of the CI that is closest to the A end
+//  of the scaffold.
+//
+//  If the CI has edges that are marked isContigConfirming, it will be
+//  merged into a contig with the indicated CIs.  The edges must
+//  either be non-tandem overlap singleton overlap edges, or must have
+//  a distance variance of less than N base pairs.
+//
+void
+InsertCIInScaffold(ScaffoldGraphT *sgraph,
+                   CDS_CID_t ci,
+                   CDS_CID_t sid, 
+                   LengthT aEndOffset,
+                   LengthT bEndOffset,
+                   int AEndToBend,
+                   int contigNow) {
 
   CIScaffoldT *ciScaffold = GetGraphNode(sgraph->ScaffoldGraph, sid);
   ChunkInstanceT *chunkInstance = GetGraphNode(sgraph->RezGraph, ci);
@@ -291,8 +302,7 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
   assert(!ciScaffold->flags.bits.isDead);
 
   // check for bad variances on ends
-  if ( fabs (fabs(aEndOffset.variance - bEndOffset.variance) - chunkInstance->bpLength.variance) > 1.0 )
-    {
+  if ( fabs (fabs(aEndOffset.variance - bEndOffset.variance) - chunkInstance->bpLength.variance) > 1.0 ) {
       fprintf( stderr, "*** Variance Fixup Alert ***\n");
 
       fprintf( stderr, "chunkInstance->id: " F_CID "\n", chunkInstance->id);
@@ -339,8 +349,9 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
     
     InitCIScaffoldTIterator(sgraph, ciScaffold, TRUE, FALSE, &CIs);
     while((CI = NextCIScaffoldTIterator(&CIs)) != NULL){
-      if (CI->id == ci)  // chunk is already in scaffold due to being a member of a previous path
-	return(0);
+      if (CI->id == ci)
+        // chunk is already in scaffold due to being a member of a previous path
+	return;
     }
   }
 
@@ -364,7 +375,7 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
       fprintf(stderr,"* AFTER\n");
       DumpCIScaffold(stderr,sgraph, ciScaffold, FALSE);
 #endif
-      return 0; // we did it already
+      return;  // we did it already
 #ifdef DEBUG_INSERT
     }else{
       fprintf(stderr,"* InsertCI " F_CID " InScaffold  " F_CID " *Old Fashioned way *\n", ci, sid);
@@ -380,7 +391,7 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
       fprintf(stderr,"* AFTER\n");
       DumpCIScaffold(stderr,sgraph, ciScaffold, FALSE);
 #endif
-      return 0; // we did it already
+      return; // we did it already
 #ifdef DEBUG_INSERT
     }else{
       fprintf(stderr,"* InsertCI " F_CID " InScaffold  " F_CID " *Old Fashioned way *\n", ci, sid);
@@ -415,16 +426,17 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
 
   ciScaffold->info.Scaffold.numElements++;
 
-  /* Make sure that this chunk has simulation coordinates, even if the CI on the
-     AEnd is a repeat */
+  // Make sure that this chunk has simulation coordinates, even if the
+  // CI on the AEnd is a repeat
+
   if(chunkInstance->flags.bits.cgbType == UU_CGBTYPE){
-    if(ciScaffold->aEndCoord == -1){
+    if(ciScaffold->aEndCoord == -1)
       ciScaffold->aEndCoord = (reversed?chunkInstance->bEndCoord:chunkInstance->aEndCoord);
-    }
-    if(ciScaffold->bEndCoord == -1){
+
+    if(ciScaffold->bEndCoord == -1)
       ciScaffold->bEndCoord = (reversed?chunkInstance->aEndCoord:chunkInstance->bEndCoord);
-    }
   }
+
 #ifdef DEBUG_INSERT  
   fprintf(GlobalData->stderrc,"* Inserting cid " F_CID " into scaffold " F_CID " at offset %d, %d\n",
           ci, sid, (int) aEndOffset.mean, (int) bEndOffset.mean);
@@ -443,36 +455,28 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
     chunkInstance->AEndNext = chunkInstance->BEndNext = NULLINDEX;
     ciScaffold->bpLength = *maxOffset;
 
-#ifdef DEBUG_CISCAFFOLD
-    fprintf(GlobalData->stderrc,"* Inserted into empty scaffold aEndCoord=" F_COORD " bEndCoord=" F_COORD "\n",
-	    ciScaffold->aEndCoord, ciScaffold->bEndCoord);
-#endif
 #ifdef DEBUG_INSERT
-    fprintf(stderr,"* Inserted into empty scaffold aEndCoord=%d bEndCoord=%d\n",
-	    ciScaffold->aEndCoord, ciScaffold->bEndCoord);
+    fprintf(stderr,"* Inserted into empty scaffold aEndCoord=%d bEndCoord=%d\n", ciScaffold->aEndCoord, ciScaffold->bEndCoord);
 #endif
   }else{
     CIScaffoldTIterator CIs;
     ChunkInstanceT *CI;
+
     CDS_COORD_t chunkInstanceMin = (CDS_COORD_t) MIN(chunkInstance->offsetAEnd.mean,
                                                      chunkInstance->offsetBEnd.mean);
+
     InitCIScaffoldTIterator(sgraph, ciScaffold, AEndToBend, FALSE, &CIs);
     while((CI = NextCIScaffoldTIterator(&CIs)) != NULL){
-      CDS_COORD_t CImin = (CDS_COORD_t) MIN(CI->offsetAEnd.mean,
-                                            CI->offsetBEnd.mean);
+      CDS_COORD_t CImin = (CDS_COORD_t) MIN(CI->offsetAEnd.mean, CI->offsetBEnd.mean);
+
       if(CImin > chunkInstanceMin) {
-
-	/*          ------- chunkInstance
-                    ------- CI           
-
-                    (including containment of CI or positive gap) */
-
 	ChunkInstanceT *prevCI;
 
 	// WARNING: this condition is ok ONLY if AEndToBend == TRUE
 	// When we traverse the list of CIs from the Bend, the condition 
 	// (CImin > chunkInstanceMin) will be satisfied immediately and therefore
 	// the chunk will end up in the wrong position (SteLo)
+        //
 	assert(AEndToBend);
 
 #ifdef DEBUG_INSERT
@@ -495,70 +499,38 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
 	  }
 #ifdef DEBUG_INSERT
 	  fprintf(GlobalData->stderrc,"* Inserted at head\n");
-#endif
 	}else{
-#ifdef DEBUG_INSERT
 	  fprintf(GlobalData->stderrc,"* Inserted in middle\n");
 #endif
 	}
 
 
 	break;
-      }else if(CI->id == ciScaffold->info.Scaffold.BEndCI &&
-	       CImin <= chunkInstanceMin ){ // append
-
-	/*   -------- CI (last chunk currently in scaffold)
-             -------- chunkInstance
-
-             (includes containment or positive gap) */
-
+      }else if(CI->id == ciScaffold->info.Scaffold.BEndCI && CImin <= chunkInstanceMin ){
+        // append
 	ciScaffold->info.Scaffold.BEndCI = ci;
 	CI->BEndNext = ci;
 	chunkInstance->AEndNext = CI->id;
 	chunkInstance->BEndNext = NULLINDEX;
-        if(chunkInstance->flags.bits.cgbType == UU_CGBTYPE){
+        if(chunkInstance->flags.bits.cgbType == UU_CGBTYPE)
           ciScaffold->bEndCoord = (reversed?chunkInstance->aEndCoord:chunkInstance->bEndCoord);
-        }
 
 	// Due to containments, the CI with the maximal mean does not
 	// have the maximal variance.
+
 	if(ciScaffold->bpLength.mean < maxOffset->mean)
 	  ciScaffold->bpLength.mean = maxOffset->mean;
+
 	if(ciScaffold->bpLength.variance < maxOffset->variance)
 	  ciScaffold->bpLength.variance = maxOffset->variance;
-
 
 #ifdef DEBUG_INSERT
 	fprintf(GlobalData->stderrc,"* Inserted at end aEndCoord:" F_COORD " bEndCoord:" F_COORD " bpLength = %g\n",
 		ciScaffold->aEndCoord, ciScaffold->bEndCoord, ciScaffold->bpLength.mean);
 #endif
-
 	break;
-      }else if(CI->id == ciScaffold->info.Scaffold.AEndCI &&
-	       CImin > chunkInstanceMin ){ // prepend
-
-	// ALH: it does not appear we ever get here -- doesn't the first case cover this?
-	// Let us find out ...  (9/21/04)
-	assert(0);
-
-	ciScaffold->info.Scaffold.AEndCI = ci;
-	CI->AEndNext = ci;
-
-	chunkInstance->BEndNext = CI->id;
-	chunkInstance->AEndNext = NULLINDEX;
-#ifdef DEBUG_INSERT
-	fprintf(GlobalData->stderrc,"* CImin " F_COORD ", chunkInstanceMin " F_COORD "\n", CImin, chunkInstanceMin);
-#endif
-        if(chunkInstance->flags.bits.cgbType == UU_CGBTYPE){
-          ciScaffold->aEndCoord = (reversed?chunkInstance->bEndCoord:chunkInstance->aEndCoord);
-        }
-	fprintf(GlobalData->stderrc,"* Inserted at head aEndCoord:" F_COORD " bEndCoord:" F_COORD "\n",
-		ciScaffold->aEndCoord, ciScaffold->bEndCoord);
-	break;
-
-      } else { /* fall through to next existing chunk */
       }
-    }
+    }  //  end of while()
 
 
 #ifndef DEBUG_INSERT
@@ -568,8 +540,10 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
 
     // Due to containments, the CI with the maximal mean does not
     // have the maximal variance.
+
     if(ciScaffold->bpLength.mean < maxOffset->mean)
       ciScaffold->bpLength.mean = maxOffset->mean;
+
     if(ciScaffold->bpLength.variance < maxOffset->variance)
       ciScaffold->bpLength.variance = maxOffset->variance;
 
@@ -585,10 +559,7 @@ int InsertCIInScaffold(ScaffoldGraphT *sgraph,
       fprintf(stderr,"* AFTER\n");
       DumpCIScaffold(stderr,sgraph, ciScaffold, FALSE);
     }
-
-    return 0;
   }
-  return 0;
 }
 
 

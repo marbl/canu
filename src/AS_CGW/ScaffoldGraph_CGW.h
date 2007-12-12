@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* 	$Id: ScaffoldGraph_CGW.h,v 1.22 2007-09-05 11:22:12 brianwalenz Exp $	 */
+/* 	$Id: ScaffoldGraph_CGW.h,v 1.23 2007-12-12 09:30:14 brianwalenz Exp $	 */
 /***************************************************************************
  *  ScaffoldGraph
  *  
@@ -202,19 +202,9 @@ void MergeScaffoldsAggressive(ScaffoldGraphT *sgraph,
 
 
 
-/*
-  InsertCIInScaffold
-
-  Insert chunk instance ci int scaffold sid at offset with orientation orient.
-  offsetFromAEnd = offset of the end of the CI that is closest to the A end
-  of the scaffold. If the CI has edges that are marked isContigConfirming,
-  it will be merged into a contig with the indicated CIs.  The edges must
-  either be non-tandem overlap singleton overlap edges, or must have a
-  distance variance of less than N base pairs.
-*/
-int InsertCIInScaffold(ScaffoldGraphT *sgraph, CDS_CID_t ci, CDS_CID_t sid,
-                       LengthT aEndOffset, LengthT bEndOffset,
-                       int AEndToBend, int contigNow);
+void InsertCIInScaffold(ScaffoldGraphT *sgraph, CDS_CID_t ci, CDS_CID_t sid,
+                        LengthT aEndOffset, LengthT bEndOffset,
+                        int AEndToBend, int contigNow);
 
 void  MarkCIElementsForScaffoldMembership(ChunkInstanceT *chunkInstance,
                                           CDS_CID_t scaffoldID);
@@ -228,9 +218,9 @@ void  MarkCIElementsForScaffoldMembership(ChunkInstanceT *chunkInstance,
 int RemoveCIFromScaffold(ScaffoldGraphT *sgraph, CIScaffoldT *scaffold,
                          ChunkInstanceT *CI, int adjustPositions);
 
-void   ContigContainment(CIScaffoldT *scaffold, NodeCGW_T *prevCI,
-                         NodeCGW_T *thisCI, EdgeCGW_T *overlapEdge,
-                         int tryHarder);
+int ContigContainment(CIScaffoldT *scaffold, NodeCGW_T *prevCI,
+                      NodeCGW_T *thisCI, EdgeCGW_T *overlapEdge,
+                      int tryHarder);
 
 int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
                      int lookForSmallOverlaps,

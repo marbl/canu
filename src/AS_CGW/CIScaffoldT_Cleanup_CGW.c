@@ -18,12 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.35 2007-10-29 06:10:36 brianwalenz Exp $";
-
-#undef DEBUG_CHECKFORCTGS
-#undef DEBUG_DETAILED
-#undef DEBUG_CONNECTEDNESS
-
+static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.36 2007-12-12 09:30:14 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,6 +45,16 @@ static char CM_ID[] = "$Id: CIScaffoldT_Cleanup_CGW.c,v 1.35 2007-10-29 06:10:36
 #include "Stats_CGW.h"   // for collecting scaffold merging stats
 #include <time.h>
 
+
+#undef DEBUG_CHECKFORCTGS
+#undef DEBUG_DETAILED
+#undef DEBUG_CONNECTEDNESS
+#undef DEBUG_PROPAGATE
+#undef DEBUG_CONTIG
+#undef DEBUG_CREATEACONTIG
+#undef DEBUG_NEG_VARIANCE
+
+#undef ALLOW_SHORT_PERFECT  //  leave undef'd
 
 
 typedef struct{
@@ -1079,7 +1084,7 @@ void PropagateOverlapsToNewContig(ContigT *contig,
   }
 
   AssertPtr(scaffold);
-#undef DEBUG_PROPAGATE
+
 #ifdef DEBUG_PROPAGATE
   fprintf(GlobalData->stderrc,"* PropagateOverlaps...initial\n");
   DumpContig(GlobalData->stderrc,ScaffoldGraph, GetGraphNode(ScaffoldGraph->RezGraph, contig->id),FALSE);
@@ -1216,7 +1221,6 @@ void  ReplaceContigsInScaffolds(CIScaffoldT *scaffold, ContigT *newContig, VA_TY
     scaffold->bpLength.mean = maxOffset->mean - minOffset->mean;
   if(scaffold->bpLength.variance < maxOffset->variance - minOffset->variance)
     scaffold->bpLength.variance = maxOffset->variance - minOffset->variance;
-
 }
 
 void ReScaffoldPseudoDegenerates(void)
@@ -1518,8 +1522,6 @@ int CleanupAScaffold(ScaffoldGraphT *graph, CIScaffoldT *scaffold,
     {
       CDS_COORD_t actual;
       // ChunkOrientationType pairwiseOrient;
-
-#undef DEBUG_CONTIG
 
 #ifdef DEBUG_CONTIG
       fprintf(GlobalData->stderrc,"* contig.min = %g contig.max = %g\n",
@@ -2222,6 +2224,7 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
 
   // Mark all frags as being members of this Contig, and set their offsets
   UpdateNodeFragments(ScaffoldGraph->RezGraph,contig->id, TRUE, FALSE);
+
   // Mark all of the Unitigs of this CI and set their offsets
   UpdateNodeUnitigs(newMultiAlign,contig);
 
@@ -2240,6 +2243,7 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
             newOffsetAEnd.mean, newOffsetBEnd.mean);
     DumpContig(GlobalData->stderrc,ScaffoldGraph, contig,FALSE);
   }
+
   // Merge the edges incident on this contig
   MergeNodeGraphEdges(ScaffoldGraph->ContigGraph, contig, FALSE, TRUE, FALSE);
 
@@ -2264,13 +2268,17 @@ int  CreateAContigInScaffold(CIScaffoldT *scaffold,
 //  This version tries several ways of finding the overlap
 //  relationship if tryHarder is set.
 //
+//  Returns true if it succeeded -- this is only used internally.  The
+//  function will return success, or it will cause a crash.
+//
 //  BPW claims ownership.
 //
-void ContigContainment(CIScaffoldT  *scaffold,
-                       NodeCGW_T    *prevCI,
-                       NodeCGW_T    *thisCI,
-                       EdgeCGW_T    *overlapEdge,
-                       int           tryHarder) {
+int
+ContigContainment(CIScaffoldT  *scaffold,
+                  NodeCGW_T    *prevCI,
+                  NodeCGW_T    *thisCI,
+                  EdgeCGW_T    *overlapEdge,
+                  int           tryHarder) {
   CDS_COORD_t            minAhang;
   CDS_COORD_t            maxAhang;
   IntElementPos          contigPos;
@@ -2437,15 +2445,18 @@ void ContigContainment(CIScaffoldT  *scaffold,
   // conservative finding overlaps...get out the big guns, redo the whole thing.
   //
   if ((contigOverlap == NULL) && (tryHarder) && (GlobalData->aligner == DP_Compare)) {
+    int success = 0;
+
     GlobalData->aligner = Local_Overlap_AS_forCNS;
-    ContigContainment(scaffold, prevCI, thisCI, overlapEdge, tryHarder);
+    success = ContigContainment(scaffold, prevCI, thisCI, overlapEdge, tryHarder);
     GlobalData->aligner = DP_Compare;
 
-    // if we found an overlap, then all the necessary side effects
-    // were taken care of in the inner call of the function, so just
-    // return
-    if (contigOverlap != NULL)
-      return;
+    //  If we found an overlap, then all the necessary side effects
+    //  were taken care of in the inner call of the function, so just
+    //  return.
+
+    if (success)
+      return(success);
   }
 
 
@@ -2454,7 +2465,7 @@ void ContigContainment(CIScaffoldT  *scaffold,
     dumpContigInfo(leftContig);
     dumpContigInfo(rightContig);
     fprintf(stderr, "no overlap found between "F_CID" and "F_CID", aborting...\n", leftContig->id, rightContig->id);
-  }	
+  }
   assert(contigOverlap != NULL);
   
   // contigs need to be reversed
@@ -2559,6 +2570,8 @@ void ContigContainment(CIScaffoldT  *scaffold,
 
     assert(mergeStatus == TRUE);
   }
+
+  return(TRUE);
 }
 
 
