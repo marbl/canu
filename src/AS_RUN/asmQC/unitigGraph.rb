@@ -170,6 +170,7 @@ def readBestEdgeFile( bestEdgeFile )
     return bestEdge
 end
 $iidToLen = {}
+$surrogates = {}
 def readUnitigsFromAsmFile(asmFile)
     uidToIID = {}
     links = []
@@ -178,6 +179,12 @@ def readUnitigsFromAsmFile(asmFile)
         if line[0,4] == $tigMsg
             uid,iid = asmFile.readline.scan(/\d+/)
             raise "Bad acc: #{uid}" if uid == nil || iid == nil
+            if $tigMsg == '{UTG'
+                surr = asmFile.readTo('sta:')[4]
+                if surr.chr == 'S'
+                    $surrogates[ iid ] = true
+                end
+            end
             line = asmFile.readTo('len:')
             len = line[4,line.length].chomp
 #            next unless len.to_i > 1000
@@ -205,7 +212,7 @@ def readUnitigsFromAsmFile(asmFile)
             line = asmFile.readTo('num:')
             num = line[4,line.length].to_i
 #            next if num < 2 || mean < 1
-            next if num < 2 
+#            next if num < 2 
             if ulk.has_key?( ut1 )
                 if ulk[ut1].has_key?(ut2)
                     ulk[ut1][ut2] += 1
@@ -347,8 +354,10 @@ def graphToRDot(graph)
         if $edgeInfo.has_key?( key )
             [u,v].each { |l| lab = "\"#{l} :#{$iidToLen[l]}\""
                 unless nodes.has_key?(l)
+                    shape = 'ellipse'
+                    shape = 'triangle' if $surrogates[ l ]
                     nodes[l]=DOT::DOTNode.new({'name' => l,'label' => lab,
-                                        'fontsize' => 7
+                                        'fontsize' => 8, 'shape' => shape
                     #                    , 'height' => 0.2, 'width' => 0.5
                     })
                 end
@@ -358,7 +367,7 @@ def graphToRDot(graph)
             edge = DOT::DOTDirectedEdge.new( {"from" => u, "to" => v,
                         "label" => label,
                         "color" => color,
-                        "fontsize" => 6}
+                        "fontsize" => 7}
             )
             nodes[ u ] << edge
         end
@@ -399,5 +408,5 @@ fgraph = RGL::AdjacencyGraph.new()
 fgraph.add_edges(*links)
 #fgraph.write_to_graphic_file('ps',"unitigOrig#{node}")
 dotGraph = graphToRDot( fgraph )
-puts dotGraph
+#puts dotGraph
 dotGraph.write_rdot_to_graphic_file('ps',"#{utgStr}#{node}")
