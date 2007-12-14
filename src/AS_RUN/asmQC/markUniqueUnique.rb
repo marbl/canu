@@ -23,7 +23,7 @@ asmFile.each_line do |line|
     if line[0,4] == '{UTG'
         acc,iid = asmFile.readline.chop[5..-1].split(',')
         line = asmFile.readTo( 'sta:' )
-        if line[4,1] == 'S'
+        if line[4,1] == 'S' || line[4,1] == 'N'
             iidToUid[ iid.chop ] = acc
             surrLen = asmFile.readTo( 'len:' ).chop[4..-1]
             next if surrLen.to_i < 2000
