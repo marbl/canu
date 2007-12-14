@@ -1,56 +1,53 @@
 #!/usr/bin/env ruby
 
+class File
+    def readTo(str)
+        line = ''
+        line = readline while line[0,4] != str
+        line
+    end
+end
+
 asmFileS = ARGV[0]
 iumFileS = ARGV[1]
 
 asmFile = File.open( asmFileS )
 iumFile = File.open( iumFileS )
 
-
 surrUTGs   = {}
 iidToUid   = {}
 placedSurrs= {}
+
 asmFile.each_line do |line|
 
     if line[0,4] == '{UTG'
         acc,iid = asmFile.readline.chop[5..-1].split(',')
-        line = asmFile.readline while line[0,4] != 'sta:'
+        line = asmFile.readTo( 'sta:' )
         if line[4,1] == 'S'
             iidToUid[ iid.chop ] = acc
-            line = asmFile.readline while line[0,4] != 'nfr:'
-            #            puts "Surrogate #{acc} #{line}"
-            line.chop!
+            surrLen = asmFile.readTo( 'len:' ).chop[4..-1]
+            next if surrLen.to_i < 2000
+            nfr = asmFile.readTo( 'nfr:' ).chop[4..-1]
             surrUTGs[ acc ] = [ 0 ]
-            nfr = line[4,line.length]
             nfr.to_i.times do
-                line = asmFile.readline while line[0,4] != 'mid:'
-                line.chop!
-                mid = line[4,line.length]
+                mid = asmFile.readTo( 'mid:' ).chop[4..-1]
                 surrUTGs[ acc ].push( mid )
-                line = asmFile.readline
             end
         end
     elsif line[0,4] == '{CCO'
-        line = asmFile.readline while line[0,4] != 'pla:'
+        line = asmFile.readTo( 'pla:' )
         placed = line[4,1] == 'P'
-        line = asmFile.readline while line[0,4] != 'npc:'
+        npc = asmFile.readTo( 'npc:' ).chop[4..-1]
         nou  = asmFile.readline.chop[4..-1].to_i
 #        puts "Placed? #{ placed }, num cco frags #{line}"
-        line.chop!
-        npc = line[4,line.length]
         npc.to_i.times do
-            line = asmFile.readline while line[0,4] != 'mid:'
-            line.chop!
-            mid = line[4,line.length]
-            line = asmFile.readline
+            mid = asmFile.readTo( 'mid:' )
         end
         nou.times do
-            line = asmFile.readline while line[0,4] != 'lid:'
-            lid = line.chop[4..-1]
+            lid = asmFile.readTo( 'lid:' ).chop[4..-1]
             if surrUTGs.has_key?( lid )
                 surrUTGs[lid][0] += 1
             end
-            line = asmFile.readline
         end
     end
 end
@@ -62,7 +59,7 @@ surrUTGs.each_pair do |acc,frags|
     end
 end
 
-iidToUid.each_pair { |iid,uid| $stderr.puts "iid #{iid} uid #{uid}" }
+#iidToUid.each_pair { |iid,uid| $stderr.puts "iid #{iid} uid #{uid}" }
 
 # read and output IUM file changing unique surrogate status to unique
 iumFile.each_line do |line|
