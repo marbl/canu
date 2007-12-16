@@ -10770,6 +10770,8 @@ this will require a mechanism to get the library information (ie gkpStore or oth
 
 Fix constructor.
 
+TAG: wgs1016
+
 ----------------------------------------
 2007/10/17 22:29:43	1.169	gdenisov	AS_CNS/MultiAlignment_CNS.c
 
