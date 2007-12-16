@@ -4,7 +4,7 @@
 #include "bio++.H"
 #include "sim4.H"
 
-//  g++ -o coveragehack coveragehack.C -Ilibutil -Ilibbio -Ilibsim4 -Llibutil -Llibbio -Llibsim4 -lsim4 -lbio -lutil
+//  g++ -o coveragehack coveragehack.C -I../libutil -I../libbio -I../libsim4 -L../libutil -L../libbio -L../libsim4 -lsim4 -lbio -lutil
 
 //  Flag that tells which side of the alignment our contaminated assembly is on.
 //    1 (R) -- if atac     the contaminant is on the left, the assembly is on the right
@@ -70,7 +70,7 @@ readSIM4(intervalList **coverage, int which, char *path) {
       switch (which) {
         case 1:
           //  The query are contaminant reads, the genomic is the assembly
-          if (p->percentIdentity > 90) {
+          if ((p->percentIdentity >= 94) && (p->querySeqIdentity >= 80)) {
             u32bit  idx = p->genID;
 
             if (coverage[idx] == 0L)
@@ -110,6 +110,7 @@ readSIM4(intervalList **coverage, int which, char *path) {
 int
 main(int argc, char **argv) {
   intervalList    **coverage = new intervalList* [MAXSCAFFOLD];
+  intervalList    **gaps     = new intervalList* [MAXSCAFFOLD];
   FastAWrapper     *W        = 0L;
   u32bit            minCov   = 80;
 
@@ -160,41 +161,57 @@ main(int argc, char **argv) {
       W->find(i);
       FastASequenceInCore  *S = W->getSequence();
 
-      //  Insert sequence gaps in the scaffold into our map; we'll count those as wolbachia too.
-      //
-      if (includeGapsAsContamination) {
-        u32bit  gapBeg = W->sequenceLength(i);
-        char   *seq    = S->sequence();
-        for (u32bit beg=0, len=W->sequenceLength(i); beg<len; beg++) {
-          if ((seq[beg] == 'N') || (seq[beg] == 'n')) {
-            if (gapBeg > beg)
-              gapBeg = beg;
-          } else {
-            if (gapBeg < beg) {
-              coverage[i]->add(gapBeg, beg-gapBeg);
-              gapBeg = W->sequenceLength(i);
-            }
+      intervalList          gaps;
+
+      //  Compute how much of the scaffold is gap.
+
+      u32bit  gapBeg = W->sequenceLength(i);
+      char   *seq    = S->sequence();
+
+      for (u32bit beg=0, len=W->sequenceLength(i); beg<len; beg++) {
+        if ((seq[beg] == 'N') || (seq[beg] == 'n')) {
+          if (gapBeg > beg)
+            gapBeg = beg;
+        } else {
+          if (gapBeg < beg) {
+            gaps.add(gapBeg, beg-gapBeg);
+            gapBeg = W->sequenceLength(i);
           }
         }
       }
 
+      //  Geez!  I suppose we could have just directly counted ACGT above!
+
+      gaps.merge();
       coverage[i]->merge();
 
-      if (100 * coverage[i]->sumOfLengths() > minCov * W->sequenceLength(i)) {
+      u32bit   coveredLength = coverage[i]->sumOfLengths();
+      u32bit   gapLength     = gaps.sumOfLengths();
+      u32bit   totalLength   = W->sequenceLength(i) - gapLength;
 
-        sumOfLengths += W->sequenceLength(i);
+      if (100 * coveredLength > minCov * totalLength) {
+
+        sumOfLengths += coveredLength;
         sequences++;
 
-        double cov = 100.0 * coverage[i]->sumOfLengths() / (double)W->sequenceLength(i);
+        double cov = 100.0 * coveredLength / (double)totalLength;
 
         fprintf(stderr, "sequence ["u32bitFMT"] %s covered "u32bitFMT" out of "u32bitFMT" (%7.3f)\n",
                 i,
-                S->header(), 
-                coverage[i]->sumOfLengths(),
-                W->sequenceLength(i),
+                S->header(),
+                coveredLength,
+                totalLength,
                 cov);
 
         delete S;
+      }
+
+      //  Dump a special scaffold
+      if (i == 4796) {
+        for (u32bit z=0; z<coverage[i]->numberOfIntervals(); z++) {
+          fprintf(stderr, "interval[%3d] %6d - %6d\n", z, coverage[i]->lo(z), coverage[i]->hi(z));
+        }
+
       }
 
     }
