@@ -699,20 +699,23 @@ resolveSurrogates(int    placeAllFragsInSinglePlacedSurros,
   ChunkInstanceT    *parentChunk;
   int totalNumParentFrags=0;
   int numReallyPlaced=0;
-  int                    allocedImpLists = 100;
+  int                    allocedImpLists = 128;
   VA_TYPE(IntMultiPos) **impLists = NULL;
 
   assert((cutoffToInferSingleCopyStatus >= 0.0) &&
          (cutoffToInferSingleCopyStatus <= 1.0));
+
+  InitGraphNodeIterator(&CIGraphIterator, ScaffoldGraph->CIGraph, GRAPH_NODE_DEFAULT);
+  while ((parentChunk = NextGraphNodeIterator(&CIGraphIterator)) != NULL)
+    if (allocedImpLists < parentChunk->info.CI.numInstances)
+      allocedImpLists = parentChunk->info.CI.numInstances + 128;
 
   impLists = (VA_TYPE(IntMultiPos)**) safe_malloc(allocedImpLists*sizeof(VA_TYPE(IntMultiPos)*));
   for (i=0;i<allocedImpLists;i++)
     impLists[i] = CreateVA_IntMultiPos(20);
 
   InitGraphNodeIterator(&CIGraphIterator, ScaffoldGraph->CIGraph, GRAPH_NODE_DEFAULT);
-
-  // scan all the chunks
-  while ((parentChunk = NextGraphNodeIterator(&CIGraphIterator))!=NULL){
+  while ((parentChunk = NextGraphNodeIterator(&CIGraphIterator)) != NULL) {
     int numFrgsToPlace=0;
     HashTable_AS *fHash;
     int numInstances = parentChunk->info.CI.numInstances;
