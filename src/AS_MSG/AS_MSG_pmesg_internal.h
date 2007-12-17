@@ -50,7 +50,7 @@ typedef struct {
 } AS_MSG_callrecord;
 
 #define MAX_MESG_LEN (256 * 1024 * 1024)
-#define MAX_LINE_LEN (128 * 1024)
+#define MAX_LINE_LEN ( 16 * 1024 * 1024)
 
 typedef struct {
   GenericMesg readMesg;     //  Where we read messages into
