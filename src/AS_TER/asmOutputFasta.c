@@ -471,8 +471,8 @@ main(int argc, char **argv) {
   UTGseqout = openOutput(prefix, "utgcns");
   UTGqltout = openOutput(prefix, "utgqlt");
 
-  CCOseqout = openOutput(prefix, "ccocns");
-  CCOqltout = openOutput(prefix, "ccoqlt");
+  CCOseqout = openOutput(prefix, "ctgcns");
+  CCOqltout = openOutput(prefix, "ctgqlt");
 
   DSCseqout = openOutput(prefix, "dsccns");
   DSCqltout = openOutput(prefix, "dscqlt");
