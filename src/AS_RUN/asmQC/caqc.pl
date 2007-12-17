@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# $Id: caqc.pl,v 1.26 2007-12-12 19:47:29 eliv Exp $
+# $Id: caqc.pl,v 1.27 2007-12-17 19:30:52 brianwalenz Exp $
 #
 # This program reads a Celera .asm file and produces aggregate information
 # about the assembly
@@ -10,7 +10,7 @@
 #
 #
 
-use warnings;
+#use warnings;
 use strict;
 use Getopt::Long;
 use IO::File;
@@ -20,7 +20,7 @@ use File::Copy;
 use Math::BigFloat;
 use FindBin qw($Bin);
 
-my $MY_VERSION = "caqc Version 2.13 (Build " . (qw/$Revision: 1.26 $/)[1] . ")";
+my $MY_VERSION = "caqc Version 2.13 (Build " . (qw/$Revision: 1.27 $/)[1] . ")";
 
 # Constants
 my $MINQUAL    = 20;
