@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-/* $Id: AS_MSG_pmesg.h,v 1.58 2007-11-08 12:38:13 brianwalenz Exp $   */
+/* $Id: AS_MSG_pmesg.h,v 1.59 2007-12-17 19:30:10 brianwalenz Exp $   */
 
 #ifndef AS_MSG_PMESG_INCLUDE_H
 #define AS_MSG_PMESG_INCLUDE_H
@@ -126,8 +126,6 @@ typedef struct {
 typedef enum {
   AS_MATE       = (int)'M', // Mate
   AS_REREAD     = (int)'R', // Reread
-  AS_MAY_JOIN   = (int)'Y', // maY
-  AS_MUST_JOIN  = (int)'T'  // musT
   //AS_UNKNOWN	= (int)'U'  // the initial value, can't be defined here as it is in OrientType
 } LinkType;
 
