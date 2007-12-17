@@ -6,28 +6,30 @@
 #include "existDB.H"
 #include "bio++.H"
 
-#define ERROR_CHECK_COUNTING
-#define ERROR_CHECK_COUNTING_ENCODING
-#define ERROR_CHECK_EMPTY_BUCKETS
+#undef ERROR_CHECK_COUNTING
+#undef ERROR_CHECK_COUNTING_ENCODING
+#undef ERROR_CHECK_EMPTY_BUCKETS
 
 //  This tests Chunlin Xiao's discovered bug -- if there are a small
 //  number of unique mers, compared to distinct mers (2 * #unique_mers
 //  < #distinct_mers, we would overflow the position pointer in
 //  buckets.  This enables a check that it doesn't occur.
 //
-#define  TEST_NASTY_BUGS
+//  This has a fixed allocation size, and crashes on larger inputs.
+//
+#undef  TEST_NASTY_BUGS
 
 //  Tests that mers are masked out properly.  Doesn't handle canonical
 //  mers though.
 //
-#define  MER_REMOVAL_TEST
+#undef  MER_REMOVAL_TEST
 
 #define MSG_OUTPUT  stderr
 
 
 positionDB::positionDB(char const    *filename,
                        bool           loadData) {
-
+  memset(this, 0, sizeof(positionDB));
   if (loadState(filename, true, loadData) == false) {
     fprintf(stderr, "positionDB()-- Tried to read state from '%s', but failed.\n", filename);
     exit(1);
@@ -43,6 +45,7 @@ positionDB::positionDB(merStream   *MS,
                        u32bit       maxCount,
                        bool         beVerbose,
                        bool         isForMismatches) {
+  memset(this, 0, sizeof(positionDB));
 
   //  Guesstimate a nice table size based on the number of input mers
   //  and the mersize, unless the user gave us a table size.
@@ -179,6 +182,12 @@ positionDB::build(merStream *MS,
 
   _wCnt                  = 0;
   _wFin                  = 0;
+
+  //  For get/setDecodedValues().
+  u64bit  lensC[4] = {~u64bitZERO, ~u64bitZERO, ~u64bitZERO, ~u64bitZERO};
+  u64bit  lensF[4] = {~u64bitZERO, ~u64bitZERO, ~u64bitZERO, ~u64bitZERO};
+  u64bit  vals[4]  = {0};
+  u64bit  nval     = (_sizeWidth == 0) ? 3 : 4;
 
   _numberOfMers          = u64bitZERO;
   _numberOfPositions     = u64bitZERO;
@@ -326,6 +335,11 @@ positionDB::build(merStream *MS,
   //
   _wCnt          = _chckWidth + _posnWidth + 1 + _sizeWidth;
 
+  lensC[0] = _chckWidth;
+  lensC[1] = _posnWidth;
+  lensC[2] = 1;
+  lensC[3] = _sizeWidth;
+
   u64bit   bucketsSpace  = (_numberOfMers+1) * _wCnt / 64 + 1;
   u32bit   endPosition   = 0;
 
@@ -374,11 +388,6 @@ positionDB::build(merStream *MS,
     exit(1);
   }
 
-  //  For get/setDecodedValues().
-  u64bit  lens[4] = {_chckWidth, _posnWidth, 1, _sizeWidth};
-  u64bit  vals[4] = {0};
-  u64bit  nval    = (_sizeWidth == 0) ? 3 : 4;
-
   while (MS->nextMer(_merSkipInBases)) {
     u64bit h = HASH(MS->theFMer());
 
@@ -399,18 +408,18 @@ positionDB::build(merStream *MS,
 
 #ifdef ERROR_CHECK_EMPTY_BUCKETS
     //  Check that everything is empty.  Empty is defined as set to all 1's.
-    getDecodedValues(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, nval, lens, vals);
+    getDecodedValues(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, nval, lensC, vals);
 
-    if (((~vals[0]) & u64bitMASK(lens[0])) ||
-        ((~vals[1]) & u64bitMASK(lens[1])) ||
-        ((~vals[2]) & u64bitMASK(lens[2])) ||
-        ((lens[3] > 0) && ((~vals[3]) & u64bitMASK(lens[3]))))
+    if (((~vals[0]) & u64bitMASK(lensC[0])) ||
+        ((~vals[1]) & u64bitMASK(lensC[1])) ||
+        ((~vals[2]) & u64bitMASK(lensC[2])) ||
+        ((lensC[3] > 0) && ((~vals[3]) & u64bitMASK(lensC[3]))))
       fprintf(stdout, "ERROR_CHECK_EMPTY_BUCKETS: countingBucket not empty!  pos=%lu 0x%016lx 0x%016lx 0x%016lx 0x%016lx\n",
               _bucketSizes[h] * _wCnt,
-              (~vals[0]) & u64bitMASK(lens[0]),
-              (~vals[1]) & u64bitMASK(lens[1]),
-              (~vals[2]) & u64bitMASK(lens[2]),
-              (~vals[3]) & u64bitMASK(lens[3]));
+              (~vals[0]) & u64bitMASK(lensC[0]),
+              (~vals[1]) & u64bitMASK(lensC[1]),
+              (~vals[2]) & u64bitMASK(lensC[2]),
+              (~vals[3]) & u64bitMASK(lensC[3]));
 #endif
 
     vals[0] = CHECK(MS->theFMer());
@@ -418,10 +427,10 @@ positionDB::build(merStream *MS,
     vals[2] = 0;
     vals[3] = 0;
 
-    setDecodedValues(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, nval, lens, vals);
+    setDecodedValues(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, nval, lensC, vals);
 
 #ifdef ERROR_CHECK_COUNTING_ENCODING
-    getDecodedValues(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, nval, lens, vals);
+    getDecodedValues(_countingBuckets, (u64bit)_bucketSizes[h] * (u64bit)_wCnt, nval, lensC, vals);
 
     if (vals[0] != CHECK(MS->theFMer()))
       fprintf(stdout, "ERROR_CHECK_COUNTING_ENCODING error:  CHCK corrupted!  Wanted "u64bitHEX" got "u64bitHEX"\n",
@@ -446,6 +455,9 @@ positionDB::build(merStream *MS,
   for (u32bit i=0; i<_tableSizeInEntries; i++)
     if (_errbucketSizes[i] != 0)
       fprintf(stdout, "ERROR_CHECK_COUNTING: Bucket "u32bitFMT" wasn't filled fully?  "u32bitFMT" left over.\n", i, _errbucketSizes[i]);
+
+  delete [] _errbucketSizes;
+  _errbucketSizes = 0L;
 #endif
 
 
@@ -487,14 +499,18 @@ positionDB::build(merStream *MS,
   //
   //  The width of position pointers (in buckets) is the max of
   //  _posnWidth (a pointer to the sequence position) and
-  //  _posnPtrWidth (a pointer to an entry in the positions table).
+  //  _pptrWidth (a pointer to an entry in the positions table).
   //
-  _posnPtrWidth = logBaseTwo64(_numberOfEntries+1);
-  if (_posnPtrWidth < _posnWidth)
-    _posnPtrWidth = _posnWidth;
+  _pptrWidth = logBaseTwo64(_numberOfEntries+1);
+  if (_pptrWidth < _posnWidth)
+    _pptrWidth = _posnWidth;
 
-  _wFin = _chckWidth + _posnPtrWidth + 1 + _sizeWidth;
+  _wFin = _chckWidth + _pptrWidth + 1 + _sizeWidth;
 
+  lensF[0] = _chckWidth;
+  lensF[1] = _pptrWidth;
+  lensF[2] = 1;
+  lensF[3] = _sizeWidth;
 
   ////////////////////////////////////////////////////////////////////////////////
   //
@@ -635,7 +651,7 @@ positionDB::build(merStream *MS,
     //  Unpack the check values
     //
     for (u64bit i=st, J=st * _wCnt; i<ed; i++, J += _wCnt) {
-      getDecodedValues(_countingBuckets, J, 2, lens, vals);
+      getDecodedValues(_countingBuckets, J, 2, lensC, vals);
       _sortedChck[i-st] = vals[0];
       _sortedPosn[i-st] = vals[1];
     }
@@ -726,7 +742,7 @@ positionDB::build(merStream *MS,
           vals[2] = 1;
           vals[3] = 0;
 
-          currentBbit = setDecodedValues(_buckets, currentBbit, nval, lens, vals);
+          currentBbit = setDecodedValues(_buckets, currentBbit, nval, lensF, vals);
           bucketStartPosition++;
         } else {
           _numberOfEntries  += edM - stM;
@@ -742,7 +758,7 @@ positionDB::build(merStream *MS,
           vals[2] = 0;
           vals[3] = 0;
 
-          currentBbit = setDecodedValues(_buckets, currentBbit, nval, lens, vals);
+          currentBbit = setDecodedValues(_buckets, currentBbit, nval, lensF, vals);
           bucketStartPosition++;
 
           //  Store the positions.  Store the number of positions
@@ -774,7 +790,7 @@ positionDB::build(merStream *MS,
       //  All done with this mer.
       //
       stM = edM;
-    }
+    }  //  while (stM < le)
   }  //  for each bucket
 
   //  Set the end of the last bucket
@@ -855,12 +871,12 @@ positionDB::build(merStream *MS,
   //  that is broken.
   //
   for(u64bit bb=0; bb<currentBpos; bb++)
-    if (posPtrCheck[bb] != getDecodedValue(_buckets, bb * _wFin + _chckWidth, _posnWidth))
+    if (posPtrCheck[bb] != getDecodedValue(_buckets, bb * _wFin + _chckWidth, _pptrWidth))
       fprintf(MSG_OUTPUT, "Bucket %lu (at bitpos %lu) failed position check (wanted %lu got %lu)\n",
               bb,
               bb * _wFin,
               posPtrCheck[bb],
-              getDecodedValue(_buckets, bb * _wFin + _chckWidth + 1, _posnWidth));
+              getDecodedValue(_buckets, bb * _wFin + _chckWidth, _pptrWidth));
   delete [] posPtrCheck;
 #endif
 
@@ -895,7 +911,6 @@ positionDB::build(merStream *MS,
     fprintf(stderr, "positionDB()-- only: "u32bitFMT" mers missing!\n", missingMer);
   }
 #endif
-
 
   //  Free the counting buckets if we aren't using the space for
   //  something else.

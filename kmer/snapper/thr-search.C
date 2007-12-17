@@ -159,6 +159,16 @@ doSearch(searcherState       *state,
       fprintf(stderr, "rc=%d qidx="u32bitFMT" pos="u32bitFMT" mer="u64bitHEX" hits="u64bitFMT"\n",
               rc, qidx, query->getPosn(qidx), query->getMer(qidx), state->posnLen);
 #endif
+#if 0
+      //  Special one off for mapping hydra 454 reads to hydra sanger
+      //  reads, lots of repeats kill us.
+      //
+      u64bit lim=5000;
+      if (state->posnLen > lim) {
+        //fprintf(stderr, "THRESHOLD HIT: "u64bitFMT" hits -> "u64bitFMT"\n", state->posnLen, lim);
+        state->posnLen = lim;
+      }
+#endif
       matrix->addHits(query->getPosn(qidx), state->posn, state->posnLen);
     }
   }

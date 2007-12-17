@@ -59,7 +59,7 @@ positionDB::sortAndRepackBucket(u64bit b) {
   }
 
   //  Unpack the bucket
-  // 
+  //
   u64bit   lens[3] = {_chckWidth, _posnWidth, 1 + _sizeWidth};
   u64bit   vals[3] = {0};
   for (u64bit i=st, J=st * _wCnt; i<ed; i++, J += _wCnt) {

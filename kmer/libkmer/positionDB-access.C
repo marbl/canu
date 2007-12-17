@@ -8,7 +8,7 @@ positionDB::loadPositions(u64bit   J,
                           u64bit&  posnMax,
                           u64bit&  posnLen) {
 
-  u64bit  sizs[2] = {_posnWidth, 1};
+  u64bit  sizs[2] = {_pptrWidth, 1};
   u64bit  vals[2] = {0};
 
   getDecodedValues(_buckets, J + _chckWidth, 2, sizs, vals);
@@ -104,7 +104,7 @@ positionDB::count(u64bit mer) {
 
   for (u64bit i=st, J=st * _wFin; i<ed; i++, J += _wFin) {
     if (c == getDecodedValue(_buckets, J, _chckWidth)) {
-      u64bit  sizs[3] = {_posnWidth, 1, _sizeWidth};
+      u64bit  sizs[3] = {_pptrWidth, 1, _sizeWidth};
       u64bit  vals[3] = {0};
 
       getDecodedValues(_buckets, J + _chckWidth, 3, sizs, vals);

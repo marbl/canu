@@ -171,11 +171,11 @@ private:
   u64bit      _tableSizeInEntries;
   u32bit      _tableSizeInBits;
 
-  u32bit      _hashWidth;
-  u32bit      _chckWidth;
-  u32bit      _posnWidth;
-  u32bit      _posnPtrWidth;
-  u32bit      _sizeWidth;
+  u32bit      _hashWidth;  // Hash bith
+  u32bit      _chckWidth;  // Check bits
+  u32bit      _posnWidth;  // Positions in the sequence
+  u32bit      _pptrWidth;  // Pointers to positions
+  u32bit      _sizeWidth;  // Extra number in the table
 
   u64bit      _hashMask;
 
