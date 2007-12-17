@@ -319,5 +319,6 @@ SUBDIRS = AS_RUN \
           AS_CGW \
           AS_TER \
           AS_VWR \
-	  AS_ENV
+	  AS_ENV \
+	  AS_ARD
 
