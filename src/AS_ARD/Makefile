@@ -48,16 +48,25 @@ ifeq ($(SITE_NAME), JCVI)
 		ifndef SYBASE
 			SYBASE = /usr/local/packages/sybase15
 		endif
+
 		AS_ARD_CXXFLAGS = -DSYBASE
 
 		ifeq ($(MACHINETYPE), i686)
 			SYB_LIB_DIR = $(SYBASE)/OCS/lib $(SYBASE)/OCS/lib3p
+			LIB_PATH = $(SYBASE)/OCS/lib:$(SYBASE)/OCS/lib3p
 			AS_ARD_LDFLAGS = -lct -lcs
 		else
 			AS_ARD_CXXFLAGS += -DSYBPLATFORM=linuxamd64
 			SYBPLATFORM = linuxamd64			
 			SYB_LIB_DIR = $(SYBASE)/OCS/lib $(SYBASE)/OCS/lib3p64
+			LIB_PATH = $(SYBASE)/OCS/lib:$(SYBASE)/OCS/lib3p64
 			AS_ARD_LDFLAGS = -lct64 -lcs64
+		endif
+
+		ifndef LD_LIBRARY_PATH
+			export LD_LIBRARY_PATH = $(LIB_PATH)
+		else
+			export LD_LIBRARY_PATH = $(LIB_PATH):$(LD_LIBRARY_PATH)
 		endif
 		
   		 AS_ARD_INC = $(SYBASE)/include
