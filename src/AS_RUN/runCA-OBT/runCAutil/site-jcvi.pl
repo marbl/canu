@@ -234,6 +234,9 @@ sub localPostTerminator($) {
     $request_id = $tempArr[$#tempArr];
 
     system("cd $wrk && $bin/ametrics.plx -debug 9 $request_id $wrk/$asm.qc.metrics > $wrk/log/ametrics.log 2>&1");
+    # now send out a notice e-mail
+    my ($username) = getpwuid($>); 
+    system("echo $wrk | mail -s 'Assembly completed' $username");
 }
 
 
