@@ -79,7 +79,6 @@ LDFLAGS += $(AS_ARD_LDFLAGS)
 CXXFLAGS += $(AS_ARD_CXXFLAGS)
 
 all:    $(OBJECTS) $(LIBRARIES) $(PROGS)
-	echo $(LD_LIBRARY_PATH)
 	@test -n nop
 
 loadAssembly: loadAssembly.o $(COMMON_SOURCES:.cc=.o) $(DB_SOURCES:.cc=.o) libCA.a
