@@ -24,7 +24,7 @@
    Assumptions:  
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.175 2007-12-18 16:00:07 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.176 2007-12-18 22:31:32 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -7933,8 +7933,9 @@ MultiAlignContig(IntConConMesg *contig,
       //  If in a rush, just skip this frag, but you're better off fixing the input.
       assert(0);
     }
-    //  Special value designed to crash if we use it as a LocalStore index.
-    InsertInHashTable_AS(fragmentMap, contig->pieces[i].ident, 0, ~0, 0);
+
+    //  The '1' value stored here is used by GetMANodePositions().
+    InsertInHashTable_AS(fragmentMap, contig->pieces[i].ident, 0, 1, 0);
   }
 
   for (i=0;i<num_unitigs;i++) {
