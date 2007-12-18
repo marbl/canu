@@ -49,27 +49,32 @@ ifeq ($(SITE_NAME), JCVI)
 			SYBASE = /usr/local/packages/sybase15
 		endif
 
-		AS_ARD_CXXFLAGS = -DSYBASE
+		#### check for sybase directory, don't build if it doesn't exist
+		SYBASE_EXISTS=$(shell if test -d $(SYBASE); then echo 1; else echo 0; fi;)
 
-		ifeq ($(MACHINETYPE), i686)
-			SYB_LIB_DIR = $(SYBASE)/OCS/lib $(SYBASE)/OCS/lib3p
-			LIB_PATH = $(SYBASE)/OCS/lib:$(SYBASE)/OCS/lib3p
-			AS_ARD_LDFLAGS = -lct -lcs
-		else
-			AS_ARD_CXXFLAGS += -DSYBPLATFORM=linuxamd64
-			SYBPLATFORM = linuxamd64			
-			SYB_LIB_DIR = $(SYBASE)/OCS/lib $(SYBASE)/OCS/lib3p64
-			LIB_PATH = $(SYBASE)/OCS/lib:$(SYBASE)/OCS/lib3p64
-			AS_ARD_LDFLAGS = -lct64 -lcs64
-		endif
+		ifeq ($(SYBASE_EXISTS), 1)
+			AS_ARD_CXXFLAGS = -DSYBASE
 
-		ifdef LD_LIBRARY_PATH
-			LIB_PATH := $(LIB_PATH):$(LD_LIBRARY_PATH)
-		endif
-		export LD_LIBRARY_PATH := $(LIB_PATH)
+			ifeq ($(MACHINETYPE), i686)
+				SYB_LIB_DIR = $(SYBASE)/OCS/lib $(SYBASE)/OCS/lib3p
+				LIB_PATH = $(SYBASE)/OCS/lib:$(SYBASE)/OCS/lib3p
+				AS_ARD_LDFLAGS = -lct -lcs
+			else
+				AS_ARD_CXXFLAGS += -DSYBPLATFORM=linuxamd64
+				SYBPLATFORM = linuxamd64			
+				SYB_LIB_DIR = $(SYBASE)/OCS/lib $(SYBASE)/OCS/lib3p64
+				LIB_PATH = $(SYBASE)/OCS/lib:$(SYBASE)/OCS/lib3p64
+				AS_ARD_LDFLAGS = -lct64 -lcs64
+			endif
+
+			ifdef LD_LIBRARY_PATH
+				LIB_PATH := $(LIB_PATH):$(LD_LIBRARY_PATH)
+			endif
+			export LD_LIBRARY_PATH := $(LIB_PATH)
 		
-  		 AS_ARD_INC = $(SYBASE)/include
-		 AS_ARD_LIB = $(SYB_LIB_DIR)
+  			AS_ARD_INC = $(SYBASE)/include
+			AS_ARD_LIB = $(SYB_LIB_DIR)
+		endif
 	endif
 endif
 
