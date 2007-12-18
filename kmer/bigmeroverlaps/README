@@ -1,0 +1,25 @@
+Initial stab at making an overlapper that can handle 100-mers.  Never really finished.
+
+twobyfour:/home/work/genomics-assembly/bigmeroverlaps> ls -l
+total 110
+-rwxr-xr-x  1 bri  bri   2235 Jun 19  2006 100mer-sort.C
+-rw-r--r--  1 bri  bri   1053 Jun 20  2006 Make.include
+-rw-r--r--  1 bri  bri    577 Jul  6  2006 collision.C
+-rw-r--r--  1 bri  bri   1900 Jun 20  2006 debugMarkings.C
+-rw-r--r--  1 bri  bri   3286 Jul 24  2006 encode-tests.C
+-rw-r--r--  1 bri  bri   1940 May 13  2006 h.C
+-rw-r--r--  1 bri  bri   1686 Jul  6  2006 markFile.C
+-rw-r--r--  1 bri  bri   3446 Jun 25  2006 markFile.H
+-rw-r--r--  1 bri  bri  11903 Jul  6  2006 markUniqueMers.C
+-rw-r--r--  1 bri  bri    588 Jun 20  2006 mergeMarkings.C
+-rw-r--r--  1 bri  bri   7457 Jul  6  2006 propagateMarks.C
+-rw-r--r--  1 bri  bri   2415 Jun 19  2006 randomhash-mod.H
+-rw-r--r--  1 bri  bri   2162 Jun 20  2006 randomhash-mt.H
+-rw-r--r--  1 bri  bri   2403 Jul  6  2006 randomhash-shifting.H
+-rw-r--r--  1 bri  bri   8762 Jul  6  2006 run-stage1.pl
+-rw-r--r--  1 bri  bri   5389 Jul  6  2006 runBatchSGE.pl
+-rw-r--r--  1 bri  bri   1184 Jul  6  2006 runCommand.pl
+-rw-r--r--  1 bri  bri    308 May 13  2006 test.pl
+-rw-r--r--  1 bri  bri  14782 Jun 25  2006 the-plan
+-rw-r--r--  1 bri  bri  14885 Sep 14  2006 the-plan.rtf
+-rw-r--r--  1 bri  bri    332 Sep 14  2006 wrap.pl
