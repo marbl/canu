@@ -63,11 +63,10 @@ ifeq ($(SITE_NAME), JCVI)
 			AS_ARD_LDFLAGS = -lct64 -lcs64
 		endif
 
-		ifndef LD_LIBRARY_PATH
-			export LD_LIBRARY_PATH = $(LIB_PATH)
-		else
-			export LD_LIBRARY_PATH = $(LIB_PATH):$(LD_LIBRARY_PATH)
+		ifdef LD_LIBRARY_PATH
+			LIB_PATH := $(LIB_PATH):$(LD_LIBRARY_PATH)
 		endif
+		export LD_LIBRARY_PATH := $(LIB_PATH)
 		
   		 AS_ARD_INC = $(SYBASE)/include
 		 AS_ARD_LIB = $(SYB_LIB_DIR)
@@ -80,6 +79,7 @@ LDFLAGS += $(AS_ARD_LDFLAGS)
 CXXFLAGS += $(AS_ARD_CXXFLAGS)
 
 all:    $(OBJECTS) $(LIBRARIES) $(PROGS)
+	echo $(LD_LIBRARY_PATH)
 	@test -n nop
 
 loadAssembly: loadAssembly.o $(COMMON_SOURCES:.cc=.o) $(DB_SOURCES:.cc=.o) libCA.a
