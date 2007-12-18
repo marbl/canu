@@ -24,7 +24,7 @@
    Assumptions:  
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.174 2007-12-17 17:14:13 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.175 2007-12-18 16:00:07 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -1761,6 +1761,7 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
                   tau[bi]*= (double) TAU_MISMATCH * EPROB[qv];
                 }
               }
+              tauValid = 1;
             }
         }
       else
@@ -1780,6 +1781,7 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
                   tau[bi]*= (double) TAU_MISMATCH * EPROB[qv];
                 }
               }
+              tauValid = 1;
             }
         }
 
