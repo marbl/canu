@@ -153,7 +153,7 @@ sub setDefaults () {
     $global{"delayInterleavedMerging"}     = 0;
     $global{"doBackupFragStore"}           = 1;
     $global{"doExtendClearRanges"}         = 2;
-    $global{"extendClearRangesStepSize"}   = 5000;
+    $global{"extendClearRangesStepSize"}   = undef;
     $global{"doFragmentCorrection"}        = 1;
     $global{"doOverlapTrimming"}           = 1;
     $global{"doResolveSurrogates"}         = 1;

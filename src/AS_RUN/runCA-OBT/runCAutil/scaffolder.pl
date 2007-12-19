@@ -125,6 +125,11 @@ sub eCR ($$$) {
     my $numScaffolds = findNumScaffoldsInCheckpoint($thisDir, $lastckp);
     my $stepSize     = getGlobal("extendClearRangesStepSize");
 
+    if (!defined($stepSize)) {
+        $stepSize = 5000;
+        $stepSize = int($numScaffolds / 8) + 1 if ($stepSize < $numScaffolds / 8);
+    }
+
     my $substrlen = length("$numScaffolds");
 
     while ($curScaffold < $numScaffolds) {
