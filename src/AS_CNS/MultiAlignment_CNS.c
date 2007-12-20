@@ -24,7 +24,7 @@
    Assumptions:  
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.176 2007-12-18 22:31:32 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.177 2007-12-20 17:30:56 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -1794,7 +1794,7 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
           type  = GetFragment(fragmentStore,gb->frag_index)->type;
           utype = GetFragment(fragmentStore,gb->frag_index)->utype;
 
-#if 1
+#if 0
           //  If your assembly absolutely needs to get done, you can
           //  disable this block, and we'll use whatever unitig is
           //  here to get the consensus.
