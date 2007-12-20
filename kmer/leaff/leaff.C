@@ -43,6 +43,11 @@ const char *usage =
 "                    (space based, relative to the FORWARD sequence!)  If\n"
 "                    beg == end, then the entire sequence is printed.  It is an\n"
 "                    error to specify beg > end, or beg > len, or end > len.\n"
+"       -ends n      Print n bases from each end of the sequence.  One input\n"
+"                    sequence generates two output sequences, with '_5' or '_3'\n"
+"                    appended to the ID.  If 2n >= length of the sequence, the\n"
+"                    sequence itself is printed, no ends are extracted (they\n"
+"                    overlap).\n"
 "       -md5:        Don't print the sequence, but print the md5 checksum\n"
 "                    (of the entire sequence) followed by the entire defline.\n"
 "                    (this should really be an ANALYSIS OPTION)\n"
@@ -284,6 +289,7 @@ FastACache            *cache             = 0L;
 char                   seqIDtype         = 'i';
 u32bit                 begPos            = ~(u32bit)0;
 u32bit                 endPos            = ~(u32bit)0;
+u32bit                 endExtract        = ~(u32bit)0;
 bool                   printMD5          = false;
 seqInCore             *lastSeq           = 0L;
 mt_s                  *mtctx             = 0L;
@@ -377,6 +383,12 @@ printIID(u32bit iid, seqInCore *s=0L) {
     md5_toascii(md5_string(&md5, s->sequence(), s->sequenceLength()), sum);
 
     fprintf(stdout, "%s %s\n", sum, s->header());
+  } else if (endExtract + endExtract < s->sequenceLength()) {
+    fprintf(stdout, ">%s_5\n", s->header()+1);
+    printSequence(s, 0, endExtract, withLineBreaks, reverse, complement);
+
+    fprintf(stdout, ">%s_3\n", s->header()+1);
+    printSequence(s, s->sequenceLength()-endExtract, s->sequenceLength(), withLineBreaks, reverse, complement);
   } else {
     if (withDefLine)
       if (specialDefLine)
@@ -1317,9 +1329,16 @@ processArray(int argc, char **argv) {
           specialDefLine = argv[++arg];
           break;
         case 'e':
-          begPos = strtou32bit(argv[arg+1], 0L);
-          endPos = strtou32bit(argv[arg+2], 0L);
-          arg += 2;
+          switch (argv[arg][2]) {
+            case 0:
+              begPos = strtou32bit(argv[arg+1], 0L);
+              endPos = strtou32bit(argv[arg+2], 0L);
+              arg += 2;
+              break;
+            case 'n':
+              endExtract = strtou32bit(argv[++arg], 0L);
+              break;
+          }
           break;
         case 'm':
           printMD5 = !printMD5;
