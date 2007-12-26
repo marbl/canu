@@ -64,19 +64,24 @@ public:
   gkpStoreSequence();
   ~gkpStoreSequence();
 
+  const char  *fileTypeName(void) { return("Celera Assebmler GateKeeperStore"); };
+
   seqFile     *openFile(const char *name);
 
   void         openIndex(u32bit indextypetoload=FASTA_INDEX_ANY) {};
 
-  bool         rewind(void)   { _iid = _bgn; };
+  bool         rewind(void)   { _curIID = _bgn; };
   bool         eof(void)      { return(_eof); };
 
-  seqInCore   *getSequenceInCore(void);
-  seqOnDisk   *getSequenceOnDisk(void);
+  bool         getSequence(u32bit &hLen, char *&h,
+                           u32bit &sLen, char *&s);
+
+  //seqInCore   *getSequenceInCore(void);
+  //seqOnDisk   *getSequenceOnDisk(void);
 
   u64bit       timeStamp(void) { return(_tst); };
 
-  u32bit       currentIID(void) { return(_iid); };
+  u32bit       currentIID(void) { return(_curIID); };
 
   bool         find(seqIID  iid);
   bool         find(char   *uid);
@@ -117,16 +122,11 @@ public:
   uint16       clrBeg(seqIID iid) { return(_clrBeg[iid]); };
   uint16       clrEnd(seqIID iid) { return(_clrEnd[iid]); };
 
-private:
-  bool         getSequence(uint32 &hLen, char *&h,
-                           uint32 &sLen, char *&s);
-
   GateKeeperStore  *_gkp;
   fragRecord        _frg;
   uint32            _bgn;
   uint32            _end;
   uint32            _clr;
-  uint32            _iid;
   bool              _eof;
 
   uint16           *_seqLen;

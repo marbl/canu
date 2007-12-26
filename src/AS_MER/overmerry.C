@@ -37,20 +37,13 @@ extern "C" {
 
 //  using external mer counts - we'll need to extend the posDB to have
 //  more stuff in it, or construct another mer lookup hash.
-//
-//  parallel searching
-//
-//  subset of gkpstore
-//
-//  extend merstream with spaced, compressed, skips, transitions
 
 
 
 
-//  Instead of using The internal overlap, which has enough extra
+//  Instead of using the internal overlap, which has enough extra
 //  stuff in it that we cannot store a sequence iid for the table
-//  sequence, we need to make our own overlap structure.
-//
+//  sequence and have it be small, we make our own overlap structure.
 //
 struct kmerhit {
   u64bit   tseq:30;              //  sequence in the table
@@ -136,16 +129,23 @@ public:
 
     //  Use that gkpStore to check and reset the desired ranges
     //
-    if (qBeg < 1)   qBeg = 1;
-    if (qEnd == 0)  qEnd = getNumGateKeeperFragments(qGK);
+    uint32  mIID = getNumGateKeeperFragments(qGK);
+
+    if (qBeg < 1)     qBeg = 1;
+    if (tBeg < 1)     tBeg = 1;
+
+    if (qEnd == 0)    qEnd = mIID;
+    if (qEnd > mIID)  qEnd = mIID;
+
+    if (tEnd == 0)    tEnd = mIID;
+    if (tEnd > mIID)  tEnd = mIID;
+
     if (qBeg >= qEnd) {
       fprintf(stderr, "ERROR: -qb="F_U32" and -qe="F_U32" are invalid ("F_U32" frags in the store)\n",
               qBeg, qEnd, getNumGateKeeperFragments(qGK));
       exit(1);
     }
 
-    if (tBeg < 1)   tBeg = 1;
-    if (tEnd == 0)  tEnd = getNumGateKeeperFragments(qGK);
     if (tBeg >= tEnd) {
       fprintf(stderr, "ERROR: -tb="F_U32" and -te="F_U32" are invalid ("F_U32" frags in the store)\n",
               tBeg, tEnd, getNumGateKeeperFragments(qGK));
@@ -330,17 +330,6 @@ public:
     hits[hitsLen].pal  = pal;
     hits[hitsLen].fwd  = fwd;
 
-#if 0
-    if (((seq == 10) && (iid ==  1)) ||
-        ((seq ==  1) && (iid == 10)))
-      fprintf(stderr, "addHit: "u64bitFMT"\t"u64bitFMT"\t"u64bitFMT"\t"u64bitFMT"\t%c\n",
-              hits[hitsLen].tseq,
-              hits[hitsLen].tpos,
-              hits[hitsLen].qpos,
-              hits[hitsLen].cnt,
-              hits[hitsLen].pal ? 'p' : (hits[hitsLen].fwd ? 'f' : 'r'));
-#endif
-
     hitsLen++;
     merfound++;
   };
@@ -389,17 +378,6 @@ public:
   };
 
   void        addOverlap(OVSoverlap *overlap) {
-
-#if 0
-    //  some ascii output
-    fprintf(stderr, "%d\t%d\t%c\t%d\t%d\n",
-            (int)overlap->a_iid,
-            (int)overlap->dat.mer.a_pos,
-            overlap->dat.mer.palindrome ? 'p' : (overlap->dat.mer.fwd ? 'f' : 'r'),
-            (int)overlap->b_iid,
-            (int)overlap->dat.mer.b_pos);
-#endif
-
     if (ovsLen >= ovsMax) {
       ovsMax *= 2;
       OVSoverlap *o = new OVSoverlap [ovsMax];
@@ -407,7 +385,6 @@ public:
       delete [] ovs;
       ovs = o;
     }
-
     ovs[ovsLen++] = *overlap;
   };
 
@@ -423,31 +400,14 @@ public:
   AS_IID      iid;
   AS_UID      uid;
 
+  char        seq[AS_FRAG_MAX_LEN];
+
   uint32      ovsLen;  //  Overlap Storage, waiting for output
   uint32      ovsMax;
   OVSoverlap *ovs;
-
-  char        seq[AS_FRAG_MAX_LEN];
 };
 
 
-
-
-void*
-ovmReader(void *G) {
-  ovmGlobalData  *g = (ovmGlobalData *)G;
-
-  static fragRecord  fr;  //  static only for performance
-
- again:
-  if (nextFragStream(g->qFS, &fr) == 0)
-    return(0L);
-
-  if (getFragRecordIsDeleted(&fr))
-    goto again;
-
-  return(new ovmComputation(&fr));
-}
 
 
 
@@ -459,11 +419,6 @@ ovmWorker(void *G, void *T, void *S) {
   ovmComputation   *s = (ovmComputation *)S;
 
   OVSoverlap        overlap;
-
-#if 0
-  if (s->iid == 76)
-    fprintf(stderr, "IID 76\n");
-#endif
 
   t->hitsLen = 0;
 
@@ -533,11 +488,6 @@ ovmWorker(void *G, void *T, void *S) {
 
 
   for (u32bit i=0; i<t->hitsLen; i++) {
-
-#if 0
-    if ((t->hits[i].tseq == 48) && (s->iid == 76))
-      fprintf(stderr, "Found it.\n");
-#endif
 
     //  By the definition of our sort, the least common mer is the
     //  first hit in the list for each pair of sequences.
@@ -611,6 +561,23 @@ ovmWorker(void *G, void *T, void *S) {
 
 
 
+
+
+
+void*
+ovmReader(void *G) {
+  static fragRecord  fr;  //  static only for performance
+
+  do {
+    if (nextFragStream(((ovmGlobalData *)G)->qFS, &fr) == 0)
+      return(0L);
+  } while (getFragRecordIsDeleted(&fr));
+
+  return(new ovmComputation(&fr));
+}
+
+
+
 void
 ovmWriter(void *G, void *S) {
   ovmGlobalData    *g = (ovmGlobalData  *)G;
@@ -620,8 +587,6 @@ ovmWriter(void *G, void *S) {
 
   delete s;
 }
-
-
 
 
 
@@ -642,9 +607,6 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-c") == 0) {
       g->compression = atoi(argv[++arg]);
 
-    } else if (strcmp(argv[arg], "-o") == 0) {
-      g->outputName = argv[++arg];
-
     } else if (strcmp(argv[arg], "-t") == 0) {
       g->numThreads = atoi(argv[++arg]);
 
@@ -657,6 +619,9 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-qe") == 0) {
       g->qEnd = atoi(argv[++arg]);
 
+    } else if (strcmp(argv[arg], "-o") == 0) {
+      g->outputName = argv[++arg];
+
     } else {
       fprintf(stderr, "unknown option '%s'\n", argv[arg]);
       err++;
@@ -664,7 +629,25 @@ main(int argc, char **argv) {
     arg++;
   }
   if ((g->gkpPath == 0L) || (err)) {
-    fprintf(stderr, "usage: %s [-g gkpStore] [-m merSize] [-c compression] [-o outputName]\n", argv[0]);
+    fprintf(stderr, "usage: %s [opts]\n", argv[0]);
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -g gkpStore     path to the gkpStore\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -m merSize      mer size in bases\n");
+    fprintf(stderr, "  -c compression  compression level; homopolymer runs longer than this length\n");
+    fprintf(stderr, "                    are compressed to exactly this length\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -t numThreads   number of compute threads\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -tb m           hash table fragment IID range\n");
+    fprintf(stderr, "  -te n           hash table fragment IID range\n");
+    fprintf(stderr, "                    fragments with IID x, m <= x < n, are used for the hash table\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -qb M           query fragment IID range\n");
+    fprintf(stderr, "  -qe N           query fragment IID range\n");
+    fprintf(stderr, "                    fragments with IID y, M <= y < N, are used for the queries\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "  -o outputName   output written here\n");
     exit(1);
   }
 
