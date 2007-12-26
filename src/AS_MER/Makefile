@@ -44,10 +44,20 @@ ifeq ($(MACHINETYPE), Power Macintosh)
 endif
 
 
+#  This isn't perfect; if we're building debug here, we _usually_ want
+#  to use the debug kmer.  But checking if kmer exists, and failing if
+#  we don't find the debug kmer, is a little tricky.
+
 ifneq "$(origin KMER)" "environment"
+
+ifeq ($(shell ls -d $(LOCAL_WORK)/kmer/$(OSTYPE)-$(MACHINETYPE)-debug 2> /dev/null), $(LOCAL_WORK)/kmer/$(OSTYPE)-$(MACHINETYPE)-debug)
+  KMER = $(LOCAL_WORK)/kmer/$(OSTYPE)-$(MACHINETYPE)-debug
+endif
+
 ifeq ($(shell ls -d $(LOCAL_WORK)/kmer/$(OSTYPE)-$(MACHINETYPE) 2> /dev/null), $(LOCAL_WORK)/kmer/$(OSTYPE)-$(MACHINETYPE))
   KMER = $(LOCAL_WORK)/kmer/$(OSTYPE)-$(MACHINETYPE)
 endif
+
 endif
 
 ifdef KMER
