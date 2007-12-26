@@ -20,7 +20,7 @@ public:
   char             get(void);
   char             getnext(void);
   bool             seek(off_t pos);
-  size_t           read(char *buf, size_t len);
+  size_t           read(void *buf, size_t len);
   off_t            tell(void);
 
 private:

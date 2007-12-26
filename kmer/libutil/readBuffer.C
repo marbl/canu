@@ -182,7 +182,8 @@ readBuffer::seek(off_t pos) {
 
 
 size_t
-readBuffer::read(char *buf, size_t len) {
+readBuffer::read(void *buf, size_t len) {
+  char  *bufchar = (char *)buf;
 
 #ifdef VERBOSE_READBUFFER
   fprintf(stderr, "readBuffer::read()-- returning "u32bitFMT" bytes.\n", (u32bit)len);
@@ -192,7 +193,7 @@ readBuffer::read(char *buf, size_t len) {
     size_t c = 0;
 
     while ((_bufferPos < _bufferLen) && (c < len))
-      buf[c++] = _buffer[_bufferPos++];
+      bufchar[c++] = _buffer[_bufferPos++];
 
     return(c);
   } else {
@@ -216,20 +217,20 @@ readBuffer::read(char *buf, size_t len) {
       bCopied = len;
       bRead   = 0;
 
-      memcpy(buf, _buffer + _bufferPos, sizeof(char) * len);
+      memcpy(bufchar, _buffer + _bufferPos, sizeof(char) * len);
       _bufferPos += (u32bit)len;
     } else {
 
       //  Existing buffer not big enough.  Copy what's there, then finish
       //  with a read.
       //
-      memcpy(buf, _buffer + _bufferPos, (_bufferLen - _bufferPos) * sizeof(char));
+      memcpy(bufchar, _buffer + _bufferPos, (_bufferLen - _bufferPos) * sizeof(char));
       bCopied    = _bufferLen - _bufferPos;
       _bufferPos = _bufferLen;
 
       while (bCopied + bRead < len) {
         errno = 0;
-        bAct = (u32bit)::read(_file, buf + bCopied + bRead, (len - bCopied - bRead) * sizeof(char));
+        bAct = (u32bit)::read(_file, bufchar + bCopied + bRead, (len - bCopied - bRead) * sizeof(char));
         if (errno) {
           fprintf(stderr, "readBuffer()-- couldn't read %d bytes from '%s': n%s\n",
                   (u32bit)len * sizeof(char), _filename, strerror(errno));
