@@ -35,7 +35,10 @@ src    := $/alphabet.c \
           $/seqInCore.H \
           $/seqOnDisk.H \
           $/seqStore.H \
-          $/seqStream.H
+          $/seqStream.H \
+          $/sff.H \
+          $/sff.C
+
 
 $/.C_SRCS    :=$(filter %.c,${src})
 $/.C_INCS    :=$(filter %.h,${src})

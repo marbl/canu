@@ -54,14 +54,11 @@ u32bitSwap(u32bit x) {
   return(x);
 }
 
-#if 0
-//  Don't use shorts, usually slow!
 inline
 u16bit
 u16bitSwap(u16bit x) {
-  x = ((x >>  8) & u16bitNUMBER(0x00ff)) | ((x <<  8) & u16bitNUMBER(0xff00));
+  x = ((x >>  8) & 0x00ff) | ((x <<  8) & 0xff00);
   return(x);
 }
-#endif
 
 #endif  //  ENDIANESS_H

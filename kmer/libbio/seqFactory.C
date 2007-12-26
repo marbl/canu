@@ -8,6 +8,7 @@ seqFactory::seqFactory() {
   _files = new seqFile * [_filesMax];
 
   registerFile(new fastaFile);
+  registerFile(new sffFile);
 }
 
 
@@ -38,7 +39,11 @@ seqFactory::openFile(const char *name) {
       return(n);
   }
 
-  fprintf(stderr, "ERROR: Cannot determine type of file '%s'.\n", name);
+  fprintf(stderr, "ERROR: Cannot determine type of file '%s'.  Tried:\n", name);
+
+  for (u32bit i=0; i<_filesNum; i++)
+    fprintf(stderr, "       %s\n", _files[i]->fileTypeName());
+
   exit(1);
   return(n);
 }

@@ -21,6 +21,8 @@
 #include "fasta-cache.H"
 #include "fasta-accessor.H"
 
+#include "sff.H"
+
 #include "kmer.H"
 //#include "merstreamfile.H"
 #include "merstream.H"

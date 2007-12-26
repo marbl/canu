@@ -45,6 +45,8 @@ public:
   fastaFile();
   ~fastaFile();
 
+  const char      *fileTypeName(void) { return("FastA"); };
+
   seqFile         *openFile(const char *name);
 
   void             openIndex(u32bit indextypetoload=FASTA_INDEX_ANY);
@@ -105,7 +107,7 @@ private:
   char            _filename[FILENAME_MAX];
   char            _indexname[FILENAME_MAX];
 
-  u32bit          _curIID;
+  //u32bit          _curIID;
 
   bool            _isStreamInput;      //  Forced to be not random access
   bool            _isIndexed;          //  Set if an index is open

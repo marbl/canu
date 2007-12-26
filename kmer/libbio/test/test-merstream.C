@@ -79,7 +79,7 @@ test2(merStream *MSa,
   //
   while (MSa->nextMer() && MSb->nextMer()) {
 
-#if 1
+#if 0
     //  If you're curious that things are actually non-zero...
     fprintf(stderr, "STAT: MSa: %s/%s @ "u64bitFMT"/"u64bitFMT","u64bitFMT"  MSb: %s/%s @ "u64bitFMT"/"u64bitFMT","u64bitFMT"\n",
             MSa->theFMer().merToString(stra), MSa->theRMer().merToString(strb), MSa->thePositionInSequence(), MSa->thePositionInStream(), MSa->theSequenceNumber(),
