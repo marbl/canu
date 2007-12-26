@@ -5,11 +5,6 @@ sub unitigger (@) {
 
     goto alldone if (scalar(@cgbFiles) > 0);
 
-    if ($global{'useBogUnitig'}) {
-        bogUnitigger();
-        goto alldone;
-    }
-
     if (! -e "$wrk/4-unitigger/unitigger.success") {
         system("mkdir $wrk/4-unitigger") if (! -e "$wrk/4-unitigger");
 
@@ -21,18 +16,36 @@ sub unitigger (@) {
         my $B = int($numFrags / getGlobal("cnsPartitions"));
         $B = getGlobal("cnsMinFrags") if ($B < getGlobal("cnsMinFrags"));
 
+        my $bmd = getGlobal("bogBadMateDepth");
+
         my $cmd;
-        $cmd  = "$bin/unitigger ";
-	$cmd .= " -k " if (getGlobal("utgRecalibrateGAR") == 1);
-        $cmd .= " -B $B ";
-        $cmd .= " -l $l " if defined($l);
-        $cmd .= " -m $m " if defined($m);
-        $cmd .= " -n $n " if defined($n);
-        $cmd .= " -d 1 -x 1 -z 10 -j 5 -U $u -e $e ";
-        $cmd .= " -F $wrk/$asm.gkpStore ";
-        $cmd .= " -o $wrk/4-unitigger/$asm ";
-        $cmd .= " -I $wrk/$asm.ovlStore ";
-        $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";
+
+        if ($global{'useBogUnitig'}) {
+            $cmd  = "$bin/buildUnitigs ";
+            $cmd .= " -O $wrk/$asm.ovlStore ";
+            $cmd .= " -G $wrk/$asm.gkpStore ";
+            $cmd .= " -B $B ";
+            $cmd .= " -e $e ";
+            $cmd .= " -s $l "   if (defined($l));
+            $cmd .= " -b "      if (getGlobal("bogPromiscuous") == 0);
+            $cmd .= " -k "      if (getGlobal("bogEjectUnhappyContain") == 1);
+            $cmd .= " -m $bmd " if (defined($bmd));
+            $cmd .= " -o $wrk/4-unitigger/$asm ";
+            $cmd .= " > $wrk/4-unitigger/unitigger.out 2>$wrk/4-unitigger/unitigger.err";
+        } else {
+            $cmd  = "$bin/unitigger ";
+            $cmd .= " -k " if (getGlobal("utgRecalibrateGAR") == 1);
+            $cmd .= " -B $B ";
+            $cmd .= " -l $l " if defined($l);
+            $cmd .= " -m $m " if defined($m);
+            $cmd .= " -n $n " if defined($n);
+            $cmd .= " -d 1 -x 1 -z 10 -j 5 -U $u ";
+            $cmd .= " -e $e ";
+            $cmd .= " -F $wrk/$asm.gkpStore ";
+            $cmd .= " -o $wrk/4-unitigger/$asm ";
+            $cmd .= " -I $wrk/$asm.ovlStore ";
+            $cmd .= " > $wrk/4-unitigger/unitigger.err 2>&1";
+        }
 
         if (runCommand("$wrk/4-unitigger", $cmd)) {
             caFailure("Failed to unitig.\n");

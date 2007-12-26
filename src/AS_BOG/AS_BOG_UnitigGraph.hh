@@ -34,15 +34,15 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.hh,v 1.37 2007-12-05 23:46:57 brianwalenz Exp $
- * $Revision: 1.37 $
+ * $Id: AS_BOG_UnitigGraph.hh,v 1.38 2007-12-26 19:11:00 brianwalenz Exp $
+ * $Revision: 1.38 $
  */
 
 
 #ifndef INCLUDE_AS_BOG_UNITIGGRAPH
 #define INCLUDE_AS_BOG_UNITIGGRAPH
 
-static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.37 2007-12-05 23:46:57 brianwalenz Exp $";
+static char AS_BOG_UNITIG_GRAPH_HH_CM_ID[] = "$Id: AS_BOG_UnitigGraph.hh,v 1.38 2007-12-26 19:11:00 brianwalenz Exp $";
 
 #include <set>
 #include <iostream>
@@ -212,7 +212,7 @@ namespace AS_BOG{
         friend std::ostream& operator<< (std::ostream& os, UnitigGraph& utgrph);
 
         // For compatibility with the rest of the assembler
-        void writeIUMtoFile(char *filename);
+        void writeIUMtoFile(char *filename, int fragment_count_target);
 
         // For compatibility with the rest of the assembler
         void readIUMsFromFile(const char *filename, iuid maxIID);

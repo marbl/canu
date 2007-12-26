@@ -34,11 +34,11 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_UnitigGraph.cc,v 1.72 2007-12-05 23:46:57 brianwalenz Exp $
- * $Revision: 1.72 $
+ * $Id: AS_BOG_UnitigGraph.cc,v 1.73 2007-12-26 19:11:00 brianwalenz Exp $
+ * $Revision: 1.73 $
  */
 
-//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.72 2007-12-05 23:46:57 brianwalenz Exp $";
+//static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "$Id: AS_BOG_UnitigGraph.cc,v 1.73 2007-12-26 19:11:00 brianwalenz Exp $";
 static char AS_BOG_UNITIG_GRAPH_CC_CM_ID[] = "gen> @@ [0,0]";
 
 #include "AS_BOG_Datatypes.hh"
@@ -1829,42 +1829,53 @@ namespace AS_BOG{
 
     //////////////////////////////////////////////////////////////////////////////
 
-    void UnitigGraph::writeIUMtoFile(char *filename){
-		
-        // Open up the output file
-        FILE *fptr=fopen(filename, "w");
-        if(fptr==NULL){
-            std::cerr << "Could not open " << filename << 
-                "for writing IUM (IntUnitigMesg) output." << std::endl;
-			
-            exit(-1);
+    void UnitigGraph::writeIUMtoFile(char *fileprefix, int fragment_count_target){
+      int         fragment_count         = 0;
+      int         file_count             = 1;
+      char        filename[FILENAME_MAX] = {0};
+      FILE       *file                   = NULL;
+      int         iumiid                 = 0;
+      GenericMesg mesg;
+
+      // Open up the initial output file
+
+      sprintf(filename, "%s_%03d.cgb", fileprefix, file_count++);
+      file = fopen(filename,"w");
+      assert(NULL != file);
+
+      // Step through all the unitigs
+
+      for (UnitigVector::iterator utg_itr=unitigs->begin(); utg_itr != unitigs->end(); utg_itr++) {
+        if (*utg_itr == NULL)
+          continue;
+
+        if ((*utg_itr)->getNumFrags() == 0)
+          continue;
+
+        IntUnitigMesg *ium_mesg_ptr = (*utg_itr)->getIUM_Mesg();
+
+        ium_mesg_ptr->iaccession = iumiid++;
+
+        fragment_count += ium_mesg_ptr->num_frags;
+
+        if ((fragment_count_target >= 0) &&
+            (fragment_count >= fragment_count_target)) {
+          fclose(file);
+          sprintf(filename, "%s_%03d.cgb", fileprefix, file_count++);
+          file = fopen(filename,"w");
+          assert(NULL != file);
+          fragment_count = ium_mesg_ptr->num_frags;
         }
 
-        // Step through all the unitigs
-        int iumId = 0;
-        UnitigVector::iterator utg_itr;
-        for(utg_itr=unitigs->begin(); utg_itr!=unitigs->end(); utg_itr++){
-            if( *utg_itr == NULL)
-                continue;
+        mesg.m = ium_mesg_ptr;
+        mesg.t = MESG_IUM;
 
-            if( (*utg_itr)->getNumFrags() == 0 )
-                continue;
+        WriteProtoMesg_AS(file, &mesg);
 
-            IntUnitigMesg *ium_mesg_ptr;
-            ium_mesg_ptr=(*utg_itr)->getIUM_Mesg();
-            fprintf(stderr,"Internal tig %ld is %ld in IUM msg.\n",
-                    (*utg_itr)->id(),iumId );
-            ium_mesg_ptr->iaccession=iumId++; //IntChunk_ID
+        (*utg_itr)->freeIUM_Mesg(ium_mesg_ptr);
+      }
 
-            GenericMesg mesg;
-            mesg.m=ium_mesg_ptr;
-            mesg.t=MESG_IUM;
-
-            WriteProtoMesg_AS(fptr, &mesg);
-            (*utg_itr)->freeIUM_Mesg(ium_mesg_ptr);
-        }
-
-        fclose(fptr);
+      fclose(file);
     }
 
     //////////////////////////////////////////////////////////////////////////////
