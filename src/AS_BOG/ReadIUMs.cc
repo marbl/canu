@@ -31,11 +31,11 @@
  *************************************************/
 
 /* RCS info
- * $Id: ReadIUMs.cc,v 1.5 2007-12-05 23:46:58 brianwalenz Exp $
- * $Revision: 1.5 $
+ * $Id: ReadIUMs.cc,v 1.6 2007-12-27 18:41:15 brianwalenz Exp $
+ * $Revision: 1.6 $
  */
 
-static const char CM_ID[] = "$Id: ReadIUMs.cc,v 1.5 2007-12-05 23:46:58 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: ReadIUMs.cc,v 1.6 2007-12-27 18:41:15 brianwalenz Exp $";
 
 //  System include files
 
@@ -65,7 +65,7 @@ main (int argc, char * argv []) {
     OverlapStore* ovlStore = AS_OVS_openOverlapStore(OVL_Store_Path);
 
     BOG_Runner bogRunner(numFrgsInGKP);
-    LongestHighIdent* bog = new LongestHighIdent( 1.5 );
+    BestOverlapGraph* bog = new BestOverlapGraph( 0.015 );
     bogRunner.push_back( bog );
     bogRunner.processOverlapStream(ovlStore, GKP_Store_Path);
 

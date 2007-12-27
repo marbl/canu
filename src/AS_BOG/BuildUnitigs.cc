@@ -30,11 +30,11 @@
  *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.35 2007-12-26 19:11:00 brianwalenz Exp $
- * $Revision: 1.35 $
+ * $Id: BuildUnitigs.cc,v 1.36 2007-12-27 18:41:15 brianwalenz Exp $
+ * $Revision: 1.36 $
  */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.35 2007-12-26 19:11:00 brianwalenz Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.36 2007-12-27 18:41:15 brianwalenz Exp $";
 
 //  System include files
 
@@ -121,7 +121,12 @@ main (int argc, char * argv []) {
                   eratesDefault = false;
                   erates.clear();
                 }
-                erates.push_back(atof(optarg));
+                if (NULL != strstr(optarg,"."))
+                  //  Is floating point -- parts per hundred (aka percent error)
+                  erates.push_back(atof(optarg) / 100.0);
+                else
+                  //  Is integer -- parts per thousand
+                  erates.push_back(atof(optarg) / 1000.0);
                 break;
             case 'k':
                 BogOptions::ejectUnhappyContained = true; break;
@@ -170,7 +175,7 @@ main (int argc, char * argv []) {
 
     int i;
     for(i=0; i < erates.size(); i++) {
-        bogRunner.push_back( new AS_BOG::LongestHighIdent( erates[i] ) );
+        bogRunner.push_back( new AS_BOG::BestOverlapGraph( erates[i] ) );
     }
     bogRunner.processOverlapStream(ovlStore, GKP_Store_Path);
 
@@ -195,8 +200,6 @@ main (int argc, char * argv []) {
 	std::cerr << "Reporting.\n" << std::endl;
         mateChecker.checkUnitigGraph(utg);
 
-        int mismatch = bogRunner.metrics[i]->getThreshold();
-
         // should be number of Random frags when that's supported
         float globalARate = utg.getGlobalArrivalRate(cg->getNumFragments(), genome_size);
 
@@ -211,7 +214,8 @@ main (int argc, char * argv []) {
         //
         if (bogRunner.size() > 1) {
           char  prefix[FILENAME_MAX] = {0};
-          sprintf(prefix, "%s_%05.2f", output_prefix, AS_OVS_decodeQuality(mismatch) * 100.0);
+          sprintf(prefix, "%s_%05.2f", output_prefix,
+                  AS_OVS_decodeQuality(bogRunner.metrics[i]->mismatchCutoff) * 100.0);
           utg.writeIUMtoFile(prefix, fragment_count_target);
         } else {
           utg.writeIUMtoFile(output_prefix, fragment_count_target);

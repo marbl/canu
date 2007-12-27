@@ -37,11 +37,11 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.45 2007-12-05 23:54:42 brianwalenz Exp $
- * $Revision: 1.45 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.46 2007-12-27 18:41:15 brianwalenz Exp $
+ * $Revision: 1.46 $
  */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.45 2007-12-05 23:54:42 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.46 2007-12-27 18:41:15 brianwalenz Exp $";
 
 //  System include files
 #include<iostream>
@@ -102,13 +102,27 @@ namespace AS_BOG{
 
     // Create BestOverlapGraph as an array of size max fragments.
     //     Assuming that our iuids start at index value of 1.
-
-    BestOverlapGraph::BestOverlapGraph() : curFrag(0) {
+    //
+    // AS_UTG_ERROR_RATE is fraction error, same as AS_CNS_ERROR_RATE.
+    //
+    BestOverlapGraph::BestOverlapGraph(double AS_UTG_ERROR_RATE) : curFrag(0) {
         assert( lastFrg > 0 ); // Set in BOG_Runner constructor
 
         _best_overlaps = new BestFragmentOverlap[lastFrg+1];
 
         memset(_best_overlaps, 0, sizeof(BestFragmentOverlap)*(lastFrg+1));
+
+        assert(AS_UTG_ERROR_RATE >= 0.0);
+        assert(AS_UTG_ERROR_RATE <= AS_MAX_ERROR_RATE);
+
+        assert(AS_CNS_ERROR_RATE >= 0.0);
+        assert(AS_CNS_ERROR_RATE <= AS_MAX_ERROR_RATE);
+
+        fprintf(stderr, "BestOverlapGraph()-- UTG erate %.4f%%, CNS erate %.4f%%\n",
+                100.0 * AS_UTG_ERROR_RATE, 100.0 * AS_CNS_ERROR_RATE);
+
+        mismatchCutoff  = AS_OVS_encodeQuality( AS_UTG_ERROR_RATE );
+        consensusCutoff = AS_OVS_encodeQuality( AS_CNS_ERROR_RATE );
     }
 
     // Destructor
@@ -571,33 +585,6 @@ namespace AS_BOG{
 		"/" <<  _best_overlaps[i].three_prime.in_degree <<
 		std::endl;
 	}
-    }
-    ///////////////////////////////////////////////////////////////////////////
-
-    float ErateScore::scoreOverlap(const OVSoverlap& olap) {
-        // Computes the score for a Error Rate BOG based on overlap corrected error rate.  
-        //        Error rate is normalized so that the higher the error rate, the lower the score.
-
-        return 100 - AS_OVS_decodeQuality(olap.dat.ovl.corr_erate) * 100;
-    }
-    
-    float LongestEdge::scoreOverlap(const OVSoverlap& olap) {
-        // Computes the score for a Longest Edge BOG based on overlap length only.
-
-        return olapLength(olap);
-    }
-
-    float LongestHighIdent::scoreOverlap(const OVSoverlap& olap) {
-        // Computes the score for a Longest Edge BOG based on overlap length but
-        //   after applying an an error rate cutoff.
-
-        if (olap.dat.ovl.orig_erate > consensusCutoff )
-            return 0;
-        if (olap.dat.ovl.corr_erate > mismatchCutoff )
-            return 0;
-
-        short olapLen = olapLength(olap);
-        return olapLen;
     }
 
     ///////////////////////////////////////////////////////////////////////////

@@ -34,8 +34,8 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.35 2007-12-05 23:54:42 brianwalenz Exp $
- * $Revision: 1.35 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.36 2007-12-27 18:41:15 brianwalenz Exp $
+ * $Revision: 1.36 $
  */
 
 //  System include files
@@ -103,7 +103,7 @@ namespace AS_BOG{
         friend class BOG_Runner;
 
         // Constructor, parametrizing maximum number of overlaps
-        BestOverlapGraph();
+        BestOverlapGraph(double AS_UTG_ERROR_RATE);
 
         // Destructor
         ~BestOverlapGraph();
@@ -133,8 +133,38 @@ namespace AS_BOG{
         fragment_end_type BEnd(const OVSoverlap& olap);
         void processOverlap(const OVSoverlap& olap);
         static overlap_type getType(const OVSoverlap & olap);
-        virtual float scoreOverlap(const OVSoverlap& olap)=0;
-        virtual int getThreshold()=0;
+
+        float scoreOverlap(const OVSoverlap& olap) {
+
+#if 0
+          // Computes the score for a Error Rate BOG based on overlap
+          // corrected error rate.
+          //
+          // Error rate is normalized so that the higher the error
+          // rate, the lower the score.
+          //
+          return(100.0 - AS_OVS_decodeQuality(olap.dat.ovl.corr_erate) * 100.0);
+#endif
+
+#if 0
+          // Computes the score for a Longest Edge BOG based on
+          // overlap length only.
+          //
+          return(olapLength(olap));
+#endif
+
+#if 1
+          // Computes the score for a Longest Edge BOG based on
+          // overlap length but after applying an an error rate
+          // cutoff.
+          //
+          if (olap.dat.ovl.orig_erate > consensusCutoff)
+            return 0;
+          if (olap.dat.ovl.corr_erate > mismatchCutoff)
+            return 0;
+          return olapLength(olap);
+#endif
+        };
 
         // FragStore related variables
         //These should be moved to protected
@@ -157,33 +187,14 @@ namespace AS_BOG{
         int bestLength;
         BestFragmentOverlap* _best_overlaps;
 
+    public:
+        uint64 mismatchCutoff;
+        uint64 consensusCutoff;
+
     }; //BestOverlapGraph
 
     ///////////////////////////////////////////////////////////////////////////
 
-    struct ErateScore : public BestOverlapGraph {
-        ErateScore() : BestOverlapGraph() {}
-        float scoreOverlap( const OVSoverlap& olap);
-    };
-
-    struct LongestEdge : public BestOverlapGraph {
-        LongestEdge() : BestOverlapGraph() {}
-        float scoreOverlap( const OVSoverlap& olap);
-    };
-
-    struct LongestHighIdent : public BestOverlapGraph {
-        int mismatchCutoff;
-        int consensusCutoff;
-        LongestHighIdent( float maxMismatch) : BestOverlapGraph() {
-            mismatchCutoff  = AS_OVS_encodeQuality( maxMismatch / 100.0 );
-            consensusCutoff = AS_OVS_encodeQuality( AS_CNS_ERROR_RATE );
-            assert( consensusCutoff >= 0 ); // Set in AS_configure
-        }
-        int getThreshold() { return mismatchCutoff; }
-        float scoreOverlap( const OVSoverlap& olap);
-    };
-
-    ///////////////////////////////////////////////////////////////////////////
     struct BOG_Runner {
         BOG_Runner(int lastFrag) { BestOverlapGraph::lastFrg = lastFrag; }
         void push_back(BestOverlapGraph *bog) { metrics.push_back(bog); }

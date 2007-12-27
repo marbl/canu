@@ -31,11 +31,11 @@
  *************************************************/
 
 /* RCS info
- * $Id: FindContainedFrags.cc,v 1.31 2007-12-05 23:54:42 brianwalenz Exp $
- * $Revision: 1.31 $
+ * $Id: FindContainedFrags.cc,v 1.32 2007-12-27 18:41:15 brianwalenz Exp $
+ * $Revision: 1.32 $
  */
 
-static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.31 2007-12-05 23:54:42 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: FindContainedFrags.cc,v 1.32 2007-12-27 18:41:15 brianwalenz Exp $";
 
 //  System include files
 
@@ -82,9 +82,9 @@ int  main
     // Initialize our three different types of Best Overlap Graphs
     //   AS_BOG::ErateScore erScore;
     //   AS_BOG::LongestEdge lenScore;
-    AS_BOG::LongestHighIdent lenid25(2.5);
-    AS_BOG::LongestHighIdent lenid15(1.5);
-    AS_BOG::LongestHighIdent lenid10(1.0);
+    AS_BOG::BestOverlapGraph lenid25(0.025);
+    AS_BOG::BestOverlapGraph lenid15(0.015);
+    AS_BOG::BestOverlapGraph lenid10(0.010);
 
     // Put the three graphs into a vector, so we can step through them
     //   bogRunner.push_back(&erScore);
