@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_main.c,v 1.59 2007-11-08 12:38:12 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_main.c,v 1.60 2007-12-28 19:11:43 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,6 +35,8 @@ static char const *rcsid = "$Id: AS_GKP_main.c,v 1.59 2007-11-08 12:38:12 brianw
 #include "AS_UTL_fileIO.h"
 #include "AS_MSG_pmesg.h"
 #include "AS_GKP_include.h"
+
+char            *progName  = NULL;
 
 GateKeeperStore *gkpStore  = NULL;
 FILE            *errorFP   = NULL;
@@ -71,11 +73,12 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "\n");
   fprintf(stdout, "The third usage will dump the contents of a GateKeeper store.\n");
   fprintf(stdout, "  [selection of what objects to dump]\n");
-  fprintf(stdout, "  -b <begin-iid>         dump starting at this batch, library or read (1)\n");
-  fprintf(stdout, "  -e <ending-iid>        dump stopping after this iid (1)\n");
-  fprintf(stdout, "  -uid <uid-file>        dump only objects listed in 'uid-file' (1)\n");
-  fprintf(stdout, "  -iid <iid-file>        dump only objects listed in 'iid-file' (1)\n");
-  fprintf(stdout, "  -randommated <lib> <n> pick n mates (2n frags) at random from library lib,\n");
+  fprintf(stdout, "  -b <begin-iid>          dump starting at this batch, library or read (1)\n");
+  fprintf(stdout, "  -e <ending-iid>         dump stopping after this iid (1)\n");
+  fprintf(stdout, "  -uid <uid-file>         dump only objects listed in 'uid-file' (1)\n");
+  fprintf(stdout, "  -iid <iid-file>         dump only objects listed in 'iid-file' (1)\n");
+  fprintf(stdout, "  -randomsubset <lib> <n> pick n mates (2n frags) at random from library lib,\n");
+  fprintf(stdout, "  -randommated  <lib> <f> dump a random fraction f of library lib,\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "  [how to dump it]\n");
   fprintf(stdout, "  -tabular               dump info, batches, libraries or fragments in a tabular\n");
@@ -151,6 +154,201 @@ usage(char *filename, int longhelp) {
   }
 }
 
+char *
+constructIIDdumpFromIDFile(char *gkpStoreName, char *iidToDump, char *uidFileName, char *iidFileName) {
+
+  if ((uidFileName == NULL) && (iidFileName == NULL))
+    return(iidToDump);
+
+  GateKeeperStore *gkp      = openGateKeeperStore(gkpStoreName, FALSE);
+  if (gkp == NULL) {
+    fprintf(stderr, "Failed to open %s\n", gkpStoreName);
+    exit(1);
+  }
+
+  AS_IID           lastElem = getLastElemFragStore(gkp) + 1;
+  FILE            *F        = NULL;
+  char             L[1024];
+
+  if (iidToDump == NULL)
+    iidToDump = (char *)safe_calloc(lastElem, sizeof(char));
+
+  if (iidFileName) {
+    errno = 0;
+    if (strcmp(iidFileName, "-") == 0)
+      F = stdin;
+    else
+      F = fopen(iidFileName, "r");
+    if (errno) {
+      fprintf(stderr, "%s: Couldn't open -iid file '%s': %s\n", progName, iidFileName, strerror(errno));
+      exit(1);
+    }
+    fgets(L, 1024, F);
+    while (!feof(F)) {
+      AS_IID      iid = AS_IID_fromString(L, NULL);
+      if (iid >= lastElem)
+        fprintf(stderr, "%s: IID "F_IID" too big, ignored.\n", progName, iid);
+      else
+        iidToDump[iid]++;
+      fgets(L, 1024, F);
+    }
+    if (F != stdin)
+      fclose(F);
+  }
+
+  if (uidFileName) {
+    errno = 0;
+    if (strcmp(uidFileName, "-") == 0)
+      F = stdin;
+    else
+      F = fopen(uidFileName, "r");
+    if (errno) {
+      fprintf(stderr, "%s: Couldn't open -uid file '%s': %s\n", progName, uidFileName, strerror(errno));
+      exit(1);
+    }
+    fgets(L, 1024, F);
+    while (!feof(F)) {
+      AS_UID  uid = AS_UID_lookup(L, NULL);
+      AS_IID  iid = getGatekeeperUIDtoIID(gkp, uid, NULL);
+
+      if (iid == 0)
+        fprintf(stderr, "%s: UID %s doesn't exist, ignored.\n", progName, AS_UID_toString(uid));
+      else if (iid >= lastElem)
+        fprintf(stderr, "%s: UID %s is IID "F_IID", and that's too big, ignored.\n", progName, AS_UID_toString(uid), iid);
+      else
+        iidToDump[iid]++;
+
+      fgets(L, 1024, F);
+    }
+    if (F != stdin)
+      fclose(F);
+  }
+
+  closeGateKeeperStore(gkp);
+
+  return(iidToDump);
+}
+
+
+
+char *
+constructIIDdump(char  *gkpStoreName,
+                 char  *iidToDump,
+                 int    dumpRandLib,
+                 int    dumpRandMateNum,
+                 int    dumpRandSingNum,
+                 double dumpRandFraction) {
+
+  if (dumpRandLib == -1)
+    return(iidToDump);
+
+  GateKeeperStore *gkp        = openGateKeeperStore(gkpStoreName, FALSE);
+  if (gkp == NULL) {
+    fprintf(stderr, "Failed to open %s\n", gkpStoreName);
+    exit(1);
+  }
+
+  uint32      numMated  = 0;
+  uint32      numSingle = 0;
+  uint32      numNoLib  = 0;
+
+  uint32      numTotal  = getLastElemFragStore(gkp) + 1;  //  Should count, or remember this when building
+
+  uint32     *candidatesS    = (uint32 *)safe_malloc(numTotal * sizeof(uint32));
+  uint32   candidatesSLen = 0;
+
+  uint32     *candidatesA    = (uint32 *)safe_malloc(numTotal * sizeof(uint32));
+  uint32     *candidatesB    = (uint32 *)safe_malloc(numTotal * sizeof(uint32));
+  uint32      candidatesMLen = 0;
+
+  fragRecord  fr;
+  FragStream *fs = openFragStream(gkp, FRAG_S_INF);
+
+  int         i;
+
+  uint32 begIID = getFirstElemStore(gkp->frg);
+  uint32 endIID = getLastElemStore(gkp->frg);
+
+  if (begIID < getFirstElemStore(gkp->frg))
+    begIID = getFirstElemStore(gkp->frg);
+  if (getLastElemStore(gkp->frg) < endIID)
+    endIID = getLastElemStore(gkp->frg);
+
+  if (iidToDump == NULL)
+    iidToDump = (char *)safe_calloc(numTotal, sizeof(char));
+
+
+  //  Scan the whole fragstore, looking for mated reads in the
+  //  correct library, and save the lesser of the two reads.
+  //
+  resetFragStream(fs, begIID, endIID);
+  while (nextFragStream(fs, &fr)) {
+
+    if (getFragRecordLibraryIID(&fr) == 0)
+      numNoLib++;
+
+    if ((dumpRandLib == 0) ||
+        (dumpRandLib == getFragRecordLibraryIID(&fr))) {
+
+      //  Build lists of singletons and mated frags in this library.
+      //  Save only the smaller mate ID.
+
+      if (getFragRecordMateIID(&fr) == 0) {
+        numSingle++;
+        candidatesS[candidatesSLen] = getFragRecordIID(&fr);
+        candidatesSLen++;
+      } else if (getFragRecordIID(&fr) < getFragRecordMateIID(&fr)) {
+        numMated++;
+        candidatesA[candidatesMLen] = getFragRecordIID(&fr);
+        candidatesB[candidatesMLen] = getFragRecordMateIID(&fr);
+        candidatesMLen++;
+      }
+    }
+  }
+
+  closeFragStream(fs);
+  closeGateKeeperStore(gkp);
+
+  if (numNoLib)
+    fprintf(stderr, "WARNING: found "F_U32" reads with no library (usually caused by using frg format 1).\n", numNoLib);
+
+  //  Now pick N reads from our list of candidates, and let the dump
+  //  routines fill in the missing mates
+
+  srand48(time(NULL));
+
+  if (dumpRandFraction > 0) {
+    double f = (numSingle + numMated) * dumpRandFraction / (numSingle + numMated);
+    dumpRandSingNum = (uint32)(numSingle * f);
+    dumpRandMateNum = (uint32)(numMated  * f);
+  }
+
+  for (i=0; (i < dumpRandSingNum) && (candidatesSLen > 0); i++) {
+    int  x = lrand48() % candidatesSLen;
+    iidToDump[candidatesS[x]] = 1;
+    candidatesSLen--;
+    candidatesS[x] = candidatesS[candidatesSLen];
+  }
+
+  for (i=0; (i < dumpRandMateNum) && (candidatesMLen > 0); i++) {
+    int  x = lrand48() % candidatesMLen;
+    iidToDump[candidatesA[x]] = 1;
+    iidToDump[candidatesB[x]] = 1;
+    candidatesMLen--;
+    candidatesA[x] = candidatesA[candidatesMLen];
+    candidatesB[x] = candidatesB[candidatesMLen];
+  }
+
+  safe_free(candidatesS);
+  safe_free(candidatesA);
+  safe_free(candidatesB);
+
+  return(iidToDump);
+}
+
+
+
+
 #define DUMP_NOTHING     0
 #define DUMP_INFO        1
 #define DUMP_BATCHES     2
@@ -197,10 +395,13 @@ main(int argc, char **argv) {
   int              dumpFastaQuality  = 0;
   int              doNotFixMates     = 0;
   int              dumpFormat        = 1;
-  int              dumpRandMateLib   = 0;
+  int              dumpRandLib       = -1;  //  -1 mean "from any library"
   int              dumpRandMateNum   = 0;
+  int              dumpRandSingNum   = 0;  //  Not a command line option
+  double           dumpRandFraction  = 0.0;
   char            *iidToDump         = NULL;
 
+  progName = progName;
   gkpStore = NULL;
   errorFP  = stdout;
 
@@ -241,8 +442,11 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-iid") == 0) {
       iidFileName = argv[++arg];
     } else if (strcmp(argv[arg], "-randommated") == 0) {
-      dumpRandMateLib = atoi(argv[++arg]);
-      dumpRandMateNum = atoi(argv[++arg]);
+      dumpRandLib      = atoi(argv[++arg]);
+      dumpRandMateNum  = atoi(argv[++arg]);
+    } else if (strcmp(argv[arg], "-randomsubset") == 0) {
+      dumpRandLib      = atoi(argv[++arg]);
+      dumpRandFraction = atof(argv[++arg]);
     } else if (strcmp(argv[arg], "-dumpinfo") == 0) {
       dump = DUMP_INFO;
     } else if ((strcmp(argv[arg], "-lastfragiid") == 0) ||
@@ -317,152 +521,19 @@ main(int argc, char **argv) {
   }
 
   if ((err) || (gkpStoreName == NULL) || (firstFileArg == 0)) {
-    usage(argv[0], hlp);
+    usage(progName, hlp);
     exit(1);
   }
   
   outputExists = testOpenGateKeeperStore(gkpStoreName, FALSE);
-
-  //  Construct an IID map of objects we care about.
-  //
-  if (uidFileName || iidFileName) {
-    GateKeeperStore *gkp      = openGateKeeperStore(gkpStoreName, FALSE);
-    AS_IID           lastElem = getLastElemFragStore(gkp) + 1;
-    FILE            *F        = NULL;
-    char             L[1024];
-
-    if (gkp == NULL) {
-      fprintf(stderr, "Failed to open %s\n", gkpStoreName);
-      exit(1);
-    }
-
-    iidToDump = (char *)safe_calloc(lastElem, sizeof(char));
-
-    if (iidFileName) {
-      errno = 0;
-      if (strcmp(iidFileName, "-") == 0)
-        F = stdin;
-      else
-        F = fopen(iidFileName, "r");
-      if (errno) {
-        fprintf(stderr, "%s: Couldn't open -iid file '%s': %s\n", argv[0], iidFileName, strerror(errno));
-        exit(1);
-      }
-      fgets(L, 1024, F);
-      while (!feof(F)) {
-        AS_IID      iid = AS_IID_fromString(L, NULL);
-        if (iid >= lastElem)
-          fprintf(stderr, "%s: IID "F_IID" too big, ignored.\n", argv[0], iid);
-        else
-          iidToDump[iid]++;
-        fgets(L, 1024, F);
-      }
-      if (F != stdin)
-        fclose(F);
-    }
-
-    if (uidFileName) {
-      errno = 0;
-      if (strcmp(uidFileName, "-") == 0)
-        F = stdin;
-      else
-        F = fopen(uidFileName, "r");
-      if (errno) {
-        fprintf(stderr, "%s: Couldn't open -uid file '%s': %s\n", argv[0], uidFileName, strerror(errno));
-        exit(1);
-      }
-      fgets(L, 1024, F);
-      while (!feof(F)) {
-        AS_UID  uid = AS_UID_lookup(L, NULL);
-        AS_IID  iid = getGatekeeperUIDtoIID(gkp, uid, NULL);
-
-        if (iid == 0)
-          fprintf(stderr, "%s: UID %s doesn't exist, ignored.\n", argv[0], AS_UID_toString(uid));
-        else if (iid >= lastElem)
-          fprintf(stderr, "%s: UID %s is IID "F_IID", and that's too big, ignored.\n", argv[0], AS_UID_toString(uid), iid);
-        else
-          iidToDump[iid]++;
-
-        fgets(L, 1024, F);
-      }
-      if (F != stdin)
-        fclose(F);
-    }
-
-    closeGateKeeperStore(gkp);
-  }
 
   if (vectorClearFile) {
     updateVectorClear(vectorClearFile, gkpStoreName);
     exit(0);
   }
 
-  if (dumpRandMateNum > 0) {
-    GateKeeperStore *gkp        = openGateKeeperStore(gkpStoreName, FALSE);
-    AS_IID           lastElem   = getLastElemFragStore(gkp) + 1;
-
-    //  No way to know (currently) how many reads are in a library,
-    //  without actually counting it.  We just allocate enough space
-    //  to hold every read.
-
-    uint32          *candidatesA   = (uint32 *)safe_malloc(lastElem * sizeof(uint32));
-    uint32          *candidatesB   = (uint32 *)safe_malloc(lastElem * sizeof(uint32));
-    uint32           candidatesLen = 0;
-
-    if (gkp == NULL) {
-      fprintf(stderr, "Failed to open %s\n", gkpStoreName);
-      exit(1);
-    }
-
-    iidToDump = (char *)safe_calloc(lastElem, sizeof(char));
-
-    fragRecord    fr;
-    FragStream   *fs = openFragStream(gkp, FRAG_S_INF);
-
-    int           i;
-
-    if (begIID < getFirstElemStore(gkp->frg))
-      begIID = getFirstElemStore(gkp->frg);
-    if (getLastElemStore(gkp->frg) < endIID)
-      endIID = getLastElemStore(gkp->frg);
-
-    resetFragStream(fs, begIID, endIID);
-
-    //  Scan the whole fragstore, looking for mated reads in the
-    //  correct library, and save the lesser of the two reads.
-    //
-    while (nextFragStream(fs, &fr)) {
-      if ((getFragRecordLibraryIID(&fr) == dumpRandMateLib) &&
-          (getFragRecordMateIID(&fr) > 0) &&
-          (getFragRecordIID(&fr) < getFragRecordMateIID(&fr))) {
-        candidatesA[candidatesLen] = getFragRecordIID(&fr);
-        candidatesB[candidatesLen] = getFragRecordMateIID(&fr);
-        candidatesLen++;
-      }
-    }
-
-    //  Now pick N reads from our list of candidates, and let the
-    //  other guys fill in the mates.
-    //
-    srand48(time(NULL));
-    for (i=0; (i<dumpRandMateNum) && (candidatesLen > 0); i++) {
-      int  x = lrand48() % candidatesLen;
-      iidToDump[candidatesA[x]] = 1;
-      iidToDump[candidatesB[x]] = 1;
-      candidatesLen--;
-      candidatesA[x] = candidatesA[candidatesLen];
-      candidatesB[x] = candidatesB[candidatesLen];
-    }
-
-    closeFragStream(fs);
-    closeGateKeeperStore(gkp);
-
-    safe_free(candidatesA);
-    safe_free(candidatesB);
-  }
-
-
-
+  iidToDump = constructIIDdumpFromIDFile(gkpStoreName, iidToDump, uidFileName, iidFileName);
+  iidToDump = constructIIDdump(gkpStoreName, iidToDump, dumpRandLib, dumpRandMateNum, dumpRandSingNum, dumpRandFraction);
 
   if (dump != DUMP_NOTHING) {
     if (outputExists == 0) {
@@ -572,9 +643,9 @@ main(int argc, char **argv) {
     }
 
     if (errno)
-      fprintf(stderr, "%s: failed to open input '%s': %s\n", argv[0], argv[firstFileArg], strerror(errno)), exit(1);
+      fprintf(stderr, "%s: failed to open input '%s': %s\n", progName, argv[firstFileArg], strerror(errno)), exit(1);
     if (inFile == NULL)
-      fprintf(stderr, "%s: failed to open input '%s': (returned null pointer)\n", argv[0], argv[firstFileArg]), exit(1);
+      fprintf(stderr, "%s: failed to open input '%s': (returned null pointer)\n", progName, argv[firstFileArg]), exit(1);
 
     int   isSFF = 0;
     {
@@ -637,7 +708,7 @@ main(int argc, char **argv) {
       errno = 0;
       pclose(inFile);
       if (errno)
-        fprintf(stderr, "%s: WARNING!  Failed to close '%s': %s\n", argv[0], argv[firstFileArg], strerror(errno));
+        fprintf(stderr, "%s: WARNING!  Failed to close '%s': %s\n", progName, argv[firstFileArg], strerror(errno));
     } else {
       fclose(inFile);
     }
@@ -647,8 +718,6 @@ main(int argc, char **argv) {
 
   if (errorFile)
     fclose(errorFP);
-
-  ;
 
   return(AS_GKP_summarizeErrors());
 }
