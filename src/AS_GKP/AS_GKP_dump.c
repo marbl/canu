@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.29 2007-11-08 13:47:30 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.30 2007-12-28 19:10:20 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -75,14 +75,14 @@ dumpGateKeeperInfo(char       *gkpStoreName) {
 
   int           i, j;
 
-  uint64  numActiveFrag   = 0;
-  uint64  numDeletedFrag  = 0;
-  uint64  numMatedFrag    = 0;
+  uint32  numActiveFrag   = 0;
+  uint32  numDeletedFrag  = 0;
+  uint32  numMatedFrag    = 0;
   uint64 *clearLength     = (uint64 *)safe_calloc(sizeof(uint64), (AS_READ_CLEAR_UNTRIM + 1));
 
-  uint64  *numActivePerLib  = (uint64  *)safe_calloc(sizeof(uint64),   (getNumGateKeeperLibraries(gkp) + 1));
-  uint64  *numDeletedPerLib = (uint64  *)safe_calloc(sizeof(uint64),   (getNumGateKeeperLibraries(gkp) + 1));
-  uint64  *numMatedPerLib   = (uint64  *)safe_calloc(sizeof(uint64),   (getNumGateKeeperLibraries(gkp) + 1));
+  uint32  *numActivePerLib  = (uint32  *)safe_calloc(sizeof(uint32),   (getNumGateKeeperLibraries(gkp) + 1));
+  uint32  *numDeletedPerLib = (uint32  *)safe_calloc(sizeof(uint32),   (getNumGateKeeperLibraries(gkp) + 1));
+  uint32  *numMatedPerLib   = (uint32  *)safe_calloc(sizeof(uint32),   (getNumGateKeeperLibraries(gkp) + 1));
   uint64 **clearLengthByLib = (uint64 **)safe_calloc(sizeof(uint64 *), (getNumGateKeeperLibraries(gkp) + 1));
 
   for (j=0; j<getNumGateKeeperLibraries(gkp) + 1; j++)
@@ -121,12 +121,12 @@ dumpGateKeeperInfo(char       *gkpStoreName) {
   fprintf(stdout, "\n");
   fprintf(stdout, "GLOBAL STATS\n");
   fprintf(stdout, "\n");
-  fprintf(stdout, "numberFRG="F_S32"\n", getNumGateKeeperFragments(gkp));
-  fprintf(stdout, "numberLIB="F_S32"\n", getNumGateKeeperLibraries(gkp));
+  fprintf(stdout, "numberFRG="F_S32"\n", (uint32)getNumGateKeeperFragments(gkp));
+  fprintf(stdout, "numberLIB="F_S32"\n", (uint32)getNumGateKeeperLibraries(gkp));
   fprintf(stdout, "\n");
   fprintf(stdout, "activeFRG="F_U32" deletedFRG="F_U32" matedFRG="F_U32" ", numActiveFrag, numDeletedFrag, numMatedFrag);
   for (i=0; i<AS_READ_CLEAR_UNTRIM + 1; i++)
-    fprintf(stdout, "%s="F_U32" ", AS_READ_CLEAR_NAMES[i], clearLength[i]);
+    fprintf(stdout, "%s="F_U64" ", AS_READ_CLEAR_NAMES[i], clearLength[i]);
   fprintf(stdout, "\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "PER LIBRARY STATS\n");
@@ -134,7 +134,7 @@ dumpGateKeeperInfo(char       *gkpStoreName) {
   for (j=0; j<getNumGateKeeperLibraries(gkp) + 1; j++) {
     fprintf(stdout, "libraryIID="F_IID" activeFRG="F_U32" deletedFRG="F_U32" matedFRG="F_U32" ", j, numActivePerLib[j], numDeletedPerLib[j], numMatedPerLib[j]);
     for (i=0; i<AS_READ_CLEAR_UNTRIM + 1; i++)
-      fprintf(stdout, "%s="F_U32" ", AS_READ_CLEAR_NAMES[i], clearLengthByLib[j][i]);
+      fprintf(stdout, "%s="F_U64" ", AS_READ_CLEAR_NAMES[i], clearLengthByLib[j][i]);
     fprintf(stdout, "\n");
   }
 
