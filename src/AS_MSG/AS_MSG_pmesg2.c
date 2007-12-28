@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[]= "$Id: AS_MSG_pmesg2.c,v 1.8 2007-11-08 12:38:13 brianwalenz Exp $";
+static char CM_ID[]= "$Id: AS_MSG_pmesg2.c,v 1.9 2007-12-28 19:08:20 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -273,13 +273,11 @@ Write_Frag_Mesg(FILE *fout,void *vmesg,int frag_class) {
     PutText(fout,"seq:",mesg->sequence,TRUE);
     PutText(fout,"qlt:",mesg->quality,TRUE);
     PutText(fout,"hps:",mesg->hps,TRUE);
-    fprintf(fout,"clr:"F_COORD","F_COORD"\n",mesg->clear_rng.bgn,mesg->clear_rng.end);
-
     if (mesg->clear_vec.bgn <= mesg->clear_vec.end)
       fprintf(fout,"clv:"F_COORD","F_COORD"\n",mesg->clear_vec.bgn,mesg->clear_vec.end);
-
     if (mesg->clear_qlt.bgn <= mesg->clear_qlt.end)
       fprintf(fout,"clq:"F_COORD","F_COORD"\n",mesg->clear_qlt.bgn,mesg->clear_qlt.end);
+    fprintf(fout,"clr:"F_COORD","F_COORD"\n",mesg->clear_rng.bgn,mesg->clear_rng.end);
   }
 
   fprintf(fout,"}\n");
