@@ -145,6 +145,8 @@ sub setDefaults () {
     $global{"cgwDemoteRBP"}                = 1;
     $global{"cgwDistanceSampleSize"}       = 100;
 
+    $global{"cleanup"}                     = "none";
+
     $global{"cnsPartitions"}               = 128;
     $global{"cnsMinFrags"}                 = 75000;
     $global{"cnsConcurrency"}              = 2;

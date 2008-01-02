@@ -90,6 +90,7 @@ RUNCAOBTUTIL = runCA-OBT/runCAutil/applyOverlapCorrection.pl \
                runCA-OBT/runCAutil/preoverlap.pl \
                runCA-OBT/runCAutil/scaffolder.pl \
                runCA-OBT/runCAutil/terminate.pl \
+               runCA-OBT/runCAutil/cleaner.pl \
                runCA-OBT/runCAutil/unitigger.pl
 
 runCA: runCA-OBT/runCA.pl.head $(RUNCALOCAL) runCA-OBT/runCAutil/util.pl runCA-OBT/runCA.pl $(RUNCAOBTUTIL) runCA-OBT/runCAutil/scheduler.pm

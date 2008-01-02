@@ -22,7 +22,9 @@ my @steps = ('Pre-overlap',               'preoverlap(@fragFiles)',
              'PostUnitiggerConsensus',    'postUnitiggerConsensus(@cgbFiles)',
              'Scaffolder',                'scaffolder($cgiFile)',
              'PostScaffolderConsensus',   'postScaffolderConsensus($scaffoldDir)',
-             'Terminator',                'terminate($scaffoldDir)');
+             'Terminator',                'terminate($scaffoldDir)',
+             'Cleaner',                   'cleaner()',
+             );
 
 
 setDefaults();
@@ -120,7 +122,7 @@ if ($isContinuation) {
         touch ("$wrk/5-consensus/consensus.success");
     }
 
-    #  If given a scaffold directory, tell unitigeger, consensus and
+    #  If given a scaffold directory, tell unitigger, consensus and
     #  scaffolder that they are done.
     if (defined($scaffoldDir)) {
         system("mkdir $wrk/4-unitigger") if (! -d "$wrk/4-unitigger");
