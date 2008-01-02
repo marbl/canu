@@ -24,7 +24,7 @@
    Assumptions:  
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.177 2007-12-20 17:30:56 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.178 2008-01-02 04:36:02 brianwalenz Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -1832,13 +1832,26 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
         }
       }
 
-      //  If you hit this assert, you can enable the above block to
-      //  use whatever unitig is here.  It's not enabled by default
-      //  because it should never happen.
+      //  BPW has seen a low-coverage 454 assembly (gs20) where some
+      //  unitigs had one read of coverage, but the base in the read
+      //  was an N (use the "-v 4" option to consensus to see the
+      //  multialign).  The only recognizable pattern was all read
+      //  depths were zero.  The N showed up as base_count[5] == 1,
+      //  all others were zero (others being gap, a, c, g, t).
+      //
+      //  Warn, and continue.
+      //
+      if ((tauValid == 0) && (b_read_depth == 0) && (o_read_depth == 0) && (guide_depth == 0)) {
+        fprintf(stderr, "No coverage (tau not valid) for column=%d.  Assume it's an N in a single coverage area.\n",
+                cid);
+        tauValid = 1;
+      }
 
-      if (tauValid == 0)
-        fprintf(stderr, "ERROR: no coverage for column=%d (b_read_depth=%d o_read_depth=%d guide_depth=%d)\n",
-                cid, b_read_depth, o_read_depth, guide_depth);
+      //  If you hit this assert (and are working on a contig), you
+      //  can enable the above ifdef block to use whatever unitig is
+      //  here.  It's not enabled by default because it should never
+      //  happen.
+      //
       assert(tauValid);
 
 
@@ -1916,6 +1929,15 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
           cqv = QVInRange(qv);
         }
 
+
+      //  BPW wants to ensure that QV is terrible if there is no read
+      //  coverage -- see comments above.  We also force the basecall
+      //  to N, probably causing future problems.
+      //
+      if ((b_read_depth == 0) && (o_read_depth == 0) && (guide_depth == 0)) {
+        cbase = 'N';
+        cqv   = QVInRange(0);
+      }
 
       *cons_base = cbase;
       if (target_allele <  0 || target_allele == vreg->alleles[0].id)
