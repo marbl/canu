@@ -19,10 +19,10 @@ sub cleaner () {
 
     print STDERR "The Cleaner has arrived.  Doing '$cleanType'.\n";
 
-    cleanValu = 0  if ($cleanType =~ "none");
-    cleanValu = 1  if ($cleanType =~ "light");
-    cleanValu = 2  if ($cleanType =~ "heavy");
-    cleanValu = 3  if ($cleanType =~ "aggressive");
+    $cleanValu = 0  if ($cleanType =~ "none");
+    $cleanValu = 1  if ($cleanType =~ "light");
+    $cleanValu = 2  if ($cleanType =~ "heavy");
+    $cleanValu = 3  if ($cleanType =~ "aggressive");
 
 
     if ($cleanValu >= 1) {
