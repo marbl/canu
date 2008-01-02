@@ -37,16 +37,17 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.cc,v 1.46 2007-12-27 18:41:15 brianwalenz Exp $
- * $Revision: 1.46 $
+ * $Id: AS_BOG_BestOverlapGraph.cc,v 1.47 2008-01-02 18:28:45 eliv Exp $
+ * $Revision: 1.47 $
  */
 
-static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.46 2007-12-27 18:41:15 brianwalenz Exp $";
+static const char CM_ID[] = "$Id: AS_BOG_BestOverlapGraph.cc,v 1.47 2008-01-02 18:28:45 eliv Exp $";
 
 //  System include files
 #include<iostream>
 #include<vector>
 #include<limits>
+#include<cmath>
 
 #include "AS_BOG_BestOverlapGraph.hh"
 //#include "AS_BOG_BestOverlapGraphVisitor.hh"
@@ -586,6 +587,20 @@ namespace AS_BOG{
 		std::endl;
 	}
     }
+#if 0
+    float LongIdentWeighted::scoreOverlap(const OVSoverlap& olap) {
+    // Computes the score for a Longest Edge BOG based on overlap length but
+    //   after applying an an error rate cutoff.
+
+        if (olap.dat.ovl.orig_erate > consensusCutoff )
+            return 0;
+        if (olap.dat.ovl.corr_erate > mismatchCutoff )
+            return 0;
+
+        short olapLen = olapLength(olap);
+        return(olapLen / sqrt( 1 + olap.dat.ovl.corr_erate));
+    }
+#endif
 
     ///////////////////////////////////////////////////////////////////////////
 

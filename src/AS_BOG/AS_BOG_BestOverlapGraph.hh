@@ -34,8 +34,8 @@
  *************************************************/
 
 /* RCS info
- * $Id: AS_BOG_BestOverlapGraph.hh,v 1.36 2007-12-27 18:41:15 brianwalenz Exp $
- * $Revision: 1.36 $
+ * $Id: AS_BOG_BestOverlapGraph.hh,v 1.37 2008-01-02 18:28:45 eliv Exp $
+ * $Revision: 1.37 $
  */
 
 //  System include files
@@ -194,6 +194,21 @@ namespace AS_BOG{
     }; //BestOverlapGraph
 
     ///////////////////////////////////////////////////////////////////////////
+
+#if 0
+    struct LongIdentWeighted : public BestOverlapGraph {
+        int mismatchCutoff;
+        int consensusCutoff;
+        LongIdentWeighted( float maxMismatch) : BestOverlapGraph()
+        {
+            mismatchCutoff  = AS_OVS_encodeQuality( maxMismatch / 100.0 );
+            consensusCutoff = AS_OVS_encodeQuality( AS_CNS_ERROR_RATE );
+            assert( consensusCutoff >= 0 ); // Set in AS_configure
+        }
+        int getThreshold() { return mismatchCutoff; }
+        float scoreOverlap( const OVSoverlap& olap);
+    };
+#endif
 
     struct BOG_Runner {
         BOG_Runner(int lastFrag) { BestOverlapGraph::lastFrg = lastFrag; }

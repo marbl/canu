@@ -30,11 +30,11 @@
  *************************************************/
 
 /* RCS info
- * $Id: BuildUnitigs.cc,v 1.36 2007-12-27 18:41:15 brianwalenz Exp $
- * $Revision: 1.36 $
+ * $Id: BuildUnitigs.cc,v 1.37 2008-01-02 18:28:45 eliv Exp $
+ * $Revision: 1.37 $
  */
 
-static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.36 2007-12-27 18:41:15 brianwalenz Exp $";
+static const char BUILD_UNITIGS_MAIN_CM_ID[] = "$Id: BuildUnitigs.cc,v 1.37 2008-01-02 18:28:45 eliv Exp $";
 
 //  System include files
 
@@ -175,6 +175,7 @@ main (int argc, char * argv []) {
 
     int i;
     for(i=0; i < erates.size(); i++) {
+       //bogRunner.push_back( new AS_BOG::LongIdentWeighted( erates[i] ) );
         bogRunner.push_back( new AS_BOG::BestOverlapGraph( erates[i] ) );
     }
     bogRunner.processOverlapStream(ovlStore, GKP_Store_Path);
