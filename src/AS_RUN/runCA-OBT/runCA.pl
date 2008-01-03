@@ -30,6 +30,11 @@ my @steps = ('Pre-overlap',               'preoverlap(@fragFiles)',
 setDefaults();
 localDefaults();
 
+# echo invocation to aid debugging
+my $oldSep = $,;
+$, = ' ';
+print STDERR $0,@ARGV,"\n\n";
+$, = $oldSep;
 
 #  Stash the original options, quoted, for later use.  We need to use
 #  these when we resubmit ourself to SGE.
