@@ -227,8 +227,16 @@ sffFile::~sffFile() {
 
 seqFile *
 sffFile::openFile(const char *name) {
+  struct stat  st;
 
   //  Open the file, return if it matches the SFF magic_number.
+
+  errno = 0;
+  stat(name, &st);
+  if (errno)
+    return(0L);
+  if ((st.st_mode & S_IFREG) == 0)
+    return(0L);
 
   FILE *F = fopen(name, "r");
   if (errno) {
