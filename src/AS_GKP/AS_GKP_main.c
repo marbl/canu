@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_main.c,v 1.61 2008-01-03 04:30:24 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_main.c,v 1.62 2008-01-03 22:43:11 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -462,12 +462,24 @@ main(int argc, char **argv) {
     } else if (strcmp(argv[arg], "-randommated") == 0) {
       dumpRandLib      = atoi(argv[++arg]);
       dumpRandMateNum  = atoi(argv[++arg]);
+      if (dumpRandMateNum == 0) {
+        fprintf(stderr, "%s: -randommated told to dump 0 mates; exit.\n");
+        exit(0);
+      }
     } else if (strcmp(argv[arg], "-randomsubset") == 0) {
       dumpRandLib      = atoi(argv[++arg]);
       dumpRandFraction = atof(argv[++arg]);
+      if (dumpRandFraction == 0.0) {
+        fprintf(stderr, "%s: -randomsubset told to dump 0%%; exit.\n");
+        exit(0);
+      }
     } else if (strcmp(argv[arg], "-randomlength") == 0) {
       dumpRandLib      = atoi(argv[++arg]);
-      dumpRandLength   = atoi(argv[++arg]);
+      dumpRandLength   = atol(argv[++arg]);
+      if (dumpRandLength == 0) {
+        fprintf(stderr, "%s: -randomlength told to dump 0 bases; exit.\n");
+        exit(0);
+      }
 
     } else if (strcmp(argv[arg], "-dumpinfo") == 0) {
       dump = DUMP_INFO;
