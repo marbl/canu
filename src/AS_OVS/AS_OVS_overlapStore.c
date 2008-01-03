@@ -249,24 +249,11 @@ AS_OVS_readOverlapFromStore(OverlapStore *ovs, OVSoverlap *overlap, uint32 type)
 
   ovs->offset.numOlaps--;
 
-  switch (type) {
-    case AS_OVS_TYPE_OVL:
-      if (overlap->dat.ovl.type != AS_OVS_TYPE_OVL)
-        goto again;
-      break;
-    case AS_OVS_TYPE_OBT:
-      if (overlap->dat.ovl.type != AS_OVS_TYPE_OBT)
-        goto again;
-      break;
-    case AS_OVS_TYPE_MER:
-      if (overlap->dat.ovl.type != AS_OVS_TYPE_MER)
-        goto again;
-      break;
-    case AS_OVS_TYPE_UNS:
-    case AS_OVS_TYPE_ANY:
-    default:
-      break;
-  }
+  if (type == AS_OVS_TYPE_ANY)
+    return(TRUE);
+
+  if (type != overlap->dat.ovl.type)
+    goto again;
 
   return(TRUE);
 }
