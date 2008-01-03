@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_main.c,v 1.60 2007-12-28 19:11:43 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_main.c,v 1.61 2008-01-03 04:30:24 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -77,8 +77,10 @@ usage(char *filename, int longhelp) {
   fprintf(stdout, "  -e <ending-iid>         dump stopping after this iid (1)\n");
   fprintf(stdout, "  -uid <uid-file>         dump only objects listed in 'uid-file' (1)\n");
   fprintf(stdout, "  -iid <iid-file>         dump only objects listed in 'iid-file' (1)\n");
-  fprintf(stdout, "  -randomsubset <lib> <n> pick n mates (2n frags) at random from library lib,\n");
-  fprintf(stdout, "  -randommated  <lib> <f> dump a random fraction f of library lib,\n");
+  fprintf(stdout, "  -randommated  <lib> <n> pick n mates (2n frags) at random from library lib\n");
+  fprintf(stdout, "  -randomsubset <lib> <f> dump a random fraction f of library lib\n");
+  fprintf(stdout, "  -randomlength <lib> <l> dump a random fraction of library lib, fraction picked\n");
+  fprintf(stdout, "                          so that the untrimmed length is close to l\n");
   fprintf(stdout, "\n");
   fprintf(stdout, "  [how to dump it]\n");
   fprintf(stdout, "  -tabular               dump info, batches, libraries or fragments in a tabular\n");
@@ -234,15 +236,18 @@ constructIIDdumpFromIDFile(char *gkpStoreName, char *iidToDump, char *uidFileNam
 char *
 constructIIDdump(char  *gkpStoreName,
                  char  *iidToDump,
-                 int    dumpRandLib,
-                 int    dumpRandMateNum,
-                 int    dumpRandSingNum,
-                 double dumpRandFraction) {
+                 uint32 dumpRandLib,
+                 uint32 dumpRandMateNum,
+                 uint32 dumpRandSingNum,
+                 double dumpRandFraction,
+                 uint64 dumpRandLength) {
 
-  if (dumpRandLib == -1)
+  if ((dumpRandMateNum == 0) && (dumpRandSingNum == 0) &&
+      (dumpRandFraction == 0.0) &&
+      (dumpRandLength == 0))
     return(iidToDump);
 
-  GateKeeperStore *gkp        = openGateKeeperStore(gkpStoreName, FALSE);
+  GateKeeperStore *gkp = openGateKeeperStore(gkpStoreName, FALSE);
   if (gkp == NULL) {
     fprintf(stderr, "Failed to open %s\n", gkpStoreName);
     exit(1);
@@ -252,10 +257,12 @@ constructIIDdump(char  *gkpStoreName,
   uint32      numSingle = 0;
   uint32      numNoLib  = 0;
 
+  uint64      lenFrag   = 0;
+
   uint32      numTotal  = getLastElemFragStore(gkp) + 1;  //  Should count, or remember this when building
 
   uint32     *candidatesS    = (uint32 *)safe_malloc(numTotal * sizeof(uint32));
-  uint32   candidatesSLen = 0;
+  uint32      candidatesSLen = 0;
 
   uint32     *candidatesA    = (uint32 *)safe_malloc(numTotal * sizeof(uint32));
   uint32     *candidatesB    = (uint32 *)safe_malloc(numTotal * sizeof(uint32));
@@ -293,12 +300,14 @@ constructIIDdump(char  *gkpStoreName,
       //  Build lists of singletons and mated frags in this library.
       //  Save only the smaller mate ID.
 
+      lenFrag += getFragRecordClearRegionEnd(&fr, AS_READ_CLEAR_UNTRIM);
+
       if (getFragRecordMateIID(&fr) == 0) {
         numSingle++;
         candidatesS[candidatesSLen] = getFragRecordIID(&fr);
         candidatesSLen++;
       } else if (getFragRecordIID(&fr) < getFragRecordMateIID(&fr)) {
-        numMated++;
+        numMated += 2;
         candidatesA[candidatesMLen] = getFragRecordIID(&fr);
         candidatesB[candidatesMLen] = getFragRecordMateIID(&fr);
         candidatesMLen++;
@@ -317,10 +326,17 @@ constructIIDdump(char  *gkpStoreName,
 
   srand48(time(NULL));
 
+  if (dumpRandLength > 0) {
+    double a = (double)lenFrag / (numSingle + numMated);
+    dumpRandSingNum = dumpRandLength / a * numSingle / (numSingle + numMated);
+    dumpRandMateNum = dumpRandLength / a * numMated  / (numSingle + numMated);
+    //fprintf(stderr, "randLength %f %d %d\n", a, dumpRandSingNum, dumpRandMateNum);
+  }
+
   if (dumpRandFraction > 0) {
-    double f = (numSingle + numMated) * dumpRandFraction / (numSingle + numMated);
-    dumpRandSingNum = (uint32)(numSingle * f);
-    dumpRandMateNum = (uint32)(numMated  * f);
+    dumpRandSingNum = (uint32)(numSingle * dumpRandFraction);
+    dumpRandMateNum = (uint32)(numMated  * dumpRandFraction);
+    //fprintf(stderr, "randFraction %d %d\n", dumpRandSingNum, dumpRandMateNum);
   }
 
   for (i=0; (i < dumpRandSingNum) && (candidatesSLen > 0); i++) {
@@ -330,7 +346,7 @@ constructIIDdump(char  *gkpStoreName,
     candidatesS[x] = candidatesS[candidatesSLen];
   }
 
-  for (i=0; (i < dumpRandMateNum) && (candidatesMLen > 0); i++) {
+  for (i=0; (i < dumpRandMateNum) && (candidatesMLen > 0); i += 2) {
     int  x = lrand48() % candidatesMLen;
     iidToDump[candidatesA[x]] = 1;
     iidToDump[candidatesB[x]] = 1;
@@ -395,10 +411,11 @@ main(int argc, char **argv) {
   int              dumpFastaQuality  = 0;
   int              doNotFixMates     = 0;
   int              dumpFormat        = 1;
-  int              dumpRandLib       = -1;  //  -1 mean "from any library"
-  int              dumpRandMateNum   = 0;
-  int              dumpRandSingNum   = 0;  //  Not a command line option
+  uint32           dumpRandLib       = 0;  //  0 means "from any library"
+  uint32           dumpRandMateNum   = 0;
+  uint32           dumpRandSingNum   = 0;  //  Not a command line option
   double           dumpRandFraction  = 0.0;
+  uint64           dumpRandLength    = 0;
   char            *iidToDump         = NULL;
 
   progName = progName;
@@ -441,12 +458,17 @@ main(int argc, char **argv) {
       uidFileName = argv[++arg];
     } else if (strcmp(argv[arg], "-iid") == 0) {
       iidFileName = argv[++arg];
+
     } else if (strcmp(argv[arg], "-randommated") == 0) {
       dumpRandLib      = atoi(argv[++arg]);
       dumpRandMateNum  = atoi(argv[++arg]);
     } else if (strcmp(argv[arg], "-randomsubset") == 0) {
       dumpRandLib      = atoi(argv[++arg]);
       dumpRandFraction = atof(argv[++arg]);
+    } else if (strcmp(argv[arg], "-randomlength") == 0) {
+      dumpRandLib      = atoi(argv[++arg]);
+      dumpRandLength   = atoi(argv[++arg]);
+
     } else if (strcmp(argv[arg], "-dumpinfo") == 0) {
       dump = DUMP_INFO;
     } else if ((strcmp(argv[arg], "-lastfragiid") == 0) ||
@@ -533,7 +555,7 @@ main(int argc, char **argv) {
   }
 
   iidToDump = constructIIDdumpFromIDFile(gkpStoreName, iidToDump, uidFileName, iidFileName);
-  iidToDump = constructIIDdump(gkpStoreName, iidToDump, dumpRandLib, dumpRandMateNum, dumpRandSingNum, dumpRandFraction);
+  iidToDump = constructIIDdump(gkpStoreName, iidToDump, dumpRandLib, dumpRandMateNum, dumpRandSingNum, dumpRandFraction, dumpRandLength);
 
   if (dump != DUMP_NOTHING) {
     if (outputExists == 0) {
