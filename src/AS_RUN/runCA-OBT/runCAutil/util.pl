@@ -262,12 +262,15 @@ sub setParameters ($@) {
 
     if (exists($ENV{'AS_OVL_ERROR_RATE'})) {
         setGlobal("ovlErrorRate", $ENV{'AS_OVL_ERROR_RATE'});
+        print STDERR "ENV: ovlErrorRate $ENV{'AS_OVL_ERROR_RATE'}\n";
     }
     if (exists($ENV{'AS_CGW_ERROR_RATE'})) {
         setGlobal("cgwErrorRate", $ENV{'AS_CGW_ERROR_RATE'});
+        print STDERR "cgwErrorRate $ENV{'AS_CGW_ERROR_RATE'}\n";
     }
     if (exists($ENV{'AS_CNS_ERROR_RATE'})) {
         setGlobal("cnsErrorRate", $ENV{'AS_CNS_ERROR_RATE'});
+        print STDERR "cnsErrorRate $ENV{'AS_CNS_ERROR_RATE'}\n";
     }
 
     #  If the user didn't give us a specFile, see if there is a
@@ -295,6 +298,7 @@ sub setParameters ($@) {
             next if (m/^\s*$/);
             if (m/\s*(\w*)\s*=(.*)/) {
                 my ($var, $val) = ($1, $2);
+                print STDERR $_,"\n"; # echo the spec file
                 $var =~ s/^\s+//; $var =~ s/\s+$//;
                 $val =~ s/^\s+//; $val =~ s/\s+$//;
                 undef $val if ($val eq "undef");
