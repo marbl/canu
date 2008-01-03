@@ -54,7 +54,8 @@ SCRIPTS = runCA \
           mateLinkIIDRanges.rb \
           OBT.specFile \
           noOBT.specFile \
-          noVec.specFile
+          noVec.specFile \
+          metaGenomic.specFile
 
 
 #  JCVI likes to have both a modified (carun) and unmodified (runCA)
@@ -169,13 +170,7 @@ glen_est_truncadjusted.pl: dataQC/$@
 	@cp dataQC/$@ $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
-OBT.specFile: runCA-OBT/OBT.specFile
-	@cp $< $(LOCAL_BIN)/$@
-
-noOBT.specFile: runCA-OBT/noOBT.specFile
-	@cp $< $(LOCAL_BIN)/$@
-
-noVec.specFile: runCA-OBT/noVec.specFile
-	@cp $< $(LOCAL_BIN)/$@
+%.specFile: 
+	@cp runCA-OBT/$@ $(LOCAL_BIN)
 
 fragmentDepth: fragmentDepth.o libCA.a
