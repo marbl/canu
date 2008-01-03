@@ -126,8 +126,9 @@ sub merOverlapper($) {
         print F "$bin/olap-from-seeds \\\n";
         print F " -a -b \\\n";
         print F " -t 1 \\\n";
+        print F " -G \\\n"                                 if ($isTrim eq "trim");
         print F " -S $wrk/$outDir/$asm.merStore \\\n";
-        print F " -c $wrk/2-frgcorr/\$jobid.frgcorr \\\n"       if ($isTrim ne "trim");
+        print F " -c $wrk/2-frgcorr/\$jobid.frgcorr \\\n"  if ($isTrim ne "trim");
         print F " -o $wrk/$outDir/olaps/\$jobid.ovb \\\n"  if ($isTrim ne "trim");
         print F " -o $wrk/$outDir/olaps/\$jobid.ovr \\\n"  if ($isTrim eq "trim");
         print F " $wrk/$asm.gkpStore \\\n";
@@ -138,8 +139,9 @@ sub merOverlapper($) {
         print F "$bin/olap-from-seeds \\\n";
         print F " -a -b \\\n";
         print F " -t 1 \\\n";
+        print F " -G \\\n"                                 if ($isTrim eq "trim");
         print F " -S $wrk/$outDir/$asm.merStore \\\n";
-        print F " -c $wrk/2-frgcorr/\$jobid.frgcorr \\\n"       if ($isTrim ne "trim");
+        print F " -c $wrk/2-frgcorr/\$jobid.frgcorr \\\n"  if ($isTrim ne "trim");
         print F " -o $wrk/$outDir/olaps/\$jobid.ovb \\\n"  if ($isTrim ne "trim");
         print F " -o $wrk/$outDir/olaps/\$jobid.ovr \\\n"  if ($isTrim eq "trim");
         print F " $wrk/$asm.gkpStore \\\n";
