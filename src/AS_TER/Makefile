@@ -26,9 +26,9 @@ LOCAL_WORK = $(shell cd ../../; pwd)
 
 include $(LOCAL_WORK)/src/site_name.as
 
-SOURCES = AS_TER_terminator.c asmOutputFasta.c
+SOURCES = AS_TER_terminator.c asmOutputFasta.c fragsInVars.c
 OBJECTS = (SOURCES:.c=.o)
-PROGS   = terminator asmOutputFasta
+PROGS   = terminator asmOutputFasta fragsInVars
 
 include $(LOCAL_WORK)/src/c_make.as
 
@@ -38,3 +38,4 @@ all: $(OBJECTS) $(LIBRARIES) $(PROGS)
 
 terminator:              AS_TER_terminator.o        libCA.a
 asmOutputFasta:          asmOutputFasta.o           libCA.a
+fragsInVars:             fragsInVars.o              libCA.a
