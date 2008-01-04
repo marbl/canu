@@ -1,0 +1,24 @@
+# -*- makefile -*-
+
+LIBUTL/     :=$(call MakePath,$/../libutil/)
+LIBBIO/     :=$(call MakePath,$/../libbio/)
+LIBMERYL/   :=$(call MakePath,$/../libmeryl/)
+LIBKMER/    :=$(call MakePath,$/../libkmer/)
+LIBSIM4/    :=$(call MakePath,$/../libsim4/)
+
+src      := $/tapper.C \
+            $/tapper.H
+
+$/.CXX_SRCS := $(filter %.C,${src})
+$/.CXX_EXES := $/tapper
+
+$/.CLEAN     :=$/*.o
+
+$(eval $/%.d $/%.o:  CXXFLAGS+= -I${LIBUTL/} -I${LIBBIO/} -I${LIBMERYL/} -I${LIBKMER/} -I${LIBSIM4/})
+
+$/tapper:     ${$/.CXX_SRCS:.C=.o} \
+              ${LIBSIM4/}libsim4.a \
+              ${LIBKMER/}libkmer.a \
+              ${LIBMERYL/}libmeryl.a \
+              ${LIBBIO/}libbio.a \
+              ${LIBUTL/}libutil.a

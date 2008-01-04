@@ -3,7 +3,7 @@ include ../../Make.compilers
 #  Bigger tblsize makes existDB much faster, but uses more memory (not
 #  much, really).  23 is nice.
 
-all: test-maskonly-passed position-passed test-mismatches
+all: test-maskonly-passed position-passed
 	@echo "existDB has expensive tests.  They take:"
 	@echo "  17 minutes on 1.8GHz Quadxeon (with KMER=1)"
 	@echo "  60 minutes on 2.8GHz P4 (with KMER=1)"
@@ -39,10 +39,6 @@ test-rebuild: test-rebuild.C ../positionDB.H
 	./test-rebuild 20 23
 	echo test-rebuild-passed PASSED
 	rm xp* junk*
-
-test-mismatches: test-mismatches.C ../positionDB.H
-	$(CXX) $(CXXFLAGS_COMPILE) -c -o test-mismatches.o test-mismatches.C $(INCLUDE)
-	$(CXX) $(CXXLDFLAGS) -o test-mismatches test-mismatches.o $(LIBS)
 
 position-passed: position-passed1 position-passed2 exist-fast-passed
 	touch position-passed
@@ -117,4 +113,3 @@ clean:
 	rm -f testere junk* xe.fasta* xe.mcidx xe.mcdat xe.merStream
 	rm -f test-maskonly xp.dup.fasta xp.mcidx xp.mcdat
 	rm -f test-rebuild
-	rm -f test-mismatches

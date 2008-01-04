@@ -24,6 +24,7 @@ $(eval $(call Include,$/seatac/))
 $(eval $(call Include,$/sim4dbutils/))
 $(eval $(call Include,$/sim4db/))
 $(eval $(call Include,$/snapper/))
+$(eval $(call Include,$/tapper/))
 
 $(eval $(call Include,${LIBSIM4/}))
 $(eval $(call Include,${LIBKMER/}))
