@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: AS_UTL_histogram.h,v 1.2 2007-11-29 03:47:48 brianwalenz Exp $
+//  $Id: AS_UTL_histogram.h,v 1.3 2008-01-07 21:44:50 skoren Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -121,42 +121,44 @@ AS_UTL_histogramCompute(AS_UTL_histogram *h) {
   h->mode    = 0;
   h->mad     = 0.0;
 
-  //  median - count up to nSamples/2
-  //
-  for (i=h->smallest, n=0; n < h->nSamples/2; i++)
-    n += h->histogram[i];
-  h->median = i - 1;
-
-  //  mean - sum, divide by n
-  //
-  for (i=h->smallest; i <= h->largest; i++)
-    h->mean += (double)h->histogram[i] * (double)i;
-  h->mean /= h->nSamples;
-
-  //  stddev -- we have h[i] values, and the value is i.
-  //
-  for (i=h->smallest; i <= h->largest; i++)
-    h->stddev += h->histogram[i] * (h->mean - i) * (h->mean - i);
-  h->stddev  = sqrt(h->stddev / h->nSamples);
-
-  //  mode - just find the max
-  //
-  for (i=h->smallest, n=0; i <= h->largest; i++)
-    if (h->histogram[n] < h->histogram[i])
-      n = i;
-  h->mode = n;
-
-  //  mad - 1.4826*median(abs(median(v)-v))
-  //
-  //  really only need max(h->largest - h->median, h->median), I think
-  //
-  t = (uint64 *)safe_calloc(h->largest, sizeof(uint64));
-
-  for (i=h->smallest; i <= h->largest; i++)
-    t[(h->median < i) ? (i - h->median) : (h->median - i)] += h->histogram[i];
-  for (i=0, n=0; n < h->nSamples/2; i++)
-    n += t[i];
-  h->mad = 1.4826 * (i - 1);
+  if (h->nSamples != 0) {
+     //  median - count up to nSamples/2
+     //
+     for (i=h->smallest, n=0; n < h->nSamples/2; i++)
+       n += h->histogram[i];
+     h->median = i - 1;
+   
+     //  mean - sum, divide by n
+     //
+     for (i=h->smallest; i <= h->largest; i++)
+       h->mean += (double)h->histogram[i] * (double)i;
+     h->mean /= h->nSamples;
+   
+     //  stddev -- we have h[i] values, and the value is i.
+     //
+     for (i=h->smallest; i <= h->largest; i++)
+       h->stddev += h->histogram[i] * (h->mean - i) * (h->mean - i);
+     h->stddev  = sqrt(h->stddev / h->nSamples);
+   
+     //  mode - just find the max
+     //
+     for (i=h->smallest, n=0; i <= h->largest; i++)
+       if (h->histogram[n] < h->histogram[i])
+         n = i;
+     h->mode = n;
+   
+     //  mad - 1.4826*median(abs(median(v)-v))
+     //
+     //  really only need max(h->largest - h->median, h->median), I think
+     //
+     t = (uint64 *)safe_calloc(h->largest, sizeof(uint64));
+   
+     for (i=h->smallest; i <= h->largest; i++)
+       t[(h->median < i) ? (i - h->median) : (h->median - i)] += h->histogram[i];
+     for (i=0, n=0; n < h->nSamples/2; i++)
+       n += t[i];
+     h->mad = 1.4826 * (i - 1);
+  }
 
   safe_free(t);
 }

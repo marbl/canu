@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-//  $Id: overlapStats.c,v 1.2 2007-11-29 03:47:48 brianwalenz Exp $
+//  $Id: overlapStats.c,v 1.3 2008-01-07 21:44:50 skoren Exp $
 
 
 //  install.packages(c("akima"))
@@ -89,9 +89,17 @@ uint16   *fragClearLength = NULL;
 
 char      outputPrefix[FILENAME_MAX] = {0};
 
+typedef struct {
+   uint64          * readsPerLibrary;
+   uint64         ** libraryVsLibraryOverlaps;
+   HashTable_AS    * readsSeen;
+   uint64            contained;
+   uint64            totalOverlaps;
+} LibraryOverlapData;
+
+#define MIN_LIBRARY_SIZE 1000
 
 #include "overlapStatsBoringStuff.h"
-
 
 FragmentEndData *
 process_FragmentEnds(OVSoverlap *ovls, uint64 ovlsLen, GateKeeperStore *gkp,
@@ -237,12 +245,121 @@ finalize_GenomeLength(GateKeeperStore *gkp, RepeatModel *rm) {
 
 
 
-void
-process_LibraryRandomness(OVSoverlap *ovls, uint64 ovlsLen, GateKeeperStore *gkp, RepeatModel *rm) {
+LibraryOverlapData *
+process_LibraryRandomness(OVSoverlap *ovls, uint64 ovlsLen, GateKeeperStore *gkp, 
+                          RepeatModel *rm,
+                          LibraryOverlapData *ovl) {
+   int i = 0, j = 0;
+   int repeatend = isRepeatEnd(ovls, ovlsLen, rm);
+   fragRecord fr;
+   
+   // initialize data if necessary
+   // library 0 represents reads with no library association
+   if (ovl == NULL) {
+      ovl = (LibraryOverlapData *)safe_calloc(1, sizeof(LibraryOverlapData));
+      
+      int32 numLibraries = getNumGateKeeperLibraries(gkp)+1;
+      ovl->readsPerLibrary = safe_malloc(numLibraries * sizeof(uint64));
+      for (i = 0; i < numLibraries; i++) {
+         ovl->readsPerLibrary[i] = 0;
+      }
+
+      ovl->libraryVsLibraryOverlaps = safe_malloc(numLibraries * sizeof(uint64 *));
+      for (i = 0; i < numLibraries; i++) {
+         ovl->libraryVsLibraryOverlaps[i] = safe_malloc(numLibraries * sizeof(uint64));
+         for (j = 0; j < numLibraries; j++) {
+            ovl->libraryVsLibraryOverlaps[i][j] = 0;
+         }
+      }
+      
+      ovl->readsSeen = CreateScalarHashTable_AS(32 * 1024);
+      ovl->contained = 0;
+      ovl->totalOverlaps = 0;
+   }
+
+   if (ovlsLen > 0) {
+      // all the records have the same a_iid so we only need to get it once
+      getFrag(gkp, ovls[0].a_iid, &fr, 0);         
+      AS_IID libOne = getFragRecordLibraryIID(&fr);
+      
+      ovl->totalOverlaps += ovlsLen;
+      
+      // get the libraries of the reads from the gkp store and increment appropriate counters
+      for (i=0; i<ovlsLen; i++) {
+         uint32 contained = computeTypeOfOverlap(ovls[i]);
+        
+         // get the contained overlap and don't count ones that are contained
+         if (contained != 0x0a && contained != 0x0f) { 
+            ovl->contained++;            
+         }
+         else {         
+            getFrag(gkp, ovls[i].b_iid, &fr, 0);
+            AS_IID libTwo = getFragRecordLibraryIID(&fr);
+
+            if (!ExistsInHashTable_AS(ovl->readsSeen, ovls[i].a_iid, 0)) {
+               ovl->readsPerLibrary[libOne]++;
+               InsertInHashTable_AS(ovl->readsSeen, ovls[i].a_iid, 0, 1, 0);
+            }
+            
+            if (!ExistsInHashTable_AS(ovl->readsSeen, ovls[i].b_iid, 0)) {
+               ovl->readsPerLibrary[libTwo]++;
+               InsertInHashTable_AS(ovl->readsSeen, ovls[i].b_iid, 0, 1, 0);
+            }
+            
+            ovl->libraryVsLibraryOverlaps[libOne][libTwo]++;           
+         }
+      }
+   }
+   
+   return (ovl);
 }
 
 void
-finalize_LibraryRandomness(GateKeeperStore *gkp, RepeatModel *rm) {
+finalize_LibraryRandomness(GateKeeperStore *gkp, RepeatModel *rm, LibraryOverlapData *ovl) {
+   // output the results of our library analysis
+   char  name[FILENAME_MAX];
+   int i = 0, j = 0;
+
+   if (ovl == NULL)
+      return;
+
+   sprintf(name, "%s.libVsLib", outputPrefix);
+   FILE   *F;
+   errno = 0;
+   F = fopen(name, "w");
+   if (errno) {
+      fprintf(stderr, "Failed to open '%s' for write: %s.\n", name, strerror(errno));
+      return;
+   }
+   
+   int32 numLibraries = getNumGateKeeperLibraries(gkp)+1;
+   uint64 uncontained = ovl->totalOverlaps - ovl->contained;
+   uint64 numReads = ovl->readsSeen->numNodes;
+   
+   fprintf(F, "Total overlaps: %d\tcontained: %d\tcontained percent: %.2f\n", ovl->totalOverlaps, ovl->contained, 100*(ovl->contained/(double)ovl->totalOverlaps));
+   fprintf(F, "Overlaps per lib in [libID] [% reads] format\n");
+   for (i = 0; i < numLibraries; i++) {
+      fprintf(F, "%d\t%.2f\n", i, 100*(ovl->readsPerLibrary[i]/(double)numReads));
+   }
+   
+   for (i = 1; i < numLibraries; i++) {      
+      for (j = 1; j < numLibraries; j++) {
+         if (ovl->readsPerLibrary[i] < MIN_LIBRARY_SIZE || ovl->readsPerLibrary[j] < MIN_LIBRARY_SIZE) {
+            fprintf(F, "%d\t%d\t%s\n", i, j, "NA");
+         }
+         else {
+            uint64 overlaps = ovl->libraryVsLibraryOverlaps[i][j]; 
+               
+            double expected = (ovl->readsPerLibrary[i]/(double)numReads)*(ovl->readsPerLibrary[j]/(double)(numReads));
+            double expectedCount = uncontained*expected;
+                           
+            double actual = (overlaps/(double)uncontained);
+            double diffRatio = (overlaps - expectedCount) / expectedCount;
+
+            fprintf(F, "%d\t%d\t%.2f\t%d\t%.2f\n", i, j, expectedCount, overlaps, diffRatio*100);
+         }         
+      }
+   }
 }
 
 
@@ -309,6 +426,8 @@ main(int argc, char **argv) {
 
   FragmentEndData *repeat   = NULL;
   FragmentEndData *unique   = NULL;
+  
+  LibraryOverlapData *overlaps = NULL;
 
   AS_OVS_resetRangeOverlapStore(ovs);
   while (AS_OVS_readOverlapFromStore(ovs, &ovl, AS_OVS_TYPE_OVL) == TRUE) {
@@ -327,7 +446,7 @@ main(int argc, char **argv) {
 
       process_ShortInsert      (ovls, ovlsLen, gkp, rm);
       process_GenomeLength     (ovls, ovlsLen, gkp, rm);
-      process_LibraryRandomness(ovls, ovlsLen, gkp, rm);
+      overlaps = process_LibraryRandomness(ovls, ovlsLen, gkp, rm, overlaps);
 
       ovlsLen = 0;
       ovlsIID = ovl.a_iid;
@@ -347,7 +466,7 @@ main(int argc, char **argv) {
 
     process_ShortInsert      (ovls, ovlsLen, gkp, rm);
     process_GenomeLength     (ovls, ovlsLen, gkp, rm);
-    process_LibraryRandomness(ovls, ovlsLen, gkp, rm);
+    overlaps = process_LibraryRandomness(ovls, ovlsLen, gkp, rm, overlaps);
   }
 
   //  After our one pass, we can finish up the statistics.
@@ -357,7 +476,7 @@ main(int argc, char **argv) {
 
   finalize_ShortInsert      (gkp, rm);
   finalize_GenomeLength     (gkp, rm);
-  finalize_LibraryRandomness(gkp, rm);
+  finalize_LibraryRandomness(gkp, rm, overlaps);
 
   //  Clean up.
 
