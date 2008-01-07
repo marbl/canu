@@ -52,6 +52,8 @@ SCRIPTS = runCA \
           ca2ace.pl \
           asmToAGP.pl \
           mateLinkIIDRanges.rb \
+          markUniqueUnique.rb \
+          toggleAndRun.sh \
           OBT.specFile \
           noOBT.specFile \
           noVec.specFile \
@@ -116,6 +118,14 @@ ametrics.plx: runCA-OBT/ametrics.plx
 	@chmod 775 $(LOCAL_BIN)/$@
 
 mateLinkIIDRanges.rb: asmQC/mateLinkIIDRanges.rb
+	@cp $< $(LOCAL_BIN)/$@
+	@chmod 775 $(LOCAL_BIN)/$@
+
+markUniqueUnique.rb: asmQC/markUniqueUnique.rb
+	@cp $< $(LOCAL_BIN)/$@
+	@chmod 775 $(LOCAL_BIN)/$@
+
+toggleAndRun.sh: runCA-OBT/toggleAndRun.sh
 	@cp $< $(LOCAL_BIN)/$@
 	@chmod 775 $(LOCAL_BIN)/$@
 
