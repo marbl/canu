@@ -62,6 +62,8 @@ include $(LOCAL_WORK)/src/c_make.gen
 ifeq ($(OSTYPE), Linux)
   CC         = gcc
   CXX        = g++
+#  CC         = /bioinfo/assembly/gcc/gcc-4.2.1/amd64/bin/gcc
+#  CXX        = /bioinfo/assembly/gcc/gcc-4.2.1/amd64/bin/g++
 
   ARCH_CFLAGS = -DANSI_C -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64
 
@@ -193,8 +195,10 @@ ifeq ($(OSTYPE), aix)
 endif
 
 ifeq ($(OSTYPE), OSF1)
-  CC               = cc
-  CXX              = cxx
+#  CC               = cc -v
+#  CXX              = cxx
+  CC         = /bioinfo/assembly/gcc/gcc-4.2.1/OSF1/bin/gcc -pthread
+  CXX        = /bioinfo/assembly/gcc/gcc-4.2.1/OSF1/bin/g++ -pthread
   ARCH_CFLAGS      = -w0 \
                      -warnprotos \
                      -trapuv \
@@ -239,15 +243,15 @@ ifeq ($(OSTYPE), OSF1)
   #  being undefined for c++ code.
 
   ifeq ($(BUILDDEBUG), 1)
-    ARCH_CFLAGS   += -g
+    ARCH_CFLAGS   = -g -fsingle-precision-constant -v -D__osf__
   else
-    ARCH_CFLAGS   += -O4
+    ARCH_CFLAGS   = -O2 -v -D__osf__
+#    ARCH_CFLAGS   += -O4 -D__osf__
 
-  ARCH_CFLAGS      += -pthread
-  ARCH_LDFLAGS     += -pthread
+  ARCH_LDFLAGS     += -L/bioinfo/assembly/gcc/gcc-4.2.1/OSF1/lib
 
   endif
-  ARCH_INC         =  /usr/local/include /usr/include
+  ARCH_INC         =  /usr/local/include /usr/include /bioinfo/assembly/gcc/gcc-4.2.1/OSF1/include
 endif
 
 ifeq ($(BUILDPROFILE), 1)
@@ -319,6 +323,6 @@ SUBDIRS = AS_RUN \
           AS_CGW \
           AS_TER \
           AS_VWR \
+          AS_SHR \
 	  AS_ENV \
 	  AS_ARD
-
