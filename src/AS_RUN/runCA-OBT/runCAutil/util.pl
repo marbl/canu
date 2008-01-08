@@ -167,7 +167,7 @@ sub setDefaults () {
     $global{"frgCorrThreads"}              = 2;
     $global{"frgCorrConcurrency"}          = 1;
 
-    $global{"grid"}                        = "Linux-i686";
+    $global{"grid"}                        = "Linux-amd64";
 
     $global{"help"}                        = 0;
     $global{"version"}			   = 0;
@@ -200,7 +200,7 @@ sub setDefaults () {
     $global{"merCompression"}              = 1;       # used only if merOverlap != none
 
     $global{"executionWrapper"}            = undef;
-    $global{"scratch"}                     = "/scratch";
+    $global{"scratch"}                     = "/tmp";
     $global{"scriptOnGrid"}                = 0;
 
     #  Undocumented!
