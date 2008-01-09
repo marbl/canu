@@ -1,23 +1,24 @@
-
-A file with all the (recent) commits to the source tree.  Annotated
-with the time when any tags were placed, search for TAG: or BRANCH: to
-see when.
-
-One can use the following script to generate an update, then
-cut-n-paste it to the end of this file.
-
-Please remove any prefix (like "/cvsroot/wgs-assembler/src/") from the
-filenames, to save a little space.
-
---------------------------------------------------------------------------------
 #!/usr/bin/perl
+
+#A file with all the (recent) commits to the source tree.  Annotated
+#with the time when any tags were placed, search for TAG: or BRANCH: to
+#see when.
+
+# One can use the following script to generate an update though you'll
+# need to edit the $date var to be appropriate for your time frame
+# then perl COMMITS >> COMMITS should do the update
+# Might want to prune some of the early stuff at some point
+
+#Please remove any prefix (like "/cvsroot/wgs-assembler/src/") from the
+#filenames, to save a little space.
+
+#--------------------------------------------------------------------------------
 
 use strict;
 
 my %logs;
 my $file;
 my $revs;
-my $date;
 my $auth;
 my $inlog = 0;
 my $log;
@@ -27,6 +28,7 @@ my $date;
 $date = "-d '1 day ago<now'";
 $date = "-d '1 year ago<now'";
 $date = "-d '1 week ago<now'";
+$date = "-d '2 month ago<now'";
 
 open(F, "/usr/bin/cvs -z3 log -N -S $date |");
 while (<F>) {
@@ -74,11 +76,13 @@ foreach my $l (@keys) {
 
     if ((defined($logs{$l})) && (length($logs{$l} > 0))) {
         print "----------------------------------------\n";
+        $logs{$l} =~ s'/cvsroot/wgs-assembler/src/''g;
         print "$logs{$l}\n";
         print "$l\n";
         undef $logs{$l};
     }
 }
+__END__
 --------------------------------------------------------------------------------
 
 
@@ -11302,4 +11306,623 @@ and AS_TER/asmProcessScaffolds_TER into AS_TER/asmOutputFasta.
 2007/11/09 20:23:29	1.43	eliv	AS_BOG/AS_BOG_MateChecker.cc
 
 Make sure mate is on same unitig before trying to seperate from bad.
+
+----------------------------------------
+2007/11/13 16:32:40	1.8	brianwalenz AS_SHR/FASTA_to_frg_file.pl
+
+Reset back to version 1 at the end.
+
+----------------------------------------
+2007/11/14 07:23:32	1.10	brianwalenz AS_MER/AS_MER_gkpStore_to_FastABase.C
+2007/11/14 07:23:32	1.10	brianwalenz AS_MER/AS_MER_gkpStore_to_FastABase.H
+2007/11/14 07:23:32	1.15	brianwalenz AS_MER/overmerry.C
+
+Update for string UIDs.
+
+----------------------------------------
+2007/11/15 14:27:50	1.3	skoren AS_UTL/AS_UTL_UID.c
+
+Modify load to check for null pointer as well as to stop when a space is reached
+
+----------------------------------------
+2007/11/16 08:40:40	1.9	brianwalenz AS_SHR/FASTA_to_frg_file.pl
+
+Include Annotation/UID.pm, add logging.
+
+----------------------------------------
+2007/11/16 08:51:52	1.21	brianwalenz AS_OBT/chimera.C
+
+Clean up the adjustment of overlaps (computed on untrimmed reads) to
+trimmed reads.  Catch the cases where the overlap disappears.
+
+----------------------------------------
+2007/11/16 14:03:08	1.50	brianwalenz c_make.as
+2007/11/16 14:03:08	1.8	brianwalenz AS_UID/SYS_UIDcommon.c
+
+Don't use replacement xdr_u_hyper() if on late model OS-X.
+
+----------------------------------------
+2007/11/19 13:15:26	1.22	brianwalenz AS_RUN/runCA-OBT/runCAutil/createFragmentCorrectionJobs.pl
+
+Add -t parameter.
+
+----------------------------------------
+2007/11/19 13:18:29	1.5	brianwalenz AS_OVS/AS_OVS_overlap.c
+2007/11/19 13:18:29	1.1	brianwalenz AS_OVS/AS_OVS_overlapStats.c
+2007/11/19 13:18:29	1.14	brianwalenz AS_OVS/AS_OVS_overlapStore.c
+2007/11/19 13:18:29	1.9	brianwalenz AS_OVS/AS_OVS_overlapStore.h
+2007/11/19 13:18:29	1.11	brianwalenz AS_OVS/Makefile
+2007/11/19 13:18:29	1.15	brianwalenz AS_OVS/convertOverlap.c
+2007/11/19 13:18:29	1.2	brianwalenz AS_OVS/filterOverlap.c
+2007/11/19 13:18:29	1.13	brianwalenz AS_OVS/overlapStore.c
+2007/11/19 13:18:29	1.7	brianwalenz AS_OVS/overlapStore.h
+2007/11/19 13:18:29	1.13	brianwalenz AS_OVS/overlapStore_build.c
+2007/11/19 13:18:29	1.10	brianwalenz AS_OVS/overlapStore_dump.c
+2007/11/19 13:18:29	1.7	brianwalenz AS_OVS/overlapStore_erates.c
+2007/11/19 13:18:29	1.4	brianwalenz AS_OVS/overlapStore_merge.c
+2007/11/19 13:18:29	1.5	brianwalenz AS_OVS/overlapStore_stats.c
+2007/11/19 13:18:29	1.17	brianwalenz AS_RUN/runCA-OBT/runCAutil/createOverlapStore.pl
+2007/11/19 13:18:29	1.3	brianwalenz AS_RUN/runCA-OBT/runCAutil/merOverlapper.pl
+2007/11/19 13:18:29	1.35	brianwalenz AS_RUN/runCA-OBT/runCAutil/overlapTrim.pl
+
+Initial stab at making overlapStore keep stats on overlaps.  overlapStore
+the program now needs "-g gkpStore" as a parameter!
+
+----------------------------------------
+2007/11/19 16:37:54	1.7	brianwalenz AS_GKP/AS_GKP_sff.c
+
+Use string UIDs.
+
+----------------------------------------
+2007/11/19 17:53:41	1.14	eliv AS_RUN/runCA-OBT/runCAutil/Attic/bogUnitigger.pl
+2007/11/19 17:53:41	1.69	eliv AS_RUN/runCA-OBT/runCAutil/util.pl
+
+Add bogBadMateDepth option to set buildUnitigs -m option.
+
+----------------------------------------
+2007/11/20 07:08:27	1.2	brianwalenz AS_OVS/AS_OVS_overlapStats.c
+2007/11/20 07:08:28	1.15	brianwalenz AS_OVS/AS_OVS_overlapStore.c
+2007/11/20 07:08:28	1.8	brianwalenz AS_OVS/overlapStore_erates.c
+2007/11/20 07:08:28	1.6	brianwalenz AS_OVS/overlapStore_stats.c
+
+Fix the updateErates breakage from the last commit.
+
+----------------------------------------
+2007/11/20 16:03:20	1.42	eliv AS_OVL/AS_OVL_overlap_common.h
+
+Seems like we should update the thread local count instead of the global.
+
+----------------------------------------
+2007/11/20 16:09:40	1.7	eliv AS_RUN/runCA-OBT/runCAutil/site-jcvi.pl
+
+Use real UIDs by default when doing assemblies.
+
+----------------------------------------
+2007/11/20 20:24:38	1.41	eliv AS_RUN/runCA-OBT/runCAutil/scaffolder.pl
+
+Move -D flag before -o so update distances might work.
+
+----------------------------------------
+2007/11/21 18:05:50	1.18	skoren AS_MSG/AS_MSG_pmesg1.c
+
+modified parsing of jls records to use UID libraries directly, they were being parsed (incorrectly) by modifying the UID structure
+
+----------------------------------------
+2007/11/21 19:26:36	1.19	skoren AS_MSG/AS_MSG_pmesg1.c
+
+use \0 to separate UIDs while loading jls lists
+
+----------------------------------------
+2007/11/26 16:20:33	1.2	eliv AS_RUN/arun/ARUN_scriptRunning.pl
+2007/11/26 16:20:34	1.2	eliv AS_RUN/arun/aprep.pl
+2007/11/26 16:20:34	1.3	eliv AS_RUN/arun/arun.pl
+2007/11/26 16:20:34	1.3	eliv AS_RUN/arun/carun.pl
+2007/11/26 16:20:34	1.2	eliv AS_RUN/arun/tarun.pl
+
+s/common\/CARUN/common\/ARUN/ since this carun is dead.
+
+----------------------------------------
+2007/11/27 18:45:51	1.42	eliv AS_RUN/runCA-OBT/runCAutil/scaffolder.pl
+
+Stop assembly if distupdate generates errors.
+
+----------------------------------------
+2007/11/27 22:00:04	1.3	brianwalenz AS_OVS/AS_OVS_overlapStats.c
+2007/11/27 22:00:04	1.16	brianwalenz AS_OVS/AS_OVS_overlapStore.c
+2007/11/27 22:00:04	1.10	brianwalenz AS_OVS/AS_OVS_overlapStore.h
+2007/11/27 22:00:04	1.1	brianwalenz AS_OVS/AS_UTL_histogram.h
+2007/11/27 22:00:04	1.12	brianwalenz AS_OVS/Makefile
+2007/11/27 22:00:04	1.1	brianwalenz AS_OVS/overlapStats.c
+2007/11/27 22:00:04	1.1	brianwalenz AS_OVS/overlapStatsBoringStuff.h
+2007/11/27 22:00:04	1.7	brianwalenz AS_OVS/overlapStore_stats.c
+
+More stats work -- new exec overlapStats.
+
+----------------------------------------
+2007/11/28 21:48:18	1.8	brianwalenz AS_RUN/fragmentDepth.c
+
+It'll now output a multi-fasta of ascii-encoded depth at every base.
+
+----------------------------------------
+2007/11/28 22:48:28	1.9	brianwalenz AS_RUN/fragmentDepth.c
+
+Fix bogus escape sequence in printf.
+
+----------------------------------------
+2007/11/29 03:47:48	1.2	brianwalenz AS_OVS/AS_UTL_histogram.h
+2007/11/29 03:47:48	1.2	brianwalenz AS_OVS/overlapStats.c
+2007/11/29 03:47:48	1.2	brianwalenz AS_OVS/overlapStatsBoringStuff.h
+
+Improve the outputs, comments about plotting in R.
+
+----------------------------------------
+2007/12/05 23:46:57	1.44	brianwalenz AS_BOG/AS_BOG_BestOverlapGraph.cc
+2007/12/05 23:46:57	1.34	brianwalenz AS_BOG/AS_BOG_BestOverlapGraph.hh
+2007/12/05 23:46:57	1.13	brianwalenz AS_BOG/AS_BOG_ChunkGraph.cc
+2007/12/05 23:46:57	1.9	brianwalenz AS_BOG/AS_BOG_ChunkGraph.hh
+2007/12/05 23:46:57	1.20	brianwalenz AS_BOG/AS_BOG_Datatypes.hh
+2007/12/05 23:46:57	1.44	brianwalenz AS_BOG/AS_BOG_MateChecker.cc
+2007/12/05 23:46:57	1.19	brianwalenz AS_BOG/AS_BOG_MateChecker.hh
+2007/12/05 23:46:57	1.72	brianwalenz AS_BOG/AS_BOG_UnitigGraph.cc
+2007/12/05 23:46:57	1.37	brianwalenz AS_BOG/AS_BOG_UnitigGraph.hh
+2007/12/05 23:46:57	1.34	brianwalenz AS_BOG/BuildUnitigs.cc
+2007/12/05 23:46:58	1.30	brianwalenz AS_BOG/FindContainedFrags.cc
+2007/12/05 23:46:58	1.5	brianwalenz AS_BOG/ReadIUMs.cc
+
+Reindent; replace most of the '{' on a single line to prevent excessive
+amount of indent.
+
+----------------------------------------
+2007/12/05 23:54:42	1.45	brianwalenz AS_BOG/AS_BOG_BestOverlapGraph.cc
+2007/12/05 23:54:42	1.35	brianwalenz AS_BOG/AS_BOG_BestOverlapGraph.hh
+2007/12/05 23:54:42	1.31	brianwalenz AS_BOG/FindContainedFrags.cc
+
+Replace a stl::set with stl::vector and binary_search, to reduce memory
+footprint.  Struct member was renamed to make it obviously different from
+a different structs member.
+
+----------------------------------------
+2007/12/06 17:43:59	1.24	brianwalenz AS_CGW/SplitChunks_CGW.c
+
+Reindent, before I get to obnoxious.
+
+----------------------------------------
+2007/12/06 19:53:14	1.25	brianwalenz AS_CGW/SplitChunks_CGW.c
+
+Fix more formatting, comments, etc
+
+----------------------------------------
+2007/12/06 23:39:57	1.26	brianwalenz AS_CGW/SplitChunks_CGW.c
+2007/12/06 23:39:57	1.7	brianwalenz AS_CGW/SplitChunks_CGW.h
+
+New function FixContainedOrder() that less obnoxiously fixes the order
+of containments in new unitigs.
+
+----------------------------------------
+2007/12/08 03:15:17	1.13	brianwalenz AS_UTL/AS_UTL_Hash.c
+
+Disable useless logging
+
+----------------------------------------
+2007/12/08 03:18:41	1.6	brianwalenz AS_MSG/tracedb-to-frg.pl
+
+Add SGE options.  Be extra paranoid with our output files - write to temp
+files, then rename when we finish successfully.
+
+----------------------------------------
+2007/12/08 22:18:08	1.27	brianwalenz AS_CGW/SplitChunks_CGW.c
+
+Bugfix: there isn't a 0th distance.  Impact: the minimum unitig size
+that was eligible for splitting was always 0 -- not based on the smallest
+library as desired.
+
+----------------------------------------
+2007/12/08 22:20:23	1.28	brianwalenz AS_CGW/SplitChunks_CGW.c
+
+Fix containment ordering (again).  Try very, very hard to get the new
+unitigs to go through consensus.  If the initial try fails, then allow
+negative hangs.  If that fails, allow it to be forced.
+
+----------------------------------------
+2007/12/08 22:36:22	1.173	brianwalenz AS_CNS/MultiAlignment_CNS.c
+
+Fix the broken unitig "forced" mode; minor bits of cleanup obscure the fix,
+look for 'afraginit'.
+
+----------------------------------------
+2007/12/10 15:26:57	1.3	skoren AS_RUN/dataQC/glen_est_truncadjusted.pl
+
+updated genome size estimator to comply with new stores/dump utilities
+
+----------------------------------------
+2007/12/10 23:15:13	1.33	brianwalenz AS_CGW/Instrument_CGW.c
+
+Increase allocation to eliminate warnings of "Ran out of space for tracking
+surrogate fragments" during dumpCloneMiddles.
+
+----------------------------------------
+2007/12/10 23:29:31	1.19	brianwalenz AS_CGW/Celamy_CGW.c
+
+Include a random number in the surrogate name to prevent celamy from
+complaining about "Name '4129CtgSurro17676' is defined twice".
+
+----------------------------------------
+2007/12/11 17:23:45	1.1	skoren AS_ARD/AS_ARD_database.cc
+2007/12/11 17:23:45	1.1	skoren AS_ARD/AS_ARD_database.hh
+2007/12/11 17:23:45	1.1	skoren AS_ARD/BCPOutput.cc
+2007/12/11 17:23:45	1.1	skoren AS_ARD/BCPOutput.hh
+2007/12/11 17:23:45	1.1	skoren AS_ARD/DBTextOutput.cc
+2007/12/11 17:23:45	1.1	skoren AS_ARD/DBTextOutput.hh
+2007/12/11 17:23:45	1.1	skoren AS_ARD/IAssemblyDB.hh
+2007/12/11 17:23:45	1.1	skoren AS_ARD/IDBConnection.hh
+2007/12/11 17:23:45	1.1	skoren AS_ARD/IDBOutput.hh
+2007/12/11 17:23:45	1.1	skoren AS_ARD/Makefile
+2007/12/11 17:23:45	1.1	skoren AS_ARD/SQLOutput.cc
+2007/12/11 17:23:45	1.1	skoren AS_ARD/SQLOutput.hh
+2007/12/11 17:23:45	1.1	skoren AS_ARD/Sybase.cc
+2007/12/11 17:23:45	1.1	skoren AS_ARD/Sybase.hh
+2007/12/11 17:23:45	1.1	skoren AS_ARD/getAssembly.cc
+2007/12/11 17:23:45	1.1	skoren AS_ARD/loadAssembly.cc
+
+added initial version of CARD database
+
+----------------------------------------
+2007/12/11 18:33:16	1.28	eliv AS_CGW/Makefile
+
+Move exploreGapStructure.c out of CGW_LIBS, since it is an executablle.
+
+----------------------------------------
+2007/12/12 09:30:14	1.25	brianwalenz AS_CGW/CIScaffoldT_CGW.c
+2007/12/12 09:30:14	1.36	brianwalenz AS_CGW/CIScaffoldT_Cleanup_CGW.c
+2007/12/12 09:30:14	1.23	brianwalenz AS_CGW/ScaffoldGraph_CGW.h
+
+Bugfix.  ContigContainment tries very hard to find the overlap between
+two contigs.  If all tricks fail, it changes the alignment algorithm
+to DP_Compare, and calls itself again.  The test for success after
+this was incorrect, and would always result in a failure.
+
+----------------------------------------
+2007/12/12 14:27:04	1.2	skoren AS_ARD/AS_ARD_database.cc
+2007/12/12 14:27:04	1.2	skoren AS_ARD/BCPOutput.cc
+2007/12/12 14:27:04	1.2	skoren AS_ARD/DBTextOutput.cc
+2007/12/12 14:27:04	1.2	skoren AS_ARD/DBTextOutput.hh
+2007/12/12 14:27:04	1.2	skoren AS_ARD/IDBOutput.hh
+2007/12/12 14:27:04	1.2	skoren AS_ARD/Makefile
+2007/12/12 14:27:04	1.2	skoren AS_ARD/SQLOutput.cc
+2007/12/12 14:27:04	1.2	skoren AS_ARD/getAssembly.cc
+
+cleaned up code (made #defines into static vars) and fixed LOCAL SITE_NAME building.
+
+----------------------------------------
+2007/12/12 19:28:52	1.6	eliv AS_RUN/asmQC/unitigGraph.rb
+
+Allow choice between dumping contig or unitig links.
+
+----------------------------------------
+2007/12/12 19:38:55	1.1	eliv AS_RUN/asmQC/checkMates.rb
+
+Quick hack version I had sitting around counting mated surrogate reads.
+
+----------------------------------------
+2007/12/12 19:43:57	1.1	eliv AS_RUN/asmQC/statsFromAGP.rb
+
+Quicky that sums scaffold stats from agp format files.
+
+----------------------------------------
+2007/12/12 19:47:29	1.26	eliv AS_RUN/asmQC/caqc.pl
+
+If input has problems, give a hint.
+
+----------------------------------------
+2007/12/13 19:00:15	1.7	eliv AS_RUN/asmQC/unitigGraph.rb
+
+Make surrogates triangles so they stick out in the graph.
+
+----------------------------------------
+2007/12/13 19:27:22	1.3	skoren AS_ARD/getAssembly.cc
+
+added pulling of MDI/AFG/UTG/CCO messages
+
+----------------------------------------
+2007/12/14 15:55:08	1.1	eliv AS_RUN/asmQC/markUniqueUnique.rb
+
+Takes .asm and .cgi file and marks singly placed surrogates as unique.
+
+----------------------------------------
+2007/12/14 16:28:13	1.2	eliv AS_RUN/asmQC/markUniqueUnique.rb
+
+Simplify, and skip surrogates < 2000 bases long.
+
+----------------------------------------
+2007/12/14 22:23:01	1.3	eliv AS_RUN/asmQC/markUniqueUnique.rb
+
+Allow degens too.
+
+----------------------------------------
+2007/12/16 01:22:19	1.9	brianwalenz COMMITS
+
+Mention wgs1016.
+
+----------------------------------------
+2007/12/17 17:14:13	1.174	brianwalenz AS_CNS/MultiAlignment_CNS.c
+
+Refactor MultiAlignContig() and PlaceFragments().  MultiAlignContig()
+had a memory leak.
+
+Catch (and assert) when the contig consensus fails to find a read.  This
+would have resulted in the base call being C.
+
+----------------------------------------
+2007/12/17 17:22:06	1.17	brianwalenz AS_CGW/fragmentPlacement.c
+
+In resolveSurrogates(), count the number of instances -- before, there
+was a hard limit of 100 instances.
+
+----------------------------------------
+2007/12/17 17:25:06	1.7	brianwalenz AS_MSG/AS_MSG_pmesg_internal.h
+
+Increase the maximum allow line length from 128KB to 16MB.
+
+----------------------------------------
+2007/12/17 19:30:10	1.59	brianwalenz AS_MSG/AS_MSG_pmesg.h
+
+Remove unused AS_MAY_JOIN and AS_MUST_JOIN definitions.
+
+----------------------------------------
+2007/12/17 19:30:52	1.27	brianwalenz AS_RUN/asmQC/caqc.pl
+
+Don't warn about undefined and etc.
+
+----------------------------------------
+2007/12/17 19:31:39	1.2	brianwalenz AS_TER/asmOutputFasta.c
+
+Rename contig consensus from ccocns (ccoqlt) to ctgcns (ctgqlt).
+
+----------------------------------------
+2007/12/17 19:41:59	1.1	eliv AS_RUN/runCA-OBT/metaGenomic.specFile
+
+Initial version.
+
+----------------------------------------
+2007/12/17 22:27:58	1.51	skoren c_make.as
+
+added CARD to build path for assembler
+
+----------------------------------------
+2007/12/18 14:42:43	1.3	skoren AS_ARD/Makefile
+
+fixed makefile to export LD_LIBRARY_PATH for sybase build
+
+----------------------------------------
+2007/12/18 16:00:07	1.175	brianwalenz AS_CNS/MultiAlignment_CNS.c
+
+Hmmm.  Miseed a few lines somehow.  tauValid was usually false in the
+last commit, which would then result in an assert.
+
+----------------------------------------
+2007/12/18 16:08:04	1.4	skoren AS_ARD/Makefile
+
+set LD_LIBRARY_PATH correctly if it is already set in env
+
+----------------------------------------
+2007/12/18 16:08:33	1.5	skoren AS_ARD/Makefile
+
+removed echo
+
+----------------------------------------
+2007/12/18 18:13:14	1.6	skoren AS_ARD/Makefile
+
+do not build if sybase directory is not found
+
+----------------------------------------
+2007/12/18 20:37:55	1.8	eliv AS_RUN/runCA-OBT/runCAutil/site-jcvi.pl
+
+Send a completion e-mail in carun, at user request.
+
+----------------------------------------
+2007/12/18 22:31:32	1.176	brianwalenz AS_CNS/MultiAlignment_CNS.c
+
+Add a comment as to why the value 1 must be used in the fragmentMap hash
+table.  Oh, and actually use that value too.
+
+----------------------------------------
+2007/12/19 23:29:32	1.43	brianwalenz AS_RUN/runCA-OBT/runCAutil/scaffolder.pl
+2007/12/19 23:29:32	1.70	brianwalenz AS_RUN/runCA-OBT/runCAutil/util.pl
+
+Make the default for extendClearRangesStepSize be max(5000, numScf/8).
+
+----------------------------------------
+2007/12/20 17:30:56	1.177	brianwalenz AS_CNS/MultiAlignment_CNS.c
+
+Enable the code path that will use the unitig consensus to fill in any
+bits of the contig not covered by reads.  A warning is reported in the
+stderr output that can be used to detect when this occurs.
+
+----------------------------------------
+2007/12/26 19:11:00	1.73	brianwalenz AS_BOG/AS_BOG_UnitigGraph.cc
+2007/12/26 19:11:00	1.38	brianwalenz AS_BOG/AS_BOG_UnitigGraph.hh
+2007/12/26 19:11:00	1.35	brianwalenz AS_BOG/BuildUnitigs.cc
+2007/12/26 19:11:00	1.29	brianwalenz AS_RUN/Makefile
+2007/12/26 19:11:00	1.7	brianwalenz AS_RUN/runCA-OBT/runCAutil/Attic/asdb.pl
+2007/12/26 19:11:00	1.15	brianwalenz AS_RUN/runCA-OBT/runCAutil/Attic/bogUnitigger.pl
+2007/12/26 19:11:00	1.27	brianwalenz AS_RUN/runCA-OBT/runCAutil/unitigger.pl
+
+Make BOG write partitioned IUM files like unitigger does.  So, yes, this
+means the output names change.  Minor fiddling with how erates are passed
+in.
+
+----------------------------------------
+2007/12/26 22:47:25	1.18	brianwalenz AS_MER/Makefile
+
+Use debug kmer if it exists (and optimized kmer doesn't).
+
+----------------------------------------
+2007/12/26 23:27:19	1.11	brianwalenz AS_MER/AS_MER_gkpStore_to_FastABase.C
+2007/12/26 23:27:19	1.11	brianwalenz AS_MER/AS_MER_gkpStore_to_FastABase.H
+2007/12/26 23:27:19	1.16	brianwalenz AS_MER/overmerry.C
+
+Update to kmer 1588.
+
+----------------------------------------
+2007/12/27 18:41:15	1.46	brianwalenz AS_BOG/AS_BOG_BestOverlapGraph.cc
+2007/12/27 18:41:15	1.36	brianwalenz AS_BOG/AS_BOG_BestOverlapGraph.hh
+2007/12/27 18:41:15	1.36	brianwalenz AS_BOG/BuildUnitigs.cc
+2007/12/27 18:41:15	1.32	brianwalenz AS_BOG/FindContainedFrags.cc
+2007/12/27 18:41:15	1.6	brianwalenz AS_BOG/ReadIUMs.cc
+
+Clean up handling of error rates, make it consistent with unitigger, and the
+other AS_*_ERROR_RATE parameters.
+
+----------------------------------------
+2007/12/28 19:08:20	1.9	brianwalenz AS_MSG/AS_MSG_pmesg2.c
+
+FRG messages were being written incorrectly -- clr was written before
+clv and clq -- the correct order is clv, clq then clr.
+
+----------------------------------------
+2007/12/28 19:10:20	1.30	brianwalenz AS_GKP/AS_GKP_dump.c
+
+32/64 bit variable/printf mismatches.
+
+----------------------------------------
+2007/12/28 19:11:43	1.60	brianwalenz AS_GKP/AS_GKP_main.c
+
+Add -randomsubset (it uses the same code as for -randommated).
+
+----------------------------------------
+2008/01/02 04:36:02	1.178	brianwalenz AS_CNS/MultiAlignment_CNS.c
+
+Allow base calls when there is no read coverage.  This seems to occur only
+in areas with one read of coverage, when the base in the read is an N.  The
+consensus call is an N with QV=0.
+
+----------------------------------------
+2008/01/02 04:37:13	1.30	brianwalenz AS_RUN/Makefile
+2008/01/02 04:37:13	1.27	brianwalenz AS_RUN/runCA-OBT/runCA.pl
+2008/01/02 04:37:13	1.1	brianwalenz AS_RUN/runCA-OBT/runCAutil/cleaner.pl
+2008/01/02 04:37:13	1.71	brianwalenz AS_RUN/runCA-OBT/runCAutil/util.pl
+
+Add a "cleaner" module to runCA, to clean up after an assembly finished.
+By default, it does nothing.  Not fully implemented.
+
+----------------------------------------
+2008/01/02 18:28:45	1.47	eliv AS_BOG/AS_BOG_BestOverlapGraph.cc
+2008/01/02 18:28:45	1.37	eliv AS_BOG/AS_BOG_BestOverlapGraph.hh
+2008/01/02 18:28:45	1.37	eliv AS_BOG/BuildUnitigs.cc
+
+Add alternate scoring schema that wasn't tested much for posterity's sake.
+
+----------------------------------------
+2008/01/02 19:18:32	1.2	eliv AS_RUN/runCA-OBT/runCAutil/cleaner.pl
+
+Fix typo so it parses.
+
+----------------------------------------
+2008/01/02 22:12:58	1.27	eliv AS_RUN/runCA-OBT/runCAutil/createConsensusJobs.pl
+2008/01/02 22:12:58	1.25	eliv AS_RUN/runCA-OBT/runCAutil/createPostUnitiggerConsensus.pl
+
+Append to err file so consensus invocation is not overwrittern.
+
+----------------------------------------
+2008/01/03 04:30:24	1.61	brianwalenz AS_GKP/AS_GKP_main.c
+
+Add -randomlength, to dump up to Xbp of reads randomly from a gkpStore.
+
+----------------------------------------
+2008/01/03 16:11:31	1.28	eliv AS_RUN/runCA-OBT/runCA.pl
+
+echo back invocation to aid debugging
+
+----------------------------------------
+2008/01/03 17:02:57	1.72	eliv AS_RUN/runCA-OBT/runCAutil/util.pl
+
+Echo the spec file to stderr
+
+----------------------------------------
+2008/01/03 18:37:34	1.4	brianwalenz AS_RUN/runCA-OBT/runCAutil/merOverlapper.pl
+
+If trimming, use the partial overlap mode.
+
+----------------------------------------
+2008/01/03 18:37:51	1.3	brianwalenz AS_RUN/runCA-OBT/runCAutil/cleaner.pl
+
+Use m//.
+
+----------------------------------------
+2008/01/03 18:39:07	1.17	brianwalenz AS_OVS/AS_OVS_overlapStore.c
+
+Simplify overlap type logic.
+
+----------------------------------------
+2008/01/03 18:39:13	1.31	eliv AS_RUN/Makefile
+
+Add metagenomic spec file to cp, and use a single implicit rule for the specFiles.
+
+----------------------------------------
+2008/01/03 18:58:12	1.2	eliv AS_RUN/runCA-OBT/metaGenomic.specFile
+
+Change default for better results on yellowstone samples.
+
+----------------------------------------
+2008/01/03 22:43:11	1.62	brianwalenz AS_GKP/AS_GKP_main.c
+
+If -random* is told to dump nothing, quit.
+
+----------------------------------------
+2008/01/04 03:40:55	1.20	brianwalenz AS_TER/Makefile
+2008/01/04 03:40:55	1.1	brianwalenz AS_TER/fragsInVars.c
+
+Add fragsInVars.
+
+----------------------------------------
+2008/01/04 03:45:42	1.1	brianwalenz AS_RUN/asmQC/mergeqc.pl
+
+Quick hack to merge multiple QC files into one.
+
+----------------------------------------
+2008/01/04 03:52:09	1.1	brianwalenz AS_MER/gkrpt.pl
+
+Granger's k-mer repeat constructor.  Version from Oct 16, 2006.
+
+----------------------------------------
+2008/01/07 21:44:50	1.3	skoren AS_OVS/AS_UTL_histogram.h
+2008/01/07 21:44:50	1.3	skoren AS_OVS/overlapStats.c
+
+initial addition of library vs library stats code
+
+----------------------------------------
+2008/01/07 21:57:02	1.1	eliv AS_RUN/runCA-OBT/toggleAndRun.sh
+
+A script that calls markUniqueUnique and reruns the assembly in a new dir.
+
+----------------------------------------
+2008/01/07 22:02:08	1.32	eliv AS_RUN/Makefile
+
+Add copy of markUniqueUnique and toggleAndRun to bin.
+
+----------------------------------------
+2008/01/08 16:20:22	1.2	eliv AS_RUN/runCA-OBT/toggleAndRun.sh
+
+Link some more stuff over so qc stuff works.
+
+----------------------------------------
+2008/01/08 18:36:45	1.2	eliv AS_SHR/shred_454.sh
+
+Add to trunk from 4.0 branch.
+
+----------------------------------------
+2008/01/08 18:39:02	1.2	eliv AS_SHR/Makefile
+2008/01/08 18:40:54	1.2	eliv AS_SHR/Annotation/UID.pm
+
+Added from 4.0 branch.
+
+----------------------------------------
+2008/01/08 18:58:52	1.52	eliv c_make.as
+
+Add AS_SHR again to copy shred scripts to bin.
+
+----------------------------------------
+2008/01/08 19:59:29	1.73	eliv AS_RUN/runCA-OBT/runCAutil/util.pl
+
+Change some defaults for new JCVI grid.
 
