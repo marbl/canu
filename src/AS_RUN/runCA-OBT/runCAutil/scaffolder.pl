@@ -200,7 +200,7 @@ sub updateDistanceRecords ($) {
     $cmd .= " $wrk/$thisDir/stat/scaffold_final.distupdate.dst ";
     $cmd .= " $wrk/$thisDir/stat/contig_final.distupdate.dst ";
     $cmd .= " > $wrk/$thisDir/cgw.distupdate.err 2>&1";
-    if (runCommand("$wrk/$thisDir", $cmd) || -s $gkpErrorFile) {
+    if (runCommand("$wrk/$thisDir", $cmd)) {
         caFailure("Gatekeeper distupdate Failed.\n");
     }
 
