@@ -138,7 +138,7 @@ sub localSetup($) {
 
     asdbInit()  if ( !runningOnGrid());
 
-    $wrk = "/usr/local/aserver_new/var/assembly/$request_id" if (!defined($wrk));
+    $wrk = "/usr/local/aserver/var/assembly/$request_id" if (!defined($wrk));
 
     print "Using work directory: $wrk\n";    
     $commandLineOptions .= " -d $wrk ";
