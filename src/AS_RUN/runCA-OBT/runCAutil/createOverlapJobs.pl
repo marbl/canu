@@ -5,6 +5,7 @@ sub createOverlapJobs($) {
     my $isTrim = shift @_;
 
     return if (-d "$wrk/$asm.ovlStore");
+    return if (getGlobal("doUseOverlapper") == 0);
 
     caFailure("createOverlapJobs()-- Help!  I have no frags!\n") if ($numFrags == 0);
     caFailure("createOverlapJobs()-- I need to know if I'm trimming or assembling!\n") if (!defined($isTrim));
