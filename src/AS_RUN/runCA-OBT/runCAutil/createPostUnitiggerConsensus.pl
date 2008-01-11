@@ -91,7 +91,7 @@ sub createPostUnitiggerConsensusJobs (@) {
     print F "  -o $wrk/5-consensus/${asm}_\$jobp.cgi \\\n";
     print F "  $wrk/$asm.gkpStore \\\n";
     print F "  \$cgbfile \\\n";
-    print F " \\> $wrk/5-consensus/${asm}_\$jobp.err 2\\>\\&1\n";
+    print F " > $wrk/5-consensus/${asm}_\$jobp.err 2>&1\n";
     print F "\n";
     print F "$gin/consensus \\\n";
     print F "  -G -U \\\n";
