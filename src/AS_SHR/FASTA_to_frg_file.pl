@@ -22,11 +22,13 @@
 #
 ##########################################################################
 
-# $Id: FASTA_to_frg_file.pl,v 1.9 2007-11-16 08:40:40 brianwalenz Exp $
+# $Id: FASTA_to_frg_file.pl,v 1.10 2008-01-11 21:16:09 eliv Exp $
 
 use strict;
 use Getopt::Std;
 use FileHandle;
+use FindBin qw($Bin);
+use lib $Bin;
 use Annotation::UID;
 use vars qw($opt_q $opt_f);
 

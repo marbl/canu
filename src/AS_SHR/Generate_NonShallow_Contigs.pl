@@ -22,11 +22,13 @@
 #
 ##########################################################################
 
-# $Id: Generate_NonShallow_Contigs.pl,v 1.5 2006-12-20 14:58:15 eliv Exp $
+# $Id: Generate_NonShallow_Contigs.pl,v 1.6 2008-01-11 21:16:09 eliv Exp $
 
 use strict;
 use Getopt::Std;
 use FileHandle;
+use FindBin qw($Bin);
+use lib $Bin;
 use Annotation::UID;
 use vars qw($opt_a $opt_f $opt_s);
 
