@@ -1,22 +1,10 @@
 use strict;
 
 sub findUMDOverlapper() {
-   my $umdPath = getGlobal("umdOverlapperPath");
-   my $umdBin = getGlobal("umdOverlapperBinDirectory");
-   
-   # if we weren't given a path, look in the same level as root of assembler
-   if ($umdPath eq "") {
-      my @t = split '/', $bin;
-      my $popValue = pop @t;
-      
-      while (($popValue = pop @t) !~ m/CA/) {}
-      $umdPath = join '/', @t;
-   }   
-   
    # double check we can find the executable in path/bin/exec
-   caFailure("Unable to find the UMD Overlapper executable.\n Please specify using the arguments umdOverlapperPath (path to overlapper) and umdOverlapperBinDirectory (relative directory within path where the executable resides).\n") if (! -e "$umdPath/$umdBin/runUMDOverlapper.perl");
+   caFailure("Unable to find the UMD Overlapper executable.\n") if (! -e "$bin/runUMDOverlapper");
    
-   return "$umdPath/$umdBin";
+   return $bin;
 }
 sub UMDOverlapper (@) {
     my @fragFiles  = @_;
@@ -72,7 +60,7 @@ sub UMDOverlapper (@) {
     #
     $cmd = "";
    
-    $cmd  = "$umdOvlBin/runUMDOverlapper.perl ";
+    $cmd  = "$umdOvlBin/runUMDOverlapper ";
     $cmd .= getGlobal("umdOverlapperFlags") . " ";
     $cmd .= "$frgFile $wrk/$outDir/$jobID/$asm.umd.frg ";
     $cmd .= " > $wrk/$outDir/$jobID/overlapper.out 2>$wrk/$outDir/$jobID/overlapper.err";

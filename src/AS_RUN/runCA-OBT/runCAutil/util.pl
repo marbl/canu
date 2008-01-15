@@ -197,8 +197,6 @@ sub setDefaults () {
     
     $global{"doUseOverlapper"}             = 1;                # use the default overlapper step
     $global{"doUseUMDOverlapper"}          = 0;                # use UMD overlapper (these two are exclusive)
-    $global{"umdOverlapperBinDirectory"}   = "UMDOverlapper";  # the bin directory of the UMD overlapper
-    $global{"umdOverlapperPath"}           = "";               # the absolute path to UMD overlapper
     $global{"umdOverlapperFlags"}          = "-calculate-trims -use-uncleaned-reads";  # any parameters to supply to UMD overlapper
 
     $global{"merOverlap"}                  = "none";  # obt or ovl or both

@@ -24,6 +24,44 @@
 
 LOCAL_WORK = $(shell cd ../..; pwd)
 
+#  UMD_OVL should point to a configured, compiled and installed copy of
+#  http://www.genome.umd.edu/overlapper.htm
+#
+#  We attempt to find it in the same place that our src/ directory is.
+#  
+#  Currently, nothing is build in the UMD overlapper, it must be pre-compiled. All the necessary executables
+#  are copied into the CA bin tree.
+#
+
+#  We'd like to include the global include (c_make.as) to get these
+#  definitions, but we cannot without defining rules.
+
+OSTYPE      = $(shell echo `uname`)
+MACHINETYPE = $(shell echo `uname -m`)
+
+ifeq ($(MACHINETYPE), x86_64)
+  MACHINETYPE = amd64
+endif
+ifeq ($(MACHINETYPE), Power Macintosh)
+  MACHINETYPE = ppc
+endif
+
+ifneq "$(origin UMD_OVL)" "environment"
+
+ifeq ($(shell ls -d $(LOCAL_WORK)/UMDOverlapper/$(OSTYPE)-$(MACHINETYPE)-debug 2> /dev/null), $(LOCAL_WORK)/UMDOverlapper/$(OSTYPE)-$(MACHINETYPE)-debug)
+  UMD_OVL = $(LOCAL_WORK)/UMDOverlapper/$(OSTYPE)-$(MACHINETYPE)-debug
+endif
+
+ifeq ($(shell ls -d $(LOCAL_WORK)/UMDOverlapper/$(OSTYPE)-$(MACHINETYPE) 2> /dev/null), $(LOCAL_WORK)/UMDOverlapper/$(OSTYPE)-$(MACHINETYPE))
+  UMD_OVL = $(LOCAL_WORK)/UMDOverlapper/$(OSTYPE)-$(MACHINETYPE)
+endif
+
+endif
+
+ifdef UMD_OVL
+  AS_SCRIPTS = runUMDOverlapper overlapPipeline dataWorkReduced
+endif
+
 AS_OVL_CA_SRCS = AS_OVL_overlap_ca.c  AS_OVL_driver_ca.c 
 AS_OVL_CA_OBJS = $(AS_OVL_CA_SRCS:.c=.o)
 
@@ -33,15 +71,20 @@ AS_OVL_OBJS = $(AS_OVL_SRCS:.c=.o)
 AS_OVL_CMN_SRCS = AS_OVL_delcher.c 
 AS_OVL_CMN_OBJS = $(AS_OVL_CMN_SRCS:.c=.o)
 
-CORRECT_SRCS = FragCorrectOVL.c ShowCorrectsOVL.c CorrectOlapsOVL.c DeleteOlapsOVL.c FilterOlapsOVL.c CatCorrectsOVL.c CatEratesOVL.c
-CORRECT_OBJS = $(CORRECT_SRCS:.c=.o)
-
 SEED_OLAP_SRCS = OlapFromSeedsOVL.c
 SEED_OLAP_OBJS = $(SEED_OLAP_SRCS:.c=.o)
 
-LIBSOURCES =  MatchListOVL.c SharedOVL.c
-#OlapStoreOVL.c
-LIBOBJECTS = $(LIBSOURCES:.c=.o) 
+AS_SRCS = $(AS_OVL_SRCS) $(AS_OVL_CA_SRCS) $(AS_OVL_CMN_SRCS) $(SEED_OLAP_SRCS)
+AS_OBJS = $(AS_SRCS:.c=.o)
+  
+AS_OVL_PROGS    = overlap overlap_ca
+SEED_OLAP_PROGS = olap-from-seeds
+
+AS_PROGS	  = $(AS_OVL_PROGS) $(SEED_OLAP_PROGS)
+LIBRARIES = libAS_OVL.a
+
+CORRECT_SRCS = FragCorrectOVL.c ShowCorrectsOVL.c CorrectOlapsOVL.c DeleteOlapsOVL.c FilterOlapsOVL.c CatCorrectsOVL.c CatEratesOVL.c
+CORRECT_OBJS = $(CORRECT_SRCS:.c=.o)
 
 SCREEN_SRCS = AutoScreenOVL.c CombineMUMsOVL.c RemoveDupScreenOVL.c removedups.c
 SCREEN_OBJS = $(SCREEN_SRCS:.c=.o)
@@ -52,22 +95,24 @@ TOOL_OBJS = $(TOOL_SRCS:.c=.o)
 CXX_SOURCES =  olapcoverage.cc
 CXX_OBJECTSS = $(TOOL_CXX_SRCS:.cc=.o)
 
-SOURCES = $(AS_OVL_SRCS) $(AS_OVL_CA_SRCS) $(AS_OVL_CMN_SRCS) $(CORRECT_SRCS) $(SEED_OLAP_SRCS) $(LIBSOURCES)
+LIBSOURCES =  MatchListOVL.c SharedOVL.c
+#OlapStoreOVL.c
+LIBOBJECTS = $(LIBSOURCES:.c=.o)
+
+SOURCES = $(AS_SRCS) $(CORRECT_SRCS) $(LIBSOURCES)
 OBJECTS = $(SOURCES:.cc=.o)
 
-AS_OVL_PROGS    = overlap overlap_ca
 CORRECT_PROGS   = correct-frags show-corrects correct-olaps delete-olaps filter-olaps cat-corrects cat-erates
 
 SEED_OLAP_PROGS = olap-from-seeds
 
-OBSOLETE        = 
+OBSOLETE        =
 SCREEN_PROGS    = auto-screen combine-mums remove-dup-screen removedups
 TOOL_PROGS      = get-degrees olapcoverage fgbovlhits rev-olaps hit-limit
 
-PROGS     = $(AS_OVL_PROGS) $(SEED_OLAP_PROGS) $(CORRECT_PROGS)
-SCRIPTS   = 
-LIBRARIES = libAS_OVL.a libCA.a
-
+PROGS     = $(AS_PROGS) $(CORRECT_PROGS)
+SCRIPTS   = $(AS_SCRIPTS)
+LIBRARIES += libCA.a
 LIBS = libCA.a
 
 include $(LOCAL_WORK)/src/c_make.as
@@ -92,7 +137,7 @@ ifeq ($(OSTYPE), Darwin)
 endif
 
 
-all:    $(OBJECTS) $(LIBRARIES) $(PROGS)
+all:    $(OBJECTS) $(LIBRARIES) $(PROGS) $(SCRIPTS)
 	@test -n nop
 
 
@@ -142,3 +187,19 @@ force-erates:  ForceEratesOVL.o AS_OVL_delcher.o $(LIBS)
 overlap: $(AS_OVL_OBJS) $(AS_OVL_CMN_OBJS) $(LIBS)
 
 overlap_ca: $(AS_OVL_CA_OBJS) $(AS_OVL_CMN_OBJS) $(LIBS)
+
+runUMDOverlapper: $(UMD_OVL)/runUMDOverlapper.perl
+	@cp $< $(LOCAL_BIN)/$@
+	@chmod 775 $(LOCAL_BIN)/$@
+
+overlapPipeline: $(UMD_OVL)/overlapPipeline
+	@mkdir -p $(LOCAL_BIN)/overlapPipeline
+	@chmod -f 775 $(LOCAL_BIN)/overlapPipeline
+	@cp $</* $(LOCAL_BIN)/overlapPipeline
+	@chmod 775 $(LOCAL_BIN)/overlapPipeline/
+
+dataWorkReduced: $(UMD_OVL)/dataWorkReduced
+	@mkdir -p $(LOCAL_BIN)/dataWorkReduced
+	@chmod -f 775 $(LOCAL_BIN)/dataWorkReduced
+	@cp $</* $(LOCAL_BIN)/dataWorkReduced
+	@chmod 775 $(LOCAL_BIN)/dataWorkReduced/*
