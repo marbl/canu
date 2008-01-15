@@ -37,6 +37,8 @@ main (int argc , char * argv[] ) {
 
   GlobalData = CreateGlobal_CGW();
 
+  argc = AS_configure(argc, argv);
+ 
   int arg = 1;
   int err = 0;
   while (arg < argc) {
