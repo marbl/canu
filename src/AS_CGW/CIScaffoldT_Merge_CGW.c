@@ -18,7 +18,7 @@
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
-static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.34 2007-09-05 11:22:10 brianwalenz Exp $";
+static char CM_ID[] = "$Id: CIScaffoldT_Merge_CGW.c,v 1.35 2008-01-16 22:13:08 eliv Exp $";
 
 
 #undef ORIG_MERGE_EDGE_INVERT
@@ -5123,8 +5123,7 @@ int MergeScaffoldsExhaustively(ScaffoldGraphT * graph,
     //  though.
     //
     if (time(0) - lastCkpTime > 120 * 60) {
-      CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
-      fprintf(GlobalData->timefp,"Checkpoint %d written written during MergeScaffoldsAggressive at iteration %d\n",
+      fprintf(GlobalData->timefp,"Checkpoint %d written during MergeScaffoldsAggressive at iteration %d\n",
               ScaffoldGraph->checkPointIteration, iterations);
       CheckpointScaffoldGraph(ScaffoldGraph, logicalcheckpointnumber);
       lastCkpTime = time(0);
@@ -5204,6 +5203,7 @@ int MergeScaffoldsExhaustively(ScaffoldGraphT * graph,
         mergedSomething = 1;
         minWeightThreshold -= 1.0;
       }
+      CleanupScaffolds(ScaffoldGraph, FALSE, NULLINDEX, FALSE);
   }while(mergedSomething);
   return totalMerged;
 }
