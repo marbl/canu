@@ -105,7 +105,7 @@ int main( int argc, char *argv[])
 
   int setGatekeeperStore = FALSE;
   int fragIID,mateIID;
-  AS_UID fragUID,mateUID;
+  uint64 fragUID,mateUID;
   char GKP_Store_Name[2000];
   GateKeeperStore *gkpStore;
   GateKeeperFragmentRecord gkpFrag,gkpMate;
@@ -124,7 +124,7 @@ int main( int argc, char *argv[])
   Overlap *ovl;
   IntUnitigMesg ium;
   IntMultiPos the_imps[2];
-  AS_UID  mergeUid;
+  uint64  mergeUid;
   char seq[MAXSEQLEN], qlt[MAXSEQLEN];
   int clr_bgn,clr_end;
   VA_TYPE(int32) *deltas=CreateVA_int32(1);
@@ -211,7 +211,7 @@ int main( int argc, char *argv[])
     getGateKeeperFragment(gkpStore,fragIID,&gkpFrag);
     if(gkpFrag.deleted)continue;
 
-    fragUID = gkpFrag.readUID;
+    fragUID = AS_UID_toInteger(gkpFrag.readUID);
 
       //    if(getFrag(gkpStore,fragIID,fsread,FRAG_S_ALL)!=0){
       //      fprintf(stderr,"Couldn't get fragment from gkpStore for iid %d\n",fragIID);
@@ -250,7 +250,7 @@ int main( int argc, char *argv[])
       /*************************/
 
       getGateKeeperFragment(gkpStore,mateIID,&gkpFrag);
-      mateUID = gkpFrag.readUID;
+      mateUID = AS_UID_toInteger(gkpFrag.readUID);
 	
       if(mateIID<fragIID&&gkpFrag.deleted!=1)continue;
 
@@ -282,7 +282,7 @@ int main( int argc, char *argv[])
       // Create a UID for the clone
       /*********************************************/
 
-      mergeUid = AS_UID_fromInteger(getUID(uids));
+      mergeUid = getUID(uids);
 
       /*************************/
       // check for an overlap
