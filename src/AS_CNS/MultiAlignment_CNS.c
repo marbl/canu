@@ -24,7 +24,7 @@
    Assumptions:  
 *********************************************************************/
 
-static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.178 2008-01-02 04:36:02 brianwalenz Exp $";
+static char CM_ID[] = "$Id: MultiAlignment_CNS.c,v 1.179 2008-01-24 18:03:22 gdenisov Exp $";
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -1565,7 +1565,7 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
 
   int b_read_depth=0, o_read_depth=0, guide_depth=0;
   int score=0;
-  int bi;
+  int bi, bi_cons;
   int32 bid;
   int32 iid = 0;
   char cqv, cbase;
@@ -1589,7 +1589,7 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
   CNS_Options  opp_private;
   if (opp == NULL) {
     opp_private.split_alleles   = CNS_OPTIONS_SPLIT_ALLELES_DEFAULT;
-    opp_private.smooth_win      = CNS_OPTIONS_MIN_ANCHOR_DEFAULT-1;
+    opp_private.smooth_win      = CNS_OPTIONS_MIN_ANCHOR_DEFAULT;   
     opp_private.max_num_alleles = CNS_OPTIONS_MAX_NUM_ALLELES;
     opp = &opp_private;
   }
@@ -1947,8 +1947,10 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
         }
 
       // Detecting variation
-      for (bi=0; bi<CNS_NALPHABET-1; bi++)
+      for (bi=0; bi<CNS_NALPHABET-1; bi++) {
         b_read_count += best_read_base_count[bi];
+        if (*cons_base == bases[bi]) { bi_cons = bi; }
+      }
 
       for (bi=0; bi<CNS_NALPHABET-1; bi++) {
         // NALAPHBET-1 to exclude "n" base call
@@ -1962,8 +1964,9 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
          * and either overall quality should be >= 60
          * (Granger's suggestion - GD)
          */
-        if (*cons_base != '-' && bases[bi] != '-' &&
-            best_read_base_count[bi] >  1 &&
+        if (*cons_base != '-' && bases[bi] != '-' && *cons_base != bases[bi] &&
+            best_read_base_count[bi     ] > 1 &&   // variation represented by >=2 bases
+            best_read_base_count[bi_cons] > 1 &&   // consensus represented by >=2 bases
             (float)best_read_qv_count[bi]/(float)best_read_base_count[bi]
             >= MIN_AVE_QV_FOR_VARIATION)
           {
@@ -1971,8 +1974,9 @@ BaseCall(int32 cid, int quality, double *var, VarRegion  *vreg,
             if (IntToBase(bi) == cbase)
               sum_qv_cbase = best_read_qv_count[bi];
           }
-        else if ((*cons_base == '-' || bases[bi] == '-') &&
-                 best_read_base_count[bi] >  1 &&
+        else if ((*cons_base == '-' || bases[bi] == '-') && *cons_base != bases[bi] &&
+                 best_read_base_count[bi     ] > 1 && // variation represented by >=2 bases
+                 best_read_base_count[bi_cons] > 1 && // consensus represented by >=2 bases
                  highest_qv[bi] + highest2_qv[bi] >= MIN_SUM_QVS_FOR_VARIATION)
           {
             sum_qv_all += best_read_qv_count[bi];
@@ -2509,7 +2513,7 @@ GetReadsForVARRecord(Read *reads, int32 *iids, int32 nvr,
 {
   int k;
 
-  for (k=beg; k<=end; k++)
+  for (k=beg; k<end; k++)
     {
       Column *column=GetColumn(columnStore,cids[k]);
       Bead  *bead;
@@ -2598,7 +2602,7 @@ GetReadsForVARRecord(Read *reads, int32 *iids, int32 nvr,
   // Compute ave_qvs
   for (k=0; k<nvr; k++)
     {
-      int i, j, m = end-beg+1;
+      int i, j, m = end-beg;
       reads[k].uglen = 0;
       reads[k].ave_qv = 0.;
       for (i=0; i<m; i++)
@@ -2766,7 +2770,7 @@ OutputAlleles(FILE *fout, VarRegion *vreg)
       for (j=0; j<vreg->alleles[i].num_reads; j++)
         {
           int k, read_id = vreg->alleles[i].read_ids[j];
-          int len = vreg->end-vreg->beg+1;
+          int len = vreg->end-vreg->beg;
           fprintf(fout,   "    %d   ", read_id);
           for (k=0; k<len; k++)
             fprintf(fout,   "%c", vreg->reads[read_id].bases[k]);
@@ -2802,11 +2806,11 @@ PopulateVARRecord(int is_phased, int32 *cids, int32 *nvars, int32 *min_len_vlist
   }
   vreg_id++;
   (*v_list)[*nvars].position.bgn = vreg.beg;
-  (*v_list)[*nvars].position.end = vreg.end+1;
+  (*v_list)[*nvars].position.end = vreg.end;
   (*v_list)[*nvars].num_reads = (int32)vreg.nr;
   (*v_list)[*nvars].num_conf_alleles = vreg.nca;
-  (*v_list)[*nvars].min_anchor_size = opp->smooth_win+1;
-  (*v_list)[*nvars].var_length = vreg.end+1-vreg.beg;
+  (*v_list)[*nvars].min_anchor_size = opp->smooth_win;
+  (*v_list)[*nvars].var_length = vreg.end-vreg.beg;
   (*v_list)[*nvars].curr_var_id = vreg_id;
   (*v_list)[*nvars].phased_var_id = is_phased ? vreg_id-1 : -1;
   (*v_list)[*nvars].weights = (char*)safe_calloc(num_reported_alleles,
@@ -2830,12 +2834,12 @@ PopulateVARRecord(int is_phased, int32 *cids, int32 *nvars, int32 *min_len_vlist
       }
 #if DEBUG_VAR_RECORDS
     fprintf(stderr, "VAR beg= %d end= %d\n", vreg.beg, vreg.end);
-    OutputReads(stderr, vreg.reads, vreg.nr, vreg.end-vreg.beg+1);
+    OutputReads(stderr, vreg.reads, vreg.nr, vreg.end-vreg.beg);
     OutputDistMatrix(stderr, &vreg);
     OutputAlleles(stderr, &vreg);
 #endif
 
-    for (m=0; m<vreg.end-vreg.beg+1; m++)
+    for (m=0; m<vreg.end-vreg.beg; m++)
       {
         for (al=num_reported_alleles-1; al >=0; al--)
           {
@@ -2855,7 +2859,7 @@ PopulateVARRecord(int is_phased, int32 *cids, int32 *nvars, int32 *min_len_vlist
                     if (cbase != base[al])
                       {
                         fprintf(stderr, "Error setting the consensus base #%d  %c/%c\n", m, cbase, base[al]);
-                        OutputReads(stderr, vreg.reads, vreg.nr, vreg.end-vreg.beg+1);
+                        OutputReads(stderr, vreg.reads, vreg.nr, vreg.end-vreg.beg);
                         OutputDistMatrix(stderr, &vreg);
                         OutputAlleles(stderr, &vreg);
                         exit(-1);
@@ -2902,7 +2906,7 @@ PopulateVARRecord(int is_phased, int32 *cids, int32 *nvars, int32 *min_len_vlist
         (*v_list)[*nvars].nr_conf_alleles = strcat((*v_list)[*nvars].nr_conf_alleles, buf);
       }
 #if 0
-    fprintf(stderr, "len= %d var_seq = %s\n", vreg.end-vreg.beg+1, (*v_list)[*nvars].var_seq);
+    fprintf(stderr, "len= %d var_seq = %s\n", vreg.end-vreg.beg, (*v_list)[*nvars].var_seq);
 
 #endif
     sprintf((*v_list)[*nvars].conf_read_iids, "");
@@ -2998,7 +3002,7 @@ PhaseWithPrevVreg(int32 nca, Allele *alleles, Read *reads, int32 **allele_map,
       /* Populate the allele_matrix:
        *   columns  = confirmed alleles in the previous VAR record
        *   rows     = confirmed alleles in the current  VAR record
-       *   elements = # of reads in the corresponding allele
+       *   elements = # of reads shared by the prototype and image alleles
        */
       for (i=0; i<nca; i++)   // i = allele id in current VAR record
         {
@@ -3105,6 +3109,38 @@ PhaseWithPrevVreg(int32 nca, Allele *alleles, Read *reads, int32 **allele_map,
               is_phased = 1;
           }
         }
+
+      /* If still not phased, try another approach for the particular case of diploid genome */
+      if (!is_phased && nca == 2)
+      {
+          int max = -1, max2 = -1, i_best = -1, j_best = -1;
+
+          /* Find the max and 2nd max elements */
+          for (i=0; i<nca; i++)
+          {
+              for (j=0; j<prev_nca; j++)
+              {
+                  if (max < allele_matrix[i][j])
+                  {
+                      max2 = max;
+                      max = allele_matrix[i][j];
+                      i_best = i;
+                      j_best = j;
+                  }
+                  else if (max >= allele_matrix[i][j] && max2 < allele_matrix[i][j])
+                  {
+                      max2 = allele_matrix[i][j];
+                  }
+              }
+          }
+          if (max > max2)
+          {
+              is_phased = 1;
+              (*allele_map)[j_best] = i_best;
+              (*allele_map)[j_best == 0 ? 1 : 0] = i_best == 0 ? 1 : 0;
+          }
+      }
+
       safe_free(allele_matrix[0]);
       safe_free(allele_matrix);
       safe_free(check);
@@ -3123,7 +3159,7 @@ show_confirmed_reads(VarRegion *vreg)
       if (vreg->reads[j].allele_id >= vreg->nca)
         continue;
 
-      for (l=0; l< vreg->end-vreg->beg+1; l++)
+      for (l=0; l< vreg->end-vreg->beg; l++)
         {
           fprintf(stderr, "%c", vreg->reads[j].bases[l]);
         }
@@ -3160,7 +3196,7 @@ show_reads(VarRegion *vreg)
   fprintf(stderr, "Reads=\n");
   for (j=0; j<vreg->nr; j++)
     {
-      for (l=0; l< vreg->end-vreg->beg+1; l++)
+      for (l=0; l< vreg->end-vreg->beg; l++)
         {
           fprintf(stderr, "%c", vreg->reads[j].bases[l]);
         }
@@ -3183,10 +3219,9 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
 {
   // refresh columns from cid to end
   // if quality == -1, don't recall the consensus base
-  int     i=0, j=0, l=0, index=0, len_manode = MIN_SIZE_OF_MANODE;
+  int     i=0, i1, j=0, l=0, index=0, len_manode = MIN_SIZE_OF_MANODE;
   int32   cid=0, *cids=NULL, *prev_iids=NULL;
-  int     window=0, vbeg=0, vend=0, max_prev_nr=INITIAL_NR,
-    prev_nr=0;
+  int     window=0, svbeg=0, svend=0, max_prev_nr=INITIAL_NR, prev_nr=0;
   char    cbase=0, abase=0, *prev_bases = NULL;
   char   *var_seq=NULL;
   double *varf=NULL, *svarf=NULL;
@@ -3211,7 +3246,7 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
   CNS_Options  opp_private;
   if (opp == NULL) {
     opp_private.split_alleles   = CNS_OPTIONS_SPLIT_ALLELES_DEFAULT;
-    opp_private.smooth_win      = CNS_OPTIONS_MIN_ANCHOR_DEFAULT-1;
+    opp_private.smooth_win      = CNS_OPTIONS_MIN_ANCHOR_DEFAULT;
     opp_private.max_num_alleles = CNS_OPTIONS_MAX_NUM_ALLELES;
     opp = &opp_private;
   }
@@ -3362,37 +3397,44 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
       else 
         {
           // Process a region of variation
+          //
+          // opp->smooth_win <  0 means no columns with variation will be grouped
+          //                      into regions of variation
+          // opp->smooth_win == 0 means only immediately adjacent columns with
+          //                      variation will be grouped into regions of variation
           int32  is_phased = 0;
           int32 *conf_read_iids = NULL;
           double fict_var;
           int32 *allele_map;
 
-          vreg.beg = vbeg = vend = i;
+          vreg.beg = vreg.end = svbeg = svend = i;
 
-          /* Set the beginning of unsmoothed VAR region */
-          while (vreg.beg < len_manode - 1 && 
-                 DBL_EQ_DBL(varf[vreg.beg], (double)0.0))
-            vreg.beg++;
-
-          /* Set the end of smoothed VAR region */
-          if (opp->smooth_win >= 0)
+          /* Set the beginning of unsmoothed VAR region to the 1st position with varf != 0 */
+          if (opp->smooth_win > 0)
           {
-              while ((vend < len_manode-1) && (svarf[vend] > ZERO_PLUS))
-                  vend++;
-              vreg.end = vend;
-          }
-          else
-          {
-              vend = vbeg+1;
-              vreg.end = vend;
+              while (vreg.beg < len_manode - 1 &&
+                     DBL_EQ_DBL(varf[vreg.beg], (double)0.0))
+                vreg.beg++;
           }
 
-          /* Set end of unsmoothed VAR region */
-          if (opp->smooth_win >= 0)
+          /* Set the end of smoothed VAR region to the 1st position with svarf == 0 */
+          if (opp->smooth_win > 0)
           {
-              while (vreg.end >0 && varf[vreg.end] < ZERO_PLUS)
-                vreg.end--;
+              while ((svend < len_manode-1) && (svarf[svend] > ZERO_PLUS))
+                  svend++;
           }
+          else if (svend < len_manode-1)
+              svend++;
+
+          /* Set the end of unsmoothed VAR region to the 1st position with varf == 0 */
+          vreg.end = vreg.beg;
+          if (opp->smooth_win > 0)
+          {
+              while (vreg.end < len_manode-1 && varf[vreg.end] > ZERO_PLUS)
+                  vreg.end++;
+          }
+          else if (svend < len_manode-1)
+              vreg.end++;
 
           // Store iids of all the reads in current region
           vreg.nr = 0;
@@ -3401,11 +3443,11 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
 
           // Get all the read iids
           // Calculate the total number of reads, vreg.nr (corresponding to any allele)
-          for (j=vreg.beg; j<=vreg.end; j++)
+          for (j=vreg.beg; j<vreg.end; j++)
             GetReadIidsAndNumReads(cids[j], &vreg);
 
           // Allocate memrory for reads
-          AllocateMemoryForReads(&vreg.reads, vreg.nr, vreg.end - vreg.beg + 1,
+          AllocateMemoryForReads(&vreg.reads, vreg.nr, vreg.end - vreg.beg,
                                  0);
 
           GetReadsForVARRecord(vreg.reads, vreg.iids, vreg.nr, vreg.beg,
@@ -3416,7 +3458,7 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
           if (SHOW_READS) show_reads(&vreg);
 
           AllocateDistMatrix(&vreg, -1);
-          PopulateDistMatrix(vreg.reads, vreg.end-vreg.beg+1, &vreg);
+          PopulateDistMatrix(vreg.reads, vreg.end-vreg.beg, &vreg);
 
           if (OUTPUT_DISTANCE_MATRIX)
             OutputDistMatrix(stderr, &vreg);
@@ -3428,7 +3470,12 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
           // Determine the best allele and the number of reads in this allele
           ClusterReads(vreg.reads, vreg.nr, vreg.alleles, &(vreg.na),
                        &(vreg.nca), vreg.dist_matrix);
-
+#if 0
+          if (vreg.nca < 2) {
+              fprintf(stderr, "nca= %d\n", vreg.nca);
+              show_reads(&vreg);
+          }
+#endif
           is_phased = PhaseWithPrevVreg(vreg.nca, vreg.alleles, vreg.reads, 
                                         &allele_map,
                                         prev_nca, prev_nca_iid, prev_nca_iid_max,
@@ -3446,18 +3493,18 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
           {
             int start_num = 0, num_conf_reads = 0;
 
-            for (i=0; i<vreg.nca; i++)
-              num_conf_reads += vreg.alleles[i].num_reads;
+            for (i1=0; i1<vreg.nca; i1++)
+              num_conf_reads += vreg.alleles[i1].num_reads;
 
             conf_read_iids = (int32 *)safe_calloc(num_conf_reads, sizeof(int32));
 
-            for (i=0; i<vreg.nca; i++)
+            for (i1=0; i1<vreg.nca; i1++)
               {
-                for (j=0; j<vreg.alleles[i].num_reads; j++)
-                  {
-                    conf_read_iids[start_num+j] = vreg.alleles[i].read_iids[j];
-                  }
-                start_num += vreg.alleles[i].num_reads;
+                for (j=0; j<vreg.alleles[i1].num_reads; j++)
+                {
+                    conf_read_iids[start_num+j] = vreg.alleles[i1].read_iids[j];
+                }
+                start_num += vreg.alleles[i1].num_reads;
               }
           }
 
@@ -3508,7 +3555,8 @@ RefreshMANode(int32 mid, int quality, CNS_Options *opp, int32 *nvars,
                               vreg, opp, get_scores, conf_read_iids);
           }
 
-          i = vend;
+          if (opp->smooth_win > 0)
+            i = svend;
 
           for (j=0; j<vreg.nr; j++)
             {
@@ -5660,7 +5708,7 @@ LeftShift(Abacus *abacus, VarRegion vreg, int *lcols)
       for (j=0; j<vreg.alleles[i].num_reads; j++)
         {
           int k, read_id = vreg.alleles[i].read_ids[j];
-          int len = vreg.end-vreg.beg+1;
+          int len = vreg.end-vreg.beg;
           fprintf(stderr, "    %d   ", read_id);
           for (k=0; k<len; k++)
             fprintf(stderr, "%c", vreg.reads[read_id].bases[k]);
@@ -5754,7 +5802,7 @@ int32 RightShift(Abacus *abacus, VarRegion vreg, int *rcols)
       for (j=0; j<vreg.alleles[i].num_reads; j++)
         {
           int k, read_id = vreg.alleles[i].read_ids[j];
-          int len = vreg.end-vreg.beg+1;
+          int len = vreg.end-vreg.beg;
           fprintf(stderr, "    %d   ", read_id);
           for (k=0; k<len; k++)
             fprintf(stderr, "%c", vreg.reads[read_id].bases[k]);
