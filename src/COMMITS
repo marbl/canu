@@ -11926,3 +11926,97 @@ Add AS_SHR again to copy shred scripts to bin.
 
 Change some defaults for new JCVI grid.
 
+----------------------------------------
+2008/01/09 16:33:15     1.10    eliv    COMMITS
+
+Add changes since 11/2007. Also simplify use so perl COMMITS >> COMMITS now works.
+However, the user must 1st hand edit the $date variable to pick an appropriate time frame.
+
+----------------------------------------
+2008/01/09 17:01:37     1.9     eliv    AS_RUN/runCA-OBT/runCAutil/site-jcvi.pl
+
+Phase out use of aserver_new.
+
+----------------------------------------
+2008/01/09 19:24:29     1.44    eliv    AS_RUN/runCA-OBT/runCAutil/scaffolder.pl
+
+We get distupdate err messages from the dummy libraries that pullfrag
+creates, so don't die because of them.
+
+----------------------------------------
+2008/01/10 16:11:23     1.33    skoren  AS_RUN/Makefile
+2008/01/10 16:10:33     1.29    skoren  AS_RUN/runCA-OBT/runCA.pl
+2008/01/10 16:10:33     1.43    skoren  AS_RUN/runCA-OBT/runCAutil/createOverlapJobs.pl
+2008/01/10 16:10:33     1.5     skoren  AS_RUN/runCA-OBT/runCAutil/merOverlapper.pl
+2008/01/10 16:10:33     1.1     skoren  AS_RUN/runCA-OBT/runCAutil/umdOverlapper.pl
+2008/01/10 16:10:33     1.74    skoren  AS_RUN/runCA-OBT/runCAutil/util.pl
+
+added code for running UMD overlapper in CA pipeline
+
+----------------------------------------
+2008/01/11 15:58:28     1.28    eliv    AS_RUN/runCA-OBT/runCAutil/createConsensusJobs.pl
+2008/01/11 15:58:28     1.26    eliv    AS_RUN/runCA-OBT/runCAutil/createPostUnitiggerConsensus.pl
+
+Have echo of consensus command go to cns.err file.
+
+----------------------------------------
+2008/01/11 21:16:09     1.10    eliv    AS_SHR/FASTA_to_frg_file.pl
+2008/01/11 21:16:09     1.6     eliv    AS_SHR/Generate_NonShallow_Contigs.pl
+2008/01/11 21:16:09     1.4     eliv    AS_SHR/Shred_Contigs.pl
+
+Add use FindBin and use lib to find UID.pm in the asm bin dir.
+
+----------------------------------------
+2008/01/15 20:47:45     1.12    skoren  AS_CGW/exploreGapStructure.c
+
+added call to AS_configure to load environment settings for error rate
+before running
+
+----------------------------------------
+2008/01/15 20:49:18     1.20    skoren  AS_OVL/Makefile
+2008/01/15 20:50:56     1.2     skoren  AS_RUN/runCA-OBT/runCAutil/umdOverlapper.pl
+2008/01/15 20:50:56     1.75    skoren  AS_RUN/runCA-OBT/runCAutil/util.pl
+
+added check for UMD overlapper so if it is found, the overlapper will
+be copied to the CA bin directory
+
+----------------------------------------
+2008/01/16 22:13:08     1.35    eliv    AS_CGW/CIScaffoldT_Merge_CGW.c
+
+CleanupScaffolds() after every merge interation, hopefully increasing
+consistency between runs.
+
+----------------------------------------
+2008/01/22 18:00:39     1.3     skoren  AS_RUN/runCA-OBT/runCAutil/umdOverlapper.pl
+
+fixed incorrect restart when using UMD overlapper
+
+----------------------------------------
+2008/01/23 13:38:58     1.4     skoren  AS_RUN/runCA-OBT/runCAutil/umdOverlapper.pl
+
+*** empty log message ***
+
+----------------------------------------
+2008/01/24 18:03:22     1.179   gdenisov        AS_CNS/MultiAlignment_CNS.c
+
+
+1) A reference consensus base will be required to be represented by at least
+   two read bases in a column. For example, if a column contains only three
+   read bases, with QVs  49 (.A.), 22(.C.) and 22(.C.), the reference consensus
+   sequence will be .C., and not .A., even though the sum of QVs for .A. is
+   greater than a sum of QVs for .C.. As a consequence, at least 4 aligned
+   reads will be required in order to detect a variation.
+2) Corrected the procedure for computing the boundaries of the region of
+   variation, to make sure that with CNS_OPTIONS_MIN_ANCHOR_DEFAULT = 0, even
+   immediately adjacent columns of variation will not be grouped into regions.
+3) Phasing of VAR records: added more code which is specific to the case where
+   there are exactly two confirmed alleles. The code will force phasing of
+   confirmed alleles between two adjacent regions even if only one of these
+   alleles maps well on allele of previously processed VAR record.
+
+----------------------------------------
+2008/01/24 21:03:54     1.24    eliv    AS_CGW/frgs2clones.c
+
+fragUID, mateUID and mergeUid vars are only used for printing, so make
+them uint64 and call AS_UID_toInteger() on their sources.
+
