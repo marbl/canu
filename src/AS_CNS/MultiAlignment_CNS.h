@@ -30,7 +30,8 @@
 
 #define CNS_MIN_QV 0
 #define CNS_MAX_QV 60
-#define CNS_NALPHABET 6
+// 1/28/2008 - include the N character in the allowed alphabet
+#define CNS_NALPHABET 7
 #define CNS_NP 32 
 
 #define COMPARE_ARGS char *aseq, char *bseq, int beg, int end, int opposite, double erate, double thresh, int minlen, CompareOptions what
@@ -217,7 +218,7 @@ MANode * CreateMANode(int32 iid);
 static char ALPHABET[] = {'-','a','c','g','t','n'};
 
 static int RALPH_INIT=0;
-static char RALPHABET[CNS_NP] = {'-','A','C','G','T',
+static char RALPHABET[CNS_NP] = {'-','A','C','G','T','N',
                                  'a','c','g','t',   // -A, -C, -G, -T
                                  'M','R','W',   //     AC, AG, AT
                                  'S','Y',   //         CG, CT
@@ -227,8 +228,8 @@ static char RALPHABET[CNS_NP] = {'-','A','C','G','T',
                                  'k',   //            -GT
                                  'V','H','D','B',   //ACG,ACT,AGT,CGT
                                  'v','h','d','b',   //-ACG,-ACT,-AGT,-CGT
-                                 'X','x','N'};// ACGT, -ACGT, ??
-static char RALPHABETC[CNS_NP] = {'-','T','G','C','A',
+                                 'X','x'};// ACGT, -ACGT, ??
+static char RALPHABETC[CNS_NP] = {'-','T','G','C','A','N',
                                   't','g','c','a',   // -A, -C, -G, -T
                                   'K','Y','W',   //     AC, AG, AT
                                   'S','R',   //         CG, CT
@@ -238,7 +239,7 @@ static char RALPHABETC[CNS_NP] = {'-','T','G','C','A',
                                   'm',   //            -GT
                                   'B','D','H','V',   //ACG,ACT,AGT,CGT
                                   'b','d','h','v',   //-ACG,-ACT,-AGT,-CGT
-                                  'X','x','N'};// ACGT,-ACGT, ??
+                                  'X','x'};// ACGT,-ACGT, ??
 
 static double TAU_MISMATCH = (double)1./(5. - 1.); 
 static uint32 AMASK[] = {   
