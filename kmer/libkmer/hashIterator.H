@@ -12,6 +12,8 @@ public:
     _e3 = 0;  _s3 = 4;
     _e4 = 0;  _s4 = 6; 
 
+    _stop = 0;
+
     _tsiz = ts;
     _nerr = ne;
 

@@ -67,4 +67,6 @@ writerThread(void *U, void *Q) {
   }
 
   delete query;
+
+  return(0L);
 }

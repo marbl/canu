@@ -12,6 +12,8 @@
 
 #include "hitReader.H"
 
+#define UNIQ_THRESH 50
+#define QUAL_THRESH  0.2
 
 int
 main(int argc, char **argv) {
@@ -23,9 +25,6 @@ main(int argc, char **argv) {
 
   hitReader    HR(argc);
 
-  u32bit       uniqThresh         = 50;
-  double       qualityThresh      = 0.2;
-
   //  takes no args
 
   int arg = 1;
@@ -35,13 +34,12 @@ main(int argc, char **argv) {
   }
 
   while (HR.loadHits()) {
-    u32bit  count = 0;
 
     HR.sortByCoverage();
 
-    //  Output top 'uniqThresh' hits
+    //  Output top 'UNIQ_THRESH' hits
 
-    u32bit  max = uniqThresh;
+    u32bit  max = UNIQ_THRESH;
 
     if (max >= HR.numHits())
       max = HR.numHits();
@@ -50,18 +48,20 @@ main(int argc, char **argv) {
       ahit_printASCII(&HR[i].a, stdout);
 
 #if 0
+    u32bit  count = 0;
+
     for (u32bit i=0; i < HR.numHits(); i++)
-      if (qualityThresh <= HR[i].coverage)
+      if (QUAL_THRESH <= HR[i].coverage)
         count++;
 
-    if ((count > 0) && (count < uniqThresh)) {
-      //  Output all hits above qualityThresh
+    if ((count > 0) && (count < UNIQ_THRESH)) {
+      //  Output all hits above QUAL_THRESH
       for (u32bit i=0; i < HR.numHits(); i++)
-        if (qualityThresh <= HR[i].coverage)
+        if (QUAL_THRESH <= HR[i].coverage)
           ahit_printASCII(&HR[i].a, stdout);
     } else {
-      //  Output top 'uniqThresh' hits
-      for (u32bit i=0; i < uniqThresh; i++)
+      //  Output top 'UNIQ_THRESH' hits
+      for (u32bit i=0; i < UNIQ_THRESH; i++)
         ahit_printASCII(&HR[i].a, stdout);
     }
 #endif

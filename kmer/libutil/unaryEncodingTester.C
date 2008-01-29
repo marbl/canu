@@ -22,7 +22,7 @@ testUnary(void) {
     setUnaryEncodedNumber(ptr, pos, &siz, rnd[i]);
     pos += siz;
     if (pos + 1000 >= spa) {
-      fprintf(stderr, "ERROR:  Ran out of space in testUnary at number "u64bitFMT" out of %d\n", i, numNums);
+      fprintf(stderr, "ERROR:  Ran out of space in testUnary at number "u64bitFMT" out of "u64bitFMT"\n", i, numNums);
       exit(1);
     }
   }
@@ -56,7 +56,7 @@ testGeneralizedUnary(void) {
     setGeneralizedUnaryEncodedNumber(ptr, pos, &siz, rnd[i]);
     pos += siz;
     if (pos + 1000 >= spa) {
-      fprintf(stderr, "ERROR:  Ran out of space in testGeneralizedUnary at number "u64bitFMT" out of %d\n", i, numNums);
+      fprintf(stderr, "ERROR:  Ran out of space in testGeneralizedUnary at number "u64bitFMT" out of "u64bitFMT"\n", i, numNums);
       exit(1);
     }
   }
@@ -91,7 +91,7 @@ testEliasGamma(void) {
     setEliasGammaEncodedNumber(ptr, pos, &siz, rnd[i]);
     pos += siz;
     if (pos + 1000 >= spa) {
-      fprintf(stderr, "ERROR:  Ran out of space in testGeneralizedUnary at number "u64bitFMT" out of %d\n", i, numNums);
+      fprintf(stderr, "ERROR:  Ran out of space in testGeneralizedUnary at number "u64bitFMT" out of "u64bitFMT"\n", i, numNums);
       exit(1);
     }
   }
@@ -125,7 +125,7 @@ testEliasDelta(void) {
     setEliasDeltaEncodedNumber(ptr, pos, &siz, rnd[i]);
     pos += siz;
     if (pos + 1000 >= spa) {
-      fprintf(stderr, "ERROR:  Ran out of space in testGeneralizedUnary at number "u64bitFMT" out of %d\n", i, numNums);
+      fprintf(stderr, "ERROR:  Ran out of space in testGeneralizedUnary at number "u64bitFMT" out of "u64bitFMT"\n", i, numNums);
       exit(1);
     }
   }

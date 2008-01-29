@@ -105,7 +105,7 @@ seqStore::loadStore(const char *filename, seqStream *ss) {
   fread(_blockInfo, sizeof(seqStoreBlock), _numBlocks + 1, BLOCKS);
 
   if (errno)
-    fprintf(stderr, "seqStream::loadStore()-- Failed to read "u32bitFMT" blocks: %s\n", _numBlocks, strerror(errno)), exit(1);
+    fprintf(stderr, "seqStream::loadStore()-- Failed to read "u64bitFMT" blocks: %s\n", _numBlocks, strerror(errno)), exit(1);
 
   fclose(BLOCKS);
 

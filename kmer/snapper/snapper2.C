@@ -207,7 +207,7 @@ main(int argc, char **argv) {
     if (numTooLongQueries > 0) {
       fprintf(stderr, "WARNING:\n");
       fprintf(stderr, "WARNING:  Found "u32bitFMT" queries longer than maximum size ("u32bitFMT")\n",
-              numTooLongQueries, u64bitONE << 22);
+              numTooLongQueries, u32bitONE << 22);
       fprintf(stderr, "WARNING:\n");
     }
     if (numOKQueries == 0) {

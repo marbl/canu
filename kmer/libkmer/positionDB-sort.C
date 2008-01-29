@@ -75,7 +75,7 @@ positionDB::sortAndRepackBucket(u64bit b) {
   for (s64bit t=(le-2)/2; t>=0; t--) {
     if (_sortedPosn[t] == u64bitMASK(_posnWidth)) {
       unsetBucket = 1;
-      fprintf(stdout, "ERROR: unset posn bucket="u64bitFMT" t="u32bitFMT" le="u32bitFMT"\n", b, t, le);
+      fprintf(stdout, "ERROR: unset posn bucket="u64bitFMT" t="s64bitFMT" le="u32bitFMT"\n", b, t, le);
     }
 
     adjustHeap(_sortedChck, _sortedPosn, t, le);
@@ -83,7 +83,7 @@ positionDB::sortAndRepackBucket(u64bit b) {
 
   if (unsetBucket)
     for (u32bit t=0; t<le; t++)
-      fprintf(stdout, "%4u] chck=u64bitHEX posn=u64bitFMT\n", t, _sortedChck[t], _sortedPosn[t]);
+      fprintf(stdout, u32bitFMTW(4)"] chck="u64bitHEX" posn="u64bitFMT"\n", t, _sortedChck[t], _sortedPosn[t]);
 
   //  Interchange the new maximum with the element at the end of the tree
   //

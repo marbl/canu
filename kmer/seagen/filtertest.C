@@ -178,13 +178,13 @@ main(int argc, char **argv) {
       hitsLen++;
 
       if ((hitsLen & 0xff) == 0) {
-        fprintf(stderr, "reading hits %lu\r", hitsLen);
+        fprintf(stderr, "reading hits "u32bitFMT"\r", hitsLen);
         fflush(stderr);
       }
     }
   }
 
-  fprintf(stderr, "reading hits %lu\n", hitsLen);
+  fprintf(stderr, "reading hits "u32bitFMT"\n", hitsLen);
 
 
   //  Sort the hits by estid
@@ -306,7 +306,7 @@ main(int argc, char **argv) {
 
         //  Print L, H, V, sensitivity, specificity
         //
-        fprintf(stdout, "%f %f %f  %6.4f %6.4f  %lu %lu %lu %lu\n",
+        fprintf(stdout, "%f %f %f  %6.4f %6.4f  "u32bitFMT" "u32bitFMT" "u32bitFMT" "u32bitFMT"\n",
                 L, H, V,
                 (double)truepositive / (truepositive + falsenegative),
                 (double)truenegative / (truenegative + falsepositive),

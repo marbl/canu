@@ -95,8 +95,8 @@ positionDB::positionDB(merStream   *MS,
   if (sm > lg) {
     fprintf(stderr, "ERROR:  too many mers for this mersize!\n");
     fprintf(stderr, "        sm         = "u64bitFMT"\n", sm);
-    fprintf(stderr, "        lg         = "u64bitFMT"\n", sm, lg);
-    fprintf(stderr, "        merSize    = "u64bitFMT" bits\n", 2 * merSize);
+    fprintf(stderr, "        lg         = "u64bitFMT"\n", lg);
+    fprintf(stderr, "        merSize    = "u32bitFMT" bits\n", 2 * merSize);
     fprintf(stderr, "        approxMers = "u64bitFMT" mers\n", approxMers);
     fprintf(stderr, "        posnWidth  = "u64bitFMT" bits\n", posnWidth);
     exit(1);
@@ -104,8 +104,8 @@ positionDB::positionDB(merStream   *MS,
 
 #if 0
   fprintf(stderr, "        sm         = "u64bitFMT"\n", sm);
-  fprintf(stderr, "        lg         = "u64bitFMT"\n", sm, lg);
-  fprintf(stderr, "        merSize    = "u64bitFMT" bits\n", 2 * merSize);
+  fprintf(stderr, "        lg         = "u64bitFMT"\n", lg);
+  fprintf(stderr, "        merSize    = "u32bitFMT" bits\n", 2 * merSize);
   fprintf(stderr, "        approxMers = "u64bitFMT" mers\n", approxMers);
   fprintf(stderr, "        posnWidth  = "u64bitFMT" bits\n", posnWidth);
 #endif

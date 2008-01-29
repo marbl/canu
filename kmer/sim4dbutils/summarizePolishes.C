@@ -106,7 +106,7 @@ readMatches(char           *filename,
     fclose(F);
   }
 
-  fprintf(stderr, "read %d matches.\n", matches.size());
+  fprintf(stderr, "read %d matches.\n", (int)matches.size());
 }
 
 

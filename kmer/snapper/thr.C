@@ -87,7 +87,12 @@ searchThread(void *U) {
         //
         //  Filter the hits
         //
-        u32bit numF = doFilter(state, theHits, theHitsLen, theLog);
+
+#ifdef VERBOSE_FILTER
+        //  All to get rid of a compiler warning, ugh.
+        u32bit numF =
+#endif
+        doFilter(state, theHits, theHitsLen, theLog);
 
 #ifdef VERBOSE_FILTER
         if (theHitsLen >= VERBOSE_FILTER_MINIMUM)

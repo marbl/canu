@@ -11,7 +11,6 @@ s4p_deleteExon(sim4polish *p, int a) {
   int    i;
   int    editDistance    = 0;
   int    alignmentLength = 0;
-  int    numCovered      = 0;
 
   //  Warn if we don't have alignments -- this is now done by the
   //  driver (e.g., cleanPolishes.C)

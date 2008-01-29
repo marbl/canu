@@ -37,7 +37,6 @@ s4p_copyPolish(sim4polish *orig) {
 
 sim4polish *
 s4p_copyPolish_OneExon(sim4polish *orig, int exon) {
-  int         i;
   sim4polish *copy = 0L;
 
   if (orig == 0L)

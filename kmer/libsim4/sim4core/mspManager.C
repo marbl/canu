@@ -410,7 +410,9 @@ mspManager::addHit_(char *genSeq, char *estSeq,
   char *genTmp = 0L;
   char *estTmp = 0L;
   int   right_sum  = 0;
+#ifdef TEST_SEEDS_IN_EXTENSION
   int   middle_sum = 0;
+#endif
   int   left_sum   = 0;
   int   sum        = 0;
   int   score      = 0;

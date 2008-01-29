@@ -39,8 +39,8 @@ Sim4::maskExonsFromSeeds(sim4command *cmd,
       for (u32bit x=0; x<cmd->numberOfExternalSeeds(); x++) {
         u32bit pos = cmd->externalSeedGENPosition(x);
 
-        if ((theExon->frGEN <= pos + 1) &&
-            (pos <= theExon->toGEN + cmd->externalSeedLength(x)))
+        if (((u32bit)theExon->frGEN <= pos + 1) &&
+            (pos <= (u32bit)theExon->toGEN + cmd->externalSeedLength(x)))
           cmd->maskExternalSeed(x);
       }
     }

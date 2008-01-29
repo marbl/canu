@@ -181,7 +181,7 @@ main(int argc, char **argv) {
 
       u32bit  gSeqIID = strtou32bit(W[i+1], 0L);
       u32bit  gSeqBeg = strtou32bit(W[i+3], 0L);
-      u32bit  gSeqEnd = strtou32bit(W[i+4], 0L);  //  Not used
+      //u32bit  gSeqEnd = strtou32bit(W[i+4], 0L);  //  Not used
 
       bool    fwd  = (p->matchOrientation == SIM4_MATCH_FORWARD);
 

@@ -365,7 +365,7 @@ sffFile::find(seqIID  iid) {
 
   if (iid >= _header.number_of_reads) {
     fprintf(stderr, "sffFile::find(IID)-- index of "u32bitFMT" too large for '%s' (only "u32bitFMT" sequences).n",
-            iid, _header.number_of_reads);
+            iid, _fileName, _header.number_of_reads);
     return(false);
   }
 

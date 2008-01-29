@@ -232,8 +232,8 @@ readBuffer::read(void *buf, size_t len) {
         errno = 0;
         bAct = (u32bit)::read(_file, bufchar + bCopied + bRead, (len - bCopied - bRead) * sizeof(char));
         if (errno) {
-          fprintf(stderr, "readBuffer()-- couldn't read %d bytes from '%s': n%s\n",
-                  (u32bit)len * sizeof(char), _filename, strerror(errno));
+          fprintf(stderr, "readBuffer()-- couldn't read "u32bitFMT" bytes from '%s': n%s\n",
+                  (u32bit)(len * sizeof(char)), _filename, strerror(errno));
           exit(1);
         }
 

@@ -229,7 +229,7 @@ encodedQuery::addOutput(void *newout, u32bit size) {
       o = new char [_outputMax];
     } catch (std::bad_alloc) {
       fprintf(stderr, "encodedQuery::addOutput()-- out of memory, tried to extend output string\n");
-      fprintf(stderr, "encodedQuery::addOutput()-- from %lu to %lu bytes.\n",
+      fprintf(stderr, "encodedQuery::addOutput()-- from "u32bitFMT" to "u32bitFMT" bytes.\n",
               _outputLen, _outputMax);
       exit(1);
     }
