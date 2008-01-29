@@ -513,7 +513,7 @@ std::cerr << "Storing UPS " << std::endl;
    uint64 cco = static_cast<uint64>(LookupValueInHashTable_AS(CCO_UID_to_MSGID, AS_UID_toInteger(ccoID), 0));
    uint64 utg = static_cast<uint64>(LookupValueInHashTable_AS(UTG_UID_to_MSGID, AS_UID_toInteger(unitigID), 0)); 
 
-   #warning truncating delta in UPS to 1000
+   //TODO: warning truncating delta in UPS to 1000
    sprintf(cmd, 
             "INSERT INTO UPS " \
             "(ups_AssemblyID, ups_EUID, ups_CIID, ups_cco_MSG_ID, ups_utg_MSG_ID, ups_type, ups_pos1, " \

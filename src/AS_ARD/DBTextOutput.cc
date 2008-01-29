@@ -271,7 +271,7 @@ bool DBTextOutput::storeCCOMPS2DB(
                   int32 delta_length,
                   std::string delta) {
 
-   #warning using 0 as ciid for CCOMPS
+   //TODO: warning using 0 as ciid for CCOMPS
    std::cerr << assemblyID << "\t"
                   << AS_UID_toInteger(ccoMpsID) << "\t"
                   << 0 << "\t"
@@ -295,8 +295,8 @@ bool DBTextOutput::storeUPS2DB(
                   CDS_COORD_t end,
                   int32 delta_length,
                   std::string delta) {
-   #warning truncating delta in UPS to 1000
-   #warning using 0 as ciid for UPS
+   //TODO: warning truncating delta in UPS to 1000
+   //	   using 0 as ciid for UPS
    std::cerr << assemblyID << "\t" 
                   << AS_UID_toInteger(upsID) << "\t"
                   << 0 << "\t" 
@@ -321,7 +321,7 @@ bool DBTextOutput::storeVAR2DB(
                   CDS_COORD_t var_length,
                   int32 curr_var_id,
                   int32 phased_var_id) {
-   #warning using 0 as ciid for VAR
+   //TODO: warning using 0 as ciid for VAR
    std::cerr << assemblyID << "\t"
                   << AS_UID_toInteger(varID) << "\t"
                   << 0 << "\t" 
@@ -339,7 +339,7 @@ bool DBTextOutput::storeVAR2DB(
 }
 
 bool DBTextOutput::storeVARAllele2DB(AS_UID varAlleleID, AS_UID varID, uint32 nra, uint32 wgt, std::string seq) {
-   #warning using 0 as ciid for VAR_ALLELE
+   //TODO: warning using 0 as ciid for VAR_ALLELE
    std::cerr << assemblyID << "\t"
                      << AS_UID_toInteger(varAlleleID) << "\t"
                      << 0 << "\t" 
@@ -352,7 +352,7 @@ bool DBTextOutput::storeVARAllele2DB(AS_UID varAlleleID, AS_UID varID, uint32 nr
 }
 
 bool DBTextOutput::storeVARAFG2DB(AS_UID varAfgID, AS_UID varID, CDS_CID_t readID) {
-   #warning using 0 as ciid for VAR_AFG
+   //TODO: warning using 0 as ciid for VAR_AFG
    std::cerr << assemblyID << "\t"
                   << AS_UID_toInteger(varAfgID) << "\t"
                   << 0 << "\t"
@@ -406,7 +406,7 @@ bool DBTextOutput::storeSCF2DB(AS_UID eaccession, CDS_CID_t iaccession, uint32 n
 }
 
 bool DBTextOutput::storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev, ChunkOrientationType orient) {
-   #warning using 0 as ciid for CTP
+   //TODO: warning using 0 as ciid for CTP
    std::cerr << assemblyID << "\t"
                   << AS_UID_toInteger(ctpID) << "\t"
                   << 0 << "\t"

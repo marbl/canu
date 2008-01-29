@@ -442,7 +442,7 @@ bool BCPOutput::storeJMP2DB(int jmpType, AS_UID jmpID, AS_UID ulkID, LinkType ty
       assert(0);
    }
    
-   #warning using 0 as ciid for JMP
+   //TODO: warning using 0 as ciid for JMP
    (*stream) 
          << assemblyID  << "\t"
          << AS_UID_toInteger(jmpID) << "\t"
@@ -478,7 +478,7 @@ bool BCPOutput::storeJMPList2DB(int jmpType, AS_UID jmpListID, AS_UID jmpID, AS_
       assert(0);
    }
 
-   #warning using 0 as ciid for JMP_LIST
+   //TODO: warning using 0 as ciid for JMP_LIST
    (*stream) << assemblyID << "\t" 
          << AS_UID_toInteger(jmpListID) << "\t"
          << 0 << "\t"
@@ -533,7 +533,7 @@ bool BCPOutput::storeCCOMPS2DB(
       ccoMpsBCP = openFile(CCO_MPS_FILENAME);
    }
 
-   #warning using 0 as ciid for CCOMPS
+   //TODO: warning using 0 as ciid for CCOMPS
    (*ccoMpsBCP) << assemblyID << "\t"
                   << AS_UID_toInteger(ccoMpsID) << "\t"
                   << 0 << "\t"
@@ -561,8 +561,8 @@ bool BCPOutput::storeUPS2DB(
       upsBCP = openFile(UPS_FILENAME);
    }
       
-   #warning truncating delta in UPS to 1000
-   #warning using 0 as ciid for UPS
+   //TODO: warning truncating delta in UPS to 1000
+   //using 0 as ciid for UPS
    (*upsBCP) << assemblyID << "\t" 
                   << AS_UID_toInteger(upsID) << "\t"
                   << 0 << "\t" 
@@ -591,7 +591,7 @@ bool BCPOutput::storeVAR2DB(
       varBCP = openFile(VAR_FILENAME);
    }
 
-   #warning using 0 as ciid for VAR
+   //TODO: warning using 0 as ciid for VAR
    (*varBCP) << assemblyID << "\t"
                   << AS_UID_toInteger(varID) << "\t"
                   << 0 << "\t" 
@@ -613,7 +613,7 @@ bool BCPOutput::storeVARAllele2DB(AS_UID varAlleleID, AS_UID varID, uint32 nra, 
       varAlleleBCP = openFile(VAR_ALLELE_FILENAME);
    }
    
-   #warning using 0 as ciid for VAR_ALLELE
+   //TODO: warning using 0 as ciid for VAR_ALLELE
    (*varAlleleBCP) << assemblyID << "\t"
                      << AS_UID_toInteger(varAlleleID) << "\t"
                      << 0 << "\t" 
@@ -630,7 +630,7 @@ bool BCPOutput::storeVARAFG2DB(AS_UID varAfgID, AS_UID varID, CDS_CID_t readID) 
       varAFGBCP = openFile(VAR_AFG_FILENAME);
    }
    
-   #warning using 0 as ciid for VAR_AFG
+   //TODO: warning using 0 as ciid for VAR_AFG
    (*varAFGBCP) << assemblyID << "\t"
                   << AS_UID_toInteger(varAfgID) << "\t"
                   << 0 << "\t"
@@ -700,7 +700,7 @@ bool BCPOutput::storeCTP2DB(AS_UID ctpID, AS_UID scfID, float mean, float stddev
       ctpBCP = openFile(CTP_FILENAME);
    }
 
-   #warning using 0 as ciid for CTP
+   //TODO: warning using 0 as ciid for CTP
    (*ctpBCP) << assemblyID << "\t"
                   << AS_UID_toInteger(ctpID) << "\t"
                   << 0 << "\t"
