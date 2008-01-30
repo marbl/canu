@@ -29,6 +29,8 @@ typedef signed short        s16bit;
 typedef unsigned char       u8bit;
 typedef signed char         s8bit;
 
+#define  sizetFMT        "%zu"
+
 #define  u64bitNUMBER(X) X ## LU
 #define  u64bitZERO      (0x0000000000000000LU)
 #define  u64bitONE       (0x0000000000000001LU)
@@ -77,6 +79,8 @@ typedef unsigned short      u16bit;
 typedef signed short        s16bit;
 typedef unsigned char       u8bit;
 typedef signed char         s8bit;
+
+#define  sizetFMT        "%zu"
 
 #define  u64bitNUMBER(X) X ## LLU
 #define  u64bitZERO      (0x0000000000000000LLU)

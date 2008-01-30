@@ -48,7 +48,7 @@ safe_substr(char      **seg,
   }
   strncpy(*seg,seq+beg,end-beg);
   (*seg)[end-beg]='\0';
-  return(strlen(*seg)==end-beg);
+  return(strlen(*seg) - (end-beg) == 0);
 }
 
 
@@ -63,11 +63,12 @@ static int *get_trace(const char *aseq, const char *bseq,Local_Overlap *O,int pi
   static char *aseg=NULL, *bseg=NULL;
   static int asegspace=0,bsegspace=0;
   static int *segtrace[2], tracespace[2]={0,0};
-  int alen,blen;
-  int spnt, *tmptrace;
-  int segdiff;
-  int i;
-  int iret;
+  int alen = 0;
+  int blen = 0;
+  int spnt=0, *tmptrace=0L;
+  int segdiff=0;
+  int i=0;
+  int iret=0;
 
   assert(which==0||which==1);
 
@@ -252,8 +253,6 @@ static PAIRALIGN *get_align(const char *aseq,const char *bseq,Local_Overlap *O,i
 void fix_overlapping_pieces(const char *aseq, const char *bseq,
 			    Local_Overlap *O,int piece0, int piece1){
 
-  //int i,j;
-  int pos=0;
   PAIRALIGN *pair_align1,*pair_align2;
 
   int offseta1,offsetb1,offseta2,offsetb2;

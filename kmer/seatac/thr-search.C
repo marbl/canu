@@ -1,7 +1,7 @@
 #include "posix.H"
 #include "seatac.H"
 
-char const *srchGbye = "["u64bitFMT"] computed: "u64bitFMTW(8)"  blocked: "u64bitFMTW(4)"/"u64bitFMTW(4)"  encodeTime: %7.2f   searchTime: %7.2f   processTime: %7.2f\n";
+char const *srchGbye = "[%ld] computed: "u64bitFMTW(8)"  blocked: "u64bitFMTW(4)"/"u64bitFMTW(4)"  encodeTime: %7.2f   searchTime: %7.2f   processTime: %7.2f\n";
 
 class searcherState {
 public:
@@ -85,9 +85,9 @@ searchThread(void *U) {
   //  Allocate and fill out the thread stats -- this ensures that we
   //  always have stats (even if they're bogus).
   //
-  threadStats[(u64bit)U] = new char [1025];
-  sprintf(threadStats[(u64bit)U], srchGbye,
-          (u64bit)U,
+  threadStats[(long)U] = new char [1025];
+  sprintf(threadStats[(long)U], srchGbye,
+          (long)U,
           (u32bit)0, (u32bit)0, (u32bit)0,
           0.0, 0.0, 0.0);
 
@@ -127,7 +127,7 @@ searchThread(void *U) {
         //
         while (idx > (outputPos + config._writerHighWaterMark)) {
           if (config._writerWarnings)
-            fprintf(stderr, u64bitFMT" Blocked by output (idx = "u32bitFMT", outputPos = "u32bitFMT").\n", (u64bit)U, idx, outputPos);
+            fprintf(stderr, u64bitFMT" Blocked by output (idx = "u32bitFMT", outputPos = "u32bitFMT").\n", (long)U, idx, outputPos);
           blockedO++;
           nanosleep(&config._searchSleep, 0L);
         }
@@ -161,7 +161,7 @@ searchThread(void *U) {
 
   //  OK, now fill out the read thread stats
   //
-  sprintf(threadStats[(u64bit)U], srchGbye, (u64bit)U,
+  sprintf(threadStats[(long)U], srchGbye, (long)U,
           computed, blockedI, blockedO,
           state->encodeTime,
           state->searchTime,

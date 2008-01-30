@@ -208,7 +208,7 @@ bigQueue::mergeTemporaryFiles(void) {
           _temporaryFiles[i] = 0L;
         } else {
           //  initialize the node with the value
-          dnode_init(&nodes[i], (void *)i);
+          dnode_init(&nodes[i], (void *)(unsigned long)i);
 
           //  insert the node into the tree using the key
           dict_insert(sorted, &nodes[i], thing);

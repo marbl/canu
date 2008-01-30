@@ -1105,12 +1105,12 @@ Local_Segment *Find_Local_Segments(char const * const A, int const Alen,
   static int   DagMax = -1;
   static int   BseqLen = -1;
 
-  int              numhit;
-  HitRecord       *hits;
-  int              numtrap;
-  Trapezoid       *traps;
-  int              numseg;
-  Local_Segment   *segs;
+  int              numhit = 0;
+  HitRecord       *hits = 0L;
+  int              numtrap = 0;
+  Trapezoid       *traps = 0L;
+  int              numseg = 0;
+  Local_Segment   *segs = 0L;
 
 
   //  Defining this causes scoring to be set so that nearly all

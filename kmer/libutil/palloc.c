@@ -5,12 +5,6 @@
 
 #include "util.h"
 
-#ifdef TRUE64BIT
-#define SIZETFMT "%ld"
-#else
-#define SIZETFMT "%d"
-#endif
-
 typedef struct pallocroot pallocroot;
 typedef struct pallocnode pallocnode;
 
@@ -40,7 +34,7 @@ void *
 really_allocate(size_t size) {
   void *ret = malloc(size);
   if (ret == 0L) {
-    fprintf(stderr, "palloc()-- can't allocate "SIZETFMT" bytes: %s.\n", size, strerror(errno));
+    fprintf(stderr, "palloc()-- can't allocate "sizetFMT" bytes: %s.\n", size, strerror(errno));
     exit(1);
   }
   return(ret);
@@ -103,7 +97,7 @@ pfree2(void *handle) {
   }
 
   if (root->_dbg > 0)
-    fprintf(stderr, "palloc()-- "SIZETFMT" bytes in "SIZETFMT" blocks returned to free store.\n", r, b);
+    fprintf(stderr, "palloc()-- "sizetFMT" bytes in "sizetFMT" blocks returned to free store.\n", r, b);
 
   root->_nl = 0L;
   root->_cn = 0L;
@@ -139,7 +133,7 @@ palloc2(size_t size, void *handle) {
     root->_cn = root->_nl;
 
     if (root->_dbg > 0)
-      fprintf(stderr, "palloc()-- Inital block of "SIZETFMT" bytes at %p.\n", root->_bs, root->_cn);
+      fprintf(stderr, "palloc()-- Inital block of "sizetFMT" bytes at %p.\n", root->_bs, root->_cn);
 
     root->_cn->_cp = 0;
     root->_cn->_dt = (char *)really_allocate(root->_bs);
@@ -174,7 +168,7 @@ palloc2(size_t size, void *handle) {
     n->_nx = root->_nl;
 
     if (root->_dbg > 0)
-      fprintf(stderr, "palloc()-- New needs "SIZETFMT" bytes: custom new block at %p.\n",
+      fprintf(stderr, "palloc()-- New needs "sizetFMT" bytes: custom new block at %p.\n",
               size,
               n);
 
@@ -192,7 +186,7 @@ palloc2(size_t size, void *handle) {
     root->_cn->_nx = (pallocnode *)really_allocate(sizeof(pallocnode));
 
     if (root->_dbg > 0)
-      fprintf(stderr, "palloc()-- Old block %.3f%% used ("SIZETFMT" bytes remaining), new needs "SIZETFMT" bytes: new block of "SIZETFMT" bytes at %p.\n",
+      fprintf(stderr, "palloc()-- Old block %.3f%% used ("sizetFMT" bytes remaining), new needs "sizetFMT" bytes: new block of "sizetFMT" bytes at %p.\n",
               100.0 * root->_cn->_cp / root->_bs,
               root->_bs - root->_cn->_cp,
               size,
@@ -211,7 +205,7 @@ palloc2(size_t size, void *handle) {
   root->_cn->_cp += size;
 
   if (root->_dbg > 1)
-    fprintf(stderr, "palloc()-- Old block %.3f%% used ("SIZETFMT" bytes remaining): returning "SIZETFMT" bytes at %p.\n",
+    fprintf(stderr, "palloc()-- Old block %.3f%% used ("sizetFMT" bytes remaining): returning "sizetFMT" bytes at %p.\n",
               100.0 * root->_cn->_cp / root->_bs,
             root->_bs - root->_cn->_cp,
             size, root->_cn->_dt + root->_cn->_cp - size);
@@ -231,9 +225,9 @@ void
 pdumppalloc(void) {
   pallocnode *n = _palloc_stuff._nl;
   fprintf(stderr, "palloc dump\n");
-  fprintf(stderr, ""SIZETFMT" bytes per block\n", _palloc_stuff._bs);
+  fprintf(stderr, ""sizetFMT" bytes per block\n", _palloc_stuff._bs);
   while (n != 0L) {
-    fprintf(stderr, "%p: currentPosition: "SIZETFMT" bytes used%s\n",
+    fprintf(stderr, "%p: currentPosition: "sizetFMT" bytes used%s\n",
             n, n->_cp, (n == _palloc_stuff._cn) ? ", current block" : "");
     n = n->_nx;
   }

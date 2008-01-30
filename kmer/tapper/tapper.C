@@ -4,41 +4,55 @@
 
 //  Tests a positionDB, looking for hits with three errors.
 
-//#define MERSIZE 24   //  mersize in bases
-//#define TBLSIZE 22   //  table size in bits
-
-#define MERSIZE 27   //  mersize in bases
-
-
 void
 encodeToColor(char *seq, u32bit len) {
-
-
-
 }
-
-
-
 
 int
 main(int argc, char **argv) {
+  char   *genName   = 0L;
+  char   *qryName   = 0L;
+  u32bit  merSize   = 25;
+  u32bit  maxError  = 3;
+  bool    beVerbose = false;
 
-  if (argc != 3) {
-    fprintf(stderr, "usage: %s seq.fasta queries.fasta\n", argv[0]);
+  int arg=1;
+  int err=0;
+  while (arg < argc) {
+    if        (strcmp(argv[arg], "-genomic") == 0) {
+      genName = argv[++arg];
+    } else if (strcmp(argv[arg], "-queries") == 0) {
+      qryName = argv[++arg];
+
+    } else if (strcmp(argv[arg], "-mersize") == 0) {
+      merSize = strtou32bit(argv[++arg], 0L);
+    } else if (strcmp(argv[arg], "-maxerror") == 0) {
+      maxError = strtou32bit(argv[++arg], 0L);
+
+    } else if (strcmp(argv[arg], "-genomic") == 0) {
+    } else if (strcmp(argv[arg], "-genomic") == 0) {
+
+    } else if (strcmp(argv[arg], "-verbose") == 0) {
+      beVerbose = 1;
+    } else {
+      fprintf(stderr, "%s: unknown option '%s'\n", argv[0], argv[arg]);
+      err++;
+    }
+    arg++;
+  }
+  if ((err > 0) || (genName == 0L) || (qryName == 0L)) {
+    fprintf(stderr, "usage: %s -genomic g.fasta -queries q.fasta\n", argv[0]);
     exit(1);
   }
 
-  char *seqName = argv[1];
-  char *qryName = argv[2];
-
-  seqStream  *SS = new seqStream(seqName, true);
-  merStream  *MS = new merStream(new kMerBuilder(MERSIZE), SS);
-  positionDB *PS = new positionDB(MS, MERSIZE, 0, 0L, 0L, 0, true, true);
+  seqStream  *SS = new seqStream(genName, true);
+  merStream  *MS = new merStream(new kMerBuilder(merSize), SS);
+  positionDB *PS = new positionDB(MS, merSize, 0, 0L, 0L, 0, beVerbose, true);
   delete MS;  MS=0L;
   delete SS;  SS=0L;
 
   seqStream  *SQ = new seqStream(qryName, true);
-  merStream  *MQ = new merStream(new kMerBuilder(MERSIZE), SQ);
+  merStream  *MQ = new merStream(new kMerBuilder(merSize), SQ);
 
   u64bit *posn    = 0L;
   u64bit  posnMax = 0;

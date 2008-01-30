@@ -43,7 +43,7 @@ addToDict(dict_t *d, char *n) {
 
     strcpy(dcpy, S->header());
 
-    dnode_init(node, (void *)S->getIID());
+    dnode_init(node, (void *)(unsigned long)S->getIID());
     dict_insert(d, node, dcpy);
 
     delete S;
@@ -132,8 +132,8 @@ main(int argc, char **argv) {
       exit(1);
     }
 
-    p->estID = (u32bit)(u64bit)dnode_get(cid);
-    p->genID = (u32bit)(u64bit)dnode_get(gid);
+    p->estID = (u32bit)(unsigned long)dnode_get(cid);
+    p->genID = (u32bit)(unsigned long)dnode_get(gid);
 
     s4p_printPolish(stdout, p, S4P_PRINTPOLISH_NOTVALUABLE);
     s4p_destroyPolish(p);

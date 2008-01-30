@@ -385,8 +385,8 @@ fixIID(sim4polish *q, dict_t *estdict) {
     exit(1);
   }
 
-  q->estID = (u32bit)(u64bit)dnode_get(cid);
-  q->genID = (u32bit)(u64bit)dnode_get(gid);
+  q->estID = (u32bit)(unsigned long)dnode_get(cid);
+  q->genID = (u32bit)(unsigned long)dnode_get(gid);
 }
 
 
@@ -473,7 +473,7 @@ addToDict(dict_t *d, char *n) {
 
     strcpy(dcpy, S->header());
 
-    dnode_init(node, (void *)S->getIID());
+    dnode_init(node, (void *)(unsigned long)S->getIID());
     dict_insert(d, node, dcpy);
 
     delete S;

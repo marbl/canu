@@ -51,4 +51,4 @@ halignmodule.so: halign/halignmodule.o halign/halign.o
 	$(CXX) $(CXXSHARED) -o $@ $^
 
 %.o: %.C
-	$(CXX) -fpic $(CFLAGS_COMPILE) $(CFLAGS_PYTHON) -o $@ -c $<
+	$(CXX) -fPIC $(CFLAGS_COMPILE) $(CFLAGS_PYTHON) -o $@ -c $<

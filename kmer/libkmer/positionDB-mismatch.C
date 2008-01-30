@@ -85,9 +85,8 @@ positionDB::getMismatch(u64bit   mer,
           u64bit  chk = REBUILD(hasherrors, getDecodedValue(_buckets, J, _chckWidth));
 
           //  Compare the rebuilt mer and the original mer -- if there
-          //  are exactly three errors, it's a hit!  (if there are
-          //  fewer than three, we'll find it when we look for two
-          //  errors).
+          //  are exactly N errors, it's a hit!  (if there are fewer
+          //  than N, we'll find it when we look for N-1 errors).
 
           u64bit  diffs = chk ^ mer;
           u64bit  d1    = diffs & u64bitNUMBER(0x5555555555555555);

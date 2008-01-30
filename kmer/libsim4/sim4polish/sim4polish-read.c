@@ -143,7 +143,7 @@ s4p_readPolish(FILE *F) {
              &p->percentIdentity,
              mOri, sOri);
   if (r != 12) {
-    fprintf(stderr, "sim4reader: line %u: '%s'\n", l->lineNumber, l->s);
+    fprintf(stderr, "sim4reader: line "u32bitFMT": '%s'\n", l->lineNumber, l->s);
     fprintf(stderr, "sim4reader: Expecting description line, found %d tokens instead of 12.\n", r);
   }
 
@@ -160,7 +160,7 @@ s4p_readPolish(FILE *F) {
       p->matchOrientation = SIM4_MATCH_COMPLEMENT;
       break;
     default:
-      fprintf(stderr, "sim4reader: line %u: '%s'\n", l->lineNumber, l->s);
+      fprintf(stderr, "sim4reader: line "u32bitFMT": '%s'\n", l->lineNumber, l->s);
       fprintf(stderr, "sim4reader: unknown match orientation\n");
       break;
   }
@@ -182,7 +182,7 @@ s4p_readPolish(FILE *F) {
       p->strandOrientation = SIM4_STRAND_FAILED;
       break;
     default:
-      fprintf(stderr, "sim4reader: line %u: '%s'\n", l->lineNumber, l->s);
+      fprintf(stderr, "sim4reader: line "u32bitFMT": '%s'\n", l->lineNumber, l->s);
       fprintf(stderr, "sim4reader: unknown strand orientation\n");
       break;
   }

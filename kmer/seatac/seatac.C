@@ -195,7 +195,7 @@ main(int argc, char **argv) {
   //
   for (u32bit i=0; i<config._numSearchThreads; i++) {
     threadStats[i] = 0L;
-    pthread_create(&threadID, &threadAttr, searchThread, (void *)i);
+    pthread_create(&threadID, &threadAttr, searchThread, (void *)(unsigned long)i);
   }
 
 
