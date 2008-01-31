@@ -138,12 +138,12 @@ sub setGlobal ($$) {
 sub setDefaults () {
     $global{"binRoot"}                     = undef;
 
-    $global{"gkpBelieveInputStdDev"}           = 0;
+    $global{"gkpBelieveInputStdDev"}           = 1;
     
     $global{"cgwOutputIntermediate"}       = 0;
     $global{"cgwPurgeCheckpoints"}         = 1;
     $global{"cgwDemoteRBP"}                = 1;
-    $global{"cgwDistanceSampleSize"}       = 100;
+    $global{"cgwDistanceSampleSize"}       = 1000;
 
     $global{"cleanup"}                     = "none";
 
@@ -159,10 +159,10 @@ sub setDefaults () {
     $global{"doFragmentCorrection"}        = 1;
     $global{"doOverlapTrimming"}           = 1;
     $global{"doResolveSurrogates"}         = 1;
-    $global{"doUpdateDistanceRecords"}     = 0;
+    $global{"doUpdateDistanceRecords"}     = 1;
     $global{"fakeUIDs"}                    = 0;
 
-    $global{"frgCorrBatchSize"}            = 175000;
+    $global{"frgCorrBatchSize"}            = 200000;
     $global{"frgCorrOnGrid"}               = 0;
     $global{"frgCorrThreads"}              = 2;
     $global{"frgCorrConcurrency"}          = 1;
@@ -183,12 +183,12 @@ sub setDefaults () {
 
     $global{"maxGridJobSize"}		   = undef;
 
-    $global{"ovlCorrBatchSize"}            = 175000;
+    $global{"ovlCorrBatchSize"}            = 200000;
     $global{"ovlCorrOnGrid"}               = 0;
     $global{"ovlCorrConcurrency"}          = 4;
-    $global{"ovlHashBlockSize"}            = 40000;   # 150000
+    $global{"ovlHashBlockSize"}            = 200000;   # 150000
     $global{"ovlStart"}                    = 1;
-    $global{"ovlMemory"}                   = "1GB";   # 2GB
+    $global{"ovlMemory"}                   = "2GB";   # 2GB
     $global{"ovlRefBlockSize"}             = 2000000; # 5000000
     $global{"ovlSortMemory"}               = 1024;
     $global{"ovlStoreMemory"}              = 1024;
