@@ -19,14 +19,14 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.30 2007-12-28 19:10:20 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.31 2008-01-31 18:40:31 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
 
 #include "AS_GKP_include.h"
-
+#include "AS_PER_encodeSequenceQuality.h"
 
 //  perl's chomp is pretty nice
 #define chomp(S) { char *t=S; while (*t) t++; t--; while (isspace(*t)) *t--=0; }
@@ -417,18 +417,38 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
         unsigned int   clrEnd = getFragRecordClearRegionEnd  (&fr, dumpClear);
         char          *seq = getFragRecordSequence(&fr);
 
-        if (dumpQuality)
+        if (dumpQuality) 
           seq = getFragRecordQuality(&fr);
 
         seq[clrEnd] = 0;
 
-        fprintf(stdout, ">%s,"F_IID" mate=%s,"F_IID" lib=%s,"F_IID" clr=%s,%d,%d deleted=%d\n%s\n",
-                AS_UID_toString(getFragRecordUID(&fr)), getFragRecordIID(&fr),
-                AS_UID_toString(mateuid), mateiid,
-                AS_UID_toString(libuid), libiid,
+        fprintf(stdout, ">%s,"F_IID" mate=%s,"F_IID" lib=%s,"F_IID" clr=%s,%d,%d deleted=%d\n",
+                AS_UID_toString1(getFragRecordUID(&fr)), getFragRecordIID(&fr),
+                AS_UID_toString2(mateuid), mateiid,
+                AS_UID_toString3(libuid), libiid,
                 AS_READ_CLEAR_NAMES[dumpClear], clrBeg, clrEnd,
-                getFragRecordIsDeleted(&fr),
-                seq + clrBeg);
+                getFragRecordIsDeleted(&fr));
+
+        
+        if (dumpQuality >=2) {
+           int i = 0;
+           int chars = 0;
+           for (i = clrBeg; i < clrEnd; i++) {
+              fprintf(stdout, "%#2d ", (((int)seq[i])-'0'));
+              chars += 3;
+              if (chars % 60 == 0) { fprintf(stdout, "\n");}
+           }
+           fprintf(stdout, "\n");
+        } else {
+           int i = 0;
+           int chars = 0;
+           for (i = clrBeg; i < clrEnd; i++) {
+              fprintf(stdout, "%c", seq[i]);
+              chars++;
+              if (chars % 60 == 0) { fprintf(stdout, "\n");}
+           }
+           fprintf(stdout, "\n");
+        }
       }
     }
   }
