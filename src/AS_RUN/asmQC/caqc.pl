@@ -1,6 +1,6 @@
 #!/usr/local/bin/perl
 
-# $Id: caqc.pl,v 1.27 2007-12-17 19:30:52 brianwalenz Exp $
+# $Id: caqc.pl,v 1.28 2008-01-31 05:18:09 brianwalenz Exp $
 #
 # This program reads a Celera .asm file and produces aggregate information
 # about the assembly
@@ -20,7 +20,7 @@ use File::Copy;
 use Math::BigFloat;
 use FindBin qw($Bin);
 
-my $MY_VERSION = "caqc Version 2.13 (Build " . (qw/$Revision: 1.27 $/)[1] . ")";
+my $MY_VERSION = "caqc Version 2.13 (Build " . (qw/$Revision: 1.28 $/)[1] . ")";
 
 # Constants
 my $MINQUAL    = 20;
@@ -234,7 +234,7 @@ Thus, getBothCAIds('(10, 1000)') returns 10,1000 while getBothCAIds("abba") retu
 sub getBothCAIds {
     my $string = shift;
 
-    if ( $string =~ /\((\d+),(\d+)\)/ ) {
+    if ( $string =~ /\((\S+),(\S+)\)/ ) {
         return ( $1, $2 );
     }
     else {
@@ -255,7 +255,7 @@ Thus, getCAId('(10, 1000)') returns 10 while getCAId("abba") returns "abba".
 sub getCAId {
     my $string = shift;
 
-    if ( $string =~ /\((\d+),(\d+)\)/ ) {
+    if ( $string =~ /\((\S+),(\S+)\)/ ) {
         return $1;
     }
     else {

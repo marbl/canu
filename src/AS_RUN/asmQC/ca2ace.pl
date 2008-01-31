@@ -1,7 +1,7 @@
 #!/usr/local/bin/perl
 
 
-# $Id: ca2ace.pl,v 1.6 2007-07-31 20:51:20 eliv Exp $
+# $Id: ca2ace.pl,v 1.7 2008-01-31 05:18:09 brianwalenz Exp $
 #
 # Converts from a Celera .asm file to a new .ace file
 #
@@ -21,7 +21,7 @@ if (! defined $base){
     die ("Foundation cannot be created.  FATAL!\n");
 }
 
-my $VERSION = '$Revision: 1.6 $ ';
+my $VERSION = '$Revision: 1.7 $ ';
 $base->setVersionInfo($VERSION);
 
 my $HELPTEXT = q~
@@ -119,7 +119,7 @@ while(<IN>) {
         $_ = <IN>;
         die "Expected acc: got $_" unless /^acc:/;
         $_ = <IN>;
-        die "Expected ctg: got $_" unless /^ctg:(\d+)/;
+        die "Expected ctg: got $_" unless /^ctg:(\S+)/;
         $degenCTGs{ $1 } = 1;
     }
 }
@@ -211,11 +211,11 @@ sub cntContigsAndReads() {
     my ($dco,$dcoR);
     my ($sco,$scoR);
     while(<IN>) {
-        if( /^UTG\nacc:\(\d+,[\s\S]+?\nsta:(\w)\n[\s\S]+?nfr:(\d+)/) {
+        if( /^UTG\nacc:\(\S+,[\s\S]+?\nsta:(\S)\n[\s\S]+?nfr:(\d+)/) {
             next unless $1 eq 'S';
             $sco++;
             $scoR += $2;
-        } elsif( /^CCO\nacc:\((\d+),[\s\S]+?npc:(\d+)/) {
+        } elsif( /^CCO\nacc:\((\S+),[\s\S]+?npc:(\d+)/) {
             if (exists $degenCTGs{ $1 }) {
                 $dco++;
                 $dcoR += $2;
@@ -223,11 +223,11 @@ sub cntContigsAndReads() {
                 $co++;
                 $coR += $2;
             }
-        } elsif( /^SCF\nacc:(\w+)/ ) {
+        } elsif( /^SCF\nacc:(\S+)/ ) {
             my $scf = $1;
             if (exists $vectors{ $scf }) {
                 while(<IN>) {
-                    if( /\nct1:(\w+)\nct2:(\w+)\n/ ) {
+                    if( /\nct1:(\S+)\nct2:(\S+)\n/ ) {
                         $vectors{ $1 } = 1;
                         $vectors{ $2 } = 1;
                     }
@@ -242,7 +242,7 @@ sub cntContigsAndReads() {
 }
 # replaced by cntContigsAndReads() since we need to count 6 different things now
 # little hack to allow writing of output once, takes 15s on dros but saves write/rewrite
-#my $countCMD = q[perl -ne 'BEGIN{$/="\n{"} if( /^(CCO\n|UTG\n[\s\S]+?\nsta:(\w))/) {$c++;$frg=1;$c--,$frg=0 if defined $2 && $2 ne 'S'} $r++ if $frg && /^(MPS\n|UPS\ntyp:S)/; END { print "$c $r\n"}'];
+#my $countCMD = q[perl -ne 'BEGIN{$/="\n{"} if( /^(CCO\n|UTG\n[\s\S]+?\nsta:(\S))/) {$c++;$frg=1;$c--,$frg=0 if defined $2 && $2 ne 'S'} $r++ if $frg && /^(MPS\n|UPS\ntyp:S)/; END { print "$c $r\n"}'];
 #my ($numContigs,$numReads) = split ' ',`$countCMD < $infile`
 
 cntContigsAndReads(); # write AS messages to 3 output files

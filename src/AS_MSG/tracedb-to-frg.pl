@@ -143,7 +143,7 @@ sub readXML {
 
     $_ = <X>;
     while ($_ !~ m/^\s*<\/TRACE/i) {
-        if (m!^\s*<TI>(\d+)<!i) {
+        if (m!^\s*<TI>(\S+)<!i) {
             $xid = $1;
         }
         if (m!^\s*<TRACE_TYPE_CODE>(.*)<!i) {
@@ -224,7 +224,7 @@ sub readFasta {
         if (m/^>/) {
             my $ret = $fhdr;
 
-            if      (m/ti\|(\d+)\s/) {
+            if      (m/ti\|(\S+)\s/) {
                 $fhdr = $1;
             } else {
                 die "Failed to parse an ID out of the sequence defline '$_'\n";
@@ -258,7 +258,7 @@ sub readQual {
         if (m/^>/) {
             my $ret = $qhdr;
 
-            if      (m/ti\|(\d+)\s/) {
+            if      (m/ti\|(\S+)\s/) {
                 $qhdr = $1;
             } else {
                 die "Failed to parse an ID out of the quality defline '$_'\n";

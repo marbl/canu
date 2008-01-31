@@ -22,7 +22,7 @@
 #
 ##########################################################################
 
-# $Id: Extract_Contigs_From_ACE_StackFree.pl,v 1.1 2006-01-10 22:44:42 kli1000 Exp $
+# $Id: Extract_Contigs_From_ACE_StackFree.pl,v 1.2 2008-01-31 05:18:09 brianwalenz Exp $
 
 use strict;
 use Getopt::Std;
@@ -105,7 +105,7 @@ for($contig_idx=0; $contig_idx<$num_contigs; $contig_idx++){
 	my @nr_reads=keys %reads_hash;
 	my $nr_read_count=$#nr_reads+1;
 	my $num_id;
-	if($contig_id=~/ctg(\d+)/){
+	if($contig_id=~/ctg(\S+)/){
 		$num_id=$1;
 	}
 	$contig_id=sprintf "contig%05s", $num_id;

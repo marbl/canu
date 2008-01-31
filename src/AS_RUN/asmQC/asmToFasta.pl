@@ -162,8 +162,8 @@ while (my $record = getCARecord(\*STDIN)){
 
     } elsif (!$degenOut && $rec eq "SCF") {
         $offset = 0;
-        $$fields{acc} =~ /\((\w+),\d+/;
-        $$fields{acc} =~ /(\w+)/ unless defined $1 && $1 ne '';
+        $$fields{acc} =~ /\((\S+),\S+/;
+        $$fields{acc} =~ /(\S+)/ unless defined $1 && $1 ne '';
         my $scfId = $1;
         for my $sr (@$recs) {
             my ($sub,$sfs,$srecs) = parseCARecord($sr);
@@ -174,7 +174,7 @@ while (my $record = getCARecord(\*STDIN)){
         }
     } elsif ($degenOut && $rec eq 'DSC') {
         $offset = 0;
-        $$fields{acc} =~ /\((\d+),\d+/;
+        $$fields{acc} =~ /\((\S+),\S+/;
         my $scfId = $1;
         outputContigs($fields->{ctg},$fields->{ctg},0,'N',$scfId);
     }

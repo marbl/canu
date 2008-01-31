@@ -115,7 +115,7 @@ while (!eof(STDIN)) {
         my $mea;
         my $std;
         while ($line ne "}") {
-            if ($line =~ m/^acc:(\d+)$/) {
+            if ($line =~ m/^acc:(\S+)$/) {
                 $acc = $1;
             }
             if ($line =~ m/^mea:(\d+\.*\d*)$/) {
@@ -153,7 +153,7 @@ while (!eof(STDIN)) {
         my $clr;
         while ($line ne "}") {
 
-            if ($line =~ m/^acc:(\d+)$/) {
+            if ($line =~ m/^acc:(\S+)$/) {
                 $acc = $1;
             }
             if ($line =~ m/^clr:(\d+,\d+)$/) {
@@ -232,10 +232,10 @@ while (!eof(STDIN)) {
         my $fg1;
         my $fg2;
         while ($line ne "}") {
-            if ($line =~ m/^fg1:(\d+)$/) {
+            if ($line =~ m/^fg1:(\S+)$/) {
                 $fg1 = $1;
             }
-            if ($line =~ m/^fg2:(\d+)$/) {
+            if ($line =~ m/^fg2:(\S+)$/) {
                 $fg2 = $1;
             }
             $line = <STDIN>; chomp $line;
