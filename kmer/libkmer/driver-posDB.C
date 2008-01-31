@@ -194,36 +194,36 @@ main(int argc, char **argv) {
 
   int arg = 1;
   while (arg < argc) {
-    if        (strncmp(argv[arg], "-mersize", 6) == 0) {
+    if        (strcmp(argv[arg], "-mersize") == 0) {
       mersize = strtou32bit(argv[++arg], 0L);
-    } else if (strncmp(argv[arg], "-merskip", 6) == 0) {
+    } else if (strcmp(argv[arg], "-merskip") == 0) {
       merskip = strtou32bit(argv[++arg], 0L);
 
-    } else if (strncmp(argv[arg], "-mask", 2) == 0) {
+    } else if (strcmp(argv[arg], "-mask") == 0) {
       maskF = argv[++arg];
-    } else if (strncmp(argv[arg], "-only", 3) == 0) {
+    } else if (strcmp(argv[arg], "-only") == 0) {
       onlyF = argv[++arg];
 
-    } else if (strncmp(argv[arg], "-use", 2) == 0) {
+    } else if (strcmp(argv[arg], "-use") == 0) {
       SS.parse(argv[++arg]);
-    } else if (strncmp(argv[arg], "-merbegin", 5) == 0) {
+    } else if (strcmp(argv[arg], "-merbegin") == 0) {
       merBegin = strtou64bit(argv[++arg], 0L);
-    } else if (strncmp(argv[arg], "-merend", 5) == 0) {
+    } else if (strcmp(argv[arg], "-merend") == 0) {
       merEnd = strtou64bit(argv[++arg], 0L);
 
-    } else if (strncmp(argv[arg], "-sequence", 2) == 0) {
+    } else if (strcmp(argv[arg], "-sequence") == 0) {
       SS.setFile(argv[++arg]);
-    } else if (strncmp(argv[arg], "-output", 3) == 0) {
+    } else if (strcmp(argv[arg], "-output") == 0) {
       outputFile = argv[++arg];
 
-    } else if (strncmp(argv[arg], "-dump", 2) == 0) {
+    } else if (strcmp(argv[arg], "-dump") == 0) {
       positionDB *e = new positionDB(argv[argc-1], false);
       e->printState(stdout);
       delete e;
       exit(0);
-    } else if (strncmp(argv[arg], "-test1", 6) == 0) {
+    } else if (strcmp(argv[arg], "-test1") == 0) {
       exit(test1(argv[arg+1]));
-    } else if (strncmp(argv[arg], "-test2", 6) == 0) {
+    } else if (strcmp(argv[arg], "-test2") == 0) {
       exit(test2(argv[arg+1], argv[arg+2]));
     } else {
       fprintf(stderr, "ERROR: unknown arg '%s'\n", argv[arg]);
