@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_CGB_cgb.c,v 1.22 2007-07-28 00:17:07 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_CGB_cgb.c,v 1.23 2008-02-01 20:50:44 eliv Exp $";
 
 //  This module builds the chunk graph from the fragment essential
 //  overlap graph with contained fragments as an augmentation, and
@@ -1141,7 +1141,6 @@ compute_the_global_fragment_arrival_rate(int           recalibrate,
       }
       if(recalibrated_fragment_arrival_rate > best_global_fragment_arrival_rate){
 	best_global_fragment_arrival_rate = recalibrated_fragment_arrival_rate;
-#if 0
 	if(NULL != fout) {
 	  fprintf(fout,"Used recalibrated global_fragment_arrival_rate=%f\n",
 		  (best_global_fragment_arrival_rate));
@@ -1155,7 +1154,6 @@ compute_the_global_fragment_arrival_rate(int           recalibrate,
 	  }
 	  fprintf(fout,"%f\n",max_local_arrival_rate);
 	}
-#endif
       }
       safe_free(arrival_rate_array);
     }
