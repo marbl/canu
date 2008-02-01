@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.23 2007-11-08 13:47:30 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.24 2008-02-01 21:05:30 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -90,7 +90,7 @@ closeStore(StoreStruct *s) {
     AS_UTL_safeWrite(s->fp,
                      s->memoryBuffer, "writeUpdate",
                      sizeof(char),
-                     sizeof(StoreStruct) + (s->lastElem - s->firstElem) * s->elementSize);
+                     sizeof(StoreStruct) + (s->lastElem - s->firstElem + 1) * s->elementSize);
   }
 
   //  If we're dirty write the header.  Yes, we overwrite the header
@@ -398,7 +398,7 @@ convertStoreToMemoryStore(StoreStruct *source) {
   assert(source->allocatedSize == 0);
   assert(source->memoryBuffer == NULL);
 
-  source->allocatedSize   = sizeof(StoreStruct) + (source->lastElem - source->firstElem) * source->elementSize;
+  source->allocatedSize   = sizeof(StoreStruct) + (source->lastElem - source->firstElem + 1) * source->elementSize;
   source->memoryBuffer    = (char *)safe_calloc(sizeof(char), source->allocatedSize);
 
   fflush(source->fp);
