@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.31 2008-01-31 18:40:31 skoren Exp $";
+static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.32 2008-02-01 18:56:20 skoren Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,6 +27,7 @@ static char const *rcsid = "$Id: AS_GKP_dump.c,v 1.31 2008-01-31 18:40:31 skoren
 
 #include "AS_GKP_include.h"
 #include "AS_PER_encodeSequenceQuality.h"
+#include "AS_UTL_fasta.h"
 
 //  perl's chomp is pretty nice
 #define chomp(S) { char *t=S; while (*t) t++; t--; while (isspace(*t)) *t--=0; }
@@ -422,15 +423,14 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
 
         seq[clrEnd] = 0;
 
-        fprintf(stdout, ">%s,"F_IID" mate=%s,"F_IID" lib=%s,"F_IID" clr=%s,%d,%d deleted=%d\n",
-                AS_UID_toString1(getFragRecordUID(&fr)), getFragRecordIID(&fr),
+        if (dumpQuality >=2) {
+           fprintf(stdout, ">%s,"F_IID" mate=%s,"F_IID" lib=%s,"F_IID" clr=%s,%d,%d deleted=%d\n",
+               	AS_UID_toString1(getFragRecordUID(&fr)), getFragRecordIID(&fr),
                 AS_UID_toString2(mateuid), mateiid,
                 AS_UID_toString3(libuid), libiid,
                 AS_READ_CLEAR_NAMES[dumpClear], clrBeg, clrEnd,
                 getFragRecordIsDeleted(&fr));
 
-        
-        if (dumpQuality >=2) {
            int i = 0;
            int chars = 0;
            for (i = clrBeg; i < clrEnd; i++) {
@@ -440,15 +440,14 @@ dumpGateKeeperAsFasta(char       *gkpStoreName,
            }
            fprintf(stdout, "\n");
         } else {
-           int i = 0;
-           int chars = 0;
-           for (i = clrBeg; i < clrEnd; i++) {
-              fprintf(stdout, "%c", seq[i]);
-              chars++;
-              if (chars % 60 == 0) { fprintf(stdout, "\n");}
-           }
-           fprintf(stdout, "\n");
-        }
+	   AS_UTL_writeFastA(stdout, seq, clrEnd-clrBeg,
+		">%s,"F_IID" mate=%s,"F_IID" lib=%s,"F_IID" clr=%s,%d,%d deleted=%d\n",
+                	AS_UID_toString1(getFragRecordUID(&fr)), getFragRecordIID(&fr),
+                	AS_UID_toString2(mateuid), mateiid,
+                	AS_UID_toString3(libuid), libiid,
+                	AS_READ_CLEAR_NAMES[dumpClear], clrBeg, clrEnd,
+                	getFragRecordIsDeleted(&fr));
+	}
       }
     }
   }
