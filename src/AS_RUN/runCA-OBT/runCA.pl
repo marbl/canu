@@ -103,9 +103,9 @@ setParameters($specFile, @specOpts);
 
 printHelp();
 
-localSetup(scalar(@steps) / 2);
-
 checkDirectories();
+
+localSetup(scalar(@steps) / 2);
 
 #  If this is a continuation, we don't want to do obt or fragment
 #  error correction, or a bunch of other stuff.  We could surround
