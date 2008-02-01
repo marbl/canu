@@ -615,7 +615,7 @@ sub submitScript ($) {
     }
 
     system("chmod +x $script");
-    system($cmd) and caFailure("Failed to sumbit script.\n");
+    system($cmd) and caFailure("Failed to submit script.\n");
 
     exit(0);
 }
