@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_rearrange.c,v 1.7 2007-11-08 12:38:12 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_rearrange.c,v 1.8 2008-02-03 22:47:23 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,10 +43,10 @@ addFragToStore(GateKeeperStore           *gkp,
   gkf->hpsLen = strlen(hps);
   gkf->srcLen = strlen(src);
 
-  gkf->seqOffset = getLastElemStore(gkp->seq);
-  gkf->qltOffset = getLastElemStore(gkp->qlt);
-  gkf->hpsOffset = getLastElemStore(gkp->hps);
-  gkf->srcOffset = getLastElemStore(gkp->src);
+  gkf->seqOffset = getLastElemStore(gkp->seq) + 1;
+  gkf->qltOffset = getLastElemStore(gkp->qlt) + 1;
+  gkf->hpsOffset = getLastElemStore(gkp->hps) + 1;
+  gkf->srcOffset = getLastElemStore(gkp->src) + 1;
 
   setGatekeeperUIDtoIID(gkp, gkf->readUID, gkf->readIID, AS_IID_FRG);
   appendIndexStore(gkp->frg, gkf);

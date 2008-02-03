@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.46 2007-11-09 13:40:16 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_gkpStore.c,v 1.47 2008-02-03 22:47:23 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -638,7 +638,7 @@ AS_GKP_addUID(GateKeeperStore *gkp, AS_UID uid) {
     char    *str = NULL;
     uint32   act = 0;
 
-    loc = getLastElemStore(gkp->uid);
+    loc = getLastElemStore(gkp->uid) + 1;
 
     //  Stash the UID on disk.
     appendStringStore(gkp->uid, uid.UIDstring, len);

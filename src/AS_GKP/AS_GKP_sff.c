@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.7 2007-11-19 16:37:54 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_sff.c,v 1.8 2008-02-03 22:47:23 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -445,10 +445,10 @@ Load_SFF(FILE *sff) {
     gkf.hpsLen = 0;
     gkf.srcLen = strlen(r->name);
 
-    gkf.seqOffset = getLastElemStore(gkpStore->seq);
-    gkf.qltOffset = getLastElemStore(gkpStore->qlt);
-    gkf.hpsOffset = getLastElemStore(gkpStore->hps);
-    gkf.srcOffset = getLastElemStore(gkpStore->src);
+    gkf.seqOffset = getLastElemStore(gkpStore->seq) + 1;
+    gkf.qltOffset = getLastElemStore(gkpStore->qlt) + 1;
+    gkf.hpsOffset = getLastElemStore(gkpStore->hps) + 1;
+    gkf.srcOffset = getLastElemStore(gkpStore->src) + 1;
 
     setGatekeeperUIDtoIID(gkpStore, gkf.readUID, gkf.readIID, AS_IID_FRG);
     appendIndexStore(gkpStore->frg, &gkf);

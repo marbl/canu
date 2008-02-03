@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_buildPartition.c,v 1.9 2007-11-08 12:38:12 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_buildPartition.c,v 1.10 2008-02-03 22:47:23 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -113,9 +113,9 @@ Build_Partition(char      *gatekeeperName,
 
     fr.gkfr.seqOffset = -1;
 
-    fr.gkfr.qltOffset = getLastElemStore(gkpart[p]->partqlt);
-    fr.gkfr.hpsOffset = getLastElemStore(gkpart[p]->parthps);
-    fr.gkfr.srcOffset = getLastElemStore(gkpart[p]->partsrc);
+    fr.gkfr.qltOffset = getLastElemStore(gkpart[p]->partqlt) + 1;
+    fr.gkfr.hpsOffset = getLastElemStore(gkpart[p]->parthps) + 1;
+    fr.gkfr.srcOffset = getLastElemStore(gkpart[p]->partsrc) + 1;
 
     //  append the elements
 

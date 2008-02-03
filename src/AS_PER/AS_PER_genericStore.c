@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.24 2008-02-01 21:05:30 brianwalenz Exp $";
+static char CM_ID[] = "$Id: AS_PER_genericStore.c,v 1.25 2008-02-03 22:47:23 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -165,7 +165,7 @@ createStringStore(const char *path, const char *storeLabel) {
 
   s->storeType       = STRING_STORE;
   s->elementSize     = sizeof(char);
-  s->firstElem       = 0;
+  s->firstElem       = 1;
   s->lastElem        = 0;
 
   s->allocatedSize   = 0;
@@ -230,13 +230,16 @@ getStringStore(StoreStruct *s, int64 offset, void *buffer, uint32 maxLength, uin
   int64 actualOffset;
 
   assert(s->storeType == STRING_STORE);
-  assert(offset <= s->lastElem);
 
   actualOffset = offset - s->firstElem;
 
+  assert(actualOffset <= s->lastElem);
+
   if (s->memoryBuffer) {
     memcpy(&length, s->memoryBuffer + actualOffset + sizeof(StoreStruct), sizeof(uint32));
-    assert((length + actualOffset <= s->lastElem) && (length <= maxLength));
+
+    assert(length <= maxLength);
+    assert(length + actualOffset + sizeof(uint32) <= s->lastElem);
 
     if (length > 0)
       memcpy(buffer, s->memoryBuffer + actualOffset + sizeof(StoreStruct) + sizeof(uint32), length);
@@ -250,7 +253,8 @@ getStringStore(StoreStruct *s, int64 offset, void *buffer, uint32 maxLength, uin
       exit(1);
     }
 
-    assert((length + offset + sizeof(uint32) <= s->lastElem) && (length <= maxLength));
+    assert(length <= maxLength);
+    assert(length + actualOffset + sizeof(uint32) <= s->lastElem);
 
     if (length != AS_UTL_safeRead(s->fp,buffer,"getStringStore",sizeof(char), length)) {
       fprintf(stderr, "getStringStore()-- Failed to read all "F_U32" bytes.  Incomplete store?\n", length);
@@ -365,6 +369,8 @@ openStream(StoreStruct *fs) {
 
 void
 resetStream(StreamStruct *ss, int64 startIndex, int64 endIndex) {
+  assert(startIndex != 0);
+  assert(endIndex   != 0);
   ss->startIndex = (startIndex == STREAM_FROMSTART) ? ss->store->firstElem : startIndex;
   ss->endIndex   = (endIndex   == STREAM_UNTILEND)  ? ss->store->lastElem  : endIndex;
 }
@@ -397,6 +403,12 @@ convertStoreToMemoryStore(StoreStruct *source) {
 
   assert(source->allocatedSize == 0);
   assert(source->memoryBuffer == NULL);
+
+  //  These should be true for a disk-based store, and false for a
+  //  memory store.
+  assert(source->firstElem == 1);
+  assert(source->fp        != NULL);
+  assert(source->buffer    == NULL);
 
   source->allocatedSize   = sizeof(StoreStruct) + (source->lastElem - source->firstElem + 1) * source->elementSize;
   source->memoryBuffer    = (char *)safe_calloc(sizeof(char), source->allocatedSize);
@@ -436,8 +448,14 @@ convertStoreToPartialMemoryStore(StoreStruct *source,
   if (lastElem <= 0)
     lastElem = source->lastElem;
 
+  //  These should be true for a disk-based store, and false for a
+  //  memory store.
+  assert(source->firstElem == 1);
+  assert(source->fp        != NULL);
+  assert(source->buffer    == NULL);
+
   if (source->storeType == STRING_STORE) {
-    sourceOffset    = sizeof(StoreStruct) + firstElem;
+    sourceOffset    = sizeof(StoreStruct) + firstElem - source->firstElem;
     sourceMaxOffset = sizeof(StoreStruct) + lastElem;
   } else {
     sourceOffset    = computeOffset(source, firstElem);

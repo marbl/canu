@@ -19,7 +19,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *************************************************************************/
 
-static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.34 2007-11-08 12:38:12 brianwalenz Exp $";
+static char const *rcsid = "$Id: AS_GKP_checkFrag.c,v 1.35 2008-02-03 22:47:23 brianwalenz Exp $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -346,10 +346,10 @@ Check_FragMesg(FragMesg            *frg_mesg,
     gkf.hpsLen = 0;
     gkf.srcLen = strlen(frg_mesg->source);
 
-    gkf.seqOffset = getLastElemStore(gkpStore->seq);
-    gkf.qltOffset = getLastElemStore(gkpStore->qlt);
-    gkf.hpsOffset = getLastElemStore(gkpStore->hps);
-    gkf.srcOffset = getLastElemStore(gkpStore->src);
+    gkf.seqOffset = getLastElemStore(gkpStore->seq) + 1;
+    gkf.qltOffset = getLastElemStore(gkpStore->qlt) + 1;
+    gkf.hpsOffset = getLastElemStore(gkpStore->hps) + 1;
+    gkf.srcOffset = getLastElemStore(gkpStore->src) + 1;
 
     setGatekeeperUIDtoIID(gkpStore, gkf.readUID, gkf.readIID, AS_IID_FRG);
     appendIndexStore(gkpStore->frg, &gkf);
