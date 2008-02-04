@@ -70,6 +70,10 @@ sub localFailure ($) {
 }
 
 
+sub localPostTerminator($) {
+    my $cmd_name = shift;
+}
+
 sub localFinalize() {
 
     # now send out a notice e-mail
